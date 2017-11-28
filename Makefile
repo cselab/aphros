@@ -5,7 +5,7 @@ LD = mpic++
 
 bsx ?= 16
 bsy ?= $(bsx)
-bsz ?= 1
+bsz ?= 16
 ap ?= float
 omp ?= 1
 align ?= 16
@@ -23,9 +23,6 @@ ifeq "$(omp)" "1"
 	CPPFLAGS += -fopenmp
 endif
 
-ifeq "$(bsz)" "1"
-	CPPFLAGS += -D_2DSTENCIL_
-endif
 
 ifeq "$(hdf)" "1"
 	CPPFLAGS += -I/opt/hdf5_openmpi/include -D_USE_HDF_
@@ -46,3 +43,6 @@ clean:
 
 cleandeep: clean
 	find . -iname "*~" -exec rm -f {} \;
+
+run:
+	mpirun -np 2 ./main

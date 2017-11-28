@@ -25,7 +25,6 @@ void initGrid(MPIGrid& grid, const double Lx, const double Ly, const double Lz)
         BlockInfo info = vInfo[i];
         FluidBlock& b = *(FluidBlock*)info.ptrBlock;
 
-#ifndef _2DSTENCIL_
         for(int iz=0; iz<FluidBlock::sizeZ; iz++)
             for(int iy=0; iy<FluidBlock::sizeY; iy++)
                 for(int ix=0; ix<FluidBlock::sizeX; ix++)
@@ -47,26 +46,6 @@ void initGrid(MPIGrid& grid, const double Lx, const double Ly, const double Lz)
                     b(ix, iy, iz).data[6] = 1.0;
                     b(ix, iy, iz).data[7] = 0.0;
                 }
-#else
-        for(int iy=0; iy<FluidBlock::sizeY; iy++)
-            for(int ix=0; ix<FluidBlock::sizeX; ix++)
-            {
-                double pos[2];
-                info.pos(pos, ix, iy);
-                const double x = pos[0]/Lx;
-                const double y = pos[1]/Ly;
-                const double q1 = sin(twopi*x);
-                const double q2 = cos(twopi*y);
-                b(ix, iy).data[0] = q1;
-                b(ix, iy).data[1] = q2;
-                b(ix, iy).data[2] = q1;
-                b(ix, iy).data[3] = 0.5*q1;
-                b(ix, iy).data[4] = 0.5*q2;
-                b(ix, iy).data[5] = 0.5*q1;
-                b(ix, iy).data[6] = 1.0;
-                b(ix, iy).data[7] = 0.0;
-            }
-#endif /* _2DSTENCIL_ */
     }
 }
 
@@ -82,11 +61,7 @@ struct Evaluate123Divergence_CPP
     //          next 1 says tensorial true/false
     //          next 1 specifies the n fields you need to evaluate the operator
     //          next n are indices of the fields to be communicated by MPI
-#ifndef _2DSTENCIL_
     Evaluate123Divergence_CPP(): stencil(-1,-1,-1,2,2,2, false, 3, 0,1,2) {}
-#else
-    Evaluate123Divergence_CPP(): stencil(-1,-1,0,2,2,1, false, 2, 0,1) {}
-#endif /* _2DSTENCIL_ */
 
     // operator interface
     template<typename LabType, typename BlockType>
@@ -95,7 +70,6 @@ struct Evaluate123Divergence_CPP
         typedef BlockType B;
         const double h = info.h_gridpoint;
 
-#ifndef _2DSTENCIL_
         for(int iz=0; iz<BlockType::sizeZ; iz++)
             for(int iy=0; iy<BlockType::sizeY; iy++)
                 for(int ix=0; ix<BlockType::sizeX; ix++)
@@ -107,17 +81,6 @@ struct Evaluate123Divergence_CPP
                     // we stuff it into data[3]
                     o(ix, iy, iz).data[3] = 0.5*(dd0_dx + dd1_dy + dd2_dz)/h;
                 }
-#else
-        for(int iy=0; iy<BlockType::sizeY; iy++)
-            for(int ix=0; ix<BlockType::sizeX; ix++)
-            {
-                const Real dd0_dx = lab(ix+1,iy).data[0] - lab(ix-1,iy).data[0];
-                const Real dd1_dy = lab(ix,iy+1).data[1] - lab(ix,iy-1).data[1];
-
-                // we stuff it into data[3]
-                o(ix, iy).data[3] = 0.5*(dd0_dx + dd1_dy)/h;
-            }
-#endif /* _2DSTENCIL_ */
     }
 };
 
@@ -158,11 +121,11 @@ int main(int argc, char* argv[])
     ArgumentParser parser(argc, (const char**)argv);
 
     const int xpesize = parser("-xpesize").asInt(1);
-    const int ypesize = parser("-ypesize").asInt(xpesize);
-    const int zpesize = parser("-zpesize").asInt(xpesize);
+    const int ypesize = parser("-ypesize").asInt(1);
+    const int zpesize = parser("-zpesize").asInt(2);
     const int bpdx    = parser("-bpdx").asInt(1);
-    const int bpdy    = parser("-bpdy").asInt(bpdx);
-    const int bpdz    = parser("-bpdz").asInt(bpdx);
+    const int bpdy    = parser("-bpdy").asInt(1);
+    const int bpdz    = parser("-bpdz").asInt(2);
 
     const double maxextent = parser("-maxextent").asDouble(1.0);
     const int bpd_max = max(max(bpdx, bpdy), bpdz);
@@ -177,17 +140,11 @@ int main(int argc, char* argv[])
     initGrid(*mygrid, Lx, Ly, Lz);
     DumpHDF5_MPI<MPIGrid, StreamerPickOne_HDF5<0> >(*mygrid, 0, 0, "data0");
     DumpHDF5_MPI<MPIGrid, StreamerPickOne_HDF5<1> >(*mygrid, 0, 0, "data1");
-#ifndef _2DSTENCIL_
     DumpHDF5_MPI<MPIGrid, StreamerPickOne_HDF5<2> >(*mygrid, 0, 0, "data2");
-#endif
 
     // evaluate div([data[0], data[1], data[2]]')
     Evaluate123Divergence_CPP myOperator;
-#ifndef _2DSTENCIL_
     BlockProcessorMPI<AMPILab>(myOperator, *mygrid);  // absorbing BC
-#else
-    BlockProcessorMPI<PMPILab>(myOperator, *mygrid);  // periodic BC
-#endif /* _2DSTENCIL_ */
 
     // dump result
     DumpHDF5_MPI<MPIGrid, StreamerPickOne_HDF5<3> >(*mygrid, 0, 0, "div123");
