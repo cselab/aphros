@@ -14,17 +14,32 @@
 
 #include "BoundaryConditions.h"
 
+#include "hydro/vect.hpp"
+#include "hydro/mesh3d.hpp"
+
 #ifdef _FLOAT_PRECISION_
 typedef float Real;
 #else
 typedef double Real;
 #endif
 
+using Scal = Real;
+
+using Mesh = geom::geom3d::MeshStructured<Scal>;
+using Vect = typename Mesh::Vect;
+using MIdx = typename Mesh::MIdx;
+using Rect = geom::Rect<Vect>;
+using IdxCell = geom::IdxCell;
+using IdxFace = geom::IdxFace;
+using IdxNode = geom::IdxNode;
+
 struct FluidElement
 {
-    Real u, volume;
+    //Real u, volume;
+    Vect v;
+    Scal volume;
     FluidElement() {}
-    void clear() { u = 0.; volume = 0.; }
+    void clear() { v = Vect(0); volume = 0.; }
 };
 
 struct FluidBlock
@@ -37,6 +52,8 @@ struct FluidBlock
 
     typedef FluidElement ElementType;
     typedef FluidElement element_type;
+
+    Mesh mesh;
 
     FluidElement __attribute__((__aligned__(_ALIGNBYTES_))) data[_BLOCKSIZEZ_][_BLOCKSIZEY_][_BLOCKSIZEX_];
 
