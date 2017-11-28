@@ -22,9 +22,9 @@ typedef double Real;
 
 struct FluidElement
 {
-    Real data[8]; // just an example, could also specify multiple members with more descriptive names
+    Real u, volume;
     FluidElement() {}
-    void clear() { for (int i=0; i<8; ++i) data[i] = 0.0; }
+    void clear() { u = 0.; volume = 0.; }
 };
 
 struct FluidBlock

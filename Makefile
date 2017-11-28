@@ -44,5 +44,3 @@ clean:
 cleandeep: clean
 	find . -iname "*~" -exec rm -f {} \;
 
-run:
-	mpirun -np 2 ./main

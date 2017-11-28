@@ -34,17 +34,8 @@ void initGrid(MPIGrid& grid, const double Lx, const double Ly, const double Lz)
                     const double x = pos[0]/Lx;
                     const double y = pos[1]/Ly;
                     const double z = pos[2]/Lz;
-                    const double q1 = x;
-                    const double q2 = y;
-                    const double q3 = z;
-                    b(ix, iy, iz).data[0] = q1;
-                    b(ix, iy, iz).data[1] = q2;
-                    b(ix, iy, iz).data[2] = q3;
-                    b(ix, iy, iz).data[3] = 5.0*q1;
-                    b(ix, iy, iz).data[4] = 5.0*q2;
-                    b(ix, iy, iz).data[5] = 5.0*q3;
-                    b(ix, iy, iz).data[6] = 1.0;
-                    b(ix, iy, iz).data[7] = 0.0;
+                    b(ix, iy, iz).u = x;
+                    b(ix, iy, iz).volume = 1.;
                 }
     }
 }
@@ -84,6 +75,25 @@ struct Evaluate123Divergence_CPP
     }
 };
 
+struct OpAdd
+{
+    StencilInfo stencil;
+    OpAdd(): stencil(-1,-1,-1,2,2,2, false, 2, 0,1) {}
+
+    template<typename LabType, typename BlockType>
+    void operator()(LabType& lab, const BlockInfo& info, BlockType& o) const
+    {
+        typedef BlockType B;
+        const double h = info.h_gridpoint;
+
+        for(int iz=0; iz<BlockType::sizeZ; iz++)
+            for(int iy=0; iy<BlockType::sizeY; iy++)
+                for(int ix=0; ix<BlockType::sizeX; ix++)
+                {
+                    o(ix, iy, iz).u += 1.;
+                }
+    }
+};
 
 template <int _ID>
 struct StreamerPickOne_HDF5
@@ -98,14 +108,14 @@ struct StreamerPickOne_HDF5
     // write
     void operate(const int ix, const int iy, const int iz, Real output[0]) const
     {
-        const AssumedType& input = *((AssumedType*)&ref.data[iz][iy][ix].data[0]);
+        const AssumedType& input = *((AssumedType*)&ref.data[iz][iy][ix].u);
         output[0] = input.team[_ID];
     }
 
     // read
     void operate(const Real output[0], const int ix, const int iy, const int iz) const
     {
-        AssumedType& input = *((AssumedType*)&ref.data[iz][iy][ix].data[0]);
+        AssumedType& input = *((AssumedType*)&ref.data[iz][iy][ix].u);
         input.team[_ID] = output[0];
     }
 
@@ -120,34 +130,33 @@ int main(int argc, char* argv[])
 
     ArgumentParser parser(argc, (const char**)argv);
 
-    const int xpesize = parser("-xpesize").asInt(1);
-    const int ypesize = parser("-ypesize").asInt(1);
-    const int zpesize = parser("-zpesize").asInt(2);
-    const int bpdx    = parser("-bpdx").asInt(1);
-    const int bpdy    = parser("-bpdy").asInt(1);
-    const int bpdz    = parser("-bpdz").asInt(2);
+    const int px = parser("-xpesize").asInt(1);
+    const int py = parser("-ypesize").asInt(1);
+    const int pz = parser("-zpesize").asInt(2);
+    const int bx    = parser("-bpdx").asInt(2);
+    const int by    = parser("-bpdy").asInt(2);
+    const int bz    = parser("-bpdz").asInt(1);
 
-    const double maxextent = parser("-maxextent").asDouble(1.0);
-    const int bpd_max = max(max(bpdx, bpdy), bpdz);
-    const double Lx = maxextent * bpdx / (double)bpd_max;
-    const double Ly = maxextent * bpdy / (double)bpd_max;
-    const double Lz = maxextent * bpdz / (double)bpd_max;
+    const double e = parser("-maxextent").asDouble(1.0);
+    const int bmax = max(max(bx, by), bz);
+    const double lx = e * bx / (double)bmax;
+    const double ly = e * by / (double)bmax;
+    const double lz = e * bz / (double)bmax;
 
-    // allocate the grid
-    MPIGrid * const mygrid = new MPIGrid(xpesize, ypesize, zpesize, bpdx, bpdy, bpdz, maxextent);
+    MPIGrid * const g = new MPIGrid(px, py, pz, bx, by, bz, e);
 
-    // initialize values
-    initGrid(*mygrid, Lx, Ly, Lz);
-    DumpHDF5_MPI<MPIGrid, StreamerPickOne_HDF5<0> >(*mygrid, 0, 0, "data0");
-    DumpHDF5_MPI<MPIGrid, StreamerPickOne_HDF5<1> >(*mygrid, 0, 0, "data1");
-    DumpHDF5_MPI<MPIGrid, StreamerPickOne_HDF5<2> >(*mygrid, 0, 0, "data2");
+    initGrid(*g, lx, ly, lz);
 
-    // evaluate div([data[0], data[1], data[2]]')
-    Evaluate123Divergence_CPP myOperator;
-    BlockProcessorMPI<AMPILab>(myOperator, *mygrid);  // absorbing BC
+    Real dt = 0.1;
+    OpAdd a;
+    for (int i = 0; i < 10; ++i) {
+        auto suff = "_" + std::to_string(i);
+        DumpHDF5_MPI<MPIGrid, StreamerPickOne_HDF5<0>>(*g, i, i*dt, "p" + suff);
+        DumpHDF5_MPI<MPIGrid, StreamerPickOne_HDF5<1>>(*g, i, i*dt, "volume" + suff);
 
-    // dump result
-    DumpHDF5_MPI<MPIGrid, StreamerPickOne_HDF5<3> >(*mygrid, 0, 0, "div123");
+        BlockProcessorMPI<AMPILab>(a, *g);  
+    }
+
 
     MPI_Finalize();
     return 0;
