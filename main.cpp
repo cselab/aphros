@@ -12,6 +12,8 @@
 #include "HDF5Dumper_MPI.h"
 
 #include "hydro/vect.hpp"
+#include "hydro/solver.hpp"
+#include "hydro/advection.hpp"
 
 
 using namespace std;
@@ -29,9 +31,9 @@ void initGrid(MPIGrid& grid, const double lx, const double ly, const double lz)
         MIdx size(B::sizeX, B::sizeY, B::sizeZ);
         double pos[3];
         info.pos(pos, 0, 0, 0);
-        Vect d0(pos[0], pos[1], pos[2]);
+        Vect d0(pos[0]/lx, pos[1]/ly, pos[2]/lz);
         info.pos(pos, size[0] - 1, size[1] - 1, size[2] - 1);
-        Vect d1(pos[0], pos[1], pos[2]);
+        Vect d1(pos[0]/lx, pos[1]/ly, pos[2]/lz);
         Rect domain(d0, d1);
         
         b.mesh = std::unique_ptr<Mesh>(new Mesh());
@@ -61,7 +63,9 @@ void initGrid(MPIGrid& grid, const double lx, const double ly, const double lz)
 struct OpAdd
 {
     StencilInfo stencil;
-    OpAdd(): stencil(-1,-1,-1,2,2,2, false, 5, 0,1,2,3,4) {}
+    Scal dt;
+    Vect vel;
+    OpAdd(Scal dt, Vect vel): stencil(-1,-1,-1,2,2,2, false, 5, 0,1,2,3,4), dt(dt), vel(vel) {}
 
     template<typename LabType, typename BlockType>
     void operator()(LabType& lab, const BlockInfo& info, BlockType& o) const
@@ -71,18 +75,50 @@ struct OpAdd
 
         auto& mesh = (*o.mesh);
         FieldCell<Scal> fc(mesh);
-        
 
+        // copy from block
         for(int iz=0; iz<B::sizeZ; iz++)
             for(int iy=0; iy<B::sizeY; iy++)
                 for(int ix=0; ix<B::sizeX; ix++) {
-                    o(ix, iy, iz).p += 0.1;
+                    MIdx midx(ix, iy, iz);
+                    IdxCell idxcell(mesh.GetBlockCells().GetIdx(midx));
+                    fc[idxcell] = o(ix, iy, iz).p;
                 }
 
+        // velocity and flux
+        FieldFace<Scal> ff_flux(mesh);
+        for (auto idxface : mesh.Faces()) {
+          ff_flux[idxface] = vel.dot(mesh.GetSurface(idxface));
+        }
+
+        // zero-derivative boundary conditions
+        geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
+        for (auto idxface : mesh.Faces()) {
+          if (!mesh.IsExcluded(idxface) && !mesh.IsInner(idxface)) {
+            mf_cond[idxface] =
+                std::make_shared<solver::ConditionFaceValueFixed<Scal>>(Scal(0));
+          }
+        }
+
+        FieldCell<Scal> fc_src(mesh, 0.);
+
+        //Scal dt = 0.5 * h / vel.norm();
+
+        solver::AdvectionSolverExplicit<Mesh, FieldFace<Scal>> 
+        a(mesh, fc, mf_cond, &ff_flux, &fc_src, 0., dt);
+        a.StartStep();
+        a.MakeIteration();
+        a.FinishStep();
+
+        fc = a.GetField();
+
+        // copy to block
         for(int iz=0; iz<B::sizeZ; iz++)
             for(int iy=0; iy<B::sizeY; iy++)
                 for(int ix=0; ix<B::sizeX; ix++) {
-                    o(ix, iy, iz).p += 0.1;
+                    MIdx midx(ix, iy, iz);
+                    IdxCell idxcell(mesh.GetBlockCells().GetIdx(midx));
+                    o(ix, iy, iz).p = fc[idxcell];
                 }
     }
 };
@@ -139,14 +175,22 @@ int main(int argc, char* argv[])
 
     initGrid(*g, lx, ly, lz);
 
+    Scal h = g->getBlocksInfo()[0].h_gridpoint;
+    Vect vel(0.2);
     Real dt = 0.1;
-    OpAdd a;
+    OpAdd a(0.1 * h / vel.norm(), vel);
+    Scal t = 0.;
     for (int i = 0; i < 10; ++i) {
+        Scal t0 = t;
         auto suff = "_" + std::to_string(i);
         DumpHDF5_MPI<MPIGrid, StreamerPickOne_HDF5<0>>(*g, i, i*dt, "p" + suff);
         DumpHDF5_MPI<MPIGrid, StreamerPickOne_HDF5<4>>(*g, i, i*dt, "volume" + suff);
 
-        BlockProcessorMPI<AMPILab>(a, *g);  
+        while (t < t0 + dt) {
+          BlockProcessorMPI<AMPILab>(a, *g);  
+          printf("t=%f, a.dt=%f\n", t, a.dt);
+          t += a.dt;
+        }
     }
 
 

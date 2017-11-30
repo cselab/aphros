@@ -63,7 +63,6 @@ struct FluidBlock
     typedef FluidElement ElementType;
     typedef FluidElement element_type;
 
-    //Mesh mesh;
     std::unique_ptr<Mesh> mesh;
 
 

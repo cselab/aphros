@@ -583,11 +583,11 @@ InterpolateSuperbee(
        if (probe[idxface] > threshold) {
          res[idxface] =
              u[P] + 0.5 * Superbee(u[E] - u[P],
-                                   -4. * g[P].dot(rp) - (u[E] - u[P]));
+                                   -Scal(4.) * g[P].dot(rp) - (u[E] - u[P]));
        } else if (probe[idxface] < -threshold) {
          res[idxface] =
              u[E] - 0.5 * Superbee(u[E] - u[P],
-                                   4. * g[E].dot(re) - (u[E] - u[P]));
+                                   Scal(4.) * g[E].dot(re) - (u[E] - u[P]));
        } else {
          // TODO: Make a CDS proper for non-uniform grids
          res[idxface] = 0.5 * (u[P] + u[E]);
