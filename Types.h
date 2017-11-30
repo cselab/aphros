@@ -128,9 +128,9 @@ public:
     MyLabAbsorbing(): BlockLab<BlockType,allocator>(){}
 
     virtual inline std::string name() const { return "MyTestLab"; }
-    bool is_xperiodic() {return false;}
-    bool is_yperiodic() {return false;}
-    bool is_zperiodic() {return false;}
+    bool is_xperiodic() {return true;}
+    bool is_yperiodic() {return true;}
+    bool is_zperiodic() {return true;}
 
     void _apply_bc(const BlockInfo& info, const Real t=0)
     {

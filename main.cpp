@@ -18,6 +18,8 @@
 
 using namespace std;
 
+const int w = 1;
+
 void initGrid(MPIGrid& grid, const double lx, const double ly, const double lz)
 {
     vector<BlockInfo> vInfo = grid.getBlocksInfo();
@@ -28,13 +30,14 @@ void initGrid(MPIGrid& grid, const double lx, const double ly, const double lz)
         using B = FluidBlock;
         BlockInfo info = vInfo[i];
         B& b = *(B*)info.ptrBlock;
-        MIdx size(B::sizeX, B::sizeY, B::sizeZ);
+        MIdx size(B::sizeX+2, B::sizeY+2, B::sizeZ+2);
         double pos[3];
-        info.pos(pos, 0, 0, 0);
+        info.pos(pos, -1, -1, -1);
         Vect d0(pos[0]/lx, pos[1]/ly, pos[2]/lz);
-        info.pos(pos, size[0] - 1, size[1] - 1, size[2] - 1);
+        info.pos(pos, B::sizeX, B::sizeY, B::sizeZ);
         Vect d1(pos[0]/lx, pos[1]/ly, pos[2]/lz);
         Rect domain(d0, d1);
+        std::cout << d0 << " " << d1 << std::endl;
         
         b.mesh = std::unique_ptr<Mesh>(new Mesh());
         Mesh& mesh = (*b.mesh);
@@ -65,7 +68,7 @@ struct OpAdd
     StencilInfo stencil;
     Scal dt;
     Vect vel;
-    OpAdd(Scal dt, Vect vel): stencil(-1,-1,-1,2,2,2, false, 5, 0,1,2,3,4), dt(dt), vel(vel) {}
+    OpAdd(Scal dt, Vect vel): stencil(-w,-w,-w,w+1,w+1,w+1, true, 5, 0,1,2,3,4), dt(dt), vel(vel) {}
 
     template<typename LabType, typename BlockType>
     void operator()(LabType& lab, const BlockInfo& info, BlockType& o) const
@@ -77,12 +80,16 @@ struct OpAdd
         FieldCell<Scal> fc(mesh);
 
         // copy from block
-        for(int iz=0; iz<B::sizeZ; iz++)
-            for(int iy=0; iy<B::sizeY; iy++)
-                for(int ix=0; ix<B::sizeX; ix++) {
-                    MIdx midx(ix, iy, iz);
+        //for(int iz=0; iz<B::sizeZ; iz++)
+        //    for(int iy=0; iy<B::sizeY; iy++)
+        //        for(int ix=0; ix<B::sizeX; ix++) {
+        for(int iz=-w; iz<B::sizeZ+w; iz++)
+            for(int iy=-w; iy<B::sizeY+w; iy++)
+                for(int ix=-w; ix<B::sizeX+w; ix++) {
+                    MIdx midx(ix+w, iy+w, iz+w);
                     IdxCell idxcell(mesh.GetBlockCells().GetIdx(midx));
-                    fc[idxcell] = o(ix, iy, iz).p;
+                    //fc[idxcell] = o(ix, iy, iz).p;
+                    fc[idxcell] = lab(ix, iy, iz).p;
                 }
 
         // velocity and flux
@@ -96,7 +103,7 @@ struct OpAdd
         for (auto idxface : mesh.Faces()) {
           if (!mesh.IsExcluded(idxface) && !mesh.IsInner(idxface)) {
             mf_cond[idxface] =
-                std::make_shared<solver::ConditionFaceValueFixed<Scal>>(Scal(0));
+                std::make_shared<solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
           }
         }
 
@@ -116,7 +123,7 @@ struct OpAdd
         for(int iz=0; iz<B::sizeZ; iz++)
             for(int iy=0; iy<B::sizeY; iy++)
                 for(int ix=0; ix<B::sizeX; ix++) {
-                    MIdx midx(ix, iy, iz);
+                    MIdx midx(ix+w, iy+w, iz+w);
                     IdxCell idxcell(mesh.GetBlockCells().GetIdx(midx));
                     o(ix, iy, iz).p = fc[idxcell];
                 }
@@ -158,27 +165,27 @@ int main(int argc, char* argv[])
 
     ArgumentParser parser(argc, (const char**)argv);
 
-    const int px = parser("-xpesize").asInt(1);
-    const int py = parser("-ypesize").asInt(1);
+    const int px = parser("-xpesize").asInt(2);
+    const int py = parser("-ypesize").asInt(2);
     const int pz = parser("-zpesize").asInt(2);
-    const int bx    = parser("-bpdx").asInt(2);
-    const int by    = parser("-bpdy").asInt(2);
+    const int bx    = parser("-bpdx").asInt(1);
+    const int by    = parser("-bpdy").asInt(1);
     const int bz    = parser("-bpdz").asInt(1);
 
     const double e = parser("-maxextent").asDouble(1.0);
-    const int bmax = max(max(bx, by), bz);
-    const double lx = e * px * bx / (double)bmax;
-    const double ly = e * py * by / (double)bmax;
-    const double lz = e * pz * bz / (double)bmax;
+    const int bmax = max(max(px * bx, py * by), pz * bz);
+    const double lx = e * px * bx / bmax;
+    const double ly = e * py * by / bmax;
+    const double lz = e * pz * bz / bmax;
 
     MPIGrid * const g = new MPIGrid(px, py, pz, bx, by, bz, e);
 
     initGrid(*g, lx, ly, lz);
 
     Scal h = g->getBlocksInfo()[0].h_gridpoint;
-    Vect vel(0.2);
+    Vect vel(0.2, 0.2, 0.2);
     Real dt = 0.1;
-    OpAdd a(0.1 * h / vel.norm(), vel);
+    OpAdd a(0.25 * h / vel.norm(), vel);
     Scal t = 0.;
     for (int i = 0; i < 10; ++i) {
         Scal t0 = t;
