@@ -23,6 +23,7 @@ ifeq "$(omp)" "1"
 	CPPFLAGS += -fopenmp
 endif
 
+CPPFLAGS += -g
 
 ifeq "$(hdf)" "1"
 	CPPFLAGS += -I/opt/hdf5_openmpi/include -D_USE_HDF_

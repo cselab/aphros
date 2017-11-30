@@ -16,8 +16,6 @@
 
 using namespace std;
 
-const double twopi = atan(1.0)*8.0;
-
 void initGrid(MPIGrid& grid, const double lx, const double ly, const double lz)
 {
     vector<BlockInfo> vInfo = grid.getBlocksInfo();
@@ -25,9 +23,10 @@ void initGrid(MPIGrid& grid, const double lx, const double ly, const double lz)
 #pragma omp parallel for
     for(int i=0; i<(int)vInfo.size(); i++)
     {
+        using B = FluidBlock;
         BlockInfo info = vInfo[i];
-        FluidBlock& b = *(FluidBlock*)info.ptrBlock;
-        MIdx size(FluidBlock::sizeX, FluidBlock::sizeY, FluidBlock::sizeZ);
+        B& b = *(B*)info.ptrBlock;
+        MIdx size(B::sizeX, B::sizeY, B::sizeZ);
         double pos[3];
         info.pos(pos, 0, 0, 0);
         Vect d0(pos[0], pos[1], pos[2]);
@@ -35,12 +34,13 @@ void initGrid(MPIGrid& grid, const double lx, const double ly, const double lz)
         Vect d1(pos[0], pos[1], pos[2]);
         Rect domain(d0, d1);
         
-        geom::InitUniformMesh(b.mesh, domain, size);
-        Mesh& mesh = b.mesh;
+        b.mesh = std::unique_ptr<Mesh>(new Mesh());
+        Mesh& mesh = (*b.mesh);
+        geom::InitUniformMesh(mesh, domain, size);
 
-        for(int iz=0; iz<FluidBlock::sizeZ; iz++)
-            for(int iy=0; iy<FluidBlock::sizeY; iy++)
-                for(int ix=0; ix<FluidBlock::sizeX; ix++)
+        for(int iz=0; iz<B::sizeZ; iz++)
+            for(int iy=0; iy<B::sizeY; iy++)
+                for(int ix=0; ix<B::sizeX; ix++)
                 {
                     double pos[3];
                     MIdx midx(ix, iy, iz);
@@ -50,6 +50,8 @@ void initGrid(MPIGrid& grid, const double lx, const double ly, const double lz)
                     const double x = pos[0]/lx;
                     const double y = pos[1]/ly;
                     const double z = pos[2]/lz;
+                    const double k = 10.;
+                    e.p = std::sin(k*x) * std::sin(k*y) * std::sin(k*z);
                     e.v = mesh.GetCenter(idxcell);
                     e.volume = mesh.GetCenter(idxcell)[0];
                 }
@@ -59,19 +61,28 @@ void initGrid(MPIGrid& grid, const double lx, const double ly, const double lz)
 struct OpAdd
 {
     StencilInfo stencil;
-    OpAdd(): stencil(-1,-1,-1,2,2,2, false, 2, 0,1) {}
+    OpAdd(): stencil(-1,-1,-1,2,2,2, false, 5, 0,1,2,3,4) {}
 
     template<typename LabType, typename BlockType>
     void operator()(LabType& lab, const BlockInfo& info, BlockType& o) const
     {
-        typedef BlockType B;
+        using B = BlockType;
         const double h = info.h_gridpoint;
 
-        for(int iz=0; iz<BlockType::sizeZ; iz++)
-            for(int iy=0; iy<BlockType::sizeY; iy++)
-                for(int ix=0; ix<BlockType::sizeX; ix++)
-                {
-                    o(ix, iy, iz).v[0] += 1.;
+        auto& mesh = (*o.mesh);
+        FieldCell<Scal> fc(mesh);
+        
+
+        for(int iz=0; iz<B::sizeZ; iz++)
+            for(int iy=0; iy<B::sizeY; iy++)
+                for(int ix=0; ix<B::sizeX; ix++) {
+                    o(ix, iy, iz).p += 0.1;
+                }
+
+        for(int iz=0; iz<B::sizeZ; iz++)
+            for(int iy=0; iy<B::sizeY; iy++)
+                for(int ix=0; ix<B::sizeX; ix++) {
+                    o(ix, iy, iz).p += 0.1;
                 }
     }
 };
@@ -80,7 +91,7 @@ template <int _ID>
 struct StreamerPickOne_HDF5
 {
     static const int NCHANNELS = 1; // we dump scalar fields with this streamer
-    struct AssumedType { Real team[8]; };
+    struct AssumedType { Real team[5]; };
 
     FluidBlock& ref;
 
@@ -89,14 +100,14 @@ struct StreamerPickOne_HDF5
     // write
     void operate(const int ix, const int iy, const int iz, Real output[0]) const
     {
-        const AssumedType& input = *((AssumedType*)&ref.data[iz][iy][ix].v[0]);
+        const AssumedType& input = *((AssumedType*)&ref.data[iz][iy][ix].p);
         output[0] = input.team[_ID];
     }
 
     // read
     void operate(const Real output[0], const int ix, const int iy, const int iz) const
     {
-        AssumedType& input = *((AssumedType*)&ref.data[iz][iy][ix].v[0]);
+        AssumedType& input = *((AssumedType*)&ref.data[iz][iy][ix].p);
         input.team[_ID] = output[0];
     }
 
@@ -120,9 +131,9 @@ int main(int argc, char* argv[])
 
     const double e = parser("-maxextent").asDouble(1.0);
     const int bmax = max(max(bx, by), bz);
-    const double lx = e * bx / (double)bmax;
-    const double ly = e * by / (double)bmax;
-    const double lz = e * bz / (double)bmax;
+    const double lx = e * px * bx / (double)bmax;
+    const double ly = e * py * by / (double)bmax;
+    const double lz = e * pz * bz / (double)bmax;
 
     MPIGrid * const g = new MPIGrid(px, py, pz, bx, by, bz, e);
 
@@ -133,7 +144,7 @@ int main(int argc, char* argv[])
     for (int i = 0; i < 10; ++i) {
         auto suff = "_" + std::to_string(i);
         DumpHDF5_MPI<MPIGrid, StreamerPickOne_HDF5<0>>(*g, i, i*dt, "p" + suff);
-        DumpHDF5_MPI<MPIGrid, StreamerPickOne_HDF5<Vect::dim>>(*g, i, i*dt, "volume" + suff);
+        DumpHDF5_MPI<MPIGrid, StreamerPickOne_HDF5<4>>(*g, i, i*dt, "volume" + suff);
 
         BlockProcessorMPI<AMPILab>(a, *g);  
     }

@@ -17,6 +17,8 @@
 #include "hydro/vect.hpp"
 #include "hydro/mesh3d.hpp"
 
+#include <memory>
+
 #ifdef _FLOAT_PRECISION_
 typedef float Real;
 #else
@@ -33,13 +35,21 @@ using IdxCell = geom::IdxCell;
 using IdxFace = geom::IdxFace;
 using IdxNode = geom::IdxNode;
 
+template <class T>
+using FieldCell = geom::FieldCell<T>;
+template <class T>
+using FieldFace = geom::FieldFace<T>;
+template <class T>
+using FieldNode = geom::FieldNode<T>;
+
+
 struct FluidElement
 {
-    //Real u, volume;
+    Scal p;
     Vect v;
     Scal volume;
-    FluidElement() {}
-    void clear() { v = Vect(0); volume = 0.; }
+    FluidElement() = default;
+    void clear() { p = 0.; v = Vect(0); volume = 0.; }
 };
 
 struct FluidBlock
@@ -53,7 +63,9 @@ struct FluidBlock
     typedef FluidElement ElementType;
     typedef FluidElement element_type;
 
-    Mesh mesh;
+    //Mesh mesh;
+    std::unique_ptr<Mesh> mesh;
+
 
     FluidElement __attribute__((__aligned__(_ALIGNBYTES_))) data[_BLOCKSIZEZ_][_BLOCKSIZEY_][_BLOCKSIZEX_];
 
@@ -124,7 +136,8 @@ public:
     void _apply_bc(const BlockInfo& info, const Real t=0)
     {
         // "this->" references attributes inherited from BlockLab
-        BoundaryCondition<BlockType,ElementTypeBlock,allocator> bc(this->m_stencilStart, this->m_stencilEnd, this->m_cacheBlock);
+        BoundaryCondition<BlockType,ElementTypeBlock,allocator> 
+				bc(this->m_stencilStart, this->m_stencilEnd, this->m_cacheBlock);
 
         if (info.index[0]==0)           bc.template applyBC_absorbing<0,0>();
         if (info.index[0]==this->NX-1)  bc.template applyBC_absorbing<0,1>();

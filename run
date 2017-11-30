@@ -1,4 +1,7 @@
 #!/bin/bash
 
+set -eu
+
 make
 mpirun -np 2 ./main 
+#mpirun -np 2 xterm -e gdb ./main 
