@@ -107,24 +107,12 @@ pair<Real, Real> FlowStep_LSRK3MPI<TGrid>::step(TGrid& grid, vector<BlockInfo>& 
     const Real h = vInfo[0].h_gridpoint; // uniform grid size
     const Real dtinvh = dt / h;
 
-    LSRK3data::FlowStep<Kflow, Lab> rhs(a, dtinvh);
-
-    // rhs
-    process< LabMPI >(rhs, (TGrid&)grid, current_time, record);
-
     // diffusion
     LSRK3data::Diffusion<Kdiff, Lab> diffusion(dtinvh, Simulation_Environment::MU1, Simulation_Environment::MU2);
     process< LabMPI >(diffusion, (TGrid&)grid, current_time, record);
 
-#if defined(_CHARACTERISTIC_1D_BOUNDARY_)
-    // 1d characteristic-based bc currently only for Euler equations
-    LSRK3data::UpdateBC<Lab> upbc(dt, a, b);
-    process< LabMPI >(upbc, (TGrid&)grid, current_time, record);
-#endif
-
     // update
     LSRK3data::Update<Kupdate> update(b, &vInfo.front());
-
     update.omp(vInfo.size());
 
     return pair<double, double>(1.,1.);
