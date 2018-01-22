@@ -4,5 +4,5 @@ set -eu
 
 make
 #mpirun -np 2 ./main 
-mpirun -np 8 ./main 
+mpirun --oversubscribe -np 8 ./main 
 #mpirun -np 2 xterm -e gdb ./main 
