@@ -88,13 +88,9 @@ class BlockLabCloud1DCharNonReflectAcousticForcing_5eq: public BlockLab<BlockTyp
 public:
 
     virtual inline std::string name() const { return "BlockLabCloud_1DCharNonReflect_AcousticForcing"; }
-    bool is_xperiodic() {return false;}
-    bool is_yperiodic() {return false;}
-    #ifdef _2D_
+    bool is_xperiodic() {return true;}
+    bool is_yperiodic() {return true;}
     bool is_zperiodic() {return true;}
-    #else
-    bool is_zperiodic() {return false;}
-    #endif
 
     BlockLabCloud1DCharNonReflectAcousticForcing_5eq(): BlockLab<BlockType,Alloc>(){}
 

@@ -1,1 +1,1 @@
-/home/kpetr/work/ethz/projects/cubism/fog_sound/repo/lib/fogsound.py
+../../../fogsound.py

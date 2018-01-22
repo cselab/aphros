@@ -194,27 +194,35 @@ void DivTensor_CPP::_udot_tz(const InputSOA_ST& u0, const InputSOA_ST& v0, const
 
 void DivTensor_CPP::_div_dxy()
 {
-	for(int iy=0; iy<OutputSOA::NY; iy++)
-		for(int ix=0; ix<OutputSOA::NX; ix++)
-        {
-			rhsu.ref(ix, iy) = txx(ix+1, iy) - txx(ix, iy) + tyx(ix, iy+1) - tyx(ix, iy);
-            rhsv.ref(ix, iy) = txy(ix+1, iy) - txy(ix, iy) + tyy(ix, iy+1) - tyy(ix, iy);
-            rhsw.ref(ix, iy) = txz(ix+1, iy) - txz(ix, iy) + tyz(ix, iy+1) - tyz(ix, iy);
-            rhss.ref(ix, iy) = utx(ix+1, iy) - utx(ix, iy) + uty(ix, iy+1) - uty(ix, iy);
-        }
+  for(int iy=0; iy<OutputSOA::NY; iy++)
+    for(int ix=0; ix<OutputSOA::NX; ix++)
+    {
+      //rhsu.ref(ix, iy) = txx(ix+1, iy) - txx(ix, iy) + tyx(ix, iy+1) - tyx(ix, iy);
+      //rhsv.ref(ix, iy) = txy(ix+1, iy) - txy(ix, iy) + tyy(ix, iy+1) - tyy(ix, iy);
+      //rhsw.ref(ix, iy) = txz(ix+1, iy) - txz(ix, iy) + tyz(ix, iy+1) - tyz(ix, iy);
+      //rhss.ref(ix, iy) = utx(ix+1, iy) - utx(ix, iy) + uty(ix, iy+1) - uty(ix, iy);
+      rhsu.ref(ix, iy) = 0.;
+      rhsv.ref(ix, iy) = 0.;
+      rhsw.ref(ix, iy) = 0.;
+      rhss.ref(ix, iy) = 0.;
+    }
 }
 
 void DivTensor_CPP::_div_dz(const TempPiZSOA_ST& tzx0, const TempPiZSOA_ST& tzy0, const TempPiZSOA_ST& tzz0, const TempPiZSOA_ST& utz0,
 							const TempPiZSOA_ST& tzx1, const TempPiZSOA_ST& tzy1, const TempPiZSOA_ST& tzz1, const TempPiZSOA_ST& utz1)
 {
-	for(int iy=0; iy<OutputSOA::NY; iy++)
-		for(int ix=0; ix<OutputSOA::NX; ix++)
-        {
-			rhsu.ref(ix, iy) += tzx1(ix, iy) - tzx0(ix, iy);
-            rhsv.ref(ix, iy) += tzy1(ix, iy) - tzy0(ix, iy);
-            rhsw.ref(ix, iy) += tzz1(ix, iy) - tzz0(ix, iy);
-			rhss.ref(ix, iy) += utz1(ix, iy) - utz0(ix, iy);
-        }
+  for(int iy=0; iy<OutputSOA::NY; iy++)
+    for(int ix=0; ix<OutputSOA::NX; ix++)
+    {
+      //rhsu.ref(ix, iy) += tzx1(ix, iy) - tzx0(ix, iy);
+      //rhsv.ref(ix, iy) += tzy1(ix, iy) - tzy0(ix, iy);
+      //rhsw.ref(ix, iy) += tzz1(ix, iy) - tzz0(ix, iy);
+      //rhss.ref(ix, iy) += utz1(ix, iy) - utz0(ix, iy);
+      rhsu.ref(ix, iy) = 0.;
+      rhsv.ref(ix, iy) = 0.;
+      rhsw.ref(ix, iy) = 0.;
+      rhss.ref(ix, iy) = 0.;
+    }
 }
 
 void DivTensor_CPP::_copyback(Real * const gptfirst, const int gptfloats, const int rowgpts)
