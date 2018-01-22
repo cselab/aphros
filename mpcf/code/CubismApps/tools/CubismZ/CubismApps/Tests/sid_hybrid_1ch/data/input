@@ -1,0 +1,86 @@
+##### Initialization Parameters ####
+
+Simulation : channel
+
+nx 	: 128
+ny 	: 62
+nz	: 64
+
+Lx 	: 2.0 ! 4*pi
+Lz 	: 1.0 ! 2*pi
+
+Radius : 0, 1
+
+Stretching : 1
+!Use a Sin grid
+
+Mean U Velocity : 1.0
+Mean W Velocity : 0.0
+
+Laminar initial flow : 0 ! 1
+Fluctuation rel. amp. :	0.5
+
+Init config file : config_sin
+Init data file : data.init
+
+
+##### Simulation Run Parameters ####
+! Files
+Configuration file :  config_sin
+Data file to read :   data.init
+Data file to write :    data
+Data overwrite :  0
+Data frequency :        1.0
+
+! Partitioning
+Processors along X :  1
+Processors along Y :  12
+Processors along Z :  60
+
+! Chemistry - Properties
+Chemistry model : none
+Density :       1.0
+Viscosity :     1.0e-4
+Diffusivity :   0.000
+Temperature :   300
+Pressure :    1.0133e5
+
+Target Re_tau : 180.0
+
+! Subgrid Scale model
+Use SGS model :   0
+
+! Time advancement
+Timestep size :   0.01
+CFL number :    0.8
+Subiterations :   2
+Implicit directions : xyz
+Allow implicit : 1
+
+! End of simulation
+Maximum iterations :  1e6
+Maximum time :    40.0
+Maximum wall time : 11.8
+
+! Schemes
+Velocity conv scheme :  2
+Velocity visc scheme :  2
+Scalar scheme : BCH
+
+! Pressure
+Pressure solver : AMG	!bicgstab
+Pressure precond :  none	!tridiag
+Pressure fft :    1
+Pressure cvg :    1.e-10
+Pressure iterations : 20	!1
+
+! Output
+! Output type :    ensight
+! Output frequency : 0.25
+! Povray frequency : 10000000000
+
+Use vrsf model : 0
+!Scalar forcing : MSG
+!Output povray : 0
+
+MPIIO fs : lustre

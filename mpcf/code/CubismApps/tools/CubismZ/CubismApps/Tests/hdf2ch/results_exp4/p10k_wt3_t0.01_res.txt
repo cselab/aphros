@@ -1,0 +1,151 @@
+rm -f *.o hdf2ch ch2diff
+CC  -O3 -fno-expensive-optimizations -falign-functions=16 -DNDEBUG  -DNDEBUG -fopenmp   -D_FLOAT_PRECISION_ -D_MICROFUSION_=2 -D_SP_COMP_ -fopenmp -D_ALIGNBYTES_=16 -D_BLOCKSIZE_=32 -D_BLOCKSIZEX_=32 -D_BLOCKSIZEY_=32 -D_BLOCKSIZEZ_=32 -DWENOEPS=1e-6  -I../../../Cubism/source/ -I../source -I../../Compressor/source/ -I/usr/local/include/ -I../../../../Cubism/source -I. -D_USE_HDF_ -I. -D_USE_WAVZ_ -D_USE_ZLIB_ -DTOTAL_CHANNELS=1 -I../../Cubism/source -I../Cubism/source -I../../../Cubism/source/ -I../../MPCFcluster/source/ -I../../MPCFnode/source -I../../MPCcore/source -I.  -I../../tools/reader -c main.cpp -o main.o
+CC  -O3 -fno-expensive-optimizations -falign-functions=16 -DNDEBUG  -DNDEBUG -fopenmp   -D_FLOAT_PRECISION_ -D_MICROFUSION_=2 -D_SP_COMP_ -fopenmp -D_ALIGNBYTES_=16 -D_BLOCKSIZE_=32 -D_BLOCKSIZEX_=32 -D_BLOCKSIZEY_=32 -D_BLOCKSIZEZ_=32 -DWENOEPS=1e-6  -I../../../Cubism/source/ -I../source -I../../Compressor/source/ -I/usr/local/include/ -I../../../../Cubism/source -I. -D_USE_HDF_ -I. -D_USE_WAVZ_ -D_USE_ZLIB_ -DTOTAL_CHANNELS=1 -I../../Cubism/source -I../Cubism/source -I../../../Cubism/source/ -I../../MPCFcluster/source/ -I../../MPCFnode/source -I../../MPCcore/source -I.  -I../../tools/reader -c ../../MPCFnode/source/WaveletCompressor.cpp -o WaveletCompressor.o
+CC -O3 -fno-expensive-optimizations -falign-functions=16 -DNDEBUG  -DNDEBUG -fopenmp  main.o WaveletCompressor.o -o hdf2ch -L. -lhdf5 -lstdc++ -lm -lz  -lrt -lz -ldl
+CC    -D_FLOAT_PRECISION_ -D_MICROFUSION_=2 -D_SP_COMP_ -fopenmp -D_ALIGNBYTES_=16 -D_BLOCKSIZE_=32 -D_BLOCKSIZEX_=32 -D_BLOCKSIZEY_=32 -D_BLOCKSIZEZ_=32 -DWENOEPS=1e-6  -I../../../Cubism/source/ -I../source -I../../Compressor/source/ -I/usr/local/include/ -I../../../../Cubism/source -I. -D_USE_HDF_ -I. -D_USE_WAVZ_ -D_USE_ZLIB_ -DTOTAL_CHANNELS=1 -I../../Cubism/source -I../Cubism/source -I../../../Cubism/source/ -I../../MPCFcluster/source/ -I../../MPCFnode/source -I../../MPCcore/source -I.  -I../../tools/reader  -c -o ch2diff.o ch2diff.c
+CC -O3 -fno-expensive-optimizations -falign-functions=16 -DNDEBUG  -DNDEBUG -fopenmp  ch2diff.o WaveletCompressor.o -o ch2diff -L. -lhdf5 -lstdc++ -lm -lz  -lrt -lz -ldl
+coords = 0,0,0
+NX,NY,NZ = 512,512,512
+count = [512, 512, 512, 1]
+dims = [512, 512, 512, 1]
+offset = [0, 0, 0, 0]
+after barrier1
+vInfo size: 4096
+min_u = 10.840064 max_u = 125.497269
+dumping MPI VP ...
+setting threshold to 0.010000
+Channel 0: 8616.34 kB, wavelet-threshold: 1.0e-02, compr. rate: 60.85
+TLP Compr      min:3.721e+00 s avg:3.721e+00 s max:3.721e+00 s imb:0%
+TLP FWT+decim  min:1.812e+00 s avg:1.812e+00 s max:1.812e+00 s imb:0%
+TLP Encoding   min:4.030e-04 s avg:4.030e-04 s max:4.030e-04 s imb:0%
+TLP FileIO     min:1.079e-01 s avg:1.079e-01 s max:1.079e-01 s imb:0%
+Time distribution:   FWT:47%   ENC:0%    IO:3% Other:50%
+done
+threads: 1 elapsed time: 4.27088 s
+Finishing...coords = 0,0,0
+NX,NY,NZ = 512,512,512
+count = [512, 512, 512, 1]
+dims = [512, 512, 512, 1]
+offset = [0, 0, 0, 0]
+after barrier1
+vInfo size: 4096
+min_u = 10.840064 max_u = 125.497269
+dumping MPI VP ...
+setting threshold to 0.010000
+Channel 0: 8614.35 kB, wavelet-threshold: 1.0e-02, compr. rate: 60.86
+TLP Compr      min:1.867e+00 s avg:1.869e+00 s max:1.872e+00 s imb:0%
+TLP FWT+decim  min:9.048e-01 s avg:9.148e-01 s max:9.248e-01 s imb:2%
+TLP Encoding   min:1.724e-03 s avg:3.797e-03 s max:5.870e-03 s imb:109%
+TLP FileIO     min:7.388e-02 s avg:7.388e-02 s max:7.388e-02 s imb:0%
+Time distribution:   FWT:47%   ENC:0%    IO:4% Other:49%
+done
+threads: 2 elapsed time: 2.36403 s
+Finishing...coords = 0,0,0
+NX,NY,NZ = 512,512,512
+count = [512, 512, 512, 1]
+dims = [512, 512, 512, 1]
+offset = [0, 0, 0, 0]
+after barrier1
+vInfo size: 4096
+min_u = 10.840064 max_u = 125.497269
+dumping MPI VP ...
+setting threshold to 0.010000
+Channel 0: 8613.34 kB, wavelet-threshold: 1.0e-02, compr. rate: 60.87
+TLP Compr      min:1.252e+00 s avg:1.252e+00 s max:1.253e+00 s imb:0%
+TLP FWT+decim  min:4.601e-01 s avg:4.717e-01 s max:4.826e-01 s imb:5%
+TLP Encoding   min:1.047e-03 s avg:1.520e-03 s max:2.736e-03 s imb:111%
+TLP FileIO     min:7.542e-02 s avg:7.542e-02 s max:7.542e-02 s imb:0%
+Time distribution:   FWT:36%   ENC:0%    IO:6% Other:59%
+done
+threads: 4 elapsed time: 1.86389 s
+Finishing...coords = 0,0,0
+NX,NY,NZ = 512,512,512
+count = [512, 512, 512, 1]
+dims = [512, 512, 512, 1]
+offset = [0, 0, 0, 0]
+after barrier1
+vInfo size: 4096
+min_u = 10.840064 max_u = 125.497269
+dumping MPI VP ...
+setting threshold to 0.010000
+Channel 0: 8616.28 kB, wavelet-threshold: 1.0e-02, compr. rate: 60.85
+TLP Compr      min:1.038e+00 s avg:1.041e+00 s max:1.047e+00 s imb:1%
+TLP FWT+decim  min:3.312e-01 s avg:3.353e-01 s max:3.374e-01 s imb:2%
+TLP Encoding   min:1.480e-03 s avg:3.782e-03 s max:9.949e-03 s imb:224%
+TLP FileIO     min:3.301e-02 s avg:3.301e-02 s max:3.301e-02 s imb:0%
+Time distribution:   FWT:31%   ENC:0%    IO:3% Other:65%
+done
+threads: 6 elapsed time: 1.50537 s
+Finishing...coords = 0,0,0
+NX,NY,NZ = 512,512,512
+count = [512, 512, 512, 1]
+dims = [512, 512, 512, 1]
+offset = [0, 0, 0, 0]
+after barrier1
+vInfo size: 4096
+min_u = 10.840064 max_u = 125.497269
+dumping MPI VP ...
+setting threshold to 0.010000
+Channel 0: 8613.60 kB, wavelet-threshold: 1.0e-02, compr. rate: 60.87
+TLP Compr      min:7.940e-01 s avg:7.943e-01 s max:7.947e-01 s imb:0%
+TLP FWT+decim  min:2.557e-01 s avg:3.165e-01 s max:3.769e-01 s imb:38%
+TLP Encoding   min:8.110e-04 s avg:1.046e-03 s max:1.434e-03 s imb:60%
+TLP FileIO     min:8.588e-02 s avg:8.588e-02 s max:8.588e-02 s imb:0%
+Time distribution:   FWT:36%   ENC:0%    IO:10% Other:54%
+done
+threads: 8 elapsed time: 1.30039 s
+Finishing...coords = 0,0,0
+NX,NY,NZ = 512,512,512
+count = [512, 512, 512, 1]
+dims = [512, 512, 512, 1]
+offset = [0, 0, 0, 0]
+after barrier1
+vInfo size: 4096
+min_u = 10.840064 max_u = 125.497269
+dumping MPI VP ...
+setting threshold to 0.010000
+Channel 0: 8613.73 kB, wavelet-threshold: 1.0e-02, compr. rate: 60.87
+TLP Compr      min:7.145e-01 s avg:7.177e-01 s max:7.281e-01 s imb:2%
+TLP FWT+decim  min:2.092e-01 s avg:2.753e-01 s max:3.076e-01 s imb:36%
+TLP Encoding   min:2.860e-04 s avg:3.547e-03 s max:1.393e-02 s imb:385%
+TLP FileIO     min:4.096e-02 s avg:4.096e-02 s max:4.096e-02 s imb:0%
+Time distribution:   FWT:36%   ENC:0%    IO:5% Other:58%
+done
+threads: 10 elapsed time: 1.18401 s
+Finishing...coords = 0,0,0
+NX,NY,NZ = 512,512,512
+count = [512, 512, 512, 1]
+dims = [512, 512, 512, 1]
+offset = [0, 0, 0, 0]
+after barrier1
+vInfo size: 4096
+min_u = 10.840064 max_u = 125.497269
+dumping MPI VP ...
+setting threshold to 0.010000
+Channel 0: 8615.40 kB, wavelet-threshold: 1.0e-02, compr. rate: 60.85
+TLP Compr      min:6.214e-01 s avg:6.270e-01 s max:6.493e-01 s imb:4%
+TLP FWT+decim  min:2.012e-01 s avg:2.402e-01 s max:2.584e-01 s imb:24%
+TLP Encoding   min:8.220e-04 s avg:6.511e-03 s max:2.882e-02 s imb:430%
+TLP FileIO     min:7.498e-02 s avg:7.498e-02 s max:7.498e-02 s imb:0%
+Time distribution:   FWT:34%   ENC:1%    IO:11% Other:54%
+done
+threads: 12 elapsed time: 1.14127 s
+Finishing...coords = 0,0,0
+NX,NY,NZ = 512,512,512
+count = [512, 512, 512, 1]
+dims = [512, 512, 512, 1]
+offset = [0, 0, 0, 0]
+after barrier1
+vInfo size: 4096
+min_u = 10.840064 max_u = 125.497269
+dumping MPI VP ...
+setting threshold to 0.010000
+Channel 0: 8614.84 kB, wavelet-threshold: 1.0e-02, compr. rate: 60.86
+TLP Compr      min:6.510e-01 s avg:6.554e-01 s max:6.669e-01 s imb:2%
+TLP FWT+decim  min:1.792e-01 s avg:2.308e-01 s max:2.823e-01 s imb:45%
+TLP Encoding   min:6.020e-04 s avg:3.398e-03 s max:1.652e-02 s imb:468%
+TLP FileIO     min:9.744e-02 s avg:9.744e-02 s max:9.744e-02 s imb:0%
+Time distribution:   FWT:31%   ENC:0%    IO:13% Other:56%
+done
+threads: 24 elapsed time: 1.18427 s
+Finishing...

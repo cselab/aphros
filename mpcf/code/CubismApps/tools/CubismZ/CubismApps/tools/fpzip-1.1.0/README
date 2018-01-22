@@ -1,0 +1,86 @@
+INTRODUCTION
+
+  This is fpzip 1.1.0, a C++ library for lossless or lossy compression
+  of 2D and 3D floating-point scalar fields.  fpzip was written by Peter
+  Lindstrom at LLNL, and is based on the algorithm described in the
+  following paper:
+
+    Peter Lindstrom and Martin Isenburg
+    "Fast and Efficient Compression of Floating-Point Data"
+    IEEE Transactions on Visualization and Computer Graphics,
+      12(5):1245-1250, September-October 2006.
+
+  For information on the API, usage, and licensing, please see the header
+  file inc/fpzip.h.
+
+INSTALLATION
+
+  The library has been written primarily for Linux, but has been successfully
+  tested with the following compilers and platforms:
+
+    clang 3.4 (Linux)
+    clang 4.2 (Mac OS X)
+    gcc 4.2.1 (Mac OS X)
+    gcc 4.4.7 (Linux)
+    icc 12.1.5 (Linux)
+    mingw32-gcc 4.8.1 (Windows)
+
+  To compile the library, type:
+
+    cd src; make
+
+  There is an example program in the examples subdirectory that compresses
+  and decompresses multidimensional arrays of single- or double-precision
+  floating-point scalar fields.  The example is meant to illustrate how to
+  use the fpzip API, and can also be used to validate correct functionality
+  of the library.  If the program fails, please consult src/Makefile for
+  compile-time macros that may fix the problem.
+
+VERSIONS
+
+  fpzip 1.1.0, June 8, 2014
+
+    - Modified API to pass arguments via a parameter object (FPZ).
+
+    - Modified API to support reading the header before decompressing the
+      floating-point data, thus allowing the floating-point array to be
+      allocated based on the dimensions stored in the header.
+
+    - Modified API to allow header to be included/excluded at run time
+      rather than at compile time.
+
+    - Modified testfpzip to allow the floating-point type to be specified
+      on the command line.
+
+    - Deprecated Fortran interface.
+
+  fpzip 1.0.2, May 30, 2014 (internal release only)
+
+    - Added support for specifying the precision in increments of one
+      (floats) or two (doubles) bits for lossy compression.
+
+    - Added support for data sets larger than 4 GB.
+
+    - Added compile-time support for excluding header information, e.g.
+      for in-memory compression of many small arrays.
+
+    - Modified API to use size_t in place of unsigned int where appropriate.
+
+    - Changed error handling to set fpzip_errno instead of writing to
+      stderr and aborting.
+
+    - Added more functionality to the testfpzip example program.
+
+  fpzip 1.0.1, August 7, 2008
+
+    - Added modes for bitwise type conversions beyond reinterpret_cast,
+      which caused aliasing problems with gcc 4.1.2.
+
+  fpzip 1.0.0, March 20, 2008
+
+    - Initial release.
+
+QUESTIONS AND COMMENTS
+
+  For bug reports and other questions, please contact Peter Lindstrom
+  at pl@llnl.gov.

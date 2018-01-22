@@ -1,0 +1,108 @@
+=== AUTHOR ===
+
+Sriram Lakshminarasimhan
+
+=== CONTACT ===
+
+Sriram Lakshminarasimhan (ls.sriram@gmail.com)
+Nagiza F. Samatova (nfsamato@ncsu.edu)
+Copyright (C) Sriram Lakshminarasimhan, Nagiza F. Samatova, 2013
+
+=== ABOUT ===
+
+ISABELA is a compression routine designed for floating-point datasets. ISABELA's
+algorithm proceeds by first dividing a floating-point array into windows of
+fixed sizes. Values in each window are sorted, and the sorted representation is
+approximated using BSplines or Wavelets. The intuition behind this technique is
+that while sorting poses an overhead, the data becomes smooth enough to be
+approximated accurately with fewer coefficients. 
+
+=== REFERENCE === 
+
+If you wish to cite the paper, please use the following bib:
+
+@incollection{
+    year={2011},
+    booktitle={Euro-Par 2011 Parallel Processing},
+    series={Lecture Notes in Computer Science},
+    title={Compressing the Incompressible with ISABELA: In-situ Reduction of Spatio-temporal Data},
+    publisher={Springer Berlin Heidelberg},
+    author={Lakshminarasimhan, Sriram and Shah, Neil and Ethier, Stephane and Klasky, Scott and Latham, Rob and Ross, Rob and Samatova, Nagiza F.},
+    pages={366-379}
+}
+
+=== DEPENDENCIES ===
+
+For generating the ISABELA library the following libraries are necessary:
+
+* GNU Scientific library: 
+    Source: http://www.gnu.org/software/gsl/
+    Binary (Redhat): yum install gsl gsl-devel
+
+* Zlib:
+    Source: http://www.zlib.net/
+    Binary (Redhat): yum install zlib zlib-devel
+
+======
+
+* Command to build the ISABELA library
+
+    make 
+
+* For compiling and reading API documentation, the following file is required:
+
+    include/isabela.h
+
+* For a simple C code walk-through see:
+
+    apps/example_file/file_compress.c
+
+* Command-line usage for sample compression program for a double-precision binary dataset:
+    
+    apps/example_file/file_compress test.dat test.isabela 8 
+
+* Command-line usage for sample decompression program on an ISABELA-compressed file:
+
+    apps/example_file/file_decompress test.isabela test.dat.approximate 8
+
+* To check the accuracy of original and ISABELA-decompressed double-precision datasets
+
+    tests/test_precision test.dat test.dat.approximate 8
+
+=== COMPRESSION OPTIONS ===
+
+ISABELA has the following parameters that affect storage size and accuracy:
+
+    * W0 - Window size:
+        Typical values for W0 are 512, 1024, 2048. 
+        The total size taken up by the index per window is W0 * log2(W0) bits.
+
+    * C - Number of co-efficients (per window):
+        Typically values for C are 20 - 50.
+        Each co-efficient is stored as the same datatype (float or double) as
+        the input data.
+
+    * epsilon - Error-rate (relative error (%) bounded per point)
+        To bound the relative error per-point, the deltas between original and
+        approximate are captured and compressed. To disable this error encoding
+        set the error rate to 0.
+        The total size for storing compressed errors varies with the dataset. 
+
+    * BSplines / Wavelets
+        BSplines were originally created to support per-point decompression.
+        Wavelets offer faster compression, decompression rates, and slightly
+        higher accuracy.
+
+All these parameters can be set using isabela_config. In the paper, unless
+otherwise specified W0 = 1024 elements, and C = 30. These parameter values have
+been derived from emperical evaluations and can vary from dataset to dataset.  
+
+=== RESTRICTIONS ===
+
+Currently, 32-bit single-precision and 64-bit double-precision floating-point
+datasets are supported. The code has been tested only on little-endian
+architectures and Red Hat Linux.
+
+Using very high min/max values to represent 'nodata' can affect the
+approximation accuracy. 
+

@@ -1,0 +1,10 @@
+test to check setup of single-phase hit
+============================================
+
+- job file for brutus
+- one thread to obtain reproducible random numbers
+- data for spectrum provided as reference
+- should also work for rho!=1
+
+NECESSARY HARD CODED OPTIONS:
+- activate #define CBC_EXPERIMENT in PoissonSolverScalarFFTW_MPI.h

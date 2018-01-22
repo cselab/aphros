@@ -1,0 +1,10 @@
+#!/bin/bash -l
+
+echo running > job.status
+
+time mpirun -n 4 --oversubscribe ../mpcf-cluster -simConf sim.conf
+./post
+
+echo "Done."
+echo done > job.status
+

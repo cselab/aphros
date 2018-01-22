@@ -1,0 +1,122 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[utf8x]{inputenc}
+
+\usepackage{geometry}
+\geometry{a4paper, top=25mm, left=25mm, right=25mm, bottom=30mm, headsep=10mm, footskip=12mm}
+
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{hyperref}
+
+\title{Beginner's Guide}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Prerequisites}
+
+\subsection*{Mac Users}
+
+\begin{itemize}
+\item install homebrew on your Mac\\
+         \texttt{ruby -e ``\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/\linebreak master/install)''}\\
+         see also \url{http://coolestguidesontheplanet.com/installing-homebrew-os-x-yosemite-10-10-package-manager-unix-apps/} for further details on using homebrew
+\item install gnu-compiler\\
+         \texttt{brew install gcc}
+\item install openmpi: it is important here that it is compiled using gcc and not the default compiler clang of Mac\\
+         \texttt{brew install openmpi --build-from-source}\\
+         \texttt{export HOMEBREW\_CC=gcc-4.9}\\
+         \texttt{export HOMEBREW\_CXX=g++-4.9}\\
+         \texttt{brew reinstall openmpi --build-from-source}\\
+         check with \texttt{mpicc --showme} should give you\\
+         \texttt{gcc-4.9 -I/usr/local/Cellar/open-mpi/1.8.4/include -L/usr/local/opt/libevent/lib \linebreak -L/usr/local/Cellar/open-mpi/1.8.4/lib -lmpi}\\
+         with gcc in front
+\end{itemize}
+
+\subsection*{Linux Users}
+
+\begin{itemize}
+\item install openmpi
+\end{itemize}
+
+\subsection*{All Users}
+
+\begin{itemize}
+\item install zlib: download \url{http://zlib.net/zlib-1.2.8.tar.gz}\\
+         \texttt{tar xvfz zlib-1.2.8.tar.gz}\\
+         \texttt{cd zlib-1.2.8/}\\
+         \texttt{alias gcc=mpicc} \textcolor{red}{Is this required? Didn't do this.}\\
+         \texttt{./configure --prefix=\$HOME/usr/zlib}\\
+         \texttt{make}\\
+         \texttt{make install}
+\end{itemize}
+
+\section{Getting the Code for CSE Lab Members}
+
+\subsection*{Direct Way}
+
+\begin{itemize}
+\item clone code from git-repository using\\
+         \texttt{git clone username\_ethz@scratch-petros.ethz.ch:/export/home/gitroot/CUBISM-MPCF.git}
+\end{itemize}
+Before you can build the executable, you have to perform several \textit{preparatory steps}:
+\begin{itemize}
+\item set \texttt{bgq} and \texttt{qpx} from 1 to 0 in \texttt{CubismApps/tools/fpzip/src/Makefile} 
+\item run make in directory \texttt{CubismApps/tools/fpzip/src/} to rebuild \texttt{CubismApps/tools/fpzip/\linebreak lib/libfpzip.a}
+\end{itemize}
+\textbf{On Mac}
+\begin{itemize}
+\item in \texttt{CubismApps/Makefile.config} replace \texttt{CC ?= gcc} by \texttt{CC = /usr/local/bin/g++-4.9} and \texttt{LD ?= gcc} by \texttt{LD = /usr/local/bin/g++-4.9}
+\end{itemize}
+\textcolor{red}{Continue here.}
+Now, you should be able to build the code.
+\begin{itemize}
+\item go to \texttt{CubismApps/MPCFcluster/makefiles/} and run \texttt{make}
+\end{itemize}
+
+
+\subsection*{With Graphical Development Environment Eclipse}
+
+\textbf{On Mac}
+\begin{itemize}
+\item install eclipse with C/C++ development plugin\\
+         \texttt{brew install Caskroom/cask/eclipse-cpp}
+\end{itemize}
+Check for git plugin (egit) in eclipse:
+\begin{itemize}
+\item open eclipse via\\
+         \texttt{open -a eclipse}\\
+         You will be prompted to enter the workspace directory. Leave it as recommended.
+\item go to \texttt{Help -> Install New Software}
+\item add the egit download site \url{http://download.eclipse.org/egit/updates}
+\item select all packages for egit
+\item click \texttt{Next}
+\item click \texttt{Finish}
+\end{itemize}
+Then, you may close eclipse. To get the code, perform the following steps:
+\begin{itemize}
+\item open eclipse and select the directory where you want to store Cubsim-MPCF as workspace
+\item go to \texttt{File -> Import}
+\item select \texttt{Git -> Project from Git}
+\item select \texttt{Clone URI}
+\item insert URI \texttt{username\_ethz@scratch-petros.ethz.ch:/export/home/gitroot/CUBISM-MPCF.git}, enter your ETHZ password and klick \texttt{Next}
+\item klick \texttt{Next} once more
+\item set directory to you workspace (complete path)
+\item select \texttt{Import using New Project Wizard}
+\item select wizard \texttt{C++ -> C++ Project}
+\item give project name \texttt{Cubsim-MPCF}
+\item \textcolor{red} {I have to check this step. Perhaps you have to select your project type here.}
+\item klick \texttt{Finish}
+\end{itemize}
+Next, close eclipse and follow the preparatory steps given in the previous paragraph (direct way).
+Then, open eclipse and choose your workspace.
+\begin{itemize}
+\item right klick on \texttt{Cubsim-MPCF} and select \texttt{Preferences}
+\item go to \texttt{C/C++ Build}: for \texttt{Build directory} klick on \texttt{File system} and choose the complete path to \texttt{CubismApps/MPCFcluster/makefiles/}
+\item the move from \texttt{Builder Settings} to \texttt{Behavior} and \textcolor{red}{Continue here. Just replaced 'clean' by 'cleanall'.}
+\end{itemize}
+
+\end{document}

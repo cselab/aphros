@@ -1,0 +1,9 @@
+#!/bin/bash -l
+
+set -eu
+
+python -u ./gen0
+
+d="sim01*"
+echo $d
+cp -fva post job $d

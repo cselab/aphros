@@ -1,0 +1,244 @@
+ 1149  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata ch4s300.h5  -outdata c4 -threshold 10 
+ 1150  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata ch4s300.h5  -outdata c4 -threshold 1 
+ 1151  make clean;make CC=mpic++ wavz=0 fpzip=1 
+ 1152  make clean;make CC=mpic++ wavz=0 fpzip=1 zlib=0 
+ 1153  cd ../
+ 1154  ls
+ 1155  cd dat22ch/
+ 1156  ls -ltr
+ 1157  cd ../hdf2ch/
+ 1158  ls -ltr
+ 1159  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata c1 -threshold 1 
+ 1160  pico Makefile 
+ 1161  cd ../dat22ch/
+ 1162  ls
+ 1163  cd makefiles/
+ 1164  ls -ltr
+ 1165  pwd
+ 1166  ls
+ 1167  cd ../
+ 1168  ls
+ 1169  cd ../
+ 1170  ls
+ 1171  cd ../tools/hdf2ch/
+ 1172  ls
+ 1173  make clean;make fpzip=1 
+ 1174  make clean;make CC=mpic++ fpzip=1 
+ 1175  pico ../../Makefile.config 
+ 1176  cd ../
+ 1177  ls
+ 1178  cd hdf2ch/
+ 1179  ls
+ 1180  ls ../../tools/fpzip/inc/
+ 1181  pwd
+ 1182  ls
+ 1183  pwd
+ 1184  ls
+ 1185  cd ../
+ 1186  ls
+ 1187  pwd
+ 1188  ls
+ 1189  pwd
+ 1190  cd ../Tests/
+ 1191  ls
+ 1192  cd dat22ch/
+ 1193  ls
+ 1194  cd makefiles/
+ 1195  ls -ltr
+ 1196  make clean;make fpzip=1 
+ 1197  pwd
+ 1198  cd ../../hdf2ch/
+ 1199  ls
+ 1200  pico ../../Makefile.config 
+ 1201  make clean;make fpzip=1 
+ 1202  make clean;make CC=mpic++ fpzip=1 
+ 1203  ls -ltr
+ 1204  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata c1 -threshold 1 
+ 1205  pico ../../tools/fpzip/inc/myfpzip.h
+ 1206  pico ../../Makefile.config 
+ 1207  pico ../../tools/fpzip/inc/myfpzip.h
+ 1208  pwd
+ 1209  w
+ 1210  pwd
+ 1211  ls -ltr
+ 1212  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata c1 -threshold 1 
+ 1213  pwd
+ 1214  make clean;make 
+ 1215  pico ../../Makefile.config 
+ 1216  make clean;make 
+ 1217  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata c1 -threshold 1 
+ 1218  ls -ltr
+ 1219  mv c100000.StreamerGridPointIterative.channel0 ref.channel0 
+ 1220  pwd
+ 1221  ls -ltr
+ 1222  make clean;make fpzip=1 
+ 1223  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata fpzip32  -threshold 1 
+ 1224  make clean;make fpzip=1 fpzip_eps=24
+ 1225  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata fpzip24  -threshold 1 
+ 1226  make clean;make fpzip=1 fpzip_eps=16
+ 1227  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata fpzip16  -threshold 1 
+ 1228  make clean;make wavz=1 zlib=1 
+ 1229  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata w1  -threshold 1 
+ 1230  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata w1  -threshold 0.1 
+ 1231  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata w1  -threshold 0.01 
+ 1232  ls -ltr
+ 1233  ../../tools/ch2diff/ch2diff 
+ 1234  ../../tools/ch2diff/ch2diff -simdata1 w100000.StreamerGridPointIterative.channel0 -simdata2 ref.channel0 
+ 1235  pwd
+ 1236  pico main.cpp 
+ 1237  ls
+ 1238  pico Test_IO_Compressed.h 
+ 1239  ../../tools/ch2diff/ch2diff -simdata1 w100000.StreamerGridPointIterative.channel0 -simdata2 ref.channel0 
+ 1240  ls -ltr
+ 1241  pico ../../Compressor/source/CompressionEncoders.h 
+ 1242  cd ../../Compressor/source/
+ 1243  grep Z_ *
+ 1244  grep Z_DEFAULT  *
+ 1245  pico SerializerIO_WaveletCompression_MPI_Simple.h
+ 1246  pwd
+ 1247  cd ../../Tests/
+ 1248  ls
+ 1249  cd hdf2ch/
+ 1250  ls -ltr
+ 1251  mv w100000.StreamerGridPointIterative.channel0  w100000.StreamerGridPointIterative.channel0_z6
+ 1252  ls -ltr
+ 1253  history | grep hdf5
+ 1254  history | grep hdf2
+ 1255  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata w11  -threshold 0.01
+ 1256  pico ../../Compressor/source/WaveletCompressor.h 
+ 1257  make clean;make wavz=1 zlib=1 
+ 1258  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata w11  -threshold 0.01
+ 1259  ../../tools/ch2diff/ch2diff -simdata1 w1100000.StreamerGridPointIterative.channel0  -simdata2 ref.channel0 
+ 1260  ls -ltr
+ 1261  rm w1100000.StreamerGridPointIterative.channel0 
+ 1262  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata w11  -threshold 0.01
+ 1263  ../../tools/ch2diff/ch2diff -simdata1 w1100000.StreamerGridPointIterative.channel0  -simdata2 ref.channel0 
+ 1264  mpirun -n 8 ../../tools/ch2diff/ch2diff -simdata1 w1100000.StreamerGridPointIterative.channel0  -simdata2 ref.channel0 
+ 1265  mpirun -n 8 ../../tools/ch2diff/ch2diff -simdata1 fpzip1600000.StreamerGridPointIterative.channel0   -simdata2 ref.channel0 
+ 1266  make clean;make wavz=1 zlib=1 zerobits=8 
+ 1267  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata ws  -threshold 0.01
+ 1268  make clean;make wavz=1 zlib=1 zerobits=16 
+ 1269  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata ws  -threshold 0.01
+ 1270  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata ws  -threshold 0.01 -wtype_write 3 
+ 1271  ls -ltr
+ 1272  rm ws00000.StreamerGridPointIterative.channel0 w100000.StreamerGridPointIterative.channel0_z6 w1100000.StreamerGridPointIterative.channel0 
+ 1273  make clean;make wavz=1 zlib=1 shuffle=1  
+ 1274  make clean;make wavz=1 zlib=1 shuffle=1  shuffle3=1 zerobits=8 
+ 1275  rm ws00000.StreamerGridPointIterative.channel0 w100000.StreamerGridPointIterative.channel0_z6 w1100000.StreamerGridPointIterative.channel0 
+ 1276  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata ws  -threshold 0.01 -wtype_write 3 
+ 1277  make clean;make wavz=1 zlib=1 shuffle=1  shuffle3=1 zerobits=16
+ 1278  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata ws  -threshold 0.01 -wtype_write 3 
+ 1279  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata ws  -threshold 0.01 -wtype_write 1 
+ 1280  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata ws  -threshold 0.01 -wtype_write 1
+ 1281  ls -ltr
+ 1282  rm ws00000.StreamerGridPointIterative.channel0 
+ 1283  pico Test_IO_Compressed.h 
+ 1284  ls -ltr
+ 1285  paraview data-301-p.xmf &
+ 1286  μακε make clean
+ 1287  clear
+ 1288  make clean;make 
+ 1289  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata ref2
+ 1290  ls -ltr
+ 1291  mpirun -n 8 ../../tools/ch2diff/ch2diff -simdata1 ref200000.StreamerGridPointIterative.channel0    -simdata2 ref.channel0 
+ 1292  mpirun -n 8 ../../tools/ch2diff/ch2diff -simdata1 ref200000.StreamerGridPointIterative.channel0    -simdata2 ref200000.StreamerGridPointIterative.channel0 
+ 1293  ls
+ 1294  ls -ltr
+ 1295  pico Test_IO_Compressed.h 
+ 1296  ls -ltr
+ 1297  cd ../
+ 1298  sl
+ 1299  ls
+ 1300  pwd
+ 1301  cd hdf2ch/
+ 1302  history 
+ 1303  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata ws  -threshold 0.01 -wtype_write 1
+ 1304  mpirun -n 8 ../../tools/ch2diff/ch2diff -simdata1 ws00000.StreamerGridPointIterative.channel0  -simdata2 ref.channel0
+ 1305  mpirun -n 8 ../../tools/ch2diff/ch2diff -simdata1 ws00000.StreamerGridPointIterative.channel0  -simdata2 ref.channel0 -wtype 1
+ 1306  mpirun -n 8 ./ch2diff -simdata1 ws00000.StreamerGridPointIterative.channel0  -simdata2 ref.channel0 -wtype 1
+ 1307  pico main.cpp 
+ 1308  pico Test_IO_Compressed.h 
+ 1309  make clean;make 
+ 1310  make clean;make wavz=1 zlib=1 
+ 1311  rm ws00000.StreamerGridPointIterative.channel0 
+ 1312  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata ws  -threshold 0.01 -wtype_write 1
+ 1313  mpirun -n 8 ./ch2diff -simdata1 ws00000.StreamerGridPointIterative.channel0  -simdata2 ref.channel0 -wtype 1
+ 1314  pico ch2diff.c 
+ 1315  make clean;make wavz=1 zlib=1 
+ 1316  mpirun -n 8 ./ch2diff -simdata1 ws00000.StreamerGridPointIterative.channel0  -simdata2 ref.channel0 -wtype 1
+ 1317  make clean;make fpzip=1 
+ 1318  make clean;make fpzip=1 fpzip_eps=16
+ 1319  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata wx  -threshold 0.01 -wtype_write 1
+ 1320  mpirun -n 8 ./ch2diff -simdata1 wx00000.StreamerGridPointIterative.channel0  -simdata2 ref.channel0 -wtype 1
+ 1321  pico fpz.txt
+ 1322  pico fpz16.txt
+ 1323  make clean;make wavz=1 zlib=1 
+ 1324  ls -ltr
+ 1325  rm wx00000.StreamerGridPointIterative.channel0 
+ 1326  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata wx  -threshold 0.01 
+ 1327  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata wx  -threshold 0.1 -wtype_write 1
+ 1328  mpirun -n 8 ./ch2diff -simdata1 wx00000.StreamerGridPointIterative.channel0  -simdata2 ref.channel0 -wtype 1
+ 1329  rm wx00000.StreamerGridPointIterative.channel0 
+ 1330  mpirun -n 8 ./ch2diff -simdata1 wx00000.StreamerGridPointIterative.channel0  -simdata2 ref.channel0 -wtype 1
+ 1331  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-p.h5  -outdata wx  -threshold 0.1 -wtype_write 1
+ 1332  mpirun -n 8 ./ch2diff -simdata1 wx00000.StreamerGridPointIterative.channel0  -simdata2 ref.channel0 -wtype 1
+ 1333  cat fpz16.txt 
+ 1334  ls
+ 1335  pwd
+ 1336  ls
+ 1337  cd ../
+ 1338  ls
+ 1339  pwd
+ 1340  ls -ltr
+ 1341  cd hdf2ch/
+ 1342* 
+ 1343  make clean;make wavz=1 zlib=1 
+ 1344  make clean;make fpzip=1 fpzip_eps=16
+ 1345  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-g.h5  -outdata g_fp16  -threshold 0.1 -wtype_write 1
+ 1346  make clean;make
+ 1347  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-g.h5  -outdata g_ref  -threshold 0.1 -wtype_write 1
+ 1348  ls -ltr
+ 1349  make clean;make fpzip=1 fpzip_eps=16
+ 1350  mpirun -n 8 ./ch2diff -simdata1 g_fp1600000.StreamerGridPointIterative.channel0  -simdata2 g_ref00000.StreamerGridPointIterative.channel0  -wtype 1
+ 1351  pico g_fp16.txt
+ 1352  make clean;make wavz=1 zlib=1 
+ 1353  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-g.h5  -outdata g_wz  -threshold 0.1 -wtype_write 1
+ 1354  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-g.h5  -outdata g_wz  -threshold 0.001 -wtype_write 1
+ 1355  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-g.h5  -outdata g_wz  -threshold 0.01 -wtype_write 1
+ 1356  mpirun -n 8 ./ch2diff -simdata1 g_wz00000.StreamerGridPointIterative.channel0  -simdata2 g_ref00000.StreamerGridPointIterative.channel0  -wtype 1
+ 1357  ls-ltr
+ 1358  ls -ltr
+ 1359  rm g_wz00000.StreamerGridPointIterative.channel0 
+ 1360  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-g.h5  -outdata g_wz  -threshold 0.01 -wtype_write 1
+ 1361  mpirun -n 8 ./ch2diff -simdata1 g_wz00000.StreamerGridPointIterative.channel0  -simdata2 g_ref00000.StreamerGridPointIterative.channel0  -wtype 1
+ 1362  cat g_fp16
+ 1363  cat g_fp16.txt 
+ 1364  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-g.h5  -outdata g_wz2  -threshold 0.01 -wtype_write 3
+ 1365  mpirun -n 8 ./ch2diff -simdata1 g_wz200000.StreamerGridPointIterative.channel0  -simdata2 g_ref00000.StreamerGridPointIterative.channel0  -wtype 3
+ 1366  ?cat g_fp16.txt 
+ 1367  cat g_fp16
+ 1368  cat g_fp16.txt 
+ 1369  rm g_wz200000.StreamerGridPointIterative.channel0 
+ 1370  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-g.h5  -outdata g_wz2  -threshold 0.005 -wtype_write 3
+ 1371  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-g.h5  -outdata g_wz2  -threshold 0.008 -wtype_write 3
+ 1372  mpirun -n 8 ./ch2diff -simdata1 g_wz200000.StreamerGridPointIterative.channel0  -simdata2 g_ref00000.StreamerGridPointIterative.channel0  -wtype 3
+ 1373  rm g_wz200000.StreamerGridPointIterative.channel0 
+ 1374  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-g.h5  -outdata g_wz2  -threshold 0.008 -wtype_write 3
+ 1375  mpirun -n 8 ./ch2diff -simdata1 g_wz200000.StreamerGridPointIterative.channel0  -simdata2 g_ref00000.StreamerGridPointIterative.channel0  -wtype 3
+ 1376  cat g_fp16.txt 
+ 1377  rm g_wz200000.StreamerGridPointIterative.channel0 
+ 1378  make clean;make wavz=1 zlib=1 shuffle=1 shuffle3=1 zerobits=12
+ 1379  mpirun -n 8 ./ch2diff -simdata1 g_wz300000.StreamerGridPointIterative.channel0  -simdata2 g_ref00000.StreamerGridPointIterative.channel0  -wtype 3
+ 1380  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-g.h5  -outdata g_wz3  -threshold 0.008 -wtype_write 3
+ 1381  mpirun -n 8 ./ch2diff -simdata1 g_wz300000.StreamerGridPointIterative.channel0  -simdata2 g_ref00000.StreamerGridPointIterative.channel0  -wtype 3
+ 1382  rm g_wz300000.StreamerGridPointIterative.channel0 
+ 1383  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-g.h5  -outdata g_wz3  -threshold 0.01 -wtype_write 3
+ 1384  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-g.h5  -outdata g_wz3  -threshold 0.001 -wtype_write 3
+ 1385  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-g.h5  -outdata g_wz3  -threshold 0.002 -wtype_write 3
+ 1386  rm g_wz300000.StreamerGridPointIterative.channel0 
+ 1387  ./hdf2ch -bpdx 16 -bpdy 16 -bpdz 16 -sim io -simdata data-301-g.h5  -outdata g_wz3  -threshold 0.002 -wtype_write 3
+ 1388  mpirun -n 8 ./ch2diff -simdata1 g_wz300000.StreamerGridPointIterative.channel0  -simdata2 g_ref00000.StreamerGridPointIterative.channel0  -wtype 3
+ 1389  cat g_fp16.txt 
+ 1390  ls -ltr
+
+ulimit -s 25600000

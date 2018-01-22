@@ -1,0 +1,5 @@
+TODO: documentation and details instructions
+
+./cleanbin hist_FLOWSTEP.bin hist_FLOWSTEP.bin.clean 
+./bin2txt hist_FLOWSTEP.bin.clean 
+./printbin hist_FLOWSTEP.bin.clean 2048 101 1 30

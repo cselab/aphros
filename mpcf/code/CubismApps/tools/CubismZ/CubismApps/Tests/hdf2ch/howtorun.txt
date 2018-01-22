@@ -1,0 +1,5 @@
+# Just an example
+mpirun -l -n 8 ./hdf2ch -xpesize 2 -ypesize 2 -zpesize 2 -bpdx 4 -bpdy 4 -bpdz 4 -sim io -simdata xx.h5 -outdata les4 
+../ch2hdf/ch2hdf -simdata les400000.StreamerGridPointIterative.channel0  -h5file more4 
+paraview more4.xmf 
+

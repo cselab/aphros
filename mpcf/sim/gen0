@@ -1,0 +1,23 @@
+#!/usr/bin/env python
+
+import fogsound as fs
+import numpy as np
+
+for dr in [0]:
+  fs.Gen({
+    "droplet" : 0,
+    "t__tlx" : 1,
+    "xpesize" : 2,
+    "ypesize" : 2,
+    "cpr" : 4,
+    "lx__r" : 2,
+    "ly__r" : 2,
+    "padx__r" : 8,
+    "pady__r" : 8,
+    "wl__r" : 4,
+    "frames__tlx" : 10,
+    "signal_padx__r" : 4.,
+    "signal_sigma" : 1e20,
+    "cluster" : "regular",
+    "sens_rad__mh" : 1,  
+  })

@@ -1,0 +1,72 @@
+By using all or any portion of the software, you are agreeing to be bound by
+all the terms and conditions of this agreement. If you do not agree to any
+terms of this agreement, do not use the software.
+
+License Agreement
+This is open source software and we only ask that you quote the papers
+referenced below and that electronic documents additionally include a direct
+link to the official CSELab web page.
+
+The Koumoutsakos group at ETH Zurich (from here on referred as the CSELab),
+agrees that above LICENSEE uses the SOFTWARE for scientific, non-profit and
+non-commercial purposes only. SOFTWARE shall mean all SOFTWARE provided by
+CSELab, including any derivatives thereof. The software is intellectual
+property of CSELab and all rights, title and interest, including copyright,
+remain with CSELab.
+
+The LICENSEE will not copy, distribute, reproduce, manufacture, alter, sell or
+sub license the SOFTWARE. The SOFTWARE will be used in accordance with all
+applicable laws and regulations. Any other use or exploitation (including
+distribution or sale) of the SOFTWARE requires the prior written permission of
+CSELab, which may demand compensation from the LICENSEE.
+
+Nothing in this agreement shall be construed as granting any license under any
+intellectual property right vested into CSELab or any right to use the SOFTWARE
+or any CSELab information other than herein expressly specified.
+
+The LICENSEE including any of its workers, co-workers, students or other
+persons who may have access to the SOFTWARE or related information agree not to
+transfer, transmit, distribute or in any other way disclose the SOFTWARE or
+information about its algorithms and/or implementations to third parties
+without prior written consent of CSELab.
+
+In any publications resulting from research done under the use of the SOFTWARE,
+the LICENSEE will properly cite either party's contribution. Any report or
+publication of results obtained with the SOFTWARE will acknowledge its use by
+stating that SOFTWARE was developed by the Koumoutsakos group (CSE Lab), at ETH
+Zurich. Any published work that utilizes the SOFTWARE shall include at least one
+of the following references:
+
+1. Rossinelli D., Hejazialhosseini B. , Hadjidoukas P., Bekas C., Curioni A.,
+Bertsch A., Futral S., Schmidt S.J., Adams N.A. and Koumoutsakos P.,
+11 PFLOP/s simulations of cloud cavitation collapse,
+Proceedings of the International Conference on High Performance Computing, Networking,
+Storage and Analysis (SC '13), 2013.
+
+Electronic documents will include a direct link to the official CSELab web
+page.
+
+Proper citation is essential to continued ETH Zurich funding, as it is a
+primary way in which we demonstrate the value of our software to the scientific
+community. Thank you for your attention to these details.
+
+The CSELab does not assume any responsibility for the SOFTWARE and the use of
+it. CSELab will not assume any liability for damages or loss of data occurring
+through the use of the SOFTWARE. CSELab does not guarantee the suitability of
+the SOFTWARE for any application. The LICENSEE will hold CSELab harmless for
+any claims on damages or loss of data which occur during the LICENSEE's use of
+the SOFTWARE.
+
+CSELab does not guarantee that the SOFTWARE does not infringe any third party's
+intellectual property rights (including copyrights, patents, patent
+applications, publications or any other type of intellectual property right).
+The LICENSEE has to acquire on his/her own all necessary licenses and
+permissions for the use of the SOFTWARE if not otherwise agreed in writing.
+
+In case the SOFTWARE is or will be under the physical control of the LICENSEE
+before this agreement is signed, CSELab gives consent to the use of the
+SOFTWARE under the condition of the LICENSEE's prior consent to this agreement.
+
+This agreement is subject to Swiss law and ETH Zurich regulations. Place of
+jurisdiction is the Kanton of Zurich.
+

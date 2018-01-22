@@ -1,0 +1,41 @@
+This example program shows how to use the fpzip library with single- or
+double-precision data.  The usage is:
+
+  testfpzip <-f|-d> [nx [ny [nz [nf [prec [infile [outfile [reconfile]]]]]]]]
+
+where -f specifies floats and -d doubles, nx, ny, and nz specify the size of
+a 3D array
+
+  f[nz][ny][nx]
+
+and nf specifies the number of contiguous scalar fields (3D arrays) in the
+file.  When prec is specified and is less than the floating-point precision
+(32 for float, 64 for double), it determines the number of most significant
+bits to retain for each value, with the least significant bits being zeroed.
+infile is the name of the file of uncompressed values, while outfile when
+specified stores the compressed stream.  The reconstructed values (the result
+of compression followed by decompression) can optionally be written to
+reconfile.  If no input file is specified, a sinusoidal field is generated.
+
+To run the program on the single-precision example data set in
+lossless mode:
+
+  testfpzip -f 16 16 16 1 32 float16x16x16x1 output.fpz
+
+Alternatively, one may consider compressing this 3D scalar field as a
+stack of 16 2D fields:
+
+  testfpzip -f 16 16 1 16 32 float16x16x16x1 output.fpz
+
+or as a single 1D field:
+
+  testfpzip -f 4096 1 1 1 32 float16x16x16x1 output.fpz
+
+As expected, compression usually degrades with lower dimensionality.
+
+To test the compressor in lossy mode with 40 bits of precision on the
+double-precision data:
+
+  testfpzip -d 16 16 16 1 40 double16x16x16x1 output.fpz
+
+This should result in a root mean square error rmse=5.3253e-10.

@@ -1,0 +1,17 @@
+1. Generate binary file from h5
+
+h5dump -b LE -o data-301-g.bin data-301-g.h5 
+
+2. Generate reference binary file 
+
+./genref2.sh  (initial binary file -> ch (no compression) -> ordered binary file )
+
+
+3. Build and evaluate compression method
+
+ ./runme2.sh  (initial binary file -> ch (compressed) -> ordered binary file )
+
+
+4. Test previously built compression method
+
+./runme2var.sh 0.01  (avoid recompiling, takes threshold as argument) 

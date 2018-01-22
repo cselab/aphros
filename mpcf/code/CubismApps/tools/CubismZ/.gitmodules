@@ -1,0 +1,3 @@
+[submodule "Cubism"]
+	path = Cubism
+	url = git@gitlab.ethz.ch:mavt-cse/Cubism.git

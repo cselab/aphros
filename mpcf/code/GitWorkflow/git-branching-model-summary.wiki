@@ -1,0 +1,41 @@
+# Git branching model
+
+follows: http://nvie.com/posts/a-successful-git-branching-model/
+
+The "truth" repository is origin (central repo).  Other subteam repositories
+may exist.  Each developer pushes and pulls from/to origin.  Merges shall be
+done using the --no-ff flag (no fast-forwarding), such that the set of commits
+that implement a feature are still visible in the history.
+
+* At the core: 2 main branches with infinite life span
+  + master
+  + develop
+
+* Support branches
+  + feature (a.k.a topic):
+    - branch off from: develop
+    - merge back to:   develop
+    - naming convention: anything except _master_, _develop_, _release-*_ or
+      _hotfix-*_
+
+  + release:
+    + branch off from: develop
+    + merge back to:   develop and master
+    + naming convention: _release-*_
+    + notes: creating feature branches from release branches is prohibited.
+      Last minute fixes, bug fixes etc. are ok until release.  Version number
+      should be updated.  Merge back to master first, then merge back into
+      develop (this is likely to cause merge conflicts, they must be fixed
+      manually).  Create a tag on master branch.
+
+  + hotfix:
+    + branch off from: master
+    + merge back to:   develop and master
+    + naming convention: _hotfix-*_
+    + notes: Similar as release branches. Used to fix severe bug in live
+      production version.  Fix must propagate into develop.  Exception: If
+      there is a release branch active the hotfix should be merged into the
+      release branch instead of the develop branch (unless the fix can not wait
+      and must be merged into develop immediately).  When merging back into
+      master, a tag must be created.  Merging back into develop/release may
+      cause merge conflicts which must be resolved manually.

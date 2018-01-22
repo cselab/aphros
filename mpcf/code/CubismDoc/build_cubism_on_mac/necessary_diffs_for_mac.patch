@@ -1,0 +1,38 @@
+diff --git a/CubismApps/Makefile.config b/CubismApps/Makefile.config
+index 832d863..6a54b2a 100755
+--- a/CubismApps/Makefile.config
++++ b/CubismApps/Makefile.config
+@@ -1,7 +1,13 @@
+ SHELL := /bin/bash
+ 
+-CC ?= gcc
+-LD ?= gcc
++# CC ?= gcc
++# LD ?= gcc
++
++# CC = /usr/local/Cellar/gcc/4.9.2_1/bin/gcc-4.9
++# LD = /usr/local/Cellar/gcc/4.9.2_1/bin/gcc-4.9
++
++CC = /usr/local/bin/g++-4.9
++LD = /usr/local/bin/g++-4.9
+ 
+ # core
+ bs ?= 16
+diff --git a/CubismApps/tools/fpzip/lib/libfpzip.a b/CubismApps/tools/fpzip/lib/libfpzip.a
+index d2510f0..2b4760b 100644
+Binary files a/CubismApps/tools/fpzip/lib/libfpzip.a and b/CubismApps/tools/fpzip/lib/libfpzip.a differ
+diff --git a/CubismApps/tools/fpzip/src/Makefile b/CubismApps/tools/fpzip/src/Makefile
+index f40c4e4..54fd546 100644
+--- a/CubismApps/tools/fpzip/src/Makefile
++++ b/CubismApps/tools/fpzip/src/Makefile
+@@ -24,8 +24,8 @@ FPZIP_CONV = -DWITH_UNION
+ # no changes should be necessary below ----------------------------------------
+ CC = mpic++
+ zlib = 0
+-bgq = 1
+-qpx = 1
++bgq = 0
++qpx = 0
+ bs = 32
+ include ../../../Makefile.config
+ 

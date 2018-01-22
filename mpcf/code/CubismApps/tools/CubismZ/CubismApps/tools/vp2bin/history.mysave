@@ -1,0 +1,1000 @@
+  439  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 zlib=1 
+  440  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_zlib/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_zlib.bin
+  441  ls -ltr
+  442  ./compbin wavz_zlib.bin.bin   shuffle_lzma.bin.bin  | awk '{print $3}' 
+  443  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 shuffle3=1 zerobits=8 zlib=1 
+  444  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_shuffle_z8_zlib/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_shuffle_z8_zlib.bin
+  445  ./compbin wavz_shuffle_z8_zlib.bin.bin   shuffle_lzma.bin.bin  | awk '{print $3}' 
+  446  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 shuffle3=1 zerobits=16 zlib=1 
+  447  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_shuffle_z16_zlib/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_shuffle_z16_zlib.bin
+  448  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 shuffle3=1 zerobits=16 lzma=1 
+  449  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_shuffle_z16_lzma/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_shuffle_z16_lzma.bin
+  450  ./compbin wavz_shuffle_z16_lzma.bin.bin    shuffle_lzma.bin.bin  | awk '{print $3}' 
+  451  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_shuffle_z8_lzma/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_shuffle_z8_lzma.bin
+  452  ./compbin wavz_shuffle_z8_lzma.bin.bin    shuffle_lzma.bin.bin  | awk '{print $3}' 
+  453  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_shuffle_lzma_e12/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz12_shuffle_lzma.bin
+  454  ./compbin wavz12_shuffle_lzma.bin.bin    shuffle_lzma.bin.bin  | awk '{print $3}' 
+  455  ls -ltr
+  456  rm -rf vp2bin/
+  457  cd scratch_xl/
+  458  ls -ltr
+  459  cd 14082013c5b_compr/
+  460  ls -ltr
+  461  cd CUBISM-MPCF/
+  462  ls
+  463  cd CubismApps/
+  464  ls
+  465  cd MPCFcluster
+  466  ls
+  467  cd makefiles/
+  468  ls
+  469  ls -ltr
+  470  quota -v
+  471  ls
+  472  ls -ltr
+  473  cd wavz_shuffle_f16_lzma_e23/
+  474  ls -ltr
+  475  ls -l datawavelet00*l4 | awk '{print $5}' 
+  476  ls -l datawavelet00*l5 | awk '{print $5}' 
+  477  cd ../wavz_shuffle_f16_lzma_e12/
+  478  ls -l datawavelet00*l4 | awk '{print $5}' 
+  479  ls -l datawavelet00*l5 | awk '{print $5}' 
+  480  cd ..
+  481  ls
+  482  ls lz4/
+  483  ls */datawavelet000*
+  484  rm  */datawavelet000*
+  485  ls */datawavelet000*
+  486  ls */datawavelet001*
+  487  rm  */datawavelet001*
+  488  ls */datawavelet002*
+  489  ls */datawavelet003*
+  490  rm  */datawavelet002*
+  491  pwd
+  492  du -sh .
+  493  ls
+  494  du -sh *
+  495  ls
+  496  pwd
+  497  cd ..
+  498  pwd
+  499  du -sh *
+  500  pwd .
+  501  pwd
+  502  ls
+  503  pwd
+  504  ls
+  505  cd makefiles/
+  506  ls
+  507  pwd
+  508  cd ../../tools/
+  509  ls
+  510  du -sh *
+  511  cd vp2bin/
+  512  ls
+  513  ls -ltr
+  514  pwd
+  515  ls
+  516  mv *.bin.bin ~/scratch_xl/
+  517  pwd
+  518  ls
+  519  pwd
+  520  cd ..
+  521  ls
+  522  cd ..
+  523  cd tools/
+  524  ls
+  525  ls vp2hdf
+  526  pwd
+  527  cd ..
+  528  pwd
+  529  ls -ltr
+  530  cd MPCFcluster
+  531  pwd
+  532  ls
+  533  cd makefiles/
+  534  ls
+  535  du -sh *
+  536  find . -name '*130*' 
+  537  cd fpc_lzma/morton/
+  538  ls
+  539  rm datawavelet000*
+  540  rm datawavelet001*
+  541  rm datawavelet002*
+  542  ls
+  543  ls -ltr
+  544  cd ../
+  545  ls
+  546  pwd
+  547  cd ../fpzip_lzma/
+  548  ls
+  549  cd morton/
+  550  ls
+  551  rm 000* 
+  552  rm datawavelet000*
+  553  rm datawavelet001*
+  554  rm datawavelet002*
+  555  ls
+  556  pwd
+  557  cd ..
+  558  pwd
+  559  cd ..
+  560  du -sh .
+  561  pwd
+  562  ls
+  563  cd MPCFcluster
+  564  ls
+  565  cd makefiles/
+  566  ls
+  567  ls -ltr
+  568  cd ../
+  569  ls
+  570  pwd
+  571  cd ../tools/vp2bin/
+  572  ls
+  573  mv ~/scratch_xl/*.bin.bin .
+  574  ls
+  575  ls -ltr
+  576  ls
+  577  history | grep make 
+  578  pico ../fpzip/inc/myfpzip.h
+  579  history | grep make | grep fpzip
+  580  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float fpzip=1 
+  581  module load gcc/4.7
+  582  module load open_mpi/1.6.2 
+  583  module load hdf5_para
+  584  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float fpzip=1 
+  585  ls
+  586  bsub -n 4 -Is bash
+  587  pwd
+  588  ls
+  589  cd scratch_xl/
+  590  ls
+  591  cd 14082013c5b_compr/
+  592  ls
+  593  cd CUBISM-MPCF/
+  594  ls
+  595  cd CubismApps/
+  596  ls -ltr
+  597  cd tools/
+  598  ls
+  599  cd vp2bin/
+  600  ls
+  601  ls -ltr
+  602  module load gcc/4.7
+  603  module load open_mpi/1.6.2 
+  604  module load hdf5_para
+  605  ls 
+  606  history | grep make 
+  607  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 
+  608  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz.bin
+  609  ls -ltr
+  610  ./compbin wavz.bin.bin shuffle_lzma.bin.bin 
+  611  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 shuffle3=1 zlib=1
+  612  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_shuffle_zlib/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_shuffle_zlib.bin
+  613  ./compbin wavz_shuffle_zlib.bin.bin  shuffle_lzma.bin.bin 
+  614  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float shuffle=1 zerobits=8 zlib=1
+  615  pico ../../MPCFnode/source/WaveletCompressor.cpp
+  616  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float shuffle=1 zerobits=8 zlib=1
+  617  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/shuffle_z8_zlib/datawavelet00300.StreamerGridPointIterative.channel4 -binfile shuffle_z8_zlib.bin
+  618  ./compbin shuffle_z8_zlib.bin.bin   shuffle_lzma.bin.bin 
+  619  ./compbin shuffle_z8_zlib.bin.bin   shuffle_lzma.bin.bin | awk '{print $3}' 
+  620  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 shuffle=1 zerobits=8 lzma=1
+  621  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_shuffle_z8_lzma_e12/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_shuffle_z8_lzma_e12.bin
+  622  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 shuffle3=1 zerobits=8 lzma=1
+  623  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_shuffle_z8_lzma_e12/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_shuffle_z8_lzma_e12.bin
+  624  ./compbin wavz_shuffle_z8_lzma_e12.bin.bin   shuffle_lzma.bin.bin | awk '{print $3}' 
+  625  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_shuffle_z12_lzma_e12/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_shuffle_z12_lzma_e12.bin
+  626  ./compbin wavz_shuffle_z12_lzma_e12.bin.bin   shuffle_lzma.bin.bin | awk '{print $3}' 
+  627  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_shuffle_z16_lzma_e12/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_shuffle_z16_lzma_e12.bin
+  628  ./compbin wavz_shuffle_z12_lzma_e16.bin.bin   shuffle_lzma.bin.bin | awk '{print $3}' 
+  629  ./compbin wavz_shuffle_z16_lzma_e12.bin.bin   shuffle_lzma.bin.bin | awk '{print $3}' 
+  630  pico ../../MPCFnode/source/WaveletCompressor.cpp
+  631  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 shuffle3=1 lzma=1
+  632  pico ../../MPCFnode/source/WaveletCompressor.cpp
+  633  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 shuffle3=1 lzma=1
+  634  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_shuffle_f16_lzma_e12/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_shuffle_f16_lzma_e12.bin
+  635  ./compbin wavz_shuffle_f16_lzma_e12.bin.bin   shuffle_lzma.bin.bin | awk '{print $3}' 
+  636  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_shuffle_f16_lzma/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_shuffle_f16_lzma.bin
+  637  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_shuffle_f16_lzma_e23/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_shuffle_f16_lzma.bin
+  638  ./compbin wavz_shuffle_f16_lzma.bin.bin   shuffle_lzma.bin.bin | awk '{print $3}' 
+  639  pwd
+  640  cd ..
+  641  cd ../
+  642  cd MPCFcluster/makefiles/
+  643  pico ../../MPCFnode/source/WaveletCompressor.cpp
+  644  history | grep make 
+  645  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 shuffle3=1 zerobits=12 lzma=1
+  646  mkdir wavz_shuffle_z12_lzma 
+  647  cd  wavz_shuffle_z12_lzma 
+  648  cp ../input/* .
+  649  cp ../mpcf-cluster .
+  650  pico mpcf.lsf.sh 
+  651  ls
+  652  ./submit.sh 
+  653  bjobs
+  654  module load gcc/4.7
+  655  module load open_mpi/1.6.2 
+  656  module load hdf5_para
+  657  cd scratch_xl/14082013c5b_compr/
+  658  ls
+  659  cd CUBISM-MPCF/
+  660  ls
+  661  cd CubismApps/
+  662  ls
+  663  cd MPCFcluster
+  664  ls
+  665  cd makefiles/
+  666  ls -ltr
+  667  cd wavz_shuffle_z12_lzma
+  668  ls
+  669  ls -l datawavelet00*l4 
+  670  ls -l datawavelet00*l4 | awk '{print $5}' 
+  671  ls -l datawavelet00*l5 | awk '{print $5}' 
+  672  pico ../../source/Test_SteadyStateMPI.h 
+  673  ls
+  674  rm datawavelet000*
+  675  rm datawavelet001*
+  676  rm datawavelet002*
+  677  ls
+  678  cd ../
+  679  ls -ltr
+  680  cd ../
+  681  ls -ltr
+  682  pwd
+  683  ls
+  684  pwd
+  685  ls
+  686  pwd
+  687  cd ../
+  688  ls
+  689  cd tools/
+  690  ls
+  691  cd vp2bin/
+  692  ls
+  693  ls -ltr
+  694  history | grep make 
+  695  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 shuffle3=1 zerobits=12 lzma=1
+  696  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_shuffle_f16_lzma/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_shuffle_f16_lzma.bin
+  697  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_shuffle_z12_lzma/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_shuffle_z12_lzma.bin
+  698  ls -ltr
+  699  history | grep compbin
+  700  ./compbin wavz_shuffle_z12_lzma.bin.bin   shuffle_lzma.bin.bin | awk '{print $3}' 
+  701  cd ..
+  702  pwd
+  703  cd ../MPCFcluster/makefiles/
+  704  ls
+  705  history | grep make 
+  706  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float shuffle=1 zerobits=12 lzma=1
+  707  mkdir shuffle_z12_lzma 
+  708  cd shuffle_z12_lzma/
+  709  cp ../mpcf-cluster .
+  710  cp ../input/* .
+  711  pico mpcf.lsf.sh 
+  712  ls
+  713  ./submit.sh 
+  714  ls
+  715  cd ../
+  716  ls
+  717  pwd
+  718  cd ..
+  719  cd ../tools/vp2bin/
+  720  ls
+  721  ./compbin shuffle_z8_zlib.bin.bin shuffle_z8_zlib.bin.bin 
+  722  ./compbin shuffle_z8_zlib.bin.bin shuffle_lzma.bin.bin 
+  723  ./compbin shuffle_z8_zlib.bin.bin shuffle_lzma.bin.bin | awk '{print $3}' 
+  724  ./compbin fpzip24.bin.bin shuffle_lzma.bin.bin | awk '{print $3}' 
+  725  bjobs
+  726  ls
+  727  ls -ltr
+  728  cmp -l fpzip24.bin.bin shuffle_z8_zlib.bin.bin 
+  729  cmp -l fpzip24.bin.bin shuffle_zlib.bin.bin 
+  730  cmp -l fpzip24.bin.bin shuffle_lzma.bin.bin 
+  731  ls
+  732  ls -l ../../MPCFcluster/makefiles/fpzip24/
+  733  ls -l ../../MPCFcluster/makefiles/shuffle_z8_lzma/
+  734  pico ../../tools/fpzip/inc/myfpzip.h
+  735  history | grep make 
+  736  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float fpzip=1 
+  737  rm fpzip24.bin.bin 
+  738  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/fpzip24/datawavelet00300.StreamerGridPointIterative.channel4 -binfile fpzip24.bin
+  739  ls -ls -ltr
+  740  ls -ltr
+  741  cmp -l fpzip24.bin.bin shuffle_lzma.bin.bin 
+  742  ./compbin  fpzip24.bin.bin shuffle_lzma.bin.bin 
+  743  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float shuffle=1 zerobits=8
+  744  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float fpzip=1 lzma=1 
+  745  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float shuffle=1 zerobits=8 lzma=1 
+  746  mpirun -n 4  ./vp2bin -simdata ../../MPCFcluster/makefiles/shuffle_z8_lzma/datawavelet00300.StreamerGridPointIterative.channel4 -binfile shuffle_z8_lzma.bin 
+  747  ls -ltr
+  748  ./compbin shuffle_z8_lzma.bin.bin  shuffle_lzma.bin.bin 
+  749  bjobs
+  750  ls
+  751  cp compbin.c testbin.c 
+  752  pico testbin.c 
+  753  gcc -o testbin testbin.c 
+  754  gcc -O3 -o testbin testbin.c -lm
+  755  ./testbin wavz_shuffle_zlib.bin.bin shuffle_lzma.bin.bin 
+  756  ./testbin wavz_shuffle_z8_lzma.bin.bin  shuffle_lzma.bin.bin 
+  757  ./testbin wavz_shuffle_z12_lzma.bin.bin  shuffle_lzma.bin.bin 
+  758  ./testbin wavz_shuffle_f16_lzma.bin.bin  shuffle_lzma.bin.bin 
+  759  ./testbin wavz_shuffle_z8_lzma_e12.bin.bin  shuffle_lzma.bin.bin 
+  760  pwd
+  761  ls
+  762  cd ../
+  763  ls
+  764  cd vp2hdf
+  765  ls
+  766  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float shuffle=1 zerobits=8 lzma=1  
+  767  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float shuffle=1 lzma=1 
+  768  mpirun -n 4 -
+  769  mpirun 
+  770  mpirun -n 4 vp2hdf -simdata ../
+  771  mpirun -n 4 ./vp2hdf -simdata ../../MPCFcluster/makefiles/shuffle_lzma/datawavelet00300.StreamerGridPointIterative.channel4 -h5file sl4300
+  772  bg
+  773  ls -ltr
+  774  bg
+  775  ls -ltr
+  776  fg
+  777  bsub -n 4 -Is bash 
+  778  ls -ltr
+  779  cd scratch_xl/
+  780  ls
+  781  ls -ltr
+  782  cd 14082013c5b_compr/
+  783  ls
+  784  cd CUBISM-MPCF/
+  785  ls
+  786  cd CubismA
+  787  cd CubismApps/
+  788  ls
+  789  cd tools/vp2bin/
+  790  ls
+  791  module load gcc/4.7
+  792  module load open_mpi/1.6.2 
+  793  module load hdf5_para
+  794  ls
+  795  ls -ltr
+  796  cd ../vp2hdf
+  797  ls
+  798  ls -ltr
+  799  ls -lh
+  800  ls -lhtr
+  801  rm sl4300.txt sl4300.h5 sl4300.xmf 
+  802  cd ../vp2bin/
+  803  ls
+  804  history | grep testbin
+  805  ./testbin wavz_shuffle_z8_lzma_e12.bin.bin  shuffle_lzma.bin.bin 
+  806  ./testbin wavz12_shuffle_lzma.bin.bin  shuffle_lzma.bin.bin 
+  807  ./testbin wavz_shuffle_z12_lzma_e12.bin.bin  shuffle_lzma.bin.bin 
+  808  ./testbin wavz_shuffle_f16_lzma_e12.bin.bin  shuffle_lzma.bin.bin 
+  809  pico testbin.c 
+  810  gcc -O3 -o testbin testbin.c 
+  811  gcc -O3 -o testbin testbin.c -lm
+  812  ./testbin wavz_shuffle_f16_lzma_e12.bin.bin  shuffle_lzma.bin.bin 
+  813  ./testbin wavz12_shuffle_lzma.bin.bin   shuffle_lzma.bin.bin 
+  814  ./testbin wavz_shuffle_zlib.bin.bin   shuffle_lzma.bin.bin 
+  815  ./testbin fpzip16.bin.bin   shuffle_lzma.bin.bin 
+  816  ./compbin fpzip16.bin.bin   shuffle_lzma.bin.bin 
+  817  ./testbin wavz_shuffle_zlib.bin.bin   shuffle_lzma.bin.bin 
+  818  ./testbin wavz12_shuffle_lzma.bin.bin  shuffle_lzma.bin.bin 
+  819  ./testbin fpzip16.bin.bin  shuffle_lzma.bin.bin 
+  820  pico compbin.c 
+  821  gcc -O3 -o testbin testbin.c 
+  822  gcc -O3 -o testbin testbin.c -lm
+  823  gcc -O3 -o compbin compbin.c -lm
+  824  ./compbin fpzip16.bin.bin  shuffle_lzma.bin.bin 
+  825  pico testbin.c 
+  826  pico compbin.c 
+  827  gcc -O3 -o compbin compbin.c -lm
+  828  pico testbin.c 
+  829  gcc -O3 -o compbin compbin.c -lm
+  830  ./compbin fpzip16.bin.bin  shuffle_lzma.bin.bin 
+  831  pico testbin.c 
+  832  pico compbin.c 
+  833  gcc -O3 -o compbin compbin.c -lm
+  834  ./compbin fpzip16.bin.bin  shuffle_lzma.bin.bin 
+  835  pico testbin.c 
+  836  pico Makefile 
+  837  make 
+  838  ./testbin fpzip16.bin.bin  shuffle_lzma.bin.bin 
+  839  ./testbin wavz.bin.bin  shuffle_lzma.bin.bin 
+  840  pico testbin.c 
+  841  make
+  842  ./testbin wavz.bin.bin  shuffle_lzma.bin.bin 
+  843  pico testbin.c 
+  844  make 
+  845  ./testbin wavz.bin.bin  shuffle_lzma.bin.bin 
+  846  ./testbin fpzip.bin.bin  shuffle_lzma.bin.bin 
+  847  ./testbin fpzip16.bin.bin  shuffle_lzma.bin.bin 
+  848  pico testbin.c 
+  849  make 
+  850  ./testbin fpzip16.bin.bin  shuffle_lzma.bin.bin 
+  851  ./testbin wavz.bin.bin   shuffle_lzma.bin.bin 
+  852  ./testbin wavz_shuffle_zlib.bin.bin   shuffle_lzma.bin.bin 
+  853  ./testbin wavz_shuffle_z8_lzma.bin.bin   shuffle_lzma.bin.bin 
+  854  ./testbin wavz_shuffle_z12_lzma.bin.bin   shuffle_lzma.bin.bin 
+  855  ./testbin wavz_shuffle_f16_lzma.bin.bin   shuffle_lzma.bin.bin 
+  856  mv wavz12_shuffle_lzma.bin.bin wavz_shuffle_lzma_e12.bin.bin 
+  857  ./testbin wavz_shuffle_lzma_e12.bin.bin   shuffle_lzma.bin.bin 
+  858  ./testbin wavz_shuffle_z8_lzma_e12.bin.bin   shuffle_lzma.bin.bin 
+  859  ./testbin wavz_shuffle_z12_lzma_e12.bin.bin   shuffle_lzma.bin.bin 
+  860  ./testbin wavz_shuffle_f16_lzma_e12.bin.bin   shuffle_lzma.bin.bin 
+  861  ./testbin fpzip16.bin.bin   shuffle_lzma.bin.bin 
+  862  ./testbin wavz_zlib.bin.bin   shuffle_lzma.bin.bin 
+  863  mv wavz_shuffle_zlib.bin.bin wavz_shuffle_lzma.bin.bin 
+  864  ./testbin wavz_shuffle_lzma.bin.bin   shuffle_lzma.bin.bin 
+  865  ./testbin wavz_shuffle_z8_lzma.bin.bin   shuffle_lzma.bin.bin 
+  866  ./testbin wavz_shuffle_z12_lzma.bin.bin   shuffle_lzma.bin.bin 
+  867  ./testbin wavz_shuffle_f16_lzma.bin.bin   shuffle_lzma.bin.bin 
+  868  ./testbin wavz_shuffle_lzma.bin_e12.bin   shuffle_lzma.bin.bin 
+  869  ./testbin wavz_shuffle_lzma_e12.bin.bin   shuffle_lzma.bin.bin 
+  870  ./testbin wavz_shuffle_lzma_z8_e12.bin.bin   shuffle_lzma.bin.bin 
+  871  ./testbin wavz_shuffle_z8_lzma_e12.bin.bin   shuffle_lzma.bin.bin 
+  872  ./testbin wavz_shuffle_z12_lzma_e12.bin.bin   shuffle_lzma.bin.bin 
+  873  ./testbin wavz_shuffle_f16_lzma_e12.bin.bin   shuffle_lzma.bin.bin 
+  874  ./testbin fpzip24.bin.bin   shuffle_lzma.bin.bin 
+  875  ./testbin fpzip16.bin.bin   shuffle_lzma.bin.bin 
+  876  pico testbin.c 
+  877  make
+  878  ./testbin wavz_shuffle_lzma.bin.bin   shuffle_lzma.bin.bin 
+  879  ./testbin wavz_shuffle_z8_lzma.bin.bin   shuffle_lzma.bin.bin 
+  880  ./testbin wavz_shuffle_z12_lzma.bin.bin   shuffle_lzma.bin.bin 
+  881  ./testbin wavz_shuffle_f16_lzma.bin.bin   shuffle_lzma.bin.bin 
+  882  ./testbin wavz_shuffle_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+  883  ./testbin wavz_shuffle_z8_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+  884  ./testbin wavz_shuffle_z12_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+  885  ./testbin wavz_shuffle_f16_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+  886  ./testbin fpzip24.bin.bin shuffle_lzma.bin.bin 
+  887  ./testbin shuffle_z8_lzma.bin.bin  shuffle_lzma.bin.bin 
+  888  bjobs
+  889  cd ..
+  890  ls
+  891  cd ../MPCFcluster/makefiles/
+  892  ls
+  893  cd shuffle_z12_lzma/
+  894  ls -ltr
+  895  ls -l datawavelet00*l4 | awk '{print $5}'
+  896  ls -l datawavelet00*l5 | awk '{print $5}'
+  897  ls
+  898  rm datawavelet000*
+  899  rm datawavelet001*
+  900  rm datawavelet002*
+  901  cd ../
+  902  ls
+  903  cd ..
+  904  ls
+  905  cd ../tools/vp2bin/
+  906  ls
+  907  make 
+  908  history | grep make 
+  909  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float shuffle=1 lzma=1 
+  910  mpirun -n 4 -simdata ../../MPCFcluster/makefiles/shuffle_z12_lzma/datawavelet00300.StreamerGridPointIterative.channel4 -bindata shuffle_z12_lzma.bin
+  911  mpirun -n 4 ./vp2bin -simdata ../../MPCFcluster/makefiles/shuffle_z12_lzma/datawavelet00300.StreamerGridPointIterative.channel4 -bindata shuffle_z12_lzma.bin
+  912  mpirun -n 4 ./vp2bin -simdata ../../MPCFcluster/makefiles/shuffle_z12_lzma/datawavelet00300.StreamerGridPointIterative.channel4 -binfile shuffle_z12_lzma.bin
+  913  ./compbin shuffle_z12_lzma.bin.bin shuffle_lzma.bin.bin 
+  914  pico compbin.c 
+  915  make 
+  916  ./compbin shuffle_z12_lzma.bin.bin shuffle_lzma.bin.bin 
+  917  ./compbin shuffle_z12_lzma.bin.bin shuffle_lzma.bin.bin | awk '{print $3}' 
+  918  ./testbin shuffle_z12_lzma.bin.bin shuffle_lzma.bin.bin 
+  919  module load gcc/4.7
+  920  module load open_mpi/1.6.2
+  921  module load hdf5_para
+  922  cd scratch_xl/14082013c5b_compr/CUBISM-MPCF/CubismApps/MPCFcluster/makefiles/
+  923  ls
+  924  pico ../source/Test_SteadyStateMPI.h 
+  925  pwd
+  926  ls
+  927  history| grep make
+  928  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 
+  929  mkdir wavz_e12
+  930  cd wavz_e12/
+  931  ls
+  932  cp ../input/* .
+  933  cp ../mpcf-cluster .
+  934  pico mpcf.lsf.sh 
+  935  ls
+  936  ./submit.sh 
+  937  cd ..
+  938  ls
+  939  cd
+  940  touch -R *
+  941  touch -r  *
+  942  touch --help
+  943  touch */*/*/*/*/*/*
+  944  touch */*/*/*/*/*/*/*
+  945  touch */*/*/*/*/*/*/*/*/*/*
+  946  touch */*/*/*/*/*/*/*/*/*
+  947  touch */*/*/*/*/*/*/*/*
+  948  touch */*/*/*/*/*/*/*
+  949  touch */*/*/*/*/*/*
+  950  touch */*/*/*/*/*
+  951  touch */*/*/*/*
+  952  touch */*/*/*
+  953  touch */*/*
+  954  touch */*
+  955  ls -lt
+  956  cd scratch_xl/
+  957  ls -ltr
+  958  cd 14082013c5b_compr/CUBISM-MPCF/
+  959  ls
+  960  cd CubismApps/
+  961  ls
+  962  cd MPCFcluster
+  963  ls
+  964  cd makefiles/
+  965  ls
+  966  ls -ltr
+  967  cd wavz_e12/
+  968  ls -ltr
+  969  ls -l datawavelet00*l4 
+  970  ls -l datawavelet00*l4 | awk '{print $5}'
+  971  ls -l datawavelet00*l5 | awk '{print $5}'
+  972  more mpcf.lsf.sh 
+  973  pwd
+  974  ls
+  975  rm datawavelet000*
+  976  rm datawavelet001*
+  977  rm datawavelet002*
+  978  ls 
+  979  ls -ltr
+  980  cd ../
+  981  ls
+  982  cd ../
+  983  ls
+  984  cd ../tools/
+  985  ls
+  986  cd vp2bin/
+  987  ls
+  988  ls -ltr
+  989  history | grep make 
+  990  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 
+  991  module load gcc/4.7
+  992  module load open_mpi/1.6.2
+  993  module load hdf5_para
+  994  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 
+  995  module avail
+  996  ls -ltr
+  997  ls
+  998  history | grep mpirun
+  999  mpirun -n 4 ./vp2bin -simdata ../../MPCFcluster/makefiles/wavz_e12/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_e12.bin
+ 1000  ./compbin wavz_e12.bin.bin shuffle_lzma.bin.bin 
+ 1001  ls -ltr
+ 1002  cd scratch_xl/
+ 1003  ls -ltr
+ 1004  rm Makefile.config CompressionEncoders.h WaveletCompressor.cpp SerializerIO_WaveletCompression_MPI_Simple.h 
+ 1005  ls
+ 1006  cd 14082013c5b_compr/
+ 1007  ls
+ 1008  cd CUBISM-MPCF/
+ 1009  ls -ltr
+ 1010  cd CubismApps/
+ 1011  ls 
+ 1012  cd MPCFcluster
+ 1013  ls
+ 1014  cd makefiles/
+ 1015  ls
+ 1016  cd ../
+ 1017  cd ../tools/vp2bin/
+ 1018  ls
+ 1019  ./compbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1020  module load gcc/4.7
+ 1021  module load open_mpi/1.6.2 
+ 1022  module load hdf5_para
+ 1023  ./compbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1024  pico testbin.c 
+ 1025  make 
+ 1026  ./testbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1027  cp testbin.c diffbin.c 
+ 1028  pico Makefile 
+ 1029  pico diffbin.c 
+ 1030  pico Makefile 
+ 1031  make 
+ 1032  man fwrite
+ 1033  pico diffbin.c 
+ 1034  make 
+ 1035  ls
+ 1036  pico main.cpp 
+ 1037  pwd
+ 1038  ls -ltr
+ 1039  ./diffbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1040  compbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1041  pico diffbin.c 
+ 1042  make 
+ 1043  ./diffbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1044  pico diffbin.c 
+ 1045  make 
+ 1046  ./diffbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1047  ls
+ 1048  ls -ltr
+ 1049  cd ../
+ 1050  cp -r vp2hdf vp2hdf_diff 
+ 1051  cd vp2hdf_diff/
+ 1052  ls
+ 1053  pico main.cpp
+ 1054  make 
+ 1055  pico main.cpp
+ 1056  make 
+ 1057  pico main.cpp
+ 1058  make 
+ 1059  pico main.cpp
+ 1060  make 
+ 1061  ls
+ 1062  ls -ltr
+ 1063  ln -s ../vp2bin/wavz.bin.bin_diff.bin .
+ 1064  ls -ltr
+ 1065  ./vp2hdf -
+ 1066  ./vp2hdf -diffdata wavz.bin.bin_diff.bin -h5file wavz_diff 
+ 1067  bg
+ 1068  ls -ltr
+ 1069  ls -lh
+ 1070  ls -ltr
+ 1071  pwd
+ 1072  ls -ltr
+ 1073  cd ../vp2bin/
+ 1074  ls
+ 1075  ls -ltr
+ 1076  pico diffbin.c 
+ 1077  cd ../
+ 1078  ls -ltr
+ 1079  cd vp2hdf_diff/
+ 1080  ls
+ 1081  pico main.cpp
+ 1082  pico ../vp2bin/diffbin.c 
+ 1083  pico main.cpp
+ 1084  make 
+ 1085  pwd
+ 1086  ls
+ 1087  rm wavz_diff.h5 wavz_diff.xmf 
+ 1088  mpirun -n 8 ./vp2hdf -diffdata wavz.bin.bin_diff.bin -h5file wavz_diff 
+ 1089  ls -ltr
+ 1090  module avail
+ 1091  ls -ltr
+ 1092  cd ../vp2bin/
+ 1093  ls
+ 1094  ls -ltr
+ 1095  cp testbin.c testdiff.c 
+ 1096  pico testdiff.c 
+ 1097  gcc -o testdiff testdiff.c 
+ 1098  pico testdiff.c 
+ 1099  gcc -o testdiff testdiff.c 
+ 1100  gcc -O3  -o testdiff testdiff.c -lm
+ 1101  ls -ltr
+ 1102  ./testdiff wavz.bin.bin_diff.bin 
+ 1103  pico testdiff.c 
+ 1104  gcc -O3  -o testdiff testdiff.c -lm
+ 1105  ./testdiff wavz.bin.bin_diff.bin 
+ 1106  pico testdiff.c 
+ 1107  gcc -O3  -o testdiff testdiff.c -lm
+ 1108  ./testdiff wavz.bin.bin_diff.bin 
+ 1109  pico testdiff.c 
+ 1110  gcc
+ 1111  gcc -O3  -o testdiff testdiff.c -lm
+ 1112  pico testdiff.c 
+ 1113  gcc -O3  -o testdiff testdiff.c -lm
+ 1114  ./testdiff wavz.bin.bin_diff.bin 
+ 1115  pico testdiff.c 
+ 1116  pico diffbin.c 
+ 1117  ./diffbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1118  pico diffbin.c 
+ 1119  make 
+ 1120  ./diffbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1121  pico diffbin.c 
+ 1122  make 
+ 1123  ./diffbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1124  ls -ltr
+ 1125  ./testdiff wavz.bin.bin_diff.bin 
+ 1126  ./testdiff wavz.bin.bin_diff.bin > xx.txt
+ 1127  grep ) xx.txt 
+ 1128  grep \) xx.txt 
+ 1129  grep \) xx.txt  | awk '{print $2}' 
+ 1130  grep \) xx.txt  | awk '{print $2}'  | sort -n 
+ 1131  pico diffbin.c 
+ 1132  make
+ 1133  ./diffbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1134  ./testdiff wavz.bin.bin_diff.bin > xx.txt
+ 1135  more xx.txt 
+ 1136  pico testdiff.c 
+ 1137  make 
+ 1138  gcc -O3  -o testdiff testdiff.c -lm
+ 1139  pico testdiff.c 
+ 1140  gcc -O3  -o testdiff testdiff.c -lm
+ 1141  ./testdiff wavz.bin.bin_diff.bin > xx.txt
+ 1142  ./testdiff wavz.bin.bin_diff.bin
+ 1143  ls -ltr
+ 1144  rm xx.txt 
+ 1145  ls -ltr
+ 1146  cd ../vp2hdf_diff/
+ 1147  history | grep diff
+ 1148  rm wavz_diff.*
+ 1149  mpirun -n 8 ./vp2hdf -diffdata wavz.bin.bin_diff.bin -h5file wavz_diff 
+ 1150  ls -ltr
+ 1151  cd ../vp2bin/
+ 1152  pico diffbin.c 
+ 1153  make 
+ 1154  ./diffbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1155  cd ../vp2hdf
+ 1156  cd ../vp2hdf_diff/
+ 1157  ls -ltr
+ 1158  rm wavz_diff.*
+ 1159  mpirun -n 8 ./vp2hdf -diffdata wavz.bin.bin_diff.bin -h5file wavz_diff 
+ 1160  cd ../vp2bin/
+ 1161  pico diffbin.c 
+ 1162  make
+ 1163  ./diffbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1164  cd ../vp2hdf_diff/
+ 1165  ls
+ 1166  mpirun -n 8 ./vp2hdf -diffdata wavz.bin.bin_diff.bin -h5file wavz_diff 
+ 1167  cd ../vp2bin/
+ 1168  pico diffbin.c 
+ 1169  make 
+ 1170  ./diffbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1171  cd ../vp2hdf_diff/
+ 1172  mpirun -n 8 ./vp2hdf -diffdata wavz.bin.bin_diff.bin -h5file wavz_diff 
+ 1173  cd ../vp2bin/
+ 1174  pico diffbin.c 
+ 1175  make 
+ 1176  ./diffbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1177  cd ../vp2hdf_diff/
+ 1178  mpirun -n 8 ./vp2hdf -diffdata wavz.bin.bin_diff.bin -h5file wavz_diff 
+ 1179  cd ../vp2bin/
+ 1180  pico diffbin.c 
+ 1181  make 
+ 1182  ./diffbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1183  pwd
+ 1184  ls
+ 1185  pwd
+ 1186  ls -ltr
+ 1187  pico diffbin.c 
+ 1188  make 
+ 1189  ./diffbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1190  cd ../vp2hdf_diff/
+ 1191  mpirun -n 8 ./vp2hdf -diffdata wavz.bin.bin_diff.bin -h5file wavz_diff 
+ 1192  cd ../
+ 1193  cd vp2bin/
+ 1194  pico diffbin.c 
+ 1195  make 
+ 1196  ./diffbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1197  pico diffbin.c 
+ 1198  make 
+ 1199  ./diffbin  wavz.bin.bin shuffle_lzma.bin.bin 
+ 1200  cd ../vp2hdf_diff/
+ 1201  mpirun -n 8 ./vp2hdf -diffdata wavz.bin.bin_diff.bin -h5file wavz_diff 
+ 1202  πςδ
+ 1203   pwd
+ 1204  ls -ltr
+ 1205  pico main.cpp
+ 1206  cd ../vp2bin/
+ 1207  ls
+ 1208  pico diffbin.c 
+ 1209  pico testbin.c 
+ 1210  ls
+ 1211  pico main.cpp 
+ 1212  pico testbin.c 
+ 1213  make 
+ 1214  pico testbin.c 
+ 1215  make 
+ 1216  pico testbin.c 
+ 1217  make 
+ 1218  pico testbin.c 
+ 1219  make 
+ 1220  ./testdiff wavz.bin.bin_diff.bin
+ 1221  make 
+ 1222  pico testbin.c 
+ 1223  ./testbin wavz.bin.bin_diff.bin
+ 1224  pico testbin.c 
+ 1225  history | grep testbin
+ 1226   ./testbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1227  pico testbin.c 
+ 1228  make 
+ 1229   ./testbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1230  pico testbin.c 
+ 1231  make 
+ 1232   ./testbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1233  pico testbin.c 
+ 1234  make 
+ 1235   ./testbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1236  pico testbin.c 
+ 1237  make 
+ 1238   ./testbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1239  pico testbin.c 
+ 1240  make 
+ 1241   ./testbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1242  pico testbin.c 
+ 1243  make 
+ 1244   ./testbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1245  pico testbin.c 
+ 1246  make 
+ 1247   ./testbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1248  pico testbin.c 
+ 1249  make
+ 1250   ./testbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1251  pico testbin.c 
+ 1252  make 
+ 1253   ./testbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1254  pico testbin.c 
+ 1255  make 
+ 1256   ./testbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1257  pico testbin.c 
+ 1258  make 
+ 1259   ./testbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1260  pico testbin.c 
+ 1261  make 
+ 1262   ./testbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1263  pico testbin.c 
+ 1264  make 
+ 1265   ./testbin wavz.bin.bin shuffle_lzma.bin.bin 
+ 1266   ./testbin fpzip16.bin.bin  shuffle_lzma.bin.bin 
+ 1267  pico testbin.c 
+ 1268  make
+ 1269   ./testbin fpzip16.bin.bin  shuffle_lzma.bin.bin 
+ 1270  w
+ 1271  ls -ltr
+ 1272  pwd
+ 1273  cd ../../
+ 1274  ls
+ 1275  cd MPCFnode/source/
+ 1276  ls
+ 1277  ls -ltr
+ 1278  rm -rf compare_with_this/
+ 1279  mkdir hold 
+ 1280  cp FullWaveletTransform.h hold/
+ 1281  mv ~/scratch_xl/WaveletsOnInterval3.h .
+ 1282  diff FullWaveletTransform.h ~/scratch_xl/FullWaveletTransform.h 
+ 1283  cp  ~/scratch_xl/FullWaveletTransform.h  .
+ 1284  pico FullWaveletTransform.h 
+ 1285  pwd
+ 1286  cd ../
+ 1287  ls
+ 1288  cd ../../
+ 1289  ls
+ 1290  cd CubismApps/MPCFcluster/makefiles/
+ 1291  ls
+ 1292  history 
+ 1293  gcc -v
+ 1294  module list
+ 1295  history | grep mae k
+ 1296  history | grep make
+ 1297  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 lzma=1 
+ 1298  mkdir wavz_aiw3_lzma
+ 1299  cd wavz_aiw3_lzma/
+ 1300  cp ../input/* .
+ 1301  cp ../mpcf-cluster .
+ 1302  pico mpcf.lsf.sh 
+ 1303  ./submit.sh 
+ 1304  bjoba
+ 1305  bjobs
+ 1306  ls -ltr
+ 1307  bjobbjobs
+ 1308  bjobs
+ 1309  w
+ 1310  bjobs
+ 1311  ls -ltr
+ 1312  pico ../../source/Test_SteadyStateMPI.h 
+ 1313  cd ../
+ 1314  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 lzma=1  
+ 1315  ls -ltr
+ 1316  mkdir wavz_aiw3_lzma_e23
+ 1317  cd wavz_aiw3_lzma_e23/
+ 1318  cp ../mpcf-cluster .
+ 1319  cp ../input/* .
+ 1320  pico mpcf.lsf.sh 
+ 1321  ./submit.sh 
+ 1322  ls -ltr
+ 1323  bjobs
+ 1324  ls -ltr
+ 1325  cd ../wavz_aiw3_lzma
+ 1326  ls -ltr
+ 1327  ls -lh
+ 1328  bjobs
+ 1329  pwd
+ 1330  ls -ltr
+ 1331  cd ../
+ 1332  pwd
+ 1333  cd ../
+ 1334  ls
+ 1335  cd ../tools/
+ 1336  ls
+ 1337  cd vp2bin/
+ 1338  ls -ltr
+ 1339  make cleanall; make -j  CC=mpic++ bs=32 qpxemu=1 config=release sequoia=0 ap=float wavz=1 lzma=1   
+ 1340  ls -ltr
+ 1341  mpirun -n 8 -simdata ../../MPCFcluster/makefiles/wavz_aiw3_lzma/datawavelet00300.StreamerGridPointIterative.channel4 -bindata wavz_aiw3_lzma_e12.bin 
+ 1342  module list
+ 1343  mpirun -n 8 ./vp2bin  -simdata ../../MPCFcluster/makefiles/wavz_aiw3_lzma/datawavelet00300.StreamerGridPointIterative.channel4 -bindata wavz_aiw3_lzma_e12.bin 
+ 1344  mpirun -n 8 ./vp2bin  -simdata ../../MPCFcluster/makefiles/wavz_aiw3_lzma/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_aiw3_lzma_e12.bin 
+ 1345  ls -ltr
+ 1346  ./compbin ./wavz_aiw3_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+ 1347  ./testbin  ./wavz_aiw3_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+ 1348  pico testbin.c 
+ 1349  ./testbin  ./wavz_aiw3_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+ 1350  pico testbin.c 
+ 1351  make 
+ 1352  ./testbin  ./wavz_aiw3_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+ 1353  pico testbin.c 
+ 1354  make
+ 1355  ./testbin  ./wavz_aiw3_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+ 1356  pico testbin.c 
+ 1357  make 
+ 1358  pico testbin.c 
+ 1359  make 
+ 1360  ./testbin  ./wavz_aiw3_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+ 1361  pico testbin.c 
+ 1362  make 
+ 1363  ./testbin  ./wavz_aiw3_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+ 1364  pico testbin.c 
+ 1365  make 
+ 1366  ./testbin  ./wavz_aiw3_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+ 1367  pico testbin.c 
+ 1368  make 
+ 1369  ./testbin  ./wavz_aiw3_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+ 1370  ls -ltr
+ 1371  bjobs
+ 1372  pwd
+ 1373  cd ../../MPCFcluster/makefiles/
+ 1374  ls
+ 1375  ls -ltr
+ 1376  cd wavz_aiw3_lzma
+ 1377  ls
+ 1378  ls -ltr
+ 1379  ls -lh
+ 1380  ls -ltr
+ 1381  cd ../
+ 1382  ls
+ 1383  cd ../
+ 1384  ls
+ 1385  cd ../tools/vp2bin/
+ 1386  ls
+ 1387  ./testbin  ./wavz_aiw3_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+ 1388  pico testbin.c 
+ 1389  make 
+ 1390  ./testbin  ./wavz_aiw3_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+ 1391  pico testbin.c 
+ 1392  pico compbin.c 
+ 1393  make 
+ 1394  ./compbin  ./wavz_aiw3_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+ 1395  pico testbin.c 
+ 1396  make 
+ 1397  ./testbin  ./wavz_aiw3_lzma_e12.bin.bin shuffle_lzma.bin.bin 
+ 1398  w
+ 1399  bjobs
+ 1400  ls -ltr
+ 1401  bjobs
+ 1402  cd -
+ 1403  pwd
+ 1404  cd makefiles/
+ 1405  ls -ltr
+ 1406  cd wavz_aiw3_lzma_e23/
+ 1407  ls -ltr
+ 1408  pwd
+ 1409  pico ../../../MPCFnode/source/FullWaveletTransform.h 
+ 1410  bjobs
+ 1411  ls -ltr
+ 1412  w
+ 1413  bjobσ
+ 1414  bjobs
+ 1415  ls -ltr
+ 1416  cd ../
+ 1417  pwd
+ 1418  cd ../../tools/
+ 1419  ls
+ 1420  cd vp2bin/
+ 1421  ls
+ 1422  mpirun -n 8 ./vp2bin  -simdata ../../MPCFcluster/makefiles/wavz_aiw3_lzma_e23/datawavelet00300.StreamerGridPointIterative.channel4 -bindata wavz_aiw3_lzma_e23.bin 
+ 1423  mpirun -n 8 ./vp2bin  -simdata ../../MPCFcluster/makefiles/wavz_aiw3_lzma_e23/datawavelet00300.StreamerGridPointIterative.channel4 -binfine wavz_aiw3_lzma_e23.bin 
+ 1424  mpirun -n 8 ./vp2bin  -simdata ../../MPCFcluster/makefiles/wavz_aiw3_lzma_e23/datawavelet00300.StreamerGridPointIterative.channel4 -binfile wavz_aiw3_lzma_e23.bin 
+ 1425  ls -ltr
+ 1426  ./testbin  ./wavz_aiw3_lzma_e23.bin.bin shuffle_lzma.bin.bin 
+ 1427  pico testbin.c 
+ 1428  make 
+ 1429  ./testbin  ./wavz_aiw3_lzma_e23.bin.bin shuffle_lzma.bin.bin 
+ 1430  pico testbin.c 
+ 1431  make
+ 1432  ./testbin  ./wavz_aiw3_lzma_e23.bin.bin shuffle_lzma.bin.bin 
+ 1433  pico testbin.c 
+ 1434  make 
+ 1435  ./testbin  ./wavz_aiw3_lzma_e23.bin.bin shuffle_lzma.bin.bin 
+ 1436  ls -ltr
+ 1437  history | more
+ 1438  history > history.save
