@@ -2,6 +2,8 @@
 
 echo running > job.status
 
+./clean
+
 time mpirun -n 4 --oversubscribe ../mpcf-cluster -simConf sim.conf
 ./post
 
