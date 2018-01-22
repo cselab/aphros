@@ -22,8 +22,6 @@ typedef FlowStep_LSRK3MPI<GridMPI_t> TFlowStep;
 
 #include "Test_CloudMPI.h"
 #include "Test_CloudAcousticMPI.h"
-#include "Test_SICCloudMPI.h"
-#include "Test_ChannelFlowMPI.h"
 
 using namespace std;
 
