@@ -102,185 +102,19 @@ template<typename TGrid>
 template<typename Kflow, typename Ksource, typename Kdiff, typename Ksurf, typename Kupdate, typename Kupdate_state, typename Ksharp>
 pair<Real, Real> FlowStep_LSRK3MPI<TGrid>::step(TGrid& grid, vector<BlockInfo>& vInfo, const Real a, const Real b, const Real dt, const Real current_time)
 {
-		  const bool record = LSRK3data::step_id%10==0;
+    const bool record = LSRK3data::step_id%10==0;
 
-#ifndef _NONUNIFORM_BLOCK_
-        const Real h = vInfo[0].h_gridpoint; // uniform grid size
-        const Real dtinvh = dt / h;
-#endif /* _NONUNIFORM_BLOCK_ */
+    const Real h = vInfo[0].h_gridpoint; // uniform grid size
+    const Real dtinvh = dt / h;
 
+    LSRK3data::FlowStep<Kflow, Lab> rhs(a, dtinvh);
 
-///////////////////////////////////////////////////////////////////////////////
-// Stencil (Lab) based schemes
-///////////////////////////////////////////////////////////////////////////////
-		  Timer timer;
+    // rhs
+    process< LabMPI >(rhs, (TGrid&)grid, current_time, record);
 
-#ifdef _NONUNIFORM_BLOCK_
-          // nonuniform
-          LSRK3data::FlowStepNonuniform<Kflow, Lab> rhs(a, dt);
-#else
-          LSRK3data::FlowStep<Kflow, Lab> rhs(a, dtinvh);
-#endif /* _NONUNIFORM_BLOCK_ */
-
-		  timer.start();
-
-#ifdef _USE_HPM_
-		  if (LSRK3data::step_id>0) HPM_Start("RHS sync method");
-#endif
-
-#ifdef _USE_HPM_
-		  if (LSRK3data::step_id>0) HPM_Stop("RHS sync method");
-#endif
-
-#ifdef _USE_HPM_
-		  if (LSRK3data::step_id>0) HPM_Start("RHS");
-#endif
-		  process< LabMPI >(rhs, (TGrid&)grid, current_time, record);
-#ifdef _USE_HPM_
-    if (LSRK3data::step_id>0) HPM_Stop("RHS");
-#endif
-
-
-    // TODO: [fabianw@mavt.ethz.ch; Thu May 11 2017 09:36:54 PM (-0700)] move
-    // this stuff past stencil kernels
-#ifdef _USE_HPM_
-    if (LSRK3data::step_id>0)             HPM_Start("SOURCE");
-#endif
-    const int source = parser("-source").asInt(0);
-    const bool oneway_source = parser("-source_oneway").asBool(0);
-
-    if(source)
-    {
-        LSRK3data::Source<Ksource> source (1.0, dt, Simulation_Environment::grav_accel, Simulation_Environment::vol_bodyforce, &vInfo.front());
-        source.omp(vInfo.size());
-    }
-
-    const Real st = parser("Rbubble").asDouble(0.010)/Simulation_Environment::C1;
-    // if(oneway_source)
-    // if(current_time < 9.0*st)
-    {
-        // TODO: [fabianw@mavt.ethz.ch; Wed May 17 2017 03:47:58 PM (-0700)]
-        // parameter need to be specified in a more convenient way
-        OneWayAcousticSource_CPP::SourceParameter p;
-        p.gamma = Simulation_Environment::GAMMA1;
-        p.c0 = Simulation_Environment::C1;
-        // p.smooth = 10.0*Simulation_Environment::EPSILON;
-        p.smooth = parser("signal_smooth").asDouble(1.);
-        // p.smooth = Simulation_Environment::EPSILON;
-        p.x0 = parser("signal_x0").asDouble(0.);
-        p.x0a = parser("signal_x0a").asDouble(0.);
-
-        p.sigma_t   = parser("signal_sigma").asDouble(1.);
-        p.t0        = parser("signal_t0").asDouble(0.);
-        p.amplitude = parser("signal_p_amplitude").asDouble(0.);
-        p.amplitudea = parser("signal_p_amplitudea").asDouble(0.);
-        p.frequency = parser("signal_frequency").asDouble(1.);
-        p.phase0 = parser("signal_phase0").asDouble(0.);
-        p.phase0a = parser("signal_phase0a").asDouble(0.);
-
-        std::string nwav = parser("wav").asString("");
-        Real wavdt = parser("wavdt").asDouble(0.);
-        Real wavamp = parser("wavamp").asDouble(0.);
-        static std::vector<Real> wav;
-
-        if (wav.empty() && nwav != "") {
-          std::cout << "Read wav from " + nwav << std::endl;
-          std::ifstream fwav;
-          fwav.open(nwav.c_str());
-          if (!fwav.good()) {
-            std::cout << "wav not found" << std::endl;
-            abort();
-          }
-          while (fwav) {
-            Real a;
-            fwav >> a;
-            wav.push_back(a);
-          }
-          std::cout << wav.size() << "entries read" << std::endl;
-          if (wav.empty()) {
-            std::cout << "wav empty" << std::endl;
-            abort();
-          }
-        }
-
-        if (!wav.empty()) {
-          size_t i = std::min(wav.size() - 1, size_t(current_time / wavdt));
-          Real w = wav[i];
-          p.amplitude *= w;
-          p.amplitudea *= w;
-        }
-
-        // p.amplitude = parser("pulse_amplitude").asDouble(100.0e-5);
-
-        // p.t0        = 0.0;
-        // const double freq = parser("source_frequency").asDouble(1.0e6); // Hz (SI); Pressure units: freq = sqrt(10.)*freq_SI
-        // p.T = 1.0/freq;
-        // p.omega = 2.0*M_PI/p.T;
-
-        // TODO: [fabianw@mavt.ethz.ch; Wed May 17 2017 03:42:02 PM (-0700)]
-        // Template this later
-        LSRK3data::OneWayAcousticSource<OneWayAcousticSource_CPP>
-        source(current_time, dt, p, &vInfo.front());
-        source.omp(vInfo.size());
-    }
-
-#ifdef _USE_HPM_
-    if (LSRK3data::step_id>0)            HPM_Stop("SOURCE");
-#endif
-
-#ifdef _USE_HPM_
-    if (LSRK3data::step_id>0)             HPM_Start("DIFFUSION");
-#endif
-    if(Simulation_Environment::MU_MAX>0)
-    {
-#ifdef _NONUNIFORM_BLOCK_
-        // TODO: [fabianw@mavt.ethz.ch; Thu May 11 2017 09:37:52 PM (-0700)]
-#else
-        LSRK3data::Diffusion<Kdiff, Lab> diffusion(dtinvh, Simulation_Environment::MU1, Simulation_Environment::MU2);
-        process< LabMPI >(diffusion, (TGrid&)grid, current_time, record);
-#endif /* _NONUNIFORM_BLOCK_ */
-    }
-#ifdef _USE_HPM_
-    if (LSRK3data::step_id>0)             HPM_Stop("DIFFUSION");
-#endif
-
-#ifdef _USE_HPM_
-    if (LSRK4data::step_id>0)             HPM_Start("SURFTENS");
-#endif
-    if (Simulation_Environment::SIGMA>0)
-    {
-#ifdef _NONUNIFORM_BLOCK_
-        // TODO: [fabianw@mavt.ethz.ch; Thu May 11 2017 09:37:52 PM (-0700)]
-#else
-      LSRK3data::SurfaceTension<Ksurf, Lab> surfacetension(dtinvh, Simulation_Environment::SIGMA);
-      process< LabMPI >(surfacetension, (TGrid&)grid, current_time, record);
-#endif /* _NONUNIFORM_BLOCK_ */
-    }
-#ifdef _USE_HPM_
-    if (LSRK3data::step_id>0)             HPM_Stop("SURFTENS");
-#endif
-
-#ifdef _USE_HPM_
-    if (LSRK3data::step_id>0)             HPM_Start("SHARPENING");
-#endif
-    const double epsilon = parser("-eps-sharp").asDouble(0.0);
-
-    if(epsilon>0.0)
-    {
-        // get maximum interface velocity
-        const Real U0 = _computeMaxIVel();
-#ifdef _NONUNIFORM_BLOCK_
-        // TODO: [fabianw@mavt.ethz.ch; Thu May 11 2017 09:37:52 PM (-0700)]
-#else
-        LSRK3data::InterfaceSharpening<Ksharp, Lab> intersharp(dtinvh, epsilon, U0);
-        process< LabMPI >(intersharp, (TGrid&)grid, current_time, record);
-#endif /* _NONUNIFORM_BLOCK_ */
-    }
-#ifdef _USE_HPM_
-    if (LSRK3data::step_id>0)             HPM_Stop("SHARPENING");
-#endif
-
-    const double totalRHS = timer.stop();
+    // diffusion
+    LSRK3data::Diffusion<Kdiff, Lab> diffusion(dtinvh, Simulation_Environment::MU1, Simulation_Environment::MU2);
+    process< LabMPI >(diffusion, (TGrid&)grid, current_time, record);
 
 #if defined(_CHARACTERISTIC_1D_BOUNDARY_)
     // 1d characteristic-based bc currently only for Euler equations
@@ -288,49 +122,12 @@ pair<Real, Real> FlowStep_LSRK3MPI<TGrid>::step(TGrid& grid, vector<BlockInfo>& 
     process< LabMPI >(upbc, (TGrid&)grid, current_time, record);
 #endif
 
-#ifdef _USE_HPM_
-    if (LSRK3data::step_id>0)             HPM_Start("Update");
-#endif
+    // update
     LSRK3data::Update<Kupdate> update(b, &vInfo.front());
 
-    timer.start();
     update.omp(vInfo.size());
-    const double totalUPDATE = timer.stop();
 
-#ifdef _USE_HPM_
-    if (LSRK3data::step_id>0) 			HPM_Stop("Update");
-#endif
-
-
-#ifdef _USE_HPM_
-    if (LSRK3data::step_id>0)             HPM_Start("Update State");
-#endif
-    if(LSRK3data::state==1)
-    {
-        std::cout << "######################################\n#      UPDATE STATE DEACTIVATED      #\n######################################" << std::endl;
-        //LSRK3data::Update_State<Kupdate_state> update_state(&vInfo.front(), LSRK3data::min_G, LSRK3data::min_P, LSRK3data::min_rho, LSRK3data::state_alpha, LSRK3data::state_beta);
-        //update_state.omp(vInfo.size());
-    }
-#ifdef _USE_HPM_
-    if (LSRK3data::step_id>0)             HPM_Stop("Update State");
-#endif
-
-#ifdef _USE_HPM_
-    if (LSRK3data::step_id>0)             HPM_Start("Update Sponge");
-#endif
-    if(LSRK3data::sponge==1)
-    {
-        LSRK3data::Update_Sponge update_sponge(LSRK3data::sponge_pref, &vInfo.front());
-        update_sponge.omp(vInfo.size(), grid.getBlocksPerDimension(0), grid.getBlocksPerDimension(1), grid.getBlocksPerDimension(2));
-    }
-#ifdef _USE_HPM_
-    if (LSRK3data::step_id>0)             HPM_Stop("Update Sponge");
-#endif
-
-    LSRK3MPIdata::t_fs += totalRHS;
-    LSRK3MPIdata::t_up += totalUPDATE;
-
-    return pair<double, double>(totalRHS,totalUPDATE);
+    return pair<double, double>(1.,1.);
 }
 
 template<typename TGrid>
