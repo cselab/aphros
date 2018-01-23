@@ -13,9 +13,8 @@
 
 #include <BlockLabMPI.h>
 
-#include <FlowStep_LSRK3.h>
+#include <Diffusion_CPP.h>
 
-#include <Histogram.h>
 #include <ParIO.h>
 #include "BlockProcessor_MPI.h"
 
