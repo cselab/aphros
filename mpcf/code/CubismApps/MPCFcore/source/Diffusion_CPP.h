@@ -57,10 +57,15 @@ class Diffusion_CPP
 
         _convert(srcfirst + (islice+2)*srcfloats*slicesrcs, srcfloats, rowsrcs);
 
+        const InputSOA_ST& a = sa(0);
         for(int iy=0; iy<OutputSOA::NY; ++iy) {
           for(int ix=0; ix<OutputSOA::NX; ++ix) {
-            //rhsa.ref(ix, iy) = txx(ix+1, iy) - txx(ix, iy) + tyx(ix, iy+1) - tyx(ix, iy);
-            rhsa.ref(ix, iy) = 0.;
+            const Real dx = a(ix, iy) - a(ix-1, iy);
+            const Real dy = a(ix, iy) - a(ix, iy-1);
+            const Real vx = 1.;
+            const Real vy = 1.;
+            rhsa.ref(ix, iy) = -(vx * dx + vy * dy);
+            //rhsa.ref(ix, iy) = 0.;
           }
         }
 
