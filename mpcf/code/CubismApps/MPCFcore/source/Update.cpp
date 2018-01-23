@@ -23,11 +23,6 @@ void Update_CPP::compute(const Real * const src, Real * const dst, const int gpt
     {
         for(int comp = 0; comp < gptfloats; comp++)
         {
-#ifndef NDEBUG
-            if (isnan(src[i+comp]))
-                printf("src isnan component is %d, i=%d\n", comp, i);
-#endif
-
             dst[i+comp] += m_b * src[i+comp];
 
             assert(!isnan(src[i+comp]));

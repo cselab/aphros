@@ -27,8 +27,8 @@ class Diffusion_CPP
 
     typedef Real RealTemp;
 
-    void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts);
-    void _copyback(Real* gptfirst, const int gptfloats, const int rowgpts);
+    void _convert(const Real * const b, const int fe, const int er);
+    void _copyback(Real* b, const int ne, const int er);
     Real dtinvh;
 
   public:

@@ -481,18 +481,12 @@ namespace LSRK3data
         {
 #pragma omp parallel
             {
-#ifdef _USE_NUMA_
-                const int cores_per_node = numa_num_configured_cpus() / numa_num_configured_nodes();
-                const int mynode = omp_get_thread_num() / cores_per_node;
-                numa_run_on_node(mynode);
-#endif
                 Kernel kernel(b);
-
 #pragma omp for schedule(runtime)
                 for(int r=0; r<N; ++r)
                 {
                     Block_t & block = *(Block_t *)ary[r].ptrBlock;
-                    kernel.compute(&block.tmp[0][0][0][0], &block.data[0][0][0].alpha1rho1, Block_t::gptfloats); //TODO: URSULA: This may easily be generalized with an option to address the first element. Name does not matter here.
+                    kernel.compute(&block.tmp[0][0][0][0], &block.data[0][0][0].alpha1rho1, Block_t::gptfloats);
                 }
             }
         }
