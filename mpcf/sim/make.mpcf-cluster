@@ -14,7 +14,7 @@ make -C $repo/$fpzippath -j 4 CC=$CC
 bs=4
 f2d="-D_2D_"
 echo "Build Cubism-MPCF"
-#make -C $repo/CubismApps/MPCFcluster/makefiles cleanall;
+make -C $repo/CubismApps/MPCFcluster/makefiles cleanall;
 
 date
 cmd="

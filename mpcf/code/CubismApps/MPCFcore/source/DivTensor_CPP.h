@@ -96,6 +96,7 @@ public:
     void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs, const int slicesrcs,
                  Real * const dstfirst, const int dstfloats, const int rowdsts, const int slicedsts)
 	{
+      std::cerr << "*** from DivTensor_CPP compute()" << std::endl;
 		_convert(srcfirst, srcfloats, rowsrcs);
 		_input_next();
 

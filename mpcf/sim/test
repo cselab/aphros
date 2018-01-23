@@ -1,0 +1,6 @@
+set -eu
+
+d=`echo sim01*`
+./make.mpcf-cluster
+cd $d
+./job
