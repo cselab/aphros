@@ -448,6 +448,7 @@ public:
         if (bInvalidateOP)
             m_validOperators = std::make_pair<int,std::vector<std::string> >(0, std::vector<std::string>(OPMAXCLASS,""));
 
+        std::cerr << "from Output::operator()" << std::endl;
         const Real dt_step = fabs(tend - t);
         const Real dt_next = fabs(m_tdump - t);
         Real dt = (dt_next < dt_step) ? dt_next : dt_step;
@@ -456,8 +457,12 @@ public:
             const bool bExtrema    = (step_id == 0 || step_id == maxsteps);
             const bool bDumpByStep = bExtrema || (m_dumpperiod != 0 && step_id % m_dumpperiod == 0);
             const bool bDumpByTime = (dt_next <= std::numeric_limits<Real>::epsilon()) || (dt_step <= std::numeric_limits<Real>::epsilon());
+            std::cerr << "m_dumpperiod=" << m_dumpperiod <<  std::endl;
+            std::cerr << "dt_next=" << dt_next <<  std::endl;
+            std::cerr << "m_dumpdt_=" << m_dumpdt <<  std::endl;
             if ((bDumpByStep || bDumpByTime) && !bVeto || m_bBypass)
             {
+                std::cerr << "line 462" << std::endl;
                 // concept:
                 // (1) prepare processing pipe (sorted by operator class)
                 // (2) some infos

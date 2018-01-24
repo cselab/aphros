@@ -102,30 +102,32 @@ class Test_SteadyState: public Simulation
 
     virtual void _setEnvironment()
     {
-      parser.read_runtime_environment();
+      //parser.read_runtime_environment();
 
-      REFRESHPERIOD  = parser.parseRuntime("refreshperiod").asInt();
-      bEXIT          = parser.parseRuntime("exit").asBool();
-      bEXITSAVE      = parser.parseRuntime("exitsave").asBool();
+      REFRESHPERIOD  = parser("refreshperiod").asInt();
+      bEXIT          = parser("exit").asBool();
+      bEXITSAVE      = parser("exitsave").asBool();
 
-      NSTEPS         = parser.parseRuntime("nsteps").asInt();
-      SAVEPERIOD     = parser.parseRuntime("saveperiod").asInt();
-      ANALYSISPERIOD = parser.parseRuntime("analysisperiod").asInt();
-      VERBOSITY      = parser.parseRuntime("verb").asInt();
-      REPORT_FREQ    = parser.parseRuntime("report").asInt();
+      NSTEPS         = parser("nsteps").asInt();
+      SAVEPERIOD     = parser("saveperiod").asInt();
+      ANALYSISPERIOD = parser("analysisperiod").asInt();
+      VERBOSITY      = parser("verb").asInt();
+      REPORT_FREQ    = parser("report").asInt();
 
-      CFL            = parser.parseRuntime("cfl").asDouble();
-      TEND           = parser.parseRuntime("tend").asDouble();
+      CFL            = parser("cfl").asDouble();
+      TEND           = parser("tend").asDouble();
 
       // OutputProcessing
-      dumper->m_dumpperiod   = parser.parseRuntime("dumpperiod").asInt();
-      dumper->m_dumpdt       = parser.parseRuntime("dumpdt").asDouble();
-      dumper->m_bIO          = parser.parseRuntime("io").asBool();
-      dumper->m_bVP          = parser.parseRuntime("vp").asBool();
-      dumper->m_bHDF         = parser.parseRuntime("hdf").asBool();
-      dumper->m_bHDF_SLICE   = parser.parseRuntime("hdf_slice").asBool();
-      dumper->m_heavySkipStep= parser.parseRuntime("heavyskipstep").asInt();
-      dumper->m_channels     = parser.parseRuntime("channels").asString();
+      parser.set_strict_mode();
+      dumper->m_dumpperiod   = parser("dumpperiod").asInt();
+      dumper->m_dumpdt       = parser("dumpdt").asDouble();
+      dumper->m_bIO          = parser("io").asBool();
+      dumper->m_bVP          = parser("vp").asBool();
+      dumper->m_bHDF         = parser("hdf").asBool();
+      dumper->m_bHDF_SLICE   = parser("hdf_slice").asBool();
+      dumper->m_heavySkipStep= parser("heavyskipstep").asInt();
+      dumper->m_channels     = parser("channels").asString();
+      parser.unset_strict_mode();
     }
 
     virtual void _setup_parameter();
@@ -353,7 +355,7 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::run()
 {
   _init();
 
-  dt = 1.0;
+  dt = parser("dt").asDouble(TEND / 100);
   while (true)
   {
     // concept:
@@ -370,14 +372,26 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::run()
     // first, before overriding the run() method in derived classes)
 
     // (1)
-    if (REFRESHPERIOD != 0 && step_id%REFRESHPERIOD == 0)
-      _setEnvironment();
+    _setEnvironment();
+
+    dumper->m_dumpperiod   = parser("dumpperiod").asInt();
+    dumper->m_dumpdt       = parser("dumpdt").asDouble();
+    dumper->m_bIO          = parser("io").asBool();
+    dumper->m_bVP          = parser("vp").asBool();
+    dumper->m_bHDF         = parser("hdf").asBool();
+    dumper->m_bHDF_SLICE   = parser("hdf_slice").asBool();
+    dumper->m_heavySkipStep= parser("heavyskipstep").asInt();
+    dumper->m_channels     = parser("channels").asString();
 
     // (2)
     const Real dtMax = (*dumper)(step_id, t, NSTEPS, TEND, profiler, true, bRESTART);
 
     // (3)
     _analysis();
+
+    if (step_id > 10) {
+      bEXIT = true;
+    }
 
     // (4)
     if (bEXIT)
@@ -392,7 +406,12 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::run()
     }
 
     if (isroot)
-      std::cout << "--> Time is " << std::scientific << t << "; step_id is " << step_id << std::endl;
+      std::cout 
+        << "--> t=" << t 
+        << ", dt=" << dt 
+        << ", step=" << step_id 
+        << ", tend=" << TEND 
+        << std::endl;
 
     // (7)
     _pre_step();
@@ -406,6 +425,7 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::run()
     bRESTART = false;
 
     _post_step();
+
   }
 }
 
