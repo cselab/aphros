@@ -17,6 +17,5 @@ namespace LSRK3data {
     int verbosity;
     int step_id = 0;
 }
-}
 
 

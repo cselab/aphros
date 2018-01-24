@@ -23,7 +23,7 @@ make -C $repo/CubismApps/MPCFcluster/makefiles \
   -j 4 CC=$CC \
   daint=1 bs=$bs config=debug ap=double hdf=1 fftw=0 alphaeps=0.0 \
   use_wavz=1 use_fpzip=0 \
-  extra='-ldl -D_WENO3_ -D_BCLABCLOUD1DCHARNREF_ACOUSTIC_ -D_CONVERTCLIP_ ${fnrcy} ${fnrcz} ${f2d}'
+  extra='-Wno-narrowing -ldl -D_WENO3_ -D_BCLABCLOUD1DCHARNREF_ACOUSTIC_ -D_CONVERTCLIP_ ${fnrcy} ${fnrcz} ${f2d}'
 "
 echo "$cmd"
 eval "$cmd"

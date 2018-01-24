@@ -13,7 +13,7 @@
 
 #include <BlockLabMPI.h>
 
-#include <Diffusion_CPP.h>
+#include "FlowStep_LSRK3.h"
 
 #include <ParIO.h>
 #include "BlockProcessor_MPI.h"
@@ -26,10 +26,10 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 {
     TGrid & grid;
 
-    template<typename Kflow, typename Ksource, typename Kdiff, typename Ksurf, typename Kupdate, typename Kupdate_state, typename Ksharp>
+    template<typename Kdiff>
     void _process_LSRK3(TGrid& grid, const Real dt, const Real current_time);
 
-    template<typename Kflow, typename Ksource, typename Kdiff, typename Ksurf, typename Kupdate, typename Kupdate_state, typename Ksharp>
+    template<typename Kdiff>
     pair<Real, Real> step(TGrid& grid, vector<BlockInfo>& vInfo, const Real a, const Real b, const Real dt, const Real current_time);
 
 public:

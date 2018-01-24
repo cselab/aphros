@@ -13,7 +13,7 @@
 using namespace std;
 
 template<typename TGrid>
-  template<typename Kflow, typename Ksource, typename Kdiff, typename Ksurf, typename Kupdate, typename Kupdate_state, typename Ksharp>
+template<typename Kdiff>
 pair<Real, Real> FlowStep_LSRK3MPI<TGrid>::step(TGrid& grid, vector<BlockInfo>& vInfo, const Real a, const Real b, const Real dt, const Real current_time)
 {
   const Real h = vInfo[0].h_gridpoint; // uniform grid size
@@ -44,12 +44,11 @@ pair<Real, Real> FlowStep_LSRK3MPI<TGrid>::step(TGrid& grid, vector<BlockInfo>& 
 }
 
 template<typename TGrid>
-template<typename Kflow, typename Ksource, typename Kdiff, typename Ksurf, typename Kupdate, typename Kupdate_state, typename Ksharp>
+template<typename Kdiff>
 inline void FlowStep_LSRK3MPI<TGrid>::_process_LSRK3(TGrid& grid, const Real dt, const Real current_time)
 {
     vector<BlockInfo> vInfo = grid.getBlocksInfo();
-    step<Kflow, Ksource, Kdiff, Ksurf, Kupdate, Kupdate_state, Ksharp>(
-        grid, vInfo, 1., 0., dt, current_time);
+    step<Kdiff>(grid, vInfo, 1., 0., dt, current_time);
 }
 
 //Specialization
@@ -63,10 +62,7 @@ Real FlowStep_LSRK3MPI<GridMPI_t>::operator()(const Real max_dt, const Real curr
 
     Real dt = 1.;
 
-    _process_LSRK3<
-        Convection_CPP_HLLC_5eq, Source_CPP, Diffusion_CPP, 
-        SurfaceTension_CPP, Update_CPP, Update_State_CPP_5eq, 
-        InterfaceSharpening_CPP_cell_compact_5eq>(grid, dt, current_time);
+    _process_LSRK3<Diffusion_CPP>(grid, dt, current_time);
 
     LSRK3data::step_id++;
 
