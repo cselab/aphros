@@ -20,7 +20,7 @@ pair<Real, Real> FlowStep_LSRK3MPI<TGrid>::step(TGrid& grid, vector<BlockInfo>& 
   const Real dtinvh = dt / h;
 
   // diffusion
-  LSRK3data::Diffusion<Kdiff, Lab> diffusion(dtinvh, Simulation_Environment::MU1, Simulation_Environment::MU2);
+  LSRK3data::Diffusion<Kdiff, Lab> diffusion(dtinvh);
   process< LabMPI >(diffusion, (TGrid&)grid, current_time, 0);
 
   // update
@@ -28,10 +28,9 @@ pair<Real, Real> FlowStep_LSRK3MPI<TGrid>::step(TGrid& grid, vector<BlockInfo>& 
     BlockInfo& bi = vInfo[r];
     Block_t& b = *(Block_t*)bi.ptrBlock;
     const Real* src = &b.tmp[0][0][0][0];
-    Real* dst = &b.data[0][0][0].alpha1rho1;
+    Real* dst = &b.data[0][0][0].alpha2;
     int fe = Block_t::gptfloats;  // floats per element
     int n = std::pow(_BLOCKSIZE_, 3) * fe; // floats per block
-    //kernel.compute(&block.tmp[0][0][0][0], &block.data[0][0][0].alpha1rho1, Block_t::gptfloats);
     for (int i = 0; i < n; i += fe) {
       for (int k = 0; k < fe; ++k) {
         dst[i+k] += src[i+k];

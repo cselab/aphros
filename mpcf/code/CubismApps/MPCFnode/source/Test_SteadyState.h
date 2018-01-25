@@ -267,20 +267,7 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::_setup_parameter()
   bAWK        = parser("-awk").asBool(false);
   bASCIIFILES = parser("-ascii").asBool(false);
 
-  Simulation_Environment::RHO1   = parser("-rho1").asDouble(1.0);
-  Simulation_Environment::RHO2   = parser("-rho2").asDouble(1.0);
-  Simulation_Environment::P1     = parser("-p1").asDouble(1.0);
-  Simulation_Environment::P2     = parser("-p2").asDouble(1.0);
-  Simulation_Environment::GAMMA1 = parser("-g1").asDouble(1.4);
-  Simulation_Environment::GAMMA2 = parser("-g2").asDouble(1.4);
-  Simulation_Environment::PC1    = parser("-pc1").asDouble(0.0);
-  Simulation_Environment::PC2    = parser("-pc2").asDouble(0.0);
-  Simulation_Environment::C1     = std::sqrt(Simulation_Environment::GAMMA1*(Simulation_Environment::P1+Simulation_Environment::PC1)/Simulation_Environment::RHO1);
-  Simulation_Environment::C2     = std::sqrt(Simulation_Environment::GAMMA2*(Simulation_Environment::P2+Simulation_Environment::PC2)/Simulation_Environment::RHO2);
   Simulation_Environment::extent = parser("-extent").asDouble(1.0);
-  Simulation_Environment::MU1    = parser("-mu1").asDouble(0.0);
-  Simulation_Environment::MU2    = parser("-mu2").asDouble(0.0);
-  Simulation_Environment::SIGMA  = parser("-sigma").asDouble(0.0);
 
   // some post computations
   {
@@ -299,15 +286,6 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::_setup_parameter()
   Simulation_Environment::extents[0] = Simulation_Environment::extent * BPDX / (double) BPD_MAX;
   Simulation_Environment::extents[1] = Simulation_Environment::extent * BPDY / (double) BPD_MAX;
   Simulation_Environment::extents[2] = Simulation_Environment::extent * BPDZ / (double) BPD_MAX;
-
-  Simulation_Environment::vol_bodyforce[0] = parser("-F1").asDouble(0.0);
-  Simulation_Environment::vol_bodyforce[1] = parser("-F2").asDouble(0.0);
-  Simulation_Environment::vol_bodyforce[2] = parser("-F3").asDouble(0.0);
-  Simulation_Environment::grav_accel[0] = parser("-G1").asDouble(0.0);
-  Simulation_Environment::grav_accel[1] = parser("-G2").asDouble(0.0);
-  Simulation_Environment::grav_accel[2] = parser("-G3").asDouble(0.0);
-
-  Simulation_Environment::MU_MAX = std::max(Simulation_Environment::MU1, Simulation_Environment::MU2);
 
   // some checks
   assert(TEND >= 0.0);
@@ -333,18 +311,19 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::_ic()
   {
     BlockInfo info = vInfo[i];
     TBlock& b = *(TBlock*)info.ptrBlock;
+    double* o = info.origin;
 
     for(int iz=0; iz<TBlock::sizeZ; iz++)
       for(int iy=0; iy<TBlock::sizeY; iy++)
         for(int ix=0; ix<TBlock::sizeX; ix++)
         {
-          b(ix, iy, iz).alpha1rho1= 1.;
-          b(ix, iy, iz).alpha2rho2= 0.;
-          b(ix, iy, iz).ru = 0.;
-          b(ix, iy, iz).rv = 0.;
-          b(ix, iy, iz).rw = 0.;
-          b(ix, iy, iz).energy = 1.;
-          b(ix, iy, iz).alpha2 = a2;
+          typedef const Real CReal;
+          CReal e = Simulation_Environment::extent;
+          Real x = o[0] + info.h * ix / TBlock::sizeX;
+          Real y = o[1] + info.h * iy / TBlock::sizeY;
+          x /= e;
+          y /= e;
+          b(ix, iy, iz).alpha2 = 0.5 * (1. + std::sin(x * 10 + y * y * 5));
         }
   }
 }

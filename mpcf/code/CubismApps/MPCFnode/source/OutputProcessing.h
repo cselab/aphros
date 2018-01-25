@@ -23,50 +23,17 @@
 #include "Tests.h"
 #include "ArgumentParser.h"
 #include "Types.h"
-#include "NonUniform.h"
 #include "Profiler.h"
 #include "Streamer.h"
 #include "BlockProcessor_OMP.h"
-#include "VectorOperator.h"
 
 // dumper (we do not support wavelet compressed output w/o MPI)
-#include "ZBinDumper.h"
 #include "HDF5Dumper.h"
 #include "HDF5SliceDumper.h"
 
 
 #define __REGISTER_H5_ENTITY__(KEY, INFO, TYPE, HEAVY, TENTITY, TDUMP, TGRID, ENTITY, GRID, PARS, FDUMP, PROCESSINGELEMENT, PROC, LAB) \
-    this->_register(Item(#KEY"_rho",     new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Density", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerDensity>, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_Ux",      new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Velocity Ux", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerVelocity<0> >, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_Uy",      new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Velocity Uy", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerVelocity<1> >, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_Uz",      new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Velocity Uz", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerVelocity<2> >, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_U",       new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Velocity vector U", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerVelocityVector>, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_IUI",     new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Velocity magnitude", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerVelocityMagnitude>, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_gradU",   new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Velocity gradient tensor", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerGradU>, TYPE, HEAVY, StreamerGradU::CLASS, new OperatorType<TGRID,OgradU_4>(&PROC<LAB,OgradU_4,TGRID>)))); \
-    this->_register(Item(#KEY"_divU",    new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Velocity divergence", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerDivU>, TYPE, HEAVY, StreamerDivU::CLASS, new OperatorType<TGRID,OdivU_4>(&PROC<LAB,OdivU_4,TGRID>)))); \
-    this->_register(Item(#KEY"_KdivU",   new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Kdiv(U)", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerKDivU>, TYPE, HEAVY, StreamerKDivU::CLASS, new OperatorType<TGRID,OdivU_4>(&PROC<LAB,OdivU_4,TGRID>)))); \
-    this->_register(Item(#KEY"_E",       new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Total energy", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerEnergy>, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_a2",      new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Alpha 2", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerAlpha2>, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_K",       new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": K", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerK>, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_p",       new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Pressure", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerPressure>, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_M",       new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Mach", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerMach>, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_c",       new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Speed of sound", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerSpeedOfSound>, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_Omegax",  new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Vorticity Omegax", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerVorticity<0> >, TYPE, HEAVY, StreamerVorticity<0>::CLASS, new OperatorType<TGRID,OVort_4>(&PROC<LAB,OVort_4,TGRID>)))); \
-    this->_register(Item(#KEY"_Omegay",  new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Vorticity Omegay", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerVorticity<1> >, TYPE, HEAVY, StreamerVorticity<1>::CLASS, new OperatorType<TGRID,OVort_4>(&PROC<LAB,OVort_4,TGRID>)))); \
-    this->_register(Item(#KEY"_Omegaz",  new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Vorticity Omegaz", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerVorticity<2> >, TYPE, HEAVY, StreamerVorticity<2>::CLASS, new OperatorType<TGRID,OVort_4>(&PROC<LAB,OVort_4,TGRID>)))); \
-    this->_register(Item(#KEY"_Omega",   new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Vorticity vector Omega", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerVorticityVector>, TYPE, HEAVY, StreamerVorticityVector::CLASS, new OperatorType<TGRID,OVort_4>(&PROC<LAB,OVort_4,TGRID>)))); \
-    this->_register(Item(#KEY"_IOomegaI",new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Vorticity magnitude", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerVorticityMagnitude>, TYPE, HEAVY, StreamerVorticityMagnitude::CLASS, new OperatorType<TGRID,OVort_4>(&PROC<LAB,OVort_4,TGRID>)))); \
-    this->_register(Item(#KEY"_Call",    new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": All conserved variables (tensor)", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerAllConservative>, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_Pall",    new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": All primitive variables (tensor)", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerAllPrimitive>, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_Qcrit",   new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Q-criterion", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerQcriterion>, TYPE, HEAVY, StreamerQcriterion::CLASS, new OperatorType<TGRID,OQcrit_4>(&PROC<LAB,OQcrit_4,TGRID>)))); \
-    this->_register(Item(#KEY"_comp0",   new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Cell component 0", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerAoScomponent<0> >, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_comp1",   new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Cell component 1", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerAoScomponent<1> >, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_comp2",   new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Cell component 2", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerAoScomponent<2> >, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_comp3",   new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Cell component 3", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerAoScomponent<3> >, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_comp4",   new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Cell component 4", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerAoScomponent<4> >, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_comp5",   new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Cell component 5", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerAoScomponent<5> >, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_comp6",   new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Cell component 6", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerAoScomponent<6> >, TYPE, HEAVY))); \
-    this->_register(Item(#KEY"_comp7",   new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Cell component 7", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerAoScomponent<7> >, TYPE, HEAVY))); \
+    this->_register(Item(#KEY"_a2",      new ProcessingElement<TENTITY,TDUMP,TGRID>(#INFO": Alpha 2", &ENTITY, &GRID, &PARS, &FDUMP<PROCESSINGELEMENT, StreamerAlpha2>, TYPE, HEAVY)));
 
 
 template <typename TGrid>
@@ -444,11 +411,6 @@ public:
 
     Real operator()(const int step_id, const Real t, const int maxsteps, const Real tend, Profiler& prof, const bool bInvalidateOP=true, const bool bVeto=false)
     {
-        // invalidate all operators
-        if (bInvalidateOP)
-            m_validOperators = std::make_pair<int,std::vector<std::string> >(0, std::vector<std::string>(OPMAXCLASS,""));
-
-        std::cerr << "from Output::operator()" << std::endl;
         const Real dt_step = fabs(tend - t);
         const Real dt_next = fabs(m_tdump - t);
         Real dt = (dt_next < dt_step) ? dt_next : dt_step;
@@ -457,12 +419,8 @@ public:
             const bool bExtrema    = (step_id == 0 || step_id == maxsteps);
             const bool bDumpByStep = bExtrema || (m_dumpperiod != 0 && step_id % m_dumpperiod == 0);
             const bool bDumpByTime = (dt_next <= std::numeric_limits<Real>::epsilon()) || (dt_step <= std::numeric_limits<Real>::epsilon());
-            std::cerr << "m_dumpperiod=" << m_dumpperiod <<  std::endl;
-            std::cerr << "dt_next=" << dt_next <<  std::endl;
-            std::cerr << "m_dumpdt_=" << m_dumpdt <<  std::endl;
             if ((bDumpByStep || bDumpByTime) && !bVeto || m_bBypass)
             {
-                std::cerr << "line 462" << std::endl;
                 // concept:
                 // (1) prepare processing pipe (sorted by operator class)
                 // (2) some infos

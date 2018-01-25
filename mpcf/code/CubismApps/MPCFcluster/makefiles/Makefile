@@ -94,24 +94,10 @@ endif
 VPATH := ../source/ ../../MPCFcore/source/ ../../MPCFnode/source/ ../../../Cubism/source/
 .DEFAULT_GOAL := mpcf-cluster
 
-OBJECTS = ../../MPCFcore/makefiles/Convection_CPP.o \
-		  ../../MPCFcore/makefiles/Source_CPP.o \
-		  ../../MPCFcore/makefiles/Update.o \
-		  ../../MPCFcore/makefiles/Update_State_CPP_5eq.o \
-		  ../../MPCFcore/makefiles/MaxSpeedOfSound.o \
-		  ../../MPCFcore/makefiles/MaxSpeedOfSound_CPP_5eq.o \
-		  ../../MPCFcore/makefiles/Convection_CPP_HLLC_5eq.o \
-		  ../../MPCFcore/makefiles/Convection_CPP_HLLC_5eq_nonuniform.o \
-		  ../../MPCFcore/makefiles/InterfaceSharpening_CPP_5eq.o \
-		  ../../MPCFcore/makefiles/InterfaceSharpening_CPP_cell_compact_5eq.o \
-		  ../../MPCFcore/makefiles/MaxInterfaceVel_CPP_5eq.o \
-		  ../../MPCFcore/makefiles/DivTensor_CPP.o \
-		  ../../MPCFcore/makefiles/Diffusion_CPP.o \
-		  ../../MPCFcore/makefiles/SurfaceTension_CPP.o
+OBJECTS = ../../MPCFcore/makefiles/Diffusion_CPP.o
 OBJECTS += ../../MPCFnode/makefiles/FlowStep_LSRK3.o \
 		   ../../MPCFnode/makefiles/WaveletCompressor.o \
 		   ../../MPCFnode/makefiles/Types.o \
-		   ../../MPCFnode/makefiles/VectorOperator.o \
 		   ../../MPCFnode/makefiles/Streamer.o \
 		   ../../MPCFnode/makefiles/TestLabs.o \
 		   ../../MPCFnode/makefiles/BoundaryGhostCells.o
@@ -119,22 +105,6 @@ OBJECTS += ../../MPCFnode/makefiles/FlowStep_LSRK3.o \
 OBJECTS += Profiler.o Histogram.o
 OBJECTS += main.o \
 		   FlowStep_LSRK3MPI.o
-
-ifeq "$(fftw)" "1"
-	OBJECTS += PoissonSolverScalarFFTW_MPI.o
-endif
-
-ifeq "$(qpx)" "1"
-	OBJECTS += ../../MPCFcore/makefiles/WenoSOA2D_QPX.o
-	OBJECTS += ../../MPCFcore/makefiles/DivSOA2D_QPX.o
-	OBJECTS += ../../MPCFcore/makefiles/HLLCSOA2D_QPX_5eq.o
-endif
-
-ifeq "$(qpxemu)" "1"
-	OBJECTS += ../../MPCFcore/makefiles/WenoSOA2D_QPX.o
-	OBJECTS += ../../MPCFcore/makefiles/DivSOA2D_QPX.o
-	OBJECTS += ../../MPCFcore/makefiles/HLLCSOA2D_QPX_5eq.o
-endif
 
 all: mpcf-cluster
 

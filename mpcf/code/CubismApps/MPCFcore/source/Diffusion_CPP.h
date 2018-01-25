@@ -23,7 +23,7 @@ class Diffusion_CPP
 {
   protected:
 
-    struct AssumedType { Real r1, r2, u, v, w, E, A2, dummy; };
+    struct AssumedType { Real A2; };
 
     typedef Real RealTemp;
 
@@ -35,12 +35,7 @@ class Diffusion_CPP
     RingInputSOA_ST sa; // input slice (source)
     OutputSOA rhsa; // output slice (rhs)
 
-    Diffusion_CPP(const Real a,
-        const Real mu1,
-        const Real mu2,
-        const Real h,
-        const Real smoothing_length,
-        const Real dtinvh) 
+    Diffusion_CPP(const Real dtinvh) 
       : dtinvh(dtinvh) 
     {} 
 

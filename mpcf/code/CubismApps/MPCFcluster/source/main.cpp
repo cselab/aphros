@@ -20,9 +20,6 @@
 
 typedef FlowStep_LSRK3MPI<GridMPI_t> TFlowStep;
 
-#include "Test_CloudMPI.h"
-#include "Test_CloudAcousticMPI.h"
-
 using namespace std;
 
 Simulation * sim = NULL;
@@ -49,7 +46,7 @@ int main (int argc, const char ** argv)
 
   parser.set_strict_mode();
 
-  sim = new Test_CloudAcousticMPI<GridMPI_t,TFlowStep>(MPI_COMM_WORLD, parser);
+  sim = new Test_SteadyStateMPI<GridMPI_t,TFlowStep>(MPI_COMM_WORLD, parser);
 
   sim->setup();
   sim->run();
