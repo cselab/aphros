@@ -78,16 +78,17 @@ void Test_SteadyStateMPI<TGrid,TStepper,TSlice>::_setup_parameter()
     const int bpdx = this->BPDX;
     const int bpdy = this->BPDY;
     const int bpdz = this->BPDZ;
-    const int BPD_PE_MAX = std::max(std::max(bpdx*XPESIZE, bpdy*YPESIZE), bpdz*ZPESIZE);
+    const int BPD_PE_MAX = 
+        std::max(std::max(bpdx*XPESIZE, bpdy*YPESIZE), bpdz*ZPESIZE);
     Simulation_Environment::extents[0] = 
-        Simulation_Environment::extent*(bpdx*XPESIZE) /
-        static_cast<double>(BPD_PE_MAX);
+        Simulation_Environment::extent * 
+        (bpdx*XPESIZE) / static_cast<double>(BPD_PE_MAX);
     Simulation_Environment::extents[1] = 
-        Simulation_Environment::extent*(bpdy*YPESIZE) /
-        static_cast<double>(BPD_PE_MAX);
+        Simulation_Environment::extent * 
+        (bpdy*YPESIZE) / static_cast<double>(BPD_PE_MAX);
     Simulation_Environment::extents[2] = 
-        Simulation_Environment::extent*(bpdz*ZPESIZE) /
-        static_cast<double>(BPD_PE_MAX);
+        Simulation_Environment::extent * 
+        (bpdz*ZPESIZE) / static_cast<double>(BPD_PE_MAX);
 }
 
 

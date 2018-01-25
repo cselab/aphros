@@ -35,7 +35,7 @@ void Diffusion_CPP::_convert(const Real * const b, const int fe, const int er)
 // er -- elements per row
 void Diffusion_CPP::_copyback(Real * const b, const int fe, const int er)
 {
-  const Real c = 0.1;
+  const Real c = dtinvh;
   for(int iy=0; iy<OutputSOA::NY; iy++) {
     for(int ix=0; ix<OutputSOA::NX; ix++) {
       AssumedType& rhs = *(AssumedType*)(b + fe * (ix + iy * er));

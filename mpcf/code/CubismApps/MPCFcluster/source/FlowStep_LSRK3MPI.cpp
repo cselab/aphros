@@ -52,14 +52,12 @@ inline void FlowStep_LSRK3MPI<TGrid>::_process_LSRK3(TGrid& grid, const Real dt,
 
 //Specialization
 template<>
-Real FlowStep_LSRK3MPI<GridMPI_t>::operator()(const Real max_dt, const Real current_time)
+Real FlowStep_LSRK3MPI<GridMPI_t>::operator()(const Real dt, const Real current_time)
 {
     MPI_Comm comm = grid.getCartComm();
     int myrank;
     MPI_Comm_rank(comm, &myrank);
     const bool isroot = (0 == myrank);
-
-    Real dt = 1.;
 
     _process_LSRK3<Diffusion_CPP>(grid, dt, current_time);
 

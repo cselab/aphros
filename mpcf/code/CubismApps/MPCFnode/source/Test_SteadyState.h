@@ -67,12 +67,10 @@ class Test_SteadyState: public Simulation
     int NSTEPS, SAVEPERIOD, ANALYSISPERIOD, VERBOSITY, REPORT_FREQ, REFRESHPERIOD;
     int LASTSAVE;
     Real CFL, TEND;
+    bool bEXIT;
 
     // simulation parameter
     int restart_id;
-    int MOLLFACTOR;
-    bool bRESTART, bASCIIFILES, bAWK;
-    bool bEXIT, bEXITSAVE;
     bool BC_PERIODIC[3];
     Real t, dt;
     int step_id;
@@ -104,14 +102,8 @@ class Test_SteadyState: public Simulation
     {
       //parser.read_runtime_environment();
 
-      REFRESHPERIOD  = parser("refreshperiod").asInt();
-      bEXIT          = parser("exit").asBool();
-      bEXITSAVE      = parser("exitsave").asBool();
-
-      NSTEPS         = parser("nsteps").asInt();
-      SAVEPERIOD     = parser("saveperiod").asInt();
       ANALYSISPERIOD = parser("analysisperiod").asInt();
-      VERBOSITY      = parser("verb").asInt();
+      VERBOSITY      = parser("verbosity").asInt();
       REPORT_FREQ    = parser("report").asInt();
 
       CFL            = parser("cfl").asDouble();
@@ -240,33 +232,18 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::_setup_parameter()
 {
   parser.mute();
 
-  // required
   parser.set_strict_mode();
   BPDX       = parser("-bpdx").asInt();
-  MOLLFACTOR = parser("-mollfactor").asInt();
+  BPDY           = parser("-bpdy").asInt(BPDX);
+  BPDZ           = parser("-bpdz").asInt(BPDX);
   TEND       = parser("-tend").asDouble();
   CFL        = parser("-cfl").asDouble();
   parser.unset_strict_mode();
 
   // defaults
-  BPDY           = parser("-bpdy").asInt(BPDX);
-  BPDZ           = parser("-bpdz").asInt(BPDX);
-  NSTEPS         = parser("-nsteps").asInt(0);
-  bRESTART       = parser("-restart").asBool(false);
 
-  VERBOSITY      = parser("-verb").asInt(0);
-  REPORT_FREQ    = parser("-report").asInt(50);
-  REFRESHPERIOD  = parser("-refreshperiod").asInt(15);
-  bEXIT          = parser("-exit").asBool(false);
-  bEXITSAVE      = parser("-exitsave").asBool(true);
-
-  SAVEPERIOD     = parser("-saveperiod").asInt(0);
-  LASTSAVE       = -1;
+  VERBOSITY      = parser("-verbosity").asInt(0);
   ANALYSISPERIOD = parser("-analysisperiod").asInt(0);
-
-  bAWK        = parser("-awk").asBool(false);
-  bASCIIFILES = parser("-ascii").asBool(false);
-
   Simulation_Environment::extent = parser("-extent").asDouble(1.0);
 
   // some post computations
@@ -293,7 +270,6 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::_setup_parameter()
   assert(BPDY >= 1);
   assert(BPDZ >= 1);
   assert(CFL > 0 && CFL<1);
-  assert(MOLLFACTOR > 0);
 }
 
 
@@ -335,22 +311,10 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::run()
   _init();
 
   dt = parser("dt").asDouble(TEND / 100);
+  int stepend = parser("stepend").asInt(100);
+
   while (true)
   {
-    // concept:
-    // (1) refresh runtime environment based on user input
-    // (2) process output
-    // (3) perform state analysis/statistics
-    // (4) check for exit request
-    // (5) check for serialization (there are _post_save() and
-    // _post_restart() virtual methods for special needs in derived
-    // classes)
-    // (6) check for exit based on simulation state
-    // (7) perform explicit time step (executes pre- and post-step methods
-    // before and after if necessary for derived cases.  Override these
-    // first, before overriding the run() method in derived classes)
-
-    // (1)
     _setEnvironment();
 
     dumper->m_dumpperiod   = parser("dumpperiod").asInt();
@@ -362,17 +326,14 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::run()
     dumper->m_heavySkipStep= parser("heavyskipstep").asInt();
     dumper->m_channels     = parser("channels").asString();
 
-    // (2)
-    const Real dtMax = (*dumper)(step_id, t, NSTEPS, TEND, profiler, true, bRESTART);
+    (*dumper)(step_id, t, NSTEPS, TEND, profiler);
 
-    // (3)
     _analysis();
 
-    if (step_id > 10) {
+    if (step_id > stepend) {
       bEXIT = true;
     }
 
-    // (4)
     if (bEXIT)
     {
       break;
@@ -396,12 +357,11 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::run()
     _pre_step();
 
     profiler.push_start("STEP");
-    dt = (*stepper)(dtMax, t);
+    dt = (*stepper)(dt, t);
     profiler.pop_stop();
 
     t += dt;
     ++step_id;
-    bRESTART = false;
 
     _post_step();
 
