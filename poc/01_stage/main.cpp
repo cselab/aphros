@@ -58,6 +58,9 @@ float F(float x) {
 #include <list>
 #include <stdexcept>
 #include <vector>
+
+using Scal = double;
+
 class Mesh {
  public:
   struct SC { // stage counter
@@ -118,8 +121,8 @@ class Mesh {
     }
   };
   friend Stage;
-  Mesh() 
-  : lsc_(1, SC(-1,-1)), lsci_(lsc_.begin())
+  explicit Mesh(size_t n) 
+  : lsc_(1, SC(-1,-1)), lsci_(lsc_.begin()), u(n)
   {}
   Stage GetStage(std::string name="") const {
     return Stage(*this, name);
@@ -140,12 +143,16 @@ class Mesh {
   std::string GetName() const {
     return name_;
   }
+  void Comm(std::vector<Scal>& u) {
+  }
+  std::vector<Scal> u;
 
  private:
   using LSC = std::list<SC>;
   mutable LSC lsc_;
   mutable LSC::iterator lsci_;
   std::string name_;
+  std::vector<Scal> cm_;
 };
 
 void Add(const Mesh& m) {
@@ -156,24 +163,24 @@ void Add(const Mesh& m) {
   } 
 }
 
-
-
-void Grad(const Mesh& m) {
+void Grad(Mesh& m) {
   auto st = m.GetStage(m.GetName() + "_grad");
   if (st()) {
-    Add(m);
+    //Add(m);
+    m.Comm(m.u);
   } 
   if (st()) {
-    Add(m);
+    //Add(m);
   } 
 }
 
 int main() {
   const int n = 2;
-  std::vector<Mesh> mm(n);
-
-  for (size_t i = 0; i < mm.size(); ++i) {
-    mm[i].SetName("mesh" + std::to_string(i));
+  const int nu = 10;
+  std::vector<Mesh> mm;
+  for (size_t i = 0; i < n; ++i) {
+    mm.emplace_back(nu);
+    mm.back().SetName("mesh" + std::to_string(i));
   }
 
   do {
