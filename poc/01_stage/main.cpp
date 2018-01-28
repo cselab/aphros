@@ -57,6 +57,7 @@ float F(float x) {
 
 #include <list>
 #include <stdexcept>
+#include <vector>
 class Mesh {
  public:
   struct SC { // stage counter
@@ -110,7 +111,9 @@ class Mesh {
     }
     bool operator()() {
       auto& i = m.lsci_;
-      //fprintf(stderr, "[%s] operator() c=%d, t=%d\n", name_.c_str(), i->c, i->t);
+      if (i->c == i->t) {
+        fprintf(stderr, "[%s] operator() %s\n", name_.c_str(), m.LscStr().c_str());
+      }
       return i->c++ == i->t;
     }
   };
@@ -131,46 +134,56 @@ class Mesh {
   bool CallPending() const {
     return lsc_.size() != 1;
   }
+  void SetName(std::string name) {
+    name_ = name;
+  }
+  std::string GetName() const {
+    return name_;
+  }
 
  private:
   using LSC = std::list<SC>;
   mutable LSC lsc_;
   mutable LSC::iterator lsci_;
+  std::string name_;
 };
 
 void Add(const Mesh& m) {
-  auto st = m.GetStage("add");
+  auto st = m.GetStage(m.GetName() + "_add");
   if (st()) {
-    std::cerr << "Add stage0" << std::endl;
   } 
   if (st()) {
-    std::cerr << "Add stage1" << std::endl;
   } 
 }
 
 
 
 void Grad(const Mesh& m) {
-  auto st = m.GetStage("grad");
+  auto st = m.GetStage(m.GetName() + "_grad");
   if (st()) {
-    std::cerr << "Grid stage0" << std::endl;
     Add(m);
   } 
   if (st()) {
-    std::cerr << "Grid stage1" << std::endl;
     Add(m);
   } 
 }
 
 int main() {
-  Mesh m;
+  const int n = 2;
+  std::vector<Mesh> mm(n);
 
-  int i = 0;
+  for (size_t i = 0; i < mm.size(); ++i) {
+    mm[i].SetName("mesh" + std::to_string(i));
+  }
+
   do {
-    std::cerr << "Grad(m) i=" << i << std::endl;
-    Grad(m);
-    ++i;
-  } while (m.CallPending());
+    for (Mesh& m : mm) {
+      Grad(m);
+    }
+    for (Mesh& m : mm) {
+      assert(mm[0].CallPending() == m.CallPending());
+    }
+  } while (mm[0].CallPending());
 
   return 0;
 }
