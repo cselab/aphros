@@ -234,6 +234,38 @@ void Adv(Mesh& m, bool rec=true) {
   } 
 }
 
+//TODO no_nested_stages flag
+//     or allow_nested_stages flag to Stage
+
+void Steps(Mesh& m, size_t nt, bool root) {
+  auto st = m.GetStage(m.GetName() + "_steps");
+  for (size_t t = 0; t < nt; ++t) {
+    if (st()) {
+      root && fprintf(stderr, "t=%03d\n", t);
+    }
+    if (st()) {
+      Adv(m);
+    }
+  }
+}
+
+size_t t;
+void StepsGlbt(Mesh& m, size_t nt, bool root) {
+  auto st = m.GetStage(m.GetName() + "_steps");
+  for (; t < nt; ) {
+    if (st()) {
+      root && fprintf(stderr, "t=%03d\n", t);
+      root && ++t;
+      break;
+    }
+    if (st()) {
+      Adv(m);
+      break;
+    }
+
+  }
+}
+
 void Init(Mesh& m, size_t mi, size_t mn) {
   auto st = m.GetStage(m.GetName() + "_init");
   if (st()) {
@@ -285,11 +317,30 @@ int main() {
 
   // comp and comm
   const size_t nt = 10;
-  for (size_t t = 0; t < nt; ++t) {
-    fprintf(stderr, "t=%03d\n", t);
+  if (0) {
+    for (size_t t = 0; t < nt; ++t) {
+      fprintf(stderr, "t=%03d\n", t);
+      do {
+        for (Mesh& m : mm) {
+          Adv(m);
+        }
+        CommCommit(mm);
+      } while (CallPending(mm));
+    }
+  }
+  if (1) {
     do {
-      for (Mesh& m : mm) {
-        Adv(m);
+      for (size_t i = 0; i < n; ++i) {
+        Steps(mm[i], nt, i == 0);
+      }
+      CommCommit(mm);
+    } while (CallPending(mm));
+  }
+  if (0) {
+    t = 0;
+    do {
+      for (size_t i = 0; i < n; ++i) {
+        StepsGlbt(mm[i], nt, i == 0);
       }
       CommCommit(mm);
     } while (CallPending(mm));
