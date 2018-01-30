@@ -2,6 +2,8 @@
 
 set -eu
 
+./clean
+#make clean
 make
 #mpirun -np 2 ./main 
 mpirun --oversubscribe -np 8 ./main 

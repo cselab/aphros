@@ -130,10 +130,38 @@ struct OpAdd
     }
 };
 
+/*
+struct StreamerAlpha2
+{
+
+    const Block_t& ref;
+
+    StreamerAlpha2(const Block_t& b): ref(b) {}
+
+    inline void operate(const int ix, const int iy, const int iz, Real output[NCHANNELS]) const
+    {
+        const FluidElement& el = ref.data[iz][iy][ix];
+        output[0] = el.alpha2;
+    }
+
+    inline Real operate(const int ix, const int iy, const int iz) const
+    {
+        const FluidElement& el = ref.data[iz][iy][ix];
+        return el.alpha2;
+    }
+
+    static const char * getAttributeName() { return "Scalar"; }
+};
+*/
+
+
 template <int _ID>
 struct StreamerPickOne_HDF5
 {
-    static const int NCHANNELS = 1; // we dump scalar fields with this streamer
+    static const std::string NAME;
+    static const std::string EXT;
+    static const int NCHANNELS = 1;
+    static const int CLASS = 0;
     struct AssumedType { Real team[5]; };
 
     FluidBlock& ref;
@@ -156,6 +184,11 @@ struct StreamerPickOne_HDF5
 
     static const char * getAttributeName() { return "Scalar"; }
 };
+
+template <int i>
+const std::string StreamerPickOne_HDF5<i>::NAME = "alpha";
+template <int i>
+const std::string StreamerPickOne_HDF5<i>::EXT = "0";
 
 
 int main(int argc, char* argv[])

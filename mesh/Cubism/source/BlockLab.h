@@ -86,7 +86,7 @@ public:
 		m_stencilEnd[0] = m_stencilEnd[1] = m_stencilEnd[2] = 0;
 	}
 
-    virtual inline std::string name() const { return "BlockLab"; }
+    virtual std::string name() const { return "BlockLab"; }
 	virtual bool is_xperiodic() { return true; }
 	virtual bool is_yperiodic() { return true; }
 	virtual bool is_zperiodic() { return true; }
@@ -104,6 +104,9 @@ public:
 	}
 
 	inline ElementType * getBuffer() const { return &m_cacheBlock->LinAccess(0);}
+
+    // rasthofer May 2016: required for non-relecting time-dependent boundary conditions
+    virtual void apply_bc_update(const BlockInfo& info, const Real dt=0, const Real a=0, const Real b=0) { }
 
 	void prepare(Grid<BlockType,allocator>& grid, int startX, int endX, int startY, int endY, int startZ, int endZ, const bool istensorial)
 	{

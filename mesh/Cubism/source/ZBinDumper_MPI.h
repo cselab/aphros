@@ -36,17 +36,19 @@ inline size_t ZZdecompress(unsigned char * inputbuf, size_t ninputbytes, int lay
 */
 
 template<typename TGrid, typename Streamer>
-void DumpZBin_MPI(TGrid &grid, const int iCounter, const Real t, const string f_name, const string dump_path=".")
+void DumpZBin_MPI(const TGrid &grid, const int iCounter, const Real t, const string f_name, const string dump_path=".", const bool bDummy=false)
 {
 	typedef typename TGrid::BlockType B;
 
 	int rank, nranks;
+    const std::string fullname = f_name + Streamer::EXT;
 	char filename[256];
 	MPI_Status status;
 	MPI_File file_id;
 
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-	MPI_Comm_size(MPI_COMM_WORLD, &nranks);
+    MPI_Comm comm = grid.getCartComm();
+	MPI_Comm_rank(comm, &rank);
+	MPI_Comm_size(comm, &nranks);
 
 	int coords[3];
 	grid.peindex(coords);
@@ -58,11 +60,9 @@ void DumpZBin_MPI(TGrid &grid, const int iCounter, const Real t, const string f_
 
 	if (rank==0)
 	{
-		cout << "Writing BIN file, NCHANNELS = " << NCHANNELS << "\n";
-
 		//Real memsize = (NX * NY * NZ * NCHANNELS * sizeof(Real))/(1024.*1024.*1024.);
 		Real memsize = (NX * NY * NZ * sizeof(Real))/(1024.*1024.*1024.);
-		cout << "Allocating " << memsize << "GB of BIN data per rank (" << memsize*nranks << "GB in total)\n";
+		cout << "Allocating " << memsize << " GB of BIN data per rank (" << memsize*nranks << " GB in total)" << endl;
 	}
 //	Real * array_all = new Real[NX * NY * NZ * NCHANNELS];
 	Real * array_all = new Real[NX * NY * NZ];
@@ -77,7 +77,7 @@ void DumpZBin_MPI(TGrid &grid, const int iCounter, const Real t, const string f_
 	static const unsigned int eY = B::sizeY;
 	static const unsigned int eZ = B::sizeZ;
 
-	sprintf(filename, "%s/%s.zbin", dump_path.c_str(), f_name.c_str());
+	sprintf(filename, "%s/%s.zbin", dump_path.c_str(), fullname.c_str());
 
 	int rc = MPI_File_open( MPI_COMM_SELF, filename, MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &file_id );
 	if (rc) {
@@ -145,7 +145,7 @@ void DumpZBin_MPI(TGrid &grid, const int iCounter, const Real t, const string f_
 #if DBG
 	printf("Writing %ld bytes of Compressed data (cr = %.2f)\n", compressed_bytes, local_bytes*1.0/compressed_bytes);
 #endif
-	MPI_Exscan( &compressed_bytes, &offset, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+	MPI_Exscan( &compressed_bytes, &offset, 1, MPI_LONG, MPI_SUM, comm);
 
 	if (rank == 0) offset = 0;
 
@@ -160,7 +160,7 @@ void DumpZBin_MPI(TGrid &grid, const int iCounter, const Real t, const string f_
 	printf("rank %d, offset = %ld, size = %ld\n", rank, tag.offset[ichannel], tag.size[ichannel]); fflush(0);
 #endif
 	previous_offset = (tag.offset[ichannel] + tag.size[ichannel]);
-	MPI_Bcast(&previous_offset, 1, MPI_LONG, nranks-1, MPI_COMM_WORLD);
+	MPI_Bcast(&previous_offset, 1, MPI_LONG, nranks-1, comm);
 
 	long base = MAX_MPI_PROCS*sizeof(tag); 	// full Header
 
@@ -184,8 +184,9 @@ void ReadZBin_MPI(TGrid &grid, const string f_name, const string dump_path=".")
 	MPI_Status status;
 	MPI_File file_id;
 
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-	MPI_Comm_size(MPI_COMM_WORLD, &nranks);
+    MPI_Comm comm = grid.getCartComm();
+	MPI_Comm_rank(comm, &rank);
+	MPI_Comm_size(comm, &nranks);
 
 	int coords[3];
 	grid.peindex(coords);

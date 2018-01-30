@@ -19,6 +19,7 @@
 #include <omp.h>
 #endif
 #include "BlockInfo.h"
+#include "MeshMap.h"
 
 //hello git
 template <typename Block, template<typename X> class allocator=std::allocator>
@@ -32,11 +33,23 @@ protected:
 	const double maxextent;
 	const unsigned int N, NX, NY, NZ;
 
+    const bool m_own_mesh_maps;
+    std::vector<MeshMap<Block>*> m_mesh_maps;
+
 	void _dealloc()
 	{
 		allocator<Block> alloc;
 
 		alloc.deallocate(m_blocks, N);
+
+        if (m_own_mesh_maps)
+        {
+            for (size_t i = 0; i < m_mesh_maps.size(); ++i)
+            {
+                delete m_mesh_maps[i];
+                m_mesh_maps[i] = NULL;
+            }
+        }
 	}
 
 	void _alloc()
@@ -80,11 +93,23 @@ public:
 
 	typedef Block BlockType;
 
-	Grid(const unsigned int NX, const unsigned int NY = 1, const unsigned int NZ = 1, const double maxextent = 1) :
-	m_blocks(NULL), NX(NX), NY(NY), NZ(NZ), N(NX*NY*NZ), maxextent(maxextent)
+    Grid(const unsigned int NX, const unsigned int NY = 1, const unsigned int NZ = 1, const double maxextent = 1) :
+        m_blocks(NULL), NX(NX), NY(NY), NZ(NZ), N(NX*NY*NZ), maxextent(maxextent),
+        m_own_mesh_maps(true)
     {
         _alloc();
+
         const double h = (maxextent / std::max(NX, std::max(NY, NZ)));
+
+        const double extents[3] = {h*NX, h*NY, h*NZ};
+        const unsigned int nBlocks[3] = {NX, NY, NZ};
+        for (int i = 0; i < 3; ++i)
+        {
+            MeshMap<Block>* m = new MeshMap<Block>(0.0, extents[i], nBlocks[i]);
+            UniformDensity uniform;
+            m->init(&uniform); // uniform only for this constructor
+            m_mesh_maps.push_back(m);
+        }
 
         for(unsigned int iz=0; iz<NZ; iz++)
             for(unsigned int iy=0; iy<NY; iy++)
@@ -98,10 +123,37 @@ public:
                 }
     }
 
+    Grid(MeshMap<Block>* const mapX, MeshMap<Block>* const mapY, MeshMap<Block>* const mapZ,
+            const int _NX, const int _NY=1, const int _NZ=1) :
+        m_blocks(NULL),
+        NX(_NX), NY(_NY), NZ(_NZ),
+        N(_NX*_NY*_NZ),
+        maxextent(-1.0), // not used
+        m_own_mesh_maps(false)
+    {
+        _alloc();
+
+        m_mesh_maps.push_back(mapX);
+        m_mesh_maps.push_back(mapY);
+        m_mesh_maps.push_back(mapZ);
+
+        for(unsigned int iz=0; iz<NZ; iz++)
+            for(unsigned int iy=0; iy<NY; iy++)
+                for(unsigned int ix=0; ix<NX; ix++)
+                {
+                    const long long blockID = _encode(ix, iy, iz);
+                    const int idx[3] = {ix, iy, iz};
+
+                    m_vInfo.push_back(BlockInfo(blockID, idx, mapX, mapY, mapZ, _linaccess(blockID)));
+                }
+    }
+
 	virtual ~Grid() { _dealloc(); }
 
 	void setup(const unsigned int nX, const unsigned int nY, const unsigned int nZ)
 	{
+        // TODO: [fabianw@mavt.ethz.ch; Wed May 03 2017 04:30:53 PM (-0700)]
+        // dead code (?)
 		std::cout << "Setting up the grid with " << nX << "x" << nY << "x" << nZ << " blocks ...";
 
 		_dealloc();
@@ -141,6 +193,24 @@ public:
 	{
         return m_vInfo;
 	}
+
+    double getH() const
+    {
+        std::vector<BlockInfo> vInfo = this->getBlocksInfo();
+        BlockInfo info = vInfo[0];
+        return info.h_gridpoint;
+    }
+
+    inline MeshMap<Block>& getMeshMap(const int i)
+    {
+        assert(i>=0 && i<3);
+        return *m_mesh_maps[i];
+    }
+    inline const MeshMap<Block>& getMeshMap(const int i) const
+    {
+        assert(i>=0 && i<3);
+        return *m_mesh_maps[i];
+    }
 };
 
 template <typename Block, template<typename X> class allocator>
