@@ -24,7 +24,6 @@ OBJECTS += ../../MPCFnode/makefiles/FlowStep_LSRK3.o \
 		   ../../MPCFnode/makefiles/Types.o \
 		   ../../MPCFnode/makefiles/Streamer.o \
 		   ../../MPCFnode/makefiles/TestLabs.o \
-		   ../../MPCFnode/makefiles/BoundaryGhostCells.o
 
 OBJECTS += Profiler.o Histogram.o
 OBJECTS += main.o \

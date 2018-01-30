@@ -15,7 +15,6 @@
 
 #include "FlowStep_LSRK3.h"
 
-#include <ParIO.h>
 #include "BlockProcessor_MPI.h"
 
 typedef BlockLabMPI<Lab> LabMPI;
