@@ -42,7 +42,7 @@ class Test_SteadyState: public Simulation
     }
 
     virtual void run();
-    virtual void setup();
+    virtual void setup() = 0;
 
     inline void verbosity(const int v) { VERBOSITY = v; }
 
@@ -365,19 +365,4 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::run()
   }
 }
 
-
-template <typename TGrid, typename TStepper, template <typename> class TSlice>
-void Test_SteadyState<TGrid,TStepper,TSlice>::setup()
-{
-  _setup_parameter();
-
-  stepper = new TStepper(*grid, parser, VERBOSITY);
-  assert(stepper != NULL);
-
-  dumper = new OutputProcessing<TGrid,TSlice>(parser, *grid, isroot);
-  assert(dumper != NULL);
-  dumper->register_all(*grid);
-
-  _setup_ic();
-}
 #endif /* TEST_STEADYSTATE_H_J5GZ8VHD */

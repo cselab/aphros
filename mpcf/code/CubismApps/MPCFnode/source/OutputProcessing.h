@@ -25,7 +25,6 @@
 #include "Types.h"
 #include "Profiler.h"
 #include "Streamer.h"
-#include "BlockProcessor_OMP.h"
 
 // dumper (we do not support wavelet compressed output w/o MPI)
 #include "HDF5Dumper.h"
@@ -515,21 +514,11 @@ protected:
     // helper
     inline void _register(Item item) { m_items.insert(item); }
 
-    virtual void _register_h5_grid(TGrid& grid)
-    {
-        __REGISTER_H5_ENTITY__(h5, HDF5_Full, PElement::H5, true, TGrid, TFunc_h5_grid, TGrid, grid, grid, m_parser, DumpHDF5, TGrid, processOMP, Lab)
-    }
+    virtual void _register_h5_grid(TGrid& grid) = 0;
 
-    virtual void _register_h5_slice(TGrid& grid)
-    {
-        __REGISTER_H5_ENTITY__(h5s, HDF5_Slice, PElement::H5SLICE, false, TSP, TFunc_h5_slice, TGrid, m_sliceProcessor, grid, m_parser, DumpSliceHDF5, USlice, processOMP, Lab)
-    }
+    virtual void _register_h5_slice(TGrid& grid) = 0;
 
-    virtual void _register_all(TGrid& grid)
-    {
-        _register_h5_grid(grid);
-        _register_h5_slice(grid);
-    }
+    virtual void _register_all(TGrid& grid) = 0;
 
     void _process_all(const int step_id, const Real t, const std::string& basename, const std::string& path)
     {
