@@ -476,7 +476,7 @@ public:
 private:
 
     template <typename, typename, template <typename> class>
-    friend class Test_SteadyState;
+    friend class Test_SteadyStateMPI;
 
     bool m_registered;
 

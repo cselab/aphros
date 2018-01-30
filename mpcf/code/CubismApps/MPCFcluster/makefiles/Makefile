@@ -20,8 +20,7 @@ VPATH := ../source/ ../../MPCFcore/source/ ../../MPCFnode/source/ ../../../Cubis
 .DEFAULT_GOAL := mpcf-cluster
 
 OBJECTS = ../../MPCFcore/makefiles/Diffusion_CPP.o
-OBJECTS += ../../MPCFnode/makefiles/FlowStep_LSRK3.o \
-		   ../../MPCFnode/makefiles/Types.o \
+OBJECTS += ../../MPCFnode/makefiles/Types.o \
 		   ../../MPCFnode/makefiles/Streamer.o \
 		   ../../MPCFnode/makefiles/TestLabs.o \
 

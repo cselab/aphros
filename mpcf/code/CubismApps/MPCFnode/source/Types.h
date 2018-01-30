@@ -23,26 +23,15 @@
 using namespace std;
 
 #include <Grid.h>
-#include <GridMorton.h>
+//#include <GridMorton.h>
 #include <BlockLab.h>
 #include <Profiler.h>
 #include <ArgumentParser.h>
 #include <SerializerIO.h>
 #include <Timer.h>
-#include <SerializerIO_VP.h>
-#include <Timer.h>
-#ifdef _USE_HDF_
 #include <HDF5Dumper.h>
-#endif
 #include "GridTypes.h"
 
-/* #define SETUP_MARKERS_IC \ */
-/* const double mix_gamma = 1 + (G2*G1)/(G1*bubble+G2*(1-bubble)); \ */
-/* const double mix_pinf  = (mix_gamma-1)/mix_gamma * (F1/G1*(1-bubble) + F2/G2*bubble); \ */
-/* b(ix, iy, iz).G  = 1./(mix_gamma-1); \ */
-/* b(ix, iy, iz).P = mix_gamma*mix_pinf/(mix_gamma-1); \ */
-/* const double ke = 0.5*(pow(b(ix, iy, iz).u,2)+pow(b(ix, iy, iz).v,2)+pow(b(ix, iy, iz).w,2))/b(ix, iy, iz).rho; \ */
-/* b(ix, iy, iz).energy   = pressure*b(ix, iy, iz).G + b(ix, iy, iz).P + ke; */
 
 struct sort_pred {
     bool operator()(const std::pair<Real,Real> &left, const std::pair<Real,Real> &right) {
