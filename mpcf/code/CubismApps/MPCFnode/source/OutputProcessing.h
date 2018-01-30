@@ -23,7 +23,6 @@
 #include "Tests.h"
 #include "ArgumentParser.h"
 #include "Types.h"
-#include "Profiler.h"
 #include "Streamer.h"
 
 // dumper (we do not support wavelet compressed output w/o MPI)
@@ -408,7 +407,7 @@ public:
         }
     }
 
-    Real operator()(const int step_id, const Real t, const int maxsteps, const Real tend, Profiler& prof, const bool bInvalidateOP=true, const bool bVeto=false)
+    Real operator()(const int step_id, const Real t, const int maxsteps, const Real tend, const bool bInvalidateOP=true, const bool bVeto=false)
     {
         const Real dt_step = fabs(tend - t);
         const Real dt_next = fabs(m_tdump - t);
@@ -449,9 +448,7 @@ public:
                 const std::string path = m_parser("fpath").asString();
                 std::ostringstream basename;
                 basename << "data_" << std::setfill('0') << std::setw(6) << std::right << step_id;
-                prof.push_start("I/O");
                 _process_all(step_id, t, basename.str(), path);
-                prof.pop_stop();
 
                 // 4.)
                 m_steplast = step_id;

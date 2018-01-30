@@ -24,7 +24,6 @@ OBJECTS += ../../MPCFnode/makefiles/Types.o \
 		   ../../MPCFnode/makefiles/Streamer.o \
 		   ../../MPCFnode/makefiles/TestLabs.o \
 
-OBJECTS += Profiler.o Histogram.o
 OBJECTS += main.o \
 		   FlowStep_LSRK3MPI.o
 

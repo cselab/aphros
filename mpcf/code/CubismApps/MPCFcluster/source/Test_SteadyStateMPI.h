@@ -20,7 +20,6 @@
 
 #include <mpi.h>
 
-#include "Test_SteadyState.h"
 #include "Tests.h"
 #include "BlockInfo.h"
 #include "Types.h"
@@ -33,19 +32,19 @@
 template <typename TGrid, typename TStepper, template <typename> class TSlice=SliceMPI>
 class Test_SteadyStateMPI : public Simulation
 {
-public:
+  public:
 
     Test_SteadyStateMPI(const MPI_Comm comm, ArgumentParser& P) :
       grid(NULL), stepper(NULL), dumper(NULL),
       isroot(true),
       parser(P), restart_id(0), t(0.0), step_id(0),
       m_comm_world(comm)
-    {
-        int rank;
-        MPI_Comm_rank(m_comm_world, &rank);
-        this->isroot = (0 == rank);
-        if (!this->isroot) this->VERBOSITY = 0;
-    }
+  {
+    int rank;
+    MPI_Comm_rank(m_comm_world, &rank);
+    this->isroot = (0 == rank);
+    if (!this->isroot) this->VERBOSITY = 0;
+  }
     virtual ~Test_SteadyStateMPI() {
       if (this->dumper)  delete dumper;
       if (this->stepper) delete stepper;
@@ -57,17 +56,16 @@ public:
     virtual void setup();
 
 
-private:
+  private:
     TGrid * grid;
     TStepper * stepper;
     OutputProcessing<TGrid,TSlice> * dumper;
     bool isroot;
 
     int BPDX, BPDY, BPDZ;
-    int NSTEPS, SAVEPERIOD, ANALYSISPERIOD, VERBOSITY, REPORT_FREQ, REFRESHPERIOD;
+    int NSTEPS, SAVEPERIOD, VERBOSITY, REPORT_FREQ, REFRESHPERIOD;
     int LASTSAVE;
     Real TEND;
-    bool bEXIT;
 
     int restart_id;
     bool BC_PERIODIC[3];
@@ -75,29 +73,15 @@ private:
     int step_id;
 
     ArgumentParser& parser;
-    Profiler profiler;
 
     MPI_Comm m_comm_world;
 
     int XPESIZE, YPESIZE, ZPESIZE;
 
-    void _infoBoard() const;
-
-    inline void _timestamp()
-    {
-      time_t rawtime;
-      std::time(&rawtime);
-      struct tm* timeinfo = std::localtime(&rawtime);
-      char buf[256];
-      std::strftime(buf, 256, "%A, %h %d %Y, %r %Z %z", timeinfo);
-      std::cout << buf << std::endl;
-    }
-
     virtual void _setEnvironment()
     {
       //parser.read_runtime_environment();
 
-      ANALYSISPERIOD = parser("analysisperiod").asInt();
       VERBOSITY      = parser("verbosity").asInt();
       REPORT_FREQ    = parser("report").asInt();
 
@@ -120,44 +104,33 @@ private:
 
     virtual void _ic();
 
-    virtual void _analysis()
-    {
-      // if (ANALYSISPERIOD != 0 && step_id%ANALYSISPERIOD == 0 && !bRESTART)
-      // {
-      //     profiler.push_start("ANALYSIS");
-      //     profiler.pop_stop();
-      // }
-    }
-    virtual void _pre_step() { }
-    virtual void _post_step() { }
-
     virtual void run();
 
     // case specific
     virtual void _print_case_header()
     {
-        printf("////////////////////////////////////////////////////////////\n");
-        printf("////////////      TEST STEADY STATE   MPI    ///////////////\n");
-        printf("////////////////////////////////////////////////////////////\n");
-        typedef typename TGrid::BlockType B;
-        std::cout << "Domain size:   [" << this->BPDX*B::sizeX*XPESIZE;
-        std::cout << " x " << this->BPDY*B::sizeY*YPESIZE;
-        std::cout << " x " <<  this->BPDZ*B::sizeZ*ZPESIZE << "]" << std::endl;
+      printf("////////////////////////////////////////////////////////////\n");
+      printf("////////////      TEST STEADY STATE   MPI    ///////////////\n");
+      printf("////////////////////////////////////////////////////////////\n");
+      typedef typename TGrid::BlockType B;
+      std::cout << "Domain size:   [" << this->BPDX*B::sizeX*XPESIZE;
+      std::cout << " x " << this->BPDY*B::sizeY*YPESIZE;
+      std::cout << " x " <<  this->BPDZ*B::sizeZ*ZPESIZE << "]" << std::endl;
 
-        std::cout << "Domain extent: [" << Simulation_Environment::extents[0];
-        std::cout << " x " << Simulation_Environment::extents[1];
-        std::cout << " x " <<  Simulation_Environment::extents[2] << "]" << std::endl;
+      std::cout << "Domain extent: [" << Simulation_Environment::extents[0];
+      std::cout << " x " << Simulation_Environment::extents[1];
+      std::cout << " x " <<  Simulation_Environment::extents[2] << "]" << std::endl;
     }
 
     virtual void _init()
     {
-        MPI_Barrier(m_comm_world);
+      MPI_Barrier(m_comm_world);
     }
 };
 
 
 // class implementation
-template <typename TGrid, typename TStepper, template <typename> class TSlice>
+  template <typename TGrid, typename TStepper, template <typename> class TSlice>
 void Test_SteadyStateMPI<TGrid,TStepper,TSlice>::_setup_parameter()
 {
   parser.mute();
@@ -172,7 +145,6 @@ void Test_SteadyStateMPI<TGrid,TStepper,TSlice>::_setup_parameter()
   // defaults
 
   VERBOSITY      = parser("-verbosity").asInt(0);
-  ANALYSISPERIOD = parser("-analysisperiod").asInt(0);
   Simulation_Environment::extent = parser("-extent").asDouble(1.0);
 
   // some post computations
@@ -220,7 +192,7 @@ void Test_SteadyStateMPI<TGrid,TStepper,TSlice>::_setup_parameter()
 }
 
 
-template <typename TGrid, typename TStepper, template <typename> class TSlice>
+  template <typename TGrid, typename TStepper, template <typename> class TSlice>
 void Test_SteadyStateMPI<TGrid,TStepper,TSlice>::setup()
 {
   _setup_parameter();
@@ -245,7 +217,7 @@ void Test_SteadyStateMPI<TGrid,TStepper,TSlice>::setup()
   this->_ic();
 }
 
-template <typename TGrid, typename TStepper, template <typename> class TSlice>
+  template <typename TGrid, typename TStepper, template <typename> class TSlice>
 void Test_SteadyStateMPI<TGrid,TStepper,TSlice>::_ic()
 {
   std::vector<BlockInfo> vInfo = grid->getBlocksInfo();
@@ -280,7 +252,7 @@ void Test_SteadyStateMPI<TGrid,TStepper,TSlice>::_ic()
   template <typename TGrid, typename TStepper, template <typename> class TSlice>
 void Test_SteadyStateMPI<TGrid,TStepper,TSlice>::run()
 {
-  _init();
+  MPI_Barrier(m_comm_world);
 
   dt = parser("dt").asDouble(TEND / 100);
   int stepend = parser("stepend").asInt(100);
@@ -298,23 +270,10 @@ void Test_SteadyStateMPI<TGrid,TStepper,TSlice>::run()
     dumper->m_heavySkipStep= parser("heavyskipstep").asInt();
     dumper->m_channels     = parser("channels").asString();
 
-    (*dumper)(step_id, t, NSTEPS, TEND, profiler);
-
-    _analysis();
+    (*dumper)(step_id, t, NSTEPS, TEND);
 
     if (step_id > stepend) {
-      bEXIT = true;
-    }
-
-    if (bEXIT)
-    {
       break;
-    }
-
-    if (isroot && (REPORT_FREQ != 0 && step_id%REPORT_FREQ == 0))
-    {
-      _timestamp();
-      profiler.printSummary();
     }
 
     if (isroot)
@@ -325,18 +284,9 @@ void Test_SteadyStateMPI<TGrid,TStepper,TSlice>::run()
         << ", tend=" << TEND 
         << std::endl;
 
-    // (7)
-    _pre_step();
-
-    profiler.push_start("STEP");
     dt = (*stepper)(dt, t);
-    profiler.pop_stop();
-
     t += dt;
     ++step_id;
-
-    _post_step();
-
   }
 }
 
