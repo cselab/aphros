@@ -106,7 +106,7 @@ void Test_SteadyStateMPI<TGrid,TStepper,TSlice>::setup()
         Simulation_Environment::extent, m_comm_world);
     assert(this->grid != NULL);
 
-    this->stepper = new TStepper(*(this->grid), this->CFL, this->parser, this->VERBOSITY);
+    this->stepper = new TStepper(*(this->grid), this->parser, this->VERBOSITY);
     assert(this->stepper != NULL);
 
     this->dumper = new OutputProcessingMPI<TGrid,TSlice>(this->parser, *(this->grid), this->isroot);

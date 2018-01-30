@@ -1,4 +1,0 @@
-*.a
-*.la*
-*.so*
-!./DRain/lib/libDRain.a

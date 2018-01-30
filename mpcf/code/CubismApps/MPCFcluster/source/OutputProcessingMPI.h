@@ -17,7 +17,6 @@
 #include "BlockProcessor_MPI.h"
 
 // MPI based dumper
-#include "ZBinDumper_MPI.h"
 #include "HDF5Dumper_MPI.h"
 #include "HDF5SliceDumperMPI.h"
 

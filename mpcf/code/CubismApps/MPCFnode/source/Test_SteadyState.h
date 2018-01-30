@@ -66,7 +66,7 @@ class Test_SteadyState: public Simulation
     // stepper parameter
     int NSTEPS, SAVEPERIOD, ANALYSISPERIOD, VERBOSITY, REPORT_FREQ, REFRESHPERIOD;
     int LASTSAVE;
-    Real CFL, TEND;
+    Real TEND;
     bool bEXIT;
 
     // simulation parameter
@@ -106,7 +106,6 @@ class Test_SteadyState: public Simulation
       VERBOSITY      = parser("verbosity").asInt();
       REPORT_FREQ    = parser("report").asInt();
 
-      CFL            = parser("cfl").asDouble();
       TEND           = parser("tend").asDouble();
 
       // OutputProcessing
@@ -237,7 +236,6 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::_setup_parameter()
   BPDY           = parser("-bpdy").asInt(BPDX);
   BPDZ           = parser("-bpdz").asInt(BPDX);
   TEND       = parser("-tend").asDouble();
-  CFL        = parser("-cfl").asDouble();
   parser.unset_strict_mode();
 
   // defaults
@@ -269,7 +267,6 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::_setup_parameter()
   assert(BPDX >= 1);
   assert(BPDY >= 1);
   assert(BPDZ >= 1);
-  assert(CFL > 0 && CFL<1);
 }
 
 
@@ -374,7 +371,7 @@ void Test_SteadyState<TGrid,TStepper,TSlice>::setup()
 {
   _setup_parameter();
 
-  stepper = new TStepper(*grid, CFL, parser, VERBOSITY);
+  stepper = new TStepper(*grid, parser, VERBOSITY);
   assert(stepper != NULL);
 
   dumper = new OutputProcessing<TGrid,TSlice>(parser, *grid, isroot);

@@ -6,11 +6,6 @@ CC=mpic++
 
 repo=."./code"
 
-echo "Build fpzip"
-fpzippath=$repo/CubismApps/tools/CubismZ/CubismApps/tools/fpzip-1.1.0/src
-#make -C $repo/$fpzippath clean
-make -C $repo/$fpzippath -j 4 CC=$CC
-
 bs=4
 f2d="-D_2D_"
 echo "Build Cubism-MPCF"

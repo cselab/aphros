@@ -6,8 +6,8 @@
  *  Copyright 2017 ETH Zurich. All rights reserved.
  *
  */
-#ifndef GRIDTYPES_H_LXM9TWTK
-#define GRIDTYPES_H_LXM9TWTK
+
+#pragma once
 
 #ifdef _FLOAT_PRECISION_
 typedef float Real;
@@ -31,10 +31,6 @@ struct FluidElement
         return *this;
     }
 };
-
-FluidElement operator * (const Real a, FluidElement gp);
-FluidElement operator + (FluidElement gpa, FluidElement gpb);
-FluidElement operator - (FluidElement gpa, FluidElement gpb);
 
 
 struct FluidBlock
@@ -106,4 +102,3 @@ typedef FluidBlock Block_t;
 typedef Grid<Block_t, std::allocator> GridBase;
 typedef GridBase Grid_t;
 
-#endif /* GRIDTYPES_H_LXM9TWTK */

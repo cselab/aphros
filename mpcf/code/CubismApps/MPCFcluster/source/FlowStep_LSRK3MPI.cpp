@@ -10,11 +10,14 @@
 #include <mpi.h>
 #include "FlowStep_LSRK3MPI.h"
 
-using namespace std;
+namespace LSRK3data {
+    int verbosity;
+    int step_id = 0;
+}
 
 template<typename TGrid>
 template<typename Kdiff>
-pair<Real, Real> FlowStep_LSRK3MPI<TGrid>::step(TGrid& grid, vector<BlockInfo>& vInfo, const Real a, const Real b, const Real dt, const Real current_time)
+pair<Real, Real> FlowStep_LSRK3MPI<TGrid>::step(TGrid& grid, std::vector<BlockInfo>& vInfo, const Real a, const Real b, const Real dt, const Real current_time)
 {
   const Real h = vInfo[0].h_gridpoint; // uniform grid size
   const Real dtinvh = dt / h;
@@ -46,8 +49,8 @@ template<typename TGrid>
 template<typename Kdiff>
 inline void FlowStep_LSRK3MPI<TGrid>::_process_LSRK3(TGrid& grid, const Real dt, const Real current_time)
 {
-    vector<BlockInfo> vInfo = grid.getBlocksInfo();
-    step<Kdiff>(grid, vInfo, 1., 0., dt, current_time);
+  std::vector<BlockInfo> vInfo = grid.getBlocksInfo();
+  step<Kdiff>(grid, vInfo, 1., 0., dt, current_time);
 }
 
 //Specialization

@@ -77,12 +77,16 @@ struct StreamerGridPoint //dummy
 	}
 };
 
-template <> inline void FluidBlock::Write<StreamerGridPoint>(ofstream& output, StreamerGridPoint streamer) const
+template <> inline void FluidBlock::Write<StreamerGridPoint>(
+    ofstream& output, StreamerGridPoint streamer) const
 {
-    output.write((const char *)&data[0][0][0], sizeof(FluidElement)*sizeX*sizeY*sizeZ);
+    output.write((const char *)&data[0][0][0], 
+        sizeof(FluidElement)*sizeX*sizeY*sizeZ);
 }
 
-template <> inline void FluidBlock::Read<StreamerGridPoint>(ifstream& input, StreamerGridPoint streamer)
+template <> inline void FluidBlock::Read<StreamerGridPoint>(
+    ifstream& input, StreamerGridPoint streamer)
 {
-    input.read((char *)&data[0][0][0], sizeof(FluidElement)*sizeX*sizeY*sizeZ);
+    input.read((char *)&data[0][0][0], 
+        sizeof(FluidElement)*sizeX*sizeY*sizeZ);
 }

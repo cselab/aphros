@@ -11,6 +11,7 @@
 
 #include <mpi.h>
 #include "SynchronizerMPI.h"
+#include <omp.h>
 
 template<typename TLab, typename TKernel, typename TGrid>
 inline void process(TKernel rhs, TGrid& grid, const Real t=0.0, const bool record=false)

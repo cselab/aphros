@@ -28,7 +28,6 @@ typedef double Real;
 using namespace std;
 
 #include "BlockInfo.h"
-#include "LosslessCompression.h"
 
 /*
 inline size_t ZZcompress(unsigned char *buf, unsigned len, int layout[4], unsigned *max)

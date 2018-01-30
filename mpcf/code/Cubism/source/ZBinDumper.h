@@ -18,7 +18,6 @@ typedef double Real;
 #endif
 
 #include "BlockInfo.h"
-#include "LosslessCompression.h"
 
 typedef struct _header_serial
 {

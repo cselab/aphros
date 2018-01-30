@@ -18,29 +18,3 @@ const int FluidBlock::sizeX = _BLOCKSIZE_;
 const int FluidBlock::sizeY = _BLOCKSIZE_;
 const int FluidBlock::sizeZ = _BLOCKSIZE_;
 
-FluidElement operator * (const Real a, FluidElement gp)
-{
-    FluidElement out;
-
-    out.alpha2     = gp.alpha2 * a;
-
-    return out;
-}
-
-FluidElement operator + (FluidElement gpa, FluidElement gpb)
-{
-    FluidElement out;
-
-    out.alpha2     = gpa.alpha2 + gpb.alpha2;
-
-    return out;
-}
-
-FluidElement operator - (FluidElement gpa, FluidElement gpb)
-{
-    FluidElement out;
-
-    out.alpha2     = gpa.alpha2 - gpb.alpha2;
-
-    return out;
-}
