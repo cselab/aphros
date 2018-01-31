@@ -92,12 +92,12 @@ inline void process(TKernel rhs, TGrid& grid, const Real t=0.0, const bool recor
             {
                 int ii = i + Ninner;
                 mylab.load(ary0[ii], t);
-                rhs(mylab, ary0[ii], *(typename TGrid::BlockType*)ary0[ii].ptrBlock);
+                //rhs(mylab, ary0[ii], *(typename TGrid::BlockType*)ary0[ii].ptrBlock);
             }
             else
             {
                 mylab.load(ary1[i], t);
-                rhs(mylab, ary1[i], *(typename TGrid::BlockType*)ary1[i].ptrBlock);
+                //rhs(mylab, ary1[i], *(typename TGrid::BlockType*)ary1[i].ptrBlock);
             }
         }
     }
