@@ -15,7 +15,8 @@
 #include <Timer.h>
 
 #include "Tests.h"
-#include "Test_SteadyStateMPI.h"
+//#include "Test_SteadyStateMPI.h"
+#include "Test_Simple.h"
 //#include "FlowStep_LSRK3MPI.h"
 #include "SimpleStep.h"
 
@@ -50,9 +51,11 @@ int main (int argc, const char ** argv)
   //sim = new Test_SteadyStateMPI<GridMPI_t,FlowStep_LSRK3MPI<GridMPI_t>>(
   //    MPI_COMM_WORLD, parser);
 
-  sim = new Test_SteadyStateMPI<GridMPI_t,SimpleStep<GridMPI_t>>(
-      MPI_COMM_WORLD, parser);
+  //sim = new Test_SteadyStateMPI<GridMPI_t,SimpleStep<GridMPI_t>>(
+  //    MPI_COMM_WORLD, parser);
 
+  sim = new Test_Simple<GridMPI_t,SimpleStep<GridMPI_t>>(MPI_COMM_WORLD, parser);
+  
   sim->setup();
   sim->run();
   delete sim;
