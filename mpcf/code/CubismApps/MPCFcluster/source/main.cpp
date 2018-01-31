@@ -16,9 +16,10 @@
 
 #include "Tests.h"
 #include "Test_SteadyStateMPI.h"
-#include "FlowStep_LSRK3MPI.h"
+//#include "FlowStep_LSRK3MPI.h"
+#include "SimpleStep.h"
 
-typedef FlowStep_LSRK3MPI<GridMPI_t> TFlowStep;
+//typedef FlowStep_LSRK3MPI<GridMPI_t> TFlowStep;
 
 using namespace std;
 
@@ -46,7 +47,11 @@ int main (int argc, const char ** argv)
 
   parser.set_strict_mode();
 
-  sim = new Test_SteadyStateMPI<GridMPI_t,TFlowStep>(MPI_COMM_WORLD, parser);
+  //sim = new Test_SteadyStateMPI<GridMPI_t,FlowStep_LSRK3MPI<GridMPI_t>>(
+  //    MPI_COMM_WORLD, parser);
+
+  sim = new Test_SteadyStateMPI<GridMPI_t,SimpleStep<GridMPI_t>>(
+      MPI_COMM_WORLD, parser);
 
   sim->setup();
   sim->run();
