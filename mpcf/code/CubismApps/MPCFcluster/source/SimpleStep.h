@@ -45,7 +45,8 @@ namespace SimpleData
       const int labSizeSlice = labSizeRow*lab.template getActualSize<1>();
       Real * const destfirst =  &o.tmp[0][0][0][0];
       kernel.compute(srcfirst, Block_t::gptfloats, labSizeRow, labSizeSlice,
-          destfirst, Block_t::gptfloats, Block_t::sizeX, Block_t::sizeX*Block_t::sizeY);
+          destfirst, Block_t::gptfloats, 
+          Block_t::sizeX, Block_t::sizeX*Block_t::sizeY);
     }
   };
 
@@ -56,18 +57,12 @@ class SimpleStep
 {
   TGrid & grid;
 
-  const int verbosity;
-  ArgumentParser& parser;
-
  public:
   ~SimpleStep() {}
 
-  SimpleStep(
-      TGrid& grid, ArgumentParser& parser, const int verbosity=1)
-    : grid(grid), parser(parser), verbosity(verbosity)
-  {
-    parser.unset_strict_mode();
-  }
+  SimpleStep(TGrid& grid)
+    : grid(grid)
+  {}
 
   Real operator()(const Real dt, const Real current_time=0.0) {
 

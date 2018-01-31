@@ -54,7 +54,7 @@ int main (int argc, const char ** argv)
   //sim = new Test_SteadyStateMPI<GridMPI_t,SimpleStep<GridMPI_t>>(
   //    MPI_COMM_WORLD, parser);
 
-  sim = new Test_Simple<GridMPI_t,SimpleStep<GridMPI_t>>(MPI_COMM_WORLD, parser);
+  sim = new Test_Simple<GridMPI_t,SimpleStep<GridMPI_t>>(MPI_COMM_WORLD);
   
   sim->setup();
   sim->run();
