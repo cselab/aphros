@@ -68,14 +68,6 @@ class FlowStep_LSRK3MPI
     const int verbosity;
     ArgumentParser& parser;
 
-    template<typename Kdiff>
-    void _process_LSRK3(TGrid& grid, const Real dt, const Real current_time);
-
-    template<typename Kdiff>
-    pair<Real, Real> step(
-        TGrid& grid, vector<BlockInfo>& vInfo, 
-        const Real a, const Real b, const Real dt, const Real current_time);
-
 public:
     ~FlowStep_LSRK3MPI() {}
 

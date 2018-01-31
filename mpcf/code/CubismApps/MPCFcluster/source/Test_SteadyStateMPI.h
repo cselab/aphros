@@ -36,7 +36,6 @@ class Test_SteadyStateMPI : public Simulation
 
     Test_SteadyStateMPI(const MPI_Comm comm, ArgumentParser& P) :
       grid(NULL), stepper(NULL), dumper(NULL),
-      isroot(true),
       parser(P), restart_id(0), t(0.0), step_id(0),
       m_comm_world(comm)
   {
@@ -204,13 +203,10 @@ void Test_SteadyStateMPI<TGrid,TStepper,TSlice>::setup()
       XPESIZE, YPESIZE, ZPESIZE, 
       this->BPDX, this->BPDY, this->BPDZ, 
       Simulation_Environment::extent, m_comm_world);
-  assert(this->grid != NULL);
 
   this->stepper = new TStepper(*(this->grid), this->parser, this->VERBOSITY);
-  assert(this->stepper != NULL);
 
   this->dumper = new OutputProcessingMPI<TGrid,TSlice>(this->parser, *(this->grid), this->isroot);
-  assert(this->dumper != NULL);
   this->dumper->register_all(*(this->grid));
 
   const std::string path = this->parser("-fpath").asString(".");
