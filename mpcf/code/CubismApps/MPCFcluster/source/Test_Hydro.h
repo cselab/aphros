@@ -159,6 +159,68 @@ void Test_Hydro::_ic()
 }
 
 
+struct Diffusion
+{
+  using Lab=LabMPI;
+  StencilInfo stencil;
+  Real dtinvh;
+  int stencil_start[3];
+  int stencil_end[3];
+
+  StencilInfo getStencil() {
+    return StencilInfo(-1,-1,-1,2,2,2, true, 6, 0,1,2,3,4,6);
+  }
+
+  Diffusion(const Real _dtinvh)
+    : dtinvh(_dtinvh), stencil(getStencil())
+  {
+    std::cerr << "Diffusion::constructor(dtinvh)" << std::endl;
+    stencil_start[0] = stencil_start[1] = stencil_start[2] = -1;
+    stencil_end[0] = stencil_end[1] = stencil_end[2] = 2;
+  }
+
+  Diffusion(const Diffusion& c)
+    : dtinvh(c.dtinvh), stencil(c.stencil)
+  {
+    std::cerr << "Diffusion::copy constructor" << std::endl;
+    stencil_start[0] = stencil_start[1] = stencil_start[2] = -1;
+    stencil_end[0] = stencil_end[1] = stencil_end[2] = 2;
+  }
+
+  inline void operator()(Lab& lab, const BlockInfo& info, Block_t& o) const
+  {
+    std::cerr << "Diffusion::operator()" << std::endl;
+
+    // At this point the only information available is:
+    // - Lab, access to FluidElements via operator()(x,y,z)
+    // - BlockInfo (defined in BlockInfo.h) containing index, origin, spacing
+    // - Block_t=FluidBlock, 3D array with fields data and tmp
+    // - dtinvh passed at construction
+    //
+    // Further parameters (e.g. viscosity) would be passed at construction.
+    //
+    // Affects: implementation of process<>()
+    // Depends: interface of Kernel constructor and operator()
+
+    // Create new instance of Kernel,
+    // one instance per rank-step-block
+    /*
+    Kernel kernel(dtinvh);
+
+    const Real * const srcfirst = &lab(-1,-1,-1).alpha2;
+    const int labSizeRow = lab.template getActualSize<0>();
+    const int labSizeSlice = labSizeRow*lab.template getActualSize<1>();
+    Real * const destfirst =  &o.tmp[0][0][0][0];
+    // Call kernel evaluation 
+    kernel.compute(srcfirst, Block_t::gptfloats, labSizeRow, labSizeSlice,
+        destfirst, Block_t::gptfloats, 
+        Block_t::sizeX, Block_t::sizeX*Block_t::sizeY);
+    */
+
+  }
+};
+
+
 void Test_Hydro::run()
 {
   MPI_Barrier(m_comm_world);
@@ -171,6 +233,9 @@ void Test_Hydro::run()
         << "--> t=" << t 
         << ", dt=" << dt 
         << std::endl;
+
+    Diffusion diffusion(dt);
+    process<LabMPI>(diffusion, (GridMPI_t&)*grid, t, 0);
 
     //dt = (*stepper)(dt, t);
     t += dt;
