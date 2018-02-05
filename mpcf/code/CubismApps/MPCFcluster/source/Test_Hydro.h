@@ -189,34 +189,20 @@ struct Diffusion
 
   inline void operator()(Lab& lab, const BlockInfo& info, Block_t& o) const
   {
-    std::cerr << "Diffusion::operator()" << std::endl;
-
-    // At this point the only information available is:
-    // - Lab, access to FluidElements via operator()(x,y,z)
-    // - BlockInfo (defined in BlockInfo.h) containing index, origin, spacing
-    // - Block_t=FluidBlock, 3D array with fields data and tmp
-    // - dtinvh passed at construction
-    //
-    // Further parameters (e.g. viscosity) would be passed at construction.
-    //
-    // Affects: implementation of process<>()
-    // Depends: interface of Kernel constructor and operator()
-
-    // Create new instance of Kernel,
-    // one instance per rank-step-block
-    /*
-    Kernel kernel(dtinvh);
-
-    const Real * const srcfirst = &lab(-1,-1,-1).alpha2;
-    const int labSizeRow = lab.template getActualSize<0>();
-    const int labSizeSlice = labSizeRow*lab.template getActualSize<1>();
-    Real * const destfirst =  &o.tmp[0][0][0][0];
-    // Call kernel evaluation 
-    kernel.compute(srcfirst, Block_t::gptfloats, labSizeRow, labSizeSlice,
-        destfirst, Block_t::gptfloats, 
-        Block_t::sizeX, Block_t::sizeX*Block_t::sizeY);
-    */
-
+    if (0) {
+      std::cerr 
+        << "Diffusion::operator() block=(" 
+        << info.index[0] << ", "
+        << info.index[1] << ", "
+        << info.index[2] << ")"
+        << std::endl;
+    }
+    //   Current status:
+    // Before each series of calls, halos are exchanged.
+    // operator() is called for every block.
+    // Data with halos are available in lab.
+    // Results (updated values) are expected in block o.
+    // Location and size of blocks is known from info.
   }
 };
 
@@ -227,6 +213,8 @@ void Test_Hydro::run()
 
   dt = 1.;
 
+  Diffusion diffusion(dt);
+
   for (size_t i = 0; i < 10; ++i) {
     if (isroot)
       std::cerr 
@@ -234,7 +222,6 @@ void Test_Hydro::run()
         << ", dt=" << dt 
         << std::endl;
 
-    Diffusion diffusion(dt);
     process<LabMPI>(diffusion, (GridMPI_t&)*grid, t, 0);
 
     //dt = (*stepper)(dt, t);

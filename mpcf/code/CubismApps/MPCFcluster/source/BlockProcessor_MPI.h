@@ -14,14 +14,13 @@
 #include <omp.h>
 
 template<typename TLab, typename TKernel, typename TGrid>
-inline void process(TKernel rhs, TGrid& grid, const Real t=0.0, const bool record=false)
+inline void process(TKernel& rhs, TGrid& grid, const Real t=0.0, const bool record=false)
 {
     // TKernel=Diffusion
     // TGrid=MPIGrid
-    TKernel myrhs = rhs;
 
     // Get synchronizer and perform communication
-    SynchronizerMPI& Synch = grid.sync(myrhs);
+    SynchronizerMPI& Synch = grid.sync(rhs);
 
     const int nthreads = omp_get_max_threads();
 
