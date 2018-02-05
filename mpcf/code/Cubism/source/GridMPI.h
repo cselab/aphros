@@ -31,6 +31,7 @@ protected:
 
 	std::vector<BlockInfo> cached_blockinfo;
 
+  // acts like cache
     std::map<StencilInfo, SynchronizerMPI *> SynchronizerMPIs;
 
     MPI_Comm worldcomm;
@@ -245,6 +246,12 @@ public:
 		return TGrid::operator()(ix-originX, iy-originY, iz-originZ);
 	}
 
+  // for a given kernel p (e.g. Processing=Diffusion)
+  // based on StencilInfo (bounding box and selected components)
+  // returns a SynchronizerMPI (new or existing)
+  // and performs communication
+  // (e.g. two kernels with identical stencils and 
+  // same elected components would share a common SynchronizerMPI)
 	template<typename Processing>
 	SynchronizerMPI& sync(Processing& p)
 	{
@@ -263,7 +270,11 @@ public:
 		}
 		else  queryresult = itSynchronizerMPI->second;
 
-		queryresult->sync(sizeof(typename Block::element_type)/sizeof(Real), sizeof(Real)>4 ? MPI_DOUBLE : MPI_FLOAT, timestamp);
+    // perform communication
+		queryresult->sync(
+        sizeof(typename Block::element_type)/sizeof(Real), 
+        sizeof(Real)>4 ? MPI_DOUBLE : MPI_FLOAT,         
+        timestamp);
 
 		timestamp = (timestamp + 1) % 32768;
 

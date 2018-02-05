@@ -14,6 +14,10 @@ namespace SimpleData
 {
   int step_id = 0;
 
+  // Diffusion is an adapter to call Kernel
+  // Common usage:
+  // - TKernel (process<TLab, TKernel, TGrid>() in BlockProcessor_MPI.h
+  // - Processing (GridMPI<TGrid>::sync<Processing>() in GridMPI.h
   template < typename Kernel, typename Lab >
   struct Diffusion
   {
@@ -22,22 +26,29 @@ namespace SimpleData
     int stencil_start[3];
     int stencil_end[3];
 
+    StencilInfo getStencil() {
+      return StencilInfo(-1,-1,-1,2,2,2, true, 6, 0,1,2,3,4,6);
+    }
+
     Diffusion(const Real _dtinvh)
-      : dtinvh(_dtinvh), stencil(-1,-1,-1,2,2,2, true, 6, 0,1,2,3,4,6)
+      : dtinvh(_dtinvh), stencil(getStencil())
     {
+      std::cerr << "Diffusion::constructor(dtinvh)" << std::endl;
       stencil_start[0] = stencil_start[1] = stencil_start[2] = -1;
       stencil_end[0] = stencil_end[1] = stencil_end[2] = 2;
     }
 
     Diffusion(const Diffusion& c)
-      : dtinvh(c.dtinvh), stencil(-1,-1,-1,2,2,2, true, 6, 0,1,2,3,4,6)
+      : dtinvh(c.dtinvh), stencil(c.stencil)
     {
+      std::cerr << "Diffusion::copy constructor" << std::endl;
       stencil_start[0] = stencil_start[1] = stencil_start[2] = -1;
       stencil_end[0] = stencil_end[1] = stencil_end[2] = 2;
     }
 
     inline void operator()(Lab& lab, const BlockInfo& info, Block_t& o) const
     {
+      //std::cerr << "Diffusion::operator()" << std::endl;
       Kernel kernel(dtinvh);
 
       const Real * const srcfirst = &lab(-1,-1,-1).alpha2;

@@ -166,7 +166,7 @@ void Test_Simple<TGrid,TStepper>::run()
 
   for (size_t i = 0; i < 10; ++i) {
     if (isroot)
-      std::cout 
+      std::cerr 
         << "--> t=" << t 
         << ", dt=" << dt 
         << std::endl;

@@ -57,6 +57,7 @@ struct StencilInfo
 	{
 	}	
 	
+  // serialize all fields as vector<int>
 	vector<int> _all() const 
 	{
 		int extra[] = {sx, sy, sz, ex, ey, ez, (int)tensorial};
@@ -66,6 +67,7 @@ struct StencilInfo
 		return all;
 	}
 	
+  // lexical order by serialized fields _all()
 	bool operator<(StencilInfo s) const
 	{
 		vector<int> me = _all(), you = s._all();

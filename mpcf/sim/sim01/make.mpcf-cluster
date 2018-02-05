@@ -1,0 +1,60 @@
+#!/bin/bash -l
+
+set -e
+
+module swap PrgEnv-cray PrgEnv-gnu
+module load gcc 
+module load cray-hdf5-parallel
+module load daint-gpu
+
+repo=/users/karnakov/cubism/acoustics/cubism-private
+
+echo "Build fpzip"
+fpzippath=/CubismApps/tools/CubismZ/CubismApps/tools/fpzip-1.1.0/src
+#make -C $repo/$fpzippath clean
+make -C $repo/$fpzippath -j 4 CC=CC
+
+#bs=4
+bs=16
+#f2d="-D_2D_"
+#fnrcy="-D_NR_CHAR_Y_"
+#fnrcz="-D_NR_CHAR_Z_"
+echo "Build Cubism-MPCF"
+make -C $repo/CubismApps/MPCFcluster/makefiles cleanall;
+date
+cmd="
+time \
+make -C $repo/CubismApps/MPCFcluster/makefiles \
+  -j 4 CC=CC \
+  daint=1 bs=$bs config=release ap=double hdf=1 fftw=0 alphaeps=0.0 \
+  qpxemu=0 preclevel=2 microfusion=2 accurateweno=0 use_wavz=1 use_fpzip=0 \
+  extra='-ldl -D_WENO3_ -D_BCLABCLOUD1DCHARNREF_ACOUSTIC_ -D_CONVERTCLIP_ ${fnrcy} ${fnrcz} ${f2d}'
+"
+echo "$cmd"
+eval "$cmd"
+date
+
+execname="mpcf-cluster"
+echo "Copy executable to $execname in current directory"
+cp $repo/CubismApps/MPCFcluster/makefiles/mpcf-cluster $execname
+
+rev="$execname.rev"
+rev=`readlink -f $rev`
+echo "Write revision info to $rev"
+cd $repo
+#export GIT_DIR=$repo/.git
+#export GIT_WORK_TREE=$repo/
+echo "### git rev-parse HEAD ###" > $rev
+git rev-parse HEAD >> $rev
+echo -e "\n\n### git status ###" >> $rev
+git status -b >> $rev
+echo -e "\n\n### git config --get remote.origin.url ###" >> $rev
+git config --get remote.origin.url >> $rev
+echo -e "\n\n### git log -10 ###" >> $rev
+git log -5 >> $rev
+echo -e "\n\n### git diff ###" >> $rev
+git diff >> $rev
+echo -e "\n\n### git submodule foreach --recursive git diff ###" >> $rev
+git submodule foreach --recursive git diff >> $rev
+cd -
+

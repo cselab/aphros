@@ -16,7 +16,7 @@
 
 #include "Tests.h"
 
-//#define SIMP
+#define SIMP
 
 #ifdef SIMP
   #include "Test_Simple.h"
