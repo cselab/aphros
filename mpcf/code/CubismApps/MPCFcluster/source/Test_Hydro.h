@@ -19,6 +19,8 @@
 #include "BlockProcessor_MPI.h"
 #include <StencilInfo.h>
 
+#include <array>
+
 typedef BlockLabMPI<Lab> LabMPI;
 typedef GridMPI<Grid_t> GridMPI_t;
 using TGrid = GridMPI_t;
@@ -158,12 +160,29 @@ void Test_Hydro::_ic()
   }
 }
 
+class Kernel {
+ public:
+   Kernel(const BlockInfo& bi) {
+     name = 
+         "(" + std::to_string(bi.index[0]) +
+         "," + std::to_string(bi.index[1]) +
+         "," + std::to_string(bi.index[2]) + ")";
+   }
+   void operator()() {
+     std::cerr << name << std::endl;
+   }
+ private:
+   std::string name;
+};
 
 struct Diffusion
 {
   using Lab=LabMPI;
   StencilInfo stencil;
   Real dtinvh;
+  using Idx = std::array<int, 3>;
+  std::map<Idx, Kernel> mk;
+
   int stencil_start[3];
   int stencil_end[3];
 
@@ -171,21 +190,28 @@ struct Diffusion
     return StencilInfo(-1,-1,-1,2,2,2, true, 6, 0,1,2,3,4,6);
   }
 
-  Diffusion(const Real _dtinvh)
-    : dtinvh(_dtinvh), stencil(getStencil())
+  Diffusion(TGrid& grid)
+    : stencil(getStencil())
   {
     std::cerr << "Diffusion::constructor(dtinvh)" << std::endl;
     stencil_start[0] = stencil_start[1] = stencil_start[2] = -1;
     stencil_end[0] = stencil_end[1] = stencil_end[2] = 2;
+
+    std::vector<BlockInfo> vbi = grid.getBlocksInfo();
+
+    typedef typename TGrid::BlockType B;
+
+    #pragma omp parallel for
+    for(int i=0; i<(int)vbi.size(); i++)
+    {
+      BlockInfo& bi = vbi[i];
+      int* d = bi.index;
+      Idx idx{d[0], d[1], d[2]};
+      mk[idx] = Kernel(bi);
+    }
   }
 
-  Diffusion(const Diffusion& c)
-    : dtinvh(c.dtinvh), stencil(c.stencil)
-  {
-    std::cerr << "Diffusion::copy constructor" << std::endl;
-    stencil_start[0] = stencil_start[1] = stencil_start[2] = -1;
-    stencil_end[0] = stencil_end[1] = stencil_end[2] = 2;
-  }
+  Diffusion(const Diffusion& c) = delete;
 
   inline void operator()(Lab& lab, const BlockInfo& info, Block_t& o) const
   {
@@ -197,12 +223,18 @@ struct Diffusion
         << info.index[2] << ")"
         << std::endl;
     }
-    //   Current status:
+    // # Current status:
     // Before each series of calls, halos are exchanged.
     // operator() is called for every block.
     // Data with halos are available in lab.
     // Results (updated values) are expected in block o.
     // Location and size of blocks is known from info.
+    //
+    // # Problem:
+    // Persistent storage in kernels for each block.
+    //
+    // # Possible solution:
+    // Keep a collection of objects indexed by block index
   }
 };
 
@@ -213,7 +245,7 @@ void Test_Hydro::run()
 
   dt = 1.;
 
-  Diffusion diffusion(dt);
+  Diffusion diffusion(*grid);
 
   for (size_t i = 0; i < 10; ++i) {
     if (isroot)
@@ -224,7 +256,6 @@ void Test_Hydro::run()
 
     process<LabMPI>(diffusion, (GridMPI_t&)*grid, t, 0);
 
-    //dt = (*stepper)(dt, t);
     t += dt;
   }
 }
