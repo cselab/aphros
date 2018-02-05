@@ -122,6 +122,8 @@ void Test_Simple<TGrid,TStepper>::setup()
       XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDY, BPDZ, 
       Simulation_Environment::extent, m_comm_world);
 
+  // Create new instance of TStepper (e.g. SimpleStep),
+  // one instance per rank
   stepper = new TStepper(*(grid));
 
   _ic();

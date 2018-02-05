@@ -39,9 +39,25 @@ class Diffusion_CPP
       : dtinvh(dtinvh) 
     {} 
 
+    // Evaluate kernel appending results to dst
     void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs, const int slicesrcs,
         Real * const dstfirst, const int dstfloats, const int rowdsts, const int slicedsts)
     {
+      // At this point the only information available is:
+      // - src and dst buffer pointers
+      // - number of floats per FluidElement
+      // - leading dimension of the slice (number of elements per row)
+      // - dtinvh passed at construction
+      //
+      // For instance, core kernels don't know absolute coordinates of the block
+      //
+      // Offsets between slices are computed by RingSOA2D
+      // which in turn depends on the stencil
+      //
+      // Further parameters (e.g. viscosity) would be passed at construction.
+      //
+      // Affects: implementation of adapter Diffusion
+      // Depends: none
       _convert(srcfirst, srcfloats, rowsrcs);
       sa.next();
       _convert(srcfirst + srcfloats*slicesrcs, srcfloats, rowsrcs);

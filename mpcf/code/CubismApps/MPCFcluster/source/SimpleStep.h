@@ -48,13 +48,26 @@ namespace SimpleData
 
     inline void operator()(Lab& lab, const BlockInfo& info, Block_t& o) const
     {
-      //std::cerr << "Diffusion::operator()" << std::endl;
+      // At this point the only information available is:
+      // - Lab, access to FluidElements via operator()(x,y,z)
+      // - BlockInfo (defined in BlockInfo.h) containing index, origin, spacing
+      // - Block_t=FluidBlock, 3D array with fields data and tmp
+      // - dtinvh passed at construction
+      //
+      // Further parameters (e.g. viscosity) would be passed at construction.
+      //
+      // Affects: implementation of process<>()
+      // Depends: interface of Kernel constructor and operator()
+
+      // Create new instance of Kernel,
+      // one instance per rank-step-block
       Kernel kernel(dtinvh);
 
       const Real * const srcfirst = &lab(-1,-1,-1).alpha2;
       const int labSizeRow = lab.template getActualSize<0>();
       const int labSizeSlice = labSizeRow*lab.template getActualSize<1>();
       Real * const destfirst =  &o.tmp[0][0][0][0];
+      // Call kernel evaluation 
       kernel.compute(srcfirst, Block_t::gptfloats, labSizeRow, labSizeSlice,
           destfirst, Block_t::gptfloats, 
           Block_t::sizeX, Block_t::sizeX*Block_t::sizeY);
@@ -76,6 +89,12 @@ class SimpleStep
   {}
 
   Real operator()(const Real dt, const Real current_time=0.0) {
+    // At this point the only information available is:
+    // - dt, t 
+    // - TGrid=GridMPI=GridMPI<Grid<FluidBlock>>, 3D array for blocks
+    //
+    // Affects: implementation of Test_Simple
+    // Depends: interface of Diffusion constructor and process<>()
 
     MPI_Comm comm = grid.getCartComm();
     int myrank;
@@ -88,6 +107,7 @@ class SimpleStep
     const Real dtinvh = dt / h;
 
     // diffusion
+    // Create a new instance of Diffusion, one intance per rank-step
     SimpleData::Diffusion<Diffusion_CPP, Lab> diffusion(dtinvh);
     process< LabMPI >(diffusion, (GridMPI_t&)grid, current_time, 0);
 

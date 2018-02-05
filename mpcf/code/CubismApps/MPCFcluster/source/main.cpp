@@ -16,9 +16,13 @@
 
 #include "Tests.h"
 
-#define SIMP
+#define SIMP 1
+#define HYDRO 2
+#define CASE SIMP
 
-#ifdef SIMP
+#if CASE == HYDRO
+  #include "Test_Hydro.h"
+#elif CASE == SIMP
   #include "Test_Simple.h"
   #include "SimpleStep.h"
 #else
@@ -53,17 +57,14 @@ int main (int argc, const char ** argv)
 
   parser.set_strict_mode();
 
-#ifdef SIMP
+#if CASE == HYDRO
+#elif CASE == SIMP
   sim = new Test_Simple<GridMPI_t,SimpleStep<GridMPI_t>>(MPI_COMM_WORLD);
 #else
   sim = new Test_SteadyStateMPI<GridMPI_t,FlowStep_LSRK3MPI<GridMPI_t>>(
       MPI_COMM_WORLD, parser);
 #endif
 
-  //sim = new Test_SteadyStateMPI<GridMPI_t,SimpleStep<GridMPI_t>>(
-  //    MPI_COMM_WORLD, parser);
-
-  
   sim->setup();
   sim->run();
   delete sim;
