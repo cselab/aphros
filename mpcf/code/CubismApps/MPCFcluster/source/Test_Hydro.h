@@ -183,6 +183,10 @@ struct Diffusion
   using Idx = std::array<int, 3>;
   std::map<Idx, Kernel> mk;
 
+  static Idx GetIdx(const int* d) {
+    return {d[0], d[1], d[2]};
+  }
+
   int stencil_start[3];
   int stencil_end[3];
 
@@ -205,15 +209,13 @@ struct Diffusion
     for(int i=0; i<(int)vbi.size(); i++)
     {
       BlockInfo& bi = vbi[i];
-      int* d = bi.index;
-      Idx idx{d[0], d[1], d[2]};
-      mk[idx] = Kernel(bi);
+      mk.emplace(GetIdx(bi.index), bi);
     }
   }
 
   Diffusion(const Diffusion& c) = delete;
 
-  inline void operator()(Lab& lab, const BlockInfo& info, Block_t& o) const
+  inline void operator()(Lab& lab, const BlockInfo& info, Block_t& o) 
   {
     if (0) {
       std::cerr 
@@ -223,6 +225,12 @@ struct Diffusion
         << info.index[2] << ")"
         << std::endl;
     }
+
+    auto i = mk.find(GetIdx(info.index));
+    assert(i != mk.end());
+    Kernel& k = i->second;
+    k();
+
     // # Current status:
     // Before each series of calls, halos are exchanged.
     // operator() is called for every block.
