@@ -18,7 +18,7 @@
 
 #define SIMP 1
 #define HYDRO 2
-#define CASE SIMP
+#define CASE HYDRO
 
 #if CASE == HYDRO
   #include "Test_Hydro.h"
@@ -58,6 +58,7 @@ int main (int argc, const char ** argv)
   parser.set_strict_mode();
 
 #if CASE == HYDRO
+  sim = new Test_Hydro(MPI_COMM_WORLD);
 #elif CASE == SIMP
   sim = new Test_Simple<GridMPI_t,SimpleStep<GridMPI_t>>(MPI_COMM_WORLD);
 #else
