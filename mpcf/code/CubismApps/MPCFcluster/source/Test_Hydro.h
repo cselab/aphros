@@ -21,6 +21,21 @@
 
 #include <array>
 
+/*
+ 
+Basic Rules:
+
+1. Program at interface.
+First describe the interface in a separate class, then implement.
+
+2. Use templates when:
+- 
+
+3. Use inheritance when:
+- 
+ 
+*/
+
 typedef BlockLabMPI<Lab> LabMPI;
 typedef GridMPI<Grid_t> GridMPI_t;
 using TGrid = GridMPI_t;
@@ -243,8 +258,165 @@ struct Diffusion
     //
     // # Possible solution:
     // Keep a collection of objects indexed by block index
+    //
+    // # Outcome:
+    // Diffusion can instantiate Kernel passing BlockInfo to it.
+    // 
+    // Workflow:
+    // Pass mesh size, block size, stencil to Cubism (here Diffusion).
+    // Cubism initializes the mesh with generic elements (buffers)
+    // and instantiates Kernel for each block.
+    // At each simulation step (series of calls) 
+    // it exhanges halos and calls Kernel::operator() of every block.
+    // TODO: Kernel::operator() needs arguments for data (Lab and Block_t)
+    //
+    // How to pass other arguments to Kernel (e.g. P_double)?
   }
 };
+
+// Plan
+// 1. Implement Comm() under assumption of collective requests
+//
+
+// Should I use a factory to instantiate Kernels?
+//   Workflow:
+// - Constructor of Kernel is called once per rank
+// - That constructor initializes the environment 
+//   reading files and parsing arguments if needed
+// - Distr never calls Kernel constructor directly.
+//   Instead, it assumes that Kernel has method Make(BlockInfo)
+//   which creates a clone of that kernel but for a different block
+// - Distr is created for that factory.
+//   That's the point. Distr is a template with argument Kernel.
+//   But it never instantiates Kernel, instead,
+//   it calls the factory.
+//
+// Comm() puts fields in a list separately for each block.
+// Kernel has methods WriteBuffer(), ReadBuffer()
+// which write to buffer mesh after kernel call
+// and read from buffer before kernel call.
+
+template <class Kernel>
+class KernelFactory {
+  public:
+    virtual std::unique_ptr<Kernel> Make() = 0;
+};
+
+template <class Kernel>
+class Distr {
+ public:
+  using MIdx = std::array<size_t, 3>;
+  using Grid = GridMPI<BaseGrid>;
+  using Idx = std::array<int, 3>;
+
+  Distr(const KernelFactory<Kernel>& kf, 
+      size_t bs, MIdx b, MIdx p, size_t es, size_t h) 
+    : g_(bs, b, p, es, h)
+  {
+    std::vector<BlockInfo> vbi = g_.getBlocksInfo();
+
+    #pragma omp parallel for
+    for(size_t i = 0; i < vbi.size(); i++)
+    {
+      BlockInfo& bi = vbi[i];
+      mk.emplace(GetIdx(bi.index), kf.Make(bi));
+    }
+  }
+
+  bool IsDone() const { return false; }
+  void Step() {
+    do {
+      // 1. Exchange halos in buffer mesh (by calling g_.sync())
+      bb = g_.sync().avail();
+    
+      // 2. Copy data from buffer halos to fields collected previously by Comm()
+      for (auto& b : bb) {
+        b.ReadBuffer(lab);
+      }
+      
+      // 3. Call kernels for current stage
+      for (auto& b : bb) {
+        b.Run(lab);
+      }
+
+      // 4. Copy data to buffer mesh for fields collected by Comm()
+      for (auto& b : bb) {
+        b.WriteBuffer(b.ptr);
+      }
+
+      // 5. Repeat until no pending stages
+    } while (true);
+  }
+
+ private:
+  std::map<Idx, Kernel> mk;
+
+  static Idx GetIdx(const int* d) {
+    return {d[0], d[1], d[2]};
+  }
+
+  Grid g_;
+};
+
+template <class T>
+void Main(int argc, char** argv) {
+  using HydroFactory = T;
+  using Hydro = T;
+  // read config files, parse arguments, maybe init global fields
+  HydroFactory hf(argc, argv);
+
+  // This would create a kernel for a single block
+  // i.e. create mesh, initialize local fields.
+  // But normally it is called from a Distr.
+  //hf.Make(BlockInfo(...));
+
+  // Kernels have to know about Distr if they want to create Stage objects
+  // However, Stage can be independent on Distr.
+  // Comm() should put the list of fields to exchange somewhere
+  // so that Distr could do communication.
+  // Comm() must be independent on implementation of Distr.
+  
+  MIdx b(10, 10, 10); // number of blocks 
+  
+  // Initialize buffer mesh and make Hydro for each block.
+  Distr<Hydro> d(hf, b);
+
+  while (!d.IsDone()) {
+    // At each step, first exchange halos,
+    // then call Kernel::operator() for each block
+    d.Step();
+  }
+}
+
+template <class T>
+void Example() {
+  using Cubism = typename T::Cubism;
+  // Initialize mesh:
+  // bs : block size
+  // bx, by, bz : number of blocks per PE
+  // px, py, pz : number of PEs
+  // es : element size
+  // hl : number of halo cells (same in all dimensions)
+  // Instantiate Kernel for each block.
+  Cubism<Kernel> c(bs, bx, by, bz, px, py, pz, es, hl);
+  while (!c.IsDone()) {
+    // At each step, first exchange halos,
+    // then call Kernel::operator() for each block
+    c.Step();
+  }
+}
+
+template <class T>
+class Kern() {
+  Distr d;
+  std::vector<double> a;
+  void Step() {
+    st = d.GetStage();
+    if (st()) {
+      st.Comm(a);
+    }
+  }
+}
 
 
 void Test_Hydro::run()
