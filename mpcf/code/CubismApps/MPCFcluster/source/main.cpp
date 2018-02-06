@@ -80,11 +80,19 @@ int main (int argc, const char ** argv)
 
 */
 
-#include <memory>
 #include "Test_Hydro.h"
 
-int main() {
-  TestHydro sim(MPI_COMM_WORLD);
+int main (int argc, const char ** argv) {
+  int prov;
+  MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  const bool isroot = (0 == rank);
+  Test_Hydro sim(MPI_COMM_WORLD);
   sim.setup();
   sim.run();
+
+  MPI_Finalize();	
+  return 0;
 }
