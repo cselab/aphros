@@ -11,6 +11,8 @@
 #include <string>
 #include <mpi.h>
 
+/*
+
 #include <ArgumentParser.h>
 #include <Timer.h>
 
@@ -74,4 +76,15 @@ int main (int argc, const char ** argv)
   MPI_Finalize();	
 
   return 0;
+}
+
+*/
+
+#include <memory>
+#include "Test_Hydro.h"
+
+int main() {
+  TestHydro sim(MPI_COMM_WORLD);
+  sim.setup();
+  sim.run();
 }

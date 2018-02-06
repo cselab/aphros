@@ -10,14 +10,12 @@
 
 #include <mpi.h>
 
-#include "Tests.h"
 #include "BlockInfo.h"
-#include "Types.h"
+#include "Grid.h"
 #include "GridMPI.h"
-
+#include "BlockLab.h"
 #include "BlockLabMPI.h"
-#include "BlockProcessor_MPI.h"
-#include <StencilInfo.h>
+#include "StencilInfo.h"
 
 #include <array>
 
@@ -36,11 +34,117 @@ First describe the interface in a separate class, then implement.
  
 */
 
+using Real = double;
+
+struct Elem {
+  static const size_t s = 8;
+  Real a[s];
+  void init(Real val) { 
+    for (size_t i = 0; i < s; ++i) {
+      a[i] = val;
+    }
+  }
+  void clear() {
+    init(0);
+  }
+
+  Elem& operator=(const Elem&) = default;
+};
+
+struct Block {
+  static const int bs = _BLOCKSIZE_;
+  static const int sx = bs;
+  static const int sy = bs;
+  static const int sz = bs;
+  static const int sizeX = sx;
+  static const int sizeY = sy;
+  static const int sizeZ = sz;
+  static const int n = sx * sy * sz;
+
+  // floats per element
+  static const int fe = sizeof(Elem) / sizeof(Real);
+
+  using ElementType = Elem;
+  using element_type = Elem;
+
+  Elem __attribute__((__aligned__(_ALIGNBYTES_))) data[bs][bs][bs];
+
+  Real __attribute__((__aligned__(_ALIGNBYTES_))) tmp[bs][bs][bs][fe];
+
+  void clear_data() {
+    Elem* e = &data[0][0][0];
+    for(int i = 0; i < n; ++i) {
+      e[i].clear();
+    }
+  }
+
+  void clear_tmp() {
+    Real* t = &tmp[0][0][0][0];
+    for(int i = 0; i < n * fe; ++i) {
+      t[i] = 0;
+    }
+  }
+
+  void clear() {
+    clear_data();
+    clear_tmp();
+  }
+
+  inline Elem& operator()(int ix, int iy=0, int iz=0) {
+    assert(ix>=0 && ix<sx);
+    assert(iy>=0 && iy<sy);
+    assert(iz>=0 && iz<sz);
+
+    return data[iz][iy][ix];
+  }
+
+  /*
+  template <typename Streamer>
+  inline void Write(std::ofstream& output, Streamer streamer) const {
+    for(int iz=0; iz<sz; iz++)
+      for(int iy=0; iy<sy; iy++)
+        for(int ix=0; ix<sx; ix++)
+          streamer.operate(data[iz][iy][ix], output);
+  }
+
+  template <typename Streamer>
+  inline void Read(std::ifstream& input, Streamer streamer) {
+    for(int iz=0; iz<sz; iz++)
+      for(int iy=0; iy<sy; iy++)
+        for(int ix=0; ix<sx; ix++)
+          streamer.operate(input, data[iz][iy][ix]);
+  }
+  */
+};
+
+
+typedef Block Block_t;  
+typedef Grid<Block_t, std::allocator> GridBase;
+typedef GridBase Grid_t;
+
+template<typename BlockType, template<typename X> class Alloc=std::allocator>
+class LabPer: public BlockLab<BlockType,Alloc>
+{
+    typedef typename BlockType::ElementType ElementTypeBlock;
+
+public:
+
+    virtual inline std::string name() const { return "name"; }
+    bool is_xperiodic() {return true;}
+    bool is_yperiodic() {return true;}
+    bool is_zperiodic() {return true;}
+
+    LabPer()
+      : BlockLab<BlockType,Alloc>(){}
+};
+
+using Lab = LabPer<Block_t, std::allocator>;
 typedef BlockLabMPI<Lab> LabMPI;
 typedef GridMPI<Grid_t> GridMPI_t;
+
 using TGrid = GridMPI_t;
 
-class Test_Hydro : public Simulation
+class Test_Hydro 
 {
   public:
     Test_Hydro(const MPI_Comm comm) :
@@ -51,11 +155,11 @@ class Test_Hydro : public Simulation
     MPI_Comm_rank(m_comm_world, &rank);
     isroot = (0 == rank);
   }
-    virtual ~Test_Hydro() {
+    ~Test_Hydro() {
       if (grid)    delete grid;
     }
 
-    virtual void setup();
+    void setup();
 
 
   private:
@@ -72,13 +176,13 @@ class Test_Hydro : public Simulation
 
     int XPESIZE, YPESIZE, ZPESIZE;
 
-    virtual void _setup_parameter();
+    void _setup_parameter();
 
-    virtual void _ic();
+    void _ic();
 
-    virtual void run();
+    void run();
 
-    virtual void _init()
+    void _init()
     {
       MPI_Barrier(m_comm_world);
     }
@@ -91,7 +195,6 @@ void Test_Hydro::_setup_parameter()
   BPDX       = 2;
   BPDY       = 2;
   BPDZ       = 1; 
-  Simulation_Environment::extent = 1.;
 
   // some post computations
   {
@@ -100,10 +203,6 @@ void Test_Hydro::_setup_parameter()
     BC_PERIODIC[0] = dummy.is_xperiodic();
     BC_PERIODIC[1] = dummy.is_yperiodic();
     BC_PERIODIC[2] = dummy.is_zperiodic();
-
-    Simulation_Environment::BC_PERIODIC[0] = BC_PERIODIC[0];
-    Simulation_Environment::BC_PERIODIC[1] = BC_PERIODIC[1];
-    Simulation_Environment::BC_PERIODIC[2] = BC_PERIODIC[2];
   }
 
   // some checks
@@ -120,15 +219,6 @@ void Test_Hydro::_setup_parameter()
   const int bpdz = BPDZ;
   const int BPD_PE_MAX = 
       std::max(std::max(bpdx*XPESIZE, bpdy*YPESIZE), bpdz*ZPESIZE);
-  Simulation_Environment::extents[0] = 
-      Simulation_Environment::extent * 
-      (bpdx*XPESIZE) / static_cast<double>(BPD_PE_MAX);
-  Simulation_Environment::extents[1] = 
-      Simulation_Environment::extent * 
-      (bpdy*YPESIZE) / static_cast<double>(BPD_PE_MAX);
-  Simulation_Environment::extents[2] = 
-      Simulation_Environment::extent * 
-      (bpdz*ZPESIZE) / static_cast<double>(BPD_PE_MAX);
 }
 
 
@@ -136,9 +226,10 @@ void Test_Hydro::setup()
 {
   _setup_parameter();
 
+  const Real extent = 1.;
   grid = new TGrid(
       XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDY, BPDZ, 
-      Simulation_Environment::extent, m_comm_world);
+      extent, m_comm_world);
 
   // Create new instance of TStepper (e.g. HydroStep),
   // one instance per rank
@@ -165,15 +256,16 @@ void Test_Hydro::_ic()
         for(int ix=0; ix<B::sizeX; ix++)
         {
           typedef const Real CReal;
-          CReal e = Simulation_Environment::extent;
+          CReal e = 1.;
           Real x = o[0] + info.h * ix / B::sizeX;
           Real y = o[1] + info.h * iy / B::sizeY;
           x /= e;
           y /= e;
-          b(ix, iy, iz).alpha2 = 0.5 * (1. + std::sin(x * 10 + y * y * 5));
+          b(ix, iy, iz).a[0] = 0.5 * (1. + std::sin(x * 10 + y * y * 5));
         }
   }
 }
+
 
 class Kernel {
  public:
@@ -189,6 +281,7 @@ class Kernel {
  private:
    std::string name;
 };
+
 
 struct Diffusion
 {
@@ -274,6 +367,7 @@ struct Diffusion
   }
 };
 
+
 // Plan
 // 1. Implement Comm() under assumption of collective requests
 //
@@ -306,7 +400,6 @@ template <class Kernel>
 class Distr {
  public:
   using MIdx = std::array<size_t, 3>;
-  using Grid = GridMPI<BaseGrid>;
   using Idx = std::array<int, 3>;
 
   Distr(const KernelFactory<Kernel>& kf, 
@@ -325,13 +418,23 @@ class Distr {
 
   bool IsDone() const { return false; }
   void Step() {
+    double t = 0; // increasing timestamp
     do {
       // 1. Exchange halos in buffer mesh (by calling g_.sync())
-      bb = g_.sync().avail();
+      Kernel rhs;
+      SynchronizerMPI& s = g_.sync(rhs); // only stencil needed
+
+      Lab l;
+      l.prepare(g_, s);
+
+      MPI_Barrier(g_.getCartComm());
+
+      std::vector<BlockInfo> bb = s.avail();
     
       // 2. Copy data from buffer halos to fields collected previously by Comm()
       for (auto& b : bb) {
-        b.ReadBuffer(lab);
+        l.load(b, t);
+        b.ReadBuffer(l);
       }
       
       // 3. Call kernels for current stage
@@ -341,9 +444,12 @@ class Distr {
 
       // 4. Copy data to buffer mesh for fields collected by Comm()
       for (auto& b : bb) {
-        b.WriteBuffer(b.ptr);
+        b.WriteBuffer(*(typename TGrid::BlockType*)b.ptrBlock);
       }
 
+      MPI_Barrier(g_.getCartComm());
+
+      t += 1.;
       // 5. Repeat until no pending stages
     } while (true);
   }
@@ -355,8 +461,10 @@ class Distr {
     return {d[0], d[1], d[2]};
   }
 
-  Grid g_;
+  TGrid g_;
 };
+
+/*
 
 template <class T>
 void Main(int argc, char** argv) {
@@ -417,6 +525,7 @@ class Kern() {
     }
   }
 }
+*/
 
 
 void Test_Hydro::run()
