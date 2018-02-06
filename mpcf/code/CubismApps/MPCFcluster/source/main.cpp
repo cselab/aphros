@@ -88,10 +88,12 @@ int main (int argc, const char ** argv) {
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  const bool isroot = (0 == rank);
-  Test_Hydro sim(MPI_COMM_WORLD);
-  sim.setup();
-  sim.run();
+  {
+    const bool isroot = (0 == rank);
+    Test_Hydro sim(MPI_COMM_WORLD);
+    sim.setup();
+    sim.run();
+  }
 
   MPI_Finalize();	
   return 0;

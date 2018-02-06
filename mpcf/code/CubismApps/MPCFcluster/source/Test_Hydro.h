@@ -56,9 +56,12 @@ struct Block {
   static const int sx = bs;
   static const int sy = bs;
   static const int sz = bs;
+
+  // required by framework
   static const int sizeX = sx;
   static const int sizeY = sy;
   static const int sizeZ = sz;
+
   static const int n = sx * sy * sz;
 
   // floats per element
@@ -266,9 +269,11 @@ class Kernel {
          "," + std::to_string(bi.index[1]) +
          "," + std::to_string(bi.index[2]) + ")";
    }
-   void operator()() {
+   void Run() {
      std::cerr << name << std::endl;
    }
+   void ReadBuffer(LabMPI& l) {}
+   void WriteBuffer(Block_t& o) {}
  private:
    std::string name;
 };
@@ -328,7 +333,7 @@ struct Diffusion
     auto i = mk.find(GetIdx(info.index));
     assert(i != mk.end());
     Kernel& k = i->second;
-    k();
+    k.Run();
 
     // # Current status:
     // Before each series of calls, halos are exchanged.
@@ -387,7 +392,6 @@ class KernelFactory {
     virtual std::unique_ptr<Kernel> Make() = 0;
 };
 
-/*
 template <class Kernel>
 class Distr {
  public:
@@ -413,10 +417,10 @@ class Distr {
     double t = 0; // increasing timestamp
     do {
       // 1. Exchange halos in buffer mesh (by calling g_.sync())
-      Kernel rhs;
+      Diffusion rhs(g_);
       SynchronizerMPI& s = g_.sync(rhs); // only stencil needed
 
-      Lab l;
+      LabMPI l;
       l.prepare(g_, s);
 
       MPI_Barrier(g_.getCartComm());
@@ -426,17 +430,20 @@ class Distr {
       // 2. Copy data from buffer halos to fields collected previously by Comm()
       for (auto& b : bb) {
         l.load(b, t);
-        b.ReadBuffer(l);
+        Kernel& k = mk.at(GetIdx(b.index));
+        k.ReadBuffer(l);
       }
       
       // 3. Call kernels for current stage
       for (auto& b : bb) {
-        b.Run(lab);
+        Kernel& k = mk.at(GetIdx(b.index));
+        k.Run();
       }
 
       // 4. Copy data to buffer mesh for fields collected by Comm()
       for (auto& b : bb) {
-        b.WriteBuffer(*(typename TGrid::BlockType*)b.ptrBlock);
+        Kernel& k = mk.at(GetIdx(b.index));
+        k.WriteBuffer(*(typename TGrid::BlockType*)b.ptrBlock);
       }
 
       MPI_Barrier(g_.getCartComm());
@@ -456,6 +463,7 @@ class Distr {
   TGrid g_;
 };
 
+/*
 
 template <class T>
 void Main(int argc, char** argv) {
@@ -593,4 +601,6 @@ void Test_Hydro::run()
 
     t += dt;
   }
+
+  MPI_Barrier(m_comm_world);
 }
