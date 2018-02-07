@@ -394,7 +394,7 @@ class KernelFactory {
 
 class HydroFactory : public KernelFactory<Hydro> {
  public:
-   std::unique_ptr<Hydro> Make(const BlockInfo& bi) {
+   std::unique_ptr<Hydro> Make(const BlockInfo& bi) override {
      return std::unique_ptr<Hydro>(new Hydro(bi));
    }
 };
@@ -480,7 +480,7 @@ void Main(MPI_Comm comm) {
   using D = Distr<K>;
   using Idx = D::Idx;
 
-  std::unique_ptr<KF> hf;
+  KF kf;
 
   // Kernels have to know about Distr if they want to create Stage objects
   // However, Stage can be independent on Distr.
@@ -495,7 +495,7 @@ void Main(MPI_Comm comm) {
   const int bs = 16;
   
   // Initialize buffer mesh and make Hydro for each block.
-  D d(comm, *hf, bs, b, p, es, h);
+  D d(comm, kf, bs, b, p, es, h);
 
   while (!d.IsDone()) {
     // At each step, first exchange halos,

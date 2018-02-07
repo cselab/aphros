@@ -1,2 +1,3 @@
 all:
-	cd ../sim && ./test
+	./make.mpcf-cluster
+	cd ../sim/sim01 && ./job
