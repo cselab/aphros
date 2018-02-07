@@ -261,9 +261,9 @@ void Test_Hydro::_ic()
 }
 
 
-class Kernel {
+class Hydro {
  public:
-   Kernel(const BlockInfo& bi) {
+   Hydro(const BlockInfo& bi) {
      name = 
          "(" + std::to_string(bi.index[0]) +
          "," + std::to_string(bi.index[1]) +
@@ -285,7 +285,7 @@ struct Diffusion
   StencilInfo stencil;
   Real dtinvh;
   using Idx = std::array<int, 3>;
-  std::map<Idx, Kernel> mk;
+  std::map<Idx, Hydro> mk;
 
   static Idx GetIdx(const int* d) {
     return {d[0], d[1], d[2]};
@@ -332,7 +332,7 @@ struct Diffusion
 
     auto i = mk.find(GetIdx(info.index));
     assert(i != mk.end());
-    Kernel& k = i->second;
+    Hydro& k = i->second;
     k.Run();
 
     // # Current status:
@@ -389,18 +389,24 @@ struct Diffusion
 template <class Kernel>
 class KernelFactory {
   public:
-    virtual std::unique_ptr<Kernel> Make() = 0;
+    virtual std::unique_ptr<Kernel> Make(const BlockInfo&) = 0;
+};
+
+class HydroFactory : public KernelFactory<Hydro> {
+ public:
+   std::unique_ptr<Hydro> Make(const BlockInfo& bi) {
+     return std::unique_ptr<Hydro>(new Hydro(bi));
+   }
 };
 
 template <class Kernel>
 class Distr {
  public:
-  using MIdx = std::array<size_t, 3>;
   using Idx = std::array<int, 3>;
 
-  Distr(const KernelFactory<Kernel>& kf, 
-      size_t bs, MIdx b, MIdx p, size_t es, size_t h) 
-    : g_(bs, b, p, es, h)
+  Distr(MPI_Comm comm, KernelFactory<Kernel>& kf, 
+      int bs, Idx b, Idx p, int es, int h) 
+    : g_(p[0], p[1], p[2], b[0], b[1], b[2], 1., comm)
   {
     std::vector<BlockInfo> vbi = g_.getBlocksInfo();
 
@@ -412,7 +418,7 @@ class Distr {
     }
   }
 
-  bool IsDone() const { return false; }
+  bool IsDone() const { return step_ > 10; }
   void Step() {
     double t = 0; // increasing timestamp
     do {
@@ -427,55 +433,54 @@ class Distr {
 
       std::vector<BlockInfo> bb = s.avail();
     
-      // 2. Copy data from buffer halos to fields collected previously by Comm()
+      // 2. Copy data from buffer halos to fields collected by Comm()
       for (auto& b : bb) {
         l.load(b, t);
-        Kernel& k = mk.at(GetIdx(b.index));
-        k.ReadBuffer(l);
+        auto& k = mk.at(GetIdx(b.index));
+        k->ReadBuffer(l);
       }
       
       // 3. Call kernels for current stage
       for (auto& b : bb) {
-        Kernel& k = mk.at(GetIdx(b.index));
-        k.Run();
+        auto& k = mk.at(GetIdx(b.index));
+        k->Run();
       }
 
-      // 4. Copy data to buffer mesh for fields collected by Comm()
+      // 4. Copy data to buffer mesh from fields collected by Comm()
       for (auto& b : bb) {
-        Kernel& k = mk.at(GetIdx(b.index));
-        k.WriteBuffer(*(typename TGrid::BlockType*)b.ptrBlock);
+        auto& k = mk.at(GetIdx(b.index));
+        k->WriteBuffer(*(typename TGrid::BlockType*)b.ptrBlock);
       }
 
       MPI_Barrier(g_.getCartComm());
 
       t += 1.;
       // 5. Repeat until no pending stages
-    } while (true);
+    } while (t < 10.);
+
+    ++step_;
   }
 
  private:
-  std::map<Idx, Kernel> mk;
+  std::map<Idx, std::unique_ptr<Kernel>> mk;
 
   static Idx GetIdx(const int* d) {
     return {d[0], d[1], d[2]};
   }
 
   TGrid g_;
+
+  int step_ = 0;
 };
 
-/*
-
-template <class T>
-void Main(int argc, char** argv) {
-  using HydroFactory = T;
-  using Hydro = T;
+void Main(MPI_Comm comm) {
   // read config files, parse arguments, maybe init global fields
-  HydroFactory hf(argc, argv);
+  using K = Hydro;
+  using KF = HydroFactory;
+  using D = Distr<K>;
+  using Idx = D::Idx;
 
-  // This would create a kernel for a single block
-  // i.e. create mesh, initialize local fields.
-  // But normally it is called from a Distr.
-  //hf.Make(BlockInfo(...));
+  std::unique_ptr<KF> hf;
 
   // Kernels have to know about Distr if they want to create Stage objects
   // However, Stage can be independent on Distr.
@@ -483,10 +488,14 @@ void Main(int argc, char** argv) {
   // so that Distr could do communication.
   // Comm() must be independent on implementation of Distr.
   
-  MIdx b(10, 10, 10); // number of blocks 
+  Idx b{2, 2, 1}; // number of blocks 
+  Idx p{2, 2, 1}; // number of ranks
+  const int es = 8;
+  const int h = 1;
+  const int bs = 16;
   
   // Initialize buffer mesh and make Hydro for each block.
-  Distr<Hydro> d(hf, b);
+  D d(comm, *hf, bs, b, p, es, h);
 
   while (!d.IsDone()) {
     // At each step, first exchange halos,
@@ -495,6 +504,7 @@ void Main(int argc, char** argv) {
   }
 }
 
+/*
 template <class T>
 void Example() {
   using Cubism = typename T::Cubism;
