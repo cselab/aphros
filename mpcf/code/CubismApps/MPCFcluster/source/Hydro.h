@@ -38,6 +38,9 @@ First describe the interface in a separate class, then implement.
 - single letter when possible
 - if first letter, put that word in comment
 - if another letter, put that word with letter in [...]
+- up to 4 letters if possible
+- private variables end with underscore: a_;
+  exceptions: m (mesh)
 
 5. Dereference pointers to references or objects if possible
  
@@ -246,9 +249,8 @@ class Kernel {
   bool Pending() const {
     return susp_.Pending();
   }
-
- protected:
   using Sem = Suspender::Sem;
+  // Create semaphore (see Suspender)
   Sem GetSem(std::string name="") {
     return susp_.GetSem(name);
   }
@@ -257,10 +259,24 @@ class Kernel {
   Suspender susp_;
 };
 
+class Mesh {
+ public:
+  explicit Mesh(Kernel& k) 
+    : kern_(k)
+  {}
+  using Sem = Kernel::Sem;
+  // Create semaphore (see Suspender)
+  Sem GetSem(std::string name="") {
+    return kern_.GetSem();
+  }
+ private:
+  Kernel& kern_;
+};
+
 class Hydro : public Kernel {
  public:
    Hydro(const BlockInfo& bi) 
-     : bi_(bi) 
+     : bi_(bi), m(*this)
    {
      name_ = 
          "[" + std::to_string(bi.index[0]) +
@@ -293,6 +309,7 @@ class Hydro : public Kernel {
    std::string name_;
    BlockInfo bi_;
    Real a;
+   Mesh m;
 };
 
 // Class with field 'stencil' needed for SynchronizerMPI::sync(Processing)
