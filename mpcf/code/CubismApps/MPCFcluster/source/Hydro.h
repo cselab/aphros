@@ -21,30 +21,31 @@
 
 #include <list>
 
-/*
- 
-Basic Rules:
-
-1. Program at interface.
-First describe the interface in a separate class, then implement.
-
-2. Use templates when:
-- 
-
-3. Use inheritance when:
-- 
-
-4. Naming conventions:
-- single letter when possible
-- if first letter, put that word in comment
-- if another letter, put that word with letter in [...]
-- up to 4 letters if possible
-- private variables end with underscore: a_;
-  exceptions: m (mesh)
-
-5. Dereference pointers to references or objects if possible
- 
-*/
+// Basic Rules:
+// 
+// 1. Program at interface.
+// First describe the interface in a separate class, then implement.
+// 
+// 2. Use templates when:
+// - 
+// 
+// 3. Use inheritance when:
+// - 
+// 
+// 4. Naming conventions:
+// - single letter when possible
+// - if first letter, put that word in comment: n // name
+// - if another letter, put that word with letter in [...]: a // n[a]me
+// - up to 4 letters if possible
+// - private variables end with underscore: a_;
+//   exceptions: m (mesh)
+// 
+// 5. Dereference pointers to references or values if possible
+// 
+// 6. Lower bound for template argument:
+//   template <class B /*: A*/>
+// means that argument B needs to be a subtype of A
+//  
 
 // Suspendable functions.
 // Function F() is separated in stages each enclosed by if-operator.
@@ -259,23 +260,43 @@ class Kernel {
   Suspender susp_;
 };
 
+class Hydro;
+
 class Mesh {
  public:
-  explicit Mesh(Kernel& k) 
-    : kern_(k)
-  {}
+  explicit Mesh(Hydro& k);
   Mesh(Mesh&) = delete;
   Mesh& operator=(Mesh&) = delete;
+
   using Sem = Kernel::Sem;
   // Create semaphore (see Suspender)
-  Sem GetSem(std::string name="") {
-    return kern_.GetSem(name);
-  }
+  Sem GetSem(std::string name="");
  private:
-  Kernel& kern_;
+  Hydro& kern_;
 };
 
-template <class M /*Mesh*/>
+class Hydro : public Kernel {
+ public:
+  Hydro(const BlockInfo& bi);
+  void Run() override;
+  void ReadBuffer(LabMPI& l) override;
+  void WriteBuffer(Block_t& o) override;
+ private:
+  std::string name_;
+  BlockInfo bi_;
+  Real a;
+  Mesh m;
+};
+
+Mesh::Mesh(Hydro& k) 
+  : kern_(k)
+{}
+
+auto Mesh::GetSem(std::string name) -> Sem {
+  return kern_.GetSem(name);
+}
+
+template <class M /*: Mesh*/>
 void Grad(M& m) {
   auto sem = m.GetSem("grad");
   if (sem()) {
@@ -286,47 +307,42 @@ void Grad(M& m) {
   }
 }
 
-class Hydro : public Kernel {
- public:
-   Hydro(const BlockInfo& bi) 
-     : bi_(bi), m(*this)
-   {
-     name_ = 
-         "[" + std::to_string(bi.index[0]) +
-         "," + std::to_string(bi.index[1]) +
-         "," + std::to_string(bi.index[2]) + "]";
-   }
-   void Run() override {
-     Sem sem = GetSem();
-     if (sem()) {
-       Block_t& b = *(Block_t*)bi_.ptrBlock;
-       Real c = b.data[0][0][0].a[0];
-       std::cerr << name_ << "=(nei:" << a << ",cur:" << c << ")" << std::endl;
-     }
-     if (sem()) {
-       std::cerr << name_ << "stage2" << std::endl;
-     }
-     if (sem()) {
-       Grad(m);
-     }
-   }
-   void ReadBuffer(LabMPI& l) override {
-     a = l(-1,-1,-1).a[0];
-   }
-   void WriteBuffer(Block_t& o) override {
-     Elem* e = &o.data[0][0][0];
-     auto d = bi_.index;
-     Real m = 10000 + (d[0] * 10 + d[1]) * 10 + d[2];
-     for (int i = 0; i < o.n; ++i) {
-       e[i].init(e[i].a[0] + m);
-     }
-   }
- private:
-   std::string name_;
-   BlockInfo bi_;
-   Real a;
-   Mesh m;
-};
+Hydro::Hydro(const BlockInfo& bi) 
+  : bi_(bi), m(*this)
+{
+  name_ = 
+      "[" + std::to_string(bi.index[0]) +
+      "," + std::to_string(bi.index[1]) +
+      "," + std::to_string(bi.index[2]) + "]";
+}
+
+void Hydro::Run() {
+  Sem sem = GetSem();
+  if (sem()) {
+    Block_t& b = *(Block_t*)bi_.ptrBlock;
+    Real c = b.data[0][0][0].a[0];
+    std::cerr << name_ << "=(nei:" << a << ",cur:" << c << ")" << std::endl;
+  }
+  if (sem()) {
+    std::cerr << name_ << "stage2" << std::endl;
+  }
+  if (sem()) {
+    Grad(m);
+  }
+}
+
+void Hydro::ReadBuffer(LabMPI& l) {
+  a = l(-1,-1,-1).a[0];
+}
+
+void Hydro::WriteBuffer(Block_t& o) {
+  Elem* e = &o.data[0][0][0];
+  auto d = bi_.index;
+  Real m = 10000 + (d[0] * 10 + d[1]) * 10 + d[2];
+  for (int i = 0; i < o.n; ++i) {
+    e[i].init(e[i].a[0] + m);
+  }
+}
 
 // Class with field 'stencil' needed for SynchronizerMPI::sync(Processing)
 struct FakeProc {
@@ -337,10 +353,10 @@ struct FakeProc {
 };
 
 
-template <class Kernel>
+template <class K>
 class KernelFactory {
   public:
-    virtual std::unique_ptr<Kernel> Make(const BlockInfo&) = 0;
+    virtual std::unique_ptr<K> Make(const BlockInfo&) = 0;
 };
 
 class HydroFactory : public KernelFactory<Hydro> {
@@ -350,7 +366,7 @@ class HydroFactory : public KernelFactory<Hydro> {
    }
 };
 
-template <class K /*Kernel*/>
+template <class K /*: Kernel*/>
 class Distr {
  public:
   using Idx = std::array<int, 3>;
