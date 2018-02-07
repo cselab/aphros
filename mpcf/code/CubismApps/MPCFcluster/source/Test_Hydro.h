@@ -278,6 +278,15 @@ class Hydro {
    std::string name;
 };
 
+// A class with field 'stencil' needed for SynchronizerMPI::sync()
+// with template argument name Processing
+struct FakeProc {
+  StencilInfo stencil;
+  explicit FakeProc(StencilInfo si) 
+    : stencil(si)
+  {}
+};
+
 
 struct Diffusion
 {
@@ -406,7 +415,7 @@ class Distr {
 
   Distr(MPI_Comm comm, KernelFactory<Kernel>& kf, 
       int bs, Idx b, Idx p, int es, int h) 
-    : g_(p[0], p[1], p[2], b[0], b[1], b[2], 1., comm)
+    : bs_(bs), es_(es), h_(h), g_(p[0], p[1], p[2], b[0], b[1], b[2], 1., comm)
   {
     std::vector<BlockInfo> vbi = g_.getBlocksInfo();
 
@@ -418,13 +427,14 @@ class Distr {
     }
   }
 
-  bool IsDone() const { return step_ > 10; }
+
+  bool IsDone() const { return step_ > 2; }
   void Step() {
     double t = 0; // increasing timestamp
     do {
       // 1. Exchange halos in buffer mesh (by calling g_.sync())
-      Diffusion rhs(g_);
-      SynchronizerMPI& s = g_.sync(rhs); // only stencil needed
+      FakeProc fp(GetStencil(h_));       // object with field 'stencil'
+      SynchronizerMPI& s = g_.sync(fp); 
 
       LabMPI l;
       l.prepare(g_, s);
@@ -456,7 +466,7 @@ class Distr {
 
       t += 1.;
       // 5. Repeat until no pending stages
-    } while (t < 10.);
+    } while (false);
 
     ++step_;
   }
@@ -468,9 +478,17 @@ class Distr {
     return {d[0], d[1], d[2]};
   }
 
+  int bs_; // block size
+  int es_; // element size in Real
+  int h_; // number of halo cells (same in all directions)
+
   TGrid g_;
 
   int step_ = 0;
+
+  StencilInfo GetStencil(int h) {
+    return StencilInfo(-h,-h,-h,h+1,h+1,h+1, true, 8, 0,1,2,3,4,6,7,8);
+  }
 };
 
 void Main(MPI_Comm comm) {
