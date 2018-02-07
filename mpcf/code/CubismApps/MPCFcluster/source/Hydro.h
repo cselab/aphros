@@ -38,6 +38,8 @@ First describe the interface in a separate class, then implement.
 - single letter when possible
 - if first letter, put that word in comment
 - if another letter, put that word with letter in [...]
+
+5. Dereference pointers to references or objects if possible
  
 */
 
@@ -57,6 +59,7 @@ class Suspender {
     Suspender& p; // parent
     std::string name_;
    public:
+    // Constructor
     // Advance list iterator, add new counter if needed, reset counter
     Sem(Suspender& p, std::string name="") 
     : p(p), name_(name)
@@ -69,6 +72,12 @@ class Suspender {
       ++i;
       i->c = 0;
     }
+    // Forbid copy
+    Sem(Sem&) = delete;
+    Sem& operator=(Sem&) = delete;
+    // Allow move
+    Sem(Sem&&) = default;
+    // Destructor
     // If all lower levels done, next stage.
     // If all stages on current level done, remove current level
     ~Sem() {
@@ -228,12 +237,24 @@ typedef GridMPI<Grid_t> GridMPI_t;
 
 using TGrid = GridMPI_t;
 
-// Interface that kernels implement
+// Suspendable kernel
 class Kernel {
  public:
   virtual void Run() = 0;
   virtual void ReadBuffer(LabMPI&) = 0;
   virtual void WriteBuffer(Block_t&) = 0;
+  bool Pending() const {
+    return susp_.Pending();
+  }
+
+ protected:
+  using Sem = Suspender::Sem;
+  Sem GetSem(std::string name="") {
+    return susp_.GetSem(name);
+  }
+  
+ private:
+  Suspender susp_;
 };
 
 class Hydro : public Kernel {
@@ -246,15 +267,15 @@ class Hydro : public Kernel {
          "," + std::to_string(bi.index[1]) +
          "," + std::to_string(bi.index[2]) + "]";
    }
-   void Run() {
+   void Run() override {
      Block_t& b = *(Block_t*)bi_.ptrBlock;
      Real c = b.data[0][0][0].a[0];
      std::cerr << name_ << "=(nei:" << a << ",cur:" << c << ")" << std::endl;
    }
-   void ReadBuffer(LabMPI& l) {
+   void ReadBuffer(LabMPI& l) override {
      a = l(-1,-1,-1).a[0];
    }
-   void WriteBuffer(Block_t& o) {
+   void WriteBuffer(Block_t& o) override {
      Elem* e = &o.data[0][0][0];
      auto d = bi_.index;
      Real m = 10000 + (d[0] * 10 + d[1]) * 10 + d[2];
@@ -316,20 +337,19 @@ class Distr {
 
   bool IsDone() const { return step_ > 2; }
   void Step() {
-    double t = 0; // increasing timestamp
     if (isroot_) {
       std::cerr << "***** STEP " << step_ << " ******" << std::endl;
     }
     do {
       if (isroot_) {
-        std::cerr << "*** ITER t=" << t << " ***" << std::endl;
+        std::cerr << "*** STAGE abs=" << stage_ << " ***" << std::endl;
       }
       // 1. Exchange halos in buffer mesh
       FakeProc fp(GetStencil(h_));       // object with field 'stencil'
       SynchronizerMPI& s = g_.sync(fp); 
 
       LabMPI l;
-      l.prepare(g_, s);
+      l.prepare(g_, s);   // allocate memory for lab cache
 
       MPI_Barrier(g_.getCartComm());
 
@@ -337,28 +357,43 @@ class Distr {
     
       // 2. Copy data from buffer halos to fields collected by Comm()
       for (auto& b : bb) {
-        l.load(b, t);
-        auto& k = mk.at(GetIdx(b.index));
-        k->ReadBuffer(l);
+        l.load(b, stage_);
+        auto& k = *mk.at(GetIdx(b.index));
+        k.ReadBuffer(l);
       }
       
       // 3. Call kernels for current stage
       for (auto& b : bb) {
-        auto& k = mk.at(GetIdx(b.index));
-        k->Run();
+        auto& k = *mk.at(GetIdx(b.index));
+        k.Run();
       }
 
       // 4. Copy data to buffer mesh from fields collected by Comm()
       for (auto& b : bb) {
-        auto& k = mk.at(GetIdx(b.index));
-        k->WriteBuffer(*(typename TGrid::BlockType*)b.ptrBlock);
+        auto& k = *mk.at(GetIdx(b.index));
+        k.WriteBuffer(*(typename TGrid::BlockType*)b.ptrBlock);
       }
 
       MPI_Barrier(g_.getCartComm());
 
-      t += 1.;
-      // 5. Repeat until no pending stages
-    } while (false);
+      stage_ += 1;
+
+      // 5. Check for pending stages
+      int np = 0;
+      for (auto& b : bb) {
+        auto& k = *mk.at(GetIdx(b.index));
+        if (k.Pending()) {
+          ++np;
+        }
+      }
+      // Check either all done or all pending
+      assert(np == 0 || np == bb.size());
+
+      // Break if no pending stages
+      if (!np) {
+        break;
+      }
+    } while (true);
 
     ++step_;
   }
@@ -377,6 +412,7 @@ class Distr {
   TGrid g_;
 
   int step_ = 0;
+  int stage_ = 0;
 
   static StencilInfo GetStencil(int h) {
     return StencilInfo(-h,-h,-h,h+1,h+1,h+1, true, 8, 0,1,2,3,4,6,7,8);
