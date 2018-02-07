@@ -56,13 +56,13 @@ struct Block {
   static const int sx = bs;
   static const int sy = bs;
   static const int sz = bs;
+  static const int n = sx * sy * sz;
 
   // required by framework
   static const int sizeX = sx;
   static const int sizeY = sy;
   static const int sizeZ = sz;
 
-  static const int n = sx * sy * sz;
 
   // floats per element
   static const int fe = sizeof(Elem) / sizeof(Real);
@@ -263,19 +263,34 @@ void Test_Hydro::_ic()
 
 class Hydro {
  public:
-   Hydro(const BlockInfo& bi) {
-     name = 
-         "(" + std::to_string(bi.index[0]) +
+   Hydro(const BlockInfo& bi) 
+     : bi_(bi) 
+   {
+     name_ = 
+         "[" + std::to_string(bi.index[0]) +
          "," + std::to_string(bi.index[1]) +
-         "," + std::to_string(bi.index[2]) + ")";
+         "," + std::to_string(bi.index[2]) + "]";
    }
    void Run() {
-     std::cerr << name << std::endl;
+     Block_t& b = *(Block_t*)bi_.ptrBlock;
+     Real c = b.data[0][0][0].a[0];
+     std::cerr << name_ << "=(nei:" << a << ",cur:" << c << ")" << std::endl;
    }
-   void ReadBuffer(LabMPI& l) {}
-   void WriteBuffer(Block_t& o) {}
+   void ReadBuffer(LabMPI& l) {
+     a = l(-1,-1,-1).a[0];
+   }
+   void WriteBuffer(Block_t& o) {
+     Elem* e = &o.data[0][0][0];
+     auto d = bi_.index;
+     Real m = 10000 + (d[0] * 10 + d[1]) * 10 + d[2];
+     for (int i = 0; i < o.n; ++i) {
+       e[i].init(e[i].a[0] + m);
+     }
+   }
  private:
-   std::string name;
+   std::string name_;
+   BlockInfo bi_;
+   Real a;
 };
 
 // A class with field 'stencil' needed for SynchronizerMPI::sync()
@@ -425,14 +440,24 @@ class Distr {
       BlockInfo& bi = vbi[i];
       mk.emplace(GetIdx(bi.index), kf.Make(bi));
     }
+
+    int r;
+    MPI_Comm_rank(comm, &r);
+    isroot_ = (0 == r);
   }
 
 
   bool IsDone() const { return step_ > 2; }
   void Step() {
     double t = 0; // increasing timestamp
+    if (isroot_) {
+      std::cerr << "***** STEP " << step_ << " ******" << std::endl;
+    }
     do {
-      // 1. Exchange halos in buffer mesh (by calling g_.sync())
+      if (isroot_) {
+        std::cerr << "*** ITER t=" << t << " ***" << std::endl;
+      }
+      // 1. Exchange halos in buffer mesh
       FakeProc fp(GetStencil(h_));       // object with field 'stencil'
       SynchronizerMPI& s = g_.sync(fp); 
 
@@ -486,9 +511,11 @@ class Distr {
 
   int step_ = 0;
 
-  StencilInfo GetStencil(int h) {
+  static StencilInfo GetStencil(int h) {
     return StencilInfo(-h,-h,-h,h+1,h+1,h+1, true, 8, 0,1,2,3,4,6,7,8);
   }
+
+  bool isroot_;
 };
 
 void Main(MPI_Comm comm) {
