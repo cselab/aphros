@@ -59,8 +59,6 @@ class Suspender {
     U(int c, int t) : c(c), t(t) {}
   };
   class Sem { // [sem]aphore
-    Suspender& p; // parent
-    std::string name_;
    public:
     // Constructor
     // Advance list iterator, add new counter if needed, reset counter
@@ -110,6 +108,15 @@ class Suspender {
       auto& i = p.lui_;
       return i->c++ == i->t;
     }
+    std::string GetName() const {
+      return name_;
+    }
+    void SetName(std::string name) {
+      name_ = name;
+    }
+   private:
+    Suspender& p; // parent
+    std::string name_;
   };
   friend Sem;
   // Intializes list with auxiliary counter (-1,-1), sets iterator to it
@@ -131,18 +138,11 @@ class Suspender {
   bool Pending() const {
     return lu_.size() != 1;
   }
-  void SetName(std::string name) {
-    name_ = name;
-  }
-  std::string GetName() const {
-    return name_;
-  }
 
  private:
   using LU = std::list<U>;
   LU lu_;      // [l]ist of co[u]nters
   LU::iterator lui_; // [l]ist of co[u]nters [i]terator
-  std::string name_;
 };
 
 using Real = double;
@@ -264,14 +264,27 @@ class Mesh {
   explicit Mesh(Kernel& k) 
     : kern_(k)
   {}
+  Mesh(Mesh&) = delete;
+  Mesh& operator=(Mesh&) = delete;
   using Sem = Kernel::Sem;
   // Create semaphore (see Suspender)
   Sem GetSem(std::string name="") {
-    return kern_.GetSem();
+    return kern_.GetSem(name);
   }
  private:
   Kernel& kern_;
 };
+
+template <class M /*Mesh*/>
+void Grad(M& m) {
+  auto sem = m.GetSem("grad");
+  if (sem()) {
+    std::cerr << sem.GetName() <<  ":s1" << std::endl;
+  }
+  if (sem()) {
+    std::cerr << sem.GetName() <<  ":s2" << std::endl;
+  }
+}
 
 class Hydro : public Kernel {
  public:
@@ -292,6 +305,9 @@ class Hydro : public Kernel {
      }
      if (sem()) {
        std::cerr << name_ << "stage2" << std::endl;
+     }
+     if (sem()) {
+       Grad(m);
      }
    }
    void ReadBuffer(LabMPI& l) override {
@@ -357,13 +373,16 @@ class Distr {
     isroot_ = (0 == r);
   }
 
-
-  bool IsDone() const { return step_ > 2; }
+  bool IsDone() const { 
+    return step_ > 2; 
+  }
   void Step() {
+    MPI_Barrier(g_.getCartComm());
     if (isroot_) {
       std::cerr << "***** STEP " << step_ << " ******" << std::endl;
     }
     do {
+      MPI_Barrier(g_.getCartComm());
       if (isroot_) {
         std::cerr << "*** STAGE abs=" << stage_ << " ***" << std::endl;
       }
