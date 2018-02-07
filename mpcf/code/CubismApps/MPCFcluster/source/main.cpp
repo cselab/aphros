@@ -80,20 +80,31 @@ int main (int argc, const char ** argv)
 
 */
 
+/*
 #include "Test_Hydro.h"
-
 int main (int argc, const char ** argv) {
   int prov;
   MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  if (0) {
-    const bool isroot = (0 == rank);
-    Test_Hydro sim(MPI_COMM_WORLD);
-    sim.setup();
-    sim.run();
-  }
+  const bool isroot = (0 == rank);
+  Test_Hydro sim(MPI_COMM_WORLD);
+  sim.setup();
+  sim.run();
+
+  MPI_Finalize();	
+  return 0;
+}
+*/
+
+#include "Hydro.h"
+
+int main (int argc, const char ** argv) {
+  int prov;
+  MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   Main(MPI_COMM_WORLD);
 
