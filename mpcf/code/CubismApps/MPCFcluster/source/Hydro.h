@@ -199,24 +199,6 @@ struct Block {
 
     return data[iz][iy][ix];
   }
-
-  /*
-  template <typename Streamer>
-  inline void Write(std::ofstream& output, Streamer streamer) const {
-    for(int iz=0; iz<sz; iz++)
-      for(int iy=0; iy<sy; iy++)
-        for(int ix=0; ix<sx; ix++)
-          streamer.operate(data[iz][iy][ix], output);
-  }
-
-  template <typename Streamer>
-  inline void Read(std::ifstream& input, Streamer streamer) {
-    for(int iz=0; iz<sz; iz++)
-      for(int iy=0; iy<sy; iy++)
-        for(int ix=0; ix<sx; ix++)
-          streamer.operate(input, data[iz][iy][ix]);
-  }
-  */
 };
 
 
@@ -246,8 +228,15 @@ typedef GridMPI<Grid_t> GridMPI_t;
 
 using TGrid = GridMPI_t;
 
+// Interface that kernels implement
+class Kernel {
+ public:
+  virtual void Run() = 0;
+  virtual void ReadBuffer(LabMPI&) = 0;
+  virtual void WriteBuffer(Block_t&) = 0;
+};
 
-class Hydro {
+class Hydro : public Kernel {
  public:
    Hydro(const BlockInfo& bi) 
      : bi_(bi) 
@@ -279,7 +268,7 @@ class Hydro {
    Real a;
 };
 
-// A class with field 'stencil' needed for SynchronizerMPI::sync<Processing>()
+// Class with field 'stencil' needed for SynchronizerMPI::sync(Processing)
 struct FakeProc {
   StencilInfo stencil;
   explicit FakeProc(StencilInfo si) 
@@ -301,12 +290,12 @@ class HydroFactory : public KernelFactory<Hydro> {
    }
 };
 
-template <class Kernel>
+template <class K /*Kernel*/>
 class Distr {
  public:
   using Idx = std::array<int, 3>;
 
-  Distr(MPI_Comm comm, KernelFactory<Kernel>& kf, 
+  Distr(MPI_Comm comm, KernelFactory<K>& kf, 
       int bs, Idx b, Idx p, int es, int h) 
     : bs_(bs), es_(es), h_(h), g_(p[0], p[1], p[2], b[0], b[1], b[2], 1., comm)
   {
@@ -375,7 +364,7 @@ class Distr {
   }
 
  private:
-  std::map<Idx, std::unique_ptr<Kernel>> mk;
+  std::map<Idx, std::unique_ptr<K>> mk;
 
   static Idx GetIdx(const int* d) {
     return {d[0], d[1], d[2]};
