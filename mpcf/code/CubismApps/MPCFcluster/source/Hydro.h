@@ -268,9 +268,15 @@ class Hydro : public Kernel {
          "," + std::to_string(bi.index[2]) + "]";
    }
    void Run() override {
-     Block_t& b = *(Block_t*)bi_.ptrBlock;
-     Real c = b.data[0][0][0].a[0];
-     std::cerr << name_ << "=(nei:" << a << ",cur:" << c << ")" << std::endl;
+     Sem sem = GetSem();
+     if (sem()) {
+       Block_t& b = *(Block_t*)bi_.ptrBlock;
+       Real c = b.data[0][0][0].a[0];
+       std::cerr << name_ << "=(nei:" << a << ",cur:" << c << ")" << std::endl;
+     }
+     if (sem()) {
+       std::cerr << name_ << "stage2" << std::endl;
+     }
    }
    void ReadBuffer(LabMPI& l) override {
      a = l(-1,-1,-1).a[0];
