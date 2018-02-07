@@ -360,7 +360,7 @@ template <class T>
 using MapNode = MapGeneric<T, IdxNode>;
 
 // TODO: Neighbour faces iterator introducing (cell, face) pairs
-template <class ScalArg, size_t dim>
+template <class ScalArg, size_t dim, class K /*: Kernel*/>
 class MeshGeneric {
  public:
   using Scal = ScalArg;
@@ -430,6 +430,12 @@ class MeshGeneric {
   virtual Vect GetNormal(IdxFace idxface) const {
     return GetSurface(idxface) / GetArea(idxface);
   }
+
+  using Sem = Kernel::Sem;
+  Sem GetSem(std::string name="");
+
+ private:
+  K& kern_;
 };
 
 
