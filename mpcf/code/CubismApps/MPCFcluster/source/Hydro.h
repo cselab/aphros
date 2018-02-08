@@ -58,6 +58,8 @@
 //   (e.g. Create instance)
 // - non-capitalized for declarations 
 //   (e.g. buffer index)
+//
+// 8. Data from Kernel returned by reference if possible
 
 #include "../../hydro/suspender.h"
 #include "../../hydro/vect.hpp"
@@ -237,8 +239,13 @@ class Hydro : public Kernel {
   void Run() override;
   void ReadBuffer(LabMPI& l) override;
   void WriteBuffer(Block_t& o) override;
-  // Add field to list for communication
-  void Comm(FieldCell<Scal>* u);
+  // Add field for communication
+  void Comm(FieldCell<Scal>*);
+  // Add scalar for reduction
+  void Reduce(Scal*);
+  const std::vector<Scal*>& GetReduce() const {
+    return vrd_;
+  }
 
  private:
   M GetMesh(const BlockInfo& bi);
@@ -251,6 +258,8 @@ class Hydro : public Kernel {
   FieldCell<Scal> fc_src_;
   FieldFace<Scal> ff_flux_;
   std::unique_ptr<AS> as_;
+  Scal sum_;
+  std::vector<Scal*> vrd_; // scalars for reduction
 };
 
 template <class M /*: Mesh*/>
@@ -333,12 +342,28 @@ void Hydro<M>::Run() {
     as_->MakeIteration();
     as_->FinishStep();
     Comm(&const_cast<FieldCell<Scal>&>(as_->GetField()));
+
+    sum_ = 0.;
+    for (auto i : m.Cells()) {
+      sum_ += as_->GetField()[i];
+    }
+    std::cerr << "sum_ before = " << sum_ << std::endl;
+    Reduce(&sum_);
+  }
+
+  if (sem()) {
+    std::cerr << "sum_ after = " << sum_ << std::endl;
   }
 }
 
 template <class M>
 void Hydro<M>::Comm(FieldCell<Scal>* u) {
   vcm_.push_back(u);
+}
+
+template <class M>
+void Hydro<M>::Reduce(Scal* u) {
+  vrd_.push_back(u);
 }
 
 template <class M>
@@ -447,10 +472,11 @@ class Distr {
 
       MPI_Barrier(g_.getCartComm());
 
+      // Do communication and get all blocks
       std::vector<BlockInfo> bb = s.avail();
+      assert(!bb.empty());
     
       // 2. Copy data from buffer halos to fields collected by Comm()
-      if (step_ > 0) // skip first step to keep initial conditions from kernel
       for (auto& b : bb) {
         l.load(b, stage_);
         MPI_Barrier(g_.getCartComm());
@@ -471,11 +497,47 @@ class Distr {
         k.WriteBuffer(*(typename TGrid::BlockType*)b.ptrBlock);
       }
 
+      // 5. Reduce
+      auto& f = *mk.at(GetIdx(bb[0].index)); // first kernel
+      auto& vf = f.GetReduce();  // pointers to reduce
+
+      std::vector<Real> r(vf.size(), 0); // results
+
+      // Check size is the same for all kernels
+      for (auto& b : bb) {
+        auto& k = *mk.at(GetIdx(b.index)); // kernel
+        auto& v = k.GetReduce();  // pointers to reduce
+        assert(v.size() == r.size());
+      }
+    
+      // Reduce over all kernels on current rank
+      for (auto& b : bb) {
+        auto& k = *mk.at(GetIdx(b.index)); 
+        auto& v = k.GetReduce();  
+        for (size_t i = 0; i < r.size(); ++i) {
+          r[i] += *v[i];
+        }
+      }
+
+      // Reduce over all ranks
+      MPI_Allreduce(
+          MPI_IN_PLACE, r.data(), r.size(), 
+          MPI_DOUBLE, MPI_SUM, g_.getCartComm()); // TODO: type from Scal
+
+      // Write results to all kernels on current rank
+      for (auto& b : bb) {
+        auto& k = *mk.at(GetIdx(b.index)); 
+        auto& v = k.GetReduce();  
+        for (size_t i = 0; i < r.size(); ++i) {
+          *v[i] = r[i];
+        }
+      }
+
       MPI_Barrier(g_.getCartComm());
 
       stage_ += 1;
 
-      // 5. Check for pending stages
+      // 6. Check for pending stages
       int np = 0;
       for (auto& b : bb) {
         auto& k = *mk.at(GetIdx(b.index));
