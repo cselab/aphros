@@ -16,6 +16,7 @@
 #include "BlockLab.h"
 #include "BlockLabMPI.h"
 #include "StencilInfo.h"
+#include "HDF5Dumper_MPI.h"
 
 #include <array>
 
@@ -167,6 +168,42 @@ class Kernel {
  private:
   Suspender susp_;
 };
+
+template <int ID>
+struct StreamHdf
+{
+    static const std::string NAME;
+    static const std::string EXT;
+    static const int NCHANNELS = 1;
+    static const int CLASS = 0;
+    struct T { Real a[8]; };
+
+    using B = Block;
+    B& b;
+
+    StreamHdf(B& b): b(b) {}
+
+    // write
+    void operate(const int ix, const int iy, const int iz, Real out[0]) const
+    {
+        const T& in = *((T*)&b.data[iz][iy][ix].a[0]);
+        out[0] = in.a[ID];
+    }
+
+    // read
+    void operate(const Real out[0], const int ix, const int iy, const int iz) const
+    {
+        T& in = *((T*)&b.data[iz][iy][ix].a[0]);
+        in.a[ID] = out[0];
+    }
+
+    static const char * getAttributeName() { return "Scalar"; }
+};
+
+template <int i>
+const std::string StreamHdf<i>::NAME = "alpha";
+template <int i>
+const std::string StreamHdf<i>::EXT = "00";
 
 template <class M>
 class Hydro : public Kernel {
@@ -388,6 +425,8 @@ class Distr {
       }
     } while (true);
 
+    auto suff = "_" + std::to_string(step_);
+    DumpHDF5_MPI<TGrid, StreamHdf<0>>(g_, step_, step_*1., "p" + suff);
     ++step_;
   }
 
