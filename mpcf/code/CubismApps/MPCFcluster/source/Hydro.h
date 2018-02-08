@@ -326,11 +326,14 @@ Hydro<M>::Hydro(const BlockInfo& bi)
 
 template <class M>
 void Hydro<M>::Run() {
-  as_->StartStep();
-  as_->MakeIteration();
-  as_->FinishStep();
+  auto sem = m.GetSem();
 
-  Comm(&const_cast<FieldCell<Scal>&>(as_->GetField()));
+  if (sem()) {
+    as_->StartStep();
+    as_->MakeIteration();
+    as_->FinishStep();
+    Comm(&const_cast<FieldCell<Scal>&>(as_->GetField()));
+  }
 }
 
 template <class M>
