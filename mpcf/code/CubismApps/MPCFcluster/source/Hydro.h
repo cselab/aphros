@@ -45,11 +45,19 @@
 //   exceptions: m (mesh)
 // 
 // 5. Dereference pointers to references or values if possible
+// But: use pointer arguments to prevent passing an rvalue
 // 
 // 6. Lower bound for template argument:
 //   template <class B /*: A*/>
 // means that argument B needs to be a subtype of A
 //  
+// 7. Comments:
+// - capitalized descriptive for a class or function 
+//   (e.g. Creates instance)
+// - capitalized imperative for expressions in implementation 
+//   (e.g. Create instance)
+// - non-capitalized for declarations 
+//   (e.g. buffer index)
 
 #include "../../hydro/suspender.h"
 #include "../../hydro/vect.hpp"
@@ -229,6 +237,8 @@ class Hydro : public Kernel {
   void Run() override;
   void ReadBuffer(LabMPI& l) override;
   void WriteBuffer(Block_t& o) override;
+  // Add field to list for communication
+  void Comm(FieldCell<Scal>* u);
 
  private:
   M GetMesh(const BlockInfo& bi);
@@ -238,6 +248,7 @@ class Hydro : public Kernel {
   Real a;
   M m;
   FieldCell<Scal> fc_u;
+  std::vector<FieldCell<Scal>*> vcm_; // fields for [c]o[m]munication
 };
 
 template <class M /*: Mesh*/>
@@ -255,7 +266,7 @@ template <class M>
 M Hydro<M>::GetMesh(const BlockInfo& bi) {
   using B = Block_t;
   B& b = *(B*)bi.ptrBlock;
-  MIdx s(B::sx+2, B::sy+2, B::sz+2);
+  MIdx s(B::sx+2, B::sy+2, B::sz+2); // TODO: 2 -> 2*h
   double pos[3];
   bi.pos(pos, -1, -1, -1);
   double lx = 1., ly = 1., lz = 1.;
@@ -317,30 +328,47 @@ void Hydro<M>::Run() {
   a.FinishStep();
 
   fc_u = a.GetField();
+
+  Comm(&fc_u);
+}
+
+template <class M>
+void Hydro<M>::Comm(FieldCell<Scal>* u) {
+  vcm_.push_back(u);
 }
 
 template <class M>
 void Hydro<M>::ReadBuffer(LabMPI& l) {
-  int bs = _BLOCKSIZE_;
+  int e = 0; // buffer field idx
 
-  for (auto i : m.Cells()) {
-    auto d = m.GetBlockCells().GetMIdx(i);
-    fc_u[i] = l(d[0]-1, d[1]-1, d[2]-1).a[0];
+  for (auto u : vcm_) {
+    for (auto i : m.Cells()) {
+      auto d = m.GetBlockCells().GetMIdx(i) - MIdx(1); // TODO: 1 -> h
+      (*u)[i] = l(d[0], d[1], d[2]).a[e];
+    }
+    ++e;
   }
+
+  vcm_.clear();
 }
 
 template <class M>
 void Hydro<M>::WriteBuffer(Block_t& o) {
   int bs = _BLOCKSIZE_;
 
-  for (auto i : m.Cells()) {
-    auto d = m.GetBlockCells().GetMIdx(i);
-    if (MIdx(0) < d && d < MIdx(bs+1)) {
-      d = d - MIdx(1);
-      //o.data[d[0]][d[1]][d[2]].a[0] = fc_u[i];
-      o.data[d[2]][d[1]][d[0]].a[0] = fc_u[i];
-      //o.tmp[d[0]][d[1]][d[2]][0] = fc_u[i];
+  // Check buffer has enough space for all fields
+  assert(vcm_.size() <= Elem::s);
+
+  int e = 0; // buffer field idx
+
+  for (auto u : vcm_) {
+    for (auto i : m.Cells()) {
+      auto d = m.GetBlockCells().GetMIdx(i) - MIdx(1); // TODO: 1 -> h
+      if (MIdx(0) <= d && d < MIdx(bs)) {
+        o.data[d[2]][d[1]][d[0]].a[e] = (*u)[i];
+      }
     }
+    ++e;
   }
 }
 
