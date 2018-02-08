@@ -347,12 +347,7 @@ void Hydro<M>::Run() {
     for (auto i : m.Cells()) {
       sum_ += as_->GetField()[i];
     }
-    std::cerr << "sum_ before = " << sum_ << std::endl;
     Reduce(&sum_);
-  }
-
-  if (sem()) {
-    std::cerr << "sum_ after = " << sum_ << std::endl;
   }
 }
 
@@ -498,38 +493,40 @@ class Distr {
       }
 
       // 5. Reduce
-      auto& f = *mk.at(GetIdx(bb[0].index)); // first kernel
-      auto& vf = f.GetReduce();  // pointers to reduce
+      {
+        auto& f = *mk.at(GetIdx(bb[0].index)); // first kernel
+        auto& vf = f.GetReduce();  // pointers to reduce
 
-      std::vector<Real> r(vf.size(), 0); // results
+        std::vector<Real> r(vf.size(), 0); // results
 
-      // Check size is the same for all kernels
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index)); // kernel
-        auto& v = k.GetReduce();  // pointers to reduce
-        assert(v.size() == r.size());
-      }
-    
-      // Reduce over all kernels on current rank
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index)); 
-        auto& v = k.GetReduce();  
-        for (size_t i = 0; i < r.size(); ++i) {
-          r[i] += *v[i];
+        // Check size is the same for all kernels
+        for (auto& b : bb) {
+          auto& k = *mk.at(GetIdx(b.index)); // kernel
+          auto& v = k.GetReduce();  // pointers to reduce
+          assert(v.size() == r.size());
         }
-      }
+      
+        // Reduce over all kernels on current rank
+        for (auto& b : bb) {
+          auto& k = *mk.at(GetIdx(b.index)); 
+          auto& v = k.GetReduce();  
+          for (size_t i = 0; i < r.size(); ++i) {
+            r[i] += *v[i];
+          }
+        }
 
-      // Reduce over all ranks
-      MPI_Allreduce(
-          MPI_IN_PLACE, r.data(), r.size(), 
-          MPI_DOUBLE, MPI_SUM, g_.getCartComm()); // TODO: type from Scal
+        // Reduce over all ranks
+        MPI_Allreduce(
+            MPI_IN_PLACE, r.data(), r.size(), 
+            MPI_DOUBLE, MPI_SUM, g_.getCartComm()); // TODO: type from Scal
 
-      // Write results to all kernels on current rank
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index)); 
-        auto& v = k.GetReduce();  
-        for (size_t i = 0; i < r.size(); ++i) {
-          *v[i] = r[i];
+        // Write results to all kernels on current rank
+        for (auto& b : bb) {
+          auto& k = *mk.at(GetIdx(b.index)); 
+          auto& v = k.GetReduce();  
+          for (size_t i = 0; i < r.size(); ++i) {
+            *v[i] = r[i];
+          }
         }
       }
 
@@ -538,19 +535,21 @@ class Distr {
       stage_ += 1;
 
       // 6. Check for pending stages
-      int np = 0;
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index));
-        if (k.Pending()) {
-          ++np;
+      {
+        int np = 0;
+        for (auto& b : bb) {
+          auto& k = *mk.at(GetIdx(b.index));
+          if (k.Pending()) {
+            ++np;
+          }
         }
-      }
-      // Check either all done or all pending
-      assert(np == 0 || np == bb.size());
+        // Check either all done or all pending
+        assert(np == 0 || np == bb.size());
 
-      // Break if no pending stages
-      if (!np) {
-        break;
+        // Break if no pending stages
+        if (!np) {
+          break;
+        }
       }
     } while (true);
 
