@@ -245,10 +245,13 @@ class Hydro : public Kernel {
 
   std::string name_;
   BlockInfo bi_;
-  Real a;
   M m;
   FieldCell<Scal> fc_u;
   std::vector<FieldCell<Scal>*> vcm_; // fields for [c]o[m]munication
+  using AS = solver::AdvectionSolverExplicit<M, FieldFace<Scal>>;
+  FieldCell<Scal> fc_src_;
+  FieldFace<Scal> ff_flux_;
+  std::unique_ptr<AS> as_;
 };
 
 template <class M /*: Mesh*/>
@@ -282,12 +285,14 @@ M Hydro<M>::GetMesh(const BlockInfo& bi) {
 template <class M>
 Hydro<M>::Hydro(const BlockInfo& bi) 
   : bi_(bi), m(GetMesh(bi)), fc_u(m)
+  , fc_src_(m, 0.), ff_flux_(m)
 {
   name_ = 
       "[" + std::to_string(bi.index[0]) +
       "," + std::to_string(bi.index[1]) +
       "," + std::to_string(bi.index[2]) + "]";
 
+  // Init fc_u
   for (auto i : m.Cells()) {
     const Scal kx = 2. * M_PI;
     const Scal ky = 2. * M_PI;
@@ -295,17 +300,6 @@ Hydro<M>::Hydro(const BlockInfo& bi)
     Vect c = m.GetCenter(i);
     fc_u[i] = std::sin(kx * c[0]) * std::sin(ky * c[1]) * std::sin(kz * c[2]);
     //fc_u[i] = fc_u[i] > 0. ? 1. : -1.;
-  }
-}
-
-template <class M>
-void Hydro<M>::Run() {
-  // velocity and flux
-  const Vect vel(1, 1, 1);
-  const Scal dt = 0.0025;
-  FieldFace<Scal> ff_flux(m);
-  for (auto idxface : m.Faces()) {
-    ff_flux[idxface] = vel.dot(m.GetSurface(idxface));
   }
 
   // zero-derivative boundary conditions
@@ -317,17 +311,27 @@ void Hydro<M>::Run() {
     }
   }
 
-  FieldCell<Scal> fc_src(m, 0.);
+  // velocity and flux
+  const Vect vel(1, 1, 1);
+  for (auto idxface : m.Faces()) {
+    ff_flux_[idxface] = vel.dot(m.GetSurface(idxface));
+  }
 
-  //Scal dt = 0.5 * h / vel.norm();
+  // time step
+  const Scal dt = 0.0025;
 
-  solver::AdvectionSolverExplicit<M, FieldFace<Scal>> 
-  a(m, fc_u, mf_cond, &ff_flux, &fc_src, 0., dt);
-  a.StartStep();
-  a.MakeIteration();
-  a.FinishStep();
+  // Init advection solver
+  as_.reset(new AS(m, fc_u, mf_cond, &ff_flux_, &fc_src_, 0., dt));
+}
 
-  fc_u = a.GetField();
+template <class M>
+void Hydro<M>::Run() {
+  const_cast<FieldCell<Scal>&>(as_->GetField()) = fc_u;
+  as_->StartStep();
+  as_->MakeIteration();
+  as_->FinishStep();
+
+  fc_u = as_->GetField();
 
   Comm(&fc_u);
 }
