@@ -130,17 +130,16 @@ typedef GridBase Grid_t;
 template<typename BlockType, template<typename X> class Alloc=std::allocator>
 class LabPer: public BlockLab<BlockType,Alloc>
 {
-    typedef typename BlockType::ElementType ElementTypeBlock;
+  typedef typename BlockType::ElementType ElementTypeBlock;
 
-public:
+ public:
+  virtual inline std::string name() const { return "name"; }
+  bool is_xperiodic() {return true;}
+  bool is_yperiodic() {return true;}
+  bool is_zperiodic() {return true;}
 
-    virtual inline std::string name() const { return "name"; }
-    bool is_xperiodic() {return true;}
-    bool is_yperiodic() {return true;}
-    bool is_zperiodic() {return true;}
-
-    LabPer()
-      : BlockLab<BlockType,Alloc>(){}
+  LabPer()
+    : BlockLab<BlockType,Alloc>(){}
 };
 
 using Lab = LabPer<Block_t, std::allocator>;
@@ -170,34 +169,33 @@ class Kernel {
 };
 
 template <int ID>
-struct StreamHdf
-{
-    static const std::string NAME;
-    static const std::string EXT;
-    static const int NCHANNELS = 1;
-    static const int CLASS = 0;
-    struct T { Real a[8]; };
+struct StreamHdf {
+  static const std::string NAME;
+  static const std::string EXT;
+  static const int NCHANNELS = 1;
+  static const int CLASS = 0;
+  struct T { Real a[8]; };
 
-    using B = Block;
-    B& b;
+  using B = Block;
+  B& b;
 
-    StreamHdf(B& b): b(b) {}
+  StreamHdf(B& b): b(b) {}
 
-    // write
-    void operate(const int ix, const int iy, const int iz, Real out[0]) const
-    {
-        const T& in = *((T*)&b.data[iz][iy][ix].a[0]);
-        out[0] = in.a[ID];
-    }
+  // write
+  void operate(const int ix, const int iy, const int iz, Real out[0]) const
+  {
+    const T& in = *((T*)&b.data[iz][iy][ix].a[0]);
+    out[0] = in.a[ID];
+  }
 
-    // read
-    void operate(const Real out[0], const int ix, const int iy, const int iz) const
-    {
-        T& in = *((T*)&b.data[iz][iy][ix].a[0]);
-        in.a[ID] = out[0];
-    }
+  // read
+  void operate(const Real out[0], const int ix, const int iy, const int iz) const
+  {
+    T& in = *((T*)&b.data[iz][iy][ix].a[0]);
+    in.a[ID] = out[0];
+  }
 
-    static const char * getAttributeName() { return "Scalar"; }
+  static const char * getAttributeName() { return "Scalar"; }
 };
 
 template <int i>
@@ -277,17 +275,18 @@ Hydro<M>::Hydro(const BlockInfo& bi)
       "," + std::to_string(bi.index[2]) + "]";
 
   for (auto i : m.Cells()) {
-    const Scal k = 10.;
+    const Scal k = 2. * M_PI;
     Vect c = m.GetCenter(i);
     fc_u[i] = std::sin(k * c[0]) * std::sin(k * c[1]) * std::sin(k * c[2]);
+    fc_u[i] = fc_u[i] > 0. ? 1. : -1.;
   }
 }
 
 template <class M>
 void Hydro<M>::Run() {
   // velocity and flux
-  const Vect vel(0.2, 0.2, 0.2);
-  const Scal dt = 0.01;
+  const Vect vel(1, 0, 0.);
+  const Scal dt = 0.005;
   FieldFace<Scal> ff_flux(m);
   for (auto idxface : m.Faces()) {
     ff_flux[idxface] = vel.dot(m.GetSurface(idxface));
@@ -312,7 +311,7 @@ void Hydro<M>::Run() {
   a.MakeIteration();
   a.FinishStep();
 
-  fc_u = a.GetField();
+  //fc_u = a.GetField();
 }
 
 template <class M>
@@ -332,6 +331,7 @@ void Hydro<M>::WriteBuffer(Block_t& o) {
     if (MIdx(0) < d && d < MIdx(bs+1)) {
       d = d - MIdx(1);
       o.data[d[0]][d[1]][d[2]].a[0] = fc_u[i];
+      //o.tmp[d[0]][d[1]][d[2]][0] = fc_u[i];
     }
   }
 }
@@ -347,19 +347,22 @@ struct FakeProc {
 
 template <class K>
 class KernelFactory {
-  public:
-    virtual std::unique_ptr<K> Make(const BlockInfo&) = 0;
-    virtual ~KernelFactory() {}
+ public:
+  virtual std::unique_ptr<K> Make(const BlockInfo&) = 0;
+  virtual ~KernelFactory() {}
 };
 
 template <class M>
 class HydroFactory : public KernelFactory<Hydro<M>> {
  public:
-   std::unique_ptr<Hydro<M>> Make(const BlockInfo& bi) override {
-     return std::unique_ptr<Hydro<M>>(new Hydro<M>(bi));
-   }
+  std::unique_ptr<Hydro<M>> Make(const BlockInfo& bi) override {
+    return std::unique_ptr<Hydro<M>>(new Hydro<M>(bi));
+  }
 };
 
+
+#define NUMFR 10
+#define TEND 10
 template <class K /*: Kernel*/>
 class Distr {
  public:
@@ -372,8 +375,7 @@ class Distr {
     std::vector<BlockInfo> vbi = g_.getBlocksInfo();
 
     #pragma omp parallel for
-    for(size_t i = 0; i < vbi.size(); i++)
-    {
+    for(size_t i = 0; i < vbi.size(); i++) {
       BlockInfo& bi = vbi[i];
       mk.emplace(GetIdx(bi.index), kf.Make(bi));
     }
@@ -384,7 +386,7 @@ class Distr {
   }
 
   bool IsDone() const { 
-    return step_ > 20; 
+    return step_ > TEND; 
   }
   void Step() {
     MPI_Barrier(g_.getCartComm());
@@ -408,7 +410,7 @@ class Distr {
       std::vector<BlockInfo> bb = s.avail();
     
       // 2. Copy data from buffer halos to fields collected by Comm()
-      if (step_ > 0)
+      if (step_ > 0) // skip first step to keep initial conditions from kernel
       for (auto& b : bb) {
         l.load(b, stage_);
         auto& k = *mk.at(GetIdx(b.index));
@@ -448,8 +450,11 @@ class Distr {
       }
     } while (true);
 
-    auto suff = "_" + std::to_string(step_);
-    DumpHDF5_MPI<TGrid, StreamHdf<0>>(g_, step_, step_*1., "p" + suff);
+    if (step_ % (TEND / NUMFR)  == 0) {
+      auto suff = "_" + std::to_string(frame_);
+      DumpHDF5_MPI<TGrid, StreamHdf<0>>(g_, frame_, step_*1., "p" + suff);
+      ++frame_;
+    }
     ++step_;
   }
 
@@ -468,6 +473,7 @@ class Distr {
 
   int step_ = 0;
   int stage_ = 0;
+  int frame_ = 0;
 
   static StencilInfo GetStencil(int h) {
     return StencilInfo(-h,-h,-h,h+1,h+1,h+1, true, 8, 0,1,2,3,4,6,7,8);
@@ -492,10 +498,10 @@ void Main(MPI_Comm comm) {
   // so that Distr could do communication.
   // Comm() must be independent on implementation of Distr.
   
-  Idx b{2, 2, 2}; // number of blocks 
-  Idx p{2, 2, 2}; // number of ranks
+  Idx b{1, 1, 1}; // number of blocks 
+  Idx p{2, 1, 1}; // number of ranks
   const int es = 8;
-  const int h = 1;
+  const int h = 2;
   const int bs = 16;
   
   // Initialize buffer mesh and make Hydro for each block.

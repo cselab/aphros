@@ -9,8 +9,8 @@
 
 #include "mesh.hpp"
 
-#define PERX
-#define PERZ
+//#define PERX
+//#define PERZ
 
 namespace geom {
 
