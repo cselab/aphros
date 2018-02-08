@@ -22,6 +22,9 @@
 
 #include <list>
 
+#include <chrono>
+#include <thread>
+
 // Basic Rules:
 // 
 // 1. Program at interface.
@@ -275,18 +278,20 @@ Hydro<M>::Hydro(const BlockInfo& bi)
       "," + std::to_string(bi.index[2]) + "]";
 
   for (auto i : m.Cells()) {
-    const Scal k = 2. * M_PI;
+    const Scal kx = 2. * M_PI;
+    const Scal ky = 2. * M_PI;
+    const Scal kz = 2. * M_PI;
     Vect c = m.GetCenter(i);
-    fc_u[i] = std::sin(k * c[0]) * std::sin(k * c[1]) * std::sin(k * c[2]);
-    fc_u[i] = fc_u[i] > 0. ? 1. : -1.;
+    fc_u[i] = std::sin(kx * c[0]) * std::sin(ky * c[1]) * std::sin(kz * c[2]);
+    //fc_u[i] = fc_u[i] > 0. ? 1. : -1.;
   }
 }
 
 template <class M>
 void Hydro<M>::Run() {
   // velocity and flux
-  const Vect vel(1, 0, 0.);
-  const Scal dt = 0.005;
+  const Vect vel(1, 1, 1);
+  const Scal dt = 0.0025;
   FieldFace<Scal> ff_flux(m);
   for (auto idxface : m.Faces()) {
     ff_flux[idxface] = vel.dot(m.GetSurface(idxface));
@@ -311,11 +316,13 @@ void Hydro<M>::Run() {
   a.MakeIteration();
   a.FinishStep();
 
-  //fc_u = a.GetField();
+  fc_u = a.GetField();
 }
 
 template <class M>
 void Hydro<M>::ReadBuffer(LabMPI& l) {
+  int bs = _BLOCKSIZE_;
+
   for (auto i : m.Cells()) {
     auto d = m.GetBlockCells().GetMIdx(i);
     fc_u[i] = l(d[0]-1, d[1]-1, d[2]-1).a[0];
@@ -330,7 +337,8 @@ void Hydro<M>::WriteBuffer(Block_t& o) {
     auto d = m.GetBlockCells().GetMIdx(i);
     if (MIdx(0) < d && d < MIdx(bs+1)) {
       d = d - MIdx(1);
-      o.data[d[0]][d[1]][d[2]].a[0] = fc_u[i];
+      //o.data[d[0]][d[1]][d[2]].a[0] = fc_u[i];
+      o.data[d[2]][d[1]][d[0]].a[0] = fc_u[i];
       //o.tmp[d[0]][d[1]][d[2]][0] = fc_u[i];
     }
   }
@@ -362,7 +370,7 @@ class HydroFactory : public KernelFactory<Hydro<M>> {
 
 
 #define NUMFR 10
-#define TEND 10
+#define TEND 100
 template <class K /*: Kernel*/>
 class Distr {
  public:
@@ -413,7 +421,9 @@ class Distr {
       if (step_ > 0) // skip first step to keep initial conditions from kernel
       for (auto& b : bb) {
         l.load(b, stage_);
+        MPI_Barrier(g_.getCartComm());
         auto& k = *mk.at(GetIdx(b.index));
+
         k.ReadBuffer(l);
       }
       
@@ -476,7 +486,7 @@ class Distr {
   int frame_ = 0;
 
   static StencilInfo GetStencil(int h) {
-    return StencilInfo(-h,-h,-h,h+1,h+1,h+1, true, 8, 0,1,2,3,4,6,7,8);
+    return StencilInfo(-h,-h,-h,h+1,h+1,h+1, true, 8, 0,1,2,3,4,5,6,7);
   }
 
   bool isroot_;
@@ -498,10 +508,10 @@ void Main(MPI_Comm comm) {
   // so that Distr could do communication.
   // Comm() must be independent on implementation of Distr.
   
-  Idx b{1, 1, 1}; // number of blocks 
+  Idx b{1, 2, 2}; // number of blocks 
   Idx p{2, 1, 1}; // number of ranks
   const int es = 8;
-  const int h = 2;
+  const int h = 1;
   const int bs = 16;
   
   // Initialize buffer mesh and make Hydro for each block.
