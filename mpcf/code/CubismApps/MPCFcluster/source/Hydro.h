@@ -48,7 +48,10 @@
 //  
 
 #include "../../hydro/suspender.h"
+#include "../../hydro/vect.hpp"
 #include "../../hydro/mesh3d.hpp"
+#include "../../hydro/solver.hpp"
+#include "../../hydro/advection.hpp"
 
 using Real = double;
 
@@ -168,15 +171,33 @@ class Kernel {
 template <class M>
 class Hydro : public Kernel {
  public:
+  using Mesh = M;
+  using Scal = Real;
+  using Vect = typename Mesh::Vect;
+  using MIdx = typename Mesh::MIdx;
+  using Rect = geom::Rect<Vect>;
+  using IdxCell = geom::IdxCell;
+  using IdxFace = geom::IdxFace;
+  using IdxNode = geom::IdxNode;
+
+  template <class T>
+  using FieldCell = geom::FieldCell<T>;
+  template <class T>
+  using FieldFace = geom::FieldFace<T>;
+  template <class T>
+  using FieldNode = geom::FieldNode<T>;
+
   Hydro(const BlockInfo& bi);
   void Run() override;
   void ReadBuffer(LabMPI& l) override;
   void WriteBuffer(Block_t& o) override;
+
  private:
   std::string name_;
   BlockInfo bi_;
   Real a;
   M m;
+  M GetMesh(const BlockInfo& bi);
 };
 
 template <class M /*: Mesh*/>
@@ -191,13 +212,31 @@ void Grad(M& m) {
 }
 
 template <class M>
+M Hydro<M>::GetMesh(const BlockInfo& bi) {
+  using B = Block_t;
+  B& b = *(B*)bi.ptrBlock;
+  MIdx s(B::sx+2, B::sy+2, B::sz+2);
+  double pos[3];
+  bi.pos(pos, -1, -1, -1);
+  double lx = 1., ly = 1., lz = 1.;
+  Vect d0(pos[0]/lx, pos[1]/ly, pos[2]/lz);
+  bi.pos(pos, B::sizeX, B::sizeY, B::sizeZ);
+  Vect d1(pos[0]/lx, pos[1]/ly, pos[2]/lz);
+  Rect d(d0, d1);
+  std::cout << d0 << " " << d1 << std::endl;
+  
+  return geom::InitUniformMesh<M, Kernel>(d, s, *this);
+}
+
+template <class M>
 Hydro<M>::Hydro(const BlockInfo& bi) 
-  : bi_(bi), m(*this)
+  : bi_(bi), m(GetMesh(bi))
 {
   name_ = 
       "[" + std::to_string(bi.index[0]) +
       "," + std::to_string(bi.index[1]) +
       "," + std::to_string(bi.index[2]) + "]";
+
 }
 
 template <class M>

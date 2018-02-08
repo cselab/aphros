@@ -58,7 +58,7 @@ class MeshStructured : public MeshGeneric<Scal, 3, K> {
 
  public:
   MeshStructured(K& kern) : MeshGeneric<Scal, 3, K>(kern) {}
-  MeshStructured(const BlockNodes& b_nodes, const FieldNode<Vect>& fn_node);
+  MeshStructured(const BlockNodes& b_nodes, const FieldNode<Vect>& fn_node, K& kern);
   const BlockCells& GetBlockCells() const {
     return b_cells_;
   }
@@ -263,7 +263,7 @@ class MeshStructured : public MeshGeneric<Scal, 3, K> {
 
 template <class Scal, class K>
 MeshStructured<Scal, K>::MeshStructured(const BlockNodes& b_nodes,
-                                     const FieldNode<Vect>& fn_node)
+                                     const FieldNode<Vect>& fn_node, K& kern)
     : b_nodes_(b_nodes)
     , fn_node_(fn_node)
     , b_cells_(b_nodes_.GetBegin(), b_nodes_.GetDimensions() - MIdx(1))
@@ -283,6 +283,7 @@ MeshStructured<Scal, K>::MeshStructured(const BlockNodes& b_nodes,
     , ff_is_inner_(b_faces_)
     , fc_is_excluded_(b_cells_, false)
     , ff_is_excluded_(b_faces_, false)
+    , MeshGeneric<Scal, 3, K>(kern)
 {
   MIdx mb = b_cells_.GetBegin(), me = b_cells_.GetEnd();
 

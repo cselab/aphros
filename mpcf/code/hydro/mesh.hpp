@@ -728,10 +728,10 @@ class BlockFaces {
   }
 };
 
-template <class Mesh>
-void InitUniformMesh(Mesh& mesh,
-                     const Rect<typename Mesh::Vect>& domain,
-                     typename Mesh::MIdx mesh_size) {
+template <class Mesh, class K>
+Mesh InitUniformMesh(const Rect<typename Mesh::Vect>& domain,
+                     typename Mesh::MIdx mesh_size,
+                     K& kern) {
   using Vect = typename Mesh::Vect;
   using MIdx = typename Mesh::MIdx;
   typename Mesh::BlockNodes b_nodes(mesh_size + MIdx(1));
@@ -741,7 +741,7 @@ void InitUniformMesh(Mesh& mesh,
     Vect unit = Vect(midx) / Vect(mesh_size);
     fn_node[idxnode] = domain.lb + unit * domain.GetDimensions();
   }
-  mesh = Mesh(b_nodes, fn_node);
+  return Mesh(b_nodes, fn_node, kern);
 }
 
 
