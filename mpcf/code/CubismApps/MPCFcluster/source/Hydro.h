@@ -301,16 +301,33 @@ void Hydro<M>::Run() {
 
 template <class M>
 void Hydro<M>::ReadBuffer(LabMPI& l) {
-  a = l(-1,-1,-1).a[0];
+  //a = l(-1,-1,-1).a[0];
+  return;
+  for (auto i : m.Cells()) {
+    auto d = m.GetBlockCells().GetMIdx(i);
+    fc_u[i] = l(d[0], d[1], d[2]).a[0];
+  }
 }
 
 template <class M>
 void Hydro<M>::WriteBuffer(Block_t& o) {
+  /*
   Elem* e = &o.data[0][0][0];
   auto d = bi_.index;
   Real m = 10000 + (d[0] * 10 + d[1]) * 10 + d[2];
   for (int i = 0; i < o.n; ++i) {
     e[i].init(e[i].a[0] + m);
+  }
+  */
+
+  int bs = _BLOCKSIZE_;
+
+  for (auto i : m.Cells()) {
+    auto d = m.GetBlockCells().GetMIdx(i);
+    if (MIdx(0) < d && d < MIdx(bs+1)) {
+      d = d - MIdx(1);
+      o.data[d[0]][d[1]][d[2]].a[0] = fc_u[i];
+    }
   }
 }
 
