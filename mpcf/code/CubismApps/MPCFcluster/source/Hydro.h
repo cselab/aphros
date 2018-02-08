@@ -193,11 +193,13 @@ class Hydro : public Kernel {
   void WriteBuffer(Block_t& o) override;
 
  private:
+  M GetMesh(const BlockInfo& bi);
+
   std::string name_;
   BlockInfo bi_;
   Real a;
   M m;
-  M GetMesh(const BlockInfo& bi);
+  FieldCell<Scal> fc_u;
 };
 
 template <class M /*: Mesh*/>
@@ -223,20 +225,25 @@ M Hydro<M>::GetMesh(const BlockInfo& bi) {
   bi.pos(pos, B::sizeX, B::sizeY, B::sizeZ);
   Vect d1(pos[0]/lx, pos[1]/ly, pos[2]/lz);
   Rect d(d0, d1);
-  std::cout << d0 << " " << d1 << std::endl;
+ std::cout << d0 << " " << d1 << std::endl;
   
   return geom::InitUniformMesh<M, Kernel>(d, s, *this);
 }
 
 template <class M>
 Hydro<M>::Hydro(const BlockInfo& bi) 
-  : bi_(bi), m(GetMesh(bi))
+  : bi_(bi), m(GetMesh(bi)), fc_u(m)
 {
   name_ = 
       "[" + std::to_string(bi.index[0]) +
       "," + std::to_string(bi.index[1]) +
       "," + std::to_string(bi.index[2]) + "]";
 
+  for (auto i : m.Cells()) {
+    const Scal k = 10.;
+    Vect c = m.GetCenter(i);
+    fc_u[i] = std::sin(k * c[0]) * std::sin(k * c[1]) * std::sin(k * c[2]);
+  }
 }
 
 template <class M>
