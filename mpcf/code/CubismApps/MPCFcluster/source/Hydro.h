@@ -246,7 +246,6 @@ class Hydro : public Kernel {
   std::string name_;
   BlockInfo bi_;
   M m;
-  FieldCell<Scal> fc_u;
   std::vector<FieldCell<Scal>*> vcm_; // fields for [c]o[m]munication
   using AS = solver::AdvectionSolverExplicit<M, FieldFace<Scal>>;
   FieldCell<Scal> fc_src_;
@@ -284,7 +283,7 @@ M Hydro<M>::GetMesh(const BlockInfo& bi) {
 
 template <class M>
 Hydro<M>::Hydro(const BlockInfo& bi) 
-  : bi_(bi), m(GetMesh(bi)), fc_u(m)
+  : bi_(bi), m(GetMesh(bi))
   , fc_src_(m, 0.), ff_flux_(m)
 {
   name_ = 
@@ -292,7 +291,8 @@ Hydro<M>::Hydro(const BlockInfo& bi)
       "," + std::to_string(bi.index[1]) +
       "," + std::to_string(bi.index[2]) + "]";
 
-  // Init fc_u
+  // Initial field for advection
+  FieldCell<Scal> fc_u(m);
   for (auto i : m.Cells()) {
     const Scal kx = 2. * M_PI;
     const Scal ky = 2. * M_PI;
@@ -326,14 +326,11 @@ Hydro<M>::Hydro(const BlockInfo& bi)
 
 template <class M>
 void Hydro<M>::Run() {
-  const_cast<FieldCell<Scal>&>(as_->GetField()) = fc_u;
   as_->StartStep();
   as_->MakeIteration();
   as_->FinishStep();
 
-  fc_u = as_->GetField();
-
-  Comm(&fc_u);
+  Comm(&const_cast<FieldCell<Scal>&>(as_->GetField()));
 }
 
 template <class M>
