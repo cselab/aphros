@@ -48,6 +48,7 @@
 //  
 
 #include "../../hydro/suspender.h"
+#include "../../hydro/mesh3d.hpp"
 
 using Real = double;
 
@@ -164,21 +165,7 @@ class Kernel {
   Suspender susp_;
 };
 
-class Hydro;
-
-class Mesh {
- public:
-  explicit Mesh(Hydro& k);
-  Mesh(Mesh&) = delete;
-  Mesh& operator=(Mesh&) = delete;
-
-  using Sem = Kernel::Sem;
-  // Create semaphore (see Suspender)
-  Sem GetSem(std::string name="");
- private:
-  Hydro& kern_;
-};
-
+template <class M>
 class Hydro : public Kernel {
  public:
   Hydro(const BlockInfo& bi);
@@ -189,16 +176,8 @@ class Hydro : public Kernel {
   std::string name_;
   BlockInfo bi_;
   Real a;
-  Mesh m;
+  M m;
 };
-
-Mesh::Mesh(Hydro& k) 
-  : kern_(k)
-{}
-
-auto Mesh::GetSem(std::string name) -> Sem {
-  return kern_.GetSem(name);
-}
 
 template <class M /*: Mesh*/>
 void Grad(M& m) {
@@ -211,7 +190,8 @@ void Grad(M& m) {
   }
 }
 
-Hydro::Hydro(const BlockInfo& bi) 
+template <class M>
+Hydro<M>::Hydro(const BlockInfo& bi) 
   : bi_(bi), m(*this)
 {
   name_ = 
@@ -220,7 +200,8 @@ Hydro::Hydro(const BlockInfo& bi)
       "," + std::to_string(bi.index[2]) + "]";
 }
 
-void Hydro::Run() {
+template <class M>
+void Hydro<M>::Run() {
   Sem sem = GetSem();
   if (sem()) {
     Block_t& b = *(Block_t*)bi_.ptrBlock;
@@ -235,11 +216,13 @@ void Hydro::Run() {
   }
 }
 
-void Hydro::ReadBuffer(LabMPI& l) {
+template <class M>
+void Hydro<M>::ReadBuffer(LabMPI& l) {
   a = l(-1,-1,-1).a[0];
 }
 
-void Hydro::WriteBuffer(Block_t& o) {
+template <class M>
+void Hydro<M>::WriteBuffer(Block_t& o) {
   Elem* e = &o.data[0][0][0];
   auto d = bi_.index;
   Real m = 10000 + (d[0] * 10 + d[1]) * 10 + d[2];
@@ -264,10 +247,11 @@ class KernelFactory {
     virtual ~KernelFactory() {}
 };
 
-class HydroFactory : public KernelFactory<Hydro> {
+template <class M>
+class HydroFactory : public KernelFactory<Hydro<M>> {
  public:
-   std::unique_ptr<Hydro> Make(const BlockInfo& bi) override {
-     return std::unique_ptr<Hydro>(new Hydro(bi));
+   std::unique_ptr<Hydro<M>> Make(const BlockInfo& bi) override {
+     return std::unique_ptr<Hydro<M>>(new Hydro<M>(bi));
    }
 };
 
@@ -386,8 +370,9 @@ class Distr {
 
 void Main(MPI_Comm comm) {
   // read config files, parse arguments, maybe init global fields
-  using K = Hydro;
-  using KF = HydroFactory;
+  using M = geom::geom3d::MeshStructured<Real, Kernel>;
+  using K = Hydro<M>;
+  using KF = HydroFactory<M>;
   using D = Distr<K>;
   using Idx = D::Idx;
 

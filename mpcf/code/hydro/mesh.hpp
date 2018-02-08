@@ -365,6 +365,7 @@ class MeshGeneric {
  public:
   using Scal = ScalArg;
   using Vect = geom::Vect<Scal, dim>;
+  MeshGeneric(K& kern) : kern_(kern) {}
   virtual ~MeshGeneric() {}
   virtual Vect GetCenter(IdxCell) const = 0;
   virtual Vect GetCenter(IdxFace) const = 0;
@@ -431,10 +432,12 @@ class MeshGeneric {
     return GetSurface(idxface) / GetArea(idxface);
   }
 
-  using Sem = Kernel::Sem;
-  Sem GetSem(std::string name="");
+  using Sem = typename K::Sem;
+  Sem GetSem(std::string name="") {
+    return kern_.GetSem(name);
+  }
 
- private:
+ protected:
   K& kern_;
 };
 

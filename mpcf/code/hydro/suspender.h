@@ -1,5 +1,8 @@
 #pragma once
 
+#include <list>
+#include <string>
+
 // Suspendable functions.
 // Function F() is separated in stages each enclosed by if-operator.
 // At each call of function F(), only one stage is executed.

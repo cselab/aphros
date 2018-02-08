@@ -17,8 +17,8 @@ namespace geom {
 namespace geom3d {
 
 
-template <class Scal>
-class MeshStructured : public MeshGeneric<Scal, 3> {
+template <class Scal, class K>
+class MeshStructured : public MeshGeneric<Scal, 3, K> {
  public:
   static constexpr size_t dim = 3;
   using Vect = geom::Vect<Scal, dim>;
@@ -57,7 +57,7 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
   FieldFace<bool> ff_is_excluded_;
 
  public:
-  MeshStructured() {}
+  MeshStructured(K& kern) : MeshGeneric<Scal, 3, K>(kern) {}
   MeshStructured(const BlockNodes& b_nodes, const FieldNode<Vect>& fn_node);
   const BlockCells& GetBlockCells() const {
     return b_cells_;
@@ -261,8 +261,8 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
    }
 };
 
-template <class Scal>
-MeshStructured<Scal>::MeshStructured(const BlockNodes& b_nodes,
+template <class Scal, class K>
+MeshStructured<Scal, K>::MeshStructured(const BlockNodes& b_nodes,
                                      const FieldNode<Vect>& fn_node)
     : b_nodes_(b_nodes)
     , fn_node_(fn_node)
