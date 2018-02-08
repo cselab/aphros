@@ -285,41 +285,46 @@ Hydro<M>::Hydro(const BlockInfo& bi)
 
 template <class M>
 void Hydro<M>::Run() {
-  Sem sem = GetSem();
-  if (sem()) {
-    Block_t& b = *(Block_t*)bi_.ptrBlock;
-    Real c = b.data[0][0][0].a[0];
-    std::cerr << name_ << "=(nei:" << a << ",cur:" << c << ")" << std::endl;
+  // velocity and flux
+  const Vect vel(0.2, 0.2, 0.2);
+  const Scal dt = 0.01;
+  FieldFace<Scal> ff_flux(m);
+  for (auto idxface : m.Faces()) {
+    ff_flux[idxface] = vel.dot(m.GetSurface(idxface));
   }
-  if (sem()) {
-    std::cerr << name_ << "stage2" << std::endl;
+
+  // zero-derivative boundary conditions
+  geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
+  for (auto idxface : m.Faces()) {
+    if (!m.IsExcluded(idxface) && !m.IsInner(idxface)) {
+      mf_cond[idxface] =
+          std::make_shared<solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
+    }
   }
-  if (sem()) {
-    Grad(m);
-  }
+
+  FieldCell<Scal> fc_src(m, 0.);
+
+  //Scal dt = 0.5 * h / vel.norm();
+
+  solver::AdvectionSolverExplicit<M, FieldFace<Scal>> 
+  a(m, fc_u, mf_cond, &ff_flux, &fc_src, 0., dt);
+  a.StartStep();
+  a.MakeIteration();
+  a.FinishStep();
+
+  fc_u = a.GetField();
 }
 
 template <class M>
 void Hydro<M>::ReadBuffer(LabMPI& l) {
-  //a = l(-1,-1,-1).a[0];
-  return;
   for (auto i : m.Cells()) {
     auto d = m.GetBlockCells().GetMIdx(i);
-    fc_u[i] = l(d[0], d[1], d[2]).a[0];
+    fc_u[i] = l(d[0]-1, d[1]-1, d[2]-1).a[0];
   }
 }
 
 template <class M>
 void Hydro<M>::WriteBuffer(Block_t& o) {
-  /*
-  Elem* e = &o.data[0][0][0];
-  auto d = bi_.index;
-  Real m = 10000 + (d[0] * 10 + d[1]) * 10 + d[2];
-  for (int i = 0; i < o.n; ++i) {
-    e[i].init(e[i].a[0] + m);
-  }
-  */
-
   int bs = _BLOCKSIZE_;
 
   for (auto i : m.Cells()) {
@@ -379,7 +384,7 @@ class Distr {
   }
 
   bool IsDone() const { 
-    return step_ > 2; 
+    return step_ > 20; 
   }
   void Step() {
     MPI_Barrier(g_.getCartComm());
@@ -403,6 +408,7 @@ class Distr {
       std::vector<BlockInfo> bb = s.avail();
     
       // 2. Copy data from buffer halos to fields collected by Comm()
+      if (step_ > 0)
       for (auto& b : bb) {
         l.load(b, stage_);
         auto& k = *mk.at(GetIdx(b.index));
@@ -486,8 +492,8 @@ void Main(MPI_Comm comm) {
   // so that Distr could do communication.
   // Comm() must be independent on implementation of Distr.
   
-  Idx b{2, 2, 1}; // number of blocks 
-  Idx p{2, 2, 1}; // number of ranks
+  Idx b{2, 2, 2}; // number of blocks 
+  Idx p{2, 2, 2}; // number of ranks
   const int es = 8;
   const int h = 1;
   const int bs = 16;
