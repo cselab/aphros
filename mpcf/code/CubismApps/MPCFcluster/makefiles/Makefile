@@ -19,13 +19,7 @@ endif
 VPATH := ../source/ ../../MPCFcore/source/ ../../MPCFnode/source/ ../../../Cubism/source/
 .DEFAULT_GOAL := mpcf-cluster
 
-OBJECTS = ../../MPCFcore/makefiles/Diffusion_CPP.o
-OBJECTS += ../../MPCFnode/makefiles/Types.o \
-		   ../../MPCFnode/makefiles/Streamer.o \
-		   ../../MPCFnode/makefiles/TestLabs.o \
-
-OBJECTS += main.o \
-		   FlowStep_LSRK3MPI.o
+OBJECTS = main.o
 
 all: mpcf-cluster
 
