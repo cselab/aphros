@@ -1,0 +1,2 @@
+wget -nv "$url" -O $f
+tar -xf "$f" 

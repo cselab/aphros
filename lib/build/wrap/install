@@ -1,0 +1,18 @@
+set -ue
+
+. ../util
+
+B="$HOME/bin"
+
+cpfnd () {
+  e="`fnd $1`"
+  if [ $# -ge 2 ] ; then
+    cp -vf $e $B/$2
+  else
+    cp -vf $e $B/
+  fi
+}
+
+echo "P='$P'" > $B/hypre.prefix
+
+cpfnd setenv hypre.setenv

@@ -1,0 +1,19 @@
+#!/bin/bash -l
+
+usg () {
+    msg 'usage: ../run [-h] cmd'
+    msg "run one command (e.g. fetch)"
+}
+
+. ../util
+
+if [ "$1" = -h ] || [ $# = 0 ] ; then usg; exit; fi
+
+set -eu
+c="$1"
+
+. ./arg
+export P n url src f d
+
+src setenv
+run $c

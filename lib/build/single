@@ -1,0 +1,23 @@
+#!/bin/bash -l
+
+usg () {
+    msg 'usage: ./single [-h] subfolder'
+    msg "build single package (e.g. gerris)"
+}
+
+. ./util
+
+if [ "$1" = -h ] || [ $# = 0 ] ; then usg; exit; fi
+
+set -eu
+s=`suff`
+d="$1"
+
+echo "Entering $d"
+cd $d
+
+../run clean
+../run fetch
+../run conf
+../run build
+../run install

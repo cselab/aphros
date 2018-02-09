@@ -1,0 +1,4 @@
+set -ue
+
+./single hypre
+./single wrap

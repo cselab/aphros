@@ -1,0 +1,19 @@
+P0=prefix
+: ${P=$P0}
+: ${LD_LIBRARY_PATH=}
+: ${PKG_CONFIG_PATH=}
+
+P=$(P=$P cd ../ ; readlink -f $P)
+
+PATH=$P/bin:$PATH
+LD_LIBRARY_PATH=$P/lib:$LD_LIBRARY_PATH
+PKG_CONFIG_PATH=$P/lib/pkgconfig:$PKG_CONFIG_PATH
+
+export P PATH LD_LIBRARY_PATH PKG_CONFIG_PATH
+
+module swap PrgEnv-cray PrgEnv-gnu
+module load daint-gpu              # compile for gpu compute nodes (Haswell)
+
+export XTPE_LINK_TYPE=dynamic
+export CRAYPE_LINK_TYPE=dynamic
+

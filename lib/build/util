@@ -1,0 +1,39 @@
+msg () { echo "$@" >&2; }
+err () { msg "single: $*"; exit 2; }
+
+suff () {
+    case $(hostname) in
+        daint*) echo .daint ;;
+        eu-*) echo .euler ;; 
+        *) echo ;;
+    esac
+}
+
+fnd () {
+    local a l f
+    a="$@"
+    l="./$@$s ../common/$@$s ./$@ ../common/$@"
+    for f in $l ; do
+        if [ -f "$f" ] ; then
+            echo $f
+            return
+        fi
+    done
+    err "file $a not found"
+}
+
+run () {
+    local c
+    c="$(fnd "$@")"
+    echo "run: $c"
+    eval "$c"
+}
+
+src () {
+    local c
+    c="$(fnd "$@")"
+    echo "src: $c"
+    . $c
+}
+
+s=`suff`
