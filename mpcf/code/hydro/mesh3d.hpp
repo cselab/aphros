@@ -267,7 +267,7 @@ MeshStructured<Scal, K>::MeshStructured(const BlockNodes& b_nodes,
     : b_nodes_(b_nodes)
     , fn_node_(fn_node)
     , b_cells_(b_nodes_.GetBegin(), b_nodes_.GetDimensions() - MIdx(1))
-    , b_faces_(b_cells_.GetDimensions())
+    , b_faces_(b_nodes_.GetBegin(), b_cells_.GetDimensions())
     , fc_center_(b_cells_)
     , fc_volume_(b_cells_)
     , ff_center_(b_faces_)

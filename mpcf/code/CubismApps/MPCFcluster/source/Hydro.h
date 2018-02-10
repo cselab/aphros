@@ -277,17 +277,27 @@ template <class M>
 M Hydro<M>::GetMesh(const BlockInfo& bi) {
   using B = Block_t;
   B& b = *(B*)bi.ptrBlock;
-  MIdx s(B::sx+2, B::sy+2, B::sz+2); // TODO: 2 -> 2*h
-  double pos[3];
-  bi.pos(pos, -1, -1, -1);
-  double lx = 1., ly = 1., lz = 1.;
-  Vect d0(pos[0]/lx, pos[1]/ly, pos[2]/lz);
-  bi.pos(pos, B::sizeX, B::sizeY, B::sizeZ);
-  Vect d1(pos[0]/lx, pos[1]/ly, pos[2]/lz);
+  int hl = 1;
+  // TODO: hl from Distr
+  MIdx si(B::sx, B::sy, B::sz); // block size inner
+  MIdx s = si + MIdx(hl * 2);   // block size with halos
+
+  Scal h = bi.h_gridpoint;
+  auto w = bi.index;   // block index
+  auto c = bi.origin; 
+  Vect d0(c[0], c[1], c[2]); // origin coord
+  Vect d1 = d0 + Vect(si) * h;      // end coord
   Rect d(d0, d1);
- std::cout << d0 << " " << d1 << std::endl;
+
+  MIdx o(w[0] * si[0], w[1] * si[1], w[2] * si[2]); // origin index
+  o -= MIdx(hl);
+  std::cout 
+      << "o=" << o 
+      << " dom=" << d0 << "," << d1 
+      << " h=" << h
+      << std::endl;
   
-  return geom::InitUniformMesh<M, Kernel>(d, s, *this);
+  return geom::InitUniformMesh<M, Kernel>(d, o, s, *this);
 }
 
 template <class M>
@@ -367,7 +377,8 @@ void Hydro<M>::ReadBuffer(LabMPI& l) {
 
   for (auto u : vcm_) {
     for (auto i : m.Cells()) {
-      auto d = m.GetBlockCells().GetMIdx(i) - MIdx(1); // TODO: 1 -> h
+      auto& bc = m.GetBlockCells();
+      auto d = bc.GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
       (*u)[i] = l(d[0], d[1], d[2]).a[e];
     }
     ++e;
@@ -387,7 +398,8 @@ void Hydro<M>::WriteBuffer(Block_t& o) {
 
   for (auto u : vcm_) {
     for (auto i : m.Cells()) {
-      auto d = m.GetBlockCells().GetMIdx(i) - MIdx(1); // TODO: 1 -> h
+      auto& bc = m.GetBlockCells();
+      auto d = m.GetBlockCells().GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
       if (MIdx(0) <= d && d < MIdx(bs)) {
         o.data[d[2]][d[1]][d[0]].a[e] = (*u)[i];
       }

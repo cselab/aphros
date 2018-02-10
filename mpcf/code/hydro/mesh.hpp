@@ -575,11 +575,12 @@ class BlockGeneric {
       midx[i] = raw % size_[i];
       raw /= size_[i];
     }
-    return midx;
+    return begin_ + midx;
   }
   bool IsInside(MIdx midx) const {
     return begin_ <= midx && midx < end_;
   }
+  // TODO: rename to clip
   void Cut(MIdx& midx) const {
     for (size_t i = 0; i < midx.size(); ++i) {
       midx[i] = std::max(
@@ -650,6 +651,7 @@ template <size_t dim>
 class BlockFaces {
   using MIdx = MIdxGeneral<dim>;
   using Direction = geom::Direction<dim>;
+  MIdx begin_;
   MIdx block_cells_size_;
   size_t GetNumFaces(Direction dir) const {
     MIdx bcs = block_cells_size_;
@@ -664,6 +666,7 @@ class BlockFaces {
     return GetNumFaces(Direction(i));
   }
   size_t GetFlat(MIdx midx, Direction dir) const {
+    midx -= begin_;
     MIdx bcs = block_cells_size_;
     ++bcs[dir];
     size_t res = 0;
@@ -682,7 +685,7 @@ class BlockFaces {
       midx[i] = raw % bcs[i];
       raw /= bcs[i];
     }
-    return midx;
+    return begin_ + midx;
   }
   std::pair<MIdx, Direction> GetMIdxDirection(IdxFace idxface) const {
     size_t raw = idxface.GetRaw();
@@ -697,10 +700,13 @@ class BlockFaces {
 
  public:
   BlockFaces()
-      : block_cells_size_(MIdx::kZero)
+      : begin_(MIdx::kZero), block_cells_size_(MIdx::kZero)
   {}
   BlockFaces(MIdx block_cells_size)
-      : block_cells_size_(block_cells_size)
+      : begin_(MIdx::kZero), block_cells_size_(block_cells_size)
+  {}
+  BlockFaces(MIdx begin, MIdx block_cells_size)
+      : begin_(begin), block_cells_size_(block_cells_size)
   {}
   size_t size() const {
     size_t res = 0;
