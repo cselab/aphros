@@ -25,6 +25,8 @@
 #include <chrono>
 #include <thread>
 
+#include "HYPRE_struct_ls.h"
+
 // Basic Rules:
 // 
 // 1. Program at interface.
@@ -235,16 +237,28 @@ class Hydro : public Kernel {
   template <class T>
   using FieldNode = geom::FieldNode<T>;
 
+  struct LS { // linear system ax=b
+    std::vector<MIdx> st; // stencil
+    std::vector<Scal>* a;
+    std::vector<Scal>* b; 
+    std::vector<Scal>* x;
+  };
+
   Hydro(const BlockInfo& bi);
   void Run() override;
   void ReadBuffer(LabMPI& l) override;
   void WriteBuffer(Block_t& o) override;
-  // Add field for communication
+  // Adds field for communication
   void Comm(FieldCell<Scal>*);
-  // Add scalar for reduction
+  // Adds scalar for reduction
   void Reduce(Scal*);
+  // Adds linear system to solve
+  void Solve(LS);
   const std::vector<Scal*>& GetReduce() const {
     return vrd_;
+  }
+  const std::vector<LS>& GetSolve() const {
+    return vls_;
   }
 
  private:
@@ -260,6 +274,7 @@ class Hydro : public Kernel {
   std::unique_ptr<AS> as_;
   Scal sum_;
   std::vector<Scal*> vrd_; // scalars for reduction
+  std::vector<LS> vls_; // linear system
 };
 
 template <class M /*: Mesh*/>
@@ -358,6 +373,16 @@ void Hydro<M>::Run() {
       sum_ += as_->GetField()[i];
     }
     Reduce(&sum_);
+
+    // linear system
+    // Each block computes the coefficients assuming a uniform stencil
+    // (requirement of hypre)
+    // Then it computes the rhs and allocates space for result.
+    // All three are 1D arrays.
+    // Then the block issues a request to solve a linear system 
+    // passing pointers to these arrays and stencil description.
+    // After going through all blocks, 
+    // the processor assembles the system and calls hypre.
   }
 }
 
@@ -370,6 +395,12 @@ template <class M>
 void Hydro<M>::Reduce(Scal* u) {
   vrd_.push_back(u);
 }
+
+template <class M>
+void Hydro<M>::Solve(LS ls) {
+  vls_.push_back(ls);
+}
+
 
 template <class M>
 void Hydro<M>::ReadBuffer(LabMPI& l) {
@@ -541,6 +572,94 @@ class Distr {
           }
         }
       }
+
+      // 6. Solve 
+      {
+        MPI_Comm comm = g_.getCartComm();
+        auto& f = *mk.at(GetIdx(bb[0].index)); // first kernel
+        auto& vf = f.GetSolve();  // LS to solve
+
+        // Check size is the same for all kernels
+        for (auto& b : bb) {
+          auto& k = *mk.at(GetIdx(b.index)); // kernel
+          auto& v = k.GetSolve();  // pointers to reduce
+          assert(v.size() == vf.size());
+        }
+
+        for (size_t j = 0; j < vf.size(); ++j) {
+          std::vector<MIdx> st = vf.st; // stencil
+
+          HYPRE_StructGrid     grid;
+          HYPRE_StructStencil  stencil;
+          HYPRE_StructMatrix   a;
+          HYPRE_StructVector   b;
+          HYPRE_StructVector   x;
+          HYPRE_StructSolver   solver;
+          HYPRE_StructSolver   precond;
+
+          // Create empty 3D grid object
+          HYPRE_StructGridCreate(MPI_COMM_WORLD, 3, &grid);
+
+          // Add boxes to grid
+          for (auto& b : bb) {
+            auto d = b.index;
+            using B = Block_t;
+            int l[3] = {d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
+            int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
+
+            HYPRE_StructGridSetExtents(grid, l, u);
+          }
+
+          // Assemble grid
+          HYPRE_StructGridAssemble(grid);
+
+          // Create emtpty 3D stencil
+          HYPRE_StructStencilCreate(3, st.size(), &stencil);
+
+          // Assign stencil entries 
+          for (size_t i = 0; i < st.size(); ++i) {
+            MIdx e = st[i];
+            int o[] = {e[0], e[1], e[2]};
+            HYPRE_StructStencilSetElement(stencil, i, o);
+          }
+
+          // Create empty matrix object 
+          HYPRE_StructMatrixCreate(comm, grid, stencil, &a);
+
+          // Indicate that the matrix coefficients are ready to be set 
+          HYPRE_StructMatrixInitialize(A);
+
+          // Set matrix coefficients
+          for (auto& b : bb) {
+            auto d = b.index;
+            using B = Block_t;
+            int l[3] = {d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
+            int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
+
+            std::vector<int> sti(st.size()); // stencil index (1-1)
+            for (int i = 0; i < sti.size(); ++i) {
+              sti[i] = i;
+            }
+
+            auto& k = *mk.at(GetIdx(b.index)); 
+            auto& v = k.GetSolve();  
+            auto& s = v[j]; // LS
+
+            for (i = 0; i < nvalues; i += nentries) {
+              values[i] = 4.0;
+              for (j = 1; j < nentries; j++)
+                values[i+j] = -1.0;
+            }
+
+            HYPRE_StructMatrixSetBoxValues(
+                a, l, u, st.size(), sti, s.a.data());
+          }
+
+          // Assemble matrix
+          HYPRE_StructMatrixAssemble(a);
+        }
+      }
+
 
       MPI_Barrier(g_.getCartComm());
 
