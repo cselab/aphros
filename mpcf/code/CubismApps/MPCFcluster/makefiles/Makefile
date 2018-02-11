@@ -15,6 +15,13 @@ ifeq "$(findstring mpi,$(CC))" ""
 	LIBS += -L$(mpi-lib) -lmpi -lmpi_cxx
 endif
 
+# hypre
+include ~/bin/hypre.prefix
+HYPRE_DIR = $(P)
+LIBS += -L$(HYPRE_DIR)/lib -lHYPRE -lm
+CPPFLAGS += -I$(HYPRE_DIR)/include
+
+
 ##################
 VPATH := ../source/ ../../MPCFcore/source/ ../../MPCFnode/source/ ../../../Cubism/source/
 .DEFAULT_GOAL := mpcf-cluster

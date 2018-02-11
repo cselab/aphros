@@ -587,7 +587,8 @@ class Distr {
         }
 
         for (size_t j = 0; j < vf.size(); ++j) {
-          std::vector<MIdx> st = vf.st; // stencil
+          using MIdx = typename K::MIdx;
+          std::vector<MIdx> st = vf[j].st; // stencil
 
           HYPRE_StructGrid     grid;
           HYPRE_StructStencil  stencil;
@@ -627,7 +628,7 @@ class Distr {
           HYPRE_StructMatrixCreate(comm, grid, stencil, &a);
 
           // Indicate that the matrix coefficients are ready to be set 
-          HYPRE_StructMatrixInitialize(A);
+          HYPRE_StructMatrixInitialize(a);
 
           // Set matrix coefficients
           for (auto& b : bb) {
@@ -645,14 +646,8 @@ class Distr {
             auto& v = k.GetSolve();  
             auto& s = v[j]; // LS
 
-            for (i = 0; i < nvalues; i += nentries) {
-              values[i] = 4.0;
-              for (j = 1; j < nentries; j++)
-                values[i+j] = -1.0;
-            }
-
             HYPRE_StructMatrixSetBoxValues(
-                a, l, u, st.size(), sti, s.a.data());
+                a, l, u, st.size(), sti.data(), s.a->data());
           }
 
           // Assemble matrix
