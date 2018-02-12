@@ -259,6 +259,45 @@ class MeshStructured : public MeshGeneric<Scal, 3, K> {
      }
      return res;
    }
+
+  // TODO: move to separate class: Sem, LS, Comm, Reduce, Solve
+  // BEGIN DISTR
+ public:
+  using Sem = typename K::Sem;
+  Sem GetSem(std::string name="") {
+    return this->kern_.GetSem(name);
+  }
+
+  struct LS { // linear system ax=b
+    std::vector<MIdx> st; // stencil
+    std::vector<Scal>* a;
+    std::vector<Scal>* b; 
+    std::vector<Scal>* x;
+  };
+
+  void Comm(FieldCell<Scal>* u) {
+    vcm_.push_back(u);
+  }
+  void Reduce(FieldCell<Scal>* u) {
+    vrd_.push_back(u);
+  }
+  void Solve(const LS& ls) {
+    vls_.push_back(ls);
+  }
+  const std::vector<FieldCell<Scal>*>& GetComm() const {
+    return vcm_;
+  }
+  const std::vector<Scal*>& GetReduce() const {
+    return vrd_;
+  }
+  const std::vector<LS>& GetSolve() const {
+    return vls_;
+  }
+ private:
+  std::vector<FieldCell<Scal>*> vcm_; // fields for [c]o[m]munication
+  std::vector<Scal*> vrd_; // scalars for reduction
+  std::vector<LS> vls_; // linear system
+  // END DISTR
 };
 
 template <class Scal, class K>
