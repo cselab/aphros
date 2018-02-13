@@ -24,5 +24,5 @@ std::unique_ptr<Distr> CreateLocal(
   //if (!r) r = Try<HydroFactory<geom::geom3d::MeshStructured<float>>(
   //    comm, kf, bs, b, p, es, h);
   assert(r && "CreateLocalz(): KernelFactory not found");
-  return unique_ptr<Distr>(r);
+  return std::unique_ptr<Distr>(r);
 }

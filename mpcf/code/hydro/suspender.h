@@ -2,6 +2,8 @@
 
 #include <list>
 #include <string>
+#include <cassert>
+#include <sstream>
 
 // Suspendable functions.
 // Function F() is separated in stages each enclosed by if-operator.
