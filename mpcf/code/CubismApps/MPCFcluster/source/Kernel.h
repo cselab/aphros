@@ -60,6 +60,12 @@ class KernelFactory {
 
 using Idx = std::array<int, 3>;
 
+template <int n=3>
+Idx GetIdx(const int* d) {
+  return {d[0], d[1], d[2]};
+}
+
+
 class Distr {
  public:
   virtual bool IsDone() const = 0;

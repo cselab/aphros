@@ -1,11 +1,12 @@
 #pragma once
 
-#include "ILocal.h"
-
 #include <vector>
 #include <map>
-
 #include "HYPRE_struct_ls.h"
+
+#include "ILocal.h"
+#include "../../hydro/vect.hpp"
+#include "../../hydro/mesh3d.hpp"
 
 #define NUMFR 10
 #define TEND 100
@@ -15,24 +16,25 @@ using Scal = double;
 template <class KF>
 class Local : public Distr {
  public:
-  Local(MPI_Comm comm, KF& kf, 
-      int bs, Idx b, Idx p, int es, int h);
+  Local(KF& kf, int bs, Idx b, Idx p, int es, int h);
   using K = typename KF::K;
   using M = typename KF::M;
+  using MIdx = typename  M::MIdx;
+  using Vect = typename M::Vect;
+  using Rect = geom::Rect<Vect>;
 
   bool IsDone() const;
   void Step();
 
  private:
+  M CreateMesh(int bs, Idx b, Idx p, int es, int h);
+  M gm; // global mesh
+  std::vector<geom::FieldCell<Scal>> buf_; // buffer on mesh
   std::map<Idx, std::unique_ptr<K>> mk;
-
-  static Idx GetIdx(const int* d) {
-    return {d[0], d[1], d[2]};
-  }
 
   int bs_; // block size
   int es_; // element size in Scal
-  int h_; // number of halo cells (same in all directions)
+  int hl_; // number of halo cells (same in all directions)
 
   int step_ = 0;
   int stage_ = 0;
@@ -42,10 +44,40 @@ class Local : public Distr {
 };
 
 template <class KF>
-Local<KF>::Local(MPI_Comm comm, KF& kf, 
-    int bs, Idx b, Idx p, int es, int h) 
-  : bs_(bs), es_(es), h_(h)
+auto Local<KF>::CreateMesh(int bs, Idx b, Idx p, int es, int hl) -> M {
+  // Init global mesh
+  // TODO: hl from Distr
+  MIdx ms(bs_, bs_, bs_); // block size 
+  MIdx mb(b[0], b[1], b[2]); // number of blocks
+  MIdx mp(p[0], p[1], p[2]); // number of PEs
+  MIdx mm = mp * mb * ms; // total size in cells (without halos)
+
+  Scal ext = 1.; // TODO: extent from par
+  Scal h = ext / std::max(std::max(mm[0], mm[1]), mm[2]);
+  Vect d0(0); // origin coord
+  Vect d1 = d0 + Vect(mm) * h;      // end coord
+  Rect d(d0, d1);
+
+  MIdx o(0); // origin index
+  std::cout 
+      << "o=" << o 
+      << " dom=" << d0 << "," << d1 
+      << " h=" << h
+      << std::endl;
+  
+  return geom::InitUniformMesh<M>(d, o, mm);
+}
+
+template <class KF>
+Local<KF>::Local(KF& kf, int bs, Idx b, Idx p, int es, int hl) 
+  : bs_(bs), es_(es), hl_(hl), buf_(es_)
 {
+  gm = CreateMesh(bs, b, p, es, hl);
+
+  for (auto& u : buf_) {
+    u.Reinit(gm);
+  }
+
   std::vector<MyBlockInfo> vbi; // TODO fill
 
   #pragma omp parallel for
@@ -79,7 +111,7 @@ void Local<KF>::Step() {
     for (auto& b : bb) {
       auto& k = *mk.at(GetIdx(b.index)); // kernel
       auto& m = k.GetMesh();
-      //ReadBuffer(m, l);
+      //ReadBuffer(m);
     }
     
     // 3. Call kernels for current stage
@@ -92,7 +124,7 @@ void Local<KF>::Step() {
     for (auto& b : bb) {
       auto& k = *mk.at(GetIdx(b.index)); // kernel
       auto& m = k.GetMesh();
-      //WriteBuffer(m, *(typename TGrid::BlockType*)b.ptrBlock);
+      //WriteBuffer(m);
     }
 
     // 5. Reduce

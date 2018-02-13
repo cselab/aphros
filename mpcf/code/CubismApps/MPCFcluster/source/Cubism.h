@@ -126,10 +126,6 @@ class Cubism : public Distr {
  private:
   std::map<Idx, std::unique_ptr<K>> mk;
 
-  static Idx GetIdx(const int* d) {
-    return {d[0], d[1], d[2]};
-  }
-
   int bs_; // block size
   int es_; // element size in Scal
   int h_; // number of halo cells (same in all directions)

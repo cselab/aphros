@@ -7,16 +7,20 @@
 #include <fstream>
 #include <string>
 #include <ctime>
-
-#include <mpi.h>
-
 #include <array>
-
 #include <list>
-
 #include <chrono>
 #include <thread>
+#include <mpi.h>
 
+#include "../../hydro/vect.hpp"
+#include "../../hydro/mesh3d.hpp"
+#include "../../hydro/solver.hpp"
+#include "../../hydro/advection.hpp"
+
+#include "ICubism.h"
+#include "ILocal.h"
+#include "Kernel.h"
 
 // Basic Rules:
 // 
@@ -54,14 +58,6 @@
 //
 // 8. Data from Kernel returned by reference if possible
 
-#include "../../hydro/vect.hpp"
-#include "../../hydro/mesh3d.hpp"
-#include "../../hydro/solver.hpp"
-#include "../../hydro/advection.hpp"
-
-#include "ICubism.h"
-#include "ILocal.h"
-#include "Kernel.h"
 
 
 
