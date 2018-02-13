@@ -100,6 +100,7 @@ class Hydro : public Kernel {
   using AS = solver::AdvectionSolverExplicit<M, FieldFace<Scal>>;
   FieldCell<Scal> fc_src_;
   FieldFace<Scal> ff_flux_;
+  FieldCell<Scal> fc_p_;
   std::unique_ptr<AS> as_;
   Scal sum_;
   // LS
@@ -175,7 +176,7 @@ M Hydro<M>::CreateMesh(const MyBlockInfo& bi) {
 template <class M>
 Hydro<M>::Hydro(const MyBlockInfo& bi) 
   : bi_(bi), m(CreateMesh(bi))
-  , fc_src_(m, 0.), ff_flux_(m)
+  , fc_src_(m, 0.), ff_flux_(m), fc_p_(m)
 {
   name_ = 
       "[" + std::to_string(bi.index[0]) +
@@ -260,7 +261,19 @@ void Hydro<M>::Run() {
       lsa_[i++] = 1.;
       lsa_[i++] = 1.;
     }
+
     lsb_.resize(n, 1.);
+    size_t j = 0;
+    auto& bc = m.GetBlockCells();
+    auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
+    for (auto i : m.Cells()) {
+      auto d = m.GetBlockCells().GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
+      if (MIdx(0) <= d && d < MIdx(bs)) {
+        lsb_[j++] = u[i];
+      }
+    }
+    assert(j == lsb_.size());
+
     lsx_.resize(n, 0.);
     l.a = &lsa_;
     l.b = &lsb_;
@@ -270,15 +283,15 @@ void Hydro<M>::Run() {
   if (sem()) {
     int bs = _BLOCKSIZE_;
     size_t j = 0;
-    auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
     auto& bc = m.GetBlockCells();
     for (auto i : m.Cells()) {
       auto d = m.GetBlockCells().GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
       if (MIdx(0) <= d && d < MIdx(bs)) {
-        u[i] = lsx_[j++];
+        fc_p_[i] = lsx_[j++];
       }
     }
     assert(j == lsx_.size());
+    m.Comm(&fc_p_);
   }
 }
 
@@ -322,9 +335,10 @@ void Hydro<M>::WriteBuffer(Block_t& o) {
 */
 
 // Class with field 'stencil' needed for SynchronizerMPI::sync(Processing)
-template <class M>
+template <class MM>
 class HydroFactory : public KernelFactory {
  public:
+  using M = MM;
   using K = Hydro<M>;
   std::unique_ptr<Kernel> Make(const MyBlockInfo& bi) override {
     return std::unique_ptr<Hydro<M>>(new Hydro<M>(bi));

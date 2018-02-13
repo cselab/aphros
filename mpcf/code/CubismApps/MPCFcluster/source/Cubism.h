@@ -118,6 +118,7 @@ class Cubism : public Distr {
   Cubism(MPI_Comm comm, KF& kf, 
       int bs, Idx b, Idx p, int es, int h);
   using K = typename KF::K;
+  using M = typename KF::M;
 
   bool IsDone() const;
   void Step();
@@ -145,7 +146,42 @@ class Cubism : public Distr {
 
   bool isroot_;
 
-  //void ReadBuffer(Hydro<MeshStructured>&);
+  void ReadBuffer(M& m, LabMPI& l) {
+    using MIdx = typename M::MIdx;
+    int e = 0; // buffer field idx
+
+    for (auto u : m.GetComm()) {
+      for (auto i : m.Cells()) {
+        auto& bc = m.GetBlockCells();
+        auto d = bc.GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
+        (*u)[i] = l(d[0], d[1], d[2]).a[e];
+      }
+      ++e;
+    }
+
+    m.ClearComm();
+  }
+
+  void WriteBuffer(M& m, Block_t& o) {
+    using MIdx = typename M::MIdx;
+    int bs = _BLOCKSIZE_;
+
+    // Check buffer has enough space for all fields
+    assert(m.GetComm().size() <= Elem::s && "Too many fields for Comm()");
+
+    int e = 0; // buffer field idx
+
+    for (auto u : m.GetComm()) {
+      for (auto i : m.Cells()) {
+        auto& bc = m.GetBlockCells();
+        auto d = m.GetBlockCells().GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
+        if (MIdx(0) <= d && d < MIdx(bs)) {
+          o.data[d[2]][d[1]][d[0]].a[e] = (*u)[i];
+        }
+      }
+      ++e;
+    }
+  }
 };
 
 
@@ -243,11 +279,12 @@ void Cubism<KF>::Step() {
   
     // 2. Copy data from buffer halos to fields collected by Comm()
     for (auto& b : bb) {
+      auto& k = *mk.at(GetIdx(b.index)); // kernel
+      auto& m = k.GetMesh();
       l.load(b, stage_);
       MPI_Barrier(g_.getCartComm());
-      auto& k = *mk.at(GetIdx(b.index));
 
-      //k.ReadBuffer(l);
+      ReadBuffer(m, l);
     }
     
     // 3. Call kernels for current stage
@@ -258,8 +295,9 @@ void Cubism<KF>::Step() {
 
     // 4. Copy data to buffer mesh from fields collected by Comm()
     for (auto& b : bb) {
-      auto& k = *mk.at(GetIdx(b.index));
-      //k.WriteBuffer(*(typename TGrid::BlockType*)b.ptrBlock);
+      auto& k = *mk.at(GetIdx(b.index)); // kernel
+      auto& m = k.GetMesh();
+      WriteBuffer(m, *(typename TGrid::BlockType*)b.ptrBlock);
     }
 
     // 5. Reduce
@@ -301,6 +339,13 @@ void Cubism<KF>::Step() {
         for (size_t i = 0; i < r.size(); ++i) {
           *v[i] = r[i];
         }
+      }
+
+      // Clear reduce requests
+      for (auto& b : bb) {
+        auto& k = *mk.at(GetIdx(b.index)); 
+        auto& m = k.GetMesh();
+        m.ClearReduce();
       }
     }
 
@@ -409,7 +454,7 @@ void Cubism<KF>::Step() {
 
           HYPRE_StructVectorSetBoxValues(b, l, u, s.b->data());
           HYPRE_StructVectorSetBoxValues(x, l, u, s.x->data());
-       }
+        }
 
         /* This is a collective call finalizing the vector assembly.
            The vectors are now ``ready to be used'' */
@@ -418,7 +463,7 @@ void Cubism<KF>::Step() {
 
 
         /*
-     // 6.5. Set up and use a solver (See the Reference Manual for descriptions
+        // 6.5. Set up and use a solver (See the Reference Manual for descriptions
         //of all of the options.)
         // Create an empty PCG Struct solver 
         HYPRE_StructPCGCreate(comm, &solver);
@@ -438,22 +483,22 @@ void Cubism<KF>::Step() {
 
         // Set preconditioner and solve
         HYPRE_StructPCGSetPrecond(solver, HYPRE_StructSMGSolve,
-                                  HYPRE_StructSMGSetup, precond);
+        HYPRE_StructSMGSetup, precond);
         HYPRE_StructPCGSetup(solver, a, b, x);
         HYPRE_StructPCGSolve(solver, a, b, x);
 
-        */
+*/
 
-    /* Create an empty PCG Struct solver */
-    HYPRE_StructPCGCreate(comm, &solver);
+        /* Create an empty PCG Struct solver */
+        HYPRE_StructPCGCreate(comm, &solver);
 
-    /* Set some parameters */
-    HYPRE_StructPCGSetTol(solver, 1.0e-06); /* convergence tolerance */
-    HYPRE_StructPCGSetPrintLevel(solver, 0); /* amount of info. printed */
+        /* Set some parameters */
+        HYPRE_StructPCGSetTol(solver, 1.0e-06); /* convergence tolerance */
+        HYPRE_StructPCGSetPrintLevel(solver, 0); /* amount of info. printed */
 
-    /* Setup and solve */
-    HYPRE_StructPCGSetup(solver, a, b, x);
-    HYPRE_StructPCGSolve(solver, a, b, x);
+        /* Setup and solve */
+        HYPRE_StructPCGSetup(solver, a, b, x);
+        HYPRE_StructPCGSolve(solver, a, b, x);
 
         for (auto& bi : bb) {
           auto d = bi.index;
@@ -467,19 +512,22 @@ void Cubism<KF>::Step() {
           auto& s = v[j]; // LS
 
           HYPRE_StructVectorGetBoxValues(x, l, u, s.x->data());
-       }
+        }
 
 
-     HYPRE_StructGridDestroy(grid);
-     HYPRE_StructStencilDestroy(stencil);
-     HYPRE_StructMatrixDestroy(a);
-     HYPRE_StructVectorDestroy(b);
-     HYPRE_StructVectorDestroy(x);
-     HYPRE_StructPCGDestroy(solver);
+        HYPRE_StructGridDestroy(grid);
+        HYPRE_StructStencilDestroy(stencil);
+        HYPRE_StructMatrixDestroy(a);
+        HYPRE_StructVectorDestroy(b);
+        HYPRE_StructVectorDestroy(x);
+        HYPRE_StructPCGDestroy(solver);
+      }
 
-
-     }
-
+      for (auto& b : bb) {
+        auto& k = *mk.at(GetIdx(b.index)); 
+        auto& m = k.GetMesh();
+        m.ClearSolve();
+      }
     }
 
 

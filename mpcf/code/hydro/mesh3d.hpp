@@ -291,12 +291,22 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
   const std::vector<FieldCell<Scal>*>& GetComm() const {
     return vcm_;
   }
+  void ClearComm() {
+    vcm_.clear();
+  }
   const std::vector<Scal*>& GetReduce() const {
     return vrd_;
+  }
+  void ClearReduce() {
+    vrd_.clear();
   }
   const std::vector<LS>& GetSolve() const {
     return vls_;
   }
+  void ClearSolve() {
+    vls_.clear();
+  }
+
  private:
   Suspender susp_;
   std::vector<FieldCell<Scal>*> vcm_; // fields for [c]o[m]munication
