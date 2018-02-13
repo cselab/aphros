@@ -20,17 +20,6 @@ class Kernel {
   //virtual void ReadBuffer(LabMPI&) = 0;
   //virtual void WriteBuffer(Block_t&) = 0;
   virtual ~Kernel() {}
-  bool Pending() const {
-    return susp_.Pending();
-  }
-  using Sem = Suspender::Sem;
-  // Create semaphore (see Suspender)
-  Sem GetSem(std::string name="") {
-    return susp_.GetSem(name);
-  }
-  
- private:
-  Suspender susp_;
 };
 
 class KernelFactory {

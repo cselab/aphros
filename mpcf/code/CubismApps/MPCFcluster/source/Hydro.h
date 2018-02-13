@@ -117,7 +117,7 @@ void Grad(M& m) {
   }
 }
 
-struct Elem {
+struct MyElem {
   static const size_t s = 8;
   Scal a[s];
   void init(Scal val) { 
@@ -129,11 +129,11 @@ struct Elem {
     init(0);
   }
 
-  Elem& operator=(const Elem&) = default;
+  MyElem& operator=(const MyElem&) = default;
 };
 
 
-struct Block {
+struct MyBlock {
   static const int bs = _BLOCKSIZE_;
   static const int sx = bs;
   static const int sy = bs;
@@ -141,13 +141,13 @@ struct Block {
   static const int n = sx * sy * sz;
 
   // floats per element
-  static const int fe = sizeof(Elem) / sizeof(Scal);
+  static const int fe = sizeof(MyElem) / sizeof(Scal);
 };
 
 
 template <class M>
 M Hydro<M>::CreateMesh(const MyBlockInfo& bi) {
-  using B = Block;
+  using B = MyBlock;
   B& b = *(B*)bi.ptrBlock;
   int hl = 1;
   // TODO: hl from Distr
@@ -330,38 +330,6 @@ class HydroFactory : public KernelFactory {
     return std::unique_ptr<Hydro<M>>(new Hydro<M>(bi));
   }
 };
-
-void Main(MPI_Comm comm) {
-  // read config files, parse arguments, maybe init global fields
-  using M = geom::geom3d::MeshStructured<Scal>;
-  using K = Hydro<M>;
-  using KF = HydroFactory<M>;
-  using D = Distr;
-  //using Idx = D::Idx;
-
-  KF kf;
-
-  // Kernels have to know about Distr if they want to create Stage objects
-  // However, Stage can be independent on Distr.
-  // Comm() should put the list of fields to exchange somewhere
-  // so that Distr could do communication.
-  // Comm() must be independent on implementation of Distr.
-  
-  Idx b{1, 2, 2}; // number of blocks 
-  Idx p{2, 1, 1}; // number of ranks
-  const int es = 8;
-  const int h = 1;
-  const int bs = 16;
-  
-  // Initialize buffer mesh and make Hydro for each block.
-  std::unique_ptr<Distr> d = CreateCubism(comm, kf, bs, b, p, es, h);
-
-  while (!d->IsDone()) {
-    // At each step, first exchange halos,
-    // then call Kernel::operator() for each block
-    d->Step();
-  }
-}
 
 
 // Dependencies and interfaces:

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "BlockInfo.h"
 #include "Grid.h"
 #include "GridMPI.h"

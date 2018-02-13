@@ -8,6 +8,7 @@
 #pragma once
 
 #include "mesh.hpp"
+#include "suspender.h"
 
 //#define PERX
 //#define PERZ
@@ -263,9 +264,12 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
   // TODO: move to separate class: Sem, LS, Comm, Reduce, Solve
   // BEGIN DISTR
  public:
-  using Sem = typename Kernel::Sem;
+  using Sem = Suspender::Sem;
   Sem GetSem(std::string name="") {
-    return this->kern_.GetSem(name);
+    return susp_.GetSem(name);
+  }
+  bool Pending() const {
+    return susp_.Pending();
   }
 
   struct LS { // linear system ax=b
@@ -278,7 +282,7 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
   void Comm(FieldCell<Scal>* u) {
     vcm_.push_back(u);
   }
-  void Reduce(FieldCell<Scal>* u) {
+  void Reduce(Scal* u) {
     vrd_.push_back(u);
   }
   void Solve(const LS& ls) {
@@ -294,6 +298,7 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
     return vls_;
   }
  private:
+  Suspender susp_;
   std::vector<FieldCell<Scal>*> vcm_; // fields for [c]o[m]munication
   std::vector<Scal*> vrd_; // scalars for reduction
   std::vector<LS> vls_; // linear system
