@@ -123,7 +123,8 @@ void Main(MPI_Comm comm) {
   const int bs = 16;
   
   // Initialize buffer mesh and make Hydro for each block.
-  std::unique_ptr<Distr> d = CreateCubism(comm, kf, bs, b, p, es, h);
+  //std::unique_ptr<Distr> d = CreateCubism(comm, kf, bs, b, p, es, h);
+  std::unique_ptr<Distr> d = CreateLocal(comm, kf, bs, b, p, es, h);
 
   while (!d->IsDone()) {
     // At each step, first exchange halos,

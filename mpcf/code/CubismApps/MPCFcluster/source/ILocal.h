@@ -6,6 +6,8 @@
 
 #include "Kernel.h"
 
-std::unique_ptr<Distr> CreateCubism(
+using Idx = std::array<int, 3>;
+
+std::unique_ptr<Distr> CreateLocal(
     MPI_Comm comm, KernelFactory& kf, 
     int bs, Idx b, Idx p, int es, int h);

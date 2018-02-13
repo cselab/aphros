@@ -28,3 +28,12 @@ class KernelFactory {
   virtual ~KernelFactory() {}
 };
 
+
+using Idx = std::array<int, 3>;
+
+class Distr {
+ public:
+  virtual bool IsDone() const = 0;
+  virtual void Step() = 0;
+};
+

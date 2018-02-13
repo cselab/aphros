@@ -26,7 +26,9 @@ CPPFLAGS += -I$(HYPRE_DIR)/include
 VPATH := ../source/ ../../MPCFcore/source/ ../../MPCFnode/source/ ../../../Cubism/source/
 .DEFAULT_GOAL := mpcf-cluster
 
-OBJECTS = main.o Cubism.o
+OBJECTS = main.o
+OBJECTS += Cubism.o
+OBJECTS += Local.o
 
 all: mpcf-cluster
 

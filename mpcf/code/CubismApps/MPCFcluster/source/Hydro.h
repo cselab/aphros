@@ -60,6 +60,7 @@
 #include "../../hydro/advection.hpp"
 
 #include "ICubism.h"
+#include "ILocal.h"
 #include "Kernel.h"
 
 
