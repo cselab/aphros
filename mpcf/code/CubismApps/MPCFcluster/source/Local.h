@@ -29,6 +29,7 @@ class Local : public Distr {
  private:
   M CreateMesh(int bs, Idx b, Idx p, int es, int h);
   M gm; // global mesh
+  std::vector<MyBlockInfo> bb_;
   std::vector<geom::FieldCell<Scal>> buf_; // buffer on mesh
   std::map<Idx, std::unique_ptr<K>> mk;
 
@@ -74,15 +75,35 @@ Local<KF>::Local(KF& kf, int bs, Idx b, Idx p, int es, int hl)
 {
   gm = CreateMesh(bs, b, p, es, hl);
 
+  // Resize buffer for mesh
   for (auto& u : buf_) {
     u.Reinit(gm);
   }
+  
+  // Fill block info
+  MIdx ms(bs_, bs_, bs_); // block size 
+  MIdx mb(b[0], b[1], b[2]); // number of blocks
+  MIdx mp(p[0], p[1], p[2]); // number of PEs
+  geom::BlockCells<3> bc(mb * mp);
+  using geom::IdxNode;
+  Scal h = gm.GetNode(IdxNode(1)) - gm.GetNode(IdxNode(0));
+  std::cerr << "h from gm = " << h << std::endl;
+  for (MIdx i : bc) {
+    MyBlockInfo b;
+    IdxNode n = gm.GetBlockNodes().GetIdx(i * ms);
+    Vect o = gm.GetCenter(n);
+    std::cerr << "o=" << o << " n=" << n <<  " i=" << i << std::endl;
+    for (int q = 0; q < 3; ++q) {
+      b.index[q] = i[q];
+      b.origin[q] = i[q];
+    }
+    b.h_gridpoint = h;
+    b.ptrBlock = nullptr;
+    bb_.push_back(b);
+  }
 
-  std::vector<MyBlockInfo> vbi; // TODO fill
-
-  #pragma omp parallel for
-  for(size_t i = 0; i < vbi.size(); i++) {
-    MyBlockInfo& bi = vbi[i];
+  for(size_t i = 0; i < bb_.size(); i++) {
+    MyBlockInfo& bi = bb_[i];
     auto up = kf.Make(bi);
     mk.emplace(GetIdx(bi.index), std::unique_ptr<K>(dynamic_cast<K*>(up.release())));
   }
