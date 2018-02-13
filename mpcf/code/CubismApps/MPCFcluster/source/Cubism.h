@@ -113,10 +113,8 @@ using TGrid = GridMPI_t;
 using Scal = double;
 
 template <class KF>
-class Cubism {
+class Cubism : public Distr {
  public:
-  using Idx = std::array<int, 3>;
-
   Cubism(MPI_Comm comm, KF& kf, 
       int bs, Idx b, Idx p, int es, int h);
   using K = typename KF::K;
@@ -205,7 +203,8 @@ Cubism<KF>::Cubism(MPI_Comm comm, KF& kf,
     }
     mbi.h_gridpoint = bi.h_gridpoint;
     mbi.ptrBlock = bi.ptrBlock;
-    mk.emplace(GetIdx(bi.index), kf.Make(mbi));
+    auto up = kf.Make(mbi);
+    mk.emplace(GetIdx(bi.index), std::unique_ptr<K>(dynamic_cast<K*>(up.release())));
   }
 
   int r;
@@ -297,7 +296,8 @@ void Cubism<KF>::Step() {
       // Write results to all kernels on current rank
       for (auto& b : bb) {
         auto& k = *mk.at(GetIdx(b.index)); 
-        auto& v = k.GetReduce();  
+        auto& m = k.GetMesh();
+        auto& v = m.GetReduce();  
         for (size_t i = 0; i < r.size(); ++i) {
           *v[i] = r[i];
         }
@@ -308,12 +308,14 @@ void Cubism<KF>::Step() {
     {
       MPI_Comm comm = g_.getCartComm();
       auto& f = *mk.at(GetIdx(bb[0].index)); // first kernel
-      auto& vf = f.GetSolve();  // LS to solve
+      auto& mf = f.GetMesh();
+      auto& vf = mf.GetSolve();  // LS to solve
 
       // Check size is the same for all kernels
       for (auto& b : bb) {
         auto& k = *mk.at(GetIdx(b.index)); // kernel
-        auto& v = k.GetSolve();  // pointers to reduce
+        auto& m = k.GetMesh();
+        auto& v = m.GetSolve();  // pointers to reduce
         assert(v.size() == vf.size());
       }
 
@@ -374,7 +376,8 @@ void Cubism<KF>::Step() {
           }
 
           auto& k = *mk.at(GetIdx(b.index)); 
-          auto& v = k.GetSolve();  
+          auto& m = k.GetMesh();
+          auto& v = m.GetSolve();  
           auto& s = v[j]; // LS
 
           HYPRE_StructMatrixSetBoxValues(
@@ -400,7 +403,8 @@ void Cubism<KF>::Step() {
           int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
 
           auto& k = *mk.at(GetIdx(bi.index)); 
-          auto& v = k.GetSolve();  
+          auto& m = k.GetMesh();
+          auto& v = m.GetSolve();  
           auto& s = v[j]; // LS
 
           HYPRE_StructVectorSetBoxValues(b, l, u, s.b->data());
@@ -458,7 +462,8 @@ void Cubism<KF>::Step() {
           int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
 
           auto& k = *mk.at(GetIdx(bi.index)); 
-          auto& v = k.GetSolve();  
+          auto& m = k.GetMesh();
+          auto& v = m.GetSolve();  
           auto& s = v[j]; // LS
 
           HYPRE_StructVectorGetBoxValues(x, l, u, s.x->data());
@@ -487,7 +492,8 @@ void Cubism<KF>::Step() {
       int np = 0;
       for (auto& b : bb) {
         auto& k = *mk.at(GetIdx(b.index));
-        if (k.Pending()) {
+        auto& m = k.GetMesh();
+        if (m.Pending()) {
           ++np;
         }
       }

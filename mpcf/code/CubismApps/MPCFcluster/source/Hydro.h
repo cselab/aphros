@@ -88,7 +88,7 @@ class Hydro : public Kernel {
   void Run() override;
   //void ReadBuffer(LabMPI& l) override;
   //void WriteBuffer(Block_t& o) override;
-  M GetMesh() { return m; }
+  M& GetMesh() { return m; }
 
  private:
   M CreateMesh(const MyBlockInfo& bi);
