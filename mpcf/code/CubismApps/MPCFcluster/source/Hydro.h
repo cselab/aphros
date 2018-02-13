@@ -88,9 +88,10 @@ class Hydro : public Kernel {
   void Run() override;
   //void ReadBuffer(LabMPI& l) override;
   //void WriteBuffer(Block_t& o) override;
+  M GetMesh() { return m; }
 
  private:
-  M GetMesh(const MyBlockInfo& bi);
+  M CreateMesh(const MyBlockInfo& bi);
   using LS = typename Mesh::LS;
 
   std::string name_;
@@ -145,7 +146,7 @@ struct Block {
 
 
 template <class M>
-M Hydro<M>::GetMesh(const MyBlockInfo& bi) {
+M Hydro<M>::CreateMesh(const MyBlockInfo& bi) {
   using B = Block;
   B& b = *(B*)bi.ptrBlock;
   int hl = 1;
@@ -168,12 +169,12 @@ M Hydro<M>::GetMesh(const MyBlockInfo& bi) {
       << " h=" << h
       << std::endl;
   
-  return geom::InitUniformMesh<M, Kernel>(d, o, s, *this);
+  return geom::InitUniformMesh<M>(d, o, s);
 }
 
 template <class M>
 Hydro<M>::Hydro(const MyBlockInfo& bi) 
-  : bi_(bi), m(GetMesh(bi))
+  : bi_(bi), m(CreateMesh(bi))
   , fc_src_(m, 0.), ff_flux_(m)
 {
   name_ = 
@@ -324,6 +325,7 @@ void Hydro<M>::WriteBuffer(Block_t& o) {
 template <class M>
 class HydroFactory : public KernelFactory {
  public:
+  using K = Hydro<M>;
   std::unique_ptr<Kernel> Make(const MyBlockInfo& bi) override {
     return std::unique_ptr<Hydro<M>>(new Hydro<M>(bi));
   }
@@ -331,7 +333,7 @@ class HydroFactory : public KernelFactory {
 
 void Main(MPI_Comm comm) {
   // read config files, parse arguments, maybe init global fields
-  using M = geom::geom3d::MeshStructured<Scal, Kernel>;
+  using M = geom::geom3d::MeshStructured<Scal>;
   using K = Hydro<M>;
   using KF = HydroFactory<M>;
   using D = Distr;

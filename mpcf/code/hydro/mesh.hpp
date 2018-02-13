@@ -14,6 +14,8 @@
 #include <cassert>
 #include <iostream>
 
+#include "../CubismApps/MPCFcluster/source/Kernel.h"
+
 namespace geom {
 
 using IntIdx = std::ptrdiff_t;
@@ -359,12 +361,12 @@ template <class T>
 using MapNode = MapGeneric<T, IdxNode>;
 
 // TODO: Neighbour faces iterator introducing (cell, face) pairs
-template <class ScalArg, size_t dim, class K /*: Kernel*/>
+template <class ScalArg, size_t dim>
 class MeshGeneric {
  public:
   using Scal = ScalArg;
   using Vect = geom::Vect<Scal, dim>;
-  MeshGeneric(K& kern) : kern_(kern) {}
+  MeshGeneric() = default;
   virtual ~MeshGeneric() {}
   virtual Vect GetCenter(IdxCell) const = 0;
   virtual Vect GetCenter(IdxFace) const = 0;
@@ -430,11 +432,6 @@ class MeshGeneric {
   virtual Vect GetNormal(IdxFace idxface) const {
     return GetSurface(idxface) / GetArea(idxface);
   }
-
-
- protected:
-  K& kern_;
- 
 };
 
 
@@ -730,11 +727,10 @@ class BlockFaces {
   }
 };
 
-template <class Mesh, class K>
+template <class Mesh>
 Mesh InitUniformMesh(const Rect<typename Mesh::Vect>& domain,
                      typename Mesh::MIdx begin,
-                     typename Mesh::MIdx mesh_size,
-                     K& kern) {
+                     typename Mesh::MIdx mesh_size) {
   using Vect = typename Mesh::Vect;
   using MIdx = typename Mesh::MIdx;
   typename Mesh::BlockNodes b_nodes(begin, mesh_size + MIdx(1));
@@ -744,15 +740,14 @@ Mesh InitUniformMesh(const Rect<typename Mesh::Vect>& domain,
     Vect unit = Vect(midx - b_nodes.GetBegin()) / Vect(mesh_size);
     fn_node[idxnode] = domain.lb + unit * domain.GetDimensions();
   }
-  return Mesh(b_nodes, fn_node, kern);
+  return Mesh(b_nodes, fn_node);
 }
 
-template <class Mesh, class K>
+template <class Mesh>
 Mesh InitUniformMesh(const Rect<typename Mesh::Vect>& domain,
-                     typename Mesh::MIdx mesh_size,
-                     K& kern) {
+                     typename Mesh::MIdx mesh_size) {
   using MIdx = typename Mesh::MIdx;
-  return InitUniformMesh<Mesh, K>(domain, MIdx(0), mesh_size, kern);
+  return InitUniformMesh<Mesh>(domain, MIdx(0), mesh_size);
 }
 
 

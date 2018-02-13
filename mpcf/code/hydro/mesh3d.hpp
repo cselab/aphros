@@ -17,8 +17,8 @@ namespace geom {
 namespace geom3d {
 
 
-template <class Scal, class K>
-class MeshStructured : public MeshGeneric<Scal, 3, K> {
+template <class Scal>
+class MeshStructured : public MeshGeneric<Scal, 3> {
  public:
   static constexpr size_t dim = 3;
   using Vect = geom::Vect<Scal, dim>;
@@ -57,8 +57,8 @@ class MeshStructured : public MeshGeneric<Scal, 3, K> {
   FieldFace<bool> ff_is_excluded_;
 
  public:
-  MeshStructured(K& kern) : MeshGeneric<Scal, 3, K>(kern) {}
-  MeshStructured(const BlockNodes& b_nodes, const FieldNode<Vect>& fn_node, K& kern);
+  MeshStructured() {}
+  MeshStructured(const BlockNodes& b_nodes, const FieldNode<Vect>& fn_node);
   const BlockCells& GetBlockCells() const {
     return b_cells_;
   }
@@ -263,7 +263,7 @@ class MeshStructured : public MeshGeneric<Scal, 3, K> {
   // TODO: move to separate class: Sem, LS, Comm, Reduce, Solve
   // BEGIN DISTR
  public:
-  using Sem = typename K::Sem;
+  using Sem = typename Kernel::Sem;
   Sem GetSem(std::string name="") {
     return this->kern_.GetSem(name);
   }
@@ -300,9 +300,9 @@ class MeshStructured : public MeshGeneric<Scal, 3, K> {
   // END DISTR
 };
 
-template <class Scal, class K>
-MeshStructured<Scal, K>::MeshStructured(const BlockNodes& b_nodes,
-                                     const FieldNode<Vect>& fn_node, K& kern)
+template <class Scal>
+MeshStructured<Scal>::MeshStructured(const BlockNodes& b_nodes,
+                                     const FieldNode<Vect>& fn_node)
     : b_nodes_(b_nodes)
     , fn_node_(fn_node)
     , b_cells_(b_nodes_.GetBegin(), b_nodes_.GetDimensions() - MIdx(1))
@@ -322,7 +322,6 @@ MeshStructured<Scal, K>::MeshStructured(const BlockNodes& b_nodes,
     , ff_is_inner_(b_faces_)
     , fc_is_excluded_(b_cells_, false)
     , ff_is_excluded_(b_faces_, false)
-    , MeshGeneric<Scal, 3, K>(kern)
 {
   MIdx mb = b_cells_.GetBegin(), me = b_cells_.GetEnd();
 

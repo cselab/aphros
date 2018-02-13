@@ -9,7 +9,7 @@
 struct MyBlockInfo {
   int index[3];
   void* ptrBlock;
-  double h_gridpoint[3];
+  double h_gridpoint;
   double origin[3];
 };
 
