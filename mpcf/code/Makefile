@@ -48,7 +48,7 @@ CPPFLAGS += -I$(HYPRE_DIR)/include
 
 VPATH := Cubism/source/ CubismDistr hydro
 
-.DEFAULT_GOAL := mfer
+.DEFAULT_GOAL := all
 
 OBJECTS = main.o
 OBJECTS += Cubism.o
