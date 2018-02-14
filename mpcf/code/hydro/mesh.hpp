@@ -727,6 +727,53 @@ class BlockFaces {
   }
 };
 
+template <class Idx, int dim>
+class RangeInner {
+  using B = BlockGeneric<Idx, dim>; // block 
+  using I = typename B::iterator; // block iterator
+  const B& ba_; // block all
+  const B& bi_; // block inner
+
+ public:
+  class iterator {
+    const B& ba_; // block all
+    I i_;  // block iterator over bi
+   public:
+    explicit iterator(const B& ba, const I& i)
+        : ba_(ba), i_(i)
+    {}
+    iterator& operator++() {
+      ++i_;
+      return *this;
+    }
+    iterator& operator--() {
+      --i_;
+      return *this;
+    }
+    bool operator==(const iterator& o /*other*/) const {
+      return i_ == o.i_;
+    }
+    bool operator!=(const iterator& o /*other*/) const {
+      return !(*this == o);
+    }
+    Idx operator*() const {
+      return ba_.GetIdx(*i_);
+    }
+  };
+
+  RangeInner(const B& ba /*block all*/, const B& bi /*block inner*/)
+      : ba_(ba), bi_(bi)
+  {}
+  iterator begin() const {
+    return iterator(ba_, bi_.begin());
+  }
+  iterator end() const {
+    return iterator(ba_, bi_.end());
+  }
+};
+
+
+
 template <class Mesh>
 Mesh InitUniformMesh(const Rect<typename Mesh::Vect>& domain,
                      typename Mesh::MIdx begin,

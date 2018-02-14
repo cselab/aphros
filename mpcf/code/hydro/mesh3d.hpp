@@ -39,6 +39,10 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
   FieldNode<Vect> fn_node_;
   BlockCells b_cells_;
   BlockFaces b_faces_;
+  // inner 
+  BlockNodes b_innodes_;
+  BlockCells b_incells_;
+  BlockFaces b_infaces_;
   FieldCell<Vect> fc_center_;
   FieldCell<Scal> fc_volume_;
   FieldFace<Vect> ff_center_;
@@ -68,6 +72,15 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
   }
   const BlockNodes& GetBlockNodes() const {
     return b_nodes_;
+  }
+  const BlockCells& GetInBlockCells() const {
+    return b_incells_;
+  }
+  const BlockFaces& GetInBlockFaces() const {
+    return b_infaces_;
+  }
+  const BlockNodes& GetInBlockNodes() const {
+    return b_innodes_;
   }
   Vect GetCenter(IdxCell idx) const override {
     return fc_center_[idx];
@@ -171,6 +184,9 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
   }
   bool IsInner(IdxFace idxface) const override {
     return ff_is_inner_[idxface];
+  }
+  RangeInner<IdxCell, dim> InCells() const {
+    return RangeInner<IdxCell, dim>(GetBlockCells(), GetInBlockCells());
   }
   bool IsInside(IdxCell idxcell, Vect vect) const override {
     for (size_t i = 0; i < GetNumNeighbourFaces(idxcell); ++i) {
