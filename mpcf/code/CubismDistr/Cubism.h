@@ -1,156 +1,284 @@
 #pragma once
 
-#include <vector>
-#include <map>
-#include <mpi.h>
-#include "HYPRE_struct_ls.h"
+#include "Cubism/BlockInfo.h"
+#include "Cubism/Grid.h"
+#include "Cubism/GridMPI.h"
+#include "Cubism/BlockLab.h"
+#include "Cubism/BlockLabMPI.h"
+#include "Cubism/StencilInfo.h"
+#include "Cubism/HDF5Dumper_MPI.h"
+#include "ICubism.h"
 
-#include "ILocal.h"
-#include "../../hydro/vect.hpp"
-#include "../../hydro/mesh3d.hpp"
-#include "../../hydro/output.hpp"
-#include "../../hydro/output_paraview.hpp"
+#include "HYPRE_struct_ls.h"
 
 #define NUMFR 10
 #define TEND 100
 
+using Real = double;
+
+struct Elem {
+  static const size_t s = 8;
+  Real a[s];
+  void init(Real val) { 
+    for (size_t i = 0; i < s; ++i) {
+      a[i] = val;
+    }
+  }
+  void clear() {
+    init(0);
+  }
+
+  Elem& operator=(const Elem&) = default;
+};
+
+struct Block {
+  static const int bs = _BLOCKSIZE_;
+  static const int sx = bs;
+  static const int sy = bs;
+  static const int sz = bs;
+  static const int n = sx * sy * sz;
+
+  // required by framework
+  static const int sizeX = sx;
+  static const int sizeY = sy;
+  static const int sizeZ = sz;
+
+
+  // floats per element
+  static const int fe = sizeof(Elem) / sizeof(Real);
+
+  using ElementType = Elem;
+  using element_type = Elem;
+
+  Elem __attribute__((__aligned__(_ALIGNBYTES_))) data[bs][bs][bs];
+
+  Real __attribute__((__aligned__(_ALIGNBYTES_))) tmp[bs][bs][bs][fe];
+
+  void clear_data() {
+    Elem* e = &data[0][0][0];
+    for(int i = 0; i < n; ++i) {
+      e[i].clear();
+    }
+  }
+
+  void clear_tmp() {
+    Real* t = &tmp[0][0][0][0];
+    for(int i = 0; i < n * fe; ++i) {
+      t[i] = 0;
+    }
+  }
+
+  void clear() {
+    clear_data();
+    clear_tmp();
+  }
+
+  inline Elem& operator()(int ix, int iy=0, int iz=0) {
+    assert(ix>=0 && ix<sx);
+    assert(iy>=0 && iy<sy);
+    assert(iz>=0 && iz<sz);
+
+    return data[iz][iy][ix];
+  }
+};
+
+
+typedef Block Block_t;  
+typedef Grid<Block_t, std::allocator> GridBase;
+typedef GridBase Grid_t;
+
+template<typename BlockType, template<typename X> class Alloc=std::allocator>
+class LabPer: public BlockLab<BlockType,Alloc>
+{
+  typedef typename BlockType::ElementType ElementTypeBlock;
+
+ public:
+  virtual inline std::string name() const { return "name"; }
+  bool is_xperiodic() {return true;}
+  bool is_yperiodic() {return true;}
+  bool is_zperiodic() {return true;}
+
+  LabPer()
+    : BlockLab<BlockType,Alloc>(){}
+};
+
+
+
+using Lab = LabPer<Block_t, std::allocator>;
+
+typedef BlockLabMPI<Lab> LabMPI;
+typedef GridMPI<Grid_t> GridMPI_t;
+using TGrid = GridMPI_t;
+
 using Scal = double;
 
 template <class KF>
-class Local : public Distr {
+class Cubism : public Distr {
  public:
-  Local(MPI_Comm comm, KF& kf, int bs, Idx b, Idx p, int es, int h);
+  Cubism(MPI_Comm comm, KF& kf, 
+      int bs, Idx b, Idx p, int es, int h);
   using K = typename KF::K;
   using M = typename KF::M;
-  using MIdx = typename  M::MIdx;
-  using Vect = typename M::Vect;
-  using Rect = geom::Rect<Vect>;
-  using IdxCell = geom::IdxCell;
 
   bool IsDone() const;
   void Step();
 
  private:
-  MPI_Comm comm_;
-  int bs_; // block size
-  int es_; // element size in Scal
-  int hl_; // number of halo cells (same in all directions)
-  std::vector<geom::FieldCell<Scal>> buf_; // buffer on mesh
-
-  M gm; // global mesh
-  std::unique_ptr<output::Session> session_;
-  std::vector<MyBlockInfo> bb_;
   std::map<Idx, std::unique_ptr<K>> mk;
 
-  void ReadBuffer(M& m);
-  void WriteBuffer(M& m);
-  M CreateMesh(int bs, Idx b, Idx p, int es, int h);
+  int bs_; // block size
+  int es_; // element size in Scal
+  int h_; // number of halo cells (same in all directions)
+
+  TGrid g_;
 
   int step_ = 0;
   int stage_ = 0;
   int frame_ = 0;
 
-  bool isroot_ = true;
+  static StencilInfo GetStencil(int h) {
+    return StencilInfo(-h,-h,-h,h+1,h+1,h+1, true, 8, 0,1,2,3,4,5,6,7);
+  }
+
+  bool isroot_;
+
+  void ReadBuffer(M& m, LabMPI& l) {
+    using MIdx = typename M::MIdx;
+    int e = 0; // buffer field idx
+
+    for (auto u : m.GetComm()) {
+      for (auto i : m.AllCells()) {
+        auto& bc = m.GetBlockCells();
+        auto d = bc.GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
+        (*u)[i] = l(d[0], d[1], d[2]).a[e];
+      }
+      ++e;
+    }
+
+    m.ClearComm();
+  }
+
+  void WriteBuffer(M& m, Block_t& o) {
+    using MIdx = typename M::MIdx;
+    int bs = _BLOCKSIZE_;
+
+    // Check buffer has enough space for all fields
+    assert(m.GetComm().size() <= Elem::s && "Too many fields for Comm()");
+
+    int e = 0; // buffer field idx
+
+    for (auto u : m.GetComm()) {
+      for (auto i : m.Cells()) {
+        auto& bc = m.GetBlockCells();
+        auto d = m.GetBlockCells().GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
+        o.data[d[2]][d[1]][d[0]].a[e] = (*u)[i];
+      }
+      ++e;
+    }
+  }
+};
+
+
+template <int ID>
+struct StreamHdf {
+  static const std::string NAME;
+  static const std::string EXT;
+  static const int NCHANNELS = 1;
+  static const int CLASS = 0;
+  struct T { Real a[8]; };
+
+  using B = Block;
+  B& b;
+
+  StreamHdf(B& b): b(b) {}
+
+  // write
+  void operate(const int ix, const int iy, const int iz, Real out[0]) const
+  {
+    const T& in = *((T*)&b.data[iz][iy][ix].a[0]);
+    out[0] = in.a[ID];
+  }
+
+  // read
+  void operate(const Real out[0], const int ix, const int iy, const int iz) const
+  {
+    T& in = *((T*)&b.data[iz][iy][ix].a[0]);
+    in.a[ID] = out[0];
+  }
+
+  static const char * getAttributeName() { return "Scalar"; }
+};
+
+struct FakeProc {
+  StencilInfo stencil;
+  explicit FakeProc(StencilInfo si) 
+    : stencil(si)
+  {}
 };
 
 template <class KF>
-auto Local<KF>::CreateMesh(int bs, Idx b, Idx p, int es, int hl) -> M {
-  // Init global mesh
-  // TODO: hl from Distr
-  MIdx ms(bs_, bs_, bs_); // block size 
-  MIdx mb(b[0], b[1], b[2]); // number of blocks
-  MIdx mp(p[0], p[1], p[2]); // number of PEs
-  MIdx mm = mp * mb * ms; // total size in cells (without halos)
-
-  Scal ext = 1.; // TODO: extent from par
-  Scal h = ext / std::max(std::max(mm[0], mm[1]), mm[2]);
-  Vect d0(0); // origin coord
-  Vect d1 = d0 + Vect(mm) * h;      // end coord
-  Rect d(d0, d1);
-
-  MIdx o(0); // origin index
-  std::cout 
-      << "o=" << o 
-      << " dom=" << d0 << "," << d1 
-      << " h=" << h
-      << std::endl;
-  
-  return geom::InitUniformMesh<M>(d, o, mm, 0);
-}
-
-template <class KF>
-Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, Idx b, Idx p, int es, int hl) 
-  : comm_(comm), bs_(bs), es_(es), hl_(hl), buf_(es_)
+Cubism<KF>::Cubism(MPI_Comm comm, KF& kf, 
+    int bs, Idx b, Idx p, int es, int h) 
+  : bs_(bs), es_(es), h_(h), g_(p[0], p[1], p[2], b[0], b[1], b[2], 1., comm)
 {
-  gm = CreateMesh(bs, b, p, es, hl);
+  std::vector<BlockInfo> vbi = g_.getBlocksInfo();
 
-  output::Content content = {
-      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
-          "p", gm, [this](IdxCell i) { return buf_[0][i]; })
-      };
-
-  session_.reset(new output::SessionParaviewStructured<M>(
-          content, "title", "p", gm));
-
-  // Resize buffer for mesh
-  for (auto& u : buf_) {
-    u.Reinit(gm);
-  }
-  
-  // Fill block info
-  MIdx ms(bs_, bs_, bs_); // block size 
-  MIdx mb(b[0], b[1], b[2]); // number of blocks
-  MIdx mp(p[0], p[1], p[2]); // number of PEs
-  geom::BlockCells<3> bc(mb * mp);
-  using geom::IdxNode;
-  Scal h = (gm.GetNode(IdxNode(1)) - gm.GetNode(IdxNode(0)))[0];
-  assert(h > 0);
-  std::cerr << "h from gm = " << h << std::endl;
-  for (MIdx i : bc) {
-    MyBlockInfo b;
-    IdxNode n = gm.GetBlockNodes().GetIdx(i * ms);
-    Vect o = gm.GetNode(n);
-    std::cerr << "o=" << o << " n=" << n.GetRaw() <<  " i=" << i << std::endl;
-    for (int q = 0; q < 3; ++q) {
-      b.index[q] = i[q];
-      b.origin[q] = o[q];
+  #pragma omp parallel for
+  for(size_t i = 0; i < vbi.size(); i++) {
+    BlockInfo& bi = vbi[i];
+    MyBlockInfo mbi;
+    for (int j = 0; j < 3; ++j) {
+      mbi.index[j] = bi.index[j];
+      mbi.origin[j] = bi.origin[j];
     }
-    b.h_gridpoint = h;
-    b.ptrBlock = nullptr;
-    bb_.push_back(b);
-  }
-
-  for(size_t i = 0; i < bb_.size(); i++) {
-    MyBlockInfo& bi = bb_[i];
-    auto up = kf.Make(bi);
+    mbi.h_gridpoint = bi.h_gridpoint;
+    mbi.ptrBlock = bi.ptrBlock;
+    auto up = kf.Make(mbi);
     mk.emplace(GetIdx(bi.index), std::unique_ptr<K>(dynamic_cast<K*>(up.release())));
   }
+
+  int r;
+  MPI_Comm_rank(comm, &r);
+  isroot_ = (0 == r);
 }
 
 template <class KF>
-bool Local<KF>::IsDone() const { 
+bool Cubism<KF>::IsDone() const { 
   return step_ > TEND; 
 }
 
 template <class KF>
-void Local<KF>::Step() {
+void Cubism<KF>::Step() {
+  MPI_Barrier(g_.getCartComm());
   if (isroot_) {
     std::cerr << "***** STEP " << step_ << " ******" << std::endl;
   }
   do {
+    MPI_Barrier(g_.getCartComm());
     if (isroot_) {
       std::cerr << "*** STAGE abs=" << stage_ << " ***" << std::endl;
     }
     // 1. Exchange halos in buffer mesh
+    FakeProc fp(GetStencil(h_));       // object with field 'stencil'
+    SynchronizerMPI& s = g_.sync(fp); 
+
+    LabMPI l;
+    l.prepare(g_, s);   // allocate memory for lab cache
+
+    MPI_Barrier(g_.getCartComm());
+
     // Do communication and get all blocks
-    auto& bb = bb_; // TODO: fill
+    std::vector<BlockInfo> bb = s.avail();
     assert(!bb.empty());
   
     // 2. Copy data from buffer halos to fields collected by Comm()
     for (auto& b : bb) {
       auto& k = *mk.at(GetIdx(b.index)); // kernel
       auto& m = k.GetMesh();
-      ReadBuffer(m);
+      l.load(b, stage_);
+      MPI_Barrier(g_.getCartComm());
+
+      ReadBuffer(m, l);
     }
     
     // 3. Call kernels for current stage
@@ -163,7 +291,7 @@ void Local<KF>::Step() {
     for (auto& b : bb) {
       auto& k = *mk.at(GetIdx(b.index)); // kernel
       auto& m = k.GetMesh();
-      WriteBuffer(m);
+      WriteBuffer(m, *(typename TGrid::BlockType*)b.ptrBlock);
     }
 
     // 5. Reduce
@@ -192,6 +320,11 @@ void Local<KF>::Step() {
         }
       }
 
+      // Reduce over all ranks
+      MPI_Allreduce(
+          MPI_IN_PLACE, r.data(), r.size(), 
+          MPI_DOUBLE, MPI_SUM, g_.getCartComm()); // TODO: type from Scal
+
       // Write results to all kernels on current rank
       for (auto& b : bb) {
         auto& k = *mk.at(GetIdx(b.index)); 
@@ -212,7 +345,7 @@ void Local<KF>::Step() {
 
     // 6. Solve 
     {
-      MPI_Comm comm = comm_;
+      MPI_Comm comm = g_.getCartComm();
       auto& f = *mk.at(GetIdx(bb[0].index)); // first kernel
       auto& mf = f.GetMesh();
       auto& vf = mf.GetSolve();  // LS to solve
@@ -243,7 +376,7 @@ void Local<KF>::Step() {
         // Add boxes to grid
         for (auto& b : bb) {
           auto d = b.index;
-          using B = MyBlock;
+          using B = Block_t;
           int l[3] = {d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
           int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
 
@@ -272,7 +405,7 @@ void Local<KF>::Step() {
         // Set matrix coefficients
         for (auto& b : bb) {
           auto d = b.index;
-          using B = MyBlock;
+          using B = Block_t;
           int l[3] = {d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
           int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
 
@@ -304,7 +437,7 @@ void Local<KF>::Step() {
         /* Set the vector coefficients over the gridpoints in my first box */
         for (auto& bi : bb) {
           auto d = bi.index;
-          using B = MyBlock;
+          using B = Block_t;
           int l[3] = {d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
           int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
 
@@ -363,7 +496,7 @@ void Local<KF>::Step() {
 
         for (auto& bi : bb) {
           auto d = bi.index;
-          using B = MyBlock;
+          using B = Block_t;
           int l[3] = {d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
           int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
 
@@ -392,6 +525,8 @@ void Local<KF>::Step() {
     }
 
 
+    MPI_Barrier(g_.getCartComm());
+
     stage_ += 1;
 
     // 6. Check for pending stages
@@ -415,54 +550,14 @@ void Local<KF>::Step() {
   } while (true);
 
   if (step_ % (TEND / NUMFR)  == 0) {
-    //auto suff = "_" + std::to_string(frame_);
-    std::cerr << "Output" << std::endl;
-    session_->Write(step_*1., "title:0");
+    auto suff = "_" + std::to_string(frame_);
+    DumpHDF5_MPI<TGrid, StreamHdf<0>>(g_, frame_, step_*1., "p" + suff);
     ++frame_;
   }
   ++step_;
 }
 
-template <class KF>
-void Local<KF>::ReadBuffer(M& m) {
-  int e = 0; // buffer field idx
-
-  for (auto u : m.GetComm()) {
-    for (auto i : m.AllCells()) {
-      auto& bc = m.GetBlockCells();
-      auto& gbc = gm.GetBlockCells();
-      MIdx gs = gbc.GetDimensions();
-      auto d = bc.GetMIdx(i);
-      // periodic
-      for (int j = 0; j < 3; ++j) {
-        d[j] = (d[j] + gs[j]) % gs[j];
-      }
-      auto gi = gbc.GetIdx(d);
-      (*u)[i] = buf_[e][gi];
-    }
-    ++e;
-  }
-
-  m.ClearComm();
-}
-
-template <class KF>
-void Local<KF>::WriteBuffer(M& m) {
-  using MIdx = typename M::MIdx;
-
-  // Check buffer has enough space for all fields
-  assert(m.GetComm().size() <= buf_.size() && "Too many fields for Comm()");
-
-  int e = 0; // buffer field idx
-
-  for (auto u : m.GetComm()) {
-    for (auto i : m.Cells()) {
-      auto& bc = m.GetBlockCells();
-      auto& gbc = gm.GetBlockCells();
-      auto d = bc.GetMIdx(i); 
-      auto gi = gbc.GetIdx(d); 
-      buf_[e][gi] = (*u)[i];
-    }
-    ++e;
-  }
-}
+template <int i>
+const std::string StreamHdf<i>::NAME = "alpha";
+template <int i>
+const std::string StreamHdf<i>::EXT = "00";

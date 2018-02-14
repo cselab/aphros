@@ -14,7 +14,6 @@
 #include <cassert>
 #include <iostream>
 
-#include "../CubismApps/MPCFcluster/source/Kernel.h"
 
 namespace geom {
 

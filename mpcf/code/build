@@ -1,0 +1,20 @@
+#!/bin/bash -l
+
+set -eu
+
+CC=mpic++
+
+repo="./"
+
+bs=16
+make cleanall;
+
+date
+cmd="
+time \
+make -j 4 CC=$CC bs=$bs config=debug extra='-Wno-narrowing'
+"
+echo "$cmd"
+eval "$cmd"
+date
+

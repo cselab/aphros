@@ -13,10 +13,10 @@
 #include <thread>
 #include <mpi.h>
 
-#include "../../hydro/vect.hpp"
-#include "../../hydro/mesh3d.hpp"
-#include "../../hydro/solver.hpp"
-#include "../../hydro/advection.hpp"
+#include "hydro/vect.hpp"
+#include "hydro/mesh3d.hpp"
+#include "hydro/solver.hpp"
+#include "hydro/advection.hpp"
 
 #include "ICubism.h"
 #include "ILocal.h"

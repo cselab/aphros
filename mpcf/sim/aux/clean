@@ -1,4 +1,0 @@
-#!/bin/bash -l
-
-rm -vf */*.{png,xmf,h5}
-rm -vf *.{bin,log}

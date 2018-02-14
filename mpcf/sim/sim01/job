@@ -5,9 +5,7 @@ echo running > job.status
 ./clean
 
 export OMP_NUM_THREADS=1
-time mpirun -n 1 --oversubscribe ../mpcf-cluster -simConf sim.conf
-
-#./post
+time mpirun -n 1 --oversubscribe ../mfer 
 
 echo "Done."
 echo done > job.status

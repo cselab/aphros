@@ -32,7 +32,7 @@ class Vars {
 
   // Returns string representation by type name and key
   std::string Print(std::string type, Key k) const;
-  // Sets value from string for given type and key
+  // Parses string and sets value of given type and key
   bool Parse(std::string s, std::string type, Key k);
 
   Map<std::string> Str;

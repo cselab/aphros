@@ -5,9 +5,7 @@ echo running > job.status
 ./clean
 
 #time mpirun -n 4 --oversubscribe ../mpcf-cluster -simConf sim.conf
-time mpirun -n 1 --oversubscribe xterm -e gdb -ex=run --args ../mpcf-cluster -simConf sim.conf
-
-./post
+time mpirun -n 1 --oversubscribe xterm -e gdb -ex=run --args ../mfer 
 
 echo "Done."
 echo done > job.status

@@ -1,6 +1,0 @@
-set -eu
-
-d=`echo sim01*`
-make -C ../code
-cd $d
-./job
