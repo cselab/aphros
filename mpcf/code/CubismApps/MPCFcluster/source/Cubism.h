@@ -147,7 +147,7 @@ class Cubism : public Distr {
     int e = 0; // buffer field idx
 
     for (auto u : m.GetComm()) {
-      for (auto i : m.Cells()) {
+      for (auto i : m.AllCells()) {
         auto& bc = m.GetBlockCells();
         auto d = bc.GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
         (*u)[i] = l(d[0], d[1], d[2]).a[e];
@@ -168,7 +168,7 @@ class Cubism : public Distr {
     int e = 0; // buffer field idx
 
     for (auto u : m.GetComm()) {
-      for (auto i : m.Cells()) {
+      for (auto i : m.AllCells()) {
         auto& bc = m.GetBlockCells();
         auto d = m.GetBlockCells().GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
         if (MIdx(0) <= d && d < MIdx(bs)) {

@@ -399,13 +399,13 @@ class MeshGeneric {
   operator Range<IdxNode>() const {
     return Range<IdxNode>(0, GetNumNodes());
   }
-  Range<IdxCell> Cells() const {
+  Range<IdxCell> AllCells() const {
     return Range<IdxCell>(*this);
   }
   Range<IdxFace> Faces() const {
     return Range<IdxFace>(*this);
   }
-  Range<IdxNode> Nodes() const {
+  Range<IdxNode> AllNodes() const {
     return Range<IdxNode>(*this);
   }
   virtual bool IsInner(IdxCell) const = 0;
@@ -413,7 +413,7 @@ class MeshGeneric {
   virtual bool IsInside(IdxCell, Vect) const = 0;
   virtual IdxCell FindNearestCell(Vect point) const {
     IdxCell idxcell_nearest = IdxCell(0);
-    for (auto idxcell : Cells()) {
+    for (auto idxcell : AllCells()) {
       if (point.dist(GetCenter(idxcell)) <
           point.dist(GetCenter(idxcell_nearest))) {
         idxcell_nearest = idxcell;

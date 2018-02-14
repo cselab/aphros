@@ -661,9 +661,7 @@ geom::FieldCell<typename Mesh::Vect> Gradient(
     const Mesh& mesh) {
   using Vect = typename Mesh::Vect;
   geom::FieldCell<Vect> res(mesh, Vect::kZero);
-#pragma omp parallel for
-  for (IntIdx rawcell = 0; rawcell < static_cast<IntIdx>(mesh.Cells().size()); ++rawcell) {
-    IdxCell idxcell(rawcell);
+  for (auto idxcell : mesh.Cells()) {
     if (!mesh.IsExcluded(idxcell)) {
       Vect sum = Vect::kZero;
       for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {

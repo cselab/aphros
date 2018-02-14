@@ -260,7 +260,7 @@ void Hydro<M>::Run() {
       }
     }
     assert(j == lsx_.size());
-    for (auto i : m.InCells()) {
+    for (auto i : m.Cells()) {
       --j;
     }
     assert(j == 0);

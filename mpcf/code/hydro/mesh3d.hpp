@@ -186,10 +186,10 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
   bool IsInner(IdxFace idxface) const override {
     return ff_is_inner_[idxface];
   }
-  RangeInner<IdxCell, dim> InCells() const {
+  RangeInner<IdxCell, dim> Cells() const {
     return RangeInner<IdxCell, dim>(GetBlockCells(), GetInBlockCells());
   }
-  RangeInner<IdxNode, dim> InNodes() const {
+  RangeInner<IdxNode, dim> Nodes() const {
     return RangeInner<IdxNode, dim>(GetBlockNodes(), GetInBlockNodes());
   }
   bool IsInside(IdxCell idxcell, Vect vect) const override {
