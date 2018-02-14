@@ -7,25 +7,9 @@
 *.o
 lsf.*
 a.out
-ch2hdf
-test-kernel
-TestLab
-mpcf-core*
-mpcf-node*
-mpcf-cluster*
-
-icgenerator
-CubismApps/tools/fftw/spectrum/spectrum
+mfer
 
 .cproject
 .project
 .settings
 
-CubismDoc/*/*.aux
-CubismDoc/*/*.log
-CubismDoc/*/*.out
-CubismDoc/*/*.pdf
-CubismDoc/*/*.synctex.gz
-
-rebuild.mycubism.sh
-mycrate
