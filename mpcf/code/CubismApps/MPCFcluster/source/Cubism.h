@@ -168,12 +168,10 @@ class Cubism : public Distr {
     int e = 0; // buffer field idx
 
     for (auto u : m.GetComm()) {
-      for (auto i : m.AllCells()) {
+      for (auto i : m.Cells()) {
         auto& bc = m.GetBlockCells();
         auto d = m.GetBlockCells().GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
-        if (MIdx(0) <= d && d < MIdx(bs)) {
-          o.data[d[2]][d[1]][d[0]].a[e] = (*u)[i];
-        }
+        o.data[d[2]][d[1]][d[0]].a[e] = (*u)[i];
       }
       ++e;
     }

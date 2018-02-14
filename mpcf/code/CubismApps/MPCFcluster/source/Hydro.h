@@ -173,13 +173,13 @@ Hydro<M>::Hydro(const MyBlockInfo& bi)
   }
 
   // velocity and flux
-  const Vect vel(1, 1, 1);
+  const Vect vel(1.);
   for (auto idxface : m.Faces()) {
     ff_flux_[idxface] = vel.dot(m.GetSurface(idxface));
   }
 
   // time step
-  const Scal dt = 0.0025;
+  const Scal dt = 1. / 2. / 200;
 
   // Init advection solver
   as_.reset(new AS(m, fc_u, mf_cond, &ff_flux_, &fc_src_, 0., dt));
@@ -236,10 +236,7 @@ void Hydro<M>::Run() {
     auto& bc = m.GetBlockCells();
     auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
     for (auto i : m.Cells()) {
-      auto d = m.GetBlockCells().GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
-      if (MIdx(0) <= d && d < MIdx(bs)) {
-        lsb_[j++] = u[i];
-      }
+      lsb_[j++] = u[i];
     }
     assert(j == lsb_.size());
 
@@ -254,16 +251,9 @@ void Hydro<M>::Run() {
     size_t j = 0;
     auto& bc = m.GetBlockCells();
     for (auto i : m.Cells()) {
-      auto d = m.GetBlockCells().GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
-      if (MIdx(0) <= d && d < MIdx(bs)) {
-        fc_p_[i] = lsx_[j++];
-      }
+      fc_p_[i] = lsx_[j++];
     }
     assert(j == lsx_.size());
-    for (auto i : m.Cells()) {
-      --j;
-    }
-    assert(j == 0);
     m.Comm(&fc_p_);
   }
 }
