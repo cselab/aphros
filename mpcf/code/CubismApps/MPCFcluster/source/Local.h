@@ -28,22 +28,25 @@ class Local : public Distr {
   void Step();
 
  private:
-  M CreateMesh(int bs, Idx b, Idx p, int es, int h);
-  M gm; // global mesh
-  std::vector<MyBlockInfo> bb_;
-  std::vector<geom::FieldCell<Scal>> buf_; // buffer on mesh
-  std::map<Idx, std::unique_ptr<K>> mk;
-
+  MPI_Comm comm_;
   int bs_; // block size
   int es_; // element size in Scal
   int hl_; // number of halo cells (same in all directions)
+  std::vector<geom::FieldCell<Scal>> buf_; // buffer on mesh
+
+  M gm; // global mesh
+  std::vector<MyBlockInfo> bb_;
+  std::map<Idx, std::unique_ptr<K>> mk;
+
+  void ReadBuffer(M& m);
+  void WriteBuffer(M& m);
+  M CreateMesh(int bs, Idx b, Idx p, int es, int h);
 
   int step_ = 0;
   int stage_ = 0;
   int frame_ = 0;
 
   bool isroot_ = true;
-  MPI_Comm comm_;
 };
 
 template <class KF>
@@ -73,7 +76,7 @@ auto Local<KF>::CreateMesh(int bs, Idx b, Idx p, int es, int hl) -> M {
 
 template <class KF>
 Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, Idx b, Idx p, int es, int hl) 
-  : bs_(bs), es_(es), hl_(hl), buf_(es_), comm_(comm)
+  : comm_(comm), bs_(bs), es_(es), hl_(hl), buf_(es_)
 {
   gm = CreateMesh(bs, b, p, es, hl);
 
@@ -135,7 +138,7 @@ void Local<KF>::Step() {
     for (auto& b : bb) {
       auto& k = *mk.at(GetIdx(b.index)); // kernel
       auto& m = k.GetMesh();
-      //ReadBuffer(m);
+      ReadBuffer(m);
     }
     
     // 3. Call kernels for current stage
@@ -148,7 +151,7 @@ void Local<KF>::Step() {
     for (auto& b : bb) {
       auto& k = *mk.at(GetIdx(b.index)); // kernel
       auto& m = k.GetMesh();
-      //WriteBuffer(m);
+      WriteBuffer(m);
     }
 
     // 5. Reduce
@@ -407,3 +410,47 @@ void Local<KF>::Step() {
   ++step_;
 }
 
+template <class KF>
+void Local<KF>::ReadBuffer(M& m) {
+  int e = 0; // buffer field idx
+
+  for (auto u : m.GetComm()) {
+    for (auto i : m.AllCells()) {
+      auto& bc = m.GetBlockCells();
+      auto& gbc = gm.GetBlockCells();
+      MIdx gs = gbc.GetDimensions();
+      auto d = bc.GetMIdx(i);
+      // periodic
+      for (int j = 0; j < 3; ++j) {
+        d[j] = (d[j] + gs[j]) % gs[j];
+      }
+      auto gi = gbc.GetIdx(d);
+      (*u)[i] = buf_[e][gi];
+    }
+    ++e;
+  }
+
+  m.ClearComm();
+}
+
+template <class KF>
+void Local<KF>::WriteBuffer(M& m) {
+  using MIdx = typename M::MIdx;
+  int bs = _BLOCKSIZE_;
+
+  // Check buffer has enough space for all fields
+  assert(m.GetComm().size() <= buf_.size() && "Too many fields for Comm()");
+
+  int e = 0; // buffer field idx
+
+  for (auto u : m.GetComm()) {
+    for (auto i : m.Cells()) {
+      auto& bc = m.GetBlockCells();
+      auto& gbc = gm.GetBlockCells();
+      auto d = bc.GetMIdx(i); 
+      auto gi = gbc.GetIdx(d); 
+      buf_[e][gi] = (*u)[i];
+    }
+    ++e;
+  }
+}

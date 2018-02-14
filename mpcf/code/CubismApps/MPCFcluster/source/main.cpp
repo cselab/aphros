@@ -144,7 +144,7 @@ int main (int argc, const char ** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   MPI_Comm comm;
-  bool loc = false;
+  bool loc = true;
   if (loc) {
     MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
     if (rank == 0) {
