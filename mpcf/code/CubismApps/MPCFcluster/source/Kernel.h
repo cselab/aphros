@@ -70,5 +70,6 @@ class Distr {
  public:
   virtual bool IsDone() const = 0;
   virtual void Step() = 0;
+  virtual ~Distr() {}
 };
 
