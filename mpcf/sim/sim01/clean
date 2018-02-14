@@ -1,4 +1,6 @@
 #!/bin/bash -l
 
-rm -vf *.{png,xmf,h5}
+rm -vf *.{png}
 rm -vf *.{bin,log}
+rm -vf *.{xmf,h5}
+rm -vf *.{vts,pvd}

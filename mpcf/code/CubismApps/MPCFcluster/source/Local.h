@@ -8,6 +8,8 @@
 #include "ILocal.h"
 #include "../../hydro/vect.hpp"
 #include "../../hydro/mesh3d.hpp"
+#include "../../hydro/output.hpp"
+#include "../../hydro/output_paraview.hpp"
 
 #define NUMFR 10
 #define TEND 100
@@ -23,6 +25,7 @@ class Local : public Distr {
   using MIdx = typename  M::MIdx;
   using Vect = typename M::Vect;
   using Rect = geom::Rect<Vect>;
+  using IdxCell = geom::IdxCell;
 
   bool IsDone() const;
   void Step();
@@ -35,6 +38,7 @@ class Local : public Distr {
   std::vector<geom::FieldCell<Scal>> buf_; // buffer on mesh
 
   M gm; // global mesh
+  std::unique_ptr<output::Session> session_;
   std::vector<MyBlockInfo> bb_;
   std::map<Idx, std::unique_ptr<K>> mk;
 
@@ -80,6 +84,14 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, Idx b, Idx p, int es, int hl)
 {
   gm = CreateMesh(bs, b, p, es, hl);
 
+  output::Content content = {
+      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+          "p", gm, [this](IdxCell i) { return buf_[0][i]; })
+      };
+
+  session_.reset(new output::SessionParaviewStructured<M>(
+          content, "title", "p", gm));
+
   // Resize buffer for mesh
   for (auto& u : buf_) {
     u.Reinit(gm);
@@ -101,7 +113,7 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, Idx b, Idx p, int es, int hl)
     std::cerr << "o=" << o << " n=" << n.GetRaw() <<  " i=" << i << std::endl;
     for (int q = 0; q < 3; ++q) {
       b.index[q] = i[q];
-      b.origin[q] = i[q];
+      b.origin[q] = o[q];
     }
     b.h_gridpoint = h;
     b.ptrBlock = nullptr;
@@ -403,8 +415,9 @@ void Local<KF>::Step() {
   } while (true);
 
   if (step_ % (TEND / NUMFR)  == 0) {
-    auto suff = "_" + std::to_string(frame_);
-    //DumpHDF5_MPI<TGrid, StreamHdf<0>>(g_, frame_, step_*1., "p" + suff);
+    //auto suff = "_" + std::to_string(frame_);
+    std::cerr << "Output" << std::endl;
+    session_->Write(step_*1., "title:0");
     ++frame_;
   }
   ++step_;
@@ -436,7 +449,6 @@ void Local<KF>::ReadBuffer(M& m) {
 template <class KF>
 void Local<KF>::WriteBuffer(M& m) {
   using MIdx = typename M::MIdx;
-  int bs = _BLOCKSIZE_;
 
   // Check buffer has enough space for all fields
   assert(m.GetComm().size() <= buf_.size() && "Too many fields for Comm()");
