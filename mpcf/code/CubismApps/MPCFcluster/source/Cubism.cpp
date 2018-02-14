@@ -5,7 +5,7 @@
 #include "Hydro.h"
 
 template <class KF>
-Distr* Try(
+Distr* TryCubism(
     MPI_Comm comm, KernelFactory& kf, 
     int bs, Idx b, Idx p, int es, int h) {
 
@@ -19,7 +19,7 @@ std::unique_ptr<Distr> CreateCubism(
     MPI_Comm comm, KernelFactory& kf, 
     int bs, Idx b, Idx p, int es, int h) {
   Distr* r = nullptr;
-  r || (r = Try<HydroFactory<geom::geom3d::MeshStructured<double>>>(
+  r || (r = TryCubism<HydroFactory<geom::geom3d::MeshStructured<double>>>(
       comm, kf, bs, b, p, es, h));
   //if (!r) r = Try<HydroFactory<geom::geom3d::MeshStructured<float>>(
   //    comm, kf, bs, b, p, es, h);

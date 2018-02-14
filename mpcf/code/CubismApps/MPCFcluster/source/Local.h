@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <map>
+#include <mpi.h>
 #include "HYPRE_struct_ls.h"
 
 #include "ILocal.h"
@@ -16,7 +17,7 @@ using Scal = double;
 template <class KF>
 class Local : public Distr {
  public:
-  Local(KF& kf, int bs, Idx b, Idx p, int es, int h);
+  Local(MPI_Comm comm, KF& kf, int bs, Idx b, Idx p, int es, int h);
   using K = typename KF::K;
   using M = typename KF::M;
   using MIdx = typename  M::MIdx;
@@ -41,7 +42,8 @@ class Local : public Distr {
   int stage_ = 0;
   int frame_ = 0;
 
-  bool isroot_;
+  bool isroot_ = true;
+  MPI_Comm comm_;
 };
 
 template <class KF>
@@ -70,8 +72,8 @@ auto Local<KF>::CreateMesh(int bs, Idx b, Idx p, int es, int hl) -> M {
 }
 
 template <class KF>
-Local<KF>::Local(KF& kf, int bs, Idx b, Idx p, int es, int hl) 
-  : bs_(bs), es_(es), hl_(hl), buf_(es_)
+Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, Idx b, Idx p, int es, int hl) 
+  : bs_(bs), es_(es), hl_(hl), buf_(es_), comm_(comm)
 {
   gm = CreateMesh(bs, b, p, es, hl);
 
@@ -86,13 +88,14 @@ Local<KF>::Local(KF& kf, int bs, Idx b, Idx p, int es, int hl)
   MIdx mp(p[0], p[1], p[2]); // number of PEs
   geom::BlockCells<3> bc(mb * mp);
   using geom::IdxNode;
-  Scal h = gm.GetNode(IdxNode(1)) - gm.GetNode(IdxNode(0));
+  Scal h = (gm.GetNode(IdxNode(1)) - gm.GetNode(IdxNode(0)))[0];
+  assert(h > 0);
   std::cerr << "h from gm = " << h << std::endl;
   for (MIdx i : bc) {
     MyBlockInfo b;
     IdxNode n = gm.GetBlockNodes().GetIdx(i * ms);
-    Vect o = gm.GetCenter(n);
-    std::cerr << "o=" << o << " n=" << n <<  " i=" << i << std::endl;
+    Vect o = gm.GetNode(n);
+    std::cerr << "o=" << o << " n=" << n.GetRaw() <<  " i=" << i << std::endl;
     for (int q = 0; q < 3; ++q) {
       b.index[q] = i[q];
       b.origin[q] = i[q];
@@ -125,8 +128,8 @@ void Local<KF>::Step() {
     }
     // 1. Exchange halos in buffer mesh
     // Do communication and get all blocks
-    std::vector<MyBlockInfo> bb; // TODO: fill
-    //assert(!bb.empty());
+    auto& bb = bb_; // TODO: fill
+    assert(!bb.empty());
   
     // 2. Copy data from buffer halos to fields collected by Comm()
     for (auto& b : bb) {
@@ -194,7 +197,7 @@ void Local<KF>::Step() {
 
     // 6. Solve 
     {
-      MPI_Comm comm = MPI_COMM_WORLD;
+      MPI_Comm comm = comm_;
       auto& f = *mk.at(GetIdx(bb[0].index)); // first kernel
       auto& mf = f.GetMesh();
       auto& vf = mf.GetSolve();  // LS to solve

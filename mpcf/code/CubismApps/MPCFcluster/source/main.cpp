@@ -100,7 +100,7 @@ int main (int argc, const char ** argv) {
 
 #include "Hydro.h"
 
-void Main(MPI_Comm comm) {
+void Main(MPI_Comm comm, bool loc) {
   // read config files, parse arguments, maybe init global fields
   using M = geom::geom3d::MeshStructured<Scal>;
   using K = Hydro<M>;
@@ -123,8 +123,12 @@ void Main(MPI_Comm comm) {
   const int bs = 16;
   
   // Initialize buffer mesh and make Hydro for each block.
-  //std::unique_ptr<Distr> d = CreateCubism(comm, kf, bs, b, p, es, h);
-  std::unique_ptr<Distr> d = CreateLocal(kf, bs, b, p, es, h);
+  std::unique_ptr<Distr> d;
+  if (loc) {
+    d = CreateLocal(comm, kf, bs, b, p, es, h);
+  } else {
+    d = CreateCubism(comm, kf, bs, b, p, es, h);
+  }
 
   while (!d->IsDone()) {
     // At each step, first exchange halos,
@@ -139,7 +143,18 @@ int main (int argc, const char ** argv) {
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  Main(MPI_COMM_WORLD);
+  MPI_Comm comm;
+  bool loc = true;
+  if (loc) {
+    MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
+    if (rank == 0) {
+      Main(comm, loc);
+    }
+  } else {
+    comm = MPI_COMM_WORLD;
+    Main(comm, loc);
+  }
+
 
   MPI_Finalize();	
   return 0;
