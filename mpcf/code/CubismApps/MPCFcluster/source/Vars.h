@@ -2,13 +2,17 @@
 #include <vector>
 #include <map>
 #include <sstream>
+#include <iostream>
 
 class Vars {
  public:
+  using Key = std::string;
+
   template <class T>
   class Map {
    public:
-    using Key = std::string;
+    using ValueType = T;
+    std::string GetTypeName() const;
     std::string Print(Key k) const;
     bool Parse(std::string s, Key k);
     T* operator()(Key k);
@@ -17,6 +21,7 @@ class Vars {
     const T& operator[](Key k) const;
     void Set(Key k, const T& v);
     bool Exists(Key k);
+
    private:
     std::map<Key, T> m_;
   };
@@ -24,6 +29,11 @@ class Vars {
   // Returns map by type
   template <class T>
   Map<T>& Get();
+
+  // Returns string representation by type name and key
+  std::string Print(std::string type, Key k) const;
+  // Sets value from string for given type and key
+  bool Parse(std::string s, std::string type, Key k);
 
   Map<std::string> Str;
   Map<int> Int;
@@ -125,21 +135,87 @@ Vars::Map<std::vector<double>>& Vars::Get<std::vector<double>>() {
   return Vect;
 }
 
+template <>
+std::string Vars::Map<std::string>::GetTypeName() const {
+  return "str";
+}
+
+template <>
+std::string Vars::Map<int>::GetTypeName() const {
+  return "int";
+}
+
+template <>
+std::string Vars::Map<double>::GetTypeName() const {
+  return "double";
+}
+
+template <>
+std::string Vars::Map<std::vector<double>>::GetTypeName() const {
+  return "vect";
+}
+
+std::string Vars::Print(std::string type, Key k) const {
+  if (type == Str.GetTypeName()) {
+    return Str.Print(k);
+  }
+  if (type == Int.GetTypeName()) {
+    return Int.Print(k);
+  }
+  if (type == Double.GetTypeName()) {
+    return Double.Print(k);
+  }
+  if (type == Vect.GetTypeName()) {
+    return Vect.Print(k);
+  }
+  std::cerr << "Vars::Print(): Unknown type=" << type << std::endl;
+  assert(false);
+  return "";
+}
+
+bool Vars::Parse(std::string s, std::string type, Key k) {
+  if (type == Str.GetTypeName()) {
+    return Str.Parse(s, k);
+  }
+  if (type == Int.GetTypeName()) {
+    return Int.Parse(s, k);
+  }
+  if (type == Double.GetTypeName()) {
+    return Double.Parse(s, k);
+  }
+  if (type == Vect.GetTypeName()) {
+    return Vect.Parse(s, k);
+  }
+  std::cerr << "Vars::Parse(): Unknown type=" << type << std::endl;
+  assert(false);
+  return false;
+}
+
 namespace test_vars {
 
 template <class T>
-void TestParse(std::string s, std::string title="", bool fatal=true) {
+void TestParse(std::string s) {
   Vars vars;
   std::string k = "key";
   auto& m = vars.Get<T>();
   m.Parse(s, k);
   auto p = m.Print(k);
   std::cerr
-      << title << ": "
+      << m.GetTypeName() << ": "
       << "'" << s << "' == '" << p << "'" << std::endl;
-  if (fatal) {
-    assert(s == p);
-  }
+  assert(s == p);
+}
+
+void TestTypeName(std::string s, std::string type) {
+  Vars vars;
+  std::string k = "key";
+  bool f = vars.Parse(s, type, k);
+  assert(f);
+  std::string p = vars.Print(type, k);
+  std::cerr
+      << type << ": "
+      << "'" << s << "' == '" << p << "'" << std::endl;
+  assert(s == p);
 }
 
 template <class T>
@@ -162,11 +238,19 @@ void TestPtr(const T& v /*value*/, const T& vo /*other*/) {
 }
 
 void Test() {
-  TestParse<std::string>("asdf", "str");
-  TestParse<int>("123", "int");
-  TestParse<double>("123.456", "double");
-  TestParse<std::vector<double>>("1.2 3.4 5.6 ", "vector<double>");
+  std::cerr << "\nTestParse" << std::endl;
+  TestParse<std::string>("asdf");
+  TestParse<int>("123");
+  TestParse<double>("123.456");
+  TestParse<std::vector<double>>("1.2 3.4 5.6 ");
 
+  std::cerr << "\nTestTypeName" << std::endl;
+  TestTypeName("asdf", "str");
+  TestTypeName("123", "int");
+  TestTypeName("123.456", "double");
+  TestTypeName("1.2 3.4 5.6 ", "vect");
+
+  std::cerr << "\nTestPtr" << std::endl;
   TestPtr<std::string>("asdf", "qwer");
   TestPtr<int>(123, 456);
   TestPtr<double>(123.456, 456.123);
