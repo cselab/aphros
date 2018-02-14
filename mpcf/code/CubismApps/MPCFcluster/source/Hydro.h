@@ -139,7 +139,7 @@ M Hydro<M>::CreateMesh(const MyBlockInfo& bi) {
       << " h=" << h
       << std::endl;
   
-  return geom::InitUniformMesh<M>(d, o, s);
+  return geom::InitUniformMesh<M>(d, o, s, hl);
 }
 
 template <class M>
@@ -260,6 +260,10 @@ void Hydro<M>::Run() {
       }
     }
     assert(j == lsx_.size());
+    for (auto i : m.InCells()) {
+      --j;
+    }
+    assert(j == 0);
     m.Comm(&fc_p_);
   }
 }

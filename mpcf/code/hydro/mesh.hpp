@@ -777,7 +777,7 @@ class RangeInner {
 template <class Mesh>
 Mesh InitUniformMesh(const Rect<typename Mesh::Vect>& domain,
                      typename Mesh::MIdx begin,
-                     typename Mesh::MIdx mesh_size) {
+                     typename Mesh::MIdx mesh_size, int hl) {
   using Vect = typename Mesh::Vect;
   using MIdx = typename Mesh::MIdx;
   typename Mesh::BlockNodes b_nodes(begin, mesh_size + MIdx(1));
@@ -787,7 +787,7 @@ Mesh InitUniformMesh(const Rect<typename Mesh::Vect>& domain,
     Vect unit = Vect(midx - b_nodes.GetBegin()) / Vect(mesh_size);
     fn_node[idxnode] = domain.lb + unit * domain.GetDimensions();
   }
-  return Mesh(b_nodes, fn_node);
+  return Mesh(b_nodes, fn_node, hl);
 }
 
 template <class Mesh>

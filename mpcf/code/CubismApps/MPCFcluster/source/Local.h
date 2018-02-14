@@ -68,7 +68,7 @@ auto Local<KF>::CreateMesh(int bs, Idx b, Idx p, int es, int hl) -> M {
       << " h=" << h
       << std::endl;
   
-  return geom::InitUniformMesh<M>(d, o, mm);
+  return geom::InitUniformMesh<M>(d, o, mm, 0);
 }
 
 template <class KF>

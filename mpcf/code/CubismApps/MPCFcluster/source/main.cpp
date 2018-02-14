@@ -116,8 +116,8 @@ void Main(MPI_Comm comm, bool loc) {
   // so that Distr could do communication.
   // Comm() must be independent on implementation of Distr.
   
-  Idx b{1, 2, 2}; // number of blocks 
-  Idx p{2, 1, 1}; // number of ranks
+  Idx b{1, 1, 1}; // number of blocks 
+  Idx p{1, 1, 1}; // number of ranks
   const int es = 8;
   const int h = 1;
   const int bs = 16;
