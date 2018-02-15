@@ -22,7 +22,8 @@ class Vars {
     T& operator[](Key k);
     const T& operator[](Key k) const;
     void Set(Key k, const T& v);
-    bool Exists(Key k);
+    bool Exists(Key k) const;
+    void Del(Key k);
     It begin() { return m_.begin(); }
     It end() { return m_.end(); }
 

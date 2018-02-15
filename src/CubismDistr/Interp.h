@@ -15,6 +15,10 @@ class Interp {
     b >> cmd;
     if (cmd == "set") {
       CmdSet(s);
+    } else if (cmd == "del") {
+      CmdDel(s);
+    } else if (cmd == "") {
+      // nop
     } else {
       std::cerr << "Unknown command: '" << cmd << "'" <<  std::endl;
       assert(false);
@@ -26,10 +30,35 @@ class Interp {
     b >> cmd >> type >> key >> val;
     v_.Parse(val, type, key);
   }
+  template <class T>
+  bool Del(Vars::Map<T>& m, std::string k) {
+    if (m.Exists(k)) {
+      m.Del(k);
+      return true;
+    }
+    return false;
+  }
+  bool Del(std::string k) {
+    bool r = false;
+    if (!r) r = Del(v_.String, k);
+    if (!r) r = Del(v_.Int, k);
+    if (!r) r = Del(v_.Double, k);
+    if (!r) r = Del(v_.Vect, k);
+    return r;
+  }
+  void CmdDel(std::string s) {
+    std::string cmd, key;
+    std::stringstream b(s);
+    b >> cmd >> key;
+    if (!Del(key)) {
+      std::cerr << "del: unknown variable '" << key << "'" << std::endl;
+      assert(false);
+    }
+  }
   bool Next(std::istream& in) {
     std::string s;
     std::getline(in, s);
-    if (!s.empty()) {
+    if (in) {
       Cmd(s);
       return true;
     }

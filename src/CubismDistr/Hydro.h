@@ -185,6 +185,7 @@ Hydro<M>::Hydro(const MyBlockInfo& bi)
   as_.reset(new AS(m, fc_u, mf_cond, &ff_flux_, &fc_src_, 0., dt));
 }
 
+
 template <class M>
 void Hydro<M>::Run() {
   auto sem = m.GetSem();

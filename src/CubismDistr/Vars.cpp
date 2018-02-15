@@ -74,8 +74,13 @@ void Vars::Map<T>::Set(Key k, const T& v) {
 }
 
 template <class T>
-bool Vars::Map<T>::Exists(Key k) {
+bool Vars::Map<T>::Exists(Key k) const {
   return m_.count(k);
+}
+
+template <class T>
+void Vars::Map<T>::Del(Key k) {
+  m_.erase(m_.find(k));
 }
 
 template <>
@@ -214,6 +219,17 @@ void TestPtr(const T& v /*value*/, const T& vo /*other*/) {
   assert(cm[k] == v);
 }
 
+template <class T>
+void TestDel(std::string s) {
+  Vars vars;
+  std::string k = "key";
+  auto& m = vars.Get<T>();
+  m.Parse(s, k);
+  assert(m.Exists(k));
+  m.Del(k);
+  assert(!m.Exists(k));
+}
+
 void Test() {
   std::cerr << "\ntest_vars::Test()" << std::endl;
 
@@ -237,6 +253,12 @@ void Test() {
   TestPtr<int>(123, 456);
   TestPtr<double>(123.456, 456.123);
   TestPtr<std::vector<double>>({1.2, 3.4, 5.6}, {5.6, 3.4});
+
+  std::cerr << "TestDel" << std::endl;
+  TestDel<std::string>("asdf");
+  TestDel<int>("123");
+  TestDel<double>("123.456");
+  TestDel<std::vector<double>>("1.2 3.4 5.6 ");
 
   std::cerr << "test_vars::Test() done\n" << std::endl;
 }
