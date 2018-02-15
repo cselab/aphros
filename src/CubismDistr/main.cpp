@@ -54,6 +54,43 @@ void Main(MPI_Comm comm, bool loc) {
   }
 }
 
+/*
+#include "../hydro/suspender.h"
+
+void D(Suspender& s) {
+  auto sem = s.GetSem();
+
+  if (sem()) {
+    std::cerr << "D1\n";
+  }
+  if (sem()) {
+    std::cerr << "D2\n";
+  }
+}
+
+void C(Suspender& s) {
+  auto sem = s.GetSem();
+  if (sem()) {
+    std::cerr << "C1\n";
+  }
+
+  if (sem()) {
+    D(s);
+  }
+  if (sem()) {
+    std::cerr << "C2\n";
+  }
+}
+
+void A() {
+  Suspender s;
+  do {
+    C(s);
+  } while (s.Pending());
+}
+/*/
+
+
 int main (int argc, const char ** argv) {
   test_vars::Test();
 
@@ -62,9 +99,6 @@ int main (int argc, const char ** argv) {
   std::ifstream f("a.conf");
   ip.All(f);
   ip.PrintAll();
-
-  return 0;
-
 
   return 0;
 
