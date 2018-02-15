@@ -5,4 +5,7 @@ set -eu
 . setenv.daint
 
 . ~/bin/hypre.prefix
-cmake . -DHYPRE_DIR=$P 
+
+CC=cc CXX=CC cmake . -DHYPRE_DIR=$P 
+
+make -j4
