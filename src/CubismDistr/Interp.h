@@ -27,9 +27,13 @@ class Interp {
   void CmdSet(std::string s) {
     std::string cmd, type, key, val;
     std::stringstream b(s);
+    b >> std::skipws;
     b >> cmd >> type >> key;
+    // Read first non-ws character (append later)
+    char c;
+    b >> c;
     std::getline(b, val);
-    v_.Parse(val, type, key);
+    v_.Parse(c + val, type, key);
   }
   template <class T>
   bool Del(Vars::Map<T>& m, std::string k) {
