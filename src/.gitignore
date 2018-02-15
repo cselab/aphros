@@ -1,0 +1,23 @@
+*~
+*.bak
+*.swp
+*.swo
+*.swn
+*.a
+*.o
+lsf.*
+a.out
+mfer
+
+.cproject
+.project
+.settings
+
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+
