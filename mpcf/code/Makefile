@@ -277,6 +277,33 @@ CubismDistr/Local.cpp.s:
 	$(MAKE) -f CMakeFiles/mfer.dir/build.make CMakeFiles/mfer.dir/CubismDistr/Local.cpp.s
 .PHONY : CubismDistr/Local.cpp.s
 
+CubismDistr/Vars.o: CubismDistr/Vars.cpp.o
+
+.PHONY : CubismDistr/Vars.o
+
+# target to build an object file
+CubismDistr/Vars.cpp.o:
+	$(MAKE) -f CMakeFiles/mfer.dir/build.make CMakeFiles/mfer.dir/CubismDistr/Vars.cpp.o
+.PHONY : CubismDistr/Vars.cpp.o
+
+CubismDistr/Vars.i: CubismDistr/Vars.cpp.i
+
+.PHONY : CubismDistr/Vars.i
+
+# target to preprocess a source file
+CubismDistr/Vars.cpp.i:
+	$(MAKE) -f CMakeFiles/mfer.dir/build.make CMakeFiles/mfer.dir/CubismDistr/Vars.cpp.i
+.PHONY : CubismDistr/Vars.cpp.i
+
+CubismDistr/Vars.s: CubismDistr/Vars.cpp.s
+
+.PHONY : CubismDistr/Vars.s
+
+# target to generate assembly for a file
+CubismDistr/Vars.cpp.s:
+	$(MAKE) -f CMakeFiles/mfer.dir/build.make CMakeFiles/mfer.dir/CubismDistr/Vars.cpp.s
+.PHONY : CubismDistr/Vars.cpp.s
+
 CubismDistr/main.o: CubismDistr/main.cpp.o
 
 .PHONY : CubismDistr/main.o
@@ -329,6 +356,9 @@ help:
 	@echo "... CubismDistr/Local.o"
 	@echo "... CubismDistr/Local.i"
 	@echo "... CubismDistr/Local.s"
+	@echo "... CubismDistr/Vars.o"
+	@echo "... CubismDistr/Vars.i"
+	@echo "... CubismDistr/Vars.s"
 	@echo "... CubismDistr/main.o"
 	@echo "... CubismDistr/main.i"
 	@echo "... CubismDistr/main.s"
