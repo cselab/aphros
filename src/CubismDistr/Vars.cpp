@@ -4,6 +4,47 @@
 
 #include "Vars.h"
 
+template <>
+Vars::Map<int>& Vars::Get<int>() {
+  return Int;
+}
+
+template <>
+Vars::Map<double>& Vars::Get<double>() {
+  return Double;
+}
+
+template <>
+Vars::Map<std::string>& Vars::Get<std::string>() {
+  return String;
+}
+
+template <>
+Vars::Map<std::vector<double>>& Vars::Get<std::vector<double>>() {
+  return Vect;
+}
+
+template <>
+std::string Vars::Map<std::string>::GetTypeName() const {
+  return "string";
+}
+
+template <>
+std::string Vars::Map<int>::GetTypeName() const {
+  return "int";
+}
+
+template <>
+std::string Vars::Map<double>::GetTypeName() const {
+  return "double";
+}
+
+template <>
+std::string Vars::Map<std::vector<double>>::GetTypeName() const {
+  return "vect";
+}
+
+
 template <class T>
 std::string Vars::Map<T>::Print(Key k) const {
   std::stringstream b;
@@ -14,7 +55,26 @@ std::string Vars::Map<T>::Print(Key k) const {
 template <class T>
 bool Vars::Map<T>::Parse(std::string s, Key k) {
   std::stringstream b(s);
-  b >> m_[k];
+  b >> std::skipws >> m_[k];
+
+  if (b.fail()) {
+    std::cerr 
+        << "Unable to parse '" << s 
+        << "' as " << GetTypeName() << std::endl;;
+    assert(false);
+  }
+
+  // Check that string contained only one element of type T
+  // Read one more character
+  char c;
+  b >> std::skipws >> c;
+  if (b.good()) {
+    // If good, the string contained invalid characters
+    std::cerr 
+        << "Trailing characters when parsing '" << s 
+        << "' as " << GetTypeName() << std::endl;;
+    assert(false);
+  }
   return true;
 }
 
@@ -33,12 +93,24 @@ bool Vars::Map<std::vector<double>>::Parse(std::string s, Key k) {
   std::stringstream b(s);
   while (b) {
     double a;
-    b >> a;
+    b >> std::skipws >> a;
     if (!b.fail()) {
       r.push_back(a);
+    } else if (!b.eof()) {
+      // String contained invalid characters
+      std::cerr 
+          << "Unable to parse '" << s 
+          << "' as " << GetTypeName() << std::endl;;
+      assert(false);
     }
   }
   m_[k] = r;
+  return true;
+}
+
+template <>
+bool Vars::Map<std::string>::Parse(std::string s, Key k) {
+  m_[k] = s;
   return true;
 }
 
@@ -83,46 +155,6 @@ void Vars::Map<T>::Del(Key k) {
   m_.erase(m_.find(k));
 }
 
-template <>
-Vars::Map<int>& Vars::Get<int>() {
-  return Int;
-}
-
-template <>
-Vars::Map<double>& Vars::Get<double>() {
-  return Double;
-}
-
-template <>
-Vars::Map<std::string>& Vars::Get<std::string>() {
-  return String;
-}
-
-template <>
-Vars::Map<std::vector<double>>& Vars::Get<std::vector<double>>() {
-  return Vect;
-}
-
-template <>
-std::string Vars::Map<std::string>::GetTypeName() const {
-  return "string";
-}
-
-template <>
-std::string Vars::Map<int>::GetTypeName() const {
-  return "int";
-}
-
-template <>
-std::string Vars::Map<double>::GetTypeName() const {
-  return "double";
-}
-
-template <>
-std::string Vars::Map<std::vector<double>>::GetTypeName() const {
-  return "vect";
-}
-
 std::string Vars::Print(std::string type, Key k) const {
   if (type == String.GetTypeName()) {
     return String.Print(k);
@@ -158,11 +190,6 @@ bool Vars::Parse(std::string s, std::string type, Key k) {
   assert(false);
   return false;
 }
-
-template class Vars::Map<std::string>;
-template class Vars::Map<int>;
-template class Vars::Map<double>;
-template class Vars::Map<std::vector<double>>;
 
 
 namespace test_vars {
@@ -270,3 +297,10 @@ void Test() {
 }
 
 } // namespace test_vars
+
+/*
+template class Vars::Map<std::string>;
+template class Vars::Map<int>;
+template class Vars::Map<double>;
+template class Vars::Map<std::vector<double>>;
+*/

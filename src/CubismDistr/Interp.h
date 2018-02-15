@@ -27,7 +27,8 @@ class Interp {
   void CmdSet(std::string s) {
     std::string cmd, type, key, val;
     std::stringstream b(s);
-    b >> cmd >> type >> key >> val;
+    b >> cmd >> type >> key;
+    std::getline(b, val);
     v_.Parse(val, type, key);
   }
   template <class T>
