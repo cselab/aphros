@@ -1,0 +1,9 @@
+set -eu
+
+module swap PrgEnv-cray PrgEnv-gnu
+module load gcc 
+module load cray-hdf5-parallel
+module load daint-gpu
+
+. ~/bin/hypre.prefix
+cmake . -DHYPRE_DIR=$P 
