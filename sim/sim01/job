@@ -5,7 +5,8 @@ echo running > job.status
 ./clean
 
 export OMP_NUM_THREADS=1
-time mpirun -n 2 --oversubscribe ../mfer 
+export OVERSUBSCRIBE=1 
+time mpirun -n 2 ../mfer 
 
 echo "Done."
 echo done > job.status
