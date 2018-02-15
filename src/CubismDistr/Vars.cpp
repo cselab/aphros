@@ -71,7 +71,8 @@ std::string Vars::Map<T>::Print(Key k) const {
 template <class T>
 bool Vars::Map<T>::Parse(std::string s, Key k) {
   std::stringstream b(s);
-  b >> std::skipws >> m_[k];
+  b >> std::skipws;
+  b >> m_[k];
 
   if (b.fail()) {
     std::cerr 
@@ -83,7 +84,7 @@ bool Vars::Map<T>::Parse(std::string s, Key k) {
   // Check that string contained only one element of type T
   // Read one more character
   char c;
-  b >> std::skipws >> c;
+  b >> c;
   if (b.good()) {
     // If good, the string contained invalid characters
     std::cerr 
