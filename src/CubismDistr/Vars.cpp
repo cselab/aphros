@@ -159,6 +159,12 @@ bool Vars::Parse(std::string s, std::string type, Key k) {
   return false;
 }
 
+template class Vars::Map<std::string>;
+template class Vars::Map<int>;
+template class Vars::Map<double>;
+template class Vars::Map<std::vector<double>>;
+
+
 namespace test_vars {
 
 void TestSimple() {
