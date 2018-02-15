@@ -39,6 +39,9 @@ class Vars {
   std::string Print(std::string type, Key k) const;
   // Parses string and sets value of given type and key
   bool Parse(std::string s, std::string type, Key k);
+  // Returns a type for which k is defined
+  // (if more than 1 found, returns any; if none, returns "")
+  std::string GetTypeName(Key k) const;
 
   Map<std::string> String;
   Map<int> Int;
