@@ -12,6 +12,8 @@ class Vars {
   class Map {
    public:
     using ValueType = T;
+    using M = std::map<Key, T>;
+    using It = typename M::iterator;
     std::string GetTypeName() const;
     std::string Print(Key k) const;
     bool Parse(std::string s, Key k);
@@ -21,9 +23,11 @@ class Vars {
     const T& operator[](Key k) const;
     void Set(Key k, const T& v);
     bool Exists(Key k);
+    It begin() { return m_.begin(); }
+    It end() { return m_.end(); }
 
    private:
-    std::map<Key, T> m_;
+    M m_;
   };
 
   // Returns map by type
@@ -35,7 +39,7 @@ class Vars {
   // Parses string and sets value of given type and key
   bool Parse(std::string s, std::string type, Key k);
 
-  Map<std::string> Str;
+  Map<std::string> String;
   Map<int> Int;
   Map<double> Double;
   Map<std::vector<double>> Vect;

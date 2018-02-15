@@ -90,7 +90,7 @@ Vars::Map<double>& Vars::Get<double>() {
 
 template <>
 Vars::Map<std::string>& Vars::Get<std::string>() {
-  return Str;
+  return String;
 }
 
 template <>
@@ -100,7 +100,7 @@ Vars::Map<std::vector<double>>& Vars::Get<std::vector<double>>() {
 
 template <>
 std::string Vars::Map<std::string>::GetTypeName() const {
-  return "str";
+  return "string";
 }
 
 template <>
@@ -119,8 +119,8 @@ std::string Vars::Map<std::vector<double>>::GetTypeName() const {
 }
 
 std::string Vars::Print(std::string type, Key k) const {
-  if (type == Str.GetTypeName()) {
-    return Str.Print(k);
+  if (type == String.GetTypeName()) {
+    return String.Print(k);
   }
   if (type == Int.GetTypeName()) {
     return Int.Print(k);
@@ -137,8 +137,8 @@ std::string Vars::Print(std::string type, Key k) const {
 }
 
 bool Vars::Parse(std::string s, std::string type, Key k) {
-  if (type == Str.GetTypeName()) {
-    return Str.Parse(s, k);
+  if (type == String.GetTypeName()) {
+    return String.Parse(s, k);
   }
   if (type == Int.GetTypeName()) {
     return Int.Parse(s, k);
@@ -158,12 +158,12 @@ namespace test_vars {
 
 void TestSimple() {
   Vars v;
-  v.Parse("asdf", "str", "a");
+  v.Parse("asdf", "string", "a");
   v.Parse("5", "int", "b");
   v.Parse("5.5", "double", "c");
   v.Parse("1 2 3 4", "vect", "d");
 
-  assert(v.Str["a"] == "asdf");
+  assert(v.String["a"] == "asdf");
   assert(v.Int["b"] == 5);
   assert(v.Double["c"] == 5.5);
   assert(v.Vect["d"] == std::vector<double>({1., 2., 3., 4.}));
@@ -215,26 +215,30 @@ void TestPtr(const T& v /*value*/, const T& vo /*other*/) {
 }
 
 void Test() {
-  std::cerr << "\nTestSimple" << std::endl;
+  std::cerr << "\ntest_vars::Test()" << std::endl;
+
+  std::cerr << "TestSimple" << std::endl;
   TestSimple();
 
-  std::cerr << "\nTestParse" << std::endl;
+  std::cerr << "TestParse" << std::endl;
   TestParse<std::string>("asdf");
   TestParse<int>("123");
   TestParse<double>("123.456");
   TestParse<std::vector<double>>("1.2 3.4 5.6 ");
 
-  std::cerr << "\nTestTypeName" << std::endl;
-  TestTypeName("asdf", "str");
+  std::cerr << "TestTypeName" << std::endl;
+  TestTypeName("asdf", "string");
   TestTypeName("123", "int");
   TestTypeName("123.456", "double");
   TestTypeName("1.2 3.4 5.6 ", "vect");
 
-  std::cerr << "\nTestPtr" << std::endl;
+  std::cerr << "TestPtr" << std::endl;
   TestPtr<std::string>("asdf", "qwer");
   TestPtr<int>(123, 456);
   TestPtr<double>(123.456, 456.123);
   TestPtr<std::vector<double>>({1.2, 3.4, 5.6}, {5.6, 3.4});
+
+  std::cerr << "test_vars::Test() done\n" << std::endl;
 }
 
 } // namespace test_vars
