@@ -1,6 +1,3 @@
-#include <string>
-#include <vector>
-#include <map>
 #include <sstream>
 #include <iostream>
 #include <cassert>
@@ -159,6 +156,20 @@ bool Vars::Parse(std::string s, std::string type, Key k) {
 
 namespace test_vars {
 
+void TestSimple() {
+  Vars v;
+  v.Parse("asdf", "str", "a");
+  v.Parse("5", "int", "b");
+  v.Parse("5.5", "double", "c");
+  v.Parse("1 2 3 4", "vect", "d");
+
+  assert(v.Str["a"] == "asdf");
+  assert(v.Int["b"] == 5);
+  assert(v.Double["c"] == 5.5);
+  assert(v.Vect["d"] == std::vector<double>({1., 2., 3., 4.}));
+  assert(v.Vect["d"] != std::vector<double>({2., 2., 3., 4.}));
+}
+
 template <class T>
 void TestParse(std::string s) {
   Vars vars;
@@ -204,6 +215,9 @@ void TestPtr(const T& v /*value*/, const T& vo /*other*/) {
 }
 
 void Test() {
+  std::cerr << "\nTestSimple" << std::endl;
+  TestSimple();
+
   std::cerr << "\nTestParse" << std::endl;
   TestParse<std::string>("asdf");
   TestParse<int>("123");
