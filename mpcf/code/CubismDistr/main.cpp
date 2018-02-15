@@ -14,12 +14,6 @@
 
 #include "Vars.h"
 
-
-int main() {
-  test_vars::Test();
-}
-
-/*
 #include "Hydro.h"
 void Main(MPI_Comm comm, bool loc) {
   // read config files, parse arguments, maybe init global fields
@@ -59,13 +53,15 @@ void Main(MPI_Comm comm, bool loc) {
 }
 
 int main (int argc, const char ** argv) {
+  test_vars::Test();
+
   int prov;
   MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   MPI_Comm comm;
-  bool loc = true;
+  bool loc = false;
   if (loc) {
     MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
     if (rank == 0) {
@@ -80,4 +76,3 @@ int main (int argc, const char ** argv) {
   MPI_Finalize();	
   return 0;
 }
-*/
