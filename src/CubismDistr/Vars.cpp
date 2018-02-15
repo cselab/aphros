@@ -44,6 +44,22 @@ std::string Vars::Map<std::vector<double>>::GetTypeName() const {
   return "vect";
 }
 
+std::string Vars::GetTypeName(Key k) const {
+  if (String.Exists(k)) {
+    return String.GetTypeName();
+  }
+  if (Int.Exists(k)) {
+    return Int.GetTypeName();
+  }
+  if (Double.Exists(k)) {
+    return Double.GetTypeName();
+  }
+  if (Vect.Exists(k)) {
+    return Vect.GetTypeName();
+  }
+  return "";
+}
+
 
 template <class T>
 std::string Vars::Map<T>::Print(Key k) const {
@@ -174,6 +190,15 @@ std::string Vars::Print(std::string type, Key k) const {
 }
 
 bool Vars::Parse(std::string s, std::string type, Key k) {
+  std::string e = GetTypeName(k); // existing type
+  if (e != "" && e != type) {
+    std::cerr << "Vars::Parse(): Attempt to change type of variable '" 
+        << k << "' from '" << type << "' to '" << e << "'" << std::endl;
+    assert(false);
+    return false;
+  }
+  // TODO: Map::Set() still allows same name for two variables
+
   if (type == String.GetTypeName()) {
     return String.Parse(s, k);
   }
