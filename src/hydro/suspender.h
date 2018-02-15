@@ -44,7 +44,7 @@ class Suspender {
   Suspender();
   Sem GetSem(std::string name="");
   // Converts counter list to string
-  std::string LeToStr() const;
+  std::string Print() const;
   // Returns true if there are unfinished levels 
   bool Pending() const;
 
@@ -53,3 +53,10 @@ class Suspender {
   LU lu_;      // [l]ist of co[u]nters
   LU::iterator lui_; // [l]ist of co[u]nters [i]terator
 };
+
+
+namespace test_suspender {
+
+void Test();
+
+} // namespace test_suspender
