@@ -331,6 +331,33 @@ CubismDistr/main.cpp.s:
 	$(MAKE) -f CMakeFiles/mfer.dir/build.make CMakeFiles/mfer.dir/CubismDistr/main.cpp.s
 .PHONY : CubismDistr/main.cpp.s
 
+hydro/suspender.o: hydro/suspender.cpp.o
+
+.PHONY : hydro/suspender.o
+
+# target to build an object file
+hydro/suspender.cpp.o:
+	$(MAKE) -f CMakeFiles/mfer.dir/build.make CMakeFiles/mfer.dir/hydro/suspender.cpp.o
+.PHONY : hydro/suspender.cpp.o
+
+hydro/suspender.i: hydro/suspender.cpp.i
+
+.PHONY : hydro/suspender.i
+
+# target to preprocess a source file
+hydro/suspender.cpp.i:
+	$(MAKE) -f CMakeFiles/mfer.dir/build.make CMakeFiles/mfer.dir/hydro/suspender.cpp.i
+.PHONY : hydro/suspender.cpp.i
+
+hydro/suspender.s: hydro/suspender.cpp.s
+
+.PHONY : hydro/suspender.s
+
+# target to generate assembly for a file
+hydro/suspender.cpp.s:
+	$(MAKE) -f CMakeFiles/mfer.dir/build.make CMakeFiles/mfer.dir/hydro/suspender.cpp.s
+.PHONY : hydro/suspender.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -362,6 +389,9 @@ help:
 	@echo "... CubismDistr/main.o"
 	@echo "... CubismDistr/main.i"
 	@echo "... CubismDistr/main.s"
+	@echo "... hydro/suspender.o"
+	@echo "... hydro/suspender.i"
+	@echo "... hydro/suspender.s"
 .PHONY : help
 
 
