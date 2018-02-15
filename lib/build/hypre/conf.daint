@@ -4,5 +4,4 @@ cd "$src"
   LDFLAGS="-L$P/lib" \
   CPPFLAGS="-I$P/include" \
   CFLAGS="-I$P/include" \
-  CC=cc CXX=CC FC=ftn \
-  --enable-shared
+  CC=cc CXX=CC FC=ftn
