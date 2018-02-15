@@ -1,4 +1,4 @@
-set eu
+set -eu
 
 . ~/bin/hypre.prefix
 cmake . -DHYPRE_DIR=$P 
