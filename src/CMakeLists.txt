@@ -33,7 +33,7 @@ endif()
 # GCC warnings and optimizations
 if (UNIX)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic --std=c++11")
   endif()
   if (DEBUG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")
@@ -107,7 +107,7 @@ if (1)
   
   add_definitions(" -D_USE_HDF_")
   
-  include_directories(${HDF5_INCLUDE_PATH})
+  include_directories(${HDF5_INCLUDE_DIRS})
   target_link_libraries(${BINARY_NAME} ${HDF5_LIBRARIES})
 endif()
 
