@@ -17,6 +17,8 @@
 #include "Hydro.h"
 #include "Interp.h"
 
+#include "../hydro/suspender.h"
+
 void Main(MPI_Comm comm, bool loc) {
   // read config files, parse arguments, maybe init global fields
   using M = geom::geom3d::MeshStructured<Scal>;
@@ -92,7 +94,10 @@ void A() {
 
 
 int main (int argc, const char ** argv) {
-  test_vars::Test();
+  //test_vars::Test();
+  test_suspender::Test();
+  
+  return 0;
 
   Interp ip;
 
