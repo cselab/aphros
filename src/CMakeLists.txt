@@ -84,25 +84,26 @@ if (MPI_ENABLE)
   
   add_definitions("-DMPI_ENABLE")
   
-  set(CMAKE_CXX_COMPILER mpicxx)
-  set(CMAKE_C_COMPILER mpicc)
+  #set(CMAKE_CXX_COMPILER mpicxx)
+  #set(CMAKE_C_COMPILER mpicc)
   
-  include_directories(${MPI_INCLUDE_PATH})
-  target_link_libraries(${BINARY_NAME} ${MPI_LIBRARIES})
+  #include_directories(${MPI_INCLUDE_PATH})
+  #target_link_libraries(${BINARY_NAME} ${MPI_LIBRARIES})
 
-  if (MPI_COMPILE_FLAGS)
-    set_target_properties(${BINARY_NAME} PROPERTIES
-                          COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
-  endif()
+  #if (MPI_COMPILE_FLAGS)
+  #  set_target_properties(${BINARY_NAME} PROPERTIES
+  #  COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+                        #endif()
 
-  if (MPI_LINK_FLAGS)
-    set_target_properties(${BINARY_NAME} PROPERTIES
-                          LINK_FLAGS "${MPI_LINK_FLAGS}")
-  endif()
+                        #if (MPI_LINK_FLAGS)
+                        #set_target_properties(${BINARY_NAME} PROPERTIES
+                        #  LINK_FLAGS "${MPI_LINK_FLAGS}")
+                        #endif()
 endif()
 
 # HDF5
 if (1) 
+  set(HDF5_PREFER_PARALLEL on)
   find_package(HDF5 REQUIRED)
   
   add_definitions(" -D_USE_HDF_")
@@ -113,9 +114,9 @@ endif()
 
 # hypre
 include_directories(${HYPRE_DIR}/include)
-link_directories(${HYPRE_DIR}/lib)
+#link_directories(${HYPRE_DIR}/lib) # no effect
 target_link_libraries(${BINARY_NAME} -lHYPRE -lm)
-SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${HYPRE_DIR}/lib")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${HYPRE_DIR}/lib")
 
 # cubism specific
 set(BS 16)
