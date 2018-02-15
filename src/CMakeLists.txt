@@ -14,6 +14,11 @@ else()
   set(STATIC_BUILD OFF)
 endif()
 
+# Debug flag
+if (NOT DEFINED DEBUG)
+  set(DEBUG ON)   
+endif()
+
 project("mfer")
 
 set(BINARY_NAME "mfer")

@@ -45,4 +45,4 @@ namespace test_vars {
 
 void Test();
 
-}
+} // namespace test_vars

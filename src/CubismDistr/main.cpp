@@ -55,6 +55,8 @@ void Main(MPI_Comm comm, bool loc) {
 int main (int argc, const char ** argv) {
   test_vars::Test();
 
+  return 0;
+
   int prov;
   MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
   int rank;
