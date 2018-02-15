@@ -15,6 +15,8 @@
     ./conf
     make
 
+    (on daint use `build.daint` instead)
+
 # Run
   
     cd sim/sim01
