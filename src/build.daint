@@ -6,7 +6,7 @@ set -eu
 
 . ~/bin/hypre.prefix
 
-#cmake . -DHYPRE_DIR=$P -DMPI_C_COMPILER=cc -DMPI_CXX_COMPILER=CC
-cmake . -DHYPRE_DIR=$P 
+cmake . -DHYPRE_DIR=$P -DMPI_C_COMPILER=cc -DMPI_CXX_COMPILER=CC
+#cmake . -DHYPRE_DIR=$P 
 
-make -j4
+make -j4 VERBOSE=on
