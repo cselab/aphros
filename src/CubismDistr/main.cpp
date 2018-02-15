@@ -15,6 +15,8 @@
 #include "Vars.h"
 
 #include "Hydro.h"
+#include "Interp.h"
+
 void Main(MPI_Comm comm, bool loc) {
   // read config files, parse arguments, maybe init global fields
   using M = geom::geom3d::MeshStructured<Scal>;
@@ -54,6 +56,15 @@ void Main(MPI_Comm comm, bool loc) {
 
 int main (int argc, const char ** argv) {
   test_vars::Test();
+
+  Interp ip;
+
+  std::ifstream f("a.conf");
+  ip.All(f);
+  ip.PrintAll();
+
+  return 0;
+
 
   return 0;
 
