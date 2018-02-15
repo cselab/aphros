@@ -87,18 +87,18 @@ if (MPI_ENABLE)
   #set(CMAKE_CXX_COMPILER mpicxx)
   #set(CMAKE_C_COMPILER mpicc)
   
-  #include_directories(${MPI_INCLUDE_PATH})
-  #target_link_libraries(${BINARY_NAME} ${MPI_LIBRARIES})
+  include_directories(${MPI_INCLUDE_PATH})
+  target_link_libraries(${BINARY_NAME} ${MPI_LIBRARIES})
 
-  #if (MPI_COMPILE_FLAGS)
-  #  set_target_properties(${BINARY_NAME} PROPERTIES
-  #  COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
-                        #endif()
+  if (MPI_COMPILE_FLAGS)
+    set_target_properties(${BINARY_NAME} PROPERTIES
+      COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+  endif()
 
-                        #if (MPI_LINK_FLAGS)
-                        #set_target_properties(${BINARY_NAME} PROPERTIES
-                        #  LINK_FLAGS "${MPI_LINK_FLAGS}")
-                        #endif()
+  if (MPI_LINK_FLAGS)
+    set_target_properties(${BINARY_NAME} PROPERTIES
+      LINK_FLAGS "${MPI_LINK_FLAGS}")
+  endif()
 endif()
 
 # HDF5
