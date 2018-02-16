@@ -7,7 +7,7 @@
 ## Hypre
 
     cd lib/build
-    P=prefix ./all
+    ./all
 
 ## Cubism-hydro
 
