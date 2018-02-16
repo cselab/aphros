@@ -1,0 +1,1 @@
+map <F11> <Esc>:w<CR>:make!<CR>:make! test<CR>
