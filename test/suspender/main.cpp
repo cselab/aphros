@@ -3,13 +3,50 @@
 
 #include "suspender.h"
 
+namespace simple {
+
+void B (Suspender& s) {
+  Suspender::Sem sem = s.GetSem();
+  if (sem()) {
+    std::cerr << "B1" << std::endl;
+  }
+  if (sem()) {
+    std::cerr << "B2" << std::endl;
+  }
+}
+
+void A (Suspender& s) {
+  Suspender::Sem sem = s.GetSem();
+  if (sem()) {
+    std::cerr << "A1" << std::endl;
+  }
+  if (sem()) {
+    B(s);
+  }
+  if (sem()) {
+    std::cerr << "A2" << std::endl;
+  }
+}
+
+
+void Simple() {
+  Suspender s;
+
+  do {
+    A(s);
+  } while (s.Pending());
+}
+
+} // namespace simple
+
+
 using S = Suspender;
+
 std::string b; 
-int n;    
 
 void E(S& s) {
   auto e = s.GetSem();
-  for (int i = 0; i < n; ++i) {
+  for (int i = 0; i < 3; ++i) {
     if (e()) {
       b += "E1";
     }
@@ -31,16 +68,16 @@ void C(S& s) { // no sem
 }
 
 void B(S& s) {
-  s.GetSem();  // dummy sem 
+  //s.GetSem();  // dummy sem 
   auto e = s.GetSem();
-  s.GetSem();  // dummy sem
+  //s.GetSem();  // dummy sem
   if (e()) {
     b += "B1";
   }
   if (e()) {
     C(s);
   }
-  s.GetSem();  // dummy sem in the middle
+  //s.GetSem();  // dummy sem in the middle
   if (e()) {
     b += "B2";
   }
@@ -71,7 +108,6 @@ void A(S& s) {
 void Test() {
   S s;
   b = "";
-  n = 3;
   std::string p = "A1|B1|C1C2|B2|A2|C1C2|D1D2|E1|E2|E1|E2|E1|E2|";
   do {
     A(s);
@@ -87,5 +123,7 @@ void Test() {
 
 
 int main() {
+  simple::Simple();
+
   Test();
 }

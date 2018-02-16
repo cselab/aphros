@@ -4,7 +4,9 @@
 
 #include "Vars.h"
 
-void TestSimple() {
+namespace simple {
+
+void Simple() {
   Vars v;
   v.Parse("asdf", "string", "a");
   v.Parse("5", "int", "b");
@@ -17,6 +19,8 @@ void TestSimple() {
   assert(v.Vect["d"] == std::vector<double>({1., 2., 3., 4.}));
   assert(v.Vect["d"] != std::vector<double>({2., 2., 3., 4.}));
 }
+
+} // namespace simple
 
 template <class T>
 void TestParse(std::string s) {
@@ -76,9 +80,6 @@ void TestDel(std::string s) {
 void Test() {
   std::cerr << "\ntest_vars::Test()" << std::endl;
 
-  std::cerr << "TestSimple" << std::endl;
-  TestSimple();
-
   std::cerr << "TestParse" << std::endl;
   TestParse<std::string>("asdf");
   TestParse<int>("123");
@@ -108,5 +109,7 @@ void Test() {
 
 
 int main() {
+  simple::Simple();
+
   Test();
 }

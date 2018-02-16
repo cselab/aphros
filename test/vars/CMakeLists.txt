@@ -16,5 +16,5 @@ set_property(TARGET ${EXE} PROPERTY CXX_STANDARD 11)
 
 enable_testing()
 
-add_test(${p} ${EXE} a b)
+add_test(${p} ${EXE})
 

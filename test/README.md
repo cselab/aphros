@@ -13,8 +13,9 @@
 
 * Build and run an individual test with one command
 
-* Each test should have an function called Simple() 
-  containing the minimal client for a feature being tested
+* Each test should define function `Simple()`
+  as a minimal example for the feature being tested
+  and put it in namespace `simple`.
 
 * Binary name starts with `t.` to use in gitignore.
   Using a common name (e.g. `main`) not allowed by CMake.
