@@ -11,3 +11,8 @@ include_directories(SRC)
 # Add target
 add_executable(${EXE} ${SRC})
      
+
+enable_testing()
+
+add_test(t1 ex a b)
+add_test(t2 ex a a)
