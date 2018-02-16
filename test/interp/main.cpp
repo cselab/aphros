@@ -1,6 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 
 #include "Vars.h"
 #include "Interp.h"
@@ -9,7 +10,7 @@ namespace simple {
 
 void Simple() {
   Vars par;
-  Interp interp(par);
+  Interp ip(par);
 
   std::stringstream s;
   s << "set string a 1" << std::endl;
@@ -17,7 +18,7 @@ void Simple() {
   s << "set double c 1" << std::endl;
   s << "set vect d 1" << std::endl;
 
-  interp.RunAll(s);
+  ip.RunAll(s);
 
   assert(par.String["a"] == "1");
   assert(par.Int["b"] == 1);
@@ -28,6 +29,35 @@ void Simple() {
 } // namespace simple
 
 
+void TestFile() {
+  // open script
+  std::string ni = "a.conf";
+  std::ifstream fi(ni);
+
+  // run all commands
+  Vars par;
+  Interp ip(par);
+  ip.RunAll(fi);
+
+  // print variables to stringstream
+  std::stringstream so;
+  ip.PrintAll(so);
+
+  // echo to stderr
+  std::cerr << so.str();
+
+  // read reference data
+  std::string nr = "a.out";
+  std::ifstream fr(nr);
+  std::stringstream sr;
+  sr << fr.rdbuf();
+
+  // compare
+  assert(so.str() == sr.str());
+}
+
 int main() {
   simple::Simple();
+
+  TestFile();
 }

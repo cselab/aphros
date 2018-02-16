@@ -73,21 +73,23 @@ class Interp {
     while (RunNext(in)) {}
   }
   template <class T>
-  void Print(Vars::Map<T>& m) {
+  void Print(Vars::Map<T>& m, std::ostream& out) {
     for (auto& a : m) {
-      std::cout 
+      out 
           << m.GetTypeName() << " " 
           <<  a.first << " = " 
           << m.Print(a.first) << std::endl;
     }
   }
-  void PrintAll() {
-    Print(v_.String);
-    Print(v_.Int);
-    Print(v_.Double);
-    Print(v_.Vect);
+  void PrintAll(std::ostream& out) {
+    Print(v_.String, out);
+    Print(v_.Int, out);
+    Print(v_.Double, out);
+    Print(v_.Vect, out);
   }
-
+  void PrintAll() {
+    PrintAll(std::cout);
+  }
  private:
   Vars& v_;
 };
