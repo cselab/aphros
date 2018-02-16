@@ -1,6 +1,10 @@
-cmake_minimum_required(VERSION 3.0.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.0.0)
 
-set(EXE "main")
+get_filename_component(p ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+
+project(${p})
+
+set(EXE main)
 
 set(H "../../hydro")
 
@@ -14,5 +18,5 @@ set_property(TARGET ${EXE} PROPERTY CXX_STANDARD 11)
 
 enable_testing()
 
-add_test(main ${EXE} a b)
+add_test(${p} ${EXE} a b)
 
