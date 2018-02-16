@@ -12,7 +12,9 @@ include_directories(SRC)
 add_executable(${EXE} ${SRC})
      
 
-enable_testing()
+#enable_testing()
+include(CTest)
 
 add_test(t1 ex a b)
 add_test(t2 ex a a)
+
