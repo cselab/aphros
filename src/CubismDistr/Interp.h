@@ -89,5 +89,5 @@ class Interp {
   }
 
  private:
-  Vars v_;
+  Vars& v_;
 };

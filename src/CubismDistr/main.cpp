@@ -94,15 +94,11 @@ void A() {
 
 
 int main (int argc, const char ** argv) {
-  //test_vars::Test();
-  test_suspender::Test();
-  
-  return 0;
-
-  Interp ip;
+  Vars par;
+  Interp ip(par);
 
   std::ifstream f("a.conf");
-  ip.All(f);
+  ip.RunAll(f);
   ip.PrintAll();
 
   return 0;
