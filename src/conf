@@ -1,4 +1,7 @@
 set -eu
 
+mkdir build
+cd build
+
 . ~/bin/hypre.prefix
-cmake . -DHYPRE_DIR=$P 
+cmake ../ -DHYPRE_DIR=$P 
