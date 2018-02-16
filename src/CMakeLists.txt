@@ -131,3 +131,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_ALIGNBYTES_=16")
 target_link_libraries(${BINARY_NAME} ${LIBRARIES})
 
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION $ENV{HOME}/bin)
+
+
+# tests
+enable_testing()
+
+add_test(t1 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${BINARY_NAME} a b)
+add_test(t2 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${BINARY_NAME} a a)
+
