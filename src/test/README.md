@@ -9,3 +9,7 @@
 
 * No single file is aware of all tests
 
+* Build and run all tests with one command
+
+* Build and run an individual test with one command
+
