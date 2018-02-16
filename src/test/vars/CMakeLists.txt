@@ -6,11 +6,11 @@ project(${p})
 
 set(EXE main)
 
-set(H "../../hydro")
+set(CD "../../CubismDistr")
 
-include_directories(${H})
+include_directories(${CD})
 
-add_executable(${EXE} main.cpp ${H}/suspender.cpp)
+add_executable(${EXE} main.cpp ${CD}/Vars.cpp)
      
 set_property(TARGET ${EXE} PROPERTY CXX_STANDARD 11)
 
