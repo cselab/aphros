@@ -324,9 +324,7 @@ void Test() {
 
 } // namespace test_vars
 
-/*
 template class Vars::Map<std::string>;
 template class Vars::Map<int>;
 template class Vars::Map<double>;
 template class Vars::Map<std::vector<double>>;
-*/
