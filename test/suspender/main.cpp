@@ -67,6 +67,11 @@ void C(S& s) { // no sem
   b += "C2";
 }
 
+void BB(S& s) {
+  auto e = s.GetSem();  // dummy sem 
+  e();
+}
+
 void B(S& s) {
   //s.GetSem();  // dummy sem 
   auto e = s.GetSem();
@@ -89,6 +94,7 @@ void A(S& s) {
     b += "A1";
   }
   if (e()) {
+    // BB(s);  // TODO: would cause infinite loop (see todo in suspender.h)
     B(s);
   }
   if (e()) {

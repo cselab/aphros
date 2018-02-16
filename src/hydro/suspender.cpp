@@ -11,6 +11,7 @@ Suspender::Sem::Sem(Suspender& p, std::string name)
     l.emplace_back(0, 0);
   }
   ++i;
+
   i->c = 0;
 }
 
