@@ -13,3 +13,6 @@
 
 * Build and run an individual test with one command
 
+* Each test should have an function called Simple() 
+  containing the minimal client for a feature being tested
+
