@@ -4,7 +4,7 @@ get_filename_component(p ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 
 project(${p})
 
-set(EXE main)
+set(EXE ${p})
 
 set(CD "../../CubismDistr")
 
