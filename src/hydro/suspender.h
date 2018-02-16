@@ -4,6 +4,13 @@
 #include <string>
 #include <sstream>
 
+// TODO: Sequence like 
+//   GetSem();
+//   sem = GetSem();
+//   sem();
+// causes an infinite loop
+// (see todo in tests/suspender)
+
 // Suspendable functions.
 // Function F() is separated in stages each enclosed by if-operator.
 // At each call of function F(), only one stage is executed.
