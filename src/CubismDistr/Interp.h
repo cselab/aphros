@@ -8,7 +8,7 @@
 
 class Interp {
  public:
-  Interp() = default;
+  Interp(Vars& v) : v_(v) {}
   void Cmd(std::string s) {
     std::stringstream b(s);
     std::string cmd; 
@@ -60,7 +60,7 @@ class Interp {
       assert(false);
     }
   }
-  bool Next(std::istream& in) {
+  bool RunNext(std::istream& in) {
     std::string s;
     std::getline(in, s);
     if (in) {
@@ -69,8 +69,8 @@ class Interp {
     }
     return false;
   }
-  void All(std::istream& in) {
-    while (Next(in)) {}
+  void RunAll(std::istream& in) {
+    while (RunNext(in)) {}
   }
   template <class T>
   void Print(Vars::Map<T>& m) {
