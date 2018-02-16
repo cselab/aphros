@@ -54,9 +54,3 @@ class Suspender {
   LU::iterator lui_; // [l]ist of co[u]nters [i]terator
 };
 
-
-namespace test_suspender {
-
-void Test();
-
-} // namespace test_suspender
