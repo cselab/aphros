@@ -10,5 +10,5 @@ CTestTestfile.cmake
 Testing/
 DartConfiguration.tcl
 
-main
 build/
+t.*

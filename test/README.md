@@ -16,3 +16,5 @@
 * Each test should have an function called Simple() 
   containing the minimal client for a feature being tested
 
+* Binary name starts with `t.` to use in gitignore.
+  Using a common name (e.g. `main`) not allowed by CMake.

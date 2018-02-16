@@ -4,13 +4,13 @@ get_filename_component(p ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 
 project(${p})
 
-set(EXE ${p})
+set(EXE t.${p})
 
-set(H "../../hydro")
+set(CD "../../src/CubismDistr")
 
-include_directories(${H})
+include_directories(${CD})
 
-add_executable(${EXE} main.cpp ${H}/suspender.cpp)
+add_executable(${EXE} main.cpp ${CD}/Vars.cpp)
      
 set_property(TARGET ${EXE} PROPERTY CXX_STANDARD 11)
 
