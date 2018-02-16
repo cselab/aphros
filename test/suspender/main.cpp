@@ -31,6 +31,7 @@ void C(S& s) { // no sem
 }
 
 void B(S& s) {
+  s.GetSem();  // dummy sem 
   auto e = s.GetSem();
   s.GetSem();  // dummy sem
   if (e()) {
@@ -75,6 +76,7 @@ void Test() {
   do {
     A(s);
     b += "|";
+    std::cerr << s.Print() << std::endl;
   } while (s.Pending());
 
   std::cerr

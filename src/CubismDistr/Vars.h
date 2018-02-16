@@ -49,8 +49,3 @@ class Vars {
   Map<std::vector<double>> Vect;
 };
 
-namespace test_vars {
-
-void Test();
-
-} // namespace test_vars
