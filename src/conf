@@ -1,6 +1,6 @@
 set -eu
 
-mkdir build
+mkdir -p build
 cd build
 
 . ~/bin/hypre.prefix
