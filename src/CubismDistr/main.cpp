@@ -19,7 +19,7 @@
 
 #include "../hydro/suspender.h"
 
-void Main(MPI_Comm comm, bool loc) {
+void Main(MPI_Comm comm, bool loc, Vars& par) {
   // read config files, parse arguments, maybe init global fields
   using M = geom::geom3d::MeshStructured<Scal>;
   using K = Hydro<M>;
@@ -27,15 +27,6 @@ void Main(MPI_Comm comm, bool loc) {
   using D = Distr;
   //using Idx = D::Idx;
   
-  Vars par;
-  Interp ip(par);
-
-  std::ifstream f("a.conf");
-  ip.RunAll(f);
-  ip.PrintAll();
-
-  //bool loc = par["loc"];
-
   KF kf;
 
   const int es = 8;
@@ -63,15 +54,24 @@ int main (int argc, const char ** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   MPI_Comm comm;
-  bool loc = false;
+
+  Vars par;
+  Interp ip(par);
+
+  std::ifstream f("a.conf");
+  ip.RunAll(f);
+  ip.PrintAll();
+
+  bool loc = par.Int["loc"];
+
   if (loc) {
     MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
     if (rank == 0) {
-      Main(comm, loc);
+      Main(comm, loc, par);
     }
   } else {
     comm = MPI_COMM_WORLD;
-    Main(comm, loc);
+    Main(comm, loc, par);
   }
 
 
