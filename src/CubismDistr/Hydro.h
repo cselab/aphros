@@ -188,19 +188,25 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
 
 template <class M>
 void Hydro<M>::Run() {
-  auto sem = m.GetSem();
+  auto sem = m.GetSem("run");
 
   if (sem()) {
     as_->StartStep();
+  }
+  if (sem()) {
     as_->MakeIteration();
+  }
+  if (sem()) {
     as_->FinishStep();
-    m.Comm(&const_cast<FieldCell<Scal>&>(as_->GetField()));
-
+  }
+  if (sem()) {
+    /*
     sum_ = 0.;
     for (auto i : m.Cells()) {
       sum_ += as_->GetField()[i];
     }
     m.Reduce(&sum_);
+    */
 
     // linear system
     // Each block computes the coefficients assuming a uniform stencil
