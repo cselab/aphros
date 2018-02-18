@@ -264,7 +264,7 @@ class AdvectionSolverImplicit :
 template <class Mesh, class VelocityField>
 class AdvectionSolverExplicit :
     public AdvectionSolver<Mesh, VelocityField> {
-  const Mesh& mesh;
+  Mesh& mesh;
   static constexpr size_t dim = Mesh::dim;
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
@@ -282,7 +282,7 @@ class AdvectionSolverExplicit :
 
  public:
   AdvectionSolverExplicit(
-      const Mesh& mesh,
+      Mesh& mesh,
       const geom::FieldCell<Scal>& fc_u_initial,
       const geom::MapFace<std::shared_ptr<ConditionFace>>& mf_u_cond_,
       const VelocityField* p_fn_velocity,
@@ -319,34 +319,38 @@ class AdvectionSolverExplicit :
     return ff_volume_flux;
   }
   void MakeIteration() override {
-    auto& prev = fc_u_.iter_prev;
-    auto& curr = fc_u_.iter_curr;
-    prev = curr;
+    auto sem = mesh.GetSem();
+    if (sem()) {
+      auto& prev = fc_u_.iter_prev;
+      auto& curr = fc_u_.iter_curr;
+      prev = curr;
 
-    ff_volume_flux_ = ConvertVolumeFlux(this->p_f_velocity_);
+      ff_volume_flux_ = ConvertVolumeFlux(this->p_f_velocity_);
 
-    ff_u_ = InterpolateSuperbee(
-        prev,
-        Gradient(Interpolate(prev, mf_u_cond_, mesh), mesh),
-        mf_u_cond_, ff_volume_flux_, mesh);
+      ff_u_ = InterpolateSuperbee(
+          prev,
+          Gradient(Interpolate(prev, mf_u_cond_, mesh), mesh),
+          mf_u_cond_, ff_volume_flux_, mesh);
 
-    for (auto idxface : mesh.Faces()) {
-      ff_flux_[idxface] = ff_u_[idxface] * ff_volume_flux_[idxface];
-    }
-
-    for (auto idxcell : mesh.Cells()) {
-      Scal flux_sum = 0.;
-      for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-        IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-        flux_sum += ff_flux_[idxface] * mesh.GetOutwardFactor(idxcell, i);
+      for (auto idxface : mesh.Faces()) {
+        ff_flux_[idxface] = ff_u_[idxface] * ff_volume_flux_[idxface];
       }
 
-      curr[idxcell] = fc_u_.time_prev[idxcell] -
-          this->GetTimeStep() / mesh.GetVolume(idxcell) * flux_sum +
-          this->GetTimeStep() * (*this->p_fc_source_)[idxcell];
-    }
+      for (auto idxcell : mesh.Cells()) {
+        Scal flux_sum = 0.;
+        for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
+          IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
+          flux_sum += ff_flux_[idxface] * mesh.GetOutwardFactor(idxcell, i);
+        }
 
-    this->IncIterationCount();
+        curr[idxcell] = fc_u_.time_prev[idxcell] -
+            this->GetTimeStep() / mesh.GetVolume(idxcell) * flux_sum +
+            this->GetTimeStep() * (*this->p_fc_source_)[idxcell];
+      }
+      mesh.Comm(&curr);
+
+      this->IncIterationCount();
+    }
   }
   void FinishStep() override {
     fc_u_.time_curr = fc_u_.iter_curr;
