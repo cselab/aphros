@@ -12,6 +12,7 @@
 #include <iostream>
 #include <cmath>
 #include <cassert>
+#include <vector>
 
 namespace geom {
 
@@ -57,6 +58,13 @@ class Vect {
   explicit Vect(const Vect<OtherScal, dim>& other) {
     for (size_t i = 0; i < dim; ++i) {
       comp_[i] = static_cast<Scal>(other[i]);
+    }
+  }
+  template <class OtherScal>
+  explicit Vect(const std::vector<OtherScal>& v) {
+    // TODO dim instead of dimarg causes linker error
+    for (size_t i = 0; i < std::min<size_t>(dimarg, v.size()); ++i) {
+      comp_[i] = static_cast<Scal>(v[i]);
     }
   }
   Vect& operator=(Vect other) {

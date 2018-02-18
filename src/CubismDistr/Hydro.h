@@ -181,7 +181,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   geom::MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
 
   // velocity and flux
-  const Vect vel(1.);
+  const Vect vel(par.Vect["vel"]);
   for (auto idxface : m.Faces()) {
     ff_flux_[idxface] = vel.dot(m.GetSurface(idxface));
   }
@@ -195,7 +195,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   bool so = par.Int["second_order"];
 
   fc_sc_.Reinit(m, 1.);
-  ff_d_.Reinit(m, 0.);
+  ff_d_.Reinit(m, par.Double["mu"]);
   fc_src_.Reinit(m, 0.);
 
   p_lsf_ = std::make_shared<const solver::LinearSolverFactory>(
