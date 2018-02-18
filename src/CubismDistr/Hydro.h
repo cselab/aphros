@@ -21,6 +21,7 @@
 #include "ICubism.h"
 #include "ILocal.h"
 #include "Kernel.h"
+#include "Vars.h"
 
 // Basic Rules:
 // 
@@ -80,16 +81,15 @@ class Hydro : public Kernel {
   template <class T>
   using FieldNode = geom::FieldNode<T>;
 
-  Hydro(const MyBlockInfo& bi);
+  Hydro(Vars& par, const MyBlockInfo& bi);
   void Run() override;
-  //void ReadBuffer(LabMPI& l) override;
-  //void WriteBuffer(Block_t& o) override;
   M& GetMesh() { return m; }
 
  private:
   M CreateMesh(const MyBlockInfo& bi);
   using LS = typename Mesh::LS;
 
+  Vars& par;
   std::string name_;
   MyBlockInfo bi_;
   M m;
@@ -143,8 +143,8 @@ M Hydro<M>::CreateMesh(const MyBlockInfo& bi) {
 }
 
 template <class M>
-Hydro<M>::Hydro(const MyBlockInfo& bi) 
-  : bi_(bi), m(CreateMesh(bi))
+Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi) 
+  : par(par), bi_(bi), m(CreateMesh(bi))
   , fc_src_(m, 0.), ff_flux_(m), fc_p_(m)
 {
   name_ = 
@@ -304,8 +304,8 @@ class HydroFactory : public KernelFactory {
  public:
   using M = MM;
   using K = Hydro<M>;
-  std::unique_ptr<Kernel> Make(const MyBlockInfo& bi) override {
-    return std::unique_ptr<Hydro<M>>(new Hydro<M>(bi));
+  std::unique_ptr<Kernel> Make(Vars& par, const MyBlockInfo& bi) override {
+    return std::unique_ptr<Hydro<M>>(new Hydro<M>(par, bi));
   }
 };
 

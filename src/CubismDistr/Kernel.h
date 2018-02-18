@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "hydro/suspender.h"
+#include "Vars.h"
 
 using Scal = double;
 
@@ -53,7 +54,7 @@ class Kernel {
 
 class KernelFactory {
  public:
-  virtual std::unique_ptr<Kernel> Make(const MyBlockInfo&) = 0;
+  virtual std::unique_ptr<Kernel> Make(Vars& par, const MyBlockInfo&) = 0;
   virtual ~KernelFactory() {}
 };
 
