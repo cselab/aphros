@@ -239,6 +239,7 @@ void Hydro<M>::Run() {
     */
 
     // linear system
+
     // Each block computes the coefficients assuming a uniform stencil
     // (requirement of hypre)
     // Then it computes the rhs and allocates space for result.
