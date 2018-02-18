@@ -7,13 +7,14 @@
 
 #pragma once
 
-#include "mesh.hpp"
-#include "linear.hpp"
-#include <exception>
-#include "solver.hpp"
-#include "../control/metrics.hpp"
 #include <cmath>
 #include <sstream>
+#include <exception>
+
+#include "mesh.hpp"
+#include "linear.hpp"
+#include "solver.hpp"
+//#include "../control/metrics.hpp"
 
 namespace solver {
 
@@ -148,9 +149,7 @@ class ConvectionDiffusionScalarImplicit :
 
     // Compute convective fluxes
     ff_cflux_.Reinit(mesh, Expr());
-#pragma omp parallel for
-    for (IntIdx i = 0; i < static_cast<IntIdx>(mesh.Faces().size()); ++i) {
-      IdxFace idxface(i);
+    for (IdxFace idxface : mesh.Faces()) {
       if (!mesh.IsExcluded(idxface)) {
         Expr value_expr, derivative_expr;
         if (mesh.IsInner(idxface)) {
@@ -165,9 +164,7 @@ class ConvectionDiffusionScalarImplicit :
 
     // Compute diffusive fluxes
     ff_dflux_.Reinit(mesh, Expr());
-#pragma omp parallel for
-    for (IntIdx i = 0; i < static_cast<IntIdx>(mesh.Faces().size()); ++i) {
-      IdxFace idxface(i);
+    for (IdxFace idxface : mesh.Faces()) {
       if (!mesh.IsExcluded(idxface)) {
         Expr value_expr, derivative_expr;
         if (mesh.IsInner(idxface)) {
@@ -182,9 +179,7 @@ class ConvectionDiffusionScalarImplicit :
 
     // Assemble the system
     fc_system_.Reinit(mesh);
-#pragma omp parallel for
-    for (IntIdx i = 0; i < static_cast<IntIdx>(mesh.Cells().size()); ++i) {
-      IdxCell idxcell(i);
+    for (IdxCell idxcell : mesh.Cells()) {
       Expr& eqn = fc_system_[idxcell];
       if (!mesh.IsExcluded(idxcell)) {
         Expr cflux_sum;
@@ -226,6 +221,14 @@ class ConvectionDiffusionScalarImplicit :
       }
     }
 
+    for (IdxCell idxcell : mesh.AllCells()) {
+      Expr& eqn = fc_system_[idxcell];
+      if (eqn.size() == 0) {
+        eqn.Clear();
+        eqn.InsertTerm(1., idxcell);
+        eqn.SetConstant(0.);
+      }
+    }
     // Account for cell conditions for velocity
     for (auto it = mc_cond_.cbegin();
         it != mc_cond_.cend(); ++it) {
