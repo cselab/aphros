@@ -17,6 +17,7 @@
 #include "hydro/mesh3d.hpp"
 #include "hydro/solver.hpp"
 #include "hydro/advection.hpp"
+#include "hydro/conv_diff.hpp"
 
 #include "ICubism.h"
 #include "ILocal.h"
@@ -93,9 +94,13 @@ class Hydro : public Kernel {
   std::string name_;
   MyBlockInfo bi_;
   M m;
-  using AS = solver::AdvectionSolverExplicit<M, FieldFace<Scal>>;
-  FieldCell<Scal> fc_src_;
-  FieldFace<Scal> ff_flux_;
+  //using AS = solver::AdvectionSolverExplicit<M, FieldFace<Scal>>;
+  using AS = solver::ConvectionDiffusionScalarImplicit<M>;
+  FieldCell<Scal> fc_sc_; // scaling
+  FieldFace<Scal> ff_d_; // diffusion rate
+  FieldCell<Scal> fc_src_; // source
+  FieldFace<Scal> ff_flux_;  // volume flux
+  std::shared_ptr<const solver::LinearSolverFactory> p_lsf_; // linear solver factory
   FieldCell<Scal> fc_p_;
   std::unique_ptr<AS> as_;
   Scal sum_;
@@ -171,6 +176,9 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
           std::make_shared<solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
     }
   }
+  
+  // empty cell conditions
+  geom::MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
 
   // velocity and flux
   const Vect vel(1.);
@@ -181,8 +189,30 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   // time step
   const Scal dt = 1. / 2. / 200;
 
+  Scal relax = par.Double["relax"];
+  Scal tol = par.Double["tol"];
+  int num_iter = par.Int["num_iter"];
+  bool so = par.Int["second_order"];
+
+  fc_sc_.Reinit(m, 1.);
+  ff_d_.Reinit(m, 0.);
+  fc_src_.Reinit(m, 0.);
+
+  p_lsf_ = std::make_shared<const solver::LinearSolverFactory>(
+        std::make_shared<const solver::LuDecompositionFactory>());
+
+
   // Init advection solver
-  as_.reset(new AS(m, fc_u, mf_cond, &ff_flux_, &fc_src_, 0., dt));
+  //as_.reset(new AS(m, fc_u, mf_cond, &ff_flux_, &fc_src_, 0., dt));
+  as_.reset(new AS(
+        m, fc_u, mf_cond, mc_cond, 
+        relax, 
+        &fc_sc_, &ff_d_, &fc_src_, &ff_flux_,
+        0., dt,
+        *p_lsf_, 
+        tol, num_iter, 
+        so
+        ));
 }
 
 
