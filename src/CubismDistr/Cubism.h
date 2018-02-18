@@ -238,7 +238,7 @@ Cubism<KF>::Cubism(MPI_Comm comm, KF& kf,
     }
     mbi.h_gridpoint = bi.h_gridpoint;
     mbi.ptrBlock = bi.ptrBlock;
-    auto up = kf.Make(mbi);
+    auto up = kf.Make(par, mbi);
     mk.emplace(GetIdx(bi.index), std::unique_ptr<K>(dynamic_cast<K*>(up.release())));
   }
 
