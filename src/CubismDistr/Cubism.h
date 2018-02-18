@@ -8,6 +8,7 @@
 #include "Cubism/StencilInfo.h"
 #include "Cubism/HDF5Dumper_MPI.h"
 #include "ICubism.h"
+#include "Vars.h"
 
 #include "HYPRE_struct_ls.h"
 
@@ -115,8 +116,7 @@ using Scal = double;
 template <class KF>
 class Cubism : public Distr {
  public:
-  Cubism(MPI_Comm comm, KF& kf, 
-      int bs, Idx b, Idx p, int es, int h);
+  Cubism(MPI_Comm comm, KF& kf, int bs, int es, int h, Vars& par);
   using K = typename KF::K;
   using M = typename KF::M;
 
@@ -129,6 +129,8 @@ class Cubism : public Distr {
   int bs_; // block size
   int es_; // element size in Scal
   int h_; // number of halo cells (same in all directions)
+  Idx p_; // number of ranks
+  Idx b_; // number of blocks
 
   TGrid g_;
 
@@ -218,8 +220,11 @@ struct FakeProc {
 
 template <class KF>
 Cubism<KF>::Cubism(MPI_Comm comm, KF& kf, 
-    int bs, Idx b, Idx p, int es, int h) 
-  : bs_(bs), es_(es), h_(h), g_(p[0], p[1], p[2], b[0], b[1], b[2], 1., comm)
+    int bs, int es, int h, Vars& par) 
+  : bs_(bs), es_(es), h_(h)
+  , p_{par.Int["px"], par.Int["py"], par.Int["pz"]}
+  , b_{par.Int["bx"], par.Int["by"], par.Int["bz"]}
+  , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], 1., comm)
 {
   std::vector<BlockInfo> vbi = g_.getBlocksInfo();
 
