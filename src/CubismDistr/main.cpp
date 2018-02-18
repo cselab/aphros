@@ -25,18 +25,19 @@ void Main(MPI_Comm comm, bool loc) {
   using K = Hydro<M>;
   using KF = HydroFactory<M>;
   using D = Distr;
-  //using dx = D::Idx;
+  //using Idx = D::Idx;
+  
+  Vars par;
+  Interp ip(par);
+
+  std::ifstream f("a.conf");
+  ip.RunAll(f);
+  ip.PrintAll();
 
   KF kf;
 
-  // Kernels have to know about Distr if they want to create Stage objects
-  // However, Stage can be independent on Distr.
-  // Comm() should put the list of fields to exchange somewhere
-  // so that Distr could do communication.
-  // Comm() must be independent on implementation of Distr.
-  
-  Idx b{1, 2, 2}; // number of blocks 
-  Idx p{2, 1, 1}; // number of ranks
+  Idx b{par.Int["bx"], par.Int["by"], par.Int["bz"]}; // number of blocks 
+  Idx p{par.Int["px"], par.Int["py"], par.Int["pz"]}; // number of ranks 
   const int es = 8;
   const int h = 1;
   const int bs = 16;
@@ -50,59 +51,12 @@ void Main(MPI_Comm comm, bool loc) {
   }
 
   while (!d->IsDone()) {
-    // At each step, first exchange halos,
-    // then call Kernel::operator() for each block
     d->Step();
   }
 }
 
-/*
-#include "../hydro/suspender.h"
-
-void D(Suspender& s) {
-  auto sem = s.GetSem();
-
-  if (sem()) {
-    std::cerr << "D1\n";
-  }
-  if (sem()) {
-    std::cerr << "D2\n";
-  }
-}
-
-void C(Suspender& s) {
-  auto sem = s.GetSem();
-  if (sem()) {
-    std::cerr << "C1\n";
-  }
-
-  if (sem()) {
-    D(s);
-  }
-  if (sem()) {
-    std::cerr << "C2\n";
-  }
-}
-
-void A() {
-  Suspender s;
-  do {
-    C(s);
-  } while (s.Pending());
-}
-/*/
-
 
 int main (int argc, const char ** argv) {
-  Vars par;
-  Interp ip(par);
-
-  std::ifstream f("a.conf");
-  ip.RunAll(f);
-  ip.PrintAll();
-
-  return 0;
-
   int prov;
   MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
   int rank;

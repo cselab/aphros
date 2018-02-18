@@ -1,6 +1,7 @@
 #include <sstream>
 #include <iostream>
 #include <cassert>
+#include <iostream>
 
 #include "Vars.h"
 
@@ -133,11 +134,21 @@ bool Vars::Map<std::string>::Parse(std::string s, Key k) {
 
 template <class T>
 const T& Vars::Map<T>::operator[](Key k) const {
+  if (!m_.count(k)) {
+    std::cerr << "variable '" << k
+        << "' of type '" << GetTypeName()
+        << "' not found" << std::endl;
+  }
   return m_.at(k);
 }
 
 template <class T>
 T& Vars::Map<T>::operator[](Key k) {
+  if (!m_.count(k)) {
+    std::cerr << "variable '" << k
+        << "' of type '" << GetTypeName()
+        << "' not found" << std::endl;
+  }
   return m_.at(k);
 }
 
