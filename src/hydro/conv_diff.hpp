@@ -58,7 +58,7 @@ class ConvectionDiffusionScalar : public UnsteadyIterativeSolver {
 template <class Mesh>
 class ConvectionDiffusionScalarImplicit :
     public ConvectionDiffusionScalar<Mesh> {
-  const Mesh& mesh;
+  Mesh& mesh;
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
   static constexpr size_t dim = Mesh::dim;
@@ -80,10 +80,12 @@ class ConvectionDiffusionScalarImplicit :
   geom::FieldCell<Expr> fc_system_;
   geom::FieldCell<Scal> fc_corr_;
   geom::FieldCell<Vect> fc_grad_;
+  // LS
+  std::vector<Scal> lsa_, lsb_, lsx_;
 
  public:
   ConvectionDiffusionScalarImplicit(
-      const Mesh& mesh,
+      Mesh& mesh,
       const geom::FieldCell<Scal>& fc_initial,
       const geom::MapFace<std::shared_ptr<ConditionFace>>&
       mf_cond,
@@ -129,128 +131,203 @@ class ConvectionDiffusionScalarImplicit :
     }
   }
   void MakeIteration() override {
+    auto sem = mesh.GetSem();
+    using LS = typename Mesh::LS;
+    auto& m = mesh;
+
     auto& fc_prev = fc_field_.iter_prev;
     auto& fc_curr = fc_field_.iter_curr;
-    fc_prev = fc_curr;
+    if (sem()) {
+      fc_prev = fc_curr;
 
-    fc_grad_ = Gradient(Interpolate(fc_prev, mf_cond_, mesh), mesh);
+      fc_grad_ = Gradient(Interpolate(fc_prev, mf_cond_, mesh), mesh);
 
-    InterpolationInnerFaceSecondUpwindDeferred<Mesh, Expr>
-    value_inner(mesh, *this->p_ff_vol_flux_, fc_prev, fc_grad_);
+      InterpolationInnerFaceSecondUpwindDeferred<Mesh, Expr>
+      value_inner(mesh, *this->p_ff_vol_flux_, fc_prev, fc_grad_);
 
-    InterpolationBoundaryFaceNearestCell<Mesh, Expr>
-    value_boundary(mesh, mf_cond_);
+      InterpolationBoundaryFaceNearestCell<Mesh, Expr>
+      value_boundary(mesh, mf_cond_);
 
-    DerivativeInnerFacePlain<Mesh, Expr>
-    derivative_inner(mesh);
+      DerivativeInnerFacePlain<Mesh, Expr>
+      derivative_inner(mesh);
 
-    DerivativeBoundaryFacePlain<Mesh, Expr>
-    derivative_boundary(mesh, mf_cond_);
+      DerivativeBoundaryFacePlain<Mesh, Expr>
+      derivative_boundary(mesh, mf_cond_);
 
-    // Compute convective fluxes
-    ff_cflux_.Reinit(mesh, Expr());
-    for (IdxFace idxface : mesh.Faces()) {
-      if (!mesh.IsExcluded(idxface)) {
-        Expr value_expr, derivative_expr;
-        if (mesh.IsInner(idxface)) {
-          value_expr = value_inner.GetExpression(idxface);
+      // Compute convective fluxes
+      ff_cflux_.Reinit(mesh, Expr());
+      for (IdxFace idxface : mesh.Faces()) {
+        if (!mesh.IsExcluded(idxface)) {
+          Expr value_expr, derivative_expr;
+          if (mesh.IsInner(idxface)) {
+            value_expr = value_inner.GetExpression(idxface);
+          } else {
+            value_expr = value_boundary.GetExpression(idxface);
+          }
+          ff_cflux_[idxface] =
+              value_expr * (*this->p_ff_vol_flux_)[idxface];
+        }
+      }
+
+      // Compute diffusive fluxes
+      ff_dflux_.Reinit(mesh, Expr());
+      for (IdxFace idxface : mesh.Faces()) {
+        if (!mesh.IsExcluded(idxface)) {
+          Expr value_expr, derivative_expr;
+          if (mesh.IsInner(idxface)) {
+            derivative_expr = derivative_inner.GetExpression(idxface);
+          } else {
+            derivative_expr = derivative_boundary.GetExpression(idxface);
+          }
+          ff_dflux_[idxface] = derivative_expr *
+              (-(*this->p_ff_diffusion_rate_)[idxface]) * mesh.GetArea(idxface);
+        }
+      }
+
+      // Assemble the system
+      fc_system_.Reinit(mesh);
+      for (IdxCell idxcell : mesh.Cells()) {
+        Expr& eqn = fc_system_[idxcell];
+        if (!mesh.IsExcluded(idxcell)) {
+          Expr cflux_sum;
+          for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
+            IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
+            cflux_sum += ff_cflux_[idxface] * mesh.GetOutwardFactor(idxcell, i);
+          }
+
+          Expr dflux_sum;
+          for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
+            IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
+            dflux_sum += ff_dflux_[idxface] * mesh.GetOutwardFactor(idxcell, i);
+          }
+
+          auto dt = this->GetTimeStep();
+          auto coeffs = GetDerivativeApproxCoeffs(
+              0., {-2. * dt, -dt, 0.}, time_second_order_ ? 0 : 1);
+
+          Expr unsteady;
+          unsteady.InsertTerm(coeffs[2], idxcell);
+          unsteady.SetConstant(
+              coeffs[0] * fc_field_.time_prev[idxcell] +
+              coeffs[1] * fc_field_.time_curr[idxcell]);
+
+          eqn = (unsteady + cflux_sum / mesh.GetVolume(idxcell)) *
+                ((*this->p_fc_scaling_)[idxcell]) +
+                dflux_sum / mesh.GetVolume(idxcell) -
+                Expr((*this->p_fc_source_)[idxcell]);
+
+          // Convert to delta-form
+          eqn.SetConstant(eqn.Evaluate(fc_prev));
+
+          // Apply under-relaxation
+          eqn[eqn.Find(idxcell)].coeff /= relaxation_factor_;
         } else {
-          value_expr = value_boundary.GetExpression(idxface);
+          eqn.Clear();
+          eqn.InsertTerm(1., idxcell);
+          eqn.SetConstant(0.);
         }
-        ff_cflux_[idxface] =
-            value_expr * (*this->p_ff_vol_flux_)[idxface];
       }
-    }
 
-    // Compute diffusive fluxes
-    ff_dflux_.Reinit(mesh, Expr());
-    for (IdxFace idxface : mesh.Faces()) {
-      if (!mesh.IsExcluded(idxface)) {
-        Expr value_expr, derivative_expr;
-        if (mesh.IsInner(idxface)) {
-          derivative_expr = derivative_inner.GetExpression(idxface);
-        } else {
-          derivative_expr = derivative_boundary.GetExpression(idxface);
+      // Fill halo cells with u=0 equations
+      for (IdxCell idxcell : mesh.AllCells()) {
+        Expr& eqn = fc_system_[idxcell];
+        if (eqn.size() == 0) {
+          eqn.Clear();
+          eqn.InsertTerm(1., idxcell);
+          eqn.SetConstant(0.);
         }
-        ff_dflux_[idxface] = derivative_expr *
-            (-(*this->p_ff_diffusion_rate_)[idxface]) * mesh.GetArea(idxface);
       }
-    }
 
-    // Assemble the system
-    fc_system_.Reinit(mesh);
-    for (IdxCell idxcell : mesh.Cells()) {
-      Expr& eqn = fc_system_[idxcell];
-      if (!mesh.IsExcluded(idxcell)) {
-        Expr cflux_sum;
-        for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-          IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-          cflux_sum += ff_cflux_[idxface] * mesh.GetOutwardFactor(idxcell, i);
+      // Include cell conditions for velocity
+      for (auto it = mc_cond_.cbegin(); it != mc_cond_.cend(); ++it) {
+        IdxCell idxcell(it->GetIdx());
+        ConditionCell* cond = it->GetValue().get();
+        auto& eqn = fc_system_[idxcell];
+        if (auto cond_value = dynamic_cast<ConditionCellValue<Scal>*>(cond)) {
+          eqn.Clear();
+          // TODO: Revise dt coefficient for fixed-value cell condition
+          eqn.InsertTerm(1. / this->GetTimeStep(), idxcell);
+          eqn.SetConstant(
+              (fc_prev[idxcell] - cond_value->GetValue()) /
+              this->GetTimeStep());
         }
+      }
 
-        Expr dflux_sum;
-        for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-          IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-          dflux_sum += ff_dflux_[idxface] * mesh.GetOutwardFactor(idxcell, i);
+      // linear system
+      // Each block computes the coefficients assuming a uniform stencil
+      // (requirement of hypre)
+      // Then it computes the rhs and allocates space for result.
+      // All three are 1D arrays.
+      // Then the block issues a request to solve a linear system 
+      // passing pointers to these arrays and stencil description.
+      // After going through all blocks, 
+      // the processor assembles the system and calls hypre.
+      LS l;
+      // stencil
+      l.st.emplace_back(0, 0, -1);
+      l.st.emplace_back(0, -1, 0);
+      l.st.emplace_back(-1, 0, 0);
+      l.st.emplace_back(0, 0, 0);
+      l.st.emplace_back(1, 0, 0);
+      l.st.emplace_back(0, 1, 0);
+      l.st.emplace_back(0, 0, 1);
+
+
+      int bs = _BLOCKSIZE_;
+      int n = bs * bs *bs;
+      using MIdx = typename Mesh::MIdx;
+      {
+        lsa_.resize(n*l.st.size());
+        auto& bc = mesh.GetBlockCells();
+        size_t i = 0;
+        for (auto c : mesh.Cells()) {
+          auto& e = fc_system_[c];
+          for (size_t j = 0; j < e.size(); ++j) {
+            lsa_[i++] = e[j].coeff;
+            if (e[j].idx != bc.GetIdx(bc.GetMIdx(c) + MIdx(l.st[j]))) {
+              std::cerr << "***"
+                  << " MIdx(c)=" << bc.GetMIdx(c)
+                  << " MIdx(e[j].idx)=" << bc.GetMIdx(e[j].idx)
+                  << " l.st[j]=" << MIdx(l.st[j]) 
+                  << std::endl;
+              assert(false);
+            }
+          }
         }
-
-        auto dt = this->GetTimeStep();
-        auto coeffs = GetDerivativeApproxCoeffs(
-            0., {-2. * dt, -dt, 0.}, time_second_order_ ? 0 : 1);
-
-        Expr unsteady;
-        unsteady.InsertTerm(coeffs[2], idxcell);
-        unsteady.SetConstant(
-            coeffs[0] * fc_field_.time_prev[idxcell] +
-            coeffs[1] * fc_field_.time_curr[idxcell]);
-
-        eqn = (unsteady + cflux_sum / mesh.GetVolume(idxcell)) *
-              ((*this->p_fc_scaling_)[idxcell]) +
-              dflux_sum / mesh.GetVolume(idxcell) -
-              Expr((*this->p_fc_source_)[idxcell]);
-
-        // Convert to delta-form
-        eqn.SetConstant(eqn.Evaluate(fc_prev));
-
-        // Apply under-relaxation
-        eqn[eqn.Find(idxcell)].coeff /= relaxation_factor_;
-      } else {
-        eqn.Clear();
-        eqn.InsertTerm(1., idxcell);
-        eqn.SetConstant(0.);
+        assert(i == n * l.st.size());
       }
-    }
 
-    for (IdxCell idxcell : mesh.AllCells()) {
-      Expr& eqn = fc_system_[idxcell];
-      if (eqn.size() == 0) {
-        eqn.Clear();
-        eqn.InsertTerm(1., idxcell);
-        eqn.SetConstant(0.);
+      {
+        lsb_.resize(n, 1.);
+        size_t i = 0;
+        for (auto c : mesh.Cells()) {
+          auto& e = fc_system_[c];
+          lsb_[i++] = -e.GetConstant();
+        }
+        assert(i == lsb_.size());
       }
+
+      lsx_.resize(n, 0.);
+      l.a = &lsa_;
+      l.b = &lsb_;
+      l.x = &lsx_;
+      m.Solve(l);
     }
-    // Account for cell conditions for velocity
-    for (auto it = mc_cond_.cbegin();
-        it != mc_cond_.cend(); ++it) {
-      IdxCell idxcell(it->GetIdx());
-      ConditionCell* cond = it->GetValue().get();
-      auto& eqn = fc_system_[idxcell];
-      if (auto cond_value = dynamic_cast<ConditionCellValue<Scal>*>(cond)) {
-        eqn.Clear();
-        // TODO: Revise dt coefficient for fixed-value cell condition
-        eqn.InsertTerm(1. / this->GetTimeStep(), idxcell);
-        eqn.SetConstant(
-            (fc_prev[idxcell] - cond_value->GetValue()) /
-            this->GetTimeStep());
+
+    if (sem()) {
+      //fc_corr_ = linear_->Solve(fc_system_);
+      fc_corr_.Reinit(mesh);
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        fc_corr_[c] = lsx_[i++];
       }
+      assert(i == lsx_.size());
+      for (auto idxcell : mesh.Cells()) {
+        fc_curr[idxcell] = fc_prev[idxcell] + fc_corr_[idxcell];
+      }
+      m.Comm(&fc_curr);
+      this->IncIterationCount();
     }
-
-    fc_corr_ = linear_->Solve(fc_system_);
-    for (auto idxcell : mesh.Cells()) {
-      fc_curr[idxcell] = fc_prev[idxcell] + fc_corr_[idxcell];
-    }
-
-    this->IncIterationCount();
   }
   void FinishStep() override {
     fc_field_.time_prev = fc_field_.time_curr;
