@@ -10,6 +10,7 @@
 #include "hydro/mesh3d.hpp"
 #include "hydro/output.hpp"
 #include "hydro/output_paraview.hpp"
+#include "Vars.h"
 
 #define NUMFR 10
 #define TEND 100
@@ -19,7 +20,7 @@ using Scal = double;
 template <class KF>
 class Local : public Distr {
  public:
-  Local(MPI_Comm comm, KF& kf, int bs, Idx b, Idx p, int es, int h);
+  Local(MPI_Comm comm, KF& kf, int bs, int es, int h, Vars& par);
   using K = typename KF::K;
   using M = typename KF::M;
   using MIdx = typename  M::MIdx;
@@ -35,6 +36,8 @@ class Local : public Distr {
   int bs_; // block size
   int es_; // element size in Scal
   int hl_; // number of halo cells (same in all directions)
+  Idx p_; // number of ranks
+  Idx b_; // number of blocks
   std::vector<geom::FieldCell<Scal>> buf_; // buffer on mesh
 
   M gm; // global mesh
@@ -79,10 +82,13 @@ auto Local<KF>::CreateMesh(int bs, Idx b, Idx p, int es, int hl) -> M {
 }
 
 template <class KF>
-Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, Idx b, Idx p, int es, int hl) 
-  : comm_(comm), bs_(bs), es_(es), hl_(hl), buf_(es_)
+Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par) 
+  : comm_(comm), bs_(bs), es_(es), hl_(hl)
+  , p_{par.Int["px"], par.Int["py"], par.Int["pz"]}
+  , b_{par.Int["bx"], par.Int["by"], par.Int["bz"]}
+  , buf_(es_)
 {
-  gm = CreateMesh(bs, b, p, es, hl);
+  gm = CreateMesh(bs, b_, p_, es, hl);
 
   output::Content content = {
       std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
@@ -99,8 +105,8 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, Idx b, Idx p, int es, int hl)
   
   // Fill block info
   MIdx ms(bs_, bs_, bs_); // block size 
-  MIdx mb(b[0], b[1], b[2]); // number of blocks
-  MIdx mp(p[0], p[1], p[2]); // number of PEs
+  MIdx mb(b_[0], b_[1], b_[2]); // number of blocks
+  MIdx mp(p_[0], p_[1], p_[2]); // number of PEs
   geom::BlockCells<3> bc(mb * mp);
   using geom::IdxNode;
   Scal h = (gm.GetNode(IdxNode(1)) - gm.GetNode(IdxNode(0)))[0];

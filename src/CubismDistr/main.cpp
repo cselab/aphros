@@ -34,10 +34,10 @@ void Main(MPI_Comm comm, bool loc) {
   ip.RunAll(f);
   ip.PrintAll();
 
+  //bool loc = par["loc"];
+
   KF kf;
 
-  Idx b{par.Int["bx"], par.Int["by"], par.Int["bz"]}; // number of blocks 
-  Idx p{par.Int["px"], par.Int["py"], par.Int["pz"]}; // number of ranks 
   const int es = 8;
   const int h = 1;
   const int bs = 16;
@@ -45,9 +45,9 @@ void Main(MPI_Comm comm, bool loc) {
   // Initialize buffer mesh and make Hydro for each block.
   std::unique_ptr<Distr> d;
   if (loc) {
-    d = CreateLocal(comm, kf, bs, b, p, es, h);
+    d = CreateLocal(comm, kf, bs, es, h, par);
   } else {
-    d = CreateCubism(comm, kf, bs, b, p, es, h);
+    d = CreateCubism(comm, kf, bs, es, h, par);
   }
 
   while (!d->IsDone()) {
