@@ -12,9 +12,6 @@
 
 #include "HYPRE_struct_ls.h"
 
-#define NUMFR 10
-#define TEND 100
-
 using Real = double;
 
 struct Elem {
@@ -126,6 +123,7 @@ class Cubism : public Distr {
  private:
   std::map<Idx, std::unique_ptr<K>> mk;
 
+  Vars& par;
   int bs_; // block size
   int es_; // element size in Scal
   int h_; // number of halo cells (same in all directions)
@@ -221,7 +219,7 @@ struct FakeProc {
 template <class KF>
 Cubism<KF>::Cubism(MPI_Comm comm, KF& kf, 
     int bs, int es, int h, Vars& par) 
-  : bs_(bs), es_(es), h_(h)
+  : par(par), bs_(bs), es_(es), h_(h)
   , p_{par.Int["px"], par.Int["py"], par.Int["pz"]}
   , b_{par.Int["bx"], par.Int["by"], par.Int["bz"]}
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], 1., comm)
@@ -249,7 +247,7 @@ Cubism<KF>::Cubism(MPI_Comm comm, KF& kf,
 
 template <class KF>
 bool Cubism<KF>::IsDone() const { 
-  return step_ > TEND; 
+  return step_ > par.Int["max_step"]; 
 }
 
 template <class KF>
@@ -554,7 +552,7 @@ void Cubism<KF>::Step() {
     }
   } while (true);
 
-  if (step_ % (TEND / NUMFR)  == 0) {
+  if (step_ % (par.Int["max_step"] / par.Int["num_frames"])  == 0) {
     auto suff = "_" + std::to_string(frame_);
     DumpHDF5_MPI<TGrid, StreamHdf<0>>(g_, frame_, step_*1., "p" + suff);
     ++frame_;
