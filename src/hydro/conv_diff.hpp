@@ -351,9 +351,13 @@ class ConvectionDiffusionScalarImplicit :
   }
   void CorrectField(Layers layer,
                     const geom::FieldCell<Scal>& fc_corr) override {
-    auto& fc_field_layer = fc_field_.Get(layer);
-    for (auto idxcell : mesh.Cells()) {
-      fc_field_layer[idxcell] += fc_corr[idxcell];
+    auto sem = mesh.GetSem();
+    if (sem()) {
+      auto& fc_field_layer = fc_field_.Get(layer);
+      for (auto idxcell : mesh.Cells()) {
+        fc_field_layer[idxcell] += fc_corr[idxcell];
+      }
+      mesh.Comm(&fc_field_layer);
     }
   }
   const geom::FieldCell<Expr>& GetEquations() override {

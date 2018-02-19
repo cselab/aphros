@@ -198,10 +198,15 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
   }
   void CorrectVelocity(Layers layer,
                        const geom::FieldCell<Vect>& fc_corr) override {
+    auto sem = mesh.GetSem();
     for (size_t n = 0; n < dim; ++n) {
-      v_solver_[n]->CorrectField(layer, GetComponent(fc_corr, n));
+      if (sem()) {
+        v_solver_[n]->CorrectField(layer, GetComponent(fc_corr, n));
+      }
     }
-    CopyToVector(layer);
+    if (sem()) {
+      CopyToVector(layer);
+    }
   }
   const geom::FieldCell<Expr>& GetVelocityEquations(size_t comp) override {
     return v_solver_[comp]->GetEquations();
@@ -494,6 +499,7 @@ class FluidSimple : public FluidSolver<Mesh> {
   geom::FieldCell<Vect> fc_ext_force_restored_;
   geom::FieldFace<Vect> ff_ext_force_restored_;
   geom::FieldFace<Vect> ff_stforce_restored_;
+  geom::FieldCell<Vect> fc_velocity_corr_;
   // / needed for MMIM, now disabled
   //geom::FieldFace<Vect> ff_velocity_iter_prev_;
   // LS
@@ -1125,25 +1131,38 @@ class FluidSimple : public FluidSolver<Mesh> {
       for (auto c : m.Cells()) {
         fc_pressure_corr_[c] = lsx_[i++];
       }
+      
+      // Comm pressure correction (needed for flux correction)
+      m.Comm(&fc_pressure_corr_);
+    }
 
+    if (sem()) {
       // Correct pressure
       for (auto idxcell : mesh.Cells()) {
         fc_pressure_curr[idxcell] = fc_pressure_prev[idxcell] +
             pressure_relaxation_factor_ * fc_pressure_corr_[idxcell];
       }
+      m.Comm(&fc_pressure_curr);
 
       fc_pressure_corr_grad_ = Gradient(
           Interpolate(fc_pressure_corr_, mf_pressure_corr_cond_, mesh),
           mesh);
 
       // Correct the velocity
-      geom::FieldCell<Vect> fc_velocity_corr(mesh);
+      fc_velocity_corr_.Reinit(mesh);
       for (auto idxcell : mesh.Cells()) {
-        fc_velocity_corr[idxcell] =
+        fc_velocity_corr_[idxcell] =
             fc_pressure_corr_grad_[idxcell] / (-fc_diag_coeff_[idxcell]);
       }
-      conv_diff_solver_->CorrectVelocity(Layers::iter_curr, fc_velocity_corr);
 
+    }
+
+    if (sem()) {
+      // correct and comm
+      conv_diff_solver_->CorrectVelocity(Layers::iter_curr, fc_velocity_corr_);
+    }
+
+    if (sem()) {
       // Calc divergence-free volume fluxes
       for (auto idxface : mesh.Faces()) {
         ff_vol_flux_.iter_curr[idxface] =
@@ -1154,6 +1173,11 @@ class FluidSimple : public FluidSolver<Mesh> {
       // TODO: SIMPLER removed
 
       this->IncIterationCount();
+      // m.Comm(&fc_velocity_curr);  // Comm done by CorrectVelocity
+    }
+
+    if (sem()) {
+
     }
   }
   void FinishStep() override {
