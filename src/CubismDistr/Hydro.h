@@ -182,6 +182,8 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
     }
   }
 
+  const Vect vel(par.Vect["vel"]);
+
   // initial velocity
   FieldCell<Vect> fc_vel(m, Vect(0));
 
@@ -191,7 +193,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
     if (!m.IsExcluded(idxface) && !m.IsInner(idxface)) {
       mf_velcond[idxface] =
           std::make_shared
-          <solver::fluid_condition::NoSlipWallFixed<M>>(Vect(0));
+          <solver::fluid_condition::NoSlipWallFixed<M>>(vel);
     }
   }
   
@@ -203,7 +205,6 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
 
   // velocity and flux
   ff_flux_.Reinit(m);
-  const Vect vel(par.Vect["vel"]);
   for (auto idxface : m.Faces()) {
     ff_flux_[idxface] = vel.dot(m.GetSurface(idxface));
   }
@@ -222,10 +223,21 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   fc_sc_.Reinit(m, 1.); // scaling for as_ and density for fs_
   ff_d_.Reinit(m, par.Double["mu"]);
   fc_d_.Reinit(m, par.Double["mu"]);
-  fc_force_.Reinit(m, Vect(par.Vect["force"]));
   fc_stforce_.Reinit(m, Vect(0));
   ff_stforce_.Reinit(m, Vect(0));
   fc_src_.Reinit(m, 0.);
+
+  fc_force_.Reinit(m);
+  const Vect f(par.Vect["force"]);
+  const Vect f2(par.Vect["force2"]);
+  for (auto i : m.Cells()) {
+    Vect x = m.GetCenter(i);
+    if ((x[1] - 0.5) * (x[2] - 0.25) < 0.) {
+      fc_force_[i] = f;
+    } else {
+      fc_force_[i] = f2;
+    }
+  }
 
   p_lsf_ = std::make_shared<const solver::LinearSolverFactory>(
         std::make_shared<const solver::LuDecompositionFactory>());
@@ -261,6 +273,7 @@ template <class M>
 void Hydro<M>::Run() {
   auto sem = m.GetSem("run");
 
+  /*
   if (sem()) {
     as_->StartStep();
   }
@@ -270,6 +283,8 @@ void Hydro<M>::Run() {
   if (sem()) {
     as_->FinishStep();
   }
+  */
+
   if (sem()) {
     fs_->StartStep();
   }
