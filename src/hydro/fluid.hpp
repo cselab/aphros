@@ -54,7 +54,7 @@ class ConvectionDiffusion : public UnsteadyIterativeSolver {
 
 template <class Mesh>
 class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
-  const Mesh& mesh;
+  Mesh& mesh;
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
   using Solver = ConvectionDiffusionScalarImplicit<Mesh>;
@@ -85,7 +85,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
     }
   }
   ConvectionDiffusionImplicit(
-      const Mesh& mesh,
+      Mesh& mesh,
       const geom::FieldCell<Vect>& fc_velocity_initial,
       const geom::MapFace<std::shared_ptr<ConditionFace>>&
       mf_velocity_cond,
@@ -414,7 +414,7 @@ std::shared_ptr<ConditionFaceFluid> Parse(std::string argstr,
 // TODO: Extrapolation for first iteration
 template <class Mesh>
 class FluidSimple : public FluidSolver<Mesh> {
-  const Mesh& mesh;
+  Mesh& mesh;
   static constexpr size_t dim = Mesh::dim;
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
@@ -604,10 +604,7 @@ class FluidSimple : public FluidSolver<Mesh> {
         force_geometric_average_);
     fc_ext_force_restored_.Reinit(mesh);
 
-#pragma omp parallel for
-    for (IntIdx i = 0; i < static_cast<IntIdx>(mesh.Cells().size()); ++i) {
-      IdxCell idxcell(i);
-    //for (auto idxcell : mesh.Cells()) {
+    for (auto idxcell : mesh.Cells()) {
       Vect sum = Vect::kZero;
       for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
         IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
@@ -635,7 +632,7 @@ class FluidSimple : public FluidSolver<Mesh> {
   }
 
  public:
-  FluidSimple(const Mesh& mesh,
+  FluidSimple(Mesh& mesh,
               const geom::FieldCell<Vect>& fc_velocity_initial,
               const geom::MapFace<std::shared_ptr<ConditionFaceFluid>>&
               mf_cond,
@@ -806,312 +803,183 @@ class FluidSimple : public FluidSolver<Mesh> {
   }
   // TODO: rewrite norm() using dist() where needed
   void MakeIteration() override {
+    auto sem = mesh.GetSem();
+    using LS = typename Mesh::LS;
+    auto& m = mesh;
+
     auto& fc_pressure_prev = fc_pressure_.iter_prev;
     auto& fc_pressure_curr = fc_pressure_.iter_curr;
-    fc_pressure_prev = fc_pressure_curr;
-    ff_vol_flux_.iter_prev = ff_vol_flux_.iter_curr;
 
-    UpdateOutletBaseConditions();
-    UpdateDerivedConditions();
+    if (sem()) {
+      fc_pressure_prev = fc_pressure_curr;
+      ff_vol_flux_.iter_prev = ff_vol_flux_.iter_curr;
 
-    CalcExtForce();
+      UpdateOutletBaseConditions();
+      UpdateDerivedConditions();
 
-    CalcKinematicViscosity();
+      CalcExtForce();
 
-    timer_->Push("fluid.0.pressure-gradient");
-    ff_pressure_ = Interpolate(fc_pressure_prev, mf_pressure_cond_, mesh);
-    fc_pressure_grad_ = Gradient(ff_pressure_, mesh);
-    ff_pressure_grad_ = Interpolate(
-        fc_pressure_grad_, mf_pressure_grad_cond_, mesh);
-    timer_->Pop();
+      CalcKinematicViscosity();
 
-    // initialize force with zero
-    fc_force_.Reinit(mesh, Vect(0));
-    // append viscous term
-    timer_->Push("fluid.1a.explicit-viscosity");
-    for (size_t n = 0; n < dim; ++n) {
-      geom::FieldCell<Scal> fc = GetComponent(
-          conv_diff_solver_->GetVelocity(Layers::iter_curr), n);
-      auto ff = Interpolate(fc, conv_diff_solver_->GetVelocityCond(n), mesh);
-      auto gc = Gradient(ff, mesh);
-      auto gf = Interpolate(gc, mf_force_cond_, mesh); // adhoc: zero-der cond
-      for (auto idxcell : mesh.Cells()) {
-        Vect sum = Vect::kZero;
-        for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-          IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-          sum += gf[idxface] * (ff_kinematic_viscosity_[idxface] * 
-              mesh.GetOutwardSurface(idxcell, i)[n]);
-        }
-        fc_force_[idxcell] += sum / mesh.GetVolume(idxcell);
-      }
-    }
-    timer_->Pop();
+      timer_->Push("fluid.0.pressure-gradient");
+      ff_pressure_ = Interpolate(fc_pressure_prev, mf_pressure_cond_, mesh);
+      fc_pressure_grad_ = Gradient(ff_pressure_, mesh);
+      ff_pressure_grad_ = Interpolate(
+          fc_pressure_grad_, mf_pressure_grad_cond_, mesh);
+      timer_->Pop();
 
-    // append to force
-#pragma omp parallel for
-    for (IntIdx i = 0; i < static_cast<IntIdx>(mesh.Cells().size()); ++i) {
-      IdxCell idxcell(i);
-    //for (auto idxcell : mesh.Cells()) {
-      fc_force_[idxcell] +=
-          fc_pressure_grad_[idxcell] * (-1.) +
-          fc_ext_force_restored_[idxcell] +
-          (*this->p_fc_stforce_)[idxcell] +
-          // Volume source momentum compensation:
-          conv_diff_solver_->GetVelocity(Layers::iter_curr)[idxcell] *
-          ((*this->p_fc_density_)[idxcell] *
-          (*this->p_fc_volume_source_)[idxcell] -
-          (*this->p_fc_mass_source_)[idxcell]);
-    }
-
-    timer_->Push("fluid.2.convection-diffusion");
-    conv_diff_solver_->MakeIteration();
-    timer_->Pop();
-
-    fc_diag_coeff_.Reinit(mesh);
-    for (auto idxcell : mesh.Cells()) {
-      Scal sum = 0.;
+      // initialize force with zero
+      fc_force_.Reinit(mesh, Vect(0));
+      // append viscous term
+      timer_->Push("fluid.1a.explicit-viscosity");
       for (size_t n = 0; n < dim; ++n) {
-        sum += conv_diff_solver_->GetVelocityEquations(n)[idxcell].CoeffSum();
-      }
-      fc_diag_coeff_[idxcell] = sum / dim;
-    }
-
-    // Define ff_diag_coeff_ on inner faces only
-    ff_diag_coeff_ = Interpolate(
-        fc_diag_coeff_, geom::MapFace<std::shared_ptr<ConditionFace>>(), mesh);
-
-    fc_velocity_asterisk_ = conv_diff_solver_->GetVelocity(Layers::iter_curr);
-
-    ff_velocity_asterisk_ = Interpolate(
-        fc_velocity_asterisk_, mf_velocity_cond_, mesh);
-
-    // // needed for MMIM, now disabled
-    //ff_velocity_iter_prev_ = Interpolate(
-    //    conv_diff_solver_->GetVelocity(Layers::iter_prev),
-    //    mf_velocity_cond_, mesh);
-
-    // Calc volumetric flux (asterisk)
-    // using momentum interpolation (Rhie-Chow)
-    // including hydrostatics-correction
-    // TODO: Extend hydrostatics-correction on a non-uniform mesh
-    timer_->Push("fluid.3.momentum-interpolation");
-    ff_volume_flux_asterisk_.Reinit(mesh);
-    for (auto idxface : mesh.Faces()) {
-      const auto volume_flux_interpolated =
-          ff_velocity_asterisk_[idxface].dot(mesh.GetSurface(idxface));
-      if (!is_boundary_[idxface] && !mesh.IsExcluded(idxface)) {
-        IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
-        IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
-        Vect dm = mesh.GetVectToCell(idxface, 0);
-        Vect dp = mesh.GetVectToCell(idxface, 1);
-        const auto pressure_surface_derivative_wide =
-            (ff_pressure_grad_[idxface] -
-            //ff_stforce_restored_[idxface] -
-            ff_ext_force_restored_[idxface]).dot(mesh.GetSurface(idxface));
-        const auto pressure_surface_derivative_compact =
-            (fc_pressure_prev[cp] - fc_pressure_prev[cm]) /
-            (dp - dm).norm() * mesh.GetArea(idxface) -
-            //(*this->p_ff_stforce_)[idxface].dot(mesh.GetNormal(idxface)) - 
-            ff_ext_force_[idxface].dot(mesh.GetSurface(idxface));
-        //const auto mmim = (1. - velocity_relaxation_factor_) *
-        //    (ff_vol_flux_.iter_prev[idxface] -
-        //     ff_velocity_iter_prev_[idxface].dot(mesh.GetSurface(idxface)));
-        ff_volume_flux_asterisk_[idxface] =
-            volume_flux_interpolated +
-            rhie_chow_factor_ * (pressure_surface_derivative_wide -
-            pressure_surface_derivative_compact) / ff_diag_coeff_[idxface] +
-            0; //mmim; // TODO: Test MMIM
-      } else {
-        ff_volume_flux_asterisk_[idxface] =
-            ff_velocity_asterisk_[idxface].dot(mesh.GetSurface(idxface));
-      }
-    }
-
-    // Apply meshvel
-    for (auto idxface : mesh.Faces()) {
-      ff_volume_flux_asterisk_[idxface] -= 
-          this->meshvel_.dot(mesh.GetSurface(idxface));
-    }
-
-    timer_->Pop();
-
-    // TODO: Rename SurfaceVelocity to MassFlux or VolumeFlux
-
-    timer_->Push("fluid.4.volume-flux");
-    // TODO: Rename velocity_corr to smth
-    // (it's actually full velocity not just correction)
-    // (same for ff_volume_flux_corr_)
-#pragma omp parallel for
-    for (IntIdx i = 0; i < static_cast<IntIdx>(mesh.Faces().size()); ++i) {
-      IdxFace idxface(i);
-    //for (auto idxface : mesh.Faces()) {
-      auto& expr = ff_volume_flux_corr_[idxface];
-      expr.Clear();
-      if (!is_boundary_[idxface] && !mesh.IsExcluded(idxface)) {
-        IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
-        IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
-        Vect dm = mesh.GetVectToCell(idxface, 0);
-        Vect dp = mesh.GetVectToCell(idxface, 1);
-        auto coeff = - mesh.GetArea(idxface) /
-            ((dp - dm).norm() * ff_diag_coeff_[idxface]);
-        expr.InsertTerm(-coeff, cm);
-        expr.InsertTerm(coeff, cp);
-        // adhoc for periodic
-        expr.SortTerms(true);
-      }
-      expr.SetConstant(ff_volume_flux_asterisk_[idxface]);
-    }
-    timer_->Pop();
-
-    timer_->Push("fluid.5.pressure-system");
-#pragma omp parallel for
-    for (IntIdx i = 0; i < static_cast<IntIdx>(mesh.Cells().size()); ++i) {
-      IdxCell idxcell(i);
-      auto& eqn = fc_pressure_corr_system_[idxcell];
-      if (!mesh.IsExcluded(idxcell)) {
-        Expr flux_sum;
-        for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-          IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-          flux_sum +=
-              ff_volume_flux_corr_[idxface] *
-              mesh.GetOutwardFactor(idxcell, i);
-        }
-        eqn =
-            flux_sum -
-            Expr((*this->p_fc_volume_source_)[idxcell] *
-                 mesh.GetVolume(idxcell));
-      } else {
-        eqn.Clear();
-        eqn.InsertTerm(1., idxcell);
-        eqn.SetConstant(0.);
-      }
-    }
-
-    // Account for cell conditions for pressure
-    for (auto it = mc_pressure_cond_.cbegin();
-        it != mc_pressure_cond_.cend(); ++it) {
-      IdxCell idxcell(it->GetIdx());
-      ConditionCell* cond = it->GetValue().get();
-      if (auto cond_value = dynamic_cast<ConditionCellValue<Scal>*>(cond)) {
-        for (auto idxlocal : mesh.Cells()) {
-          auto& eqn = fc_pressure_corr_system_[idxlocal];
-          if (idxlocal == idxcell) {
-            eqn.Clear();
-            eqn.InsertTerm(1., idxcell);
-            eqn.SetConstant(-cond_value->GetValue());
-          } else {
-            // Substitute value to obtain symmetrix matrix
-            eqn.SetKnownValue(idxcell, cond_value->GetValue());
+        geom::FieldCell<Scal> fc = GetComponent(
+            conv_diff_solver_->GetVelocity(Layers::iter_curr), n);
+        auto ff = Interpolate(fc, conv_diff_solver_->GetVelocityCond(n), mesh);
+        auto gc = Gradient(ff, mesh);
+        auto gf = Interpolate(gc, mf_force_cond_, mesh); // adhoc: zero-der cond
+        for (auto idxcell : mesh.Cells()) {
+          Vect sum = Vect::kZero;
+          for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
+            IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
+            sum += gf[idxface] * (ff_kinematic_viscosity_[idxface] * 
+                mesh.GetOutwardSurface(idxcell, i)[n]);
           }
+          fc_force_[idxcell] += sum / mesh.GetVolume(idxcell);
         }
       }
-    }
-/*
-    if (dynamic_cast<Pardiso<Scal, IdxCell, Expr>*>(linear_.get())) {
-      static bool first = true;
-      if (first) {
-        std::cout << "pressure_system restricted" << std::endl;
-        first = false;
-      }
+      timer_->Pop();
+
+      // append to force
       for (auto idxcell : mesh.Cells()) {
-        fc_pressure_corr_system_[idxcell].RestrictTerms(
-            idxcell, IdxCell(mesh.Cells().size()));
-      }
-    }*/
-    timer_->Pop();
-
-    timer_->Push("fluid.6.pressure-solve");
-    fc_pressure_corr_ = linear_->Solve(fc_pressure_corr_system_);
-    timer_->Pop();
-
-    timer_->Push("fluid.7.correction");
-    // Correct pressure
-    for (auto idxcell : mesh.Cells()) {
-      fc_pressure_curr[idxcell] = fc_pressure_prev[idxcell] +
-          pressure_relaxation_factor_ * fc_pressure_corr_[idxcell];
-    }
-
-    fc_pressure_corr_grad_ = Gradient(
-        Interpolate(fc_pressure_corr_, mf_pressure_corr_cond_, mesh),
-        mesh);
-
-    // Correct the velocity
-    geom::FieldCell<Vect> fc_velocity_corr(mesh);
-    for (auto idxcell : mesh.Cells()) {
-      fc_velocity_corr[idxcell] =
-          fc_pressure_corr_grad_[idxcell] / (-fc_diag_coeff_[idxcell]);
-    }
-    conv_diff_solver_->CorrectVelocity(Layers::iter_curr, fc_velocity_corr);
-
-    // Calc divergence-free volume fluxes
-    for (auto idxface : mesh.Faces()) {
-      ff_vol_flux_.iter_curr[idxface] =
-          ff_volume_flux_corr_[idxface].Evaluate(fc_pressure_corr_);
-    }
-    timer_->Pop();
-
-    // Apply SIMPLER pressure correction
-    if (simpler_) {
-      timer_->Push("fluid.8.simpler");
-      const auto& fc_velocity =
-          conv_diff_solver_->GetVelocity(Layers::iter_curr);
-          //fc_velocity_asterisk_;
-      const auto& ff_volume_flux =
-          ff_vol_flux_.iter_curr;
-          //ff_volume_flux_asterisk_;
-      // Evaluate momentum equations using new velocity
-      geom::FieldFace<Vect> ff_velocity(mesh);
-      ff_velocity = Interpolate(
-          fc_velocity, mf_velocity_cond_, mesh);
-
-      auto fc_velocity_delta = fc_velocity;
-#pragma omp parallel for
-      for (IntIdx rawcell = 0; rawcell < static_cast<IntIdx>(mesh.Cells().size()); ++rawcell) {
-        IdxCell idxcell(rawcell);
-        fc_velocity_delta[idxcell] -=
-            conv_diff_solver_->GetVelocity(Layers::iter_prev)[idxcell];
+        fc_force_[idxcell] +=
+            fc_pressure_grad_[idxcell] * (-1.) +
+            fc_ext_force_restored_[idxcell] +
+            (*this->p_fc_stforce_)[idxcell] +
+            // Volume source momentum compensation:
+            conv_diff_solver_->GetVelocity(Layers::iter_curr)[idxcell] *
+            ((*this->p_fc_density_)[idxcell] *
+            (*this->p_fc_volume_source_)[idxcell] -
+            (*this->p_fc_mass_source_)[idxcell]);
       }
 
-      geom::FieldCell<Vect> fc_evaluated(mesh);
-#pragma omp parallel for
-      for (IntIdx rawcell = 0; rawcell < static_cast<IntIdx>(mesh.Cells().size()); ++rawcell) {
-        IdxCell idxcell(rawcell);
-        for (size_t n = 0; n < dim; ++n) {
-          fc_evaluated[idxcell][n] =
-              conv_diff_solver_->GetVelocityEquations(n)[idxcell].Evaluate(
-                  fc_velocity_delta)[n];
-        }
+      timer_->Push("fluid.2.convection-diffusion");
+      conv_diff_solver_->MakeIteration();
+      timer_->Pop();
 
-        fc_evaluated[idxcell] +=
-            fc_ext_force_restored_[idxcell] - fc_pressure_grad_[idxcell];
-      }
-
-      auto ff_evaluated = Interpolate(
-          fc_evaluated, geom::MapFace<std::shared_ptr<ConditionFace>>(), mesh);
-
-      geom::FieldFace<Scal> ff_rhs(mesh, 0);
-#pragma omp parallel for
-      for (IntIdx rawface = 0; rawface < static_cast<IntIdx>(mesh.Faces().size()); ++rawface) {
-        IdxFace idxface(rawface);
-        if (!is_boundary_[idxface] && !mesh.IsExcluded(idxface)) {
-          Vect eval = ff_evaluated[idxface] - ff_ext_force_[idxface];
-          ff_rhs[idxface] = eval.dot(mesh.GetSurface(idxface)) /
-              ff_diag_coeff_[idxface] +
-              (ff_volume_flux[idxface] -
-                  ff_velocity[idxface].dot(mesh.GetSurface(idxface))) /
-                  rhie_chow_factor_;
-        }
-      }
-
-#pragma omp parallel for
-      for (IntIdx rawcell = 0; rawcell < static_cast<IntIdx>(mesh.Cells().size()); ++rawcell) {
-        IdxCell idxcell(rawcell);
+      fc_diag_coeff_.Reinit(mesh);
+      for (auto idxcell : mesh.Cells()) {
         Scal sum = 0.;
-        for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-          IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-          sum += ff_rhs[idxface] * mesh.GetOutwardFactor(idxcell, i);
+        for (size_t n = 0; n < dim; ++n) {
+          sum += conv_diff_solver_->GetVelocityEquations(n)[idxcell].CoeffSum();
         }
-        fc_pressure_corr_system_[idxcell].SetConstant(-sum);
+        fc_diag_coeff_[idxcell] = sum / dim;
+      }
+
+      // Define ff_diag_coeff_ on inner faces only
+      ff_diag_coeff_ = Interpolate(
+          fc_diag_coeff_, geom::MapFace<std::shared_ptr<ConditionFace>>(), mesh);
+
+      fc_velocity_asterisk_ = conv_diff_solver_->GetVelocity(Layers::iter_curr);
+
+      ff_velocity_asterisk_ = Interpolate(
+          fc_velocity_asterisk_, mf_velocity_cond_, mesh);
+
+      // // needed for MMIM, now disabled
+      //ff_velocity_iter_prev_ = Interpolate(
+      //    conv_diff_solver_->GetVelocity(Layers::iter_prev),
+      //    mf_velocity_cond_, mesh);
+
+      // Calc volumetric flux (asterisk)
+      // using momentum interpolation (Rhie-Chow)
+      // including hydrostatics-correction
+      // TODO: Extend hydrostatics-correction on a non-uniform mesh
+      timer_->Push("fluid.3.momentum-interpolation");
+      ff_volume_flux_asterisk_.Reinit(mesh);
+      for (auto idxface : mesh.Faces()) {
+        const auto volume_flux_interpolated =
+            ff_velocity_asterisk_[idxface].dot(mesh.GetSurface(idxface));
+        if (!is_boundary_[idxface] && !mesh.IsExcluded(idxface)) {
+          IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
+          IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
+          Vect dm = mesh.GetVectToCell(idxface, 0);
+          Vect dp = mesh.GetVectToCell(idxface, 1);
+          const auto pressure_surface_derivative_wide =
+              (ff_pressure_grad_[idxface] -
+              //ff_stforce_restored_[idxface] -
+              ff_ext_force_restored_[idxface]).dot(mesh.GetSurface(idxface));
+          const auto pressure_surface_derivative_compact =
+              (fc_pressure_prev[cp] - fc_pressure_prev[cm]) /
+              (dp - dm).norm() * mesh.GetArea(idxface) -
+              //(*this->p_ff_stforce_)[idxface].dot(mesh.GetNormal(idxface)) - 
+              ff_ext_force_[idxface].dot(mesh.GetSurface(idxface));
+          //const auto mmim = (1. - velocity_relaxation_factor_) *
+          //    (ff_vol_flux_.iter_prev[idxface] -
+          //     ff_velocity_iter_prev_[idxface].dot(mesh.GetSurface(idxface)));
+          ff_volume_flux_asterisk_[idxface] =
+              volume_flux_interpolated +
+              rhie_chow_factor_ * (pressure_surface_derivative_wide -
+              pressure_surface_derivative_compact) / ff_diag_coeff_[idxface] +
+              0; //mmim; // TODO: Test MMIM
+        } else {
+          ff_volume_flux_asterisk_[idxface] =
+              ff_velocity_asterisk_[idxface].dot(mesh.GetSurface(idxface));
+        }
+      }
+
+      // Apply meshvel
+      for (auto idxface : mesh.Faces()) {
+        ff_volume_flux_asterisk_[idxface] -= 
+            this->meshvel_.dot(mesh.GetSurface(idxface));
+      }
+
+      timer_->Pop();
+
+      // TODO: Rename SurfaceVelocity to MassFlux or VolumeFlux
+
+      timer_->Push("fluid.4.volume-flux");
+      // TODO: Rename velocity_corr to smth
+      // (it's actually full velocity not just correction)
+      // (same for ff_volume_flux_corr_)
+      for (auto idxface : mesh.Faces()) {
+        auto& expr = ff_volume_flux_corr_[idxface];
+        expr.Clear();
+        if (!is_boundary_[idxface] && !mesh.IsExcluded(idxface)) {
+          IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
+          IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
+          Vect dm = mesh.GetVectToCell(idxface, 0);
+          Vect dp = mesh.GetVectToCell(idxface, 1);
+          auto coeff = - mesh.GetArea(idxface) /
+              ((dp - dm).norm() * ff_diag_coeff_[idxface]);
+          expr.InsertTerm(-coeff, cm);
+          expr.InsertTerm(coeff, cp);
+          // adhoc for periodic
+          expr.SortTerms(true);
+        }
+        expr.SetConstant(ff_volume_flux_asterisk_[idxface]);
+      }
+      timer_->Pop();
+
+      timer_->Push("fluid.5.pressure-system");
+      for (auto idxcell : mesh.Cells()) {
+        auto& eqn = fc_pressure_corr_system_[idxcell];
+        if (!mesh.IsExcluded(idxcell)) {
+          Expr flux_sum;
+          for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
+            IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
+            flux_sum +=
+                ff_volume_flux_corr_[idxface] *
+                mesh.GetOutwardFactor(idxcell, i);
+          }
+          eqn =
+              flux_sum -
+              Expr((*this->p_fc_volume_source_)[idxcell] *
+                   mesh.GetVolume(idxcell));
+        } else {
+          eqn.Clear();
+          eqn.InsertTerm(1., idxcell);
+          eqn.SetConstant(0.);
+        }
       }
 
       // Account for cell conditions for pressure
@@ -1133,22 +1001,142 @@ class FluidSimple : public FluidSolver<Mesh> {
           }
         }
       }
-
-      for (auto idxcell : mesh.Cells()) {
-        auto& eqn = fc_pressure_corr_system_[idxcell];
-        eqn.SetConstant(eqn.Evaluate(fc_pressure_curr));
-      }
-
-      fc_pressure_corr_ = linear_->Solve(fc_pressure_corr_system_);
-
-      for (auto idxcell : mesh.Cells()) {
-        fc_pressure_curr[idxcell] += fc_pressure_corr_[idxcell];
-      }
-
+  /*
+      if (dynamic_cast<Pardiso<Scal, IdxCell, Expr>*>(linear_.get())) {
+        static bool first = true;
+        if (first) {
+          std::cout << "pressure_system restricted" << std::endl;
+          first = false;
+        }
+        for (auto idxcell : mesh.Cells()) {
+          fc_pressure_corr_system_[idxcell].RestrictTerms(
+              idxcell, IdxCell(mesh.Cells().size()));
+        }
+      }*/
       timer_->Pop();
-    }
 
-    this->IncIterationCount();
+      timer_->Push("fluid.6.pressure-solve");
+      fc_pressure_corr_ = linear_->Solve(fc_pressure_corr_system_);
+      timer_->Pop();
+
+      timer_->Push("fluid.7.correction");
+      // Correct pressure
+      for (auto idxcell : mesh.Cells()) {
+        fc_pressure_curr[idxcell] = fc_pressure_prev[idxcell] +
+            pressure_relaxation_factor_ * fc_pressure_corr_[idxcell];
+      }
+
+      fc_pressure_corr_grad_ = Gradient(
+          Interpolate(fc_pressure_corr_, mf_pressure_corr_cond_, mesh),
+          mesh);
+
+      // Correct the velocity
+      geom::FieldCell<Vect> fc_velocity_corr(mesh);
+      for (auto idxcell : mesh.Cells()) {
+        fc_velocity_corr[idxcell] =
+            fc_pressure_corr_grad_[idxcell] / (-fc_diag_coeff_[idxcell]);
+      }
+      conv_diff_solver_->CorrectVelocity(Layers::iter_curr, fc_velocity_corr);
+
+      // Calc divergence-free volume fluxes
+      for (auto idxface : mesh.Faces()) {
+        ff_vol_flux_.iter_curr[idxface] =
+            ff_volume_flux_corr_[idxface].Evaluate(fc_pressure_corr_);
+      }
+      timer_->Pop();
+
+      // Apply SIMPLER pressure correction
+      if (simpler_) {
+        timer_->Push("fluid.8.simpler");
+        const auto& fc_velocity =
+            conv_diff_solver_->GetVelocity(Layers::iter_curr);
+            //fc_velocity_asterisk_;
+        const auto& ff_volume_flux =
+            ff_vol_flux_.iter_curr;
+            //ff_volume_flux_asterisk_;
+        // Evaluate momentum equations using new velocity
+        geom::FieldFace<Vect> ff_velocity(mesh);
+        ff_velocity = Interpolate(
+            fc_velocity, mf_velocity_cond_, mesh);
+
+        auto fc_velocity_delta = fc_velocity;
+        for (auto idxcell : mesh.Cells()) {
+          fc_velocity_delta[idxcell] -=
+              conv_diff_solver_->GetVelocity(Layers::iter_prev)[idxcell];
+        }
+
+        geom::FieldCell<Vect> fc_evaluated(mesh);
+        for (auto idxcell : mesh.Cells()) {
+          for (size_t n = 0; n < dim; ++n) {
+            fc_evaluated[idxcell][n] =
+                conv_diff_solver_->GetVelocityEquations(n)[idxcell].Evaluate(
+                    fc_velocity_delta)[n];
+          }
+
+          fc_evaluated[idxcell] +=
+              fc_ext_force_restored_[idxcell] - fc_pressure_grad_[idxcell];
+        }
+
+        auto ff_evaluated = Interpolate(
+            fc_evaluated, geom::MapFace<std::shared_ptr<ConditionFace>>(), mesh);
+
+        geom::FieldFace<Scal> ff_rhs(mesh, 0);
+        for (auto idxface : mesh.Faces()) {
+          if (!is_boundary_[idxface] && !mesh.IsExcluded(idxface)) {
+            Vect eval = ff_evaluated[idxface] - ff_ext_force_[idxface];
+            ff_rhs[idxface] = eval.dot(mesh.GetSurface(idxface)) /
+                ff_diag_coeff_[idxface] +
+                (ff_volume_flux[idxface] -
+                    ff_velocity[idxface].dot(mesh.GetSurface(idxface))) /
+                    rhie_chow_factor_;
+          }
+        }
+
+        for (auto idxcell : mesh.Cells()) {
+          Scal sum = 0.;
+          for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
+            IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
+            sum += ff_rhs[idxface] * mesh.GetOutwardFactor(idxcell, i);
+          }
+          fc_pressure_corr_system_[idxcell].SetConstant(-sum);
+        }
+
+        // Account for cell conditions for pressure
+        for (auto it = mc_pressure_cond_.cbegin();
+            it != mc_pressure_cond_.cend(); ++it) {
+          IdxCell idxcell(it->GetIdx());
+          ConditionCell* cond = it->GetValue().get();
+          if (auto cond_value = dynamic_cast<ConditionCellValue<Scal>*>(cond)) {
+            for (auto idxlocal : mesh.Cells()) {
+              auto& eqn = fc_pressure_corr_system_[idxlocal];
+              if (idxlocal == idxcell) {
+                eqn.Clear();
+                eqn.InsertTerm(1., idxcell);
+                eqn.SetConstant(-cond_value->GetValue());
+              } else {
+                // Substitute value to obtain symmetrix matrix
+                eqn.SetKnownValue(idxcell, cond_value->GetValue());
+              }
+            }
+          }
+        }
+
+        for (auto idxcell : mesh.Cells()) {
+          auto& eqn = fc_pressure_corr_system_[idxcell];
+          eqn.SetConstant(eqn.Evaluate(fc_pressure_curr));
+        }
+
+        fc_pressure_corr_ = linear_->Solve(fc_pressure_corr_system_);
+
+        for (auto idxcell : mesh.Cells()) {
+          fc_pressure_curr[idxcell] += fc_pressure_corr_[idxcell];
+        }
+
+        timer_->Pop();
+      }
+
+      this->IncIterationCount();
+    }
   }
   void FinishStep() override {
     fc_pressure_.time_prev = fc_pressure_.time_curr;
@@ -1197,405 +1185,6 @@ class FluidSimple : public FluidSolver<Mesh> {
       }
     }
     return dt; 
-  }
-};
-
-
-
-template <class Mesh>
-class FluidSimpleParallel : public FluidSolver<Mesh> {
-  static constexpr size_t dim = Mesh::dim;
-  const Mesh& global_mesh;
-  using Scal = typename Mesh::Scal;
-  using Vect = typename Mesh::Vect;
-  using MIdx = typename Mesh::MIdx;
-  using Direction = typename Mesh::Direction;
-  using IdxCell = geom::IdxCell;
-  using IdxFace = geom::IdxFace;
-  using IdxNode = geom::IdxNode;
-  using BlockNodes = geom::BlockNodes<dim>;
-  using BlockCells = geom::BlockCells<dim>;
-  using BlockFaces = geom::BlockFaces<dim>;
-  template <class T>
-  using FieldCell = geom::FieldCell<T>;
-  template <class T>
-  using FieldFace = geom::FieldFace<T>;
-  template <class T>
-  using MapFace = geom::MapFace<T>;
-  template <class T>
-  using MapCell = geom::MapCell<T>;
-
-  MapFace<std::shared_ptr<ConditionFaceFluid>> mf_cond_;
-  MapCell<std::shared_ptr<ConditionCellFluid>> mc_cond_;
-  Scal velocity_relaxation_factor_;
-  Scal pressure_relaxation_factor_;
-  LayersData<FieldFace<Scal>> ff_vol_flux_;
-  LayersData<FieldCell<Scal>> fc_pressure_;
-  LayersData<FieldCell<Vect>> fc_velocity_;
-  MultiTimer<std::string>* timer_;
-
-  struct LocalData {
-    Mesh mesh;
-    FieldCell<IdxCell> fc_global;
-    FieldCell<bool> fc_active;
-    FieldFace<IdxFace> ff_global;
-    FieldFace<bool> ff_active;
-    std::shared_ptr<FluidSolver<Mesh>> fluid_solver;
-    MapFace<std::shared_ptr<ConditionFaceFluid>> mf_cond;
-    MapCell<std::shared_ptr<ConditionCellFluid>> mc_cond;
-    FieldCell<Scal> fc_density;
-    FieldCell<Scal> fc_viscosity;
-    FieldCell<Vect> fc_force;
-    FieldCell<Scal> fc_volume_source;
-    FieldCell<Scal> fc_mass_source;
-  };
-
-  class ConditionCellReferenceToGlobal :
-      public fluid_condition::GivenVelocityAndPressureFixed<Mesh> {
-   public:
-    ConditionCellReferenceToGlobal(Vect velocity, Scal pressure)
-        : fluid_condition::GivenVelocityAndPressureFixed<Mesh>(
-            velocity, pressure)
-    {}
-  };
-
-  class ConditionFaceReferenceToGlobal :
-      public fluid_condition::NoSlipWallFixed<Mesh> {
-   public:
-    ConditionFaceReferenceToGlobal(Vect velocity)
-        : fluid_condition::NoSlipWallFixed<Mesh>(velocity)
-    {}
-  };
-
-  std::vector<LocalData> local_;
-
- public:
-  template <class T>
-  void CopyToLocal(const FieldCell<T>& global_field,
-                   FieldCell<T>& local_field,
-                   const LocalData& local_data) {
-    local_field.Reinit(local_data.mesh);
-    for (auto lidx : local_data.mesh.Cells()) {
-      local_field[lidx] = global_field[local_data.fc_global[lidx]];
-    }
-  }
-  template <class T>
-  void CopyToGlobal(const FieldCell<T>& local_field,
-                    const LocalData& local_data,
-                    FieldCell<T>& global_field) {
-    for (auto idxcell : local_data.mesh.Cells()) {
-      if (local_data.fc_active[idxcell]) {
-        global_field[local_data.fc_global[idxcell]] = local_field[idxcell];
-      }
-    }
-  }
-  template <class T>
-  void CopyToGlobal(const FieldFace<T>& local_field,
-                    const LocalData& local_data,
-                    FieldFace<T>& global_field) {
-    for (auto idxface : local_data.mesh.Faces()) {
-      if (local_data.ff_active[idxface]) {
-        global_field[local_data.ff_global[idxface]] = local_field[idxface];
-      }
-    }
-  }
-  void CopyFields(Layers layer_src, Layers layer_dest) {
-    fc_velocity_.Get(layer_dest) = fc_velocity_.Get(layer_src);
-    fc_pressure_.Get(layer_dest) = fc_pressure_.Get(layer_src);
-    ff_vol_flux_.Get(layer_dest) = ff_vol_flux_.Get(layer_src);
-  }
-  void CopyFieldsToGlobal(Layers layer) {
-    for (auto& local : local_) {
-      CopyToGlobal(local.fluid_solver->GetVelocity(layer), local,
-                   fc_velocity_.Get(layer));
-      CopyToGlobal(local.fluid_solver->GetPressure(layer), local,
-                   fc_pressure_.Get(layer));
-      CopyToGlobal(local.fluid_solver->GetVolumeFlux(layer), local,
-                   ff_vol_flux_.Get(layer));
-    }
-  }
-  void CopyFluidPropertiesToLocal() {
-    for (auto& local : local_) {
-      CopyToLocal(*this->p_fc_density_, local.fc_density, local);
-      CopyToLocal(*this->p_fc_viscosity_, local.fc_viscosity, local);
-      CopyToLocal(*this->p_fc_force_, local.fc_force, local);
-      CopyToLocal(*this->p_fc_volume_source_, local.fc_volume_source, local);
-      CopyToLocal(*this->p_fc_mass_source_, local.fc_mass_source, local);
-    }
-  }
-  void InitLocalMeshes(size_t num_local_mesh, size_t overlap_width) {
-    using namespace geom::geom2d;
-    using namespace geom;
-
-    local_.resize(num_local_mesh);
-
-    MIdx global_bcells_size = global_mesh.GetBlockCells().GetDimensions();
-    for (IntIdx part = 0; part < IntIdx(num_local_mesh); ++part) {
-      MIdx local_active_cells_begin(
-          part * global_bcells_size[0] / IntIdx(num_local_mesh), 0);
-      MIdx local_active_cells_end(
-          (part + 1) * global_bcells_size[0] / IntIdx(num_local_mesh),
-          global_bcells_size[1]);
-
-      std::cout << "\npart = " << part << std::endl;
-      std::cout << "begin = " << local_active_cells_begin
-          << " end = " << local_active_cells_end << std::endl;
-
-      MIdx local_cells_begin(
-          std::max<IntIdx>(
-              0, local_active_cells_begin[0] - overlap_width),
-          local_active_cells_begin[1]);
-      MIdx local_cells_end(
-          std::min<IntIdx>(
-              global_bcells_size[0], local_active_cells_end[0] + overlap_width),
-          local_active_cells_end[1]);
-
-      // Initialize local nodes and mesh
-      BlockNodes local_bnodes(local_cells_end - local_cells_begin + MIdx(1, 1));
-      BlockNodes global_bnodes = global_mesh.GetBlockNodes();
-      FieldNode<Vect> local_fn_node(local_bnodes);
-      for (auto local_midx : local_bnodes) {
-        IdxNode local_idxnode = local_bnodes.GetIdx(local_midx);
-        MIdx global_midx = local_cells_begin + local_midx;
-        IdxNode global_idxnode = global_bnodes.GetIdx(global_midx);
-        local_fn_node[local_idxnode] = global_mesh.GetNode(global_idxnode);
-      }
-      local_[part].mesh = Mesh(local_bnodes, local_fn_node);
-      auto& local = local_[part];
-
-      // Fill references to global cells
-      BlockCells local_bcells = local.mesh.GetBlockCells();
-      BlockCells global_bcells = global_mesh.GetBlockCells();
-      local.fc_global.Reinit(local.mesh);
-      local.fc_active.Reinit(local.mesh);
-      for (IdxCell local_idxcell : local.mesh.Cells()) {
-        MIdx local_midx = local_bcells.GetMIdx(local_idxcell);
-        MIdx global_midx = local_cells_begin + local_midx;
-        IdxCell global_idxcell = global_bcells.GetIdx(global_midx);
-        local.fc_global[local_idxcell] = global_idxcell;
-        local.fc_active[local_idxcell] =
-            (local_active_cells_begin <= global_midx &&
-                global_midx < local_active_cells_end);
-//        std::cout << "cell:"
-//            << "  local: " << local_midx << " " << local_idxcell.GetRaw()
-//            << "; global: " << global_midx << " " << global_idxcell.GetRaw()
-//            << "; " << (local.fc_active[local_idxcell] ? "active" : "overlap")
-//            << std::endl;
-      }
-
-      // Fill references to global faces
-      BlockFaces local_bfaces = local.mesh.GetBlockFaces();
-      BlockFaces global_bfaces = global_mesh.GetBlockFaces();
-      local.ff_global.Reinit(local.mesh);
-      for (IdxFace local_idxface : local.mesh.Faces()) {
-        MIdx local_midx = local_bfaces.GetMIdx(local_idxface);
-        Direction dir = local_bfaces.GetDirection(local_idxface);
-        MIdx global_midx = local_cells_begin + local_midx;
-        IdxFace global_idxface = global_bfaces.GetIdx(global_midx, dir);
-        local.ff_global[local_idxface] = global_idxface;
-//        std::cout << "face: " << GetMIdx(dir)
-//            << "  local: " << local_midx << " " << local_idxface.GetRaw()
-//            << "; global: " << global_midx << " " << global_idxface.GetRaw()
-//            << std::endl;
-      }
-
-      // Traverse all active cells and mark their neighbour faces active
-      local.ff_active.Reinit(local.mesh, false);
-      for (IdxCell local_idxcell : local.mesh.Cells()) {
-        if (local.fc_active[local_idxcell]) {
-          for (size_t k = 0;
-              k < local.mesh.GetNumNeighbourFaces(local_idxcell); ++k) {
-            local.ff_active[local.mesh.GetNeighbourFace(local_idxcell, k)] =
-                true;
-          }
-        }
-      }
-    }
-  }
-  void UpdateReferencesToGlobal() {
-    IdxCell idxcell_pressure_fixed(0);
-
-    for (auto& local : local_) {
-      for (auto it = local.mc_cond.begin();
-          it != local.mc_cond.end(); ++it) {
-        auto idxcell = it->GetIdx();
-        auto cond = it->GetValue().get();
-        if (auto cond_ref =
-            dynamic_cast<ConditionCellReferenceToGlobal*>(cond)) {
-          (*cond_ref) = ConditionCellReferenceToGlobal(
-              fc_velocity_.iter_curr[local.fc_global[idxcell]],
-              fc_pressure_.iter_curr[local.fc_global[idxcell]] -
-              fc_pressure_.iter_curr[idxcell_pressure_fixed]);
-        }
-      }
-
-      for (auto it = local.mf_cond.begin();
-          it != local.mf_cond.end(); ++it) {
-        auto idxface = it->GetIdx();
-        auto cond = it->GetValue().get();
-        if (auto cond_wall =
-            dynamic_cast<ConditionFaceReferenceToGlobal*>(cond)) {
-
-
-          (*cond_wall) = ConditionFaceReferenceToGlobal(
-              GetInterpolatedInner(fc_velocity_.iter_curr,
-                                   local.ff_global[idxface],
-                                   global_mesh));
-        }
-      }
-    }
-  }
-  FluidSimpleParallel(
-        const Mesh& mesh
-      , const geom::FieldCell<Vect>& fc_velocity_initial
-      , const geom::MapFace<std::shared_ptr<ConditionFaceFluid>>&
-        mf_cond
-      , const geom::MapCell<std::shared_ptr<ConditionCellFluid>>&
-        mc_cond
-      , Scal velocity_relaxation_factor
-      , Scal pressure_relaxation_factor
-      , geom::FieldCell<Scal>* p_fc_density
-      , geom::FieldCell<Scal>* p_fc_viscosity
-      , geom::FieldCell<Vect>* p_fc_force
-      , geom::FieldCell<Scal>* p_fc_volume_source
-      , geom::FieldCell<Scal>* p_fc_mass_source
-      , double time, double time_step
-      , const LinearSolverFactory& linear_factory_velocity
-      , const LinearSolverFactory& linear_factory_pressure
-      , double convergence_tolerance
-      , size_t num_iterations_limit
-      , MultiTimer<std::string>* timer
-      , size_t num_local_mesh
-      , size_t overlap_width
-      )
-      : FluidSolver<Mesh>(time, time_step, p_fc_density, p_fc_viscosity,
-                    p_fc_force, p_fc_volume_source, p_fc_mass_source,
-                    convergence_tolerance, num_iterations_limit)
-      , global_mesh(mesh)
-      , mf_cond_(mf_cond)
-      , mc_cond_(mc_cond)
-      , velocity_relaxation_factor_(velocity_relaxation_factor)
-      , pressure_relaxation_factor_(pressure_relaxation_factor)
-      , timer_(timer)
-  {
-    using namespace fluid_condition;
-
-    fc_velocity_.time_curr = fc_velocity_initial;
-    fc_pressure_.time_curr.Reinit(global_mesh);
-    ff_vol_flux_.time_curr.Reinit(global_mesh);
-    CopyFields(Layers::time_curr, Layers::iter_prev);
-    CopyFields(Layers::time_curr, Layers::iter_curr);
-    CopyFields(Layers::time_curr, Layers::time_prev);
-
-
-    // Init local meshes
-    InitLocalMeshes(num_local_mesh, overlap_width);
-
-    for (auto& local : local_) {
-      FieldCell<Vect> local_velocity_initial;
-      CopyToLocal(fc_velocity_initial, local_velocity_initial, local);
-
-      for (IdxFace idxface : local.mesh.Faces()) {
-        if (auto ptr = mf_cond_.find(local.ff_global[idxface])) {
-          local.mf_cond[idxface] = *ptr;
-        } else if (!local.mesh.IsInner(idxface)) {
-          local.mf_cond[idxface] =
-              std::make_shared<ConditionFaceReferenceToGlobal>(Vect(0., 0.));
-//          auto idxcell = local.mesh.GetNeighbourCell(
-//              idxface, local.mesh.GetValidNeighbourCellId(idxface));
-//          local.mc_cond[idxcell] =
-//              std::make_shared<ConditionCellReferenceToGlobal>(
-//                  Vect(0., 0.), 0.);
-        }
-
-        // Add fixed pressure condition
-        local.mc_cond[IdxCell(0)] =
-            std::make_shared<solver::fluid_condition::
-            GivenPressureFixed<Mesh>>(0.);
-      }
-
-      for (IdxCell idxcell : local.mesh.Cells()) {
-        if (auto ptr = mc_cond_.find(local.fc_global[idxcell])) {
-          local.mc_cond[idxcell] = *ptr;
-        }
-      }
-
-      std::cout << "set " << local.mf_cond.size() << " conditions"
-          << std::endl;
-
-      local.fluid_solver =
-          std::make_shared<solver::FluidSimple<Mesh>>(
-          local.mesh, local_velocity_initial,
-          local.mf_cond, local.mc_cond,
-          velocity_relaxation_factor,
-          pressure_relaxation_factor,
-          &local.fc_density, &local.fc_viscosity, &local.fc_force,
-          &local.fc_volume_source, &local.fc_mass_source,
-          this->GetTime(), this->GetTimeStep(),
-          linear_factory_velocity, linear_factory_pressure,
-          convergence_tolerance, num_iterations_limit,
-          timer_);
-    }
-
-
-  }
-  void StartStep() override {
-    this->ClearIterationCount();
-
-    for (auto& local : local_) {
-      local.fluid_solver->StartStep();
-    }
-
-    CopyFieldsToGlobal(Layers::iter_curr);
-  }
-  void MakeIteration() override {
-    CopyFluidPropertiesToLocal();
-    CopyFields(Layers::iter_curr, Layers::iter_prev);
-
-    for (auto& local : local_) {
-      local.fluid_solver->MakeIteration();
-    }
-
-    CopyFieldsToGlobal(Layers::iter_curr);
-    UpdateReferencesToGlobal();
-    this->IncIterationCount();
-  }
-  void FinishStep() override {
-    for (auto& local : local_) {
-      local.fluid_solver->FinishStep();
-    }
-    CopyFields(Layers::time_curr, Layers::time_prev);
-    CopyFields(Layers::iter_curr, Layers::time_curr);
-
-    if (IsNan(fc_pressure_.time_curr)) {
-      throw std::string("Invalid solution");
-    }
-    this->IncTime();
-  }
-  double GetConvergenceIndicator() const {
-    double res = 0.;
-    for (auto& local : local_) {
-      res = std::max(res, local.fluid_solver->GetConvergenceIndicator());
-    }
-    return res;
-  }
-  const geom::FieldCell<Vect>& GetVelocity() override {
-    return fc_velocity_.time_curr;
-  }
-  const geom::FieldCell<Vect>& GetVelocity(Layers layer) override {
-    return fc_velocity_.Get(layer);
-  }
-  const geom::FieldCell<Scal>& GetPressure() override {
-    return fc_pressure_.time_curr;
-  }
-  const geom::FieldCell<Scal>& GetPressure(Layers layer) override {
-    return fc_pressure_.Get(layer);
-  }
-  const geom::FieldFace<Scal>& GetVolumeFlux() override {
-    return ff_vol_flux_.time_curr;
-  }
-  const geom::FieldFace<Scal>& GetVolumeFlux(Layers layer) override {
-    return ff_vol_flux_.Get(layer);
   }
 };
 
