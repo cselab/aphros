@@ -1150,96 +1150,9 @@ class FluidSimple : public FluidSolver<Mesh> {
             ff_volume_flux_corr_[idxface].Evaluate(fc_pressure_corr_);
       }
       timer_->Pop();
+      
 
-      // Apply SIMPLER pressure correction
-      if (simpler_) {
-        timer_->Push("fluid.8.simpler");
-        const auto& fc_velocity =
-            conv_diff_solver_->GetVelocity(Layers::iter_curr);
-            //fc_velocity_asterisk_;
-        const auto& ff_volume_flux =
-            ff_vol_flux_.iter_curr;
-            //ff_volume_flux_asterisk_;
-        // Evaluate momentum equations using new velocity
-        geom::FieldFace<Vect> ff_velocity(mesh);
-        ff_velocity = Interpolate(
-            fc_velocity, mf_velocity_cond_, mesh);
-
-        auto fc_velocity_delta = fc_velocity;
-        for (auto idxcell : mesh.Cells()) {
-          fc_velocity_delta[idxcell] -=
-              conv_diff_solver_->GetVelocity(Layers::iter_prev)[idxcell];
-        }
-
-        geom::FieldCell<Vect> fc_evaluated(mesh);
-        for (auto idxcell : mesh.Cells()) {
-          for (size_t n = 0; n < dim; ++n) {
-            fc_evaluated[idxcell][n] =
-                conv_diff_solver_->GetVelocityEquations(n)[idxcell].Evaluate(
-                    fc_velocity_delta)[n];
-          }
-
-          fc_evaluated[idxcell] +=
-              fc_ext_force_restored_[idxcell] - fc_pressure_grad_[idxcell];
-        }
-
-        auto ff_evaluated = Interpolate(
-            fc_evaluated, geom::MapFace<std::shared_ptr<ConditionFace>>(), mesh);
-
-        geom::FieldFace<Scal> ff_rhs(mesh, 0);
-        for (auto idxface : mesh.Faces()) {
-          if (!is_boundary_[idxface] && !mesh.IsExcluded(idxface)) {
-            Vect eval = ff_evaluated[idxface] - ff_ext_force_[idxface];
-            ff_rhs[idxface] = eval.dot(mesh.GetSurface(idxface)) /
-                ff_diag_coeff_[idxface] +
-                (ff_volume_flux[idxface] -
-                    ff_velocity[idxface].dot(mesh.GetSurface(idxface))) /
-                    rhie_chow_factor_;
-          }
-        }
-
-        for (auto idxcell : mesh.Cells()) {
-          Scal sum = 0.;
-          for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-            IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-            sum += ff_rhs[idxface] * mesh.GetOutwardFactor(idxcell, i);
-          }
-          fc_pressure_corr_system_[idxcell].SetConstant(-sum);
-        }
-
-        // Account for cell conditions for pressure
-        for (auto it = mc_pressure_cond_.cbegin();
-            it != mc_pressure_cond_.cend(); ++it) {
-          IdxCell idxcell(it->GetIdx());
-          ConditionCell* cond = it->GetValue().get();
-          if (auto cond_value = dynamic_cast<ConditionCellValue<Scal>*>(cond)) {
-            for (auto idxlocal : mesh.Cells()) {
-              auto& eqn = fc_pressure_corr_system_[idxlocal];
-              if (idxlocal == idxcell) {
-                eqn.Clear();
-                eqn.InsertTerm(1., idxcell);
-                eqn.SetConstant(-cond_value->GetValue());
-              } else {
-                // Substitute value to obtain symmetrix matrix
-                eqn.SetKnownValue(idxcell, cond_value->GetValue());
-              }
-            }
-          }
-        }
-
-        for (auto idxcell : mesh.Cells()) {
-          auto& eqn = fc_pressure_corr_system_[idxcell];
-          eqn.SetConstant(eqn.Evaluate(fc_pressure_curr));
-        }
-
-        fc_pressure_corr_ = linear_->Solve(fc_pressure_corr_system_);
-
-        for (auto idxcell : mesh.Cells()) {
-          fc_pressure_curr[idxcell] += fc_pressure_corr_[idxcell];
-        }
-
-        timer_->Pop();
-      }
+      // TODO: SIMPLER removed
 
       this->IncIterationCount();
     }
