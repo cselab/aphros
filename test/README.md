@@ -2,19 +2,18 @@
 
 ## Build and run
 
-* All tests
+All tests
 
     cmake .
     make
     make test
 
-* Single test
+Single test
 
     cd [folder]
     cmake .
     make 
     make test
-
 
 ## Rules for tests
 

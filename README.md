@@ -1,15 +1,19 @@
-# Clone
+# Cubism-hydro
+
+Distributed version of **hydro** based on **Cubism**.
+
+## Clone
 
     git clone git@gitlab.ethz.ch:kpetr/Cubism-hydro.git
 
-# Build
+## Build
 
-## Hypre
+### Hypre
 
     cd lib/build
     ./all
 
-## Cubism-hydro
+### Cubism-hydro
 
     cd src
     ./conf
@@ -17,17 +21,17 @@
 
     (on daint use `build.daint` instead)
 
-# Run
+## Run
   
     cd sim/sim01
     ./job
 
-# Other repos
+## Other repos
 
-## hydro
+### hydro
 
     git clone https://github.com/divfree/hydro.git 
 
-## mfer
+### mfer
 
     git clone git@gitlab.ethz.ch:mavt-cse/mfer.git
