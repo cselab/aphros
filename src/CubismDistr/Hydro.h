@@ -18,6 +18,7 @@
 #include "hydro/solver.hpp"
 #include "hydro/advection.hpp"
 #include "hydro/conv_diff.hpp"
+#include "hydro/fluid.hpp"
 
 #include "ICubism.h"
 #include "ILocal.h"
@@ -96,13 +97,20 @@ class Hydro : public Kernel {
   M m;
   //using AS = solver::AdvectionSolverExplicit<M, FieldFace<Scal>>;
   using AS = solver::ConvectionDiffusionScalarImplicit<M>;
+  using FS = solver::FluidSimple<M>;
   FieldCell<Scal> fc_sc_; // scaling
   FieldFace<Scal> ff_d_; // diffusion rate
+  FieldCell<Scal> fc_d_; // diffusion rate
   FieldCell<Scal> fc_src_; // source
   FieldFace<Scal> ff_flux_;  // volume flux
+  FieldCell<Vect> fc_force_;  // force
+  FieldCell<Vect> fc_stforce_;  // stforce cells TODO: what is st
+  FieldFace<Vect> ff_stforce_;  // stforce faces
+  MultiTimer<std::string> timer_; 
   std::shared_ptr<const solver::LinearSolverFactory> p_lsf_; // linear solver factory
   FieldCell<Scal> fc_p_;
-  std::unique_ptr<AS> as_;
+  std::unique_ptr<AS> as_; // advection solver
+  std::unique_ptr<FS> fs_; // fluid solver
   Scal sum_;
   // LS
   std::vector<Scal> lsa_, lsb_, lsx_;
@@ -157,7 +165,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
       "," + std::to_string(bi.index[1]) +
       "," + std::to_string(bi.index[2]) + "]";
 
-  // Initial field for advection
+  // initial field for advection
   FieldCell<Scal> fc_u(m);
   for (auto i : m.Cells()) {
     const Scal kx = 2. * M_PI;
@@ -168,17 +176,34 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
     //fc_u[i] = fc_u[i] > 0. ? 1. : -1.;
   }
 
-  // zero-derivative boundary conditions
+  // zero-derivative boundary conditions for advection
   geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
   for (auto idxface : m.Faces()) {
     if (!m.IsExcluded(idxface) && !m.IsInner(idxface)) {
       mf_cond[idxface] =
-          std::make_shared<solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
+          std::make_shared
+          <solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
+    }
+  }
+
+  // initial velocity
+  FieldCell<Vect> fc_vel(m, Vect(0));
+
+  // zero-derivative boundary conditions for velocity
+  geom::MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond;
+  for (auto idxface : m.Faces()) {
+    if (!m.IsExcluded(idxface) && !m.IsInner(idxface)) {
+      mf_velcond[idxface] =
+          std::make_shared
+          <solver::fluid_condition::NoSlipWallFixed<M>>(Vect(0));
     }
   }
   
-  // empty cell conditions
+  // empty cell conditions for advection
   geom::MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
+
+  // empty cell conditions for velocity
+  geom::MapCell<std::shared_ptr<solver::ConditionCellFluid>> mc_velcond;
 
   // velocity and flux
   const Vect vel(par.Vect["vel"]);
@@ -190,17 +215,23 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   const Scal dt = 1. / 2. / 200;
 
   Scal relax = par.Double["relax"];
+  Scal prelax = par.Double["prelax"];
+  Scal vrelax = par.Double["vrelax"];
+  Scal rhie = par.Double["rhie"];
   Scal tol = par.Double["tol"];
   int num_iter = par.Int["num_iter"];
   bool so = par.Int["second_order"];
 
-  fc_sc_.Reinit(m, 1.);
+  fc_sc_.Reinit(m, 1.); // scaling for as_ and density for fs_
   ff_d_.Reinit(m, par.Double["mu"]);
+  fc_d_.Reinit(m, par.Double["mu"]);
+  fc_force_.Reinit(m, Vect(par.Vect["force"]));
+  fc_stforce_.Reinit(m, Vect(0));
+  ff_stforce_.Reinit(m, Vect(0));
   fc_src_.Reinit(m, 0.);
 
   p_lsf_ = std::make_shared<const solver::LinearSolverFactory>(
         std::make_shared<const solver::LuDecompositionFactory>());
-
 
   // Init advection solver
   //as_.reset(new AS(m, fc_u, mf_cond, &ff_flux_, &fc_src_, 0., dt));
@@ -212,6 +243,19 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
         *p_lsf_, 
         tol, num_iter, 
         so
+        ));
+
+  fs_.reset(new FS(
+        m, fc_vel, 
+        mf_velcond, mc_velcond, 
+        vrelax, prelax, rhie,
+        &fc_sc_, &fc_d_, &fc_force_, &fc_stforce_, &ff_stforce_, 
+        &fc_src_, &fc_src_,
+        0., dt,
+        *p_lsf_, *p_lsf_,
+        tol, num_iter, 
+        &timer_, 
+        so, false, false, 0., Vect(0)
         ));
 }
 
