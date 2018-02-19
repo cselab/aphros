@@ -496,6 +496,8 @@ class FluidSimple : public FluidSolver<Mesh> {
   geom::FieldFace<Vect> ff_stforce_restored_;
   // / needed for MMIM, now disabled
   //geom::FieldFace<Vect> ff_velocity_iter_prev_;
+  // LS
+  std::vector<Scal> lsa_, lsb_, lsx_;
 
   MultiTimer<std::string>* timer_;
   bool time_second_order_;
@@ -1047,13 +1049,83 @@ class FluidSimple : public FluidSolver<Mesh> {
               idxcell, IdxCell(mesh.Cells().size()));
         }
       }*/
-      timer_->Pop();
 
+      // linear system
+      // Each block computes the coefficients assuming a uniform stencil
+      // (requirement of hypre)
+      // Then it computes the rhs and allocates space for result.
+      // All three are 1D arrays.
+      // Then the block issues a request to solve a linear system 
+      // passing pointers to these arrays and stencil description.
+      // After going through all blocks, 
+      // the processor assembles the system and calls hypre.
+      LS l;
+      // stencil
+      l.st.emplace_back(0, 0, -1);
+      l.st.emplace_back(0, -1, 0);
+      l.st.emplace_back(-1, 0, 0);
+      l.st.emplace_back(0, 0, 0);
+      l.st.emplace_back(1, 0, 0);
+      l.st.emplace_back(0, 1, 0);
+      l.st.emplace_back(0, 0, 1);
+
+
+      int bs = _BLOCKSIZE_;
+      int n = bs * bs *bs;
+      using MIdx = typename Mesh::MIdx;
+      {
+        lsa_.resize(n*l.st.size());
+        auto& bc = mesh.GetBlockCells();
+        size_t i = 0;
+        for (auto c : mesh.Cells()) {
+          auto& e = fc_pressure_corr_system_[c];
+          for (size_t j = 0; j < e.size(); ++j) {
+            lsa_[i++] = e[j].coeff;
+            if (e[j].idx != bc.GetIdx(bc.GetMIdx(c) + MIdx(l.st[j]))) {
+              std::cerr << "***"
+                  << " MIdx(c)=" << bc.GetMIdx(c)
+                  << " MIdx(e[j].idx)=" << bc.GetMIdx(e[j].idx)
+                  << " l.st[j]=" << MIdx(l.st[j]) 
+                  << std::endl;
+              assert(false);
+            }
+          }
+        }
+        assert(i == n * l.st.size());
+      }
+
+      {
+        lsb_.resize(n, 1.);
+        size_t i = 0;
+        for (auto c : mesh.Cells()) {
+          auto& e = fc_pressure_corr_system_[c];
+          lsb_[i++] = -e.GetConstant();
+        }
+        assert(i == lsb_.size());
+      }
+
+      lsx_.resize(n, 0.);
+      l.a = &lsa_;
+      l.b = &lsb_;
+      l.x = &lsx_;
+      m.Solve(l);
+      timer_->Pop();
       timer_->Push("fluid.6.pressure-solve");
-      fc_pressure_corr_ = linear_->Solve(fc_pressure_corr_system_);
+    }
+
+    if (sem()) {
+      //fc_pressure_corr_ = linear_->Solve(fc_pressure_corr_system_);
       timer_->Pop();
 
       timer_->Push("fluid.7.correction");
+
+      // Copy solution
+      fc_pressure_corr_.Reinit(mesh);
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        fc_pressure_corr_[c] = lsx_[i++];
+      }
+
       // Correct pressure
       for (auto idxcell : mesh.Cells()) {
         fc_pressure_curr[idxcell] = fc_pressure_prev[idxcell] +

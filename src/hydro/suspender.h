@@ -11,6 +11,13 @@
 // causes an infinite loop
 // (see todo in tests/suspender)
 
+// TODO: Add Nested() method
+// acting like operator() but allows nested calls
+// by setting internal flag allow_nested_ if target==current.
+// The flag is cleared by any GetSem().
+// GetSem() allowed only if allow_nested_ is set.
+// Constructor of Suspender() sets the flag.
+
 // Suspendable functions.
 // Function F() is separated in stages each enclosed by if-operator.
 // At each call of function F(), only one stage is executed.

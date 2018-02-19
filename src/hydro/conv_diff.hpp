@@ -138,7 +138,6 @@ class ConvectionDiffusionScalarImplicit :
     auto& fc_prev = fc_field_.iter_prev;
     auto& fc_curr = fc_field_.iter_curr;
     if (sem()) {
-      std::cerr << "MakeIteration(): sem 1 " << std::endl;
       fc_prev = fc_curr;
 
       fc_grad_ = Gradient(Interpolate(fc_prev, mf_cond_, mesh), mesh);
