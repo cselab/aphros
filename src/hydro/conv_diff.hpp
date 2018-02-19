@@ -137,7 +137,6 @@ class ConvectionDiffusionScalarImplicit :
 
     auto& fc_prev = fc_field_.iter_prev;
     auto& fc_curr = fc_field_.iter_curr;
-
     if (sem()) {
       fc_prev = fc_curr;
 

@@ -89,7 +89,6 @@ class Hydro : public Kernel {
 
  private:
   M CreateMesh(const MyBlockInfo& bi);
-  using LS = typename Mesh::LS;
 
   Vars& par;
   std::string name_;
@@ -112,8 +111,6 @@ class Hydro : public Kernel {
   std::unique_ptr<AS> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
   Scal sum_;
-  // LS
-  std::vector<Scal> lsa_, lsb_, lsx_;
 };
 
 template <class M /*: Mesh*/>
@@ -274,69 +271,8 @@ void Hydro<M>::Run() {
     as_->FinishStep();
   }
   if (sem()) {
-    /*
-    sum_ = 0.;
-    for (auto i : m.Cells()) {
-      sum_ += as_->GetField()[i];
-    }
-    m.Reduce(&sum_);
-    */
-
-    // linear system
-
-    // Each block computes the coefficients assuming a uniform stencil
-    // (requirement of hypre)
-    // Then it computes the rhs and allocates space for result.
-    // All three are 1D arrays.
-    // Then the block issues a request to solve a linear system 
-    // passing pointers to these arrays and stencil description.
-    // After going through all blocks, 
-    // the processor assembles the system and calls hypre.
-    LS l;
-    l.st.emplace_back(0, 0, 0);
-    l.st.emplace_back(-1, 0, 0);
-    l.st.emplace_back(1, 0, 0);
-    l.st.emplace_back(0, -1, 0);
-    l.st.emplace_back(0, 1, 0);
-    l.st.emplace_back(0, 0, -1);
-    l.st.emplace_back(0, 0, 1);
-    int bs = _BLOCKSIZE_;
-    int n = bs * bs *bs;
-    lsa_.resize(n*l.st.size());
-    for (int i = 0; i < lsa_.size();) {
-      lsa_[i++] = -6.;
-      lsa_[i++] = 1.;
-      lsa_[i++] = 1.;
-      lsa_[i++] = 1.;
-      lsa_[i++] = 1.;
-      lsa_[i++] = 1.;
-      lsa_[i++] = 1.;
-    }
-
-    lsb_.resize(n, 1.);
-    size_t j = 0;
-    auto& bc = m.GetBlockCells();
     auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
-    for (auto i : m.Cells()) {
-      lsb_[j++] = u[i];
-    }
-    assert(j == lsb_.size());
-
-    lsx_.resize(n, 0.);
-    l.a = &lsa_;
-    l.b = &lsb_;
-    l.x = &lsx_;
-    m.Solve(l);
-  }
-  if (sem()) {
-    int bs = _BLOCKSIZE_;
-    size_t j = 0;
-    auto& bc = m.GetBlockCells();
-    for (auto i : m.Cells()) {
-      fc_p_[i] = lsx_[j++];
-    }
-    assert(j == lsx_.size());
-    m.Comm(&fc_p_);
+    m.Comm(&u);
   }
 }
 
