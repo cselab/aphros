@@ -45,19 +45,19 @@ using S = Suspender;
 std::string b; 
 
 void E(S& s) {
-  auto e = s.GetSem();
+  auto e = s.GetSem("E");
   for (int i = 0; i < 3; ++i) {
-    if (e()) {
+    if (e("1")) {
       b += "E1";
     }
-    if (e()) {
+    if (e("2")) {
       b += "E2";
     }
   }
 }
 
 void D(S& s) {
-  auto e = s.GetSem(); // sem but no stages
+  auto e = s.GetSem("D"); // sem but no stages
   b += "D1";
   b += "D2";
 }
@@ -68,45 +68,45 @@ void C(S& s) { // no sem
 }
 
 void BB(S& s) {
-  auto e = s.GetSem();  // dummy sem 
+  auto e = s.GetSem("BB");  // dummy sem 
   e();
 }
 
 void B(S& s) {
   //s.GetSem();  // dummy sem 
-  auto e = s.GetSem();
+  auto e = s.GetSem("B");
   //s.GetSem();  // dummy sem
-  if (e()) {
+  if (e("1")) {
     b += "B1";
   }
-  if (e.Nested()) {
+  if (e.Nested("C")) {
     C(s);
   }
   //s.GetSem();  // dummy sem in the middle
-  if (e()) {
+  if (e("2")) {
     b += "B2";
   }
 }
 
 void A(S& s) {
-  auto e = s.GetSem();
-  if (e()) {
+  auto e = s.GetSem("A");
+  if (e("1")) {
     b += "A1";
   }
-  if (e.Nested()) {
+  if (e.Nested("B")) {
     // BB(s);  // TODO: would cause infinite loop (see todo in suspender.h)
     B(s);
   }
-  if (e()) {
+  if (e("2")) {
     b += "A2";
   }
-  if (e.Nested()) {
+  if (e.Nested("C")) {
     C(s);
   }
-  if (e.Nested()) {
+  if (e.Nested("D")) {
     D(s);
   }
-  if (e.Nested()) {
+  if (e.Nested("E")) {
     E(s);
   }
 }
@@ -118,7 +118,7 @@ void Test() {
   do {
     A(s);
     b += "|";
-    std::cerr << s.Print() << std::endl;
+    std::cerr << s.Print() << " " << s.GetCurName() << std::endl;
   } while (s.Pending());
 
   std::cerr

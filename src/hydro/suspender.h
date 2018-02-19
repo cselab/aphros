@@ -46,11 +46,10 @@ class Suspender {
     ~Sem();
     // Returns true if current stage needs execution
     // and advances stage counter
-    bool operator()();
+    bool operator()(std::string suff="" /*name suffix*/);
     // Same as operator() but allows nested calls
-    bool Nested();
+    bool Nested(std::string suff="" /*name suffix*/);
     std::string GetName() const { return name_; }
-    void SetName(std::string name) { name_ = name; }
    private:
     Suspender& p; // parent
     std::string name_;
@@ -59,6 +58,8 @@ class Suspender {
   // Intializes list with auxiliary counter (-1,-1), sets iterator to it
   Suspender();
   Sem GetSem(std::string name="");
+  // Returns name+suff of current stage
+  std::string GetCurName() const;
   // Converts counter list to string
   std::string Print() const;
   // Returns true if there are unfinished levels 
@@ -69,5 +70,6 @@ class Suspender {
   LU lu_;      // [l]ist of co[u]nters
   LU::iterator lui_; // [l]ist of co[u]nters [i]terator
   bool nest_; // allow nested calls
+  std::string curname_; // name+suff of current stage
 };
 

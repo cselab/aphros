@@ -47,14 +47,18 @@ Suspender::Sem::~Sem() {
   i = ip;
 }
 
-bool Suspender::Sem::operator()() {
+bool Suspender::Sem::operator()(std::string suff) {
   auto& i = p.lui_;
-  return i->c++ == i->t;
+  if (i->c++ == i->t) {
+    p.curname_ = name_ + ":" + suff;
+    return true;
+  }
+  return false;
 }
 
-bool Suspender::Sem::Nested() {
+bool Suspender::Sem::Nested(std::string suff) {
   p.nest_ = true;
-  return (*this)();
+  return (*this)(suff);
 }
 
 Suspender::Suspender() 
@@ -63,6 +67,10 @@ Suspender::Suspender()
 
 Suspender::Sem Suspender::GetSem(std::string name) {
   return Sem(*this, name);
+}
+
+std::string Suspender::GetCurName() const {
+  return curname_;
 }
 
 std::string Suspender::Print() const {
