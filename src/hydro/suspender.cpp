@@ -8,9 +8,12 @@ Suspender::Sem::Sem(Suspender& p, std::string name)
   auto& l = p.lu_;
   auto& i = p.lui_;
 
-  // Allow nested calls on first level
   if (i == l.begin()) {
+    // Allow nested calls on first level
     p.nest_ = true;
+    // Clear curname_
+    p.curname_ = "";
+    p.depth_ = 0;
   }
 
   assert(p.nest_ && "Nested calls not allowed. Use Nested() on upper level");
@@ -50,7 +53,11 @@ Suspender::Sem::~Sem() {
 bool Suspender::Sem::operator()(std::string suff) {
   auto& i = p.lui_;
   if (i->c++ == i->t) {
-    p.curname_ = name_ + ":" + suff;
+    if (p.curname_ != "") {
+      p.curname_ += " <-- ";
+    }
+    p.curname_ += name_ + ":" + suff;
+    ++p.depth_;
     return true;
   }
   return false;
