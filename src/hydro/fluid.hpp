@@ -1131,6 +1131,7 @@ class FluidSimple : public FluidSolver<Mesh> {
       for (auto c : m.Cells()) {
         fc_pressure_corr_[c] = lsx_[i++];
       }
+      fc_pressure_corr_.Reinit(mesh, 0.); // XXX: disable pressure correction
       
       // Comm pressure correction (needed for flux correction)
       m.Comm(&fc_pressure_corr_);
