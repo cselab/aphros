@@ -47,6 +47,8 @@ class Suspender {
     // Returns true if current stage needs execution
     // and advances stage counter
     bool operator()();
+    // Same as operator() but allows nested calls
+    bool Nested();
     std::string GetName() const { return name_; }
     void SetName(std::string name) { name_ = name; }
    private:
@@ -66,5 +68,6 @@ class Suspender {
   using LU = std::list<U>;
   LU lu_;      // [l]ist of co[u]nters
   LU::iterator lui_; // [l]ist of co[u]nters [i]terator
+  bool nest_; // allow nested calls
 };
 
