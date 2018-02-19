@@ -1,3 +1,21 @@
+# Test
+
+## Build and run
+
+* All tests
+
+    cmake .
+    make
+    make test
+
+* Single test
+
+    cd [folder]
+    cmake .
+    make 
+    make test
+
+
 ## Rules for tests
 
 * A test consists of 

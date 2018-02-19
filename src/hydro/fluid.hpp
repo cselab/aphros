@@ -1150,7 +1150,6 @@ class FluidSimple : public FluidSolver<Mesh> {
             ff_volume_flux_corr_[idxface].Evaluate(fc_pressure_corr_);
       }
       timer_->Pop();
-      
 
       // TODO: SIMPLER removed
 
