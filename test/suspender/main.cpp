@@ -20,7 +20,7 @@ void A (Suspender& s) {
   if (sem()) {
     std::cerr << "A1" << std::endl;
   }
-  if (sem()) {
+  if (sem.Nested()) {
     B(s);
   }
   if (sem()) {
@@ -79,7 +79,7 @@ void B(S& s) {
   if (e()) {
     b += "B1";
   }
-  if (e()) {
+  if (e.Nested()) {
     C(s);
   }
   //s.GetSem();  // dummy sem in the middle
@@ -93,20 +93,20 @@ void A(S& s) {
   if (e()) {
     b += "A1";
   }
-  if (e()) {
+  if (e.Nested()) {
     // BB(s);  // TODO: would cause infinite loop (see todo in suspender.h)
     B(s);
   }
   if (e()) {
     b += "A2";
   }
-  if (e()) {
+  if (e.Nested()) {
     C(s);
   }
-  if (e()) {
+  if (e.Nested()) {
     D(s);
   }
-  if (e()) {
+  if (e.Nested()) {
     E(s);
   }
 }
