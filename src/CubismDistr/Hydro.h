@@ -244,6 +244,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
 
   // Init advection solver
   //as_.reset(new AS(m, fc_u, mf_cond, &ff_flux_, &fc_src_, 0., dt));
+  /*
   as_.reset(new AS(
         m, fc_u, mf_cond, mc_cond, 
         relax, 
@@ -253,6 +254,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
         tol, num_iter, 
         so
         ));
+        */
 
   fs_.reset(new FS(
         m, fc_vel, 
@@ -274,27 +276,27 @@ void Hydro<M>::Run() {
   auto sem = m.GetSem("run");
 
   /*
-  if (sem()) {
+  if (sem.Nested("as->StartStep()")) {
     as_->StartStep();
   }
-  if (sem()) {
+  if (sem.Nested("as->MakeIteration")) {
     as_->MakeIteration();
   }
-  if (sem()) {
+  if (sem.Nested("as->FinishStep()")) {
     as_->FinishStep();
   }
   */
 
-  if (sem()) {
+  if (sem.Nested("fs->StartStep()")) {
     fs_->StartStep();
   }
-  if (sem()) {
+  if (sem.Nested("fs->MakeIteration")) {
     fs_->MakeIteration();
   }
-  if (sem()) {
+  if (sem.Nested("fs->FinishStep()")) {
     fs_->FinishStep();
   }
-  if (sem()) {
+  if (sem("Comm(&fc_velu_)")) {
     // advection
     //auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
     //m.Comm(&u);

@@ -292,6 +292,12 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
     return susp_.Pending();
   }
 
+  std::string GetCurName() const {
+    return susp_.GetCurName();
+  }
+  size_t GetDepth() const {
+    return susp_.GetDepth();
+  }
   struct LS { // linear system ax=b
     std::vector<MIdx> st; // stencil
     std::vector<Scal>* a;

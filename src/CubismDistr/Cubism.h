@@ -256,11 +256,9 @@ void Cubism<KF>::Step() {
   if (isroot_) {
     std::cerr << "***** STEP " << step_ << " ******" << std::endl;
   }
+  stage_ = 0;
   do {
     MPI_Barrier(g_.getCartComm());
-    if (isroot_) {
-      std::cerr << "*** STAGE abs=" << stage_ << " ***" << std::endl;
-    }
     // 1. Exchange halos in buffer mesh
     FakeProc fp(GetStencil(h_));       // object with field 'stencil'
     SynchronizerMPI& s = g_.sync(fp); 
@@ -549,6 +547,16 @@ void Cubism<KF>::Step() {
       if (!np) {
         break;
       }
+    }
+
+    // Print current stage name
+    if (isroot_) {
+      auto& m = mk.at(GetIdx(bb.front().index))->GetMesh();
+      std::cerr << "*** STAGE"
+          << " #" << stage_ 
+          << " depth=" << m.GetDepth() 
+          << " " << m.GetCurName() 
+          << " ***" << std::endl;
     }
   } while (true);
 

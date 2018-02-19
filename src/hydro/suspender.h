@@ -61,6 +61,7 @@ class Suspender {
   // Returns name+suff of current stage
   std::string GetCurName() const;
   // Converts counter list to string
+  size_t GetDepth() const { return depth_; }
   std::string Print() const;
   // Returns true if there are unfinished levels 
   bool Pending() const;
@@ -71,5 +72,6 @@ class Suspender {
   LU::iterator lui_; // [l]ist of co[u]nters [i]terator
   bool nest_; // allow nested calls
   std::string curname_; // name+suff of current stage
+  size_t depth_;
 };
 
