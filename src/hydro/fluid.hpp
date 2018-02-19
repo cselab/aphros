@@ -141,29 +141,48 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
     CopyToVector(Layers::time_prev);
   }
   void StartStep() override {
+    auto sem = mesh.GetSem();
     for (size_t n = 0; n < dim; ++n) {
-      v_solver_[n]->SetTimeStep(this->GetTimeStep());
-      v_solver_[n]->StartStep();
+      if (sem()) {
+        v_solver_[n]->SetTimeStep(this->GetTimeStep());
+      }
+      if (sem()) {
+        v_solver_[n]->StartStep();
+      }
     }
-    CopyToVector(Layers::iter_curr);
-    this->ClearIterationCount();
+    if (sem()) {
+      CopyToVector(Layers::iter_curr);
+      this->ClearIterationCount();
+    }
   }
   void MakeIteration() override {
+    auto sem = mesh.GetSem();
     for (size_t n = 0; n < dim; ++n) {
-      v_fc_force_[n] = GetComponent(*p_fc_force_, n);
-      v_solver_[n]->MakeIteration();
+      if (sem()) {
+        v_fc_force_[n] = GetComponent(*p_fc_force_, n);
+        v_solver_[n]->MakeIteration();
+      }
     }
-    CopyToVector(Layers::iter_prev);
-    CopyToVector(Layers::iter_curr);
-    this->IncIterationCount();
+
+    if (sem()) {
+      CopyToVector(Layers::iter_prev);
+      CopyToVector(Layers::iter_curr);
+      this->IncIterationCount();
+    }
   }
   void FinishStep() override {
+    auto sem = mesh.GetSem();
+
     for (size_t n = 0; n < dim; ++n) {
-      v_solver_[n]->FinishStep();
+      if (sem()) {
+        v_solver_[n]->FinishStep();
+      }
     }
-    CopyToVector(Layers::time_prev);
-    CopyToVector(Layers::time_curr);
-    this->IncTime();
+    if (sem()) {
+      CopyToVector(Layers::time_prev);
+      CopyToVector(Layers::time_curr);
+      this->IncTime();
+    }
   }
   double GetConvergenceIndicator() const override {
     if (this->GetIterationCount() == 0) {
@@ -782,23 +801,32 @@ class FluidSimple : public FluidSolver<Mesh> {
         fc_pressure_grad_, mf_pressure_grad_cond_, mesh);
   }
   void StartStep() override {
-    this->ClearIterationCount();
-    if (IsNan(fc_pressure_.time_curr)) {
-      throw std::string("NaN initial pressure");
+    auto sem = mesh.GetSem();
+    if (sem()) {
+      this->ClearIterationCount();
+      if (IsNan(fc_pressure_.time_curr)) {
+        throw std::string("NaN initial pressure");
+      }
+      conv_diff_solver_->SetTimeStep(this->GetTimeStep());
     }
-    conv_diff_solver_->SetTimeStep(this->GetTimeStep());
-    conv_diff_solver_->StartStep();
-    fc_pressure_.iter_curr = fc_pressure_.time_curr;
-    ff_vol_flux_.iter_curr = ff_vol_flux_.time_curr;
-    for (auto idxcell : mesh.Cells()) {
-      fc_pressure_.iter_curr[idxcell] +=
-          (fc_pressure_.time_curr[idxcell] - fc_pressure_.time_prev[idxcell]) *
-          guess_extrapolation_;
+
+    if (sem()) {
+      conv_diff_solver_->StartStep();
     }
-    for (auto idxface : mesh.Faces()) {
-      ff_vol_flux_.iter_curr[idxface] +=
-          (ff_vol_flux_.time_curr[idxface] - ff_vol_flux_.time_prev[idxface]) *
-          guess_extrapolation_;
+
+    if (sem()) {
+      fc_pressure_.iter_curr = fc_pressure_.time_curr;
+      ff_vol_flux_.iter_curr = ff_vol_flux_.time_curr;
+      for (auto idxcell : mesh.Cells()) {
+        fc_pressure_.iter_curr[idxcell] +=
+            (fc_pressure_.time_curr[idxcell] - fc_pressure_.time_prev[idxcell]) *
+            guess_extrapolation_;
+      }
+      for (auto idxface : mesh.Faces()) {
+        ff_vol_flux_.iter_curr[idxface] +=
+            (ff_vol_flux_.time_curr[idxface] - ff_vol_flux_.time_prev[idxface]) *
+            guess_extrapolation_;
+      }
     }
   }
   // TODO: rewrite norm() using dist() where needed
@@ -864,7 +892,13 @@ class FluidSimple : public FluidSolver<Mesh> {
       }
 
       timer_->Push("fluid.2.convection-diffusion");
+    }
+
+    if (sem()) {
       conv_diff_solver_->MakeIteration();
+    }
+
+    if (sem()) {
       timer_->Pop();
 
       fc_diag_coeff_.Reinit(mesh);
@@ -1139,15 +1173,20 @@ class FluidSimple : public FluidSolver<Mesh> {
     }
   }
   void FinishStep() override {
-    fc_pressure_.time_prev = fc_pressure_.time_curr;
-    ff_vol_flux_.time_prev = ff_vol_flux_.time_curr;
-    fc_pressure_.time_curr = fc_pressure_.iter_curr;
-    ff_vol_flux_.time_curr = ff_vol_flux_.iter_curr;
-    if (IsNan(fc_pressure_.time_curr)) {
-      throw std::string("NaN pressure");
+    auto sem = mesh.GetSem();
+    if (sem()) {
+      fc_pressure_.time_prev = fc_pressure_.time_curr;
+      ff_vol_flux_.time_prev = ff_vol_flux_.time_curr;
+      fc_pressure_.time_curr = fc_pressure_.iter_curr;
+      ff_vol_flux_.time_curr = ff_vol_flux_.iter_curr;
+      if (IsNan(fc_pressure_.time_curr)) {
+        throw std::string("NaN pressure");
+      }
+      this->IncTime();
     }
-    conv_diff_solver_->FinishStep();
-    this->IncTime();
+    if (sem()) {
+      conv_diff_solver_->FinishStep();
+    }
   }
   double GetConvergenceIndicator() const override {
     return conv_diff_solver_->GetConvergenceIndicator();

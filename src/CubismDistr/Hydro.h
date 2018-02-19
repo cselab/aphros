@@ -107,9 +107,9 @@ class Hydro : public Kernel {
   FieldFace<Vect> ff_stforce_;  // stforce faces
   MultiTimer<std::string> timer_; 
   std::shared_ptr<const solver::LinearSolverFactory> p_lsf_; // linear solver factory
-  FieldCell<Scal> fc_p_;
   std::unique_ptr<AS> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
+  FieldCell<Scal> fc_velu_; // single velocity component
   Scal sum_;
 };
 
@@ -155,7 +155,6 @@ M Hydro<M>::CreateMesh(const MyBlockInfo& bi) {
 template <class M>
 Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi) 
   : par(par), bi_(bi), m(CreateMesh(bi))
-  , fc_src_(m, 0.), ff_flux_(m), fc_p_(m)
 {
   name_ = 
       "[" + std::to_string(bi.index[0]) +
@@ -203,6 +202,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   geom::MapCell<std::shared_ptr<solver::ConditionCellFluid>> mc_velcond;
 
   // velocity and flux
+  ff_flux_.Reinit(m);
   const Vect vel(par.Vect["vel"]);
   for (auto idxface : m.Faces()) {
     ff_flux_[idxface] = vel.dot(m.GetSurface(idxface));
@@ -271,8 +271,21 @@ void Hydro<M>::Run() {
     as_->FinishStep();
   }
   if (sem()) {
-    auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
-    m.Comm(&u);
+    fs_->StartStep();
+  }
+  if (sem()) {
+    fs_->MakeIteration();
+  }
+  if (sem()) {
+    fs_->FinishStep();
+  }
+  if (sem()) {
+    // advection
+    //auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
+    //m.Comm(&u);
+    // fluid velocity single component
+    fc_velu_ = geom::GetComponent(fs_->GetVelocity(), 0);
+    m.Comm(&fc_velu_); // goes to dumper
   }
 }
 
