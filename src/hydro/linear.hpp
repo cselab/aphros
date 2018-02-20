@@ -234,6 +234,7 @@ class Expression {
     }
     return -1;
   }
+  /* // Replaces terms list removing target
   void SetKnownValue(Idx idx, Scal value) {
     TermContainer new_terms;
     size_t newsize = 0;
@@ -247,6 +248,25 @@ class Expression {
     std::swap(terms_, new_terms);
     std::swap(size_, newsize);
   }
+  */
+  // Keeps terms list setting coeff to zero
+  // (avoid changing the stencil, required by Hypre)
+  void SetKnownValue(Idx idx, Scal value) {
+    for (size_t i = 0; i < size_; ++i) {
+      if (terms_[i].idx == idx) {
+        constant_ += value * terms_[i].coeff;
+        terms_[i].coeff = 0.;
+      }
+    }
+  }
+  // Replaces expression with u[idx]=value
+  void SetKnownValueDiag(Idx idx, Scal value) {
+    for (size_t i = 0; i < size_; ++i) {
+      terms_[i].coeff = (terms_[i].idx == idx ? 1. : 0.);
+    }
+    constant_ = -value;
+  }
+  // Remove terms to get triangular matrix
   void RestrictTerms(Idx lower, Idx upper) {
     TermContainer new_terms;
     size_t newsize = 0;

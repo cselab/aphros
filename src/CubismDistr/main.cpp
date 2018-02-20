@@ -30,15 +30,15 @@ void Main(MPI_Comm comm, bool loc, Vars& par) {
   KF kf;
 
   const int es = 8;
-  const int h = 1;
+  const int hl = par.Int["hl"];
   const int bs = 16;
   
   // Initialize buffer mesh and make Hydro for each block.
   std::unique_ptr<Distr> d;
   if (loc) {
-    d = CreateLocal(comm, kf, bs, es, h, par);
+    d = CreateLocal(comm, kf, bs, es, hl, par);
   } else {
-    d = CreateCubism(comm, kf, bs, es, h, par);
+    d = CreateCubism(comm, kf, bs, es, hl, par);
   }
 
   while (!d->IsDone()) {

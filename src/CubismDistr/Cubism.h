@@ -126,7 +126,7 @@ class Cubism : public Distr {
   Vars& par;
   int bs_; // block size
   int es_; // element size in Scal
-  int h_; // number of halo cells (same in all directions)
+  int hl_; // number of halo cells (same in all directions)
   Idx p_; // number of ranks
   Idx b_; // number of blocks
 
@@ -218,8 +218,8 @@ struct FakeProc {
 
 template <class KF>
 Cubism<KF>::Cubism(MPI_Comm comm, KF& kf, 
-    int bs, int es, int h, Vars& par) 
-  : par(par), bs_(bs), es_(es), h_(h)
+    int bs, int es, int hl, Vars& par) 
+  : par(par), bs_(bs), es_(es), hl_(hl)
   , p_{par.Int["px"], par.Int["py"], par.Int["pz"]}
   , b_{par.Int["bx"], par.Int["by"], par.Int["bz"]}
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], 1., comm)
@@ -236,6 +236,7 @@ Cubism<KF>::Cubism(MPI_Comm comm, KF& kf,
     }
     mbi.h_gridpoint = bi.h_gridpoint;
     mbi.ptrBlock = bi.ptrBlock;
+    mbi.hl = hl;
     auto up = kf.Make(par, mbi);
     mk.emplace(GetIdx(bi.index), std::unique_ptr<K>(dynamic_cast<K*>(up.release())));
   }
@@ -260,7 +261,7 @@ void Cubism<KF>::Step() {
   do {
     MPI_Barrier(g_.getCartComm());
     // 1. Exchange halos in buffer mesh
-    FakeProc fp(GetStencil(h_));       // object with field 'stencil'
+    FakeProc fp(GetStencil(hl_));       // object with field 'stencil'
     SynchronizerMPI& s = g_.sync(fp); 
 
     LabMPI l;
