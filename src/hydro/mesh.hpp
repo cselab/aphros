@@ -401,7 +401,7 @@ class MeshGeneric {
   Range<IdxCell> AllCells() const {
     return Range<IdxCell>(*this);
   }
-  Range<IdxFace> Faces() const {
+  Range<IdxFace> AllFaces() const {
     return Range<IdxFace>(*this);
   }
   Range<IdxNode> AllNodes() const {
@@ -772,6 +772,55 @@ class RangeInner {
 };
 
 
+template <int dim>
+class RangeInner<IdxFace, dim> {
+  using B = BlockFaces<dim>; // block 
+  using R = Range<IdxFace>;  // range
+  using I = typename R::iterator; // range iterator
+  const B& ba_; // block all
+  const B& bi_; // block inner
+  const R& ri_; // range inner
+
+ public:
+  class iterator {
+    const B& ba_; // block all
+    const B& bi_; // block inner
+    I i_;         // range iterator over bi
+   public:
+    explicit iterator(const B& ba, const B& bi, const I& i)
+        : ba_(ba), bi_(bi), i_(i)
+    {}
+    iterator& operator++() {
+      ++i_;
+      return *this;
+    }
+    iterator& operator--() {
+      --i_;
+      return *this;
+    }
+    bool operator==(const iterator& o /*other*/) const {
+      return i_ == o.i_;
+    }
+    bool operator!=(const iterator& o /*other*/) const {
+      return !(*this == o);
+    }
+    IdxFace operator*() const {
+      auto x = bi_.GetMIdx(*i_); 
+      auto d = bi_.GetDirection(*i_); 
+      return ba_.GetIdx(x, d);
+    }
+  };
+
+  RangeInner(const B& ba /*block all*/, const B& bi /*block inner*/)
+      : ba_(ba), bi_(bi), ri_(bi_)
+  {}
+  iterator begin() const {
+    return iterator(ba_, bi_, ri_.begin());
+  }
+  iterator end() const {
+    return iterator(ba_, bi_, ri_.end());
+  }
+};
 
 template <class Mesh>
 Mesh InitUniformMesh(const Rect<typename Mesh::Vect>& domain,

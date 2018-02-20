@@ -402,9 +402,7 @@ geom::FieldFace<T> Interpolate(
   geom::FieldFace<T> res(mesh, T(0)); // Valid value essential for extrapolation
 
   if (geometric) {
-#pragma omp parallel for
-    for (IntIdx i = 0; i < static_cast<IntIdx>(mesh.Faces().size()); ++i) {
-      IdxFace idxface(i);
+    for (auto idxface : mesh.Faces()) {
       if (mesh.IsInner(idxface)) {
         IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
         IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
@@ -412,9 +410,7 @@ geom::FieldFace<T> Interpolate(
       }
     }
   } else {
-#pragma omp parallel for
-    for (IntIdx i = 0; i < static_cast<IntIdx>(mesh.Faces().size()); ++i) {
-      IdxFace idxface(i);
+    for (auto idxface : mesh.Faces()) {
       if (mesh.IsInner(idxface)) {
         IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
         IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
