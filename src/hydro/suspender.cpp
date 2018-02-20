@@ -54,7 +54,7 @@ bool Suspender::Sem::operator()(std::string suff) {
   auto& i = p.lui_;
   if (i->c++ == i->t) {
     if (p.curname_ != "") {
-      p.curname_ += " <-- ";
+      p.curname_ += " --> ";
     }
     p.curname_ += name_ + ":" + suff;
     ++p.depth_;

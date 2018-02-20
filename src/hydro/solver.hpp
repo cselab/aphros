@@ -662,14 +662,12 @@ geom::FieldCell<typename Mesh::Vect> Gradient(
   using Vect = typename Mesh::Vect;
   geom::FieldCell<Vect> res(mesh, Vect::kZero);
   for (auto idxcell : mesh.Cells()) {
-    if (!mesh.IsExcluded(idxcell)) {
-      Vect sum = Vect::kZero;
-      for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-        IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-        sum += mesh.GetOutwardSurface(idxcell, i) * ff_u[idxface];
-      }
-      res[idxcell] = sum / mesh.GetVolume(idxcell);
+    Vect sum = Vect::kZero;
+    for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
+      IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
+      sum += mesh.GetOutwardSurface(idxcell, i) * ff_u[idxface];
     }
+    res[idxcell] = sum / mesh.GetVolume(idxcell);
   }
   return res;
 }
