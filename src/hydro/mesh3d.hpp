@@ -187,6 +187,9 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
   RangeInner<IdxCell, dim> Cells() const {
     return RangeInner<IdxCell, dim>(GetBlockCells(), GetInBlockCells());
   }
+  RangeInner<IdxFace, dim> Faces() const {
+    return RangeInner<IdxFace, dim>(GetBlockFaces(), GetInBlockFaces());
+  }
   RangeInner<IdxNode, dim> Nodes() const {
     return RangeInner<IdxNode, dim>(GetBlockNodes(), GetInBlockNodes());
   }
@@ -315,6 +318,8 @@ MeshStructured<Scal>::MeshStructured(const BlockNodes& b_nodes,
     , b_cells_(b_nodes_.GetBegin(), b_nodes_.GetDimensions() - MIdx(1))
     , b_faces_(b_nodes_.GetBegin(), b_cells_.GetDimensions())
     , b_incells_(b_cells_.GetBegin() + MIdx(hl), 
+                 b_cells_.GetDimensions() - MIdx(2*hl))
+    , b_infaces_(b_cells_.GetBegin() + MIdx(hl), 
                  b_cells_.GetDimensions() - MIdx(2*hl))
     , b_innodes_(b_nodes_.GetBegin() + MIdx(hl), 
                  b_nodes_.GetDimensions() - MIdx(2*hl))
