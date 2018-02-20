@@ -178,6 +178,7 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
   size_t GetNumNeighbourNodes(IdxFace) const override {
     return kFaceNumNeighbourNodes;
   }
+  // inner means not halo
   bool IsInner(IdxCell idxcell) const override {
     return fc_is_inner_[idxcell];
   }
@@ -334,8 +335,8 @@ MeshStructured<Scal>::MeshStructured(const BlockNodes& b_nodes,
     , ff_neighbour_cell_(b_faces_)
     , ff_neighbour_node_(b_faces_)
     , ff_to_cell_(b_faces_)
-    , fc_is_inner_(b_cells_)
-    , ff_is_inner_(b_faces_)
+    , fc_is_inner_(b_cells_, false)
+    , ff_is_inner_(b_faces_, false)
 {
   MIdx mb = b_cells_.GetBegin(), me = b_cells_.GetEnd();
 
@@ -354,20 +355,11 @@ MeshStructured<Scal>::MeshStructured(const BlockNodes& b_nodes,
         nface(0, 1, 0, Direction::j),
         nface(0, 0, 0, Direction::k),
         nface(0, 0, 1, Direction::k)}};
+  }
 
-    fc_is_inner_[idxcell] = (mb < midx && midx + MIdx(1) < me);
-    #ifdef PERX
-    // adhoc for periodic in x
-    if (midx[0] == mb[0] || midx[0] + 1 == me[0]) {
-      fc_is_inner_[idxcell] = true;
-    }
-    #endif
-    #ifdef PERZ
-    // adhoc for periodic in z
-    if (midx[2] == mb[2] || midx[2] + 1 == me[2]) {
-      fc_is_inner_[idxcell] = true;
-    }
-    #endif
+  // Mark inner cells
+  for (auto i : this->Cells()) {
+    fc_is_inner_[i] = true;
   }
 
   // Offset for cell neighbour cells
@@ -451,14 +443,14 @@ MeshStructured<Scal>::MeshStructured(const BlockNodes& b_nodes,
   }
 
   // Face centers, area
-  for (auto idx : this->Faces()) {
+  for (auto idx : this->AllFaces()) {
     ff_center_[idx] = CalcCenter(idx);
     ff_area_[idx] = CalcArea(idx);
     ff_surface_[idx] = CalcSurface(idx);
   }
 
   // Cell centers, volume
-  for (auto idx : this->Cells()) {
+  for (auto idx : this->AllCells()) {
     fc_center_[idx] = CalcCenter(idx);
     fc_volume_[idx] = CalcVolume(idx);
   }
@@ -489,6 +481,7 @@ MeshStructured<Scal>::MeshStructured(const BlockNodes& b_nodes,
         ff_to_cell_[idxface][1] = GetCenter(pc) - GetCenter(pf);
       }
       #endif
+      
       #ifdef PERZ
       // adhoc for periodic in z
       if (midx[2] == mb[2] && dir == Direction::k) {
@@ -507,8 +500,7 @@ MeshStructured<Scal>::MeshStructured(const BlockNodes& b_nodes,
 
   // Mark inner faces
   for (auto idxface : this->Faces()) {
-    ff_is_inner_[idxface] = (!GetNeighbourCell(idxface, 0).IsNone() &&
-        !GetNeighbourCell(idxface, 1).IsNone());
+    ff_is_inner_[idxface] = true; 
   }
 }
 
