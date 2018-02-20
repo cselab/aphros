@@ -319,46 +319,6 @@ void Hydro<M>::Run() {
   }
 }
 
-/*
-template <class M>
-void Hydro<M>::ReadBuffer(LabMPI& l) {
-  int e = 0; // buffer field idx
-
-  for (auto u : vcm_) {
-    for (auto i : m.Cells()) {
-      auto& bc = m.GetBlockCells();
-      auto d = bc.GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
-      (*u)[i] = l(d[0], d[1], d[2]).a[e];
-    }
-    ++e;
-  }
-
-  vcm_.clear();
-}
-
-template <class M>
-void Hydro<M>::WriteBuffer(Block_t& o) {
-  int bs = _BLOCKSIZE_;
-
-  // Check buffer has enough space for all fields
-  assert(vcm_.size() <= Elem::s);
-
-  int e = 0; // buffer field idx
-
-  for (auto u : vcm_) {
-    for (auto i : m.Cells()) {
-      auto& bc = m.GetBlockCells();
-      auto d = m.GetBlockCells().GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
-      if (MIdx(0) <= d && d < MIdx(bs)) {
-        o.data[d[2]][d[1]][d[0]].a[e] = (*u)[i];
-      }
-    }
-    ++e;
-  }
-}
-*/
-
-// Class with field 'stencil' needed for SynchronizerMPI::sync(Processing)
 template <class MM>
 class HydroFactory : public KernelFactory {
  public:
