@@ -243,7 +243,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   const Vect f2(par.Vect["force2"]);
   for (auto i : m.Cells()) {
     Vect x = m.GetCenter(i);
-    if ((x[1] - 0.5) * (x[2] - 0.25) < 0.) {
+    if ((x[1] - 0.5) < 0.) {
       fc_force_[i] = f;
     } else {
       fc_force_[i] = f2;
