@@ -1156,10 +1156,9 @@ class FluidSimple : public FluidSolver<Mesh> {
       fc_velocity_corr_.Reinit(mesh);
       auto& u = conv_diff_solver_->GetVelocity(Layers::iter_curr);
       for (auto idxcell : mesh.Cells()) {
-        // XXX: zero velocity
         fc_velocity_corr_[idxcell] =
-            u[idxcell] * (-1);
-        //    fc_pressure_corr_grad_[idxcell] / (-fc_diag_coeff_[idxcell]);
+        //    u[idxcell] * (-1); // XXX: zero velocity
+            fc_pressure_corr_grad_[idxcell] / (-fc_diag_coeff_[idxcell]);
       }
     }
 
@@ -1174,7 +1173,7 @@ class FluidSimple : public FluidSolver<Mesh> {
         ff_vol_flux_.iter_curr[idxface] =
             ff_volume_flux_corr_[idxface].Evaluate(fc_pressure_corr_);
       }
-      ff_vol_flux_.iter_curr.Reinit(mesh, 0); // XXX: zero velocity
+      //ff_vol_flux_.iter_curr.Reinit(mesh, 0); // XXX: zero velocity
       timer_->Pop();
 
       // TODO: SIMPLER removed
