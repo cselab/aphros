@@ -12,9 +12,6 @@
 #include "hydro/output_paraview.hpp"
 #include "Vars.h"
 
-#define NUMFR 10
-#define TEND 100
-
 using Scal = double;
 
 template <class KF>
@@ -32,6 +29,7 @@ class Local : public Distr {
   void Step();
 
  private:
+  Vars& par;
   MPI_Comm comm_;
   int bs_; // block size
   int es_; // element size in Scal
@@ -47,7 +45,7 @@ class Local : public Distr {
 
   void ReadBuffer(M& m);
   void WriteBuffer(M& m);
-  M CreateMesh(int bs, Idx b, Idx p, int es, int h);
+  static M CreateMesh(int bs, Idx b, Idx p, int es);
 
   int step_ = 0;
   int stage_ = 0;
@@ -57,10 +55,9 @@ class Local : public Distr {
 };
 
 template <class KF>
-auto Local<KF>::CreateMesh(int bs, Idx b, Idx p, int es, int hl) -> M {
+auto Local<KF>::CreateMesh(int bs, Idx b, Idx p, int es) -> M {
   // Init global mesh
-  // TODO: hl from Distr
-  MIdx ms(bs_, bs_, bs_); // block size 
+  MIdx ms(bs, bs, bs); // block size 
   MIdx mb(b[0], b[1], b[2]); // number of blocks
   MIdx mp(p[0], p[1], p[2]); // number of PEs
   MIdx mm = mp * mb * ms; // total size in cells (without halos)
@@ -83,12 +80,12 @@ auto Local<KF>::CreateMesh(int bs, Idx b, Idx p, int es, int hl) -> M {
 
 template <class KF>
 Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par) 
-  : comm_(comm), bs_(bs), es_(es), hl_(hl)
+  : par(par), comm_(comm), bs_(bs), es_(es), hl_(hl)
   , p_{par.Int["px"], par.Int["py"], par.Int["pz"]}
   , b_{par.Int["bx"], par.Int["by"], par.Int["bz"]}
   , buf_(es_)
 {
-  gm = CreateMesh(bs, b_, p_, es, hl);
+  gm = CreateMesh(bs_, b_, p_, es);
 
   output::Content content = {
       std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
@@ -123,6 +120,7 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par)
     }
     b.h_gridpoint = h;
     b.ptrBlock = nullptr;
+    b.hl = hl_;
     bb_.push_back(b);
   }
 
@@ -135,7 +133,7 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par)
 
 template <class KF>
 bool Local<KF>::IsDone() const { 
-  return step_ > TEND; 
+  return step_ > par.Int["max_step"]; 
 }
 
 template <class KF>
@@ -144,12 +142,9 @@ void Local<KF>::Step() {
     std::cerr << "***** STEP " << step_ << " ******" << std::endl;
   }
   do {
-    if (isroot_) {
-      std::cerr << "*** STAGE abs=" << stage_ << " ***" << std::endl;
-    }
     // 1. Exchange halos in buffer mesh
     // Do communication and get all blocks
-    auto& bb = bb_; // TODO: fill
+    auto& bb = bb_;
     assert(!bb.empty());
   
     // 2. Copy data from buffer halos to fields collected by Comm()
@@ -255,6 +250,18 @@ void Local<KF>::Step() {
 
           HYPRE_StructGridSetExtents(grid, l, u);
         }
+
+        if (par.Int["hypre_periodic"]) {
+          // Set periodic in all directions
+          int gs[] = {
+                bs_ * b_[0], p_[0], 
+                bs_ * b_[1], p_[1], 
+                bs_ * b_[2], p_[2]
+              };
+          int per[] = {gs[0], gs[1], gs[2]}; 
+          HYPRE_StructGridSetPeriodic(grid, per);
+        }
+
 
         // Assemble grid
         HYPRE_StructGridAssemble(grid);
@@ -418,9 +425,20 @@ void Local<KF>::Step() {
         break;
       }
     }
+
+    // Print current stage name
+    if (isroot_) {
+      auto& m = mk.at(GetIdx(bb.front().index))->GetMesh();
+      std::cerr << "*** STAGE"
+          << " #" << stage_ 
+          << " depth=" << m.GetDepth() 
+          << " " << m.GetCurName() 
+          << " ***" << std::endl;
+    }
   } while (true);
 
-  if (step_ % (TEND / NUMFR)  == 0) {
+  if (step_ % (par.Int["max_step"] / par.Int["num_frames"])  == 0) {
+    auto suff = "_" + std::to_string(frame_);
     //auto suff = "_" + std::to_string(frame_);
     std::cerr << "Output" << std::endl;
     session_->Write(step_*1., "title:0");

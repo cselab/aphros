@@ -387,14 +387,16 @@ void Cubism<KF>::Step() {
           HYPRE_StructGridSetExtents(grid, l, u);
         }
 
-        // Set periodic in all directions
-        int gs[] = {
-              bs_ * b_[0], p_[0], 
-              bs_ * b_[1], p_[1], 
-              bs_ * b_[2], p_[2]
-            };
-        int per[] = {gs[0], gs[1], gs[2]}; 
-        HYPRE_StructGridSetPeriodic(grid, per);
+        if (par.Int["hypre_periodic"]) {
+          // Set periodic in all directions
+          int gs[] = {
+                bs_ * b_[0], p_[0], 
+                bs_ * b_[1], p_[1], 
+                bs_ * b_[2], p_[2]
+              };
+          int per[] = {gs[0], gs[1], gs[2]}; 
+          HYPRE_StructGridSetPeriodic(grid, per);
+        }
 
         // Assemble grid
         HYPRE_StructGridAssemble(grid);
