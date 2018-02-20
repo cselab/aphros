@@ -149,7 +149,7 @@ class Cubism : public Distr {
     for (auto u : m.GetComm()) {
       for (auto i : m.AllCells()) {
         auto& bc = m.GetBlockCells();
-        auto d = bc.GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
+        auto d = bc.GetMIdx(i) - MIdx(hl_) - bc.GetBegin();
         (*u)[i] = l(d[0], d[1], d[2]).a[e];
       }
       ++e;
@@ -170,7 +170,7 @@ class Cubism : public Distr {
     for (auto u : m.GetComm()) {
       for (auto i : m.Cells()) {
         auto& bc = m.GetBlockCells();
-        auto d = m.GetBlockCells().GetMIdx(i) - MIdx(1) - bc.GetBegin(); // TODO: 1 -> h
+        auto d = m.GetBlockCells().GetMIdx(i) - MIdx(hl_) - bc.GetBegin();
         o.data[d[2]][d[1]][d[0]].a[e] = (*u)[i];
       }
       ++e;
@@ -209,6 +209,7 @@ struct StreamHdf {
   static const char * getAttributeName() { return "Scalar"; }
 };
 
+// Class with field 'stencil' needed for SynchronizerMPI::sync(Processing)
 struct FakeProc {
   StencilInfo stencil;
   explicit FakeProc(StencilInfo si) 
