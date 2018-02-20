@@ -157,75 +157,65 @@ class ConvectionDiffusionScalarImplicit :
       // Compute convective fluxes
       ff_cflux_.Reinit(mesh, Expr());
       for (IdxFace idxface : mesh.Faces()) {
-        if (!mesh.IsExcluded(idxface)) {
-          Expr value_expr, derivative_expr;
-          if (mesh.IsInner(idxface)) {
-            value_expr = value_inner.GetExpression(idxface);
-          } else {
-            value_expr = value_boundary.GetExpression(idxface);
-          }
-          ff_cflux_[idxface] =
-              value_expr * (*this->p_ff_vol_flux_)[idxface];
+        Expr value_expr, derivative_expr;
+        if (mesh.IsInner(idxface)) {
+          value_expr = value_inner.GetExpression(idxface);
+        } else {
+          value_expr = value_boundary.GetExpression(idxface);
         }
+        ff_cflux_[idxface] =
+            value_expr * (*this->p_ff_vol_flux_)[idxface];
       }
 
       // Compute diffusive fluxes
       ff_dflux_.Reinit(mesh, Expr());
       for (IdxFace idxface : mesh.Faces()) {
-        if (!mesh.IsExcluded(idxface)) {
-          Expr value_expr, derivative_expr;
-          if (mesh.IsInner(idxface)) {
-            derivative_expr = derivative_inner.GetExpression(idxface);
-          } else {
-            derivative_expr = derivative_boundary.GetExpression(idxface);
-          }
-          ff_dflux_[idxface] = derivative_expr *
-              (-(*this->p_ff_diffusion_rate_)[idxface]) * mesh.GetArea(idxface);
+        Expr value_expr, derivative_expr;
+        if (mesh.IsInner(idxface)) {
+          derivative_expr = derivative_inner.GetExpression(idxface);
+        } else {
+          derivative_expr = derivative_boundary.GetExpression(idxface);
         }
+        ff_dflux_[idxface] = derivative_expr *
+            (-(*this->p_ff_diffusion_rate_)[idxface]) * mesh.GetArea(idxface);
       }
 
       // Assemble the system
       fc_system_.Reinit(mesh);
       for (IdxCell idxcell : mesh.Cells()) {
         Expr& eqn = fc_system_[idxcell];
-        if (!mesh.IsExcluded(idxcell)) {
-          Expr cflux_sum;
-          for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-            IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-            cflux_sum += ff_cflux_[idxface] * mesh.GetOutwardFactor(idxcell, i);
-          }
-
-          Expr dflux_sum;
-          for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-            IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-            dflux_sum += ff_dflux_[idxface] * mesh.GetOutwardFactor(idxcell, i);
-          }
-
-          auto dt = this->GetTimeStep();
-          auto coeffs = GetDerivativeApproxCoeffs(
-              0., {-2. * dt, -dt, 0.}, time_second_order_ ? 0 : 1);
-
-          Expr unsteady;
-          unsteady.InsertTerm(coeffs[2], idxcell);
-          unsteady.SetConstant(
-              coeffs[0] * fc_field_.time_prev[idxcell] +
-              coeffs[1] * fc_field_.time_curr[idxcell]);
-
-          eqn = (unsteady + cflux_sum / mesh.GetVolume(idxcell)) *
-                ((*this->p_fc_scaling_)[idxcell]) +
-                dflux_sum / mesh.GetVolume(idxcell) -
-                Expr((*this->p_fc_source_)[idxcell]);
-
-          // Convert to delta-form
-          eqn.SetConstant(eqn.Evaluate(fc_prev));
-
-          // Apply under-relaxation
-          eqn[eqn.Find(idxcell)].coeff /= relaxation_factor_;
-        } else {
-          eqn.Clear();
-          eqn.InsertTerm(1., idxcell);
-          eqn.SetConstant(0.);
+        Expr cflux_sum;
+        for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
+          IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
+          cflux_sum += ff_cflux_[idxface] * mesh.GetOutwardFactor(idxcell, i);
         }
+
+        Expr dflux_sum;
+        for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
+          IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
+          dflux_sum += ff_dflux_[idxface] * mesh.GetOutwardFactor(idxcell, i);
+        }
+
+        auto dt = this->GetTimeStep();
+        auto coeffs = GetDerivativeApproxCoeffs(
+            0., {-2. * dt, -dt, 0.}, time_second_order_ ? 0 : 1);
+
+        Expr unsteady;
+        unsteady.InsertTerm(coeffs[2], idxcell);
+        unsteady.SetConstant(
+            coeffs[0] * fc_field_.time_prev[idxcell] +
+            coeffs[1] * fc_field_.time_curr[idxcell]);
+
+        eqn = (unsteady + cflux_sum / mesh.GetVolume(idxcell)) *
+              ((*this->p_fc_scaling_)[idxcell]) +
+              dflux_sum / mesh.GetVolume(idxcell) -
+              Expr((*this->p_fc_source_)[idxcell]);
+
+        // Convert to delta-form
+        eqn.SetConstant(eqn.Evaluate(fc_prev));
+
+        // Apply under-relaxation
+        eqn[eqn.Find(idxcell)].coeff /= relaxation_factor_;
       }
 
       // Fill halo cells with u=0 equations

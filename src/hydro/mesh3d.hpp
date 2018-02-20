@@ -58,8 +58,6 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
   FieldFace<std::array<Vect, kFaceNumNeighbourCells>> ff_to_cell_;
   FieldCell<bool> fc_is_inner_;
   FieldFace<bool> ff_is_inner_;
-  FieldCell<bool> fc_is_excluded_;
-  FieldFace<bool> ff_is_excluded_;
 
  public:
   MeshStructured() {}
@@ -201,39 +199,6 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
     }
     return true;
   }
-  void ExcludeCells(const std::vector<IdxCell>& list) {
-    for (auto idxcell : list) {
-      fc_is_excluded_[idxcell] = true;
-      fc_is_inner_[idxcell] = false;
-    }
-    for (auto idxface : this->Faces()) {
-      for (size_t i = 0; i < GetNumNeighbourCells(idxface); ++i) {
-        IdxCell idxcell = GetNeighbourCell(idxface, i);
-        if (!idxcell.IsNone() && fc_is_excluded_[idxcell]) {
-          ff_is_inner_[idxface] = false;
-          ff_neighbour_cell_[idxface][i] = IdxCell::None();
-        }
-      }
-    }
-    for (auto idxface : this->Faces()) {
-      bool found_valid = false;
-      for (size_t i = 0; i < GetNumNeighbourCells(idxface); ++i) {
-        IdxCell idxcell = GetNeighbourCell(idxface, i);
-        if (!idxcell.IsNone()) {
-          found_valid = true;
-        }
-      }
-      if (!found_valid) {
-        ff_is_excluded_[idxface] = true;
-      }
-    }
-  }
-  bool IsExcluded(IdxCell idxcell) const {
-    return fc_is_excluded_[idxcell];
-  }
-  bool IsExcluded(IdxFace idxface) const {
-    return ff_is_excluded_[idxface];
-  }
 
  private:
    Vect CalcCenter(IdxCell idxcell) const {
@@ -366,8 +331,6 @@ MeshStructured<Scal>::MeshStructured(const BlockNodes& b_nodes,
     , ff_to_cell_(b_faces_)
     , fc_is_inner_(b_cells_)
     , ff_is_inner_(b_faces_)
-    , fc_is_excluded_(b_cells_, false)
-    , ff_is_excluded_(b_faces_, false)
 {
   MIdx mb = b_cells_.GetBegin(), me = b_cells_.GetEnd();
 

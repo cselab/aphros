@@ -946,7 +946,7 @@ class FluidSimple : public FluidSolver<Mesh> {
       for (auto idxface : mesh.Faces()) {
         const auto volume_flux_interpolated =
             ff_velocity_asterisk_[idxface].dot(mesh.GetSurface(idxface));
-        if (!is_boundary_[idxface] && !mesh.IsExcluded(idxface)) {
+        if (!is_boundary_[idxface]) {
           IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
           IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
           Vect dm = mesh.GetVectToCell(idxface, 0);
@@ -991,7 +991,7 @@ class FluidSimple : public FluidSolver<Mesh> {
       for (auto idxface : mesh.Faces()) {
         auto& expr = ff_volume_flux_corr_[idxface];
         expr.Clear();
-        if (!is_boundary_[idxface] && !mesh.IsExcluded(idxface)) {
+        if (!is_boundary_[idxface]) {
           IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
           IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
           Vect dm = mesh.GetVectToCell(idxface, 0);
@@ -1010,23 +1010,17 @@ class FluidSimple : public FluidSolver<Mesh> {
       timer_->Push("fluid.5.pressure-system");
       for (auto idxcell : mesh.Cells()) {
         auto& eqn = fc_pressure_corr_system_[idxcell];
-        if (!mesh.IsExcluded(idxcell)) {
-          Expr flux_sum;
-          for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-            IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-            flux_sum +=
-                ff_volume_flux_corr_[idxface] *
-                mesh.GetOutwardFactor(idxcell, i);
-          }
-          eqn =
-              flux_sum -
-              Expr((*this->p_fc_volume_source_)[idxcell] *
-                   mesh.GetVolume(idxcell));
-        } else {
-          eqn.Clear();
-          eqn.InsertTerm(1., idxcell);
-          eqn.SetConstant(0.);
+        Expr flux_sum;
+        for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
+          IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
+          flux_sum +=
+              ff_volume_flux_corr_[idxface] *
+              mesh.GetOutwardFactor(idxcell, i);
         }
+        eqn =
+            flux_sum -
+            Expr((*this->p_fc_volume_source_)[idxcell] *
+                 mesh.GetVolume(idxcell));
       }
 
       // Account for cell conditions for pressure
@@ -1223,13 +1217,11 @@ class FluidSimple : public FluidSolver<Mesh> {
     double dt = 1e10;
     auto& flux = ff_vol_flux_.time_curr;
     for (auto idxcell : mesh.Cells()) {
-      if (!mesh.IsExcluded(idxcell)) {
-        for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-          IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-          if (flux[idxface] != 0.) {
-            dt = std::min(dt, 
-                std::abs(mesh.GetVolume(idxcell) / flux[idxface]));
-          }
+      for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
+        IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
+        if (flux[idxface] != 0.) {
+          dt = std::min(dt, 
+              std::abs(mesh.GetVolume(idxcell) / flux[idxface]));
         }
       }
     }

@@ -175,7 +175,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   // zero-derivative boundary conditions for advection
   geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
   for (auto idxface : m.Faces()) {
-    if (!m.IsExcluded(idxface) && !m.IsInner(idxface)) {
+    if (!m.IsInner(idxface)) {
       mf_cond[idxface] =
           std::make_shared
           <solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
@@ -190,7 +190,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   // zero-derivative boundary conditions for velocity
   geom::MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond;
   for (auto idxface : m.Faces()) {
-    if (!m.IsExcluded(idxface) && !m.IsInner(idxface)) {
+    if (!m.IsInner(idxface)) {
       mf_velcond[idxface] =
           std::make_shared
           <solver::fluid_condition::NoSlipWallFixed<M>>(vel);
