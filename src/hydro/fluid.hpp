@@ -1037,10 +1037,8 @@ class FluidSimple : public FluidSolver<Mesh> {
         if (auto cond_value = dynamic_cast<ConditionCellValue<Scal>*>(cond)) {
           for (auto idxlocal : mesh.Cells()) {
             auto& eqn = fc_pressure_corr_system_[idxlocal];
-            if (idxlocal == idxcell) {
-              eqn.Clear();
-              eqn.InsertTerm(1., idxcell);
-              eqn.SetConstant(-cond_value->GetValue());
+            if (idxlocal == idxcell) { 
+              eqn.SetKnownValueDiag(idxcell, cond_value->GetValue());
             } else {
               // Substitute value to obtain symmetrix matrix
               eqn.SetKnownValue(idxcell, cond_value->GetValue());
@@ -1096,6 +1094,7 @@ class FluidSimple : public FluidSolver<Mesh> {
               std::cerr << "***"
                   << " MIdx(c)=" << bc.GetMIdx(c)
                   << " MIdx(e[j].idx)=" << bc.GetMIdx(e[j].idx)
+                  << " Center(c)=" << mesh.GetCenter(c)
                   << " l.st[j]=" << MIdx(l.st[j]) 
                   << std::endl;
               assert(false);

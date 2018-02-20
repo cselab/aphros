@@ -130,8 +130,7 @@ template <class M>
 M Hydro<M>::CreateMesh(const MyBlockInfo& bi) {
   using B = MyBlock;
   B& b = *(B*)bi.ptrBlock;
-  int hl = 1;
-  // TODO: hl from Distr
+  int hl = bi.hl;
   MIdx si(B::sx, B::sy, B::sz); // block size inner
   MIdx s = si + MIdx(hl * 2);   // block size with halos
 
@@ -201,8 +200,19 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   // empty cell conditions for advection
   geom::MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
 
+
   // empty cell conditions for velocity
   geom::MapCell<std::shared_ptr<solver::ConditionCellFluid>> mc_velcond;
+  {
+    Vect x(par.Vect["pfixed_x"]);
+    IdxCell c = m.FindNearestCell(x);
+    Scal p = par.Double["pfixed"];
+    if (m.GetCenter(c).dist(x) < 0.1) { // TODO: choose nearest block
+      mc_velcond[c] = std::make_shared
+          <solver::fluid_condition::GivenPressureFixed<Mesh>>(p);
+    }
+
+  }
 
   // velocity and flux
   ff_flux_.Reinit(m);

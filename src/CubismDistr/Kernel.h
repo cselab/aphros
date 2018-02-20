@@ -41,6 +41,7 @@ struct MyBlockInfo {
   void* ptrBlock;
   double h_gridpoint;
   double origin[3];
+  int hl; // number of halo cells
 };
 
 // Suspendable kernel
