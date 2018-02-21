@@ -109,7 +109,9 @@ class Hydro : public Kernel {
   std::shared_ptr<const solver::LinearSolverFactory> p_lsf_; // linear solver factory
   std::unique_ptr<AS> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
-  FieldCell<Scal> fc_velu_; // single velocity component
+  FieldCell<Scal> fc_velux_; // velocity
+  FieldCell<Scal> fc_veluy_; 
+  FieldCell<Scal> fc_veluz_; 
   FieldCell<Scal> fc_p_; // pressure
   Scal sum_;
 };
@@ -312,8 +314,12 @@ void Hydro<M>::Run() {
     //auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
     //m.Comm(&u);
     // fluid velocity single component
-    //fc_velu_ = geom::GetComponent(fs_->GetVelocity(), 0);
-    //m.Comm(&fc_velu_); // goes to dumper
+    fc_velux_ = geom::GetComponent(fs_->GetVelocity(), 0);
+    m.Comm(&fc_velux_); // goes to dumper
+    fc_veluy_ = geom::GetComponent(fs_->GetVelocity(), 1);
+    m.Comm(&fc_veluy_); // goes to dumper
+    fc_veluz_ = geom::GetComponent(fs_->GetVelocity(), 2);
+    m.Comm(&fc_veluz_); // goes to dumper
     fc_p_ = fs_->GetPressure();
     m.Comm(&fc_p_); // goes to dumper
   }
