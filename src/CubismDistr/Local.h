@@ -89,11 +89,17 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par)
 
   output::Content content = {
       std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
-          "p", gm, [this](IdxCell i) { return buf_[0][i]; })
+          "vx", gm, [this](IdxCell i) { return buf_[0][i]; }),
+      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+          "vy", gm, [this](IdxCell i) { return buf_[1][i]; }),
+      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+          "vz", gm, [this](IdxCell i) { return buf_[2][i]; }),
+      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+          "p", gm, [this](IdxCell i) { return buf_[3][i]; })
       };
 
   session_.reset(new output::SessionParaviewStructured<M>(
-          content, "title", "p", gm));
+          content, "title", "p" /*filename*/, gm));
 
   // Resize buffer for mesh
   for (auto& u : buf_) {
