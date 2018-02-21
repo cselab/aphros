@@ -715,8 +715,7 @@ class FluidSimple : public FluidSolver<Mesh> {
     using namespace fluid_condition;
 
     is_boundary_.Reinit(mesh, false);
-    for (auto it = mf_cond_.cbegin();
-        it != mf_cond_.cend(); ++it) {
+    for (auto it = mf_cond_.cbegin(); it != mf_cond_.cend(); ++it) {
       IdxFace idxface = it->GetIdx();
       is_boundary_[idxface] = true;
       ConditionFaceFluid* cond_generic = it->GetValue().get();
@@ -991,18 +990,16 @@ class FluidSimple : public FluidSolver<Mesh> {
       for (auto idxface : mesh.Faces()) {
         auto& expr = ff_volume_flux_corr_[idxface];
         expr.Clear();
-        if (!is_boundary_[idxface]) {
-          IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
-          IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
-          Vect dm = mesh.GetVectToCell(idxface, 0);
-          Vect dp = mesh.GetVectToCell(idxface, 1);
-          auto coeff = - mesh.GetArea(idxface) /
-              ((dp - dm).norm() * ff_diag_coeff_[idxface]);
-          expr.InsertTerm(-coeff, cm);
-          expr.InsertTerm(coeff, cp);
-          // adhoc for periodic
-          expr.SortTerms(true);
-        }
+        IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
+        IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
+        Vect dm = mesh.GetVectToCell(idxface, 0);
+        Vect dp = mesh.GetVectToCell(idxface, 1);
+        auto coeff = - mesh.GetArea(idxface) /
+            ((dp - dm).norm() * ff_diag_coeff_[idxface]);
+        expr.InsertTerm(-coeff, cm);
+        expr.InsertTerm(coeff, cp);
+        // adhoc for periodic
+        expr.SortTerms(true);
         expr.SetConstant(ff_volume_flux_asterisk_[idxface]);
       }
       timer_->Pop();

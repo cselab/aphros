@@ -75,6 +75,7 @@ class Hydro : public Kernel {
   using IdxCell = geom::IdxCell;
   using IdxFace = geom::IdxFace;
   using IdxNode = geom::IdxNode;
+  static constexpr size_t dim = M::dim;
 
   template <class T>
   using FieldCell = geom::FieldCell<T>;
@@ -202,19 +203,65 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
 
   // zero-derivative boundary conditions for velocity
   geom::MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond;
-  for (auto idxface : m.Faces()) {
-    if (!m.IsInner(idxface)) {
-      mf_velcond[idxface] =
-          std::make_shared
-          <solver::fluid_condition::NoSlipWallFixed<M>>(vel);
+
+  // global mesh size
+  MIdx gs;
+  {
+    MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
+    MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
+    using B = MyBlock;
+    MIdx s(B::sx, B::sy, B::sz); // block size inner
+    gs = p * b * s;
+  }
+
+  using Direction = geom::Direction<dim>;
+  auto is_left = [this](IdxFace i) {
+    return m.GetDirection(i) == Direction::i &&
+        m.GetBlockFaces().GetMIdx(i)[0] == 0;
+  };
+  auto is_right = [this,gs](IdxFace i) {
+    return m.GetDirection(i) == Direction::i &&
+        m.GetBlockFaces().GetMIdx(i)[0] == gs[0];
+  };
+  auto is_bottom = [this](IdxFace i) {
+    return m.GetDirection(i) == Direction::j &&
+        m.GetBlockFaces().GetMIdx(i)[1] == 0;
+  };
+  auto is_top = [this,gs](IdxFace i) {
+    return m.GetDirection(i) == Direction::j &&
+        m.GetBlockFaces().GetMIdx(i)[1] == gs[1];
+  };
+  auto is_close = [this](IdxFace i) {
+    return dim >= 3 && m.GetDirection(i) == Direction::k &&
+        m.GetBlockFaces().GetMIdx(i)[2] == 0;
+  };
+  auto is_far = [this,gs](IdxFace i) {
+    return dim >= 3 && m.GetDirection(i) == Direction::k &&
+        m.GetBlockFaces().GetMIdx(i)[2] == gs[2];
+  };
+
+  // Boundary conditions for fluid
+  for (auto i : m.Faces()) {
+    if (is_top(i)) {
+      mf_velcond[i] = solver::Parse(par.String["bc_top"], i, m);
+    } else if (is_bottom(i)) {
+      mf_velcond[i] = solver::Parse(par.String["bc_bottom"], i, m);
+    } else if (is_left(i)) {
+      mf_velcond[i] = solver::Parse(par.String["bc_left"], i, m);
+    } else if (is_right(i)) {
+      mf_velcond[i] = solver::Parse(par.String["bc_right"], i, m);
+    } else if (is_close(i)) {
+      mf_velcond[i] = solver::Parse(par.String["bc_close"], i, m);
+    } else if (is_far(i)) {
+      mf_velcond[i] = solver::Parse(par.String["bc_far"], i, m);
     }
   }
   
-  // empty cell conditions for advection
+  // cell conditions for advection
+  // (empty)
   geom::MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
 
-
-  // empty cell conditions for velocity
+  // cell conditions for velocity
   geom::MapCell<std::shared_ptr<solver::ConditionCellFluid>> mc_velcond;
   {
     Vect x(par.Vect["pfixed_x"]);
