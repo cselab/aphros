@@ -1,2 +1,4 @@
 all:
 	./job
+
+.PHONY: all

@@ -188,6 +188,19 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
 
   // initial velocity
   FieldCell<Vect> fc_vel(m, Vect(0));
+  if (par.Int["taylor-green"]) {
+    for (auto i : m.AllCells()) {
+      auto& u = fc_vel[i][0];
+      auto& v = fc_vel[i][1];
+      Scal l = (2 * M_PI);
+      Scal x = m.GetCenter(i)[0] * l;
+      Scal y = m.GetCenter(i)[1] * l;
+      u = std::cos(x) * std::sin(y);
+      v = -std::sin(x) * std::cos(y);
+    }
+  } 
+
+  // TODO: Comm initial
 
   // zero-derivative boundary conditions for velocity
   geom::MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond;
