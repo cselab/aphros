@@ -823,7 +823,7 @@ class RangeInner<IdxFace, dim> {
 };
 
 template <class Mesh>
-Mesh InitUniformMesh(const Rect<typename Mesh::Vect>& domain,
+Mesh InitUniformMesh(Rect<typename Mesh::Vect> domain,
                      typename Mesh::MIdx begin,
                      typename Mesh::MIdx mesh_size, int hl) {
   using Vect = typename Mesh::Vect;
