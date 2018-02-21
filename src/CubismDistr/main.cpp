@@ -60,7 +60,9 @@ int main (int argc, const char ** argv) {
 
   std::ifstream f("a.conf");
   ip.RunAll(f);
-  ip.PrintAll();
+  if (rank == 0) {
+    ip.PrintAll();
+  }
 
   bool loc = par.Int["loc"];
 
