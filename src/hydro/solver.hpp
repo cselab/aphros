@@ -259,6 +259,10 @@ class InterpolationBoundaryFaceNearestCell:
     const Mesh& mesh = this->mesh;
     Expr expr;
     if (auto cond_generic = mf_cond_.find(idxface)) {
+      IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
+      IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
+      expr.InsertTerm(0, cm);
+      expr.InsertTerm(0, cp);
       if (auto cond_value =
           dynamic_cast<ConditionFaceValue<Scal>*>(cond_generic->get())) {
         expr.SetConstant(cond_value->GetValue());
@@ -319,6 +323,10 @@ class DerivativeBoundaryFacePlain:
     const Mesh& mesh = this->mesh;
     Expr expr;
     if (auto cond_generic = mf_cond_.find(idxface)) {
+      IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
+      IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
+      expr.InsertTerm(0, cm);
+      expr.InsertTerm(0, cp);
       if (auto cond_derivative =
           dynamic_cast<ConditionFaceDerivative<Scal>*>(cond_generic->get())) {
         expr.SetConstant(cond_derivative->GetDerivative());

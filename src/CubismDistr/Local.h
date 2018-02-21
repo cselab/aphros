@@ -147,6 +147,7 @@ void Local<KF>::Step() {
   if (isroot_) {
     std::cerr << "***** STEP " << step_ << " ******" << std::endl;
   }
+  stage_ = 0;
   do {
     // 1. Exchange halos in buffer mesh
     // Do communication and get all blocks
