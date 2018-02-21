@@ -155,29 +155,33 @@ class ConvectionDiffusionScalarImplicit :
       derivative_boundary(mesh, mf_cond_);
 
       // Compute convective fluxes
+			// all inner
       ff_cflux_.Reinit(mesh, Expr());
-      for (IdxFace idxface : mesh.Faces()) {
-        Expr value_expr, derivative_expr;
-        if (mesh.IsInner(idxface)) {
-          value_expr = value_inner.GetExpression(idxface);
-        } else {
-          value_expr = value_boundary.GetExpression(idxface);
-        }
-        ff_cflux_[idxface] =
-            value_expr * (*this->p_ff_vol_flux_)[idxface];
+      for (IdxFace f : mesh.Faces()) {
+        Expr e = value_inner.GetExpression(f);
+        ff_cflux_[f] = e * (*this->p_ff_vol_flux_)[f];
+      }
+			// overwrite with bc
+      for (auto it = mf_cond_.cbegin(); it != mf_cond_.cend(); ++it) {
+        IdxFace f = it->GetIdx();
+        Expr e = value_boundary.GetExpression(f);
+        ff_cflux_[f] = e * (*this->p_ff_vol_flux_)[f];
       }
 
       // Compute diffusive fluxes
+      // all inner
       ff_dflux_.Reinit(mesh, Expr());
-      for (IdxFace idxface : mesh.Faces()) {
-        Expr value_expr, derivative_expr;
-        if (mesh.IsInner(idxface)) {
-          derivative_expr = derivative_inner.GetExpression(idxface);
-        } else {
-          derivative_expr = derivative_boundary.GetExpression(idxface);
-        }
-        ff_dflux_[idxface] = derivative_expr *
-            (-(*this->p_ff_diffusion_rate_)[idxface]) * mesh.GetArea(idxface);
+      for (IdxFace f : mesh.Faces()) {
+        Expr e = derivative_inner.GetExpression(f);
+        ff_dflux_[f] = e *
+            (-(*this->p_ff_diffusion_rate_)[f]) * mesh.GetArea(f);
+      }
+			// overwrite with bc
+      for (auto it = mf_cond_.cbegin(); it != mf_cond_.cend(); ++it) {
+        IdxFace f = it->GetIdx();
+				Expr e = derivative_boundary.GetExpression(f);
+        ff_dflux_[f] = e *
+            (-(*this->p_ff_diffusion_rate_)[f]) * mesh.GetArea(f);
       }
 
       // Assemble the system

@@ -256,6 +256,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
       mf_velcond[i] = solver::Parse(par.String["bc_far"], i, m);
     }
   }
+  std::cerr << "mf_velcond.size() = " << mf_velcond.size() << std::endl;
   
   // cell conditions for advection
   // (empty)
