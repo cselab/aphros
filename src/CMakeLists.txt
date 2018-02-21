@@ -15,9 +15,15 @@ else()
 endif()
 
 # Debug flag
-if (NOT DEFINED DEBUG)
-  set(DEBUG ON)   
-endif()
+#if (NOT DEFINED DEBUG)
+#  set(DEBUG OFF)   
+#endif()
+
+#if (DEBUG)
+#  set(CMAKE_BUILD_TYPE Debug)
+#else()
+#  set(CMAKE_BUILD_TYPE Release)
+#endif()
 
 project("mfer")
 
@@ -35,17 +41,21 @@ if (OPENMP_FOUND)
         "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()                              
 
+
 # GCC warnings and optimizations
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -pedantic ")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
+
 if (UNIX)
-  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic --std=c++11")
-  endif()
-  if (DEBUG)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")
-  else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -DNDEBUG")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")  # remove symbolic information
-  endif()
+  #if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  #  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic --std=c++11")
+  #endif()
+  #if (DEBUG)
+  #  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")
+  #else()
+  #  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -DNDEBUG")
+  #  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")  # remove symbolic information
+  #endif()
 endif()
 
 # Source folders
