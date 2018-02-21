@@ -411,32 +411,25 @@ geom::FieldFace<T> Interpolate(
 
   if (geometric) {
     for (auto idxface : mesh.Faces()) {
-      if (mesh.IsInner(idxface)) {
-        IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
-        IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
-        res[idxface] = GetGeometricAverage(fc_u[cm], fc_u[cp]);
-      }
+			IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
+			IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
+			res[idxface] = GetGeometricAverage(fc_u[cm], fc_u[cp]);
     }
   } else {
     for (auto idxface : mesh.Faces()) {
-      if (mesh.IsInner(idxface)) {
-        IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
-        IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
-        //Vect xf = mesh.GetCenter(idxface);
-        //Vect xm = mesh.GetCenter(cm);
-        //Vect xp = mesh.GetCenter(cp);
-        //Scal alpha = (xf - xm).dot(xp - xm) / (xp - xm).sqrnorm();
-        Scal alpha = 0.5;
-        res[idxface] = fc_u[cm] * (1. - alpha) + fc_u[cp] * alpha;
-      }
+			IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
+			IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
+			//Vect xf = mesh.GetCenter(idxface);
+			//Vect xm = mesh.GetCenter(cm);
+			//Vect xp = mesh.GetCenter(cp);
+			//Scal alpha = (xf - xm).dot(xp - xm) / (xp - xm).sqrnorm();
+			Scal alpha = 0.5;
+			res[idxface] = fc_u[cm] * (1. - alpha) + fc_u[cp] * alpha;
     }
   }
 
   for (auto it = mf_cond_u.cbegin(); it != mf_cond_u.cend(); ++it) {
     IdxFace idxface = it->GetIdx();
-    if (mesh.IsInner(idxface)) {
-      continue;
-    }
     ConditionFace* cond = it->GetValue().get();
     if (auto cond_value = dynamic_cast<ConditionFaceValue<T>*>(cond)) {
       res[idxface] = cond_value->GetValue();
@@ -485,15 +478,13 @@ CalcLaplacian(const geom::FieldCell<typename Mesh::Scal>& fc_u,
     Scal sum = 0.;
     for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
       auto idxface = mesh.GetNeighbourFace(idxcell, i);
-      if (mesh.IsInner(idxface)) {
-        auto cm = mesh.GetNeighbourCell(idxface, 0);
-        auto cp = mesh.GetNeighbourCell(idxface, 1);
-        auto dm = mesh.GetVectToCell(idxface, 0);
-        auto dp = mesh.GetVectToCell(idxface, 1);
-        Scal derivative = (fc_u[cp] - fc_u[cm]) / (dp - dm).norm();
-        sum += derivative * mesh.GetArea(idxface) *
-            mesh.GetOutwardFactor(idxcell, i);
-      }
+			auto cm = mesh.GetNeighbourCell(idxface, 0);
+			auto cp = mesh.GetNeighbourCell(idxface, 1);
+			auto dm = mesh.GetVectToCell(idxface, 0);
+			auto dp = mesh.GetVectToCell(idxface, 1);
+			Scal derivative = (fc_u[cp] - fc_u[cm]) / (dp - dm).norm();
+			sum += derivative * mesh.GetArea(idxface) *
+					mesh.GetOutwardFactor(idxcell, i);
     }
     res[idxcell] = sum / mesh.GetVolume(idxcell);
   }
@@ -515,25 +506,20 @@ geom::FieldFace<T> InterpolateFirstUpwind(
   geom::FieldFace<T> res(mesh);
 
   for (IdxFace idxface : mesh.Faces()) {
-     if (mesh.IsInner(idxface)) {
-       IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
-       IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
-       if (probe[idxface] > threshold) {
-         res[idxface] = fc_u[cm];
-       } else if (probe[idxface] < -threshold) {
-         res[idxface] = fc_u[cp];
-       } else {
-         // TODO: Make a CDS proper for non-uniform grids
-         res[idxface] = 0.5 * (fc_u[cm] + fc_u[cp]);
-       }
-     }
+		 IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
+		 IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
+		 if (probe[idxface] > threshold) {
+			 res[idxface] = fc_u[cm];
+		 } else if (probe[idxface] < -threshold) {
+			 res[idxface] = fc_u[cp];
+		 } else {
+			 // TODO: Make a CDS proper for non-uniform grids
+			 res[idxface] = 0.5 * (fc_u[cm] + fc_u[cp]);
+		 }
   }
 
   for (auto it = mf_cond_u.cbegin(); it != mf_cond_u.cend(); ++it) {
     IdxFace idxface = it->GetIdx();
-    if (mesh.IsInner(idxface)) {
-      continue;
-    }
     ConditionFace* cond = it->GetValue().get();
     if (auto cond_value = dynamic_cast<ConditionFaceValue<T>*>(cond)) {
       res[idxface] = cond_value->GetValue();
@@ -577,34 +563,29 @@ InterpolateSuperbee(
   geom::FieldFace<Scal> res(mesh);
 
   for (IdxFace idxface : mesh.Faces()) {
-     if (mesh.IsInner(idxface)) {
-       IdxCell P = mesh.GetNeighbourCell(idxface, 0);
-       IdxCell E = mesh.GetNeighbourCell(idxface, 1);
-       Vect rp = mesh.GetVectToCell(idxface, 0); 
-       Vect re = mesh.GetVectToCell(idxface, 1); 
-       const auto& u = fc_u;
-       const auto& g = fc_u_grad;
-       if (probe[idxface] > threshold) {
-         res[idxface] =
-             u[P] + 0.5 * Superbee(u[E] - u[P],
-                                   -Scal(4.) * g[P].dot(rp) - (u[E] - u[P]));
-       } else if (probe[idxface] < -threshold) {
-         res[idxface] =
-             u[E] - 0.5 * Superbee(u[E] - u[P],
-                                   Scal(4.) * g[E].dot(re) - (u[E] - u[P]));
-       } else {
-         // TODO: Make a CDS proper for non-uniform grids
-         res[idxface] = 0.5 * (u[P] + u[E]);
-       }
-     }
+		 IdxCell P = mesh.GetNeighbourCell(idxface, 0);
+		 IdxCell E = mesh.GetNeighbourCell(idxface, 1);
+		 Vect rp = mesh.GetVectToCell(idxface, 0); 
+		 Vect re = mesh.GetVectToCell(idxface, 1); 
+		 const auto& u = fc_u;
+		 const auto& g = fc_u_grad;
+		 if (probe[idxface] > threshold) {
+			 res[idxface] =
+					 u[P] + 0.5 * Superbee(u[E] - u[P],
+																 -Scal(4.) * g[P].dot(rp) - (u[E] - u[P]));
+		 } else if (probe[idxface] < -threshold) {
+			 res[idxface] =
+					 u[E] - 0.5 * Superbee(u[E] - u[P],
+																 Scal(4.) * g[E].dot(re) - (u[E] - u[P]));
+		 } else {
+			 // TODO: Make a CDS proper for non-uniform grids
+			 res[idxface] = 0.5 * (u[P] + u[E]);
+		 }
   }
 
   // TODO: Move interpolation on boundaries to a function
   for (auto it = mf_cond_u.cbegin(); it != mf_cond_u.cend(); ++it) {
     IdxFace idxface = it->GetIdx();
-    if (mesh.IsInner(idxface)) {
-      continue;
-    }
     ConditionFace* cond = it->GetValue().get();
     if (auto cond_value = dynamic_cast<ConditionFaceValue<Scal>*>(cond)) {
       res[idxface] = cond_value->GetValue();
@@ -643,12 +624,15 @@ GetSmoothField(const geom::FieldCell<T>& fc_u,
             const Mesh& mesh, size_t repeat = 1) {
   geom::MapFace<std::shared_ptr<ConditionFace>> mf_cond;
 
+// TODO: fix bc (currently relies on comm)
+/*
   for (auto idxface : mesh.Faces()) {
     if (!mesh.IsExcluded(idxface) && !mesh.IsInner(idxface)) {
       mf_cond[idxface] =
           std::make_shared<ConditionFaceDerivativeFixed<T>>(T(0));
     }
   }
+*/
 
   geom::FieldCell<T> res = fc_u;
 
