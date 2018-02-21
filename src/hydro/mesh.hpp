@@ -779,7 +779,7 @@ class RangeInner<IdxFace, dim> {
   using I = typename R::iterator; // range iterator
   const B& ba_; // block all
   const B& bi_; // block inner
-  const R& ri_; // range inner
+  R ri_; // range inner
 
  public:
   class iterator {
@@ -805,8 +805,6 @@ class RangeInner<IdxFace, dim> {
       return !(*this == o);
     }
     IdxFace operator*() const {
-   // std::cerr << (*i_).GetRaw() << std::endl;
-   // return IdxFace(0);
       auto x = bi_.GetMIdx(*i_); 
       auto d = bi_.GetDirection(*i_); 
       return ba_.GetIdx(x, d);
