@@ -822,17 +822,22 @@ class RangeInner<IdxFace, dim> {
   }
 };
 
+// Create uniform mesh
+// domain    - rectangle covering inner cells
+// begin     - index of lower inner cells
+// s        - number of inner cells in each direction
+// hl        - number of halo layers
 template <class Mesh>
 Mesh InitUniformMesh(Rect<typename Mesh::Vect> domain,
                      typename Mesh::MIdx begin,
-                     typename Mesh::MIdx mesh_size, int hl) {
+                     typename Mesh::MIdx s, int hl) {
   using Vect = typename Mesh::Vect;
   using MIdx = typename Mesh::MIdx;
-  typename Mesh::BlockNodes b_nodes(begin, mesh_size + MIdx(1));
+  typename Mesh::BlockNodes b_nodes(begin - MIdx(hl), s + MIdx(1 + 2*hl));
   FieldNode<Vect> fn_node(b_nodes);
   for (auto midx : b_nodes) {
     IdxNode idxnode = b_nodes.GetIdx(midx);
-    Vect unit = Vect(midx - b_nodes.GetBegin()) / Vect(mesh_size);
+    Vect unit = Vect(midx - b_nodes.GetBegin() - MIdx(hl)) / Vect(s);
     fn_node[idxnode] = domain.lb + unit * domain.GetDimensions();
   }
   return Mesh(b_nodes, fn_node, hl);
