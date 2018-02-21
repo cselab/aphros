@@ -5,3 +5,4 @@ cd build
 
 . ~/bin/hypre.prefix
 cmake ../ -DHYPRE_DIR=$P 
+cmake ../ -DHYPRE_DIR=$P -DCMAKE_BUILD_TYPE=release
