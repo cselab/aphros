@@ -805,6 +805,8 @@ class RangeInner<IdxFace, dim> {
       return !(*this == o);
     }
     IdxFace operator*() const {
+   // std::cerr << (*i_).GetRaw() << std::endl;
+   // return IdxFace(0);
       auto x = bi_.GetMIdx(*i_); 
       auto d = bi_.GetDirection(*i_); 
       return ba_.GetIdx(x, d);
