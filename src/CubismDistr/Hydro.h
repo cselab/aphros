@@ -25,44 +25,6 @@
 #include "Kernel.h"
 #include "Vars.h"
 
-// Basic Rules:
-// 
-// 1. Program at interface.
-// First describe the interface in a separate class, then implement.
-// 
-// 2. Use templates when:
-// - 
-// 
-// 3. Use inheritance when:
-// - 
-// 
-// 4. Naming conventions:
-// - single letter when possible
-// - if first letter, put that word in comment: n // name
-// - if another letter, put that word with letter in [...]: a // n[a]me
-// - up to 4 letters if possible
-// - private variables end with underscore: a_;
-//   exceptions: m (mesh)
-// 
-// 5. Dereference pointers to references or values if possible
-// But: use pointer arguments to prevent passing an rvalue
-// 
-// 6. Lower bound for template argument:
-//   template <class B /*: A*/>
-// means that argument B needs to be a subtype of A
-//  
-// 7. Comments:
-// - capitalized descriptive for a class or function 
-//   (e.g. Creates instance)
-// - capitalized imperative for expressions in implementation 
-//   (e.g. Create instance)
-// - non-capitalized for declarations 
-//   (e.g. buffer index)
-//
-// 8. Data from Kernel returned by reference if possible
-
-
-
 
 template <class M>
 class Hydro : public Kernel {
