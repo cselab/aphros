@@ -18,6 +18,7 @@ namespace geom {
 namespace geom3d {
 
 
+// TODO: Neighbour faces iterator introducing (cell, face) pairs
 template <class Scal>
 class MeshStructured : public MeshGeneric<Scal, 3> {
  public:
@@ -185,6 +186,24 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
   bool IsInner(IdxFace idxface) const override {
     return ff_is_inner_[idxface];
   }
+  operator Range<IdxCell>() const {
+    return Range<IdxCell>(0, GetNumCells());
+  }
+  operator Range<IdxFace>() const {
+    return Range<IdxFace>(0, GetNumFaces());
+  }
+  operator Range<IdxNode>() const {
+    return Range<IdxNode>(0, GetNumNodes());
+  }
+  Range<IdxCell> AllCells() const {
+    return Range<IdxCell>(*this);
+  }
+  Range<IdxFace> AllFaces() const {
+    return Range<IdxFace>(*this);
+  }
+  Range<IdxNode> AllNodes() const {
+    return Range<IdxNode>(*this);
+  }
   RangeInner<IdxCell, dim> Cells() const {
     return RangeInner<IdxCell, dim>(GetBlockCells(), GetInBlockCells());
   }
@@ -300,6 +319,27 @@ class MeshStructured : public MeshGeneric<Scal, 3> {
   }
   void ClearSolve() {
     vls_.clear();
+  }
+  virtual IdxCell FindNearestCell(Vect point) const {
+    IdxCell idxcell_nearest = IdxCell(0);
+    for (auto idxcell : AllCells()) {
+      if (point.dist(GetCenter(idxcell)) <
+          point.dist(GetCenter(idxcell_nearest))) {
+        idxcell_nearest = idxcell;
+      }
+    }
+    return idxcell_nearest;
+  }
+  virtual size_t GetValidNeighbourCellId(IdxFace idxface) const {
+    size_t id = 0;
+    while (id < GetNumNeighbourCells(idxface) &&
+        GetNeighbourCell(idxface, id).IsNone()) {
+      ++id;
+    }
+    return id;
+  }
+  virtual Vect GetNormal(IdxFace idxface) const {
+    return GetSurface(idxface) / GetArea(idxface);
   }
 
  private:
