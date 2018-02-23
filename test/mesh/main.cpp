@@ -63,11 +63,16 @@ void TestBlock() {
 void TestMesh() {
   geom::Rect<Vect> dom(Vect(0), Vect(1));
   using M = geom::MeshStructured<Scal, dim>;
-  M m = geom::InitUniformMesh<M>(dom, MIdx(0), MIdx(5), 0);
+  M m = geom::InitUniformMesh<M>(dom, MIdx(0), MIdx(5), 1);
 
-  for (auto i : m.Cells()) {
+  //for (auto i : m.GetAll<geom::IdxFace>()) {
+  int a = 0;
+  for (auto i : m.Faces()) {
     std::cout << i.GetRaw() << std::endl;
+    ++a;
   }
+  std::cout << a << std::endl;
+
 }
 
 int main() {
