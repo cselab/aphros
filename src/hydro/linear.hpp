@@ -322,7 +322,7 @@ void Normalize(System& system) {
 template <class Scal, class Idx, class Expr>
 class LinearSolver {
   template <class T>
-  using Field = geom::FieldGeneric<T, Idx>;
+  using Field = geom::GField<T, Idx>;
 
  public:
   virtual Field<Scal> Solve(const Field<Expr>&) = 0;
@@ -547,7 +547,7 @@ class PardisoFactory : public LinearSolverFactoryGeneric {
 template <class Scal, class Idx, class Expr>
 class LuDecomposition : public LinearSolver<Scal, Idx, Expr> {
   template <class T>
-  using Field = geom::FieldGeneric<T, Idx>;
+  using Field = geom::GField<T, Idx>;
 
  public:
   Field<Scal> Solve(const Field<Expr>& system) override {
@@ -598,7 +598,7 @@ class LuDecompositionFactory : public LinearSolverFactoryGeneric {
 template <class Scal, class Idx, class Expr>
 class LuDecompositionRelaxed : public LinearSolver<Scal, Idx, Expr> {
   template <class T>
-  using Field = geom::FieldGeneric<T, Idx>;
+  using Field = geom::GField<T, Idx>;
   Scal tolerance_;
   size_t num_iters_limit_;
   Scal relaxation_factor_;
@@ -691,7 +691,7 @@ class LuDecompositionRelaxedFactory : public LinearSolverFactoryGeneric {
 template <class Scal, class Idx, class Expr>
 class GaussSeidel : public LinearSolver<Scal, Idx, Expr> {
   template <class T>
-  using Field = geom::FieldGeneric<T, Idx>;
+  using Field = geom::GField<T, Idx>;
   Scal tolerance_;
   size_t num_iters_limit_;
   Scal relaxation_factor_;
@@ -756,7 +756,7 @@ class GaussSeidelFactory : public LinearSolverFactoryGeneric {
 template <class Scal, class Idx, class Expr>
 class Jacobi : public LinearSolver<Scal, Idx, Expr> {
   template <class T>
-  using Field = geom::FieldGeneric<T, Idx>;
+  using Field = geom::GField<T, Idx>;
   Scal tolerance_;
   size_t num_iters_limit_;
   Scal relaxation_factor_;

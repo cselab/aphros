@@ -20,7 +20,7 @@ bool IsNan(Scal a) {
 }
 
 template <class T, class Idx>
-bool IsNan(const geom::FieldGeneric<T, Idx>& field) {
+bool IsNan(const geom::GField<T, Idx>& field) {
   for (auto idx : field.GetRange()) {
     if (IsNan(field[idx])) {
       return true;
@@ -30,9 +30,9 @@ bool IsNan(const geom::FieldGeneric<T, Idx>& field) {
 }
 
 template <class T, class Idx>
-geom::MapGeneric<T*, Idx> GetPointers(
-    const geom::MapGeneric<std::shared_ptr<T>, Idx>& m_ptr_shared) {
-  geom::MapGeneric<T*, Idx> m_ptr;
+geom::GMap<T*, Idx> GetPointers(
+    const geom::GMap<std::shared_ptr<T>, Idx>& m_ptr_shared) {
+  geom::GMap<T*, Idx> m_ptr;
   for (auto it = m_ptr_shared.cbegin(); it != m_ptr_shared.cend(); ++it) {
     m_ptr[it->GetIdx()] = it->GetValue().get();
   }
@@ -385,16 +385,15 @@ Scal GetGeometricAverage(Scal a, Scal b) {
   return std::sqrt(a * b);
 }
 
-template <class Scal, size_t dim>
-geom::Vect<Scal, dim> GetGeometricAverage(const geom::Vect<Scal, dim>& a,
-                                          const geom::Vect<Scal, dim>& b,
-                                          Scal threshold = 1e-8) {
-  auto arithmetic_aver = (a + b) * 0.5;
-  if (arithmetic_aver.norm() < threshold) {
-    return arithmetic_aver;
+template <class Scal, class Vect, size_t dim>
+Vect GetGeometricAverage(
+    const Vect& a, const Vect& b, Scal th = 1e-8) {
+  auto m = (a + b) * 0.5;
+  if (m.norm() < th) {
+    return m;
   }
-  auto direction = arithmetic_aver / arithmetic_aver.norm();
-  return direction * std::sqrt(a.norm() * b.norm());
+  auto d = m / m.norm();
+  return d * std::sqrt(a.norm() * b.norm());
 }
 
 template <class T, class Mesh>
@@ -779,15 +778,15 @@ template <class Field, class Mesh, class Scal = typename Mesh::Scal>
 Scal CalcDiff(const Field& first, const Field& second, const Mesh& mesh) {
   Scal res = 0.;
   using Idx = typename Field::IdxType;
-  for (Idx idx : geom::Range<Idx>(mesh)) {
+  for (Idx idx : geom::GRange<Idx>(mesh)) {
     res = std::max(res, std::abs(first[idx] - second[idx]));
   }
   return res;
 }
 
 template <class Idx, class Mesh, class Scal = typename Mesh::Scal>
-Scal CalcDiff(const geom::FieldGeneric<typename Mesh::Vect, Idx>& first,
-                const geom::FieldGeneric<typename Mesh::Vect, Idx>& second,
+Scal CalcDiff(const geom::GField<typename Mesh::Vect, Idx>& first,
+                const geom::GField<typename Mesh::Vect, Idx>& second,
                 const Mesh& mesh) {
   Scal res = 0.;
   for (Idx idx : geom::Range<Idx>(mesh)) {
