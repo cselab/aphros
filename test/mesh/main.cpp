@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "mesh.hpp"
+#include "mesh3d.hpp"
 
 // Returns true if a < b (lex starting from end)
 template <class Vect>
@@ -16,13 +17,14 @@ bool Cmp(Vect a, Vect b) {
   return false;
 }
 
-int main() {
-  const int dim = 3;
+const int dim = 3;
+using MIdx = geom::GMIdx<dim>;
+using IdxFace = geom::IdxFace;
+using Dir = geom::GDir<dim>;
+using Scal = double;
+using Vect = geom::GVect<Scal, dim>;
 
-  using MIdx = geom::GMIdx<dim>;
-  using IdxFace = geom::IdxFace;
-  using Dir = geom::GDir<dim>;
-
+void TestBlock() {
   const size_t hl = 1;
   MIdx oi(0); // origin inner
   MIdx si(2); // size inner
@@ -56,4 +58,20 @@ int main() {
     xp = x;
     dp = d;
   }
+}
+
+void TestMesh() {
+  geom::Rect<Vect> dom(Vect(0), Vect(1));
+  using M = geom::MeshStructured<Scal, dim>;
+  M m = geom::InitUniformMesh<M>(dom, MIdx(0), MIdx(5), 0);
+
+  for (auto i : m.Cells()) {
+    std::cout << i.GetRaw() << std::endl;
+  }
+}
+
+int main() {
+  TestBlock();
+
+  TestMesh();
 }
