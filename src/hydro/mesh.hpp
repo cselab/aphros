@@ -962,34 +962,55 @@ class MeshStructured {
   bool IsInner(IdxFace idxface) const {
     return ff_is_inner_[idxface];
   }
-  // TODO: remove next 3 operators
-  operator GRange<IdxCell>() const {
+
+  // Returns range of all indices
+  template <class Idx>
+  GRange<Idx> GetAll() const { 
+    return GetAll((Idx*)0);
+  }
+  GRange<IdxCell> GetAll(IdxCell*) const { 
     return GRange<IdxCell>(0, GetNumCells());
   }
-  operator GRange<IdxFace>() const {
+  GRange<IdxFace> GetAll(IdxFace*) const { 
     return GRange<IdxFace>(0, GetNumFaces());
   }
-  operator GRange<IdxNode>() const {
+  GRange<IdxNode> GetAll(IdxNode*) const { 
     return GRange<IdxNode>(0, GetNumNodes());
   }
   GRange<IdxCell> AllCells() const {
-    return GRange<IdxCell>(*this);
+    return GetAll<IdxCell>();
   }
   GRange<IdxFace> AllFaces() const {
-    return GRange<IdxFace>(*this);
+    return GetAll<IdxFace>();
   }
   GRange<IdxNode> AllNodes() const {
-    return GRange<IdxNode>(*this);
+    return GetAll<IdxNode>();
   }
-  GRangeIn<IdxCell, dim> Cells() const {
+
+  // Returns range of inner indices
+  template <class Idx>
+  GRangeIn<Idx, dim> GetInner() const { 
+    return GetInner((Idx*)0);
+  }
+  GRangeIn<IdxCell, dim> GetInner(IdxCell*) const {
     return GRangeIn<IdxCell, dim>(GetBlockCells(), GetInBlockCells());
   }
-  GRangeIn<IdxFace, dim> Faces() const {
+  GRangeIn<IdxFace, dim> GetInner(IdxFace*) const {
     return GRangeIn<IdxFace, dim>(GetBlockFaces(), GetInBlockFaces());
   }
-  GRangeIn<IdxNode, dim> Nodes() const {
+  GRangeIn<IdxNode, dim> GetInner(IdxNode*) const {
     return GRangeIn<IdxNode, dim>(GetBlockNodes(), GetInBlockNodes());
   }
+  GRangeIn<IdxCell, dim> Cells() const {
+    return GetInner<IdxCell>();
+  }
+  GRangeIn<IdxFace, dim> Faces() const {
+    return GetInner<IdxFace>();
+  }
+  GRangeIn<IdxNode, dim> Nodes() const {
+    return GetInner<IdxNode>();
+  }
+
   bool IsInside(IdxCell idxcell, Vect vect) const {
     for (size_t i = 0; i < GetNumNeighbourFaces(idxcell); ++i) {
       IdxFace idxface = GetNeighbourFace(idxcell, i);
