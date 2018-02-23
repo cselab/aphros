@@ -789,7 +789,7 @@ Scal CalcDiff(const geom::GField<typename Mesh::Vect, Idx>& first,
                 const geom::GField<typename Mesh::Vect, Idx>& second,
                 const Mesh& mesh) {
   Scal res = 0.;
-  for (Idx idx : geom::Range<Idx>(mesh)) {
+  for (Idx idx : mesh.GetInnergeom::Range<Idx>(mesh)) {
     res = std::max(res, first[idx].dist(second[idx]));
   }
   return res;

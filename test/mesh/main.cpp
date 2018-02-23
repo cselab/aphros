@@ -65,9 +65,8 @@ void TestMesh() {
   using M = geom::MeshStructured<Scal, dim>;
   M m = geom::InitUniformMesh<M>(dom, MIdx(0), MIdx(5), 1);
 
-  //for (auto i : m.GetAll<geom::IdxFace>()) {
   int a = 0;
-  for (auto i : m.Faces()) {
+  for (auto i : m.AllFaces()) {
     std::cout << i.GetRaw() << std::endl;
     ++a;
   }

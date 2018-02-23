@@ -989,26 +989,26 @@ class MeshStructured {
 
   // Returns range of inner indices
   template <class Idx>
-  GRangeIn<Idx, dim> GetInner() const { 
-    return GetInner((Idx*)0);
+  GRangeIn<Idx, dim> Get() const { 
+    return Get((Idx*)0);
   }
-  GRangeIn<IdxCell, dim> GetInner(IdxCell*) const {
+  GRangeIn<IdxCell, dim> Get(IdxCell*) const {
     return GRangeIn<IdxCell, dim>(GetBlockCells(), GetInBlockCells());
   }
-  GRangeIn<IdxFace, dim> GetInner(IdxFace*) const {
+  GRangeIn<IdxFace, dim> Get(IdxFace*) const {
     return GRangeIn<IdxFace, dim>(GetBlockFaces(), GetInBlockFaces());
   }
-  GRangeIn<IdxNode, dim> GetInner(IdxNode*) const {
+  GRangeIn<IdxNode, dim> Get(IdxNode*) const {
     return GRangeIn<IdxNode, dim>(GetBlockNodes(), GetInBlockNodes());
   }
   GRangeIn<IdxCell, dim> Cells() const {
-    return GetInner<IdxCell>();
+    return Get<IdxCell>();
   }
   GRangeIn<IdxFace, dim> Faces() const {
-    return GetInner<IdxFace>();
+    return Get<IdxFace>();
   }
   GRangeIn<IdxNode, dim> Nodes() const {
-    return GetInner<IdxNode>();
+    return Get<IdxNode>();
   }
 
   bool IsInside(IdxCell idxcell, Vect vect) const {
