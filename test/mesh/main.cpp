@@ -66,7 +66,7 @@ void TestMesh() {
   M m = geom::InitUniformMesh<M>(dom, MIdx(0), MIdx(5), 1);
 
   int a = 0;
-  for (auto i : m.AllFaces()) {
+  for (auto i : m.Get<geom::IdxCell>()) {
     std::cout << i.GetRaw() << std::endl;
     ++a;
   }

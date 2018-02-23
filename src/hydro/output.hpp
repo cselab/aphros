@@ -56,9 +56,9 @@ class EntryFieldCopy : public EntryField<FieldType> {
 
 template <class Vect, class IdxType>
 class EntryExtractScalar :
-    public EntryField<geom::FieldGeneric<typename Vect::value_type, IdxType>> {
-  using VectField = geom::FieldGeneric<Vect, IdxType>;
-  using ScalarField = geom::FieldGeneric<typename Vect::value_type, IdxType>;
+    public EntryField<geom::GField<typename Vect::value_type, IdxType>> {
+  using VectField = geom::GField<Vect, IdxType>;
+  using ScalarField = geom::GField<typename Vect::value_type, IdxType>;
   const VectField& vect_field_;
   ScalarField scalar_field_;
   size_t component_number_;
@@ -83,8 +83,8 @@ class EntryExtractScalar :
 
 template <class Value, class Idx, class Mesh>
 class EntryFunction :
-    public EntryField<geom::FieldGeneric<Value, Idx>> {
-  using ScalarField = geom::FieldGeneric<Value, Idx>;
+    public EntryField<geom::GField<Value, Idx>> {
+  using ScalarField = geom::GField<Value, Idx>;
   using Function = std::function<Value (Idx)>;
   const Mesh& mesh_;
   ScalarField scalar_field_;
@@ -97,7 +97,7 @@ class EntryFunction :
       , function_(function)
   {}
   void Prepare() override {
-    for (auto idx : geom::Range<Idx>(mesh_)) {
+    for (auto idx : mesh_.template Get<Idx>()) {
       scalar_field_[idx] = function_(idx);
     }
   }

@@ -110,7 +110,7 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par)
   MIdx ms(bs_, bs_, bs_); // block size 
   MIdx mb(b_[0], b_[1], b_[2]); // number of blocks
   MIdx mp(p_[0], p_[1], p_[2]); // number of PEs
-  geom::BlockCells<3> bc(mb * mp);
+  geom::GBlockCells<3> bc(mb * mp);
   using geom::IdxNode;
   Scal h = (gm.GetNode(IdxNode(1)) - gm.GetNode(IdxNode(0)))[0];
   assert(h > 0);

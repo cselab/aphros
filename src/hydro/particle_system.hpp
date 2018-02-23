@@ -32,13 +32,13 @@ class ParticleSystem : public UnsteadySolver {
   using Vect = typename Mesh::Vect;
   using IdxCell = geom::IdxCell;
   using IdxNode = geom::IdxNode;
-  using IdxParticle = geom::IdxGeneric<20160211>;
+  using IdxParticle = geom::GIdx<20160211>;
   template <class T>
   using FieldCell = geom::FieldCell<T>;
   template <class T>
   using FieldNode = geom::FieldNode<T>;
   template <class T>
-  using FieldParticle = geom::FieldGeneric<T, IdxParticle>;
+  using FieldParticle = geom::GField<T, IdxParticle>;
 
   const Mesh& mesh;
 
@@ -53,7 +53,7 @@ class ParticleSystem : public UnsteadySolver {
   std::vector<FieldCell<Scal>> fc_fields_;
   std::vector<FieldParticle<Scal>> fp_fields_;
 
-  geom::Range<IdxParticle> particles_;
+  geom::GRange<IdxParticle> particles_;
 
   FieldParticle<Vect> fp_position_;
   FieldParticle<IdxCell> fp_cell_;
@@ -104,7 +104,7 @@ class ParticleSystem : public UnsteadySolver {
   IdxParticle AddParticle(Vect position, IdxCell idxcell) {
     IdxParticle idxpart(fp_position_.size());
     fp_position_.push_back(position);
-    particles_ = geom::Range<IdxParticle>(0, fp_position_.size());
+    particles_ = geom::GRange<IdxParticle>(0, fp_position_.size());
     fp_velocity_.push_back(Vect());
     fp_cell_.push_back(idxcell);
     fp_cell_center_distance_.push_back(position.dist(mesh.GetCenter(idxcell)));
@@ -252,7 +252,7 @@ class ParticleSystem : public UnsteadySolver {
   }
   template <class T>
   void EraseRemovedParticlesField(FieldParticle<T>& fp_field,
-                             geom::Range<IdxParticle> particles_new) {
+                             geom::GRange<IdxParticle> particles_new) {
     FieldParticle<T> res(particles_new);
     size_t it = 0;
     for (auto idxpart : particles_) {
@@ -264,7 +264,7 @@ class ParticleSystem : public UnsteadySolver {
     fp_field = res;
   }
   void EraseRemovedParticles() {
-    geom::Range<IdxParticle> particles_new(0, GetNumLiveParticles());
+    geom::GRange<IdxParticle> particles_new(0, GetNumLiveParticles());
     EraseRemovedParticlesField(fp_position_, particles_new);
     EraseRemovedParticlesField(fp_cell_, particles_new);
     EraseRemovedParticlesField(fp_cell_center_distance_, particles_new);

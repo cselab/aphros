@@ -608,7 +608,7 @@ class AdvectionSolverMultiParticles :
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
   size_t num_fields_;
-  using MIdx = geom::MIdxGeneral<dim>;
+  using MIdx = geom::GMIdx<dim>;
   using IdxCell = geom::IdxCell;
   using IdxFace = geom::IdxFace;
   using IdxNode = geom::IdxNode;
