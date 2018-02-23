@@ -54,10 +54,10 @@ class ConditionFaceExtrapolation : public ConditionFace {
   ConditionFaceExtrapolation() {}
 };
 
-template <class ValueType>
+template <class Value>
 class ConditionFaceValue : public ConditionFace {
  public:
-  virtual ValueType GetValue() const = 0;
+  virtual Value GetValue() const = 0;
 };
 
 template <class Vect>
@@ -76,32 +76,32 @@ class ConditionFaceValueExtractComponent :
   }
 };
 
-template <class ValueType>
-class ConditionFaceValueFixed : public ConditionFaceValue<ValueType> {
-  ValueType value_;
+template <class Value>
+class ConditionFaceValueFixed : public ConditionFaceValue<Value> {
+  Value value_;
  public:
-  ConditionFaceValueFixed(const ValueType& value)
+  ConditionFaceValueFixed(const Value& value)
       : value_(value)
   {}
-  ValueType GetValue() const override {
+  Value GetValue() const override {
     return value_;
   }
 };
 
-template <class ValueType>
+template <class Value>
 class ConditionFaceDerivative : public ConditionFace {
  public:
-  virtual ValueType GetDerivative() const = 0;
+  virtual Value GetDerivative() const = 0;
 };
 
-template <class ValueType>
-class ConditionFaceDerivativeFixed : public ConditionFaceDerivative<ValueType> {
-  ValueType derivative_;
+template <class Value>
+class ConditionFaceDerivativeFixed : public ConditionFaceDerivative<Value> {
+  Value derivative_;
  public:
-  explicit ConditionFaceDerivativeFixed(const ValueType& derivative)
+  explicit ConditionFaceDerivativeFixed(const Value& derivative)
       : derivative_(derivative)
   {}
-  virtual ValueType GetDerivative() const override {
+  virtual Value GetDerivative() const override {
     return derivative_;
   }
 };
@@ -111,20 +111,20 @@ class ConditionCell {
   virtual ~ConditionCell() {}
 };
 
-template <class ValueType>
+template <class Value>
 class ConditionCellValue : public ConditionCell {
  public:
-  virtual ValueType GetValue() const = 0;
+  virtual Value GetValue() const = 0;
 };
 
-template <class ValueType>
-class ConditionCellValueFixed : public ConditionCellValue<ValueType> {
-  ValueType value_;
+template <class Value>
+class ConditionCellValueFixed : public ConditionCellValue<Value> {
+  Value value_;
  public:
-  explicit ConditionCellValueFixed(const ValueType& value)
+  explicit ConditionCellValueFixed(const Value& value)
       : value_(value)
   {}
-  ValueType GetValue() const override {
+  Value GetValue() const override {
     return value_;
   }
 };
@@ -385,9 +385,11 @@ Scal GetGeometricAverage(Scal a, Scal b) {
   return std::sqrt(a * b);
 }
 
-template <class Scal, class Vect, size_t dim>
-Vect GetGeometricAverage(
-    const Vect& a, const Vect& b, Scal th = 1e-8) {
+template <class Scal, size_t dim>
+geom::GVect<Scal, dim> GetGeometricAverage(
+    const geom::GVect<Scal, dim>& a, 
+    const geom::GVect<Scal, dim>& b, 
+    Scal th = 1e-8) {
   auto m = (a + b) * 0.5;
   if (m.norm() < th) {
     return m;
@@ -777,7 +779,7 @@ struct LayersData {
 template <class Field, class Mesh, class Scal = typename Mesh::Scal>
 Scal CalcDiff(const Field& first, const Field& second, const Mesh& mesh) {
   Scal res = 0.;
-  using Idx = typename Field::IdxType;
+  using Idx = typename Field::Idx;
   for (Idx idx : geom::GRange<Idx>(mesh)) {
     res = std::max(res, std::abs(first[idx] - second[idx]));
   }
@@ -789,7 +791,7 @@ Scal CalcDiff(const geom::GField<typename Mesh::Vect, Idx>& first,
                 const geom::GField<typename Mesh::Vect, Idx>& second,
                 const Mesh& mesh) {
   Scal res = 0.;
-  for (Idx idx : mesh.GetInnergeom::Range<Idx>(mesh)) {
+  for (Idx idx : mesh.template Get<Idx>()) {
     res = std::max(res, first[idx].dist(second[idx]));
   }
   return res;

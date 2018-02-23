@@ -986,6 +986,12 @@ class MeshStructured {
   GRange<IdxNode> AllNodes() const {
     return GetAll<IdxNode>();
   }
+  // Type-cast to GRange required for GField initialization
+  template <class Idx>
+  operator GRange<Idx>() const {
+    return GetAll<Idx>(); 
+  }
+
 
   // Returns range of inner indices
   template <class Idx>

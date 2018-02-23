@@ -176,29 +176,29 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
     gs = p * b * s;
   }
 
-  using Direction = geom::Direction<dim>;
+  using Dir = typename M::Dir;
   auto is_left = [this](IdxFace i) {
-    return m.GetDirection(i) == Direction::i &&
+    return m.GetDir(i) == Dir::i &&
         m.GetBlockFaces().GetMIdx(i)[0] == 0;
   };
   auto is_right = [this,gs](IdxFace i) {
-    return m.GetDirection(i) == Direction::i &&
+    return m.GetDir(i) == Dir::i &&
         m.GetBlockFaces().GetMIdx(i)[0] == gs[0];
   };
   auto is_bottom = [this](IdxFace i) {
-    return m.GetDirection(i) == Direction::j &&
+    return m.GetDir(i) == Dir::j &&
         m.GetBlockFaces().GetMIdx(i)[1] == 0;
   };
   auto is_top = [this,gs](IdxFace i) {
-    return m.GetDirection(i) == Direction::j &&
+    return m.GetDir(i) == Dir::j &&
         m.GetBlockFaces().GetMIdx(i)[1] == gs[1];
   };
   auto is_close = [this](IdxFace i) {
-    return dim >= 3 && m.GetDirection(i) == Direction::k &&
+    return dim >= 3 && m.GetDir(i) == Dir::k &&
         m.GetBlockFaces().GetMIdx(i)[2] == 0;
   };
   auto is_far = [this,gs](IdxFace i) {
-    return dim >= 3 && m.GetDirection(i) == Direction::k &&
+    return dim >= 3 && m.GetDir(i) == Dir::k &&
         m.GetBlockFaces().GetMIdx(i)[2] == gs[2];
   };
 
