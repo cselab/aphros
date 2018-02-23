@@ -125,7 +125,7 @@ class Expression {
   void SetConstant(Scal constant) {
     constant_ = constant;
   }
-  template <class Field, class Value = typename Field::ValueType>
+  template <class Field, class Value = typename Field::Value>
   Value Evaluate(const Field& field) const {
     Value res(constant_);
     for (size_t i = 0; i < size_; ++i) {
@@ -293,7 +293,7 @@ std::ostream& operator<<(std::ostream& out,
 
 template <class System, class Result>
 void Transpose(const System& system, Result& result) {
-  using ResExpr = typename Result::ValueType;
+  using ResExpr = typename Result::Value;
   using Term = typename ResExpr::TermType;
   result.Reinit(system.GetRange(), ResExpr());
   for (auto idx : system.GetRange()) {

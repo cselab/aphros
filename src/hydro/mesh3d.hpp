@@ -8,7 +8,6 @@
 #pragma once
 
 #include "mesh.hpp"
-#include "suspender.h"
 
 //#define PERX
 //#define PERZ
@@ -23,10 +22,11 @@ using MeshStructured = geom::MeshStructured<Scal, 3>;
 namespace geom {
 
 // specialization 
+//template <class _Scal>
 template <class _Scal>
 MeshStructured<_Scal, 3>::MeshStructured(
-    const BlockNodes& b_nodes,
-    const FieldNode<Vect>& fn_node,
+    const geom::BlockNodes<_Scal>& b_nodes,
+    const geom::FieldNode<Vect>& fn_node,
     int hl /*halos*/)
     : b_nodes_(b_nodes)
     , fn_node_(fn_node)
@@ -59,16 +59,16 @@ MeshStructured<_Scal, 3>::MeshStructured(
     IdxCell idxcell(b_cells_.GetIdx(midx));
     fc_neighbour_node_base_[idxcell] = b_nodes_.GetIdx(midx);
 
-    auto nface = [this, midx](IntIdx i, IntIdx j, IntIdx k, Direction dir) {
+    auto nface = [this, midx](IntIdx i, IntIdx j, IntIdx k, Dir dir) {
       return b_faces_.GetIdx(midx + MIdx(i, j, k), dir);
     };
     fc_neighbour_face_[idxcell] = {{
-        nface(0, 0, 0, Direction::i),
-        nface(1, 0, 0, Direction::i),
-        nface(0, 0, 0, Direction::j),
-        nface(0, 1, 0, Direction::j),
-        nface(0, 0, 0, Direction::k),
-        nface(0, 0, 1, Direction::k)}};
+        nface(0, 0, 0, Dir::i),
+        nface(1, 0, 0, Dir::i),
+        nface(0, 0, 0, Dir::j),
+        nface(0, 1, 0, Dir::j),
+        nface(0, 0, 0, Dir::k),
+        nface(0, 0, 1, Dir::k)}};
   }
 
   // Mark inner cells
@@ -102,7 +102,7 @@ MeshStructured<_Scal, 3>::MeshStructured(
   }
 
   // Base for i-face and j-face neighbours
-  for (Direction dir : {Direction::i, Direction::j, Direction::k}) {
+  for (Dir dir : {Dir::i, Dir::j, Dir::k}) {
     for (auto midx : BlockCells(mb, me - mb + dir)) {
       IdxFace idxface = b_faces_.GetIdx(midx, dir);
       ff_direction_[idxface] = dir;
@@ -113,14 +113,14 @@ MeshStructured<_Scal, 3>::MeshStructured(
       auto l = [this, &midx](IntIdx i, IntIdx j, IntIdx k) {
         return b_nodes_.GetIdx(midx + MIdx(i, j, k));
       };
-      if (dir == Direction::i) {
+      if (dir == Dir::i) {
         ff_neighbour_node_[idxface] = {{
             l(0,0,0), l(0,1,0), l(0,1,1), l(0,0,1)}};
-      } else if (dir == Direction::j) {
+      } else if (dir == Dir::j) {
         ff_neighbour_node_[idxface] = {{
             l(0,0,0), l(0,0,1), l(1,0,1), l(1,0,0)}};
       } else {
-        // dir == Direction::k
+        // dir == Dir::k
         ff_neighbour_node_[idxface] = {{
             l(0,0,0), l(1,0,0), l(1,1,0), l(0,1,0)}};
       }
@@ -133,22 +133,22 @@ MeshStructured<_Scal, 3>::MeshStructured(
       }
       #ifdef PERX
       // adhoc for periodic in x
-      if (midx[0] == mb[0] && dir == Direction::i) {
+      if (midx[0] == mb[0] && dir == Dir::i) {
         ff_neighbour_cell_[idxface][0] = 
             b_cells_.GetIdx(MIdx(me[0] - 1, midx[1], midx[2]));
       }
-      if (midx[0] == me[0] && dir == Direction::i) {
+      if (midx[0] == me[0] && dir == Dir::i) {
         ff_neighbour_cell_[idxface][1] = 
             b_cells_.GetIdx(MIdx(mb[0], midx[1], midx[2]));
       }
       #endif
       #ifdef PERZ
       // adhoc for periodic in x
-      if (midx[2] == mb[2] && dir == Direction::k) {
+      if (midx[2] == mb[2] && dir == Dir::k) {
         ff_neighbour_cell_[idxface][0] = 
             b_cells_.GetIdx(MIdx(midx[0], midx[1], me[2] - 1));
       }
-      if (midx[2] == me[2] && dir == Direction::k) {
+      if (midx[2] == me[2] && dir == Dir::k) {
         ff_neighbour_cell_[idxface][1] = 
             b_cells_.GetIdx(MIdx(midx[0], midx[1], mb[2]));
       }
@@ -170,7 +170,7 @@ MeshStructured<_Scal, 3>::MeshStructured(
   }
 
   // Vect to cell
-  for (Direction dir : {Direction::i, Direction::j, Direction::k}) {
+  for (Dir dir : {Dir::i, Dir::j, Dir::k}) {
     for (auto midx : BlockCells(mb, me - mb + dir)) {
       IdxFace idxface = b_faces_.GetIdx(midx, dir);
       IdxCell c;
@@ -184,12 +184,12 @@ MeshStructured<_Scal, 3>::MeshStructured(
       }
       #ifdef PERX
       // adhoc for periodic in x
-      if (midx[0] == mb[0] && dir == Direction::i) {
+      if (midx[0] == mb[0] && dir == Dir::i) {
         auto pf = b_faces_.GetIdx(MIdx(me[0], midx[1], midx[2]), dir);
         auto pc = b_cells_.GetIdx(MIdx(me[0] - 1, midx[1], midx[2]));
         ff_to_cell_[idxface][0] = GetCenter(pc) - GetCenter(pf);
       }
-      if (midx[0] == me[0] && dir == Direction::i) {
+      if (midx[0] == me[0] && dir == Dir::i) {
         auto pf = b_faces_.GetIdx(MIdx(mb[0], midx[1], midx[2]), dir);
         auto pc = b_cells_.GetIdx(MIdx(mb[0], midx[1], midx[2]));
         ff_to_cell_[idxface][1] = GetCenter(pc) - GetCenter(pf);
@@ -198,12 +198,12 @@ MeshStructured<_Scal, 3>::MeshStructured(
       
       #ifdef PERZ
       // adhoc for periodic in z
-      if (midx[2] == mb[2] && dir == Direction::k) {
+      if (midx[2] == mb[2] && dir == Dir::k) {
         auto pf = b_faces_.GetIdx(MIdx(midx[0], midx[1], me[2]), dir);
         auto pc = b_cells_.GetIdx(MIdx(midx[0], midx[1], me[2] - 1));
         ff_to_cell_[idxface][0] = GetCenter(pc) - GetCenter(pf);
       }
-      if (midx[2] == me[2] && dir == Direction::k) {
+      if (midx[2] == me[2] && dir == Dir::k) {
         auto pf = b_faces_.GetIdx(MIdx(midx[0], midx[1], mb[2]), dir);
         auto pc = b_cells_.GetIdx(MIdx(midx[0], midx[1], mb[2]));
         ff_to_cell_[idxface][1] = GetCenter(pc) - GetCenter(pf);

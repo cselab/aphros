@@ -19,9 +19,9 @@ bool Cmp(Vect a, Vect b) {
 int main() {
   const int dim = 3;
 
-  using MIdx = geom::MIdxGeneral<dim>;
+  using MIdx = geom::GMIdx<dim>;
   using IdxFace = geom::IdxFace;
-  using Dir = geom::Direction<dim>;
+  using Dir = geom::GDir<dim>;
 
   const size_t hl = 1;
   MIdx oi(0); // origin inner
@@ -29,11 +29,11 @@ int main() {
   MIdx oa= oi - MIdx(hl); // origin all
   MIdx sa = si + MIdx(2 * hl); // size all
 
-  geom::BlockFaces<dim> bi(oi, si);
-  geom::BlockFaces<dim> ba(oa, sa);
+  geom::GBlockFaces<dim> bi(oi, si);
+  geom::GBlockFaces<dim> ba(oa, sa);
 
-  geom::Range<IdxFace> ra(ba);
-  geom::RangeInner<IdxFace, dim> ri(ba, bi);
+  geom::GRange<IdxFace> ra(ba);
+  geom::GRangeIn<IdxFace, dim> ri(ba, bi);
 
   const MIdx xp0 = oa - Dir(0);
   MIdx xp = xp0;
@@ -42,7 +42,7 @@ int main() {
   // Check that whole inner block covered with ascending indices
   for (auto i : ri) {
     auto x = ba.GetMIdx(i);
-    auto d = ba.GetDirection(i);
+    auto d = ba.GetDir(i);
 
     // Next direction, reset xp
     if (dp < d) {
