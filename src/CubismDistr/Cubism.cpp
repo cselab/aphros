@@ -19,7 +19,7 @@ Distr* TryCubism(
 std::unique_ptr<Distr> CreateCubism(
     MPI_Comm comm, KernelFactory& kf, int bs, int es, int h, Vars& par) {
   Distr* r = nullptr;
-  if (!r) r = TryCubism<HydroFactory<geom::geom3d::MeshStructured<double>>>(
+  if (!r) r = TryCubism<HydroFactory<geom3d::MeshStructured<double>>>(
       comm, kf, bs, es, h, par);
   //if (!r) r = Try<HydroFactory<geom::geom3d::MeshStructured<float>>(
   //    comm, kf, bs, b, p, es, h);

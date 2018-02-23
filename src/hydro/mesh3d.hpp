@@ -13,18 +13,21 @@
 //#define PERX
 //#define PERZ
 
-namespace geom {
-
 namespace geom3d {
 
 template <class Scal>
-using MeshStructured3 = MeshStructured<Scal, 3>;
+using MeshStructured = geom::MeshStructured<Scal, 3>;
+
+} // namespace geom3d
+
+namespace geom {
 
 // specialization 
-template <class Scal>
-MeshStructured3<Scal>::MeshStructured(const BlockNodes& b_nodes,
-                                      const FieldNode<Vect>& fn_node,
-                                      int hl /*halos*/)
+template <class _Scal>
+MeshStructured<_Scal, 3>::MeshStructured(
+    const BlockNodes& b_nodes,
+    const FieldNode<Vect>& fn_node,
+    int hl /*halos*/)
     : b_nodes_(b_nodes)
     , fn_node_(fn_node)
     , b_cells_(b_nodes_.GetBegin(), b_nodes_.GetDimensions() - MIdx(1))
@@ -215,6 +218,4 @@ MeshStructured3<Scal>::MeshStructured(const BlockNodes& b_nodes,
   }
 }
 
-} // namespace geom2d
-
-} // namespace geom
+} // namespace geom3d

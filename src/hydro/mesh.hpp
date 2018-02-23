@@ -851,34 +851,34 @@ class MeshStructured {
   const BlockNodes& GetInBlockNodes() const {
     return b_innodes_;
   }
-  Vect GetCenter(IdxCell idx) const override {
+  Vect GetCenter(IdxCell idx) const {
     return fc_center_[idx];
   }
-  Vect GetCenter(IdxFace idx) const override {
+  Vect GetCenter(IdxFace idx) const {
     return ff_center_[idx];
   }
-  Vect GetSurface(IdxFace idx) const override {
+  Vect GetSurface(IdxFace idx) const {
     return ff_surface_[idx];
   }
-  Vect GetNode(IdxNode idx) const override {
+  Vect GetNode(IdxNode idx) const {
     return fn_node_[idx];
   }
-  Scal GetVolume(IdxCell idx) const override {
+  Scal GetVolume(IdxCell idx) const {
     return fc_volume_[idx];
   }
-  Scal GetArea(IdxFace idx) const override {
+  Scal GetArea(IdxFace idx) const {
     return ff_area_[idx];
   }
-  size_t GetNumCells() const override {
+  size_t GetNumCells() const {
     return b_cells_.size();
   }
-  size_t GetNumFaces() const override {
+  size_t GetNumFaces() const {
     return b_faces_.size();
   }
-  size_t GetNumNodes() const override {
+  size_t GetNumNodes() const {
     return b_nodes_.size();
   }
-  IdxCell GetNeighbourCell(IdxCell idx, size_t n) const override {
+  IdxCell GetNeighbourCell(IdxCell idx, size_t n) const {
     // TODO: 3d specific
     assert(n < kCellNumNeighbourFaces);
     if (fc_is_inner_[idx]) {
@@ -897,11 +897,11 @@ class MeshStructured {
     }
     return idx;
   }
-  IdxFace GetNeighbourFace(IdxCell idxcell, size_t n) const override {
+  IdxFace GetNeighbourFace(IdxCell idxcell, size_t n) const {
     assert(n < kCellNumNeighbourFaces);
     return fc_neighbour_face_[idxcell][n];
   }
-  Scal GetOutwardFactor(IdxCell, size_t n) const override {
+  Scal GetOutwardFactor(IdxCell, size_t n) const {
     // TODO: <= 3d specific, maybe replace with odd/even convention
     assert(n < kCellNumNeighbourFaces);
     Scal factor;
@@ -916,12 +916,12 @@ class MeshStructured {
     }
     return factor;
   }
-  Vect GetOutwardSurface(IdxCell idxcell, size_t n) const override {
+  Vect GetOutwardSurface(IdxCell idxcell, size_t n) const {
     assert(n < kCellNumNeighbourFaces);
     return GetSurface(GetNeighbourFace(idxcell, n)) *
         GetOutwardFactor(idxcell, n);
   }
-  IdxNode GetNeighbourNode(IdxCell idxcell, size_t n) const override {
+  IdxNode GetNeighbourNode(IdxCell idxcell, size_t n) const {
     assert(n < kCellNumNeighbourNodes);
     IdxNode idxnode = fc_neighbour_node_base_[idxcell];
     idxnode.AddRaw(cell_neighbour_node_offset_[n]);
@@ -930,7 +930,7 @@ class MeshStructured {
   Dir GetDir(IdxFace idx) const {
     return ff_direction_[idx];
   }
-  IdxCell GetNeighbourCell(IdxFace idx, size_t n) const override {
+  IdxCell GetNeighbourCell(IdxFace idx, size_t n) const {
     assert(n < kFaceNumNeighbourCells);
     return ff_neighbour_cell_[idx][n];
   }
@@ -938,27 +938,27 @@ class MeshStructured {
     assert(n < kFaceNumNeighbourCells);
     return ff_to_cell_[idx][n];
   }
-  IdxNode GetNeighbourNode(IdxFace idx, size_t n) const override {
+  IdxNode GetNeighbourNode(IdxFace idx, size_t n) const {
     assert(n < kFaceNumNeighbourNodes);
     return ff_neighbour_node_[idx][n];
   }
-  size_t GetNumNeighbourFaces(IdxCell) const override {
+  size_t GetNumNeighbourFaces(IdxCell) const {
     return kCellNumNeighbourFaces;
   }
-  size_t GetNumNeighbourNodes(IdxCell) const override {
+  size_t GetNumNeighbourNodes(IdxCell) const {
     return kCellNumNeighbourNodes;
   }
-  size_t GetNumNeighbourCells(IdxFace) const override {
+  size_t GetNumNeighbourCells(IdxFace) const {
     return kFaceNumNeighbourCells;
   }
-  size_t GetNumNeighbourNodes(IdxFace) const override {
+  size_t GetNumNeighbourNodes(IdxFace) const {
     return kFaceNumNeighbourNodes;
   }
   // inner means not halo
-  bool IsInner(IdxCell idxcell) const override {
+  bool IsInner(IdxCell idxcell) const {
     return fc_is_inner_[idxcell];
   }
-  bool IsInner(IdxFace idxface) const override {
+  bool IsInner(IdxFace idxface) const {
     return ff_is_inner_[idxface];
   }
   // TODO: remove next 3 operators
@@ -989,7 +989,7 @@ class MeshStructured {
   RangeInner<IdxNode, dim> Nodes() const {
     return RangeInner<IdxNode, dim>(GetBlockNodes(), GetInBlockNodes());
   }
-  bool IsInside(IdxCell idxcell, Vect vect) const override {
+  bool IsInside(IdxCell idxcell, Vect vect) const {
     for (size_t i = 0; i < GetNumNeighbourFaces(idxcell); ++i) {
       IdxFace idxface = GetNeighbourFace(idxcell, i);
       if (GetOutwardSurface(idxcell, i).dot(vect - GetCenter(idxface)) > 0) {
