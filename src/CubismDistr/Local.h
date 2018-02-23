@@ -84,8 +84,8 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par)
   , p_{par.Int["px"], par.Int["py"], par.Int["pz"]}
   , b_{par.Int["bx"], par.Int["by"], par.Int["bz"]}
   , buf_(es_)
+  , gm(CreateMesh(bs_, b_, p_, es))
 {
-  gm = CreateMesh(bs_, b_, p_, es);
 
   output::Content content = {
       std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(

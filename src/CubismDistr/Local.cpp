@@ -17,7 +17,7 @@ Distr* TryLocal(
 std::unique_ptr<Distr> CreateLocal(
     MPI_Comm comm, KernelFactory& kf, int bs, int es, int h, Vars& par) {
   Distr* r = nullptr;
-  if (!r) r = TryLocal<HydroFactory<geom::geom3d::MeshStructured<double>>>(
+  if (!r) r = TryLocal<HydroFactory<geom3d::MeshStructured<double>>>(
       comm, kf, bs, es, h, par);
   //if (!r) r = Try<HydroFactory<geom::geom3d::MeshStructured<float>>(
   //    comm, kf, bs, b, p, es, h);

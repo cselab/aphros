@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "vect.hpp"
 #include <vector>
 #include <array>
 #include <cstddef>
@@ -14,22 +13,27 @@
 #include <cassert>
 #include <iostream>
 
+#include "suspender.h"
+#include "vect.hpp"
+
 
 namespace geom {
 
 using IntIdx = std::ptrdiff_t;
 
+
 template <size_t dim>
-using MIdxGeneral = Vect<IntIdx, dim>;
+using GMIdx = GVect<IntIdx, dim>;
+
 
 template <int dummy>
-class IdxGeneric {
+class GIdx {
   static constexpr int dummy_ = dummy; // make distinct classes
   size_t raw_;
   static constexpr size_t kNone = -1;
  public:
-  IdxGeneric() {}
-  explicit IdxGeneric(size_t raw)
+  GIdx() {}
+  explicit GIdx(size_t raw)
       : raw_(raw)
   {}
   inline size_t GetRaw() const {
@@ -38,30 +42,27 @@ class IdxGeneric {
   inline void AddRaw(IntIdx add) {
     raw_ += add;
   }
-  inline bool operator==(IdxGeneric other) const {
+  inline bool operator==(GIdx other) const {
     return raw_ == other.raw_;
   }
-  inline bool operator!=(IdxGeneric other) const {
+  inline bool operator!=(GIdx other) const {
     return !(*this == other);
   }
-  inline static IdxGeneric None() {
-    return IdxGeneric(-1);
+  inline static GIdx None() {
+    return GIdx(-1);
   }
   inline bool IsNone() const {
     return *this == None();
   }
 };
 
-using IdxCell = IdxGeneric<0>;
-using IdxFace = IdxGeneric<1>;
-using IdxNode = IdxGeneric<2>;
 
-
-template <class IdxType>
-class Range {
+template <class _Idx>
+class GRange {
   size_t pos_begin_, pos_end_;
 
  public:
+  using Idx = _Idx;
   class iterator {
     size_t pos_;
    public:
@@ -82,16 +83,16 @@ class Range {
     bool operator!=(const iterator& other) const {
       return !(*this == other);
     }
-    IdxType operator*() const {
-      return IdxType(pos_);
+    Idx operator*() const {
+      return Idx(pos_);
     }
   };
 
-  Range()
+  GRange()
       : pos_begin_(0)
       , pos_end_(0)
   {}
-  Range(size_t pos_begin, size_t pos_end)
+  GRange(size_t pos_begin, size_t pos_end)
       : pos_begin_(pos_begin)
       , pos_end_(pos_end)
   {}
@@ -107,37 +108,34 @@ class Range {
 };
 
 
-template <class T, class Idx>
-class FieldGeneric {
-  using Vector = std::vector<T>;
-  std::vector<T> data_;
-  template <class OtherT, class OtherIdx>
-  friend class FieldGeneric;
-
+template <class _Value, class _Idx>
+class GField {
  public:
-  using IdxType = Idx;
-  using ValueType = T;
-  FieldGeneric() {}
+  using Idx = _Idx;
+  using Value = _Value;
+  using Range = GRange<Idx>;
+  using Cont = std::vector<Value>;
+
+  GField() {}
   template <class U>
-  FieldGeneric(const FieldGeneric<U, Idx>& other)
-      : data_(other.data_.begin(), other.data_.end()) {}
-  explicit FieldGeneric(const Range<Idx>& range)
-      : data_(range.size())
-  {}
-  FieldGeneric(const Range<Idx>& range, const T& value)
+  GField(const GField<U, Idx>& o /*other*/)
+      : data_(o.data_.begin(), o.data_.end()) {}
+  explicit GField(const Range& range)
+      : data_(range.size()) {}
+  GField(const Range& range, const Value& value)
       : data_(range.size(), value)
   {}
   size_t size() const {
     return data_.size();
   }
-  void Reinit(const Range<Idx>& range) {
+  void Reinit(const Range& range) {
     data_.resize(range.size());
   }
-  void Reinit(const Range<Idx>& range, const T& value) {
+  void Reinit(const Range& range, const Value& value) {
     data_.assign(range.size(), value);
   }
-  Range<IdxType> GetRange() const {
-    return Range<IdxType>(0, size());
+  Range GetRange() const {
+    return Range(0, size());
   }
   void resize(size_t size) {
     data_.resize(size);
@@ -145,50 +143,68 @@ class FieldGeneric {
   bool empty() const {
     return data_.empty();
   }
-  typename Vector::pointer data() {
+  typename Cont::pointer data() {
     return data_.data();
   }
-  typename Vector::const_pointer data() const {
+  typename Cont::const_pointer data() const {
     return data_.data();
   }
-  void push_back(const T& value) {
+  void push_back(const Value& value) {
     data_.push_back(value);
   }
-  typename Vector::reference operator[](const Idx& idx) {
+  typename Cont::reference operator[](const Idx& idx) {
 #ifdef __RANGE_CHECK
     assert(idx.GetRaw() >=0 && idx.GetRaw() < data_.size());
 #endif
     return data_[idx.GetRaw()];
   }
-  typename Vector::const_reference operator[](const Idx& idx) const {
+  typename Cont::const_reference operator[](const Idx& idx) const {
 #ifdef __RANGE_CHECK
     assert(idx.GetRaw() >=0 && idx.GetRaw() < data_.size());
 #endif
     return data_[idx.GetRaw()];
   }
+
+ private:
+
+  template <class OValue, class OIdx>
+  friend class GField;
+
+  std::vector<Value> data_;
 };
 
-template <class T, class Idx>
-FieldGeneric<typename T::value_type, Idx>
-GetComponent(const FieldGeneric<T, Idx>& f_vect, size_t n) {
-  FieldGeneric<typename T::value_type, Idx> f_scal(f_vect.GetRange());
-  for (auto idx : f_vect.GetRange()) {
-    f_scal[idx] = f_vect[idx][n];
+
+
+
+using IdxCell = GIdx<0>;
+using IdxFace = GIdx<1>;
+using IdxNode = GIdx<2>;
+
+
+// Extract component of field with values GVect<T,dim>
+template <class Vect, class Idx>
+GField<typename Vect::value_type, Idx>
+GetComponent(const GField<Vect, Idx>& fv, size_t n) {
+  GField<typename Vect::value_type, Idx> fs(fv.GetRange());
+  for (auto idx : fv.GetRange()) {
+    fs[idx] = fv[idx][n];
   }
-  return f_scal;
+  return fs;
 }
 
-template <class T, class Idx>
+// Set component of field with values GVect<T,dim>
+template <class Vect, class Idx>
 void SetComponent(
-    FieldGeneric<T, Idx>& f_vect,
-    size_t n, const FieldGeneric<typename T::value_type, Idx>& f_scal) {
-  for (auto idx : f_vect.GetRange()) {
-    f_vect[idx][n] = f_scal[idx];
+    GField<Vect, Idx>& fv,
+    size_t n, 
+    const GField<typename Vect::value_type, Idx>& fs) {
+  for (auto idx : fv.GetRange()) {
+    fv[idx][n] = fs[idx];
   }
 }
 
 template <class T, class Idx>
-std::ostream& operator<<(std::ostream& out, const FieldGeneric<T, Idx>& field) {
+std::ostream& operator<<(std::ostream& out, const GField<T, Idx>& field) {
   for (auto idx : field.GetRange()) {
     out << idx.GetRaw() << " " << field[idx] << "\n";
   }
@@ -196,23 +212,23 @@ std::ostream& operator<<(std::ostream& out, const FieldGeneric<T, Idx>& field) {
 }
 
 template <class T>
-using FieldCell = FieldGeneric<T, IdxCell>;
+using FieldCell = GField<T, IdxCell>;
 
 template <class T>
-using FieldFace = FieldGeneric<T, IdxFace>;
+using FieldFace = GField<T, IdxFace>;
 
 template <class T>
-using FieldNode = FieldGeneric<T, IdxNode>;
+using FieldNode = GField<T, IdxNode>;
 
-template <class T, class Idx>
-class MapGeneric {
-  using Map = std::map<size_t, T>;
-  Map data_;
-
+template <class T, class _Idx>
+class GMap {
  public:
-  using IdxType = Idx;
-  MapGeneric() {}
-  explicit MapGeneric(const FieldGeneric<T, Idx>& field) {
+  using Idx = _Idx;
+  using Value = T;
+  using Cont = std::map<size_t, Value>;
+
+  GMap() {}
+  explicit GMap(const GField<T, Idx>& field) {
     for (size_t i = 0; i < field.size(); ++i) {
       data_[i] = field[Idx(i)];
     }
@@ -246,9 +262,9 @@ class MapGeneric {
 
   class iterator {
     class Proxy {
-      typename Map::iterator it_;
+      typename Cont::iterator it_;
      public:
-      explicit Proxy(const typename Map::iterator& it)
+      explicit Proxy(const typename Cont::iterator& it)
           : it_(it)
       {}
       Idx GetIdx() const {
@@ -259,11 +275,11 @@ class MapGeneric {
       }
     };
 
-    typename Map::iterator it_;
+    typename Cont::iterator it_;
     Proxy proxy_;
 
    public:
-    explicit iterator(const typename Map::iterator& it)
+    explicit iterator(const typename Cont::iterator& it)
         : it_(it)
         , proxy_(it_)
     {}
@@ -298,9 +314,9 @@ class MapGeneric {
   }
   class const_iterator {
     class Proxy {
-      typename Map::const_iterator it_;
+      typename Cont::const_iterator it_;
      public:
-      explicit Proxy(const typename Map::const_iterator& it)
+      explicit Proxy(const typename Cont::const_iterator& it)
           : it_(it)
       {}
       Idx GetIdx() const {
@@ -311,11 +327,11 @@ class MapGeneric {
       }
     };
 
-    typename Map::const_iterator it_;
+    typename Cont::const_iterator it_;
     Proxy proxy_;
 
    public:
-    explicit const_iterator(const typename Map::const_iterator& it)
+    explicit const_iterator(const typename Cont::const_iterator& it)
         : it_(it)
         , proxy_(it_)
     {}
@@ -348,29 +364,34 @@ class MapGeneric {
   const_iterator cend() const {
     return const_iterator(data_.cend());
   }
+ 
+ private:
+  Cont data_;
 };
 
 template <class T>
-using MapCell = MapGeneric<T, IdxCell>;
+using MapCell = GMap<T, IdxCell>;
 
 template <class T>
-using MapFace = MapGeneric<T, IdxFace>;
+using MapFace = GMap<T, IdxFace>;
 
 template <class T>
-using MapNode = MapGeneric<T, IdxNode>;
+using MapNode = GMap<T, IdxNode>;
 
-template <class IdxType, size_t dim>
-class BlockGeneric {
-  using MIdx = geom::MIdxGeneral<dim>;
-  MIdx begin_, size_, end_;
-
+template <class _Idx, size_t _dim>
+class GBlock {
  public:
+  using Idx = _Idx;
+  using MIdx = GMIdx<_dim>;
+
+  static constexpr size_t dim = _dim;
+
   class iterator {
-    const BlockGeneric* owner_;
+    const GBlock* owner_;
     MIdx midx_;
 
    public:
-    explicit iterator(const BlockGeneric* owner, MIdx midx)
+    explicit iterator(const GBlock* owner, MIdx midx)
         : owner_(owner)
         , midx_(midx)
     {}
@@ -407,13 +428,13 @@ class BlockGeneric {
     }
   };
 
-  BlockGeneric()
+  GBlock()
       : begin_(MIdx::kZero), size_(MIdx::kZero), end_(MIdx::kZero)
   {}
-  BlockGeneric(MIdx size)
+  GBlock(MIdx size)
       : begin_(MIdx::kZero), size_(size), end_(begin_ + size_)
   {}
-  BlockGeneric(MIdx begin, MIdx size)
+  GBlock(MIdx begin, MIdx size)
       : begin_(begin), size_(size), end_(begin_ + size_)
   {}
   MIdx GetDimensions() const {
@@ -432,50 +453,10 @@ class BlockGeneric {
     }
     return res;
   }
-  operator Range<IdxType>() const {
-    return Range<IdxType>(0, size());
+  operator GRange<Idx>() const {
+    return GRange<Idx>(0, size());
   }
-/*  void Advance(IdxType& idx, Direction dir, int n) const {
-    switch (dir) {
-      case Direction::i: {
-        idx.AddRaw(n);
-        break;
-      }
-      case Direction::j: {
-        idx.AddRaw(n*size_[0]);
-        break;
-      }
-      case Direction::k: {
-        idx.AddRaw(n*size_[0]*size_[1]);
-        break;
-      }
-    }
-  }
-  void Advance(IdxType& idx, MIdx midx) const {
-    // TODO: unwrap multiple Advance()
-    Advance(idx, Direction::i, midx[0]);
-    Advance(idx, Direction::j, midx[1]);
-    Advance(idx, Direction::k, midx[2]);
-  }
-  IdxType GetAdvanced(IdxType idx, MIdx midx) const {
-    Advance(idx, midx);
-    return idx;
-  }
-  void Inc(IdxType& idx, Direction dir) const {
-    Advance(idx, dir, 1);
-  }
-  IdxType GetInc(IdxType idx, Direction dir) const {
-    Inc(idx, dir);
-    return idx;
-  }
-  void Dec(IdxType& idx, Direction dir) const {
-    Advance(idx, dir, -1);
-  }
-  IdxType GetDec(IdxType idx, Direction dir) const {
-    Dec(idx, dir);
-    return idx;
-  }*/
-  IdxType GetIdx(MIdx midx) const {
+  Idx GetIdx(MIdx midx) const {
     midx -= begin_;
     size_t res = 0;
     for (size_t i = dim; i != 0; ) {
@@ -483,9 +464,9 @@ class BlockGeneric {
       res *= size_[i];
       res += midx[i];
     }
-    return IdxType(res);
+    return Idx(res);
   }
-  MIdx GetMIdx(IdxType idx) const {
+  MIdx GetMIdx(Idx idx) const {
     MIdx midx;
     size_t raw = idx.GetRaw();
     for (size_t i = 0; i < dim; ++i) {
@@ -515,63 +496,103 @@ class BlockGeneric {
     midx[dim - 1] = end_[dim - 1];
     return iterator(this, midx);
   }
+
+ private:
+  MIdx begin_, size_, end_;
 };
 
-template <size_t dim>
-using BlockCells = BlockGeneric<IdxCell, dim>;
-
-template <size_t dim>
-using BlockNodes = BlockGeneric<IdxNode, dim>;
-
-
-template <size_t dim>
-class Direction {
-  using MIdx = Vect<IntIdx, dim>;
-  size_t diridx;
+template <size_t _dim>
+class GDir {
  public:
-  Direction() {}
-  explicit Direction(size_t i)
-    : diridx(i) {}
+  using MIdx = GVect<IntIdx, _dim>;
+  static constexpr size_t dim = _dim;
+
+  GDir() {}
+  explicit GDir(size_t d)
+    : d_(d) {}
   char GetLetter() const {
-    return std::string("xyz")[diridx];
+    return std::string("xyz")[d_];
   }
   operator size_t() const {
-    return diridx;
+    return d_;
   }
   operator MIdx() const {
-    MIdx res = MIdx::kZero;
-    ++res[diridx];
-    return res;
+    MIdx r = MIdx::kZero;
+    ++r[d_];
+    return r;
   }
-  bool operator==(const Direction& other) const {
-    return diridx == other.diridx;
+  bool operator==(const GDir& o) const {
+    return d_ == o.d_;
   }
-  bool operator!=(const Direction& other) const {
-    return !((*this) == other);
+  bool operator!=(const GDir& o) const {
+    return !((*this) == o);
   }
-  bool operator<(const Direction& other) const {
-    return diridx < other.diridx;
+  bool operator<(const GDir& o) const {
+    return d_ < o.d_;
   }
-  static const Direction i;
-  static const Direction j;
-  static const Direction k;
+  static const GDir i;
+  static const GDir j;
+  static const GDir k;
+
+ private:
+  size_t d_;
 };
 
 template <size_t dim>
-const Direction<dim> Direction<dim>::i(0);
+const GDir<dim> GDir<dim>::i(0);
 template <size_t dim>
-const Direction<dim> Direction<dim>::j(1);
+const GDir<dim> GDir<dim>::j(1);
 template <size_t dim>
-const Direction<dim> Direction<dim>::k(2);
+const GDir<dim> GDir<dim>::k(2);
 
-template <size_t dim>
-class BlockFaces {
-  using MIdx = MIdxGeneral<dim>;
-  using Direction = geom::Direction<dim>;
-  MIdx begin_;
-  MIdx block_cells_size_;
-  size_t GetNumFaces(Direction dir) const {
-    MIdx bcs = block_cells_size_;
+
+template <size_t _dim>
+class GBlock<IdxFace, _dim> {
+ public:
+  using Idx = IdxFace;
+  using MIdx = GMIdx<_dim>;
+  using Dir = GDir<_dim>;
+  static constexpr size_t dim = _dim;
+
+  GBlock()
+      : b_(MIdx::kZero), cs_(MIdx::kZero)
+  {}
+  GBlock(MIdx block_cells_size)
+      : b_(MIdx::kZero), cs_(block_cells_size)
+  {}
+  GBlock(MIdx begin, MIdx block_cells_size)
+      : b_(begin), cs_(block_cells_size)
+  {}
+  size_t size() const {
+    size_t res = 0;
+    for (size_t i = 0; i < dim; ++i) {
+      res += GetNumFaces(i);
+    }
+    return res;
+  }
+  operator GRange<Idx>() const {
+    return GRange<Idx>(0, size());
+  }
+  Idx GetIdx(MIdx midx, Dir dir) const {
+    size_t raw = 0;
+    for (size_t i = 0; i < dir; ++i) {
+      raw += GetNumFaces(i);
+    }
+    raw += GetFlat(midx, dir);
+    return Idx(raw);
+  }
+  MIdx GetMIdx(Idx idx) const {
+    return GetMIdxDir(idx).first;
+  }
+  Dir GetDir(Idx idx) const {
+    return GetMIdxDir(idx).second;
+  }
+
+ private:
+  MIdx b_;
+  MIdx cs_; // cells size
+  size_t GetNumFaces(Dir dir) const {
+    MIdx bcs = cs_;
     ++bcs[dir];
     size_t res = 1;
     for (size_t i = 0; i < dim; ++i) {
@@ -580,11 +601,11 @@ class BlockFaces {
     return res;
   }
   size_t GetNumFaces(size_t i) const {
-    return GetNumFaces(Direction(i));
+    return GetNumFaces(Dir(i));
   }
-  size_t GetFlat(MIdx midx, Direction dir) const {
-    midx -= begin_;
-    MIdx bcs = block_cells_size_;
+  size_t GetFlat(MIdx midx, Dir dir) const {
+    midx -= b_;
+    MIdx bcs = cs_;
     ++bcs[dir];
     size_t res = 0;
     for (size_t i = dim; i != 0; ) {
@@ -594,66 +615,42 @@ class BlockFaces {
     }
     return res;
   }
-  MIdx GetMIdxFromOffset(size_t raw, Direction dir) const {
-    MIdx bcs = block_cells_size_;
+  MIdx GetMIdxFromOffset(size_t raw, Dir dir) const {
+    MIdx bcs = cs_;
     ++bcs[dir];
     MIdx midx;
     for (size_t i = 0; i < dim; ++i) {
       midx[i] = raw % bcs[i];
       raw /= bcs[i];
     }
-    return begin_ + midx;
+    return b_ + midx;
   }
-  std::pair<MIdx, Direction> GetMIdxDirection(IdxFace idxface) const {
+  std::pair<MIdx, Dir> GetMIdxDir(Idx idxface) const {
     size_t raw = idxface.GetRaw();
     size_t diridx = 0;
     while (raw >= GetNumFaces(diridx) && diridx < dim) {
       raw -= GetNumFaces(diridx);
       ++diridx;
     }
-    Direction dir(diridx);
+    Dir dir(diridx);
     return {GetMIdxFromOffset(raw, dir), dir};
-  }
-
- public:
-  BlockFaces()
-      : begin_(MIdx::kZero), block_cells_size_(MIdx::kZero)
-  {}
-  BlockFaces(MIdx block_cells_size)
-      : begin_(MIdx::kZero), block_cells_size_(block_cells_size)
-  {}
-  BlockFaces(MIdx begin, MIdx block_cells_size)
-      : begin_(begin), block_cells_size_(block_cells_size)
-  {}
-  size_t size() const {
-    size_t res = 0;
-    for (size_t i = 0; i < dim; ++i) {
-      res += GetNumFaces(i);
-    }
-    return res;
-  }
-  operator Range<IdxFace>() const {
-    return Range<IdxFace>(0, size());
-  }
-  IdxFace GetIdx(MIdx midx, Direction dir) const {
-    size_t raw = 0;
-    for (size_t i = 0; i < dir; ++i) {
-      raw += GetNumFaces(i);
-    }
-    raw += GetFlat(midx, dir);
-    return IdxFace(raw);
-  }
-  MIdx GetMIdx(IdxFace idx) const {
-    return GetMIdxDirection(idx).first;
-  }
-  Direction GetDirection(IdxFace idx) const {
-    return GetMIdxDirection(idx).second;
   }
 };
 
-template <class Idx, int dim>
-class RangeInner {
-  using B = BlockGeneric<Idx, dim>; // block 
+template <size_t dim>
+using GBlockCells = GBlock<IdxCell, dim>;
+
+template <size_t dim>
+using GBlockNodes = GBlock<IdxNode, dim>;
+
+template <size_t dim>
+using GBlockFaces = GBlock<IdxFace, dim>;
+
+
+template <class _Idx, int _dim>
+class GRangeIn {
+  using Idx = _Idx;
+  using B = GBlock<Idx, _dim>; // block 
   using I = typename B::iterator; // block iterator
   const B& ba_; // block all
   const B& bi_; // block inner
@@ -685,7 +682,7 @@ class RangeInner {
     }
   };
 
-  RangeInner(const B& ba /*block all*/, const B& bi /*block inner*/)
+  GRangeIn(const B& ba /*block all*/, const B& bi /*block inner*/)
       : ba_(ba), bi_(bi)
   {}
   iterator begin() const {
@@ -698,9 +695,9 @@ class RangeInner {
 
 
 template <int dim>
-class RangeInner<IdxFace, dim> {
-  using B = BlockFaces<dim>; // block 
-  using R = Range<IdxFace>;  // range
+class GRangeIn<IdxFace, dim> {
+  using B = GBlockFaces<dim>; // block 
+  using R = GRange<IdxFace>;  // range
   using I = typename R::iterator; // range iterator
   const B& ba_; // block all
   const B& bi_; // block inner
@@ -731,12 +728,12 @@ class RangeInner<IdxFace, dim> {
     }
     IdxFace operator*() const {
       auto x = bi_.GetMIdx(*i_); 
-      auto d = bi_.GetDirection(*i_); 
+      auto d = bi_.GetDir(*i_); 
       return ba_.GetIdx(x, d);
     }
   };
 
-  RangeInner(const B& ba /*block all*/, const B& bi /*block inner*/)
+  GRangeIn(const B& ba /*block all*/, const B& bi /*block inner*/)
       : ba_(ba), bi_(bi), ri_(bi_)
   {}
   iterator begin() const {
@@ -752,7 +749,7 @@ template <class ScalArg, size_t dim>
 class MeshGeneric {
  public:
   using Scal = ScalArg;
-  using Vect = geom::Vect<Scal, dim>;
+  using Vect = GVect<Scal, dim>;
   MeshGeneric() = default;
   virtual ~MeshGeneric() {}
   virtual Vect GetCenter(IdxCell) const = 0;
@@ -791,12 +788,12 @@ class MeshStructured {
  public:
   static constexpr size_t dim = _dim;
   using Scal = _Scal;
-  using Vect = geom::Vect<Scal, dim>;
-  using Dir = geom::Direction<dim>;
-  using MIdx = geom::Vect<IntIdx, dim>;
-  using BlockNodes = geom::BlockNodes<dim>;
-  using BlockCells = geom::BlockCells<dim>;
-  using BlockFaces = geom::BlockFaces<dim>;
+  using Vect = GVect<Scal, dim>;
+  using Dir = GDir<dim>;
+  using MIdx = GVect<IntIdx, dim>;
+  using BlockNodes = GBlockNodes<dim>;
+  using BlockCells = GBlockCells<dim>;
+  using BlockFaces = GBlockFaces<dim>;
   static constexpr size_t kCellNumNeighbourFaces = 2 * dim;
   static constexpr size_t kCellNumNeighbourNodes = std::pow(2, dim);
   static constexpr size_t kFaceNumNeighbourNodes = std::pow(2, dim - 1);
@@ -962,32 +959,32 @@ class MeshStructured {
     return ff_is_inner_[idxface];
   }
   // TODO: remove next 3 operators
-  operator Range<IdxCell>() const {
-    return Range<IdxCell>(0, GetNumCells());
+  operator GRange<IdxCell>() const {
+    return GRange<IdxCell>(0, GetNumCells());
   }
-  operator Range<IdxFace>() const {
-    return Range<IdxFace>(0, GetNumFaces());
+  operator GRange<IdxFace>() const {
+    return GRange<IdxFace>(0, GetNumFaces());
   }
-  operator Range<IdxNode>() const {
-    return Range<IdxNode>(0, GetNumNodes());
+  operator GRange<IdxNode>() const {
+    return GRange<IdxNode>(0, GetNumNodes());
   }
-  Range<IdxCell> AllCells() const {
-    return Range<IdxCell>(*this);
+  GRange<IdxCell> AllCells() const {
+    return GRange<IdxCell>(*this);
   }
-  Range<IdxFace> AllFaces() const {
-    return Range<IdxFace>(*this);
+  GRange<IdxFace> AllFaces() const {
+    return GRange<IdxFace>(*this);
   }
-  Range<IdxNode> AllNodes() const {
-    return Range<IdxNode>(*this);
+  GRange<IdxNode> AllNodes() const {
+    return GRange<IdxNode>(*this);
   }
-  RangeInner<IdxCell, dim> Cells() const {
-    return RangeInner<IdxCell, dim>(GetBlockCells(), GetInBlockCells());
+  GRangeIn<IdxCell, dim> Cells() const {
+    return GRangeIn<IdxCell, dim>(GetBlockCells(), GetInBlockCells());
   }
-  RangeInner<IdxFace, dim> Faces() const {
-    return RangeInner<IdxFace, dim>(GetBlockFaces(), GetInBlockFaces());
+  GRangeIn<IdxFace, dim> Faces() const {
+    return GRangeIn<IdxFace, dim>(GetBlockFaces(), GetInBlockFaces());
   }
-  RangeInner<IdxNode, dim> Nodes() const {
-    return RangeInner<IdxNode, dim>(GetBlockNodes(), GetInBlockNodes());
+  GRangeIn<IdxNode, dim> Nodes() const {
+    return GRangeIn<IdxNode, dim>(GetBlockNodes(), GetInBlockNodes());
   }
   bool IsInside(IdxCell idxcell, Vect vect) const {
     for (size_t i = 0; i < GetNumNeighbourFaces(idxcell); ++i) {
@@ -1163,12 +1160,12 @@ class SearchMesh {
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
   static constexpr size_t dim = Mesh::dim;
-  using IdxSeg = geom::IdxGeneric<20160212>; // Cartesian segment idx
-  using BlockSeg = geom::BlockGeneric<IdxSeg, dim>;
+  using IdxSeg = GIdx<20160212>; // Cartesian segment idx
+  using BlockSeg = GBlock<IdxSeg, dim>;
   using Rect = geom::Rect<Vect>;
-  using MIdx = geom::MIdxGeneral<dim>;
+  using MIdx = GMIdx<dim>;
   template <class T>
-  using FieldSeg = geom::FieldGeneric<T, IdxSeg>;
+  using FieldSeg = GField<T, IdxSeg>;
   Rect bound_;
   BlockSeg block_;
   FieldSeg<std::vector<IdxCell>::iterator> fs_intersect_begin_;
@@ -1245,7 +1242,7 @@ class SearchMesh {
       Rect rect = GetBoundingRect(idxcell);
       MIdx mlb = GetMIdx(rect.lb);
       MIdx mrt = GetMIdx(rect.rt);
-      for (auto midx : geom::BlockGeneric<size_t, dim>(
+      for (auto midx : GBlock<size_t, dim>(
           mlb, mrt - mlb + MIdx(1))) {
         if (HaveCommonPoints(idxcell, midx)) {
           intersect_chains_[block_.GetIdx(midx)].push_back(idxcell);
@@ -1255,7 +1252,7 @@ class SearchMesh {
     }
 
     num_intersect_seg_max = 0;
-    fs_intersect_begin_.Reinit(geom::Range<IdxSeg>(0, block_.size() + 1));
+    fs_intersect_begin_.Reinit(GRange<IdxSeg>(0, block_.size() + 1));
     content_intersect_.resize(intersect_total);
     size_t intersect_offset = 0;
     for (size_t i = 0; i < block_.size(); ++i) {
@@ -1336,7 +1333,7 @@ class SearchMesh {
     Rect bound(center - Vect(radius), center + Vect(radius));
     MIdx mlb = GetMIdx(bound.lb);
     MIdx mrt = GetMIdx(bound.rt);
-    for (auto midx : geom::BlockGeneric<size_t, dim>(
+    for (auto midx : GBlock<size_t, dim>(
       mlb, mrt - mlb + MIdx(1))) {
       IdxSeg idxseg = block_.GetIdx(midx);
       for (auto it = fs_center_begin_[idxseg];
@@ -1351,5 +1348,14 @@ class SearchMesh {
 
 };
 
+
+/*
+template <class _Scal, size_t _dim>
+MeshStructured<_Scal, 3>::MeshStructured(
+    const BlockNodes& b_nodes, 
+    const FieldNode<Vect>& fn_node, int hl) {
+  assert(false && "MeshStructured not implemented");
+}
+*/
 
 } // namespace geom
