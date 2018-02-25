@@ -6,9 +6,9 @@
 #include "mesh3d.hpp"
 
 // Returns true if a < b (lex starting from end)
-template <class Vect>
-bool Cmp(Vect a, Vect b) {
-  int i = Vect::dim;
+template <class T, size_t d>
+bool Cmp(const geom::GVect<T, d>& a, const geom::GVect<T, d>& b) {
+  int i = a.size();
   while (i--) {
     if (a[i] != b[i]) {
       return a[i] < b[i];
@@ -65,7 +65,8 @@ bool Cmp(Scal a, Scal b) {
   return std::abs(a - b) < 1e-12;
 }
 
-bool Cmp(int a, int b) {
+template <class T>
+bool Cmp(T* a, T* b) {
   return a == b;
 }
 
@@ -158,6 +159,11 @@ void TestMesh() {
       CMP((xj-xi)[d], h[d] * k);
     }
   }
+
+  // Comm
+  geom::FieldCell<Scal> fc;
+  m.Comm(&fc);
+  CMP(m.GetComm()[0], &fc);
 }
 
 int main() {
