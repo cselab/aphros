@@ -19,6 +19,7 @@ bool Cmp(Vect a, Vect b) {
 
 const int dim = 3;
 using MIdx = geom::GMIdx<dim>;
+using IdxCell = geom::IdxCell;
 using IdxFace = geom::IdxFace;
 using Dir = geom::GDir<dim>;
 using Scal = double;
@@ -60,18 +61,103 @@ void TestBlock() {
   }
 }
 
-void TestMesh() {
-  geom::Rect<Vect> dom(Vect(0), Vect(1));
-  using M = geom::MeshStructured<Scal, dim>;
-  M m = geom::InitUniformMesh<M>(dom, MIdx(0), MIdx(5), 1);
+bool Cmp(Scal a, Scal b) {
+  return std::abs(a - b) < 1e-12;
+}
 
-  int a = 0;
-  for (auto i : m.Get<geom::IdxCell>()) {
-    std::cout << i.GetRaw() << std::endl;
-    ++a;
+bool Cmp(int a, int b) {
+  return a == b;
+}
+
+bool Cmp(size_t a, size_t b) {
+  return a == b;
+}
+
+template <class V>
+typename V::value_type Prod(const V& v) {
+  auto r = v[0];
+  for (size_t i = 1; i < v.size(); ++i) {
+    r *= v[i];
   }
-  std::cout << a << std::endl;
+  return r;
+}
 
+#define CMP(a, b) \
+  assert(Cmp(a, b)); 
+
+// Print CMP
+#define PCMP(a, b) \
+  std::cerr << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
+  CMP(a, b); 
+
+void TestMesh() {
+  geom::Rect<Vect> dom(Vect(0., 1.5, 2.7), Vect(5.3, 4.1, 3.));
+  using M = geom::MeshStructured<Scal, dim>;
+  MIdx b(-2, -3, -4); // lower index
+  MIdx s(5, 4, 3);    // size in cells
+  int hl = 2;         // halos 
+  Vect doms = dom.GetDimensions();
+  Vect h = dom.GetDimensions() / Vect(s);
+  M m = geom::InitUniformMesh<M>(dom, b, s, hl);
+
+  // Total volume
+  Scal v = 0.;
+  for (auto i : m.Cells()) {
+    v += m.GetVolume(i);
+  }
+  PCMP(v, Prod(doms));
+
+  // Cell volume
+  IdxCell c(0);
+  PCMP(m.GetVolume(c), Prod(h));
+  for (auto i : m.AllCells()) {
+    CMP(m.GetVolume(i), m.GetVolume(c));
+  }
+
+  // Face area
+  for (int q = 0; q < dim; ++q) {
+    Dir d(q);
+    IdxFace f;
+    // Find any face with direction d
+    for (IdxFace i : m.AllFaces()) {
+      if (m.GetDir(i) == d) {
+        f = i;
+        break;
+      }
+    }
+    assert(m.GetDir(f) == d);
+
+    PCMP(m.GetArea(f), Prod(h) / h[q]);
+    for (auto i : m.AllFaces()) {
+      if (m.GetDir(i) == d) {
+        CMP(m.GetArea(i), m.GetArea(f));
+      }
+    }
+  }
+
+  // Number of elements
+  auto sh = s + MIdx(hl * 2); // size with halos
+  PCMP(m.GetNumCells(), Prod(sh));
+  size_t nf = 0;
+  for (int q = 0; q < 3; ++q) {
+    auto w = sh;
+    ++w[q];
+    nf += Prod(w);
+  }
+  PCMP(m.GetNumFaces(), nf);
+  PCMP(m.GetNumNodes(), Prod(sh + MIdx(1)));
+
+  // Distance between centers
+  for (auto i : m.Cells()) {
+    Vect xi = m.GetCenter(i);
+    for (size_t n = 0; n < m.GetNumNeighbourFaces(i); ++n) {
+      Dir d(n / 2); 
+      Scal k = (n % 2 == 0 ? -1. : 1.);
+      auto j = m.GetNeighbourCell(i, n);
+      Vect xj = m.GetCenter(j);
+      CMP((xj-xi)[d], h[d] * k);
+    }
+  }
 }
 
 int main() {
