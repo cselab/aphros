@@ -74,15 +74,6 @@ bool Cmp(size_t a, size_t b) {
   return a == b;
 }
 
-template <class V>
-typename V::value_type Prod(const V& v) {
-  auto r = v[0];
-  for (size_t i = 1; i < v.size(); ++i) {
-    r *= v[i];
-  }
-  return r;
-}
-
 #define CMP(a, b) \
   assert(Cmp(a, b)); 
 
@@ -106,11 +97,11 @@ void TestMesh() {
   for (auto i : m.Cells()) {
     v += m.GetVolume(i);
   }
-  PCMP(v, Prod(doms));
+  PCMP(v, doms.prod());
 
   // Cell volume
   IdxCell c(0);
-  PCMP(m.GetVolume(c), Prod(h));
+  PCMP(m.GetVolume(c), h.prod());
   for (auto i : m.AllCells()) {
     CMP(m.GetVolume(i), m.GetVolume(c));
   }
@@ -128,7 +119,7 @@ void TestMesh() {
     }
     assert(m.GetDir(f) == d);
 
-    PCMP(m.GetArea(f), Prod(h) / h[q]);
+    PCMP(m.GetArea(f), h.prod() / h[q]);
     for (auto i : m.AllFaces()) {
       if (m.GetDir(i) == d) {
         CMP(m.GetArea(i), m.GetArea(f));
@@ -138,15 +129,15 @@ void TestMesh() {
 
   // Number of elements
   auto sh = s + MIdx(hl * 2); // size with halos
-  PCMP(m.GetNumCells(), Prod(sh));
+  PCMP(m.GetNumCells(), sh.prod());
   size_t nf = 0;
   for (int q = 0; q < 3; ++q) {
     auto w = sh;
     ++w[q];
-    nf += Prod(w);
+    nf += w.prod();
   }
   PCMP(m.GetNumFaces(), nf);
-  PCMP(m.GetNumNodes(), Prod(sh + MIdx(1)));
+  PCMP(m.GetNumNodes(), (sh + MIdx(1)).prod());
 
   // Distance between centers
   for (auto i : m.Cells()) {
