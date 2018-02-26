@@ -1,21 +1,12 @@
 #include <sstream>
 #include <iostream>
 #include <cassert>
+#include <functional>
+#include <cmath>
 
 #include "mesh.hpp"
 #include "mesh3d.hpp"
-
-// Returns true if a < b (lex starting from end)
-template <class T, size_t d>
-bool Cmp(const geom::GVect<T, d>& a, const geom::GVect<T, d>& b) {
-  int i = a.size();
-  while (i--) {
-    if (a[i] != b[i]) {
-      return a[i] < b[i];
-    }
-  }
-  return false;
-}
+#include "solver.hpp"
 
 const int dim = 3;
 using MIdx = geom::GMIdx<dim>;
@@ -24,42 +15,7 @@ using IdxFace = geom::IdxFace;
 using Dir = geom::GDir<dim>;
 using Scal = double;
 using Vect = geom::GVect<Scal, dim>;
-
-void TestBlock() {
-  const size_t hl = 1;
-  MIdx oi(0); // origin inner
-  MIdx si(2); // size inner
-  MIdx oa= oi - MIdx(hl); // origin all
-  MIdx sa = si + MIdx(2 * hl); // size all
-
-  geom::GBlockFaces<dim> bi(oi, si);
-  geom::GBlockFaces<dim> ba(oa, sa);
-
-  geom::GRange<IdxFace> ra(ba);
-  geom::GRangeIn<IdxFace, dim> ri(ba, bi);
-
-  const MIdx xp0 = oa - Dir(0);
-  MIdx xp = xp0;
-  Dir dp(0); // direction
-
-  // Check that whole inner block covered with ascending indices
-  for (auto i : ri) {
-    auto x = ba.GetMIdx(i);
-    auto d = ba.GetDir(i);
-
-    // Next direction, reset xp
-    if (dp < d) {
-      xp = xp0;
-    }
-
-    // std::cerr << x << " " << d.GetLetter() << std::endl;
-    assert(Cmp(xp, x));
-    assert(oi <= x && x < oi + si + d);
-
-    xp = x;
-    dp = d;
-  }
-}
+using Mesh = geom::MeshStructured<Scal, dim>;
 
 bool Cmp(Scal a, Scal b) {
   return std::abs(a - b) < 1e-12;
@@ -83,6 +39,31 @@ typename V::value_type Prod(const V& v) {
   return r;
 }
 
+template <class Idx, class Mesh>
+typename Mesh::Scal Max(
+    const geom::GField<typename Mesh::Scal, Idx>& u,
+    const Mesh& m) {
+  using Scal = typename Mesh::Scal;
+  Scal r = 0;
+  for (auto i : m.template Get<Idx>()) {
+    r = std::max(r, u[i]);
+  }
+  return r;
+}
+
+template <class Idx, class Mesh>
+typename Mesh::Scal DiffMax(
+    const geom::GField<typename Mesh::Scal, Idx>& u,
+    const geom::GField<typename Mesh::Scal, Idx>& v,
+    const Mesh& m) {
+  using Scal = typename Mesh::Scal;
+  Scal r = 0;
+  for (auto i : m.template Get<Idx>()) {
+    r = std::max(r, std::abs(u[i] - v[i]));
+  }
+  return r;
+}
+
 #define CMP(a, b) \
   assert(Cmp(a, b)); 
 
@@ -91,83 +72,91 @@ typename V::value_type Prod(const V& v) {
   std::cerr << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
   CMP(a, b); 
 
-void TestMesh() {
-  geom::Rect<Vect> dom(Vect(0., 1.5, 2.7), Vect(5.3, 4.1, 3.));
-  using M = geom::MeshStructured<Scal, dim>;
+// EE - Echo Execute
+#define EE(...); std::cerr << #__VA_ARGS__ << std::endl; __VA_ARGS__;
+
+
+Mesh GetMesh(MIdx s /*size in cells*/) {
+  geom::Rect<Vect> dom(Vect(0.1, 0.2, 0.1), Vect(1.1, 1.2, 1.3));
   MIdx b(-2, -3, -4); // lower index
-  MIdx s(5, 4, 3);    // size in cells
-  int hl = 2;         // halos 
+  int hl = 1;         // halos 
   Vect doms = dom.GetDimensions();
   Vect h = dom.GetDimensions() / Vect(s);
-  M m = geom::InitUniformMesh<M>(dom, b, s, hl);
+  return geom::InitUniformMesh<Mesh>(dom, b, s, hl);
+}
 
-  // Total volume
-  Scal v = 0.;
-  for (auto i : m.Cells()) {
-    v += m.GetVolume(i);
-  }
-  PCMP(v, Prod(doms));
-
-  // Cell volume
-  IdxCell c(0);
-  PCMP(m.GetVolume(c), Prod(h));
+Scal TestInterp0(std::function<Scal(Vect)> f, const Mesh& m) {
+  // Init field on all cells (including halos)
+  geom::FieldCell<Scal> fc(m);
   for (auto i : m.AllCells()) {
-    CMP(m.GetVolume(i), m.GetVolume(c));
+    Vect x = m.GetCenter(i);
+    fc[i] = f(x);
   }
 
-  // Face area
-  for (int q = 0; q < dim; ++q) {
-    Dir d(q);
-    IdxFace f;
-    // Find any face with direction d
-    for (IdxFace i : m.AllFaces()) {
-      if (m.GetDir(i) == d) {
-        f = i;
-        break;
-      }
+  // Empty bc
+  geom::MapFace<std::shared_ptr<solver::ConditionFace>> mfc; 
+
+  // Inteatpolate to faces
+  geom::FieldFace<Scal> ff = solver::Interpolate(fc, mfc, m);
+
+  // Init reference on faces
+  geom::FieldFace<Scal> ffr(m);  
+  for (auto i : m.AllFaces()) {
+    Vect x = m.GetCenter(i);
+    ffr[i] = f(x);
+  }
+  return DiffMax(ff, ffr, m);
+}
+
+void Single(std::function<Scal(Vect)> f) {
+  auto m = GetMesh(MIdx(5, 4, 3));
+  auto e = TestInterp0(f, m);
+  std::cerr << std::scientific
+      << "err: " << e
+      << std::endl;
+  CMP(e, 0.);
+}
+
+void Conv(std::function<Scal(Vect)> f) {
+  MIdx s(2, 3, 4); // initial mesh size
+  Scal rh = 2; // refinement factor (for number of cells in one direction)
+
+  Scal ep = -1;
+  Scal ord = 0.;
+  size_t n = 0;
+  while (Prod(s) < 1e5) {
+    auto m = GetMesh(s);
+    Scal e = TestInterp0(f, m); 
+    // e = C * h ^ ord
+    // ep / e = rh ^ ord
+    if (ep > 0) {
+      ord = std::log(ep / e) / std::log(rh);
     }
-    assert(m.GetDir(f) == d);
-
-    PCMP(m.GetArea(f), Prod(h) / h[q]);
-    for (auto i : m.AllFaces()) {
-      if (m.GetDir(i) == d) {
-        CMP(m.GetArea(i), m.GetArea(f));
-      }
-    }
+    std::cerr 
+        << "s=" << s 
+        << "\terr=" << e 
+        << "\tord=" << ord
+        << std::endl;
+    s = MIdx(Vect(s) * rh);
+    ep = e;
+    ++n;
   }
+  assert(n > 1);
+  assert(ord > 1.8 || ep < 1e-12);
+}
 
-  // Number of elements
-  auto sh = s + MIdx(hl * 2); // size with halos
-  PCMP(m.GetNumCells(), Prod(sh));
-  size_t nf = 0;
-  for (int q = 0; q < 3; ++q) {
-    auto w = sh;
-    ++w[q];
-    nf += Prod(w);
-  }
-  PCMP(m.GetNumFaces(), nf);
-  PCMP(m.GetNumNodes(), Prod(sh + MIdx(1)));
+Scal sqr(Scal a) {
+  return a * a;
+}
 
-  // Distance between centers
-  for (auto i : m.Cells()) {
-    Vect xi = m.GetCenter(i);
-    for (size_t n = 0; n < m.GetNumNeighbourFaces(i); ++n) {
-      Dir d(n / 2); 
-      Scal k = (n % 2 == 0 ? -1. : 1.);
-      auto j = m.GetNeighbourCell(i, n);
-      Vect xj = m.GetCenter(j);
-      CMP((xj-xi)[d], h[d] * k);
-    }
-  }
-
-  // Comm
-  geom::FieldCell<Scal> fc;
-  m.Comm(&fc);
-  CMP(m.GetComm()[0], &fc);
+Scal cube(Scal a) {
+  return a * a * a;
 }
 
 int main() {
-  TestBlock();
-
-  TestMesh();
+  EE(Single([](Vect x) { return 0.; }));
+  EE(Single([](Vect x) { return 1.; }));
+  EE(Single([](Vect x) { return x[0]; }));
+  EE(Single([](Vect x) { return x[0] * x[1] * x[2]; }));
+  EE(Conv([](Vect x) { return std::sin(x[0] + sqr(x[1]) + cube(x[2])); }));
 }
