@@ -53,7 +53,7 @@ Advantages compared to Gerris:
 which reduces numerical diffusion 
 
 * conservation of mass up to machine precision 
-(depending of the accuracy of linear solvers)
+(depending on the accuracy of linear solvers)
 
 * potentially high performance of CUBISM framework
   - cache-aware (computation by blocks)
@@ -76,7 +76,7 @@ Design following CUBISM framework
 
 * hydrodynamic interaction of bubbles
 * bubble coalescence
-* bubble growth of surfaces
+* bubble growth on surfaces
 
 
   
