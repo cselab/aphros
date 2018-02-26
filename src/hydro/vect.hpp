@@ -209,6 +209,20 @@ class GVect {
     other -= *this;
     return other.norm();
   }
+  Scal prod() const {
+    Scal r = comp_[0];
+    for (size_t i = 1; i < dim; ++i) {
+      r *= comp_[i];
+    }
+    return r;
+  }
+  Scal norminf() const {
+    Scal r = 0;
+    for (size_t i = 0; i < dim; ++i) {
+      r = std::max(std::abs(comp_[i]));
+    }
+    return r;
+  }
 };
 
 template <class Scal, size_t dim>
