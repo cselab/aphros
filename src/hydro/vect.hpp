@@ -219,7 +219,7 @@ class GVect {
   Scal norminf() const {
     Scal r = 0;
     for (size_t i = 0; i < dim; ++i) {
-      r = std::max(std::abs(comp_[i]));
+      r = std::max(r, std::abs(comp_[i]));
     }
     return r;
   }
