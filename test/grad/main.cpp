@@ -39,11 +39,11 @@ typename V::value_type Prod(const V& v) {
   return r;
 }
 
-template <class Idx, class Mesh>
+template <class Idx, class M>
 typename Mesh::Scal DiffMax(
     const geom::GField<typename Mesh::Scal, Idx>& u,
     const geom::GField<typename Mesh::Scal, Idx>& v,
-    const Mesh& m) {
+    const M& m) {
   using Scal = typename Mesh::Scal;
   Scal r = 0;
   for (auto i : m.template Get<Idx>()) {
@@ -52,11 +52,11 @@ typename Mesh::Scal DiffMax(
   return r;
 }
 
-template <class Idx, class Mesh>
+template <class Idx, class M>
 typename Mesh::Scal DiffMax(
-    const geom::GField<typename Mesh::Vect, Idx>& u,
-    const geom::GField<typename Mesh::Vect, Idx>& v,
-    const Mesh& m) {
+    const geom::GField<typename M::Vect, Idx>& u,
+    const geom::GField<typename M::Vect, Idx>& v,
+    const M& m) {
   using Scal = typename Mesh::Scal;
   Scal r = 0;
   for (auto i : m.template Get<Idx>()) {
@@ -74,8 +74,8 @@ typename Mesh::Scal DiffMax(
   std::cerr << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
   CMP(a, b); 
 
-// EE - Echo Execute
-#define EE(...); std::cerr << #__VA_ARGS__ << std::endl; __VA_ARGS__;
+// Echo Execute
+#define EE(...); std::cerr << "\n" << #__VA_ARGS__ << std::endl; __VA_ARGS__;
 
 
 Mesh GetMesh(MIdx s /*size in cells*/) {
@@ -87,38 +87,41 @@ Mesh GetMesh(MIdx s /*size in cells*/) {
   return geom::InitUniformMesh<Mesh>(dom, b, s, hl);
 }
 
-Scal RunInterp(std::function<Scal(Vect)> f, const Mesh& m) {
-  // Init field on all cells (including halos)
-  geom::FieldCell<Scal> fc(m);
-  for (auto i : m.AllCells()) {
-    Vect x = m.GetCenter(i);
-    fc[i] = f(x);
+template <class T, class Idx, class M>
+void Eval(std::function<T(Vect)> f,   
+          geom::GField<T, Idx>& r,
+          const M& m) {
+  r.Reinit(m);
+  for (auto i : m.template GetAll<Idx>()) {
+    r[i] = f(m.GetCenter(i));
   }
+}
+
+template <class M>
+Scal RunInterp(std::function<Scal(Vect)> uf, const M& m) {
+  // Init field on all cells (including halos)
+  geom::FieldCell<Scal> cf;
+  Eval(uf, cf, m);
 
   // Empty bc
-  geom::MapFace<std::shared_ptr<solver::ConditionFace>> mfc; 
+  geom::MapFace<std::shared_ptr<solver::ConditionFace>> bc; 
 
   // Interpolate to faces
-  geom::FieldFace<Scal> ff = solver::Interpolate(fc, mfc, m);
+  geom::FieldFace<Scal> ff = solver::Interpolate(cf, bc, m);
 
   // Init reference on faces
-  geom::FieldFace<Scal> ffr(m);  
-  for (auto i : m.Faces()) {
-    Vect x = m.GetCenter(i);
-    ffr[i] = f(x);
-  }
-  return DiffMax(ff, ffr, m);
+  geom::FieldFace<Scal> fr;  
+  Eval(uf, fr, m);
+
+  return DiffMax(ff, fr, m);
 }
 
 Scal RunGrad(std::function<Scal(Vect)> uf, 
              std::function<Vect(Vect)> ugr,  // reference
              const Mesh& m) {
   // Init field on all cells (including halos)
-  geom::FieldCell<Scal> f(m);
-  for (auto i : m.AllCells()) {
-    Vect x = m.GetCenter(i);
-    f[i] = uf(x);
-  }
+  geom::FieldCell<Scal> f;
+  Eval(uf, f, m);
 
   // Empty bc
   geom::MapFace<std::shared_ptr<solver::ConditionFace>> bc; 
@@ -130,11 +133,9 @@ Scal RunGrad(std::function<Scal(Vect)> uf,
   geom::FieldCell<Vect> g = solver::Gradient(ff, m);
 
   // Init reference on cells
-  geom::FieldCell<Vect> gr(m);  
-  for (auto i : m.Cells()) {
-    Vect x = m.GetCenter(i);
-    gr[i] = ugr(x);
-  }
+  geom::FieldCell<Vect> gr;  
+  Eval(ugr, gr, m);
+
   return DiffMax(g, gr, m);
 }
 
@@ -184,6 +185,34 @@ void Conv(std::function<Scal(Vect)> f) {
   assert(ord > 1.8 || ep < 1e-12);
 }
 
+void ConvG(std::function<Scal(Vect)> f, std::function<Vect(Vect)> r) {
+  MIdx s(2, 3, 3); // initial mesh size
+  Scal rh = 2; // refinement factor (for number of cells in one direction)
+
+  Scal ep = -1;
+  Scal ord = 0.;
+  size_t n = 0;
+  while (s.prod() < 1e4) {
+    auto m = GetMesh(s);
+    Scal e = RunGrad(f, r, m); 
+    // e = C * h ^ ord
+    // ep / e = rh ^ ord
+    if (ep > 0) {
+      ord = std::log(ep / e) / std::log(rh);
+    }
+    std::cerr 
+        << "s=" << s 
+        << "\terr=" << e 
+        << "\tord=" << ord
+        << std::endl;
+    s = MIdx(Vect(s) * rh);
+    ep = e;
+    ++n;
+  }
+  assert(n > 1);
+  assert(ord > 1.8 || ep < 1e-12);
+}
+
 Scal sqr(Scal a) {
   return a * a;
 }
@@ -212,5 +241,12 @@ int main() {
                  2 * sqr(x[1]) * sqr(x[2]) * x[0], 
                  2 * sqr(x[2]) * sqr(x[0]) * x[1], 
                  2 * sqr(x[0]) * sqr(x[1]) * x[2]
+                 ); }));
+
+  EE(ConvG([](Vect x) { return std::sin(x[0] + sqr(x[1]) + cube(x[2])); },
+             [](Vect x) { return Vect(
+                 std::cos(x[0] + sqr(x[1]) + cube(x[2])),
+                 std::cos(x[0] + sqr(x[1]) + cube(x[2])) * 2. * x[1],
+                 std::cos(x[0] + sqr(x[1]) + cube(x[2])) * 3. * sqr(x[2])
                  ); }));
 }
