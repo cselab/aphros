@@ -1,0 +1,12 @@
+#!/bin/bash -l
+
+echo running > job.status
+
+./clean
+
+export OMP_NUM_THREADS=1
+time mpirun -n 8 --oversubscribe ./t.comm
+
+echo "Done."
+echo done > job.status
+
