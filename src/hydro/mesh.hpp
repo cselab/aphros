@@ -1104,7 +1104,9 @@ class MeshStructured {
   bool Pending() const {
     return susp_.Pending();
   }
-
+  const Suspender& GetSusp() const {
+    return susp_;
+  } 
   std::string GetCurName() const {
     return susp_.GetCurName();
   }
