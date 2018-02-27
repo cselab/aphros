@@ -414,6 +414,16 @@ void Local<KF>::Step() {
 
     stage_ += 1;
 
+    // Print current stage name
+    if (isroot_) {
+      auto& m = mk.at(GetIdx(bb.front().index))->GetMesh();
+      std::cerr << "*** STAGE"
+          << " #" << stage_ 
+          << " depth=" << m.GetDepth() 
+          << " " << m.GetCurName() 
+          << " ***" << std::endl;
+    }
+
     // 6. Check for pending stages
     {
       int np = 0;
@@ -431,16 +441,6 @@ void Local<KF>::Step() {
       if (!np) {
         break;
       }
-    }
-
-    // Print current stage name
-    if (isroot_) {
-      auto& m = mk.at(GetIdx(bb.front().index))->GetMesh();
-      std::cerr << "*** STAGE"
-          << " #" << stage_ 
-          << " depth=" << m.GetDepth() 
-          << " " << m.GetCurName() 
-          << " ***" << std::endl;
     }
   } while (true);
 

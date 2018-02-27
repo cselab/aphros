@@ -544,6 +544,16 @@ void Cubism<KF>::Step() {
 
     stage_ += 1;
 
+    // Print current stage name
+    if (isroot_) {
+      auto& m = mk.at(GetIdx(bb.front().index))->GetMesh();
+      std::cerr << "*** STAGE"
+          << " #" << stage_ 
+          << " depth=" << m.GetDepth() 
+          << " " << m.GetCurName() 
+          << " ***" << std::endl;
+    }
+
     // 6. Check for pending stages
     {
       int np = 0;
@@ -563,15 +573,6 @@ void Cubism<KF>::Step() {
       }
     }
 
-    // Print current stage name
-    if (isroot_) {
-      auto& m = mk.at(GetIdx(bb.front().index))->GetMesh();
-      std::cerr << "*** STAGE"
-          << " #" << stage_ 
-          << " depth=" << m.GetDepth() 
-          << " " << m.GetCurName() 
-          << " ***" << std::endl;
-    }
   } while (true);
 
   if (step_ % (par.Int["max_step"] / par.Int["num_frames"])  == 0) {
