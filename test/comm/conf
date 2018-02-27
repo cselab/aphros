@@ -1,7 +1,4 @@
 set -eu
 
-mkdir -p build
-cd build
-
 . ~/bin/hypre.prefix
 cmake ../ -DHYPRE_DIR=$P -DCMAKE_BUILD_TYPE=release

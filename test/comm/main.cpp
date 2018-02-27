@@ -82,23 +82,42 @@ Simple<M>::Simple(Vars& par, const MyBlockInfo& bi)
       "," + std::to_string(bi.index[2]) + "]";
 }
 
+bool Cmp(Scal a, Scal b) {
+  return std::abs(a - b) < 1e-12;
+}
+
 template <class M>
 void Simple<M>::Run() {
   auto sem = m.GetSem("run");
-  auto f = [](Vect x) { return x[0]; };
-  if (sem("init")) {
-    auto a = m.GetSem("run2");
-    if (a()) {
-      fc_.Reinit(m);
-      for (auto i : m.Cells()) {
-        fc_[i] = f(m.GetCenter(i));
+  auto f = [](Vect v) { 
+    for (int i = 0; i < dim; ++i) {
+      while (v[i] < 0.) {
+        v[i] += 1.;
+      }
+      while (v[i] > 1.) {
+        v[i] -= 1.;
       }
     }
-  }
-  if (sem("check")) {
+    return std::sin(v[0]) * std::cos(v[1]) * std::exp(v[2]); 
+  };
+  auto& bc = m.GetBlockCells();
+  if (sem("init")) {
     fc_.Reinit(m);
     for (auto i : m.Cells()) {
-      assert(fc_[i] == f(m.GetCenter(i)));
+      fc_[i] = f(m.GetCenter(i));
+    }
+    m.Comm(&fc_);
+  }
+  if (sem("check")) {
+    for (auto i : m.AllCells()) {
+      auto x = m.GetCenter(i);
+      if (!Cmp(fc_[i], f(m.GetCenter(i)))) {
+        std::cerr 
+          << bc.GetMIdx(i) << " " 
+          << fc_[i] << " != " << f(x) << " "
+          << std::endl;
+        assert(false);
+      }
     }
   }
 }
