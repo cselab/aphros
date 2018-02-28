@@ -12,9 +12,18 @@ include_directories(${H})
 
 add_executable(${EXE} main.cpp)
      
+# MPI
+find_package(MPI REQUIRED)
+set(CMAKE_C_COMPILER ${MPI_C_COMPILER})
+set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
+
+# hypre
+include_directories(${HYPRE_DIR}/include)
+target_link_libraries(${EXE} -lHYPRE -lm)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${HYPRE_DIR}/lib")
+
 set_property(TARGET ${EXE} PROPERTY CXX_STANDARD 11)
 
 enable_testing()
 
 add_test(${p} ${EXE})
-
