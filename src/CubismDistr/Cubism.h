@@ -9,6 +9,7 @@
 #include "Cubism/HDF5Dumper_MPI.h"
 #include "ICubism.h"
 #include "Vars.h"
+#include "hydro/hypre.h"
 
 #include "HYPRE_struct_ls.h"
 
@@ -348,6 +349,7 @@ void Cubism<KF>::Step() {
 
     // 6. Solve 
     {
+      const size_t dim = 3;
       MPI_Comm comm = g_.getCartComm();
       auto& f = *mk.at(GetIdx(bb[0].index)); // first kernel
       auto& mf = f.GetMesh();
@@ -362,178 +364,48 @@ void Cubism<KF>::Step() {
       }
 
       for (size_t j = 0; j < vf.size(); ++j) {
+        using LB = typename Hypre::Block;
+        std::vector<LB> lbb;
+        using LI = typename Hypre::MIdx;
+
         using MIdx = typename K::MIdx;
         std::vector<MIdx> st = vf[j].st; // stencil
 
-        HYPRE_StructGrid     grid;
-        HYPRE_StructStencil  stencil;
-        HYPRE_StructMatrix   a;
-        HYPRE_StructVector   b;
-        HYPRE_StructVector   x;
-        HYPRE_StructSolver   solver;
-        HYPRE_StructSolver   precond;
-
-        // Create empty 3D grid object
-        HYPRE_StructGridCreate(comm, 3, &grid);
-
-        // Add boxes to grid
         for (auto& b : bb) {
-          auto d = b.index;
           using B = Block_t;
-          int l[3] = {d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
-          int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
-
-
-          HYPRE_StructGridSetExtents(grid, l, u);
-        }
-
-        if (par.Int["hypre_periodic"]) {
-          // Set periodic in all directions
-          int gs[] = {
-                bs_ * b_[0] * p_[0], 
-                bs_ * b_[1] * p_[1], 
-                bs_ * b_[2] * p_[2]
-              };
-          int per[] = {gs[0], gs[1], gs[2]}; 
-          HYPRE_StructGridSetPeriodic(grid, per);
-        }
-
-        // Assemble grid
-        HYPRE_StructGridAssemble(grid);
-
-        // Create emtpty 3D stencil
-        HYPRE_StructStencilCreate(3, st.size(), &stencil);
-
-        // Assign stencil entries 
-        for (size_t i = 0; i < st.size(); ++i) {
-          MIdx e = st[i];
-          int o[] = {e[0], e[1], e[2]};
-          HYPRE_StructStencilSetElement(stencil, i, o);
-        }
-
-        // Create empty matrix object 
-        HYPRE_StructMatrixCreate(comm, grid, stencil, &a);
-
-        // Indicate that the matrix coefficients are ready to be set 
-        HYPRE_StructMatrixInitialize(a);
-
-        // Set matrix coefficients
-        for (auto& b : bb) {
+          LB lb;
           auto d = b.index;
-          using B = Block_t;
-          int l[3] = {d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
-          int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
-
-          std::vector<int> sti(st.size()); // stencil index (1-1)
-          for (int i = 0; i < sti.size(); ++i) {
-            sti[i] = i;
+          auto& k = *mk.at(GetIdx(b.index)); // kernel
+          auto& m = k.GetMesh();
+          auto& v = m.GetSolve();  // pointers to reduce
+          auto& s = v[j];  
+          lb.l = LI{d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
+          lb.u = LI{lb.l[0] + B::sx - 1, lb.l[1] + B::sy - 1, lb.l[2] + B::sz - 1};
+          for (MIdx& e : st) {
+            // TODO: add constructor to GVect
+            lb.st.emplace_back(LI{e[0], e[1], e[2]});
           }
-
-          auto& k = *mk.at(GetIdx(b.index)); 
-          auto& m = k.GetMesh();
-          auto& v = m.GetSolve();  
-          auto& s = v[j]; // LS
-
-          HYPRE_StructMatrixSetBoxValues(
-              a, l, u, st.size(), sti.data(), s.a->data());
+          lb.a = s.a;
+          lb.r = s.b;
+          lb.x = s.x;
+          lbb.push_back(lb);
         }
 
-        // Assemble matrix
-        HYPRE_StructMatrixAssemble(a);
-
-        /* Create an empty vector object */
-        HYPRE_StructVectorCreate(comm, grid, &b);
-        HYPRE_StructVectorCreate(comm, grid, &x);
-
-        /* Indicate that the vector coefficients are ready to be set */
-        HYPRE_StructVectorInitialize(b);
-        HYPRE_StructVectorInitialize(x);
-
-        /* Set the vector coefficients over the gridpoints in my first box */
-        for (auto& bi : bb) {
-          auto d = bi.index;
-          using B = Block_t;
-          int l[3] = {d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
-          int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
-
-          auto& k = *mk.at(GetIdx(bi.index)); 
-          auto& m = k.GetMesh();
-          auto& v = m.GetSolve();  
-          auto& s = v[j]; // LS
-
-          HYPRE_StructVectorSetBoxValues(b, l, u, s.b->data());
-          HYPRE_StructVectorSetBoxValues(x, l, u, s.x->data());
+        std::vector<bool> per(dim, false);
+        if (par.Int["hypre_periodic"]) {
+          for (size_t i = 0; i < dim; ++i) {
+            per[i] = true;
+          }
         }
 
-        /* This is a collective call finalizing the vector assembly.
-           The vectors are now ``ready to be used'' */
-        HYPRE_StructVectorAssemble(b);
-        HYPRE_StructVectorAssemble(x);
-
-
-        /*
-        // 6.5. Set up and use a solver (See the Reference Manual for descriptions
-        //of all of the options.)
-        // Create an empty PCG Struct solver 
-        HYPRE_StructPCGCreate(comm, &solver);
-
-        // Set PCG parameters
-        HYPRE_StructPCGSetTol(solver, 1.0e-06);
-        HYPRE_StructPCGSetPrintLevel(solver, 2);
-        HYPRE_StructPCGSetMaxIter(solver, 50);
-
-        // Use symmetric SMG as preconditioner 
-        HYPRE_StructSMGCreate(comm, &precond);
-        HYPRE_StructSMGSetMaxIter(precond, 1);
-        HYPRE_StructSMGSetTol(precond, 0.0);
-        HYPRE_StructSMGSetZeroGuess(precond);
-        HYPRE_StructSMGSetNumPreRelax(precond, 1);
-        HYPRE_StructSMGSetNumPostRelax(precond, 1);
-
-        // Set preconditioner and solve
-        HYPRE_StructPCGSetPrecond(solver, HYPRE_StructSMGSolve,
-        HYPRE_StructSMGSetup, precond);
-        HYPRE_StructPCGSetup(solver, a, b, x);
-        HYPRE_StructPCGSolve(solver, a, b, x);
-
-*/
-
-        /*
-        HYPRE_StructPCGCreate(comm, &solver);
-        HYPRE_StructPCGSetTol(solver, 1.0e-15); 
-        HYPRE_StructPCGSetPrintLevel(solver, 2); 
-        HYPRE_StructPCGSetup(solver, a, b, x);
-        HYPRE_StructPCGSolve(solver, a, b, x);
-        */
-
-        HYPRE_StructGMRESCreate(comm, &solver);
-        HYPRE_StructGMRESSetTol(solver, par.Double["hypre_tol"]);
-        HYPRE_StructGMRESSetPrintLevel(solver, par.Int["hypre_print"]);
-        HYPRE_StructGMRESSetup(solver, a, b, x);
-        HYPRE_StructGMRESSolve(solver, a, b, x);
-
-        for (auto& bi : bb) {
-          auto d = bi.index;
-          using B = Block_t;
-          int l[3] = {d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
-          int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
-
-          auto& k = *mk.at(GetIdx(bi.index)); 
-          auto& m = k.GetMesh();
-          auto& v = m.GetSolve();  
-          auto& s = v[j]; // LS
-
-          HYPRE_StructVectorGetBoxValues(x, l, u, s.x->data());
+        LI gs(dim);
+        for (size_t i = 0; i < dim; ++i) {
+          gs[i] = bs_ * b_[i] * p_[i];
         }
 
-
-        HYPRE_StructGridDestroy(grid);
-        HYPRE_StructStencilDestroy(stencil);
-        HYPRE_StructMatrixDestroy(a);
-        HYPRE_StructVectorDestroy(b);
-        HYPRE_StructVectorDestroy(x);
-        //HYPRE_StructPCGDestroy(solver);
-        HYPRE_StructGMRESDestroy(solver);
+        Hypre hp(comm, lbb, gs, per, 
+                 par.Double["hypre_tol"], par.Int["hypre_print"]);
+        hp.Solve();
       }
 
       for (auto& b : bb) {
