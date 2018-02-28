@@ -3,7 +3,6 @@
 #include <vector>
 #include <map>
 #include <mpi.h>
-#include "HYPRE_struct_ls.h"
 
 #include "ILocal.h"
 #include "hydro/vect.hpp"

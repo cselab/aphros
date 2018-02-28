@@ -11,8 +11,6 @@
 #include "Vars.h"
 #include "hydro/hypre.h"
 
-#include "HYPRE_struct_ls.h"
-
 using Real = double;
 
 struct Elem {
