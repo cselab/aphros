@@ -1,174 +1,152 @@
 #pragma once
 
 #include <vector>
+#include <cassert>
 
 #include <mpi.h>
 #include "HYPRE_struct_ls.h"
 
 
+// TODO: Convention of *_ for private variables ignored
+
+
 class Hypre {
  public:
   using MIdx = std::vector<int>; 
-  struct Block { // linear system ax=b
+  using Scal = double;
+  struct Block { // linear system ax=r
     MIdx l; // lower corner
     MIdx u; // upper corner
     std::vector<MIdx> st; // stencil
     std::vector<Scal>* a; // matrix coeffs of size n * st.size()
-    std::vector<Scal>* b; // rhs of size n
-    std::vector<Scal>* x; // solution of size n
+    std::vector<Scal>* r; // rhs of size n
+    std::vector<Scal>* x; // solution and initial guess of size n
   };
 
-  Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs /*global size*/) {
-    auto& f = *mk.at(GetIdx(bb[0].index)); // first block
-    auto& mf = f.GetMesh();
-    auto& vf = mf.GetSolve();  // LS to solve
+  Hypre(MPI_Comm comm, 
+        std::vector<Block> bb, 
+        MIdx gs /*global size*/,
+        std::vector<bool> per /*periodic per direction*/,
+        Scal tol /*tolerance*/,
+        int print /*print level*/) 
+    : bb(bb), dim(gs.size()) 
+  {
+    assert(bb.size() > 0);
+    assert(dim > 0);
 
-    // Check size is the same for all blocks
+    // Check size of MIdx
     for (auto& b : bb) {
-      auto& k = *mk.at(GetIdx(b.index)); // kernel
-      auto& m = k.GetMesh();
-      auto& v = m.GetSolve();  // pointers to reduce
-      assert(v.size() == vf.size());
+      assert(b.l.size() == dim);
+      assert(b.u.size() == dim);
+      for (auto& s : b.st) {
+        assert(s.size() == dim);
+      }
     }
 
-    for (size_t j = 0; j < vf.size(); ++j) {
-      using MIdx = typename K::MIdx;
-      std::vector<MIdx> st = vf[j].st; // stencil
-
-      HYPRE_StructGrid     grid;
-      HYPRE_StructStencil  stencil;
-      HYPRE_StructMatrix   a;
-      HYPRE_StructVector   b;
-      HYPRE_StructVector   x;
-      HYPRE_StructSolver   solver;
-      HYPRE_StructSolver   precond;
-
-      // Grid
-      HYPRE_StructGridCreate(comm, 3, &grid);
-
-      // Add boxes to grid
-      for (auto& b : bb) {
-        auto d = b.index;
-        using B = Block_t;
-        int l[3] = {d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
-        int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
-
-        HYPRE_StructGridSetExtents(grid, l, u);
-      }
-
-      // Periodic
-      if (par.Int["hypre_periodic"]) {
-        int per[] = {gs[0], gs[1], gs[2]}; 
-        HYPRE_StructGridSetPeriodic(grid, per);
-      }
-
-      HYPRE_StructGridAssemble(grid);
-
-      // Stencil
-      HYPRE_StructStencilCreate(3, st.size(), &stencil);
-      for (size_t i = 0; i < st.size(); ++i) {
-        MIdx e = st[i];
-        int o[] = {e[0], e[1], e[2]};
-        HYPRE_StructStencilSetElement(stencil, i, o);
-      }
-
-      // Matrix
-      HYPRE_StructMatrixCreate(comm, grid, stencil, &a);
-      HYPRE_StructMatrixInitialize(a);
-
-      for (auto& b : bb) {
-        auto d = b.index;
-        using B = Block_t;
-        int l[3] = {d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
-        int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
-
-        std::vector<int> sti(st.size()); // stencil index (1-1)
-        for (int i = 0; i < sti.size(); ++i) {
-          sti[i] = i;
-        }
-
-        auto& k = *mk.at(GetIdx(b.index)); 
-        auto& m = k.GetMesh();
-        auto& v = m.GetSolve();  
-        auto& s = v[j]; // LS
-
-        HYPRE_StructMatrixSetBoxValues(
-            a, l, u, st.size(), sti.data(), s.a->data());
-      }
-      HYPRE_StructMatrixAssemble(a);
-
-      // Rhs and initial guess
-      HYPRE_StructVectorCreate(comm, grid, &b);
-      HYPRE_StructVectorCreate(comm, grid, &x);
-
-      HYPRE_StructVectorInitialize(b);
-      HYPRE_StructVectorInitialize(x);
-
-      for (auto& bi : bb) {
-        auto d = bi.index;
-        using B = Block_t;
-        int l[3] = {d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
-        int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
-
-        auto& k = *mk.at(GetIdx(bi.index)); 
-        auto& m = k.GetMesh();
-        auto& v = m.GetSolve();  
-        LS& s = v[j]; 
-
-        HYPRE_StructVectorSetBoxValues(b, l, u, s.b->data());
-        HYPRE_StructVectorSetBoxValues(x, l, u, s.x->data());
-      }
-      HYPRE_StructVectorAssemble(b);
-      HYPRE_StructVectorAssemble(x);
-
-      /*
-      // PCG solver
-      HYPRE_StructPCGCreate(comm, &solver);
-      HYPRE_StructPCGSetTol(solver, par.Double["hypre_tol"]); 
-      HYPRE_StructPCGSetPrintLevel(solver, par.Int["hypre_print"]); 
-      HYPRE_StructPCGSetup(solver, a, b, x);
-      HYPRE_StructPCGSolve(solver, a, b, x);
-      */
-
-      // GMRES solver
-      HYPRE_StructGMRESCreate(comm, &solver);
-      HYPRE_StructGMRESSetTol(solver, par.Double["hypre_tol"]);
-      HYPRE_StructGMRESSetPrintLevel(solver, par.Int["hypre_print"]);
-      HYPRE_StructGMRESSetup(solver, a, b, x);
-      HYPRE_StructGMRESSolve(solver, a, b, x);
-
-      // Copy solution
-      for (auto& bi : bb) {
-        auto d = bi.index;
-        using B = Block_t;
-        int l[3] = {d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
-        int u[3] = {l[0] + B::sx - 1, l[1] + B::sy - 1, l[2] + B::sz - 1};
-
-        auto& k = *mk.at(GetIdx(bi.index)); 
-        auto& m = k.GetMesh();
-        auto& v = m.GetSolve();  
-        auto& s = v[j]; // LS
-
-        HYPRE_StructVectorGetBoxValues(x, l, u, s.x->data());
-      }
-
-      // Destroy
-      HYPRE_StructGridDestroy(grid);
-      HYPRE_StructStencilDestroy(stencil);
-      HYPRE_StructMatrixDestroy(a);
-      HYPRE_StructVectorDestroy(b);
-      HYPRE_StructVectorDestroy(x);
-      //HYPRE_StructPCGDestroy(solver);
-      HYPRE_StructGMRESDestroy(solver);
-    }
-
+    // Check all blocks have the same stencil
+    std::vector<MIdx> st = bb[0].st;
     for (auto& b : bb) {
-      auto& k = *mk.at(GetIdx(b.index)); 
-      auto& m = k.GetMesh();
-      m.ClearSolve();
+      assert(b.st == st);
     }
+
+    // Check size of data 
+    for (auto& b : bb) {
+      size_t n = 1;
+      for (size_t i = 0; i < dim; ++i) {
+        n *= b.u[i] - b.l[i] + 1;
+      }
+      assert(b.a->size() == n * st.size());
+      assert(b.r->size() == n);
+      assert(b.x->size() == n);
+    }
+
+    // Grid
+    HYPRE_StructGridCreate(comm, dim, &grid);
+    // Add boxes to grid
+    for (auto& b : bb) {
+      HYPRE_StructGridSetExtents(grid, b.l.data(), b.u.data());
+    }
+    // Periodic
+    std::vector<int> nper(per.size());
+    for (size_t i = 0; i < dim; ++i) {
+      nper[i] = per[i] ? gs[i] : 0;
+    }
+    HYPRE_StructGridSetPeriodic(grid, nper.data());
+    HYPRE_StructGridAssemble(grid);
+
+    // Stencil
+    HYPRE_StructStencilCreate(dim, st.size(), &stencil);
+    for (size_t j = 0; j < st.size(); ++j) {
+      HYPRE_StructStencilSetElement(stencil, j, st[j].data());
+    }
+
+    // Matrix
+    HYPRE_StructMatrixCreate(comm, grid, stencil, &a);
+    HYPRE_StructMatrixInitialize(a);
+    for (auto& b : bb) {
+      std::vector<int> sti(st.size()); // stencil index (1-to-1)
+      for (int i = 0; i < sti.size(); ++i) {
+        sti[i] = i;
+      }
+
+      HYPRE_StructMatrixSetBoxValues(
+          a, b.l.data(), b.u.data(), st.size(), sti.data(), b.a->data());
+    }
+    HYPRE_StructMatrixAssemble(a);
+
+    // Rhs and initial guess
+    HYPRE_StructVectorCreate(comm, grid, &r);
+    HYPRE_StructVectorCreate(comm, grid, &x);
+    HYPRE_StructVectorInitialize(r);
+    HYPRE_StructVectorInitialize(x);
+    for (auto& b : bb) {
+      HYPRE_StructVectorSetBoxValues(r, b.l.data(), b.u.data(), b.r->data());
+      HYPRE_StructVectorSetBoxValues(x, b.l.data(), b.u.data(), b.x->data());
+    }
+    HYPRE_StructVectorAssemble(r);
+    HYPRE_StructVectorAssemble(x);
+
+    // PCG solver
+    //HYPRE_StructPCGCreate(comm, &solver);
+    //HYPRE_StructPCGSetTol(solver, tol); 
+    //HYPRE_StructPCGSetPrintLevel(solver, print); 
+    //HYPRE_StructPCGSetup(solver, a, r, x);
+
+    // GMRES solver
+    HYPRE_StructGMRESCreate(comm, &solver);
+    HYPRE_StructGMRESSetTol(solver, tol);
+    HYPRE_StructGMRESSetPrintLevel(solver, print);
+    HYPRE_StructGMRESSetup(solver, a, r, x);
   }
+
   void Solve() {
+    //HYPRE_StructPCGSolve(solver, a, r, x);
+    HYPRE_StructGMRESSolve(solver, a, r, x);
+
+    // Copy solution
+    for (auto& b : bb) {
+      HYPRE_StructVectorGetBoxValues(x, b.l.data(), b.u.data(), b.x->data());
+    }
   }
-  ~Hypre() {}
+  ~Hypre() {
+    // Destroy
+    HYPRE_StructGridDestroy(grid);
+    HYPRE_StructStencilDestroy(stencil);
+    HYPRE_StructMatrixDestroy(a);
+    HYPRE_StructVectorDestroy(r);
+    HYPRE_StructVectorDestroy(x);
+    //HYPRE_StructPCGDestroy(solver);
+    HYPRE_StructGMRESDestroy(solver);
+  }
+ 
+ private:
+  size_t dim;
+  std::vector<Block> bb;
+  HYPRE_StructGrid     grid;
+  HYPRE_StructStencil  stencil;
+  HYPRE_StructMatrix   a;
+  HYPRE_StructVector   r;
+  HYPRE_StructVector   x;
+  HYPRE_StructSolver   solver;
+  HYPRE_StructSolver   precond;
 };
