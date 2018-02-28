@@ -390,9 +390,9 @@ void Cubism<KF>::Step() {
         if (par.Int["hypre_periodic"]) {
           // Set periodic in all directions
           int gs[] = {
-                bs_ * b_[0], p_[0], 
-                bs_ * b_[1], p_[1], 
-                bs_ * b_[2], p_[2]
+                bs_ * b_[0] * p_[0], 
+                bs_ * b_[1] * p_[1], 
+                bs_ * b_[2] * p_[2]
               };
           int per[] = {gs[0], gs[1], gs[2]}; 
           HYPRE_StructGridSetPeriodic(grid, per);
@@ -498,16 +498,19 @@ void Cubism<KF>::Step() {
 
 */
 
-        /* Create an empty PCG Struct solver */
+        /*
         HYPRE_StructPCGCreate(comm, &solver);
-
-        /* Set some parameters */
-        HYPRE_StructPCGSetTol(solver, 1.0e-06); /* convergence tolerance */
-        HYPRE_StructPCGSetPrintLevel(solver, 0); /* amount of info. printed */
-
-        /* Setup and solve */
+        HYPRE_StructPCGSetTol(solver, 1.0e-15); 
+        HYPRE_StructPCGSetPrintLevel(solver, 2); 
         HYPRE_StructPCGSetup(solver, a, b, x);
         HYPRE_StructPCGSolve(solver, a, b, x);
+        */
+
+        HYPRE_StructGMRESCreate(comm, &solver);
+        HYPRE_StructGMRESSetTol(solver, par.Double["hypre_tol"]);
+        HYPRE_StructGMRESSetPrintLevel(solver, par.Int["hypre_print"]);
+        HYPRE_StructGMRESSetup(solver, a, b, x);
+        HYPRE_StructGMRESSolve(solver, a, b, x);
 
         for (auto& bi : bb) {
           auto d = bi.index;
@@ -529,7 +532,8 @@ void Cubism<KF>::Step() {
         HYPRE_StructMatrixDestroy(a);
         HYPRE_StructVectorDestroy(b);
         HYPRE_StructVectorDestroy(x);
-        HYPRE_StructPCGDestroy(solver);
+        //HYPRE_StructPCGDestroy(solver);
+        HYPRE_StructGMRESDestroy(solver);
       }
 
       for (auto& b : bb) {

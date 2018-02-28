@@ -261,9 +261,9 @@ void Local<KF>::Step() {
         if (par.Int["hypre_periodic"]) {
           // Set periodic in all directions
           int gs[] = {
-                bs_ * b_[0], p_[0], 
-                bs_ * b_[1], p_[1], 
-                bs_ * b_[2], p_[2]
+                bs_ * b_[0] * p_[0], 
+                bs_ * b_[1] * p_[1], 
+                bs_ * b_[2] * p_[2]
               };
           int per[] = {gs[0], gs[1], gs[2]}; 
           HYPRE_StructGridSetPeriodic(grid, per);
@@ -370,16 +370,36 @@ void Local<KF>::Step() {
 
 */
 
-        /* Create an empty PCG Struct solver */
-        HYPRE_StructPCGCreate(comm, &solver);
+
+        /*
+        // Use symmetric SMG as preconditioner 
+        HYPRE_StructSMGCreate(comm, &precond);
+        HYPRE_StructSMGSetMaxIter(precond, 1);
+        HYPRE_StructSMGSetTol(precond, 0.0);
+        HYPRE_StructSMGSetZeroGuess(precond);
+        HYPRE_StructSMGSetNumPreRelax(precond, 1);
+        HYPRE_StructSMGSetNumPostRelax(precond, 1);
+
+        // Set preconditioner and solve
+        HYPRE_StructPCGSetPrecond(
+            solver, HYPRE_StructSMGSolve, HYPRE_StructSMGSetup, precond);
+        */
 
         /* Set some parameters */
-        HYPRE_StructPCGSetTol(solver, 1.0e-06); /* convergence tolerance */
-        HYPRE_StructPCGSetPrintLevel(solver, 0); /* amount of info. printed */
-
-        /* Setup and solve */
+        /* Create an empty PCG Struct solver */
+        /*
+        HYPRE_StructPCGCreate(comm, &solver);
+        HYPRE_StructPCGSetTol(solver, 1e-15); // convergence tolerance 
+        HYPRE_StructPCGSetPrintLevel(solver, 2); // amount of info. printed 
         HYPRE_StructPCGSetup(solver, a, b, x);
         HYPRE_StructPCGSolve(solver, a, b, x);
+        */
+
+        HYPRE_StructGMRESCreate(comm, &solver);
+        HYPRE_StructGMRESSetTol(solver, par.Double["hypre_tol"]);
+        HYPRE_StructGMRESSetPrintLevel(solver, par.Int["hypre_print"]);
+        HYPRE_StructGMRESSetup(solver, a, b, x);
+        HYPRE_StructGMRESSolve(solver, a, b, x);
 
         for (auto& bi : bb) {
           auto d = bi.index;
@@ -401,7 +421,8 @@ void Local<KF>::Step() {
         HYPRE_StructMatrixDestroy(a);
         HYPRE_StructVectorDestroy(b);
         HYPRE_StructVectorDestroy(x);
-        HYPRE_StructPCGDestroy(solver);
+        //HYPRE_StructPCGDestroy(solver);
+        HYPRE_StructGMRESDestroy(solver);
       }
 
       for (auto& b : bb) {

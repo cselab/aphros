@@ -71,7 +71,7 @@ Simple<M>::Simple(Vars& par, const MyBlockInfo& bi)
 }
 
 bool Cmp(Scal a, Scal b) {
-  return std::abs(a - b) < 1e-12;
+  return std::abs(a - b) < 1e-10;
 }
 
 template <class Idx, class M>
@@ -119,7 +119,9 @@ typename M::Scal Mean(
 
 // Print CMP
 #define PCMP(a, b) \
-  std::cerr << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
+  std::cerr \
+    << std::scientific << std::setprecision(16) \
+    << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
   CMP(a, b); 
 
 
@@ -172,38 +174,90 @@ void Simple<M>::TestSolve() {
         v[i] -= 1.;
       }
     }
-    return std::sin(v[0]) * std::cos(v[1]) * std::exp(v[2]); 
+    return std::sin(v[0]* v[1]) * 
+        std::cos(v[1] * v[2]) * 
+        std::exp(v[2] + v[0]); 
   };
+
+  // global mesh size
+  MIdx gs;
+  {
+    MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
+    MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
+    using B = MyBlock;
+    MIdx s(B::sx, B::sy, B::sz); // block size inner
+    gs = p * b * s;
+  }
+
   if (sem("init")) {
+    // exact solution
+    fc_exsol_.Reinit(m);
+    for (auto i : m.AllCells()) {
+      Vect x = m.GetCenter(i);
+      fc_exsol_[i] = f(x);
+    }
     // init hydro system
     fc_system_.Reinit(m);
     for (auto i : m.Cells()) {
+      MIdx mi = bc.GetMIdx(i);
+      IdxCell ipx = bc.GetIdx(mi + MIdx(1, 0, 0));
+      IdxCell imx = bc.GetIdx(mi + MIdx(-1, 0, 0));
+      IdxCell ipy = bc.GetIdx(mi + MIdx(0, 1, 0));
+      IdxCell imy = bc.GetIdx(mi + MIdx(0, -1, 0));
+      IdxCell ipz = bc.GetIdx(mi + MIdx(0, 0, 1));
+      IdxCell imz = bc.GetIdx(mi + MIdx(0, 0, -1));
+
+      Vect x = m.GetCenter(i);
+      Vect xpx = m.GetCenter(ipx);
+      Vect xmx = m.GetCenter(imx);
+      Vect xpy = m.GetCenter(ipy);
+      Vect xmy = m.GetCenter(imy);
+      Vect xpz = m.GetCenter(ipz);
+      Vect xmz = m.GetCenter(imz);
+
+      MIdx mpx = bc.GetMIdx(ipx);
+      MIdx mmx = bc.GetMIdx(imx);
+      MIdx mpy = bc.GetMIdx(ipy);
+      MIdx mmy = bc.GetMIdx(imy);
+      MIdx mpz = bc.GetMIdx(ipz);
+      MIdx mmz = bc.GetMIdx(imz);
+
       auto& e = fc_system_[i];
-      Vect x = m.GetCenter(i);
       e.Clear();
-      e.InsertTerm(1., i);
-      e.SetConstant(-f(x));
-    }
-    // exact solution
-    fc_exsol_.Reinit(m);
-    for (auto i : m.Cells()) {
-      Vect x = m.GetCenter(i);
-      fc_exsol_[i] = f(x);
+
+      bool per = par.Int["periodic"];
+
+
+      e.InsertTerm(mpx < gs || per       ? -0.0 : 0., ipx);
+      e.InsertTerm(MIdx(0) <= mmx || per ? -0.0 : 0., imx);
+      e.InsertTerm(mpy < gs || per       ? -1.0 : 0., ipy);
+      e.InsertTerm(MIdx(0) <= mmy || per ? -1.0 : 0., imy);
+      e.InsertTerm(mpz < gs || per       ? -1.0 : 0., ipz);
+      e.InsertTerm(MIdx(0) <= mmz || per ? -1.0 : 0., imz);
+
+      /*
+      if (i == *m.Cells().begin()) {
+        e *= 0.;
+      }
+      */
+
+      e.InsertTerm(6., i);
+
+      Scal r = e.Evaluate(fc_exsol_);
+      e.SetConstant(-r);
     }
 
     using LS = typename Mesh::LS;
     LS l;
-    // stencil
-    /*
-    l.st.emplace_back(0, 0, -1);
-    l.st.emplace_back(0, -1, 0);
-    l.st.emplace_back(-1, 0, 0);
-    l.st.emplace_back(0, 0, 0);
-    l.st.emplace_back(1, 0, 0);
-    l.st.emplace_back(0, 1, 0);
-    l.st.emplace_back(0, 0, 1);
-    */
-    l.st.emplace_back(0, 0, 0);
+    // Get stencil from first inner cell
+    {
+      IdxCell c = *m.Cells().begin(); 
+      auto& e = fc_system_[c];
+      for (size_t j = 0; j < e.size(); ++j) {
+        MIdx dm = bc.GetMIdx(e[j].idx) - bc.GetMIdx(c);
+        l.st.emplace_back(dm);
+      }
+    }
 
     int bs = _BLOCKSIZE_;
     int n = bs * bs *bs;
@@ -212,12 +266,13 @@ void Simple<M>::TestSolve() {
     lsb_.resize(n, 1.);
     lsx_.resize(n, 0.);
 
+    // fill matrix coeffs
     {
       size_t i = 0;
       for (auto c : m.Cells()) {
         auto& e = fc_system_[c];
         for (size_t j = 0; j < e.size(); ++j) {
-          lsa_[i++] = e[j].coeff;
+          // Check stencil
           if (e[j].idx != bc.GetIdx(bc.GetMIdx(c) + MIdx(l.st[j]))) {
             std::cerr << "***"
                 << " MIdx(c)=" << bc.GetMIdx(c)
@@ -226,16 +281,21 @@ void Simple<M>::TestSolve() {
                 << std::endl;
             assert(false);
           }
+          lsa_[i] = e[j].coeff;
+          ++i;
         }
       }
       assert(i == n * l.st.size());
     }
 
+    // fill rhs and zero solution
     {
       size_t i = 0;
       for (auto c : m.Cells()) {
         auto& e = fc_system_[c];
-        lsb_[i++] = -e.GetConstant();
+        lsb_[i] = -e.GetConstant();
+        lsx_[i] = 0.;
+        ++i;
       }
       assert(i == lsb_.size());
     }
