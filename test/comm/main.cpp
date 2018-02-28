@@ -14,6 +14,7 @@
 #include "hydro/vect.hpp"
 #include "hydro/mesh3d.hpp"
 #include "hydro/solver.hpp"
+#include "hydro/linear.hpp"
 
 
 template <class M>
@@ -23,6 +24,7 @@ class Simple : public Kernel {
   using Scal = double;
   using Vect = typename Mesh::Vect;
   using MIdx = typename Mesh::MIdx;
+  using IdxCell = typename geom::IdxCell;
   static constexpr size_t dim = M::dim;
 
   Simple(Vars& par, const MyBlockInfo& bi);
@@ -38,6 +40,13 @@ class Simple : public Kernel {
   MyBlockInfo bi_;
   M m;
   geom::FieldCell<Scal> fc_;
+  // LS
+  using Expr = solver::Expression<Scal, IdxCell, 1 + dim * 2>;
+  geom::FieldCell<Expr> fc_system_;
+  std::vector<Scal> lsa_;
+  std::vector<Scal> lsb_;
+  std::vector<Scal> lsx_;
+  geom::FieldCell<Scal> fc_sol_;
 };
 
 template <class _M>
@@ -63,6 +72,28 @@ Simple<M>::Simple(Vars& par, const MyBlockInfo& bi)
 bool Cmp(Scal a, Scal b) {
   return std::abs(a - b) < 1e-12;
 }
+
+template <class Idx, class M>
+typename M::Scal DiffMax(
+    const geom::GField<typename M::Scal, Idx>& u,
+    const geom::GField<typename M::Scal, Idx>& v,
+    const M& m) {
+  using Scal = typename M::Scal;
+  Scal r = 0;
+  for (auto i : m.template Get<Idx>()) {
+    r = std::max(r, std::abs(u[i] - v[i]));
+  }
+  return r;
+}
+
+#define CMP(a, b) \
+  assert(Cmp(a, b)); 
+
+// Print CMP
+#define PCMP(a, b) \
+  std::cerr << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
+  CMP(a, b); 
+
 
 template <class M>
 void Simple<M>::TestComm() {
@@ -103,36 +134,85 @@ void Simple<M>::TestComm() {
 template <class M>
 void Simple<M>::TestSolve() {
   auto sem = m.GetSem("TestSolve");
-  auto f = [](Vect v) { 
-    for (int i = 0; i < dim; ++i) {
-      while (v[i] < 0.) {
-        v[i] += 1.;
-      }
-      while (v[i] > 1.) {
-        v[i] -= 1.;
-      }
-    }
-    return std::sin(v[0]) * std::cos(v[1]) * std::exp(v[2]); 
-  };
   auto& bc = m.GetBlockCells();
   if (sem("init")) {
-    fc_.Reinit(m);
+    // init hydro system
+    fc_system_.Reinit(m);
     for (auto i : m.Cells()) {
-      fc_[i] = f(m.GetCenter(i));
+      auto& e = fc_system_[i];
+      e.Clear();
+      e.InsertTerm(1., i);
+      e.SetConstant(0.);
     }
-    m.Comm(&fc_);
+
+    using LS = typename Mesh::LS;
+    LS l;
+    // stencil
+    /*
+    l.st.emplace_back(0, 0, -1);
+    l.st.emplace_back(0, -1, 0);
+    l.st.emplace_back(-1, 0, 0);
+    l.st.emplace_back(0, 0, 0);
+    l.st.emplace_back(1, 0, 0);
+    l.st.emplace_back(0, 1, 0);
+    l.st.emplace_back(0, 0, 1);
+    */
+    l.st.emplace_back(0, 0, 0);
+
+    int bs = _BLOCKSIZE_;
+    int n = bs * bs *bs;
+    using MIdx = typename Mesh::MIdx;
+    lsa_.resize(n*l.st.size());
+    lsb_.resize(n, 1.);
+    lsx_.resize(n, 0.);
+
+    {
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        auto& e = fc_system_[c];
+        for (size_t j = 0; j < e.size(); ++j) {
+          lsa_[i++] = e[j].coeff;
+          if (e[j].idx != bc.GetIdx(bc.GetMIdx(c) + MIdx(l.st[j]))) {
+            std::cerr << "***"
+                << " MIdx(c)=" << bc.GetMIdx(c)
+                << " MIdx(e[j].idx)=" << bc.GetMIdx(e[j].idx)
+                << " l.st[j]=" << MIdx(l.st[j]) 
+                << std::endl;
+            assert(false);
+          }
+        }
+      }
+      assert(i == n * l.st.size());
+    }
+
+    {
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        auto& e = fc_system_[c];
+        lsb_[i++] = -e.GetConstant();
+      }
+      assert(i == lsb_.size());
+    }
+
+    l.a = &lsa_;
+    l.b = &lsb_;
+    l.x = &lsx_;
+    m.Solve(l);
   }
   if (sem("check")) {
-    for (auto i : m.AllCells()) {
-      auto x = m.GetCenter(i);
-      if (!Cmp(fc_[i], f(m.GetCenter(i)))) {
-        std::cerr 
-          << bc.GetMIdx(i) << " " 
-          << fc_[i] << " != " << f(x) << " "
-          << std::endl;
-        assert(false);
-      }
+    // Copy solution to field
+    fc_sol_.Reinit(m);
+    size_t i = 0;
+    for (auto c : m.Cells()) {
+      fc_sol_[c] = lsx_[i++];
     }
+    // Exact solution
+    geom::FieldCell<Scal> fc_ex(m);
+    for (auto i : m.Cells()) {
+      fc_ex[i] = 0.;
+    }
+    // Check
+    PCMP(DiffMax(fc_ex, fc_sol_, m), 0.);
   }
 }
 
