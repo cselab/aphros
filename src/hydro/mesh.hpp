@@ -1098,6 +1098,12 @@ class MeshStructured {
   // BEGIN DISTR
  public:
   using Sem = Suspender::Sem;
+  struct LS { // linear system ax=r
+    std::vector<MIdx> st; // stencil
+    std::vector<Scal>* a; // matrix coeffs of size n * st.size()
+    std::vector<Scal>* b; // rhs of size n
+    std::vector<Scal>* x; // solution and initial guess of size n
+  };
   Sem GetSem(std::string name="") {
     return susp_.GetSem(name);
   }
