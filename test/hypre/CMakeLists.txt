@@ -10,7 +10,7 @@ set(H "../../src/hydro")
 
 include_directories(${H})
 
-add_executable(${EXE} main.cpp)
+add_executable(${EXE} main.cpp ${H}/hypre.cpp)
      
 # MPI
 find_package(MPI REQUIRED)
