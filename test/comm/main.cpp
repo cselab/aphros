@@ -47,6 +47,7 @@ class Simple : public Kernel {
   std::vector<Scal> lsb_;
   std::vector<Scal> lsx_;
   geom::FieldCell<Scal> fc_sol_;
+  geom::FieldCell<Scal> fc_exsol_;
 };
 
 template <class _M>
@@ -85,6 +86,33 @@ typename M::Scal DiffMax(
   }
   return r;
 }
+
+template <class Idx, class M>
+typename M::Scal Max(
+    const geom::GField<typename M::Scal, Idx>& u,
+    const M& m) {
+  using Scal = typename M::Scal;
+  Scal r = 0;
+  for (auto i : m.template Get<Idx>()) {
+    r = std::max(r, u[i]);
+  }
+  return r;
+}
+
+template <class Idx, class M>
+typename M::Scal Mean(
+    const geom::GField<typename M::Scal, Idx>& u,
+    const M& m) {
+  using Scal = typename M::Scal;
+  Scal r = 0;
+  Scal w = 0.;
+  for (auto i : m.template Get<Idx>()) {
+    r += u[i];
+    w += 1.;
+  }
+  return r / w;
+}
+
 
 #define CMP(a, b) \
   assert(Cmp(a, b)); 
@@ -135,14 +163,32 @@ template <class M>
 void Simple<M>::TestSolve() {
   auto sem = m.GetSem("TestSolve");
   auto& bc = m.GetBlockCells();
+  auto f = [](Vect v) { 
+    for (int i = 0; i < dim; ++i) {
+      while (v[i] < 0.) {
+        v[i] += 1.;
+      }
+      while (v[i] > 1.) {
+        v[i] -= 1.;
+      }
+    }
+    return std::sin(v[0]) * std::cos(v[1]) * std::exp(v[2]); 
+  };
   if (sem("init")) {
     // init hydro system
     fc_system_.Reinit(m);
     for (auto i : m.Cells()) {
       auto& e = fc_system_[i];
+      Vect x = m.GetCenter(i);
       e.Clear();
       e.InsertTerm(1., i);
-      e.SetConstant(0.);
+      e.SetConstant(-f(x));
+    }
+    // exact solution
+    fc_exsol_.Reinit(m);
+    for (auto i : m.Cells()) {
+      Vect x = m.GetCenter(i);
+      fc_exsol_[i] = f(x);
     }
 
     using LS = typename Mesh::LS;
@@ -206,13 +252,9 @@ void Simple<M>::TestSolve() {
     for (auto c : m.Cells()) {
       fc_sol_[c] = lsx_[i++];
     }
-    // Exact solution
-    geom::FieldCell<Scal> fc_ex(m);
-    for (auto i : m.Cells()) {
-      fc_ex[i] = 0.;
-    }
     // Check
-    PCMP(DiffMax(fc_ex, fc_sol_, m), 0.);
+    PCMP(Mean(fc_exsol_, m), Mean(fc_sol_, m));
+    PCMP(DiffMax(fc_exsol_, fc_sol_, m), 0.);
   }
 }
 
