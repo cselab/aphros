@@ -227,7 +227,6 @@ void Simple<M>::TestSolve() {
 
       bool per = par.Int["periodic"];
 
-
       e.InsertTerm(mpx < gs || per       ? -0.0 : 0., ipx);
       e.InsertTerm(MIdx(0) <= mmx || per ? -0.0 : 0., imx);
       e.InsertTerm(mpy < gs || per       ? -1.0 : 0., ipy);
