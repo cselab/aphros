@@ -29,7 +29,7 @@ class Hypre {
         std::vector<bool> per /*periodic per direction*/,
         Scal tol /*tolerance*/,
         int print /*print level*/) 
-    : bb(bb), dim(gs.size()) 
+    : dim(gs.size()), bb(bb)
   {
     assert(bb.size() > 0);
     assert(dim > 0);
