@@ -30,6 +30,9 @@ class Simple : public Kernel {
   M& GetMesh() { return m; }
 
  private:
+  void TestComm();
+  void TestSolve();
+
   Vars& par;
   std::string name_;
   MyBlockInfo bi_;
@@ -62,8 +65,8 @@ bool Cmp(Scal a, Scal b) {
 }
 
 template <class M>
-void Simple<M>::Run() {
-  auto sem = m.GetSem("run");
+void Simple<M>::TestComm() {
+  auto sem = m.GetSem("TestComm");
   auto f = [](Vect v) { 
     for (int i = 0; i < dim; ++i) {
       while (v[i] < 0.) {
@@ -94,6 +97,53 @@ void Simple<M>::Run() {
         assert(false);
       }
     }
+  }
+}
+
+template <class M>
+void Simple<M>::TestSolve() {
+  auto sem = m.GetSem("TestSolve");
+  auto f = [](Vect v) { 
+    for (int i = 0; i < dim; ++i) {
+      while (v[i] < 0.) {
+        v[i] += 1.;
+      }
+      while (v[i] > 1.) {
+        v[i] -= 1.;
+      }
+    }
+    return std::sin(v[0]) * std::cos(v[1]) * std::exp(v[2]); 
+  };
+  auto& bc = m.GetBlockCells();
+  if (sem("init")) {
+    fc_.Reinit(m);
+    for (auto i : m.Cells()) {
+      fc_[i] = f(m.GetCenter(i));
+    }
+    m.Comm(&fc_);
+  }
+  if (sem("check")) {
+    for (auto i : m.AllCells()) {
+      auto x = m.GetCenter(i);
+      if (!Cmp(fc_[i], f(m.GetCenter(i)))) {
+        std::cerr 
+          << bc.GetMIdx(i) << " " 
+          << fc_[i] << " != " << f(x) << " "
+          << std::endl;
+        assert(false);
+      }
+    }
+  }
+}
+
+template <class M>
+void Simple<M>::Run() {
+  auto sem = m.GetSem("Run");
+  if (sem.Nested("TestComm")) {
+    TestComm();
+  }
+  if (sem.Nested("TestSolve")) {
+    TestSolve();
   }
 }
 
