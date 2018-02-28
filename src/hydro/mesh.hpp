@@ -1113,13 +1113,6 @@ class MeshStructured {
   size_t GetDepth() const {
     return susp_.GetDepth();
   }
-  struct LS { // linear system ax=b
-    std::vector<MIdx> st; // stencil
-    std::vector<Scal>* a;
-    std::vector<Scal>* b; 
-    std::vector<Scal>* x;
-  };
-
   void Comm(FieldCell<Scal>* u) {
     vcm_.push_back(u);
   }
