@@ -25,7 +25,7 @@
 
 
 template <class M>
-class Hydro : public KernelMesh {
+class Hydro : public KernelMesh<M> {
  public:
   using KM = KernelMesh<M>;
   using Mesh = M;
