@@ -8,7 +8,7 @@
 #include "CubismDistr/Kernel.h"
 #include "CubismDistr/Cubism.h"
 #include "CubismDistr/Local.h"
-#include "CubismDistr/Hydro.h"
+#include "CubismDistr/KernelMesh.h"
 
 #include "hydro/suspender.h"
 #include "hydro/vect.hpp"
@@ -18,8 +18,9 @@
 
 
 template <class M>
-class Simple : public Kernel {
+class Simple : public KernelMesh<M> {
  public:
+  using KM = KernelMesh<M>;
   using Mesh = M;
   using Scal = double;
   using Vect = typename Mesh::Vect;
@@ -29,16 +30,16 @@ class Simple : public Kernel {
 
   Simple(Vars& par, const MyBlockInfo& bi);
   void Run() override;
-  M& GetMesh() { return m; }
+
+ protected:
+  using KM::par;
+  using KM::bi_;
+  using KM::m;
 
  private:
   void TestComm();
   void TestSolve();
 
-  Vars& par;
-  std::string name_;
-  MyBlockInfo bi_;
-  M m;
   geom::FieldCell<Scal> fc_;
   // LS
   using Expr = solver::Expression<Scal, IdxCell, 1 + dim * 2>;
@@ -51,24 +52,19 @@ class Simple : public Kernel {
 };
 
 template <class _M>
-class SimpleFactory : public KernelFactory {
+class SimpleFactory : public KernelMeshFactory<_M> {
  public:
   using M = _M;
   using K = Simple<M>;
-  std::unique_ptr<Kernel> Make(Vars& par, const MyBlockInfo& bi) override {
-    return std::unique_ptr<K>(new K(par, bi));
+  K* Make(Vars& par, const MyBlockInfo& bi) override {
+    return new K(par, bi);
   }
 };
 
 template <class M>
 Simple<M>::Simple(Vars& par, const MyBlockInfo& bi) 
-  : par(par), bi_(bi), m(CreateMesh<M>(bi))
-{
-  name_ = 
-      "[" + std::to_string(bi.index[0]) +
-      "," + std::to_string(bi.index[1]) +
-      "," + std::to_string(bi.index[2]) + "]";
-}
+  : KernelMesh<M>(par, bi)
+{}
 
 bool Cmp(Scal a, Scal b) {
   return std::abs(a - b) < 1e-10;

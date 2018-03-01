@@ -132,8 +132,7 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par)
 
   for(size_t i = 0; i < bb_.size(); i++) {
     MyBlockInfo& bi = bb_[i];
-    auto up = kf.Make(par, bi);
-    mk.emplace(GetIdx(bi.index), std::unique_ptr<K>(dynamic_cast<K*>(up.release())));
+    mk.emplace(GetIdx(bi.index), std::unique_ptr<K>(kf.Make(par, bi)));
   }
 }
 
