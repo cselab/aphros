@@ -2,13 +2,15 @@
 #include <string>
 #include <mpi.h>
 #include <cassert>
+#include <iomanip>
+#include <fstream>
 
 #include "CubismDistr/Vars.h"
 #include "CubismDistr/Interp.h"
 #include "CubismDistr/Kernel.h"
-#include "CubismDistr/Cubism.h"
-#include "CubismDistr/Local.h"
 #include "CubismDistr/KernelMesh.h"
+#include "CubismDistr/ICubism.h"
+#include "CubismDistr/ILocal.h"
 
 #include "hydro/suspender.h"
 #include "hydro/vect.hpp"
@@ -25,7 +27,7 @@ class Simple : public KernelMesh<M> {
   using Scal = double;
   using Vect = typename Mesh::Vect;
   using MIdx = typename Mesh::MIdx;
-  using IdxCell = typename geom::IdxCell;
+  using IdxCell = geom::IdxCell;
   static constexpr size_t dim = M::dim;
 
   Simple(Vars& par, const MyBlockInfo& bi);
@@ -341,9 +343,9 @@ void Main(MPI_Comm comm, bool loc, Vars& par) {
   // Initialize buffer mesh and make Simple for each block.
   std::unique_ptr<Distr> d;
   if (loc) {
-    d.reset(new Local<KF>(comm, kf, bs, es, hl, par));
+    d = CreateLocal(comm, kf, bs, es, hl, par);
   } else {
-    d.reset(new Cubism<KF>(comm, kf, bs, es, hl, par));
+    d = CreateCubism(comm, kf, bs, es, hl, par);
   }
 
   while (!d->IsDone()) {
