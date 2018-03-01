@@ -4,6 +4,7 @@
 
 #include "hydro/vect.hpp"
 #include "hydro/mesh3d.hpp"
+#include "hydro/linear.hpp"
 #include "Kernel.h"
 #include "Vars.h"
 
@@ -67,3 +68,66 @@ class KernelMeshFactory : public KernelFactory {
   K* Make(Vars&, const MyBlockInfo&) override = 0;
 };
 
+/*
+template <class M, class Expr>
+void GetLs(const geom::FieldCell<Expr>& s, // field of expressions
+           const Mesh& m) {
+  using LS = typename M::LS;
+  using MIdx = typename M::MIdx;
+  using IdxCell = geom::IdxCell;
+  LS l;
+  // Get stencil from first inner cell
+  {
+    IdxCell c = *m.Cells().begin(); 
+    auto& e = s[c];
+    for (size_t j = 0; j < e.size(); ++j) {
+      MIdx dm = bc.GetMIdx(e[j].idx) - bc.GetMIdx(c);
+      l.st.emplace_back(dm);
+    }
+  }
+
+  int n = m.Cells().size();
+  la.resize(n * l.st.size());
+  lt.resize(n, 1.);
+  lx.resize(n, 0.);
+
+  // fill matrix coeffs
+  {
+    size_t i = 0;
+    for (auto c : m.Cells()) {
+      auto& e = fc_system_[c];
+      for (size_t j = 0; j < e.size(); ++j) {
+        // Check stencil
+        if (e[j].idx != bc.GetIdx(bc.GetMIdx(c) + MIdx(l.st[j]))) {
+          std::cerr << "***"
+              << " MIdx(c)=" << bc.GetMIdx(c)
+              << " MIdx(e[j].idx)=" << bc.GetMIdx(e[j].idx)
+              << " l.st[j]=" << MIdx(l.st[j]) 
+              << std::endl;
+          assert(false);
+        }
+        lsa_[i] = e[j].coeff;
+        ++i;
+      }
+    }
+    assert(i == n * l.st.size());
+  }
+
+  // fill rhs and zero solution
+  {
+    size_t i = 0;
+    for (auto c : m.Cells()) {
+      auto& e = fc_system_[c];
+      lsb_[i] = -e.GetConstant();
+      lsx_[i] = 0.;
+      ++i;
+    }
+    assert(i == lsb_.size());
+  }
+
+  l.a = &lsa_;
+  l.b = &lsb_;
+  l.x = &lsx_;
+  m.Solve(l);
+}
+*/
