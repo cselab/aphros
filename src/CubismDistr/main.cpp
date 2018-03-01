@@ -12,12 +12,12 @@
 #include <mpi.h>
 #include <cassert>
 
+#include "../hydro/suspender.h"
 #include "Vars.h"
-
 #include "Hydro.h"
 #include "Interp.h"
-
-#include "../hydro/suspender.h"
+#include "ICubism.h"
+#include "ILocal.h"
 
 void Main(MPI_Comm comm, bool loc, Vars& par) {
   // read config files, parse arguments, maybe init global fields

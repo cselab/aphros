@@ -2,7 +2,9 @@
 
 #include "hydro/vect.hpp"
 #include "hydro/mesh3d.hpp"
-#include "Hydro.h"
+#include "Kernel.h"
+#include "KernelMesh.h"
+#include "Vars.h"
 
 template <class KF>
 Distr* TryLocal(
@@ -17,9 +19,9 @@ Distr* TryLocal(
 std::unique_ptr<Distr> CreateLocal(
     MPI_Comm comm, KernelFactory& kf, int bs, int es, int h, Vars& par) {
   Distr* r = nullptr;
-  if (!r) r = TryLocal<HydroFactory<geom::MeshStructured<double, 3>>>(
+  if (!r) r = TryLocal<KernelMeshFactory<geom::MeshStructured<double, 3>>>(
       comm, kf, bs, es, h, par);
-  //if (!r) r = Try<HydroFactory<geom::geom3d::MeshStructured<float>>(
+  //if (!r) r = Try<KernelMeshFactory<geom::geom3d::MeshStructured<float>>(
   //    comm, kf, bs, b, p, es, h);
   assert(r && "CreateLocal(): KernelFactory not found");
   return std::unique_ptr<Distr>(r);

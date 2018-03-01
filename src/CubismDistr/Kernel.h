@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <memory>
 
 #include "hydro/suspender.h"
 #include "Vars.h"
@@ -55,7 +54,7 @@ class Kernel {
 
 class KernelFactory {
  public:
-  virtual std::unique_ptr<Kernel> Make(Vars& par, const MyBlockInfo&) = 0;
+  virtual Kernel* Make(Vars&, const MyBlockInfo&) = 0;
   virtual ~KernelFactory() {}
 };
 

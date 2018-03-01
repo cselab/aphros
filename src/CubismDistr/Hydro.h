@@ -19,43 +19,15 @@
 #include "hydro/advection.hpp"
 #include "hydro/conv_diff.hpp"
 #include "hydro/fluid.hpp"
-
-#include "ICubism.h"
-#include "ILocal.h"
 #include "Kernel.h"
+#include "KernelMesh.h"
 #include "Vars.h"
 
 
 template <class M>
-M CreateMesh(const MyBlockInfo& bi) {
-  using MIdx = typename M::MIdx;
-  using B = MyBlock;
-  using Vect = typename M::Vect;
-  using Rect = geom::Rect<Vect>;
-  B& b = *(B*)bi.ptrBlock;
-  int hl = bi.hl;
-  MIdx s(B::sx, B::sy, B::sz); // block size inner
-
-  Scal h = bi.h_gridpoint;
-  auto w = bi.index;   // block index
-  auto c = bi.origin; 
-  Vect d0(c[0], c[1], c[2]); // origin coord
-  Vect d1 = d0 + Vect(s) * h;      // end coord
-  Rect d(d0, d1);
-
-  MIdx o(w[0] * s[0], w[1] * s[1], w[2] * s[2]); // origin index
-  std::cout 
-      << "o=" << o 
-      << " dom=" << d0 << "," << d1 
-      << " h=" << h
-      << std::endl;
-  
-  return geom::InitUniformMesh<M>(d, o, s, hl);
-}
-
-template <class M>
-class Hydro : public Kernel {
+class Hydro : public KernelMesh {
  public:
+  using KM = KernelMesh<M>;
   using Mesh = M;
   using Scal = double;
   using Vect = typename Mesh::Vect;
@@ -77,11 +49,12 @@ class Hydro : public Kernel {
   void Run() override;
   M& GetMesh() { return m; }
 
+ protected:
+  using KM::par;
+  using KM::bi_;
+  using KM::m;
+
  private:
-  Vars& par;
-  std::string name_;
-  MyBlockInfo bi_;
-  M m;
   //using AS = solver::AdvectionSolverExplicit<M, FieldFace<Scal>>;
   using AS = solver::ConvectionDiffusionScalarImplicit<M>;
   using FS = solver::FluidSimple<M>;
@@ -118,13 +91,8 @@ void Grad(M& m) {
 
 template <class M>
 Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi) 
-  : par(par), bi_(bi), m(CreateMesh<M>(bi))
+  : KernelMesh<M>(par, bi)
 {
-  name_ = 
-      "[" + std::to_string(bi.index[0]) +
-      "," + std::to_string(bi.index[1]) +
-      "," + std::to_string(bi.index[2]) + "]";
-
   // initial field for advection
   FieldCell<Scal> fc_u(m);
   for (auto i : m.Cells()) {
@@ -347,13 +315,13 @@ void Hydro<M>::Run() {
   }
 }
 
-template <class MM>
-class HydroFactory : public KernelFactory {
+template <class _M>
+class HydroFactory : public KernelMeshFactory<_M> {
  public:
-  using M = MM;
+  using M = _M;
   using K = Hydro<M>;
-  std::unique_ptr<Kernel> Make(Vars& par, const MyBlockInfo& bi) override {
-    return std::unique_ptr<Hydro<M>>(new Hydro<M>(par, bi));
+  K* Make(Vars& par, const MyBlockInfo& bi) override {
+    return new Hydro<M>(par, bi);
   }
 };
 
