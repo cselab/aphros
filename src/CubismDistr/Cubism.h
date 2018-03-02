@@ -112,18 +112,18 @@ using TGrid = GridMPI_t;
 using Scal = double;
 
 template <class KF>
-class Cubism : public Distr {
+class Cubism : public DistrMesh<KF> {
  public:
   Cubism(MPI_Comm comm, KF& kf, int bs, int es, int h, Vars& par);
-  using K = typename KF::K;
-  using M = typename KF::M;
-  using P = Distr<KF>
-
-  bool IsDone() const;
-  void Step();
 
  private:
+  using K = typename KF::K;
+  using M = typename KF::M;
+  using P = DistrMesh<KF>;
+  using MIdx = typename M::MIdx;
+
   using P::mk;
+  using P::kf_;
   using P::par;
   using P::bs_;
   using P::es_;
@@ -134,6 +134,7 @@ class Cubism : public Distr {
   using P::stage_;
   using P::frame_;
   using P::isroot_;
+  using P::comm_;
 
   TGrid g_;
   struct S { // cubism [s]tate
@@ -146,7 +147,8 @@ class Cubism : public Distr {
   static StencilInfo GetStencil(int h) {
     return StencilInfo(-h,-h,-h,h+1,h+1,h+1, true, 8, 0,1,2,3,4,5,6,7);
   }
-  static std::vector<MyBlockInfo> GetBlocks(const std::vector<BlockInfo>&);
+  static std::vector<MyBlockInfo> GetBlocks(
+      const std::vector<BlockInfo>&, size_t hl);
 
   void ReadBuffer(M& m, LabMPI& l) {
     using MIdx = typename M::MIdx;
@@ -187,6 +189,7 @@ class Cubism : public Distr {
   void ReadBuffer(const std::vector<MIdx>& bb) override;
   void WriteBuffer(const std::vector<MIdx>& bb) override;
   void Reduce(const std::vector<MIdx>& bb) override;
+  void Dump(int frame, int step) override;
 };
 
 
@@ -230,9 +233,10 @@ struct FakeProc {
 
 template <class KF>
 std::vector<MyBlockInfo> Cubism<KF>::GetBlocks(
-    const std::vector<BlockInfo>& cc) {
+    const std::vector<BlockInfo>& cc, size_t hl) {
+  std::vector<MyBlockInfo> bb;
   for(size_t i = 0; i < cc.size(); i++) {
-    BlockInfo& c = cc[i];
+    const BlockInfo& c = cc[i];
     MyBlockInfo b;
     for (int j = 0; j < 3; ++j) {
       b.index[j] = c.index[j];
@@ -250,14 +254,15 @@ std::vector<MyBlockInfo> Cubism<KF>::GetBlocks(
 template <class KF>
 Cubism<KF>::Cubism(MPI_Comm comm, KF& kf, 
     int bs, int es, int hl, Vars& par) 
-  : Distr<KF>(comm, kf, bs, es, hl, par)
+  : DistrMesh<KF>(comm, kf, bs, es, hl, par)
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], 1., comm)
 {
   std::vector<BlockInfo> cc = g_.getBlocksInfo(); // [c]ubism block info
-  std::vector<MyBlockInfo> ee = GetBlocks(cc);
+  std::vector<MyBlockInfo> ee = GetBlocks(cc, hl_);
 
   for (auto& e : ee) {
     auto d = e.index;
+    // TODO: constructor
     MIdx b(d[0], d[1], d[2]);
     mk.emplace(b, std::unique_ptr<K>(kf_.Make(par, e)));
   }
@@ -270,15 +275,15 @@ Cubism<KF>::Cubism(MPI_Comm comm, KF& kf,
 }
 
 template <class KF>
-void Cubism<KF>::GetBlocks() {
+auto Cubism<KF>::GetBlocks() -> std::vector<MIdx> {
   MPI_Barrier(comm_);
 
   // 1. Exchange halos in buffer mesh
   FakeProc fp(GetStencil(hl_));       // object with field 'stencil'
-  SynchronizerMPI& s = &g_.sync(fp); 
+  SynchronizerMPI& s = g_.sync(fp); 
 
   s_.l.reset(new LabMPI);
-  s_.l->prepare(g_, s_.l);   // allocate memory for lab cache
+  s_.l->prepare(g_, s);   // allocate memory for lab cache
 
   MPI_Barrier(comm_);
 
@@ -303,22 +308,13 @@ void Cubism<KF>::ReadBuffer(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     auto& k = *mk.at(b); // kernel
     auto& m = k.GetMesh();
-    s_.l->load(b, stage_);
+    s_.l->load(s_.mb[b], stage_);
     ReadBuffer(m, *s_.l);
   }
 }
 
 template <class KF>
 void Cubism<KF>::WriteBuffer(const std::vector<MIdx>& bb) {
-  for (auto& b : bb) {
-    auto& k = *mk.at(b); // kernel
-    auto& m = k.GetMesh();
-    WriteBuffer(m, *(typename TGrid::BlockType*)s_.mb[b].ptrBlock);
-  }
-}
-
-template <class KF>
-auto Cubism<KF>::GetBlocks() -> std::vector<MIdx> {
   for (auto& b : bb) {
     auto& k = *mk.at(b); // kernel
     auto& m = k.GetMesh();
@@ -373,6 +369,12 @@ void Cubism<KF>::Reduce(const std::vector<MIdx>& bb) {
     auto& m = k.GetMesh();
     m.ClearReduce();
   }
+}
+
+template <class KF>
+void Cubism<KF>::Dump(int frame, int step) {
+  auto suff = "_" + std::to_string(frame_);
+  DumpHDF5_MPI<TGrid, StreamHdf<0>>(g_, frame, step*1., "p" + suff);
 }
 
 

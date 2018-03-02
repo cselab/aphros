@@ -10,56 +10,60 @@
 #include "hydro/output.hpp"
 #include "hydro/output_paraview.hpp"
 #include "Vars.h"
+#include "Distr.h"
 #include "hydro/hypre.h"
 
 using Scal = double;
 
 template <class KF>
-class Local : public Distr {
+class Local : public DistrMesh<KF> {
  public:
   Local(MPI_Comm comm, KF& kf, int bs, int es, int h, Vars& par);
+
+ private:
   using K = typename KF::K;
   using M = typename KF::M;
   using MIdx = typename  M::MIdx;
   using Vect = typename M::Vect;
   using Rect = geom::Rect<Vect>;
   using IdxCell = geom::IdxCell;
+  using P = DistrMesh<KF>;
 
-  bool IsDone() const;
-  void Step();
+  using P::mk;
+  using P::kf_;
+  using P::par;
+  using P::bs_;
+  using P::es_;
+  using P::hl_;
+  using P::p_;
+  using P:: b_; 
+  using P::step_;
+  using P::stage_;
+  using P::frame_;
+  using P::isroot_;
+  using P::comm_;
 
- private:
-  Vars& par;
-  MPI_Comm comm_;
-  int bs_; // block size
-  int es_; // element size in Scal
-  int hl_; // number of halo cells (same in all directions)
-  Idx p_; // number of ranks
-  Idx b_; // number of blocks
   std::vector<geom::FieldCell<Scal>> buf_; // buffer on mesh
-
   M gm; // global mesh
   std::unique_ptr<output::Session> session_;
   std::vector<MyBlockInfo> bb_;
-  std::map<Idx, std::unique_ptr<K>> mk;
 
   void ReadBuffer(M& m);
   void WriteBuffer(M& m);
-  static M CreateMesh(int bs, Idx b, Idx p, int es);
-
-  int step_ = 0;
-  int stage_ = 0;
-  int frame_ = 0;
-
-  bool isroot_ = true;
+  static M CreateMesh(int bs, MIdx b, MIdx p, int es);
+  std::vector<MIdx> GetBlocks() override;
+  void ReadBuffer(const std::vector<MIdx>& bb) override;
+  void WriteBuffer(const std::vector<MIdx>& bb) override;
+  void Reduce(const std::vector<MIdx>& bb) override;
+  void Dump(int frame, int step) override;
 };
 
 template <class KF>
-auto Local<KF>::CreateMesh(int bs, Idx b, Idx p, int es) -> M {
+auto Local<KF>::CreateMesh(int bs, MIdx b, MIdx p, int es) -> M {
   // Init global mesh
-  MIdx ms(bs, bs, bs); // block size 
-  MIdx mb(b[0], b[1], b[2]); // number of blocks
-  MIdx mp(p[0], p[1], p[2]); // number of PEs
+  MIdx ms(bs); // block size 
+  MIdx mb(b); // number of blocks
+  MIdx mp(p); // number of PEs
   MIdx mm = mp * mb * ms; // total size in cells (without halos)
 
   Scal ext = 1.; // TODO: extent from par
@@ -80,9 +84,7 @@ auto Local<KF>::CreateMesh(int bs, Idx b, Idx p, int es) -> M {
 
 template <class KF>
 Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par) 
-  : par(par), comm_(comm), bs_(bs), es_(es), hl_(hl)
-  , p_{par.Int["px"], par.Int["py"], par.Int["pz"]}
-  , b_{par.Int["bx"], par.Int["by"], par.Int["bz"]}
+  : DistrMesh<KF>(comm, kf, bs, es, hl, par)
   , buf_(es_)
   , gm(CreateMesh(bs_, b_, p_, es))
 {
@@ -107,7 +109,7 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par)
   }
   
   // Fill block info
-  MIdx ms(bs_, bs_, bs_); // block size 
+  MIdx ms(bs_); // block size 
   MIdx mb(b_[0], b_[1], b_[2]); // number of blocks
   MIdx mp(p_[0], p_[1], p_[2]); // number of PEs
   geom::GBlockCells<3> bc(mb * mp);
@@ -130,206 +132,109 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par)
     bb_.push_back(b);
   }
 
-  for(size_t i = 0; i < bb_.size(); i++) {
-    MyBlockInfo& bi = bb_[i];
-    mk.emplace(GetIdx(bi.index), std::unique_ptr<K>(kf.Make(par, bi)));
+  for (auto e : bb_) {
+    auto d = e.index;
+    // TODO: constructor
+    MIdx b(d[0], d[1], d[2]);
+    mk.emplace(b, std::unique_ptr<K>(kf_.Make(par, e)));
+  }
+   
+  isroot_ = true;
+}
+
+template <class KF>
+auto Local<KF>::GetBlocks() -> std::vector<MIdx> {
+  // Put blocks to map by index 
+  std::vector<MIdx> bb;
+  for (auto e : bb_) {
+    auto d = e.index;
+    // TODO: constructor
+    MIdx b(d[0], d[1], d[2]);
+    bb.push_back(b);
+  }
+
+  return bb;
+}
+
+template <class KF>
+void Local<KF>::ReadBuffer(const std::vector<MIdx>& bb) {
+  for (auto& b : bb) {
+    auto& k = *mk.at(b); // kernel
+    auto& m = k.GetMesh();
+    ReadBuffer(m);
   }
 }
 
 template <class KF>
-bool Local<KF>::IsDone() const { 
-  return step_ > par.Int["max_step"]; 
+void Local<KF>::WriteBuffer(const std::vector<MIdx>& bb) {
+  for (auto& b : bb) {
+    auto& k = *mk.at(b); // kernel
+    auto& m = k.GetMesh();
+    WriteBuffer(m);
+  }
 }
 
 template <class KF>
-void Local<KF>::Step() {
-  if (isroot_) {
-    std::cerr << "***** STEP " << step_ << " ******" << std::endl;
+void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
+  auto& f = *mk.at(bb[0]); // first kernel
+  auto& mf = f.GetMesh();
+  auto& vf = mf.GetReduce();  // pointers to reduce
+
+  std::vector<Scal> r(vf.size(), 0); // results
+
+  // Check size is the same for all kernels
+  for (auto& b : bb) {
+    // TODO: collapse next 2 lines
+    auto& k = *mk.at(b); // kernel
+    auto& m = k.GetMesh();
+    auto& v = m.GetReduce();  // pointers to reduce
+    assert(v.size() == r.size());
   }
-  stage_ = 0;
-  do {
-    // 1. Exchange halos in buffer mesh
-    // Do communication and get all blocks
-    auto& bb = bb_;
-    assert(!bb.empty());
-  
-    // 2. Copy data from buffer halos to fields collected by Comm()
-    for (auto& b : bb) {
-      auto& k = *mk.at(GetIdx(b.index)); // kernel
-      auto& m = k.GetMesh();
-      ReadBuffer(m);
+
+  // Reduce over all kernels on current rank
+  for (auto& b : bb) {
+    auto& k = *mk.at(b); 
+    auto& m = k.GetMesh();
+    auto& v = m.GetReduce();  
+    for (size_t i = 0; i < r.size(); ++i) {
+      r[i] += *v[i];
     }
-    
-    // 3. Call kernels for current stage
-    for (auto& b : bb) {
-      auto& k = *mk.at(GetIdx(b.index));
-      k.Run();
-    }
-
-    // 4. Copy data to buffer mesh from fields collected by Comm()
-    for (auto& b : bb) {
-      auto& k = *mk.at(GetIdx(b.index)); // kernel
-      auto& m = k.GetMesh();
-      WriteBuffer(m);
-    }
-
-    // 5. Reduce
-    {
-      auto& f = *mk.at(GetIdx(bb[0].index)); // first kernel
-      auto& mf = f.GetMesh();
-      auto& vf = mf.GetReduce();  // pointers to reduce
-
-      std::vector<Scal> r(vf.size(), 0); // results
-
-      // Check size is the same for all kernels
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index)); // kernel
-        auto& m = k.GetMesh();
-        auto& v = m.GetReduce();  // pointers to reduce
-        assert(v.size() == r.size());
-      }
-    
-      // Reduce over all kernels on current rank
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index)); 
-        auto& m = k.GetMesh();
-        auto& v = m.GetReduce();  
-        for (size_t i = 0; i < r.size(); ++i) {
-          r[i] += *v[i];
-        }
-      }
-
-      // Write results to all kernels on current rank
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index)); 
-        auto& m = k.GetMesh();
-        auto& v = m.GetReduce();  
-        for (size_t i = 0; i < r.size(); ++i) {
-          *v[i] = r[i];
-        }
-      }
-
-      // Clear reduce requests
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index)); 
-        auto& m = k.GetMesh();
-        m.ClearReduce();
-      }
-    }
-
-    // 6. Solve 
-    {
-      const size_t dim = 3;
-      auto& f = *mk.at(GetIdx(bb[0].index)); // first kernel
-      auto& mf = f.GetMesh();
-      auto& vf = mf.GetSolve();  // LS to solve
-
-      // Check size is the same for all kernels
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index)); // kernel
-        auto& m = k.GetMesh();
-        auto& v = m.GetSolve();  // pointers to reduce
-        assert(v.size() == vf.size());
-      }
-
-      for (size_t j = 0; j < vf.size(); ++j) {
-        using LB = typename Hypre::Block;
-        std::vector<LB> lbb;
-        using LI = typename Hypre::MIdx;
-
-        using MIdx = typename K::MIdx;
-        std::vector<MIdx> st = vf[j].st; // stencil
-
-        for (auto& b : bb) {
-          using B = MyBlock;
-          LB lb;
-          auto d = b.index;
-          auto& k = *mk.at(GetIdx(b.index)); // kernel
-          auto& m = k.GetMesh();
-          auto& v = m.GetSolve();  // pointers to reduce
-          auto& s = v[j];  
-          lb.l = LI{d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
-          lb.u = LI{lb.l[0] + B::sx - 1, lb.l[1] + B::sy - 1, lb.l[2] + B::sz - 1};
-          for (MIdx& e : st) {
-            // TODO: add constructor to GVect
-            lb.st.emplace_back(LI{e[0], e[1], e[2]});
-          }
-          lb.a = s.a;
-          lb.r = s.b;
-          lb.x = s.x;
-          lbb.push_back(lb);
-        }
-
-        std::vector<bool> per(dim, false);
-        if (par.Int["hypre_periodic"]) {
-          for (size_t i = 0; i < dim; ++i) {
-            per[i] = true;
-          }
-        }
-
-        LI gs(dim);
-        for (size_t i = 0; i < dim; ++i) {
-          gs[i] = bs_ * b_[i] * p_[i];
-        }
-
-        Hypre hp(comm_, lbb, gs, per, 
-                 par.Double["hypre_tol"], par.Int["hypre_print"]);
-        hp.Solve();
-      }
-
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index)); 
-        auto& m = k.GetMesh();
-        m.ClearSolve();
-      }
-    }
-
-
-    stage_ += 1;
-
-    // Print current stage name
-    if (isroot_) {
-      auto& m = mk.at(GetIdx(bb.front().index))->GetMesh();
-      std::cerr << "*** STAGE"
-          << " #" << stage_ 
-          << " depth=" << m.GetDepth() 
-          << " " << m.GetCurName() 
-          << " ***" << std::endl;
-    }
-
-    // 6. Check for pending stages
-    {
-      int np = 0;
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index));
-        auto& m = k.GetMesh();
-        if (m.Pending()) {
-          ++np;
-        }
-      }
-      // Check either all done or all pending
-      assert(np == 0 || np == bb.size());
-
-      // Break if no pending stages
-      if (!np) {
-        break;
-      }
-    }
-  } while (true);
-
-  if (step_ % (par.Int["max_step"] / par.Int["num_frames"])  == 0) {
-    auto suff = "_" + std::to_string(frame_);
-    //auto suff = "_" + std::to_string(frame_);
-    std::cerr << "Output" << std::endl;
-    session_->Write(step_*1., "title:0");
-    ++frame_;
   }
-  ++step_;
+
+  // Write results to all kernels on current rank
+  for (auto& b : bb) {
+    auto& k = *mk.at(b); 
+    auto& m = k.GetMesh();
+    auto& v = m.GetReduce();  
+    for (size_t i = 0; i < r.size(); ++i) {
+      *v[i] = r[i];
+    }
+  }
+
+  // Clear reduce requests
+  for (auto& b : bb) {
+    auto& k = *mk.at(b); 
+    auto& m = k.GetMesh();
+    m.ClearReduce();
+  }
 }
+
+template <class KF>
+void Local<KF>::Dump(int frame, int step) {
+  auto suff = "_" + std::to_string(frame);
+  std::cerr << "Output" << std::endl;
+  session_->Write(step * 1., "title:0");
+}
+
 
 template <class KF>
 void Local<KF>::ReadBuffer(M& m) {
   int e = 0; // buffer field idx
+
+  std::cerr 
+      << m.GetBlockCells().GetBegin() << " @@@@@ "
+      << m.GetInBlockCells().GetBegin() << " "
+      << std::endl;
 
   for (auto u : m.GetComm()) {
     for (auto i : m.AllCells()) {

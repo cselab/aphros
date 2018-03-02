@@ -172,7 +172,9 @@ class GVect {
     }
     return true;
   }
+  // TODO: remove, replace with GVect(0)
   static const GVect kZero;
+  // TODO: remove, replace with GVect(1)
   static GVect GetUnit(size_t i) {
     GVect res = kZero;
     res[i] = 1;
@@ -222,6 +224,11 @@ class GVect {
       r = std::max(r, std::abs(comp_[i]));
     }
     return r;
+  }
+  // TODO: revise, may lead to undesired conversion
+  template <class T=Scal>
+  operator std::vector<T>() const {
+    return std::vector<T>(comp_.begin(), comp_.end());
   }
 };
 

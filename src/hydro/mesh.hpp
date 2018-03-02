@@ -834,6 +834,7 @@ class MeshStructured {
   MeshStructured(const BlockNodes& b_nodes, 
                  const FieldNode<Vect>& fn_node, 
                  int hl /*halos*/);
+  // TODO: rename to GetBlockAllCells()
   const BlockCells& GetBlockCells() const {
     return b_cells_;
   }
@@ -843,6 +844,7 @@ class MeshStructured {
   const BlockNodes& GetBlockNodes() const {
     return b_nodes_;
   }
+  // TODO: rename to GetBlockCells()
   const BlockCells& GetInBlockCells() const {
     return b_incells_;
   }
