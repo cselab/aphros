@@ -50,13 +50,7 @@ class DistrMesh : public Distr {
   // XXX: overwritten by Local<KF>
   bool isroot_;
 
-  class LexLess {
-   public:
-    bool operator()(MIdx a, MIdx b) {
-      return a.lexless(b);
-    }
-  };
-  std::map<MIdx, std::unique_ptr<K>, LexLess> mk;
+  std::map<MIdx, std::unique_ptr<K>, typename MIdx::LexLess> mk;
 
   DistrMesh(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par);
   virtual std::vector<MIdx> GetBlocks() = 0;

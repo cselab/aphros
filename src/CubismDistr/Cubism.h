@@ -140,7 +140,7 @@ class Cubism : public DistrMesh<KF> {
   struct S { // cubism [s]tate
     SynchronizerMPI* s;
     std::unique_ptr<LabMPI> l;
-    std::map<MIdx, BlockInfo> mb;
+    std::map<MIdx, BlockInfo, typename MIdx::LexLess> mb;
   };
   S s_;
 
