@@ -21,6 +21,8 @@ T sqr(T a) {
   return a * a;
 }
 
+// TODO: revise __RANGE_CHECK
+
 template <class Scal, size_t dimarg>
 class GVect {
  public:
@@ -233,6 +235,12 @@ class GVect {
   operator std::vector<T>() const {
     return std::vector<T>(comp_.begin(), comp_.end());
   }
+  class LexLess {
+   public:
+    bool operator()(GVect a, GVect b) {
+      return a.lexless(b);
+    }
+  };
 };
 
 template <class Scal, size_t dim>
