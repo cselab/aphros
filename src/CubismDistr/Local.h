@@ -161,6 +161,7 @@ void Local<KF>::ReadBuffer(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     auto& k = *mk.at(b); // kernel
     auto& m = k.GetMesh();
+
     ReadBuffer(m);
   }
 }
@@ -230,11 +231,6 @@ void Local<KF>::Dump(int frame, int step) {
 template <class KF>
 void Local<KF>::ReadBuffer(M& m) {
   int e = 0; // buffer field idx
-
-  std::cerr 
-      << m.GetBlockCells().GetBegin() << " @@@@@ "
-      << m.GetInBlockCells().GetBegin() << " "
-      << std::endl;
 
   for (auto u : m.GetComm()) {
     for (auto i : m.AllCells()) {
