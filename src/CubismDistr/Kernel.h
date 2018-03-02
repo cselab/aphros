@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <array>
 
 #include "hydro/suspender.h"
 #include "Vars.h"
@@ -35,8 +36,10 @@ struct MyBlock {
 };
 
 
+// TODO: remove h_gridpoint from MyBlockInfo
 struct MyBlockInfo {
-  int index[3];
+  using Idx = std::array<int, 3>;
+  Idx index;
   void* ptrBlock;
   double h_gridpoint;
   double origin[3];
@@ -59,18 +62,6 @@ class KernelFactory {
 };
 
 
-using Idx = std::array<int, 3>;
-
-template <int n=3>
-Idx GetIdx(const int* d) {
-  return {d[0], d[1], d[2]};
-}
 
 
-class Distr {
- public:
-  virtual bool IsDone() const = 0;
-  virtual void Step() = 0;
-  virtual ~Distr() {}
-};
 

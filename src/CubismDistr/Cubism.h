@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "Cubism/BlockInfo.h"
 #include "Cubism/Grid.h"
 #include "Cubism/GridMPI.h"
@@ -9,7 +11,7 @@
 #include "Cubism/HDF5Dumper_MPI.h"
 #include "ICubism.h"
 #include "Vars.h"
-#include "hydro/hypre.h"
+#include "Distr.h"
 
 using Real = double;
 
@@ -115,31 +117,36 @@ class Cubism : public Distr {
   Cubism(MPI_Comm comm, KF& kf, int bs, int es, int h, Vars& par);
   using K = typename KF::K;
   using M = typename KF::M;
+  using P = Distr<KF>
 
   bool IsDone() const;
   void Step();
 
  private:
-  std::map<Idx, std::unique_ptr<K>> mk;
-
-  Vars& par;
-  int bs_; // block size
-  int es_; // element size in Scal
-  int hl_; // number of halo cells (same in all directions)
-  Idx p_; // number of ranks
-  Idx b_; // number of blocks
+  using P::mk;
+  using P::par;
+  using P::bs_;
+  using P::es_;
+  using P::hl_;
+  using P::p_;
+  using P:: b_; 
+  using P::step_;
+  using P::stage_;
+  using P::frame_;
+  using P::isroot_;
 
   TGrid g_;
-
-  int step_ = 0;
-  int stage_ = 0;
-  int frame_ = 0;
+  struct S { // cubism [s]tate
+    SynchronizerMPI* s;
+    std::unique_ptr<LabMPI> l;
+    std::map<MIdx, BlockInfo> mb;
+  };
+  S s_;
 
   static StencilInfo GetStencil(int h) {
     return StencilInfo(-h,-h,-h,h+1,h+1,h+1, true, 8, 0,1,2,3,4,5,6,7);
   }
-
-  bool isroot_;
+  static std::vector<MyBlockInfo> GetBlocks(const std::vector<BlockInfo>&);
 
   void ReadBuffer(M& m, LabMPI& l) {
     using MIdx = typename M::MIdx;
@@ -175,6 +182,11 @@ class Cubism : public Distr {
       ++e;
     }
   }
+
+  std::vector<MIdx> GetBlocks() override;
+  void ReadBuffer(const std::vector<MIdx>& bb) override;
+  void WriteBuffer(const std::vector<MIdx>& bb) override;
+  void Reduce(const std::vector<MIdx>& bb) override;
 };
 
 
@@ -217,244 +229,152 @@ struct FakeProc {
 };
 
 template <class KF>
+std::vector<MyBlockInfo> Cubism<KF>::GetBlocks(
+    const std::vector<BlockInfo>& cc) {
+  for(size_t i = 0; i < cc.size(); i++) {
+    BlockInfo& c = cc[i];
+    MyBlockInfo b;
+    for (int j = 0; j < 3; ++j) {
+      b.index[j] = c.index[j];
+      b.origin[j] = c.origin[j];
+    }
+    b.h_gridpoint = c.h_gridpoint;
+    b.ptrBlock = c.ptrBlock;
+    b.hl = hl;
+    bb.push_back(b);
+  }
+  return bb;
+}
+
+
+template <class KF>
 Cubism<KF>::Cubism(MPI_Comm comm, KF& kf, 
     int bs, int es, int hl, Vars& par) 
-  : par(par), bs_(bs), es_(es), hl_(hl)
-  , p_{par.Int["px"], par.Int["py"], par.Int["pz"]}
-  , b_{par.Int["bx"], par.Int["by"], par.Int["bz"]}
+  : Distr<KF>(comm, kf, bs, es, hl, par)
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], 1., comm)
 {
-  std::vector<BlockInfo> vbi = g_.getBlocksInfo();
+  std::vector<BlockInfo> cc = g_.getBlocksInfo(); // [c]ubism block info
+  std::vector<MyBlockInfo> ee = GetBlocks(cc);
 
-  #pragma omp parallel for
-  for(size_t i = 0; i < vbi.size(); i++) {
-    BlockInfo& bi = vbi[i];
-    MyBlockInfo mbi;
-    for (int j = 0; j < 3; ++j) {
-      mbi.index[j] = bi.index[j];
-      mbi.origin[j] = bi.origin[j];
-    }
-    mbi.h_gridpoint = bi.h_gridpoint;
-    mbi.ptrBlock = bi.ptrBlock;
-    mbi.hl = hl;
-    mk.emplace(GetIdx(bi.index), std::unique_ptr<K>(kf.Make(par, mbi)));
+  for (auto& e : ee) {
+    auto d = e.index;
+    MIdx b(d[0], d[1], d[2]);
+    mk.emplace(b, std::unique_ptr<K>(kf_.Make(par, e)));
   }
 
   int r;
   MPI_Comm_rank(comm, &r);
   isroot_ = (0 == r);
+
+  comm_ = g_.getCartComm(); // XXX: overwrite comm_
 }
 
 template <class KF>
-bool Cubism<KF>::IsDone() const { 
-  return step_ > par.Int["max_step"]; 
+void Cubism<KF>::GetBlocks() {
+  MPI_Barrier(comm_);
+
+  // 1. Exchange halos in buffer mesh
+  FakeProc fp(GetStencil(hl_));       // object with field 'stencil'
+  SynchronizerMPI& s = &g_.sync(fp); 
+
+  s_.l.reset(new LabMPI);
+  s_.l->prepare(g_, s_.l);   // allocate memory for lab cache
+
+  MPI_Barrier(comm_);
+
+  // Do communication and get all blocks
+  std::vector<BlockInfo> aa = s.avail();
+
+  // Put blocks to map by index 
+  std::vector<MIdx> bb;
+  s_.mb.clear();
+  for (auto a : aa) {
+    auto d = a.index;
+    MIdx b(d[0], d[1], d[2]);
+    s_.mb.emplace(b, a);
+    bb.push_back(b);
+  }
+
+  return bb;
 }
 
 template <class KF>
-void Cubism<KF>::Step() {
-  MPI_Barrier(g_.getCartComm());
-  if (isroot_) {
-    std::cerr << "***** STEP " << step_ << " ******" << std::endl;
+void Cubism<KF>::ReadBuffer(const std::vector<MIdx>& bb) {
+  for (auto& b : bb) {
+    auto& k = *mk.at(b); // kernel
+    auto& m = k.GetMesh();
+    s_.l->load(b, stage_);
+    ReadBuffer(m, *s_.l);
   }
-  stage_ = 0;
-  do {
-    MPI_Barrier(g_.getCartComm());
-    // 1. Exchange halos in buffer mesh
-    FakeProc fp(GetStencil(hl_));       // object with field 'stencil'
-    SynchronizerMPI& s = g_.sync(fp); 
-
-    LabMPI l;
-    l.prepare(g_, s);   // allocate memory for lab cache
-
-    MPI_Barrier(g_.getCartComm());
-
-    // Do communication and get all blocks
-    std::vector<BlockInfo> bb = s.avail();
-    assert(!bb.empty());
-  
-    // 2. Copy data from buffer halos to fields collected by Comm()
-    for (auto& b : bb) {
-      auto& k = *mk.at(GetIdx(b.index)); // kernel
-      auto& m = k.GetMesh();
-      l.load(b, stage_);
-      MPI_Barrier(g_.getCartComm());
-
-      ReadBuffer(m, l);
-    }
-    
-    // 3. Call kernels for current stage
-    for (auto& b : bb) {
-      auto& k = *mk.at(GetIdx(b.index));
-      k.Run();
-    }
-
-    // 4. Copy data to buffer mesh from fields collected by Comm()
-    for (auto& b : bb) {
-      auto& k = *mk.at(GetIdx(b.index)); // kernel
-      auto& m = k.GetMesh();
-      WriteBuffer(m, *(typename TGrid::BlockType*)b.ptrBlock);
-    }
-
-    // 5. Reduce
-    {
-      auto& f = *mk.at(GetIdx(bb[0].index)); // first kernel
-      auto& mf = f.GetMesh();
-      auto& vf = mf.GetReduce();  // pointers to reduce
-
-      std::vector<Scal> r(vf.size(), 0); // results
-
-      // Check size is the same for all kernels
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index)); // kernel
-        auto& m = k.GetMesh();
-        auto& v = m.GetReduce();  // pointers to reduce
-        assert(v.size() == r.size());
-      }
-    
-      // Reduce over all kernels on current rank
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index)); 
-        auto& m = k.GetMesh();
-        auto& v = m.GetReduce();  
-        for (size_t i = 0; i < r.size(); ++i) {
-          r[i] += *v[i];
-        }
-      }
-
-      // Reduce over all ranks
-      MPI_Allreduce(
-          MPI_IN_PLACE, r.data(), r.size(), 
-          MPI_DOUBLE, MPI_SUM, g_.getCartComm()); // TODO: type from Scal
-
-      // Write results to all kernels on current rank
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index)); 
-        auto& m = k.GetMesh();
-        auto& v = m.GetReduce();  
-        for (size_t i = 0; i < r.size(); ++i) {
-          *v[i] = r[i];
-        }
-      }
-
-      // Clear reduce requests
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index)); 
-        auto& m = k.GetMesh();
-        m.ClearReduce();
-      }
-    }
-
-    // 6. Solve 
-    {
-      const size_t dim = 3;
-      MPI_Comm comm = g_.getCartComm();
-      auto& f = *mk.at(GetIdx(bb[0].index)); // first kernel
-      auto& mf = f.GetMesh();
-      auto& vf = mf.GetSolve();  // LS to solve
-
-      // Check size is the same for all kernels
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index)); // kernel
-        auto& m = k.GetMesh();
-        auto& v = m.GetSolve();  // pointers to reduce
-        assert(v.size() == vf.size());
-      }
-
-      for (size_t j = 0; j < vf.size(); ++j) {
-        using LB = typename Hypre::Block;
-        std::vector<LB> lbb;
-        using LI = typename Hypre::MIdx;
-
-        using MIdx = typename K::MIdx;
-        std::vector<MIdx> st = vf[j].st; // stencil
-
-        for (auto& b : bb) {
-          using B = Block_t;
-          LB lb;
-          auto d = b.index;
-          auto& k = *mk.at(GetIdx(b.index)); // kernel
-          auto& m = k.GetMesh();
-          auto& v = m.GetSolve();  // pointers to reduce
-          auto& s = v[j];  
-          lb.l = LI{d[0] * B::sx, d[1] * B::sy, d[2] * B::sz};
-          lb.u = LI{lb.l[0] + B::sx - 1, lb.l[1] + B::sy - 1, lb.l[2] + B::sz - 1};
-          for (MIdx& e : st) {
-            // TODO: add constructor to GVect
-            lb.st.emplace_back(LI{e[0], e[1], e[2]});
-          }
-          lb.a = s.a;
-          lb.r = s.b;
-          lb.x = s.x;
-          lbb.push_back(lb);
-        }
-
-        std::vector<bool> per(dim, false);
-        if (par.Int["hypre_periodic"]) {
-          for (size_t i = 0; i < dim; ++i) {
-            per[i] = true;
-          }
-        }
-
-        LI gs(dim);
-        for (size_t i = 0; i < dim; ++i) {
-          gs[i] = bs_ * b_[i] * p_[i];
-        }
-
-        Hypre hp(comm, lbb, gs, per, 
-                 par.Double["hypre_tol"], par.Int["hypre_print"]);
-        hp.Solve();
-      }
-
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index)); 
-        auto& m = k.GetMesh();
-        m.ClearSolve();
-      }
-    }
-
-
-    MPI_Barrier(g_.getCartComm());
-
-    stage_ += 1;
-
-    // Print current stage name
-    if (isroot_) {
-      auto& m = mk.at(GetIdx(bb.front().index))->GetMesh();
-      std::cerr << "*** STAGE"
-          << " #" << stage_ 
-          << " depth=" << m.GetDepth() 
-          << " " << m.GetCurName() 
-          << " ***" << std::endl;
-    }
-
-    // 6. Check for pending stages
-    {
-      int np = 0;
-      for (auto& b : bb) {
-        auto& k = *mk.at(GetIdx(b.index));
-        auto& m = k.GetMesh();
-        if (m.Pending()) {
-          ++np;
-        }
-      }
-      // Check either all done or all pending
-      assert(np == 0 || np == bb.size());
-
-      // Break if no pending stages
-      if (!np) {
-        break;
-      }
-    }
-
-  } while (true);
-
-  if (step_ % (par.Int["max_step"] / par.Int["num_frames"])  == 0) {
-    auto suff = "_" + std::to_string(frame_);
-    DumpHDF5_MPI<TGrid, StreamHdf<0>>(g_, frame_, step_*1., "p" + suff);
-    ++frame_;
-  }
-  ++step_;
 }
+
+template <class KF>
+void Cubism<KF>::WriteBuffer(const std::vector<MIdx>& bb) {
+  for (auto& b : bb) {
+    auto& k = *mk.at(b); // kernel
+    auto& m = k.GetMesh();
+    WriteBuffer(m, *(typename TGrid::BlockType*)s_.mb[b].ptrBlock);
+  }
+}
+
+template <class KF>
+auto Cubism<KF>::GetBlocks() -> std::vector<MIdx> {
+  for (auto& b : bb) {
+    auto& k = *mk.at(b); // kernel
+    auto& m = k.GetMesh();
+    WriteBuffer(m, *(typename TGrid::BlockType*)s_.mb[b].ptrBlock);
+  }
+}
+
+template <class KF>
+void Cubism<KF>::Reduce(const std::vector<MIdx>& bb) {
+  auto& f = *mk.at(bb[0]); // first kernel
+  auto& mf = f.GetMesh();
+  auto& vf = mf.GetReduce();  // pointers to reduce
+
+  std::vector<Scal> r(vf.size(), 0); // results
+
+  // Check size is the same for all kernels
+  for (auto& b : bb) {
+    auto& k = *mk.at(b); // kernel
+    auto& m = k.GetMesh();
+    auto& v = m.GetReduce();  // pointers to reduce
+    assert(v.size() == r.size());
+  }
+
+  // Reduce over all kernels on current rank
+  for (auto& b : bb) {
+    auto& k = *mk.at(b); 
+    auto& m = k.GetMesh();
+    auto& v = m.GetReduce();  
+    for (size_t i = 0; i < r.size(); ++i) {
+      r[i] += *v[i];
+    }
+  }
+
+  // Reduce over all ranks
+  MPI_Allreduce(
+      MPI_IN_PLACE, r.data(), r.size(), 
+      MPI_DOUBLE, MPI_SUM, comm_); // TODO: type from Scal
+
+  // Write results to all kernels on current rank
+  for (auto& b : bb) {
+    auto& k = *mk.at(b); 
+    auto& m = k.GetMesh();
+    auto& v = m.GetReduce();  
+    for (size_t i = 0; i < r.size(); ++i) {
+      *v[i] = r[i];
+    }
+  }
+
+  // Clear reduce requests
+  for (auto& b : bb) {
+    auto& k = *mk.at(b); 
+    auto& m = k.GetMesh();
+    m.ClearReduce();
+  }
+}
+
 
 template <int i>
 const std::string StreamHdf<i>::NAME = "alpha";
