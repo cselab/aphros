@@ -172,6 +172,9 @@ class GVect {
     }
     return true;
   }
+  bool lexless(const GVect& o) const {
+    return comp_ < o.comp_;
+  }
   // TODO: remove, replace with GVect(0)
   static const GVect kZero;
   // TODO: remove, replace with GVect(1)
