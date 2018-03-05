@@ -42,7 +42,9 @@ class Advection : public KernelMesh<M> {
 
  private:
   void TestSolve(std::function<Scal(Vect)> fi /*initial*/,
-                 std::function<Scal(Vect)> fe /*exact*/);
+                 std::function<Scal(Vect)> fe /*exact*/,
+                 size_t cg /*check gap (separate from boundary)*/,
+                 std::string name);
 
   template <class T>
   using FieldCell = geom::FieldCell<T>;
@@ -54,6 +56,9 @@ class Advection : public KernelMesh<M> {
   geom::FieldCell<Scal> fc_src_;
   using AS = solver::AdvectionSolverExplicit<M, geom::FieldFace<Scal>>;
   std::unique_ptr<AS> as_; // advection solver
+  MIdx gs_; // global mesh size
+  Vect ge_; // global extent
+  bool broot_; // block root
 };
 
 template <class _M>
@@ -69,7 +74,9 @@ class AdvectionFactory : public KernelMeshFactory<_M> {
 template <class M>
 Advection<M>::Advection(Vars& par, const MyBlockInfo& bi) 
   : KernelMesh<M>(par, bi)
-{}
+{
+  broot_ = (m.GetInBlockCells().GetBegin() == MIdx(0));
+}
 
 bool Cmp(Scal a, Scal b) {
   return std::abs(a - b) < 1e-10;
@@ -79,11 +86,14 @@ template <class Idx, class M>
 typename M::Scal DiffMax(
     const geom::GField<typename M::Scal, Idx>& u,
     const geom::GField<typename M::Scal, Idx>& v,
-    const M& m) {
+    const M& m,
+    const geom::GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
   for (auto i : m.template Get<Idx>()) {
-    r = std::max(r, std::abs(u[i] - v[i]));
+    if (mask[i]) {
+      r = std::max(r, std::abs(u[i] - v[i]));
+    }
   }
   return r;
 }
@@ -91,11 +101,14 @@ typename M::Scal DiffMax(
 template <class Idx, class M>
 typename M::Scal Max(
     const geom::GField<typename M::Scal, Idx>& u,
-    const M& m) {
+    const M& m,
+    const geom::GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
   for (auto i : m.template Get<Idx>()) {
-    r = std::max(r, u[i]);
+    if (mask[i]) {
+      r = std::max(r, u[i]);
+    }
   }
   return r;
 }
@@ -103,13 +116,16 @@ typename M::Scal Max(
 template <class Idx, class M>
 typename M::Scal Mean(
     const geom::GField<typename M::Scal, Idx>& u,
-    const M& m) {
+    const M& m,
+    const geom::GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
   Scal w = 0.;
   for (auto i : m.template Get<Idx>()) {
-    r += u[i];
-    w += 1.;
+    if (mask[i]) {
+      r += u[i];
+      w += 1.;
+    }
   }
   return r / w;
 }
@@ -126,31 +142,31 @@ typename M::Scal Mean(
   CMP(a, b); 
 
 
+// Print CMP if false
+#define PFCMP(a, b) \
+  if (!Cmp(a, b)) { \
+    std::cerr \
+      << std::scientific << std::setprecision(16) \
+      << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
+    assert(false);\
+  }
+
+
 template <class M>
 void Advection<M>::TestSolve(
     std::function<Scal(Vect)> fi /*initial*/,
-    std::function<Scal(Vect)> fe /*exact*/) {
+    std::function<Scal(Vect)> fe /*exact*/,
+    size_t cg /*check gap (separate from boundary)*/,
+    std::string name) {
   auto sem = m.GetSem("TestSolve");
   auto& bc = m.GetBlockCells();
-
-  MIdx gs; // global mesh size
-  Vect ge; // global extent
-  {
-    MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
-    MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
-    using B = MyBlock;
-    MIdx s(B::sx, B::sy, B::sz); // block size inner
-    gs = p * b * s;
-    Scal extent = 1.;  // TODO: extent from par
-    Scal h = extent / gs.norminf(); // TODO: extent from par
-    assert(h > 0. && h < extent);
-    ge = Vect(gs) * ge;
-  }
-
   if (sem("init")) {
+    if (broot_) {
+      std::cerr << name << std::endl;
+    }
     // initial field for advection
     FieldCell<Scal> fc_u(m);
-    for (auto i : m.Cells()) {
+    for (auto i : m.AllCells()) {
       Vect x = m.GetCenter(i);
       fc_u[i] = fi(x);
     }
@@ -166,7 +182,7 @@ void Advection<M>::TestSolve(
     }
 
     // velocity and flux
-    const Vect vel(0);
+    const Vect vel(par.Vect["vel"]);
     ff_flux_.Reinit(m);
     for (auto idxface : m.Faces()) {
       ff_flux_[idxface] = vel.dot(m.GetSurface(idxface));
@@ -175,8 +191,8 @@ void Advection<M>::TestSolve(
     // source
     fc_src_.Reinit(m, 0.);
 
-    const Scal dt = par.Double["dt"];
-    as_.reset(new AS(m, fc_u, mf_cond, &ff_flux_, &fc_src_, 0., dt));
+    as_.reset(new AS(m, fc_u, mf_cond, &ff_flux_, 
+              &fc_src_, 0., par.Double["dt"]));
 
     // exact solution
     fc_exact_.Reinit(m);
@@ -197,31 +213,64 @@ void Advection<M>::TestSolve(
     }
   }
   if (sem("check")) {
-    // Check
+    geom::GBlockCells<dim> cbc(MIdx(cg), gs_ - MIdx(2 * cg)); // check block
+    FieldCell<bool> mask(m, false);
+    for (auto i : m.AllCells()) {
+      if (cbc.IsInside(bc.GetMIdx(i))) {
+        mask[i] = true;
+      }
+    }
     auto& fc = as_->GetField();
-    PCMP(Mean(fc_exact_, m), Mean(fc, m));
-    PCMP(DiffMax(fc_exact_, fc, m), 0.);
+    PFCMP(Mean(fc_exact_, m, mask), Mean(fc, m, mask));
+    PFCMP(DiffMax(fc_exact_, fc, m, mask), 0.);
   }
 }
 
 template <class M>
 void Advection<M>::Run() {
+  par.Double["extent"] = 1.; // TODO don't overwrite extent
+  Scal extent = par.Double["extent"];
+  {
+    MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
+    MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
+    using B = MyBlock;
+    MIdx s(B::sx, B::sy, B::sz); // block size inner
+    gs_ = p * b * s;
+  }
+  Scal dx = extent / gs_.norminf(); 
+  assert(dx > 0. && dx < extent);
+  ge_ = Vect(gs_) * dx;
+  Scal cfl = par.Double["cfl"];
+  Vect vel(par.Vect["vel"]);
+  Scal ns = par.Int["num_steps"];
+  Scal nc = cfl * ns; // distance in cells passed
+  Scal dt = dx * cfl / vel.norminf();
+  par.Double.Set("dt", dt);
+  Scal t = dt * ns;
+
   auto sem = m.GetSem("Run");
-  if (sem.Nested("TestSolve")) {
-    auto f = [](Vect v) { 
-      for (int i = 0; i < dim; ++i) {
-        while (v[i] < 0.) {
-          v[i] += 1.;
-        }
-        while (v[i] > 1.) {
-          v[i] -= 1.;
-        }
-      }
-      return std::sin(v[0]* v[1]) * 
-          std::cos(v[1] * v[2]) * 
-          std::exp(v[2] + v[0]); 
+  auto f0 = [](Vect x) { return 0.; };
+  auto f1 = [](Vect x) { return 1.; };
+  auto flin = [](Vect x) { 
+      Vect b(0.5); 
+      x -= b;
+      Scal a = x[0] + 0.3 * x[1] - 0.5 * x[2]; 
+      return a > 0. ? 1. : 0.;
+      //return std::sin(a);
     };
-    TestSolve(f, f);
+  auto fline = [=](Vect x) { 
+      x -= vel * t; 
+      return flin(x);
+  };
+
+  if (sem.Nested()) {
+    TestSolve(f0, f0, 0, "f=0");
+  }
+  if (sem.Nested()) {
+    TestSolve(f1, f1, 0, "f=1");
+  }
+  if (sem.Nested()) {
+    TestSolve(flin, fline, nc, "f=step");
   }
 }
 

@@ -36,8 +36,10 @@ class Vars {
   Map<T>& Get();
 
   // Returns string representation by type name and key
+  // TODO: rename to Get
   std::string Print(std::string type, Key k) const;
   // Parses string and sets value of given type and key
+  // TODO: rename to Set
   bool Parse(std::string s, std::string type, Key k);
   // Returns a type for which k is defined
   // (if more than 1 found, returns any; if none, returns "")
