@@ -5,7 +5,7 @@ echo running > job.status
 ./clean
 
 export OMP_NUM_THREADS=1
-time mpirun -n 2 --oversubscribe xterm -e gdb -ex=run --args ./t.comm
+time mpirun -n 2 --oversubscribe xterm -e gdb -ex=run --args ./t.advection
 
 echo "Done."
 echo done > job.status
