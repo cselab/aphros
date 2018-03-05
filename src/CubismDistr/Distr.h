@@ -194,7 +194,7 @@ void DistrMesh<KF>::Step() {
     stage_ += 1;
 
     // Print current stage name
-    if (isroot_) {
+    if (isroot_ && par.Int["verbose"]) {
       auto& m = mk.at(bb[0])->GetMesh();
       std::cerr << "*** STAGE"
           << " #" << stage_ 
@@ -209,7 +209,8 @@ void DistrMesh<KF>::Step() {
     }
   } while (true);
 
-  if (step_ % (par.Int["max_step"] / par.Int["num_frames"])  == 0) {
+  if (par.Int["output"] && 
+      step_ % (par.Int["max_step"] / par.Int["num_frames"])  == 0) {
     Dump(frame_, step_);
     ++frame_;
   }
