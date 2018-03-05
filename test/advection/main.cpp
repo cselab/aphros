@@ -4,6 +4,7 @@
 #include <cassert>
 #include <iomanip>
 #include <fstream>
+#include <functional>
 
 #include "CubismDistr/Vars.h"
 #include "CubismDistr/Interp.h"
@@ -40,7 +41,8 @@ class Advection : public KernelMesh<M> {
   using KM::m;
 
  private:
-  void TestSolve();
+  void TestSolve(std::function<Scal(Vect)> fi /*initial*/,
+                 std::function<Scal(Vect)> fe /*exact*/);
 
   template <class T>
   using FieldCell = geom::FieldCell<T>;
@@ -125,26 +127,14 @@ typename M::Scal Mean(
 
 
 template <class M>
-void Advection<M>::TestSolve() {
+void Advection<M>::TestSolve(
+    std::function<Scal(Vect)> fi /*initial*/,
+    std::function<Scal(Vect)> fe /*exact*/) {
   auto sem = m.GetSem("TestSolve");
   auto& bc = m.GetBlockCells();
-  auto f = [](Vect v) { 
-    for (int i = 0; i < dim; ++i) {
-      while (v[i] < 0.) {
-        v[i] += 1.;
-      }
-      while (v[i] > 1.) {
-        v[i] -= 1.;
-      }
-    }
-    return std::sin(v[0]* v[1]) * 
-        std::cos(v[1] * v[2]) * 
-        std::exp(v[2] + v[0]); 
-  };
 
-  // global mesh size
-  MIdx gs;
-  Vect ge;
+  MIdx gs; // global mesh size
+  Vect ge; // global extent
   {
     MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
     MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
@@ -154,7 +144,7 @@ void Advection<M>::TestSolve() {
     Scal extent = 1.;  // TODO: extent from par
     Scal h = extent / gs.norminf(); // TODO: extent from par
     assert(h > 0. && h < extent);
-    std::cerr << "h = " << h << std::endl;
+    ge = Vect(gs) * ge;
   }
 
   if (sem("init")) {
@@ -162,7 +152,7 @@ void Advection<M>::TestSolve() {
     FieldCell<Scal> fc_u(m);
     for (auto i : m.Cells()) {
       Vect x = m.GetCenter(i);
-      fc_u[i] = f(x);
+      fc_u[i] = fi(x);
     }
 
     // zero-derivative boundary conditions for advection
@@ -192,10 +182,19 @@ void Advection<M>::TestSolve() {
     fc_exact_.Reinit(m);
     for (auto i : m.AllCells()) {
       Vect x = m.GetCenter(i);
-      fc_exact_[i] = f(x);
+      fc_exact_[i] = fe(x);
     }
-
-    // init hydro system
+  }
+  for (size_t n = 0; n < par.Int["num_steps"]; ++n) {
+    if (sem.Nested("as->StartStep()")) {
+      as_->StartStep();
+    }
+    if (sem.Nested("as->MakeIteration")) {
+      as_->MakeIteration();
+    }
+    if (sem.Nested("as->FinishStep()")) {
+      as_->FinishStep();
+    }
   }
   if (sem("check")) {
     // Check
@@ -209,7 +208,20 @@ template <class M>
 void Advection<M>::Run() {
   auto sem = m.GetSem("Run");
   if (sem.Nested("TestSolve")) {
-    TestSolve();
+    auto f = [](Vect v) { 
+      for (int i = 0; i < dim; ++i) {
+        while (v[i] < 0.) {
+          v[i] += 1.;
+        }
+        while (v[i] > 1.) {
+          v[i] -= 1.;
+        }
+      }
+      return std::sin(v[0]* v[1]) * 
+          std::cos(v[1] * v[2]) * 
+          std::exp(v[2] + v[0]); 
+    };
+    TestSolve(f, f);
   }
 }
 
@@ -235,9 +247,7 @@ void Main(MPI_Comm comm, bool loc, Vars& par) {
     d = CreateCubism(comm, kf, bs, es, hl, par);
   }
 
-  while (!d->IsDone()) {
-    d->Step();
-  }
+  d->Step();
 }
 
 
