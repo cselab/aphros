@@ -811,6 +811,10 @@ class MeshStructured {
   BlockNodes b_innodes_;
   BlockCells b_incells_;
   BlockFaces b_infaces_;
+  // support
+  BlockNodes b_sunodes_;
+  BlockCells b_sucells_;
+  BlockFaces b_sufaces_;
 
   FieldNode<Vect> fn_node_;
 
@@ -853,6 +857,16 @@ class MeshStructured {
   }
   const BlockNodes& GetInBlockNodes() const {
     return b_innodes_;
+  }
+  // TODO: rename to GetBlockCells()
+  const BlockCells& GetSuBlockCells() const {
+    return b_sucells_;
+  }
+  const BlockFaces& GetSuBlockFaces() const {
+    return b_sufaces_;
+  }
+  const BlockNodes& GetSuBlockNodes() const {
+    return b_sunodes_;
   }
   Vect GetCenter(IdxCell idx) const {
     return fc_center_[idx];
@@ -994,7 +1008,6 @@ class MeshStructured {
     return GetAll<Idx>(); 
   }
 
-
   // Returns range of inner indices
   template <class Idx>
   GRangeIn<Idx, dim> Get() const { 
@@ -1017,6 +1030,30 @@ class MeshStructured {
   }
   GRangeIn<IdxNode, dim> Nodes() const {
     return Get<IdxNode>();
+  }
+
+  // Returns range of support indices
+  template <class Idx>
+  GRangeIn<Idx, dim> GetSu() const { 
+    return GetSu((Idx*)0);
+  }
+  GRangeIn<IdxCell, dim> GetSu(IdxCell*) const {
+    return GRangeIn<IdxCell, dim>(GetBlockCells(), GetSuBlockCells());
+  }
+  GRangeIn<IdxFace, dim> GetSu(IdxFace*) const {
+    return GRangeIn<IdxFace, dim>(GetBlockFaces(), GetSuBlockFaces());
+  }
+  GRangeIn<IdxNode, dim> GetSu(IdxNode*) const {
+    return GRangeIn<IdxNode, dim>(GetBlockNodes(), GetSuBlockNodes());
+  }
+  GRangeIn<IdxCell, dim> SuCells() const {
+    return GetSu<IdxCell>();
+  }
+  GRangeIn<IdxFace, dim> SuFaces() const {
+    return GetSu<IdxFace>();
+  }
+  GRangeIn<IdxNode, dim> SuNodes() const {
+    return GetSu<IdxNode>();
   }
 
   bool IsInside(IdxCell idxcell, Vect vect) const {
@@ -1173,6 +1210,12 @@ MeshStructured<_Scal, _dim>::MeshStructured(
                  b_cells_.GetDimensions() - MIdx(2*hl))
     , b_innodes_(b_nodes_.GetBegin() + MIdx(hl), 
                  b_nodes_.GetDimensions() - MIdx(2*hl))
+    , b_sucells_(b_cells_.GetBegin() + MIdx(1), 
+                 b_cells_.GetDimensions() - MIdx(2))
+    , b_sufaces_(b_cells_.GetBegin() + MIdx(1), 
+                 b_cells_.GetDimensions() - MIdx(2))
+    , b_sunodes_(b_nodes_.GetBegin() + MIdx(1), 
+                 b_nodes_.GetDimensions() - MIdx(2))
     , fc_center_(b_cells_)
     , fc_volume_(b_cells_)
     , ff_center_(b_faces_)

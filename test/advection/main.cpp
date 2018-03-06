@@ -61,6 +61,7 @@ class Advection : public KernelMesh<M> {
   MIdx gs_; // global mesh size
   Vect ge_; // global extent
   bool broot_; // block root
+  geom::FieldCell<Scal> fc_; // buffer
 };
 
 template <class _M>
@@ -80,9 +81,62 @@ Advection<M>::Advection(Vars& par, const MyBlockInfo& bi)
   broot_ = (m.GetInBlockCells().GetBegin() == MIdx(0));
 }
 
-bool Cmp(Scal a, Scal b) {
+template <class T>
+bool Cmp(T a, T b) {
+  return a == b;
+}
+
+template <>
+bool Cmp<Scal>(Scal a, Scal b) {
   return std::abs(a - b) < 1e-10;
 }
+
+
+template <class Idx, class B, class Scal>
+Scal DiffMax(
+    const B& b,
+    const geom::GField<Scal, Idx>& u,
+    const geom::GField<Scal, Idx>& v,
+    const geom::GField<bool, Idx>& mask) {
+  Scal r = 0;
+  for (auto i : geom::GRange<Idx>(b)) {
+    if (mask[i]) {
+      r = std::max(r, std::abs(u[i] - v[i]));
+    }
+  }
+  return r;
+}
+
+template <class Idx, class B, class Scal>
+Scal Max(
+    const B& b,
+    const geom::GField<Scal, Idx>& u,
+    const geom::GField<bool, Idx>& mask) {
+  Scal r = 0;
+  for (auto i : geom::GRange<Idx>(b)) {
+    if (mask[i]) {
+      r = std::max(r, u[i]);
+    }
+  }
+  return r;
+}
+
+template <class Idx, class B, class Scal>
+Scal Mean(
+    const B& b,
+    const geom::GField<Scal, Idx>& u,
+    const geom::GField<bool, Idx>& mask) {
+  Scal r = 0;
+  Scal w = 0.;
+  for (auto i : geom::GRange<Idx>(b)) {
+    if (mask[i]) {
+      r += u[i];
+      w += 1.;
+    }
+  }
+  return r / w;
+}
+
 
 template <class Idx, class M>
 typename M::Scal DiffMax(
@@ -115,6 +169,7 @@ typename M::Scal Max(
   return r;
 }
 
+
 template <class Idx, class M>
 typename M::Scal Mean(
     const geom::GField<typename M::Scal, Idx>& u,
@@ -131,7 +186,6 @@ typename M::Scal Mean(
   }
   return r / w;
 }
-
 
 #define CMP(a, b) \
   assert(Cmp(a, b)); 
@@ -186,7 +240,7 @@ void Advection<M>::TestSolve(
     // velocity and flux
     const Vect vel(par.Vect["vel"]);
     ff_flux_.Reinit(m);
-    for (auto idxface : m.Faces()) {
+    for (auto idxface : m.AllFaces()) {
       ff_flux_[idxface] = vel.dot(m.GetSurface(idxface));
     }
     
@@ -214,6 +268,11 @@ void Advection<M>::TestSolve(
       as_->FinishStep();
     }
   }
+  if (sem("comm")) {
+    fc_ = as_->GetField();
+    m.Comm(&fc_);
+  }
+  /*
   if (sem("check")) {
     geom::GBlockCells<dim> cbc(MIdx(cg), gs_ - MIdx(2 * cg)); // check block
     FieldCell<bool> mask(m, false);
@@ -226,6 +285,7 @@ void Advection<M>::TestSolve(
     PFCMP(Mean(fc_exact_, m, mask), Mean(fc, m, mask));
     PFCMP(DiffMax(fc_exact_, fc, m, mask), 0.);
   }
+  */
 }
 
 template <class M>
@@ -250,25 +310,12 @@ void Advection<M>::Run() {
   Scal t = dt * ns;
 
   auto sem = m.GetSem("Run");
-  auto f0 = [](Vect x) { return 0.; };
-  auto f1 = [](Vect x) { return 1.; };
-  auto flin = [](Vect x) { 
-      Vect b(0.5); 
-      x -= b;
-      Scal a = x[0] + 0.3 * x[1] - 0.5 * x[2]; 
-      return a > 0. ? 1. : 0.;
-      //return std::sin(a);
+  auto f = [](Vect x) { 
+      return std::sin(x[0]) * std::cos(x[1]) * std::exp(x[2]); 
     };
-  auto fline = [=](Vect x) { 
-      x -= vel * t; 
-      return flin(x);
-  };
 
   if (sem.Nested()) {
-    TestSolve(f0, f0, 0, "f=0");
-  }
-  if (sem.Nested()) {
-    TestSolve(f1, f1, 0, "f=1");
+    TestSolve(f, f, 0, "f");
   }
 }
 
@@ -308,10 +355,29 @@ std::pair<BC, FC> Solve(MPI_Comm comm, Vars& par) {
 
 void Main(MPI_Comm comm, Vars& par0) {
   Vars par = par0;
+
   
-  auto pr = Solve(comm, par);
-  auto bc = pr.first;
-  auto fc = pr.second;
+  std::cerr << "solve ref" << std::endl;
+  auto pa = Solve(comm, par);
+  auto b = pa.first;
+  auto fa = pa.second;
+
+  std::cerr << "solve bs/2" << std::endl;
+  par.Int["bsx"] /= 2;
+  par.Int["bsy"] /= 2;
+  par.Int["bsz"] /= 2;
+  par.Int["bx"] *= 2;
+  par.Int["by"] *= 2;
+  par.Int["bz"] *= 2;
+  auto pb = Solve(comm, par);
+  auto fb = pb.second;
+
+  PCMP(b.GetEnd(), pb.first.GetEnd());
+
+  geom::FieldCell<bool> mask(b, true);
+
+  PCMP(Mean(b, fa, mask), Mean(b, fb, mask));
+  PCMP(DiffMax(b, fa, fb, mask), 0.);
 }
 
 

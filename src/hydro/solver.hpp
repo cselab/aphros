@@ -353,7 +353,7 @@ geom::FieldFace<T> Interpolate(const geom::FieldNode<T>& fn_u,
                                const Mesh& mesh) {
   geom::FieldFace<T> res(mesh);
 
-  for (auto idxface : mesh.Faces()) {
+  for (auto idxface : mesh.SuFaces()) {
     T sum = static_cast<T>(0);
     for (size_t i = 0; i < mesh.GetNumNeighbourNodes(idxface); ++i) {
       sum += fn_u[mesh.GetNeighbourNode(idxface, i)];
@@ -563,7 +563,7 @@ InterpolateSuperbee(
 
   geom::FieldFace<Scal> res(mesh);
 
-  for (IdxFace idxface : mesh.Faces()) {
+  for (IdxFace idxface : mesh.SuFaces()) {
 		 IdxCell P = mesh.GetNeighbourCell(idxface, 0);
 		 IdxCell E = mesh.GetNeighbourCell(idxface, 1);
 		 Vect rp = mesh.GetVectToCell(idxface, 0); 
@@ -608,7 +608,7 @@ template <class T, class Mesh>
 geom::FieldCell<T> Average(const geom::FieldFace<T>& ff_u, const Mesh& mesh) {
   using Scal = typename Mesh::Scal;
   geom::FieldCell<T> res(mesh);
-  for (IdxCell idxcell : mesh.Cells()) {
+  for (IdxCell idxcell : mesh.AllCells()) {
     T sum(0);
     for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
       IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
@@ -650,7 +650,7 @@ geom::FieldCell<typename Mesh::Vect> Gradient(
     const Mesh& mesh) {
   using Vect = typename Mesh::Vect;
   geom::FieldCell<Vect> res(mesh, Vect::kZero);
-  for (auto idxcell : mesh.Cells()) {
+  for (auto idxcell : mesh.SuCells()) {
     Vect sum = Vect::kZero;
     for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
       IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
