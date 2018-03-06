@@ -312,7 +312,7 @@ class AdvectionSolverExplicit :
     auto ff_velocity = Interpolate(*p_f_velocity, mesh);
 
     geom::FieldFace<Scal> ff_volume_flux(mesh);
-    for (IdxFace idxface : mesh.Faces()) {
+    for (IdxFace idxface : mesh.AllFaces()) {
       ff_volume_flux[idxface] =
           ff_velocity[idxface].dot(mesh.GetSurface(idxface));
     }
@@ -327,16 +327,20 @@ class AdvectionSolverExplicit :
 
       ff_volume_flux_ = ConvertVolumeFlux(this->p_f_velocity_);
 
+      /*
       ff_u_ = InterpolateSuperbee(
           prev,
           Gradient(Interpolate(prev, mf_u_cond_, mesh), mesh),
           mf_u_cond_, ff_volume_flux_, mesh);
+          */
+      ff_u_ = Interpolate(prev, mf_u_cond_, mesh);
+      ff_u_ = Interpolate(Average(ff_u_, mesh), mf_u_cond_, mesh);
 
-      for (auto idxface : mesh.Faces()) {
+      for (auto idxface : mesh.SuFaces()) {
         ff_flux_[idxface] = ff_u_[idxface] * ff_volume_flux_[idxface];
       }
 
-      for (auto idxcell : mesh.Cells()) {
+      for (auto idxcell : mesh.SuCells()) {
         Scal flux_sum = 0.;
         for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
           IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
