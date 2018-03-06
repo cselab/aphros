@@ -24,18 +24,6 @@ struct MyElem {
 };
 
 
-struct MyBlock {
-  static const int bs = _BLOCKSIZE_;
-  static const int sx = bs;
-  static const int sy = bs;
-  static const int sz = bs;
-  static const int n = sx * sy * sz;
-
-  // floats per element
-  static const int fe = sizeof(MyElem) / sizeof(Scal);
-};
-
-
 // TODO: remove h_gridpoint from MyBlockInfo
 struct MyBlockInfo {
   using Idx = std::array<int, 3>;

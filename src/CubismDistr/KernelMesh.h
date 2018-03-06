@@ -11,10 +11,8 @@
 template <class M>
 M CreateMesh(const MyBlockInfo& bi) {
   using MIdx = typename M::MIdx;
-  using B = MyBlock;
   using Vect = typename M::Vect;
   using Rect = geom::Rect<Vect>;
-  B& b = *(B*)bi.ptrBlock;
   int hl = bi.hl;
 
   MIdx bs(bi.bs); // block size inner
