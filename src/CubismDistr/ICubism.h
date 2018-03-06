@@ -8,5 +8,5 @@
 #include "Vars.h"
 #include "Distr.h"
 
-std::unique_ptr<Distr> CreateCubism(
+Distr* CreateCubism(
     MPI_Comm comm, KernelFactory& kf, int bs, int es, int h, Vars& par);

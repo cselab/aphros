@@ -291,12 +291,15 @@ void Main(MPI_Comm comm, bool loc, Vars& par) {
   // Initialize buffer mesh and make kernel for each block.
   std::unique_ptr<Distr> d;
   if (loc) {
-    d = CreateLocal(comm, kf, bs, es, hl, par);
+    d.reset(CreateLocal(comm, kf, bs, es, hl, par));
   } else {
-    d = CreateCubism(comm, kf, bs, es, hl, par);
+    d.reset(CreateCubism(comm, kf, bs, es, hl, par));
   }
 
   d->Step();
+
+  //auto m = d->GetGlobalMesh();
+  //auto fc=  d->GetGlobalField(0);
 }
 
 
