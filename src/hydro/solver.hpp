@@ -411,13 +411,13 @@ geom::FieldFace<T> Interpolate(
   geom::FieldFace<T> res(mesh, T(0)); // Valid value essential for extrapolation
 
   if (geometric) {
-    for (auto idxface : mesh.Faces()) {
+    for (auto idxface : mesh.SuFaces()) {
 			IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
 			IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
 			res[idxface] = GetGeometricAverage(fc_u[cm], fc_u[cp]);
     }
   } else {
-    for (auto idxface : mesh.Faces()) {
+    for (auto idxface : mesh.SuFaces()) {
 			IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
 			IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
 			//Vect xf = mesh.GetCenter(idxface);

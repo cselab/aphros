@@ -327,14 +327,10 @@ class AdvectionSolverExplicit :
 
       ff_volume_flux_ = ConvertVolumeFlux(this->p_f_velocity_);
 
-      /*
       ff_u_ = InterpolateSuperbee(
           prev,
           Gradient(Interpolate(prev, mf_u_cond_, mesh), mesh),
           mf_u_cond_, ff_volume_flux_, mesh);
-          */
-      ff_u_ = Interpolate(prev, mf_u_cond_, mesh);
-      ff_u_ = Interpolate(Average(ff_u_, mesh), mf_u_cond_, mesh);
 
       for (auto idxface : mesh.SuFaces()) {
         ff_flux_[idxface] = ff_u_[idxface] * ff_volume_flux_[idxface];

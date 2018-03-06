@@ -312,7 +312,6 @@ void Advection<M>::Run() {
 
   auto sem = m.GetSem("Run");
   auto f = [](Vect x) { 
-      return x[0]; 
       return std::sin(x[0]) * std::cos(x[1]) * std::exp(x[2]); 
     };
 
