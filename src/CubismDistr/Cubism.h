@@ -148,7 +148,7 @@ class Cubism : public DistrMesh<KF> {
     return StencilInfo(-h,-h,-h,h+1,h+1,h+1, true, 8, 0,1,2,3,4,5,6,7);
   }
   static std::vector<MyBlockInfo> GetBlocks(
-      const std::vector<BlockInfo>&, size_t hl);
+      const std::vector<BlockInfo>&, MIdx bs, size_t hl);
 
   void ReadBuffer(M& m, LabMPI& l) {
     using MIdx = typename M::MIdx;
@@ -232,7 +232,7 @@ struct FakeProc {
 
 template <class KF>
 std::vector<MyBlockInfo> Cubism<KF>::GetBlocks(
-    const std::vector<BlockInfo>& cc, size_t hl) {
+    const std::vector<BlockInfo>& cc, MIdx bs, size_t hl) {
   std::vector<MyBlockInfo> bb;
   for(size_t i = 0; i < cc.size(); i++) {
     const BlockInfo& c = cc[i];
@@ -240,6 +240,7 @@ std::vector<MyBlockInfo> Cubism<KF>::GetBlocks(
     for (int j = 0; j < 3; ++j) {
       b.index[j] = c.index[j];
       b.origin[j] = c.origin[j];
+      b.bs[j] = bs[j];
     }
     b.h_gridpoint = c.h_gridpoint;
     b.ptrBlock = c.ptrBlock;
@@ -256,7 +257,7 @@ Cubism<KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par)
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], 1., comm)
 {
   std::vector<BlockInfo> cc = g_.getBlocksInfo(); // [c]ubism block info
-  std::vector<MyBlockInfo> ee = GetBlocks(cc, hl_);
+  std::vector<MyBlockInfo> ee = GetBlocks(cc, bs_, hl_);
 
   for (auto& e : ee) {
     auto d = e.index;

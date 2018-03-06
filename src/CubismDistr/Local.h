@@ -129,6 +129,7 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par)
     for (int q = 0; q < 3; ++q) {
       b.index[q] = i[q];
       b.origin[q] = o[q];
+      b.bs[q] = bs_[q];
     }
     b.h_gridpoint = h;
     b.ptrBlock = nullptr;
