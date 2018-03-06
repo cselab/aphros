@@ -22,16 +22,20 @@ class Distr {
 template <class KF>
 class DistrMesh : public Distr {
  public:
-  virtual bool IsDone() const;
-  virtual void Step();
-  virtual ~DistrMesh() {}
-
- protected:
   using K = typename KF::K;
   using M = typename KF::M;
   static constexpr size_t dim = M::dim;
   using MIdx = typename M::MIdx;
   using Vect = typename M::Vect;
+
+  virtual bool IsDone() const;
+  virtual void Step();
+  virtual ~DistrMesh() {}
+  virtual typename M::BlockCells GetGlobalBlock() const;
+  // Returns data field i from buffer defined on global mesh
+  virtual geom::FieldCell<Scal> GetGlobalField(size_t i) const; 
+
+ protected:
 
   // TODO: remove, needed only by Hypre
   // XXX: overwritten by Cubism<KF>
@@ -68,9 +72,6 @@ class DistrMesh : public Distr {
   // TODO: make Pending const
   virtual bool Pending(const std::vector<MIdx>& bb);
   virtual void Dump(int frame, int step) = 0;
-  virtual const M& GetGlobalMesh() const;
-  // Returns data field i from buffer defined on global mesh
-  virtual geom::FieldCell<Scal> GetGlobalField(size_t i) const; 
 };
 
 template <class KF>
@@ -175,9 +176,9 @@ bool DistrMesh<KF>::Pending(const std::vector<MIdx>& bb) {
 }
 
 template <class KF>
-auto DistrMesh<KF>::GetGlobalMesh() const -> const M& {
+auto DistrMesh<KF>::GetGlobalBlock() const -> typename M::BlockCells {
   assert(false && "Not implemented");
-  return M(typename M::BlockNodes(), geom::FieldNode<Vect>(), 0);
+  return typename M::BlockCells();
 }
 
 template <class KF>
