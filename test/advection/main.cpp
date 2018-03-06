@@ -229,6 +229,7 @@ void Advection<M>::TestSolve(
 
     // zero-derivative boundary conditions for advection
     geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
+    if(0)
     for (auto idxface : m.Faces()) {
       if (!m.IsInner(idxface)) {
         mf_cond[idxface] =
@@ -311,6 +312,7 @@ void Advection<M>::Run() {
 
   auto sem = m.GetSem("Run");
   auto f = [](Vect x) { 
+      return x[0]; 
       return std::sin(x[0]) * std::cos(x[1]) * std::exp(x[2]); 
     };
 
