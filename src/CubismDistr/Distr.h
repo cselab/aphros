@@ -9,6 +9,7 @@
 #include "Kernel.h"
 #include "hydro/hypre.h"
 #include "hydro/suspender.h"
+#include "hydro/mesh.hpp"
 
 
 class Distr {
@@ -30,6 +31,7 @@ class DistrMesh : public Distr {
   using M = typename KF::M;
   static constexpr size_t dim = M::dim;
   using MIdx = typename M::MIdx;
+  using Vect = typename M::Vect;
 
   // TODO: remove, needed only by Hypre
   // XXX: overwritten by Cubism<KF>
@@ -60,12 +62,15 @@ class DistrMesh : public Distr {
   virtual void Run(const std::vector<MIdx>& bb);
   // Copy data to buffer mesh from fields collected by Comm()
   virtual void WriteBuffer(const std::vector<MIdx>& bb) = 0;
-  // Reduce TODO: extend
+  // Reduce TODO: extend doc
   virtual void Reduce(const std::vector<MIdx>& bb) = 0;
-  // Solve TODO: extend
   virtual void Solve(const std::vector<MIdx>& bb);
+  // TODO: make Pending const
   virtual bool Pending(const std::vector<MIdx>& bb);
   virtual void Dump(int frame, int step) = 0;
+  virtual const M& GetGlobalMesh() const;
+  // Returns data field i from buffer defined on global mesh
+  virtual geom::FieldCell<Scal> GetGlobalField(size_t i) const; 
 };
 
 template <class KF>
@@ -167,6 +172,18 @@ bool DistrMesh<KF>::Pending(const std::vector<MIdx>& bb) {
   // Check either all done or all pending
   assert(np == 0 || np == bb.size());
   return np;
+}
+
+template <class KF>
+auto DistrMesh<KF>::GetGlobalMesh() const -> const M& {
+  assert(false && "Not implemented");
+  return M(typename M::BlockNodes(), geom::FieldNode<Vect>(), 0);
+}
+
+template <class KF>
+geom::FieldCell<Scal> DistrMesh<KF>::GetGlobalField(size_t i) const {
+  assert(false && "Not implemented");
+  return geom::FieldCell<Scal>();
 }
 
 
