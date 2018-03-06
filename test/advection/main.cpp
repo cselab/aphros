@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <fstream>
 #include <functional>
+#include <utility>
 
 #include "CubismDistr/Vars.h"
 #include "CubismDistr/Interp.h"
@@ -270,24 +271,23 @@ void Advection<M>::Run() {
   if (sem.Nested()) {
     TestSolve(f1, f1, 0, "f=1");
   }
-  if (sem.Nested()) {
-    TestSolve(flin, fline, nc, "f=step");
-  }
 }
 
+using M = geom::MeshStructured<Scal, 3>;
+using K = Advection<M>;
+using KF = AdvectionFactory<M>;
+using D = DistrMesh<KernelMeshFactory<M>>;
+using BC = typename M::BlockCells;
+using FC = geom::FieldCell<Scal>;
 
-void Main(MPI_Comm comm, bool loc, Vars& par) {
+std::pair<BC, FC> Solve(MPI_Comm comm, Vars& par) {
   // read config files, parse arguments, maybe init global fields
-  using M = geom::MeshStructured<Scal, 3>;
-  using K = Advection<M>;
-  using KF = AdvectionFactory<M>;
-  using D = DistrMesh<KF>;
-  
   KF kf;
 
   const int es = 8;
   const int hl = par.Int["hl"];
   const int bs = 16;
+  bool loc = par.Int["loc"];
   
   // Initialize buffer mesh and make kernel for each block.
   Distr* dr;
@@ -298,10 +298,19 @@ void Main(MPI_Comm comm, bool loc, Vars& par) {
   }
 
   std::unique_ptr<D> d(dynamic_cast<D*>(dr));
+  assert(d);
   d->Step();
 
-  auto m = d->GetGlobalBlock();
-  auto fc=  d->GetGlobalField(0);
+  return std::make_pair(d->GetGlobalBlock(), d->GetGlobalField(0));
+}
+
+
+void Main(MPI_Comm comm, Vars& par0) {
+  Vars par = par0;
+  
+  auto pr = Solve(comm, par);
+  auto bc = pr.first;
+  auto fc = pr.second;
 }
 
 
@@ -327,11 +336,11 @@ int main (int argc, const char ** argv) {
   if (loc) {
     MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
     if (rank == 0) {
-      Main(comm, loc, par);
+      Main(comm, par);
     }
   } else {
     comm = MPI_COMM_WORLD;
-    Main(comm, loc, par);
+    Main(comm, par);
   }
 
 
