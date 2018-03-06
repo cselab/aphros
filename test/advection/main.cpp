@@ -284,17 +284,19 @@ std::pair<BC, FC> Solve(MPI_Comm comm, Vars& par) {
   // read config files, parse arguments, maybe init global fields
   KF kf;
 
-  const int es = 8;
-  const int hl = par.Int["hl"];
-  const int bs = 16;
+  //par.Int.Set("buf_size", 8);
+  //const int bs = 16;
+  //par.Int.Set("bsx", bs);
+  //par.Int.Set("bsy", bs);
+  //par.Int.Set("bsz", bs);
   bool loc = par.Int["loc"];
   
   // Initialize buffer mesh and make kernel for each block.
   Distr* dr;
   if (loc) {
-    dr = CreateLocal(comm, kf, bs, es, hl, par);
+    dr = CreateLocal(comm, kf, par);
   } else {
-    dr = CreateCubism(comm, kf, bs, es, hl, par);
+    dr = CreateCubism(comm, kf, par);
   }
 
   std::unique_ptr<D> d(dynamic_cast<D*>(dr));

@@ -8,5 +8,4 @@
 #include "Vars.h"
 #include "Distr.h"
 
-Distr* CreateCubism(
-    MPI_Comm comm, KernelFactory& kf, int bs, int es, int h, Vars& par);
+Distr* CreateCubism(MPI_Comm comm, KernelFactory& kf, Vars& par);

@@ -16,23 +16,22 @@ M CreateMesh(const MyBlockInfo& bi) {
   using Rect = geom::Rect<Vect>;
   B& b = *(B*)bi.ptrBlock;
   int hl = bi.hl;
-  MIdx s(B::sx, B::sy, B::sz); // block size inner
+  MIdx bs(bi.bs); // block size inner
 
   Scal h = bi.h_gridpoint;
-  auto w = bi.index;   // block index
-  auto c = bi.origin; 
-  Vect d0(c[0], c[1], c[2]); // origin coord
-  Vect d1 = d0 + Vect(s) * h;      // end coord
+  MIdx w(bi.index);   // block index
+  Vect d0(bi.origin); // origin coord
+  Vect d1 = d0 + Vect(bs) * h;      // end coord
   Rect d(d0, d1);
 
-  MIdx o(w[0] * s[0], w[1] * s[1], w[2] * s[2]); // origin index
+  MIdx o = w * bs; // origin index
   std::cout 
       << "o=" << o 
       << " dom=" << d0 << "," << d1 
       << " h=" << h
       << std::endl;
   
-  return geom::InitUniformMesh<M>(d, o, s, hl);
+  return geom::InitUniformMesh<M>(d, o, bs, hl);
 }
 
 // Abstract Kernel aware of Mesh 

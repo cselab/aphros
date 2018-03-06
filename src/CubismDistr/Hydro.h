@@ -140,9 +140,8 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   {
     MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
     MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
-    using B = MyBlock;
-    MIdx s(B::sx, B::sy, B::sz); // block size inner
-    gs = p * b * s;
+    MIdx bs(par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]);
+    gs = p * b * bs;
   }
 
   using Dir = typename M::Dir;

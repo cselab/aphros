@@ -69,6 +69,20 @@ class GVect {
       comp_[i] = static_cast<Scal>(v[i]);
     }
   }
+  template <class OtherScal>
+  explicit GVect(const std::array<OtherScal, dim>& v) {
+    // TODO dim instead of dimarg causes linker error
+    for (size_t i = 0; i < std::min<size_t>(dimarg, v.size()); ++i) {
+      comp_[i] = static_cast<Scal>(v[i]);
+    }
+  }
+  template <class OtherScal>
+  explicit GVect(const OtherScal* v) {
+    // TODO dim instead of dimarg causes linker error
+    for (size_t i = 0; i < dimarg; ++i) {
+      comp_[i] = static_cast<Scal>(v[i]);
+    }
+  }
   GVect& operator=(GVect other) {
     comp_ = other.comp_;
     return *this;

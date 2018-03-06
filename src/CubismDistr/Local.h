@@ -21,7 +21,7 @@ class Local : public DistrMesh<KF> {
   using K = typename KF::K;
   using M = typename KF::M;
 
-  Local(MPI_Comm comm, KF& kf, int bs, int es, int h, Vars& par);
+  Local(MPI_Comm comm, KF& kf, Vars& par);
   typename M::BlockCells GetGlobalBlock() const override;
   // Returns data field i from buffer defined on global mesh
   geom::FieldCell<Scal> GetGlobalField(size_t i) const override; 
@@ -54,7 +54,7 @@ class Local : public DistrMesh<KF> {
 
   void ReadBuffer(M& m);
   void WriteBuffer(M& m);
-  static M CreateMesh(int bs, MIdx b, MIdx p, int es);
+  static M CreateMesh(MIdx bs, MIdx b, MIdx p, int es);
   std::vector<MIdx> GetBlocks() override;
   void ReadBuffer(const std::vector<MIdx>& bb) override;
   void WriteBuffer(const std::vector<MIdx>& bb) override;
@@ -63,7 +63,7 @@ class Local : public DistrMesh<KF> {
 };
 
 template <class KF>
-auto Local<KF>::CreateMesh(int bs, MIdx b, MIdx p, int es) -> M {
+auto Local<KF>::CreateMesh(MIdx bs, MIdx b, MIdx p, int es) -> M {
   // Init global mesh
   MIdx ms(bs); // block size 
   MIdx mb(b); // number of blocks
@@ -78,40 +78,40 @@ auto Local<KF>::CreateMesh(int bs, MIdx b, MIdx p, int es) -> M {
 
   MIdx o(0); // origin index
   std::cout 
-      << "o=" << o 
-      << " dom=" << d0 << "," << d1 
-      << " h=" << h
-      << std::endl;
-  
+    << "o=" << o 
+    << " dom=" << d0 << "," << d1 
+    << " h=" << h
+    << std::endl;
+
   return geom::InitUniformMesh<M>(d, o, mm, 0);
 }
 
 template <class KF>
-Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par) 
-  : DistrMesh<KF>(comm, kf, bs, es, hl, par)
+Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par) 
+  : DistrMesh<KF>(comm, kf, par)
   , buf_(es_)
-  , gm(CreateMesh(bs_, b_, p_, es))
+  , gm(CreateMesh(bs_, b_, p_, es_))
 {
 
   output::Content content = {
-      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
-          "vx", gm, [this](IdxCell i) { return buf_[0][i]; }),
-      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
-          "vy", gm, [this](IdxCell i) { return buf_[1][i]; }),
-      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
-          "vz", gm, [this](IdxCell i) { return buf_[2][i]; }),
-      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
-          "p", gm, [this](IdxCell i) { return buf_[3][i]; })
-      };
+    std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+        "vx", gm, [this](IdxCell i) { return buf_[0][i]; }),
+    std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+        "vy", gm, [this](IdxCell i) { return buf_[1][i]; }),
+    std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+        "vz", gm, [this](IdxCell i) { return buf_[2][i]; }),
+    std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+        "p", gm, [this](IdxCell i) { return buf_[3][i]; })
+  };
 
   session_.reset(new output::SessionParaviewStructured<M>(
-          content, "title", "p" /*filename*/, gm));
+        content, "title", "p" /*filename*/, gm));
 
   // Resize buffer for mesh
   for (auto& u : buf_) {
     u.Reinit(gm);
   }
-  
+
   // Fill block info
   MIdx ms(bs_); // block size 
   MIdx mb(b_[0], b_[1], b_[2]); // number of blocks
@@ -142,7 +142,7 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par)
     MIdx b(d[0], d[1], d[2]);
     mk.emplace(b, std::unique_ptr<K>(kf_.Make(par, e)));
   }
-   
+
   isroot_ = true;
 }
 
