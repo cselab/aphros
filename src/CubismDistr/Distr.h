@@ -43,7 +43,7 @@ class DistrMesh : public Distr {
   Vars& par;
   KF& kf_; // kernel factory
 
-  int bs_; // block size
+  MIdx bs_; // block size
   int es_; // element size in Scal
   int hl_; // number of halo cells (same in all directions)
   MIdx p_; // number of ranks
@@ -58,7 +58,7 @@ class DistrMesh : public Distr {
 
   std::map<MIdx, std::unique_ptr<K>, typename MIdx::LexLess> mk;
 
-  DistrMesh(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par);
+  DistrMesh(MPI_Comm comm, KF& kf, Vars& par);
   virtual std::vector<MIdx> GetBlocks() = 0;
   // Copy data from buffer halos to fields collected by Comm()
   virtual void ReadBuffer(const std::vector<MIdx>& bb) = 0;
@@ -75,8 +75,11 @@ class DistrMesh : public Distr {
 };
 
 template <class KF>
-DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, int bs, int es, int hl, Vars& par) 
-  : comm_(comm), par(par), kf_(kf), bs_(bs), es_(es), hl_(hl)
+DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& par) 
+  : comm_(comm), par(par), kf_(kf)
+  , es_(par.Int["comm_size"])
+  , hl_(par.Int["hl"])
+  , bs_{par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]}
   , p_{par.Int["px"], par.Int["py"], par.Int["pz"]}
   , b_{par.Int["bx"], par.Int["by"], par.Int["bz"]}
 {}
@@ -118,7 +121,6 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
     std::vector<MIdx> st = vf[j].st; // stencil
 
     for (auto& b : bb) {
-      using B = MyBlock;
       LB lb;
       auto& k = *mk.at(b); // kernel
       auto& m = k.GetMesh();
@@ -145,7 +147,7 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
 
     LI gs(dim);
     for (size_t i = 0; i < dim; ++i) {
-      gs[i] = bs_ * b_[i] * p_[i];
+      gs[i] = bs_[i] * b_[i] * p_[i];
     }
 
     Hypre hp(comm_, lbb, gs, per, 

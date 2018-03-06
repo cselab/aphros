@@ -8,5 +8,4 @@
 #include "Vars.h"
 #include "Distr.h"
 
-Distr* CreateLocal(
-    MPI_Comm comm, KernelFactory& kf, int bs, int es, int h, Vars& par);
+Distr* CreateLocal(MPI_Comm comm, KernelFactory& kf, Vars& par);

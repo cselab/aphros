@@ -8,22 +8,21 @@
 
 template <class KF>
 Distr* TryCubism(
-    MPI_Comm comm, KernelFactory& kf, 
-    int bs, int es, int h, Vars& par) {
+    MPI_Comm comm, KernelFactory& kf, Vars& par) {
 
   if (KF* kfd = dynamic_cast<KF*>(&kf)) {
-    return new Cubism<KF>(comm, *kfd, bs, es, h, par);
+    return new Cubism<KF>(comm, *kfd, par);
   }
   return nullptr;
 }
 
 Distr* CreateCubism(
-    MPI_Comm comm, KernelFactory& kf, int bs, int es, int h, Vars& par) {
+    MPI_Comm comm, KernelFactory& kf, Vars& par) {
   Distr* r = nullptr;
   if (!r) r = TryCubism<KernelMeshFactory<geom::MeshStructured<double, 3>>>(
-      comm, kf, bs, es, h, par);
+      comm, kf, par);
   //if (!r) r = Try<KernelMeshFactory<geom::geom3d::MeshStructured<float>>(
-  //    comm, kf, bs, b, p, es, h);
+  //    comm, kf, par);
   assert(r && "CreateCubism(): KernelFactory not found");
   return r;
 }

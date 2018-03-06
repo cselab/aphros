@@ -114,7 +114,7 @@ using Scal = double;
 template <class KF>
 class Cubism : public DistrMesh<KF> {
  public:
-  Cubism(MPI_Comm comm, KF& kf, int bs, int es, int h, Vars& par);
+  Cubism(MPI_Comm comm, KF& kf, Vars& par);
 
  private:
   using K = typename KF::K;
@@ -168,7 +168,6 @@ class Cubism : public DistrMesh<KF> {
 
   void WriteBuffer(M& m, Block_t& o) {
     using MIdx = typename M::MIdx;
-    int bs = _BLOCKSIZE_;
 
     // Check buffer has enough space for all fields
     assert(m.GetComm().size() <= Elem::s && "Too many fields for Comm()");
@@ -252,9 +251,8 @@ std::vector<MyBlockInfo> Cubism<KF>::GetBlocks(
 
 
 template <class KF>
-Cubism<KF>::Cubism(MPI_Comm comm, KF& kf, 
-    int bs, int es, int hl, Vars& par) 
-  : DistrMesh<KF>(comm, kf, bs, es, hl, par)
+Cubism<KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par) 
+  : DistrMesh<KF>(comm, kf, par)
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], 1., comm)
 {
   std::vector<BlockInfo> cc = g_.getBlocksInfo(); // [c]ubism block info

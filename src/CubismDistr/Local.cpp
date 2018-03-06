@@ -8,21 +8,21 @@
 
 template <class KF>
 Distr* TryLocal(
-    MPI_Comm comm, KernelFactory& kf, int bs, int es, int h, Vars& par) {
+    MPI_Comm comm, KernelFactory& kf, Vars& par) {
 
   if (KF* kfd = dynamic_cast<KF*>(&kf)) {
-    return new Local<KF>(comm, *kfd, bs, es, h, par);
+    return new Local<KF>(comm, *kfd, par);
   }
   return nullptr;
 }
 
 Distr* CreateLocal(
-    MPI_Comm comm, KernelFactory& kf, int bs, int es, int h, Vars& par) {
+    MPI_Comm comm, KernelFactory& kf, Vars& par) {
   Distr* r = nullptr;
   if (!r) r = TryLocal<KernelMeshFactory<geom::MeshStructured<double, 3>>>(
-      comm, kf, bs, es, h, par);
+      comm, kf, par);
   //if (!r) r = Try<KernelMeshFactory<geom::geom3d::MeshStructured<float>>(
-  //    comm, kf, bs, b, p, es, h);
+  //    comm, kf, par);
   assert(r && "CreateLocal(): KernelFactory not found");
   return r;
 }
