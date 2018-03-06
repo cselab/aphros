@@ -56,6 +56,9 @@ class Local : public DistrMesh<KF> {
   void WriteBuffer(const std::vector<MIdx>& bb) override;
   void Reduce(const std::vector<MIdx>& bb) override;
   void Dump(int frame, int step) override;
+  const M& GetGlobalMesh() const override;
+  // Returns data field i from buffer defined on global mesh
+  geom::FieldCell<Scal> GetGlobalField(size_t i) const override; 
 };
 
 template <class KF>
@@ -271,3 +274,16 @@ void Local<KF>::WriteBuffer(M& m) {
     ++e;
   }
 }
+
+template <class KF>
+auto Local<KF>::GetGlobalMesh() const -> const M& {
+  assert(false && "Not implemented");
+  return M(typename M::BlockNodes(), geom::FieldNode<Vect>(), 0);
+}
+
+template <class KF>
+geom::FieldCell<Scal> Local<KF>::GetGlobalField(size_t i) const {
+  assert(false && "Not implemented");
+  return geom::FieldCell<Scal>();
+}
+
