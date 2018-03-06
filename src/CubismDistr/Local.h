@@ -277,13 +277,11 @@ void Local<KF>::WriteBuffer(M& m) {
 
 template <class KF>
 auto Local<KF>::GetGlobalMesh() const -> const M& {
-  assert(false && "Not implemented");
-  return M(typename M::BlockNodes(), geom::FieldNode<Vect>(), 0);
+  return gm;
 }
 
 template <class KF>
 geom::FieldCell<Scal> Local<KF>::GetGlobalField(size_t i) const {
-  assert(false && "Not implemented");
-  return geom::FieldCell<Scal>();
+  return buf_[i];
 }
 
