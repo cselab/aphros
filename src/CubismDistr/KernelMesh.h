@@ -16,8 +16,8 @@ M CreateMesh(const MyBlockInfo& bi) {
   using Rect = geom::Rect<Vect>;
   B& b = *(B*)bi.ptrBlock;
   int hl = bi.hl;
-  MIdx bs(bi.bs); // block size inner
 
+  MIdx bs(bi.bs); // block size inner
   Scal h = bi.h_gridpoint;
   MIdx w(bi.index);   // block index
   Vect d0(bi.origin); // origin coord
