@@ -235,9 +235,8 @@ void Advection<M>::Run() {
   {
     MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
     MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
-    using B = MyBlock;
-    MIdx s(B::sx, B::sy, B::sz); // block size inner
-    gs_ = p * b * s;
+    MIdx bs(par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]);
+    gs_ = p * b * bs;
   }
   Scal dx = extent / gs_.norminf(); 
   assert(dx > 0. && dx < extent);

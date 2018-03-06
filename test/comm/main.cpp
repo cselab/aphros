@@ -179,12 +179,11 @@ void Simple<M>::TestSolve() {
 
   // global mesh size
   MIdx gs;
+  MIdx bs(par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]);
   {
     MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
     MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
-    using B = MyBlock;
-    MIdx s(B::sx, B::sy, B::sz); // block size inner
-    gs = p * b * s;
+    gs = p * b * bs;
   }
 
   if (sem("init")) {
@@ -256,8 +255,7 @@ void Simple<M>::TestSolve() {
       }
     }
 
-    int bs = _BLOCKSIZE_;
-    int n = bs * bs *bs;
+    size_t n = bs.prod();
     using MIdx = typename Mesh::MIdx;
     lsa_.resize(n*l.st.size());
     lsb_.resize(n, 1.);
