@@ -12,6 +12,7 @@
 #include "CubismDistr/KernelMesh.h"
 #include "CubismDistr/ICubism.h"
 #include "CubismDistr/ILocal.h"
+#include "CubismDistr/Distr.h"
 
 #include "hydro/suspender.h"
 #include "hydro/vect.hpp"
@@ -280,7 +281,7 @@ void Main(MPI_Comm comm, bool loc, Vars& par) {
   using M = geom::MeshStructured<Scal, 3>;
   using K = Advection<M>;
   using KF = AdvectionFactory<M>;
-  using D = Distr;
+  using D = DistrMesh<KF>;
   
   KF kf;
 
@@ -289,17 +290,18 @@ void Main(MPI_Comm comm, bool loc, Vars& par) {
   const int bs = 16;
   
   // Initialize buffer mesh and make kernel for each block.
-  std::unique_ptr<Distr> d;
+  Distr* dr;
   if (loc) {
-    d.reset(CreateLocal(comm, kf, bs, es, hl, par));
+    dr = CreateLocal(comm, kf, bs, es, hl, par);
   } else {
-    d.reset(CreateCubism(comm, kf, bs, es, hl, par));
+    dr = CreateCubism(comm, kf, bs, es, hl, par);
   }
 
+  std::unique_ptr<D> d(dynamic_cast<D*>(dr));
   d->Step();
 
-  //auto m = d->GetGlobalMesh();
-  //auto fc=  d->GetGlobalField(0);
+  auto m = d->GetGlobalBlock();
+  auto fc=  d->GetGlobalField(0);
 }
 
 

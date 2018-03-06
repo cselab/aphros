@@ -16,7 +16,7 @@ Distr* TryLocal(
   return nullptr;
 }
 
-std::unique_ptr<Distr> CreateLocal(
+Distr* CreateLocal(
     MPI_Comm comm, KernelFactory& kf, int bs, int es, int h, Vars& par) {
   Distr* r = nullptr;
   if (!r) r = TryLocal<KernelMeshFactory<geom::MeshStructured<double, 3>>>(
@@ -24,5 +24,5 @@ std::unique_ptr<Distr> CreateLocal(
   //if (!r) r = Try<KernelMeshFactory<geom::geom3d::MeshStructured<float>>(
   //    comm, kf, bs, b, p, es, h);
   assert(r && "CreateLocal(): KernelFactory not found");
-  return std::unique_ptr<Distr>(r);
+  return r;
 }
