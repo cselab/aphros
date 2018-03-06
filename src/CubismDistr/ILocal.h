@@ -8,5 +8,5 @@
 #include "Vars.h"
 #include "Distr.h"
 
-std::unique_ptr<Distr> CreateLocal(
+Distr* CreateLocal(
     MPI_Comm comm, KernelFactory& kf, int bs, int es, int h, Vars& par);
