@@ -256,13 +256,13 @@ Cubism<KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par)
   : DistrMesh<KF>(comm, kf, par)
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], 1., comm)
 {
+  assert(bs_ == MIdx(_BLOCKSIZE_));
+
   std::vector<BlockInfo> cc = g_.getBlocksInfo(); // [c]ubism block info
   std::vector<MyBlockInfo> ee = GetBlocks(cc, bs_, hl_);
 
   for (auto& e : ee) {
-    auto d = e.index;
-    // TODO: constructor
-    MIdx b(d[0], d[1], d[2]);
+    MIdx b(e.index);
     mk.emplace(b, std::unique_ptr<K>(kf_.Make(par, e)));
   }
 
@@ -293,8 +293,7 @@ auto Cubism<KF>::GetBlocks() -> std::vector<MIdx> {
   std::vector<MIdx> bb;
   s_.mb.clear();
   for (auto a : aa) {
-    auto d = a.index;
-    MIdx b(d[0], d[1], d[2]);
+    MIdx b(a.index);
     s_.mb.emplace(b, a);
     bb.push_back(b);
   }
