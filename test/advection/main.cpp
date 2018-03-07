@@ -195,7 +195,7 @@ typename M::Scal Mean(
 #define CMP(a, b) \
   assert(Cmp(a, b)); 
 
-// Print CMP
+// Print CMP 
 #define PCMP(a, b) \
   std::cerr \
     << std::scientific << std::setprecision(16) \
@@ -204,12 +204,13 @@ typename M::Scal Mean(
 
 
 // Print CMP if false
-#define PFCMP(a, b) \
+#define PFCMP(a, b, ftl) \
   if (!Cmp(a, b)) { \
     std::cerr \
       << std::scientific << std::setprecision(16) \
+      << "Failed cmp: " << std::endl \
       << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
-    assert(false);\
+    assert(!ftl);\
   }
 
 
@@ -275,7 +276,7 @@ void Advection<M>::TestSolve(
       as_->FinishStep();
     }
   }
-  if (check && sem("check")) {
+  if (sem("check")) {
     geom::GBlockCells<dim> cbc(MIdx(cg), gs_ - MIdx(2 * cg)); // check block
     FieldCell<bool> mask(m, false);
     for (auto i : m.AllCells()) {
@@ -284,12 +285,13 @@ void Advection<M>::TestSolve(
       }
     }
     auto& fc = as_->GetField();
-    PFCMP(Mean(fc_exact_, m, mask), Mean(fc, m, mask));
-    PFCMP(DiffMax(fc_exact_, fc, m, mask), 0.);
+    PFCMP(Mean(fc_exact_, m, mask), Mean(fc, m, mask), check);
+    PFCMP(DiffMax(fc_exact_, fc, m, mask), 0., check);
   }
   if (sem("comm")) {
     fc_ = as_->GetField();
     m.Comm(&fc_);
+    m.Comm(&fc_exact_);
   }
 }
 
@@ -320,17 +322,19 @@ void Advection<M>::Run() {
     };
   auto f0 = [](Vect x) { return 0.; };
   auto f1 = [](Vect x) { return 1.; };
-  auto fx = [](Vect x) { return x[0]; };
+  auto fx = [](Vect x) { return Vect(1., -1., 1.).dot(x); };
   auto fex = [=](Vect x) { x -= vel * t; return fx(x); };
 
+  bool fatal = par.Int["fatal"];
+
   if (sem.Nested()) {
-    TestSolve(f0, f0, 0, "f0", true);
+    TestSolve(f0, f0, 0, "f0", fatal);
   }
   if (sem.Nested()) {
-    TestSolve(f1, f1, 0, "f1", true);
+    TestSolve(f1, f1, 0, "f1", fatal);
   }
   if (sem.Nested()) {
-    TestSolve(fx, fex, 3, "fx", false);
+    TestSolve(fx, fex, 4, "fx", fatal);
   }
   if (sem.Nested()) {
     //TestSolve(f, f, 0, "f", false);
@@ -364,7 +368,7 @@ std::tuple<BC, FC, FC> Solve(MPI_Comm comm, Vars& par) {
   d->Step();
 
   return std::make_tuple(
-      d->GetGlobalBlock(), d->GetGlobalField(0), d->GetGlobalField(0));
+      d->GetGlobalBlock(), d->GetGlobalField(0), d->GetGlobalField(1));
 }
 
 void Dump(std::vector<const FC*> u, std::vector<std::string> un, 
@@ -406,7 +410,7 @@ void Main(MPI_Comm comm, Vars& par0) {
 
   geom::FieldCell<bool> mask(b, true);
 
-  Dump({&fa, &fea}, {"u", "ue"}, m);
+  Dump({&fa, &fea, &fb}, {"a", "ea", "b"}, m, "a");
 
   PCMP(Mean(b, fa, mask), Mean(b, fb, mask));
   PCMP(DiffMax(b, fa, fb, mask), 0.);
