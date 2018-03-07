@@ -252,27 +252,27 @@ void Advection<M>::TestSolve(
 
     using Dir = typename M::Dir;
     using IdxFace = geom::IdxFace;
-    auto is_left = [this](IdxFace i) {
+    auto gxm = [this](IdxFace i) {
       return m.GetDir(i) == Dir::i &&
           m.GetBlockFaces().GetMIdx(i)[0] == 0;
     };
-    auto is_right = [this,gs](IdxFace i) {
+    auto gxp = [this,gs](IdxFace i) {
       return m.GetDir(i) == Dir::i &&
           m.GetBlockFaces().GetMIdx(i)[0] == gs[0];
     };
-    auto is_bottom = [this](IdxFace i) {
+    auto gym = [this](IdxFace i) {
       return m.GetDir(i) == Dir::j &&
           m.GetBlockFaces().GetMIdx(i)[1] == 0;
     };
-    auto is_top = [this,gs](IdxFace i) {
+    auto gyp = [this,gs](IdxFace i) {
       return m.GetDir(i) == Dir::j &&
           m.GetBlockFaces().GetMIdx(i)[1] == gs[1];
     };
-    auto is_close = [this](IdxFace i) {
+    auto gzm = [this](IdxFace i) {
       return dim >= 3 && m.GetDir(i) == Dir::k &&
           m.GetBlockFaces().GetMIdx(i)[2] == 0;
     };
-    auto is_far = [this,gs](IdxFace i) {
+    auto gzp = [this,gs](IdxFace i) {
       return dim >= 3 && m.GetDir(i) == Dir::k &&
           m.GetBlockFaces().GetMIdx(i)[2] == gs[2];
     };
@@ -319,19 +319,19 @@ void Advection<M>::TestSolve(
 
     // Boundary conditions for fluid
     for (auto i : m.Faces()) {
-      if (is_top(i)) {
-        mf_cond[i] = parse(par.String["bc_top"], i, m);
-      } else if (is_bottom(i)) {
-        mf_cond[i] = parse(par.String["bc_bottom"], i, m);
-      } else if (is_left(i)) {
-        mf_cond[i] = parse(par.String["bc_left"], i, m);
-      } else if (is_right(i)) {
-        mf_cond[i] = parse(par.String["bc_right"], i, m);
-      } else if (is_close(i)) {
-        mf_cond[i] = parse(par.String["bc_close"], i, m);
-      } else if (is_far(i)) {
-        mf_cond[i] = parse(par.String["bc_far"], i, m);
-      }
+      if (gxm(i)) {
+        mf_cond[i] = parse(par.String["bc_xm"], i, m);
+      } else if (gxp(i)) {
+        mf_cond[i] = parse(par.String["bc_xp"], i, m);
+      } else if (gym(i)) {
+        mf_cond[i] = parse(par.String["bc_ym"], i, m);
+      } else if (gyp(i)) {
+        mf_cond[i] = parse(par.String["bc_yp"], i, m);
+      } else if (gzm(i)) {
+        mf_cond[i] = parse(par.String["bc_zm"], i, m);
+      } else if (gzp(i)) {
+        mf_cond[i] = parse(par.String["bc_zp"], i, m);
+      } 
     }
 
     std::cerr << "mf_cond.size() = " << mf_cond.size() << std::endl;
