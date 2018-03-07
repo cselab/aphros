@@ -171,21 +171,36 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   };
 
   // Boundary conditions for fluid
-  for (auto i : m.Faces()) {
-    if (gxm(i)) {
-      mf_velcond[i] = solver::Parse(par.String["bc_xm"], i, m);
-    } else if (gxp(i)) {
-      mf_velcond[i] = solver::Parse(par.String["bc_xp"], i, m);
-    } else if (gym(i)) {
-      mf_velcond[i] = solver::Parse(par.String["bc_ym"], i, m);
-    } else if (gyp(i)) {
-      mf_velcond[i] = solver::Parse(par.String["bc_yp"], i, m);
-    } else if (gzm(i)) {
-      mf_velcond[i] = solver::Parse(par.String["bc_zm"], i, m);
-    } else if (gzp(i)) {
-      mf_velcond[i] = solver::Parse(par.String["bc_zp"], i, m);
+  if (auto p = par.String("bc_xm")) {
+    for (auto i : m.Faces()) {
+      gxm(i) && (mf_velcond[i] = solver::Parse(*p, i, m));
     }
-  }
+  } 
+  if (auto p = par.String("bc_xp")) {
+    for (auto i : m.Faces()) {
+      gxp(i) && (mf_velcond[i] = solver::Parse(*p, i, m));
+    }
+  } 
+  if (auto p = par.String("bc_ym")) {
+    for (auto i : m.Faces()) {
+      gym(i) && (mf_velcond[i] = solver::Parse(*p, i, m));
+    }
+  } 
+  if (auto p = par.String("bc_yp")) {
+    for (auto i : m.Faces()) {
+      gyp(i) && (mf_velcond[i] = solver::Parse(*p, i, m));
+    }
+  } 
+  if (auto p = par.String("bc_zm")) {
+    for (auto i : m.Faces()) {
+      gzm(i) && (mf_velcond[i] = solver::Parse(*p, i, m));
+    }
+  } 
+  if (auto p = par.String("bc_zp")) {
+    for (auto i : m.Faces()) {
+      gzp(i) && (mf_velcond[i] = solver::Parse(*p, i, m));
+    }
+  } 
   std::cerr << "mf_velcond.size() = " << mf_velcond.size() << std::endl;
   
   // cell conditions for advection
