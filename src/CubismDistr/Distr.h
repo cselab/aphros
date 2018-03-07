@@ -140,9 +140,9 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
 
     std::vector<bool> per(dim, false);
     if (par.Int["hypre_periodic"]) {
-      for (size_t i = 0; i < dim; ++i) {
-        per[i] = true;
-      }
+      per[0] = par.Int["hypre_periodic_x"];
+      per[1] = par.Int["hypre_periodic_y"];
+      per[2] = par.Int["hypre_periodic_z"];
     }
 
     LI gs(dim);
