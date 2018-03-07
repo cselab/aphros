@@ -6,6 +6,7 @@
 #include <fstream>
 #include <functional>
 #include <utility>
+#include <tuple>
 
 #include "CubismDistr/Vars.h"
 #include "CubismDistr/Interp.h"
@@ -21,6 +22,9 @@
 #include "hydro/solver.hpp"
 #include "hydro/linear.hpp"
 #include "hydro/advection.hpp"
+
+#include "hydro/output.hpp"
+#include "hydro/output_paraview.hpp"
 
 // Test design rules:
 
@@ -46,7 +50,8 @@ class Advection : public KernelMesh<M> {
   void TestSolve(std::function<Scal(Vect)> fi /*initial*/,
                  std::function<Scal(Vect)> fe /*exact*/,
                  size_t cg /*check gap (separate from boundary)*/,
-                 std::string name);
+                 std::string name,
+                 bool check /*abort if differs from exact*/);
 
   template <class T>
   using FieldCell = geom::FieldCell<T>;
@@ -213,7 +218,8 @@ void Advection<M>::TestSolve(
     std::function<Scal(Vect)> fi /*initial*/,
     std::function<Scal(Vect)> fe /*exact*/,
     size_t cg /*check gap (separate from boundary)*/,
-    std::string name) {
+    std::string name,
+    bool check /*abort if different from exact*/) {
   auto sem = m.GetSem("TestSolve");
   auto& bc = m.GetBlockCells();
   if (sem("init")) {
@@ -269,12 +275,7 @@ void Advection<M>::TestSolve(
       as_->FinishStep();
     }
   }
-  if (sem("comm")) {
-    fc_ = as_->GetField();
-    m.Comm(&fc_);
-  }
-  /*
-  if (sem("check")) {
+  if (check && sem("check")) {
     geom::GBlockCells<dim> cbc(MIdx(cg), gs_ - MIdx(2 * cg)); // check block
     FieldCell<bool> mask(m, false);
     for (auto i : m.AllCells()) {
@@ -286,7 +287,10 @@ void Advection<M>::TestSolve(
     PFCMP(Mean(fc_exact_, m, mask), Mean(fc, m, mask));
     PFCMP(DiffMax(fc_exact_, fc, m, mask), 0.);
   }
-  */
+  if (sem("comm")) {
+    fc_ = as_->GetField();
+    m.Comm(&fc_);
+  }
 }
 
 template <class M>
@@ -314,9 +318,22 @@ void Advection<M>::Run() {
   auto f = [](Vect x) { 
       return std::sin(x[0]) * std::cos(x[1]) * std::exp(x[2]); 
     };
+  auto f0 = [](Vect x) { return 0.; };
+  auto f1 = [](Vect x) { return 1.; };
+  auto fx = [](Vect x) { return x[0]; };
+  auto fex = [=](Vect x) { x -= vel * t; return fx(x); };
 
   if (sem.Nested()) {
-    TestSolve(f, f, 0, "f");
+    TestSolve(f0, f0, 0, "f0", true);
+  }
+  if (sem.Nested()) {
+    TestSolve(f1, f1, 0, "f1", true);
+  }
+  if (sem.Nested()) {
+    TestSolve(fx, fex, 3, "fx", false);
+  }
+  if (sem.Nested()) {
+    //TestSolve(f, f, 0, "f", false);
   }
 }
 
@@ -326,19 +343,15 @@ using KF = AdvectionFactory<M>;
 using D = DistrMesh<KernelMeshFactory<M>>;
 using BC = typename M::BlockCells;
 using FC = geom::FieldCell<Scal>;
+using IdxCell = geom::IdxCell;
+using Vect = typename M::Vect;
+using MIdx = typename M::MIdx;
 
-std::pair<BC, FC> Solve(MPI_Comm comm, Vars& par) {
-  // read config files, parse arguments, maybe init global fields
+std::tuple<BC, FC, FC> Solve(MPI_Comm comm, Vars& par) {
   KF kf;
 
-  //par.Int.Set("buf_size", 8);
-  //const int bs = 16;
-  //par.Int.Set("bsx", bs);
-  //par.Int.Set("bsy", bs);
-  //par.Int.Set("bsz", bs);
   bool loc = par.Int["loc"];
   
-  // Initialize buffer mesh and make kernel for each block.
   Distr* dr;
   if (loc) {
     dr = CreateLocal(comm, kf, par);
@@ -350,18 +363,35 @@ std::pair<BC, FC> Solve(MPI_Comm comm, Vars& par) {
   assert(d);
   d->Step();
 
-  return std::make_pair(d->GetGlobalBlock(), d->GetGlobalField(0));
+  return std::make_tuple(
+      d->GetGlobalBlock(), d->GetGlobalField(0), d->GetGlobalField(0));
 }
 
+void Dump(std::vector<const FC*> u, std::vector<std::string> un, 
+          M& m, std::string fn="a") {
+  output::Content con;
+  for (size_t k = 0; k < u.size(); ++k) {
+    auto p = u[k];
+    con.emplace_back(
+        new output::EntryFunction<Scal, IdxCell, M>(
+            un[k], m, [p](IdxCell i) { return (*p)[i]; }));
+  }
+
+  output::SessionParaviewStructured<M> ses(con, "", fn /*filename*/, m);
+  ses.Write(0, "t");
+}
 
 void Main(MPI_Comm comm, Vars& par0) {
   Vars par = par0;
-
   
   std::cerr << "solve ref" << std::endl;
-  auto pa = Solve(comm, par);
-  auto b = pa.first;
-  auto fa = pa.second;
+  BC b, bb;
+  FC fa, fea, fb, feb;
+  std::tie(b, fa, fea) = Solve(comm, par);
+
+  using Scal = double;
+  geom::Rect<Vect> dom(Vect(0), Vect(1));
+  auto m = geom::InitUniformMesh<M>(dom, MIdx(0), b.GetDimensions(), 0);
 
   std::cerr << "solve bs/2" << std::endl;
   par.Int["bsx"] /= 2;
@@ -370,12 +400,13 @@ void Main(MPI_Comm comm, Vars& par0) {
   par.Int["bx"] *= 2;
   par.Int["by"] *= 2;
   par.Int["bz"] *= 2;
-  auto pb = Solve(comm, par);
-  auto fb = pb.second;
+  std::tie(bb, fb, feb) = Solve(comm, par);
 
-  PCMP(b.GetEnd(), pb.first.GetEnd());
+  PCMP(b.GetEnd(), bb.GetEnd());
 
   geom::FieldCell<bool> mask(b, true);
+
+  Dump({&fa, &fea}, {"u", "ue"}, m);
 
   PCMP(Mean(b, fa, mask), Mean(b, fb, mask));
   PCMP(DiffMax(b, fa, fb, mask), 0.);
