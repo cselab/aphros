@@ -860,4 +860,71 @@ class LinearSolverFactory {
   }
 };
 
+template <class M, class Expr, class Scal=typename M::Scal>
+typename M::LS ConvertLs(
+    const geom::FieldCell<Expr>& fce,
+    std::vector<Scal>& la, 
+    std::vector<Scal>& lb, 
+    std::vector<Scal>& lx, 
+    const M& m) {
+  using LS = typename M::LS;
+  using MIdx = typename M::MIdx;
+  using IdxCell = geom::IdxCell;
+  auto& bc = m.GetBlockCells();
+  LS l;
+  // Get stencil from first inner cell
+  {
+    IdxCell c = *m.Cells().begin(); 
+    auto& e = fce[c];
+    for (size_t j = 0; j < e.size(); ++j) {
+      MIdx dm = bc.GetMIdx(e[j].idx) - bc.GetMIdx(c);
+      l.st.emplace_back(dm);
+    }
+  }
+
+  size_t n = m.GetInBlockCells().size();
+  la.resize(n * l.st.size());
+  lb.resize(n, 1.);
+  lx.resize(n, 0.);
+
+  // fill matrix coeffs
+  {
+    size_t i = 0;
+    for (auto c : m.Cells()) {
+      auto& e = fce[c];
+      for (size_t j = 0; j < e.size(); ++j) {
+        // Check stencil
+        if (e[j].idx != bc.GetIdx(bc.GetMIdx(c) + MIdx(l.st[j]))) {
+          std::cerr << "***"
+              << " MIdx(c)=" << bc.GetMIdx(c)
+              << " MIdx(e[j].idx)=" << bc.GetMIdx(e[j].idx)
+              << " l.st[j]=" << MIdx(l.st[j]) 
+              << std::endl;
+          assert(false);
+        }
+        la[i] = e[j].coeff;
+        ++i;
+      }
+    }
+    assert(i == n * l.st.size());
+  }
+
+  // fill rhs and zero solution
+  {
+    size_t i = 0;
+    for (auto c : m.Cells()) {
+      auto& e = fce[c];
+      lb[i] = -e.GetConstant();
+      lx[i] = 0.;
+      ++i;
+    }
+    assert(i == lb.size());
+  }
+
+  l.a = &la;
+  l.b = &lb;
+  l.x = &lx;
+  return l;
+}
+
 } // namespace solver

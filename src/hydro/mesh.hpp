@@ -1397,6 +1397,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
   }
 }
 
+
 // Create uniform mesh
 // domain    - rectangle covering inner cells
 // begin     - index of lower inner cells

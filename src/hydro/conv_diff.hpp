@@ -132,7 +132,6 @@ class ConvectionDiffusionScalarImplicit :
   }
   void MakeIteration() override {
     auto sem = mesh.GetSem("convdiff.MakeIteration()");
-    using LS = typename Mesh::LS;
     auto& m = mesh;
 
     auto& fc_prev = fc_field_.iter_prev;
@@ -247,64 +246,7 @@ class ConvectionDiffusionScalarImplicit :
         }
       }
 
-      // linear system
-      // Each block computes the coefficients assuming a uniform stencil
-      // (requirement of hypre)
-      // Then it computes the rhs and allocates space for result.
-      // All three are 1D arrays.
-      // Then the block issues a request to solve a linear system 
-      // passing pointers to these arrays and stencil description.
-      // After going through all blocks, 
-      // the processor assembles the system and calls hypre.
-      LS l;
-      // stencil
-      l.st.emplace_back(0, 0, -1);
-      l.st.emplace_back(0, -1, 0);
-      l.st.emplace_back(-1, 0, 0);
-      l.st.emplace_back(0, 0, 0);
-      l.st.emplace_back(1, 0, 0);
-      l.st.emplace_back(0, 1, 0);
-      l.st.emplace_back(0, 0, 1);
-
-
-      int bs = _BLOCKSIZE_;
-      int n = bs * bs *bs;
-      using MIdx = typename Mesh::MIdx;
-      {
-        lsa_.resize(n*l.st.size());
-        auto& bc = mesh.GetBlockCells();
-        size_t i = 0;
-        for (auto c : mesh.Cells()) {
-          auto& e = fc_system_[c];
-          for (size_t j = 0; j < e.size(); ++j) {
-            lsa_[i++] = e[j].coeff;
-            if (e[j].idx != bc.GetIdx(bc.GetMIdx(c) + MIdx(l.st[j]))) {
-              std::cerr << "***"
-                  << " MIdx(c)=" << bc.GetMIdx(c)
-                  << " MIdx(e[j].idx)=" << bc.GetMIdx(e[j].idx)
-                  << " l.st[j]=" << MIdx(l.st[j]) 
-                  << std::endl;
-              assert(false);
-            }
-          }
-        }
-        assert(i == n * l.st.size());
-      }
-
-      {
-        lsb_.resize(n, 1.);
-        size_t i = 0;
-        for (auto c : mesh.Cells()) {
-          auto& e = fc_system_[c];
-          lsb_[i++] = -e.GetConstant();
-        }
-        assert(i == lsb_.size());
-      }
-
-      lsx_.resize(n, 0.);
-      l.a = &lsa_;
-      l.b = &lsb_;
-      l.x = &lsx_;
+      auto l = ConvertLs(fc_system_, lsa_, lsb_, lsx_, mesh);
       m.Solve(l);
     }
 

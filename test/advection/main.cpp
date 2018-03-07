@@ -371,7 +371,7 @@ void Advection<M>::Run() {
     TestSolve(fx, fex, 4, "fx", fatal);
   }
   if (sem.Nested()) {
-    //TestSolve(f, f, 0, "f", false);
+    TestSolve(f, f, 0, "f", false);
   }
 }
 
