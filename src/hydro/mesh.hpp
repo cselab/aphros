@@ -1075,10 +1075,15 @@ class MeshStructured {
     }
     return idxcell_nearest;
   }
+  // TODO: This function does not distinguish
+  //       between actual boundaries of global mesh
+  //       and boundaries of blocks
+  //       so that the valid cell would be chosen
+  //       differently from different blocks.
   size_t GetValidNeighbourCellId(IdxFace idxface) const {
     size_t id = 0;
     while (id < GetNumNeighbourCells(idxface) &&
-        GetNeighbourCell(idxface, id).IsNone()) {
+        !IsInner(GetNeighbourCell(idxface, id))) {
       ++id;
     }
     return id;

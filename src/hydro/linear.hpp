@@ -291,6 +291,20 @@ std::ostream& operator<<(std::ostream& out,
   return out;
 }
 
+template <class M, class S>
+void PrintSystem(S& s, M& m, std::ostream& o) {
+  auto bc = m.GetBlockCells();
+  for (auto i : m.Cells()) {
+    o << bc.GetMIdx(i) << " "; 
+    auto& e = s[i];
+    for (size_t j = 0; j < e.size(); ++j) { 
+      o << e[j].coeff << "*[" << bc.GetMIdx(e[j].idx) << "] + ";
+    }
+    o << "\n";
+  }
+}
+
+
 template <class System, class Result>
 void Transpose(const System& system, Result& result) {
   using ResExpr = typename Result::Value;

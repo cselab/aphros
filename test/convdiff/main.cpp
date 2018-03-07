@@ -241,19 +241,6 @@ void Advection<M>::TestSolve(
       fc_u[i] = fi(x);
     }
 
-    // zero-derivative boundary conditions for advection
-    geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
-    /*
-    if(0)
-    for (auto idxface : m.Faces()) {
-      if (!m.IsInner(idxface)) {
-        mf_cond[idxface] =
-            std::make_shared
-            <solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
-      }
-    }
-    */
-
     // global mesh size
     MIdx gs;
     {
@@ -301,16 +288,34 @@ void Advection<M>::TestSolve(
         Scal a;
         arg >> a;
         return std::make_shared <solver::
-            ConditionFaceDerivativeFixed<Scal>>(a);
+            ConditionFaceValueFixed<Scal>>(a);
       } else if (name == "derivative") {
         Scal a;
         arg >> a;
         return std::make_shared <solver::
-            ConditionFaceValueFixed<Scal>>(a);
+            ConditionFaceDerivativeFixed<Scal>>(a);
       } else {
         assert(false);
       }
     };
+
+
+    geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
+
+    /*
+    // zero-derivative boundary conditions for advection
+    for (auto i : m.Faces()) {
+      MIdx cm = bc.GetMIdx(m.GetNeighbourCell(i, 0));
+      MIdx cp = bc.GetMIdx(m.GetNeighbourCell(i, 1));
+      bool im = (MIdx(0) <= cm && cm < gs);
+      bool ip = (MIdx(0) <= cp && cp < gs);
+      if (im == !ip) {
+        mf_cond[i] =
+            std::make_shared
+            <solver::ConditionFaceValueFixed<Scal>>(Scal(1));
+      }
+    }
+    */
 
     // Boundary conditions for fluid
     for (auto i : m.Faces()) {
@@ -328,6 +333,7 @@ void Advection<M>::TestSolve(
         mf_cond[i] = parse(par.String["bc_far"], i, m);
       }
     }
+
     std::cerr << "mf_cond.size() = " << mf_cond.size() << std::endl;
 
     // velocity and flux
