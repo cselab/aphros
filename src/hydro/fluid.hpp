@@ -829,7 +829,7 @@ class FluidSimple : public FluidSolver<Mesh> {
     if (sem("guess_extrapolation")) {
       fc_pressure_.iter_curr = fc_pressure_.time_curr;
       ff_vol_flux_.iter_curr = ff_vol_flux_.time_curr;
-      for (auto idxcell : mesh.Cells()) {
+      for (auto idxcell : mesh.SuCells()) {
         fc_pressure_.iter_curr[idxcell] +=
             (fc_pressure_.time_curr[idxcell] - fc_pressure_.time_prev[idxcell]) *
             guess_extrapolation_;
@@ -878,7 +878,7 @@ class FluidSimple : public FluidSolver<Mesh> {
         auto ff = Interpolate(fc, conv_diff_solver_->GetVelocityCond(n), mesh);
         auto gc = Gradient(ff, mesh);
         auto gf = Interpolate(gc, mf_force_cond_, mesh); // adhoc: zero-der cond
-        for (auto idxcell : mesh.Cells()) {
+        for (auto idxcell : mesh.SuCells()) {
           Vect sum = Vect::kZero;
           for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
             IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
@@ -891,7 +891,7 @@ class FluidSimple : public FluidSolver<Mesh> {
       timer_->Pop();
 
       // append to force
-      for (auto idxcell : mesh.Cells()) {
+      for (auto idxcell : mesh.AllCells()) {
         fc_force_[idxcell] +=
             fc_pressure_grad_[idxcell] * (-1.) +
             fc_ext_force_restored_[idxcell] +
@@ -921,6 +921,8 @@ class FluidSimple : public FluidSolver<Mesh> {
         }
         fc_diag_coeff_[idxcell] = sum / dim;
       }
+
+      // TODO: maybe add comm for fc_diah_coeff_
 
       // Define ff_diag_coeff_ on inner faces only
       ff_diag_coeff_ = Interpolate(
@@ -1037,78 +1039,8 @@ class FluidSimple : public FluidSolver<Mesh> {
           }
         }
       }
-  /*
-      if (dynamic_cast<Pardiso<Scal, IdxCell, Expr>*>(linear_.get())) {
-        static bool first = true;
-        if (first) {
-          std::cout << "pressure_system restricted" << std::endl;
-          first = false;
-        }
-        for (auto idxcell : mesh.Cells()) {
-          fc_pressure_corr_system_[idxcell].RestrictTerms(
-              idxcell, IdxCell(mesh.Cells().size()));
-        }
-      }*/
 
-      // linear system
-      // Each block computes the coefficients assuming a uniform stencil
-      // (requirement of hypre)
-      // Then it computes the rhs and allocates space for result.
-      // All three are 1D arrays.
-      // Then the block issues a request to solve a linear system 
-      // passing pointers to these arrays and stencil description.
-      // After going through all blocks, 
-      // the processor assembles the system and calls hypre.
-      LS l;
-      // stencil
-      l.st.emplace_back(0, 0, -1);
-      l.st.emplace_back(0, -1, 0);
-      l.st.emplace_back(-1, 0, 0);
-      l.st.emplace_back(0, 0, 0);
-      l.st.emplace_back(1, 0, 0);
-      l.st.emplace_back(0, 1, 0);
-      l.st.emplace_back(0, 0, 1);
-
-
-      int bs = _BLOCKSIZE_;
-      int n = bs * bs *bs;
-      using MIdx = typename Mesh::MIdx;
-      {
-        lsa_.resize(n*l.st.size());
-        auto& bc = mesh.GetBlockCells();
-        size_t i = 0;
-        for (auto c : mesh.Cells()) {
-          auto& e = fc_pressure_corr_system_[c];
-          for (size_t j = 0; j < e.size(); ++j) {
-            lsa_[i++] = e[j].coeff;
-            if (e[j].idx != bc.GetIdx(bc.GetMIdx(c) + MIdx(l.st[j]))) {
-              std::cerr << "***"
-                  << " MIdx(c)=" << bc.GetMIdx(c)
-                  << " MIdx(e[j].idx)=" << bc.GetMIdx(e[j].idx)
-                  << " Center(c)=" << mesh.GetCenter(c)
-                  << " l.st[j]=" << MIdx(l.st[j]) 
-                  << std::endl;
-              assert(false);
-            }
-          }
-        }
-        assert(i == n * l.st.size());
-      }
-
-      {
-        lsb_.resize(n, 1.);
-        size_t i = 0;
-        for (auto c : mesh.Cells()) {
-          auto& e = fc_pressure_corr_system_[c];
-          lsb_[i++] = -e.GetConstant();
-        }
-        assert(i == lsb_.size());
-      }
-
-      lsx_.resize(n, 0.);
-      l.a = &lsa_;
-      l.b = &lsb_;
-      l.x = &lsx_;
+      auto l = ConvertLs(fc_pressure_corr_system_, lsa_, lsb_, lsx_, mesh);
       m.Solve(l);
       timer_->Pop();
       timer_->Push("fluid.6.pressure-solve");
