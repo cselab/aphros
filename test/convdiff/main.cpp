@@ -22,6 +22,7 @@
 #include "hydro/solver.hpp"
 #include "hydro/linear.hpp"
 #include "hydro/advection.hpp"
+#include "hydro/conv_diff.hpp"
 
 #include "hydro/output.hpp"
 #include "hydro/output_paraview.hpp"
@@ -61,8 +62,8 @@ class Advection : public KernelMesh<M> {
   geom::FieldCell<Scal> fc_exact_;
   geom::FieldFace<Scal> ff_flux_;
   geom::FieldCell<Scal> fc_src_;
-  using AS = solver::AdvectionSolverExplicit<M, geom::FieldFace<Scal>>;
-  //using AS = solver::ConvectionDiffusionScalarImplicit<M>;
+  //using AS = solver::AdvectionSolverExplicit<M, geom::FieldFace<Scal>>;
+  using AS = solver::ConvectionDiffusionScalarImplicit<M>;
   std::unique_ptr<AS> as_; // advection solver
   MIdx gs_; // global mesh size
   Vect ge_; // global extent
@@ -275,11 +276,12 @@ void Advection<M>::TestSolve(
     // scaling for as_
     fc_sc_.Reinit(m, 1.); 
 
+    /*
     as_.reset(new AS(m, fc_u, mf_cond, &ff_flux_, 
               &fc_src_, 0., par.Double["dt"]));
+              */
 
 
-    /*
     as_.reset(new AS(
           m, fc_u, mf_cond, mc_cond, 
           par.Double["relax"], 
@@ -289,7 +291,6 @@ void Advection<M>::TestSolve(
           par.Double["tol"], par.Int["num_iter"], 
           par.Int["second_order"]
           ));
-          */
 
     // exact solution
     fc_exact_.Reinit(m);
