@@ -1315,28 +1315,6 @@ MeshStructured<_Scal, _dim>::MeshStructured(
       if (midx[dir] == me[dir]) {
         ff_neighbour_cell_[idxface][1] = IdxCell::None();
       }
-      #ifdef PERX
-      // adhoc for periodic in x
-      if (midx[0] == mb[0] && dir == Dir::i) {
-        ff_neighbour_cell_[idxface][0] = 
-            b_cells_.GetIdx(MIdx(me[0] - 1, midx[1], midx[2]));
-      }
-      if (midx[0] == me[0] && dir == Dir::i) {
-        ff_neighbour_cell_[idxface][1] = 
-            b_cells_.GetIdx(MIdx(mb[0], midx[1], midx[2]));
-      }
-      #endif
-      #ifdef PERZ
-      // adhoc for periodic in x
-      if (midx[2] == mb[2] && dir == Dir::k) {
-        ff_neighbour_cell_[idxface][0] = 
-            b_cells_.GetIdx(MIdx(midx[0], midx[1], me[2] - 1));
-      }
-      if (midx[2] == me[2] && dir == Dir::k) {
-        ff_neighbour_cell_[idxface][1] = 
-            b_cells_.GetIdx(MIdx(midx[0], midx[1], mb[2]));
-      }
-      #endif
     }
   }
 
@@ -1366,33 +1344,6 @@ MeshStructured<_Scal, _dim>::MeshStructured(
       if (!c.IsNone()) {
         ff_to_cell_[idxface][1] = GetCenter(c) - GetCenter(idxface);
       }
-      #ifdef PERX
-      // adhoc for periodic in x
-      if (midx[0] == mb[0] && dir == Dir::i) {
-        auto pf = b_faces_.GetIdx(MIdx(me[0], midx[1], midx[2]), dir);
-        auto pc = b_cells_.GetIdx(MIdx(me[0] - 1, midx[1], midx[2]));
-        ff_to_cell_[idxface][0] = GetCenter(pc) - GetCenter(pf);
-      }
-      if (midx[0] == me[0] && dir == Dir::i) {
-        auto pf = b_faces_.GetIdx(MIdx(mb[0], midx[1], midx[2]), dir);
-        auto pc = b_cells_.GetIdx(MIdx(mb[0], midx[1], midx[2]));
-        ff_to_cell_[idxface][1] = GetCenter(pc) - GetCenter(pf);
-      }
-      #endif
-      
-      #ifdef PERZ
-      // adhoc for periodic in z
-      if (midx[2] == mb[2] && dir == Dir::k) {
-        auto pf = b_faces_.GetIdx(MIdx(midx[0], midx[1], me[2]), dir);
-        auto pc = b_cells_.GetIdx(MIdx(midx[0], midx[1], me[2] - 1));
-        ff_to_cell_[idxface][0] = GetCenter(pc) - GetCenter(pf);
-      }
-      if (midx[2] == me[2] && dir == Dir::k) {
-        auto pf = b_faces_.GetIdx(MIdx(midx[0], midx[1], mb[2]), dir);
-        auto pc = b_cells_.GetIdx(MIdx(midx[0], midx[1], mb[2]));
-        ff_to_cell_[idxface][1] = GetCenter(pc) - GetCenter(pf);
-      }
-      #endif
     }
   }
 
