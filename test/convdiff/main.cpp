@@ -7,6 +7,7 @@
 #include <functional>
 #include <utility>
 #include <tuple>
+#include <sstream>
 
 #include "CubismDistr/Vars.h"
 #include "CubismDistr/Interp.h"
@@ -242,6 +243,7 @@ void Advection<M>::TestSolve(
 
     // zero-derivative boundary conditions for advection
     geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
+    /*
     if(0)
     for (auto idxface : m.Faces()) {
       if (!m.IsInner(idxface)) {
@@ -250,6 +252,83 @@ void Advection<M>::TestSolve(
             <solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
       }
     }
+    */
+
+    // global mesh size
+    MIdx gs;
+    {
+      MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
+      MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
+      MIdx bs(par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]);
+      gs = p * b * bs;
+    }
+
+    using Dir = typename M::Dir;
+    using IdxFace = geom::IdxFace;
+    auto is_left = [this](IdxFace i) {
+      return m.GetDir(i) == Dir::i &&
+          m.GetBlockFaces().GetMIdx(i)[0] == 0;
+    };
+    auto is_right = [this,gs](IdxFace i) {
+      return m.GetDir(i) == Dir::i &&
+          m.GetBlockFaces().GetMIdx(i)[0] == gs[0];
+    };
+    auto is_bottom = [this](IdxFace i) {
+      return m.GetDir(i) == Dir::j &&
+          m.GetBlockFaces().GetMIdx(i)[1] == 0;
+    };
+    auto is_top = [this,gs](IdxFace i) {
+      return m.GetDir(i) == Dir::j &&
+          m.GetBlockFaces().GetMIdx(i)[1] == gs[1];
+    };
+    auto is_close = [this](IdxFace i) {
+      return dim >= 3 && m.GetDir(i) == Dir::k &&
+          m.GetBlockFaces().GetMIdx(i)[2] == 0;
+    };
+    auto is_far = [this,gs](IdxFace i) {
+      return dim >= 3 && m.GetDir(i) == Dir::k &&
+          m.GetBlockFaces().GetMIdx(i)[2] == gs[2];
+    };
+
+    auto parse = [](std::string argstr, geom::IdxFace idxface, M& m) 
+       -> std::shared_ptr<solver::ConditionFace> {
+      std::stringstream arg(argstr);
+
+      std::string name;
+      arg >> name;
+
+      if (name == "value") {
+        Scal a;
+        arg >> a;
+        return std::make_shared <solver::
+            ConditionFaceDerivativeFixed<Scal>>(a);
+      } else if (name == "derivative") {
+        Scal a;
+        arg >> a;
+        return std::make_shared <solver::
+            ConditionFaceValueFixed<Scal>>(a);
+      } else {
+        assert(false);
+      }
+    };
+
+    // Boundary conditions for fluid
+    for (auto i : m.Faces()) {
+      if (is_top(i)) {
+        mf_cond[i] = parse(par.String["bc_top"], i, m);
+      } else if (is_bottom(i)) {
+        mf_cond[i] = parse(par.String["bc_bottom"], i, m);
+      } else if (is_left(i)) {
+        mf_cond[i] = parse(par.String["bc_left"], i, m);
+      } else if (is_right(i)) {
+        mf_cond[i] = parse(par.String["bc_right"], i, m);
+      } else if (is_close(i)) {
+        mf_cond[i] = parse(par.String["bc_close"], i, m);
+      } else if (is_far(i)) {
+        mf_cond[i] = parse(par.String["bc_far"], i, m);
+      }
+    }
+    std::cerr << "mf_cond.size() = " << mf_cond.size() << std::endl;
 
     // velocity and flux
     const Vect vel(par.Vect["vel"]);
@@ -342,13 +421,15 @@ void Advection<M>::Run() {
   Scal dx = extent / gs_.norminf(); 
   assert(dx > 0. && dx < extent);
   ge_ = Vect(gs_) * dx;
-  Scal cfl = par.Double["cfl"];
   Vect vel(par.Vect["vel"]);
   Scal ns = par.Int["num_steps"];
-  Scal nc = cfl * ns; // distance in cells passed
-  Scal dt = dx * cfl / vel.norminf();
-  par.Double.Set("dt", dt);
-  Scal t = dt * ns;
+  if (auto pcfl = par.Double("cfl")) {
+    Scal cfl = *pcfl;
+    Scal dt = dx * cfl / vel.norminf();
+    par.Double.Set("dt", dt);
+    //Scal nc = cfl * ns; // distance in cells passed
+  }
+  Scal t = par.Double["dt"] * ns;
 
   auto sem = m.GetSem("Run");
   auto f = [](Vect x) { 
@@ -362,16 +443,7 @@ void Advection<M>::Run() {
   bool fatal = par.Int["fatal"];
 
   if (sem.Nested()) {
-    TestSolve(f0, f0, 0, "f0", fatal);
-  }
-  if (sem.Nested()) {
-    TestSolve(f1, f1, 0, "f1", fatal);
-  }
-  if (sem.Nested()) {
-    TestSolve(fx, fex, 4, "fx", fatal);
-  }
-  if (sem.Nested()) {
-    TestSolve(f, f, 0, "f", false);
+    TestSolve(f0, f0, 0, "f0", false);
   }
 }
 
