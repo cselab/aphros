@@ -6,10 +6,16 @@
 
 #include "Vars.h"
 
+// TODO: move implementation to cpp
+
 class Interp {
  public:
   Interp(Vars& v) : v_(v) {}
+  std::string RemoveComment(std::string s) {
+    return s.substr(0, s.find('#', 0));
+  }
   void Cmd(std::string s) {
+    s = RemoveComment(s);
     std::stringstream b(s);
     std::string cmd; 
     b >> cmd;
