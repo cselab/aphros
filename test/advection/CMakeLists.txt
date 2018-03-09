@@ -18,6 +18,7 @@ add_executable(${EXE} main.cpp
     ${CD}/Vars.cpp
     ${CD}/Local.cpp
     ${CD}/Cubism.cpp
+    ${CD}/Interp.cpp
     )
      
 # OpenMP 

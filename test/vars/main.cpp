@@ -8,10 +8,10 @@ namespace simple {
 
 void Simple() {
   Vars v;
-  v.Parse("asdf", "string", "a");
-  v.Parse("5", "int", "b");
-  v.Parse("5.5", "double", "c");
-  v.Parse("1 2 3 4", "vect", "d");
+  v.SetStr("string", "a", "asdf");
+  v.SetStr("int", "b", "5");
+  v.SetStr("double", "c", "5.5");
+  v.SetStr("vect", "d", "1 2 3 4");
 
   assert(v.String["a"] == "asdf");
   assert(v.Int["b"] == 5);
@@ -27,8 +27,8 @@ void TestParse(std::string s) {
   Vars vars;
   std::string k = "key";
   auto& m = vars.Get<T>();
-  m.Parse(s, k);
-  auto p = m.Print(k);
+  m.SetStr(k, s);
+  auto p = m.GetStr(k);
   std::cerr
       << m.GetTypeName() << ": "
       << "'" << s << "' == '" << p << "'" << std::endl;
@@ -38,9 +38,8 @@ void TestParse(std::string s) {
 void TestTypeName(std::string s, std::string type) {
   Vars vars;
   std::string k = "key";
-  bool f = vars.Parse(s, type, k);
-  assert(f);
-  std::string p = vars.Print(type, k);
+  vars.SetStr(type, k, s);
+  std::string p = vars.GetStr(type, k);
   std::cerr
       << type << ": "
       << "'" << s << "' == '" << p << "'" << std::endl;
@@ -71,7 +70,7 @@ void TestDel(std::string s) {
   Vars vars;
   std::string k = "key";
   auto& m = vars.Get<T>();
-  m.Parse(s, k);
+  m.SetStr(k, s);
   assert(m.Exists(k));
   m.Del(k);
   assert(!m.Exists(k));
