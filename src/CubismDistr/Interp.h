@@ -28,6 +28,8 @@ class Interp {
   void CmdSet(std::string s);
   // del <name>
   void CmdDel(std::string s); 
+  // include <filename>
+  void CmdInclude(std::string s); 
 
   Vars& v_;
 };

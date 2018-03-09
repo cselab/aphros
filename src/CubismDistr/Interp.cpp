@@ -1,5 +1,6 @@
 #include <sstream>
 #include <cassert>
+#include <fstream>
 
 #include "Interp.h"
 #include "Vars.h"
@@ -19,6 +20,8 @@ void Interp::Cmd(std::string s) {
     CmdSet(s);
   } else if (cmd == "del") {
     CmdDel(s);
+  } else if (cmd == "include") {
+    CmdInclude(s);
   } else if (cmd == "") {
     // nop
   } else {
@@ -47,6 +50,19 @@ void Interp::CmdDel(std::string s) {
     std::cerr << "del: unknown variable '" << key << "'" << std::endl;
     assert(false);
   }
+}
+
+void Interp::CmdInclude(std::string s) {
+  std::string cmd, fn;
+  std::stringstream b(s);
+  b >> cmd >> fn;
+
+  std::ifstream f(fn);
+  std::stringstream r;
+  r << f.rdbuf();
+  f.close();
+
+  RunAll(r);
 }
 
 void Interp::RunNext(std::istream& in) {
