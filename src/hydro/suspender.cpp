@@ -68,6 +68,36 @@ bool Suspender::Sem::Nested(std::string suff) {
   return (*this)(suff);
 }
 
+#include <iostream>
+void Suspender::Sem::LoopBegin() {
+  if ((*this)()) {
+    U& u = *p.lui_;
+    u.lb = u.c - 1;
+    std::cerr << "lb=" << u.lb << std::endl;
+  }
+}
+
+void Suspender::Sem::LoopBreak() {
+  if ((*this)()) {
+    U& u = *p.lui_;
+    u.t = u.le + 1;
+    std::cerr << "t=" << u.t << std::endl;
+  }
+}
+
+void Suspender::Sem::LoopEnd() {
+  U& u = *p.lui_;
+  if (u.le < u.lb && // le not initialized for current loop
+      u.lb <= u.t) { // target is within the loop
+    u.le = u.c;
+    std::cerr << "le=" << u.lb << std::endl;
+  }
+  if ((*this)()) {
+    u.t = u.lb + 1;
+  }
+}
+
+
 Suspender::Suspender() 
   : lu_(1, U(-1,-1)), lui_(lu_.begin()), nest_(false)
 {}
