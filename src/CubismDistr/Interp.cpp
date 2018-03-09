@@ -81,8 +81,9 @@ template <class T>
 void Interp::Print(Vars::Map<T>& m, std::ostream& out) {
   for (auto& a : m) {
     out 
+        << "set "
         << m.GetTypeName() << " " 
-        <<  a.first << " = " 
+        << a.first << " "
         << m.GetStr(a.first) << std::endl;
   }
 }
