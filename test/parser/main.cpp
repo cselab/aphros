@@ -19,6 +19,7 @@ void Simple() {
   s << "set vect d 1" << std::endl;
 
   ip.RunAll(s);
+  ip.PrintAll();
 
   assert(par.String["a"] == "1");
   assert(par.Int["b"] == 1);

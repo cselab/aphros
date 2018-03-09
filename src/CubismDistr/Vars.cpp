@@ -63,21 +63,21 @@ std::string Vars::GetTypeName(Key k) const {
 
 
 template <class T>
-std::string Vars::Map<T>::Print(Key k) const {
+std::string Vars::Map<T>::GetStr(Key k) const {
   std::stringstream b;
   b << m_.at(k);
   return b.str();
 }
 
 template <class T>
-bool Vars::Map<T>::Parse(std::string s, Key k) {
-  std::stringstream b(s);
+void Vars::Map<T>::SetStr(Key k, std::string v) {
+  std::stringstream b(v);
   b >> std::skipws;
   b >> m_[k];
 
   if (b.fail()) {
     std::cerr 
-        << "Unable to parse '" << s 
+        << "Unable to parse '" << v 
         << "' as " << GetTypeName() << std::endl;;
     assert(false);
   }
@@ -89,15 +89,14 @@ bool Vars::Map<T>::Parse(std::string s, Key k) {
   if (b.good()) {
     // If good, the string contained invalid characters
     std::cerr 
-        << "Trailing characters when parsing '" << s 
+        << "Trailing characters when parsing '" << v
         << "' as " << GetTypeName() << std::endl;;
     assert(false);
   }
-  return true;
 }
 
 template <>
-std::string Vars::Map<std::vector<double>>::Print(Key k) const {
+std::string Vars::Map<std::vector<double>>::GetStr(Key k) const {
   std::stringstream b;
   for (auto a : m_.at(k)) {
     b << a << " ";
@@ -106,7 +105,7 @@ std::string Vars::Map<std::vector<double>>::Print(Key k) const {
 }
 
 template <>
-bool Vars::Map<std::vector<double>>::Parse(std::string s, Key k) {
+void Vars::Map<std::vector<double>>::SetStr(Key k, std::string s) {
   std::vector<double> r;
   std::stringstream b(s);
   while (b) {
@@ -123,13 +122,11 @@ bool Vars::Map<std::vector<double>>::Parse(std::string s, Key k) {
     }
   }
   m_[k] = r;
-  return true;
 }
 
 template <>
-bool Vars::Map<std::string>::Parse(std::string s, Key k) {
+void Vars::Map<std::string>::SetStr(Key k, std::string s) {
   m_[k] = s;
-  return true;
 }
 
 template <class T>
@@ -183,49 +180,64 @@ void Vars::Map<T>::Del(Key k) {
   m_.erase(m_.find(k));
 }
 
-std::string Vars::Print(std::string type, Key k) const {
-  if (type == String.GetTypeName()) {
-    return String.Print(k);
+template <class T>
+bool Vars::Map<T>::DelIfExists(Key k) {
+  if (Exists(k)) {
+    Del(k);
+    return true;
   }
-  if (type == Int.GetTypeName()) {
-    return Int.Print(k);
+  return false;
+}
+
+bool Vars::Del(Key k) {
+  bool r = false;
+  r = r || String.DelIfExists(k);
+  r = r || Int.DelIfExists(k);
+  r = r || Double.DelIfExists(k);
+  r = r || Vect.DelIfExists(k);
+  return r;
+}
+
+std::string Vars::GetStr(std::string t, Key k) const {
+  if (t == String.GetTypeName()) {
+    return String.GetStr(k);
   }
-  if (type == Double.GetTypeName()) {
-    return Double.Print(k);
+  if (t == Int.GetTypeName()) {
+    return Int.GetStr(k);
   }
-  if (type == Vect.GetTypeName()) {
-    return Vect.Print(k);
+  if (t == Double.GetTypeName()) {
+    return Double.GetStr(k);
   }
-  std::cerr << "Vars::Print(): Unknown type=" << type << std::endl;
+  if (t == Vect.GetTypeName()) {
+    return Vect.GetStr(k);
+  }
+  std::cerr << "Vars::GetStr(): Unknown type=" << t << std::endl;
   assert(false);
   return "";
 }
 
-bool Vars::Parse(std::string s, std::string type, Key k) {
+void Vars::SetStr(std::string t, Key k, std::string v) {
   std::string e = GetTypeName(k); // existing type
-  if (e != "" && e != type) {
-    std::cerr << "Vars::Parse(): Attempt to change type of variable '" 
-        << k << "' from '" << type << "' to '" << e << "'" << std::endl;
+  if (e != "" && e != t) {
+    std::cerr 
+        << "Vars::SetStr(): Attempt to change type of variable '" 
+        << k << "' from '" << t << "' to '" << e << "'" << std::endl;
     assert(false);
-    return false;
   }
   // TODO: Map::Set() still allows same name for two variables
 
-  if (type == String.GetTypeName()) {
-    return String.Parse(s, k);
+  if (t == String.GetTypeName()) {
+    String.SetStr(k, v);
+  } else if (t == Int.GetTypeName()) {
+    Int.SetStr(k, v);
+  } else if (t == Double.GetTypeName()) {
+    Double.SetStr(k, v);
+  } else if (t == Vect.GetTypeName()) {
+    Vect.SetStr(k, v);
+  } else {
+    std::cerr << "Vars::SetStr(): Unknown type=" << t << std::endl;
+    assert(false);
   }
-  if (type == Int.GetTypeName()) {
-    return Int.Parse(s, k);
-  }
-  if (type == Double.GetTypeName()) {
-    return Double.Parse(s, k);
-  }
-  if (type == Vect.GetTypeName()) {
-    return Vect.Parse(s, k);
-  }
-  std::cerr << "Vars::Parse(): Unknown type=" << type << std::endl;
-  assert(false);
-  return false;
 }
 
 template class Vars::Map<std::string>;

@@ -8,20 +8,26 @@
 class Interp {
  public:
   Interp(Vars& v);
-  std::string RemoveComment(std::string s);
-  void Cmd(std::string s);
-  void CmdSet(std::string s);
-  template <class T>
-  static bool Del(Vars::Map<T>& m, std::string k); 
-  static bool Del(Vars& v, std::string k); 
-  void CmdDel(std::string s); 
-  bool RunNext(std::istream& in); 
+  // Executes single line 
+  void RunNext(std::istream& in); 
+  // Executes all lines 
   void RunAll(std::istream& in); 
+  // Prints content of Map
   template <class T>
-  void Print(Vars::Map<T>& m, std::ostream& out); 
+  static void Print(Vars::Map<T>& m, std::ostream& out); 
+  // Prints content of v_
   void PrintAll(std::ostream& out); 
+  // Prints content of v_ to std::cout
   void PrintAll(); 
 
  private:
+  static std::string RemoveComment(std::string s);
+  // Executes single command
+  void Cmd(std::string s);
+  // set <type> <key> <value>
+  void CmdSet(std::string s);
+  // del <name>
+  void CmdDel(std::string s); 
+
   Vars& v_;
 };

@@ -15,15 +15,16 @@ class Vars {
     using M = std::map<Key, T>;
     using It = typename M::iterator;
     std::string GetTypeName() const;
-    std::string Print(Key k) const;
-    bool Parse(std::string s, Key k);
-    T* operator()(Key k);
-    const T* operator()(Key k) const;
-    T& operator[](Key k);
-    const T& operator[](Key k) const;
-    void Set(Key k, const T& v);
-    bool Exists(Key k) const;
-    void Del(Key k);
+    std::string GetStr(Key) const;
+    void SetStr(Key, std::string val);
+    T* operator()(Key);
+    const T* operator()(Key) const;
+    T& operator[](Key);
+    const T& operator[](Key) const;
+    void Set(Key, const T& val);
+    bool Exists(Key) const;
+    void Del(Key);
+    bool DelIfExists(Key);
     It begin() { return m_.begin(); }
     It end() { return m_.end(); }
 
@@ -35,15 +36,13 @@ class Vars {
   template <class T>
   Map<T>& Get();
 
-  // Returns string representation by type name and key
-  // TODO: rename to Get
-  std::string Print(std::string type, Key k) const;
-  // Parses string and sets value of given type and key
-  // TODO: rename to Set
-  bool Parse(std::string s, std::string type, Key k);
-  // Returns a type for which k is defined
-  // (if more than 1 found, returns any; if none, returns "")
-  std::string GetTypeName(Key k) const;
+  std::string GetStr(std::string type, Key) const;
+  void SetStr(std::string type, Key, std::string val);
+  // Returns a type name for which entry with given k exists
+  // (if multiple found, returns one; if none, returns "")
+  std::string GetTypeName(Key) const;
+  // Deletes entry by key for all types, returns true if found
+  bool Del(Key); 
 
   Map<std::string> String;
   Map<int> Int;
