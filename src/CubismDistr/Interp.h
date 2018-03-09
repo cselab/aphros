@@ -2,100 +2,26 @@
 
 #include <iostream>
 #include <string>
-#include <sstream>
 
 #include "Vars.h"
 
-// TODO: move implementation to cpp
-
 class Interp {
  public:
-  Interp(Vars& v) : v_(v) {}
-  std::string RemoveComment(std::string s) {
-    return s.substr(0, s.find('#', 0));
-  }
-  void Cmd(std::string s) {
-    s = RemoveComment(s);
-    std::stringstream b(s);
-    std::string cmd; 
-    b >> cmd;
-    if (cmd == "set") {
-      CmdSet(s);
-    } else if (cmd == "del") {
-      CmdDel(s);
-    } else if (cmd == "") {
-      // nop
-    } else {
-      std::cerr << "Unknown command: '" << cmd << "'" <<  std::endl;
-      assert(false);
-    }
-  }
-  void CmdSet(std::string s) {
-    std::string cmd, type, key, val;
-    std::stringstream b(s);
-    b >> std::skipws;
-    b >> cmd >> type >> key;
-    // Read first non-ws character (append later)
-    char c;
-    b >> c;
-    std::getline(b, val);
-    v_.Parse(c + val, type, key);
-  }
+  Interp(Vars& v);
+  std::string RemoveComment(std::string s);
+  void Cmd(std::string s);
+  void CmdSet(std::string s);
   template <class T>
-  bool Del(Vars::Map<T>& m, std::string k) {
-    if (m.Exists(k)) {
-      m.Del(k);
-      return true;
-    }
-    return false;
-  }
-  bool Del(std::string k) {
-    bool r = false;
-    if (!r) r = Del(v_.String, k);
-    if (!r) r = Del(v_.Int, k);
-    if (!r) r = Del(v_.Double, k);
-    if (!r) r = Del(v_.Vect, k);
-    return r;
-  }
-  void CmdDel(std::string s) {
-    std::string cmd, key;
-    std::stringstream b(s);
-    b >> cmd >> key;
-    if (!Del(key)) {
-      std::cerr << "del: unknown variable '" << key << "'" << std::endl;
-      assert(false);
-    }
-  }
-  bool RunNext(std::istream& in) {
-    std::string s;
-    std::getline(in, s);
-    if (in) {
-      Cmd(s);
-      return true;
-    }
-    return false;
-  }
-  void RunAll(std::istream& in) {
-    while (RunNext(in)) {}
-  }
+  static bool Del(Vars::Map<T>& m, std::string k); 
+  static bool Del(Vars& v, std::string k); 
+  void CmdDel(std::string s); 
+  bool RunNext(std::istream& in); 
+  void RunAll(std::istream& in); 
   template <class T>
-  void Print(Vars::Map<T>& m, std::ostream& out) {
-    for (auto& a : m) {
-      out 
-          << m.GetTypeName() << " " 
-          <<  a.first << " = " 
-          << m.Print(a.first) << std::endl;
-    }
-  }
-  void PrintAll(std::ostream& out) {
-    Print(v_.String, out);
-    Print(v_.Int, out);
-    Print(v_.Double, out);
-    Print(v_.Vect, out);
-  }
-  void PrintAll() {
-    PrintAll(std::cout);
-  }
+  void Print(Vars::Map<T>& m, std::ostream& out); 
+  void PrintAll(std::ostream& out); 
+  void PrintAll(); 
+
  private:
   Vars& v_;
 };
