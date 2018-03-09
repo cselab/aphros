@@ -36,49 +36,29 @@ void Interp::CmdSet(std::string s) {
   char c;
   b >> c;
   std::getline(b, val);
-  v_.Parse(c + val, type, key);
-}
-
-template <class T>
-bool Interp::Del(Vars::Map<T>& m, std::string k) {
-  if (m.Exists(k)) {
-    m.Del(k);
-    return true;
-  }
-  return false;
-}
-
-bool Interp::Del(Vars& v, std::string k) {
-  bool r = false;
-  if (!r) r = Del(v.String, k);
-  if (!r) r = Del(v.Int, k);
-  if (!r) r = Del(v.Double, k);
-  if (!r) r = Del(v.Vect, k);
-  return r;
+  v_.SetStr(type, key, c + val);
 }
 
 void Interp::CmdDel(std::string s) {
   std::string cmd, key;
   std::stringstream b(s);
   b >> cmd >> key;
-  if (!Del(v_, key)) {
+  if (!v_.Del(key)) {
     std::cerr << "del: unknown variable '" << key << "'" << std::endl;
     assert(false);
   }
 }
 
-bool Interp::RunNext(std::istream& in) {
+void Interp::RunNext(std::istream& in) {
   std::string s;
   std::getline(in, s);
-  if (in) {
-    Cmd(s);
-    return true;
-  }
-  return false;
+  Cmd(s);
 }
 
 void Interp::RunAll(std::istream& in) {
-  while (RunNext(in)) {}
+  while (in) {
+    RunNext(in);
+  }
 }
 
 template <class T>
@@ -87,7 +67,7 @@ void Interp::Print(Vars::Map<T>& m, std::ostream& out) {
     out 
         << m.GetTypeName() << " " 
         <<  a.first << " = " 
-        << m.Print(a.first) << std::endl;
+        << m.GetStr(a.first) << std::endl;
   }
 }
 
