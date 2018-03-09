@@ -88,6 +88,75 @@ void B(S& s) {
   }
 }
 
+namespace loop {
+
+int k;
+
+// converged
+bool Conv() {
+  return k > 5;
+}
+
+// action that changes conv condition
+void Iter(S& s) {
+  auto e = s.GetSem("I");
+  if (e("1")) {
+    b += "1";
+  }
+  if (e("2")) {
+    b += "2";
+  }
+  if (e("3")) {
+    b += "3";
+  }
+  if (e("+")) {
+    ++k;
+  }
+}
+
+// Loop suspender:
+// * syntax of loop must be preserved
+// * additional calls in either condition check 
+// or begin/end of loop body
+// * allow multi-stage loop body
+// * start with specific form
+//   while (diff > tol) {
+//     
+//   }
+//   - both diff and tol are global variables
+//   - diff is modified within the loop body
+//
+
+
+void Run(S& s) {
+  auto e = s.GetSem("L");
+  k = 0;
+  e.LoopBegin();
+  if (e.Nested()) {
+    Iter(s);
+    e.LoopBreak();
+  }
+  e.LoopEnd();
+}
+
+void Test() {
+  S s;
+  b = "";
+  std::string p = "A1|B1|C1C2|B2|A2|C1C2|D1D2|E1|E2|E1|E2|E1|E2|";
+  do {
+    Run(s);
+    b += "|";
+    std::cerr << s.Print() << " " << s.GetCurName() << std::endl;
+  } while (s.Pending());
+
+  std::cerr
+      << "'" << b << "' == '" << p << "'" << std::endl;
+  //assert(b == p);
+}
+
+} // namespace loop
+
+
 void A(S& s) {
   auto e = s.GetSem("A");
   if (e("1")) {
@@ -127,9 +196,9 @@ void Test() {
 
 }
 
-
 int main() {
-  simple::Simple();
+  //simple::Simple();
 
-  Test();
+  //Test();
+  loop::Test();
 }

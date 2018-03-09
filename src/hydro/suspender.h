@@ -10,14 +10,7 @@
 //   sem();
 // causes an infinite loop
 // (see todo in tests/suspender)
-
-// TODO: Add Nested() method
-// acting like operator() but allows nested calls
-// by setting internal flag allow_nested_ if target==current.
-// The flag is cleared by any GetSem().
-// GetSem() allowed only if allow_nested_ is set.
-// Constructor of Suspender() sets the flag.
-
+//
 // Suspendable functions.
 // Function F() is separated in stages each enclosed by if-operator.
 // At each call of function F(), only one stage is executed.
@@ -28,7 +21,9 @@ class Suspender {
   struct U { // stage co[u]nter
     int c; // current
     int t; // target
-    U(int c, int t) : c(c), t(t) {}
+    int lb; // loop begin
+    int le; // loop end
+    U(int c, int t) : c(c), t(t), lb(-1), le(-1) {}
   };
   class Sem { // [sem]aphore
    public:
@@ -50,6 +45,9 @@ class Suspender {
     // Same as operator() but allows nested calls
     bool Nested(std::string suff="" /*name suffix*/);
     std::string GetName() const { return name_; }
+    void LoopBegin();
+    void LoopBreak();
+    void LoopEnd();
    private:
     Suspender& p; // parent
     std::string name_;
