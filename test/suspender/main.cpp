@@ -206,8 +206,8 @@ void Test() {
 }
 
 int main() {
-  //simple::Simple();
+  simple::Simple();
 
-  //Test();
+  Test();
   loop::Test();
 }
