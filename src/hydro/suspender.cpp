@@ -76,13 +76,11 @@ bool Suspender::Sem::Nested(std::string suff) {
 // lb -- index of LoopBegin
 // le -- index of LoopEnd
 
-#include <iostream>
 void Suspender::Sem::LoopBegin() {
   U& u = *p.lui_;
   if (u.c == u.t) {
     if (u.lb < u.c) {
       u.lb = u.c;
-      std::cerr << "lb=" << u.lb << std::endl;
     }
     ++u.t; 
   }
@@ -102,19 +100,11 @@ void Suspender::Sem::LoopEnd() {
   if (u.le < u.lb && // le not initialized for current loop
       u.lb <= u.t) { // target is within the loop
     u.le = u.c;
-    std::cerr << "le=" << u.le << std::endl;
   }
   if (u.c == u.t + 1) {
     u.t = u.lb; // another ++t in ~Sem
-    std::cerr << "jump" << std::endl;
   }
   ++u.c;
-  std::cerr 
-      << "end "
-      << "t=" << u.t << " "
-      << "c=" << u.c << " "
-      << "lb=" << u.lb << " "
-      << "le=" << u.le << std::endl;
 }
 
 
