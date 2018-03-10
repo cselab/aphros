@@ -92,26 +92,20 @@ namespace loop {
 
 int k;
 
-// converged
-bool Conv() {
-  return k > 5;
-}
-
 // action that changes conv condition
 void Iter(S& s) {
   auto e = s.GetSem("I");
-  if (e("1")) {
-    b += "1";
-  }
-  if (e("2")) {
-    b += "2";
-  }
-  if (e("3")) {
-    b += "3";
+  if (e("a")) {
+    b += "a";
   }
   if (e("+")) {
+    b += "+";
     ++k;
   }
+  if (e("b")) {
+    b += "b";
+  }
+  std::cerr << "k=" << k << std::endl;
 }
 
 // Loop suspender:
@@ -130,19 +124,34 @@ void Iter(S& s) {
 
 void Run(S& s) {
   auto e = s.GetSem("L");
-  k = 0;
+  if (e()) {
+    b += "0";
+    k = 0;
+  }
+  if (e()) {
+    b += "lb";
+  }
   e.LoopBegin();
   if (e.Nested()) {
     Iter(s);
-    e.LoopBreak();
+  }
+  if (e()) {
+    b += "c";
+    if (k >= 3) {
+      e.LoopBreak();
+    }
   }
   e.LoopEnd();
+
+  if (e()) {
+    b += "le";
+  }
 }
 
 void Test() {
   S s;
   b = "";
-  std::string p = "A1|B1|C1C2|B2|A2|C1C2|D1D2|E1|E2|E1|E2|E1|E2|";
+  std::string p = "0|lb|a|+|b|c|a|+|b|c|a|+|b|c|le|";
   do {
     Run(s);
     b += "|";
@@ -151,7 +160,7 @@ void Test() {
 
   std::cerr
       << "'" << b << "' == '" << p << "'" << std::endl;
-  //assert(b == p);
+  assert(b == p);
 }
 
 } // namespace loop

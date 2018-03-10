@@ -68,33 +68,53 @@ bool Suspender::Sem::Nested(std::string suff) {
   return (*this)(suff);
 }
 
+
+// Each stage has an absolute index 
+// which c takes at every call regardless of t.
+// ++c must be in every stage.
+// LoopBegin and LoopEnd are also stages.
+// lb -- index of LoopBegin
+// le -- index of LoopEnd
+
 #include <iostream>
 void Suspender::Sem::LoopBegin() {
-  if ((*this)()) {
-    U& u = *p.lui_;
-    u.lb = u.c - 1;
-    std::cerr << "lb=" << u.lb << std::endl;
+  U& u = *p.lui_;
+  if (u.c == u.t) {
+    if (u.lb < u.c) {
+      u.lb = u.c;
+      std::cerr << "lb=" << u.lb << std::endl;
+    }
+    ++u.t; 
   }
+  ++u.c;
 }
 
 void Suspender::Sem::LoopBreak() {
-  if ((*this)()) {
-    U& u = *p.lui_;
-    u.t = u.le + 1;
-    std::cerr << "t=" << u.t << std::endl;
-  }
+  U& u = *p.lui_;
+  u.t = u.le;
 }
 
+// Important to initialize le even before 
+// t reaches LoopEnd 
+// to be able to break on first iteration
 void Suspender::Sem::LoopEnd() {
   U& u = *p.lui_;
   if (u.le < u.lb && // le not initialized for current loop
       u.lb <= u.t) { // target is within the loop
     u.le = u.c;
-    std::cerr << "le=" << u.lb << std::endl;
+    std::cerr << "le=" << u.le << std::endl;
   }
-  if ((*this)()) {
-    u.t = u.lb + 1;
+  if (u.c == u.t + 1) {
+    u.t = u.lb; // another ++t in ~Sem
+    std::cerr << "jump" << std::endl;
   }
+  ++u.c;
+  std::cerr 
+      << "end "
+      << "t=" << u.t << " "
+      << "c=" << u.c << " "
+      << "lb=" << u.lb << " "
+      << "le=" << u.le << std::endl;
 }
 
 
