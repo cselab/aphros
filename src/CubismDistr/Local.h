@@ -40,8 +40,7 @@ class Local : public DistrMesh<KF> {
   using P::es_;
   using P::hl_;
   using P::p_;
-  using P:: b_; 
-  using P::step_;
+  using P::b_; 
   using P::stage_;
   using P::frame_;
   using P::isroot_;

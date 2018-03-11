@@ -14,8 +14,7 @@
 
 class Distr {
  public:
-  virtual bool IsDone() const = 0;
-  virtual void Step() = 0;
+  virtual void Run() = 0;
   virtual ~Distr() {}
 };
 
@@ -28,8 +27,7 @@ class DistrMesh : public Distr {
   using MIdx = typename M::MIdx;
   using Vect = typename M::Vect;
 
-  virtual bool IsDone() const;
-  virtual void Step();
+  virtual void Run();
   virtual ~DistrMesh() {}
   virtual typename M::BlockCells GetGlobalBlock() const;
   // Returns data field i from buffer defined on global mesh
@@ -49,7 +47,6 @@ class DistrMesh : public Distr {
   MIdx p_; // number of ranks
   MIdx b_; // number of blocks
 
-  int step_ = 0;
   int stage_ = 0;
   int frame_ = 0;
 
@@ -83,11 +80,6 @@ DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& par)
   , p_{par.Int["px"], par.Int["py"], par.Int["pz"]}
   , b_{par.Int["bx"], par.Int["by"], par.Int["bz"]}
 {}
-
-template <class KF>
-bool DistrMesh<KF>::IsDone() const { 
-  return step_ > par.Int["max_step"]; 
-}
 
 template <class KF>
 void DistrMesh<KF>::Run(const std::vector<MIdx>& bb) {
@@ -189,10 +181,7 @@ geom::FieldCell<Scal> DistrMesh<KF>::GetGlobalField(size_t i) const {
 
 
 template <class KF>
-void DistrMesh<KF>::Step() {
-  if (isroot_) {
-    std::cerr << "***** STEP " << step_ << " ******" << std::endl;
-  }
+void DistrMesh<KF>::Run() {
   stage_ = 0;
   do {
     auto bb = GetBlocks();
@@ -227,11 +216,12 @@ void DistrMesh<KF>::Step() {
     }
   } while (true);
 
+  /*
   if (par.Int["output"] && 
       step_ % (par.Int["max_step"] / par.Int["num_frames"])  == 0) {
     Dump(frame_, step_);
     ++frame_;
   }
-  ++step_;
+  */
 }
 

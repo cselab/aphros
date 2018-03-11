@@ -130,7 +130,6 @@ class Cubism : public DistrMesh<KF> {
   using P::hl_;
   using P::p_;
   using P:: b_; 
-  using P::step_;
   using P::stage_;
   using P::frame_;
   using P::isroot_;
