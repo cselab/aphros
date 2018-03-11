@@ -1166,6 +1166,9 @@ class MeshStructured {
   void Comm(FieldCell<Scal>* u) {
     vcm_.push_back(u);
   }
+  void Dump(FieldCell<Scal>* u, std::string name) {
+    vd_.push_back(std::make_pair(u, name));
+  }
   void Reduce(Scal* u) {
     vrd_.push_back(u);
   }
@@ -1174,6 +1177,9 @@ class MeshStructured {
   }
   const std::vector<FieldCell<Scal>*>& GetComm() const {
     return vcm_;
+  }
+  const std::vector<std::pair<FieldCell<Scal>*, std::string>>& GetDump() const {
+    return vd_;
   }
   void ClearComm() {
     vcm_.clear();
@@ -1194,6 +1200,7 @@ class MeshStructured {
  private:
   Suspender susp_;
   std::vector<FieldCell<Scal>*> vcm_; // fields for [c]o[m]munication
+  std::vector<std::pair<FieldCell<Scal>*, std::string>> vd_; // fields for dump
   std::vector<Scal*> vrd_; // scalars for reduction
   std::vector<LS> vls_; // linear system
   // END DISTR

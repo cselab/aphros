@@ -58,7 +58,7 @@ class Local : public DistrMesh<KF> {
   void ReadBuffer(const std::vector<MIdx>& bb) override;
   void WriteBuffer(const std::vector<MIdx>& bb) override;
   void Reduce(const std::vector<MIdx>& bb) override;
-  void Dump(int frame, int step) override;
+  void DumpWrite(const std::vector<MIdx>& bb) override;
 };
 
 template <class KF>
@@ -91,20 +91,6 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par)
   , buf_(es_)
   , gm(CreateMesh(bs_, b_, p_, es_))
 {
-
-  output::Content content = {
-    std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
-        "vx", gm, [this](IdxCell i) { return buf_[0][i]; }),
-    std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
-        "vy", gm, [this](IdxCell i) { return buf_[1][i]; }),
-    std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
-        "vz", gm, [this](IdxCell i) { return buf_[2][i]; }),
-    std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
-        "p", gm, [this](IdxCell i) { return buf_[3][i]; })
-  };
-
-  session_.reset(new output::SessionParaviewStructured<M>(
-        content, "title", "p" /*filename*/, gm));
 
   // Resize buffer for mesh
   for (auto& u : buf_) {
@@ -225,10 +211,28 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
 }
 
 template <class KF>
-void Local<KF>::Dump(int frame, int step) {
+void Local<KF>::DumpWrite(const std::vector<MIdx>& bb) {
+  if (!session_) {
+    output::Content content = {
+      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+          "vx", gm, [this](IdxCell i) { return buf_[0][i]; }),
+      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+          "vy", gm, [this](IdxCell i) { return buf_[1][i]; }),
+      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+          "vz", gm, [this](IdxCell i) { return buf_[2][i]; }),
+      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+          "p", gm, [this](IdxCell i) { return buf_[3][i]; })
+    };
+
+    session_.reset(new output::SessionParaviewStructured<M>(
+          content, "title", "p" /*filename*/, gm));
+  }
+  /*
+
   auto suff = "_" + std::to_string(frame);
   std::cerr << "Output" << std::endl;
   session_->Write(step * 1., "title:0");
+  */
 }
 
 
@@ -251,8 +255,6 @@ void Local<KF>::ReadBuffer(M& m) {
     }
     ++e;
   }
-
-  m.ClearComm();
 }
 
 template <class KF>

@@ -161,8 +161,6 @@ class Cubism : public DistrMesh<KF> {
       }
       ++e;
     }
-
-    m.ClearComm();
   }
 
   void WriteBuffer(M& m, Block_t& o) {
@@ -187,7 +185,7 @@ class Cubism : public DistrMesh<KF> {
   void ReadBuffer(const std::vector<MIdx>& bb) override;
   void WriteBuffer(const std::vector<MIdx>& bb) override;
   void Reduce(const std::vector<MIdx>& bb) override;
-  void Dump(int frame, int step) override;
+  void DumpWrite(const std::vector<MIdx>& bb) override;
 };
 
 
@@ -369,10 +367,40 @@ void Cubism<KF>::Reduce(const std::vector<MIdx>& bb) {
 }
 
 template <class KF>
+void Cubism<KF>::DumpWrite(const std::vector<MIdx>& bb) {
+  /*
+  if (!session_) {
+    output::Content content = {
+      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+          "vx", gm, [this](IdxCell i) { return buf_[0][i]; }),
+      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+          "vy", gm, [this](IdxCell i) { return buf_[1][i]; }),
+      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+          "vz", gm, [this](IdxCell i) { return buf_[2][i]; }),
+      std::make_shared<output::EntryFunction<Scal, IdxCell, M>>(
+          "p", gm, [this](IdxCell i) { return buf_[3][i]; })
+    };
+
+    session_.reset(new output::SessionParaviewStructured<M>(
+          content, "title", "p", gm));
+  }
+*/
+  /*
+
+  auto suff = "_" + std::to_string(frame);
+  std::cerr << "Output" << std::endl;
+  session_->Write(step * 1., "title:0");
+  */
+}
+
+
+/*
+template <class KF>
 void Cubism<KF>::Dump(int frame, int step) {
   auto suff = "_" + std::to_string(frame_);
   DumpHDF5_MPI<TGrid, StreamHdf<0>>(g_, frame, step*1., "p" + suff);
 }
+*/
 
 
 template <int i>

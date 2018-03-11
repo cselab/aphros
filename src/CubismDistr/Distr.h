@@ -66,9 +66,11 @@ class DistrMesh : public Distr {
   // Reduce TODO: extend doc
   virtual void Reduce(const std::vector<MIdx>& bb) = 0;
   virtual void Solve(const std::vector<MIdx>& bb);
+  virtual void DumpComm(const std::vector<MIdx>& bb);
+  virtual void DumpWrite(const std::vector<MIdx>& bb) {};
+  virtual void ClearComm(const std::vector<MIdx>& bb);
   // TODO: make Pending const
   virtual bool Pending(const std::vector<MIdx>& bb);
-  virtual void Dump(int frame, int step) = 0;
 };
 
 template <class KF>
@@ -88,6 +90,27 @@ void DistrMesh<KF>::Run(const std::vector<MIdx>& bb) {
     k.Run();
     }
 }
+
+template <class KF>
+void DistrMesh<KF>::ClearComm(const std::vector<MIdx>& bb) {
+  for (auto& b : bb) {
+    auto& m = mk.at(b)->GetMesh();
+
+    m.ClearComm();
+  }
+}
+
+template <class KF>
+void DistrMesh<KF>::DumpComm(const std::vector<MIdx>& bb) {
+  for (auto& b : bb) {
+    auto& m = mk.at(b)->GetMesh();
+
+    for (auto d : m.GetDump()) {
+      m.Comm(d.first);
+    }
+  }
+}
+
 
 template <class KF>
 void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
@@ -187,16 +210,22 @@ void DistrMesh<KF>::Run() {
     auto bb = GetBlocks();
     
     assert(!bb.empty());
-  
-    ReadBuffer(bb);
-    
-    Run(bb);
 
-    WriteBuffer(bb);
+    ReadBuffer(bb);
+
+    DumpWrite(bb);
+
+    ClearComm(bb);
 
     Reduce(bb);
 
     Solve(bb);
+
+    Run(bb);
+
+    DumpComm(bb);
+
+    WriteBuffer(bb);
 
     stage_ += 1;
 
