@@ -212,27 +212,28 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
 
 template <class KF>
 void Local<KF>::DumpWrite(const std::vector<MIdx>& bb) {
-  if (!session_) {
-    auto& m = mk.at(bb[0])->GetMesh();
-    // TODO: check all blocks are same as first
-    output::Content c;
-    size_t k = m.GetComm().size() - m.GetDump().size();
-    for (auto d : m.GetDump()) {
-      c.emplace_back(
-          new output::EntryFunction<Scal, IdxCell, M>(
-              d.second, gm, [this,k](IdxCell i) { return buf_[k][i]; }));
-      ++k;
+  auto& m = mk.at(bb[0])->GetMesh();
+  if (m.GetDump().size()) {
+    if (!session_) {
+      // TODO: check all blocks are same as first
+      output::Content c;
+      size_t k = m.GetComm().size() - m.GetDump().size();
+      for (auto d : m.GetDump()) {
+        c.emplace_back(
+            new output::EntryFunction<Scal, IdxCell, M>(
+                d.second, gm, [this,k](IdxCell i) { return buf_[k][i]; }));
+        ++k;
+      }
+
+      session_.reset(new output::SessionParaviewStructured<M>(
+            c, "title", "p" /*filename*/, gm));
     }
 
-    session_.reset(new output::SessionParaviewStructured<M>(
-          c, "title", "p" /*filename*/, gm));
-  }
-  /*
+    // Check no change between time steps
 
-  auto suff = "_" + std::to_string(frame);
-  std::cerr << "Output" << std::endl;
-  session_->Write(step * 1., "title:0");
-  */
+    std::cerr << "Output" << std::endl;
+    session_->Write(stage_ * 1., "title"); // TODO: t instead of stage_
+  }
 }
 
 
