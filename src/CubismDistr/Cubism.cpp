@@ -26,3 +26,7 @@ Distr* CreateCubism(
   assert(r && "CreateCubism(): KernelFactory not found");
   return r;
 }
+
+std::string StreamHdfDyn::NAME = "alpha";
+const std::string StreamHdfDyn::EXT = "";
+int StreamHdfDyn::ID = 0;

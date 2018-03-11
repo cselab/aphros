@@ -227,7 +227,7 @@ void DumpHDF5_MPI(const TGrid &grid, const int iCounter, const Real absTime, con
         fprintf(xmf, "       </DataItem>\n");
         fprintf(xmf, "     </Geometry>\n\n");
         fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Cell\">\n", 
-            Streamer::EXT.substr(1).c_str(), Streamer::getAttributeName());
+            Streamer::NAME.c_str(), Streamer::getAttributeName());
         fprintf(xmf, "       <DataItem Dimensions=\"%d %d %d %d\" NumberType=\"Float\" Precision=\"%d\" Format=\"HDF\">\n",(int)dims[0], (int)dims[1], (int)dims[2], (int)dims[3], sizeof(Real));
         fprintf(xmf, "        %s:/data\n",(fullname+".h5").c_str());
         fprintf(xmf, "       </DataItem>\n");
