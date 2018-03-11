@@ -195,12 +195,47 @@ struct StreamHdf {
   static const std::string EXT;
   static const int NCHANNELS = 1;
   static const int CLASS = 0;
+  // TODO: replace 8 with constant
   struct T { Real a[8]; };
 
   using B = Block;
   B& b;
 
   StreamHdf(B& b): b(b) {}
+
+  // write
+  void operate(const int ix, const int iy, const int iz, Real out[0]) const
+  {
+    const T& in = *((T*)&b.data[iz][iy][ix].a[0]);
+    out[0] = in.a[ID];
+  }
+
+  // read
+  void operate(const Real out[0], const int ix, const int iy, const int iz) const
+  {
+    T& in = *((T*)&b.data[iz][iy][ix].a[0]);
+    in.a[ID] = out[0];
+  }
+
+  static const char * getAttributeName() { return "Scalar"; }
+};
+
+struct StreamHdfDyn {
+  // Required by library
+  static std::string NAME;
+  static const std::string EXT;
+  static const int NCHANNELS = 1;
+  static const int CLASS = 0;
+
+  static int ID;
+
+  // TODO: replace 8 with constant
+  struct T { Real a[8]; };
+
+  using B = Block;
+  B& b;
+
+  StreamHdfDyn(B& b): b(b) {}
 
   // write
   void operate(const int ix, const int iy, const int iz, Real out[0]) const
@@ -373,21 +408,14 @@ void Cubism<KF>::DumpWrite(const std::vector<MIdx>& bb) {
     size_t k = m.GetComm().size() - m.GetDump().size();
     for (auto d : m.GetDump()) {
       auto suff = "_" + std::to_string(frame_);
-      DumpHDF5_MPI<TGrid, StreamHdf<0>>(g_, frame_, frame_, d.second + suff);
+      StreamHdfDyn::ID = k;
+      StreamHdfDyn::NAME = d.second;
+      DumpHDF5_MPI<TGrid, StreamHdfDyn>(g_, frame_, frame_, d.second + suff);
       ++k;
     }
     ++frame_;
   }
 }
-
-
-/*
-template <class KF>
-void Cubism<KF>::Dump(int frame, int step) {
-  auto suff = "_" + std::to_string(frame_);
-  DumpHDF5_MPI<TGrid, StreamHdf<0>>(g_, frame, step*1., "p" + suff);
-}
-*/
 
 
 template <int i>

@@ -76,6 +76,7 @@ class Hydro : public KernelMesh<M> {
   FieldCell<Scal> fc_p_; // pressure
   Scal sum_;
   size_t step_;
+  bool broot_;
 };
 
 template <class M /*: Mesh*/>
@@ -94,6 +95,8 @@ template <class M>
 Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi) 
   : KernelMesh<M>(par, bi)
 {
+  broot_ = (m.GetInBlockCells().GetBegin() == MIdx(0));
+
   // initial field for advection
   FieldCell<Scal> fc_u(m);
   for (auto i : m.Cells()) {
@@ -296,12 +299,11 @@ void Hydro<M>::Run() {
   sem.LoopBegin();
 
   if (sem()) {
-    if (true) { // isroot
-      std::cerr << "***** STEP " << step_ << " ******" << std::endl;
-    }
     ++step_;
     if (step_ > par.Int["max_step"]) {
       sem.LoopBreak();
+    } else if (broot_) { 
+      std::cerr << "***** STEP " << step_ << " ******" << std::endl;
     }
   }
   /*
