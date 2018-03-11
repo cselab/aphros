@@ -67,8 +67,9 @@ class DistrMesh : public Distr {
   virtual void Reduce(const std::vector<MIdx>& bb) = 0;
   virtual void Solve(const std::vector<MIdx>& bb);
   virtual void DumpComm(const std::vector<MIdx>& bb);
-  virtual void DumpWrite(const std::vector<MIdx>& bb) {};
+  virtual void DumpWrite(const std::vector<MIdx>& bb) = 0;
   virtual void ClearComm(const std::vector<MIdx>& bb);
+  virtual void ClearDump(const std::vector<MIdx>& bb);
   // TODO: make Pending const
   virtual bool Pending(const std::vector<MIdx>& bb);
 };
@@ -94,9 +95,14 @@ void DistrMesh<KF>::Run(const std::vector<MIdx>& bb) {
 template <class KF>
 void DistrMesh<KF>::ClearComm(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
-    auto& m = mk.at(b)->GetMesh();
+    mk.at(b)->GetMesh().ClearComm();
+  }
+}
 
-    m.ClearComm();
+template <class KF>
+void DistrMesh<KF>::ClearDump(const std::vector<MIdx>& bb) {
+  for (auto& b : bb) {
+    mk.at(b)->GetMesh().ClearDump();
   }
 }
 
@@ -214,6 +220,7 @@ void DistrMesh<KF>::Run() {
     ReadBuffer(bb);
 
     DumpWrite(bb);
+    ClearDump(bb);
 
     ClearComm(bb);
 

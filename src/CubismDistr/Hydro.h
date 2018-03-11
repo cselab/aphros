@@ -339,6 +339,20 @@ void Hydro<M>::Run() {
     fc_p_ = fs_->GetPressure();
     m.Comm(&fc_p_); // goes to dumper
   }
+  if (sem("Dump")) {
+    fc_velux_ = geom::GetComponent(fs_->GetVelocity(), 0);
+    m.Dump(&fc_velux_, "vx");
+    fc_veluy_ = geom::GetComponent(fs_->GetVelocity(), 1);
+    m.Dump(&fc_veluy_, "vy");
+    fc_veluz_ = geom::GetComponent(fs_->GetVelocity(), 2);
+    m.Dump(&fc_veluz_, "vz");
+    fc_p_ = fs_->GetPressure();
+    m.Dump(&fc_p_, "p"); 
+  }
+  if (sem("DumpWrite")) {
+    // Empty stage for DumpWrite
+    // TODO: revise
+  }
 
   sem.LoopEnd();
 }
