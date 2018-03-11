@@ -75,6 +75,7 @@ class Hydro : public KernelMesh<M> {
   FieldCell<Scal> fc_veluz_; 
   FieldCell<Scal> fc_p_; // pressure
   Scal sum_;
+  size_t step_;
 };
 
 template <class M /*: Mesh*/>
@@ -292,6 +293,17 @@ template <class M>
 void Hydro<M>::Run() {
   auto sem = m.GetSem("run");
 
+  sem.LoopBegin();
+
+  if (sem()) {
+    if (true) { // isroot
+      std::cerr << "***** STEP " << step_ << " ******" << std::endl;
+    }
+    ++step_;
+    if (step_ > par.Int["max_step"]) {
+      sem.LoopBreak();
+    }
+  }
   /*
   if (sem.Nested("as->StartStep()")) {
     as_->StartStep();
@@ -327,6 +339,8 @@ void Hydro<M>::Run() {
     fc_p_ = fs_->GetPressure();
     m.Comm(&fc_p_); // goes to dumper
   }
+
+  sem.LoopEnd();
 }
 
 template <class _M>

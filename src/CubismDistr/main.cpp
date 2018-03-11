@@ -37,9 +37,7 @@ void Main(MPI_Comm comm, bool loc, Vars& par) {
     d.reset(CreateCubism(comm, kf, par));
   }
 
-  while (!d->IsDone()) {
-    d->Step();
-  }
+  d->Run();
 }
 
 
