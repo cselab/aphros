@@ -1184,6 +1184,9 @@ class MeshStructured {
   void ClearComm() {
     vcm_.clear();
   }
+  void ClearDump() {
+    vd_.clear();
+  }
   const std::vector<Scal*>& GetReduce() const {
     return vrd_;
   }
