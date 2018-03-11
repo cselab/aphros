@@ -477,7 +477,7 @@ std::tuple<BC, FC, FC> Solve(MPI_Comm comm, Vars& par) {
 
   std::unique_ptr<D> d(dynamic_cast<D*>(dr));
   assert(d);
-  d->Step();
+  d->Run();
 
   return std::make_tuple(
       d->GetGlobalBlock(), d->GetGlobalField(0), d->GetGlobalField(1));
