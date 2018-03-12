@@ -250,6 +250,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
 
   // time step
   const Scal dt = par.Double["dt"];
+  step_ = 0;
 
   Scal relax = par.Double["relax"];
   Scal prelax = par.Double["prelax"];

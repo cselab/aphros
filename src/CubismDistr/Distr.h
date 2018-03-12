@@ -130,7 +130,16 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
     auto& k = *mk.at(b); // kernel
     auto& m = k.GetMesh();
     auto& v = m.GetSolve();  // pointers to reduce
-    assert(v.size() == vf.size());
+    if (v.size() != vf.size()) {
+      std::cerr 
+          << "v.size()=" << v.size() 
+          << ",b=" << b
+          << " != "
+          << "vf.size()=" << vf.size() 
+          << ",bf=" << bb[0]
+          << std::endl;
+      assert(false);
+    }
   }
 
   for (size_t j = 0; j < vf.size(); ++j) {
