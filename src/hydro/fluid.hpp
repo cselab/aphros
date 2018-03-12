@@ -1008,6 +1008,9 @@ class FluidSimple : public FluidSolver<Mesh> {
         Vect dp = mesh.GetVectToCell(idxface, 1);
         auto coeff = - mesh.GetArea(idxface) /
             ((dp - dm).norm() * ff_diag_coeff_[idxface]);
+        if (is_boundary_[idxface]) {
+          coeff = 0.;
+        }
         expr.InsertTerm(-coeff, cm);
         expr.InsertTerm(coeff, cp);
         // adhoc for periodic
