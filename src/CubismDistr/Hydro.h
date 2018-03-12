@@ -308,7 +308,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf) {
   const Scal m2(par.Double["mu2"]);
 
   // Init density and viscosity
-  for (auto i : m.Cells()) {
+  for (auto i : m.AllCells()) {
     const Scal v2 = fc_vf[i];
     const Scal v1 = 1. - v2;
     fc_rho_[i] = r1 * v1 + r2 * v2;
@@ -316,7 +316,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf) {
   }
 
   // Init force
-  for (auto i : m.Cells()) {
+  for (auto i : m.AllCells()) {
     Vect x = m.GetCenter(i);
     if ((x[1] - 0.5) < 0.) {
       fc_force_[i] = f;

@@ -922,11 +922,21 @@ class FluidSimple : public FluidSolver<Mesh> {
         fc_diag_coeff_[idxcell] = sum / dim;
       }
 
-      // TODO: maybe add comm for fc_diah_coeff_
+      // TODO: maybe add Comm for fc_diag_coeff_
+      
+      // diag coeff condition
+      geom::MapFace<std::shared_ptr<ConditionFace>> dcc;
+      for (auto i : mesh.Faces()) {
+        if (is_boundary_[i]) {
+          dcc[i] = std::make_shared
+              <solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
+        }
+      }
+      std::cerr << "dcc.size() = " << dcc.size() << std::endl;
+
 
       // Define ff_diag_coeff_ on inner faces only
-      ff_diag_coeff_ = Interpolate(
-          fc_diag_coeff_, geom::MapFace<std::shared_ptr<ConditionFace>>(), mesh);
+      ff_diag_coeff_ = Interpolate(fc_diag_coeff_, dcc, mesh);
 
       fc_velocity_asterisk_ = conv_diff_solver_->GetVelocity(Layers::iter_curr);
 
