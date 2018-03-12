@@ -55,12 +55,12 @@ class Hydro : public KernelMesh<M> {
   using KM::m;
 
  private:
-  //using AS = solver::AdvectionSolverExplicit<M, FieldFace<Scal>>;
-  using AS = solver::ConvectionDiffusionScalarImplicit<M>;
+  void CalcMixture(const FieldCell<Scal>& vf);
+
+  using AS = solver::AdvectionSolverExplicit<M, FieldFace<Scal>>;
   using FS = solver::FluidSimple<M>;
-  FieldCell<Scal> fc_sc_; // scaling
-  FieldFace<Scal> ff_d_; // diffusion rate
-  FieldCell<Scal> fc_d_; // diffusion rate
+  FieldCell<Scal> fc_mu_; // viscosity
+  FieldCell<Scal> fc_rho_; // density
   FieldCell<Scal> fc_src_; // source
   FieldFace<Scal> ff_flux_;  // volume flux
   FieldCell<Vect> fc_force_;  // force
@@ -74,6 +74,7 @@ class Hydro : public KernelMesh<M> {
   FieldCell<Scal> fc_veluy_; 
   FieldCell<Scal> fc_veluz_; 
   FieldCell<Scal> fc_p_; // pressure
+  FieldCell<Scal> fc_vf_; // volume fraction
   Scal sum_;
   size_t step_;
   bool broot_;
@@ -99,13 +100,30 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
 
   // initial field for advection
   FieldCell<Scal> fc_u(m);
-  for (auto i : m.Cells()) {
-    const Scal kx = 2. * M_PI;
-    const Scal ky = 2. * M_PI;
-    const Scal kz = 2. * M_PI;
-    Vect c = m.GetCenter(i);
-    fc_u[i] = std::sin(kx * c[0]) * std::sin(ky * c[1]) * std::sin(kz * c[2]);
-    //fc_u[i] = fc_u[i] > 0. ? 1. : -1.;
+  const std::string vi = par.String["vf_init"];
+  if (vi == "sin") {
+    Vect k;
+    if (auto p = par.Vect("sin_k")) {
+      k = Vect(*p);
+    } else {
+      k = Vect(2. * M_PI);
+    }
+
+    for (auto i : m.Cells()) {
+      Vect z = m.GetCenter(i) * k;
+      fc_u[i] = std::sin(z[0]) * std::sin(z[1]) * std::sin(z[2]);
+    }
+  } else if (vi == "circle") {
+    const Vect c(par.Vect["circle_c"]);
+    const Scal r(par.Double["circle_r"]);
+    for (auto i : m.Cells()) {
+      Vect x = m.GetCenter(i);
+      fc_u[i] = (c.dist(x) < r ? 1. : 0.);
+    }
+  } else {
+    std::cerr << "Unknown vf_init=" << vi << std::endl;
+    assert(false);
+    // TODO: add assert for release mode (NDEBUG=1)
   }
 
   // zero-derivative boundary conditions for advection
@@ -241,47 +259,23 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   int num_iter = par.Int["num_iter"];
   bool so = par.Int["second_order"];
 
-  fc_sc_.Reinit(m, 1.); // scaling for as_ and density for fs_
-  ff_d_.Reinit(m, par.Double["mu"]);
-  fc_d_.Reinit(m, par.Double["mu"]);
   fc_stforce_.Reinit(m, Vect(0));
   ff_stforce_.Reinit(m, Vect(0));
   fc_src_.Reinit(m, 0.);
 
-  fc_force_.Reinit(m);
-  const Vect f(par.Vect["force"]);
-  const Vect f2(par.Vect["force2"]);
-  for (auto i : m.Cells()) {
-    Vect x = m.GetCenter(i);
-    if ((x[1] - 0.5) < 0.) {
-      fc_force_[i] = f;
-    } else {
-      fc_force_[i] = f2;
-    }
-  }
-
   p_lsf_ = std::make_shared<const solver::LinearSolverFactory>(
         std::make_shared<const solver::LuDecompositionFactory>());
 
-  // Init advection solver
-  //as_.reset(new AS(m, fc_u, mf_cond, &ff_flux_, &fc_src_, 0., dt));
-  /*
-  as_.reset(new AS(
-        m, fc_u, mf_cond, mc_cond, 
-        relax, 
-        &fc_sc_, &ff_d_, &fc_src_, &ff_flux_,
-        0., dt,
-        *p_lsf_, 
-        tol, num_iter, 
-        so
-        ));
-        */
+  // Init rho, mu and force based on volume fraction
+  CalcMixture(fc_u);
 
+  // Init fluid solver
   fs_.reset(new FS(
         m, fc_vel, 
         mf_velcond, mc_velcond, 
         vrelax, prelax, rhie,
-        &fc_sc_, &fc_d_, &fc_force_, &fc_stforce_, &ff_stforce_, 
+        &fc_rho_, &fc_mu_, 
+        &fc_force_, &fc_stforce_, &ff_stforce_, 
         &fc_src_, &fc_src_,
         0., dt,
         *p_lsf_, *p_lsf_,
@@ -289,6 +283,47 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
         &timer_, 
         so, false, false, 0., Vect(0)
         ));
+
+  // Init advection solver
+  as_.reset(new AS(
+        m, fc_u, mf_cond, 
+        &fs_->GetVolumeFlux(solver::Layers::iter_curr),
+        &fc_src_, 0., dt));
+
+}
+
+template <class M>
+void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf) {
+  fc_mu_.Reinit(m);
+  fc_rho_.Reinit(m);
+  fc_force_.Reinit(m);
+  
+  const Vect f(par.Vect["force"]);
+  const Vect f2(par.Vect["force2"]);
+  const Vect g(par.Vect["gravity"]);
+  const Scal r1(par.Double["rho1"]);
+  const Scal r2(par.Double["rho2"]);
+  const Scal m1(par.Double["mu1"]);
+  const Scal m2(par.Double["mu2"]);
+
+  // Init density and viscosity
+  for (auto i : m.Cells()) {
+    const Scal v2 = fc_vf[i];
+    const Scal v1 = 1. - v2;
+    fc_rho_[i] = r1 * v1 + r2 * v2;
+    fc_mu_[i] = m1 * v1 + m2 * v2;
+  }
+
+  // Init force
+  for (auto i : m.Cells()) {
+    Vect x = m.GetCenter(i);
+    if ((x[1] - 0.5) < 0.) {
+      fc_force_[i] = f;
+    } else {
+      fc_force_[i] = f2;
+    }
+    fc_force_[i] += g * fc_rho_[i];
+  }
 }
 
 
@@ -306,50 +341,42 @@ void Hydro<M>::Run() {
       std::cerr << "***** STEP " << step_ << " ******" << std::endl;
     }
   }
-  /*
-  if (sem.Nested("as->StartStep()")) {
-    as_->StartStep();
+  if (sem.Nested("mixture")) {
+    CalcMixture(as_->GetField());
   }
-  if (sem.Nested("as->MakeIteration")) {
-    as_->MakeIteration();
-  }
-  if (sem.Nested("as->FinishStep()")) {
-    as_->FinishStep();
-  }
-  */
-
   if (sem.Nested("fs->StartStep()")) {
     fs_->StartStep();
+  }
+  if (sem.Nested("as->StartStep()")) {
+    as_->StartStep();
   }
   if (sem.Nested("fs->MakeIteration")) {
     fs_->MakeIteration();
   }
+  if (sem.Nested("as->MakeIteration")) {
+    as_->MakeIteration();
+  }
   if (sem.Nested("fs->FinishStep()")) {
     fs_->FinishStep();
   }
-  if (sem("Comm(&fc_velu_)")) {
-    // advection
-    //auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
-    //m.Comm(&u);
-    // fluid velocity single component
-    fc_velux_ = geom::GetComponent(fs_->GetVelocity(), 0);
-    m.Comm(&fc_velux_); // goes to dumper
-    fc_veluy_ = geom::GetComponent(fs_->GetVelocity(), 1);
-    m.Comm(&fc_veluy_); // goes to dumper
-    fc_veluz_ = geom::GetComponent(fs_->GetVelocity(), 2);
-    m.Comm(&fc_veluz_); // goes to dumper
-    fc_p_ = fs_->GetPressure();
-    m.Comm(&fc_p_); // goes to dumper
+  if (sem.Nested("as->FinishStep()")) {
+    as_->FinishStep();
   }
+  // TODO: Test Dump with pending Comm
   if (sem("Dump")) {
-    fc_velux_ = geom::GetComponent(fs_->GetVelocity(), 0);
-    m.Dump(&fc_velux_, "vx");
-    fc_veluy_ = geom::GetComponent(fs_->GetVelocity(), 1);
-    m.Dump(&fc_veluy_, "vy");
-    fc_veluz_ = geom::GetComponent(fs_->GetVelocity(), 2);
-    m.Dump(&fc_veluz_, "vz");
-    fc_p_ = fs_->GetPressure();
-    m.Dump(&fc_p_, "p"); 
+    if (par.Int["output"] && 
+        step_ % (par.Int["max_step"] / par.Int["num_frames"])  == 0) {
+      fc_velux_ = geom::GetComponent(fs_->GetVelocity(), 0);
+      m.Dump(&fc_velux_, "vx");
+      fc_veluy_ = geom::GetComponent(fs_->GetVelocity(), 1);
+      m.Dump(&fc_veluy_, "vy");
+      fc_veluz_ = geom::GetComponent(fs_->GetVelocity(), 2);
+      m.Dump(&fc_veluz_, "vz");
+      fc_p_ = fs_->GetPressure();
+      m.Dump(&fc_p_, "p"); 
+      fc_vf_ = as_->GetField();
+      m.Dump(&fc_vf_, "vf"); 
+    }
   }
   if (sem("DumpWrite")) {
     // Empty stage for DumpWrite

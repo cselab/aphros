@@ -251,13 +251,5 @@ void DistrMesh<KF>::Run() {
       break;
     }
   } while (true);
-
-  /*
-  if (par.Int["output"] && 
-      step_ % (par.Int["max_step"] / par.Int["num_frames"])  == 0) {
-    Dump(frame_, step_);
-    ++frame_;
-  }
-  */
 }
 
