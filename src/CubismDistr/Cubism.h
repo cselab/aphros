@@ -365,7 +365,7 @@ void Cubism<KF>::Reduce(const std::vector<MIdx>& bb) {
     auto& k = *mk.at(b); // kernel
     auto& m = k.GetMesh();
     auto& v = m.GetReduce();  // pointers to reduce
-    assert(v.size() == r.size());
+    assert(v.size() == vf.size());
   }
 
   // TODO: Check operation is the same for all kernels

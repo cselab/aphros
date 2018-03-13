@@ -100,7 +100,7 @@ bool Cmp(T a, T b) {
 
 template <>
 bool Cmp<Scal>(Scal a, Scal b) {
-  return std::abs(a - b) < 1e-10;
+  return std::abs(a - b) < 1e-6;
 }
 
 
@@ -203,21 +203,23 @@ typename M::Scal Mean(
   assert(Cmp(a, b)); 
 
 // Print CMP 
-#define PCMP(a, b) \
+#define PCMP(a, b, fatal) \
   std::cerr \
     << std::scientific << std::setprecision(16) \
     << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
-  CMP(a, b); 
+  if (!Cmp(a, b)) { \
+    assert(!fatal);\
+  }
 
 
 // Print CMP if false
-#define PFCMP(a, b, ftl) \
+#define PFCMP(a, b, fatal) \
   if (!Cmp(a, b)) { \
     std::cerr \
       << std::scientific << std::setprecision(16) \
       << "Failed cmp: " << std::endl \
       << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
-    assert(!ftl);\
+    assert(!fatal);\
   }
 
 
@@ -334,8 +336,6 @@ void Advection<M>::TestSolve(
       } 
     }
 
-    std::cerr << "mf_cond.size() = " << mf_cond.size() << std::endl;
-
     // velocity and flux
     const Vect vel(par.Vect["vel"]);
     ff_flux_.Reinit(m);
@@ -404,8 +404,10 @@ void Advection<M>::TestSolve(
       }
     }
     auto& fc = as_->GetField();
-    PFCMP(Mean(fc_exact_, m, mask), Mean(fc, m, mask), check);
-    PFCMP(DiffMax(fc_exact_, fc, m, mask), 0., check);
+    if (check) {
+      PCMP(Mean(fc_exact_, m, mask), Mean(fc, m, mask), check);
+      PCMP(DiffMax(fc_exact_, fc, m, mask), 0., check);
+    }
   }
   if (sem("comm")) {
     fc_ = as_->GetField();
@@ -449,7 +451,10 @@ void Advection<M>::Run() {
   bool fatal = par.Int["fatal"];
 
   if (sem.Nested()) {
-    TestSolve(f0, f0, 0, "f0", false);
+    TestSolve(fx, fex, 6, "fx", true);
+  }
+  if (sem.Nested()) {
+    TestSolve(f, f, 0, "f", false);
   }
 }
 
@@ -518,14 +523,14 @@ void Main(MPI_Comm comm, Vars& par0) {
   par.Int["bz"] *= 2;
   std::tie(bb, fb, feb) = Solve(comm, par);
 
-  PCMP(b.GetEnd(), bb.GetEnd());
+  PCMP(b.GetEnd(), bb.GetEnd(), true);
 
   geom::FieldCell<bool> mask(b, true);
 
   Dump({&fa, &fea, &fb}, {"a", "ea", "b"}, m, "a");
 
-  PCMP(Mean(b, fa, mask), Mean(b, fb, mask));
-  PCMP(DiffMax(b, fa, fb, mask), 0.);
+  PCMP(Mean(b, fa, mask), Mean(b, fb, mask), true);
+  PCMP(DiffMax(b, fa, fb, mask), 0., true);
 }
 
 
