@@ -75,7 +75,8 @@ class Hydro : public KernelMesh<M> {
   FieldCell<Scal> fc_veluz_; 
   FieldCell<Scal> fc_p_; // pressure
   FieldCell<Scal> fc_vf_; // volume fraction
-  Scal sum_;
+  Scal diff_;  // convergence indicator
+  Scal tol_;  // convergence tolerance
   size_t step_;
   bool broot_;
 };
@@ -255,7 +256,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   Scal prelax = par.Double["prelax"];
   Scal vrelax = par.Double["vrelax"];
   Scal rhie = par.Double["rhie"];
-  Scal tol = par.Double["tol"];
+  tol_ = par.Double["tol"];
   int max_iter = par.Int["max_iter"];
   bool so = par.Int["second_order"];
 
@@ -279,7 +280,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
         &fc_src_, &fc_src_,
         0., dt,
         *p_lsf_, *p_lsf_,
-        tol, max_iter, 
+        tol_, max_iter, 
         &timer_, 
         so, false, false, 0., Vect(0)
         ));
@@ -354,8 +355,13 @@ void Hydro<M>::Run() {
     if (sem.Nested("fs-iters")) {
       auto sn = m.GetSem("fs-iter"); // sem nested
       sn.LoopBegin();
+      if (sn("reduce")) {
+        diff_ = fs_->GetConvergenceIndicator();
+        m.Reduce(&diff_, "max");
+      }
       if (sn("convcheck")) {
-        if (fs_->IsConverged()) {
+        assert(fs_->GetConvergenceIndicator() <= diff_);
+        if (diff_ < tol_ || fs_->GetIterationCount() >= par.Int["max_iter"]) {
           sn.LoopBreak();
         }
       }
@@ -366,7 +372,7 @@ void Hydro<M>::Run() {
         if (broot_) {
           std::cout 
               << ".....iter=" << fs_->GetIterationCount()
-              << ", diff=" << fs_->GetConvergenceIndicator() << std::endl;
+              << ", diff=" << diff_ << std::endl;
         }
       }
       sn.LoopEnd();
