@@ -664,6 +664,7 @@ class FluidSimple : public FluidSolver<Mesh> {
   }
 
  public:
+  // TODO: Add Comm for initial fields or require taht from user.
   FluidSimple(Mesh& mesh,
               const geom::FieldCell<Vect>& fc_velocity_initial,
               const geom::MapFace<std::shared_ptr<ConditionFaceFluid>>&
