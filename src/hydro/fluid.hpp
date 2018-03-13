@@ -910,7 +910,7 @@ class FluidSimple : public FluidSolver<Mesh> {
       conv_diff_solver_->MakeIteration();
     }
 
-    if (sem("assemble-pressure-system")) {
+    if (sem("diag-coeff-comm")) {
       timer_->Pop();
 
       fc_diag_coeff_.Reinit(mesh);
@@ -922,8 +922,10 @@ class FluidSimple : public FluidSolver<Mesh> {
         fc_diag_coeff_[idxcell] = sum / dim;
       }
 
-      // TODO: maybe add Comm for fc_diag_coeff_
+      mesh.Comm(&fc_diag_coeff_);
+    }
       
+    if (sem("assemble-pressure-system")) {
       // diag coeff condition
       geom::MapFace<std::shared_ptr<ConditionFace>> dcc;
       for (auto i : mesh.Faces()) {
