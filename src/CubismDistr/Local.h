@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <limits>
 #include <map>
 #include <mpi.h>
 
@@ -182,23 +183,72 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
     assert(v.size() == r.size());
   }
 
-  // Reduce over all kernels on current rank
-  for (auto& b : bb) {
-    auto& k = *mk.at(b); 
-    auto& m = k.GetMesh();
-    auto& v = m.GetReduce();  
-    for (size_t i = 0; i < r.size(); ++i) {
-      r[i] += *v[i];
-    }
-  }
+  // TODO: Check operation is the same for all kernels
 
-  // Write results to all kernels on current rank
-  for (auto& b : bb) {
-    auto& k = *mk.at(b); 
-    auto& m = k.GetMesh();
-    auto& v = m.GetReduce();  
-    for (size_t i = 0; i < r.size(); ++i) {
-      *v[i] = r[i];
+  for (size_t i = 0; i < vf.size(); ++i) {
+    Scal r; // result
+    std::string s = vf[i].second; // operation string
+
+    enum class Op { sum, prod, max, min };
+    Op o;
+    if (s == "sum") {
+      o = Op::sum;
+    } else if (s == "prod") {
+      o = Op::prod;
+    } else if (s == "max") {
+      o = Op::max;
+    } else if (s == "min") {
+      o = Op::min;
+    } else {
+      std::cerr << "Reduce(): unknown operation '" << s <<  "'" << std::endl;
+      assert(false);
+    }
+
+    
+    // Init result
+    switch (o) {
+      case Op::sum:  
+        r = 0;  
+        break;
+      case Op::prod: 
+        r = 1;  
+        break;
+      case Op::max:  
+        r = -std::numeric_limits<double>::max();  
+        break;
+      case Op::min:  
+        r = std::numeric_limits<double>::max();  
+        break;
+      default:
+        assert(false);
+    }
+
+    // Reduce over all blocks on current rank
+    for (auto& b : bb) {
+      auto& v = mk.at(b)->GetMesh().GetReduce(); 
+      Scal a = *v[i].first;
+      switch (o) {
+        case Op::sum:  
+          r += a;  
+          break;
+        case Op::prod: 
+          r *= a;  
+          break;
+        case Op::max:  
+          r = std::max(r, a);
+          break;
+        case Op::min:  
+          r = std::min(r, a);
+          break;
+        default:
+          assert(false);
+      }
+    }
+
+    // Write results to all blocks on current rank
+    for (auto& b : bb) {
+      auto& v = mk.at(b)->GetMesh().GetReduce(); 
+      *v[i].first = r;
     }
   }
 
