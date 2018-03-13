@@ -1169,8 +1169,8 @@ class MeshStructured {
   void Dump(FieldCell<Scal>* u, std::string name) {
     vd_.push_back(std::make_pair(u, name));
   }
-  void Reduce(Scal* u) {
-    vrd_.push_back(u);
+  void Reduce(Scal* u, std::string op) {
+    vrd_.push_back(std::make_pair(u, op));
   }
   void Solve(const LS& ls) {
     vls_.push_back(ls);
@@ -1187,7 +1187,7 @@ class MeshStructured {
   void ClearDump() {
     vd_.clear();
   }
-  const std::vector<Scal*>& GetReduce() const {
+  const std::vector<std::pair<Scal*, std::string>>& GetReduce() const {
     return vrd_;
   }
   void ClearReduce() {
@@ -1204,7 +1204,7 @@ class MeshStructured {
   Suspender susp_;
   std::vector<FieldCell<Scal>*> vcm_; // fields for [c]o[m]munication
   std::vector<std::pair<FieldCell<Scal>*, std::string>> vd_; // fields for dump
-  std::vector<Scal*> vrd_; // scalars for reduction
+  std::vector<std::pair<Scal*, std::string>> vrd_; // scalars for reduce
   std::vector<LS> vls_; // linear system
   // END DISTR
 };

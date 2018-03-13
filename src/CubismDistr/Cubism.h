@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <limits>
+#include <map>
 
 #include "Cubism/BlockInfo.h"
 #include "Cubism/Grid.h"
@@ -358,8 +360,6 @@ void Cubism<KF>::Reduce(const std::vector<MIdx>& bb) {
   auto& mf = f.GetMesh();
   auto& vf = mf.GetReduce();  // pointers to reduce
 
-  std::vector<Scal> r(vf.size(), 0); // results
-
   // Check size is the same for all kernels
   for (auto& b : bb) {
     auto& k = *mk.at(b); // kernel
@@ -368,28 +368,85 @@ void Cubism<KF>::Reduce(const std::vector<MIdx>& bb) {
     assert(v.size() == r.size());
   }
 
-  // Reduce over all kernels on current rank
-  for (auto& b : bb) {
-    auto& k = *mk.at(b); 
-    auto& m = k.GetMesh();
-    auto& v = m.GetReduce();  
-    for (size_t i = 0; i < r.size(); ++i) {
-      r[i] += *v[i];
+  // TODO: Check operation is the same for all kernels
+
+  for (size_t i = 0; i < vf.size(); ++i) {
+    Scal r; // result
+    std::string s = vf[i].second; // operation string
+
+    enum class Op { sum, prod, max, min };
+    Op o;
+    if (s == "sum") {
+      o = Op::sum;
+    } else if (s == "prod") {
+      o = Op::prod;
+    } else if (s == "max") {
+      o = Op::max;
+    } else if (s == "min") {
+      o = Op::min;
+    } else {
+      std::cerr << "Reduce(): unknown operation '" << s <<  "'" << std::endl;
+      assert(false);
     }
-  }
 
-  // Reduce over all ranks
-  MPI_Allreduce(
-      MPI_IN_PLACE, r.data(), r.size(), 
-      MPI_DOUBLE, MPI_SUM, comm_); // TODO: type from Scal
+    
+    // Init result
+    switch (o) {
+      case Op::sum:  
+        r = 0;  
+        break;
+      case Op::prod: 
+        r = 1;  
+        break;
+      case Op::max:  
+        r = -std::numeric_limits<double>::max();  
+        break;
+      case Op::min:  
+        r = std::numeric_limits<double>::max();  
+        break;
+      default:
+        assert(false);
+    }
 
-  // Write results to all kernels on current rank
-  for (auto& b : bb) {
-    auto& k = *mk.at(b); 
-    auto& m = k.GetMesh();
-    auto& v = m.GetReduce();  
-    for (size_t i = 0; i < r.size(); ++i) {
-      *v[i] = r[i];
+    // Reduce over all blocks on current rank
+    for (auto& b : bb) {
+      auto& v = mk.at(b)->GetMesh().GetReduce(); 
+      Scal a = *v[i].first;
+      switch (o) {
+        case Op::sum:  
+          r += a;  
+          break;
+        case Op::prod: 
+          r *= a;  
+          break;
+        case Op::max:  
+          r = std::max(r, a);
+          break;
+        case Op::min:  
+          r = std::min(r, a);
+          break;
+        default:
+          assert(false);
+      }
+    }
+
+    // Reduce over all ranks
+    std::map<Op, MPI_Op> mo = {
+        {Op::sum, MPI_SUM},
+        {Op::prod, MPI_PROD},
+        {Op::max, MPI_MAX},
+        {Op::min, MPI_MIN}
+      };
+    std::map<size_t, MPI_Datatype> mt = {
+        {4, MPI_FLOAT},
+        {8, MPI_DOUBLE}
+      };
+    MPI_Allreduce(MPI_IN_PLACE, &r, 1, mt.at(sizeof(Scal)), mo.at(o), comm_); 
+
+    // Write results to all blocks on current rank
+    for (auto& b : bb) {
+      auto& v = mk.at(b)->GetMesh().GetReduce(); 
+      *v[i].first = r;
     }
   }
 
