@@ -252,12 +252,11 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   const Scal dt = par.Double["dt"];
   step_ = 0;
 
-  Scal relax = par.Double["relax"];
   Scal prelax = par.Double["prelax"];
   Scal vrelax = par.Double["vrelax"];
   Scal rhie = par.Double["rhie"];
   Scal tol = par.Double["tol"];
-  int num_iter = par.Int["num_iter"];
+  int max_iter = par.Int["max_iter"];
   bool so = par.Int["second_order"];
 
   fc_stforce_.Reinit(m, Vect(0));
@@ -280,7 +279,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
         &fc_src_, &fc_src_,
         0., dt,
         *p_lsf_, *p_lsf_,
-        tol, num_iter, 
+        tol, max_iter, 
         &timer_, 
         so, false, false, 0., Vect(0)
         ));
@@ -351,11 +350,32 @@ void Hydro<M>::Run() {
   if (sem.Nested("as->StartStep()")) {
     as_->StartStep();
   }
-  if (sem.Nested("fs->MakeIteration")) {
-    fs_->MakeIteration();
+  if (par.Int["enable_fluid"]) {
+    if (sem.Nested("fs-iters")) {
+      auto sn = m.GetSem("fs-iter"); // sem nested
+      sn.LoopBegin();
+      if (sn("convcheck")) {
+        if (fs_->IsConverged()) {
+          sn.LoopBreak();
+        }
+      }
+      if (sn.Nested("iter")) {
+        fs_->MakeIteration();
+      }
+      if (sn("report")) {
+        if (broot_) {
+          std::cout 
+              << ".....iter=" << fs_->GetIterationCount()
+              << ", diff=" << fs_->GetConvergenceIndicator() << std::endl;
+        }
+      }
+      sn.LoopEnd();
+    }
   }
-  if (sem.Nested("as->MakeIteration")) {
-    as_->MakeIteration();
+  if (par.Int["enable_advection"]) {
+    if (sem.Nested("as->MakeIteration")) {
+      as_->MakeIteration();
+    }
   }
   if (sem.Nested("fs->FinishStep()")) {
     fs_->FinishStep();

@@ -932,8 +932,6 @@ class FluidSimple : public FluidSolver<Mesh> {
               <solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
         }
       }
-      std::cerr << "dcc.size() = " << dcc.size() << std::endl;
-
 
       // Define ff_diag_coeff_ on inner faces only
       ff_diag_coeff_ = Interpolate(fc_diag_coeff_, dcc, mesh);
