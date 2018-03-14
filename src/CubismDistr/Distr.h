@@ -43,9 +43,9 @@ class DistrMesh : public Distr {
   Vars& par;
   KF& kf_; // kernel factory
 
-  MIdx bs_; // block size
   int es_; // element size in Scal
   int hl_; // number of halo cells (same in all directions)
+  MIdx bs_; // block size
   MIdx p_; // number of ranks
   MIdx b_; // number of blocks
 
