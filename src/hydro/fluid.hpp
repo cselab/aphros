@@ -141,49 +141,49 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
     CopyToVector(Layers::time_prev);
   }
   void StartStep() override {
-    auto sem = mesh.GetSem("convdiffmulti.StartStep()");
+    auto sem = mesh.GetSem("convdiffmulti-start");
     for (size_t n = 0; n < dim; ++n) {
-      if (sem("v_solver_[n]->SetTimeStep()")) {
+      if (sem("dir-init")) {
         v_solver_[n]->SetTimeStep(this->GetTimeStep());
       }
-      if (sem.Nested("v_solver_[n]->StartStep()")) {
+      if (sem.Nested("dir-start")) {
         v_solver_[n]->StartStep();
       }
     }
-    if (sem("CopyToVector")) {
+    if (sem("tovect")) {
       CopyToVector(Layers::iter_curr);
       this->ClearIterationCount();
     }
   }
   void MakeIteration() override {
-    auto sem = mesh.GetSem("convdiffmulti.MakeIteration()");
+    auto sem = mesh.GetSem("convdiffmulti-iter");
     for (size_t n = 0; n < dim; ++n) {
-      if (sem("v_fc_force[n]")) {
+      if (sem("dir-get")) {
         v_fc_force_[n] = GetComponent(*p_fc_force_, n);
       }
     }
 
     for (size_t n = 0; n < dim; ++n) {
-      if (sem.Nested("v_solver_[n]->MakeIteration()")) {
+      if (sem.Nested("dir-iter")) {
         v_solver_[n]->MakeIteration();
       }
     }
 
-    if (sem("CopyToVector")) {
+    if (sem("tovect")) {
       CopyToVector(Layers::iter_prev);
       CopyToVector(Layers::iter_curr);
       this->IncIterationCount();
     }
   }
   void FinishStep() override {
-    auto sem = mesh.GetSem("convdiffmulti:FinishStep()");
+    auto sem = mesh.GetSem("convdiffmulti-finish");
 
     for (size_t n = 0; n < dim; ++n) {
-      if (sem.Nested("FinishStep")) {
+      if (sem.Nested("dir-finish")) {
         v_solver_[n]->FinishStep();
       }
     }
-    if (sem("CopyToVector")) {
+    if (sem("tovect")) {
       CopyToVector(Layers::time_prev);
       CopyToVector(Layers::time_curr);
       this->IncTime();
@@ -203,13 +203,13 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
   }
   void CorrectVelocity(Layers layer,
                        const geom::FieldCell<Vect>& fc_corr) override {
-    auto sem = mesh.GetSem("CorrectVelocity");
+    auto sem = mesh.GetSem("corr");
     for (size_t n = 0; n < dim; ++n) {
-      if (sem.Nested("v_solver_[n]->CorrectField")) {
+      if (sem.Nested("dir-corr")) {
         v_solver_[n]->CorrectField(layer, GetComponent(fc_corr, n));
       }
     }
-    if (sem("CopyToVector")) {
+    if (sem("tovect")) {
       CopyToVector(layer);
     }
   }
@@ -814,8 +814,8 @@ class FluidSimple : public FluidSolver<Mesh> {
         fc_pressure_grad_, mf_pressure_grad_cond_, mesh);
   }
   void StartStep() override {
-    auto sem = mesh.GetSem("fluid.StartStep()");
-    if (sem("convdiff->SetTimeStep()")) {
+    auto sem = mesh.GetSem("fluid-start");
+    if (sem("convdiff-init")) {
       this->ClearIterationCount();
       if (IsNan(fc_pressure_.time_curr)) {
         throw std::string("NaN initial pressure");
@@ -823,11 +823,11 @@ class FluidSimple : public FluidSolver<Mesh> {
       conv_diff_solver_->SetTimeStep(this->GetTimeStep());
     }
 
-    if (sem.Nested("convdiff->StartStep()")) {
+    if (sem.Nested("convdiff-start")) {
       conv_diff_solver_->StartStep();
     }
 
-    if (sem("guess_extrapolation")) {
+    if (sem("convdiff-start")) {
       fc_pressure_.iter_curr = fc_pressure_.time_curr;
       ff_vol_flux_.iter_curr = ff_vol_flux_.time_curr;
       for (auto idxcell : mesh.SuCells()) {
@@ -844,7 +844,7 @@ class FluidSimple : public FluidSolver<Mesh> {
   }
   // TODO: rewrite norm() using dist() where needed
   void MakeIteration() override {
-    auto sem = mesh.GetSem("fluid.MakeIteration()");
+    auto sem = mesh.GetSem("fluid-iter");
     auto& m = mesh;
 
     auto& fc_pressure_prev = fc_pressure_.iter_prev;
@@ -906,11 +906,11 @@ class FluidSimple : public FluidSolver<Mesh> {
       timer_->Push("fluid.2.convection-diffusion");
     }
 
-    if (sem.Nested("convdiff->MakeIteration()")) {
+    if (sem.Nested("convdiff-iter")) {
       conv_diff_solver_->MakeIteration();
     }
 
-    if (sem("diag-coeff-comm")) {
+    if (sem("diag-comm")) {
       timer_->Pop();
 
       fc_diag_coeff_.Reinit(mesh);
@@ -925,7 +925,7 @@ class FluidSimple : public FluidSolver<Mesh> {
       mesh.Comm(&fc_diag_coeff_);
     }
       
-    if (sem("assemble-pressure-system")) {
+    if (sem("pcorr-assemble")) {
       // diag coeff condition
       geom::MapFace<std::shared_ptr<ConditionFace>> dcc;
       for (auto i : mesh.Faces()) {
@@ -1054,14 +1054,14 @@ class FluidSimple : public FluidSolver<Mesh> {
       }
     }
 
-    if (sem("solve-pressure-system")) {
+    if (sem("pcorr-solve")) {
       timer_->Pop();
       auto l = ConvertLs(fc_pressure_corr_system_, lsa_, lsb_, lsx_, mesh);
       m.Solve(l);
       timer_->Push("fluid.6.pressure-solve");
     }
 
-    if (sem("comm-pressure-corr")) {
+    if (sem("pcorr-comm")) {
       timer_->Pop();
 
       timer_->Push("fluid.7.correction");
@@ -1077,7 +1077,7 @@ class FluidSimple : public FluidSolver<Mesh> {
       m.Comm(&fc_pressure_corr_);
     }
 
-    if (sem("pressure-and-velocity-corr")) {
+    if (sem("pcorr-apply")) {
       // Correct pressure
       for (auto idxcell : mesh.Cells()) {
         fc_pressure_curr[idxcell] = fc_pressure_prev[idxcell] +
@@ -1099,12 +1099,12 @@ class FluidSimple : public FluidSolver<Mesh> {
       }
     }
 
-    if (sem.Nested("comm-velocity-corr")) {
+    if (sem.Nested("convdiff-corr")) {
       // correct and comm
       conv_diff_solver_->CorrectVelocity(Layers::iter_curr, fc_velocity_corr_);
     }
 
-    if (sem("fluxes-correction")) {
+    if (sem("pcorr-fluxes")) {
       // Calc divergence-free volume fluxes
       for (auto idxface : mesh.Faces()) {
         ff_vol_flux_.iter_curr[idxface] =
@@ -1120,8 +1120,8 @@ class FluidSimple : public FluidSolver<Mesh> {
     }
   }
   void FinishStep() override {
-    auto sem = mesh.GetSem("fluid.FinishStep()");
-    if (sem("IncTime")) {
+    auto sem = mesh.GetSem("fluid-finish");
+    if (sem("inctime")) {
       fc_pressure_.time_prev = fc_pressure_.time_curr;
       ff_vol_flux_.time_prev = ff_vol_flux_.time_curr;
       fc_pressure_.time_curr = fc_pressure_.iter_curr;
@@ -1131,7 +1131,7 @@ class FluidSimple : public FluidSolver<Mesh> {
       }
       this->IncTime();
     }
-    if (sem.Nested("convdiff->FinishStep()")) {
+    if (sem.Nested("convdiff-finish")) {
       conv_diff_solver_->FinishStep();
     }
   }

@@ -131,12 +131,12 @@ class ConvectionDiffusionScalarImplicit :
     }
   }
   void MakeIteration() override {
-    auto sem = mesh.GetSem("convdiff.MakeIteration()");
+    auto sem = mesh.GetSem("convdiff-iter");
     auto& m = mesh;
 
     auto& fc_prev = fc_field_.iter_prev;
     auto& fc_curr = fc_field_.iter_curr;
-    if (sem("assemble-system")) {
+    if (sem("assemble")) {
       fc_prev = fc_curr;
 
       fc_grad_ = Gradient(Interpolate(fc_prev, mf_cond_, mesh), mesh);
@@ -247,12 +247,12 @@ class ConvectionDiffusionScalarImplicit :
       }
     }
 
-    if (sem("solve-system")) {
+    if (sem("solve")) {
       auto l = ConvertLs(fc_system_, lsa_, lsb_, lsx_, mesh);
       m.Solve(l);
     }
 
-    if (sem("apply-and-comm")) {
+    if (sem("applycomm")) {
       //fc_corr_ = linear_->Solve(fc_system_);
       fc_corr_.Reinit(mesh);
       size_t i = 0;
@@ -289,8 +289,8 @@ class ConvectionDiffusionScalarImplicit :
   }
   void CorrectField(Layers layer,
                     const geom::FieldCell<Scal>& fc_corr) override {
-    auto sem = mesh.GetSem("convdiff.CorrectField()");
-    if (sem("apply-and-comm")) {
+    auto sem = mesh.GetSem("convdiff-corr");
+    if (sem("applycomm")) {
       auto& fc_field_layer = fc_field_.Get(layer);
       for (auto idxcell : mesh.Cells()) {
         fc_field_layer[idxcell] += fc_corr[idxcell];
