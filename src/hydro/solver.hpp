@@ -369,7 +369,6 @@ T GetInterpolatedInner(const geom::FieldCell<T>& fc_u,
                        IdxFace idxface,
                        const Mesh& mesh) {
   using Scal = typename Mesh::Scal;
-  using Vect = typename Mesh::Vect;
   IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
   IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
   //Vect xf = mesh.GetCenter(idxface);
@@ -500,7 +499,6 @@ geom::FieldFace<T> InterpolateFirstUpwind(
     const geom::FieldFace<typename Mesh::Scal>& probe,
     const Mesh& mesh, typename Mesh::Scal threshold = 1e-8) {
   using Scal = typename Mesh::Scal;
-  using Vect = typename Mesh::Vect;
   using IdxCell = geom::IdxCell;
   using IdxFace = geom::IdxFace;
 

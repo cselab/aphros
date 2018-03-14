@@ -845,7 +845,6 @@ class FluidSimple : public FluidSolver<Mesh> {
   // TODO: rewrite norm() using dist() where needed
   void MakeIteration() override {
     auto sem = mesh.GetSem("fluid.MakeIteration()");
-    using LS = typename Mesh::LS;
     auto& m = mesh;
 
     auto& fc_pressure_prev = fc_pressure_.iter_prev;
