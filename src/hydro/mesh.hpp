@@ -809,13 +809,13 @@ class MeshStructured {
   BlockCells b_cells_;
   BlockFaces b_faces_;
   // inner 
-  BlockNodes b_innodes_;
   BlockCells b_incells_;
   BlockFaces b_infaces_;
+  BlockNodes b_innodes_;
   // support
-  BlockNodes b_sunodes_;
   BlockCells b_sucells_;
   BlockFaces b_sufaces_;
+  BlockNodes b_sunodes_;
 
 
   FieldCell<Vect> fc_center_;
