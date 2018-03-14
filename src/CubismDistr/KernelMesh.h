@@ -23,11 +23,6 @@ M CreateMesh(const MyBlockInfo& bi) {
   Rect d(d0, d1);
 
   MIdx o = w * bs; // origin index
-  std::cout 
-      << "o=" << o 
-      << " dom=" << d0 << "," << d1 
-      << " h=" << h
-      << std::endl;
   
   return geom::InitUniformMesh<M>(d, o, bs, hl);
 }
