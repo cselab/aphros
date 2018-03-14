@@ -291,6 +291,24 @@ void DistrMesh<KF>::Run() {
           << std::setprecision(3) << 100. * t / a << "%\n";
     }
     std::cout << std::endl;
+
+    MIdx gs;
+    {
+      MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
+      MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
+      MIdx bs(par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]);
+      gs = p * b * bs;
+    }
+    size_t nc = gs.prod(); // total cells
+    size_t nt = par.Int["max_step"];
+    size_t ni = par.Int["iter"];
+    std::cout << std::setprecision(5) << std::scientific
+        << "cells = " << nc << "\n"
+        << "steps = " << nt << "\n"
+        << "iters = " << ni << "\n"
+        << "time/cell/iter = " 
+        << a / (nc * ni) << " s"
+        << std::endl;
   }
 }
 

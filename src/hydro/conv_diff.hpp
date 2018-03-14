@@ -245,7 +245,9 @@ class ConvectionDiffusionScalarImplicit :
               this->GetTimeStep());
         }
       }
+    }
 
+    if (sem("solve-system")) {
       auto l = ConvertLs(fc_system_, lsa_, lsb_, lsx_, mesh);
       m.Solve(l);
     }
