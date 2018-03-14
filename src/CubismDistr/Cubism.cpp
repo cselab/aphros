@@ -10,8 +10,12 @@ template <class KF>
 Distr* TryCubism(
     MPI_Comm comm, KernelFactory& kf, Vars& par) {
 
+  using M = typename KF::M;
+  using Scal = typename M::Scal;
+  using Par = GPar<Scal, 8, 8, 8, 8>;
+
   if (KF* kfd = dynamic_cast<KF*>(&kf)) {
-    return new Cubism<KF>(comm, *kfd, par);
+    return new Cubism<Par, KF>(comm, *kfd, par);
   }
   return nullptr;
 }
@@ -27,6 +31,3 @@ Distr* CreateCubism(
   return r;
 }
 
-std::string StreamHdfDyn::NAME = "alpha";
-const std::string StreamHdfDyn::EXT = "";
-int StreamHdfDyn::ID = 0;

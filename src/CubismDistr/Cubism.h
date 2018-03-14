@@ -15,13 +15,25 @@
 #include "Vars.h"
 #include "Distr.h"
 
-using Real = double;
+// Static parameters for Cubism
+// bx, by, bz - block size
+// es - Elem size
+template <class Scal_, size_t bx_, size_t by_, size_t bz_, size_t es_>
+struct GPar {
+  using Scal = Scal_;
+  static const size_t bx = bx_;
+  static const size_t by = by_;
+  static const size_t bz = bz_;
+  static const size_t es = es_;
+};
 
-struct Elem {
-  static const size_t s = 8;
-  Real a[s];
-  void init(Real val) { 
-    for (size_t i = 0; i < s; ++i) {
+template <class Scal_, int es_>
+struct GElem {
+  using Scal = Scal_;
+  static const size_t es = es_;
+  Scal a[es];
+  void init(Scal val) { 
+    for (size_t i = 0; i < es; ++i) {
       a[i] = val;
     }
   }
@@ -29,31 +41,37 @@ struct Elem {
     init(0);
   }
 
-  Elem& operator=(const Elem&) = default;
+  GElem& operator=(const GElem&) = default;
 };
 
-struct Block {
-  static const int bs = _BLOCKSIZE_;
-  static const int sx = bs;
-  static const int sy = bs;
-  static const int sz = bs;
-  static const int n = sx * sy * sz;
+template <class Par_>
+struct GBlock {
+  using Par = Par_;
+  using Scal = typename Par::Scal;
+  //static const int bs = _BLOCKSIZE_;
+  static const size_t bx = Par::bx;
+  static const size_t by = Par::by;
+  static const size_t bz = Par::bz;
+  static const size_t es = Par::es;
 
-  // required by framework
-  static const int sizeX = sx;
-  static const int sizeY = sy;
-  static const int sizeZ = sz;
+  static const int n = bx * by * bz;
 
+  // required by Cubism
+  static const int sizeX = bx;
+  static const int sizeY = by;
+  static const int sizeZ = bz;
 
-  // floats per element
-  static const int fe = sizeof(Elem) / sizeof(Real);
-
+  using Elem = GElem<Scal, es>;
   using ElementType = Elem;
   using element_type = Elem;
 
-  Elem __attribute__((__aligned__(_ALIGNBYTES_))) data[bs][bs][bs];
+  // floats per element
+  static const int fe = sizeof(Elem) / sizeof(Scal);
+  static_assert(fe == es, "Block: fe != es");
 
-  Real __attribute__((__aligned__(_ALIGNBYTES_))) tmp[bs][bs][bs][fe];
+  Elem __attribute__((__aligned__(_ALIGNBYTES_))) data[bz][by][bx];
+
+  Scal __attribute__((__aligned__(_ALIGNBYTES_))) tmp[bz][by][bx][fe];
 
   void clear_data() {
     Elem* e = &data[0][0][0];
@@ -63,7 +81,7 @@ struct Block {
   }
 
   void clear_tmp() {
-    Real* t = &tmp[0][0][0][0];
+    Scal* t = &tmp[0][0][0][0];
     for(int i = 0; i < n * fe; ++i) {
       t[i] = 0;
     }
@@ -74,54 +92,57 @@ struct Block {
     clear_tmp();
   }
 
-  inline Elem& operator()(int ix, int iy=0, int iz=0) {
-    assert(ix>=0 && ix<sx);
-    assert(iy>=0 && iy<sy);
-    assert(iz>=0 && iz<sz);
+  inline Elem& operator()(int x, int y=0, int z=0) {
+    assert(0 <= x && x < bx);
+    assert(0 <= y && y < by);
+    assert(0 <= z && z < bz);
 
-    return data[iz][iy][ix];
+    return data[z][y][x];
   }
 };
 
 
-typedef Block Block_t;  
-typedef Grid<Block_t, std::allocator> GridBase;
-typedef GridBase Grid_t;
-
-template<typename BlockType, template<typename X> class Alloc=std::allocator>
-class LabPer: public BlockLab<BlockType,Alloc>
+// Par - instance of GPar
+template<class Par, template<typename X> class A=std::allocator>
+class LabPer : public BlockLab<GBlock<Par>, A>
 {
-  typedef typename BlockType::ElementType ElementTypeBlock;
+  using Block = GBlock<Par>;
+  using ElementTypeBlock = typename Block::Elem;
 
  public:
-  virtual inline std::string name() const { return "name"; }
+  virtual inline std::string name() const { return "LabPer"; }
   bool is_xperiodic() {return true;}
   bool is_yperiodic() {return true;}
   bool is_zperiodic() {return true;}
 
-  LabPer()
-    : BlockLab<BlockType,Alloc>(){}
+  // TODO: remove
+  LabPer() : BlockLab<Block,A>() {}
 };
 
 
+// Par - instance of GPar
+template <class Par>
+using GLab = BlockLabMPI<LabPer<Par, std::allocator>>;
 
-using Lab = LabPer<Block_t, std::allocator>;
+// B - block type
+template <class B>
+using GGrid = GridMPI<Grid<B, std::allocator>>;
 
-typedef BlockLabMPI<Lab> LabMPI;
-typedef GridMPI<Grid_t> GridMPI_t;
-using TGrid = GridMPI_t;
-
-using Scal = double;
-
-template <class KF>
+// Par - instance of GPar
+// KF - instance of KernelMeshFactory
+template <class Par, class KF>
 class Cubism : public DistrMesh<KF> {
  public:
   Cubism(MPI_Comm comm, KF& kf, Vars& par);
 
  private:
+  using Lab = GLab<Par>;
+  using Block = GBlock<Par>;
+  using Grid = GGrid<Block>;
+
   using K = typename KF::K;
   using M = typename KF::M;
-  using P = DistrMesh<KF>;
+  using P = DistrMesh<KF>; // parent
   using MIdx = typename M::MIdx;
 
   using P::mk;
@@ -137,10 +158,10 @@ class Cubism : public DistrMesh<KF> {
   using P::isroot_;
   using P::comm_;
 
-  TGrid g_;
+  Grid g_;
   struct S { // cubism [s]tate
     SynchronizerMPI* s;
-    std::unique_ptr<LabMPI> l;
+    std::unique_ptr<Lab> l;
     std::map<MIdx, BlockInfo, typename MIdx::LexLess> mb;
   };
   S s_;
@@ -151,7 +172,7 @@ class Cubism : public DistrMesh<KF> {
   static std::vector<MyBlockInfo> GetBlocks(
       const std::vector<BlockInfo>&, MIdx bs, size_t hl);
 
-  void ReadBuffer(M& m, LabMPI& l) {
+  void ReadBuffer(M& m, Lab& l) {
     using MIdx = typename M::MIdx;
     int e = 0; // buffer field idx
 
@@ -165,7 +186,7 @@ class Cubism : public DistrMesh<KF> {
     }
   }
 
-  void WriteBuffer(M& m, Block_t& o) {
+  void WriteBuffer(M& m, Block& o) {
     using MIdx = typename M::MIdx;
 
     // Check buffer has enough space for all fields
@@ -191,29 +212,31 @@ class Cubism : public DistrMesh<KF> {
 };
 
 
-template <int ID>
+// B_ - instance of GBlock
+template <class B_, int ID>
 struct StreamHdf {
+  using B = B_;
+  using T = typename B::Elem;
+
+  // Required by Cubism
   static const std::string NAME;
   static const std::string EXT;
   static const int NCHANNELS = 1;
   static const int CLASS = 0;
-  // TODO: replace 8 with constant
-  struct T { Real a[8]; };
 
-  using B = Block;
   B& b;
 
   StreamHdf(B& b): b(b) {}
 
   // write
-  void operate(const int ix, const int iy, const int iz, Real out[0]) const
+  void operate(const int ix, const int iy, const int iz, Scal out[0]) const
   {
     const T& in = *((T*)&b.data[iz][iy][ix].a[0]);
     out[0] = in.a[ID];
   }
 
   // read
-  void operate(const Real out[0], const int ix, const int iy, const int iz) const
+  void operate(const Scal out[0], const int ix, const int iy, const int iz) const
   {
     T& in = *((T*)&b.data[iz][iy][ix].a[0]);
     in.a[ID] = out[0];
@@ -222,32 +245,34 @@ struct StreamHdf {
   static const char * getAttributeName() { return "Scalar"; }
 };
 
+// TODO: somehow remove global parameter ID
+template <class B_>
 struct StreamHdfDyn {
-  // Required by library
+  using B = B_;
+  using T = typename B::Elem;
+
+  // Required by Cubism
   static std::string NAME;
   static const std::string EXT;
   static const int NCHANNELS = 1;
   static const int CLASS = 0;
 
+  // Used as global variable
   static int ID;
 
-  // TODO: replace 8 with constant
-  struct T { Real a[8]; };
-
-  using B = Block;
   B& b;
 
   StreamHdfDyn(B& b): b(b) {}
 
   // write
-  void operate(const int ix, const int iy, const int iz, Real out[0]) const
+  void operate(const int ix, const int iy, const int iz, Scal out[0]) const
   {
     const T& in = *((T*)&b.data[iz][iy][ix].a[0]);
     out[0] = in.a[ID];
   }
 
   // read
-  void operate(const Real out[0], const int ix, const int iy, const int iz) const
+  void operate(const Scal out[0], const int ix, const int iy, const int iz) const
   {
     T& in = *((T*)&b.data[iz][iy][ix].a[0]);
     in.a[ID] = out[0];
@@ -264,8 +289,8 @@ struct FakeProc {
   {}
 };
 
-template <class KF>
-std::vector<MyBlockInfo> Cubism<KF>::GetBlocks(
+template <class Par, class KF>
+std::vector<MyBlockInfo> Cubism<Par, KF>::GetBlocks(
     const std::vector<BlockInfo>& cc, MIdx bs, size_t hl) {
   std::vector<MyBlockInfo> bb;
   for(size_t i = 0; i < cc.size(); i++) {
@@ -285,8 +310,8 @@ std::vector<MyBlockInfo> Cubism<KF>::GetBlocks(
 }
 
 
-template <class KF>
-Cubism<KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par) 
+template <class Par, class KF>
+Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par) 
   : DistrMesh<KF>(comm, kf, par)
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], 1., comm)
 {
@@ -307,15 +332,15 @@ Cubism<KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par)
   comm_ = g_.getCartComm(); // XXX: overwrite comm_
 }
 
-template <class KF>
-auto Cubism<KF>::GetBlocks() -> std::vector<MIdx> {
+template <class Par, class KF>
+auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
   MPI_Barrier(comm_);
 
   // 1. Exchange halos in buffer mesh
   FakeProc fp(GetStencil(hl_));       // object with field 'stencil'
   SynchronizerMPI& s = g_.sync(fp); 
 
-  s_.l.reset(new LabMPI);
+  s_.l.reset(new Lab);
   s_.l->prepare(g_, s);   // allocate memory for lab cache
 
   MPI_Barrier(comm_);
@@ -335,8 +360,8 @@ auto Cubism<KF>::GetBlocks() -> std::vector<MIdx> {
   return bb;
 }
 
-template <class KF>
-void Cubism<KF>::ReadBuffer(const std::vector<MIdx>& bb) {
+template <class Par, class KF>
+void Cubism<Par, KF>::ReadBuffer(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     auto& k = *mk.at(b); // kernel
     auto& m = k.GetMesh();
@@ -345,17 +370,17 @@ void Cubism<KF>::ReadBuffer(const std::vector<MIdx>& bb) {
   }
 }
 
-template <class KF>
-void Cubism<KF>::WriteBuffer(const std::vector<MIdx>& bb) {
+template <class Par, class KF>
+void Cubism<Par, KF>::WriteBuffer(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     auto& k = *mk.at(b); // kernel
     auto& m = k.GetMesh();
-    WriteBuffer(m, *(typename TGrid::BlockType*)s_.mb[b].ptrBlock);
+    WriteBuffer(m, *(typename Grid::BlockType*)s_.mb[b].ptrBlock);
   }
 }
 
-template <class KF>
-void Cubism<KF>::Reduce(const std::vector<MIdx>& bb) {
+template <class Par, class KF>
+void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
   auto& f = *mk.at(bb[0]); // first kernel
   auto& mf = f.GetMesh();
   auto& vf = mf.GetReduce();  // pointers to reduce
@@ -458,24 +483,31 @@ void Cubism<KF>::Reduce(const std::vector<MIdx>& bb) {
   }
 }
 
-template <class KF>
-void Cubism<KF>::DumpWrite(const std::vector<MIdx>& bb) {
+template <class Par, class KF>
+void Cubism<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
   auto& m = mk.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
     size_t k = m.GetComm().size() - m.GetDump().size();
     for (auto d : m.GetDump()) {
       auto suff = "_" + std::to_string(frame_);
-      StreamHdfDyn::ID = k;
-      StreamHdfDyn::NAME = d.second;
-      DumpHDF5_MPI<TGrid, StreamHdfDyn>(g_, frame_, frame_, d.second + suff);
+      StreamHdfDyn<Block>::ID = k;
+      StreamHdfDyn<Block>::NAME = d.second;
+      DumpHDF5_MPI<Grid, StreamHdfDyn<Block>>(
+          g_, frame_, frame_, d.second + suff);
       ++k;
     }
     ++frame_;
   }
 }
 
+template <class B, int i>
+const std::string StreamHdf<B, i>::NAME = "alpha";
+template <class B, int i>
+const std::string StreamHdf<B, i>::EXT = "00";
 
-template <int i>
-const std::string StreamHdf<i>::NAME = "alpha";
-template <int i>
-const std::string StreamHdf<i>::EXT = "00";
+template <class B>
+std::string StreamHdfDyn<B>::NAME = "alpha";
+template <class B>
+const std::string StreamHdfDyn<B>::EXT = "";
+template <class B>
+int StreamHdfDyn<B>::ID = 0;
