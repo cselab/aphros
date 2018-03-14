@@ -4,12 +4,14 @@
 #include <array>
 #include <memory>
 #include <mpi.h>
+#include <iomanip>
 
 #include "Vars.h"
 #include "Kernel.h"
 #include "hydro/hypre.h"
 #include "hydro/suspender.h"
 #include "hydro/mesh.hpp"
+#include "hydro/metrics.hpp"
 
 
 class Distr {
@@ -220,10 +222,13 @@ geom::FieldCell<Scal> DistrMesh<KF>::GetGlobalField(size_t i) const {
 
 template <class KF>
 void DistrMesh<KF>::Run() {
+  MultiTimer<std::string> mt;
   stage_ = 0;
+  mt.Push();
   do {
     auto bb = GetBlocks();
     
+
     assert(!bb.empty());
 
     ReadBuffer(bb);
@@ -236,6 +241,9 @@ void DistrMesh<KF>::Run() {
     Reduce(bb);
 
     Solve(bb);
+
+    mt.Pop(mk.at(bb[0])->GetMesh().GetCurName());
+    mt.Push();
 
     Run(bb);
 
@@ -254,11 +262,35 @@ void DistrMesh<KF>::Run() {
           << " " << m.GetCurName() 
           << " ***" << std::endl;
     }
+    
 
     // Break if no pending stages
     if (!Pending(bb)) {
       break;
     }
   } while (true);
+  mt.Pop("last");
+
+  if (isroot_) {
+    double a = 0.; // total
+    for (auto e : mt.GetMap()) {
+      a += e.second;
+    }
+
+    std::cout << std::fixed;
+    for (auto e : mt.GetMap()) {
+      auto n = e.first; // name
+      if (n == "") {
+        n = "other";
+      }
+      auto t = e.second; // time
+
+      std::cout 
+          << n << "\n" 
+          << std::setprecision(5) << t << " s = "
+          << std::setprecision(3) << 100. * t / a << "%\n";
+    }
+    std::cout << std::endl;
+  }
 }
 
