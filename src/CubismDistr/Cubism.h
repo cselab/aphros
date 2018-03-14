@@ -50,7 +50,6 @@ template <class Par_>
 struct GBlock {
   using Par = Par_;
   using Scal = typename Par::Scal;
-  //static const int bs = _BLOCKSIZE_;
   static const size_t bx = Par::bx;
   static const size_t by = Par::by;
   static const size_t bz = Par::bz;
@@ -319,7 +318,7 @@ Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par)
   : DistrMesh<KF>(comm, kf, par)
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], 1., comm)
 {
-  assert(bs_ == MIdx(_BLOCKSIZE_));
+  assert(bs_ == MIdx(Block::bx, Block::by, Block::bz));
 
   std::vector<BlockInfo> cc = g_.getBlocksInfo(); // [c]ubism block info
   std::vector<MyBlockInfo> ee = GetBlocks(cc, bs_, hl_);
