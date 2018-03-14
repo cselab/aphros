@@ -99,6 +99,8 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
 {
   broot_ = (m.GetInBlockCells().GetBegin() == MIdx(0));
 
+  par.Int.Set("iter", 0);
+
   // initial field for advection
   FieldCell<Scal> fc_u(m);
   const std::string vi = par.String["vf_init"];
@@ -373,6 +375,7 @@ void Hydro<M>::Run() {
           std::cout << std::scientific << std::setprecision(16)
               << ".....iter=" << fs_->GetIterationCount()
               << ", diff=" << diff_ << std::endl;
+          ++par.Int["iter"];
         }
       }
       sn.LoopEnd();

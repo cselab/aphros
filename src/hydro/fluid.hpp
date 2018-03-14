@@ -1052,15 +1052,16 @@ class FluidSimple : public FluidSolver<Mesh> {
           }
         }
       }
+    }
 
+    if (sem("solve-pressure-system")) {
+      timer_->Pop();
       auto l = ConvertLs(fc_pressure_corr_system_, lsa_, lsb_, lsx_, mesh);
       m.Solve(l);
-      timer_->Pop();
       timer_->Push("fluid.6.pressure-solve");
     }
 
     if (sem("comm-pressure-corr")) {
-      //fc_pressure_corr_ = linear_->Solve(fc_pressure_corr_system_);
       timer_->Pop();
 
       timer_->Push("fluid.7.correction");
