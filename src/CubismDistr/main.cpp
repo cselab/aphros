@@ -22,9 +22,7 @@
 void Main(MPI_Comm comm, bool loc, Vars& par) {
   // read config files, parse arguments, maybe init global fields
   using M = geom::MeshStructured<Scal, 3>;
-  using K = Hydro<M>;
   using KF = HydroFactory<M>;
-  using D = Distr;
   //using Idx = D::Idx;
   
   KF kf;

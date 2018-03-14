@@ -805,6 +805,7 @@ class MeshStructured {
  private:
   // b:Block, fc:FieldCell, ff:FieldFace, fn:FieldNode
   BlockNodes b_nodes_;
+  FieldNode<Vect> fn_node_;
   BlockCells b_cells_;
   BlockFaces b_faces_;
   // inner 
@@ -816,7 +817,6 @@ class MeshStructured {
   BlockCells b_sucells_;
   BlockFaces b_sufaces_;
 
-  FieldNode<Vect> fn_node_;
 
   FieldCell<Vect> fc_center_;
   FieldCell<Scal> fc_volume_;
