@@ -20,8 +20,12 @@
 
 using namespace std;
 
+template <int bx_, int by_, int bz_>
 class SynchronizerMPI
 {
+  static const int bx = bx_;
+  static const int by = by_;
+  static const int bz = bz_;
 	struct I3
 	{
 		int ix, iy, iz;
@@ -709,7 +713,7 @@ public:
 			vector<PackInfo> packinfos;
 			recv_subpackinfos = _setup<true>(recv, recv_thickness, blockstart, blockend, origin, packinfos);
 
-			for(vector<PackInfo>::const_iterator it = packinfos.begin(); it<packinfos.end(); ++it)
+			for(typename std::vector<PackInfo>::const_iterator it = packinfos.begin(); it<packinfos.end(); ++it)
 				recv_packinfos[it->block].push_back(*it);
 		}
 
@@ -775,7 +779,7 @@ public:
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
-					pack(info.block, info.pack, gptfloats, &selcomponents.front(), NC, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez);
+					pack(info.block, info.pack, gptfloats, &selcomponents.front(), NC, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
 				}
 			}
 			else
@@ -787,7 +791,7 @@ public:
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
-					pack_stripes(info.block, info.pack, gptfloats, selstart, selend, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez);
+					pack_stripes(info.block, info.pack, gptfloats, selstart, selend, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
 				}
 			}
 		}
@@ -975,7 +979,7 @@ public:
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
-					pack(info.block, info.pack, gptfloats, &selcomponents.front(), NC, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez);
+					pack(info.block, info.pack, gptfloats, &selcomponents.front(), NC, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
 				}
 			}
 			else
@@ -987,7 +991,7 @@ public:
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
-					pack_stripes(info.block, info.pack, gptfloats, selstart, selend, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez);
+					pack_stripes(info.block, info.pack, gptfloats, selstart, selend, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
 				}
 			}
 
@@ -1145,7 +1149,7 @@ public:
 
 		vector<Region> regions = cube.avail();
 
-		for(vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
+		for(typename vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
 		{
             map<Region, vector<BlockInfo> >::const_iterator r2v = region2infos.find(*it);
 
@@ -1221,7 +1225,7 @@ public:
 
 		vector<Region> regions = cube.avail();
 
-		for(vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
+		for(typename vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
 		{
             map<Region, vector<BlockInfo> >::const_iterator r2v = region2infos.find(*it);
 
@@ -1330,7 +1334,7 @@ public:
 
 		vector<Region> regions = cube.avail();
 
-		for(vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
+		for(typename vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
 		{
             map<Region, vector<BlockInfo> >::const_iterator r2v = region2infos.find(*it);
 
@@ -1435,7 +1439,7 @@ class MyRange
 
 		//packs
 		{
-			map<Real *, vector<PackInfo> >::const_iterator it = recv_packinfos.find(const_cast<Real *>(ptrBlock));
+			typename map<Real *, vector<PackInfo> >::const_iterator it = recv_packinfos.find(const_cast<Real *>(ptrBlock));
 
 			if( it!=recv_packinfos.end() )
 			{
@@ -1444,7 +1448,7 @@ class MyRange
 				//assert(!stencil.tensorial || packs.size() <= 7 || mybpd[0]*mybpd[1]*mybpd[2] == 1);
 				//assert(stencil.tensorial || packs.size()<=3 || mybpd[0]*mybpd[1]*mybpd[2] == 1);
 
-				for(vector<PackInfo>::const_iterator itpack=packs.begin(); itpack!=packs.end(); ++itpack)
+				for(typename vector<PackInfo>::const_iterator itpack=packs.begin(); itpack!=packs.end(); ++itpack)
 				{
 				  MyRange packrange(itpack->sx, itpack->ex, itpack->sy, itpack->ey, itpack->sz, itpack->ez);
 
@@ -1463,7 +1467,7 @@ class MyRange
 		//subregions inside packs
 		if (stencil.tensorial)
 		{
-			map<Real *, vector<SubpackInfo> >::const_iterator it = recv_subpackinfos.find(const_cast<Real *>(ptrBlock));
+			typename map<Real *, vector<SubpackInfo> >::const_iterator it = recv_subpackinfos.find(const_cast<Real *>(ptrBlock));
 
 			assert(stencil.tensorial || it==recv_subpackinfos.end());
 
@@ -1473,7 +1477,7 @@ class MyRange
 
 			//	assert(subpacks.size()<=12+8);
 
-				for(vector<SubpackInfo>::const_iterator itsubpack=subpacks.begin(); itsubpack!=subpacks.end(); ++itsubpack)
+				for(typename vector<SubpackInfo>::const_iterator itsubpack=subpacks.begin(); itsubpack!=subpacks.end(); ++itsubpack)
 				  {
 				    MyRange packrange(itsubpack->sx, itsubpack->ex, itsubpack->sy, itsubpack->ey, itsubpack->sz, itsubpack->ez);
 
