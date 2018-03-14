@@ -81,17 +81,6 @@ class Hydro : public KernelMesh<M> {
   bool broot_;
 };
 
-template <class M /*: Mesh*/>
-void Grad(M& m) {
-  auto sem = m.GetSem("grad");
-  if (sem()) {
-    std::cerr << sem.GetName() <<  ":s1" << std::endl;
-  }
-  if (sem()) {
-    std::cerr << sem.GetName() <<  ":s2" << std::endl;
-  }
-}
-
 
 template <class M>
 Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi) 
@@ -336,7 +325,7 @@ void Hydro<M>::Run() {
 
   sem.LoopBegin();
 
-  if (sem()) {
+  if (sem("loop-check")) {
     ++step_;
     if (step_ > par.Int["max_step"]) {
       sem.LoopBreak();
@@ -347,15 +336,15 @@ void Hydro<M>::Run() {
   if (sem.Nested("mixture")) {
     CalcMixture(as_->GetField());
   }
-  if (sem.Nested("fs->StartStep()")) {
+  if (sem.Nested("fs-start")) {
     fs_->StartStep();
   }
-  if (sem.Nested("as->StartStep()")) {
+  if (sem.Nested("as-start")) {
     as_->StartStep();
   }
   if (par.Int["enable_fluid"]) {
     if (sem.Nested("fs-iters")) {
-      auto sn = m.GetSem("fs-iter"); // sem nested
+      auto sn = m.GetSem("iter"); // sem nested
       sn.LoopBegin();
       if (sn("reduce")) {
         diff_ = fs_->GetConvergenceIndicator();
@@ -382,18 +371,18 @@ void Hydro<M>::Run() {
     }
   }
   if (par.Int["enable_advection"]) {
-    if (sem.Nested("as->MakeIteration")) {
+    if (sem.Nested("as-iter")) {
       as_->MakeIteration();
     }
   }
-  if (sem.Nested("fs->FinishStep()")) {
+  if (sem.Nested("fs-finish")) {
     fs_->FinishStep();
   }
-  if (sem.Nested("as->FinishStep()")) {
+  if (sem.Nested("as-finish")) {
     as_->FinishStep();
   }
   // TODO: Test Dump with pending Comm
-  if (sem("Dump")) {
+  if (sem("dump")) {
     if (par.Int["output"] && 
         step_ % (par.Int["max_step"] / par.Int["num_frames"])  == 0) {
       fc_velux_ = geom::GetComponent(fs_->GetVelocity(), 0);
@@ -408,7 +397,7 @@ void Hydro<M>::Run() {
       m.Dump(&fc_vf_, "vf"); 
     }
   }
-  if (sem("DumpWrite")) {
+  if (sem("dumpwrite")) {
     // Empty stage for DumpWrite
     // TODO: revise
   }
