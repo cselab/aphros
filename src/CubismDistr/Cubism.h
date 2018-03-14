@@ -30,8 +30,11 @@ struct GPar {
 template <class Scal_, int es_>
 struct GElem {
   using Scal = Scal_;
+
   static const size_t es = es_;
+
   Scal a[es];
+
   void init(Scal val) { 
     for (size_t i = 0; i < es; ++i) {
       a[i] = val;
@@ -40,7 +43,6 @@ struct GElem {
   void clear() {
     init(0);
   }
-
   GElem& operator=(const GElem&) = default;
 };
 
@@ -139,6 +141,7 @@ class Cubism : public DistrMesh<KF> {
   using Lab = GLab<Par>;
   using Block = GBlock<Par>;
   using Grid = GGrid<Block>;
+  using Elem = typename Block::Elem;
 
   using K = typename KF::K;
   using M = typename KF::M;
@@ -190,7 +193,7 @@ class Cubism : public DistrMesh<KF> {
     using MIdx = typename M::MIdx;
 
     // Check buffer has enough space for all fields
-    assert(m.GetComm().size() <= Elem::s && "Too many fields for Comm()");
+    assert(m.GetComm().size() <= Elem::es && "Too many fields for Comm()");
 
     int e = 0; // buffer field idx
 
