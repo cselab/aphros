@@ -1,5 +1,6 @@
-#include "Cubism.h"
+#include <mpi.h>
 
+#include "Cubism.h"
 #include "hydro/vect.hpp"
 #include "hydro/mesh3d.hpp"
 #include "Kernel.h"
@@ -7,8 +8,7 @@
 #include "Vars.h"
 
 template <class KF>
-Distr* TryCubism(
-    MPI_Comm comm, KernelFactory& kf, Vars& par) {
+Distr* TryCubism(MPI_Comm comm, KernelFactory& kf, Vars& par) {
 
   using M = typename KF::M;
   using Scal = typename M::Scal;
@@ -20,8 +20,7 @@ Distr* TryCubism(
   return nullptr;
 }
 
-Distr* CreateCubism(
-    MPI_Comm comm, KernelFactory& kf, Vars& par) {
+Distr* CreateCubism(MPI_Comm comm, KernelFactory& kf, Vars& par) {
   Distr* r = nullptr;
   if (!r) r = TryCubism<KernelMeshFactory<geom::MeshStructured<double, 3>>>(
       comm, kf, par);
