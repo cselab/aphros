@@ -22,9 +22,13 @@
 #include "MeshMap.h"
 
 //hello git
-template <typename Block, template<typename X> class allocator=std::allocator>
+template <typename B_, template<typename X> class allocator=std::allocator>
 class Grid
 {
+ public:
+  using Block = B_;
+ 
+ private:
 	Block * m_blocks;
     std::vector<BlockInfo> m_vInfo;
 

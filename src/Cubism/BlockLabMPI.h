@@ -13,8 +13,9 @@
 template<typename MyBlockLab>
 class BlockLabMPI : public MyBlockLab
 {
-	const SynchronizerMPI * refSynchronizerMPI;
-	typedef typename MyBlockLab::BlockType BlockType;
+  using BlockType = typename MyBlockLab::BlockType;
+  using Synch = SynchronizerMPI<BlockType::bx, BlockType::by, BlockType::bz>;
+	const Synch * refSynchronizerMPI;
 	
 protected:
 	int mypeindex[3], pesize[3], mybpd[3];
@@ -22,7 +23,7 @@ protected:
 	
 public:
 	template< typename TGrid >
-	void prepare(GridMPI<TGrid>& grid, const SynchronizerMPI& SynchronizerMPI)
+	void prepare(GridMPI<TGrid>& grid, const Synch& SynchronizerMPI)
 	{
 		refSynchronizerMPI = &SynchronizerMPI;
 		refSynchronizerMPI->getpedata(mypeindex, pesize, mybpd);

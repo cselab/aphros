@@ -16,7 +16,8 @@ inline void pack(const Real * const srcbase, Real * const dst,
 			   const unsigned int gptfloats,
 			   int * selected_components, const int ncomponents,
 			   const int xstart, const int ystart, const int zstart,
-			   const int xend, const int yend, const int zend)
+			   const int xend, const int yend, const int zend,
+         const int bx, const int by)
 {	
 	for(int idst=0, iz=zstart; iz<zend; ++iz)
 		for(int iy=ystart; iy<yend; ++iy)
@@ -34,7 +35,8 @@ inline void pack_stripes1(const Real * const srcbase, Real * const dst,
 					   const unsigned int gptfloats, 
 					   const int selstart, const int selend, 
 					   const int xstart, const int ystart, const int zstart,
-					   const int xend, const int yend, const int zend)
+					   const int xend, const int yend, const int zend,
+             const int bx, const int by)
 {	
 	for(int idst=0, iz=zstart; iz<zend; ++iz)
 		for(int iy=ystart; iy<yend; ++iy)
@@ -51,7 +53,8 @@ inline void pack_stripes_(const Real * const srcbase, Real * const dst,
 					   const unsigned int gptfloats, 
 					   const int selstart, const int selend, 
 					   const int xstart, const int ystart, const int zstart,
-					   const int xend, const int yend, const int zend)
+					   const int xend, const int yend, const int zend,
+             const int bx, const int by)
 {	
 	const int seldiff = selend - selstart;
 	const int nbytes = seldiff*sizeof(Real);
@@ -74,7 +77,8 @@ inline void pack_stripes_x(const Real * const srcbase, Real * const dst,
 					   const unsigned int gptfloats, 
 					   const int selstart, const int selend, 
 					   const int xstart, const int ystart, const int zstart,
-					   const int xend, const int yend, const int zend)
+					   const int xend, const int yend, const int zend,
+             const int bx, const int by)
 {	
 	const int seldiff = selend - selstart;
 	const int nbytes = seldiff*sizeof(Real);
@@ -108,7 +112,8 @@ inline void pack_stripes_unroll0(const Real * const srcbase, Real * const dst,
 					   const unsigned int gptfloats, 
 					   const int selstart, const int selend, 
 					   const int xstart, const int ystart, const int zstart,
-					   const int xend, const int yend, const int zend)
+					   const int xend, const int yend, const int zend,
+             const int bx, const int by)
 {	
 	const int seldiff = selend - selstart;
 	const int nbytes = seldiff*sizeof(Real);
@@ -177,7 +182,8 @@ inline void pack_stripesxx(const Real * const srcbase, Real * const dst,
 					   const unsigned int gptfloats, 
 					   const int selstart, const int selend, 
 					   const int xstart, const int ystart, const int zstart,
-					   const int xend, const int yend, const int zend)
+					   const int xend, const int yend, const int zend,
+             const int bx, const int by)
 {	
 //	printf("xstart/end = (%d, %d)\n", xstart, xend);
 	const int seldiff = selend - selstart;
@@ -244,7 +250,8 @@ inline void pack_stripes(const Real * const srcbase, Real * const dst,
 					   const unsigned int gptfloats, 
 					   const int selstart, const int selend, 
 					   const int xstart, const int ystart, const int zstart,
-					   const int xend, const int yend, const int zend)
+					   const int xend, const int yend, const int zend,
+             const int bx, const int by)
 {	
 	const int seldiff = selend - selstart;
 	const int nbytes = seldiff*sizeof(Real);

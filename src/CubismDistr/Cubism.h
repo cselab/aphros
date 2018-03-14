@@ -142,6 +142,7 @@ class Cubism : public DistrMesh<KF> {
   using Block = GBlock<Par>;
   using Grid = GGrid<Block>;
   using Elem = typename Block::Elem;
+  using Synch = typename Grid::Synch;
 
   using K = typename KF::K;
   using M = typename KF::M;
@@ -163,7 +164,7 @@ class Cubism : public DistrMesh<KF> {
 
   Grid g_;
   struct S { // cubism [s]tate
-    SynchronizerMPI* s;
+    Synch* s;
     std::unique_ptr<Lab> l;
     std::map<MIdx, BlockInfo, typename MIdx::LexLess> mb;
   };
@@ -341,7 +342,7 @@ auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
 
   // 1. Exchange halos in buffer mesh
   FakeProc fp(GetStencil(hl_));       // object with field 'stencil'
-  SynchronizerMPI& s = g_.sync(fp); 
+  Synch& s = g_.sync(fp); 
 
   s_.l.reset(new Lab);
   s_.l->prepare(g_, s);   // allocate memory for lab cache
