@@ -82,7 +82,7 @@ public:
         const unsigned int nBlocks[3] = {nX*npeX, nY*npeY, nZ*npeZ};
         for (int i = 0; i < 3; ++i)
         {
-            MeshMap<Block>* m = new MeshMap<Block>(0.0, extents[i], nBlocks[i]);
+            MeshMap<Block>* m = new MeshMap<Block>(0.0, extents[i], nBlocks[i], blocksize[i]);
             UniformDensity uniform;
             m->init(&uniform); // uniform only for this constructor
             this->m_mesh_maps.push_back(m);

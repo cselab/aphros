@@ -103,13 +103,22 @@ public:
     {
         _alloc();
 
-        const double h = (maxextent / std::max(NX, std::max(NY, NZ)));
+        // cells per block
+        const size_t bs[3] = {Block::bx, Block::by, Block::bz};
+        // cells total
+        const size_t nn[3] = {NX * bs[0], NY * bs[1], NZ * bs[2]};
+        // cell size (h_gridpoint from BlockInfo)
+        const double hc = 
+            (maxextent / std::max(nn[0], std::max(nn[1], nn[2])));
+        // block extent
+        const double h = std::max(bs[0], std::max(bs[1], bs[2])) * hc;
 
-        const double extents[3] = {h*NX, h*NY, h*NZ};
+        const double extents[3] = {hc*nn[0], hc*nn[1], hc*nn[2]};
         const unsigned int nBlocks[3] = {NX, NY, NZ};
         for (int i = 0; i < 3; ++i)
         {
-            MeshMap<Block>* m = new MeshMap<Block>(0.0, extents[i], nBlocks[i]);
+            MeshMap<Block>* m = new MeshMap<Block>(
+                0.0, extents[i], nBlocks[i], bs[i]);
             UniformDensity uniform;
             m->init(&uniform); // uniform only for this constructor
             m_mesh_maps.push_back(m);
@@ -123,7 +132,7 @@ public:
                     const int idx[3] = {ix, iy, iz};
                     const double origin[3] = {ix*h, iy*h, iz*h};
 
-                    m_vInfo.push_back(BlockInfo(blockID, idx, origin, h, h/Block::sizeX, _linaccess(blockID)));
+                    m_vInfo.push_back(BlockInfo(blockID, idx, origin, h, hc, _linaccess(blockID)));
                 }
     }
 

@@ -370,7 +370,7 @@ void Hydro<M>::Run() {
       }
       if (sn("report")) {
         if (broot_) {
-          std::cout 
+          std::cout << std::scientific << std::setprecision(16)
               << ".....iter=" << fs_->GetIterationCount()
               << ", diff=" << diff_ << std::endl;
         }
