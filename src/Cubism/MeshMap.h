@@ -507,9 +507,10 @@ template <typename TBlock>
 class MeshMap
 {
 public:
-    MeshMap(const double xS, const double xE, const unsigned int Nblocks) :
+    MeshMap(const double xS, const double xE, const unsigned int Nblocks,
+            const size_t bs) :
         m_xS(xS), m_xE(xE), m_extent(xE-xS), m_Nblocks(Nblocks),
-        m_Ncells(Nblocks*TBlock::sizeX), // assumes uniform cells in all directions!
+        m_Ncells(Nblocks*bs), bs(bs),
         m_uniform(true), m_initialized(false)
     {}
 
@@ -532,8 +533,8 @@ public:
         for (int i = 0; i < m_Nblocks; ++i)
         {
             double delta_block = 0.0;
-            for (int j = 0; j < TBlock::sizeX; ++j)
-                delta_block += m_grid_spacing[i*TBlock::sizeX + j];
+            for (int j = 0; j < bs; ++j)
+                delta_block += m_grid_spacing[i*bs + j];
             m_block_spacing[i] = delta_block;
         }
 
@@ -572,7 +573,7 @@ public:
     inline double* get_grid_spacing(const int bix)
     {
         assert(m_initialized && bix >= 0 && bix < m_Nblocks);
-        return &m_grid_spacing[bix*TBlock::sizeX];
+        return &m_grid_spacing[bix*bs];
     }
 
     inline double* data_grid_spacing() { return m_grid_spacing; }
@@ -583,6 +584,7 @@ private:
     const double m_extent;
     const unsigned int m_Nblocks;
     const unsigned int m_Ncells;
+    const size_t bs; // block size (current direction)
 
     bool m_uniform;
     bool m_initialized;
