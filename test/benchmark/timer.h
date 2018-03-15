@@ -11,8 +11,7 @@ class Timer {
   Timer(std::string name);
   ~Timer() {}
   std::string GetName() const;
-  // Runs function F until reaching the timeout
-  // in batches of b_ iterations.
+  // Runs F() until reaching the timeout in batches of b_ iterations.
   // Returns execution time per iteration and number of iterations.
   std::pair<double, size_t> Run();
 

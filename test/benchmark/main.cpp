@@ -51,16 +51,59 @@ class LoopPlain : public Timer {
   }
 };
 
+class LoopAllCells : public Timer {
+  Mesh& m;
+ public:
+  LoopAllCells(Mesh& m) : Timer("loop-allcells"), m(m) {}
+  void F() override {
+    for (auto i : m.AllCells()) {
+      volatile auto ii = i;
+    }
+  }
+};
+
+class LoopInCells : public Timer {
+  Mesh& m;
+ public:
+  LoopInCells(Mesh& m) : Timer("loop-incells"), m(m) {}
+  void F() override {
+    for (auto i : m.Cells()) {
+      volatile auto ii = i;
+    }
+  }
+};
+
+class LoopAllFaces : public Timer {
+  Mesh& m;
+ public:
+  LoopAllFaces(Mesh& m) : Timer("loop-allfaces"), m(m) {}
+  void F() override {
+    for (auto i : m.AllFaces()) {
+      volatile auto ii = i;
+    }
+  }
+};
+
+class LoopInFaces : public Timer {
+  Mesh& m;
+ public:
+  LoopInFaces(Mesh& m) : Timer("loop-infaces"), m(m) {}
+  void F() override {
+    for (auto i : m.Faces()) {
+      volatile auto ii = i;
+    }
+  }
+};
+
 int main() {
   std::vector<MIdx> ss = {
-      MIdx(8, 8, 8), MIdx(32, 32, 32),
-      MIdx(8, 8, 2), MIdx(32, 32, 2),
-      MIdx(8, 8, 1), MIdx(32, 32, 1)
+      MIdx(16, 16, 16), MIdx(32, 32, 32), MIdx(64, 64, 64),
+      MIdx(16, 16, 1), MIdx(32, 32, 1), MIdx(64, 64, 1),
     };
 
   using std::setw;
   std::cout 
-      << setw(15) 
+      << setw(20) 
       << "name"
       << setw(15) 
       << "total [ns]" 
@@ -78,12 +121,16 @@ int main() {
     std::vector<Timer*> tt {
           new Empty(m)
         , new LoopPlain(m)
+        , new LoopAllCells(m)
+        , new LoopInCells(m)
+        , new LoopAllFaces(m)
+        , new LoopInFaces(m)
       };
 
     for (auto& t : tt) {
       auto e = t->Run();
       std::cout 
-          << setw(15) 
+          << setw(20) 
           << t->GetName()
           << setw(15) 
           << e.first * 1e9 
