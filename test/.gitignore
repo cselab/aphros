@@ -12,3 +12,6 @@ DartConfiguration.tcl
 
 build/
 t.*
+
+# vim
+*.swp

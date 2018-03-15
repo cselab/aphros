@@ -10,7 +10,7 @@ set(H "../../src/hydro")
 
 include_directories(${H})
 
-add_executable(${EXE} main.cpp ${H}/suspender.cpp)
+add_executable(${EXE} main.cpp ${H}/suspender.cpp timer.cpp)
      
 set_property(TARGET ${EXE} PROPERTY CXX_STANDARD 11)
 
