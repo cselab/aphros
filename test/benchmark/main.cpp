@@ -169,7 +169,7 @@ class Interp : public Timer {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
-    auto& bf = m.GetInBlockFaces();
+    auto& bf = m.GetBlockFaces();
     for (auto i : m.Faces()) {
       if (bf.GetMIdx(i)[0] == 0 && bf.GetDir(i) == Dir::i) {
         mfc[i] = std::make_shared<solver::
