@@ -6,11 +6,11 @@
 #include <string>
 #include <memory>
 #include "timer.h"
+#include <iomanip>
 
 #include "mesh.hpp"
 #include "mesh3d.hpp"
 #include "solver.hpp"
-#include "metrics.hpp"
 
 const int dim = 3;
 using MIdx = geom::GMIdx<dim>;
@@ -36,40 +36,61 @@ Mesh GetMesh(MIdx s /*size in cells*/) {
 class Empty : public Timer {
   Mesh& m;
  public:
-  Empty(Mesh& m)
-    : Timer("empty"), m(m)
-  {}
-  double F() override {
-    int a = 0;
-    for (auto i : m.Cells()) {
-      a += 1.;
+  Empty(Mesh& m) : Timer("empty"), m(m) {}
+  void F() override {}
+};
+
+class LoopPlain : public Timer {
+  Mesh& m;
+ public:
+  LoopPlain(Mesh& m) : Timer("loop-plain"), m(m) {}
+  void F() override {
+    for (size_t i = 0; i < m.GetNumCells(); ++i) {
+      volatile size_t ii = i;
     }
-    return a;
   }
 };
 
 int main() {
   std::vector<MIdx> ss = {
-      MIdx(8, 8, 8), MIdx(16, 16, 16),
-      MIdx(8, 8, 2), MIdx(16, 16, 2),
-      MIdx(8, 8, 1), MIdx(16, 16, 1)
+      MIdx(8, 8, 8), MIdx(32, 32, 32),
+      MIdx(8, 8, 2), MIdx(32, 32, 2),
+      MIdx(8, 8, 1), MIdx(32, 32, 1)
     };
 
+  using std::setw;
+  std::cout 
+      << setw(15) 
+      << "name"
+      << setw(15) 
+      << "total [ns]" 
+      << setw(15) 
+      << "percell [ns]" 
+      << setw(15) 
+      << "iters"
+      << std::endl
+      << std::endl;
+
   for (auto s : ss) {
-    std::cout << "*** Mesh " << s << " ***" << std::endl;
+    std::cout << "Mesh " << s << "" << std::endl;
     auto m = GetMesh(s);
 
     std::vector<Timer*> tt {
-        new Empty(m)
+          new Empty(m)
+        , new LoopPlain(m)
       };
 
     for (auto& t : tt) {
       auto e = t->Run();
       std::cout 
-          << t->GetName() << "\t "
-          << "total=" << e.first * 1e6 << " us \t"
-          << "per-cell=" << e.first * 1e6 / m.GetNumCells() << " us \t"
-          << "iter=" << e.second << " "
+          << setw(15) 
+          << t->GetName()
+          << setw(15) 
+          << e.first * 1e9 
+          << setw(15) 
+          << e.first * 1e9 / m.GetNumCells() 
+          << setw(15) 
+          << e.second
           << std::endl;
     }
 

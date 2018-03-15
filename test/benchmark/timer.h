@@ -17,8 +17,9 @@ class Timer {
   std::pair<double, size_t> Run();
 
  private:
-  // Function to evaluate, return value is used to prevent optimization.
-  virtual double F() = 0;
+  // Function to evaluate.
+  // Implementation note: use a volatile variable to prevent optimization.
+  virtual void F() = 0;
   void B();
 
   std::string n_; // name
