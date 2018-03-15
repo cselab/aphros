@@ -208,12 +208,12 @@ int main() {
   std::vector<MIdx> ss = {
       //MIdx(16, 16, 16), MIdx(32, 32, 32), MIdx(64, 64, 64),
       //MIdx(16, 16, 1), MIdx(32, 32, 1), MIdx(64, 64, 1),
-      MIdx(4),
-      MIdx(8),
-      MIdx(16),
-      MIdx(32),
-      MIdx(64)
-    };
+        MIdx(4)
+      , MIdx(8)
+      , MIdx(16)
+      , MIdx(32)
+      , MIdx(64) 
+  };
 
   using std::setw;
   std::cout 
