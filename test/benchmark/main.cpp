@@ -45,8 +45,9 @@ class LoopPlain : public Timer {
  public:
   LoopPlain(Mesh& m) : Timer("loop-plain"), m(m) {}
   void F() override {
+    volatile size_t a = 0;
     for (size_t i = 0; i < m.GetNumCells(); ++i) {
-      volatile size_t ii = i;
+      a += i;
     }
   }
 };
@@ -56,8 +57,9 @@ class LoopAllCells : public Timer {
  public:
   LoopAllCells(Mesh& m) : Timer("loop-allcells"), m(m) {}
   void F() override {
+    volatile size_t a = 0;
     for (auto i : m.AllCells()) {
-      volatile auto ii = i;
+      a += i.GetRaw();
     }
   }
 };
@@ -67,8 +69,9 @@ class LoopInCells : public Timer {
  public:
   LoopInCells(Mesh& m) : Timer("loop-incells"), m(m) {}
   void F() override {
+    volatile size_t a = 0;
     for (auto i : m.Cells()) {
-      volatile auto ii = i;
+      a += i.GetRaw();
     }
   }
 };
@@ -78,8 +81,9 @@ class LoopAllFaces : public Timer {
  public:
   LoopAllFaces(Mesh& m) : Timer("loop-allfaces"), m(m) {}
   void F() override {
+    volatile size_t a = 0;
     for (auto i : m.AllFaces()) {
-      volatile auto ii = i;
+      a += i.GetRaw();
     }
   }
 };
@@ -89,16 +93,126 @@ class LoopInFaces : public Timer {
  public:
   LoopInFaces(Mesh& m) : Timer("loop-infaces"), m(m) {}
   void F() override {
+    volatile size_t a = 0;
     for (auto i : m.Faces()) {
-      volatile auto ii = i;
+      a += i.GetRaw();
     }
   }
 };
 
+
+// Loop with array
+class LoopArPlain : public Timer {
+  Mesh& m;
+  std::vector<Scal> v;
+ public:
+  LoopArPlain(Mesh& m) : Timer("loop-ar-plain"), m(m), v(m.GetNumCells()) {}
+  void F() override {
+    volatile Scal a = 0;
+    for (size_t i = 0; i < m.GetNumCells(); ++i) {
+      v[i] += a;
+      a = v[i];
+    }
+  }
+};
+
+class LoopArAllCells : public Timer {
+  Mesh& m;
+  geom::FieldCell<Scal> v;
+ public:
+  LoopArAllCells(Mesh& m) : Timer("loop-ar-allcells"), m(m), v(m) {}
+  void F() override {
+    volatile Scal a = 0;
+    for (auto i : m.AllCells()) {
+      v[i] += a;
+      a = v[i];
+    }
+  }
+};
+
+
+class LoopMIdxAllCells : public Timer {
+  Mesh& m;
+ public:
+  LoopMIdxAllCells(Mesh& m) : Timer("loop-midx-allcells"), m(m) {}
+  void F() override {
+    volatile size_t a = 0;
+    for (auto i : m.AllCells()) {
+      auto ii = m.GetBlockCells().GetMIdx(i);
+      a += ii[0];
+    }
+  }
+};
+
+class LoopMIdxAllFaces : public Timer {
+  Mesh& m;
+ public:
+  LoopMIdxAllFaces(Mesh& m) : Timer("loop-midx-allfaces"), m(m) {}
+  void F() override {
+    volatile size_t a = 0;
+    for (auto i : m.AllFaces()) {
+      auto ii = m.GetBlockFaces().GetMIdx(i);
+      auto id = m.GetBlockFaces().GetDir(i);
+      a += ii[0];
+      a += id.GetLetter();
+    }
+  }
+};
+
+class Interp : public Timer {
+  Mesh& m;
+  geom::FieldCell<Scal> fc;
+  geom::MapFace<std::shared_ptr<solver::ConditionFace>> mfc;
+  geom::FieldFace<Scal> ff;
+ public:
+  Interp(Mesh& m) : Timer("interp"), m(m), fc(m), ff(m) {
+    for (auto i : m.AllCells()) {
+      fc[i] = std::sin(i.GetRaw());
+    }
+    auto& bf = m.GetInBlockFaces();
+    for (auto i : m.Faces()) {
+      if (bf.GetMIdx(i)[0] == 0 && bf.GetDir(i) == Dir::i) {
+        mfc[i] = std::make_shared<solver::
+            ConditionFaceDerivativeFixed<Scal>>(0);
+      }
+    }
+    assert(mfc.size() > 0);
+  }
+  void F() override {
+    volatile size_t a = 0;
+    ff = solver::Interpolate(fc, mfc, m);
+    a = ff[IdxFace(a)];
+  }
+};
+
+class Grad : public Timer {
+  Mesh& m;
+  geom::FieldCell<Vect> fc;
+  geom::FieldFace<Scal> ff;
+ public:
+  Grad(Mesh& m) : Timer("grad"), m(m), fc(m), ff(m) {
+    for (auto i : m.AllFaces()) {
+      ff[i] = std::sin(i.GetRaw());
+    }
+  }
+  void F() override {
+    static volatile size_t a = 0;
+    fc = solver::Gradient(ff, m);
+    a = fc[IdxCell(a % m.GetNumCells())][0];
+  }
+};
+
+
+
 int main() {
   std::vector<MIdx> ss = {
-      MIdx(16, 16, 16), MIdx(32, 32, 32), MIdx(64, 64, 64),
-      MIdx(16, 16, 1), MIdx(32, 32, 1), MIdx(64, 64, 1),
+      //MIdx(16, 16, 16), MIdx(32, 32, 32), MIdx(64, 64, 64),
+      //MIdx(16, 16, 1), MIdx(32, 32, 1), MIdx(64, 64, 1),
+      MIdx(4),
+      MIdx(8),
+      MIdx(16),
+      MIdx(32),
+      MIdx(64)
     };
 
   using std::setw;
@@ -106,17 +220,21 @@ int main() {
       << setw(20) 
       << "name"
       << setw(15) 
-      << "total [ns]" 
-      << setw(15) 
       << "percell [ns]" 
+      << setw(15) 
+      << "total [ns]" 
       << setw(15) 
       << "iters"
       << std::endl
       << std::endl;
 
   for (auto s : ss) {
-    std::cout << "Mesh " << s << "" << std::endl;
     auto m = GetMesh(s);
+    std::cout 
+        << "Mesh" 
+        << " size=" << s
+        << " numcells=" << m.GetNumCells() 
+        << std::endl;
 
     std::vector<Timer*> tt {
           new Empty(m)
@@ -125,6 +243,12 @@ int main() {
         , new LoopInCells(m)
         , new LoopAllFaces(m)
         , new LoopInFaces(m)
+        , new LoopArPlain(m)
+        , new LoopArAllCells(m)
+        , new LoopMIdxAllCells(m)
+        , new LoopMIdxAllFaces(m)
+        , new Interp(m)
+        , new Grad(m)
       };
 
     for (auto& t : tt) {
@@ -133,9 +257,9 @@ int main() {
           << setw(20) 
           << t->GetName()
           << setw(15) 
-          << e.first * 1e9 
-          << setw(15) 
           << e.first * 1e9 / m.GetNumCells() 
+          << setw(15) 
+          << e.first * 1e9 
           << setw(15) 
           << e.second
           << std::endl;
