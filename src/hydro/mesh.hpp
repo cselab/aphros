@@ -69,6 +69,9 @@ class GRange {
     explicit iterator(size_t pos)
         : pos_(pos)
     {}
+    iterator() = default;
+    iterator(const iterator&) = default;
+    iterator& operator=(const iterator&) = default;
     iterator& operator++() {
       ++pos_;
       return *this;
@@ -546,6 +549,8 @@ template <size_t dim>
 const GDir<dim> GDir<dim>::k(2);
 
 
+// Specialization for IdxFace
+// No iterator, only conversion between Idx and MIdx
 template <size_t _dim>
 class GBlock<IdxFace, _dim> {
  public:
@@ -586,6 +591,9 @@ class GBlock<IdxFace, _dim> {
   }
   Dir GetDir(Idx idx) const {
     return GetMIdxDir(idx).second;
+  }
+  MIdx GetSize() const {
+    return cs_;
   }
 
  private:
@@ -744,6 +752,87 @@ class GRangeIn<IdxFace, dim> {
     return iterator(ba_, bi_, ri_.end());
   }
 };
+
+
+#if 0
+// Specialization for IdxFace
+template <int dim>
+class GRangeIn<IdxFace, dim> {
+  using B = GBlockFaces<dim>; // block 
+  using R = GRange<IdxFace>;  // range
+  using I = typename R::iterator; // range iterator
+  const B& ba_; // block all
+  const B& bi_; // block inner
+  R ri_; // range inner
+
+ public:
+  class iterator {
+    const B& ba_; // block all
+    const B& bi_; // block inner
+    I i_;         // range iterator over bi
+    IdxFace r_;   // current result
+    I in_;        // next iterator to trigger recompute of r_ via MIdx
+   public:
+    IdxFace IdxFromInner(I i) {
+      auto x = bi_.GetMIdx(*i); 
+      auto d = bi_.GetDir(*i); 
+      return ba_.GetIdx(x, d); 
+    }
+    I GetLast(I i) {
+      using Dir = typename B::Dir;
+      auto x = bi_.GetMIdx(*i); 
+      auto d = bi_.GetDir(*i); 
+      x[0] += bi_.GetSize()[0];
+      if (d != Dir::i) {
+        x[0] -= 1;
+      }
+      return I(bi_.GetIdx(x, d).GetRaw());
+    }
+    explicit iterator(const B& ba, const B& bi, const I& i)
+        : ba_(ba), bi_(bi), i_(i), r_(IdxFromInner(i_)), in_(i_)
+    {
+        in_ = GetLast(in_);
+    }
+    iterator& operator++() {
+      if (i_ == in_) {
+        ++i_;
+        r_ = IdxFromInner(i_);
+        ++in_;
+        in_ = GetLast(in_);
+      } else {
+        ++i_;
+        r_.AddRaw(1);
+      }
+      return *this;
+    }
+    /*
+    iterator& operator--() {
+      --i_;
+      return *this;
+    }
+    */
+    bool operator==(const iterator& o /*other*/) const {
+      return i_ == o.i_;
+    }
+    bool operator!=(const iterator& o /*other*/) const {
+      return !(*this == o);
+    }
+    IdxFace operator*() const {
+      return r_;
+    }
+  };
+
+  GRangeIn(const B& ba /*block all*/, const B& bi /*block inner*/)
+      : ba_(ba), bi_(bi), ri_(bi_)
+  {}
+  iterator begin() const {
+    return iterator(ba_, bi_, ri_.begin());
+  }
+  iterator end() const {
+    return iterator(ba_, bi_, ri_.end());
+  }
+};
+#endif
 
 /*
 template <class ScalArg, size_t dim>
