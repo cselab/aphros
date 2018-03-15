@@ -694,6 +694,7 @@ class GRangeIn {
 };
 
 
+// Specialization for IdxFace
 template <int dim>
 class GRangeIn<IdxFace, dim> {
   using B = GBlockFaces<dim>; // block 
