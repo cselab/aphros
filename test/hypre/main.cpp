@@ -95,7 +95,7 @@ int main (int argc, char ** argv) {
   Scal tol = 1e-12;
   int print = 2;
 
-  Hypre h(comm, bb, gs, per, tol, print);
+  Hypre h(comm, bb, gs, per, tol, print, "gmres");
   h.Solve();
 
   // Check solution

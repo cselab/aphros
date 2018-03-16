@@ -1295,6 +1295,8 @@ class MeshStructured {
     std::vector<Scal>* a; // matrix coeffs of size n * st.size()
     std::vector<Scal>* b; // rhs of size n
     std::vector<Scal>* x; // solution and initial guess of size n
+    enum class T { gen, symm };
+    T t = T::gen;
   };
   Sem GetSem(std::string name="") {
     return susp_.GetSem(name);

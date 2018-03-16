@@ -150,13 +150,14 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
     using LI = typename Hypre::MIdx;
 
     using MIdx = typename K::MIdx;
-    std::vector<MIdx> st = vf[j].st; // stencil
+    auto& sf = vf[j];  // first LS
+    std::vector<MIdx> st = sf.st; // stencil
 
     for (auto& b : bb) {
       LB lb;
       auto& k = *mk.at(b); // kernel
       auto& m = k.GetMesh();
-      auto& v = m.GetSolve();  // pointers to reduce
+      auto& v = m.GetSolve(); 
       auto& bc = m.GetInBlockCells();
       auto& s = v[j];  
       lb.l = bc.GetBegin();
@@ -180,8 +181,24 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
       gs[i] = bs_[i] * b_[i] * p_[i];
     }
 
+    std::string sr;
+    using T = typename M::LS::T; // system type
+    switch (sf.t) {
+      case T::gen:
+        sr = "gmres";
+        break;
+      case T::symm:
+        sr = "pcg";
+        break;
+      default:
+        std::cerr 
+            << "Solve(): Unknown system type = " 
+            << static_cast<size_t>(sf.t) << std::endl;
+        assert(false);
+    }
+
     Hypre hp(comm_, lbb, gs, per, 
-             par.Double["hypre_tol"], par.Int["hypre_print"]);
+             par.Double["hypre_tol"], par.Int["hypre_print"], sr);
     hp.Solve();
   }
 
@@ -228,7 +245,6 @@ void DistrMesh<KF>::Run() {
   do {
     auto bb = GetBlocks();
     
-
     assert(!bb.empty());
 
     ReadBuffer(bb);

@@ -4,6 +4,7 @@
 #include <cassert>
 #include <mpi.h>
 #include <memory>
+#include <string>
 
 
 // TODO: Convention of *_ for private variables ignored
@@ -27,7 +28,8 @@ class Hypre {
         MIdx gs /*global size*/,
         std::vector<bool> per /*periodic per direction*/,
         Scal tol /*tolerance*/,
-        int print /*print level*/);
+        int print /*print level*/,
+        std::string solver);
   Hypre() = delete;
   Hypre(const Hypre&) = delete;
 
@@ -39,4 +41,5 @@ class Hypre {
   std::vector<Block> bb;
   struct HypreData;
   std::unique_ptr<HypreData> hd;
+  std::string solver_;
 };
