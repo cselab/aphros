@@ -249,6 +249,8 @@ class ConvectionDiffusionScalarImplicit :
 
     if (sem("solve")) {
       auto l = ConvertLs(fc_system_, lsa_, lsb_, lsx_, mesh);
+      using T = typename Mesh::LS::T;
+      l.t = T::gen;
       m.Solve(l);
     }
 
