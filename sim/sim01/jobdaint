@@ -8,7 +8,8 @@ echo running > job.status
 
 export OMP_NUM_THREADS=1
 export OVERSUBSCRIBE=1 
-time srun -n 256 ../mfer 
+#time srun -n 1536  ../mfer 
+time srun -n 8  ../mfer 
 
 echo "Done."
 echo done > job.status
