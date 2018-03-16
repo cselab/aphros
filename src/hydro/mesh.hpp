@@ -705,6 +705,8 @@ class GBlockS { // [s]andbox
   using Idx = IdxFace;
   using MIdx = GMIdx<dim>;
   using Dir = GDir<dim>;
+  
+  static_assert(dim == 3, "GBlock<IdxFace,...> implemented only for dim=3");
 
   class iterator {
     const GBlockS* o_; // owner
@@ -765,13 +767,14 @@ class GBlockS { // [s]andbox
     return GRange<Idx>(0, size());
   }
   Idx GetIdx(MIdx x, Dir d) const {
+    x -= b_;
     size_t r = 0;
     auto& s = cs_;
     r += (s[1] * s[0] + (s[1] + 1) * s[0] + (s[0] + 1) * s[1]) * x[2]; 
     if (x[2] == s[2]) {
       r += s[0] * x[1] + x[0];   // z-boundary
     } else {
-      r += (s[0] + s[0] + 1 + s[0]) * x[1];
+      r += (3 * s[0] + 1) * x[1];
       if (x[1] == s[1]) {
         r += x[0]; // y-boundary
       } else {
@@ -801,6 +804,37 @@ class GBlockS { // [s]andbox
     x[ld] = (b_ + cs_)[ld] + 1;
     return iterator(this, x, Dir(ld));
   }
+  std::pair<MIdx, Dir> GetMIdxDir(Idx i) const {
+    size_t r = i.GetRaw();
+    MIdx x;
+    Dir d;
+    auto& s = cs_;
+    const size_t n = size();
+    if (r >= n - s[0] * s[1]) {  // z-boundary
+      r -= n - s[0] * s[1];
+      x[2] = s[2];
+      x[1] = r / s[0];
+      x[0] = r % s[0];
+      d = Dir(2);
+    } else {
+      auto w = (s[1] * s[0] + (s[1] + 1) * s[0] + (s[0] + 1) * s[1]);
+      x[2] = r / w;
+      r = r % w;
+      if (r >= w - s[0]) { // y-boundary
+        r -= w - s[0];
+        x[1] = s[1];
+        x[0] = r;
+        d = Dir(1);
+      } else {
+        auto q = 3 * s[0] + 1;
+        x[1] = r / q;
+        r = r % q;
+        x[0] = r / 3;
+        d = Dir(r % 3);
+      }
+    }
+    return std::make_pair(b_ + x, d);
+  }
 
  private:
   MIdx b_;
@@ -816,37 +850,6 @@ class GBlockS { // [s]andbox
   }
   size_t GetNumFaces(size_t i) const {
     return GetNumFaces(Dir(i));
-  }
-  size_t GetFlat(MIdx midx, Dir dir) const {
-    midx -= b_;
-    MIdx bcs = cs_;
-    ++bcs[size_t(dir)];
-    size_t res = 0;
-    for (size_t i = dim; i != 0; ) {
-      --i;
-      res *= bcs[i];
-      res += midx[i];
-    }
-    return res;
-  }
-  MIdx GetMIdxFromOffset(size_t raw, Dir dir) const {
-    MIdx bcs = cs_;
-    ++bcs[size_t(dir)];
-    MIdx midx;
-    for (size_t i = 0; i < dim; ++i) {
-      midx[i] = raw % bcs[i];
-      raw /= bcs[i];
-    }
-    return b_ + midx;
-  }
-  std::pair<MIdx, Dir> GetMIdxDir(Idx idxface) const {
-    size_t raw = idxface.GetRaw();
-    size_t diridx = 0;
-    while (raw >= GetNumFaces(diridx) && diridx < dim) {
-      raw -= GetNumFaces(diridx);
-      ++diridx;
-    }
-    Dir dir(diridx); return {GetMIdxFromOffset(raw, dir), dir};
   }
 };
 

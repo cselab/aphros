@@ -166,8 +166,8 @@ int main() {
   {
     geom::Rect<Vect> dom(Vect(0.), Vect(1.));
     using M = geom::MeshStructured<Scal, dim>;
-    MIdx b(0, 0, 0); // lower index
-    MIdx s(2, 2, 2);    // size in cells
+    MIdx b(3, 2, 1); // lower index
+    MIdx s(2, 3, 4);    // size in cells
     int hl = 0;         // halos 
     M m = geom::InitUniformMesh<M>(dom, b, s, hl);
     for (auto i : m.GetBlockCells()) {
@@ -184,9 +184,15 @@ int main() {
 
     geom::GBlockS<3> sb(b, s);
     for (auto i : sb) {
+      auto j = sb.GetIdx(i);
+      auto p = sb.GetMIdxDir(j);
+      auto jj = sb.GetIdx(p);
+      assert(j == jj);
       std::cout 
-          << i.first << " " << i.second.GetLetter() << " "
-          << sb.GetIdx(i).GetRaw() << " " 
+          << i.first << " " << i.second.GetLetter() << " | "
+          << j.GetRaw() << " | "
+          << p.first << " " << p.second.GetLetter() << " | "
+          << jj.GetRaw() << " "
           << std::endl;
     }
   }
