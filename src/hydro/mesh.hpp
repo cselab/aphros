@@ -550,7 +550,6 @@ template <size_t dim>
 const GDir<dim> GDir<dim>::k(2);
 
 
-#if 0
 // Specialization for IdxFace
 // Enumeration order (to more frequent): dir, z, y, x
 template <size_t dim_>
@@ -696,12 +695,11 @@ class GBlock<IdxFace, dim_> {
     Dir dir(diridx); return {GetMIdxFromOffset(raw, dir), dir};
   }
 };
-#endif
 
 // Specialization for IdxFace
 // Enumeration order (to more frequent): z, y, x, dir
 template <size_t dim_>
-class GBlock<IdxFace, dim_> {
+class GBlockS { // [s]andbox
  public:
   static constexpr size_t dim = dim_;
   using Idx = IdxFace;
@@ -709,12 +707,12 @@ class GBlock<IdxFace, dim_> {
   using Dir = GDir<dim>;
 
   class iterator {
-    const GBlock* o_; // owner
+    const GBlockS* o_; // owner
     MIdx x_;
     Dir d_;
 
    public:
-    explicit iterator(const GBlock* o, MIdx x, Dir d)
+    explicit iterator(const GBlockS* o, MIdx x, Dir d)
         : o_(o), x_(x), d_(d)
     {}
     iterator& operator++() {
@@ -747,13 +745,13 @@ class GBlock<IdxFace, dim_> {
     }
   };
 
-  GBlock()
+  GBlockS()
       : b_(MIdx::kZero), cs_(MIdx::kZero)
   {}
-  GBlock(MIdx block_cells_size)
+  GBlockS(MIdx block_cells_size)
       : b_(MIdx::kZero), cs_(block_cells_size)
   {}
-  GBlock(MIdx begin, MIdx block_cells_size)
+  GBlockS(MIdx begin, MIdx block_cells_size)
       : b_(begin), cs_(block_cells_size)
   {}
   size_t size() const {
@@ -766,13 +764,21 @@ class GBlock<IdxFace, dim_> {
   operator GRange<Idx>() const {
     return GRange<Idx>(0, size());
   }
-  Idx GetIdx(MIdx midx, Dir dir) const {
-    size_t raw = 0;
-    for (size_t i = 0; i < size_t(dir); ++i) {
-      raw += GetNumFaces(i);
+  Idx GetIdx(MIdx x, Dir d) const {
+    size_t r = 0;
+    auto& s = cs_;
+    r += (s[1] * s[0] + (s[1] + 1) * s[0] + (s[0] + 1) * s[1]) * x[2]; 
+    if (x[2] == s[2]) {
+      r += s[0] * x[1] + x[0];   // z-boundary
+    } else {
+      r += (s[0] + s[0] + 1 + s[0]) * x[1];
+      if (x[1] == s[1]) {
+        r += x[0]; // y-boundary
+      } else {
+        r += 3 * x[0] + size_t(d);
+      }
     }
-    raw += GetFlat(midx, dir);
-    return Idx(raw);
+    return Idx(r);
   }
   Idx GetIdx(std::pair<MIdx, Dir> p) const {
     return GetIdx(p.first, p.second);
@@ -843,7 +849,6 @@ class GBlock<IdxFace, dim_> {
     Dir dir(diridx); return {GetMIdxFromOffset(raw, dir), dir};
   }
 };
-#endif
 
 template <size_t dim>
 using GBlockCells = GBlock<IdxCell, dim>;
