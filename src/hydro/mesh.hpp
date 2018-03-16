@@ -12,6 +12,7 @@
 #include <map>
 #include <cassert>
 #include <iostream>
+#include <utility>
 
 #include "suspender.h"
 #include "vect.hpp"
@@ -516,10 +517,10 @@ class GDir {
   char GetLetter() const {
     return std::string("xyz")[d_];
   }
-  operator size_t() const {
+  explicit operator size_t() const {
     return d_;
   }
-  operator MIdx() const {
+  explicit operator MIdx() const {
     MIdx r = MIdx::kZero;
     ++r[d_];
     return r;
@@ -551,13 +552,52 @@ const GDir<dim> GDir<dim>::k(2);
 
 // Specialization for IdxFace
 // No iterator, only conversion between Idx and MIdx
-template <size_t _dim>
-class GBlock<IdxFace, _dim> {
+template <size_t dim_>
+class GBlock<IdxFace, dim_> {
  public:
+  static constexpr size_t dim = dim_;
   using Idx = IdxFace;
-  using MIdx = GMIdx<_dim>;
-  using Dir = GDir<_dim>;
-  static constexpr size_t dim = _dim;
+  using MIdx = GMIdx<dim>;
+  using Dir = GDir<dim>;
+
+  class iterator {
+    const GBlock* o_; // owner
+    MIdx x_;
+    Dir d_;
+
+   public:
+    explicit iterator(const GBlock* o, MIdx x, Dir d)
+        : o_(o), x_(x), d_(d)
+    {}
+    iterator& operator++() {
+      MIdx xd(d_);
+      for (size_t n = 0; n < dim; ++n) {
+        ++x_[n]; // increment current
+        if (x_[n] == o_->b_[n] + o_->cs_[n] + xd[n]) { // if end reached
+          if (n < dim - 1) {  
+            x_[n] = o_->b_[n];  // reset to begin
+          } else {  // if end reached for last dim
+            if (size_t(d_) < dim - 1) {
+              d_ = Dir(size_t(d_) + 1);
+              x_ = o_->b_;
+            }
+          }
+        } else {
+          break;
+        }
+      }
+      return *this;
+    }
+    bool operator==(const iterator& o) const {
+      return x_ == o.x_ && d_ == o.d_;
+    }
+    bool operator!=(const iterator& o) const {
+      return !(*this == o);
+    }
+    std::pair<MIdx, Dir> operator*() const {
+      return std::make_pair(x_, d_);
+    }
+  };
 
   GBlock()
       : b_(MIdx::kZero), cs_(MIdx::kZero)
@@ -580,7 +620,7 @@ class GBlock<IdxFace, _dim> {
   }
   Idx GetIdx(MIdx midx, Dir dir) const {
     size_t raw = 0;
-    for (size_t i = 0; i < dir; ++i) {
+    for (size_t i = 0; i < size_t(dir); ++i) {
       raw += GetNumFaces(i);
     }
     raw += GetFlat(midx, dir);
@@ -595,13 +635,22 @@ class GBlock<IdxFace, _dim> {
   MIdx GetSize() const {
     return cs_;
   }
+  iterator begin() const {
+    return iterator(this, b_, Dir(0));
+  }
+  iterator end() const {
+    MIdx x = b_;
+    auto ld = dim - 1; // last direction
+    x[ld] = (b_ + cs_)[ld] + 1;
+    return iterator(this, x, Dir(ld));
+  }
 
  private:
   MIdx b_;
   MIdx cs_; // cells size
   size_t GetNumFaces(Dir dir) const {
     MIdx bcs = cs_;
-    ++bcs[dir];
+    ++bcs[size_t(dir)];
     size_t res = 1;
     for (size_t i = 0; i < dim; ++i) {
       res *= bcs[i];
@@ -614,7 +663,7 @@ class GBlock<IdxFace, _dim> {
   size_t GetFlat(MIdx midx, Dir dir) const {
     midx -= b_;
     MIdx bcs = cs_;
-    ++bcs[dir];
+    ++bcs[size_t(dir)];
     size_t res = 0;
     for (size_t i = dim; i != 0; ) {
       --i;
@@ -625,7 +674,7 @@ class GBlock<IdxFace, _dim> {
   }
   MIdx GetMIdxFromOffset(size_t raw, Dir dir) const {
     MIdx bcs = cs_;
-    ++bcs[dir];
+    ++bcs[size_t(dir)];
     MIdx midx;
     for (size_t i = 0; i < dim; ++i) {
       midx[i] = raw % bcs[i];
@@ -1387,11 +1436,11 @@ MeshStructured<_Scal, _dim>::MeshStructured(
 
   // Base for i-face and j-face neighbours
   for (Dir dir : {Dir::i, Dir::j, Dir::k}) {
-    for (auto midx : BlockCells(mb, me - mb + dir)) {
+    for (auto midx : BlockCells(mb, me - mb + MIdx(dir))) {
       IdxFace idxface = b_faces_.GetIdx(midx, dir);
       ff_direction_[idxface] = dir;
       ff_neighbour_cell_[idxface] = {{
-          b_cells_.GetIdx(midx - dir),
+          b_cells_.GetIdx(midx - MIdx(dir)),
           b_cells_.GetIdx(midx)}};
 
       auto l = [this, &midx](IntIdx i, IntIdx j, IntIdx k) {
@@ -1409,10 +1458,11 @@ MeshStructured<_Scal, _dim>::MeshStructured(
             l(0,0,0), l(1,0,0), l(1,1,0), l(0,1,0)}};
       }
 
-      if (midx[dir] == mb[dir]) {
+      const size_t sd(dir);
+      if (midx[sd] == mb[sd]) {
         ff_neighbour_cell_[idxface][0] = IdxCell::None();
       }
-      if (midx[dir] == me[dir]) {
+      if (midx[sd] == me[sd]) {
         ff_neighbour_cell_[idxface][1] = IdxCell::None();
       }
     }
@@ -1433,7 +1483,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
 
   // Vect to cell
   for (Dir dir : {Dir::i, Dir::j, Dir::k}) {
-    for (auto midx : BlockCells(mb, me - mb + dir)) {
+    for (auto midx : BlockCells(mb, me - mb + MIdx(dir))) {
       IdxFace idxface = b_faces_.GetIdx(midx, dir);
       IdxCell c;
       c = GetNeighbourCell(idxface, 0);

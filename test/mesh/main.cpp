@@ -38,7 +38,7 @@ void TestBlock() {
   geom::GRange<IdxFace> ra(ba);
   geom::GRangeIn<IdxFace, dim> ri(ba, bi);
 
-  const MIdx xp0 = oa - Dir(0);
+  const MIdx xp0 = oa - MIdx(Dir(0));
   MIdx xp = xp0;
   Dir dp(0); // direction
 
@@ -151,6 +151,7 @@ void TestMesh() {
     }
   }
 
+
   // Comm
   geom::FieldCell<Scal> fc;
   m.Comm(&fc);
@@ -161,4 +162,19 @@ int main() {
   TestBlock();
 
   TestMesh();
+
+  {
+    geom::Rect<Vect> dom(Vect(0.), Vect(1.));
+    using M = geom::MeshStructured<Scal, dim>;
+    MIdx b(1, 1, 1); // lower index
+    MIdx s(1, 1, 1);    // size in cells
+    int hl = 0;         // halos 
+    M m = geom::InitUniformMesh<M>(dom, b, s, hl);
+    for (auto i : m.GetBlockCells()) {
+      std::cout << i << std::endl;
+    }
+    for (auto i : m.GetBlockFaces()) {
+      std::cout << i.first << " " << i.second.GetLetter() << std::endl;
+    }
+  }
 }
