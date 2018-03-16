@@ -169,14 +169,42 @@ class Cubism : public DistrMesh<KF> {
   };
   S s_;
 
-  static StencilInfo GetStencil(int h) {
-    return StencilInfo(-h,-h,-h,h+1,h+1,h+1, true, 8, 0,1,2,3,4,5,6,7);
+  static StencilInfo GetStencil(int hl /*halo cells*/,
+                                int cs /*comm size*/) {
+    const int a = -hl;
+    const int b = hl + 1;
+    if (cs == 0) {
+      return StencilInfo(a,a,a,b,b,b, true, cs);
+    } else if (cs == 1) {
+      return StencilInfo(a,a,a,b,b,b, true, cs, 0);
+    } else if (cs == 2) {
+      return StencilInfo(a,a,a,b,b,b, true, cs, 0,1);
+    } else if (cs == 3) {
+      return StencilInfo(a,a,a,b,b,b, true, cs, 0,1,2);
+    } else if (cs == 4) {
+      return StencilInfo(a,a,a,b,b,b, true, cs, 0,1,2,3);
+    } else if (cs == 5) {
+      return StencilInfo(a,a,a,b,b,b, true, cs, 0,1,2,3,4);
+    } else if (cs == 6) {
+      return StencilInfo(a,a,a,b,b,b, true, cs, 0,1,2,3,4,5);
+    } else if (cs == 7) {
+      return StencilInfo(a,a,a,b,b,b, true, cs, 0,1,2,3,4,5,6);
+    } else if (cs == 8) {
+      return StencilInfo(a,a,a,b,b,b, true, cs, 0,1,2,3,4,5,6,7);
+    } else {
+      std::cerr << "GetStencil(): Unknown cs=" << cs << std::endl;
+      assert(false);
+    }
   }
   static std::vector<MyBlockInfo> GetBlocks(
       const std::vector<BlockInfo>&, MIdx bs, size_t hl);
 
   void ReadBuffer(M& m, Lab& l) {
     using MIdx = typename M::MIdx;
+
+    // Check buffer has enough space for all fields
+    assert(m.GetComm().size() <= Elem::es && "Too many fields for Comm()");
+
     int e = 0; // buffer field idx
 
     for (auto u : m.GetComm()) {
@@ -339,19 +367,33 @@ template <class Par, class KF>
 auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
   MPI_Barrier(comm_);
 
-  // 1. Exchange halos in buffer mesh
-  FakeProc fp(GetStencil(hl_));       // object with field 'stencil'
-  Synch& s = g_.sync(fp); 
+  // Get all blocks
+  std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
+  auto& m = mk.at(MIdx(cc[0].index))->GetMesh();
+  size_t cs = m.GetComm().size(); // comm size
 
-  s_.l.reset(new Lab);
-  s_.l->prepare(g_, s);   // allocate memory for lab cache
+  std::vector<BlockInfo> aa;
+  // Perform communication if necessary or s_.l not initialized
+  if (cs > 0 || !s_.l) { 
+    // 1. Exchange halos in buffer mesh.
+    // max(cs, 1) to prevent forbidden call with zero components
+    FakeProc fp(GetStencil(hl_, std::max<size_t>(cs, 1))); 
+    Synch& s = g_.sync(fp); 
 
-  MPI_Barrier(comm_);
+    s_.l.reset(new Lab);
+    s_.l->prepare(g_, s);   // allocate memory for lab cache
 
-  // Do communication and get all blocks
-  std::vector<BlockInfo> aa = s.avail();
+    MPI_Barrier(comm_);
 
-  // Put blocks to map by index 
+    // Do communication and get all blocks
+    aa = s.avail();
+  } else {
+    aa = cc;
+  }
+
+  assert(aa.size() == cc.size());
+
+  // Create vector of indices and save block info to map 
   std::vector<MIdx> bb;
   s_.mb.clear();
   for (auto a : aa) {
