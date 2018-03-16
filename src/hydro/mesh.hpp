@@ -626,6 +626,9 @@ class GBlock<IdxFace, dim_> {
     raw += GetFlat(midx, dir);
     return Idx(raw);
   }
+  Idx GetIdx(std::pair<MIdx, Dir> p) const {
+    return GetIdx(p.first, p.second);
+  }
   MIdx GetMIdx(Idx idx) const {
     return GetMIdxDir(idx).first;
   }
@@ -689,8 +692,7 @@ class GBlock<IdxFace, dim_> {
       raw -= GetNumFaces(diridx);
       ++diridx;
     }
-    Dir dir(diridx);
-    return {GetMIdxFromOffset(raw, dir), dir};
+    Dir dir(diridx); return {GetMIdxFromOffset(raw, dir), dir};
   }
 };
 
@@ -751,7 +753,10 @@ class GRangeIn {
 };
 
 
+#if 0
 // Specialization for IdxFace
+// Implementation via convertion Idx->MIdx->Idx
+// (slow)
 template <int dim>
 class GRangeIn<IdxFace, dim> {
   using B = GBlockFaces<dim>; // block 
@@ -801,10 +806,14 @@ class GRangeIn<IdxFace, dim> {
     return iterator(ba_, bi_, ri_.end());
   }
 };
+#endif
 
 
 #if 0
 // Specialization for IdxFace
+// Implementation with optimization: 
+// don't recompute until reaching the end in x direction
+// (causes segfault for Hydro)
 template <int dim>
 class GRangeIn<IdxFace, dim> {
   using B = GBlockFaces<dim>; // block 
