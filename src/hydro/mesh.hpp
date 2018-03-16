@@ -550,8 +550,9 @@ template <size_t dim>
 const GDir<dim> GDir<dim>::k(2);
 
 
+#if 0
 // Specialization for IdxFace
-// No iterator, only conversion between Idx and MIdx
+// Enumeration order (to more frequent): dir, z, y, x
 template <size_t dim_>
 class GBlock<IdxFace, dim_> {
  public:
@@ -695,6 +696,154 @@ class GBlock<IdxFace, dim_> {
     Dir dir(diridx); return {GetMIdxFromOffset(raw, dir), dir};
   }
 };
+#endif
+
+// Specialization for IdxFace
+// Enumeration order (to more frequent): z, y, x, dir
+template <size_t dim_>
+class GBlock<IdxFace, dim_> {
+ public:
+  static constexpr size_t dim = dim_;
+  using Idx = IdxFace;
+  using MIdx = GMIdx<dim>;
+  using Dir = GDir<dim>;
+
+  class iterator {
+    const GBlock* o_; // owner
+    MIdx x_;
+    Dir d_;
+
+   public:
+    explicit iterator(const GBlock* o, MIdx x, Dir d)
+        : o_(o), x_(x), d_(d)
+    {}
+    iterator& operator++() {
+      MIdx xd(d_);
+      for (size_t n = 0; n < dim; ++n) {
+        ++x_[n]; // increment current
+        if (x_[n] == o_->b_[n] + o_->cs_[n] + xd[n]) { // if end reached
+          if (n < dim - 1) {  
+            x_[n] = o_->b_[n];  // reset to begin
+          } else {  // if end reached for last dim
+            if (size_t(d_) < dim - 1) {
+              d_ = Dir(size_t(d_) + 1);
+              x_ = o_->b_;
+            }
+          }
+        } else {
+          break;
+        }
+      }
+      return *this;
+    }
+    bool operator==(const iterator& o) const {
+      return x_ == o.x_ && d_ == o.d_;
+    }
+    bool operator!=(const iterator& o) const {
+      return !(*this == o);
+    }
+    std::pair<MIdx, Dir> operator*() const {
+      return std::make_pair(x_, d_);
+    }
+  };
+
+  GBlock()
+      : b_(MIdx::kZero), cs_(MIdx::kZero)
+  {}
+  GBlock(MIdx block_cells_size)
+      : b_(MIdx::kZero), cs_(block_cells_size)
+  {}
+  GBlock(MIdx begin, MIdx block_cells_size)
+      : b_(begin), cs_(block_cells_size)
+  {}
+  size_t size() const {
+    size_t res = 0;
+    for (size_t i = 0; i < dim; ++i) {
+      res += GetNumFaces(i);
+    }
+    return res;
+  }
+  operator GRange<Idx>() const {
+    return GRange<Idx>(0, size());
+  }
+  Idx GetIdx(MIdx midx, Dir dir) const {
+    size_t raw = 0;
+    for (size_t i = 0; i < size_t(dir); ++i) {
+      raw += GetNumFaces(i);
+    }
+    raw += GetFlat(midx, dir);
+    return Idx(raw);
+  }
+  Idx GetIdx(std::pair<MIdx, Dir> p) const {
+    return GetIdx(p.first, p.second);
+  }
+  MIdx GetMIdx(Idx idx) const {
+    return GetMIdxDir(idx).first;
+  }
+  Dir GetDir(Idx idx) const {
+    return GetMIdxDir(idx).second;
+  }
+  MIdx GetSize() const {
+    return cs_;
+  }
+  iterator begin() const {
+    return iterator(this, b_, Dir(0));
+  }
+  iterator end() const {
+    MIdx x = b_;
+    auto ld = dim - 1; // last direction
+    x[ld] = (b_ + cs_)[ld] + 1;
+    return iterator(this, x, Dir(ld));
+  }
+
+ private:
+  MIdx b_;
+  MIdx cs_; // cells size
+  size_t GetNumFaces(Dir dir) const {
+    MIdx bcs = cs_;
+    ++bcs[size_t(dir)];
+    size_t res = 1;
+    for (size_t i = 0; i < dim; ++i) {
+      res *= bcs[i];
+    }
+    return res;
+  }
+  size_t GetNumFaces(size_t i) const {
+    return GetNumFaces(Dir(i));
+  }
+  size_t GetFlat(MIdx midx, Dir dir) const {
+    midx -= b_;
+    MIdx bcs = cs_;
+    ++bcs[size_t(dir)];
+    size_t res = 0;
+    for (size_t i = dim; i != 0; ) {
+      --i;
+      res *= bcs[i];
+      res += midx[i];
+    }
+    return res;
+  }
+  MIdx GetMIdxFromOffset(size_t raw, Dir dir) const {
+    MIdx bcs = cs_;
+    ++bcs[size_t(dir)];
+    MIdx midx;
+    for (size_t i = 0; i < dim; ++i) {
+      midx[i] = raw % bcs[i];
+      raw /= bcs[i];
+    }
+    return b_ + midx;
+  }
+  std::pair<MIdx, Dir> GetMIdxDir(Idx idxface) const {
+    size_t raw = idxface.GetRaw();
+    size_t diridx = 0;
+    while (raw >= GetNumFaces(diridx) && diridx < dim) {
+      raw -= GetNumFaces(diridx);
+      ++diridx;
+    }
+    Dir dir(diridx); return {GetMIdxFromOffset(raw, dir), dir};
+  }
+};
+#endif
 
 template <size_t dim>
 using GBlockCells = GBlock<IdxCell, dim>;
