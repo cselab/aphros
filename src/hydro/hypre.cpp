@@ -13,8 +13,10 @@ struct Hypre::HypreData {
 };
 
 Hypre::Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs,
-             std::vector<bool> per, Scal tol, int print) 
-  : dim(gs.size()), bb(bb), hd(new HypreData)
+             std::vector<bool> per, Scal tol, int print,
+             std::string solver) 
+  : dim(gs.size()), bb(bb), hd(new HypreData),
+    solver_(solver)
 {
   assert(bb.size() > 0);
   assert(dim > 0);
@@ -92,21 +94,29 @@ Hypre::Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs,
   HYPRE_StructVectorAssemble(hd->x);
 
   // PCG solver
-  //HYPRE_StructPCGCreate(comm, &hd->solver);
-  //HYPRE_StructPCGSetTol(hd->solver, tol); 
-  //HYPRE_StructPCGSetPrintLevel(hd->solver, print); 
-  //HYPRE_StructPCGSetup(hd->solver, a, hd->r, hd->x);
+  if (solver_ == "pcg") {
+    HYPRE_StructPCGCreate(comm, &hd->solver);
+    HYPRE_StructPCGSetTol(hd->solver, tol); 
+    HYPRE_StructPCGSetPrintLevel(hd->solver, print); 
+    HYPRE_StructPCGSetup(hd->solver, hd->a, hd->r, hd->x);
+  }
 
   // GMRES solver
-  HYPRE_StructGMRESCreate(comm, &hd->solver);
-  HYPRE_StructGMRESSetTol(hd->solver, tol);
-  HYPRE_StructGMRESSetPrintLevel(hd->solver, print);
-  HYPRE_StructGMRESSetup(hd->solver, hd->a, hd->r, hd->x);
+  if (solver == "gmres") {
+    HYPRE_StructGMRESCreate(comm, &hd->solver);
+    HYPRE_StructGMRESSetTol(hd->solver, tol);
+    HYPRE_StructGMRESSetPrintLevel(hd->solver, print);
+    HYPRE_StructGMRESSetup(hd->solver, hd->a, hd->r, hd->x);
+  }
 }
 
 void Hypre::Solve() {
-  //HYPRE_StructPCGSolve(hd->solver, hd->a, hd->r, hd->x);
-  HYPRE_StructGMRESSolve(hd->solver, hd->a, hd->r, hd->x);
+  if (solver_ == "pcg") {
+    HYPRE_StructPCGSolve(hd->solver, hd->a, hd->r, hd->x);
+  }
+  if (solver_ == "gmres") {
+    HYPRE_StructGMRESSolve(hd->solver, hd->a, hd->r, hd->x);
+  }
 
   // Copy solution
   for (auto& b : bb) {
@@ -120,6 +130,10 @@ Hypre::~Hypre() {
   HYPRE_StructMatrixDestroy(hd->a);
   HYPRE_StructVectorDestroy(hd->r);
   HYPRE_StructVectorDestroy(hd->x);
-  //HYPRE_StructPCGDestroy(hd->solver);
-  HYPRE_StructGMRESDestroy(hd->solver);
+  if (solver_ == "pcg") {
+    HYPRE_StructPCGDestroy(hd->solver);
+  }
+  if (solver_ == "gmres") {
+    HYPRE_StructGMRESDestroy(hd->solver);
+  }
 }
