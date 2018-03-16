@@ -1057,6 +1057,8 @@ class FluidSimple : public FluidSolver<Mesh> {
     if (sem("pcorr-solve")) {
       timer_->Pop();
       auto l = ConvertLs(fc_pressure_corr_system_, lsa_, lsb_, lsx_, mesh);
+      using T = typename Mesh::LS::T;
+      l.t = T::symm;
       m.Solve(l);
       timer_->Push("fluid.6.pressure-solve");
     }
