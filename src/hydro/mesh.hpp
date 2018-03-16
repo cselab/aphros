@@ -585,7 +585,7 @@ class GBlock<IdxFace, dim_> {
         } else {
           break;
         }
-      }
+      }  
       return *this;
     }
     bool operator==(const iterator& o) const {
@@ -718,10 +718,52 @@ class GBlockS { // [s]andbox
         : o_(o), x_(x), d_(d)
     {}
     iterator& operator++() {
+      auto& s = o_->cs_;
+      auto& x = x_;
+      auto& b = o_->b_;
+      auto& e = o_->e_;
+      auto& d = d_;
+
+      if (x[2] == e[2]) { // z-boundary
+        assert(d == Dir(2));
+        ++x[0];
+        if (x[0] == e[0]) {
+          x[0] = b[0];
+          ++x[1];  // end would be: (b[0], e[1], e[2])
+        }
+      } else if (x[1] == e[1]) { // y-boundary, z inner
+        assert(d == Dir(1));
+        ++x[0];
+        if (x[0] == e[0]) { // end x, next z
+          ++x[2];
+          if (x[2] == e[2]) { // next z-boundary
+            d = Dir(2);
+          } else {   // next inner
+            d = Dir(0);
+          }
+          x[1] = b[1];
+          x[0] = b[0];
+        } 
+      } else if (x[0] == e[0]) { // x-boundary,
+          assert(d == Dir(0));
+          x[0] = b[0];
+          ++x[1];
+      } else if (d == Dir(2)) { // reached dz
+        ++x[0];                 // next x
+        d = Dir(0);
+      } else {
+        d = Dir(size_t(d) + 1);
+      }
+
+
+      if (d_ == Dir(dim - 1)) {
+        x_[0]++;
+      }
+
       MIdx xd(d_);
       for (size_t n = 0; n < dim; ++n) {
         ++x_[n]; // increment current
-        if (x_[n] == o_->b_[n] + o_->cs_[n] + xd[n]) { // if end reached
+        if (x_[n] == o_->e_[n] + xd[n]) { // if end reached
           if (n < dim - 1) {  
             x_[n] = o_->b_[n];  // reset to begin
           } else {  // if end reached for last dim
@@ -747,14 +789,14 @@ class GBlockS { // [s]andbox
     }
   };
 
+  GBlockS(MIdx begin, MIdx cells)
+      : b_(begin), cs_(cells), e_(b_ + cs_)
+  {}
+  GBlockS(MIdx cells)
+      : GBlockS(MIdx(0), cells)
+  {}
   GBlockS()
-      : b_(MIdx::kZero), cs_(MIdx::kZero)
-  {}
-  GBlockS(MIdx block_cells_size)
-      : b_(MIdx::kZero), cs_(block_cells_size)
-  {}
-  GBlockS(MIdx begin, MIdx block_cells_size)
-      : b_(begin), cs_(block_cells_size)
+      : GBlockS(MIdx(0), MIdx(0))
   {}
   size_t size() const {
     size_t res = 0;
@@ -837,8 +879,9 @@ class GBlockS { // [s]andbox
   }
 
  private:
-  MIdx b_;
+  MIdx b_;  // begin
   MIdx cs_; // cells size
+  MIdx e_;  // end
   size_t GetNumFaces(Dir dir) const {
     MIdx bcs = cs_;
     ++bcs[size_t(dir)];
