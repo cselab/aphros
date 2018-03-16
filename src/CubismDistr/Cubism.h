@@ -386,12 +386,19 @@ auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
     MPI_Barrier(comm_);
 
     // Do communication and get all blocks
-    aa = s.avail();
+    aa = s.avail(cc.size());
   } else {
     aa = cc;
   }
 
-  assert(aa.size() == cc.size());
+  if (aa.size() != cc.size()) {
+    std::cerr 
+        << "aa.size()=" << aa.size()
+        << " != "
+        << "cc.size()=" << cc.size()
+        << std::endl;
+    assert(false);
+  }
 
   // Create vector of indices and save block info to map 
   std::vector<MIdx> bb;
