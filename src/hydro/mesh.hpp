@@ -549,7 +549,10 @@ const GDir<dim> GDir<dim>::j(1);
 template <size_t dim>
 const GDir<dim> GDir<dim>::k(2);
 
+//#define BLOCKFACE_DZYX
+#define BLOCKFACE_ZYXD
 
+#ifdef BLOCKFACE_DZYX
 // Specialization for IdxFace
 // Enumeration order (to more frequent): dir, z, y, x
 template <size_t dim_>
@@ -685,6 +688,8 @@ class GBlock<IdxFace, dim_> {
     }
     return b_ + midx;
   }
+
+ public:
   std::pair<MIdx, Dir> GetMIdxDir(Idx idxface) const {
     size_t raw = idxface.GetRaw();
     size_t diridx = 0;
@@ -695,11 +700,13 @@ class GBlock<IdxFace, dim_> {
     Dir dir(diridx); return {GetMIdxFromOffset(raw, dir), dir};
   }
 };
+#endif
 
+#ifdef BLOCKFACE_ZYXD
 // Specialization for IdxFace
 // Enumeration order (to more frequent): z, y, x, dir
 template <size_t dim_>
-class GBlockS { // [s]andbox
+class GBlock<IdxFace, dim_> { // [s]andbox
  public:
   static constexpr size_t dim = dim_;
   using Idx = IdxFace;
@@ -709,12 +716,12 @@ class GBlockS { // [s]andbox
   static_assert(dim == 3, "GBlock<IdxFace,...> implemented only for dim=3");
 
   class iterator {
-    const GBlockS* o_; // owner
+    const GBlock* o_; // owner
     MIdx x_;
     Dir d_;
 
    public:
-    explicit iterator(const GBlockS* o, MIdx x, Dir d)
+    explicit iterator(const GBlock* o, MIdx x, Dir d)
         : o_(o), x_(x), d_(d)
     {}
     iterator& operator++() {
@@ -770,14 +777,14 @@ class GBlockS { // [s]andbox
     }
   };
 
-  GBlockS(MIdx begin, MIdx cells)
+  GBlock(MIdx begin, MIdx cells)
       : b_(begin), cs_(cells), e_(b_ + cs_)
   {}
-  GBlockS(MIdx cells)
-      : GBlockS(MIdx(0), cells)
+  GBlock(MIdx cells)
+      : GBlock(MIdx(0), cells)
   {}
-  GBlockS()
-      : GBlockS(MIdx(0), MIdx(0))
+  GBlock()
+      : GBlock(MIdx(0), MIdx(0))
   {}
   size_t size() const {
     size_t res = 0;
@@ -873,6 +880,7 @@ class GBlockS { // [s]andbox
     return GetNumFaces(Dir(i));
   }
 };
+#endif
 
 template <size_t dim>
 using GBlockCells = GBlock<IdxCell, dim>;
