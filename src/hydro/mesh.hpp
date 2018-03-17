@@ -732,14 +732,12 @@ class GBlock<IdxFace, dim_> { // [s]andbox
       auto& d = d_;
 
       if (x[2] == e[2]) { // z-boundary
-        assert(d == Dir(2));
         ++x[0];
         if (x[0] == e[0]) {
           x[0] = b[0];
           ++x[1];  // end would be: (b[0], e[1], e[2])
         }
       } else if (x[1] == e[1]) { // y-edge
-        assert(d == Dir(1));
         ++x[0];
         if (x[0] == e[0]) { // next x-end
           ++x[2];
@@ -751,7 +749,6 @@ class GBlock<IdxFace, dim_> { // [s]andbox
           } 
         } 
       } else if (x[0] == e[0]) { // x-edge
-          assert(d == Dir(0));
           x[0] = b[0];
           ++x[1];
           if (x[1] == e[1]) { // next y-edge
