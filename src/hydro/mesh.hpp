@@ -731,51 +731,32 @@ class GBlockS { // [s]andbox
           x[0] = b[0];
           ++x[1];  // end would be: (b[0], e[1], e[2])
         }
-      } else if (x[1] == e[1]) { // y-boundary, z inner
+      } else if (x[1] == e[1]) { // y-edge
         assert(d == Dir(1));
         ++x[0];
-        if (x[0] == e[0]) { // end x, next z
+        if (x[0] == e[0]) { // next x-end
           ++x[2];
-          if (x[2] == e[2]) { // next z-boundary
-            d = Dir(2);
-          } else {   // next inner
-            d = Dir(0);
-          }
           x[1] = b[1];
           x[0] = b[0];
+          d = Dir(0);
+          if (x[2] == e[2]) { // next z-edge
+            d = Dir(2);
+          } 
         } 
-      } else if (x[0] == e[0]) { // x-boundary,
+      } else if (x[0] == e[0]) { // x-edge
           assert(d == Dir(0));
           x[0] = b[0];
           ++x[1];
-      } else if (d == Dir(2)) { // reached dz
-        ++x[0];                 // next x
+          if (x[1] == e[1]) { // next y-edge
+            d = Dir(1);
+          }
+      } else if (d == Dir(2)) { // dirz
+        ++x[0];
         d = Dir(0);
       } else {
         d = Dir(size_t(d) + 1);
       }
 
-
-      if (d_ == Dir(dim - 1)) {
-        x_[0]++;
-      }
-
-      MIdx xd(d_);
-      for (size_t n = 0; n < dim; ++n) {
-        ++x_[n]; // increment current
-        if (x_[n] == o_->e_[n] + xd[n]) { // if end reached
-          if (n < dim - 1) {  
-            x_[n] = o_->b_[n];  // reset to begin
-          } else {  // if end reached for last dim
-            if (size_t(d_) < dim - 1) {
-              d_ = Dir(size_t(d_) + 1);
-              x_ = o_->b_;
-            }
-          }
-        } else {
-          break;
-        }
-      }
       return *this;
     }
     bool operator==(const iterator& o) const {
@@ -841,10 +822,7 @@ class GBlockS { // [s]andbox
     return iterator(this, b_, Dir(0));
   }
   iterator end() const {
-    MIdx x = b_;
-    auto ld = dim - 1; // last direction
-    x[ld] = (b_ + cs_)[ld] + 1;
-    return iterator(this, x, Dir(ld));
+    return iterator(this, MIdx(b_[0], e_[1], e_[2]), Dir(2));
   }
   std::pair<MIdx, Dir> GetMIdxDir(Idx i) const {
     size_t r = i.GetRaw();
