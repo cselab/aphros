@@ -163,11 +163,12 @@ int main() {
 
   TestMesh();
 
+
   {
     geom::Rect<Vect> dom(Vect(0.), Vect(1.));
     using M = geom::MeshStructured<Scal, dim>;
-    MIdx b(3, 2, 1); // lower index
-    MIdx s(2, 3, 4);    // size in cells
+    MIdx b(3, 2, 5); // lower index
+    MIdx s(2, 2, 2);    // size in cells
     int hl = 0;         // halos 
     M m = geom::InitUniformMesh<M>(dom, b, s, hl);
     for (auto i : m.GetBlockCells()) {
@@ -182,7 +183,8 @@ int main() {
     }
     std::cout << std::endl;
 
-    geom::GBlockS<3> sb(b, s);
+    using B = geom::GBlockS<3>;
+    B sb(b, s);
     for (auto i : sb) {
       auto j = sb.GetIdx(i);
       auto p = sb.GetMIdxDir(j);
@@ -194,6 +196,22 @@ int main() {
           << p.first << " " << p.second.GetLetter() << " | "
           << jj.GetRaw() << " "
           << std::endl;
+    }
+
+    {
+      using I = typename B::iterator;
+      I i(&sb, MIdx(0, 0, 0), Dir::i);
+      auto l = [&]() {
+          std::cout << (*i).first << " " << (*i).second.GetLetter() << std::endl;
+        };
+
+      size_t c = 0;
+      for (i = sb.begin(); i != sb.end(); ++i) {
+        l();
+        ++c;
+      }
+      assert(c == 3 * s.prod() +
+          s[0] * s[1] + s[1] * s[2] + s[2] * s[0]; ++q);
     }
   }
 
