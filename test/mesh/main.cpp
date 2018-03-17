@@ -183,7 +183,7 @@ int main() {
     }
     std::cout << std::endl;
 
-    using B = geom::GBlockS<3>;
+    using B = geom::GBlock<IdxFace, 3>;
     B sb(b, s);
     for (auto i : sb) {
       auto j = sb.GetIdx(i);
