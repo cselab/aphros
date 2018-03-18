@@ -182,7 +182,7 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
     }
 
     std::string srs = par.String["hypre_symm_solver"]; // solver symm
-    assert(srs == "pcg+smg" || srs == "smg");
+    assert(srs == "pcg+smg" || srs == "smg" || srs == "pcg");
 
     std::string sr; // solver 
     int maxiter;
