@@ -29,7 +29,8 @@ class Hypre {
         std::vector<bool> per /*periodic per direction*/,
         Scal tol /*tolerance*/,
         int print /*print level*/,
-        std::string solver);
+        std::string solver,
+        int maxiter);
   Hypre() = delete;
   Hypre(const Hypre&) = delete;
 
@@ -42,4 +43,5 @@ class Hypre {
   struct HypreData;
   std::unique_ptr<HypreData> hd;
   std::string solver_;
+  int maxiter_;
 };
