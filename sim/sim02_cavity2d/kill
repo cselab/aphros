@@ -1,0 +1,2 @@
+#!/bin/bash
+scancel `cat job.id` -v
