@@ -203,6 +203,55 @@ class Grad : public Timer {
 };
 
 
+class ExplVisc : public Timer {
+  Mesh& m;
+  geom::FieldCell<Vect> fcv;
+  geom::FieldCell<Vect> fcf;
+  geom::FieldFace<Scal> ffmu;
+  geom::MapFace<std::shared_ptr<solver::ConditionFace>> mfc;
+  geom::MapFace<std::shared_ptr<solver::ConditionFace>> mfcf;
+
+ public:
+  ExplVisc(Mesh& m) : Timer("explvisc"), m(m), fcv(m), fcf(m), ffmu(m) {
+    for (auto i : m.AllCells()) {
+      auto a = i.GetRaw();
+      fcv[i] = Vect(std::sin(a), std::sin(a+1), std::sin(a+2));
+    }
+    for (auto i : m.AllFaces()) {
+      auto a = i.GetRaw();
+      ffmu[i] = std::sin(a);
+    }
+    auto& bf = m.GetBlockFaces();
+    /*
+    for (auto i : m.Faces()) {
+      if (bf.GetMIdx(i)[0] == 0 && bf.GetDir(i) == Dir::i) {
+        mfc[i] = std::make_shared<solver::
+            ConditionFaceDerivativeFixed<Scal>>(0);
+      }
+    }
+    */
+  }
+  void F() override {
+    using namespace solver;
+    auto& mesh = m;
+    for (size_t n = 0; n < dim; ++n) {
+      geom::FieldCell<Scal> fc = GetComponent(fcv, n);
+      auto ff = Interpolate(fc, mfc, mesh);
+      auto gc = Gradient(ff, mesh);
+      auto gf = Interpolate(gc, mfcf, mesh); // adhoc: zero-der cond
+      for (auto idxcell : mesh.SuCells()) {
+        Vect sum = Vect::kZero;
+        for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
+          IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
+          sum += gf[idxface] * (ffmu[idxface] * 
+              mesh.GetOutwardSurface(idxcell, i)[n]);
+        }
+        fcf[idxcell] += sum / mesh.GetVolume(idxcell);
+      }
+    }
+  }
+};
+
 
 int main() {
   std::vector<MIdx> ss = {
@@ -249,6 +298,7 @@ int main() {
         , new LoopMIdxAllFaces(m)
         , new Interp(m)
         , new Grad(m)
+        , new ExplVisc(m)
       };
 
     for (auto& t : tt) {

@@ -549,8 +549,8 @@ const GDir<dim> GDir<dim>::j(1);
 template <size_t dim>
 const GDir<dim> GDir<dim>::k(2);
 
-//#define BLOCKFACE_DZYX
-#define BLOCKFACE_ZYXD
+#define BLOCKFACE_DZYX
+//#define BLOCKFACE_ZYXD
 
 #ifdef BLOCKFACE_DZYX
 // Specialization for IdxFace
