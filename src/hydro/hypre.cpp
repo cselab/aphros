@@ -14,9 +14,9 @@ struct Hypre::HypreData {
 
 Hypre::Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs,
              std::vector<bool> per, Scal tol, int print,
-             std::string solver) 
+             std::string solver, int maxiter) 
   : dim(gs.size()), bb(bb), hd(new HypreData),
-    solver_(solver)
+    solver_(solver), maxiter_(maxiter)
 {
   assert(bb.size() > 0);
   assert(dim > 0);
@@ -93,12 +93,44 @@ Hypre::Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs,
   HYPRE_StructVectorAssemble(hd->r);
   HYPRE_StructVectorAssemble(hd->x);
 
-  // PCG solver
-  if (solver_ == "pcg") {
+  // PCG solver with SMG precond
+  if (solver_ == "pcg+smg") {
+    // solver
     HYPRE_StructPCGCreate(comm, &hd->solver);
+    HYPRE_StructPCGSetMaxIter(hd->solver, maxiter_);
     HYPRE_StructPCGSetTol(hd->solver, tol); 
+    HYPRE_StructPCGSetTwoNorm(hd->solver, 1);
+    HYPRE_StructPCGSetRelChange(hd->solver, 0);
     HYPRE_StructPCGSetPrintLevel(hd->solver, print); 
+
+    // precond
+    HYPRE_StructSMGCreate(comm, &hd->precond);
+    HYPRE_StructSMGSetMemoryUse(hd->precond, 0);
+    HYPRE_StructSMGSetMaxIter(hd->precond, 1);
+    HYPRE_StructSMGSetTol(hd->precond, 0.0);
+    HYPRE_StructSMGSetZeroGuess(hd->precond);
+    HYPRE_StructSMGSetNumPreRelax(hd->precond, 1);
+    HYPRE_StructSMGSetNumPostRelax(hd->precond, 1);
+
+    // setup
+    HYPRE_StructPCGSetPrecond(hd->solver, HYPRE_StructSMGSolve,
+                              HYPRE_StructSMGSetup, hd->precond);
     HYPRE_StructPCGSetup(hd->solver, hd->a, hd->r, hd->x);
+    HYPRE_StructPCGSolve(hd->solver, hd->a, hd->r, hd->x);
+  }
+
+  // SMG solver
+  if (solver_ == "smg") {
+    HYPRE_StructSMGCreate(comm, &hd->solver);
+    HYPRE_StructSMGSetMemoryUse(hd->solver, 0);
+    HYPRE_StructSMGSetMaxIter(hd->solver, maxiter_);
+    HYPRE_StructSMGSetTol(hd->solver, tol);
+    HYPRE_StructSMGSetRelChange(hd->solver, 0);
+    HYPRE_StructSMGSetPrintLevel(hd->solver, print); 
+    HYPRE_StructSMGSetNumPreRelax(hd->solver, 1);
+    HYPRE_StructSMGSetNumPostRelax(hd->solver, 1);
+
+    HYPRE_StructSMGSetup(hd->solver, hd->a, hd->r, hd->x);
   }
 
   // GMRES solver
@@ -106,13 +138,17 @@ Hypre::Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs,
     HYPRE_StructGMRESCreate(comm, &hd->solver);
     HYPRE_StructGMRESSetTol(hd->solver, tol);
     HYPRE_StructGMRESSetPrintLevel(hd->solver, print);
+    HYPRE_StructGMRESSetMaxIter(hd->solver, maxiter_);
     HYPRE_StructGMRESSetup(hd->solver, hd->a, hd->r, hd->x);
   }
 }
 
 void Hypre::Solve() {
-  if (solver_ == "pcg") {
+  if (solver_ == "pcg+smg") {
     HYPRE_StructPCGSolve(hd->solver, hd->a, hd->r, hd->x);
+  }
+  if (solver_ == "smg") {
+    HYPRE_StructSMGSolve(hd->solver, hd->a, hd->r, hd->x);
   }
   if (solver_ == "gmres") {
     HYPRE_StructGMRESSolve(hd->solver, hd->a, hd->r, hd->x);
@@ -130,8 +166,11 @@ Hypre::~Hypre() {
   HYPRE_StructMatrixDestroy(hd->a);
   HYPRE_StructVectorDestroy(hd->r);
   HYPRE_StructVectorDestroy(hd->x);
-  if (solver_ == "pcg") {
+  if (solver_ == "pcg+smg") {
     HYPRE_StructPCGDestroy(hd->solver);
+  }
+  if (solver_ == "smg") {
+    HYPRE_StructSMGDestroy(hd->solver);
   }
   if (solver_ == "gmres") {
     HYPRE_StructGMRESDestroy(hd->solver);

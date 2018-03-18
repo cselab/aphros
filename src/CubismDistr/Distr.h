@@ -181,14 +181,20 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
       gs[i] = bs_[i] * b_[i] * p_[i];
     }
 
-    std::string sr;
+    std::string srs = par.String["hypre_symm_solver"]; // solver symm
+    assert(srs == "pcg+smg" || srs == "smg");
+
+    std::string sr; // solver 
+    int maxiter;
     using T = typename M::LS::T; // system type
     switch (sf.t) {
       case T::gen:
         sr = "gmres";
+        maxiter = par.Int["hypre_gen_maxiter"];
         break;
       case T::symm:
-        sr = "pcg";
+        sr = srs;
+        maxiter = par.Int["hypre_symm_maxiter"];
         break;
       default:
         std::cerr 
@@ -198,7 +204,7 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
     }
 
     Hypre hp(comm_, lbb, gs, per, 
-             par.Double["hypre_tol"], par.Int["hypre_print"], sr);
+             par.Double["hypre_tol"], par.Int["hypre_print"], sr, maxiter);
     hp.Solve();
   }
 
