@@ -505,6 +505,7 @@ class FluidSimple : public FluidSolver<Mesh> {
   geom::FieldFace<Vect> ff_ext_force_restored_;
   geom::FieldFace<Vect> ff_stforce_restored_;
   geom::FieldCell<Vect> fc_velocity_corr_;
+  geom::FieldCell<Scal> fc_velcomp_;
   // / needed for MMIM, now disabled
   //geom::FieldFace<Vect> ff_velocity_iter_prev_;
   // LS
@@ -850,7 +851,7 @@ class FluidSimple : public FluidSolver<Mesh> {
     auto& fc_pressure_prev = fc_pressure_.iter_prev;
     auto& fc_pressure_curr = fc_pressure_.iter_curr;
 
-    if (sem("force")) {
+    if (sem("pgrad")) {
       fc_pressure_prev = fc_pressure_curr;
       ff_vol_flux_.iter_prev = ff_vol_flux_.iter_curr;
 
@@ -870,12 +871,15 @@ class FluidSimple : public FluidSolver<Mesh> {
 
       // initialize force with zero
       fc_force_.Reinit(mesh, Vect(0));
+    }
       // append viscous term
+    if (sem("explvisc")) {
       timer_->Push("fluid.1a.explicit-viscosity");
       for (size_t n = 0; n < dim; ++n) {
-        geom::FieldCell<Scal> fc = GetComponent(
+        fc_velcomp_ = GetComponent(
             conv_diff_solver_->GetVelocity(Layers::iter_curr), n);
-        auto ff = Interpolate(fc, conv_diff_solver_->GetVelocityCond(n), mesh);
+        auto ff = Interpolate(fc_velcomp_, 
+                              conv_diff_solver_->GetVelocityCond(n), mesh);
         auto gc = Gradient(ff, mesh);
         auto gf = Interpolate(gc, mf_force_cond_, mesh); // adhoc: zero-der cond
         for (auto idxcell : mesh.SuCells()) {
@@ -889,7 +893,9 @@ class FluidSimple : public FluidSolver<Mesh> {
         }
       }
       timer_->Pop();
+    }
 
+    if (sem("forceappend")) {
       // append to force
       for (auto idxcell : mesh.AllCells()) {
         fc_force_[idxcell] +=
