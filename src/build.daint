@@ -8,6 +8,7 @@ set -eu
 mkdir -p build
 cd build
 
-cmake .. -DHYPRE_DIR=$P -DMPI_C_COMPILER=cc -DMPI_CXX_COMPILER=CC
+cmake .. -DHYPRE_DIR=$P -DMPI_C_COMPILER=cc -DMPI_CXX_COMPILER=CC -DCMAKE_BUILD_TYPE=release
+#cmake .. -DHYPRE_DIR=$P -DMPI_C_COMPILER=cc -DMPI_CXX_COMPILER=CC
 
 make -j4 VERBOSE=on

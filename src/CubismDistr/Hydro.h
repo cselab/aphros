@@ -280,7 +280,6 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
         m, fc_u, mf_cond, 
         &fs_->GetVolumeFlux(solver::Layers::iter_curr),
         &fc_src_, 0., dt));
-
 }
 
 template <class M>
@@ -402,6 +401,31 @@ void Hydro<M>::Run() {
   }
 
   sem.LoopEnd();
+
+  if (sem("fluid-timer")) {
+    if (broot_) {
+      double a = 0.; // total
+      auto& mt = timer_;
+      for (auto e : mt.GetMap()) {
+        a += e.second;
+      }
+
+      std::cout << std::fixed;
+      for (auto e : mt.GetMap()) {
+        auto n = e.first; // name
+        if (n == "") {
+          n = "other";
+        }
+        auto t = e.second; // time
+
+        std::cout 
+            << n << "\n" 
+            << std::setprecision(5) << t << " s = "
+            << std::setprecision(3) << 100. * t / a << "%\n";
+      }
+      std::cout << std::endl;
+    }
+  }
 }
 
 template <class _M>

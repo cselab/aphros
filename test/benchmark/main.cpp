@@ -232,6 +232,7 @@ class ExplVisc : public Timer {
     */
   }
   void F() override {
+    static volatile size_t a = 0;
     using namespace solver;
     auto& mesh = m;
     for (size_t n = 0; n < dim; ++n) {
@@ -249,6 +250,7 @@ class ExplVisc : public Timer {
         fcf[idxcell] += sum / mesh.GetVolume(idxcell);
       }
     }
+    a = fcf[IdxCell(a % m.GetNumCells())][0];
   }
 };
 
