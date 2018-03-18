@@ -93,14 +93,27 @@ Hypre::Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs,
   HYPRE_StructVectorAssemble(hd->r);
   HYPRE_StructVectorAssemble(hd->x);
 
+  // PCG solver
+  if (solver_ == "pcg") {
+    HYPRE_StructPCGCreate(comm, &hd->solver);
+    HYPRE_StructPCGSetMaxIter(hd->solver, maxiter_);
+    HYPRE_StructPCGSetTol(hd->solver, tol); 
+    //HYPRE_StructPCGSetTwoNorm(hd->solver, 1);
+    //HYPRE_StructPCGSetRelChange(hd->solver, 0);
+    HYPRE_StructPCGSetPrintLevel(hd->solver, print); 
+
+    HYPRE_StructPCGSetup(hd->solver, hd->a, hd->r, hd->x);
+    HYPRE_StructPCGSolve(hd->solver, hd->a, hd->r, hd->x);
+  }
+
   // PCG solver with SMG precond
   if (solver_ == "pcg+smg") {
     // solver
     HYPRE_StructPCGCreate(comm, &hd->solver);
     HYPRE_StructPCGSetMaxIter(hd->solver, maxiter_);
     HYPRE_StructPCGSetTol(hd->solver, tol); 
-    HYPRE_StructPCGSetTwoNorm(hd->solver, 1);
-    HYPRE_StructPCGSetRelChange(hd->solver, 0);
+    //HYPRE_StructPCGSetTwoNorm(hd->solver, 1);
+    //HYPRE_StructPCGSetRelChange(hd->solver, 0);
     HYPRE_StructPCGSetPrintLevel(hd->solver, print); 
 
     // precond
@@ -144,7 +157,7 @@ Hypre::Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs,
 }
 
 void Hypre::Solve() {
-  if (solver_ == "pcg+smg") {
+  if (solver_ == "pcg+smg" || solver_ == "pcg") {
     HYPRE_StructPCGSolve(hd->solver, hd->a, hd->r, hd->x);
   }
   if (solver_ == "smg") {
@@ -166,7 +179,7 @@ Hypre::~Hypre() {
   HYPRE_StructMatrixDestroy(hd->a);
   HYPRE_StructVectorDestroy(hd->r);
   HYPRE_StructVectorDestroy(hd->x);
-  if (solver_ == "pcg+smg") {
+  if (solver_ == "pcg+smg" || solver_ == "pcg") {
     HYPRE_StructPCGDestroy(hd->solver);
   }
   if (solver_ == "smg") {
