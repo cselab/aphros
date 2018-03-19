@@ -1,7 +1,7 @@
 #include <sstream>
 #include <iostream>
-#include <cassert>
 #include <iostream>
+#include <stdexcept>
 
 #include "Vars.h"
 
@@ -79,7 +79,7 @@ void Vars::Map<T>::SetStr(Key k, std::string v) {
     std::cerr 
         << "Unable to parse '" << v 
         << "' as " << GetTypeName() << std::endl;;
-    assert(false);
+    throw std::runtime_error("Vars::SetStr(): Unable to parse");
   }
 
   // Check that string contained only one element of type T
@@ -91,7 +91,7 @@ void Vars::Map<T>::SetStr(Key k, std::string v) {
     std::cerr 
         << "Trailing characters when parsing '" << v
         << "' as " << GetTypeName() << std::endl;;
-    assert(false);
+    throw std::runtime_error("Vars::DetStr(): Trailing characters");
   }
 }
 
@@ -118,7 +118,7 @@ void Vars::Map<std::vector<double>>::SetStr(Key k, std::string s) {
       std::cerr 
           << "Unable to parse '" << s 
           << "' as " << GetTypeName() << std::endl;;
-      assert(false);
+      throw std::runtime_error("Vars::DetStr(): Unable to parse");
     }
   }
   m_[k] = r;
@@ -135,6 +135,7 @@ const T& Vars::Map<T>::operator[](Key k) const {
     std::cerr << "variable '" << k
         << "' of type '" << GetTypeName()
         << "' not found" << std::endl;
+    throw std::runtime_error("Vars::DetStr(): Variable not found");
   }
   return m_.at(k);
 }
@@ -145,6 +146,7 @@ T& Vars::Map<T>::operator[](Key k) {
     std::cerr << "variable '" << k
         << "' of type '" << GetTypeName()
         << "' not found" << std::endl;
+    throw std::runtime_error("Vars::DetStr(): Variable not found");
   }
   return m_.at(k);
 }
@@ -211,8 +213,7 @@ std::string Vars::GetStr(std::string t, Key k) const {
   if (t == Vect.GetTypeName()) {
     return Vect.GetStr(k);
   }
-  std::cerr << "Vars::GetStr(): Unknown type=" << t << std::endl;
-  assert(false);
+  throw std::runtime_error("Vars:: GetStr(): Unknown type " + t);
   return "";
 }
 
@@ -222,7 +223,7 @@ void Vars::SetStr(std::string t, Key k, std::string v) {
     std::cerr 
         << "Vars::SetStr(): Attempt to change type of variable '" 
         << k << "' from '" << t << "' to '" << e << "'" << std::endl;
-    assert(false);
+    throw std::runtime_error("Vars::SetStr(): Attempt to change type");
   }
   // TODO: Map::Set() still allows same name for two variables
 
@@ -235,8 +236,7 @@ void Vars::SetStr(std::string t, Key k, std::string v) {
   } else if (t == Vect.GetTypeName()) {
     Vect.SetStr(k, v);
   } else {
-    std::cerr << "Vars::SetStr(): Unknown type=" << t << std::endl;
-    assert(false);
+    throw std::runtime_error("Vars:: SetStr(): Unknown type " + t);
   }
 }
 
