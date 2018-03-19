@@ -1,0 +1,11 @@
+#!/bin/bash -l
+
+echo running > job.status
+
+./clean
+
+time mpirun -n 4 --oversubscribe xterm -e gdb -ex=run --args ../mfer 
+
+echo "Done."
+echo done > job.status
+

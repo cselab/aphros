@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+
+# save current defined variables
+dir0 = set(dir()) | {"dir0"}
+
+Red = 10.
+alpha = 8.
+gamma = 8.
+We = 0.5
+zeta = 0.125
+
+rhoo = 1.
+Uc = 1.
+H = 1.
+x0 = 0.5 * H
+y0 = 0.825 * H
+
+a = zeta * H
+d = 2 * a
+rhoi = alpha * rhoo
+muo = rhoo * Uc * d / Red
+mui = gamma * muo
+sigma = rhoo * Uc ** 2 * d / We
+pgrad = 8 * Uc * muo / H ** 2
+
+T0 = 5.
+dt0 = 0.01
+T = T0 * H / Uc
+dt = dt0 * H / Uc
+max_step = int(T / dt)
+
+# print newly defined variables
+dir1 = set(dir())
+dird = dir1 - dir0
+for v in sorted(dird):
+    print("{:} \t=\t {:}".format(v, globals()[v]))
+
+
+out='''\
+# domain
+set vect A 0 0 0
+set vect B {H} {H} 1
+
+# initial drop
+set string vf_init circle
+set vect circle_c {x0} {y0} 0
+set double circle_r {a}
+
+# initial velocity
+set vect initial_velocity  {Uc} 0 
+set int initial_pois 1
+
+# time
+set double T {T}
+set double dt {dt}
+set int max_step {max_step}
+
+# physical parameters
+set vect force {pgrad} 0 0 
+set double rho1 {rhoo}
+set double rho2 {rhoi}
+set double mu1 {muo}
+set double mu2 {mui}
+set double sigma {sigma}
+
+'''.format(**globals())
+
+with open("par.conf", 'w') as f:
+    f.write(out)

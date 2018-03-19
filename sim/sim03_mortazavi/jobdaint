@@ -1,0 +1,17 @@
+#!/bin/bash -l
+
+echo running > job.status
+
+. ../setenv.daint
+
+./clean
+
+export OMP_NUM_THREADS=1
+export OVERSUBSCRIBE=1 
+#time srun -n 1536  ../mfer 
+time srun -n 192  ../mfer 
+#time srun -n 1  ../mfer 
+
+echo "Done."
+echo done > job.status
+
