@@ -405,6 +405,8 @@ void Hydro<M>::CalcStat() {
       } else {
         throw std::runtime_error("Unknown meshvel_auto=" + *s);
       }
+      Vect mask(par.Vect["meshvel_mask"]); // components 0 or 1
+      v *= mask;
       if (broot_) {
         std::cout << "meshvel = " << v << std::endl;
       }
