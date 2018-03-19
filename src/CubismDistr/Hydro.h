@@ -91,6 +91,9 @@ class Hydro : public KernelMesh<M> {
     Stat()
       : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0)
     {}
+    void Clear() {
+      (*this) = Stat();
+    }
   };
   Stat st_;
   std::shared_ptr<output::Session> ost_; // output stat
@@ -336,14 +339,45 @@ void Hydro<M>::CalcStat() {
 
   if (sem("local")) {
     par.Double.Set("t", fs_->GetTime());
-    // mass
-    s.m1 = 0;
+
+    auto& fa = as_->GetField();
+    auto& fv = fs_->GetVelocity();
+
+    st_.Clear();
+
+    // mass, center, velocity
     for (auto i : m.Cells()) {
+      Scal o = m.GetVolume(i);
+      Scal a2 = fa[i];
+      Scal a1 = 1. - a2;
+      Vect v = fv[i];
+      Vect x = m.GetCenter(i);
+
+      s.m1 += a1 * o;
+      s.m2 += a2 * o;
+      s.c1 += x * (a1 * o);
+      s.c2 += x * (a2 * o);
+      s.vc1 += v * (a1 * o);
+      s.vc2 += v * (a2 * o);
+    }
+
+    m.Reduce(&s.m1, "sum");
+    m.Reduce(&s.m2, "sum");
+    for (auto d = 0; d < dim; ++d) {
+      m.Reduce(&s.c1[d], "sum");
+      m.Reduce(&s.c2[d], "sum");
+      m.Reduce(&s.vc1[d], "sum");
+      m.Reduce(&s.vc2[d], "sum");
     }
   }
 
   if (sem("reduce")) {
-
+    Scal im1 = (s.m1 == 0 ? 0. : 1. /s.m1);
+    Scal im2 = (s.m2 == 0 ? 0. : 1. /s.m2);
+    s.c1 *= im1;
+    s.c2 *= im2;
+    s.vc1 *= im1;
+    s.vc2 *= im2;
   }
 }
 

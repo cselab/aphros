@@ -242,6 +242,7 @@ class SessionPlainScalar : public Session {
     out_ << std::endl;
   }
   void Write(double /*time = 0.*/, std::string /*title = ""*/) override {
+    out_.precision(16);
     for (auto& entry_generic : content_) {
       entry_generic->Prepare();
       if (auto entry = dynamic_cast<EntryScalar<Scal>*>(
