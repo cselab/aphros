@@ -12,6 +12,7 @@
 #include <chrono>
 #include <thread>
 #include <mpi.h>
+#include <stdexcept>
 
 #include "hydro/vect.hpp"
 #include "hydro/mesh3d.hpp"
@@ -88,8 +89,9 @@ class Hydro : public KernelMesh<M> {
     Scal m1, m2; // mass
     Vect c1, c2;  // center of mass 
     Vect vc1, vc2;  // center of mass velocity
+    Vect v1, v2;  // average velocity
     Stat()
-      : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0)
+      : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
     {}
     void Clear() {
       (*this) = Stat();
@@ -325,6 +327,8 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
         op("c2x", &s.c2[0]), op("c2y", &s.c2[1]), op("c2z", &s.c2[2]),
         op("vc1x", &s.vc1[0]), op("vc1y", &s.vc1[1]), op("vc1z", &s.vc1[2]),
         op("vc2x", &s.vc2[0]), op("vc2y", &s.vc2[1]), op("vc2z", &s.vc2[2]),
+        op("v1x", &s.v1[0]), op("v1y", &s.v1[1]), op("v1z", &s.v1[2]),
+        op("v2x", &s.v2[0]), op("v2y", &s.v2[1]), op("v2z", &s.v2[2]),
     };
     ost_ = std::make_shared<
         output::SessionPlainScalar<Scal>>(con, "stat.dat");
@@ -343,7 +347,16 @@ void Hydro<M>::CalcStat() {
     auto& fa = as_->GetField();
     auto& fv = fs_->GetVelocity();
 
+    // Save c for vc
+    Vect c1p = st_.c1;
+    Vect c2p = st_.c2;
+
     st_.Clear();
+
+    // TODO: revise
+    // Restore c to vc
+    st_.vc1 = c1p;
+    st_.vc2 = c2p;
 
     // mass, center, velocity
     for (auto i : m.Cells()) {
@@ -357,8 +370,8 @@ void Hydro<M>::CalcStat() {
       s.m2 += a2 * o;
       s.c1 += x * (a1 * o);
       s.c2 += x * (a2 * o);
-      s.vc1 += v * (a1 * o);
-      s.vc2 += v * (a2 * o);
+      s.v1 += v * (a1 * o);
+      s.v2 += v * (a2 * o);
     }
 
     m.Reduce(&s.m1, "sum");
@@ -366,8 +379,8 @@ void Hydro<M>::CalcStat() {
     for (auto d = 0; d < dim; ++d) {
       m.Reduce(&s.c1[d], "sum");
       m.Reduce(&s.c2[d], "sum");
-      m.Reduce(&s.vc1[d], "sum");
-      m.Reduce(&s.vc2[d], "sum");
+      m.Reduce(&s.v1[d], "sum");
+      m.Reduce(&s.v2[d], "sum");
     }
   }
 
@@ -376,8 +389,30 @@ void Hydro<M>::CalcStat() {
     Scal im2 = (s.m2 == 0 ? 0. : 1. /s.m2);
     s.c1 *= im1;
     s.c2 *= im2;
-    s.vc1 *= im1;
-    s.vc2 *= im2;
+    s.v1 *= im1;
+    s.v2 *= im2;
+
+    Scal dt = fs_->GetTimeStep();
+    s.vc1 = (s.c1 - s.vc1) / dt;
+    s.vc2 = (s.c2 - s.vc2) / dt;
+
+    if (std::string* s = par.String("meshvel_auto")) {
+      Vect v(0);
+      if (*s == "v") {
+        v = st_.v2;
+      } else if (*s == "vc") {
+        v = st_.vc2;
+      } else {
+        throw std::runtime_error("Unknown meshvel_auto=" + *s);
+      }
+      if (broot_) {
+        std::cout << "meshvel = " << v << std::endl;
+      }
+      double w = par.Double["meshvel_weight"];
+      Vect vp = fs_->GetMeshVel();
+      fs_->SetMeshVel(v * w + vp * (1. - w));
+    }
+
   }
 }
 
