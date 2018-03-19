@@ -89,6 +89,7 @@ class Hydro : public KernelMesh<M> {
     Vect x1, x2;
     Stat()
       : m1(0), m2(0), v1(0), v2(0), x1(0), x2(0)
+    {}
   };
   Stat st_;
 };
