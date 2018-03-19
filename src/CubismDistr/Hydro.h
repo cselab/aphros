@@ -66,6 +66,8 @@ class Hydro : public KernelMesh<M> {
   FieldCell<Vect> fc_force_;  // force
   FieldCell<Vect> fc_stforce_;  // stforce cells TODO: what is st
   FieldFace<Vect> ff_stforce_;  // stforce faces
+  geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond_;
+  geom::MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond_;
   MultiTimer<std::string> timer_; 
   std::shared_ptr<const solver::LinearSolverFactory> p_lsf_; // linear solver factory
   std::unique_ptr<AS> as_; // advection solver
@@ -82,6 +84,7 @@ class Hydro : public KernelMesh<M> {
 };
 
 
+// TODO: move construction to Run()
 template <class M>
 Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi) 
   : KernelMesh<M>(par, bi)
@@ -118,16 +121,6 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
     // TODO: add assert for release mode (NDEBUG=1)
   }
 
-  // zero-derivative boundary conditions for advection
-  geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
-  for (auto idxface : m.Faces()) {
-    if (!m.IsInner(idxface)) {
-      mf_cond[idxface] =
-          std::make_shared
-          <solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
-    }
-  }
-
   const Vect vel(par.Vect["vel"]);
 
   // initial velocity
@@ -145,9 +138,6 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   } 
 
   // TODO: Comm initial
-
-  // zero-derivative boundary conditions for velocity
-  geom::MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond;
 
   // global mesh size
   MIdx gs;
@@ -187,46 +177,55 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   // Boundary conditions for fluid
   if (auto p = par.String("bc_xm")) {
     for (auto i : m.Faces()) {
-      gxm(i) && (mf_velcond[i] = solver::Parse(*p, i, m));
+      gxm(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
     }
   } 
   if (auto p = par.String("bc_xp")) {
     for (auto i : m.Faces()) {
-      gxp(i) && (mf_velcond[i] = solver::Parse(*p, i, m));
+      gxp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
     }
   } 
   if (auto p = par.String("bc_ym")) {
     for (auto i : m.Faces()) {
-      gym(i) && (mf_velcond[i] = solver::Parse(*p, i, m));
+      gym(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
     }
   } 
   if (auto p = par.String("bc_yp")) {
     for (auto i : m.Faces()) {
-      gyp(i) && (mf_velcond[i] = solver::Parse(*p, i, m));
+      gyp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
     }
   } 
   if (auto p = par.String("bc_zm")) {
     for (auto i : m.Faces()) {
-      gzm(i) && (mf_velcond[i] = solver::Parse(*p, i, m));
+      gzm(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
     }
   } 
   if (auto p = par.String("bc_zp")) {
     for (auto i : m.Faces()) {
-      gzp(i) && (mf_velcond[i] = solver::Parse(*p, i, m));
+      gzp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
     }
   } 
+
+  // zero-derivative boundary conditions for advection
+  for (auto it : mf_velcond_) {
+    IdxFace i = it.GetIdx();
+    mf_cond_[i] = std::make_shared
+        <solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
+  }
   
   // cell conditions for advection
   // (empty)
   geom::MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
 
-  // cell conditions for velocity
+  // cell conditions for fluid
   geom::MapCell<std::shared_ptr<solver::ConditionCellFluid>> mc_velcond;
   {
+    // Fix pressure at one cell
     Vect x(par.Vect["pfixed_x"]);
     IdxCell c = m.FindNearestCell(x);
     Scal p = par.Double["pfixed"];
-    if (m.GetCenter(c).dist(x) < 0.1) { // TODO: choose nearest block
+    // TODO: Reduce and choose nearest block
+    if (m.GetCenter(c).dist(x) < 0.1) { // XXX: adhoc
       mc_velcond[c] = std::make_shared
           <solver::fluid_condition::GivenPressureFixed<Mesh>>(p);
     }
@@ -263,7 +262,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   // Init fluid solver
   fs_.reset(new FS(
         m, fc_vel, 
-        mf_velcond, mc_velcond, 
+        mf_velcond_, mc_velcond, 
         vrelax, prelax, rhie,
         &fc_rho_, &fc_mu_, 
         &fc_force_, &fc_stforce_, &ff_stforce_, 
@@ -277,7 +276,7 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
 
   // Init advection solver
   as_.reset(new AS(
-        m, fc_u, mf_cond, 
+        m, fc_u, mf_cond_, 
         &fs_->GetVolumeFlux(solver::Layers::iter_curr),
         &fc_src_, 0., dt));
 }
@@ -308,6 +307,40 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf) {
     Vect x = m.GetCenter(i);
     fc_force_[i] = f;
     fc_force_[i] += g * fc_rho_[i];
+  }
+
+  // Surface tension
+  if (par.Int["enable_surftens"]) {
+    auto a = fc_vf;
+
+    auto af = solver::Interpolate(a, mf_cond_, m);
+    auto gc = solver::Gradient(af, m);
+
+
+    // zero-derivative bc for Vect
+    geom::MapFace<std::shared_ptr<solver::ConditionFace>> mfvz;
+    for (auto it : mf_velcond_) {
+      IdxFace i = it.GetIdx();
+      mfvz[i] = std::make_shared
+          <solver::ConditionFaceDerivativeFixed<Vect>>(Vect(0));
+    }
+
+    // surface tension in cells
+    auto sig = par.Double["sigma"];
+    auto gf = solver::Interpolate(gc, mfvz, m);
+    for (auto c : m.Cells()) {
+      Vect r(0); // result
+      for (size_t e = 0; e < m.GetNumNeighbourFaces(c); ++e) {
+        IdxFace f = m.GetNeighbourFace(c, e);
+        auto g = gf[f];
+        auto n = g / (g.norm() + 1e-6); // TODO: revise 1e-6
+        auto s = m.GetOutwardSurface(c, e);
+        r += g * s.dot(n);
+        r -= s * g.norm();
+      }
+      r /= m.GetVolume(c);     // div(gg/|g|) - div(|g|I)
+      fc_stforce_[c] = r * (-sig);
+    }
   }
 }
 
