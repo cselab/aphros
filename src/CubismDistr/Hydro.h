@@ -56,6 +56,7 @@ class Hydro : public KernelMesh<M> {
 
  private:
   void CalcMixture(const FieldCell<Scal>& vf);
+  void CalcStat();
 
   using AS = solver::AdvectionSolverExplicit<M, FieldFace<Scal>>;
   using FS = solver::FluidSimple<M>;
@@ -81,6 +82,15 @@ class Hydro : public KernelMesh<M> {
   Scal tol_;  // convergence tolerance
   size_t step_;
   bool broot_;
+
+  struct Stat {
+    Scal m1, m2;
+    Vect v1, v2;
+    Vect x1, x2;
+    Stat()
+      : m1(0), m2(0), v1(0), v2(0), x1(0), x2(0)
+  };
+  Stat st_;
 };
 
 
@@ -282,6 +292,24 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
 }
 
 template <class M>
+void Hydro<M>::CalcStat() {
+  auto sem = m.GetSem("stat");
+
+  auto& s = st_;
+
+  if (sem("local")) {
+    // mass
+    s.m1 = 0;
+    for (auto i : m.Cells()) {
+    }
+  }
+
+  if (sem("reduce")) {
+
+  }
+}
+
+template <class M>
 void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf) {
   fc_mu_.Reinit(m);
   fc_rho_.Reinit(m);
@@ -363,6 +391,9 @@ void Hydro<M>::Run() {
   }
   if (sem.Nested("mixture")) {
     CalcMixture(as_->GetField());
+  }
+  if (sem.Nested("stat")) {
+    CalcStat();
   }
   if (sem.Nested("fs-start")) {
     fs_->StartStep();
