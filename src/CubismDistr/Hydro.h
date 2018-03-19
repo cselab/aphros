@@ -289,7 +289,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf) {
   fc_force_.Reinit(m);
   
   const Vect f(par.Vect["force"]);
-  const Vect f2(par.Vect["force2"]);
   const Vect g(par.Vect["gravity"]);
   const Scal r1(par.Double["rho1"]);
   const Scal r2(par.Double["rho2"]);
@@ -307,11 +306,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf) {
   // Init force
   for (auto i : m.AllCells()) {
     Vect x = m.GetCenter(i);
-    if ((x[1] - 0.5) < 0.) {
-      fc_force_[i] = f;
-    } else {
-      fc_force_[i] = f2;
-    }
+    fc_force_[i] = f;
     fc_force_[i] += g * fc_rho_[i];
   }
 }
@@ -328,7 +323,9 @@ void Hydro<M>::Run() {
     if (step_ > par.Int["max_step"]) {
       sem.LoopBreak();
     } else if (broot_) { 
-      std::cerr << "***** STEP " << step_ << " ******" << std::endl;
+      std::cerr 
+          << "STEP=" << step_ 
+          << " t=" << fs_->GetTime() << std::endl;
     }
   }
   if (sem.Nested("mixture")) {
@@ -344,18 +341,12 @@ void Hydro<M>::Run() {
     if (sem.Nested("fs-iters")) {
       auto sn = m.GetSem("iter"); // sem nested
       sn.LoopBegin();
+      if (sn.Nested("iter")) {
+        fs_->MakeIteration();
+      }
       if (sn("reduce")) {
         diff_ = fs_->GetConvergenceIndicator();
         m.Reduce(&diff_, "max");
-      }
-      if (sn("convcheck")) {
-        assert(fs_->GetConvergenceIndicator() <= diff_);
-        if (diff_ < tol_ || fs_->GetIterationCount() >= par.Int["max_iter"]) {
-          sn.LoopBreak();
-        }
-      }
-      if (sn.Nested("iter")) {
-        fs_->MakeIteration();
       }
       if (sn("report")) {
         if (broot_) {
@@ -365,6 +356,15 @@ void Hydro<M>::Run() {
           ++par.Int["iter"];
         }
       }
+      if (sn("convcheck")) {
+        assert(fs_->GetConvergenceIndicator() <= diff_);
+        auto it = fs_->GetIterationCount();
+        if ((diff_ < tol_ && it >= par.Int["min_iter"]) ||
+            it >= par.Int["max_iter"]) {
+          sn.LoopBreak();
+        }
+      }
+      // TODO: Suspender loop hangs if (probably) Nested is last
       sn.LoopEnd();
     }
   }
