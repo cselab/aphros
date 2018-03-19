@@ -19,6 +19,7 @@
 #include "hydro/advection.hpp"
 #include "hydro/conv_diff.hpp"
 #include "hydro/fluid.hpp"
+#include "hydro/output.hpp"
 #include "Kernel.h"
 #include "KernelMesh.h"
 #include "Vars.h"
@@ -84,14 +85,15 @@ class Hydro : public KernelMesh<M> {
   bool broot_;
 
   struct Stat {
-    Scal m1, m2;
-    Vect v1, v2;
-    Vect x1, x2;
+    Scal m1, m2; // mass
+    Vect c1, c2;  // center of mass 
+    Vect vc1, vc2;  // center of mass velocity
     Stat()
-      : m1(0), m2(0), v1(0), v2(0), x1(0), x2(0)
+      : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0)
     {}
   };
   Stat st_;
+  std::shared_ptr<output::Session> ost_; // output stat
 };
 
 
@@ -290,6 +292,40 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
         m, fc_u, mf_cond_, 
         &fs_->GetVolumeFlux(solver::Layers::iter_curr),
         &fc_src_, 0., dt));
+
+  // Output from par.Double
+  auto od = [this, &par](std::string n /*output-name*/,  
+                        std::string p /*parameter*/) {
+      return std::make_shared<output::EntryScalarFunction<Scal>>(
+          n, [&par, p](){ return par.Double[p]; });
+    };
+
+  // Output by pointer
+  auto op = [this](std::string n /*output-name*/,  Scal* p /*pointer*/) {
+      return std::make_shared<output::EntryScalarFunction<Scal>>(
+          n, [p](){ return *p; });
+    };
+
+
+  par.Double.Set("t", fs_->GetTime());
+
+  if (broot_) {
+    auto& s = st_;
+    output::Content con = {
+        od("t", "t"),
+        std::make_shared<output::EntryScalarFunction<Scal>>(
+            "iter", [&par](){ return par.Int["iter"]; }),
+        op("diff", &diff_),
+        op("m1", &s.m1),
+        op("m2", &s.m2),
+        op("c1x", &s.c1[0]), op("c1y", &s.c1[1]), op("c1z", &s.c1[2]),
+        op("c2x", &s.c2[0]), op("c2y", &s.c2[1]), op("c2z", &s.c2[2]),
+        op("vc1x", &s.vc1[0]), op("vc1y", &s.vc1[1]), op("vc1z", &s.vc1[2]),
+        op("vc2x", &s.vc2[0]), op("vc2y", &s.vc2[1]), op("vc2z", &s.vc2[2]),
+    };
+    ost_ = std::make_shared<
+        output::SessionPlainScalar<Scal>>(con, "stat.dat");
+  }
 }
 
 template <class M>
@@ -299,6 +335,7 @@ void Hydro<M>::CalcStat() {
   auto& s = st_;
 
   if (sem("local")) {
+    par.Double.Set("t", fs_->GetTime());
     // mass
     s.m1 = 0;
     for (auto i : m.Cells()) {
@@ -458,6 +495,11 @@ void Hydro<M>::Run() {
       m.Dump(&fc_p_, "p"); 
       fc_vf_ = as_->GetField();
       m.Dump(&fc_vf_, "vf"); 
+    }
+  }
+  if (sem("dumpstat")) {
+    if (broot_) {
+      ost_->Write();
     }
   }
   if (sem("dumpwrite")) {
