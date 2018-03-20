@@ -90,8 +90,12 @@ class Hydro : public KernelMesh<M> {
     Vect c1, c2;  // center of mass 
     Vect vc1, vc2;  // center of mass velocity
     Vect v1, v2;  // average velocity
+    Scal dtt;  // temporary to reduce
+    Scal dt;    // dt fluid 
+    Scal dta;  // dt advection
     Stat()
       : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
+      , dt(0), dta(0)
     {}
     void Clear() {
       (*this) = Stat();
@@ -257,7 +261,11 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
   }
 
   // time step
-  const Scal dt = par.Double["dt"];
+  const Scal dt = par.Double["dt0"];
+  st_.dt = dt;
+  st_.dta = dt;
+  par.Double.Set("dt", st_.dt);
+  par.Double.Set("dta", st_.dta);
   step_ = 0;
 
   Scal prelax = par.Double["prelax"];
@@ -318,6 +326,8 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
     auto& s = st_;
     output::Content con = {
         od("t", "t"),
+        od("dt", "dt"),
+        od("dta", "dta"),
         std::make_shared<output::EntryScalarFunction<Scal>>(
             "iter", [&par](){ return par.Int["iter"]; }),
         op("diff", &diff_),
@@ -414,7 +424,25 @@ void Hydro<M>::CalcStat() {
       Vect vp = fs_->GetMeshVel();
       fs_->SetMeshVel(v * w + vp * (1. - w));
     }
+  }
+  if (sem("dta")) {
+    st_.dtt = fs_->GetAutoTimeStep();
+    m.Reduce(&st_.dtt, "min");
+  }
+  if (sem("dta-reduce")) {
+    auto* cfl = par.Double("cfl");
+    if (cfl) {
+      st_.dt = st_.dtt * (*cfl);
+      fs_->SetTimeStep(st_.dt);
+      par.Double["dt"] = st_.dt;
+    }
 
+    auto* cfla = par.Double("cfl");
+    if (cfla) {
+      st_.dta = st_.dtt * (*cfla); 
+      as_->SetTimeStep(st_.dta);
+      par.Double["dta"] = st_.dta;
+    }
   }
 }
 
