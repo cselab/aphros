@@ -93,13 +93,14 @@ class Hydro : public KernelMesh<M> {
     Scal dtt;  // temporary to reduce
     Scal dt;    // dt fluid 
     Scal dta;  // dt advection
+    size_t iter;
+    Scal tdump; // last dump time (rounded to nearest dtdump)
+    Scal t;
+    size_t ndump;
     Stat()
       : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
-      , dt(0), dta(0)
+      , dtt(0), dt(0), dta(0), iter(0), tdump(0), ndump(0)
     {}
-    void Clear() {
-      (*this) = Stat();
-    }
   };
   Stat st_;
   std::shared_ptr<output::Session> ost_; // output stat
@@ -113,7 +114,8 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
 {
   broot_ = (m.GetInBlockCells().GetBegin() == MIdx(0));
 
-  par.Int.Set("iter", 0);
+  st_.iter = 0;
+  par.Int.Set("iter", st_.iter);
 
   // initial field for advection
   FieldCell<Scal> fc_u(m);
@@ -306,8 +308,8 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
         &fs_->GetVolumeFlux(solver::Layers::iter_curr),
         &fc_src_, 0., dt));
 
-  // Output from par.Double
-  auto od = [this, &par](std::string n /*output-name*/,  
+  // Output from par.Double by name
+  auto on = [this, &par](std::string n /*output-name*/,  
                         std::string p /*parameter*/) {
       return std::make_shared<output::EntryScalarFunction<Scal>>(
           n, [&par, p](){ return par.Double[p]; });
@@ -320,16 +322,17 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
     };
 
 
-  par.Double.Set("t", fs_->GetTime());
+  st_.t = fs_->GetTime();
+  par.Double.Set("t", st_.t);
 
   if (broot_) {
     auto& s = st_;
     output::Content con = {
-        od("t", "t"),
-        od("dt", "dt"),
-        od("dta", "dta"),
-        std::make_shared<output::EntryScalarFunction<Scal>>(
-            "iter", [&par](){ return par.Int["iter"]; }),
+        op("t", &s.t),
+        std::make_shared<output::EntryScalarFunction<int>>(
+            "iter", [this](){ return st_.iter; }),
+        op("dt", &s.dt),
+        op("dta", &s.dta),
         op("diff", &diff_),
         op("m1", &s.m1),
         op("m2", &s.m2),
@@ -339,6 +342,8 @@ Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi)
         op("vc2x", &s.vc2[0]), op("vc2y", &s.vc2[1]), op("vc2z", &s.vc2[2]),
         op("v1x", &s.v1[0]), op("v1y", &s.v1[1]), op("v1z", &s.v1[2]),
         op("v2x", &s.v2[0]), op("v2y", &s.v2[1]), op("v2z", &s.v2[2]),
+        std::make_shared<output::EntryScalarFunction<Scal>>(
+            "meshvelx", [this](){ return fs_->GetMeshVel()[0]; }),
     };
     ost_ = std::make_shared<
         output::SessionPlainScalar<Scal>>(con, "stat.dat");
@@ -352,23 +357,23 @@ void Hydro<M>::CalcStat() {
   auto& s = st_;
 
   if (sem("local")) {
-    par.Double.Set("t", fs_->GetTime());
+    st_.t = fs_->GetTime();
+    par.Double.Set("t", st_.t);
 
     auto& fa = as_->GetField();
     auto& fv = fs_->GetVelocity();
 
-    // Save c for vc
-    Vect c1p = st_.c1;
-    Vect c2p = st_.c2;
-
-    st_.Clear();
-
-    // TODO: revise
-    // Restore c to vc
-    st_.vc1 = c1p;
-    st_.vc2 = c2p;
+    // Store vc1 and vc2
+    s.vc1 = s.c1;
+    s.vc2 = s.c2;
 
     // mass, center, velocity
+    s.m1 = 0;
+    s.m2 = 0;
+    s.c1 = Vect(0);
+    s.c2 = Vect(0);
+    s.v1 = Vect(0);
+    s.v2 = Vect(0);
     for (auto i : m.Cells()) {
       Scal o = m.GetVolume(i);
       Scal a2 = fa[i];
@@ -417,9 +422,6 @@ void Hydro<M>::CalcStat() {
       }
       Vect mask(par.Vect["meshvel_mask"]); // components 0 or 1
       v *= mask;
-      if (broot_) {
-        std::cout << "meshvel = " << v << std::endl;
-      }
       double w = par.Double["meshvel_weight"];
       Vect vp = fs_->GetMeshVel();
       fs_->SetMeshVel(v * w + vp * (1. - w));
@@ -430,18 +432,20 @@ void Hydro<M>::CalcStat() {
     m.Reduce(&st_.dtt, "min");
   }
   if (sem("dta-reduce")) {
-    auto* cfl = par.Double("cfl");
-    if (cfl) {
-      st_.dt = st_.dtt * (*cfl);
-      fs_->SetTimeStep(st_.dt);
-      par.Double["dt"] = st_.dt;
-    }
+    if (st_.iter) { // TODO: revise skipping first iter
+      if (auto* cfl = par.Double("cfl")) {
+        st_.dt = st_.dtt * (*cfl);
+        st_.dt = std::min<Scal>(st_.dt, par.Double["dtmax"]);
+        fs_->SetTimeStep(st_.dt);
+        par.Double["dt"] = st_.dt;
+      }
 
-    auto* cfla = par.Double("cfl");
-    if (cfla) {
-      st_.dta = st_.dtt * (*cfla); 
-      as_->SetTimeStep(st_.dta);
-      par.Double["dta"] = st_.dta;
+      if (auto* cfla = par.Double("cfla")) {
+        st_.dta = st_.dtt * (*cfla); 
+        st_.dta = std::min<Scal>(st_.dta, par.Double["dtmax"]);
+        as_->SetTimeStep(st_.dta);
+        par.Double["dta"] = st_.dta;
+      }
     }
   }
 }
@@ -518,7 +522,7 @@ void Hydro<M>::Run() {
 
   if (sem("loop-check")) {
     ++step_;
-    if (step_ > par.Int["max_step"]) {
+    if (fs_->GetTime() >= par.Double["tmax"]) {
       sem.LoopBreak();
     } else if (broot_) { 
       std::cerr 
@@ -550,11 +554,12 @@ void Hydro<M>::Run() {
         m.Reduce(&diff_, "max");
       }
       if (sn("report")) {
+        ++st_.iter;
         if (broot_) {
           std::cout << std::scientific << std::setprecision(16)
               << ".....iter=" << fs_->GetIterationCount()
               << ", diff=" << diff_ << std::endl;
-          ++par.Int["iter"];
+          par.Int["iter"] = st_.iter;
         }
       }
       if (sn("convcheck")) {
@@ -582,8 +587,10 @@ void Hydro<M>::Run() {
   }
   // TODO: Test Dump with pending Comm
   if (sem("dump")) {
+    auto dtdump = par.Double["dumpdt"];
     if (par.Int["output"] && 
-        step_ % (par.Int["max_step"] / par.Int["num_frames"])  == 0) {
+        st_.t >= st_.tdump + dtdump &&
+        st_.ndump < par.Int["dumpmax"]) {
       fc_velux_ = geom::GetComponent(fs_->GetVelocity(), 0);
       m.Dump(&fc_velux_, "vx");
       fc_veluy_ = geom::GetComponent(fs_->GetVelocity(), 1);
@@ -594,6 +601,9 @@ void Hydro<M>::Run() {
       m.Dump(&fc_p_, "p"); 
       fc_vf_ = as_->GetField();
       m.Dump(&fc_vf_, "vf"); 
+
+      ++st_.ndump;
+      st_.tdump += dtdump;
     }
   }
   if (sem("dumpstat")) {
