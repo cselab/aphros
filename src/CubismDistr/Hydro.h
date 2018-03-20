@@ -57,6 +57,7 @@ class Hydro : public KernelMesh<M> {
   using KM::m;
 
  private:
+  void Init();
   void CalcMixture(const FieldCell<Scal>& vf);
   void CalcStat();
 
@@ -65,7 +66,6 @@ class Hydro : public KernelMesh<M> {
   FieldCell<Scal> fc_mu_; // viscosity
   FieldCell<Scal> fc_rho_; // density
   FieldCell<Scal> fc_src_; // source
-  FieldFace<Scal> ff_flux_;  // volume flux
   FieldCell<Vect> fc_force_;  // force
   FieldCell<Vect> fc_stforce_;  // stforce cells TODO: what is st
   FieldFace<Vect> ff_stforce_;  // stforce faces
@@ -84,6 +84,7 @@ class Hydro : public KernelMesh<M> {
   Scal tol_;  // convergence tolerance
   size_t step_;
   bool broot_;
+  Scal pdist_, pdistmin_; // distance to pfixed cell
 
   struct Stat {
     Scal m1, m2; // mass
@@ -106,248 +107,260 @@ class Hydro : public KernelMesh<M> {
   std::shared_ptr<output::Session> ost_; // output stat
 };
 
+template <class M>
+void Hydro<M>::Init() {
+  auto sem = m.GetSem("init");
+  if (sem("a")) {
+    broot_ = (m.GetInBlockCells().GetBegin() == MIdx(0));
+
+    st_.iter = 0;
+    par.Int.Set("iter", st_.iter);
+
+    // TODO: Comm initial
+
+    // global mesh size
+    MIdx gs;
+    {
+      MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
+      MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
+      MIdx bs(par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]);
+      gs = p * b * bs;
+    }
+
+    using Dir = typename M::Dir;
+    auto gxm = [this](IdxFace i) {
+      return m.GetDir(i) == Dir::i &&
+          m.GetBlockFaces().GetMIdx(i)[0] == 0;
+    };
+    auto gxp = [this,gs](IdxFace i) {
+      return m.GetDir(i) == Dir::i &&
+          m.GetBlockFaces().GetMIdx(i)[0] == gs[0];
+    };
+    auto gym = [this](IdxFace i) {
+      return m.GetDir(i) == Dir::j &&
+          m.GetBlockFaces().GetMIdx(i)[1] == 0;
+    };
+    auto gyp = [this,gs](IdxFace i) {
+      return m.GetDir(i) == Dir::j &&
+          m.GetBlockFaces().GetMIdx(i)[1] == gs[1];
+    };
+    auto gzm = [this](IdxFace i) {
+      return dim >= 3 && m.GetDir(i) == Dir::k &&
+          m.GetBlockFaces().GetMIdx(i)[2] == 0;
+    };
+    auto gzp = [this,gs](IdxFace i) {
+      return dim >= 3 && m.GetDir(i) == Dir::k &&
+          m.GetBlockFaces().GetMIdx(i)[2] == gs[2];
+    };
+
+    // Boundary conditions for fluid
+    if (auto p = par.String("bc_xm")) {
+      for (auto i : m.Faces()) {
+        gxm(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
+      }
+    } 
+    if (auto p = par.String("bc_xp")) {
+      for (auto i : m.Faces()) {
+        gxp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
+      }
+    } 
+    if (auto p = par.String("bc_ym")) {
+      for (auto i : m.Faces()) {
+        gym(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
+      }
+    } 
+    if (auto p = par.String("bc_yp")) {
+      for (auto i : m.Faces()) {
+        gyp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
+      }
+    } 
+    if (auto p = par.String("bc_zm")) {
+      for (auto i : m.Faces()) {
+        gzm(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
+      }
+    } 
+    if (auto p = par.String("bc_zp")) {
+      for (auto i : m.Faces()) {
+        gzp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
+      }
+    } 
+
+    // zero-derivative boundary conditions for advection
+    for (auto it : mf_velcond_) {
+      IdxFace i = it.GetIdx();
+      mf_cond_[i] = std::make_shared
+          <solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
+    }
+    
+
+    {
+      // Fix pressure at one cell
+      Vect x(par.Vect["pfixed_x"]);
+      IdxCell c = m.FindNearestCell(x);
+      // TODO: add reduce minlocal and remove 1e-16
+      pdist_ = m.GetCenter(c).dist(x) + MIdx(bi_.index).norm() * 1e-12;
+      pdistmin_ = pdist_;
+      m.Reduce(&pdistmin_, "min");
+    }
+  }
+
+  if (sem("b")) {
+    // cell conditions for advection
+    // (empty)
+    geom::MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
+    // cell conditions for fluid
+    geom::MapCell<std::shared_ptr<solver::ConditionCellFluid>> mc_velcond;
+
+    {
+      // Fix pressure at one cell
+      Vect x(par.Vect["pfixed_x"]);
+      IdxCell c = m.FindNearestCell(x);
+      Scal p = par.Double["pfixed"];
+      if (pdist_ == pdistmin_) {
+        std::cout << "pfixed bi=" << MIdx(bi_.index) 
+            << " dist=" << pdist_ << std::endl;
+        mc_velcond[c] = std::make_shared
+            <solver::fluid_condition::GivenPressureFixed<Mesh>>(p);
+      }
+    }
+
+    // time step
+    const Scal dt = par.Double["dt0"];
+    st_.dt = dt;
+    st_.dta = dt;
+    par.Double.Set("dt", st_.dt);
+    par.Double.Set("dta", st_.dta);
+    step_ = 0;
+
+    Scal prelax = par.Double["prelax"];
+    Scal vrelax = par.Double["vrelax"];
+    Scal rhie = par.Double["rhie"];
+    tol_ = par.Double["tol"];
+    int max_iter = par.Int["max_iter"];
+    bool so = par.Int["second_order"];
+
+    fc_stforce_.Reinit(m, Vect(0));
+    ff_stforce_.Reinit(m, Vect(0));
+    fc_src_.Reinit(m, 0.);
+
+    p_lsf_ = std::make_shared<const solver::LinearSolverFactory>(
+          std::make_shared<const solver::LuDecompositionFactory>());
+
+    // initial field for advection
+    FieldCell<Scal> fc_u(m);
+    const std::string vi = par.String["vf_init"];
+    if (vi == "sin") {
+      Vect k;
+      if (auto p = par.Vect("sin_k")) {
+        k = Vect(*p);
+      } else {
+        k = Vect(2. * M_PI);
+      }
+
+      for (auto i : m.Cells()) {
+        Vect z = m.GetCenter(i) * k;
+        fc_u[i] = std::sin(z[0]) * std::sin(z[1]) * std::sin(z[2]);
+      }
+    } else if (vi == "circle") {
+      const Vect c(par.Vect["circle_c"]);
+      const Scal r(par.Double["circle_r"]);
+      for (auto i : m.Cells()) {
+        Vect x = m.GetCenter(i);
+        fc_u[i] = (c.dist(x) < r ? 1. : 0.);
+      }
+    } else {
+      std::cerr << "Unknown vf_init=" << vi << std::endl;
+      assert(false);
+      // TODO: add assert for release mode (NDEBUG=1)
+    }
+
+    // initial velocity
+    FieldCell<Vect> fc_vel(m, Vect(0));
+    if (par.Int["taylor-green"]) {
+      for (auto i : m.AllCells()) {
+        auto& u = fc_vel[i][0];
+        auto& v = fc_vel[i][1];
+        Scal l = (2 * M_PI);
+        Scal x = m.GetCenter(i)[0] * l;
+        Scal y = m.GetCenter(i)[1] * l;
+        u = std::cos(x) * std::sin(y);
+        v = -std::sin(x) * std::cos(y);
+      }
+    } 
+
+    // Init rho, mu and force based on volume fraction
+    CalcMixture(fc_u);
+
+    // Init fluid solver
+    fs_.reset(new FS(
+          m, fc_vel, 
+          mf_velcond_, mc_velcond, 
+          vrelax, prelax, rhie,
+          &fc_rho_, &fc_mu_, 
+          &fc_force_, &fc_stforce_, &ff_stforce_, 
+          &fc_src_, &fc_src_,
+          0., dt,
+          *p_lsf_, *p_lsf_,
+          tol_, max_iter, 
+          &timer_, 
+          so, false, false, 0., Vect(0)
+          ));
+
+    // Init advection solver
+    as_.reset(new AS(
+          m, fc_u, mf_cond_, 
+          &fs_->GetVolumeFlux(solver::Layers::iter_curr),
+          &fc_src_, 0., dt));
+
+    // Output from par.Double by name
+    auto on = [this](std::string n /*output-name*/,  
+                          std::string p /*parameter*/) {
+        return std::make_shared<output::EntryScalarFunction<Scal>>(
+            n, [&,p](){ return par.Double[p]; });
+      };
+
+    // Output by pointer
+    auto op = [this](std::string n /*output-name*/,  Scal* p /*pointer*/) {
+        return std::make_shared<output::EntryScalarFunction<Scal>>(
+            n, [p](){ return *p; });
+      };
+
+
+    st_.t = fs_->GetTime();
+    par.Double.Set("t", st_.t);
+
+    if (broot_) {
+      auto& s = st_;
+      output::Content con = {
+          op("t", &s.t),
+          std::make_shared<output::EntryScalarFunction<int>>(
+              "iter", [this](){ return st_.iter; }),
+          op("dt", &s.dt),
+          op("dta", &s.dta),
+          op("diff", &diff_),
+          op("m1", &s.m1),
+          op("m2", &s.m2),
+          op("c1x", &s.c1[0]), op("c1y", &s.c1[1]), op("c1z", &s.c1[2]),
+          op("c2x", &s.c2[0]), op("c2y", &s.c2[1]), op("c2z", &s.c2[2]),
+          op("vc1x", &s.vc1[0]), op("vc1y", &s.vc1[1]), op("vc1z", &s.vc1[2]),
+          op("vc2x", &s.vc2[0]), op("vc2y", &s.vc2[1]), op("vc2z", &s.vc2[2]),
+          op("v1x", &s.v1[0]), op("v1y", &s.v1[1]), op("v1z", &s.v1[2]),
+          op("v2x", &s.v2[0]), op("v2y", &s.v2[1]), op("v2z", &s.v2[2]),
+          std::make_shared<output::EntryScalarFunction<Scal>>(
+              "meshvelx", [this](){ return fs_->GetMeshVel()[0]; }),
+      };
+      ost_ = std::make_shared<
+          output::SessionPlainScalar<Scal>>(con, "stat.dat");
+    }
+  }
+}
+
 
 // TODO: move construction to Run()
 template <class M>
 Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi) 
   : KernelMesh<M>(par, bi)
 {
-  broot_ = (m.GetInBlockCells().GetBegin() == MIdx(0));
-
-  st_.iter = 0;
-  par.Int.Set("iter", st_.iter);
-
-  // initial field for advection
-  FieldCell<Scal> fc_u(m);
-  const std::string vi = par.String["vf_init"];
-  if (vi == "sin") {
-    Vect k;
-    if (auto p = par.Vect("sin_k")) {
-      k = Vect(*p);
-    } else {
-      k = Vect(2. * M_PI);
-    }
-
-    for (auto i : m.Cells()) {
-      Vect z = m.GetCenter(i) * k;
-      fc_u[i] = std::sin(z[0]) * std::sin(z[1]) * std::sin(z[2]);
-    }
-  } else if (vi == "circle") {
-    const Vect c(par.Vect["circle_c"]);
-    const Scal r(par.Double["circle_r"]);
-    for (auto i : m.Cells()) {
-      Vect x = m.GetCenter(i);
-      fc_u[i] = (c.dist(x) < r ? 1. : 0.);
-    }
-  } else {
-    std::cerr << "Unknown vf_init=" << vi << std::endl;
-    assert(false);
-    // TODO: add assert for release mode (NDEBUG=1)
-  }
-
-  const Vect vel(par.Vect["vel"]);
-
-  // initial velocity
-  FieldCell<Vect> fc_vel(m, Vect(0));
-  if (par.Int["taylor-green"]) {
-    for (auto i : m.AllCells()) {
-      auto& u = fc_vel[i][0];
-      auto& v = fc_vel[i][1];
-      Scal l = (2 * M_PI);
-      Scal x = m.GetCenter(i)[0] * l;
-      Scal y = m.GetCenter(i)[1] * l;
-      u = std::cos(x) * std::sin(y);
-      v = -std::sin(x) * std::cos(y);
-    }
-  } 
-
-  // TODO: Comm initial
-
-  // global mesh size
-  MIdx gs;
-  {
-    MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
-    MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
-    MIdx bs(par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]);
-    gs = p * b * bs;
-  }
-
-  using Dir = typename M::Dir;
-  auto gxm = [this](IdxFace i) {
-    return m.GetDir(i) == Dir::i &&
-        m.GetBlockFaces().GetMIdx(i)[0] == 0;
-  };
-  auto gxp = [this,gs](IdxFace i) {
-    return m.GetDir(i) == Dir::i &&
-        m.GetBlockFaces().GetMIdx(i)[0] == gs[0];
-  };
-  auto gym = [this](IdxFace i) {
-    return m.GetDir(i) == Dir::j &&
-        m.GetBlockFaces().GetMIdx(i)[1] == 0;
-  };
-  auto gyp = [this,gs](IdxFace i) {
-    return m.GetDir(i) == Dir::j &&
-        m.GetBlockFaces().GetMIdx(i)[1] == gs[1];
-  };
-  auto gzm = [this](IdxFace i) {
-    return dim >= 3 && m.GetDir(i) == Dir::k &&
-        m.GetBlockFaces().GetMIdx(i)[2] == 0;
-  };
-  auto gzp = [this,gs](IdxFace i) {
-    return dim >= 3 && m.GetDir(i) == Dir::k &&
-        m.GetBlockFaces().GetMIdx(i)[2] == gs[2];
-  };
-
-  // Boundary conditions for fluid
-  if (auto p = par.String("bc_xm")) {
-    for (auto i : m.Faces()) {
-      gxm(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
-    }
-  } 
-  if (auto p = par.String("bc_xp")) {
-    for (auto i : m.Faces()) {
-      gxp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
-    }
-  } 
-  if (auto p = par.String("bc_ym")) {
-    for (auto i : m.Faces()) {
-      gym(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
-    }
-  } 
-  if (auto p = par.String("bc_yp")) {
-    for (auto i : m.Faces()) {
-      gyp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
-    }
-  } 
-  if (auto p = par.String("bc_zm")) {
-    for (auto i : m.Faces()) {
-      gzm(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
-    }
-  } 
-  if (auto p = par.String("bc_zp")) {
-    for (auto i : m.Faces()) {
-      gzp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
-    }
-  } 
-
-  // zero-derivative boundary conditions for advection
-  for (auto it : mf_velcond_) {
-    IdxFace i = it.GetIdx();
-    mf_cond_[i] = std::make_shared
-        <solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
-  }
-  
-  // cell conditions for advection
-  // (empty)
-  geom::MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
-
-  // cell conditions for fluid
-  geom::MapCell<std::shared_ptr<solver::ConditionCellFluid>> mc_velcond;
-  {
-    // Fix pressure at one cell
-    Vect x(par.Vect["pfixed_x"]);
-    IdxCell c = m.FindNearestCell(x);
-    Scal p = par.Double["pfixed"];
-    // TODO: Reduce and choose nearest block
-    if (m.GetCenter(c).dist(x) < 0.1) { // XXX: adhoc
-      mc_velcond[c] = std::make_shared
-          <solver::fluid_condition::GivenPressureFixed<Mesh>>(p);
-    }
-
-  }
-
-  // velocity and flux
-  ff_flux_.Reinit(m);
-  for (auto idxface : m.Faces()) {
-    ff_flux_[idxface] = vel.dot(m.GetSurface(idxface));
-  }
-
-  // time step
-  const Scal dt = par.Double["dt0"];
-  st_.dt = dt;
-  st_.dta = dt;
-  par.Double.Set("dt", st_.dt);
-  par.Double.Set("dta", st_.dta);
-  step_ = 0;
-
-  Scal prelax = par.Double["prelax"];
-  Scal vrelax = par.Double["vrelax"];
-  Scal rhie = par.Double["rhie"];
-  tol_ = par.Double["tol"];
-  int max_iter = par.Int["max_iter"];
-  bool so = par.Int["second_order"];
-
-  fc_stforce_.Reinit(m, Vect(0));
-  ff_stforce_.Reinit(m, Vect(0));
-  fc_src_.Reinit(m, 0.);
-
-  p_lsf_ = std::make_shared<const solver::LinearSolverFactory>(
-        std::make_shared<const solver::LuDecompositionFactory>());
-
-  // Init rho, mu and force based on volume fraction
-  CalcMixture(fc_u);
-
-  // Init fluid solver
-  fs_.reset(new FS(
-        m, fc_vel, 
-        mf_velcond_, mc_velcond, 
-        vrelax, prelax, rhie,
-        &fc_rho_, &fc_mu_, 
-        &fc_force_, &fc_stforce_, &ff_stforce_, 
-        &fc_src_, &fc_src_,
-        0., dt,
-        *p_lsf_, *p_lsf_,
-        tol_, max_iter, 
-        &timer_, 
-        so, false, false, 0., Vect(0)
-        ));
-
-  // Init advection solver
-  as_.reset(new AS(
-        m, fc_u, mf_cond_, 
-        &fs_->GetVolumeFlux(solver::Layers::iter_curr),
-        &fc_src_, 0., dt));
-
-  // Output from par.Double by name
-  auto on = [this, &par](std::string n /*output-name*/,  
-                        std::string p /*parameter*/) {
-      return std::make_shared<output::EntryScalarFunction<Scal>>(
-          n, [&par, p](){ return par.Double[p]; });
-    };
-
-  // Output by pointer
-  auto op = [this](std::string n /*output-name*/,  Scal* p /*pointer*/) {
-      return std::make_shared<output::EntryScalarFunction<Scal>>(
-          n, [p](){ return *p; });
-    };
-
-
-  st_.t = fs_->GetTime();
-  par.Double.Set("t", st_.t);
-
-  if (broot_) {
-    auto& s = st_;
-    output::Content con = {
-        op("t", &s.t),
-        std::make_shared<output::EntryScalarFunction<int>>(
-            "iter", [this](){ return st_.iter; }),
-        op("dt", &s.dt),
-        op("dta", &s.dta),
-        op("diff", &diff_),
-        op("m1", &s.m1),
-        op("m2", &s.m2),
-        op("c1x", &s.c1[0]), op("c1y", &s.c1[1]), op("c1z", &s.c1[2]),
-        op("c2x", &s.c2[0]), op("c2y", &s.c2[1]), op("c2z", &s.c2[2]),
-        op("vc1x", &s.vc1[0]), op("vc1y", &s.vc1[1]), op("vc1z", &s.vc1[2]),
-        op("vc2x", &s.vc2[0]), op("vc2y", &s.vc2[1]), op("vc2z", &s.vc2[2]),
-        op("v1x", &s.v1[0]), op("v1y", &s.v1[1]), op("v1z", &s.v1[2]),
-        op("v2x", &s.v2[0]), op("v2y", &s.v2[1]), op("v2z", &s.v2[2]),
-        std::make_shared<output::EntryScalarFunction<Scal>>(
-            "meshvelx", [this](){ return fs_->GetMeshVel()[0]; }),
-    };
-    ost_ = std::make_shared<
-        output::SessionPlainScalar<Scal>>(con, "stat.dat");
-  }
 }
 
 template <class M>
@@ -518,6 +531,10 @@ template <class M>
 void Hydro<M>::Run() {
   auto sem = m.GetSem("run");
 
+  if (sem("init")) {
+    Init();
+  }
+
   sem.LoopBegin();
 
   if (sem("loop-check")) {
@@ -527,7 +544,9 @@ void Hydro<M>::Run() {
     } else if (broot_) { 
       std::cerr 
           << "STEP=" << step_ 
-          << " t=" << fs_->GetTime() << std::endl;
+          << " t=" << st_.t
+          << " dt=" << st_.dt
+          << std::endl;
     }
   }
   if (sem.Nested("mixture")) {
