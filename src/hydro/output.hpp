@@ -243,11 +243,12 @@ class SessionPlainScalar : public Session {
   }
   void Write(double /*time = 0.*/, std::string /*title = ""*/) override {
     out_.precision(16);
-    for (auto& entry_generic : content_) {
-      entry_generic->Prepare();
-      if (auto entry = dynamic_cast<EntryScalar<Scal>*>(
-          entry_generic.get())) {
-        out_ << entry->GetValue() << " ";
+    for (auto& eg : content_) { // entry generic
+      eg->Prepare();
+      if (auto e = dynamic_cast<EntryScalar<Scal>*>(eg.get())) { 
+        out_ << e->GetValue() << " ";
+      } else if (auto e = dynamic_cast<EntryScalar<int>*>(eg.get())) {
+        out_ << e->GetValue() << " ";
       } else {
         throw std::runtime_error(
             "SessionPlainScalar: Unknown entry type");

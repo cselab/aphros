@@ -24,7 +24,7 @@ sigma = rhoo * Uc ** 2 * d / We
 pgrad = 8 * Uc * muo / H ** 2
 
 T0 = 5.
-dt0 = 0.01
+dt0 = 1e-6
 T = T0 * H / Uc
 dt = dt0 * H / Uc
 max_step = int(T / dt)
@@ -51,9 +51,7 @@ set vect initial_velocity  {Uc} 0
 set int initial_pois 1
 
 # time
-set double T {T}
-set double dt {dt}
-set int max_step {max_step}
+set double tmax {T}
 
 # physical parameters
 set vect force {pgrad} 0 0 
