@@ -98,9 +98,11 @@ class Hydro : public KernelMesh<M> {
     Scal tdump; // last dump time (rounded to nearest dtdump)
     Scal t;
     size_t ndump;
+    Vect meshpos;  // mesh position
+    Vect meshvel;  // mesh velocity
     Stat()
       : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
-      , dtt(0), dt(0), dta(0), iter(0), tdump(0), ndump(0)
+      , dtt(0), dt(0), dta(0), iter(0), tdump(0), ndump(0), meshpos(0)
     {}
   };
   Stat st_;
@@ -347,7 +349,9 @@ void Hydro<M>::Init() {
           op("v1x", &s.v1[0]), op("v1y", &s.v1[1]), op("v1z", &s.v1[2]),
           op("v2x", &s.v2[0]), op("v2y", &s.v2[1]), op("v2z", &s.v2[2]),
           std::make_shared<output::EntryScalarFunction<Scal>>(
-              "meshvelx", [this](){ return fs_->GetMeshVel()[0]; }),
+              "meshposx", [this](){ return st_.meshpos[0]; }),
+          std::make_shared<output::EntryScalarFunction<Scal>>(
+              "meshvelx", [this](){ return st_.meshvel[0]; }),
       };
       ost_ = std::make_shared<
           output::SessionPlainScalar<Scal>>(con, "stat.dat");
@@ -420,6 +424,10 @@ void Hydro<M>::CalcStat() {
     s.v1 *= im1;
     s.v2 *= im2;
 
+    // Moving mesh
+    s.c1 += st_.meshpos;
+    s.c2 += st_.meshpos;
+
     Scal dt = fs_->GetTimeStep();
     s.vc1 = (s.c1 - s.vc1) / dt;
     s.vc2 = (s.c2 - s.vc2) / dt;
@@ -438,6 +446,9 @@ void Hydro<M>::CalcStat() {
       double w = par.Double["meshvel_weight"];
       Vect vp = fs_->GetMeshVel();
       fs_->SetMeshVel(v * w + vp * (1. - w));
+
+      st_.meshvel = fs_->GetMeshVel();
+      st_.meshpos += st_.meshvel * st_.dt;
     }
   }
   if (sem("dta")) {
