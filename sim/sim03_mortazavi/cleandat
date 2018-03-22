@@ -1,0 +1,5 @@
+#!/bin/bash -l
+
+rm -vf *.{xmf,h5}
+rm -vf *.{vts,pvd}
+rm -vf stat.dat
