@@ -250,45 +250,56 @@ void Hydro<M>::Init() {
 
     // initial field for advection
     FieldCell<Scal> fc_u(m);
-    const std::string vi = par.String["vf_init"];
-    if (vi == "sin") {
-      Vect k;
-      if (auto p = par.Vect("sin_k")) {
-        k = Vect(*p);
-      } else {
-        k = Vect(2. * M_PI);
-      }
+    {
+      const std::string vi = par.String["vf_init"];
+      if (vi == "sin") {
+        Vect k;
+        if (auto p = par.Vect("sin_k")) {
+          k = Vect(*p);
+        } else {
+          k = Vect(2. * M_PI);
+        }
 
-      for (auto i : m.Cells()) {
-        Vect z = m.GetCenter(i) * k;
-        fc_u[i] = std::sin(z[0]) * std::sin(z[1]) * std::sin(z[2]);
+        for (auto i : m.AllCells()) {
+          Vect z = m.GetCenter(i) * k;
+          fc_u[i] = std::sin(z[0]) * std::sin(z[1]) * std::sin(z[2]);
+        }
+      } else if (vi == "circle") {
+        const Vect c(par.Vect["circle_c"]);
+        const Scal r(par.Double["circle_r"]);
+        for (auto i : m.AllCells()) {
+          Vect x = m.GetCenter(i);
+          fc_u[i] = (c.dist(x) < r ? 1. : 0.);
+        }
+      } else {
+        std::cerr << "Unknown vf_init=" << vi << std::endl;
+        assert(false);
+        // TODO: add assert for release mode (NDEBUG=1)
       }
-    } else if (vi == "circle") {
-      const Vect c(par.Vect["circle_c"]);
-      const Scal r(par.Double["circle_r"]);
-      for (auto i : m.Cells()) {
-        Vect x = m.GetCenter(i);
-        fc_u[i] = (c.dist(x) < r ? 1. : 0.);
-      }
-    } else {
-      std::cerr << "Unknown vf_init=" << vi << std::endl;
-      assert(false);
-      // TODO: add assert for release mode (NDEBUG=1)
     }
 
     // initial velocity
     FieldCell<Vect> fc_vel(m, Vect(0));
-    if (par.Int["taylor-green"]) {
-      for (auto i : m.AllCells()) {
-        auto& u = fc_vel[i][0];
-        auto& v = fc_vel[i][1];
-        Scal l = (2 * M_PI);
-        Scal x = m.GetCenter(i)[0] * l;
-        Scal y = m.GetCenter(i)[1] * l;
-        u = std::cos(x) * std::sin(y);
-        v = -std::sin(x) * std::cos(y);
+    {
+      const std::string vi = par.String["vel_init"];
+      if (vi == "taylor-green") {
+        for (auto i : m.AllCells()) {
+          auto& u = fc_vel[i][0];
+          auto& v = fc_vel[i][1];
+          Scal l = (2 * M_PI);
+          Scal x = m.GetCenter(i)[0] * l;
+          Scal y = m.GetCenter(i)[1] * l;
+          u = std::cos(x) * std::sin(y);
+          v = -std::sin(x) * std::cos(y);
+        }
+      } else if (vi == "pois") {
+        Scal pv = par.Double["poisvel"];
+        for (auto i : m.AllCells()) {
+          Vect x = m.GetCenter(i);
+          fc_vel[i][0] = x[1] * (1. - x[1]) * 4. * pv;
+        }
       }
-    } 
+    }
 
     // Init rho, mu and force based on volume fraction
     CalcMixture(fc_u);
@@ -569,9 +580,6 @@ void Hydro<M>::Run() {
   if (sem.Nested("fs-start")) {
     fs_->StartStep();
   }
-  if (sem.Nested("as-start")) {
-    as_->StartStep();
-  }
   if (par.Int["enable_fluid"]) {
     if (sem.Nested("fs-iters")) {
       auto sn = m.GetSem("iter"); // sem nested
@@ -604,16 +612,29 @@ void Hydro<M>::Run() {
       sn.LoopEnd();
     }
   }
-  if (par.Int["enable_advection"]) {
-    if (sem.Nested("as-iter")) {
-      as_->MakeIteration();
-    }
-  }
   if (sem.Nested("fs-finish")) {
     fs_->FinishStep();
   }
-  if (sem.Nested("as-finish")) {
-    as_->FinishStep();
+  if (par.Int["enable_advection"]) {
+    if (sem.Nested("as-steps")) {
+      auto sn = m.GetSem("steps"); // sem nested
+      sn.LoopBegin();
+      if (sn.Nested("start")) {
+        as_->StartStep();
+      }
+      if (sn("iter")) {
+        as_->MakeIteration();
+      }
+      if (sn("convcheck")) {
+        if (as_->GetTime() >= fs_->GetTime() - 0.5 * as_->GetTimeStep()) {
+          sn.LoopBreak();
+        }
+      }
+      if (sn.Nested("finish")) {
+        as_->FinishStep();
+      }
+      sn.LoopEnd();
+    }
   }
   // TODO: Test Dump with pending Comm
   if (sem("dump")) {

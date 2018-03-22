@@ -23,7 +23,7 @@ mui = gamma * muo
 sigma = rhoo * Uc ** 2 * d / We
 pgrad = 8 * Uc * muo / H ** 2
 
-T0 = 5.
+T0 = 3
 dt0 = 1e-6
 T = T0 * H / Uc
 dt = dt0 * H / Uc
@@ -47,8 +47,8 @@ set vect circle_c {x0} {y0} 0
 set double circle_r {a}
 
 # initial velocity
-set vect initial_velocity  {Uc} 0 
-set int initial_pois 1
+set string vel_init pois
+set double poisvel {Uc}
 
 # time
 set double tmax {T}
