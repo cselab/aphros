@@ -20,6 +20,7 @@
 #include "ILocal.h"
 
 void Main(MPI_Comm comm, bool loc, Vars& par) {
+  using Scal = double;
   using M = geom::MeshStructured<Scal, 3>;
   using KF = HydroFactory<M>;
   

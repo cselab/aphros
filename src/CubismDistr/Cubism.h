@@ -147,6 +147,7 @@ class Cubism : public DistrMesh<KF> {
   using M = typename KF::M;
   using P = DistrMesh<KF>; // parent
   using MIdx = typename M::MIdx;
+  using Scal = typename M::Scal;
 
   using P::mk;
   using P::kf_;
@@ -155,11 +156,12 @@ class Cubism : public DistrMesh<KF> {
   using P::es_;
   using P::hl_;
   using P::p_;
-  using P:: b_; 
+  using P::b_; 
   using P::stage_;
   using P::frame_;
   using P::isroot_;
   using P::comm_;
+  using P::ext_;
 
   Grid g_;
   struct S { // cubism [s]tate
@@ -247,6 +249,7 @@ class Cubism : public DistrMesh<KF> {
 template <class B_, int ID>
 struct StreamHdf {
   using B = B_;
+  using Scal = typename B::Scal;
   using T = typename B::Elem;
 
   // Required by Cubism
@@ -280,6 +283,7 @@ struct StreamHdf {
 template <class B_>
 struct StreamHdfDyn {
   using B = B_;
+  using Scal = typename B::Scal;
   using T = typename B::Elem;
 
   // Required by Cubism
@@ -344,7 +348,7 @@ std::vector<MyBlockInfo> Cubism<Par, KF>::GetBlocks(
 template <class Par, class KF>
 Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par) 
   : DistrMesh<KF>(comm, kf, par)
-  , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], 1., comm)
+  , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm)
 {
   assert(bs_ == MIdx(Block::bx, Block::by, Block::bz));
 
