@@ -40,17 +40,17 @@ out='''\
 # domain
 set double extent {H}
 
-# initial volume fraction
-set string vf_init circle
-set vect circle_c {x0} {y0} 0
-set double circle_r {a}
+# time
+set double tmax {T}
 
 # initial velocity
 set string vel_init pois
 set double poisvel {Uc}
 
-# time
-set double tmax {T}
+# initial volume fraction
+set string vf_init circle
+set vect circle_c {x0} {y0} 0
+set double circle_r {a}
 
 # physical 
 set vect force {pgrad} 0 0 
