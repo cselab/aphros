@@ -185,14 +185,17 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
     }
 
     std::string srs = par.String["hypre_symm_solver"]; // solver symm
-    assert(srs == "pcg+smg" || srs == "smg" || srs == "pcg");
+    assert(srs == "pcg+smg" || srs == "smg" || srs == "pcg" || srs == "fake");
+
+    std::string srg = par.String["hypre_gen_solver"]; // solver gen
+    assert(srg == "gmres" || srg == "fake");
 
     std::string sr; // solver 
     int maxiter;
     using T = typename M::LS::T; // system type
     switch (sf.t) {
       case T::gen:
-        sr = "gmres";
+        sr = srg;
         maxiter = par.Int["hypre_gen_maxiter"];
         break;
       case T::symm:
