@@ -68,7 +68,7 @@ Simple<M>::Simple(Vars& par, const MyBlockInfo& bi)
   : KernelMesh<M>(par, bi)
 {}
 
-bool Cmp(Scal a, Scal b) {
+bool Cmp(double a, double b) {
   return std::abs(a - b) < 1e-10;
 }
 
@@ -274,6 +274,7 @@ void Simple<M>::Run() {
 
 void Main(MPI_Comm comm, bool loc, Vars& par) {
   // read config files, parse arguments, maybe init global fields
+  using Scal = double;
   using M = geom::MeshStructured<Scal, 3>;
   using K = Simple<M>;
   using KF = SimpleFactory<M>;

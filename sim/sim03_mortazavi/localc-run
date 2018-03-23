@@ -4,7 +4,7 @@
 
 echo running > job.status
 
-n=4
+n=16
 time mpirun -n $n --oversubscribe ../mfer localc$n.conf
 
 echo "Done."

@@ -99,7 +99,7 @@ bool Cmp(T a, T b) {
 }
 
 template <>
-bool Cmp<Scal>(Scal a, Scal b) {
+bool Cmp<double>(double a, double b) {
   return std::abs(a - b) < 1e-6;
 }
 
@@ -458,6 +458,7 @@ void Advection<M>::Run() {
   }
 }
 
+using Scal = double;
 using M = geom::MeshStructured<Scal, 3>;
 using K = Advection<M>;
 using KF = AdvectionFactory<M>;

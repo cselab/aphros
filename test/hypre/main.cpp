@@ -94,8 +94,9 @@ int main (int argc, char ** argv) {
   std::vector<bool> per = {1, 0, 0};
   Scal tol = 1e-12;
   int print = 2;
+  int maxiter = 80;
 
-  Hypre h(comm, bb, gs, per, tol, print, "gmres");
+  Hypre h(comm, bb, gs, per, tol, print, "gmres", maxiter);
   h.Solve();
 
   // Check solution

@@ -54,7 +54,7 @@ void TestBlock() {
 
     // std::cerr << x << " " << d.GetLetter() << std::endl;
     assert(Cmp(xp, x));
-    assert(oi <= x && x < oi + si + d);
+    assert(oi <= x && x < oi + si + MIdx(d));
 
     xp = x;
     dp = d;
@@ -147,7 +147,7 @@ void TestMesh() {
       Scal k = (n % 2 == 0 ? -1. : 1.);
       auto j = m.GetNeighbourCell(i, n);
       Vect xj = m.GetCenter(j);
-      CMP((xj-xi)[d], h[d] * k);
+      CMP((xj-xi)[size_t(d)], h[size_t(d)] * k);
     }
   }
 
@@ -210,8 +210,7 @@ int main() {
         l();
         ++c;
       }
-      assert(c == 3 * s.prod() +
-          s[0] * s[1] + s[1] * s[2] + s[2] * s[0]; ++q);
+      assert(c == 3 * s.prod() + s[0] * s[1] + s[1] * s[2] + s[2] * s[0]); 
     }
   }
 
