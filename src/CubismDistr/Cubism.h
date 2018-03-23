@@ -480,10 +480,10 @@ void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
         r = 1;  
         break;
       case Op::max:  
-        r = -std::numeric_limits<double>::max();  
+        r = -std::numeric_limits<Scal>::max();  
         break;
       case Op::min:  
-        r = std::numeric_limits<double>::max();  
+        r = std::numeric_limits<Scal>::max();  
         break;
       default:
         assert(false);

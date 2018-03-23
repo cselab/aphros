@@ -6,22 +6,6 @@
 #include "hydro/suspender.h"
 #include "Vars.h"
 
-struct MyElem {
-  using Scal = double; 
-  static const size_t s = 8;
-  Scal a[s];
-  void init(Scal val) { 
-    for (size_t i = 0; i < s; ++i) {
-      a[i] = val;
-    }
-  }
-  void clear() {
-    init(0);
-  }
-
-  MyElem& operator=(const MyElem&) = default;
-};
-
 
 // TODO: remove h_gridpoint from MyBlockInfo
 struct MyBlockInfo {

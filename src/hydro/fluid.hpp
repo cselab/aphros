@@ -1172,8 +1172,8 @@ class FluidSimple : public FluidSolver<Mesh> {
       for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
         IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
         if (flux[idxface] != 0.) {
-          dt = std::min(dt, 
-              std::abs(mesh.GetVolume(idxcell) / flux[idxface]));
+          dt = std::min<Scal>(
+              dt, std::abs(mesh.GetVolume(idxcell) / flux[idxface]));
         }
       }
     }
