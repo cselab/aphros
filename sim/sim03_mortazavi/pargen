@@ -38,10 +38,9 @@ for v in sorted(dird):
 
 out='''\
 # domain
-set vect A 0 0 0
-set vect B {H} {H} 1
+set double extent {H}
 
-# initial drop
+# initial volume fraction
 set string vf_init circle
 set vect circle_c {x0} {y0} 0
 set double circle_r {a}
@@ -53,7 +52,7 @@ set double poisvel {Uc}
 # time
 set double tmax {T}
 
-# physical parameters
+# physical 
 set vect force {pgrad} 0 0 
 set double rho1 {rhoo}
 set double rho2 {rhoi}

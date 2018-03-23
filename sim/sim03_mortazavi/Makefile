@@ -1,4 +1,4 @@
 all:
-	./localc.run
+	./localc-run
 
 .PHONY: all
