@@ -1,10 +1,13 @@
 #!/bin/bash -l
 
+set -eu
+
 echo running > job.status
 
-./clean
+. ../setenv.daint
 
-time mpirun -n 4 --oversubscribe xterm -e gdb -ex=run --args ../mfer 
+n=192
+time srun -n $n  ../mfer daint.conf
 
 echo "Done."
 echo done > job.status

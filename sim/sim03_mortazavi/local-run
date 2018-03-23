@@ -1,0 +1,13 @@
+#!/bin/bash -l
+
+# local with Local
+
+set -eu
+
+echo running > job.status
+
+time mpirun -n 1 ../mfer local.conf
+
+echo "Done."
+echo done > job.status
+

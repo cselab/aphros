@@ -1,0 +1,11 @@
+#!/bin/bash -l
+
+# local with Cubism
+
+echo running > job.status
+
+time mpirun -n 4 --oversubscribe ../mfer localc.conf
+
+echo "Done."
+echo done > job.status
+

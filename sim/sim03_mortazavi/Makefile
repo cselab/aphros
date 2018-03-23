@@ -1,4 +1,4 @@
 all:
-	./job
+	./localc.run
 
 .PHONY: all
