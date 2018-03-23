@@ -31,7 +31,7 @@ class Hydro : public KernelMesh<M> {
  public:
   using KM = KernelMesh<M>;
   using Mesh = M;
-  using Scal = double;
+  using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
   using MIdx = typename Mesh::MIdx;
   using Rect = geom::Rect<Vect>;

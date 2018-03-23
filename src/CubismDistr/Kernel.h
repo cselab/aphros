@@ -6,9 +6,8 @@
 #include "hydro/suspender.h"
 #include "Vars.h"
 
-using Scal = double;
-
 struct MyElem {
+  using Scal = double; 
   static const size_t s = 8;
   Scal a[s];
   void init(Scal val) { 

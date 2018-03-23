@@ -27,6 +27,7 @@ class DistrMesh : public Distr {
   using M = typename KF::M;
   static constexpr size_t dim = M::dim;
   using MIdx = typename M::MIdx;
+  using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
   virtual void Run();
@@ -48,6 +49,7 @@ class DistrMesh : public Distr {
   MIdx bs_; // block size
   MIdx p_; // number of ranks
   MIdx b_; // number of blocks
+  Scal ext_; // extent (maximum over all directions)
 
   int stage_ = 0;
   int frame_ = 0;
@@ -84,6 +86,7 @@ DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& par)
   , bs_{par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]}
   , p_{par.Int["px"], par.Int["py"], par.Int["pz"]}
   , b_{par.Int["bx"], par.Int["by"], par.Int["bz"]}
+  , ext_(par.Double["extent"])
 {}
 
 template <class KF>
@@ -237,7 +240,7 @@ auto DistrMesh<KF>::GetGlobalBlock() const -> typename M::BlockCells {
 }
 
 template <class KF>
-geom::FieldCell<Scal> DistrMesh<KF>::GetGlobalField(size_t i) const {
+auto DistrMesh<KF>::GetGlobalField(size_t i) const -> geom::FieldCell<Scal> {
   assert(false && "Not implemented");
   return geom::FieldCell<Scal>();
 }

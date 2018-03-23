@@ -14,13 +14,12 @@
 #include "Distr.h"
 #include "hydro/hypre.h"
 
-using Scal = double;
-
 template <class KF>
 class Local : public DistrMesh<KF> {
  public:
   using K = typename KF::K;
   using M = typename KF::M;
+  using Scal = typename M::Scal;
 
   Local(MPI_Comm comm, KF& kf, Vars& par);
   typename M::BlockCells GetGlobalBlock() const override;
@@ -28,7 +27,7 @@ class Local : public DistrMesh<KF> {
   geom::FieldCell<Scal> GetGlobalField(size_t i) const override; 
 
  private:
-  using MIdx = typename  M::MIdx;
+  using MIdx = typename M::MIdx;
   using Vect = typename M::Vect;
   using Rect = geom::Rect<Vect>;
   using IdxCell = geom::IdxCell;
@@ -46,6 +45,7 @@ class Local : public DistrMesh<KF> {
   using P::frame_;
   using P::isroot_;
   using P::comm_;
+  using P::ext_;
 
   std::vector<geom::FieldCell<Scal>> buf_; // buffer on mesh
   M gm; // global mesh
@@ -54,7 +54,7 @@ class Local : public DistrMesh<KF> {
 
   void ReadBuffer(M& m);
   void WriteBuffer(M& m);
-  static M CreateMesh(MIdx bs, MIdx b, MIdx p, int es);
+  static M CreateMesh(MIdx bs, MIdx b, MIdx p, int es, Scal ext_);
   std::vector<MIdx> GetBlocks() override;
   void ReadBuffer(const std::vector<MIdx>& bb) override;
   void WriteBuffer(const std::vector<MIdx>& bb) override;
@@ -63,14 +63,13 @@ class Local : public DistrMesh<KF> {
 };
 
 template <class KF>
-auto Local<KF>::CreateMesh(MIdx bs, MIdx b, MIdx p, int es) -> M {
+auto Local<KF>::CreateMesh(MIdx bs, MIdx b, MIdx p, int es, Scal ext) -> M {
   // Init global mesh
   MIdx ms(bs); // block size 
   MIdx mb(b); // number of blocks
   MIdx mp(p); // number of PEs
   MIdx mm = mp * mb * ms; // total size in cells (without halos)
 
-  Scal ext = 1.; // TODO: extent from par
   Scal h = ext / std::max(std::max(mm[0], mm[1]), mm[2]);
   Vect d0(0); // origin coord
   Vect d1 = d0 + Vect(mm) * h;      // end coord
@@ -90,7 +89,7 @@ template <class KF>
 Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par) 
   : DistrMesh<KF>(comm, kf, par)
   , buf_(es_)
-  , gm(CreateMesh(bs_, b_, p_, es_))
+  , gm(CreateMesh(bs_, b_, p_, es_, ext_))
 {
 
   // Resize buffer for mesh
@@ -335,7 +334,7 @@ auto Local<KF>::GetGlobalBlock() const -> typename M::BlockCells {
 }
 
 template <class KF>
-geom::FieldCell<Scal> Local<KF>::GetGlobalField(size_t i) const {
+auto Local<KF>::GetGlobalField(size_t i) const -> geom::FieldCell<Scal> {
   return buf_[i];
 }
 
