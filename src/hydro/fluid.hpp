@@ -2,7 +2,7 @@
 
 #include <cmath>
 #include <sstream>
-#include <exception>
+#include <stdexcept>
 #include <memory>
 
 #include "mesh.hpp"
@@ -820,7 +820,7 @@ class FluidSimple : public FluidSolver<Mesh> {
     if (sem("convdiff-init")) {
       this->ClearIterationCount();
       if (IsNan(fc_pressure_.time_curr)) {
-        throw std::string("NaN initial pressure");
+        throw std::runtime_error("NaN initial pressure");
       }
       conv_diff_solver_->SetTimeStep(this->GetTimeStep());
     }
@@ -1136,7 +1136,7 @@ class FluidSimple : public FluidSolver<Mesh> {
       fc_pressure_.time_curr = fc_pressure_.iter_curr;
       ff_vol_flux_.time_curr = ff_vol_flux_.iter_curr;
       if (IsNan(fc_pressure_.time_curr)) {
-        throw std::string("NaN pressure");
+        throw std::runtime_error("NaN pressure");
       }
       this->IncTime();
     }

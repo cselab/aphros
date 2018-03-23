@@ -9,7 +9,7 @@
 
 #include <cmath>
 #include <sstream>
-#include <exception>
+#include <stdexcept>
 
 #include "mesh.hpp"
 #include "linear.hpp"
@@ -121,7 +121,7 @@ class ConvectionDiffusionScalarImplicit :
   void StartStep() override {
     this->ClearIterationCount();
     if (IsNan(fc_field_.time_curr)) {
-      throw std::string("NaN initial field");
+      throw std::runtime_error("NaN initial field");
     }
     fc_field_.iter_curr = fc_field_.time_curr;
     for (auto idxcell : mesh.Cells()) {
@@ -273,7 +273,7 @@ class ConvectionDiffusionScalarImplicit :
     fc_field_.time_prev = fc_field_.time_curr;
     fc_field_.time_curr = fc_field_.iter_curr;
     if (IsNan(fc_field_.time_curr)) {
-      throw std::string("NaN field");
+      throw std::runtime_error("NaN field");
     }
     this->IncTime();
   }
