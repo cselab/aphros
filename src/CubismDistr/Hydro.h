@@ -38,6 +38,7 @@ class Hydro : public KernelMesh<M> {
   using IdxCell = geom::IdxCell;
   using IdxFace = geom::IdxFace;
   using IdxNode = geom::IdxNode;
+  using Sem = typename Mesh::Sem;
   static constexpr size_t dim = M::dim;
 
   template <class T>
@@ -58,6 +59,7 @@ class Hydro : public KernelMesh<M> {
 
  private:
   void Init();
+  void Dump(Sem& sem);
   void CalcMixture(const FieldCell<Scal>& vf);
   void CalcStat();
 
@@ -95,14 +97,14 @@ class Hydro : public KernelMesh<M> {
     Scal dt;    // dt fluid 
     Scal dta;  // dt advection
     size_t iter;
-    Scal tdump; // last dump time (rounded to nearest dtdump)
+    Scal dumpt; // last dump time (rounded to nearest dtdump)
     Scal t;
-    size_t ndump;
+    size_t dumpn;
     Vect meshpos;  // mesh position
     Vect meshvel;  // mesh velocity
     Stat()
       : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
-      , dtt(0), dt(0), dta(0), iter(0), tdump(0), ndump(0), meshpos(0)
+      , dtt(0), dt(0), dta(0), iter(0), dumpt(-1e10), dumpn(0), meshpos(0)
     {}
   };
   Stat st_;
@@ -552,6 +554,53 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf) {
   }
 }
 
+// TODO: Test m.Dump() with pending Comm
+template <class M>
+void Hydro<M>::Dump(Sem& sem) {
+  if (sem("dump")) {
+    // requirements: 
+    // * interval between dumps is at least dumpdt + dt
+    // * dumpt % dtumpdt <= dt * 0.5
+    auto pd = par.Double["dumpdt"]; // dum[p] [d]t
+    auto& pt = st_.dumpt;
+    const auto& dt = st_.dt;
+
+    // time of next dump
+    Scal ptn = int(std::max<Scal>(pt + pd, 0.) / pd + 0.5) * pd;
+    assert(ptn > pt);
+
+    if (par.Int["output"] && 
+        st_.t >= ptn - dt * 0.5 &&
+        st_.dumpn < par.Int["dumpmax"]) {
+      st_.dumpt = st_.t;
+
+      fc_velux_ = geom::GetComponent(fs_->GetVelocity(), 0);
+      m.Dump(&fc_velux_, "vx");
+      fc_veluy_ = geom::GetComponent(fs_->GetVelocity(), 1);
+      m.Dump(&fc_veluy_, "vy");
+      fc_veluz_ = geom::GetComponent(fs_->GetVelocity(), 2);
+      m.Dump(&fc_veluz_, "vz");
+      fc_p_ = fs_->GetPressure();
+      m.Dump(&fc_p_, "p"); 
+      fc_vf_ = as_->GetField();
+      m.Dump(&fc_vf_, "vf"); 
+
+      if (broot_) {
+        std::cerr << "Dump " 
+            << "n=" << st_.dumpn 
+            << " t=" << st_.dumpt 
+            << " tn=" << ptn
+            << std::endl;
+      }
+
+      ++st_.dumpn;
+    }
+  }
+  if (sem("dumpwrite")) {
+    // Empty stage for DumpWrite
+    // TODO: revise
+  }
+}
 
 template <class M>
 void Hydro<M>::Run() {
@@ -560,6 +609,9 @@ void Hydro<M>::Run() {
   if (sem("init")) {
     Init();
   }
+
+  // Dump init
+  Dump(sem);
 
   sem.LoopBegin();
 
@@ -640,35 +692,13 @@ void Hydro<M>::Run() {
       sn.LoopEnd();
     }
   }
-  // TODO: Test Dump with pending Comm
-  if (sem("dump")) {
-    auto dtdump = par.Double["dumpdt"];
-    if (par.Int["output"] && 
-        st_.t >= st_.tdump + dtdump &&
-        st_.ndump < par.Int["dumpmax"]) {
-      fc_velux_ = geom::GetComponent(fs_->GetVelocity(), 0);
-      m.Dump(&fc_velux_, "vx");
-      fc_veluy_ = geom::GetComponent(fs_->GetVelocity(), 1);
-      m.Dump(&fc_veluy_, "vy");
-      fc_veluz_ = geom::GetComponent(fs_->GetVelocity(), 2);
-      m.Dump(&fc_veluz_, "vz");
-      fc_p_ = fs_->GetPressure();
-      m.Dump(&fc_p_, "p"); 
-      fc_vf_ = as_->GetField();
-      m.Dump(&fc_vf_, "vf"); 
 
-      ++st_.ndump;
-      st_.tdump += dtdump;
-    }
-  }
+  Dump(sem);
+
   if (sem("dumpstat")) {
     if (broot_) {
       ost_->Write();
     }
-  }
-  if (sem("dumpwrite")) {
-    // Empty stage for DumpWrite
-    // TODO: revise
   }
 
   sem.LoopEnd();
