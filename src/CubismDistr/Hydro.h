@@ -248,7 +248,7 @@ void Hydro<M>::Init() {
     p_lsf_ = std::make_shared<const solver::LinearSolverFactory>(
           std::make_shared<const solver::LuDecompositionFactory>());
 
-    // initial field for advection
+    // initial volume fraction
     FieldCell<Scal> fc_u(m);
     {
       const std::string vi = par.String["vf_init"];
@@ -271,10 +271,10 @@ void Hydro<M>::Init() {
           Vect x = m.GetCenter(i);
           fc_u[i] = (c.dist(x) < r ? 1. : 0.);
         }
+      } else if (vi == "zero" ) {
+        // nop
       } else {
-        std::cerr << "Unknown vf_init=" << vi << std::endl;
-        assert(false);
-        // TODO: add assert for release mode (NDEBUG=1)
+        throw std::runtime_error("Init(): unknown vf_init=" + vi);
       }
     }
 
@@ -298,6 +298,10 @@ void Hydro<M>::Init() {
           Vect x = m.GetCenter(i);
           fc_vel[i][0] = x[1] * (1. - x[1]) * 4. * pv;
         }
+      } else if (vi == "zero" ) {
+        // nop
+      } else  {
+        throw std::runtime_error("Init(): unknown vel_init=" + vi);
       }
     }
 

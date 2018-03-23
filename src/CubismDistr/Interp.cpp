@@ -1,6 +1,7 @@
 #include <sstream>
 #include <cassert>
 #include <fstream>
+#include <stdexcept>
 
 #include "Interp.h"
 #include "Vars.h"
@@ -25,8 +26,7 @@ void Interp::Cmd(std::string s) {
   } else if (cmd == "") {
     // nop
   } else {
-    std::cerr << "Unknown command: '" << cmd << "'" <<  std::endl;
-    assert(false);
+    throw std::runtime_error("Cmd(): unknown command '" + cmd + "'");
   }
 }
 
@@ -47,8 +47,7 @@ void Interp::CmdDel(std::string s) {
   std::stringstream b(s);
   b >> cmd >> key;
   if (!v_.Del(key)) {
-    std::cerr << "del: unknown variable '" << key << "'" << std::endl;
-    assert(false);
+    throw std::runtime_error("CmdDel(): unknown variable '" + key + "'");
   }
 }
 
