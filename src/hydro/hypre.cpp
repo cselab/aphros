@@ -154,6 +154,10 @@ Hypre::Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs,
     HYPRE_StructGMRESSetMaxIter(hd->solver, maxiter_);
     HYPRE_StructGMRESSetup(hd->solver, hd->a, hd->r, hd->x);
   }
+
+  if (solver == "fake") {
+    // nop
+  }
 }
 
 void Hypre::Solve() {
@@ -167,10 +171,20 @@ void Hypre::Solve() {
     HYPRE_StructGMRESSolve(hd->solver, hd->a, hd->r, hd->x);
   }
 
-  // Copy solution
-  for (auto& b : bb) {
-    HYPRE_StructVectorGetBoxValues(hd->x, b.l.data(), b.u.data(), b.x->data());
+  if (solver_ == "fake") {
+    // Zero solution
+    for (auto& b : bb) {
+      for (auto& e : (*b.x)) {
+        e = 0.;
+      }
+    }
+  } else {
+    // Copy solution
+    for (auto& b : bb) {
+      HYPRE_StructVectorGetBoxValues(hd->x, b.l.data(), b.u.data(), b.x->data());
+    }
   }
+
 }
 Hypre::~Hypre() {
   // Destroy
@@ -187,5 +201,8 @@ Hypre::~Hypre() {
   }
   if (solver_ == "gmres") {
     HYPRE_StructGMRESDestroy(hd->solver);
+  }
+  if (solver_ == "fake") {
+    // nop
   }
 }
