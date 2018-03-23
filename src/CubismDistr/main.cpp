@@ -33,14 +33,20 @@ void Main(MPI_Comm comm, bool loc, Vars& par) {
 
   std::unique_ptr<Distr> d;
   if (loc) {
-    std::cerr << "Create Local on " << size << " ranks" << std::endl;
+    if (isroot) {
+      std::cerr << "Create Local on " << size << " ranks" << std::endl;
+    }
     d.reset(CreateLocal(comm, kf, par));
   } else {
-    std::cerr << "Create Cubism on " << size << " ranks" << std::endl;
+    if (isroot) {
+      std::cerr << "Create Cubism on " << size << " ranks" << std::endl;
+    }
     d.reset(CreateCubism(comm, kf, par));
   }
 
-  std::cerr << "Run main loop" << std::endl;
+  if (isroot) {
+    std::cerr << "Run main loop" << std::endl;
+  }
   d->Run();
 }
 
