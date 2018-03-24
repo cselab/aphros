@@ -55,9 +55,10 @@ void DumpHDF5_MPI(const TGrid &grid, int iCounter, Real absTime,
   dset_name.push_back("/vx");
   dset_name.push_back("/vy");
   dset_name.push_back("/vz");
+
   if (isroot)
   {
-    H5open();
+    //H5open();
     fapl_id = H5Pcreate(H5P_FILE_ACCESS);
     file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, fapl_id);
     H5Pclose(fapl_id);
@@ -85,13 +86,13 @@ void DumpHDF5_MPI(const TGrid &grid, int iCounter, Real absTime,
 
     // shutdown h5 file
     H5Fclose(file_id);
-    H5close();
+    //H5close();
   }
   MPI_Barrier(comm);
 
   ///////////////////////////////////////////////////////////////////////////
   // startup file
-  H5open();
+  //H5open();
   fapl_id = H5Pcreate(H5P_FILE_ACCESS);
   H5Pset_fapl_mpio(fapl_id, comm, MPI_INFO_NULL);
   file_id = H5Fopen(filename, H5F_ACC_RDWR, fapl_id);
@@ -192,7 +193,7 @@ void DumpHDF5_MPI(const TGrid &grid, int iCounter, Real absTime,
   H5Dclose(dataset_id);
   H5Pclose(fapl_id);
   H5Fclose(file_id);
-  H5close();
+  //H5close();
 
   delete [] array_all;
 
