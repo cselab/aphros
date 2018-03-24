@@ -606,7 +606,7 @@ template <class M>
 void Hydro<M>::Run() {
   auto sem = m.GetSem("run");
 
-  if (sem("init")) {
+  if (sem.Nested("init")) {
     Init();
   }
 
