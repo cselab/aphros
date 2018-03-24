@@ -617,7 +617,8 @@ void Hydro<M>::Run() {
 
   if (sem("loop-check")) {
     ++step_;
-    if (fs_->GetTime() >= par.Double["tmax"]) {
+    if (fs_->GetTime() >= par.Double["tmax"] ||
+        step_ > par.Int["max_step"]) {
       sem.LoopBreak();
     } else if (broot_) { 
       std::cerr 
@@ -704,7 +705,7 @@ void Hydro<M>::Run() {
   sem.LoopEnd();
 
   if (sem("fluid-timer")) {
-    if (broot_) {
+    if (broot_ && par.Int["verbose_fluid_timer"]) {
       double a = 0.; // total
       auto& mt = timer_;
       for (auto e : mt.GetMap()) {
@@ -714,9 +715,6 @@ void Hydro<M>::Run() {
       std::cout << std::fixed;
       for (auto e : mt.GetMap()) {
         auto n = e.first; // name
-        if (n == "") {
-          n = "other";
-        }
         auto t = e.second; // time
 
         std::cout 

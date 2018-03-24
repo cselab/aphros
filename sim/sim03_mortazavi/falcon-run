@@ -2,9 +2,11 @@
 
 # local with Cubism
 
+set -eu
+
 echo running > job.status
 
-n=16
+n=2
 export OMP_NUM_THREADS=1
 time mpirun -n $n ../mfer localc$n.conf
 
