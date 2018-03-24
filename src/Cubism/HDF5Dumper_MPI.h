@@ -73,14 +73,15 @@ void DumpHDF5_MPI(const TGrid &grid, int iCounter, Real absTime,
         vertices[j+1] = vertices[j] + m.cell_width(j);
 
       hsize_t dim[1] = {vertices.size()};
+
       fspace_id = H5Screate_simple(1, dim, NULL);
-      dataset_id = H5Dcreate(
-          file_id, dset_name[i].c_str(), H5T_NATIVE_DOUBLE, 
+      dataset_id = H5Dcreate(file_id, dset_name[i].c_str(), H5T_NATIVE_DOUBLE, 
           fspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-      H5Dwrite(
-          dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, 
-          H5P_DEFAULT, vertices.data());
       H5Sclose(fspace_id);
+
+      H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, 
+          H5P_DEFAULT, vertices.data());
+
       H5Dclose(dataset_id);
     }
 
@@ -181,15 +182,15 @@ void DumpHDF5_MPI(const TGrid &grid, int iCounter, Real absTime,
   fspace_id = H5Screate_simple(4, dims, NULL);
   dataset_id = H5Dcreate(file_id, "data", HDF_REAL, fspace_id, 
       H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  H5Sclose(fspace_id);
 
   fspace_id = H5Dget_space(dataset_id);
   H5Sselect_hyperslab(fspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
   mspace_id = H5Screate_simple(4, count, NULL);
   H5Dwrite(dataset_id, HDF_REAL, mspace_id, fspace_id, fapl_id, array_all);
-
+  H5Sclose(fspace_id);
 
   H5Sclose(mspace_id);
-  H5Sclose(fspace_id);
   H5Dclose(dataset_id);
   H5Pclose(fapl_id);
   H5Fclose(file_id);

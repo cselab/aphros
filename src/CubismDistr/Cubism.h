@@ -554,7 +554,6 @@ void Cubism<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
       DumpHDF5_MPI<Grid, StreamHdfDyn<Block>>(
           g_, frame_, frame_, d.second + suff);
       ++k;
-      break;
     }
     ++frame_;
   }
