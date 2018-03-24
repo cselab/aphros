@@ -6,7 +6,7 @@ set -eu
 
 echo running > job.status
 
-export OMP_NUM_THREADS=4
+export OMP_NUM_THREADS=1
 time mpirun -n 1 ../mfer local.conf
 
 echo "Done."
