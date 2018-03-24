@@ -1,4 +1,5 @@
 #include <cassert>
+#include <stdexcept>
 
 #include "suspender.h"
 
@@ -16,7 +17,11 @@ Suspender::Sem::Sem(Suspender& p, std::string name)
     p.depth_ = 0;
   }
 
-  assert(p.nest_ && "Nested calls not allowed. Use Nested() on upper level");
+  if (!p.nest_) {
+    throw std::runtime_error(
+        p.GetCurName() +
+        ": Nested calls not allowed. Use Nested() on upper level");
+  }
   p.nest_ = false;
 
   if (std::next(i) == l.end()) {
