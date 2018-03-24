@@ -175,6 +175,7 @@ class Cubism : public DistrMesh<KF> {
                                 int cs /*comm size*/) {
     const int a = -hl;
     const int b = hl + 1;
+    assert(cs <= Elem::es);
     if (cs == 0) {
       return StencilInfo(a,a,a,b,b,b, true, cs);
     } else if (cs == 1) {
@@ -543,7 +544,9 @@ template <class Par, class KF>
 void Cubism<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
   auto& m = mk.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
+    assert(m.GetComm().size() >= m.GetDump().size());
     size_t k = m.GetComm().size() - m.GetDump().size();
+    assert(0 <= k && k < Elem::es && k < m.GetComm().size());
     for (auto d : m.GetDump()) {
       auto suff = "_" + std::to_string(frame_);
       StreamHdfDyn<Block>::ID = k;
