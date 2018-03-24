@@ -305,20 +305,22 @@ void DistrMesh<KF>::Run() {
       a += e.second;
     }
 
-    std::cout << std::fixed;
-    for (auto e : mt.GetMap()) {
-      auto n = e.first; // name
-      if (n == "") {
-        n = "other";
-      }
-      auto t = e.second; // time
+    if (par.Int["verbose_stages"]) {
+      std::cout << std::fixed;
+      for (auto e : mt.GetMap()) {
+        auto n = e.first; // name
+        if (n == "") {
+          n = "other";
+        }
+        auto t = e.second; // time
 
-      std::cout 
-          << n << "\n" 
-          << std::setprecision(5) << t << " s = "
-          << std::setprecision(3) << 100. * t / a << "%\n";
+        std::cout 
+            << n << "\n" 
+            << std::setprecision(5) << t << " s = "
+            << std::setprecision(3) << 100. * t / a << "%\n";
+      }
+      std::cout << std::endl;
     }
-    std::cout << std::endl;
 
     MIdx gs;
     {
