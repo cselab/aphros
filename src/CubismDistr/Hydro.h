@@ -273,6 +273,42 @@ void Hydro<M>::Init() {
           Vect x = m.GetCenter(i);
           fc_u[i] = (c.dist(x) < r ? 1. : 0.);
         }
+      } else if (vi == "list" ) {
+        std::string fn = par.String["list_path"];
+        struct P {
+          Vect c;
+          Scal r;
+        };
+        std::vector<P> pp;
+        std::ifstream f(fn);
+        if (!f.good()) {
+          throw std::runtime_error("Can't open particle list '" + fn + "'");
+        }
+        // Read until eof
+        while (true) {
+          P p;
+          // Read single particle: x y z r
+          f >> p.c[0] >> p.c[1] >> p.c[2] >> p.r;
+          if (f.good()) {
+            pp.push_back(p);
+          } else {
+            break;
+          }
+        }
+        if (broot_) {
+          std::cerr << "Read " 
+            << pp.size() << " particles from " 
+            << "'" << fn << "'" << std::endl;
+        }
+        // Set volume fraction to 1 inside particles
+        for (auto p : pp) {
+          for (auto i : m.AllCells()) {
+            Vect x = m.GetCenter(i);
+            if (p.c.dist(x) <= p.r) {
+              fc_u[i] = 1.;
+            }
+          }
+        }
       } else if (vi == "zero" ) {
         // nop
       } else {
