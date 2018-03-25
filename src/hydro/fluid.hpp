@@ -638,7 +638,7 @@ class FluidSimple : public FluidSolver<Mesh> {
         force_geometric_average_);
     fc_ext_force_restored_.Reinit(mesh);
 
-    for (auto idxcell : mesh.Cells()) {
+    for (auto idxcell : mesh.SuCells()) {
       Vect sum = Vect::kZero;
       for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
         IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
