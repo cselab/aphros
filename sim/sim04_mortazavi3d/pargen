@@ -18,6 +18,7 @@ y0 = 0.825 * H
 L = H * 4
 W = H
 z0 = W * 0.5
+extent = max(L, H, W)
 
 a = zeta * H
 d = 2 * a
@@ -41,7 +42,7 @@ for v in sorted(dird):
 
 out='''\
 # domain
-set double extent {H}
+set double extent {extent}
 
 # time
 set double tmax {T}
