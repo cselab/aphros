@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+
+import numpy as np
+import sys
+
+
+s = "stat.dat"
+v = sys.argv
+
+if len(v) != 2:
+  print("usage: {:} column".format(v[0]))
+  print("print column of statistics.dat")
+  exit(1)
+
+
+c = v[1]
+
+with open(s) as f:
+  i = f.readline().split().index(c)
+  for l in f:
+    print(l.split()[i])
+

@@ -1,0 +1,14 @@
+#!/bin/bash -l
+
+set -eu
+
+echo running > job.status
+
+. ../setenv.daint
+
+n=64
+time srun -n $n  ../mfer daint$n.conf
+
+echo "Done."
+echo done > job.status
+

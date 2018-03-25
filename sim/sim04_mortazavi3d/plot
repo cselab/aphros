@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+
+import mfer.post as mp
+import numpy as np
+import os 
+
+pr = "ref/"
+r1x,r1y = np.loadtxt(pr + 'xy').T
+r2x,r2vx = np.loadtxt(pr + 'xvx').T
+lbr = "Mortazavi"
+
+ps = "."
+s = np.genfromtxt(os.path.join(ps, "stat.dat"), names=True)  
+lbs = "cubhyd"
+sx = s["c2x"]
+sy = s["c2y"]
+svx = s["vc2x"]
+svx[0:5] = svx[5]
+
+# plot lines
+sx -= sx[0]
+#ts = hs['t']
+mp.plot_lines([
+        {'x':sx, 'y':sy, 'lb':lbs},
+        {'x':r1x, 'y':r1y, 'lb':lbr, 'c':'k'},
+        ] , preset='y')
+
+mp.plot_lines([
+        {'x':sx, 'y':svx, 'lb':lbs},
+        {'x':r2x, 'y':r2vx, 'lb':lbr, 'c':'k'},
+        ] , preset='u')
+
+vol = s["m2"]
+mp.plot_lines([
+    {'x':sx, 'y':(vol - vol[0]) / vol[0], 'lb':lbs},
+        ] , preset='m')
