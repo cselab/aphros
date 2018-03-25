@@ -9,11 +9,15 @@ gamma = 8.
 We = 0.5
 zeta = 0.125
 
+# domain L H W
 rhoo = 1.
 Uc = 1.
 H = 1.
 x0 = 0.5 * H
 y0 = 0.825 * H
+L = H * 4
+W = H
+z0 = W * 0.5
 
 a = zeta * H
 d = 2 * a
@@ -23,11 +27,10 @@ mui = gamma * muo
 sigma = rhoo * Uc ** 2 * d / We
 pgrad = 8 * Uc * muo / H ** 2
 
-T0 = 20
+T0 = 5
 dt0 = 1e-6
 T = T0 * H / Uc
 dt = dt0 * H / Uc
-max_step = int(T / dt)
 
 # print newly defined variables
 dir1 = set(dir())
@@ -49,7 +52,7 @@ set double poisvel {Uc}
 
 # initial volume fraction
 set string vf_init circle
-set vect circle_c {x0} {y0} 0
+set vect circle_c {x0} {y0} {x0}
 set double circle_r {a}
 
 # physical 
