@@ -656,7 +656,7 @@ class FluidSimple : public FluidSolver<Mesh> {
   }
   void CalcKinematicViscosity() {
     fc_kinematic_viscosity_.Reinit(mesh);
-    for (auto idxcell : mesh.Cells()) {
+    for (auto idxcell : mesh.AllCells()) {
       fc_kinematic_viscosity_[idxcell] =
           (*this->p_fc_viscosity_)[idxcell];
     }
