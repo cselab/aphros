@@ -3,11 +3,15 @@
 # save current defined variables
 dir0 = set(dir()) | {"dir0"}
 
-Red = 10.
-alpha = 8.
-gamma = 8.
-We = 0.5
-zeta = 0.125
+# dimensionless
+Red = 10.       # Reynolds: diameter, centerline velocity
+alpha = 8.      # particle density
+gamma = 8.      # particle viscosity
+We = 0.5        # Weber number (high means lower surface tension)
+a__H = 0.125    # particle radius relative to H
+a2__H = a__H * 1.2  # second particle radius
+dpx__H = a__H * 1   # distance between particles relative to H
+np = 8          # number of particles
 
 # domain L H W
 rhoo = 1.
@@ -20,18 +24,45 @@ W = H
 z0 = W * 0.5
 extent = max(L, H, W)
 
-a = zeta * H
+# particle size
+a = a__H * H
+a2 = a2__H * H
 d = 2 * a
+d2 = 2 * a2
+dpx = dpx__H * H
+
+# physical
 rhoi = alpha * rhoo
 muo = rhoo * Uc * d / Red
 mui = gamma * muo
 sigma = rhoo * Uc ** 2 * d / We
 pgrad = 8 * Uc * muo / H ** 2
 
+# time
 T0 = 5
 dt0 = 1e-6
 T = T0 * H / Uc
 dt = dt0 * H / Uc
+
+# Create list of particles.
+# Single row of particles with same distance from wall.
+# Alternate r between a and a2.
+pp = []
+x = x0 - a  # edge of particle
+for i in range(np):
+    r = a if i % 2 == 0 else a2
+    y = y0 + a2 - r
+    z = z0
+    x += r
+    pp.append([x, y, z, r])
+    x += r + dpx
+
+# Write list of particles
+lp = "b.dat"
+with open(lp, 'w') as f:
+    for p in pp:
+        f.write("{:} {:} {:} {:}\n".format(*p))
+
 
 # print newly defined variables
 dir1 = set(dir())
@@ -52,9 +83,11 @@ set string vel_init pois
 set double poisvel {Uc}
 
 # initial volume fraction
-set string vf_init circle
-set vect circle_c {x0} {y0} {x0}
-set double circle_r {a}
+set string vf_init list
+set string list_path {lp}
+#set string vf_init circle
+#set vect circle_c {x0} {y0} {x0}
+#set double circle_r {a}
 
 # physical 
 set vect force {pgrad} 0 0 
