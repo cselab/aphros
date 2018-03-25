@@ -6,8 +6,8 @@ echo running > job.status
 
 . ../setenv.daint
 
-n=64
-time srun -n $n  ../mfer daint$n.conf
+n=256
+time srun -n $n  ../mfer daint$n.conf &> out
 
 echo "Done."
 echo done > job.status
