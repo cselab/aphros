@@ -56,7 +56,11 @@ void Interp::CmdInclude(std::string s) {
   std::stringstream b(s);
   b >> cmd >> fn;
 
+  // Read all content
   std::ifstream f(fn);
+  if (!f.good()) {
+    throw std::runtime_error("CmdInclude: Can't open '" + fn + "'");
+  }
   std::stringstream r;
   r << f.rdbuf();
   f.close();
