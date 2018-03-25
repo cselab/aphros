@@ -222,6 +222,7 @@ class ConvectionDiffusionScalarImplicit :
       }
 
       // Fill halo cells with u=0 equations
+      /*
       for (IdxCell idxcell : mesh.AllCells()) {
         Expr& eqn = fc_system_[idxcell];
         if (eqn.size() == 0) {
@@ -230,6 +231,7 @@ class ConvectionDiffusionScalarImplicit :
           eqn.SetConstant(0.);
         }
       }
+      */
 
       // Include cell conditions for velocity
       for (auto it = mc_cond_.cbegin(); it != mc_cond_.cend(); ++it) {
