@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -eu
+
+if [ -f job.id ]; then
+  echo "Skip, job.id exists"
+  exit 1
+fi
+#./clean.sh
+
+export OMP_NUM_THREADS=1
+
+#. ../../src/setenv.euler
+#. ~/bin/hypre.prefix
+#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$P/lib
+#echo $LD_LIBRARY_PATH
+
+job="euler-job"
+cmd="bsub < $job"
+
+echo $cmd
+msg=`eval $cmd`
+
+echo "$msg"
+id=`echo "$msg" | sed -e "s/[^0-9]*<\([0-9]*\)>.*/\1/"`
+echo "Write $id to job.id"
+echo $id > job.id
+
+echo "pending" > job.status

@@ -1,0 +1,19 @@
+#!/bin/bash -l
+
+#BSUB -J mfer
+##BSUB -o output.txt
+##BSUB -e error.txt
+#BSUB -W 1:00
+#BSUB -n 64
+#BSUB -R "span[ptile=24]"
+
+echo running > job.status
+
+unset LSB_AFFINITY_HOSTFILE
+
+time \
+mpirun -np 64 ../mfer daint64.conf  &> out
+
+echo "Done."
+echo done > job.status
+
