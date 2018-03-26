@@ -7,6 +7,8 @@
 
 export OMP_NUM_THREADS=1
 
+. ../setenv.daint
+
 echo running > job.status
 
 n=$SLURM_NTASKS

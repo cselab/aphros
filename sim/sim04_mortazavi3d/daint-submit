@@ -2,6 +2,8 @@
 
 set -ue
 
+. ../setenv.daint
+
 job="daint-job"
 
 cmd="sbatch $job"
