@@ -10,7 +10,7 @@ export OMP_NUM_THREADS=1
 
 echo running > job.status
 
-n=$SLURM_NTASKS
+n=`cat np`
 srun ../mfer cub$n.conf
 
 echo "Done."

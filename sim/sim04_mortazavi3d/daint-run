@@ -1,14 +1,2 @@
-#!/bin/bash -l
-
-set -eu
-
-echo running > job.status
-
-. ../setenv.daint
-
-n=`cat np`
-time srun -n $n  ../mfer cub$n.conf &> out
-
-echo "Done."
-echo done > job.status
+. ./daint-job
 

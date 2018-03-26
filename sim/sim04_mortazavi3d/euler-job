@@ -5,7 +5,7 @@
 
 echo running > job.status
 
-n=`mpirun echo | wc -l`
+n=`cat np`
 mpirun ../mfer cub$n.conf &> out
 
 mv -vf job.id job.id.last
