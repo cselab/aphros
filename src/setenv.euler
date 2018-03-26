@@ -1,5 +1,5 @@
 module load new
 module load cmake/3.9.2
-module load gcc/6.3.0
-module load open_mpi/2.0.2
+module load gcc/5.2.0
+module load open_mpi/1.10.2
 module load hdf5
