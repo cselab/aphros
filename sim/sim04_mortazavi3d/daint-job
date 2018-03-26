@@ -3,7 +3,6 @@
 #SBATCH --job-name=mfer
 #SBATCH --time=60:00
 #SBATCH --constraint=gpu
-#SBATCH --ntasks=32
 
 export OMP_NUM_THREADS=1
 
@@ -12,7 +11,7 @@ export OMP_NUM_THREADS=1
 echo running > job.status
 
 n=$SLURM_NTASKS
-srun ../mfer daint$n.conf
+srun ../mfer cub$n.conf
 
 echo "Done."
 echo done > job.status

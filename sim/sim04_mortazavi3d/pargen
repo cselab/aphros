@@ -1,17 +1,19 @@
 #!/usr/bin/env python
 
+import math
+
 # save current defined variables
 dir0 = set(dir()) | {"dir0"}
 
 # dimensionless
 Red = 10.       # Reynolds: diameter, centerline velocity
-alpha = 8.      # particle density
+alpha = 0.1      # particle density
 gamma = alpha      # particle viscosity
 We = 0.5        # Weber number (high means lower surface tension)
 a__H = 0.125    # particle radius relative to H
 a2__H = a__H * 1.2  # second particle radius
 dpx__H = a__H * 1   # distance between particles relative to H
-np = 8          # number of particles
+nbub = 8          # number of particles
 
 # domain L H W
 rhoo = 1.
@@ -49,7 +51,7 @@ dt = dt0 * H / Uc
 # Alternate r between a and a2.
 pp = []
 x = x0 - a  # edge of particle
-for i in range(np):
+for i in range(nbub):
     #r = a if i % 2 == 0 else a2
     r = a + (a2 - a) * 0.5 * (1. + math.sin(i*8471923))
     y = y0 + a2 - r
@@ -78,6 +80,8 @@ set double extent {extent}
 
 # time
 set double tmax {T}
+set double cfl 0.5
+set double cfla 0.1
 
 # initial velocity
 set string vel_init pois

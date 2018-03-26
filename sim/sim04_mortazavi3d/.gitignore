@@ -8,3 +8,4 @@ pressure
 *.pvd
 stat.dat
 *.pdf
+Makefile

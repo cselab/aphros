@@ -6,7 +6,8 @@ set -ue
 
 job="daint-job"
 
-cmd="sbatch $job"
+n=`cat np`
+cmd="sbatch -n $n $job"
 echo $cmd
 msg=`eval $cmd`
 

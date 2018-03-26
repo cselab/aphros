@@ -2,12 +2,11 @@
 
 #BSUB -J mfer
 #BSUB -W 1:00
-#BSUB -n 32
 
 echo running > job.status
 
 n=`mpirun echo | wc -l`
-mpirun ../mfer daint$n.conf &> out
+mpirun ../mfer cub$n.conf &> out
 
 mv -vf job.id job.id.last
 

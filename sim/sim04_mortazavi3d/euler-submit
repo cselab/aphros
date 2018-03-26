@@ -9,8 +9,11 @@ fi
 
 export OMP_NUM_THREADS=1
 
+. ../setenv.euler
+
 job="euler-job"
-cmd="bsub < $job"
+n=`cat np`
+cmd="bsub -n $n < $job"
 
 echo $cmd
 msg=`eval $cmd`
