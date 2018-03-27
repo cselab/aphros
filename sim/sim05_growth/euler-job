@@ -1,0 +1,15 @@
+#!/bin/bash -l
+
+#BSUB -J mfer
+#BSUB -W 1:00
+
+echo running > job.status
+
+n=`cat np`
+mpirun ../mfer cub$n.conf &> out
+
+mv -vf job.id job.id.last
+
+echo "Done."
+echo done > job.status
+
