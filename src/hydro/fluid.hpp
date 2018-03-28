@@ -613,6 +613,12 @@ class FluidSimple : public FluidSolver<Mesh> {
         cd->SetVelocity(cd->GetVelocity() + n * (velcor * w));
       }
     }
+
+    std::cerr 
+        << "fi = " << fi 
+        << ", fo = " << fo
+        << ", ao = " << ao
+        << std::endl;
   }
 
   void CalcExtForce() {
