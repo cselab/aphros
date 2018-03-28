@@ -220,13 +220,6 @@ void Hydro<M>::Init() {
                 ++q;
             }
           }
-          if (broot_) {
-            std::cout << "bc: " 
-                << s << ": " 
-                << (*p) << ", "
-                << q << " faces"
-                << std::endl;
-          }
           ++n;
         } else {
           break;
