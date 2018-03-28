@@ -132,29 +132,34 @@ void Hydro<M>::Init() {
     }
 
     using Dir = typename M::Dir;
-    auto gxm = [this](IdxFace i) {
+    // boundary xm of global mesh
+    auto gxm = [this](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::i &&
           m.GetBlockFaces().GetMIdx(i)[0] == 0;
     };
-    auto gxp = [this,gs](IdxFace i) {
+    auto gxp = [this,gs](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::i &&
           m.GetBlockFaces().GetMIdx(i)[0] == gs[0];
     };
-    auto gym = [this](IdxFace i) {
+    auto gym = [this](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::j &&
           m.GetBlockFaces().GetMIdx(i)[1] == 0;
     };
-    auto gyp = [this,gs](IdxFace i) {
+    auto gyp = [this,gs](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::j &&
           m.GetBlockFaces().GetMIdx(i)[1] == gs[1];
     };
-    auto gzm = [this](IdxFace i) {
+    auto gzm = [this](IdxFace i) -> bool {
       return dim >= 3 && m.GetDir(i) == Dir::k &&
           m.GetBlockFaces().GetMIdx(i)[2] == 0;
     };
-    auto gzp = [this,gs](IdxFace i) {
+    auto gzp = [this,gs](IdxFace i) -> bool {
       return dim >= 3 && m.GetDir(i) == Dir::k &&
           m.GetBlockFaces().GetMIdx(i)[2] == gs[2];
+    };
+    // any boundary of global mesh
+    auto gb = [&](IdxFace i) -> bool {
+      return gxm(i) || gxp(i) || gym(i) || gyp(i) || gzm(i) || gzp(i);
     };
 
     // Boundary conditions for fluid
@@ -188,6 +193,35 @@ void Hydro<M>::Init() {
         gzp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
       }
     } 
+
+    // Set boundaries intersecting blocks
+    {
+      int n = 0;
+      while (true) {
+        std::string s = "box" + std::to_string(n);
+        if (auto p = par.String(s)) {
+          Vect a(par.Vect[s + "_a"]);
+          Vect b(par.Vect[s + "_b"]);
+          geom::Rect<Vect> r(a, b);
+          size_t q = 0;
+          for (auto i : m.Faces()) {
+            if (gb(i) && r.IsInside(m.GetCenter(i))) {
+                mf_velcond_[i] = solver::Parse(*p, i, m);
+                ++q;
+            }
+          }
+          if (broot_) {
+            std::cout << "bc: " 
+                << s << ", " << (*p) 
+                << q << "faces"
+                << std::endl;
+          }
+          ++n;
+        } else {
+          break;
+        }
+      }
+    }
 
     // zero-derivative boundary conditions for advection
     for (auto it : mf_velcond_) {
