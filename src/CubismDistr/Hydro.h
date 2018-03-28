@@ -194,6 +194,13 @@ void Hydro<M>::Init() {
       }
     } 
 
+    // zero-derivative boundary conditions for advection
+    for (auto it : mf_velcond_) {
+      IdxFace i = it.GetIdx();
+      mf_cond_[i] = std::make_shared
+          <solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
+    }
+    
     // Set boundaries intersecting blocks
     {
       int n = 0;
@@ -202,11 +209,14 @@ void Hydro<M>::Init() {
         if (auto p = par.String(s)) {
           Vect a(par.Vect[s + "_a"]);
           Vect b(par.Vect[s + "_b"]);
+          Scal vf = par.Double[s + "_vf"];
           geom::Rect<Vect> r(a, b);
           size_t q = 0;
           for (auto i : m.Faces()) {
             if (gb(i) && r.IsInside(m.GetCenter(i))) {
                 mf_velcond_[i] = solver::Parse(*p, i, m);
+                mf_cond_[i] = std::make_shared
+                    <solver::ConditionFaceValueFixed<Scal>>(vf);
                 ++q;
             }
           }
@@ -223,13 +233,6 @@ void Hydro<M>::Init() {
       }
     }
 
-    // zero-derivative boundary conditions for advection
-    for (auto it : mf_velcond_) {
-      IdxFace i = it.GetIdx();
-      mf_cond_[i] = std::make_shared
-          <solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
-    }
-    
 
     {
       // Fix pressure at one cell

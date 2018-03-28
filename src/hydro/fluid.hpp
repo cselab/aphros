@@ -566,7 +566,7 @@ class FluidSimple : public FluidSolver<Mesh> {
       }
     }
   }
-  // TODO: Think about seperate canals in one domain
+  // TODO: Consider seperate channels in one domain
   void UpdateOutletBaseConditions() {
     using namespace fluid_condition;
     // Extrapolate velocity on outlet faces from cell centers
