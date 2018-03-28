@@ -374,6 +374,11 @@ void Hydro<M>::Init() {
           Vect x = m.GetCenter(i);
           fc_vel[i][0] = x[1] * (1. - x[1]) * 4. * pv;
         }
+      } else if (vi == "uniform" ) {
+        Vect v(par.Vect["vel"]);
+        for (auto i : m.AllCells()) {
+          fc_vel[i] = v;
+        }
       } else if (vi == "zero" ) {
         // nop
       } else  {
