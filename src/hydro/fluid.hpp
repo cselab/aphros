@@ -568,61 +568,49 @@ class FluidSimple : public FluidSolver<Mesh> {
   }
   // TODO: Consider seperate channels in one domain
   void UpdateOutletBaseConditions() {
+    auto& m = mesh;
     using namespace fluid_condition;
     // Extrapolate velocity on outlet faces from cell centers
     // and calculate total inlet and outlet volumetric fluxes
-    Scal inlet_volume_flux = 0.;   // Both should be positive
-    Scal outlet_volume_flux = 0.;
-    Scal outlet_area = 0.;
+    Scal fi = 0.;   // Both should be positive
+    Scal fo = 0.;
+    Scal ao = 0.;
     for (auto it = mf_cond_.cbegin();
         it != mf_cond_.cend(); ++it) {
-      IdxFace idxface = it->GetIdx();
-      ConditionFaceFluid* cond_generic = it->GetValue().get();
+      IdxFace i = it->GetIdx();
+      ConditionFaceFluid* cb = it->GetValue().get(); // cond base
 
-      if (auto cond = dynamic_cast<Outlet<Mesh>*>(cond_generic)) {
-        size_t id = cond->GetNeighbourCellId();
-        IdxCell idxcell = mesh.GetNeighbourCell(idxface, id);
-        Scal factor = (id == 0 ? 1. : -1.);
-
-        cond->SetVelocity(
-            this->GetVelocity(Layers::iter_curr)[idxcell]);
-
-        outlet_volume_flux +=
-            cond->GetVelocity().dot(mesh.GetSurface(idxface)) * factor;
-
-        outlet_area += mesh.GetArea(idxface);
-      } else if (auto cond = dynamic_cast<Inlet<Mesh>*>(cond_generic)) {
-        size_t id = cond->GetNeighbourCellId();
-        Scal factor = (id == 0 ? -1. : 1.);
-
-        inlet_volume_flux +=
-            cond->GetVelocity().dot(mesh.GetSurface(idxface)) * factor;
+      if (auto cd = dynamic_cast<Outlet<Mesh>*>(cb)) {
+        size_t id = cd->GetNeighbourCellId();
+        IdxCell c = m.GetNeighbourCell(i, id);
+        Scal w = (id == 0 ? 1. : -1.);
+        cd->SetVelocity(this->GetVelocity(Layers::iter_curr)[c]);
+        fo += cd->GetVelocity().dot(m.GetSurface(i)) * w;
+        ao += m.GetArea(i);
+      } else if (auto cd = dynamic_cast<Inlet<Mesh>*>(cb)) {
+        size_t id = cd->GetNeighbourCellId();
+        Scal w = (id == 0 ? -1. : 1.);
+        fi += cd->GetVelocity().dot(m.GetSurface(i)) * w;
       }
     }
 
-    for (auto idxcell : mesh.Cells()) {
-      inlet_volume_flux +=
-          (*this->p_fc_volume_source_)[idxcell] * mesh.GetVolume(idxcell);
+    for (auto i : m.Cells()) {
+      fi += (*this->p_fc_volume_source_)[i] * m.GetVolume(i);
     }
 
-    Scal average_outlet_velocity_correction = // Additive correction
-        (inlet_volume_flux - outlet_volume_flux) / outlet_area;
+    Scal velcor = (fi - fo) / ao; // Additive correction for velocity
 
     // Apply correction on outlet faces
     for (auto it = mf_cond_.cbegin();
         it != mf_cond_.cend(); ++it) {
-      IdxFace idxface = it->GetIdx();
-      ConditionFaceFluid* cond_generic = it->GetValue().get();
+      IdxFace i = it->GetIdx();
+      ConditionFaceFluid* cb = it->GetValue().get(); // cond base
 
-      if (auto cond = dynamic_cast<Outlet<Mesh>*>(cond_generic)) {
-        size_t id = cond->GetNeighbourCellId();
-        Scal factor = (id == 0 ? 1. : -1.);
-
-        Vect normal = mesh.GetSurface(idxface) / mesh.GetArea(idxface);
-
-        cond->SetVelocity(
-            cond->GetVelocity() +
-            normal * average_outlet_velocity_correction * factor);
+      if (auto cd = dynamic_cast<Outlet<Mesh>*>(cb)) {
+        size_t id = cd->GetNeighbourCellId();
+        Scal w = (id == 0 ? 1. : -1.);
+        Vect n = m.GetNormal(i);
+        cd->SetVelocity(cd->GetVelocity() + n * (velcor * w));
       }
     }
   }
