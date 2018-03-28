@@ -487,6 +487,8 @@ class FluidSimple : public FluidSolver<Mesh> {
 
   geom::FieldFace<bool> is_boundary_;
 
+  Scal olfi_, olfo_, olao_; // used by UpdateOutletBaseConditions()
+
   // common buffers
   geom::FieldFace<Scal> ff_pressure_;
   geom::FieldCell<Vect> fc_pressure_grad_;
@@ -518,6 +520,7 @@ class FluidSimple : public FluidSolver<Mesh> {
   bool force_geometric_average_;
   Scal guess_extrapolation_;
 
+  // TODO: somhow track dependencies to define execution order
   void UpdateDerivedConditions() {
     using namespace fluid_condition;
 
@@ -570,55 +573,70 @@ class FluidSimple : public FluidSolver<Mesh> {
   void UpdateOutletBaseConditions() {
     auto& m = mesh;
     using namespace fluid_condition;
-    // Extrapolate velocity on outlet faces from cell centers
-    // and calculate total inlet and outlet volumetric fluxes
-    Scal fi = 0.;   // Both should be positive
-    Scal fo = 0.;
-    Scal ao = 0.;
-    for (auto it = mf_cond_.cbegin();
-        it != mf_cond_.cend(); ++it) {
-      IdxFace i = it->GetIdx();
-      ConditionFaceFluid* cb = it->GetValue().get(); // cond base
 
-      if (auto cd = dynamic_cast<Outlet<Mesh>*>(cb)) {
-        size_t id = cd->GetNeighbourCellId();
-        IdxCell c = m.GetNeighbourCell(i, id);
-        Scal w = (id == 0 ? 1. : -1.);
-        cd->SetVelocity(this->GetVelocity(Layers::iter_curr)[c]);
-        fo += cd->GetVelocity().dot(m.GetSurface(i)) * w;
-        ao += m.GetArea(i);
-      } else if (auto cd = dynamic_cast<Inlet<Mesh>*>(cb)) {
-        size_t id = cd->GetNeighbourCellId();
-        Scal w = (id == 0 ? -1. : 1.);
-        fi += cd->GetVelocity().dot(m.GetSurface(i)) * w;
+    Scal& fi = olfi_; // total inlet volume flux
+    Scal& fo = olfo_; // total outlet volume flux
+    Scal& ao = olao_; // total outlet area
+
+    auto sem = m.GetSem("outlet");
+
+    if (sem("local")) { 
+      fi = 0.;
+      fo = 0.;
+      ao = 0.;
+
+      // Extrapolate velocity to outlet from neighbour cells,
+      // and compute total fluxes
+      for (auto it = mf_cond_.cbegin(); it != mf_cond_.cend(); ++it) {
+        IdxFace i = it->GetIdx();
+        ConditionFaceFluid* cb = it->GetValue().get(); // cond base
+
+        if (auto cd = dynamic_cast<Outlet<Mesh>*>(cb)) {
+          size_t id = cd->GetNeighbourCellId();
+          IdxCell c = m.GetNeighbourCell(i, id);
+          Scal w = (id == 0 ? 1. : -1.);
+          cd->SetVelocity(this->GetVelocity(Layers::iter_curr)[c]);
+          fo += cd->GetVelocity().dot(m.GetSurface(i)) * w;
+          ao += m.GetArea(i);
+        } else if (auto cd = dynamic_cast<Inlet<Mesh>*>(cb)) {
+          size_t id = cd->GetNeighbourCellId();
+          Scal w = (id == 0 ? -1. : 1.);
+          fi += cd->GetVelocity().dot(m.GetSurface(i)) * w;
+        }
       }
-    }
-
-    for (auto i : m.Cells()) {
-      fi += (*this->p_fc_volume_source_)[i] * m.GetVolume(i);
-    }
-
-    Scal velcor = (fi - fo) / ao; // Additive correction for velocity
-
-    // Apply correction on outlet faces
-    for (auto it = mf_cond_.cbegin();
-        it != mf_cond_.cend(); ++it) {
-      IdxFace i = it->GetIdx();
-      ConditionFaceFluid* cb = it->GetValue().get(); // cond base
-
-      if (auto cd = dynamic_cast<Outlet<Mesh>*>(cb)) {
-        size_t id = cd->GetNeighbourCellId();
-        Scal w = (id == 0 ? 1. : -1.);
-        Vect n = m.GetNormal(i);
-        cd->SetVelocity(cd->GetVelocity() + n * (velcor * w));
+      
+      // Append volume source to inlet flux
+      for (auto i : m.Cells()) {
+        fi += (*this->p_fc_volume_source_)[i] * m.GetVolume(i);
       }
+
+      m.Reduce(&fi, "sum");
+      m.Reduce(&fo, "sum");
+      m.Reduce(&ao, "sum");
     }
 
-    std::cerr 
-        << "fi = " << fi 
-        << ", fo = " << fo
-        << ", ao = " << ao
-        << std::endl;
+    if (sem("corr")) {
+      Scal velcor = (fi - fo) / ao; // Additive correction for velocity
+
+      // Apply correction on outlet faces
+      for (auto it = mf_cond_.cbegin(); it != mf_cond_.cend(); ++it) {
+        IdxFace i = it->GetIdx();
+        ConditionFaceFluid* cb = it->GetValue().get(); // cond base
+
+        if (auto cd = dynamic_cast<Outlet<Mesh>*>(cb)) {
+          size_t id = cd->GetNeighbourCellId();
+          Scal w = (id == 0 ? 1. : -1.);
+          Vect n = m.GetNormal(i);
+          cd->SetVelocity(cd->GetVelocity() + n * (velcor * w));
+        }
+      }
+
+      std::cerr 
+          << "fi = " << fi 
+          << ", fo = " << fo
+          << ", ao = " << ao
+          << std::endl;
+    }
   }
 
   void CalcExtForce() {
@@ -846,12 +864,15 @@ class FluidSimple : public FluidSolver<Mesh> {
     auto& fc_pressure_prev = fc_pressure_.iter_prev;
     auto& fc_pressure_curr = fc_pressure_.iter_curr;
 
+    if (sem.Nested("outlet")) {
+      UpdateOutletBaseConditions();
+    }
+
     if (sem("pgrad")) {
+      UpdateDerivedConditions();
       fc_pressure_prev = fc_pressure_curr;
       ff_vol_flux_.iter_prev = ff_vol_flux_.iter_curr;
 
-      UpdateOutletBaseConditions();
-      UpdateDerivedConditions();
 
       CalcExtForce();
 
