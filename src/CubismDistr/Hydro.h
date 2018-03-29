@@ -61,6 +61,8 @@ class Hydro : public KernelMesh<M> {
   void Init();
   void Dump(Sem& sem);
   void CalcMixture(const FieldCell<Scal>& vf);
+  // Clips v to given range, uses const_cast
+  void Clip(const FieldCell<Scal>& v, Scal min, Scal max);
   void CalcStat();
 
   using AS = solver::AdvectionSolverExplicit<M, FieldFace<Scal>>;
@@ -564,6 +566,14 @@ void Hydro<M>::CalcStat() {
 }
 
 template <class M>
+void Hydro<M>::Clip(const FieldCell<Scal>& f, Scal a, Scal b) {
+  auto& g = const_cast<FieldCell<Scal>&>(f);
+  for (auto i : m.Cells()) {
+    g[i] = std::max(a, std::min(b, g[i]));
+  }
+}
+
+template <class M>
 void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf) {
   fc_mu_.Reinit(m);
   fc_rho_.Reinit(m);
@@ -763,6 +773,11 @@ void Hydro<M>::Run() {
         as_->FinishStep();
       }
       sn.LoopEnd();
+    }
+    if (par.Int["clip_vf"]) {
+      if (sem("as-clip")) {
+        Clip(as_->GetField(), 0., 1.);
+      }
     }
   }
 
