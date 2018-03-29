@@ -248,7 +248,6 @@ auto DistrMesh<KF>::GetGlobalField(size_t i) const -> geom::FieldCell<Scal> {
   return geom::FieldCell<Scal>();
 }
 
-
 template <class KF>
 void DistrMesh<KF>::Run() {
   MultiTimer<std::string> mt;
@@ -332,12 +331,31 @@ void DistrMesh<KF>::Run() {
     size_t nc = gs.prod(); // total cells
     size_t nt = par.Int["max_step"];
     size_t ni = par.Int["iter"];
+
+    // Returns: hour, minute, second, millisecond
+    auto get_hmsm = [](double t) {
+      std::array<int, 4> r;
+      r[0] = int(t / 3600);
+      t -= r[0] * 3600;
+      r[1] = int(t / 60);
+      t -= r[1] * 60;
+      r[2] = int(t);
+      r[3] = int((t - int(t)) * 1000) % 1000;
+      return r;
+    };
+
+    auto h = get_hmsm(a);
     std::cout << std::setprecision(5) << std::scientific
         << "cells = " << nc << "\n"
         << "steps = " << nt << "\n"
         << "iters = " << ni << "\n"
-        << "time/cell/iter = " 
-        << a / (nc * ni) << " s"
+        << "total = " << int(a) << " s"
+        << " = " << std::setfill('0')
+        << std::setw(2) << h[0] << ":" 
+        << std::setw(2) << h[1] << ":" 
+        << std::setw(2) << h[2] << "." 
+        << std::setw(3) << h[3] << "\n"
+        << "time/cell/iter = " << a / (nc * ni) << " s"
         << std::endl;
   }
 }
