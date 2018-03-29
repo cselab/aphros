@@ -11,7 +11,7 @@ export OMP_NUM_THREADS=1
 echo running > job.status
 
 n=`cat np`
-srun ../mfer cub$n.conf
+srun ../mfer cub$n.conf &> out
 
 echo "Done."
 echo done > job.status
