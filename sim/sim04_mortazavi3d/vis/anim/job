@@ -1,0 +1,14 @@
+#!/bin/bash -l
+#
+# ParaView on Piz Daint
+#
+# 8 nodes, 8 MPI task per node
+#
+#SBATCH --job-name="ParaView"
+#SBATCH --time=12:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=8
+#SBATCH --constraint=gpu
+#========================================
+
+./run

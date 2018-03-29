@@ -1,0 +1,10 @@
+#!/bin/bash
+
+pre="$1"
+out="$2"
+
+pwd="$(pwd)"
+
+cmd="ffmpeg -framerate 10 -pattern_type glob -i '$pre*.png' -c:v libx264 -pix_fmt yuv420p -y '$pwd/$out'"
+echo "$cmd"
+eval "$cmd"
