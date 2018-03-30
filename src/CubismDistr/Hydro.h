@@ -403,7 +403,7 @@ void Hydro<M>::Init() {
     as_.reset(new AS(
           m, fc_u, mf_cond_, 
           &fs_->GetVolumeFlux(solver::Layers::iter_curr),
-          &fc_src_, 0., dt));
+          &fc_src_, 0., dt, par.Double["sharp"], 1.));
 
     // Output from par.Double by name
     auto on = [this](std::string n /*output-name*/,  
