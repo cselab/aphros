@@ -363,14 +363,21 @@ class AdvectionSolverExplicit :
         gc = Gradient(af, mesh);
         gf = Interpolate(gc, mfvz, mesh);
         for (auto i : mesh.Faces()) {
-          Vect n = gf[i];
-          n /= (n.norm() + 1e-6);
-          const Scal nf = n.dot(mesh.GetNormal(i));
-          const Scal uf = ff_volume_flux_[i];
-          const Scal am = sharp_max_;
-          const Scal eh = sharp_ * mesh.GetArea(i);
-          ff_flux_[i] -= sharpo_ * std::abs(uf * nf) * nf * 
-              (eh * gf[i].norm() - af[i] * (1. - af[i] / am));
+          // normal to interface
+          const Vect ni = gf[i] / (gf[i].norm() + 1e-6); 
+          const Vect n = mesh.GetNormal(i);
+          const Vect s = mesh.GetSurface(i);
+          const Scal a = mesh.GetArea(i);
+          //const Scal nf = n.dot(mesh.GetNormal(i));
+          //const Scal uf = ff_volume_flux_[i];
+          //const Scal uf = 1.;
+          //const Scal am = sharp_max_;
+          //const Scal eh = sharp_ * mesh.GetArea(i);
+          //ff_flux_[i] -= sharpo_ * std::abs(uf * nf) * nf * 
+          //    (eh * gf[i].norm() - af[i] * (1. - af[i] / am));
+          ff_flux_[i] += 
+            sharp_ * af[i] * (1. - af[i]) * ni.dot(s)
+            - sharpo_ * gf[i].dot(s);
         }
       }
 
