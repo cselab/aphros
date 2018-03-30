@@ -338,7 +338,7 @@ class AdvectionSolverExplicit :
           Gradient(Interpolate(prev, mf_u_cond_, mesh), mesh),
           mf_u_cond_, ff_volume_flux_, mesh);
 
-      for (auto idxface : mesh.SuFaces()) {
+      for (auto idxface : mesh.Faces()) {
         ff_flux_[idxface] = ff_u_[idxface] * ff_volume_flux_[idxface];
       }
 
@@ -367,7 +367,7 @@ class AdvectionSolverExplicit :
         }
       }
 
-      for (auto idxcell : mesh.SuCells()) {
+      for (auto idxcell : mesh.Cells()) {
         Scal flux_sum = 0.;
         for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
           IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
