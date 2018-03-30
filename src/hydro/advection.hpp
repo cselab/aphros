@@ -279,8 +279,11 @@ class AdvectionSolverExplicit :
   geom::FieldFace<Scal> ff_volume_flux_;
   geom::FieldFace<Scal> ff_flux_;
   geom::FieldFace<Scal> ff_u_;
-  geom::FieldFace<Scal> sharp_ff_;
+  geom::FieldFace<Scal> sharp_af_;
+  geom::FieldCell<Vect> sharp_gc_;
+  geom::FieldFace<Vect> sharp_gf_;
   Scal sharp_;
+  Scal sharpo_;
   Scal sharp_max_;
 
  public:
@@ -291,7 +294,7 @@ class AdvectionSolverExplicit :
       const VelocityField* p_fn_velocity,
       const geom::FieldCell<Scal>* p_fc_source,
       double time, double time_step,
-      Scal sharp, Scal sharp_max)
+      Scal sharp, Scal sharpo, Scal sharp_max)
       : AdvectionSolver<Mesh, VelocityField>(
           time, time_step, p_fn_velocity, p_fc_source)
       , mesh(mesh)
@@ -299,6 +302,7 @@ class AdvectionSolverExplicit :
       , ff_volume_flux_(mesh)
       , ff_flux_(mesh)
       , sharp_(sharp)
+      , sharpo_(sharpo)
       , sharp_max_(sharp_max)
   {
     fc_u_.time_curr = fc_u_initial;
@@ -343,27 +347,30 @@ class AdvectionSolverExplicit :
       }
 
       // Interface sharpening
-      // zero-derivative bc for Vect
-      geom::MapFace<std::shared_ptr<ConditionFace>> mfvz;
-      for (auto it : mf_u_cond_) {
-        IdxFace i = it.GetIdx();
-        mfvz[i] = std::make_shared<
-            ConditionFaceDerivativeFixed<Vect>>(Vect(0));
-      }
-      auto af = Interpolate(curr, mf_u_cond_, mesh);
-      auto gc = Gradient(af, mesh);
-      auto gf = Interpolate(gc, mfvz, mesh);
-      sharp_ff_.Reinit(mesh, 0);
-      if (std::abs(sharp_) > 1e-10) {
+      // append to ff_flux_
+      if (std::abs(sharp_) != 0.) {
+        // zero-derivative bc for Vect
+        geom::MapFace<std::shared_ptr<ConditionFace>> mfvz;
+        for (auto it : mf_u_cond_) {
+          IdxFace i = it.GetIdx();
+          mfvz[i] = std::make_shared<
+              ConditionFaceDerivativeFixed<Vect>>(Vect(0));
+        }
+        auto& af = sharp_af_;
+        auto& gc = sharp_gc_;
+        auto& gf = sharp_gf_;
+        af = Interpolate(curr, mf_u_cond_, mesh);
+        gc = Gradient(af, mesh);
+        gf = Interpolate(gc, mfvz, mesh);
         for (auto i : mesh.Faces()) {
-          auto n = gf[i];
+          Vect n = gf[i];
           n /= (n.norm() + 1e-6);
-          Scal nf = n.dot(mesh.GetNormal(i));
-          Scal uf = ff_volume_flux_[i];
-          Scal am = sharp_max_;
-          Scal eh = sharp_ * mesh.GetArea(i);
-          sharp_ff_[i] = std::abs(uf * nf) * nf * 
-            (eh * gf[i].norm() - af[i] * (1. - af[i] / am));
+          const Scal nf = n.dot(mesh.GetNormal(i));
+          const Scal uf = ff_volume_flux_[i];
+          const Scal am = sharp_max_;
+          const Scal eh = sharp_ * mesh.GetArea(i);
+          ff_flux_[i] -= sharpo_ * std::abs(uf * nf) * nf * 
+              (eh * gf[i].norm() - af[i] * (1. - af[i] / am));
         }
       }
 
