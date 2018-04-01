@@ -165,35 +165,36 @@ void Hydro<M>::Init() {
     };
 
     // Boundary conditions for fluid
+    size_t nc; // XXX: valid neighbour cell id
     auto ff = m.Faces();
     if (auto p = par.String("bc_xm")) {
       for (auto i : ff) {
-        gxm(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
+        gxm(i) && (mf_velcond_[i] = solver::Parse(*p, i, nc, m));
       }
     } 
     if (auto p = par.String("bc_xp")) {
       for (auto i : ff) {
-        gxp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
+        gxp(i) && (mf_velcond_[i] = solver::Parse(*p, i, nc, m));
       }
     } 
     if (auto p = par.String("bc_ym")) {
       for (auto i : ff) {
-        gym(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
+        gym(i) && (mf_velcond_[i] = solver::Parse(*p, i, nc, m));
       }
     } 
     if (auto p = par.String("bc_yp")) {
       for (auto i : ff) {
-        gyp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
+        gyp(i) && (mf_velcond_[i] = solver::Parse(*p, i, nc, m));
       }
     } 
     if (auto p = par.String("bc_zm")) {
       for (auto i : ff) {
-        gzm(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
+        gzm(i) && (mf_velcond_[i] = solver::Parse(*p, i, nc, m));
       }
     } 
     if (auto p = par.String("bc_zp")) {
       for (auto i : ff) {
-        gzp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
+        gzp(i) && (mf_velcond_[i] = solver::Parse(*p, i, nc, m));
       }
     } 
 
@@ -217,7 +218,7 @@ void Hydro<M>::Init() {
           size_t q = 0;
           for (auto i : m.Faces()) {
             if (gb(i) && r.IsInside(m.GetCenter(i))) {
-                mf_velcond_[i] = solver::Parse(*p, i, m);
+                mf_velcond_[i] = solver::Parse(*p, i, nc, m);
                 mf_cond_[i] = std::make_shared
                     <solver::ConditionFaceValueFixed<Scal>>(vf);
                 ++q;
