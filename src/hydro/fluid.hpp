@@ -292,9 +292,10 @@ template <class Mesh>
 class NoSlipWallFixed : public NoSlipWall<Mesh> {
   using Vect = typename Mesh::Vect;
   Vect velocity_;
+  size_t nc_;
  public:
-  NoSlipWallFixed(Vect velocity)
-      : velocity_(velocity)
+  NoSlipWallFixed(Vect velocity, size_t nc /*neighbour cell id*/)
+      : velocity_(velocity), nc_(nc)
   {}
   Vect GetVelocity() const override {
     return velocity_;
@@ -415,6 +416,7 @@ class GivenPressureFixed : public GivenPressure<Mesh> {
 template <class Mesh>
 std::shared_ptr<ConditionFaceFluid> Parse(std::string argstr,
                                           geom::IdxFace idxface,
+                                          size_t nc, // neighbour cell id
                                           const Mesh& mesh) {
   using namespace fluid_condition;
   std::stringstream arg(argstr);
@@ -425,15 +427,13 @@ std::shared_ptr<ConditionFaceFluid> Parse(std::string argstr,
   if (name == "wall") {
     typename Mesh::Vect vel;
     arg >> vel;
-    return std::make_shared<NoSlipWallFixed<Mesh>>(vel);
+    return std::make_shared<NoSlipWallFixed<Mesh>>(vel, nc);
   } else if (name == "inlet") {
     typename Mesh::Vect vel;
     arg >> vel;
-    return std::make_shared<InletFixed<Mesh>>(
-        vel, mesh.GetValidNeighbourCellId(idxface));
+    return std::make_shared<InletFixed<Mesh>>(vel, nc);
   } else if (name == "outlet") {
-    return std::make_shared<OutletAuto<Mesh>>(
-        mesh.GetValidNeighbourCellId(idxface));
+    return std::make_shared<OutletAuto<Mesh>>(nc);
   } else {
     throw std::runtime_error("Parse: Unknown boundary condition type");
   }
