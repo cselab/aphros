@@ -354,7 +354,8 @@ class AdvectionSolverExplicit :
         for (auto it : mf_u_cond_) {
           IdxFace i = it.GetIdx();
           mfvz[i] = std::make_shared<
-              ConditionFaceDerivativeFixed<Vect>>(Vect(0));
+              ConditionFaceDerivativeFixed<Vect>>(
+                  Vect(0), it.GetValue()->GetNci());
         }
         auto& af = sharp_af_;
         auto& gc = sharp_gc_;
