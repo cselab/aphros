@@ -46,17 +46,25 @@ using IdxFace = geom::IdxFace;
 
 class ConditionFace {
  public:
+  ConditionFace(size_t nci) : nci_(nci) {}
   virtual ~ConditionFace() {}
+  // neighbour cell id
+  virtual size_t GetNci() const {
+    return nci_;
+  }
+ private:
+  size_t nci_;
 };
 
 class ConditionFaceExtrapolation : public ConditionFace {
  public:
-  ConditionFaceExtrapolation() {}
+  ConditionFaceExtrapolation(size_t nci) : ConditionFace(nci) {}
 };
 
 template <class Value>
 class ConditionFaceValue : public ConditionFace {
  public:
+  ConditionFaceValue(size_t nci) : ConditionFace(nci) {}
   virtual Value GetValue() const = 0;
 };
 
@@ -64,11 +72,14 @@ template <class Vect>
 class ConditionFaceValueExtractComponent :
     public ConditionFaceValue<typename Vect::value_type> {
   using Scal = typename Vect::value_type;
+  using P = ConditionFaceValue<Scal>;
   ConditionFaceValue<Vect>* cond_;
   size_t comp_;
  public:
-  ConditionFaceValueExtractComponent(ConditionFaceValue<Vect>* cond, size_t comp)
-      : cond_(cond)
+  ConditionFaceValueExtractComponent(ConditionFaceValue<Vect>* cond, 
+                                     size_t comp)
+      : P(cond->GetNci())
+      , cond_(cond)
       , comp_(comp)
   {}
   Scal GetValue() const override {
@@ -80,17 +91,22 @@ template <class Value>
 class ConditionFaceValueFixed : public ConditionFaceValue<Value> {
   Value value_;
  public:
-  ConditionFaceValueFixed(const Value& value)
-      : value_(value)
+  ConditionFaceValueFixed(const Value& value, size_t nci)
+      : ConditionFaceValue<Value>(nci)
+      , value_(value)
   {}
   Value GetValue() const override {
     return value_;
+  }
+  void Set(const Value& v) {
+    value_ = v;
   }
 };
 
 template <class Value>
 class ConditionFaceDerivative : public ConditionFace {
  public:
+  ConditionFaceDerivative(size_t nci) : ConditionFace(nci) {}
   virtual Value GetDerivative() const = 0;
 };
 
@@ -98,11 +114,15 @@ template <class Value>
 class ConditionFaceDerivativeFixed : public ConditionFaceDerivative<Value> {
   Value derivative_;
  public:
-  explicit ConditionFaceDerivativeFixed(const Value& derivative)
-      : derivative_(derivative)
+  explicit ConditionFaceDerivativeFixed(const Value& derivative, size_t nci)
+      : ConditionFaceDerivative<Value>(nci)
+      , derivative_(derivative)
   {}
   virtual Value GetDerivative() const override {
     return derivative_;
+  }
+  void Set(const Value& v) {
+    derivative_ = v;
   }
 };
 

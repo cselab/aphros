@@ -275,7 +275,10 @@ class FluidSolver : public UnsteadyIterativeSolver {
   virtual double GetAutoTimeStep() { return GetTimeStep(); }
 };
 
-class ConditionFaceFluid : public ConditionFace {};
+class ConditionFaceFluid : public ConditionFace {
+ public:
+  ConditionFaceFluid(size_t nci) : ConditionFace(nci) {}
+};
 
 class ConditionCellFluid : public ConditionCell {};
 
@@ -285,6 +288,7 @@ template <class Mesh>
 class NoSlipWall : public ConditionFaceFluid {
   using Vect = typename Mesh::Vect;
  public:
+  NoSlipWall(size_t nci) : ConditionFaceFluid(nci) {}
   virtual Vect GetVelocity() const = 0;
 };
 
@@ -292,10 +296,9 @@ template <class Mesh>
 class NoSlipWallFixed : public NoSlipWall<Mesh> {
   using Vect = typename Mesh::Vect;
   Vect velocity_;
-  size_t nc_;
  public:
-  NoSlipWallFixed(Vect velocity, size_t nc /*neighbour cell id*/)
-      : velocity_(velocity), nc_(nc)
+  NoSlipWallFixed(Vect velocity, size_t nci)
+      : NoSlipWall<Mesh>(nci), velocity_(velocity)
   {}
   Vect GetVelocity() const override {
     return velocity_;
@@ -306,26 +309,22 @@ template <class Mesh>
 class Inlet : public ConditionFaceFluid {
   using Vect = typename Mesh::Vect;
  public:
+  Inlet(size_t nci) : ConditionFaceFluid(nci) {}
   virtual Vect GetVelocity() const = 0;
-  virtual size_t GetNeighbourCellId() const = 0;
 };
 
 template <class Mesh>
 class InletFixed : public Inlet<Mesh> {
   using Vect = typename Mesh::Vect;
   Vect velocity_;
-  size_t neighbour_cell_id_;
 
  public:
-  InletFixed(Vect velocity, size_t neighbour_cell_id)
-      : velocity_(velocity)
-      , neighbour_cell_id_(neighbour_cell_id)
+  InletFixed(Vect velocity, size_t nci)
+      : Inlet<Mesh>(nci)
+      , velocity_(velocity)
   {}
   Vect GetVelocity() const override {
     return velocity_;
-  }
-  size_t GetNeighbourCellId() const override {
-    return neighbour_cell_id_;
   }
 };
 
@@ -333,30 +332,26 @@ template <class Mesh>
 class Outlet : public ConditionFaceFluid {
   using Vect = typename Mesh::Vect;
  public:
+  Outlet(size_t nci) : ConditionFaceFluid(nci) {}
   virtual Vect GetVelocity() const = 0;
   virtual void SetVelocity(Vect velocity) = 0;
-  virtual size_t GetNeighbourCellId() const = 0;
 };
 
 template <class Mesh>
 class OutletAuto : public Outlet<Mesh> {
   using Vect = typename Mesh::Vect;
   Vect velocity_;
-  size_t neighbour_cell_id_;
 
  public:
-  OutletAuto(size_t neighbour_cell_id)
-      : velocity_(Vect::kZero)
-      , neighbour_cell_id_(neighbour_cell_id)
+  OutletAuto(size_t nci)
+      : Outlet<Mesh>(nci)
+      , velocity_(Vect::kZero)
   {}
   Vect GetVelocity() const override {
     return velocity_;
   }
   void SetVelocity(Vect velocity) override {
     velocity_ = velocity;
-  }
-  size_t GetNeighbourCellId() const override {
-    return neighbour_cell_id_;
   }
 };
 
@@ -475,6 +470,9 @@ class FluidSimple : public FluidSolver<Mesh> {
 
   geom::MapFace<std::shared_ptr<ConditionFace>> mf_force_cond_;
 
+  // diag coeff condition
+  geom::MapFace<std::shared_ptr<ConditionFace>> mf_dcc_;
+
   geom::MapFace<std::shared_ptr<ConditionFace>> mf_pressure_corr_cond_;
 
   geom::MapFace<std::shared_ptr<ConditionFace>> mf_viscosity_cond_;
@@ -527,19 +525,17 @@ class FluidSimple : public FluidSolver<Mesh> {
     for (auto it : mf_cond_) {
       IdxFace i = it.GetIdx();
       ConditionFaceFluid* cb = it.GetValue().get();
+      auto p = mf_velocity_cond_[i].get();
 
       if (auto cd = dynamic_cast<NoSlipWall<Mesh>*>(cb)) {
-        *dynamic_cast<ConditionFaceValueFixed<Vect>*>(
-            mf_velocity_cond_[i].get()) =
-            ConditionFaceValueFixed<Vect>(cd->GetVelocity());
+        auto pd = dynamic_cast<ConditionFaceValueFixed<Vect>*>(p);
+        pd->Set(cd->GetVelocity());
       } else if (auto cd = dynamic_cast<Inlet<Mesh>*>(cb)) {
-        *dynamic_cast<ConditionFaceValueFixed<Vect>*>(
-            mf_velocity_cond_[i].get()) =
-            ConditionFaceValueFixed<Vect>(cd->GetVelocity());
+        auto pd = dynamic_cast<ConditionFaceValueFixed<Vect>*>(p);
+        pd->Set(cd->GetVelocity());
       } else if (auto cd = dynamic_cast<Outlet<Mesh>*>(cb)) {
-        *dynamic_cast<ConditionFaceValueFixed<Vect>*>(
-            mf_velocity_cond_[i].get()) =
-            ConditionFaceValueFixed<Vect>(cd->GetVelocity());
+        auto pd = dynamic_cast<ConditionFaceValueFixed<Vect>*>(p);
+        pd->Set(cd->GetVelocity());
       } else {
         throw std::runtime_error("Unknown fluid condition");
       }
@@ -591,14 +587,14 @@ class FluidSimple : public FluidSolver<Mesh> {
         ConditionFaceFluid* cb = it->GetValue().get(); // cond base
 
         if (auto cd = dynamic_cast<Outlet<Mesh>*>(cb)) {
-          size_t id = cd->GetNeighbourCellId();
+          size_t id = cd->GetNci();
           IdxCell c = m.GetNeighbourCell(i, id);
           Scal w = (id == 0 ? 1. : -1.);
           cd->SetVelocity(this->GetVelocity(Layers::iter_curr)[c]);
           fo += cd->GetVelocity().dot(m.GetSurface(i)) * w;
           ao += m.GetArea(i);
         } else if (auto cd = dynamic_cast<Inlet<Mesh>*>(cb)) {
-          size_t id = cd->GetNeighbourCellId();
+          size_t id = cd->GetNci();
           Scal w = (id == 0 ? -1. : 1.);
           fi += cd->GetVelocity().dot(m.GetSurface(i)) * w;
         }
@@ -623,7 +619,7 @@ class FluidSimple : public FluidSolver<Mesh> {
         ConditionFaceFluid* cb = it->GetValue().get(); // cond base
 
         if (auto cd = dynamic_cast<Outlet<Mesh>*>(cb)) {
-          size_t id = cd->GetNeighbourCellId();
+          size_t id = cd->GetNci();
           Scal w = (id == 0 ? 1. : -1.);
           Vect n = m.GetNormal(i);
           cd->SetVelocity(cd->GetVelocity() + n * (velcor * w));
@@ -727,34 +723,40 @@ class FluidSimple : public FluidSolver<Mesh> {
       IdxFace i = it.GetIdx();
       is_boundary_[i] = true;
       ConditionFaceFluid* cb = it.GetValue().get();
+      size_t nci = cb->GetNci();
 
       if (auto cd = dynamic_cast<NoSlipWall<Mesh>*>(cb)) {
         mf_velocity_cond_[i] =
-            std::make_shared<ConditionFaceValueFixed<Vect>>(cd->GetVelocity());
+            std::make_shared<ConditionFaceValueFixed<Vect>>(
+                cd->GetVelocity(), nci);
         mf_pressure_cond_[i] =
-            std::make_shared<ConditionFaceExtrapolation>();
+            std::make_shared<ConditionFaceExtrapolation>(nci);
       } else if (auto cd = dynamic_cast<Inlet<Mesh>*>(cb)) {
         mf_velocity_cond_[i] =
-            std::make_shared<ConditionFaceValueFixed<Vect>>(cd->GetVelocity());
+            std::make_shared<ConditionFaceValueFixed<Vect>>(
+                cd->GetVelocity(), nci);
         mf_pressure_cond_[i] =
-            std::make_shared<ConditionFaceExtrapolation>();
+            std::make_shared<ConditionFaceExtrapolation>(nci);
       } else if (auto cd = dynamic_cast<Outlet<Mesh>*>(cb)) {
         mf_velocity_cond_[i] =
-            std::make_shared<ConditionFaceValueFixed<Vect>>(cd->GetVelocity());
+            std::make_shared<ConditionFaceValueFixed<Vect>>(
+                cd->GetVelocity(), nci);
         mf_pressure_cond_[i] = 
-            std::make_shared<ConditionFaceExtrapolation>();
+            std::make_shared<ConditionFaceExtrapolation>(nci);
       } else {
         throw std::runtime_error("Unknown fluid condition");
       }
 
       mf_pressure_grad_cond_[i] =
-          std::make_shared<ConditionFaceDerivativeFixed<Vect>>(Vect::kZero);
+          std::make_shared<ConditionFaceDerivativeFixed<Vect>>(Vect::kZero, nci);
       mf_force_cond_[i] =
-          std::make_shared<ConditionFaceDerivativeFixed<Vect>>(Vect::kZero);
+          std::make_shared<ConditionFaceDerivativeFixed<Vect>>(Vect::kZero, nci);
       mf_pressure_corr_cond_[i] =
-          std::make_shared<ConditionFaceExtrapolation>();
+          std::make_shared<ConditionFaceExtrapolation>(nci);
       mf_viscosity_cond_[i] =
-          std::make_shared<ConditionFaceDerivativeFixed<Scal>>(0.);
+          std::make_shared<ConditionFaceDerivativeFixed<Scal>>(0., nci);
+      mf_dcc_[i] = 
+          std::make_shared<ConditionFaceDerivativeFixed<Scal>>(0, nci);
     }
 
     for (auto it = mc_cond_.cbegin();
@@ -950,17 +952,8 @@ class FluidSimple : public FluidSolver<Mesh> {
     }
       
     if (sem("pcorr-assemble")) {
-      // diag coeff condition
-      geom::MapFace<std::shared_ptr<ConditionFace>> dcc;
-      for (auto i : mesh.Faces()) {
-        if (is_boundary_[i]) {
-          dcc[i] = std::make_shared
-              <solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
-        }
-      }
-
       // Define ff_diag_coeff_ on inner faces only
-      ff_diag_coeff_ = Interpolate(fc_diag_coeff_, dcc, mesh);
+      ff_diag_coeff_ = Interpolate(fc_diag_coeff_, mf_dcc_, mesh);
 
       fc_velocity_asterisk_ = conv_diff_solver_->GetVelocity(Layers::iter_curr);
 

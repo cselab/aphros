@@ -202,7 +202,8 @@ void Hydro<M>::Init() {
     for (auto it : mf_velcond_) {
       IdxFace i = it.GetIdx();
       mf_cond_[i] = std::make_shared
-          <solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
+          <solver::ConditionFaceDerivativeFixed<Scal>>(
+              Scal(0), it.GetValue()->GetNci());
     }
     
     // Set boundaries intersecting blocks
@@ -220,7 +221,7 @@ void Hydro<M>::Init() {
             if (gb(i) && r.IsInside(m.GetCenter(i))) {
                 mf_velcond_[i] = solver::Parse(*p, i, nc, m);
                 mf_cond_[i] = std::make_shared
-                    <solver::ConditionFaceValueFixed<Scal>>(vf);
+                    <solver::ConditionFaceValueFixed<Scal>>(vf, nc);
                 ++q;
             }
           }
@@ -617,7 +618,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf) {
     for (auto it : mf_velcond_) {
       IdxFace i = it.GetIdx();
       mfvz[i] = std::make_shared
-          <solver::ConditionFaceDerivativeFixed<Vect>>(Vect(0));
+          <solver::ConditionFaceDerivativeFixed<Vect>>(
+              Vect(0), it.GetValue()->GetNci());
     }
 
     // surface tension in cells
