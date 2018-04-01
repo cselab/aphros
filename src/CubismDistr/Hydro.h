@@ -165,33 +165,34 @@ void Hydro<M>::Init() {
     };
 
     // Boundary conditions for fluid
+    auto ff = m.Faces();
     if (auto p = par.String("bc_xm")) {
-      for (auto i : m.Faces()) {
+      for (auto i : ff) {
         gxm(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
       }
     } 
     if (auto p = par.String("bc_xp")) {
-      for (auto i : m.Faces()) {
+      for (auto i : ff) {
         gxp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
       }
     } 
     if (auto p = par.String("bc_ym")) {
-      for (auto i : m.Faces()) {
+      for (auto i : ff) {
         gym(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
       }
     } 
     if (auto p = par.String("bc_yp")) {
-      for (auto i : m.Faces()) {
+      for (auto i : ff) {
         gyp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
       }
     } 
     if (auto p = par.String("bc_zm")) {
-      for (auto i : m.Faces()) {
+      for (auto i : ff) {
         gzm(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
       }
     } 
     if (auto p = par.String("bc_zp")) {
-      for (auto i : m.Faces()) {
+      for (auto i : ff) {
         gzp(i) && (mf_velcond_[i] = solver::Parse(*p, i, m));
       }
     } 
