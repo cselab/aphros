@@ -179,12 +179,14 @@ void Hydro<M>::Init() {
 
     // Boundary conditions for fluid 
     auto ff = m.Faces();
-    std::vector<std::string> kk = 
-        {"bc_xm", "bc_xp", "bc_ym", "bc_yp", "bc_zm", "bc_zp"};
-    for (auto k : kk) {
-      if (auto bc = par.String(k)) {
+    std::vector<std::pair<std::string, std::function<bool(IdxFace)>>> pp = 
+        {{"bc_xm", gxm}, {"bc_xp", gxp},
+         {"bc_ym", gym}, {"bc_yp", gyp},
+         {"bc_zm", gzm}, {"bc_zp", gzp}};
+    for (auto p : pp) {
+      if (auto bc = par.String(p.first)) {
         for (auto i : ff) {
-          set_bc(i, *bc);
+          p.second(i) && set_bc(i, *bc);
         }
       } 
     }
@@ -212,7 +214,7 @@ void Hydro<M>::Init() {
           Vect b(par.Vect[s + "_b"]);
           Scal vf = par.Double[s + "_vf"];
           geom::Rect<Vect> r(a, b);
-          size_t q;
+          size_t q;  // number of faces inside
           for (auto i : m.Faces()) {
             if (r.IsInside(m.GetCenter(i))) {
               if (set_bc(i, *p)) {
