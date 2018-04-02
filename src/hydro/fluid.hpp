@@ -887,19 +887,6 @@ class FluidSimple : public FluidSolver<Mesh> {
       for (size_t n = 0; n < dim; ++n) {
         fc_velcomp_ = GetComponent(
             conv_diff_solver_->GetVelocity(Layers::iter_curr), n);
-        auto o = GetComponent(
-            conv_diff_solver_->GetVelocity(Layers::iter_curr), n);
-        for (auto c : mesh.AllCells()) {
-          auto mc = mesh.GetBlockCells().GetMIdx(c);
-          if (mesh.GetCenter(c)[1] > 1.)
-          //if (mc[0] >= mesh.GetInBlockCells().GetBegin()[0])
-          //if (mc[0] < mesh.GetInBlockCells().GetEnd()[0])
-          fc_velcomp_[c] = 10;
-          ////else std::cerr << "====" << mc << std::endl;
-        }
-        for (auto c : mesh.Cells()) {
-          fc_velcomp_[c] = o[c];
-        }
         auto ff = Interpolate(fc_velcomp_, 
                               conv_diff_solver_->GetVelocityCond(n), mesh);
         auto gc = Gradient(ff, mesh);
