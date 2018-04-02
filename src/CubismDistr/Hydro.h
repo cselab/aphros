@@ -178,7 +178,7 @@ void Hydro<M>::Init() {
     };
 
     // Boundary conditions for fluid 
-    auto ff = m.Faces();
+    auto ff = m.AllFaces();
     std::vector<std::pair<std::string, std::function<bool(IdxFace)>>> pp = 
         {{"bc_xm", gxm}, {"bc_xp", gxp},
          {"bc_ym", gym}, {"bc_yp", gyp},
