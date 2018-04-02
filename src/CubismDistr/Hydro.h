@@ -159,22 +159,32 @@ void Hydro<M>::Init() {
       return dim >= 3 && m.GetDir(i) == Dir::k &&
           m.GetBlockFaces().GetMIdx(i)[2] == gs[2];
     };
-    auto set_gb = [&](std::string s /*name*/, 
-                      std::string p /*bc*/, IdxFace i) -> bool {
+    // Set condition bc for face i on global box boundary
+    // choosing proper neighbour cell id (nci)
+    // Return true if on global boundary
+    auto set_bc = [&](IdxFace i, std::string bc) -> bool {
+      if (gxm(i) || gym(i) || gzm(i)) {
+        mf_velcond_[i] = solver::Parse(bc, i, 1, m);
+        return true;
+      } else if (gxp(i) || gyp(i) || gzp(i)) {
+        mf_velcond_[i] = solver::Parse(bc, i, 0, m);
+        return true;
+      } 
+      return false;
     };
     // any boundary of global mesh
     auto gb = [&](IdxFace i) -> bool {
       return gxm(i) || gxp(i) || gym(i) || gyp(i) || gzm(i) || gzp(i);
     };
 
-    // Boundary conditions for fluid
+    // Boundary conditions for fluid 
     auto ff = m.Faces();
-    std::vector<std::string> ss = 
+    std::vector<std::string> kk = 
         {"bc_xm", "bc_xp", "bc_ym", "bc_yp", "bc_zm", "bc_zp"};
-    for (auto s : ss) {
-      if (auto p = par.String(s)) {
+    for (auto k : kk) {
+      if (auto bc = par.String(k)) {
         for (auto i : ff) {
-          set_gb(s, *p, i);
+          set_bc(i, *bc);
         }
       } 
     }
@@ -187,7 +197,12 @@ void Hydro<M>::Init() {
               Scal(0), it.GetValue()->GetNci());
     }
     
-    // Set boundaries intersecting blocks
+    // Set bc with selection boxes
+    // Parameters (N>=0):
+    // string boxN -- bc description
+    // vect boxN_a -- lower corner
+    // vect boxN_b -- upper corner
+    // double boxN_vf -- inlet volume fraction
     {
       int n = 0;
       while (true) {
@@ -197,14 +212,12 @@ void Hydro<M>::Init() {
           Vect b(par.Vect[s + "_b"]);
           Scal vf = par.Double[s + "_vf"];
           geom::Rect<Vect> r(a, b);
-          size_t q = 0;
+          size_t q;
           for (auto i : m.Faces()) {
-            if (gb(i) && r.IsInside(m.GetCenter(i))) {
-              size_t nc = m.GetValidNeighbourCellId(i);
-              mf_velcond_[i] = solver::Parse(*p, i, nc, m);
-              mf_cond_[i] = std::make_shared
-                  <solver::ConditionFaceValueFixed<Scal>>(vf, nc);
-              ++q;
+            if (r.IsInside(m.GetCenter(i))) {
+              if (set_bc(i, *p)) {
+                ++q;
+              }
             }
           }
           ++n;
