@@ -586,17 +586,19 @@ class FluidSimple : public FluidSolver<Mesh> {
         IdxFace i = it->GetIdx();
         ConditionFaceFluid* cb = it->GetValue().get(); // cond base
 
-        if (auto cd = dynamic_cast<Outlet<Mesh>*>(cb)) {
-          size_t id = cd->GetNci();
-          IdxCell c = m.GetNeighbourCell(i, id);
-          Scal w = (id == 0 ? 1. : -1.);
-          cd->SetVelocity(this->GetVelocity(Layers::iter_curr)[c]);
-          fo += cd->GetVelocity().dot(m.GetSurface(i)) * w;
-          ao += m.GetArea(i);
-        } else if (auto cd = dynamic_cast<Inlet<Mesh>*>(cb)) {
-          size_t id = cd->GetNci();
-          Scal w = (id == 0 ? -1. : 1.);
-          fi += cd->GetVelocity().dot(m.GetSurface(i)) * w;
+        size_t id = cb->GetNci();
+        IdxCell c = m.GetNeighbourCell(i, id);
+        if (m.IsInner(c)) {
+          if (auto cd = dynamic_cast<Outlet<Mesh>*>(cb)) {
+            Scal w = (id == 0 ? 1. : -1.);
+            cd->SetVelocity(this->GetVelocity(Layers::iter_curr)[c]);
+            fo += cd->GetVelocity().dot(m.GetSurface(i)) * w;
+            ao += m.GetArea(i);
+          } else if (auto cd = dynamic_cast<Inlet<Mesh>*>(cb)) {
+            size_t id = cd->GetNci();
+            Scal w = (id == 0 ? -1. : 1.);
+            fi += cd->GetVelocity().dot(m.GetSurface(i)) * w;
+          }
         }
       }
       
