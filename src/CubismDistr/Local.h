@@ -122,11 +122,12 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par)
     bb_.push_back(b);
   }
 
+  bool islead = true;
   for (auto e : bb_) {
-    auto d = e.index;
-    // TODO: constructor
-    MIdx b(d[0], d[1], d[2]);
-    mk.emplace(b, std::unique_ptr<K>(kf_.Make(par, e)));
+    MIdx d(e.index);
+    bool isroot = (d == MIdx(0));
+    mk.emplace(d, std::unique_ptr<K>(kf_.Make(par, e, isroot, islead)));
+    islead = false;
   }
 
   isroot_ = true;

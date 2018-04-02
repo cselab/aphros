@@ -52,9 +52,8 @@ class DistrMesh : public Distr {
   Scal ext_; // extent (maximum over all directions)
 
   int stage_ = 0;
-  int frame_ = 0;
 
-  // XXX: overwritten by Local<KF>
+  // XXX: overwritten by Local<KF> and Cubism<KF>
   bool isroot_;
 
   std::map<MIdx, std::unique_ptr<K>, typename MIdx::LexLess> mk;
