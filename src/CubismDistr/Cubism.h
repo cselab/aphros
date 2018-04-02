@@ -353,17 +353,20 @@ Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par)
 {
   assert(bs_ == MIdx(Block::bx, Block::by, Block::bz));
 
-  std::vector<BlockInfo> cc = g_.getBlocksInfo(); // [c]ubism block info
-  std::vector<MyBlockInfo> ee = GetBlocks(cc, bs_, hl_);
-
-  for (auto& e : ee) {
-    MIdx b(e.index);
-    mk.emplace(b, std::unique_ptr<K>(kf_.Make(par, e)));
-  }
-
   int r;
   MPI_Comm_rank(comm, &r);
   isroot_ = (0 == r);
+
+  std::vector<BlockInfo> cc = g_.getBlocksInfo(); // [c]ubism block info
+  std::vector<MyBlockInfo> ee = GetBlocks(cc, bs_, hl_);
+
+  bool bl = true; // block lead
+  for (auto& e : ee) {
+    MIdx d(e.index);
+    bool br = (isroot_ && bl); // block root
+    mk.emplace(d, std::unique_ptr<K>(kf_.Make(par, e, br, bl)));
+    bl = false;
+  }
 
   comm_ = g_.getCartComm(); // XXX: overwrite comm_
 }

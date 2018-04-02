@@ -38,19 +38,27 @@ class KernelMesh : public Kernel {
   using MIdx = typename Mesh::MIdx;
   static constexpr size_t dim = M::dim;
 
-  KernelMesh(Vars& par, const MyBlockInfo& bi);
+  KernelMesh(Vars& par, const MyBlockInfo& bi, bool isroot, bool islead);
   void Run() override = 0;
   M& GetMesh() { return m; }
+  bool IsRoot() { return isroot_; }
+  bool IsLead() { return islead_; }
 
  protected:
   Vars& par;
   MyBlockInfo bi_;
   M m;
+
+ private:
+  bool isroot_; // root block (single among all PEs)
+  bool islead_; // lead block (one per each PE)
 };
 
 template <class M>
-KernelMesh<M>::KernelMesh(Vars& par, const MyBlockInfo& bi) 
+KernelMesh<M>::KernelMesh(Vars& par, const MyBlockInfo& bi, 
+                          bool isroot, bool islead) 
   : par(par), bi_(bi), m(CreateMesh<M>(bi))
+  , isroot_(isroot), islead_(islead)
 {}
 
 template <class _M>

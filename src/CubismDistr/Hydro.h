@@ -87,7 +87,6 @@ class Hydro : public KernelMesh<M> {
   Scal diff_;  // convergence indicator
   Scal tol_;  // convergence tolerance
   size_t step_;
-  bool broot_;
   Scal pdist_, pdistmin_; // distance to pfixed cell
 
   struct Stat {
@@ -117,8 +116,6 @@ template <class M>
 void Hydro<M>::Init() {
   auto sem = m.GetSem("init");
   if (sem("a")) {
-    broot_ = (m.GetInBlockCells().GetBegin() == MIdx(0));
-
     st_.iter = 0;
     par.Int.Set("iter", st_.iter);
 
@@ -329,7 +326,7 @@ void Hydro<M>::Init() {
             break;
           }
         }
-        if (broot_) {
+        if (IsRoot()) {
           std::cerr << "Read " 
             << pp.size() << " particles from " 
             << "'" << fn << "'" << std::endl;
@@ -424,7 +421,7 @@ void Hydro<M>::Init() {
     st_.t = fs_->GetTime();
     par.Double.Set("t", st_.t);
 
-    if (broot_) {
+    if (IsRoot()) {
       auto& s = st_;
       output::Content con = {
           op("t", &s.t),
@@ -455,10 +452,9 @@ void Hydro<M>::Init() {
 
 // TODO: move construction to Run()
 template <class M>
-Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi) 
-  : KernelMesh<M>(par, bi)
-{
-}
+Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi, bool isroot, bool islead) 
+  : KernelMesh<M>(par, bi, isroot, islead)
+{}
 
 template <class M>
 void Hydro<M>::CalcStat() {
@@ -670,7 +666,7 @@ void Hydro<M>::Dump(Sem& sem) {
       fc_vf_ = as_->GetField();
       m.Dump(&fc_vf_, "vf"); 
 
-      if (broot_) {
+      if (IsRoot()) {
         std::cerr << "Dump " 
             << "n=" << st_.dumpn 
             << " t=" << st_.dumpt 
@@ -705,7 +701,7 @@ void Hydro<M>::Run() {
     if (fs_->GetTime() >= par.Double["tmax"] ||
         step_ > par.Int["max_step"]) {
       sem.LoopBreak();
-    } else if (broot_) { 
+    } else if (IsRoot()) { 
       std::cerr 
           << "STEP=" << step_ 
           << " t=" << st_.t
@@ -735,7 +731,7 @@ void Hydro<M>::Run() {
       }
       if (sn("report")) {
         ++st_.iter;
-        if (broot_) {
+        if (IsRoot()) {
           std::cout << std::scientific << std::setprecision(16)
               << ".....iter=" << fs_->GetIterationCount()
               << ", diff=" << diff_ << std::endl;
@@ -787,7 +783,7 @@ void Hydro<M>::Run() {
   Dump(sem);
 
   if (sem("dumpstat")) {
-    if (broot_) {
+    if (IsRoot()) {
       ost_->Write();
     }
   }
@@ -795,7 +791,7 @@ void Hydro<M>::Run() {
   sem.LoopEnd();
 
   if (sem("fluid-timer")) {
-    if (broot_ && par.Int["verbose_fluid_timer"]) {
+    if (IsRoot() && par.Int["verbose_fluid_timer"]) {
       double a = 0.; // total
       auto& mt = timer_;
       for (auto e : mt.GetMap()) {
