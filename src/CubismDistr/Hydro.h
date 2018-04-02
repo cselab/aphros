@@ -214,11 +214,12 @@ void Hydro<M>::Init() {
           Vect b(par.Vect[s + "_b"]);
           Scal vf = par.Double[s + "_vf"];
           geom::Rect<Vect> r(a, b);
-          size_t q;  // number of faces inside
           for (auto i : m.AllFaces()) {
             if (r.IsInside(m.GetCenter(i))) {
               if (set_bc(i, *p)) {
-                ++q;
+                auto b = mf_velcond_[i];
+                mf_cond_[i] = std::make_shared
+                    <solver::ConditionFaceValueFixed<Scal>>(vf, b->GetNci());
               }
             }
           }
