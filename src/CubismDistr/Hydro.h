@@ -215,7 +215,7 @@ void Hydro<M>::Init() {
           Scal vf = par.Double[s + "_vf"];
           geom::Rect<Vect> r(a, b);
           size_t q;  // number of faces inside
-          for (auto i : m.Faces()) {
+          for (auto i : m.AllFaces()) {
             if (r.IsInside(m.GetCenter(i))) {
               if (set_bc(i, *p)) {
                 ++q;
