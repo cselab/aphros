@@ -159,44 +159,25 @@ void Hydro<M>::Init() {
       return dim >= 3 && m.GetDir(i) == Dir::k &&
           m.GetBlockFaces().GetMIdx(i)[2] == gs[2];
     };
+    auto set_gb = [&](std::string s /*name*/, 
+                      std::string p /*bc*/, IdxFace i) -> bool {
+    };
     // any boundary of global mesh
     auto gb = [&](IdxFace i) -> bool {
       return gxm(i) || gxp(i) || gym(i) || gyp(i) || gzm(i) || gzp(i);
     };
 
     // Boundary conditions for fluid
-    size_t nc; // XXX: valid neighbour cell id
     auto ff = m.Faces();
-    if (auto p = par.String("bc_xm")) {
-      for (auto i : ff) {
-        gxm(i) && (mf_velcond_[i] = solver::Parse(*p, i, nc, m));
-      }
-    } 
-    if (auto p = par.String("bc_xp")) {
-      for (auto i : ff) {
-        gxp(i) && (mf_velcond_[i] = solver::Parse(*p, i, nc, m));
-      }
-    } 
-    if (auto p = par.String("bc_ym")) {
-      for (auto i : ff) {
-        gym(i) && (mf_velcond_[i] = solver::Parse(*p, i, nc, m));
-      }
-    } 
-    if (auto p = par.String("bc_yp")) {
-      for (auto i : ff) {
-        gyp(i) && (mf_velcond_[i] = solver::Parse(*p, i, nc, m));
-      }
-    } 
-    if (auto p = par.String("bc_zm")) {
-      for (auto i : ff) {
-        gzm(i) && (mf_velcond_[i] = solver::Parse(*p, i, nc, m));
-      }
-    } 
-    if (auto p = par.String("bc_zp")) {
-      for (auto i : ff) {
-        gzp(i) && (mf_velcond_[i] = solver::Parse(*p, i, nc, m));
-      }
-    } 
+    std::vector<std::string> ss = 
+        {"bc_xm", "bc_xp", "bc_ym", "bc_yp", "bc_zm", "bc_zp"};
+    for (auto s : ss) {
+      if (auto p = par.String(s)) {
+        for (auto i : ff) {
+          set_gb(s, *p, i);
+        }
+      } 
+    }
 
     // zero-derivative boundary conditions for advection
     for (auto it : mf_velcond_) {
@@ -219,10 +200,11 @@ void Hydro<M>::Init() {
           size_t q = 0;
           for (auto i : m.Faces()) {
             if (gb(i) && r.IsInside(m.GetCenter(i))) {
-                mf_velcond_[i] = solver::Parse(*p, i, nc, m);
-                mf_cond_[i] = std::make_shared
-                    <solver::ConditionFaceValueFixed<Scal>>(vf, nc);
-                ++q;
+              size_t nc = m.GetValidNeighbourCellId(i);
+              mf_velcond_[i] = solver::Parse(*p, i, nc, m);
+              mf_cond_[i] = std::make_shared
+                  <solver::ConditionFaceValueFixed<Scal>>(vf, nc);
+              ++q;
             }
           }
           ++n;
