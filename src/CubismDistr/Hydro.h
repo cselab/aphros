@@ -5,6 +5,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <ctime>
 #include <array>
@@ -67,6 +68,16 @@ class Hydro : public KernelMesh<M> {
   void Clip(const FieldCell<Scal>& v, Scal min, Scal max);
   void CalcStat();
 
+  struct Event {
+    double t;
+    std::string s;
+  };
+  std::map<std::string, Event> ev_;
+  // Parse events from par.String and put to ev_
+  void ParseEvents();
+  // Exec events due and remove from ev_
+  void ExecEvents();
+
   using AS = solver::AdvectionSolverExplicit<M, FieldFace<Scal>>;
   using FS = solver::FluidSimple<M>;
   FieldCell<Scal> fc_mu_; // viscosity
@@ -78,6 +89,7 @@ class Hydro : public KernelMesh<M> {
   geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond_;
   geom::MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond_;
   MultiTimer<std::string> timer_; 
+  // TODO: remove lsf
   std::shared_ptr<const solver::LinearSolverFactory> p_lsf_; // linear solver factory
   std::unique_ptr<AS> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
@@ -204,14 +216,16 @@ void Hydro<M>::Init() {
     // vect boxN_a -- lower corner
     // vect boxN_b -- upper corner
     // double boxN_vf -- inlet volume fraction
+    // Check at least first nmax indices and all contiguous
     {
       int n = 0;
+      const int nmax = 100;
       while (true) {
-        std::string s = "box" + std::to_string(n);
-        if (auto p = par.String(s)) {
-          Vect a(par.Vect[s + "_a"]);
-          Vect b(par.Vect[s + "_b"]);
-          Scal vf = par.Double[s + "_vf"];
+        std::string k = "box" + std::to_string(n);
+        if (auto p = par.String(k)) {
+          Vect a(par.Vect[k + "_a"]);
+          Vect b(par.Vect[k + "_b"]);
+          Scal vf = par.Double[k + "_vf"];
           geom::Rect<Vect> r(a, b);
           for (auto i : m.AllFaces()) {
             if (r.IsInside(m.GetCenter(i))) {
@@ -222,10 +236,10 @@ void Hydro<M>::Init() {
               }
             }
           }
-          ++n;
-        } else {
+        } else if (n > nmax) { 
           break;
         }
+        ++n;
       }
     }
 
@@ -448,11 +462,12 @@ void Hydro<M>::Init() {
       ost_ = std::make_shared<
           output::SessionPlainScalar<Scal>>(con, "stat.dat");
     }
+
+    ParseEvents();
   }
 }
 
 
-// TODO: move construction to Run()
 template <class M>
 Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi, bool isroot, bool islead) 
   : KernelMesh<M>(par, bi, isroot, islead)
@@ -562,6 +577,44 @@ void Hydro<M>::CalcStat() {
         par.Double["dta"] = st_.dta;
       }
     }
+  }
+}
+
+template <class M>
+void Hydro<M>::ParseEvents() {
+  // Check at least first nmax indices and all contiguous
+  int n = 0;
+  const int nmax = 100;
+  while (true) {
+    std::string k = "ev" + std::to_string(n);
+    if (auto p = par.String(k)) {
+      Event e;
+      std::stringstream b(*p); // buf
+      b >> std::skipws;
+
+      b >> e.t;
+
+      char c;
+      // Read first non-ws character
+      b >> c;
+      // Read remaining string
+      std::getline(b, e.s);
+      e.s = c + e.s;
+
+      ev_.emplace(k, e);
+    } else if (n > nmax) { 
+      break;
+    }
+    ++n;
+  }
+}
+
+template <class M>
+void Hydro<M>::ExecEvents() {
+  for (auto it : ev_) {
+    auto& e = it.second;
+    std::cout << it.first << " " <<
+      e.t << " " << e.s << std::endl;
   }
 }
 
@@ -716,6 +769,9 @@ void Hydro<M>::Run() {
   }
   if (sem.Nested("stat")) {
     CalcStat();
+  }
+  if (sem.Nested("events")) {
+    ExecEvents();
   }
   if (sem.Nested("fs-start")) {
     fs_->StartStep();
