@@ -704,7 +704,6 @@ class UnsteadySolver {
     t_ += dt_;
   }
   virtual void StartStep() {}
-  virtual void CalcStep() = 0;
   virtual void FinishStep() {
     IncTime();
   }
