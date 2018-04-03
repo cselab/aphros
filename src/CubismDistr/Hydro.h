@@ -612,6 +612,15 @@ void Hydro<M>::ParseEvents() {
     }
     ++n;
   }
+
+  if (IsRoot()) {
+    std::cout << "Found events: \n=====" << std::endl;
+    for (auto p : ev_) {
+      Event& e = p.second;
+      std::cout << p.first << " " << e.t << " " << e.cmd << std::endl;
+    }
+    std::cout << "=====" << std::endl;
+  }
 }
 
 // events: evN <time> <command>
@@ -629,6 +638,10 @@ void Hydro<M>::ExecEvents() {
     std::string a = e.arg;
 
     if (st_.t >= e.t) {
+      if (IsRoot()) {
+        std::cout << std::defaultfloat << "Event at t=" << e.t << ": " 
+            << c << " " << a << std::endl;
+      }
       if (c == "echo") {
         if (IsRoot()) {
           std::cout << a << std::endl;
@@ -648,7 +661,6 @@ void Hydro<M>::ExecEvents() {
   }
 }
 
-//std::cout << "SK" << it->first << " " << e.t << " " << e.cmd << std::endl;
 
 template <class M>
 void Hydro<M>::Clip(const FieldCell<Scal>& f, Scal a, Scal b) {
