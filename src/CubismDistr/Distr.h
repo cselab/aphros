@@ -75,7 +75,21 @@ class DistrMesh : public Distr {
   virtual void ClearDump(const std::vector<MIdx>& bb);
   // TODO: make Pending const
   virtual bool Pending(const std::vector<MIdx>& bb);
+  // Create a kernel for each block and put into mk
+  // Requires initialized isroot_;
+  virtual void MakeKernels(const std::vector<MyBlockInfo>&);
 };
+
+template <class KF>
+void DistrMesh<KF>::MakeKernels(const std::vector<MyBlockInfo>& ee) {
+  bool islead = true;
+  for (auto e : ee) {
+    MIdx d(e.index);
+    bool isroot = (d == MIdx(0));
+    mk.emplace(d, std::unique_ptr<K>(kf_.Make(par, e, isroot, islead)));
+    islead = false;
+  }
+}
 
 template <class KF>
 DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& par) 

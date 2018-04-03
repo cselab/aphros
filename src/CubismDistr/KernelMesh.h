@@ -45,7 +45,7 @@ class KernelMesh : public Kernel {
   bool IsLead() { return islead_; }
 
  protected:
-  Vars& par;
+  Vars& par; // Shared among all blocks on each PEs
   MyBlockInfo bi_;
   M m;
 
@@ -66,6 +66,6 @@ class KernelMeshFactory : public KernelFactory {
  public:
   using M = _M;
   using K = KernelMesh<M>;
-  K* Make(Vars&, const MyBlockInfo&) override = 0;
+  K* Make(Vars&, const MyBlockInfo&, bool isroot, bool islead) override = 0;
 };
 
