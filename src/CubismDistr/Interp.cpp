@@ -19,6 +19,8 @@ void Interp::Cmd(std::string s) {
   b >> cmd;
   if (cmd == "set") {
     CmdSet(s);
+  } else if (cmd == "setnext") {
+    CmdSetNext(s);
   } else if (cmd == "del") {
     CmdDel(s);
   } else if (cmd == "include") {
@@ -35,12 +37,36 @@ void Interp::CmdSet(std::string s) {
   std::stringstream b(s);
   b >> std::skipws;
   b >> cmd >> type >> key;
-  // Read first non-ws character (append later)
   char c;
+  // Read first non-ws character 
   b >> c;
+  // Read remaining line
   std::getline(b, val);
-  v_.SetStr(type, key, c + val);
+  val = c + val;
+
+  v_.SetStr(type, key, val);
 }
+
+void Interp::CmdSetNext(std::string s) {
+  std::string cmd, type, key, val;
+  std::stringstream b(s);
+  b >> std::skipws;
+  b >> cmd >> type >> key;
+  char c;
+  // Read first non-ws character 
+  b >> c;
+  // Read remaining string
+  std::getline(b, val);
+  val = c + val;
+
+  if (!v_.Int.Exists(key)) {
+    v_.Int.Set(key, 0);
+  }
+  int& id = v_.Int[key];
+  v_.SetStr(type, key + std::to_string(id), val);
+  ++id;
+}
+
 
 void Interp::CmdDel(std::string s) {
   std::string cmd, key;

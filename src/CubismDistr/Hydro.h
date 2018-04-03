@@ -559,11 +559,11 @@ void Hydro<M>::CalcStat() {
       st_.meshpos += st_.meshvel * st_.dt;
     }
   }
-  if (sem("dta")) {
+  if (sem("dt-local")) {
     st_.dtt = fs_->GetAutoTimeStep();
     m.Reduce(&st_.dtt, "min");
   }
-  if (sem("dta-reduce")) {
+  if (sem("dt-reduce")) {
     if (st_.iter) { // TODO: revise skipping first iter
       if (auto* cfl = par.Double("cfl")) {
         st_.dt = st_.dtt * (*cfl);
@@ -617,7 +617,9 @@ void Hydro<M>::ParseEvents() {
     std::cout << "Found events: \n=====" << std::endl;
     for (auto p : ev_) {
       Event& e = p.second;
-      std::cout << p.first << " " << e.t << " " << e.cmd << std::endl;
+      std::cout << p.first << " " 
+          << e.t << " " << e.cmd << " " 
+          << e.arg << std::endl;
     }
     std::cout << "=====" << std::endl;
   }
