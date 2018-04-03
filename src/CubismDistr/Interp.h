@@ -28,6 +28,9 @@ class Interp {
   void Cmd(std::string);
   // set <type> <key> <value>
   void CmdSet(std::string);
+  // setnext <type> <key> <value>
+  // Sets value with name key+id and increments id stored in v_.Int[key]
+  void CmdSetNext(std::string);
   // del <name>
   void CmdDel(std::string); 
   // include <filename>
