@@ -70,7 +70,8 @@ class Hydro : public KernelMesh<M> {
 
   struct Event {
     double t;
-    std::string s;
+    std::string cmd;
+    std::string arg;
   };
   std::map<std::string, Event> ev_;
   // Parse events from par.String and put to ev_
@@ -592,14 +593,17 @@ void Hydro<M>::ParseEvents() {
       std::stringstream b(*p); // buf
       b >> std::skipws;
 
+      // format: <time> <cmd> <arg>
       b >> e.t;
+      b >> e.cmd;
 
       char c;
       // Read first non-ws character
       b >> c;
-      // Read remaining string
-      std::getline(b, e.s);
-      e.s = c + e.s;
+      // Read remaining line
+      std::string s;
+      std::getline(b, s);
+      e.arg = c + s;
 
       ev_.emplace(k, e);
     } else if (n > nmax) { 
@@ -609,12 +613,26 @@ void Hydro<M>::ParseEvents() {
   }
 }
 
+// events: evN <time> <command>
+// comamnds: set, print, setdt, setdta, vf_init
+// set <type> <key> <value>
+// echo string
+// setdt <value>
+// setdta <value>
+// vf_init zero|list
 template <class M>
 void Hydro<M>::ExecEvents() {
   for (auto it : ev_) {
     auto& e = it.second;
-    std::cout << it.first << " " <<
-      e.t << " " << e.s << std::endl;
+    std::string c = e.cmd;
+    std::string a = e.arg;
+    if (c == "echo") {
+      if (IsRoot()) {
+        std::cout << a << std::endl;
+      }
+    } else {
+      throw std::runtime_error("ExecEvents(): Unknown command '" + c + "'");
+    }
   }
 }
 
