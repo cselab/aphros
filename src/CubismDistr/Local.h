@@ -42,7 +42,6 @@ class Local : public DistrMesh<KF> {
   using P::p_;
   using P::b_; 
   using P::stage_;
-  using P::frame_;
   using P::isroot_;
   using P::comm_;
   using P::ext_;
@@ -122,15 +121,9 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par)
     bb_.push_back(b);
   }
 
-  bool islead = true;
-  for (auto e : bb_) {
-    MIdx d(e.index);
-    bool isroot = (d == MIdx(0));
-    mk.emplace(d, std::unique_ptr<K>(kf_.Make(par, e, isroot, islead)));
-    islead = false;
-  }
+  this->MakeKernels(bb_);
 
-  isroot_ = true;
+  isroot_ = true; // XXX: overwrite isroot_
 }
 
 template <class KF>

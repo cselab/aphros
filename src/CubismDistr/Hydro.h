@@ -48,7 +48,7 @@ class Hydro : public KernelMesh<M> {
   template <class T>
   using FieldNode = geom::FieldNode<T>;
 
-  Hydro(Vars& par, const MyBlockInfo& bi);
+  Hydro(Vars& par, const MyBlockInfo& bi, bool isroot, bool islead);
   void Run() override;
   M& GetMesh() { return m; }
 
@@ -56,6 +56,8 @@ class Hydro : public KernelMesh<M> {
   using KM::par;
   using KM::bi_;
   using KM::m;
+  using KM::IsRoot;
+  using KM::IsLead;
 
  private:
   void Init();
@@ -818,8 +820,9 @@ class HydroFactory : public KernelMeshFactory<_M> {
  public:
   using M = _M;
   using K = Hydro<M>;
-  K* Make(Vars& par, const MyBlockInfo& bi) override {
-    return new Hydro<M>(par, bi);
+  K* Make(Vars& par, const MyBlockInfo& bi, 
+          bool isroot, bool islead) override {
+    return new Hydro<M>(par, bi, isroot, islead);
   }
 };
 

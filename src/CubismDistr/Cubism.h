@@ -158,7 +158,6 @@ class Cubism : public DistrMesh<KF> {
   using P::p_;
   using P::b_; 
   using P::stage_;
-  using P::frame_;
   using P::isroot_;
   using P::comm_;
   using P::ext_;
@@ -170,6 +169,7 @@ class Cubism : public DistrMesh<KF> {
     std::map<MIdx, BlockInfo, typename MIdx::LexLess> mb;
   };
   S s_;
+  size_t frame_;
 
   static StencilInfo GetStencil(int hl /*halo cells*/,
                                 int cs /*comm size*/) {
@@ -199,6 +199,7 @@ class Cubism : public DistrMesh<KF> {
       assert(false);
     }
   }
+  // Convert Cubism BlockInfo to MyBlockInfo
   static std::vector<MyBlockInfo> GetBlocks(
       const std::vector<BlockInfo>&, MIdx bs, size_t hl);
 
@@ -350,23 +351,18 @@ template <class Par, class KF>
 Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par) 
   : DistrMesh<KF>(comm, kf, par)
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm)
+  , frame_(0)
 {
   assert(bs_ == MIdx(Block::bx, Block::by, Block::bz));
 
   int r;
   MPI_Comm_rank(comm, &r);
-  isroot_ = (0 == r);
+  isroot_ = (0 == r);  // XXX: overwrite isroot_
 
   std::vector<BlockInfo> cc = g_.getBlocksInfo(); // [c]ubism block info
   std::vector<MyBlockInfo> ee = GetBlocks(cc, bs_, hl_);
 
-  bool bl = true; // block lead
-  for (auto& e : ee) {
-    MIdx d(e.index);
-    bool br = (isroot_ && bl); // block root
-    mk.emplace(d, std::unique_ptr<K>(kf_.Make(par, e, br, bl)));
-    bl = false;
-  }
+  this->MakeKernels(ee);
 
   comm_ = g_.getCartComm(); // XXX: overwrite comm_
 }

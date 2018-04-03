@@ -27,9 +27,11 @@ class Kernel {
   virtual ~Kernel() {}
 };
 
+// TODO: revise isroot and islead
 class KernelFactory {
  public:
-  virtual Kernel* Make(Vars&, const MyBlockInfo&) = 0;
+  virtual Kernel* Make(Vars&, const MyBlockInfo&, 
+                       bool isroot, bool islead) = 0;
   virtual ~KernelFactory() {}
 };
 
