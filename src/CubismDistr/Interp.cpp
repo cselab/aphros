@@ -68,6 +68,10 @@ void Interp::CmdInclude(std::string s) {
   RunAll(r);
 }
 
+void Interp::Run(std::string s) {
+  Cmd(s);
+}
+
 void Interp::RunNext(std::istream& in) {
   std::string s;
   std::getline(in, s);
