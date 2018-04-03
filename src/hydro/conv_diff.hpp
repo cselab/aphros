@@ -104,7 +104,7 @@ class ConvectionDiffusionScalarImplicit :
     fc_field_.time_prev = fc_field_.time_curr;
   }
   void StartStep() override {
-    this->ClearIterationCount();
+    this->GetIter();
     if (IsNan(fc_field_.time_curr)) {
       throw std::runtime_error("NaN initial field");
     }
@@ -254,7 +254,7 @@ class ConvectionDiffusionScalarImplicit :
         fc_curr[idxcell] = fc_prev[idxcell] + fc_corr_[idxcell];
       }
       m.Comm(&fc_curr);
-      this->IncIterationCount();
+      this->IncIter();
     }
   }
   void FinishStep() override {
@@ -266,7 +266,7 @@ class ConvectionDiffusionScalarImplicit :
     this->IncTime();
   }
   double GetError() const override {
-    if (this->GetIterationCount() == 0) {
+    if (this->GetIter() == 0) {
       return 1.;
     }
     return CalcDiff(fc_field_.iter_curr, fc_field_.iter_prev, mesh);

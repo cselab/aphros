@@ -229,7 +229,6 @@ class FluidSolver : public UnsteadyIterativeSolver {
   geom::FieldFace<Vect>* p_ff_stforce_;
   geom::FieldCell<Scal>* p_fc_volume_source_;
   geom::FieldCell<Scal>* p_fc_mass_source_;
-  Vect meshvel_;
 
  public:
   FluidSolver(double time, double time_step,
@@ -239,8 +238,7 @@ class FluidSolver : public UnsteadyIterativeSolver {
               geom::FieldCell<Vect>* p_fc_stforce,
               geom::FieldFace<Vect>* p_ff_stforce,
               geom::FieldCell<Scal>* p_fc_volume_source,
-              geom::FieldCell<Scal>* p_fc_mass_source,
-              Vect meshvel)
+              geom::FieldCell<Scal>* p_fc_mass_source)
       : UnsteadyIterativeSolver(time, time_step)
       , p_fc_density_(p_fc_density)
       , p_fc_viscosity_(p_fc_viscosity)
@@ -249,7 +247,6 @@ class FluidSolver : public UnsteadyIterativeSolver {
       , p_ff_stforce_(p_ff_stforce)
       , p_fc_volume_source_(p_fc_volume_source)
       , p_fc_mass_source_(p_fc_mass_source)
-      , meshvel_(meshvel)
   {
 
   }
@@ -259,8 +256,6 @@ class FluidSolver : public UnsteadyIterativeSolver {
   virtual const geom::FieldCell<Scal>& GetPressure(Layers layer) = 0;
   virtual const geom::FieldFace<Scal>& GetVolumeFlux() = 0;
   virtual const geom::FieldFace<Scal>& GetVolumeFlux(Layers layer) = 0;
-  virtual Vect GetMeshVel() { return meshvel_; }
-  virtual void SetMeshVel(Vect meshvel) { meshvel_ = meshvel; }
   virtual double GetAutoTimeStep() { return GetTimeStep(); }
 };
 
@@ -652,9 +647,8 @@ class FluidSimple : public FluidSolver<Mesh> {
     Scal rhie;     // Rhie-Chow factor [0,1] (0 disable, 1 full)
     bool second = false; // second order in time
     bool simpler = false; // Use SIMPLER  TODO: implement SIMPLER
-    bool force_geometric_average = false;
     Scal guessextra = 0;  // next iteration extrapolation weight [0,1]
-    Vect meshvel = 0;  // relative mesh velocity
+    Vect meshvel = Vect(0);  // relative mesh velocity
     bool forcegeom = false; // geometric average for force
   };
   Par* par;
@@ -679,7 +673,7 @@ class FluidSimple : public FluidSolver<Mesh> {
               )
       : FluidSolver<Mesh>(time, time_step, p_fc_density, p_fc_viscosity,
                     p_fc_force, p_fc_stforce, p_ff_stforce,
-                    p_fc_volume_source, p_fc_mass_source, par->meshvel)
+                    p_fc_volume_source, p_fc_mass_source)
       , mesh(mesh)
       , fc_force_(mesh)
       , mf_cond_(mf_cond)
@@ -777,9 +771,10 @@ class FluidSimple : public FluidSolver<Mesh> {
           ff_velocity_asterisk_[idxface].dot(mesh.GetSurface(idxface));
     }
     // Apply meshvel
+    const Vect& meshvel = par->meshvel;
     for (auto idxface : mesh.Faces()) {
       ff_vol_flux_.time_curr[idxface] -= 
-          this->meshvel_.dot(mesh.GetSurface(idxface));
+          meshvel.dot(mesh.GetSurface(idxface));
     }
 
     ff_vol_flux_.time_prev = ff_vol_flux_.time_curr;
@@ -966,9 +961,10 @@ class FluidSimple : public FluidSolver<Mesh> {
       }
 
       // Apply meshvel
+      const Vect& meshvel = par->meshvel;
       for (auto idxface : mesh.Faces()) {
         ff_volume_flux_asterisk_[idxface] -= 
-            this->meshvel_.dot(mesh.GetSurface(idxface));
+            meshvel.dot(mesh.GetSurface(idxface));
       }
 
       timer_->Pop();

@@ -94,8 +94,6 @@ class Hydro : public KernelMesh<M> {
   geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond_;
   geom::MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond_;
   MultiTimer<std::string> timer_; 
-  // TODO: remove lsf
-  std::shared_ptr<const solver::LinearSolverFactory> p_lsf_; // linear solver factory
   std::unique_ptr<AS> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
   FieldCell<Scal> fc_velux_; // velocity
@@ -104,7 +102,6 @@ class Hydro : public KernelMesh<M> {
   FieldCell<Scal> fc_p_; // pressure
   FieldCell<Scal> fc_vf_; // volume fraction
   Scal diff_;  // convergence indicator
-  Scal tol_;  // convergence tolerance
   size_t step_;
   Scal pdist_, pdistmin_; // distance to pfixed cell
 
@@ -288,19 +285,9 @@ void Hydro<M>::Init() {
     par.Double.Set("dta", st_.dta);
     step_ = 0;
 
-    Scal prelax = par.Double["prelax"];
-    Scal vrelax = par.Double["vrelax"];
-    Scal rhie = par.Double["rhie"];
-    tol_ = par.Double["tol"];
-    int max_iter = par.Int["max_iter"];
-    bool so = par.Int["second_order"];
-
     fc_stforce_.Reinit(m, Vect(0));
     ff_stforce_.Reinit(m, Vect(0));
     fc_src_.Reinit(m, 0.);
-
-    p_lsf_ = std::make_shared<const solver::LinearSolverFactory>(
-          std::make_shared<const solver::LuDecompositionFactory>());
 
     // initial volume fraction
     FieldCell<Scal> fc_u(m);
@@ -404,13 +391,17 @@ void Hydro<M>::Init() {
     CalcMixture(fc_u);
 
 
-    auto& p = fspar;
-    // TODO: fill fspar
     // Init fluid solver
+    auto& p = fspar;
+    p.prelax = par.Double["prelax"];
+    p.vrelax = par.Double["vrelax"];
+    p.rhie = par.Double["rhie"];
+    p.second = par.Int["second_order"];
+
     fs_.reset(new FS(
           m, fc_vel, mf_velcond_, mc_velcond, 
           &fc_rho_, &fc_mu_, &fc_force_, &fc_stforce_, &ff_stforce_, 
-          &fc_src_, &fc_src_, 0., dt, *p_lsf_, *p_lsf_, &timer_, &fspar));
+          &fc_src_, &fc_src_, 0., dt, &timer_, &fspar));
 
     // Init advection solver
     as_.reset(new AS(
@@ -549,10 +540,10 @@ void Hydro<M>::CalcStat() {
       Vect mask(par.Vect["meshvel_mask"]); // components 0 or 1
       v *= mask;
       double w = par.Double["meshvel_weight"];
-      Vect vp = fs_->GetMeshVel();
-      fs_->SetMeshVel(v * w + vp * (1. - w));
+      Vect vp = fs_->par->meshvel;
+      fs_->par->meshvel = v * w + vp * (1. - w);
 
-      st_.meshvel = fs_->GetMeshVel();
+      st_.meshvel = fs_->par->meshvel;
       st_.meshpos += st_.meshvel * st_.dt;
     }
   }
@@ -842,7 +833,7 @@ void Hydro<M>::Run() {
       if (sn("convcheck")) {
         assert(fs_->GetError() <= diff_);
         auto it = fs_->GetIter();
-        if ((diff_ < tol_ && it >= par.Int["min_iter"]) ||
+        if ((diff_ < par.Double["tol"] && it >= par.Int["min_iter"]) ||
             it >= par.Int["max_iter"]) {
           sn.LoopBreak();
         }
