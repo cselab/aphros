@@ -14,7 +14,6 @@
 #include "mesh.hpp"
 #include "linear.hpp"
 #include "solver.hpp"
-//#include "../control/metrics.hpp"
 
 namespace solver {
 
@@ -32,15 +31,12 @@ class ConvectionDiffusionScalar : public UnsteadyIterativeSolver {
 
  public:
   ConvectionDiffusionScalar(
-      double time, double time_step,
+      double t, double dt,
       const geom::FieldCell<Scal>* p_fc_scaling,
       const geom::FieldFace<Scal>* p_ff_diffusion_rate,
       const geom::FieldCell<Scal>* p_fc_source,
-      const geom::FieldFace<Scal>* p_ff_vol_flux,
-      double convergence_tolerance,
-      size_t num_iterations_limit)
-      : UnsteadyIterativeSolver(time, time_step, convergence_tolerance,
-                                num_iterations_limit)
+      const geom::FieldFace<Scal>* p_ff_vol_flux)
+      : UnsteadyIterativeSolver(t, dt)
       , p_fc_scaling_(p_fc_scaling)
       , p_ff_diffusion_rate_(p_ff_diffusion_rate)
       , p_fc_source_(p_fc_source)
@@ -69,10 +65,6 @@ class ConvectionDiffusionScalarImplicit :
 
   geom::MapFace<std::shared_ptr<ConditionFace>> mf_cond_;
   geom::MapCell<std::shared_ptr<ConditionCell>> mc_cond_;
-  std::shared_ptr<LinearSolver<Scal, IdxCell, Expr>> linear_;
-  Scal relaxation_factor_;
-  bool time_second_order_;
-  Scal guess_extrapolation_;
 
   // Common buffers:
   geom::FieldFace<Expr> ff_cflux_;
@@ -84,39 +76,32 @@ class ConvectionDiffusionScalarImplicit :
   std::vector<Scal> lsa_, lsb_, lsx_;
 
  public:
+  struct Par {
+    Scal relax = 1.;      // relaxation factor [0,1] (1 -- no relaxation)
+    Scal guessextra = 0.; // next iteration guess extrapolation weight [0,1]
+    bool second = true; // second order in time
+  };
+  Par* par;
   ConvectionDiffusionScalarImplicit(
       Mesh& mesh,
       const geom::FieldCell<Scal>& fc_initial,
-      const geom::MapFace<std::shared_ptr<ConditionFace>>&
-      mf_cond,
-      const geom::MapCell<std::shared_ptr<ConditionCell>>&
-      mc_cond,
-      Scal relaxation_factor,
+      const geom::MapFace<std::shared_ptr<ConditionFace>>& mf_cond,
+      const geom::MapCell<std::shared_ptr<ConditionCell>>& mc_cond,
       const geom::FieldCell<Scal>* p_fc_scaling,
       const geom::FieldFace<Scal>* p_ff_diffusion_rate,
       const geom::FieldCell<Scal>* p_fc_source,
       const geom::FieldFace<Scal>* p_ff_vol_flux,
-      double time, double time_step,
-      const LinearSolverFactory& linear_factory,
-      double convergence_tolerance,
-      size_t num_iterations_limit,
-      bool time_second_order = true,
-      Scal guess_extrapolation = 0.)
+      double t, double dt, Par* par)
       : ConvectionDiffusionScalar<Mesh>(
-          time, time_step, p_fc_scaling, p_ff_diffusion_rate, p_fc_source,
-          p_ff_vol_flux,
-          convergence_tolerance, num_iterations_limit)
+          t, dt, 
+          p_fc_scaling, p_ff_diffusion_rate, p_fc_source, p_ff_vol_flux)
       , mesh(mesh)
       , mf_cond_(mf_cond)
       , mc_cond_(mc_cond)
-      , relaxation_factor_(relaxation_factor)
-      , time_second_order_(time_second_order)
-      , guess_extrapolation_(guess_extrapolation)
+      , par(par)
   {
     fc_field_.time_curr = fc_initial;
     fc_field_.time_prev = fc_field_.time_curr;
-
-    linear_ = linear_factory.Create<Scal, IdxCell, Expr>();
   }
   void StartStep() override {
     this->ClearIterationCount();
@@ -124,10 +109,10 @@ class ConvectionDiffusionScalarImplicit :
       throw std::runtime_error("NaN initial field");
     }
     fc_field_.iter_curr = fc_field_.time_curr;
+    Scal ge = par->guessextra;
     for (auto idxcell : mesh.Cells()) {
       fc_field_.iter_curr[idxcell] +=
-          (fc_field_.time_curr[idxcell] - fc_field_.time_prev[idxcell]) *
-          guess_extrapolation_;
+          (fc_field_.time_curr[idxcell] - fc_field_.time_prev[idxcell]) * ge;
     }
   }
   void MakeIteration() override {
@@ -185,6 +170,8 @@ class ConvectionDiffusionScalarImplicit :
 
       // Assemble the system
       fc_system_.Reinit(mesh);
+      const Scal relax = par->relax;
+      const bool second = par->second;
       for (IdxCell idxcell : mesh.Cells()) {
         Expr& eqn = fc_system_[idxcell];
         Expr cflux_sum;
@@ -201,7 +188,7 @@ class ConvectionDiffusionScalarImplicit :
 
         auto dt = this->GetTimeStep();
         auto coeffs = GetDerivativeApproxCoeffs(
-            0., {-2. * dt, -dt, 0.}, time_second_order_ ? 0 : 1);
+            0., {-2. * dt, -dt, 0.}, second ? 0 : 1);
 
         Expr unsteady;
         unsteady.InsertTerm(coeffs[2], idxcell);
@@ -218,7 +205,7 @@ class ConvectionDiffusionScalarImplicit :
         eqn.SetConstant(eqn.Evaluate(fc_prev));
 
         // Apply under-relaxation
-        eqn[eqn.Find(idxcell)].coeff /= relaxation_factor_;
+        eqn[eqn.Find(idxcell)].coeff /= relax;
       }
 
       // Fill halo cells with u=0 equations
@@ -257,7 +244,6 @@ class ConvectionDiffusionScalarImplicit :
     }
 
     if (sem("applycomm")) {
-      //fc_corr_ = linear_->Solve(fc_system_);
       fc_corr_.Reinit(mesh);
       size_t i = 0;
       for (auto c : m.Cells()) {
@@ -279,7 +265,7 @@ class ConvectionDiffusionScalarImplicit :
     }
     this->IncTime();
   }
-  double GetConvergenceIndicator() const override {
+  double GetError() const override {
     if (this->GetIterationCount() == 0) {
       return 1.;
     }

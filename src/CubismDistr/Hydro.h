@@ -82,6 +82,9 @@ class Hydro : public KernelMesh<M> {
 
   using AS = solver::AdvectionSolverExplicit<M, FieldFace<Scal>>;
   using FS = solver::FluidSimple<M>;
+  using FSPar = typename FS::Par;
+  FSPar fspar;
+
   FieldCell<Scal> fc_mu_; // viscosity
   FieldCell<Scal> fc_rho_; // density
   FieldCell<Scal> fc_src_; // source
@@ -400,20 +403,14 @@ void Hydro<M>::Init() {
     // Init rho, mu and force based on volume fraction
     CalcMixture(fc_u);
 
+
+    auto& p = fspar;
+    // TODO: fill fspar
     // Init fluid solver
     fs_.reset(new FS(
-          m, fc_vel, 
-          mf_velcond_, mc_velcond, 
-          vrelax, prelax, rhie,
-          &fc_rho_, &fc_mu_, 
-          &fc_force_, &fc_stforce_, &ff_stforce_, 
-          &fc_src_, &fc_src_,
-          0., dt,
-          *p_lsf_, *p_lsf_,
-          tol_, max_iter, 
-          &timer_, 
-          so, false, false, 0., Vect(0)
-          ));
+          m, fc_vel, mf_velcond_, mc_velcond, 
+          &fc_rho_, &fc_mu_, &fc_force_, &fc_stforce_, &ff_stforce_, 
+          &fc_src_, &fc_src_, 0., dt, *p_lsf_, *p_lsf_, &timer_, &fspar));
 
     // Init advection solver
     as_.reset(new AS(
@@ -830,21 +827,21 @@ void Hydro<M>::Run() {
         fs_->MakeIteration();
       }
       if (sn("reduce")) {
-        diff_ = fs_->GetConvergenceIndicator();
+        diff_ = fs_->GetError();
         m.Reduce(&diff_, "max");
       }
       if (sn("report")) {
         ++st_.iter;
         if (IsRoot()) {
           std::cout << std::scientific << std::setprecision(16)
-              << ".....iter=" << fs_->GetIterationCount()
+              << ".....iter=" << fs_->GetIter()
               << ", diff=" << diff_ << std::endl;
           par.Int["iter"] = st_.iter;
         }
       }
       if (sn("convcheck")) {
-        assert(fs_->GetConvergenceIndicator() <= diff_);
-        auto it = fs_->GetIterationCount();
+        assert(fs_->GetError() <= diff_);
+        auto it = fs_->GetIter();
         if ((diff_ < tol_ && it >= par.Int["min_iter"]) ||
             it >= par.Int["max_iter"]) {
           sn.LoopBreak();
