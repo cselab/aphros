@@ -11,7 +11,7 @@
 #include "linear.hpp"
 #include <exception>
 #include "solver.hpp"
-#include "particle_system.hpp"
+//#include "particle_system.hpp"
 
 #include <fstream>
 
@@ -42,7 +42,7 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
   AdvectionSolver(double time, double time_step,
                   const VelocityField* p_f_velocity,
                   const geom::FieldCell<Scal>* p_fc_source)
-      : UnsteadyIterativeSolver(time, time_step, 1e-5, 1)
+      : UnsteadyIterativeSolver(time, time_step)
       , p_f_velocity_(p_f_velocity)
       , p_fc_source_(p_fc_source)
   {}
@@ -73,7 +73,7 @@ class AdvectionSolverMulti : public UnsteadyIterativeSolver {
                        const VelocityField* p_f_velocity,
                        const std::vector<const geom::FieldCell<Scal>*>&
                        v_p_fc_source)
-      : UnsteadyIterativeSolver(time, time_step, 1e-5, 1)
+      : UnsteadyIterativeSolver(time, time_step)
       , p_f_velocity_(p_f_velocity)
       , v_p_fc_source_(v_p_fc_source)
   {}
@@ -162,7 +162,7 @@ class AdvectionSolverImplicit :
     }
   }
   void StartStep() override {
-    this->ClearIterationCount();
+    this->ClearIter();
     fc_u_.iter_curr = fc_u_.time_curr;
   }
   geom::FieldFace<Scal> ConvertVolumeFlux(
@@ -242,7 +242,7 @@ class AdvectionSolverImplicit :
       curr[idxcell] += prev[idxcell];
     }
 
-    this->IncIterationCount();
+    this->IncIter();
   }
   void FinishStep() override {
     fc_u_.time_prev = fc_u_.time_curr;
@@ -250,7 +250,7 @@ class AdvectionSolverImplicit :
     this->IncTime();
   }
   double GetConvergenceIndicator() const {
-    if (this->GetIterationCount() == 0) {
+    if (this->GetIter() == 0) {
       return 1.;
     }
     return CalcDiff<geom::FieldCell<Scal>, Mesh>(
@@ -308,7 +308,7 @@ class AdvectionSolverExplicit :
     fc_u_.time_curr = fc_u_initial;
   }
   void StartStep() override {
-    this->ClearIterationCount();
+    this->ClearIter();
     fc_u_.time_prev = fc_u_.time_curr;
     fc_u_.iter_curr = fc_u_.time_prev;
   }
@@ -395,15 +395,15 @@ class AdvectionSolverExplicit :
       }
       mesh.Comm(&curr);
 
-      this->IncIterationCount();
+      this->IncIter();
     }
   }
   void FinishStep() override {
     fc_u_.time_curr = fc_u_.iter_curr;
     this->IncTime();
   }
-  double GetConvergenceIndicator() const override {
-    if (this->GetIterationCount() == 0) {
+  double GetError() const override {
+    if (this->GetError() == 0) {
       return 1.;
     }
     return CalcDiff<geom::FieldCell<Scal>, Mesh>(
@@ -465,7 +465,7 @@ class AdvectionSolverMultiExplicit :
 
   }
   void StartStep() override {
-    this->ClearIterationCount();
+    this->ClearIter();
     for (size_t field = 0; field < num_fields_; ++field) {
       v_fc_u_[field].time_prev = v_fc_u_[field].time_curr;
       v_fc_u_[field].iter_curr = v_fc_u_[field].time_prev;
@@ -575,7 +575,7 @@ class AdvectionSolverMultiExplicit :
       //  c = std::max(0., std::min(sharp_max_[field], c));
       //}
     }
-    this->IncIterationCount();
+    this->IncIter();
   }
   void FinishStep() override {
     for (size_t field = 0; field < num_fields_; ++field) {
@@ -584,7 +584,7 @@ class AdvectionSolverMultiExplicit :
     this->IncTime();
   }
   double GetConvergenceIndicator() const override {
-    if (this->GetIterationCount() == 0) {
+    if (this->GetIter() == 0) {
       return 1.;
     }
     return 0.;
@@ -646,6 +646,7 @@ class AdvectionSolverParticles :
 };
 */
 
+/*
 template <class Mesh, class VelocityField>
 class AdvectionSolverMultiParticles :
     public AdvectionSolverMulti<Mesh, VelocityField> {
@@ -702,7 +703,7 @@ class AdvectionSolverMultiParticles :
         back_relaxation_factor);
   }
   void StartStep() override {
-    this->ClearIterationCount();
+    this->ClearIter();
   }
   geom::FieldNode<Vect> GetVelocity(
       const geom::FieldFace<Scal>* p_f_velocity) {
@@ -779,7 +780,7 @@ class AdvectionSolverMultiParticles :
 
     particles_->CalcStep();
 
-    this->IncIterationCount();
+    this->IncIter();
   }
   void FinishStep() override {
     this->IncTime();
@@ -792,6 +793,7 @@ class AdvectionSolverMultiParticles :
   }
 };
 
+*/
 
 } // namespace solver
 

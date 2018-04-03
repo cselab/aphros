@@ -680,28 +680,28 @@ geom::FieldCell<typename Mesh::Vect> Gradient(
 }
 
 class UnsteadySolver {
-  double time_;
-  double time_step_;
+  double t_;
+  double dt_;
  public:
-  UnsteadySolver(double time, double time_step)
-      : time_(time)
-      , time_step_(time_step)
+  UnsteadySolver(double t, double dt)
+      : t_(t)
+      , dt_(dt)
   {}
   virtual ~UnsteadySolver() {}
   virtual double GetTime() const {
-    return time_;
+    return t_;
   }
-  virtual void SetTime(double time) {
-    time_  = time;
+  virtual void SetTime(double t) {
+    t_  = t;
   }
   virtual double GetTimeStep() const {
-    return time_step_;
+    return dt_;
   }
-  virtual void SetTimeStep(double time_step) {
-    time_step_ = time_step;
+  virtual void SetTimeStep(double dt) {
+    dt_ = dt;
   }
   virtual void IncTime() {
-    time_ += time_step_;
+    t_ += dt_;
   }
   virtual void StartStep() {}
   virtual void CalcStep() = 0;
@@ -711,57 +711,42 @@ class UnsteadySolver {
 };
 
 class UnsteadyIterativeSolver : public UnsteadySolver {
-  size_t iteration_count_;
-  double convergence_tolerance_;
-  size_t num_iterations_limit_;
+  size_t iter_;
 
  protected:
-  void IncIterationCount() {
-    ++iteration_count_;
+  void IncIter() {
+    ++iter_;
   }
-  void ClearIterationCount() {
-    iteration_count_ = 0;
+  void ClearIter() {
+    iter_ = 0;
   }
 
  public:
-  UnsteadyIterativeSolver(double time, double time_step,
-                          double convergence_tolerance,
-                          size_t num_iterations_limit)
-      : UnsteadySolver(time, time_step)
-      , iteration_count_(0)
-      , convergence_tolerance_(convergence_tolerance)
-      , num_iterations_limit_(num_iterations_limit)
+  UnsteadyIterativeSolver(double t, double dt)
+      : UnsteadySolver(t, dt)
+      , iter_(0)
   {}
   virtual void MakeIteration() = 0;
-  virtual bool IsConverged() const {
-    return this->GetIterationCount() >= num_iterations_limit_ ||
-        GetConvergenceIndicator() < convergence_tolerance_;
-  }
-  virtual double GetConvergenceIndicator() const {
+  virtual double GetError() const {
     return 0.;
   }
-  virtual size_t GetIterationCount() const {
-    return iteration_count_;
+  virtual size_t GetIter() const {
+    return iter_;
   }
   virtual void StartStep() override {
-    ClearIterationCount();
-  }
-  virtual void CalcStep() override {
-    while (!IsConverged()) {
-      MakeIteration();
-    }
+    ClearIter();
   }
 };
 
+// Between StartStep() and FinishStep():
+//   iter_curr -- last iteration of next step
+//   iter_prev -- previous iteration of next step
+//   time_curr -- current step
+//   time_prev -- previous step
 // After FinishStep() call:
 //   iter_curr, iter_prev -- undefined
-//   time_curr -- latest state (n)
-//   time_prev -- previous state (n-1)
-// Between StartStep() and FinishStep():
-//   iter_curr -- latest iteration having been calculated (n+1, s)
-//   iter_prev -- previous iteration (n+1, s-1)
-//   time_curr -- preceding the state being calculated (n)
-//   time_prev -- previous state (n-1)
+//   time_curr -- current step
+//   time_prev -- previous step
 enum class Layers { time_curr, time_prev, iter_curr, iter_prev };
 
 template <class T>

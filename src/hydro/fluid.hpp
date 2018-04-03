@@ -13,8 +13,6 @@
 
 namespace solver {
 
-// TODO: Pass parameters as constructor arguments
-
 template <class Mesh>
 class ConvectionDiffusion : public UnsteadyIterativeSolver {
   using Scal = typename Mesh::Scal;
@@ -24,7 +22,8 @@ class ConvectionDiffusion : public UnsteadyIterativeSolver {
 
  protected:
   geom::FieldCell<Scal>* p_fc_density_;
-  geom::FieldFace<Scal>* p_ff_kinematic_viscosity_; // adhoc: dynamic viscosity
+  // TODO: rename to dynamic viscosity
+  geom::FieldFace<Scal>* p_ff_kinematic_viscosity_; 
   geom::FieldCell<Vect>* p_fc_force_;
   geom::FieldFace<Scal>* p_ff_vol_flux_;
 
@@ -33,11 +32,9 @@ class ConvectionDiffusion : public UnsteadyIterativeSolver {
                       geom::FieldCell<Scal>* p_fc_density,
                       geom::FieldFace<Scal>* p_ff_kinematic_viscosity,
                       geom::FieldCell<Vect>* p_fc_force,
-                      geom::FieldFace<Scal>* p_ff_vol_flux,
-                      double convergence_tolerance,
-                      size_t num_iterations_limit)
-      : UnsteadyIterativeSolver(time, time_step, convergence_tolerance,
-                                num_iterations_limit)
+                      geom::FieldFace<Scal>* p_ff_vol_flux
+                      )
+      : UnsteadyIterativeSolver(time, time_step)
       , p_fc_density_(p_fc_density)
       , p_ff_kinematic_viscosity_(p_ff_kinematic_viscosity)
       , p_fc_force_(p_fc_force)
@@ -78,6 +75,8 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
   v_fc_force_;
 
  public:
+  using Par = typename Solver::Par;
+  Par* par;
   void CopyToVector(Layers layer) {
     fc_velocity_.Get(layer).Reinit(mesh);
     for (size_t n = 0; n < dim; ++n) {
@@ -91,25 +90,19 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
       mf_velocity_cond,
       const geom::MapCell<std::shared_ptr<ConditionCell>>&
       mc_velocity_cond,
-      Scal relaxation_factor,
       geom::FieldCell<Scal>* p_fc_density,
       geom::FieldFace<Scal>* p_ff_kinematic_viscosity,
       geom::FieldCell<Vect>* p_fc_force,
-    geom::FieldFace<Scal>* p_ff_vol_flux,
-    double time, double time_step,
-    const LinearSolverFactory& linear_factory,
-    double convergence_tolerance,
-    size_t num_iterations_limit,
-    bool time_second_order = true,
-    Scal guess_extrapolation = 0.)
-    : ConvectionDiffusion<Mesh>(
-        time, time_step, p_fc_density, p_ff_kinematic_viscosity, p_fc_force,
-        p_ff_vol_flux,
-          convergence_tolerance, num_iterations_limit)
+      geom::FieldFace<Scal>* p_ff_vol_flux,
+      double t, double dt, Par* par)
+      : ConvectionDiffusion<Mesh>(t, dt, p_fc_density, 
+                                  p_ff_kinematic_viscosity, 
+                                  p_fc_force, p_ff_vol_flux)
       , mesh(mesh)
       , mf_velocity_cond_(mf_velocity_cond)
       , mc_velocity_cond_(mc_velocity_cond)
       , p_fc_force_(p_fc_force)
+      , par(par)
   {
     for (size_t n = 0; n < dim; ++n) {
       // Boundary conditions for each velocity component
@@ -129,13 +122,12 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
 
       // Initialize solver
       v_solver_[n] = std::make_shared<Solver>(
-          mesh, GetComponent(fc_velocity_initial, n),
+          mesh, 
+          GetComponent(fc_velocity_initial, n),
           v_mf_velocity_cond_[n],
-          geom::MapCell<std::shared_ptr<ConditionCell>>() /*empty*/,
-          relaxation_factor, p_fc_density, p_ff_kinematic_viscosity,
-          &(v_fc_force_[n]), p_ff_vol_flux, time, time_step,
-          linear_factory, convergence_tolerance,
-          num_iterations_limit, time_second_order, guess_extrapolation);
+          geom::MapCell<std::shared_ptr<ConditionCell>>() /*TODO empty*/,
+          p_fc_density, p_ff_kinematic_viscosity,
+          &(v_fc_force_[n]), p_ff_vol_flux, t, dt, par);
     }
     CopyToVector(Layers::time_curr);
     CopyToVector(Layers::time_prev);
@@ -152,7 +144,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
     }
     if (sem("tovect")) {
       CopyToVector(Layers::iter_curr);
-      this->ClearIterationCount();
+      this->ClearIter();
     }
   }
   void MakeIteration() override {
@@ -172,7 +164,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
     if (sem("tovect")) {
       CopyToVector(Layers::iter_prev);
       CopyToVector(Layers::iter_curr);
-      this->IncIterationCount();
+      this->IncIter();
     }
   }
   void FinishStep() override {
@@ -189,8 +181,8 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
       this->IncTime();
     }
   }
-  double GetConvergenceIndicator() const override {
-    if (this->GetIterationCount() == 0) {
+  double GetError() const override {
+    if (this->GetIter() == 0) {
       return 1.;
     }
     return CalcDiff(fc_velocity_.iter_curr, fc_velocity_.iter_prev, mesh);
@@ -241,18 +233,15 @@ class FluidSolver : public UnsteadyIterativeSolver {
 
  public:
   FluidSolver(double time, double time_step,
-                      geom::FieldCell<Scal>* p_fc_density,
-                      geom::FieldCell<Scal>* p_fc_viscosity,
-                      geom::FieldCell<Vect>* p_fc_force,
-                      geom::FieldCell<Vect>* p_fc_stforce,
-                      geom::FieldFace<Vect>* p_ff_stforce,
-                      geom::FieldCell<Scal>* p_fc_volume_source,
-                      geom::FieldCell<Scal>* p_fc_mass_source,
-                      double convergence_tolerance,
-                      size_t num_iterations_limit,
-                      Vect meshvel)
-      : UnsteadyIterativeSolver(time, time_step,
-                                convergence_tolerance, num_iterations_limit)
+              geom::FieldCell<Scal>* p_fc_density,
+              geom::FieldCell<Scal>* p_fc_viscosity,
+              geom::FieldCell<Vect>* p_fc_force,
+              geom::FieldCell<Vect>* p_fc_stforce,
+              geom::FieldFace<Vect>* p_ff_stforce,
+              geom::FieldCell<Scal>* p_fc_volume_source,
+              geom::FieldCell<Scal>* p_fc_mass_source,
+              Vect meshvel)
+      : UnsteadyIterativeSolver(time, time_step)
       , p_fc_density_(p_fc_density)
       , p_fc_viscosity_(p_fc_viscosity)
       , p_fc_force_(p_fc_force)
@@ -435,8 +424,6 @@ std::shared_ptr<ConditionFaceFluid> Parse(std::string argstr,
 }
 
 
-// TODO: Second order time step
-// TODO: Extrapolation for first iteration
 template <class Mesh>
 class FluidSimple : public FluidSolver<Mesh> {
   Mesh& mesh;
@@ -449,11 +436,10 @@ class FluidSimple : public FluidSolver<Mesh> {
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
   geom::FieldCell<Vect> fc_force_;
-  Scal velocity_relaxation_factor_;
-  Scal pressure_relaxation_factor_;
-  Scal rhie_chow_factor_;
   LayersData<geom::FieldFace<Scal>> ff_vol_flux_;
-  std::shared_ptr<ConvectionDiffusionImplicit<Mesh>> conv_diff_solver_;
+  using CD = ConvectionDiffusionImplicit<Mesh>;
+  std::shared_ptr<CD> conv_diff_solver_;
+  using CDPar = typename CD::Par;
 
   LayersData<geom::FieldCell<Scal>> fc_pressure_;
   geom::FieldCell<Scal> fc_kinematic_viscosity_;
@@ -480,8 +466,6 @@ class FluidSimple : public FluidSolver<Mesh> {
   geom::MapCell<std::shared_ptr<ConditionCellFluid>> mc_cond_;
   geom::MapCell<std::shared_ptr<ConditionCell>> mc_pressure_cond_;
   geom::MapCell<std::shared_ptr<ConditionCell>> mc_velocity_cond_;
-
-  std::shared_ptr<LinearSolver<Scal, IdxCell, Expr>> linear_;
 
   geom::FieldFace<bool> is_boundary_;
 
@@ -513,10 +497,7 @@ class FluidSimple : public FluidSolver<Mesh> {
   std::vector<Scal> lsa_, lsb_, lsx_;
 
   MultiTimer<std::string>* timer_;
-  bool time_second_order_;
-  bool simpler_;
-  bool force_geometric_average_;
-  Scal guess_extrapolation_;
+  CDPar cdpar;
 
   // TODO: somhow track dependencies to define execution order
   void UpdateDerivedConditions() {
@@ -634,11 +615,9 @@ class FluidSimple : public FluidSolver<Mesh> {
     timer_->Push("fluid.1.force-correction");
     // Interpolate force to faces (considered as given force)
     ff_ext_force_ = Interpolate(
-        *this->p_fc_force_, mf_force_cond_, mesh,
-        force_geometric_average_);
+        *this->p_fc_force_, mf_force_cond_, mesh, par->forcegeom);
     ff_stforce_restored_ = Interpolate(
-        *this->p_fc_stforce_, mf_force_cond_, mesh,
-        force_geometric_average_);
+        *this->p_fc_stforce_, mf_force_cond_, mesh, par->forcegeom);
     fc_ext_force_restored_.Reinit(mesh);
 
     for (auto idxcell : mesh.SuCells()) {
@@ -653,8 +632,7 @@ class FluidSimple : public FluidSolver<Mesh> {
     }
     // Interpolated restored force to faces (needed later)
     ff_ext_force_restored_ = Interpolate(
-        fc_ext_force_restored_, mf_force_cond_, mesh,
-        force_geometric_average_);
+        fc_ext_force_restored_, mf_force_cond_, mesh, par->forcegeom);
     timer_->Pop();
   }
   void CalcKinematicViscosity() {
@@ -664,11 +642,23 @@ class FluidSimple : public FluidSolver<Mesh> {
           (*this->p_fc_viscosity_)[idxcell];
     }
     ff_kinematic_viscosity_ = Interpolate(
-        fc_kinematic_viscosity_, mf_viscosity_cond_, mesh,
-        force_geometric_average_);
+        fc_kinematic_viscosity_, mf_viscosity_cond_, mesh, par->forcegeom);
   }
 
  public:
+  struct Par {
+    Scal vrelax;   // velocity relaxation factor [0,1]
+    Scal prelax;   // pressure relaxation factor [0,1]
+    Scal rhie;     // Rhie-Chow factor [0,1] (0 disable, 1 full)
+    bool second = false; // second order in time
+    bool simpler = false; // Use SIMPLER  TODO: implement SIMPLER
+    bool force_geometric_average = false;
+    Scal guessextra = 0;  // next iteration extrapolation weight [0,1]
+    Vect meshvel = 0;  // relative mesh velocity
+    bool forcegeom = false; // geometric average for force
+  };
+  Par* par;
+  void Update(CDPar& cdpar, const Par& par);
   // TODO: Add Comm for initial fields or require taht from user.
   FluidSimple(Mesh& mesh,
               const geom::FieldCell<Vect>& fc_velocity_initial,
@@ -676,9 +666,6 @@ class FluidSimple : public FluidSolver<Mesh> {
               mf_cond,
               const geom::MapCell<std::shared_ptr<ConditionCellFluid>>&
               mc_cond,
-              Scal velocity_relaxation_factor,
-              Scal pressure_relaxation_factor,
-              Scal rhie_chow_factor,
               geom::FieldCell<Scal>* p_fc_density,
               geom::FieldCell<Scal>* p_fc_viscosity,
               geom::FieldCell<Vect>* p_fc_force,
@@ -687,37 +674,21 @@ class FluidSimple : public FluidSolver<Mesh> {
               geom::FieldCell<Scal>* p_fc_volume_source,
               geom::FieldCell<Scal>* p_fc_mass_source,
               double time, double time_step,
-              const LinearSolverFactory& linear_factory_velocity,
-              const LinearSolverFactory& linear_factory_pressure,
-              double convergence_tolerance,
-              size_t num_iterations_limit,
               MultiTimer<std::string>* timer,
-              bool time_second_order,
-              bool simpler,
-              bool force_geometric_average,
-              Scal guess_extrapolation = 0.,
-              Vect meshvel=0)
+              Par* par
+              )
       : FluidSolver<Mesh>(time, time_step, p_fc_density, p_fc_viscosity,
                     p_fc_force, p_fc_stforce, p_ff_stforce,
-                    p_fc_volume_source, p_fc_mass_source,
-                    convergence_tolerance, num_iterations_limit, meshvel)
+                    p_fc_volume_source, p_fc_mass_source, par->meshvel)
       , mesh(mesh)
       , fc_force_(mesh)
-      , velocity_relaxation_factor_(velocity_relaxation_factor)
-      , pressure_relaxation_factor_(pressure_relaxation_factor)
-      , rhie_chow_factor_(rhie_chow_factor)
       , mf_cond_(mf_cond)
       , mc_cond_(mc_cond)
       , ff_volume_flux_corr_(mesh)
       , fc_pressure_corr_system_(mesh)
       , timer_(timer)
-      , time_second_order_(time_second_order)
-      , simpler_(simpler)
-      , force_geometric_average_(force_geometric_average)
-      , guess_extrapolation_(guess_extrapolation)
+      , par(par)
   {
-    linear_ = linear_factory_pressure.Create<Scal, IdxCell, Expr>();
-
     using namespace fluid_condition;
 
     is_boundary_.Reinit(mesh, false);
@@ -783,17 +754,15 @@ class FluidSimple : public FluidSolver<Mesh> {
       }
     }
 
+    Update(cdpar, *par);
+
     conv_diff_solver_ = std::make_shared<
         ConvectionDiffusionImplicit<Mesh>>(
             mesh, fc_velocity_initial,
             mf_velocity_cond_, mc_velocity_cond_,
-            velocity_relaxation_factor_,
-            p_fc_density, &ff_kinematic_viscosity_, &fc_force_,
-            &ff_vol_flux_.iter_prev,
-            time, time_step,
-            linear_factory_velocity,
-            convergence_tolerance, num_iterations_limit,
-            time_second_order_, guess_extrapolation_);
+            p_fc_density, &ff_kinematic_viscosity_, 
+            &fc_force_, &ff_vol_flux_.iter_prev,
+            time, time_step, &cdpar);
 
     fc_pressure_.time_curr.Reinit(mesh, 0.);
     fc_pressure_.time_prev = fc_pressure_.time_curr;
@@ -824,7 +793,7 @@ class FluidSimple : public FluidSolver<Mesh> {
   void StartStep() override {
     auto sem = mesh.GetSem("fluid-start");
     if (sem("convdiff-init")) {
-      this->ClearIterationCount();
+      this->ClearIter();
       if (IsNan(fc_pressure_.time_curr)) {
         throw std::runtime_error("NaN initial pressure");
       }
@@ -838,15 +807,18 @@ class FluidSimple : public FluidSolver<Mesh> {
     if (sem("convdiff-start")) {
       fc_pressure_.iter_curr = fc_pressure_.time_curr;
       ff_vol_flux_.iter_curr = ff_vol_flux_.time_curr;
-      for (auto idxcell : mesh.SuCells()) {
-        fc_pressure_.iter_curr[idxcell] +=
-            (fc_pressure_.time_curr[idxcell] - fc_pressure_.time_prev[idxcell]) *
-            guess_extrapolation_;
-      }
-      for (auto idxface : mesh.Faces()) {
-        ff_vol_flux_.iter_curr[idxface] +=
-            (ff_vol_flux_.time_curr[idxface] - ff_vol_flux_.time_prev[idxface]) *
-            guess_extrapolation_;
+      const Scal ge = par->guessextra;
+      if (ge != 0.) {
+        for (auto idxcell : mesh.SuCells()) {
+          fc_pressure_.iter_curr[idxcell] +=
+              (fc_pressure_.time_curr[idxcell] - 
+               fc_pressure_.time_prev[idxcell]) * ge;
+        }
+        for (auto idxface : mesh.Faces()) {
+          ff_vol_flux_.iter_curr[idxface] +=
+              (ff_vol_flux_.time_curr[idxface] - 
+               ff_vol_flux_.time_prev[idxface]) * ge;
+        }
       }
     }
   }
@@ -863,6 +835,7 @@ class FluidSimple : public FluidSolver<Mesh> {
     }
 
     if (sem("pgrad")) {
+      Update(cdpar, *par);
       UpdateDerivedConditions();
       fc_pressure_prev = fc_pressure_curr;
       ff_vol_flux_.iter_prev = ff_vol_flux_.iter_curr;
@@ -960,6 +933,7 @@ class FluidSimple : public FluidSolver<Mesh> {
       // TODO: Extend hydrostatics-correction on a non-uniform mesh
       timer_->Push("fluid.3.momentum-interpolation");
       ff_volume_flux_asterisk_.Reinit(mesh);
+      const Scal rh = par->rhie;
       for (auto idxface : mesh.Faces()) {
         const auto volume_flux_interpolated =
             ff_velocity_asterisk_[idxface].dot(mesh.GetSurface(idxface));
@@ -982,7 +956,7 @@ class FluidSimple : public FluidSolver<Mesh> {
           //     ff_velocity_iter_prev_[idxface].dot(mesh.GetSurface(idxface)));
           ff_volume_flux_asterisk_[idxface] =
               volume_flux_interpolated +
-              rhie_chow_factor_ * (pressure_surface_derivative_wide -
+              rh * (pressure_surface_derivative_wide -
               pressure_surface_derivative_compact) / ff_diag_coeff_[idxface] +
               0; //mmim; // TODO: Test MMIM
         } else {
@@ -1087,9 +1061,10 @@ class FluidSimple : public FluidSolver<Mesh> {
 
     if (sem("pcorr-apply")) {
       // Correct pressure
+      Scal pr = par->prelax;
       for (auto idxcell : mesh.Cells()) {
         fc_pressure_curr[idxcell] = fc_pressure_prev[idxcell] +
-            pressure_relaxation_factor_ * fc_pressure_corr_[idxcell];
+            pr * fc_pressure_corr_[idxcell];
       }
       m.Comm(&fc_pressure_curr);
 
@@ -1123,7 +1098,7 @@ class FluidSimple : public FluidSolver<Mesh> {
 
       // TODO: SIMPLER removed
 
-      this->IncIterationCount();
+      this->IncIter();
       // m.Comm(&fc_velocity_curr);  // Comm done by CorrectVelocity
     }
   }
@@ -1143,8 +1118,8 @@ class FluidSimple : public FluidSolver<Mesh> {
       conv_diff_solver_->FinishStep();
     }
   }
-  double GetConvergenceIndicator() const override {
-    return conv_diff_solver_->GetConvergenceIndicator();
+  double GetError() const override {
+    return conv_diff_solver_->GetError();
   }
   const geom::FieldCell<Vect>& GetVelocity() override {
     return conv_diff_solver_->GetVelocity();
@@ -1180,6 +1155,13 @@ class FluidSimple : public FluidSolver<Mesh> {
   }
 };
 
+template <class Mesh>
+void FluidSimple<Mesh>::Update(CDPar& d, const Par& p) {
+  // Update convdiff parameters
+  d.relax = p.vrelax;
+  d.guessextra = p.guessextra;
+  d.second = p.second;
+}
 
 } // namespace solver
 
