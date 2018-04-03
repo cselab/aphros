@@ -622,19 +622,27 @@ void Hydro<M>::ParseEvents() {
 // vf_init zero|list
 template <class M>
 void Hydro<M>::ExecEvents() {
-  for (auto it : ev_) {
-    auto& e = it.second;
+  for (auto it = ev_.begin(); it != ev_.end();) {
+    auto& e = it->second;
     std::string c = e.cmd;
     std::string a = e.arg;
-    if (c == "echo") {
-      if (IsRoot()) {
-        std::cout << a << std::endl;
+
+    if (st_.t >= e.t) {
+      if (c == "echo") {
+        if (IsRoot()) {
+          std::cout << a << std::endl;
+        }
+      } else {
+        throw std::runtime_error("ExecEvents(): Unknown command '" + c + "'");
       }
+      it = ev_.erase(it);
     } else {
-      throw std::runtime_error("ExecEvents(): Unknown command '" + c + "'");
+      ++it;
     }
   }
 }
+
+//std::cout << "SK" << it->first << " " << e.t << " " << e.cmd << std::endl;
 
 template <class M>
 void Hydro<M>::Clip(const FieldCell<Scal>& f, Scal a, Scal b) {
