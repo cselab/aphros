@@ -173,7 +173,7 @@ class Interp : public Timer {
     for (auto i : m.Faces()) {
       if (bf.GetMIdx(i)[0] == 0 && bf.GetDir(i) == Dir::i) {
         mfc[i] = std::make_shared<solver::
-            ConditionFaceDerivativeFixed<Scal>>(0);
+            ConditionFaceDerivativeFixed<Scal>>(0, 1);
       }
     }
     assert(mfc.size() > 0);
