@@ -25,6 +25,7 @@
 #include "Kernel.h"
 #include "KernelMesh.h"
 #include "Vars.h"
+#include "Interp.h"
 
 
 template <class M>
@@ -631,6 +632,11 @@ void Hydro<M>::ExecEvents() {
       if (c == "echo") {
         if (IsRoot()) {
           std::cout << a << std::endl;
+        }
+      } else if (c == "set") {
+        Interp p(par);
+        if (IsLead()) {
+          p.Run(c + " " + a);
         }
       } else {
         throw std::runtime_error("ExecEvents(): Unknown command '" + c + "'");

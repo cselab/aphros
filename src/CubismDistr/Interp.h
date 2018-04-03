@@ -8,10 +8,12 @@
 class Interp {
  public:
   Interp(Vars& v);
-  // Executes single line 
-  void RunNext(std::istream& in); 
-  // Executes all lines 
-  void RunAll(std::istream& in); 
+  // Executes single command
+  void Run(std::string); 
+  // Executes single line from stream
+  void RunNext(std::istream&); 
+  // Executes all lines from stream
+  void RunAll(std::istream&); 
   // Prints content of Map
   template <class T>
   static void Print(Vars::Map<T>& m, std::ostream& out); 
@@ -23,13 +25,13 @@ class Interp {
  private:
   static std::string RemoveComment(std::string s);
   // Executes single command
-  void Cmd(std::string s);
+  void Cmd(std::string);
   // set <type> <key> <value>
-  void CmdSet(std::string s);
+  void CmdSet(std::string);
   // del <name>
-  void CmdDel(std::string s); 
+  void CmdDel(std::string); 
   // include <filename>
-  void CmdInclude(std::string s); 
+  void CmdInclude(std::string); 
 
   Vars& v_;
 };
