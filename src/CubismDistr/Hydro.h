@@ -721,6 +721,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 
       // surface tension in cells
       auto sig = par.Double["sigma"];
+      auto stdiag = par.Double["stdiag"];
       auto gf = solver::Interpolate(gc, mfvz, m);
       for (auto c : m.Cells()) {
         Vect r(0); // result
@@ -729,11 +730,10 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           auto g = gf[f];
           auto n = g / (g.norm() + 1e-6); // TODO: revise 1e-6
           auto s = m.GetOutwardSurface(c, e);
-          r += g * s.dot(n);
-          r -= s * g.norm();
+          r += s * (g.norm() * stdiag) - g * s.dot(n);
         }
         r /= m.GetVolume(c);     // div(gg/|g|) - div(|g|I)
-        fc_stforce_[c] = r * (-sig);
+        fc_stforce_[c] = r * sig;
       }
     }
   }
