@@ -399,6 +399,8 @@ void Hydro<M>::Init() {
     p.vrelax = par.Double["vrelax"];
     p.rhie = par.Double["rhie"];
     p.second = par.Int["second_order"];
+    // TODO: add check for inletflux_numid
+    p.inletflux_numid = par.Int["inletflux_numid"];
 
     fs_.reset(new FS(
           m, fc_vel_, mf_velcond_, mc_velcond, 
