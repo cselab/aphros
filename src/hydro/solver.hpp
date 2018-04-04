@@ -641,7 +641,7 @@ template <class T, class Mesh>
 void Smoothen(
     geom::FieldCell<T>& fc,
     const geom::MapFace<std::shared_ptr<ConditionFace>>& mf_cond,
-    const Mesh& m, size_t rep) {
+    Mesh& m, size_t rep) {
   auto sem = m.GetSem("smoothen");
   for (size_t i = 0; i < rep; ++i) {
     if (sem()) {
