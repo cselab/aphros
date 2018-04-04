@@ -638,28 +638,17 @@ geom::FieldCell<T> Average(const geom::FieldFace<T>& ff_u, const Mesh& mesh) {
 }
 
 template <class T, class Mesh>
-geom::FieldCell<T>
-GetSmoothField(const geom::FieldCell<T>& fc_u,
-            const Mesh& mesh, size_t repeat = 1) {
-  geom::MapFace<std::shared_ptr<ConditionFace>> mf_cond;
-
-// TODO: fix bc (currently relies on comm)
-/*
-  for (auto idxface : mesh.Faces()) {
-    if (!mesh.IsExcluded(idxface) && !mesh.IsInner(idxface)) {
-      mf_cond[idxface] =
-          std::make_shared<ConditionFaceDerivativeFixed<T>>(T(0));
+void Smoothen(
+    geom::FieldCell<T>& fc,
+    const geom::MapFace<std::shared_ptr<ConditionFace>>& mf_cond,
+    const Mesh& m, size_t rep) {
+  auto sem = m.GetSem("smoothen");
+  for (size_t i = 0; i < rep; ++i) {
+    if (sem()) {
+      fc = Average(Interpolate(fc, mf_cond, m), m);
+      m.Comm(&fc);
     }
   }
-*/
-
-  geom::FieldCell<T> res = fc_u;
-
-  for (size_t i = 0; i < repeat; ++i) {
-    res = Average(Interpolate(res, mf_cond, mesh), mesh);
-  }
-
-  return res;
 }
 
 template <class Mesh>
