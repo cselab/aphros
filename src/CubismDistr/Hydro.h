@@ -134,6 +134,118 @@ template <class M>
 void Hydro<M>::Init() {
   auto sem = m.GetSem("init");
   if (sem("pfixed-reduce")) {
+    // Find cell nearest to pfixed_x
+    Vect x(par.Vect["pfixed_x"]);
+    IdxCell c = m.FindNearestCell(x);
+    // TODO: add reduce minloc and remove .norm()
+    pdist_ = m.GetCenter(c).dist(x) + MIdx(bi_.index).norm() * 1e-12;
+    pdistmin_ = pdist_;
+    m.Reduce(&pdistmin_, "min");
+  }
+
+  if (sem("fields")) {
+    fc_stforce_.Reinit(m, Vect(0));
+    ff_stforce_.Reinit(m, Vect(0));
+    fc_src_.Reinit(m, 0.);
+
+    // initial volume fraction
+    fc_vf_.Reinit(m, 0);
+    {
+      const std::string vi = par.String["vf_init"];
+      if (vi == "sin") {
+        Vect k;
+        if (auto p = par.Vect("sin_k")) {
+          k = Vect(*p);
+        } else {
+          k = Vect(2. * M_PI);
+        }
+
+        for (auto i : m.AllCells()) {
+          Vect z = m.GetCenter(i) * k;
+          fc_vf_[i] = std::sin(z[0]) * std::sin(z[1]) * std::sin(z[2]);
+        }
+      } else if (vi == "circle") {
+        const Vect c(par.Vect["circle_c"]);
+        const Scal r(par.Double["circle_r"]);
+        for (auto i : m.AllCells()) {
+          Vect x = m.GetCenter(i);
+          fc_vf_[i] = (c.dist(x) < r ? 1. : 0.);
+        }
+      } else if (vi == "list" ) {
+        std::string fn = par.String["list_path"];
+        struct P {
+          Vect c;
+          Scal r;
+        };
+        std::vector<P> pp;
+        std::ifstream f(fn);
+        if (!f.good()) {
+          throw std::runtime_error("Can't open particle list '" + fn + "'");
+        }
+        // Read until eof
+        while (true) {
+          P p;
+          // Read single particle: x y z r
+          f >> p.c[0] >> p.c[1] >> p.c[2] >> p.r;
+          if (f.good()) {
+            pp.push_back(p);
+          } else {
+            break;
+          }
+        }
+        if (IsRoot()) {
+          std::cerr << "Read " 
+            << pp.size() << " particles from " 
+            << "'" << fn << "'" << std::endl;
+        }
+        // Set volume fraction to 1 inside particles
+        for (auto p : pp) {
+          for (auto i : m.AllCells()) {
+            Vect x = m.GetCenter(i);
+            if (p.c.dist(x) <= p.r) {
+              fc_vf_[i] = 1.;
+            }
+          }
+        }
+      } else if (vi == "zero" ) {
+        // nop
+      } else {
+        throw std::runtime_error("Init(): unknown vf_init=" + vi);
+      }
+    }
+
+    // initial velocity
+    fc_vel_.Reinit(m, Vect(0));
+    {
+      const std::string vi = par.String["vel_init"];
+      if (vi == "taylor-green") {
+        for (auto i : m.AllCells()) {
+          auto& u = fc_vel_[i][0];
+          auto& v = fc_vel_[i][1];
+          Scal l = (2 * M_PI);
+          Scal x = m.GetCenter(i)[0] * l;
+          Scal y = m.GetCenter(i)[1] * l;
+          u = std::cos(x) * std::sin(y);
+          v = -std::sin(x) * std::cos(y);
+        }
+      } else if (vi == "pois") {
+        Scal pv = par.Double["poisvel"];
+        for (auto i : m.AllCells()) {
+          Vect x = m.GetCenter(i);
+          fc_vel_[i][0] = x[1] * (1. - x[1]) * 4. * pv;
+        }
+      } else if (vi == "uniform" ) {
+        Vect v(par.Vect["vel"]);
+        for (auto i : m.AllCells()) {
+          fc_vel_[i] = v;
+        }
+      } else if (vi == "zero" ) {
+        // nop
+      } else  {
+        throw std::runtime_error("Init(): unknown vel_init=" + vi);
+      }
+    }
+
     st_.iter = 0;
     par.Int.Set("iter", st_.iter);
 
@@ -244,120 +356,6 @@ void Hydro<M>::Init() {
           break;
         }
         ++n;
-      }
-    }
-
-    // Find cell nearest to pfixed_x
-    {
-      Vect x(par.Vect["pfixed_x"]);
-      IdxCell c = m.FindNearestCell(x);
-      // TODO: add reduce minloc and remove .norm()
-      pdist_ = m.GetCenter(c).dist(x) + MIdx(bi_.index).norm() * 1e-12;
-      pdistmin_ = pdist_;
-      m.Reduce(&pdistmin_, "min");
-    }
-  }
-
-  if (sem("fields")) {
-    fc_stforce_.Reinit(m, Vect(0));
-    ff_stforce_.Reinit(m, Vect(0));
-    fc_src_.Reinit(m, 0.);
-
-    // initial volume fraction
-    fc_vf_.Reinit(m, 0);
-    {
-      const std::string vi = par.String["vf_init"];
-      if (vi == "sin") {
-        Vect k;
-        if (auto p = par.Vect("sin_k")) {
-          k = Vect(*p);
-        } else {
-          k = Vect(2. * M_PI);
-        }
-
-        for (auto i : m.AllCells()) {
-          Vect z = m.GetCenter(i) * k;
-          fc_vf_[i] = std::sin(z[0]) * std::sin(z[1]) * std::sin(z[2]);
-        }
-      } else if (vi == "circle") {
-        const Vect c(par.Vect["circle_c"]);
-        const Scal r(par.Double["circle_r"]);
-        for (auto i : m.AllCells()) {
-          Vect x = m.GetCenter(i);
-          fc_vf_[i] = (c.dist(x) < r ? 1. : 0.);
-        }
-      } else if (vi == "list" ) {
-        std::string fn = par.String["list_path"];
-        struct P {
-          Vect c;
-          Scal r;
-        };
-        std::vector<P> pp;
-        std::ifstream f(fn);
-        if (!f.good()) {
-          throw std::runtime_error("Can't open particle list '" + fn + "'");
-        }
-        // Read until eof
-        while (true) {
-          P p;
-          // Read single particle: x y z r
-          f >> p.c[0] >> p.c[1] >> p.c[2] >> p.r;
-          if (f.good()) {
-            pp.push_back(p);
-          } else {
-            break;
-          }
-        }
-        if (IsRoot()) {
-          std::cerr << "Read " 
-            << pp.size() << " particles from " 
-            << "'" << fn << "'" << std::endl;
-        }
-        // Set volume fraction to 1 inside particles
-        for (auto p : pp) {
-          for (auto i : m.AllCells()) {
-            Vect x = m.GetCenter(i);
-            if (p.c.dist(x) <= p.r) {
-              fc_vf_[i] = 1.;
-            }
-          }
-        }
-      } else if (vi == "zero" ) {
-        // nop
-      } else {
-        throw std::runtime_error("Init(): unknown vf_init=" + vi);
-      }
-    }
-
-    // initial velocity
-    fc_vel_.Reinit(m, Vect(0));
-    {
-      const std::string vi = par.String["vel_init"];
-      if (vi == "taylor-green") {
-        for (auto i : m.AllCells()) {
-          auto& u = fc_vel_[i][0];
-          auto& v = fc_vel_[i][1];
-          Scal l = (2 * M_PI);
-          Scal x = m.GetCenter(i)[0] * l;
-          Scal y = m.GetCenter(i)[1] * l;
-          u = std::cos(x) * std::sin(y);
-          v = -std::sin(x) * std::cos(y);
-        }
-      } else if (vi == "pois") {
-        Scal pv = par.Double["poisvel"];
-        for (auto i : m.AllCells()) {
-          Vect x = m.GetCenter(i);
-          fc_vel_[i][0] = x[1] * (1. - x[1]) * 4. * pv;
-        }
-      } else if (vi == "uniform" ) {
-        Vect v(par.Vect["vel"]);
-        for (auto i : m.AllCells()) {
-          fc_vel_[i] = v;
-        }
-      } else if (vi == "zero" ) {
-        // nop
-      } else  {
-        throw std::runtime_error("Init(): unknown vel_init=" + vi);
       }
     }
   }
