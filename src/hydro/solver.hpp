@@ -288,7 +288,7 @@ class InterpolationBoundaryFaceNearestCell:
         expr.SetConstant(cond_value->GetValue());
       } else if (auto cond_derivative =
           dynamic_cast<ConditionFaceDerivative<Scal>*>(cond_generic->get())) {
-        size_t id = mesh.GetValidNeighbourCellId(idxface);
+        size_t id = cond_derivative->GetNci();
         IdxCell cc = mesh.GetNeighbourCell(idxface, id);
         Scal factor = (id == 0 ? 1. : -1.);
         Scal alpha = mesh.GetVectToCell(idxface, id).norm() * factor;
@@ -352,7 +352,7 @@ class DerivativeBoundaryFacePlain:
         expr.SetConstant(cond_derivative->GetDerivative());
       } else if (auto cond_value =
           dynamic_cast<ConditionFaceValue<Scal>*>(cond_generic->get())) {
-        size_t id = mesh.GetValidNeighbourCellId(idxface);
+        size_t id = cond_value->GetNci();
         IdxCell cc = mesh.GetNeighbourCell(idxface, id);
         Scal factor = (id == 0 ? 1. : -1.);
         Scal alpha = 1. / mesh.GetVectToCell(idxface, id).norm() * factor;
@@ -455,13 +455,13 @@ geom::FieldFace<T> Interpolate(
       res[idxface] = cond_value->GetValue();
     } else if (auto cond_derivative =
         dynamic_cast<ConditionFaceDerivative<T>*>(cond)) {
-      size_t id = mesh.GetValidNeighbourCellId(idxface);
+      size_t id = cond->GetNci();
       IdxCell cc = mesh.GetNeighbourCell(idxface, id);
       Scal factor = (id == 0 ? 1. : -1.);
       Scal alpha = mesh.GetVectToCell(idxface, id).norm() * factor;
       res[idxface] = fc_u[cc] + cond_derivative->GetDerivative() * alpha;
     } else if (dynamic_cast<ConditionFaceExtrapolation*>(cond)) {
-      size_t id = mesh.GetValidNeighbourCellId(idxface);
+      size_t id = cond->GetNci();
       IdxCell idxcell = mesh.GetNeighbourCell(idxface, id);
       Scal factor = (id == 0 ? 1. : -1.);
       Vect normal = mesh.GetNormal(idxface) * factor;
@@ -544,7 +544,7 @@ geom::FieldFace<T> InterpolateFirstUpwind(
       res[idxface] = cond_value->GetValue();
     } else if (auto cond_derivative =
         dynamic_cast<ConditionFaceDerivative<T>*>(cond)) {
-      size_t id = mesh.GetValidNeighbourCellId(idxface);
+      size_t id = cond->GetNci();
       IdxCell cc = mesh.GetNeighbourCell(idxface, id);
       Scal factor = (id == 0 ? 1. : -1.);
       Scal alpha = mesh.GetVectToCell(idxface, id).norm() * factor;
@@ -610,7 +610,7 @@ InterpolateSuperbee(
       res[idxface] = cond_value->GetValue();
     } else if (auto cond_derivative =
         dynamic_cast<ConditionFaceDerivative<Scal>*>(cond)) {
-      size_t id = mesh.GetValidNeighbourCellId(idxface);
+      size_t id = cond->GetNci();
       IdxCell cc = mesh.GetNeighbourCell(idxface, id);
       Scal factor = (id == 0 ? 1. : -1.);
       Scal alpha = mesh.GetVectToCell(idxface, id).norm() * factor;

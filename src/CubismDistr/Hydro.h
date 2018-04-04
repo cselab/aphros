@@ -100,8 +100,9 @@ class Hydro : public KernelMesh<M> {
   FieldCell<Scal> fc_veluy_; 
   FieldCell<Scal> fc_veluz_; 
   FieldCell<Scal> fc_p_; // pressure
-  FieldCell<Scal> fc_vf_; // volume fraction
-  FieldCell<Scal> fc_smvf_; // smoothed volume fraction for CalcMixture()
+  FieldCell<Scal> fc_vf_; // volume fraction used by constructor and Dump()
+  FieldCell<Vect> fc_vel_; // velocity used by constructor
+  FieldCell<Scal> fc_smvf_; // smoothed volume fraction used by CalcMixture()
   Scal diff_;  // convergence indicator
   size_t step_;
   Scal pdist_, pdistmin_; // distance to pfixed cell
@@ -132,7 +133,7 @@ class Hydro : public KernelMesh<M> {
 template <class M>
 void Hydro<M>::Init() {
   auto sem = m.GetSem("init");
-  if (sem("a")) {
+  if (sem("pfixed-reduce")) {
     st_.iter = 0;
     par.Int.Set("iter", st_.iter);
 
@@ -246,52 +247,24 @@ void Hydro<M>::Init() {
       }
     }
 
-
+    // Find cell nearest to pfixed_x
     {
-      // Fix pressure at one cell
       Vect x(par.Vect["pfixed_x"]);
       IdxCell c = m.FindNearestCell(x);
-      // TODO: add reduce minlocal and remove 1e-16
+      // TODO: add reduce minloc and remove .norm()
       pdist_ = m.GetCenter(c).dist(x) + MIdx(bi_.index).norm() * 1e-12;
       pdistmin_ = pdist_;
       m.Reduce(&pdistmin_, "min");
     }
   }
 
-  if (sem("b")) {
-    // cell conditions for advection
-    // (empty)
-    geom::MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
-    // cell conditions for fluid
-    geom::MapCell<std::shared_ptr<solver::ConditionCellFluid>> mc_velcond;
-
-    {
-      // Fix pressure at one cell
-      Vect x(par.Vect["pfixed_x"]);
-      IdxCell c = m.FindNearestCell(x);
-      Scal p = par.Double["pfixed"];
-      if (pdist_ == pdistmin_) {
-        std::cout << "pfixed bi=" << MIdx(bi_.index) 
-            << " dist=" << pdist_ << std::endl;
-        mc_velcond[c] = std::make_shared
-            <solver::fluid_condition::GivenPressureFixed<Mesh>>(p);
-      }
-    }
-
-    // time step
-    const Scal dt = par.Double["dt0"];
-    st_.dt = dt;
-    st_.dta = dt;
-    par.Double.Set("dt", st_.dt);
-    par.Double.Set("dta", st_.dta);
-    step_ = 0;
-
+  if (sem("fields")) {
     fc_stforce_.Reinit(m, Vect(0));
     ff_stforce_.Reinit(m, Vect(0));
     fc_src_.Reinit(m, 0.);
 
     // initial volume fraction
-    FieldCell<Scal> fc_u(m);
+    fc_vf_.Reinit(m, 0);
     {
       const std::string vi = par.String["vf_init"];
       if (vi == "sin") {
@@ -304,14 +277,14 @@ void Hydro<M>::Init() {
 
         for (auto i : m.AllCells()) {
           Vect z = m.GetCenter(i) * k;
-          fc_u[i] = std::sin(z[0]) * std::sin(z[1]) * std::sin(z[2]);
+          fc_vf_[i] = std::sin(z[0]) * std::sin(z[1]) * std::sin(z[2]);
         }
       } else if (vi == "circle") {
         const Vect c(par.Vect["circle_c"]);
         const Scal r(par.Double["circle_r"]);
         for (auto i : m.AllCells()) {
           Vect x = m.GetCenter(i);
-          fc_u[i] = (c.dist(x) < r ? 1. : 0.);
+          fc_vf_[i] = (c.dist(x) < r ? 1. : 0.);
         }
       } else if (vi == "list" ) {
         std::string fn = par.String["list_path"];
@@ -345,7 +318,7 @@ void Hydro<M>::Init() {
           for (auto i : m.AllCells()) {
             Vect x = m.GetCenter(i);
             if (p.c.dist(x) <= p.r) {
-              fc_u[i] = 1.;
+              fc_vf_[i] = 1.;
             }
           }
         }
@@ -357,13 +330,13 @@ void Hydro<M>::Init() {
     }
 
     // initial velocity
-    FieldCell<Vect> fc_vel(m, Vect(0));
+    fc_vel_.Reinit(m, Vect(0));
     {
       const std::string vi = par.String["vel_init"];
       if (vi == "taylor-green") {
         for (auto i : m.AllCells()) {
-          auto& u = fc_vel[i][0];
-          auto& v = fc_vel[i][1];
+          auto& u = fc_vel_[i][0];
+          auto& v = fc_vel_[i][1];
           Scal l = (2 * M_PI);
           Scal x = m.GetCenter(i)[0] * l;
           Scal y = m.GetCenter(i)[1] * l;
@@ -374,12 +347,12 @@ void Hydro<M>::Init() {
         Scal pv = par.Double["poisvel"];
         for (auto i : m.AllCells()) {
           Vect x = m.GetCenter(i);
-          fc_vel[i][0] = x[1] * (1. - x[1]) * 4. * pv;
+          fc_vel_[i][0] = x[1] * (1. - x[1]) * 4. * pv;
         }
       } else if (vi == "uniform" ) {
         Vect v(par.Vect["vel"]);
         for (auto i : m.AllCells()) {
-          fc_vel[i] = v;
+          fc_vel_[i] = v;
         }
       } else if (vi == "zero" ) {
         // nop
@@ -387,10 +360,39 @@ void Hydro<M>::Init() {
         throw std::runtime_error("Init(): unknown vel_init=" + vi);
       }
     }
+  }
 
+  if (sem.Nested("mixture")) {
     // Init rho, mu and force based on volume fraction
-    CalcMixture(fc_u);
+    CalcMixture(fc_vf_);
+  }
 
+  if (sem("solv")) {
+    // time step
+    const Scal dt = par.Double["dt0"];
+    st_.dt = dt;
+    st_.dta = dt;
+    par.Double.Set("dt", st_.dt);
+    par.Double.Set("dta", st_.dta);
+    step_ = 0;
+
+    // cell conditions for advection
+    // (empty)
+    geom::MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
+    // cell conditions for fluid
+    geom::MapCell<std::shared_ptr<solver::ConditionCellFluid>> mc_velcond;
+    {
+      // Fix pressure at one cell
+      Vect x(par.Vect["pfixed_x"]);
+      IdxCell c = m.FindNearestCell(x);
+      Scal p = par.Double["pfixed"];
+      if (pdist_ == pdistmin_) {
+        std::cout << "pfixed bi=" << MIdx(bi_.index) 
+            << " dist=" << pdist_ << std::endl;
+        mc_velcond[c] = std::make_shared
+            <solver::fluid_condition::GivenPressureFixed<Mesh>>(p);
+      }
+    }
 
     // Init fluid solver
     auto& p = fspar;
@@ -400,13 +402,13 @@ void Hydro<M>::Init() {
     p.second = par.Int["second_order"];
 
     fs_.reset(new FS(
-          m, fc_vel, mf_velcond_, mc_velcond, 
+          m, fc_vel_, mf_velcond_, mc_velcond, 
           &fc_rho_, &fc_mu_, &fc_force_, &fc_stforce_, &ff_stforce_, 
           &fc_src_, &fc_src_, 0., dt, &timer_, &fspar));
 
     // Init advection solver
     as_.reset(new AS(
-          m, fc_u, mf_cond_, 
+          m, fc_vf_, mf_cond_, 
           &fs_->GetVolumeFlux(solver::Layers::iter_curr),
           &fc_src_, 0., dt, 
           par.Double["sharp"], par.Double["sharpo"], 1.));
@@ -664,7 +666,6 @@ void Hydro<M>::Clip(const FieldCell<Scal>& f, Scal a, Scal b) {
 template <class M>
 void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
   auto sem = m.GetSem("mixture");
-  auto& fc_vf = fc_smvf_; // buffer
 
   if (sem("init")) {
     fc_mu_.Reinit(m);
@@ -678,6 +679,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
   }
 
   if (sem("calc")) {
+    auto& a = fc_smvf_; // smoothed vf
+
     const Vect f(par.Vect["force"]);
     const Vect g(par.Vect["gravity"]);
     const Scal r1(par.Double["rho1"]);
@@ -687,7 +690,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 
     // Init density and viscosity
     for (auto i : m.AllCells()) {
-      const Scal v2 = fc_vf[i];
+      const Scal v2 = a[i];
       const Scal v1 = 1. - v2;
       fc_rho_[i] = r1 * v1 + r2 * v2;
       fc_mu_[i] = m1 * v1 + m2 * v2;
@@ -702,8 +705,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 
     // Surface tension
     if (par.Int["enable_surftens"]) {
-      auto a = fc_vf;
-
       auto af = solver::Interpolate(a, mf_cond_, m);
       auto gc = solver::Gradient(af, m);
 
