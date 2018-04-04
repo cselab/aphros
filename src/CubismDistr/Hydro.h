@@ -101,6 +101,7 @@ class Hydro : public KernelMesh<M> {
   FieldCell<Scal> fc_veluz_; 
   FieldCell<Scal> fc_p_; // pressure
   FieldCell<Scal> fc_vf_; // volume fraction
+  FieldCell<Scal> fc_smvf_; // smoothed volume fraction for CalcMixture()
   Scal diff_;  // convergence indicator
   size_t step_;
   Scal pdist_, pdistmin_; // distance to pfixed cell
@@ -661,65 +662,77 @@ void Hydro<M>::Clip(const FieldCell<Scal>& f, Scal a, Scal b) {
 }
 
 template <class M>
-void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf) {
-  fc_mu_.Reinit(m);
-  fc_rho_.Reinit(m);
-  fc_force_.Reinit(m);
-  
-  const Vect f(par.Vect["force"]);
-  const Vect g(par.Vect["gravity"]);
-  const Scal r1(par.Double["rho1"]);
-  const Scal r2(par.Double["rho2"]);
-  const Scal m1(par.Double["mu1"]);
-  const Scal m2(par.Double["mu2"]);
+void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
+  auto sem = m.GetSem("mixture");
+  auto& fc_vf = fc_smvf_; // buffer
 
-  // Init density and viscosity
-  for (auto i : m.AllCells()) {
-    const Scal v2 = fc_vf[i];
-    const Scal v1 = 1. - v2;
-    fc_rho_[i] = r1 * v1 + r2 * v2;
-    fc_mu_[i] = m1 * v1 + m2 * v2;
+  if (sem("init")) {
+    fc_mu_.Reinit(m);
+    fc_rho_.Reinit(m);
+    fc_force_.Reinit(m);
+    fc_smvf_ = fc_vf0;
   }
 
-  // Init force
-  for (auto i : m.AllCells()) {
-    Vect x = m.GetCenter(i);
-    fc_force_[i] = f;
-    fc_force_[i] += g * fc_rho_[i];
+  if (sem.Nested("smooth")) {
+    solver::Smoothen(fc_smvf_, mf_cond_, m, par.Int["vfsmooth"]);
   }
 
-  // Surface tension
-  if (par.Int["enable_surftens"]) {
-    auto a = fc_vf;
+  if (sem("calc")) {
+    const Vect f(par.Vect["force"]);
+    const Vect g(par.Vect["gravity"]);
+    const Scal r1(par.Double["rho1"]);
+    const Scal r2(par.Double["rho2"]);
+    const Scal m1(par.Double["mu1"]);
+    const Scal m2(par.Double["mu2"]);
 
-    auto af = solver::Interpolate(a, mf_cond_, m);
-    auto gc = solver::Gradient(af, m);
-
-
-    // zero-derivative bc for Vect
-    geom::MapFace<std::shared_ptr<solver::ConditionFace>> mfvz;
-    for (auto it : mf_velcond_) {
-      IdxFace i = it.GetIdx();
-      mfvz[i] = std::make_shared
-          <solver::ConditionFaceDerivativeFixed<Vect>>(
-              Vect(0), it.GetValue()->GetNci());
+    // Init density and viscosity
+    for (auto i : m.AllCells()) {
+      const Scal v2 = fc_vf[i];
+      const Scal v1 = 1. - v2;
+      fc_rho_[i] = r1 * v1 + r2 * v2;
+      fc_mu_[i] = m1 * v1 + m2 * v2;
     }
 
-    // surface tension in cells
-    auto sig = par.Double["sigma"];
-    auto gf = solver::Interpolate(gc, mfvz, m);
-    for (auto c : m.Cells()) {
-      Vect r(0); // result
-      for (size_t e = 0; e < m.GetNumNeighbourFaces(c); ++e) {
-        IdxFace f = m.GetNeighbourFace(c, e);
-        auto g = gf[f];
-        auto n = g / (g.norm() + 1e-6); // TODO: revise 1e-6
-        auto s = m.GetOutwardSurface(c, e);
-        r += g * s.dot(n);
-        r -= s * g.norm();
+    // Init force
+    for (auto i : m.AllCells()) {
+      Vect x = m.GetCenter(i);
+      fc_force_[i] = f;
+      fc_force_[i] += g * fc_rho_[i];
+    }
+
+    // Surface tension
+    if (par.Int["enable_surftens"]) {
+      auto a = fc_vf;
+
+      auto af = solver::Interpolate(a, mf_cond_, m);
+      auto gc = solver::Gradient(af, m);
+
+
+      // zero-derivative bc for Vect
+      geom::MapFace<std::shared_ptr<solver::ConditionFace>> mfvz;
+      for (auto it : mf_velcond_) {
+        IdxFace i = it.GetIdx();
+        mfvz[i] = std::make_shared
+            <solver::ConditionFaceDerivativeFixed<Vect>>(
+                Vect(0), it.GetValue()->GetNci());
       }
-      r /= m.GetVolume(c);     // div(gg/|g|) - div(|g|I)
-      fc_stforce_[c] = r * (-sig);
+
+      // surface tension in cells
+      auto sig = par.Double["sigma"];
+      auto gf = solver::Interpolate(gc, mfvz, m);
+      for (auto c : m.Cells()) {
+        Vect r(0); // result
+        for (size_t e = 0; e < m.GetNumNeighbourFaces(c); ++e) {
+          IdxFace f = m.GetNeighbourFace(c, e);
+          auto g = gf[f];
+          auto n = g / (g.norm() + 1e-6); // TODO: revise 1e-6
+          auto s = m.GetOutwardSurface(c, e);
+          r += g * s.dot(n);
+          r -= s * g.norm();
+        }
+        r /= m.GetVolume(c);     // div(gg/|g|) - div(|g|I)
+        fc_stforce_[c] = r * (-sig);
+      }
     }
   }
 }
