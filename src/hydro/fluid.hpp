@@ -295,6 +295,7 @@ class Inlet : public ConditionFaceFluid {
  public:
   Inlet(size_t nci) : ConditionFaceFluid(nci) {}
   virtual Vect GetVelocity() const = 0;
+  virtual void SetVelocity(Vect velocity) = 0;
 };
 
 template <class Mesh>
@@ -309,6 +310,32 @@ class InletFixed : public Inlet<Mesh> {
   {}
   Vect GetVelocity() const override {
     return velocity_;
+  }
+  void SetVelocity(Vect velocity) override {
+    velocity_ = velocity;
+  }
+};
+
+template <class Mesh>
+class InletFlux : public Inlet<Mesh> {
+  using Vect = typename Mesh::Vect;
+  Vect vel_;
+  int id_;
+
+ public:
+  InletFlux(Vect vel, int id, size_t nci)
+      : Inlet<Mesh>(nci)
+      , vel_(vel)
+      , id_(id)
+  {}
+  Vect GetVelocity() const override {
+    return vel_;
+  }
+  void SetVelocity(Vect vel) override {
+    vel_ = vel;
+  }
+  int GetId() {
+    return id_;
   }
 };
 
@@ -398,20 +425,35 @@ std::shared_ptr<ConditionFaceFluid> Parse(std::string argstr,
                                           size_t nc, // neighbour cell id
                                           const Mesh& mesh) {
   using namespace fluid_condition;
+  using Vect=  typename Mesh::Vect;
   std::stringstream arg(argstr);
 
   std::string name;
   arg >> name;
 
   if (name == "wall") {
-    typename Mesh::Vect vel;
+    // No-slip wall.
+    // wall <velocity>
+    Vect vel;
     arg >> vel;
     return std::make_shared<NoSlipWallFixed<Mesh>>(vel, nc);
   } else if (name == "inlet") {
-    typename Mesh::Vect vel;
+    // Fixed velocity inlet.
+    // inlet <velocity>
+    Vect vel;
     arg >> vel;
     return std::make_shared<InletFixed<Mesh>>(vel, nc);
+  } else if (name == "inletflux") {
+    // Fixed flux inlet. Flux defined by given velocity is redistributed
+    // over all faces with same id.
+    // inletflux <velocity> <id>
+    Vect vel;
+    int id;
+    arg >> vel >> id;
+    return std::make_shared<InletFlux<Mesh>>(vel, id, nc);
   } else if (name == "outlet") {
+    // Outlet. Velocity is extrapolated from neighbour cells and corrected
+    // to yield zero total flux over outlet and inlet faces.
     return std::make_shared<OutletAuto<Mesh>>(nc);
   } else {
     throw std::runtime_error("Parse: Unknown boundary condition type");
