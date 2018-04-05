@@ -9,10 +9,12 @@
 
 namespace solver {
 
+using namespace geom;
+
 template <class M>
-geom::FieldCell<typename M::Vect> GetDeformingVelocity(const M& m) {
+FieldCell<typename M::Vect> GetDeformingVelocity(const M& m) {
   using Vect = typename M::Vect;
-  geom::FieldCell<Vect> r(m, 0);
+  FieldCell<Vect> r(m, 0);
   for (auto c : m.Cells()) {
     auto x = m.GetCenter(c);
     r[c][0] = -std::cos(x[1]) * std::sin(x[0]);
@@ -27,18 +29,18 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
   using Vect = typename Mesh::Vect;
 
  protected:
-  const geom::FieldFace<Scal>* p_ff_velocity_;
-  const geom::FieldCell<Scal>* p_fc_source_;
+  const FieldFace<Scal>* p_ff_velocity_;
+  const FieldCell<Scal>* p_fc_source_;
 
  public:
   AdvectionSolver(double t, double dt,
-                  const geom::FieldFace<Scal>* p_ff_velocity,
-                  const geom::FieldCell<Scal>* p_fc_source)
+                  const FieldFace<Scal>* p_ff_velocity,
+                  const FieldCell<Scal>* p_fc_source)
       : UnsteadyIterativeSolver(t, dt)
       , p_ff_velocity_(p_ff_velocity)
       , p_fc_source_(p_fc_source)
   {}
-  virtual const geom::FieldCell<Scal>& GetField() = 0;
+  virtual const FieldCell<Scal>& GetField() = 0;
 };
 
 template <class Mesh>
@@ -47,19 +49,16 @@ class AdvectionSolverExplicit : public AdvectionSolver<Mesh> {
   static constexpr size_t dim = Mesh::dim;
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
-  LayersData<geom::FieldCell<Scal>> fc_u_;
-  using IdxCell = geom::IdxCell;
-  using IdxFace = geom::IdxFace;
-  using IdxNode = geom::IdxNode;
-  geom::MapFace<std::shared_ptr<ConditionFace>> mf_u_cond_;
+  LayersData<FieldCell<Scal>> fc_u_;
+  MapFace<std::shared_ptr<ConditionFace>> mf_u_cond_;
   // Common buffers:
-  geom::FieldFace<Vect> ff_velocity_;
-  geom::FieldFace<Scal> ff_volume_flux_;
-  geom::FieldFace<Scal> ff_flux_;
-  geom::FieldFace<Scal> ff_u_;
-  geom::FieldFace<Scal> sharp_af_;
-  geom::FieldCell<Vect> sharp_gc_;
-  geom::FieldFace<Vect> sharp_gf_;
+  FieldFace<Vect> ff_velocity_;
+  FieldFace<Scal> ff_volume_flux_;
+  FieldFace<Scal> ff_flux_;
+  FieldFace<Scal> ff_u_;
+  FieldFace<Scal> sharp_af_;
+  FieldCell<Vect> sharp_gc_;
+  FieldFace<Vect> sharp_gf_;
   Scal sharp_;
   Scal sharpo_;
   Scal sharp_max_;
@@ -67,10 +66,10 @@ class AdvectionSolverExplicit : public AdvectionSolver<Mesh> {
  public:
   AdvectionSolverExplicit(
       Mesh& m,
-      const geom::FieldCell<Scal>& fc_u_initial,
-      const geom::MapFace<std::shared_ptr<ConditionFace>>& mf_u_cond_,
-      const geom::FieldFace<Scal>* p_fn_velocity,
-      const geom::FieldCell<Scal>* p_fc_source,
+      const FieldCell<Scal>& fc_u_initial,
+      const MapFace<std::shared_ptr<ConditionFace>>& mf_u_cond_,
+      const FieldFace<Scal>* p_fn_velocity,
+      const FieldCell<Scal>* p_fc_source,
       double time, double time_step,
       Scal sharp, Scal sharpo, Scal sharp_max)
       : AdvectionSolver<Mesh>(
@@ -104,18 +103,18 @@ class AdvectionSolverExplicit : public AdvectionSolver<Mesh> {
           Gradient(Interpolate(prev, mf_u_cond_, m), m),
           mf_u_cond_, ff_volume_flux_, m);
 
-      for (auto idxface : m.Faces()) {
-        ff_flux_[idxface] = ff_u_[idxface] * ff_volume_flux_[idxface];
+      for (auto f : m.Faces()) {
+        ff_flux_[f] = ff_u_[f] * ff_volume_flux_[f];
       }
 
       // Interface sharpening
       // append to ff_flux_
       if (std::abs(sharp_) != 0.) {
         // zero-derivative bc for Vect
-        geom::MapFace<std::shared_ptr<ConditionFace>> mfvz;
+        MapFace<std::shared_ptr<ConditionFace>> mfvz;
         for (auto it : mf_u_cond_) {
-          IdxFace i = it.GetIdx();
-          mfvz[i] = std::make_shared<
+          IdxFace f = it.GetIdx();
+          mfvz[f] = std::make_shared<
               ConditionFaceDerivativeFixed<Vect>>(
                   Vect(0), it.GetValue()->GetNci());
         }
@@ -144,16 +143,16 @@ class AdvectionSolverExplicit : public AdvectionSolver<Mesh> {
         }
       }
 
-      for (auto idxcell : m.Cells()) {
+      for (auto c : m.Cells()) {
         Scal flux_sum = 0.;
-        for (size_t i = 0; i < m.GetNumNeighbourFaces(idxcell); ++i) {
-          IdxFace idxface = m.GetNeighbourFace(idxcell, i);
-          flux_sum += ff_flux_[idxface] * m.GetOutwardFactor(idxcell, i);
+        for (auto q : m.Nci(c)) {
+          IdxFace f = m.GetNeighbourFace(c, q);
+          flux_sum += ff_flux_[f] * m.GetOutwardFactor(c, q);
         }
 
-        curr[idxcell] = fc_u_.time_prev[idxcell] -
-            this->GetTimeStep() / m.GetVolume(idxcell) * flux_sum +
-            this->GetTimeStep() * (*this->p_fc_source_)[idxcell];
+        curr[c] = fc_u_.time_prev[c] -
+            this->GetTimeStep() / m.GetVolume(c) * flux_sum +
+            this->GetTimeStep() * (*this->p_fc_source_)[c];
       }
       m.Comm(&curr);
 
@@ -168,10 +167,10 @@ class AdvectionSolverExplicit : public AdvectionSolver<Mesh> {
     if (this->GetError() == 0) {
       return 1.;
     }
-    return CalcDiff<geom::FieldCell<Scal>, Mesh>(
+    return CalcDiff<FieldCell<Scal>, Mesh>(
         fc_u_.iter_curr, fc_u_.iter_prev, m);
   }
-  const geom::FieldCell<Scal>& GetField() override {
+  const FieldCell<Scal>& GetField() override {
     return fc_u_.time_curr;
   }
 };
