@@ -528,20 +528,41 @@ int main (int argc, const char ** argv) {
   MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  bool isroot = (!rank);
 
-  MPI_Comm comm;
+  Vars par;   // parameter storage
+  Interp ip(par); // interpretor (parser)
 
-  Vars par;
-  Interp ip(par);
+  std::string fn = "a.conf";
+  if (argc == 1) {
+    // nop
+  } else if (argc == 2) {
+    fn = argv[1];
+  } else {
+    if (isroot) {
+      std::cerr << "usage: " << argv[0] << " [a.conf]" << std::endl;
+    }
+    return 1;
+  }
 
-  std::ifstream f("a.conf");
-  ip.RunAll(f);
-  if (rank == 0) {
-    ip.PrintAll();
+  if (isroot) {
+    std::cerr << "Loading config from '" << fn << "'" << std::endl;
+  }
+
+  std::ifstream f(fn);  // config file
+  // Read file and run all commands
+  ip.RunAll(f);   
+
+  // Print vars on root
+  if (isroot) {            
+    std::cerr << "\n=== config begin ===" << std::endl;
+    ip.PrintAll(std::cerr);
+    std::cerr << "=== config end ===\n" << std::endl;
   }
 
   bool loc = par.Int["loc"];
 
+  MPI_Comm comm;
   if (loc) {
     MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
     if (rank == 0) {

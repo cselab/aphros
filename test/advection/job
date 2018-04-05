@@ -2,10 +2,8 @@
 
 echo running > job.status
 
-./clean
-
 export OMP_NUM_THREADS=1
-time mpirun -n 2 --oversubscribe ./t.advection
+time mpirun -n 2 --oversubscribe ./t.advection cub.conf
 
 echo "Done."
 echo done > job.status
