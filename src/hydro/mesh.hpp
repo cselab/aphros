@@ -15,53 +15,11 @@
 #include "field.h"
 #include "map.h"
 #include "block.h"
+#include "dir.h"
 
 namespace geom {
 
 
-template <size_t _dim>
-class GDir {
- public:
-  using MIdx = GVect<IntIdx, _dim>;
-  static constexpr size_t dim = _dim;
-
-  GDir() {}
-  explicit GDir(size_t d)
-    : d_(d) {}
-  char GetLetter() const {
-    return std::string("xyz")[d_];
-  }
-  explicit operator size_t() const {
-    return d_;
-  }
-  explicit operator MIdx() const {
-    MIdx r = MIdx::kZero;
-    ++r[d_];
-    return r;
-  }
-  bool operator==(const GDir& o) const {
-    return d_ == o.d_;
-  }
-  bool operator!=(const GDir& o) const {
-    return !((*this) == o);
-  }
-  bool operator<(const GDir& o) const {
-    return d_ < o.d_;
-  }
-  static const GDir i;
-  static const GDir j;
-  static const GDir k;
-
- private:
-  size_t d_;
-};
-
-template <size_t dim>
-const GDir<dim> GDir<dim>::i(0);
-template <size_t dim>
-const GDir<dim> GDir<dim>::j(1);
-template <size_t dim>
-const GDir<dim> GDir<dim>::k(2);
 
 #define BLOCKFACE_DZYX
 //#define BLOCKFACE_ZYXD
