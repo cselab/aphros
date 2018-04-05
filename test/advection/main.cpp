@@ -39,12 +39,13 @@ class Advection : public KernelMesh<M> {
   using IdxCell = geom::IdxCell;
   static constexpr size_t dim = M::dim;
 
-  Advection(Vars& par, const MyBlockInfo& bi);
+  Advection(Vars& par, const MyBlockInfo& bi, bool isroot, bool islead);
   void Run() override;
 
  protected:
   using KM::par;
   using KM::m;
+  using KM::IsRoot;
 
  private:
   void TestSolve(std::function<Scal(Vect)> fi /*initial*/,
@@ -66,7 +67,6 @@ class Advection : public KernelMesh<M> {
   std::unique_ptr<AS> as_; // advection solver
   MIdx gs_; // global mesh size
   Vect ge_; // global extent
-  bool broot_; // block root
   geom::FieldCell<Scal> fc_; // buffer
   FieldCell<Scal> fc_sc_; // scaling
   FieldFace<Scal> ff_d_; // diffusion rate
@@ -79,17 +79,16 @@ class AdvectionFactory : public KernelMeshFactory<_M> {
  public:
   using M = _M;
   using K = Advection<M>;
-  K* Make(Vars& par, const MyBlockInfo& bi) override {
-    return new K(par, bi);
+  K* Make(Vars& par, const MyBlockInfo& bi, bool isroot, bool islead) override {
+    return new K(par, bi, isroot, islead);
   }
 };
 
 template <class M>
-Advection<M>::Advection(Vars& par, const MyBlockInfo& bi) 
-  : KernelMesh<M>(par, bi)
-{
-  broot_ = (m.GetInBlockCells().GetBegin() == MIdx(0));
-}
+Advection<M>::Advection(Vars& par, const MyBlockInfo& bi, 
+                        bool isroot, bool islead) 
+  : KernelMesh<M>(par, bi, isroot, islead)
+{}
 
 template <class T>
 bool Cmp(T a, T b) {
@@ -229,7 +228,7 @@ void Advection<M>::TestSolve(
   auto sem = m.GetSem("TestSolve");
   auto& bc = m.GetBlockCells();
   if (sem("init")) {
-    if (broot_) {
+    if (IsRoot()) {
       std::cerr << name << std::endl;
     }
     // initial field for advection
@@ -241,14 +240,6 @@ void Advection<M>::TestSolve(
 
     // zero-derivative boundary conditions for advection
     geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
-    if(0)
-    for (auto idxface : m.Faces()) {
-      if (!m.IsInner(idxface)) {
-        mf_cond[idxface] =
-            std::make_shared
-            <solver::ConditionFaceDerivativeFixed<Scal>>(Scal(0));
-      }
-    }
 
     // velocity and flux
     const Vect vel(par.Vect["vel"]);
@@ -276,7 +267,7 @@ void Advection<M>::TestSolve(
     fc_sc_.Reinit(m, 1.); 
 
     as_.reset(new AS(m, fc_u, mf_cond, &ff_flux_, 
-              &fc_src_, 0., par.Double["dt"]));
+              &fc_src_, 0., par.Double["dt"], 0., 0., 1.));
 
 
     /*
