@@ -16,16 +16,17 @@ First describe the interface in a separate class, then implement.
   - if first letter, put that word in comment: n // name
   - if another letter, put that word with letter in [...]: a // n[a]me
   - up to 4 letters if possible
-  - private variables end with underscore: a_;
+  - private variables end with underscore: `a_`;
     exceptions: m (Mesh), par (Vars)
 * Template argument:
   - CamelCase for types and lower case for values
-  - if alias needed, starts with underscore
+  - if alias needed, ends with underscore: `Mesh_`
   - else one letter
 * Filename:
   - lower case, extensions h and cpp
 * Class
   - ...
+* No names starting with underscore, reserved
 
 ## Dereference pointers to references or values if possible
 But: use pointer arguments to prevent passing an rvalue
