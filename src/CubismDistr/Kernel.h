@@ -16,6 +16,8 @@ struct MyBlockInfo {
   double origin[3];
   Idx bs;
   int hl; // number of halo cells
+  bool isroot; // root block (single among all PEs)
+  bool islead; // lead block (one per each PE)
 };
 
 // Suspendable kernel
@@ -27,11 +29,9 @@ class Kernel {
   virtual ~Kernel() {}
 };
 
-// TODO: revise isroot and islead
 class KernelFactory {
  public:
-  virtual Kernel* Make(Vars&, const MyBlockInfo&, 
-                       bool isroot, bool islead) = 0;
+  virtual Kernel* Make(Vars&, const MyBlockInfo&) = 0;
   virtual ~KernelFactory() {}
 };
 

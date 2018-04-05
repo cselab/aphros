@@ -362,6 +362,14 @@ Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par)
   std::vector<BlockInfo> cc = g_.getBlocksInfo(); // [c]ubism block info
   std::vector<MyBlockInfo> ee = GetBlocks(cc, bs_, hl_);
 
+  bool islead = true;
+  for (auto& e : ee) {
+    MIdx d(e.index);
+    e.isroot = (d == MIdx(0));
+    e.islead = islead;
+    islead = false;
+  }
+
   this->MakeKernels(ee);
 
   comm_ = g_.getCartComm(); // XXX: overwrite comm_
