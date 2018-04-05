@@ -16,45 +16,6 @@
 
 namespace geom {
 
-// Extract component of field with values GVect<T,dim>
-template <class Vect, class Idx>
-GField<typename Vect::value_type, Idx>
-GetComponent(const GField<Vect, Idx>& fv, size_t n) {
-  GField<typename Vect::value_type, Idx> fs(fv.GetRange());
-  for (auto idx : fv.GetRange()) {
-    fs[idx] = fv[idx][n];
-  }
-  return fs;
-}
-
-// Set component of field with values GVect<T,dim>
-template <class Vect, class Idx>
-void SetComponent(
-    GField<Vect, Idx>& fv,
-    size_t n, 
-    const GField<typename Vect::value_type, Idx>& fs) {
-  for (auto idx : fv.GetRange()) {
-    fv[idx][n] = fs[idx];
-  }
-}
-
-template <class T, class Idx>
-std::ostream& operator<<(std::ostream& out, const GField<T, Idx>& field) {
-  for (auto idx : field.GetRange()) {
-    out << idx.GetRaw() << " " << field[idx] << "\n";
-  }
-  return out;
-}
-
-template <class T>
-using FieldCell = GField<T, IdxCell>;
-
-template <class T>
-using FieldFace = GField<T, IdxFace>;
-
-template <class T>
-using FieldNode = GField<T, IdxNode>;
-
 template <class T, class _Idx>
 class GMap {
  public:
