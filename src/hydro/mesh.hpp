@@ -10,46 +10,10 @@
 
 #include "suspender.h"
 #include "vect.hpp"
+#include "idx.h"
 
 
 namespace geom {
-
-using IntIdx = std::ptrdiff_t;
-
-
-template <size_t dim>
-using GMIdx = GVect<IntIdx, dim>;
-
-
-template <int dummy>
-class GIdx {
-  static constexpr int dummy_ = dummy; // make distinct classes
-  size_t raw_;
-  static constexpr size_t kNone = -1;
- public:
-  GIdx() {}
-  explicit GIdx(size_t raw)
-      : raw_(raw)
-  {}
-  inline size_t GetRaw() const {
-    return raw_;
-  }
-  inline void AddRaw(IntIdx add) {
-    raw_ += add;
-  }
-  inline bool operator==(GIdx other) const {
-    return raw_ == other.raw_;
-  }
-  inline bool operator!=(GIdx other) const {
-    return !(*this == other);
-  }
-  inline static GIdx None() {
-    return GIdx(-1);
-  }
-  inline bool IsNone() const {
-    return *this == None();
-  }
-};
 
 
 template <class _Idx>
