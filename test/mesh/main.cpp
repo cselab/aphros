@@ -142,7 +142,7 @@ void TestMesh() {
   // Distance between centers
   for (auto i : m.Cells()) {
     Vect xi = m.GetCenter(i);
-    for (size_t n = 0; n < m.GetNumNeighbourFaces(i); ++n) {
+    for (auto n : m.Nci(i)) {
       Dir d(n / 2); 
       Scal k = (n % 2 == 0 ? -1. : 1.);
       auto j = m.GetNeighbourCell(i, n);
