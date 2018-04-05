@@ -28,6 +28,9 @@ First describe the interface in a separate class, then implement.
   - ...
 * No names starting with underscore, reserved
 
+## Formatting
+* initialization list: two spaces before `:` and `,` starting each line.
+
 ## Dereference pointers to references or values if possible
 But: use pointer arguments to prevent passing an rvalue
 

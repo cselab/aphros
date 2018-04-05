@@ -21,24 +21,24 @@ class GIdx {
  public:
   GIdx() {}
   explicit GIdx(size_t i)
-      : i_(i)
+    : i_(i)
   {}
-  inline size_t GetRaw() const {
+  size_t GetRaw() const {
     return i_;
   }
-  inline void AddRaw(IntIdx add) {
+  void AddRaw(IntIdx add) {
     i_ += add;
   }
-  inline bool operator==(GIdx o) const {
+  bool operator==(GIdx o) const {
     return i_ == o.i_;
   }
-  inline bool operator!=(GIdx o) const {
+  bool operator!=(GIdx o) const {
     return !(*this == o);
   }
-  inline static GIdx None() {
+  static GIdx None() {
     return GIdx(-1);
   }
-  inline bool IsNone() const {
+  bool IsNone() const {
     return *this == None();
   }
 };
