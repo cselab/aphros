@@ -439,7 +439,7 @@ void Advection<M>::Run() {
   bool fatal = par.Int["fatal"];
 
   if (sem.Nested()) {
-    TestSolve(fx, fex, 6, "fx", true);
+    TestSolve(fx, fex, 6, "fx", false);
   }
   if (sem.Nested()) {
     TestSolve(f, f, 0, "f", false);
