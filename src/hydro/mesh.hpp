@@ -2,75 +2,30 @@
 
 #include <vector>
 #include <array>
-#include <cstddef>
-#include <map>
 #include <cassert>
-#include <iostream>
 #include <utility>
 
 #include "suspender.h"
-#include "vect.hpp"
 #include "idx.h"
+#include "vect.hpp"
 #include "range.h"
 #include "field.h"
 #include "map.h"
-#include "block.h"
-#include "dir.h"
 #include "blockface.h"
 #include "rangein.h"
 
 namespace geom {
 
-/*
-template <class ScalArg, size_t dim>
-class MeshGeneric {
- public:
-  using Scal = ScalArg;
-  using Vect = GVect<Scal, dim>;
-  MeshGeneric() = default;
-  virtual ~MeshGeneric() {}
-  virtual Vect GetCenter(IdxCell) const = 0;
-  virtual Vect GetCenter(IdxFace) const = 0;
-  virtual Vect GetSurface(IdxFace) const = 0;
-  virtual Vect GetNode(IdxNode) const = 0;
-  virtual Scal GetVolume(IdxCell) const = 0;
-  virtual Scal GetArea(IdxFace) const = 0;
-  virtual size_t GetNumCells() const = 0;
-  virtual size_t GetNumFaces() const = 0;
-  virtual size_t GetNumNodes() const = 0;
-  virtual IdxCell GetNeighbourCell(IdxCell, size_t) const = 0;
-  virtual IdxFace GetNeighbourFace(IdxCell, size_t) const = 0;
-  virtual Scal GetOutwardFactor(IdxCell, size_t) const = 0;
-  virtual Vect GetOutwardSurface(IdxCell, size_t) const = 0;
-  virtual IdxNode GetNeighbourNode(IdxCell, size_t) const = 0;
-  virtual IdxCell GetNeighbourCell(IdxFace, size_t) const = 0;
-  virtual IdxNode GetNeighbourNode(IdxFace, size_t) const = 0;
-  // For any cell, indices of its neighbour cells and faces are the same.
-  // Thus, there's no GetNumNeighbourCells(IdxCell) function.
-  virtual size_t GetNumNeighbourFaces(IdxCell) const = 0;
-  virtual size_t GetNumNeighbourNodes(IdxCell) const = 0;
-  virtual size_t GetNumNeighbourCells(IdxFace) const = 0;
-  virtual size_t GetNumNeighbourNodes(IdxFace) const = 0;
-  virtual bool IsInner(IdxCell) const = 0;
-  virtual bool IsInner(IdxFace) const = 0;
-  virtual bool IsInside(IdxCell, Vect) const = 0;
-};
-*/
-
 // TODO: Neighbour faces iterator introducing (cell, face) pairs
 // TODO: consider computing some on-the-fly to reduce memory access
-// TODO: separate assert() for range check and flag to disable on release
-//
-// Flag _generic added so that specializations could
-// inherit the generic class without recursion.
-template <class _Scal, size_t _dim>
+template <class Scal_, size_t dim_>
 class MeshStructured {
  public:
-  static constexpr size_t dim = _dim;
-  using Scal = _Scal;
+  using Scal = Scal_;
+  static constexpr size_t dim = dim_;
   using Vect = GVect<Scal, dim>;
   using Dir = GDir<dim>;
-  using MIdx = GVect<IntIdx, dim>;
+  using MIdx = GMIdx<dim>;
   using BlockNodes = GBlockNodes<dim>;
   using BlockCells = GBlockCells<dim>;
   using BlockFaces = GBlockFaces<dim>;
@@ -479,7 +434,7 @@ class MeshStructured {
 template <class _Scal, size_t _dim>
 MeshStructured<_Scal, _dim>::MeshStructured(
     const BlockNodes& b_nodes,
-    const geom::FieldNode<Vect>& fn_node,
+    const FieldNode<Vect>& fn_node,
     int hl /*halos*/)
     : b_nodes_(b_nodes)
     , fn_node_(fn_node)
