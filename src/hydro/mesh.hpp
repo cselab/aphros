@@ -1398,7 +1398,7 @@ class MeshStructured {
   }
   IdxCell FindNearestCell(Vect point) const {
     IdxCell idxcell_nearest = IdxCell(0);
-    for (auto idxcell : AllCells()) {
+    for (auto idxcell : Cells()) {
       if (point.dist(GetCenter(idxcell)) <
           point.dist(GetCenter(idxcell_nearest))) {
         idxcell_nearest = idxcell;

@@ -709,7 +709,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       auto af = solver::Interpolate(a, mf_cond_, m);
       auto gc = solver::Gradient(af, m);
 
-
       // zero-derivative bc for Vect
       geom::MapFace<std::shared_ptr<solver::ConditionFace>> mfvz;
       for (auto it : mf_velcond_) {
@@ -718,6 +717,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             <solver::ConditionFaceDerivativeFixed<Vect>>(
                 Vect(0), it.GetValue()->GetNci());
       }
+
+      fc_stforce_.Reinit(m, Vect(0));
 
       // surface tension in cells
       auto sig = par.Double["sigma"];
@@ -733,7 +734,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           r += s * (g.norm() * stdiag) - g * s.dot(n);
         }
         r /= m.GetVolume(c);     // div(gg/|g|) - div(|g|I)
-        fc_stforce_[c] = r * sig;
+        //fc_stforce_[c] = r * sig;
+        fc_force_[c] += r * sig;
       }
     }
   }
