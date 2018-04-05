@@ -12,81 +12,9 @@
 #include "vect.hpp"
 #include "idx.h"
 #include "range.h"
+#include "field.h"
 
 namespace geom {
-
-template <class _Value, class _Idx>
-class GField {
- public:
-  using Idx = _Idx;
-  using Value = _Value;
-  using Range = GRange<Idx>;
-  using Cont = std::vector<Value>;
-
-  GField() {}
-  template <class U>
-  GField(const GField<U, Idx>& o /*other*/)
-      : data_(o.data_.begin(), o.data_.end()) {}
-  explicit GField(const Range& range)
-      : data_(range.size()) {}
-  GField(const Range& range, const Value& value)
-      : data_(range.size(), value)
-  {}
-  size_t size() const {
-    return data_.size();
-  }
-  void Reinit(const Range& range) {
-    data_.resize(range.size());
-  }
-  void Reinit(const Range& range, const Value& value) {
-    data_.assign(range.size(), value);
-  }
-  Range GetRange() const {
-    return Range(0, size());
-  }
-  void resize(size_t size) {
-    data_.resize(size);
-  }
-  bool empty() const {
-    return data_.empty();
-  }
-  typename Cont::pointer data() {
-    return data_.data();
-  }
-  typename Cont::const_pointer data() const {
-    return data_.data();
-  }
-  void push_back(const Value& value) {
-    data_.push_back(value);
-  }
-  typename Cont::reference operator[](const Idx& idx) {
-#ifdef __RANGE_CHECK
-    assert(idx.GetRaw() >=0 && idx.GetRaw() < data_.size());
-#endif
-    return data_[idx.GetRaw()];
-  }
-  typename Cont::const_reference operator[](const Idx& idx) const {
-#ifdef __RANGE_CHECK
-    assert(idx.GetRaw() >=0 && idx.GetRaw() < data_.size());
-#endif
-    return data_[idx.GetRaw()];
-  }
-
- private:
-
-  template <class OValue, class OIdx>
-  friend class GField;
-
-  std::vector<Value> data_;
-};
-
-
-
-
-using IdxCell = GIdx<0>;
-using IdxFace = GIdx<1>;
-using IdxNode = GIdx<2>;
-
 
 // Extract component of field with values GVect<T,dim>
 template <class Vect, class Idx>

@@ -43,4 +43,8 @@ class GIdx {
   }
 };
 
+using IdxCell = GIdx<0>;
+using IdxFace = GIdx<1>;
+using IdxNode = GIdx<2>;
+
 } // namespace geom
