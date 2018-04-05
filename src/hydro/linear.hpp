@@ -1,10 +1,3 @@
-/*
- * linear.hpp
- *
- *  Created on: Feb 6, 2016
- *      Author: Petr Karnakov (petr.karnakov@gmail.com)
- */
-
 #pragma once
 
 #include "mesh.hpp"

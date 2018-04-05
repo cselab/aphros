@@ -1,10 +1,3 @@
-/*
- * vect.hpp
- *
- *  Created on: Jan 25, 2016
- *      Author: Petr Karnakov (petr.karnakov@gmail.com)
- */
-
 #pragma once
 
 #include <array>
