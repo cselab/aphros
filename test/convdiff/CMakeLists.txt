@@ -55,5 +55,5 @@ set_property(TARGET ${EXE} PROPERTY CXX_STANDARD 11)
 
 enable_testing()
 
-add_test(loc mpirun -n 2 ${EXE} loc.conf)
-add_test(cub mpirun -n 2 ${EXE} cub.conf)
+add_test(${p}-loc mpirun -n 2 ${EXE} loc.conf)
+add_test(${p}-cub mpirun -n 2 ${EXE} cub.conf)

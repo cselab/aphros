@@ -15,7 +15,7 @@ endforeach()
 
 # add them to project
 foreach(e ${l})
-  add_subdirectory(${e} ${e})
+  add_subdirectory(${e})
 endforeach()
 
 enable_testing()
