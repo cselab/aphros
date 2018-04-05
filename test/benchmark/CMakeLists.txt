@@ -4,6 +4,8 @@ get_filename_component(p ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 
 project(${p})
 
+set(CMAKE_BUILD_TYPE release)
+
 set(EXE t.${p})
 
 set(H "../../src/hydro")

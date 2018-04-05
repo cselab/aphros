@@ -13,7 +13,7 @@ Timer::Timer(std::string name, double timeout)
 {}
 
 Timer::Timer(std::string name) 
-  : Timer(name, 0.05, 1)
+  : Timer(name, 0.01, 1)
 {}
 
 std::string Timer::GetName() const {
