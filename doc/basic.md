@@ -27,6 +27,21 @@ First describe the interface in a separate class, then implement.
 * Class
   - ...
 * No names starting with underscore, reserved
+* For indices:
+  `i` - generic 
+  `c` - IdxCell
+  `f` - IdxFace 
+  `w` - MIdx
+  `d` - direction
+  `d` - index 0..dim
+* Other:
+  `u` - generic field
+  `q` - neighbour cell id
+  `o` - other
+
+## Other
+
+* use Vect(0) and MIdx(0) instead of Vect::kZero
 
 ## Formatting
 * initialization list: two spaces before `:` and `,` starting each line.
@@ -47,6 +62,5 @@ means that argument B needs to be a subtype of A
   (e.g. buffer index)
 
 ## Data from Kernel returned by reference if possible
-
 
 
