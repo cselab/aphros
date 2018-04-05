@@ -3,6 +3,7 @@
 #include <algorithm> // max, min
 
 #include "idx.h"
+#include "range.h"
 
 namespace geom {
 
@@ -126,5 +127,11 @@ class GBlock {
   MIdx s_; // size
   MIdx e_; // end
 };
+
+template <size_t dim>
+using GBlockCells = GBlock<IdxCell, dim>;
+
+template <size_t dim>
+using GBlockNodes = GBlock<IdxNode, dim>;
 
 } // namespace geom

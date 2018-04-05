@@ -1,11 +1,13 @@
 #pragma once
 
+#include "idx.h"
+
 namespace geom {
 
 template <size_t dim_>
 class GDir {
  public:
-  using MIdx = GVect<IntIdx, dim_>;
+  using MIdx = GMIdx<dim_>;
   static constexpr size_t dim = dim_;
 
   GDir() {}
@@ -34,6 +36,10 @@ class GDir {
   static const GDir i;
   static const GDir j;
   static const GDir k;
+  // TODO: switch to x,y,z
+  //static const GDir x;
+  //static const GDir y;
+  //static const GDir z;
 
  private:
   size_t d_;
