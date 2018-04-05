@@ -734,6 +734,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           r += s * (g.norm() * stdiag) - g * s.dot(n);
         }
         r /= m.GetVolume(c);     // div(gg/|g|) - div(|g|I)
+        r[2] = 0.;
         //fc_stforce_[c] = r * sig;
         fc_force_[c] += r * sig;
       }
