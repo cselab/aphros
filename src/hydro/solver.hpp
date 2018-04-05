@@ -1,10 +1,3 @@
-/*
- * solver.hpp
- *
- *  Created on: Feb 11, 2016
- *      Author: Petr Karnakov (petr.karnakov@gmail.com)
- */
-
 #pragma once
 
 #include "mesh.hpp"

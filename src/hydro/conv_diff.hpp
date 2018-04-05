@@ -1,10 +1,3 @@
-/*
- * conv_diff.hpp
- *
- *  Created on: May 5, 2016
- *      Author: Petr Karnakov (petr.karnakov@gmail.com)
- */
-
 #pragma once
 
 #include <cmath>
