@@ -39,7 +39,7 @@ class Advection : public KernelMesh<M> {
   using IdxCell = geom::IdxCell;
   static constexpr size_t dim = M::dim;
 
-  Advection(Vars& par, const MyBlockInfo& bi, bool isroot, bool islead);
+  Advection(Vars& par, const MyBlockInfo& bi);
   void Run() override;
 
  protected:
@@ -79,15 +79,14 @@ class AdvectionFactory : public KernelMeshFactory<_M> {
  public:
   using M = _M;
   using K = Advection<M>;
-  K* Make(Vars& par, const MyBlockInfo& bi, bool isroot, bool islead) override {
-    return new K(par, bi, isroot, islead);
+  K* Make(Vars& par, const MyBlockInfo& bi) override {
+    return new K(par, bi);
   }
 };
 
 template <class M>
-Advection<M>::Advection(Vars& par, const MyBlockInfo& bi, 
-                        bool isroot, bool islead) 
-  : KernelMesh<M>(par, bi, isroot, islead)
+Advection<M>::Advection(Vars& par, const MyBlockInfo& bi) 
+  : KernelMesh<M>(par, bi)
 {}
 
 template <class T>
