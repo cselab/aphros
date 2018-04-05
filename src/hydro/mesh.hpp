@@ -194,6 +194,10 @@ class MeshStructured {
   size_t GetNumNeighbourFaces(IdxCell) const {
     return kCellNumNeighbourFaces;
   }
+  // Neighbour cell indices
+  GRange<size_t> Nci(IdxCell c) const {
+    return GRange<size_t>(0, GetNumNeighbourFaces(c));
+  }
   size_t GetNumNeighbourNodes(IdxCell) const {
     return kCellNumNeighbourNodes;
   }
