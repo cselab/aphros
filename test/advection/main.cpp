@@ -62,7 +62,7 @@ class Advection : public KernelMesh<M> {
   geom::FieldCell<Scal> fc_exact_;
   geom::FieldFace<Scal> ff_flux_;
   geom::FieldCell<Scal> fc_src_;
-  using AS = solver::AdvectionSolverExplicit<M, geom::FieldFace<Scal>>;
+  using AS = solver::AdvectionSolverExplicit<M>;
   //using AS = solver::ConvectionDiffusionScalarImplicit<M>;
   std::unique_ptr<AS> as_; // advection solver
   MIdx gs_; // global mesh size

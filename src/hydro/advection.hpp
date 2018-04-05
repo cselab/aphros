@@ -21,33 +21,29 @@ geom::FieldCell<typename M::Vect> GetDeformingVelocity(const M& m) {
   return r;
 }
 
-template <class Mesh, class Vel>
+template <class Mesh>
 class AdvectionSolver : public UnsteadyIterativeSolver {
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
 
  protected:
-  const Vel* p_f_velocity_;
+  const geom::FieldFace<Scal>* p_ff_velocity_;
   const geom::FieldCell<Scal>* p_fc_source_;
 
  public:
-  AdvectionSolver(double time, double time_step,
-                  const Vel* p_f_velocity,
+  AdvectionSolver(double t, double dt,
+                  const geom::FieldFace<Scal>* p_ff_velocity,
                   const geom::FieldCell<Scal>* p_fc_source)
-      : UnsteadyIterativeSolver(time, time_step)
-      , p_f_velocity_(p_f_velocity)
+      : UnsteadyIterativeSolver(t, dt)
+      , p_ff_velocity_(p_ff_velocity)
       , p_fc_source_(p_fc_source)
   {}
-  virtual void AssignVelocity(const Vel* p_f_velocity) {
-    p_f_velocity_ = p_f_velocity;
-  }
   virtual const geom::FieldCell<Scal>& GetField() = 0;
 };
 
-template <class Mesh, class Vel>
-class AdvectionSolverExplicit :
-    public AdvectionSolver<Mesh, Vel> {
-  Mesh& mesh;
+template <class Mesh>
+class AdvectionSolverExplicit : public AdvectionSolver<Mesh> {
+  Mesh& m;
   static constexpr size_t dim = Mesh::dim;
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
@@ -55,7 +51,6 @@ class AdvectionSolverExplicit :
   using IdxCell = geom::IdxCell;
   using IdxFace = geom::IdxFace;
   using IdxNode = geom::IdxNode;
-  using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
   geom::MapFace<std::shared_ptr<ConditionFace>> mf_u_cond_;
   // Common buffers:
   geom::FieldFace<Vect> ff_velocity_;
@@ -71,19 +66,19 @@ class AdvectionSolverExplicit :
 
  public:
   AdvectionSolverExplicit(
-      Mesh& mesh,
+      Mesh& m,
       const geom::FieldCell<Scal>& fc_u_initial,
       const geom::MapFace<std::shared_ptr<ConditionFace>>& mf_u_cond_,
-      const Vel* p_fn_velocity,
+      const geom::FieldFace<Scal>* p_fn_velocity,
       const geom::FieldCell<Scal>* p_fc_source,
       double time, double time_step,
       Scal sharp, Scal sharpo, Scal sharp_max)
-      : AdvectionSolver<Mesh, Vel>(
+      : AdvectionSolver<Mesh>(
           time, time_step, p_fn_velocity, p_fc_source)
-      , mesh(mesh)
+      , m(m)
       , mf_u_cond_(mf_u_cond_)
-      , ff_volume_flux_(mesh)
-      , ff_flux_(mesh)
+      , ff_volume_flux_(m)
+      , ff_flux_(m)
       , sharp_(sharp)
       , sharpo_(sharpo)
       , sharp_max_(sharp_max)
@@ -95,37 +90,21 @@ class AdvectionSolverExplicit :
     fc_u_.time_prev = fc_u_.time_curr;
     fc_u_.iter_curr = fc_u_.time_prev;
   }
-  // Correct the inconsistency with arguments: velocity vs volume flux
-  geom::FieldFace<Scal> ConvertVolumeFlux(
-      const geom::FieldFace<Scal>* p_f_velocity) {
-    return *p_f_velocity;
-  }
-  geom::FieldFace<Scal> ConvertVolumeFlux(
-      const geom::FieldNode<Vect>* p_f_velocity)  {
-    auto ff_velocity = Interpolate(*p_f_velocity, mesh);
-
-    geom::FieldFace<Scal> ff_volume_flux(mesh);
-    for (IdxFace idxface : mesh.AllFaces()) {
-      ff_volume_flux[idxface] =
-          ff_velocity[idxface].dot(mesh.GetSurface(idxface));
-    }
-    return ff_volume_flux;
-  }
   void MakeIteration() override {
-    auto sem = mesh.GetSem();
+    auto sem = m.GetSem();
     if (sem()) {
       auto& prev = fc_u_.iter_prev;
       auto& curr = fc_u_.iter_curr;
       prev = curr;
 
-      ff_volume_flux_ = ConvertVolumeFlux(this->p_f_velocity_);
+      ff_volume_flux_ = *(this->p_ff_velocity_);
 
       ff_u_ = InterpolateSuperbee(
           prev,
-          Gradient(Interpolate(prev, mf_u_cond_, mesh), mesh),
-          mf_u_cond_, ff_volume_flux_, mesh);
+          Gradient(Interpolate(prev, mf_u_cond_, m), m),
+          mf_u_cond_, ff_volume_flux_, m);
 
-      for (auto idxface : mesh.Faces()) {
+      for (auto idxface : m.Faces()) {
         ff_flux_[idxface] = ff_u_[idxface] * ff_volume_flux_[idxface];
       }
 
@@ -143,20 +122,20 @@ class AdvectionSolverExplicit :
         auto& af = sharp_af_;
         auto& gc = sharp_gc_;
         auto& gf = sharp_gf_;
-        af = Interpolate(curr, mf_u_cond_, mesh);
-        gc = Gradient(af, mesh);
-        gf = Interpolate(gc, mfvz, mesh);
-        for (auto i : mesh.Faces()) {
+        af = Interpolate(curr, mf_u_cond_, m);
+        gc = Gradient(af, m);
+        gf = Interpolate(gc, mfvz, m);
+        for (auto i : m.Faces()) {
           // normal to interface
           const Vect ni = gf[i] / (gf[i].norm() + 1e-6); 
-          const Vect n = mesh.GetNormal(i);
-          const Vect s = mesh.GetSurface(i);
-          const Scal a = mesh.GetArea(i);
-          //const Scal nf = n.dot(mesh.GetNormal(i));
+          const Vect n = m.GetNormal(i);
+          const Vect s = m.GetSurface(i);
+          const Scal a = m.GetArea(i);
+          //const Scal nf = n.dot(m.GetNormal(i));
           //const Scal uf = ff_volume_flux_[i];
           //const Scal uf = 1.;
           //const Scal am = sharp_max_;
-          //const Scal eh = sharp_ * mesh.GetArea(i);
+          //const Scal eh = sharp_ * m.GetArea(i);
           //ff_flux_[i] -= sharpo_ * std::abs(uf * nf) * nf * 
           //    (eh * gf[i].norm() - af[i] * (1. - af[i] / am));
           ff_flux_[i] += 
@@ -165,18 +144,18 @@ class AdvectionSolverExplicit :
         }
       }
 
-      for (auto idxcell : mesh.Cells()) {
+      for (auto idxcell : m.Cells()) {
         Scal flux_sum = 0.;
-        for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-          IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-          flux_sum += ff_flux_[idxface] * mesh.GetOutwardFactor(idxcell, i);
+        for (size_t i = 0; i < m.GetNumNeighbourFaces(idxcell); ++i) {
+          IdxFace idxface = m.GetNeighbourFace(idxcell, i);
+          flux_sum += ff_flux_[idxface] * m.GetOutwardFactor(idxcell, i);
         }
 
         curr[idxcell] = fc_u_.time_prev[idxcell] -
-            this->GetTimeStep() / mesh.GetVolume(idxcell) * flux_sum +
+            this->GetTimeStep() / m.GetVolume(idxcell) * flux_sum +
             this->GetTimeStep() * (*this->p_fc_source_)[idxcell];
       }
-      mesh.Comm(&curr);
+      m.Comm(&curr);
 
       this->IncIter();
     }
@@ -190,7 +169,7 @@ class AdvectionSolverExplicit :
       return 1.;
     }
     return CalcDiff<geom::FieldCell<Scal>, Mesh>(
-        fc_u_.iter_curr, fc_u_.iter_prev, mesh);
+        fc_u_.iter_curr, fc_u_.iter_prev, m);
   }
   const geom::FieldCell<Scal>& GetField() override {
     return fc_u_.time_curr;

@@ -80,7 +80,7 @@ class Hydro : public KernelMesh<M> {
   // Exec events due and remove from ev_
   void ExecEvents();
 
-  using AS = solver::AdvectionSolverExplicit<M, FieldFace<Scal>>;
+  using AS = solver::AdvectionSolverExplicit<M>;
   using FS = solver::FluidSimple<M>;
   using FSPar = typename FS::Par;
   FSPar fspar;
