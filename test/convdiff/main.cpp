@@ -66,14 +66,14 @@ class Advection : public KernelMesh<M> {
   //using AS = solver::AdvectionSolverExplicit<M, geom::FieldFace<Scal>>;
   using AS = solver::ConvectionDiffusionScalarImplicit<M>;
   std::unique_ptr<AS> as_; // advection solver
+  using ASPar = typename AS::Par;
+  ASPar aspar;
   MIdx gs_; // global mesh size
   Vect ge_; // global extent
   bool broot_; // block root
   geom::FieldCell<Scal> fc_; // buffer
   FieldCell<Scal> fc_sc_; // scaling
   FieldFace<Scal> ff_d_; // diffusion rate
-  // linear solver factory
-  std::shared_ptr<const solver::LinearSolverFactory> p_lsf_; 
 };
 
 template <class _M>
@@ -254,34 +254,37 @@ void Advection<M>::TestSolve(
 
     using Dir = typename M::Dir;
     using IdxFace = geom::IdxFace;
-    auto gxm = [this](IdxFace i) {
+
+    geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
+
+    // boundary xm of global mesh
+    auto gxm = [this](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::i &&
           m.GetBlockFaces().GetMIdx(i)[0] == 0;
     };
-    auto gxp = [this,gs](IdxFace i) {
+    auto gxp = [this,gs](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::i &&
           m.GetBlockFaces().GetMIdx(i)[0] == gs[0];
     };
-    auto gym = [this](IdxFace i) {
+    auto gym = [this](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::j &&
           m.GetBlockFaces().GetMIdx(i)[1] == 0;
     };
-    auto gyp = [this,gs](IdxFace i) {
+    auto gyp = [this,gs](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::j &&
           m.GetBlockFaces().GetMIdx(i)[1] == gs[1];
     };
-    auto gzm = [this](IdxFace i) {
+    auto gzm = [this](IdxFace i) -> bool {
       return dim >= 3 && m.GetDir(i) == Dir::k &&
           m.GetBlockFaces().GetMIdx(i)[2] == 0;
     };
-    auto gzp = [this,gs](IdxFace i) {
+    auto gzp = [this,gs](IdxFace i) -> bool {
       return dim >= 3 && m.GetDir(i) == Dir::k &&
           m.GetBlockFaces().GetMIdx(i)[2] == gs[2];
     };
-
-    auto parse = [](std::string argstr, geom::IdxFace idxface, M& m) 
+    auto parse = [](std::string s, geom::IdxFace, size_t nci, M& m) 
        -> std::shared_ptr<solver::ConditionFace> {
-      std::stringstream arg(argstr);
+      std::stringstream arg(s);
 
       std::string name;
       arg >> name;
@@ -290,49 +293,46 @@ void Advection<M>::TestSolve(
         Scal a;
         arg >> a;
         return std::make_shared <solver::
-            ConditionFaceValueFixed<Scal>>(a);
+            ConditionFaceValueFixed<Scal>>(a, nci);
       } else if (name == "derivative") {
         Scal a;
         arg >> a;
         return std::make_shared <solver::
-            ConditionFaceDerivativeFixed<Scal>>(a);
+            ConditionFaceDerivativeFixed<Scal>>(a, nci);
       } else {
         assert(false);
       }
     };
+    // Set condition bc for face i on global box boundary
+    // choosing proper neighbour cell id (nci)
+    // Return true if on global boundary
+    auto set_bc = [&](IdxFace i, std::string bc) -> bool {
+      if (gxm(i) || gym(i) || gzm(i)) {
+        mf_cond[i] = parse(bc, i, 1, m);
+        return true;
+      } else if (gxp(i) || gyp(i) || gzp(i)) {
+        mf_cond[i] = parse(bc, i, 0, m);
+        return true;
+      } 
+      return false;
+    };
+    // any boundary of global mesh
+    auto gb = [&](IdxFace i) -> bool {
+      return gxm(i) || gxp(i) || gym(i) || gyp(i) || gzm(i) || gzp(i);
+    };
 
+    // Boundary conditions for fluid 
+    auto ff = m.AllFaces();
+    std::vector<std::pair<std::string, std::function<bool(IdxFace)>>> pp = 
+        {{"bc_xm", gxm}, {"bc_xp", gxp},
+         {"bc_ym", gym}, {"bc_yp", gyp},
+         {"bc_zm", gzm}, {"bc_zp", gzp}};
 
-    geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
-
-    /*
-    // zero-derivative boundary conditions for advection
-    for (auto i : m.Faces()) {
-      MIdx cm = bc.GetMIdx(m.GetNeighbourCell(i, 0));
-      MIdx cp = bc.GetMIdx(m.GetNeighbourCell(i, 1));
-      bool im = (MIdx(0) <= cm && cm < gs);
-      bool ip = (MIdx(0) <= cp && cp < gs);
-      if (im == !ip) {
-        mf_cond[i] =
-            std::make_shared
-            <solver::ConditionFaceValueFixed<Scal>>(Scal(1));
-      }
-    }
-    */
-
-    // Boundary conditions for fluid
-    for (auto i : m.Faces()) {
-      if (gxm(i)) {
-        mf_cond[i] = parse(par.String["bc_xm"], i, m);
-      } else if (gxp(i)) {
-        mf_cond[i] = parse(par.String["bc_xp"], i, m);
-      } else if (gym(i)) {
-        mf_cond[i] = parse(par.String["bc_ym"], i, m);
-      } else if (gyp(i)) {
-        mf_cond[i] = parse(par.String["bc_yp"], i, m);
-      } else if (gzm(i)) {
-        mf_cond[i] = parse(par.String["bc_zm"], i, m);
-      } else if (gzp(i)) {
-        mf_cond[i] = parse(par.String["bc_zp"], i, m);
+    for (auto p : pp) {
+      if (auto bc = par.String(p.first)) {
+        for (auto i : ff) {
+          p.second(i) && set_bc(i, *bc);
+        }
       } 
     }
 
@@ -350,32 +350,20 @@ void Advection<M>::TestSolve(
     // source
     fc_src_.Reinit(m, 0.);
 
-    // linear solver
-    // (no effect, solved by Mesh::Solve)
-    p_lsf_ = std::make_shared<const solver::LinearSolverFactory>(
-          std::make_shared<const solver::LuDecompositionFactory>());
-
     // diffusion rate
     ff_d_.Reinit(m, par.Double["mu"]);
 
     // scaling for as_
     fc_sc_.Reinit(m, 1.); 
 
-    /*
-    as_.reset(new AS(m, fc_u, mf_cond, &ff_flux_, 
-              &fc_src_, 0., par.Double["dt"]));
-              */
-
+    aspar.relax = par.Double["relax"];
+    aspar.guessextra = 0.;
+    aspar.second = 0;
 
     as_.reset(new AS(
           m, fc_u, mf_cond, mc_cond, 
-          par.Double["relax"], 
           &fc_sc_, &ff_d_, &fc_src_, &ff_flux_,
-          0., par.Double["dt"],
-          *p_lsf_, 
-          par.Double["tol"], par.Int["num_iter"], 
-          par.Int["second_order"]
-          ));
+          0., par.Double["dt"], &aspar));
 
     // exact solution
     fc_exact_.Reinit(m);
