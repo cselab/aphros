@@ -121,9 +121,17 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par)
     bb_.push_back(b);
   }
 
-  this->MakeKernels(bb_);
-
   isroot_ = true; // XXX: overwrite isroot_
+
+  bool islead = true;
+  for (auto& b : bb_) {
+    MIdx d(b.index);
+    b.isroot = (d == MIdx(0));
+    b.islead = islead;
+    islead = false;
+  }
+
+  this->MakeKernels(bb_);
 }
 
 template <class KF>
@@ -131,9 +139,7 @@ auto Local<KF>::GetBlocks() -> std::vector<MIdx> {
   // Put blocks to map by index 
   std::vector<MIdx> bb;
   for (auto e : bb_) {
-    auto d = e.index;
-    // TODO: constructor
-    MIdx b(d[0], d[1], d[2]);
+    MIdx b(e.index);
     bb.push_back(b);
   }
 
