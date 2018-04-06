@@ -1,4 +1,4 @@
-#include <iostream>
+include <iostream>
 #include <string>
 #include <mpi.h>
 #include <cassert>
@@ -38,7 +38,9 @@ class Advection : public KernelMesh<M> {
   using IdxCell = geom::IdxCell;
   static constexpr size_t dim = M::dim;
 
-  Advection(Vars& par, const MyBlockInfo& bi);
+  Advection(Vars& par, const MyBlockInfo& bi, 
+            std::function<Scal(Vect)> fu0,
+            std::function<Vect(Vect)> fvel);
   void Run() override;
 
  protected:
@@ -47,12 +49,6 @@ class Advection : public KernelMesh<M> {
   using KM::IsRoot;
 
  private:
-  void TestSolve(std::function<Scal(Vect)> fi /*initial*/,
-                 std::function<Scal(Vect)> fe /*exact*/,
-                 size_t cg /*check gap (separate from boundary)*/,
-                 std::string name,
-                 bool check /*abort if differs from exact*/);
-
   template <class T>
   using FieldCell = geom::FieldCell<T>;
   template <class T>
@@ -62,15 +58,12 @@ class Advection : public KernelMesh<M> {
   geom::FieldFace<Scal> ff_flux_;
   geom::FieldCell<Scal> fc_src_;
   using AS = solver::AdvectionSolverExplicit<M>;
-  //using AS = solver::ConvectionDiffusionScalarImplicit<M>;
   std::unique_ptr<AS> as_; // advection solver
   MIdx gs_; // global mesh size
   Vect ge_; // global extent
   geom::FieldCell<Scal> fc_; // buffer
   FieldCell<Scal> fc_sc_; // scaling
   FieldFace<Scal> ff_d_; // diffusion rate
-  // linear solver factory
-  std::shared_ptr<const solver::LinearSolverFactory> p_lsf_; 
 };
 
 template <class _M>
@@ -78,15 +71,54 @@ class AdvectionFactory : public KernelMeshFactory<_M> {
  public:
   using M = _M;
   using K = Advection<M>;
+  AdvectionFactory(std::function<Scal(Vect)> fu0,
+                   std::function<Vect(Vect)> fvel) 
+      : fu0_(fu0), fvel_(fvel) {}
   K* Make(Vars& par, const MyBlockInfo& bi) override {
-    return new K(par, bi);
+    return new K(par, bi, fu0_, fvel_);
   }
+
+ private:
+  std::function<Scal(Vect)> fu0_;
+  std::function<Vect(Vect)> fvel_;
 };
 
 template <class M>
-Advection<M>::Advection(Vars& par, const MyBlockInfo& bi) 
-  : KernelMesh<M>(par, bi)
-{}
+Advection<M>::Advection(Vars& par, const MyBlockInfo& bi,
+                        std::function<Scal(Vect)> fu0,
+                        std::function<Vect(Vect)> fvel)
+    : KernelMesh<M>(par, bi)
+{
+  // initial field for advection
+  FieldCell<Scal> u0(m, 0);
+  for (auto c : m.AllCells()) {
+    Vect x = m.GetCenter(c);
+    u0[c] = fu0(x);
+  }
+
+  // boundary conditions for advection (empty)
+  geom::MapFace<std::shared_ptr<solver::ConditionFace>> bc;
+
+  // cell conditions for advection (empty)
+  geom::MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
+
+  // flux
+  ff_flux_.Reinit(m, 0);
+  for (auto f : m.AllFaces()) {
+    Vect x = m.GetCenter(f);
+    ff_flux_[f] = fvel(x).dot(m.GetSurface(f));
+  }
+  
+  // source
+  fc_src_.Reinit(m, 0.);
+
+  // diffusion rate
+  ff_d_.Reinit(m, par.Double["mu"]);
+
+  as_.reset(new AS(m, u0, bc, &ff_flux_, 
+            &fc_src_, 0., par.Double["dt"], 
+            0., 0., 1.));
+}
 
 template <class T>
 bool Cmp(T a, T b) {
@@ -225,68 +257,6 @@ void Advection<M>::TestSolve(
     bool check /*abort if different from exact*/) {
   auto sem = m.GetSem("TestSolve");
   auto& bc = m.GetBlockCells();
-  if (sem("init")) {
-    if (IsRoot()) {
-      std::cerr << name << std::endl;
-    }
-    // initial field for advection
-    FieldCell<Scal> fc_u(m);
-    for (auto i : m.AllCells()) {
-      Vect x = m.GetCenter(i);
-      fc_u[i] = fi(x);
-    }
-
-    // zero-derivative boundary conditions for advection
-    geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
-
-    // velocity and flux
-    const Vect vel(par.Vect["vel"]);
-    ff_flux_.Reinit(m);
-    for (auto idxface : m.AllFaces()) {
-      ff_flux_[idxface] = vel.dot(m.GetSurface(idxface));
-    }
-
-    // cell conditions for advection
-    // (empty)
-    geom::MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
-    
-    // source
-    fc_src_.Reinit(m, 0.);
-
-    // linear solver
-    // (no effect, solved by Mesh::Solve)
-    p_lsf_ = std::make_shared<const solver::LinearSolverFactory>(
-          std::make_shared<const solver::LuDecompositionFactory>());
-
-    // diffusion rate
-    ff_d_.Reinit(m, par.Double["mu"]);
-
-    // scaling for as_
-    fc_sc_.Reinit(m, 1.); 
-
-    as_.reset(new AS(m, fc_u, mf_cond, &ff_flux_, 
-              &fc_src_, 0., par.Double["dt"], 0., 0., 1.));
-
-
-    /*
-    as_.reset(new AS(
-          m, fc_u, mf_cond, mc_cond, 
-          par.Double["relax"], 
-          &fc_sc_, &ff_d_, &fc_src_, &ff_flux_,
-          0., par.Double["dt"],
-          *p_lsf_, 
-          par.Double["tol"], par.Int["num_iter"], 
-          par.Int["second_order"]
-          ));
-          */
-
-    // exact solution
-    fc_exact_.Reinit(m);
-    for (auto i : m.AllCells()) {
-      Vect x = m.GetCenter(i);
-      fc_exact_[i] = fe(x);
-    }
-  }
   for (size_t n = 0; n < par.Int["num_steps"]; ++n) {
     if (sem.Nested("as->StartStep()")) {
       as_->StartStep();
@@ -319,6 +289,19 @@ void Advection<M>::TestSolve(
 
 template <class M>
 void Advection<M>::Run() {
+  auto sem = m.GetSem("TestSolve");
+  if (sem.Nested("as->StartStep()")) {
+    as_->StartStep();
+  }
+  if (sem.Nested("as->MakeIteration")) {
+    as_->MakeIteration();
+  }
+  if (sem.Nested("as->FinishStep()")) {
+    as_->FinishStep();
+  }
+}
+
+#if 0
   par.Double["extent"] = 1.; // TODO don't overwrite extent
   Scal extent = par.Double["extent"];
   {
@@ -374,11 +357,13 @@ using IdxCell = geom::IdxCell;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
+#endif
+
 // Dump values on inner cells to text file. 
 // Format:
 // <Nx> <Ny> <Nz>
 // <data:x=0,y=0,z=0> <data:x=1,y=0,z=0> ...
-template <class B=geom::GBlock<geom::IdxCell, 3>>
+template <class Scal, class B=geom::GBlock<geom::IdxCell, 3>>
 void Dump(const geom::FieldCell<Scal>& u, B& b, std::string on) {
   std::ofstream o(on.c_str());
 
@@ -391,6 +376,18 @@ void Dump(const geom::FieldCell<Scal>& u, B& b, std::string on) {
 
   o << std::endl;
 }
+
+// Solver derived from UnsteadySolver
+// Constructor:
+//   initial field Scal(Vect x)
+//   velocity Vect(Vect x)
+//   minimal par (bx, bpx, px, extent, dt, tmax)
+//   no config files
+// GBlock<IdxCell, 3> GetBlock() // global block
+// FieldCell<Scal> GetField()    // current field on global block
+//
+// All necessary communication is done internally.
+// Maybe restrict some calls to root.
 
 // Run distributed solver and return result on global mesh
 std::tuple<BC, FC, FC> Solve(MPI_Comm comm, Vars& par) {
@@ -427,6 +424,27 @@ void Dump(std::vector<const FC*> u, std::vector<std::string> un,
   ses.Write(0, "t");
 }
 
+class DistrSolver : public solver::UnsteadySolver {
+ public:
+  using Scal = double;
+  using AS = solver::AdvectionSolverExplicit<M>;
+  using Mesh = geom::MeshStructured<Scal, 3>;
+  using Vect = typename Mesh::Vect;
+  using MIdx = typename Mesh::MIdx;
+  using IdxCell = geom::IdxCell;
+  DistrSolver(MPI_Comm comm, Vars par, 
+              std::function<Scal(Vect)> fu0,
+              std::function<Vect(Vect)> fvel)
+      : comm_(comm), par(par)
+  {
+
+  }
+
+ private:
+  MPI_Comm comm_;
+  Vars par;
+};
+
 void Main(MPI_Comm comm, Vars& par0) {
   Vars par = par0;
   BC b;
@@ -441,6 +459,7 @@ void Main(MPI_Comm comm, Vars& par0) {
   par.Int["py"] = 1;
   par.Int["pz"] = 1;
   par.Int["fatal"] = 0;
+  Dump(f, b, "u0.dat");
   std::tie(b, f, fe) = Solve(comm, par);
   Dump(f, b, "u.dat");
 

@@ -105,7 +105,7 @@ void DistrMesh<KF>::Run(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     auto& k = *mk.at(b);
     k.Run();
-    }
+  }
 }
 
 template <class KF>
