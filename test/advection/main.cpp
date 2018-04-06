@@ -26,6 +26,8 @@
 #include "hydro/output.hpp"
 #include "hydro/output_paraview.hpp"
 
+#include "cmp.h"
+
 
 template <class M>
 class Advection : public KernelMesh<M> {
@@ -71,6 +73,8 @@ class AdvectionFactory : public KernelMeshFactory<_M> {
  public:
   using M = _M;
   using K = Advection<M>;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
   AdvectionFactory(std::function<Scal(Vect)> fu0,
                    std::function<Vect(Vect)> fvel) 
       : fu0_(fu0), fvel_(fvel) {}
@@ -120,6 +124,7 @@ Advection<M>::Advection(Vars& par, const MyBlockInfo& bi,
             0., 0., 1.));
 }
 
+#if 0
 template <class M>
 void Advection<M>::TestSolve(
     std::function<Scal(Vect)> fi /*initial*/,
@@ -158,18 +163,22 @@ void Advection<M>::TestSolve(
     m.Comm(&fc_exact_);
   }
 }
+#endif
 
 template <class M>
 void Advection<M>::Run() {
-  auto sem = m.GetSem("TestSolve");
-  if (sem.Nested("as->StartStep()")) {
+  auto sem = m.GetSem("advection");
+  if (sem.Nested("start")) {
     as_->StartStep();
   }
-  if (sem.Nested("as->MakeIteration")) {
+  if (sem.Nested("iter")) {
     as_->MakeIteration();
   }
-  if (sem.Nested("as->FinishStep()")) {
+  if (sem.Nested("finish")) {
     as_->FinishStep();
+  }
+  if (sem("comm")) { // comm for GetGlobalField
+    m.Comm(&const_cast<geom::FieldCell<Scal>&>(as_->GetField()));
   }
 }
 
@@ -221,9 +230,7 @@ void Advection<M>::Run() {
 using Scal = double;
 using M = geom::MeshStructured<Scal, 3>;
 using K = Advection<M>;
-using KF = AdvectionFactory<M>;
 using D = DistrMesh<KernelMeshFactory<M>>;
-using BC = typename M::BlockCells;
 using FC = geom::FieldCell<Scal>;
 using IdxCell = geom::IdxCell;
 using Vect = typename M::Vect;
@@ -249,79 +256,76 @@ void Dump(const geom::FieldCell<Scal>& u, B& b, std::string on) {
   o << std::endl;
 }
 
-// Solver derived from UnsteadySolver
-// Constructor:
-//   initial field Scal(Vect x)
-//   velocity Vect(Vect x)
-//   minimal par (bx, bpx, px, extent, dt, tmax)
-//   no config files
-// GBlock<IdxCell, 3> GetBlock() // global block
-// FieldCell<Scal> GetField()    // current field on global block
-//
-// All necessary communication is done internally.
-// Maybe restrict some calls to root.
-
-// Run distributed solver and return result on global mesh
-//
-std::tuple<BC, FC, FC> Solve(MPI_Comm comm, Vars& par) {
-  KF kf;
-
-  bool loc = par.Int["loc"];
-  
-  Distr* dr;
-  if (loc) {
-    dr = CreateLocal(comm, kf, par);
-  } else {
-    dr = CreateCubism(comm, kf, par);
-  }
-
-  std::unique_ptr<D> d(dynamic_cast<D*>(dr));
-  assert(d);
-  d->Run();
-
-  return std::make_tuple(
-      d->GetGlobalBlock(), d->GetGlobalField(0), d->GetGlobalField(1));
-}
-
-void Dump(std::vector<const FC*> u, std::vector<std::string> un, 
+template <class M>
+void Dump(std::vector<const geom::FieldCell<typename M::Scal>*> u, 
+          std::vector<std::string> un, 
           M& m, std::string fn="a") {
+  using Scal = typename M::Scal;
   output::Content con;
   for (size_t k = 0; k < u.size(); ++k) {
     auto p = u[k];
     con.emplace_back(
-        new output::EntryFunction<Scal, IdxCell, M>(
-            un[k], m, [p](IdxCell i) { return (*p)[i]; }));
+        new output::EntryFunction<Scal, geom::IdxCell, M>(
+            un[k], m, [p](geom::IdxCell i) { return (*p)[i]; }));
   }
 
   output::SessionParaviewStructured<M> ses(con, "", fn /*filename*/, m);
   ses.Write(0, "t");
 }
 
+template <class M_>
 class DistrSolver : public solver::UnsteadySolver {
  public:
-  using Scal = double;
+  using M = M_;
+  static constexpr size_t dim = M::dim;
   using AS = solver::AdvectionSolverExplicit<M>;
-  using Mesh = geom::MeshStructured<Scal, 3>;
-  using Vect = typename Mesh::Vect;
-  using MIdx = typename Mesh::MIdx;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  using MIdx = typename M::MIdx;
   using IdxCell = geom::IdxCell;
+
+  using KF = AdvectionFactory<M>;
+  using D = DistrMesh<KernelMeshFactory<M>>; 
+
   DistrSolver(MPI_Comm comm, Vars par, 
               std::function<Scal(Vect)> fu0,
               std::function<Vect(Vect)> fvel)
-      : comm_(comm), par(par)
+      : UnsteadySolver(0., par.Double["dt"])
+      , par(par)
   {
+    // Create kernel factory
+    KF kf(fu0, fvel);
 
+    // Initialize blocks
+    Distr* b; // base
+    if (par.Int["loc"]) {
+      b = CreateLocal(comm, kf, par);
+    } else {
+      b = CreateCubism(comm, kf, par);
+    }
+
+    d_.reset(dynamic_cast<D*>(b));
+    assert(d_);
+  }
+  void StartStep() {
+    par.Double.Set("dt", this->GetTimeStep()); 
+    par.Double.Set("t", this->GetTime()); 
+    d_->Run();
+  }
+  geom::GBlock<IdxCell, dim> GetBlock() const {
+    return d_->GetGlobalBlock();
+  }
+  geom::FieldCell<Scal> GetField() const {
+    return d_->GetGlobalField(0);
   }
 
  private:
-  MPI_Comm comm_;
   Vars par;
+  std::unique_ptr<D> d_;
 };
 
 void Main(MPI_Comm comm, Vars& par0) {
   Vars par = par0;
-  BC b;
-  FC f, fe;
   par.Int["bsx"] = 32;
   par.Int["bsy"] = 32;
   par.Int["bsz"] = 1;
@@ -332,40 +336,21 @@ void Main(MPI_Comm comm, Vars& par0) {
   par.Int["py"] = 1;
   par.Int["pz"] = 1;
   par.Int["fatal"] = 0;
-  Dump(f, b, "u0.dat");
-  std::tie(b, f, fe) = Solve(comm, par);
-  Dump(f, b, "u.dat");
 
+  using M = geom::MeshStructured<double, 3>;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+
+  auto fu0 = [](Vect) -> Scal { return 0; };
+  auto fvel = [](Vect) -> Vect { return Vect(0); };
+  DistrSolver<M> ds(comm, par, fu0, fvel);
+
+  ds.StartStep();
+  ds.FinishStep();
+
+  ds.GetField();
+  ds.GetBlock();
   return;
-  
-  std::cerr << "solve with bsx=" << par.Int["bsx"] << std::endl;
-  BC b0, b1;
-  FC f0, fe0, f1, fe1;
-  std::tie(b0, f0, fe0) = Solve(comm, par);
-
-
-  // Create uniform mesh in unit cube
-  geom::Rect<Vect> dom(Vect(0), Vect(1));
-  auto m = geom::InitUniformMesh<M>(dom, MIdx(0), b0.GetDimensions(), 0);
-
-  par.Int["bsx"] /= 2;
-  par.Int["bsy"] /= 2;
-  par.Int["bsz"] /= 2;
-  par.Int["bx"] *= 2;
-  par.Int["by"] *= 2;
-  par.Int["bz"] *= 2;
-  std::cerr << "solve with bsx=" << par.Int["bsx"] << std::endl;
-  std::tie(b1, f1, fe1) = Solve(comm, par);
-
-  // Check both grids have same size (assume Begin=0)
-  PCMP(b0.GetEnd(), b1.GetEnd());
-
-  geom::FieldCell<bool> mask(b0, true);
-
-  Dump({&f0, &fe0, &f1}, {"0", "0e", "1"}, m, "a");
-
-  PCMP(Mean(b0, f0, mask), Mean(b1, f1, mask));
-  PCMP(DiffMax(b0, f0, f1, mask), 0.);
 }
 
 int main (int argc, const char ** argv) {

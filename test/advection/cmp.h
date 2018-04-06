@@ -1,7 +1,7 @@
 #pragma once
 
 #include <algorithm> // min, max
-#include <math>      // abs
+#include <cmath>      // abs
 #include <iostream>  // cerr, scientific, setprecision
 
 template <class T>
