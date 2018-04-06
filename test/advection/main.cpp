@@ -1,4 +1,4 @@
-include <iostream>
+#include <iostream>
 #include <string>
 #include <mpi.h>
 #include <cassert>
@@ -119,134 +119,6 @@ Advection<M>::Advection(Vars& par, const MyBlockInfo& bi,
             &fc_src_, 0., par.Double["dt"], 
             0., 0., 1.));
 }
-
-template <class T>
-bool Cmp(T a, T b) {
-  return a == b;
-}
-
-template <>
-bool Cmp<double>(double a, double b) {
-  return std::abs(a - b) < 1e-10;
-}
-
-
-template <class Idx, class B, class Scal>
-Scal DiffMax(
-    const B& b,
-    const geom::GField<Scal, Idx>& u,
-    const geom::GField<Scal, Idx>& v,
-    const geom::GField<bool, Idx>& mask) {
-  Scal r = 0;
-  for (auto i : geom::GRange<Idx>(b)) {
-    if (mask[i]) {
-      r = std::max(r, std::abs(u[i] - v[i]));
-    }
-  }
-  return r;
-}
-
-template <class Idx, class B, class Scal>
-Scal Max(
-    const B& b,
-    const geom::GField<Scal, Idx>& u,
-    const geom::GField<bool, Idx>& mask) {
-  Scal r = 0;
-  for (auto i : geom::GRange<Idx>(b)) {
-    if (mask[i]) {
-      r = std::max(r, u[i]);
-    }
-  }
-  return r;
-}
-
-template <class Idx, class B, class Scal>
-Scal Mean(
-    const B& b,
-    const geom::GField<Scal, Idx>& u,
-    const geom::GField<bool, Idx>& mask) {
-  Scal r = 0;
-  Scal w = 0.;
-  for (auto i : geom::GRange<Idx>(b)) {
-    if (mask[i]) {
-      r += u[i];
-      w += 1.;
-    }
-  }
-  return r / w;
-}
-
-
-template <class Idx, class M>
-typename M::Scal DiffMax(
-    const geom::GField<typename M::Scal, Idx>& u,
-    const geom::GField<typename M::Scal, Idx>& v,
-    const M& m,
-    const geom::GField<bool, Idx>& mask) {
-  using Scal = typename M::Scal;
-  Scal r = 0;
-  for (auto i : m.template Get<Idx>()) {
-    if (mask[i]) {
-      r = std::max(r, std::abs(u[i] - v[i]));
-    }
-  }
-  return r;
-}
-
-template <class Idx, class M>
-typename M::Scal Max(
-    const geom::GField<typename M::Scal, Idx>& u,
-    const M& m,
-    const geom::GField<bool, Idx>& mask) {
-  using Scal = typename M::Scal;
-  Scal r = 0;
-  for (auto i : m.template Get<Idx>()) {
-    if (mask[i]) {
-      r = std::max(r, u[i]);
-    }
-  }
-  return r;
-}
-
-
-template <class Idx, class M>
-typename M::Scal Mean(
-    const geom::GField<typename M::Scal, Idx>& u,
-    const M& m,
-    const geom::GField<bool, Idx>& mask) {
-  using Scal = typename M::Scal;
-  Scal r = 0;
-  Scal w = 0.;
-  for (auto i : m.template Get<Idx>()) {
-    if (mask[i]) {
-      r += u[i];
-      w += 1.;
-    }
-  }
-  return r / w;
-}
-
-#define CMP(a, b) \
-  assert(Cmp(a, b)); 
-
-// Print CMP 
-#define PCMP(a, b) \
-  std::cerr \
-    << std::scientific << std::setprecision(16) \
-    << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
-  CMP(a, b); 
-
-
-// Print CMP if false
-#define PFCMP(a, b, ftl) \
-  if (!Cmp(a, b)) { \
-    std::cerr \
-      << std::scientific << std::setprecision(16) \
-      << "Failed cmp: " << std::endl \
-      << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
-    assert(!ftl);\
-  }
-
 
 template <class M>
 void Advection<M>::TestSolve(
@@ -390,6 +262,7 @@ void Dump(const geom::FieldCell<Scal>& u, B& b, std::string on) {
 // Maybe restrict some calls to root.
 
 // Run distributed solver and return result on global mesh
+//
 std::tuple<BC, FC, FC> Solve(MPI_Comm comm, Vars& par) {
   KF kf;
 
