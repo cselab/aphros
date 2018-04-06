@@ -38,13 +38,14 @@ First describe the interface in a separate class, then implement.
   `u` - generic field
   `q` - neighbour cell id
   `o` - other
+* Treat pointers same as values
 
 ## Other
 
 * use Vect(0) and MIdx(0) instead of Vect::kZero
 
 ## Formatting
-* initialization list: two spaces before `:` and `,` starting each line.
+* initialization list: 4 spaces indent `:` and `,` starting each line.
 
 ## Dereference pointers to references or values if possible
 But: use pointer arguments to prevent passing an rvalue
@@ -63,4 +64,15 @@ means that argument B needs to be a subtype of A
 
 ## Data from Kernel returned by reference if possible
 
+## Units
 
+Example: `Scal s; // source [density/time]`
+
+* length
+* time
+* mass
+* velocity (length/time)
+* area (length^2)
+* volume (length^3)
+* density (mass/volume)
+* value (user defined, e.g. 1 for concentration)
