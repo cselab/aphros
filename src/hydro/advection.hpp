@@ -156,7 +156,7 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
           flux_sum += ff_flux_[f] * m.GetOutwardFactor(c, q);
         }
 
-        const Scal dt = GetTimeStep();
+        const Scal dt = this->GetTimeStep();
         curr[c] = fc_u_.time_prev[c] +
             dt / m.GetVolume(c) * (-flux_sum) + // fluxes
             dt * (*this->fcs_)[c]; // source

@@ -26,7 +26,6 @@
 #include "hydro/output.hpp"
 #include "hydro/output_paraview.hpp"
 
-// Test design rules:
 
 template <class M>
 class Advection : public KernelMesh<M> {
@@ -375,6 +374,25 @@ using IdxCell = geom::IdxCell;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
+// Dump values on inner cells to text file. 
+// Format:
+// <Nx> <Ny> <Nz>
+// <data:x=0,y=0,z=0> <data:x=1,y=0,z=0> ...
+template <class B=geom::GBlock<geom::IdxCell, 3>>
+void Dump(const geom::FieldCell<Scal>& u, B& b, std::string on) {
+  std::ofstream o(on.c_str());
+
+  auto s = b.GetDimensions();
+  o << s[0] << " " << s[1] << " " << s[2] << std::endl;
+
+  for (auto c : b.Range()) {
+    o << u[c] << " ";
+  }
+
+  o << std::endl;
+}
+
+// Run distributed solver and return result on global mesh
 std::tuple<BC, FC, FC> Solve(MPI_Comm comm, Vars& par) {
   KF kf;
 
@@ -411,33 +429,51 @@ void Dump(std::vector<const FC*> u, std::vector<std::string> un,
 
 void Main(MPI_Comm comm, Vars& par0) {
   Vars par = par0;
+  BC b;
+  FC f, fe;
+  par.Int["bsx"] = 32;
+  par.Int["bsy"] = 32;
+  par.Int["bsz"] = 1;
+  par.Int["bx"] = 1;
+  par.Int["by"] = 1;
+  par.Int["bz"] = 1;
+  par.Int["px"] = 1;
+  par.Int["py"] = 1;
+  par.Int["pz"] = 1;
+  par.Int["fatal"] = 0;
+  std::tie(b, f, fe) = Solve(comm, par);
+  Dump(f, b, "u.dat");
+
+  return;
   
-  std::cerr << "solve ref" << std::endl;
-  BC b, bb;
-  FC fa, fea, fb, feb;
-  std::tie(b, fa, fea) = Solve(comm, par);
+  std::cerr << "solve with bsx=" << par.Int["bsx"] << std::endl;
+  BC b0, b1;
+  FC f0, fe0, f1, fe1;
+  std::tie(b0, f0, fe0) = Solve(comm, par);
 
-  using Scal = double;
+
+  // Create uniform mesh in unit cube
   geom::Rect<Vect> dom(Vect(0), Vect(1));
-  auto m = geom::InitUniformMesh<M>(dom, MIdx(0), b.GetDimensions(), 0);
+  auto m = geom::InitUniformMesh<M>(dom, MIdx(0), b0.GetDimensions(), 0);
 
-  std::cerr << "solve bs/2" << std::endl;
   par.Int["bsx"] /= 2;
   par.Int["bsy"] /= 2;
   par.Int["bsz"] /= 2;
   par.Int["bx"] *= 2;
   par.Int["by"] *= 2;
   par.Int["bz"] *= 2;
-  std::tie(bb, fb, feb) = Solve(comm, par);
+  std::cerr << "solve with bsx=" << par.Int["bsx"] << std::endl;
+  std::tie(b1, f1, fe1) = Solve(comm, par);
 
-  PCMP(b.GetEnd(), bb.GetEnd());
+  // Check both grids have same size (assume Begin=0)
+  PCMP(b0.GetEnd(), b1.GetEnd());
 
-  geom::FieldCell<bool> mask(b, true);
+  geom::FieldCell<bool> mask(b0, true);
 
-  Dump({&fa, &fea, &fb}, {"a", "ea", "b"}, m, "a");
+  Dump({&f0, &fe0, &f1}, {"0", "0e", "1"}, m, "a");
 
-  PCMP(Mean(b, fa, mask), Mean(b, fb, mask));
-  PCMP(DiffMax(b, fa, fb, mask), 0.);
+  PCMP(Mean(b0, f0, mask), Mean(b1, f1, mask));
+  PCMP(DiffMax(b0, f0, f1, mask), 0.);
 }
 
 int main (int argc, const char ** argv) {
