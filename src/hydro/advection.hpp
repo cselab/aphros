@@ -23,32 +23,40 @@ FieldCell<typename M::Vect> GetDeformingVelocity(const M& m) {
   return r;
 }
 
-template <class Mesh>
+template <class M>
 class AdvectionSolver : public UnsteadyIterativeSolver {
+  using Mesh = M;
   using Scal = typename Mesh::Scal;
-  using Vect = typename Mesh::Vect;
 
  protected:
-  const FieldFace<Scal>* p_ff_velocity_;
-  const FieldCell<Scal>* p_fc_source_;
+  Mesh& m;
+  const FieldFace<Scal>* ffv_; // volume flux [velocity*area]
+  const FieldCell<Scal>* fcs_; // source [value/time]
 
  public:
   AdvectionSolver(double t, double dt,
-                  const FieldFace<Scal>* p_ff_velocity,
-                  const FieldCell<Scal>* p_fc_source)
+                  Mesh& m,
+                  const FieldFace<Scal>* ffv /*volume flux*/,
+                  const FieldCell<Scal>* fcs /*source*/)
       : UnsteadyIterativeSolver(t, dt)
-      , p_ff_velocity_(p_ff_velocity)
-      , p_fc_source_(p_fc_source)
-  {}
-  virtual const FieldCell<Scal>& GetField() = 0;
+      , m(m)
+      , ffv_(ffv)
+      , fcs_(fcs) {}
+  virtual const FieldCell<Scal>& GetField(Layers) = 0;
+  virtual const FieldCell<Scal>& GetField() {
+    return GetField(Layers::time_curr);
+  }
 };
 
-template <class Mesh>
-class AdvectionSolverExplicit : public AdvectionSolver<Mesh> {
-  Mesh& m;
-  static constexpr size_t dim = Mesh::dim;
+template <class M>
+class AdvectionSolverExplicit : public AdvectionSolver<M> {
+  using Mesh = M;
+  using P = AdvectionSolver<Mesh>;
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
+  static constexpr size_t dim = Mesh::dim;
+
+  using P::m;
   LayersData<FieldCell<Scal>> fc_u_;
   MapFace<std::shared_ptr<ConditionFace>> mf_u_cond_;
   // Common buffers:
@@ -70,11 +78,9 @@ class AdvectionSolverExplicit : public AdvectionSolver<Mesh> {
       const MapFace<std::shared_ptr<ConditionFace>>& mf_u_cond_,
       const FieldFace<Scal>* p_fn_velocity,
       const FieldCell<Scal>* p_fc_source,
-      double time, double time_step,
+      double t, double dt,
       Scal sharp, Scal sharpo, Scal sharp_max)
-      : AdvectionSolver<Mesh>(
-          time, time_step, p_fn_velocity, p_fc_source)
-      , m(m)
+      : AdvectionSolver<Mesh>(t, dt, m, p_fn_velocity, p_fc_source)
       , mf_u_cond_(mf_u_cond_)
       , ff_volume_flux_(m)
       , ff_flux_(m)
@@ -96,7 +102,7 @@ class AdvectionSolverExplicit : public AdvectionSolver<Mesh> {
       auto& curr = fc_u_.iter_curr;
       prev = curr;
 
-      ff_volume_flux_ = *(this->p_ff_velocity_);
+      ff_volume_flux_ = *(this->ffv_);
 
       ff_u_ = InterpolateSuperbee(
           prev,
@@ -152,7 +158,7 @@ class AdvectionSolverExplicit : public AdvectionSolver<Mesh> {
 
         curr[c] = fc_u_.time_prev[c] -
             this->GetTimeStep() / m.GetVolume(c) * flux_sum +
-            this->GetTimeStep() * (*this->p_fc_source_)[c];
+            this->GetTimeStep() * (*this->fcs_)[c];
       }
       m.Comm(&curr);
 
@@ -170,9 +176,10 @@ class AdvectionSolverExplicit : public AdvectionSolver<Mesh> {
     return CalcDiff<FieldCell<Scal>, Mesh>(
         fc_u_.iter_curr, fc_u_.iter_prev, m);
   }
-  const FieldCell<Scal>& GetField() override {
-    return fc_u_.time_curr;
+  const FieldCell<Scal>& GetField(Layers l) override {
+    return fc_u_.Get(l);
   }
+  using P::GetField;
 };
 
 } // namespace solver
