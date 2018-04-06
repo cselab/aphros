@@ -220,7 +220,6 @@ class SessionPlain : public Session {
   }
 };
 
-
 template <class Scal>
 class SessionPlainScalar : public Session {
  public:

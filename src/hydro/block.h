@@ -82,8 +82,11 @@ class GBlock {
     }
     return r;
   }
-  operator GRange<Idx>() const {
+  GRange<Idx> Range() const {
     return GRange<Idx>(0, size());
+  }
+  operator GRange<Idx>() const {
+    return Range();
   }
   Idx GetIdx(MIdx w) const {
     w -= b_;
