@@ -662,33 +662,22 @@ geom::FieldCell<typename Mesh::Vect> Gradient(
 }
 
 class UnsteadySolver {
+ public:
+  UnsteadySolver(double t, double dt) : t_(t), dt_(dt) {}
+  virtual ~UnsteadySolver() {}
+  virtual void StartStep() {}
+  virtual void FinishStep() { IncTime(); }
+  virtual double GetTime() const { return t_; }
+  virtual void SetTime(double t) { t_  = t; }
+  virtual double GetTimeStep() const { return dt_; }
+  virtual void SetTimeStep(double dt) { dt_ = dt; }
+
+ protected:
+  virtual void IncTime() { t_ += dt_; }
+
+ private:
   double t_;
   double dt_;
- public:
-  UnsteadySolver(double t, double dt)
-      : t_(t)
-      , dt_(dt)
-  {}
-  virtual ~UnsteadySolver() {}
-  virtual double GetTime() const {
-    return t_;
-  }
-  virtual void SetTime(double t) {
-    t_  = t;
-  }
-  virtual double GetTimeStep() const {
-    return dt_;
-  }
-  virtual void SetTimeStep(double dt) {
-    dt_ = dt;
-  }
-  virtual void IncTime() {
-    t_ += dt_;
-  }
-  virtual void StartStep() {}
-  virtual void FinishStep() {
-    IncTime();
-  }
 };
 
 class UnsteadyIterativeSolver : public UnsteadySolver {
