@@ -25,15 +25,17 @@ def Get2d(u):
         return u.reshape((s[0], s[1]))
 
 # u -- 2d numpy array
-def Plot(u):
-    plt.imshow(u, extent=(0, 1, 0, 1), interpolation='nearest')
+# fn -- output file name
+def Plot(u, fn):
+    plt.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation='nearest')
     plt.gca().set_aspect('equal')
     plt.tight_layout()
-    fo = "out.pdf"
-    print(fo)
-    plt.savefig(fo, dpi=300)
+    print(fn)
+    plt.savefig(fn, dpi=300)
     plt.close()
 
-u = Read("u.dat")
-u = Get2d(u)
-Plot(u)
+for i in range(3):
+    b = "u" + str(i)
+    u = Read(b + ".dat")
+    u = Get2d(u)
+    Plot(u, b + ".pdf")

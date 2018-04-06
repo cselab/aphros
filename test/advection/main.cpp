@@ -7,6 +7,7 @@
 #include <functional>
 #include <utility>
 #include <tuple>
+#include <stdexcept>
 
 #include "CubismDistr/Vars.h"
 #include "CubismDistr/Interp.h"
@@ -24,7 +25,6 @@
 #include "hydro/advection.hpp"
 
 #include "hydro/output.hpp"
-#include "hydro/output_paraview.hpp"
 
 #include "cmp.h"
 
@@ -51,21 +51,10 @@ class Advection : public KernelMesh<M> {
   using KM::IsRoot;
 
  private:
-  template <class T>
-  using FieldCell = geom::FieldCell<T>;
-  template <class T>
-  using FieldFace = geom::FieldFace<T>;
-
-  geom::FieldCell<Scal> fc_exact_;
   geom::FieldFace<Scal> ff_flux_;
   geom::FieldCell<Scal> fc_src_;
   using AS = solver::AdvectionSolverExplicit<M>;
   std::unique_ptr<AS> as_; // advection solver
-  MIdx gs_; // global mesh size
-  Vect ge_; // global extent
-  geom::FieldCell<Scal> fc_; // buffer
-  FieldCell<Scal> fc_sc_; // scaling
-  FieldFace<Scal> ff_d_; // diffusion rate
 };
 
 template <class _M>
@@ -94,7 +83,7 @@ Advection<M>::Advection(Vars& par, const MyBlockInfo& bi,
     : KernelMesh<M>(par, bi)
 {
   // initial field for advection
-  FieldCell<Scal> u0(m, 0);
+  geom::FieldCell<Scal> u0(m, 0);
   for (auto c : m.AllCells()) {
     Vect x = m.GetCenter(c);
     u0[c] = fu0(x);
@@ -115,9 +104,6 @@ Advection<M>::Advection(Vars& par, const MyBlockInfo& bi,
   
   // source
   fc_src_.Reinit(m, 0.);
-
-  // diffusion rate
-  ff_d_.Reinit(m, par.Double["mu"]);
 
   as_.reset(new AS(m, u0, bc, &ff_flux_, 
             &fc_src_, 0., par.Double["dt"], 
@@ -178,7 +164,8 @@ void Advection<M>::Run() {
     as_->FinishStep();
   }
   if (sem("comm")) { // comm for GetGlobalField
-    m.Comm(&const_cast<geom::FieldCell<Scal>&>(as_->GetField()));
+    auto& u = const_cast<geom::FieldCell<Scal>&>(as_->GetField());
+    m.Comm(&u);
   }
 }
 
@@ -256,23 +243,6 @@ void Dump(const geom::FieldCell<Scal>& u, B& b, std::string on) {
   o << std::endl;
 }
 
-template <class M>
-void Dump(std::vector<const geom::FieldCell<typename M::Scal>*> u, 
-          std::vector<std::string> un, 
-          M& m, std::string fn="a") {
-  using Scal = typename M::Scal;
-  output::Content con;
-  for (size_t k = 0; k < u.size(); ++k) {
-    auto p = u[k];
-    con.emplace_back(
-        new output::EntryFunction<Scal, geom::IdxCell, M>(
-            un[k], m, [p](geom::IdxCell i) { return (*p)[i]; }));
-  }
-
-  output::SessionParaviewStructured<M> ses(con, "", fn /*filename*/, m);
-  ses.Write(0, "t");
-}
-
 template <class M_>
 class DistrSolver : public solver::UnsteadySolver {
  public:
@@ -287,11 +257,11 @@ class DistrSolver : public solver::UnsteadySolver {
   using KF = AdvectionFactory<M>;
   using D = DistrMesh<KernelMeshFactory<M>>; 
 
-  DistrSolver(MPI_Comm comm, Vars par, 
+  DistrSolver(MPI_Comm comm, Vars apar, 
               std::function<Scal(Vect)> fu0,
               std::function<Vect(Vect)> fvel)
-      : UnsteadySolver(0., par.Double["dt"])
-      , par(par)
+      : UnsteadySolver(0., apar.Double["dt"])
+      , par(apar)
   {
     // Create kernel factory
     KF kf(fu0, fvel);
@@ -305,7 +275,9 @@ class DistrSolver : public solver::UnsteadySolver {
     }
 
     d_.reset(dynamic_cast<D*>(b));
-    assert(d_);
+    if (!d_) {
+      throw std::runtime_error("DistrSolver: Can't cast to D");
+    }
   }
   void StartStep() {
     par.Double.Set("dt", this->GetTimeStep()); 
@@ -324,33 +296,27 @@ class DistrSolver : public solver::UnsteadySolver {
   std::unique_ptr<D> d_;
 };
 
-void Main(MPI_Comm comm, Vars& par0) {
-  Vars par = par0;
-  par.Int["bsx"] = 32;
-  par.Int["bsy"] = 32;
-  par.Int["bsz"] = 1;
-  par.Int["bx"] = 1;
-  par.Int["by"] = 1;
-  par.Int["bz"] = 1;
-  par.Int["px"] = 1;
-  par.Int["py"] = 1;
-  par.Int["pz"] = 1;
-  par.Int["fatal"] = 0;
-
+void Main(MPI_Comm comm, Vars& par) {
   using M = geom::MeshStructured<double, 3>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  auto fu0 = [](Vect) -> Scal { return 0; };
-  auto fvel = [](Vect) -> Vect { return Vect(0); };
+  auto fu0 = [](Vect x) -> Scal { 
+    return std::sin(x[0]*5)* std::sin(x[1]*5); };
+  auto fvel = [](Vect x) -> Vect { return Vect(x); };
+
   DistrSolver<M> ds(comm, par, fu0, fvel);
 
-  ds.StartStep();
-  ds.FinishStep();
+  for (int k = 0; k < 3; ++k) {
+    auto b = ds.GetBlock();
+    auto f = ds.GetField();
+    Dump(f, b, "u" + std::to_string(k) + ".dat");
 
-  ds.GetField();
-  ds.GetBlock();
-  return;
+    for (int i = 0; i < 10; ++i) {
+      ds.StartStep();
+      ds.FinishStep();
+    }
+  }
 }
 
 int main (int argc, const char ** argv) {
