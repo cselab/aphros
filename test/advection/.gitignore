@@ -6,3 +6,5 @@ pressure
 *.xmf
 *.vts
 *.pvd
+*.dat
+*.pdf
