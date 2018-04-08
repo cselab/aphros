@@ -302,12 +302,22 @@ void Main(MPI_Comm comm, Vars& par) {
   using Vect = typename M::Vect;
 
   auto fu0 = [](Vect x) -> Scal { 
-    return std::sin(x[0]*5)* std::sin(x[1]*5); };
-  auto fvel = [](Vect x) -> Vect { return Vect(x); };
+    return Vect(0.5,0.7,0.).dist(x) < 0.15 ? 1. : 0.; };
+  auto fvelsincos = [](Vect x) -> Vect { 
+    return Vect(-std::cos(x[1]) * std::sin(x[0]), 
+                std::cos(x[0]) * std::sin(x[1]),
+                0.); };
+  auto fveluni = [](Vect x) -> Vect { 
+    return Vect(-1., -1., 0.); };
+  auto fvel = fveluni;
 
   DistrSolver<M> ds(comm, par, fu0, fvel);
 
   for (int k = 0; k < 3; ++k) {
+    // single step for initial dump
+    ds.StartStep();
+    ds.FinishStep();
+
     auto b = ds.GetBlock();
     auto f = ds.GetField();
     Dump(f, b, "u" + std::to_string(k) + ".dat");
