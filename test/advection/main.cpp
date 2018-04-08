@@ -13,7 +13,7 @@
 #include "CubismDistr/Interp.h"
 #include "CubismDistr/Kernel.h"
 #include "CubismDistr/KernelMesh.h"
-#include "CubismDistr/ICubism.h"
+//#include "CubismDistr/ICubism.h"
 #include "CubismDistr/ILocal.h"
 #include "CubismDistr/Distr.h"
 
@@ -271,7 +271,7 @@ class DistrSolver : public solver::UnsteadySolver {
     if (par.Int["loc"]) {
       b = CreateLocal(comm, kf, par);
     } else {
-      b = CreateCubism(comm, kf, par);
+      //b = CreateCubism(comm, kf, par);
     }
 
     d_.reset(dynamic_cast<D*>(b));
