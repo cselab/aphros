@@ -154,6 +154,10 @@ void Advection<M>::TestSolve(
 template <class M>
 void Advection<M>::Run() {
   auto sem = m.GetSem("advection");
+  sem.LoopBegin();
+  if (sem("checkloop")) {
+
+  }
   if (sem.Nested("start")) {
     as_->StartStep();
   }
@@ -167,6 +171,12 @@ void Advection<M>::Run() {
     auto& u = const_cast<geom::FieldCell<Scal>&>(as_->GetField());
     m.Comm(&u);
   }
+  if (sem("--nsteps")) {
+    if (IsRoot()) {
+      --par.Int["nsteps"];
+    }
+  }
+  sem.LoopEnd();
 }
 
 #if 0
