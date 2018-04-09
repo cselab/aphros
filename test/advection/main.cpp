@@ -155,8 +155,15 @@ template <class M>
 void Advection<M>::Run() {
   auto sem = m.GetSem("advection");
   sem.LoopBegin();
+  if (sem("comm")) { // comm for GetGlobalField
+    auto& u = const_cast<geom::FieldCell<Scal>&>(as_->GetField());
+    m.Comm(&u);
+  }
   if (sem("checkloop")) {
-
+    if (as_->GetTime() >= par.Double["tmax"]) {
+      sem.LoopBreak();
+    }
+    ++par.Int["iter"];
   }
   if (sem.Nested("start")) {
     as_->StartStep();
@@ -170,11 +177,6 @@ void Advection<M>::Run() {
   if (sem("comm")) { // comm for GetGlobalField
     auto& u = const_cast<geom::FieldCell<Scal>&>(as_->GetField());
     m.Comm(&u);
-  }
-  if (sem("--nsteps")) {
-    if (IsRoot()) {
-      --par.Int["nsteps"];
-    }
   }
   sem.LoopEnd();
 }
@@ -267,7 +269,7 @@ class DistrSolver : public solver::UnsteadySolver {
   using KF = AdvectionFactory<M>;
   using D = DistrMesh<KernelMeshFactory<M>>; 
 
-  DistrSolver(MPI_Comm comm, Vars apar, 
+  DistrSolver(MPI_Comm comm, Vars& apar, 
               std::function<Scal(Vect)> fu0,
               std::function<Vect(Vect)> fvel)
       : UnsteadySolver(0., apar.Double["dt"])
@@ -302,7 +304,7 @@ class DistrSolver : public solver::UnsteadySolver {
   }
 
  private:
-  Vars par;
+  Vars& par;
   std::unique_ptr<D> d_;
 };
 
@@ -312,19 +314,31 @@ void Main(MPI_Comm comm, Vars& par) {
   using Vect = typename M::Vect;
 
   auto fu0 = [](Vect x) -> Scal { 
-    return Vect(0.5,0.7,0.).dist(x) < 0.15 ? 1. : 0.; };
+    return Vect(0.5, 0.263662, 0.).dist(x) < 0.2 ? 1. : 0.; };
   auto fvelsincos = [](Vect x) -> Vect { 
-    return Vect(-std::cos(x[1]) * std::sin(x[0]), 
+    x = (x - Vect(0.0)) * 1. * M_PI;
+    return Vect(-std::sin(x[0]) * std::cos(x[1]), 
                 std::cos(x[0]) * std::sin(x[1]),
                 0.); };
   auto fveluni = [](Vect x) -> Vect { 
     return Vect(-1., -1., 0.); };
-  auto fvel = fveluni;
+
+  std::string v = par.String["vel"];
+  std::function<Vect(Vect)> fvel = fveluni;
+  if (v == "uni") {
+    fvel = fveluni;
+  } else if (v == "sincos") {
+    fvel = fvelsincos;
+  } else {
+    throw std::runtime_error("Unknown vel=" + v);
+  }
 
   DistrSolver<M> ds(comm, par, fu0, fvel);
 
-  for (int k = 0; k < 3; ++k) {
-    // single step for initial dump
+  size_t k = 0;
+  while (par.Double["tmax"] < par.Double["ttmax"]) {
+    std::cout << "tmax = " << par.Double["tmax"] << std::endl;
+
     ds.StartStep();
     ds.FinishStep();
 
@@ -332,10 +346,10 @@ void Main(MPI_Comm comm, Vars& par) {
     auto f = ds.GetField();
     Dump(f, b, "u" + std::to_string(k) + ".dat");
 
-    for (int i = 0; i < 10; ++i) {
-      ds.StartStep();
-      ds.FinishStep();
-    }
+    par.Double["tmax"] += par.Double["dumpdt"];
+    ds.StartStep();
+    ds.FinishStep();
+    ++k;
   }
 }
 
