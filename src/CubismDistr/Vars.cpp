@@ -91,7 +91,7 @@ void Vars::Map<T>::SetStr(Key k, std::string v) {
     std::cerr 
         << "Trailing characters when parsing '" << v
         << "' as " << GetTypeName() << std::endl;;
-    throw std::runtime_error("Vars::DetStr(): Trailing characters");
+    throw std::runtime_error("Vars::GetStr(): Trailing characters");
   }
 }
 
@@ -118,7 +118,7 @@ void Vars::Map<std::vector<double>>::SetStr(Key k, std::string s) {
       std::cerr 
           << "Unable to parse '" << s 
           << "' as " << GetTypeName() << std::endl;;
-      throw std::runtime_error("Vars::DetStr(): Unable to parse");
+      throw std::runtime_error("Vars::GetStr(): Unable to parse");
     }
   }
   m_[k] = r;
@@ -135,7 +135,7 @@ const T& Vars::Map<T>::operator[](Key k) const {
     std::cerr << "variable '" << k
         << "' of type '" << GetTypeName()
         << "' not found" << std::endl;
-    throw std::runtime_error("Vars::DetStr(): Variable not found");
+    throw std::runtime_error("Vars::GetStr(): Variable not found");
   }
   return m_.at(k);
 }
@@ -146,7 +146,7 @@ T& Vars::Map<T>::operator[](Key k) {
     std::cerr << "variable '" << k
         << "' of type '" << GetTypeName()
         << "' not found" << std::endl;
-    throw std::runtime_error("Vars::DetStr(): Variable not found");
+    throw std::runtime_error("Vars::GetStr(): Variable not found");
   }
   return m_.at(k);
 }
