@@ -57,6 +57,8 @@ class Advection : public KernelMesh<M> {
   using AS = solver::AdvectionSolverExplicit<M>;
   std::unique_ptr<AS> as_; // advection solver
   std::function<Vect(Vect,Scal)> fvel_;
+  Scal maxvel_; // maximum velocity relative to cell length [1/time]
+                // cfl = dt * maxvel
 };
 
 template <class _M>
@@ -162,20 +164,35 @@ void Advection<M>::Run() {
     m.Comm(&u);
   }
   sem.LoopBegin();
+  if (sem("empty")) {
+    //nop // TODO: bugfix loop, empty stage needed
+  }
+  if (sem("checkloop")) {
+    if (as_->GetTime() >= par.Double["tmax"]) {
+      sem.LoopBreak();
+    }
+  }
   if (sem("vel")) {
     const Scal t = as_->GetTime();
     for (auto f : m.AllFaces()) {
       Vect x = m.GetCenter(f);
       ff_flux_[f] = fvel_(x, t).dot(m.GetSurface(f));
     }
+
+    maxvel_ = 0.;
+    for (auto c : m.Cells()) {
+      for (auto q : m.Nci(c)) {
+        auto f = m.GetNeighbourFace(c, q);
+        maxvel_ = std::max(maxvel_, std::abs(ff_flux_[f]) / m.GetVolume(c));
+      }
+    }
+    m.Reduce(&maxvel_, "max");
   }
-  if (sem("checkloop")) {
-    if (as_->GetTime() >= par.Double["tmax"]) {
-      sem.LoopBreak();
-    }
-    if (IsLead()) {
-      ++par.Int["iter"];
-    }
+  if (sem("cfl")) {
+    Scal dt = par.Double["cfl"] / maxvel_;
+    dt = std::min(dt, par.Double["dtmax"]);
+    as_->SetTimeStep(dt);
+    par.Double.Set("dt", as_->GetTimeStep());
   }
   if (sem.Nested("start")) {
     as_->StartStep();
@@ -185,6 +202,23 @@ void Advection<M>::Run() {
   }
   if (sem.Nested("finish")) {
     as_->FinishStep();
+  }
+  if (sem("t")) {
+    if (IsLead()) {
+      ++par.Int["iter"];
+      par.Double["t"] = as_->GetTime();
+    }
+    if (IsRoot()) {
+      auto t = par.Double["t"];
+      auto dt = par.Double["dt"];
+      if (!par.Double("laststat")) {
+        par.Double.Set("laststat", -1e10);
+      }
+      if (t - par.Double["laststat"] >= par.Double["statdt"]) {
+        std::cout << "t=" << t << " dt=" << dt << std::endl;
+        par.Double["laststat"] = t;
+      }
+    }
   }
   if (sem("comm")) { // comm for GetGlobalField
     auto& u = const_cast<geom::FieldCell<Scal>&>(as_->GetField());
@@ -268,7 +302,7 @@ void Dump(const geom::FieldCell<Scal>& u, const B& b, std::string on) {
 }
 
 template <class M_>
-class DistrSolver : public solver::UnsteadySolver {
+class DistrSolver {
  public:
   using M = M_;
   static constexpr size_t dim = M::dim;
@@ -284,11 +318,12 @@ class DistrSolver : public solver::UnsteadySolver {
   DistrSolver(MPI_Comm comm, Vars& apar, 
               std::function<Scal(Vect)> fu0,
               std::function<Vect(Vect,Scal)> fvel /*vel(x,t)*/)
-      : UnsteadySolver(0., apar.Double["dt"])
-      , par(apar)
+      : par(apar)
   {
     // Create kernel factory
     KF kf(fu0, fvel);
+
+    par.Double.Set("t", 0.);
 
     // Initialize blocks
     Distr* b; // base
@@ -303,9 +338,7 @@ class DistrSolver : public solver::UnsteadySolver {
       throw std::runtime_error("DistrSolver: Can't cast to D");
     }
   }
-  void StartStep() {
-    par.Double.Set("dt", this->GetTimeStep()); 
-    par.Double.Set("t", this->GetTime()); 
+  void MakeStep() {
     d_->Run();
   }
   geom::GBlock<IdxCell, dim> GetBlock() const {
@@ -313,6 +346,12 @@ class DistrSolver : public solver::UnsteadySolver {
   }
   geom::FieldCell<Scal> GetField() const {
     return d_->GetGlobalField(0);
+  }
+  double GetTime() const { 
+    return par.Double["t"]; 
+  }
+  double GetTimeStep() const { 
+    return par.Double["dt"]; 
   }
 
  private:
@@ -354,8 +393,7 @@ void Main(MPI_Comm comm, Vars& par) {
   size_t k = 0;
 
   // Comm initial field (needed for GetField())
-  ds.StartStep();
-  ds.FinishStep();
+  ds.MakeStep();
   Dump(ds.GetField(), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
   ++k;
 
@@ -363,12 +401,14 @@ void Main(MPI_Comm comm, Vars& par) {
   auto& tmax = par.Double["tmax"];
   // Time steps until reaching ttmax
   while (tmax < ttmax) {
-    std::cout << "tmax = " << tmax << std::endl;
+    std::cout 
+        << "tmax = " << tmax 
+        << " dt = " << ds.GetTimeStep()
+        << std::endl;
 
     // Time steps until reaching tmax
     tmax += par.Double["dumpdt"];
-    ds.StartStep();
-    ds.FinishStep();
+    ds.MakeStep();
 
     Dump(ds.GetField(), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
     ++k;
