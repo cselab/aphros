@@ -59,6 +59,7 @@ class Advection : public KernelMesh<M> {
   std::function<Vect(Vect,Scal)> fvel_;
   Scal maxvel_; // maximum velocity relative to cell length [1/time]
                 // cfl = dt * maxvel
+  typename AS::Par aspar_;
 };
 
 template <class _M>
@@ -110,9 +111,11 @@ Advection<M>::Advection(Vars& par, const MyBlockInfo& bi,
   // source
   fc_src_.Reinit(m, 0.);
 
+  auto& p = aspar_;
+  p.sharp = par.Double["sharp"];
+  p.sharpo = par.Double["sharpo"];
   as_.reset(new AS(m, u0, bc, &ff_flux_, 
-            &fc_src_, 0., par.Double["dt"], 
-            0., 0., 1.));
+            &fc_src_, 0., par.Double["dt"], &aspar_));
 }
 
 #if 0

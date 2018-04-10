@@ -57,6 +57,7 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
   static constexpr size_t dim = Mesh::dim;
 
   using P::m;
+  using P::ffv_;
   LayersData<FieldCell<Scal>> fc_u_;
   MapFace<std::shared_ptr<ConditionFace>> mf_u_cond_;
   // Common buffers:
@@ -72,21 +73,24 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
   Scal sharp_max_;
 
  public:
+  struct Par {
+    Scal sharp = 0.;
+    Scal sharpo = 0.;
+    Scal sharp_max = 1.;
+  };
+  Par* par;
   AdvectionSolverExplicit(
       Mesh& m,
       const FieldCell<Scal>& fc_u_initial,
       const MapFace<std::shared_ptr<ConditionFace>>& mf_u_cond_,
       const FieldFace<Scal>* p_fn_velocity,
       const FieldCell<Scal>* p_fc_source,
-      double t, double dt,
-      Scal sharp, Scal sharpo, Scal sharp_max)
+      double t, double dt, Par* par)
       : AdvectionSolver<Mesh>(t, dt, m, p_fn_velocity, p_fc_source)
       , mf_u_cond_(mf_u_cond_)
       , ff_volume_flux_(m)
       , ff_flux_(m)
-      , sharp_(sharp)
-      , sharpo_(sharpo)
-      , sharp_max_(sharp_max)
+      , par(par)
   {
     fc_u_.time_curr = fc_u_initial;
   }
@@ -96,73 +100,86 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
     fc_u_.iter_curr = fc_u_.time_prev;
   }
   void MakeIteration() override {
-    auto sem = m.GetSem();
-    if (sem()) {
-      auto& prev = fc_u_.iter_prev;
+    auto sem = m.GetSem("iter");
+    if (sem("init")) {
       auto& curr = fc_u_.iter_curr;
-      prev = curr;
-
-      ff_volume_flux_ = *(this->ffv_);
-
+      const Scal dt = this->GetTimeStep();
+      for (auto c : m.Cells()) {
+        curr[c] = fc_u_.time_prev[c] +  // previous time step
+            dt * (*this->fcs_)[c]; // source
+      }
+    }
+    if (sem("adv")) {
+      auto& curr = fc_u_.iter_curr;
+      auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
+      
       ff_u_ = InterpolateSuperbee(
-          prev,
-          Gradient(Interpolate(prev, mf_u_cond_, m), m),
-          mf_u_cond_, ff_volume_flux_, m);
+          curr,
+          Gradient(Interpolate(curr, mf_u_cond_, m), m),
+          mf_u_cond_, ffv, m);
 
       for (auto f : m.Faces()) {
-        ff_flux_[f] = ff_u_[f] * ff_volume_flux_[f];
+        ff_flux_[f] = ff_u_[f] * ffv[f];
       }
 
-      // Interface sharpening
-      // append to ff_flux_
-      if (std::abs(sharp_) != 0.) {
-        // zero-derivative bc for Vect
-        MapFace<std::shared_ptr<ConditionFace>> mfvz;
-        for (auto it : mf_u_cond_) {
-          IdxFace f = it.GetIdx();
-          mfvz[f] = std::make_shared<
-              ConditionFaceDerivativeFixed<Vect>>(
-                  Vect(0), it.GetValue()->GetNci());
+      const Scal dt = this->GetTimeStep();
+      for (auto c : m.Cells()) {
+        Scal s = 0.; // sum of fluxes
+        for (auto q : m.Nci(c)) {
+          IdxFace f = m.GetNeighbourFace(c, q);
+          s += ff_flux_[f] * m.GetOutwardFactor(c, q);
         }
-        auto& af = sharp_af_;
-        auto& gc = sharp_gc_;
-        auto& gf = sharp_gf_;
-        af = Interpolate(curr, mf_u_cond_, m);
-        gc = Gradient(af, m);
-        gf = Interpolate(gc, mfvz, m);
-        for (auto i : m.Faces()) {
-          // normal to interface
-          const Vect ni = gf[i] / (gf[i].norm() + 1e-6); 
-          const Vect n = m.GetNormal(i);
-          const Vect s = m.GetSurface(i);
-          const Scal a = m.GetArea(i);
-          //const Scal nf = n.dot(m.GetNormal(i));
-          //const Scal uf = ff_volume_flux_[i];
-          //const Scal uf = 1.;
-          //const Scal am = sharp_max_;
-          //const Scal eh = sharp_ * m.GetArea(i);
-          //ff_flux_[i] -= sharpo_ * std::abs(uf * nf) * nf * 
-          //    (eh * gf[i].norm() - af[i] * (1. - af[i] / am));
-          ff_flux_[i] += 
-            sharp_ * af[i] * (1. - af[i]) * ni.dot(s)
-            - sharpo_ * gf[i].dot(s);
-        }
+
+        curr[c] += dt / m.GetVolume(c) * (-s); // fluxes
+      }
+      m.Comm(&curr);
+    }
+    // Interface sharpening
+    if (std::abs(par->sharp) != 0. && sem("sharp")) {
+      auto& curr = fc_u_.iter_curr;
+
+      // zero-derivative bc for Vect
+      MapFace<std::shared_ptr<ConditionFace>> mfvz;
+      for (auto it : mf_u_cond_) {
+        IdxFace f = it.GetIdx();
+        mfvz[f] = std::make_shared<
+            ConditionFaceDerivativeFixed<Vect>>(
+                Vect(0), it.GetValue()->GetNci());
+      }
+
+      auto& af = sharp_af_;
+      auto& gc = sharp_gc_;
+      auto& gf = sharp_gf_;
+      af = Interpolate(curr, mf_u_cond_, m);
+      gc = Gradient(af, m);
+      gf = Interpolate(gc, mfvz, m);
+      const Scal sharp = par->sharp;
+      const Scal sharpo = par->sharpo;
+      for (auto i : m.Faces()) {
+        // normal to interface
+        const Vect ni = gf[i] / (gf[i].norm() + 1e-6); 
+        const Vect n = m.GetNormal(i);
+        const Vect s = m.GetSurface(i);
+        const Scal a = m.GetArea(i);
+        ff_flux_[i] = 
+          sharp * af[i] * (1. - af[i]) * ni.dot(s)
+          - sharpo * gf[i].dot(s);
       }
 
       for (auto c : m.Cells()) {
-        Scal flux_sum = 0.;
+        Scal s = 0.; // sum of fluxes
         for (auto q : m.Nci(c)) {
           IdxFace f = m.GetNeighbourFace(c, q);
-          flux_sum += ff_flux_[f] * m.GetOutwardFactor(c, q);
+          s += ff_flux_[f] * m.GetOutwardFactor(c, q);
         }
 
         const Scal dt = this->GetTimeStep();
-        curr[c] = fc_u_.time_prev[c] +
-            dt / m.GetVolume(c) * (-flux_sum) + // fluxes
-            dt * (*this->fcs_)[c]; // source
+        curr[c] += dt / m.GetVolume(c) * (-s);
       }
       m.Comm(&curr);
 
+    }
+    if (sem("stat")) {
       this->IncIter();
     }
   }
