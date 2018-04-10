@@ -1,0 +1,4 @@
+#!/bin/bash
+
+./t.advection
+./plot.py

@@ -27,6 +27,7 @@ def Get2d(u):
 # u -- 2d numpy array
 # fn -- output file name
 def Plot(u, fn):
+    u = np.clip(u, 0., 1.)
     plt.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation='nearest')
     plt.gca().set_aspect('equal')
     plt.tight_layout()
