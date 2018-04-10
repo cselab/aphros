@@ -114,6 +114,7 @@ Advection<M>::Advection(Vars& par, const MyBlockInfo& bi,
   auto& p = aspar_;
   p.sharp = par.Double["sharp"];
   p.sharpo = par.Double["sharpo"];
+  p.split = par.Int["split"];
   as_.reset(new AS(m, u0, bc, &ff_flux_, 
             &fc_src_, 0., par.Double["dt"], &aspar_));
 }

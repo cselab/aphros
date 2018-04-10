@@ -77,6 +77,7 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
     Scal sharp = 0.;
     Scal sharpo = 0.;
     Scal sharp_max = 1.;
+    bool split = false;
   };
   Par* par;
   AdvectionSolverExplicit(
@@ -109,30 +110,44 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
             dt * (*this->fcs_)[c]; // source
       }
     }
-    if (sem("adv")) {
-      auto& curr = fc_u_.iter_curr;
-      auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
-      
-      ff_u_ = InterpolateSuperbee(
-          curr,
-          Gradient(Interpolate(curr, mf_u_cond_, m), m),
-          mf_u_cond_, ffv, m);
+    for (size_t d = 0; d < (par->split ? dim : 1); ++d) {
+      if (sem("adv")) {
+        auto& curr = fc_u_.iter_curr;
 
-      for (auto f : m.Faces()) {
-        ff_flux_[f] = ff_u_[f] * ffv[f];
-      }
+        auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
+        
+        ff_u_ = InterpolateSuperbee(
+            curr,
+            Gradient(Interpolate(curr, mf_u_cond_, m), m),
+            mf_u_cond_, ffv, m);
 
-      const Scal dt = this->GetTimeStep();
-      for (auto c : m.Cells()) {
-        Scal s = 0.; // sum of fluxes
-        for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
-          s += ff_flux_[f] * m.GetOutwardFactor(c, q);
+        for (auto f : m.Faces()) {
+          ff_flux_[f] = ff_u_[f] * ffv[f];
         }
 
-        curr[c] += dt / m.GetVolume(c) * (-s); // fluxes
+        if (par->split) {
+          Vect vd(0);
+          vd[d] = 1.;
+
+          // Weighten by n.dot(vd)
+          for (auto f : m.Faces()) {
+            auto n = m.GetNormal(f);
+            ff_flux_[f] *= (n.dot(vd)) / n.norm1();
+          }
+        }
+
+        const Scal dt = this->GetTimeStep();
+        for (auto c : m.Cells()) {
+          Scal s = 0.; // sum of fluxes
+          for (auto q : m.Nci(c)) {
+            IdxFace f = m.GetNeighbourFace(c, q);
+            s += ff_flux_[f] * m.GetOutwardFactor(c, q);
+          }
+
+          curr[c] += dt / m.GetVolume(c) * (-s); // fluxes
+        }
+        m.Comm(&curr);
       }
-      m.Comm(&curr);
     }
     // Interface sharpening
     if (std::abs(par->sharp) != 0. && sem("sharp")) {

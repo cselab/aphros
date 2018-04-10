@@ -230,6 +230,13 @@ class GVect {
     }
     return r;
   }
+  Scal norm1() const {
+    Scal r = 0;
+    for (size_t i = 0; i < dim; ++i) {
+      r += std::abs(comp_[i]);
+    }
+    return r;
+  }
   Scal norminf() const {
     Scal r = 0;
     for (size_t i = 0; i < dim; ++i) {
