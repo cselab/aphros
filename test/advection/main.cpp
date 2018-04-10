@@ -42,19 +42,21 @@ class Advection : public KernelMesh<M> {
 
   Advection(Vars& par, const MyBlockInfo& bi, 
             std::function<Scal(Vect)> fu0,
-            std::function<Vect(Vect)> fvel);
+            std::function<Vect(Vect,Scal)> fvel /*vel(x,t)*/);
   void Run() override;
 
  protected:
   using KM::par;
   using KM::m;
   using KM::IsRoot;
+  using KM::IsLead;
 
  private:
   geom::FieldFace<Scal> ff_flux_;
   geom::FieldCell<Scal> fc_src_;
   using AS = solver::AdvectionSolverExplicit<M>;
   std::unique_ptr<AS> as_; // advection solver
+  std::function<Vect(Vect,Scal)> fvel_;
 };
 
 template <class _M>
@@ -65,7 +67,7 @@ class AdvectionFactory : public KernelMeshFactory<_M> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   AdvectionFactory(std::function<Scal(Vect)> fu0,
-                   std::function<Vect(Vect)> fvel) 
+                   std::function<Vect(Vect,Scal)> fvel) 
       : fu0_(fu0), fvel_(fvel) {}
   K* Make(Vars& par, const MyBlockInfo& bi) override {
     return new K(par, bi, fu0_, fvel_);
@@ -73,14 +75,15 @@ class AdvectionFactory : public KernelMeshFactory<_M> {
 
  private:
   std::function<Scal(Vect)> fu0_;
-  std::function<Vect(Vect)> fvel_;
+  std::function<Vect(Vect,Scal)> fvel_;
 };
 
 template <class M>
 Advection<M>::Advection(Vars& par, const MyBlockInfo& bi,
                         std::function<Scal(Vect)> fu0,
-                        std::function<Vect(Vect)> fvel)
+                        std::function<Vect(Vect,Scal)> fvel /*(x,t)*/)
     : KernelMesh<M>(par, bi)
+    , fvel_(fvel)
 {
   // initial field for advection
   geom::FieldCell<Scal> u0(m, 0);
@@ -99,7 +102,7 @@ Advection<M>::Advection(Vars& par, const MyBlockInfo& bi,
   ff_flux_.Reinit(m, 0);
   for (auto f : m.AllFaces()) {
     Vect x = m.GetCenter(f);
-    ff_flux_[f] = fvel(x).dot(m.GetSurface(f));
+    ff_flux_[f] = fvel_(x, 0.).dot(m.GetSurface(f));
   }
   
   // source
@@ -154,16 +157,25 @@ void Advection<M>::TestSolve(
 template <class M>
 void Advection<M>::Run() {
   auto sem = m.GetSem("advection");
-  sem.LoopBegin();
-  if (sem("comm")) { // comm for GetGlobalField
+  if (sem("comm")) { // comm for GetGlobalField, initial
     auto& u = const_cast<geom::FieldCell<Scal>&>(as_->GetField());
     m.Comm(&u);
+  }
+  sem.LoopBegin();
+  if (sem("vel")) {
+    const Scal t = as_->GetTime();
+    for (auto f : m.AllFaces()) {
+      Vect x = m.GetCenter(f);
+      ff_flux_[f] = fvel_(x, t).dot(m.GetSurface(f));
+    }
   }
   if (sem("checkloop")) {
     if (as_->GetTime() >= par.Double["tmax"]) {
       sem.LoopBreak();
     }
-    ++par.Int["iter"];
+    if (IsLead()) {
+      ++par.Int["iter"];
+    }
   }
   if (sem.Nested("start")) {
     as_->StartStep();
@@ -242,7 +254,7 @@ using MIdx = typename M::MIdx;
 // <Nx> <Ny> <Nz>
 // <data:x=0,y=0,z=0> <data:x=1,y=0,z=0> ...
 template <class Scal, class B=geom::GBlock<geom::IdxCell, 3>>
-void Dump(const geom::FieldCell<Scal>& u, B& b, std::string on) {
+void Dump(const geom::FieldCell<Scal>& u, const B& b, std::string on) {
   std::ofstream o(on.c_str());
 
   auto s = b.GetDimensions();
@@ -271,7 +283,7 @@ class DistrSolver : public solver::UnsteadySolver {
 
   DistrSolver(MPI_Comm comm, Vars& apar, 
               std::function<Scal(Vect)> fu0,
-              std::function<Vect(Vect)> fvel)
+              std::function<Vect(Vect,Scal)> fvel /*vel(x,t)*/)
       : UnsteadySolver(0., apar.Double["dt"])
       , par(apar)
   {
@@ -315,16 +327,20 @@ void Main(MPI_Comm comm, Vars& par) {
 
   auto fu0 = [](Vect x) -> Scal { 
     return Vect(0.5, 0.263662, 0.).dist(x) < 0.2 ? 1. : 0.; };
-  auto fvelsincos = [](Vect x) -> Vect { 
-    x = (x - Vect(0.0)) * 1. * M_PI;
-    return Vect(-std::sin(x[0]) * std::cos(x[1]), 
-                std::cos(x[0]) * std::sin(x[1]),
-                0.); };
-  auto fveluni = [](Vect x) -> Vect { 
-    return Vect(-1., -1., 0.); };
+  auto fvelsincos = [](Vect x, Scal t) -> Vect { 
+    x = x * M_PI;
+    Vect r(std::sin(x[0]) * std::cos(x[1]), 
+           -std::cos(x[0]) * std::sin(x[1]),
+           0.);
+    if (t > 2.5) { r *= -1.; }
+    return r; 
+  };
+  auto fveluni = [](Vect x, Scal /*t*/) -> Vect { 
+    return Vect(-1., -1., 0.); 
+  };
 
   std::string v = par.String["vel"];
-  std::function<Vect(Vect)> fvel = fveluni;
+  std::function<Vect(Vect,Scal)> fvel = fveluni;
   if (v == "uni") {
     fvel = fveluni;
   } else if (v == "sincos") {
@@ -336,19 +352,25 @@ void Main(MPI_Comm comm, Vars& par) {
   DistrSolver<M> ds(comm, par, fu0, fvel);
 
   size_t k = 0;
-  while (par.Double["tmax"] < par.Double["ttmax"]) {
-    std::cout << "tmax = " << par.Double["tmax"] << std::endl;
 
+  // Comm initial field (needed for GetField())
+  ds.StartStep();
+  ds.FinishStep();
+  Dump(ds.GetField(), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
+  ++k;
+
+  auto& ttmax = par.Double["ttmax"];
+  auto& tmax = par.Double["tmax"];
+  // Time steps until reaching ttmax
+  while (tmax < ttmax) {
+    std::cout << "tmax = " << tmax << std::endl;
+
+    // Time steps until reaching tmax
+    tmax += par.Double["dumpdt"];
     ds.StartStep();
     ds.FinishStep();
 
-    auto b = ds.GetBlock();
-    auto f = ds.GetField();
-    Dump(f, b, "u" + std::to_string(k) + ".dat");
-
-    par.Double["tmax"] += par.Double["dumpdt"];
-    ds.StartStep();
-    ds.FinishStep();
+    Dump(ds.GetField(), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
     ++k;
   }
 }
