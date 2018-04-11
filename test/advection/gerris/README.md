@@ -16,11 +16,11 @@ Modifications:
 
 ## Run 
 
-  (requires gerris installed from mfer)
-  ./run
+    (requires gerris installed from mfer)
+    ./run
 
 ## Convert and plot
 
-  ./convert
-  ../plot.py
+    ./convert
+    ../plot.py
 
