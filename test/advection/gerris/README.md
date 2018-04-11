@@ -1,3 +1,5 @@
+# Gerris 
+
 Based on 
 3.2 Time-reversed VOF advection in a shear flow
 from Gerris test suite
@@ -9,12 +11,16 @@ Modifications:
 * uniform mesh
 * remove eps output and stat
 * add vtk output
+* change sign of initial tracer
 
 
-Run and convert to `.dat` suitable for `../plot.py`
+## Run 
+
+  (requires gerris installed from mfer)
   ./run
-  ./convert
 
-Plot all `u*.dat`
+## Convert and plot
+
+  ./convert
   ../plot.py
 
