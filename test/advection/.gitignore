@@ -8,3 +8,4 @@ pressure
 *.pvd
 *.dat
 *.pdf
+__pycache__

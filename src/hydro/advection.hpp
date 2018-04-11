@@ -172,13 +172,14 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
       const Scal sharpo = par->sharpo;
       for (auto i : m.Faces()) {
         // normal to interface
-        const Vect ni = gf[i] / (gf[i].norm() + 1e-6); 
+        const Vect gi = gf[i];
+        const Vect ni = gi / (gi.norm() + 1e-6); 
         const Vect n = m.GetNormal(i);
-        const Vect s = m.GetSurface(i);
-        const Scal a = m.GetArea(i);
+        conaaast Vect s = m.GetSurface(i);
+        const Scal a = af[i];
         ff_flux_[i] = 
-          sharp * af[i] * (1. - af[i]) * ni.dot(s)
-          - sharpo * gf[i].dot(s);
+          sharp * a * (1. - a) * ni.dot(s)
+          - sharpo * gi.dot(s);
       }
 
       for (auto c : m.Cells()) {
