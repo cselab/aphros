@@ -4,8 +4,16 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import glob
+import os
 
+# Read uniform grid data
 # p -- path
+# Format:
+# <Nx> <Ny> <Nz>
+# <u[0,0,0]> <u[1,0,0]> ...
+# Return:
+# array of shape (Nx, Ny, Nz)
 def Read(p):
     with open(p) as f:
         ll = f.readlines()
@@ -25,18 +33,24 @@ def Get2d(u):
         return u.reshape((s[0], s[1]))
 
 # u -- 2d numpy array
-# fn -- output file name
-def Plot(u, fn):
+# po -- output path
+def Plot(u, po):
     u = np.clip(u, 0., 1.)
-    plt.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation='nearest')
-    plt.gca().set_aspect('equal')
+    fig, ax = plt.subplots(figsize=(5,5))
+    ax.imshow(np.flipud(u),
+               extent=(0, 1, 0, 1),
+               interpolation='nearest')
+    ax.set_aspect('equal')
     plt.tight_layout()
-    print(fn)
-    plt.savefig(fn, dpi=300)
+    plt.savefig(po, dpi=300)
     plt.close()
 
-for i in range(3):
-    b = "u" + str(i)
-    u = Read(b + ".dat")
+
+
+pp = sorted(glob.glob("u*.dat"))
+for p in pp:
+    u = Read(p)
     u = Get2d(u)
-    Plot(u, b + ".pdf")
+    po = os.path.splitext(p)[0] + ".pdf"
+    print(po)
+    Plot(u, po)
