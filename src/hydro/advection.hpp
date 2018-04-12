@@ -170,16 +170,15 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
       gf = Interpolate(gc, mfvz, m);
       const Scal sharp = par->sharp;
       const Scal sharpo = par->sharpo;
-      for (auto i : m.Faces()) {
-        // normal to interface
-        const Vect gi = gf[i];
-        const Vect ni = gi / (gi.norm() + 1e-6); 
-        const Vect n = m.GetNormal(i);
-        conaaast Vect s = m.GetSurface(i);
-        const Scal a = af[i];
-        ff_flux_[i] = 
-          sharp * a * (1. - a) * ni.dot(s)
-          - sharpo * gi.dot(s);
+      for (auto f : m.Faces()) {
+        const Vect g = gf[f];  // gradient at face
+        const Vect n = g / (g.norm() + 1e-6);  // normal to interface
+        const Vect s = m.GetSurface(f); // surface vector to face
+        const Scal a = af[f];
+        ff_flux_[f] = 
+          sharp * std::max(a, 0.) * (1. - std::min(a, 1.)) * n.dot(s)
+          //sharp * a * (1. - a) * n.dot(s)
+          -sharpo * g.dot(s);
       }
 
       for (auto c : m.Cells()) {

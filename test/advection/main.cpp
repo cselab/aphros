@@ -368,8 +368,32 @@ void Main(MPI_Comm comm, Vars& par) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  auto fu0 = [](Vect x) -> Scal { 
+  auto fucircle = [](Vect x) -> Scal { 
     return Vect(0.5, 0.263662, 0.).dist(x) < 0.2 ? 1. : 0.; };
+
+  auto fusinc = [](Vect x) -> Scal { 
+    Scal r = Vect(0.5).dist(x);
+    Scal u0 = -0.2;
+    Scal u1 = 1.;
+    Scal k = 15;
+    Scal kr = k * r;
+    Scal u = std::sin(kr) / kr;
+    u = (u - u0) / (u1 - u0);
+    return u;
+  };
+
+  std::function<Scal(Vect)> fu0;
+  {
+    std::string v = par.String["init_vf"];
+    if (v == "circle") {
+      fu0 = fucircle;
+    } else if (v == "sinc") {
+      fu0 = fusinc;
+    } else {
+      throw std::runtime_error("Unknown init_vf=" + v);
+    }
+  }
+
   auto fvelsincos = [](Vect x, Scal t) -> Vect { 
     x = x * M_PI;
     Vect r(std::sin(x[0]) * std::cos(x[1]), 
@@ -382,14 +406,16 @@ void Main(MPI_Comm comm, Vars& par) {
     return Vect(-1., -1., 0.); 
   };
 
-  std::string v = par.String["vel"];
-  std::function<Vect(Vect,Scal)> fvel = fveluni;
-  if (v == "uni") {
-    fvel = fveluni;
-  } else if (v == "sincos") {
-    fvel = fvelsincos;
-  } else {
-    throw std::runtime_error("Unknown vel=" + v);
+  std::function<Vect(Vect,Scal)> fvel;
+  {
+    std::string v = par.String["init_vel"];
+    if (v == "uni") {
+      fvel = fveluni;
+    } else if (v == "sincos") {
+      fvel = fvelsincos;
+    } else {
+      throw std::runtime_error("Unknown init_vel=" + v);
+    }
   }
 
   DistrSolver<M> ds(comm, par, fu0, fvel);
