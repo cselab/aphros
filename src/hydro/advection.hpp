@@ -153,9 +153,9 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
       }
     }
 
-    if (sem.Nested("smooth")) {
-      Smoothen(sharp_as_, mf_u_cond_, m, 2);
-    }
+    //if (sem.Nested("smooth")) {
+      //Smoothen(sharp_as_, mf_u_cond_, m, 5);
+    //}
 
     // Interface sharpening
     if (std::abs(par->sharp) != 0. && sem("sharp")) {
@@ -171,9 +171,9 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
       }
 
       // smooth
-      auto asf = Interpolate(sharp_as_, mf_u_cond_, m);
-      auto gsc = Gradient(asf, m);
-      auto gsf = Interpolate(gsc, mfvz, m);
+      //auto asf = Interpolate(sharp_as_, mf_u_cond_, m);
+      //auto gsc = Gradient(asf, m);
+      //auto gsf = Interpolate(gsc, mfvz, m);
 
       auto& af = sharp_af_;
       auto& gc = sharp_gc_;
@@ -184,42 +184,24 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
       const Scal kc = par->sharp;
       const Scal kd = par->sharp * par->sharpo;
 
-      auto v = gc;
-      for (auto c : m.SuCells()) {
-        Scal a = ac[c];
-        a = std::max(0., std::min(1., a));
-        const Vect g = gc[c];  // gradient at face
-        const Vect n = g / (g.norm() + 1e-6);  // normal to interface
-        const Vect gs = gsc[c];  // gradient at face
-        const Vect ns = gs / (gs.norm() + 1e-6);  
-        v[c] = ns * (kc * a * (1. - a));
-      }
-      auto vf = Interpolate(v, mfvz, m);
-
       for (auto f : m.Faces()) {
-        const Vect g = gf[f];  // gradient at face
-        const Vect gs = gsf[f];  // gradient at face
+        const Vect g = gf[f];  // gradient on face
+        //const Vect gs = gsf[f];  // gradient on face
         const Vect n = g / (g.norm() + 1e-6);  // normal to interface
-        const Vect ns = gs / (gs.norm() + 1e-6); 
+        //const Vect ns = gs / (gs.norm() + 1e-6); 
         const Vect s = m.GetSurface(f); // surface vector to face
-        Scal a = af[f];
-        a = std::max(0., std::min(1., a));
         IdxCell cm = m.GetNeighbourCell(f, 0);
         IdxCell cp = m.GetNeighbourCell(f, 1);
-        Vect xm = m.GetCenter(cm);
-        Vect xp = m.GetCenter(cp);
-        const Scal am = ac[cm];
-        const Scal ap = ac[cp];
+        Scal am = ac[cm];
+        Scal ap = ac[cp];
+        ap = std::max(0., std::min(1., ap));
+        am = std::max(0., std::min(1., am));
         ff_flux_[f] = 
-          //kc * a * (1. - a) * ns.dot(s)
           kc * (ap > am 
              ?  (1. - (ap - am)) * (1. - ap) * am
              :  -(1. - (am - ap)) * (1. - am) * ap)
-          //kc * vf[f].dot(s)
-          //vf[f].dot(s)
-          //-kd * g.dot(s);
-          //-kd * (ns * g.dot(ns)).dot(s);
-          -kd * (ap - am) * s.norm() / xm.dist(xp);
+          -kd * (ap - am);
+        ff_flux_[f] *= std::abs(n.dot(s));
       }
 
       for (auto c : m.Cells()) {
