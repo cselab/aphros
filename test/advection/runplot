@@ -1,4 +1,6 @@
 #!/bin/bash
 
+set -eu
+
 ./t.advection
 ./plot.py
