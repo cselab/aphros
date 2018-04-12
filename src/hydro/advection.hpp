@@ -65,6 +65,7 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
   FieldFace<Scal> ff_volume_flux_;
   FieldFace<Scal> ff_flux_;
   FieldFace<Scal> ff_u_;
+  FieldCell<Scal> sharp_as_;
   FieldFace<Scal> sharp_af_;
   FieldCell<Vect> sharp_gc_;
   FieldFace<Vect> sharp_gf_;
@@ -147,11 +148,18 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
           curr[c] += dt / m.GetVolume(c) * (-s); // fluxes
         }
         m.Comm(&curr);
+
+        sharp_as_ = fc_u_.iter_curr;
       }
     }
+
+    if (sem.Nested("smooth")) {
+      Smoothen(sharp_as_, mf_u_cond_, m, 2);
+    }
+
     // Interface sharpening
     if (std::abs(par->sharp) != 0. && sem("sharp")) {
-      auto& curr = fc_u_.iter_curr;
+      auto& ac = fc_u_.iter_curr;
 
       // zero-derivative bc for Vect
       MapFace<std::shared_ptr<ConditionFace>> mfvz;
@@ -162,23 +170,56 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
                 Vect(0), it.GetValue()->GetNci());
       }
 
+      // smooth
+      auto asf = Interpolate(sharp_as_, mf_u_cond_, m);
+      auto gsc = Gradient(asf, m);
+      auto gsf = Interpolate(gsc, mfvz, m);
+
       auto& af = sharp_af_;
       auto& gc = sharp_gc_;
       auto& gf = sharp_gf_;
-      af = Interpolate(curr, mf_u_cond_, m);
+      af = Interpolate(ac, mf_u_cond_, m);
       gc = Gradient(af, m);
       gf = Interpolate(gc, mfvz, m);
-      const Scal sharp = par->sharp;
-      const Scal sharpo = par->sharpo;
+      const Scal kc = par->sharp;
+      const Scal kd = par->sharp * par->sharpo;
+
+      auto v = gc;
+      for (auto c : m.SuCells()) {
+        Scal a = ac[c];
+        a = std::max(0., std::min(1., a));
+        const Vect g = gc[c];  // gradient at face
+        const Vect n = g / (g.norm() + 1e-6);  // normal to interface
+        const Vect gs = gsc[c];  // gradient at face
+        const Vect ns = gs / (gs.norm() + 1e-6);  
+        v[c] = ns * (kc * a * (1. - a));
+      }
+      auto vf = Interpolate(v, mfvz, m);
+
       for (auto f : m.Faces()) {
         const Vect g = gf[f];  // gradient at face
+        const Vect gs = gsf[f];  // gradient at face
         const Vect n = g / (g.norm() + 1e-6);  // normal to interface
+        const Vect ns = gs / (gs.norm() + 1e-6); 
         const Vect s = m.GetSurface(f); // surface vector to face
-        const Scal a = af[f];
+        Scal a = af[f];
+        a = std::max(0., std::min(1., a));
+        IdxCell cm = m.GetNeighbourCell(f, 0);
+        IdxCell cp = m.GetNeighbourCell(f, 1);
+        Vect xm = m.GetCenter(cm);
+        Vect xp = m.GetCenter(cp);
+        const Scal am = ac[cm];
+        const Scal ap = ac[cp];
         ff_flux_[f] = 
-          sharp * std::max(a, 0.) * (1. - std::min(a, 1.)) * n.dot(s)
-          //sharp * a * (1. - a) * n.dot(s)
-          -sharpo * g.dot(s);
+          //kc * a * (1. - a) * ns.dot(s)
+          kc * (ap > am 
+             ?  (1. - (ap - am)) * (1. - ap) * am
+             :  -(1. - (am - ap)) * (1. - am) * ap)
+          //kc * vf[f].dot(s)
+          //vf[f].dot(s)
+          //-kd * g.dot(s);
+          //-kd * (ns * g.dot(ns)).dot(s);
+          -kd * (ap - am) * s.norm() / xm.dist(xp);
       }
 
       for (auto c : m.Cells()) {
@@ -189,9 +230,9 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
         }
 
         const Scal dt = this->GetTimeStep();
-        curr[c] += dt / m.GetVolume(c) * (-s);
+        ac[c] += dt / m.GetVolume(c) * (-s);
       }
-      m.Comm(&curr);
+      m.Comm(&ac);
 
     }
     if (sem("stat")) {
