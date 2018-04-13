@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdlib>
+#include <cmath>
 
 #include "reconst.h"
 
@@ -23,6 +24,11 @@ int main() {
   c = 0.5;
   alpha = gfs_line_alpha(m, c);
   area = gfs_line_area(m, alpha);
+  Pr(m, c, area, alpha);
+
+  alpha = std::sqrt(2) * 0.5;
+  c = gfs_line_area(m, alpha);
+  area = 0;
   Pr(m, c, area, alpha);
 
   return 0;
