@@ -13,7 +13,7 @@ int main(int c, char** v) {
   Scal a = 0.5;   // volume fraction
   Scal s; // area
 
-  s = gfs_line_sc(m, a);
+  s = gfs_line_area(m, a);
   Pr(m, a, s);
 
   return 0;
