@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>notes</title>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-AMS_CHTML-full" type="text/javascript"></script>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<h1 id="popinet2009">Popinet2009</h1>
+<p>Popinet, 2009: An accurate adaptive solver for surface-tension-driven interfacial flows.</p>
+<h2 id="geometrical-vof-scheme">Geometrical VOF scheme</h2>
+<p>Two steps:</p>
+<ul>
+<li>interface reconstruction</li>
+<li>geometrical flux computation and interface advection</li>
+</ul>
+<h3 id="interface-reconstruction">Interface reconstruction</h3>
+<p>The interface is represented in each cell by a line. Given normal vector, location of the interface and volume fraction are in correspondence.</p>
+<p>Conversion is done with routines by [52] Scardovelli2000.</p>
+<h1 id="reconstruction">Reconstruction</h1>
+<h2 id="volume-fraction-and-interface-location">Volume fraction and interface location:</h2>
+<p>[52] Scardovelli, Zaleski, 2000: Analytical relations connecting linear interfaces and volume fractions in rectangular grids.</p>
+<h2 id="normal-estimation">Normal estimation</h2>
+<p>[4] Scardovelli, Zaleski, 1999: Direct numerical simulation of free-surface and interfacial flow.</p>
+<p>[53] Scardovelli, Zaleski, 2003: Interface reconstruction with least-square fit and split eulerian-lagrangian advection</p>
+<p>[54] Aulisa, Manservisi, Scardovelli, Zaleski, 2007: Interface reconstruction with least-squares fit and split advection in three-dimensional Cartesian geometry.</p>
+<h1 id="aulisa2007">Aulisa2007</h1>
+<p>Aulisa, Manservisi, Scardovelli, Zaleski, 2007: Interface reconstruction with least-squares fit and split advection in three-dimensional Cartesian geometry.</p>
+<h2 id="intro">Intro</h2>
+<p><em>Consistency</em> means <span class="math inline">\(0 \leq C \leq 1\)</span>.</p>
+</body>
+</html>
