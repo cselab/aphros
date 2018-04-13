@@ -1,7 +1,12 @@
+#include <cmath>
+
 #include "vect.hpp"
 
 using Scal = double;
 using Vect = geom::GVect<Scal, 3>;
+
+#define MAX(a, b) (std::max(a, b))
+#define MIN(a, b) (std::min(a, b))
 
 
 void Clip(Scal& a, Scal l, Scal u) {
@@ -28,7 +33,7 @@ Scal gfs_line_area (const Vect& m, Scal alpha)
 
   //g_return_val_if_fail (m != NULL, 0.);
 
-  n = *m;
+  n = m;
   alpha1 = alpha;
   if (n[0] < 0.) {
     alpha1 -= n[0];
@@ -124,7 +129,7 @@ void gfs_line_center (const Vect& m, Scal alpha, Scal a, Vect& p)
   //g_return_if_fail (m != NULL);
   //g_return_if_fail (p != NULL);
 
-  n = *m;
+  n = m;
   if (n[0] < 0.) {
     alpha -= n[0];
     n[0] = - n[0];
@@ -200,7 +205,7 @@ Scal gfs_line_area_center (const Vect& m, Scal alpha, Vect& p)
   //g_return_val_if_fail (m != NULL, 0.);
   //g_return_val_if_fail (p != NULL, 0.);
 
-  n = *m;
+  n = m;
   if (n[0] < 0.) {
     alpha -= n[0];
     n[0] = - n[0];
@@ -315,7 +320,8 @@ Scal gfs_plane_volume (const Vect& m, Scal alpha)
 	   b2*b2*(b2 - 3.*al0) + b3*b3*(b3 - 3.*al0))/pr;
 
   Scal volume = al <= 0.5 ? tmp : 1. - tmp;
-  return CLAMP (volume, 0., 1.);
+  Clip(volume);
+  return volume;
 }
 
 /**
@@ -422,7 +428,7 @@ void gfs_plane_center (const Vect& m, Scal alpha, Scal a, Vect& p)
     Vect q;
     n[0] = m[1];
     n[1] = m[2];
-    gfs_line_center (&n, alpha, a, &q);
+    gfs_line_center (n, alpha, a, q);
     p[0] = 0.5;
     p[1] = q[0];
     p[2] = q[1];
@@ -432,7 +438,7 @@ void gfs_plane_center (const Vect& m, Scal alpha, Scal a, Vect& p)
     Vect q;
     n[0] = m[2];
     n[1] = m[0];
-    gfs_line_center (&n, alpha, a, &q);
+    gfs_line_center (n, alpha, a, q);
     p[0] = q[1];
     p[1] = 0.5;
     p[2] = q[0];
@@ -444,7 +450,7 @@ void gfs_plane_center (const Vect& m, Scal alpha, Scal a, Vect& p)
     return;
   }
 
-  n = *m;
+  n = m;
   if (n[0] < 0.) {
     alpha -= n[0];
     n[0] = - n[0];
@@ -538,7 +544,7 @@ Scal gfs_plane_area_center (const Vect& m, Scal alpha, Vect& p)
     Vect n, q;
     n[0] = m[1];
     n[1] = m[2];
-    Scal area = gfs_line_area_center (&n, alpha, &q);
+    Scal area = gfs_line_area_center (n, alpha, q);
     p[0] = 0.5;
     p[1] = q[0];
     p[2] = q[1];
@@ -548,7 +554,7 @@ Scal gfs_plane_area_center (const Vect& m, Scal alpha, Vect& p)
     Vect n, q;
     n[0] = m[2];
     n[1] = m[0];
-    Scal area = gfs_line_area_center (&n, alpha, &q);
+    Scal area = gfs_line_area_center (n, alpha, q);
     p[0] = q[1];
     p[1] = 0.5;
     p[2] = q[0];
@@ -560,7 +566,7 @@ Scal gfs_plane_area_center (const Vect& m, Scal alpha, Vect& p)
     return area;
   }
 
-  Vect n = *m;
+  Vect n = m;
   if (n[0] < 0.) {
     alpha -= n[0];
     n[0] = - n[0];
