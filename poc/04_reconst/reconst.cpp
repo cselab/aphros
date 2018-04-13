@@ -1,12 +1,10 @@
 #include <cmath>
 
-#include "vect.hpp"
-
-using Scal = double;
-using Vect = geom::GVect<Scal, 3>;
+#include "reconst.h"
 
 #define MAX(a, b) (std::max(a, b))
 #define MIN(a, b) (std::min(a, b))
+#define EPS 1e-4
 
 
 void Clip(Scal& a, Scal l, Scal u) {
@@ -18,14 +16,6 @@ void Clip(Scal& a) {
 };
 
 
-/**
- * gfs_line_area:
- * @m: normal to the line.
- * @alpha: line constant.
- *
- * Returns: the area of the fraction of a cell lying under the line
- * (@m,@alpha).
- */
 Scal gfs_line_area (const Vect& m, Scal alpha)
 {
   Vect n;
@@ -73,14 +63,6 @@ Scal gfs_line_area (const Vect& m, Scal alpha)
   return area;
 }
 
-/**
- * gfs_line_alpha:
- * @m: a #Vect.
- * @c: a volume fraction.
- *
- * Returns: the value @alpha such that the area of a square cell
- * lying under the line defined by @m.@x = @alpha is equal to @c. 
- */
 Scal gfs_line_alpha (const Vect& m, Scal c)
 {
   Scal alpha, m1, m2, v1;
@@ -111,16 +93,6 @@ Scal gfs_line_alpha (const Vect& m, Scal c)
 
 #define EPS 1e-4
 
-/**
- * gfs_line_center:
- * @m: normal to the line.
- * @alpha: line constant.
- * @a: area of cell fraction.
- * @p: a #Vect.
- *
- * Fills @p with the position of the center of mass of the fraction of
- * a square cell lying under the line (@m,@alpha).
- */
 void gfs_line_center (const Vect& m, Scal alpha, Scal a, Vect& p)
 {
   Vect n;
@@ -187,17 +159,6 @@ void gfs_line_center (const Vect& m, Scal alpha, Scal a, Vect& p)
     p[1] = 1. - p[1];
 }
 
-/**
- * gfs_line_area_center:
- * @m: normal to the line.
- * @alpha: line constant.
- * @p: a #Vect.
- *
- * Fills @p with the position of the center of area of the fraction of
- * a square cell lying under the line (@m,@alpha).
- *
- * Returns: the length of the facet.
- */
 Scal gfs_line_area_center (const Vect& m, Scal alpha, Vect& p)
 {
   Vect n;
@@ -268,13 +229,6 @@ Scal gfs_line_area_center (const Vect& m, Scal alpha, Vect& p)
   return sqrt (ax*ax + ay*ay);
 }
 
-/**
- * gfs_plane_volume:
- * @m: normal to the plane.
- * @alpha: plane constant.
- *
- * Returns: the volume of a cell lying under the plane (@m,@alpha).
- */
 Scal gfs_plane_volume (const Vect& m, Scal alpha)
 {
   //g_return_val_if_fail (m != NULL, 0.);
@@ -324,14 +278,6 @@ Scal gfs_plane_volume (const Vect& m, Scal alpha)
   return volume;
 }
 
-/**
- * gfs_plane_alpha:
- * @m: a #Vect.
- * @c: a volume fraction.
- *
- * Returns: the value @alpha such that the volume of a cubic cell
- * lying under the plane defined by @m.@x = @alpha is equal to @c. 
- */
 Scal gfs_plane_alpha (const Vect& m, Scal c)
 {
   Scal alpha;
@@ -405,16 +351,6 @@ Scal gfs_plane_alpha (const Vect& m, Scal c)
   return alpha;
 }
 
-/**
- * gfs_plane_center:
- * @m: normal to the plane.
- * @alpha: plane constant.
- * @a: volume of cell fraction.
- * @p: a #Vect.
- *
- * Fills @p with the position of the center of mass of the fraction of
- * a cubic cell lying under the plane (@m,@alpha).
- */
 void gfs_plane_center (const Vect& m, Scal alpha, Scal a, Vect& p)
 {
   Vect n;
@@ -524,17 +460,6 @@ void gfs_plane_center (const Vect& m, Scal alpha, Scal a, Vect& p)
   if (m[2] < 0.) p[2] = 1. - p[2];
 }
 
-/**
- * gfs_plane_area_center:
- * @m: normal to the plane.
- * @alpha: plane constant.
- * @p: a #Vect.
- *
- * Fills @p with the position of the center of area of the fraction of
- * a cubic cell lying under the plane (@m,@alpha).
- *
- * Returns: the area of the facet.
- */
 Scal gfs_plane_area_center (const Vect& m, Scal alpha, Vect& p)
 {
   //g_return_val_if_fail (m != NULL, 0.);
