@@ -347,7 +347,7 @@ Scal gfs_plane_a (const Vect& m, Scal c)
   return a;
 }
 
-void gfs_planec (const Vect& m, Scal a, Scal s, Vect& p)
+void gfs_plane_c (const Vect& m, Scal a, Scal s, Vect& p)
 {
   Vect n;
   Scal b, amax;

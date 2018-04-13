@@ -73,7 +73,7 @@ Scal gfs_plane_volume (const Vect& m, Scal a);
 Scal gfs_plane_a (const Vect& m, Scal c);
 
 /**
- * gfs_planec:
+ * gfs_plane_c:
  * @m: normal to the plane.
  * @a: plane constant.
  * @s: volume of cell fraction.
@@ -82,7 +82,7 @@ Scal gfs_plane_a (const Vect& m, Scal c);
  * Fills @p with the position of the center of mass of the fraction of
  * s cubic cell lying under the plane (@m,@a).
  */
-void gfs_planec (const Vect& m, Scal a, Scal s, Vect& p);
+void gfs_plane_c (const Vect& m, Scal a, Scal s, Vect& p);
 
 /**
  * gfs_plane_sc:
