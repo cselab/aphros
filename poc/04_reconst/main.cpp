@@ -3,18 +3,27 @@
 
 #include "reconst.h"
 
-void Pr(Vect m, Scal a, Scal s) {
-  std::cout << "m=" << m << " a=" << a << " s=" << s << std::endl;
+void Pr(Vect m, Scal c, Scal area, Scal alpha) {
+  std::cout
+      << " m=" << m
+      << " c=" << c
+      << " area=" << area
+      << " alpha=" << alpha
+      << std::endl;
 }
 
-int main(int c, char** v) {
-  Vect m(1., 1., 0.);  // normal 
+int main() {
+  Vect m(1., 0., 0.);  // normal 
   m /= m.norm();
-  Scal a = 0.5;   // volume fraction
-  Scal s; // area
 
-  s = gfs_line_area(m, a);
-  Pr(m, a, s);
+  Scal c;   // volume fraction
+  Scal area; // area 
+  Scal alpha; // line constant (length measured from corner)
+
+  c = 0.5;
+  alpha = gfs_line_alpha(m, c);
+  area = gfs_line_area(m, alpha);
+  Pr(m, c, area, alpha);
 
   return 0;
 }
