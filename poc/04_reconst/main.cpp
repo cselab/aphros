@@ -14,7 +14,7 @@ void Pr(Vect m, Scal c, Scal area, Scal alpha) {
 }
 
 int main() {
-  Vect m(1., 0., 0.);  // normal 
+  Vect m(1., 1., 1.);  // normal 
   m /= m.norm();
 
   Scal c;   // volume fraction
@@ -22,13 +22,8 @@ int main() {
   Scal alpha; // line constant (length measured from corner)
 
   c = 0.5;
-  alpha = gfs_line_alpha(m, c);
-  area = gfs_line_area(m, alpha);
-  Pr(m, c, area, alpha);
-
-  alpha = std::sqrt(2) * 0.5;
-  c = gfs_line_area(m, alpha);
-  area = 0;
+  alpha = gfs_plane_alpha(m, c);
+  area = gfs_plane_volume(m, alpha);
   Pr(m, c, area, alpha);
 
   return 0;
