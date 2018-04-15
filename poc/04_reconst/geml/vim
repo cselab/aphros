@@ -1,0 +1,14 @@
+:%s/gdouble/Scal/g
+:%s/const FttVector \*/const Vect\&/g
+:%s/FttVector \*/Vect\&/g
+:%s/FttVector/Vect/g
+:%s/\.x/[0]/g
+:%s/\.y/[1]/g
+:%s/\.z/[2]/g
+:%s/\->x/[0]/g
+:%s/\->y/[1]/g
+:%s/\->z/[2]/g
+:%s/ g_assert/ \/\/g_assert/gI
+:%s/ g_return/ \/\/g_return/gI
+:%s/ g_warning/ \/\/g_warning/gI
+:%s/ g_/ \/\/g_/gcI
