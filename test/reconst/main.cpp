@@ -65,6 +65,7 @@ class Advection : public KernelMesh<M> {
   Scal maxvel_; // maximum velocity relative to cell length [1/time]
                 // cfl = dt * maxvel
   typename AS::Par aspar_;
+  geom::FieldCell<Scal> fcnx_, fcny_, fcnz_; // normal to interface (tmp)
 };
 
 template <class _M>
@@ -189,6 +190,15 @@ void Advection<M>::Run() {
   if (sem("comm")) { // comm for GetGlobalField
     auto& u = const_cast<geom::FieldCell<Scal>&>(as_->GetField());
     m.Comm(&u);
+    auto& a = const_cast<geom::FieldCell<Scal>&>(as_->GetAlpha());
+    m.Comm(&a);
+    auto &n = geom::FieldCell<Scal>&>(as_->GetNormal());
+    fcnx_ = geom::GetComponent(n, 0);
+    fcny_ = geom::GetComponent(n, 1);
+    fcnz_ = geom::GetComponent(n, 2);
+    m.Comm(&fcnx_);
+    m.Comm(&fcny_);
+    m.Comm(&fcnz_);
   }
   sem.LoopEnd();
 }
@@ -255,6 +265,9 @@ class DistrSolver {
   }
   geom::FieldCell<Scal> GetField() const {
     return d_->GetGlobalField(0);
+  }
+  geom::FieldCell<Scal> GetField(size_t i) const {
+    return d_->GetGlobalField(i);
   }
   double GetTime() const { 
     return par.Double["t"]; 
@@ -329,9 +342,14 @@ void Main(MPI_Comm comm, Vars& par) {
 
   size_t k = 0;
 
+  auto dump = [&](size_t k) {
+    Dump(ds.GetField(0), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
+    Dump(ds.GetField(1), ds.GetBlock(), "a" + std::to_string(k) + ".dat");
+  };
   // Comm initial field (needed for GetField())
   ds.MakeStep();
-  Dump(ds.GetField(), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
+  Dump(ds.GetField(0), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
+  Dump(ds.GetField(1), ds.GetBlock(), "a" + std::to_string(k) + ".dat");
   ++k;
 
   auto& ttmax = par.Double["ttmax"];
@@ -347,7 +365,8 @@ void Main(MPI_Comm comm, Vars& par) {
     tmax += par.Double["dumpdt"];
     ds.MakeStep();
 
-    Dump(ds.GetField(), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
+    Dump(ds.GetField(0), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
+    Dump(ds.GetField(1), ds.GetBlock(), "a" + std::to_string(k) + ".dat");
     ++k;
   }
 }
