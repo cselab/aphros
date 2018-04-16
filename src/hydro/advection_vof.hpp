@@ -12,6 +12,46 @@ namespace solver {
 
 using namespace geom;
 
+// Volume fraction to line.
+// Returns:
+// a: line constant
+// Equation of reconstructed plane would be
+// ((x-xc)/h).dot(n) = a
+// where 
+// xc: cell center
+// h: cell size
+template <class Scal>
+inline Scal GetLineA(const GVect<Scal, 3>& n /*unit normal*/, 
+                     Scal u /*volume fraction*/) {
+  Scal alpha, mx, m2, v1;
+
+  Scal nx = std::abs(n[0]); 
+  Scal ny = std::abs(n[1]);
+  if (nx > ny) {
+    std::swap(nx, ny);
+  }
+  // nx < ny
+  
+  const Scal w = nx / 2.;
+  Scal a;
+  if (u <= w / ny) {
+    a = std::sqrt(2. * u * nx * ny);
+  } else if (u <= 1. - w / ny) {
+    a = u * ny + w;
+  } else {
+    a = nx + ny - std::sqrt(2. * nx * ny * (1. - u));
+  }
+
+  if (n[0] < 0.) {
+    a += n[0];
+  }
+  if (n[1] < 0.) {
+    a += n[1];
+  }
+
+  return a;
+}
+
 template <class M>
 class Vof : public AdvectionSolver<M> {
   using Mesh = M;
@@ -22,14 +62,13 @@ class Vof : public AdvectionSolver<M> {
 
   using P::m;
   using P::ffv_;
+  using P::fcs_;
   LayersData<FieldCell<Scal>> fc_u_;
   MapFace<std::shared_ptr<ConditionFace>> mf_u_cond_;
 
-  // Equation of reconstructed plane would be
-  // ((x-xc)/h).dot(n) = alpha
-  // where xc -- cell center, h - cell size, n -- unit normal to plane
   FieldCell<Scal> fc_a_; // alpha (plane constant)
   FieldCell<Vect> fc_n_; // n (normal to plane)
+  FieldCell<Scal> fc_us_; // smooth field
 
  public:
   struct Par {
@@ -47,6 +86,7 @@ class Vof : public AdvectionSolver<M> {
       , par(par)
       , fc_a_(m, 0)
       , fc_n_(m, Vect(0))
+      , fc_us_(m, 0)
   {
     fc_u_.time_curr = fc_u_initial;
   }
@@ -62,18 +102,33 @@ class Vof : public AdvectionSolver<M> {
       const Scal dt = this->GetTimeStep();
       for (auto c : m.Cells()) {
         curr[c] = fc_u_.time_prev[c] +  // previous time step
-            dt * (*this->fcs_)[c]; // source
+            dt * (*fcs_)[c]; // source
       }
     }
-    const bool split = true;
+    const bool split = false;
     for (size_t d = 0; d < (split ? dim : 1); ++d) {
+      auto& uc = fc_u_.iter_curr;
+      if (sem("pre")) {
+        fc_us_ = uc;
+      }
+      if (sem.Nested("smooth")) {
+        Smoothen(fc_us_, mf_u_cond_, m, 1);
+      }
       if (sem("adv")) {
-        auto& curr = fc_u_.iter_curr;
+        auto us = fc_us_;
+        auto uf = Interpolate(us, mf_u_cond_, m);
+        auto gc = Gradient(uf, m);
 
-        
+        for (auto c : m.Cells()) {
+          const Vect g = gc[c];
+          const Vect n =g / (g.norm() + 1e-10);
+          fc_n_[c] = n;
+          fc_a_[c] = GetLineA(n, uc[c]);
+        }
 
         auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
-        m.Comm(&curr);
+        // ... advection
+        m.Comm(&uc);
       }
     }
 
