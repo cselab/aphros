@@ -23,6 +23,11 @@
 #include "hydro/solver.hpp"
 #include "hydro/linear.hpp"
 #include "hydro/advection.hpp"
+#include "hydro/advection_tvd.hpp"
+
+#include "hydro/output.hpp"
+
+#include "cmp.h"
 
 #include "hydro/output.hpp"
 
