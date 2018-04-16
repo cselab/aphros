@@ -23,7 +23,7 @@
 #include "hydro/solver.hpp"
 #include "hydro/linear.hpp"
 #include "hydro/advection.hpp"
-#include "hydro/advection_tvd.hpp"
+#include "hydro/advection_vof.hpp"
 
 #include "hydro/output.hpp"
 
@@ -59,7 +59,7 @@ class Advection : public KernelMesh<M> {
  private:
   geom::FieldFace<Scal> ff_flux_;
   geom::FieldCell<Scal> fc_src_;
-  using AS = solver::AdvectionSolverExplicit<M>;
+  using AS = solver::Vof<M>;
   std::unique_ptr<AS> as_; // advection solver
   std::function<Vect(Vect,Scal)> fvel_;
   Scal maxvel_; // maximum velocity relative to cell length [1/time]
@@ -117,53 +117,9 @@ Advection<M>::Advection(Vars& par, const MyBlockInfo& bi,
   fc_src_.Reinit(m, 0.);
 
   auto& p = aspar_;
-  p.sharp = par.Double["sharp"];
-  p.sharpo = par.Double["sharpo"];
-  p.split = par.Int["split"];
   as_.reset(new AS(m, u0, bc, &ff_flux_, 
             &fc_src_, 0., par.Double["dt"], &aspar_));
 }
-
-#if 0
-template <class M>
-void Advection<M>::TestSolve(
-    std::function<Scal(Vect)> fi /*initial*/,
-    std::function<Scal(Vect)> fe /*exact*/,
-    size_t cg /*check gap (separate from boundary)*/,
-    std::string name,
-    bool check /*abort if different from exact*/) {
-  auto sem = m.GetSem("TestSolve");
-  auto& bc = m.GetBlockCells();
-  for (size_t n = 0; n < par.Int["num_steps"]; ++n) {
-    if (sem.Nested("as->StartStep()")) {
-      as_->StartStep();
-    }
-    if (sem.Nested("as->MakeIteration")) {
-      as_->MakeIteration();
-    }
-    if (sem.Nested("as->FinishStep()")) {
-      as_->FinishStep();
-    }
-  }
-  if (sem("check")) {
-    geom::GBlockCells<dim> cbc(MIdx(cg), gs_ - MIdx(2 * cg)); // check block
-    FieldCell<bool> mask(m, false);
-    for (auto i : m.AllCells()) {
-      if (cbc.IsInside(bc.GetMIdx(i))) {
-        mask[i] = true;
-      }
-    }
-    auto& fc = as_->GetField();
-    PFCMP(Mean(fc_exact_, m, mask), Mean(fc, m, mask), check);
-    PFCMP(DiffMax(fc_exact_, fc, m, mask), 0., check);
-  }
-  if (sem("comm")) {
-    fc_ = as_->GetField();
-    m.Comm(&fc_);
-    m.Comm(&fc_exact_);
-  }
-}
-#endif
 
 template <class M>
 void Advection<M>::Run() {
@@ -181,6 +137,7 @@ void Advection<M>::Run() {
       sem.LoopBreak();
     }
   }
+  if(0)
   if (sem("vel")) {
     const Scal t = as_->GetTime();
     for (auto f : m.AllFaces()) {
@@ -236,62 +193,6 @@ void Advection<M>::Run() {
   sem.LoopEnd();
 }
 
-#if 0
-  par.Double["extent"] = 1.; // TODO don't overwrite extent
-  Scal extent = par.Double["extent"];
-  {
-    MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
-    MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
-    MIdx bs(par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]);
-    gs_ = p * b * bs;
-  }
-  Scal dx = extent / gs_.norminf(); 
-  assert(dx > 0. && dx < extent);
-  ge_ = Vect(gs_) * dx;
-  Scal cfl = par.Double["cfl"];
-  Vect vel(par.Vect["vel"]);
-  Scal ns = par.Int["num_steps"];
-  Scal nc = cfl * ns; // distance in cells passed
-  Scal dt = dx * cfl / vel.norminf();
-  par.Double.Set("dt", dt);
-  Scal t = dt * ns;
-
-  auto sem = m.GetSem("Run");
-  auto f = [](Vect x) { 
-      return std::sin(x[0]) * std::cos(x[1]) * std::exp(x[2]); 
-    };
-  auto f0 = [](Vect x) { return 0.; };
-  auto f1 = [](Vect x) { return 1.; };
-  auto fx = [](Vect x) { return Vect(1., -1., 1.).dot(x); };
-  auto fex = [=](Vect x) { x -= vel * t; return fx(x); };
-
-  bool fatal = par.Int["fatal"];
-
-  if (sem.Nested()) {
-    TestSolve(f0, f0, 0, "f0", fatal);
-  }
-  if (sem.Nested()) {
-    TestSolve(f1, f1, 0, "f1", fatal);
-  }
-  if (sem.Nested()) {
-    TestSolve(fx, fex, 4, "fx", fatal);
-  }
-  if (sem.Nested()) {
-    TestSolve(f, f, 0, "f", false);
-  }
-}
-
-using Scal = double;
-using M = geom::MeshStructured<Scal, 3>;
-using K = Advection<M>;
-using D = DistrMesh<KernelMeshFactory<M>>;
-using FC = geom::FieldCell<Scal>;
-using IdxCell = geom::IdxCell;
-using Vect = typename M::Vect;
-using MIdx = typename M::MIdx;
-
-#endif
-
 // Dump values on inner cells to text file. 
 // Format:
 // <Nx> <Ny> <Nz>
@@ -315,7 +216,6 @@ class DistrSolver {
  public:
   using M = M_;
   static constexpr size_t dim = M::dim;
-  using AS = solver::AdvectionSolverExplicit<M>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
