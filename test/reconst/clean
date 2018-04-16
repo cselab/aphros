@@ -1,0 +1,4 @@
+#!/bin/bash -l
+
+rm -vf *.dat
+rm -vf *.pdf

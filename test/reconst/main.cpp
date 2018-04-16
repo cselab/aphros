@@ -138,6 +138,7 @@ void Advection<M>::Run() {
       sem.LoopBreak();
     }
   }
+
   if(0)
   if (sem("vel")) {
     const Scal t = as_->GetTime();
@@ -192,7 +193,7 @@ void Advection<M>::Run() {
     m.Comm(&u);
     auto& a = const_cast<geom::FieldCell<Scal>&>(as_->GetAlpha());
     m.Comm(&a);
-    auto &n = geom::FieldCell<Scal>&>(as_->GetNormal());
+    auto &n = as_->GetNormal();
     fcnx_ = geom::GetComponent(n, 0);
     fcny_ = geom::GetComponent(n, 1);
     fcnz_ = geom::GetComponent(n, 2);
@@ -345,11 +346,13 @@ void Main(MPI_Comm comm, Vars& par) {
   auto dump = [&](size_t k) {
     Dump(ds.GetField(0), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
     Dump(ds.GetField(1), ds.GetBlock(), "a" + std::to_string(k) + ".dat");
+    Dump(ds.GetField(2), ds.GetBlock(), "nx" + std::to_string(k) + ".dat");
+    Dump(ds.GetField(3), ds.GetBlock(), "ny" + std::to_string(k) + ".dat");
+    Dump(ds.GetField(4), ds.GetBlock(), "nz" + std::to_string(k) + ".dat");
   };
   // Comm initial field (needed for GetField())
   ds.MakeStep();
-  Dump(ds.GetField(0), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
-  Dump(ds.GetField(1), ds.GetBlock(), "a" + std::to_string(k) + ".dat");
+  dump(k);
   ++k;
 
   auto& ttmax = par.Double["ttmax"];
@@ -365,8 +368,7 @@ void Main(MPI_Comm comm, Vars& par) {
     tmax += par.Double["dumpdt"];
     ds.MakeStep();
 
-    Dump(ds.GetField(0), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
-    Dump(ds.GetField(1), ds.GetBlock(), "a" + std::to_string(k) + ".dat");
+    dump(k);
     ++k;
   }
 }

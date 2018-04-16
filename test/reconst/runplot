@@ -2,5 +2,5 @@
 
 set -eu
 
-./t.advection
+./t.reconst
 ./plot.py
