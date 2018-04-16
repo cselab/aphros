@@ -25,6 +25,12 @@ class Vof : public AdvectionSolver<M> {
   LayersData<FieldCell<Scal>> fc_u_;
   MapFace<std::shared_ptr<ConditionFace>> mf_u_cond_;
 
+  // Equation of reconstructed plane would be
+  // ((x-xc)/h).dot(n) = alpha
+  // where xc -- cell center, h - cell size, n -- unit normal to plane
+  FieldCell<Scal> fc_a_; // alpha (plane constant)
+  FieldCell<Vect> fc_n_; // n (normal to plane)
+
  public:
   struct Par {
   };
@@ -39,6 +45,8 @@ class Vof : public AdvectionSolver<M> {
       : AdvectionSolver<Mesh>(t, dt, m, ff_volume_flux, fc_source)
       , mf_u_cond_(mf_u_cond_)
       , par(par)
+      , fc_a_(m, 0)
+      , fc_n_(m, Vect(0))
   {
     fc_u_.time_curr = fc_u_initial;
   }
@@ -62,6 +70,8 @@ class Vof : public AdvectionSolver<M> {
       if (sem("adv")) {
         auto& curr = fc_u_.iter_curr;
 
+        
+
         auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
         m.Comm(&curr);
       }
@@ -77,6 +87,12 @@ class Vof : public AdvectionSolver<M> {
   }
   const FieldCell<Scal>& GetField(Layers l) override {
     return fc_u_.Get(l);
+  }
+  const FieldCell<Scal>& GetAlpha() {
+    return fc_a_;
+  }
+  const FieldCell<Vect>& GetNormal() {
+    return fc_n_;
   }
   using P::GetField;
 };
