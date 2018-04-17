@@ -53,15 +53,21 @@ def PlotField(ax, u):
 def PlotGrid(ax, x1, y1):
     ax.set_xticks(x1)
     ax.set_yticks(y1)
-    #ax.xaxis.set_ticklabels([])
-    #ax.yaxis.set_ticklabels([])
     plt.setp(ax.get_xticklabels(), visible=False)
     plt.setp(ax.get_yticklabels(), visible=False)
     ax.tick_params(axis='both', which='both', length=0)
     ax.grid(True)
 
-def PlotLines(ax, xa, xb, ya, yb):
-    ax.plot(xa, xb, ya, yb)
+def PlotLines(ax, xa, ya, xb, yb):
+    s = xa.size
+    xa = xa.reshape(s)
+    xb = xb.reshape(s)
+    ya = ya.reshape(s)
+    yb = yb.reshape(s)
+    xy = np.vstack((xa, xb, ya,yb))
+    xy = xy.T
+    xy = xy.reshape((s * 2, 2))
+    ax.plot(*xy)
 
 
 pre = 'u'
@@ -88,5 +94,5 @@ for p in pp:
     fig, ax = PlotInit()
     PlotGrid(ax, xn1, yn1)
     PlotField(ax, u)
-    #PlotLines(ax, x, y, x, y)
+    PlotLines(ax, x, y, x, y+0.01)
     PlotSave(fig, ax, po)
