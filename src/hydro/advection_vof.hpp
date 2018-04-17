@@ -164,7 +164,7 @@ class Vof : public AdvectionSolver<M> {
         fc_us_ = uc;
       }
       if (sem.Nested("smooth")) {
-        Smoothen(fc_us_, mf_u_cond_, m, 1);
+        //Smoothen(fc_us_, mf_u_cond_, m, 1);
       }
       if (sem("adv")) {
         auto us = fc_us_;
@@ -172,7 +172,7 @@ class Vof : public AdvectionSolver<M> {
         auto gc = Gradient(uf, m);
 
         // commit smooth
-        uc = us;
+        //uc = us;
 
         for (auto c : m.Cells()) {
           const Vect g = gc[c];

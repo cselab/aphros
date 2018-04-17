@@ -291,23 +291,25 @@ void Main(MPI_Comm comm, Vars& par) {
   {
     std::string v = par.String["init_vf"];
     if (v == "circle") {
-      auto fucircle = [](Vect x) -> Scal { 
+      fu0 = [](Vect x) -> Scal { 
         return Vect(0.5, 0.263662, 0.).dist(x) < 0.2 ? 1. : 0.; 
       };
-      fu0 = fucircle;
+    } else if (v == "box") {
+      fu0 = [](Vect x) -> Scal { 
+        return (Vect(0.5, 0.263662, 0.) - x).norminf() < 0.2 ? 1. : 0.; 
+      };
     } else if (v == "line") {
       Vect xc(par.Vect["linec"]); // center
       Vect n(par.Vect["linen"]);  // normal
       Scal s(par.Double["lines"]);  // sigma (sharpness)
-      auto fuline = [xc, n, s](Vect x) -> Scal { 
+      fu0 = [xc, n, s](Vect x) -> Scal { 
         Scal u = (x - xc).dot(n);
         u = 1. / (1. + std::exp(-s * u));
         return u;
       };
-      fu0 = fuline;
     } else if (v == "sinc") {
       Vect k(par.Vect["sinck"]);
-      auto fusinc = [k](Vect x) -> Scal { 
+      fu0 = [k](Vect x) -> Scal { 
         x -= Vect(0.5);
         x *= k;
         Scal r = x.norm();
@@ -317,7 +319,6 @@ void Main(MPI_Comm comm, Vars& par) {
         u = (u - u0) / (u1 - u0);
         return std::max(0., std::min(1., u));
       };
-      fu0 = fusinc;
     } else {
       throw std::runtime_error("Unknown init_vf=" + v);
     }
