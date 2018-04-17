@@ -383,12 +383,38 @@ void Main(MPI_Comm comm, Vars& par) {
   }
 }
 
+#include <random>
+
+void TestLine() {
+  using Scal = double;
+  using Vect = geom::GVect<Scal, 3>;
+
+  std::default_random_engine g(0);
+  std::uniform_real_distribution<double> f(0.,1.);
+  size_t ni = 10000;
+  Scal e = 0.; // error
+  for (size_t i = 0; i < ni; ++i) {
+    while (true) {
+      Vect n(f(g), f(g), 0.);
+      n /= n.norm();
+      Scal u = f(g);
+      e += std::abs(solver::GetLineU(n, solver::GetLineA(n, u)) - u);
+      break;
+    }
+  }
+  e /= ni;
+  std::cerr << "TestLine(): error=" << e << " samples=" << ni << std::endl;
+  assert(e < 1e-16);
+}
+
 int main (int argc, const char ** argv) {
   int prov;
   MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   bool isroot = (!rank);
+
+  TestLine(); 
 
   Vars par;   // parameter storage
   Interp ip(par); // interpretor (parser)

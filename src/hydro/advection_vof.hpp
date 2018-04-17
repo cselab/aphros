@@ -156,19 +156,6 @@ class Vof : public AdvectionSolver<M> {
         curr[c] = fc_u_.time_prev[c] +  // previous time step
             dt * (*fcs_)[c]; // source
       }
-
-      auto p = [&](Vect n, Scal u) {
-        Scal a = GetLineA(n, u);
-        std::cout 
-            << "n=" << n << " u=" << u 
-            << " a=" << a
-            << " u(a)=" << GetLineU(n, a) 
-            << std::endl;
-      };
-      p(Vect(1., 0., 0.), 0.);
-      p(Vect(-1., 0., 0.), 0.);
-      p(Vect(1., 0., 0.), 0.5);
-      p(Vect(-1., 0., 0.), 0.5);
     }
     const bool split = false;
     for (size_t d = 0; d < (split ? dim : 1); ++d) {
