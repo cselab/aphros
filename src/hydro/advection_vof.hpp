@@ -12,6 +12,29 @@ namespace solver {
 
 using namespace geom;
 
+template <class Scal>
+inline void Clip(Scal& a, Scal l, Scal u) {
+  a = std::max(l, std::min(u, a));
+}
+
+template <class Scal>
+inline void Clip(Scal& a) {
+  Clip(a, 0., 1.);
+};
+
+// GetLineA() 
+// assuming 0 < u < 0.5, 0 < n[0] < n[1]
+template <class Scal>
+inline Scal GetLineA0(Scal nx, Scal ny, Scal u) {
+  Scal u1 = 0.5 * nx / ny;
+
+  if (u <= u1) {
+    return -0.5 * (nx + ny) + std::sqrt(2. * nx * ny * u);
+  } else {
+    return ny * (u - 0.5);
+  }
+}
+
 // Volume fraction to line constant.
 // n : unit normal
 // u: volume fraction
@@ -25,36 +48,20 @@ using namespace geom;
 template <class Scal>
 inline Scal GetLineA(const GVect<Scal, 3>& n, Scal u) {
   using Vect = GVect<Scal, 3>;
-  Scal alpha, mx, m2, v1;
 
-  Scal nx = std::abs(n[0]); 
+  Scal nx = std::abs(n[0]);
   Scal ny = std::abs(n[1]);
-  if (nx > ny) {
+  if (ny < nx) {
     std::swap(nx, ny);
   }
-  // nx < ny
   
-  const Scal w = nx / 2.;
-  Scal a;
-  if (u <= w / ny) {
-    a = std::sqrt(2. * u * nx * ny);
-  } else if (u <= 1. - w / ny) {
-    a = u * ny + w;
+  Clip(u);
+
+  if (u < 0.5) {
+    return GetLineA0(nx, ny, u);
   } else {
-    a = nx + ny - std::sqrt(2. * nx * ny * (1. - u));
+    return -GetLineA0(nx, ny, 1. - u);
   }
-
-  if (n[0] < 0.) {
-    a += n[0];
-  }
-  if (n[1] < 0.) {
-    a += n[1];
-  }
-
-  // shift such that a=0 is cell center
-  a -= Vect(0.5).dot(n);
-
-  return a;
 }
 
 // Line constant to volume fraction
@@ -64,53 +71,8 @@ inline Scal GetLineA(const GVect<Scal, 3>& n, Scal u) {
 // u: volume fraction
 // (see equation in GetLineA())
 template <class Scal>
-inline Scal GetLineU(const GVect<Scal, 3>& n, Scal a) {
+inline Scal GetLineU_Ge(const GVect<Scal, 3>& n, Scal a) {
   using Vect = GVect<Scal, 3>;
-
-  // shift such that a=0 is cell corner
-  a += Vect(0.5).dot(n);
-
-  Scal nx = n[0]; 
-  Scal ny = n[1];
-
-  if (nx < 0.) {
-    a -= nx;
-    nx = -nx;
-  }
-  if (ny < 0.) {
-    a -= ny;
-    ny = -ny;
-  }
-  if (a <= 0.) {
-    return 0.;
-  }
-  if (a >= nx + ny) {
-    return 1.;
-  }
-
-  Scal u;
-  if (nx == 0.) {
-    u = a / ny;
-  } else if (ny == 0.) {
-    u = a / nx;
-  } else {
-    v = a * a;
-    a -= nx;
-    if (a > 0.) { 
-      v -= a * a;
-    }
-    
-    a -= ny;
-    if (a > 0.) {
-      v -= a * a;
-    }
-
-    u = v / (2. * nx * ny);
-  }
-
-  Clip(area);
-
-  return u;
 }
 
 template <class M>
