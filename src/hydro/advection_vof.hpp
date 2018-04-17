@@ -23,6 +23,7 @@ using namespace geom;
 template <class Scal>
 inline Scal GetLineA(const GVect<Scal, 3>& n /*unit normal*/, 
                      Scal u /*volume fraction*/) {
+  using Vect = GVect<Scal, 3>;
   Scal alpha, mx, m2, v1;
 
   Scal nx = std::abs(n[0]); 
@@ -48,6 +49,9 @@ inline Scal GetLineA(const GVect<Scal, 3>& n /*unit normal*/,
   if (n[1] < 0.) {
     a += n[1];
   }
+
+  // shift such that a=0 is cell center
+  a -= Vect(0.5).dot(n);
 
   return a;
 }
@@ -104,6 +108,15 @@ class Vof : public AdvectionSolver<M> {
         curr[c] = fc_u_.time_prev[c] +  // previous time step
             dt * (*fcs_)[c]; // source
       }
+
+      auto p = [&](Vect n, Scal u) {
+        std::cout << "n=" << n << " u=" << u << " a=" << GetLineA(n, u)
+            << std::endl;
+      };
+      p(Vect(1., 0., 0.), 0.);
+      p(Vect(-1., 0., 0.), 0.);
+      p(Vect(1., 0., 0.), 0.5);
+      p(Vect(-1., 0., 0.), 0.5);
     }
     const bool split = false;
     for (size_t d = 0; d < (split ? dim : 1); ++d) {
@@ -118,6 +131,9 @@ class Vof : public AdvectionSolver<M> {
         auto us = fc_us_;
         auto uf = Interpolate(us, mf_u_cond_, m);
         auto gc = Gradient(uf, m);
+
+        // commit smooth
+        uc = us;
 
         for (auto c : m.Cells()) {
           const Vect g = gc[c];
