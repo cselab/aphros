@@ -12,7 +12,9 @@ namespace solver {
 
 using namespace geom;
 
-// Volume fraction to line.
+// Volume fraction to line constant.
+// n : unit normal
+// u: volume fraction
 // Returns:
 // a: line constant
 // Equation of reconstructed plane would be
@@ -21,8 +23,7 @@ using namespace geom;
 // xc: cell center
 // h: cell size
 template <class Scal>
-inline Scal GetLineA(const GVect<Scal, 3>& n /*unit normal*/, 
-                     Scal u /*volume fraction*/) {
+inline Scal GetLineA(const GVect<Scal, 3>& n, Scal u) {
   using Vect = GVect<Scal, 3>;
   Scal alpha, mx, m2, v1;
 
@@ -54,6 +55,62 @@ inline Scal GetLineA(const GVect<Scal, 3>& n /*unit normal*/,
   a -= Vect(0.5).dot(n);
 
   return a;
+}
+
+// Line constant to volume fraction
+// n : unit normal
+// a: line constant
+// Returns:
+// u: volume fraction
+// (see equation in GetLineA())
+template <class Scal>
+inline Scal GetLineU(const GVect<Scal, 3>& n, Scal a) {
+  using Vect = GVect<Scal, 3>;
+
+  // shift such that a=0 is cell corner
+  a += Vect(0.5).dot(n);
+
+  Scal nx = n[0]; 
+  Scal ny = n[1];
+
+  if (nx < 0.) {
+    a -= nx;
+    nx = -nx;
+  }
+  if (ny < 0.) {
+    a -= ny;
+    ny = -ny;
+  }
+  if (a <= 0.) {
+    return 0.;
+  }
+  if (a >= nx + ny) {
+    return 1.;
+  }
+
+  Scal u;
+  if (nx == 0.) {
+    u = a / ny;
+  } else if (ny == 0.) {
+    u = a / nx;
+  } else {
+    v = a * a;
+    a -= nx;
+    if (a > 0.) { 
+      v -= a * a;
+    }
+    
+    a -= ny;
+    if (a > 0.) {
+      v -= a * a;
+    }
+
+    u = v / (2. * nx * ny);
+  }
+
+  Clip(area);
+
+  return u;
 }
 
 template <class M>
@@ -125,7 +182,7 @@ class Vof : public AdvectionSolver<M> {
         fc_us_ = uc;
       }
       if (sem.Nested("smooth")) {
-        Smoothen(fc_us_, mf_u_cond_, m, 1);
+        //Smoothen(fc_us_, mf_u_cond_, m, 1);
       }
       if (sem("adv")) {
         auto us = fc_us_;
@@ -133,7 +190,7 @@ class Vof : public AdvectionSolver<M> {
         auto gc = Gradient(uf, m);
 
         // commit smooth
-        uc = us;
+        //uc = us;
 
         for (auto c : m.Cells()) {
           const Vect g = gc[c];
