@@ -59,15 +59,63 @@ def PlotGrid(ax, x1, y1):
     ax.grid(True)
 
 def PlotLines(ax, xa, ya, xb, yb):
-    s = xa.size
-    xa = xa.reshape(s)
-    xb = xb.reshape(s)
-    ya = ya.reshape(s)
-    yb = yb.reshape(s)
-    xy = np.vstack((xa, xb, ya,yb))
+    xa = xa.flatten()
+    ya = ya.flatten()
+    xb = xb.flatten()
+    yb = yb.flatten()
+    xy = np.vstack((xa, xb, ya, yb))
     xy = xy.T
-    xy = xy.reshape((s * 2, 2))
-    ax.plot(*xy)
+    xy = xy.reshape((xa.size * 2, 2))
+    ax.plot(*xy, c='r')
+
+# xc,yc: cell centers
+# a: line constants
+# nx, ny: unit normals
+# hx, hy: cell size
+# Returns:
+# xa, ya, xb, yb: line end points (a,b) on cell edges
+# Equation of line:
+# (x-xc)/h dot n = a
+def GetLines(xc, yc, a, nx, ny, hx, hy):
+    def ClipX(x, y, tx, ty, xmin, xmax):
+        xp = np.clip(x, xmin, xmax)
+        dx = xp - x
+        tx = np.where(tx == 0., 1e-10, tx)
+        dy = dx / tx * ty
+        return x + dx, y + dy
+    def ClipY(x, y, tx, ty, ymin, ymax):
+        y, x = ClipX(y, x, ty, tx, ymin, ymax)
+        return x, y
+    def Clip(x, y, tx, ty, xmin, xmax, ymin, ymax):
+        x, y = ClipX(x, y, tx, ty, xmin, xmax)
+        x, y = ClipY(x, y, tx, ty, ymin, ymax)
+        return x, y
+    xc = xc.flatten()
+    yc = yc.flatten()
+    nx = nx.flatten()
+    ny = ny.flatten()
+    a = a.flatten()
+    # tangent
+    tx = ny
+    ty = -nx
+    # line center
+    xlc = xc - a * nx * hx
+    ylc = yc - a * ny * hy
+    # end points
+    xa = xlc - tx * hx
+    ya = ylc - ty * hy
+    xb = xlc + tx * hx
+    yb = ylc + ty * hy
+    # cell bounds
+    xcm = xc - hx * 0.5
+    ycm = yc - hy * 0.5
+    xcp = xc + hx * 0.5
+    ycp = yc + hy * 0.5
+    # clip
+    xa, ya = Clip(xa, ya, tx, ty, xcm, xcp, ycm, ycp)
+    xb, yb = Clip(xb, yb, tx, ty, xcm, xcp, ycm, ycp)
+
+    return xa, ya, xb, yb
 
 
 pre = 'u'
@@ -88,11 +136,14 @@ for p in pp:
     y1 = (0.5 + np.arange(sy)) * hy
     x, y = np.meshgrid(x1, y1)
     a = Read('a' + suf) # alpha
+    nx = Read('nx' + suf) # normal
+    ny = Read('ny' + suf)
 
     po = os.path.splitext(p)[0] + ".pdf"
     print(po)
     fig, ax = PlotInit()
     PlotGrid(ax, xn1, yn1)
     PlotField(ax, u)
-    PlotLines(ax, x, y, x, y+0.01)
+    l = GetLines(x, y, a, nx, ny, hx, hy)
+    PlotLines(ax, *l)
     PlotSave(fig, ax, po)
