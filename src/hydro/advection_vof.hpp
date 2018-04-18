@@ -34,16 +34,13 @@ inline Scal GetLineA0(Scal nx, Scal ny, Scal u) {
   }
 }
 
-// Volume fraction to line constant.
-// n : unit normal
+// Line constant by volume fraction in unit cell.
+// n : normal
 // u: volume fraction
 // Returns:
 // a: line constant
-// Equation of reconstructed plane would be
-// ((x-xc)/h).dot(n) = a
-// where 
-// xc: cell center
-// h: cell size
+// Equation of reconstructed line 
+// x.dot(n) = a
 template <class Scal>
 inline Scal GetLineA(const GVect<Scal, 3>& n, Scal u) {
   using Vect = GVect<Scal, 3>;
@@ -63,6 +60,21 @@ inline Scal GetLineA(const GVect<Scal, 3>& n, Scal u) {
   }
 }
 
+// Line constant by volume fraction in rectangular cell.
+// n : normal
+// u: volume fraction
+// h: cell size
+// Returns:
+// a: line constant
+// Equation of reconstructed line 
+// x.dot(n) = a
+template <class Scal>
+inline Scal GetLineA(const GVect<Scal, 3>& n, Scal u, 
+                     const GVect<Scal, 3>& h) {
+  // TODO: check that GetLineA() is homogeneous wrt n
+  return GetLineA(n * h, u);
+}
+
 // GetLineU() helper
 // assuming a < 0, 0 < nx < ny
 template <class Scal>
@@ -79,12 +91,13 @@ inline Scal GetLineU0(Scal nx, Scal ny, Scal a) {
   }
 }
 
-// Line constant to volume fraction
-// n : unit normal
+// Volume fraction from line constant in unit cell.
+// n : normal
 // a: line constant
 // Returns:
 // u: volume fraction
-// (see equation in GetLineA())
+// Equation of reconstructed line 
+// x.dot(n) = a
 template <class Scal>
 inline Scal GetLineU(const GVect<Scal, 3>& n, Scal a) {
   using Vect = GVect<Scal, 3>;
@@ -102,6 +115,21 @@ inline Scal GetLineU(const GVect<Scal, 3>& n, Scal a) {
   } else {
     return 1. - GetLineU0(nx, ny, -a);
   }
+}
+
+// Volume fraction from line constant in rectangular cell.
+// n : normal
+// a: line constant
+// h: cell size
+// Returns:
+// u: volume fraction
+// Equation of reconstructed line 
+// x.dot(n) = a
+template <class Scal>
+inline Scal GetLineU(const GVect<Scal, 3>& n, Scal a, 
+                     const GVect<Scal, 3>& h) {
+  // TODO: check that GetLineU() is homogeneous wrt n,a
+  return GetLineU(n * h, a);
 }
 
 template <class M>
