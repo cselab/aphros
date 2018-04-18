@@ -400,12 +400,40 @@ void TestLine() {
       n /= n.norm();
       Scal u = f(g);
       e += std::abs(solver::GetLineU(n, solver::GetLineA(n, u)) - u);
+
+      Vect h(0.1, 0.2, 0.3);
+      e += std::abs(solver::GetLineU(n, solver::GetLineA(n, u, h), h) - u);
       break;
     }
   }
   e /= ni;
   std::cerr << "TestLine(): error=" << e << " samples=" << ni << std::endl;
   assert(e < 1e-16);
+
+  auto p = [](Scal nx, Scal ny, Scal u, Scal hx, Scal hy) {
+    Vect n(nx, ny, 0.);
+    Vect h(hx, hy, 1.);
+    n /= n.norm();
+    Scal a = solver::GetLineA(n, u, h);
+    Scal ua = solver::GetLineU(n, a, h);
+    Scal dx = 0.5 * hx; // advection in x
+    Vect hs(dx, hy, 1.); // size of acceptor
+    Vect d = Vect(hx * 0.5 + dx * 0.5, 0., 0.); // shift of center
+    Scal uadv = solver::GetLineU(n, a - n.dot(d), hs); 
+    std::cerr 
+        << "n=" << n
+        << " u=" << u
+        << " h=" << h
+        << " a=" << a
+        << " u(a)=" << ua
+        << " voladv=" << uadv * hs.prod()
+        << std::endl;
+  };
+  p(1., 1., 0.5 , 1., 1.);
+  p(1., 1., 0.5 , 0.1, 1.);
+  p(1., 1., 0.25 , 1., 1.);
+  p(1., 1., 0.25 , 0.1, 1.);
+  p(0., 1., 0.5 , 1., 1.);
 }
 
 int main (int argc, const char ** argv) {
