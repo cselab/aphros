@@ -301,7 +301,7 @@ class Vof : public AdvectionSolver<M> {
           } else { // d == 3
             ff_fu_[f] = 0.;
           }
-          if (uc[c] < 1e-2) {
+          if (uc[c] < 1e-1) {
             ff_fu_[f] = 0.;
           }
         }

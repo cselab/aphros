@@ -466,44 +466,71 @@ void TestLine() {
       throw std::runtime_error("flux test failed");
     }
   };
-  std::cerr << "check volume surplus" << std::endl;
-  f(1., 0., 1., 1., 1., 0., 0.);
-  f(1., 0., 1., 1., 1., 1., 1.);
-  f(1., 0., 1., 1., 1., 0.5, 0.5);
 
-  std::cerr << "set u=0.5" << std::endl;
-  f(1., 0., 0.5, 1., 1., 1., 0.5);
-  f(1., 0., 0.5, 1., 1., 0.5, 0.);
-  f(1., 0., 0.5, 1., 1., -1., 0.5);
-  f(1., 0., 0.5, 1., 1., -0.5, 0.5);
+  Scal nx, ny, u, hx, hy, dx;
+  Scal nx0, ny0, u0, hx0, hy0, dx0;
+
+  std::cerr << "check volume surplus" << std::endl;
+  nx0 = 1.; ny0 = 0.; u0 = 0.5; hx0 = 1.; hy0 = 1.; dx0 = 0.;
+  nx = nx0; ny = ny0; u = u0; hx = hx0; hy = hy0; dx = dx0;
+
+  std::cerr << "base" << std::endl;
+  f(nx, ny, u, hx, hy, dx=1., 0.5);
+  f(nx, ny, u, hx, hy, dx=0.5, 0.);
+  f(nx, ny, u, hx, hy, dx=-1., 0.5);
+  f(nx, ny, u, hx, hy, dx=-0.5, 0.5);
+
+  std::cerr << "set u=1" << std::endl;
+  u = 1.;
+  f(nx, ny, u, hx, hy, dx=0., 0.);
+  f(nx, ny, u, hx, hy, dx=1., 1.);
+  f(nx, ny, u, hx, hy, dx=0.5, 0.5);
+  u = u0;
 
   std::cerr << "set n=(-1,0,0)" << std::endl;
-  f(-1., 0., 0.5, 1., 1., 1., 0.5);
-  f(-1., 0., 0.5, 1., 1., 0.5, 0.5);
-  f(-1., 0., 0.5, 1., 1., -1., 0.5);
-  f(-1., 0., 0.5, 1., 1., -0.5, 0.);
+  nx = -1.;
+  f(nx, ny, u, hx, hy, dx=1., 0.5);
+  f(nx, ny, u, hx, hy, dx=0.5, 0.5);
+  f(nx, ny, u, hx, hy, dx=-1., 0.5);
+  f(nx, ny, u, hx, hy, dx=-0.5, 0.);
+  nx = nx0;
 
   std::cerr << "set hx=0.5" << std::endl;
-  f(1., 0., 0.5, 0.5, 1., 0.5, 0.25);
-  f(1., 0., 0.5, 0.5, 1., 0.25, 0.);
-  f(1., 0., 0.5, 0.5, 1., -0.5, 0.25);
-  f(1., 0., 0.5, 0.5, 1., -0.25, 0.25);
+  hx = 0.5; 
+  f(nx, ny, u, hx, hy, dx=0.5, 0.25);
+  f(nx, ny, u, hx, hy, dx=0.25, 0.);
+  f(nx, ny, u, hx, hy, dx=-0.5, 0.25);
+  f(nx, ny, u, hx, hy, dx=-0.25, 0.25);
+  hx = hx0;
 
   std::cerr << "set n=(0,1,0)" << std::endl;
-  f(0., 1., 0.5, 1., 1., 1., 0.5);
-  f(0., 1., 0.5, 1., 1., 0.5, 0.25);
-  f(0., 1., 0.5, 1., 1., -1., 0.5);
-  f(0., 1., 0.5, 1., 1., -0.5, 0.25);
+  nx = 0.; ny = 1.;
+  f(nx, ny, u, hx, hy, dx=1., 0.5);
+  f(nx, ny, u, hx, hy, dx=0.5, 0.25);
+  f(nx, ny, u, hx, hy, dx=-1., 0.5);
+  f(nx, ny, u, hx, hy, dx=-0.5, 0.25);
+  nx = nx0; ny = ny0;
 
   std::cerr << "set n=(1,1,0)" << std::endl;
-  f(1., 1., 0.5, 1., 1., 1., 0.5);
-  f(1., 1., 0.5, 1., 1., 0.5, 0.125);
-  f(1., 1., 0.5, 1., 1., -1., 0.5);
-  f(1., 1., 0.5, 1., 1., -0.5, 0.375);
+  nx = 1.; ny = 1.;
+  f(nx, ny, u, hx, hy, dx=1., 0.5);
+  f(nx, ny, u, hx, hy, dx=0.5, 0.125);
+  f(nx, ny, u, hx, hy, dx=-1., 0.5);
+  f(nx, ny, u, hx, hy, dx=-0.5, 0.375);
+  nx = nx0; ny = ny0;
+
+  std::cerr << "set u=0" << std::endl;
+  u = 0.;
+  f(nx, ny, u, hx, hy, dx=1., 0.);
+  f(nx, ny, u, hx, hy, dx=0.5, 0.);
+  f(nx, ny, u, hx, hy, dx=-1., 0.);
+  f(nx, ny, u, hx, hy, dx=-0.5, 0.);
+  u = u0;
 }
 
 int main (int argc, const char ** argv) {
   TestLine(); 
+  return 0;
 
   int prov;
   MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);

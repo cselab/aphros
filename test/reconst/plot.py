@@ -99,8 +99,8 @@ def GetLines(xc, yc, a, nx, ny, hx, hy):
     tx = ny
     ty = -nx
     # line center
-    xlc = xc - a * nx * hx
-    ylc = yc - a * ny * hy
+    xlc = xc + a * nx * hx
+    ylc = yc + a * ny * hy
     # end points
     xa = xlc - tx * hx
     ya = ylc - ty * hy
