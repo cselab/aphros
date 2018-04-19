@@ -72,12 +72,17 @@ void TestLine() {
   // u: volume fraction
   // dx: displacement
   // dve: volume surplus (exact)
-  auto f = [](Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Scal dx, Scal dve) {
+  auto f = [](Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Scal dx, Scal dve, bool xx=true) {
     Vect n(nx, ny, 0.);
     Vect h(hx, hy, 1.);
     n /= n.norm();
     Scal a = solver::GetLineA(n, u, h);
-    Scal dv = solver::GetLineVolX(n, a, h, dx);
+    Scal dv;
+    if (xx) {
+      dv = solver::GetLineVolX(n, a, h, dx);
+    } else {
+      dv = solver::GetLineVolY(n, a, h, dx);
+    }
     std::cerr 
         << "n=" << n
         << " u=" << u
@@ -155,6 +160,23 @@ void TestLine() {
   f(nx, ny, u, hx, hy, dx=-0.5, 0.);
   u = u0;
   nx = nx0;
+
+  std::cerr << "set dx=0.01" << std::endl;
+  hx = 0.1;
+  hy = 0.1;
+  f(nx, ny, u=0.6, hx, hy, dx=0.01, 0.);
+  f(nx, ny, u=0.55, hx, hy, dx=0.01, 0.);
+  f(nx, ny, u=0.4, hx, hy, dx=0.01, 0.);
+  f(ny, nx, u=0.6, hx, hy, dx=0.01, 0.006 * hy);
+  f(ny, nx, u=0.4, hx, hy, dx=0.01, 0.004 * hy);
+  f(nx, ny, u=0.6, hx, hy, dx=0.01, 0.006 * hx, false);
+  f(nx, ny, u=0.4, hx, hy, dx=0.01, 0.004 * hx, false);
+  f(ny, nx, u=0.6, hx, hy, dx=0.01, 0., false);
+  f(ny, nx, u=0.4, hx, hy, dx=0.01, 0., false);
+  u = u0;
+  nx = nx0;
+  hx = hx0;
+  hy = hy0;
 }
 
 int main () {

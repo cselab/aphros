@@ -76,7 +76,7 @@ def PlotLines(ax, xa, ya, xb, yb):
 # xa, ya, xb, yb: line end points (a,b) on cell edges
 # Equation of line:
 # (x-xc)/h dot n = a
-def GetLines(xc, yc, a, nx, ny, hx, hy):
+def GetLines(xc, yc, a, nx, ny, hx, hy, u):
     def ClipX(x, y, tx, ty, xmin, xmax):
         xp = np.clip(x, xmin, xmax)
         dx = xp - x
@@ -95,6 +95,7 @@ def GetLines(xc, yc, a, nx, ny, hx, hy):
     nx = nx.flatten()
     ny = ny.flatten()
     a = a.flatten()
+    u = u.flatten()
     # tangent
     tx = ny
     ty = -nx
@@ -114,6 +115,13 @@ def GetLines(xc, yc, a, nx, ny, hx, hy):
     # clip
     xa, ya = Clip(xa, ya, tx, ty, xcm, xcp, ycm, ycp)
     xb, yb = Clip(xb, yb, tx, ty, xcm, xcp, ycm, ycp)
+
+    th = 1e-8
+    w = np.where((u > th) & (u < 1. - th))[0]
+    xa = xa[w]
+    ya = ya[w]
+    xb = xb[w]
+    yb = yb[w]
 
     return xa, ya, xb, yb
 
@@ -144,6 +152,6 @@ for p in pp:
     fig, ax = PlotInit()
     PlotGrid(ax, xn1, yn1)
     PlotField(ax, u)
-    l = GetLines(x, y, a, nx, ny, hx, hy)
+    l = GetLines(x, y, a, nx, ny, hx, hy, u)
     PlotLines(ax, *l)
     PlotSave(fig, ax, po)
