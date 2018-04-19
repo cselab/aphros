@@ -145,7 +145,9 @@ inline Scal GetLineVolX0(const GVect<Scal, 3>& n, Scal a,
   Scal aa = a - n.dot(dc); // new line constant
   Scal uu = solver::GetLineU(n, aa, hh); // volume fraction
   Scal vv = hh.prod(); // acceptor volume
-  return uu * vv;
+  Scal r = uu * vv;  // result
+  r = std::min(r, GetLineU(n, a, h) * h.prod()); // limit by fluid in cell
+  return r;
 }
 
 // Volume surplus in downwind adjacent cell after advection in x.
@@ -265,7 +267,6 @@ class Vof : public AdvectionSolver<M> {
       Vect n = g / (-g.norm() + 1e-10);
       //n = Vect(n[0] > 0. ? 1. : -1., 0., 0.); // XXX
       //n = Vect(0., n[1] > 0. ? 1. : -1., 0.); // XXX
-      //n = Vect(0., 1., 0.); // XXX XXX
       fc_n_[c] = n;
       fc_a_[c] = GetLineA(n, uc[c], h);
     }
