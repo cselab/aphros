@@ -327,8 +327,7 @@ class Vof : public AdvectionSolver<M> {
       }
     }
     const bool split = true;
-    //for (size_t d = 0; d < (split ? dim : 1); ++d) {
-    if(int d=1 || 1) { // XXX
+    for (size_t d = 0; d < (split ? dim : 1); ++d) {
       auto& uc = fc_u_.iter_curr;
       if (sem("adv")) {
         auto h = GetCellSize();
@@ -342,32 +341,12 @@ class Vof : public AdvectionSolver<M> {
           Scal v = ffv[f] * vd.dot(m.GetNormal(f)); // mixture flux
           bool p = (v > 0.);
           IdxCell c = m.GetNeighbourCell(f, p ? 0 : 1); // upwind cell
-          ff_fu_[f] = 0.;
           if (d == 0) {
-            //ff_fu_[f] = GetLineFluxX(fc_n_[c], fc_a_[c], h, v, dt);
+            ff_fu_[f] = GetLineFluxX(fc_n_[c], fc_a_[c], h, v, dt);
           } else if (d == 1) {
-              using MIdx = typename Mesh::MIdx;
-              auto ibc = m.GetInBlockCells();
-              auto bc = m.GetBlockCells();
-              MIdx wb = ibc.GetBegin();
-              MIdx we = ibc.GetEnd();
-              MIdx wc = (wb + we - MIdx(1)) / 2;
-              MIdx w = bc.GetMIdx(c);
             ff_fu_[f] = GetLineFluxY(fc_n_[c], fc_a_[c], h, v, dt);
-              Scal t = this->GetTime();
-              if (w[0] == wc[0] && w[2] == wc[2] && t > 0.5 && t < 0.6) {
-                std::cerr 
-                    << " w[1]=" << w[1]
-                    << " n=" << fc_n_[c]
-                    << " a=" << fc_a_[c]
-                    << " h=" << h
-                    << " v=" << v
-                    << " dt=" << dt
-                    << " fu=" << ff_fu_[f]
-                    << std::endl;
-              }
           } else { // d == 3
-            //ff_fu_[f] = 0.;
+            ff_fu_[f] = 0.;
           }
         }
 
@@ -385,21 +364,6 @@ class Vof : public AdvectionSolver<M> {
       }
       if (sem("reconst")) {
         Reconst(uc);
-        if (d == 1) {
-          auto u = uc;
-          u.Reinit(m, 0);
-          auto h = GetCellSize();
-          for (auto c : m.Cells()) {
-            u[c] = GetLineU(fc_n_[c], fc_a_[c], h);
-          }
-          std::cerr << "\nt=" << this->GetTime() << std::endl;
-          Print(uc, "u");
-          Print(ff_fu_, "fu");
-          Print(fc_a_, "a");
-          Print(u, "u(a)");
-          Print(geom::GetComponent(fc_n_, 1), "ny");
-          std::cerr << std::endl;
-        }
       }
     }
 
