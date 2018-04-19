@@ -264,7 +264,7 @@ class Vof : public AdvectionSolver<M> {
       const Vect g = gc[c];
       Vect n = g / (-g.norm() + 1e-10);
       //n = Vect(n[0] > 0. ? 1. : -1., 0., 0.); // XXX
-      n = Vect(0., n[1] > 0. ? 1. : -1., 0.); // XXX
+      //n = Vect(0., n[1] > 0. ? 1. : -1., 0.); // XXX
       //n = Vect(0., 1., 0.); // XXX XXX
       fc_n_[c] = n;
       fc_a_[c] = GetLineA(n, uc[c], h);
