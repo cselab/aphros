@@ -132,6 +132,30 @@ inline Scal GetLineU(const GVect<Scal, 3>& n, Scal a,
   return GetLineU(n * h, a);
 }
 
+// Volume surplus in right cell neighbour after advection in x.
+// n : normal
+// a: line constant
+// h: cell size
+// dx > 0: advection distance in x direction
+// Returns:
+// d: volume surplus
+// Equation of reconstructed line 
+// x.dot(n) = a
+template <class M>
+inline Scal GetLineAdvX(const GVect<Scal, 3>& n, Scal a, 
+                        const GVect<Scal, 3>& h,
+                        Scal dx) {
+  Vect ah(dx, h[1], h[2]); // acceptor size
+  Vect dc = Vect(h[0] - dx, 0., 0.); // shift of center
+  // Line constant for line advected by dx 
+  // and expressed for new origin at acceptor center
+  // (e.g. no shift if dx=h[0], shift h[0] if dx=0)
+  Scal aa = a - n.dot(dc);
+  Scal au = solver::GetLineU(n, a, ah); // volume fraction
+  return GetLineU(n * h, a);
+}
+
+
 template <class M>
 class Vof : public AdvectionSolver<M> {
   using Mesh = M;
