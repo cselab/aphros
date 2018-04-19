@@ -259,14 +259,15 @@ class Vof : public AdvectionSolver<M> {
   void Reconst(const FieldCell<Scal>& uc) {
     auto uf = Interpolate(uc, mf_u_cond_, m);
     auto gc = Gradient(uf, m);
+    auto h = GetCellSize();
     for (auto c : m.AllCells()) {
       const Vect g = gc[c];
       Vect n = g / (-g.norm() + 1e-10);
       //n = Vect(n[0] > 0. ? 1. : -1., 0., 0.); // XXX
-      //n = Vect(0., n[1] > 0. ? 1. : -1., 0.); // XXX
-      n = Vect(0., 1., 0.); // XXX XXX
+      n = Vect(0., n[1] > 0. ? 1. : -1., 0.); // XXX
+      //n = Vect(0., 1., 0.); // XXX XXX
       fc_n_[c] = n;
-      fc_a_[c] = GetLineA(n, uc[c]);
+      fc_a_[c] = GetLineA(n, uc[c], h);
     }
   }
   void Print(const FieldFace<Scal>& ff, std::string name) {
@@ -305,6 +306,16 @@ class Vof : public AdvectionSolver<M> {
     std::cerr << std::endl;
   }
 
+  Vect GetCellSize() const {
+    Vect h; // cell size
+    // XXX: Adhoc for structured 3D mesh
+    IdxCell c0(0);
+    h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
+        m.GetNode(m.GetNeighbourNode(c0, 0));
+    assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
+    return h;
+  }
+
   void MakeIteration() override {
     auto sem = m.GetSem("iter");
     if (sem("init")) {
@@ -320,12 +331,7 @@ class Vof : public AdvectionSolver<M> {
     if(int d=1 || 1) { // XXX
       auto& uc = fc_u_.iter_curr;
       if (sem("adv")) {
-        Vect h; // cell size
-        // XXX: Adhoc for structured 3D mesh
-        IdxCell c0(0);
-        h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
-            m.GetNode(m.GetNeighbourNode(c0, 0));
-        assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
+        auto h = GetCellSize();
 
         auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
         const Scal dt = this->GetTimeStep();
@@ -335,8 +341,7 @@ class Vof : public AdvectionSolver<M> {
 
           Scal v = ffv[f] * vd.dot(m.GetNormal(f)); // mixture flux
           bool p = (v > 0.);
-          //IdxCell c = m.GetNeighbourCell(f, p ? 0 : 1); // upwind cell
-          IdxCell c = m.GetNeighbourCell(f, 0); // upwind cell // XXX
+          IdxCell c = m.GetNeighbourCell(f, p ? 0 : 1); // upwind cell
           ff_fu_[f] = 0.;
           if (d == 0) {
             //ff_fu_[f] = GetLineFluxX(fc_n_[c], fc_a_[c], h, v, dt);
@@ -383,8 +388,9 @@ class Vof : public AdvectionSolver<M> {
         if (d == 1) {
           auto u = uc;
           u.Reinit(m, 0);
+          auto h = GetCellSize();
           for (auto c : m.Cells()) {
-            u[c] = GetLineU(fc_n_[c], fc_a_[c]);
+            u[c] = GetLineU(fc_n_[c], fc_a_[c], h);
           }
           std::cerr << "\nt=" << this->GetTime() << std::endl;
           Print(uc, "u");
