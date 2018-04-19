@@ -386,6 +386,7 @@ void Main(MPI_Comm comm, Vars& par) {
 
 #include <random>
 
+// TODO: move to separate test
 void TestLine() {
   using Scal = double;
   using Vect = geom::GVect<Scal, 3>;
@@ -503,7 +504,6 @@ void TestLine() {
 
 int main (int argc, const char ** argv) {
   TestLine(); 
-  return 0;
 
   int prov;
   MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);

@@ -189,6 +189,9 @@ inline Scal GetLineFluxX(GVect<Scal, 3> n, Scal a,
                          GVect<Scal, 3> h, Scal vx, Scal dt) {
   Scal dx = vx / h[1] * dt; // displacement
   Scal v = GetLineVolX(n, a, h, dx);
+  if (vx < 0.) {
+    v = -v;
+  }
   return v / dt;
 }
 
@@ -198,6 +201,9 @@ inline Scal GetLineFluxY(GVect<Scal, 3> n, Scal a,
                          GVect<Scal, 3> h, Scal vy, Scal dt) {
   Scal dy = vy / h[0] * dt; // displacement
   Scal v = GetLineVolY(n, a, h, dy);
+  if (vy < 0.) {
+    v = -v;
+  }
   return v / dt;
 }
 
@@ -241,11 +247,23 @@ class Vof : public AdvectionSolver<M> {
       , ff_fu_(m, 0) 
   {
     fc_u_.time_curr = fc_u_initial;
+    Reconst(fc_u_.time_curr);
   }
   void StartStep() override {
     this->ClearIter();
     fc_u_.time_prev = fc_u_.time_curr;
     fc_u_.iter_curr = fc_u_.time_prev;
+  }
+  void Reconst(const FieldCell<Scal>& uc) {
+    auto uf = Interpolate(uc, mf_u_cond_, m);
+    auto gc = Gradient(uf, m);
+    for (auto c : m.AllCells()) {
+      const Vect g = gc[c];
+      Vect n = g / (-g.norm() + 1e-10);
+      //n = Vect(n[0] > 0. ? 1. : -1., 0., 0.); // XXX
+      fc_n_[c] = n;
+      fc_a_[c] = GetLineA(n, uc[c]);
+    }
   }
   void MakeIteration() override {
     auto sem = m.GetSem("iter");
@@ -257,44 +275,35 @@ class Vof : public AdvectionSolver<M> {
             dt * (*fcs_)[c]; // source
       }
     }
-    const bool split = false;
+    const bool split = true;
     for (size_t d = 0; d < (split ? dim : 1); ++d) {
       auto& uc = fc_u_.iter_curr;
-      if (sem("pre")) {
-        fc_us_ = uc;
-      }
-      if (sem.Nested("smooth")) {
-        //Smoothen(fc_us_, mf_u_cond_, m, 1);
-      }
       if (sem("adv")) {
-        auto us = fc_us_;
-        auto uf = Interpolate(us, mf_u_cond_, m);
-        auto gc = Gradient(uf, m);
-
-        // commit smooth
-        //uc = us;
-
-        for (auto c : m.Cells()) {
-          const Vect g = gc[c];
-          const Vect n =g / (g.norm() + 1e-10);
-          fc_n_[c] = n;
-          fc_a_[c] = GetLineA(n, uc[c]);
-        }
+        Vect h; // cell size
+        // XXX: Adhoc for structured 3D mesh
+        IdxCell c0(0);
+        h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
+            m.GetNode(m.GetNeighbourNode(c0, 0));
 
         auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
         const Scal dt = this->GetTimeStep();
-        IdxCell c0(0);
-        // XXX: Adhoc for structured 3D mesh
-        // cell size
-        Vect h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
-            m.GetNode(m.GetNeighbourNode(c0, 0));
         for (auto f : m.Faces()) {
-          size_t d = 0; // dir x
           Vect vd(0); 
           vd[d] = 1.;
-          Scal vx = ffv[f] * vd.dot(m.GetNormal(f));
-          IdxCell c = m.GetNeighbourCell(f, vx > 0. ? 0 : 1); // upwind cell
-          ff_fu_[f] = GetLineFluxX(fc_n_[c], fc_a_[c], h, vx, dt);
+
+          Scal v = ffv[f] * vd.dot(m.GetNormal(f)); // mixture flux
+          bool p = (v > 0.);
+          IdxCell c = m.GetNeighbourCell(f, p ? 0 : 1); // upwind cell
+          if (d == 0) {
+            ff_fu_[f] = GetLineFluxX(fc_n_[c], fc_a_[c], h, v, dt);
+          } else if (d == 1) {
+            ff_fu_[f] = GetLineFluxY(fc_n_[c], fc_a_[c], h, v, dt);
+          } else { // d == 3
+            ff_fu_[f] = 0.;
+          }
+          if (uc[c] < 1e-2) {
+            ff_fu_[f] = 0.;
+          }
         }
 
         for (auto c : m.Cells()) {
@@ -308,6 +317,9 @@ class Vof : public AdvectionSolver<M> {
         }
 
         m.Comm(&uc);
+      }
+      if (sem("reconst")) {
+        Reconst(fc_u_.iter_curr);
       }
     }
 
