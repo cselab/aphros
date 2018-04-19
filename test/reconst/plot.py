@@ -120,7 +120,7 @@ def GetLines(xc, yc, a, nx, ny, hx, hy):
 
 pre = 'u'
 pp = sorted(glob.glob(pre + "*.dat"))
-pp = pp[1:2]
+#pp = pp[1:2]
 for p in pp:
     suf = re.findall(pre + "(.*)", p)[0]
     u = Read(p)
