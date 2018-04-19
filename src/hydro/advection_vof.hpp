@@ -282,8 +282,20 @@ class Vof : public AdvectionSolver<M> {
         }
 
         auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
+        const Scal dt = this->GetTimeStep();
+        IdxCell c0(0);
+        // XXX: Adhoc for structured 3D mesh
+        // cell size
+        Vect h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
+            m.GetNode(m.GetNeighbourNode(c0, 0));
+        std::cerr << "h=" << h << std::endl;
         for (auto f : m.Faces()) {
-          ff_fu_[f] = 0.;
+          size_t d = 0; // dir x
+          Vect vd(0); 
+          vd[d] = 1.;
+          Scal vx = ffv[f] * vd.dot(m.GetNormal(f));
+          IdxCell c = m.GetNeighbourCell(f, vx > 0. ? 0 : 1); // upwind cell
+          ff_fu_[f] = GetLineFluxX(fc_n_[c], fc_a_[c], h, vx, dt);
         }
 
         for (auto c : m.Cells()) {
@@ -293,7 +305,6 @@ class Vof : public AdvectionSolver<M> {
             s += ff_fu_[f] * m.GetOutwardFactor(c, q);
           }
 
-          const Scal dt = this->GetTimeStep();
           uc[c] += dt / m.GetVolume(c) * (-s);
         }
 
