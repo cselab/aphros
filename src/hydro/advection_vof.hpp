@@ -123,8 +123,6 @@ inline Scal GetLineU(const GVect<Scal, 3>& n, Scal a) {
 // h: cell size
 // Returns:
 // u: volume fraction
-// Equation of reconstructed line 
-// x.dot(n) = a
 template <class Scal>
 inline Scal GetLineU(const GVect<Scal, 3>& n, Scal a, 
                      const GVect<Scal, 3>& h) {
@@ -132,27 +130,60 @@ inline Scal GetLineU(const GVect<Scal, 3>& n, Scal a,
   return GetLineU(n * h, a);
 }
 
-// Volume surplus in right cell neighbour after advection in x.
+// Volume surplus in right adjacent cell after advection in x.
 // n : normal
 // a: line constant
 // h: cell size
-// dx > 0: advection distance in x direction
+// dx > 0: advection displacement in x
 // Returns:
-// d: volume surplus
-// Equation of reconstructed line 
-// x.dot(n) = a
-template <class M>
-inline Scal GetLineAdvX(const GVect<Scal, 3>& n, Scal a, 
-                        const GVect<Scal, 3>& h,
-                        Scal dx) {
-  Vect ah(dx, h[1], h[2]); // acceptor size
-  Vect dc = Vect(h[0] - dx, 0., 0.); // shift of center
+// volume surplus in adjacent cell
+template <class Scal>
+inline Scal GetLineVolX(const GVect<Scal, 3>& n, Scal a, 
+                        const GVect<Scal, 3>& h, Scal dx) {
+  using Vect = GVect<Scal, 3>;
+  // Acceptor is a rectangular box adjacent to current cell.
+  Vect hh(dx, h[1], h[2]); // acceptor size
   // Line constant for line advected by dx 
-  // and expressed for new origin at acceptor center
-  // (e.g. no shift if dx=h[0], shift h[0] if dx=0)
-  Scal aa = a - n.dot(dc);
-  Scal au = solver::GetLineU(n, a, ah); // volume fraction
-  return GetLineU(n * h, a);
+  // with origin at acceptor center
+  // (e.g. shift 0 if dx=h[0], shift h[0]*0.5 if dx=0)
+  Vect dc = Vect((h[0] - dx) *  0.5, 0., 0.); // shift of center
+  Scal aa = a - n.dot(dc); // new line constant
+  Scal uu = solver::GetLineU(n, aa, hh); // volume fraction
+  Scal vv = hh[0] * hh[1]; // acceptor volume
+  return uu * vv;
+}
+
+// Same as GetLineVolX in y.
+template <class Scal>
+inline Scal GetLineVolY(GVect<Scal, 3> n, Scal a, 
+                        GVect<Scal, 3> h, Scal dy) {
+  std::swap(n[0], n[1]);
+  std::swap(h[0], h[1]);
+  return GetLineVolX(n, a, h, dy);
+}
+
+// Fluid volume flux to right adjacent cell in x.
+// n : normal
+// h: cell size
+// vx > 0: mixture volume flux
+// dt: time step
+// Returns:
+// fluid volume flux
+template <class Scal>
+inline Scal GetLineFluxX(GVect<Scal, 3> n, Scal a, 
+                         GVect<Scal, 3> h, Scal vx, Scal dt) {
+  Scal dx = vx / h[1] * dt; // displacement
+  Scal v = GetLineVolX(n, a, h, dx);
+  return v / dt;
+}
+
+// Same as GetLineFluxX in y.
+template <class Scal>
+inline Scal GetLineFluxY(GVect<Scal, 3> n, Scal a, 
+                         GVect<Scal, 3> h, Scal vy, Scal dt) {
+  Scal dy = vy / h[0] * dt; // displacement
+  Scal v = GetLineVolY(n, a, h, dy);
+  return v / dt;
 }
 
 
