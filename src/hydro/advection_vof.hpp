@@ -144,7 +144,7 @@ inline Scal GetLineVolX0(const GVect<Scal, 3>& n, Scal a,
   Vect dc = Vect((h[0] - dx) *  0.5, 0., 0.); // shift of center
   Scal aa = a - n.dot(dc); // new line constant
   Scal uu = solver::GetLineU(n, aa, hh); // volume fraction
-  Scal vv = hh[0] * hh[1]; // acceptor volume
+  Scal vv = hh.prod(); // acceptor volume
   return uu * vv;
 }
 
@@ -177,17 +177,18 @@ inline Scal GetLineVolY(GVect<Scal, 3> n, Scal a,
   return GetLineVolX(n, a, h, dy);
 }
 
-// Fluid volume flux to right adjacent cell in x.
+// Fluid volume flux to downwind adjacent cell in x.
 // n : normal
 // h: cell size
-// vx > 0: mixture volume flux
+// vx: mixture volume flux
 // dt: time step
 // Returns:
 // fluid volume flux
 template <class Scal>
-inline Scal GetLineFluxX(GVect<Scal, 3> n, Scal a, 
-                         GVect<Scal, 3> h, Scal vx, Scal dt) {
-  Scal dx = vx / h[1] * dt; // displacement
+inline Scal GetLineFluxX(const GVect<Scal, 3>& n, Scal a, 
+                         const GVect<Scal, 3>& h, Scal vx, Scal dt) {
+  Scal s = h[1] * h[2];  // face area
+  Scal dx = vx / s * dt; // displacement
   Scal v = GetLineVolX(n, a, h, dx);
   if (vx < 0.) {
     v = -v;
@@ -197,9 +198,10 @@ inline Scal GetLineFluxX(GVect<Scal, 3> n, Scal a,
 
 // Same as GetLineFluxX in y.
 template <class Scal>
-inline Scal GetLineFluxY(GVect<Scal, 3> n, Scal a, 
-                         GVect<Scal, 3> h, Scal vy, Scal dt) {
-  Scal dy = vy / h[0] * dt; // displacement
+inline Scal GetLineFluxY(const GVect<Scal, 3>& n, Scal a, 
+                         const GVect<Scal, 3>& h, Scal vy, Scal dt) {
+  Scal s = h[0] * h[2];  // face area
+  Scal dy = vy / s * dt; // displacement
   Scal v = GetLineVolY(n, a, h, dy);
   if (vy < 0.) {
     v = -v;
@@ -261,22 +263,61 @@ class Vof : public AdvectionSolver<M> {
       const Vect g = gc[c];
       Vect n = g / (-g.norm() + 1e-10);
       //n = Vect(n[0] > 0. ? 1. : -1., 0., 0.); // XXX
+      //n = Vect(0., n[1] > 0. ? 1. : -1., 0.); // XXX
+      n = Vect(0., 1., 0.); // XXX XXX
       fc_n_[c] = n;
       fc_a_[c] = GetLineA(n, uc[c]);
     }
   }
+  void Print(const FieldFace<Scal>& ff, std::string name) {
+    using MIdx = typename Mesh::MIdx;
+    auto ibc = m.GetInBlockCells();
+    auto bc = m.GetBlockCells();
+    auto bf = m.GetBlockFaces();
+    MIdx wb = ibc.GetBegin();
+    MIdx we = ibc.GetEnd();
+    MIdx wc = (wb + we - MIdx(1)) / 2;
+    std::cerr << std::setw(5) << name << " = ";
+    for (int i = wb[1]; i <= we[1]; ++i) {
+      MIdx w = wc;
+      w[1] = i;
+      using Dir = typename Mesh::Dir;
+      IdxFace f = bf.GetIdx(w, Dir::j);
+      std::cerr << std::setw(10) << ff[f] << " ";
+    }
+    std::cerr << std::endl;
+  }
+
+  void Print(const FieldCell<Scal>& fc, std::string name) {
+    using MIdx = typename Mesh::MIdx;
+    auto ibc = m.GetInBlockCells();
+    auto bc = m.GetBlockCells();
+    MIdx wb = ibc.GetBegin();
+    MIdx we = ibc.GetEnd();
+    MIdx wc = (wb + we - MIdx(1)) / 2;
+    std::cerr << std::setw(5) << name << " = ";
+    for (int i = wb[1]; i < we[1]; ++i) {
+      MIdx w = wc;
+      w[1] = i;
+      IdxCell c = bc.GetIdx(w);
+      std::cerr << std::setw(10) << fc[c] << " ";
+    }
+    std::cerr << std::endl;
+  }
+
   void MakeIteration() override {
     auto sem = m.GetSem("iter");
     if (sem("init")) {
-      auto& curr = fc_u_.iter_curr;
+      auto& uc = fc_u_.iter_curr;
       const Scal dt = this->GetTimeStep();
       for (auto c : m.Cells()) {
-        curr[c] = fc_u_.time_prev[c] +  // previous time step
+        uc[c] = fc_u_.time_prev[c] +  // previous time step
             dt * (*fcs_)[c]; // source
       }
     }
     const bool split = true;
-    for (size_t d = 0; d < (split ? dim : 1); ++d) {
+    //for (size_t d = 0; d < (split ? dim : 1); ++d) {
+    if(int d=1 || 1) { // XXX
       auto& uc = fc_u_.iter_curr;
       if (sem("adv")) {
         Vect h; // cell size
@@ -284,6 +325,7 @@ class Vof : public AdvectionSolver<M> {
         IdxCell c0(0);
         h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
             m.GetNode(m.GetNeighbourNode(c0, 0));
+        assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
 
         auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
         const Scal dt = this->GetTimeStep();
@@ -293,16 +335,34 @@ class Vof : public AdvectionSolver<M> {
 
           Scal v = ffv[f] * vd.dot(m.GetNormal(f)); // mixture flux
           bool p = (v > 0.);
-          IdxCell c = m.GetNeighbourCell(f, p ? 0 : 1); // upwind cell
+          //IdxCell c = m.GetNeighbourCell(f, p ? 0 : 1); // upwind cell
+          IdxCell c = m.GetNeighbourCell(f, 0); // upwind cell // XXX
+          ff_fu_[f] = 0.;
           if (d == 0) {
-            ff_fu_[f] = GetLineFluxX(fc_n_[c], fc_a_[c], h, v, dt);
+            //ff_fu_[f] = GetLineFluxX(fc_n_[c], fc_a_[c], h, v, dt);
           } else if (d == 1) {
+              using MIdx = typename Mesh::MIdx;
+              auto ibc = m.GetInBlockCells();
+              auto bc = m.GetBlockCells();
+              MIdx wb = ibc.GetBegin();
+              MIdx we = ibc.GetEnd();
+              MIdx wc = (wb + we - MIdx(1)) / 2;
+              MIdx w = bc.GetMIdx(c);
             ff_fu_[f] = GetLineFluxY(fc_n_[c], fc_a_[c], h, v, dt);
+              Scal t = this->GetTime();
+              if (w[0] == wc[0] && w[2] == wc[2] && t > 0.5 && t < 0.6) {
+                std::cerr 
+                    << " w[1]=" << w[1]
+                    << " n=" << fc_n_[c]
+                    << " a=" << fc_a_[c]
+                    << " h=" << h
+                    << " v=" << v
+                    << " dt=" << dt
+                    << " fu=" << ff_fu_[f]
+                    << std::endl;
+              }
           } else { // d == 3
-            ff_fu_[f] = 0.;
-          }
-          if (uc[c] < 1e-1) {
-            ff_fu_[f] = 0.;
+            //ff_fu_[f] = 0.;
           }
         }
 
@@ -319,7 +379,21 @@ class Vof : public AdvectionSolver<M> {
         m.Comm(&uc);
       }
       if (sem("reconst")) {
-        Reconst(fc_u_.iter_curr);
+        Reconst(uc);
+        if (d == 1) {
+          auto u = uc;
+          u.Reinit(m, 0);
+          for (auto c : m.Cells()) {
+            u[c] = GetLineU(fc_n_[c], fc_a_[c]);
+          }
+          std::cerr << "\nt=" << this->GetTime() << std::endl;
+          Print(uc, "u");
+          Print(ff_fu_, "fu");
+          Print(fc_a_, "a");
+          Print(u, "u(a)");
+          Print(geom::GetComponent(fc_n_, 1), "ny");
+          std::cerr << std::endl;
+        }
       }
     }
 
