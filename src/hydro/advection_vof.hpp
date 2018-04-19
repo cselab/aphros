@@ -288,7 +288,6 @@ class Vof : public AdvectionSolver<M> {
         // cell size
         Vect h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
             m.GetNode(m.GetNeighbourNode(c0, 0));
-        std::cerr << "h=" << h << std::endl;
         for (auto f : m.Faces()) {
           size_t d = 0; // dir x
           Vect vd(0); 

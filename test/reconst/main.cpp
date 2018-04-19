@@ -390,26 +390,30 @@ void TestLine() {
   using Scal = double;
   using Vect = geom::GVect<Scal, 3>;
 
-  std::default_random_engine g(0);
-  std::uniform_real_distribution<double> f(0.,1.);
-  size_t ni = 10000;
-  Scal e = 0.; // error
-  for (size_t i = 0; i < ni; ++i) {
-    while (true) {
-      Vect n(f(g), f(g), 0.);
-      n /= n.norm();
-      Scal u = f(g);
-      e += std::abs(solver::GetLineU(n, solver::GetLineA(n, u)) - u);
+  {
+    std::cerr << "check u=u(a(u)) on random input" << std::endl;
+    std::default_random_engine g(0);
+    std::uniform_real_distribution<double> f(0.,1.);
+    size_t ni = 10000;
+    Scal e = 0.; // error
+    for (size_t i = 0; i < ni; ++i) {
+      while (true) {
+        Vect n(f(g), f(g), 0.);
+        n /= n.norm();
+        Scal u = f(g);
+        e += std::abs(solver::GetLineU(n, solver::GetLineA(n, u)) - u);
 
-      Vect h(0.1, 0.2, 0.3);
-      e += std::abs(solver::GetLineU(n, solver::GetLineA(n, u, h), h) - u);
-      break;
+        Vect h(0.1, 0.2, 0.3);
+        e += std::abs(solver::GetLineU(n, solver::GetLineA(n, u, h), h) - u);
+        break;
+      }
     }
+    e /= ni;
+    std::cerr << "TestLine(): error=" << e << " samples=" << ni << std::endl;
+    assert(e < 1e-16);
   }
-  e /= ni;
-  std::cerr << "TestLine(): error=" << e << " samples=" << ni << std::endl;
-  assert(e < 1e-16);
 
+  // rectangular cell test
   auto p = [](Scal nx, Scal ny, Scal u, Scal hx, Scal hy) {
     Vect n(nx, ny, 0.);
     Vect h(hx, hy, 1.);
@@ -429,21 +433,83 @@ void TestLine() {
         << " voladv=" << uadv * hs.prod()
         << std::endl;
   };
+  std::cerr << "check rectangular cell" << std::endl;
   p(1., 1., 0.5 , 1., 1.);
   p(1., 1., 0.5 , 0.1, 1.);
   p(1., 1., 0.25 , 1., 1.);
   p(1., 1., 0.25 , 0.1, 1.);
   p(0., 1., 0.5 , 1., 1.);
+
+  // flux test
+  // nx, ny: normal
+  // u: volume fraction
+  // dx: displacement
+  // dve: volume surplus (exact)
+  auto f = [](Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Scal dx, Scal dve) {
+    Vect n(nx, ny, 0.);
+    Vect h(hx, hy, 1.);
+    n /= n.norm();
+    Scal a = solver::GetLineA(n, u, h);
+    Scal dv = solver::GetLineVolX(n, a, h, dx);
+    std::cerr 
+        << "n=" << n
+        << " u=" << u
+        << " h=" << h
+        << " dx=" << dx
+        << " a=" << a
+        << " dv=" << dv
+        << " dve=" << dve
+        << std::endl;
+    assert(std::abs(dv - dve) < 1e-12);
+    if (std::abs(dv - dve) > 1e-12) {
+      throw std::runtime_error("flux test failed");
+    }
+  };
+  std::cerr << "check volume surplus" << std::endl;
+  f(1., 0., 1., 1., 1., 0., 0.);
+  f(1., 0., 1., 1., 1., 1., 1.);
+  f(1., 0., 1., 1., 1., 0.5, 0.5);
+
+  std::cerr << "set u=0.5" << std::endl;
+  f(1., 0., 0.5, 1., 1., 1., 0.5);
+  f(1., 0., 0.5, 1., 1., 0.5, 0.);
+  f(1., 0., 0.5, 1., 1., -1., 0.5);
+  f(1., 0., 0.5, 1., 1., -0.5, 0.5);
+
+  std::cerr << "set n=(-1,0,0)" << std::endl;
+  f(-1., 0., 0.5, 1., 1., 1., 0.5);
+  f(-1., 0., 0.5, 1., 1., 0.5, 0.5);
+  f(-1., 0., 0.5, 1., 1., -1., 0.5);
+  f(-1., 0., 0.5, 1., 1., -0.5, 0.);
+
+  std::cerr << "set hx=0.5" << std::endl;
+  f(1., 0., 0.5, 0.5, 1., 0.5, 0.25);
+  f(1., 0., 0.5, 0.5, 1., 0.25, 0.);
+  f(1., 0., 0.5, 0.5, 1., -0.5, 0.25);
+  f(1., 0., 0.5, 0.5, 1., -0.25, 0.25);
+
+  std::cerr << "set n=(0,1,0)" << std::endl;
+  f(0., 1., 0.5, 1., 1., 1., 0.5);
+  f(0., 1., 0.5, 1., 1., 0.5, 0.25);
+  f(0., 1., 0.5, 1., 1., -1., 0.5);
+  f(0., 1., 0.5, 1., 1., -0.5, 0.25);
+
+  std::cerr << "set n=(1,1,0)" << std::endl;
+  f(1., 1., 0.5, 1., 1., 1., 0.5);
+  f(1., 1., 0.5, 1., 1., 0.5, 0.125);
+  f(1., 1., 0.5, 1., 1., -1., 0.5);
+  f(1., 1., 0.5, 1., 1., -0.5, 0.375);
 }
 
 int main (int argc, const char ** argv) {
+  TestLine(); 
+  return 0;
+
   int prov;
   MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   bool isroot = (!rank);
-
-  TestLine(); 
 
   Vars par;   // parameter storage
   Interp ip(par); // interpretor (parser)
