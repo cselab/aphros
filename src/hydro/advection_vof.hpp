@@ -130,15 +130,10 @@ inline Scal GetLineU(const GVect<Scal, 3>& n, Scal a,
   return GetLineU(n * h, a);
 }
 
-// Volume surplus in right adjacent cell after advection in x.
-// n : normal
-// a: line constant
-// h: cell size
-// dx > 0: advection displacement in x
-// Returns:
-// volume surplus in adjacent cell
+// GetLineVolX() helper
+// assume dx > 0
 template <class Scal>
-inline Scal GetLineVolX(const GVect<Scal, 3>& n, Scal a, 
+inline Scal GetLineVolX0(const GVect<Scal, 3>& n, Scal a, 
                         const GVect<Scal, 3>& h, Scal dx) {
   using Vect = GVect<Scal, 3>;
   // Acceptor is a rectangular box adjacent to current cell.
@@ -151,6 +146,26 @@ inline Scal GetLineVolX(const GVect<Scal, 3>& n, Scal a,
   Scal uu = solver::GetLineU(n, aa, hh); // volume fraction
   Scal vv = hh[0] * hh[1]; // acceptor volume
   return uu * vv;
+}
+
+// Volume surplus in downwind adjacent cell after advection in x.
+// (right if dx > 0, left if dx < 0)
+// n : normal
+// a: line constant
+// h: cell size
+// dx: advection displacement in x
+// Returns:
+// volume surplus in adjacent cell
+template <class Scal>
+inline Scal GetLineVolX(GVect<Scal, 3> n, Scal a, 
+                        const GVect<Scal, 3>& h, Scal dx) {
+  if (dx > 0.) {
+    return GetLineVolX0(n, a, h, dx);
+  } else {
+    n[0] = -n[0];
+    dx = -dx;
+    return GetLineVolX0(n, a, h, dx);
+  }
 }
 
 // Same as GetLineVolX in y.
@@ -204,6 +219,7 @@ class Vof : public AdvectionSolver<M> {
   FieldCell<Scal> fc_a_; // alpha (plane constant)
   FieldCell<Vect> fc_n_; // n (normal to plane)
   FieldCell<Scal> fc_us_; // smooth field
+  FieldFace<Scal> ff_fu_; // volume flux
 
  public:
   struct Par {
@@ -222,6 +238,7 @@ class Vof : public AdvectionSolver<M> {
       , fc_a_(m, 0)
       , fc_n_(m, Vect(0))
       , fc_us_(m, 0)
+      , ff_fu_(m, 0) 
   {
     fc_u_.time_curr = fc_u_initial;
   }
@@ -265,7 +282,21 @@ class Vof : public AdvectionSolver<M> {
         }
 
         auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
-        // ... advection
+        for (auto f : m.Faces()) {
+          ff_fu_[f] = 0.;
+        }
+
+        for (auto c : m.Cells()) {
+          Scal s = 0.; // sum of fluxes
+          for (auto q : m.Nci(c)) {
+            IdxFace f = m.GetNeighbourFace(c, q);
+            s += ff_fu_[f] * m.GetOutwardFactor(c, q);
+          }
+
+          const Scal dt = this->GetTimeStep();
+          uc[c] += dt / m.GetVolume(c) * (-s);
+        }
+
         m.Comm(&uc);
       }
     }
