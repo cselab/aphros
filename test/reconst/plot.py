@@ -116,7 +116,7 @@ def GetLines(xc, yc, a, nx, ny, hx, hy, u):
     xa, ya = Clip(xa, ya, tx, ty, xcm, xcp, ycm, ycp)
     xb, yb = Clip(xb, yb, tx, ty, xcm, xcp, ycm, ycp)
 
-    th = 1e-8
+    th = 1e-5
     w = np.where((u > th) & (u < 1. - th))[0]
     xa = xa[w]
     ya = ya[w]
