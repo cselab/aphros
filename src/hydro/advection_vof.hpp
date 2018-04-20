@@ -283,36 +283,42 @@ class Vof : public AdvectionSolver<M> {
     GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, 0), MIdx(sn, sn, 1)); // offset
     std::array<Scal, sn> e; // h[e]ight function
     auto h = GetCellSize();
-    Dir d(1);
     for (auto c : m.SuCells()) {
-      // zero e
-      for (size_t i = 0; i < sn; ++i) {
-        e[i] = 0.;
+      Vect tn; // bes[t] normal
+      Scal tk; // bes[t] slope with minimal abs
+      for (Dir d : {Dir::i, Dir::j}) {
+        // zero e
+        for (size_t i = 0; i < sn; ++i) {
+          e[i] = 0.;
+        }
+        auto w = bc.GetMIdx(c);
+        // calc e
+        for (auto o : bo) {
+          e[o[size_t(d)] + sw] += uc[bc.GetIdx(w + o)];
+        }
+        // slope
+        Scal km = (e[sw] - e[0]); // backward (minus)
+        Scal kc = (e[sw + 1] - e[0]) / 2.; // centered
+        Scal kp = (e[sw + 1] - e[sw]); // forward (plus)
+        // best slope with maximum abs
+        Scal k = Maxmod(km, Maxmod(kc, kp));
+        // direction perpendicular 
+        Dir dp(1 - size_t(d)); 
+        // sign in dp
+        Scal sg = uc[bc.GetIdx(w + MIdx(dp))] - uc[bc.GetIdx(w - MIdx(dp))];
+        // normal
+        Vect n;
+        n[size_t(d)] = -k;
+        n[size_t(dp)] = sg > 0. ? -1. : 1.;
+        // check best
+        if (d == Dir::i || (d == Dir::j && std::abs(k) < std::abs(tk))) {
+          tn = n;
+          tk = k;
+        } 
       }
-      auto w = bc.GetMIdx(c);
-      // calc e
-      for (auto o : bo) {
-        e[o[size_t(d)] + sw] += uc[bc.GetIdx(w + o)];
-      }
-      // slope
-      Scal km = (e[sw] - e[0]); // backward (minus)
-      Scal kc = (e[sw + 1] - e[0]) / 2.; // centered
-      Scal kp = (e[sw + 1] - e[sw]); // forward (plus)
-      // best slope with maximum abs
-      Scal k = Maxmod(km, Maxmod(kc, kp));
-      // direction perpendicular 
-      Dir dp(1 - size_t(d)); 
-      // sign in dp
-      Scal sg = uc[bc.GetIdx(w + MIdx(dp))] - uc[bc.GetIdx(w - MIdx(dp))];
-      // normal
-      Vect n;
-      n[size_t(d)] = -k;
-      n[size_t(dp)] = sg > 0. ? -1. : 1.;
-
-      n[0] = Maxmod(n[0], 1e-10); // TODO: revise GetLine* to avoid this
-      n[1] = Maxmod(n[1], 1e-10);
-
-      fc_n_[c] = n / n.norm();
+      tn[0] = Maxmod(tn[0], 1e-10); // TODO: revise GetLine* to avoid this
+      tn[1] = Maxmod(tn[1], 1e-10);
+      fc_n_[c] = tn / tn.norm();
     }
   }
   void Reconst(const FieldCell<Scal>& uc) {
