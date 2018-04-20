@@ -258,15 +258,18 @@ class Vof : public AdvectionSolver<M> {
     fc_u_.time_prev = fc_u_.time_curr;
     fc_u_.iter_curr = fc_u_.time_prev;
   }
+  Scal Maxmod(Scal a, Scal b) {
+    return std::abs(b) < std::abs(a) ? a : b;
+  }
   void Reconst(const FieldCell<Scal>& uc) {
     auto uf = Interpolate(uc, mf_u_cond_, m);
     auto gc = Gradient(uf, m);
     auto h = GetCellSize();
     for (auto c : m.AllCells()) {
-      const Vect g = gc[c];
-      Vect n = g / (-g.norm() + 1e-10);
-      //n = Vect(n[0] > 0. ? 1. : -1., 0., 0.); // XXX
-      //n = Vect(0., n[1] > 0. ? 1. : -1., 0.); // XXX
+      Vect g = gc[c];
+      g[0] = Maxmod(g[0], 1e-10); // TODO: revise GetLine* to avoid this
+      g[1] = Maxmod(g[1], 1e-10);
+      Vect n = g / (-g.norm());
       fc_n_[c] = n;
       fc_a_[c] = GetLineA(n, uc[c], h);
     }
