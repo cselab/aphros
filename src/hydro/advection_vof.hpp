@@ -276,40 +276,38 @@ class Vof : public AdvectionSolver<M> {
   // 2D
   void CalcNormalHeight(const FieldCell<Scal>& uc) {
     using MIdx = typename Mesh::MIdx;
+    using Dir = typename Mesh::Dir;
     auto& bc = m.GetBlockCells();
-    const int sw = 1; // stencil width: total (2 * sw + 1) elements
-    GBlock<IdxCell, dim> bd(MIdx(-sw, -sw, 0), 
-                            MIdx(2 * sw + 1, 2 * sw + 1, 1));
-    std::array<Scal, 2 * sw + 1> e; // h[e]ight function
+    const int sw = 1; // stencil width
+    const int sn = sw * 2 + 1; // stencil size
+    GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, 0), MIdx(sn, sn, 1)); // offset
+    std::array<Scal, sn> e; // h[e]ight function
     auto h = GetCellSize();
+    Dir d(1);
     for (auto c : m.SuCells()) {
       // zero e
-      for (size_t i = 0; i < sw * 2 + 1; ++i) {
+      for (size_t i = 0; i < sn; ++i) {
         e[i] = 0.;
       }
       auto w = bc.GetMIdx(c);
       // calc e
-      for (auto d : bd) {
-        e[d[0] + sw] += uc[bc.GetIdx(w + d)];
+      for (auto o : bo) {
+        e[o[size_t(d)] + sw] += uc[bc.GetIdx(w + o)];
       }
-      // print e
-      /*
-      for (size_t i = 0; i < sw * 2 + 1; ++i) {
-        std::cerr << e[i] << " ";
-      }
-      std::cerr << std::endl;
-      */
-      // y = k * x + a
-      Scal k = (e[2 * sw] - e[0]) / 2.;
-      Vect n(-k, 1., 0.);
-      // sign of ny
-      Scal sy = (uc[bc.GetIdx(w + MIdx(0,1,0))] - 
-                 uc[bc.GetIdx(w + MIdx(0,-1,0))]);
-      if (sy > 0.) { // Phase 1 on top
-        n[1] *= -1.;
-      }
+      // slope
+      Scal k = (e[sw + 1] - e[0]) / 2.;
+      // direction perpendicular 
+      Dir dp(1 - size_t(d)); 
+      // sign in dp
+      Scal sg = uc[bc.GetIdx(w + MIdx(dp))] - uc[bc.GetIdx(w - MIdx(dp))];
+      // normal
+      Vect n;
+      n[size_t(d)] = -k;
+      n[size_t(dp)] = sg > 0. ? -1. : 1.;
+
       n[0] = Maxmod(n[0], 1e-10); // TODO: revise GetLine* to avoid this
       n[1] = Maxmod(n[1], 1e-10);
+
       fc_n_[c] = n / n.norm();
     }
   }
