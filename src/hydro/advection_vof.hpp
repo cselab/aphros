@@ -261,17 +261,21 @@ class Vof : public AdvectionSolver<M> {
   Scal Maxmod(Scal a, Scal b) {
     return std::abs(b) < std::abs(a) ? a : b;
   }
-  void Reconst(const FieldCell<Scal>& uc) {
+  void CalcNormal(const FieldCell<Scal>& uc) {
     auto uf = Interpolate(uc, mf_u_cond_, m);
     auto gc = Gradient(uf, m);
-    auto h = GetCellSize();
     for (auto c : m.AllCells()) {
       Vect g = gc[c];
       g[0] = Maxmod(g[0], 1e-10); // TODO: revise GetLine* to avoid this
       g[1] = Maxmod(g[1], 1e-10);
-      Vect n = g / (-g.norm());
-      fc_n_[c] = n;
-      fc_a_[c] = GetLineA(n, uc[c], h);
+      fc_n_[c] = g / (-g.norm());
+    }
+  }
+  void Reconst(const FieldCell<Scal>& uc) {
+    CalcNormal(uc);
+    auto h = GetCellSize();
+    for (auto c : m.AllCells()) {
+      fc_a_[c] = GetLineA(fc_n_[c], uc[c], h);
     }
   }
   void Print(const FieldFace<Scal>& ff, std::string name) {
