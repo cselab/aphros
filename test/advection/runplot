@@ -2,5 +2,6 @@
 
 set -eu
 
+make
 ./t.advection
 ./plot.py

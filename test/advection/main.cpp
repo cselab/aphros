@@ -23,6 +23,8 @@
 #include "hydro/solver.hpp"
 #include "hydro/linear.hpp"
 #include "hydro/advection.hpp"
+#include "hydro/advection_vof.hpp"
+#include "hydro/advection_tvd.hpp"
 
 #include "hydro/output.hpp"
 
@@ -54,11 +56,13 @@ class Advection : public KernelMesh<M> {
  private:
   geom::FieldFace<Scal> ff_flux_;
   geom::FieldCell<Scal> fc_src_;
-  using AS = solver::AdvectionSolverExplicit<M>;
+  //using AS = solver::AdvectionSolverExplicit<M>;
+  using AS = solver::Vof<M>;
   std::unique_ptr<AS> as_; // advection solver
   std::function<Vect(Vect,Scal)> fvel_;
   Scal maxvel_; // maximum velocity relative to cell length [1/time]
                 // cfl = dt * maxvel
+  Scal sumu_; // sum of fluid volume
   typename AS::Par aspar_;
 };
 
@@ -112,53 +116,13 @@ Advection<M>::Advection(Vars& par, const MyBlockInfo& bi,
   fc_src_.Reinit(m, 0.);
 
   auto& p = aspar_;
-  p.sharp = par.Double["sharp"];
-  p.sharpo = par.Double["sharpo"];
-  p.split = par.Int["split"];
+  //p.sharp = par.Double["sharp"];
+  //p.sharpo = par.Double["sharpo"];
+  //p.split = par.Int["split"];
   as_.reset(new AS(m, u0, bc, &ff_flux_, 
             &fc_src_, 0., par.Double["dt"], &aspar_));
 }
 
-#if 0
-template <class M>
-void Advection<M>::TestSolve(
-    std::function<Scal(Vect)> fi /*initial*/,
-    std::function<Scal(Vect)> fe /*exact*/,
-    size_t cg /*check gap (separate from boundary)*/,
-    std::string name,
-    bool check /*abort if different from exact*/) {
-  auto sem = m.GetSem("TestSolve");
-  auto& bc = m.GetBlockCells();
-  for (size_t n = 0; n < par.Int["num_steps"]; ++n) {
-    if (sem.Nested("as->StartStep()")) {
-      as_->StartStep();
-    }
-    if (sem.Nested("as->MakeIteration")) {
-      as_->MakeIteration();
-    }
-    if (sem.Nested("as->FinishStep()")) {
-      as_->FinishStep();
-    }
-  }
-  if (sem("check")) {
-    geom::GBlockCells<dim> cbc(MIdx(cg), gs_ - MIdx(2 * cg)); // check block
-    FieldCell<bool> mask(m, false);
-    for (auto i : m.AllCells()) {
-      if (cbc.IsInside(bc.GetMIdx(i))) {
-        mask[i] = true;
-      }
-    }
-    auto& fc = as_->GetField();
-    PFCMP(Mean(fc_exact_, m, mask), Mean(fc, m, mask), check);
-    PFCMP(DiffMax(fc_exact_, fc, m, mask), 0., check);
-  }
-  if (sem("comm")) {
-    fc_ = as_->GetField();
-    m.Comm(&fc_);
-    m.Comm(&fc_exact_);
-  }
-}
-#endif
 
 template <class M>
 void Advection<M>::Run() {
@@ -207,6 +171,14 @@ void Advection<M>::Run() {
   if (sem.Nested("finish")) {
     as_->FinishStep();
   }
+  if (sem("stat")) {
+    sumu_ = 0.;
+    auto& u = as_->GetField();
+    for (auto c : m.Cells()) {
+      sumu_ += u[c];
+    }
+    m.Reduce(&sumu_, "sum");
+  }
   if (sem("t")) {
     if (IsLead()) {
       ++par.Int["iter"];
@@ -219,7 +191,11 @@ void Advection<M>::Run() {
         par.Double.Set("laststat", -1e10);
       }
       if (t - par.Double["laststat"] >= par.Double["statdt"]) {
-        std::cout << "t=" << t << " dt=" << dt << std::endl;
+        std::cout 
+            << "t=" << t 
+            << " dt=" << dt 
+            << std::setprecision(16) << " sumu=" << sumu_
+            << std::endl;
         par.Double["laststat"] = t;
       }
     }
@@ -310,7 +286,6 @@ class DistrSolver {
  public:
   using M = M_;
   static constexpr size_t dim = M::dim;
-  using AS = solver::AdvectionSolverExplicit<M>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
