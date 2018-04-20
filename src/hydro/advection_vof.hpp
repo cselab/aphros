@@ -316,8 +316,8 @@ class Vof : public AdvectionSolver<M> {
           tk = k;
         } 
       }
-      tn[0] = Maxmod(tn[0], 1e-10); // TODO: revise GetLine* to avoid this
-      tn[1] = Maxmod(tn[1], 1e-10);
+      tn[0] = Maxmod(tn[0], 1e-12); // TODO: revise GetLine* to avoid this
+      tn[1] = Maxmod(tn[1], 1e-12);
       fc_n_[c] = tn / tn.norm();
     }
   }

@@ -66,6 +66,7 @@ class Advection : public KernelMesh<M> {
                 // cfl = dt * maxvel
   typename AS::Par aspar_;
   geom::FieldCell<Scal> fcnx_, fcny_, fcnz_; // normal to interface (tmp)
+  Scal sumu_;
 };
 
 template <class _M>
@@ -171,6 +172,14 @@ void Advection<M>::Run() {
   if (sem.Nested("finish")) {
     as_->FinishStep();
   }
+  if (sem("stat")) {
+    sumu_ = 0.;
+    auto& u = as_->GetField();
+    for (auto c : m.Cells()) {
+      sumu_ += u[c];
+    }
+    m.Reduce(&sumu_, "sum");
+  }
   if (sem("t")) {
     if (IsLead()) {
       ++par.Int["iter"];
@@ -183,7 +192,11 @@ void Advection<M>::Run() {
         par.Double.Set("laststat", -1e10);
       }
       if (t - par.Double["laststat"] >= par.Double["statdt"]) {
-        std::cout << "t=" << t << " dt=" << dt << std::endl;
+        std::cout 
+            << "t=" << t 
+            << " dt=" << dt 
+            << std::setprecision(16) << " sumu=" << sumu_
+            << std::endl;
         par.Double["laststat"] = t;
       }
     }
@@ -295,8 +308,10 @@ void Main(MPI_Comm comm, Vars& par) {
         return Vect(0.5, 0.263662, 0.).dist(x) < 0.2 ? 1. : 0.; 
       };
     } else if (v == "box") {
-      fu0 = [](Vect x) -> Scal { 
-        return (Vect(0.5, 0.263662, 0.) - x).norminf() < 0.2 ? 1. : 0.; 
+      Vect c(par.Vect["box_center"]);
+      Scal s = par.Double["box_size"];
+      fu0 = [c,s](Vect x) -> Scal { 
+        return (x - c).norminf() < s * 0.5 ? 1. : 0.; 
       };
     } else if (v == "line") {
       Vect xc(par.Vect["linec"]); // center
@@ -345,6 +360,13 @@ void Main(MPI_Comm comm, Vars& par) {
         return r; 
       };
       fvel = fvelsincos;
+    } else if (v == "stretch") {
+      Scal mg = par.Double["stretch_magn"];
+      Vect o(par.Vect["stretch_origin"]);
+      fvel = [mg, o](Vect x, Scal t) -> Vect { 
+        x -= o;
+        return Vect(x[0], -x[1], 0.) * mg;
+      };
     } else {
       throw std::runtime_error("Unknown init_vel=" + v);
     }
