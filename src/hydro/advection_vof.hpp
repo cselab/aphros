@@ -2,11 +2,13 @@
 
 #include <exception>
 #include <fstream>
+#include <array>
 
 #include "mesh.hpp"
 #include "linear.hpp"
 #include "solver.hpp"
 #include "advection.hpp"
+#include "block.h"
 
 namespace solver {
 
@@ -271,8 +273,49 @@ class Vof : public AdvectionSolver<M> {
       fc_n_[c] = g / (-g.norm());
     }
   }
+  // 2D
+  void CalcNormalHeight(const FieldCell<Scal>& uc) {
+    using MIdx = typename Mesh::MIdx;
+    auto& bc = m.GetBlockCells();
+    const int sw = 1; // stencil width: total (2 * sw + 1) elements
+    GBlock<IdxCell, dim> bd(MIdx(-sw, -sw, 0), 
+                            MIdx(2 * sw + 1, 2 * sw + 1, 1));
+    std::array<Scal, 2 * sw + 1> e; // h[e]ight function
+    auto h = GetCellSize();
+    for (auto c : m.SuCells()) {
+      // zero e
+      for (size_t i = 0; i < sw * 2 + 1; ++i) {
+        e[i] = 0.;
+      }
+      auto w = bc.GetMIdx(c);
+      // calc e
+      for (auto d : bd) {
+        e[d[0] + sw] += uc[bc.GetIdx(w + d)];
+      }
+      // print e
+      /*
+      for (size_t i = 0; i < sw * 2 + 1; ++i) {
+        std::cerr << e[i] << " ";
+      }
+      std::cerr << std::endl;
+      */
+      // y = k * x + a
+      Scal k = (e[2 * sw] - e[0]) / 2.;
+      Vect n(-k, 1., 0.);
+      // sign of ny
+      Scal sy = (uc[bc.GetIdx(w + MIdx(0,1,0))] - 
+                 uc[bc.GetIdx(w + MIdx(0,-1,0))]);
+      if (sy > 0.) { // Phase 1 on top
+        n[1] *= -1.;
+      }
+      n[0] = Maxmod(n[0], 1e-10); // TODO: revise GetLine* to avoid this
+      n[1] = Maxmod(n[1], 1e-10);
+      fc_n_[c] = n / n.norm();
+    }
+  }
   void Reconst(const FieldCell<Scal>& uc) {
-    CalcNormal(uc);
+    //CalcNormal(uc);
+    CalcNormalHeight(uc);
     auto h = GetCellSize();
     for (auto c : m.AllCells()) {
       fc_a_[c] = GetLineA(fc_n_[c], uc[c], h);
