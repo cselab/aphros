@@ -295,7 +295,11 @@ class Vof : public AdvectionSolver<M> {
         e[o[size_t(d)] + sw] += uc[bc.GetIdx(w + o)];
       }
       // slope
-      Scal k = (e[sw + 1] - e[0]) / 2.;
+      Scal km = (e[sw] - e[0]); // backward (minus)
+      Scal kc = (e[sw + 1] - e[0]) / 2.; // centered
+      Scal kp = (e[sw + 1] - e[sw]); // forward (plus)
+      // best slope with maximum abs
+      Scal k = Maxmod(km, Maxmod(kc, kp));
       // direction perpendicular 
       Dir dp(1 - size_t(d)); 
       // sign in dp
