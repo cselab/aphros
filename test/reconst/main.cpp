@@ -24,7 +24,8 @@
 #include "hydro/linear.hpp"
 #include "hydro/advection.hpp"
 #include "hydro/advection_vof.hpp"
-#include "hydro/init_vel.hpp"
+#include "hydro/init_vel.h"
+#include "hydro/init_u.h"
 
 #include "hydro/output.hpp"
 
@@ -301,77 +302,8 @@ void Main(MPI_Comm comm, Vars& par) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  std::function<Scal(Vect)> fu0;
-  {
-    std::string v = par.String["init_vf"];
-    if (v == "circle") {
-      fu0 = [](Vect x) -> Scal { 
-        return Vect(0.5, 0.263662, 0.).dist(x) < 0.2 ? 1. : 0.; 
-      };
-    } else if (v == "box") {
-      Vect c(par.Vect["box_center"]);
-      Scal s = par.Double["box_size"];
-      fu0 = [c,s](Vect x) -> Scal { 
-        return (x - c).norminf() < s * 0.5 ? 1. : 0.; 
-      };
-    } else if (v == "line") {
-      Vect xc(par.Vect["linec"]); // center
-      Vect n(par.Vect["linen"]);  // normal
-      Scal s(par.Double["lines"]);  // sigma (sharpness)
-      fu0 = [xc, n, s](Vect x) -> Scal { 
-        Scal u = (x - xc).dot(n);
-        u = 1. / (1. + std::exp(-s * u));
-        return u;
-      };
-    } else if (v == "sinc") {
-      Vect k(par.Vect["sinck"]);
-      fu0 = [k](Vect x) -> Scal { 
-        x -= Vect(0.5);
-        x *= k;
-        Scal r = x.norm();
-        Scal u0 = -0.2;
-        Scal u1 = 1.;
-        Scal u = std::sin(r) / r;
-        u = (u - u0) / (u1 - u0);
-        return std::max(0., std::min(1., u));
-      };
-    } else {
-      throw std::runtime_error("Unknown init_vf=" + v);
-    }
-  }
-
-
-  std::function<Vect(Vect,Scal)> fvel = CreateInitVel(par);
-  {
-    std::string v = par.String["init_vel"];
-    if (v == "uni") {
-      Vect vel(par.Vect["vel"]);
-      auto fveluni = [vel](Vect x, Scal /*t*/) -> Vect { 
-        return Vect(vel); 
-      };
-      fvel = fveluni;
-    } else if (v == "sincos") {
-      Scal revt = par.Double["revt"]; // reverse time
-      auto fvelsincos = [revt](Vect x, Scal t) -> Vect { 
-        x = x * M_PI;
-        Vect r(std::sin(x[0]) * std::cos(x[1]), 
-               -std::cos(x[0]) * std::sin(x[1]),
-               0.);
-        if (t > revt) { r *= -1.; }
-        return r; 
-      };
-      fvel = fvelsincos;
-    } else if (v == "stretch") {
-      Scal mg = par.Double["stretch_magn"];
-      Vect o(par.Vect["stretch_origin"]);
-      fvel = [mg, o](Vect x, Scal t) -> Vect { 
-        x -= o;
-        return Vect(x[0], -x[1], 0.) * mg;
-      };
-    } else {
-      throw std::runtime_error("Unknown init_vel=" + v);
-    }
-  }
+  std::function<Scal(Vect)> fu0 = CreateInitU<Vect>(par);
+  std::function<Vect(Vect,Scal)> fvel = CreateInitVel<Vect>(par);
 
   DistrSolver<M> ds(comm, par, fu0, fvel);
 
