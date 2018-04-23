@@ -143,23 +143,6 @@ void Advection<M>::Run() {
     }
   }
 
-  if(0)
-  if (sem("vel")) {
-    const Scal t = as_->GetTime();
-    for (auto f : m.AllFaces()) {
-      Vect x = m.GetCenter(f);
-      ff_flux_[f] = fvel_(x, t).dot(m.GetSurface(f));
-    }
-
-    maxvel_ = 0.;
-    for (auto c : m.Cells()) {
-      for (auto q : m.Nci(c)) {
-        auto f = m.GetNeighbourFace(c, q);
-        maxvel_ = std::max(maxvel_, std::abs(ff_flux_[f]) / m.GetVolume(c));
-      }
-    }
-    m.Reduce(&maxvel_, "max");
-  }
   if (sem("cfl")) {
     Scal dt = par.Double["cfl"] / maxvel_;
     dt = std::min(dt, par.Double["dtmax"]);
