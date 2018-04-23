@@ -26,6 +26,7 @@
 #include "hydro/advection_vof.hpp"
 #include "hydro/init_vel.h"
 #include "hydro/init_u.h"
+#include "hydro/dump.h"
 
 #include "hydro/output.hpp"
 
@@ -219,23 +220,6 @@ void Advection<M>::Run() {
   sem.LoopEnd();
 }
 
-// Dump values on inner cells to text file. 
-// Format:
-// <Nx> <Ny> <Nz>
-// <data:x=0,y=0,z=0> <data:x=1,y=0,z=0> ...
-template <class Scal, class B=geom::GBlock<geom::IdxCell, 3>>
-void Dump(const geom::FieldCell<Scal>& u, const B& b, std::string on) {
-  std::ofstream o(on.c_str());
-
-  auto s = b.GetDimensions();
-  o << s[0] << " " << s[1] << " " << s[2] << std::endl;
-
-  for (auto c : b.Range()) {
-    o << u[c] << " ";
-  }
-
-  o << std::endl;
-}
 
 template <class M_>
 class DistrSolver {
