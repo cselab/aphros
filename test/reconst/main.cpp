@@ -24,6 +24,7 @@
 #include "hydro/linear.hpp"
 #include "hydro/advection.hpp"
 #include "hydro/advection_vof.hpp"
+#include "hydro/init_vel.hpp"
 
 #include "hydro/output.hpp"
 
@@ -340,7 +341,7 @@ void Main(MPI_Comm comm, Vars& par) {
   }
 
 
-  std::function<Vect(Vect,Scal)> fvel;
+  std::function<Vect(Vect,Scal)> fvel = CreateInitVel(par);
   {
     std::string v = par.String["init_vel"];
     if (v == "uni") {
