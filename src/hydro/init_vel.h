@@ -4,23 +4,24 @@
 #include <functional>
 #include <cmath>
 
+#include "hydro/field.h"
 #include "CubismDistr/Vars.h"
 
-template <class M>
-using FuncVVS = 
-    std::function<typename M::Vect(typename M::Vect, typename M::Scal)>;
-
-template <class M>
-FuncVVS<M> CreateInitVel(Vars& par) {
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  FuncVVS<M> f; // result
+// Velocity field.
+// par: parameters
+// Vect: vector type with operator[] and value_type
+// Returns:
+// std::function<Scal(Vect x)>
+// for pointwise evaluation
+template <class Vect, class Scal=typename Vect::value_type>
+std::function<Vect(Vect, Scal)> CreateInitVel(Vars& par) {
+  std::function<Vect(Vect, Scal)> f; // result
 
   std::string v = par.String["init_vel"];
   if (v == "uni") {
     Vect vel(par.Vect["vel"]);
-    f = [vel](Vect x, Scal /*t*/) -> Vect { 
-      return Vect(vel); 
+    f = [vel](Vect x, Scal) -> Vect { 
+      return vel; 
     };
   } else if (v == "sincos") {
     Scal revt = par.Double["revt"]; // reverse time
@@ -35,7 +36,7 @@ FuncVVS<M> CreateInitVel(Vars& par) {
   } else if (v == "stretch") {
     Scal mg = par.Double["stretch_magn"];
     Vect o(par.Vect["stretch_origin"]);
-    f = [mg, o](Vect x, Scal t) -> Vect { 
+    f = [mg, o](Vect x, Scal) -> Vect { 
       x -= o;
       return Vect(x[0], -x[1], 0.) * mg;
     };
