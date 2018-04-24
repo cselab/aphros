@@ -11,7 +11,7 @@
 
 namespace solver {
 
-using namespace geom;
+
 
 template <class M>
 class AdvectionSolverExplicit : public AdvectionSolver<M> {

@@ -9,7 +9,7 @@
 
 namespace solver {
 
-using namespace geom;
+
 
 template <class M>
 FieldCell<typename M::Vect> GetDeformingVelocity(const M& m) {

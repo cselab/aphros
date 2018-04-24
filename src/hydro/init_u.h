@@ -7,7 +7,7 @@
 #include "hydro/field.h"
 #include "CubismDistr/Vars.h"
 
-using namespace geom;
+
 
 // Volume fraction field.
 // par: parameters

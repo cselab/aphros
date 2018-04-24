@@ -5,8 +5,6 @@
 #include <exception>
 #include <memory>
 
-using IntIdx;
-
 template <class Scal>
 bool IsNan(Scal a) {
   return !(a * Scal(0) == Scal(0));

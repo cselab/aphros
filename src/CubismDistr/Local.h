@@ -29,8 +29,6 @@ class Local : public DistrMesh<KF> {
  private:
   using MIdx = typename M::MIdx;
   using Vect = typename M::Vect;
-  using Rect = Rect<Vect>;
-  using IdxCell = IdxCell;
   using P = DistrMesh<KF>;
 
   using P::mk;
@@ -73,7 +71,7 @@ auto Local<KF>::CreateMesh(MIdx bs, MIdx b, MIdx p, int es, Scal ext) -> M {
   Scal h = ext / std::max(std::max(mm[0], mm[1]), mm[2]);
   Vect d0(0); // origin coord
   Vect d1 = d0 + Vect(mm) * h;      // end coord
-  Rect d(d0, d1);
+  Rect<Vect> d(d0, d1);
 
   MIdx o(0); // origin index
   std::cout 
@@ -102,7 +100,6 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par)
   MIdx mb(b_[0], b_[1], b_[2]); // number of blocks
   MIdx mp(p_[0], p_[1], p_[2]); // number of PEs
   GBlockCells<3> bc(mb * mp);
-  using IdxNode;
   Scal h = (gm.GetNode(IdxNode(1)) - gm.GetNode(IdxNode(0)))[0];
   assert(h > 0);
   std::cerr << "h from gm = " << h << std::endl;

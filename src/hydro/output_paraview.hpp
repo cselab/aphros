@@ -37,8 +37,6 @@ class SessionParaviewStructured : public SessionParaview {
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
   using MIdx = typename Mesh::MIdx;
-  using FieldCell = FieldCell<Scal>;
-  using FieldNode = FieldNode<Scal>;
 
   const Mesh& mesh;
   size_t timestep_;
@@ -54,7 +52,7 @@ class SessionParaviewStructured : public SessionParaview {
     out << "        </DataArray>\n";
   }
   void WriteField(std::ostream& out,
-                  EntryField<FieldCell>* entry) {
+                  EntryField<FieldCell<Scal>>* entry) {
     auto& field = entry->GetField();
 
     WriteDataArrayHeader(out, entry->GetName(), 1);
@@ -65,7 +63,7 @@ class SessionParaviewStructured : public SessionParaview {
     WriteDataArrayFooter(out);
   }
   void WriteField(std::ostream& out,
-                  EntryField<FieldNode>* entry) {
+                  EntryField<FieldNode<Scal>>* entry) {
     auto& field = entry->GetField();
 
     WriteDataArrayHeader(out, entry->GetName(), 1);
@@ -99,7 +97,7 @@ class SessionParaviewStructured : public SessionParaview {
   void WriteDataFileContent(std::ostream& out) {
     out << "      <PointData>\n";
     for (auto& entry_generic : content_) {
-      if (auto entry = dynamic_cast<EntryField<FieldNode>*>(
+      if (auto entry = dynamic_cast<EntryField<FieldNode<Scal>>*>(
           entry_generic.get())) {
         entry->Prepare();
         WriteField(out, entry);
@@ -109,7 +107,7 @@ class SessionParaviewStructured : public SessionParaview {
 
     out << "      <CellData>\n";
     for (auto& entry_generic : content_) {
-      if (auto entry = dynamic_cast<EntryField<FieldCell>*>(
+      if (auto entry = dynamic_cast<EntryField<FieldCell<Scal>>*>(
           entry_generic.get())) {
         entry->Prepare();
         WriteField(out, entry);
