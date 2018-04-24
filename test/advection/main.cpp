@@ -29,7 +29,7 @@
 
 #include "cmp.h"
 
-using namespace geom;
+
 
 template <class M_>
 struct GPar {

@@ -15,7 +15,7 @@
 #include "hydro/solver.hpp"
 #include "hydro/linear.hpp"
 
-using namespace geom;
+
 
 struct GPar {};
 

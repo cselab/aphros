@@ -4,6 +4,10 @@
 #include <limits>
 #include <map>
 
+#include "Vars.h"
+#include "Distr.h"
+#include "ICubism.h"
+
 #include "Cubism/BlockInfo.h"
 #include "Cubism/Grid.h"
 #include "Cubism/GridMPI.h"
@@ -11,9 +15,8 @@
 #include "Cubism/BlockLabMPI.h"
 #include "Cubism/StencilInfo.h"
 #include "Cubism/HDF5Dumper_MPI.h"
-#include "ICubism.h"
-#include "Vars.h"
-#include "Distr.h"
+
+namespace cubism_impl {
 
 // Static parameters for Cubism
 // bx, by, bz - block size
@@ -588,3 +591,11 @@ template <class B>
 const std::string StreamHdfDyn<B>::EXT = "";
 template <class B>
 int StreamHdfDyn<B>::ID = 0;
+
+} // namespace cubism_impl
+
+template <class Scal_, size_t bx_, size_t by_, size_t bz_, size_t es_>
+using GPar = cubism_impl::GPar<Scal_, bx_, by_, bz_, es_>;
+
+template <class Par, class KF>
+using Cubism = cubism_impl::Cubism<Par, KF>;

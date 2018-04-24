@@ -13,7 +13,7 @@
 
 namespace solver {
 
-using namespace geom;
+
 
 template <class Scal>
 inline void Clip(Scal& a, Scal l, Scal u) {

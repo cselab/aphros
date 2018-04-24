@@ -15,7 +15,7 @@
 #include "hydro/vect.hpp"
 #include "hydro/block.h"
 
-using namespace geom;
+
 
 // Client for DistrMesh
 // M_: mesh
