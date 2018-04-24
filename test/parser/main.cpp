@@ -3,8 +3,8 @@
 #include <sstream>
 #include <fstream>
 
-#include "vars.h"
-#include "interp.h"
+#include "parse/vars.h"
+#include "parse/interp.h"
 
 namespace simple {
 

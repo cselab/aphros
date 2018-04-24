@@ -5,15 +5,14 @@
 #include <iomanip>
 #include <fstream>
 
-#include "CubismDistr/vars.h"
-#include "CubismDistr/kernelmeshpar.h"
-#include "CubismDistr/distrsolver.h"
-
-#include "hydro/suspender.h"
-#include "hydro/vect.hpp"
-#include "hydro/mesh3d.hpp"
-#include "hydro/solver.hpp"
-#include "hydro/linear.hpp"
+#include "geom/vect.hpp"
+#include "geom/mesh3d.hpp"
+#include "parse/vars.h"
+#include "kernel/kernelmeshpar.h"
+#include "distr/distrsolver.h"
+#include "util/suspender.h"
+#include "solver/solver.hpp"
+#include "linear/linear.hpp"
 
 struct GPar {};
 

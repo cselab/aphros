@@ -6,11 +6,11 @@ project(${p})
 
 set(EXE t.${p})
 
-set(H "../../src/hydro")
+set(S "../../src")
 
-include_directories(${H})
+include_directories(${S})
 
-add_executable(${EXE} main.cpp ${H}/hypre.cpp)
+add_executable(${EXE} main.cpp ${S}/linear/hypre.cpp)
      
 # MPI
 find_package(MPI REQUIRED)

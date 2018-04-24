@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "suspender.h"
+#include "util/suspender.h"
 
 namespace simple {
 

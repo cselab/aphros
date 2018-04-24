@@ -8,11 +8,11 @@ set(CMAKE_BUILD_TYPE release)
 
 set(EXE t.${p})
 
-set(H "../../src/hydro")
+set(S "../../src")
 
-include_directories(${H})
+include_directories(${S})
 
-add_executable(${EXE} main.cpp ${H}/suspender.cpp timer.cpp)
+add_executable(${EXE} main.cpp ${S}/util/suspender.cpp timer.cpp)
      
 set_property(TARGET ${EXE} PROPERTY CXX_STANDARD 11)
 

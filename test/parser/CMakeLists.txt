@@ -6,11 +6,11 @@ project(${p})
 
 set(EXE t.${p})
 
-set(CD "../../src/CubismDistr")
+set(S "../../src")
 
-include_directories(${CD})
+include_directories(${S})
 
-add_executable(${EXE} main.cpp ${CD}/vars.cpp ${CD}/interp.cpp)
+add_executable(${EXE} main.cpp ${S}/parse/vars.cpp ${S}/parse/interp.cpp)
      
 set_property(TARGET ${EXE} PROPERTY CXX_STANDARD 11)
 

@@ -8,9 +8,9 @@
 #include "timer.h"
 #include <iomanip>
 
-#include "mesh.hpp"
-#include "mesh3d.hpp"
-#include "solver.hpp"
+#include "geom/mesh.hpp"
+#include "geom/mesh3d.hpp"
+#include "solver/solver.hpp"
 
 const int dim = 3;
 using MIdx = GMIdx<dim>;

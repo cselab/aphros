@@ -5,7 +5,7 @@
 #include <cmath>
 #include <iomanip>
 
-#include "hypre.h"
+#include "linear/hypre.h"
 
 using MIdx = typename Hypre::MIdx;
 using Scal = typename Hypre::Scal;
