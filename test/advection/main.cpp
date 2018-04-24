@@ -13,6 +13,7 @@
 #include "CubismDistr/Interp.h"
 #include "CubismDistr/Kernel.h"
 #include "CubismDistr/KernelMesh.h"
+#include "CubismDistr/KernelMeshPar.h"
 //#include "CubismDistr/ICubism.h"
 #include "CubismDistr/ILocal.h"
 #include "CubismDistr/Distr.h"
@@ -35,23 +36,35 @@
 
 using namespace geom;
 
-
-template <class M>
-class Advection : public KernelMesh<M> {
+template <class M_>
+struct GPar {
  public:
-  static constexpr size_t dim = M::dim;
-  using P = KernelMesh<M>; // parent
-  using Mesh = M;
-  using Scal = typename Mesh::Scal;
-  using Vect = typename Mesh::Vect;
+  using M = M_;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
 
-  Advection(Vars& par, const MyBlockInfo& bi, 
-            std::function<Scal(Vect)> fu0,
-            std::function<Vect(Vect,Scal)> fvel /*vel(x,t)*/);
+  std::function<Scal(Vect /*t*/)> fu0; // initial volume fraction
+  std::function<Vect(Vect /*x*/,Scal /*t*/)> fvel; // velocity
+};
+
+template <class M_>
+class Advection : public KernelMeshPar<M_, GPar<M_>> {
+ public:
+  using P = KernelMeshPar<M_, GPar<M_>>; // parent
+  using M = M_;
+  using Mesh = M;
+  using Par = typename P::Par;
+  static constexpr size_t dim = M::dim;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+
+  //using P::P; // inherit constructor
+  Advection(Vars& var, const MyBlockInfo& bi, Par& par);
   void Run() override;
 
  protected:
-  using P::par;
+  using P::var;
+  using P::par_;
   using P::m;
   using P::IsRoot;
   using P::IsLead;
@@ -71,37 +84,15 @@ class Advection : public KernelMesh<M> {
   typename AS2::Par aspar2_;
 };
 
-template <class _M>
-class AdvectionFactory : public KernelMeshFactory<_M> {
- public:
-  using M = _M;
-  using K = Advection<M>;
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  AdvectionFactory(std::function<Scal(Vect)> fu0,
-                   std::function<Vect(Vect,Scal)> fvel) 
-      : fu0_(fu0), fvel_(fvel) {}
-  K* Make(Vars& par, const MyBlockInfo& bi) override {
-    return new K(par, bi, fu0_, fvel_);
-  }
-
- private:
-  std::function<Scal(Vect)> fu0_;
-  std::function<Vect(Vect,Scal)> fvel_;
-};
-
 template <class M>
-Advection<M>::Advection(Vars& par, const MyBlockInfo& bi,
-                        std::function<Scal(Vect)> fu0,
-                        std::function<Vect(Vect,Scal)> fvel /*(x,t)*/)
-    : KernelMesh<M>(par, bi)
-    , fvel_(fvel)
+Advection<M>::Advection(Vars& var, const MyBlockInfo& bi, Par& par)
+    : KernelMeshPar<M, Par>(var, bi, par)
 {
   // initial field for advection
   FieldCell<Scal> u0(m, 0);
   for (auto c : m.AllCells()) {
     Vect x = m.GetCenter(c);
-    u0[c] = fu0(x);
+    u0[c] = par_.fu0(x);
   }
 
   // boundary conditions for advection (empty)
@@ -114,24 +105,24 @@ Advection<M>::Advection(Vars& par, const MyBlockInfo& bi,
   ff_flux_.Reinit(m, 0);
   for (auto f : m.AllFaces()) {
     Vect x = m.GetCenter(f);
-    ff_flux_[f] = fvel_(x, 0.).dot(m.GetSurface(f));
+    ff_flux_[f] = par_.fvel(x, 0.).dot(m.GetSurface(f));
   }
   
   // source
   fc_src_.Reinit(m, 0.);
 
-  std::string as = par.String["advection_solver"];
+  std::string as = var.String["advection_solver"];
   if (as == "tvd") {
     auto& p = aspar1_;
-    p.sharp = par.Double["sharp"];
-    p.sharpo = par.Double["sharpo"];
-    p.split = par.Int["split"];
+    p.sharp = var.Double["sharp"];
+    p.sharpo = var.Double["sharpo"];
+    p.split = var.Int["split"];
     as_.reset(new AS1(m, u0, bc, &ff_flux_, 
-              &fc_src_, 0., par.Double["dt"], &p));
+              &fc_src_, 0., var.Double["dt"], &p));
   } else if (as == "vof") {
     auto& p = aspar2_;
     as_.reset(new AS2(m, u0, bc, &ff_flux_, 
-              &fc_src_, 0., par.Double["dt"], &p));
+              &fc_src_, 0., var.Double["dt"], &p));
   } else {
     throw std::runtime_error("Unknown advection_solver=" + as);
   }
@@ -150,7 +141,7 @@ void Advection<M>::Run() {
     //nop // TODO: bugfix loop, empty stage needed
   }
   if (sem("checkloop")) {
-    if (as_->GetTime() >= par.Double["tmax"]) {
+    if (as_->GetTime() >= var.Double["tmax"]) {
       sem.LoopBreak();
     }
   }
@@ -158,7 +149,7 @@ void Advection<M>::Run() {
     const Scal t = as_->GetTime();
     for (auto f : m.AllFaces()) {
       Vect x = m.GetCenter(f);
-      ff_flux_[f] = fvel_(x, t).dot(m.GetSurface(f));
+      ff_flux_[f] = par_.fvel(x, t).dot(m.GetSurface(f));
     }
 
     maxvel_ = 0.;
@@ -171,10 +162,10 @@ void Advection<M>::Run() {
     m.Reduce(&maxvel_, "max");
   }
   if (sem("cfl")) {
-    Scal dt = par.Double["cfl"] / maxvel_;
-    dt = std::min(dt, par.Double["dtmax"]);
+    Scal dt = var.Double["cfl"] / maxvel_;
+    dt = std::min(dt, var.Double["dtmax"]);
     as_->SetTimeStep(dt);
-    par.Double.Set("dt", as_->GetTimeStep());
+    var.Double.Set("dt", as_->GetTimeStep());
   }
   if (sem.Nested("start")) {
     as_->StartStep();
@@ -195,22 +186,22 @@ void Advection<M>::Run() {
   }
   if (sem("t")) {
     if (IsLead()) {
-      ++par.Int["iter"];
-      par.Double["t"] = as_->GetTime();
+      ++var.Int["iter"];
+      var.Double["t"] = as_->GetTime();
     }
     if (IsRoot()) {
-      auto t = par.Double["t"];
-      auto dt = par.Double["dt"];
-      if (!par.Double("laststat")) {
-        par.Double.Set("laststat", -1e10);
+      auto t = var.Double["t"];
+      auto dt = var.Double["dt"];
+      if (!var.Double("laststat")) {
+        var.Double.Set("laststat", -1e10);
       }
-      if (t - par.Double["laststat"] >= par.Double["statdt"]) {
+      if (t - var.Double["laststat"] >= var.Double["statdt"]) {
         std::cout 
             << "t=" << t 
             << " dt=" << dt 
             << std::setprecision(16) << " sumu=" << sumu_
             << std::endl;
-        par.Double["laststat"] = t;
+        var.Double["laststat"] = t;
       }
     }
   }
@@ -229,25 +220,25 @@ class DistrSolver {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  using KF = AdvectionFactory<M>;
+  using K = Advection<M>;
+  using KF = KernelMeshParFactory<M, K>;
   using D = DistrMesh<KernelMeshFactory<M>>; 
+  using Par = typename K::Par;
 
-  DistrSolver(MPI_Comm comm, Vars& apar, 
-              std::function<Scal(Vect)> fu0,
-              std::function<Vect(Vect,Scal)> fvel /*vel(x,t)*/)
-      : par(apar)
+  DistrSolver(MPI_Comm comm, Vars& var, Par& par)
+      : var(var), par_(par)
   {
     // Create kernel factory
-    KF kf(fu0, fvel);
+    KF kf(par_);
 
-    par.Double.Set("t", 0.);
+    var.Double.Set("t", 0.);
 
     // Initialize blocks
     Distr* b; // base
-    if (par.Int["loc"]) {
-      b = CreateLocal(comm, kf, par);
+    if (var.Int["loc"]) {
+      b = CreateLocal(comm, kf, var);
     } else {
-      //b = CreateCubism(comm, kf, par);
+      //b = CreateCubism(comm, kf, var);
     }
 
     d_.reset(dynamic_cast<D*>(b));
@@ -265,26 +256,28 @@ class DistrSolver {
     return d_->GetGlobalField(0);
   }
   double GetTime() const { 
-    return par.Double["t"]; 
+    return var.Double["t"]; 
   }
   double GetTimeStep() const { 
-    return par.Double["dt"]; 
+    return var.Double["dt"]; 
   }
 
  private:
-  Vars& par;
+  Vars& var;
   std::unique_ptr<D> d_;
+  Par& par_;
 };
 
-void Main(MPI_Comm comm, Vars& par) {
+void Main(MPI_Comm comm, Vars& var) {
   using M = MeshStructured<double, 3>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  std::function<Scal(Vect)> fu0 = CreateInitU<Vect>(par);
-  std::function<Vect(Vect,Scal)> fvel = CreateInitVel<Vect>(par);
+  typename Advection<M>::Par par;
+  par.fu0 = CreateInitU<Vect>(var);
+  par.fvel = CreateInitVel<Vect>(var);
 
-  DistrSolver<M> ds(comm, par, fu0, fvel);
+  DistrSolver<M> ds(comm, var, par);
 
   size_t k = 0;
 
@@ -293,8 +286,8 @@ void Main(MPI_Comm comm, Vars& par) {
   Dump(ds.GetField(), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
   ++k;
 
-  auto& ttmax = par.Double["ttmax"];
-  auto& tmax = par.Double["tmax"];
+  auto& ttmax = var.Double["ttmax"];
+  auto& tmax = var.Double["tmax"];
   // Time steps until reaching ttmax
   while (tmax < ttmax) {
     std::cout 
@@ -303,7 +296,7 @@ void Main(MPI_Comm comm, Vars& par) {
         << std::endl;
 
     // Time steps until reaching tmax
-    tmax += par.Double["dumpdt"];
+    tmax += var.Double["dumpdt"];
     ds.MakeStep();
 
     Dump(ds.GetField(), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
@@ -318,8 +311,8 @@ int main (int argc, const char ** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   bool isroot = (!rank);
 
-  Vars par;   // parameter storage
-  Interp ip(par); // interpretor (parser)
+  Vars var;   // parameter storage
+  Interp ip(var); // interpretor (parser)
 
   std::string fn = "a.conf";
   if (argc == 1) {
@@ -348,17 +341,17 @@ int main (int argc, const char ** argv) {
     std::cerr << "=== config end ===\n" << std::endl;
   }
 
-  bool loc = par.Int["loc"];
+  bool loc = var.Int["loc"];
 
   MPI_Comm comm;
   if (loc) {
     MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
     if (rank == 0) {
-      Main(comm, par);
+      Main(comm, var);
     }
   } else {
     comm = MPI_COMM_WORLD;
-    Main(comm, par);
+    Main(comm, var);
   }
 
   MPI_Finalize();	
