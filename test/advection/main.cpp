@@ -33,17 +33,17 @@
 
 #include "cmp.h"
 
+using namespace geom;
+
 
 template <class M>
 class Advection : public KernelMesh<M> {
  public:
-  using KM = KernelMesh<M>;
-  using Mesh = M;
-  using Scal = double;
-  using Vect = typename Mesh::Vect;
-  using MIdx = typename Mesh::MIdx;
-  using IdxCell = geom::IdxCell;
   static constexpr size_t dim = M::dim;
+  using P = KernelMesh<M>; // parent
+  using Mesh = M;
+  using Scal = typename Mesh::Scal;
+  using Vect = typename Mesh::Vect;
 
   Advection(Vars& par, const MyBlockInfo& bi, 
             std::function<Scal(Vect)> fu0,
@@ -51,14 +51,14 @@ class Advection : public KernelMesh<M> {
   void Run() override;
 
  protected:
-  using KM::par;
-  using KM::m;
-  using KM::IsRoot;
-  using KM::IsLead;
+  using P::par;
+  using P::m;
+  using P::IsRoot;
+  using P::IsLead;
 
  private:
-  geom::FieldFace<Scal> ff_flux_;
-  geom::FieldCell<Scal> fc_src_;
+  FieldFace<Scal> ff_flux_;
+  FieldCell<Scal> fc_src_;
   using AS = solver::AdvectionSolver<M>;
   using AS1 = solver::AdvectionSolverExplicit<M>;
   using AS2 = solver::Vof<M>;
@@ -98,17 +98,17 @@ Advection<M>::Advection(Vars& par, const MyBlockInfo& bi,
     , fvel_(fvel)
 {
   // initial field for advection
-  geom::FieldCell<Scal> u0(m, 0);
+  FieldCell<Scal> u0(m, 0);
   for (auto c : m.AllCells()) {
     Vect x = m.GetCenter(c);
     u0[c] = fu0(x);
   }
 
   // boundary conditions for advection (empty)
-  geom::MapFace<std::shared_ptr<solver::ConditionFace>> bc;
+  MapFace<std::shared_ptr<solver::ConditionFace>> bc;
 
   // cell conditions for advection (empty)
-  geom::MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
+  MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
 
   // flux
   ff_flux_.Reinit(m, 0);
@@ -142,7 +142,7 @@ template <class M>
 void Advection<M>::Run() {
   auto sem = m.GetSem("advection");
   if (sem("comm")) { // comm for GetGlobalField, initial
-    auto& u = const_cast<geom::FieldCell<Scal>&>(as_->GetField());
+    auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
     m.Comm(&u);
   }
   sem.LoopBegin();
@@ -215,67 +215,11 @@ void Advection<M>::Run() {
     }
   }
   if (sem("comm")) { // comm for GetGlobalField
-    auto& u = const_cast<geom::FieldCell<Scal>&>(as_->GetField());
+    auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
     m.Comm(&u);
   }
   sem.LoopEnd();
 }
-
-#if 0
-  par.Double["extent"] = 1.; // TODO don't overwrite extent
-  Scal extent = par.Double["extent"];
-  {
-    MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
-    MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
-    MIdx bs(par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]);
-    gs_ = p * b * bs;
-  }
-  Scal dx = extent / gs_.norminf(); 
-  assert(dx > 0. && dx < extent);
-  ge_ = Vect(gs_) * dx;
-  Scal cfl = par.Double["cfl"];
-  Vect vel(par.Vect["vel"]);
-  Scal ns = par.Int["num_steps"];
-  Scal nc = cfl * ns; // distance in cells passed
-  Scal dt = dx * cfl / vel.norminf();
-  par.Double.Set("dt", dt);
-  Scal t = dt * ns;
-
-  auto sem = m.GetSem("Run");
-  auto f = [](Vect x) { 
-      return std::sin(x[0]) * std::cos(x[1]) * std::exp(x[2]); 
-    };
-  auto f0 = [](Vect x) { return 0.; };
-  auto f1 = [](Vect x) { return 1.; };
-  auto fx = [](Vect x) { return Vect(1., -1., 1.).dot(x); };
-  auto fex = [=](Vect x) { x -= vel * t; return fx(x); };
-
-  bool fatal = par.Int["fatal"];
-
-  if (sem.Nested()) {
-    TestSolve(f0, f0, 0, "f0", fatal);
-  }
-  if (sem.Nested()) {
-    TestSolve(f1, f1, 0, "f1", fatal);
-  }
-  if (sem.Nested()) {
-    TestSolve(fx, fex, 4, "fx", fatal);
-  }
-  if (sem.Nested()) {
-    TestSolve(f, f, 0, "f", false);
-  }
-}
-
-using Scal = double;
-using M = geom::MeshStructured<Scal, 3>;
-using K = Advection<M>;
-using D = DistrMesh<KernelMeshFactory<M>>;
-using FC = geom::FieldCell<Scal>;
-using IdxCell = geom::IdxCell;
-using Vect = typename M::Vect;
-using MIdx = typename M::MIdx;
-
-#endif
 
 template <class M_>
 class DistrSolver {
@@ -284,8 +228,6 @@ class DistrSolver {
   static constexpr size_t dim = M::dim;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  using MIdx = typename M::MIdx;
-  using IdxCell = geom::IdxCell;
 
   using KF = AdvectionFactory<M>;
   using D = DistrMesh<KernelMeshFactory<M>>; 
@@ -316,10 +258,10 @@ class DistrSolver {
   void MakeStep() {
     d_->Run();
   }
-  geom::GBlock<IdxCell, dim> GetBlock() const {
+  GBlock<IdxCell, dim> GetBlock() const {
     return d_->GetGlobalBlock();
   }
-  geom::FieldCell<Scal> GetField() const {
+  FieldCell<Scal> GetField() const {
     return d_->GetGlobalField(0);
   }
   double GetTime() const { 
@@ -335,7 +277,7 @@ class DistrSolver {
 };
 
 void Main(MPI_Comm comm, Vars& par) {
-  using M = geom::MeshStructured<double, 3>;
+  using M = MeshStructured<double, 3>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 

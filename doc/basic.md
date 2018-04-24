@@ -17,7 +17,7 @@ First describe the interface in a separate class, then implement.
   - if another letter, put that word with letter in [...]: a // n[a]me
   - up to 4 letters if possible
   - private variables end with underscore: `a_`;
-    exceptions: m (Mesh), par (Vars)
+    exceptions: m (Mesh), var (Vars)
 * Template argument:
   - CamelCase for types and lower case for values
   - if alias needed, ends with underscore: `Mesh_`
@@ -76,3 +76,21 @@ Example: `Scal s; // source [density/time]`
 * volume (length^3)
 * density (mass/volume)
 * value (user defined, e.g. 1 for concentration)
+
+## Member classes
+
+* A class taking mesh as template argument 
+should call it `M_` and define member class `M`.
+* A class taking kernel as template argument
+should call it `K_` and define member class `K`.
+* A derived class can optionally define member class `P` for parent.
+* A mesh class should define member classes
+`Scal` and `Vect` and member variable `dim`.
+
+### Ordering
+
+* parent `P`
+* kernel `K`
+* mesh `M`
+* constructor parameters `Par`
+* dimension `dim`
