@@ -37,30 +37,25 @@ class KernelMesh : public Kernel {
   using MIdx = typename Mesh::MIdx;
   static constexpr size_t dim = M::dim;
 
-  KernelMesh(Vars& par, const MyBlockInfo& bi);
+  KernelMesh(Vars& var, const MyBlockInfo& bi) 
+    : var(var), bi_(bi), m(CreateMesh<M>(bi)) {}
   void Run() override = 0;
   M& GetMesh() { return m; }
   bool IsRoot() { return bi_.isroot; }
   bool IsLead() { return bi_.islead; }
 
  protected:
-  Vars& par; // Shared among all blocks on each PEs
+  Vars& var; // Shared among all blocks on each PEs
   MyBlockInfo bi_;
   M m;
 };
-
-template <class M>
-KernelMesh<M>::KernelMesh(Vars& par, const MyBlockInfo& bi) 
-  : par(par), bi_(bi), m(CreateMesh<M>(bi))
-{}
 
 // Abstract KernelFactory aware of Mesh. Dependency of DistrMesh.
 template <class M_>
 class KernelMeshFactory : public KernelFactory {
  public:
   using M = M_;
+  using K = KernelMesh<M>;
   KernelMesh<M>* Make(Vars&, const MyBlockInfo&) override = 0;
 };
-
-
 

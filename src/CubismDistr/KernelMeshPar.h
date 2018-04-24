@@ -8,19 +8,43 @@
 #include "Vars.h"
 #include "KernelMesh.h"
 
-// Factory for ParKernel
+// Kernel aware of mesh with structure Par_ passed to constructor.
+template <class M_, class Par_>
+class KernelMeshPar : public KernelMesh<M_> {
+ public:
+  using P = KernelMesh<M_>; // parent
+  using M = M_;
+  using Par = Par_;
+  static constexpr size_t dim = M::dim;
+
+  KernelMeshPar(Vars& var, const MyBlockInfo& bi, Par& par)
+      : KernelMesh<M>(var, bi)
+      , par_(par) {}
+  void Run() override;
+
+ protected:
+  using P::var;
+  using P::m;
+  using P::IsRoot;
+  using P::IsLead;
+  Par& par_;
+};
+
+// Factory for KernelMeshPar.
 // M_: mesh
-// K_: kernel derived from KernelMesh
+// K_: kernel derived from KernelMeshPar with defined Par
 template <class M_, class K_>
 class KernelMeshParFactory : public KernelMeshFactory<M_> {
  public:
   using M = M_;
   using K = K_;
-  GKernelMeshFactory(std::function<Scal(Vect)> fu0,
-                   std::function<Vect(Vect,Scal)> fvel) 
-      : fu0_(fu0), fvel_(fvel) {}
-  K* Make(Vars& par, const MyBlockInfo& bi) override {
-    return new K(par, bi, fu0_, fvel_);
+  using Par = typename K::Par;
+  KernelMeshParFactory(Par& par) : par_(par) {}
+  K* Make(Vars& var, const MyBlockInfo& bi) override {
+    return new K(var, bi, par_);
   }
+
+ protected:
+  Par& par_;
 };
 
