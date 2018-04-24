@@ -26,6 +26,7 @@
 #include "KernelMesh.h"
 #include "Vars.h"
 #include "Interp.h"
+#include "hydro/dumper.h"
 
 
 template <class M>
@@ -128,6 +129,7 @@ class Hydro : public KernelMesh<M> {
   };
   Stat st_;
   std::shared_ptr<output::Session> ost_; // output stat
+  Dumper dumper_;
 };
 
 template <class M>
@@ -465,6 +467,7 @@ void Hydro<M>::Init() {
 template <class M>
 Hydro<M>::Hydro(Vars& par, const MyBlockInfo& bi) 
   : KernelMesh<M>(par, bi)
+  , dumper_(par)
 {}
 
 template <class M>
@@ -746,22 +749,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 template <class M>
 void Hydro<M>::Dump(Sem& sem) {
   if (sem("dump")) {
-    // requirements: 
-    // * interval between dumps is at least dumpdt + dt
-    // * dumpt % dtumpdt <= dt * 0.5
-    auto pd = par.Double["dumpdt"]; // dum[p] [d]t
-    auto& pt = st_.dumpt;
-    const auto& dt = st_.dt;
-
-    // time of next dump
-    Scal ptn = int(std::max<Scal>(pt + pd, 0.) / pd + 0.5) * pd;
-    assert(ptn > pt);
-
-    if (par.Int["output"] && 
-        st_.t >= ptn - dt * 0.5 &&
-        st_.dumpn < par.Int["dumpmax"]) {
-      st_.dumpt = st_.t;
-
+    if (dumper_.Try(st_.t, st_.dt)) {
       fc_velux_ = geom::GetComponent(fs_->GetVelocity(), 0);
       m.Dump(&fc_velux_, "vx");
       fc_veluy_ = geom::GetComponent(fs_->GetVelocity(), 1);
@@ -772,16 +760,9 @@ void Hydro<M>::Dump(Sem& sem) {
       m.Dump(&fc_p_, "p"); 
       fc_vf_ = as_->GetField();
       m.Dump(&fc_vf_, "vf"); 
-
       if (IsRoot()) {
-        std::cerr << "Dump " 
-            << "n=" << st_.dumpn 
-            << " t=" << st_.dumpt 
-            << " tn=" << ptn
-            << std::endl;
+        dumper_.Report();
       }
-
-      ++st_.dumpn;
     }
   }
   if (sem("dumpwrite")) {

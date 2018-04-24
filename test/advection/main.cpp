@@ -23,6 +23,7 @@
 #include "hydro/advection_tvd.hpp"
 #include "hydro/init_vel.h"
 #include "hydro/init_u.h"
+#include "hydro/dumper.h"
 
 #include "hydro/output.hpp"
 
@@ -51,10 +52,12 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   static constexpr size_t dim = M::dim;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using Sem = typename Mesh::Sem;
 
   //using P::P; // inherit constructor
   Advection(Vars& var, const MyBlockInfo& bi, Par& par);
   void Run() override;
+  void Dump(Sem& sem);
 
  protected:
   using P::var;
@@ -76,11 +79,13 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   Scal sumu_; // sum of fluid volume
   typename AS1::Par aspar1_;
   typename AS2::Par aspar2_;
+  Dumper dumper_;
 };
 
 template <class M>
 Advection<M>::Advection(Vars& var, const MyBlockInfo& bi, Par& par)
     : KernelMeshPar<M, Par>(var, bi, par)
+    , dumper_(var)
 {
   // initial field for advection
   FieldCell<Scal> u0(m, 0);
@@ -122,17 +127,40 @@ Advection<M>::Advection(Vars& var, const MyBlockInfo& bi, Par& par)
   }
 }
 
+template <class M>
+void Advection<M>::Dump(Sem& sem) {
+  if (sem("dump")) {
+    if (dumper_.Try(var.Double["t"], var.Double["dt"])) {
+      auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
+      m.Dump(&u, "u");
+      if (IsRoot()) {
+        dumper_.Report();
+      }
+    }
+  }
+  if (sem("dumpwrite")) {
+    // Empty stage for DumpWrite
+    // TODO: revise
+  }
+  if (sem("dump")) {
+    if (dumper_.Try(var.Double["t"], var.Double["dt"])) {
+      auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
+      m.Dump(&u, "u");
+      if (IsRoot()) {
+        dumper_.Report();
+      }
+    }
+  }
+  if (sem("dumpwrite")) {
+    // Empty stage for DumpWrite
+    // TODO: revise
+  }
+}
 
 template <class M>
 void Advection<M>::Run() {
   auto sem = m.GetSem("advection");
-  if (sem("comm")) { // comm for GetGlobalField, initial
-    auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
-    m.Comm(&u);
-  }
-  if (sem("dump")) {
-    m.Dump(const_cast<FieldCell<Scal>*>(&as_->GetField()), "u");
-  }
+  Dump(sem);
   sem.LoopBegin();
   if (sem("empty")) {
     //nop // TODO: bugfix loop, empty stage needed
@@ -202,10 +230,7 @@ void Advection<M>::Run() {
       }
     }
   }
-  if (sem("comm")) { // comm for GetGlobalField
-    auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
-    m.Comm(&u);
-  }
+  Dump(sem);
   sem.LoopEnd();
 }
 
@@ -221,7 +246,7 @@ void Main(MPI_Comm comm, Vars& var) {
   par.fvel = CreateInitVel<Vect>(var);
 
   DistrSolver<M, K> ds(comm, var, par);
-  ds.RunUntilFinished();
+  ds.Run();
 }
 
 int main(int argc, const char ** argv) {

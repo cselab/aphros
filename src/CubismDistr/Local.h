@@ -45,6 +45,7 @@ class Local : public DistrMesh<KF> {
   using P::isroot_;
   using P::comm_;
   using P::ext_;
+  using P::frame_;
 
   std::vector<geom::FieldCell<Scal>> buf_; // buffer on mesh
   M gm; // global mesh

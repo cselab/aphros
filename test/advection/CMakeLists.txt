@@ -15,6 +15,7 @@ include_directories(${S})
 add_executable(${EXE} main.cpp 
     ${H}/suspender.cpp 
     ${H}/hypre.cpp 
+    ${H}/dumper.cpp
     ${CD}/Vars.cpp
     ${CD}/Local.cpp
     ${CD}/Cubism.cpp

@@ -154,7 +154,8 @@ void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
       // current comm field index (assume last are for dump)
       size_t k = m.GetComm().size() - m.GetDump().size();
       for (auto d : m.GetDump()) {
-        std::string op = d.second + ".dat";
+        auto suff = "_" + std::to_string(frame_);
+        std::string op = d.second + suff + ".dat";
         Dump(GetGlobalField(k), GetGlobalBlock(), op);
         ++k;
       }
