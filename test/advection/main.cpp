@@ -176,7 +176,7 @@ void Advection<M>::Run() {
     sumu_ = 0.;
     auto& u = as_->GetField();
     for (auto c : m.Cells()) {
-      sumu_ += u[c];
+      sumu_ += u[c] * m.GetVolume(c);
     }
     m.Reduce(&sumu_, "sum");
   }
