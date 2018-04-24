@@ -92,7 +92,7 @@ class Hydro : public KernelMesh<M> {
   MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond_;
   MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond_;
   MultiTimer<std::string> timer_; 
-  std::unique_ptr<AS> as_; // advection solver
+  std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
   FieldCell<Scal> fc_velux_; // velocity
   FieldCell<Scal> fc_veluy_; 
@@ -410,15 +410,28 @@ void Hydro<M>::Init() {
 
     // Init advection solver
     {
-      auto p = std::make_shared<typename AS::Par>();
-      p->sharp = var.Double["sharp"];
-      p->sharpo = var.Double["sharpo"];
-      p->split = var.Int["split"];
+      std::string as = var.String["advection_solver"];
+      if (as == "tvd") {
+        using AS = solver::AdvectionSolverExplicit<M>;
+        auto p = std::make_shared<typename AS::Par>();
+        p->sharp = var.Double["sharp"];
+        p->sharpo = var.Double["sharpo"];
+        p->split = var.Int["split"];
+        as_.reset(new AS(
+              m, fc_vf_, mf_cond_, 
+              &fs_->GetVolumeFlux(solver::Layers::iter_curr),
+              &fc_src_, 0., dt, p));
+      } else if (as == "vof") {
+        using AS = solver::Vof<M>;
+        auto p = std::make_shared<typename AS::Par>();
+        as_.reset(new AS(
+              m, fc_vf_, mf_cond_, 
+              &fs_->GetVolumeFlux(solver::Layers::iter_curr),
+              &fc_src_, 0., dt, p));
+      } else {
+        throw std::runtime_error("Unknown advection_solver=" + as);
+      }
 
-      as_.reset(new AS(
-            m, fc_vf_, mf_cond_, 
-            &fs_->GetVolumeFlux(solver::Layers::iter_curr),
-            &fc_src_, 0., dt, p));
     }
 
     // Output from var.Double by name
