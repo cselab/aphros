@@ -5,8 +5,8 @@
 #include <stdexcept>
 #include <memory>
 
+#include "util/metrics.h"
 #include "solver.h"
-#include "metrics.h"
 #include "conv_diff.h"
 
 namespace solver {
@@ -74,7 +74,8 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
 
  public:
   using Par = typename Solver::Par;
-  Par* par;
+  std::shared_ptr<Par> par;
+  Par* GetPar() { return par.get(); }
   void CopyToVector(Layers layer) {
     fc_velocity_.Get(layer).Reinit(mesh);
     for (size_t n = 0; n < dim; ++n) {
@@ -92,7 +93,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
       FieldFace<Scal>* p_ff_kinematic_viscosity,
       FieldCell<Vect>* p_fc_force,
       FieldFace<Scal>* p_ff_vol_flux,
-      double t, double dt, Par* par)
+      double t, double dt, std::shared_ptr<Par> par)
       : ConvectionDiffusion<Mesh>(t, dt, p_fc_density, 
                                   p_ff_kinematic_viscosity, 
                                   p_fc_force, p_ff_vol_flux)
@@ -465,16 +466,12 @@ class FluidSimple : public FluidSolver<Mesh> {
   static constexpr size_t dim = Mesh::dim;
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
-  using IdxCell = IdxCell;
-  using IdxFace = IdxFace;
-  using IdxNode = IdxNode;
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
   FieldCell<Vect> fc_force_;
   LayersData<FieldFace<Scal>> ff_vol_flux_;
   using CD = ConvectionDiffusionImplicit<Mesh>;
   std::shared_ptr<CD> conv_diff_solver_;
-  using CDPar = typename CD::Par;
 
   LayersData<FieldCell<Scal>> fc_pressure_;
   FieldCell<Scal> fc_kinematic_viscosity_;
@@ -539,7 +536,6 @@ class FluidSimple : public FluidSolver<Mesh> {
   std::vector<Scal> lsa_, lsb_, lsx_;
 
   MultiTimer<std::string>* timer_;
-  CDPar cdpar;
 
   // TODO: somhow track dependencies to define execution order
   void UpdateDerivedConditions() {
@@ -766,8 +762,9 @@ class FluidSimple : public FluidSolver<Mesh> {
     bool forcegeom = false; // geometric average for force
     size_t inletflux_numid = 0; // reduction for id from 0 to numid-1
   };
-  Par* par;
-  void Update(CDPar& cdpar, const Par& par);
+  std::shared_ptr<Par> par;
+  Par* GetPar() { return par.get(); }
+  void Update(typename CD::Par& cdpar, const Par& par);
   // TODO: Add Comm for initial fields or require taht from user.
   FluidSimple(Mesh& mesh,
               const FieldCell<Vect>& fc_velocity_initial,
@@ -784,7 +781,7 @@ class FluidSimple : public FluidSolver<Mesh> {
               FieldCell<Scal>* p_fc_mass_source,
               double time, double time_step,
               MultiTimer<std::string>* timer,
-              Par* par
+              std::shared_ptr<Par> par
               )
       : FluidSolver<Mesh>(time, time_step, p_fc_density, p_fc_viscosity,
                     p_fc_force, p_fc_stforce, p_ff_stforce,
@@ -863,15 +860,19 @@ class FluidSimple : public FluidSolver<Mesh> {
       }
     }
 
-    Update(cdpar, *par);
+    // Init convdiff solver
+    {
+      auto p = std::make_shared<typename CD::Par>();
+      Update(*p, *par);
 
-    conv_diff_solver_ = std::make_shared<
-        ConvectionDiffusionImplicit<Mesh>>(
-            mesh, fc_velocity_initial,
-            mf_velocity_cond_, mc_velocity_cond_,
-            p_fc_density, &ff_kinematic_viscosity_, 
-            &fc_force_, &ff_vol_flux_.iter_prev,
-            time, time_step, &cdpar);
+      conv_diff_solver_ = std::make_shared<
+          ConvectionDiffusionImplicit<Mesh>>(
+              mesh, fc_velocity_initial,
+              mf_velocity_cond_, mc_velocity_cond_,
+              p_fc_density, &ff_kinematic_viscosity_, 
+              &fc_force_, &ff_vol_flux_.iter_prev,
+              time, time_step, p);
+    }
 
     fc_pressure_.time_curr.Reinit(mesh, 0.);
     fc_pressure_.time_prev = fc_pressure_.time_curr;
@@ -949,7 +950,7 @@ class FluidSimple : public FluidSolver<Mesh> {
     }
 
     if (sem("pgrad")) {
-      Update(cdpar, *par);
+      Update(*conv_diff_solver_->GetPar(), *par);
       UpdateDerivedConditions();
       fc_pressure_prev = fc_pressure_curr;
       ff_vol_flux_.iter_prev = ff_vol_flux_.iter_curr;
@@ -1271,7 +1272,7 @@ class FluidSimple : public FluidSolver<Mesh> {
 };
 
 template <class Mesh>
-void FluidSimple<Mesh>::Update(CDPar& d, const Par& p) {
+void FluidSimple<Mesh>::Update(typename CD::Par& d, const Par& p) {
   // Update convdiff parameters
   d.relax = p.vrelax;
   d.guessextra = p.guessextra;

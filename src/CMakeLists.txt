@@ -21,17 +21,22 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -pedantic ")
 #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
 
-# Source folders (add all *.cpp files)
-aux_source_directory(Cubism/ SRC_CUBISM)
-aux_source_directory(CubismDistr/ SRC_CUBISM_DISTR)
-aux_source_directory(hydro/ SRC_HYDRO)
-set(SRC ${SRC_CUBISM} ${SRC_CUBISM_DISTR} ${SRC_HYDRO})
+set(S ".")
 
-include_directories(.)
+include_directories(${S})
 
-# Add target
-add_executable(${EXE} ${SRC})
-     
+add_executable(${EXE} 
+    ${S}/distr/main.cpp
+    ${S}/util/suspender.cpp 
+    ${S}/linear/hypre.cpp 
+    ${S}/dump/dumper.cpp
+    ${S}/parse/vars.cpp
+    ${S}/distr/local.cpp
+    ${S}/distr/cubism.cpp
+    ${S}/parse/interp.cpp
+    ${S}/distr/distrsolver.cpp
+    )
+
 # C++11
 set_property(TARGET ${EXE} PROPERTY CXX_STANDARD 11)
 set_property(TARGET ${EXE} PROPERTY CXX_STANDARD_REQUIRED ON)
