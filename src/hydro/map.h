@@ -2,7 +2,7 @@
 
 #include <map>
 
-namespace geom {
+
 
 // Idx_ - instance of GIdx
 template <class Value_, class Idx_>
@@ -167,4 +167,4 @@ template <class T>
 using MapNode = GMap<T, IdxNode>;
 
 
-} // namespace geom
+

@@ -14,7 +14,7 @@
 #include "blockface.h"
 #include "rangein.h"
 
-namespace geom {
+
 
 // TODO: Neighbour faces iterator introducing (cell, face) pairs
 // TODO: consider computing some on-the-fly to reduce memory access
@@ -619,4 +619,4 @@ Mesh InitUniformMesh(const Rect<typename Mesh::Vect>& domain,
 }
 
 
-} // namespace geom
+

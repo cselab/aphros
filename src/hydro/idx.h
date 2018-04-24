@@ -4,7 +4,7 @@
 
 #include "vect.hpp"
 
-namespace geom {
+
 
 using IntIdx = std::ptrdiff_t;
 
@@ -47,4 +47,4 @@ using IdxCell = GIdx<0>;
 using IdxFace = GIdx<1>;
 using IdxNode = GIdx<2>;
 
-} // namespace geom
+

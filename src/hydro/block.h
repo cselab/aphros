@@ -5,7 +5,7 @@
 #include "idx.h"
 #include "range.h"
 
-namespace geom {
+
 
 template <class Idx_, size_t dim_>
 class GBlock {
@@ -137,4 +137,4 @@ using GBlockCells = GBlock<IdxCell, dim>;
 template <size_t dim>
 using GBlockNodes = GBlock<IdxNode, dim>;
 
-} // namespace geom
+
