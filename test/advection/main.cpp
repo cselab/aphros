@@ -69,16 +69,11 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
  private:
   FieldFace<Scal> ff_flux_;
   FieldCell<Scal> fc_src_;
-  using AS = solver::AdvectionSolver<M>;
-  using AS1 = solver::AdvectionSolverExplicit<M>;
-  using AS2 = solver::Vof<M>;
-  std::unique_ptr<AS> as_; // advection solver
+  std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
   std::function<Vect(Vect,Scal)> fvel_;
   Scal maxvel_; // maximum velocity relative to cell length [1/time]
                 // cfl = dt * maxvel
   Scal sumu_; // sum of fluid volume
-  typename AS1::Par aspar1_;
-  typename AS2::Par aspar2_;
   Dumper dumper_;
 };
 
@@ -112,16 +107,18 @@ Advection<M>::Advection(Vars& var, const MyBlockInfo& bi, Par& par)
 
   std::string as = var.String["advection_solver"];
   if (as == "tvd") {
-    auto& p = aspar1_;
-    p.sharp = var.Double["sharp"];
-    p.sharpo = var.Double["sharpo"];
-    p.split = var.Int["split"];
-    as_.reset(new AS1(m, u0, bc, &ff_flux_, 
-              &fc_src_, 0., var.Double["dt"], &p));
+    using AS = solver::AdvectionSolverExplicit<M>;
+    auto p = std::make_shared<typename AS::Par>();
+    p->sharp = var.Double["sharp"];
+    p->sharpo = var.Double["sharpo"];
+    p->split = var.Int["split"];
+    as_.reset(new AS(m, u0, bc, &ff_flux_, 
+                     &fc_src_, 0., var.Double["dt"], p));
   } else if (as == "vof") {
-    auto& p = aspar2_;
-    as_.reset(new AS2(m, u0, bc, &ff_flux_, 
-              &fc_src_, 0., var.Double["dt"], &p));
+    using AS = solver::Vof<M>;
+    auto p = std::make_shared<typename AS::Par>();
+    as_.reset(new AS(m, u0, bc, &ff_flux_, 
+                     &fc_src_, 0., var.Double["dt"], p));
   } else {
     throw std::runtime_error("Unknown advection_solver=" + as);
   }
