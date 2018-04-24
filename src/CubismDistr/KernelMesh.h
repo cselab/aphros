@@ -4,7 +4,6 @@
 
 #include "hydro/vect.hpp"
 #include "hydro/mesh3d.hpp"
-#include "hydro/linear.hpp"
 #include "Kernel.h"
 #include "Vars.h"
 
@@ -28,7 +27,7 @@ M CreateMesh(const MyBlockInfo& bi) {
   return geom::InitUniformMesh<M>(d, o, bs, hl);
 }
 
-// Abstract Kernel aware of Mesh 
+// Abstract Kernel aware of Mesh. Dependency of DistrMesh.
 template <class M>
 class KernelMesh : public Kernel {
  public:
@@ -55,11 +54,13 @@ KernelMesh<M>::KernelMesh(Vars& par, const MyBlockInfo& bi)
   : par(par), bi_(bi), m(CreateMesh<M>(bi))
 {}
 
-template <class _M>
+// Abstract KernelFactory aware of Mesh. Dependency of DistrMesh.
+template <class M_>
 class KernelMeshFactory : public KernelFactory {
  public:
-  using M = _M;
-  using K = KernelMesh<M>;
-  K* Make(Vars&, const MyBlockInfo&) override = 0;
+  using M = M_;
+  KernelMesh<M>* Make(Vars&, const MyBlockInfo&) override = 0;
 };
+
+
 

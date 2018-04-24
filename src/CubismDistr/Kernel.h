@@ -24,18 +24,12 @@ struct MyBlockInfo {
 class Kernel {
  public:
   virtual void Run() = 0;
-  //virtual void ReadBuffer(LabMPI&) = 0;
-  //virtual void WriteBuffer(Block_t&) = 0;
   virtual ~Kernel() {}
 };
 
 class KernelFactory {
  public:
-  virtual Kernel* Make(Vars&, const MyBlockInfo&) = 0;
   virtual ~KernelFactory() {}
+  virtual Kernel* Make(Vars&, const MyBlockInfo&) = 0;
 };
-
-
-
-
 

@@ -14,12 +14,15 @@
 #include "hydro/metrics.hpp"
 
 
+// Block processor.
 class Distr {
  public:
   virtual void Run() = 0;
   virtual ~Distr() {}
 };
 
+// Block processor aware of Mesh.
+// KF: kernel factory derived from KernelMeshFactory
 template <class KF>
 class DistrMesh : public Distr {
  public:
@@ -134,6 +137,7 @@ void DistrMesh<KF>::DumpComm(const std::vector<MIdx>& bb) {
 }
 
 
+// TODO: move
 template <class KF>
 void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
   const size_t dim = 3;
