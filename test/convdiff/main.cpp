@@ -35,7 +35,6 @@ class Convdiff : public KernelMeshPar<M_, GPar> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
-  using IdxCell = IdxCell;
   using Par = GPar;
   static constexpr size_t dim = M::dim;
 
@@ -231,7 +230,6 @@ void Convdiff<M>::TestSolve(
     }
 
     using Dir = typename M::Dir;
-    using IdxFace = IdxFace;
 
     MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
 
@@ -430,7 +428,6 @@ using M = MeshStructured<Scal, 3>;
 using K = Convdiff<M>;
 using BC = typename M::BlockCells;
 using FC = FieldCell<Scal>;
-using IdxCell = IdxCell;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 

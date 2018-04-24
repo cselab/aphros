@@ -53,8 +53,6 @@ class ConvectionDiffusionScalarImplicit :
   using Vect = typename Mesh::Vect;
   static constexpr size_t dim = Mesh::dim;
   LayersData<FieldCell<Scal>> fc_field_;
-  using IdxCell = IdxCell;
-  using IdxFace = IdxFace;
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
   MapFace<std::shared_ptr<ConditionFace>> mf_cond_;

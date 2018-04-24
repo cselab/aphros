@@ -15,8 +15,6 @@
 #include "hydro/solver.hpp"
 #include "hydro/linear.hpp"
 
-
-
 struct GPar {};
 
 template <class M_>
@@ -27,7 +25,6 @@ class Simple : public KernelMeshPar<M_, GPar> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
-  using IdxCell = IdxCell;
   using Par = GPar;
   static constexpr size_t dim = M::dim;
 
