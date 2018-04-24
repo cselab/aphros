@@ -33,9 +33,6 @@ GMap<T*, Idx> GetPointers(
 
 namespace solver {
 
-using IdxCell = IdxCell;
-using IdxFace = IdxFace;
-
 class ConditionFace {
  public:
   ConditionFace(size_t nci) : nci_(nci) {}
