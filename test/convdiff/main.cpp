@@ -8,14 +8,11 @@
 #include <utility>
 #include <tuple>
 #include <sstream>
+#include <memory>
 
 #include "CubismDistr/Vars.h"
-#include "CubismDistr/Interp.h"
-#include "CubismDistr/Kernel.h"
-#include "CubismDistr/KernelMesh.h"
-#include "CubismDistr/ICubism.h"
-#include "CubismDistr/ILocal.h"
-#include "CubismDistr/Distr.h"
+#include "CubismDistr/KernelMeshPar.h"
+#include "CubismDistr/DistrSolver.h"
 
 #include "hydro/suspender.h"
 #include "hydro/vect.hpp"
@@ -28,25 +25,27 @@
 #include "hydro/output.hpp"
 #include "hydro/output_paraview.hpp"
 
-// Test design rules:
+struct GPar {};
 
-template <class M>
-class Advection : public KernelMesh<M> {
+template <class M_>
+class Convdiff : public KernelMeshPar<M_, GPar> {
  public:
-  using KM = KernelMesh<M>;
-  using Mesh = M;
-  using Scal = double;
-  using Vect = typename Mesh::Vect;
-  using MIdx = typename Mesh::MIdx;
+  using P = KernelMeshPar<M_, GPar>; // parent
+  using M = M_;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  using MIdx = typename M::MIdx;
   using IdxCell = geom::IdxCell;
+  using Par = GPar;
   static constexpr size_t dim = M::dim;
 
-  Advection(Vars& par, const MyBlockInfo& bi);
+  using P::P;
   void Run() override;
 
  protected:
-  using KM::par;
-  using KM::m;
+  using P::var;
+  using P::m;
+  using P::IsRoot;
 
  private:
   void TestSolve(std::function<Scal(Vect)> fi /*initial*/,
@@ -63,35 +62,14 @@ class Advection : public KernelMesh<M> {
   geom::FieldCell<Scal> fc_exact_;
   geom::FieldFace<Scal> ff_flux_;
   geom::FieldCell<Scal> fc_src_;
-  //using AS = solver::AdvectionSolverExplicit<M, geom::FieldFace<Scal>>;
   using AS = solver::ConvectionDiffusionScalarImplicit<M>;
   std::unique_ptr<AS> as_; // advection solver
-  using ASPar = typename AS::Par;
-  ASPar aspar;
   MIdx gs_; // global mesh size
   Vect ge_; // global extent
-  bool broot_; // block root
   geom::FieldCell<Scal> fc_; // buffer
   FieldCell<Scal> fc_sc_; // scaling
   FieldFace<Scal> ff_d_; // diffusion rate
 };
-
-template <class _M>
-class AdvectionFactory : public KernelMeshFactory<_M> {
- public:
-  using M = _M;
-  using K = Advection<M>;
-  K* Make(Vars& par, const MyBlockInfo& bi) override {
-    return new K(par, bi);
-  }
-};
-
-template <class M>
-Advection<M>::Advection(Vars& par, const MyBlockInfo& bi) 
-  : KernelMesh<M>(par, bi)
-{
-  broot_ = (m.GetInBlockCells().GetBegin() == MIdx(0));
-}
 
 template <class T>
 bool Cmp(T a, T b) {
@@ -224,7 +202,7 @@ typename M::Scal Mean(
 
 
 template <class M>
-void Advection<M>::TestSolve(
+void Convdiff<M>::TestSolve(
     std::function<Scal(Vect)> fi /*initial*/,
     std::function<Scal(Vect)> fe /*exact*/,
     size_t cg /*check gap (separate from boundary)*/,
@@ -233,7 +211,7 @@ void Advection<M>::TestSolve(
   auto sem = m.GetSem("TestSolve");
   auto& bc = m.GetBlockCells();
   if (sem("init")) {
-    if (broot_) {
+    if (IsRoot()) {
       std::cerr << name << std::endl;
     }
     // initial field for advection
@@ -246,9 +224,9 @@ void Advection<M>::TestSolve(
     // global mesh size
     MIdx gs;
     {
-      MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
-      MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
-      MIdx bs(par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]);
+      MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
+      MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
+      MIdx bs(var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]);
       gs = p * b * bs;
     }
 
@@ -329,7 +307,7 @@ void Advection<M>::TestSolve(
          {"bc_zm", gzm}, {"bc_zp", gzp}};
 
     for (auto p : pp) {
-      if (auto bc = par.String(p.first)) {
+      if (auto bc = var.String(p.first)) {
         for (auto i : ff) {
           p.second(i) && set_bc(i, *bc);
         }
@@ -337,7 +315,7 @@ void Advection<M>::TestSolve(
     }
 
     // velocity and flux
-    const Vect vel(par.Vect["vel"]);
+    const Vect vel(var.Vect["vel"]);
     ff_flux_.Reinit(m);
     for (auto idxface : m.AllFaces()) {
       ff_flux_[idxface] = vel.dot(m.GetSurface(idxface));
@@ -351,19 +329,20 @@ void Advection<M>::TestSolve(
     fc_src_.Reinit(m, 0.);
 
     // diffusion rate
-    ff_d_.Reinit(m, par.Double["mu"]);
+    ff_d_.Reinit(m, var.Double["mu"]);
 
     // scaling for as_
     fc_sc_.Reinit(m, 1.); 
 
-    aspar.relax = par.Double["relax"];
-    aspar.guessextra = 0.;
-    aspar.second = 0;
+    auto p = std::make_shared<typename AS::Par>();
+    p->relax = var.Double["relax"];
+    p->guessextra = 0.;
+    p->second = 0;
 
     as_.reset(new AS(
           m, fc_u, mf_cond, mc_cond, 
           &fc_sc_, &ff_d_, &fc_src_, &ff_flux_,
-          0., par.Double["dt"], &aspar));
+          0., var.Double["dt"], p));
 
     // exact solution
     fc_exact_.Reinit(m);
@@ -372,7 +351,7 @@ void Advection<M>::TestSolve(
       fc_exact_[i] = fe(x);
     }
   }
-  for (size_t n = 0; n < par.Int["num_steps"]; ++n) {
+  for (size_t n = 0; n < var.Int["num_steps"]; ++n) {
     if (sem.Nested("as->StartStep()")) {
       as_->StartStep();
     }
@@ -405,27 +384,27 @@ void Advection<M>::TestSolve(
 }
 
 template <class M>
-void Advection<M>::Run() {
-  par.Double["extent"] = 1.; // TODO don't overwrite extent
-  Scal extent = par.Double["extent"];
+void Convdiff<M>::Run() {
+  var.Double["extent"] = 1.; // TODO don't overwrite extent
+  Scal extent = var.Double["extent"];
   {
-    MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
-    MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
-    MIdx bs(par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]);
+    MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
+    MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
+    MIdx bs(var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]);
     gs_ = p * b * bs;
   }
   Scal dx = extent / gs_.norminf(); 
   assert(dx > 0. && dx < extent);
   ge_ = Vect(gs_) * dx;
-  Vect vel(par.Vect["vel"]);
-  Scal ns = par.Int["num_steps"];
-  if (auto pcfl = par.Double("cfl")) {
+  Vect vel(var.Vect["vel"]);
+  Scal ns = var.Int["num_steps"];
+  if (auto pcfl = var.Double("cfl")) {
     Scal cfl = *pcfl;
     Scal dt = dx * cfl / vel.norminf();
-    par.Double.Set("dt", dt);
+    var.Double.Set("dt", dt);
     //Scal nc = cfl * ns; // distance in cells passed
   }
-  Scal t = par.Double["dt"] * ns;
+  Scal t = var.Double["dt"] * ns;
 
   auto sem = m.GetSem("Run");
   auto f = [](Vect x) { 
@@ -436,7 +415,7 @@ void Advection<M>::Run() {
   auto fx = [](Vect x) { return Vect(1., -1., 1.).dot(x); };
   auto fex = [=](Vect x) { x -= vel * t; return fx(x); };
 
-  bool fatal = par.Int["fatal"];
+  bool fatal = var.Int["fatal"];
 
   if (sem.Nested()) {
     TestSolve(fx, fex, 6, "fx", false);
@@ -448,33 +427,21 @@ void Advection<M>::Run() {
 
 using Scal = double;
 using M = geom::MeshStructured<Scal, 3>;
-using K = Advection<M>;
-using KF = AdvectionFactory<M>;
-using D = DistrMesh<KernelMeshFactory<M>>;
+using K = Convdiff<M>;
 using BC = typename M::BlockCells;
 using FC = geom::FieldCell<Scal>;
 using IdxCell = geom::IdxCell;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
-std::tuple<BC, FC, FC> Solve(MPI_Comm comm, Vars& par) {
-  KF kf;
+std::tuple<BC, FC, FC> Solve(MPI_Comm comm, Vars& var) {
+  using Par = typename K::Par;
+  Par par;
 
-  bool loc = par.Int["loc"];
-  
-  Distr* dr;
-  if (loc) {
-    dr = CreateLocal(comm, kf, par);
-  } else {
-    dr = CreateCubism(comm, kf, par);
-  }
+  DistrSolver<M, K> ds(comm, var, par);
+  ds.Run();
 
-  std::unique_ptr<D> d(dynamic_cast<D*>(dr));
-  assert(d);
-  d->Run();
-
-  return std::make_tuple(
-      d->GetGlobalBlock(), d->GetGlobalField(0), d->GetGlobalField(1));
+  return std::make_tuple(ds.GetBlock(), ds.GetField(0), ds.GetField(1));
 }
 
 void Dump(std::vector<const FC*> u, std::vector<std::string> un, 
@@ -491,26 +458,26 @@ void Dump(std::vector<const FC*> u, std::vector<std::string> un,
   ses.Write(0, "t");
 }
 
-void Main(MPI_Comm comm, Vars& par0) {
-  Vars par = par0;
+void Main(MPI_Comm comm, Vars& var0) {
+  Vars var = var0;
   
   std::cerr << "solve ref" << std::endl;
   BC b, bb;
   FC fa, fea, fb, feb;
-  std::tie(b, fa, fea) = Solve(comm, par);
+  std::tie(b, fa, fea) = Solve(comm, var);
 
   using Scal = double;
   geom::Rect<Vect> dom(Vect(0), Vect(1));
   auto m = geom::InitUniformMesh<M>(dom, MIdx(0), b.GetDimensions(), 0);
 
   std::cerr << "solve bs/2" << std::endl;
-  par.Int["bsx"] /= 2;
-  par.Int["bsy"] /= 2;
-  par.Int["bsz"] /= 2;
-  par.Int["bx"] *= 2;
-  par.Int["by"] *= 2;
-  par.Int["bz"] *= 2;
-  std::tie(bb, fb, feb) = Solve(comm, par);
+  var.Int["bsx"] /= 2;
+  var.Int["bsy"] /= 2;
+  var.Int["bsz"] /= 2;
+  var.Int["bx"] *= 2;
+  var.Int["by"] *= 2;
+  var.Int["bz"] *= 2;
+  std::tie(bb, fb, feb) = Solve(comm, var);
 
   PCMP(b.GetEnd(), bb.GetEnd(), true);
 
@@ -524,56 +491,5 @@ void Main(MPI_Comm comm, Vars& par0) {
 
 
 int main (int argc, const char ** argv) {
-  int prov;
-  MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  bool isroot = (!rank);
-
-  Vars par;   // parameter storage
-  Interp ip(par); // interpretor (parser)
-
-  std::string fn = "a.conf";
-  if (argc == 1) {
-    // nop
-  } else if (argc == 2) {
-    fn = argv[1];
-  } else {
-    if (isroot) {
-      std::cerr << "usage: " << argv[0] << " [a.conf]" << std::endl;
-    }
-    return 1;
-  }
-
-  if (isroot) {
-    std::cerr << "Loading config from '" << fn << "'" << std::endl;
-  }
-
-  std::ifstream f(fn);  // config file
-  // Read file and run all commands
-  ip.RunAll(f);   
-
-  // Print vars on root
-  if (isroot) {            
-    std::cerr << "\n=== config begin ===" << std::endl;
-    ip.PrintAll(std::cerr);
-    std::cerr << "=== config end ===\n" << std::endl;
-  }
-
-  bool loc = par.Int["loc"];
-
-  MPI_Comm comm;
-  if (loc) {
-    MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
-    if (rank == 0) {
-      Main(comm, par);
-    }
-  } else {
-    comm = MPI_COMM_WORLD;
-    Main(comm, par);
-  }
-
-
-  MPI_Finalize();	
-  return 0;
+  return RunMpi(argc, argv, Main);
 }

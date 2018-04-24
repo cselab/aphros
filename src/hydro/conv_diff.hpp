@@ -3,6 +3,7 @@
 #include <cmath>
 #include <sstream>
 #include <stdexcept>
+#include <memory>
 
 #include "mesh.hpp"
 #include "linear.hpp"
@@ -74,7 +75,8 @@ class ConvectionDiffusionScalarImplicit :
     Scal guessextra = 0.; // next iteration guess extrapolation weight [0,1]
     bool second = true; // second order in time
   };
-  Par* par;
+  std::shared_ptr<Par> par;
+  Par* GetPar() { return par.get(); }
   ConvectionDiffusionScalarImplicit(
       Mesh& mesh,
       const geom::FieldCell<Scal>& fc_initial,
@@ -84,7 +86,7 @@ class ConvectionDiffusionScalarImplicit :
       const geom::FieldFace<Scal>* p_ff_diffusion_rate,
       const geom::FieldCell<Scal>* p_fc_source,
       const geom::FieldFace<Scal>* p_ff_vol_flux,
-      double t, double dt, Par* par)
+      double t, double dt, std::shared_ptr<Par> par)
       : ConvectionDiffusionScalar<Mesh>(
           t, dt, 
           p_fc_scaling, p_ff_diffusion_rate, p_fc_source, p_ff_vol_flux)

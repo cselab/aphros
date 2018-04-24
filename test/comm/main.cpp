@@ -24,7 +24,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
  public:
   using P = KernelMeshPar<M_, GPar>; // parent
   using M = M_;
-  using Scal = double;
+  using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
   using IdxCell = geom::IdxCell;
