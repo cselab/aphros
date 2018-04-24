@@ -17,7 +17,7 @@ add_executable(${EXE} main.cpp
     ${H}/hypre.cpp 
     ${CD}/Vars.cpp
     ${CD}/Local.cpp
-    #${CD}/Cubism.cpp
+    ${CD}/Cubism.cpp
     ${CD}/Interp.cpp
     )
      
