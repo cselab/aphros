@@ -130,6 +130,9 @@ void Advection<M>::Run() {
     auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
     m.Comm(&u);
   }
+  if (sem("dump")) {
+    m.Dump(const_cast<FieldCell<Scal>*>(&as_->GetField()), "u");
+  }
   sem.LoopBegin();
   if (sem("empty")) {
     //nop // TODO: bugfix loop, empty stage needed

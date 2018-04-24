@@ -161,6 +161,7 @@ class Cubism : public DistrMesh<KF> {
   using P::isroot_;
   using P::comm_;
   using P::ext_;
+  using P::frame_;
 
   Grid g_;
   struct S { // cubism [s]tate
@@ -169,7 +170,6 @@ class Cubism : public DistrMesh<KF> {
     std::map<MIdx, BlockInfo, typename MIdx::LexLess> mb;
   };
   S s_;
-  size_t frame_;
 
   static StencilInfo GetStencil(int hl /*halo cells*/,
                                 int cs /*comm size*/) {
@@ -351,7 +351,6 @@ template <class Par, class KF>
 Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par) 
   : DistrMesh<KF>(comm, kf, par)
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm)
-  , frame_(0)
 {
   assert(bs_ == MIdx(Block::bx, Block::by, Block::bz));
 
@@ -554,15 +553,27 @@ void Cubism<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
     assert(m.GetComm().size() >= m.GetDump().size());
     size_t k = m.GetComm().size() - m.GetDump().size();
     assert(0 <= k && k < Elem::es && k < m.GetComm().size());
-    for (auto d : m.GetDump()) {
-      auto suff = "_" + std::to_string(frame_);
-      StreamHdfDyn<Block>::ID = k;
-      StreamHdfDyn<Block>::NAME = d.second;
-      DumpHDF5_MPI<Grid, StreamHdfDyn<Block>>(
-          g_, frame_, frame_, d.second + suff);
-      ++k;
+
+    std::string df = par.String["dumpformat"];
+    if (df == "default") {
+      df = "hdf";
     }
-    ++frame_;
+
+    if (df == "hdf") {
+      for (auto d : m.GetDump()) {
+        auto suff = "_" + std::to_string(frame_);
+        StreamHdfDyn<Block>::ID = k;
+        StreamHdfDyn<Block>::NAME = d.second;
+        DumpHDF5_MPI<Grid, StreamHdfDyn<Block>>(
+            g_, frame_, frame_, d.second + suff);
+        ++k;
+      }
+      // TODO: avoid duplication of next two lines
+      std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
+      ++frame_;
+    } else {
+      P::DumpWrite(bb);
+    }
   }
 }
 
