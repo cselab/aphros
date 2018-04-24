@@ -34,6 +34,7 @@ class DistrMesh : public Distr {
   using Vect = typename M::Vect;
 
   virtual void Run();
+  virtual void Report();
   virtual ~DistrMesh() {}
   virtual typename M::BlockCells GetGlobalBlock() const;
   // Returns data field i from buffer defined on global mesh
@@ -81,6 +82,9 @@ class DistrMesh : public Distr {
   // Create a kernel for each block and put into mk
   // Requires initialized isroot_;
   virtual void MakeKernels(const std::vector<MyBlockInfo>&);
+
+ private:
+  MultiTimer<std::string> mt_;
 };
 
 template <class KF>
@@ -265,9 +269,7 @@ auto DistrMesh<KF>::GetGlobalField(size_t i) const -> geom::FieldCell<Scal> {
 
 template <class KF>
 void DistrMesh<KF>::Run() {
-  MultiTimer<std::string> mt;
-  stage_ = 0;
-  mt.Push();
+  mt_.Push();
   do {
     auto bb = GetBlocks();
     
@@ -284,8 +286,8 @@ void DistrMesh<KF>::Run() {
 
     Solve(bb);
 
-    mt.Pop(mk.at(bb[0])->GetMesh().GetCurName());
-    mt.Push();
+    mt_.Pop(mk.at(bb[0])->GetMesh().GetCurName());
+    mt_.Push();
 
     Run(bb);
 
@@ -311,17 +313,20 @@ void DistrMesh<KF>::Run() {
       break;
     }
   } while (true);
-  mt.Pop("last");
+  mt_.Pop("last");
+}
 
+template <class KF>
+void DistrMesh<KF>::Report() {
   if (isroot_) {
     double a = 0.; // total
-    for (auto e : mt.GetMap()) {
+    for (auto e : mt_.GetMap()) {
       a += e.second;
     }
 
     if (par.Int["verbose_stages"]) {
       std::cout << std::fixed;
-      for (auto e : mt.GetMap()) {
+      for (auto e : mt_.GetMap()) {
         auto n = e.first; // name
         if (n == "") {
           n = "other";
@@ -374,4 +379,3 @@ void DistrMesh<KF>::Run() {
         << std::endl;
   }
 }
-

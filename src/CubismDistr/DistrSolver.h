@@ -55,6 +55,9 @@ class DistrSolver {
   void MakeStep() {
     d_->Run();
   }
+  void Report() {
+    d_->Report();
+  }
   GBlock<IdxCell, dim> GetBlock() const {
     return d_->GetGlobalBlock();
   }
