@@ -18,11 +18,11 @@ bool Cmp<double>(double a, double b) {
 template <class Idx, class B, class Scal>
 Scal DiffMax(
     const B& b,
-    const geom::GField<Scal, Idx>& u,
-    const geom::GField<Scal, Idx>& v,
-    const geom::GField<bool, Idx>& mask) {
+    const GField<Scal, Idx>& u,
+    const GField<Scal, Idx>& v,
+    const GField<bool, Idx>& mask) {
   Scal r = 0;
-  for (auto i : geom::GRange<Idx>(b)) {
+  for (auto i : GRange<Idx>(b)) {
     if (mask[i]) {
       r = std::max(r, std::abs(u[i] - v[i]));
     }
@@ -33,10 +33,10 @@ Scal DiffMax(
 template <class Idx, class B, class Scal>
 Scal Max(
     const B& b,
-    const geom::GField<Scal, Idx>& u,
-    const geom::GField<bool, Idx>& mask) {
+    const GField<Scal, Idx>& u,
+    const GField<bool, Idx>& mask) {
   Scal r = 0;
-  for (auto i : geom::GRange<Idx>(b)) {
+  for (auto i : GRange<Idx>(b)) {
     if (mask[i]) {
       r = std::max(r, u[i]);
     }
@@ -47,11 +47,11 @@ Scal Max(
 template <class Idx, class B, class Scal>
 Scal Mean(
     const B& b,
-    const geom::GField<Scal, Idx>& u,
-    const geom::GField<bool, Idx>& mask) {
+    const GField<Scal, Idx>& u,
+    const GField<bool, Idx>& mask) {
   Scal r = 0;
   Scal w = 0.;
-  for (auto i : geom::GRange<Idx>(b)) {
+  for (auto i : GRange<Idx>(b)) {
     if (mask[i]) {
       r += u[i];
       w += 1.;
@@ -63,10 +63,10 @@ Scal Mean(
 
 template <class Idx, class M>
 typename M::Scal DiffMax(
-    const geom::GField<typename M::Scal, Idx>& u,
-    const geom::GField<typename M::Scal, Idx>& v,
+    const GField<typename M::Scal, Idx>& u,
+    const GField<typename M::Scal, Idx>& v,
     const M& m,
-    const geom::GField<bool, Idx>& mask) {
+    const GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
   for (auto i : m.template Get<Idx>()) {
@@ -79,9 +79,9 @@ typename M::Scal DiffMax(
 
 template <class Idx, class M>
 typename M::Scal Max(
-    const geom::GField<typename M::Scal, Idx>& u,
+    const GField<typename M::Scal, Idx>& u,
     const M& m,
-    const geom::GField<bool, Idx>& mask) {
+    const GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
   for (auto i : m.template Get<Idx>()) {
@@ -95,9 +95,9 @@ typename M::Scal Max(
 
 template <class Idx, class M>
 typename M::Scal Mean(
-    const geom::GField<typename M::Scal, Idx>& u,
+    const GField<typename M::Scal, Idx>& u,
     const M& m,
-    const geom::GField<bool, Idx>& mask) {
+    const GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
   Scal w = 0.;

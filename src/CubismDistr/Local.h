@@ -24,13 +24,13 @@ class Local : public DistrMesh<KF> {
   Local(MPI_Comm comm, KF& kf, Vars& par);
   typename M::BlockCells GetGlobalBlock() const override;
   // Returns data field i from buffer defined on global mesh
-  geom::FieldCell<Scal> GetGlobalField(size_t i) const override; 
+  FieldCell<Scal> GetGlobalField(size_t i) const override; 
 
  private:
   using MIdx = typename M::MIdx;
   using Vect = typename M::Vect;
-  using Rect = geom::Rect<Vect>;
-  using IdxCell = geom::IdxCell;
+  using Rect = Rect<Vect>;
+  using IdxCell = IdxCell;
   using P = DistrMesh<KF>;
 
   using P::mk;
@@ -47,7 +47,7 @@ class Local : public DistrMesh<KF> {
   using P::ext_;
   using P::frame_;
 
-  std::vector<geom::FieldCell<Scal>> buf_; // buffer on mesh
+  std::vector<FieldCell<Scal>> buf_; // buffer on mesh
   M gm; // global mesh
   std::unique_ptr<output::Session> session_;
   std::vector<MyBlockInfo> bb_;
@@ -82,7 +82,7 @@ auto Local<KF>::CreateMesh(MIdx bs, MIdx b, MIdx p, int es, Scal ext) -> M {
     << " h=" << h
     << std::endl;
 
-  return geom::InitUniformMesh<M>(d, o, mm, 0);
+  return InitUniformMesh<M>(d, o, mm, 0);
 }
 
 template <class KF>
@@ -101,8 +101,8 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par)
   MIdx ms(bs_); // block size 
   MIdx mb(b_[0], b_[1], b_[2]); // number of blocks
   MIdx mp(p_[0], p_[1], p_[2]); // number of PEs
-  geom::GBlockCells<3> bc(mb * mp);
-  using geom::IdxNode;
+  GBlockCells<3> bc(mb * mp);
+  using IdxNode;
   Scal h = (gm.GetNode(IdxNode(1)) - gm.GetNode(IdxNode(0)))[0];
   assert(h > 0);
   std::cerr << "h from gm = " << h << std::endl;
@@ -347,7 +347,7 @@ auto Local<KF>::GetGlobalBlock() const -> typename M::BlockCells {
 }
 
 template <class KF>
-auto Local<KF>::GetGlobalField(size_t i) const -> geom::FieldCell<Scal> {
+auto Local<KF>::GetGlobalField(size_t i) const -> FieldCell<Scal> {
   return buf_[i];
 }
 

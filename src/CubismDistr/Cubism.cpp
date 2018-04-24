@@ -28,7 +28,7 @@ Distr* TryCubism(MPI_Comm comm, KernelFactory& kf, Vars& par) {
 
 Distr* CreateCubism(MPI_Comm comm, KernelFactory& kf, Vars& par) {
   Distr* r = nullptr;
-  using KF = KernelMeshFactory<geom::MeshStructured<double, 3>>;
+  using KF = KernelMeshFactory<MeshStructured<double, 3>>;
   // 3D
   if (!r) r = TryCubism<32, 32, 32, KF>(comm, kf, par);
   if (!r) r = TryCubism<16, 16, 16, KF>(comm, kf, par);

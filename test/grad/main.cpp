@@ -9,13 +9,13 @@
 #include "solver.hpp"
 
 const int dim = 3;
-using MIdx = geom::GMIdx<dim>;
-using IdxCell = geom::IdxCell;
-using IdxFace = geom::IdxFace;
-using Dir = geom::GDir<dim>;
+using MIdx = GMIdx<dim>;
+using IdxCell = IdxCell;
+using IdxFace = IdxFace;
+using Dir = GDir<dim>;
 using Scal = double;
-using Vect = geom::GVect<Scal, dim>;
-using Mesh = geom::MeshStructured<Scal, dim>;
+using Vect = GVect<Scal, dim>;
+using Mesh = MeshStructured<Scal, dim>;
 
 bool Cmp(Scal a, Scal b) {
   return std::abs(a - b) < 1e-12;
@@ -41,8 +41,8 @@ typename V::value_type Prod(const V& v) {
 
 template <class Idx, class M>
 typename Mesh::Scal DiffMax(
-    const geom::GField<typename Mesh::Scal, Idx>& u,
-    const geom::GField<typename Mesh::Scal, Idx>& v,
+    const GField<typename Mesh::Scal, Idx>& u,
+    const GField<typename Mesh::Scal, Idx>& v,
     const M& m) {
   using Scal = typename Mesh::Scal;
   Scal r = 0;
@@ -54,8 +54,8 @@ typename Mesh::Scal DiffMax(
 
 template <class Idx, class M>
 typename Mesh::Scal DiffMax(
-    const geom::GField<typename M::Vect, Idx>& u,
-    const geom::GField<typename M::Vect, Idx>& v,
+    const GField<typename M::Vect, Idx>& u,
+    const GField<typename M::Vect, Idx>& v,
     const M& m) {
   using Scal = typename Mesh::Scal;
   Scal r = 0;
@@ -79,17 +79,17 @@ typename Mesh::Scal DiffMax(
 
 
 Mesh GetMesh(MIdx s /*size in cells*/) {
-  geom::Rect<Vect> dom(Vect(0.1, 0.2, 0.1), Vect(1.1, 1.2, 1.3));
+  Rect<Vect> dom(Vect(0.1, 0.2, 0.1), Vect(1.1, 1.2, 1.3));
   MIdx b(-2, -3, -4); // lower index
   int hl = 1;         // halos 
   Vect doms = dom.GetDimensions();
   Vect h = dom.GetDimensions() / Vect(s);
-  return geom::InitUniformMesh<Mesh>(dom, b, s, hl);
+  return InitUniformMesh<Mesh>(dom, b, s, hl);
 }
 
 template <class T, class Idx, class M>
 void Eval(std::function<T(Vect)> f,   
-          geom::GField<T, Idx>& r,
+          GField<T, Idx>& r,
           const M& m) {
   r.Reinit(m);
   for (auto i : m.template GetAll<Idx>()) {
@@ -100,17 +100,17 @@ void Eval(std::function<T(Vect)> f,
 template <class M>
 Scal RunInterp(std::function<Scal(Vect)> uf, const M& m) {
   // Init field on all cells (including halos)
-  geom::FieldCell<Scal> cf;
+  FieldCell<Scal> cf;
   Eval(uf, cf, m);
 
   // Empty bc
-  geom::MapFace<std::shared_ptr<solver::ConditionFace>> bc; 
+  MapFace<std::shared_ptr<solver::ConditionFace>> bc; 
 
   // Interpolate to faces
-  geom::FieldFace<Scal> ff = solver::Interpolate(cf, bc, m);
+  FieldFace<Scal> ff = solver::Interpolate(cf, bc, m);
 
   // Init reference on faces
-  geom::FieldFace<Scal> fr;  
+  FieldFace<Scal> fr;  
   Eval(uf, fr, m);
 
   return DiffMax(ff, fr, m);
@@ -120,20 +120,20 @@ Scal RunGrad(std::function<Scal(Vect)> uf,
              std::function<Vect(Vect)> ugr,  // reference
              const Mesh& m) {
   // Init field on all cells (including halos)
-  geom::FieldCell<Scal> f;
+  FieldCell<Scal> f;
   Eval(uf, f, m);
 
   // Empty bc
-  geom::MapFace<std::shared_ptr<solver::ConditionFace>> bc; 
+  MapFace<std::shared_ptr<solver::ConditionFace>> bc; 
 
   // Interpolate to faces
-  geom::FieldFace<Scal> ff = solver::Interpolate(f, bc, m);
+  FieldFace<Scal> ff = solver::Interpolate(f, bc, m);
 
   // Gradient on cells
-  geom::FieldCell<Vect> g = solver::Gradient(ff, m);
+  FieldCell<Vect> g = solver::Gradient(ff, m);
 
   // Init reference on cells
-  geom::FieldCell<Vect> gr;  
+  FieldCell<Vect> gr;  
   Eval(ugr, gr, m);
 
   return DiffMax(g, gr, m);

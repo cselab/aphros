@@ -27,7 +27,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
-  using IdxCell = geom::IdxCell;
+  using IdxCell = IdxCell;
   using Par = GPar;
   static constexpr size_t dim = M::dim;
 
@@ -43,15 +43,15 @@ class Simple : public KernelMeshPar<M_, GPar> {
   void TestComm();
   void TestSolve();
 
-  geom::FieldCell<Scal> fc_;
+  FieldCell<Scal> fc_;
   // LS
   using Expr = solver::Expression<Scal, IdxCell, 1 + dim * 2>;
-  geom::FieldCell<Expr> fc_system_;
+  FieldCell<Expr> fc_system_;
   std::vector<Scal> lsa_;
   std::vector<Scal> lsb_;
   std::vector<Scal> lsx_;
-  geom::FieldCell<Scal> fc_sol_;
-  geom::FieldCell<Scal> fc_exsol_;
+  FieldCell<Scal> fc_sol_;
+  FieldCell<Scal> fc_exsol_;
 };
 
 bool Cmp(double a, double b) {
@@ -60,8 +60,8 @@ bool Cmp(double a, double b) {
 
 template <class Idx, class M>
 typename M::Scal DiffMax(
-    const geom::GField<typename M::Scal, Idx>& u,
-    const geom::GField<typename M::Scal, Idx>& v,
+    const GField<typename M::Scal, Idx>& u,
+    const GField<typename M::Scal, Idx>& v,
     const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
@@ -73,7 +73,7 @@ typename M::Scal DiffMax(
 
 template <class Idx, class M>
 typename M::Scal Max(
-    const geom::GField<typename M::Scal, Idx>& u,
+    const GField<typename M::Scal, Idx>& u,
     const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
@@ -85,7 +85,7 @@ typename M::Scal Max(
 
 template <class Idx, class M>
 typename M::Scal Mean(
-    const geom::GField<typename M::Scal, Idx>& u,
+    const GField<typename M::Scal, Idx>& u,
     const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;

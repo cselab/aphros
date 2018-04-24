@@ -49,9 +49,9 @@ class EntryFieldCopy : public EntryField<FieldType> {
 
 template <class Vect, class IdxType>
 class EntryExtractScalar :
-    public EntryField<geom::GField<typename Vect::value_type, IdxType>> {
-  using VectField = geom::GField<Vect, IdxType>;
-  using ScalarField = geom::GField<typename Vect::value_type, IdxType>;
+    public EntryField<GField<typename Vect::value_type, IdxType>> {
+  using VectField = GField<Vect, IdxType>;
+  using ScalarField = GField<typename Vect::value_type, IdxType>;
   const VectField& vect_field_;
   ScalarField scalar_field_;
   size_t component_number_;
@@ -76,8 +76,8 @@ class EntryExtractScalar :
 
 template <class Value, class Idx, class Mesh>
 class EntryFunction :
-    public EntryField<geom::GField<Value, Idx>> {
-  using ScalarField = geom::GField<Value, Idx>;
+    public EntryField<GField<Value, Idx>> {
+  using ScalarField = GField<Value, Idx>;
   using Function = std::function<Value (Idx)>;
   const Mesh& mesh_;
   ScalarField scalar_field_;
@@ -146,21 +146,21 @@ class SessionPlain : public Session {
   void WriteHeader() {
     out_ << "Cell: ";
     for (auto& entry_generic : content_)
-    if (auto entry = dynamic_cast<EntryField<geom::FieldCell<Scal>>*>(
+    if (auto entry = dynamic_cast<EntryField<FieldCell<Scal>>*>(
         entry_generic.get())) {
       out_ << entry->GetName() << " ";
     }
     out_ << "\n";
     out_ << "Face: ";
     for (auto& entry_generic : content_)
-    if (auto entry = dynamic_cast<EntryField<geom::FieldFace<Scal>>*>(
+    if (auto entry = dynamic_cast<EntryField<FieldFace<Scal>>*>(
         entry_generic.get())) {
       out_ << entry->GetName() << " ";
     }
     out_ << "\n";
     out_ << "Node: ";
     for (auto& entry_generic : content_)
-    if (auto entry = dynamic_cast<EntryField<geom::FieldNode<Scal>>*>(
+    if (auto entry = dynamic_cast<EntryField<FieldNode<Scal>>*>(
         entry_generic.get())) {
       out_ << entry->GetName() << " ";
     }
@@ -205,13 +205,13 @@ class SessionPlain : public Session {
       entry_generic->Prepare();
     }
     for (auto& entry_generic : content_) {
-      TryWriteField<geom::FieldCell<Scal>>(entry_generic.get());
+      TryWriteField<FieldCell<Scal>>(entry_generic.get());
     }
     for (auto& entry_generic : content_) {
-      TryWriteField<geom::FieldFace<Scal>>(entry_generic.get());
+      TryWriteField<FieldFace<Scal>>(entry_generic.get());
     }
     for (auto& entry_generic : content_) {
-      TryWriteField<geom::FieldNode<Scal>>(entry_generic.get());
+      TryWriteField<FieldNode<Scal>>(entry_generic.get());
     }
     out_ << std::endl;
   }

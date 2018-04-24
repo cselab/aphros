@@ -15,7 +15,7 @@
 
 void TestLine() {
   using Scal = double;
-  using Vect = geom::GVect<Scal, 3>;
+  using Vect = GVect<Scal, 3>;
 
   {
     std::cerr << "check u=u(a(u)) on random input" << std::endl;

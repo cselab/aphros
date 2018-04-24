@@ -37,8 +37,8 @@ class SessionParaviewStructured : public SessionParaview {
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
   using MIdx = typename Mesh::MIdx;
-  using FieldCell = geom::FieldCell<Scal>;
-  using FieldNode = geom::FieldNode<Scal>;
+  using FieldCell = FieldCell<Scal>;
+  using FieldNode = FieldNode<Scal>;
 
   const Mesh& mesh;
   size_t timestep_;

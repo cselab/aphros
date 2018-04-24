@@ -13,8 +13,8 @@
 // Format:
 // <Nx> <Ny> <Nz>
 // <data:x=0,y=0,z=0> <data:x=1,y=0,z=0> ...
-template <class Scal, class B=geom::GBlock<geom::IdxCell, 3>>
-void Dump(const geom::FieldCell<Scal>& u, const B& b, std::string op) {
+template <class Scal, class B=GBlock<IdxCell, 3>>
+void Dump(const FieldCell<Scal>& u, const B& b, std::string op) {
   std::ofstream o(op.c_str());
 
   auto s = b.GetDimensions();

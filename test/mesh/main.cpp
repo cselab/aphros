@@ -7,7 +7,7 @@
 
 // Returns true if a < b (lex starting from end)
 template <class T, size_t d>
-bool Cmp(const geom::GVect<T, d>& a, const geom::GVect<T, d>& b) {
+bool Cmp(const GVect<T, d>& a, const GVect<T, d>& b) {
   int i = a.size();
   while (i--) {
     if (a[i] != b[i]) {
@@ -18,12 +18,12 @@ bool Cmp(const geom::GVect<T, d>& a, const geom::GVect<T, d>& b) {
 }
 
 const int dim = 3;
-using MIdx = geom::GMIdx<dim>;
-using IdxCell = geom::IdxCell;
-using IdxFace = geom::IdxFace;
-using Dir = geom::GDir<dim>;
+using MIdx = GMIdx<dim>;
+using IdxCell = IdxCell;
+using IdxFace = IdxFace;
+using Dir = GDir<dim>;
 using Scal = double;
-using Vect = geom::GVect<Scal, dim>;
+using Vect = GVect<Scal, dim>;
 
 void TestBlock() {
   const size_t hl = 1;
@@ -32,11 +32,11 @@ void TestBlock() {
   MIdx oa= oi - MIdx(hl); // origin all
   MIdx sa = si + MIdx(2 * hl); // size all
 
-  geom::GBlockFaces<dim> bi(oi, si);
-  geom::GBlockFaces<dim> ba(oa, sa);
+  GBlockFaces<dim> bi(oi, si);
+  GBlockFaces<dim> ba(oa, sa);
 
-  geom::GRange<IdxFace> ra(ba);
-  geom::GRangeIn<IdxFace, dim> ri(ba, bi);
+  GRange<IdxFace> ra(ba);
+  GRangeIn<IdxFace, dim> ri(ba, bi);
 
   const MIdx xp0 = oa - MIdx(Dir(0));
   MIdx xp = xp0;
@@ -83,14 +83,14 @@ bool Cmp(size_t a, size_t b) {
   CMP(a, b); 
 
 void TestMesh() {
-  geom::Rect<Vect> dom(Vect(0., 1.5, 2.7), Vect(5.3, 4.1, 3.));
-  using M = geom::MeshStructured<Scal, dim>;
+  Rect<Vect> dom(Vect(0., 1.5, 2.7), Vect(5.3, 4.1, 3.));
+  using M = MeshStructured<Scal, dim>;
   MIdx b(-2, -3, -4); // lower index
   MIdx s(5, 4, 3);    // size in cells
   int hl = 2;         // halos 
   Vect doms = dom.GetDimensions();
   Vect h = dom.GetDimensions() / Vect(s);
-  M m = geom::InitUniformMesh<M>(dom, b, s, hl);
+  M m = InitUniformMesh<M>(dom, b, s, hl);
 
   // Total volume
   Scal v = 0.;
@@ -153,7 +153,7 @@ void TestMesh() {
 
 
   // Comm
-  geom::FieldCell<Scal> fc;
+  FieldCell<Scal> fc;
   m.Comm(&fc);
   CMP(m.GetComm()[0], &fc);
 }
@@ -165,12 +165,12 @@ int main() {
 
 
   {
-    geom::Rect<Vect> dom(Vect(0.), Vect(1.));
-    using M = geom::MeshStructured<Scal, dim>;
+    Rect<Vect> dom(Vect(0.), Vect(1.));
+    using M = MeshStructured<Scal, dim>;
     MIdx b(3, 2, 5); // lower index
     MIdx s(2, 2, 2);    // size in cells
     int hl = 0;         // halos 
-    M m = geom::InitUniformMesh<M>(dom, b, s, hl);
+    M m = InitUniformMesh<M>(dom, b, s, hl);
     for (auto i : m.GetBlockCells()) {
       std::cout << i << std::endl;
     }
@@ -183,7 +183,7 @@ int main() {
     }
     std::cout << std::endl;
 
-    using B = geom::GBlock<IdxFace, 3>;
+    using B = GBlock<IdxFace, 3>;
     B sb(b, s);
     for (auto i : sb) {
       auto j = sb.GetIdx(i);

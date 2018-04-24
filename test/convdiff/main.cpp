@@ -35,7 +35,7 @@ class Convdiff : public KernelMeshPar<M_, GPar> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
-  using IdxCell = geom::IdxCell;
+  using IdxCell = IdxCell;
   using Par = GPar;
   static constexpr size_t dim = M::dim;
 
@@ -55,18 +55,18 @@ class Convdiff : public KernelMeshPar<M_, GPar> {
                  bool check /*abort if differs from exact*/);
 
   template <class T>
-  using FieldCell = geom::FieldCell<T>;
+  using FieldCell = FieldCell<T>;
   template <class T>
-  using FieldFace = geom::FieldFace<T>;
+  using FieldFace = FieldFace<T>;
 
-  geom::FieldCell<Scal> fc_exact_;
-  geom::FieldFace<Scal> ff_flux_;
-  geom::FieldCell<Scal> fc_src_;
+  FieldCell<Scal> fc_exact_;
+  FieldFace<Scal> ff_flux_;
+  FieldCell<Scal> fc_src_;
   using AS = solver::ConvectionDiffusionScalarImplicit<M>;
   std::unique_ptr<AS> as_; // advection solver
   MIdx gs_; // global mesh size
   Vect ge_; // global extent
-  geom::FieldCell<Scal> fc_; // buffer
+  FieldCell<Scal> fc_; // buffer
   FieldCell<Scal> fc_sc_; // scaling
   FieldFace<Scal> ff_d_; // diffusion rate
 };
@@ -85,11 +85,11 @@ bool Cmp<double>(double a, double b) {
 template <class Idx, class B, class Scal>
 Scal DiffMax(
     const B& b,
-    const geom::GField<Scal, Idx>& u,
-    const geom::GField<Scal, Idx>& v,
-    const geom::GField<bool, Idx>& mask) {
+    const GField<Scal, Idx>& u,
+    const GField<Scal, Idx>& v,
+    const GField<bool, Idx>& mask) {
   Scal r = 0;
-  for (auto i : geom::GRange<Idx>(b)) {
+  for (auto i : GRange<Idx>(b)) {
     if (mask[i]) {
       r = std::max(r, std::abs(u[i] - v[i]));
     }
@@ -100,10 +100,10 @@ Scal DiffMax(
 template <class Idx, class B, class Scal>
 Scal Max(
     const B& b,
-    const geom::GField<Scal, Idx>& u,
-    const geom::GField<bool, Idx>& mask) {
+    const GField<Scal, Idx>& u,
+    const GField<bool, Idx>& mask) {
   Scal r = 0;
-  for (auto i : geom::GRange<Idx>(b)) {
+  for (auto i : GRange<Idx>(b)) {
     if (mask[i]) {
       r = std::max(r, u[i]);
     }
@@ -114,11 +114,11 @@ Scal Max(
 template <class Idx, class B, class Scal>
 Scal Mean(
     const B& b,
-    const geom::GField<Scal, Idx>& u,
-    const geom::GField<bool, Idx>& mask) {
+    const GField<Scal, Idx>& u,
+    const GField<bool, Idx>& mask) {
   Scal r = 0;
   Scal w = 0.;
-  for (auto i : geom::GRange<Idx>(b)) {
+  for (auto i : GRange<Idx>(b)) {
     if (mask[i]) {
       r += u[i];
       w += 1.;
@@ -130,10 +130,10 @@ Scal Mean(
 
 template <class Idx, class M>
 typename M::Scal DiffMax(
-    const geom::GField<typename M::Scal, Idx>& u,
-    const geom::GField<typename M::Scal, Idx>& v,
+    const GField<typename M::Scal, Idx>& u,
+    const GField<typename M::Scal, Idx>& v,
     const M& m,
-    const geom::GField<bool, Idx>& mask) {
+    const GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
   for (auto i : m.template Get<Idx>()) {
@@ -146,9 +146,9 @@ typename M::Scal DiffMax(
 
 template <class Idx, class M>
 typename M::Scal Max(
-    const geom::GField<typename M::Scal, Idx>& u,
+    const GField<typename M::Scal, Idx>& u,
     const M& m,
-    const geom::GField<bool, Idx>& mask) {
+    const GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
   for (auto i : m.template Get<Idx>()) {
@@ -162,9 +162,9 @@ typename M::Scal Max(
 
 template <class Idx, class M>
 typename M::Scal Mean(
-    const geom::GField<typename M::Scal, Idx>& u,
+    const GField<typename M::Scal, Idx>& u,
     const M& m,
-    const geom::GField<bool, Idx>& mask) {
+    const GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
   Scal w = 0.;
@@ -231,9 +231,9 @@ void Convdiff<M>::TestSolve(
     }
 
     using Dir = typename M::Dir;
-    using IdxFace = geom::IdxFace;
+    using IdxFace = IdxFace;
 
-    geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
+    MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
 
     // boundary xm of global mesh
     auto gxm = [this](IdxFace i) -> bool {
@@ -260,7 +260,7 @@ void Convdiff<M>::TestSolve(
       return dim >= 3 && m.GetDir(i) == Dir::k &&
           m.GetBlockFaces().GetMIdx(i)[2] == gs[2];
     };
-    auto parse = [](std::string s, geom::IdxFace, size_t nci, M& m) 
+    auto parse = [](std::string s, IdxFace, size_t nci, M& m) 
        -> std::shared_ptr<solver::ConditionFace> {
       std::stringstream arg(s);
 
@@ -323,7 +323,7 @@ void Convdiff<M>::TestSolve(
 
     // cell conditions for advection
     // (empty)
-    geom::MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
+    MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
     
     // source
     fc_src_.Reinit(m, 0.);
@@ -363,7 +363,7 @@ void Convdiff<M>::TestSolve(
     }
   }
   if (sem("check")) {
-    geom::GBlockCells<dim> cbc(MIdx(cg), gs_ - MIdx(2 * cg)); // check block
+    GBlockCells<dim> cbc(MIdx(cg), gs_ - MIdx(2 * cg)); // check block
     FieldCell<bool> mask(m, false);
     for (auto i : m.AllCells()) {
       if (cbc.IsInside(bc.GetMIdx(i))) {
@@ -426,11 +426,11 @@ void Convdiff<M>::Run() {
 }
 
 using Scal = double;
-using M = geom::MeshStructured<Scal, 3>;
+using M = MeshStructured<Scal, 3>;
 using K = Convdiff<M>;
 using BC = typename M::BlockCells;
-using FC = geom::FieldCell<Scal>;
-using IdxCell = geom::IdxCell;
+using FC = FieldCell<Scal>;
+using IdxCell = IdxCell;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
@@ -467,8 +467,8 @@ void Main(MPI_Comm comm, Vars& var0) {
   std::tie(b, fa, fea) = Solve(comm, var);
 
   using Scal = double;
-  geom::Rect<Vect> dom(Vect(0), Vect(1));
-  auto m = geom::InitUniformMesh<M>(dom, MIdx(0), b.GetDimensions(), 0);
+  Rect<Vect> dom(Vect(0), Vect(1));
+  auto m = InitUniformMesh<M>(dom, MIdx(0), b.GetDimensions(), 0);
 
   std::cerr << "solve bs/2" << std::endl;
   var.Int["bsx"] /= 2;
@@ -481,7 +481,7 @@ void Main(MPI_Comm comm, Vars& var0) {
 
   PCMP(b.GetEnd(), bb.GetEnd(), true);
 
-  geom::FieldCell<bool> mask(b, true);
+  FieldCell<bool> mask(b, true);
 
   Dump({&fa, &fea, &fb}, {"a", "ea", "b"}, m, "a");
 

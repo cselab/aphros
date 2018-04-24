@@ -13,24 +13,24 @@
 #include "solver.hpp"
 
 const int dim = 3;
-using MIdx = geom::GMIdx<dim>;
-using IdxCell = geom::IdxCell;
-using IdxFace = geom::IdxFace;
-using Dir = geom::GDir<dim>;
+using MIdx = GMIdx<dim>;
+using IdxCell = IdxCell;
+using IdxFace = IdxFace;
+using Dir = GDir<dim>;
 using Scal = double;
-using Vect = geom::GVect<Scal, dim>;
-using Mesh = geom::MeshStructured<Scal, dim>;
+using Vect = GVect<Scal, dim>;
+using Mesh = MeshStructured<Scal, dim>;
 
 // Echo Execute
 #define EE(...); std::cerr << "\n" << #__VA_ARGS__ << std::endl; __VA_ARGS__;
 
 Mesh GetMesh(MIdx s /*size in cells*/) {
-  geom::Rect<Vect> dom(Vect(0.1, 0.2, 0.1), Vect(1.1, 1.2, 1.3));
+  Rect<Vect> dom(Vect(0.1, 0.2, 0.1), Vect(1.1, 1.2, 1.3));
   MIdx b(-2, -3, -4); // lower index
   int hl = 2;         // halos 
   Vect doms = dom.GetDimensions();
   Vect h = dom.GetDimensions() / Vect(s);
-  return geom::InitUniformMesh<Mesh>(dom, b, s, hl);
+  return InitUniformMesh<Mesh>(dom, b, s, hl);
 }
 
 class Empty : public Timer {
@@ -118,7 +118,7 @@ class LoopArPlain : public Timer {
 
 class LoopArAllCells : public Timer {
   Mesh& m;
-  geom::FieldCell<Scal> v;
+  FieldCell<Scal> v;
  public:
   LoopArAllCells(Mesh& m) : Timer("loop-ar-allcells"), m(m), v(m) {}
   void F() override {
@@ -161,9 +161,9 @@ class LoopMIdxAllFaces : public Timer {
 
 class Interp : public Timer {
   Mesh& m;
-  geom::FieldCell<Scal> fc;
-  geom::MapFace<std::shared_ptr<solver::ConditionFace>> mfc;
-  geom::FieldFace<Scal> ff;
+  FieldCell<Scal> fc;
+  MapFace<std::shared_ptr<solver::ConditionFace>> mfc;
+  FieldFace<Scal> ff;
  public:
   Interp(Mesh& m) : Timer("interp"), m(m), fc(m), ff(m) {
     for (auto i : m.AllCells()) {
@@ -187,8 +187,8 @@ class Interp : public Timer {
 
 class Grad : public Timer {
   Mesh& m;
-  geom::FieldCell<Vect> fc;
-  geom::FieldFace<Scal> ff;
+  FieldCell<Vect> fc;
+  FieldFace<Scal> ff;
  public:
   Grad(Mesh& m) : Timer("grad"), m(m), fc(m), ff(m) {
     for (auto i : m.AllFaces()) {
@@ -205,11 +205,11 @@ class Grad : public Timer {
 
 class ExplVisc : public Timer {
   Mesh& m;
-  geom::FieldCell<Vect> fcv;
-  geom::FieldCell<Vect> fcf;
-  geom::FieldFace<Scal> ffmu;
-  geom::MapFace<std::shared_ptr<solver::ConditionFace>> mfc;
-  geom::MapFace<std::shared_ptr<solver::ConditionFace>> mfcf;
+  FieldCell<Vect> fcv;
+  FieldCell<Vect> fcf;
+  FieldFace<Scal> ffmu;
+  MapFace<std::shared_ptr<solver::ConditionFace>> mfc;
+  MapFace<std::shared_ptr<solver::ConditionFace>> mfcf;
 
  public:
   ExplVisc(Mesh& m) : Timer("explvisc"), m(m), fcv(m), fcf(m), ffmu(m) {
@@ -236,7 +236,7 @@ class ExplVisc : public Timer {
     using namespace solver;
     auto& mesh = m;
     for (size_t n = 0; n < dim; ++n) {
-      geom::FieldCell<Scal> fc = GetComponent(fcv, n);
+      FieldCell<Scal> fc = GetComponent(fcv, n);
       auto ff = Interpolate(fc, mfc, mesh);
       auto gc = Gradient(ff, mesh);
       auto gf = Interpolate(gc, mfcf, mesh); // adhoc: zero-der cond
