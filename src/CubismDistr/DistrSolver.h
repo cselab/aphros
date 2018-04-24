@@ -13,7 +13,6 @@
 
 #include "hydro/vect.hpp"
 #include "hydro/block.h"
-#include "hydro/dump.h"
 
 using namespace geom;
 
@@ -54,7 +53,7 @@ class DistrSolver {
       throw std::runtime_error("DistrSolver: Can't cast to D");
     }
   }
-  void MakeStep() {
+  void Run() {
     d_->Run();
   }
   void Report() {
@@ -74,31 +73,6 @@ class DistrSolver {
   }
   double GetTimeStep() const { 
     return var.Double["dt"]; 
-  }
-  void RunUntilFinished() {
-    size_t k = 0;
-
-    // Comm initial field (needed for GetField())
-    MakeStep();
-    Dump(GetField(), GetBlock(), "u" + std::to_string(k) + ".dat");
-    ++k;
-
-    auto& ttmax = var.Double["ttmax"];
-    auto& tmax = var.Double["tmax"];
-    // Time steps until reaching ttmax
-    while (tmax < ttmax) {
-      std::cout 
-          << "tmax = " << tmax 
-          << " dt = " << GetTimeStep()
-          << std::endl;
-
-      // Time steps until reaching tmax
-      tmax += var.Double["dumpdt"];
-      MakeStep();
-
-      Dump(GetField(), GetBlock(), "u" + std::to_string(k) + ".dat");
-      ++k;
-    }
   }
 
  private:
