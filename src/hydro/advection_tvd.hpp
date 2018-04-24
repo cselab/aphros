@@ -44,14 +44,15 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
     Scal sharp_max = 1.;
     bool split = false;
   };
-  Par* par;
+  std::shared_ptr<Par> par;
+  Par* GetPar() { return par.get(); }
   AdvectionSolverExplicit(
       Mesh& m,
       const FieldCell<Scal>& fc_u_initial,
       const MapFace<std::shared_ptr<ConditionFace>>& mf_u_cond_,
       const FieldFace<Scal>* p_fn_velocity,
       const FieldCell<Scal>* p_fc_source,
-      double t, double dt, Par* par)
+      double t, double dt, std::shared_ptr<Par> par)
       : AdvectionSolver<Mesh>(t, dt, m, p_fn_velocity, p_fc_source)
       , mf_u_cond_(mf_u_cond_)
       , ff_volume_flux_(m)

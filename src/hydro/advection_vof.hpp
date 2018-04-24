@@ -236,14 +236,15 @@ class Vof : public AdvectionSolver<M> {
  public:
   struct Par {
   };
-  Par* par;
+  std::shared_ptr<Par> par;
+  Par* GetPar() { return par.get(); }
   Vof(
       Mesh& m,
       const FieldCell<Scal>& fc_u_initial,
       const MapFace<std::shared_ptr<ConditionFace>>& mf_u_cond_,
       const FieldFace<Scal>* ff_volume_flux,
       const FieldCell<Scal>* fc_source,
-      double t, double dt, Par* par)
+      double t, double dt, std::shared_ptr<Par> par)
       : AdvectionSolver<Mesh>(t, dt, m, ff_volume_flux, fc_source)
       , mf_u_cond_(mf_u_cond_)
       , par(par)
