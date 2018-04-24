@@ -6,21 +6,19 @@ project(${p})
 
 set(EXE t.${p})
 
-set(H "../../src/hydro")
-set(CD "../../src/CubismDistr")
 set(S "../../src")
 
 include_directories(${S})
 
 add_executable(${EXE} main.cpp 
-    ${H}/suspender.cpp 
-    ${H}/hypre.cpp 
-    ${H}/dumper.cpp
-    ${CD}/vars.cpp
-    ${CD}/local.cpp
-    ${CD}/cubism.cpp
-    ${CD}/interp.cpp
-    ${CD}/distrsolver.cpp
+    ${S}/util/suspender.cpp 
+    ${S}/linear/hypre.cpp 
+    ${S}/dump/dumper.cpp
+    ${S}/parse/vars.cpp
+    ${S}/distr/local.cpp
+    ${S}/distr/cubism.cpp
+    ${S}/parse/interp.cpp
+    ${S}/distr/distrsolver.cpp
     )
      
 # OpenMP 

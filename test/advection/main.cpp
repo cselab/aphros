@@ -9,27 +9,23 @@
 #include <tuple>
 #include <stdexcept>
 
-#include "CubismDistr/vars.h"
-#include "CubismDistr/kernelmeshpar.h"
-#include "CubismDistr/distrsolver.h"
+#include "parse/vars.h"
+#include "kernel/kernelmeshpar.h"
+#include "distr/distrsolver.h"
 
-#include "hydro/suspender.h"
-#include "hydro/vect.hpp"
-#include "hydro/mesh3d.hpp"
-#include "hydro/solver.hpp"
-#include "hydro/linear.hpp"
-#include "hydro/advection.hpp"
-#include "hydro/advection_vof.hpp"
-#include "hydro/advection_tvd.hpp"
-#include "hydro/init_vel.h"
-#include "hydro/init_u.h"
-#include "hydro/dumper.h"
-
-#include "hydro/output.hpp"
+#include "util/suspender.h"
+#include "geom/vect.hpp"
+#include "geom/mesh3d.hpp"
+#include "solver/solver.hpp"
+#include "solver/advection.hpp"
+#include "solver/advection_vof.hpp"
+#include "solver/advection_tvd.hpp"
+#include "func/init_vel.h"
+#include "func/init_u.h"
+#include "dump/dumper.h"
+#include "dump/output.hpp"
 
 #include "cmp.h"
-
-
 
 template <class M_>
 struct GPar {
