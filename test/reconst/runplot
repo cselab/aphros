@@ -1,7 +1,0 @@
-#!/bin/bash
-
-set -eu
-
-make
-./t.reconst
-./plot.py

@@ -74,6 +74,8 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   Scal maxvel_; // maximum velocity relative to cell length [1/time]
                 // cfl = dt * maxvel
   Scal sumu_; // sum of fluid volume
+  FieldCell<Scal> fcnx_, fcny_, fcnz_; // normal to interface (tmp)
+                                             // used for Vof dump
   Dumper dumper_;
 };
 
@@ -130,6 +132,18 @@ void Advection<M>::Dump(Sem& sem) {
     if (dumper_.Try(var.Double["t"], var.Double["dt"])) {
       auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
       m.Dump(&u, "u");
+      if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
+        auto& a = const_cast<FieldCell<Scal>&>(as->GetAlpha());
+        m.Dump(&a, "a");
+        auto &n = as->GetNormal();
+        fcnx_ = GetComponent(n, 0);
+        fcny_ = GetComponent(n, 1);
+        fcnz_ = GetComponent(n, 2);
+        m.Dump(&fcnx_, "nx");
+        m.Dump(&fcny_, "ny");
+        m.Dump(&fcnz_, "nz");
+      }
+
       if (IsRoot()) {
         dumper_.Report();
       }
