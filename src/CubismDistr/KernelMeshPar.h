@@ -20,7 +20,7 @@ class KernelMeshPar : public KernelMesh<M_> {
   KernelMeshPar(Vars& var, const MyBlockInfo& bi, Par& par)
       : KernelMesh<M>(var, bi)
       , par_(par) {}
-  void Run() override;
+  void Run() override = 0;
 
  protected:
   using P::var;
