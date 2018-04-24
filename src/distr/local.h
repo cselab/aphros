@@ -6,10 +6,10 @@
 #include <mpi.h>
 
 #include "ilocal.h"
-#include "geom/vect.hpp"
-#include "geom/mesh3d.hpp"
-#include "dump/output.hpp"
-#include "dump/output_paraview.hpp"
+#include "geom/vect.h"
+#include "geom/mesh3d.h"
+#include "dump/output.h"
+#include "dump/output_paraview.h"
 #include "parse/vars.h"
 #include "distr.h"
 #include "linear/hypre.h"

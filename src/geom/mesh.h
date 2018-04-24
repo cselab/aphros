@@ -7,7 +7,7 @@
 
 #include "util/suspender.h"
 #include "idx.h"
-#include "vect.hpp"
+#include "vect.h"
 #include "range.h"
 #include "field.h"
 #include "map.h"

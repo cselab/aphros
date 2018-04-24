@@ -7,7 +7,7 @@
 #include <fstream>
 #include <functional>
 
-#include "geom/mesh.hpp"
+#include "geom/mesh.h"
 
 namespace output {
 

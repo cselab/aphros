@@ -15,17 +15,17 @@
 #include <mpi.h>
 #include <stdexcept>
 
-#include "geom/vect.hpp"
-#include "geom/mesh3d.hpp"
-#include "solver/solver.hpp"
-#include "solver/advection.hpp"
-#include "solver/conv_diff.hpp"
-#include "solver/fluid.hpp"
+#include "geom/vect.h"
+#include "geom/mesh3d.h"
+#include "solver/solver.h"
+#include "solver/advection.h"
+#include "solver/conv_diff.h"
+#include "solver/fluid.h"
 #include "kernel.h"
 #include "kernelmesh.h"
 #include "parse/vars.h"
 #include "parse/interp.h"
-#include "dump/output.hpp"
+#include "dump/output.h"
 #include "dump/dumper.h"
 
 

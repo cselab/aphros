@@ -9,7 +9,7 @@
 #include <memory>
 #include <map>
 
-#include "geom/mesh.hpp"
+#include "geom/mesh.h"
 
 namespace solver {
 

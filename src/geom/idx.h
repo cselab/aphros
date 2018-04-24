@@ -2,7 +2,7 @@
 
 #include <cstddef> // ptrdiff_t
 
-#include "vect.hpp"
+#include "vect.h"
 
 using IntIdx = std::ptrdiff_t;
 

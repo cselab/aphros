@@ -5,9 +5,9 @@
 #include <stdexcept>
 #include <memory>
 
-#include "solver.hpp"
-#include "metrics.hpp"
-#include "conv_diff.hpp"
+#include "solver.h"
+#include "metrics.h"
+#include "conv_diff.h"
 
 namespace solver {
 

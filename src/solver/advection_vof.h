@@ -5,7 +5,7 @@
 #include <array>
 #include <memory>
 
-#include "advection.hpp"
+#include "advection.h"
 #include "geom/block.h"
 
 namespace solver {

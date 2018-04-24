@@ -7,8 +7,8 @@
 #include <fstream>
 #include <fstream>
 
-#include "output.hpp"
-#include "geom/mesh.hpp"
+#include "output.h"
+#include "geom/mesh.h"
 
 namespace output {
 
