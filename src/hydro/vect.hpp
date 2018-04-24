@@ -7,7 +7,7 @@
 #include <cassert>
 #include <vector>
 
-namespace geom {
+
 
 template <class T>
 T sqr(T a) {
@@ -305,4 +305,4 @@ struct Rect {
   }
 };
 
-} // namespace geom
+

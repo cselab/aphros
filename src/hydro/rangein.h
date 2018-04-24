@@ -2,7 +2,7 @@
 
 #include "block.h"
 
-namespace geom {
+
 
 template <class Idx_, int dim_>
 class GRangeIn {
@@ -52,4 +52,4 @@ class GRangeIn {
 
 
 
-} // namespace geom
+

@@ -5,7 +5,7 @@
 
 #include "range.h"
 
-namespace geom {
+
 
 template <class Value_, class Idx_>
 class GField {
@@ -119,4 +119,4 @@ std::ostream& operator<<(std::ostream& out, const GField<T, Idx>& u) {
 }
 
 
-} // namespace geom
+

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace geom {
+
 
 template <class _Idx>
 class GRange {
@@ -55,4 +55,4 @@ class GRange {
   }
 };
 
-} // namespace geom
+

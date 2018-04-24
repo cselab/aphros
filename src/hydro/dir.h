@@ -2,7 +2,7 @@
 
 #include "idx.h"
 
-namespace geom {
+
 
 template <size_t dim_>
 class GDir {
@@ -52,4 +52,4 @@ const GDir<dim> GDir<dim>::j(1);
 template <size_t dim>
 const GDir<dim> GDir<dim>::k(2);
 
-} // namespace geom
+
