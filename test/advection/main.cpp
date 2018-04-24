@@ -10,7 +10,6 @@
 #include <stdexcept>
 
 #include "CubismDistr/Vars.h"
-#include "CubismDistr/Interp.h"
 #include "CubismDistr/KernelMeshPar.h"
 #include "CubismDistr/DistrSolver.h"
 
@@ -24,7 +23,6 @@
 #include "hydro/advection_tvd.hpp"
 #include "hydro/init_vel.h"
 #include "hydro/init_u.h"
-#include "hydro/dump.h"
 
 #include "hydro/output.hpp"
 
@@ -208,7 +206,6 @@ void Advection<M>::Run() {
   sem.LoopEnd();
 }
 
-
 void Main(MPI_Comm comm, Vars& var) {
   using M = MeshStructured<double, 3>;
   using Scal = typename M::Scal;
@@ -221,82 +218,9 @@ void Main(MPI_Comm comm, Vars& var) {
   par.fvel = CreateInitVel<Vect>(var);
 
   DistrSolver<M, K> ds(comm, var, par);
-
-  size_t k = 0;
-
-  // Comm initial field (needed for GetField())
-  ds.MakeStep();
-  Dump(ds.GetField(), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
-  ++k;
-
-  auto& ttmax = var.Double["ttmax"];
-  auto& tmax = var.Double["tmax"];
-  // Time steps until reaching ttmax
-  while (tmax < ttmax) {
-    std::cout 
-        << "tmax = " << tmax 
-        << " dt = " << ds.GetTimeStep()
-        << std::endl;
-
-    // Time steps until reaching tmax
-    tmax += var.Double["dumpdt"];
-    ds.MakeStep();
-
-    Dump(ds.GetField(), ds.GetBlock(), "u" + std::to_string(k) + ".dat");
-    ++k;
-  }
+  ds.RunUntilFinished();
 }
 
-int main (int argc, const char ** argv) {
-  int prov;
-  MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  bool isroot = (!rank);
-
-  Vars var;   // parameter storage
-  Interp ip(var); // interpretor (parser)
-
-  std::string fn = "a.conf";
-  if (argc == 1) {
-    // nop
-  } else if (argc == 2) {
-    fn = argv[1];
-  } else {
-    if (isroot) {
-      std::cerr << "usage: " << argv[0] << " [a.conf]" << std::endl;
-    }
-    return 1;
-  }
-
-  if (isroot) {
-    std::cerr << "Loading config from '" << fn << "'" << std::endl;
-  }
-
-  std::ifstream f(fn);  // config file
-  // Read file and run all commands
-  ip.RunAll(f);   
-
-  // Print vars on root
-  if (isroot) {            
-    std::cerr << "\n=== config begin ===" << std::endl;
-    ip.PrintAll(std::cerr);
-    std::cerr << "=== config end ===\n" << std::endl;
-  }
-
-  bool loc = var.Int["loc"];
-
-  MPI_Comm comm;
-  if (loc) {
-    MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
-    if (rank == 0) {
-      Main(comm, var);
-    }
-  } else {
-    comm = MPI_COMM_WORLD;
-    Main(comm, var);
-  }
-
-  MPI_Finalize();	
-  return 0;
+int main(int argc, const char ** argv) {
+  return RunMpi(argc, argv, Main);
 }
