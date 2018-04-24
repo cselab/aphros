@@ -6,11 +6,8 @@
 #include <fstream>
 
 #include "CubismDistr/Vars.h"
-#include "CubismDistr/Interp.h"
-#include "CubismDistr/Kernel.h"
-#include "CubismDistr/KernelMesh.h"
-#include "CubismDistr/ICubism.h"
-#include "CubismDistr/ILocal.h"
+#include "CubismDistr/KernelMeshPar.h"
+#include "CubismDistr/DistrSolver.h"
 
 #include "hydro/suspender.h"
 #include "hydro/vect.hpp"
@@ -18,25 +15,29 @@
 #include "hydro/solver.hpp"
 #include "hydro/linear.hpp"
 
+using namespace geom;
 
-template <class M>
-class Simple : public KernelMesh<M> {
+struct GPar {};
+
+template <class M_>
+class Simple : public KernelMeshPar<M_, GPar> {
  public:
-  using KM = KernelMesh<M>;
-  using Mesh = M;
+  using P = KernelMeshPar<M_, GPar>; // parent
+  using M = M_;
   using Scal = double;
-  using Vect = typename Mesh::Vect;
-  using MIdx = typename Mesh::MIdx;
+  using Vect = typename M::Vect;
+  using MIdx = typename M::MIdx;
   using IdxCell = geom::IdxCell;
+  using Par = GPar;
   static constexpr size_t dim = M::dim;
 
-  Simple(Vars& par, const MyBlockInfo& bi);
+  using P::P;
   void Run() override;
 
  protected:
-  using KM::par;
-  using KM::bi_;
-  using KM::m;
+  using P::var;
+  using P::bi_;
+  using P::m;
 
  private:
   void TestComm();
@@ -52,21 +53,6 @@ class Simple : public KernelMesh<M> {
   geom::FieldCell<Scal> fc_sol_;
   geom::FieldCell<Scal> fc_exsol_;
 };
-
-template <class _M>
-class SimpleFactory : public KernelMeshFactory<_M> {
- public:
-  using M = _M;
-  using K = Simple<M>;
-  K* Make(Vars& par, const MyBlockInfo& bi) override {
-    return new K(par, bi);
-  }
-};
-
-template <class M>
-Simple<M>::Simple(Vars& par, const MyBlockInfo& bi) 
-  : KernelMesh<M>(par, bi)
-{}
 
 bool Cmp(double a, double b) {
   return std::abs(a - b) < 1e-10;
@@ -179,10 +165,10 @@ void Simple<M>::TestSolve() {
 
   // global mesh size
   MIdx gs;
-  MIdx bs(par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]);
+  MIdx bs(var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]);
   {
-    MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
-    MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
+    MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
+    MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
     gs = p * b * bs;
   }
 
@@ -222,7 +208,7 @@ void Simple<M>::TestSolve() {
       auto& e = fc_system_[i];
       e.Clear();
 
-      bool per = par.Int["periodic"];
+      bool per = var.Int["periodic"];
 
       e.InsertTerm(mpx < gs || per       ? -0.0 : 0., ipx);
       e.InsertTerm(MIdx(0) <= mmx || per ? -0.0 : 0., imx);
@@ -243,7 +229,7 @@ void Simple<M>::TestSolve() {
       e.SetConstant(-r);
     }
 
-    using LS = typename Mesh::LS;
+    using LS = typename M::LS;
     LS l = ConvertLs(fc_system_, lsa_, lsb_, lsx_, m);
     m.Solve(l);
   }
@@ -272,77 +258,17 @@ void Simple<M>::Run() {
 }
 
 
-void Main(MPI_Comm comm, bool loc, Vars& par) {
-  // read config files, parse arguments, maybe init global fields
-  using Scal = double;
-  using M = geom::MeshStructured<Scal, 3>;
+void Main(MPI_Comm comm, Vars& var) {
+  using M = MeshStructured<double, 3>;
   using K = Simple<M>;
-  using KF = SimpleFactory<M>;
-  using D = Distr;
-  
-  KF kf;
+  using Par = typename K::Par;
+  Par par;
 
-  // Initialize buffer mesh and make Simple for each block.
-  std::unique_ptr<Distr> d;
-  if (loc) {
-    d.reset(CreateLocal(comm, kf, par));
-  } else {
-    d.reset(CreateCubism(comm, kf, par));
-  }
-
-  d->Run();
+  DistrSolver<M, K> ds(comm, var, par);
+  ds.Run();
 }
 
-int main (int argc, const char ** argv) {
-  int prov;
-  MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  bool isroot = (!rank);
 
-  Vars par;   // parameter storage
-  Interp ip(par); // interpretor (parser)
-
-  std::string fn = "a.conf";
-  if (argc == 1) {
-    // nop
-  } else if (argc == 2) {
-    fn = argv[1];
-  } else {
-    if (isroot) {
-      std::cerr << "usage: " << argv[0] << " [a.conf]" << std::endl;
-    }
-    return 1;
-  }
-
-  if (isroot) {
-    std::cerr << "Loading config from '" << fn << "'" << std::endl;
-  }
-
-  std::ifstream f(fn);  // config file
-  // Read file and run all commands
-  ip.RunAll(f);   
-
-  // Print vars on root
-  if (isroot) {            
-    std::cerr << "\n=== config begin ===" << std::endl;
-    ip.PrintAll(std::cerr);
-    std::cerr << "=== config end ===\n" << std::endl;
-  }
-
-  bool loc = par.Int["loc"];
-
-  MPI_Comm comm;
-  if (loc) {
-    MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
-    if (rank == 0) {
-      Main(comm, loc, par);
-    }
-  } else {
-    comm = MPI_COMM_WORLD;
-    Main(comm, loc, par);
-  }
-
-  MPI_Finalize();	
-  return 0;
+int main(int argc, const char** argv) {
+  return RunMpi(argc, argv, Main);
 }

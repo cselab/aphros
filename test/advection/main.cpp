@@ -260,6 +260,6 @@ void Main(MPI_Comm comm, Vars& var) {
   ds.Run();
 }
 
-int main(int argc, const char ** argv) {
+int main(int argc, const char** argv) {
   return RunMpi(argc, argv, Main);
 }

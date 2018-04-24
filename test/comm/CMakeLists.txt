@@ -19,6 +19,7 @@ add_executable(${EXE} main.cpp
     ${CD}/Local.cpp
     ${CD}/Cubism.cpp
     ${CD}/Interp.cpp
+    ${CD}/DistrSolver.cpp
     )
      
 # OpenMP 
