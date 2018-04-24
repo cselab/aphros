@@ -5,14 +5,14 @@
 #include <iomanip>
 #include <fstream>
 
-#include "geom/vect.hpp"
-#include "geom/mesh3d.hpp"
+#include "geom/vect.h"
+#include "geom/mesh3d.h"
 #include "parse/vars.h"
 #include "kernel/kernelmeshpar.h"
 #include "distr/distrsolver.h"
 #include "util/suspender.h"
-#include "solver/solver.hpp"
-#include "linear/linear.hpp"
+#include "solver/solver.h"
+#include "linear/linear.h"
 
 struct GPar {};
 

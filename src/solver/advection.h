@@ -3,7 +3,7 @@
 #include <exception>
 #include <fstream>
 
-#include "solver/solver.hpp"
+#include "solver/solver.h"
 
 namespace solver {
 

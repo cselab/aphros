@@ -9,8 +9,8 @@
 #include <stdexcept>
 #include <random>
 
-#include "geom/vect.hpp"
-#include "solver/advection_vof.hpp"
+#include "geom/vect.h"
+#include "solver/advection_vof.h"
 
 
 void TestLine() {

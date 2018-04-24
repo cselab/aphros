@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "geom/vect.hpp"
-#include "geom/mesh3d.hpp"
+#include "geom/vect.h"
+#include "geom/mesh3d.h"
 #include "kernel.h"
 #include "parse/vars.h"
 

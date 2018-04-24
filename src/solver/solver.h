@@ -3,8 +3,8 @@
 #include <exception>
 #include <memory>
 
-#include "geom/mesh.hpp"
-#include "linear/linear.hpp"
+#include "geom/mesh.h"
+#include "linear/linear.h"
 
 template <class Scal>
 bool IsNan(Scal a) {

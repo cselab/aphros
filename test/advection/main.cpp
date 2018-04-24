@@ -14,16 +14,16 @@
 #include "distr/distrsolver.h"
 
 #include "util/suspender.h"
-#include "geom/vect.hpp"
-#include "geom/mesh3d.hpp"
-#include "solver/solver.hpp"
-#include "solver/advection.hpp"
-#include "solver/advection_vof.hpp"
-#include "solver/advection_tvd.hpp"
+#include "geom/vect.h"
+#include "geom/mesh3d.h"
+#include "solver/solver.h"
+#include "solver/advection.h"
+#include "solver/advection_vof.h"
+#include "solver/advection_tvd.h"
 #include "func/init_vel.h"
 #include "func/init_u.h"
 #include "dump/dumper.h"
-#include "dump/output.hpp"
+#include "dump/output.h"
 
 #include "cmp.h"
 

@@ -2,8 +2,8 @@
 #include <iostream>
 #include <cassert>
 
-#include "geom/mesh.hpp"
-#include "geom/mesh3d.hpp"
+#include "geom/mesh.h"
+#include "geom/mesh3d.h"
 
 // Returns true if a < b (lex starting from end)
 template <class T, size_t d>

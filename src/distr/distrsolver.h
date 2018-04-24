@@ -11,7 +11,7 @@
 #include "icubism.h"
 #include "ilocal.h"
 #include "parse/interp.h"
-#include "geom/vect.hpp"
+#include "geom/vect.h"
 #include "geom/block.h"
 
 // Client for DistrMesh

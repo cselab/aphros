@@ -4,7 +4,7 @@
 #include <fstream>
 #include <memory>
 
-#include "advection.hpp"
+#include "advection.h"
 
 namespace solver {
 

@@ -11,8 +11,8 @@
 #include "kernel/kernel.h"
 #include "linear/hypre.h"
 #include "util/suspender.h"
-#include "util/metrics.hpp"
-#include "geom/mesh.hpp"
+#include "util/metrics.h"
+#include "geom/mesh.h"
 #include "dump/dump.h"
 
 

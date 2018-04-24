@@ -1,4 +1,4 @@
-#include "vect.hpp"
+#include "vect.h"
 
 using Scal = double;
 using Vect = geom::GVect<Scal, 3>;

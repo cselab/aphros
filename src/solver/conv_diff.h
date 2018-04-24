@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <memory>
 
-#include "solver.hpp"
+#include "solver.h"
 
 namespace solver {
 

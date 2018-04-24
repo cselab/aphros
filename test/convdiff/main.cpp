@@ -14,14 +14,14 @@
 #include "kernel/kernelmeshpar.h"
 #include "distr/distrsolver.h"
 #include "util/suspender.h"
-#include "geom/vect.hpp"
-#include "geom/mesh3d.hpp"
-#include "linear/linear.hpp"
-#include "solver/solver.hpp"
-#include "solver/advection.hpp"
-#include "solver/conv_diff.hpp"
-#include "dump/output.hpp"
-#include "dump/output_paraview.hpp"
+#include "geom/vect.h"
+#include "geom/mesh3d.h"
+#include "linear/linear.h"
+#include "solver/solver.h"
+#include "solver/advection.h"
+#include "solver/conv_diff.h"
+#include "dump/output.h"
+#include "dump/output_paraview.h"
 
 struct GPar {};
 

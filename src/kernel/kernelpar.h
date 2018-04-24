@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "geom/vect.hpp"
-#include "linear/linear.hpp"
+#include "geom/vect.h"
+#include "linear/linear.h"
 #include "kernel.h"
 #include "parse/vars.h"
 #include "kernelmesh.h"

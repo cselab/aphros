@@ -3,7 +3,7 @@
 set -eu
 
 items='
-s/Vars\.h/vars.h/gI
+s/\.hpp/.h/gI
 '
 
 for i in $items ; do
