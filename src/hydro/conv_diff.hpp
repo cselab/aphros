@@ -18,18 +18,18 @@ class ConvectionDiffusionScalar : public UnsteadyIterativeSolver {
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
  protected:
-  const geom::FieldCell<Scal>* p_fc_scaling_;  // density
-  const geom::FieldFace<Scal>* p_ff_diffusion_rate_;  // dynamic viscosity
-  const geom::FieldCell<Scal>* p_fc_source_;
-  const geom::FieldFace<Scal>* p_ff_vol_flux_;
+  const FieldCell<Scal>* p_fc_scaling_;  // density
+  const FieldFace<Scal>* p_ff_diffusion_rate_;  // dynamic viscosity
+  const FieldCell<Scal>* p_fc_source_;
+  const FieldFace<Scal>* p_ff_vol_flux_;
 
  public:
   ConvectionDiffusionScalar(
       double t, double dt,
-      const geom::FieldCell<Scal>* p_fc_scaling,
-      const geom::FieldFace<Scal>* p_ff_diffusion_rate,
-      const geom::FieldCell<Scal>* p_fc_source,
-      const geom::FieldFace<Scal>* p_ff_vol_flux)
+      const FieldCell<Scal>* p_fc_scaling,
+      const FieldFace<Scal>* p_ff_diffusion_rate,
+      const FieldCell<Scal>* p_fc_source,
+      const FieldFace<Scal>* p_ff_vol_flux)
       : UnsteadyIterativeSolver(t, dt)
       , p_fc_scaling_(p_fc_scaling)
       , p_ff_diffusion_rate_(p_ff_diffusion_rate)
@@ -38,11 +38,11 @@ class ConvectionDiffusionScalar : public UnsteadyIterativeSolver {
   {
 
   }
-  virtual const geom::FieldCell<Scal>& GetField() = 0;
-  virtual const geom::FieldCell<Scal>& GetField(Layers layer) = 0;
+  virtual const FieldCell<Scal>& GetField() = 0;
+  virtual const FieldCell<Scal>& GetField(Layers layer) = 0;
   virtual void CorrectField(Layers layer,
-                            const geom::FieldCell<Scal>& fc_corr) = 0;
-  virtual const geom::FieldCell<Expr>& GetEquations() = 0;
+                            const FieldCell<Scal>& fc_corr) = 0;
+  virtual const FieldCell<Expr>& GetEquations() = 0;
 };
 
 template <class Mesh>
@@ -52,20 +52,20 @@ class ConvectionDiffusionScalarImplicit :
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
   static constexpr size_t dim = Mesh::dim;
-  LayersData<geom::FieldCell<Scal>> fc_field_;
-  using IdxCell = geom::IdxCell;
-  using IdxFace = geom::IdxFace;
+  LayersData<FieldCell<Scal>> fc_field_;
+  using IdxCell = IdxCell;
+  using IdxFace = IdxFace;
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
-  geom::MapFace<std::shared_ptr<ConditionFace>> mf_cond_;
-  geom::MapCell<std::shared_ptr<ConditionCell>> mc_cond_;
+  MapFace<std::shared_ptr<ConditionFace>> mf_cond_;
+  MapCell<std::shared_ptr<ConditionCell>> mc_cond_;
 
   // Common buffers:
-  geom::FieldFace<Expr> ff_cflux_;
-  geom::FieldFace<Expr> ff_dflux_;
-  geom::FieldCell<Expr> fc_system_;
-  geom::FieldCell<Scal> fc_corr_;
-  geom::FieldCell<Vect> fc_grad_;
+  FieldFace<Expr> ff_cflux_;
+  FieldFace<Expr> ff_dflux_;
+  FieldCell<Expr> fc_system_;
+  FieldCell<Scal> fc_corr_;
+  FieldCell<Vect> fc_grad_;
   // LS
   std::vector<Scal> lsa_, lsb_, lsx_;
 
@@ -79,13 +79,13 @@ class ConvectionDiffusionScalarImplicit :
   Par* GetPar() { return par.get(); }
   ConvectionDiffusionScalarImplicit(
       Mesh& mesh,
-      const geom::FieldCell<Scal>& fc_initial,
-      const geom::MapFace<std::shared_ptr<ConditionFace>>& mf_cond,
-      const geom::MapCell<std::shared_ptr<ConditionCell>>& mc_cond,
-      const geom::FieldCell<Scal>* p_fc_scaling,
-      const geom::FieldFace<Scal>* p_ff_diffusion_rate,
-      const geom::FieldCell<Scal>* p_fc_source,
-      const geom::FieldFace<Scal>* p_ff_vol_flux,
+      const FieldCell<Scal>& fc_initial,
+      const MapFace<std::shared_ptr<ConditionFace>>& mf_cond,
+      const MapCell<std::shared_ptr<ConditionCell>>& mc_cond,
+      const FieldCell<Scal>* p_fc_scaling,
+      const FieldFace<Scal>* p_ff_diffusion_rate,
+      const FieldCell<Scal>* p_fc_source,
+      const FieldFace<Scal>* p_ff_vol_flux,
       double t, double dt, std::shared_ptr<Par> par)
       : ConvectionDiffusionScalar<Mesh>(
           t, dt, 
@@ -266,14 +266,14 @@ class ConvectionDiffusionScalarImplicit :
     }
     return CalcDiff(fc_field_.iter_curr, fc_field_.iter_prev, mesh);
   }
-  const geom::FieldCell<Scal>& GetField() override {
+  const FieldCell<Scal>& GetField() override {
     return fc_field_.time_curr;
   }
-  const geom::FieldCell<Scal>& GetField(Layers layer) override {
+  const FieldCell<Scal>& GetField(Layers layer) override {
     return fc_field_.Get(layer);
   }
   void CorrectField(Layers layer,
-                    const geom::FieldCell<Scal>& fc_corr) override {
+                    const FieldCell<Scal>& fc_corr) override {
     auto sem = mesh.GetSem("convdiff-corr");
     if (sem("applycomm")) {
       auto& fc_field_layer = fc_field_.Get(layer);
@@ -283,7 +283,7 @@ class ConvectionDiffusionScalarImplicit :
       mesh.Comm(&fc_field_layer);
     }
   }
-  const geom::FieldCell<Expr>& GetEquations() override {
+  const FieldCell<Expr>& GetEquations() override {
     return fc_system_;
   }
 };

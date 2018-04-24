@@ -21,18 +21,18 @@ class ConvectionDiffusion : public UnsteadyIterativeSolver {
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
  protected:
-  geom::FieldCell<Scal>* p_fc_density_;
+  FieldCell<Scal>* p_fc_density_;
   // TODO: rename to dynamic viscosity
-  geom::FieldFace<Scal>* p_ff_kinematic_viscosity_; 
-  geom::FieldCell<Vect>* p_fc_force_;
-  geom::FieldFace<Scal>* p_ff_vol_flux_;
+  FieldFace<Scal>* p_ff_kinematic_viscosity_; 
+  FieldCell<Vect>* p_fc_force_;
+  FieldFace<Scal>* p_ff_vol_flux_;
 
  public:
   ConvectionDiffusion(double time, double time_step,
-                      geom::FieldCell<Scal>* p_fc_density,
-                      geom::FieldFace<Scal>* p_ff_kinematic_viscosity,
-                      geom::FieldCell<Vect>* p_fc_force,
-                      geom::FieldFace<Scal>* p_ff_vol_flux
+                      FieldCell<Scal>* p_fc_density,
+                      FieldFace<Scal>* p_ff_kinematic_viscosity,
+                      FieldCell<Vect>* p_fc_force,
+                      FieldFace<Scal>* p_ff_vol_flux
                       )
       : UnsteadyIterativeSolver(time, time_step)
       , p_fc_density_(p_fc_density)
@@ -42,11 +42,11 @@ class ConvectionDiffusion : public UnsteadyIterativeSolver {
   {
 
   }
-  virtual const geom::FieldCell<Vect>& GetVelocity() = 0;
-  virtual const geom::FieldCell<Vect>& GetVelocity(Layers layer) = 0;
+  virtual const FieldCell<Vect>& GetVelocity() = 0;
+  virtual const FieldCell<Vect>& GetVelocity(Layers layer) = 0;
   virtual void CorrectVelocity(Layers layer,
-                               const geom::FieldCell<Vect>& fc_corr) = 0;
-  virtual const geom::FieldCell<Expr>& GetVelocityEquations(size_t comp) = 0;
+                               const FieldCell<Vect>& fc_corr) = 0;
+  virtual const FieldCell<Expr>& GetVelocityEquations(size_t comp) = 0;
 };
 
 template <class Mesh>
@@ -60,18 +60,18 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
   template <class T>
   using VectGeneric = std::array<T, dim>;
-  LayersData<geom::FieldCell<Vect>> fc_velocity_;
+  LayersData<FieldCell<Vect>> fc_velocity_;
 
-  geom::MapFace<std::shared_ptr<ConditionFace>> mf_velocity_cond_;
-  geom::MapCell<std::shared_ptr<ConditionCell>> mc_velocity_cond_;
-  geom::FieldCell<Vect>* p_fc_force_;
+  MapFace<std::shared_ptr<ConditionFace>> mf_velocity_cond_;
+  MapCell<std::shared_ptr<ConditionCell>> mc_velocity_cond_;
+  FieldCell<Vect>* p_fc_force_;
 
-  VectGeneric<geom::MapFace<std::shared_ptr<ConditionFace>>>
+  VectGeneric<MapFace<std::shared_ptr<ConditionFace>>>
   v_mf_velocity_cond_;
   // TODO: Extract scalar CellCondition
   VectGeneric<std::shared_ptr<Solver>>
   v_solver_;
-  VectGeneric<geom::FieldCell<Scal>>
+  VectGeneric<FieldCell<Scal>>
   v_fc_force_;
 
  public:
@@ -85,15 +85,15 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
   }
   ConvectionDiffusionImplicit(
       Mesh& mesh,
-      const geom::FieldCell<Vect>& fc_velocity_initial,
-      const geom::MapFace<std::shared_ptr<ConditionFace>>&
+      const FieldCell<Vect>& fc_velocity_initial,
+      const MapFace<std::shared_ptr<ConditionFace>>&
       mf_velocity_cond,
-      const geom::MapCell<std::shared_ptr<ConditionCell>>&
+      const MapCell<std::shared_ptr<ConditionCell>>&
       mc_velocity_cond,
-      geom::FieldCell<Scal>* p_fc_density,
-      geom::FieldFace<Scal>* p_ff_kinematic_viscosity,
-      geom::FieldCell<Vect>* p_fc_force,
-      geom::FieldFace<Scal>* p_ff_vol_flux,
+      FieldCell<Scal>* p_fc_density,
+      FieldFace<Scal>* p_ff_kinematic_viscosity,
+      FieldCell<Vect>* p_fc_force,
+      FieldFace<Scal>* p_ff_vol_flux,
       double t, double dt, Par* par)
       : ConvectionDiffusion<Mesh>(t, dt, p_fc_density, 
                                   p_ff_kinematic_viscosity, 
@@ -125,7 +125,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
           mesh, 
           GetComponent(fc_velocity_initial, n),
           v_mf_velocity_cond_[n],
-          geom::MapCell<std::shared_ptr<ConditionCell>>() /*TODO empty*/,
+          MapCell<std::shared_ptr<ConditionCell>>() /*TODO empty*/,
           p_fc_density, p_ff_kinematic_viscosity,
           &(v_fc_force_[n]), p_ff_vol_flux, t, dt, par);
     }
@@ -187,14 +187,14 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
     }
     return CalcDiff(fc_velocity_.iter_curr, fc_velocity_.iter_prev, mesh);
   }
-  const geom::FieldCell<Vect>& GetVelocity() override {
+  const FieldCell<Vect>& GetVelocity() override {
     return fc_velocity_.time_curr;
   }
-  const geom::FieldCell<Vect>& GetVelocity(Layers layer) override {
+  const FieldCell<Vect>& GetVelocity(Layers layer) override {
     return fc_velocity_.Get(layer);
   }
   void CorrectVelocity(Layers layer,
-                       const geom::FieldCell<Vect>& fc_corr) override {
+                       const FieldCell<Vect>& fc_corr) override {
     auto sem = mesh.GetSem("corr");
     for (size_t n = 0; n < dim; ++n) {
       if (sem.Nested("dir-corr")) {
@@ -205,10 +205,10 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
       CopyToVector(layer);
     }
   }
-  const geom::FieldCell<Expr>& GetVelocityEquations(size_t comp) override {
+  const FieldCell<Expr>& GetVelocityEquations(size_t comp) override {
     return v_solver_[comp]->GetEquations();
   }
-  geom::MapFace<std::shared_ptr<ConditionFace>>&
+  MapFace<std::shared_ptr<ConditionFace>>&
   GetVelocityCond(size_t comp) {
     return v_mf_velocity_cond_[comp];
   }
@@ -222,23 +222,23 @@ class FluidSolver : public UnsteadyIterativeSolver {
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
  protected:
-  geom::FieldCell<Scal>* p_fc_density_;
-  geom::FieldCell<Scal>* p_fc_viscosity_;
-  geom::FieldCell<Vect>* p_fc_force_;
-  geom::FieldCell<Vect>* p_fc_stforce_;
-  geom::FieldFace<Vect>* p_ff_stforce_;
-  geom::FieldCell<Scal>* p_fc_volume_source_;
-  geom::FieldCell<Scal>* p_fc_mass_source_;
+  FieldCell<Scal>* p_fc_density_;
+  FieldCell<Scal>* p_fc_viscosity_;
+  FieldCell<Vect>* p_fc_force_;
+  FieldCell<Vect>* p_fc_stforce_;
+  FieldFace<Vect>* p_ff_stforce_;
+  FieldCell<Scal>* p_fc_volume_source_;
+  FieldCell<Scal>* p_fc_mass_source_;
 
  public:
   FluidSolver(double time, double time_step,
-              geom::FieldCell<Scal>* p_fc_density,
-              geom::FieldCell<Scal>* p_fc_viscosity,
-              geom::FieldCell<Vect>* p_fc_force,
-              geom::FieldCell<Vect>* p_fc_stforce,
-              geom::FieldFace<Vect>* p_ff_stforce,
-              geom::FieldCell<Scal>* p_fc_volume_source,
-              geom::FieldCell<Scal>* p_fc_mass_source)
+              FieldCell<Scal>* p_fc_density,
+              FieldCell<Scal>* p_fc_viscosity,
+              FieldCell<Vect>* p_fc_force,
+              FieldCell<Vect>* p_fc_stforce,
+              FieldFace<Vect>* p_ff_stforce,
+              FieldCell<Scal>* p_fc_volume_source,
+              FieldCell<Scal>* p_fc_mass_source)
       : UnsteadyIterativeSolver(time, time_step)
       , p_fc_density_(p_fc_density)
       , p_fc_viscosity_(p_fc_viscosity)
@@ -250,12 +250,12 @@ class FluidSolver : public UnsteadyIterativeSolver {
   {
 
   }
-  virtual const geom::FieldCell<Vect>& GetVelocity() = 0;
-  virtual const geom::FieldCell<Vect>& GetVelocity(Layers layer) = 0;
-  virtual const geom::FieldCell<Scal>& GetPressure() = 0;
-  virtual const geom::FieldCell<Scal>& GetPressure(Layers layer) = 0;
-  virtual const geom::FieldFace<Scal>& GetVolumeFlux() = 0;
-  virtual const geom::FieldFace<Scal>& GetVolumeFlux(Layers layer) = 0;
+  virtual const FieldCell<Vect>& GetVelocity() = 0;
+  virtual const FieldCell<Vect>& GetVelocity(Layers layer) = 0;
+  virtual const FieldCell<Scal>& GetPressure() = 0;
+  virtual const FieldCell<Scal>& GetPressure(Layers layer) = 0;
+  virtual const FieldFace<Scal>& GetVolumeFlux() = 0;
+  virtual const FieldFace<Scal>& GetVolumeFlux(Layers layer) = 0;
   virtual double GetAutoTimeStep() { return GetTimeStep(); }
 };
 
@@ -421,7 +421,7 @@ class GivenPressureFixed : public GivenPressure<Mesh> {
 
 template <class Mesh>
 std::shared_ptr<ConditionFaceFluid> Parse(std::string argstr,
-                                          geom::IdxFace idxface,
+                                          IdxFace idxface,
                                           size_t nc, // neighbour cell id
                                           const Mesh& mesh) {
   using namespace fluid_condition;
@@ -467,44 +467,44 @@ class FluidSimple : public FluidSolver<Mesh> {
   static constexpr size_t dim = Mesh::dim;
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
-  using IdxCell = geom::IdxCell;
-  using IdxFace = geom::IdxFace;
-  using IdxNode = geom::IdxNode;
+  using IdxCell = IdxCell;
+  using IdxFace = IdxFace;
+  using IdxNode = IdxNode;
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
-  geom::FieldCell<Vect> fc_force_;
-  LayersData<geom::FieldFace<Scal>> ff_vol_flux_;
+  FieldCell<Vect> fc_force_;
+  LayersData<FieldFace<Scal>> ff_vol_flux_;
   using CD = ConvectionDiffusionImplicit<Mesh>;
   std::shared_ptr<CD> conv_diff_solver_;
   using CDPar = typename CD::Par;
 
-  LayersData<geom::FieldCell<Scal>> fc_pressure_;
-  geom::FieldCell<Scal> fc_kinematic_viscosity_;
-  geom::FieldFace<Scal> ff_kinematic_viscosity_;
+  LayersData<FieldCell<Scal>> fc_pressure_;
+  FieldCell<Scal> fc_kinematic_viscosity_;
+  FieldFace<Scal> ff_kinematic_viscosity_;
 
-  geom::MapFace<std::shared_ptr<ConditionFaceFluid>> mf_cond_;
+  MapFace<std::shared_ptr<ConditionFaceFluid>> mf_cond_;
 
-  geom::MapFace<std::shared_ptr<ConditionFace>> mf_velocity_cond_;
+  MapFace<std::shared_ptr<ConditionFace>> mf_velocity_cond_;
   // TODO: Const specifier for ConditionFace*
 
-  geom::MapFace<std::shared_ptr<ConditionFace>> mf_pressure_cond_;
+  MapFace<std::shared_ptr<ConditionFace>> mf_pressure_cond_;
 
-  geom::MapFace<std::shared_ptr<ConditionFace>> mf_pressure_grad_cond_;
+  MapFace<std::shared_ptr<ConditionFace>> mf_pressure_grad_cond_;
 
-  geom::MapFace<std::shared_ptr<ConditionFace>> mf_force_cond_;
+  MapFace<std::shared_ptr<ConditionFace>> mf_force_cond_;
 
   // diag coeff condition
-  geom::MapFace<std::shared_ptr<ConditionFace>> mf_dcc_;
+  MapFace<std::shared_ptr<ConditionFace>> mf_dcc_;
 
-  geom::MapFace<std::shared_ptr<ConditionFace>> mf_pressure_corr_cond_;
+  MapFace<std::shared_ptr<ConditionFace>> mf_pressure_corr_cond_;
 
-  geom::MapFace<std::shared_ptr<ConditionFace>> mf_viscosity_cond_;
+  MapFace<std::shared_ptr<ConditionFace>> mf_viscosity_cond_;
 
-  geom::MapCell<std::shared_ptr<ConditionCellFluid>> mc_cond_;
-  geom::MapCell<std::shared_ptr<ConditionCell>> mc_pressure_cond_;
-  geom::MapCell<std::shared_ptr<ConditionCell>> mc_velocity_cond_;
+  MapCell<std::shared_ptr<ConditionCellFluid>> mc_cond_;
+  MapCell<std::shared_ptr<ConditionCell>> mc_pressure_cond_;
+  MapCell<std::shared_ptr<ConditionCell>> mc_velocity_cond_;
 
-  geom::FieldFace<bool> is_boundary_;
+  FieldFace<bool> is_boundary_;
 
   // used by UpdateOutletBaseConditions():
   Scal olfi_; // inlet flux
@@ -516,27 +516,27 @@ class FluidSimple : public FluidSolver<Mesh> {
   std::vector<Scal> ila_; // area
 
   // common buffers
-  geom::FieldFace<Scal> ff_pressure_;
-  geom::FieldCell<Vect> fc_pressure_grad_;
-  geom::FieldFace<Vect> ff_pressure_grad_;
-  geom::FieldCell<Vect> fc_velocity_asterisk_;
-  geom::FieldFace<Vect> ff_velocity_asterisk_;
-  geom::FieldFace<Scal> ff_volume_flux_asterisk_;
-  geom::FieldFace<Scal> ff_volume_flux_interpolated_;
-  geom::FieldCell<Scal> fc_diag_coeff_;
-  geom::FieldFace<Scal> ff_diag_coeff_;
-  geom::FieldFace<Expr> ff_volume_flux_corr_;
-  geom::FieldCell<Expr> fc_pressure_corr_system_;
-  geom::FieldCell<Scal> fc_pressure_corr_;
-  geom::FieldCell<Vect> fc_pressure_corr_grad_;
-  geom::FieldFace<Vect> ff_ext_force_;
-  geom::FieldCell<Vect> fc_ext_force_restored_;
-  geom::FieldFace<Vect> ff_ext_force_restored_;
-  geom::FieldFace<Vect> ff_stforce_restored_;
-  geom::FieldCell<Vect> fc_velocity_corr_;
-  geom::FieldCell<Scal> fc_velcomp_;
+  FieldFace<Scal> ff_pressure_;
+  FieldCell<Vect> fc_pressure_grad_;
+  FieldFace<Vect> ff_pressure_grad_;
+  FieldCell<Vect> fc_velocity_asterisk_;
+  FieldFace<Vect> ff_velocity_asterisk_;
+  FieldFace<Scal> ff_volume_flux_asterisk_;
+  FieldFace<Scal> ff_volume_flux_interpolated_;
+  FieldCell<Scal> fc_diag_coeff_;
+  FieldFace<Scal> ff_diag_coeff_;
+  FieldFace<Expr> ff_volume_flux_corr_;
+  FieldCell<Expr> fc_pressure_corr_system_;
+  FieldCell<Scal> fc_pressure_corr_;
+  FieldCell<Vect> fc_pressure_corr_grad_;
+  FieldFace<Vect> ff_ext_force_;
+  FieldCell<Vect> fc_ext_force_restored_;
+  FieldFace<Vect> ff_ext_force_restored_;
+  FieldFace<Vect> ff_stforce_restored_;
+  FieldCell<Vect> fc_velocity_corr_;
+  FieldCell<Scal> fc_velcomp_;
   // / needed for MMIM, now disabled
-  //geom::FieldFace<Vect> ff_velocity_iter_prev_;
+  //FieldFace<Vect> ff_velocity_iter_prev_;
   // LS
   std::vector<Scal> lsa_, lsb_, lsx_;
 
@@ -772,18 +772,18 @@ class FluidSimple : public FluidSolver<Mesh> {
   void Update(CDPar& cdpar, const Par& par);
   // TODO: Add Comm for initial fields or require taht from user.
   FluidSimple(Mesh& mesh,
-              const geom::FieldCell<Vect>& fc_velocity_initial,
-              const geom::MapFace<std::shared_ptr<ConditionFaceFluid>>&
+              const FieldCell<Vect>& fc_velocity_initial,
+              const MapFace<std::shared_ptr<ConditionFaceFluid>>&
               mf_cond,
-              const geom::MapCell<std::shared_ptr<ConditionCellFluid>>&
+              const MapCell<std::shared_ptr<ConditionCellFluid>>&
               mc_cond,
-              geom::FieldCell<Scal>* p_fc_density,
-              geom::FieldCell<Scal>* p_fc_viscosity,
-              geom::FieldCell<Vect>* p_fc_force,
-              geom::FieldCell<Vect>* p_fc_stforce,
-              geom::FieldFace<Vect>* p_ff_stforce,
-              geom::FieldCell<Scal>* p_fc_volume_source,
-              geom::FieldCell<Scal>* p_fc_mass_source,
+              FieldCell<Scal>* p_fc_density,
+              FieldCell<Scal>* p_fc_viscosity,
+              FieldCell<Vect>* p_fc_force,
+              FieldCell<Vect>* p_fc_stforce,
+              FieldFace<Vect>* p_ff_stforce,
+              FieldCell<Scal>* p_fc_volume_source,
+              FieldCell<Scal>* p_fc_mass_source,
               double time, double time_step,
               MultiTimer<std::string>* timer,
               Par* par
@@ -1238,22 +1238,22 @@ class FluidSimple : public FluidSolver<Mesh> {
   double GetError() const override {
     return conv_diff_solver_->GetError();
   }
-  const geom::FieldCell<Vect>& GetVelocity() override {
+  const FieldCell<Vect>& GetVelocity() override {
     return conv_diff_solver_->GetVelocity();
   }
-  const geom::FieldCell<Vect>& GetVelocity(Layers layer) override {
+  const FieldCell<Vect>& GetVelocity(Layers layer) override {
     return conv_diff_solver_->GetVelocity(layer);
   }
-  const geom::FieldCell<Scal>& GetPressure() override {
+  const FieldCell<Scal>& GetPressure() override {
     return fc_pressure_.time_curr;
   }
-  const geom::FieldCell<Scal>& GetPressure(Layers layer) override {
+  const FieldCell<Scal>& GetPressure(Layers layer) override {
     return fc_pressure_.Get(layer);
   }
-  const geom::FieldFace<Scal>& GetVolumeFlux() override {
+  const FieldFace<Scal>& GetVolumeFlux() override {
     return ff_vol_flux_.time_curr;
   }
-  const geom::FieldFace<Scal>& GetVolumeFlux(Layers layer) override {
+  const FieldFace<Scal>& GetVolumeFlux(Layers layer) override {
     return ff_vol_flux_.Get(layer);
   }
   double GetAutoTimeStep() override { 

@@ -40,7 +40,7 @@ class DistrMesh : public Distr {
   virtual ~DistrMesh() {}
   virtual typename M::BlockCells GetGlobalBlock() const;
   // Returns data field i from buffer defined on global mesh
-  virtual geom::FieldCell<Scal> GetGlobalField(size_t i) const; 
+  virtual FieldCell<Scal> GetGlobalField(size_t i) const; 
 
  protected:
 
@@ -288,9 +288,9 @@ auto DistrMesh<KF>::GetGlobalBlock() const -> typename M::BlockCells {
 }
 
 template <class KF>
-auto DistrMesh<KF>::GetGlobalField(size_t i) const -> geom::FieldCell<Scal> {
+auto DistrMesh<KF>::GetGlobalField(size_t i) const -> FieldCell<Scal> {
   assert(false && "Not implemented");
-  return geom::FieldCell<Scal>();
+  return FieldCell<Scal>();
 }
 
 template <class KF>

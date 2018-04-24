@@ -66,7 +66,7 @@ class DistrSolver {
   FieldCell<Scal> GetField() const {
     return d_->GetGlobalField(0);
   }
-  geom::FieldCell<Scal> GetField(size_t i) const {
+  FieldCell<Scal> GetField(size_t i) const {
     return d_->GetGlobalField(i);
   }
   double GetTime() const { 

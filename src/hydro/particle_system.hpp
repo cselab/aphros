@@ -23,19 +23,19 @@ template <class Mesh>
 class ParticleSystem : public UnsteadySolver {
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
-  using IdxCell = geom::IdxCell;
-  using IdxNode = geom::IdxNode;
-  using IdxParticle = geom::GIdx<20160211>;
+  using IdxCell = IdxCell;
+  using IdxNode = IdxNode;
+  using IdxParticle = GIdx<20160211>;
   template <class T>
-  using FieldCell = geom::FieldCell<T>;
+  using FieldCell = FieldCell<T>;
   template <class T>
-  using FieldNode = geom::FieldNode<T>;
+  using FieldNode = FieldNode<T>;
   template <class T>
-  using FieldParticle = geom::GField<T, IdxParticle>;
+  using FieldParticle = GField<T, IdxParticle>;
 
   const Mesh& mesh;
 
-  geom::SearchMesh<Mesh> search_mesh_;
+  SearchMesh<Mesh> search_mesh_;
 
   const Scal kSpawningGapRelative;
   const Scal kParticleRadiusFactor;
@@ -46,7 +46,7 @@ class ParticleSystem : public UnsteadySolver {
   std::vector<FieldCell<Scal>> fc_fields_;
   std::vector<FieldParticle<Scal>> fp_fields_;
 
-  geom::GRange<IdxParticle> particles_;
+  GRange<IdxParticle> particles_;
 
   FieldParticle<Vect> fp_position_;
   FieldParticle<IdxCell> fp_cell_;
@@ -54,7 +54,7 @@ class ParticleSystem : public UnsteadySolver {
   FieldParticle<bool> fp_is_removed_;
 
   FieldNode<Vect>* p_fn_velocity_;
-  std::vector<const geom::FieldCell<Scal>*> v_p_fc_source_;
+  std::vector<const FieldCell<Scal>*> v_p_fc_source_;
   FieldCell<IdxParticle> fc_nearest_particle_;
   FieldCell<Scal> fc_nearest_particle_distance_;
   FieldCell<size_t> fc_num_particles_;
@@ -97,7 +97,7 @@ class ParticleSystem : public UnsteadySolver {
   IdxParticle AddParticle(Vect position, IdxCell idxcell) {
     IdxParticle idxpart(fp_position_.size());
     fp_position_.push_back(position);
-    particles_ = geom::GRange<IdxParticle>(0, fp_position_.size());
+    particles_ = GRange<IdxParticle>(0, fp_position_.size());
     fp_velocity_.push_back(Vect());
     fp_cell_.push_back(idxcell);
     fp_cell_center_distance_.push_back(position.dist(mesh.GetCenter(idxcell)));
@@ -245,7 +245,7 @@ class ParticleSystem : public UnsteadySolver {
   }
   template <class T>
   void EraseRemovedParticlesField(FieldParticle<T>& fp_field,
-                             geom::GRange<IdxParticle> particles_new) {
+                             GRange<IdxParticle> particles_new) {
     FieldParticle<T> res(particles_new);
     size_t it = 0;
     for (auto idxpart : particles_) {
@@ -257,7 +257,7 @@ class ParticleSystem : public UnsteadySolver {
     fp_field = res;
   }
   void EraseRemovedParticles() {
-    geom::GRange<IdxParticle> particles_new(0, GetNumLiveParticles());
+    GRange<IdxParticle> particles_new(0, GetNumLiveParticles());
     EraseRemovedParticlesField(fp_position_, particles_new);
     EraseRemovedParticlesField(fp_cell_, particles_new);
     EraseRemovedParticlesField(fp_cell_center_distance_, particles_new);
@@ -345,7 +345,7 @@ class ParticleSystem : public UnsteadySolver {
  public:
   ParticleSystem(const Mesh& mesh,
                  const std::vector<FieldCell<Scal>>& fc_initial,
-                 const std::vector<const geom::FieldCell<Scal>*>& v_p_fc_source,
+                 const std::vector<const FieldCell<Scal>*>& v_p_fc_source,
                  FieldNode<Vect>* p_fn_velocity,
                  double time, double time_step,
                  Scal spawning_gap_relative = 0.2,

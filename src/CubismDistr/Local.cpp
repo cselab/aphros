@@ -19,9 +19,9 @@ Distr* TryLocal(
 Distr* CreateLocal(
     MPI_Comm comm, KernelFactory& kf, Vars& par) {
   Distr* r = nullptr;
-  if (!r) r = TryLocal<KernelMeshFactory<geom::MeshStructured<double, 3>>>(
+  if (!r) r = TryLocal<KernelMeshFactory<MeshStructured<double, 3>>>(
       comm, kf, par);
-  //if (!r) r = Try<KernelMeshFactory<geom::geom3d::MeshStructured<float>>(
+  //if (!r) r = Try<KernelMeshFactory<geom3d::MeshStructured<float>>(
   //    comm, kf, par);
   assert(r && "CreateLocal(): KernelFactory not found");
   return r;

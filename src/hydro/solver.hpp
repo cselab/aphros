@@ -5,7 +5,7 @@
 #include <exception>
 #include <memory>
 
-using geom::IntIdx;
+using IntIdx;
 
 template <class Scal>
 bool IsNan(Scal a) {
@@ -13,7 +13,7 @@ bool IsNan(Scal a) {
 }
 
 template <class T, class Idx>
-bool IsNan(const geom::GField<T, Idx>& field) {
+bool IsNan(const GField<T, Idx>& field) {
   for (auto idx : field.GetRange()) {
     if (IsNan(field[idx])) {
       return true;
@@ -23,9 +23,9 @@ bool IsNan(const geom::GField<T, Idx>& field) {
 }
 
 template <class T, class Idx>
-geom::GMap<T*, Idx> GetPointers(
-    const geom::GMap<std::shared_ptr<T>, Idx>& m_ptr_shared) {
-  geom::GMap<T*, Idx> m_ptr;
+GMap<T*, Idx> GetPointers(
+    const GMap<std::shared_ptr<T>, Idx>& m_ptr_shared) {
+  GMap<T*, Idx> m_ptr;
   for (auto it = m_ptr_shared.cbegin(); it != m_ptr_shared.cend(); ++it) {
     m_ptr[it->GetIdx()] = it->GetValue().get();
   }
@@ -34,8 +34,8 @@ geom::GMap<T*, Idx> GetPointers(
 
 namespace solver {
 
-using IdxCell = geom::IdxCell;
-using IdxFace = geom::IdxFace;
+using IdxCell = IdxCell;
+using IdxFace = IdxFace;
 
 class ConditionFace {
  public:
@@ -182,11 +182,11 @@ template <class Mesh, class Expr>
 class InterpolationInnerFaceFirstUpwind :
     public Approximation<Mesh, IdxFace, Expr> {
   using Scal = typename Mesh::Scal;
-  const geom::FieldFace<Scal>& probe_;
+  const FieldFace<Scal>& probe_;
   const Scal threshold_;
  public:
   InterpolationInnerFaceFirstUpwind(const Mesh& mesh,
-                               const geom::FieldFace<Scal>& probe,
+                               const FieldFace<Scal>& probe,
                                Scal threshold = 1e-8)
       : Approximation<Mesh, IdxFace, Expr>(mesh)
       , probe_(probe)
@@ -216,16 +216,16 @@ class InterpolationInnerFaceSecondUpwindDeferred :
     public Approximation<Mesh, IdxFace, Expr> {
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
-  const geom::FieldFace<Scal>& probe_;
-  const geom::FieldCell<Scal>& fc_prev_;
-  const geom::FieldCell<Vect>& fc_prev_grad_;
+  const FieldFace<Scal>& probe_;
+  const FieldCell<Scal>& fc_prev_;
+  const FieldCell<Vect>& fc_prev_grad_;
   const Scal threshold_;
  public:
   InterpolationInnerFaceSecondUpwindDeferred(
       const Mesh& mesh,
-      const geom::FieldFace<Scal>& probe,
-      const geom::FieldCell<Scal>& fc_prev,
-      const geom::FieldCell<Vect>& fc_prev_grad,
+      const FieldFace<Scal>& probe,
+      const FieldCell<Scal>& fc_prev,
+      const FieldCell<Vect>& fc_prev_grad,
       Scal threshold = 1e-10)
       : Approximation<Mesh, IdxFace, Expr>(mesh)
       , probe_(probe)
@@ -260,11 +260,11 @@ class InterpolationBoundaryFaceNearestCell:
     public Approximation<Mesh, IdxFace, Expr> {
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
-  const geom::MapFace<std::shared_ptr<ConditionFace>>& mf_cond_;
+  const MapFace<std::shared_ptr<ConditionFace>>& mf_cond_;
  public:
   InterpolationBoundaryFaceNearestCell(
       const Mesh& mesh,
-      const geom::MapFace<std::shared_ptr<ConditionFace>>& mf_cond)
+      const MapFace<std::shared_ptr<ConditionFace>>& mf_cond)
       : Approximation<Mesh, IdxFace, Expr>(mesh)
       , mf_cond_(mf_cond)
   {}
@@ -324,11 +324,11 @@ class DerivativeBoundaryFacePlain:
     public Approximation<Mesh, IdxFace, Expr> {
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
-  const geom::MapFace<std::shared_ptr<ConditionFace>>& mf_cond_;
+  const MapFace<std::shared_ptr<ConditionFace>>& mf_cond_;
  public:
   explicit DerivativeBoundaryFacePlain(
       const Mesh& mesh,
-      const geom::MapFace<std::shared_ptr<ConditionFace>>& mf_cond)
+      const MapFace<std::shared_ptr<ConditionFace>>& mf_cond)
       : Approximation<Mesh, IdxFace, Expr>(mesh)
       , mf_cond_(mf_cond)
   {}
@@ -362,9 +362,9 @@ class DerivativeBoundaryFacePlain:
 };
 
 template <class T, class Mesh>
-geom::FieldFace<T> Interpolate(const geom::FieldNode<T>& fn_u,
+FieldFace<T> Interpolate(const FieldNode<T>& fn_u,
                                const Mesh& mesh) {
-  geom::FieldFace<T> res(mesh);
+  FieldFace<T> res(mesh);
 
   for (auto idxface : mesh.SuFaces()) {
     T sum = static_cast<T>(0);
@@ -378,7 +378,7 @@ geom::FieldFace<T> Interpolate(const geom::FieldNode<T>& fn_u,
 }
 
 template <class T, class Mesh>
-T GetInterpolatedInner(const geom::FieldCell<T>& fc_u,
+T GetInterpolatedInner(const FieldCell<T>& fc_u,
                        IdxFace idxface,
                        const Mesh& mesh) {
   using Scal = typename Mesh::Scal;
@@ -398,9 +398,9 @@ Scal GetGeometricAverage(Scal a, Scal b) {
 }
 
 template <class Scal, size_t dim>
-geom::GVect<Scal, dim> GetGeometricAverage(
-    const geom::GVect<Scal, dim>& a, 
-    const geom::GVect<Scal, dim>& b, 
+GVect<Scal, dim> GetGeometricAverage(
+    const GVect<Scal, dim>& a, 
+    const GVect<Scal, dim>& b, 
     Scal th = 1e-8) {
   auto m = (a + b) * 0.5;
   if (m.norm() < th) {
@@ -411,16 +411,16 @@ geom::GVect<Scal, dim> GetGeometricAverage(
 }
 
 template <class T, class Mesh>
-geom::FieldFace<T> Interpolate(
-    const geom::FieldCell<T>& fc_u,
-    const geom::MapFace<std::shared_ptr<ConditionFace>>& mf_cond_u,
+FieldFace<T> Interpolate(
+    const FieldCell<T>& fc_u,
+    const MapFace<std::shared_ptr<ConditionFace>>& mf_cond_u,
     const Mesh& mesh, bool geometric = false) {
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
-  using IdxCell = geom::IdxCell;
-  using IdxFace = geom::IdxFace;
+  using IdxCell = IdxCell;
+  using IdxFace = IdxFace;
 
-  geom::FieldFace<T> res(mesh, T(0)); // Valid value essential for extrapolation
+  FieldFace<T> res(mesh, T(0)); // Valid value essential for extrapolation
 
   if (geometric) {
     for (auto idxface : mesh.SuFaces()) {
@@ -481,11 +481,11 @@ geom::FieldFace<T> Interpolate(
 
 
 template <class Mesh>
-geom::FieldCell<typename Mesh::Scal>
-CalcLaplacian(const geom::FieldCell<typename Mesh::Scal>& fc_u,
+FieldCell<typename Mesh::Scal>
+CalcLaplacian(const FieldCell<typename Mesh::Scal>& fc_u,
               const Mesh& mesh) {
   using Scal = typename Mesh::Scal;
-  geom::FieldCell<Scal> res(mesh);
+  FieldCell<Scal> res(mesh);
 
   for (auto idxcell : mesh.Cells()) {
     Scal sum = 0.;
@@ -506,16 +506,16 @@ CalcLaplacian(const geom::FieldCell<typename Mesh::Scal>& fc_u,
 }
 
 template <class T, class Mesh>
-geom::FieldFace<T> InterpolateFirstUpwind(
-    const geom::FieldCell<T>& fc_u,
-    const geom::MapFace<std::shared_ptr<ConditionFace>>& mf_cond_u,
-    const geom::FieldFace<typename Mesh::Scal>& probe,
+FieldFace<T> InterpolateFirstUpwind(
+    const FieldCell<T>& fc_u,
+    const MapFace<std::shared_ptr<ConditionFace>>& mf_cond_u,
+    const FieldFace<typename Mesh::Scal>& probe,
     const Mesh& mesh, typename Mesh::Scal threshold = 1e-8) {
   using Scal = typename Mesh::Scal;
-  using IdxCell = geom::IdxCell;
-  using IdxFace = geom::IdxFace;
+  using IdxCell = IdxCell;
+  using IdxFace = IdxFace;
 
-  geom::FieldFace<T> res(mesh);
+  FieldFace<T> res(mesh);
 
   for (IdxFace idxface : mesh.Faces()) {
 		 IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
@@ -560,19 +560,19 @@ Scal Superbee(Scal p, Scal q) {
 }
 
 template <class Mesh>
-geom::FieldFace<typename Mesh::Scal>
+FieldFace<typename Mesh::Scal>
 InterpolateSuperbee(
-    const geom::FieldCell<typename Mesh::Scal>& fc_u,
-    const geom::FieldCell<typename Mesh::Vect>& fc_u_grad,
-    const geom::MapFace<std::shared_ptr<ConditionFace>>& mf_cond_u,
-    const geom::FieldFace<typename Mesh::Scal>& probe,
+    const FieldCell<typename Mesh::Scal>& fc_u,
+    const FieldCell<typename Mesh::Vect>& fc_u_grad,
+    const MapFace<std::shared_ptr<ConditionFace>>& mf_cond_u,
+    const FieldFace<typename Mesh::Scal>& probe,
     const Mesh& mesh, typename Mesh::Scal threshold = 1e-8) {
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
-  using IdxCell = geom::IdxCell;
-  using IdxFace = geom::IdxFace;
+  using IdxCell = IdxCell;
+  using IdxFace = IdxFace;
 
-  geom::FieldFace<Scal> res(mesh);
+  FieldFace<Scal> res(mesh);
 
   for (IdxFace idxface : mesh.SuFaces()) {
 		 IdxCell P = mesh.GetNeighbourCell(idxface, 0);
@@ -616,9 +616,9 @@ InterpolateSuperbee(
 }
 
 template <class T, class Mesh>
-geom::FieldCell<T> Average(const geom::FieldFace<T>& ff_u, const Mesh& mesh) {
+FieldCell<T> Average(const FieldFace<T>& ff_u, const Mesh& mesh) {
   using Scal = typename Mesh::Scal;
-  geom::FieldCell<T> res(mesh);
+  FieldCell<T> res(mesh);
   for (IdxCell idxcell : mesh.AllCells()) {
     T sum(0);
     for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
@@ -632,8 +632,8 @@ geom::FieldCell<T> Average(const geom::FieldFace<T>& ff_u, const Mesh& mesh) {
 
 template <class T, class Mesh>
 void Smoothen(
-    geom::FieldCell<T>& fc,
-    const geom::MapFace<std::shared_ptr<ConditionFace>>& mf_cond,
+    FieldCell<T>& fc,
+    const MapFace<std::shared_ptr<ConditionFace>>& mf_cond,
     Mesh& m, size_t rep) {
   auto sem = m.GetSem("smoothen");
   for (size_t i = 0; i < rep; ++i) {
@@ -645,11 +645,11 @@ void Smoothen(
 }
 
 template <class Mesh>
-geom::FieldCell<typename Mesh::Vect> Gradient(
-    const geom::FieldFace<typename Mesh::Scal>& ff_u,
+FieldCell<typename Mesh::Vect> Gradient(
+    const FieldFace<typename Mesh::Scal>& ff_u,
     const Mesh& mesh) {
   using Vect = typename Mesh::Vect;
-  geom::FieldCell<Vect> res(mesh, Vect::kZero);
+  FieldCell<Vect> res(mesh, Vect::kZero);
   for (auto idxcell : mesh.SuCells()) {
     Vect sum = Vect::kZero;
     for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
@@ -753,15 +753,15 @@ template <class Field, class Mesh, class Scal = typename Mesh::Scal>
 Scal CalcDiff(const Field& first, const Field& second, const Mesh& mesh) {
   Scal res = 0.;
   using Idx = typename Field::Idx;
-  for (Idx idx : geom::GRange<Idx>(mesh)) {
+  for (Idx idx : GRange<Idx>(mesh)) {
     res = std::max(res, std::abs(first[idx] - second[idx]));
   }
   return res;
 }
 
 template <class Idx, class Mesh, class Scal = typename Mesh::Scal>
-Scal CalcDiff(const geom::GField<typename Mesh::Vect, Idx>& first,
-                const geom::GField<typename Mesh::Vect, Idx>& second,
+Scal CalcDiff(const GField<typename Mesh::Vect, Idx>& first,
+                const GField<typename Mesh::Vect, Idx>& second,
                 const Mesh& mesh) {
   Scal res = 0.;
   for (Idx idx : mesh.template Get<Idx>()) {

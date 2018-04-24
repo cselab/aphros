@@ -12,7 +12,7 @@ M CreateMesh(const MyBlockInfo& bi) {
   using MIdx = typename M::MIdx;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  using Rect = geom::Rect<Vect>;
+  using Rect = Rect<Vect>;
   int hl = bi.hl;
 
   MIdx bs(bi.bs); // block size inner
@@ -24,7 +24,7 @@ M CreateMesh(const MyBlockInfo& bi) {
 
   MIdx o = w * bs; // origin index
   
-  return geom::InitUniformMesh<M>(d, o, bs, hl);
+  return InitUniformMesh<M>(d, o, bs, hl);
 }
 
 // Abstract Kernel aware of Mesh. Dependency of DistrMesh.

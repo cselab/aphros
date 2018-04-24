@@ -37,19 +37,19 @@ class Hydro : public KernelMesh<M> {
   using Scal = typename Mesh::Scal;
   using Vect = typename Mesh::Vect;
   using MIdx = typename Mesh::MIdx;
-  using Rect = geom::Rect<Vect>;
-  using IdxCell = geom::IdxCell;
-  using IdxFace = geom::IdxFace;
-  using IdxNode = geom::IdxNode;
+  using Rect = Rect<Vect>;
+  using IdxCell = IdxCell;
+  using IdxFace = IdxFace;
+  using IdxNode = IdxNode;
   using Sem = typename Mesh::Sem;
   static constexpr size_t dim = M::dim;
 
   template <class T>
-  using FieldCell = geom::FieldCell<T>;
+  using FieldCell = FieldCell<T>;
   template <class T>
-  using FieldFace = geom::FieldFace<T>;
+  using FieldFace = FieldFace<T>;
   template <class T>
-  using FieldNode = geom::FieldNode<T>;
+  using FieldNode = FieldNode<T>;
 
   Hydro(Vars& par, const MyBlockInfo& bi);
   void Run() override;
@@ -92,8 +92,8 @@ class Hydro : public KernelMesh<M> {
   FieldCell<Vect> fc_force_;  // force
   FieldCell<Vect> fc_stforce_;  // stforce cells TODO: what is st
   FieldFace<Vect> ff_stforce_;  // stforce faces
-  geom::MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond_;
-  geom::MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond_;
+  MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond_;
+  MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond_;
   MultiTimer<std::string> timer_; 
   std::unique_ptr<AS> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
@@ -345,7 +345,7 @@ void Hydro<M>::Init() {
           Vect a(par.Vect[k + "_a"]);
           Vect b(par.Vect[k + "_b"]);
           Scal vf = par.Double[k + "_vf"];
-          geom::Rect<Vect> r(a, b);
+          Rect<Vect> r(a, b);
           for (auto i : m.AllFaces()) {
             if (r.IsInside(m.GetCenter(i))) {
               if (set_bc(i, *p)) {
@@ -379,9 +379,9 @@ void Hydro<M>::Init() {
 
     // cell conditions for advection
     // (empty)
-    geom::MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
+    MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
     // cell conditions for fluid
-    geom::MapCell<std::shared_ptr<solver::ConditionCellFluid>> mc_velcond;
+    MapCell<std::shared_ptr<solver::ConditionCellFluid>> mc_velcond;
     {
       // Fix pressure at one cell
       Vect x(par.Vect["pfixed_x"]);
@@ -713,7 +713,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       auto gc = solver::Gradient(af, m);
 
       // zero-derivative bc for Vect
-      geom::MapFace<std::shared_ptr<solver::ConditionFace>> mfvz;
+      MapFace<std::shared_ptr<solver::ConditionFace>> mfvz;
       for (auto it : mf_velcond_) {
         IdxFace i = it.GetIdx();
         mfvz[i] = std::make_shared
@@ -750,11 +750,11 @@ template <class M>
 void Hydro<M>::Dump(Sem& sem) {
   if (sem("dump")) {
     if (dumper_.Try(st_.t, st_.dt)) {
-      fc_velux_ = geom::GetComponent(fs_->GetVelocity(), 0);
+      fc_velux_ = GetComponent(fs_->GetVelocity(), 0);
       m.Dump(&fc_velux_, "vx");
-      fc_veluy_ = geom::GetComponent(fs_->GetVelocity(), 1);
+      fc_veluy_ = GetComponent(fs_->GetVelocity(), 1);
       m.Dump(&fc_veluy_, "vy");
-      fc_veluz_ = geom::GetComponent(fs_->GetVelocity(), 2);
+      fc_veluz_ = GetComponent(fs_->GetVelocity(), 2);
       m.Dump(&fc_veluz_, "vz");
       fc_p_ = fs_->GetPressure();
       m.Dump(&fc_p_, "p"); 

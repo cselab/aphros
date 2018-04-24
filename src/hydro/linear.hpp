@@ -329,7 +329,7 @@ void Normalize(System& system) {
 template <class Scal, class Idx, class Expr>
 class LinearSolver {
   template <class T>
-  using Field = geom::GField<T, Idx>;
+  using Field = GField<T, Idx>;
 
  public:
   virtual Field<Scal> Solve(const Field<Expr>&) = 0;
@@ -349,14 +349,14 @@ class Pardiso : public LinearSolver<Scal, Idx, Expr> {
 
  private:
   template <class T>
-  using Field = geom::FieldGeneric<T, Idx>;
+  using Field = FieldGeneric<T, Idx>;
   IparmType iparm;
 
   MKL_INT maxfct, mnum, phase, error, msglvl;
   MKL_INT mtype;               // Matrix type
   MKL_INT nrhs;                // Number of RHS'
   MKL_INT num_eqn;             // Number of equations
-  geom::Range<Idx> idx_range;
+  Range<Idx> idx_range;
   std::vector<MKL_INT> mkl_ia; // ia[i] is index of the first nonzero
                                // element in equation i, i=0..num_eqn
   std::vector<MKL_INT> mkl_ja; // ja[j] is the solution vector position
@@ -554,7 +554,7 @@ class PardisoFactory : public LinearSolverFactoryGeneric {
 template <class Scal, class Idx, class Expr>
 class LuDecomposition : public LinearSolver<Scal, Idx, Expr> {
   template <class T>
-  using Field = geom::GField<T, Idx>;
+  using Field = GField<T, Idx>;
 
  public:
   Field<Scal> Solve(const Field<Expr>& system) override {
@@ -605,7 +605,7 @@ class LuDecompositionFactory : public LinearSolverFactoryGeneric {
 template <class Scal, class Idx, class Expr>
 class LuDecompositionRelaxed : public LinearSolver<Scal, Idx, Expr> {
   template <class T>
-  using Field = geom::GField<T, Idx>;
+  using Field = GField<T, Idx>;
   Scal tolerance_;
   size_t num_iters_limit_;
   Scal relaxation_factor_;
@@ -698,7 +698,7 @@ class LuDecompositionRelaxedFactory : public LinearSolverFactoryGeneric {
 template <class Scal, class Idx, class Expr>
 class GaussSeidel : public LinearSolver<Scal, Idx, Expr> {
   template <class T>
-  using Field = geom::GField<T, Idx>;
+  using Field = GField<T, Idx>;
   Scal tolerance_;
   size_t num_iters_limit_;
   Scal relaxation_factor_;
@@ -763,7 +763,7 @@ class GaussSeidelFactory : public LinearSolverFactoryGeneric {
 template <class Scal, class Idx, class Expr>
 class Jacobi : public LinearSolver<Scal, Idx, Expr> {
   template <class T>
-  using Field = geom::GField<T, Idx>;
+  using Field = GField<T, Idx>;
   Scal tolerance_;
   size_t num_iters_limit_;
   Scal relaxation_factor_;
@@ -869,14 +869,14 @@ class LinearSolverFactory {
 
 template <class M, class Expr, class Scal=typename M::Scal>
 typename M::LS ConvertLs(
-    const geom::FieldCell<Expr>& fce,
+    const FieldCell<Expr>& fce,
     std::vector<Scal>& la, 
     std::vector<Scal>& lb, 
     std::vector<Scal>& lx, 
     const M& m) {
   using LS = typename M::LS;
   using MIdx = typename M::MIdx;
-  using IdxCell = geom::IdxCell;
+  using IdxCell = IdxCell;
   auto& bc = m.GetBlockCells();
   LS l;
   // Get stencil from first inner cell
