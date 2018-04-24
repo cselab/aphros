@@ -3,6 +3,7 @@
 #include <exception>
 #include <fstream>
 #include <array>
+#include <memory>
 
 #include "mesh.hpp"
 #include "linear.hpp"

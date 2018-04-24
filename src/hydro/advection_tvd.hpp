@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <fstream>
+#include <memory>
 
 #include "mesh.hpp"
 #include "linear.hpp"
