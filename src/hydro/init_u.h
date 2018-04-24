@@ -5,7 +5,7 @@
 #include <cmath>
 
 #include "hydro/field.h"
-#include "CubismDistr/Vars.h"
+#include "CubismDistr/vars.h"
 
 
 

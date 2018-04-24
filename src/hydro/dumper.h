@@ -1,6 +1,6 @@
 #pragma once
 
-#include "CubismDistr/Vars.h"
+#include "CubismDistr/vars.h"
 
 // TODO: rename to e.g. DumpScheduler
 

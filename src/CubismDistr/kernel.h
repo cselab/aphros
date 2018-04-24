@@ -4,7 +4,7 @@
 #include <array>
 
 #include "hydro/suspender.h"
-#include "Vars.h"
+#include "vars.h"
 
 
 // TODO: remove h_gridpoint from MyBlockInfo

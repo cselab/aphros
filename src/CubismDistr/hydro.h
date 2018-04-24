@@ -22,10 +22,10 @@
 #include "hydro/conv_diff.hpp"
 #include "hydro/fluid.hpp"
 #include "hydro/output.hpp"
-#include "Kernel.h"
-#include "KernelMesh.h"
-#include "Vars.h"
-#include "Interp.h"
+#include "kernel.h"
+#include "kernelmesh.h"
+#include "vars.h"
+#include "interp.h"
 #include "hydro/dumper.h"
 
 

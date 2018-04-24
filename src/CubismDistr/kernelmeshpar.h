@@ -4,9 +4,9 @@
 
 #include "hydro/vect.hpp"
 #include "hydro/linear.hpp"
-#include "Kernel.h"
-#include "Vars.h"
-#include "KernelMesh.h"
+#include "kernel.h"
+#include "vars.h"
+#include "kernelmesh.h"
 
 // Kernel aware of mesh with structure Par_ passed to constructor.
 template <class M_, class Par_>

@@ -4,8 +4,8 @@
 #include <memory>
 #include <mpi.h>
 
-#include "Kernel.h"
-#include "Vars.h"
-#include "Distr.h"
+#include "kernel.h"
+#include "vars.h"
+#include "distr.h"
 
 Distr* CreateLocal(MPI_Comm comm, KernelFactory& kf, Vars& par);

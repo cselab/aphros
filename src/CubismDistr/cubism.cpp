@@ -1,11 +1,11 @@
 #include <mpi.h>
 
-#include "Cubism.h"
+#include "cubism.h"
 #include "hydro/vect.hpp"
 #include "hydro/mesh3d.hpp"
-#include "Kernel.h"
-#include "KernelMesh.h"
-#include "Vars.h"
+#include "kernel.h"
+#include "kernelmesh.h"
+#include "vars.h"
 
 template <size_t bx, size_t by, size_t bz, class KF>
 Distr* TryCubism(MPI_Comm comm, KernelFactory& kf, Vars& par) {

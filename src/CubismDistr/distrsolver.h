@@ -5,12 +5,12 @@
 #include <stdexcept>
 #include <functional>
 
-#include "CubismDistr/Vars.h"
-#include "CubismDistr/KernelMeshPar.h"
-#include "CubismDistr/Distr.h"
-#include "CubismDistr/ICubism.h"
-#include "CubismDistr/ILocal.h"
-#include "CubismDistr/Interp.h"
+#include "CubismDistr/vars.h"
+#include "CubismDistr/kernelmeshpar.h"
+#include "CubismDistr/distr.h"
+#include "CubismDistr/icubism.h"
+#include "CubismDistr/ilocal.h"
+#include "CubismDistr/interp.h"
 
 #include "hydro/vect.hpp"
 #include "hydro/block.h"

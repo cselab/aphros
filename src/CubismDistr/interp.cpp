@@ -3,8 +3,8 @@
 #include <fstream>
 #include <stdexcept>
 
-#include "Interp.h"
-#include "Vars.h"
+#include "interp.h"
+#include "vars.h"
 
 Interp::Interp(Vars& v) : v_(v) {}
 

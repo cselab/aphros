@@ -1,4 +1,4 @@
-#include "CubismDistr/DistrSolver.h"
+#include "CubismDistr/distrsolver.h"
 
 
 int RunMpi(int argc, const char ** argv,

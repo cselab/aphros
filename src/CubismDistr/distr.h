@@ -7,8 +7,8 @@
 #include <iomanip>
 #include <stdexcept>
 
-#include "Vars.h"
-#include "Kernel.h"
+#include "vars.h"
+#include "kernel.h"
 #include "hydro/hypre.h"
 #include "hydro/suspender.h"
 #include "hydro/mesh.hpp"
