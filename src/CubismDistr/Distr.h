@@ -5,6 +5,7 @@
 #include <memory>
 #include <mpi.h>
 #include <iomanip>
+#include <stdexcept>
 
 #include "Vars.h"
 #include "Kernel.h"
@@ -12,6 +13,7 @@
 #include "hydro/suspender.h"
 #include "hydro/mesh.hpp"
 #include "hydro/metrics.hpp"
+#include "hydro/dump.h"
 
 
 // Block processor.
@@ -56,6 +58,7 @@ class DistrMesh : public Distr {
   Scal ext_; // extent (maximum over all directions)
 
   int stage_ = 0;
+  size_t frame_ = 0; // current dump frame
 
   // XXX: overwritten by Local<KF> and Cubism<KF>
   bool isroot_;
@@ -74,6 +77,8 @@ class DistrMesh : public Distr {
   virtual void Reduce(const std::vector<MIdx>& bb) = 0;
   virtual void Solve(const std::vector<MIdx>& bb);
   virtual void DumpComm(const std::vector<MIdx>& bb);
+  // Writes dumps assuming last m.GetDump().size() fields
+  // from m.GetComm().size() are for dump.
   virtual void DumpWrite(const std::vector<MIdx>& bb) = 0;
   virtual void ClearComm(const std::vector<MIdx>& bb);
   virtual void ClearDump(const std::vector<MIdx>& bb);
@@ -140,6 +145,26 @@ void DistrMesh<KF>::DumpComm(const std::vector<MIdx>& bb) {
   }
 }
 
+template <class KF>
+void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
+  auto& m = mk.at(bb[0])->GetMesh();
+  if (m.GetDump().size()) {
+    std::string df = par.String["dumpformat"];
+    if (df == "plain") {
+      // current comm field index (assume last are for dump)
+      size_t k = m.GetComm().size() - m.GetDump().size();
+      for (auto d : m.GetDump()) {
+        std::string op = d.second + ".dat";
+        Dump(GetGlobalField(k), GetGlobalBlock(), op);
+        ++k;
+      }
+      std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
+      ++frame_;
+    } else {
+      throw std::runtime_error("Unknown dumpformat=" + df);
+    }
+  }
+}
 
 // TODO: move
 template <class KF>

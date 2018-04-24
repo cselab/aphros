@@ -263,25 +263,37 @@ template <class KF>
 void Local<KF>::DumpWrite(const std::vector<MIdx>& bb) {
   auto& m = mk.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
-    if (!session_) {
-      // TODO: check all blocks are same as first
-      output::Content c;
-      size_t k = m.GetComm().size() - m.GetDump().size();
-      for (auto d : m.GetDump()) {
-        c.emplace_back(
-            new output::EntryFunction<Scal, IdxCell, M>(
-                d.second, gm, [this,k](IdxCell i) { return buf_[k][i]; }));
-        ++k;
-      }
-
-      session_.reset(new output::SessionParaviewStructured<M>(
-            c, "title", "p" /*filename*/, gm));
+    std::string df = par.String["dumpformat"];
+    if (df == "default") {
+      df = "vtk";
     }
 
-    // Check no change between time steps
+    if (df == "vtk") {
+      // Initialize on first call
+      if (!session_) {
+        // TODO: check all blocks are same as first
+        output::Content c;
+        size_t k = m.GetComm().size() - m.GetDump().size();
+        for (auto d : m.GetDump()) {
+          c.emplace_back(
+              new output::EntryFunction<Scal, IdxCell, M>(
+                  d.second, gm, [this,k](IdxCell i) { return buf_[k][i]; }));
+          ++k;
+        }
 
-    std::cerr << "Output" << std::endl;
-    session_->Write(stage_ * 1., "title"); // TODO: t instead of stage_
+        session_.reset(new output::SessionParaviewStructured<M>(
+              c, "title", "p" /*filename*/, gm));
+      }
+
+      // TODO: Check no change in dump list between time steps
+      //       (otherwise session_ needs reinitialization)
+
+      std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
+      ++frame_;
+      session_->Write(stage_ * 1., "title"); // TODO: t instead of stage_
+    } else {
+      P::DumpWrite(bb);
+    }
   }
 }
 

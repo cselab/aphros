@@ -108,7 +108,7 @@ class DistrSolver {
 };
 
 int RunMpi(int argc, const char ** argv,
-            std::function<void(MPI_Comm, Vars&)> r) {
+           std::function<void(MPI_Comm, Vars&)> r) {
   int prov;
   MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
   int rank;
