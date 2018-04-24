@@ -10,7 +10,7 @@ set(CD "../../src/CubismDistr")
 
 include_directories(${CD})
 
-add_executable(${EXE} main.cpp ${CD}/Vars.cpp ${CD}/Interp.cpp)
+add_executable(${EXE} main.cpp ${CD}/vars.cpp ${CD}/interp.cpp)
      
 set_property(TARGET ${EXE} PROPERTY CXX_STANDARD 11)
 

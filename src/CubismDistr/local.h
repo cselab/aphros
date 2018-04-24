@@ -5,13 +5,13 @@
 #include <map>
 #include <mpi.h>
 
-#include "ILocal.h"
+#include "ilocal.h"
 #include "hydro/vect.hpp"
 #include "hydro/mesh3d.hpp"
 #include "hydro/output.hpp"
 #include "hydro/output_paraview.hpp"
-#include "Vars.h"
-#include "Distr.h"
+#include "vars.h"
+#include "distr.h"
 #include "hydro/hypre.h"
 
 template <class KF>

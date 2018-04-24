@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 
-#include "Vars.h"
+#include "vars.h"
 
 class Interp {
  public:

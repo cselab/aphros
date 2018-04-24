@@ -15,11 +15,11 @@ include_directories(${S})
 add_executable(${EXE} main.cpp 
     ${H}/suspender.cpp 
     ${H}/hypre.cpp 
-    ${CD}/Vars.cpp
-    ${CD}/Local.cpp
-    ${CD}/Cubism.cpp
-    ${CD}/Interp.cpp
-    ${CD}/DistrSolver.cpp
+    ${CD}/vars.cpp
+    ${CD}/local.cpp
+    ${CD}/cubism.cpp
+    ${CD}/interp.cpp
+    ${CD}/distrsolver.cpp
     )
      
 # OpenMP 
@@ -58,5 +58,5 @@ enable_testing()
 
 add_test(${p}-loc mpirun -n 2 ${EXE} loc.conf)
 
-# TODO: would need GetGlobalField() in Cubism.h
+# TODO: would need GetGlobalField() in cubism.h
 #add_test(${p}-cub mpirun -n 2 ${EXE} cub.conf)

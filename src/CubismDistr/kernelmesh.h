@@ -4,8 +4,8 @@
 
 #include "hydro/vect.hpp"
 #include "hydro/mesh3d.hpp"
-#include "Kernel.h"
-#include "Vars.h"
+#include "kernel.h"
+#include "vars.h"
 
 template <class M>
 M CreateMesh(const MyBlockInfo& bi) {

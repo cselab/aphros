@@ -1,10 +1,10 @@
-#include "Local.h"
+#include "local.h"
 
 #include "hydro/vect.hpp"
 #include "hydro/mesh3d.hpp"
-#include "Kernel.h"
-#include "KernelMesh.h"
-#include "Vars.h"
+#include "kernel.h"
+#include "kernelmesh.h"
+#include "vars.h"
 
 template <class KF>
 Distr* TryLocal(

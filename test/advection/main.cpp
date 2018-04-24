@@ -9,9 +9,9 @@
 #include <tuple>
 #include <stdexcept>
 
-#include "CubismDistr/Vars.h"
-#include "CubismDistr/KernelMeshPar.h"
-#include "CubismDistr/DistrSolver.h"
+#include "CubismDistr/vars.h"
+#include "CubismDistr/kernelmeshpar.h"
+#include "CubismDistr/distrsolver.h"
 
 #include "hydro/suspender.h"
 #include "hydro/vect.hpp"

@@ -3,8 +3,8 @@
 #include <sstream>
 #include <fstream>
 
-#include "Vars.h"
-#include "Interp.h"
+#include "vars.h"
+#include "interp.h"
 
 namespace simple {
 

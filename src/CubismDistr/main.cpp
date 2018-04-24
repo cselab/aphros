@@ -13,11 +13,11 @@
 #include <cassert>
 
 #include "../hydro/suspender.h"
-#include "Vars.h"
-#include "Hydro.h"
-#include "Interp.h"
-#include "ICubism.h"
-#include "ILocal.h"
+#include "vars.h"
+#include "hydro.h"
+#include "interp.h"
+#include "icubism.h"
+#include "ilocal.h"
 
 void Main(MPI_Comm comm, bool loc, Vars& par) {
   using Scal = double;

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <cassert>
 
-#include "Vars.h"
+#include "vars.h"
 
 namespace simple {
 

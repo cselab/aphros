@@ -4,9 +4,9 @@
 #include <limits>
 #include <map>
 
-#include "Vars.h"
-#include "Distr.h"
-#include "ICubism.h"
+#include "vars.h"
+#include "distr.h"
+#include "icubism.h"
 
 #include "Cubism/BlockInfo.h"
 #include "Cubism/Grid.h"

@@ -3,7 +3,7 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "Vars.h"
+#include "vars.h"
 
 template <>
 Vars::Map<int>& Vars::Get<int>() {

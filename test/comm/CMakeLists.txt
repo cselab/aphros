@@ -15,11 +15,11 @@ include_directories(${S})
 add_executable(${EXE} main.cpp 
     ${H}/suspender.cpp 
     ${H}/hypre.cpp 
-    ${CD}/Vars.cpp
-    ${CD}/Local.cpp
-    ${CD}/Cubism.cpp
-    ${CD}/Interp.cpp
-    ${CD}/DistrSolver.cpp
+    ${CD}/vars.cpp
+    ${CD}/local.cpp
+    ${CD}/cubism.cpp
+    ${CD}/interp.cpp
+    ${CD}/distrsolver.cpp
     )
      
 # OpenMP 
