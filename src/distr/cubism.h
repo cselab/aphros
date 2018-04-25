@@ -16,6 +16,7 @@
 #include "Cubism/StencilInfo.h"
 #include "Cubism/HDF5Dumper_MPI.h"
 
+// Hide implementation and avoid collision with GBlock
 namespace cubism_impl {
 
 // Static parameters for Cubism
