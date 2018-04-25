@@ -2,7 +2,7 @@
 
 #include <map>
 
-// Idx_ - instance of GIdx
+// Idx_: instance of GIdx
 template <class Value_, class Idx_>
 class GMap {
  public:

@@ -1,11 +1,5 @@
 #pragma once
 
-#include <memory>
-
-#include "geom/vect.h"
-#include "linear/linear.h"
-#include "parse/vars.h"
-#include "kernel.h"
 #include "kernelmesh.h"
 
 // Kernel aware of mesh with structure Par_ passed to constructor.

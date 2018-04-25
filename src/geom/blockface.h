@@ -5,8 +5,6 @@
 #include "block.h"
 #include "dir.h"
 
-
-
 #define BLOCKFACE_DZYX
 //#define BLOCKFACE_ZYXD
 
@@ -339,5 +337,4 @@ class GBlock<IdxFace, dim_> { // [s]andbox
 
 template <size_t dim>
 using GBlockFaces = GBlock<IdxFace, dim>;
-
 

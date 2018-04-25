@@ -15,7 +15,6 @@
 #include "rangein.h"
 
 
-
 // TODO: Neighbour faces iterator introducing (cell, face) pairs
 // TODO: consider computing some on-the-fly to reduce memory access
 template <class Scal_, size_t dim_>

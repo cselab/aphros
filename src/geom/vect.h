@@ -12,12 +12,10 @@ T sqr(T a) {
   return a * a;
 }
 
-// TODO: revise __RANGE_CHECK
-
-template <class Scal, size_t dimarg>
+template <class Scal, size_t dim_>
 class GVect {
  public:
-  static constexpr size_t dim = dimarg;
+  static constexpr size_t dim = dim_;
   using value_type = Scal;
 
  private:
@@ -55,22 +53,22 @@ class GVect {
   }
   template <class OtherScal>
   explicit GVect(const std::vector<OtherScal>& v) {
-    // TODO dim instead of dimarg causes linker error
-    for (size_t i = 0; i < std::min<size_t>(dimarg, v.size()); ++i) {
+    // TODO dim instead of dim_ causes linker error
+    for (size_t i = 0; i < std::min<size_t>(dim_, v.size()); ++i) {
       comp_[i] = static_cast<Scal>(v[i]);
     }
   }
   template <class OtherScal>
   explicit GVect(const std::array<OtherScal, dim>& v) {
-    // TODO dim instead of dimarg causes linker error
-    for (size_t i = 0; i < std::min<size_t>(dimarg, v.size()); ++i) {
+    // TODO dim instead of dim_ causes linker error
+    for (size_t i = 0; i < std::min<size_t>(dim_, v.size()); ++i) {
       comp_[i] = static_cast<Scal>(v[i]);
     }
   }
   template <class OtherScal>
   explicit GVect(const OtherScal* v) {
-    // TODO dim instead of dimarg causes linker error
-    for (size_t i = 0; i < dimarg; ++i) {
+    // TODO dim instead of dim_ causes linker error
+    for (size_t i = 0; i < dim_; ++i) {
       comp_[i] = static_cast<Scal>(v[i]);
     }
   }
@@ -79,15 +77,9 @@ class GVect {
     return *this;
   }
   Scal& operator[](size_t i) {
-#ifdef __RANGE_CHECK
-    assert(i >=0 && i < comp_.size());
-#endif
     return comp_[i];
   }
   const Scal& operator[](size_t i) const {
-#ifdef __RANGE_CHECK
-    assert(i >=0 && i < comp_.size());
-#endif
     return comp_[i];
   }
   GVect& operator+=(const GVect& vect) {
