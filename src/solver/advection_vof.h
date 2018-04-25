@@ -176,12 +176,11 @@ inline Scal GetLineVolStrX0(const GVect<Scal, 3>& n, Scal a,
   using Vect = GVect<Scal, 3>;
   Scal u = GetLineU(n, a, h); // volume fraction
   Vect sh(h[0] + dx - dxu, h[1], h[2]); // stretched size
-  Vect sn = n * sh; // stretched normal
+  Vect sn = n / sh; // stretched normal
   sn /= sn.norm();
   Scal sa = GetLineA(sn, u, sh); // stretched line constant
   Vect dc = Vect(dxu, 0., 0.); // shift of center
-  Scal aa = sa - sn.dot(dc); // stretched and shifted line constant
-  return GetLineVolX0(sn, aa, sh, dx);
+  return GetLineVolX0(sn, sa, sh, dx);
 }
 
 // Volume surplus in downwind adjacent cell after stretching in x
