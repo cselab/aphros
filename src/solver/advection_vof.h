@@ -310,6 +310,7 @@ class Vof : public AdvectionSolver<M_> {
   FieldCell<Vect> fc_n_; // n (normal to plane)
   FieldCell<Scal> fc_us_; // smooth field
   FieldFace<Scal> ff_fu_; // volume flux
+  size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
  public:
   struct Par {
@@ -464,11 +465,16 @@ class Vof : public AdvectionSolver<M_> {
             dt * (*fcs_)[c]; // source
       }
     }
-    const bool split = true;
     using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
     auto& bf = m.GetBlockFaces();
-    for (Dir d : {Dir::i, Dir::j}) {
+    std::vector<Dir> dd;
+    if (count_ % 2 == 0) {
+      dd = {Dir::i, Dir::j};
+    } else {
+      dd = {Dir::j, Dir::i};
+    }
+    for (Dir d : dd) {
       auto& uc = fc_u_.iter_curr;
       auto& bc = m.GetBlockCells();
       auto& bf = m.GetBlockFaces();
@@ -492,7 +498,7 @@ class Vof : public AdvectionSolver<M_> {
           IdxCell cum = m.GetNeighbourCell(fm, vm > 0. ? 0 : 1); // upwind cell
           IdxCell cup = m.GetNeighbourCell(fp, vp > 0. ? 0 : 1); // upwind cell
           Scal lm, lp; // vo[l]ume fraction change
-          if (0) { // EI
+          if (d == dd[0]) { // EI
             if (d == Dir::i) {
               lm = GetLineFluxX(fc_n_[cum], fc_a_[cum], h, vm, dt) * dt / lc;
               lp = GetLineFluxX(fc_n_[cup], fc_a_[cup], h, vp, dt) * dt / lc;
@@ -526,15 +532,16 @@ class Vof : public AdvectionSolver<M_> {
       }
       if (sem("reconst")) {
         Reconst(uc);
-        auto h = GetCellSize();
-        for (auto c : m.AllCells()) {
-          uc[c] = GetLineU(fc_n_[c], fc_a_[c], h);
-        }
+        //auto h = GetCellSize();
+        //for (auto c : m.AllCells()) {
+        //  uc[c] = GetLineU(fc_n_[c], fc_a_[c], h);
+        //}
       }
     }
 
     if (sem("stat")) {
       this->IncIter();
+      ++count_;
     }
   }
   void FinishStep() override {
