@@ -395,14 +395,19 @@ class Vof : public AdvectionSolver<M_> {
         const Scal dt = this->GetTimeStep();
         for (auto c : m.Cells()) {
           auto w = bc.GetMIdx(c);
+          Scal lc = m.GetVolume(c);
+          // faces
           IdxFace fm = bf.GetIdx(w, d);
           IdxFace fp = bf.GetIdx(w + MIdx(d), d);
+          // fluxes
           Scal vm = ffv[fm];
           Scal vp = ffv[fp];
+          // cfl
+          Scal sm = vm * dt / lc;
+          Scal sp = vp * dt / lc;
           IdxCell cum = m.GetNeighbourCell(fm, vm > 0. ? 0 : 1); // upwind cell
           IdxCell cup = m.GetNeighbourCell(fp, vp > 0. ? 0 : 1); // upwind cell
           Scal lm, lp; // vo[l]ume fraction change
-          Scal lc = m.GetVolume(c);
           if (d == Dir::i) {
             lm = GetLineFluxX(fc_n_[cum], fc_a_[cum], h, vm, dt) * dt / lc;
             lp = GetLineFluxX(fc_n_[cup], fc_a_[cup], h, vp, dt) * dt / lc;
@@ -412,7 +417,7 @@ class Vof : public AdvectionSolver<M_> {
           } else if (d == Dir::k) {
             // nop
           }
-          uc[c] += -(lp - lm);
+          uc[c] = (uc[c] - (lp - lm)) / (1. - (sp - sm));
         }
         m.Comm(&uc);
       }
