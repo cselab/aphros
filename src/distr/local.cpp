@@ -1,7 +1,6 @@
 #include "local.h"
 
-#include "geom/vect.h"
-#include "geom/mesh3d.h"
+#include "geom/mesh.h"
 #include "kernel/kernel.h"
 #include "kernel/kernelmesh.h"
 #include "parse/vars.h"

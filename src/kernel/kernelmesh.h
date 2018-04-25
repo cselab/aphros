@@ -1,18 +1,13 @@
 #pragma once
 
-#include <memory>
-
-#include "geom/vect.h"
-#include "geom/mesh3d.h"
+#include "geom/mesh.h"
 #include "kernel.h"
-#include "parse/vars.h"
 
 template <class M>
 M CreateMesh(const MyBlockInfo& bi) {
   using MIdx = typename M::MIdx;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  using Rect = Rect<Vect>;
   int hl = bi.hl;
 
   MIdx bs(bi.bs); // block size inner
@@ -20,7 +15,7 @@ M CreateMesh(const MyBlockInfo& bi) {
   MIdx w(bi.index);   // block index
   Vect d0(bi.origin); // origin coord
   Vect d1 = d0 + Vect(bs) * h;      // end coord
-  Rect d(d0, d1);
+  Rect<Vect> d(d0, d1);
 
   MIdx o = w * bs; // origin index
   
@@ -28,13 +23,13 @@ M CreateMesh(const MyBlockInfo& bi) {
 }
 
 // Abstract Kernel aware of Mesh. Dependency of DistrMesh.
-template <class M>
+template <class M_>
 class KernelMesh : public Kernel {
  public:
-  using Mesh = M;
-  using Scal = typename Mesh::Scal;
-  using Vect = typename Mesh::Vect;
-  using MIdx = typename Mesh::MIdx;
+  using M = M_;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  using MIdx = typename M::MIdx;
   static constexpr size_t dim = M::dim;
 
   KernelMesh(Vars& var, const MyBlockInfo& bi) 

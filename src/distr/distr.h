@@ -6,24 +6,24 @@
 #include <mpi.h>
 #include <iomanip>
 #include <stdexcept>
+#include <string>
 
+#include "geom/mesh.h"
+#include "util/suspender.h"
+#include "util/metrics.h"
 #include "parse/vars.h"
 #include "kernel/kernel.h"
 #include "linear/hypre.h"
-#include "util/suspender.h"
-#include "util/metrics.h"
-#include "geom/mesh.h"
 #include "dump/dump.h"
 
-
-// Block processor.
+// Abstract block processor.
 class Distr {
  public:
   virtual void Run() = 0;
   virtual ~Distr() {}
 };
 
-// Block processor aware of Mesh.
+// Abstract block processor aware of Mesh.
 // KF: kernel factory derived from KernelMeshFactory
 template <class KF>
 class DistrMesh : public Distr {
@@ -43,10 +43,8 @@ class DistrMesh : public Distr {
   virtual FieldCell<Scal> GetGlobalField(size_t i) const; 
 
  protected:
-
-  // TODO: remove, needed only by Hypre
-  // XXX: overwritten by Cubism<KF>
-  MPI_Comm comm_;
+  // TODO: remove comm, needed only by Hypre
+  MPI_Comm comm_; // XXX: overwritten by Cubism<KF>
   Vars& par;
   KF& kf_; // kernel factory
 
@@ -60,8 +58,7 @@ class DistrMesh : public Distr {
   int stage_ = 0;
   size_t frame_ = 0; // current dump frame
 
-  // XXX: overwritten by Local<KF> and Cubism<KF>
-  bool isroot_;
+  bool isroot_; // XXX: overwritten by Local<KF> and Cubism<KF>
 
   std::map<MIdx, std::unique_ptr<K>, typename MIdx::LexLess> mk;
 
@@ -103,13 +100,13 @@ void DistrMesh<KF>::MakeKernels(const std::vector<MyBlockInfo>& ee) {
 
 template <class KF>
 DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& par) 
-  : comm_(comm), par(par), kf_(kf)
-  , es_(par.Int["comm_size"])
-  , hl_(par.Int["hl"])
-  , bs_{par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]}
-  , p_{par.Int["px"], par.Int["py"], par.Int["pz"]}
-  , b_{par.Int["bx"], par.Int["by"], par.Int["bz"]}
-  , ext_(par.Double["extent"])
+    : comm_(comm), par(par), kf_(kf)
+    , es_(par.Int["comm_size"])
+    , hl_(par.Int["hl"])
+    , bs_{par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]}
+    , p_{par.Int["px"], par.Int["py"], par.Int["pz"]}
+    , b_{par.Int["bx"], par.Int["by"], par.Int["bz"]}
+    , ext_(par.Double["extent"])
 {}
 
 template <class KF>

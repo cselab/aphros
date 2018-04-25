@@ -3,9 +3,7 @@
 #include <string>
 #include <array>
 
-#include "util/suspender.h"
 #include "parse/vars.h"
-
 
 // TODO: remove h_gridpoint from MyBlockInfo
 struct MyBlockInfo {
@@ -20,7 +18,6 @@ struct MyBlockInfo {
   bool islead; // lead block (one per each PE)
 };
 
-// Suspendable kernel
 class Kernel {
  public:
   virtual void Run() = 0;

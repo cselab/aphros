@@ -5,14 +5,10 @@
 #include <map>
 #include <mpi.h>
 
-#include "ilocal.h"
-#include "geom/vect.h"
-#include "geom/mesh3d.h"
 #include "dump/output.h"
 #include "dump/output_paraview.h"
-#include "parse/vars.h"
 #include "distr.h"
-#include "linear/hypre.h"
+#include "ilocal.h"
 
 template <class KF>
 class Local : public DistrMesh<KF> {
