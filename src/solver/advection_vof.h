@@ -209,14 +209,13 @@ inline Scal GetLineFluxY(const GVect<Scal, 3>& n, Scal a,
   return v / dt;
 }
 
-
-template <class M>
-class Vof : public AdvectionSolver<M> {
-  using Mesh = M;
-  using P = AdvectionSolver<Mesh>;
-  using Scal = typename Mesh::Scal;
-  using Vect = typename Mesh::Vect;
-  static constexpr size_t dim = Mesh::dim;
+template <class M_>
+class Vof : public AdvectionSolver<M_> {
+  using M = M_;
+  using P = AdvectionSolver<M>;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  static constexpr size_t dim = M::dim;
 
   using P::m;
   using P::ffv_;
@@ -235,13 +234,13 @@ class Vof : public AdvectionSolver<M> {
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
   Vof(
-      Mesh& m,
+      M& m,
       const FieldCell<Scal>& fc_u_initial,
       const MapFace<std::shared_ptr<ConditionFace>>& mf_u_cond_,
       const FieldFace<Scal>* ff_volume_flux,
       const FieldCell<Scal>* fc_source,
       double t, double dt, std::shared_ptr<Par> par)
-      : AdvectionSolver<Mesh>(t, dt, m, ff_volume_flux, fc_source)
+      : AdvectionSolver<M>(t, dt, m, ff_volume_flux, fc_source)
       , mf_u_cond_(mf_u_cond_)
       , par(par)
       , fc_a_(m, 0)
@@ -272,8 +271,8 @@ class Vof : public AdvectionSolver<M> {
   }
   // 2D
   void CalcNormalHeight(const FieldCell<Scal>& uc) {
-    using MIdx = typename Mesh::MIdx;
-    using Dir = typename Mesh::Dir;
+    using MIdx = typename M::MIdx;
+    using Dir = typename M::Dir;
     auto& bc = m.GetBlockCells();
     const int sw = 1; // stencil width
     const int sn = sw * 2 + 1; // stencil size
@@ -327,7 +326,7 @@ class Vof : public AdvectionSolver<M> {
     }
   }
   void Print(const FieldFace<Scal>& ff, std::string name) {
-    using MIdx = typename Mesh::MIdx;
+    using MIdx = typename M::MIdx;
     auto ibc = m.GetInBlockCells();
     auto bc = m.GetBlockCells();
     auto bf = m.GetBlockFaces();
@@ -338,7 +337,7 @@ class Vof : public AdvectionSolver<M> {
     for (int i = wb[1]; i <= we[1]; ++i) {
       MIdx w = wc;
       w[1] = i;
-      using Dir = typename Mesh::Dir;
+      using Dir = typename M::Dir;
       IdxFace f = bf.GetIdx(w, Dir::j);
       std::cerr << std::setw(10) << ff[f] << " ";
     }
@@ -346,7 +345,7 @@ class Vof : public AdvectionSolver<M> {
   }
 
   void Print(const FieldCell<Scal>& fc, std::string name) {
-    using MIdx = typename Mesh::MIdx;
+    using MIdx = typename M::MIdx;
     auto ibc = m.GetInBlockCells();
     auto bc = m.GetBlockCells();
     MIdx wb = ibc.GetBegin();
@@ -383,43 +382,46 @@ class Vof : public AdvectionSolver<M> {
       }
     }
     const bool split = true;
-    for (size_t d = 0; d < (split ? dim : 1); ++d) {
+    using Dir = typename M::Dir;
+    using MIdx = typename M::MIdx;
+    auto& bf = m.GetBlockFaces();
+    for (Dir d : {Dir::i, Dir::j}) {
       auto& uc = fc_u_.iter_curr;
+      auto& bc = m.GetBlockCells();
+      auto& bf = m.GetBlockFaces();
       if (sem("adv")) {
         auto h = GetCellSize();
-
         auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
         const Scal dt = this->GetTimeStep();
-        for (auto f : m.Faces()) {
-          Vect vd(0); 
-          vd[d] = 1.;
-
-          Scal v = ffv[f] * vd.dot(m.GetNormal(f)); // mixture flux
-          bool p = (v > 0.);
-          IdxCell c = m.GetNeighbourCell(f, p ? 0 : 1); // upwind cell
-          if (d == 0) {
-            ff_fu_[f] = GetLineFluxX(fc_n_[c], fc_a_[c], h, v, dt);
-          } else if (d == 1) {
-            ff_fu_[f] = GetLineFluxY(fc_n_[c], fc_a_[c], h, v, dt);
-          } else { // d == 3
-            ff_fu_[f] = 0.;
-          }
-        }
-
         for (auto c : m.Cells()) {
-          Scal s = 0.; // sum of fluxes
-          for (auto q : m.Nci(c)) {
-            IdxFace f = m.GetNeighbourFace(c, q);
-            s += ff_fu_[f] * m.GetOutwardFactor(c, q);
+          auto w = bc.GetMIdx(c);
+          IdxFace fm = bf.GetIdx(w, d);
+          IdxFace fp = bf.GetIdx(w + MIdx(d), d);
+          Scal vm = ffv[fm];
+          Scal vp = ffv[fp];
+          IdxCell cum = m.GetNeighbourCell(fm, vm > 0. ? 0 : 1); // upwind cell
+          IdxCell cup = m.GetNeighbourCell(fp, vp > 0. ? 0 : 1); // upwind cell
+          Scal lm, lp; // vo[l]ume fraction change
+          Scal lc = m.GetVolume(c);
+          if (d == Dir::i) {
+            lm = GetLineFluxX(fc_n_[cum], fc_a_[cum], h, vm, dt) * dt / lc;
+            lp = GetLineFluxX(fc_n_[cup], fc_a_[cup], h, vp, dt) * dt / lc;
+          } else if (d == Dir::j) {
+            lm = GetLineFluxY(fc_n_[cum], fc_a_[cum], h, vm, dt) * dt / lc;
+            lp = GetLineFluxY(fc_n_[cup], fc_a_[cup], h, vp, dt) * dt / lc;
+          } else if (d == Dir::k) {
+            // nop
           }
-
-          uc[c] += dt / m.GetVolume(c) * (-s);
+          uc[c] += -(lp - lm);
         }
-
         m.Comm(&uc);
       }
       if (sem("reconst")) {
         Reconst(uc);
+        auto h = GetCellSize();
+        for (auto c : m.AllCells()) {
+          uc[c] = GetLineU(fc_n_[c], fc_a_[c], h);
+        }
       }
     }
 

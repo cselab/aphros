@@ -15,7 +15,7 @@
 
 #include "util/suspender.h"
 #include "geom/vect.h"
-#include "geom/mesh3d.h"
+#include "geom/mesh.h"
 #include "solver/solver.h"
 #include "solver/advection.h"
 #include "solver/advection_vof.h"
