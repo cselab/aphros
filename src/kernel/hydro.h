@@ -30,35 +30,30 @@
 #include "dump/output.h"
 #include "dump/dumper.h"
 
+class GPar {};
 
-template <class M>
-class Hydro : public KernelMesh<M> {
+template <class M_>
+class Hydro : public KernelMeshPar<M_, GPar> {
  public:
-  using KM = KernelMesh<M>;
-  using Mesh = M;
-  using Scal = typename Mesh::Scal;
-  using Vect = typename Mesh::Vect;
-  using MIdx = typename Mesh::MIdx;
-  using Sem = typename Mesh::Sem;
+  using P = KernelMeshPar<M_, GPar>; // parent
+  using M = M_;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  using MIdx = typename M::MIdx;
+  using Sem = typename M::Sem;
+  using Par = GPar;
   static constexpr size_t dim = M::dim;
 
-  template <class T>
-  using FieldCell = FieldCell<T>;
-  template <class T>
-  using FieldFace = FieldFace<T>;
-  template <class T>
-  using FieldNode = FieldNode<T>;
-
-  Hydro(Vars& var, const MyBlockInfo& bi);
+  Hydro(Vars&, const MyBlockInfo&, Par&) ;
   void Run() override;
   M& GetMesh() { return m; }
 
  protected:
-  using KM::var;
-  using KM::bi_;
-  using KM::m;
-  using KM::IsRoot;
-  using KM::IsLead;
+  using P::var;
+  using P::bi_;
+  using P::m;
+  using P::IsRoot;
+  using P::IsLead;
 
  private:
   void Init();
@@ -79,7 +74,6 @@ class Hydro : public KernelMesh<M> {
   // Exec events due and remove from ev_
   void ExecEvents();
 
-  using AS = solver::AdvectionSolverExplicit<M>;
   using FS = solver::FluidSimple<M>;
 
   FieldCell<Scal> fc_mu_; // viscosity
@@ -387,7 +381,7 @@ void Hydro<M>::Init() {
         std::cout << "pfixed bi=" << MIdx(bi_.index) 
             << " dist=" << pdist_ << std::endl;
         mc_velcond[c] = std::make_shared
-            <solver::fluid_condition::GivenPressureFixed<Mesh>>(p);
+            <solver::fluid_condition::GivenPressureFixed<M>>(p);
       }
     }
 
@@ -482,8 +476,8 @@ void Hydro<M>::Init() {
 
 
 template <class M>
-Hydro<M>::Hydro(Vars& var, const MyBlockInfo& bi) 
-  : KernelMesh<M>(var, bi)
+Hydro<M>::Hydro(Vars& var, const MyBlockInfo& bi, Par& par) 
+  : KernelMeshPar<M,Par>(var, bi, par)
   , dumper_(var)
 {}
 
@@ -920,17 +914,6 @@ void Hydro<M>::Run() {
     }
   }
 }
-
-template <class _M>
-class HydroFactory : public KernelMeshFactory<_M> {
- public:
-  using M = _M;
-  using K = Hydro<M>;
-  K* Make(Vars& var, const MyBlockInfo& bi) override {
-    return new Hydro<M>(var, bi);
-  }
-};
-
 
 // Dependencies and interfaces:
 // 
