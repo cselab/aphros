@@ -478,36 +478,37 @@ class Vof : public AdvectionSolver<M_> {
         const Scal dt = this->GetTimeStep();
         for (auto c : m.Cells()) {
           auto w = bc.GetMIdx(c);
-          Scal lc = m.GetVolume(c);
+          const Scal lc = m.GetVolume(c);
           // faces
           IdxFace fm = bf.GetIdx(w, d);
           IdxFace fp = bf.GetIdx(w + MIdx(d), d);
-          // fluxes
-          Scal vm = ffv[fm];
-          Scal vp = ffv[fp];
-          // cfl
-          Scal sm = vm * dt / lc;
-          Scal sp = vp * dt / lc;
+          // mixture volume fluxes
+          const Scal vm = ffv[fm];
+          const Scal vp = ffv[fp];
+          // mixture volume cfl
+          const Scal sm = vm * dt / lc;
+          const Scal sp = vp * dt / lc;
+          const Scal ds = sp - sm;
           // upwind cells
           IdxCell cum = m.GetNeighbourCell(fm, vm > 0. ? 0 : 1);
           IdxCell cup = m.GetNeighbourCell(fp, vp > 0. ? 0 : 1);
-          // vo[l]ume fraction change
-          Scal lm, lp; 
+          // phase 1 volume fluxes
+          Scal qm, qp; 
           if (d == dd[0]) { // Euler Implicit
             if (d == Dir::i) {
-              lm = GetLineFluxX(
-                  fc_n_[cum], fc_a_[cum], h, vm, dt) * dt / lc;
-              lp = GetLineFluxX(
-                  fc_n_[cup], fc_a_[cup], h, vp, dt) * dt / lc;
+              qm = GetLineFluxX(fc_n_[cum], fc_a_[cum], h, vm, dt);
+              qp = GetLineFluxX(fc_n_[cup], fc_a_[cup], h, vp, dt);
             } else if (d == Dir::j) {
-              lm = GetLineFluxY(
-                  fc_n_[cum], fc_a_[cum], h, vm, dt) * dt / lc;
-              lp = GetLineFluxY(
-                  fc_n_[cup], fc_a_[cup], h, vp, dt) * dt / lc;
+              qm = GetLineFluxY(fc_n_[cum], fc_a_[cum], h, vm, dt);
+              qp = GetLineFluxY(fc_n_[cup], fc_a_[cup], h, vp, dt);
             } else if (d == Dir::k) {
               // nop
             }
-            uc[c] = (uc[c] - (lp - lm)) / (1. - (sp - sm));
+            // phase 1 cfl
+            const Scal lm = qm * dt / lc;
+            const Scal lp = qp * dt / lc;
+            const Scal dl = lp - lm;
+            uc[c] = (uc[c] - dl) / (1. - ds);
           } else { // Lagrange Explicit
             // upwind faces
             IdxFace fum = bf.GetIdx(vm > 0. ? w - MIdx(d) : w, d);
@@ -516,29 +517,26 @@ class Vof : public AdvectionSolver<M_> {
             Scal vum = ffv[fum];
             Scal vup = ffv[fup];
             if (d == Dir::i) {
-              lm = GetLineFluxStrX(
-                  fc_n_[cum], fc_a_[cum], h, vm, vum, dt) * dt / lc;
-              lp = GetLineFluxStrX(
-                  fc_n_[cup], fc_a_[cup], h, vp, vup, dt) * dt / lc;
+              qm = GetLineFluxStrX(fc_n_[cum], fc_a_[cum], h, vm, vum, dt);
+              qp = GetLineFluxStrX(fc_n_[cup], fc_a_[cup], h, vp, vup, dt);
             } else if (d == Dir::j) {
-              lm = GetLineFluxStrY(
-                  fc_n_[cum], fc_a_[cum], h, vm, vum, dt) * dt / lc;
-              lp = GetLineFluxStrY(
-                  fc_n_[cup], fc_a_[cup], h, vp, vup, dt) * dt / lc;
+              qm = GetLineFluxStrY(fc_n_[cum], fc_a_[cum], h, vm, vum, dt);
+              qp = GetLineFluxStrY(fc_n_[cup], fc_a_[cup], h, vp, vup, dt);
             } else if (d == Dir::k) {
               // nop
             }
-            uc[c] = uc[c] * (1. + (sp - sm)) - (lp - lm);
+            // phase 1 cfl
+            const Scal lm = qm * dt / lc;
+            const Scal lp = qp * dt / lc;
+            const Scal dl = lp - lm;
+            uc[c] = uc[c] * (1. + ds) - dl;
           }
+          Clip(uc[c]);
         }
         m.Comm(&uc);
       }
       if (sem("reconst")) {
         Reconst(uc);
-        auto h = GetCellSize();
-        for (auto c : m.AllCells()) {
-          uc[c] = GetLineU(fc_n_[c], fc_a_[c], h);
-        }
       }
     }
 
