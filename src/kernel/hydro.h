@@ -78,10 +78,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   FieldCell<Scal> fc_mu_; // viscosity
   FieldCell<Scal> fc_rho_; // density
+  FieldFace<Scal> ff_rho_; // density
   FieldCell<Scal> fc_src_; // source
-  FieldCell<Vect> fc_force_;  // force
-  FieldCell<Vect> fc_stforce_;  // stforce cells TODO: what is st
-  FieldFace<Vect> ff_stforce_;  // stforce faces
+  FieldFace<Scal> ff_force_;  // external force
   MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond_;
   MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond_;
   MultiTimer<std::string> timer_; 
@@ -94,6 +93,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_vf_; // volume fraction used by constructor and Dump()
   FieldCell<Vect> fc_vel_; // velocity used by constructor
   FieldCell<Scal> fc_smvf_; // smoothed volume fraction used by CalcMixture()
+  FieldFace<Scal> ff_smvf_; // interpolated fc_smvf_
   Scal diff_;  // convergence indicator
   size_t step_;
   Scal pdist_, pdistmin_; // distance to pfixed cell
@@ -136,8 +136,6 @@ void Hydro<M>::Init() {
   }
 
   if (sem("fields")) {
-    fc_stforce_.Reinit(m, Vect(0));
-    ff_stforce_.Reinit(m, Vect(0));
     fc_src_.Reinit(m, 0.);
 
     // initial volume fraction
@@ -397,7 +395,7 @@ void Hydro<M>::Init() {
 
       fs_.reset(new FS(
             m, fc_vel_, mf_velcond_, mc_velcond, 
-            &fc_rho_, &fc_mu_, &fc_force_, &fc_stforce_, &ff_stforce_, 
+            &fc_rho_, &fc_mu_, &ff_force_,  
             &fc_src_, &fc_src_, 0., dt, &timer_, p));
     }
 
@@ -685,7 +683,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
   if (sem("init")) {
     fc_mu_.Reinit(m);
     fc_rho_.Reinit(m);
-    fc_force_.Reinit(m);
+    ff_rho_.Reinit(m);
+    ff_force_.Reinit(m);
     fc_smvf_ = fc_vf0;
   }
 
@@ -694,28 +693,37 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
   }
 
   if (sem("calc")) {
-    auto& a = fc_smvf_; // smoothed vf
+    auto& a = fc_smvf_;
+    auto& af = ff_smvf_;  
+    af = solver::Interpolate(a, mf_cond_, m);
 
-    const Vect f(var.Vect["force"]);
-    const Vect g(var.Vect["gravity"]);
+    const Vect force(var.Vect["force"]);
+    const Vect grav(var.Vect["gravity"]);
     const Scal r1(var.Double["rho1"]);
     const Scal r2(var.Double["rho2"]);
     const Scal m1(var.Double["mu1"]);
     const Scal m2(var.Double["mu2"]);
 
     // Init density and viscosity
-    for (auto i : m.AllCells()) {
-      const Scal v2 = a[i];
+    for (auto c : m.AllCells()) {
+      const Scal v2 = a[c];
       const Scal v1 = 1. - v2;
-      fc_rho_[i] = r1 * v1 + r2 * v2;
-      fc_mu_[i] = m1 * v1 + m2 * v2;
+      fc_rho_[c] = r1 * v1 + r2 * v2;
+      fc_mu_[c] = m1 * v1 + m2 * v2;
+    }
+
+    // Init density and viscosity
+    for (auto f : m.AllFaces()) {
+      const Scal v2 = af[f];
+      const Scal v1 = 1. - v2;
+      ff_rho_[f] = r1 * v1 + r2 * v2;
     }
 
     // Init force
-    for (auto i : m.AllCells()) {
-      Vect x = m.GetCenter(i);
-      fc_force_[i] = f;
-      fc_force_[i] += g * fc_rho_[i];
+    for (auto f : m.AllFaces()) {
+      Vect n = m.GetNormal(f);
+      ff_force_[f] = force.dot(n);
+      ff_force_[f] += grav.dot(n) * ff_rho_[f];
     }
 
     // Surface tension
@@ -732,26 +740,41 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
                 Vect(0), it.GetValue()->GetNci());
       }
 
-      fc_stforce_.Reinit(m, Vect(0));
-
       // surface tension in cells
       auto sig = var.Double["sigma"];
-      auto stdiag = var.Double["stdiag"];
       auto gf = solver::Interpolate(gc, mfvz, m);
-      for (auto c : m.Cells()) {
-        Vect r(0); // result
-        for (size_t e = 0; e < m.GetNumNeighbourFaces(c); ++e) {
-          IdxFace f = m.GetNeighbourFace(c, e);
-          auto g = gf[f];
-          auto n = g / (g.norm() + 1e-6); // TODO: revise 1e-6
-          auto s = m.GetOutwardSurface(c, e);
-          r += s * (g.norm() * stdiag) - g * s.dot(n);
+      /*
+      if (0) // implementation by tensor divergence
+      {
+        auto stdiag = var.Double["stdiag"];
+        for (auto c : m.Cells()) {
+          Vect r(0); // result
+          for (size_t e = 0; e < m.GetNumNeighbourFaces(c); ++e) {
+            IdxFace f = m.GetNeighbourFace(c, e);
+            auto g = gf[f];
+            auto n = g / (g.norm() + 1e-6);  // inner normal
+            // TODO: revise 1e-6
+            auto s = m.GetOutwardSurface(c, e);
+            r += s * (g.norm() * stdiag) - g * s.dot(n);
+          }
+          r /= m.GetVolume(c);     
+          // here: r = stdiag*div(|g|I) - div(g g/|g|) 
+          r[2] = 0.; // XXX: zero in z
+          fc_force_[c] += r * sig;
         }
-        r /= m.GetVolume(c);     // div(gg/|g|) - div(|g|I)
-        r[2] = 0.;
-        //fc_stforce_[c] = r * sig;
-        fc_force_[c] += r * sig;
+      } else*/ { // fixed curvature
+        Scal rad = 0.2;
+        Scal k = 1. / rad;
+        for (auto f : m.Faces()) {
+          IdxCell cm = m.GetNeighbourCell(f, 0);
+          IdxCell cp = m.GetNeighbourCell(f, 1);
+          Vect dm = m.GetVectToCell(f, 0);
+          Vect dp = m.GetVectToCell(f, 1);
+          const auto da = (a[cp] - a[cm]) / (dp - dm).norm();
+          ff_force_[f] += da * (k * sig);
+        }
       }
+
     }
   }
 }
