@@ -764,14 +764,28 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           fc_force_[c] += r * sig;
         }
       } else*/ { // fixed curvature
-        Scal rad = 0.2;
-        Scal k = 1. / rad;
+        FieldCell<Scal> kc(m); // curvature
+        for (auto c : m.SuCells()) {
+          Scal s = 0.;
+          for (auto q : m.Nci(c)) {
+            IdxFace f = m.GetNeighbourFace(c, q);
+            auto g = gf[f];
+            auto n = g / (g.norm() + 1e-6);  // inner normal
+            // TODO: revise 1e-6
+            s += -n.dot(m.GetOutwardSurface(c, q));
+          }
+          kc[c] = s / m.GetVolume(c);     
+        }
+
+        //Scal rad = 0.2;
+        //Scal k = 1. / rad;
         for (auto f : m.Faces()) {
           IdxCell cm = m.GetNeighbourCell(f, 0);
           IdxCell cp = m.GetNeighbourCell(f, 1);
           Vect dm = m.GetVectToCell(f, 0);
           Vect dp = m.GetVectToCell(f, 1);
           const auto da = (a[cp] - a[cm]) / (dp - dm).norm();
+          Scal k = (kc[cp] + kc[cm]) * 0.5;
           ff_force_[f] += da * (k * sig);
           using Dir = typename M::Dir;
           if (m.GetBlockFaces().GetDir(f) == Dir::k) {
