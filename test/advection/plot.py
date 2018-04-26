@@ -15,7 +15,10 @@ import re
 # <u[0,0,0]> <u[1,0,0]> ...
 # Return:
 # array of shape (Nx, Ny, Nz)
+# None if file not found
 def Read(p):
+    if not os.path.isfile(p):
+        return None
     with open(p) as f:
         ll = f.readlines()
         # size
@@ -152,6 +155,7 @@ for p in pp:
     fig, ax = PlotInit()
     PlotGrid(ax, xn1, yn1)
     PlotField(ax, u)
-    l = GetLines(x, y, a, nx, ny, hx, hy, u)
-    PlotLines(ax, *l)
+    if all([e is not None for e in [a, nx, ny]]):
+        l = GetLines(x, y, a, nx, ny, hx, hy, u)
+        PlotLines(ax, *l)
     PlotSave(fig, ax, po)

@@ -3,5 +3,5 @@
 set -eu
 
 make
-./t.advection
+./t.advection uni.conf
 ./plot.py

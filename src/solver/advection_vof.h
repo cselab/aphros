@@ -396,8 +396,8 @@ class Vof : public AdvectionSolver<M_> {
           tk = k;
         } 
       }
-      tn[0] = Maxmod(tn[0], 1e-12); // TODO: revise GetLine* to avoid this
-      tn[1] = Maxmod(tn[1], 1e-12);
+      //tn[0] = Maxmod(tn[0], 1e-5); // TODO: revise GetLine* to avoid this
+      //tn[1] = Maxmod(tn[1], 1e-5);
       fc_n_[c] = tn / tn.norm();
     }
   }
@@ -495,21 +495,26 @@ class Vof : public AdvectionSolver<M_> {
           Scal sm = vm * dt / lc;
           Scal sp = vp * dt / lc;
           // upwind cells
-          IdxCell cum = m.GetNeighbourCell(fm, vm > 0. ? 0 : 1); // upwind cell
-          IdxCell cup = m.GetNeighbourCell(fp, vp > 0. ? 0 : 1); // upwind cell
-          Scal lm, lp; // vo[l]ume fraction change
-          if (d == dd[0]) { // EI
+          IdxCell cum = m.GetNeighbourCell(fm, vm > 0. ? 0 : 1);
+          IdxCell cup = m.GetNeighbourCell(fp, vp > 0. ? 0 : 1);
+          // vo[l]ume fraction change
+          Scal lm, lp; 
+          if (d == dd[0]) { // Euler Implicit
             if (d == Dir::i) {
-              lm = GetLineFluxX(fc_n_[cum], fc_a_[cum], h, vm, dt) * dt / lc;
-              lp = GetLineFluxX(fc_n_[cup], fc_a_[cup], h, vp, dt) * dt / lc;
+              lm = GetLineFluxX(
+                  fc_n_[cum], fc_a_[cum], h, vm, dt) * dt / lc;
+              lp = GetLineFluxX(
+                  fc_n_[cup], fc_a_[cup], h, vp, dt) * dt / lc;
             } else if (d == Dir::j) {
-              lm = GetLineFluxY(fc_n_[cum], fc_a_[cum], h, vm, dt) * dt / lc;
-              lp = GetLineFluxY(fc_n_[cup], fc_a_[cup], h, vp, dt) * dt / lc;
+              lm = GetLineFluxY(
+                  fc_n_[cum], fc_a_[cum], h, vm, dt) * dt / lc;
+              lp = GetLineFluxY(
+                  fc_n_[cup], fc_a_[cup], h, vp, dt) * dt / lc;
             } else if (d == Dir::k) {
               // nop
             }
             uc[c] = (uc[c] - (lp - lm)) / (1. - (sp - sm));
-          } else { // LE
+          } else { // Lagrange Explicit
             // upwind faces
             IdxFace fum = bf.GetIdx(vm > 0. ? w - MIdx(d) : w, d);
             IdxFace fup = bf.GetIdx(vp > 0. ? w : w + MIdx(d), d);
@@ -517,11 +522,15 @@ class Vof : public AdvectionSolver<M_> {
             Scal vum = ffv[fum];
             Scal vup = ffv[fup];
             if (d == Dir::i) {
-              lm = GetLineFluxStrX(fc_n_[cum], fc_a_[cum], h, vm, vum, dt) * dt / lc;
-              lp = GetLineFluxStrX(fc_n_[cup], fc_a_[cup], h, vp, vup, dt) * dt / lc;
+              lm = GetLineFluxStrX(
+                  fc_n_[cum], fc_a_[cum], h, vm, vum, dt) * dt / lc;
+              lp = GetLineFluxStrX(
+                  fc_n_[cup], fc_a_[cup], h, vp, vup, dt) * dt / lc;
             } else if (d == Dir::j) {
-              lm = GetLineFluxStrY(fc_n_[cum], fc_a_[cum], h, vm, vum, dt) * dt / lc;
-              lp = GetLineFluxStrY(fc_n_[cup], fc_a_[cup], h, vp, vup, dt) * dt / lc;
+              lm = GetLineFluxStrY(
+                  fc_n_[cum], fc_a_[cum], h, vm, vum, dt) * dt / lc;
+              lp = GetLineFluxStrY(
+                  fc_n_[cup], fc_a_[cup], h, vp, vup, dt) * dt / lc;
             } else if (d == Dir::k) {
               // nop
             }
@@ -530,12 +539,13 @@ class Vof : public AdvectionSolver<M_> {
         }
         m.Comm(&uc);
       }
+      //if (d != dd[0])  // skip reconstruction on first step
       if (sem("reconst")) {
         Reconst(uc);
-        //auto h = GetCellSize();
-        //for (auto c : m.AllCells()) {
-        //  uc[c] = GetLineU(fc_n_[c], fc_a_[c], h);
-        //}
+        auto h = GetCellSize();
+        for (auto c : m.AllCells()) {
+          uc[c] = GetLineU(fc_n_[c], fc_a_[c], h);
+        }
       }
     }
 
