@@ -69,7 +69,6 @@ inline Scal GetLineA1(const GVect<Scal, 3>& n, Scal u) {
 template <class Scal>
 inline Scal GetLineA(const GVect<Scal, 3>& n, Scal u, 
                      const GVect<Scal, 3>& h) {
-  // TODO: check that GetLineA() is homogeneous wrt n
   return GetLineA1(n * h, u);
 }
 
@@ -124,7 +123,6 @@ inline Scal GetLineU1(const GVect<Scal, 3>& n, Scal a) {
 template <class Scal>
 inline Scal GetLineU(const GVect<Scal, 3>& n, Scal a, 
                      const GVect<Scal, 3>& h) {
-  // TODO: check that GetLineU() is homogeneous wrt n,a
   return GetLineU1(n * h, a);
 }
 
@@ -177,7 +175,6 @@ inline Scal GetLineVolStrX0(const GVect<Scal, 3>& n, Scal a,
   Scal u = GetLineU(n, a, h); // volume fraction
   Vect sh(h[0] + dx - dxu, h[1], h[2]); // stretched size
   Vect sn = n / sh; // stretched normal
-  sn /= sn.norm();
   Scal sa = GetLineA(sn, u, sh); // stretched line constant
   Vect dc = Vect(dxu, 0., 0.); // shift of center
   return GetLineVolX0(sn, sa, sh, dx);
@@ -348,9 +345,7 @@ class Vof : public AdvectionSolver<M_> {
     auto gc = Gradient(uf, m);
     for (auto c : m.AllCells()) {
       Vect g = gc[c];
-      g[0] = Maxmod(g[0], 1e-10); // TODO: revise GetLine* to avoid this
-      g[1] = Maxmod(g[1], 1e-10);
-      fc_n_[c] = g / (-g.norm());
+      fc_n_[c] = g;
     }
   }
   // 2D
@@ -378,10 +373,11 @@ class Vof : public AdvectionSolver<M_> {
         }
         // slope
         Scal km = (e[sw] - e[0]); // backward (minus)
-        Scal kc = (e[sw + 1] - e[0]) / 2.; // centered
+        Scal kc = (e[sw + 1] - e[0]) * 0.5; // centered
         Scal kp = (e[sw + 1] - e[sw]); // forward (plus)
         // best slope with maximum abs
-        Scal k = Maxmod(km, Maxmod(kc, kp));
+        //Scal k = Maxmod(km, Maxmod(kc, kp));
+        Scal k = kc; // XXX: force centered approx
         // direction perpendicular 
         Dir dp(1 - size_t(d)); 
         // sign in dp
@@ -390,15 +386,13 @@ class Vof : public AdvectionSolver<M_> {
         Vect n;
         n[size_t(d)] = -k;
         n[size_t(dp)] = sg > 0. ? -1. : 1.;
-        // check best
+        // check best with minimal abs
         if (d == Dir::i || (d == Dir::j && std::abs(k) < std::abs(tk))) {
           tn = n;
           tk = k;
         } 
       }
-      //tn[0] = Maxmod(tn[0], 1e-5); // TODO: revise GetLine* to avoid this
-      //tn[1] = Maxmod(tn[1], 1e-5);
-      fc_n_[c] = tn / tn.norm();
+      fc_n_[c] = tn;
     }
   }
   void Reconst(const FieldCell<Scal>& uc) {
@@ -539,7 +533,6 @@ class Vof : public AdvectionSolver<M_> {
         }
         m.Comm(&uc);
       }
-      //if (d != dd[0])  // skip reconstruction on first step
       if (sem("reconst")) {
         Reconst(uc);
         auto h = GetCellSize();
