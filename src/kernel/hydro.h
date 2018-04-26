@@ -139,6 +139,7 @@ void Hydro<M>::Init() {
     fc_src_.Reinit(m, 0.);
 
     // initial volume fraction
+    // TODO: for 2D wrong values in halos (should be periodic instead)
     fc_vf_.Reinit(m, 0);
     {
       const std::string vi = var.String["vf_init"];
@@ -772,6 +773,10 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           Vect dp = m.GetVectToCell(f, 1);
           const auto da = (a[cp] - a[cm]) / (dp - dm).norm();
           ff_force_[f] += da * (k * sig);
+          using Dir = typename M::Dir;
+          if (m.GetBlockFaces().GetDir(f) == Dir::k) {
+            ff_force_[f] = 0.; // XXX: zero in z
+          }
         }
       }
 
