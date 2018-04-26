@@ -3,5 +3,7 @@
 set -ue
 
 make
-time ./t.advection uni.conf
+#time ./t.advection uni.conf
+time ./t.advection str.conf
+#time ./t.advection a.conf
 time ./plot.py

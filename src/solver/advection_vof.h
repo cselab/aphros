@@ -340,6 +340,7 @@ class Vof : public AdvectionSolver<M_> {
   Scal Maxmod(Scal a, Scal b) {
     return std::abs(b) < std::abs(a) ? a : b;
   }
+  // Normal with gradients
   void CalcNormal(const FieldCell<Scal>& uc) {
     auto uf = Interpolate(uc, mf_u_cond_, m);
     auto gc = Gradient(uf, m);
@@ -348,7 +349,7 @@ class Vof : public AdvectionSolver<M_> {
       fc_n_[c] = g;
     }
   }
-  // 2D
+  // Normal with heigh function
   void CalcNormalHeight(const FieldCell<Scal>& uc) {
     using MIdx = typename M::MIdx;
     using Dir = typename M::Dir;
@@ -395,9 +396,59 @@ class Vof : public AdvectionSolver<M_> {
       fc_n_[c] = tn;
     }
   }
+  // Normal with heighfunction evaluated at only two points
+  void CalcNormalHeightLite(const FieldCell<Scal>& uc) {
+    using MIdx = typename M::MIdx;
+    using Dir = typename M::Dir;
+    auto& bc = m.GetBlockCells();
+    for (auto c : m.SuCells()) {
+      Vect tn; // bes[t] normal
+      Scal tk; // bes[t] slope with minimal abs
+      // direction of line tangent
+      for (Dir d : {Dir::i, Dir::j}) {
+        // direction of line normal ([d]irection [p]erpendicular)
+        Dir dp(1 - size_t(d)); 
+
+        MIdx w = bc.GetMIdx(c);
+
+        // offset in dp
+        MIdx op = MIdx(dp);
+
+        // index shfted in d
+        MIdx wm = bc.GetMIdx(c) - MIdx(d);
+        MIdx wp = bc.GetMIdx(c) + MIdx(d);
+        // height function 
+        const Scal hm = 
+            uc[bc.GetIdx(wm - op)] + 
+            uc[bc.GetIdx(wm)] + 
+            uc[bc.GetIdx(wm + op)];
+        const Scal hp = 
+            uc[bc.GetIdx(wp - op)] + 
+            uc[bc.GetIdx(wp)] + 
+            uc[bc.GetIdx(wp + op)];
+        
+        // slope
+        Scal kc = (hp - hm) * 0.5; // centered
+        Scal k = kc; // XXX: force centered approx
+        // sign in dp
+        Scal sg = uc[bc.GetIdx(w + MIdx(dp))] - uc[bc.GetIdx(w - MIdx(dp))];
+        // normal
+        Vect n;
+        n[size_t(d)] = -k;
+        n[size_t(dp)] = sg > 0. ? -1. : 1.;
+        // check best with minimal abs
+        if (d == Dir::i || (d == Dir::j && std::abs(k) < std::abs(tk))) {
+          tn = n;
+          tk = k;
+        } 
+      }
+      fc_n_[c] = tn;
+    }
+  }
   void Reconst(const FieldCell<Scal>& uc) {
     //CalcNormal(uc);
-    CalcNormalHeight(uc);
+    //CalcNormalHeight(uc);
+    CalcNormalHeightLite(uc);
     auto h = GetCellSize();
     for (auto c : m.AllCells()) {
       fc_a_[c] = GetLineA(fc_n_[c], uc[c], h);
