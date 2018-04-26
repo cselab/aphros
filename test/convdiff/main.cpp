@@ -15,11 +15,10 @@
 #include "distr/distrsolver.h"
 #include "util/suspender.h"
 #include "geom/vect.h"
-#include "geom/mesh3d.h"
+#include "geom/mesh.h"
 #include "linear/linear.h"
 #include "solver/solver.h"
-#include "solver/advection.h"
-#include "solver/conv_diff.h"
+#include "solver/convdiffi.h"
 #include "dump/output.h"
 #include "dump/output_paraview.h"
 
@@ -60,7 +59,7 @@ class Convdiff : public KernelMeshPar<M_, GPar> {
   FieldFace<Scal> ff_flux_;
   FieldCell<Scal> fc_src_;
   using AS = solver::ConvectionDiffusionScalarImplicit<M>;
-  std::unique_ptr<AS> as_; // advection solver
+  std::unique_ptr<AS> as_;
   MIdx gs_; // global mesh size
   Vect ge_; // global extent
   FieldCell<Scal> fc_; // buffer
@@ -211,7 +210,7 @@ void Convdiff<M>::TestSolve(
     if (IsRoot()) {
       std::cerr << name << std::endl;
     }
-    // initial field for advection
+    // initial field 
     FieldCell<Scal> fc_u(m);
     for (auto i : m.AllCells()) {
       Vect x = m.GetCenter(i);
@@ -317,7 +316,7 @@ void Convdiff<M>::TestSolve(
       ff_flux_[idxface] = vel.dot(m.GetSurface(idxface));
     }
 
-    // cell conditions for advection
+    // cell conditions 
     // (empty)
     MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
     
