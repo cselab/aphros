@@ -9,8 +9,7 @@
 #include <stdexcept>
 #include <random>
 
-#include "geom/vect.h"
-#include "solver/advection_vof.h"
+#include "solver/vof.h"
 
 using Scal = double;
 using Vect = GVect<Scal, 3>;

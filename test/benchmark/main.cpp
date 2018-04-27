@@ -9,7 +9,6 @@
 #include <iomanip>
 
 #include "geom/mesh.h"
-#include "geom/mesh3d.h"
 #include "solver/solver.h"
 
 const int dim = 3;

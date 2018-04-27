@@ -5,9 +5,7 @@
 #include <iomanip>
 #include <fstream>
 
-#include "geom/vect.h"
-#include "geom/mesh3d.h"
-#include "parse/vars.h"
+#include "geom/mesh.h"
 #include "kernel/kernelmeshpar.h"
 #include "distr/distrsolver.h"
 #include "util/suspender.h"
