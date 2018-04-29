@@ -9,18 +9,20 @@
 
 namespace solver {
 
-template <class Mesh>
+template <class M_>
 class ConvectionDiffusionScalarImplicit :
-    public ConvectionDiffusionScalar<Mesh> {
-  Mesh& mesh;
-  using Scal = typename Mesh::Scal;
-  using Vect = typename Mesh::Vect;
-  static constexpr size_t dim = Mesh::dim;
+    public ConvectionDiffusionScalar<M_> {
+  using M = M_;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  static constexpr size_t dim = M::dim;
+
+  M& m;
   LayersData<FieldCell<Scal>> fc_field_;
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
-  MapFace<std::shared_ptr<ConditionFace>> mf_cond_;
-  MapCell<std::shared_ptr<ConditionCell>> mc_cond_;
+  MapFace<std::shared_ptr<ConditionFace>> mfc_;
+  MapCell<std::shared_ptr<ConditionCell>> mcc_;
 
   // Common buffers:
   FieldFace<Expr> ff_cflux_;
@@ -40,20 +42,18 @@ class ConvectionDiffusionScalarImplicit :
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
   ConvectionDiffusionScalarImplicit(
-      Mesh& mesh,
-      const FieldCell<Scal>& fc_initial,
-      const MapFace<std::shared_ptr<ConditionFace>>& mf_cond,
-      const MapCell<std::shared_ptr<ConditionCell>>& mc_cond,
-      const FieldCell<Scal>* p_fc_scaling,
-      const FieldFace<Scal>* p_ff_diffusion_rate,
-      const FieldCell<Scal>* p_fc_source,
-      const FieldFace<Scal>* p_ff_vol_flux,
+      M& m,
+      const FieldCell<Scal>& fcu, // initial field
+      const MapFace<std::shared_ptr<ConditionFace>>& mfc, // face conditions
+      const MapCell<std::shared_ptr<ConditionCell>>& mcc, // cell conditions
+      const FieldCell<Scal>* fcr, // density
+      const FieldFace<Scal>* fvd, // diffusion
+      const FieldCell<Scal>* fcs, // source
+      const FieldFace<Scal>* fvv, // volume fraction
       double t, double dt, std::shared_ptr<Par> par)
-      : ConvectionDiffusionScalar<Mesh>(
-          t, dt, 
-          p_fc_scaling, p_ff_diffusion_rate, p_fc_source, p_ff_vol_flux)
-      , mesh(mesh)
-      , mf_cond_(mf_cond)
+      : ConvectionDiffusionScalar<Mesh>(t, dt, fcr, fcd, fcs, fcv)
+      , m(m)
+      , mfc_(mf_cond)
       , mc_cond_(mc_cond)
       , par(par)
   {
