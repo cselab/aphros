@@ -11,59 +11,51 @@
 
 namespace solver {
 
-template <class Mesh>
-class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
-  Mesh& mesh;
-  using Scal = typename Mesh::Scal;
-  using Vect = typename Mesh::Vect;
-  using Solver = ConvectionDiffusionScalarImplicit<Mesh>;
+template <class M_>
+class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
+  using M = M_;
+  M& m;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  using CD = ConvectionDiffusionScalarImplicit<M>;
 
-  static constexpr size_t dim = Mesh::dim;
+  static constexpr size_t dim = M::dim;
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
   template <class T>
   using VectGeneric = std::array<T, dim>;
   LayersData<FieldCell<Vect>> fc_velocity_;
 
-  MapFace<std::shared_ptr<ConditionFace>> mf_velocity_cond_;
-  MapCell<std::shared_ptr<ConditionCell>> mc_velocity_cond_;
-  FieldCell<Vect>* p_fc_force_;
+  MapFace<std::shared_ptr<ConditionFace>> mfc_; 
+  MapCell<std::shared_ptr<ConditionCell>> mcc_; 
+  FieldCell<Vect>* fcs_;
 
-  VectGeneric<MapFace<std::shared_ptr<ConditionFace>>>
-  v_mf_velocity_cond_;
+  VectGeneric<MapFace<std::shared_ptr<ConditionFace>>> vmfc_;
   // TODO: Extract scalar CellCondition
-  VectGeneric<std::shared_ptr<Solver>>
-  v_solver_;
-  VectGeneric<FieldCell<Scal>>
-  v_fc_force_;
+  VectGeneric<std::shared_ptr<CD>> vcd_; // diffusion
+  VectGeneric<FieldCell<Scal>> vfcs_; // force
 
  public:
-  using Par = typename Solver::Par;
+  using Par = typename CD::Par;
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
   void CopyToVector(Layers layer) {
-    fc_velocity_.Get(layer).Reinit(mesh);
+    fc_velocity_.Get(layer).Reinit(m);
     for (size_t n = 0; n < dim; ++n) {
       SetComponent(fc_velocity_.Get(layer), n, v_solver_[n]->GetField(layer));
     }
   }
   ConvectionDiffusionImplicit(
-      Mesh& mesh,
-      const FieldCell<Vect>& fc_velocity_initial,
-      const MapFace<std::shared_ptr<ConditionFace>>&
-      mf_velocity_cond,
-      const MapCell<std::shared_ptr<ConditionCell>>&
-      mc_velocity_cond,
-      FieldCell<Scal>* p_fc_density,
-      FieldFace<Scal>* p_ff_kinematic_viscosity,
-      FieldCell<Vect>* p_fc_force,
-      FieldFace<Scal>* p_ff_vol_flux,
+      M& m,
+      const FieldCell<Vect>& fcvel,
+      const MapFace<std::shared_ptr<ConditionFace>>& mfc,
+      const MapCell<std::shared_ptr<ConditionCell>>& mcc,
+      FieldCell<Scal>* fcr,
+      FieldFace<Scal>* ffd,
+      FieldCell<Vect>* fcs,
+      FieldFace<Scal>* ffv,
       double t, double dt, std::shared_ptr<Par> par)
-      : ConvectionDiffusion<Mesh>(t, dt, p_fc_density, 
-                                  p_ff_kinematic_viscosity, 
-                                  p_fc_force, p_ff_vol_flux)
-      , mesh(mesh)
-      , mf_velocity_cond_(mf_velocity_cond)
-      , mc_velocity_cond_(mc_velocity_cond)
+      : ConvectionDiffusion<M>(t, dt, fcr, ffd, fcs, ffv)
+      , m(m) , mfc_(mfc) , mcc_(mcc)
       , p_fc_force_(p_fc_force)
       , par(par)
   {
@@ -84,9 +76,9 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
       }
 
       // Initialize solver
-      v_solver_[n] = std::make_shared<Solver>(
-          mesh, 
-          GetComponent(fc_velocity_initial, n),
+      v_solver_[n] = std::make_shared<CD>(
+          m, 
+          GetComponent(fcvel, n),
           v_mf_velocity_cond_[n],
           MapCell<std::shared_ptr<ConditionCell>>() /*TODO empty*/,
           p_fc_density, p_ff_kinematic_viscosity,
@@ -96,7 +88,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
     CopyToVector(Layers::time_prev);
   }
   void StartStep() override {
-    auto sem = mesh.GetSem("convdiffmulti-start");
+    auto sem = m.GetSem("convdiffmulti-start");
     for (size_t n = 0; n < dim; ++n) {
       if (sem("dir-init")) {
         v_solver_[n]->SetTimeStep(this->GetTimeStep());
@@ -111,7 +103,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
     }
   }
   void MakeIteration() override {
-    auto sem = mesh.GetSem("convdiffmulti-iter");
+    auto sem = m.GetSem("convdiffmulti-iter");
     for (size_t n = 0; n < dim; ++n) {
       if (sem("dir-get")) {
         v_fc_force_[n] = GetComponent(*p_fc_force_, n);
@@ -131,7 +123,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
     }
   }
   void FinishStep() override {
-    auto sem = mesh.GetSem("convdiffmulti-finish");
+    auto sem = m.GetSem("convdiffmulti-finish");
 
     for (size_t n = 0; n < dim; ++n) {
       if (sem.Nested("dir-finish")) {
@@ -148,7 +140,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
     if (this->GetIter() == 0) {
       return 1.;
     }
-    return CalcDiff(fc_velocity_.iter_curr, fc_velocity_.iter_prev, mesh);
+    return CalcDiff(fc_velocity_.iter_curr, fc_velocity_.iter_prev, m);
   }
   const FieldCell<Vect>& GetVelocity() override {
     return fc_velocity_.time_curr;
@@ -158,7 +150,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<Mesh> {
   }
   void CorrectVelocity(Layers layer,
                        const FieldCell<Vect>& fc_corr) override {
-    auto sem = mesh.GetSem("corr");
+    auto sem = m.GetSem("corr");
     for (size_t n = 0; n < dim; ++n) {
       if (sem.Nested("dir-corr")) {
         v_solver_[n]->CorrectField(layer, GetComponent(fc_corr, n));
