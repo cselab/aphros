@@ -34,10 +34,9 @@ class ConvectionDiffusionScalar : public UnsteadyIterativeSolver {
       , fcr_(fcr) , ffd_(ffd) , fcs_(fcs) , ffv_(ffv)
   {}
   virtual const FieldCell<Scal>& GetField() = 0;
-  virtual const FieldCell<Scal>& GetField(Layers l) = 0;
+  virtual const FieldCell<Scal>& GetField(Layers) = 0;
   // TODO: rename to add
-  virtual void CorrectField(Layers l,
-                            const FieldCell<Scal>& fcc /*correction*/) = 0;
+  virtual void CorrectField(Layers, const FieldCell<Scal>&) = 0;
   virtual const FieldCell<Expr>& GetEquations() = 0;
 };
 
