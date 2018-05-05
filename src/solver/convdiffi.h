@@ -47,17 +47,14 @@ class ConvectionDiffusionScalarImplicit :
       const MapFace<std::shared_ptr<ConditionFace>>& mfc, // face conditions
       const MapCell<std::shared_ptr<ConditionCell>>& mcc, // cell conditions
       const FieldCell<Scal>* fcr, // density
-      const FieldFace<Scal>* fvd, // diffusion
+      const FieldFace<Scal>* ffd, // diffusion
       const FieldCell<Scal>* fcs, // source
-      const FieldFace<Scal>* fvv, // volume fraction
+      const FieldFace<Scal>* ffv, // volume fraction
       double t, double dt, std::shared_ptr<Par> par)
-      : ConvectionDiffusionScalar<Mesh>(t, dt, fcr, fcd, fcs, fcv)
-      , m(m)
-      , mfc_(mf_cond)
-      , mc_cond_(mc_cond)
-      , par(par)
+      : ConvectionDiffusionScalar<M>(t, dt, fcr, ffd, fcs, ffv)
+      , m(m) , mfc_(mfc) , mcc_(mcc) , par(par)
   {
-    fc_field_.time_curr = fc_initial;
+    fc_field_.time_curr = fcu;
     fc_field_.time_prev = fc_field_.time_curr;
   }
   void StartStep() override {
@@ -67,80 +64,79 @@ class ConvectionDiffusionScalarImplicit :
     }
     fc_field_.iter_curr = fc_field_.time_curr;
     Scal ge = par->guessextra;
-    for (auto idxcell : mesh.Cells()) {
+    for (auto idxcell : m.Cells()) {
       fc_field_.iter_curr[idxcell] +=
           (fc_field_.time_curr[idxcell] - fc_field_.time_prev[idxcell]) * ge;
     }
   }
   void MakeIteration() override {
-    auto sem = mesh.GetSem("convdiff-iter");
-    auto& m = mesh;
+    auto sem = m.GetSem("convdiff-iter");
 
     auto& fc_prev = fc_field_.iter_prev;
     auto& fc_curr = fc_field_.iter_curr;
     if (sem("assemble")) {
       fc_prev = fc_curr;
 
-      fc_grad_ = Gradient(Interpolate(fc_prev, mf_cond_, mesh), mesh);
+      fc_grad_ = Gradient(Interpolate(fc_prev, mfc_, m), m);
 
-      InterpolationInnerFaceSecondUpwindDeferred<Mesh, Expr>
-      value_inner(mesh, *this->p_ff_vol_flux_, fc_prev, fc_grad_);
+      InterpolationInnerFaceSecondUpwindDeferred<M, Expr>
+      value_inner(m, *this->ffv_, fc_prev, fc_grad_);
 
-      InterpolationBoundaryFaceNearestCell<Mesh, Expr>
-      value_boundary(mesh, mf_cond_);
+      InterpolationBoundaryFaceNearestCell<M, Expr>
+      value_boundary(m, mfc_);
 
-      DerivativeInnerFacePlain<Mesh, Expr>
-      derivative_inner(mesh);
+      DerivativeInnerFacePlain<M, Expr>
+      derivative_inner(m);
 
-      DerivativeBoundaryFacePlain<Mesh, Expr>
-      derivative_boundary(mesh, mf_cond_);
+      DerivativeBoundaryFacePlain<M, Expr>
+      derivative_boundary(m, mfc_);
 
       // Compute convective fluxes
 			// all inner
-      ff_cflux_.Reinit(mesh, Expr());
-      for (IdxFace f : mesh.Faces()) {
+      ff_cflux_.Reinit(m, Expr());
+      for (IdxFace f : m.Faces()) {
         Expr e = value_inner.GetExpression(f);
-        ff_cflux_[f] = e * (*this->p_ff_vol_flux_)[f];
+        ff_cflux_[f] = e * (*this->ffv_)[f];
       }
 			// overwrite with bc
-      for (auto it = mf_cond_.cbegin(); it != mf_cond_.cend(); ++it) {
+      for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
         IdxFace f = it->GetIdx();
         Expr e = value_boundary.GetExpression(f);
-        ff_cflux_[f] = e * (*this->p_ff_vol_flux_)[f];
+        ff_cflux_[f] = e * (*this->ffv_)[f];
       }
 
       // Compute diffusive fluxes
       // all inner
-      ff_dflux_.Reinit(mesh, Expr());
-      for (IdxFace f : mesh.Faces()) {
+      ff_dflux_.Reinit(m, Expr());
+      for (IdxFace f : m.Faces()) {
         Expr e = derivative_inner.GetExpression(f);
         ff_dflux_[f] = e *
-            (-(*this->p_ff_diffusion_rate_)[f]) * mesh.GetArea(f);
+            (-(*this->ffd_)[f]) * m.GetArea(f);
       }
 			// overwrite with bc
-      for (auto it = mf_cond_.cbegin(); it != mf_cond_.cend(); ++it) {
+      for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
         IdxFace f = it->GetIdx();
 				Expr e = derivative_boundary.GetExpression(f);
         ff_dflux_[f] = e *
-            (-(*this->p_ff_diffusion_rate_)[f]) * mesh.GetArea(f);
+            (-(*this->ffd_)[f]) * m.GetArea(f);
       }
 
       // Assemble the system
-      fc_system_.Reinit(mesh);
+      fc_system_.Reinit(m);
       const Scal relax = par->relax;
       const bool second = par->second;
-      for (IdxCell idxcell : mesh.Cells()) {
+      for (IdxCell idxcell : m.Cells()) {
         Expr& eqn = fc_system_[idxcell];
         Expr cflux_sum;
-        for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-          IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-          cflux_sum += ff_cflux_[idxface] * mesh.GetOutwardFactor(idxcell, i);
+        for (size_t i = 0; i < m.GetNumNeighbourFaces(idxcell); ++i) {
+          IdxFace idxface = m.GetNeighbourFace(idxcell, i);
+          cflux_sum += ff_cflux_[idxface] * m.GetOutwardFactor(idxcell, i);
         }
 
         Expr dflux_sum;
-        for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-          IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-          dflux_sum += ff_dflux_[idxface] * mesh.GetOutwardFactor(idxcell, i);
+        for (size_t i = 0; i < m.GetNumNeighbourFaces(idxcell); ++i) {
+          IdxFace idxface = m.GetNeighbourFace(idxcell, i);
+          dflux_sum += ff_dflux_[idxface] * m.GetOutwardFactor(idxcell, i);
         }
 
         auto dt = this->GetTimeStep();
@@ -153,10 +149,10 @@ class ConvectionDiffusionScalarImplicit :
             coeffs[0] * fc_field_.time_prev[idxcell] +
             coeffs[1] * fc_field_.time_curr[idxcell]);
 
-        eqn = (unsteady + cflux_sum / mesh.GetVolume(idxcell)) *
-              ((*this->p_fc_scaling_)[idxcell]) +
-              dflux_sum / mesh.GetVolume(idxcell) -
-              Expr((*this->p_fc_source_)[idxcell]);
+        eqn = (unsteady + cflux_sum / m.GetVolume(idxcell)) *
+              ((*this->fcr_)[idxcell]) +
+              dflux_sum / m.GetVolume(idxcell) -
+              Expr((*this->fcs_)[idxcell]);
 
         // Convert to delta-form
         eqn.SetConstant(eqn.Evaluate(fc_prev));
@@ -167,7 +163,7 @@ class ConvectionDiffusionScalarImplicit :
 
       // Fill halo cells with u=0 equations
       /*
-      for (IdxCell idxcell : mesh.AllCells()) {
+      for (IdxCell idxcell : m.AllCells()) {
         Expr& eqn = fc_system_[idxcell];
         if (eqn.size() == 0) {
           eqn.Clear();
@@ -178,36 +174,35 @@ class ConvectionDiffusionScalarImplicit :
       */
 
       // Include cell conditions for velocity
-      for (auto it = mc_cond_.cbegin(); it != mc_cond_.cend(); ++it) {
-        IdxCell idxcell(it->GetIdx());
+      for (auto it = mcc_.cbegin(); it != mcc_.cend(); ++it) {
+        IdxCell c(it->GetIdx());
         ConditionCell* cond = it->GetValue().get();
-        auto& eqn = fc_system_[idxcell];
+        auto& eqn = fc_system_[c];
         if (auto cond_value = dynamic_cast<ConditionCellValue<Scal>*>(cond)) {
           eqn.Clear();
           // TODO: Revise dt coefficient for fixed-value cell condition
-          eqn.InsertTerm(1. / this->GetTimeStep(), idxcell);
-          eqn.SetConstant(
-              (fc_prev[idxcell] - cond_value->GetValue()) /
+          eqn.InsertTerm(1. / this->GetTimeStep(), c);
+          eqn.SetConstant((fc_prev[c] - cond_value->GetValue()) /
               this->GetTimeStep());
         }
       }
     }
 
     if (sem("solve")) {
-      auto l = ConvertLs(fc_system_, lsa_, lsb_, lsx_, mesh);
-      using T = typename Mesh::LS::T;
+      auto l = ConvertLs(fc_system_, lsa_, lsb_, lsx_, m);
+      using T = typename M::LS::T;
       l.t = T::gen;
       m.Solve(l);
     }
 
     if (sem("applycomm")) {
-      fc_corr_.Reinit(mesh);
+      fc_corr_.Reinit(m);
       size_t i = 0;
       for (auto c : m.Cells()) {
         fc_corr_[c] = lsx_[i++];
       }
       assert(i == lsx_.size());
-      for (auto idxcell : mesh.Cells()) {
+      for (auto idxcell : m.Cells()) {
         fc_curr[idxcell] = fc_prev[idxcell] + fc_corr_[idxcell];
       }
       m.Comm(&fc_curr);
@@ -226,7 +221,7 @@ class ConvectionDiffusionScalarImplicit :
     if (this->GetIter() == 0) {
       return 1.;
     }
-    return CalcDiff(fc_field_.iter_curr, fc_field_.iter_prev, mesh);
+    return CalcDiff(fc_field_.iter_curr, fc_field_.iter_prev, m);
   }
   const FieldCell<Scal>& GetField() override {
     return fc_field_.time_curr;
@@ -236,13 +231,13 @@ class ConvectionDiffusionScalarImplicit :
   }
   void CorrectField(Layers layer,
                     const FieldCell<Scal>& fc_corr) override {
-    auto sem = mesh.GetSem("convdiff-corr");
+    auto sem = m.GetSem("convdiff-corr");
     if (sem("applycomm")) {
       auto& fc_field_layer = fc_field_.Get(layer);
-      for (auto idxcell : mesh.Cells()) {
+      for (auto idxcell : m.Cells()) {
         fc_field_layer[idxcell] += fc_corr[idxcell];
       }
-      mesh.Comm(&fc_field_layer);
+      m.Comm(&fc_field_layer);
     }
   }
   const FieldCell<Expr>& GetEquations() override {
