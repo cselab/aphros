@@ -13,10 +13,10 @@ class ConvectionDiffusion : public UnsteadyIterativeSolver {
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
  protected:
-  FieldCell<Scal>* fcr_;  // density
-  FieldFace<Scal>* ffd_;  // dynamic viscosity
-  FieldCell<Vect>* fcs_;  // force
-  FieldFace<Scal>* ffv_;  // volume flux
+  const FieldCell<Scal>* fcr_;  // density
+  const FieldFace<Scal>* ffd_;  // dynamic viscosity
+  const FieldCell<Vect>* fcs_;  // force
+  const FieldFace<Scal>* ffv_;  // volume flux
 
  public:
   ConvectionDiffusion(double t, double dt,
