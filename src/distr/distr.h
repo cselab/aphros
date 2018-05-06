@@ -144,6 +144,9 @@ void DistrMesh<KF>::DumpComm(const std::vector<MIdx>& bb) {
 
 template <class KF>
 void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
+  if (!isroot_) {
+    return;
+  }
   auto& m = mk.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
     std::string df = par.String["dumpformat"];
