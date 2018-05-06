@@ -210,13 +210,14 @@ void Hydro<M>::Init() {
       const std::string vi = var.String["vel_init"];
       if (vi == "taylor-green") {
         for (auto i : m.AllCells()) {
-          auto& u = fc_vel_[i][0];
-          auto& v = fc_vel_[i][1];
-          Scal l = (2 * M_PI);
-          Scal x = m.GetCenter(i)[0] * l;
-          Scal y = m.GetCenter(i)[1] * l;
-          u = std::cos(x) * std::sin(y);
-          v = -std::sin(x) * std::cos(y);
+          auto& v = fc_vel_[i];
+          auto x = m.GetCenter(i);
+          if (dim == 2) {
+            x[2] = 0.;
+          }
+          v[0] = std::sin(x[0]) * std::cos(x[1]) * std::cos(x[2]);
+          v[1] = -std::cos(x[0]) * std::sin(x[1]) * std::cos(x[2]);
+          v[2] = 0.;
         }
       } else if (vi == "pois") {
         Scal pv = var.Double["poisvel"];
