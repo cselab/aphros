@@ -111,9 +111,11 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     size_t dumpn;
     Vect meshpos;  // mesh position
     Vect meshvel;  // mesh velocity
+    Scal ekin;  /// kinetic energy
     Stat()
       : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
       , dtt(0), dt(0), dta(0), iter(0), dumpt(-1e10), dumpn(0), meshpos(0)
+      , ekin(0)
     {}
   };
   Stat st_;
@@ -454,6 +456,7 @@ void Hydro<M>::Init() {
           op("diff", &diff_),
           op("m1", &s.m1),
           op("m2", &s.m2),
+          op("ekin", &s.ekin),
           op("c1x", &s.c1[0]), op("c1y", &s.c1[1]), op("c1z", &s.c1[2]),
           op("c2x", &s.c2[0]), op("c2y", &s.c2[1]), op("c2z", &s.c2[2]),
           op("vc1x", &s.vc1[0]), op("vc1y", &s.vc1[1]), op("vc1z", &s.vc1[2]),
@@ -497,13 +500,14 @@ void Hydro<M>::CalcStat() {
     s.vc1 = s.c1;
     s.vc2 = s.c2;
 
-    // mass, center, velocity
+    // mass, center, velocity, kinetic energy
     s.m1 = 0;
     s.m2 = 0;
     s.c1 = Vect(0);
     s.c2 = Vect(0);
     s.v1 = Vect(0);
     s.v2 = Vect(0);
+    s.ekin = 0;
     for (auto i : m.Cells()) {
       Scal o = m.GetVolume(i);
       Scal a2 = fa[i];
@@ -517,10 +521,12 @@ void Hydro<M>::CalcStat() {
       s.c2 += x * (a2 * o);
       s.v1 += v * (a1 * o);
       s.v2 += v * (a2 * o);
+      s.ekin += 0.5 * v.dot(v) * fc_rho_[i] * o;
     }
 
     m.Reduce(&s.m1, "sum");
     m.Reduce(&s.m2, "sum");
+    m.Reduce(&s.ekin, "sum");
     for (auto d = 0; d < dim; ++d) {
       m.Reduce(&s.c1[d], "sum");
       m.Reduce(&s.c2[d], "sum");
