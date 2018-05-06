@@ -337,6 +337,8 @@ void DistrMesh<KF>::Run() {
     }
   } while (true);
   mt_.Pop("last");
+
+  Report();
 }
 
 template <class KF>
