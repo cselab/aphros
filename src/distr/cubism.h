@@ -572,7 +572,9 @@ void Cubism<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
         ++k;
       }
       // TODO: avoid duplication of next two lines
-      std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
+      if (isroot_) {
+        std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
+      }
       ++frame_;
     } else {
       P::DumpWrite(bb);
