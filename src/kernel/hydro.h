@@ -749,10 +749,10 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 
       // surface tension in cells
       auto sig = var.Double["sigma"];
+      auto st = var.String["surftens"];
       auto gf = solver::Interpolate(gc, mfvz, m);
-      /*
-      if (0) // implementation by tensor divergence
-      {
+      // implementation by tensor divergence
+      if (st == "div") {
         auto stdiag = var.Double["stdiag"];
         for (auto c : m.Cells()) {
           Vect r(0); // result
@@ -766,10 +766,9 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           }
           r /= m.GetVolume(c);     
           // here: r = stdiag*div(|g|I) - div(g g/|g|) 
-          r[2] = 0.; // XXX: zero in z
           fc_force_[c] += r * sig;
         }
-      } else*/ { // fixed curvature
+      } else if (st == "kn") { // fixed curvature
         FieldCell<Scal> kc(m); // curvature
         for (auto c : m.SuCells()) {
           Scal s = 0.;
@@ -798,8 +797,16 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             ff_force_[f] = 0.; // XXX: zero in z
           }
         }
+      } else {
+        throw std::runtime_error("Unknown surftens: " << st);
       }
+    }
 
+    // zero z if 2D
+    if (var.Int["dim"] <= 2) {
+      for (auto c : m.Cells()) {
+        fc_force_[c][2] = 0.;
+      }
     }
   }
 }
