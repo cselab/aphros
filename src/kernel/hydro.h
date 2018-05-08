@@ -127,13 +127,15 @@ template <class M>
 void Hydro<M>::Init() {
   auto sem = m.GetSem("init");
   if (sem("pfixed-reduce")) {
-    // Find cell nearest to pfixed_x
-    Vect x(var.Vect["pfixed_x"]);
-    IdxCell c = m.FindNearestCell(x);
-    // TODO: add reduce minloc and remove .norm()
-    pdist_ = m.GetCenter(c).dist(x) + MIdx(bi_.index).norm() * 1e-12;
-    pdistmin_ = pdist_;
-    m.Reduce(&pdistmin_, "min");
+    if (auto* p = var.Double("pfixed")) {
+      Vect x(var.Vect["pfixed_x"]);
+      // Find cell nearest to pfixed_x
+      IdxCell c = m.FindNearestCell(x);
+      // TODO: add reduce minloc and remove .norm()
+      pdist_ = m.GetCenter(c).dist(x) + MIdx(bi_.index).norm() * 1e-12;
+      pdistmin_ = pdist_;
+      m.Reduce(&pdistmin_, "min");
+    }
   }
 
   if (sem("fields")) {
@@ -375,14 +377,15 @@ void Hydro<M>::Init() {
     MapCell<std::shared_ptr<solver::ConditionCellFluid>> mc_velcond;
     {
       // Fix pressure at one cell
-      Vect x(var.Vect["pfixed_x"]);
-      IdxCell c = m.FindNearestCell(x);
-      Scal p = var.Double["pfixed"];
-      if (pdist_ == pdistmin_) {
-        std::cout << "pfixed bi=" << MIdx(bi_.index) 
-            << " dist=" << pdist_ << std::endl;
-        mc_velcond[c] = std::make_shared
-            <solver::fluid_condition::GivenPressureFixed<M>>(p);
+      if (auto* p = var.Double("pfixed")) {
+        Vect x(var.Vect["pfixed_x"]);
+        IdxCell c = m.FindNearestCell(x);
+        if (pdist_ == pdistmin_) {
+          std::cout << "pfixed bi=" << MIdx(bi_.index) 
+              << " dist=" << pdist_ << std::endl;
+          mc_velcond[c] = std::make_shared
+              <solver::fluid_condition::GivenPressureFixed<M>>(*p);
+        }
       }
     }
 
