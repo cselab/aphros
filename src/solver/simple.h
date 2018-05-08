@@ -302,12 +302,10 @@ class FluidSimple : public FluidSolver<M_> {
   }
   void CalcKinematicViscosity() {
     fcdk_.Reinit(m);
-    for (auto idxcell : m.AllCells()) {
-      fcdk_[idxcell] =
-          (*fcd_)[idxcell];
+    for (auto c : m.AllCells()) {
+      fcdk_[c] = (*fcd_)[c];
     }
-    ffdk_ = Interpolate(
-        fcdk_, mfcd_, m, par->forcegeom);
+    ffdk_ = Interpolate(fcdk_, mfcd_, m, par->forcegeom);
   }
 
  public:
@@ -388,19 +386,19 @@ class FluidSimple : public FluidSolver<M_> {
 
     for (auto it = mcc_.cbegin();
         it != mcc_.cend(); ++it) {
-      IdxCell idxcell = it->GetIdx();
+      IdxCell c = it->GetIdx();
       ConditionCellFluid* cond_generic = it->GetValue().get();
 
       if (auto cond = dynamic_cast<GivenPressure<M>*>(cond_generic)) {
-        mccp_[idxcell] =
+        mccp_[c] =
             std::make_shared<
             ConditionCellValueFixed<Scal>>(cond->GetPressure());
       } else if (auto cond =
           dynamic_cast<GivenVelocityAndPressure<M>*>(cond_generic)) {
-        mccp_[idxcell] =
+        mccp_[c] =
             std::make_shared<
             ConditionCellValueFixed<Scal>>(cond->GetPressure());
-        mccw_[idxcell] =
+        mccw_[c] =
             std::make_shared<
             ConditionCellValueFixed<Vect>>(cond->GetVelocity());
       } else {
@@ -430,15 +428,15 @@ class FluidSimple : public FluidSolver<M_> {
     ffwe_ = Interpolate(
         fcwe_, mfcw_, m);
     ffv_.time_curr.Reinit(m, 0.);
-    for (auto idxface : m.Faces()) {
-      ffv_.time_curr[idxface] =
-          ffwe_[idxface].dot(m.GetSurface(idxface));
+    for (auto f : m.Faces()) {
+      ffv_.time_curr[f] =
+          ffwe_[f].dot(m.GetSurface(f));
     }
     // Apply meshvel
     const Vect& meshvel = par->meshvel;
-    for (auto idxface : m.Faces()) {
-      ffv_.time_curr[idxface] -= 
-          meshvel.dot(m.GetSurface(idxface));
+    for (auto f : m.Faces()) {
+      ffv_.time_curr[f] -= 
+          meshvel.dot(m.GetSurface(f));
     }
 
     ffv_.time_prev = ffv_.time_curr;
@@ -467,15 +465,15 @@ class FluidSimple : public FluidSolver<M_> {
       ffv_.iter_curr = ffv_.time_curr;
       const Scal ge = par->guessextra;
       if (ge != 0.) {
-        for (auto idxcell : m.SuCells()) {
-          fcp_.iter_curr[idxcell] +=
-              (fcp_.time_curr[idxcell] - 
-               fcp_.time_prev[idxcell]) * ge;
+        for (auto c : m.SuCells()) {
+          fcp_.iter_curr[c] +=
+              (fcp_.time_curr[c] - 
+               fcp_.time_prev[c]) * ge;
         }
-        for (auto idxface : m.Faces()) {
-          ffv_.iter_curr[idxface] +=
-              (ffv_.time_curr[idxface] - 
-               ffv_.time_prev[idxface]) * ge;
+        for (auto f : m.Faces()) {
+          ffv_.iter_curr[f] +=
+              (ffv_.time_curr[f] - 
+               ffv_.time_prev[f]) * ge;
         }
       }
     }
@@ -554,12 +552,12 @@ class FluidSimple : public FluidSolver<M_> {
       timer_->Pop();
 
       fck_.Reinit(m);
-      for (auto idxcell : m.Cells()) {
+      for (auto c : m.Cells()) {
         Scal sum = 0.;
         for (size_t d = 0; d < dim; ++d) {
-          sum += cd_->GetVelocityEquations(d)[idxcell].CoeffSum();
+          sum += cd_->GetVelocityEquations(d)[c].CoeffSum();
         }
-        fck_[idxcell] = sum / dim;
+        fck_[c] = sum / dim;
       }
 
       m.Comm(&fck_);
@@ -622,55 +620,55 @@ class FluidSimple : public FluidSolver<M_> {
       // TODO: Rename velocity_corr to smth
       // (it's actually full velocity not just correction)
       // (same for ffvc_)
-      for (auto idxface : m.Faces()) {
-        auto& expr = ffvc_[idxface];
+      for (auto f : m.Faces()) {
+        auto& expr = ffvc_[f];
         expr.Clear();
-        IdxCell cm = m.GetNeighbourCell(idxface, 0);
-        IdxCell cp = m.GetNeighbourCell(idxface, 1);
-        Vect dm = m.GetVectToCell(idxface, 0);
-        Vect dp = m.GetVectToCell(idxface, 1);
-        auto coeff = - m.GetArea(idxface) /
-            ((dp - dm).norm() * ffk_[idxface]);
-        if (ffb_[idxface]) {
+        IdxCell cm = m.GetNeighbourCell(f, 0);
+        IdxCell cp = m.GetNeighbourCell(f, 1);
+        Vect dm = m.GetVectToCell(f, 0);
+        Vect dp = m.GetVectToCell(f, 1);
+        auto coeff = - m.GetArea(f) /
+            ((dp - dm).norm() * ffk_[f]);
+        if (ffb_[f]) {
           coeff = 0.;
         }
         expr.InsertTerm(-coeff, cm);
         expr.InsertTerm(coeff, cp);
         // adhoc for periodic
         expr.SortTerms(true);
-        expr.SetConstant(ffve_[idxface]);
+        expr.SetConstant(ffve_[f]);
       }
       timer_->Pop();
 
       timer_->Push("fluid.5.pressure-system");
-      for (auto idxcell : m.Cells()) {
-        auto& eqn = fcpcs_[idxcell];
+      for (auto c : m.Cells()) {
+        auto& eqn = fcpcs_[c];
         Expr flux_sum;
-        for (size_t i = 0; i < m.GetNumNeighbourFaces(idxcell); ++i) {
-          IdxFace idxface = m.GetNeighbourFace(idxcell, i);
+        for (size_t i = 0; i < m.GetNumNeighbourFaces(c); ++i) {
+          IdxFace f = m.GetNeighbourFace(c, i);
           flux_sum +=
-              ffvc_[idxface] *
-              m.GetOutwardFactor(idxcell, i);
+              ffvc_[f] *
+              m.GetOutwardFactor(c, i);
         }
         eqn =
             flux_sum -
-            Expr((*fcsv_)[idxcell] *
-                 m.GetVolume(idxcell));
+            Expr((*fcsv_)[c] *
+                 m.GetVolume(c));
       }
 
       // Account for cell conditions for pressure
       for (auto it = mccp_.cbegin();
           it != mccp_.cend(); ++it) {
-        IdxCell idxcell(it->GetIdx());
+        IdxCell c(it->GetIdx());
         ConditionCell* cond = it->GetValue().get();
         if (auto cond_value = dynamic_cast<ConditionCellValue<Scal>*>(cond)) {
           for (auto idxlocal : m.Cells()) {
             auto& eqn = fcpcs_[idxlocal];
-            if (idxlocal == idxcell) { 
-              eqn.SetKnownValueDiag(idxcell, cond_value->GetValue());
+            if (idxlocal == c) { 
+              eqn.SetKnownValueDiag(c, cond_value->GetValue());
             } else {
               // Substitute value to obtain symmetrix matrix
-              eqn.SetKnownValue(idxcell, cond_value->GetValue());
+              eqn.SetKnownValue(c, cond_value->GetValue());
             }
           }
         }
@@ -705,9 +703,9 @@ class FluidSimple : public FluidSolver<M_> {
     if (sem("pcorr-apply")) {
       // Correct pressure
       Scal pr = par->prelax;
-      for (auto idxcell : m.Cells()) {
-        fcp_curr[idxcell] = fcp_prev[idxcell] +
-            pr * fcpc_[idxcell];
+      for (auto c : m.Cells()) {
+        fcp_curr[c] = fcp_prev[c] +
+            pr * fcpc_[c];
       }
       m.Comm(&fcp_curr);
 
@@ -718,8 +716,8 @@ class FluidSimple : public FluidSolver<M_> {
       // Correct the velocity
       fcvc_.Reinit(m);
       auto& u = cd_->GetVelocity(Layers::iter_curr);
-      for (auto idxcell : m.Cells()) {
-        fcvc_[idxcell] = fcgpc_[idxcell] / (-fck_[idxcell]);
+      for (auto c : m.Cells()) {
+        fcvc_[c] = fcgpc_[c] / (-fck_[c]);
       }
     }
 
@@ -730,9 +728,9 @@ class FluidSimple : public FluidSolver<M_> {
 
     if (sem("pcorr-fluxes")) {
       // Calc divergence-free volume fluxes
-      for (auto idxface : m.Faces()) {
-        ffv_.iter_curr[idxface] =
-            ffvc_[idxface].Evaluate(fcpc_);
+      for (auto f : m.Faces()) {
+        ffv_.iter_curr[f] =
+            ffvc_[f].Evaluate(fcpc_);
       }
       timer_->Pop();
 
@@ -782,12 +780,12 @@ class FluidSimple : public FluidSolver<M_> {
   double GetAutoTimeStep() override { 
     double dt = 1e10;
     auto& flux = ffv_.time_curr;
-    for (auto idxcell : m.Cells()) {
-      for (size_t i = 0; i < m.GetNumNeighbourFaces(idxcell); ++i) {
-        IdxFace idxface = m.GetNeighbourFace(idxcell, i);
-        if (flux[idxface] != 0.) {
+    for (auto c : m.Cells()) {
+      for (size_t i = 0; i < m.GetNumNeighbourFaces(c); ++i) {
+        IdxFace f = m.GetNeighbourFace(c, i);
+        if (flux[f] != 0.) {
           dt = std::min<Scal>(
-              dt, std::abs(m.GetVolume(idxcell) / flux[idxface]));
+              dt, std::abs(m.GetVolume(c) / flux[f]));
         }
       }
     }
