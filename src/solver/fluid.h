@@ -19,21 +19,24 @@ class FluidSolver : public UnsteadyIterativeSolver {
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
  protected:
-  FieldCell<Scal>* fcr_; // density
-  FieldCell<Scal>* fcd_; // dynamic viscosity
-  FieldFace<Scal>* fffp_;  // force projections on faces
-  FieldCell<Scal>* fcsv_; // volume source
-  FieldCell<Scal>* fcsm_; // mass source
+  FieldCell<Scal>* fcr_;   // density
+  FieldCell<Scal>* fcd_;   // dynamic viscosity
+  FieldCell<Vect>* fcf_;   // force
+  FieldFace<Scal>* ffbp_; //  balanced force projections
+  FieldCell<Scal>* fcsv_;  // volume source
+  FieldCell<Scal>* fcsm_;  // mass source
 
  public:
   FluidSolver(double time, double time_step,
-              FieldCell<Scal>* fcr, // density
-              FieldCell<Scal>* fcd, // dynamic viscosity
-              FieldFace<Scal>* fffp, // force projections on faces
-              FieldCell<Scal>* fcsv, // volume source
-              FieldCell<Scal>* fcsm) // mass source
+              FieldCell<Scal>* fcr,   // density
+              FieldCell<Scal>* fcd,   // dynamic viscosity
+              FieldCell<Vect>* fcf,   // force 
+              FieldFace<Scal>* ffbp, // balanced force projections 
+              FieldCell<Scal>* fcsv,  // volume source
+              FieldCell<Scal>* fcsm)  // mass source
       : UnsteadyIterativeSolver(time, time_step)
-      , fcr_(fcr) , fcd_(fcd) , fffp_(fffp) , fcsv_(fcsv) , fcsm_(fcsm)
+      , fcr_(fcr) , fcd_(fcd) , fcf_(fcf), ffbp_(ffbp)
+      , fcsv_(fcsv) , fcsm_(fcsm)
   {}
   virtual const FieldCell<Vect>& GetVelocity() = 0;
   virtual const FieldCell<Vect>& GetVelocity(Layers layer) = 0;

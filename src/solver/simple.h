@@ -30,7 +30,8 @@ class FluidSimple : public FluidSolver<M_> {
 
   using P::fcr_;
   using P::fcd_;
-  using P::fffp_; // [i]
+  using P::fcf_; // [i]
+  using P::ffbp_; // [i]
   using P::fcsv_;
   using P::fcsm_;
 
@@ -58,7 +59,7 @@ class FluidSimple : public FluidSolver<M_> {
   MapCell<std::shared_ptr<ConditionCell>> mccp_; // pressure cell cond
   MapCell<std::shared_ptr<ConditionCell>> mccw_; // velocity cell cond
 
-  FieldFace<bool> ffb_; // is boundary
+  FieldFace<bool> ffbd_; // is boundary
 
   // used by UpdateOutletBaseConditions():
   Scal olfi_; // inlet flux
@@ -87,7 +88,7 @@ class FluidSimple : public FluidSolver<M_> {
   FieldCell<Vect> fcwc_;   // velocity correction
   FieldCell<Scal> fcwo_;   // one velocitt component
   FieldCell<Scal> fcdk_;   // kinematic viscosity
-  FieldCell<Vect> fcf_;    // restored vector force [s]
+  FieldCell<Vect> fcb_;    // restored balanced force [s]
   FieldCell<Vect> fcfcd_;  // force for convdiff [i]
 
   FieldCell<Scal> fct0_;  // tmp
@@ -101,7 +102,7 @@ class FluidSimple : public FluidSolver<M_> {
   FieldFace<Scal> ffve_;   // predicted volume flux [i]
   FieldFace<Scal> ffk_;    // diag coeff of velocity equation 
   FieldFace<Expr> ffvc_;   // expression for corrected volume flux [i]
-  FieldFace<Vect> fff_;    // restored vector force [i]
+  FieldFace<Vect> ffb_;    // restored balanced force [i]
   FieldFace<Scal> ffdk_;   // kinematic viscosity
 
   // / needed for MMIM, now disabled
@@ -294,35 +295,35 @@ class FluidSimple : public FluidSolver<M_> {
 
     if (sem("loc")) {
       timer_->Push("fluid.1.force-correction");
-      // Restore vector force from faces
-      fcf_.Reinit(m);
+      // Restore balanced force from faces
+      fcb_.Reinit(m);
       for (auto c : m.Cells()) {
         Vect s(0);
         for (auto q : m.Nci(c)) {
           // TODO: revise for non-rectangular cell
           IdxFace f = m.GetNeighbourFace(c, q);
           s += m.GetSurface(f) *
-              ((*fffp_)[f] * m.GetCenter(c).dist(m.GetCenter(f)));
+              ((*ffbp_)[f] * m.GetCenter(c).dist(m.GetCenter(f)));
         }
-        fcf_[c] = s / m.GetVolume(c);
+        fcb_[c] = s / m.GetVolume(c);
       }
 
       // TODO: comm fffp_ instead
-      fct0_ = GetComponent(fcf_, 0);
-      fct1_ = GetComponent(fcf_, 1);
-      fct2_ = GetComponent(fcf_, 2);
+      fct0_ = GetComponent(fcb_, 0);
+      fct1_ = GetComponent(fcb_, 1);
+      fct2_ = GetComponent(fcb_, 2);
       m.Comm(&fct0_);
       m.Comm(&fct1_);
       m.Comm(&fct2_);
     }
 
     if (sem("copy")) {
-      SetComponent(fcf_, 0, fct0_);
-      SetComponent(fcf_, 1, fct1_);
-      SetComponent(fcf_, 2, fct2_);
+      SetComponent(fcb_, 0, fct0_);
+      SetComponent(fcb_, 1, fct1_);
+      SetComponent(fcb_, 2, fct2_);
 
-      // Interpolate vector force to faces
-      fff_ = Interpolate(fcf_, mfcf_, m);
+      // Interpolate balanced force to faces
+      ffb_ = Interpolate(fcb_, mfcf_, m);
       timer_->Pop();
     }
   }
@@ -354,25 +355,26 @@ class FluidSimple : public FluidSolver<M_> {
               const FieldCell<Vect>& fcw,
               const MapFace<std::shared_ptr<ConditionFaceFluid>>& mfc,
               const MapCell<std::shared_ptr<ConditionCellFluid>>& mcc,
-              FieldCell<Scal>* fcr, // density
-              FieldCell<Scal>* fcd, // dynamic viscosity
-              FieldFace<Scal>* fffp, // force projections on faces
+              FieldCell<Scal>* fcr,  // density
+              FieldCell<Scal>* fcd,  // dynamic viscosity
+              FieldCell<Vect>* fcf,  // force 
+              FieldFace<Scal>* ffbp, // balanced force projections 
               FieldCell<Scal>* fcsv, // volume source
               FieldCell<Scal>* fcsm, // mass source
               double time, double time_step,
               MultiTimer<std::string>* timer,
               std::shared_ptr<Par> par
               )
-      : FluidSolver<M>(time, time_step, fcr, fcd, fffp, fcsv, fcsm)
+      : FluidSolver<M>(time, time_step, fcr, fcd, fcf, ffbp, fcsv, fcsm)
       , m(m) , mfc_(mfc) , mcc_(mcc) , ffvc_(m) , fcpcs_(m)
       , timer_(timer) , par(par)
   {
     using namespace fluid_condition;
 
-    ffb_.Reinit(m, false);
+    ffbd_.Reinit(m, false);
     for (auto it : mfc_) {
       IdxFace i = it.GetIdx();
-      ffb_[i] = true;
+      ffbd_[i] = true;
       ConditionFaceFluid* cb = it.GetValue().get();
       size_t nci = cb->GetNci();
 
@@ -545,9 +547,9 @@ class FluidSimple : public FluidSolver<M_> {
     }
 
     if (sem("forceappend")) {
-      // append pressure gradient and external force
+      // append pressure gradient, force and balanced force
       for (auto c : m.Cells()) {
-        fcfcd_[c] += fcgp_[c] * (-1.) + fcf_[c];
+        fcfcd_[c] += fcgp_[c] * (-1.) + (*fcf_)[c] + fcb_[c];
       }
 
       timer_->Push("fluid.2.convection-diffusion");
@@ -591,7 +593,7 @@ class FluidSimple : public FluidSolver<M_> {
       for (auto f : m.Faces()) {
         // Init with interpolated flux
         ffve_[f] = ffwe_[f].dot(m.GetSurface(f));
-        if (!ffb_[f]) { // if not boundary
+        if (!ffbd_[f]) { // if not boundary
           IdxCell cm = m.GetNeighbourCell(f, 0);
           IdxCell cp = m.GetNeighbourCell(f, 1);
           Vect dm = m.GetVectToCell(f, 0);
@@ -607,12 +609,12 @@ class FluidSimple : public FluidSolver<M_> {
           //      average of compact face gradients = cell gradient.
 
           // Wide approx of volume flux correction
-          Scal qw = (fff_[f] - ffgp_[f]).dot(m.GetSurface(f));
+          Scal qw = (ffb_[f] - ffgp_[f]).dot(m.GetSurface(f));
 
           // Compact approx for pressure gradient
           Scal gp = (fcp_prev[cp] - fcp_prev[cm]) / (dp - dm).norm();
           // Compact approx of volume flux correction
-          Scal qc = ((*fffp_)[f] - gp) * m.GetArea(f);
+          Scal qc = ((*ffbp_)[f] - gp) * m.GetArea(f);
 
           // Corrected volume flux
           ffve_[f] += rh * (qc - qw) / ffk_[f];
@@ -641,7 +643,7 @@ class FluidSimple : public FluidSolver<M_> {
         Vect dm = m.GetVectToCell(f, 0);
         Vect dp = m.GetVectToCell(f, 1);
         auto a = -m.GetArea(f) / ((dp - dm).norm() * ffk_[f]);
-        if (ffb_[f]) { // keep on boundaries
+        if (ffbd_[f]) { // keep on boundaries
           a = 0.;
         }
         e.InsertTerm(-a, cm);
