@@ -84,7 +84,7 @@ class FluidSimple : public FluidSolver<M_> {
   FieldCell<Expr> fcpcs_;  // pressure correction linear system [i]
   FieldCell<Scal> fcpc_;   // pressure correction
   FieldCell<Vect> fcgpc_;  // gradient of pressure correction
-  FieldCell<Vect> fcvc_;   // velocity correction
+  FieldCell<Vect> fcwc_;   // velocity correction
   FieldCell<Scal> fcwo_;   // one velocitt component
   FieldCell<Scal> fcdk_;   // kinematic viscosity
   FieldCell<Vect> fcfcd_;  // force for convdiff [i]
@@ -482,6 +482,7 @@ class FluidSimple : public FluidSolver<M_> {
     if (sem("pgrad")) {
       Update(*cd_->GetPar(), *par);
       UpdateDerivedConditions();
+
       fcp_prev = fcp_curr;
       ffv_.iter_prev = ffv_.iter_curr;
 
@@ -660,14 +661,17 @@ class FluidSimple : public FluidSolver<M_> {
 
     if (sem("pcorr-solve")) {
       timer_->Pop();
+      // Convert to LS format
       auto l = ConvertLs(fcpcs_, lsa_, lsb_, lsx_, m);
-      using T = typename M::LS::T;
-      l.t = T::symm;
+      using T = typename M::LS::T; 
+      l.t = T::symm; // solver type
+      // Solve system (add request)
       m.Solve(l);
       timer_->Push("fluid.6.pressure-solve");
     }
 
     if (sem("pcorr-comm")) {
+      // System solved
       timer_->Pop();
 
       timer_->Push("fluid.7.correction");
@@ -679,48 +683,43 @@ class FluidSimple : public FluidSolver<M_> {
         fcpc_[c] = lsx_[i++];
       }
       
-      // Comm pressure correction (needed for flux correction)
+      // Comm pressure correction
+      // (needed to compute gradients for flux correction)
       m.Comm(&fcpc_);
     }
 
     if (sem("pcorr-apply")) {
       // Correct pressure
-      Scal pr = par->prelax;
+      Scal pr = par->prelax; // pressure relaxation
       for (auto c : m.Cells()) {
-        fcp_curr[c] = fcp_prev[c] +
-            pr * fcpc_[c];
+        fcp_curr[c] = fcp_prev[c] + pr * fcpc_[c];
       }
       m.Comm(&fcp_curr);
 
-      fcgpc_ = Gradient(
-          Interpolate(fcpc_, mfcpc_, m),
-          m);
+      fcgpc_ = Gradient(Interpolate(fcpc_, mfcpc_, m), m);
 
-      // Correct the velocity
-      fcvc_.Reinit(m);
-      auto& u = cd_->GetVelocity(Layers::iter_curr);
+      // Compute velocity correction
+      fcwc_.Reinit(m);
       for (auto c : m.Cells()) {
-        fcvc_[c] = fcgpc_[c] / (-fck_[c]);
+        fcwc_[c] = fcgpc_[c] / (-fck_[c]);
       }
     }
 
     if (sem.Nested("convdiff-corr")) {
-      // correct and comm
-      cd_->CorrectVelocity(Layers::iter_curr, fcvc_);
+      // Correct velocity and comm
+      cd_->CorrectVelocity(Layers::iter_curr, fcwc_);
     }
 
     if (sem("pcorr-fluxes")) {
       // Calc divergence-free volume fluxes
       for (auto f : m.Faces()) {
-        ffv_.iter_curr[f] =
-            ffvc_[f].Evaluate(fcpc_);
+        ffv_.iter_curr[f] = ffvc_[f].Evaluate(fcpc_);
       }
       timer_->Pop();
 
-      // TODO: SIMPLER removed
+      // TODO: add SIMPLER or PISO
 
       this->IncIter();
-      // m.Comm(&fc_velocity_curr);  // Comm done by CorrectVelocity
     }
   }
   void FinishStep() override {
