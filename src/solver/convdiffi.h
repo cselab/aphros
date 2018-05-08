@@ -49,7 +49,7 @@ class ConvectionDiffusionScalarImplicit :
       const FieldCell<Scal>* fcr, // density
       const FieldFace<Scal>* ffd, // diffusion
       const FieldCell<Scal>* fcs, // source
-      const FieldFace<Scal>* ffv, // volume fraction
+      const FieldFace<Scal>* ffv, // volume flux
       double t, double dt, std::shared_ptr<Par> par)
       : ConvectionDiffusionScalar<M>(t, dt, fcr, ffd, fcs, ffv)
       , m(m) , mfc_(mfc) , mcc_(mcc) , par(par)
