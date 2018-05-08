@@ -10,36 +10,31 @@
 
 namespace solver {
 
-template <class Mesh>
+template <class M_>
 class FluidSolver : public UnsteadyIterativeSolver {
-  static constexpr size_t dim = Mesh::dim;
-  using Scal = typename Mesh::Scal;
-  using Vect = typename Mesh::Vect;
+  using M = M_;
+  static constexpr size_t dim = M::dim;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
  protected:
-  FieldCell<Scal>* p_fc_density_;
-  FieldCell<Scal>* p_fc_viscosity_;
-  FieldFace<Scal>* p_ff_force_; 
-  FieldCell<Scal>* p_fc_volume_source_;
-  FieldCell<Scal>* p_fc_mass_source_;
+  FieldCell<Scal>* fcr_; // density
+  FieldCell<Scal>* fcd_; // dynamic viscosity
+  FieldFace<Scal>* fffp_;  // force projections on faces
+  FieldCell<Scal>* fcsv_; // volume source
+  FieldCell<Scal>* fcsm_; // mass source
 
  public:
   FluidSolver(double time, double time_step,
-              FieldCell<Scal>* p_fc_density,
-              FieldCell<Scal>* p_fc_viscosity,
-              FieldFace<Scal>* p_ff_force,
-              FieldCell<Scal>* p_fc_volume_source,
-              FieldCell<Scal>* p_fc_mass_source)
+              FieldCell<Scal>* fcr, // density
+              FieldCell<Scal>* fcd, // dynamic viscosity
+              FieldFace<Scal>* fffp, // force projections on faces
+              FieldCell<Scal>* fcsv, // volume source
+              FieldCell<Scal>* fcsm) // mass source
       : UnsteadyIterativeSolver(time, time_step)
-      , p_fc_density_(p_fc_density)
-      , p_fc_viscosity_(p_fc_viscosity)
-      , p_ff_force_(p_ff_force)
-      , p_fc_volume_source_(p_fc_volume_source)
-      , p_fc_mass_source_(p_fc_mass_source)
-  {
-
-  }
+      , fcr_(fcr) , fcd_(fcd) , fffp_(fffp) , fcsv_(fcsv) , fcsm_(fcsm)
+  {}
   virtual const FieldCell<Vect>& GetVelocity() = 0;
   virtual const FieldCell<Vect>& GetVelocity(Layers layer) = 0;
   virtual const FieldCell<Scal>& GetPressure() = 0;
@@ -58,44 +53,44 @@ class ConditionCellFluid : public ConditionCell {};
 
 namespace fluid_condition {
 
-template <class Mesh>
+template <class M>
 class NoSlipWall : public ConditionFaceFluid {
-  using Vect = typename Mesh::Vect;
+  using Vect = typename M::Vect;
  public:
   NoSlipWall(size_t nci) : ConditionFaceFluid(nci) {}
   virtual Vect GetVelocity() const = 0;
 };
 
-template <class Mesh>
-class NoSlipWallFixed : public NoSlipWall<Mesh> {
-  using Vect = typename Mesh::Vect;
+template <class M>
+class NoSlipWallFixed : public NoSlipWall<M> {
+  using Vect = typename M::Vect;
   Vect velocity_;
  public:
   NoSlipWallFixed(Vect velocity, size_t nci)
-      : NoSlipWall<Mesh>(nci), velocity_(velocity)
+      : NoSlipWall<M>(nci), velocity_(velocity)
   {}
   Vect GetVelocity() const override {
     return velocity_;
   }
 };
 
-template <class Mesh>
+template <class M>
 class Inlet : public ConditionFaceFluid {
-  using Vect = typename Mesh::Vect;
+  using Vect = typename M::Vect;
  public:
   Inlet(size_t nci) : ConditionFaceFluid(nci) {}
   virtual Vect GetVelocity() const = 0;
   virtual void SetVelocity(Vect velocity) = 0;
 };
 
-template <class Mesh>
-class InletFixed : public Inlet<Mesh> {
-  using Vect = typename Mesh::Vect;
+template <class M>
+class InletFixed : public Inlet<M> {
+  using Vect = typename M::Vect;
   Vect velocity_;
 
  public:
   InletFixed(Vect velocity, size_t nci)
-      : Inlet<Mesh>(nci)
+      : Inlet<M>(nci)
       , velocity_(velocity)
   {}
   Vect GetVelocity() const override {
@@ -106,15 +101,15 @@ class InletFixed : public Inlet<Mesh> {
   }
 };
 
-template <class Mesh>
-class InletFlux : public Inlet<Mesh> {
-  using Vect = typename Mesh::Vect;
+template <class M>
+class InletFlux : public Inlet<M> {
+  using Vect = typename M::Vect;
   Vect vel_;
   size_t id_;
 
  public:
   InletFlux(Vect vel, size_t id, size_t nci)
-      : Inlet<Mesh>(nci)
+      : Inlet<M>(nci)
       , vel_(vel)
       , id_(id)
   {}
@@ -129,23 +124,23 @@ class InletFlux : public Inlet<Mesh> {
   }
 };
 
-template <class Mesh>
+template <class M>
 class Outlet : public ConditionFaceFluid {
-  using Vect = typename Mesh::Vect;
+  using Vect = typename M::Vect;
  public:
   Outlet(size_t nci) : ConditionFaceFluid(nci) {}
   virtual Vect GetVelocity() const = 0;
   virtual void SetVelocity(Vect velocity) = 0;
 };
 
-template <class Mesh>
-class OutletAuto : public Outlet<Mesh> {
-  using Vect = typename Mesh::Vect;
+template <class M>
+class OutletAuto : public Outlet<M> {
+  using Vect = typename M::Vect;
   Vect velocity_;
 
  public:
   OutletAuto(size_t nci)
-      : Outlet<Mesh>(nci)
+      : Outlet<M>(nci)
       , velocity_(Vect::kZero)
   {}
   Vect GetVelocity() const override {
@@ -156,19 +151,19 @@ class OutletAuto : public Outlet<Mesh> {
   }
 };
 
-template <class Mesh>
+template <class M>
 class GivenVelocityAndPressure : public ConditionCellFluid {
-  using Vect = typename Mesh::Vect;
-  using Scal = typename Mesh::Scal;
+  using Vect = typename M::Vect;
+  using Scal = typename M::Scal;
  public:
   virtual Vect GetVelocity() const = 0;
   virtual Scal GetPressure() const = 0;
 };
 
-template <class Mesh>
-class GivenVelocityAndPressureFixed : public GivenVelocityAndPressure<Mesh> {
-  using Vect = typename Mesh::Vect;
-  using Scal = typename Mesh::Scal;
+template <class M>
+class GivenVelocityAndPressureFixed : public GivenVelocityAndPressure<M> {
+  using Vect = typename M::Vect;
+  using Scal = typename M::Scal;
   Vect velocity_;
   Scal pressure_;
 
@@ -185,16 +180,16 @@ class GivenVelocityAndPressureFixed : public GivenVelocityAndPressure<Mesh> {
   }
 };
 
-template <class Mesh>
+template <class M>
 class GivenPressure : public ConditionCellFluid {
-  using Scal = typename Mesh::Scal;
+  using Scal = typename M::Scal;
  public:
   virtual Scal GetPressure() const = 0;
 };
 
-template <class Mesh>
-class GivenPressureFixed : public GivenPressure<Mesh> {
-  using Scal = typename Mesh::Scal;
+template <class M>
+class GivenPressureFixed : public GivenPressure<M> {
+  using Scal = typename M::Scal;
   Scal pressure_;
 
  public:
@@ -209,13 +204,13 @@ class GivenPressureFixed : public GivenPressure<Mesh> {
 } // namespace fluid_condition
 
 
-template <class Mesh>
+template <class M>
 std::shared_ptr<ConditionFaceFluid> Parse(std::string argstr,
                                           IdxFace idxface,
                                           size_t nc, // neighbour cell id
-                                          const Mesh& mesh) {
+                                          const M& m) {
   using namespace fluid_condition;
-  using Vect=  typename Mesh::Vect;
+  using Vect=  typename M::Vect;
   std::stringstream arg(argstr);
 
   std::string name;
@@ -226,13 +221,13 @@ std::shared_ptr<ConditionFaceFluid> Parse(std::string argstr,
     // wall <velocity>
     Vect vel;
     arg >> vel;
-    return std::make_shared<NoSlipWallFixed<Mesh>>(vel, nc);
+    return std::make_shared<NoSlipWallFixed<M>>(vel, nc);
   } else if (name == "inlet") {
     // Fixed velocity inlet.
     // inlet <velocity>
     Vect vel;
     arg >> vel;
-    return std::make_shared<InletFixed<Mesh>>(vel, nc);
+    return std::make_shared<InletFixed<M>>(vel, nc);
   } else if (name == "inletflux") {
     // Fixed flux inlet. Flux defined by given velocity is redistributed
     // over all faces with same id.
@@ -240,11 +235,11 @@ std::shared_ptr<ConditionFaceFluid> Parse(std::string argstr,
     Vect vel;
     int id;
     arg >> vel >> id;
-    return std::make_shared<InletFlux<Mesh>>(vel, id, nc);
+    return std::make_shared<InletFlux<M>>(vel, id, nc);
   } else if (name == "outlet") {
     // Outlet. Velocity is extrapolated from neighbour cells and corrected
     // to yield zero total flux over outlet and inlet faces.
-    return std::make_shared<OutletAuto<Mesh>>(nc);
+    return std::make_shared<OutletAuto<M>>(nc);
   } else {
     throw std::runtime_error("Parse: Unknown boundary condition type");
   }
