@@ -79,7 +79,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_rho_; // density
   FieldFace<Scal> ff_rho_; // density
   FieldCell<Scal> fc_src_; // source
-  FieldFace<Scal> ff_force_;  // external force
+  FieldFace<Scal> ff_force_;  // external force projections
+  FieldFace<Scal> ff_st_;  // surface tension projections
   MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond_;
   MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond_;
   MultiTimer<std::string> timer_; 
@@ -90,6 +91,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_veluz_; 
   FieldCell<Scal> fc_p_; // pressure
   FieldCell<Scal> fc_vf_; // volume fraction used by constructor and Dump()
+  FieldCell<Scal> fc_k_;  // interface curvature
   FieldCell<Vect> fc_vel_; // velocity used by constructor
   FieldCell<Scal> fc_smvf_; // smoothed volume fraction used by CalcMixture()
   FieldFace<Scal> ff_smvf_; // interpolated fc_smvf_
@@ -314,14 +316,14 @@ void Hydro<M>::Init() {
       } 
     }
 
-    // zero-derivative boundary conditions for advection
+    // init with zero-derivative boundary conditions for advection
     for (auto it : mf_velcond_) {
       IdxFace i = it.GetIdx();
       mf_cond_[i] = std::make_shared
           <solver::ConditionFaceDerivativeFixed<Scal>>(
               Scal(0), it.GetValue()->GetNci());
     }
-    
+
     // Set bc with selection boxes
     // Parameters (N>=0):
     // string boxN -- bc description
@@ -738,8 +740,10 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 
     // Surface tension
     if (var.Int["enable_surftens"]) {
+      ff_st_.Reinit(m, 0);
+
       auto af = solver::Interpolate(a, mf_cond_, m);
-      auto gc = solver::Gradient(af, m);
+      auto gc = solver::Gradient(af, m); // [s]
 
       // zero-derivative bc for Vect
       MapFace<std::shared_ptr<solver::ConditionFace>> mfvz;
@@ -753,7 +757,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       // surface tension in cells
       auto sig = var.Double["sigma"];
       auto st = var.String["surftens"];
-      auto gf = solver::Interpolate(gc, mfvz, m);
+      auto gf = solver::Interpolate(gc, mfvz, m); // [i]
       // implementation by tensor divergence
       if (st == "div") {
         /*
@@ -775,8 +779,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         */
         throw std::runtime_error("not implemented st=div");
       } else if (st == "kn") {  // curvature * normal
-        FieldCell<Scal> kc(m); // curvature
-        for (auto c : m.SuCells()) {
+        fc_k_.Reinit(m); // curvature [i]
+        for (auto c : m.Cells()) {
           Scal s = 0.;
           for (auto q : m.Nci(c)) {
             IdxFace f = m.GetNeighbourFace(c, q);
@@ -785,9 +789,24 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             auto n = g / (g.norm() + 1e-6);  // inner normal
             s += -n.dot(m.GetOutwardSurface(c, q));
           }
-          kc[c] = s / m.GetVolume(c);
+          fc_k_[c] = s / m.GetVolume(c);
         }
 
+        m.Comm(&fc_k_);
+      } else {
+        throw std::runtime_error("Unknown surftens=" + st);
+      }
+    }
+  }
+
+  // TODO: revise
+  // continue after comm fc_k_
+  if (sem("curv")) {
+    auto& a = fc_smvf_;
+    if (var.Int["enable_surftens"]) {
+      auto st = var.String["surftens"];
+      auto sig = var.Double["sigma"];
+      if (st == "kn") {  
         //Scal rad = 0.2;
         //Scal k = 1. / rad;
         for (auto f : m.Faces()) {
@@ -795,12 +814,21 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           IdxCell cp = m.GetNeighbourCell(f, 1);
           Vect dm = m.GetVectToCell(f, 0);
           Vect dp = m.GetVectToCell(f, 1);
-          const auto da = (a[cp] - a[cm]) / (dp - dm).norm();
-          Scal k = (kc[cp] + kc[cm]) * 0.5;
-          ff_force_[f] += da * (k * sig);
+          const auto ga = (a[cp] - a[cm]) / (dp - dm).norm();
+          Scal k = (fc_k_[cm] + fc_k_[cp]) * 0.5;
+          ff_st_[f] += ga * k * sig;
         }
-      } else {
-        throw std::runtime_error("Unknown surftens=" + st);
+      }
+
+      // Zero if boundary
+      for (auto it : mf_velcond_) {
+        IdxFace f = it.GetIdx();
+        ff_st_[f] = 0.;
+      }
+
+      // Append to force
+      for (auto f : m.Faces()) {
+        ff_force_[f] += ff_st_[f];
       }
     }
 

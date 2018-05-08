@@ -24,6 +24,7 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
   MapFace<std::shared_ptr<ConditionFace>> mf_u_cond_;
   // Common buffers:
   FieldFace<Vect> ff_velocity_;
+  // TODO: remove
   FieldFace<Scal> ff_volume_flux_;
   FieldFace<Scal> ff_flux_;
   FieldFace<Scal> ff_u_;

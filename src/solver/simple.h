@@ -22,9 +22,15 @@ class FluidSimple : public FluidSolver<M_> {
 
   using CD = ConvectionDiffusionImplicit<M>; // convdiff solver
 
+  // domain (cells/faces)
+  // [i]: inner
+  // [s]: support
+  // [a]: all 
+  
+
   using P::fcr_;
   using P::fcd_;
-  using P::fffp_;
+  using P::fffp_; // [i]
   using P::fcsv_;
   using P::fcsm_;
 
@@ -71,13 +77,7 @@ class FluidSimple : public FluidSolver<M_> {
   // we: predicted velocity (after solving velocity equations)
   // ve: predicted volume flux
   
-  // domain (cells/faces)
-  // [i]: inner
-  // [s]: support
-  // [a]: all 
-  
   // Cell fields:
-  FieldCell<Vect> fcf_;    // restored vector force
   FieldCell<Vect> fcgp_;   // gradient of pressure 
   FieldCell<Vect> fcwe_;   // predicted velocity 
   FieldCell<Scal> fck_;    // diag coeff of velocity equation 
@@ -87,7 +87,12 @@ class FluidSimple : public FluidSolver<M_> {
   FieldCell<Vect> fcwc_;   // velocity correction
   FieldCell<Scal> fcwo_;   // one velocitt component
   FieldCell<Scal> fcdk_;   // kinematic viscosity
+  FieldCell<Vect> fcf_;    // restored vector force [s]
   FieldCell<Vect> fcfcd_;  // force for convdiff [i]
+
+  FieldCell<Scal> fct0_;  // tmp
+  FieldCell<Scal> fct1_;
+  FieldCell<Scal> fct2_;
 
   // Face fields:
   FieldFace<Scal> ffp_;    // pressure
@@ -96,7 +101,7 @@ class FluidSimple : public FluidSolver<M_> {
   FieldFace<Scal> ffve_;   // predicted volume flux [i]
   FieldFace<Scal> ffk_;    // diag coeff of velocity equation 
   FieldFace<Expr> ffvc_;   // expression for corrected volume flux [i]
-  FieldFace<Vect> fff_;    // restored vector force
+  FieldFace<Vect> fff_;    // restored vector force [i]
   FieldFace<Scal> ffdk_;   // kinematic viscosity
 
   // / needed for MMIM, now disabled
@@ -285,24 +290,41 @@ class FluidSimple : public FluidSolver<M_> {
   }
 
   void CalcExtForce() {
-    timer_->Push("fluid.1.force-correction");
+    auto sem = m.GetSem("extforce");
 
-    // Restore vector force from faces
-    fcf_.Reinit(m);
-    for (auto c : m.SuCells()) {
-      Vect s(0);
-      for (auto q : m.Nci(c)) {
-        // TODO: revise for non-rectangular cell
-        IdxFace f = m.GetNeighbourFace(c, q);
-        s += m.GetSurface(f) *
-            ((*fffp_)[f] * m.GetCenter(c).dist(m.GetCenter(f)));
+    if (sem("loc")) {
+      timer_->Push("fluid.1.force-correction");
+      // Restore vector force from faces
+      fcf_.Reinit(m);
+      for (auto c : m.Cells()) {
+        Vect s(0);
+        for (auto q : m.Nci(c)) {
+          // TODO: revise for non-rectangular cell
+          IdxFace f = m.GetNeighbourFace(c, q);
+          s += m.GetSurface(f) *
+              ((*fffp_)[f] * m.GetCenter(c).dist(m.GetCenter(f)));
+        }
+        fcf_[c] = s / m.GetVolume(c);
       }
-      fcf_[c] = s / m.GetVolume(c);
-    }
-    // Interpolate vector force to faces
-    fff_ = Interpolate(fcf_, mfcf_, m);
 
-    timer_->Pop();
+      // TODO: comm fffp_ instead
+      fct0_ = GetComponent(fcf_, 0);
+      fct1_ = GetComponent(fcf_, 1);
+      fct2_ = GetComponent(fcf_, 2);
+      m.Comm(&fct0_);
+      m.Comm(&fct1_);
+      m.Comm(&fct2_);
+    }
+
+    if (sem("copy")) {
+      SetComponent(fcf_, 0, fct0_);
+      SetComponent(fcf_, 1, fct1_);
+      SetComponent(fcf_, 2, fct2_);
+
+      // Interpolate vector force to faces
+      fff_ = Interpolate(fcf_, mfcf_, m);
+      timer_->Pop();
+    }
   }
   void CalcKinematicViscosity() {
     fcdk_.Reinit(m);
@@ -479,14 +501,16 @@ class FluidSimple : public FluidSolver<M_> {
       UpdateOutletBaseConditions();
     }
 
+    if (sem.Nested("extforce")) {
+      CalcExtForce();
+    }
+
     if (sem("pgrad")) {
       Update(*cd_->GetPar(), *par);
       UpdateDerivedConditions();
 
       fcp_prev = fcp_curr;
       ffv_.iter_prev = ffv_.iter_curr;
-
-      CalcExtForce();
 
       CalcKinematicViscosity();
 
@@ -691,7 +715,7 @@ class FluidSimple : public FluidSolver<M_> {
     if (sem("pcorr-apply")) {
       // Correct pressure
       Scal pr = par->prelax; // pressure relaxation
-      for (auto c : m.Cells()) {
+      for (auto c : m.AllCells()) {
         fcp_curr[c] = fcp_prev[c] + pr * fcpc_[c];
       }
       m.Comm(&fcp_curr);
