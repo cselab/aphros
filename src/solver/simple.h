@@ -73,6 +73,11 @@ class FluidSimple : public FluidSolver<M_> {
   // v: volume flux
   // ve: predictor volume flux
   
+  // domain (cells/faces)
+  // [i]: inner
+  // [s]: support
+  // [a]: all 
+  
   // Cell fields:
   FieldCell<Vect> fcf_;  // restored vector force
   FieldCell<Vect> fcgp_; // gradient of pressure 
@@ -84,13 +89,13 @@ class FluidSimple : public FluidSolver<M_> {
   FieldCell<Vect> fcvc_; // velocity correction
   FieldCell<Scal> fcwo_; // one velocitt component
   FieldCell<Scal> fcdk_; // kinematic viscosity
-  FieldCell<Vect> fc_cdf_; // force for convdiff
+  FieldCell<Vect> fcfcd_; // force for convdiff [i]
 
   // Face fields:
   FieldFace<Scal> ffp_; // pressure
   FieldFace<Vect> ffgp_; // gradient of pressure 
   FieldFace<Vect> ffwe_; // predictor velocity 
-  FieldFace<Scal> ffve_; // flux predictor volume 
+  FieldFace<Scal> ffve_; // flux predictor volume [i]
   FieldFace<Scal> ffk_; // diag coeff of velocity equation 
   FieldFace<Expr> ffvc_; // expression for corrected volume flux
   FieldFace<Vect> fff_;  // restored vector force
@@ -289,6 +294,7 @@ class FluidSimple : public FluidSolver<M_> {
     for (auto c : m.SuCells()) {
       Vect s(0);
       for (auto q : m.Nci(c)) {
+        // TODO: revise for non-rectangular cell
         IdxFace f = m.GetNeighbourFace(c, q);
         s += m.GetSurface(f) *
             ((*fffp_)[f] * m.GetCenter(c).dist(m.GetCenter(f)));
@@ -351,56 +357,48 @@ class FluidSimple : public FluidSolver<M_> {
       size_t nci = cb->GetNci();
 
       if (auto cd = dynamic_cast<NoSlipWall<M>*>(cb)) {
-        mfcw_[i] =
-            std::make_shared<ConditionFaceValueFixed<Vect>>(
-                cd->GetVelocity(), nci);
-        mfcp_[i] =
-            std::make_shared<ConditionFaceExtrapolation>(nci);
+        mfcw_[i] = std::make_shared<
+            ConditionFaceValueFixed<Vect>>(cd->GetVelocity(), nci);
+        mfcp_[i] = std::make_shared<
+            ConditionFaceExtrapolation>(nci);
       } else if (auto cd = dynamic_cast<Inlet<M>*>(cb)) {
-        mfcw_[i] =
-            std::make_shared<ConditionFaceValueFixed<Vect>>(
-                cd->GetVelocity(), nci);
-        mfcp_[i] =
-            std::make_shared<ConditionFaceExtrapolation>(nci);
+        mfcw_[i] = std::make_shared<
+            ConditionFaceValueFixed<Vect>>(cd->GetVelocity(), nci);
+        mfcp_[i] = std::make_shared<
+            ConditionFaceExtrapolation>(nci);
       } else if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
-        mfcw_[i] =
-            std::make_shared<ConditionFaceValueFixed<Vect>>(
-                cd->GetVelocity(), nci);
-        mfcp_[i] = 
-            std::make_shared<ConditionFaceExtrapolation>(nci);
+        mfcw_[i] = std::make_shared<
+            ConditionFaceValueFixed<Vect>>(cd->GetVelocity(), nci);
+        mfcp_[i] = std::make_shared<
+            ConditionFaceExtrapolation>(nci);
       } else {
         throw std::runtime_error("Unknown fluid condition");
       }
 
-      mfcgp_[i] =
-          std::make_shared<ConditionFaceDerivativeFixed<Vect>>(Vect::kZero, nci);
-      mfcf_[i] =
-          std::make_shared<ConditionFaceDerivativeFixed<Vect>>(Vect::kZero, nci);
-      mfcpc_[i] =
-          std::make_shared<ConditionFaceExtrapolation>(nci);
-      mfcd_[i] =
-          std::make_shared<ConditionFaceDerivativeFixed<Scal>>(0., nci);
-      mfck_[i] = 
-          std::make_shared<ConditionFaceDerivativeFixed<Scal>>(0, nci);
+      mfcgp_[i] = std::make_shared<
+          ConditionFaceDerivativeFixed<Vect>>(Vect(0), nci);
+      mfcf_[i] = std::make_shared<
+          ConditionFaceDerivativeFixed<Vect>>(Vect(0), nci);
+      mfcpc_[i] = std::make_shared<
+          ConditionFaceExtrapolation>(nci);
+      mfcd_[i] = std::make_shared<
+          ConditionFaceDerivativeFixed<Scal>>(0., nci);
+      mfck_[i] = std::make_shared<
+          ConditionFaceDerivativeFixed<Scal>>(0, nci);
     }
 
-    for (auto it = mcc_.cbegin();
-        it != mcc_.cend(); ++it) {
-      IdxCell c = it->GetIdx();
-      ConditionCellFluid* cond_generic = it->GetValue().get();
+    for (auto it : mcc_) {
+      IdxCell c = it.GetIdx();
+      ConditionCellFluid* cb = it.GetValue().get(); // cond base
 
-      if (auto cond = dynamic_cast<GivenPressure<M>*>(cond_generic)) {
-        mccp_[c] =
-            std::make_shared<
-            ConditionCellValueFixed<Scal>>(cond->GetPressure());
-      } else if (auto cond =
-          dynamic_cast<GivenVelocityAndPressure<M>*>(cond_generic)) {
-        mccp_[c] =
-            std::make_shared<
-            ConditionCellValueFixed<Scal>>(cond->GetPressure());
-        mccw_[c] =
-            std::make_shared<
-            ConditionCellValueFixed<Vect>>(cond->GetVelocity());
+      if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
+        mccp_[c] = std::make_shared<
+            ConditionCellValueFixed<Scal>>(cd->GetPressure());
+      } else if (auto cd = dynamic_cast<GivenVelocityAndPressure<M>*>(cb)) {
+        mccp_[c] = std::make_shared<
+            ConditionCellValueFixed<Scal>>(cd->GetPressure());
+        mccw_[c] = std::make_shared<
+            ConditionCellValueFixed<Vect>>(cd->GetVelocity());
       } else {
         throw std::runtime_error("Unknown fluid cell condition");
       }
@@ -409,15 +407,13 @@ class FluidSimple : public FluidSolver<M_> {
     // Init convdiff solver
     {
       auto p = std::make_shared<typename CD::Par>();
-      Update(*p, *par);
+      Update(*p, *par); // p from par
 
-      fc_cdf_.Reinit(m, Vect(0));
+      fcfcd_.Reinit(m, Vect(0));
       cd_ = std::make_shared<
           ConvectionDiffusionImplicit<M>>(
-              m, fcw,
-              mfcw_, mccw_,
-              fcr, &ffdk_, 
-              &fc_cdf_, &ffv_.iter_prev, time, time_step, p);
+              m, fcw, mfcw_, mccw_, fcr, &ffdk_, 
+              &fcfcd_, &ffv_.iter_prev, time, time_step, p);
     }
 
     fcp_.time_curr.Reinit(m, 0.);
@@ -425,33 +421,29 @@ class FluidSimple : public FluidSolver<M_> {
 
     // Calc initial volume fluxes
     fcwe_ = cd_->GetVelocity();
-    ffwe_ = Interpolate(
-        fcwe_, mfcw_, m);
+    ffwe_ = Interpolate(fcwe_, mfcw_, m);
     ffv_.time_curr.Reinit(m, 0.);
     for (auto f : m.Faces()) {
-      ffv_.time_curr[f] =
-          ffwe_[f].dot(m.GetSurface(f));
+      ffv_.time_curr[f] = ffwe_[f].dot(m.GetSurface(f));
     }
     // Apply meshvel
     const Vect& meshvel = par->meshvel;
     for (auto f : m.Faces()) {
-      ffv_.time_curr[f] -= 
-          meshvel.dot(m.GetSurface(f));
+      ffv_.time_curr[f] -= meshvel.dot(m.GetSurface(f));
     }
 
     ffv_.time_prev = ffv_.time_curr;
 
     ffp_ = Interpolate(fcp_.time_curr, mfcp_, m);
     fcgp_ = Gradient(ffp_, m);
-    ffgp_ = Interpolate(
-        fcgp_, mfcgp_, m);
+    ffgp_ = Interpolate(fcgp_, mfcgp_, m);
   }
   void StartStep() override {
     auto sem = m.GetSem("fluid-start");
     if (sem("convdiff-init")) {
       this->ClearIter();
       if (IsNan(fcp_.time_curr)) {
-        throw std::runtime_error("NaN initial pressure");
+        throw std::runtime_error("simple::StartStep(): NaN pressure");
       }
       cd_->SetTimeStep(this->GetTimeStep());
     }
@@ -463,17 +455,14 @@ class FluidSimple : public FluidSolver<M_> {
     if (sem("convdiff-start")) {
       fcp_.iter_curr = fcp_.time_curr;
       ffv_.iter_curr = ffv_.time_curr;
+      // initial guess from extrapolation
       const Scal ge = par->guessextra;
       if (ge != 0.) {
         for (auto c : m.SuCells()) {
-          fcp_.iter_curr[c] +=
-              (fcp_.time_curr[c] - 
-               fcp_.time_prev[c]) * ge;
+          fcp_.iter_curr[c] += (fcp_.time_curr[c] - fcp_.time_prev[c]) * ge;
         }
         for (auto f : m.Faces()) {
-          ffv_.iter_curr[f] +=
-              (ffv_.time_curr[f] - 
-               ffv_.time_prev[f]) * ge;
+          ffv_.iter_curr[f] += (ffv_.time_curr[f] - ffv_.time_prev[f]) * ge;
         }
       }
     }
@@ -509,27 +498,24 @@ class FluidSimple : public FluidSolver<M_> {
       timer_->Pop();
 
       // initialize force for convdiff
-      fc_cdf_.Reinit(m, Vect(0));
+      fcfcd_.Reinit(m, Vect(0));
     }
 
     if (sem("explvisc")) {
       timer_->Push("fluid.1a.explicit-viscosity");
-      // append viscous term
+      // append explicit part of viscous term
       for (size_t d = 0; d < dim; ++d) {
-        fcwo_ = GetComponent(
-            cd_->GetVelocity(Layers::iter_curr), d);
-        auto ff = Interpolate(fcwo_, 
-                              cd_->GetVelocityCond(d), m);
+        fcwo_ = GetComponent(cd_->GetVelocity(Layers::iter_curr), d);
+        auto ff = Interpolate(fcwo_, cd_->GetVelocityCond(d), m);
         auto gc = Gradient(ff, m);
         auto gf = Interpolate(gc, mfcf_, m); // adhoc: zero-der cond
         for (auto c : m.Cells()) {
           Vect s(0);
           for (auto q : m.Nci(c)) {
             IdxFace f = m.GetNeighbourFace(c, q);
-            s += gf[f] * 
-              (ffdk_[f] * m.GetOutwardSurface(c, q)[d]);
+            s += gf[f] * (ffdk_[f] * m.GetOutwardSurface(c, q)[d]);
           }
-          fc_cdf_[c] += s / m.GetVolume(c);
+          fcfcd_[c] += s / m.GetVolume(c);
         }
       }
       timer_->Pop();
@@ -537,14 +523,15 @@ class FluidSimple : public FluidSolver<M_> {
 
     if (sem("forceappend")) {
       // append pressure gradient and external force
-      for (auto c : m.AllCells()) {
-        fc_cdf_[c] += fcgp_[c] * (-1.) + fcf_[c];
+      for (auto c : m.Cells()) {
+        fcfcd_[c] += fcgp_[c] * (-1.) + fcf_[c];
       }
 
       timer_->Push("fluid.2.convection-diffusion");
     }
 
     if (sem.Nested("convdiff-iter")) {
+      // Solve for predictor velocity
       cd_->MakeIteration();
     }
 
@@ -565,44 +552,49 @@ class FluidSimple : public FluidSolver<M_> {
       
     if (sem("pcorr-assemble")) {
       // Define ffk_ on inner faces only
+      // TODO: remove mfck_ as probably not needed
       ffk_ = Interpolate(fck_, mfck_, m);
 
       fcwe_ = cd_->GetVelocity(Layers::iter_curr);
 
-      ffwe_ = Interpolate(
-          fcwe_, mfcw_, m);
+      ffwe_ = Interpolate(fcwe_, mfcw_, m);
 
-      // // needed for MMIM, now disabled
-      //ff_velocity_iter_prev_ = Interpolate(
-      //    cd_->GetVelocity(Layers::iter_prev),
-      //    mfcw_, m);
-
-      // Calc volumetric flux (asterisk)
-      // using momentum interpolation (Rhie-Chow)
-      // including hydrostatics-correction
-      // TODO: Extend hydrostatics-correction on a non-uniform m
+      // Calc predicted volumetric flux 
+      // using Momentum Interpolation (Rhie-Chow)
+      // including balanced force (hydrostatics and surface tension)
       timer_->Push("fluid.3.momentum-interpolation");
       ffve_.Reinit(m);
-      const Scal rh = par->rhie;
+      const Scal rh = par->rhie; // rhie factor
       for (auto f : m.Faces()) {
-        const auto volume_flux_interpolated =
-            ffwe_[f].dot(m.GetSurface(f));
-        if (!ffb_[f]) {
+        // Init with interpolated flux
+        ffve_[f] = ffwe_[f].dot(m.GetSurface(f));
+        if (!ffb_[f]) { // if not boundary
           IdxCell cm = m.GetNeighbourCell(f, 0);
           IdxCell cp = m.GetNeighbourCell(f, 1);
           Vect dm = m.GetVectToCell(f, 0);
           Vect dp = m.GetVectToCell(f, 1);
-          const auto wide =
-              (ffgp_[f] - fff_[f]).dot(m.GetSurface(f));
-          const auto compact =
-              ((fcp_prev[cp] - fcp_prev[cm]) /
-              (dp - dm).norm() - (*fffp_)[f]) * m.GetArea(f);
-          ffve_[f] =
-              volume_flux_interpolated +
-              rh * (wide - compact) / ffk_[f];
+          // TODO: rename correction to e.g. surplus 
+    
+          // Velocity equation structure:
+          // w += f / k     // velocity correction
+          // v += w * Surface  // volume flux correction
+          // where f: force, k: diag coef (time step + density)
+
+          // XXX: Consistency condition: 
+          //      average of compact face gradients = cell gradient.
+
+          // Wide approx of volume flux correction
+          Scal qw = (fff_[f] - ffgp_[f]).dot(m.GetSurface(f));
+
+          // Compact approx for pressure gradient
+          Scal gp = (fcp_prev[cp] - fcp_prev[cm]) / (dp - dm).norm();
+          // Compact approx of volume flux correction
+          Scal qc = ((*fffp_)[f] - gp) * m.GetArea(f);
+
+          // Corrected volume flux
+          ffve_[f] += rh * (qc - qw) / ffk_[f];
         } else {
-          ffve_[f] =
-              ffwe_[f].dot(m.GetSurface(f));
+          // nop, keep interpolated flux
         }
       }
 
