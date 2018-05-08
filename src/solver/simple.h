@@ -63,15 +63,13 @@ class FluidSimple : public FluidSolver<M_> {
   std::vector<Scal> ilfe_; // extrapolated flux
   std::vector<Scal> ila_; // area
 
-  // common buffers
-
   // notation:
   // p: pressure
   // gp: pressure gradient
   // w: velocity
-  // we: predictor velocity
   // v: volume flux
-  // ve: predictor volume flux
+  // we: predicted velocity (after solving velocity equations)
+  // ve: predicted volume flux
   
   // domain (cells/faces)
   // [i]: inner
@@ -79,27 +77,27 @@ class FluidSimple : public FluidSolver<M_> {
   // [a]: all 
   
   // Cell fields:
-  FieldCell<Vect> fcf_;  // restored vector force
-  FieldCell<Vect> fcgp_; // gradient of pressure 
-  FieldCell<Vect> fcwe_; // predictor velocity 
-  FieldCell<Scal> fck_; // diag coeff of velocity equation 
-  FieldCell<Expr> fcpcs_; // pressure correction linear system
-  FieldCell<Scal> fcpc_; // pressure correction
-  FieldCell<Vect> fcgpc_; // gradient of pressure correction
-  FieldCell<Vect> fcvc_; // velocity correction
-  FieldCell<Scal> fcwo_; // one velocitt component
-  FieldCell<Scal> fcdk_; // kinematic viscosity
-  FieldCell<Vect> fcfcd_; // force for convdiff [i]
+  FieldCell<Vect> fcf_;    // restored vector force
+  FieldCell<Vect> fcgp_;   // gradient of pressure 
+  FieldCell<Vect> fcwe_;   // predicted velocity 
+  FieldCell<Scal> fck_;    // diag coeff of velocity equation 
+  FieldCell<Expr> fcpcs_;  // pressure correction linear system [i]
+  FieldCell<Scal> fcpc_;   // pressure correction
+  FieldCell<Vect> fcgpc_;  // gradient of pressure correction
+  FieldCell<Vect> fcvc_;   // velocity correction
+  FieldCell<Scal> fcwo_;   // one velocitt component
+  FieldCell<Scal> fcdk_;   // kinematic viscosity
+  FieldCell<Vect> fcfcd_;  // force for convdiff [i]
 
   // Face fields:
-  FieldFace<Scal> ffp_; // pressure
-  FieldFace<Vect> ffgp_; // gradient of pressure 
-  FieldFace<Vect> ffwe_; // predictor velocity 
-  FieldFace<Scal> ffve_; // flux predictor volume [i]
-  FieldFace<Scal> ffk_; // diag coeff of velocity equation 
-  FieldFace<Expr> ffvc_; // expression for corrected volume flux
-  FieldFace<Vect> fff_;  // restored vector force
-  FieldFace<Scal> ffdk_; // kinematic viscosity
+  FieldFace<Scal> ffp_;    // pressure
+  FieldFace<Vect> ffgp_;   // gradient of pressure 
+  FieldFace<Vect> ffwe_;   // predicted velocity 
+  FieldFace<Scal> ffve_;   // predicted volume flux [i]
+  FieldFace<Scal> ffk_;    // diag coeff of velocity equation 
+  FieldFace<Expr> ffvc_;   // expression for corrected volume flux [i]
+  FieldFace<Vect> fff_;    // restored vector force
+  FieldFace<Scal> ffdk_;   // kinematic viscosity
 
   // / needed for MMIM, now disabled
   //FieldFace<Vect> ff_velocity_iter_prev_;
@@ -593,7 +591,7 @@ class FluidSimple : public FluidSolver<M_> {
 
           // Corrected volume flux
           ffve_[f] += rh * (qc - qw) / ffk_[f];
-        } else {
+        } else { // if boundary
           // nop, keep interpolated flux
         }
       }
@@ -606,61 +604,54 @@ class FluidSimple : public FluidSolver<M_> {
 
       timer_->Pop();
 
-      // TODO: Rename SurfaceVelocity to MassFlux or VolumeFlux
-
       timer_->Push("fluid.4.volume-flux");
-      // TODO: Rename velocity_corr to smth
-      // (it's actually full velocity not just correction)
-      // (same for ffvc_)
+      // Expressions for corrected volume flux
+      // in terms of pressure
+      // corrected = predicted + pressure gradient * area / diag coeff
       for (auto f : m.Faces()) {
-        auto& expr = ffvc_[f];
-        expr.Clear();
+        auto& e = ffvc_[f];
+        e.Clear();
         IdxCell cm = m.GetNeighbourCell(f, 0);
         IdxCell cp = m.GetNeighbourCell(f, 1);
         Vect dm = m.GetVectToCell(f, 0);
         Vect dp = m.GetVectToCell(f, 1);
-        auto coeff = - m.GetArea(f) /
-            ((dp - dm).norm() * ffk_[f]);
-        if (ffb_[f]) {
-          coeff = 0.;
+        auto a = -m.GetArea(f) / ((dp - dm).norm() * ffk_[f]);
+        if (ffb_[f]) { // keep on boundaries
+          a = 0.;
         }
-        expr.InsertTerm(-coeff, cm);
-        expr.InsertTerm(coeff, cp);
-        // adhoc for periodic
-        expr.SortTerms(true);
-        expr.SetConstant(ffve_[f]);
+        e.InsertTerm(-a, cm);
+        e.InsertTerm(a, cp);
+        e.SetConstant(ffve_[f]);
       }
       timer_->Pop();
 
       timer_->Push("fluid.5.pressure-system");
+      // System for pressure correction
+      // sum of corrected volume fluxes + volume source = 0.
       for (auto c : m.Cells()) {
-        auto& eqn = fcpcs_[c];
-        Expr flux_sum;
-        for (size_t i = 0; i < m.GetNumNeighbourFaces(c); ++i) {
-          IdxFace f = m.GetNeighbourFace(c, i);
-          flux_sum +=
-              ffvc_[f] *
-              m.GetOutwardFactor(c, i);
+        auto& e = fcpcs_[c];
+        Expr s;
+        for (auto q : m.Nci(c)) {
+          IdxFace f = m.GetNeighbourFace(c, q);
+          s += ffvc_[f] * m.GetOutwardFactor(c, q);
         }
-        eqn =
-            flux_sum -
-            Expr((*fcsv_)[c] *
-                 m.GetVolume(c));
+        e = s - Expr((*fcsv_)[c] * m.GetVolume(c));
       }
 
-      // Account for cell conditions for pressure
-      for (auto it = mccp_.cbegin();
-          it != mccp_.cend(); ++it) {
-        IdxCell c(it->GetIdx());
-        ConditionCell* cond = it->GetValue().get();
-        if (auto cond_value = dynamic_cast<ConditionCellValue<Scal>*>(cond)) {
-          for (auto idxlocal : m.Cells()) {
-            auto& eqn = fcpcs_[idxlocal];
-            if (idxlocal == c) { 
-              eqn.SetKnownValueDiag(c, cond_value->GetValue());
+      // Apply cell conditions for pressure
+      // Traverse all expressions for every condition
+      for (auto it : mccp_) {
+        IdxCell cc(it.GetIdx()); // cell cond
+        ConditionCell* cb = it.GetValue().get(); // cond base
+        if (auto cd = dynamic_cast<ConditionCellValue<Scal>*>(cb)) {
+          for (auto c : m.Cells()) {
+            auto& e = fcpcs_[c];
+            if (c == cc) { 
+              // Replace expression with p[c] = cd->GetValue()
+              e.SetKnownValueDiag(cc, cd->GetValue());
             } else {
-              // Substitute value to obtain symmetrix matrix
-              eqn.SetKnownValue(c, cond_value->GetValue());
+              // Replace all cc terms with value
+              e.SetKnownValue(cc, cd->GetValue());
             }
           }
         }
