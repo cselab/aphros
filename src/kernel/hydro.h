@@ -778,8 +778,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           for (auto q : m.Nci(c)) {
             IdxFace f = m.GetNeighbourFace(c, q);
             auto g = gf[f];
-            auto n = g / (g.norm() + 1e-6);  // inner normal
             // TODO: revise 1e-6
+            auto n = g / (g.norm() + 1e-6);  // inner normal
             s += -n.dot(m.GetOutwardSurface(c, q));
           }
           kc[c] = s / m.GetVolume(c);
