@@ -753,6 +753,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       auto gf = solver::Interpolate(gc, mfvz, m);
       // implementation by tensor divergence
       if (st == "div") {
+        /*
         auto stdiag = var.Double["stdiag"];
         for (auto c : m.Cells()) {
           Vect r(0); // result
@@ -768,7 +769,9 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           // here: r = stdiag*div(|g|I) - div(g g/|g|) 
           fc_force_[c] += r * sig;
         }
-      } else if (st == "kn") { // fixed curvature
+        */
+        throw std::runtime_error("not implemented st=div");
+      } else if (st == "kn") {  // curvature * normal
         FieldCell<Scal> kc(m); // curvature
         for (auto c : m.SuCells()) {
           Scal s = 0.;
@@ -779,7 +782,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             // TODO: revise 1e-6
             s += -n.dot(m.GetOutwardSurface(c, q));
           }
-          kc[c] = s / m.GetVolume(c);     
+          kc[c] = s / m.GetVolume(c);
         }
 
         //Scal rad = 0.2;
@@ -792,20 +795,19 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           const auto da = (a[cp] - a[cm]) / (dp - dm).norm();
           Scal k = (kc[cp] + kc[cm]) * 0.5;
           ff_force_[f] += da * (k * sig);
-          using Dir = typename M::Dir;
-          if (m.GetBlockFaces().GetDir(f) == Dir::k) {
-            ff_force_[f] = 0.; // XXX: zero in z
-          }
         }
       } else {
-        throw std::runtime_error("Unknown surftens: " << st);
+        throw std::runtime_error("Unknown surftens=" + st);
       }
     }
 
-    // zero z if 2D
+    // zero in z if 2D
     if (var.Int["dim"] <= 2) {
-      for (auto c : m.Cells()) {
-        fc_force_[c][2] = 0.;
+      for (auto f : m.Faces()) {
+        using Dir = typename M::Dir;
+        if (m.GetBlockFaces().GetDir(f) == Dir::k) {
+          ff_force_[f] = 0.; // XXX: zero in z
+        }
       }
     }
   }
