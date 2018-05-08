@@ -418,14 +418,14 @@ void Hydro<M>::Init() {
         p->split = var.Int["split"];
         as_.reset(new AS(
               m, fc_vf_, mf_cond_, 
-              &fs_->GetVolumeFlux(solver::Layers::iter_curr),
+              &fs_->GetVolumeFlux(solver::Layers::time_curr),
               &fc_src_, 0., dt, p));
       } else if (as == "vof") {
         using AS = solver::Vof<M>;
         auto p = std::make_shared<typename AS::Par>();
         as_.reset(new AS(
               m, fc_vf_, mf_cond_, 
-              &fs_->GetVolumeFlux(solver::Layers::iter_curr),
+              &fs_->GetVolumeFlux(solver::Layers::time_curr),
               &fc_src_, 0., dt, p));
       } else {
         throw std::runtime_error("Unknown advection_solver=" + as);
@@ -896,6 +896,33 @@ void Hydro<M>::Run() {
           << std::endl;
     }
   }
+  // TODO: merge iters of as and fs
+  if (var.Int["enable_advection"]) {
+    if (sem.Nested("as-steps")) {
+      auto sn = m.GetSem("steps"); // sem nested
+      sn.LoopBegin();
+      if (sn.Nested("start")) {
+        as_->StartStep();
+      }
+      if (sn("iter")) {
+        as_->MakeIteration();
+      }
+      if (sn("convcheck")) {
+        if (as_->GetTime() >= fs_->GetTime() - 0.5 * as_->GetTimeStep()) {
+          sn.LoopBreak();
+        }
+      }
+      if (sn.Nested("finish")) {
+        as_->FinishStep();
+      }
+      sn.LoopEnd();
+    }
+    if (var.Int["clip_vf"]) {
+      if (sem("as-clip")) {
+        Clip(as_->GetField(), 0., 1.);
+      }
+    }
+  }
   if (sem.Nested("mixture")) {
     CalcMixture(as_->GetField());
   }
@@ -942,32 +969,6 @@ void Hydro<M>::Run() {
   }
   if (sem.Nested("fs-finish")) {
     fs_->FinishStep();
-  }
-  if (var.Int["enable_advection"]) {
-    if (sem.Nested("as-steps")) {
-      auto sn = m.GetSem("steps"); // sem nested
-      sn.LoopBegin();
-      if (sn.Nested("start")) {
-        as_->StartStep();
-      }
-      if (sn("iter")) {
-        as_->MakeIteration();
-      }
-      if (sn("convcheck")) {
-        if (as_->GetTime() >= fs_->GetTime() - 0.5 * as_->GetTimeStep()) {
-          sn.LoopBreak();
-        }
-      }
-      if (sn.Nested("finish")) {
-        as_->FinishStep();
-      }
-      sn.LoopEnd();
-    }
-    if (var.Int["clip_vf"]) {
-      if (sem("as-clip")) {
-        Clip(as_->GetField(), 0., 1.);
-      }
-    }
   }
 
   Dump(sem);
