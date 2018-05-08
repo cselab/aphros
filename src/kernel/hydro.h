@@ -79,7 +79,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_rho_; // density
   FieldFace<Scal> ff_rho_; // density
   FieldCell<Scal> fc_src_; // source
-  FieldFace<Scal> ff_force_;  // external force projections
+  FieldCell<Vect> fc_force_;  // force 
+  FieldFace<Scal> ffbp_;  // balanced force projections
   FieldFace<Scal> ff_st_;  // surface tension projections
   MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond_;
   MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond_;
@@ -403,7 +404,7 @@ void Hydro<M>::Init() {
 
       fs_.reset(new FS(
             m, fc_vel_, mf_velcond_, mc_velcond, 
-            &fc_rho_, &fc_mu_, &ff_force_,  
+            &fc_rho_, &fc_mu_, &fc_force_, &ffbp_,
             &fc_src_, &fc_src_, 0., dt, &timer_, p));
     }
 
@@ -696,7 +697,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     fc_mu_.Reinit(m);
     fc_rho_.Reinit(m);
     ff_rho_.Reinit(m);
-    ff_force_.Reinit(m);
+    fc_force_.Reinit(m, Vect(0));
+    ffbp_.Reinit(m, 0);
     fc_smvf_ = fc_vf0;
   }
 
@@ -731,11 +733,11 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       ff_rho_[f] = r1 * v1 + r2 * v2;
     }
 
-    // Init force
+    // Append gravity to force
     for (auto f : m.AllFaces()) {
       Vect n = m.GetNormal(f);
-      ff_force_[f] = force.dot(n);
-      ff_force_[f] += grav.dot(n) * ff_rho_[f];
+      ffbp_[f] += force.dot(n);
+      ffbp_[f] += grav.dot(n) * ff_rho_[f];
     }
 
     // Surface tension
@@ -769,24 +771,22 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 
       // implementation by tensor divergence
       if (st == "div") {
-        /*
+        auto sig = var.Double["sigma"];
         auto stdiag = var.Double["stdiag"];
         for (auto c : m.Cells()) {
-          Vect r(0); // result
-          for (size_t e = 0; e < m.GetNumNeighbourFaces(c); ++e) {
-            IdxFace f = m.GetNeighbourFace(c, e);
+          Vect r(0); 
+          for (auto q : m.Nci(c)) {
+            IdxFace f = m.GetNeighbourFace(c, q);
             auto g = gf[f];
             auto n = g / (g.norm() + 1e-6);  // inner normal
             // TODO: revise 1e-6
-            auto s = m.GetOutwardSurface(c, e);
+            auto s = m.GetOutwardSurface(c, q);
             r += s * (g.norm() * stdiag) - g * s.dot(n);
           }
           r /= m.GetVolume(c);     
           // here: r = stdiag*div(|g|I) - div(g g/|g|) 
           fc_force_[c] += r * sig;
         }
-        */
-        throw std::runtime_error("not implemented st=div");
       } else if (st == "kn") {  // curvature * normal
         fc_k_.Reinit(m); // curvature [i]
         for (auto c : m.Cells()) {
@@ -837,7 +837,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 
       // Append to force
       for (auto f : m.Faces()) {
-        ff_force_[f] += ff_st_[f];
+        ffbp_[f] += ff_st_[f];
       }
     }
 
@@ -846,7 +846,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       for (auto f : m.Faces()) {
         using Dir = typename M::Dir;
         if (m.GetBlockFaces().GetDir(f) == Dir::k) {
-          ff_force_[f] = 0.; // XXX: zero in z
+          ffbp_[f] = 0.; // XXX: zero in z
         }
       }
     }
