@@ -758,6 +758,15 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       auto sig = var.Double["sigma"];
       auto st = var.String["surftens"];
       auto gf = solver::Interpolate(gc, mfvz, m); // [i]
+
+      // gradient on faces 
+      {
+        FieldNode<Vect> gn(m);
+        for (auto n : m.Nodes()) {
+
+        }
+      }
+
       // implementation by tensor divergence
       if (st == "div") {
         /*
