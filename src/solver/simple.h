@@ -337,10 +337,10 @@ class FluidSimple : public FluidSolver<M_> {
 
  public:
   struct Par {
-    Scal vrelax;   // velocity relaxation factor [0,1]
-    Scal prelax;   // pressure relaxation factor [0,1]
-    Scal rhie;     // Rhie-Chow factor [0,1] (0 disable, 1 full)
-    bool second = false; // second order in time
+    Scal vrelax = 0.8;   // velocity relaxation factor [0,1]
+    Scal prelax = 1.;   // pressure relaxation factor [0,1]
+    Scal rhie = 1.;     // Rhie-Chow factor [0,1] (0 disable, 1 full)
+    bool second = true; // second order in time
     bool simpler = false; // Use SIMPLER  TODO: implement SIMPLER
     Scal guessextra = 0;  // next iteration extrapolation weight [0,1]
     Vect meshvel = Vect(0);  // relative mesh velocity
