@@ -787,6 +787,21 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           }
           gf[f] /= m.GetNumNeighbourNodes(f);
         }
+        // Zero if boundary
+        for (auto it : mf_velcond_) {
+          IdxFace f = it.GetIdx();
+          gf[f] = Vect(0);
+        }
+        // zero in z if 2D
+        if (var.Int["dim"] <= 2) {
+          for (auto f : m.Faces()) {
+            using Dir = typename M::Dir;
+            if (m.GetBlockFaces().GetDir(f) == Dir::k) {
+              gf[f] = Vect(0); // XXX: zero in z
+            }
+            gf[f][2] = 0.;
+          }
+        }
       }
 
       // implementation by tensor divergence
