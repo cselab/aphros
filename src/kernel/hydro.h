@@ -762,17 +762,30 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       auto gf = solver::Interpolate(gc, mfvz, m); // [i]
 
       // node-based gradient on faces
-      {
-        FieldNode<Vect> gn(m, 0);
-        FieldNode<Vect> w(m, 0);
-        for (auto c : m.Cells()) {
+      if (var.Int["normalnode"]) {
+        FieldNode<Vect> gn(m, Vect(0));
+        FieldNode<Vect> l(m, Vect(0));
+        for (auto c : m.SuCells()) {
           Vect xc = m.GetCenter(c);
           for (size_t q = 0; q < m.GetNumNeighbourNodes(c); ++q) {
             IdxNode n = m.GetNeighbourNode(c, q);
             Vect xn = m.GetNode(n);
-            gn[n] += (xc - xn) * a[c];
-            w[n] += (xc - xn;
+            for (size_t d = 0; d < dim; ++d) {
+              gn[n][d] += (xc[d] - xn[d] > 0. ? 1. : -1.) * a[c];
+              l[n][d] += std::abs(xc[d] - xn[d]);
+            }
           }
+        }
+        for (auto n : m.Nodes()) {
+          gn[n] /= l[n];
+        }
+        gf.Reinit(m, Vect(0));
+        for (auto f : m.Faces()) {
+          for (size_t q = 0; q < m.GetNumNeighbourNodes(f); ++q) {
+            IdxNode n = m.GetNeighbourNode(f, q);
+            gf[f] += gn[n];
+          }
+          gf[f] /= m.GetNumNeighbourNodes(f);
         }
       }
 
