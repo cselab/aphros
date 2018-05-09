@@ -761,11 +761,18 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       auto st = var.String["surftens"];
       auto gf = solver::Interpolate(gc, mfvz, m); // [i]
 
-      // gradient on faces 
+      // node-based gradient on faces
       {
-        FieldNode<Vect> gn(m);
-        for (auto n : m.Nodes()) {
-
+        FieldNode<Vect> gn(m, 0);
+        FieldNode<Vect> w(m, 0);
+        for (auto c : m.Cells()) {
+          Vect xc = m.GetCenter(c);
+          for (size_t q = 0; q < m.GetNumNeighbourNodes(c); ++q) {
+            IdxNode n = m.GetNeighbourNode(c, q);
+            Vect xn = m.GetNode(n);
+            gn[n] += (xc - xn) * a[c];
+            w[n] += (xc - xn;
+          }
         }
       }
 
