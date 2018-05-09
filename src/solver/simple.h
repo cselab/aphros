@@ -296,6 +296,10 @@ class FluidSimple : public FluidSolver<M_> {
     if (sem("loc")) {
       timer_->Push("fluid.1.force-correction");
       // Restore balanced force from faces
+      // XXX specific for Cartesian mesh
+      // TODO consider just a weighted average of fn * n
+      //      weight should be proportional to accuracy gradient approx
+      //      which is better if surface area is larger
       fcb_.Reinit(m);
       for (auto c : m.Cells()) {
         Vect s(0);
@@ -584,8 +588,7 @@ class FluidSimple : public FluidSolver<M_> {
 
       ffwe_ = Interpolate(fcwe_, mfcw_, m);
 
-      // Calc predicted volumetric flux 
-      // using Momentum Interpolation (Rhie-Chow)
+      // Rhie-Chow interpolation for of predicted volume flux
       // including balanced force (hydrostatics and surface tension)
       timer_->Push("fluid.3.momentum-interpolation");
       ffve_.Reinit(m);
@@ -607,17 +610,25 @@ class FluidSimple : public FluidSolver<M_> {
 
           // XXX: Consistency condition: 
           //      average of compact face gradients = cell gradient.
-
-          // Wide approx of volume flux correction
-          Scal qw = (ffb_[f] - ffgp_[f]).dot(m.GetSurface(f));
-
-          // Compact approx for pressure gradient
+          
+          // compact pressure gradient
           Scal gp = (fcp_prev[cp] - fcp_prev[cm]) / (dp - dm).norm();
-          // Compact approx of volume flux correction
-          Scal qc = ((*ffbp_)[f] - gp) * m.GetArea(f);
 
-          // Corrected volume flux
-          ffve_[f] += rh * (qc - qw) / ffk_[f];
+          // compact
+          Scal o = ((*ffbp_)[f] - gp) * m.GetArea(f) / ffk_[f];
+
+          // wide
+          Scal w;
+          if (0) { // factor 1/ffk after interpolation
+            w = (ffb_[f] - ffgp_[f]).dot(m.GetSurface(f)) / ffk_[f];
+          } else { // factor 1/fck before interpolation
+            Vect wm = (fcb_[cm] - fcgp_[cm]) / fck_[cm];
+            Vect wp = (fcb_[cp] - fcgp_[cp]) / fck_[cp];
+            w = (wm + wp).dot(m.GetSurface(f)) * 0.5;
+          }
+
+          // apply
+          ffve_[f] += rh * (o - w);
         } else { // if boundary
           // nop, keep interpolated flux
         }
