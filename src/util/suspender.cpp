@@ -1,5 +1,7 @@
 #include <cassert>
 #include <stdexcept>
+#include <sstream>
+#include <iomanip>
 
 #include "suspender.h"
 
@@ -61,7 +63,9 @@ bool Suspender::Sem::operator()(std::string suff) {
     if (p.curname_ != "") {
       p.curname_ += " --> ";
     }
-    p.curname_ += name_ + ":" + std::to_string(i->t) + ":" + suff;
+    std::stringstream st;
+    st << std::setfill('0') << std::setw(2) << i->t;
+    p.curname_ += name_ + ":" + st.str() + ":" + suff;
     ++p.depth_;
     return true;
   }
