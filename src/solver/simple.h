@@ -702,7 +702,7 @@ class FluidSimple : public FluidSolver<M_> {
     if (sem("pcorr-apply")) {
       // Correct pressure
       Scal pr = par->prelax; // pressure relaxation
-      for (auto c : m.AllCells()) {
+      for (auto c : m.Cells()) {
         fcp_curr[c] = fcp_prev[c] + pr * fcpc_[c];
       }
       m.Comm(&fcp_curr);
@@ -776,6 +776,9 @@ class FluidSimple : public FluidSolver<M_> {
               w = (wm + wp).dot(s) * 0.5;
             }
 
+            w *= rh;
+            a *= rh;
+
             e.InsertTerm(-a, cm);
             e.InsertTerm(a, cp);
             e.SetConstant(w + ffve_[f] - ffv_.iter_curr[f]);
@@ -810,6 +813,32 @@ class FluidSimple : public FluidSolver<M_> {
             }
           }
         }
+      }
+
+      if (sem("simpler-solve")) {
+        // Convert to LS format
+        auto l = ConvertLs(fcpcs_, lsa_, lsb_, lsx_, m);
+        using T = typename M::LS::T; 
+        l.t = T::symm; // solver type
+        // Solve system (add request)
+        m.Solve(l);
+      }
+
+      if (sem("pcorr-comm")) {
+        // System solved
+        // Copy solution
+        fcpc_.Reinit(m);
+        size_t i = 0;
+        for (auto c : m.Cells()) {
+          fcpc_[c] = lsx_[i++];
+        }
+
+        // Correct pressure
+        Scal pr = par->prelax; // pressure relaxation
+        for (auto c : m.Cells()) {
+          fcp_curr[c] += pr * fcpc_[c];
+        }
+        m.Comm(&fcp_curr);
       }
     }
   }
