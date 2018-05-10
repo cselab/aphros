@@ -36,6 +36,7 @@ class FluidSimple : public FluidSolver<M_> {
   using P::fcsm_;
 
   M& m; // mesh
+  GRange<size_t> dr_;  // dimension range
 
   LayersData<FieldFace<Scal>> ffv_; // volume flux
   LayersData<FieldCell<Scal>> fcp_; // pressure
@@ -86,14 +87,15 @@ class FluidSimple : public FluidSolver<M_> {
   FieldCell<Scal> fcpc_;   // pressure correction
   FieldCell<Vect> fcgpc_;  // gradient of pressure correction
   FieldCell<Vect> fcwc_;   // velocity correction
-  FieldCell<Scal> fcwo_;   // one velocitt component
+  FieldCell<Scal> fcwo_;   // one velocity component
   FieldCell<Scal> fcdk_;   // kinematic viscosity
   FieldCell<Vect> fcb_;    // restored balanced force [s]
   FieldCell<Vect> fcfcd_;  // force for convdiff [i]
 
-  FieldCell<Scal> fct0_;  // tmp
-  FieldCell<Scal> fct1_;
-  FieldCell<Scal> fct2_;
+  // tmp
+  std::array<FieldCell<Scal>, 3> fcta_;
+  FieldCell<Scal> fct_;
+  FieldCell<Vect> fctv_;
 
   // Face fields:
   FieldFace<Scal> ffp_;    // pressure
@@ -310,18 +312,16 @@ class FluidSimple : public FluidSolver<M_> {
       }
 
       // TODO: comm fffp_ instead
-      fct0_ = GetComponent(fcb_, 0);
-      fct1_ = GetComponent(fcb_, 1);
-      fct2_ = GetComponent(fcb_, 2);
-      m.Comm(&fct0_);
-      m.Comm(&fct1_);
-      m.Comm(&fct2_);
+      for (auto d : dr_) {
+        fcta_[d] = GetComponent(fcb_, d);
+        m.Comm(&fcta_[d]);
+      }
     }
 
     if (sem("copy")) {
-      SetComponent(fcb_, 0, fct0_);
-      SetComponent(fcb_, 1, fct1_);
-      SetComponent(fcb_, 2, fct2_);
+      for (auto d : dr_) {
+        SetComponent(fcb_, d, fcta_[d]);
+      }
 
       // Interpolate balanced force to faces
       ffb_ = Interpolate(fcb_, mfcf_, m);
@@ -366,8 +366,8 @@ class FluidSimple : public FluidSolver<M_> {
               std::shared_ptr<Par> par
               )
       : FluidSolver<M>(time, time_step, fcr, fcd, fcf, ffbp, fcsv, fcsm)
-      , m(m) , mfc_(mfc) , mcc_(mcc) , ffvc_(m) , fcpcs_(m)
-      , par(par)
+      , m(m), dr_(0, dim), mfc_(mfc) , mcc_(mcc)
+      , ffvc_(m), fcpcs_(m), par(par)
   {
     using namespace fluid_condition;
 
@@ -526,7 +526,7 @@ class FluidSimple : public FluidSolver<M_> {
 
     if (sem("explvisc")) {
       // append explicit part of viscous term
-      for (size_t d = 0; d < dim; ++d) {
+      for (auto d : dr_) {
         fcwo_ = GetComponent(cd_->GetVelocity(Layers::iter_curr), d);
         auto ff = Interpolate(fcwo_, cd_->GetVelocityCond(d), m);
         auto gc = Gradient(ff, m);
@@ -558,7 +558,9 @@ class FluidSimple : public FluidSolver<M_> {
       fck_.Reinit(m);
       for (auto c : m.Cells()) {
         Scal sum = 0.;
-        for (size_t d = 0; d < dim; ++d) {
+        for (auto d : dr_) {
+          // TODO consider separating diag from other coeffs
+          // use total sum for SIMPLEC only
           sum += cd_->GetVelocityEquations(d)[c].CoeffSum();
         }
         fck_[c] = sum / dim;
@@ -589,13 +591,6 @@ class FluidSimple : public FluidSolver<M_> {
           IdxCell cp = m.GetNeighbourCell(f, 1);
           Vect dm = m.GetVectToCell(f, 0);
           Vect dp = m.GetVectToCell(f, 1);
-          // TODO: rename correction to e.g. surplus 
-    
-          // Velocity equation structure:
-          // w += f / k     // velocity correction
-          // v += w * Surface  // volume flux correction
-          // where f: force, k: diag coef (time step + density)
-
           // XXX: Consistency condition: 
           //      average of compact face gradients = cell gradient.
           
@@ -734,6 +729,88 @@ class FluidSimple : public FluidSolver<M_> {
       // TODO: add SIMPLER or PISO
 
       this->IncIter();
+    }
+
+    if (par->simpler) {
+      if (sem("simpler-eval")) {
+        for (auto d : dr_) {
+          auto& fce = cd_->GetVelocityEquations(d);
+          fct_ = GetComponent(cd_->GetVelocity(Layers::iter_curr), d);
+          fcta_[d].Reinit(m);
+          for (auto c : m.Cells()) {
+            fcta_[d][c] = (fce[c].Evaluate(fct_) + fcgpc_[c][d]) * (-1.);
+          }
+          m.Comm(&fcta_[d]);
+        }
+      }
+      if (sem("simpler-assemble")) {
+        const Scal rh = par->rhie; // rhie factor
+        const bool rhid = par->rhie_interpdiag;
+
+        fctv_.Reinit(m);
+        for (auto d : dr_) {
+          SetComponent(fctv_, d, fcta_[d]);
+        }
+        
+        // Second correction on faces
+        for (auto f : m.Faces()) {
+          auto& e = ffvc_[f];
+          e.Clear();
+
+          if (!ffbd_[f]) { // if not boundary
+            IdxCell cm = m.GetNeighbourCell(f, 0);
+            IdxCell cp = m.GetNeighbourCell(f, 1);
+            Vect dm = m.GetVectToCell(f, 0);
+            Vect dp = m.GetVectToCell(f, 1);
+            auto s = m.GetSurface(f);
+      
+            // compact pressure gradient
+            auto a = -m.GetArea(f) / ((dp - dm).norm() * ffk_[f]);
+
+            Scal w;
+            if (rhid) { // factor 1/ffk after interpolation
+              w = (fctv_[cm] + fctv_[cp]).dot(s) * 0.5 / ffk_[f];
+            } else { // factor 1/fck before interpolation
+              Vect wm = fctv_[cm] / fck_[cm];
+              Vect wp = fctv_[cp] / fck_[cp];
+              w = (wm + wp).dot(s) * 0.5;
+            }
+
+            e.InsertTerm(-a, cm);
+            e.InsertTerm(a, cp);
+            e.SetConstant(w + ffve_[f] - ffv_.iter_curr[f]);
+          } else { // if boundary
+            // nop, zero 
+          }
+        }
+
+        // System for second pressure correction
+        for (auto c : m.Cells()) {
+          auto& e = fcpcs_[c];
+          e.Clear();
+          for (auto q : m.Nci(c)) {
+            IdxFace f = m.GetNeighbourFace(c, q);
+            e += ffvc_[f] * m.GetOutwardFactor(c, q);
+          }
+        }
+
+        // Apply cell conditions for pressure
+        // Traverse all expressions for every condition
+        for (auto it : mccp_) {
+          IdxCell cc(it.GetIdx()); // cell cond
+          ConditionCell* cb = it.GetValue().get(); // cond base
+          if (auto cd = dynamic_cast<ConditionCellValue<Scal>*>(cb)) {
+            for (auto c : m.Cells()) {
+              auto& e = fcpcs_[c];
+              if (c == cc) { 
+                e.SetKnownValueDiag(cc, 0.);
+              } else {
+                e.SetKnownValue(cc, 0.);
+              }
+            }
+          }
+        }
+      }
     }
   }
   void FinishStep() override {
