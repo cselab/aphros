@@ -84,7 +84,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldFace<Scal> ff_st_;  // surface tension projections
   MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond_;
   MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond_;
-  MultiTimer<std::string> timer_; 
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
   FieldCell<Scal> fc_velux_; // velocity
@@ -405,7 +404,7 @@ void Hydro<M>::Init() {
       fs_.reset(new FS(
             m, fc_vel_, mf_velcond_, mc_velcond, 
             &fc_rho_, &fc_mu_, &fc_force_, &ffbp_,
-            &fc_src_, &fc_src_, 0., dt, &timer_, p));
+            &fc_src_, &fc_src_, 0., dt, p));
     }
 
     // Init advection solver
@@ -1024,28 +1023,6 @@ void Hydro<M>::Run() {
   }
 
   sem.LoopEnd();
-
-  if (sem("fluid-timer")) {
-    if (IsRoot() && var.Int["verbose_fluid_timer"]) {
-      double a = 0.; // total
-      auto& mt = timer_;
-      for (auto e : mt.GetMap()) {
-        a += e.second;
-      }
-
-      std::cout << std::fixed;
-      for (auto e : mt.GetMap()) {
-        auto n = e.first; // name
-        auto t = e.second; // time
-
-        std::cout 
-            << n << "\n" 
-            << std::setprecision(5) << t << " s = "
-            << std::setprecision(3) << 100. * t / a << "%\n";
-      }
-      std::cout << std::endl;
-    }
-  }
 }
 
 // Dependencies and interfaces:
