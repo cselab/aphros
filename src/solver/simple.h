@@ -757,34 +757,36 @@ class FluidSimple : public FluidSolver<M_> {
           auto& e = ffvc_[f];
           e.Clear();
 
-          if (!ffbd_[f]) { // if not boundary
-            IdxCell cm = m.GetNeighbourCell(f, 0);
-            IdxCell cp = m.GetNeighbourCell(f, 1);
-            Vect dm = m.GetVectToCell(f, 0);
-            Vect dp = m.GetVectToCell(f, 1);
-            auto s = m.GetSurface(f);
-      
-            // compact pressure gradient
-            auto a = -m.GetArea(f) / ((dp - dm).norm() * ffk_[f]);
+          IdxCell cm = m.GetNeighbourCell(f, 0);
+          IdxCell cp = m.GetNeighbourCell(f, 1);
+          Vect dm = m.GetVectToCell(f, 0);
+          Vect dp = m.GetVectToCell(f, 1);
+          auto s = m.GetSurface(f);
+    
+          // compact pressure gradient
+          auto a = -m.GetArea(f) / ((dp - dm).norm() * ffk_[f]);
 
-            Scal w;
-            if (rhid) { // factor 1/ffk after interpolation
-              w = (fctv_[cm] + fctv_[cp]).dot(s) * 0.5 / ffk_[f];
-            } else { // factor 1/fck before interpolation
-              Vect wm = fctv_[cm] / fck_[cm];
-              Vect wp = fctv_[cp] / fck_[cp];
-              w = (wm + wp).dot(s) * 0.5;
-            }
-
-            w *= rh;
-            a *= rh;
-
-            e.InsertTerm(-a, cm);
-            e.InsertTerm(a, cp);
-            e.SetConstant(w + ffve_[f] - ffv_.iter_curr[f]);
-          } else { // if boundary
-            // nop, zero 
+          Scal w;
+          if (rhid) { // factor 1/ffk after interpolation
+            w = (fctv_[cm] + fctv_[cp]).dot(s) * 0.5 / ffk_[f];
+          } else { // factor 1/fck before interpolation
+            Vect wm = fctv_[cm] / fck_[cm];
+            Vect wp = fctv_[cp] / fck_[cp];
+            w = (wm + wp).dot(s) * 0.5;
           }
+
+          w *= rh;
+          a *= rh;
+
+          if (ffbd_[f]) { // if boundary
+            w = 0.;
+            a = 0.;
+            // TODO check if ffve_ - ffv_ is zero
+          }
+
+          e.InsertTerm(-a, cm);
+          e.InsertTerm(a, cp);
+          e.SetConstant(w + ffve_[f] - ffv_.iter_curr[f]);
         }
 
         // System for second pressure correction
