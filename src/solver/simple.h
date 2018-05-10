@@ -340,6 +340,7 @@ class FluidSimple : public FluidSolver<M_> {
     Scal vrelax = 0.8;   // velocity relaxation factor [0,1]
     Scal prelax = 1.;   // pressure relaxation factor [0,1]
     Scal rhie = 1.;     // Rhie-Chow factor [0,1] (0 disable, 1 full)
+    bool rhie_interpdiag = false; // Rhie-Chow: interpolate diag 
     bool second = true; // second order in time
     bool simpler = false; // Use SIMPLER  TODO: implement SIMPLER
     Scal guessextra = 0;  // next iteration extrapolation weight [0,1]
@@ -579,6 +580,7 @@ class FluidSimple : public FluidSolver<M_> {
       // including balanced force (hydrostatics and surface tension)
       ffve_.Reinit(m);
       const Scal rh = par->rhie; // rhie factor
+      const bool rhid = par->rhie_interpdiag;
       for (auto f : m.Faces()) {
         // Init with interpolated flux
         ffve_[f] = ffwe_[f].dot(m.GetSurface(f));
@@ -605,7 +607,7 @@ class FluidSimple : public FluidSolver<M_> {
 
           // wide
           Scal w;
-          if (0) { // factor 1/ffk after interpolation
+          if (rhid) { // factor 1/ffk after interpolation
             // might be inconsistent for variable density
             // as it results from simplification
             w = (ffb_[f] - ffgp_[f]).dot(m.GetSurface(f)) / ffk_[f];
