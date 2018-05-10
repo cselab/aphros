@@ -620,6 +620,8 @@ class FluidSimple : public FluidSolver<M_> {
           // wide
           Scal w;
           if (0) { // factor 1/ffk after interpolation
+            // might be inconsistent for variable density
+            // as it results from simplification
             w = (ffb_[f] - ffgp_[f]).dot(m.GetSurface(f)) / ffk_[f];
           } else { // factor 1/fck before interpolation
             Vect wm = (fcb_[cm] - fcgp_[cm]) / fck_[cm];

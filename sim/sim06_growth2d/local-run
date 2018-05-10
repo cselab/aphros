@@ -6,6 +6,9 @@ set -eu
 
 echo running > job.status
 
+./clean
+./cleandat
+
 export OMP_NUM_THREADS=1
 time mpirun -n 1 ../mfer loc.conf |& tee a.log
 
