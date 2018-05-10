@@ -538,7 +538,6 @@ class FluidSimple : public FluidSolver<M_> {
           Vect dp = m.GetVectToCell(f, 1);
           auto s = m.GetSurface(f);
     
-          /*
           auto a = -m.GetArea(f) / ((dp - dm).norm() * ffk_[f]);
 
           Scal w;
@@ -556,14 +555,6 @@ class FluidSimple : public FluidSolver<M_> {
           e.InsertTerm(-a, cm);
           e.InsertTerm(a, cp);
           e.SetConstant(w + ffve_[f] - ffv_.iter_curr[f]); 
-          */
-          auto a = m.GetArea(f) / (dp - dm).norm();
-          Vect wm = fctv_[cm];
-          Vect wp = fctv_[cp];
-          Vect w = (wm + wp) * 0.5;
-          e.InsertTerm(-a, cm);
-          e.InsertTerm(a, cp);
-          e.SetConstant(-w.dot(s)); 
         } else { // if boundary
           e.InsertTerm(0, cm);
           e.InsertTerm(0, cp);
@@ -819,13 +810,12 @@ class FluidSimple : public FluidSolver<M_> {
     }
 
     if (sem("pcorr-comm")) {
-      // System solved
       // Copy solution
       fcpc_.Reinit(m);
       size_t i = 0;
       for (auto c : m.Cells()) {
         fcpc_[c] = lsx_[i++];
-        //fcpc_[c] = 0.; // XXX adhoc zero correction
+        fcpc_[c] = 0.; // XXX adhoc zero correction
       }
       
       // Comm pressure correction
@@ -853,6 +843,8 @@ class FluidSimple : public FluidSolver<M_> {
     if (sem.Nested("convdiff-corr")) {
       // Correct velocity and comm
       cd_->CorrectVelocity(Layers::iter_curr, fcwc_);
+      const_cast<FieldCell<Vect>&>(cd_->GetVelocity(Layers::iter_curr)) =
+          cd_->GetVelocity(Layers::iter_prev); // XXX: adhoc keep velocity
     }
 
     if (sem("pcorr-fluxes")) {
