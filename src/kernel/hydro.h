@@ -398,6 +398,7 @@ void Hydro<M>::Init() {
       p->vrelax = var.Double["vrelax"];
       p->rhie = var.Double["rhie"];
       p->second = var.Int["second_order"];
+      p->simpler = var.Int["simpler"];
       // TODO: add check for inletflux_numid
       p->inletflux_numid = var.Int["inletflux_numid"];
 
