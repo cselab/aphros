@@ -111,8 +111,6 @@ class FluidSimple : public FluidSolver<M_> {
   // LS
   std::vector<Scal> lsa_, lsb_, lsx_;
 
-  MultiTimer<std::string>* timer_;
-
   // TODO: somhow track dependencies to define execution order
   void UpdateDerivedConditions() {
     using namespace fluid_condition;
@@ -294,7 +292,6 @@ class FluidSimple : public FluidSolver<M_> {
     auto sem = m.GetSem("extforce");
 
     if (sem("loc")) {
-      timer_->Push("fluid.1.force-correction");
       // Restore balanced force from faces
       // XXX specific for Cartesian mesh
       // TODO consider just a weighted average of fn * n
@@ -328,7 +325,6 @@ class FluidSimple : public FluidSolver<M_> {
 
       // Interpolate balanced force to faces
       ffb_ = Interpolate(fcb_, mfcf_, m);
-      timer_->Pop();
     }
   }
   void CalcKinematicViscosity() {
@@ -366,12 +362,11 @@ class FluidSimple : public FluidSolver<M_> {
               FieldCell<Scal>* fcsv, // volume source
               FieldCell<Scal>* fcsm, // mass source
               double time, double time_step,
-              MultiTimer<std::string>* timer,
               std::shared_ptr<Par> par
               )
       : FluidSolver<M>(time, time_step, fcr, fcd, fcf, ffbp, fcsv, fcsm)
       , m(m) , mfc_(mfc) , mcc_(mcc) , ffvc_(m) , fcpcs_(m)
-      , timer_(timer) , par(par)
+      , par(par)
   {
     using namespace fluid_condition;
 
@@ -520,18 +515,15 @@ class FluidSimple : public FluidSolver<M_> {
 
       CalcKinematicViscosity();
 
-      timer_->Push("fluid.0.pressure-gradient");
       ffp_ = Interpolate(fcp_prev, mfcp_, m);
       fcgp_ = Gradient(ffp_, m);
       ffgp_ = Interpolate(fcgp_, mfcgp_, m);
-      timer_->Pop();
 
       // initialize force for convdiff
       fcfcd_.Reinit(m, Vect(0));
     }
 
     if (sem("explvisc")) {
-      timer_->Push("fluid.1a.explicit-viscosity");
       // append explicit part of viscous term
       for (size_t d = 0; d < dim; ++d) {
         fcwo_ = GetComponent(cd_->GetVelocity(Layers::iter_curr), d);
@@ -547,7 +539,6 @@ class FluidSimple : public FluidSolver<M_> {
           fcfcd_[c] += s / m.GetVolume(c);
         }
       }
-      timer_->Pop();
     }
 
     if (sem("forceappend")) {
@@ -555,8 +546,6 @@ class FluidSimple : public FluidSolver<M_> {
       for (auto c : m.Cells()) {
         fcfcd_[c] += fcgp_[c] * (-1.) + (*fcf_)[c] + fcb_[c];
       }
-
-      timer_->Push("fluid.2.convection-diffusion");
     }
 
     if (sem.Nested("convdiff-iter")) {
@@ -565,8 +554,6 @@ class FluidSimple : public FluidSolver<M_> {
     }
 
     if (sem("diag-comm")) {
-      timer_->Pop();
-
       fck_.Reinit(m);
       for (auto c : m.Cells()) {
         Scal sum = 0.;
@@ -590,7 +577,6 @@ class FluidSimple : public FluidSolver<M_> {
 
       // Rhie-Chow interpolation for of predicted volume flux
       // including balanced force (hydrostatics and surface tension)
-      timer_->Push("fluid.3.momentum-interpolation");
       ffve_.Reinit(m);
       const Scal rh = par->rhie; // rhie factor
       for (auto f : m.Faces()) {
@@ -642,9 +628,6 @@ class FluidSimple : public FluidSolver<M_> {
         ffve_[f] -= meshvel.dot(m.GetSurface(f));
       }
 
-      timer_->Pop();
-
-      timer_->Push("fluid.4.volume-flux");
       // Expressions for corrected volume flux
       // in terms of pressure
       // corrected = predicted + pressure gradient * area / diag coeff
@@ -663,9 +646,7 @@ class FluidSimple : public FluidSolver<M_> {
         e.InsertTerm(a, cp);
         e.SetConstant(ffve_[f]);
       }
-      timer_->Pop();
 
-      timer_->Push("fluid.5.pressure-system");
       // System for pressure correction
       // sum of corrected volume fluxes + volume source = 0.
       for (auto c : m.Cells()) {
@@ -699,22 +680,16 @@ class FluidSimple : public FluidSolver<M_> {
     }
 
     if (sem("pcorr-solve")) {
-      timer_->Pop();
       // Convert to LS format
       auto l = ConvertLs(fcpcs_, lsa_, lsb_, lsx_, m);
       using T = typename M::LS::T; 
       l.t = T::symm; // solver type
       // Solve system (add request)
       m.Solve(l);
-      timer_->Push("fluid.6.pressure-solve");
     }
 
     if (sem("pcorr-comm")) {
       // System solved
-      timer_->Pop();
-
-      timer_->Push("fluid.7.correction");
-
       // Copy solution
       fcpc_.Reinit(m);
       size_t i = 0;
@@ -754,8 +729,6 @@ class FluidSimple : public FluidSolver<M_> {
       for (auto f : m.Faces()) {
         ffv_.iter_curr[f] = ffvc_[f].Evaluate(fcpc_);
       }
-      timer_->Pop();
-
       // TODO: add SIMPLER or PISO
 
       this->IncIter();
