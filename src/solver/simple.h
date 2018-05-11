@@ -503,15 +503,14 @@ class FluidSimple : public FluidSolver<M_> {
     if (sem("eval")) {
       for (auto d : dr_) {
         auto& fce = cd_->GetVelocityEquations(d);
-        fct_ = GetComponent(fcw, d);
-        fct1_ = GetComponent(cd_->GetVelocity(Layers::iter_prev), d);
-        for (auto c : m.Cells()) {
-          fct_[c] -= fct1_[c];
-        }
+        auto& w = fct_; // w^{s+1}
+        auto& we = fct1_; // w^*
+        w = GetComponent(fcw, d);
+        we = GetComponent(fcwe_, d);
         fcta_[d].Reinit(m);
         for (auto c : m.Cells()) {
-          //fcta_[d][c] = (fce[c].Evaluate(fct_) + fcgpc_[c][d]);
-          fcta_[d][c] = fce[c].Evaluate(fct_); // XXX
+          auto& e = fce[c];
+          fcta_[d][c] = e.Evaluate(w) - e.Evaluate(we);
         }
         m.Comm(&fcta_[d]);
       }
@@ -538,23 +537,14 @@ class FluidSimple : public FluidSolver<M_> {
           Vect dp = m.GetVectToCell(f, 1);
           auto s = m.GetSurface(f);
     
-          auto a = -m.GetArea(f) / ((dp - dm).norm() * ffk_[f]);
-
-          Scal w;
-          if (rhid) { // factor 1/ffk after interpolation
-            w = (fctv_[cm] + fctv_[cp]).dot(s) * 0.5 / ffk_[f];
-          } else { // factor 1/fck before interpolation
-            Vect wm = fctv_[cm] / fck_[cm];
-            Vect wp = fctv_[cp] / fck_[cp];
-            w = (wm + wp).dot(s) * 0.5;
-          }
-
-          w *= rh;
-          a *= rh;
+          auto a = -m.GetArea(f) / ((dp - dm).norm() * ffk_[f]) * rh;
+          Vect bm = fcw[cm] - fcwe_[cm] - fctv_[cm] / fck_[cm] * rh;
+          Vect bp = fcw[cp] - fcwe_[cp] - fctv_[cp] / fck_[cp] * rh;
+          Scal b = (bm + bp).dot(s) * 0.5;
 
           e.InsertTerm(-a, cm);
           e.InsertTerm(a, cp);
-          e.SetConstant(w + ffve_[f] - ffv_.iter_curr[f]); 
+          e.SetConstant(b - (ffv[f] - ffve_[f])); 
         } else { // if boundary
           e.InsertTerm(0, cm);
           e.InsertTerm(0, cp);
@@ -654,7 +644,7 @@ class FluidSimple : public FluidSolver<M_> {
         fcwo_ = GetComponent(cd_->GetVelocity(Layers::iter_curr), d);
         auto ff = Interpolate(fcwo_, cd_->GetVelocityCond(d), m);
         auto gc = Gradient(ff, m);
-        auto gf = Interpolate(gc, mfcf_, m); // adhoc: zero-der cond
+        auto gf = Interpolate(gc, mfcf_, m); // XXX adhoc zero-deriv cond
         for (auto c : m.Cells()) {
           Vect s(0);
           for (auto q : m.Nci(c)) {
@@ -685,7 +675,8 @@ class FluidSimple : public FluidSolver<M_> {
         for (auto d : dr_) {
           // TODO consider separating diag from other coeffs
           // use total sum for SIMPLEC only
-          sum += cd_->GetVelocityEquations(d)[c].CoeffSum();
+          //sum += cd_->GetVelocityEquations(d)[c].CoeffSum();
+          sum += cd_->GetVelocityEquations(d)[c].Coeff(c); // XXX
         }
         fck_[c] = sum / dim;
       }
@@ -815,7 +806,7 @@ class FluidSimple : public FluidSolver<M_> {
       size_t i = 0;
       for (auto c : m.Cells()) {
         fcpc_[c] = lsx_[i++];
-        fcpc_[c] = 0.; // XXX adhoc zero correction
+        //fcpc_[c] = 0.; // XXX adhoc zero correction
       }
       
       // Comm pressure correction
@@ -842,9 +833,9 @@ class FluidSimple : public FluidSolver<M_> {
 
     if (sem.Nested("convdiff-corr")) {
       // Correct velocity and comm
-      cd_->CorrectVelocity(Layers::iter_curr, fcwc_);
-      const_cast<FieldCell<Vect>&>(cd_->GetVelocity(Layers::iter_curr)) =
-          cd_->GetVelocity(Layers::iter_prev); // XXX: adhoc keep velocity
+      cd_->CorrectVelocity(Layers::iter_curr, fcwc_); 
+      //const_cast<FieldCell<Vect>&>(cd_->GetVelocity(Layers::iter_curr)) =
+      //    cd_->GetVelocity(Layers::iter_prev); // XXX: adhoc keep velocity
     }
 
     if (sem("pcorr-fluxes")) {
@@ -856,6 +847,8 @@ class FluidSimple : public FluidSolver<M_> {
 
     if (par->simpler) {
       if (sem.Nested("simpler")) {
+        //CalcPressure(cd_->GetVelocity(Layers::iter_prev),  // XXX
+        //             ffv_.iter_prev, fcp_.iter_curr);
         CalcPressure(cd_->GetVelocity(Layers::iter_curr), 
                      ffv_.iter_curr, fcp_.iter_curr);
       }
