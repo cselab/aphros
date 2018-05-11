@@ -120,6 +120,14 @@ class Expression {
     }
     return res;
   }
+  Scal Coeff(Idx idx) const {
+    for (size_t i = 0; i < size_; ++i) {
+      if (terms_[i].idx == idx) {
+        return terms_[i].coeff;
+      }
+    }
+    return 0.;
+  }
   Scal CoeffSum() const {
     Scal res = 0.;
     for (size_t i = 0; i < size_; ++i) {
