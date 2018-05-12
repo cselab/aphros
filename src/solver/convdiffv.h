@@ -19,19 +19,19 @@ class ConvectionDiffusion : public UnsteadyIterativeSolver {
   const FieldFace<Scal>* ffv_;  // volume flux
 
  public:
-  ConvectionDiffusion(double t, double dt,
-                      const FieldCell<Scal>* fcr,
-                      const FieldFace<Scal>* ffd,
-                      const FieldCell<Vect>* fcs,
-                      const FieldFace<Scal>* ffv
-                      )
+  ConvectionDiffusion(
+      double t, double dt,
+      const FieldCell<Scal>* fcr /*density*/,
+      const FieldFace<Scal>* ffd /*dynamic viscosity*/,
+      const FieldCell<Vect>* fcs /*force*/,
+      const FieldFace<Scal>* ffv /*volume flux*/)
       : UnsteadyIterativeSolver(t, dt)
       , fcr_(fcr), ffd_(ffd), fcs_(fcs), ffv_(ffv)
   {}
-  virtual const FieldCell<Vect>& GetVelocity() = 0;
-  virtual const FieldCell<Vect>& GetVelocity(Layers) = 0;
+  virtual const FieldCell<Vect>& GetVelocity() const = 0;
+  virtual const FieldCell<Vect>& GetVelocity(Layers) const = 0;
   virtual void CorrectVelocity(Layers, const FieldCell<Vect>&) = 0;
-  virtual const FieldCell<Expr>& GetVelocityEquations(size_t /*comp*/) = 0;
+  virtual const FieldCell<Expr>& GetVelocityEquations(size_t /*d*/) const = 0;
 };
 
 

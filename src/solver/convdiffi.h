@@ -210,10 +210,10 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
     }
     return CalcDiff(fcu_.iter_curr, fcu_.iter_prev, m);
   }
-  const FieldCell<Scal>& GetField() override {
+  const FieldCell<Scal>& GetField() const override {
     return fcu_.time_curr;
   }
-  const FieldCell<Scal>& GetField(Layers layer) override {
+  const FieldCell<Scal>& GetField(Layers layer) const override {
     return fcu_.Get(layer);
   }
   // Apply correction to field and comm
@@ -230,7 +230,7 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
       m.Comm(&u);
     }
   }
-  const FieldCell<Expr>& GetEquations() override {
+  const FieldCell<Expr>& GetEquations() const override {
     return fcucs_;
   }
 
