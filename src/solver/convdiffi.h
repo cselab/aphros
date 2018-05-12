@@ -10,37 +10,19 @@
 namespace solver {
 
 template <class M_>
-class ConvectionDiffusionScalarImplicit :
-    public ConvectionDiffusionScalar<M_> {
-  using M = M_;
+class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
+ public:
+  using M = M_; // mesh
+  using P = ConvectionDiffusionScalar<M>; // parent
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   static constexpr size_t dim = M::dim;
-
-  M& m;
-  LayersData<FieldCell<Scal>> fc_field_;
-  using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
-
-  MapFace<std::shared_ptr<ConditionFace>> mfc_;
-  MapCell<std::shared_ptr<ConditionCell>> mcc_;
-
-  // Common buffers:
-  FieldFace<Expr> ff_cflux_;
-  FieldFace<Expr> ff_dflux_;
-  FieldCell<Expr> fc_system_;
-  FieldCell<Scal> fc_corr_;
-  FieldCell<Vect> fc_grad_;
-  // LS
-  std::vector<Scal> lsa_, lsb_, lsx_;
-
- public:
   struct Par {
     Scal relax = 1.;      // relaxation factor [0,1] (1 -- no relaxation)
     Scal guessextra = 0.; // next iteration guess extrapolation weight [0,1]
     bool second = true; // second order in time
   };
-  std::shared_ptr<Par> par;
-  Par* GetPar() { return par.get(); }
+  using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
   ConvectionDiffusionScalarImplicit(
       M& m,
       const FieldCell<Scal>& fcu, // initial field
@@ -57,6 +39,7 @@ class ConvectionDiffusionScalarImplicit :
     fc_field_.time_curr = fcu;
     fc_field_.time_prev = fc_field_.time_curr;
   }
+  Par* GetPar() { return par.get(); }
   void StartStep() override {
     this->GetIter();
     if (IsNan(fc_field_.time_curr)) {
@@ -258,6 +241,24 @@ class ConvectionDiffusionScalarImplicit :
   const FieldCell<Expr>& GetEquations() override {
     return fc_system_;
   }
+
+ private:
+  std::shared_ptr<Par> par;
+  M& m;
+  LayersData<FieldCell<Scal>> fc_field_;
+
+  MapFace<std::shared_ptr<ConditionFace>> mfc_;
+  MapCell<std::shared_ptr<ConditionCell>> mcc_;
+
+  // Common buffers:
+  FieldFace<Expr> ff_cflux_;
+  FieldFace<Expr> ff_dflux_;
+  FieldCell<Expr> fc_system_;
+  FieldCell<Scal> fc_corr_;
+  FieldCell<Vect> fc_grad_;
+  // LS
+  std::vector<Scal> lsa_, lsb_, lsx_;
+
 };
 
 
