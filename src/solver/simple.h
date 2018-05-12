@@ -512,7 +512,7 @@ class FluidSimple : public FluidSolver<M_> {
         fcta_[d].Reinit(m);
         for (auto c : m.Cells()) {
           auto& e = fce[c];
-          fcta_[d][c] = e.Evaluate(w);
+          fcta_[d][c] = e.GetConstant(); // Evaluate(0)
           fck_[c] += e.Coeff(c) / dim;
         }
         m.Comm(&fcta_[d]);
@@ -544,15 +544,17 @@ class FluidSimple : public FluidSolver<M_> {
           Vect dm = m.GetVectToCell(f, 0);
           Vect dp = m.GetVectToCell(f, 1);
           auto s = m.GetSurface(f);
+          auto sa = m.GetArea(f);
+          auto kf = rh * sa / ffk_[f];
     
-          auto a = -m.GetArea(f) / ((dp - dm).norm() * ffk_[f]) * rh;
-          Vect bm = fcw[cm] - fctv_[cm] / fck_[cm] * rh;
-          Vect bp = fcw[cp] - fctv_[cp] / fck_[cp] * rh;
-          Scal b = (bm + bp).dot(s) * 0.5;
+          auto a = kf / (dp - dm).norm();
+          Vect bm = (fctv_[cm] - fcgp_[cm] + fcb_[cm]) / fck_[cm] * rh;
+          Vect bp = (fctv_[cp] - fcgp_[cp] + fcb_[cp]) / fck_[cp] * rh;
+          Scal b = (bm + bp).dot(s) * 0.5 - (*ffbp_)[f] * kf;
 
           e.InsertTerm(-a, cm);
           e.InsertTerm(a, cp);
-          e.SetConstant(b - ffv[f]); 
+          e.SetConstant(b); 
         } else { // if boundary
           e.InsertTerm(0, cm);
           e.InsertTerm(0, cp);
@@ -606,7 +608,8 @@ class FluidSimple : public FluidSolver<M_> {
 
       // Correct pressure
       for (auto c : m.Cells()) {
-        fcp[c] = fcpp[c] + fcpc_[c];
+        //fcp[c] = fcpp[c] + fcpc_[c]; // XXX should be corr
+        fcp[c] = fcpc_[c]; // XXX should be corr
       }
       m.Comm(&fcp);
     }
