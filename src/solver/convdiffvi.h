@@ -141,10 +141,10 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
     }
     return CalcDiff(fcvel_.iter_curr, fcvel_.iter_prev, m);
   }
-  const FieldCell<Vect>& GetVelocity() override {
+  const FieldCell<Vect>& GetVelocity() const override {
     return fcvel_.time_curr;
   }
-  const FieldCell<Vect>& GetVelocity(Layers layer) override {
+  const FieldCell<Vect>& GetVelocity(Layers layer) const override {
     return fcvel_.Get(layer);
   }
   void CorrectVelocity(Layers l, const FieldCell<Vect>& fc) override {
@@ -158,14 +158,16 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
       CopyToVect(l);
     }
   }
-  const FieldCell<Expr>& GetVelocityEquations(size_t d) override {
+  const FieldCell<Expr>& GetVelocityEquations(size_t d) const override {
     return vs_[d]->GetEquations();
   }
   MapFace<std::shared_ptr<ConditionFace>>& GetVelocityCond(size_t d) {
     return vmfc_[d];
   }
+  const CD& GetSolver(size_t d) {
+    return *vs_[d];
+  }
 };
-
 
 } // namespace solver
 
