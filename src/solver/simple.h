@@ -548,9 +548,10 @@ class FluidSimple : public FluidSolver<M_> {
           auto kf = rh * sa / ffk_[f];
     
           auto a = kf / (dp - dm).norm();
-          Vect bm = (fctv_[cm] - fcgp_[cm] + fcb_[cm]) / fck_[cm] * rh;
-          Vect bp = (fctv_[cp] - fcgp_[cp] + fcb_[cp]) / fck_[cp] * rh;
-          Scal b = (bm + bp).dot(s) * 0.5 - (*ffbp_)[f] * kf;
+          Vect bm = (fctv_[cm] + fcb_[cm]) / fck_[cm] * rh;
+          Vect bp = (fctv_[cp] + fcb_[cp]) / fck_[cp] * rh;
+          Scal b = (bm + bp).dot(s) * 0.5 - (*ffbp_)[f] * kf
+                   + (fcpp[cp] - fcpp[cm]) * a ;
 
           e.InsertTerm(-a, cm);
           e.InsertTerm(a, cp);
@@ -608,8 +609,8 @@ class FluidSimple : public FluidSolver<M_> {
 
       // Correct pressure
       for (auto c : m.Cells()) {
-        //fcp[c] = fcpp[c] + fcpc_[c]; // XXX should be corr
-        fcp[c] = fcpc_[c]; // XXX should be corr
+        fcp[c] = fcpp[c] + fcpc_[c]; // XXX should be corr
+        //fcp[c] = fcpc_[c]; // XXX should be corr
       }
       m.Comm(&fcp);
     }
@@ -632,7 +633,7 @@ class FluidSimple : public FluidSolver<M_> {
       CalcExtForce();
     }
 
-    if (sem("pgrad")) {
+    if (sem("forceinit")) {
       Update(*cd_->GetPar(), *par);
       UpdateDerivedConditions();
 
@@ -641,16 +642,19 @@ class FluidSimple : public FluidSolver<M_> {
 
       CalcKinematicViscosity();
 
-      ffp_ = Interpolate(fcp_prev, mfcp_, m);
-      fcgp_ = Gradient(ffp_, m);
-      ffgp_ = Interpolate(fcgp_, mfcgp_, m);
-
       // initialize force for convdiff
       fcfcd_.Reinit(m, Vect(0));
     }
 
+    if (sem("forceappendb")) {
+      // append force and balanced force
+      for (auto c : m.Cells()) {
+        fcfcd_[c] += (*fcf_)[c] + fcb_[c];
+      }
+    }
+
     if (sem("explvisc")) {
-      // append explicit part of viscous term
+      // append explicit part of viscous force
       for (auto d : dr_) {
         fcwo_ = GetComponent(cd_->GetVelocity(Layers::iter_curr), d);
         auto ff = Interpolate(fcwo_, cd_->GetVelocityCond(d), m);
@@ -667,13 +671,6 @@ class FluidSimple : public FluidSolver<M_> {
       }
     }
 
-    if (sem("forceappend")) {
-      // append pressure gradient, force and balanced force
-      for (auto c : m.Cells()) {
-        fcfcd_[c] += fcgp_[c] * (-1.) + (*fcf_)[c] + fcb_[c];
-      }
-    }
-
     if (par->simpler) {
       if (sem.Nested("simpler")) {
         //CalcPressure(cd_->GetVelocity(Layers::iter_prev),  // XXX
@@ -683,7 +680,21 @@ class FluidSimple : public FluidSolver<M_> {
       }
     }
 
-    /*
+    if (sem("pgrad")) {
+      fcp_prev = fcp_curr;
+      ffp_ = Interpolate(fcp_prev, mfcp_, m);
+      fcgp_ = Gradient(ffp_, m);
+      ffgp_ = Interpolate(fcgp_, mfcgp_, m);
+    }
+
+    if (sem("forceappend")) {
+      // append pressure gradient
+      for (auto c : m.Cells()) {
+        fcfcd_[c] += fcgp_[c] * (-1.);
+      }
+    }
+
+
     if (sem.Nested("convdiff-iter")) {
       // Solve for predictor velocity
       cd_->MakeIteration();
@@ -867,7 +878,6 @@ class FluidSimple : public FluidSolver<M_> {
         ffv_.iter_curr[f] = ffvc_[f].Evaluate(fcpc_);
       }
     }
-    */
 
     if (sem("inc-iter")) {
       this->IncIter();
