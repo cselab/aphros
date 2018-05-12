@@ -26,7 +26,6 @@ class FluidSimple : public FluidSolver<M_> {
   // [i]: inner
   // [s]: support
   // [a]: all 
-  
 
   using P::fcr_;
   using P::fcd_;

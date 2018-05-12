@@ -69,18 +69,19 @@ class ConvectionDiffusionScalarImplicit :
           (fc_field_.time_curr[idxcell] - fc_field_.time_prev[idxcell]) * ge;
     }
   }
-  void MakeIteration() override {
-    auto sem = m.GetSem("convdiff-iter");
+  // Assembles linear system
+  // fcu: field from previous iteration [a]
+  // ffv: volume flux
+  // Output:
+  // fc_system_: linear system
+  void Assemble(const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv) {
+    auto sem = m.GetSem("assemble");
 
-    auto& fc_prev = fc_field_.iter_prev;
-    auto& fc_curr = fc_field_.iter_curr;
     if (sem("assemble")) {
-      fc_prev = fc_curr;
-
-      fc_grad_ = Gradient(Interpolate(fc_prev, mfc_, m), m);
+      fc_grad_ = Gradient(Interpolate(fcu, mfc_, m), m);
 
       InterpolationInnerFaceSecondUpwindDeferred<M, Expr>
-      value_inner(m, *this->ffv_, fc_prev, fc_grad_);
+      value_inner(m, ffv, fcu, fc_grad_);
 
       InterpolationBoundaryFaceNearestCell<M, Expr>
       value_boundary(m, mfc_);
@@ -155,23 +156,11 @@ class ConvectionDiffusionScalarImplicit :
               Expr((*this->fcs_)[idxcell]);
 
         // Convert to delta-form
-        eqn.SetConstant(eqn.Evaluate(fc_prev));
+        eqn.SetConstant(eqn.Evaluate(fcu));
 
         // Apply under-relaxation
         eqn[eqn.Find(idxcell)].coeff /= relax;
       }
-
-      // Fill halo cells with u=0 equations
-      /*
-      for (IdxCell idxcell : m.AllCells()) {
-        Expr& eqn = fc_system_[idxcell];
-        if (eqn.size() == 0) {
-          eqn.Clear();
-          eqn.InsertTerm(1., idxcell);
-          eqn.SetConstant(0.);
-        }
-      }
-      */
 
       // Include cell conditions for velocity
       for (auto it = mcc_.cbegin(); it != mcc_.cend(); ++it) {
@@ -182,26 +171,49 @@ class ConvectionDiffusionScalarImplicit :
           eqn.Clear();
           // TODO: Revise dt coefficient for fixed-value cell condition
           eqn.InsertTerm(1. / this->GetTimeStep(), c);
-          eqn.SetConstant((fc_prev[c] - cond_value->GetValue()) /
+          eqn.SetConstant((fcu[c] - cond_value->GetValue()) /
               this->GetTimeStep());
         }
       }
     }
 
-    if (sem("solve")) {
+  }
+  // Solve linear system.
+  // fc_system_ : system to solve
+  // Output:
+  // fcu: result
+  // lsa_, lsb_, lsx_: modified temporary fields
+  void Solve(FieldCell<Scal>& fcu) {
+    auto sem = m.GetSem("solve");
+    if (sem("convert")) {
       auto l = ConvertLs(fc_system_, lsa_, lsb_, lsx_, m);
       using T = typename M::LS::T;
       l.t = T::gen;
       m.Solve(l);
     }
-
-    if (sem("applycomm")) {
-      fc_corr_.Reinit(m);
+    if (sem("copy")) {
+      fcu.Reinit(m);
       size_t i = 0;
       for (auto c : m.Cells()) {
-        fc_corr_[c] = lsx_[i++];
+        fcu[c] = lsx_[i++];
       }
       assert(i == lsx_.size());
+    }
+  }
+  void MakeIteration() override {
+    auto sem = m.GetSem("convdiff-iter");
+    if (sem.Nested("init")) {
+      fc_field_.iter_prev = fc_field_.iter_curr;
+    }
+    if (sem.Nested("assemble")) {
+      Assemble(fc_field_.iter_prev, *this->ffv_);
+    }
+    if (sem.Nested("solve")) {
+      Solve(fc_corr_);
+    }
+    if (sem("apply")) {
+      auto& fc_prev = fc_field_.iter_prev;
+      auto& fc_curr = fc_field_.iter_curr;
       for (auto idxcell : m.Cells()) {
         fc_curr[idxcell] = fc_prev[idxcell] + fc_corr_[idxcell];
       }
@@ -229,15 +241,18 @@ class ConvectionDiffusionScalarImplicit :
   const FieldCell<Scal>& GetField(Layers layer) override {
     return fc_field_.Get(layer);
   }
-  void CorrectField(Layers layer,
-                    const FieldCell<Scal>& fc_corr) override {
-    auto sem = m.GetSem("convdiff-corr");
-    if (sem("applycomm")) {
-      auto& fc_field_layer = fc_field_.Get(layer);
-      for (auto idxcell : m.Cells()) {
-        fc_field_layer[idxcell] += fc_corr[idxcell];
+  // Apply correction to field and comm
+  // uc: correction [i]
+  // Output:
+  // u(l) += du [a]
+  void CorrectField(Layers l, const FieldCell<Scal>& uc) override {
+    auto sem = m.GetSem("corr");
+    if (sem("apply")) {
+      auto& u = fc_field_.Get(l);
+      for (auto c : m.Cells()) {
+        u[c] += uc[c];
       }
-      m.Comm(&fc_field_layer);
+      m.Comm(&u);
     }
   }
   const FieldCell<Expr>& GetEquations() override {
