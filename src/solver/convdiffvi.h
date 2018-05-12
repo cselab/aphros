@@ -39,6 +39,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
   // TODO *** Cell cond
   VectGeneric<std::shared_ptr<CD>> vs_; // solver
   VectGeneric<FieldCell<Scal>> vfcs_; // force
+  VectGeneric<FieldCell<Scal>> vfct_; // tmp
 
  public:
   using Par = typename CD::Par;
@@ -101,10 +102,25 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
       this->ClearIter();
     }
   }
+  void Assemble(const FieldCell<Vect>& fcw,
+                const FieldFace<Scal>& ffv) {
+    auto sem = m.GetSem("asm");
+    if (sem("copy")) {
+      for (auto d : dr_) {
+        vfcs_[d] = GetComponent(*fcs_, d);
+        vfct_[d] = GetComponent(fcw, d);
+      }
+    }
+    for (auto d : dr_) {
+      if (sem.Nested("one")) {
+        vs_[d]->Assemble(vfct_[d], ffv);
+      }
+    }
+  }
   void MakeIteration() override {
     auto sem = m.GetSem("convdiffmulti-iter");
-    for (auto d : dr_) {
-      if (sem("dir-get")) {
+    if (sem("source")) {
+      for (auto d : dr_) {
         vfcs_[d] = GetComponent(*fcs_, d);
       }
     }
@@ -164,7 +180,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
   MapFace<std::shared_ptr<ConditionFace>>& GetVelocityCond(size_t d) {
     return vmfc_[d];
   }
-  const CD& GetSolver(size_t d) {
+  CD& GetSolver(size_t d) {
     return *vs_[d];
   }
 };
