@@ -92,7 +92,7 @@ class FluidSimple : public FluidSolver<M_> {
   FieldCell<Vect> fcfcd_;  // force for convdiff [i]
 
   // tmp
-  std::array<FieldCell<Scal>, 3> fcta_;
+  std::array<FieldCell<Scal>, 3> fcta_; // TODO renname to vfct
   FieldCell<Scal> fct_;
   FieldCell<Scal> fct1_;
   FieldCell<Vect> fctv_;
@@ -497,28 +497,37 @@ class FluidSimple : public FluidSolver<M_> {
   void CalcPressure(const FieldCell<Vect>& fcw,
                     const FieldFace<Scal>& ffv,
                     FieldCell<Scal>& fcp) {
-    auto sem = m.GetSem("restp");
+    auto sem = m.GetSem("calcpressure");
     auto& fcpp = fcp_.iter_prev;
+    if (sem.Nested("cd-asm")) {
+      cd_->Assemble(fcw, ffv);
+    }
     if (sem("eval")) {
+      fck_.Reinit(m, 0.); // mean diag coeff
       for (auto d : dr_) {
-        auto& fce = cd_->GetVelocityEquations(d);
         auto& w = fct_; // w^{s+1}
-        auto& we = fct1_; // w^*
         w = GetComponent(fcw, d);
-        we = GetComponent(fcwe_, d);
+        auto& cd = cd_->GetSolver(d);
+        auto& fce = cd.GetEquations();
         fcta_[d].Reinit(m);
         for (auto c : m.Cells()) {
           auto& e = fce[c];
-          fcta_[d][c] = e.Evaluate(w) - e.Evaluate(we);
+          fcta_[d][c] = e.Evaluate(w);
+          fck_[c] += e.Coeff(c) / dim;
         }
         m.Comm(&fcta_[d]);
       }
+      m.Comm(&fck_);
     }
     if (sem("assemble")) {
+      // copy eval to vect
       fctv_.Reinit(m);
       for (auto d : dr_) {
         SetComponent(fctv_, d, fcta_[d]);
       }
+
+      // diag coeff
+      ffk_ = Interpolate(fck_, mfck_, m);
       
       const Scal rh = par->rhie; // rhie factor
       const bool rhid = par->rhie_interpdiag;
@@ -537,13 +546,13 @@ class FluidSimple : public FluidSolver<M_> {
           auto s = m.GetSurface(f);
     
           auto a = -m.GetArea(f) / ((dp - dm).norm() * ffk_[f]) * rh;
-          Vect bm = fcw[cm] - fcwe_[cm] - fctv_[cm] / fck_[cm] * rh;
-          Vect bp = fcw[cp] - fcwe_[cp] - fctv_[cp] / fck_[cp] * rh;
+          Vect bm = fcw[cm] - fctv_[cm] / fck_[cm] * rh;
+          Vect bp = fcw[cp] - fctv_[cp] / fck_[cp] * rh;
           Scal b = (bm + bp).dot(s) * 0.5;
 
           e.InsertTerm(-a, cm);
           e.InsertTerm(a, cp);
-          e.SetConstant(b - (ffv[f] - ffve_[f])); 
+          e.SetConstant(b - ffv[f]); 
         } else { // if boundary
           e.InsertTerm(0, cm);
           e.InsertTerm(0, cp);
@@ -662,6 +671,16 @@ class FluidSimple : public FluidSolver<M_> {
       }
     }
 
+    if (par->simpler) {
+      if (sem.Nested("simpler")) {
+        //CalcPressure(cd_->GetVelocity(Layers::iter_prev),  // XXX
+        //             ffv_.iter_prev, fcp_.iter_curr);
+        CalcPressure(cd_->GetVelocity(Layers::iter_curr), 
+                     ffv_.iter_curr, fcp_.iter_curr);
+      }
+    }
+
+    /*
     if (sem.Nested("convdiff-iter")) {
       // Solve for predictor velocity
       cd_->MakeIteration();
@@ -815,9 +834,11 @@ class FluidSimple : public FluidSolver<M_> {
 
     if (sem("pcorr-apply")) {
       // Correct pressure
-      Scal pr = par->prelax; // pressure relaxation
-      for (auto c : m.Cells()) {
-        fcp_curr[c] = fcp_prev[c] + pr * fcpc_[c];
+      if (!par->simpler) {
+        Scal pr = par->prelax; // pressure relaxation
+        for (auto c : m.Cells()) {
+          fcp_curr[c] = fcp_prev[c] + pr * fcpc_[c];
+        }
       }
       m.Comm(&fcp_curr);
 
@@ -843,15 +864,7 @@ class FluidSimple : public FluidSolver<M_> {
         ffv_.iter_curr[f] = ffvc_[f].Evaluate(fcpc_);
       }
     }
-
-    if (par->simpler) {
-      if (sem.Nested("simpler")) {
-        //CalcPressure(cd_->GetVelocity(Layers::iter_prev),  // XXX
-        //             ffv_.iter_prev, fcp_.iter_curr);
-        CalcPressure(cd_->GetVelocity(Layers::iter_curr), 
-                     ffv_.iter_curr, fcp_.iter_curr);
-      }
-    }
+    */
 
     if (sem("inc-iter")) {
       this->IncIter();
