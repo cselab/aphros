@@ -12,10 +12,10 @@
 namespace solver {
 
 // Rules:
-// - Each function assumes that all field on layers
-//   iter_prev, time_prev, time_curr
-//   are fixed and known. Must be initialized by constructor.
-//   Same for force, source and viscosity.
+// - Each function assumes that all fields on layers
+//     iter_prev, time_prev, time_curr
+//   and force, source and viscosity
+//   are known and doesn't modify them. 
 // - No function except for MakeIteration refers to iter_curr.
 
 template <class M_>
@@ -470,6 +470,7 @@ class FluidSimple : public FluidSolver<M_> {
     }
 
     if (sem("convdiff-start")) {
+      // rotate layers
       fcp_.iter_curr = fcp_.time_curr;
       ffv_.iter_curr = ffv_.time_curr;
       // initial guess from extrapolation
@@ -835,32 +836,20 @@ class FluidSimple : public FluidSolver<M_> {
       m.Comm(&fcp);
     }
   }
-  // TODO: rewrite norm() using dist() where needed
-  void MakeIteration() override {
-    auto sem = m.GetSem("fluid-iter");
-    auto& fcp_prev = fcp_.iter_prev;
-    auto& fcp_curr = fcp_.iter_curr;
-    if (sem("init")) {
-      // Update convdiff par
-      Update(*cd_->GetPar(), *par);
-    }
-    if (sem.Nested("inletflux")) {
+  void UpdateBc(typename M::Sem& sem) {
+    if (sem.Nested("bc-inletflux")) {
       UpdateInletFlux();
     }
-    if (sem.Nested("outlet")) {
+    if (sem.Nested("bc-outlet")) {
       UpdateOutletBaseConditions();
     }
-    if (sem.Nested("extforce")) {
-      CalcExtForce(*ffbp_, fcb_, ffb_);
-    }
-    if (sem("forceinit")) {
+    if (sem("bc-derived")) {
       UpdateDerivedConditions();
-
-      // interpolate visosity 
-      ffd_ = Interpolate(*fcd_, mfcd_, m, par->forcegeom);
-
-      fcp_prev = fcp_curr;
-      ffv_.iter_prev = ffv_.iter_curr;
+    }
+  }
+  void CalcForce(typename M::Sem& sem) {
+    if (sem.Nested("forceinit")) {
+      CalcExtForce(*ffbp_, fcb_, ffb_);
     }
 
     if (sem("forceinit")) {
@@ -875,17 +864,34 @@ class FluidSimple : public FluidSolver<M_> {
     if (sem("explvisc")) {
       AppendExplViscous(cd_->GetVelocity(Layers::iter_curr), fcfcd_);
     }
+  }
+  // TODO: rewrite norm() using dist() where needed
+  void MakeIteration() override {
+    auto sem = m.GetSem("fluid-iter");
+    auto& fcp_prev = fcp_.iter_prev;
+    auto& fcp_curr = fcp_.iter_curr;
+    if (sem("init")) {
+      // update convdiff par
+      Update(*cd_->GetPar(), *par);
+      // interpolate visosity 
+      ffd_ = Interpolate(*fcd_, mfcd_, m, par->forcegeom);
+
+      // rotate layers
+      fcp_prev = fcp_curr;
+      ffv_.iter_prev = ffv_.iter_curr;
+    }
+
+    UpdateBc(sem);
+
+    CalcForce(sem);
 
     if (sem("pgrad")) {
-      fcp_prev = fcp_curr;
-      ffp_ = Interpolate(fcp_prev, mfcp_, m);
+      ffp_ = Interpolate(fcp_curr, mfcp_, m);
       fcgp_ = Gradient(ffp_, m);
     }
 
     if (par->simpler) {
       if (sem.Nested("simpler")) {
-        //CalcPressure(cd_->GetVelocity(Layers::iter_prev),  // XXX
-        //             ffv_.iter_prev, fcp_.iter_curr);
         CalcPressure(cd_->GetVelocity(Layers::iter_curr), 
                      ffv_.iter_curr, fcp_curr);
       }
@@ -895,7 +901,7 @@ class FluidSimple : public FluidSolver<M_> {
       ffp_ = Interpolate(fcp_curr, mfcp_, m);
       fcgp_ = Gradient(ffp_, m);
 
-      // append pressure gradient
+      // append pressure gradient to force
       for (auto c : m.Cells()) {
         fcfcd_[c] += fcgp_[c] * (-1.);
       }
@@ -926,17 +932,22 @@ class FluidSimple : public FluidSolver<M_> {
     }
 
     if (sem("pcorr-apply")) {
-      // Correct pressure
       if (!par->simpler) {
+        // Correct pressure
         Scal pr = par->prelax; // pressure relaxation
         for (auto c : m.AllCells()) {
           fcp_curr[c] += pr * fcpc_[c];
         }
       }
 
+      // Calc divergence-free volume fluxes
+      for (auto f : m.Faces()) {
+        ffv_.iter_curr[f] = ffvc_[f].Evaluate(fcpc_);
+      }
+
       fcgpc_ = Gradient(Interpolate(fcpc_, mfcpc_, m), m);
 
-      // Compute velocity correction
+      // Calc velocity correction
       fcwc_.Reinit(m);
       for (auto c : m.Cells()) {
         fcwc_[c] = fcgpc_[c] / (-fck_[c]);
@@ -948,13 +959,6 @@ class FluidSimple : public FluidSolver<M_> {
       cd_->CorrectVelocity(Layers::iter_curr, fcwc_); 
       //const_cast<FieldCell<Vect>&>(cd_->GetVelocity(Layers::iter_curr)) =
       //    cd_->GetVelocity(Layers::iter_prev); // XXX: adhoc keep velocity
-    }
-
-    if (sem("pcorr-fluxes")) {
-      // Calc divergence-free volume fluxes
-      for (auto f : m.Faces()) {
-        ffv_.iter_curr[f] = ffvc_[f].Evaluate(fcpc_);
-      }
     }
 
     if (sem("inc-iter")) {
