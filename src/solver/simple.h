@@ -11,6 +11,13 @@
 
 namespace solver {
 
+// Rules:
+// - Each function assumes that all field on layers
+//   iter_prev, time_prev, time_curr
+//   are fixed and known. Must be initialized by constructor.
+//   Same for force, source and viscosity.
+// - No function except for MakeIteration refers to iter_curr.
+
 template <class M_>
 class FluidSimple : public FluidSolver<M_> {
   using M = M_;
@@ -96,6 +103,7 @@ class FluidSimple : public FluidSolver<M_> {
   FieldCell<Scal> fct_;
   FieldCell<Scal> fct1_;
   FieldCell<Vect> fctv_;
+  FieldFace<Vect> fftv_;
 
   // Face fields:
   FieldFace<Scal> ffp_;    // pressure
@@ -107,9 +115,6 @@ class FluidSimple : public FluidSolver<M_> {
   FieldFace<Vect> ffb_;    // restored balanced force [i]
   FieldFace<Scal> ffdk_;   // kinematic viscosity
 
-  // / needed for MMIM, now disabled
-  //FieldFace<Vect> ff_velocity_iter_prev_;
-  
   // LS
   std::vector<Scal> lsa_, lsb_, lsx_;
 
@@ -489,6 +494,66 @@ class FluidSimple : public FluidSolver<M_> {
       }
     }
   }
+  // Rhie-Chow interpolation of predicted volume flux
+  // including balanced force (hydrostatics and surface tension)
+  // fcw: predicted velocity field [s]
+  // fcp: pressure field
+  // fcgp: gradient of pressure field
+  // fck_, ffk_: diag coeff [s]
+  // Output:
+  // ffv: result
+  // fftv_: modified tmp fields
+  void RhieChow(const FieldCell<Vect>& fcw,
+                const FieldCell<Scal>& fcp,  
+                const FieldCell<Vect>& fcgp,
+                FieldFace<Scal>& ffv) {
+    fftv_ = Interpolate(fcw, mfcw_, m); // mean velocity
+
+    const Scal rh = par->rhie; // rhie factor
+    const bool rhid = par->rhie_interpdiag;
+    ffv.Reinit(m);
+    for (auto f : m.Faces()) {
+      // Init with mean
+      ffv[f] = fftv_[f].dot(m.GetSurface(f));
+      if (!ffbd_[f]) { // if not boundary
+        IdxCell cm = m.GetNeighbourCell(f, 0);
+        IdxCell cp = m.GetNeighbourCell(f, 1);
+        Vect dm = m.GetVectToCell(f, 0);
+        Vect dp = m.GetVectToCell(f, 1);
+        // XXX: Consistency condition: 
+        //      average of compact face gradients = cell gradient.
+        
+        // compact pressure gradient
+        Scal gp = (fcp[cp] - fcp[cm]) / (dp - dm).norm();
+
+        // compact
+        Scal o = ((*ffbp_)[f] - gp) * m.GetArea(f) / ffk_[f];
+
+        // wide
+        Scal w;
+        if (rhid) { // factor 1/ffk after interpolation
+          // might be inconsistent for variable density
+          // as it results from simplification
+          w = (ffb_[f] - ffgp_[f]).dot(m.GetSurface(f)) / ffk_[f];
+        } else { // factor 1/fck before interpolation
+          Vect wm = (fcb_[cm] - fcgp_[cm]) / fck_[cm];
+          Vect wp = (fcb_[cp] - fcgp_[cp]) / fck_[cp];
+          w = (wm + wp).dot(m.GetSurface(f)) * 0.5;
+        }
+
+        // apply
+        ffve_[f] += rh * (o - w);
+      } else { // if boundary
+        // nop, keep interpolated flux
+      }
+    }
+
+    // Apply meshvel
+    const Vect& meshvel = par->meshvel;
+    for (auto f : m.Faces()) {
+      ffve_[f] -= meshvel.dot(m.GetSurface(f));
+    }
+  }
   // Restore pressure given velocity and volume flux
   // Assume MakeIteration() was called for convdiff solver
   // fcw: given velocity
@@ -547,11 +612,14 @@ class FluidSimple : public FluidSolver<M_> {
           auto sa = m.GetArea(f);
           auto kf = rh * sa / ffk_[f];
     
-          auto a = kf / (dp - dm).norm();
-          Vect bm = (fctv_[cm] + fcb_[cm]) / fck_[cm] * rh;
-          Vect bp = (fctv_[cp] + fcb_[cp]) / fck_[cp] * rh;
-          Scal b = (bm + bp).dot(s) * 0.5 - (*ffbp_)[f] * kf
-                   + (fcpp[cp] - fcpp[cm]) * a ;
+          auto a = -kf / (dp - dm).norm();
+          Vect bm = 
+              fcw[cm] - (fctv_[cm] - fcgp_[cm] + fcb_[cm]) / fck_[cm] * rh;
+          Vect bp = 
+              fcw[cp] - (fctv_[cp] - fcgp_[cp] + fcb_[cp]) / fck_[cp] * rh;
+          Scal b = 
+              (bm + bp).dot(s) * 0.5 + (*ffbp_)[f] * kf + 
+              (fcpp[cp] - fcpp[cm]) * a - ffv[f];
 
           e.InsertTerm(-a, cm);
           e.InsertTerm(a, cp);
@@ -671,18 +739,24 @@ class FluidSimple : public FluidSolver<M_> {
       }
     }
 
+    if (sem("pgrad")) {
+      fcp_prev = fcp_curr;
+      ffp_ = Interpolate(fcp_prev, mfcp_, m);
+      fcgp_ = Gradient(ffp_, m);
+      ffgp_ = Interpolate(fcgp_, mfcgp_, m);
+    }
+
     if (par->simpler) {
       if (sem.Nested("simpler")) {
         //CalcPressure(cd_->GetVelocity(Layers::iter_prev),  // XXX
         //             ffv_.iter_prev, fcp_.iter_curr);
         CalcPressure(cd_->GetVelocity(Layers::iter_curr), 
-                     ffv_.iter_curr, fcp_.iter_curr);
+                     ffv_.iter_curr, fcp_curr);
       }
     }
 
     if (sem("pgrad")) {
-      fcp_prev = fcp_curr;
-      ffp_ = Interpolate(fcp_prev, mfcp_, m);
+      ffp_ = Interpolate(fcp_curr, mfcp_, m);
       fcgp_ = Gradient(ffp_, m);
       ffgp_ = Interpolate(fcgp_, mfcgp_, m);
     }
@@ -721,50 +795,10 @@ class FluidSimple : public FluidSolver<M_> {
       // TODO: remove mfck_ as probably not needed
       ffk_ = Interpolate(fck_, mfck_, m);
 
-      fcwe_ = cd_->GetVelocity(Layers::iter_curr);
+      //fcwe_ = cd_->GetVelocity(Layers::iter_curr);
+      //ffwe_ = Interpolate(fcwe_, mfcw_, m);
 
-      ffwe_ = Interpolate(fcwe_, mfcw_, m);
-
-      // Rhie-Chow interpolation for of predicted volume flux
-      // including balanced force (hydrostatics and surface tension)
-      ffve_.Reinit(m);
-      const Scal rh = par->rhie; // rhie factor
-      const bool rhid = par->rhie_interpdiag;
-      for (auto f : m.Faces()) {
-        // Init with interpolated flux
-        ffve_[f] = ffwe_[f].dot(m.GetSurface(f));
-        if (!ffbd_[f]) { // if not boundary
-          IdxCell cm = m.GetNeighbourCell(f, 0);
-          IdxCell cp = m.GetNeighbourCell(f, 1);
-          Vect dm = m.GetVectToCell(f, 0);
-          Vect dp = m.GetVectToCell(f, 1);
-          // XXX: Consistency condition: 
-          //      average of compact face gradients = cell gradient.
-          
-          // compact pressure gradient
-          Scal gp = (fcp_prev[cp] - fcp_prev[cm]) / (dp - dm).norm();
-
-          // compact
-          Scal o = ((*ffbp_)[f] - gp) * m.GetArea(f) / ffk_[f];
-
-          // wide
-          Scal w;
-          if (rhid) { // factor 1/ffk after interpolation
-            // might be inconsistent for variable density
-            // as it results from simplification
-            w = (ffb_[f] - ffgp_[f]).dot(m.GetSurface(f)) / ffk_[f];
-          } else { // factor 1/fck before interpolation
-            Vect wm = (fcb_[cm] - fcgp_[cm]) / fck_[cm];
-            Vect wp = (fcb_[cp] - fcgp_[cp]) / fck_[cp];
-            w = (wm + wp).dot(m.GetSurface(f)) * 0.5;
-          }
-
-          // apply
-          ffve_[f] += rh * (o - w);
-        } else { // if boundary
-          // nop, keep interpolated flux
-        }
-      }
+      RhieChow(cd_->GetVelocity(Layers::iter_curr));
 
       // Apply meshvel
       const Vect& meshvel = par->meshvel;
@@ -851,7 +885,7 @@ class FluidSimple : public FluidSolver<M_> {
       if (!par->simpler) {
         Scal pr = par->prelax; // pressure relaxation
         for (auto c : m.Cells()) {
-          fcp_curr[c] = fcp_prev[c] + pr * fcpc_[c];
+          fcp_curr[c] += pr * fcpc_[c];
         }
       }
       m.Comm(&fcp_curr);
