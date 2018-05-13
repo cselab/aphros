@@ -627,12 +627,12 @@ class FluidSimple : public FluidSolver<M_> {
     }
   }
   // Expressions for sum of fluxes and source:
-  //   sum(v) - s * vol
-  // ffv: fluxes
-  // fcs: source
+  //   sum(v) - sv * vol
+  // ffv: fluxes [i]
+  // fcsv: volume source [i]
   // Output:
-  // fce: result
-  void GetFluxSum(const FieldFace<Expr>& ffv, const FieldCell<Scal>& fcs,
+  // fce: result [i]
+  void GetFluxSum(const FieldFace<Expr>& ffv, const FieldCell<Scal>& fcsv,
                   FieldCell<Expr>& fce) {
     fce.Reinit(m);
     for (auto c : m.Cells()) {
@@ -642,7 +642,29 @@ class FluidSimple : public FluidSolver<M_> {
         IdxFace f = m.GetNeighbourFace(c, q);
         e += ffv[f] * m.GetOutwardFactor(c, q);
       }
-      e -= Expr(fcs[c] * m.GetVolume(c));
+      e -= Expr(fcsv[c] * m.GetVolume(c));
+    }
+  }
+  // Solve linear system fce = 0
+  // fce: expressions [i]
+  // Output:
+  // fc: result [a]
+  // lsa_, lsb_, lsx_: modified tmp fields
+  void Solve(const FieldCell<Expr>& fce, FieldCell<Scal>& fc) {
+    auto sem = m.GetSem("solve");
+    if (sem("solve")) {
+      auto l = ConvertLs(fcpcs_, lsa_, lsb_, lsx_, m);
+      using T = typename M::LS::T; 
+      l.t = T::symm; // solver type
+      m.Solve(l);
+    }
+    if (sem("copy")) {
+      fc.Reinit(m);
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        fc[c] = lsx_[i++];
+      }
+      m.Comm(&fc);
     }
   }
   // Restore pressure given velocity and volume flux
@@ -885,9 +907,6 @@ class FluidSimple : public FluidSolver<M_> {
       // TODO: remove mfck_ as probably not needed
       ffk_ = Interpolate(fck_, mfck_, m);
 
-      //fcwe_ = cd_->GetVelocity(Layers::iter_curr);
-      //ffwe_ = Interpolate(fcwe_, mfcw_, m);
-
       RhieChow(cd_->GetVelocity(Layers::iter_curr), 
                fcp_curr, fcgp_, fck_, ffk_, ffve_);
 
@@ -898,38 +917,18 @@ class FluidSimple : public FluidSolver<M_> {
       ApplyPcCond(fcp_curr, fcpcs_);
     }
 
-    if (sem("pcorr-solve")) {
-      // Convert to LS format
-      auto l = ConvertLs(fcpcs_, lsa_, lsb_, lsx_, m);
-      using T = typename M::LS::T; 
-      l.t = T::symm; // solver type
-      // Solve system (add request)
-      m.Solve(l);
-    }
-
-    if (sem("pcorr-comm")) {
-      // Copy solution
-      fcpc_.Reinit(m);
-      size_t i = 0;
-      for (auto c : m.Cells()) {
-        fcpc_[c] = lsx_[i++];
-        //fcpc_[c] = 0.; // XXX adhoc zero correction
-      }
-      
-      // Comm pressure correction
-      // (needed to compute gradients for flux correction)
-      m.Comm(&fcpc_);
+    if (sem.Nested("pcorr-solve")) {
+      Solve(fcpcs_, fcpc_);
     }
 
     if (sem("pcorr-apply")) {
       // Correct pressure
       if (!par->simpler) {
         Scal pr = par->prelax; // pressure relaxation
-        for (auto c : m.Cells()) {
+        for (auto c : m.AllCells()) {
           fcp_curr[c] += pr * fcpc_[c];
         }
       }
-      m.Comm(&fcp_curr);
 
       fcgpc_ = Gradient(Interpolate(fcpc_, mfcpc_, m), m);
 
