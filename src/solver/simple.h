@@ -498,52 +498,53 @@ class FluidSimple : public FluidSolver<M_> {
   // fcw: predicted velocity field [s]
   // fcp: pressure field
   // fcgp: gradient of pressure field
-  // fck_, ffk_: diag coeff [s]
+  // fck, ffk: diag coeff [s]
   // Output:
   // ffv: result
   // fftv_: modified tmp fields
   void RhieChow(const FieldCell<Vect>& fcw,
                 const FieldCell<Scal>& fcp,  
                 const FieldCell<Vect>& fcgp,
+                const FieldCell<Scal>& fck,
+                const FieldFace<Scal>& ffk,
                 FieldFace<Scal>& ffv) {
+    // TODO consider moving interpolation into loop
+    //      and boundary conditions separately
     fftv_ = Interpolate(fcw, mfcw_, m); // mean velocity
 
     const Scal rh = par->rhie; // rhie factor
     ffv.Reinit(m);
     for (auto f : m.Faces()) {
-      // Init with mean
+      // Init with mean flux
       ffv[f] = fftv_[f].dot(m.GetSurface(f));
       if (!ffbd_[f]) { // if not boundary
         IdxCell cm = m.GetNeighbourCell(f, 0);
         IdxCell cp = m.GetNeighbourCell(f, 1);
+        // TODO remove getvecttocell
         Vect dm = m.GetVectToCell(f, 0);
         Vect dp = m.GetVectToCell(f, 1);
-        // XXX: Consistency condition: 
-        //      average of compact face gradients = cell gradient.
-        
+
         // compact pressure gradient
         Scal gp = (fcp[cp] - fcp[cm]) / (dp - dm).norm();
 
         // compact
-        Scal o = ((*ffbp_)[f] - gp) * m.GetArea(f) / ffk_[f];
+        Scal o = ((*ffbp_)[f] - gp) * m.GetArea(f) / ffk[f];
 
         // wide
-        Scal w;
-        Vect wm = (fcb_[cm] - fcgp_[cm]) / fck_[cm];
-        Vect wp = (fcb_[cp] - fcgp_[cp]) / fck_[cp];
-        w = (wm + wp).dot(m.GetSurface(f)) * 0.5;
+        Vect wm = (fcb_[cm] - fcgp_[cm]) / fck[cm];
+        Vect wp = (fcb_[cp] - fcgp_[cp]) / fck[cp];
+        Scal w = (wm + wp).dot(m.GetSurface(f)) * 0.5;
 
         // apply
-        ffve_[f] += rh * (o - w);
+        ffv[f] += rh * (o - w);
       } else { // if boundary
-        // nop, keep interpolated flux
+        // nop, keep mean flux
       }
     }
 
     // Apply meshvel
-    const Vect& meshvel = par->meshvel;
     for (auto f : m.Faces()) {
-      ffve_[f] -= meshvel.dot(m.GetSurface(f));
+      ffv[f] -= par->meshvel.dot(m.GetSurface(f));
     }
   }
   // Restore pressure given velocity and volume flux
@@ -789,13 +790,8 @@ class FluidSimple : public FluidSolver<M_> {
       //fcwe_ = cd_->GetVelocity(Layers::iter_curr);
       //ffwe_ = Interpolate(fcwe_, mfcw_, m);
 
-      RhieChow(cd_->GetVelocity(Layers::iter_curr));
-
-      // Apply meshvel
-      const Vect& meshvel = par->meshvel;
-      for (auto f : m.Faces()) {
-        ffve_[f] -= meshvel.dot(m.GetSurface(f));
-      }
+      RhieChow(cd_->GetVelocity(Layers::iter_curr), 
+               fcp_curr, fcgp_, fck_, ffk_, ffve_);
 
       // Expressions for corrected volume flux
       // in terms of pressure
