@@ -496,11 +496,11 @@ class FluidSimple : public FluidSolver<M_> {
   // Rhie-Chow interpolation of predicted volume flux
   // including balanced force (hydrostatics and surface tension)
   // fcw: predicted velocity field [s]
-  // fcp: pressure field
-  // fcgp: gradient of pressure field
+  // fcp: pressure field [s]
+  // fcgp: gradient of pressure field [s]
   // fck, ffk: diag coeff [s]
   // Output:
-  // ffv: result
+  // ffv: result [i]
   // fftv_: modified tmp fields
   void RhieChow(const FieldCell<Vect>& fcw,
                 const FieldCell<Scal>& fcp,  
@@ -547,9 +547,9 @@ class FluidSimple : public FluidSolver<M_> {
     }
   }
   // Apply cell conditions for pressure.
-  // fcs: linear system in terms of correction of base pressure
-  // fcpb: base pressure
-  void ApplyPcCond(FieldCell<Expr>& fcs, const FieldCell<Scal>& fcpb) {
+  // fcs: linear system in terms of correction of base pressure [i]
+  // fcpb: base pressure [i]
+  void ApplyPcCond(const FieldCell<Scal>& fcpb, FieldCell<Expr>& fcs) {
     for (auto it : mccp_) {
       IdxCell ct(it.GetIdx()); // cell target
       ConditionCell* cb = it.GetValue().get(); // cond base
@@ -566,6 +566,83 @@ class FluidSimple : public FluidSolver<M_> {
           }
         }
       }
+    }
+  }
+  // Flux expressions in terms of pressure correction pc:
+  //   /  grad(pb+pc) * area / k + v, inner
+  //   \  a, boundary
+  // fcpb: base pressure [s]
+  // ffk: diag coeff [i]
+  // ffv: addition to flux [i]
+  // Output:
+  // ffe: result [i]
+  void GetFlux(const FieldCell<Scal>& fcpb, const FieldFace<Scal>& ffk,
+                   const FieldFace<Scal>& ffv, FieldFace<Expr>& ffe) {
+    ffe.Reinit(m);
+    for (auto f : m.Faces()) {
+      auto& e = ffe[f];
+      e.Clear();
+      IdxCell cm = m.GetNeighbourCell(f, 0);
+      IdxCell cp = m.GetNeighbourCell(f, 1);
+      Vect dm = m.GetVectToCell(f, 0);
+      Vect dp = m.GetVectToCell(f, 1);
+      if (!ffbd_[f]) {  // inner
+        Scal a = -m.GetArea(f) / ((dp - dm).norm() * ffk[f]);
+        e.InsertTerm(-a, cm);
+        e.InsertTerm(a, cp);
+        e.SetConstant((fcpb[cp] - fcpb[cm]) * a + ffv[f]);
+      } else { // boundary
+        e.InsertTerm(0, cm);
+        e.InsertTerm(0, cp);
+        e.SetConstant(ffv[f]);
+      }
+    }
+  }
+  // Flux expressions in terms of pressure correction pc:
+  //   /  grad(pc) * area / k + v, inner
+  //   \  a, boundary
+  // ffk: diag coeff [i]
+  // ffv: addition to flux [i]
+  // Output:
+  // ffe: result [i]
+  void GetFlux(const FieldFace<Scal>& ffk, const FieldFace<Scal>& ffv,
+               FieldFace<Expr>& ffe) {
+    ffe.Reinit(m);
+    for (auto f : m.Faces()) {
+      auto& e = ffe[f];
+      e.Clear();
+      IdxCell cm = m.GetNeighbourCell(f, 0);
+      IdxCell cp = m.GetNeighbourCell(f, 1);
+      Vect dm = m.GetVectToCell(f, 0);
+      Vect dp = m.GetVectToCell(f, 1);
+      if (!ffbd_[f]) {  // inner
+        Scal a = -m.GetArea(f) / ((dp - dm).norm() * ffk[f]);
+        e.InsertTerm(-a, cm);
+        e.InsertTerm(a, cp);
+      } else { // boundary
+        e.InsertTerm(0, cm);
+        e.InsertTerm(0, cp);
+      }
+      e.SetConstant(ffv[f]);
+    }
+  }
+  // Expressions for sum of fluxes and source:
+  //   sum(v) - s * vol
+  // ffv: fluxes
+  // fcs: source
+  // Output:
+  // fce: result
+  void GetFluxSum(const FieldFace<Expr>& ffv, const FieldCell<Scal>& fcs,
+                  FieldCell<Expr>& fce) {
+    fce.Reinit(m);
+    for (auto c : m.Cells()) {
+      auto& e = fce[c];
+      e.Clear();
+      for (auto q : m.Nci(c)) {
+        IdxFace f = m.GetNeighbourFace(c, q);
+        e += ffv[f] * m.GetOutwardFactor(c, q);
+      }
+      e -= Expr(fcs[c] * m.GetVolume(c));
     }
   }
   // Restore pressure given velocity and volume flux
@@ -814,38 +891,11 @@ class FluidSimple : public FluidSolver<M_> {
       RhieChow(cd_->GetVelocity(Layers::iter_curr), 
                fcp_curr, fcgp_, fck_, ffk_, ffve_);
 
-      // Expressions for corrected volume flux
-      // in terms of pressure
-      // corrected = predicted + pressure gradient * area / diag coeff
-      for (auto f : m.Faces()) {
-        auto& e = ffvc_[f];
-        e.Clear();
-        IdxCell cm = m.GetNeighbourCell(f, 0);
-        IdxCell cp = m.GetNeighbourCell(f, 1);
-        Vect dm = m.GetVectToCell(f, 0);
-        Vect dp = m.GetVectToCell(f, 1);
-        auto a = -m.GetArea(f) / ((dp - dm).norm() * ffk_[f]);
-        if (ffbd_[f]) { // keep flux on boundaries
-          a = 0.;
-        }
-        e.InsertTerm(-a, cm);
-        e.InsertTerm(a, cp);
-        e.SetConstant(ffve_[f]);
-      }
+      GetFlux(ffk_, ffve_, ffvc_);
 
-      // System for pressure correction
-      // sum of corrected volume fluxes + volume source = 0.
-      for (auto c : m.Cells()) {
-        auto& e = fcpcs_[c];
-        Expr s;
-        for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
-          s += ffvc_[f] * m.GetOutwardFactor(c, q);
-        }
-        e = s - Expr((*fcsv_)[c] * m.GetVolume(c));
-      }
+      GetFluxSum(ffvc_, *fcsv_, fcpcs_);
 
-      ApplyPcCond(fcpcs_, fcp_curr);
+      ApplyPcCond(fcp_curr, fcpcs_);
     }
 
     if (sem("pcorr-solve")) {
