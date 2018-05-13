@@ -58,150 +58,121 @@ namespace fluid_condition {
 
 template <class M>
 class NoSlipWall : public ConditionFaceFluid {
-  using Vect = typename M::Vect;
  public:
+  using Vect = typename M::Vect;
   NoSlipWall(size_t nci) : ConditionFaceFluid(nci) {}
   virtual Vect GetVelocity() const = 0;
 };
 
 template <class M>
 class NoSlipWallFixed : public NoSlipWall<M> {
-  using Vect = typename M::Vect;
-  Vect velocity_;
  public:
-  NoSlipWallFixed(Vect velocity, size_t nci)
-      : NoSlipWall<M>(nci), velocity_(velocity)
-  {}
-  Vect GetVelocity() const override {
-    return velocity_;
-  }
+  using Vect = typename M::Vect;
+  NoSlipWallFixed(Vect v, size_t nci) : NoSlipWall<M>(nci), v_(v) {}
+  Vect GetVelocity() const override { return v_; }
+
+ private:
+  Vect v_;
 };
 
 template <class M>
 class Inlet : public ConditionFaceFluid {
-  using Vect = typename M::Vect;
  public:
+  using Vect = typename M::Vect;
   Inlet(size_t nci) : ConditionFaceFluid(nci) {}
   virtual Vect GetVelocity() const = 0;
-  virtual void SetVelocity(Vect velocity) = 0;
+  virtual void SetVelocity(Vect) = 0;
 };
 
 template <class M>
 class InletFixed : public Inlet<M> {
-  using Vect = typename M::Vect;
-  Vect velocity_;
-
  public:
-  InletFixed(Vect velocity, size_t nci)
-      : Inlet<M>(nci)
-      , velocity_(velocity)
-  {}
-  Vect GetVelocity() const override {
-    return velocity_;
-  }
-  void SetVelocity(Vect velocity) override {
-    velocity_ = velocity;
-  }
+  using Vect = typename M::Vect;
+  InletFixed(Vect v, size_t nci) : Inlet<M>(nci) , v_(v) {}
+  Vect GetVelocity() const override { return v_; }
+  void SetVelocity(Vect v) override { v_ = v; }
+
+ private:
+  Vect v_;
 };
 
 template <class M>
 class InletFlux : public Inlet<M> {
-  using Vect = typename M::Vect;
-  Vect vel_;
-  size_t id_;
-
  public:
-  InletFlux(Vect vel, size_t id, size_t nci)
-      : Inlet<M>(nci)
-      , vel_(vel)
-      , id_(id)
-  {}
-  Vect GetVelocity() const override {
-    return vel_;
-  }
-  void SetVelocity(Vect vel) override {
-    vel_ = vel;
-  }
-  size_t GetId() {
-    return id_;
-  }
+  using Vect = typename M::Vect;
+  InletFlux(Vect v, size_t id, size_t nci) : Inlet<M>(nci), v_(v), id_(id) {}
+  Vect GetVelocity() const override { return v_; }
+  void SetVelocity(Vect v) override { v_ = v; }
+  size_t GetId() { return id_; }
+
+ private:
+  Vect v_;
+  size_t id_;
 };
 
 template <class M>
 class Outlet : public ConditionFaceFluid {
-  using Vect = typename M::Vect;
  public:
+  using Vect = typename M::Vect;
   Outlet(size_t nci) : ConditionFaceFluid(nci) {}
   virtual Vect GetVelocity() const = 0;
-  virtual void SetVelocity(Vect velocity) = 0;
+  virtual void SetVelocity(Vect) = 0;
 };
 
 template <class M>
 class OutletAuto : public Outlet<M> {
-  using Vect = typename M::Vect;
-  Vect velocity_;
-
  public:
-  OutletAuto(size_t nci)
-      : Outlet<M>(nci)
-      , velocity_(Vect::kZero)
-  {}
-  Vect GetVelocity() const override {
-    return velocity_;
-  }
-  void SetVelocity(Vect velocity) override {
-    velocity_ = velocity;
-  }
+  using Vect = typename M::Vect;
+  OutletAuto(size_t nci) : Outlet<M>(nci) , v_(Vect::kZero) {}
+  Vect GetVelocity() const override { return v_; }
+  void SetVelocity(Vect v) override { v_ = v; }
+
+ private:
+  Vect v_;
 };
 
 template <class M>
 class GivenVelocityAndPressure : public ConditionCellFluid {
+ public:
   using Vect = typename M::Vect;
   using Scal = typename M::Scal;
- public:
   virtual Vect GetVelocity() const = 0;
   virtual Scal GetPressure() const = 0;
 };
 
 template <class M>
 class GivenVelocityAndPressureFixed : public GivenVelocityAndPressure<M> {
+ public:
   using Vect = typename M::Vect;
   using Scal = typename M::Scal;
-  Vect velocity_;
-  Scal pressure_;
+  GivenVelocityAndPressureFixed(Vect v, Scal p) : v_(v) , p_(p) {}
+  Vect GetVelocity() const override { return v_; }
+  Scal GetPressure() const override { return p_; }
+  void SetVelocity(Vect v) { v_ = v; }
+  void SetPressure(Scal p) { p_ = p; }
 
- public:
-  GivenVelocityAndPressureFixed(Vect velocity, Scal pressure)
-      : velocity_(velocity)
-      , pressure_(pressure)
-  {}
-  Vect GetVelocity() const override {
-    return velocity_;
-  }
-  Scal GetPressure() const override {
-    return pressure_;
-  }
+ private:
+  Vect v_;
+  Scal p_;
 };
 
 template <class M>
 class GivenPressure : public ConditionCellFluid {
-  using Scal = typename M::Scal;
  public:
+  using Scal = typename M::Scal;
   virtual Scal GetPressure() const = 0;
 };
 
 template <class M>
 class GivenPressureFixed : public GivenPressure<M> {
-  using Scal = typename M::Scal;
-  Scal pressure_;
-
  public:
-  GivenPressureFixed(Scal pressure)
-      : pressure_(pressure)
-  {}
-  Scal GetPressure() const override {
-    return pressure_;
-  }
+  using Scal = typename M::Scal;
+  GivenPressureFixed(Scal p) : p_(p) {}
+  Scal GetPressure() const override { return p_; }
+  void SetPressure(Scal p) { p_ = p; }
+
+ private:
+  Scal p_;
 };
 
 } // namespace fluid_condition
@@ -210,7 +181,7 @@ class GivenPressureFixed : public GivenPressure<M> {
 template <class M>
 std::shared_ptr<ConditionFaceFluid> Parse(std::string argstr,
                                           IdxFace idxface,
-                                          size_t nc, // neighbour cell id
+                                          size_t nc /*neighbour cell id*/, 
                                           const M& m) {
   using namespace fluid_condition;
   using Vect=  typename M::Vect;

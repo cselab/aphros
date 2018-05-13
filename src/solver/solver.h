@@ -126,16 +126,15 @@ class ConditionCellValue : public ConditionCell {
   virtual Value GetValue() const = 0;
 };
 
-template <class Value>
-class ConditionCellValueFixed : public ConditionCellValue<Value> {
-  Value value_;
+template <class V>
+class ConditionCellValueFixed : public ConditionCellValue<V> {
  public:
-  explicit ConditionCellValueFixed(const Value& value)
-      : value_(value)
-  {}
-  Value GetValue() const override {
-    return value_;
-  }
+  explicit ConditionCellValueFixed(const V& v) : v_(v) {}
+  V GetValue() const override { return v_; }
+  void Set(const V& v) { v_ = v; }
+
+ private:
+  V v_;
 };
 
 template <class Mesh, class Idx, class Expr>
