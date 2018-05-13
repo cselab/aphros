@@ -55,7 +55,6 @@ class FluidSimple : public FluidSolver<M_> {
   MapFace<std::shared_ptr<ConditionFaceFluid>> mfc_; // fluid cond
   MapFace<std::shared_ptr<ConditionFace>> mfcw_; // velocity cond
   MapFace<std::shared_ptr<ConditionFace>> mfcp_; // pressure cond
-  MapFace<std::shared_ptr<ConditionFace>> mfcgp_; // pressure gradient cond
   MapFace<std::shared_ptr<ConditionFace>> mfcf_; // force cond
   MapFace<std::shared_ptr<ConditionFace>> mfck_; // diag coeff cond
   MapFace<std::shared_ptr<ConditionFace>> mfcpc_; // pressure corr cond
@@ -104,10 +103,11 @@ class FluidSimple : public FluidSolver<M_> {
   FieldCell<Scal> fct1_;
   FieldCell<Vect> fctv_;
   FieldFace<Vect> fftv_;
+  FieldFace<Vect> fftv2_;
+  FieldFace<Scal> fft_;
 
   // Face fields:
   FieldFace<Scal> ffp_;    // pressure
-  FieldFace<Vect> ffgp_;   // gradient of pressure 
   FieldFace<Vect> ffwe_;   // predicted velocity 
   FieldFace<Scal> ffve_;   // predicted volume flux [i]
   FieldFace<Scal> ffk_;    // diag coeff of velocity equation 
@@ -401,8 +401,6 @@ class FluidSimple : public FluidSolver<M_> {
         throw std::runtime_error("Unknown fluid condition");
       }
 
-      mfcgp_[i] = std::make_shared<
-          ConditionFaceDerivativeFixed<Vect>>(Vect(0), nci);
       mfcf_[i] = std::make_shared<
           ConditionFaceDerivativeFixed<Vect>>(Vect(0), nci);
       mfcpc_[i] = std::make_shared<
@@ -462,7 +460,6 @@ class FluidSimple : public FluidSolver<M_> {
 
     ffp_ = Interpolate(fcp_.time_curr, mfcp_, m);
     fcgp_ = Gradient(ffp_, m);
-    ffgp_ = Interpolate(fcgp_, mfcgp_, m);
   }
   void StartStep() override {
     auto sem = m.GetSem("fluid-start");
@@ -508,9 +505,7 @@ class FluidSimple : public FluidSolver<M_> {
                 const FieldCell<Scal>& fck,
                 const FieldFace<Scal>& ffk,
                 FieldFace<Scal>& ffv) {
-    // TODO consider moving interpolation into loop
-    //      and boundary conditions separately
-    fftv_ = Interpolate(fcw, mfcw_, m); // mean velocity
+    fftv_ = Interpolate(fcw, mfcw_, m); 
 
     const Scal rh = par->rhie; // rhie factor
     ffv.Reinit(m);
@@ -665,6 +660,57 @@ class FluidSimple : public FluidSolver<M_> {
         fc[c] = lsx_[i++];
       }
       m.Comm(&fc);
+    }
+  }
+  // Get diagcoeff from current convdiff equations
+  void GetDiagCoeff(FieldCell<Scal>& fck, FieldFace<Scal>& ffk) {
+    auto sem = m.GetSem("diag");
+    if (sem("local")) {
+      fck.Reinit(m);
+      for (auto c : m.Cells()) {
+        Scal s = 0.;
+        for (auto d : dr_) {
+          // TODO consider separating diag from other coeffs
+          //      use total sum for SIMPLEC only
+          //sum += cd_->GetVelocityEquations(d)[c].CoeffSum();
+          s += cd_->GetVelocityEquations(d)[c].Coeff(c); // XXX
+        }
+        fck[c] = s / dim;
+      }
+
+      m.Comm(&fck);
+    }
+    if (sem("interp")) {
+      // TODO: remove mfck_ as probably not needed
+      //       and add InterpolateInner
+      ffk = Interpolate(fck, mfck_, m);
+    }
+  }
+  // Append explicit part of viscous force.
+  // fcw: velocity [a]
+  // Output:
+  // fcf += viscous term [i]
+  // fftv_, fft_, fctv_, fftv2_: modified tmp fields
+  void AppendExplViscous(const FieldCell<Vect>& fcw, FieldCell<Vect>& fcf) {
+    auto& wc = fcw; // [a]
+    auto& wf = fftv_; // [s]
+    auto& wfo = fft_; // [s]
+    auto& gc = fctv_; // [s]
+    auto& gf = fftv2_; // [i]
+
+    wf = Interpolate(wc, mfcw_, m); 
+    for (auto d : dr_) {
+      wfo = GetComponent(wf, d);
+      gc = Gradient(wfo, m);
+      gf = Interpolate(gc, mfcf_, m); // XXX adhoc zero-deriv cond
+      for (auto c : m.Cells()) {
+        Vect s(0);
+        for (auto q : m.Nci(c)) {
+          IdxFace f = m.GetNeighbourFace(c, q);
+          s += gf[f] * (ffdk_[f] * m.GetOutwardSurface(c, q)[d]);
+        }
+        fcf[c] += s / m.GetVolume(c);
+      }
     }
   }
   // Restore pressure given velocity and volume flux
@@ -826,7 +872,7 @@ class FluidSimple : public FluidSolver<M_> {
       fcfcd_.Reinit(m, Vect(0));
     }
 
-    if (sem("forceappendb")) {
+    if (sem("forceappendbf")) {
       // append force and balanced force
       for (auto c : m.Cells()) {
         fcfcd_[c] += (*fcf_)[c] + fcb_[c];
@@ -834,28 +880,13 @@ class FluidSimple : public FluidSolver<M_> {
     }
 
     if (sem("explvisc")) {
-      // append explicit part of viscous force
-      for (auto d : dr_) {
-        fcwo_ = GetComponent(cd_->GetVelocity(Layers::iter_curr), d);
-        auto ff = Interpolate(fcwo_, cd_->GetVelocityCond(d), m);
-        auto gc = Gradient(ff, m);
-        auto gf = Interpolate(gc, mfcf_, m); // XXX adhoc zero-deriv cond
-        for (auto c : m.Cells()) {
-          Vect s(0);
-          for (auto q : m.Nci(c)) {
-            IdxFace f = m.GetNeighbourFace(c, q);
-            s += gf[f] * (ffdk_[f] * m.GetOutwardSurface(c, q)[d]);
-          }
-          fcfcd_[c] += s / m.GetVolume(c);
-        }
-      }
+      AppendExplViscous(cd_->GetVelocity(Layers::iter_curr), fcfcd_);
     }
 
     if (sem("pgrad")) {
       fcp_prev = fcp_curr;
       ffp_ = Interpolate(fcp_prev, mfcp_, m);
       fcgp_ = Gradient(ffp_, m);
-      ffgp_ = Interpolate(fcgp_, mfcgp_, m);
     }
 
     if (par->simpler) {
@@ -870,43 +901,23 @@ class FluidSimple : public FluidSolver<M_> {
     if (sem("pgrad")) {
       ffp_ = Interpolate(fcp_curr, mfcp_, m);
       fcgp_ = Gradient(ffp_, m);
-      ffgp_ = Interpolate(fcgp_, mfcgp_, m);
-    }
 
-    if (sem("forceappend")) {
       // append pressure gradient
       for (auto c : m.Cells()) {
         fcfcd_[c] += fcgp_[c] * (-1.);
       }
     }
 
-
     if (sem.Nested("convdiff-iter")) {
       // Solve for predictor velocity
       cd_->MakeIteration();
     }
 
-    if (sem("diag-comm")) {
-      fck_.Reinit(m);
-      for (auto c : m.Cells()) {
-        Scal sum = 0.;
-        for (auto d : dr_) {
-          // TODO consider separating diag from other coeffs
-          // use total sum for SIMPLEC only
-          //sum += cd_->GetVelocityEquations(d)[c].CoeffSum();
-          sum += cd_->GetVelocityEquations(d)[c].Coeff(c); // XXX
-        }
-        fck_[c] = sum / dim;
-      }
-
-      m.Comm(&fck_);
+    if (sem.Nested("diag")) {
+      GetDiagCoeff(fck_, ffk_);
     }
-      
-    if (sem("pcorr-assemble")) {
-      // Define ffk_ on inner faces only
-      // TODO: remove mfck_ as probably not needed
-      ffk_ = Interpolate(fck_, mfck_, m);
 
+    if (sem("pcorr-assemble")) {
       RhieChow(cd_->GetVelocity(Layers::iter_curr), 
                fcp_curr, fcgp_, fck_, ffk_, ffve_);
 
