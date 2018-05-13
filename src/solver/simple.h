@@ -162,6 +162,7 @@ class FluidSimple : public FluidSolver<M_> {
       }
     }
   }
+  // TODO: consider updating from predictor velocity
   void UpdateInletFlux() {
     using namespace fluid_condition;
     size_t& nid = par->inletflux_numid;
@@ -546,7 +547,7 @@ class FluidSimple : public FluidSolver<M_> {
       if (auto cd = dynamic_cast<ConditionCellValue<Scal>*>(cb)) {
         for (auto c : m.Cells()) {
           auto& e = fcs[c];
-          Scal pc = cd->GetValue() - fcpb[c];
+          Scal pc = cd->GetValue() - fcpb[ct];
           if (c == ct) { 
             // Replace expression with [ct]-pc
             e.SetKnownValueDiag(ct, pc);
@@ -735,7 +736,7 @@ class FluidSimple : public FluidSolver<M_> {
                     const FieldCell<Scal>& fcpp,
                     FieldCell<Scal>& fcp) {
     auto sem = m.GetSem("calcpressure");
-    auto& fce = fctv_; // evaluation of velocity equations
+    auto& fcl = fctv_; // evaluation of velocity equations
     auto& ffa = fft_; // addition to flux TODO revise comment
     if (sem.Nested("cd-asm")) {
       cd_->Assemble(fcw, ffv);
@@ -759,9 +760,9 @@ class FluidSimple : public FluidSolver<M_> {
     }
     if (sem("assemble")) {
       // copy eval to vect
-      fce.Reinit(m);
+      fcl.Reinit(m);
       for (auto d : dr_) {
-        SetComponent(fce, d, fcta_[d]);
+        SetComponent(fcl, d, fcta_[d]);
       }
 
       const Scal rh = par->rhie; // rhie factor
@@ -777,8 +778,8 @@ class FluidSimple : public FluidSolver<M_> {
           auto s = m.GetSurface(f);
           auto sa = m.GetArea(f);
           auto kf = rh * sa / ffk_[f];
-          Vect bm = fcw[cm] - (fce[cm] - fcgp_[cm] + fcb_[cm]) / fck_[cm] * rh;
-          Vect bp = fcw[cp] - (fce[cp] - fcgp_[cp] + fcb_[cp]) / fck_[cp] * rh;
+          Vect bm = fcw[cm] - (fcl[cm] - fcgp_[cm] + fcb_[cm]) / fck_[cm] * rh;
+          Vect bp = fcw[cp] - (fcl[cp] - fcgp_[cp] + fcb_[cp]) / fck_[cp] * rh;
           ffa[f] = (bm + bp).dot(s) * 0.5 + (*ffbp_)[f] * kf - ffv[f];
         } else { // if boundary
           ffa[f] = 0.;
@@ -800,8 +801,9 @@ class FluidSimple : public FluidSolver<M_> {
       fcgpc_ = Gradient(Interpolate(fcpc_, mfcpc_, m), m);
 
       // Correct pressure
+      Scal pr = par->prelax; // pressure relaxation
       for (auto c : m.Cells()) {
-        fcp[c] = fcpp[c] + fcpc_[c]; 
+        fcp[c] = fcpp[c] + fcpc_[c] * pr; 
       }
       m.Comm(&fcp);
     }
@@ -877,7 +879,7 @@ class FluidSimple : public FluidSolver<M_> {
 
         // append pressure correction gradient to force
         for (auto c : m.Cells()) {
-          fcfcd_[c] += fcgpc_[c] * (-1.);
+          fcfcd_[c] += fcgpc_[c] * (-1.); 
         }
       }
     }
