@@ -345,7 +345,6 @@ class FluidSimple : public FluidSolver<M_> {
     Scal vrelax = 0.8;   // velocity relaxation factor [0,1]
     Scal prelax = 1.;   // pressure relaxation factor [0,1]
     Scal rhie = 1.;     // Rhie-Chow factor [0,1] (0 disable, 1 full)
-    bool rhie_interpdiag = false; // Rhie-Chow: interpolate diag 
     bool second = true; // second order in time
     bool simpler = false; // Use SIMPLER  TODO: implement SIMPLER
     Scal guessextra = 0;  // next iteration extrapolation weight [0,1]
@@ -510,7 +509,6 @@ class FluidSimple : public FluidSolver<M_> {
     fftv_ = Interpolate(fcw, mfcw_, m); // mean velocity
 
     const Scal rh = par->rhie; // rhie factor
-    const bool rhid = par->rhie_interpdiag;
     ffv.Reinit(m);
     for (auto f : m.Faces()) {
       // Init with mean
@@ -531,15 +529,9 @@ class FluidSimple : public FluidSolver<M_> {
 
         // wide
         Scal w;
-        if (rhid) { // factor 1/ffk after interpolation
-          // might be inconsistent for variable density
-          // as it results from simplification
-          w = (ffb_[f] - ffgp_[f]).dot(m.GetSurface(f)) / ffk_[f];
-        } else { // factor 1/fck before interpolation
-          Vect wm = (fcb_[cm] - fcgp_[cm]) / fck_[cm];
-          Vect wp = (fcb_[cp] - fcgp_[cp]) / fck_[cp];
-          w = (wm + wp).dot(m.GetSurface(f)) * 0.5;
-        }
+        Vect wm = (fcb_[cm] - fcgp_[cm]) / fck_[cm];
+        Vect wp = (fcb_[cp] - fcgp_[cp]) / fck_[cp];
+        w = (wm + wp).dot(m.GetSurface(f)) * 0.5;
 
         // apply
         ffve_[f] += rh * (o - w);
@@ -595,7 +587,6 @@ class FluidSimple : public FluidSolver<M_> {
       ffk_ = Interpolate(fck_, mfck_, m);
       
       const Scal rh = par->rhie; // rhie factor
-      const bool rhid = par->rhie_interpdiag;
 
       // Second correction on faces
       for (auto f : m.Faces()) {
