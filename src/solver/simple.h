@@ -93,7 +93,6 @@ class FluidSimple : public FluidSolver<M_> {
   FieldCell<Vect> fcgpc_;  // gradient of pressure correction
   FieldCell<Vect> fcwc_;   // velocity correction
   FieldCell<Scal> fcwo_;   // one velocity component
-  FieldCell<Scal> fcdk_;   // kinematic viscosity
   FieldCell<Vect> fcb_;    // restored balanced force [s]
   FieldCell<Vect> fcfcd_;  // force for convdiff [i]
 
@@ -107,13 +106,13 @@ class FluidSimple : public FluidSolver<M_> {
   FieldFace<Scal> fft_;
 
   // Face fields:
+  FieldFace<Scal> ffd_;    // dynamic viscosity
   FieldFace<Scal> ffp_;    // pressure
   FieldFace<Vect> ffwe_;   // predicted velocity 
   FieldFace<Scal> ffve_;   // predicted volume flux [i]
   FieldFace<Scal> ffk_;    // diag coeff of velocity equation 
   FieldFace<Expr> ffvc_;   // expression for corrected volume flux [i]
   FieldFace<Vect> ffb_;    // restored balanced force [i]
-  FieldFace<Scal> ffdk_;   // kinematic viscosity
 
   // LS
   std::vector<Scal> lsa_, lsb_, lsx_;
@@ -295,49 +294,45 @@ class FluidSimple : public FluidSolver<M_> {
     }
   }
 
-  void CalcExtForce() {
+  // Restore force from projections.
+  // ffbp: force projections, bp=b.dot(n)
+  // Output:
+  // fcb, ffb: restored force
+  // fcta_: modified tmp field
+  void CalcExtForce(const FieldFace<Scal>& ffbp, 
+                    FieldCell<Vect>& fcb, FieldFace<Vect>& ffb) {
     auto sem = m.GetSem("extforce");
 
     if (sem("loc")) {
-      // Restore balanced force from faces
       // XXX specific for Cartesian mesh
       // TODO consider just a weighted average of fn * n
       //      weight should be proportional to accuracy gradient approx
       //      which is better if surface area is larger
-      fcb_.Reinit(m);
+      fcb.Reinit(m);
       for (auto c : m.Cells()) {
         Vect s(0);
         for (auto q : m.Nci(c)) {
           // TODO: revise for non-rectangular cell
           IdxFace f = m.GetNeighbourFace(c, q);
           s += m.GetSurface(f) *
-              ((*ffbp_)[f] * m.GetCenter(c).dist(m.GetCenter(f)));
+              (ffbp[f] * m.GetCenter(c).dist(m.GetCenter(f)));
         }
-        fcb_[c] = s / m.GetVolume(c);
+        fcb[c] = s / m.GetVolume(c);
       }
 
       // TODO: comm fffp_ instead
       for (auto d : dr_) {
-        fcta_[d] = GetComponent(fcb_, d);
+        fcta_[d] = GetComponent(fcb, d);
         m.Comm(&fcta_[d]);
       }
     }
 
     if (sem("copy")) {
       for (auto d : dr_) {
-        SetComponent(fcb_, d, fcta_[d]);
+        SetComponent(fcb, d, fcta_[d]);
       }
-
-      // Interpolate balanced force to faces
-      ffb_ = Interpolate(fcb_, mfcf_, m);
+      ffb = Interpolate(fcb, mfcf_, m);
     }
-  }
-  void CalcKinematicViscosity() {
-    fcdk_.Reinit(m);
-    for (auto c : m.AllCells()) {
-      fcdk_[c] = (*fcd_)[c];
-    }
-    ffdk_ = Interpolate(fcdk_, mfcd_, m, par->forcegeom);
   }
 
  public:
@@ -436,7 +431,7 @@ class FluidSimple : public FluidSolver<M_> {
       fcfcd_.Reinit(m, Vect(0));
       cd_ = std::make_shared<
           ConvectionDiffusionImplicit<M>>(
-              m, fcw, mfcw_, mccw_, fcr, &ffdk_, 
+              m, fcw, mfcw_, mccw_, fcr, &ffd_, 
               &fcfcd_, &ffv_.iter_prev, time, time_step, p);
     }
 
@@ -707,7 +702,7 @@ class FluidSimple : public FluidSolver<M_> {
         Vect s(0);
         for (auto q : m.Nci(c)) {
           IdxFace f = m.GetNeighbourFace(c, q);
-          s += gf[f] * (ffdk_[f] * m.GetOutwardSurface(c, q)[d]);
+          s += gf[f] * (ffd_[f] * m.GetOutwardSurface(c, q)[d]);
         }
         fcf[c] += s / m.GetVolume(c);
       }
@@ -846,33 +841,32 @@ class FluidSimple : public FluidSolver<M_> {
     auto sem = m.GetSem("fluid-iter");
     auto& fcp_prev = fcp_.iter_prev;
     auto& fcp_curr = fcp_.iter_curr;
-
+    if (sem("init")) {
+      // Update convdiff par
+      Update(*cd_->GetPar(), *par);
+    }
     if (sem.Nested("inletflux")) {
       UpdateInletFlux();
     }
-
     if (sem.Nested("outlet")) {
       UpdateOutletBaseConditions();
     }
-
     if (sem.Nested("extforce")) {
-      CalcExtForce();
+      CalcExtForce(*ffbp_, fcb_, ffb_);
     }
-
     if (sem("forceinit")) {
-      Update(*cd_->GetPar(), *par);
       UpdateDerivedConditions();
+
+      // interpolate visosity 
+      ffd_ = Interpolate(*fcd_, mfcd_, m, par->forcegeom);
 
       fcp_prev = fcp_curr;
       ffv_.iter_prev = ffv_.iter_curr;
-
-      CalcKinematicViscosity();
-
-      // initialize force for convdiff
-      fcfcd_.Reinit(m, Vect(0));
     }
 
-    if (sem("forceappendbf")) {
+    if (sem("forceinit")) {
+      // initialize force for convdiff
+      fcfcd_.Reinit(m, Vect(0));
       // append force and balanced force
       for (auto c : m.Cells()) {
         fcfcd_[c] += (*fcf_)[c] + fcb_[c];
