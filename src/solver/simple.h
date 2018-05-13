@@ -146,18 +146,17 @@ class FluidSimple : public FluidSolver<M_> {
       IdxCell i = it.GetIdx();
       ConditionCellFluid* cb = it.GetValue().get();
 
-      if (auto cond = dynamic_cast<GivenPressure<M>*>(cb)) {
-        *dynamic_cast<ConditionCellValueFixed<Scal>*>(
-            mccp_[i].get()) =
-                ConditionCellValueFixed<Scal>(cond->GetPressure());
-      } else if (auto cond =
-          dynamic_cast<GivenVelocityAndPressure<M>*>(cb)) {
-        *dynamic_cast<ConditionCellValueFixed<Vect>*>(
-            mccw_[i].get()) =
-                ConditionCellValueFixed<Vect>(cond->GetVelocity());
-        *dynamic_cast<ConditionCellValueFixed<Scal>*>(
-            mccp_[i].get()) =
-                ConditionCellValueFixed<Scal>(cond->GetPressure());
+      if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
+        auto pb = mccp_[i].get();
+        auto pd = dynamic_cast<ConditionCellValueFixed<Scal>*>(pb);
+        pd->Set(cd->GetPressure());
+      } else if (auto cd = dynamic_cast<GivenVelocityAndPressure<M>*>(cb)) {
+        auto pb = mccp_[i].get();
+        auto pd = dynamic_cast<ConditionCellValueFixed<Scal>*>(pb);
+        pd->Set(cd->GetPressure());
+        auto wb = mccw_[i].get();
+        auto wd = dynamic_cast<ConditionCellValueFixed<Vect>*>(wb);
+        wd->Set(cd->GetVelocity());
       } else {
         throw std::runtime_error("Unknown fluid cell condition");
       }
