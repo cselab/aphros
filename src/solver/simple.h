@@ -520,7 +520,6 @@ class FluidSimple : public FluidSolver<M_> {
       if (!ffbd_[f]) { // if not boundary
         IdxCell cm = m.GetNeighbourCell(f, 0);
         IdxCell cp = m.GetNeighbourCell(f, 1);
-        // TODO remove getvecttocell
         Vect dm = m.GetVectToCell(f, 0);
         Vect dp = m.GetVectToCell(f, 1);
 
@@ -545,6 +544,28 @@ class FluidSimple : public FluidSolver<M_> {
     // Apply meshvel
     for (auto f : m.Faces()) {
       ffv[f] -= par->meshvel.dot(m.GetSurface(f));
+    }
+  }
+  // Apply cell conditions for pressure.
+  // fcs: linear system in terms of correction of base pressure
+  // fcpb: base pressure
+  void ApplyPcCond(FieldCell<Expr>& fcs, const FieldCell<Scal>& fcpb) {
+    for (auto it : mccp_) {
+      IdxCell ct(it.GetIdx()); // cell target
+      ConditionCell* cb = it.GetValue().get(); // cond base
+      if (auto cd = dynamic_cast<ConditionCellValue<Scal>*>(cb)) {
+        for (auto c : m.Cells()) {
+          auto& e = fcs[c];
+          Scal pc = cd->GetValue() - fcpb[c];
+          if (c == ct) { 
+            // Replace expression with [ct]-pc
+            e.SetKnownValueDiag(ct, pc);
+          } else {
+            // Replace all ct terms with pc
+            e.SetKnownValue(ct, pc);
+          }
+        }
+      }
     }
   }
   // Restore pressure given velocity and volume flux
@@ -824,24 +845,7 @@ class FluidSimple : public FluidSolver<M_> {
         e = s - Expr((*fcsv_)[c] * m.GetVolume(c));
       }
 
-      // Apply cell conditions for pressure
-      // Traverse all expressions for every condition
-      for (auto it : mccp_) {
-        IdxCell cc(it.GetIdx()); // cell cond
-        ConditionCell* cb = it.GetValue().get(); // cond base
-        if (auto cd = dynamic_cast<ConditionCellValue<Scal>*>(cb)) {
-          for (auto c : m.Cells()) {
-            auto& e = fcpcs_[c];
-            if (c == cc) { 
-              // Replace expression with p[c] = cd->GetValue()
-              e.SetKnownValueDiag(cc, cd->GetValue());
-            } else {
-              // Replace all cc terms with value
-              e.SetKnownValue(cc, cd->GetValue());
-            }
-          }
-        }
-      }
+      ApplyPcCond(fcpcs_, fcp_curr);
     }
 
     if (sem("pcorr-solve")) {
