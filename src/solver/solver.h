@@ -21,16 +21,6 @@ bool IsNan(const GField<T, Idx>& field) {
   return false;
 }
 
-template <class T, class Idx>
-GMap<T*, Idx> GetPointers(
-    const GMap<std::shared_ptr<T>, Idx>& m_ptr_shared) {
-  GMap<T*, Idx> m_ptr;
-  for (auto it = m_ptr_shared.cbegin(); it != m_ptr_shared.cend(); ++it) {
-    m_ptr[it->GetIdx()] = it->GetValue().get();
-  }
-  return m_ptr;
-}
-
 namespace solver {
 
 class ConditionFace {
