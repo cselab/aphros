@@ -1,0 +1,13 @@
+#!/bin/bash -l
+
+# local with Cubism
+
+echo running > job.status
+
+n=2
+export OMP_NUM_THREADS=1
+time mpirun -n $n --oversubscribe ../mfer cub$n.conf
+
+echo "Done."
+echo done > job.status
+

@@ -1,0 +1,12 @@
+*.log
+*.status
+alpha
+pressure
+*.h5
+*.xmf
+*.vts
+*.pvd
+stat.dat
+*.pdf
+Makefile
+sc
