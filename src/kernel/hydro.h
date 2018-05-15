@@ -190,7 +190,7 @@ void Hydro<M>::Init() {
           }
         }
         if (IsRoot()) {
-          std::cerr << "Read " 
+          std::cout << "Read " 
             << pp.size() << " particles from " 
             << "'" << fn << "'" << std::endl;
         }
@@ -933,7 +933,7 @@ void Hydro<M>::Run() {
         step_ > var.Int["max_step"]) {
       sem.LoopBreak();
     } else if (IsRoot()) { 
-      std::cerr 
+      std::cout 
           << "STEP=" << step_ 
           << " t=" << st_.t
           << " dt=" << st_.dt
