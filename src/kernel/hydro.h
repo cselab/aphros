@@ -933,7 +933,7 @@ void Hydro<M>::Run() {
         step_ > var.Int["max_step"]) {
       sem.LoopBreak();
     } else if (IsRoot()) { 
-      std::cout 
+      std::cout << std::defaultfloat << std::setprecision(5)
           << "STEP=" << step_ 
           << " t=" << st_.t
           << " dt=" << st_.dt
