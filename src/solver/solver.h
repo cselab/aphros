@@ -236,8 +236,8 @@ class InterpolationInnerFaceSecondUpwindDeferred :
     // f = fmm + fm + fp
     //const std::array<Scal, 3> a = {0., 1., 0.}; // FOU
     //const std::array<Scal, 3> a = {0., 0.5, 0.5}; // CD
-    const std::array<Scal, 3> a = {-0.5, 1.5, 0.}; // SOU
-    //const std::array<Scal, 3> a = {-1./8., 6./8., 3./8.}; // QUICK
+    //const std::array<Scal, 3> a = {-0.5, 1.5, 0.}; // SOU
+    const std::array<Scal, 3> a = {-1./8., 6./8., 3./8.}; // QUICK
     if (probe_[idxface] > threshold_) {
       expr.InsertTerm(a[1], cm);
       expr.InsertTerm(a[2]+a[0], cp);
