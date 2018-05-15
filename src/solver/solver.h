@@ -50,36 +50,28 @@ class ConditionFaceValue : public ConditionFace {
 template <class Vect>
 class ConditionFaceValueExtractComponent :
     public ConditionFaceValue<typename Vect::value_type> {
-  using Scal = typename Vect::value_type;
-  using P = ConditionFaceValue<Scal>;
-  ConditionFaceValue<Vect>* cond_;
-  size_t comp_;
  public:
-  ConditionFaceValueExtractComponent(ConditionFaceValue<Vect>* cond, 
-                                     size_t comp)
-      : P(cond->GetNci())
-      , cond_(cond)
-      , comp_(comp)
-  {}
-  Scal GetValue() const override {
-    return cond_->GetValue()[comp_];
-  }
+  using Scal = typename Vect::value_type;
+  using P = ConditionFaceValue<Scal>; // parent
+  ConditionFaceValueExtractComponent(ConditionFaceValue<Vect>* o, size_t d)
+      : P(o->GetNci()), o_(o), d_(d) {}
+  Scal GetValue() const override { return o_->GetValue()[d_]; }
+
+ private:
+  ConditionFaceValue<Vect>* o_;
+  size_t d_;
 };
 
-template <class Value>
-class ConditionFaceValueFixed : public ConditionFaceValue<Value> {
-  Value value_;
+template <class V>
+class ConditionFaceValueFixed : public ConditionFaceValue<V> {
  public:
-  ConditionFaceValueFixed(const Value& value, size_t nci)
-      : ConditionFaceValue<Value>(nci)
-      , value_(value)
-  {}
-  Value GetValue() const override {
-    return value_;
-  }
-  void Set(const Value& v) {
-    value_ = v;
-  }
+  ConditionFaceValueFixed(const V& v, size_t nci)
+      : ConditionFaceValue<V>(nci), v_(v) {}
+  V GetValue() const override { return v_; }
+  void Set(const V& v) { v_ = v; }
+
+ private:
+  V v_;
 };
 
 template <class Value>
