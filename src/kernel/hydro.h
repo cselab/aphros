@@ -75,6 +75,16 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   using FS = solver::FluidSimple<M>;
 
+  void Update(typename FS::Par* p) {
+    p->prelax = var.Double["prelax"];
+    p->vrelax = var.Double["vrelax"];
+    p->rhie = var.Double["rhie"];
+    p->second = var.Int["second_order"];
+    p->simpler = var.Int["simpler"];
+    // TODO: add check for inletflux_numid
+    p->inletflux_numid = var.Int["inletflux_numid"];
+  }
+
   FieldCell<Scal> fc_mu_; // viscosity
   FieldCell<Scal> fc_rho_; // density
   FieldFace<Scal> ff_rho_; // density
@@ -394,13 +404,7 @@ void Hydro<M>::Init() {
     // Init fluid solver
     {
       auto p = std::make_shared<typename FS::Par>();
-      p->prelax = var.Double["prelax"];
-      p->vrelax = var.Double["vrelax"];
-      p->rhie = var.Double["rhie"];
-      p->second = var.Int["second_order"];
-      p->simpler = var.Int["simpler"];
-      // TODO: add check for inletflux_numid
-      p->inletflux_numid = var.Int["inletflux_numid"];
+      Update(p.get());
 
       fs_.reset(new FS(
             m, fc_vel_, mf_velcond_, mc_velcond, 
@@ -939,6 +943,8 @@ void Hydro<M>::Run() {
           << " dt=" << st_.dt
           << std::endl;
     }
+
+    Update(p.get());
   }
   // TODO: merge iters of as and fs
   if (var.Int["enable_advection"]) {
