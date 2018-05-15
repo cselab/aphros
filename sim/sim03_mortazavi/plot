@@ -34,3 +34,4 @@ vol = s["m2"]
 mp.plot_lines([
     {'x':sx, 'y':(vol - vol[0]) / vol[0], 'lb':lbs},
         ] , preset='m')
+
