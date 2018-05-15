@@ -5,10 +5,15 @@
 
 echo running > job.status
 
+./clean
+./cleandat
+
 n=`cat np`
 mpirun ../mfer cub$n.conf &> out
 
 mv -vf job.id job.id.last
+
+./statcopy
 
 echo "Done."
 echo done > job.status
