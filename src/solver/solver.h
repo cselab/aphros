@@ -235,20 +235,20 @@ class InterpolationInnerFaceSecondUpwindDeferred :
     IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
     // f = fmm + fm + fp
     //const std::array<Scal, 3> a = {0., 1., 0.}; // FOU
-    //const std::array<Scal, 3> a = {0., 0.5, 0.5}; // CD
+    const std::array<Scal, 3> a = {0., 0.5, 0.5}; // CD
     //const std::array<Scal, 3> a = {-0.5, 1.5, 0.}; // SOU
-    const std::array<Scal, 3> a = {-1./8., 6./8., 3./8.}; // QUICK
+    //const std::array<Scal, 3> a = {-1./8., 6./8., 3./8.}; // QUICK
     if (probe_[idxface] > threshold_) {
       expr.InsertTerm(a[1], cm);
       expr.InsertTerm(a[2]+a[0], cp);
-      expr.SetConstant(4*a[0]*fc_prev_grad_[cm].dot(mesh.GetVectToCell(idxface, 0)));
+      expr.SetConstant(4. * a[0]*fc_prev_grad_[cm].dot(mesh.GetVectToCell(idxface, 0)));
       //expr.InsertTerm(1., cm);
       //expr.InsertTerm(0., cp);
       //expr.SetConstant(-fc_prev_grad_[cm].dot(mesh.GetVectToCell(idxface, 0)));
     } else if (probe_[idxface] < -threshold_) {
       expr.InsertTerm(a[2]+a[0], cm);
       expr.InsertTerm(a[1], cp);
-      expr.SetConstant(4*a[0]*fc_prev_grad_[cp].dot(mesh.GetVectToCell(idxface, 1)));
+      expr.SetConstant(4. * a[0]*fc_prev_grad_[cp].dot(mesh.GetVectToCell(idxface, 1)));
       //expr.InsertTerm(0., cm);
       //expr.InsertTerm(1., cp);
       //expr.SetConstant(-fc_prev_grad_[cp].dot(mesh.GetVectToCell(idxface, 1)));
