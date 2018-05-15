@@ -944,7 +944,7 @@ void Hydro<M>::Run() {
           << std::endl;
     }
 
-    Update(p.get());
+    Update(fs_->GetPar());
   }
   // TODO: merge iters of as and fs
   if (var.Int["enable_advection"]) {
