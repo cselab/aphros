@@ -235,6 +235,32 @@ void Hydro<M>::Init() {
           v[1] = -std::cos(x[0]) * std::sin(x[1]) * std::cos(x[2]);
           v[2] = 0.;
         }
+      } else if (vi == "vortex") {
+        Scal pi = M_PI;
+        Vect xc1(var.Vect["vort_x1"]);
+        Vect xc2(var.Vect["vort_x2"]);
+        Scal g1 = var.Double["vort_g1"];
+        Scal g2 = var.Double["vort_g2"];
+        Scal vmax = var.Double["vort_vmax"];
+        std::vector<Vect> xxc = {xc1, xc2};
+        std::vector<Scal> gg = {g1, g2};
+        for (size_t i = 0; i < xxc.size(); ++i) {
+          Vect xc = xxc[i];
+          Scal g = gg[i];
+          for (auto c : m.AllCells()) {
+            Vect x = m.GetCenter(c);
+            Scal r = xc.dist(x);
+            Scal r2 = r * r;
+            Vect v(0);
+            v[0] = -(x[1] - xc[1]) * g / r2 * 2. * pi;
+            v[1] = (x[0] - xc[0]) * g / r2 * 2. * pi;
+            if (v.norm() > vmax) {
+              v *= vmax / v.norm();
+            }
+            fc_vel_[c][0] += v[0];
+            fc_vel_[c][1] += v[1];
+          }
+        }
       } else if (vi == "pois") {
         Scal pv = var.Double["poisvel"];
         for (auto i : m.AllCells()) {
