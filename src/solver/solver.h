@@ -39,23 +39,31 @@ FieldFace<T> Interpolate(const FieldNode<T>& fn, const M& m) {
   return ff;
 }
 
-// Interpolates from cells to faces
-// T: value type (Scal or Vect)
-// M: mesh type
-// fc: field on cells
-// mfc: face conditions
-// m: mesh
+// Interpolation to inner faces.
+// fc: field cell [s]
 // Output:
-// returns field on faces
+// ff: face cell [i]
 template <class T, class M>
-FieldFace<T> Interpolate(
-    const FieldCell<T>& fc,
-    const MapFace<std::shared_ptr<CondFace>>& mfc, 
-    const M& m) {
+void InterpolateI(const FieldCell<T>& fc, FieldFace<T>& ff, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  FieldFace<T> ff(m, T(0)); // Valid 0 needed for CondFaceExtrap
+  for (auto f : m.Faces()) {
+    IdxCell cm = m.GetNeighbourCell(f, 0);
+    IdxCell cp = m.GetNeighbourCell(f, 1);
+    Scal a = 0.5;
+    ff[f] = fc[cm] * (1. - a) + fc[cp] * a;
+  }
+}
+
+// Interpolation to support faces.
+// fc: field cell [a]
+// Output:
+// ff: face cell [s]
+template <class T, class M>
+void InterpolateS(const FieldCell<T>& fc, FieldFace<T>& ff, const M& m) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
 
   for (auto f : m.SuFaces()) {
     IdxCell cm = m.GetNeighbourCell(f, 0);
@@ -63,6 +71,21 @@ FieldFace<T> Interpolate(
     Scal a = 0.5;
     ff[f] = fc[cm] * (1. - a) + fc[cp] * a;
   }
+}
+
+
+// Interpolation to faces with defined conditions.
+// fc: field cell [i]
+// mfc: face cond
+// Output:
+// ff: values updated on faces defined in mfc
+template <class T, class M>
+void InterpolateB(
+    const FieldCell<T>& fc,
+    const MapFace<std::shared_ptr<CondFace>>& mfc, 
+    FieldFace<T>& ff, const M& m) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
 
   for (const auto& it : mfc) {
     IdxFace f = it.GetIdx();
@@ -99,6 +122,27 @@ FieldFace<T> Interpolate(
       throw std::runtime_error("Unknown boundary condition type");
     }
   }
+}
+
+// Interpolates from cells to support faces.
+// T: value type (Scal or Vect)
+// fc: field cell [a]
+// mfc: face cond
+// Output:
+// field face [s]
+template <class T, class M>
+FieldFace<T> Interpolate(
+    const FieldCell<T>& fc,
+    const MapFace<std::shared_ptr<CondFace>>& mfc, 
+    const M& m) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+
+  FieldFace<T> ff(m, T(0)); // Valid 0 needed for CondFaceExtrap
+
+  InterpolateS(fc, ff, m);
+  InterpolateB(fc, mfc, ff, m);
+
   return ff;
 }
 
@@ -112,60 +156,44 @@ Scal Superbee(Scal p, Scal q) {
   return 0.;
 }
 
+// Second order upwind interpolation with TVD Superbee limiter
+// fc: field cell [a]
+// fcg: gradient of field [a]
+// mfc: face cond
+// ffw: flow direction [s]
+// Output:
+// field face [s]
 template <class M>
-FieldFace<typename M::Scal>
-InterpolateSuperbee(
+FieldFace<typename M::Scal> InterpolateSuperbee(
     const FieldCell<typename M::Scal>& fc,
-    const FieldCell<typename M::Vect>& fc_grad,
+    const FieldCell<typename M::Vect>& fcg,
     const MapFace<std::shared_ptr<CondFace>>& mfc,
-    const FieldFace<typename M::Scal>& probe,
-    const M& m, typename M::Scal threshold = 1e-8) {
+    const FieldFace<typename M::Scal>& ffw,
+    const M& m, typename M::Scal th = 1e-8) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  using IdxCell = IdxCell;
-  using IdxFace = IdxFace;
 
-  FieldFace<Scal> res(m);
+  FieldFace<Scal> ff(m);
 
   for (IdxFace f : m.SuFaces()) {
-		 IdxCell P = m.GetNeighbourCell(f, 0);
-		 IdxCell E = m.GetNeighbourCell(f, 1);
-		 Vect rp = m.GetVectToCell(f, 0); 
-		 Vect re = m.GetVectToCell(f, 1); 
+		 IdxCell cm = m.GetNeighbourCell(f, 0);
+		 IdxCell cp = m.GetNeighbourCell(f, 1);
+		 Vect rm = m.GetVectToCell(f, 0); 
+		 Vect rp = m.GetVectToCell(f, 1); 
 		 const auto& u = fc;
-		 const auto& g = fc_grad;
-		 if (probe[f] > threshold) {
-			 res[f] =
-					 u[P] + 0.5 * Superbee(u[E] - u[P],
-																 -Scal(4.) * g[P].dot(rp) - (u[E] - u[P]));
-		 } else if (probe[f] < -threshold) {
-			 res[f] =
-					 u[E] - 0.5 * Superbee(u[E] - u[P],
-																 Scal(4.) * g[E].dot(re) - (u[E] - u[P]));
+		 const auto& g = fcg;
+     Scal du = u[cp] - u[cm];
+		 if (ffw[f] > th) {
+			 ff[f] = u[cp] + 0.5 * Superbee(du, -4. * g[cm].dot(rm) - du);
+		 } else if (ffw[f] < -th) {
+			 ff[f] = u[cm] - 0.5 * Superbee(du, 4. * g[cp].dot(rp) - du);
 		 } else {
-			 // TODO: Make a CDS proper for non-uniform grids
-			 res[f] = 0.5 * (u[P] + u[E]);
+			 ff[f] = 0.5 * (u[cm] + u[cp]);
 		 }
   }
 
-  // TODO: Move interpolation on boundaries to a function
-  for (auto it = mfc.cbegin(); it != mfc.cend(); ++it) {
-    IdxFace f = it->GetIdx();
-    CondFace* cond = it->GetValue().get();
-    if (auto cond_value = dynamic_cast<CondFaceVal<Scal>*>(cond)) {
-      res[f] = cond_value->GetValue();
-    } else if (auto cond_derivative =
-        dynamic_cast<CondFaceGrad<Scal>*>(cond)) {
-      size_t id = cond->GetNci();
-      IdxCell cc = m.GetNeighbourCell(f, id);
-      Scal factor = (id == 0 ? 1. : -1.);
-      Scal alpha = m.GetVectToCell(f, id).norm() * factor;
-      res[f] = fc[cc] + cond_derivative->GetGrad() * alpha;
-    } else {
-      throw std::runtime_error("Unknown boundary condition type");
-    }
-  }
-  return res;
+  InterpolateB(fc, mfc, ff, m);
+  return ff;
 }
 
 template <class T, class M>
