@@ -12,15 +12,13 @@ class Approx {
 };
 
 template <class M, class Expr>
-class InterpolationInnerFaceSecondUpwindDeferred 
-    : public Approx<IdxFace, Expr> {
+class FaceVal : public Approx<IdxFace, Expr> {
  public:
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  InterpolationInnerFaceSecondUpwindDeferred(
-      const M& m, const FieldFace<Scal>& w, 
-      const FieldCell<Scal>& fcp, const FieldCell<Vect>& fcgp, 
-      Scal th = 1e-10)
+  FaceVal(const M& m, const FieldFace<Scal>& w, 
+          const FieldCell<Scal>& fcp, const FieldCell<Vect>& fcgp, 
+          Scal th = 1e-10)
       : m(m), w_(w), fcp_(fcp), fcgp_(fcgp), th_(th) {}
   Expr GetExpr(IdxFace f) const override {
     Expr e;
@@ -55,12 +53,11 @@ class InterpolationInnerFaceSecondUpwindDeferred
 };
 
 template <class M, class Expr>
-class InterpolationBoundaryFaceNearestCell : public Approx<IdxFace, Expr> {
+class FaceValB : public Approx<IdxFace, Expr> {
  public:
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  InterpolationBoundaryFaceNearestCell(
-      const M& m, const MapFace<std::shared_ptr<ConditionFace>>& mfc)
+  FaceValB(const M& m, const MapFace<std::shared_ptr<ConditionFace>>& mfc)
       : m(m), mfc_(mfc) {}
   Expr GetExpr(IdxFace f) const override {
     Expr e;
@@ -94,10 +91,10 @@ class InterpolationBoundaryFaceNearestCell : public Approx<IdxFace, Expr> {
 };
 
 template <class M, class Expr>
-class DerivativeInnerFacePlain : public Approx<IdxFace, Expr> {
+class FaceGrad : public Approx<IdxFace, Expr> {
  public:
   using Scal = typename M::Scal;
-  explicit DerivativeInnerFacePlain(const M& m) : m(m) {}
+  explicit FaceGrad(const M& m) : m(m) {}
   Expr GetExpr(IdxFace f) const override {
     Expr e;
     IdxCell cm = m.GetNeighbourCell(f, 0);
@@ -115,11 +112,11 @@ class DerivativeInnerFacePlain : public Approx<IdxFace, Expr> {
 };
 
 template <class M, class Expr>
-class DerivativeBoundaryFacePlain : public Approx<IdxFace, Expr> {
+class FaceGradB : public Approx<IdxFace, Expr> {
  public:
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  explicit DerivativeBoundaryFacePlain(
+  explicit FaceGradB(
       const M& m, const MapFace<std::shared_ptr<ConditionFace>>& mfc)
       : m(m), mfc_(mfc) {}
   Expr GetExpr(IdxFace f) const override {
