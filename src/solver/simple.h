@@ -344,7 +344,6 @@ class FluidSimple : public FluidSolver<M_> {
     bool simpler = false; // Use SIMPLER  TODO: implement SIMPLER
     Scal guessextra = 0;  // next iteration extrapolation weight [0,1]
     Vect meshvel = Vect(0);  // relative mesh velocity
-    bool forcegeom = false; // geometric average for force
     size_t inletflux_numid = 0; // reduction for id from 0 to numid-1
   };
   std::shared_ptr<Par> par;
@@ -846,7 +845,7 @@ class FluidSimple : public FluidSolver<M_> {
       // update convdiff par
       Update(*cd_->GetPar(), *par);
       // interpolate visosity 
-      ffd_ = Interpolate(*fcd_, mfcd_, m, par->forcegeom);
+      ffd_ = Interpolate(*fcd_, mfcd_, m);
 
       // rotate layers
       fcp_prev = fcp_curr;

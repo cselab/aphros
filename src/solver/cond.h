@@ -2,22 +2,22 @@ namespace solver {
 
 class CondFace {
  public:
+  // nci: neighbour cell id
   CondFace(size_t nci) : nci_(nci) {}
   virtual ~CondFace() {}
-  // neighbour cell id
-  virtual size_t GetNci() const {
-    return nci_;
-  }
+  virtual size_t GetNci() const { return nci_; }
 
  private:
   size_t nci_;
 };
 
+// First order exptrapolation from cell
 class CondFaceExtrap : public CondFace {
  public:
   CondFaceExtrap(size_t nci) : CondFace(nci) {}
 };
 
+// Condition for value
 template <class V>
 class CondFaceVal : public CondFace {
  public:
@@ -25,9 +25,9 @@ class CondFaceVal : public CondFace {
   virtual V GetValue() const = 0;
 };
 
+// Extract single component from a Vect condition
 template <class Vect>
-class CondFaceValComp :
-    public CondFaceVal<typename Vect::value_type> {
+class CondFaceValComp : public CondFaceVal<typename Vect::value_type> {
  public:
   using Scal = typename Vect::value_type;
   using P = CondFaceVal<Scal>; // parent
@@ -40,6 +40,7 @@ class CondFaceValComp :
   size_t d_;
 };
 
+// Given value
 template <class V>
 class CondFaceValFixed : public CondFaceVal<V> {
  public:
@@ -51,6 +52,7 @@ class CondFaceValFixed : public CondFaceVal<V> {
   V v_;
 };
 
+// Condition for gradient
 template <class V>
 class CondFaceGrad : public CondFace {
  public:
@@ -58,6 +60,7 @@ class CondFaceGrad : public CondFace {
   virtual V GetGrad() const = 0;
 };
 
+// Given gradient
 template <class V>
 class CondFaceGradFixed : public CondFaceGrad<V> {
  public:
@@ -75,12 +78,14 @@ class CondCell {
   virtual ~CondCell() {}
 };
 
+// Condition for value
 template <class V>
 class CondCellVal : public CondCell {
  public:
   virtual V GetValue() const = 0;
 };
 
+// Given value
 template <class V>
 class CondCellValFixed : public CondCellVal<V> {
  public:
