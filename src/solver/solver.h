@@ -344,52 +344,57 @@ Scal CalcDiff(const GField<typename M::Vect, Idx>& first,
   return res;
 }
 
-// derivative(arg_target) = sum_i (coeff_i * func(arg_i))
+// Coefficients for approximation of gradient with polynomial.
+// x: target point
+// z: stencil points
+// Output:
+// k: such that grad(x) = sum_i (ki * f(zi))
 template <class Scal>
-std::vector<Scal> GetGradCoeffs(
-    Scal arg_target, const std::vector<Scal>& args) {
+std::vector<Scal> GetGradCoeffs(Scal x, const std::vector<Scal>& z) {
+  // TODO: test
 
-  auto size = args.size();
-  std::vector<Scal> res(size);
-  for (size_t i = 0; i < size; ++i) {
-    Scal denom = 1.;
-    Scal numer = 0.;
-    for (size_t j = 0; j < size; ++j) {
+  size_t s = z.size();
+  std::vector<Scal> k(s);
+  for (size_t i = 0; i < s; ++i) {
+    Scal a = 0.;
+    Scal b = 1.;
+    for (size_t j = 0; j < s; ++j) {
       if (j != i) {
-        denom *= args[i] - args[j];
-        Scal term = 1.;
-        for (size_t k = 0; k < size; ++k) {
+        b *= z[i] - z[j];
+        Scal t = 1.;
+        for (size_t k = 0; k < s; ++k) {
           if (k != i && k != j) {
-            term *= arg_target - args[k];
+            t *= x - z[k];
           }
         }
-        numer += term;
+        a += t;
       }
     }
-    res[i] = numer / denom;
+    k[i] = a / b;
   }
-  return res;
+  return k;
 }
 
 
+// Returns GetGradCoeffs(x,z[b:]) preceeded by b zeros.
 template <class Scal>
 std::vector<Scal> GetGradCoeffs(
-    Scal arg_target, const std::vector<Scal>& args, size_t skip_initial) {
-  auto size = args.size();
-  size_t cut_size = size - skip_initial;
-  std::vector<Scal> cut_args(cut_size);
-  for (size_t i = 0; i < cut_size; ++i) {
-    cut_args[i] = args[skip_initial + i];
+    Scal x, const std::vector<Scal>& z, size_t b) {
+  size_t s = z.size();
+  size_t ss = s - b;
+  std::vector<Scal> zz(ss);
+  for (size_t i = 0; i < ss; ++i) {
+    zz[i] = z[b + i];
   }
-  auto cut_coeffs = GetGradCoeffs(arg_target, cut_args);
-  std::vector<Scal> res(size);
-  for (size_t i = 0; i < skip_initial; ++i) {
-    res[i] = 0.;
+  std::vector<Scal> kk = GetGradCoeffs(x, zz);
+  std::vector<Scal> k(s);
+  for (size_t i = 0; i < b; ++i) {
+    k[i] = 0.;
   }
-  for (size_t i = 0; i < cut_size; ++i) {
-    res[skip_initial + i] = cut_coeffs[i];
+  for (size_t i = 0; i < ss; ++i) {
+    k[b + i] = kk[i];
   }
-  return res;
+  return k;
 }
 
 } // namespace solver

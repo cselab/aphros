@@ -34,7 +34,7 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
       const FieldFace<Scal>* ffv, // volume flux
       double t, double dt, std::shared_ptr<Par> par)
       : ConvectionDiffusionScalar<M>(t, dt, fcr, ffd, fcs, ffv)
-      , m(m), par(par), mfc_(mfc), mcc_(mcc)
+      , m(m), par(par), mfc_(mfc), mcc_(mcc), dtp_(-1.)
   {
     fcu_.time_curr = fcu;
     fcu_.time_prev = fcu_.time_curr;
@@ -50,6 +50,9 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
     for (auto c : m.Cells()) {
       fcu_.iter_curr[c] +=
           (fcu_.time_curr[c] - fcu_.time_prev[c]) * ge;
+    }
+    if (dtp_ == -1.) {
+      dtp_ = this->GetTimeStep();
     }
   }
   // Assembles linear system
@@ -119,9 +122,9 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
           sd += ffqd_[f] * m.GetOutwardFactor(c, q);
         }
 
-        auto dt = this->GetTimeStep();
-        auto ac = GetGradCoeffs(
-            0., {-2. * dt, -dt, 0.}, par->second ? 0 : 1);
+        Scal dt = this->GetTimeStep();
+        std::vector<Scal> ac = GetGradCoeffs(
+            0., {-(dt + dtp_), -dt, 0.}, par->second ? 0 : 1);
 
         Expr tt; // time derivative term
         tt.InsertTerm(ac[2], c);
@@ -203,6 +206,7 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
       throw std::runtime_error("NaN field");
     }
     this->IncTime();
+    dtp_ = this->GetTimeStep();
   }
   double GetError() const override {
     if (this->GetIter() == 0) {
@@ -254,6 +258,8 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
 
   // tmp for ConvertLs
   std::vector<Scal> lsa_, lsb_, lsx_;
+
+  Scal dtp_; // dt prev
 };
 
 } // namespace solver
