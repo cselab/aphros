@@ -49,21 +49,21 @@ class FluidSimple : public FluidSolver<M_> {
 
   std::shared_ptr<CD> cd_;
 
-  // TODO: Const specifier for ConditionFace*
+  // TODO: Const specifier for CondFace*
   
   // Face conditions
-  MapFace<std::shared_ptr<ConditionFaceFluid>> mfc_; // fluid cond
-  MapFace<std::shared_ptr<ConditionFace>> mfcw_; // velocity cond
-  MapFace<std::shared_ptr<ConditionFace>> mfcp_; // pressure cond
-  MapFace<std::shared_ptr<ConditionFace>> mfcf_; // force cond
-  MapFace<std::shared_ptr<ConditionFace>> mfck_; // diag coeff cond
-  MapFace<std::shared_ptr<ConditionFace>> mfcpc_; // pressure corr cond
-  MapFace<std::shared_ptr<ConditionFace>> mfcd_; // dynamic viscosity cond
+  MapFace<std::shared_ptr<CondFaceFluid>> mfc_; // fluid cond
+  MapFace<std::shared_ptr<CondFace>> mfcw_; // velocity cond
+  MapFace<std::shared_ptr<CondFace>> mfcp_; // pressure cond
+  MapFace<std::shared_ptr<CondFace>> mfcf_; // force cond
+  MapFace<std::shared_ptr<CondFace>> mfck_; // diag coeff cond
+  MapFace<std::shared_ptr<CondFace>> mfcpc_; // pressure corr cond
+  MapFace<std::shared_ptr<CondFace>> mfcd_; // dynamic viscosity cond
 
   // Cell conditions
-  MapCell<std::shared_ptr<ConditionCellFluid>> mcc_; // fluid cell cond
-  MapCell<std::shared_ptr<ConditionCell>> mccp_; // pressure cell cond
-  MapCell<std::shared_ptr<ConditionCell>> mccw_; // velocity cell cond
+  MapCell<std::shared_ptr<CondCellFluid>> mcc_; // fluid cell cond
+  MapCell<std::shared_ptr<CondCell>> mccp_; // pressure cell cond
+  MapCell<std::shared_ptr<CondCell>> mccw_; // velocity cell cond
 
   FieldFace<bool> ffbd_; // is boundary
 
@@ -124,17 +124,17 @@ class FluidSimple : public FluidSolver<M_> {
     // Face conditions
     for (auto it : mfc_) {
       IdxFace i = it.GetIdx();
-      ConditionFaceFluid* cb = it.GetValue().get();
+      CondFaceFluid* cb = it.GetValue().get();
       auto p = mfcw_[i].get();
 
       if (auto cd = dynamic_cast<NoSlipWall<M>*>(cb)) {
-        auto pd = dynamic_cast<ConditionFaceValueFixed<Vect>*>(p);
+        auto pd = dynamic_cast<CondFaceValFixed<Vect>*>(p);
         pd->Set(cd->GetVelocity());
       } else if (auto cd = dynamic_cast<Inlet<M>*>(cb)) {
-        auto pd = dynamic_cast<ConditionFaceValueFixed<Vect>*>(p);
+        auto pd = dynamic_cast<CondFaceValFixed<Vect>*>(p);
         pd->Set(cd->GetVelocity());
       } else if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
-        auto pd = dynamic_cast<ConditionFaceValueFixed<Vect>*>(p);
+        auto pd = dynamic_cast<CondFaceValFixed<Vect>*>(p);
         pd->Set(cd->GetVelocity());
       } else {
         throw std::runtime_error("Unknown fluid condition");
@@ -144,18 +144,18 @@ class FluidSimple : public FluidSolver<M_> {
     // Cell conditions
     for (auto it : mcc_) {
       IdxCell i = it.GetIdx();
-      ConditionCellFluid* cb = it.GetValue().get();
+      CondCellFluid* cb = it.GetValue().get();
 
       if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
         auto pb = mccp_[i].get();
-        auto pd = dynamic_cast<ConditionCellValueFixed<Scal>*>(pb);
+        auto pd = dynamic_cast<CondCellValFixed<Scal>*>(pb);
         pd->Set(cd->GetPressure());
       } else if (auto cd = dynamic_cast<GivenVelocityAndPressure<M>*>(cb)) {
         auto pb = mccp_[i].get();
-        auto pd = dynamic_cast<ConditionCellValueFixed<Scal>*>(pb);
+        auto pd = dynamic_cast<CondCellValFixed<Scal>*>(pb);
         pd->Set(cd->GetPressure());
         auto wb = mccw_[i].get();
-        auto wd = dynamic_cast<ConditionCellValueFixed<Vect>*>(wb);
+        auto wd = dynamic_cast<CondCellValFixed<Vect>*>(wb);
         wd->Set(cd->GetVelocity());
       } else {
         throw std::runtime_error("Unknown fluid cell condition");
@@ -184,7 +184,7 @@ class FluidSimple : public FluidSolver<M_> {
       auto& vel = this->GetVelocity(Layers::iter_curr);
       for (auto it : mfc_) {
         IdxFace i = it.GetIdx();
-        ConditionFaceFluid* cb = it.GetValue().get(); // cond base
+        CondFaceFluid* cb = it.GetValue().get(); // cond base
 
         size_t nci = cb->GetNci();
         IdxCell c = m.GetNeighbourCell(i, nci);
@@ -218,7 +218,7 @@ class FluidSimple : public FluidSolver<M_> {
         Scal dv = (ilft_[id] - ilfe_[id]) / ila_[id];  // velocity
         for (auto it : mfc_) {
           IdxFace i = it.GetIdx();
-          ConditionFaceFluid* cb = it.GetValue().get(); // cond base
+          CondFaceFluid* cb = it.GetValue().get(); // cond base
 
           if (auto cd = dynamic_cast<InletFlux<M>*>(cb)) {
             size_t nci = cd->GetNci();
@@ -249,7 +249,7 @@ class FluidSimple : public FluidSolver<M_> {
       // and compute total fluxes
       for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
         IdxFace i = it->GetIdx();
-        ConditionFaceFluid* cb = it->GetValue().get(); // cond base
+        CondFaceFluid* cb = it->GetValue().get(); // cond base
 
         size_t id = cb->GetNci();
         IdxCell c = m.GetNeighbourCell(i, id);
@@ -282,7 +282,7 @@ class FluidSimple : public FluidSolver<M_> {
       // Apply correction on outlet faces
       for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
         IdxFace i = it->GetIdx();
-        ConditionFaceFluid* cb = it->GetValue().get(); // cond base
+        CondFaceFluid* cb = it->GetValue().get(); // cond base
 
         if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
           size_t id = cd->GetNci();
@@ -353,8 +353,8 @@ class FluidSimple : public FluidSolver<M_> {
   // TODO: Add Comm for initial fields or require taht from user.
   FluidSimple(M& m,
               const FieldCell<Vect>& fcw,
-              const MapFace<std::shared_ptr<ConditionFaceFluid>>& mfc,
-              const MapCell<std::shared_ptr<ConditionCellFluid>>& mcc,
+              const MapFace<std::shared_ptr<CondFaceFluid>>& mfc,
+              const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
               FieldCell<Scal>* fcr,  // density
               FieldCell<Scal>* fcd,  // dynamic viscosity
               FieldCell<Vect>* fcf,  // force 
@@ -374,50 +374,50 @@ class FluidSimple : public FluidSolver<M_> {
     for (auto it : mfc_) {
       IdxFace i = it.GetIdx();
       ffbd_[i] = true;
-      ConditionFaceFluid* cb = it.GetValue().get();
+      CondFaceFluid* cb = it.GetValue().get();
       size_t nci = cb->GetNci();
 
       if (auto cd = dynamic_cast<NoSlipWall<M>*>(cb)) {
         mfcw_[i] = std::make_shared<
-            ConditionFaceValueFixed<Vect>>(cd->GetVelocity(), nci);
+            CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
         mfcp_[i] = std::make_shared<
-            ConditionFaceExtrapolation>(nci);
+            CondFaceExtrap>(nci);
       } else if (auto cd = dynamic_cast<Inlet<M>*>(cb)) {
         mfcw_[i] = std::make_shared<
-            ConditionFaceValueFixed<Vect>>(cd->GetVelocity(), nci);
+            CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
         mfcp_[i] = std::make_shared<
-            ConditionFaceExtrapolation>(nci);
+            CondFaceExtrap>(nci);
       } else if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
         mfcw_[i] = std::make_shared<
-            ConditionFaceValueFixed<Vect>>(cd->GetVelocity(), nci);
+            CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
         mfcp_[i] = std::make_shared<
-            ConditionFaceExtrapolation>(nci);
+            CondFaceExtrap>(nci);
       } else {
         throw std::runtime_error("Unknown fluid condition");
       }
 
       mfcf_[i] = std::make_shared<
-          ConditionFaceDerivativeFixed<Vect>>(Vect(0), nci);
+          CondFaceGradFixed<Vect>>(Vect(0), nci);
       mfcpc_[i] = std::make_shared<
-          ConditionFaceExtrapolation>(nci);
+          CondFaceExtrap>(nci);
       mfcd_[i] = std::make_shared<
-          ConditionFaceDerivativeFixed<Scal>>(0., nci);
+          CondFaceGradFixed<Scal>>(0., nci);
       mfck_[i] = std::make_shared<
-          ConditionFaceDerivativeFixed<Scal>>(0, nci);
+          CondFaceGradFixed<Scal>>(0, nci);
     }
 
     for (auto it : mcc_) {
       IdxCell c = it.GetIdx();
-      ConditionCellFluid* cb = it.GetValue().get(); // cond base
+      CondCellFluid* cb = it.GetValue().get(); // cond base
 
       if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
         mccp_[c] = std::make_shared<
-            ConditionCellValueFixed<Scal>>(cd->GetPressure());
+            CondCellValFixed<Scal>>(cd->GetPressure());
       } else if (auto cd = dynamic_cast<GivenVelocityAndPressure<M>*>(cb)) {
         mccp_[c] = std::make_shared<
-            ConditionCellValueFixed<Scal>>(cd->GetPressure());
+            CondCellValFixed<Scal>>(cd->GetPressure());
         mccw_[c] = std::make_shared<
-            ConditionCellValueFixed<Vect>>(cd->GetVelocity());
+            CondCellValFixed<Vect>>(cd->GetVelocity());
       } else {
         throw std::runtime_error("Unknown fluid cell condition");
       }
@@ -543,8 +543,8 @@ class FluidSimple : public FluidSolver<M_> {
   void ApplyPcCond(const FieldCell<Scal>& fcpb, FieldCell<Expr>& fcs) {
     for (auto it : mccp_) {
       IdxCell ct(it.GetIdx()); // cell target
-      ConditionCell* cb = it.GetValue().get(); // cond base
-      if (auto cd = dynamic_cast<ConditionCellValue<Scal>*>(cb)) {
+      CondCell* cb = it.GetValue().get(); // cond base
+      if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
         for (auto c : m.Cells()) {
           auto& e = fcs[c];
           Scal pc = cd->GetValue() - fcpb[ct];

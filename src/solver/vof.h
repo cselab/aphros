@@ -301,7 +301,7 @@ class Vof : public AdvectionSolver<M_> {
   using P::ffv_;
   using P::fcs_;
   LayersData<FieldCell<Scal>> fc_u_;
-  MapFace<std::shared_ptr<ConditionFace>> mf_u_cond_;
+  MapFace<std::shared_ptr<CondFace>> mf_u_cond_;
 
   FieldCell<Scal> fc_a_; // alpha (plane constant)
   FieldCell<Vect> fc_n_; // n (normal to plane)
@@ -317,7 +317,7 @@ class Vof : public AdvectionSolver<M_> {
   Vof(
       M& m,
       const FieldCell<Scal>& fc_u_initial,
-      const MapFace<std::shared_ptr<ConditionFace>>& mf_u_cond_,
+      const MapFace<std::shared_ptr<CondFace>>& mf_u_cond_,
       const FieldFace<Scal>* ff_volume_flux,
       const FieldCell<Scal>* fc_source,
       double t, double dt, std::shared_ptr<Par> par)

@@ -47,20 +47,20 @@ class FluidSolver : public UnsteadyIterativeSolver {
   virtual double GetAutoTimeStep() { return GetTimeStep(); }
 };
 
-class ConditionFaceFluid : public ConditionFace {
+class CondFaceFluid : public CondFace {
  public:
-  ConditionFaceFluid(size_t nci) : ConditionFace(nci) {}
+  CondFaceFluid(size_t nci) : CondFace(nci) {}
 };
 
-class ConditionCellFluid : public ConditionCell {};
+class CondCellFluid : public CondCell {};
 
 namespace fluid_condition {
 
 template <class M>
-class NoSlipWall : public ConditionFaceFluid {
+class NoSlipWall : public CondFaceFluid {
  public:
   using Vect = typename M::Vect;
-  NoSlipWall(size_t nci) : ConditionFaceFluid(nci) {}
+  NoSlipWall(size_t nci) : CondFaceFluid(nci) {}
   virtual Vect GetVelocity() const = 0;
 };
 
@@ -76,10 +76,10 @@ class NoSlipWallFixed : public NoSlipWall<M> {
 };
 
 template <class M>
-class Inlet : public ConditionFaceFluid {
+class Inlet : public CondFaceFluid {
  public:
   using Vect = typename M::Vect;
-  Inlet(size_t nci) : ConditionFaceFluid(nci) {}
+  Inlet(size_t nci) : CondFaceFluid(nci) {}
   virtual Vect GetVelocity() const = 0;
   virtual void SetVelocity(Vect) = 0;
 };
@@ -111,10 +111,10 @@ class InletFlux : public Inlet<M> {
 };
 
 template <class M>
-class Outlet : public ConditionFaceFluid {
+class Outlet : public CondFaceFluid {
  public:
   using Vect = typename M::Vect;
-  Outlet(size_t nci) : ConditionFaceFluid(nci) {}
+  Outlet(size_t nci) : CondFaceFluid(nci) {}
   virtual Vect GetVelocity() const = 0;
   virtual void SetVelocity(Vect) = 0;
 };
@@ -132,7 +132,7 @@ class OutletAuto : public Outlet<M> {
 };
 
 template <class M>
-class GivenVelocityAndPressure : public ConditionCellFluid {
+class GivenVelocityAndPressure : public CondCellFluid {
  public:
   using Vect = typename M::Vect;
   using Scal = typename M::Scal;
@@ -157,7 +157,7 @@ class GivenVelocityAndPressureFixed : public GivenVelocityAndPressure<M> {
 };
 
 template <class M>
-class GivenPressure : public ConditionCellFluid {
+class GivenPressure : public CondCellFluid {
  public:
   using Scal = typename M::Scal;
   virtual Scal GetPressure() const = 0;
@@ -179,7 +179,7 @@ class GivenPressureFixed : public GivenPressure<M> {
 
 
 template <class M>
-std::shared_ptr<ConditionFaceFluid> Parse(std::string argstr,
+std::shared_ptr<CondFaceFluid> Parse(std::string argstr,
                                           IdxFace idxface,
                                           size_t nc /*neighbour cell id*/, 
                                           const M& m) {

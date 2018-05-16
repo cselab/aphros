@@ -62,7 +62,7 @@ GVect<Scal, dim> GetGeometricAverage(
 template <class T, class M>
 FieldFace<T> Interpolate(
     const FieldCell<T>& fc_u,
-    const MapFace<std::shared_ptr<ConditionFace>>& mf_cond_u,
+    const MapFace<std::shared_ptr<CondFace>>& mf_cond_u,
     const M& m, bool geometric = false) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
@@ -92,17 +92,17 @@ FieldFace<T> Interpolate(
 
   for (auto it = mf_cond_u.cbegin(); it != mf_cond_u.cend(); ++it) {
     IdxFace f = it->GetIdx();
-    ConditionFace* cond = it->GetValue().get();
-    if (auto cond_value = dynamic_cast<ConditionFaceValue<T>*>(cond)) {
+    CondFace* cond = it->GetValue().get();
+    if (auto cond_value = dynamic_cast<CondFaceVal<T>*>(cond)) {
       res[f] = cond_value->GetValue();
     } else if (auto cond_derivative =
-        dynamic_cast<ConditionFaceDerivative<T>*>(cond)) {
+        dynamic_cast<CondFaceGrad<T>*>(cond)) {
       size_t id = cond->GetNci();
       IdxCell cc = m.GetNeighbourCell(f, id);
       Scal factor = (id == 0 ? 1. : -1.);
       Scal alpha = m.GetVectToCell(f, id).norm() * factor;
-      res[f] = fc_u[cc] + cond_derivative->GetDerivative() * alpha;
-    } else if (dynamic_cast<ConditionFaceExtrapolation*>(cond)) {
+      res[f] = fc_u[cc] + cond_derivative->GetGrad() * alpha;
+    } else if (dynamic_cast<CondFaceExtrap*>(cond)) {
       size_t id = cond->GetNci();
       IdxCell c = m.GetNeighbourCell(f, id);
       Scal factor = (id == 0 ? 1. : -1.);
@@ -169,7 +169,7 @@ FieldFace<typename M::Scal>
 InterpolateSuperbee(
     const FieldCell<typename M::Scal>& fc_u,
     const FieldCell<typename M::Vect>& fc_u_grad,
-    const MapFace<std::shared_ptr<ConditionFace>>& mf_cond_u,
+    const MapFace<std::shared_ptr<CondFace>>& mf_cond_u,
     const FieldFace<typename M::Scal>& probe,
     const M& m, typename M::Scal threshold = 1e-8) {
   using Scal = typename M::Scal;
@@ -203,16 +203,16 @@ InterpolateSuperbee(
   // TODO: Move interpolation on boundaries to a function
   for (auto it = mf_cond_u.cbegin(); it != mf_cond_u.cend(); ++it) {
     IdxFace f = it->GetIdx();
-    ConditionFace* cond = it->GetValue().get();
-    if (auto cond_value = dynamic_cast<ConditionFaceValue<Scal>*>(cond)) {
+    CondFace* cond = it->GetValue().get();
+    if (auto cond_value = dynamic_cast<CondFaceVal<Scal>*>(cond)) {
       res[f] = cond_value->GetValue();
     } else if (auto cond_derivative =
-        dynamic_cast<ConditionFaceDerivative<Scal>*>(cond)) {
+        dynamic_cast<CondFaceGrad<Scal>*>(cond)) {
       size_t id = cond->GetNci();
       IdxCell cc = m.GetNeighbourCell(f, id);
       Scal factor = (id == 0 ? 1. : -1.);
       Scal alpha = m.GetVectToCell(f, id).norm() * factor;
-      res[f] = fc_u[cc] + cond_derivative->GetDerivative() * alpha;
+      res[f] = fc_u[cc] + cond_derivative->GetGrad() * alpha;
     } else {
       throw std::runtime_error("Unknown boundary condition type");
     }
@@ -238,7 +238,7 @@ FieldCell<T> Average(const FieldFace<T>& ff_u, const M& m) {
 template <class T, class M>
 void Smoothen(
     FieldCell<T>& fc,
-    const MapFace<std::shared_ptr<ConditionFace>>& mf_cond,
+    const MapFace<std::shared_ptr<CondFace>>& mf_cond,
     M& m, size_t rep) {
   auto sem = m.GetSem("smoothen");
   for (size_t i = 0; i < rep; ++i) {
@@ -377,7 +377,7 @@ Scal CalcDiff(const GField<typename M::Vect, Idx>& first,
 
 // derivative(arg_target) = sum_i (coeff_i * func(arg_i))
 template <class Scal>
-std::vector<Scal> GetDerivativeApproxCoeffs(
+std::vector<Scal> GetGradCoeffs(
     Scal arg_target, const std::vector<Scal>& args) {
 
   auto size = args.size();
@@ -404,7 +404,7 @@ std::vector<Scal> GetDerivativeApproxCoeffs(
 
 
 template <class Scal>
-std::vector<Scal> GetDerivativeApproxCoeffs(
+std::vector<Scal> GetGradCoeffs(
     Scal arg_target, const std::vector<Scal>& args, size_t skip_initial) {
   auto size = args.size();
   size_t cut_size = size - skip_initial;
@@ -412,7 +412,7 @@ std::vector<Scal> GetDerivativeApproxCoeffs(
   for (size_t i = 0; i < cut_size; ++i) {
     cut_args[i] = args[skip_initial + i];
   }
-  auto cut_coeffs = GetDerivativeApproxCoeffs(arg_target, cut_args);
+  auto cut_coeffs = GetGradCoeffs(arg_target, cut_args);
   std::vector<Scal> res(size);
   for (size_t i = 0; i < skip_initial; ++i) {
     res[i] = 0.;
