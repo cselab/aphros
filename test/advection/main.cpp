@@ -88,10 +88,10 @@ Advection<M>::Advection(Vars& var, const MyBlockInfo& bi, Par& par)
   }
 
   // boundary conditions for advection (empty)
-  MapFace<std::shared_ptr<solver::ConditionFace>> bc;
+  MapFace<std::shared_ptr<solver::CondFace>> bc;
 
   // cell conditions for advection (empty)
-  MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
+  MapCell<std::shared_ptr<solver::CondCell>> mc_cond;
 
   // flux
   ff_flux_.Reinit(m, 0);
