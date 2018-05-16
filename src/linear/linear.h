@@ -97,8 +97,6 @@ class Expression {
   void InsertTerm(const TermType& term) {
     terms_[size_++] = term;
     sorted_ = false;
-    // adhoc periodic
-    SortTerms(true);
   }
   void InsertTerm(Scal coeff, Idx idx) {
     InsertTerm(TermType(coeff, idx));

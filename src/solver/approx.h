@@ -12,48 +12,18 @@ class Approx {
 };
 
 template <class M, class Expr>
-class InterpolationInnerFaceCentral : public Approx<IdxFace, Expr> {
- public:
-  using Scal = typename M::Scal;
-  const M& m;
-  explicit InterpolationInnerFaceCentral(const M& m) : m(m) {}
-  Expr GetExpr(IdxFace f) const override {
-    Expr e;
-    IdxCell cm = m.GetNeighbourCell(f, 0);
-    IdxCell cp = m.GetNeighbourCell(f, 1);
-    Scal a = 0.5;
-    e.InsertTerm(1. - a, cm);
-    e.InsertTerm(a, cp);
-    return e;
-  }
-};
-
-template <class M, class Expr>
 class InterpolationInnerFaceSecondUpwindDeferred 
     : public Approx<IdxFace, Expr> {
+ public:
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  const FieldFace<Scal>& probe_;
-  const FieldCell<Scal>& fc_prev_;
-  const FieldCell<Vect>& fc_prev_grad_;
-  const Scal threshold_;
-  const M& m;
- public:
   InterpolationInnerFaceSecondUpwindDeferred(
-      const M& m,
-      const FieldFace<Scal>& probe,
-      const FieldCell<Scal>& fc_prev,
-      const FieldCell<Vect>& fc_prev_grad,
-      Scal threshold = 1e-10)
-      : m(m)
-      , probe_(probe)
-      , fc_prev_(fc_prev)
-      , fc_prev_grad_(fc_prev_grad)
-      , threshold_(threshold)
-  {}
+      const M& m, const FieldFace<Scal>& w, 
+      const FieldCell<Scal>& fcp, const FieldCell<Vect>& fcgp, 
+      Scal th = 1e-10)
+      : m(m), w_(w), fcp_(fcp), fcgp_(fcgp), th_(th) {}
   Expr GetExpr(IdxFace f) const override {
     Expr e;
-    const M& m = this->m;
     IdxCell cm = m.GetNeighbourCell(f, 0);
     IdxCell cp = m.GetNeighbourCell(f, 1);
     // f = fmm + fm + fp
@@ -61,42 +31,38 @@ class InterpolationInnerFaceSecondUpwindDeferred
     //const std::array<Scal, 3> a = {0., 0.5, 0.5}; // CD
     //const std::array<Scal, 3> a = {-0.5, 1.5, 0.}; // SOU
     const std::array<Scal, 3> a = {-1./8., 6./8., 3./8.}; // QUICK
-    if (probe_[f] > threshold_) {
+    if (w_[f] > th_) {
       e.InsertTerm(a[1], cm);
-      e.InsertTerm(a[2]+a[0], cp);
-      e.SetConstant(4. * a[0]*fc_prev_grad_[cm].dot(m.GetVectToCell(f, 0)));
-      //e.InsertTerm(1., cm);
-      //e.InsertTerm(0., cp);
-      //e.SetConstant(-fc_prev_grad_[cm].dot(m.GetVectToCell(f, 0)));
-    } else if (probe_[f] < -threshold_) {
-      e.InsertTerm(a[2]+a[0], cm);
+      e.InsertTerm(a[2] + a[0], cp);
+      e.SetConstant(4. * a[0] * fcgp_[cm].dot(m.GetVectToCell(f, 0)));
+    } else if (w_[f] < -th_) {
+      e.InsertTerm(a[2] + a[0], cm);
       e.InsertTerm(a[1], cp);
-      e.SetConstant(4. * a[0]*fc_prev_grad_[cp].dot(m.GetVectToCell(f, 1)));
-      //e.InsertTerm(0., cm);
-      //e.InsertTerm(1., cp);
-      //e.SetConstant(-fc_prev_grad_[cp].dot(m.GetVectToCell(f, 1)));
+      e.SetConstant(4. * a[0] * fcgp_[cp].dot(m.GetVectToCell(f, 1)));
     } else {
-      // TODO: Make a CDS proper for non-uniform grids
       e.InsertTerm(0.5, cm);
       e.InsertTerm(0.5, cp);
     }
     return e;
   }
+
+ private:
+  const M& m;
+  const FieldFace<Scal>& w_; // flow direction (wind)
+  const FieldCell<Scal>& fcp_; // previous
+  const FieldCell<Vect>& fcgp_; // gradient of previous
+  const Scal th_;
 };
 
 template <class M, class Expr>
-class InterpolationBoundaryFaceNearestCell 
-    : public Approx<IdxFace, Expr> {
+class InterpolationBoundaryFaceNearestCell : public Approx<IdxFace, Expr> {
+ public:
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  const MapFace<std::shared_ptr<ConditionFace>>& mfc_;
-  const M& m;
- public:
   InterpolationBoundaryFaceNearestCell(
       const M& m, const MapFace<std::shared_ptr<ConditionFace>>& mfc)
       : m(m), mfc_(mfc) {}
   Expr GetExpr(IdxFace f) const override {
-    const M& m = this->m;
     Expr e;
     if (auto cb = mfc_.find(f)) {
       IdxCell cm = m.GetNeighbourCell(f, 0);
@@ -121,41 +87,42 @@ class InterpolationBoundaryFaceNearestCell
     }
     return e;
   }
+
+ private:
+  const M& m;
+  const MapFace<std::shared_ptr<ConditionFace>>& mfc_;
 };
 
 template <class M, class Expr>
-class DerivativeInnerFacePlain 
-    : public Approx<IdxFace, Expr> {
-  using Scal = typename M::Scal;
-  const M& m;
+class DerivativeInnerFacePlain : public Approx<IdxFace, Expr> {
  public:
+  using Scal = typename M::Scal;
   explicit DerivativeInnerFacePlain(const M& m) : m(m) {}
   Expr GetExpr(IdxFace f) const override {
     Expr e;
-    const M& m = this->m;
     IdxCell cm = m.GetNeighbourCell(f, 0);
     IdxCell cp = m.GetNeighbourCell(f, 1);
     auto dm = m.GetVectToCell(f, 0);
     auto dp = m.GetVectToCell(f, 1);
-    Scal alpha = Scal(1) / (dp - dm).norm();
-    e.InsertTerm(-alpha, cm);
-    e.InsertTerm(alpha, cp);
+    Scal a = Scal(1) / (dp - dm).norm();
+    e.InsertTerm(-a, cm);
+    e.InsertTerm(a, cp);
     return e;
   }
+
+ private:
+  const M& m;
 };
 
 template <class M, class Expr>
 class DerivativeBoundaryFacePlain : public Approx<IdxFace, Expr> {
+ public:
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  const MapFace<std::shared_ptr<ConditionFace>>& mfc_;
-  const M& m;
- public:
   explicit DerivativeBoundaryFacePlain(
       const M& m, const MapFace<std::shared_ptr<ConditionFace>>& mfc)
       : m(m), mfc_(mfc) {}
   Expr GetExpr(IdxFace f) const override {
-    const M& m = this->m;
     Expr e;
     if (auto cb = mfc_.find(f)) {
       IdxCell cm = m.GetNeighbourCell(f, 0);
@@ -181,6 +148,10 @@ class DerivativeBoundaryFacePlain : public Approx<IdxFace, Expr> {
     }
     return e;
   }
+
+ private:
+  const M& m;
+  const MapFace<std::shared_ptr<ConditionFace>>& mfc_;
 };
 
 } // namespace solver
