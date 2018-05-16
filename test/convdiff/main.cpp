@@ -228,7 +228,7 @@ void Convdiff<M>::TestSolve(
 
     using Dir = typename M::Dir;
 
-    MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond;
+    MapFace<std::shared_ptr<solver::CondFace>> mf_cond;
 
     // boundary xm of global mesh
     auto gxm = [this](IdxFace i) -> bool {
@@ -256,7 +256,7 @@ void Convdiff<M>::TestSolve(
           m.GetBlockFaces().GetMIdx(i)[2] == gs[2];
     };
     auto parse = [](std::string s, IdxFace, size_t nci, M& m) 
-       -> std::shared_ptr<solver::ConditionFace> {
+       -> std::shared_ptr<solver::CondFace> {
       std::stringstream arg(s);
 
       std::string name;
@@ -266,12 +266,12 @@ void Convdiff<M>::TestSolve(
         Scal a;
         arg >> a;
         return std::make_shared <solver::
-            ConditionFaceValueFixed<Scal>>(a, nci);
+            CondFaceValFixed<Scal>>(a, nci);
       } else if (name == "derivative") {
         Scal a;
         arg >> a;
         return std::make_shared <solver::
-            ConditionFaceDerivativeFixed<Scal>>(a, nci);
+            CondFaceGradFixed<Scal>>(a, nci);
       } else {
         assert(false);
       }
@@ -318,7 +318,7 @@ void Convdiff<M>::TestSolve(
 
     // cell conditions 
     // (empty)
-    MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
+    MapCell<std::shared_ptr<solver::CondCell>> mc_cond;
     
     // source
     fc_src_.Reinit(m, 0.);

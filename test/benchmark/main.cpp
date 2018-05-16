@@ -161,7 +161,7 @@ class LoopMIdxAllFaces : public Timer {
 class Interp : public Timer {
   Mesh& m;
   FieldCell<Scal> fc;
-  MapFace<std::shared_ptr<solver::ConditionFace>> mfc;
+  MapFace<std::shared_ptr<solver::CondFace>> mfc;
   FieldFace<Scal> ff;
  public:
   Interp(Mesh& m) : Timer("interp"), m(m), fc(m), ff(m) {
@@ -172,7 +172,7 @@ class Interp : public Timer {
     for (auto i : m.Faces()) {
       if (bf.GetMIdx(i)[0] == 0 && bf.GetDir(i) == Dir::i) {
         mfc[i] = std::make_shared<solver::
-            ConditionFaceDerivativeFixed<Scal>>(0, 1);
+            CondFaceGradFixed<Scal>>(0, 1);
       }
     }
     assert(mfc.size() > 0);
@@ -207,8 +207,8 @@ class ExplVisc : public Timer {
   FieldCell<Vect> fcv;
   FieldCell<Vect> fcf;
   FieldFace<Scal> ffmu;
-  MapFace<std::shared_ptr<solver::ConditionFace>> mfc;
-  MapFace<std::shared_ptr<solver::ConditionFace>> mfcf;
+  MapFace<std::shared_ptr<solver::CondFace>> mfc;
+  MapFace<std::shared_ptr<solver::CondFace>> mfcf;
 
  public:
   ExplVisc(Mesh& m) : Timer("explvisc"), m(m), fcv(m), fcf(m), ffmu(m) {
@@ -225,7 +225,7 @@ class ExplVisc : public Timer {
     for (auto i : m.Faces()) {
       if (bf.GetMIdx(i)[0] == 0 && bf.GetDir(i) == Dir::i) {
         mfc[i] = std::make_shared<solver::
-            ConditionFaceDerivativeFixed<Scal>>(0);
+            CondFaceGradFixed<Scal>>(0);
       }
     }
     */
