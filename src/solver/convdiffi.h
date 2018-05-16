@@ -79,13 +79,13 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
 			// all inner
       ffqc_.Reinit(m, Expr());
       for (IdxFace f : m.Faces()) {
-        Expr e = ui.GetExpression(f);
+        Expr e = ui.GetExpr(f);
         ffqc_[f] = e * (*ffv_)[f];
       }
 			// overwrite with bc
       for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
         IdxFace f = it->GetIdx();
-        Expr e = ub.GetExpression(f);
+        Expr e = ub.GetExpr(f);
         ffqc_[f] = e * (*ffv_)[f];
       }
 
@@ -93,13 +93,13 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
       // all inner
       ffqd_.Reinit(m, Expr());
       for (IdxFace f : m.Faces()) {
-        Expr e = gi.GetExpression(f);
+        Expr e = gi.GetExpr(f);
         ffqd_[f] = e * (-(*ffd_)[f]) * m.GetArea(f);
       }
 			// overwrite with bc
       for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
         IdxFace f = it->GetIdx();
-				Expr e = gb.GetExpression(f);
+				Expr e = gb.GetExpr(f);
         ffqd_[f] = e * (-(*ffd_)[f]) * m.GetArea(f);
       }
 
