@@ -64,15 +64,15 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
       fcgu_ = Gradient(Interpolate(fcu, mfc_, m), m);
 
       // Value
-      InterpolationInnerFaceSecondUpwindDeferred<M, Expr>
+      FaceVal<M, Expr>
       ui(m, ffv, fcu, fcgu_); // inner
-      InterpolationBoundaryFaceNearestCell<M, Expr>
+      FaceValB<M, Expr>
       ub(m, mfc_); // boundary
 
       // Gradient
-      DerivativeInnerFacePlain<M, Expr>
+      FaceGrad<M, Expr>
       gi(m); // inner
-      DerivativeBoundaryFacePlain<M, Expr>
+      FaceGradB<M, Expr>
       gb(m, mfc_); // boundary
 
       // Calc convective fluxes:
