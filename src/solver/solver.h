@@ -157,12 +157,12 @@ Scal Superbee(Scal p, Scal q) {
 }
 
 // Second order upwind interpolation with TVD Superbee limiter
-// fc: field cell [a]
+// fc: fieldcell [a]
 // fcg: gradient of field [a]
 // mfc: face cond
 // ffw: flow direction [s]
 // Output:
-// field face [s]
+// fieldface [s]
 template <class M>
 FieldFace<typename M::Scal> InterpolateSuperbee(
     const FieldCell<typename M::Scal>& fc,
@@ -196,50 +196,62 @@ FieldFace<typename M::Scal> InterpolateSuperbee(
   return ff;
 }
 
+// Returns average of fieldface.
+// ff: fieldface [a]
+// Output:
+// fieldcell [a]
 template <class T, class M>
-FieldCell<T> Average(const FieldFace<T>& ff_u, const M& m) {
+FieldCell<T> Average(const FieldFace<T>& ff, const M& m) {
   using Scal = typename M::Scal;
-  FieldCell<T> res(m);
+  FieldCell<T> fc(m);
   for (IdxCell c : m.AllCells()) {
-    T sum(0);
-    for (size_t i = 0; i < m.GetNumNeighbourFaces(c); ++i) {
-      IdxFace f = m.GetNeighbourFace(c, i);
-      sum += ff_u[f];
+    T s(0);
+    for (auto q : m.Nci(c)) {
+      IdxFace f = m.GetNeighbourFace(c, q);
+      s += ff[f];
     }
-    res[c] = sum / static_cast<Scal>(m.GetNumNeighbourFaces(c));
+    fc[c] = s / Scal(m.GetNumNeighbourFaces(c));
   }
-  return res;
+  return fc;
 }
 
+// Smoothens fieldcell.
+// fc: fieldcell [s]
+// mfc: condface
+// rep: number of iterations
+// Output:
+// fc: smooth field [s]
 template <class T, class M>
-void Smoothen(
-    FieldCell<T>& fc,
-    const MapFace<std::shared_ptr<CondFace>>& mf_cond,
-    M& m, size_t rep) {
+void Smoothen(FieldCell<T>& fc,
+              const MapFace<std::shared_ptr<CondFace>>& mfc,
+              M& m, size_t rep) {
   auto sem = m.GetSem("smoothen");
   for (size_t i = 0; i < rep; ++i) {
     if (sem()) {
-      fc = Average(Interpolate(fc, mf_cond, m), m);
+      fc = Average(Interpolate(fc, mfc, m), m);
       m.Comm(&fc);
     }
   }
 }
 
+// Returns gradient.
+// ff: scalar fieldface [s]
+// Output:
+// gradient vector [s]
 template <class M>
 FieldCell<typename M::Vect> Gradient(
-    const FieldFace<typename M::Scal>& ff_u,
-    const M& m) {
+    const FieldFace<typename M::Scal>& ff, const M& m) {
   using Vect = typename M::Vect;
-  FieldCell<Vect> res(m, Vect::kZero);
+  FieldCell<Vect> fc(m);
   for (auto c : m.SuCells()) {
-    Vect sum = Vect::kZero;
-    for (size_t i = 0; i < m.GetNumNeighbourFaces(c); ++i) {
-      IdxFace f = m.GetNeighbourFace(c, i);
-      sum += m.GetOutwardSurface(c, i) * ff_u[f];
+    Vect s(0);
+    for (auto q : m.Nci(c)) {
+      IdxFace f = m.GetNeighbourFace(c, q);
+      s += m.GetOutwardSurface(c, q) * ff[f];
     }
-    res[c] = sum / m.GetVolume(c);
+    fc[c] = s / m.GetVolume(c);
   }
-  return res;
+  return fc;
 }
 
 class UnsteadySolver {
