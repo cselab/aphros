@@ -184,9 +184,9 @@ FieldFace<typename M::Scal> InterpolateSuperbee(
 		 const auto& g = fcg;
      Scal du = u[cp] - u[cm];
 		 if (ffw[f] > th) {
-			 ff[f] = u[cp] + 0.5 * Superbee(du, -4. * g[cm].dot(rm) - du);
+			 ff[f] = u[cm] + 0.5 * Superbee(du, -4. * g[cm].dot(rm) - du);
 		 } else if (ffw[f] < -th) {
-			 ff[f] = u[cm] - 0.5 * Superbee(du, 4. * g[cp].dot(rp) - du);
+			 ff[f] = u[cp] - 0.5 * Superbee(du, 4. * g[cp].dot(rp) - du);
 		 } else {
 			 ff[f] = 0.5 * (u[cm] + u[cp]);
 		 }
