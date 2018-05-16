@@ -92,8 +92,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Vect> fc_force_;  // force 
   FieldFace<Scal> ffbp_;  // balanced force projections
   FieldFace<Scal> ff_st_;  // surface tension projections
-  MapFace<std::shared_ptr<solver::ConditionFace>> mf_cond_;
-  MapFace<std::shared_ptr<solver::ConditionFaceFluid>> mf_velcond_;
+  MapFace<std::shared_ptr<solver::CondFace>> mf_cond_;
+  MapFace<std::shared_ptr<solver::CondFaceFluid>> mf_velcond_;
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
   FieldCell<Scal> fc_velux_; // velocity
@@ -356,7 +356,7 @@ void Hydro<M>::Init() {
     for (auto it : mf_velcond_) {
       IdxFace i = it.GetIdx();
       mf_cond_[i] = std::make_shared
-          <solver::ConditionFaceDerivativeFixed<Scal>>(
+          <solver::CondFaceGradFixed<Scal>>(
               Scal(0), it.GetValue()->GetNci());
     }
 
@@ -382,7 +382,7 @@ void Hydro<M>::Init() {
               if (set_bc(i, *p)) {
                 auto b = mf_velcond_[i];
                 mf_cond_[i] = std::make_shared
-                    <solver::ConditionFaceValueFixed<Scal>>(vf, b->GetNci());
+                    <solver::CondFaceValFixed<Scal>>(vf, b->GetNci());
               }
             }
           }
@@ -410,9 +410,9 @@ void Hydro<M>::Init() {
 
     // cell conditions for advection
     // (empty)
-    MapCell<std::shared_ptr<solver::ConditionCell>> mc_cond;
+    MapCell<std::shared_ptr<solver::CondCell>> mc_cond;
     // cell conditions for fluid
-    MapCell<std::shared_ptr<solver::ConditionCellFluid>> mc_velcond;
+    MapCell<std::shared_ptr<solver::CondCellFluid>> mc_velcond;
     {
       // Fix pressure at one cell
       if (auto* p = var.Double("pfixed")) {
@@ -778,11 +778,11 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       auto gc = solver::Gradient(af, m); // [s]
 
       // zero-derivative bc for Vect
-      MapFace<std::shared_ptr<solver::ConditionFace>> mfvz;
+      MapFace<std::shared_ptr<solver::CondFace>> mfvz;
       for (auto it : mf_velcond_) {
         IdxFace i = it.GetIdx();
         mfvz[i] = std::make_shared
-            <solver::ConditionFaceDerivativeFixed<Vect>>(
+            <solver::CondFaceGradFixed<Vect>>(
                 Vect(0), it.GetValue()->GetNci());
       }
 

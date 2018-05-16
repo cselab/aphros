@@ -26,8 +26,8 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
   ConvectionDiffusionScalarImplicit(
       M& m,
       const FieldCell<Scal>& fcu, // initial field
-      const MapFace<std::shared_ptr<ConditionFace>>& mfc, // face conditions
-      const MapCell<std::shared_ptr<ConditionCell>>& mcc, // cell conditions
+      const MapFace<std::shared_ptr<CondFace>>& mfc, // face conditions
+      const MapCell<std::shared_ptr<CondCell>>& mcc, // cell conditions
       const FieldCell<Scal>* fcr, // density
       const FieldFace<Scal>* ffd, // diffusion
       const FieldCell<Scal>* fcs, // source
@@ -120,7 +120,7 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
         }
 
         auto dt = this->GetTimeStep();
-        auto ac = GetDerivativeApproxCoeffs(
+        auto ac = GetGradCoeffs(
             0., {-2. * dt, -dt, 0.}, par->second ? 0 : 1);
 
         Expr tt; // time derivative term
@@ -141,9 +141,9 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
       for (auto it = mcc_.cbegin(); it != mcc_.cend(); ++it) {
         auto dt = this->GetTimeStep();
         IdxCell c(it->GetIdx());
-        ConditionCell* cb = it->GetValue().get(); // cond base
+        CondCell* cb = it->GetValue().get(); // cond base
         auto& eqn = fcucs_[c];
-        if (auto cd = dynamic_cast<ConditionCellValue<Scal>*>(cb)) {
+        if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
           eqn.Clear();
           // TODO: Revise dt coefficient for fixed-value cell condition
           eqn.InsertTerm(1. / dt, c);
@@ -238,8 +238,8 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
   M& m; // mesh
   std::shared_ptr<Par> par; // parameters
   LayersData<FieldCell<Scal>> fcu_; // field
-  MapFace<std::shared_ptr<ConditionFace>> mfc_; // face cond
-  MapCell<std::shared_ptr<ConditionCell>> mcc_; // cell cond
+  MapFace<std::shared_ptr<CondFace>> mfc_; // face cond
+  MapCell<std::shared_ptr<CondCell>> mcc_; // cell cond
 
   using P::fcr_;
   using P::ffd_;

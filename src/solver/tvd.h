@@ -21,7 +21,7 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
   using P::m;
   using P::ffv_;
   LayersData<FieldCell<Scal>> fc_u_;
-  MapFace<std::shared_ptr<ConditionFace>> mf_u_cond_;
+  MapFace<std::shared_ptr<CondFace>> mf_u_cond_;
   // Common buffers:
   FieldFace<Vect> ff_velocity_;
   // TODO: remove
@@ -48,7 +48,7 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
   AdvectionSolverExplicit(
       Mesh& m,
       const FieldCell<Scal>& fc_u_initial,
-      const MapFace<std::shared_ptr<ConditionFace>>& mf_u_cond_,
+      const MapFace<std::shared_ptr<CondFace>>& mf_u_cond_,
       const FieldFace<Scal>* p_fn_velocity,
       const FieldCell<Scal>* p_fc_source,
       double t, double dt, std::shared_ptr<Par> par)
@@ -126,11 +126,11 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
       auto& ac = fc_u_.iter_curr;
 
       // zero-derivative bc for Vect
-      MapFace<std::shared_ptr<ConditionFace>> mfvz;
+      MapFace<std::shared_ptr<CondFace>> mfvz;
       for (auto it : mf_u_cond_) {
         IdxFace f = it.GetIdx();
         mfvz[f] = std::make_shared<
-            ConditionFaceDerivativeFixed<Vect>>(
+            CondFaceGradFixed<Vect>>(
                 Vect(0), it.GetValue()->GetNci());
       }
 

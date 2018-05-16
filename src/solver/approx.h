@@ -57,7 +57,7 @@ class FaceValB : public Approx<IdxFace, Expr> {
  public:
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  FaceValB(const M& m, const MapFace<std::shared_ptr<ConditionFace>>& mfc)
+  FaceValB(const M& m, const MapFace<std::shared_ptr<CondFace>>& mfc)
       : m(m), mfc_(mfc) {}
   Expr GetExpr(IdxFace f) const override {
     Expr e;
@@ -66,15 +66,15 @@ class FaceValB : public Approx<IdxFace, Expr> {
       IdxCell cp = m.GetNeighbourCell(f, 1);
       e.InsertTerm(0, cm);
       e.InsertTerm(0, cp);
-      if (auto cd = dynamic_cast<ConditionFaceValue<Scal>*>(cb->get())) {
+      if (auto cd = dynamic_cast<CondFaceVal<Scal>*>(cb->get())) {
         e.SetConstant(cd->GetValue());
       } else if (auto cd =
-          dynamic_cast<ConditionFaceDerivative<Scal>*>(cb->get())) {
+          dynamic_cast<CondFaceGrad<Scal>*>(cb->get())) {
         size_t id = cd->GetNci();
         IdxCell cc = m.GetNeighbourCell(f, id);
         Scal g = (id == 0 ? 1. : -1.);
         Scal a = m.GetVectToCell(f, id).norm() * g;
-        e.SetConstant(a * cd->GetDerivative());
+        e.SetConstant(a * cd->GetGrad());
         e.InsertTerm(1., cc);
       } else {
         throw std::runtime_error("Unknown boundary condition type");
@@ -87,7 +87,7 @@ class FaceValB : public Approx<IdxFace, Expr> {
 
  private:
   const M& m;
-  const MapFace<std::shared_ptr<ConditionFace>>& mfc_;
+  const MapFace<std::shared_ptr<CondFace>>& mfc_;
 };
 
 template <class M, class Expr>
@@ -117,7 +117,7 @@ class FaceGradB : public Approx<IdxFace, Expr> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   explicit FaceGradB(
-      const M& m, const MapFace<std::shared_ptr<ConditionFace>>& mfc)
+      const M& m, const MapFace<std::shared_ptr<CondFace>>& mfc)
       : m(m), mfc_(mfc) {}
   Expr GetExpr(IdxFace f) const override {
     Expr e;
@@ -127,10 +127,10 @@ class FaceGradB : public Approx<IdxFace, Expr> {
       e.InsertTerm(0, cm);
       e.InsertTerm(0, cp);
       if (auto cd = dynamic_cast<
-          ConditionFaceDerivative<Scal>*>(cb->get())) {
-        e.SetConstant(cd->GetDerivative());
+          CondFaceGrad<Scal>*>(cb->get())) {
+        e.SetConstant(cd->GetGrad());
       } else if (auto cd = dynamic_cast<
-          ConditionFaceValue<Scal>*>(cb->get())) {
+          CondFaceVal<Scal>*>(cb->get())) {
         size_t id = cd->GetNci();
         IdxCell c = m.GetNeighbourCell(f, id);
         Scal g = (id == 0 ? 1. : -1.);
@@ -148,7 +148,7 @@ class FaceGradB : public Approx<IdxFace, Expr> {
 
  private:
   const M& m;
-  const MapFace<std::shared_ptr<ConditionFace>>& mfc_;
+  const MapFace<std::shared_ptr<CondFace>>& mfc_;
 };
 
 } // namespace solver

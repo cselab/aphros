@@ -1,49 +1,49 @@
 namespace solver {
 
-class ConditionFace {
+class CondFace {
  public:
-  ConditionFace(size_t nci) : nci_(nci) {}
-  virtual ~ConditionFace() {}
+  CondFace(size_t nci) : nci_(nci) {}
+  virtual ~CondFace() {}
   // neighbour cell id
   virtual size_t GetNci() const {
     return nci_;
   }
+
  private:
   size_t nci_;
 };
 
-class ConditionFaceExtrapolation : public ConditionFace {
+class CondFaceExtrap : public CondFace {
  public:
-  ConditionFaceExtrapolation(size_t nci) : ConditionFace(nci) {}
+  CondFaceExtrap(size_t nci) : CondFace(nci) {}
 };
 
 template <class V>
-class ConditionFaceValue : public ConditionFace {
+class CondFaceVal : public CondFace {
  public:
-  ConditionFaceValue(size_t nci) : ConditionFace(nci) {}
+  CondFaceVal(size_t nci) : CondFace(nci) {}
   virtual V GetValue() const = 0;
 };
 
 template <class Vect>
-class ConditionFaceValueExtractComponent :
-    public ConditionFaceValue<typename Vect::value_type> {
+class CondFaceValComp :
+    public CondFaceVal<typename Vect::value_type> {
  public:
   using Scal = typename Vect::value_type;
-  using P = ConditionFaceValue<Scal>; // parent
-  ConditionFaceValueExtractComponent(ConditionFaceValue<Vect>* o, size_t d)
+  using P = CondFaceVal<Scal>; // parent
+  CondFaceValComp(CondFaceVal<Vect>* o, size_t d)
       : P(o->GetNci()), o_(o), d_(d) {}
   Scal GetValue() const override { return o_->GetValue()[d_]; }
 
  private:
-  ConditionFaceValue<Vect>* o_;
+  CondFaceVal<Vect>* o_;
   size_t d_;
 };
 
 template <class V>
-class ConditionFaceValueFixed : public ConditionFaceValue<V> {
+class CondFaceValFixed : public CondFaceVal<V> {
  public:
-  ConditionFaceValueFixed(const V& v, size_t nci)
-      : ConditionFaceValue<V>(nci), v_(v) {}
+  CondFaceValFixed(const V& v, size_t nci) : CondFaceVal<V>(nci), v_(v) {}
   V GetValue() const override { return v_; }
   void Set(const V& v) { v_ = v; }
 
@@ -52,39 +52,39 @@ class ConditionFaceValueFixed : public ConditionFaceValue<V> {
 };
 
 template <class V>
-class ConditionFaceDerivative : public ConditionFace {
+class CondFaceGrad : public CondFace {
  public:
-  ConditionFaceDerivative(size_t nci) : ConditionFace(nci) {}
-  virtual V GetDerivative() const = 0;
+  CondFaceGrad(size_t nci) : CondFace(nci) {}
+  virtual V GetGrad() const = 0;
 };
 
 template <class V>
-class ConditionFaceDerivativeFixed : public ConditionFaceDerivative<V> {
+class CondFaceGradFixed : public CondFaceGrad<V> {
  public:
-  explicit ConditionFaceDerivativeFixed(const V& v, size_t nci)
-      : ConditionFaceDerivative<V>(nci), v_(v) {}
-  virtual V GetDerivative() const override { return v_; }
+  explicit CondFaceGradFixed(const V& v, size_t nci)
+      : CondFaceGrad<V>(nci), v_(v) {}
+  virtual V GetGrad() const override { return v_; }
   void Set(const V& v) { v = v; }
 
  private:
   V v_;
 };
 
-class ConditionCell {
+class CondCell {
  public:
-  virtual ~ConditionCell() {}
+  virtual ~CondCell() {}
 };
 
 template <class V>
-class ConditionCellValue : public ConditionCell {
+class CondCellVal : public CondCell {
  public:
   virtual V GetValue() const = 0;
 };
 
 template <class V>
-class ConditionCellValueFixed : public ConditionCellValue<V> {
+class CondCellValFixed : public CondCellVal<V> {
  public:
-  explicit ConditionCellValueFixed(const V& v) : v_(v) {}
+  explicit CondCellValFixed(const V& v) : v_(v) {}
   V GetValue() const override { return v_; }
   void Set(const V& v) { v_ = v; }
 

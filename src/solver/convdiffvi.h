@@ -30,12 +30,12 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
   using P::fcs_;
   using P::ffv_;
   LayersData<FieldCell<Vect>> fcvel_;
-  MapFace<std::shared_ptr<ConditionFace>> mfc_; // vect face cond
-  MapCell<std::shared_ptr<ConditionCell>> mcc_; // vect cell cond
+  MapFace<std::shared_ptr<CondFace>> mfc_; // vect face cond
+  MapCell<std::shared_ptr<CondCell>> mcc_; // vect cell cond
   GRange<size_t> dr_;  // dimension range
 
   // Scalar components
-  VectGeneric<MapFace<std::shared_ptr<ConditionFace>>> vmfc_; // face cond
+  VectGeneric<MapFace<std::shared_ptr<CondFace>>> vmfc_; // face cond
   // TODO *** Cell cond
   VectGeneric<std::shared_ptr<CD>> vs_; // solver
   VectGeneric<FieldCell<Scal>> vfcs_; // force
@@ -55,8 +55,8 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
   ConvectionDiffusionImplicit(
       M& m, // mesh
       const FieldCell<Vect>& fcvel, // initial velocity
-      const MapFace<std::shared_ptr<ConditionFace>>& mfc, // face conditions
-      const MapCell<std::shared_ptr<ConditionCell>>& mcc, // cell conditions
+      const MapFace<std::shared_ptr<CondFace>>& mfc, // face conditions
+      const MapCell<std::shared_ptr<CondCell>>& mcc, // cell conditions
       const FieldCell<Scal>* fcr, // density
       const FieldFace<Scal>* ffd, // dynamic viscosity
       const FieldCell<Vect>* fcs, // force
@@ -70,9 +70,8 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
       // (copied from given vector conditions)
       for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
         IdxFace f = it->GetIdx();
-        if (auto p = dynamic_cast<ConditionFaceValue<Vect>*>(mfc_[f].get())) {
-          vmfc_[d][f] =
-              std::make_shared<ConditionFaceValueExtractComponent<Vect>>(p, d);
+        if (auto p = dynamic_cast<CondFaceVal<Vect>*>(mfc_[f].get())) {
+          vmfc_[d][f] = std::make_shared<CondFaceValComp<Vect>>(p, d);
         } else {
           throw std::runtime_error("Unknown face condition type");
         }
@@ -81,7 +80,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
       // Initialize solver
       vs_[d] = std::make_shared<CD>(
           m, GetComponent(fcvel, d), vmfc_[d],
-          MapCell<std::shared_ptr<ConditionCell>>(), /*TODO *** Cell cond */
+          MapCell<std::shared_ptr<CondCell>>(), /*TODO *** Cell cond */
           fcr_, ffd_, &(vfcs_[d]), ffv, t, dt, par);
     }
     CopyToVect(Layers::time_curr);
@@ -177,7 +176,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
   const FieldCell<Expr>& GetVelocityEquations(size_t d) const override {
     return vs_[d]->GetEquations();
   }
-  MapFace<std::shared_ptr<ConditionFace>>& GetVelocityCond(size_t d) {
+  MapFace<std::shared_ptr<CondFace>>& GetVelocityCond(size_t d) {
     return vmfc_[d];
   }
   CD& GetSolver(size_t d) {
