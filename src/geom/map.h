@@ -144,6 +144,12 @@ class GMap {
       return &p_;
     }
   };
+  const_iterator begin() const {
+    return const_iterator(d_.cbegin());
+  }
+  const_iterator end() const {
+    return const_iterator(d_.cend());
+  }
   const_iterator cbegin() const {
     return const_iterator(d_.cbegin());
   }
