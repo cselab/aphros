@@ -274,31 +274,20 @@ class UnsteadySolver {
 };
 
 class UnsteadyIterativeSolver : public UnsteadySolver {
-  size_t iter_;
-
- protected:
-  void IncIter() {
-    ++iter_;
-  }
-  void ClearIter() {
-    iter_ = 0;
-  }
-
  public:
   UnsteadyIterativeSolver(double t, double dt)
-      : UnsteadySolver(t, dt)
-      , iter_(0)
-  {}
+      : UnsteadySolver(t, dt) , i_(0) {}
   virtual void MakeIteration() = 0;
-  virtual double GetError() const {
-    return 0.;
-  }
-  virtual size_t GetIter() const {
-    return iter_;
-  }
-  virtual void StartStep() override {
-    ClearIter();
-  }
+  virtual double GetError() const { return 0.; }
+  virtual size_t GetIter() const { return i_; }
+  virtual void StartStep() override { ClearIter(); }
+
+ protected:
+  void IncIter() { ++i_; }
+  void ClearIter() { i_ = 0; }
+
+ private:
+  size_t i_;
 };
 
 // Between StartStep() and FinishStep():
@@ -315,27 +304,19 @@ enum class Layers { time_curr, time_prev, iter_curr, iter_prev };
 template <class T>
 struct LayersData {
   T time_curr, time_prev, iter_curr, iter_prev;
-  T& Get(Layers layer) {
-    switch (layer) {
-      case Layers::time_curr: {
-        return time_curr;
-      }
-      case Layers::time_prev: {
-        return time_prev;
-      }
-      case Layers::iter_curr: {
-        return iter_curr;
-      }
-      case Layers::iter_prev: {
-        return iter_prev;
-      }
+  const T& Get(Layers l) const {
+    switch (l) {
+      case Layers::time_curr: { return time_curr; }
+      case Layers::time_prev: { return time_prev; }
+      case Layers::iter_curr: { return iter_curr; }
+      case Layers::iter_prev: { return iter_prev; }
       default: {
-        throw(std::runtime_error("LayersData::Get(): Unknown layer"));
+        throw std::runtime_error("LayersData::Get(): Unknown layer");
       }
     }
   }
-  const T& Get(Layers layer) const {
-    return const_cast<const T&>(const_cast<LayersData*>(this)->Get(layer));
+  T& Get(Layers l) {
+    return const_cast<T&>(const_cast<const LayersData*>(this)->Get(l));
   }
 };
 
