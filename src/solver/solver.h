@@ -26,17 +26,16 @@ bool IsNan(const GField<T, Idx>& field) {
 namespace solver {
 
 
-template <class T, class Mesh>
-FieldFace<T> Interpolate(const FieldNode<T>& fn_u,
-                               const Mesh& mesh) {
-  FieldFace<T> res(mesh);
+template <class T, class M>
+FieldFace<T> Interpolate(const FieldNode<T>& fn_u, const M& m) {
+  FieldFace<T> res(m);
 
-  for (auto idxface : mesh.SuFaces()) {
+  for (auto f : m.SuFaces()) {
     T sum = static_cast<T>(0);
-    for (size_t i = 0; i < mesh.GetNumNeighbourNodes(idxface); ++i) {
-      sum += fn_u[mesh.GetNeighbourNode(idxface, i)];
+    for (size_t i = 0; i < m.GetNumNeighbourNodes(f); ++i) {
+      sum += fn_u[m.GetNeighbourNode(f, i)];
     }
-    res[idxface] = sum / mesh.GetNumNeighbourNodes(idxface);
+    res[f] = sum / m.GetNumNeighbourNodes(f);
   }
 
   return res;
@@ -60,68 +59,68 @@ GVect<Scal, dim> GetGeometricAverage(
   return d * std::sqrt(a.norm() * b.norm());
 }
 
-template <class T, class Mesh>
+template <class T, class M>
 FieldFace<T> Interpolate(
     const FieldCell<T>& fc_u,
     const MapFace<std::shared_ptr<ConditionFace>>& mf_cond_u,
-    const Mesh& mesh, bool geometric = false) {
-  using Scal = typename Mesh::Scal;
-  using Vect = typename Mesh::Vect;
+    const M& m, bool geometric = false) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
   using IdxCell = IdxCell;
   using IdxFace = IdxFace;
 
-  FieldFace<T> res(mesh, T(0)); // Valid value essential for extrapolation
+  FieldFace<T> res(m, T(0)); // Valid value essential for extrapolation
 
   if (geometric) {
-    for (auto idxface : mesh.SuFaces()) {
-			IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
-			IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
-			res[idxface] = GetGeometricAverage(fc_u[cm], fc_u[cp]);
+    for (auto f : m.SuFaces()) {
+			IdxCell cm = m.GetNeighbourCell(f, 0);
+			IdxCell cp = m.GetNeighbourCell(f, 1);
+			res[f] = GetGeometricAverage(fc_u[cm], fc_u[cp]);
     }
   } else {
-    for (auto idxface : mesh.SuFaces()) {
-			IdxCell cm = mesh.GetNeighbourCell(idxface, 0);
-			IdxCell cp = mesh.GetNeighbourCell(idxface, 1);
-			//Vect xf = mesh.GetCenter(idxface);
-			//Vect xm = mesh.GetCenter(cm);
-			//Vect xp = mesh.GetCenter(cp);
+    for (auto f : m.SuFaces()) {
+			IdxCell cm = m.GetNeighbourCell(f, 0);
+			IdxCell cp = m.GetNeighbourCell(f, 1);
+			//Vect xf = m.GetCenter(f);
+			//Vect xm = m.GetCenter(cm);
+			//Vect xp = m.GetCenter(cp);
 			//Scal alpha = (xf - xm).dot(xp - xm) / (xp - xm).sqrnorm();
 			Scal alpha = 0.5;
-			res[idxface] = fc_u[cm] * (1. - alpha) + fc_u[cp] * alpha;
+			res[f] = fc_u[cm] * (1. - alpha) + fc_u[cp] * alpha;
     }
   }
 
   for (auto it = mf_cond_u.cbegin(); it != mf_cond_u.cend(); ++it) {
-    IdxFace idxface = it->GetIdx();
+    IdxFace f = it->GetIdx();
     ConditionFace* cond = it->GetValue().get();
     if (auto cond_value = dynamic_cast<ConditionFaceValue<T>*>(cond)) {
-      res[idxface] = cond_value->GetValue();
+      res[f] = cond_value->GetValue();
     } else if (auto cond_derivative =
         dynamic_cast<ConditionFaceDerivative<T>*>(cond)) {
       size_t id = cond->GetNci();
-      IdxCell cc = mesh.GetNeighbourCell(idxface, id);
+      IdxCell cc = m.GetNeighbourCell(f, id);
       Scal factor = (id == 0 ? 1. : -1.);
-      Scal alpha = mesh.GetVectToCell(idxface, id).norm() * factor;
-      res[idxface] = fc_u[cc] + cond_derivative->GetDerivative() * alpha;
+      Scal alpha = m.GetVectToCell(f, id).norm() * factor;
+      res[f] = fc_u[cc] + cond_derivative->GetDerivative() * alpha;
     } else if (dynamic_cast<ConditionFaceExtrapolation*>(cond)) {
       size_t id = cond->GetNci();
-      IdxCell idxcell = mesh.GetNeighbourCell(idxface, id);
+      IdxCell c = m.GetNeighbourCell(f, id);
       Scal factor = (id == 0 ? 1. : -1.);
-      Vect normal = mesh.GetNormal(idxface) * factor;
-      Scal dist = mesh.GetVectToCell(idxface, id).norm();
-      T nom = fc_u[idxcell] / dist;
+      Vect normal = m.GetNormal(f) * factor;
+      Scal dist = m.GetVectToCell(f, id).norm();
+      T nom = fc_u[c] / dist;
       Scal den = 1. / dist;
-      Scal volume = mesh.GetVolume(idxcell);
-      for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-        IdxFace nface = mesh.GetNeighbourFace(idxcell, i);
-        if (nface == idxface) {
-          den -= mesh.GetOutwardSurface(idxcell, i).dot(normal) / volume;
+      Scal volume = m.GetVolume(c);
+      for (size_t i = 0; i < m.GetNumNeighbourFaces(c); ++i) {
+        IdxFace nface = m.GetNeighbourFace(c, i);
+        if (nface == f) {
+          den -= m.GetOutwardSurface(c, i).dot(normal) / volume;
         } else {
           nom += res[nface] *
-              mesh.GetOutwardSurface(idxcell, i).dot(normal) / volume;
+              m.GetOutwardSurface(c, i).dot(normal) / volume;
         }
       }
-      res[idxface] = nom / den;
+      res[f] = nom / den;
     } else {
       throw std::runtime_error("Unknown boundary condition type");
     }
@@ -130,26 +129,26 @@ FieldFace<T> Interpolate(
 }
 
 
-template <class Mesh>
-FieldCell<typename Mesh::Scal>
-CalcLaplacian(const FieldCell<typename Mesh::Scal>& fc_u,
-              const Mesh& mesh) {
-  using Scal = typename Mesh::Scal;
-  FieldCell<Scal> res(mesh);
+template <class M>
+FieldCell<typename M::Scal>
+CalcLaplacian(const FieldCell<typename M::Scal>& fc_u,
+              const M& m) {
+  using Scal = typename M::Scal;
+  FieldCell<Scal> res(m);
 
-  for (auto idxcell : mesh.Cells()) {
+  for (auto c : m.Cells()) {
     Scal sum = 0.;
-    for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-      auto idxface = mesh.GetNeighbourFace(idxcell, i);
-			auto cm = mesh.GetNeighbourCell(idxface, 0);
-			auto cp = mesh.GetNeighbourCell(idxface, 1);
-			auto dm = mesh.GetVectToCell(idxface, 0);
-			auto dp = mesh.GetVectToCell(idxface, 1);
+    for (size_t i = 0; i < m.GetNumNeighbourFaces(c); ++i) {
+      auto f = m.GetNeighbourFace(c, i);
+			auto cm = m.GetNeighbourCell(f, 0);
+			auto cp = m.GetNeighbourCell(f, 1);
+			auto dm = m.GetVectToCell(f, 0);
+			auto dp = m.GetVectToCell(f, 1);
 			Scal derivative = (fc_u[cp] - fc_u[cm]) / (dp - dm).norm();
-			sum += derivative * mesh.GetArea(idxface) *
-					mesh.GetOutwardFactor(idxcell, i);
+			sum += derivative * m.GetArea(f) *
+					m.GetOutwardFactor(c, i);
     }
-    res[idxcell] = sum / mesh.GetVolume(idxcell);
+    res[c] = sum / m.GetVolume(c);
   }
 
   return res;
@@ -165,55 +164,55 @@ Scal Superbee(Scal p, Scal q) {
   return 0.;
 }
 
-template <class Mesh>
-FieldFace<typename Mesh::Scal>
+template <class M>
+FieldFace<typename M::Scal>
 InterpolateSuperbee(
-    const FieldCell<typename Mesh::Scal>& fc_u,
-    const FieldCell<typename Mesh::Vect>& fc_u_grad,
+    const FieldCell<typename M::Scal>& fc_u,
+    const FieldCell<typename M::Vect>& fc_u_grad,
     const MapFace<std::shared_ptr<ConditionFace>>& mf_cond_u,
-    const FieldFace<typename Mesh::Scal>& probe,
-    const Mesh& mesh, typename Mesh::Scal threshold = 1e-8) {
-  using Scal = typename Mesh::Scal;
-  using Vect = typename Mesh::Vect;
+    const FieldFace<typename M::Scal>& probe,
+    const M& m, typename M::Scal threshold = 1e-8) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
   using IdxCell = IdxCell;
   using IdxFace = IdxFace;
 
-  FieldFace<Scal> res(mesh);
+  FieldFace<Scal> res(m);
 
-  for (IdxFace idxface : mesh.SuFaces()) {
-		 IdxCell P = mesh.GetNeighbourCell(idxface, 0);
-		 IdxCell E = mesh.GetNeighbourCell(idxface, 1);
-		 Vect rp = mesh.GetVectToCell(idxface, 0); 
-		 Vect re = mesh.GetVectToCell(idxface, 1); 
+  for (IdxFace f : m.SuFaces()) {
+		 IdxCell P = m.GetNeighbourCell(f, 0);
+		 IdxCell E = m.GetNeighbourCell(f, 1);
+		 Vect rp = m.GetVectToCell(f, 0); 
+		 Vect re = m.GetVectToCell(f, 1); 
 		 const auto& u = fc_u;
 		 const auto& g = fc_u_grad;
-		 if (probe[idxface] > threshold) {
-			 res[idxface] =
+		 if (probe[f] > threshold) {
+			 res[f] =
 					 u[P] + 0.5 * Superbee(u[E] - u[P],
 																 -Scal(4.) * g[P].dot(rp) - (u[E] - u[P]));
-		 } else if (probe[idxface] < -threshold) {
-			 res[idxface] =
+		 } else if (probe[f] < -threshold) {
+			 res[f] =
 					 u[E] - 0.5 * Superbee(u[E] - u[P],
 																 Scal(4.) * g[E].dot(re) - (u[E] - u[P]));
 		 } else {
 			 // TODO: Make a CDS proper for non-uniform grids
-			 res[idxface] = 0.5 * (u[P] + u[E]);
+			 res[f] = 0.5 * (u[P] + u[E]);
 		 }
   }
 
   // TODO: Move interpolation on boundaries to a function
   for (auto it = mf_cond_u.cbegin(); it != mf_cond_u.cend(); ++it) {
-    IdxFace idxface = it->GetIdx();
+    IdxFace f = it->GetIdx();
     ConditionFace* cond = it->GetValue().get();
     if (auto cond_value = dynamic_cast<ConditionFaceValue<Scal>*>(cond)) {
-      res[idxface] = cond_value->GetValue();
+      res[f] = cond_value->GetValue();
     } else if (auto cond_derivative =
         dynamic_cast<ConditionFaceDerivative<Scal>*>(cond)) {
       size_t id = cond->GetNci();
-      IdxCell cc = mesh.GetNeighbourCell(idxface, id);
+      IdxCell cc = m.GetNeighbourCell(f, id);
       Scal factor = (id == 0 ? 1. : -1.);
-      Scal alpha = mesh.GetVectToCell(idxface, id).norm() * factor;
-      res[idxface] = fc_u[cc] + cond_derivative->GetDerivative() * alpha;
+      Scal alpha = m.GetVectToCell(f, id).norm() * factor;
+      res[f] = fc_u[cc] + cond_derivative->GetDerivative() * alpha;
     } else {
       throw std::runtime_error("Unknown boundary condition type");
     }
@@ -221,26 +220,26 @@ InterpolateSuperbee(
   return res;
 }
 
-template <class T, class Mesh>
-FieldCell<T> Average(const FieldFace<T>& ff_u, const Mesh& mesh) {
-  using Scal = typename Mesh::Scal;
-  FieldCell<T> res(mesh);
-  for (IdxCell idxcell : mesh.AllCells()) {
+template <class T, class M>
+FieldCell<T> Average(const FieldFace<T>& ff_u, const M& m) {
+  using Scal = typename M::Scal;
+  FieldCell<T> res(m);
+  for (IdxCell c : m.AllCells()) {
     T sum(0);
-    for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-      IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-      sum += ff_u[idxface];
+    for (size_t i = 0; i < m.GetNumNeighbourFaces(c); ++i) {
+      IdxFace f = m.GetNeighbourFace(c, i);
+      sum += ff_u[f];
     }
-    res[idxcell] = sum / static_cast<Scal>(mesh.GetNumNeighbourFaces(idxcell));
+    res[c] = sum / static_cast<Scal>(m.GetNumNeighbourFaces(c));
   }
   return res;
 }
 
-template <class T, class Mesh>
+template <class T, class M>
 void Smoothen(
     FieldCell<T>& fc,
     const MapFace<std::shared_ptr<ConditionFace>>& mf_cond,
-    Mesh& m, size_t rep) {
+    M& m, size_t rep) {
   auto sem = m.GetSem("smoothen");
   for (size_t i = 0; i < rep; ++i) {
     if (sem()) {
@@ -250,19 +249,19 @@ void Smoothen(
   }
 }
 
-template <class Mesh>
-FieldCell<typename Mesh::Vect> Gradient(
-    const FieldFace<typename Mesh::Scal>& ff_u,
-    const Mesh& mesh) {
-  using Vect = typename Mesh::Vect;
-  FieldCell<Vect> res(mesh, Vect::kZero);
-  for (auto idxcell : mesh.SuCells()) {
+template <class M>
+FieldCell<typename M::Vect> Gradient(
+    const FieldFace<typename M::Scal>& ff_u,
+    const M& m) {
+  using Vect = typename M::Vect;
+  FieldCell<Vect> res(m, Vect::kZero);
+  for (auto c : m.SuCells()) {
     Vect sum = Vect::kZero;
-    for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-      IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-      sum += mesh.GetOutwardSurface(idxcell, i) * ff_u[idxface];
+    for (size_t i = 0; i < m.GetNumNeighbourFaces(c); ++i) {
+      IdxFace f = m.GetNeighbourFace(c, i);
+      sum += m.GetOutwardSurface(c, i) * ff_u[f];
     }
-    res[idxcell] = sum / mesh.GetVolume(idxcell);
+    res[c] = sum / m.GetVolume(c);
   }
   return res;
 }
@@ -355,22 +354,22 @@ struct LayersData {
 // Convention: Use Get/Set for fast procedures and Calc for those requiring computation:
 // GetValue(field, idx) vs GetNorm(field)
 
-template <class Field, class Mesh, class Scal = typename Mesh::Scal>
-Scal CalcDiff(const Field& first, const Field& second, const Mesh& mesh) {
+template <class Field, class M, class Scal = typename M::Scal>
+Scal CalcDiff(const Field& first, const Field& second, const M& m) {
   Scal res = 0.;
   using Idx = typename Field::Idx;
-  for (Idx idx : GRange<Idx>(mesh)) {
+  for (Idx idx : GRange<Idx>(m)) {
     res = std::max(res, std::abs(first[idx] - second[idx]));
   }
   return res;
 }
 
-template <class Idx, class Mesh, class Scal = typename Mesh::Scal>
-Scal CalcDiff(const GField<typename Mesh::Vect, Idx>& first,
-                const GField<typename Mesh::Vect, Idx>& second,
-                const Mesh& mesh) {
+template <class Idx, class M, class Scal = typename M::Scal>
+Scal CalcDiff(const GField<typename M::Vect, Idx>& first,
+                const GField<typename M::Vect, Idx>& second,
+                const M& m) {
   Scal res = 0.;
-  for (Idx idx : mesh.template Get<Idx>()) {
+  for (Idx idx : m.template Get<Idx>()) {
     res = std::max(res, first[idx].dist(second[idx]));
   }
   return res;
