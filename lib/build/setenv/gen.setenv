@@ -1,4 +1,5 @@
 v=CHSETENV
+echo ": \${$v=}"
 echo "if [ \"\$$v\" != \"1\" ] ; then"
 cat ./setenv0
 cat `fnd setenv1`
