@@ -1,0 +1,17 @@
+# Copy to $B, lookup unit $1 using fnd()
+# $1: src unit
+# $2: dest filename (default $PRE.$1)
+cpfnd () {
+  e="`fnd $1`"
+  if [ $# -ge 2 ] ; then
+    cp -vf $e $B/$2
+  else
+    cp -vf $e $B/$pre.$1
+  fi
+}
+
+echo "P='$P'" > $B/ch.prefix
+
+cpfnd setenv ch.setenv
+cpfnd setenv0 ch.setenv0
+cpfnd submit ch.submit

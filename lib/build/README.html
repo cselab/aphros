@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>README</title>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<p>(if not set, default P=prefix)</p>
+<p>Fetch, configure and build all P=prefix ./all</p>
+<p>To build a single package (e.g. hypre), execute P=prefix ./single hypre</p>
+<p>To run one command (e.g. fetch), go to a subfolder (e.g. hypre) and execute P=prefix ../run fetch</p>
+<h1 id="rules">Rules</h1>
+<ul>
+<li>Each folder is a package.</li>
+<li>Packages consist of units.</li>
+<li>Unit is an executable or shell script.</li>
+<li>Unit can be executed. Shell scripts can also be sourced.</li>
+<li><em>Machine suffix</em> is a unique name associated to a particular machine.</li>
+<li><em>System unit</em> is a unit located in <code>PATH</code>.</li>
+<li>Name of a system unit has prefix <code>.ch</code> (<em>standard prefix</em>).</li>
+<li>System units can be executed or sourced from any folder.</li>
+<li>Unit can call other units by their name. Lookup order:
+<ul>
+<li>its folder with machine suffix,</li>
+<li>its folder,</li>
+<li><code>common</code> with machine suffix,</li>
+<li><code>common</code>,</li>
+<li><code>PATH</code> with standard prefix.</li>
+</ul></li>
+<li>File <code>util</code> defines functions available to all units
+<ul>
+<li><code>run()</code>: lookup and execute,</li>
+<li><code>src()</code>: lookup and source.</li>
+</ul></li>
+<li>User can call or source:
+<ul>
+<li>unit <code>run</code> from containing folder,</li>
+<li>system units.</li>
+</ul></li>
+<li>Unit <code>run</code> should source <code>util</code>.</li>
+<li>Restrictions apply to system units:
+<ul>
+<li>can execute or source only system units,</li>
+<li>need to source <code>ch.util</code> to make functions from <code>util</code> available.</li>
+</ul></li>
+</ul>
+<p>TODO put standard prefix <code>.ch</code> to variable</p>
+</body>
+</html>

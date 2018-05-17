@@ -5,15 +5,14 @@ usg () {
     msg "run one command (e.g. fetch)"
 }
 
-. ../util
-
 if [ "$1" = -h ] || [ $# = 0 ] ; then usg; exit; fi
 
 set -eu
-c="$1"
 
 . ./arg
 export P n url src f d
 
+. ../util
+
 src setenv
-run $c
+run "$1"

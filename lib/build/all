@@ -1,4 +1,7 @@
-set -ue
+set -eu
 
-./single hypre
-./single wrap
+l="hypre wrap"
+for d in $l ; do
+  ( cd $d ; ./run )
+done
+

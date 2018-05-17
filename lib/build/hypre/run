@@ -1,0 +1,14 @@
+#!/bin/bash
+
+. ../util
+. ./arg
+export P n url src f d
+
+. ch.setenv
+. ch.prefix
+
+src clean
+src fetch
+src conf
+src build
+src install

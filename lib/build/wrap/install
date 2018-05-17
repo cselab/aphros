@@ -4,6 +4,9 @@ set -ue
 
 B="$HOME/bin"
 
+# Copy to $B, lookup file $1 using fnd()
+# $1: src filename
+# $2: dest filename (default $1)
 cpfnd () {
   e="`fnd $1`"
   if [ $# -ge 2 ] ; then
@@ -13,6 +16,9 @@ cpfnd () {
   fi
 }
 
-echo "P='$P'" > $B/hypre.prefix
+pre=ch
 
-cpfnd setenv hypre.setenv
+echo "P='$P'" > $B/$pre.prefix
+
+cpfnd setenv $pre.setenv
+cpfnd submit $pre.submit

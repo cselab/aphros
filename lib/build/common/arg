@@ -1,0 +1,15 @@
+# Generic, each package should have its own
+
+# After execution the following variables should be defined
+# P: prefix
+# url: url to download archive (required by fetch)
+# f: filename for archive (required by fetch, clean)
+# d: directory of extracted archive (required by clean)
+# src: path of source folder containing Makefile (required by conf, build, install)
+
+# Example
+#: ${P=../prefix}
+#: ${url='https://computation.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods/download/hypre-2.11.2.tar.gz'}
+#: ${f="hypre.tar.gz"}
+#: ${d="hypre"}
+#: ${src="$d/src"}

@@ -5,14 +5,11 @@ usg () {
     msg "build single package (e.g. gerris)"
 }
 
-. ./util
-
 if [ "$1" = -h ] || [ $# = 0 ] ; then usg; exit; fi
 
 set -eu
-s=`suff`
-d="$1"
 
+d="$1"
 echo "Entering $d"
 cd $d
 

@@ -1,6 +1,7 @@
 msg () { echo "$@" >&2; }
 err () { msg "single: $*"; exit 2; }
 
+# Detect machine and return suffix
 suff () {
     case $(hostname) in
         daint*) echo .daint ;;
@@ -9,6 +10,8 @@ suff () {
     esac
 }
 
+# Find file $@ in current dir or common, first with suffix
+# $s: suffix
 fnd () {
     local a l f
     a="$@"
@@ -22,6 +25,7 @@ fnd () {
     err "file $a not found"
 }
 
+# Run file $@
 run () {
     local c
     c="$(fnd "$@")"
@@ -29,6 +33,7 @@ run () {
     eval "$c"
 }
 
+# Source file $@
 src () {
     local c
     c="$(fnd "$@")"
@@ -36,4 +41,7 @@ src () {
     . $c
 }
 
-s=`suff`
+MS=`suff`
+B="$HOME/bin"
+PRE="ch"
+export MS B PRE
