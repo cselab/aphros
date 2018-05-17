@@ -1,2 +1,10 @@
 *.pyc
 *.swp
+*.log
+*.status
+*.h5
+*.xmf
+*.vts
+*.pvd
+stat.dat
+*.pdf
