@@ -7,6 +7,8 @@
   cd hypre
   P=prefix ./run
 
+`P=prefix` affects only package `setenv` if `ch.setenv` does not exist
+
 # Rules
 
 * Each folder is a package.

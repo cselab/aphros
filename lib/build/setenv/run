@@ -1,8 +1,7 @@
 #!/bin/bash 
 
-set -eu
+set -u
 
 . ../util
 
-: ${P="../prefix"}
 . ./install

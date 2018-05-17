@@ -1,3 +1,10 @@
+: ${P='../prefix'}
+
+pf="`type -p ${PRE}prefix`"
+if [ -f "$pf" ] ; then
+  . "$pf"
+fi
+
 P="`readlink -f $P`"
 
 mkdir -p "$P"
