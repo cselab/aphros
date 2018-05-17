@@ -1,0 +1,10 @@
+cat ./setenv0
+
+cat << EOF
+module load new
+module load gcc/5.2.0
+module load cmake/3.9.2
+module load open_mpi/1.10.2
+module load hdf5
+module load python/2.7.14
+EOF

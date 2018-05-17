@@ -1,6 +1,8 @@
 set -eu
 
-l="hypre wrap"
+l="setenv hypre wrap"
+l=setenv
+export P
 for d in $l ; do
   ( cd $d ; ./run )
 done

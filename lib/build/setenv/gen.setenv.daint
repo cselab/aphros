@@ -1,0 +1,12 @@
+cat ./setenv0
+
+cat << EOF
+export XTPE_LINK_TYPE=dynamic
+export CRAYPE_LINK_TYPE=dynamic
+
+module load daint-gpu              # compile for gpu compute nodes (Haswell)
+module swap PrgEnv-cray PrgEnv-gnu
+module load gcc 
+module load cray-hdf5-parallel # TODO remove next line if ok
+#module load cray-hdf5-parallel/1.8.16
+EOF

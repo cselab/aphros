@@ -1,9 +1,7 @@
-P0=prefix
-: ${P=$P0}
 : ${LD_LIBRARY_PATH=}
 : ${PKG_CONFIG_PATH=}
 
-P=$(P=$P cd ../ ; readlink -f $P)
+. ch.prefix
 
 PATH=$P/bin:$PATH
 LD_LIBRARY_PATH=$P/lib:$LD_LIBRARY_PATH

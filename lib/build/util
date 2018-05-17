@@ -10,12 +10,13 @@ suff () {
     esac
 }
 
-# Find file $@ in current dir or common, first with suffix
-# $s: suffix
+# Find unit 
+# $1: unit name
+# MS: machine prefix
 fnd () {
     local a l f
-    a="$@"
-    l="./$@$s ../common/$@$s ./$@ ../common/$@"
+    a="$1"
+    l="./$a$MS ../common/$a$MS ./$a ../common/$a"
     for f in $l ; do
         if [ -f "$f" ] ; then
             echo $f
@@ -25,7 +26,8 @@ fnd () {
     err "file $a not found"
 }
 
-# Run file $@
+# Run unit
+# $1: unit name
 run () {
     local c
     c="$(fnd "$@")"
@@ -33,7 +35,8 @@ run () {
     eval "$c"
 }
 
-# Source file $@
+# Source unit
+# $1: unit name
 src () {
     local c
     c="$(fnd "$@")"
@@ -41,7 +44,20 @@ src () {
     . $c
 }
 
-MS=`suff`
-B="$HOME/bin"
-PRE="ch"
-export MS B PRE
+# Copy unit to $B
+# $1: src unit
+# $2: dest filename (default $PRE$1)
+# B: dest folder
+cpfnd () {
+  e="`fnd $1`"
+  if [ $# -ge 2 ] ; then
+    cp -vf $e $B/$2
+  else
+    cp -vf $e $B/$PRE$1
+  fi
+}
+
+# Default 
+: ${MS=`suff`}
+: ${B="$HOME/bin"}
+: ${PRE="ch."}
