@@ -1,6 +1,0 @@
-module swap PrgEnv-cray PrgEnv-gnu
-module load gcc 
-#module load cray-hdf5-parallel
-module load cray-hdf5-parallel/1.8.16
-module load daint-gpu
-
