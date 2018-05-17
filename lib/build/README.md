@@ -1,11 +1,11 @@
 (if not set, default P=prefix)
 
 # Run all packages
-  P=prefix ./all
+    P=prefix ./all
 
 # Run a single package (e.g. hypre)
-  cd hypre
-  P=prefix ./run
+    cd hypre
+    P=prefix ./_run 
 
 `P=prefix` affects only package `setenv` if `ch.setenv` does not exist
 
@@ -29,9 +29,9 @@
   - `run()`: lookup and execute,
   - `src()`: lookup and source.
 * User can call or source:
-  - unit `run` from containing folder,
+  - unit `_run` from containing folder,
   - system units.
-* Unit `run` should source `util`.
+* Unit `_run` should source `util`.
 * Restrictions apply to system units:
   - can execute or source only system units,
   - need to source `ch.util` to make functions from `util` available.

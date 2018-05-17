@@ -1,9 +1,8 @@
 set -eu
 
-l="setenv hypre wrap"
-l=setenv
+l="setenv hypre"
 export P
 for d in $l ; do
-  ( cd $d ; ./run )
+  ( cd $d ; ./_run )
 done
 
