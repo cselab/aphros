@@ -177,6 +177,13 @@ void Hydro<M>::Init() {
           Vect x = m.GetCenter(i);
           fc_vf_[i] = (c.dist(x) < r ? 1. : 0.);
         }
+      } else if (vi == "line") {
+        const Vect xc(var.Vect["line_c"]);
+        const Vect n(var.Vect["line_n"]);
+        for (auto i : m.AllCells()) {
+          Vect x = m.GetCenter(i);
+          fc_vf_[i] = ((x - xc).dot(n) > 0. ? 1. : 0.);
+        }
       } else if (vi == "list" ) {
         std::string fn = var.String["list_path"];
         struct P {
