@@ -1,2 +1,7 @@
+v=CHSETENV
+echo "if [ \"\$$v\" != "1" ] ; then"
 cat ./setenv0
-
+cat `fnd setenv1`
+echo "export $v=1"
+echo "echo $v=1"
+echo 'fi'
