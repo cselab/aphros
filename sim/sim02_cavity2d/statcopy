@@ -1,8 +1,0 @@
-#!/bin/bash
-
-d=sc
-mkdir -p $d
-./getcol t > $d/t
-./getcol ekin > $d/k
-
-./dk.py
