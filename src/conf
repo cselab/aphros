@@ -3,5 +3,5 @@ set -eu
 mkdir -p build
 cd build
 
-. ~/bin/hypre.prefix
+. ch.setenv
 cmake ../ -DHYPRE_DIR=$P -DCMAKE_BUILD_TYPE=release

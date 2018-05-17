@@ -1,0 +1,15 @@
+#!/bin/bash -l
+
+set -eu
+
+# Stop simulation
+# read PID from pid
+
+echo stopping > job.status
+
+pid=`cat pid`
+c="kill $pid"
+echo "$c"
+eval "$c"
+
+echo stop > job.status

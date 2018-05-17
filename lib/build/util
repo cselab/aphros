@@ -49,12 +49,15 @@ src () {
 # $2: dest filename (default $PRE$1)
 # B: dest folder
 cpfnd () {
-  e="`fnd $1`"
+  local o
   if [ $# -ge 2 ] ; then
-    cp -vf $e $B/$2
+    o="$B/$2"
   else
-    cp -vf $e $B/$PRE$1
+    o="$B/$PRE$1"
   fi
+  rm -f $o
+  e="`fnd $1`"
+  cp -vf $e $o
 }
 
 # Default 

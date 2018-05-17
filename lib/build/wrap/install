@@ -1,24 +1,10 @@
-set -ue
+#!/bin/bash
+
+set -eu
 
 . ../util
 
-B="$HOME/bin"
-
-# Copy to $B, lookup file $1 using fnd()
-# $1: src filename
-# $2: dest filename (default $1)
-cpfnd () {
-  e="`fnd $1`"
-  if [ $# -ge 2 ] ; then
-    cp -vf $e $B/$2
-  else
-    cp -vf $e $B/
-  fi
-}
-
-pre=ch
-
-echo "P='$P'" > $B/$pre.prefix
-
-cpfnd setenv $pre.setenv
-cpfnd submit $pre.submit
+ln -vsf "`readlink -f ../../../src/build/bin/mfer`" $B/ch.mfer
+cpfnd run 
+cpfnd kill 
+cpfnd submit
