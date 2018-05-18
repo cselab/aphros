@@ -21,4 +21,4 @@ echo "P='$P'"
 mkdir -p "$P"
 
 echo "P='$P'" > $B/${PRE}prefix
-. `fnd gen.setenv` > $B/${PRE}setenv
+src gen.setenv > $B/${PRE}setenv

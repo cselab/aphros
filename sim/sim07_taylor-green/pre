@@ -1,5 +1,6 @@
 #!/bin/bash 
 
+./ch.copybase
 ./clean
 ./cleandat
 ./mesh
