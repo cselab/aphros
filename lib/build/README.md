@@ -1,13 +1,25 @@
-(if not set, default P=prefix)
+# Prefix
+
+* Read from `$P` if set
+* Else from ch.prefix if found in `PATH`
+* Else defaults to `prefix`
 
 # Run all packages
-    P=prefix ./all
+    ./all
 
 # Run a single package (e.g. hypre)
     cd hypre
-    P=prefix ./_run 
+    ./_run 
 
-`P=prefix` affects only package `setenv` if `ch.setenv` does not exist
+# Setenv
+
+* `ch.setenv` is written to `$B` (`B=$HOME/bin` in `util`)
+  along with `ch.prefix`
+* All other units are installed to `$BB` (`BB=$P/bin` in `util`)
+* `ch.setenv` adds `$BB` to `PATH` and makes installed units available.
+  This prevents the user from running units in an incomplete environment
+  (e.g. modules loaded).
+
 
 # Rules
 

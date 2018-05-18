@@ -10,13 +10,23 @@ suff () {
   esac
 }
 
+# Find unit in PATH
+# $1: unit name
+fndpath () {
+  local p
+  p="`type -p ${PRE}$1 || true`"
+  if [ -f "$p" ] ; then
+    echo "$p"
+  fi
+}
+
 # Find unit 
 # $1: unit name
 # MS: machine prefix
 fnd () {
   local a l f
   a="$1"
-  l="$B/$PRE$a ./$a$MS ../common/$a$MS ./$a ../common/$a"
+  l="$B/$PRE$a $(fndpath '$PRE$a') ./$a$MS ../common/$a$MS ./$a ../common/$a"
   for f in $l ; do
     if [ -f "$f" ] ; then
       echo $f
@@ -44,16 +54,16 @@ src () {
   . $c
 }
 
-# Copy unit to $B
+# Install unit to $BB
 # $1: src unit
 # $2: dest filename (default $PRE$1)
 # B: dest folder
-cpfnd () {
+instfnd () {
   local o
   if [ $# -ge 2 ] ; then
-    o="$B/$2"
+    o="$BB/$2"
   else
-    o="$B/$PRE$1"
+    o="$BB/$PRE$1"
   fi
   rm -f $o
   e="`fnd $1`"
@@ -64,3 +74,4 @@ cpfnd () {
 : ${MS=`suff`}
 : ${B="$HOME/bin"}
 : ${PRE="ch."}
+: ${BB=${P+$P/bin}}

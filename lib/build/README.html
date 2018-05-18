@@ -16,10 +16,17 @@
   <![endif]-->
 </head>
 <body>
-<p>(if not set, default P=prefix)</p>
-<p>Fetch, configure and build all P=prefix ./all</p>
-<p>To build a single package (e.g. hypre), execute P=prefix ./single hypre</p>
-<p>To run one command (e.g. fetch), go to a subfolder (e.g. hypre) and execute P=prefix ../run fetch</p>
+<h1 id="prefix">Prefix</h1>
+<ul>
+<li>Read from <code>$P</code> if set</li>
+<li>Else from ch.prefix if found in <code>PATH</code></li>
+<li>Else defaults to <code>prefix</code></li>
+</ul>
+<h1 id="run-all-packages">Run all packages</h1>
+<pre><code>./all</code></pre>
+<h1 id="run-a-single-package-e.g.hypre">Run a single package (e.g. hypre)</h1>
+<pre><code>cd hypre
+./_run </code></pre>
 <h1 id="rules">Rules</h1>
 <ul>
 <li>Each folder is a package.</li>
@@ -45,16 +52,23 @@
 </ul></li>
 <li>User can call or source:
 <ul>
-<li>unit <code>run</code> from containing folder,</li>
+<li>unit <code>_run</code> from containing folder,</li>
 <li>system units.</li>
 </ul></li>
-<li>Unit <code>run</code> should source <code>util</code>.</li>
+<li>Unit <code>_run</code> should source <code>util</code>.</li>
 <li>Restrictions apply to system units:
 <ul>
 <li>can execute or source only system units,</li>
 <li>need to source <code>ch.util</code> to make functions from <code>util</code> available.</li>
 </ul></li>
+<li>Reserved variables:
+<ul>
+<li><code>P</code>: install path prefix</li>
+<li><code>B</code>: default <code>$HOME/bin</code></li>
+<li><code>MS</code>: machine suffix</li>
+<li><code>PRE</code>: standard prefix</li>
+</ul></li>
 </ul>
-<p>TODO put standard prefix <code>.ch</code> to variable</p>
+<p>TODO some places assume <code>PRE=ch</code></p>
 </body>
 </html>
