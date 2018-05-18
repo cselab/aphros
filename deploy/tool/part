@@ -1,112 +1,31 @@
-#!/usr/bin/env python
+#!/bin/bash
 
-import sys
+# Partition based on files: mesh bs np
+#   mesh contains mesh size: 
+#   bs contains block size: bsx, bsy, bsz
+#   np contains number of processors
+# Create mesh.conf
 
-dim = 3
-rd = range(dim)
+n=`cat mesh`
+bs=`cat bs`
+np=`cat np`
 
-# product of triplet
-def Prod(p):
-  r = 1
-  for i in rd:  
-    r *= p[i]
-  return r
+a="`ch.part0 $n $bs $np`"
 
-# true if p is divisible by b
-# p, b: triplets
-def IsDiv(p, b):
-  return all(p[i] % b[i] == 0 for i in rd)
+IFS=' ' read px py pz bx by bz <<< $a
+IFS=' ' read bsx bsy bsz <<< $bs
 
-# divide p by b
-def Div(p, b):
-  return [p[i] // b[i] for i in rd]
+o="mesh.conf"
 
-# blocks for processors
-def GetB(p):
-  global bp
-  assert IsDiv(bp, p)
-  return Div(bp, p)
+echo "set int px $px
+set int py $py
+set int pz $pz
 
-# quality: value to maximize
-# communication_area * (-1)
-# p: processors
-def Qual(p):
-  global bs
-  b = GetB(p)
+set int bx $bx
+set int by $by
+set int bz $bz
 
-  # area normal to each direction
-  a = [Prod(b) // b[i] * Prod(bs) // bs[i] for i in rd]
-  return -sum(a)
-
-v = sys.argv
-vn = 1 + 2 * dim + 1
-
-if len(v) != vn:
-  print(
-"""usage: {:} nx ny nz bsx bsy bsz np
-Partition mesh minimizing the communication area.
-ARGS:
-  nx,ny,nz: mesh size
-  bsx,bsy,bsz: block size
-  np: number of processors
-STDOUT:
-  px,py,pz: processors, np=px*py*pz
-  bx,by,bz: blocks per processor, px*bx*bsx=nx
-""".format(v[0]))
-  exit(1)
-
-nx,ny,nz,bsx,bsy,bsz,np = map(int, v[1:])
-
-i = 1
-n = list(map(int, v[i:i+dim])); i += dim
-bs = list(map(int, v[i:i+dim])); i += dim
-np = int(v[i]); i += 1
-assert i == vn
-
-# check n divisible by bs
-if not IsDiv(n, bs):
-  sys.stderr.write(
-      "Error: mesh size {:} not divisible by block size {:}\n".format(n, bs))
-  exit(1)
-
-# b*p 
-bp = Div(n, bs)
-
-# check bp divisible by np
-if Prod(bp) % np != 0:
-  sys.stderr.write(
-      "Error: number of blocks {:} not divisible by np={:}\n"
-          .format(Prod(bp), np))
-  exit(1)
-
-
-# divisors of np
-d = [i for i in range (1, np + 1) if np % i == 0]
-
-
-# maximize Qual(p)
-q = None # best p
-for px in d:
-  for py in d:
-    pz = np // (px * py)
-    p = [px, py, pz]
-
-    if Prod(p) != np:
-      continue
-
-    if not IsDiv(bp, p):
-      continue
-
-    b = GetB(p)
-
-    assert all(p[i]*b[i]*bs[i] == n[i] for i in rd)
-
-    if (q is None or Qual(p) > Qual(q)):
-      q = p
-
-assert q, "Can't partition"
-
-o = sys.stdout
-for a in q + GetB(q):
-  o.write("{:} ".format(a))
-o.write("\n")
+set int bsx $bsx
+set int bsy $bsy
+set int bsz $bsz
+" > $o

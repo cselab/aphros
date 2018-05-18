@@ -10,4 +10,5 @@ instfnd deriv
 instfnd scale
 instfnd kedr
 instfnd statcopy
+instfnd part0
 instfnd part

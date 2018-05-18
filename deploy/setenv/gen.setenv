@@ -2,10 +2,13 @@
 
 v=CHSETENV
 cat ./setenv0
-echo ": \${$v=}"
-echo "if [ \"\$$v\" != \"1\" ] ; then"
+
+echo ": \${$v=}
+if [ \"\$$v\" != \"1\" ] ; then"
+
 cat ./setenv1
 cat `fnd setenv2`
-echo "export $v=1"
-echo "echo $v=1"
-echo 'fi'
+
+echo "export $v=1
+echo $v=1
+fi"
