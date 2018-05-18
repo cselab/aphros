@@ -37,6 +37,8 @@ add_executable(${EXE}
     ${S}/distr/distrsolver.cpp
     )
 
+set_target_properties(${EXE} PROPERTIES PREFIX "ch.")
+
 # C++11
 set_property(TARGET ${EXE} PROPERTY CXX_STANDARD 11)
 set_property(TARGET ${EXE} PROPERTY CXX_STANDARD_REQUIRED ON)
@@ -56,7 +58,11 @@ if (1)
   target_link_libraries(${EXE} ${HDF5_LIBRARIES})
 endif()
 
+# install prefix
+set(CHPREFIX $ENV{CHPREFIX})
+
 # hypre
+set(HYPRE_DIR ${CHPREFIX})
 include_directories(${HYPRE_DIR}/include)
 target_link_libraries(${EXE} -lHYPRE -lm)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${HYPRE_DIR}/lib")
@@ -66,4 +72,4 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_ALIGNBYTES_=16")
 
 target_link_libraries(${EXE} ${LIBRARIES})
 
-install(TARGETS ${EXE} RUNTIME DESTINATION $ENV{HOME}/bin)
+install(TARGETS ${EXE} RUNTIME DESTINATION "${CHPREFIX}/bin")
