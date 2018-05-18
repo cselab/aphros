@@ -1,0 +1,26 @@
+#!/bin/bash -l
+
+# Run with arguments from arg
+
+set -eu
+
+e=ch.mfer
+a=
+if [ -f arg ] ; then
+  a="`cat arg`"
+fi
+
+js="job.status"
+
+echo running > $js
+
+c="time mpirun -n 1 --report-pid pid $e $a |& tee out"
+echo "$c"
+eval "$c"
+
+mv -vf job.id{,.last}
+
+echo "done" > $js
+
+cat $js
+

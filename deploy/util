@@ -1,0 +1,77 @@
+msg () { echo "$@" >&2; }
+err () { msg "single: $*"; exit 2; }
+
+# Detect machine and return suffix
+suff () {
+  case $(hostname) in
+    daint*) echo .daint ;;
+    eu-*) echo .euler ;; 
+    *) echo ;;
+  esac
+}
+
+# Find unit in PATH
+# $1: unit name
+fndpath () {
+  local p
+  p="`type -p ${PRE}$1 || true`"
+  if [ -f "$p" ] ; then
+    echo "$p"
+  fi
+}
+
+# Find unit 
+# $1: unit name
+# MS: machine prefix
+fnd () {
+  local a l f
+  a="$1"
+  l="$B/$PRE$a $(fndpath '$PRE$a') ./$a$MS ../common/$a$MS ./$a ../common/$a"
+  for f in $l ; do
+    if [ -f "$f" ] ; then
+      echo $f
+      return
+    fi
+  done
+  err "file $a not found"
+}
+
+# Run unit
+# $1: unit name
+run () {
+  local c
+  c="$(fnd "$@")"
+  echo "run: $c"
+  eval "$c"
+}
+
+# Source unit
+# $1: unit name
+src () {
+  local c
+  c="$(fnd "$@")"
+  echo "src: $c"
+  . $c
+}
+
+# Install unit to $BB
+# $1: src unit
+# $2: dest filename (default $PRE$1)
+# B: dest folder
+instfnd () {
+  local o
+  if [ $# -ge 2 ] ; then
+    o="$BB/$2"
+  else
+    o="$BB/$PRE$1"
+  fi
+  rm -f $o
+  e="`fnd $1`"
+  cp -vf $e $o
+}
+
+# Default 
+: ${MS=`suff`}
+: ${B="$HOME/bin"}
+: ${PRE="ch."}
+: ${BB=${P+$P/bin}}

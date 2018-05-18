@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -eu
+
+echo "$@" > arg
+echo "foreground" > job.id
+
+. ch.job

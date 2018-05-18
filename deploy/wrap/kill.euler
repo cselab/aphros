@@ -1,0 +1,3 @@
+qdel `cat job.id`
+
+echo stopped > job.status

@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -eu
+
+. ch.setenv
+. ../util
+
+url='https://computation.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods/download/hypre-2.11.2.tar.gz'
+f="hypre.tar.gz"
+
+# download
+#wget -nv "$url" -O $f
+
+# directory name
+d="`tar -tzf \"$f\" | head -1`"
+d="`basename \"$d\"`"
+
+# source folder
+src="$d/src"
+
+export P src
+
+# clean before extraction
+rm -rf "$d"
+
+# extract
+tar -xzf "$f" 
+
+run conf
+run build
+run install
+
+# clean after install
+rm -rf "$d"

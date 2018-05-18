@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Submit job found as ch.job in PATH
+# reading number of tasks from np
+
+set -eu
+
+if [ -f job.id ]; then
+  echo "Skip, job.id exists"
+  exit 1
+fi
+
+echo "$@" > arg
+
+job="`type -p ch.job`"
+n=`cat np`
+
+cmd="bsub -n $n < $job"
+echo $cmd
+
+# Execute command 
+msg=`eval $cmd`
+echo "$msg"
+
+id=`echo "$msg" | sed -e "s/[^0-9]*<\([0-9]*\)>.*/\1/"`
+echo "Write $id to job.id"
+echo $id > job.id
+
+echo "pending" > job.status

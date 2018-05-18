@@ -1,0 +1,14 @@
+#!/bin/bash -l
+
+# Kill process by pid from pid
+
+set -eu
+
+echo stopping > job.status
+
+pid=`cat pid`
+c="kill $pid"
+echo "$c"
+eval "$c"
+
+echo stopped > job.status

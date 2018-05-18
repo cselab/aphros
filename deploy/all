@@ -1,0 +1,9 @@
+set -eu
+
+l="setenv wrap"
+export P
+for d in $l ; do
+  echo Entering $d
+  ( cd $d ; ./_run )
+done
+
