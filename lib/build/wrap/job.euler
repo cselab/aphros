@@ -1,20 +1,27 @@
 #!/bin/bash -l
 
 # Job for euler
+# Run with arguments from arg
 
-echo running > job.status
+set -eu
 
-n=`cat np`
-f="cub$n.conf"
+e=ch.mfer
+a=
+if [ -f arg ] ; then
+  a="`cat arg`"
+fi
 
-c="time mpirun --report-pid pid ch.mfer '$f' |& tee out"
+js=job.status
+
+echo running > $js
+
+c="time mpirun --report-pid pid $e $a |& tee out"
 echo "$c"
 eval "$c"
 
-if [ -f job.id ] ; then
-  mv -vf job.id job.id.last
-fi
+mv -vf job.id{,.last}
 
-echo "Done."
-echo done > job.status
+echo "done" > $js
+
+cat $js
 

@@ -5,6 +5,9 @@
 
 set -eu
 
+echo "$@" > arg
+echo "background" > job.id
 echo starting > job.status
+
 nohup bash ch.job &> out &
 

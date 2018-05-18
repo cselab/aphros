@@ -1,18 +1,26 @@
 #!/bin/bash -l
 
+# Run with arguments from arg
+
 set -eu
 
-# Run simulation
-# $1: config file (all.conf by default)
+e=ch.mfer
+a=
+if [ -f arg ] ; then
+  a="`cat arg`"
+fi
 
-f=${1-all.conf}
+js="job.status"
 
-echo running > job.status
+echo running > $js
 
-c="time mpirun -n 1 --report-pid pid ch.mfer '$f' |& tee out"
+c="time mpirun -n 1 --report-pid pid $e $a |& tee out"
 echo "$c"
 eval "$c"
 
-echo "Done."
-echo done > job.status
+mv -vf job.id{,.last}
+
+echo "done" > $js
+
+cat $js
 

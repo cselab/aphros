@@ -10,12 +10,15 @@ if [ -f job.id ]; then
   exit 1
 fi
 
+echo "$@" > arg
+
 job="`type -p ch.job`"
 n=`cat np`
 
 cmd="bsub -n $n < $job"
 echo $cmd
 
+# Execute command 
 msg=`eval $cmd`
 echo "$msg"
 

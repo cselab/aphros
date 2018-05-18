@@ -1,9 +1,8 @@
 #!/bin/bash -l
 
-set -eu
+# Kill process by pid from pid
 
-# Stop simulation
-# read PID from pid
+set -eu
 
 echo stopping > job.status
 
@@ -12,4 +11,4 @@ c="kill $pid"
 echo "$c"
 eval "$c"
 
-echo stop > job.status
+echo stopped > job.status
