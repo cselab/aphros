@@ -1,8 +1,0 @@
-#!/bin/bash -l
-
-set -eu
-
-mkdir -p build
-cd build
-
-cmake .. -DMPI_C_COMPILER=cc -DMPI_CXX_COMPILER=CC -DCMAKE_BUILD_TYPE=release
