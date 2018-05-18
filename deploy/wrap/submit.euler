@@ -13,9 +13,10 @@ fi
 echo "$@" > arg
 
 job="`type -p ch.job`"
-n=`cat np`
 
-cmd="bsub -n $n < $job"
+np=`cat np`
+
+cmd="bsub -n $np < $job"
 echo $cmd
 
 # Execute command 
