@@ -6,3 +6,4 @@ set -eu
 . ../util
 
 instfnd getcol
+instfnd deriv
