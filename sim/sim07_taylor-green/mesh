@@ -1,1 +1,4 @@
-128 128 128
+mesh="512 512 512"
+bs="8 8 8"
+np=`cat np`
+ch.part $mesh $bs $np > mesh.conf
