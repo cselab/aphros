@@ -6,8 +6,11 @@ set -u
 . ../util
 
 mkdir -p "$BB"
-instfnd run 
-instfnd kill 
-instfnd submit
+
 instfnd conf
 instfnd confdeb
+
+instfnd job
+instfnd run 
+instfnd submit
+instfnd kill 

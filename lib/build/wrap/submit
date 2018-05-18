@@ -1,17 +1,10 @@
 #!/bin/bash -l
 
-set -eu
-
-# Run simulation in background
+# Run in background
 # $1: config file
 
-f=${1-all.conf}
+set -eu
 
 echo starting > job.status
-
-c="nohup time mpirun -n 1 --report-pid pid ch.mfer '$c' &> a.log &"
-echo "$c"
-eval "$c"
-
-echo running > job.status
+nohup bash ch.job &> out &
 

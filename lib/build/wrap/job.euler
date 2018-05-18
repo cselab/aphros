@@ -1,0 +1,20 @@
+#!/bin/bash -l
+
+# Job for euler
+
+echo running > job.status
+
+n=`cat np`
+f="cub$n.conf"
+
+c="time mpirun --report-pid pid ch.mfer '$f' |& tee out"
+echo "$c"
+eval "$c"
+
+if [ -f job.id ] ; then
+  mv -vf job.id job.id.last
+fi
+
+echo "Done."
+echo done > job.status
+

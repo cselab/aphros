@@ -1,0 +1,18 @@
+#!/bin/bash -l
+
+set -eu
+
+# Run simulation
+# $1: config file (all.conf by default)
+
+f=${1-all.conf}
+
+echo running > job.status
+
+c="time mpirun -n 1 --report-pid pid ch.mfer '$f' |& tee out"
+echo "$c"
+eval "$c"
+
+echo "Done."
+echo done > job.status
+
