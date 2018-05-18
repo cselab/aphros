@@ -1,6 +1,6 @@
 set -eu
 
-l="setenv wrap"
+l="setenv wrap tool"
 export P
 for d in $l ; do
   echo Entering $d
