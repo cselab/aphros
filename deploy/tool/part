@@ -10,7 +10,7 @@ nx,ny,nz: mesh size
 bsx,bsy,bsz: block size
 np: number of processors
 STDOUT:
-commands to set px,bx,bsx etc "
+commands to set px,bx,bsx etc " >&2
   exit 1
 fi
 
