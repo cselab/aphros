@@ -1,3 +1,0 @@
-# Download archive $url, save to $f and unpack
-wget -nv "$url" -O $f
-tar -xf "$f" 
