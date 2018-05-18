@@ -1,3 +1,3 @@
 all:
-	make -C build
-	make -C build install
+	make -C build -j4
+	make -C build install 

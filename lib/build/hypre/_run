@@ -24,9 +24,10 @@ export P src
 rm -rf "$d"
 
 # extract
-tar -xf "$f" 
+tar -xzf "$f" 
 
 run conf
+run build
 run install
 
 # clean after install

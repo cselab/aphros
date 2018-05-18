@@ -1,10 +1,11 @@
 #!/bin/bash
 
 v=CHSETENV
+cat ./setenv0
 echo ": \${$v=}"
 echo "if [ \"\$$v\" != \"1\" ] ; then"
-cat ./setenv0
-cat `fnd setenv1`
+cat ./setenv1
+cat `fnd setenv2`
 echo "export $v=1"
 echo "echo $v=1"
 echo 'fi'
