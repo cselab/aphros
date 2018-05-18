@@ -1,3 +1,5 @@
+#!/bin/bash
+
 mesh="512 512 512"
 bs="8 8 8"
 np=`cat np`
