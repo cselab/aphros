@@ -8,3 +8,4 @@ set -eu
 instfnd getcol
 instfnd deriv
 instfnd scale
+instfnd kedr
