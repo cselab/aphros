@@ -1,0 +1,5 @@
+#!/bin/bash 
+
+./clean
+./cleandat
+./mesh

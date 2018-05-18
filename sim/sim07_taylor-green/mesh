@@ -2,7 +2,7 @@
 
 set -eu
 
-mesh="512 512 512"
+mesh="32 32 32"
 bs="8 8 8"
 np=`cat np`
 ch.part $mesh $bs $np > mesh.conf
