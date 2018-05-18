@@ -2,16 +2,10 @@
 
 set -eu
 
-# Run simulation
+# Run simulation in background
 # $1: config file
 
-if [ "$#" -le "0" ] ; then
-  c=""
-else
-  c="$1"
-fi
-
-. ch.setenv
+f=${1-all.conf}
 
 echo starting > job.status
 

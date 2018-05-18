@@ -5,17 +5,11 @@ set -eu
 # Run simulation
 # $1: config file
 
-if [ "$#" -le "0" ] ; then
-  c=""
-else
-  c="$1"
-fi
-
-. ch.setenv
+f=${1-all.conf}
 
 echo running > job.status
 
-c="time mpirun -n 1 --report-pid pid ch.mfer '$c' |& tee a.log"
+c="time mpirun -n 1 --report-pid pid ch.mfer '$f' |& tee a.log"
 echo "$c"
 eval "$c"
 
