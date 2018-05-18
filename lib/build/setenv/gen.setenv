@@ -1,3 +1,5 @@
+#!/bin/bash
+
 v=CHSETENV
 echo ": \${$v=}"
 echo "if [ \"\$$v\" != \"1\" ] ; then"

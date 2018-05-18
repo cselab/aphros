@@ -1,11 +1,18 @@
-: ${P='../prefix'}
+#!/bin/bash
 
-pf="`type -p ${PRE}prefix`"
-if [ -f "$pf" ] ; then
-  . "$pf"
+if [ -z "${P+x}" ] ; then      # if P not defined
+  pf="`type -p ${PRE}prefix || true`"
+  if [ -f "$pf" ] ; then     # if ch.prefix found in PATH
+    . "$pf"
+  else               # else default
+    P='../prefix'
+  fi
 fi
 
+# get full path
 P="`readlink -f $P`"
+
+echo "P='$P'"
 
 mkdir -p "$P"
 
