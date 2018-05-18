@@ -9,3 +9,6 @@
 stat.dat
 *.pdf
 pid
+arg
+out
+job.id.last
