@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-# Run with arguments from arg
+# Run with arguments from arg on number of tasks from np
 
 set -eu
 
@@ -10,11 +10,13 @@ if [ -f arg ] ; then
   a="`cat arg`"
 fi
 
+np=`cat np`
+
 js="job.status"
 
 echo running > $js
 
-c="time mpirun -n 1 --report-pid pid $e $a |& tee out"
+c="time mpirun -n $np --report-pid pid $e $a |& tee out"
 echo "$c"
 eval "$c"
 
