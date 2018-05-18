@@ -56,10 +56,10 @@ src () {
 
 # Install unit to $BB
 # $1: src unit
-# $2: dest filename (default $PRE$1)
-# B: dest folder
+# $2: dest name (default $PRE$1)
 instfnd () {
   local o
+  mkdir -p "$BB"
   if [ $# -ge 2 ] ; then
     o="$BB/$2"
   else

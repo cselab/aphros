@@ -5,8 +5,6 @@ set -u
 . ch.prefix
 . ../util
 
-mkdir -p "$BB"
-
 instfnd conf
 instfnd confdeb
 
@@ -14,3 +12,4 @@ instfnd job
 instfnd run 
 instfnd submit
 instfnd kill 
+instfnd getcol
