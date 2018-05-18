@@ -41,7 +41,7 @@ fnd () {
 run () {
   local c
   c="$(fnd "$@")"
-  echo "run: $c"
+  echo "run: $c" >& 2
   eval "$c"
 }
 
@@ -50,7 +50,7 @@ run () {
 src () {
   local c
   c="$(fnd "$@")"
-  echo "src: $c"
+  echo "src: $c" >& 2
   . $c
 }
 
@@ -68,6 +68,16 @@ instfnd () {
   rm -f $o
   e="`fnd $1`"
   cp -vf $e $o
+}
+
+# Install executable unit to $BB from stdin 
+# $1: dest name
+instin () {
+  local o
+  mkdir -p "$BB"
+  o="$BB/$1"
+  cat > "$o"
+  chmod +x "$o"
 }
 
 # Default 

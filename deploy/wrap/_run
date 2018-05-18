@@ -12,3 +12,5 @@ instfnd job
 instfnd run 
 instfnd submit
 instfnd kill 
+
+src gen.base | instin ${PRE}base
