@@ -8,8 +8,8 @@ s = "stat.dat"
 v = sys.argv
 
 if len(v) != 2:
-  print("usage: {:} column".format(v[0]))
-  print("print column of statistics.dat")
+  print("usage: {:} columnname".format(v[0]))
+  print("print column of {:}".format(s))
   exit(1)
 
 
