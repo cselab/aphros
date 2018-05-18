@@ -7,14 +7,27 @@ set -eu
 
 url='https://computation.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods/download/hypre-2.11.2.tar.gz'
 f="hypre.tar.gz"
-d="hypre-2.11.2"
+
+# download
+#wget -nv "$url" -O $f
+
+# directory name
+d="`tar -tzf \"$f\" | head -1`"
+d="`basename \"$d\"`"
+
+# source folder
 src="$d/src"
 
-export P url src f d
+export P src
 
-run clean
-run fetch
+# clean before extraction
+rm -rf "$d"
+
+# extract
+tar -xf "$f" 
+
 run conf
-run build
 run install
-run clean
+
+# clean after install
+rm -rf "$d"

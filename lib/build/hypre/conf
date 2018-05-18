@@ -1,6 +1,0 @@
-cd "$src"
-
-./configure --prefix="$P" \
-  LDFLAGS="-L$P/lib" \
-  CPPFLAGS="-I$P/include" \
-  CFLAGS="-I$P/include"
