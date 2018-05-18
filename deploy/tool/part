@@ -1,21 +1,21 @@
 #!/bin/bash
 
-# Partition based on files: mesh bs np
-#   mesh contains mesh size: 
-#   bs contains block size: bsx, bsy, bsz
-#   np contains number of processors
-# Create mesh.conf
+set -eu
 
-n=`cat mesh`
-bs=`cat bs`
-np=`cat np`
+if [ "$#" != 7 ] ; then
+  echo "usage: $0 nx ny nz bsx bsy bsz np
+Partition mesh.
+ARGS:
+nx,ny,nz: mesh size
+bsx,bsy,bsz: block size
+np: number of processors
+STDOUT:
+commands to set px,bx,bsx etc "
+  exit 1
+fi
 
-a="`ch.part0 $n $bs $np`"
-
-IFS=' ' read px py pz bx by bz <<< $a
-IFS=' ' read bsx bsy bsz <<< $bs
-
-o="mesh.conf"
+IFS=' ' read nx ny nz bsx bsy bsz np <<< "$@"
+IFS=' ' read px py pz bx by bz <<< "`ch.part0 $@`"
 
 echo "set int px $px
 set int py $py
@@ -28,4 +28,4 @@ set int bz $bz
 set int bsx $bsx
 set int bsy $bsy
 set int bsz $bsz
-" > $o
+"
