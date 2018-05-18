@@ -9,3 +9,5 @@ mkdir -p "$BB"
 instfnd run 
 instfnd kill 
 instfnd submit
+instfnd conf
+instfnd confdeb
