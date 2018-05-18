@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# Compute kinetic energy dissipation rate 
+# from stat.dat
+
+paste <(ch.getcol ekin) <(ch.getcol t) | ch.deriv | ch.scale -1.
