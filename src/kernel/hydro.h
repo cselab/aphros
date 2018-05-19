@@ -695,7 +695,8 @@ void Hydro<M>::ExecEvents() {
 
     if (st_.t >= e.t) {
       if (IsRoot()) {
-        std::cout << std::defaultfloat << "Event at t=" << e.t << ": " 
+        std::cout << std::setiosflags(std::ios::floatfield) 
+            << "Event at t=" << e.t << ": " 
             << c << " " << a << std::endl;
       }
       if (c == "echo") {
@@ -970,7 +971,7 @@ void Hydro<M>::Run() {
         step_ > var.Int["max_step"]) {
       sem.LoopBreak();
     } else if (IsRoot()) { 
-      std::cout << std::defaultfloat << std::setprecision(5)
+      std::cout << std::setiosflags(std::ios::floatfield) 
           << "STEP=" << step_ 
           << " t=" << st_.t
           << " dt=" << st_.dt
