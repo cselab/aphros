@@ -220,7 +220,18 @@ Scal cube(Scal a) {
   return a * a * a;
 }
 
-int main() {
+template <class T>
+std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
+  char c = '(';
+  for (auto& a : v) {
+    o << c << a;
+    c = ',';
+  }
+  o << ")";
+  return o;
+}
+
+void TestGrad() {
   EE(Single([](Vect x) { return 0.; }));
   EE(Single([](Vect x) { return 1.; }));
   EE(Single([](Vect x) { return x[0]; }));
@@ -248,7 +259,36 @@ int main() {
                  std::cos(x[0] + sqr(x[1]) + cube(x[2])) * 2. * x[1],
                  std::cos(x[0] + sqr(x[1]) + cube(x[2])) * 3. * sqr(x[2])
                  ); }));
+}
 
-  std::vectors vv;
-  EE(GetGradCoeffs(vv[vv.size()-1], const kkj
+void TestCoeff() {
+  auto p = [](Scal x, const std::vector<Scal>& z, 
+              const std::vector<Scal>& ke, size_t b=0) {
+    std::vector<Scal> k;
+    if (b == 0) {
+      k = solver::GetGradCoeffs(x, z);
+    } else {
+      k = solver::GetGradCoeffs(x, z, b);
+    }
+    std::cerr
+        << "x=" << x
+        << " z=" << z
+        << " k=" << k
+        << " b=" << b
+        << " ke=" << ke 
+        << std::endl;
+    for (size_t i = 0; i < k.size(); ++i) {
+      assert(std::abs(k[i] - ke[i]) < 1e-12);
+    }
+  };
+
+  p(0, {-1, 0}, {-1, 1});
+  p(0, {-2, -1, 0}, {0.5, -2., 1.5});
+  p(0, {-2, -1, 0}, {0, -1, 1}, 1);
+  p(0, {-1, 0, 1}, {-0.5, 0, 0.5});
+}
+
+int main() {
+  //TestGrad();
+  TestCoeff();
 }
