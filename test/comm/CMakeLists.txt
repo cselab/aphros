@@ -39,7 +39,11 @@ add_definitions(" -D_USE_HDF_")
 include_directories(${HDF5_INCLUDE_DIRS})
 target_link_libraries(${EXE} ${HDF5_LIBRARIES})
 
+# install prefix
+set(CHPREFIX $ENV{CHPREFIX})
+
 # hypre
+set(HYPRE_DIR ${CHPREFIX})
 include_directories(${HYPRE_DIR}/include)
 target_link_libraries(${EXE} -lHYPRE -lm)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${HYPRE_DIR}/lib")

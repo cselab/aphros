@@ -248,4 +248,7 @@ int main() {
                  std::cos(x[0] + sqr(x[1]) + cube(x[2])) * 2. * x[1],
                  std::cos(x[0] + sqr(x[1]) + cube(x[2])) * 3. * sqr(x[2])
                  ); }));
+
+  std::vectors vv;
+  EE(GetGradCoeffs(vv[vv.size()-1], const kkj
 }
