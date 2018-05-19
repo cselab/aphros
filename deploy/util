@@ -6,6 +6,7 @@ suff () {
   case $(hostname) in
     daint*) echo .daint ;;
     eu-*) echo .euler ;; 
+    falcon*) echo .falcon ;; 
     *) echo ;;
   esac
 }
