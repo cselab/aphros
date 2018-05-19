@@ -1,1 +1,4 @@
-ch.confdeb
+mkdir -p build
+cd build
+
+ch.confdeb ../
