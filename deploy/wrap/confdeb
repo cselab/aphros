@@ -1,9 +1,3 @@
 set -eu
 
-# Configure
-# Run from folder with CMakeLists.txt
-
-mkdir -p build
-cd build
-
-cmake ../ -DCMAKE_BUILD_TYPE=debug 
+cmake $1 -DCMAKE_BUILD_TYPE=debug
