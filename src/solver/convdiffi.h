@@ -66,36 +66,15 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
     if (sem("assemble")) {
       fcgu_ = Gradient(Interpolate(fcu, mfc_, m), m);
 
-      // Value
-      FaceVal<M, Expr>
-      ui(m, ffv, fcu, fcgu_); // inner
-      FaceValB<M, Expr>
-      ub(m, mfc_); // boundary
-
-      // Gradient
-      FaceGrad<M, Expr>
-      gi(m); // inner
-      FaceGradB<M, Expr>
-      gb(m, mfc_); // boundary
-
       // Calc convective fluxes:
 			// all inner
-      /*
-      ffqc_.Reinit(m, Expr());
-      for (IdxFace f : m.Faces()) {
-        Expr e = ui.GetExpr(f);
-        ffqc_[f] = e * (*ffv_)[f];
-      }
-      */
-
       InterpolateI(fcu, fcgu_, ffv, ffqc_, m);
       for (auto f : m.Faces()) {
         ffqc_[f] *= (*ffv_)[f];
       }
 
-
-
 			// overwrite with bc
+      FaceValB<M, Expr> ub(m, mfc_); 
       for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
         IdxFace f = it->GetIdx();
         Expr e = ub.GetExpr(f);
@@ -104,18 +83,12 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
 
       // Calc diffusive fluxes
       // all inner
-      /*
-      ffqd_.Reinit(m, Expr());
-      for (IdxFace f : m.Faces()) {
-        Expr e = gi.GetExpr(f);
-        ffqd_[f] = e * (-(*ffd_)[f]) * m.GetArea(f);
-      }
-      */
       GradientI(ffqd_, m);
       for (auto f : m.Faces()) {
         ffqd_[f] *= (-(*ffd_)[f]) * m.GetArea(f);
       }
 			// overwrite with bc
+      FaceGradB<M, Expr> gb(m, mfc_);
       for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
         IdxFace f = it->GetIdx();
 				Expr e = gb.GetExpr(f);
