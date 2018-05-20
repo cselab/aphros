@@ -346,6 +346,7 @@ class FluidSimple : public FluidSolver<M_> {
     Vect meshvel = Vect(0);  // relative mesh velocity
     size_t inletflux_numid = 0; // reduction for id from 0 to numid-1
     ConvSc convsc = ConvSc::quick; // convection scheme
+    Scal convdf = 1.; // deferred correction factor
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
@@ -1002,6 +1003,7 @@ void FluidSimple<M>::Update(typename CD::Par& d, const Par& p) {
   d.guessextra = p.guessextra;
   d.second = p.second;
   d.sc = p.convsc;
+  d.df = p.convdf;
 }
 
 } // namespace solver
