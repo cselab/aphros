@@ -47,13 +47,14 @@ ConvSc GetConvSc(std::string s) {
 //   - cd: central differences (mean value)
 //   - sou: second order upwind
 //   - quick: QUICK
+// df: deferred correction factor (1. fully deferred)
 // Output:
 // ff: face cell [i]
 template <class T, class M, class Expr>
 void InterpolateI(const FieldCell<T>& fc,
                   const FieldCell<typename M::Vect>& fcgp,
                   const FieldFace<T>& ffw, FieldFace<Expr>& ff, 
-                  const M& m, ConvSc sc, 
+                  const M& m, ConvSc sc, typename M::Scal df=1.,
                   typename M::Scal th=1e-10) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
@@ -78,21 +79,22 @@ void InterpolateI(const FieldCell<T>& fc,
   }
 
   ff.Reinit(m);
+  auto dfm = 1. - df;
   for (auto f : m.Faces()) {
     Expr& e = ff[f];
     e.Clear();
     IdxCell cm = m.GetNeighbourCell(f, 0);
     IdxCell cp = m.GetNeighbourCell(f, 1);
     if (ffw[f] > th) {
-      e.InsertTerm(1., cm);
-      e.InsertTerm(0., cp);
+      e.InsertTerm(a[1] * dfm + df, cm);
+      e.InsertTerm((a[2] + a[0]) * dfm, cp);
       e.SetConstant(4. * a[0] * fcgp[cm].dot(m.GetVectToCell(f, 0)) +
-          (a[1] - 1.) * fc[cm] + (a[2] + a[0]) * fc[cp]);
+          (a[1] - 1.) * df * fc[cm] + (a[2] + a[0]) * df * fc[cp]);
     } else if (ffw[f] < -th) {
-      e.InsertTerm(0., cm);
-      e.InsertTerm(1., cp);
+      e.InsertTerm((a[2] + a[0]) * dfm, cm);
+      e.InsertTerm(a[1] * dfm + df, cp);
       e.SetConstant(4. * a[0] * fcgp[cp].dot(m.GetVectToCell(f, 1)) +
-          (a[1] - 1.) * fc[cp] + (a[2] + a[0]) * fc[cm]);
+          (a[1] - 1.) * df * fc[cp] + (a[2] + a[0]) * df * fc[cm]);
     } else {
       e.InsertTerm(0.5, cm);
       e.InsertTerm(0.5, cp);
