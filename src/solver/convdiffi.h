@@ -104,10 +104,16 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
 
       // Calc diffusive fluxes
       // all inner
+      /*
       ffqd_.Reinit(m, Expr());
       for (IdxFace f : m.Faces()) {
         Expr e = gi.GetExpr(f);
         ffqd_[f] = e * (-(*ffd_)[f]) * m.GetArea(f);
+      }
+      */
+      GradientI(ffqd_, m);
+      for (auto f : m.Faces()) {
+        ffqd_[f] *= (-(*ffd_)[f]) * m.GetArea(f);
       }
 			// overwrite with bc
       for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {

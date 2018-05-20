@@ -11,7 +11,8 @@ class Approx {
   virtual Expr GetExpr(Idx) const = 0;
 };
 
-// Interpolation to inner faces.
+// Interpolation to inner faces with deferred correction.
+// in terms of exprssions.
 // fc: field cell [s]
 // fc: gradient [s]
 // ffw: flow direction [i]
@@ -149,6 +150,33 @@ class FaceGrad : public Approx<IdxFace, Expr> {
  private:
   const M& m;
 };
+
+// Gradient to inner faces.
+// fc: field cell [s]
+// fc: gradient [s]
+// ffw: flow direction [i]
+// Output:
+// ff: face cell [i]
+template <class M, class Expr>
+void GradientI(FieldFace<Expr>& ff, const M& m) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+
+  ff.Reinit(m);
+  for (auto f : m.Faces()) {
+    Expr& e = ff[f];
+    e.Clear();
+
+    IdxCell cm = m.GetNeighbourCell(f, 0);
+    IdxCell cp = m.GetNeighbourCell(f, 1);
+    auto dm = m.GetVectToCell(f, 0);
+    auto dp = m.GetVectToCell(f, 1);
+    Scal a = Scal(1) / (dp - dm).norm();
+    e.InsertTerm(-a, cm);
+    e.InsertTerm(a, cp);
+  }
+}
+
 
 template <class M, class Expr>
 class FaceGradB : public Approx<IdxFace, Expr> {
