@@ -83,6 +83,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     p->simpler = var.Int["simpler"];
     // TODO: add check for inletflux_numid
     p->inletflux_numid = var.Int["inletflux_numid"];
+    p->convsc = solver::GetConvSc(var.String["convsc"]);
   }
 
   FieldCell<Scal> fc_mu_; // viscosity

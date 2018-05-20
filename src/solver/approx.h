@@ -1,6 +1,8 @@
 #include <exception>
 #include <memory>
 #include <array>
+#include <stdexcept>
+#include <string>
 
 namespace solver {
 
@@ -11,20 +13,69 @@ class Approx {
   virtual Expr GetExpr(Idx) const = 0;
 };
 
+// Convection scheme
+enum class ConvSc { fou, cd, sou, quick };
+
+std::string GetName(ConvSc sc) {
+  switch (sc) {
+    case ConvSc::fou: return "fou";
+    case ConvSc::cd: return "cd";
+    case ConvSc::sou: return "sou";
+    case ConvSc::quick: return "quick";
+    default: throw std::runtime_error("InterpolateI: invalid ConvSc");
+  }
+  return "";
+}
+
+ConvSc GetConvSc(std::string s) {
+  auto l = {ConvSc::fou, ConvSc::cd, ConvSc::sou, ConvSc::quick};
+  for (ConvSc sc : l) {
+    if (GetName(sc) == s) {
+      return sc;
+    }
+  }
+  throw std::runtime_error("ConvSc: invalid name=" + s);
+}
+
 // Interpolation to inner faces with deferred correction.
 // in terms of exprssions.
 // fc: field cell [s]
 // fc: gradient [s]
 // ffw: flow direction [i]
+// sc: scheme:
+//   - fou: first order upwind
+//   - cd: central differences (mean value)
+//   - sou: second order upwind
+//   - quick: QUICK
 // Output:
 // ff: face cell [i]
 template <class T, class M, class Expr>
 void InterpolateI(const FieldCell<T>& fc,
                   const FieldCell<typename M::Vect>& fcgp,
                   const FieldFace<T>& ffw, FieldFace<Expr>& ff, 
-                  const M& m, typename M::Scal th=1e-10) {
+                  const M& m, ConvSc sc, 
+                  typename M::Scal th=1e-10) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+
+  // f = fmm*a[0] + fm*a[1] + fp*a[2]
+  std::array<Scal, 3> a;
+  switch (sc) {
+    case ConvSc::fou: 
+      a = {0., 1., 0.}; 
+      break; 
+    case ConvSc::cd: 
+      a = {0., 0.5, 0.5}; 
+      break; 
+    case ConvSc::sou: 
+      a = {-0.5, 1.5, 0.}; 
+      break;
+    case ConvSc::quick: 
+      a = {-1./8., 6./8., 3./8.}; 
+      break;
+    default:
+      throw std::runtime_error("InterpolateI: invalid ConvSc");
+  }
 
   ff.Reinit(m);
   for (auto f : m.Faces()) {
@@ -32,19 +83,16 @@ void InterpolateI(const FieldCell<T>& fc,
     e.Clear();
     IdxCell cm = m.GetNeighbourCell(f, 0);
     IdxCell cp = m.GetNeighbourCell(f, 1);
-    // f = fmm + fm + fp
-    //const std::array<Scal, 3> a = {0., 1., 0.}; // FOU
-    //const std::array<Scal, 3> a = {0., 0.5, 0.5}; // CD
-    //const std::array<Scal, 3> a = {-0.5, 1.5, 0.}; // SOU
-    const std::array<Scal, 3> a = {-1./8., 6./8., 3./8.}; // QUICK
     if (ffw[f] > th) {
-      e.InsertTerm(a[1], cm);
-      e.InsertTerm(a[2] + a[0], cp);
-      e.SetConstant(4. * a[0] * fcgp[cm].dot(m.GetVectToCell(f, 0)));
+      e.InsertTerm(1., cm);
+      e.InsertTerm(0., cp);
+      e.SetConstant(4. * a[0] * fcgp[cm].dot(m.GetVectToCell(f, 0)) +
+          (a[1] - 1.) * fc[cm] + (a[2] + a[0]) * fc[cp]);
     } else if (ffw[f] < -th) {
-      e.InsertTerm(a[2] + a[0], cm);
-      e.InsertTerm(a[1], cp);
-      e.SetConstant(4. * a[0] * fcgp[cp].dot(m.GetVectToCell(f, 1)));
+      e.InsertTerm(0., cm);
+      e.InsertTerm(1., cp);
+      e.SetConstant(4. * a[0] * fcgp[cp].dot(m.GetVectToCell(f, 1)) +
+          (a[1] - 1.) * fc[cp] + (a[2] + a[0]) * fc[cm]);
     } else {
       e.InsertTerm(0.5, cm);
       e.InsertTerm(0.5, cp);
