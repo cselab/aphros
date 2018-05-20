@@ -98,13 +98,14 @@ def SaveVy(x1, vy, d):
     np.savetxt(d + "vy", vy1)
 
 def FigVy(x, vy, o):
-    SaveVy(x, vy, "sc")
+    SaveVy(x, vy, "ch")
 
     plt.close()
     fig, ax = PlotInit()
 
     PlotVy(ax, "ref")
-    PlotVy(ax, "sc", "ch,nx={:}".format(x.size))
+    PlotVy(ax, "ch64q")
+    PlotVy(ax, "ch", "ch,nx={:}".format(x.size))
 
     ax.grid()
     ax.legend(loc="best")
