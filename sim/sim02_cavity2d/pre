@@ -3,6 +3,6 @@
 set -eu
 
 ch.base
-./clean
-./cleandat
-./mesh
+make clean
+make cleandat
+make mesh

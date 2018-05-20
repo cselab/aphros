@@ -79,19 +79,34 @@ def PlotStream(x1, y1, vx, vy, o):
     ax.imshow(np.flipud(p), extent=(0, 1, 0, 1), interpolation='nearest')
     PlotSave2(fig, ax, o)
 
-def PlotRefVy(ax):
-    d = "ref/"
-    x = np.loadtxt(d + "x")
-    vy = np.loadtxt(d + "cvy")
-    ax.plot(x, vy, label="ref")
+def PlotVy(ax, d, l=None):
+    if (l is None):
+        l = d
 
-def FigVy(x1, vx, o):
+    os.path.isdir(d) or os.mkdir(d)
+    d = os.path.join(d, "")
+    x = np.loadtxt(d + "x")
+    vy = np.loadtxt(d + "vy")
+    ax.plot(x, vy, label=l)
+
+def SaveVy(x1, vy, d):
+    os.path.isdir(d) or os.mkdir(d)
+    d = os.path.join(d, "")
+    ny = vx.shape[1];
+    vy1 = vy[ny // 2,:]
+    np.savetxt(d + "x", x1)
+    np.savetxt(d + "vy", vy1)
+
+def FigVy(x, vy, o):
+    SaveVy(x, vy, "sc")
+
     plt.close()
     fig, ax = PlotInit()
-    ny = vx.shape[1];
-    ax.plot(x1, vy[ny//2,:], label="ch,Nx={:}".format(x1.size))
+
+    PlotVy(ax, "ref")
+    PlotVy(ax, "sc", "ch,nx={:}".format(x.size))
+
     ax.grid()
-    PlotRefVy(ax)
     ax.legend(loc="best")
     PlotSave1(fig, ax, o)
 
@@ -120,4 +135,4 @@ for f in ff:
 
     po = os.path.splitext(f)[0] + "_vy.pdf"
     print(po)
-    FigVy(x1, vx, po)
+    FigVy(x1, vy, po)

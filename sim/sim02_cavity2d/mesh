@@ -1,8 +1,0 @@
-#!/bin/bash
-
-set -eu
-
-mesh="64 64 1"
-bs="64 64 1"
-np=`cat np`
-ch.part $mesh $bs $np > mesh.conf
