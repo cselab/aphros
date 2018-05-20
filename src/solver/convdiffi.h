@@ -21,6 +21,7 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
     Scal relax = 1.;      // relaxation factor [0,1] (1 -- no relaxation)
     Scal guessextra = 0.; // next iteration guess extrapolation weight [0,1]
     bool second = true; // second order in time
+    ConvSc sc = ConvSc::quick; // scheme for convective flux (see convdiffi.h)
   };
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
   ConvectionDiffusionScalarImplicit(
@@ -68,7 +69,7 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
 
       // Calc convective fluxes:
 			// all inner
-      InterpolateI(fcu, fcgu_, ffv, ffqc_, m);
+      InterpolateI(fcu, fcgu_, ffv, ffqc_, m, par->sc);
       for (auto f : m.Faces()) {
         ffqc_[f] *= (*ffv_)[f];
       }
