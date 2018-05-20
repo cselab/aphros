@@ -1,0 +1,782 @@
+Loading config from 'a.conf'
+
+=== config begin ===
+set string advection_solver tvd
+set string bc_xm wall 0 0 0
+set string bc_xp wall 0 0 0
+set string bc_ym wall 0 0 0
+set string bc_yp wall 1 0 0 
+set string dumpformat plain
+set string ev0 1 set double tol 1e-5
+set string hypre_gen_solver gmres
+set string hypre_symm_solver pcg
+set string surftens kn
+set string vel_init zero
+set string vf_init zero
+set int bsx 32
+set int bsy 32
+set int bsz 1
+set int bx 2
+set int by 2
+set int bz 1
+set int clip_vf 0
+set int comm_size 8
+set int dim 2
+set int dumpmax 10000
+set int enable_advection 0
+set int enable_fluid 1
+set int enable_surftens 0
+set int ev 1
+set int hl 2
+set int hypre_gen_maxiter 30
+set int hypre_periodic_x 0
+set int hypre_periodic_y 0
+set int hypre_periodic_z 1
+set int hypre_print 0
+set int hypre_symm_maxiter 100
+set int inletflux_numid 1
+set int loc 1
+set int max_iter 1000
+set int max_step 1000000
+set int min_iter 1
+set int normalnode 0
+set int output 1
+set int px 1
+set int py 1
+set int pz 1
+set int second_order 0
+set int simpler 1
+set int split 0
+set int verbose 0
+set int verbose_stages 1
+set int vfsmooth 0
+set double cfla 0.3
+set double dt0 1e+10
+set double dtmax 1e+10
+set double dumpdt 1
+set double extent 1
+set double hypre_tol 0.001
+set double mu1 0.0003125
+set double mu2 0.01
+set double prelax 1
+set double rhie 1
+set double rho1 1
+set double rho2 1
+set double sharp 0
+set double sharpo 0
+set double stdiag 1
+set double tmax 2e+10
+set double tol 0.0001
+set double vrelax 0.9
+set vect force 0 0 0 
+set vect gravity 0 0 0 
+=== config end ===
+
+o=(0,0,0) dom=(0,0,0),(1,1,0.015625) h=0.015625
+h from gm = 0.015625
+o=(0,0,0) n=0 i=(0,0,0)
+o=(0.5,0,0) n=32 i=(1,0,0)
+o=(0,0.5,0) n=2080 i=(0,1,0)
+o=(0.5,0.5,0) n=2112 i=(1,1,0)
+Found events: 
+=====
+ev0 1 set double tol 1e-5
+=====
+Dump n=0 t=0 target=0
+Dump 0: format=plain
+STEP=1 t=0.00000000 dt=10000000000.00000000
+.....iter=1, diff=6.0934748806806438e-01
+.....iter=2, diff=3.1928911469529958e-01
+.....iter=3, diff=2.0428011423219375e-01
+.....iter=4, diff=1.5498868756784295e-01
+.....iter=5, diff=1.2924543329097027e-01
+.....iter=6, diff=1.0875087370662581e-01
+.....iter=7, diff=1.0028669933180021e-01
+.....iter=8, diff=9.3306795779146523e-02
+.....iter=9, diff=8.6644785495135324e-02
+.....iter=10, diff=8.2585296738597755e-02
+.....iter=11, diff=7.7082906167682055e-02
+.....iter=12, diff=7.2546198988694396e-02
+.....iter=13, diff=7.0899841472651534e-02
+.....iter=14, diff=7.2014639470124639e-02
+.....iter=15, diff=7.0527887205294515e-02
+.....iter=16, diff=6.7551849066097888e-02
+.....iter=17, diff=6.4031199554819299e-02
+.....iter=18, diff=6.0334986003387901e-02
+.....iter=19, diff=5.6879219106333416e-02
+.....iter=20, diff=5.3822156221583761e-02
+.....iter=21, diff=5.1221718201330327e-02
+.....iter=22, diff=4.9031211157674927e-02
+.....iter=23, diff=4.7098567922811273e-02
+.....iter=24, diff=4.5154924378851664e-02
+.....iter=25, diff=4.3319977563238882e-02
+.....iter=26, diff=4.1520881911077896e-02
+.....iter=27, diff=3.9754659472498469e-02
+.....iter=28, diff=3.8155587069036802e-02
+.....iter=29, diff=3.7672301854391875e-02
+.....iter=30, diff=3.9231244313002865e-02
+.....iter=31, diff=3.8828049439221538e-02
+.....iter=32, diff=3.6995531891514798e-02
+.....iter=33, diff=3.3589359739627359e-02
+.....iter=34, diff=3.1656095307786319e-02
+.....iter=35, diff=2.9911007952296731e-02
+.....iter=36, diff=3.0109873931272790e-02
+.....iter=37, diff=2.9937343131740124e-02
+.....iter=38, diff=2.8891710442406987e-02
+.....iter=39, diff=2.7150078988819829e-02
+.....iter=40, diff=2.4719304255661871e-02
+.....iter=41, diff=2.3906360147857488e-02
+.....iter=42, diff=2.4478296667109191e-02
+.....iter=43, diff=2.4754517229073719e-02
+.....iter=44, diff=2.4657444485298097e-02
+.....iter=45, diff=2.4041908700722994e-02
+.....iter=46, diff=2.2995724515889587e-02
+.....iter=47, diff=2.1637985813652966e-02
+.....iter=48, diff=2.1592421801847284e-02
+.....iter=49, diff=2.1838922205455354e-02
+.....iter=50, diff=2.2006909994377218e-02
+.....iter=51, diff=2.1615271273226440e-02
+.....iter=52, diff=2.1023053665525721e-02
+.....iter=53, diff=2.0254999724031841e-02
+.....iter=54, diff=1.9347264223693018e-02
+.....iter=55, diff=1.8228460274779874e-02
+.....iter=56, diff=1.6914388553270158e-02
+.....iter=57, diff=1.5713799902275196e-02
+.....iter=58, diff=1.5024926130815549e-02
+.....iter=59, diff=1.4128993858841492e-02
+.....iter=60, diff=1.3302065202977097e-02
+.....iter=61, diff=1.2514056891763978e-02
+.....iter=62, diff=1.1867916887136433e-02
+.....iter=63, diff=1.1020900971084364e-02
+.....iter=64, diff=1.0617400806753640e-02
+.....iter=65, diff=9.7298135879940531e-03
+.....iter=66, diff=8.4382572262886747e-03
+.....iter=67, diff=7.2583191319087314e-03
+.....iter=68, diff=6.5859470274996475e-03
+.....iter=69, diff=5.8447245917154231e-03
+.....iter=70, diff=4.9524789148742629e-03
+.....iter=71, diff=4.9143510917291720e-03
+.....iter=72, diff=5.0847946452475534e-03
+.....iter=73, diff=5.3459645368042841e-03
+.....iter=74, diff=5.5506230311578413e-03
+.....iter=75, diff=5.6165786206875262e-03
+.....iter=76, diff=5.5847999153248052e-03
+.....iter=77, diff=5.3748660758600160e-03
+.....iter=78, diff=5.0352790214751768e-03
+.....iter=79, diff=4.6155801428841110e-03
+.....iter=80, diff=4.1289428344717868e-03
+.....iter=81, diff=3.5911242972736213e-03
+.....iter=82, diff=3.0623700209880156e-03
+.....iter=83, diff=2.8058630267668865e-03
+.....iter=84, diff=2.5710498689748926e-03
+.....iter=85, diff=2.3575437499076066e-03
+.....iter=86, diff=2.1720398373305874e-03
+.....iter=87, diff=2.0138207410509527e-03
+.....iter=88, diff=1.8694249150296065e-03
+.....iter=89, diff=1.7177539894753973e-03
+.....iter=90, diff=1.5643175455129911e-03
+.....iter=91, diff=1.3924084239360943e-03
+.....iter=92, diff=1.2634105203824775e-03
+.....iter=93, diff=1.1497619259422584e-03
+.....iter=94, diff=1.0338137073098962e-03
+.....iter=95, diff=9.2513585320144439e-04
+.....iter=96, diff=8.9596543978670226e-04
+.....iter=97, diff=8.7034412099985781e-04
+.....iter=98, diff=8.5071017946957610e-04
+.....iter=99, diff=8.2223525841680861e-04
+.....iter=100, diff=7.7856990390093252e-04
+.....iter=101, diff=7.1808621150785783e-04
+.....iter=102, diff=6.9589291832268042e-04
+.....iter=103, diff=6.7005118917773127e-04
+.....iter=104, diff=6.3450869059056736e-04
+.....iter=105, diff=5.9481191431511179e-04
+.....iter=106, diff=5.8547606521763438e-04
+.....iter=107, diff=5.9244435327265182e-04
+.....iter=108, diff=5.9042995375759011e-04
+.....iter=109, diff=5.7713322692675925e-04
+.....iter=110, diff=5.5370379288460141e-04
+.....iter=111, diff=5.2378585805029317e-04
+.....iter=112, diff=4.9053330080512639e-04
+.....iter=113, diff=4.5588329668040255e-04
+.....iter=114, diff=4.2276142379211692e-04
+.....iter=115, diff=4.1668010650673301e-04
+.....iter=116, diff=4.1706329547397457e-04
+.....iter=117, diff=4.1685532809972322e-04
+.....iter=118, diff=4.1240953410016392e-04
+.....iter=119, diff=4.0373364090542805e-04
+.....iter=120, diff=3.9131193885502333e-04
+.....iter=121, diff=3.7615093192953052e-04
+.....iter=122, diff=3.6352823534015373e-04
+.....iter=123, diff=3.6598657143316820e-04
+.....iter=124, diff=3.6642379466286226e-04
+.....iter=125, diff=3.6335727097105779e-04
+.....iter=126, diff=3.5665575048044308e-04
+.....iter=127, diff=3.4745621066603892e-04
+.....iter=128, diff=3.3650557456883193e-04
+.....iter=129, diff=3.2421572710688733e-04
+.....iter=130, diff=3.1099907788084181e-04
+.....iter=131, diff=2.9823959930163415e-04
+.....iter=132, diff=2.8580931067326678e-04
+.....iter=133, diff=2.7572987758943087e-04
+.....iter=134, diff=2.6956112954012654e-04
+.....iter=135, diff=2.6700547117319937e-04
+.....iter=136, diff=2.6285649843606939e-04
+.....iter=137, diff=2.5748360044188407e-04
+.....iter=138, diff=2.5527286106583698e-04
+.....iter=139, diff=2.5436875919136525e-04
+.....iter=140, diff=2.5309019527912770e-04
+.....iter=141, diff=2.5131103598668005e-04
+.....iter=142, diff=2.4821768262945775e-04
+.....iter=143, diff=2.4473293706133418e-04
+.....iter=144, diff=2.4050389146044058e-04
+.....iter=145, diff=2.3553888335652820e-04
+.....iter=146, diff=2.3010358998222576e-04
+.....iter=147, diff=2.2468672293372429e-04
+.....iter=148, diff=2.1919430391107407e-04
+.....iter=149, diff=2.1410802077357919e-04
+.....iter=150, diff=2.0944347695723612e-04
+.....iter=151, diff=2.0547710109139667e-04
+.....iter=152, diff=2.0197674269967298e-04
+.....iter=153, diff=1.9920079573649730e-04
+.....iter=154, diff=1.9656239737536401e-04
+.....iter=155, diff=1.9442678434555932e-04
+.....iter=156, diff=1.9236632383603714e-04
+.....iter=157, diff=1.9022915700859965e-04
+.....iter=158, diff=1.8803292967519903e-04
+.....iter=159, diff=1.8567052400905994e-04
+.....iter=160, diff=1.8312635751016151e-04
+.....iter=161, diff=1.8050189978603215e-04
+.....iter=162, diff=1.7761844233485382e-04
+.....iter=163, diff=1.7462425755654411e-04
+.....iter=164, diff=1.7187165101791745e-04
+.....iter=165, diff=1.6920507211222764e-04
+.....iter=166, diff=1.6660452962557746e-04
+.....iter=167, diff=1.6412653718488488e-04
+.....iter=168, diff=1.6182757032260183e-04
+.....iter=169, diff=1.5966016810743590e-04
+.....iter=170, diff=1.5771292152115451e-04
+.....iter=171, diff=1.5580724288586124e-04
+.....iter=172, diff=1.5399032158601529e-04
+.....iter=173, diff=1.5217194919808549e-04
+.....iter=174, diff=1.5031124707143469e-04
+.....iter=175, diff=1.4855709675690108e-04
+.....iter=176, diff=1.4681567252037913e-04
+.....iter=177, diff=1.4489541445360002e-04
+.....iter=178, diff=1.4309215183015686e-04
+.....iter=179, diff=1.4128204287151551e-04
+.....iter=180, diff=1.3948799619208316e-04
+.....iter=181, diff=1.3773745831816600e-04
+.....iter=182, diff=1.3598709408127932e-04
+.....iter=183, diff=1.3437717124172317e-04
+.....iter=184, diff=1.3277672854128335e-04
+.....iter=185, diff=1.3120871668822806e-04
+.....iter=186, diff=1.2971627363823294e-04
+.....iter=187, diff=1.2827230414644872e-04
+.....iter=188, diff=1.2684502578353456e-04
+.....iter=189, diff=1.2555774846445273e-04
+.....iter=190, diff=1.2411665023175677e-04
+.....iter=191, diff=1.2278367045822071e-04
+.....iter=192, diff=1.2142302640130708e-04
+.....iter=193, diff=1.2004912463250756e-04
+.....iter=194, diff=1.1876401010193245e-04
+.....iter=195, diff=1.1751934841587253e-04
+.....iter=196, diff=1.1625657796323622e-04
+.....iter=197, diff=1.1492839135914005e-04
+.....iter=198, diff=1.1366296608157884e-04
+.....iter=199, diff=1.1247649002936100e-04
+.....iter=200, diff=1.1126523795716115e-04
+.....iter=201, diff=1.1021394879033481e-04
+.....iter=202, diff=1.0902000541088787e-04
+.....iter=203, diff=1.0794178652282093e-04
+.....iter=204, diff=1.0686285497872846e-04
+.....iter=205, diff=1.0576263398385494e-04
+.....iter=206, diff=1.0467492037239975e-04
+.....iter=207, diff=1.0359314930012301e-04
+.....iter=208, diff=1.0254129359979100e-04
+.....iter=209, diff=1.0161991021098523e-04
+.....iter=210, diff=1.0062217329034861e-04
+.....iter=211, diff=9.9613707765631350e-05
+Dump n=1 t=0 target=1
+Dump 1: format=plain
+STEP=2 t=0.00000000 dt=10000000000.00000000
+Event at t=1.00000000: set double tol 1e-5
+.....iter=1, diff=9.8617217833486215e-05
+.....iter=2, diff=9.7641975534167047e-05
+.....iter=3, diff=9.6632304792524748e-05
+.....iter=4, diff=9.5783857517564566e-05
+.....iter=5, diff=9.4828732751372580e-05
+.....iter=6, diff=9.3918253863684012e-05
+.....iter=7, diff=9.2980326495353588e-05
+.....iter=8, diff=9.2168388782782866e-05
+.....iter=9, diff=9.1310294293435655e-05
+.....iter=10, diff=9.0443034499051593e-05
+.....iter=11, diff=8.9669553622842948e-05
+.....iter=12, diff=8.8752588683036989e-05
+.....iter=13, diff=8.7899652754700410e-05
+.....iter=14, diff=8.7099085391150274e-05
+.....iter=15, diff=8.6337224420571695e-05
+.....iter=16, diff=8.5514786774127099e-05
+.....iter=17, diff=8.4723486370342989e-05
+.....iter=18, diff=8.3950845279266701e-05
+.....iter=19, diff=8.3187733463318674e-05
+.....iter=20, diff=8.2367519797622160e-05
+.....iter=21, diff=8.1650454826265157e-05
+.....iter=22, diff=8.0933506884460707e-05
+.....iter=23, diff=8.0207765596828460e-05
+.....iter=24, diff=7.9559488837609472e-05
+.....iter=25, diff=7.8838385599916655e-05
+.....iter=26, diff=7.8124837387768880e-05
+.....iter=27, diff=7.7447403919201965e-05
+.....iter=28, diff=7.6742872697988708e-05
+.....iter=29, diff=7.6077256501866293e-05
+.....iter=30, diff=7.5453957124886967e-05
+.....iter=31, diff=7.4757612768177754e-05
+.....iter=32, diff=7.4064498858264960e-05
+.....iter=33, diff=7.3373959037680139e-05
+.....iter=34, diff=7.2779464276944149e-05
+.....iter=35, diff=7.2155878049864021e-05
+.....iter=36, diff=7.1490619047725077e-05
+.....iter=37, diff=7.0865357484489730e-05
+.....iter=38, diff=7.0315616284438270e-05
+.....iter=39, diff=6.9648487345126922e-05
+.....iter=40, diff=6.9026189080915773e-05
+.....iter=41, diff=6.8412352327161405e-05
+.....iter=42, diff=6.7862264703537838e-05
+.....iter=43, diff=6.7225095508035936e-05
+.....iter=44, diff=6.6689013466218332e-05
+.....iter=45, diff=6.6140661224402896e-05
+.....iter=46, diff=6.5544375874899627e-05
+.....iter=47, diff=6.5020429581046419e-05
+.....iter=48, diff=6.4473338246223420e-05
+.....iter=49, diff=6.3911537350643086e-05
+.....iter=50, diff=6.3353045660456239e-05
+.....iter=51, diff=6.2810441942078057e-05
+.....iter=52, diff=6.2272651202936182e-05
+.....iter=53, diff=6.1761130068298858e-05
+.....iter=54, diff=6.1222185227441977e-05
+.....iter=55, diff=6.0685860065151570e-05
+.....iter=56, diff=6.0179160415091408e-05
+.....iter=57, diff=5.9694161469425045e-05
+.....iter=58, diff=5.9208856137788131e-05
+.....iter=59, diff=5.8704234447530975e-05
+.....iter=60, diff=5.8199893643907879e-05
+.....iter=61, diff=5.7701140649929985e-05
+.....iter=62, diff=5.7159704903843269e-05
+.....iter=63, diff=5.6681155613411569e-05
+.....iter=64, diff=5.6236882807610246e-05
+.....iter=65, diff=5.5720078535855067e-05
+.....iter=66, diff=5.5272554276516905e-05
+.....iter=67, diff=5.4778057976015166e-05
+.....iter=68, diff=5.4363070586366038e-05
+.....iter=69, diff=5.3881526120874651e-05
+.....iter=70, diff=5.3392203935046963e-05
+.....iter=71, diff=5.2927239157538577e-05
+.....iter=72, diff=5.2489283878046685e-05
+.....iter=73, diff=5.2030823846906759e-05
+.....iter=74, diff=5.1643960965053124e-05
+.....iter=75, diff=5.1164595029031073e-05
+.....iter=76, diff=5.0760475011597576e-05
+.....iter=77, diff=5.0347305158826245e-05
+.....iter=78, diff=4.9929131512501961e-05
+.....iter=79, diff=4.9525262244824764e-05
+.....iter=80, diff=4.9112567910991386e-05
+.....iter=81, diff=4.8658581799021273e-05
+.....iter=82, diff=4.8229191479569859e-05
+.....iter=83, diff=4.7860667053581255e-05
+.....iter=84, diff=4.7447541943986088e-05
+.....iter=85, diff=4.7056770680184768e-05
+.....iter=86, diff=4.6647431498999179e-05
+.....iter=87, diff=4.6214261921593641e-05
+.....iter=88, diff=4.5860588196792113e-05
+.....iter=89, diff=4.5467346858673501e-05
+.....iter=90, diff=4.5098881606636849e-05
+.....iter=91, diff=4.4702922213123656e-05
+.....iter=92, diff=4.4312250546859503e-05
+.....iter=93, diff=4.3944203596375996e-05
+.....iter=94, diff=4.3567448936855449e-05
+.....iter=95, diff=4.3212757279599277e-05
+.....iter=96, diff=4.2865743622954843e-05
+.....iter=97, diff=4.2501809976446359e-05
+.....iter=98, diff=4.2109310866359618e-05
+.....iter=99, diff=4.1758263930688030e-05
+.....iter=100, diff=4.1428514608160498e-05
+.....iter=101, diff=4.1073124592871513e-05
+.....iter=102, diff=4.0756345746739277e-05
+.....iter=103, diff=4.0423227507471550e-05
+.....iter=104, diff=4.0061568118997052e-05
+.....iter=105, diff=3.9727526533397009e-05
+.....iter=106, diff=3.9383147673102918e-05
+.....iter=107, diff=3.9030132257653564e-05
+.....iter=108, diff=3.8718221318265856e-05
+.....iter=109, diff=3.8376144106004974e-05
+.....iter=110, diff=3.8085990637236371e-05
+.....iter=111, diff=3.7734271823747696e-05
+.....iter=112, diff=3.7410944938485900e-05
+.....iter=113, diff=3.7115341931774500e-05
+.....iter=114, diff=3.6788506317200474e-05
+.....iter=115, diff=3.6454160188562251e-05
+.....iter=116, diff=3.6128655894712244e-05
+.....iter=117, diff=3.5826530765073249e-05
+.....iter=118, diff=3.5600481968504601e-05
+.....iter=119, diff=3.5271416476454494e-05
+.....iter=120, diff=3.4977210065286740e-05
+.....iter=121, diff=3.4654435439359751e-05
+.....iter=122, diff=3.4367540333736540e-05
+.....iter=123, diff=3.4081173350562489e-05
+.....iter=124, diff=3.3774546313721270e-05
+.....iter=125, diff=3.3483161844486663e-05
+.....iter=126, diff=3.3205392720883928e-05
+.....iter=127, diff=3.2963472063218203e-05
+.....iter=128, diff=3.2646382431163999e-05
+.....iter=129, diff=3.2391248544701993e-05
+.....iter=130, diff=3.2097396907083773e-05
+.....iter=131, diff=3.1830813187603882e-05
+.....iter=132, diff=3.1586315391441606e-05
+.....iter=133, diff=3.1300762295963632e-05
+.....iter=134, diff=3.1032788654193163e-05
+.....iter=135, diff=3.0789252043611174e-05
+.....iter=136, diff=3.0526637864545307e-05
+.....iter=137, diff=3.0263414545085082e-05
+.....iter=138, diff=2.9983885947926828e-05
+.....iter=139, diff=2.9764281593746776e-05
+.....iter=140, diff=2.9502945255266638e-05
+.....iter=141, diff=2.9250125028679927e-05
+.....iter=142, diff=2.9013545228063176e-05
+.....iter=143, diff=2.8787252725246899e-05
+.....iter=144, diff=2.8496300937383892e-05
+.....iter=145, diff=2.8215919495199744e-05
+.....iter=146, diff=2.8023599476374407e-05
+.....iter=147, diff=2.7812035463190446e-05
+.....iter=148, diff=2.7583386535277690e-05
+.....iter=149, diff=2.7349481271890713e-05
+.....iter=150, diff=2.7077704722977140e-05
+.....iter=151, diff=2.6867551108990426e-05
+.....iter=152, diff=2.6660731490211206e-05
+.....iter=153, diff=2.6471449510362033e-05
+.....iter=154, diff=2.6213063802914088e-05
+.....iter=155, diff=2.5977782821557162e-05
+.....iter=156, diff=2.5743067780184854e-05
+.....iter=157, diff=2.5560277360524196e-05
+.....iter=158, diff=2.5324643761087630e-05
+.....iter=159, diff=2.5106587842290883e-05
+.....iter=160, diff=2.4904821834623084e-05
+.....iter=161, diff=2.4708952187401671e-05
+.....iter=162, diff=2.4492518914887834e-05
+.....iter=163, diff=2.4288991922084884e-05
+.....iter=164, diff=2.4081343012596007e-05
+.....iter=165, diff=2.3862044124575023e-05
+.....iter=166, diff=2.3627975442630382e-05
+.....iter=167, diff=2.3444007365630835e-05
+.....iter=168, diff=2.3253891468863876e-05
+.....iter=169, diff=2.3047318485761914e-05
+.....iter=170, diff=2.2861565360200516e-05
+.....iter=171, diff=2.2677366159949034e-05
+.....iter=172, diff=2.2504949950257562e-05
+.....iter=173, diff=2.2338151280433576e-05
+.....iter=174, diff=2.2120612275623060e-05
+.....iter=175, diff=2.1911847175315519e-05
+.....iter=176, diff=2.1730612784488849e-05
+.....iter=177, diff=2.1555157821872656e-05
+.....iter=178, diff=2.1370927116967850e-05
+.....iter=179, diff=2.1190370113213571e-05
+.....iter=180, diff=2.1022884272084331e-05
+.....iter=181, diff=2.0843829263335091e-05
+.....iter=182, diff=2.0659680234641859e-05
+.....iter=183, diff=2.0476934565067012e-05
+.....iter=184, diff=2.0306381569748259e-05
+.....iter=185, diff=2.0156625501163484e-05
+.....iter=186, diff=1.9978514286212247e-05
+.....iter=187, diff=1.9791914072239389e-05
+.....iter=188, diff=1.9637297498757571e-05
+.....iter=189, diff=1.9487195829515976e-05
+.....iter=190, diff=1.9307046704610577e-05
+.....iter=191, diff=1.9136098141707310e-05
+.....iter=192, diff=1.8972915970452611e-05
+.....iter=193, diff=1.8829625739971705e-05
+.....iter=194, diff=1.8668912175714098e-05
+.....iter=195, diff=1.8514540114053159e-05
+.....iter=196, diff=1.8352985736517873e-05
+.....iter=197, diff=1.8197624406342656e-05
+.....iter=198, diff=1.8043420784860074e-05
+.....iter=199, diff=1.7885080276843382e-05
+.....iter=200, diff=1.7756289011282148e-05
+.....iter=201, diff=1.7599380348960842e-05
+.....iter=202, diff=1.7444123105884083e-05
+.....iter=203, diff=1.7295144068957840e-05
+.....iter=204, diff=1.7144598583897219e-05
+.....iter=205, diff=1.7007557863790314e-05
+.....iter=206, diff=1.6852857485073887e-05
+.....iter=207, diff=1.6714583011300596e-05
+.....iter=208, diff=1.6568102946541585e-05
+.....iter=209, diff=1.6431260412565625e-05
+.....iter=210, diff=1.6304050377771811e-05
+.....iter=211, diff=1.6151510192068810e-05
+.....iter=212, diff=1.6028745186729671e-05
+.....iter=213, diff=1.5894436688293200e-05
+.....iter=214, diff=1.5742886313983956e-05
+.....iter=215, diff=1.5616045889679857e-05
+.....iter=216, diff=1.5486476499386420e-05
+.....iter=217, diff=1.5351008083041051e-05
+.....iter=218, diff=1.5232215635522539e-05
+.....iter=219, diff=1.5105197573175019e-05
+.....iter=220, diff=1.4972495962722561e-05
+.....iter=221, diff=1.4844965342518753e-05
+.....iter=222, diff=1.4711835830966737e-05
+.....iter=223, diff=1.4585983541071825e-05
+.....iter=224, diff=1.4480970915820312e-05
+.....iter=225, diff=1.4350114401456451e-05
+.....iter=226, diff=1.4229301193703661e-05
+.....iter=227, diff=1.4103113401487265e-05
+.....iter=228, diff=1.3986317125573753e-05
+.....iter=229, diff=1.3862264037639081e-05
+.....iter=230, diff=1.3749371166100543e-05
+.....iter=231, diff=1.3635602965282324e-05
+.....iter=232, diff=1.3513597054789138e-05
+.....iter=233, diff=1.3408481032329425e-05
+.....iter=234, diff=1.3297899846372906e-05
+.....iter=235, diff=1.3177929736857685e-05
+.....iter=236, diff=1.3071020457306262e-05
+.....iter=237, diff=1.2962504069705871e-05
+.....iter=238, diff=1.2845802419446706e-05
+.....iter=239, diff=1.2743350977255456e-05
+.....iter=240, diff=1.2632115908934472e-05
+.....iter=241, diff=1.2530741395236639e-05
+.....iter=242, diff=1.2426923152001498e-05
+.....iter=243, diff=1.2316523888031708e-05
+.....iter=244, diff=1.2217305676712702e-05
+.....iter=245, diff=1.2107438557797965e-05
+.....iter=246, diff=1.2006213735368720e-05
+.....iter=247, diff=1.1914186610499592e-05
+.....iter=248, diff=1.1805889587840572e-05
+.....iter=249, diff=1.1708061701166466e-05
+.....iter=250, diff=1.1610789386089792e-05
+.....iter=251, diff=1.1500365853138491e-05
+.....iter=252, diff=1.1411929011179816e-05
+.....iter=253, diff=1.1308962280612609e-05
+.....iter=254, diff=1.1214307733520964e-05
+.....iter=255, diff=1.1117701492863632e-05
+.....iter=256, diff=1.1038769007751763e-05
+.....iter=257, diff=1.0939784357287024e-05
+.....iter=258, diff=1.0856669093172915e-05
+.....iter=259, diff=1.0747994078225530e-05
+.....iter=260, diff=1.0666058953132294e-05
+.....iter=261, diff=1.0569896544960037e-05
+.....iter=262, diff=1.0476642939437234e-05
+.....iter=263, diff=1.0390603292068273e-05
+.....iter=264, diff=1.0305024095841623e-05
+.....iter=265, diff=1.0216194443680165e-05
+.....iter=266, diff=1.0136274296493572e-05
+.....iter=267, diff=1.0050563659949480e-05
+.....iter=268, diff=9.9680298488537592e-06
+Dump n=2 t=1e+10 target=1
+Dump 2: format=plain
+other
+0.00001 s = 0.000%
+last
+0.00004 s = 0.000%
+run:00:init --> init:00:pfixed-reduce
+0.00004 s = 0.000%
+run:00:init --> init:01:fields
+0.00707 s = 0.008%
+run:00:init --> init:02:mixture --> mixture:00:init
+0.00120 s = 0.001%
+run:00:init --> init:02:mixture --> mixture:01:smooth
+0.00002 s = 0.000%
+run:00:init --> init:02:mixture --> mixture:02:calc
+0.00139 s = 0.002%
+run:00:init --> init:02:mixture --> mixture:03:curv
+0.00094 s = 0.001%
+run:00:init --> init:03:solv
+0.02222 s = 0.027%
+run:01:dump
+0.01803 s = 0.022%
+run:02:dumpwrite
+0.00007 s = 0.000%
+run:04:loop-check
+0.00006 s = 0.000%
+run:05:mixture --> mixture:00:init
+0.00052 s = 0.001%
+run:05:mixture --> mixture:01:smooth
+0.00002 s = 0.000%
+run:05:mixture --> mixture:02:calc
+0.00406 s = 0.005%
+run:05:mixture --> mixture:03:curv
+0.00243 s = 0.003%
+run:06:stat --> stat:00:local
+0.00067 s = 0.001%
+run:06:stat --> stat:01:reduce
+0.00005 s = 0.000%
+run:06:stat --> stat:02:dt-local
+0.00030 s = 0.000%
+run:06:stat --> stat:03:dt-reduce
+0.00003 s = 0.000%
+run:07:events
+0.00011 s = 0.000%
+run:08:fs-start --> fluid-start:00:convdiff-init
+0.00014 s = 0.000%
+run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:00:dir-init
+0.00005 s = 0.000%
+run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:01:dir-start
+0.00026 s = 0.000%
+run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:02:dir-init
+0.00004 s = 0.000%
+run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:03:dir-start
+0.00030 s = 0.000%
+run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:04:dir-init
+0.00004 s = 0.000%
+run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:05:dir-start
+0.00031 s = 0.000%
+run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:06:tovect
+0.00093 s = 0.001%
+run:08:fs-start --> fluid-start:02:convdiff-start
+0.00123 s = 0.001%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:00:init
+0.59445 s = 0.714%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:01:bc-inletflux --> inletflux:00:local
+0.18704 s = 0.225%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:01:bc-inletflux --> inletflux:01:corr
+0.19539 s = 0.235%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:02:bc-outlet --> outlet:00:local
+0.22150 s = 0.266%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:02:bc-outlet --> outlet:01:corr
+0.18185 s = 0.218%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:03:bc-derived
+0.42376 s = 0.509%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:04:forceinit --> extforce:00:loc
+3.21477 s = 3.862%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:04:forceinit --> extforce:01:copy
+0.77721 s = 0.934%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:05:forceinit
+0.06756 s = 0.081%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:06:explvisc
+2.86698 s = 3.444%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:07:pgrad
+0.55361 s = 0.665%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:00:copy
+0.17595 s = 0.211%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:01:one --> assemble:00:assemble
+5.34278 s = 6.419%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:02:one --> assemble:00:assemble
+5.36721 s = 6.448%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:03:one --> assemble:00:assemble
+5.33914 s = 6.414%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:01:diag --> diag:00:local
+0.98800 s = 1.187%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:01:diag --> diag:01:interp
+0.30787 s = 0.370%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:02:eval
+2.73769 s = 3.289%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:03:assemble
+1.50834 s = 1.812%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:04:pcorr-solve --> solve:00:solve
+8.92702 s = 10.725%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:04:pcorr-solve --> solve:01:copy
+0.87585 s = 1.052%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:05:apply
+1.36723 s = 1.643%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:09:pgrad
+0.49120 s = 0.590%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:00:source
+0.07735 s = 0.093%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:00:init
+0.02755 s = 0.033%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
+5.16975 s = 6.211%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
+2.34480 s = 2.817%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
+0.02461 s = 0.030%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:03:apply
+0.87236 s = 1.048%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:00:init
+0.03579 s = 0.043%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
+5.19702 s = 6.244%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
+2.28004 s = 2.739%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
+0.02393 s = 0.029%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:03:apply
+0.87075 s = 1.046%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:00:init
+0.03756 s = 0.045%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
+5.16838 s = 6.209%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
+0.70891 s = 0.852%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
+0.02193 s = 0.026%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:03:apply
+0.87450 s = 1.051%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:04:tovect
+0.18019 s = 0.216%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:11:diag --> diag:00:local
+0.98270 s = 1.181%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:11:diag --> diag:01:interp
+0.28294 s = 0.340%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:12:pcorr-assemble
+1.91356 s = 2.299%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:13:pcorr-solve --> solve:00:solve
+8.89970 s = 10.692%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:13:pcorr-solve --> solve:01:copy
+0.86935 s = 1.044%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:14:pcorr-apply
+0.75711 s = 0.910%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:00:dir-corr --> corr:00:apply
+0.89443 s = 1.075%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:01:dir-corr --> corr:00:apply
+0.89261 s = 1.072%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:02:dir-corr --> corr:00:apply
+0.88220 s = 1.060%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:03:tovect
+0.07737 s = 0.093%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:16:inc-iter
+0.00690 s = 0.008%
+run:09:fs-iters --> iter:02:reduce
+0.01755 s = 0.021%
+run:09:fs-iters --> iter:03:report
+0.01673 s = 0.020%
+run:09:fs-iters --> iter:04:convcheck
+0.01328 s = 0.016%
+run:10:fs-finish --> fluid-finish:00:inctime
+0.00090 s = 0.001%
+run:10:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:00:dir-finish
+0.00031 s = 0.000%
+run:10:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:01:dir-finish
+0.00024 s = 0.000%
+run:10:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:02:dir-finish
+0.00030 s = 0.000%
+run:10:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:03:tovect
+0.00082 s = 0.001%
+run:11:dump
+0.03905 s = 0.047%
+run:12:dumpwrite
+0.00007 s = 0.000%
+run:13:dumpstat
+0.00014 s = 0.000%
+
+cells = 4096
+steps = 1000000
+iters = 479
+total = 83 s = 00:01:23.238
+time/cell/iter = 4.24258e-05 s
+
+real	1m23.428s
+user	1m21.835s
+sys	0m0.552s
+p_1.pdf
+stream_direct
+residual: L1: 1.3437399959890328e-15, L2: 2.289554325973036e-15, Linf: 1.9442780718748054e-14
+|u-su|/mean(|u|): L1: 0.031785251963645, L2: 0.1449154240096622, Linf: 1.4973247049590455
+|v-sv|/mean(|v|): L1: 0.020023627063950347, L2: 0.0987997301779415, Linf: 1.6740361912489177
+p_1_vy.pdf
+p_2.pdf
+stream_direct
+residual: L1: 1.3391550446958535e-15, L2: 2.2509030438761045e-15, Linf: 1.3253287356462806e-14
+|u-su|/mean(|u|): L1: 0.031088422428185606, L2: 0.141816730181477, Linf: 1.4714744290335933
+|v-sv|/mean(|v|): L1: 0.01964200787837734, L2: 0.09692846325027253, Linf: 1.641153818845952
+p_2_vy.pdf
+
+real	0m1.584s
+user	0m1.405s
+sys	0m0.145s
