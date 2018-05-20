@@ -80,11 +80,21 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
 
       // Calc convective fluxes:
 			// all inner
+      /*
       ffqc_.Reinit(m, Expr());
       for (IdxFace f : m.Faces()) {
         Expr e = ui.GetExpr(f);
         ffqc_[f] = e * (*ffv_)[f];
       }
+      */
+
+      InterpolateI(fcu, fcgu_, ffv, ffqc_, m);
+      for (auto f : m.Faces()) {
+        ffqc_[f] *= (*ffv_)[f];
+      }
+
+
+
 			// overwrite with bc
       for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
         IdxFace f = it->GetIdx();

@@ -11,6 +11,46 @@ class Approx {
   virtual Expr GetExpr(Idx) const = 0;
 };
 
+// Interpolation to inner faces.
+// fc: field cell [s]
+// fc: gradient [s]
+// ffw: flow direction [i]
+// Output:
+// ff: face cell [i]
+template <class T, class M, class Expr>
+void InterpolateI(const FieldCell<T>& fc,
+                  const FieldCell<typename M::Vect>& fcgp,
+                  const FieldFace<T>& ffw, FieldFace<Expr>& ff, 
+                  const M& m, typename M::Scal th=1e-10) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+
+  ff.Reinit(m);
+  for (auto f : m.Faces()) {
+    Expr& e = ff[f];
+    e.Clear();
+    IdxCell cm = m.GetNeighbourCell(f, 0);
+    IdxCell cp = m.GetNeighbourCell(f, 1);
+    // f = fmm + fm + fp
+    //const std::array<Scal, 3> a = {0., 1., 0.}; // FOU
+    //const std::array<Scal, 3> a = {0., 0.5, 0.5}; // CD
+    //const std::array<Scal, 3> a = {-0.5, 1.5, 0.}; // SOU
+    const std::array<Scal, 3> a = {-1./8., 6./8., 3./8.}; // QUICK
+    if (ffw[f] > th) {
+      e.InsertTerm(a[1], cm);
+      e.InsertTerm(a[2] + a[0], cp);
+      e.SetConstant(4. * a[0] * fcgp[cm].dot(m.GetVectToCell(f, 0)));
+    } else if (ffw[f] < -th) {
+      e.InsertTerm(a[2] + a[0], cm);
+      e.InsertTerm(a[1], cp);
+      e.SetConstant(4. * a[0] * fcgp[cp].dot(m.GetVectToCell(f, 1)));
+    } else {
+      e.InsertTerm(0.5, cm);
+      e.InsertTerm(0.5, cp);
+    }
+  }
+}
+
 template <class M, class Expr>
 class FaceVal : public Approx<IdxFace, Expr> {
  public:
