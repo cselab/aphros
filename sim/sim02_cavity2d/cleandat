@@ -3,5 +3,5 @@
 rm -vf *.pdf
 rm -vf *.{xmf,h5}
 rm -vf *.{vts,pvd}
-rm -vf *_*.dat
 rm -vf stat.dat
+rm -vfr sc

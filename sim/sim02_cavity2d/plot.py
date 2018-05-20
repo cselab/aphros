@@ -13,20 +13,24 @@ import mfer.post as mp
 # p: path
 # Format:
 # <Nx> <Ny> <Nz>
-# <u[0,0,0]> <u[1,0,0]> ...
+# <u[0,0,0]> <u[0,0,1]> ...
 # Return:
-# array of shape (Nx, Ny, Nz)
+# array of shape (Nz, Ny, Nx)
 # None if file not found
 def Read(p):
     if not os.path.isfile(p):
         return None
     with open(p) as f:
         ll = f.readlines()
-        # size
+        # shape x,y,z
         s = np.array(ll[0].split(), dtype=int)
-        # data
+        # shape z,y,x
+        ss = tuple(reversed(s))
+        # data flat
         u = np.array(ll[1].split(), dtype=float)
-        return u.reshape(s)
+        # data z,y,x
+        u = u.reshape(ss)
+        return u
 
 # u: numpy array (2d or 3d with shape[2]==1)
 def Get2d(u):
@@ -34,15 +38,20 @@ def Get2d(u):
         return u
     else:
         s = u.shape
-        assert len(s) == 3 and s[2] == 1
-        return u.reshape((s[0], s[1]))
+        assert len(s) == 3 and s[0] == 1
+        return u.reshape((s[1], s[2]))
 
 def PlotInit():
     fig, ax = plt.subplots(figsize=(5,5))
     return fig, ax
 
-def PlotSave(fig, ax, po):
+def PlotSave2(fig, ax, po):
     ax.set_aspect('equal')
+    fig.tight_layout()
+    fig.savefig(po, dpi=300)
+    plt.close()
+
+def PlotSave1(fig, ax, po):
     fig.tight_layout()
     fig.savefig(po, dpi=300)
     plt.close()
@@ -62,6 +71,29 @@ def PlotGrid(ax, x1, y1):
     ax.tick_params(axis='both', which='both', length=0)
     ax.grid(True)
 
+def PlotStream(x1, y1, vx, vy, o):
+    psi = mp.stream(vx, vy)
+    fig, ax = PlotInit()
+    plt.contour(x1, y1, psi, 36, colors='k',
+                linestyles="solid", linewidths=1.)
+    ax.imshow(np.flipud(p), extent=(0, 1, 0, 1), interpolation='nearest')
+    PlotSave2(fig, ax, o)
+
+def PlotRefVy(ax):
+    d = "ref/"
+    x = np.loadtxt(d + "x")
+    vy = np.loadtxt(d + "cvy")
+    ax.plot(x, vy, label="ref")
+
+def FigVy(x1, vx, o):
+    plt.close()
+    fig, ax = PlotInit()
+    ny = vx.shape[1];
+    ax.plot(x1, vy[ny//2,:], label="ch,Nx={:}".format(x1.size))
+    ax.grid()
+    PlotRefVy(ax)
+    ax.legend(loc="best")
+    PlotSave1(fig, ax, o)
 
 pre = 'p'
 ff = sorted(glob.glob(pre + "*.dat"))[1:]
@@ -82,12 +114,10 @@ for f in ff:
     y1 = (0.5 + np.arange(sy)) * hy
     x, y = np.meshgrid(x1, y1)
 
-    psi = mp.stream(vx, vy)
-
     po = os.path.splitext(f)[0] + ".pdf"
     print(po)
-    fig, ax = PlotInit()
-    plt.contour(x1, y1, psi, 36, colors='k',
-                linestyles="solid", linewidths=1.)
-    ax.imshow(np.flipud(p), extent=(0, 1, 0, 1), interpolation='nearest')
-    PlotSave(fig, ax, po)
+    PlotStream(x1, y1, vx, vy, po)
+
+    po = os.path.splitext(f)[0] + "_vy.pdf"
+    print(po)
+    FigVy(x1, vx, po)
