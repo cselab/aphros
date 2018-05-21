@@ -14,8 +14,10 @@ commands to set px,bx,bsx etc " >&2
   exit 1
 fi
 
+r="`ch.part0 $@`"
+
 IFS=' ' read nx ny nz bsx bsy bsz np <<< "$@"
-IFS=' ' read px py pz bx by bz <<< "`ch.part0 $@`"
+IFS=' ' read px py pz bx by bz <<< "$r"
 
 echo "set int px $px
 set int py $py
