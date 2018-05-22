@@ -9,5 +9,6 @@ echo "$@" > arg
 echo "background" > job.id
 echo starting > job.status
 
-nohup bash ch.job &> out &
+nohup bash ch.job &> /dev/null &
+echo $! > pid
 
