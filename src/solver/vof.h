@@ -310,26 +310,18 @@ class Vof : public AdvectionSolver<M_> {
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
  public:
-  struct Par {
-  };
+  struct Par {};
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
-  Vof(
-      M& m,
-      const FieldCell<Scal>& fc_u_initial,
-      const MapFace<std::shared_ptr<CondFace>>& mf_u_cond_,
-      const FieldFace<Scal>* ff_volume_flux,
-      const FieldCell<Scal>* fc_source,
+  Vof(M& m, const FieldCell<Scal>& fcu,
+      const MapFace<std::shared_ptr<CondFace>>& mfc,
+      const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
       double t, double dt, std::shared_ptr<Par> par)
-      : AdvectionSolver<M>(t, dt, m, ff_volume_flux, fc_source)
-      , mf_u_cond_(mf_u_cond_)
-      , par(par)
-      , fc_a_(m, 0)
-      , fc_n_(m, Vect(0))
-      , fc_us_(m, 0)
-      , ff_fu_(m, 0) 
+      : AdvectionSolver<M>(t, dt, m, ffv, fcs)
+      , mf_u_cond_(mfc), par(par)
+      , fc_a_(m, 0), fc_n_(m, Vect(0)), fc_us_(m, 0), ff_fu_(m, 0) 
   {
-    fc_u_.time_curr = fc_u_initial;
+    fc_u_.time_curr = fcu;
     Reconst(fc_u_.time_curr);
   }
   void StartStep() override {
@@ -608,6 +600,9 @@ class Vof : public AdvectionSolver<M_> {
   }
   const FieldCell<Vect>& GetNormal() {
     return fc_n_;
+  }
+  const FieldCell<Scal>& GetCurv() override {
+    throw std::runtime_error("Vof::GetCurv(): not implemented");
   }
   using P::GetField;
 };
