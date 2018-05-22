@@ -301,17 +301,23 @@ class Vof : public AdvectionSolver<M_> {
   using P::ffv_;
   using P::fcs_;
   LayersData<FieldCell<Scal>> fc_u_;
-  MapFace<std::shared_ptr<CondFace>> mf_u_cond_;
+  MapFace<std::shared_ptr<CondFace>> mfc_;
+  MapFace<std::shared_ptr<CondFace>> mfvz_; // zero-derivative bc for Vect
 
   FieldCell<Scal> fc_a_; // alpha (plane constant)
   FieldCell<Vect> fc_n_; // n (normal to plane)
   FieldCell<Scal> fc_us_; // smooth field
   FieldFace<Scal> ff_fu_; // volume flux
   FieldCell<Scal> fck_; // curvature
+  FieldFace<Scal> ffu_; // field on faces
+  FieldCell<Vect> fcg_; // gradient
+  FieldFace<Vect> ffg_; // gradient
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
  public:
-  struct Par {};
+  struct Par {
+    bool curvgrad = false; // compute curvature using gradient
+  };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
   Vof(M& m, const FieldCell<Scal>& fcu,
@@ -319,10 +325,16 @@ class Vof : public AdvectionSolver<M_> {
       const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
       double t, double dt, std::shared_ptr<Par> par)
       : AdvectionSolver<M>(t, dt, m, ffv, fcs)
-      , mf_u_cond_(mfc), par(par)
+      , mfc_(mfc), par(par)
       , fc_a_(m, 0), fc_n_(m, Vect(0)), fc_us_(m, 0), ff_fu_(m, 0) 
+      , fck_(m, 0)
   {
     fc_u_.time_curr = fcu;
+    for (auto it : mfc_) {
+      IdxFace f = it.GetIdx();
+      mfvz_[f] = std::make_shared<
+          CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
+    }
     Reconst(fc_u_.time_curr);
   }
   void StartStep() override {
@@ -335,7 +347,7 @@ class Vof : public AdvectionSolver<M_> {
   }
   // Normal with gradients
   void CalcNormal(const FieldCell<Scal>& uc) {
-    auto uf = Interpolate(uc, mf_u_cond_, m);
+    auto uf = Interpolate(uc, mfc_, m);
     auto gc = Gradient(uf, m);
     for (auto c : m.AllCells()) {
       Vect g = gc[c];
@@ -343,6 +355,7 @@ class Vof : public AdvectionSolver<M_> {
     }
   }
   // Normal with heigh function
+  // XXX: no curvature
   void CalcNormalHeight(const FieldCell<Scal>& uc) {
     using MIdx = typename M::MIdx;
     using Dir = typename M::Dir;
@@ -381,7 +394,7 @@ class Vof : public AdvectionSolver<M_> {
         n[size_t(d)] = -k;
         n[size_t(dp)] = sg > 0. ? -1. : 1.;
         // check best with minimal abs
-        if (d == Dir::i || (d == Dir::j && std::abs(k) < std::abs(tk))) {
+        if (d == Dir::i || std::abs(k) < std::abs(tk)) {
           tn = n;
           tk = k;
         } 
@@ -396,7 +409,8 @@ class Vof : public AdvectionSolver<M_> {
     auto& bc = m.GetBlockCells();
     for (auto c : m.SuCells()) {
       Vect tn; // bes[t] normal
-      Scal tk; // bes[t] slope with minimal abs
+      Scal tl; // bes[t] s[l]ope with minimal abs
+      Scal tk; // bes[t] curvature[k]
       // direction of line tangent
       for (Dir d : {Dir::i, Dir::j}) {
         // direction of line normal ([d]irection [p]erpendicular)
@@ -407,10 +421,15 @@ class Vof : public AdvectionSolver<M_> {
         // offset in dp
         MIdx op = MIdx(dp);
 
-        // index shfted in d
+        // index shifted in d
         MIdx wm = bc.GetMIdx(c) - MIdx(d);
         MIdx wp = bc.GetMIdx(c) + MIdx(d);
+
         // height function 
+        const Scal h = 
+            uc[bc.GetIdx(w - op)] + 
+            uc[bc.GetIdx(w)] + 
+            uc[bc.GetIdx(w + op)];
         const Scal hm = 
             uc[bc.GetIdx(wm - op)] + 
             uc[bc.GetIdx(wm)] + 
@@ -419,23 +438,32 @@ class Vof : public AdvectionSolver<M_> {
             uc[bc.GetIdx(wp - op)] + 
             uc[bc.GetIdx(wp)] + 
             uc[bc.GetIdx(wp + op)];
+
+        const Scal dx = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(wm)));
+
         
         // slope
-        Scal kc = (hp - hm) * 0.5; // centered
-        Scal k = kc; // XXX: force centered approx
+        Scal lc = (hp - hm) * 0.5; // centered
+        Scal l = lc; // XXX: choose centered approx
         // sign in dp
         Scal sg = uc[bc.GetIdx(w + MIdx(dp))] - uc[bc.GetIdx(w - MIdx(dp))];
+        // curvature
+        Scal k = -(hp - 2. * h + hm) / std::pow(1. + l * l, 3. / 2.) / dx;
         // normal
         Vect n;
-        n[size_t(d)] = -k;
+        n[size_t(d)] = -l;
         n[size_t(dp)] = sg > 0. ? -1. : 1.;
-        // check best with minimal abs
-        if (d == Dir::i || (d == Dir::j && std::abs(k) < std::abs(tk))) {
+        // select best with minimal abs
+        if (d == Dir::i || std::abs(l) < std::abs(tl)) {
           tn = n;
+          tl = l;
           tk = k;
         } 
       }
       fc_n_[c] = tn;
+      Scal u = uc[c];
+      const Scal th = 1e-6;
+      fck_[c] = tk * (u > th && u < 1. - th ? 1. : 0.);
     }
   }
   void Reconst(const FieldCell<Scal>& uc) {
@@ -584,6 +612,26 @@ class Vof : public AdvectionSolver<M_> {
       }
     }
 
+    if (par->curvgrad && sem("curv")) {
+      ffu_ = Interpolate(fc_u_.iter_curr, mfc_, m); // [s]
+      fcg_ = Gradient(ffu_, m); // [s]
+      ffg_ = Interpolate(fcg_, mfvz_, m); // [i]
+
+      fck_.Reinit(m); // curvature [i]
+      for (auto c : m.Cells()) {
+        Scal s = 0.;
+        for (auto q : m.Nci(c)) {
+          IdxFace f = m.GetNeighbourFace(c, q);
+          auto& g = ffg_[f];
+          // TODO: revise 1e-6
+          auto n = g / (g.norm() + 1e-6);  // inner normal
+          s += -n.dot(m.GetOutwardSurface(c, q));
+        }
+        fck_[c] = s / m.GetVolume(c);
+      }
+      m.Comm(&fck_);
+    }
+
     if (sem("stat")) {
       this->IncIter();
       ++count_;
@@ -603,7 +651,6 @@ class Vof : public AdvectionSolver<M_> {
     return fc_n_;
   }
   const FieldCell<Scal>& GetCurv() const override {
-    throw std::runtime_error("Vof::GetCurv(): not implemented");
     return fck_;
   }
   using P::GetField;
