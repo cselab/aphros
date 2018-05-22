@@ -863,45 +863,22 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           fc_force_[c] += r * sig;
         }
       } else if (st == "kn") {  // curvature * normal
-        fc_k_.Reinit(m); // curvature [i]
-        for (auto c : m.Cells()) {
-          Scal s = 0.;
-          for (auto q : m.Nci(c)) {
-            IdxFace f = m.GetNeighbourFace(c, q);
-            auto g = gf[f];
-            // TODO: revise 1e-6
-            auto n = g / (g.norm() + 1e-6);  // inner normal
-            s += -n.dot(m.GetOutwardSurface(c, q));
-          }
-          fc_k_[c] = s / m.GetVolume(c);
-        }
+        auto& fck = as_->GetCurv(); // [a]
 
-        m.Comm(&fc_k_);
-      } else {
-        throw std::runtime_error("Unknown surftens=" + st);
-      }
-    }
-  }
-
-  // TODO: revise
-  // continue after comm fc_k_
-  if (sem("curv")) {
-    auto& a = fc_smvf_;
-    if (var.Int["enable_surftens"]) {
-      auto st = var.String["surftens"];
-      auto sig = var.Double["sigma"];
-      if (st == "kn") {  
         //Scal rad = 0.2;
         //Scal k = 1. / rad;
+        ff_st_.Reinit(m);
         for (auto f : m.Faces()) {
           IdxCell cm = m.GetNeighbourCell(f, 0);
           IdxCell cp = m.GetNeighbourCell(f, 1);
           Vect dm = m.GetVectToCell(f, 0);
           Vect dp = m.GetVectToCell(f, 1);
           const auto ga = (a[cp] - a[cm]) / (dp - dm).norm();
-          Scal k = (fc_k_[cm] + fc_k_[cp]) * 0.5;
+          Scal k = (fck[cm] + fck[cp]) * 0.5;
           ff_st_[f] += ga * k * sig;
         }
+      } else {
+        throw std::runtime_error("Unknown surftens=" + st);
       }
 
       // Zero if boundary
@@ -916,7 +893,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       }
     }
 
-    // zero in z if 2D
+    // zero force in z if 2D
     if (var.Int["dim"] <= 2) {
       for (auto f : m.Faces()) {
         using Dir = typename M::Dir;
@@ -926,6 +903,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       }
     }
   }
+
 }
 
 // TODO: Test m.Dump() with pending Comm
