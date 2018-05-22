@@ -463,6 +463,9 @@ void Hydro<M>::Init() {
         using AS = solver::Vof<M>;
         auto p = std::make_shared<typename AS::Par>();
         p->curvgrad = var.Int["curvgrad"];
+        p->partrelax = var.Double["partrelax"];
+        p->parth = var.Double["parth"];
+        p->parthh = var.Double["parthh"];
         as_.reset(new AS(
               m, fc_vf_, mf_cond_, 
               &fs_->GetVolumeFlux(solver::Layers::time_curr),
