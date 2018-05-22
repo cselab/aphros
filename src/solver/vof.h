@@ -313,6 +313,9 @@ class Vof : public AdvectionSolver<M_> {
   FieldCell<Vect> fcg_; // gradient
   FieldFace<Vect> ffg_; // gradient
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
+  static constexpr size_t kNp = 5;
+  FieldCell<std::array<Vect, kNp>> fcp_; // cell list
+  FieldCell<size_t> fcps_; // cell list size
 
  public:
   struct Par {
@@ -336,6 +339,21 @@ class Vof : public AdvectionSolver<M_> {
           CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
     }
     Reconst(fc_u_.time_curr);
+
+    // seed particles
+    auto& uc = fcu;
+    fcps_.Reinit(m, 0);
+    fcp_.Reinit(m);
+    for (auto f : m.Faces()) {
+      IdxCell cm = m.GetNeighbourCell(f, 0);
+      IdxCell cp = m.GetNeighbourCell(f, 1);
+      if (std::abs(uc[cm] - uc[cp]) > 1e-3 ) {
+        auto c = cp;
+        if (fcps_[c] < kNp) {
+          fcp_[c][fcps_[c]++] = m.GetCenter(f);
+        }
+      }
+    }
   }
   void StartStep() override {
     this->ClearIter();
@@ -540,6 +558,7 @@ class Vof : public AdvectionSolver<M_> {
     } else {
       dd = {Dir::j, Dir::i};
     }
+    if (0) // XXX
     for (Dir d : dd) {
       auto& uc = fc_u_.iter_curr;
       auto& bc = m.GetBlockCells();
@@ -632,6 +651,47 @@ class Vof : public AdvectionSolver<M_> {
       m.Comm(&fck_);
     }
 
+    if (sem("part")) {
+      // advance particles
+      for (auto c : m.Cells()) {
+        for (size_t i = 0; i < fcps_[c]; ++i) {
+          auto& x = fcp_[c][i];
+          x += Vect(1e-4, 1e-4, 0);
+        }
+      }
+      // update cell lists
+      auto& bc = m.GetBlockCells();
+      auto& bn = m.GetBlockNodes();
+      using MIdx = typename M::MIdx;
+      MIdx wb = bn.GetBegin();
+      Vect xb = m.GetNode(bn.GetIdx(wb));
+      Vect h = m.GetNode(bn.GetIdx(wb + MIdx(1))) - xb;
+      for (auto c : m.Cells()) {
+        MIdx w = bc.GetMIdx(c);
+        auto& s = fcps_[c];
+        for (size_t i = 0; i < s; ++i) {
+          Vect x = fcp_[c][i];
+          MIdx ww = wb + MIdx((x - xb) / h);
+          auto cc = bc.GetIdx(ww);
+          if (cc != c) {
+            // remove from c
+            std::swap(fcp_[c][i], fcp_[c][s - 1]);
+            --s;
+            auto& ss = fcps_[cc];
+            if (ss < kNp) {
+              // add to cc
+              fcp_[cc][ss++] = x;
+            } 
+          }
+        }
+      }
+
+      auto& uc = fc_u_.iter_curr;
+      for (auto c : m.Cells()) {
+        uc[c] = Scal(fcps_[c]) / kNp;
+      }
+    }
+
     if (sem("stat")) {
       this->IncIter();
       ++count_;
@@ -652,6 +712,12 @@ class Vof : public AdvectionSolver<M_> {
   }
   const FieldCell<Scal>& GetCurv() const override {
     return fck_;
+  }
+  const FieldCell<std::array<Vect, kNp>>& GetPart() const {
+    return fcp_;
+  }
+  const FieldCell<size_t>& GetPartS() const {
+    return fcps_;
   }
   using P::GetField;
 };

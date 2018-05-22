@@ -1,4 +1,5 @@
 m ?= 64 64 1
+bs ?= $(m)
 bs ?= 32 32 1
 
 all: run
@@ -23,6 +24,7 @@ cleandat:
 	rm -vf *.{xmf,h5}
 	rm -vf *.{vts,pvd}
 	rm -vf stat.dat
+	rm -vf *.csv
 	rm -vfr sc
 
 cleanall: clean cleandat

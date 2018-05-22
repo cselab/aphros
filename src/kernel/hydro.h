@@ -924,6 +924,22 @@ void Hydro<M>::Dump(Sem& sem) {
       m.Dump(&fc_vf_, "vf"); 
       if (IsRoot()) {
         dumper_.Report();
+        if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
+          static size_t n = 0;
+          auto& fcp = as->GetPart();
+          auto& fcps = as->GetPartS();
+          std::ofstream o;
+          o.open("part." + std::to_string(n) + ".csv");
+          o << "x,y,z\n";
+
+          for (auto c : m.Cells()) {
+            for (size_t i = 0; i < fcps[c]; ++i) {
+              Vect x = fcp[c][i];
+              o << x[0] << "," << x[1] << "," << x[2] << "\n";
+            }
+          }
+          ++n;
+        }
       }
     }
   }
