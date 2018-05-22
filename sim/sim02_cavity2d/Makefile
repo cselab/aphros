@@ -13,7 +13,7 @@ clean:
 	rm -vf *.{png}
 	rm -vf *.pdf
 	rm -vf *.{bin,log}
-	rm -vf out job.id.last job.status pid arg
+	rm -vf out job.id.last job.status arg
 
 cleandat:
 	rm -vf stat.dat

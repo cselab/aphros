@@ -3,8 +3,11 @@ bs ?= 32 32 1
 
 all: run
 
-run:
+run: mesh
 	ch.run
+
+submit: mesh
+	ch.submit
 
 mesh:
 	ch.part $(m) $(bs) `cat np` > mesh.conf
@@ -13,7 +16,7 @@ clean:
 	rm -vf *.{png}
 	rm -vf *.{bin,log}
 	rm -vf lsf.o*
-	rm -vf out job.id.last job.status pid arg
+	rm -vf job.id.last job.status arg
 
 cleandat:
 	rm -vf *.pdf
@@ -24,4 +27,4 @@ cleandat:
 
 cleanall: clean cleandat
 
-.PHONY: run clean cleandat cleanall
+.PHONY: all run submit mesh clean cleandat

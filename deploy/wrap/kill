@@ -7,7 +7,8 @@ set -eu
 echo stopping > job.status
 
 pid=`cat pid`
-c="kill $pid"
+# kill all child processes 
+c="pkill -9 -P $pid"
 echo "$c"
 eval "$c"
 
