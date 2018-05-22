@@ -307,6 +307,7 @@ class Vof : public AdvectionSolver<M_> {
   FieldCell<Vect> fc_n_; // n (normal to plane)
   FieldCell<Scal> fc_us_; // smooth field
   FieldFace<Scal> ff_fu_; // volume flux
+  FieldCell<Scal> fck_; // curvature
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
  public:
@@ -592,17 +593,18 @@ class Vof : public AdvectionSolver<M_> {
     fc_u_.time_curr = fc_u_.iter_curr;
     this->IncTime();
   }
-  const FieldCell<Scal>& GetField(Layers l) override {
+  const FieldCell<Scal>& GetField(Layers l) const override {
     return fc_u_.Get(l);
   }
-  const FieldCell<Scal>& GetAlpha() {
+  const FieldCell<Scal>& GetAlpha() const {
     return fc_a_;
   }
-  const FieldCell<Vect>& GetNormal() {
+  const FieldCell<Vect>& GetNormal() const {
     return fc_n_;
   }
-  const FieldCell<Scal>& GetCurv() override {
+  const FieldCell<Scal>& GetCurv() const override {
     throw std::runtime_error("Vof::GetCurv(): not implemented");
+    return fck_;
   }
   using P::GetField;
 };

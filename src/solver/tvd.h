@@ -179,10 +179,10 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
     fcu_.time_curr = fcu_.iter_curr;
     this->IncTime();
   }
-  const FieldCell<Scal>& GetField(Layers l) override {
+  const FieldCell<Scal>& GetField(Layers l) const override {
     return fcu_.Get(l);
   }
-  const FieldCell<Scal>& GetCurv() override {
+  const FieldCell<Scal>& GetCurv() const override {
     return fck_;
   }
   using P::GetField;
