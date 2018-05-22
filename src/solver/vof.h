@@ -315,11 +315,16 @@ class Vof : public AdvectionSolver<M_> {
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
   static constexpr size_t kNp = 5;
   FieldCell<std::array<Vect, kNp>> fcp_; // cell list
+  FieldCell<std::array<Vect, kNp>> fcpt_; // cell list tmp
+  FieldCell<std::array<Scal, kNp>> fcpw_; // cell list weight
   FieldCell<size_t> fcps_; // cell list size
 
  public:
   struct Par {
     bool curvgrad = false; // compute curvature using gradient
+    Scal partrelax = 1.; 
+    Scal parth = 1.; 
+    Scal parthh = 1.; 
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
@@ -344,6 +349,8 @@ class Vof : public AdvectionSolver<M_> {
     auto& uc = fcu;
     fcps_.Reinit(m, 0);
     fcp_.Reinit(m);
+    fcpt_.Reinit(m);
+    fcpw_.Reinit(m);
     for (auto f : m.Faces()) {
       IdxCell cm = m.GetNeighbourCell(f, 0);
       IdxCell cp = m.GetNeighbourCell(f, 1);
@@ -652,20 +659,53 @@ class Vof : public AdvectionSolver<M_> {
     }
 
     if (sem("part")) {
-      // advance particles
-      for (auto c : m.Cells()) {
-        for (size_t i = 0; i < fcps_[c]; ++i) {
-          auto& x = fcp_[c][i];
-          x += Vect(1e-4, 1e-4, 0);
-        }
-      }
-      // update cell lists
       auto& bc = m.GetBlockCells();
       auto& bn = m.GetBlockNodes();
       using MIdx = typename M::MIdx;
+
       MIdx wb = bn.GetBegin();
       Vect xb = m.GetNode(bn.GetIdx(wb));
       Vect h = m.GetNode(bn.GetIdx(wb + MIdx(1))) - xb;
+      Scal hm = h.norminf();
+
+      const int sw = 1; // stencil width
+      const int sn = sw * 2 + 1; // stencil size
+      GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, 0), MIdx(sn, sn, 1)); // offset
+
+      // advance particles
+      for (auto c : m.Cells()) {
+        auto w = bc.GetMIdx(c);
+        for (size_t i = 0; i < fcps_[c]; ++i) {
+          const Vect& x = fcp_[c][i];
+          Vect& t = fcpt_[c][i]; // accum
+          Scal& e = fcpw_[c][i]; // weight
+          t = Vect(0);
+          e = 0.;
+          for (auto wo : bo) {
+            auto cc = bc.GetIdx(w + wo);
+            for (size_t ii = 0; ii < fcps_[cc]; ++ii) {
+              const Vect& xx = fcp_[cc][ii];
+              if (cc != c || ii != i) {
+                Vect dx = x - xx;
+                Scal r = dx.norm() / hm;
+                Scal d = (par->parth - r) / (r * r);
+                t += dx / dx.norm() * hm * d;
+                e += d;
+              }
+            }
+          }
+        }
+      }
+      for (auto c : m.Cells()) {
+        for (size_t i = 0; i < fcps_[c]; ++i) {
+          if (fcpw_[c][i] != 0.) {
+            //fcp_[c][i] += (fcpt_[c][i] / fcpw_[c][i]) * par->partrelax;
+            fcp_[c][i] += fcpt_[c][i] * par->partrelax;
+          }
+        }
+      }
+
+      // update cell lists
       for (auto c : m.Cells()) {
         MIdx w = bc.GetMIdx(c);
         auto& s = fcps_[c];
