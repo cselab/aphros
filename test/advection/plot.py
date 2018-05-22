@@ -37,6 +37,7 @@ def Get2d(u):
         return u.reshape((s[0], s[1]))
 
 def PlotInit():
+    plt.close()
     fig, ax = plt.subplots(figsize=(5,5))
     return fig, ax
 
@@ -48,9 +49,9 @@ def PlotSave(fig, ax, po):
 
 # u: 2d numpy array
 # po: output path
-def PlotField(ax, u):
-    u = np.clip(u, 0., 1.)
-    ax.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation='nearest')
+def PlotField(ax, u, vmin=None, vmax=None):
+    ax.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation='nearest',
+              vmin=vmin, vmax=vmax)
 
 # sx, sy: number of cells
 def PlotGrid(ax, x1, y1):
@@ -149,12 +150,24 @@ for p in pp:
     a = Read('a' + suf) # alpha
     nx = Read('nx' + suf) # normal
     ny = Read('ny' + suf)
+    k = Get2d(Read('k' + suf))
 
     po = os.path.splitext(p)[0] + ".pdf"
     print(po)
     fig, ax = PlotInit()
     PlotGrid(ax, xn1, yn1)
-    PlotField(ax, u)
+    PlotField(ax, np.clip(u, 0., 1.))
+    if all([e is not None for e in [a, nx, ny]]):
+        l = GetLines(x, y, a, nx, ny, hx, hy, u)
+        PlotLines(ax, *l)
+    PlotSave(fig, ax, po)
+
+    po = os.path.splitext('k' + suf)[0] + ".pdf"
+    print(po)
+    fig, ax = PlotInit()
+    PlotGrid(ax, xn1, yn1)
+    vmax = 1. / 0.2 * 2.
+    PlotField(ax, k, vmin=-vmax, vmax=vmax)
     if all([e is not None for e in [a, nx, ny]]):
         l = GetLines(x, y, a, nx, ny, hx, hy, u)
         PlotLines(ax, *l)

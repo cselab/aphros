@@ -128,6 +128,8 @@ void Advection<M>::Dump(Sem& sem) {
     if (dumper_.Try(var.Double["t"], var.Double["dt"])) {
       auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
       m.Dump(&u, "u");
+      auto& k = const_cast<FieldCell<Scal>&>(as_->GetCurv());
+      m.Dump(&k, "k");
       if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
         auto& a = const_cast<FieldCell<Scal>&>(as->GetAlpha());
         m.Dump(&a, "a");
