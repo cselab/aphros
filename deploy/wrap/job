@@ -5,6 +5,7 @@
 # run command with time and append to out
 rt () {
   echo
+  set -o pipefail 
   c="( time $@ ) |& tee -a out"
   echo $c
   eval "$c"
@@ -27,11 +28,11 @@ echo running > $js
 
 rm -rf out
 
-[[ -f pre ]] && rt "mpirun -n 1 ./pre"
+[[ -f pre ]] && rt "./pre"
 
 rt "mpirun -n $np --report-pid pid $e $a"
 
-[[ -f post ]] && rt "mpirun -n 1 ./post"
+[[ -f post ]] && rt "./post"
 
 mv -vf job.id{,.last}
 
