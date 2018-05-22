@@ -462,6 +462,7 @@ void Hydro<M>::Init() {
       } else if (as == "vof") {
         using AS = solver::Vof<M>;
         auto p = std::make_shared<typename AS::Par>();
+        p->curvgrad = var.Int["curvgrad"];
         as_.reset(new AS(
               m, fc_vf_, mf_cond_, 
               &fs_->GetVolumeFlux(solver::Layers::time_curr),
@@ -870,7 +871,13 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           Vect dm = m.GetVectToCell(f, 0);
           Vect dp = m.GetVectToCell(f, 1);
           Scal ga = (a[cp] - a[cm]) / (dp - dm).norm();
-          Scal k = (fck[cm] + fck[cp]) * 0.5;
+          Scal k;
+          if (std::abs(a[cm] - 0.5) < std::abs(a[cp] - 0.5)) {
+            k = fck[cm];
+          } else {
+            k = fck[cp];
+          }
+          //k = (fck[cm] + fck[cp]) * 0.5;
           ff_st_[f] += ga * k * sig;
         }
 
