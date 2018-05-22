@@ -20,11 +20,11 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
                   const FieldCell<Scal>* fcs /*source*/)
       : UnsteadyIterativeSolver(t, dt)
       , m(m), ffv_(ffv), fcs_(fcs) {}
-  virtual const FieldCell<Scal>& GetField(Layers) = 0;
-  virtual const FieldCell<Scal>& GetField() {
+  virtual const FieldCell<Scal>& GetField(Layers) const = 0;
+  virtual const FieldCell<Scal>& GetField() const {
     return GetField(Layers::time_curr);
   }
-  virtual const FieldCell<Scal>& GetCurv() = 0;
+  virtual const FieldCell<Scal>& GetCurv() const = 0;
 };
 
 

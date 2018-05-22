@@ -103,7 +103,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_veluz_; 
   FieldCell<Scal> fc_p_; // pressure
   FieldCell<Scal> fc_vf_; // volume fraction used by constructor and Dump()
-  FieldCell<Scal> fc_k_;  // interface curvature
   FieldCell<Vect> fc_vel_; // velocity used by constructor
   FieldCell<Scal> fc_smvf_; // smoothed volume fraction used by CalcMixture()
   FieldFace<Scal> ff_smvf_; // interpolated fc_smvf_
@@ -781,9 +780,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     }
 
     // Surface tension
-    if (var.Int["enable_surftens"]) {
-      ff_st_.Reinit(m, 0);
-
+    if (var.Int["enable_surftens"] && as_) { // (skip if as_ is null)
       auto af = solver::Interpolate(a, mf_cond_, m);
       auto gc = solver::Gradient(af, m); // [s]
 
@@ -796,9 +793,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
                 Vect(0), it.GetValue()->GetNci());
       }
 
-      // surface tension in cells
-      auto sig = var.Double["sigma"];
-      auto st = var.String["surftens"];
+      // gradient on faces
       auto gf = solver::Interpolate(gc, mfvz, m); // [i]
 
       // node-based gradient on faces
@@ -844,9 +839,10 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
 
+      auto sig = var.Double["sigma"];
+      auto st = var.String["surftens"];
       // implementation by tensor divergence
       if (st == "div") {
-        auto sig = var.Double["sigma"];
         auto stdiag = var.Double["stdiag"];
         for (auto c : m.Cells()) {
           Vect r(0); 
@@ -864,32 +860,31 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       } else if (st == "kn") {  // curvature * normal
         auto& fck = as_->GetCurv(); // [a]
+        ff_st_.Reinit(m, 0);
 
         //Scal rad = 0.2;
         //Scal k = 1. / rad;
-        ff_st_.Reinit(m);
         for (auto f : m.Faces()) {
           IdxCell cm = m.GetNeighbourCell(f, 0);
           IdxCell cp = m.GetNeighbourCell(f, 1);
           Vect dm = m.GetVectToCell(f, 0);
           Vect dp = m.GetVectToCell(f, 1);
-          const auto ga = (a[cp] - a[cm]) / (dp - dm).norm();
+          Scal ga = (a[cp] - a[cm]) / (dp - dm).norm();
           Scal k = (fck[cm] + fck[cp]) * 0.5;
           ff_st_[f] += ga * k * sig;
         }
+
+        // Zero if boundary
+        for (auto it : mf_velcond_) {
+          IdxFace f = it.GetIdx();
+          ff_st_[f] = 0.;
+        }
+        // Append to force
+        for (auto f : m.Faces()) {
+          ffbp_[f] += ff_st_[f];
+        }
       } else {
         throw std::runtime_error("Unknown surftens=" + st);
-      }
-
-      // Zero if boundary
-      for (auto it : mf_velcond_) {
-        IdxFace f = it.GetIdx();
-        ff_st_[f] = 0.;
-      }
-
-      // Append to force
-      for (auto f : m.Faces()) {
-        ffbp_[f] += ff_st_[f];
       }
     }
 
@@ -903,7 +898,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       }
     }
   }
-
 }
 
 // TODO: Test m.Dump() with pending Comm
