@@ -365,13 +365,17 @@ class Vof : public AdvectionSolver<M_> {
       IdxCell cm = m.GetNeighbourCell(f, 0);
       IdxCell cp = m.GetNeighbourCell(f, 1);
       if (std::abs(uc[cm] - uc[cp]) > 1e-3 ) {
-        auto c = cp;
-
-        Vect x = m.GetCenter(c);
+        IdxCell c = (fc_n_[cp].norm() > fc_n_[cm].norm() ? cp : cm);
         Vect n = fc_n_[c];
-        Vect t = Vect(-n[1], n[0], 0);
-        for (size_t i = 0; i < kNp; ++i) {
-          fcp_[c][fcps_[c]++] = x + t * (i * hm);
+        if (n.norm() > 1e-2) {
+          n /= n.norm();
+          Vect x = m.GetCenter(c);
+          Vect t = Vect(-n[1], n[0], 0.);
+          if (fcps_[c] == 0) {
+            for (int i = 0; i < kNp; ++i) {
+              fcp_[c][fcps_[c]++] = x + t * (i - (kNp - 1) * 0.5) * hm;
+            }
+          }
         }
       }
     }
@@ -690,15 +694,15 @@ class Vof : public AdvectionSolver<M_> {
 
       // advance particles
       for (auto c : m.Cells()) {
-        for (size_t i = 0; i < fcps_[c]; ++i) {
+        for (int i = 0; i < fcps_[c]; ++i) {
           const Vect& x = fcp_[c][i];
           Vect& t = fcpt_[c][i]; 
           t = Vect(0);
-          for (size_t ii = 0; ii < fcps_[c]; ++ii) {
-            const Vect& xx = fcp_[c][ii];
-            Vect dx = x - xx;
-            Scal r = dx.norm() / hm;
-            if (r > 1e-5) {
+          for (int ii : {i - 1, i + 1}) {
+            if (ii >= 0 && ii < fcps_[c]) {
+              const Vect& xx = fcp_[c][ii];
+              Vect dx = x - xx;
+              Scal r = dx.norm() / hm;
               Scal d = par->parthh - r;
               t += dx / dx.norm() * d;
             }

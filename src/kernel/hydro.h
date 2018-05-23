@@ -933,7 +933,7 @@ void Hydro<M>::Dump(Sem& sem) {
           auto& fcps = as->GetPartS();
           std::ofstream o;
           o.open("part." + std::to_string(n) + ".csv");
-          o << "x,y,z\n";
+          o << "x,y,z,c\n";
 
           for (auto c : m.Cells()) {
             for (size_t i = 0; i < fcps[c]; ++i) {
