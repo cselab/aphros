@@ -352,13 +352,26 @@ class Vof : public AdvectionSolver<M_> {
     fcp_.Reinit(m);
     fcpt_.Reinit(m);
     fcpw_.Reinit(m);
+
+    auto& bc = m.GetBlockCells();
+    auto& bn = m.GetBlockNodes();
+    using MIdx = typename M::MIdx;
+    MIdx wb = bn.GetBegin();
+    Vect xb = m.GetNode(bn.GetIdx(wb));
+    Vect h = m.GetNode(bn.GetIdx(wb + MIdx(1))) - xb;
+    Scal hm = h.norminf();
+
     for (auto f : m.Faces()) {
       IdxCell cm = m.GetNeighbourCell(f, 0);
       IdxCell cp = m.GetNeighbourCell(f, 1);
       if (std::abs(uc[cm] - uc[cp]) > 1e-3 ) {
         auto c = cp;
-        if (fcps_[c] < kNp) {
-          fcp_[c][fcps_[c]++] = m.GetCenter(f);
+
+        Vect x = m.GetCenter(c);
+        Vect n = fc_n_[c];
+        Vect t = Vect(-n[1], n[0], 0);
+        for (size_t i = 0; i < kNp; ++i) {
+          fcp_[c][fcps_[c]++] = x + t * (i * hm);
         }
       }
     }
@@ -665,7 +678,6 @@ class Vof : public AdvectionSolver<M_> {
       auto& bc = m.GetBlockCells();
       auto& bn = m.GetBlockNodes();
       using MIdx = typename M::MIdx;
-
       MIdx wb = bn.GetBegin();
       Vect xb = m.GetNode(bn.GetIdx(wb));
       Vect h = m.GetNode(bn.GetIdx(wb + MIdx(1))) - xb;
@@ -675,8 +687,34 @@ class Vof : public AdvectionSolver<M_> {
       const int sn = sw * 2 + 1; // stencil size
       GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, 0), MIdx(sn, sn, 1)); // offset
 
+
+      // advance particles
+      for (auto c : m.Cells()) {
+        for (size_t i = 0; i < fcps_[c]; ++i) {
+          const Vect& x = fcp_[c][i];
+          Vect& t = fcpt_[c][i]; 
+          t = Vect(0);
+          for (size_t ii = 0; ii < fcps_[c]; ++ii) {
+            const Vect& xx = fcp_[c][ii];
+            Vect dx = x - xx;
+            Scal r = dx.norm() / hm;
+            if (r > 1e-5) {
+              Scal d = par->parthh - r;
+              t += dx / dx.norm() * d;
+            }
+          }
+        }
+      }
+
+      for (auto c : m.Cells()) {
+        for (size_t i = 0; i < fcps_[c]; ++i) {
+          //fcp_[c][i] += (fcpt_[c][i] / fcpw_[c][i]) * par->partrelax;
+          fcp_[c][i] += fcpt_[c][i] * par->partrelax;
+        }
+      }
+
+      /*
       // reseed particles
-      if (0)
       for (auto f : m.Faces()) {
         IdxCell cm = m.GetNeighbourCell(f, 0);
         IdxCell cp = m.GetNeighbourCell(f, 1);
@@ -723,6 +761,7 @@ class Vof : public AdvectionSolver<M_> {
       }
 
       // update cell lists
+      if(0)
       for (auto c : m.Cells()) {
         MIdx w = bc.GetMIdx(c);
         auto& s = fcps_[c];
@@ -742,6 +781,7 @@ class Vof : public AdvectionSolver<M_> {
           }
         }
       }
+      */
     }
 
     if (sem("stat")) {
