@@ -289,6 +289,63 @@ inline Scal GetLineFluxStrY(const GVect<Scal, 3>& n, Scal a,
   return v / dt;
 }
 
+// Line ends by line constant
+// n: normal
+// a: line constant
+// h: cell size
+// Returns:
+// two ends of segment inside cell (0,0 if no intersection)
+template <class Scal>
+inline std::array<GVect<Scal, 3>, 2> GetLineEnds(
+    const GVect<Scal, 3>& n, Scal a, const GVect<Scal, 3>& h) {
+
+  using Vect = GVect<Scal, 3>;
+  // equation x.dot(n) = a;
+  // (cell center is 0)
+  Vect hh = h * 0.5;
+
+  // intersection with -hh
+  Vect xl((a + hh[1] * n[1]) / n[0], (a + hh[0] * n[0]) / n[1], 0); 
+  // intersection with +hh
+  Vect xr((a - hh[1] * n[1]) / n[0], (a - hh[0] * n[0]) / n[1], 0); 
+
+  std::cerr << "xl=" << xl << std::endl << "xr=" << xr << std::endl;
+
+  std::array<GVect<Scal, 3>, 2> p{Vect(0), Vect(0)}; // default to center
+  size_t i = 0;
+
+  if (-hh[0] <= xl[0] && xl[0] <= hh[0]) {
+    p[i++] = Vect(xl[0], -hh[1], 0);
+  } 
+  if (-hh[0] <= xr[0] && xr[0] <= hh[0]) {
+    p[i++] = Vect(xr[0], hh[1], 0);
+  } 
+  if (i < 2 && -hh[1] <= xl[1] && xl[1] <= hh[1]) {
+    p[i++] = Vect(-hh[0], xl[1], 0);
+  } 
+  if (i < 2 && -hh[1] <= xr[1] && xr[1] <= hh[1]) {
+    p[i++] = Vect(hh[0], xr[1], 0);
+  } 
+  if (i == 1) { // if only one point found, set second to the same
+    p[i++] = p[0];
+  } // if no points found, return default (cell center)
+  return p;
+}
+
+// Line center by line constant
+// n: normal
+// a: line constant
+// h: cell size
+// Returns:
+// mean point of intersection line (0 if no intersection)
+template <class Scal>
+inline GVect<Scal, 3> GetLineC(const GVect<Scal, 3>& n, Scal a,
+                               const GVect<Scal, 3>& h) {
+  using Vect = GVect<Scal, 3>;
+  std::array<GVect<Scal, 3>, 2> p = GetLineEnds(n, a, h);
+  return (p[0] + p[1]) * 0.5;
+}
+
 template <class M_>
 class Vof : public AdvectionSolver<M_> {
   using M = M_;

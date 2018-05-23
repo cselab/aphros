@@ -246,9 +246,51 @@ void TestVolStr() {
   nx = nx0; ny = ny0;
 }
 
+// center of line test
+void TestCenter() {
+  // nx, ny: normal
+  // u: volume fraction
+  // hx, hy: cell size
+  // ce: center exact
+  auto f = [](Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Vect ce) {
+    Vect n(nx, ny, 0.);
+    Vect h(hx, hy, 1.);
+    n /= n.norm();
+    Scal a = solver::GetLineA(n, u, h);
+    std::array<Vect, 2> xx = solver::GetLineEnds(n, a, h); 
+    Vect c = solver::GetLineC(n, a, h);
+    std::cerr 
+        << "n=" << n
+        << " u=" << u
+        << " h=" << h
+        << " a=" << a
+        << " x0=" << xx[0]
+        << " x1=" << xx[1]
+        << " c=" << c
+        << " ce=" << ce
+        << std::endl;
+    assert((c - ce).norm() < 1e-12);
+  };
+
+  Scal nx, ny, u, hx, hy;
+  Scal nx0, ny0, u0, hx0, hy0;
+
+  std::cerr << "check line center" << std::endl;
+  nx0 = 1.; ny0 = 0.; u0 = 0.5; hx0 = 1.; hy0 = 1.; 
+  nx = nx0; ny = ny0; u = u0; hx = hx0; hy = hy0;
+
+  std::cerr << "base" << std::endl;
+  f(nx, ny, u, hx, hy, Vect(0., 0., 0.));
+  f(ny, nx, u, hx, hy, Vect(0., 0., 0.));
+  f(nx, ny, u=0.25, hx, hy, Vect(-0.25, 0., 0.));
+  f(ny, nx, u=0.25, hx, hy, Vect(0., -0.25, 0.));
+  f(nx, nx, u=u0, hx, hy, Vect(0., 0., 0.));
+}
+
 int main() {
   //TestRandom();
   //TestRect();
   //TestVol();
-  TestVolStr();
+  //TestVolStr();
+  TestCenter();
 }
