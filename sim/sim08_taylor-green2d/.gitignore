@@ -1,2 +1,4 @@
 sc
 *.csv
+base.conf
+mesh.conf

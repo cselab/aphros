@@ -309,8 +309,6 @@ inline std::array<GVect<Scal, 3>, 2> GetLineEnds(
   // intersection with +hh
   Vect xr((a - hh[1] * n[1]) / n[0], (a - hh[0] * n[0]) / n[1], 0); 
 
-  std::cerr << "xl=" << xl << std::endl << "xr=" << xr << std::endl;
-
   std::array<GVect<Scal, 3>, 2> p{Vect(0), Vect(0)}; // default to center
   size_t i = 0;
 
@@ -413,7 +411,8 @@ class Vof : public AdvectionSolver<M_> {
         Vect n = fc_n_[c];
         if (n.norm() > 1e-3) {
           n /= n.norm();
-          Vect x = m.GetCenter(c);
+          //Vect x = m.GetCenter(c);
+          Vect x = m.GetCenter(c) + GetLineC(fc_n_[c], fc_a_[c], h);
           Vect t = Vect(-n[1], n[0], 0.);
           if (fcps_[c] == 0) {
             for (int i = 0; i < kNp; ++i) {
@@ -775,15 +774,16 @@ class Vof : public AdvectionSolver<M_> {
             auto w = bc.GetMIdx(c);
             for (auto wo : bo) {
               auto cc = bc.GetIdx(w + wo);
-              Vect xc = m.GetCenter(cc);
+              //Vect xc = m.GetCenter(cc);
+              Vect xc = m.GetCenter(cc) + GetLineC(fc_n_[cc], fc_a_[cc], h);
               Vect dx = x - xc;
               Scal r = dx.norm() / hm;
-              if (r > 1e-3) {
+              Scal u = uc[cc];
+              if (r > 1e-3 && u > 1e-3 && u < 1. - 1e-3) {
                 Vect n = fc_n_[c];
+                Vect ddx = dx / dx.norm();
                 n /= n.norm();
-                Scal u = uc[cc];
-                t += n * ((u - 0.5) * 2. / (r * r + par->partss) * 
-                    par->parts * hm);
+                t += ddx * (-r / (r * r + par->partss) * par->parts * hm);
               }
             }
           }
