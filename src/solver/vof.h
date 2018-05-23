@@ -314,6 +314,7 @@ class Vof : public AdvectionSolver<M_> {
   FieldFace<Vect> ffg_; // gradient
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
   static constexpr size_t kNp = 5;
+  static constexpr size_t kNpp = 1;
   FieldCell<std::array<Vect, kNp>> fcp_; // cell list
   FieldCell<std::array<Vect, kNp>> fcpt_; // cell list tmp
   FieldCell<std::array<Scal, kNp>> fcpw_; // cell list weight
@@ -659,6 +660,8 @@ class Vof : public AdvectionSolver<M_> {
     }
 
     if (sem("part")) {
+      auto& uc = fc_u_.iter_curr;
+
       auto& bc = m.GetBlockCells();
       auto& bn = m.GetBlockNodes();
       using MIdx = typename M::MIdx;
@@ -671,6 +674,19 @@ class Vof : public AdvectionSolver<M_> {
       const int sw = 1; // stencil width
       const int sn = sw * 2 + 1; // stencil size
       GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, 0), MIdx(sn, sn, 1)); // offset
+
+      // reseed particles
+      if (0)
+      for (auto f : m.Faces()) {
+        IdxCell cm = m.GetNeighbourCell(f, 0);
+        IdxCell cp = m.GetNeighbourCell(f, 1);
+        if (std::abs(uc[cm] - uc[cp]) > 1e-3 ) {
+          auto c = cp;
+          if (fcps_[c] < kNpp) {
+            fcp_[c][fcps_[c]++] = m.GetCenter(f);
+          }
+        }
+      }
 
       // advance particles
       for (auto c : m.Cells()) {
@@ -688,14 +704,15 @@ class Vof : public AdvectionSolver<M_> {
               if (cc != c || ii != i) {
                 Vect dx = x - xx;
                 Scal r = dx.norm() / hm;
-                Scal d = (par->parth - r) / (r * r);
-                t += dx / dx.norm() * hm * d;
+                Scal d = par->parth - r;
+                t += dx / dx.norm() * d;
                 e += d;
               }
             }
           }
         }
       }
+
       for (auto c : m.Cells()) {
         for (size_t i = 0; i < fcps_[c]; ++i) {
           if (fcpw_[c][i] != 0.) {
@@ -724,11 +741,6 @@ class Vof : public AdvectionSolver<M_> {
             } 
           }
         }
-      }
-
-      auto& uc = fc_u_.iter_curr;
-      for (auto c : m.Cells()) {
-        uc[c] = Scal(fcps_[c]) / kNp;
       }
     }
 
