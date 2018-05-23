@@ -938,7 +938,9 @@ void Hydro<M>::Dump(Sem& sem) {
           for (auto c : m.Cells()) {
             for (size_t i = 0; i < fcps[c]; ++i) {
               Vect x = fcp[c][i];
-              o << x[0] << "," << x[1] << "," << x[2] << "\n";
+              o << x[0] << "," << x[1] << "," << x[2] 
+                  << "," << (c.GetRaw() % 16)
+                  << "\n";
             }
           }
           ++n;
