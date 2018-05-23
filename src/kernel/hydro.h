@@ -402,6 +402,10 @@ void Hydro<M>::Init() {
     }
   }
 
+  if (sem.Nested("smooth")) {
+    solver::Smoothen(fc_vf_, mf_cond_, m, var.Int["vf_init_sm"]);
+  }
+
   if (sem.Nested("mixture")) {
     // Init rho, mu and force based on volume fraction
     CalcMixture(fc_vf_);
@@ -466,6 +470,9 @@ void Hydro<M>::Init() {
         p->partrelax = var.Double["partrelax"];
         p->parth = var.Double["parth"];
         p->parthh = var.Double["parthh"];
+        p->parts = var.Double["parts"];
+        p->parts = var.Double["parts"];
+        p->partit = var.Int["partit"];
         as_.reset(new AS(
               m, fc_vf_, mf_cond_, 
               &fs_->GetVolumeFlux(solver::Layers::time_curr),
@@ -623,7 +630,7 @@ void Hydro<M>::CalcStat() {
     m.Reduce(&st_.dtt, "min");
   }
   if (sem("dt-reduce")) {
-    if (st_.iter) { // TODO: revise skipping first iter
+    if (fs_->GetTime() > 0.) { // TODO: revise skipping first iter
       if (auto* cfl = var.Double("cfl")) {
         st_.dt = st_.dtt * (*cfl);
         st_.dt = std::min<Scal>(st_.dt, var.Double["dtmax"]);
@@ -993,13 +1000,13 @@ void Hydro<M>::Run() {
       if (sn("iter")) {
         as_->MakeIteration();
       }
+      if (sn.Nested("finish")) {
+        as_->FinishStep();
+      }
       if (sn("convcheck")) {
         if (as_->GetTime() >= fs_->GetTime() - 0.5 * as_->GetTimeStep()) {
           sn.LoopBreak();
         }
-      }
-      if (sn.Nested("finish")) {
-        as_->FinishStep();
       }
       sn.LoopEnd();
     }

@@ -324,30 +324,15 @@ class Vof : public AdvectionSolver<M_> {
   struct Par {
     bool curvgrad = false; // compute curvature using gradient
     Scal partrelax = 1.; 
-    Scal parth = 1.; 
-    Scal parthh = 1.; 
+    Scal parth = 1.; // dist init
+    Scal parthh = 1.;  // dist eq
+    Scal parts = 1.; // strenght cell
+    Scal partss = 1.; // add cell
+    size_t partit = 1; // num iter
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
-  Vof(M& m, const FieldCell<Scal>& fcu,
-      const MapFace<std::shared_ptr<CondFace>>& mfc,
-      const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
-      double t, double dt, std::shared_ptr<Par> par)
-      : AdvectionSolver<M>(t, dt, m, ffv, fcs)
-      , mfc_(mfc), par(par)
-      , fc_a_(m, 0), fc_n_(m, Vect(0)), fc_us_(m, 0), ff_fu_(m, 0) 
-      , fck_(m, 0)
-  {
-    fc_u_.time_curr = fcu;
-    for (auto it : mfc_) {
-      IdxFace f = it.GetIdx();
-      mfvz_[f] = std::make_shared<
-          CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
-    }
-    Reconst(fc_u_.time_curr);
-
-    // seed particles
-    auto& uc = fcu;
+  void SeedParticles(const FieldCell<Scal>& uc) {
     fcps_.Reinit(m, 0);
     fcp_.Reinit(m);
     fcpt_.Reinit(m);
@@ -365,9 +350,11 @@ class Vof : public AdvectionSolver<M_> {
       IdxCell cm = m.GetNeighbourCell(f, 0);
       IdxCell cp = m.GetNeighbourCell(f, 1);
       if (std::abs(uc[cm] - uc[cp]) > 1e-3 ) {
-        IdxCell c = (fc_n_[cp].norm() > fc_n_[cm].norm() ? cp : cm);
+        //IdxCell c = (fc_n_[cp].norm() > fc_n_[cm].norm() ? cp : cm);
+        IdxCell c = 
+            (std::abs(uc[cp] - 0.5) < std::abs(uc[cm] - 0.5) ? cp : cm);
         Vect n = fc_n_[c];
-        if (n.norm() > 1e-2) {
+        if (n.norm() > 1e-3) {
           n /= n.norm();
           Vect x = m.GetCenter(c);
           Vect t = Vect(-n[1], n[0], 0.);
@@ -379,6 +366,24 @@ class Vof : public AdvectionSolver<M_> {
         }
       }
     }
+  }
+  Vof(M& m, const FieldCell<Scal>& fcu,
+      const MapFace<std::shared_ptr<CondFace>>& mfc,
+      const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
+      double t, double dt, std::shared_ptr<Par> par)
+      : AdvectionSolver<M>(t, dt, m, ffv, fcs)
+      , mfc_(mfc), par(par)
+      , fc_a_(m, 0), fc_n_(m, Vect(0)), fc_us_(m, 0), ff_fu_(m, 0) 
+      , fck_(m, 0)
+  {
+    fc_u_.time_curr = fcu;
+    for (auto it : mfc_) {
+      IdxFace f = it.GetIdx();
+      mfvz_[f] = std::make_shared<
+          CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
+    }
+    Reconst(fc_u_.time_curr);
+    SeedParticles(fc_u_.time_curr);
   }
   void StartStep() override {
     this->ClearIter();
@@ -583,7 +588,7 @@ class Vof : public AdvectionSolver<M_> {
     } else {
       dd = {Dir::j, Dir::i};
     }
-    if (0) // XXX
+    //if (0) // XXX zero velocity
     for (Dir d : dd) {
       auto& uc = fc_u_.iter_curr;
       auto& bc = m.GetBlockCells();
@@ -678,7 +683,6 @@ class Vof : public AdvectionSolver<M_> {
 
     if (sem("part")) {
       auto& uc = fc_u_.iter_curr;
-
       auto& bc = m.GetBlockCells();
       auto& bn = m.GetBlockNodes();
       using MIdx = typename M::MIdx;
@@ -687,33 +691,62 @@ class Vof : public AdvectionSolver<M_> {
       Vect h = m.GetNode(bn.GetIdx(wb + MIdx(1))) - xb;
       Scal hm = h.norminf();
 
+      SeedParticles(uc);
+
       const int sw = 1; // stencil width
       const int sn = sw * 2 + 1; // stencil size
       GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, 0), MIdx(sn, sn, 1)); // offset
 
-
       // advance particles
-      for (auto c : m.Cells()) {
-        for (int i = 0; i < fcps_[c]; ++i) {
-          const Vect& x = fcp_[c][i];
-          Vect& t = fcpt_[c][i]; 
-          t = Vect(0);
-          for (int ii : {i - 1, i + 1}) {
-            if (ii >= 0 && ii < fcps_[c]) {
-              const Vect& xx = fcp_[c][ii];
-              Vect dx = x - xx;
+      for (size_t it = 0; it < par->partit; ++it) {
+        for (auto c : m.Cells()) {
+          for (int i = 0; i < fcps_[c]; ++i) {
+            const Vect& x = fcp_[c][i];
+            Vect& t = fcpt_[c][i]; 
+            t = Vect(0);
+            // springs
+            for (int ii : {i - 1, i + 1}) {
+              if (ii >= 0 && ii < fcps_[c]) {
+                const Vect& xx = fcp_[c][ii];
+                Vect dx = x - xx;
+                Scal r = dx.norm() / hm;
+                Scal d = par->parthh - r;
+                t += dx / dx.norm() * d * hm;
+              }
+            }
+            // cells
+            auto w = bc.GetMIdx(c);
+            for (auto wo : bo) {
+              auto cc = bc.GetIdx(w + wo);
+              Vect xc = m.GetCenter(cc);
+              Vect dx = x - xc;
               Scal r = dx.norm() / hm;
-              Scal d = par->parthh - r;
-              t += dx / dx.norm() * d;
+              if (r > 1e-3) {
+                Vect n = fc_n_[c];
+                n /= n.norm();
+                Scal u = uc[cc];
+                t += n * ((u - 0.5) * 2. / (r * r + par->partss) * 
+                    par->parts * hm);
+              }
             }
           }
         }
-      }
 
-      for (auto c : m.Cells()) {
-        for (size_t i = 0; i < fcps_[c]; ++i) {
-          //fcp_[c][i] += (fcpt_[c][i] / fcpw_[c][i]) * par->partrelax;
-          fcp_[c][i] += fcpt_[c][i] * par->partrelax;
+        Scal tmax = 0.;
+        for (auto c : m.Cells()) {
+          for (size_t i = 0; i < fcps_[c]; ++i) {
+            //fcp_[c][i] += (fcpt_[c][i] / fcpw_[c][i]) * par->partrelax;
+            fcp_[c][i] += fcpt_[c][i] * par->partrelax;
+            tmax = std::max(tmax, fcpt_[c][i].norm());
+          }
+        }
+        std::cout << "it=" << it << " tmax=" << tmax << std::endl;
+
+        for (auto c : m.Cells()) {
+          for (size_t i = 0; i < fcps_[c]; ++i) {
+            //fcp_[c][i] += (fcpt_[c][i] / fcpw_[c][i]) * par->partrelax;
+            fcp_[c][i] += fcpt_[c][i] * par->partrelax;
+          }
         }
       }
 
