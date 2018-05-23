@@ -378,6 +378,7 @@ class Vof : public AdvectionSolver<M_> {
  public:
   struct Par {
     bool curvgrad = false; // compute curvature using gradient
+    bool part = false; // particles
     Scal partrelax = 1.; 
     Scal parth = 1.; // dist init
     Scal parthh = 1.;  // dist eq
@@ -439,7 +440,9 @@ class Vof : public AdvectionSolver<M_> {
           CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
     }
     Reconst(fc_u_.time_curr);
-    SeedParticles(fc_u_.time_curr);
+    if (par->part) {
+        SeedParticles(fc_u_.time_curr);
+    }
   }
   void StartStep() override {
     this->ClearIter();
@@ -737,7 +740,7 @@ class Vof : public AdvectionSolver<M_> {
       m.Comm(&fck_);
     }
 
-    if (sem("part")) {
+    if (par->part && sem("part")) {
       auto& uc = fc_u_.iter_curr;
       auto& bc = m.GetBlockCells();
       auto& bn = m.GetBlockNodes();
