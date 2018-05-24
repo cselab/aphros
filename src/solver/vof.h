@@ -385,7 +385,8 @@ class Vof : public AdvectionSolver<M_> {
     Scal parts = 1.; // strenght cell
     Scal partss = 1.; // add cell
     size_t partit = 1; // num iter
-    Scal partdump = -1.; // if positive, dump iter history at t > partdump
+    Scal partdumpit = -1.; // if positive, dump iter history at t > partdump
+    bool partdump = -1.; // enable dump at every time step (used by hydro)
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
@@ -813,7 +814,7 @@ class Vof : public AdvectionSolver<M_> {
         }
 
         // dump particles
-        if (par->partdump >= 0. && this->GetTime() >= par->partdump) {
+        if (par->partdumpit >= 0. && this->GetTime() >= par->partdumpit) {
           std::string s = "partit." + std::to_string(it) + ".csv";
           std::cout << "dump to " << s << std::endl;
           std::ofstream o;
@@ -827,8 +828,11 @@ class Vof : public AdvectionSolver<M_> {
                   << "," << (c.GetRaw() % 16) << "\n";
             }
           }
-          par->partdump = -1.;
         }
+      }
+
+      if (par->partdumpit >= 0. && this->GetTime() >= par->partdumpit) {
+        par->partdumpit = -1.;
       }
 
       /*
