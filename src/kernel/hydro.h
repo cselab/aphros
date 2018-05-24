@@ -472,7 +472,8 @@ void Hydro<M>::Init() {
         p->parth = var.Double["parth"];
         p->parthh = var.Double["parthh"];
         p->parts = var.Double["parts"];
-        p->parts = var.Double["parts"];
+        p->partss = var.Double["partss"];
+        p->partdump = var.Double["partdump"];
         p->partit = var.Int["partit"];
         as_.reset(new AS(
               m, fc_vf_, mf_cond_, 
@@ -935,23 +936,26 @@ void Hydro<M>::Dump(Sem& sem) {
       m.Dump(&fc_vf_, "vf"); 
       if (IsRoot()) {
         dumper_.Report();
+        // dump particles
         if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
-          static size_t n = 0;
-          auto& fcp = as->GetPart();
-          auto& fcps = as->GetPartS();
-          std::ofstream o;
-          o.open("part." + std::to_string(n) + ".csv");
-          o << "x,y,z,c\n";
+          if (as->GetPar()->part) {
+            static size_t n = 0;
+            auto& fcp = as->GetPart();
+            auto& fcps = as->GetPartS();
+            std::ofstream o;
+            o.open("part." + std::to_string(n) + ".csv");
+            o << "x,y,z,c\n";
 
-          for (auto c : m.Cells()) {
-            for (size_t i = 0; i < fcps[c]; ++i) {
-              Vect x = fcp[c][i];
-              o << x[0] << "," << x[1] << "," << x[2] 
-                  << "," << (c.GetRaw() % 16)
-                  << "\n";
+            for (auto c : m.Cells()) {
+              for (size_t i = 0; i < fcps[c]; ++i) {
+                Vect x = fcp[c][i];
+                o << x[0] << "," << x[1] << "," << x[2] 
+                    << "," << (c.GetRaw() % 16)
+                    << "\n";
+              }
             }
+            ++n;
           }
-          ++n;
         }
       }
     }

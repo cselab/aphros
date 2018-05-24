@@ -385,6 +385,7 @@ class Vof : public AdvectionSolver<M_> {
     Scal parts = 1.; // strenght cell
     Scal partss = 1.; // add cell
     size_t partit = 1; // num iter
+    Scal partdump = -1.; // if positive, dump iter history at t > partdump
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
@@ -758,6 +759,7 @@ class Vof : public AdvectionSolver<M_> {
 
       // advance particles
       for (size_t it = 0; it < par->partit; ++it) {
+        // compute correction
         for (auto c : m.Cells()) {
           for (int i = 0; i < fcps_[c]; ++i) {
             const Vect& x = fcp_[c][i];
@@ -792,6 +794,7 @@ class Vof : public AdvectionSolver<M_> {
           }
         }
 
+        // compute correction norm
         Scal tmax = 0.;
         for (auto c : m.Cells()) {
           for (size_t i = 0; i < fcps_[c]; ++i) {
@@ -802,11 +805,27 @@ class Vof : public AdvectionSolver<M_> {
         }
         std::cout << "it=" << it << " tmax=" << tmax << std::endl;
 
+        // advance
         for (auto c : m.Cells()) {
           for (size_t i = 0; i < fcps_[c]; ++i) {
-            //fcp_[c][i] += (fcpt_[c][i] / fcpw_[c][i]) * par->partrelax;
             fcp_[c][i] += fcpt_[c][i] * par->partrelax;
           }
+        }
+
+        // dump particles
+        if (par->partdump >= 0. && this->GetTime() >= par->partdump) {
+          std::ofstream o;
+          o.open("partit." + std::to_string(it) + ".csv");
+          o << "x,y,z,c\n";
+
+          for (auto c : m.Cells()) {
+            for (size_t i = 0; i < fcps_[c]; ++i) {
+              Vect x = fcp_[c][i];
+              o << x[0] << "," << x[1] << "," << x[2] 
+                  << "," << (c.GetRaw() % 16) << "\n";
+            }
+          }
+          par->partdump = -1.;
         }
       }
 
