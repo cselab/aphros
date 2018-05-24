@@ -951,7 +951,7 @@ void Hydro<M>::Dump(Sem& sem) {
               for (size_t i = 0; i < fcps[c]; ++i) {
                 Vect x = fcp[c][i];
                 o << x[0] << "," << x[1] << "," << x[2] 
-                    << "," << (c.GetRaw() % 16)
+                    << "," << (c.GetRaw() * 1234567 % 16)
                     << "\n";
               }
             }

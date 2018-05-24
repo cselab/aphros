@@ -439,7 +439,8 @@ class Vof : public AdvectionSolver<M_> {
           Vect t = Vect(-n[1], n[0], 0.);
           if (fcps_[c] == 0) {
             for (int i = 0; i < kNp; ++i) {
-              fcp_[c][fcps_[c]++] = x + t * (i - (kNp - 1) * 0.5) * hm;
+              fcp_[c][fcps_[c]++] = 
+                  x + t * (i - (kNp - 1) * 0.5) * hm * par->parth;
             }
           }
         }
@@ -857,7 +858,9 @@ class Vof : public AdvectionSolver<M_> {
             tmax = std::max(tmax, fcpt_[c][i].norm());
           }
         }
-        std::cout << "it=" << it << " tmax=" << tmax << std::endl;
+         if (it % (par->partit / 3 + 1) == 0 || it + 1 == par->partit) {
+          std::cout << "it=" << it << " tmax=" << tmax << std::endl;
+        }
 
         // advance
         for (auto c : m.Cells()) {
@@ -878,7 +881,7 @@ class Vof : public AdvectionSolver<M_> {
             for (size_t i = 0; i < fcps_[c]; ++i) {
               Vect x = fcp_[c][i];
               o << x[0] << "," << x[1] << "," << x[2] 
-                  << "," << (c.GetRaw() % 16) << "\n";
+                  << "," << (c.GetRaw() * 1234567 % 16) << "\n";
             }
           }
         }
