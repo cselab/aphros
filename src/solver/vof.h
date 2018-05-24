@@ -309,25 +309,25 @@ inline std::array<GVect<Scal, 3>, 2> GetLineEnds(
   // intersection with +hh
   Vect xr((a - hh[1] * n[1]) / n[0], (a - hh[0] * n[0]) / n[1], 0); 
 
-  std::array<GVect<Scal, 3>, 2> p{Vect(0), Vect(0)}; // default to center
+  std::array<GVect<Scal, 3>, 2> e{Vect(0), Vect(0)}; // default to center
   size_t i = 0;
 
   if (-hh[0] <= xl[0] && xl[0] <= hh[0]) {
-    p[i++] = Vect(xl[0], -hh[1], 0);
+    e[i++] = Vect(xl[0], -hh[1], 0);
   } 
   if (-hh[0] <= xr[0] && xr[0] <= hh[0]) {
-    p[i++] = Vect(xr[0], hh[1], 0);
+    e[i++] = Vect(xr[0], hh[1], 0);
   } 
   if (i < 2 && -hh[1] <= xl[1] && xl[1] <= hh[1]) {
-    p[i++] = Vect(-hh[0], xl[1], 0);
+    e[i++] = Vect(-hh[0], xl[1], 0);
   } 
   if (i < 2 && -hh[1] <= xr[1] && xr[1] <= hh[1]) {
-    p[i++] = Vect(hh[0], xr[1], 0);
+    e[i++] = Vect(hh[0], xr[1], 0);
   } 
   if (i == 1) { // if only one point found, set second to the same
-    p[i++] = p[0];
+    e[i++] = e[0];
   } // if no points found, return default (cell center)
-  return p;
+  return e;
 }
 
 // Line center by line constant
@@ -340,8 +340,28 @@ template <class Scal>
 inline GVect<Scal, 3> GetLineC(const GVect<Scal, 3>& n, Scal a,
                                const GVect<Scal, 3>& h) {
   using Vect = GVect<Scal, 3>;
-  std::array<GVect<Scal, 3>, 2> p = GetLineEnds(n, a, h);
-  return (p[0] + p[1]) * 0.5;
+  std::array<Vect, 2> e = GetLineEnds(n, a, h);
+  return (e[0] + e[1]) * 0.5;
+}
+
+// Closest point to line
+// x: target point
+// n: normal
+// a: line constant
+// h: cell size
+template <class Scal>
+inline GVect<Scal, 3> GetNearest(const GVect<Scal, 3> x,
+                                 const GVect<Scal, 3>& n, Scal a,
+                                 const GVect<Scal, 3>& h) {
+  using Vect = GVect<Scal, 3>;
+  std::array<Vect, 2> e = GetLineEnds(n, a, h);
+  Vect p = x + n * (e[0] - x).dot(n) / n.sqrnorm(); // projection to line
+  if ((p - e[0]).dot(p - e[1]) < 0.) { // projection between ends
+    return p;
+  } else if ((x - e[0]).sqrnorm() < (x - e[1]).sqrnorm()) {
+    return e[0];
+  } 
+  return e[1];
 }
 
 template <class M_>
@@ -786,10 +806,8 @@ class Vof : public AdvectionSolver<M_> {
               Scal r = dx.norm() / hm;
               Scal u = uc[cc];
               if (r > 1e-3 && u > 1e-3 && u < 1. - 1e-3) {
-                Vect n = fc_n_[c];
                 Vect ddx = dx / dx.norm();
-                n /= n.norm();
-                t += ddx * (-r / (r * r + par->partss) * par->parts * hm);
+                t += ddx * (-1. / (r * r + par->partss) * par->parts * hm);
               }
             }
           }

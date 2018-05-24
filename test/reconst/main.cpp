@@ -287,10 +287,53 @@ void TestCenter() {
   f(nx, nx, u=u0, hx, hy, Vect(0., 0., 0.));
 }
 
+// nearest point to line
+void TestNearest() {
+  // x: target point
+  // nx, ny: normal
+  // u: volume fraction
+  // hx, hy: cell size
+  // ce: center exact
+  auto f = [](Vect x, Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Vect pe) {
+    Vect n(nx, ny, 0.);
+    Vect h(hx, hy, 1.);
+    n /= n.norm();
+    Scal a = solver::GetLineA(n, u, h);
+    std::array<Vect, 2> xx = solver::GetLineEnds(n, a, h); 
+    Vect p = solver::GetNearest(x, n, a, h);
+    std::cerr 
+        << "n=" << n
+        << " u=" << u
+        << " h=" << h
+        << " a=" << a
+        << " x0=" << xx[0]
+        << " x1=" << xx[1]
+        << " p=" << p
+        << " pe=" << pe
+        << std::endl;
+    assert((p - pe).norm() < 1e-12);
+  };
+
+  Scal nx, ny, u, hx, hy;
+  Scal nx0, ny0, u0, hx0, hy0;
+
+  std::cerr << "check nearest point to line" << std::endl;
+  nx0 = 1.; ny0 = 0.; u0 = 0.5; hx0 = 1.; hy0 = 1.; 
+  nx = nx0; ny = ny0; u = u0; hx = hx0; hy = hy0;
+
+  std::cerr << "base" << std::endl;
+  f(Vect(0., 0., 0.), nx, ny, u, hx, hy, Vect(0., 0., 0.));
+  f(Vect(1., 0., 0.), nx, ny, u, hx, hy, Vect(0., 0., 0.));
+  f(Vect(1., 0., 0.), nx, ny, 0.75, hx, hy, Vect(0.25, 0., 0.));
+  f(Vect(1., 1., 0.), nx, ny, u, hx, hy, Vect(0., 0.5, 0.));
+  f(Vect(1.1, 0.9, 0.), 1., 1., u, hx, hy, Vect(0.1, -0.1, 0.));
+}
+
 int main() {
-  //TestRandom();
-  //TestRect();
-  //TestVol();
-  //TestVolStr();
+  TestRandom();
+  TestRect();
+  TestVol();
+  TestVolStr();
   TestCenter();
+  TestNearest();
 }
