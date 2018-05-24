@@ -814,8 +814,10 @@ class Vof : public AdvectionSolver<M_> {
 
         // dump particles
         if (par->partdump >= 0. && this->GetTime() >= par->partdump) {
+          std::string s = "partit." + std::to_string(it) + ".csv";
+          std::cout << "dump to " << s << std::endl;
           std::ofstream o;
-          o.open("partit." + std::to_string(it) + ".csv");
+          o.open(s);
           o << "x,y,z,c\n";
 
           for (auto c : m.Cells()) {
