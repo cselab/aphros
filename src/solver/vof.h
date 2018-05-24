@@ -784,7 +784,6 @@ class Vof : public AdvectionSolver<M_> {
         for (auto c : m.Cells()) {
           // clear force (needed for bending as applied from each corner)
           for (int i = 0; i < fcps_[c]; ++i) {
-            const Vect& x = fcp_[c][i];
             fcpt_[c][i] = Vect(0); 
           }
           // append to force
@@ -823,24 +822,24 @@ class Vof : public AdvectionSolver<M_> {
             }
 
             // bending
-            if (i > 0 || i < fcps_[c] - 1) {
-              size_t im = i - 1;
-              size_t ip = i + 1;
+            if (i > 0 && i < fcps_[c] - 1) {
+              int im = i - 1;
+              int ip = i + 1;
               Vect xm = fcp_[c][im];
               Vect xp = fcp_[c][ip];
               Vect dm = xm - x;
               Vect dp = xp - x;
               // torque [length^2]
-              Scal tq = par->partss * (dm.norm() * dp.norm() - dm.dot(dp));
+              Scal tq = par->partss * (dm.norm() * dp.norm() + dm.dot(dp));
               // normal vectors [length]
               Vect nm(-dm[1], dm[0], 0.);
               Vect np(-dp[1], dp[0], 0.);
-              // invert so they points inside angle
+              // invert so they point inside angle
               nm *= (nm.dot(dp) > 0. ? 1. : -1.);
               np *= (np.dot(dm) > 0. ? 1. : -1.);
-              // forces
-              Vect fm = nm * (-tq / nm.sqrnorm());
-              Vect fp = np * (-tq / np.sqrnorm());
+              // forces [length]
+              Vect fm = nm * (-tq / dm.sqrnorm());
+              Vect fp = np * (-tq / dp.sqrnorm());
               // apply
               fcpt_[c][im] += fm;
               fcpt_[c][ip] += fp;
