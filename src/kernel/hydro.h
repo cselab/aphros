@@ -473,7 +473,8 @@ void Hydro<M>::Init() {
         p->parthh = var.Double["parthh"];
         p->parts = var.Double["parts"];
         p->partss = var.Double["partss"];
-        p->partdump = var.Double["partdump"];
+        p->partdumpit = var.Double["partdumpit"];
+        p->partdump = var.Int["partdump"];
         p->partit = var.Int["partit"];
         as_.reset(new AS(
               m, fc_vf_, mf_cond_, 
@@ -938,7 +939,7 @@ void Hydro<M>::Dump(Sem& sem) {
         dumper_.Report();
         // dump particles
         if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
-          if (as->GetPar()->part) {
+          if (as->GetPar()->part && as->GetPar()->partdump) {
             static size_t n = 0;
             auto& fcp = as->GetPart();
             auto& fcps = as->GetPartS();
