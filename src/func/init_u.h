@@ -18,8 +18,17 @@ std::function<Scal(Vect)> CreateInitU(Vars& par) {
 
   std::string v = par.String["init_vf"];
   if (v == "circle") {
-    f = [](Vect x) -> Scal { 
-      return Vect(0.5, 0.263662, 0.).dist(x) < 0.2 ? 1. : 0.; 
+    Vect c;
+    Scal r;
+    if (par.Vect("circle_c") && par.Double("circle_r")) {
+      c = Vect(par.Vect["circle_c"]);
+      r = par.Double["circle_r"];
+    } else {
+      c = Vect(0.5, 0.263662, 0.);
+      r = 0.2;
+    }
+    f = [c,r](Vect x) -> Scal { 
+      return c.dist(x) < r ? 1. : 0.; 
     };
   } else if (v == "box") {
     Vect c(par.Vect["box_center"]);
