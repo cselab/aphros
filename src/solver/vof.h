@@ -782,11 +782,16 @@ class Vof : public AdvectionSolver<M_> {
       for (size_t it = 0; it < par->partit; ++it) {
         // compute correction
         for (auto c : m.Cells()) {
+          // clear force (needed for bending as applied from each corner)
+          for (int i = 0; i < fcps_[c]; ++i) {
+            const Vect& x = fcp_[c][i];
+            fcpt_[c][i] = Vect(0); 
+          }
+          // append to force
           for (int i = 0; i < fcps_[c]; ++i) {
             const Vect& x = fcp_[c][i];
             Vect& t = fcpt_[c][i]; 
-            t = Vect(0);
-            // springs
+            // springs to adjacent particles
             for (int ii : {i - 1, i + 1}) {
               if (ii >= 0 && ii < fcps_[c]) {
                 const Vect& xx = fcp_[c][ii];
@@ -796,19 +801,50 @@ class Vof : public AdvectionSolver<M_> {
                 t += dx / dx.norm() * d * hm;
               }
             }
-            // cells
+
+            // spring to nearest point at reconstructed interface
             auto w = bc.GetMIdx(c);
+            bool fnd = false; // found at least one cell
+            Vect bxn;  // best nearest point
             for (auto wo : bo) {
               auto cc = bc.GetIdx(w + wo);
-              //Vect xc = m.GetCenter(cc);
-              Vect xc = m.GetCenter(cc) + GetLineC(fc_n_[cc], fc_a_[cc], h);
-              Vect dx = x - xc;
-              Scal r = dx.norm() / hm;
               Scal u = uc[cc];
-              if (r > 1e-3 && u > 1e-3 && u < 1. - 1e-3) {
-                Vect ddx = dx / dx.norm();
-                t += ddx * (-1. / (r * r + par->partss) * par->parts * hm);
+              if (u > 1e-3 && u < 1. - 1e-3) {
+              Vect xn = m.GetCenter(cc) + 
+                  GetNearest(x, fc_n_[cc], fc_a_[cc], h);
+                if (!fnd || (xn - x).sqrnorm() < (bxn - x).sqrnorm()) {
+                  bxn = xn;
+                  fnd = true;
+                }
               }
+            }
+            if (fnd) {
+              t += (bxn - x) * par->parts;
+            }
+
+            // bending
+            if (i > 0 || i < fcps_[c] - 1) {
+              size_t im = i - 1;
+              size_t ip = i + 1;
+              Vect xm = fcp_[c][im];
+              Vect xp = fcp_[c][ip];
+              Vect dm = xm - x;
+              Vect dp = xp - x;
+              // torque [length^2]
+              Scal tq = par->partss * (dm.norm() * dp.norm() - dm.dot(dp));
+              // normal vectors [length]
+              Vect nm(-dm[1], dm[0], 0.);
+              Vect np(-dp[1], dp[0], 0.);
+              // invert so they points inside angle
+              nm *= (nm.dot(dp) > 0. ? 1. : -1.);
+              np *= (np.dot(dm) > 0. ? 1. : -1.);
+              // forces
+              Vect fm = nm * (-tq / nm.sqrnorm());
+              Vect fp = np * (-tq / np.sqrnorm());
+              // apply
+              fcpt_[c][im] += fm;
+              fcpt_[c][ip] += fp;
+              fcpt_[c][i] -= (fm + fp);
             }
           }
         }
