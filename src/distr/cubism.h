@@ -3,6 +3,7 @@
 #include <memory>
 #include <limits>
 #include <map>
+#include <stdexcept>
 
 #include "distr.h"
 #include "icubism.h"
@@ -447,6 +448,8 @@ void Cubism<Par, KF>::WriteBuffer(const std::vector<MIdx>& bb) {
 
 template <class Par, class KF>
 void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
+  using Op = typename M::Op;
+  using OpS = typename M::template OpT<Scal>;
   auto& f = *mk.at(bb[0]); // first kernel
   auto& mf = f.GetMesh();
   auto& vf = mf.GetReduce();  // pointers to reduce
@@ -462,82 +465,38 @@ void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
   // TODO: Check operation is the same for all kernels
 
   for (size_t i = 0; i < vf.size(); ++i) {
-    Scal r; // result
-    std::string s = vf[i].second; // operation string
-
-    enum class Op { sum, prod, max, min };
-    Op o;
-    if (s == "sum") {
-      o = Op::sum;
-    } else if (s == "prod") {
-      o = Op::prod;
-    } else if (s == "max") {
-      o = Op::max;
-    } else if (s == "min") {
-      o = Op::min;
-    } else {
-      std::cerr << "Reduce(): unknown operation '" << s <<  "'" << std::endl;
-      assert(false);
-    }
-
-    
-    // Init result
-    switch (o) {
-      case Op::sum:  
-        r = 0;  
-        break;
-      case Op::prod: 
-        r = 1;  
-        break;
-      case Op::max:  
-        r = -std::numeric_limits<Scal>::max();  
-        break;
-      case Op::min:  
-        r = std::numeric_limits<Scal>::max();  
-        break;
-      default:
-        assert(false);
-    }
-
-    // Reduce over all blocks on current rank
-    for (auto& b : bb) {
-      auto& v = mk.at(b)->GetMesh().GetReduce(); 
-      Scal a = *v[i].first;
-      switch (o) {
-        case Op::sum:  
-          r += a;  
-          break;
-        case Op::prod: 
-          r *= a;  
-          break;
-        case Op::max:  
-          r = std::max(r, a);
-          break;
-        case Op::min:  
-          r = std::min(r, a);
-          break;
-        default:
-          assert(false);
+    if (OpS* o = dynamic_cast<OpS*>(vf[i].get())) {
+      Scal r = o->Neut(); // result
+      
+      // Reduce over all blocks on current rank
+      for (auto& b : bb) {
+        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        OpS* ob = dynamic_cast<OpS*>(v[i].get());
+        ob->Append(r);
       }
-    }
 
-    // Reduce over all ranks
-    std::map<Op, MPI_Op> mo = {
-        {Op::sum, MPI_SUM},
-        {Op::prod, MPI_PROD},
-        {Op::max, MPI_MAX},
-        {Op::min, MPI_MIN}
-      };
-    std::map<size_t, MPI_Datatype> mt = {
-        {4, MPI_FLOAT},
-        {8, MPI_DOUBLE}
-      };
-    MPI_Allreduce(MPI_IN_PLACE, &r, 1, mt.at(sizeof(Scal)), mo.at(o), comm_); 
 
-    // Write results to all blocks on current rank
-    for (auto& b : bb) {
-      auto& v = mk.at(b)->GetMesh().GetReduce(); 
-      *v[i].first = r;
+      MPI_Op mo;
+      if (dynamic_cast<typename M::OpSum*>(o)) {
+        mo = MPI_SUM;
+      } else if (dynamic_cast<typename M::OpProd*>(o)) {
+        mo = MPI_PROD;
+      } else if (dynamic_cast<typename M::OpMax*>(o)) {
+        mo = MPI_MAX;
+      } else if (dynamic_cast<typename M::OpMin*>(o)) {
+        mo = MPI_MIN;
+      } else {
+        throw std::runtime_error("Reduce(): Can't find MPI_Op");
+      }
+      MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
+      MPI_Allreduce(MPI_IN_PLACE, &r, 1, mt, mo, comm_); 
+
+      // Write results to all blocks on current rank
+      for (auto& b : bb) {
+        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        OpS* ob = dynamic_cast<OpS*>(v[i].get());
+        ob->Set(r);
+      }
     }
   }
 
