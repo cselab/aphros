@@ -161,11 +161,11 @@ void Local<KF>::WriteBuffer(const std::vector<MIdx>& bb) {
 
 template <class KF>
 void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
+  using Op = typename M::Op;
+  using OpS = typename M::template OpT<Scal>;
   auto& f = *mk.at(bb[0]); // first kernel
   auto& mf = f.GetMesh();
   auto& vf = mf.GetReduce();  // pointers to reduce
-
-  std::vector<Scal> r(vf.size(), 0); // results
 
   // Check size is the same for all kernels
   for (auto& b : bb) {
@@ -173,75 +173,27 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
     auto& k = *mk.at(b); // kernel
     auto& m = k.GetMesh();
     auto& v = m.GetReduce();  // pointers to reduce
-    assert(v.size() == r.size());
   }
 
   // TODO: Check operation is the same for all kernels
 
   for (size_t i = 0; i < vf.size(); ++i) {
-    Scal r; // result
-    std::string s = vf[i].second; // operation string
+    if (OpS* o = dynamic_cast<OpS*>(vf[i].get())) {
+      Scal r = o->Neut(); // result
 
-    enum class Op { sum, prod, max, min };
-    Op o;
-    if (s == "sum") {
-      o = Op::sum;
-    } else if (s == "prod") {
-      o = Op::prod;
-    } else if (s == "max") {
-      o = Op::max;
-    } else if (s == "min") {
-      o = Op::min;
-    } else {
-      std::cerr << "Reduce(): unknown operation '" << s <<  "'" << std::endl;
-      assert(false);
-    }
-
-    
-    // Init result
-    switch (o) {
-      case Op::sum:  
-        r = 0;  
-        break;
-      case Op::prod: 
-        r = 1;  
-        break;
-      case Op::max:  
-        r = -std::numeric_limits<double>::max();  
-        break;
-      case Op::min:  
-        r = std::numeric_limits<double>::max();  
-        break;
-      default:
-        assert(false);
-    }
-
-    // Reduce over all blocks on current rank
-    for (auto& b : bb) {
-      auto& v = mk.at(b)->GetMesh().GetReduce(); 
-      Scal a = *v[i].first;
-      switch (o) {
-        case Op::sum:  
-          r += a;  
-          break;
-        case Op::prod: 
-          r *= a;  
-          break;
-        case Op::max:  
-          r = std::max(r, a);
-          break;
-        case Op::min:  
-          r = std::min(r, a);
-          break;
-        default:
-          assert(false);
+      // Reduce over all blocks on current rank
+      for (auto& b : bb) {
+        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        OpS* ob = dynamic_cast<OpS*>(v[i].get());
+        ob->Append(r);
       }
-    }
 
-    // Write results to all blocks on current rank
-    for (auto& b : bb) {
-      auto& v = mk.at(b)->GetMesh().GetReduce(); 
-      *v[i].first = r;
+      // Write results to all blocks on current rank
+      for (auto& b : bb) {
+        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        OpS* ob = dynamic_cast<OpS*>(v[i].get());
+        ob->Set(r);
+      }
     }
   }
 

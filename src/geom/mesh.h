@@ -4,6 +4,9 @@
 #include <array>
 #include <cassert>
 #include <utility>
+#include <limits>
+#include <memory>
+#include <stdexcept>
 
 #include "util/suspender.h"
 #include "idx.h"
@@ -393,8 +396,86 @@ class MeshStructured {
   void Dump(FieldCell<Scal>* u, std::string name) {
     vd_.push_back(std::make_pair(u, name));
   }
-  void Reduce(Scal* u, std::string op) {
-    vrd_.push_back(std::make_pair(u, op));
+  // Reduction operation.
+  class Op { // reduce operation
+   public:
+    virtual ~Op() {}
+  };
+  // Reduction operation on type T
+  template <class T>
+  class OpT : public Op {
+   public:
+    // v: buffer containing current value and used for result
+    OpT(T* v) : v_(v) {}
+    // a: accumulator
+    virtual void Append(T& a) { Append(a, *v_); }
+    // a: accumulator
+    // v: value
+    virtual void Append(T& a, const T& v) const = 0;
+    // Returns neutral value a such that Append(a, v) would set a=v
+    virtual T Neut() const = 0;
+    void Set(const T& v) { *v_ = v; }
+
+   protected:
+    T* v_;
+  };
+  using OpS = OpT<Scal>;
+  class OpSum : public OpS {
+   public:
+    using OpS::OpS;
+    void Append(Scal& a, const Scal& v) const override { a += v; }
+    Scal Neut() const { return 0.; }
+  };
+  class OpProd : public OpS {
+   public:
+    using OpS::OpS;
+    void Append(Scal& a, const Scal& v) const override { a *= v; }
+    Scal Neut() const { return 1.; }
+  };
+  class OpMax : public OpS {
+   public:
+    using OpS::OpS;
+    void Append(Scal& a, const Scal& v) const override { a = std::max(a, v); }
+    Scal Neut() const { return -std::numeric_limits<Scal>::min(); }
+  };
+  class OpMin : public OpS {
+   public:
+    using OpS::OpS;
+    void Append(Scal& a, const Scal& v) const override { a = std::min(a, v); }
+    Scal Neut() const { return -std::numeric_limits<Scal>::max(); }
+  };
+  // A: attribute type, must be default-constructable
+  template <class A>
+  class OpMinloc : public OpT<std::pair<Scal, A>> {
+   public:
+    using T = std::pair<Scal, A>;
+    using OpT<T>::OpT;
+    void Append(T& a, const T& v) const override { 
+      if (v.first < a.firsrt) {
+        a = v;
+      }
+    }
+    T Neut() const { 
+      return std::make_pair(-std::numeric_limits<Scal>::max(), A()); 
+    }
+  };
+  void Reduce(const std::shared_ptr<Op>& o) {
+    vrd_.push_back(o);
+  }
+  // u: buffer with current value and used for result
+  // o: operation 
+  void Reduce(Scal* u, std::string o) {
+    if (o == "sum") {
+      vrd_.push_back(std::make_shared<OpSum>(u));
+    } else if (o == "prod") {
+      vrd_.push_back(std::make_shared<OpProd>(u));
+    } else if (o == "max") {
+      vrd_.push_back(std::make_shared<OpMax>(u));
+    } else if (o == "min") {
+      vrd_.push_back(std::make_shared<OpMin>(u));
+    } else {
+      throw std::runtime_error("Reduce(): unknown operation: '" + o); 
+    }
   }
   void Solve(const LS& ls) {
     vls_.push_back(ls);
@@ -411,7 +492,7 @@ class MeshStructured {
   void ClearDump() {
     vd_.clear();
   }
-  const std::vector<std::pair<Scal*, std::string>>& GetReduce() const {
+  const std::vector<std::shared_ptr<Op>>& GetReduce() const {
     return vrd_;
   }
   void ClearReduce() {
@@ -428,7 +509,7 @@ class MeshStructured {
   Suspender susp_;
   std::vector<FieldCell<Scal>*> vcm_; // fields for [c]o[m]munication
   std::vector<std::pair<FieldCell<Scal>*, std::string>> vd_; // fields for dump
-  std::vector<std::pair<Scal*, std::string>> vrd_; // scalars for reduce
+  std::vector<std::shared_ptr<Op>> vrd_; // scalars for reduce
   std::vector<LS> vls_; // linear system
   // END DISTR
 };
