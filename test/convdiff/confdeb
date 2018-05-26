@@ -1,4 +1,3 @@
 set -eu
 
-. ~/bin/hypre.prefix
-cmake . -DHYPRE_DIR=$P -DCMAKE_BUILD_TYPE=debug 
+ch.confdeb .
