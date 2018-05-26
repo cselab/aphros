@@ -36,6 +36,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
  private:
   void TestComm();
   void TestSolve();
+  void TestReduce();
 
   FieldCell<Scal> fc_;
   // LS
@@ -46,6 +47,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
   std::vector<Scal> lsx_;
   FieldCell<Scal> fc_sol_;
   FieldCell<Scal> fc_exsol_;
+  Scal r_; // test Reduce
 };
 
 bool Cmp(double a, double b) {
@@ -93,7 +95,9 @@ typename M::Scal Mean(
 
 
 #define CMP(a, b) \
-  assert(Cmp(a, b)); 
+  if (!Cmp(a,b)) { \
+    throw std::runtime_error(std::string(__FILE__) + std::to_string(__LINE__)); \
+  }
 
 // Print CMP
 #define PCMP(a, b) \
@@ -105,7 +109,7 @@ typename M::Scal Mean(
 
 template <class M>
 void Simple<M>::TestComm() {
-  auto sem = m.GetSem("TestComm");
+  auto sem = m.GetSem("Comm");
   auto f = [](Vect v) { 
     for (int i = 0; i < dim; ++i) {
       while (v[i] < 0.) {
@@ -133,15 +137,38 @@ void Simple<M>::TestComm() {
           << bc.GetMIdx(i) << " " 
           << fc_[i] << " != " << f(x) << " "
           << std::endl;
-        assert(false);
+        throw std::runtime_error("");
       }
     }
   }
 }
 
 template <class M>
+void Simple<M>::TestReduce() {
+  auto sem = m.GetSem("Reduce");
+  auto f = [](MIdx w) {
+    return std::sin(w[0]) * std::cos(w[1]) * std::exp(w[2]); 
+  };
+  if (sem("init")) {
+    r_ = f(MIdx(bi_.index));
+    m.Reduce(&r_, "sum");
+  }
+  if (sem("check")) {
+    MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
+    MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
+    GBlock<size_t, dim> bb(p * b);
+    Scal s = 0.;
+    for (auto b : bb) {
+      s += f(b);
+    }
+    PCMP(r_, s);
+  }
+}
+
+
+template <class M>
 void Simple<M>::TestSolve() {
-  auto sem = m.GetSem("TestSolve");
+  auto sem = m.GetSem("Solve");
   auto& bc = m.GetBlockCells();
   auto f = [](Vect v) { 
     for (int i = 0; i < dim; ++i) {
@@ -243,11 +270,14 @@ void Simple<M>::TestSolve() {
 template <class M>
 void Simple<M>::Run() {
   auto sem = m.GetSem("Run");
-  if (sem.Nested("TestComm")) {
+  if (sem.Nested("Comm")) {
     TestComm();
   }
-  if (sem.Nested("TestSolve")) {
+  if (sem.Nested("Solve")) {
     TestSolve();
+  }
+  if (sem.Nested("Reduce")) {
+    TestReduce();
   }
 }
 
