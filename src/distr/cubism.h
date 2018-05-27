@@ -467,7 +467,7 @@ void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
 
   for (size_t i = 0; i < vf.size(); ++i) {
     if (OpS* o = dynamic_cast<OpS*>(vf[i].get())) {
-      Scal r = o->Neut(); // result
+      auto r = o->Neut(); // result
       
       // Reduce over all blocks on current rank
       for (auto& b : bb) {
@@ -489,12 +489,44 @@ void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
         throw std::runtime_error("Reduce(): Can't find MPI_Op");
       }
       MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
+
+      // Reduce over all ranks
       MPI_Allreduce(MPI_IN_PLACE, &r, 1, mt, mo, comm_); 
 
       // Write results to all blocks on current rank
       for (auto& b : bb) {
         auto& v = mk.at(b)->GetMesh().GetReduce(); 
         OpS* ob = dynamic_cast<OpS*>(v[i].get());
+        ob->Set(r);
+      }
+    } else if (OpSI* o = dynamic_cast<OpSI*>(vf[i].get())) {
+      auto r = o->Neut(); // result
+      
+      // Reduce over all blocks on current rank
+      for (auto& b : bb) {
+        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
+        ob->Append(r);
+      }
+
+      MPI_Op mo;
+      if (dynamic_cast<typename M::OpMinloc*>(o)) {
+        mo = MPI_MINLOC;
+      } else if (dynamic_cast<typename M::OpMaxloc*>(o)) {
+        mo = MPI_MAXLOC;
+      } else {
+        throw std::runtime_error("Reduce(): Can't find MPI_Op");
+      }
+
+      MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE_INT : MPI_FLOAT_INT);
+
+      // Reduce over all ranks
+      MPI_Allreduce(MPI_IN_PLACE, &r, 1, mt, mo, comm_); 
+
+      // Write results to all blocks on current rank
+      for (auto& b : bb) {
+        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
         ob->Set(r);
       }
     } else {
