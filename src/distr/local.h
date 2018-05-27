@@ -162,7 +162,8 @@ void Local<KF>::WriteBuffer(const std::vector<MIdx>& bb) {
 template <class KF>
 void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
   using Op = typename M::Op;
-  using OpS = typename M::template OpT<Scal>;
+  using OpS = typename M::OpS;
+  using OpSI = typename M::OpSI;
   auto& f = *mk.at(bb[0]); // first kernel
   auto& mf = f.GetMesh();
   auto& vf = mf.GetReduce();  // pointers to reduce
@@ -179,7 +180,7 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
 
   for (size_t i = 0; i < vf.size(); ++i) {
     if (OpS* o = dynamic_cast<OpS*>(vf[i].get())) {
-      Scal r = o->Neut(); // result
+      auto r = o->Neut(); // result
 
       // Reduce over all blocks on current rank
       for (auto& b : bb) {
@@ -194,6 +195,24 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
         OpS* ob = dynamic_cast<OpS*>(v[i].get());
         ob->Set(r);
       }
+    } else if (OpSI* o = dynamic_cast<OpSI*>(vf[i].get())) {
+      auto r = o->Neut(); // result
+
+      // Reduce over all blocks on current rank
+      for (auto& b : bb) {
+        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
+        ob->Append(r);
+      }
+
+      // Write results to all blocks on current rank
+      for (auto& b : bb) {
+        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
+        ob->Set(r);
+      }
+    } else {
+      throw std::runtime_error("Reduce: Unknown M::Op implementation");
     }
   }
 

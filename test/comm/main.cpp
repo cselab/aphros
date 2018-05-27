@@ -4,6 +4,7 @@
 #include <cassert>
 #include <iomanip>
 #include <fstream>
+#include <limits>
 
 #include "geom/mesh.h"
 #include "kernel/kernelmeshpar.h"
@@ -48,6 +49,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_sol_;
   FieldCell<Scal> fc_exsol_;
   Scal r_; // test Reduce
+  std::pair<Scal, int> rsi_; // test Reduce minloc
 };
 
 bool Cmp(double a, double b) {
@@ -146,22 +148,37 @@ void Simple<M>::TestComm() {
 template <class M>
 void Simple<M>::TestReduce() {
   auto sem = m.GetSem("Reduce");
+  MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
+  MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
   auto f = [](MIdx w) {
     return std::sin(w[0]) * std::cos(w[1]) * std::exp(w[2]); 
   };
-  if (sem("init")) {
+  if (sem("sum")) {
     r_ = f(MIdx(bi_.index));
     m.Reduce(&r_, "sum");
   }
-  if (sem("check")) {
-    MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
-    MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
+  if (sem("sum-check")) {
     GBlock<size_t, dim> bb(p * b);
     Scal s = 0.;
     for (auto b : bb) {
       s += f(b);
     }
     PCMP(r_, s);
+  }
+  if (sem("minloc")) {
+    GBlock<size_t, dim> bb(p * b);
+    MIdx w(bi_.index);
+    rsi_ = std::make_pair(-f(w), bb.GetIdx(w));
+    m.Reduce(std::make_shared<typename M::OpMinloc>(&rsi_));
+  }
+  if (sem("minloc-check")) {
+    GBlock<size_t, dim> bb(p * b);
+    Scal s = std::numeric_limits<Scal>::max();
+    int i =0;
+    for (auto w : bb) {
+      s = std::min(s, -f(w));
+    }
+    PCMP(rsi_.first, s);
   }
 }
 
