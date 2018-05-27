@@ -458,6 +458,19 @@ class MeshStructured {
       return std::make_pair(std::numeric_limits<Scal>::max(), int()); 
     }
   };
+  class OpMaxloc : public OpSI {
+   public:
+    using T = std::pair<Scal, int>;
+    using OpSI::OpSI;
+    void Append(T& a, const T& v) const override { 
+      if (v.first > a.first) {
+        a = v;
+      }
+    }
+    T Neut() const { 
+      return std::make_pair(std::numeric_limits<Scal>::min(), int()); 
+    }
+  };
   void Reduce(const std::shared_ptr<Op>& o) {
     vrd_.push_back(o);
   }

@@ -39,6 +39,9 @@ class Simple : public KernelMeshPar<M_, GPar> {
   void TestSolve();
   void TestReduce();
 
+  bool Cmp(Scal a, Scal b) { return std::abs(a - b) < 1e-10; }
+  bool Cmp(MIdx a, MIdx b) { return a == b; }
+
   FieldCell<Scal> fc_;
   // LS
   using Expr = solver::Expression<Scal, IdxCell, 1 + dim * 2>;
@@ -51,10 +54,6 @@ class Simple : public KernelMeshPar<M_, GPar> {
   Scal r_; // test Reduce
   std::pair<Scal, int> rsi_; // test Reduce minloc
 };
-
-bool Cmp(double a, double b) {
-  return std::abs(a - b) < 1e-10;
-}
 
 template <class Idx, class M>
 typename M::Scal DiffMax(
@@ -150,35 +149,88 @@ void Simple<M>::TestReduce() {
   auto sem = m.GetSem("Reduce");
   MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
   MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
+  // TODO: could be size_t instead of IdxCell, but needed for GetMIdx
+  GBlock<IdxCell, dim> bb(p * b); 
   auto f = [](MIdx w) {
-    return std::sin(w[0]) * std::cos(w[1]) * std::exp(w[2]); 
+    return std::sin(w[0]+1.7) * std::cos(w[1]) * std::exp(w[2]); 
   };
   if (sem("sum")) {
     r_ = f(MIdx(bi_.index));
     m.Reduce(&r_, "sum");
   }
   if (sem("sum-check")) {
-    GBlock<size_t, dim> bb(p * b);
     Scal s = 0.;
     for (auto b : bb) {
       s += f(b);
     }
     PCMP(r_, s);
   }
+  if (sem("prod")) {
+    r_ = f(MIdx(bi_.index));
+    m.Reduce(&r_, "prod");
+  }
+  if (sem("prod-check")) {
+    Scal s = 1.;
+    for (auto b : bb) {
+      s *= f(b);
+    }
+    PCMP(r_, s);
+  }
+  if (sem("max")) {
+    r_ = f(MIdx(bi_.index));
+    m.Reduce(&r_, "max");
+  }
+  if (sem("max-check")) {
+    Scal s = std::numeric_limits<Scal>::min();
+    for (auto b : bb) {
+      s = std::max(s, f(b));
+    }
+    PCMP(r_, s);
+  }
+  if (sem("min")) {
+    r_ = f(MIdx(bi_.index));
+    m.Reduce(&r_, "min");
+  }
+  if (sem("min-check")) {
+    Scal s = std::numeric_limits<Scal>::max();
+    for (auto b : bb) {
+      s = std::min(s, f(b));
+    }
+    PCMP(r_, s);
+  }
   if (sem("minloc")) {
-    GBlock<size_t, dim> bb(p * b);
     MIdx w(bi_.index);
-    rsi_ = std::make_pair(-f(w), bb.GetIdx(w));
+    rsi_ = std::make_pair(f(w), bb.GetIdx(w).GetRaw());
     m.Reduce(std::make_shared<typename M::OpMinloc>(&rsi_));
   }
   if (sem("minloc-check")) {
-    GBlock<size_t, dim> bb(p * b);
     Scal s = std::numeric_limits<Scal>::max();
-    int i =0;
+    MIdx ws;
     for (auto w : bb) {
-      s = std::min(s, -f(w));
+      if (f(w) < s) {
+        ws = w;
+        s = f(w);
+      }
     }
     PCMP(rsi_.first, s);
+    PCMP(bb.GetMIdx(IdxCell(rsi_.second)), ws);
+  }
+  if (sem("maxloc")) {
+    MIdx w(bi_.index);
+    rsi_ = std::make_pair(f(w), bb.GetIdx(w).GetRaw());
+    m.Reduce(std::make_shared<typename M::OpMaxloc>(&rsi_));
+  }
+  if (sem("maxloc-check")) {
+    Scal s = std::numeric_limits<Scal>::min();
+    MIdx ws;
+    for (auto w : bb) {
+      if (f(w) > s) {
+        ws = w;
+        s = f(w);
+      }
+    }
+    PCMP(rsi_.first, s);
+    PCMP(bb.GetMIdx(IdxCell(rsi_.second)), ws);
   }
 }
 
