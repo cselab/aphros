@@ -449,7 +449,8 @@ void Cubism<Par, KF>::WriteBuffer(const std::vector<MIdx>& bb) {
 template <class Par, class KF>
 void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
   using Op = typename M::Op;
-  using OpS = typename M::template OpT<Scal>;
+  using OpS = typename M::OpS;
+  using OpSI = typename M::OpSI;
   auto& f = *mk.at(bb[0]); // first kernel
   auto& mf = f.GetMesh();
   auto& vf = mf.GetReduce();  // pointers to reduce
@@ -475,7 +476,6 @@ void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
         ob->Append(r);
       }
 
-
       MPI_Op mo;
       if (dynamic_cast<typename M::OpSum*>(o)) {
         mo = MPI_SUM;
@@ -497,6 +497,8 @@ void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
         OpS* ob = dynamic_cast<OpS*>(v[i].get());
         ob->Set(r);
       }
+    } else {
+      throw std::runtime_error("Reduce: Unknown M::Op implementation");
     }
   }
 

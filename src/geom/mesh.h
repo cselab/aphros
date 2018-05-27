@@ -436,27 +436,26 @@ class MeshStructured {
    public:
     using OpS::OpS;
     void Append(Scal& a, const Scal& v) const override { a = std::max(a, v); }
-    Scal Neut() const { return -std::numeric_limits<Scal>::min(); }
+    Scal Neut() const { return std::numeric_limits<Scal>::min(); }
   };
   class OpMin : public OpS {
    public:
     using OpS::OpS;
     void Append(Scal& a, const Scal& v) const override { a = std::min(a, v); }
-    Scal Neut() const { return -std::numeric_limits<Scal>::max(); }
+    Scal Neut() const { return std::numeric_limits<Scal>::max(); }
   };
-  // A: attribute type, must be default-constructable
-  template <class A>
-  class OpMinloc : public OpT<std::pair<Scal, A>> {
+  using OpSI = OpT<std::pair<Scal, int>>;
+  class OpMinloc : public OpSI {
    public:
-    using T = std::pair<Scal, A>;
-    using OpT<T>::OpT;
+    using T = std::pair<Scal, int>;
+    using OpSI::OpSI;
     void Append(T& a, const T& v) const override { 
-      if (v.first < a.firsrt) {
+      if (v.first < a.first) {
         a = v;
       }
     }
     T Neut() const { 
-      return std::make_pair(-std::numeric_limits<Scal>::max(), A()); 
+      return std::make_pair(std::numeric_limits<Scal>::max(), int()); 
     }
   };
   void Reduce(const std::shared_ptr<Op>& o) {
