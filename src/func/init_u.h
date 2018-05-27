@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include "parse/vars.h"
+#include "geom/field.h"
 
 // Volume fraction field.
 // par: parameters
@@ -61,5 +62,34 @@ std::function<Scal(Vect)> CreateInitU(Vars& par) {
     throw std::runtime_error("Unknown init_vf=" + v);
   }
 
+  return f;
+}
+
+// Volume fraction field.
+// par: parameters
+// M: mesh
+// Returns:
+// std::function<void(GField<Cell>& fc)>
+template <class M>
+std::function<void(FieldCell<typename M::Scal>&, const M&)> 
+CreateInitU(Vars& par) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  std::function<void(FieldCell<Scal>&,M&)> g; // result
+
+  std::string v = par.String["init_vf"];
+  if (v == "circle") {
+    Vect c;
+    Scal r;
+    if (par.Vect("circle_c") && par.Double("circle_r")) {
+      c = Vect(par.Vect["circle_c"]);
+      r = par.Double["circle_r"];
+    }
+    g = [c,r](FieldCell<Scal>& fc, const M& m) -> Scal { 
+      return c.dist(x) < r ? 1. : 0.; 
+    };
+  } else {
+    throw std::runtime_error("Unknown init_vf=" + v);
+  }
   return f;
 }
