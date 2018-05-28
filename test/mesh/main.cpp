@@ -154,7 +154,8 @@ void TestMesh() {
   // Comm
   FieldCell<Scal> fc;
   m.Comm(&fc);
-  CMP(m.GetComm()[0], &fc);
+  auto p = dynamic_cast<typename M::CoFcs*>(m.GetComm()[0].get());
+  CMP(p->f, &fc);
 }
 
 int main() {

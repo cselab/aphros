@@ -215,11 +215,13 @@ class Cubism : public DistrMesh<KF> {
 
     int e = 0; // buffer field idx
 
+    auto& bc = m.GetBlockCells();
     for (auto u : m.GetComm()) {
-      for (auto i : m.AllCells()) {
-        auto& bc = m.GetBlockCells();
-        auto d = bc.GetMIdx(i) - MIdx(hl_) - bc.GetBegin();
-        (*u)[i] = l(d[0], d[1], d[2]).a[e];
+      if (auto ud = dynamic_cast<typename M::CoFcs*>(u.get())) {
+        for (auto c : m.AllCells()) {
+          auto w = bc.GetMIdx(c) - MIdx(hl_) - bc.GetBegin();
+          (*ud->f)[c] = l(w[0], w[1], w[2]).a[e];
+        }
       }
       ++e;
     }
@@ -233,11 +235,13 @@ class Cubism : public DistrMesh<KF> {
 
     int e = 0; // buffer field idx
 
+    auto& bc = m.GetBlockCells();
     for (auto u : m.GetComm()) {
-      for (auto i : m.Cells()) {
-        auto& bc = m.GetBlockCells();
-        auto d = m.GetBlockCells().GetMIdx(i) - MIdx(hl_) - bc.GetBegin();
-        o.data[d[2]][d[1]][d[0]].a[e] = (*u)[i];
+      if (auto ud = dynamic_cast<typename M::CoFcs*>(u.get())) {
+        for (auto c : m.Cells()) {
+          auto w = m.GetBlockCells().GetMIdx(c) - MIdx(hl_) - bc.GetBegin();
+          o.data[w[2]][w[1]][w[0]].a[e] = (*ud->f)[c];
+        }
       }
       ++e;
     }

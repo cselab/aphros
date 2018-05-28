@@ -267,18 +267,20 @@ template <class KF>
 void Local<KF>::ReadBuffer(M& m) {
   int e = 0; // buffer field idx
 
-  for (auto u : m.GetComm()) {
-    for (auto i : m.AllCells()) {
-      auto& bc = m.GetBlockCells();
-      auto& gbc = gm.GetBlockCells();
-      MIdx gs = gbc.GetDimensions();
-      auto d = bc.GetMIdx(i);
-      // periodic
-      for (int j = 0; j < 3; ++j) {
-        d[j] = (d[j] + gs[j]) % gs[j];
+  auto& bc = m.GetBlockCells();
+  auto& gbc = gm.GetBlockCells();
+  MIdx gs = gbc.GetDimensions();
+  for (auto& u : m.GetComm()) {
+    if (auto ud = dynamic_cast<typename M::CoFcs*>(u.get())) {
+      for (auto c : m.AllCells()) {
+        auto w = bc.GetMIdx(c);
+        // periodic
+        for (int d = 0; d < 3; ++d) {
+          w[d] = (w[d] + gs[d]) % gs[d];
+        }
+        auto gi = gbc.GetIdx(w);
+        (*ud->f)[c] = buf_[e][gi];
       }
-      auto gi = gbc.GetIdx(d);
-      (*u)[i] = buf_[e][gi];
     }
     ++e;
   }
@@ -293,13 +295,15 @@ void Local<KF>::WriteBuffer(M& m) {
 
   int e = 0; // buffer field idx
 
+  auto& bc = m.GetBlockCells();
+  auto& gbc = gm.GetBlockCells();
   for (auto u : m.GetComm()) {
-    for (auto i : m.Cells()) {
-      auto& bc = m.GetBlockCells();
-      auto& gbc = gm.GetBlockCells();
-      auto d = bc.GetMIdx(i); 
-      auto gi = gbc.GetIdx(d); 
-      buf_[e][gi] = (*u)[i];
+    if (auto ud = dynamic_cast<typename M::CoFcs*>(u.get())) {
+      for (auto c : m.Cells()) {
+        auto w = bc.GetMIdx(c); 
+        auto gc = gbc.GetIdx(w); 
+        buf_[e][gc] = (*ud->f)[c];
+      }
     }
     ++e;
   }
