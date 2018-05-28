@@ -79,17 +79,15 @@ CreateInitU(Vars& par) {
 
   std::string v = par.String["init_vf"];
   if (v == "circle") {
-    Vect c;
-    Scal r;
-    if (par.Vect("circle_c") && par.Double("circle_r")) {
-      c = Vect(par.Vect["circle_c"]);
-      r = par.Double["circle_r"];
-    }
-    g = [c,r](FieldCell<Scal>& fc, const M& m) -> Scal { 
-      return c.dist(x) < r ? 1. : 0.; 
+    Vect xc = Vect(par.Vect["circle_c"]);
+    Scal r = par.Double["circle_r"];
+    g = [xc,r](FieldCell<Scal>& fc, const M& m) -> Scal { 
+      for (auto c : m.Cells()) {
+        fc[c] = (xc.dist(m.GetCenter(c)) < r ? 1. : 0.);
+      }
     };
   } else {
     throw std::runtime_error("Unknown init_vf=" + v);
   }
-  return f;
+  return g;
 }
