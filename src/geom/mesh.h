@@ -390,12 +390,43 @@ class MeshStructured {
   size_t GetDepth() const {
     return susp_.GetDepth();
   }
-  void Comm(FieldCell<Scal>* u) {
-    vcm_.push_back(u);
+  // Comm request for field f
+  void Comm(FieldCell<Scal>* f) {
+    vcm_.push_back(std::make_shared<CoFcs>(f));
+  }
+  // Comm request for component i of f
+  void Comm(FieldCell<Vect>* f, int i) {
+    vcm_.push_back(std::make_shared<CoFcv>(f, i));
+  }
+  // Comm request for all components of f
+  void Comm(FieldCell<Vect>* f) {
+    Comm(f, -1);
   }
   void Dump(FieldCell<Scal>* u, std::string name) {
     vd_.push_back(std::make_pair(u, name));
   }
+
+  // Comm request
+  class Co {
+   public:
+    virtual ~Co() {}
+  };
+  // FieldCell<Scal>
+  class CoFcs : public Co {
+   public:
+    CoFcs(FieldCell<Scal>* f) : f(f) {}
+    FieldCell<Scal>* f;
+  };
+  // FieldCell<Vect>
+  class CoFcv : public Co {
+   public:
+    // f: vector field
+    // i: component (0,1,2), or -1 for all
+    CoFcv(FieldCell<Vect>* f, int i) : f(f), i(i) {}
+    FieldCell<Vect>* f;
+    int i;
+  };
+
   // Reduction operation.
   class Op { // reduce operation
    public:
@@ -492,7 +523,7 @@ class MeshStructured {
   void Solve(const LS& ls) {
     vls_.push_back(ls);
   }
-  const std::vector<FieldCell<Scal>*>& GetComm() const {
+  const std::vector<std::shared_ptr<Co>>& GetComm() const {
     return vcm_;
   }
   const std::vector<std::pair<FieldCell<Scal>*, std::string>>& GetDump() const {
@@ -519,7 +550,7 @@ class MeshStructured {
 
  private:
   Suspender susp_;
-  std::vector<FieldCell<Scal>*> vcm_; // fields for [c]o[m]munication
+  std::vector<std::shared_ptr<Co>> vcm_; // fields for [c]o[m]munication
   std::vector<std::pair<FieldCell<Scal>*, std::string>> vd_; // fields for dump
   std::vector<std::shared_ptr<Op>> vrd_; // scalars for reduce
   std::vector<LS> vls_; // linear system
