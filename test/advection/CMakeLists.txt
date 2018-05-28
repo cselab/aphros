@@ -59,4 +59,6 @@ set_property(TARGET ${EXE} PROPERTY CXX_STANDARD 11)
 
 enable_testing()
 
-add_test(${p} ${EXE} al.conf)
+add_test(exact16 test_cmp al.conf)
+add_test(exact8 test_cmp al8.conf)
+add_test(exact4 test_cmp al4.conf)

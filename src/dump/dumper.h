@@ -19,7 +19,7 @@ class Dumper {
   Vars& var;
   std::string pre_;
   int pn_ = -1; // dum[p] index
-  double pt_ = std::numeric_limits<double>::min(); // last dum[p] time
+  double pt_ = -std::numeric_limits<double>::max(); // last dum[p] time
   double ptt_; // dum[p] target time
 };
 

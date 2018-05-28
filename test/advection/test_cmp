@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -eu
+
+mpirun -n 1 ./t.advection "$1"
+
+a="u_1.dat"
+b="ref/u_1.dat"
+if diff -q "$a" "$b"; then
+  exit 0
+else
+  exit 1
+fi
