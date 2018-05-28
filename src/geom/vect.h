@@ -213,6 +213,10 @@ class GVect {
     other -= *this;
     return other.norm();
   }
+  Scal sqrdist(GVect o) const {
+    o -= *this;
+    return o.sqrnorm();
+  }
   Scal prod() const {
     Scal r = comp_[0];
     for (size_t i = 1; i < dim; ++i) {
