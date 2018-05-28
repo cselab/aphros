@@ -6,6 +6,6 @@ set -ue
 make
 #time ./t.advection uni.conf
 #time ./t.advection str.conf
-#time ./t.advection a.conf
-time ./t.advection circle.conf
+time ./t.advection a.conf
+#time ./t.advection circle.conf
 time ./plot.py

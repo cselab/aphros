@@ -73,12 +73,14 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   Scal sumu_; // sum of fluid volume
   FieldCell<Scal> fcnx_, fcny_, fcnz_; // normal to interface (tmp)
                                              // used for Vof dump
-  Dumper dumper_;
+  Dumper dmf_; // fields
+  Dumper dms_; // statistics
 };
 
 template <class M>
 Advection<M>::Advection(Vars& v, const MyBlockInfo& b, Par& p)
-    : KernelMeshPar<M, Par>(v, b, p), dumper_(v) {}
+    : KernelMeshPar<M, Par>(v, b, p)
+    , dmf_(v, "dump_field_"), dms_(v, "dump_stat_") {}
 
 template <class M>
 void Advection<M>::Init(Sem& sem) {
@@ -129,7 +131,7 @@ void Advection<M>::Init(Sem& sem) {
 template <class M>
 void Advection<M>::Dump(Sem& sem) {
   if (sem("dump")) {
-    if (dumper_.Try(var.Double["t"], var.Double["dt"])) {
+    if (dmf_.Try(var.Double["t"], var.Double["dt"])) {
       auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
       m.Dump(&u, "u");
       auto& k = const_cast<FieldCell<Scal>&>(as_->GetCurv());
@@ -147,7 +149,7 @@ void Advection<M>::Dump(Sem& sem) {
       }
 
       if (IsRoot()) {
-        dumper_.Report();
+        dmf_.Report();
       }
     }
   }
@@ -202,7 +204,7 @@ void Advection<M>::Run() {
   if (sem.Nested("finish")) {
     as_->FinishStep();
   }
-  if (sem("stat")) {
+  if (sem("stat-loc")) {
     sumu_ = 0.;
     auto& u = as_->GetField();
     for (auto c : m.Cells()) {
@@ -210,24 +212,20 @@ void Advection<M>::Run() {
     }
     m.Reduce(&sumu_, "sum");
   }
-  if (sem("t")) {
+  if (sem("stat")) {
     if (IsLead()) {
       ++var.Int["iter"];
       var.Double["t"] = as_->GetTime();
     }
     if (IsRoot()) {
-      auto t = var.Double["t"];
-      auto dt = var.Double["dt"];
-      if (!var.Double("laststat")) {
-        var.Double.Set("laststat", -1e10);
-      }
-      if (t - var.Double["laststat"] >= var.Double["statdt"]) {
+      Scal t = var.Double["t"];
+      Scal dt = var.Double["dt"];
+      if (dms_.Try(t, dt)) {
         std::cout 
             << "t=" << t 
             << " dt=" << dt 
             << std::setprecision(16) << " sumu=" << sumu_
             << std::endl;
-        var.Double["laststat"] = t;
       }
     }
   }
