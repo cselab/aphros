@@ -1,5 +1,7 @@
 #include <iostream>
 #include <cassert>
+#include <string>
+#include <limits>
 
 #include "dumper.h"
 
@@ -7,15 +9,18 @@ bool Dumper::Try(double t, double dt) {
   // requirements: 
   // * interval between dumps is at least dumpdt + dt
   // * dumpt % dtumpdt <= dt * 0.5
-  auto pd = var.Double["dumpdt"]; // dum[p] [d]t
+  auto pdt = var.Double[pre_ + "dt"]; // dum[p] [d]t
 
   // next target time
-  ptt_ = int(std::max<double>(pt_ + pd, 0.) / pd + 0.5) * pd;
-  assert(ptt_ > pt_);
+  if (pdt > 0.) {
+    ptt_ = int(std::max<double>(pt_ + pdt, 0.) / pdt + 0.5) * pdt;
+  } else {
+    ptt_ = t;
+  }
 
   if (var.Int["output"] && 
       t >= ptt_ - dt * 0.5 &&
-      pn_ < var.Int["dumpmax"]) {
+      pn_ < var.Int[pre_ + "max"]) {
     pt_ = t;
     ++pn_;
     return true;
