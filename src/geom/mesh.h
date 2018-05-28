@@ -436,7 +436,7 @@ class MeshStructured {
    public:
     using OpS::OpS;
     void Append(Scal& a, const Scal& v) const override { a = std::max(a, v); }
-    Scal Neut() const { return std::numeric_limits<Scal>::min(); }
+    Scal Neut() const { return -std::numeric_limits<Scal>::max(); }
   };
   class OpMin : public OpS {
    public:
@@ -468,7 +468,7 @@ class MeshStructured {
       }
     }
     T Neut() const { 
-      return std::make_pair(std::numeric_limits<Scal>::min(), int()); 
+      return std::make_pair(-std::numeric_limits<Scal>::max(), int()); 
     }
   };
   void Reduce(const std::shared_ptr<Op>& o) {
