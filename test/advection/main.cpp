@@ -34,8 +34,8 @@ struct GPar {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  std::function<Scal(Vect /*t*/)> fu0; // initial volume fraction
-  std::function<Vect(Vect /*x*/,Scal /*t*/)> fvel; // velocity
+  std::function<void(FieldCell<Scal>&, const M&)> fu0; // init vf
+  std::function<Vect(Vect /*x*/,Scal /*t*/)> fv; // velocity
 };
 
 template <class M_>
@@ -53,6 +53,7 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   //using P::P; // inherit constructor
   Advection(Vars& var, const MyBlockInfo& bi, Par& par);
   void Run() override;
+  void Init(Sem& sem);
   void Dump(Sem& sem);
 
  protected:
@@ -65,8 +66,8 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
  private:
   FieldFace<Scal> ff_flux_;
   FieldCell<Scal> fc_src_;
+  FieldCell<Scal> fcu_; // volume fraction (used for initial)
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
-  std::function<Vect(Vect,Scal)> fvel_;
   Scal maxvel_; // maximum velocity relative to cell length [1/time]
                 // cfl = dt * maxvel
   Scal sumu_; // sum of fluid volume
@@ -76,49 +77,52 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
 };
 
 template <class M>
-Advection<M>::Advection(Vars& var, const MyBlockInfo& bi, Par& par)
-    : KernelMeshPar<M, Par>(var, bi, par)
-    , dumper_(var)
-{
-  // initial field for advection
-  FieldCell<Scal> u0(m, 0);
-  for (auto c : m.AllCells()) {
-    Vect x = m.GetCenter(c);
-    u0[c] = par_.fu0(x);
+Advection<M>::Advection(Vars& v, const MyBlockInfo& b, Par& p)
+    : KernelMeshPar<M, Par>(v, b, p), dumper_(v) {}
+
+template <class M>
+void Advection<M>::Init(Sem& sem) {
+  if (sem("init-local")) {
+    // initial field for advection
+    fcu_.Reinit(m);
+    par_.fu0(fcu_, m);
+    m.Comm(&fcu_);
   }
 
-  // boundary conditions for advection (empty)
-  MapFace<std::shared_ptr<solver::CondFace>> bc;
+  if (sem("init-create")) {
+    // flux
+    ff_flux_.Reinit(m, 0);
+    for (auto f : m.AllFaces()) {
+      Vect x = m.GetCenter(f);
+      ff_flux_[f] = par_.fv(x, 0.).dot(m.GetSurface(f));
+    }
 
-  // cell conditions for advection (empty)
-  MapCell<std::shared_ptr<solver::CondCell>> mc_cond;
+    // boundary conditions for advection (empty)
+    MapFace<std::shared_ptr<solver::CondFace>> bc;
 
-  // flux
-  ff_flux_.Reinit(m, 0);
-  for (auto f : m.AllFaces()) {
-    Vect x = m.GetCenter(f);
-    ff_flux_[f] = par_.fvel(x, 0.).dot(m.GetSurface(f));
-  }
-  
-  // source
-  fc_src_.Reinit(m, 0.);
+    // cell conditions for advection (empty)
+    MapCell<std::shared_ptr<solver::CondCell>> mc_cond;
 
-  std::string as = var.String["advection_solver"];
-  if (as == "tvd") {
-    using AS = solver::AdvectionSolverExplicit<M>;
-    auto p = std::make_shared<typename AS::Par>();
-    p->sharp = var.Double["sharp"];
-    p->sharpo = var.Double["sharpo"];
-    p->split = var.Int["split"];
-    as_.reset(new AS(m, u0, bc, &ff_flux_, 
-                     &fc_src_, 0., var.Double["dt"], p));
-  } else if (as == "vof") {
-    using AS = solver::Vof<M>;
-    auto p = std::make_shared<typename AS::Par>();
-    as_.reset(new AS(m, u0, bc, &ff_flux_, 
-                     &fc_src_, 0., var.Double["dt"], p));
-  } else {
-    throw std::runtime_error("Unknown advection_solver=" + as);
+    // source
+    fc_src_.Reinit(m, 0.);
+
+    std::string as = var.String["advection_solver"];
+    if (as == "tvd") {
+      using AS = solver::AdvectionSolverExplicit<M>;
+      auto p = std::make_shared<typename AS::Par>();
+      p->sharp = var.Double["sharp"];
+      p->sharpo = var.Double["sharpo"];
+      p->split = var.Int["split"];
+      as_.reset(new AS(m, fcu_, bc, &ff_flux_, 
+                       &fc_src_, 0., var.Double["dt"], p));
+    } else if (as == "vof") {
+      using AS = solver::Vof<M>;
+      auto p = std::make_shared<typename AS::Par>();
+      as_.reset(new AS(m, fcu_, bc, &ff_flux_, 
+                       &fc_src_, 0., var.Double["dt"], p));
+    } else {
+      throw std::runtime_error("Unknown advection_solver=" + as);
+    }
   }
 }
 
@@ -151,24 +155,12 @@ void Advection<M>::Dump(Sem& sem) {
     // Empty stage for DumpWrite
     // TODO: revise
   }
-  if (sem("dump")) {
-    if (dumper_.Try(var.Double["t"], var.Double["dt"])) {
-      auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
-      m.Dump(&u, "u");
-      if (IsRoot()) {
-        dumper_.Report();
-      }
-    }
-  }
-  if (sem("dumpwrite")) {
-    // Empty stage for DumpWrite
-    // TODO: revise
-  }
 }
 
 template <class M>
 void Advection<M>::Run() {
   auto sem = m.GetSem("advection");
+  Init(sem);
   Dump(sem);
   sem.LoopBegin();
   if (sem("empty")) {
@@ -183,7 +175,7 @@ void Advection<M>::Run() {
     const Scal t = as_->GetTime();
     for (auto f : m.AllFaces()) {
       Vect x = m.GetCenter(f);
-      ff_flux_[f] = par_.fvel(x, t).dot(m.GetSurface(f));
+      ff_flux_[f] = par_.fv(x, t).dot(m.GetSurface(f));
     }
 
     maxvel_ = 0.;
@@ -251,8 +243,8 @@ void Main(MPI_Comm comm, Vars& var) {
   using K = Advection<M>;
   using Par = typename K::Par;
   Par par;
-  par.fu0 = CreateInitU<Vect>(var);
-  par.fvel = CreateInitVel<Vect>(var);
+  par.fu0 = CreateInitU<M>(var);
+  par.fv = CreateInitVel<Vect>(var);
 
   DistrSolver<M, K> ds(comm, var, par);
   ds.Run();
