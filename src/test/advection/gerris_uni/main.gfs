@@ -1,0 +1,27 @@
+1 2 GfsAdvection GfsBox GfsGEdge {} {
+  Time { end = 1 }
+
+  Refine 6
+
+  #VariableTracerVOFHeight T
+  VariableTracerVOF T { cfl = 0.5 }
+
+  InitFraction T ({
+    double x0 = 0.5 - 0.5;
+    double y0 = 0.5 - 0.5;
+    double xx = x - x0;
+    double yy = y - y0;
+    double d = 0.5;
+    double r = d * 0.5;
+    return fmin(fmin(r - xx, r + xx), fmin(r - yy, r + yy));
+  })
+
+  InitFraction T (-ellipse(0, -.236338, 0.2, 0.2))
+
+  Init {} { U = 10. V = -5. }
+
+  OutputSimulation { step = 0.2 } u_%4.2f.vtk { variables = T format = VTK}
+}
+GfsBox {}
+1 1 right
+1 1 top

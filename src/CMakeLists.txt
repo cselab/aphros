@@ -4,8 +4,8 @@ project("mfer")
 
 set(EXE "mfer")
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)  
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)  
 
 add_executable(${EXE} distr/main.cpp)
 set_target_properties(${EXE} PROPERTIES PREFIX "ch.")
@@ -38,10 +38,14 @@ if (OPENMP_FOUND)
         "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()                              
 
+include_directories(.)
+
 add_subdirectory(linear)
 add_subdirectory(distr)
+add_subdirectory(util)
+add_subdirectory(parse)
 
 target_link_libraries(${EXE} distr)
 
-
-
+add_subdirectory(test)
+enable_testing()

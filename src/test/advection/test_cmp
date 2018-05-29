@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -eu
+
+n=${2:-4}
+mpirun --oversubscribe -n $n ./t.advection "$1"
+
+a=0
+for f in ref/*.dat ; do
+  if ! diff -q "${f#ref/}" "$f"; then
+    a=1
+  fi
+done
+
+exit $a
