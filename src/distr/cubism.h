@@ -658,25 +658,29 @@ template <class Par, class KF>
 void Cubism<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
   auto& m = mk.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
-    assert(m.GetComm().size() >= m.GetDump().size());
-    size_t k = m.GetComm().size() - m.GetDump().size();
-    assert(0 <= k && k < Elem::es && k < m.GetComm().size());
-
     std::string df = par.String["dumpformat"];
     if (df == "default") {
       df = "hdf";
     }
 
     if (df == "hdf") {
-      for (auto d : m.GetDump()) {
+      size_t k = 0; // offset in buffer
+      // Skip comm 
+      for (auto& o : m.GetComm()) {
+        k += o->GetSize();
+      }
+      // Write dump
+      for (auto& on : m.GetDump()) {
         auto suff = "_" + std::to_string(frame_);
         StreamHdfDyn<Block>::ID = k;
-        StreamHdfDyn<Block>::NAME = d.second;
-        DumpHDF5_MPI<Grid, StreamHdfDyn<Block>>(
-            g_, frame_, frame_, d.second + suff);
-        ++k;
+        StreamHdfDyn<Block>::NAME = on.second;
+        auto fn = on.second + suff;
+        DumpHDF5_MPI<Grid, StreamHdfDyn<Block>>(g_, frame_, frame_, fn);
+        k += on.first->GetSize();
+        if (on.first->GetSize() != 1) {
+          throw std::runtime_error("DumpWrite(): Support only size 1");
+        }
       }
-      // TODO: avoid duplication of next two lines
       if (isroot_) {
         std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
       }

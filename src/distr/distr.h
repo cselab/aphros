@@ -140,18 +140,17 @@ void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
     std::string df = par.String["dumpformat"];
     if (df == "plain") {
       size_t k = 0; // offset in buffer
-      auto& vcm = m.GetComm(); 
-      auto& vd = m.GetDump(); 
       // Skip comm 
-      for (size_t i = 0; i < vcm.size(); ++i) {
-        k += vcm[i]->GetSize();
+      for (auto& o : m.GetComm()) {
+        k += o->GetSize();
       }
-      for (auto& o : m.GetDump()) {
+      // Write dump
+      for (auto& on : m.GetDump()) {
         auto suff = "_" + std::to_string(frame_);
-        std::string op = o.second + suff + ".dat";
-        Dump(GetGlobalField(k), GetGlobalBlock(), op);
-        k += o.first->GetSize();
-        if (o.first->GetSize() != 1) {
+        std::string fn = on.second + suff + ".dat";
+        Dump(GetGlobalField(k), GetGlobalBlock(), fn);
+        k += on.first->GetSize();
+        if (on.first->GetSize() != 1) {
           throw std::runtime_error("DumpWrite(): Support only size 1");
         }
       }
@@ -279,13 +278,13 @@ bool DistrMesh<KF>::Pending(const std::vector<MIdx>& bb) {
 
 template <class KF>
 auto DistrMesh<KF>::GetGlobalBlock() const -> typename M::BlockCells {
-  assert(false && "Not implemented");
+  throw std::runtime_error("Not implemented");
   return typename M::BlockCells();
 }
 
 template <class KF>
 auto DistrMesh<KF>::GetGlobalField(size_t i) const -> FieldCell<Scal> {
-  assert(false && "Not implemented");
+  throw std::runtime_error("Not implemented");
   return FieldCell<Scal>();
 }
 
