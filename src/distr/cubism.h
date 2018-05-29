@@ -18,6 +18,7 @@
 #include "Cubism/HDF5Dumper_MPI.h"
 
 // Hide implementation and avoid collision with GBlock
+// TODO: rename cubism_impl::GBlock
 namespace cubism_impl {
 
 // Static parameters for Cubism
@@ -707,7 +708,9 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
   auto bb = GetBlocks();
   FieldCell<Scal> fc; // tmp
   std::vector<Scal> v(bs_.prod()); // tmp
+  MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
   BC bc(bs_); // cells
+  BC gbb(p_ * b_);  // all blocks
   if (isroot_) {
     FieldCell<Scal> gfc(gbc); // result
     // Copy from blocks on root
@@ -729,19 +732,48 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
         gfc[gbc.GetIdx(wb + w)] = fc[mbc.GetIdx(wb + w)];
       }
     }
-    // all blocks
-    BC gbb(p_ * b_);
     // recv from other ranks
     for (auto b : gbb) {
-      if (s_.mb.count(b)) {
-        std::cerr << "r" << b << std::endl;
-      } else {
-        std::cerr << "r" << b << std::endl;
+      if (!s_.mb.count(b)) { // not local block
+        MPI_Status st;
+        MPI_Recv(v.data(), v.size(), mt, MPI_ANY_SOURCE, 
+                 MPI_ANY_TAG, comm_, &st);
+
+        size_t i = 0;
+        MIdx wb = gbb.GetMIdx(IdxCell(st.MPI_TAG)) * bs_;
+        for (auto w : bc) {
+          gfc[gbc.GetIdx(wb + w)] = v[i++];
+        }
       }
     }
-    
+
+    MPI_Barrier(comm_);
     return gfc;
   } else {
+    // send to root
+    for (auto b : bb) {
+      // block mesh
+      auto& m = mk.at(b)->GetMesh();
+      // block cells
+      auto& mbc = m.GetBlockCells();
+      // resize field for block mesh
+      fc.Reinit(m);
+      // load from grid to lab
+      s_.l->load(s_.mb[b], stage_);
+      // read from lab to fc
+      ReadBuffer(fc, *s_.l, e, m);
+      // get corner of inner cells block
+      MIdx wb = m.GetInBlockCells().GetBegin();
+      // copy from inner cells to v
+      size_t i = 0;
+      // copy from inner cells to global field
+      for (auto w : bc) {
+        v[i++] = fc[mbc.GetIdx(wb + w)];
+      }
+      // XXX: assume same order of Recv on root
+      MPI_Send(v.data(), v.size(), mt, 0, gbb.GetIdx(b).GetRaw(), comm_);
+    }
+    MPI_Barrier(comm_);
     return FieldCell<Scal>();
   }
 }

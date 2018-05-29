@@ -12,29 +12,33 @@ import re
 # p: path
 # Format:
 # <Nx> <Ny> <Nz>
-# <u[0,0,0]> <u[1,0,0]> ...
+# <u[0,0,0]> <u[0,0,1]> ...
 # Return:
-# array of shape (Nx, Ny, Nz)
+# array of shape (Nz, Ny, Nx)
 # None if file not found
 def Read(p):
     if not os.path.isfile(p):
         return None
     with open(p) as f:
         ll = f.readlines()
-        # size
+        # shape x,y,z
         s = np.array(ll[0].split(), dtype=int)
-        # data
+        # shape z,y,x
+        ss = tuple(reversed(s))
+        # data flat
         u = np.array(ll[1].split(), dtype=float)
-        return u.reshape(s)
+        # data z,y,x
+        u = u.reshape(ss)
+        return u
 
-# u: numpy array (2d or 3d with shape[2]==1)
+# u: numpy array (2d or 3d slice)
 def Get2d(u):
-    if len(u.shape) == 2:
+    s = u.shape
+    if len(s) == 2:
         return u
     else:
-        s = u.shape
-        assert len(s) == 3 and s[2] == 1
-        return u.reshape((s[0], s[1]))
+        assert len(s) == 3
+        return u[0,:,:].reshape((s[1], s[2]))
 
 def PlotInit():
     plt.close()
@@ -135,8 +139,7 @@ pp = sorted(glob.glob(pre + "*.dat"))
 #pp = pp[1:2]
 for p in pp:
     suf = re.findall(pre + "(.*)", p)[0]
-    u = Read(p)
-    u = Get2d(u)
+    u = Get2d(Read(p))
     [sx, sy] = u.shape
     hx = 1. / sx
     hy = 1. / sy
@@ -147,9 +150,9 @@ for p in pp:
     x1 = (0.5 + np.arange(sx)) * hx
     y1 = (0.5 + np.arange(sy)) * hy
     x, y = np.meshgrid(x1, y1)
-    a = Read('a' + suf) # alpha
-    nx = Read('nx' + suf) # normal
-    ny = Read('ny' + suf)
+    a = Get2d(Read('a' + suf)) # alpha
+    nx = Get2d(Read('nx' + suf)) # normal
+    ny = Get2d(Read('ny' + suf))
     k = Get2d(Read('k' + suf))
 
     po = os.path.splitext(p)[0] + ".pdf"
