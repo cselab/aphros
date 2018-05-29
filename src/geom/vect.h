@@ -245,7 +245,7 @@ class GVect {
   }
   class LexLess {
    public:
-    bool operator()(GVect a, GVect b) {
+    bool operator()(GVect a, GVect b) const {
       return a.lexless(b);
     }
   };

@@ -4,6 +4,7 @@
 #include <limits>
 #include <map>
 #include <stdexcept>
+#include <mpi.h>
 
 #include "distr.h"
 #include "icubism.h"
@@ -144,8 +145,8 @@ class Cubism : public DistrMesh<KF> {
   using Vect = typename M::Vect;
 
   Cubism(MPI_Comm comm, KF& kf, Vars& par);
-  //typename M::BlockCells GetGlobalBlock() const override;
-  //FieldCell<Scal> GetGlobalField(size_t i) const override; 
+  typename M::BlockCells GetGlobalBlock() const override;
+  FieldCell<Scal> GetGlobalField(size_t i) override; 
 
  private:
   using Lab = GLab<Par>;
@@ -691,6 +692,57 @@ void Cubism<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
     } else {
       P::DumpWrite(bb);
     }
+  }
+}
+
+template <class Par, class KF>
+auto Cubism<Par, KF>::GetGlobalBlock() const -> typename M::BlockCells {
+  return typename M::BlockCells(p_ * b_ * bs_);
+}
+
+template <class Par, class KF>
+auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
+  using BC = typename M::BlockCells;
+  auto gbc = GetGlobalBlock();
+  auto bb = GetBlocks();
+  FieldCell<Scal> fc; // tmp
+  std::vector<Scal> v(bs_.prod()); // tmp
+  BC bc(bs_); // cells
+  if (isroot_) {
+    FieldCell<Scal> gfc(gbc); // result
+    // Copy from blocks on root
+    for (auto& b : bb) {
+      // block mesh
+      auto& m = mk.at(b)->GetMesh();
+      // block cells
+      auto& mbc = m.GetBlockCells();
+      // resize field for block mesh
+      fc.Reinit(m);
+      // load from grid to lab
+      s_.l->load(s_.mb[b], stage_);
+      // read from lab to fc
+      ReadBuffer(fc, *s_.l, e, m);
+      // get corner of inner cells block
+      MIdx wb = m.GetInBlockCells().GetBegin();
+      // copy from inner cells to global field
+      for (auto w : bc) {
+        gfc[gbc.GetIdx(wb + w)] = fc[mbc.GetIdx(wb + w)];
+      }
+    }
+    // all blocks
+    BC gbb(p_ * b_);
+    // recv from other ranks
+    for (auto b : gbb) {
+      if (s_.mb.count(b)) {
+        std::cerr << "r" << b << std::endl;
+      } else {
+        std::cerr << "r" << b << std::endl;
+      }
+    }
+    
+    return gfc;
+  } else {
+    return FieldCell<Scal>();
   }
 }
 
