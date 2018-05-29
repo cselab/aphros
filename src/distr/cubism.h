@@ -152,6 +152,7 @@ class Cubism : public DistrMesh<KF> {
   using P = DistrMesh<KF>; // parent
   using MIdx = typename M::MIdx;
   using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
 
   using P::mk;
   using P::kf_;
@@ -207,32 +208,84 @@ class Cubism : public DistrMesh<KF> {
   static std::vector<MyBlockInfo> GetBlocks(
       const std::vector<BlockInfo>&, MIdx bs, size_t hl);
 
-  void ReadBuffer(M& m, Lab& l) {
-    using MIdx = typename M::MIdx;
-
-    // Check buffer has enough space for all fields
-    assert(m.GetComm().size() <= Elem::es && "Too many fields for Comm()");
-
-    int e = 0; // buffer field idx
-
+  // Reads from buffer to scalar field [a]
+  // fc: field
+  // l: lab
+  // e: offset in buffer, 0 <= e < Elem::es
+  // Returns:
+  // number of scalar fields read
+  size_t ReadBuffer(FieldCell<Scal>& fc, Lab& l, size_t e,  M& m) {
+    if (e >= Elem::es) {
+      throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
+    }
     auto& bc = m.GetBlockCells();
-    for (auto u : m.GetComm()) {
-      if (auto ud = dynamic_cast<typename M::CoFcs*>(u.get())) {
-        for (auto c : m.AllCells()) {
-          auto w = bc.GetMIdx(c) - MIdx(hl_) - bc.GetBegin();
-          (*ud->f)[c] = l(w[0], w[1], w[2]).a[e];
-        }
-      }
-      ++e;
+    for (auto c : m.AllCells()) {
+      auto w = bc.GetMIdx(c) - MIdx(hl_) - bc.GetBegin();
+      fc[c] = l(w[0], w[1], w[2]).a[e];
+    }
+    return 1;
+  }
+  // Reads from buffer to component of vector field [a]
+  // fc: field
+  // d: component (0,1,2)
+  // l: lab
+  // e: offset in buffer, 0 <= e < Elem::es
+  // Returns:
+  // number of scalar fields read
+  size_t ReadBuffer(FieldCell<Vect>& fc, size_t d, Lab& l, size_t e,  M& m) {
+    if (e >= Elem::es) {
+      throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
+    }
+    auto& bc = m.GetBlockCells();
+    for (auto c : m.AllCells()) {
+      auto w = bc.GetMIdx(c) - MIdx(hl_) - bc.GetBegin();
+      fc[c][d] = l(w[0], w[1], w[2]).a[e];
+    }
+    return 1;
+  }
+  // Reads from buffer to all components of vector field [a]
+  // fc: field
+  // l: lab
+  // e: offset in buffer, 0 <= e < Elem::es
+  // Returns:
+  // number of scalar fields read
+  size_t ReadBuffer(FieldCell<Vect>& fc, Lab& l, size_t e,  M& m) {
+    for (size_t d = 0; d < Vect::dim; ++d) {
+      e += ReadBuffer(fc, d, l, e, m);
+    }
+    return Vect::dim;
+  }
+  // Reads from buffer to Co
+  // o: instance of Co
+  // l: lab
+  // e: offset in buffer, 0 <= e < Elem::es
+  // Returns:
+  // number of scalar fields written
+  size_t ReadBuffer(typename M::Co* o, Lab& l, size_t e, M& m) {
+    if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
+      return ReadBuffer(*od->f, l, e, m);
+    } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
+      if (od->d == -1) {
+        return ReadBuffer(*od->f, l, e, m);
+      } 
+      return ReadBuffer(*od->f, od->d, l, e, m);
+    } 
+    throw std::runtime_error("ReadBuffer: Unknown Co instance");
+    return 0;
+  }
+  void ReadBuffer(M& m, Lab& l) {
+    size_t e = 0;
+    for (auto& o : m.GetComm()) {
+      e += ReadBuffer(o.get(), l, e, m);
     }
   }
   // Writes scalar field to buffer [i].
   // fc: scalar field
   // b: block 
-  // e: starting in buffer, 0 <= e < Elem::es
-  // Return:
+  // e: offset in buffer, 0 <= e < Elem::es
+  // Returns:
   // number of scalar fields written
-  size_t WriteBuffer(const FieldCell<Scal>& fc, Block& b, size_t e) {
+  size_t WriteBuffer(const FieldCell<Scal>& fc, Block& b, size_t e, M& m) {
     if (e >= Elem::es) {
       throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
     }
@@ -247,11 +300,11 @@ class Cubism : public DistrMesh<KF> {
   // fc: vector field
   // d: component (0,1,2)
   // b: block 
-  // e: starting offset in buffer, 0 <= e < Elem::es
-  // Return:
+  // e: offset in buffer, 0 <= e < Elem::es
+  // Returns:
   // number of scalar fields written
   size_t WriteBuffer(const FieldCell<Vect>& fc, 
-                     size_t d, Block& b, size_t e) {
+                     size_t d, Block& b, size_t e, M& m) {
     if (e >= Elem::es) {
       throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
     }
@@ -265,38 +318,40 @@ class Cubism : public DistrMesh<KF> {
   // Writes all components of vector field to buffer [i].
   // fc: vector field
   // b: block 
-  // e: starting offset in buffer, 0 <= e < Elem::es
-  // Return:
+  // e: offset in buffer, 0 <= e < Elem::es
+  // Returns:
   // number of scalar fields written
-  size_t WriteBuffer(const FieldCell<Vect>& fc, Block& b, size_t e) {
+  size_t WriteBuffer(const FieldCell<Vect>& fc, Block& b, size_t e, M& m) {
     for (size_t d = 0; d < Vect::dim; ++d) {
-      e += WriteBuffer(fc, d, b, e);
+      e += WriteBuffer(fc, d, b, e, m);
     }
     return Vect::dim;
   }
   // Writes Co to buffer.
   // o: instance of Co
   // b: block 
-  // e: starting offset in buffer, 0 <= e < Elem::es
-  // Return:
+  // e: offset in buffer, 0 <= e < Elem::es
+  // Returns:
   // number of scalar fields written
-  size_t WriteBuffer(typename M::Co* o, Block& b, size_t e) {
-    if (auto od = dynamic_cast<typename M::CoFcs*>(o.get())) {
-      return WriteBuffer(*od->f, b, e);
-    } else if (auto od = dynamic_cast<typename M::CoFcv*>(o.get())) {
+  size_t WriteBuffer(typename M::Co* o, Block& b, size_t e, M& m) {
+    if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
+      return WriteBuffer(*od->f, b, e, m);
+    } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
       if (od->d == -1) {
-        return WriteBuffer(*od->f, b, e);
+        return WriteBuffer(*od->f, b, e, m);
       } 
-      return WriteBuffer(*od->f, od->d, b, e);
+      return WriteBuffer(*od->f, od->d, b, e, m);
     }
+    throw std::runtime_error("WriteBuffer: Unknown Co instance");
+    return 0;
   }
   void WriteBuffer(M& m, Block& b) {
-    int e = 0; // buffer field idx
+    size_t e = 0; // buffer field idx
     for (auto& o : m.GetComm()) {
-      e += WriteBuffer(o.get(), b, e);
+      e += WriteBuffer(o.get(), b, e, m);
     }
     for (auto& on : m.GetDump()) {
-      e += WriteBuffer(on.first.get(), b, e);
+      e += WriteBuffer(on.first.get(), b, e, m);
     }
   }
 
