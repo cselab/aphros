@@ -4,6 +4,7 @@
 #include <limits>
 #include <map>
 #include <mpi.h>
+#include <stdexcept>
 
 #include "dump/output.h"
 #include "dump/output_paraview.h"
@@ -238,19 +239,29 @@ void Local<KF>::DumpWrite(const std::vector<MIdx>& bb) {
       if (!session_) {
         // TODO: check all blocks are same as first
         output::Content c;
-        size_t k = m.GetComm().size() - m.GetDump().size();
-        for (auto d : m.GetDump()) {
+        size_t k = 0; // offset in buffer
+        auto& vcm = m.GetComm(); // contains comm and dump added by DumpComm
+        auto& vd = m.GetDump(); // contains dump
+        // Skip comm 
+        for (size_t i = 0; i < vcm.size() - vd.size(); ++i) {
+          k += vcm[i]->GetSize();
+        }
+        // Write dump
+        for (auto& o : m.GetDump()) {
           c.emplace_back(
               new output::EntryFunction<Scal, IdxCell, M>(
-                  d.second, gm, [this,k](IdxCell i) { return buf_[k][i]; }));
-          ++k;
+                  o.second, gm, [this,k](IdxCell i) { return buf_[k][i]; }));
+          k += o.first->GetSize();
+          if (o.first->GetSize() != 1) {
+            throw std::runtime_error("DumpWrite(): Support only size 1");
+          }
         }
 
         session_.reset(new output::SessionParaviewStructured<M>(
               c, "title", "p" /*filename*/, gm));
       }
 
-      // TODO: Check no change in dump list between time steps
+      // TODO: Check no change in comm list between time steps
       //       (otherwise session_ needs reinitialization)
 
       std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
