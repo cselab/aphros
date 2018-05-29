@@ -138,7 +138,14 @@ using GGrid = GridMPI<Grid<B, std::allocator>>;
 template <class Par, class KF>
 class Cubism : public DistrMesh<KF> {
  public:
+  using K = typename KF::K;
+  using M = typename KF::M;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+
   Cubism(MPI_Comm comm, KF& kf, Vars& par);
+  //typename M::BlockCells GetGlobalBlock() const override;
+  //FieldCell<Scal> GetGlobalField(size_t i) const override; 
 
  private:
   using Lab = GLab<Par>;
@@ -147,12 +154,8 @@ class Cubism : public DistrMesh<KF> {
   using Elem = typename Block::Elem;
   using Synch = typename Grid::Synch;
 
-  using K = typename KF::K;
-  using M = typename KF::M;
   using P = DistrMesh<KF>; // parent
   using MIdx = typename M::MIdx;
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
 
   using P::mk;
   using P::kf_;
@@ -216,7 +219,7 @@ class Cubism : public DistrMesh<KF> {
   // number of scalar fields read
   size_t ReadBuffer(FieldCell<Scal>& fc, Lab& l, size_t e,  M& m) {
     if (e >= Elem::es) {
-      throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
+      throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
     }
     auto& bc = m.GetBlockCells();
     for (auto c : m.AllCells()) {
@@ -234,7 +237,7 @@ class Cubism : public DistrMesh<KF> {
   // number of scalar fields read
   size_t ReadBuffer(FieldCell<Vect>& fc, size_t d, Lab& l, size_t e,  M& m) {
     if (e >= Elem::es) {
-      throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
+      throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
     }
     auto& bc = m.GetBlockCells();
     for (auto c : m.AllCells()) {
@@ -346,7 +349,7 @@ class Cubism : public DistrMesh<KF> {
     return 0;
   }
   void WriteBuffer(M& m, Block& b) {
-    size_t e = 0; // buffer field idx
+    size_t e = 0; 
     for (auto& o : m.GetComm()) {
       e += WriteBuffer(o.get(), b, e, m);
     }
