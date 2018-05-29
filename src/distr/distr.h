@@ -73,7 +73,6 @@ class DistrMesh : public Distr {
   // Reduce TODO: extend doc
   virtual void Reduce(const std::vector<MIdx>& bb) = 0;
   virtual void Solve(const std::vector<MIdx>& bb);
-  virtual void DumpComm(const std::vector<MIdx>& bb);
   // Writes dumps assuming last m.GetDump().size() fields
   // from m.GetComm().size() are for dump.
   virtual void DumpWrite(const std::vector<MIdx>& bb);
@@ -132,17 +131,6 @@ void DistrMesh<KF>::ClearDump(const std::vector<MIdx>& bb) {
 }
 
 template <class KF>
-void DistrMesh<KF>::DumpComm(const std::vector<MIdx>& bb) {
-  for (auto& b : bb) {
-    auto& m = mk.at(b)->GetMesh();
-
-    for (auto d : m.GetDump()) {
-      m.Comm(d.first);
-    }
-  }
-}
-
-template <class KF>
 void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
   if (!isroot_) {
     return;
@@ -152,10 +140,10 @@ void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
     std::string df = par.String["dumpformat"];
     if (df == "plain") {
       size_t k = 0; // offset in buffer
-      auto& vcm = m.GetComm(); // comm and dump added by DumpComm
-      auto& vd = m.GetDump(); // dump
+      auto& vcm = m.GetComm(); 
+      auto& vd = m.GetDump(); 
       // Skip comm 
-      for (size_t i = 0; i < vcm.size() - vd.size(); ++i) {
+      for (size_t i = 0; i < vcm.size(); ++i) {
         k += vcm[i]->GetSize();
       }
       for (auto& o : m.GetDump()) {
@@ -325,8 +313,7 @@ void DistrMesh<KF>::Run() {
 
     Run(bb);
 
-    DumpComm(bb);
-
+    // Write comm and dump
     WriteBuffer(bb);
 
     stage_ += 1;

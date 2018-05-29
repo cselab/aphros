@@ -429,14 +429,16 @@ class MeshStructured {
   }
   // f: scalar field
   // n: name
-  void Dump(FieldCell<Scal>* f, std::string n) {
-    vd_.push_back(std::make_pair(std::make_shared<CoFcs>(f), n));
+  void Dump(const FieldCell<Scal>* f, std::string n) {
+    auto ff = const_cast<FieldCell<Scal>*>(f);
+    vd_.push_back(std::make_pair(std::make_shared<CoFcs>(ff), n));
   }
   // f: vector field
   // d: component (0,1,2)
   // n: name
-  void Dump(FieldCell<Vect>* f, int d, std::string n) {
-    vd_.push_back(std::make_pair(std::make_shared<CoFcv>(f, d), n));
+  void Dump(const FieldCell<Vect>* f, int d, std::string n) {
+    auto ff = const_cast<FieldCell<Vect>*>(f);
+    vd_.push_back(std::make_pair(std::make_shared<CoFcv>(ff, d), n));
   }
   void Dump(const std::shared_ptr<Co>& o, std::string name) {
     vd_.push_back(std::make_pair(o, name));
