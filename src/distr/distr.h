@@ -40,7 +40,7 @@ class DistrMesh : public Distr {
   virtual ~DistrMesh() {}
   virtual typename M::BlockCells GetGlobalBlock() const;
   // Returns data field i from buffer defined on global mesh
-  virtual FieldCell<Scal> GetGlobalField(size_t i) const; 
+  virtual FieldCell<Scal> GetGlobalField(size_t i); 
 
  protected:
   // TODO: remove comm, needed only by Hypre
@@ -132,9 +132,6 @@ void DistrMesh<KF>::ClearDump(const std::vector<MIdx>& bb) {
 
 template <class KF>
 void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
-  if (!isroot_) {
-    return;
-  }
   auto& m = mk.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
     std::string df = par.String["dumpformat"];
@@ -148,13 +145,19 @@ void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
       for (auto& on : m.GetDump()) {
         auto suff = "_" + std::to_string(frame_);
         std::string fn = on.second + suff + ".dat";
-        Dump(GetGlobalField(k), GetGlobalBlock(), fn);
+        auto bc = GetGlobalBlock();
+        auto fc = GetGlobalField(k);
+        if (isroot_) {
+          Dump(fc, bc, fn);
+        }
         k += on.first->GetSize();
         if (on.first->GetSize() != 1) {
           throw std::runtime_error("DumpWrite(): Support only size 1");
         }
       }
-      std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
+      if (isroot_) {
+        std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
+      }
       ++frame_;
     } else {
       throw std::runtime_error("Unknown dumpformat=" + df);
@@ -283,7 +286,7 @@ auto DistrMesh<KF>::GetGlobalBlock() const -> typename M::BlockCells {
 }
 
 template <class KF>
-auto DistrMesh<KF>::GetGlobalField(size_t i) const -> FieldCell<Scal> {
+auto DistrMesh<KF>::GetGlobalField(size_t i) -> FieldCell<Scal> {
   throw std::runtime_error("Not implemented");
   return FieldCell<Scal>();
 }

@@ -22,7 +22,7 @@ class Local : public DistrMesh<KF> {
   Local(MPI_Comm comm, KF& kf, Vars& par);
   typename M::BlockCells GetGlobalBlock() const override;
   // Returns data field i from buffer defined on global mesh
-  FieldCell<Scal> GetGlobalField(size_t i) const override; 
+  FieldCell<Scal> GetGlobalField(size_t i) override; 
 
  private:
   using MIdx = typename M::MIdx;
@@ -461,7 +461,7 @@ auto Local<KF>::GetGlobalBlock() const -> typename M::BlockCells {
 }
 
 template <class KF>
-auto Local<KF>::GetGlobalField(size_t i) const -> FieldCell<Scal> {
+auto Local<KF>::GetGlobalField(size_t i) -> FieldCell<Scal> {
   return buf_[i];
 }
 
