@@ -140,7 +140,7 @@ void Advection<M>::Dump(Sem& sem) {
         auto& a = const_cast<FieldCell<Scal>&>(as->GetAlpha());
         m.Dump(&a, "a");
         auto &n = as->GetNormal();
-        fcnx_ = GetComponent(n, 0);
+        //fcnx_ = GetComponent(n, 0);
         fcny_ = GetComponent(n, 1);
         fcnz_ = GetComponent(n, 2);
         m.Dump(&fcnx_, "nx");
