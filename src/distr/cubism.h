@@ -705,6 +705,7 @@ template <class Par, class KF>
 auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
   using BC = typename M::BlockCells;
   auto gbc = GetGlobalBlock();
+  // collective, does actual communication
   auto bb = GetBlocks();
   FieldCell<Scal> fc; // tmp
   std::vector<Scal> v(bs_.prod()); // tmp

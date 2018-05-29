@@ -70,6 +70,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${HYPRE_DIR}/lib")
 # cubism specific
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_ALIGNBYTES_=16") 
 
-target_link_libraries(${EXE} ${LIBRARIES})
+add_subdirectory(linear)
+target_link_libraries(${EXE} libhypre)
 
 install(TARGETS ${EXE} RUNTIME DESTINATION "${CHPREFIX}/bin")
