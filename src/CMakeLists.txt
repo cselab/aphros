@@ -28,7 +28,6 @@ include_directories(${S})
 add_executable(${EXE} 
     ${S}/distr/main.cpp
     ${S}/util/suspender.cpp 
-    ${S}/linear/hypre.cpp 
     ${S}/dump/dumper.cpp
     ${S}/parse/vars.cpp
     ${S}/distr/local.cpp
@@ -61,16 +60,11 @@ endif()
 # install prefix
 set(CHPREFIX $ENV{CHPREFIX})
 
-# hypre
-set(HYPRE_DIR ${CHPREFIX})
-include_directories(${HYPRE_DIR}/include)
-target_link_libraries(${EXE} -lHYPRE -lm)
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${HYPRE_DIR}/lib")
-
 # cubism specific
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_ALIGNBYTES_=16") 
 
 add_subdirectory(linear)
-target_link_libraries(${EXE} libhypre)
+target_link_libraries(${EXE} hypre)
+
 
 install(TARGETS ${EXE} RUNTIME DESTINATION "${CHPREFIX}/bin")
