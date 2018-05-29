@@ -17,6 +17,7 @@ class Local : public DistrMesh<KF> {
   using K = typename KF::K;
   using M = typename KF::M;
   using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
 
   Local(MPI_Comm comm, KF& kf, Vars& par);
   typename M::BlockCells GetGlobalBlock() const override;
@@ -25,7 +26,6 @@ class Local : public DistrMesh<KF> {
 
  private:
   using MIdx = typename M::MIdx;
-  using Vect = typename M::Vect;
   using P = DistrMesh<KF>;
 
   using P::mk;
@@ -47,9 +47,21 @@ class Local : public DistrMesh<KF> {
   std::unique_ptr<output::Session> session_;
   std::vector<MyBlockInfo> bb_;
 
-  void ReadBuffer(M& m);
+  size_t WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m);
+  size_t WriteBuffer(const FieldCell<Vect>& f, size_t d, size_t e, M& m);
+  size_t WriteBuffer(const FieldCell<Vect>& fc, size_t e, M& m);
+  size_t WriteBuffer(typename M::Co* o, size_t e, M& m);
   void WriteBuffer(M& m);
+
+  size_t ReadBuffer(FieldCell<Scal>& fc, size_t e,  M& m);
+  size_t ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e,  M& m);
+  size_t ReadBuffer(FieldCell<Vect>& fc, size_t e,  M& m);
+  size_t ReadBuffer(typename M::Co* o, size_t e, M& m);
+  void ReadBuffer(M& m);
+
+
   static M CreateMesh(MIdx bs, MIdx b, MIdx p, int es, Scal ext_);
+
   std::vector<MIdx> GetBlocks() override;
   void ReadBuffer(const std::vector<MIdx>& bb) override;
   void WriteBuffer(const std::vector<MIdx>& bb) override;
@@ -272,49 +284,174 @@ void Local<KF>::DumpWrite(const std::vector<MIdx>& bb) {
 }
 
 
+// Reads from buffer to scalar field [a]
+// fc: field
+// l: lab
+// e: offset in buffer
+// Returns:
+// number of scalar fields read
 template <class KF>
-void Local<KF>::ReadBuffer(M& m) {
-  int e = 0; // buffer field idx
-
+size_t Local<KF>::ReadBuffer(FieldCell<Scal>& fc, size_t e,  M& m) {
+  if (e >= buf_.size()) {
+    throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
+  }
   auto& bc = m.GetBlockCells();
   auto& gbc = gm.GetBlockCells();
   MIdx gs = gbc.GetDimensions();
-  for (auto& u : m.GetComm()) {
-    if (auto ud = dynamic_cast<typename M::CoFcs*>(u.get())) {
-      for (auto c : m.AllCells()) {
-        auto w = bc.GetMIdx(c);
-        // periodic
-        for (int d = 0; d < 3; ++d) {
-          w[d] = (w[d] + gs[d]) % gs[d];
-        }
-        auto gi = gbc.GetIdx(w);
-        (*ud->f)[c] = buf_[e][gi];
-      }
+  for (auto c : m.AllCells()) {
+    auto w = bc.GetMIdx(c);
+    // periodic
+    for (int d = 0; d < 3; ++d) {
+      w[d] = (w[d] + gs[d]) % gs[d];
     }
-    ++e;
+    auto gi = gbc.GetIdx(w);
+    fc[c] = buf_[e][gi];
+  }
+  return 1;
+}
+
+// Reads from buffer to component of vector field [a]
+// fc: field
+// d: component (0,1,2)
+// e: offset in buffer
+// Returns:
+// number of scalar fields read
+template <class KF>
+size_t Local<KF>::ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e,  M& m) {
+  if (e >= buf_.size()) {
+    throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
+  }
+  auto& bc = m.GetBlockCells();
+  auto& gbc = gm.GetBlockCells();
+  MIdx gs = gbc.GetDimensions();
+  for (auto c : m.AllCells()) {
+    auto w = bc.GetMIdx(c);
+    // periodic
+    for (int d = 0; d < 3; ++d) {
+      w[d] = (w[d] + gs[d]) % gs[d];
+    }
+    auto gi = gbc.GetIdx(w);
+    fc[c][d] = buf_[e][gi];
+  }
+  return 1;
+}
+
+// Reads from buffer to all components of vector field [a]
+// fc: field
+// e: offset in buffer
+// Returns:
+// number of scalar fields read
+template <class KF>
+size_t Local<KF>::ReadBuffer(FieldCell<Vect>& fc, size_t e,  M& m) {
+  for (size_t d = 0; d < Vect::dim; ++d) {
+    e += ReadBuffer(fc, d, e, m);
+  }
+  return Vect::dim;
+}
+// Reads from buffer to Co
+// o: instance of Co
+// e: offset in buffer
+// Returns:
+// number of scalar fields written
+template <class KF>
+size_t Local<KF>::ReadBuffer(typename M::Co* o, size_t e, M& m) {
+  if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
+    return ReadBuffer(*od->f, e, m);
+  } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
+    if (od->d == -1) {
+      return ReadBuffer(*od->f, e, m);
+    } 
+    return ReadBuffer(*od->f, od->d, e, m);
+  } 
+  throw std::runtime_error("ReadBuffer: Unknown Co instance");
+  return 0;
+}
+template <class KF>
+void Local<KF>::ReadBuffer(M& m) {
+  size_t e = 0;
+  for (auto& o : m.GetComm()) {
+    e += ReadBuffer(o.get(), e, m);
   }
 }
 
+// Writes scalar field to buffer [i].
+// fc: scalar field
+// e: offset in buffer
+// Returns:
+// number of scalar fields written
 template <class KF>
-void Local<KF>::WriteBuffer(M& m) {
-  using MIdx = typename M::MIdx;
-
-  // Check buffer has enough space for all fields
-  assert(m.GetComm().size() <= buf_.size() && "Too many fields for Comm()");
-
-  int e = 0; // buffer field idx
-
+size_t Local<KF>::WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m) {
+  if (e >= buf_.size()) {
+    throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
+  }
   auto& bc = m.GetBlockCells();
   auto& gbc = gm.GetBlockCells();
-  for (auto u : m.GetComm()) {
-    if (auto ud = dynamic_cast<typename M::CoFcs*>(u.get())) {
-      for (auto c : m.Cells()) {
-        auto w = bc.GetMIdx(c); 
-        auto gc = gbc.GetIdx(w); 
-        buf_[e][gc] = (*ud->f)[c];
-      }
-    }
-    ++e;
+  for (auto c : m.Cells()) {
+    auto w = bc.GetMIdx(c); 
+    auto gc = gbc.GetIdx(w); 
+    buf_[e][gc] = fc[c];
+  }
+  return 1;
+}
+// Writes component of vector field to buffer [i].
+// fc: vector field
+// d: component (0,1,2)
+// e: offset in buffer
+// Returns:
+// number of scalar fields written
+template <class KF>
+size_t Local<KF>::WriteBuffer(const FieldCell<Vect>& fc, 
+                              size_t d, size_t e, M& m) {
+  if (e >= buf_.size()) {
+    throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
+  }
+  auto& bc = m.GetBlockCells();
+  auto& gbc = gm.GetBlockCells();
+  for (auto c : m.Cells()) {
+    auto w = bc.GetMIdx(c); 
+    auto gc = gbc.GetIdx(w); 
+    buf_[e][gc] = fc[c][d];
+  }
+  return 1;
+}
+// Writes all components of vector field to buffer [i].
+// fc: vector field
+// e: offset in buffer
+// Returns:
+// number of scalar fields written
+template <class KF>
+size_t Local<KF>::WriteBuffer(const FieldCell<Vect>& fc, size_t e, M& m) {
+  for (size_t d = 0; d < Vect::dim; ++d) {
+    e += WriteBuffer(fc, d, e, m);
+  }
+  return Vect::dim;
+}
+// Writes Co to buffer.
+// o: instance of Co
+// e: offset in buffer
+// Returns:
+// number of scalar fields written
+template <class KF>
+size_t Local<KF>::WriteBuffer(typename M::Co* o, size_t e, M& m) {
+  if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
+    return WriteBuffer(*od->f, e, m);
+  } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
+    if (od->d == -1) {
+      return WriteBuffer(*od->f, e, m);
+    } 
+    return WriteBuffer(*od->f, od->d, e, m);
+  }
+  throw std::runtime_error("WriteBuffer: Unknown Co instance");
+  return 0;
+}
+template <class KF>
+void Local<KF>::WriteBuffer(M& m) {
+  size_t e = 0;
+  for (auto& o : m.GetComm()) {
+    e += WriteBuffer(o.get(), e, m);
+  }
+  for (auto& on : m.GetDump()) {
+    e += WriteBuffer(on.first.get(), e, m);
   }
 }
 
