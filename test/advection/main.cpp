@@ -140,12 +140,9 @@ void Advection<M>::Dump(Sem& sem) {
         auto& a = const_cast<FieldCell<Scal>&>(as->GetAlpha());
         m.Dump(&a, "a");
         auto &n = as->GetNormal();
-        //fcnx_ = GetComponent(n, 0);
-        fcny_ = GetComponent(n, 1);
-        fcnz_ = GetComponent(n, 2);
-        m.Dump(&fcnx_, "nx");
-        m.Dump(&fcny_, "ny");
-        m.Dump(&fcnz_, "nz");
+        m.Dump(&n, 0, "nx");
+        m.Dump(&n, 1, "ny");
+        m.Dump(&n, 2, "nz");
       }
 
       if (IsRoot()) {

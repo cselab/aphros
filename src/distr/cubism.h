@@ -226,24 +226,77 @@ class Cubism : public DistrMesh<KF> {
       ++e;
     }
   }
-
-  void WriteBuffer(M& m, Block& o) {
-    using MIdx = typename M::MIdx;
-
-    // Check buffer has enough space for all fields
-    assert(m.GetComm().size() <= Elem::es && "Too many fields for Comm()");
-
-    int e = 0; // buffer field idx
-
+  // Writes scalar field to buffer [i].
+  // fc: scalar field
+  // b: block 
+  // e: starting in buffer, 0 <= e < Elem::es
+  // Return:
+  // number of scalar fields written
+  size_t WriteBuffer(const FieldCell<Scal>& fc, Block& b, size_t e) {
+    if (e >= Elem::es) {
+      throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
+    }
     auto& bc = m.GetBlockCells();
-    for (auto u : m.GetComm()) {
-      if (auto ud = dynamic_cast<typename M::CoFcs*>(u.get())) {
-        for (auto c : m.Cells()) {
-          auto w = m.GetBlockCells().GetMIdx(c) - MIdx(hl_) - bc.GetBegin();
-          o.data[w[2]][w[1]][w[0]].a[e] = (*ud->f)[c];
-        }
-      }
-      ++e;
+    for (auto c : m.Cells()) {
+      auto w = m.GetBlockCells().GetMIdx(c) - MIdx(hl_) - bc.GetBegin();
+      b.data[w[2]][w[1]][w[0]].a[e] = fc[c];
+    }
+    return 1;
+  }
+  // Writes component of vector field to buffer [i].
+  // fc: vector field
+  // d: component (0,1,2)
+  // b: block 
+  // e: starting offset in buffer, 0 <= e < Elem::es
+  // Return:
+  // number of scalar fields written
+  size_t WriteBuffer(const FieldCell<Vect>& fc, 
+                     size_t d, Block& b, size_t e) {
+    if (e >= Elem::es) {
+      throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
+    }
+    auto& bc = m.GetBlockCells();
+    for (auto c : m.Cells()) {
+      auto w = m.GetBlockCells().GetMIdx(c) - MIdx(hl_) - bc.GetBegin();
+      b.data[w[2]][w[1]][w[0]].a[e] = fc[c][d];
+    }
+    return 1;
+  }
+  // Writes all components of vector field to buffer [i].
+  // fc: vector field
+  // b: block 
+  // e: starting offset in buffer, 0 <= e < Elem::es
+  // Return:
+  // number of scalar fields written
+  size_t WriteBuffer(const FieldCell<Vect>& fc, Block& b, size_t e) {
+    for (size_t d = 0; d < Vect::dim; ++d) {
+      e += WriteBuffer(fc, d, b, e);
+    }
+    return Vect::dim;
+  }
+  // Writes Co to buffer.
+  // o: instance of Co
+  // b: block 
+  // e: starting offset in buffer, 0 <= e < Elem::es
+  // Return:
+  // number of scalar fields written
+  size_t WriteBuffer(typename M::Co* o, Block& b, size_t e) {
+    if (auto od = dynamic_cast<typename M::CoFcs*>(o.get())) {
+      return WriteBuffer(*od->f, b, e);
+    } else if (auto od = dynamic_cast<typename M::CoFcv*>(o.get())) {
+      if (od->d == -1) {
+        return WriteBuffer(*od->f, b, e);
+      } 
+      return WriteBuffer(*od->f, od->d, b, e);
+    }
+  }
+  void WriteBuffer(M& m, Block& b) {
+    int e = 0; // buffer field idx
+    for (auto& o : m.GetComm()) {
+      e += WriteBuffer(o.get(), b, e);
+    }
+    for (auto& on : m.GetDump()) {
+      e += WriteBuffer(on.first.get(), b, e);
     }
   }
 
