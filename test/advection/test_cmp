@@ -2,7 +2,8 @@
 
 set -eu
 
-mpirun -n 1 ./t.advection "$1"
+n=${2:-4}
+mpirun --oversubscribe -n $n ./t.advection "$1"
 
 a=0
 for f in ref/*.dat ; do

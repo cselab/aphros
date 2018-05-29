@@ -240,33 +240,31 @@ void Local<KF>::DumpWrite(const std::vector<MIdx>& bb) {
         // TODO: check all blocks are same as first
         output::Content c;
         size_t k = 0; // offset in buffer
-        auto& vcm = m.GetComm(); // comm and dump added by DumpComm
-        auto& vd = m.GetDump(); // dump
         // Skip comm 
-        for (size_t i = 0; i < vcm.size() - vd.size(); ++i) {
-          k += vcm[i]->GetSize();
+        for (auto& o : m.GetComm()) {
+          k += o->GetSize();
         }
         // Write dump
-        for (auto& o : m.GetDump()) {
+        for (auto& on : m.GetDump()) {
           c.emplace_back(
               new output::EntryFunction<Scal, IdxCell, M>(
-                  o.second, gm, [this,k](IdxCell i) { return buf_[k][i]; }));
-          k += o.first->GetSize();
-          if (o.first->GetSize() != 1) {
+                  on.second, gm, [this,k](IdxCell i) { return buf_[k][i]; }));
+          k += on.first->GetSize();
+          if (on.first->GetSize() != 1) {
             throw std::runtime_error("DumpWrite(): Support only size 1");
           }
         }
 
-        session_.reset(new output::SessionParaviewStructured<M>(
-              c, "title", "p" /*filename*/, gm));
+        session_.reset(new output::
+            SessionParaviewStructured<M>(c, "title", "p", gm));
       }
 
       // TODO: Check no change in comm list between time steps
       //       (otherwise session_ needs reinitialization)
 
+      session_->Write(stage_ * 1., "title"); // TODO: t instead of stage_
       std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
       ++frame_;
-      session_->Write(stage_ * 1., "title"); // TODO: t instead of stage_
     } else {
       P::DumpWrite(bb);
     }
