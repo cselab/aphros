@@ -538,7 +538,7 @@ void Hydro<M>::Init() {
 template <class M>
 Hydro<M>::Hydro(Vars& var, const MyBlockInfo& bi, Par& par) 
   : KernelMeshPar<M,Par>(var, bi, par)
-  , dumper_(var)
+  , dumper_(var, "field")
 {}
 
 template <class M>
