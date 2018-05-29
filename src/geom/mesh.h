@@ -407,10 +407,10 @@ class MeshStructured {
   struct CoFcv : public Co {
     // f: vector field
     // i: component (0,1,2), or -1 for all
-    CoFcv(FieldCell<Vect>* f, int i) : f(f), i(i) {}
-    size_t GetSize() const { return i == -1 ? Vect::dim : 1; }
+    CoFcv(FieldCell<Vect>* f, int d) : f(f), d(d) {}
+    size_t GetSize() const { return d == -1 ? Vect::dim : 1; }
     FieldCell<Vect>* f;
-    int i;
+    int d;
   };
   void Comm(const std::shared_ptr<Co>& r) {
     vcm_.push_back(r);
@@ -419,21 +419,28 @@ class MeshStructured {
   void Comm(FieldCell<Scal>* f) {
     Comm(std::make_shared<CoFcs>(f));
   }
-  // Comm request for component i of f
-  void Comm(FieldCell<Vect>* f, int i) {
-    Comm(std::make_shared<CoFcv>(f, i));
+  // Comm request for component d of f
+  void Comm(FieldCell<Vect>* f, int d) {
+    Comm(std::make_shared<CoFcv>(f, d));
   }
   // Comm request for all components of f
   void Comm(FieldCell<Vect>* f) {
     Comm(f, -1);
   }
-  void Dump(FieldCell<Scal>* u, std::string name) {
-    vd_.push_back(std::make_pair(std::make_shared<CoFcs>(u), name));
+  // f: scalar field
+  // n: name
+  void Dump(FieldCell<Scal>* f, std::string n) {
+    vd_.push_back(std::make_pair(std::make_shared<CoFcs>(f), n));
   }
-  void Dump(const std::shared_ptr<Co>& r, std::string name) {
-    vd_.push_back(std::make_pair(r, name));
+  // f: vector field
+  // d: component (0,1,2)
+  // n: name
+  void Dump(FieldCell<Vect>* f, int d, std::string n) {
+    vd_.push_back(std::make_pair(std::make_shared<CoFcv>(f, d), n));
   }
-
+  void Dump(const std::shared_ptr<Co>& o, std::string name) {
+    vd_.push_back(std::make_pair(o, name));
+  }
 
   // Reduction operation.
   class Op { // reduce operation

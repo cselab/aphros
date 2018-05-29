@@ -76,7 +76,7 @@ class DistrMesh : public Distr {
   virtual void DumpComm(const std::vector<MIdx>& bb);
   // Writes dumps assuming last m.GetDump().size() fields
   // from m.GetComm().size() are for dump.
-  virtual void DumpWrite(const std::vector<MIdx>& bb) = 0;
+  virtual void DumpWrite(const std::vector<MIdx>& bb);
   virtual void ClearComm(const std::vector<MIdx>& bb);
   virtual void ClearDump(const std::vector<MIdx>& bb);
   // TODO: make Pending const
@@ -151,13 +151,21 @@ void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
   if (m.GetDump().size()) {
     std::string df = par.String["dumpformat"];
     if (df == "plain") {
-      // current comm field index (assume last are for dump)
-      size_t k = m.GetComm().size() - m.GetDump().size();
-      for (auto d : m.GetDump()) {
+      size_t k = 0; // offset in buffer
+      auto& vcm = m.GetComm(); // comm and dump added by DumpComm
+      auto& vd = m.GetDump(); // dump
+      // Skip comm 
+      for (size_t i = 0; i < vcm.size() - vd.size(); ++i) {
+        k += vcm[i]->GetSize();
+      }
+      for (auto& o : m.GetDump()) {
         auto suff = "_" + std::to_string(frame_);
-        std::string op = d.second + suff + ".dat";
+        std::string op = o.second + suff + ".dat";
         Dump(GetGlobalField(k), GetGlobalBlock(), op);
-        ++k;
+        k += o.first->GetSize();
+        if (o.first->GetSize() != 1) {
+          throw std::runtime_error("DumpWrite(): Support only size 1");
+        }
       }
       std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
       ++frame_;

@@ -240,8 +240,8 @@ void Local<KF>::DumpWrite(const std::vector<MIdx>& bb) {
         // TODO: check all blocks are same as first
         output::Content c;
         size_t k = 0; // offset in buffer
-        auto& vcm = m.GetComm(); // contains comm and dump added by DumpComm
-        auto& vd = m.GetDump(); // contains dump
+        auto& vcm = m.GetComm(); // comm and dump added by DumpComm
+        auto& vd = m.GetDump(); // dump
         // Skip comm 
         for (size_t i = 0; i < vcm.size() - vd.size(); ++i) {
           k += vcm[i]->GetSize();
