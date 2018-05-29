@@ -4,10 +4,11 @@ set -eu
 
 mpirun -n 1 ./t.advection "$1"
 
-a="u_1.dat"
-b="ref/u_1.dat"
-if diff -q "$a" "$b"; then
-  exit 0
-else
-  exit 1
-fi
+a=0
+for f in ref/*.dat ; do
+  if ! diff -q "${f#ref/}" "$f"; then
+    a=1
+  fi
+done
+
+exit $a
