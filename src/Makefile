@@ -1,3 +1,10 @@
+b = build
+
 all:
-	+make -C build
-	+make -C build install 
+	+make -C $(b)
+	+make -C $(b) install 
+
+test:
+	make -C $(b) test
+
+.PHONY: all test
