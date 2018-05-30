@@ -60,7 +60,7 @@ CreateInitU(Vars& par) {
         Scal u1 = 1.;
         Scal u = std::sin(r) / r;
         u = (u - u0) / (u1 - u0);
-        return std::max(0., std::min(1., u));
+        fc[c] = std::max(0., std::min(1., u));
       }
     };
   } else {
