@@ -2,3 +2,6 @@
 
 rm -vf *.dat
 rm -vf *.pdf
+rm -vf *.vtk
+rm -vf *.vts
+rm -vf *.{h5,xmf}

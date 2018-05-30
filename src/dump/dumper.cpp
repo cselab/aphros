@@ -6,6 +6,10 @@
 #include "dumper.h"
 
 bool Dumper::Try(double t, double dt) {
+  if (pt_ == t) { 
+    return true;
+  }
+
   // requirements: 
   // * interval between dumps is at least dumpdt + dt
   // * dumpt % dtumpdt <= dt * 0.5
