@@ -269,13 +269,15 @@ void Advection<M>::Dump(Sem& sem) {
         auto gm = InitUniformMesh<M>(d, o, gs, 0);
 
         std::vector<std::vector<Vect>> vv;
-        auto h = GetCellSize(gm);
+        Vect h = GetCellSize(gm);
         for (auto c : gm.Cells()) {
           if (0.5 - std::abs(u[c] - 0.5) > 0.01) {
+            auto ee = solver::GetLineEnds(Vect(nx[c], ny[c], nz[c]), a[c], h);
+            Vect ea = ee[0];
+            Vect eb = ee[1];
             auto xc = gm.GetCenter(c);
-            Vect dx(h[0],0,0.);
-            Vect dy(0.,h[1],0.);
-            vv.push_back({xc-dx-dy, xc+dx-dy, xc+dx+dy, xc-dx-dy});
+            Vect dz(0.,0.,h[2]*0.5);
+            vv.push_back({xc+ea-dz, xc+eb-dz, xc+eb+dz, xc+ea+dz});
           }
         }
         auto fn = "s" + std::to_string(dmf_.GetN()) + ".vtk";
