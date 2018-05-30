@@ -256,8 +256,6 @@ class ExplVisc : public Timer {
 
 int main() {
   std::vector<MIdx> ss = {
-      //MIdx(16, 16, 16), MIdx(32, 32, 32), MIdx(64, 64, 64),
-      //MIdx(16, 16, 1), MIdx(32, 32, 1), MIdx(64, 64, 1),
         MIdx(4)
       , MIdx(8)
       , MIdx(16)
@@ -270,7 +268,9 @@ int main() {
       << setw(20) 
       << "name"
       << setw(15) 
-      << "percell [ns]" 
+      << "cell_a [ns]" 
+      << setw(15) 
+      << "cell_i [ns]" 
       << setw(15) 
       << "total [ns]" 
       << setw(15) 
@@ -308,7 +308,9 @@ int main() {
           << setw(20) 
           << t->GetName()
           << setw(15) 
-          << e.first * 1e9 / m.GetNumCells() 
+          << e.first * 1e9 / m.GetBlockCells().size()
+          << setw(15) 
+          << e.first * 1e9 / m.GetInBlockCells().size()
           << setw(15) 
           << e.first * 1e9 
           << setw(15) 
