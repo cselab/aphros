@@ -138,29 +138,9 @@ void Advection<M>::Init(Sem& sem) {
   }
 }
 
-// Converts to index representation.
-// vv: polygons as lists of points
-// Returns:
-// xx: points
-// pp: polygons as lists of indices
-template <class Vect>
-void Convert(const std::vector<std::vector<Vect>>& vv, 
-             std::vector<Vect>& xx, 
-             std::vector<std::vector<size_t>>& pp) {
-  x.resize(0);
-  pp.resize(0);
-  for (auto& v : vv) {
-    pp.emplace_back();
-    for (auto& x : v) {
-      pp.back().push_back(xx.size());
-      xx.push_back(x);
-    }
-  }
-}
-
 // Writes legacy vtk polydata 
 // xx: points
-// pp: polygons, indices of xx
+// pp: polygons as lists of indices
 // fn: path
 // cm: comment
 // Binary format.
@@ -188,6 +168,41 @@ void WriteVtkPoly(const std::vector<Vect>& xx,
   for (auto& p : pp) {
     f << p.size() << " " << p << "\n";
   }
+}
+
+// Converts to index representation.
+// vv: polygons as lists of points
+// Returns:
+// xx: points
+// pp: polygons as lists of indices
+template <class Vect>
+void Convert(const std::vector<std::vector<Vect>>& vv, 
+             std::vector<Vect>& xx, 
+             std::vector<std::vector<size_t>>& pp) {
+  x.resize(0);
+  pp.resize(0);
+  for (auto& v : vv) {
+    pp.emplace_back();
+    for (auto& x : v) {
+      pp.back().push_back(xx.size());
+      xx.push_back(x);
+    }
+  }
+}
+
+// Writes legacy vtk polydata 
+// vv: polygons as lists of points
+// fn: path
+// cm: comment
+// Binary format.
+template <class Vect>
+void WriteVtkPoly(const std::vector<std::vector<Vect>>& vv,  
+                  const std::string& fn,
+                  const std::string& cm="") {
+  std::vector<Vect>& xx;
+  std::vector<std::vector<size_t>>& pp;
+  Convert(vv, xx, pp);
+  WriteVtkPoly(xx, pp, fn, cm);
 }
 
 void Test() {
