@@ -260,28 +260,31 @@ void Advection<M>::Dump(Sem& sem) {
         auto ny = par_.ds->GetField(4);
         auto nz = par_.ds->GetField(5);
 
-        using MIdx = typename M::MIdx;
-        MIdx gs = bc.GetDimensions(); // global mesh size
-        Scal ext = var.Double["extent"];
-        Rect<Vect> d(Vect(0), Vect(gs) * (ext / gs.norminf())); // domain
-        MIdx o(0); // cell origin
+        if (IsRoot()) {
+          using MIdx = typename M::MIdx;
+          MIdx gs = bc.GetDimensions(); // global mesh size
+          Scal ext = var.Double["extent"];
+          Rect<Vect> d(Vect(0), Vect(gs) * (ext / gs.norminf())); // domain
+          MIdx o(0); // cell origin
 
-        auto gm = InitUniformMesh<M>(d, o, gs, 0);
+          auto gm = InitUniformMesh<M>(d, o, gs, 0);
 
-        std::vector<std::vector<Vect>> vv;
-        Vect h = GetCellSize(gm);
-        for (auto c : gm.Cells()) {
-          if (0.5 - std::abs(u[c] - 0.5) > 0.01) {
-            auto ee = solver::GetLineEnds(Vect(nx[c], ny[c], nz[c]), a[c], h);
-            Vect ea = ee[0];
-            Vect eb = ee[1];
-            auto xc = gm.GetCenter(c);
-            Vect dz(0.,0.,h[2]*0.5);
-            vv.push_back({xc+ea-dz, xc+eb-dz, xc+eb+dz, xc+ea+dz});
+          std::vector<std::vector<Vect>> vv;
+          Vect h = GetCellSize(gm);
+          for (auto c : gm.Cells()) {
+            if (0.5 - std::abs(u[c] - 0.5) > 0.01) {
+              auto ee = solver::GetLineEnds(
+                  Vect(nx[c], ny[c], nz[c]), a[c], h);
+              Vect ea = ee[0];
+              Vect eb = ee[1];
+              auto xc = gm.GetCenter(c);
+              Vect dz(0.,0.,h[2]*0.5);
+              vv.push_back({xc+ea-dz, xc+eb-dz, xc+eb+dz, xc+ea+dz});
+            }
           }
+          auto fn = "s" + std::to_string(dmf_.GetN()) + ".vtk";
+          WriteVtkPoly(vv, fn);
         }
-        auto fn = "s" + std::to_string(dmf_.GetN()) + ".vtk";
-        WriteVtkPoly(vv, fn);
       }
     }
   }

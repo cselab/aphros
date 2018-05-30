@@ -33,6 +33,8 @@ def Read(p):
 
 # u: numpy array (2d or 3d slice)
 def Get2d(u):
+    if u is None:
+        return None
     s = u.shape
     if len(s) == 2:
         return u
@@ -155,6 +157,7 @@ for p in pp:
     ny = Get2d(Read('ny' + suf))
     k = Get2d(Read('k' + suf))
 
+    # volume fraction u
     po = os.path.splitext(p)[0] + ".pdf"
     print(po)
     fig, ax = PlotInit()
@@ -165,13 +168,15 @@ for p in pp:
         PlotLines(ax, *l)
     PlotSave(fig, ax, po)
 
-    po = os.path.splitext('k' + suf)[0] + ".pdf"
-    print(po)
-    fig, ax = PlotInit()
-    PlotGrid(ax, xn1, yn1)
-    vmax = 1. / 0.2 * 2.
-    PlotField(ax, k, vmin=-vmax, vmax=vmax)
-    if all([e is not None for e in [a, nx, ny]]):
-        l = GetLines(x, y, a, nx, ny, hx, hy, u)
-        PlotLines(ax, *l)
-    PlotSave(fig, ax, po)
+    # curvature k
+    if k is not None:
+        po = os.path.splitext('k' + suf)[0] + ".pdf"
+        print(po)
+        fig, ax = PlotInit()
+        PlotGrid(ax, xn1, yn1)
+        vmax = 1. / 0.2 * 2.
+        PlotField(ax, k, vmin=-vmax, vmax=vmax)
+        if all([e is not None for e in [a, nx, ny]]):
+            l = GetLines(x, y, a, nx, ny, hx, hy, u)
+            PlotLines(ax, *l)
+        PlotSave(fig, ax, po)
