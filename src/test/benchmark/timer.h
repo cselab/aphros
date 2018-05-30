@@ -9,7 +9,7 @@ class Timer {
   Timer(std::string name, double timeout /*sec*/, size_t batch);
   Timer(std::string name, double timeout);
   Timer(std::string name);
-  ~Timer() {}
+  virtual ~Timer() {}
   std::string GetName() const;
   // Runs F() until reaching the timeout in batches of b_ iterations.
   // Returns execution time per iteration and number of iterations.
