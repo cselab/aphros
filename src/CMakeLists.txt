@@ -44,6 +44,7 @@ add_subdirectory(linear)
 add_subdirectory(distr)
 add_subdirectory(util)
 add_subdirectory(parse)
+add_subdirectory(dump)
 
 target_link_libraries(${EXE} distr)
 

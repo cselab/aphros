@@ -18,5 +18,5 @@ target_compile_definitions(${TARGC} PUBLIC _USE_HDF_)
 
 set(TARG "distr")
 add_library(${TARG} distrsolver.cpp)
-target_link_libraries(${TARG} interp suspender vars cubism local)
+target_link_libraries(${TARG} interp suspender vars cubism local dumper)
 
