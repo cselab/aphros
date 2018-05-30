@@ -8,6 +8,8 @@ include_directories(${S})
 add_executable(${EXE} main.cpp)
 
 target_link_libraries(${EXE} distr)
+
+#install(TARGETS ${EXE} DESTINATION "${CHPREFIX}/bin")
      
-add_test(NAME ${p}-loc COMMAND mpirun -n 2 $<TARGET_FILE:${EXE}> loc.conf WORKING_DIRECTORY "${CSD}")
-add_test(NAME ${p}-cub COMMAND mpirun -n 2 $<TARGET_FILE:${EXE}> cub.conf WORKING_DIRECTORY "${CSD}")
+add_test(NAME ${p}-loc COMMAND mpirun -n 2 ${EXE} loc.conf)
+add_test(NAME ${p}-cub COMMAND mpirun -n 2 ${EXE} cub.conf)
