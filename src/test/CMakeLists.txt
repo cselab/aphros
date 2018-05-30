@@ -9,9 +9,10 @@ foreach(e ${g})
   endif()
 endforeach()
 
+enable_testing()
+
 # add them to project
 foreach(e ${l})
   add_subdirectory(${e})
 endforeach()
 
-enable_testing()
