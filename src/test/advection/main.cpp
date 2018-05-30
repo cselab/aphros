@@ -27,6 +27,16 @@
 
 #include "cmp.h"
 
+template <class T>
+std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
+  std::string p = "";
+  for (auto a : v) {
+    o << p << a;
+    p = " ";
+  }
+  return o;
+}
+
 template <class M_>
 struct GPar {
  public:
@@ -127,6 +137,49 @@ void Advection<M>::Init(Sem& sem) {
     }
   }
 }
+
+template <class Vect>
+Convert(const std::vector<std::vector<Vect>>& vv, 
+        std::vector<Vect>& xx, 
+        std::vector<std::vector<size_t>>& pp) {
+}
+
+// Write legacy vtk polydata 
+// xx: points
+// pp: polygons, indices of xx
+// fn: path
+// cm: comment
+// Binary format.
+template <class Vect>
+void WriteVtkPoly(const std::vector<Vect>& xx, 
+                  const std::vector<std::vector<size_t>>& pp,  
+                  const std::string& fn,
+                  const std::string& cm="") {
+  std::ofstream f(fn.c_str());
+  f << "# vtk DataFile Version 2.0\n";
+  f << cm << "\n";
+  f << "ASCII\n";
+  f << "DATASET POLYDATA\n";
+
+  f << "POINTS " <<  xx.size() << " float\n";
+  for (auto& x : xx) {
+    f << x[0] << " " << x[1] << " " << x[2] << "\n";
+  }
+
+  size_t np = 0; // total number of vortices
+  for (auto& p : pp) {
+    np += p.size();
+  }
+  f << "POLYGONS " << pp.size() << " " << (np + pp.size()) << "\n";
+  for (auto& p : pp) {
+    f << p.size() << " " << p << "\n";
+  }
+}
+
+void Test() {
+  TestGetPointIdx();
+}
+
 
 template <class M>
 void Advection<M>::Dump(Sem& sem) {
