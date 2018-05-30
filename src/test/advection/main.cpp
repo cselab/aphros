@@ -179,7 +179,7 @@ template <class Vect>
 void Convert(const std::vector<std::vector<Vect>>& vv, 
              std::vector<Vect>& xx, 
              std::vector<std::vector<size_t>>& pp) {
-  x.resize(0);
+  xx.resize(0);
   pp.resize(0);
   for (auto& v : vv) {
     pp.emplace_back();
@@ -199,16 +199,11 @@ template <class Vect>
 void WriteVtkPoly(const std::vector<std::vector<Vect>>& vv,  
                   const std::string& fn,
                   const std::string& cm="") {
-  std::vector<Vect>& xx;
-  std::vector<std::vector<size_t>>& pp;
+  std::vector<Vect> xx;
+  std::vector<std::vector<size_t>> pp;
   Convert(vv, xx, pp);
   WriteVtkPoly(xx, pp, fn, cm);
 }
-
-void Test() {
-  TestGetPointIdx();
-}
-
 
 template <class M>
 void Advection<M>::Dump(Sem& sem) {
@@ -328,5 +323,12 @@ void Main(MPI_Comm comm, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
-  return RunMpi(argc, argv, Main);
+  using Scal = double;
+  using Vect = GVect<Scal, 3>;
+  std::vector<std::vector<Vect>> vv{
+    {Vect(0.,0.,0.), Vect(1.,0.,0.), Vect(1.,1.,0.), Vect(0.,1.,0.)}
+  };
+  WriteVtkPoly(vv, "s.vtk", "comment");
+
+  //return RunMpi(argc, argv, Main);
 }
