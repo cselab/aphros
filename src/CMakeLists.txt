@@ -4,15 +4,13 @@ project("mfer")
 
 set(EXE "mfer")
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)  
-
 add_executable(${EXE} distr/main.cpp)
+
 set_target_properties(${EXE} PROPERTIES PREFIX "ch.")
 
 # install prefix
 set(CHPREFIX $ENV{CHPREFIX})
-install(TARGETS ${EXE} RUNTIME DESTINATION "${CHPREFIX}/bin")
+install(TARGETS ${EXE} DESTINATION "${CHPREFIX}/bin")
 
 # MPI
 find_package(MPI REQUIRED)

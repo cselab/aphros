@@ -1,8 +1,8 @@
-set(r ${CMAKE_CURRENT_SOURCE_DIR})
+set(CSD "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # find all directories containing CMakeLists.txt
 set(l "")
-file(GLOB g ${r}/*)
+file(GLOB g ${CSD}/*)
 foreach(e ${g})
   if (EXISTS ${e}/CMakeLists.txt)
     LIST(APPEND l ${e})
@@ -13,6 +13,6 @@ enable_testing()
 
 # add them to project
 foreach(e ${l})
-  add_subdirectory(${e})
+  add_subdirectory(${e} ${e})
 endforeach()
 
