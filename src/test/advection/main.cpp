@@ -138,13 +138,27 @@ void Advection<M>::Init(Sem& sem) {
   }
 }
 
+// Converts to index representation.
+// vv: polygons as lists of points
+// Returns:
+// xx: points
+// pp: polygons as lists of indices
 template <class Vect>
-Convert(const std::vector<std::vector<Vect>>& vv, 
-        std::vector<Vect>& xx, 
-        std::vector<std::vector<size_t>>& pp) {
+void Convert(const std::vector<std::vector<Vect>>& vv, 
+             std::vector<Vect>& xx, 
+             std::vector<std::vector<size_t>>& pp) {
+  x.resize(0);
+  pp.resize(0);
+  for (auto& v : vv) {
+    pp.emplace_back();
+    for (auto& x : v) {
+      pp.back().push_back(xx.size());
+      xx.push_back(x);
+    }
+  }
 }
 
-// Write legacy vtk polydata 
+// Writes legacy vtk polydata 
 // xx: points
 // pp: polygons, indices of xx
 // fn: path
