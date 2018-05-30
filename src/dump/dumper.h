@@ -12,8 +12,10 @@ class Dumper {
   Dumper(Vars& var, std::string pre) : var(var), pre_(pre) {}
   bool Try(double t /*current time*/, 
            double dt /*simulation time step*/);
-  // Print stats to cout
+  // Prints stats to cout
   void Report();
+  // Returns current dump index
+  size_t GetN() { return pn_; }
 
  private:
   Vars& var;

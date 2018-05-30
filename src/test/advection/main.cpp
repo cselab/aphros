@@ -38,6 +38,9 @@ std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
 }
 
 template <class M_>
+class Advection;
+
+template <class M_>
 struct GPar {
  public:
   using M = M_;
@@ -46,6 +49,9 @@ struct GPar {
 
   std::function<void(FieldCell<Scal>&, const M&)> fu0; // init vf
   std::function<Vect(Vect /*x*/,Scal /*t*/)> fv; // velocity
+
+  using K = Advection<M>;
+  DistrSolver<M, K>* ds;
 };
 
 template <class M_>
@@ -205,6 +211,16 @@ void WriteVtkPoly(const std::vector<std::vector<Vect>>& vv,
   WriteVtkPoly(xx, pp, fn, cm);
 }
 
+template <class M, class Vect=typename M::Vect>
+Vect GetCellSize(const M& m) {
+  Vect h; // result
+  IdxCell c0(0);
+  h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
+      m.GetNode(m.GetNeighbourNode(c0, 0));
+  assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
+  return h;
+}
+
 template <class M>
 void Advection<M>::Dump(Sem& sem) {
   if (sem("dump")) {
@@ -230,6 +246,42 @@ void Advection<M>::Dump(Sem& sem) {
   if (sem("dumpwrite")) {
     // Empty stage for DumpWrite
     // TODO: revise
+  }
+  // Dump reconstructed interface
+  if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
+    if (sem("dumpsurf")) {
+      if (IsLead()) {
+        auto bc = par_.ds->GetBlock();
+
+        auto u = par_.ds->GetField(0);
+        auto k = par_.ds->GetField(1);
+        auto a = par_.ds->GetField(2);
+        auto nx = par_.ds->GetField(3);
+        auto ny = par_.ds->GetField(4);
+        auto nz = par_.ds->GetField(5);
+
+        using MIdx = typename M::MIdx;
+        MIdx gs = bc.GetDimensions(); // global mesh size
+        Scal ext = var.Double["extent"];
+        Rect<Vect> d(Vect(0), Vect(gs) * (ext / gs.norminf())); // domain
+        MIdx o(0); // cell origin
+
+        auto gm = InitUniformMesh<M>(d, o, gs, 0);
+
+        std::vector<std::vector<Vect>> vv;
+        auto h = GetCellSize(gm);
+        for (auto c : gm.Cells()) {
+          if (0.5 - std::abs(u[c] - 0.5) > 0.01) {
+            auto xc = gm.GetCenter(c);
+            Vect dx(h[0],0,0.);
+            Vect dy(0.,h[1],0.);
+            vv.push_back({xc-dx-dy, xc+dx-dy, xc+dx+dy, xc-dx-dy});
+          }
+        }
+        auto fn = "s" + std::to_string(dmf_.GetN()) + ".vtk";
+        WriteVtkPoly(vv, fn);
+      }
+    }
   }
 }
 
@@ -319,16 +371,17 @@ void Main(MPI_Comm comm, Vars& var) {
   par.fv = CreateInitVel<Vect>(var);
 
   DistrSolver<M, K> ds(comm, var, par);
+  par.ds = &ds;
   ds.Run();
 }
 
 int main(int argc, const char** argv) {
-  using Scal = double;
-  using Vect = GVect<Scal, 3>;
-  std::vector<std::vector<Vect>> vv{
-    {Vect(0.,0.,0.), Vect(1.,0.,0.), Vect(1.,1.,0.), Vect(0.,1.,0.)}
-  };
-  WriteVtkPoly(vv, "s.vtk", "comment");
+  //using Scal = double;
+  //using Vect = GVect<Scal, 3>;
+  //std::vector<std::vector<Vect>> vv{
+  //  {Vect(0.,0.,0.), Vect(1.,0.,0.), Vect(1.,1.,0.), Vect(0.,1.,0.)}
+  //};
+  //WriteVtkPoly(vv, "s.vtk", "comment");
 
-  //return RunMpi(argc, argv, Main);
+  return RunMpi(argc, argv, Main);
 }
