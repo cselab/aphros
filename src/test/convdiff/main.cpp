@@ -453,34 +453,46 @@ void Dump(std::vector<const FC*> u, std::vector<std::string> un,
 }
 
 void Main(MPI_Comm comm, Vars& var0) {
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+  bool isroot = (!rank);
+
   Vars var = var0;
   
-  std::cerr << "solve ref" << std::endl;
+  if (isroot) {
+    std::cerr << "solve ref" << std::endl;
+  }
+
   BC b, bb;
   FC fa, fea, fb, feb;
-  std::tie(b, fa, fea) = Solve(comm, var);
+  std::tie(b, fa, fea) = Solve(comm, var); // fa non-empty only on root
 
   using Scal = double;
   Rect<Vect> dom(Vect(0), Vect(1));
   auto m = InitUniformMesh<M>(dom, MIdx(0), b.GetDimensions(), 0);
 
-  std::cerr << "solve bs/2" << std::endl;
+  if (isroot) {
+    std::cerr << "solve bs/2" << std::endl;
+  }
+
   var.Int["bsx"] /= 2;
   var.Int["bsy"] /= 2;
   var.Int["bsz"] /= 2;
   var.Int["bx"] *= 2;
   var.Int["by"] *= 2;
   var.Int["bz"] *= 2;
-  std::tie(bb, fb, feb) = Solve(comm, var);
+  std::tie(bb, fb, feb) = Solve(comm, var); // fb non-empty only on root
 
-  PCMP(b.GetEnd(), bb.GetEnd(), true);
+  if (isroot) {
+    PCMP(b.GetEnd(), bb.GetEnd(), true);
 
-  FieldCell<bool> mask(b, true);
+    FieldCell<bool> mask(b, true);
 
-  Dump({&fa, &fea, &fb}, {"a", "ea", "b"}, m, "a");
+    Dump({&fa, &fea, &fb}, {"a", "ea", "b"}, m, "a");
 
-  PCMP(Mean(b, fa, mask), Mean(b, fb, mask), true);
-  PCMP(DiffMax(b, fa, fb, mask), 0., true);
+    PCMP(Mean(b, fa, mask), Mean(b, fb, mask), true);
+    PCMP(DiffMax(b, fa, fb, mask), 0., true);
+  }
 }
 
 
