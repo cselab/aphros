@@ -4,7 +4,7 @@ project("mfer")
 
 set(EXE "mfer")
 
-add_executable(${EXE} distr/main.cpp)
+add_executable(${EXE} main.cpp)
 
 set_target_properties(${EXE} PROPERTIES PREFIX "ch.")
 
