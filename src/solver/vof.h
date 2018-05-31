@@ -385,6 +385,7 @@ class Vof : public AdvectionSolver<M_> {
   FieldCell<Scal> fc_us_; // smooth field
   FieldFace<Scal> ff_fu_; // volume flux
   FieldCell<Scal> fck_; // curvature
+  FieldCell<Scal> fckp_; // curvature from particles
   FieldFace<Scal> ffu_; // field on faces
   FieldCell<Vect> fcg_; // gradient
   FieldFace<Vect> ffg_; // gradient
@@ -482,7 +483,7 @@ class Vof : public AdvectionSolver<M_> {
       : AdvectionSolver<M>(t, dt, m, ffv, fcs)
       , mfc_(mfc), par(par)
       , fc_a_(m, 0), fc_n_(m, Vect(0)), fc_us_(m, 0), ff_fu_(m, 0) 
-      , fck_(m, 0)
+      , fck_(m, 0), fckp_(m, 0)
   {
     fc_u_.time_curr = fcu;
     for (auto it : mfc_) {
@@ -820,104 +821,125 @@ class Vof : public AdvectionSolver<M_> {
 
       // advance particles
       // XXX: advance only if plan to dump
-      if (dm)
-      for (size_t it = 0; it < par->part_maxiter; ++it) {
-        // compute correction
-        for (auto c : m.Cells()) {
-          // clear force (needed for bending as applied from each corner)
-          for (int i = 0; i < fcps_[c]; ++i) {
-            fcpt_[c][i] = Vect(0); 
-          }
-          // traverse particles, append to force
-          for (int i = 0; i < fcps_[c]; ++i) {
-            const Vect& x = fcp_[c][i];
-            Vect& t = fcpt_[c][i]; 
-            // springs to adjacent particles
-            for (int ii : {i - 1, i + 1}) {
-              if (ii >= 0 && ii < fcps_[c]) {
-                const Vect& xx = fcp_[c][ii];
-                Vect dx = x - xx;
-                Scal d = par->part_h * hm - dx.norm();
-                t += dx / dx.norm() * d * par->part_kstr;
-              }
+      if (dm) {
+        for (size_t it = 0; it < par->part_maxiter; ++it) {
+          // compute correction
+          for (auto c : m.Cells()) {
+            // clear force (needed for bending as applied from each corner)
+            for (int i = 0; i < fcps_[c]; ++i) {
+              fcpt_[c][i] = Vect(0); 
             }
-
-            // spring to nearest point at reconstructed interface
-            auto w = bc.GetMIdx(c);
-            bool fnd = false; // found at least one cell
-            Vect xb;  // best point on the interface (nearest)
-            for (auto wo : bo) {
-              auto cc = bc.GetIdx(w + wo);
-              if (!m.IsInner(cc)) {
-                continue;
-              }
-              Scal u = uc[cc];
-              auto n = fc_n_[cc];
-              if (u > 1e-3 && u < 1. - 1e-3) {
-                // nearest point to interface in cc
-                Vect xcc = m.GetCenter(cc);
-                Vect xn = xcc + GetNearest(x - xcc, n, fc_a_[cc], h);
-                if (!fnd || x.sqrdist(xn) < x.sqrdist(xb)) {
-                  xb = xn;
-                  fnd = true;
+            // traverse particles, append to force
+            for (int i = 0; i < fcps_[c]; ++i) {
+              const Vect& x = fcp_[c][i];
+              Vect& t = fcpt_[c][i]; 
+              // springs to adjacent particles
+              for (int ii : {i - 1, i + 1}) {
+                if (ii >= 0 && ii < fcps_[c]) {
+                  const Vect& xx = fcp_[c][ii];
+                  Vect dx = x - xx;
+                  Scal d = par->part_h * hm - dx.norm();
+                  t += dx / dx.norm() * d * par->part_kstr;
                 }
               }
-            }
-            if (fnd) {
-              t += (xb - x) * par->part_kattr;
-            }
 
-            // bending
-            if (i > 0 && i < fcps_[c] - 1) {
-              int im = i - 1;
-              int ip = i + 1;
-              Vect xm = fcp_[c][im];
-              Vect xp = fcp_[c][ip];
-              Vect dm = xm - x;
-              Vect dp = xp - x;
-              // torque [length^2]
-              Scal tq = par->part_kbend * 
-                  (dm.norm() * dp.norm() + dm.dot(dp));
-              // normal vectors [length]
-              Vect nm(-dm[1], dm[0], 0.);
-              Vect np(-dp[1], dp[0], 0.);
-              // invert so they point inside angle
-              nm *= (nm.dot(dp) > 0. ? 1. : -1.);
-              np *= (np.dot(dm) > 0. ? 1. : -1.);
-              // forces [length]
-              Vect fm = nm * (-tq / dm.sqrnorm());
-              Vect fp = np * (-tq / dp.sqrnorm());
-              // apply
-              fcpt_[c][im] += fm;
-              fcpt_[c][ip] += fp;
-              fcpt_[c][i] -= (fm + fp);
+              // spring to nearest point at reconstructed interface
+              auto w = bc.GetMIdx(c);
+              bool fnd = false; // found at least one cell
+              Vect xb;  // best point on the interface (nearest)
+              for (auto wo : bo) {
+                auto cc = bc.GetIdx(w + wo);
+                if (!m.IsInner(cc)) {
+                  continue;
+                }
+                Scal u = uc[cc];
+                auto n = fc_n_[cc];
+                if (u > 1e-3 && u < 1. - 1e-3) {
+                  // nearest point to interface in cc
+                  Vect xcc = m.GetCenter(cc);
+                  Vect xn = xcc + GetNearest(x - xcc, n, fc_a_[cc], h);
+                  if (!fnd || x.sqrdist(xn) < x.sqrdist(xb)) {
+                    xb = xn;
+                    fnd = true;
+                  }
+                }
+              }
+              if (fnd) {
+                t += (xb - x) * par->part_kattr;
+              }
+
+              // bending
+              if (i > 0 && i < fcps_[c] - 1) {
+                int im = i - 1;
+                int ip = i + 1;
+                Vect xm = fcp_[c][im];
+                Vect xp = fcp_[c][ip];
+                Vect dm = xm - x;
+                Vect dp = xp - x;
+                // torque [length^2]
+                Scal tq = par->part_kbend * 
+                    (dm.norm() * dp.norm() + dm.dot(dp));
+                // normal vectors [length]
+                Vect nm(-dm[1], dm[0], 0.);
+                Vect np(-dp[1], dp[0], 0.);
+                // invert so they point inside angle
+                nm *= (nm.dot(dp) > 0. ? 1. : -1.);
+                np *= (np.dot(dm) > 0. ? 1. : -1.);
+                // forces [length]
+                Vect fm = nm * (-tq / dm.sqrnorm());
+                Vect fp = np * (-tq / dp.sqrnorm());
+                // apply
+                fcpt_[c][im] += fm;
+                fcpt_[c][ip] += fp;
+                fcpt_[c][i] -= (fm + fp);
+              }
             }
+          }
+
+          // compute correction norm
+          Scal tmax = 0.;
+          for (auto c : m.Cells()) {
+            for (size_t i = 0; i < fcps_[c]; ++i) {
+              fcp_[c][i] += fcpt_[c][i] * par->part_relax;
+              tmax = std::max(tmax, fcpt_[c][i].norm());
+            }
+          }
+          size_t dr = std::max<size_t>(1, 
+              par->part_maxiter / par->part_report_fr);
+          if (it % dr == 0 || it + 1 == par->part_maxiter) {
+            std::cout << "it=" << it << " dxmax=" << tmax << std::endl;
+          }
+
+          // advance
+          for (auto c : m.Cells()) {
+            for (size_t i = 0; i < fcps_[c]; ++i) {
+              fcp_[c][i] += fcpt_[c][i] * par->part_relax;
+            }
+          }
+
+          if (dm) {
+            DumpParticles(it + 1);
           }
         }
 
-        // compute correction norm
-        Scal tmax = 0.;
+        // compute curvature
+        fckp_.Reinit(m, 0.);
         for (auto c : m.Cells()) {
-          for (size_t i = 0; i < fcps_[c]; ++i) {
-            fcp_[c][i] += fcpt_[c][i] * par->part_relax;
-            tmax = std::max(tmax, fcpt_[c][i].norm());
+          // contains particles
+          if (fcps_[c]) {
+            int i = fcps_[c] / 2;
+            int im = i - 1;
+            int ip = i + 1;
+            Vect x = fcp_[c][i];
+            Vect xm = fcp_[c][im];
+            Vect xp = fcp_[c][ip];
+            Vect dm = xm - x;
+            Vect dp = xp - x;
+            Scal lm = dm.norm();
+            Scal lp = dp.norm();
+            Scal lmp = lm * lp;
+            fckp_[c] = std::sqrt(2. * (lmp + dm.dot(dp))) / lmp;
           }
-        }
-        size_t dr = std::max<size_t>(1, 
-            par->part_maxiter / par->part_report_fr);
-        if (it % dr == 0 || it + 1 == par->part_maxiter) {
-          std::cout << "it=" << it << " dxmax=" << tmax << std::endl;
-        }
-
-        // advance
-        for (auto c : m.Cells()) {
-          for (size_t i = 0; i < fcps_[c]; ++i) {
-            fcp_[c][i] += fcpt_[c][i] * par->part_relax;
-          }
-        }
-
-        if (dm) {
-          DumpParticles(it + 1);
         }
       }
     }
@@ -942,6 +964,10 @@ class Vof : public AdvectionSolver<M_> {
   }
   const FieldCell<Scal>& GetCurv() const override {
     return fck_;
+  }
+  // curvature from particles
+  const FieldCell<Scal>& GetCurvP() const {
+    return fckp_;
   }
   const FieldCell<std::array<Vect, kNp>>& GetPart() const {
     return fcp_;
