@@ -162,7 +162,9 @@ for p in pp:
     print(po)
     fig, ax = PlotInit()
     PlotGrid(ax, xn1, yn1)
-    PlotField(ax, np.clip(u, 0., 1.))
+    vmax = abs(u).max()
+    PlotField(ax, u, vmin=-vmax, vmax=vmax)
+    #PlotField(ax, np.clip(u, 0., 1.))
     if all([e is not None for e in [a, nx, ny]]):
         l = GetLines(x, y, a, nx, ny, hx, hy, u)
         PlotLines(ax, *l)
