@@ -135,11 +135,41 @@ def GetLines(xc, yc, a, nx, ny, hx, hy, u):
 
     return xa, ya, xb, yb
 
+def CmpCurv(x, y, u, k, kp, po):
+    cx = (x * u).sum() / u.sum()
+    cy = (y * u).sum() / u.sum()
+    th = 1e-3
+    ii = np.where((u > th) & (u < 1. - th))
+    x = x[ii];   y = y[ii]
+    dx = x - cx; dy = y - cy
+    an = np.arctan2(dy, dx)
+    deg = np.degrees(an)
+    k = k[ii]
+    kp = kp[ii]
+
+    s = np.argsort(an)
+
+    [sx, sy] = u.shape
+    hx = 1. / sx
+    hy = 1. / sy
+    r = ((u.sum() * hx * hy) / np.pi) ** 0.5
+    ke = 1. / r
+
+    fig, ax = plt.subplots()
+    ax.plot(deg[s], k[s] / ke, label="k")
+    ax.plot(deg[s], kp[s] / ke, label="kp")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(po, dpi=300)
+    plt.close()
+
+
 
 pre = 'u'
 pp = sorted(glob.glob(pre + "*.dat"))
 #pp = pp[1:2]
-for p in pp:
+for p in pp[10:11]:
+    print(p)
     suf = re.findall(pre + "(.*)", p)[0]
     u = Get2d(Read(p))
     [sx, sy] = u.shape
@@ -182,3 +212,8 @@ for p in pp:
             l = GetLines(x, y, a, nx, ny, hx, hy, u)
             PlotLines(ax, *l)
         PlotSave(fig, ax, po)
+
+    kp = Get2d(Read('kp' + suf))
+    if k is not None and kp is not None:
+        po = os.path.splitext('kcmp' + suf)[0] + ".pdf"
+        CmpCurv(x, y, u, k, kp, po)
