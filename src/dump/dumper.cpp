@@ -9,6 +9,11 @@ bool Dumper::Try(double t, double dt) {
   if (pt_ == t) { 
     return true;
   }
+  if (double* t0 = var.Double(pre_ + "t0")) {
+    if (t < *t0) {
+      return false;
+    }
+  }
 
   // requirements: 
   // * interval between dumps is at least dumpdt + dt
