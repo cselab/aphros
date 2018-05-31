@@ -7,6 +7,7 @@ make
 #time ./t.advection uni.conf
 #time ./t.advection str.conf
 #time ./t.advection a.conf
-time ./t.advection circle.conf
+#time ./t.advection circle.conf
 #time ./t.advection circlelast.conf
-#time ./plot.py
+time ./t.advection circleplain.conf
+time ./plot.py
