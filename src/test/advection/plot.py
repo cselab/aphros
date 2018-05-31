@@ -168,7 +168,7 @@ def CmpCurv(x, y, u, k, kp, po):
 pre = 'u'
 pp = sorted(glob.glob(pre + "*.dat"))
 #pp = pp[1:2]
-for p in pp[10:11]:
+for p in pp:
     print(p)
     suf = re.findall(pre + "(.*)", p)[0]
     u = Get2d(Read(p))
