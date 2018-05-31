@@ -140,12 +140,14 @@ void Advection<M>::Init(Sem& sem) {
       auto p = std::make_shared<typename AS::Par>();
       p->curvgrad = var.Int["curvgrad"];
       p->part = var.Int["part"];
-      p->partrelax = var.Double["partrelax"];
-      p->parth = var.Double["parth"];
-      p->parthh = var.Double["parthh"];
-      p->parts = var.Double["parts"];
-      p->partss = var.Double["partss"];
-      p->partdumpfr = var.Int["partdumpfr"];
+      p->part_relax = var.Double["part_relax"];
+      p->part_h0 = var.Double["part_h0"];
+      p->part_h = var.Double["part_h"];
+      p->part_ksurf = var.Double["part_ksurf"];
+      p->part_kbend = var.Double["part_kbend"];
+      p->part_dump_fr = var.Int["part_dump_fr"];
+      p->part_report_fr = var.Int["part_report_fr"];
+      p->part_maxiter = var.Int["part_maxiter"];
       p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
       as_.reset(new AS(m, fcu_, bc, &ff_flux_, 
                        &fc_src_, 0., var.Double["dt"], p));
