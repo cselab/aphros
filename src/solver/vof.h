@@ -7,6 +7,7 @@
 
 #include "advection.h"
 #include "geom/block.h"
+#include "dump/dumper.h"
 
 namespace solver {
 
@@ -405,8 +406,8 @@ class Vof : public AdvectionSolver<M_> {
     Scal parts = 1.; // strenght cell
     Scal partss = 1.; // add cell
     size_t partit = 1; // num iter
-    Scal partdumpit = -1.; // if positive, dump iter history at t > partdump
-    bool partdump = -1.; // enable dump at every time step (used by hydro)
+    size_t partdumpfr = 100; // num frames per dump
+    std::unique_ptr<Dumper> dmp; // dumper for particles
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
@@ -780,6 +781,10 @@ class Vof : public AdvectionSolver<M_> {
       GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, 0), MIdx(sn, sn, 1)); // offset
 
       // advance particles
+      bool dm = par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
+                              this->GetTimeStep());
+      // XXX: only if plan to dump
+      if (dm)
       for (size_t it = 0; it < par->partit; ++it) {
         // compute correction
         for (auto c : m.Cells()) {
@@ -858,7 +863,7 @@ class Vof : public AdvectionSolver<M_> {
             tmax = std::max(tmax, fcpt_[c][i].norm());
           }
         }
-         if (it % (par->partit / 3 + 1) == 0 || it + 1 == par->partit) {
+        if (it % (par->partit / 3 + 1) == 0 || it + 1 == par->partit) {
           std::cout << "it=" << it << " tmax=" << tmax << std::endl;
         }
 
@@ -869,10 +874,18 @@ class Vof : public AdvectionSolver<M_> {
           }
         }
 
+        size_t d = std::max<size_t>(1, par->partit / par->partdumpfr);
+
         // dump particles
-        if (par->partdumpit >= 0. && this->GetTime() >= par->partdumpit) {
-          std::string s = "partit." + std::to_string(it) + ".csv";
-          std::cout << "dump to " << s << std::endl;
+        if (dm && it % d == 0) {
+          std::string s = 
+              "partit." + std::to_string(par->dmp->GetN()) + 
+              "_" + std::to_string(it) + 
+              ".csv";
+          std::cout 
+              << "dump" 
+              << " t=" << this->GetTime() 
+              << " to " << s << std::endl;
           std::ofstream o;
           o.open(s);
           o << "x,y,z,c\n";
@@ -886,80 +899,6 @@ class Vof : public AdvectionSolver<M_> {
           }
         }
       }
-
-      if (par->partdumpit >= 0. && this->GetTime() >= par->partdumpit) {
-        par->partdumpit = -1.;
-      }
-
-      /*
-      // reseed particles
-      for (auto f : m.Faces()) {
-        IdxCell cm = m.GetNeighbourCell(f, 0);
-        IdxCell cp = m.GetNeighbourCell(f, 1);
-        if (std::abs(uc[cm] - uc[cp]) > 1e-3 ) {
-          auto c = cp;
-          if (fcps_[c] < kNpp) {
-            fcp_[c][fcps_[c]++] = m.GetCenter(f);
-          }
-        }
-      }
-
-      // advance particles
-      for (auto c : m.Cells()) {
-        auto w = bc.GetMIdx(c);
-        for (size_t i = 0; i < fcps_[c]; ++i) {
-          const Vect& x = fcp_[c][i];
-          Vect& t = fcpt_[c][i]; // accum
-          Scal& e = fcpw_[c][i]; // weight
-          t = Vect(0);
-          e = 0.;
-          for (auto wo : bo) {
-            auto cc = bc.GetIdx(w + wo);
-            for (size_t ii = 0; ii < fcps_[cc]; ++ii) {
-              const Vect& xx = fcp_[cc][ii];
-              if (cc != c || ii != i) {
-                Vect dx = x - xx;
-                Scal r = dx.norm() / hm;
-                Scal d = par->parth - r;
-                t += dx / dx.norm() * d;
-                e += d;
-              }
-            }
-          }
-        }
-      }
-
-      for (auto c : m.Cells()) {
-        for (size_t i = 0; i < fcps_[c]; ++i) {
-          if (fcpw_[c][i] != 0.) {
-            //fcp_[c][i] += (fcpt_[c][i] / fcpw_[c][i]) * par->partrelax;
-            fcp_[c][i] += fcpt_[c][i] * par->partrelax;
-          }
-        }
-      }
-
-      // update cell lists
-      if(0)
-      for (auto c : m.Cells()) {
-        MIdx w = bc.GetMIdx(c);
-        auto& s = fcps_[c];
-        for (size_t i = 0; i < s; ++i) {
-          Vect x = fcp_[c][i];
-          MIdx ww = wb + MIdx((x - xb) / h);
-          auto cc = bc.GetIdx(ww);
-          if (cc != c) {
-            // remove from c
-            std::swap(fcp_[c][i], fcp_[c][s - 1]);
-            --s;
-            auto& ss = fcps_[cc];
-            if (ss < kNp) {
-              // add to cc
-              fcp_[cc][ss++] = x;
-            } 
-          }
-        }
-      }
-      */
     }
 
     if (sem("stat")) {
