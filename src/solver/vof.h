@@ -452,12 +452,12 @@ class Vof : public AdvectionSolver<M_> {
   }
   void DumpParticles(size_t it) {
     // dump particles
-    size_t d = std::max<size_t>(1, par->part_maxiter / par->part_dump_fr);
-    if (it % d == 0 || it + 1 == par->part_maxiter) {
-      std::string s = 
-          "partit." + std::to_string(par->dmp->GetN()) + 
-          "_" + std::to_string(it) + 
-          ".csv";
+    auto fr = par->part_dump_fr;
+    size_t d = std::max<size_t>(1, par->part_maxiter / fr);
+    if (fr > 1 && it % d == 0 || it + 1 == par->part_maxiter) {
+      std::string st = "." + std::to_string(par->dmp->GetN());
+      std::string sit = fr > 1 ? "_" + std::to_string(it) : "";
+      std::string s = "partit" + st + sit + ".csv";
       std::cout 
           << "dump" 
           << " t=" << this->GetTime() + this->GetTimeStep()
@@ -493,6 +493,11 @@ class Vof : public AdvectionSolver<M_> {
     Reconst(fc_u_.time_curr);
     if (par->part) {
         SeedParticles(fc_u_.time_curr);
+    }
+
+    if (par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
+                      this->GetTimeStep())) {
+      DumpParticles(par->part_maxiter - 1);
     }
   }
   void StartStep() override {
@@ -807,14 +812,13 @@ class Vof : public AdvectionSolver<M_> {
       const int sn = sw * 2 + 1; // stencil size
       GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, 0), MIdx(sn, sn, 1)); // offset
 
-      // advance particles
       bool dm = par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
                               this->GetTimeStep());
-      
       if (dm) {
         DumpParticles(0);
       }
 
+      // advance particles
       // XXX: advance only if plan to dump
       if (dm)
       for (size_t it = 0; it < par->part_maxiter; ++it) {

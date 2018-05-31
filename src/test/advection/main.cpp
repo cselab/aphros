@@ -300,10 +300,6 @@ void Advection<M>::Dump(Sem& sem) {
             }
             auto fn = "s." + std::to_string(dmf_.GetN()) + ".vtk";
             WriteVtkPoly(vv, fn);
-
-
-            fn = "u." + std::to_string(dmf_.GetN()) + ".dat";
-            ::Dump(nx, bc, fn);
           }
         }
       }

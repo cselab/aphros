@@ -8,4 +8,5 @@ make
 #time ./t.advection str.conf
 #time ./t.advection a.conf
 time ./t.advection circle.conf
+#time ./t.advection circlelast.conf
 #time ./plot.py
