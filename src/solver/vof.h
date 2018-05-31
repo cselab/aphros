@@ -403,8 +403,9 @@ class Vof : public AdvectionSolver<M_> {
     Scal part_relax = 1.; 
     Scal part_h0 = 1.; // dist init
     Scal part_h = 1.;  // dist eq
-    Scal part_ksurf = 1.; // strenght cell
-    Scal part_kbend = 1.; // add cell
+    Scal part_kstr = 1.; // stretching
+    Scal part_kattr = 1.; // attraction to reconstructed interface
+    Scal part_kbend = 1.; // bending
     size_t part_maxiter = 100; // num iter
     size_t part_dump_fr = 100; // num frames dump
     size_t part_report_fr = 100; // num frames report
@@ -445,6 +446,31 @@ class Vof : public AdvectionSolver<M_> {
                   x + t * (i - (kNp - 1) * 0.5) * hm * par->part_h0;
             }
           }
+        }
+      }
+    }
+  }
+  void DumpParticles(size_t it) {
+    // dump particles
+    size_t d = std::max<size_t>(1, par->part_maxiter / par->part_dump_fr);
+    if (it % d == 0 || it + 1 == par->part_maxiter) {
+      std::string s = 
+          "partit." + std::to_string(par->dmp->GetN()) + 
+          "_" + std::to_string(it) + 
+          ".csv";
+      std::cout 
+          << "dump" 
+          << " t=" << this->GetTime() + this->GetTimeStep()
+          << " to " << s << std::endl;
+      std::ofstream o;
+      o.open(s);
+      o << "x,y,z,c\n";
+
+      for (auto c : m.Cells()) {
+        for (size_t i = 0; i < fcps_[c]; ++i) {
+          Vect x = fcp_[c][i];
+          o << x[0] << "," << x[1] << "," << x[2] 
+              << "," << (c.GetRaw() * 1234567 % 16) << "\n";
         }
       }
     }
@@ -784,7 +810,12 @@ class Vof : public AdvectionSolver<M_> {
       // advance particles
       bool dm = par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
                               this->GetTimeStep());
-      // XXX: only if plan to dump
+      
+      if (dm) {
+        DumpParticles(0);
+      }
+
+      // XXX: advance only if plan to dump
       if (dm)
       for (size_t it = 0; it < par->part_maxiter; ++it) {
         // compute correction
@@ -793,7 +824,7 @@ class Vof : public AdvectionSolver<M_> {
           for (int i = 0; i < fcps_[c]; ++i) {
             fcpt_[c][i] = Vect(0); 
           }
-          // append to force
+          // traverse particles, append to force
           for (int i = 0; i < fcps_[c]; ++i) {
             const Vect& x = fcp_[c][i];
             Vect& t = fcpt_[c][i]; 
@@ -802,30 +833,34 @@ class Vof : public AdvectionSolver<M_> {
               if (ii >= 0 && ii < fcps_[c]) {
                 const Vect& xx = fcp_[c][ii];
                 Vect dx = x - xx;
-                Scal r = dx.norm() / hm;
-                Scal d = par->part_h - r;
-                t += dx / dx.norm() * d * hm;
+                Scal d = par->part_h * hm - dx.norm();
+                t += dx / dx.norm() * d * par->part_kstr;
               }
             }
 
             // spring to nearest point at reconstructed interface
             auto w = bc.GetMIdx(c);
             bool fnd = false; // found at least one cell
-            Vect bxn;  // best nearest point
+            Vect xb;  // best point on the interface (nearest)
             for (auto wo : bo) {
               auto cc = bc.GetIdx(w + wo);
+              if (!m.IsInner(cc)) {
+                continue;
+              }
               Scal u = uc[cc];
+              auto n = fc_n_[cc];
               if (u > 1e-3 && u < 1. - 1e-3) {
-              Vect xn = m.GetCenter(cc) + 
-                  GetNearest(x, fc_n_[cc], fc_a_[cc], h);
-                if (!fnd || (xn - x).sqrnorm() < (bxn - x).sqrnorm()) {
-                  bxn = xn;
+                // nearest point to interface in cc
+                Vect xcc = m.GetCenter(cc);
+                Vect xn = xcc + GetNearest(x - xcc, n, fc_a_[cc], h);
+                if (!fnd || x.sqrdist(xn) < x.sqrdist(xb)) {
+                  xb = xn;
                   fnd = true;
                 }
               }
             }
             if (fnd) {
-              t += (bxn - x) * par->part_ksurf;
+              t += (xb - x) * par->part_kattr;
             }
 
             // bending
@@ -877,29 +912,8 @@ class Vof : public AdvectionSolver<M_> {
           }
         }
 
-        size_t d = std::max<size_t>(1, par->part_maxiter / par->part_dump_fr);
-
-        // dump particles
-        if (dm && (it % d == 0 || it + 1 == par->part_maxiter)) {
-          std::string s = 
-              "partit." + std::to_string(par->dmp->GetN()) + 
-              "_" + std::to_string(it) + 
-              ".csv";
-          std::cout 
-              << "dump" 
-              << " t=" << this->GetTime() + this->GetTimeStep()
-              << " to " << s << std::endl;
-          std::ofstream o;
-          o.open(s);
-          o << "x,y,z,c\n";
-
-          for (auto c : m.Cells()) {
-            for (size_t i = 0; i < fcps_[c]; ++i) {
-              Vect x = fcp_[c][i];
-              o << x[0] << "," << x[1] << "," << x[2] 
-                  << "," << (c.GetRaw() * 1234567 % 16) << "\n";
-            }
-          }
+        if (dm) {
+          DumpParticles(it + 1);
         }
       }
     }

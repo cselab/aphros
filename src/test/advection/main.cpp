@@ -143,7 +143,8 @@ void Advection<M>::Init(Sem& sem) {
       p->part_relax = var.Double["part_relax"];
       p->part_h0 = var.Double["part_h0"];
       p->part_h = var.Double["part_h"];
-      p->part_ksurf = var.Double["part_ksurf"];
+      p->part_kstr = var.Double["part_kstr"];
+      p->part_kattr = var.Double["part_kattr"];
       p->part_kbend = var.Double["part_kbend"];
       p->part_dump_fr = var.Int["part_dump_fr"];
       p->part_report_fr = var.Int["part_report_fr"];
