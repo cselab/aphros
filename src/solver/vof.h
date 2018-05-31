@@ -400,13 +400,14 @@ class Vof : public AdvectionSolver<M_> {
   struct Par {
     bool curvgrad = false; // compute curvature using gradient
     bool part = false; // particles
-    Scal partrelax = 1.; 
-    Scal parth = 1.; // dist init
-    Scal parthh = 1.;  // dist eq
-    Scal parts = 1.; // strenght cell
-    Scal partss = 1.; // add cell
-    size_t partit = 1; // num iter
-    size_t partdumpfr = 100; // num frames per dump
+    Scal part_relax = 1.; 
+    Scal part_h0 = 1.; // dist init
+    Scal part_h = 1.;  // dist eq
+    Scal part_ksurf = 1.; // strenght cell
+    Scal part_kbend = 1.; // add cell
+    size_t part_maxiter = 100; // num iter
+    size_t part_dump_fr = 100; // num frames dump
+    size_t part_report_fr = 100; // num frames report
     std::unique_ptr<Dumper> dmp; // dumper for particles
   };
   std::shared_ptr<Par> par;
@@ -441,7 +442,7 @@ class Vof : public AdvectionSolver<M_> {
           if (fcps_[c] == 0) {
             for (int i = 0; i < kNp; ++i) {
               fcp_[c][fcps_[c]++] = 
-                  x + t * (i - (kNp - 1) * 0.5) * hm * par->parth;
+                  x + t * (i - (kNp - 1) * 0.5) * hm * par->part_h0;
             }
           }
         }
@@ -785,7 +786,7 @@ class Vof : public AdvectionSolver<M_> {
                               this->GetTimeStep());
       // XXX: only if plan to dump
       if (dm)
-      for (size_t it = 0; it < par->partit; ++it) {
+      for (size_t it = 0; it < par->part_maxiter; ++it) {
         // compute correction
         for (auto c : m.Cells()) {
           // clear force (needed for bending as applied from each corner)
@@ -802,7 +803,7 @@ class Vof : public AdvectionSolver<M_> {
                 const Vect& xx = fcp_[c][ii];
                 Vect dx = x - xx;
                 Scal r = dx.norm() / hm;
-                Scal d = par->parthh - r;
+                Scal d = par->part_h - r;
                 t += dx / dx.norm() * d * hm;
               }
             }
@@ -824,7 +825,7 @@ class Vof : public AdvectionSolver<M_> {
               }
             }
             if (fnd) {
-              t += (bxn - x) * par->parts;
+              t += (bxn - x) * par->part_ksurf;
             }
 
             // bending
@@ -836,7 +837,8 @@ class Vof : public AdvectionSolver<M_> {
               Vect dm = xm - x;
               Vect dp = xp - x;
               // torque [length^2]
-              Scal tq = par->partss * (dm.norm() * dp.norm() + dm.dot(dp));
+              Scal tq = par->part_kbend * 
+                  (dm.norm() * dp.norm() + dm.dot(dp));
               // normal vectors [length]
               Vect nm(-dm[1], dm[0], 0.);
               Vect np(-dp[1], dp[0], 0.);
@@ -858,26 +860,27 @@ class Vof : public AdvectionSolver<M_> {
         Scal tmax = 0.;
         for (auto c : m.Cells()) {
           for (size_t i = 0; i < fcps_[c]; ++i) {
-            //fcp_[c][i] += (fcpt_[c][i] / fcpw_[c][i]) * par->partrelax;
-            fcp_[c][i] += fcpt_[c][i] * par->partrelax;
+            fcp_[c][i] += fcpt_[c][i] * par->part_relax;
             tmax = std::max(tmax, fcpt_[c][i].norm());
           }
         }
-        if (it % (par->partit / 3 + 1) == 0 || it + 1 == par->partit) {
-          std::cout << "it=" << it << " tmax=" << tmax << std::endl;
+        size_t dr = std::max<size_t>(1, 
+            par->part_maxiter / par->part_report_fr);
+        if (it % dr == 0 || it + 1 == par->part_maxiter) {
+          std::cout << "it=" << it << " dxmax=" << tmax << std::endl;
         }
 
         // advance
         for (auto c : m.Cells()) {
           for (size_t i = 0; i < fcps_[c]; ++i) {
-            fcp_[c][i] += fcpt_[c][i] * par->partrelax;
+            fcp_[c][i] += fcpt_[c][i] * par->part_relax;
           }
         }
 
-        size_t d = std::max<size_t>(1, par->partit / par->partdumpfr);
+        size_t d = std::max<size_t>(1, par->part_maxiter / par->part_dump_fr);
 
         // dump particles
-        if (dm && it % d == 0) {
+        if (dm && (it % d == 0 || it + 1 == par->part_maxiter)) {
           std::string s = 
               "partit." + std::to_string(par->dmp->GetN()) + 
               "_" + std::to_string(it) + 
