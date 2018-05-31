@@ -138,6 +138,16 @@ void Advection<M>::Init(Sem& sem) {
     } else if (as == "vof") {
       using AS = solver::Vof<M>;
       auto p = std::make_shared<typename AS::Par>();
+      p->curvgrad = var.Int["curvgrad"];
+      p->part = var.Int["part"];
+      p->partrelax = var.Double["partrelax"];
+      p->parth = var.Double["parth"];
+      p->parthh = var.Double["parthh"];
+      p->parts = var.Double["parts"];
+      p->partss = var.Double["partss"];
+      p->partdumpit = var.Double["partdumpit"];
+      p->partdump = var.Int["partdump"];
+      p->partit = var.Int["partit"];
       as_.reset(new AS(m, fcu_, bc, &ff_flux_, 
                        &fc_src_, 0., var.Double["dt"], p));
     } else {
