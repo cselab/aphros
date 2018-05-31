@@ -2,10 +2,10 @@
 
 set -ue
 
-./clean
 make
+./clean
 #time ./t.advection uni.conf
 #time ./t.advection str.conf
 #time ./t.advection a.conf
 time ./t.advection circle.conf
-time ./plot.py
+#time ./plot.py

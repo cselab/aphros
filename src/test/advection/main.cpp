@@ -145,9 +145,8 @@ void Advection<M>::Init(Sem& sem) {
       p->parthh = var.Double["parthh"];
       p->parts = var.Double["parts"];
       p->partss = var.Double["partss"];
-      p->partdumpit = var.Double["partdumpit"];
-      p->partdump = var.Int["partdump"];
-      p->partit = var.Int["partit"];
+      p->partdumpfr = var.Int["partdumpfr"];
+      p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
       as_.reset(new AS(m, fcu_, bc, &ff_flux_, 
                        &fc_src_, 0., var.Double["dt"], p));
     } else {
