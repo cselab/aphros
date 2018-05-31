@@ -493,13 +493,13 @@ class Vof : public AdvectionSolver<M_> {
     }
     Reconst(fc_u_.time_curr);
     if (par->part) {
-        SeedParticles(fc_u_.time_curr);
+      SeedParticles(fc_u_.time_curr);
+      if (par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
+                        this->GetTimeStep())) {
+        DumpParticles(par->part_maxiter - 1);
+      }
     }
 
-    if (par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
-                      this->GetTimeStep())) {
-      DumpParticles(par->part_maxiter - 1);
-    }
   }
   void StartStep() override {
     this->ClearIter();
