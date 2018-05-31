@@ -887,7 +887,7 @@ class Vof : public AdvectionSolver<M_> {
               ".csv";
           std::cout 
               << "dump" 
-              << " t=" << this->GetTime() 
+              << " t=" << this->GetTime() + this->GetTimeStep()
               << " to " << s << std::endl;
           std::ofstream o;
           o.open(s);
