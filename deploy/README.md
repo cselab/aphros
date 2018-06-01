@@ -1,26 +1,39 @@
 # Deploy
 
-* run `P=prefix ./all` which will install files `ch.prefix` and `ch.setenv`
-  into `~/bin` and all packages (except for `hypre`) into `prefix`
-* source `ch.setenv` from `~/bin`
-* install hypre by `cd hypre ; ./_run`
-* now go to `src` and run `./conf` to configure 
-* then `make` to build
+Prepare the environment and install dependencies:
 
-# Prefix
+* install all packages except for hypre 
+
+      P=prefix ./all
+
+  to `prefix` and files `ch.prefix` and `ch.setenv` to `~/bin` 
+* set environment 
+
+      . ~/bin/ch.setenv
+
+* install hypre 
+
+      cd hypre 
+      ./_run
+
+# Other
+
+## Prefix
 
 * Read from `$P` if set
 * Else from ch.prefix if found in `PATH`
 * Else defaults to `prefix`
 
-# Run all packages
+## Run all packages
+
     ./all
 
-# Run a single package (e.g. hypre)
+## Run a single package (e.g. hypre)
+
     cd hypre
     ./_run 
 
-# Setenv
+## Setenv
 
 * `ch.setenv` is written to `$B` (`B=$HOME/bin` in `util`)
   along with `ch.prefix`
@@ -29,8 +42,7 @@
   This prevents the user from running units in an incomplete environment
   (e.g. modules loaded).
 
-
-# Rules
+## Rules
 
 * Each folder is a package.
 * Packages consist of units.
@@ -56,7 +68,6 @@
 * Restrictions apply to system units:
   - can execute or source only system units,
   - need to source `ch.util` to make functions from `util` available.
-
 * Reserved variables:
   - `P`: install path prefix
   - `B`: default `$HOME/bin`
