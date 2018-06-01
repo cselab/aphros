@@ -1,3 +1,4 @@
+#undef NDEBUG
 #include <iostream>
 #include <string>
 #include <cassert>
