@@ -13,7 +13,7 @@ Prepare the environment and install dependencies:
 *   set environment 
 
      ```
-     . ~/bin/ch.setenv
+     . ch.setenv
      ```
 
 *   install hypre 
