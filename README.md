@@ -4,14 +4,14 @@ Distributed version of **hydro** based on **Cubism**.
 
 ## Clone
 
-    git clone git@gitlab.ethz.ch:kpetr/Cubism-hydro.git
+    git clone git@gitlab.ethz.ch:mavt-cse/Cubism-hydro.git
 
 ## Build
 
-### Hypre
+### Deploy
 
-    cd lib/build
-    ./all
+Follow instructions from `deploy/README.md` to
+prepare environment and install dependencies.
 
 ### Cubism-hydro
 
@@ -19,12 +19,10 @@ Distributed version of **hydro** based on **Cubism**.
     ./conf
     make
 
-    (on daint use `build.daint` instead)
-
-## Run
+### Run tests
   
-    cd sim/sim01
-    ./job
+    cd src
+    make test
 
 ## Other repos
 

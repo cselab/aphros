@@ -1,3 +1,12 @@
+# Deploy
+
+* run `P=prefix ./all` which will install files `ch.prefix` and `ch.setenv`
+  into `~/bin` and all packages (except for `hypre`) into `prefix`
+* source `ch.setenv` from `~/bin`
+* install hypre by `cd hypre ; ./_run`
+* now go to `src` and run `./conf` to configure 
+* then `make` to build
+
 # Prefix
 
 * Read from `$P` if set
