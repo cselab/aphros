@@ -41,21 +41,8 @@ void TestFile() {
   Interp ip(par);
   ip.RunAll(fi);
 
-  // print variables to stringstream
-  std::stringstream so;
-  ip.PrintAll(so);
-
-  // echo to stderr
-  std::cerr << so.str();
-
-  // read reference data
-  std::string nr = "a.out";
-  std::ifstream fr(nr);
-  std::stringstream sr;
-  sr << fr.rdbuf();
-
-  // compare
-  assert(so.str() == sr.str());
+  // print variables to cout
+  ip.PrintAll(std::cout);
 }
 
 int main() {
