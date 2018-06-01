@@ -6,13 +6,6 @@
 *.a
 *.o
 lsf.*
-a.out
-mfer
-
-.cproject
-.project
-.settings
-
 
 # CMake
 build
