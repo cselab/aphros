@@ -14,7 +14,7 @@ if [ -z "${P+x}" ] ; then      # if P not defined
 fi
 
 # get full path
-P="`readlink -f $P`"
+P="`realpath $P`"
 
 echo "P='$P'"
 
