@@ -2,19 +2,25 @@
 
 Prepare the environment and install dependencies:
 
-* install all packages except for hypre 
+*   install all packages except for hypre 
 
-      P=prefix ./all
+     ```
+     P=prefix ./all
+     ```
 
   to `prefix` and files `ch.prefix` and `ch.setenv` to `~/bin` 
-* set environment 
+*   set environment 
 
-      . ~/bin/ch.setenv
+     ```
+     . ~/bin/ch.setenv
+     ```
 
-* install hypre 
+*   install hypre 
 
-      cd hypre 
-      ./_run
+     ```
+     cd hypre 
+     ./_run
+     ```
 
 # Other
 
