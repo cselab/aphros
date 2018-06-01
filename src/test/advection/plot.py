@@ -159,6 +159,8 @@ def CmpCurv(x, y, u, k, kp, po):
     ax.plot(deg[s], k[s] / ke, label="k")
     ax.plot(deg[s], kp[s] / ke, label="kp")
     ax.legend()
+    ax.set_ylim(0., 2.)
+    ax.grid()
     fig.tight_layout()
     fig.savefig(po, dpi=300)
     plt.close()
