@@ -7,4 +7,4 @@ add_executable(${EXE} main.cpp)
      
 target_link_libraries(${EXE} vars interp)
 
-add_test(NAME ${p} COMMAND ${EXE})
+add_test(NAME ${p} COMMAND ./test_cmp )
