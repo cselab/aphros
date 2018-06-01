@@ -1,5 +1,6 @@
 # Deploy
 
+Requires having `$HOME/bin` in `PATH`.
 Prepare the environment and install dependencies:
 
 *   install all packages except for hypre 
@@ -8,7 +9,7 @@ Prepare the environment and install dependencies:
      P=prefix ./all
      ```
 
-  to `prefix` and files `ch.prefix` and `ch.setenv` to `~/bin` 
+    to `prefix` and files `ch.prefix` and `ch.setenv` to `$HOME/bin` 
 *   set environment 
 
      ```
