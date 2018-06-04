@@ -40,9 +40,9 @@ void TestRandom() {
 
 // rectangular cell test
 void TestRect() {
-  auto p = [](Scal nx, Scal ny, Scal u, Scal hx, Scal hy) {
-    Vect n(nx, ny, 0.);
-    Vect h(hx, hy, 1.);
+  auto p = [](Scal nx, Scal ny, Scal nz, Scal u, Scal hx, Scal hy, Scal hz) {
+    Vect n(nx, ny, nz);
+    Vect h(hx, hy, hz);
     n /= n.norm();
     Scal a = solver::GetLineA(n, u, h);
     Scal ua = solver::GetLineU(n, a, h);
@@ -59,12 +59,27 @@ void TestRect() {
         << " voladv=" << uadv * hs.prod()
         << std::endl;
   };
+  auto v = [](Scal nx, Scal ny, Scal nz, Scal a, Scal ue) {
+    Vect n(nx, ny, nz);
+    n /= n.norm();
+    Scal u = solver::GetLineU(n, a, Vect(1.));
+    std::cerr 
+        << "n=" << n
+        << " a=" << a
+        << " u=" << u
+        << " ue=" << ue
+        << std::endl;
+    assert(std::abs(u - ue) < 1e-12);
+  };
   std::cerr << "check rectangular cell" << std::endl;
-  p(1., 1., 0.5 , 1., 1.);
-  p(1., 1., 0.5 , 0.1, 1.);
-  p(1., 1., 0.25 , 1., 1.);
-  p(1., 1., 0.25 , 0.1, 1.);
-  p(0., 1., 0.5 , 1., 1.);
+  p(1., 1., 0., 0.,  0.5 , 1., 1.);
+  p(1., 1., 0., 0.5 , 0.1, 1., 1.);
+  p(1., 1., 0., 0.25 , 1., 1., 1.);
+  p(1., 1., 0., 0.25 , 0.1, 1., 1.);
+  p(0., 1., 0., 0.5 , 1., 1., 1.);
+  v(0., 1., 0., 0., 0.5);
+  v(1., 1., 1., -Vect(0.5).norm(), 0.);
+  v(1., 1., 1., Vect(0.5).norm(), 1.);
 }
 
 // volume surplus test
@@ -331,8 +346,10 @@ void TestNearest() {
 }
 
 int main() {
-  TestRandom();
   TestRect();
+  return 0;
+  TestRect();
+  TestRandom();
   TestVol();
   TestVolStr();
   TestCenter();

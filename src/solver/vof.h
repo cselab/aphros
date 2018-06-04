@@ -89,6 +89,51 @@ inline Scal GetLineU0(Scal nx, Scal ny, Scal a) {
   }
 }
 
+// GetLineU() helper
+// assuming a < 0, 0 < nx < ny < nz
+template <class Scal>
+inline Scal GetLineU0(Scal nx, Scal ny, Scal nz, Scal a) {
+  a -= 0.5 * (nx + ny + nz);
+  Scal al = a + nx + ny + nz;
+  if (al <= 0.) {
+    return 0.;
+  }
+  Scal t = nx + ny + nz;
+  if (al >= t * 0.5) {
+    return 0.5;
+  }
+  Scal n1 = nx / t;
+  Scal n2 = ny / t;
+  Scal n3 = nz / t;
+  al = std::max(0., std::min(1., al / t));
+  Scal al0 = std::min(al, 1. - al);
+  Scal b1 = std::min(n1*1, n2);
+  Scal b3 = std::max(n1*1, n2);
+  Scal b2 = n3;
+  if (b2 < b1) {
+    std::swap(b1, b2);
+  }
+  else if (b2 > b3) {
+    std::swap(b2, b3);
+  }
+  Scal b12 = b1 + b2;
+  Scal bm = std::min(b12, b3);
+  Scal pr = std::max(6.*b1*b2*b3, 1e-50);
+  if (al0 < b1)
+    t = al0*al0*al0/pr;
+  else if (al0 < b2)
+    t = 0.5*al0*(al0 - b1)/(b2*b3) +  b1*b1*b1/pr;
+  else if (al0 < bm)
+    t = (al0*al0*(3.*b12 - al0) + b1*b1*(b1 - 3.*al0) + b2*b2*(b2 - 3.*al0))/pr;
+  else if (b12 < b3)
+    t = (al0 - 0.5*bm)/b3;
+  else
+    t = (al0*al0*(3. - 2.*al0) + b1*b1*(b1 - 3.*al0) + 
+	   b2*b2*(b2 - 3.*al0) + b3*b3*(b3 - 3.*al0))/pr;
+
+  return std::min(0.5, std::max(0., t));
+}
+
 // GetLineU() helper for unit cell
 // n : normal
 // a: line constant
@@ -102,16 +147,17 @@ inline Scal GetLineU1(const GVect<Scal, 3>& n, Scal a) {
 
   Scal nx = std::abs(n[0]);
   Scal ny = std::abs(n[1]);
-  if (ny < nx) {
-    std::swap(nx, ny);
-  }
+  Scal nz = std::abs(n[2])+1e-5;
+  //if (ny < nx) {
+  //  std::swap(nx, ny);
+  //}
   
-  Clip(a, -0.5 * (nx + ny), 0.5 * (nx + ny));
+  //Clip(a, -0.5 * (nx + ny), 0.5 * (nx + ny));
 
   if (a < 0.) {
-    return GetLineU0(nx, ny, a);
+    return GetLineU0(nx, ny, nz, a);
   } else {
-    return 1. - GetLineU0(nx, ny, -a);
+    return 1. - GetLineU0(nx, ny, nz, -a);
   }
 }
 

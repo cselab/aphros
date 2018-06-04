@@ -4,10 +4,13 @@ set -ue
 
 make
 ./clean
-#time ./t.advection uni.conf
-#time ./t.advection str.conf
-#time ./t.advection a.conf
-#time ./t.advection circle.conf
-#time ./t.advection circlelast.conf
-time ./t.advection circleplain.conf
+#c=uni.conf
+#c=str.conf
+#c=a.conf
+#c=circle.conf
+#c=circlelast.conf
+#c=circleplain.conf
+c=sphere.conf
+
+time ./t.advection $c
 time ./plot.py
