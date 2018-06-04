@@ -35,7 +35,7 @@ void TestRandom() {
   }
   e /= ni;
   std::cerr << "TestLine(): error=" << e << " samples=" << ni << std::endl;
-  assert(e < 1e-16);
+  assert(e < 1e-14);
 }
 
 // rectangular cell test
@@ -346,8 +346,6 @@ void TestNearest() {
 }
 
 int main() {
-  TestRect();
-  return 0;
   TestRect();
   TestRandom();
   TestVol();
