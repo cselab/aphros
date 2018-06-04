@@ -22,6 +22,59 @@ inline void Clip(Scal& a) {
 };
 
 // GetLineA() helper
+// assuming 0 < u < 0.5, 0 < nx < ny < nz
+template <class Scal>
+inline Scal GetLineA0(Scal nx, Scal ny, Scal nz, Scal u) {
+  using Vect = GVect<Scal, 3>;
+  Scal a;
+  Vect n(nx, ny, nz);
+
+  Scal m1, m2, m3;
+  m1 = nx;
+  m2 = ny;
+  m3 = nz;
+  Scal m12 = m1 + m2;
+  Scal pr = std::max(6.*m1*m2*m3, 1e-50);
+  Scal V1 = m1*m1*m1/pr;
+  Scal V2 = V1 + (m2 - m1)/(2.*m3), V3;
+  Scal mm;
+  if (m3 < m12) {
+    mm = m3;
+    V3 = (m3*m3*(3.*m12 - m3) + m1*m1*(m1 - 3.*m3) + m2*m2*(m2 - 3.*m3))/pr;
+  }
+  else {
+    mm = m12;
+    V3 = mm/(2.*m3);
+  }
+
+  Scal c = u;
+  if (c < V1)
+    a = pow (pr*c, 1./3.);
+  else if (c < V2)
+    a = (m1 + std::sqrt(m1*m1 + 8.*m2*m3*(c - V1)))/2.;
+  else if (c < V3) {
+    Scal p = 2.*m1*m2;
+    Scal q = 3.*m1*m2*(m12 - 2.*m3*c)/2.;
+    Scal p12 = std::sqrt(p);
+    Scal teta = std::acos(q/(p*p12))/3.;
+    Scal cs = std::cos(teta);
+    a = p12*(std::sqrt(3.*(1. - cs*cs)) - cs) + m12;
+  }
+  else if (m12 < m3)
+    a = m3*c + mm/2.;
+  else {
+    Scal p = m1*(m2 + m3) + m2*m3 - 1./4.;
+    Scal q = 3.*m1*m2*m3*(1./2. - c)/2.;
+    Scal p12 = std::sqrt(p);
+    Scal teta = std::acos(q/(p*p12))/3.;
+    Scal cs = std::cos(teta);
+    a = p12*(std::sqrt(3.*(1. - cs*cs)) - cs) + 1./2.;
+  }
+
+  return a - (nx + ny + nz) * 0.5;
+}
+
+// GetLineA() helper
 // assuming 0 < u < 0.5, 0 < nx < ny
 template <class Scal>
 inline Scal GetLineA0(Scal nx, Scal ny, Scal u) {
@@ -46,6 +99,13 @@ inline Scal GetLineA1(const GVect<Scal, 3>& n, Scal u) {
 
   Scal nx = std::abs(n[0]);
   Scal ny = std::abs(n[1]);
+  Scal nz = std::abs(n[2]);
+  if (ny < nx) {
+    std::swap(nx, ny);
+  }
+  if (nz < ny) {
+    std::swap(ny, nz);
+  }
   if (ny < nx) {
     std::swap(nx, ny);
   }
@@ -53,9 +113,9 @@ inline Scal GetLineA1(const GVect<Scal, 3>& n, Scal u) {
   Clip(u);
 
   if (u < 0.5) {
-    return GetLineA0(nx, ny, u);
+    return GetLineA0(nx, ny, nz, u);
   } else {
-    return -GetLineA0(nx, ny, 1. - u);
+    return -GetLineA0(nx, ny, nz, 1. - u);
   }
 }
 
@@ -147,12 +207,19 @@ inline Scal GetLineU1(const GVect<Scal, 3>& n, Scal a) {
 
   Scal nx = std::abs(n[0]);
   Scal ny = std::abs(n[1]);
-  Scal nz = std::abs(n[2])+1e-5;
-  //if (ny < nx) {
-  //  std::swap(nx, ny);
-  //}
+  Scal nz = std::abs(n[2]);
+
+  if (ny < nx) {
+    std::swap(nx, ny);
+  }
+  if (nz < ny) {
+    std::swap(ny, nz);
+  }
+  if (ny < nx) {
+    std::swap(nx, ny);
+  }
   
-  //Clip(a, -0.5 * (nx + ny), 0.5 * (nx + ny));
+  Clip(a, -0.5 * (nx + ny + nz), 0.5 * (nx + ny + nz));
 
   if (a < 0.) {
     return GetLineU0(nx, ny, nz, a);
