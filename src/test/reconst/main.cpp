@@ -15,27 +15,63 @@
 using Scal = double;
 using Vect = GVect<Scal, 3>;
 
+using solver::cube;
+
 void TestRandom() {
-  std::cerr << "check u=u(a(u)) on random input" << std::endl;
-  std::default_random_engine g(0);
-  std::uniform_real_distribution<double> f(0.,1.);
-  size_t ni = 10000;
-  Scal e = 0.; // error
-  for (size_t i = 0; i < ni; ++i) {
-    while (true) {
-      Vect n(f(g), f(g), 0.);
+  std::cerr << "Check u=u(a(u)) on random input" << std::endl;
+  auto t = [](Vect msk, std::string s) {
+    std::default_random_engine g(0);
+    std::uniform_real_distribution<double> f(0.,1.);
+    size_t ni = 100;
+    Scal e = 0.; // error
+    size_t nis = 0; // sucessful samples
+    for (size_t i = 0; i < ni; ++i) {
+      Vect n(f(g), f(g), f(g));
+      n *= msk;
       n /= n.norm();
       Scal u = f(g);
-      e += std::abs(solver::GetLineU1(n, solver::GetLineA1(n, u)) - u);
+      Scal& nx = n[0];
+      Scal& ny = n[1];
+      Scal& nz = n[2];
 
-      Vect h(0.1, 0.2, 0.3);
-      e += std::abs(solver::GetLineU(n, solver::GetLineA(n, u, h), h) - u);
-      break;
+      solver::Sort(n[0], n[1], n[2]);
+      if (u < 0.5 && (
+            //6. * ny * nz * u <= nx * nx
+            //||
+            //6. * ny * nz * u <= 3. * sqr(ny) - 3 * nx * ny + sqr(nx)
+            2. * nz * u < nx + ny && 
+            6. * nx * ny * nz * u < -cube(nz) + 3. * sqr(nz) * (nx + ny) -
+            3. * nz * (sqr(nx) + sqr(ny)) + cube(nx) + cube(ny)
+            )
+          ) {} else {continue;}
+
+      using namespace solver;
+
+      Scal a = GetLineA1(n, u);
+      Scal uu = GetLineU1(n, a);
+      e += std::abs(u - uu);
+
+      std::cout << "n=" << n 
+        << " u=" << u 
+        << " uu=" << uu 
+        << " a=" << a 
+        << std::endl;
+
+      //Vect h(0.1, 0.2, 0.3);
+      //e += std::abs(solver::GetLineU(n, solver::GetLineA(n, u, h), h) - u);
+      ++nis;
     }
-  }
-  e /= ni;
-  std::cerr << "TestLine(): error=" << e << " samples=" << ni << std::endl;
-  assert(e < 1e-14);
+    e /= nis;
+    std::cerr << s + ": error=" << e << " samples=" << ni << std::endl;
+    //assert(e < 1e-14);
+  };
+  t(Vect(1., 0, 0.), "x");
+  t(Vect(0., 1, 0.), "y");
+  t(Vect(0., 0, 1.), "z");
+  t(Vect(1., 1, 0.), "xy");
+  t(Vect(0., 1, 1.), "yz");
+  t(Vect(1., 0, 1.), "zx");
+  t(Vect(1., 1, 1.), "xyz");
 }
 
 // rectangular cell test
@@ -61,7 +97,6 @@ void TestRect() {
   };
   auto v = [](Scal nx, Scal ny, Scal nz, Scal a, Scal ue) {
     Vect n(nx, ny, nz);
-    n /= n.norm();
     Scal u = solver::GetLineU(n, a, Vect(1.));
     std::cerr 
         << "n=" << n
@@ -78,8 +113,9 @@ void TestRect() {
   p(1., 1., 0., 0.25 , 0.1, 1., 1.);
   p(0., 1., 0., 0.5 , 1., 1., 1.);
   v(0., 1., 0., 0., 0.5);
-  v(1., 1., 1., -Vect(0.5).norm(), 0.);
-  v(1., 1., 1., Vect(0.5).norm(), 1.);
+  v(1., 1., 1., -Vect(0.5).norm1(), 0.);
+  v(1., 1., 1., Vect(0.5).norm1(), 1.);
+  v(1., 1., 1., -0.5, 1. / 6.);
 }
 
 // volume surplus test
