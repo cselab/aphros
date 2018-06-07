@@ -19,13 +19,54 @@ inline void Clip(Scal& a, Scal l, Scal u) {
 template <class Scal>
 inline void Clip(Scal& a) {
   Clip(a, 0., 1.);
-};
+}
+
+template <class T>
+inline T cube(T a) {
+  return a * a * a;
+}
+
+template <class T>
+inline T sqr(T a) {
+  return a * a;
+}
+
+template <class Scal>
+Scal SolveCubic(Scal a, Scal b, Scal c, Scal d) {
+  Scal p = (3. * a * c - b * b) / (3. * a * a);
+  Scal q = (2. * cube(b) - 9. * a * b * c + 27. * a * a * d) / (27. * cube(a));
+  int k = 1; // 0,1,2
+  Scal t1 = 2. * std::sqrt(-p / 3.) *
+      std::cos(
+          1. / 3. * 
+          std::acos(3. * q * std::sqrt(-3. / p) / (2. * p)) - 
+          2. * M_PI * k / 3.);
+}
 
 // GetLineA() helper
 // assuming 0 < u < 0.5, 0 < nx < ny < nz
 template <class Scal>
 inline Scal GetLineA0(Scal nx, Scal ny, Scal nz, Scal u) {
-  using Vect = GVect<Scal, 3>;
+  Scal f;
+
+  if (6. * ny * nz * u <= sqr(nx)) {
+    f = std::pow(6. * nx * ny * nz * u, 1. / 3.);
+  } else if (6. * ny * nz * u <= 3. * sqr(ny) - 3 * nx * ny + sqr(nx)) {
+    f = 0.5 * nx + std::sqrt(2. * ny * nz * u - sqr(nx) / 12.);
+  } else if (2. * nz * u < nx + ny && 
+      6. * nx * ny * nz * u < -cube(nz) + 3. * sqr(nz) * (nx + ny) -
+      3. * nz * (sqr(nx) + sqr(ny)) + cube(nx) + cube(ny)) {
+    f = 0.; // solve case 3
+  } else if (nx + ny <= nz) {
+    f = nz + 0.5 * (nx + ny); // solve case 4
+  } else {
+    f = 0.; // solve case 5
+  }
+
+  return f - 0.5 * (nx + ny + nz);
+}
+
+  /*
   Scal a;
   Vect n(nx, ny, nz);
 
@@ -73,6 +114,7 @@ inline Scal GetLineA0(Scal nx, Scal ny, Scal nz, Scal u) {
 
   return a - (nx + ny + nz) * 0.5;
 }
+*/
 
 // GetLineA() helper
 // assuming 0 < u < 0.5, 0 < nx < ny
@@ -150,48 +192,43 @@ inline Scal GetLineU0(Scal nx, Scal ny, Scal a) {
 }
 
 // GetLineU() helper
-// assuming a < 0, 0 < nx < ny < nz
+// assuming -0.5 * n.sum() < a < 0, 0 < nx < ny < nz
 template <class Scal>
 inline Scal GetLineU0(Scal nx, Scal ny, Scal nz, Scal a) {
-  a -= 0.5 * (nx + ny + nz);
-  Scal al = a + nx + ny + nz;
-  if (al <= 0.) {
+  Scal f = 0.5 * (nx + ny + nz) + a;
+
+  if (f <= 0) {
     return 0.;
   }
-  Scal t = nx + ny + nz;
-  if (al >= t * 0.5) {
-    return 0.5;
-  }
-  Scal n1 = nx / t;
-  Scal n2 = ny / t;
-  Scal n3 = nz / t;
-  al = std::max(0., std::min(1., al / t));
-  Scal al0 = std::min(al, 1. - al);
-  Scal b1 = std::min(n1*1, n2);
-  Scal b3 = std::max(n1*1, n2);
-  Scal b2 = n3;
-  if (b2 < b1) {
-    std::swap(b1, b2);
-  }
-  else if (b2 > b3) {
-    std::swap(b2, b3);
-  }
-  Scal b12 = b1 + b2;
-  Scal bm = std::min(b12, b3);
-  Scal pr = std::max(6.*b1*b2*b3, 1e-50);
-  if (al0 < b1)
-    t = al0*al0*al0/pr;
-  else if (al0 < b2)
-    t = 0.5*al0*(al0 - b1)/(b2*b3) +  b1*b1*b1/pr;
-  else if (al0 < bm)
-    t = (al0*al0*(3.*b12 - al0) + b1*b1*(b1 - 3.*al0) + b2*b2*(b2 - 3.*al0))/pr;
-  else if (b12 < b3)
-    t = (al0 - 0.5*bm)/b3;
-  else
-    t = (al0*al0*(3. - 2.*al0) + b1*b1*(b1 - 3.*al0) + 
-	   b2*b2*(b2 - 3.*al0) + b3*b3*(b3 - 3.*al0))/pr;
 
-  return std::min(0.5, std::max(0., t));
+  if (nx > f) {
+    return cube(f) / (6. * nx * ny * nz);
+  } else if (ny > f) {
+    return (3. * sqr(f) - 3. * f * nx + sqr(nx)) / (6. * ny * nz);
+  } else if (nz > f && nx + ny > f) {
+    nx = std::max(1e-50, nx);
+    return (3. * sqr(f) - 3. * f * nx + sqr(nx) -
+        std::min(1., (f - ny) / nx) * sqr(f - ny)) / (6. * ny * nz);
+  } else if (nz >= f && nx + ny <= f) {
+    return (2. * f - nx - ny) / (2. * nz);
+  } else {
+    return (cube(f) - cube(f - nx) - cube(f - ny) - cube(f - nz)) / 
+      (6. * nx * ny * nz);
+  }
+}
+
+// Sort to have a <= b <= c
+template <class T>
+inline void Sort(T& a, T& b, T& c) {
+  if (b < a) {
+    std::swap(a, b);
+  }
+  if (c < b) {
+    std::swap(b, c);
+  }
+  if (b < a) {
+    std::swap(a, b);
+  }
 }
 
 // GetLineU() helper for unit cell
@@ -209,15 +246,7 @@ inline Scal GetLineU1(const GVect<Scal, 3>& n, Scal a) {
   Scal ny = std::abs(n[1]);
   Scal nz = std::abs(n[2]);
 
-  if (ny < nx) {
-    std::swap(nx, ny);
-  }
-  if (nz < ny) {
-    std::swap(ny, nz);
-  }
-  if (ny < nx) {
-    std::swap(nx, ny);
-  }
+  Sort(nx, ny, nz);
   
   Clip(a, -0.5 * (nx + ny + nz), 0.5 * (nx + ny + nz));
 
