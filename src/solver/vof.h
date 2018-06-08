@@ -142,23 +142,30 @@ inline Scal GetLineU(const GVect<Scal, 3>& n, Scal a,
 template <class Scal>
 inline Scal GetLineA0(Scal nx, Scal ny, Scal nz, Scal u) {
   Scal f;
-  if (6. * ny * nz * u <= sqr(nx)) {
+  if (6. * ny * nz * u < sqr(nx)) {
     f = std::pow(6. * nx * ny * nz * u, 1. / 3.);
-  } else if (6. * ny * nz * u <= 3. * sqr(ny) - 3 * nx * ny + sqr(nx)) {
+  } else if (6. * ny * nz * u < 3. * sqr(ny) - 3 * nx * ny + sqr(nx)) {
     f = 0.5 * nx + std::sqrt(2. * ny * nz * u - sqr(nx) / 12.);
-  } else if (nz >= nx + ny) {
+  } else if (nz > nx + ny) {
     if (2. * nz * u < nx + ny) {
-      f = SolveCubic(1., -3. * (nx + ny), 3. * (sqr(nx) + sqr(ny)), 
-            -(cube(nx) + cube(ny)) + 6. * nx * ny * nz * u, 1)
-            +0*(nx + ny) * 1.0;
+      f = SolveCubic(1., -3. * (nx + ny), 
+          3. * (sqr(nx) + sqr(ny)), 
+          -(cube(nx) + cube(ny)) + 6. * nx * ny * nz * u, 1);
     } else {
       f = nz * u + 0.5 * (nx + ny); 
     }
   } else {
-    f = SolveCubic(2., -3. * (nx + ny + nz),
-        3. * (sqr(nx) + sqr(ny) + sqr(nz)),
-        -(cube(nx) + cube(ny) + cube(nz)) + 6. * nx * ny * nz * u, 1) 
-        +0*(nx + ny + nz) * 0.5;
+    if (6. * nx * ny * nz * u < 
+        -cube(nz) + 3. * sqr(nz) * (nx + ny) 
+        -3. * nz * (sqr(nx) + sqr(ny)) + cube(nx) + cube(ny)) {
+      f = SolveCubic(1., -3. * (nx + ny), 
+          3. * (sqr(nx) + sqr(ny)), 
+          -(cube(nx) + cube(ny)) + 6. * nx * ny * nz * u, 1);
+    } else {
+      f = SolveCubic(2., -3. * (nx + ny + nz),
+          3. * (sqr(nx) + sqr(ny) + sqr(nz)),
+          -(cube(nx) + cube(ny) + cube(nz)) + 6. * nx * ny * nz * u, 1);
+    }
   }
 
   return f - 0.5 * (nx + ny + nz);
