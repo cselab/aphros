@@ -100,6 +100,11 @@ inline void Sort(T& a, T& b, T& c) {
   }
 }
 
+template <class Scal>
+inline void Sort(GVect<Scal, 3>& v) {
+  Sort(v[0], v[1], v[2]);
+}
+
 // GetLineU() helper for unit cell
 // n : normal
 // a: line constant
@@ -108,21 +113,17 @@ inline void Sort(T& a, T& b, T& c) {
 // Equation of reconstructed line 
 // x.dot(n) = a
 template <class Scal>
-inline Scal GetLineU1(const GVect<Scal, 3>& n, Scal a) {
+inline Scal GetLineU1(const GVect<Scal, 3>& n0, Scal a) {
   using Vect = GVect<Scal, 3>;
 
-  Scal nx = std::abs(n[0]);
-  Scal ny = std::abs(n[1]);
-  Scal nz = std::abs(n[2]);
-
-  Sort(nx, ny, nz);
-  
-  Clip(a, -0.5 * (nx + ny + nz), 0.5 * (nx + ny + nz));
+  Vect n = n0.abs();
+  Sort(n);
+  Clip(a, -0.5 * n.sum(), 0.5 * n.sum());
 
   if (a < 0.) {
-    return GetLineU0(nx, ny, nz, a);
+    return GetLineU0(n[0], n[1], n[2], a);
   } else {
-    return 1. - GetLineU0(nx, ny, nz, -a);
+    return 1. - GetLineU0(n[0], n[1], n[2], -a);
   }
 }
 
@@ -192,21 +193,16 @@ inline Scal GetLineA0(Scal nx, Scal ny, Scal u) {
 // Equation of reconstructed line 
 // x.dot(n) = a
 template <class Scal>
-inline Scal GetLineA1(const GVect<Scal, 3>& n, Scal u) {
+inline Scal GetLineA1(const GVect<Scal, 3>& n0, Scal u) {
   using Vect = GVect<Scal, 3>;
-
-  Scal nx = std::abs(n[0]);
-  Scal ny = std::abs(n[1]);
-  Scal nz = std::abs(n[2]);
-
-  Sort(nx, ny, nz);
-
+  Vect n = n0.abs();
+  Sort(n);
   Clip(u);
 
   if (u < 0.5) {
-    return GetLineA0(nx, ny, nz, u);
+    return GetLineA0(n[0], n[1], n[2], u);
   } else {
-    return -GetLineA0(nx, ny, nz, 1. - u);
+    return -GetLineA0(n[0], n[1], n[2], 1. - u);
   }
 }
 
@@ -460,6 +456,42 @@ inline GVect<Scal, 3> GetNearest(const GVect<Scal, 3> x,
     return e[0];
   } 
   return e[1];
+}
+
+// GetCutPoly() helper for unit cell, 
+// assume 0 < nx < ny < nz, a < 0.
+template <class Scal>
+std::vector<GVect<Scal ,3>> GetCutPoly0(const GVect<Scal, 3>& n, Scal a) {
+  using Vect = GVect<Scal, 3>;
+  std::vector<Vect> xx;
+  Scal f = a + 0.5 * n.sum();
+  for (size_t d = 0; d < 3; ++d) {
+    Vect x(0);
+    x[d] = f / n[d];
+    xx.push_back(x);
+  }
+  return xx;
+}
+
+// GetCutPoly() helper for unit cell.
+template <class Scal>
+std::vector<GVect<Scal ,3>> GetCutPoly1(const GVect<Scal, 3>& n, Scal a) {
+  using Vect = GVect<Scal, 3>;
+  auto np = n.abs();
+}
+
+// Get polygon cut by cell
+// n: normal
+// a: line constant
+// h: cell size
+template <class Scal>
+std::vector<GVect<Scal, 3>> GetCutPoly(const GVect<Scal, 3>& n, Scal a,
+                             const GVect<Scal, 3>& h) {
+  auto xx = GetCutPoly0(n * h, a);
+  for (auto& x : xx) {
+    x *= h;
+  }
+  return xx;
 }
 
 template <class M_>
