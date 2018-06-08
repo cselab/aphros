@@ -30,21 +30,6 @@ void TestRandom() {
       n *= msk;
       n /= n.norm();
       Scal u = f(g);
-      Scal& nx = n[0];
-      Scal& ny = n[1];
-      Scal& nz = n[2];
-
-      solver::Sort(n[0], n[1], n[2]);
-      if (u < 0.5 && (
-            //6. * ny * nz * u <= nx * nx
-            //||
-            //6. * ny * nz * u <= 3. * sqr(ny) - 3 * nx * ny + sqr(nx)
-            2. * nz * u < nx + ny && 
-            6. * nx * ny * nz * u < -cube(nz) + 3. * sqr(nz) * (nx + ny) -
-            3. * nz * (sqr(nx) + sqr(ny)) + cube(nx) + cube(ny)
-            )
-          ) {} else {continue;}
-
       using namespace solver;
 
       Scal a = GetLineA1(n, u);
@@ -57,8 +42,9 @@ void TestRandom() {
         << " a=" << a 
         << std::endl;
 
-      //Vect h(0.1, 0.2, 0.3);
-      //e += std::abs(solver::GetLineU(n, solver::GetLineA(n, u, h), h) - u);
+      Vect h(0.1, 0.2, 0.3);
+      e += std::abs(solver::GetLineU(n, solver::GetLineA(n, u, h), h) - u);
+
       ++nis;
     }
     e /= nis;
@@ -381,7 +367,31 @@ void TestNearest() {
   f(Vect(1.1, 0.9, 0.), 1., 1., u, hx, hy, Vect(0.1, -0.1, 0.));
 }
 
+void Plot() {
+  using namespace solver;
+  Vect n(0.1, 0.1, 0.1);
+  {
+    std::string fn = "vof_a.dat";
+    std::ofstream f(fn);
+    for (Scal u = 0.; u < 1.+1e-6; u += 0.001) {
+      f << u << " " << GetLineA1(n, u) << "\n";
+    }
+  }
+
+  {
+    std::string fn = "vof_u.dat";
+    std::ofstream f(fn);
+    Scal nh = n.norm1() * 0.5;
+    for (Scal a = -nh; a < nh+1e-6; a += 0.001 * nh * 2.) {
+      f << a << " " << GetLineU1(n, a) << "\n";
+    }
+  }
+}
+
+
 int main() {
+  Plot();
+  return 0;
   TestRect();
   TestRandom();
   TestVol();

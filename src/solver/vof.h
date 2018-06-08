@@ -32,147 +32,15 @@ inline T sqr(T a) {
 }
 
 template <class Scal>
-Scal SolveCubic(Scal a, Scal b, Scal c, Scal d) {
+Scal SolveCubic(Scal a, Scal b, Scal c, Scal d, int k) {
   Scal p = (3. * a * c - b * b) / (3. * a * a);
   Scal q = (2. * cube(b) - 9. * a * b * c + 27. * a * a * d) / (27. * cube(a));
-  int k = 1; // 0,1,2
-  Scal t1 = 2. * std::sqrt(-p / 3.) *
+  Scal t = 2. * std::sqrt(-p / 3.) *
       std::cos(
-          1. / 3. * 
-          std::acos(3. * q * std::sqrt(-3. / p) / (2. * p)) - 
+          1. / 3. * std::acos(3. * q * std::sqrt(-3. / p) / (2. * p)) - 
           2. * M_PI * k / 3.);
-}
-
-// GetLineA() helper
-// assuming 0 < u < 0.5, 0 < nx < ny < nz
-template <class Scal>
-inline Scal GetLineA0(Scal nx, Scal ny, Scal nz, Scal u) {
-  Scal f;
-
-  if (6. * ny * nz * u <= sqr(nx)) {
-    f = std::pow(6. * nx * ny * nz * u, 1. / 3.);
-  } else if (6. * ny * nz * u <= 3. * sqr(ny) - 3 * nx * ny + sqr(nx)) {
-    f = 0.5 * nx + std::sqrt(2. * ny * nz * u - sqr(nx) / 12.);
-  } else if (2. * nz * u < nx + ny && 
-      6. * nx * ny * nz * u < -cube(nz) + 3. * sqr(nz) * (nx + ny) -
-      3. * nz * (sqr(nx) + sqr(ny)) + cube(nx) + cube(ny)) {
-    f = 0.; // solve case 3
-  } else if (nx + ny <= nz) {
-    f = nz + 0.5 * (nx + ny); // solve case 4
-  } else {
-    f = 0.; // solve case 5
-  }
-
-  return f - 0.5 * (nx + ny + nz);
-}
-
-  /*
-  Scal a;
-  Vect n(nx, ny, nz);
-
-  Scal m1, m2, m3;
-  m1 = nx;
-  m2 = ny;
-  m3 = nz;
-  Scal m12 = m1 + m2;
-  Scal pr = std::max(6.*m1*m2*m3, 1e-50);
-  Scal V1 = m1*m1*m1/pr;
-  Scal V2 = V1 + (m2 - m1)/(2.*m3), V3;
-  Scal mm;
-  if (m3 < m12) {
-    mm = m3;
-    V3 = (m3*m3*(3.*m12 - m3) + m1*m1*(m1 - 3.*m3) + m2*m2*(m2 - 3.*m3))/pr;
-  }
-  else {
-    mm = m12;
-    V3 = mm/(2.*m3);
-  }
-
-  Scal c = u;
-  if (c < V1)
-    a = pow (pr*c, 1./3.);
-  else if (c < V2)
-    a = (m1 + std::sqrt(m1*m1 + 8.*m2*m3*(c - V1)))/2.;
-  else if (c < V3) {
-    Scal p = 2.*m1*m2;
-    Scal q = 3.*m1*m2*(m12 - 2.*m3*c)/2.;
-    Scal p12 = std::sqrt(p);
-    Scal teta = std::acos(q/(p*p12))/3.;
-    Scal cs = std::cos(teta);
-    a = p12*(std::sqrt(3.*(1. - cs*cs)) - cs) + m12;
-  }
-  else if (m12 < m3)
-    a = m3*c + mm/2.;
-  else {
-    Scal p = m1*(m2 + m3) + m2*m3 - 1./4.;
-    Scal q = 3.*m1*m2*m3*(1./2. - c)/2.;
-    Scal p12 = std::sqrt(p);
-    Scal teta = std::acos(q/(p*p12))/3.;
-    Scal cs = std::cos(teta);
-    a = p12*(std::sqrt(3.*(1. - cs*cs)) - cs) + 1./2.;
-  }
-
-  return a - (nx + ny + nz) * 0.5;
-}
-*/
-
-// GetLineA() helper
-// assuming 0 < u < 0.5, 0 < nx < ny
-template <class Scal>
-inline Scal GetLineA0(Scal nx, Scal ny, Scal u) {
-  Scal u1 = 0.5 * nx / ny;
-  if (u <= u1) {
-    return -0.5 * (nx + ny) + std::sqrt(2. * nx * ny * u);
-  } else {
-    return ny * (u - 0.5);
-  }
-}
-
-// GetLineA() helper for unit cell.
-// n : normal
-// u: volume fraction
-// Returns:
-// a: line constant
-// Equation of reconstructed line 
-// x.dot(n) = a
-template <class Scal>
-inline Scal GetLineA1(const GVect<Scal, 3>& n, Scal u) {
-  using Vect = GVect<Scal, 3>;
-
-  Scal nx = std::abs(n[0]);
-  Scal ny = std::abs(n[1]);
-  Scal nz = std::abs(n[2]);
-  if (ny < nx) {
-    std::swap(nx, ny);
-  }
-  if (nz < ny) {
-    std::swap(ny, nz);
-  }
-  if (ny < nx) {
-    std::swap(nx, ny);
-  }
-  
-  Clip(u);
-
-  if (u < 0.5) {
-    return GetLineA0(nx, ny, nz, u);
-  } else {
-    return -GetLineA0(nx, ny, nz, 1. - u);
-  }
-}
-
-// Line constant by volume fraction in rectangular cell.
-// n : normal
-// u: volume fraction
-// h: cell size
-// Returns:
-// a: line constant
-// Equation of reconstructed line 
-// x.dot(n) = a
-template <class Scal>
-inline Scal GetLineA(const GVect<Scal, 3>& n, Scal u, 
-                     const GVect<Scal, 3>& h) {
-  return GetLineA1(n * h, u);
+  Scal x = t - b / (3. * a);
+  return x;
 }
 
 // GetLineU() helper
@@ -267,6 +135,85 @@ template <class Scal>
 inline Scal GetLineU(const GVect<Scal, 3>& n, Scal a, 
                      const GVect<Scal, 3>& h) {
   return GetLineU1(n * h, a);
+}
+
+// GetLineA() helper
+// assuming 0 < u < 0.5, 0 < nx < ny < nz
+template <class Scal>
+inline Scal GetLineA0(Scal nx, Scal ny, Scal nz, Scal u) {
+  Scal f;
+  if (6. * ny * nz * u <= sqr(nx)) {
+    f = std::pow(6. * nx * ny * nz * u, 1. / 3.);
+  } else if (6. * ny * nz * u <= 3. * sqr(ny) - 3 * nx * ny + sqr(nx)) {
+    f = 0.5 * nx + std::sqrt(2. * ny * nz * u - sqr(nx) / 12.);
+  } else if (nz >= nx + ny) {
+    if (2. * nz * u < nx + ny) {
+      f = SolveCubic(1., -3. * (nx + ny), 3. * (sqr(nx) + sqr(ny)), 
+            -(cube(nx) + cube(ny)) + 6. * nx * ny * nz * u, 1)
+            +0*(nx + ny) * 1.0;
+    } else {
+      f = nz * u + 0.5 * (nx + ny); 
+    }
+  } else {
+    f = SolveCubic(2., -3. * (nx + ny + nz),
+        3. * (sqr(nx) + sqr(ny) + sqr(nz)),
+        -(cube(nx) + cube(ny) + cube(nz)) + 6. * nx * ny * nz * u, 1) 
+        +0*(nx + ny + nz) * 0.5;
+  }
+
+  return f - 0.5 * (nx + ny + nz);
+}
+
+// GetLineA() helper
+// assuming 0 < u < 0.5, 0 < nx < ny
+template <class Scal>
+inline Scal GetLineA0(Scal nx, Scal ny, Scal u) {
+  Scal u1 = 0.5 * nx / ny;
+  if (u <= u1) {
+    return -0.5 * (nx + ny) + std::sqrt(2. * nx * ny * u);
+  } else {
+    return ny * (u - 0.5);
+  }
+}
+
+// GetLineA() helper for unit cell.
+// n : normal
+// u: volume fraction
+// Returns:
+// a: line constant
+// Equation of reconstructed line 
+// x.dot(n) = a
+template <class Scal>
+inline Scal GetLineA1(const GVect<Scal, 3>& n, Scal u) {
+  using Vect = GVect<Scal, 3>;
+
+  Scal nx = std::abs(n[0]);
+  Scal ny = std::abs(n[1]);
+  Scal nz = std::abs(n[2]);
+
+  Sort(nx, ny, nz);
+
+  Clip(u);
+
+  if (u < 0.5) {
+    return GetLineA0(nx, ny, nz, u);
+  } else {
+    return -GetLineA0(nx, ny, nz, 1. - u);
+  }
+}
+
+// Line constant by volume fraction in rectangular cell.
+// n : normal
+// u: volume fraction
+// h: cell size
+// Returns:
+// a: line constant
+// Equation of reconstructed line 
+// x.dot(n) = a
+template <class Scal>
+inline Scal GetLineA(const GVect<Scal, 3>& n, Scal u, 
+                     const GVect<Scal, 3>& h) {
+  return GetLineA1(n * h, u);
 }
 
 // GetLineVolX() helper
