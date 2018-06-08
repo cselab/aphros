@@ -105,6 +105,25 @@ inline void Sort(GVect<Scal, 3>& v) {
   Sort(v[0], v[1], v[2]);
 }
 
+// Returns sequence of indices r such that v[r] would be sorted
+template <class Scal>
+inline GVect<size_t, 3> Argsort(GVect<Scal, 3> v) {
+  GVect<size_t, 3> r(0, 1, 2);
+  if (v[1] < v[0]) {
+    std::swap(v[0], v[1]);
+    std::swap(r[0], r[1]);
+  }
+  if (v[2] < v[1]) {
+    std::swap(v[1], v[2]);
+    std::swap(r[1], r[2]);
+  }
+  if (v[1] < v[0]) {
+    std::swap(v[0], v[1]);
+    std::swap(r[0], r[1]);
+  }
+  return r;
+}
+
 // GetLineU() helper for unit cell
 // n : normal
 // a: line constant
@@ -478,8 +497,13 @@ template <class Scal>
 std::vector<GVect<Scal ,3>> GetCutPoly1(const GVect<Scal, 3>& n0, Scal a) {
   using Vect = GVect<Scal, 3>;
   auto n = n0.abs();
-  auto xx = GetCutPoly0(n, std::abs(a));
+  auto r = Argsort(n);
+  auto xx = GetCutPoly0(Vect(n[r[0]], n[r[1]], n[r[2]]), std::abs(a));
   for (auto& x : xx) {
+    Vect t = x;
+    for (size_t d = 0 ; d < Vect::dim; ++d) {
+      x[r[d]] = t[d];
+    }
     for (size_t d = 0 ; d < Vect::dim; ++d) {
       if (n0[d] * a > 0.) {
         x[d] *= -1.;
