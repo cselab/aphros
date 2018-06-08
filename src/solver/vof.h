@@ -672,7 +672,7 @@ class Vof : public AdvectionSolver<M_> {
       fc_n_[c] = g;
     }
   }
-  // Normal with heigh function
+  // Normal with height function
   // XXX: no curvature
   void CalcNormalHeight(const FieldCell<Scal>& uc) {
     using MIdx = typename M::MIdx;
@@ -720,68 +720,80 @@ class Vof : public AdvectionSolver<M_> {
       fc_n_[c] = tn;
     }
   }
-  // Normal with heighfunction evaluated at only two points
+  // Normal with height function evaluated at only two points
   void CalcNormalHeightLite(const FieldCell<Scal>& uc) {
     using MIdx = typename M::MIdx;
     using Dir = typename M::Dir;
     auto& bc = m.GetBlockCells();
     for (auto c : m.SuCells()) {
-      Vect tn; // bes[t] normal
-      Scal tl; // bes[t] s[l]ope with minimal abs
-      Scal tk; // bes[t] curvature[k]
-      // direction of line tangent
-      for (Dir d : {Dir::i, Dir::j}) {
-        // direction of line normal ([d]irection [p]erpendicular)
-        Dir dp(1 - size_t(d)); 
+      Vect bn; // [b]est normal
+      Scal blx; // [b]est s[l]ope with minimal abs
+      Scal bly; // [b]est s[l]ope with minimal abs
+      Scal bk; // [b]est curvature[k]
+      // direction of plane normal
+      for (Dir dn : {Dir::i, Dir::j, Dir::k}) {
+        // directions of plane tangents ([d]irection [t]angents)
+        Dir dtx((size_t(dn) + 1) % dim); 
+        Dir dty((size_t(dn) + 2) % dim); 
 
         MIdx w = bc.GetMIdx(c);
 
-        // offset in dp
-        MIdx op = MIdx(dp);
-
-        // index shifted in d
-        MIdx wm = bc.GetMIdx(c) - MIdx(d);
-        MIdx wp = bc.GetMIdx(c) + MIdx(d);
+        // offset in normal direction
+        MIdx o = MIdx(dn);
+        // offset in dtx,dty
+        MIdx otx = MIdx(dtx);
+        MIdx oty = MIdx(dty);
 
         // height function 
         const Scal h = 
-            uc[bc.GetIdx(w - op)] + 
+            uc[bc.GetIdx(w - o)] + 
             uc[bc.GetIdx(w)] + 
-            uc[bc.GetIdx(w + op)];
-        const Scal hm = 
-            uc[bc.GetIdx(wm - op)] + 
-            uc[bc.GetIdx(wm)] + 
-            uc[bc.GetIdx(wm + op)];
-        const Scal hp = 
-            uc[bc.GetIdx(wp - op)] + 
-            uc[bc.GetIdx(wp)] + 
-            uc[bc.GetIdx(wp + op)];
+            uc[bc.GetIdx(w + o)];
+        const Scal hxm = 
+            uc[bc.GetIdx(w - otx - o)] + 
+            uc[bc.GetIdx(w - otx)] + 
+            uc[bc.GetIdx(w - otx + o)];
+        const Scal hxp = 
+            uc[bc.GetIdx(w + otx - o)] + 
+            uc[bc.GetIdx(w + otx)] + 
+            uc[bc.GetIdx(w + otx + o)];
+        const Scal hym = 
+            uc[bc.GetIdx(w - oty - o)] + 
+            uc[bc.GetIdx(w - oty)] + 
+            uc[bc.GetIdx(w - oty + o)];
+        const Scal hyp = 
+            uc[bc.GetIdx(w + oty - o)] + 
+            uc[bc.GetIdx(w + oty)] + 
+            uc[bc.GetIdx(w + oty + o)];
 
-        const Scal dx = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(wm)));
-
-        
+        // mesh step
+        const Scal dx = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - otx)));
+        const Scal dy = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - oty)));
         // slope
-        Scal lc = (hp - hm) * 0.5; // centered
-        Scal l = lc; // XXX: choose centered approx
-        // sign in dp
-        Scal sg = uc[bc.GetIdx(w + MIdx(dp))] - uc[bc.GetIdx(w - MIdx(dp))];
+        Scal lx = (hxp - hxm) * 0.5;  // centered
+        Scal ly = (hyp - hym) * 0.5; 
+        // sign in dn
+        Scal sg = uc[bc.GetIdx(w + MIdx(dn))] - uc[bc.GetIdx(w - MIdx(dn))];
         // curvature
-        Scal k = -(hp - 2. * h + hm) / std::pow(1. + l * l, 3. / 2.) / dx;
+        Scal k = -(hxp - 2. * h + hxm) / std::pow(1. + lx * lx, 3. / 2.) / dx;
         // normal
         Vect n;
-        n[size_t(d)] = -l;
-        n[size_t(dp)] = sg > 0. ? -1. : 1.;
-        // select best with minimal abs
-        if (d == Dir::i || std::abs(l) < std::abs(tl)) {
-          tn = n;
-          tl = l;
-          tk = k;
+        n[size_t(dtx)] = -lx;
+        n[size_t(dty)] = -ly;
+        n[size_t(dn)] = sg > 0. ? -1. : 1.;
+        // select best with minimal slope
+        if (dn == Dir::i || 
+            std::abs(lx) + std::abs(ly) < std::abs(blx) + std::abs(bly)) {
+          bn = n;
+          blx = lx;
+          bly = ly;
+          bk = k;
         } 
       }
-      fc_n_[c] = tn;
+      fc_n_[c] = bn;
       Scal u = uc[c];
       const Scal th = 1e-6;
-      fck_[c] = tk * (u > th && u < 1. - th ? 1. : 0.);
+      fck_[c] = bk * (u > th && u < 1. - th ? 1. : 0.);
     }
   }
   void Reconst(const FieldCell<Scal>& uc) {
