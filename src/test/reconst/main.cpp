@@ -22,8 +22,9 @@ void TestRandom() {
   auto t = [](Vect msk, std::string s) {
     std::default_random_engine g(0);
     std::uniform_real_distribution<double> f(0.,1.);
-    size_t ni = 100;
+    size_t ni = 10000;
     Scal e = 0.; // error
+    Scal em = 0.; // error max
     size_t nis = 0; // sucessful samples
     for (size_t i = 0; i < ni; ++i) {
       Vect n(f(g), f(g), f(g));
@@ -35,12 +36,15 @@ void TestRandom() {
       Scal a = GetLineA1(n, u);
       Scal uu = GetLineU1(n, a);
       e += std::abs(u - uu);
+      em = std::max(em, std::abs(u - uu));
 
+      /*
       std::cout << "n=" << n 
         << " u=" << u 
         << " uu=" << uu 
         << " a=" << a 
         << std::endl;
+      */
 
       Vect h(0.1, 0.2, 0.3);
       e += std::abs(solver::GetLineU(n, solver::GetLineA(n, u, h), h) - u);
@@ -48,7 +52,10 @@ void TestRandom() {
       ++nis;
     }
     e /= nis;
-    std::cerr << s + ": error=" << e << " samples=" << ni << std::endl;
+    std::cerr << s + ": eavg=" << e 
+        << " emax=" << em
+        << " samples=" << ni 
+        << std::endl;
     //assert(e < 1e-14);
   };
   t(Vect(1., 0, 0.), "x");
@@ -121,7 +128,7 @@ void TestVol() {
     } else {
       dv = solver::GetLineVolY(n, a, h, dx);
     }
-    std::cerr 
+    std::cerr << std::setprecision(16)
         << "n=" << n
         << " u=" << u
         << " h=" << h
@@ -130,7 +137,7 @@ void TestVol() {
         << " dv=" << dv
         << " dve=" << dve
         << std::endl;
-    assert(std::abs(dv - dve) < 1e-12);
+    assert(std::abs(dv - dve) < 1e-6);
   };
 
   Scal nx, ny, u, hx, hy, dx;
@@ -246,7 +253,7 @@ void TestVolStr() {
         << " dv=" << dv
         << " dve=" << dve
         << std::endl;
-    assert(std::abs(dv - dve) < 1e-12);
+    assert(std::abs(dv - dve) < 1e-7);
   };
 
   Scal nx, ny, u, hx, hy, dx, dxu;
@@ -307,7 +314,7 @@ void TestCenter() {
         << " c=" << c
         << " ce=" << ce
         << std::endl;
-    assert((c - ce).norm() < 1e-12);
+    assert((c - ce).norm() < 1e-8);
   };
 
   Scal nx, ny, u, hx, hy;
@@ -349,7 +356,7 @@ void TestNearest() {
         << " p=" << p
         << " pe=" << pe
         << std::endl;
-    assert((p - pe).norm() < 1e-12);
+    assert((p - pe).norm() < 1e-8);
   };
 
   Scal nx, ny, u, hx, hy;
