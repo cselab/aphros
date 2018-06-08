@@ -217,6 +217,13 @@ class GVect {
     o -= *this;
     return o.sqrnorm();
   }
+  Scal sum() const {
+    Scal r = 0;
+    for (size_t i = 0; i < dim; ++i) {
+      r += comp_[i];
+    }
+    return r;
+  }
   Scal prod() const {
     Scal r = comp_[0];
     for (size_t i = 1; i < dim; ++i) {
@@ -235,6 +242,13 @@ class GVect {
     Scal r = 0;
     for (size_t i = 0; i < dim; ++i) {
       r = std::max(r, std::abs(comp_[i]));
+    }
+    return r;
+  }
+  GVect abs() const {
+    GVect r = *this;
+    for (size_t i = 0; i < dim; ++i) {
+      r[i] = std::abs(r[i]);
     }
     return r;
   }
