@@ -293,13 +293,16 @@ void Advection<M>::Dump(Sem& sem) {
             Vect h = GetCellSize(gm);
             for (auto c : gm.Cells()) {
               if (0.5 - std::abs(u[c] - 0.5) > 1e-3) {
-                auto ee = solver::GetLineEnds(
-                    Vect(nx[c], ny[c], nz[c]), a[c], h);
+                Vect n(nx[c], ny[c], nz[c]);
+                /*
+                auto ee = solver::GetLineEnds(n, a[c], h);
                 Vect ea = ee[0];
                 Vect eb = ee[1];
                 auto xc = gm.GetCenter(c);
                 Vect dz(0.,0.,h[2]*0.5);
                 vv.push_back({xc+ea-dz, xc+eb-dz, xc+eb+dz, xc+ea+dz});
+                */
+                vv.push_back(solver::GetCutPoly(gm.GetCenter(c), n, a[c], h));
               }
             }
             auto fn = "s." + std::to_string(dmf_.GetN()) + ".vtk";
