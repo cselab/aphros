@@ -369,7 +369,7 @@ void TestNearest() {
 
 void Plot() {
   using namespace solver;
-  Vect n(0.1, 0.1, 0.1);
+  Vect n(0.1, 0.2, 0.29);
   {
     std::string fn = "vof_a.dat";
     std::ofstream f(fn);
@@ -391,7 +391,6 @@ void Plot() {
 
 int main() {
   Plot();
-  return 0;
   TestRect();
   TestRandom();
   TestVol();
