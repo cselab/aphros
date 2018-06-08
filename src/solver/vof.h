@@ -466,8 +466,8 @@ std::vector<GVect<Scal ,3>> GetCutPoly0(const GVect<Scal, 3>& n, Scal a) {
   std::vector<Vect> xx;
   Scal f = a + 0.5 * n.sum();
   for (size_t d = 0; d < 3; ++d) {
-    Vect x(0);
-    x[d] = f / n[d];
+    Vect x(-0.5);
+    x[d] += std::min(1., n[d] == 0. ? 1. :  f / n[d]);
     xx.push_back(x);
   }
   return xx;
@@ -475,21 +475,46 @@ std::vector<GVect<Scal ,3>> GetCutPoly0(const GVect<Scal, 3>& n, Scal a) {
 
 // GetCutPoly() helper for unit cell.
 template <class Scal>
-std::vector<GVect<Scal ,3>> GetCutPoly1(const GVect<Scal, 3>& n, Scal a) {
+std::vector<GVect<Scal ,3>> GetCutPoly1(const GVect<Scal, 3>& n0, Scal a) {
   using Vect = GVect<Scal, 3>;
-  auto np = n.abs();
+  auto n = n0.abs();
+  auto xx = GetCutPoly0(n, std::abs(a));
+  for (auto& x : xx) {
+    for (size_t d = 0 ; d < Vect::dim; ++d) {
+      if (n0[d] * a > 0.) {
+        x[d] *= -1.;
+      }
+    }
+  }
+  return xx;
 }
 
-// Get polygon cut by cell
+// Get polygon cut by cell, cell center at 0
 // n: normal
 // a: line constant
 // h: cell size
 template <class Scal>
-std::vector<GVect<Scal, 3>> GetCutPoly(const GVect<Scal, 3>& n, Scal a,
-                             const GVect<Scal, 3>& h) {
-  auto xx = GetCutPoly0(n * h, a);
+std::vector<GVect<Scal, 3>> GetCutPoly2(const GVect<Scal, 3>& n, Scal a,
+                                        const GVect<Scal, 3>& h) {
+  auto xx = GetCutPoly1(n * h, a);
   for (auto& x : xx) {
     x *= h;
+  }
+  return xx;
+}
+
+// Get polygon cut by cell
+// xc: cell center
+// n: normal
+// a: line constant
+// h: cell size
+template <class Scal>
+std::vector<GVect<Scal, 3>> GetCutPoly(const GVect<Scal, 3>& xc,
+                                       const GVect<Scal, 3>& n, Scal a,
+                                       const GVect<Scal, 3>& h) {
+  auto xx = GetCutPoly2(n, a, h);
+  for (auto& x : xx) {
+    x += xc;
   }
   return xx;
 }
