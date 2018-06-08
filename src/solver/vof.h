@@ -34,11 +34,12 @@ inline T sqr(T a) {
 template <class Scal>
 Scal SolveCubic(Scal a, Scal b, Scal c, Scal d, int k) {
   Scal p = (3. * a * c - b * b) / (3. * a * a);
+  p = std::min(p, 0.);
   Scal q = (2. * cube(b) - 9. * a * b * c + 27. * a * a * d) / (27. * cube(a));
+  Scal r = 3. * q * std::sqrt(-3. / p) / (2. * p);
+  r = std::max(-1., std::min(1., r));
   Scal t = 2. * std::sqrt(-p / 3.) *
-      std::cos(
-          1. / 3. * std::acos(3. * q * std::sqrt(-3. / p) / (2. * p)) - 
-          2. * M_PI * k / 3.);
+      std::cos(1. / 3. * std::acos(r) - 2. * M_PI * k / 3.);
   Scal x = t - b / (3. * a);
   return x;
 }
@@ -52,7 +53,7 @@ inline Scal GetLineU0(Scal nx, Scal ny, Scal a) {
     if (nx == 0.) { // TODO revise
       return 0.;
     } else {
-      return std::pow(a + 0.5 * (nx + ny), 2) / (2. * nx * ny);
+      return sqr(a + 0.5 * (nx + ny)) / (2. * nx * ny);
     }
   } else {
     return 0.5 + a / ny;
