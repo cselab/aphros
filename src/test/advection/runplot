@@ -6,11 +6,11 @@ make
 ./clean
 #c=uni.conf
 #c=str.conf
-#c=a.conf
+c=a.conf
 #c=circle.conf
 #c=circlelast.conf
 #c=circleplain.conf
-c=sphere.conf
+#c=sphere.conf
 
 time ./t.advection $c
 time ./plot.py

@@ -876,18 +876,34 @@ class Vof : public AdvectionSolver<M_> {
     using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
     auto& bf = m.GetBlockFaces();
-    std::vector<Dir> dd;
-    if (count_ % 3 == 0) {
-      dd = {Dir::i, Dir::j, Dir::k};
-    } else if (count_ % 3 == 1) {
-      dd = {Dir::j, Dir::k, Dir::i};
+    // directions, format: {dir LE, dir EI, ...}
+    std::vector<size_t> dd; 
+    Scal vsc; // scaling factor for ffv, used for splitting
+    if (0) { // 3d
+      if (count_ % 3 == 0) {
+        dd = {0, 1, 1, 2, 2, 0};
+      } else if (count_ % 3 == 1) {
+        dd = {1, 2, 2, 0, 0, 1};
+      } else {
+        dd = {2, 0, 0, 1, 1, 2};
+      }
+      vsc = 0.5;
     } else {
-      dd = {Dir::k, Dir::i, Dir::j};
+      if (count_ % 2 == 0) {
+        dd = {0, 1};
+      } else {
+        dd = {1, 0};
+      } 
+      vsc = 1.0;
     }
-    for (Dir d : dd) {
+    for (size_t id = 0; id < dd.size(); ++id) {
+      size_t d = dd[id]; // direction as index
+      Dir md(d); // direction as Dir
+      MIdx wd(md); // offset in direction d
       auto& uc = fc_u_.iter_curr;
       auto& bc = m.GetBlockCells();
       auto& bf = m.GetBlockFaces();
+      // TODO: fluxes computed twice, consider buffer
       if (sem("adv")) {
         auto h = GetCellSize();
         auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
@@ -896,11 +912,11 @@ class Vof : public AdvectionSolver<M_> {
           auto w = bc.GetMIdx(c);
           const Scal lc = m.GetVolume(c);
           // faces
-          IdxFace fm = bf.GetIdx(w, d);
-          IdxFace fp = bf.GetIdx(w + MIdx(d), d);
+          IdxFace fm = bf.GetIdx(w, md);
+          IdxFace fp = bf.GetIdx(w + wd, md);
           // mixture volume fluxes
-          const Scal vm = ffv[fm];
-          const Scal vp = ffv[fp];
+          const Scal vm = ffv[fm] * vsc;
+          const Scal vp = ffv[fp] * vsc;
           // mixture volume cfl
           const Scal sm = vm * dt / lc;
           const Scal sp = vp * dt / lc;
@@ -908,18 +924,10 @@ class Vof : public AdvectionSolver<M_> {
           // upwind cells
           IdxCell cum = m.GetNeighbourCell(fm, vm > 0. ? 0 : 1);
           IdxCell cup = m.GetNeighbourCell(fp, vp > 0. ? 0 : 1);
-          // phase 1 volume fluxes
-          Scal qm, qp; 
-          if (d == dd[0]) { // Euler Implicit
-            if (d == Dir::i) {
-              qm = GetLineFlux(fc_n_[cum], fc_a_[cum], h, vm, dt, 0);
-              qp = GetLineFlux(fc_n_[cup], fc_a_[cup], h, vp, dt, 0);
-            } else if (d == Dir::j) {
-              qm = GetLineFlux(fc_n_[cum], fc_a_[cum], h, vm, dt, 1);
-              qp = GetLineFlux(fc_n_[cup], fc_a_[cup], h, vp, dt, 1);
-            } else if (d == Dir::k) {
-              // nop
-            }
+          if (id % 2 == 0) { // Euler Implicit
+            // phase 1 volume fluxes TODO: rename mixture to q, phase 1 to smth
+            Scal qm = GetLineFlux(fc_n_[cum], fc_a_[cum], h, vm, dt, d);
+            Scal qp = GetLineFlux(fc_n_[cup], fc_a_[cup], h, vp, dt, d);
             // phase 1 cfl
             const Scal lm = qm * dt / lc;
             const Scal lp = qp * dt / lc;
@@ -927,20 +935,14 @@ class Vof : public AdvectionSolver<M_> {
             uc[c] = (uc[c] - dl) / (1. - ds);
           } else { // Lagrange Explicit
             // upwind faces
-            IdxFace fum = bf.GetIdx(vm > 0. ? w - MIdx(d) : w, d);
-            IdxFace fup = bf.GetIdx(vp > 0. ? w : w + MIdx(d), d);
+            IdxFace fum = bf.GetIdx(vm > 0. ? w - wd : w, md);
+            IdxFace fup = bf.GetIdx(vp > 0. ? w : w + wd, md);
             // upwind fluxes
-            Scal vum = ffv[fum];
-            Scal vup = ffv[fup];
-            if (d == Dir::i) {
-              qm = GetLineFluxStr(fc_n_[cum], fc_a_[cum], h, vm, vum, dt, 0);
-              qp = GetLineFluxStr(fc_n_[cup], fc_a_[cup], h, vp, vup, dt, 0);
-            } else if (d == Dir::j) {
-              qm = GetLineFluxStr(fc_n_[cum], fc_a_[cum], h, vm, vum, dt, 1);
-              qp = GetLineFluxStr(fc_n_[cup], fc_a_[cup], h, vp, vup, dt, 1);
-            } else if (d == Dir::k) {
-              // nop
-            }
+            Scal vum = ffv[fum] * vsc;
+            Scal vup = ffv[fup] * vsc;
+            // phase 1 volume fluxes
+            Scal qm = GetLineFluxStr(fc_n_[cum], fc_a_[cum], h, vm, vum, dt, d);
+            Scal qp = GetLineFluxStr(fc_n_[cup], fc_a_[cup], h, vp, vup, dt, d);
             // phase 1 cfl
             const Scal lm = qm * dt / lc;
             const Scal lp = qp * dt / lc;
