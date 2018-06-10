@@ -312,7 +312,7 @@ inline Scal GetLineVolStr(GVect<Scal, 3> n, Scal a,
                           const GVect<Scal, 3>& h, Scal dx, Scal dxu,
                           size_t d) {
   if (dx < 0.) {
-    n[0] = -n[0];
+    n[d] = -n[d];
     dx = -dx;
     dxu = -dxu;
   }
