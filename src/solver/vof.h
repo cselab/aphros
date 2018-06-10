@@ -482,13 +482,41 @@ inline GVect<Scal, 3> GetNearest(const GVect<Scal, 3> x,
 template <class Scal>
 std::vector<GVect<Scal ,3>> GetCutPoly0(const GVect<Scal, 3>& n, Scal a) {
   using Vect = GVect<Scal, 3>;
-  std::vector<Vect> xx;
+  std::vector<Vect> xx; // result
+
   Scal f = a + 0.5 * n.sum();
-  for (size_t d = 0; d < 3; ++d) {
-    Vect x(-0.5);
-    x[d] += std::min(1., n[d] == 0. ? 1. :  f / n[d]);
-    xx.push_back(x);
+  Scal nx = n[0], ny = n[1], nz = n[2];
+  Vect b(-0.5); // base
+
+  if (nx > f) {
+    xx.push_back(b + Vect(f / nx, 0., 0.));
+    xx.push_back(b + Vect(0., f / ny, 0.));
+    xx.push_back(b + Vect(0., 0., f / nz));
+  } else if (ny > f) {
+    xx.push_back(b + Vect(1., 0., (f - nx) / nz));
+    xx.push_back(b + Vect(1., (f - nx) / ny, 0.));
+    xx.push_back(b + Vect(0., f / ny, 0.));
+    xx.push_back(b + Vect(0., 0., f / nz));
+  } else if (nz > f && nx + ny > f) {
+    xx.push_back(b + Vect(1., 0., (f - nx) / nz));
+    xx.push_back(b + Vect(1., (f - nx) / ny, 0.));
+    xx.push_back(b + Vect((f - ny) / nx, 1., 0.));
+    xx.push_back(b + Vect(0., 1., (f - ny) / nz));
+    xx.push_back(b + Vect(0., 0., f / nz));
+  } else if (nz >= f && nx + ny <= f) {
+    xx.push_back(b + Vect(0., 0., f / nz));
+    xx.push_back(b + Vect(1., 0., (f - nx) / nz));
+    xx.push_back(b + Vect(1., 1., (a + 0.5 * (nz - nx - ny)) / nz));
+    xx.push_back(b + Vect(0., 1., (f - ny) / nz));
+  } else {
+    xx.push_back(b + Vect(1., 0., (f - nx) / nz));
+    xx.push_back(b + Vect(1., (f - nx) / ny, 0.));
+    xx.push_back(b + Vect((f - ny) / nx, 1., 0.));
+    xx.push_back(b + Vect(0., 1., (f - ny) / nz));
+    xx.push_back(b + Vect(0., (f - nz) / ny, 1.));
+    xx.push_back(b + Vect((f - nz) / nx, 0., 1.));
   }
+
   return xx;
 }
 
@@ -498,7 +526,7 @@ std::vector<GVect<Scal ,3>> GetCutPoly1(const GVect<Scal, 3>& n0, Scal a) {
   using Vect = GVect<Scal, 3>;
   auto n = n0.abs();
   auto r = Argsort(n);
-  auto xx = GetCutPoly0(Vect(n[r[0]], n[r[1]], n[r[2]]), std::abs(a));
+  auto xx = GetCutPoly0(Vect(n[r[0]], n[r[1]], n[r[2]]), -std::abs(a));
   for (auto& x : xx) {
     Vect t = x;
     for (size_t d = 0 ; d < Vect::dim; ++d) {
