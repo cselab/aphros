@@ -6,7 +6,8 @@ make
 ./clean
 #c=uni.conf
 #c=str.conf
-c=a.conf
+#c=a.conf
+c=adump01.conf
 #c=circle.conf
 #c=circlelast.conf
 #c=circleplain.conf
