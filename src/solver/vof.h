@@ -239,18 +239,20 @@ inline Scal GetLineA(const GVect<Scal, 3>& n, Scal u,
   return GetLineA1(n * h, u);
 }
 
-// GetLineVolX() helper
+// GetLineVol() helper
 // assume dx > 0
 template <class Scal>
-inline Scal GetLineVolX0(const GVect<Scal, 3>& n, Scal a, 
-                        const GVect<Scal, 3>& h, Scal dx) {
+inline Scal GetLineVol0(const GVect<Scal, 3>& n, Scal a, 
+                        const GVect<Scal, 3>& h, Scal dx, size_t d) {
   using Vect = GVect<Scal, 3>;
   // Acceptor is a rectangular box adjacent to current cell.
-  Vect hh(dx, h[1], h[2]); // acceptor size
+  Vect hh = h; // acceptor size
+  hh[d] = dx;
   // Line constant for line advected by dx 
   // with origin at acceptor center
   // (e.g. shift 0 if dx=h[0], shift h[0]*0.5 if dx=0)
-  Vect dc = Vect((h[0] - dx) *  0.5, 0., 0.); // shift of center
+  Vect dc(0); // shift of center
+  dc[d] = (h[d] - dx) *  0.5; 
   Scal aa = a - n.dot(dc); // new line constant
   Scal uu = GetLineU(n, aa, hh); // volume fraction
   Scal vv = hh.prod(); // acceptor volume
@@ -259,38 +261,40 @@ inline Scal GetLineVolX0(const GVect<Scal, 3>& n, Scal a,
   return r;
 }
 
-// Volume surplus in downwind adjacent cell after advection in x.
+// Volume surplus in downwind adjacent cell after advection in direction d.
 // (right if dx > 0, left if dx < 0)
 // n : normal
 // a: line constant
 // h: cell size
 // dx: advection displacement in x
+// d: direction 0,1,2
 // Returns:
 // volume surplus in adjacent cell
 template <class Scal>
-inline Scal GetLineVolX(GVect<Scal, 3> n, Scal a, 
-                        const GVect<Scal, 3>& h, Scal dx) {
-  if (dx > 0.) {
-    return GetLineVolX0(n, a, h, dx);
-  } else {
-    n[0] = -n[0];
+inline Scal GetLineVol(GVect<Scal, 3> n, Scal a, 
+                        const GVect<Scal, 3>& h, Scal dx, size_t d) {
+  if (dx < 0.) {
+    n[d] = -n[d];
     dx = -dx;
-    return GetLineVolX0(n, a, h, dx);
   }
+  return GetLineVol0(n, a, h, dx, d);
 }
 
-// GetLineVolStrX() helper
+// GetLineVolStr() helper
 // assume dx > 0
 template <class Scal>
-inline Scal GetLineVolStrX0(const GVect<Scal, 3>& n, Scal a, 
-                            const GVect<Scal, 3>& h, Scal dx, Scal dxu) {
+inline Scal GetLineVolStr0(const GVect<Scal, 3>& n, Scal a, 
+                           const GVect<Scal, 3>& h, Scal dx, Scal dxu, 
+                           size_t d) {
   using Vect = GVect<Scal, 3>;
   Scal u = GetLineU(n, a, h); // volume fraction
-  Vect sh(h[0] + dx - dxu, h[1], h[2]); // stretched size
+  Vect sh = h; // stretched size
+  sh[d] = h[d] + dx - dxu;
   Vect sn = n / sh; // stretched normal
   Scal sa = GetLineA(sn, u, sh); // stretched line constant
-  Vect dc = Vect(dxu, 0., 0.); // shift of center
-  return GetLineVolX0(sn, sa, sh, dx);
+  Vect dc(0); // shift of center
+  dc[d] = dxu;
+  return GetLineVol0(sn, sa, sh, dx, d);
 }
 
 // Volume surplus in downwind adjacent cell after stretching in x
@@ -300,66 +304,36 @@ inline Scal GetLineVolStrX0(const GVect<Scal, 3>& n, Scal a,
 // h: cell size
 // dx: displacement in x
 // dxu: displacement in x of the other face upwind
+// d: direction 0,1,2
 // Returns:
 // volume surplus in adjacent cell
 template <class Scal>
-inline Scal GetLineVolStrX(GVect<Scal, 3> n, Scal a, 
-                        const GVect<Scal, 3>& h, Scal dx, Scal dxu) {
-  if (dx > 0.) {
-    return GetLineVolStrX0(n, a, h, dx, dxu);
-  } else {
+inline Scal GetLineVolStr(GVect<Scal, 3> n, Scal a, 
+                          const GVect<Scal, 3>& h, Scal dx, Scal dxu,
+                          size_t d) {
+  if (dx < 0.) {
     n[0] = -n[0];
     dx = -dx;
     dxu = -dxu;
-    return GetLineVolStrX0(n, a, h, dx, dxu);
   }
-}
-
-// Same as GetLineVolStrX in y.
-template <class Scal>
-inline Scal GetLineVolStrY(GVect<Scal, 3> n, Scal a, 
-                           GVect<Scal, 3> h, Scal dy, Scal dyu) {
-  std::swap(n[0], n[1]);
-  std::swap(h[0], h[1]);
-  return GetLineVolStrX(n, a, h, dy, dyu);
-}
-
-// Same as GetLineVolX in y.
-template <class Scal>
-inline Scal GetLineVolY(GVect<Scal, 3> n, Scal a, 
-                        GVect<Scal, 3> h, Scal dy) {
-  std::swap(n[0], n[1]);
-  std::swap(h[0], h[1]);
-  return GetLineVolX(n, a, h, dy);
+  return GetLineVolStr0(n, a, h, dx, dxu, d);
 }
 
 // Fluid volume flux to downwind adjacent cell in x.
 // n : normal
 // h: cell size
-// vx: mixture volume flux
+// q: mixture volume flux
 // dt: time step
+// d: direction 0,1,2
 // Returns:
 // fluid volume flux
 template <class Scal>
-inline Scal GetLineFluxX(const GVect<Scal, 3>& n, Scal a, 
-                         const GVect<Scal, 3>& h, Scal vx, Scal dt) {
-  Scal s = h[1] * h[2];  // face area
-  Scal dx = vx / s * dt; // displacement
-  Scal v = GetLineVolX(n, a, h, dx);
-  if (vx < 0.) {
-    v = -v;
-  }
-  return v / dt;
-}
-
-// Same as GetLineFluxX in y.
-template <class Scal>
-inline Scal GetLineFluxY(const GVect<Scal, 3>& n, Scal a, 
-                         const GVect<Scal, 3>& h, Scal vy, Scal dt) {
-  Scal s = h[0] * h[2];  // face area
-  Scal dy = vy / s * dt; // displacement
-  Scal v = GetLineVolY(n, a, h, dy);
-  if (vy < 0.) {
+inline Scal GetLineFlux(const GVect<Scal, 3>& n, Scal a, 
+                        const GVect<Scal, 3>& h, Scal q, Scal dt, size_t d) {
+  Scal s = h.prod() / h[d];  // face area
+  Scal dx = q / s * dt; // displacement
+  Scal v = GetLineVol(n, a, h, dx, d);
+  if (q < 0.) {
     v = -v;
   }
   return v / dt;
@@ -368,35 +342,21 @@ inline Scal GetLineFluxY(const GVect<Scal, 3>& n, Scal a,
 // Fluid volume flux to downwind adjacent cell in x after stretching.
 // n : normal
 // h: cell size
-// vx: mixture volume flux
-// vxu: mixture volume flux upwind face
+// q: mixture volume flux
+// qu: mixture volume flux upwind face
 // dt: time step
+// d: direction 0,1,2
 // Returns:
 // fluid volume flux
 template <class Scal>
-inline Scal GetLineFluxStrX(const GVect<Scal, 3>& n, Scal a, 
-                            const GVect<Scal, 3>& h, 
-                            Scal vx, Scal vxu, Scal dt) {
-  Scal s = h[1] * h[2];  // face area
-  Scal dx = vx / s * dt; // displacement
-  Scal dxu = vxu / s * dt; // displacement on upwind face
-  Scal v = GetLineVolStrX(n, a, h, dx, dxu);
-  if (vx < 0.) {
-    v = -v;
-  }
-  return v / dt;
-}
-
-// Same as GetLineFluxStrX in y.
-template <class Scal>
-inline Scal GetLineFluxStrY(const GVect<Scal, 3>& n, Scal a, 
-                            const GVect<Scal, 3>& h, 
-                            Scal vy, Scal vyu, Scal dt) {
-  Scal s = h[0] * h[2];  // face area
-  Scal dy = vy / s * dt; // displacement
-  Scal dyu = vyu / s * dt; // displacement
-  Scal v = GetLineVolStrY(n, a, h, dy, dyu);
-  if (vy < 0.) {
+inline Scal GetLineFluxStr(const GVect<Scal, 3>& n, Scal a, 
+                           const GVect<Scal, 3>& h, 
+                           Scal q, Scal qu, Scal dt, size_t d) {
+  Scal s = h.prod() / h[d];  // face area
+  Scal dx = q / s * dt; // displacement
+  Scal dxu = qu / s * dt; // displacement on upwind face
+  Scal v = GetLineVolStr(n, a, h, dx, dxu, d);
+  if (q < 0.) {
     v = -v;
   }
   return v / dt;
@@ -917,12 +877,13 @@ class Vof : public AdvectionSolver<M_> {
     using MIdx = typename M::MIdx;
     auto& bf = m.GetBlockFaces();
     std::vector<Dir> dd;
-    if (count_ % 2 == 0) {
-      dd = {Dir::i, Dir::j};
+    if (count_ % 3 == 0) {
+      dd = {Dir::i, Dir::j, Dir::k};
+    } else if (count_ % 3 == 1) {
+      dd = {Dir::j, Dir::k, Dir::i};
     } else {
-      dd = {Dir::j, Dir::i};
+      dd = {Dir::k, Dir::i, Dir::j};
     }
-    //if (0) // XXX zero velocity
     for (Dir d : dd) {
       auto& uc = fc_u_.iter_curr;
       auto& bc = m.GetBlockCells();
@@ -951,11 +912,11 @@ class Vof : public AdvectionSolver<M_> {
           Scal qm, qp; 
           if (d == dd[0]) { // Euler Implicit
             if (d == Dir::i) {
-              qm = GetLineFluxX(fc_n_[cum], fc_a_[cum], h, vm, dt);
-              qp = GetLineFluxX(fc_n_[cup], fc_a_[cup], h, vp, dt);
+              qm = GetLineFlux(fc_n_[cum], fc_a_[cum], h, vm, dt, 0);
+              qp = GetLineFlux(fc_n_[cup], fc_a_[cup], h, vp, dt, 0);
             } else if (d == Dir::j) {
-              qm = GetLineFluxY(fc_n_[cum], fc_a_[cum], h, vm, dt);
-              qp = GetLineFluxY(fc_n_[cup], fc_a_[cup], h, vp, dt);
+              qm = GetLineFlux(fc_n_[cum], fc_a_[cum], h, vm, dt, 1);
+              qp = GetLineFlux(fc_n_[cup], fc_a_[cup], h, vp, dt, 1);
             } else if (d == Dir::k) {
               // nop
             }
@@ -972,11 +933,11 @@ class Vof : public AdvectionSolver<M_> {
             Scal vum = ffv[fum];
             Scal vup = ffv[fup];
             if (d == Dir::i) {
-              qm = GetLineFluxStrX(fc_n_[cum], fc_a_[cum], h, vm, vum, dt);
-              qp = GetLineFluxStrX(fc_n_[cup], fc_a_[cup], h, vp, vup, dt);
+              qm = GetLineFluxStr(fc_n_[cum], fc_a_[cum], h, vm, vum, dt, 0);
+              qp = GetLineFluxStr(fc_n_[cup], fc_a_[cup], h, vp, vup, dt, 0);
             } else if (d == Dir::j) {
-              qm = GetLineFluxStrY(fc_n_[cum], fc_a_[cum], h, vm, vum, dt);
-              qp = GetLineFluxStrY(fc_n_[cup], fc_a_[cup], h, vp, vup, dt);
+              qm = GetLineFluxStr(fc_n_[cum], fc_a_[cum], h, vm, vum, dt, 1);
+              qp = GetLineFluxStr(fc_n_[cup], fc_a_[cup], h, vp, vup, dt, 1);
             } else if (d == Dir::k) {
               // nop
             }

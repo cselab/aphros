@@ -123,11 +123,7 @@ void TestVol() {
     n /= n.norm();
     Scal a = solver::GetLineA(n, u, h);
     Scal dv;
-    if (xx) {
-      dv = solver::GetLineVolX(n, a, h, dx);
-    } else {
-      dv = solver::GetLineVolY(n, a, h, dx);
-    }
+    dv = solver::GetLineVol(n, a, h, dx, xx ? 0 : 1);
     std::cerr << std::setprecision(16)
         << "n=" << n
         << " u=" << u
@@ -238,11 +234,7 @@ void TestVolStr() {
     n /= n.norm();
     Scal a = solver::GetLineA(n, u, h);
     Scal dv;
-    if (xx) {
-      dv = solver::GetLineVolStrX(n, a, h, dx, dxu);
-    } else {
-      dv = solver::GetLineVolStrY(n, a, h, dx, dxu);
-    }
+    dv = solver::GetLineVolStr(n, a, h, dx, dxu, xx ? 0 : 1);
     std::cerr 
         << "n=" << n
         << " u=" << u
