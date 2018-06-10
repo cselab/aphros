@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -ue
+
+make
+./clean
+c=a.conf
+
+time ./t.advection $c
+time ./plot.py
