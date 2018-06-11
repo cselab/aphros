@@ -738,6 +738,9 @@ class Vof : public AdvectionSolver<M_> {
     using Dir = typename M::Dir;
     auto& bc = m.GetBlockCells();
 
+    fc_n_.Reinit(m, Vect(0));
+    fck_.Reinit(m, 0);
+
     for (auto c : m.SuCells()) {
       Vect bn; // best normal
       Scal bhx, bhy; // best first derivative
@@ -880,6 +883,7 @@ class Vof : public AdvectionSolver<M_> {
             dt * (*fcs_)[c]; // source
       }
     }
+
     using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
     auto& bf = m.GetBlockFaces();
@@ -904,14 +908,14 @@ class Vof : public AdvectionSolver<M_> {
       vsc = 1.0;
     }
     for (size_t id = 0; id < dd.size(); ++id) {
-      size_t d = dd[id]; // direction as index
-      Dir md(d); // direction as Dir
-      MIdx wd(md); // offset in direction d
-      auto& uc = fc_u_.iter_curr;
-      auto& bc = m.GetBlockCells();
-      auto& bf = m.GetBlockFaces();
       // TODO: fluxes computed twice, consider buffer
       if (sem("adv")) {
+        size_t d = dd[id]; // direction as index
+        Dir md(d); // direction as Dir
+        MIdx wd(md); // offset in direction d
+        auto& uc = fc_u_.iter_curr;
+        auto& bc = m.GetBlockCells();
+        auto& bf = m.GetBlockFaces();
         auto h = GetCellSize();
         auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
         const Scal dt = this->GetTimeStep();
@@ -956,15 +960,26 @@ class Vof : public AdvectionSolver<M_> {
             const Scal dl = lp - lm;
             uc[c] = uc[c] * (1. + ds) - dl;
           }
-          Clip(uc[c]);
+        }
+
+        // clip
+        const Scal th = 1e-6;
+        for (auto c : m.Cells()) {
+          Scal& u = uc[c];
+          if (u < th) {
+            u = 0.;
+          } else if (u > 1. - th) {
+            u = 1.;
+          }
         }
         m.Comm(&uc);
       }
       if (sem("reconst")) {
-        Reconst(uc);
+        Reconst(fc_u_.iter_curr);
       }
     }
 
+    // Curvature from gradient of volume fraction
     if (par->curvgrad && sem("curv")) {
       ffu_ = Interpolate(fc_u_.iter_curr, mfc_, m); // [s]
       fcg_ = Gradient(ffu_, m); // [s]
