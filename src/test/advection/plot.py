@@ -87,6 +87,27 @@ def PlotLines(ax, xa, ya, xb, yb):
     xy = xy.reshape((xa.size * 2, 2))
     ax.plot(*xy, c='k', alpha=0.9, lw=1)
 
+# assume 0 < nx < ny, a < 0
+def GetLineEnds(nx, ny, a):
+    xl = [(a + 0.5 * ny) / nx, (a + 0.5 * nx) / ny]
+    xr = [(a - 0.5 * ny) / nx, (a - 0.5 * nx) / ny]
+
+    e = []
+    if -0.5 <= xl[0] and xl[0] <= 0.5:
+        e.append([xl[0], -0.5])
+    if -0.5 <= xr[0] and xr[0] <= 0.5:
+        e.append([xr[0], 0.5])
+    if len(e) < 2 and -0.5 <= xl[1] and xl[1] <= 0.5:
+        e.append([-0.5, xl[1]])
+    if len(e) < 2 and -0.5 <= xr[1] and xr[1] <= 0.5:
+        e.append([0.5, xr[1]])
+
+    if len(e) == 1: # if only one point found, set second to the same
+        e.append(e[0])
+
+    return e
+
+
 # xc,yc: cell centers
 # a: line constants
 # nx, ny: unit normals
@@ -96,51 +117,31 @@ def PlotLines(ax, xa, ya, xb, yb):
 # Equation of line:
 # (x-xc)/h dot n = a
 def GetLines(xc, yc, a, nx, ny, hx, hy, u):
-    def ClipX(x, y, tx, ty, xmin, xmax):
-        xp = np.clip(x, xmin, xmax)
-        dx = xp - x
-        tx = np.where(tx == 0., 1e-10, tx)
-        dy = dx / tx * ty
-        return x + dx, y + dy
-    def ClipY(x, y, tx, ty, ymin, ymax):
-        y, x = ClipX(y, x, ty, tx, ymin, ymax)
-        return x, y
-    def Clip(x, y, tx, ty, xmin, xmax, ymin, ymax):
-        x, y = ClipX(x, y, tx, ty, xmin, xmax)
-        x, y = ClipY(x, y, tx, ty, ymin, ymax)
-        return x, y
     xc = xc.flatten()
     yc = yc.flatten()
     nx = nx.flatten()
     ny = ny.flatten()
     a = a.flatten()
     u = u.flatten()
-    # tangent
-    tx = ny
-    ty = -nx
-    # line center
-    xlc = xc + a * nx
-    ylc = yc + a * ny
-    # end points
-    xa = xlc - tx * hx
-    ya = ylc - ty * hy
-    xb = xlc + tx * hx
-    yb = ylc + ty * hy
-    # cell bounds
-    xcm = xc - hx * 0.5
-    ycm = yc - hy * 0.5
-    xcp = xc + hx * 0.5
-    ycp = yc + hy * 0.5
-    # clip
-    xa, ya = Clip(xa, ya, tx, ty, xcm, xcp, ycm, ycp)
-    xb, yb = Clip(xb, yb, tx, ty, xcm, xcp, ycm, ycp)
 
-    th = 1e-5
-    w = np.where((u > th) & (u < 1. - th))[0]
-    xa = xa[w]
-    ya = ya[w]
-    xb = xb[w]
-    yb = yb[w]
+    xa = []
+    ya = []
+    xb = []
+    yb = []
+    for i in range(len(xc)):
+        th = 1e-5
+        if u[i] > th and u[i] < 1. - th:
+            e = GetLineEnds(nx[i] * hx, ny[i] * hy, a[i])
+            if len(e) == 2:
+                xa.append(xc[i] + e[0][0] * hx)
+                ya.append(yc[i] + e[0][1] * hy)
+                xb.append(xc[i] + e[1][0] * hx)
+                yb.append(yc[i] + e[1][1] * hy)
+
+    xa = np.array(xa)
+    ya = np.array(ya)
+    xb = np.array(xb)
+    yb = np.array(yb)
 
     return xa, ya, xb, yb
 
