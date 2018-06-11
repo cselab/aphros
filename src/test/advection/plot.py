@@ -75,7 +75,7 @@ def PlotGrid(ax, x1, y1):
     plt.setp(ax.get_xticklabels(), visible=False)
     plt.setp(ax.get_yticklabels(), visible=False)
     ax.tick_params(axis='both', which='both', length=0)
-    ax.grid(True)
+    ax.grid(True, lw=0.5, c='0.', alpha=0.08)
 
 def PlotLines(ax, xa, ya, xb, yb):
     xa = xa.flatten()
@@ -85,7 +85,7 @@ def PlotLines(ax, xa, ya, xb, yb):
     xy = np.vstack((xa, xb, ya, yb))
     xy = xy.T
     xy = xy.reshape((xa.size * 2, 2))
-    ax.plot(*xy, c='r', alpha=0.5)
+    ax.plot(*xy, c='k', alpha=0.9, lw=1)
 
 # xc,yc: cell centers
 # a: line constants
@@ -174,28 +174,43 @@ def CmpCurv(x, y, u, k, kp, po):
     fig.savefig(po, dpi=300)
     plt.close()
 
-# Plot particles
+# Plot particle strings
 # ax: axes to plot on
 # p: path to csv with columns x,y,z,c (c: cell index)
+# sk: plot every sk string
 # Output:
 # plots particles on ax with color c
-def PlotPart(ax, p):
+def PlotPart(ax, p, sk=1):
     d = np.loadtxt(p, skiprows=1, delimiter=',')
     x,y,z,c = d.T
     c = c.astype(int)
-    ax.scatter(x, y, c=c, cmap=plt.get_cmap("Set1"), s=2, lw=0, zorder=10, alpha=0.5)
+
+
+    # separate particles strings by cell
     tt = dict()  # lists of indices in x
     for i in range(len(c)):
         ci = c[i]
         if not ci in tt:
             tt[ci] = []
         tt[ci].append(i)
-    for ci in tt.keys():
-        print(ci)
 
     # map cell index to color
     nc = 16
-    c = (c.astype(int) % nc).astype(float) / (nc - 1)
+    c = (c * (2 ** 31 - 1) % nc).astype(float) / (nc - 1)
+
+    cmap = plt.get_cmap("Set1")
+
+    # plot strings
+    n = 0
+    for i in tt:
+        if i % sk == 1:
+            ti = np.array(tt[i])
+            cl = cmap(c[ti[0]])
+            # connecting lines
+            ax.plot(x[ti], y[ti], c=cl, zorder=10, lw=1, alpha=0.5)
+            # points
+            ax.scatter(x[ti], y[ti], c=cl, s=2, lw=0.3, zorder=11, edgecolor='black')
+        n += 1
 
 
 pre = 'u'
@@ -236,7 +251,7 @@ for p in pp:
     pa = "partit.{:}.csv".format(n)
     if os.path.isfile(pa):
         print(pa)
-        PlotPart(ax, pa)
+        PlotPart(ax, pa, sk=5)
     PlotSave(fig, ax, po)
 
     # curvature k
