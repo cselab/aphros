@@ -739,10 +739,9 @@ class Vof : public AdvectionSolver<M_> {
     auto& bc = m.GetBlockCells();
 
     for (auto c : m.SuCells()) {
-      Vect bn; // [b]est normal
-      Scal blx; // [b]est s[l]ope with minimal abs
-      Scal bly; // [b]est s[l]ope with minimal abs
-      Scal bk; // [b]est curvature[k]
+      Vect bn; // best normal
+      Scal bhx, bhy; // best first derivative
+      Scal bk; // best curvature[k]
       // direction of plane normal
       for (Dir dn : {Dir::i, Dir::j, Dir::k}) {
         // directions of plane tangents ([d]irection [t]angents)
@@ -756,16 +755,18 @@ class Vof : public AdvectionSolver<M_> {
         // offset in dtx,dty
         MIdx otx = MIdx(dtx);
         MIdx oty = MIdx(dty);
-
+        // mesh step
+        const Scal lx = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - otx)));
+        const Scal ly = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - oty)));
+        const Scal ln = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - on)));
         // evaluates height function
         // o: offset from w
         auto hh = [&](MIdx o) -> Scal {
           return 
-            uc[bc.GetIdx(w + o - on)] + 
+            (uc[bc.GetIdx(w + o - on)] + 
             uc[bc.GetIdx(w + o)] + 
-            uc[bc.GetIdx(w + o + on)];
+            uc[bc.GetIdx(w + o + on)]) * ln;
         };
-        // TODO: revise for non-cubic cells
         // height function
         const Scal h = hh(MIdx(0));
         const Scal hxm = hh(-otx);
@@ -778,35 +779,33 @@ class Vof : public AdvectionSolver<M_> {
         const Scal hpm = hh(otx - oty);
         const Scal hpp = hh(otx + oty);
 
-        // mesh step
-        const Scal dx = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - otx)));
-        const Scal dy = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - oty)));
-        // first derivative
-        Scal lx = (hxp - hxm) * 0.5;  // centered
-        Scal ly = (hyp - hym) * 0.5; 
-        // sign in dn
-        Scal sg = uc[bc.GetIdx(w + MIdx(dn))] - uc[bc.GetIdx(w - MIdx(dn))];
+        // first derivative (slope)
+        Scal hx = (hxp - hxm) / (2. * lx);  // centered
+        Scal hy = (hyp - hym) / (2. * ly); 
+        // sign: +1 if u increases in dn
+        Scal sg = 
+            (uc[bc.GetIdx(w + on)] - uc[bc.GetIdx(w - on)] > 0. ? 1. : -1.);
         // second derivative 
-        Scal hxx = (hxp - 2. * h + hxm) / dx;
-        Scal hyy = (hyp - 2. * h + hym) / dx;
-        Scal hxy = ((hpm - hmm) * 0.5 - (hpp - hmp) * 0.5) * 0.5 / dx;
+        Scal hxx = (hxp - 2. * h + hxm) / (lx * lx);
+        Scal hyy = (hyp - 2. * h + hym) / (ly * ly);
+        Scal hxy = ((hpp - hmp) - (hpm - hmm)) / (4. * lx * ly);
         // curvature
-        //Scal k = -(hxp - 2. * h + hxm) / dx / 
-        //    std::pow(1. + lx * lx, 3. / 2.); // 2d
-        Scal k = (2. * lx * ly * hxy 
-            -(sqr(ly) + 1.) * hxx -(sqr(lx) + 1.) * hyy) / 
-            std::pow(sqr(lx) + sqr(ly) + 1., 3. / 2.);
-        // normal
+        //Scal k = -(hxp - 2. * h + hxm) / lx / 
+        //    std::pow(1. + hx * hx, 3. / 2.); // 2d
+        Scal k = (2. * hx * hy * hxy 
+            -(sqr(hy) + 1.) * hxx -(sqr(hx) + 1.) * hyy) / 
+            std::pow(sqr(hx) + sqr(hy) + 1., 3. / 2.);
+        // outer normal
         Vect n;
-        n[size_t(dtx)] = -lx;
-        n[size_t(dty)] = -ly;
-        n[size_t(dn)] = sg > 0. ? -1. : 1.;
+        n[size_t(dtx)] = -hx;
+        n[size_t(dty)] = -hy;
+        n[size_t(dn)] = -sg;
         // select best with minimal slope
         if (dn == Dir::i || 
-            std::abs(lx) + std::abs(ly) < std::abs(blx) + std::abs(bly)) {
+            std::abs(hx) + std::abs(hy) < std::abs(bhx) + std::abs(bhy)) {
           bn = n;
-          blx = lx;
-          bly = ly;
+          bhx = hx;
+          bhy = hy;
           bk = k;
         } 
       }
