@@ -10,8 +10,8 @@ make
 #c=adump01.conf
 #c=circle.conf
 #c=circlelast.conf
-#c=circleplain.conf
-c=sphere.conf
+c=circleplain.conf
+#c=sphere.conf
 
 time ./t.advection $c
 time ./plot.py

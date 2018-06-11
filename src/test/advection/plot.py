@@ -53,6 +53,15 @@ def PlotSave(fig, ax, po):
     fig.savefig(po, dpi=300)
     plt.close()
 
+from matplotlib.colors import LinearSegmentedColormap
+
+# u: 2d numpy array
+# po: output path
+def PlotFieldGray(ax, u, vmin=None, vmax=None):
+    cmap = LinearSegmentedColormap.from_list('mycmap', ['#c8c5bd', '#787672'])
+    ax.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation='nearest',
+              vmin=vmin, vmax=vmax, cmap=cmap)
+
 # u: 2d numpy array
 # po: output path
 def PlotField(ax, u, vmin=None, vmax=None):
@@ -76,7 +85,7 @@ def PlotLines(ax, xa, ya, xb, yb):
     xy = np.vstack((xa, xb, ya, yb))
     xy = xy.T
     xy = xy.reshape((xa.size * 2, 2))
-    ax.plot(*xy, c='r')
+    ax.plot(*xy, c='r', alpha=0.5)
 
 # xc,yc: cell centers
 # a: line constants
@@ -165,6 +174,18 @@ def CmpCurv(x, y, u, k, kp, po):
     fig.savefig(po, dpi=300)
     plt.close()
 
+# Plot particles
+# ax: axes to plot on
+# p: path to csv with columns x,y,z,c (c: cell index)
+# Output:
+# plots particles on ax with color c
+def PlotPart(ax, p):
+    d = np.loadtxt(p, skiprows=1, delimiter=',')
+    x,y,z,c = d.T
+    # map cell index to color
+    nc = 16
+    c = (c.astype(int) % nc).astype(float) / (nc - 1)
+    ax.scatter(x, y, c=c, cmap=plt.get_cmap("Set1"), s=2, lw=0, zorder=10, alpha=0.5)
 
 
 pre = 'u'
@@ -195,11 +216,17 @@ for p in pp:
     fig, ax = PlotInit()
     PlotGrid(ax, xn1, yn1)
     vmax = abs(u).max()
-    PlotField(ax, u, vmin=-vmax, vmax=vmax)
+    PlotFieldGray(ax, u, vmin=-vmax, vmax=vmax)
     #PlotField(ax, np.clip(u, 0., 1.))
     if all([e is not None for e in [a, nx, ny]]):
         l = GetLines(x, y, a, nx, ny, hx, hy, u)
         PlotLines(ax, *l)
+    # plot partilces
+    n = re.findall("_(\d*)\.", suf)[0]
+    pa = "partit.{:}.csv".format(n)
+    if os.path.isfile(pa):
+        print(pa)
+        PlotPart(ax, pa)
     PlotSave(fig, ax, po)
 
     # curvature k
@@ -210,12 +237,16 @@ for p in pp:
         PlotGrid(ax, xn1, yn1)
         vmax = 1. / 0.2 * 2.
         PlotField(ax, k, vmin=-vmax, vmax=vmax)
+        # plot lines
         if all([e is not None for e in [a, nx, ny]]):
             l = GetLines(x, y, a, nx, ny, hx, hy, u)
             PlotLines(ax, *l)
+
         PlotSave(fig, ax, po)
 
+    # plot curvature comparison
     kp = Get2d(Read('kp' + suf))
     if k is not None and kp is not None:
         po = os.path.splitext('kcmp' + suf)[0] + ".pdf"
         CmpCurv(x, y, u, k, kp, po)
+
