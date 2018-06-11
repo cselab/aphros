@@ -182,10 +182,20 @@ def CmpCurv(x, y, u, k, kp, po):
 def PlotPart(ax, p):
     d = np.loadtxt(p, skiprows=1, delimiter=',')
     x,y,z,c = d.T
+    c = c.astype(int)
+    ax.scatter(x, y, c=c, cmap=plt.get_cmap("Set1"), s=2, lw=0, zorder=10, alpha=0.5)
+    tt = dict()  # lists of indices in x
+    for i in range(len(c)):
+        ci = c[i]
+        if not ci in tt:
+            tt[ci] = []
+        tt[ci].append(i)
+    for ci in tt.keys():
+        print(ci)
+
     # map cell index to color
     nc = 16
     c = (c.astype(int) % nc).astype(float) / (nc - 1)
-    ax.scatter(x, y, c=c, cmap=plt.get_cmap("Set1"), s=2, lw=0, zorder=10, alpha=0.5)
 
 
 pre = 'u'
