@@ -637,7 +637,7 @@ class Vof : public AdvectionSolver<M_> {
         for (size_t i = 0; i < fcps_[c]; ++i) {
           Vect x = fcp_[c][i];
           o << x[0] << "," << x[1] << "," << x[2] 
-              << "," << (c.GetRaw() * 1234567 % 16) << "\n";
+              << "," << c.GetRaw() << "\n";
         }
       }
     }
