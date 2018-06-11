@@ -737,6 +737,7 @@ class Vof : public AdvectionSolver<M_> {
     using MIdx = typename M::MIdx;
     using Dir = typename M::Dir;
     auto& bc = m.GetBlockCells();
+
     for (auto c : m.SuCells()) {
       Vect bn; // [b]est normal
       Scal blx; // [b]est s[l]ope with minimal abs
@@ -751,43 +752,50 @@ class Vof : public AdvectionSolver<M_> {
         MIdx w = bc.GetMIdx(c);
 
         // offset in normal direction
-        MIdx o = MIdx(dn);
+        MIdx on = MIdx(dn);
         // offset in dtx,dty
         MIdx otx = MIdx(dtx);
         MIdx oty = MIdx(dty);
 
-        // height function 
-        const Scal h = 
-            uc[bc.GetIdx(w - o)] + 
-            uc[bc.GetIdx(w)] + 
-            uc[bc.GetIdx(w + o)];
-        const Scal hxm = 
-            uc[bc.GetIdx(w - otx - o)] + 
-            uc[bc.GetIdx(w - otx)] + 
-            uc[bc.GetIdx(w - otx + o)];
-        const Scal hxp = 
-            uc[bc.GetIdx(w + otx - o)] + 
-            uc[bc.GetIdx(w + otx)] + 
-            uc[bc.GetIdx(w + otx + o)];
-        const Scal hym = 
-            uc[bc.GetIdx(w - oty - o)] + 
-            uc[bc.GetIdx(w - oty)] + 
-            uc[bc.GetIdx(w - oty + o)];
-        const Scal hyp = 
-            uc[bc.GetIdx(w + oty - o)] + 
-            uc[bc.GetIdx(w + oty)] + 
-            uc[bc.GetIdx(w + oty + o)];
+        // evaluates height function
+        // o: offset from w
+        auto hh = [&](MIdx o) -> Scal {
+          return 
+            uc[bc.GetIdx(w + o - on)] + 
+            uc[bc.GetIdx(w + o)] + 
+            uc[bc.GetIdx(w + o + on)];
+        };
+        // TODO: revise for non-cubic cells
+        // height function
+        const Scal h = hh(MIdx(0));
+        const Scal hxm = hh(-otx);
+        const Scal hxp = hh(otx);
+        const Scal hym = hh(-oty);
+        const Scal hyp = hh(oty);
+        // corners: hxy
+        const Scal hmm = hh(-otx - oty);
+        const Scal hmp = hh(-otx + oty);
+        const Scal hpm = hh(otx - oty);
+        const Scal hpp = hh(otx + oty);
 
         // mesh step
         const Scal dx = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - otx)));
         const Scal dy = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - oty)));
-        // slope
+        // first derivative
         Scal lx = (hxp - hxm) * 0.5;  // centered
         Scal ly = (hyp - hym) * 0.5; 
         // sign in dn
         Scal sg = uc[bc.GetIdx(w + MIdx(dn))] - uc[bc.GetIdx(w - MIdx(dn))];
+        // second derivative 
+        Scal hxx = (hxp - 2. * h + hxm) / dx;
+        Scal hyy = (hyp - 2. * h + hym) / dx;
+        Scal hxy = ((hpm - hmm) * 0.5 - (hpp - hmp) * 0.5) * 0.5 / dx;
         // curvature
-        Scal k = -(hxp - 2. * h + hxm) / std::pow(1. + lx * lx, 3. / 2.) / dx;
+        //Scal k = -(hxp - 2. * h + hxm) / dx / 
+        //    std::pow(1. + lx * lx, 3. / 2.); // 2d
+        Scal k = (2. * lx * ly * hxy 
+            -(sqr(ly) + 1.) * hxx -(sqr(lx) + 1.) * hyy) / 
+            std::pow(sqr(lx) + sqr(ly) + 1., 3. / 2.);
         // normal
         Vect n;
         n[size_t(dtx)] = -lx;

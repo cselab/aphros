@@ -115,6 +115,13 @@ class GVect {
     tmp -= other;
     return tmp;
   }
+  GVect operator-() const {
+    GVect tmp(*this);
+    for (size_t i = 0; i < dim; ++i) {
+      tmp[i] = -tmp[i];
+    }
+    return tmp;
+  }
   GVect operator*(Scal k) const {
     GVect tmp(*this);
     tmp *= k;
