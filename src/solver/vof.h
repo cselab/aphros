@@ -1081,7 +1081,13 @@ class Vof : public AdvectionSolver<M_> {
                 Vect dp = xp - x;
                 // torque [length^2]
                 Scal tq = par->part_kbend * 
-                    (dm.norm() * dp.norm() + dm.dot(dp));
+                    dm.norm() * dp.norm() * 2. *
+                    //std::sqrt
+                    (
+                        0.5 * (1. + dm.dot(dp) / (dm.norm() * dp.norm())));
+                if (i == fcps_[c] / 2) {
+                  tq *= 2.;
+                }
                 // normal vectors [length]
                 Vect nm(-dm[1], dm[0], 0.);
                 Vect np(-dp[1], dp[0], 0.);
@@ -1130,18 +1136,23 @@ class Vof : public AdvectionSolver<M_> {
         for (auto c : m.Cells()) {
           // contains particles
           if (fcps_[c]) {
-            int i = fcps_[c] / 2;
-            int im = i - 1;
-            int ip = i + 1;
-            Vect x = fcp_[c][i];
-            Vect xm = fcp_[c][im];
-            Vect xp = fcp_[c][ip];
-            Vect dm = xm - x;
-            Vect dp = xp - x;
-            Scal lm = dm.norm();
-            Scal lp = dp.norm();
-            Scal lmp = lm * lp;
-            fckp_[c] = std::sqrt(2. * (lmp + dm.dot(dp))) / lmp;
+            // computes curvatures based on angle centered at i
+            auto kk = [&](int i) -> Scal {
+              int im = i - 1;
+              int ip = i + 1;
+              Vect x = fcp_[c][i];
+              Vect xm = fcp_[c][im];
+              Vect xp = fcp_[c][ip];
+              Vect dm = xm - x;
+              Vect dp = xp - x;
+              Scal lm = dm.norm();
+              Scal lp = dp.norm();
+              Scal lmp = lm * lp;
+              return std::sqrt(2. * (lmp + dm.dot(dp))) / lmp;
+            };
+            int ic = fcps_[c] / 2;
+            fckp_[c] = (kk(ic - 1) + 2. * kk(ic) + kk(ic + 1)) / 4.;
+            //fckp_[c] = kk(ic);
           }
         }
       }
