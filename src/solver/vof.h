@@ -501,7 +501,7 @@ std::vector<GVect<Scal ,3>> GetCutPoly1(const GVect<Scal, 3>& n0, Scal a) {
   return xx;
 }
 
-// Get polygon cut by cell, cell center at 0
+// Returns polygon cut by cell, cell center at 0
 // n: normal
 // a: line constant
 // h: cell size
@@ -515,7 +515,7 @@ std::vector<GVect<Scal, 3>> GetCutPoly2(const GVect<Scal, 3>& n, Scal a,
   return xx;
 }
 
-// Get polygon cut by cell
+// Returns polygon cut by cell
 // xc: cell center
 // n: normal
 // a: line constant
@@ -529,6 +529,23 @@ std::vector<GVect<Scal, 3>> GetCutPoly(const GVect<Scal, 3>& xc,
     x += xc;
   }
   return xx;
+}
+
+// Returns center (mean) of polygon cut by cell centered at 0
+// n: normal
+// a: line constant
+// h: cell size
+template <class Scal>
+GVect<Scal, 3> GetCenter(const GVect<Scal, 3>& n, Scal a,
+                         const GVect<Scal, 3>& h) {
+  auto xx = GetCutPoly2(n, a, h);
+  using Vect = GVect<Scal, 3>;
+  Vect xc(0);
+  for (auto& x : xx) {
+    xc += x;
+  }
+  xc /= xx.size();
+  return xc;
 }
 
 template <class M_>
@@ -1060,7 +1077,8 @@ class Vof : public AdvectionSolver<M_> {
                 if (u > 1e-3 && u < 1. - 1e-3) {
                   // nearest point to interface in cc
                   Vect xcc = m.GetCenter(cc);
-                  Vect xn = xcc + GetNearest(x - xcc, n, fc_a_[cc], h);
+                  //Vect xn = xcc + GetNearest(x - xcc, n, fc_a_[cc], h);
+                  Vect xn = xcc + GetCenter(n, fc_a_[cc], h);
                   if (!fnd || x.sqrdist(xn) < x.sqrdist(xb)) {
                     xb = xn;
                     fnd = true;
@@ -1079,22 +1097,21 @@ class Vof : public AdvectionSolver<M_> {
                 Vect xp = fcp_[c][ip];
                 Vect dm = xm - x;
                 Vect dp = xp - x;
-                // torque [length^2]
-                Scal tq = par->part_kbend * 
-                    (dm.norm() * dp.norm() + dm.dot(dp));
-                // normal vectors [length]
-                Vect nm(-dm[1], dm[0], 0.);
-                Vect np(-dp[1], dp[0], 0.);
-                // invert so they point inside angle
-                nm *= (nm.dot(dp) > 0. ? 1. : -1.);
-                np *= (np.dot(dm) > 0. ? 1. : -1.);
-                // forces [length]
-                Vect fm = nm * (-tq / dm.sqrnorm());
-                Vect fp = np * (-tq / dp.sqrnorm());
+                Scal lm = dm.norm();
+                Scal lp = dp.norm();
+                // forces
+                Vect fm = (dm * (dm.dot(dp) / (lm * lm)) - dp) *
+                    (par->part_kbend * std::sqrt(
+                        (lm * lp + dm.dot(dp)) / (lm * lp - dm.dot(dp))));
+                Vect fp = (dp * (dm.dot(dp) / (lp * lp)) - dm) *
+                    (par->part_kbend * std::sqrt(
+                        (lm * lp + dm.dot(dp)) / (lm * lp - dm.dot(dp))));
                 // apply
+                if (!IsNan(fm)) {
                 fcpt_[c][im] += fm;
                 fcpt_[c][ip] += fp;
                 fcpt_[c][i] -= (fm + fp);
+                }
               }
             }
           }
