@@ -445,7 +445,7 @@ class MeshStructured {
   }
 
   // Reduction operation.
-  class Op { // reduce operation
+  class Op { 
    public:
     virtual ~Op() {}
   };
@@ -455,10 +455,9 @@ class MeshStructured {
    public:
     // v: buffer containing current value and used for result
     OpT(T* v) : v_(v) {}
-    // a: accumulator
+    // Appends internal value to a
     virtual void Append(T& a) { Append(a, *v_); }
-    // a: accumulator
-    // v: value
+    // Appends v to a
     virtual void Append(T& a, const T& v) const = 0;
     // Returns neutral value a such that Append(a, v) would set a=v
     virtual T Neut() const = 0;
