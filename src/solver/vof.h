@@ -1023,6 +1023,12 @@ class Vof : public AdvectionSolver<M_> {
       m.Comm(&fck_);
     }
 
+    if (par->part && sem("part-comma")) {
+      m.Comm(&fc_n_);
+      m.Comm(&fc_a_);
+    }
+
+
     if (par->part && sem("part")) {
       auto& uc = fc_u_.iter_curr;
       auto& bc = m.GetBlockCells();
@@ -1045,6 +1051,21 @@ class Vof : public AdvectionSolver<M_> {
         DumpParticles(0);
       }
 
+      // oriented angle from (xi-xim) to (xip-xi) 
+      auto an = [&](int i, IdxCell c) {
+        int im = i - 1;
+        int ip = i + 1;
+        Vect x = fcp_[c][i];
+        Vect xm = fcp_[c][im];
+        Vect xp = fcp_[c][ip];
+        Vect dm = x - xm;
+        Vect dp = xp - x;
+        Scal lm = dm.norm();
+        Scal lp = dp.norm();
+        Scal sin = dm.cross_third(dp) / (lm * lp);
+        return std::asin(sin);
+      };
+
       // advance particles
       // XXX: advance only if plan to dump
       if (dm) {
@@ -1052,6 +1073,10 @@ class Vof : public AdvectionSolver<M_> {
           // compute correction
           for (auto c : m.Cells()) {
             // clear force (needed for bending as applied from each corner)
+            
+            // mean angle
+            Scal anm = (an(1,c) + an(2,c) + an(3,c)) / 3.; 
+
             for (int i = 0; i < fcps_[c]; ++i) {
               fcpt_[c][i] = Vect(0); 
             }
@@ -1083,8 +1108,8 @@ class Vof : public AdvectionSolver<M_> {
                 if (u > 1e-3 && u < 1. - 1e-3) {
                   // nearest point to interface in cc
                   Vect xcc = m.GetCenter(cc);
-                  //Vect xn = xcc + GetNearest(x - xcc, n, fc_a_[cc], h);
-                  Vect xn = xcc + GetCenter(n, fc_a_[cc], h);
+                  Vect xn = xcc + GetNearest(x - xcc, n, fc_a_[cc], h);
+                  //Vect xn = xcc + GetCenter(n, fc_a_[cc], h);
                   if (!fnd || x.sqrdist(xn) < x.sqrdist(xb)) {
                     xb = xn;
                     fnd = true;
@@ -1101,39 +1126,65 @@ class Vof : public AdvectionSolver<M_> {
                 int ip = i + 1;
                 Vect xm = fcp_[c][im];
                 Vect xp = fcp_[c][ip];
-                Vect dm = xm - x;
+                Vect dm = x - xm;
                 Vect dp = xp - x;
                 Scal lm = dm.norm();
                 Scal lp = dp.norm();
+                // normals to segments, <nm,dm> positively oriented
+                Vect nm = Vect(dm[1], -dm[0], 0.) / lm; 
+                Vect np = Vect(dp[1], -dp[0], 0.) / lp;
+                // torque
+                Scal t = par->part_kbend * lm * lp * (an(i,c) - anm);
                 // forces
+                Vect fm = nm * (t / (2. * lm));
+                Vect fp = np * (t / (2. * lp));
+                /*
                 Vect fm = (dm * (dm.dot(dp) / (lm * lm)) - dp) *
                     (par->part_kbend * std::sqrt(
                         (lm * lp + dm.dot(dp)) / (lm * lp - dm.dot(dp))));
                 Vect fp = (dp * (dm.dot(dp) / (lp * lp)) - dm) *
                     (par->part_kbend * std::sqrt(
                         (lm * lp + dm.dot(dp)) / (lm * lp - dm.dot(dp))));
+                        */
                 // apply
-                if (!IsNan(fm)) {
                 fcpt_[c][im] += fm;
                 fcpt_[c][ip] += fp;
                 fcpt_[c][i] -= (fm + fp);
-                }
               }
             }
           }
 
-          // compute correction norm
+          // compute error
           Scal tmax = 0.;
+          Scal anmax = 0.;
+          Scal anavg = 0; // aveage difference from mean angle
+          size_t anavgn = 0;
           for (auto c : m.Cells()) {
-            for (size_t i = 0; i < fcps_[c]; ++i) {
-              fcp_[c][i] += fcpt_[c][i] * par->part_relax;
-              tmax = std::max(tmax, fcpt_[c][i].norm());
+            if (fcps_[c]) {
+              // mean angle
+              Scal anm = (an(1,c) + an(2,c) + an(3,c)) / 3.; 
+              for (size_t i = 0; i < fcps_[c]; ++i) {
+                fcp_[c][i] += fcpt_[c][i] * par->part_relax;
+                tmax = std::max(tmax, fcpt_[c][i].norm());
+                if (i > 0 && i < fcps_[c] - 1) {
+                  Scal e = std::abs(anm - an(i, c));
+                  anavg += e;
+                  ++anavgn;
+                  anmax = std::max(anmax, e);
+                }
+              }
             }
           }
+          anavg /= anavgn;
           size_t dr = std::max<size_t>(1, 
               par->part_maxiter / par->part_report_fr);
           if (it % dr == 0 || it + 1 == par->part_maxiter) {
-            std::cout << "it=" << it << " dxmax=" << tmax << std::endl;
+            std::cout 
+                << "it=" << it 
+                << " dxmax=" << tmax 
+                << " anmax=" << anmax 
+                << " anavg=" << anavg 
+                << std::endl;
           }
 
           // advance
