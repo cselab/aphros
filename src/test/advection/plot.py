@@ -236,7 +236,7 @@ for p in pp:
     a = Get2d(Read('a' + suf)) # alpha
     nx = Get2d(Read('nx' + suf)) # normal
     ny = Get2d(Read('ny' + suf))
-    k = Get2d(Read('k' + suf))
+    k = Get2d(Read('kh' + suf))
 
     # volume fraction u
     po = os.path.splitext(p)[0] + ".pdf"
@@ -259,7 +259,7 @@ for p in pp:
 
     # curvature k
     if k is not None:
-        po = os.path.splitext('k' + suf)[0] + ".pdf"
+        po = os.path.splitext('kh' + suf)[0] + ".pdf"
         print(po)
         fig, ax = PlotInit()
         PlotGrid(ax, xn1, yn1)

@@ -594,6 +594,7 @@ class Vof : public AdvectionSolver<M_> {
     Scal part_kstr = 1.; // stretching
     Scal part_kattr = 1.; // attraction to reconstructed interface
     Scal part_kbend = 1.; // bending
+    bool part_bendmean = true; // bending to mean angle (fit circle)
     bool part_n = false; // normal from particles
     // curvature from particles
     // if true, GetCurv returns fckp_
@@ -965,7 +966,8 @@ class Vof : public AdvectionSolver<M_> {
                 Vect nm = Vect(dm[1], -dm[0], 0.) / lm; 
                 Vect np = Vect(dp[1], -dp[0], 0.) / lp;
                 // torque
-                Scal t = par->part_kbend * lm * lp * (an(i,c) - anm);
+                Scal t = par->part_kbend * lm * lp * 
+                  (an(i,c) - anm * (par->part_bendmean ? 1. : 0.));
                 // forces
                 Vect fm = nm * (t / (2. * lm));
                 Vect fp = np * (t / (2. * lp));
@@ -1050,7 +1052,6 @@ class Vof : public AdvectionSolver<M_> {
               return std::sqrt(2. * (lmp + dm.dot(dp))) / lmp;
             };
             int ic = fcps_[c] / 2;
-            //fckp_[c] = (kk(ic - 1) + 2. * kk(ic) + kk(ic + 1)) / 4.;
             fckp_[c] = kk(ic);
           }
         }
