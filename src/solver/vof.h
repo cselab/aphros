@@ -46,6 +46,7 @@ Scal SolveCubic(Scal a, Scal b, Scal c, Scal d, int k) {
 
 // GetLineU() helper
 // assuming a < 0, 0 < nx < ny
+// XXX: 2d specific
 template <class Scal>
 inline Scal GetLineU0(Scal nx, Scal ny, Scal a) {
   Scal a1 = 0.5 * (nx - ny);
@@ -368,6 +369,7 @@ inline Scal GetLineFluxStr(const GVect<Scal, 3>& n, Scal a,
 // h: cell size
 // Returns:
 // two ends of segment inside cell (0,0 if no intersection)
+// XXX: 2d specific
 template <class Scal>
 inline std::array<GVect<Scal, 3>, 2> GetLineEnds(
     const GVect<Scal, 3>& n, Scal a, const GVect<Scal, 3>& h) {
@@ -409,6 +411,7 @@ inline std::array<GVect<Scal, 3>, 2> GetLineEnds(
 // h: cell size
 // Returns:
 // mean point of intersection line (0 if no intersection)
+// XXX: 2d specific
 template <class Scal>
 inline GVect<Scal, 3> GetLineC(const GVect<Scal, 3>& n, Scal a,
                                const GVect<Scal, 3>& h) {
@@ -422,6 +425,7 @@ inline GVect<Scal, 3> GetLineC(const GVect<Scal, 3>& n, Scal a,
 // n: normal
 // a: line constant
 // h: cell size
+// XXX: 2d specific
 template <class Scal>
 inline GVect<Scal, 3> GetNearest(const GVect<Scal, 3> x,
                                  const GVect<Scal, 3>& n, Scal a,
@@ -611,24 +615,26 @@ class Vof : public AdvectionSolver<M_> {
     Vect h = m.GetNode(bn.GetIdx(wb + MIdx(1))) - xb;
     Scal hm = h.norminf();
 
-    for (auto f : m.Faces()) {
-      IdxCell cm = m.GetNeighbourCell(f, 0);
-      IdxCell cp = m.GetNeighbourCell(f, 1);
-      if (std::abs(uc[cm] - uc[cp]) > 1e-3 ) {
-        //IdxCell c = (fc_n_[cp].norm() > fc_n_[cm].norm() ? cp : cm);
-        IdxCell c = 
-            (std::abs(uc[cp] - 0.5) < std::abs(uc[cm] - 0.5) ? cp : cm);
+    for (auto c : m.Cells()) {
+      const Scal th = 1e-3;
+      if (uc[c] > th && uc[c] < 1. - th) {
+        Vect x = m.GetCenter(c) + GetCenter(fc_n_[c], fc_a_[c], h);
         Vect n = fc_n_[c];
-        if (n.norm() > 1e-3) {
-          n /= n.norm();
-          //Vect x = m.GetCenter(c);
-          Vect x = m.GetCenter(c) + GetLineC(fc_n_[c], fc_a_[c], h);
-          Vect t = Vect(-n[1], n[0], 0.);
-          if (fcps_[c] == 0) {
-            for (int i = 0; i < kNp; ++i) {
-              fcp_[c][fcps_[c]++] = 
-                  x + t * (i - (kNp - 1) * 0.5) * hm * par->part_h0;
-            }
+        n /= n.norm();
+        // direction in which normal has minimal component
+        size_t d = n.abs().argmin(); 
+        Vect xd(0); 
+        xd[d] = 1.;
+        // t0 orthogonal to n and d
+        Vect t0 = n.cross(xd); 
+        t0 /= t0.norm();
+        // t1 orthogonal to n and t0
+        Vect t1 = n.cross(t0);
+        t1 /= t1.norm();
+        const Scal pd = hm * par->part_h0; // distance between particles
+        if (fcps_[c] == 0) { // if no particles yet
+          for (int i = 0; i < kNp; ++i) {
+            fcp_[c][fcps_[c]++] = x + t0 * ((Scal(i) - kNp / 2) * pd);
           }
         }
       }
