@@ -1100,9 +1100,6 @@ class Vof : public AdvectionSolver<M_> {
               Vect xb;  // best point on the interface (nearest)
               for (auto wo : bo) {
                 auto cc = bc.GetIdx(w + wo);
-                if (!m.IsInner(cc)) {
-                  continue;
-                }
                 Scal u = uc[cc];
                 auto n = fc_n_[cc];
                 if (u > 1e-3 && u < 1. - 1e-3) {
