@@ -586,6 +586,7 @@ class Vof : public AdvectionSolver<M_> {
 
  public:
   struct Par {
+    size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
     bool curvgrad = false; // compute curvature using gradient
     bool part = false; // particles
     Scal part_relax = 1.; 
@@ -1168,7 +1169,7 @@ class Vof : public AdvectionSolver<M_> {
     // directions, format: {dir LE, dir EI, ...}
     std::vector<size_t> dd; 
     Scal vsc; // scaling factor for ffv, used for splitting
-    if (1) { // 3d
+    if (par->dim == 3) { // 3d
       if (count_ % 3 == 0) {
         dd = {0, 1, 1, 2, 2, 0};
       } else if (count_ % 3 == 1) {
