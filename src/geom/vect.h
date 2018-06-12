@@ -252,6 +252,38 @@ class GVect {
     }
     return r;
   }
+  Scal max() const {
+    Scal r = comp_[0];
+    for (size_t i = 1; i < dim; ++i) {
+      r = std::max(r, comp_[i]);
+    }
+    return r;
+  }
+  Scal min() const {
+    Scal r = comp_[0];
+    for (size_t i = 1; i < dim; ++i) {
+      r = std::min(r, comp_[i]);
+    }
+    return r;
+  }
+  size_t argmax() const {
+    size_t r = 0;
+    for (size_t i = 1; i < dim; ++i) {
+      if (comp_[i] > comp_[r]) {
+        r = i;
+      }
+    }
+    return r;
+  }
+  size_t argmin() const {
+    size_t r = 0;
+    for (size_t i = 1; i < dim; ++i) {
+      if (comp_[i] < comp_[r]) {
+        r = i;
+      }
+    }
+    return r;
+  }
   GVect abs() const {
     GVect r = *this;
     for (size_t i = 0; i < dim; ++i) {
