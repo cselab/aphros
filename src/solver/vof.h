@@ -1044,12 +1044,16 @@ class Vof : public AdvectionSolver<M_> {
               Vect x = fcp_[c][i];
               Vect xm = fcp_[c][im];
               Vect xp = fcp_[c][ip];
-              Vect dm = xm - x;
+              Vect dm = x - xm;
               Vect dp = xp - x;
               Scal lm = dm.norm();
               Scal lp = dp.norm();
               Scal lmp = lm * lp;
-              return std::sqrt(2. * (lmp + dm.dot(dp))) / lmp;
+              Scal k = std::sqrt(2. * (lmp - dm.dot(dp))) / lmp;
+              if (dm.cross_third(dp) > 0.) {
+                k = -k;
+              }
+              return k;
             };
             int ic = fcps_[c] / 2;
             fckp_[c] = kk(ic);
