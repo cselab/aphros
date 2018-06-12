@@ -13,5 +13,9 @@ make
 c=circleplain.conf
 #c=sphere.conf
 
+
 time ./t.advection $c
+
+rm -f partit.0.csv
+
 time ./plot.py
