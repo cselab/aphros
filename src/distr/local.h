@@ -274,7 +274,7 @@ void Local<KF>::DumpWrite(const std::vector<MIdx>& bb) {
       // TODO: Check no change in comm list between time steps
       //       (otherwise session_ needs reinitialization)
 
-      session_->Write(stage_ * 1., "title"); // TODO: t instead of stage_
+      session_->Write(frame_, "title"); // TODO: t instead of stage_
       std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
       ++frame_;
     } else {

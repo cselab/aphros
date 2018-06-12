@@ -1092,7 +1092,7 @@ class Vof : public AdvectionSolver<M_> {
       }
     }
 
-    if (par->part) {
+    if (par->part && par->part_n) {
       // Correction with normal from particles
       Part(uc, sem);
       if (sem("parta")) {
@@ -1276,7 +1276,7 @@ class Vof : public AdvectionSolver<M_> {
       m.Comm(&fck_);
     }
 
-    //Part(sem);
+    Part(fc_u_.iter_curr, sem);
 
     if (sem("stat")) {
       this->IncIter();
