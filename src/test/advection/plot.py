@@ -183,6 +183,8 @@ def CmpCurv(x, y, u, k, kp, po):
 # plots particles on ax with color c
 def PlotPart(ax, p, sk=1):
     d = np.loadtxt(p, skiprows=1, delimiter=',')
+    if d.size == 0:
+        return None
     x,y,z,c = d.T
     c = c.astype(int)
 
