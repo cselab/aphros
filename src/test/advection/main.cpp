@@ -147,6 +147,7 @@ void Advection<M>::Init(Sem& sem) {
       p->part_kstr = var.Double["part_kstr"];
       p->part_kattr = var.Double["part_kattr"];
       p->part_kbend = var.Double["part_kbend"];
+      p->part_bendmean = var.Int["part_bendmean"];
       p->part_dump_fr = var.Int["part_dump_fr"];
       p->part_report_fr = var.Int["part_report_fr"];
       p->part_maxiter = var.Int["part_maxiter"];
