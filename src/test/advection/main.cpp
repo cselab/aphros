@@ -150,6 +150,8 @@ void Advection<M>::Init(Sem& sem) {
       p->part_dump_fr = var.Int["part_dump_fr"];
       p->part_report_fr = var.Int["part_report_fr"];
       p->part_maxiter = var.Int["part_maxiter"];
+      p->part_n = var.Int["part_n"];
+      p->part_k = var.Int["part_k"];
       p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
       as_.reset(new AS(m, fcu_, bc, &ff_flux_, 
                        &fc_src_, 0., var.Double["dt"], p));
@@ -253,6 +255,8 @@ void Advection<M>::Dump(Sem& sem) {
         m.Dump(&n, 1, "ny");
         m.Dump(&n, 2, "nz");
 
+        auto& kh = const_cast<FieldCell<Scal>&>(as->GetCurvH());
+        m.Dump(&kh, "kh");
         auto& kp = const_cast<FieldCell<Scal>&>(as->GetCurvP());
         m.Dump(&kp, "kp");
       }

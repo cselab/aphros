@@ -594,6 +594,10 @@ class Vof : public AdvectionSolver<M_> {
     Scal part_kstr = 1.; // stretching
     Scal part_kattr = 1.; // attraction to reconstructed interface
     Scal part_kbend = 1.; // bending
+    bool part_n = false; // normal from particles
+    // curvature from particles
+    // if true, GetCurv returns fckp_
+    bool part_k = false; // curvature from particles
     size_t part_maxiter = 100; // num iter
     size_t part_dump_fr = 100; // num frames dump
     size_t part_report_fr = 100; // num frames report
@@ -625,7 +629,7 @@ class Vof : public AdvectionSolver<M_> {
         size_t d = n.abs().argmin(); 
         Vect xd(0); 
         xd[d] = 1.;
-        // t0 orthogonal to n and d
+        // t0 orthogonal to n and d, <n,d,t0> positively oriented
         Vect t0 = n.cross(xd); 
         t0 /= t0.norm();
         // t1 orthogonal to n and t0
@@ -680,20 +684,32 @@ class Vof : public AdvectionSolver<M_> {
       mfvz_[f] = std::make_shared<
           CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
     }
-    Reconst(fc_u_.time_curr);
-    if (par->part) {
-      SeedParticles(fc_u_.time_curr);
-      if (par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
-                        this->GetTimeStep())) {
-        DumpParticles(par->part_maxiter - 1);
+  }
+  void StartStep() override {
+    auto sem = m.GetSem("start");
+    if (sem("rotate")) {
+      this->ClearIter();
+      fc_u_.time_prev = fc_u_.time_curr;
+      fc_u_.iter_curr = fc_u_.time_prev;
+    }
+
+    if (sem.Nested("reconst")) {
+      if (this->GetTime() == 0.) {
+          Reconst(fc_u_.time_curr);
       }
     }
 
-  }
-  void StartStep() override {
-    this->ClearIter();
-    fc_u_.time_prev = fc_u_.time_curr;
-    fc_u_.iter_curr = fc_u_.time_prev;
+      /*
+      if (par->part) {
+        if (sem("seed")) {
+          SeedParticles(fc_u_.time_curr);
+          if (par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
+                            this->GetTimeStep())) {
+            DumpParticles(par->part_maxiter - 1);
+          }
+        }
+      }
+      */
   }
   Scal Maxmod(Scal a, Scal b) {
     return std::abs(b) < std::abs(a) ? a : b;
@@ -841,196 +857,13 @@ class Vof : public AdvectionSolver<M_> {
       fck_[c] = bk * (u > th && u < 1. - th ? 1. : 0.);
     }
   }
-  void Reconst(const FieldCell<Scal>& uc) {
-    //CalcNormal(uc);
-    //CalcNormalHeight(uc);
-    CalcNormalHeightLite(uc);
-    auto h = GetCellSize();
-    for (auto c : m.AllCells()) {
-      fc_a_[c] = GetLineA(fc_n_[c], uc[c], h);
-    }
-  }
-  void Print(const FieldFace<Scal>& ff, std::string name) {
-    using MIdx = typename M::MIdx;
-    auto ibc = m.GetInBlockCells();
-    auto bc = m.GetBlockCells();
-    auto bf = m.GetBlockFaces();
-    MIdx wb = ibc.GetBegin();
-    MIdx we = ibc.GetEnd();
-    MIdx wc = (wb + we - MIdx(1)) / 2;
-    std::cerr << std::setw(5) << name << " = ";
-    for (int i = wb[1]; i <= we[1]; ++i) {
-      MIdx w = wc;
-      w[1] = i;
-      using Dir = typename M::Dir;
-      IdxFace f = bf.GetIdx(w, Dir::j);
-      std::cerr << std::setw(10) << ff[f] << " ";
-    }
-    std::cerr << std::endl;
-  }
-
-  void Print(const FieldCell<Scal>& fc, std::string name) {
-    using MIdx = typename M::MIdx;
-    auto ibc = m.GetInBlockCells();
-    auto bc = m.GetBlockCells();
-    MIdx wb = ibc.GetBegin();
-    MIdx we = ibc.GetEnd();
-    MIdx wc = (wb + we - MIdx(1)) / 2;
-    std::cerr << std::setw(5) << name << " = ";
-    for (int i = wb[1]; i < we[1]; ++i) {
-      MIdx w = wc;
-      w[1] = i;
-      IdxCell c = bc.GetIdx(w);
-      std::cerr << std::setw(10) << fc[c] << " ";
-    }
-    std::cerr << std::endl;
-  }
-
-  Vect GetCellSize() const {
-    Vect h; // cell size
-    // XXX: Adhoc for structured 3D mesh
-    IdxCell c0(0);
-    h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
-        m.GetNode(m.GetNeighbourNode(c0, 0));
-    assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
-    return h;
-  }
-
-  void MakeIteration() override {
-    auto sem = m.GetSem("iter");
-    if (sem("init")) {
-      auto& uc = fc_u_.iter_curr;
-      const Scal dt = this->GetTimeStep();
-      for (auto c : m.Cells()) {
-        uc[c] = fc_u_.time_prev[c] +  // previous time step
-            dt * (*fcs_)[c]; // source
-      }
-    }
-
-    using Dir = typename M::Dir;
-    using MIdx = typename M::MIdx;
-    auto& bf = m.GetBlockFaces();
-    // directions, format: {dir LE, dir EI, ...}
-    std::vector<size_t> dd; 
-    Scal vsc; // scaling factor for ffv, used for splitting
-    if (1) { // 3d
-      if (count_ % 3 == 0) {
-        dd = {0, 1, 1, 2, 2, 0};
-      } else if (count_ % 3 == 1) {
-        dd = {1, 2, 2, 0, 0, 1};
-      } else {
-        dd = {2, 0, 0, 1, 1, 2};
-      }
-      vsc = 0.5;
-    } else {
-      if (count_ % 2 == 0) {
-        dd = {0, 1};
-      } else {
-        dd = {1, 0};
-      } 
-      vsc = 1.0;
-    }
-    for (size_t id = 0; id < dd.size(); ++id) {
-      // TODO: fluxes computed twice, consider buffer
-      if (sem("adv")) {
-        size_t d = dd[id]; // direction as index
-        Dir md(d); // direction as Dir
-        MIdx wd(md); // offset in direction d
-        auto& uc = fc_u_.iter_curr;
-        auto& bc = m.GetBlockCells();
-        auto& bf = m.GetBlockFaces();
-        auto h = GetCellSize();
-        auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
-        const Scal dt = this->GetTimeStep();
-        for (auto c : m.Cells()) {
-          auto w = bc.GetMIdx(c);
-          const Scal lc = m.GetVolume(c);
-          // faces
-          IdxFace fm = bf.GetIdx(w, md);
-          IdxFace fp = bf.GetIdx(w + wd, md);
-          // mixture volume fluxes
-          const Scal vm = ffv[fm] * vsc;
-          const Scal vp = ffv[fp] * vsc;
-          // mixture volume cfl
-          const Scal sm = vm * dt / lc;
-          const Scal sp = vp * dt / lc;
-          const Scal ds = sp - sm;
-          // upwind cells
-          IdxCell cum = m.GetNeighbourCell(fm, vm > 0. ? 0 : 1);
-          IdxCell cup = m.GetNeighbourCell(fp, vp > 0. ? 0 : 1);
-          if (id % 2 == 0) { // Euler Implicit
-            // phase 1 volume fluxes TODO: rename mixture to q, phase 1 to smth
-            Scal qm = GetLineFlux(fc_n_[cum], fc_a_[cum], h, vm, dt, d);
-            Scal qp = GetLineFlux(fc_n_[cup], fc_a_[cup], h, vp, dt, d);
-            // phase 1 cfl
-            const Scal lm = qm * dt / lc;
-            const Scal lp = qp * dt / lc;
-            const Scal dl = lp - lm;
-            uc[c] = (uc[c] - dl) / (1. - ds);
-          } else { // Lagrange Explicit
-            // upwind faces
-            IdxFace fum = bf.GetIdx(vm > 0. ? w - wd : w, md);
-            IdxFace fup = bf.GetIdx(vp > 0. ? w : w + wd, md);
-            // upwind fluxes
-            Scal vum = ffv[fum] * vsc;
-            Scal vup = ffv[fup] * vsc;
-            // phase 1 volume fluxes
-            Scal qm = GetLineFluxStr(fc_n_[cum], fc_a_[cum], h, vm, vum, dt, d);
-            Scal qp = GetLineFluxStr(fc_n_[cup], fc_a_[cup], h, vp, vup, dt, d);
-            // phase 1 cfl
-            const Scal lm = qm * dt / lc;
-            const Scal lp = qp * dt / lc;
-            const Scal dl = lp - lm;
-            uc[c] = uc[c] * (1. + ds) - dl;
-          }
-        }
-
-        // clip
-        const Scal th = 1e-6;
-        for (auto c : m.Cells()) {
-          Scal& u = uc[c];
-          if (u < th) {
-            u = 0.;
-          } else if (u > 1. - th) {
-            u = 1.;
-          }
-        }
-        m.Comm(&uc);
-      }
-      if (sem("reconst")) {
-        Reconst(fc_u_.iter_curr);
-      }
-    }
-
-    // Curvature from gradient of volume fraction
-    if (par->curvgrad && sem("curv")) {
-      ffu_ = Interpolate(fc_u_.iter_curr, mfc_, m); // [s]
-      fcg_ = Gradient(ffu_, m); // [s]
-      ffg_ = Interpolate(fcg_, mfvz_, m); // [i]
-
-      fck_.Reinit(m); // curvature [i]
-      for (auto c : m.Cells()) {
-        Scal s = 0.;
-        for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
-          auto& g = ffg_[f];
-          // TODO: revise 1e-6
-          auto n = g / (g.norm() + 1e-6);  // inner normal
-          s += -n.dot(m.GetOutwardSurface(c, q));
-        }
-        fck_[c] = s / m.GetVolume(c);
-      }
-      m.Comm(&fck_);
-    }
-
-    if (par->part && sem("part-comma")) {
+  void Part(const FieldCell<Scal>& uc, typename M::Sem& sem) {
+    if (sem("part-comma")) {
       m.Comm(&fc_n_);
       m.Comm(&fc_a_);
     }
 
-
-    if (par->part && sem("part")) {
-      auto& uc = fc_u_.iter_curr;
+    if (sem("part")) {
       auto& bc = m.GetBlockCells();
       auto& bn = m.GetBlockNodes();
       using MIdx = typename M::MIdx;
@@ -1068,7 +901,8 @@ class Vof : public AdvectionSolver<M_> {
 
       // advance particles
       // XXX: advance only if plan to dump
-      if (dm) {
+      //if (dm) {
+      {
         for (size_t it = 0; it < par->part_maxiter; ++it) {
           // compute correction
           for (auto c : m.Cells()) {
@@ -1220,8 +1054,228 @@ class Vof : public AdvectionSolver<M_> {
             fckp_[c] = kk(ic);
           }
         }
+
+        // compute normal
+        if (par->part_n) {
+          for (auto c : m.Cells()) {
+            if (fcps_[c]) {
+              int i = 2;
+              int im = i - 1;
+              int ip = i + 1;
+              Vect x = fcp_[c][i];
+              Vect xm = fcp_[c][im];
+              Vect xp = fcp_[c][ip];
+              Vect dm = x - xm;
+              Vect dp = xp - x;
+              Scal lm = dm.norm();
+              Scal lp = dp.norm();
+              // normals to segments, <nm,dm> positively oriented
+              Vect nm = Vect(dm[1], -dm[0], 0.) / lm; 
+              Vect np = Vect(dp[1], -dp[0], 0.) / lp;
+              fc_n_[c] = (nm + np) * (-0.5);
+            }
+          }
+        }
       }
     }
+  }
+
+  void Reconst(const FieldCell<Scal>& uc) {
+    auto sem = m.GetSem("reconst");
+    if (sem("height")) {
+      // Reconstuction with normal from height functions
+      CalcNormalHeightLite(uc);
+      auto h = GetCellSize();
+      for (auto c : m.AllCells()) {
+        fc_a_[c] = GetLineA(fc_n_[c], uc[c], h);
+      }
+    }
+
+    if (par->part) {
+      // Correction with normal from particles
+      Part(uc, sem);
+      if (sem("parta")) {
+        auto h = GetCellSize();
+        for (auto c : m.AllCells()) {
+          fc_a_[c] = GetLineA(fc_n_[c], uc[c], h);
+        }
+      }
+    }
+  }
+  void Print(const FieldFace<Scal>& ff, std::string name) {
+    using MIdx = typename M::MIdx;
+    auto ibc = m.GetInBlockCells();
+    auto bc = m.GetBlockCells();
+    auto bf = m.GetBlockFaces();
+    MIdx wb = ibc.GetBegin();
+    MIdx we = ibc.GetEnd();
+    MIdx wc = (wb + we - MIdx(1)) / 2;
+    std::cerr << std::setw(5) << name << " = ";
+    for (int i = wb[1]; i <= we[1]; ++i) {
+      MIdx w = wc;
+      w[1] = i;
+      using Dir = typename M::Dir;
+      IdxFace f = bf.GetIdx(w, Dir::j);
+      std::cerr << std::setw(10) << ff[f] << " ";
+    }
+    std::cerr << std::endl;
+  }
+
+  void Print(const FieldCell<Scal>& fc, std::string name) {
+    using MIdx = typename M::MIdx;
+    auto ibc = m.GetInBlockCells();
+    auto bc = m.GetBlockCells();
+    MIdx wb = ibc.GetBegin();
+    MIdx we = ibc.GetEnd();
+    MIdx wc = (wb + we - MIdx(1)) / 2;
+    std::cerr << std::setw(5) << name << " = ";
+    for (int i = wb[1]; i < we[1]; ++i) {
+      MIdx w = wc;
+      w[1] = i;
+      IdxCell c = bc.GetIdx(w);
+      std::cerr << std::setw(10) << fc[c] << " ";
+    }
+    std::cerr << std::endl;
+  }
+
+  Vect GetCellSize() const {
+    Vect h; // cell size
+    // XXX: Adhoc for structured 3D mesh
+    IdxCell c0(0);
+    h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
+        m.GetNode(m.GetNeighbourNode(c0, 0));
+    assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
+    return h;
+  }
+
+  void MakeIteration() override {
+    auto sem = m.GetSem("iter");
+    if (sem("init")) {
+      auto& uc = fc_u_.iter_curr;
+      const Scal dt = this->GetTimeStep();
+      for (auto c : m.Cells()) {
+        uc[c] = fc_u_.time_prev[c] +  // previous time step
+            dt * (*fcs_)[c]; // source
+      }
+    }
+
+    using Dir = typename M::Dir;
+    using MIdx = typename M::MIdx;
+    auto& bf = m.GetBlockFaces();
+    // directions, format: {dir LE, dir EI, ...}
+    std::vector<size_t> dd; 
+    Scal vsc; // scaling factor for ffv, used for splitting
+    if (1) { // 3d
+      if (count_ % 3 == 0) {
+        dd = {0, 1, 1, 2, 2, 0};
+      } else if (count_ % 3 == 1) {
+        dd = {1, 2, 2, 0, 0, 1};
+      } else {
+        dd = {2, 0, 0, 1, 1, 2};
+      }
+      vsc = 0.5;
+    } else {
+      if (count_ % 2 == 0) {
+        dd = {0, 1};
+      } else {
+        dd = {1, 0};
+      } 
+      vsc = 1.0;
+    }
+    for (size_t id = 0; id < dd.size(); ++id) {
+      // TODO: fluxes computed twice, consider buffer
+      if (sem("adv")) {
+        size_t d = dd[id]; // direction as index
+        Dir md(d); // direction as Dir
+        MIdx wd(md); // offset in direction d
+        auto& uc = fc_u_.iter_curr;
+        auto& bc = m.GetBlockCells();
+        auto& bf = m.GetBlockFaces();
+        auto h = GetCellSize();
+        auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
+        const Scal dt = this->GetTimeStep();
+        for (auto c : m.Cells()) {
+          auto w = bc.GetMIdx(c);
+          const Scal lc = m.GetVolume(c);
+          // faces
+          IdxFace fm = bf.GetIdx(w, md);
+          IdxFace fp = bf.GetIdx(w + wd, md);
+          // mixture volume fluxes
+          const Scal vm = ffv[fm] * vsc;
+          const Scal vp = ffv[fp] * vsc;
+          // mixture volume cfl
+          const Scal sm = vm * dt / lc;
+          const Scal sp = vp * dt / lc;
+          const Scal ds = sp - sm;
+          // upwind cells
+          IdxCell cum = m.GetNeighbourCell(fm, vm > 0. ? 0 : 1);
+          IdxCell cup = m.GetNeighbourCell(fp, vp > 0. ? 0 : 1);
+          if (id % 2 == 0) { // Euler Implicit
+            // phase 1 volume fluxes TODO: rename mixture to q, phase 1 to smth
+            Scal qm = GetLineFlux(fc_n_[cum], fc_a_[cum], h, vm, dt, d);
+            Scal qp = GetLineFlux(fc_n_[cup], fc_a_[cup], h, vp, dt, d);
+            // phase 1 cfl
+            const Scal lm = qm * dt / lc;
+            const Scal lp = qp * dt / lc;
+            const Scal dl = lp - lm;
+            uc[c] = (uc[c] - dl) / (1. - ds);
+          } else { // Lagrange Explicit
+            // upwind faces
+            IdxFace fum = bf.GetIdx(vm > 0. ? w - wd : w, md);
+            IdxFace fup = bf.GetIdx(vp > 0. ? w : w + wd, md);
+            // upwind fluxes
+            Scal vum = ffv[fum] * vsc;
+            Scal vup = ffv[fup] * vsc;
+            // phase 1 volume fluxes
+            Scal qm = GetLineFluxStr(fc_n_[cum], fc_a_[cum], h, vm, vum, dt, d);
+            Scal qp = GetLineFluxStr(fc_n_[cup], fc_a_[cup], h, vp, vup, dt, d);
+            // phase 1 cfl
+            const Scal lm = qm * dt / lc;
+            const Scal lp = qp * dt / lc;
+            const Scal dl = lp - lm;
+            uc[c] = uc[c] * (1. + ds) - dl;
+          }
+        }
+
+        // clip
+        const Scal th = 1e-6;
+        for (auto c : m.Cells()) {
+          Scal& u = uc[c];
+          if (u < th) {
+            u = 0.;
+          } else if (u > 1. - th) {
+            u = 1.;
+          }
+        }
+        m.Comm(&uc);
+      }
+      if (sem.Nested("reconst")) {
+        Reconst(fc_u_.iter_curr);
+      }
+    }
+
+    // Curvature from gradient of volume fraction
+    if (par->curvgrad && sem("curv")) {
+      ffu_ = Interpolate(fc_u_.iter_curr, mfc_, m); // [s]
+      fcg_ = Gradient(ffu_, m); // [s]
+      ffg_ = Interpolate(fcg_, mfvz_, m); // [i]
+
+      fck_.Reinit(m); // curvature [i]
+      for (auto c : m.Cells()) {
+        Scal s = 0.;
+        for (auto q : m.Nci(c)) {
+          IdxFace f = m.GetNeighbourFace(c, q);
+          auto& g = ffg_[f];
+          // TODO: revise 1e-6
+          auto n = g / (g.norm() + 1e-6);  // inner normal
+          s += -n.dot(m.GetOutwardSurface(c, q));
+        }
+        fck_[c] = s / m.GetVolume(c);
+      }
+      m.Comm(&fck_);
+    }
+
+    //Part(sem);
 
     if (sem("stat")) {
       this->IncIter();
@@ -1242,6 +1296,10 @@ class Vof : public AdvectionSolver<M_> {
     return fc_n_;
   }
   const FieldCell<Scal>& GetCurv() const override {
+    return par->part_k ? fckp_ : fck_;
+  }
+  // curvature from height function
+  const FieldCell<Scal>& GetCurvH() const {
     return fck_;
   }
   // curvature from particles
