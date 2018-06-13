@@ -994,82 +994,89 @@ class Vof : public AdvectionSolver<M_> {
       for (size_t it = 0; it < par->part_maxiter; ++it) {
         // compute correction
         for (auto c : m.Cells()) {
-          // clear force (needed for bending as applied from each corner)
-          
           // mean angle
           Scal anm = (an(1,c) + an(2,c) + an(3,c)) / 3.; 
 
+          // clear force (needed for bending as applied from each corner)
           for (int i = 0; i < fcps_[c]; ++i) {
             fcpt_[c][i] = Vect(0); 
           }
-          // traverse particles, append to force
-          for (int i = 0; i < fcps_[c]; ++i) {
-            const Vect& x = fcp_[c][i];
-            Vect& t = fcpt_[c][i]; 
-            // springs to adjacent particles
-            for (int ii : {i - 1, i + 1}) {
-              if (ii >= 0 && ii < fcps_[c]) {
-                const Vect& xx = fcp_[c][ii];
-                Vect dx = x - xx;
-                Scal d = par->part_h * hm - dx.norm();
-                t += dx / dx.norm() * d * par->part_kstr;
-              }
-            }
 
-            // spring to nearest point at reconstructed interface
-            auto w = bc.GetMIdx(c);
-            bool fnd = false; // found at least one cell
-            Vect xb;  // best point on the interface (nearest)
-            for (auto wo : bo) {
-              auto cc = bc.GetIdx(w + wo);
-              Scal u = uc[cc];
-              auto n = fc_n_[cc];
-              if (u > 1e-3 && u < 1. - 1e-3) {
-                // nearest point to interface in cc
-                Vect xcc = m.GetCenter(cc);
-                Vect xn = xcc + GetNearest(x - xcc, n, fc_a_[cc], h);
-                //Vect xn = xcc + GetCenter(n, fc_a_[cc], h);
-                if (!fnd || x.sqrdist(xn) < x.sqrdist(xb)) {
-                  xb = xn;
-                  fnd = true;
+          // traverse strings, assume fcps_[c] % kNp == 0
+          for (int is = 0; is < fcps_[c] / kNp; ++is) {
+            // traverse particles, append to force
+            for (int i = is * kNp; i < (is + 1) * kNp; ++i) {
+              const Vect& x = fcp_[c][i];
+              Vect& t = fcpt_[c][i]; 
+
+              // springs to adjacent particles
+              for (int ii : {i - 1, i + 1}) {
+                if (ii >= 0 && ii < kNp) {
+                  const Vect& xx = fcp_[c][ii];
+                  Vect dx = x - xx;
+                  Scal d = par->part_h * hm - dx.norm();
+                  t += dx / dx.norm() * d * par->part_kstr;
                 }
               }
-            }
-            if (fnd) {
-              t += (xb - x) * par->part_kattr;
-            }
 
-            // bending
-            if (i > 0 && i < fcps_[c] - 1) {
-              int im = i - 1;
-              int ip = i + 1;
-              Vect xm = fcp_[c][im];
-              Vect xp = fcp_[c][ip];
-              Vect dm = x - xm;
-              Vect dp = xp - x;
-              Scal lm = dm.norm();
-              Scal lp = dp.norm();
-              // normals to segments, <nm,dm> positively oriented
-              Vect nm = Vect(dm[1], -dm[0], 0.) / lm; 
-              Vect np = Vect(dp[1], -dp[0], 0.) / lp;
-              // torque
-              Scal t = par->part_kbend * lm * lp * 
-                (an(i,c) - anm * (par->part_bendmean ? 1. : 0.));
-              // forces
-              Vect fm = nm * (t / (2. * lm));
-              Vect fp = np * (t / (2. * lp));
-              /*
-              Vect fm = (dm * (dm.dot(dp) / (lm * lm)) - dp) *
-                  (par->part_kbend * std::sqrt(
-                      (lm * lp + dm.dot(dp)) / (lm * lp - dm.dot(dp))));
-              Vect fp = (dp * (dm.dot(dp) / (lp * lp)) - dm) *
-                  (par->part_kbend * std::sqrt(
-                      (lm * lp + dm.dot(dp)) / (lm * lp - dm.dot(dp))));
-                      */
-              // apply
-              fcpt_[c][im] += fm;
-              fcpt_[c][ip] += fp;
-              fcpt_[c][i] -= (fm + fp);
+              // spring to nearest point at reconstructed interface
+              auto w = bc.GetMIdx(c);
+              bool fnd = false; // found at least one cell
+              Vect xb;  // best point on the interface (nearest)
+              for (auto wo : bo) {
+                auto cc = bc.GetIdx(w + wo);
+                Scal u = uc[cc];
+                auto n = fc_n_[cc];
+                if (u > 1e-3 && u < 1. - 1e-3) {
+                  // nearest point to interface in cc
+                  Vect xcc = m.GetCenter(cc);
+                  //Vect xn = xcc + GetNearest(x - xcc, n, fc_a_[cc], h);
+                  Vect xn = xcc + GetCenter(n, fc_a_[cc], h);
+                  if (!fnd || x.sqrdist(xn) < x.sqrdist(xb)) {
+                    xb = xn;
+                    fnd = true;
+                  }
+                }
+              }
+              if (fnd) {
+                t += (xb - x) * par->part_kattr;
+              }
+
+              // bending
+              if (i > 0 && i < kNp - 1) {
+                int im = i - 1;
+                int ip = i + 1;
+                Vect xm = fcp_[c][im];
+                Vect xp = fcp_[c][ip];
+                Vect dm = x - xm;
+                Vect dp = xp - x;
+                Scal lm = dm.norm();
+                Scal lp = dp.norm();
+
+                /*
+                // normals to segments, <nm,dm> positively oriented
+                Vect nm = Vect(dm[1], -dm[0], 0.) / lm; 
+                Vect np = Vect(dp[1], -dp[0], 0.) / lp;
+                // torque
+                Scal t = par->part_kbend * lm * lp * 
+                  (an(i,c) - anm * (par->part_bendmean ? 1. : 0.));
+                // forces
+                Vect fm = nm * (t / (2. * lm));
+                Vect fp = np * (t / (2. * lp));
+                */
+                
+                Vect fm = (dm * (dm.dot(dp) / (lm * lm)) - dp) *
+                    (par->part_kbend * std::sqrt(
+                        (lm * lp + dm.dot(dp)) / (lm * lp - dm.dot(dp))));
+                Vect fp = (dp * (dm.dot(dp) / (lp * lp)) - dm) *
+                    (par->part_kbend * std::sqrt(
+                        (lm * lp + dm.dot(dp)) / (lm * lp - dm.dot(dp))));
+
+                // apply
+                fcpt_[c][im] += fm;
+                fcpt_[c][ip] += fp;
+                fcpt_[c][i] -= (fm + fp);
+              }
             }
           }
         }
@@ -1086,7 +1093,7 @@ class Vof : public AdvectionSolver<M_> {
             for (size_t i = 0; i < fcps_[c]; ++i) {
               fcp_[c][i] += fcpt_[c][i] * par->part_relax;
               tmax = std::max(tmax, fcpt_[c][i].norm());
-              if (i > 0 && i < fcps_[c] - 1) {
+              if (i > 0 && i < kNp - 1) {
                 Scal e = std::abs(anm - an(i, c));
                 anavg += e;
                 ++anavgn;
