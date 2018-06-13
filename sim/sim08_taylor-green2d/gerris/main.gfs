@@ -1,0 +1,23 @@
+1 2 GfsSimulation GfsBox GfsGEdge {} {
+  Time { end = 10 }
+
+  Refine 5
+
+  VariableTracerVOF T { cfl = 0.25 }
+
+  InitFraction T (-ellipse(0, 0., 0.2, 0.2))
+
+  Init {} { U = 0.2 V = 0.4 }
+
+  VariableCurvature K T Kmax
+
+  SourceTension T 0.01  K
+
+  SourceViscosity 0.001
+
+  OutputSimulation { step = 0.2 } u_%07ld.vtk { variables = T,P,U,V format = VTK}
+  OutputTime { istep = 1 } stderr
+}
+GfsBox {}
+1 1 right
+1 1 top
