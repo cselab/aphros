@@ -441,6 +441,92 @@ inline GVect<Scal, 3> GetNearest(const GVect<Scal, 3> x,
   return e[1];
 }
 
+// Center of cloud of ponts.
+template <class Vect>
+inline Vect GetCenter(const std::vector<Vect>& xx) {
+  Vect r(0); // result
+  for (auto& x : xx) {
+    r += x;
+  }
+  return r / xx.size();
+}
+
+// Solves 3x3 singular system Ax=0
+// a: matrix a of rank 2, a[i] is row (equation)
+// Returns:
+// x: solution
+template <class Scal>
+inline GVect<Scal, 3> SolveSingular(const GVect<GVect<Scal, 3>, 3>& a) {
+  auto p = [](size_t i) { return (i + 1) % 3; };
+  auto pp = [](size_t i) { return (i + 2) % 3; };
+
+  using Vect = GVect<Scal, 3>;
+
+  // d[i][j] is det of matrix without row i and column j
+  GVect<Vect, 3> d; 
+  for (size_t i = 0; i < 3; ++i) {
+    for (size_t j = 0; j < 3; ++j) {
+      d[i][j] = a[p(i)][p(j)] * a[pp(i)][pp(j)] -
+                a[p(i)][pp(j)] * a[pp(i)][p(j)];
+    } 
+  }
+
+  // mi[j] = argmax_i(d[i][j])
+  GVect<size_t, 3> mi(0); 
+  for (size_t j = 0; j < 3; ++j) {
+    for (size_t i = 1; i < 3; ++i) {
+      if (std::abs(d[i][j]) > std::abs(d[mi[j]][j])) {
+        mi[j] = i;
+      }
+    }
+  }
+
+  // j = argmax_j(d[mi[j]][j])
+  size_t j = 0;
+  for (size_t jj = 1; jj < 3; ++jj) {
+    if (std::abs(d[mi[jj]][jj]) > std::abs(d[mi[j]][j])) {
+      j = jj;
+    }
+  }
+
+  size_t i = mi[j];
+  
+  Vect x;
+  x[j] = 1.; 
+
+  // solve for other from given x[mj]
+  x[p(j)] = -(a[p(i)][j] * a[pp(i)][pp(j)] -
+             a[p(i)][pp(j)] * a[pp(i)][j]) * x[j] / d[i][j];
+  x[pp(j)] = -(a[p(i)][p(j)] * a[pp(i)][j] -
+             a[p(i)][j] * a[pp(i)][p(j)]) * x[j] / d[i][j];
+
+  return x;
+}
+
+// Normal of fitting plane with equation n.dot(x) = a.
+// xx: points 
+// Returns:
+// n: normal
+template <class Scal>
+inline GVect<Scal, 3> GetFitN(std::vector<GVect<Scal, 3>> xx) {
+  using Vect = GVect<Scal, 3>;
+
+  auto xc = GetCenter(xx);
+  for (auto& x : xx) {
+    x -= xc;
+  }
+
+  GVect<GVect<Scal, 3>, 3> a;
+  for (size_t i = 0; i < 3; ++i) {
+    a[i] = Vect(0);
+    for (auto& x : xx) {
+      a[i] += x * x[i];
+    }
+  }
+
+  return SolveSingular(a);
+}
+
 // GetCutPoly() helper for unit cell, 
 // assume 0 < nx < ny < nz, a < 0.
 template <class Scal>
@@ -577,11 +663,11 @@ class Vof : public AdvectionSolver<M_> {
   FieldCell<Vect> fcg_; // gradient
   FieldFace<Vect> ffg_; // gradient
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
-  static constexpr size_t kNp = 5;
-  static constexpr size_t kNpp = 1;
-  FieldCell<std::array<Vect, kNp>> fcp_; // cell list
-  FieldCell<std::array<Vect, kNp>> fcpt_; // cell list tmp
-  FieldCell<std::array<Scal, kNp>> fcpw_; // cell list weight
+  static constexpr size_t kNp = 5; // particles in on string
+  static constexpr size_t kNpp = 2; // maximum strings per cell
+  FieldCell<std::array<Vect, kNp * kNpp>> fcp_; // cell list
+  FieldCell<std::array<Vect, kNp * kNpp>> fcpt_; // cell list tmp
+  FieldCell<std::array<Scal, kNp * kNpp>> fcpw_; // cell list weight
   FieldCell<size_t> fcps_; // cell list size
 
  public:
@@ -641,6 +727,9 @@ class Vof : public AdvectionSolver<M_> {
         if (fcps_[c] == 0) { // if no particles yet
           for (int i = 0; i < kNp; ++i) {
             fcp_[c][fcps_[c]++] = x + t0 * ((Scal(i) - kNp / 2) * pd);
+          }
+          for (int i = 0; i < kNp; ++i) {
+            fcp_[c][fcps_[c]++] = x + t1 * ((Scal(i) - kNp / 2) * pd);
           }
         }
       }
@@ -1311,12 +1400,6 @@ class Vof : public AdvectionSolver<M_> {
   // curvature from particles
   const FieldCell<Scal>& GetCurvP() const {
     return fckp_;
-  }
-  const FieldCell<std::array<Vect, kNp>>& GetPart() const {
-    return fcp_;
-  }
-  const FieldCell<size_t>& GetPartS() const {
-    return fcps_;
   }
   using P::GetField;
 };
