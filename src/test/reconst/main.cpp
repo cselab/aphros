@@ -17,6 +17,16 @@ using Vect = GVect<Scal, 3>;
 
 using solver::cube;
 
+template <class T>
+std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
+  std::string p = "";
+  for (auto a : v) {
+    o << p << a;
+    p = " ";
+  }
+  return o;
+}
+
 void TestRandom() {
   std::cerr << "Check u=u(a(u)) on random input" << std::endl;
   auto t = [](Vect msk, std::string s) {
@@ -58,13 +68,13 @@ void TestRandom() {
         << std::endl;
     //assert(e < 1e-14);
   };
-  t(Vect(1., 0, 0.), "x");
-  t(Vect(0., 1, 0.), "y");
-  t(Vect(0., 0, 1.), "z");
-  t(Vect(1., 1, 0.), "xy");
-  t(Vect(0., 1, 1.), "yz");
-  t(Vect(1., 0, 1.), "zx");
-  t(Vect(1., 1, 1.), "xyz");
+  t(Vect(1., 0., 0.), "x");
+  t(Vect(0., 1., 0.), "y");
+  t(Vect(0., 0., 1.), "z");
+  t(Vect(1., 1., 0.), "xy");
+  t(Vect(0., 1., 1.), "yz");
+  t(Vect(1., 0., 1.), "zx");
+  t(Vect(1., 1., 1.), "xyz");
 }
 
 // rectangular cell test
@@ -387,8 +397,43 @@ void Plot() {
   }
 }
 
+void TestSolve() {
+  using namespace solver;
+
+  using V = Vect;
+  using VV = GVect<V, 3>;
+
+  auto f = [](const VV& a, const V& xe) {
+    auto x = SolveSingular(a);
+    std::cout 
+        << "a=" << a
+        << " x=" << x 
+        << " xe=" << xe
+        << std::endl;
+    assert(x.dist(xe) < 1e-12);
+  };
+
+  f(VV(V(-2., 1., 1.), V(1., -2., 1.), V(1., 1., -2.)), V(1., 1., 1.));
+  f(VV(V(1., 0., 0.), V(0., 1., 0.), V(1., 1., 0.)), V(0., 0., 1.));
+
+  auto g = [](const std::vector<V>& xx, const V& ne) {
+    auto n = GetFitN(xx);
+    std::cout 
+        << "xx=" << xx
+        << " n=" << n 
+        << " ne=" << ne
+        << std::endl;
+    assert(n.dist(ne) < 1e-12);
+  };
+
+  g({V(0., 0., 0.), V(0., 1., 0.), V(0., 1., 1.), V(0., 0., 1.)}, 
+      V(1., 0., 0.));
+}
+
 
 int main() {
+  TestSolve();
+  return 0;
   Plot();
   TestRect();
   TestRandom();
