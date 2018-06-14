@@ -1205,6 +1205,23 @@ class Vof : public AdvectionSolver<M_> {
       ff[i] -= (fm + fp);
     }
   }
+  // Curvature for plane string
+  Scal PartK(Vect* xx, size_t sx) {
+    size_t i = (sx - 1) / 2;
+    Vect x = xx[i];
+    Vect xm = xx[i - 1];
+    Vect xp = xx[i + 1];
+    Vect dm = x - xm;
+    Vect dp = xp - x;
+    Scal lm = dm.norm();
+    Scal lp = dp.norm();
+    Scal lmp = lm * lp;
+    Scal k = std::sqrt(2. * (lmp - dm.dot(dp))) / lmp;
+    if (dm.cross_third(dp) > 0.) {
+      k = -k;
+    }
+    return k;
+  }
   void Part(const FieldCell<Scal>& uc, typename M::Sem& sem) {
     if (sem("part-comma")) {
       m.Comm(&fc_n_);
@@ -1229,6 +1246,7 @@ class Vof : public AdvectionSolver<M_> {
       std::vector<Vect> smx; // local unit x
       std::vector<Vect> smy; // local unit y
       std::vector<Vect> smc; // local center
+      std::vector<Scal> sk; // curvature
 
       for (auto c : m.Cells()) {
         // XXX: assume fcps_[c] % kNp == 0
@@ -1278,7 +1296,7 @@ class Vof : public AdvectionSolver<M_> {
           using MIdx = typename M::MIdx;
           Vect h = GetCellSize();
 
-          const int sw = 1; // stencil halfwidth, [-sw,sw]
+          const int sw = 2; // stencil halfwidth, [-sw,sw]
           const int sn = sw * 2 + 1; // stencil size
 
           // block of offsets
@@ -1313,6 +1331,8 @@ class Vof : public AdvectionSolver<M_> {
       assert(smy.size() == sc.size());
       assert(smc.size() == sc.size());
 
+      sk.resize(sc.size(), 0.);
+
       std::vector<Vect> ff(xx.size()); // force
 
       // advance particles
@@ -1328,7 +1348,6 @@ class Vof : public AdvectionSolver<M_> {
             ff[j] -= f;
           }
         }
-
 
         // report error
         size_t dr = std::max<size_t>(1, 
@@ -1395,30 +1414,27 @@ class Vof : public AdvectionSolver<M_> {
         }
       }
 
-      // compute curvature
+      // compute curvature on strings
+      for (size_t i = 0; i < sc.size(); ++i) {
+        sk[i] = PartK(&(xx[sx[i]]), sx[i + 1] - sx[i]);
+      }
+
+      // compute curvature in cells
       fckp_.Reinit(m, 0.);
-      for (auto c : m.Cells()) {
-        if (fcps_[c]) { // contains particles
-          // computes curvatures based on angle centered at i
-          auto kk = [&](int i) -> Scal {
-            int im = i - 1;
-            int ip = i + 1;
-            Vect x = fcp_[c][i];
-            Vect xm = fcp_[c][im];
-            Vect xp = fcp_[c][ip];
-            Vect dm = x - xm;
-            Vect dp = xp - x;
-            Scal lm = dm.norm();
-            Scal lp = dp.norm();
-            Scal lmp = lm * lp;
-            Scal k = std::sqrt(2. * (lmp - dm.dot(dp))) / lmp;
-            if (dm.cross_third(dp) > 0.) {
-              k = -k;
-            }
-            return k;
-          };
-          int ic = fcps_[c] / 2;
-          fckp_[c] = kk(ic);
+      {
+        size_t i = 0;
+        while (i < sc.size()) {
+          IdxCell c = sc[i];
+          Scal k = sk[i];
+          ++i;
+          size_t nk = 1;
+          // average over all strings in c
+          while (i < sc.size() && sc[i] == c) {
+            k += sk[i];
+            ++i;
+            ++nk;
+          }
+          fckp_[c] = k / nk;
         }
       }
       m.Comm(&fckp_);
