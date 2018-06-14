@@ -450,7 +450,7 @@ inline GVect<Scal, 3> GetPlaneProj(const GVect<Scal, 3> x,
   // distance to plane * n.norm()
   Scal dst = n.dot(x) - a;
   // projection
-  return xp = x - n * (dst / n.sqrnorm());
+  return x - n * (dst / n.sqrnorm());
 }
 
 // Center of cloud of ponts.
@@ -650,13 +650,37 @@ GVect<Scal, 3> GetCenter(const GVect<Scal, 3>& n, Scal a,
   return xc;
 }
 
-// Closest point to cut polygon.
+// Nearest point to half-plane.
+// x: target point
+// x0,x1: straight line
+// n: plane normal
+// Returns:
+// xn: point in plain <xc,n> nearest to x such that
+//     (xn-xc).dot(t) >= 0
+//   where t = n.cross(x1-x0), xc = 0.5 * (x0 + x1)
+template <class Scal>
+GVect<Scal, 3> GetNearestHalf(const GVect<Scal, 3>& x,
+                              const GVect<Scal, 3>& x0,
+                              const GVect<Scal, 3>& x1,
+                              const GVect<Scal, 3>& n) {
+  using Vect = GVect<Scal, 3>;
+
+  Vect xc = (x0 + x1) * 0.5;
+  Vect t = n.cross(x1 - x0);
+  Vect dx = x - xc;
+  Vect dxn = dx - 
+      n * (dx.dot(n) / n.sqrnorm()) - 
+      t * std::min(0., dx.dot(t) / t.sqrnorm());
+  return xc + dxn;
+}
+
+// Closest point on cut polygon.
 // x: target point
 // n: normal
 // a: line constant, relative to x=0
 // h: cell size
 template <class Scal>
-inline GVect<Scal, 3> GetNearest(const GVect<Scal, 3> x,
+inline GVect<Scal, 3> GetNearest(const GVect<Scal, 3>& x,
                                  const GVect<Scal, 3>& n, Scal a,
                                  const GVect<Scal, 3>& h) {
   auto xx = GetCutPoly2(n, a, h);
