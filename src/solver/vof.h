@@ -1226,6 +1226,9 @@ class Vof : public AdvectionSolver<M_> {
       std::vector<size_t> sx; // xx index, plus sx.size() 
       std::vector<std::array<Vect, 2>> ll; // interface lines
       std::vector<size_t> sl; // sl index, plus sl.size() 
+      std::vector<Vect> smx; // local unit x
+      std::vector<Vect> smy; // local unit y
+      std::vector<Vect> smc; // local center
 
       for (auto c : m.Cells()) {
         // XXX: assume fcps_[c] % kNp == 0
@@ -1235,10 +1238,38 @@ class Vof : public AdvectionSolver<M_> {
 
           sc.push_back(c);
 
-          // Copy particles
+          // Local coordinates
+          // center
+          Vect rc = fcp_[c][(i0 + i1 + 1) / 2];
+          // tangent, assume straight line
+          Vect rt = (fcp_[c][i0 + 1] - fcp_[c][i0]);
+          rt /= rt.norm();
+          // interface normal, assume orthogonal to rt
+          Vect n = fc_n_[c];
+          n /= n.norm();
+          // string plane normal
+          Vect rn = rt.cross(n);
+          rn /= rn.norm();
+
+          Vect mx = rt;
+          Vect my = n;
+          Vect mc = rc;
+
+          smx.push_back(mx);
+          smy.push_back(my);
+          smc.push_back(mc);
+
+          auto pr = [&](Vect x) -> Vect {
+            Vect q(0);
+            q[0] = (x - mc).dot(mx);
+            q[1] = (x - mc).dot(my);
+            return q;
+          };
+
+          // Copy projected particles
           sx.push_back(xx.size());
           for (int i = i0; i < i1; ++i) {
-            xx.push_back(fcp_[c][i]);
+            xx.push_back(pr(fcp_[c][i]));
           }
 
           // Extract interface lines
@@ -1255,15 +1286,6 @@ class Vof : public AdvectionSolver<M_> {
               MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
               MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
 
-          // current string center
-          Vect rc = fcp_[c][(i0 + i1 + 1) / 2];
-          // tangent (assume staright line)
-          Vect rt = (fcp_[c][i0 + 1] - fcp_[c][i0]);
-          // interface normal
-          Vect n = fc_n_[c];
-          // string plane normal
-          Vect rn = rt.cross(n);
-
           auto w = bc.GetMIdx(c);
           for (auto wo : bo) {
             auto cc = bc.GetIdx(w + wo);
@@ -1274,7 +1296,8 @@ class Vof : public AdvectionSolver<M_> {
               auto xx = GetCutPoly(xcc, fc_n_[cc], fc_a_[cc], h);
               std::array<Vect, 2> e;
               if (GetInterPoly(xx, rc, rn, e)) {
-                ll.push_back(e);
+                // projected line ends
+                ll.push_back({pr(e[0]), pr(e[1])});
               }
               //auto e = GetLineEnds(fc_n_[cc], fc_a_[cc], h);
             }
@@ -1286,6 +1309,9 @@ class Vof : public AdvectionSolver<M_> {
 
       assert(sx.size() == sc.size() + 1);
       assert(sl.size() == sc.size() + 1);
+      assert(smx.size() == sc.size());
+      assert(smy.size() == sc.size());
+      assert(smc.size() == sc.size());
 
       std::vector<Vect> ff(xx.size()); // force
 
@@ -1347,9 +1373,13 @@ class Vof : public AdvectionSolver<M_> {
           fcps_.Reinit(m, 0);
 
           for (size_t i = 0; i < sc.size(); ++i) {
-            auto c = sc[i];
+            IdxCell c = sc[i];
+            Vect mx = smx[i];
+            Vect my = smy[i];
+            Vect mc = smc[i];
             for (size_t j = sx[i]; j < sx[i+1]; ++j) {
-              fcp_[c][fcps_[c]++] = xx[j];
+              auto q = xx[j];
+              fcp_[c][fcps_[c]++] = mc + mx * q[0] + my * q[1];
             }
           }
         }
