@@ -1088,7 +1088,7 @@ class Vof : public AdvectionSolver<M_> {
 
       SeedParticles(uc);
 
-      const int sw = 2; // stencil halfwidth, [-sw,sw]
+      const int sw = 1; // stencil halfwidth, [-sw,sw]
       const int sn = sw * 2 + 1; // stencil size
       // block offset
       GBlock<IdxCell, dim> bo(
@@ -1182,46 +1182,25 @@ class Vof : public AdvectionSolver<M_> {
                 Scal lm = dm.norm();
                 Scal lp = dp.norm();
 
-                /*
-                // normals to segments, <nm,dm> positively oriented
-                Vect nm = Vect(dm[1], -dm[0], 0.) / lm; 
-                Vect np = Vect(dp[1], -dp[0], 0.) / lp;
-                // torque
-                Scal t = par->part_kbend * lm * lp * 
-                  (an(i,c) - anm * (par->part_bendmean ? 1. : 0.));
-                // forces
-                Vect fm = nm * (t / (2. * lm));
-                Vect fp = np * (t / (2. * lp));
-                */
-                
-                Vect fm = (dm * (dm.dot(dp) / (lm * lm)) + dp) *
-                    (par->part_kbend * std::sqrt(std::max(0.,
-                        (lm * lp - dm.dot(dp)) / (lm * lp + dm.dot(dp)))));
-                Vect fp = (dp * (-dm.dot(dp) / (lp * lp)) + dm) *
-                    (par->part_kbend * std::sqrt(std::max(0.,
-                        (lm * lp - dm.dot(dp)) / (lm * lp + dm.dot(dp)))));
-
-                /*
-                if (IsNan(fm) || IsNan(fp) || lm < 1e-10 || lp < 1e-10) {
-                  std::cerr
-                      << "c=" << c.GetRaw()
-                      << " i=" << i
-                      << " im=" << im
-                      << " ip=" << ip
-                      << " x=" << x
-                      << " xm=" << xm
-                      << " xp=" << xp
-                      << " dm=" << dm
-                      << " dp=" << dp
-                      << " lm=" << lm
-                      << " lp=" << lp
-                      << " fm=" << fm
-                      << " fp=" << fp
-                      << " dm.dot(dp)=" << dm.dot(dp)
-                      << std::endl;
-                  std::terminate();
+                Vect fm, fp;
+                if(0) { // circle-fit
+                  // normals to segments, <nm,dm> positively oriented
+                  Vect nm = Vect(dm[1], -dm[0], 0.) / lm; 
+                  Vect np = Vect(dp[1], -dp[0], 0.) / lp;
+                  // torque
+                  Scal t = par->part_kbend * lm * lp * 
+                    (an(i,c) - anm * (par->part_bendmean ? 1. : 0.));
+                  // forces
+                  fm = nm * (t / (2. * lm));
+                  fp = np * (t / (2. * lp));
+                } else {
+                  fm = (dm * (dm.dot(dp) / (lm * lm)) + dp) *
+                      (par->part_kbend * std::sqrt(std::max(0.,
+                          (lm * lp - dm.dot(dp)) / (lm * lp + dm.dot(dp)))));
+                  fp = (dp * (-dm.dot(dp) / (lp * lp)) + dm) *
+                      (par->part_kbend * std::sqrt(std::max(0.,
+                          (lm * lp - dm.dot(dp)) / (lm * lp + dm.dot(dp)))));
                 }
-                */
 
                 // apply
                 fcpt_[c][im] += fm;
