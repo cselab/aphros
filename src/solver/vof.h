@@ -655,8 +655,8 @@ GVect<Scal, 3> GetCenter(const GVect<Scal, 3>& n, Scal a,
 // x0,x1: straight line
 // n: plane normal
 // Returns:
-// xn: point in plain <xc,n> nearest to x such that
-//     (xn-xc).dot(t) >= 0
+// xn: point on plane <xc,n> nearest to x such that
+//     t.dot(xn-xc) >= 0
 //   where t = n.cross(x1-x0), xc = 0.5 * (x0 + x1)
 template <class Scal>
 GVect<Scal, 3> GetNearestHalf(const GVect<Scal, 3>& x,
@@ -669,8 +669,35 @@ GVect<Scal, 3> GetNearestHalf(const GVect<Scal, 3>& x,
   Vect t = n.cross(x1 - x0);
   Vect dx = x - xc;
   Vect dxn = dx - 
-      n * (dx.dot(n) / n.sqrnorm()) - 
-      t * std::min(0., dx.dot(t) / t.sqrnorm());
+      n * (n.dot(dx) / n.sqrnorm()) - 
+      t * std::min(0., t.dot(dx) / t.sqrnorm());
+  return xc + dxn;
+}
+
+// Nearest point to half-plane.
+// x: target point
+// x0,x1: edge of half-plane
+// xh: point on half-plane
+// n: plane normal
+// Returns:
+// xn: point on plane <xc,n> nearest to x such that
+//     t.dot(xn-xc) * t.dot(xh-xc) >= 0
+//   where t = n.cross(x1-x0), xc = 0.5 * (x0 + x1)
+template <class Scal>
+GVect<Scal, 3> GetNearestHalf(const GVect<Scal, 3>& x,
+                              const GVect<Scal, 3>& x0,
+                              const GVect<Scal, 3>& x1,
+                              const GVect<Scal, 3>& xh,
+                              const GVect<Scal, 3>& n) {
+  using Vect = GVect<Scal, 3>;
+
+  Vect xc = (x0 + x1) * 0.5;
+  Vect t = n.cross(x1 - x0);
+  Vect dx = x - xc;
+  Scal sg = (t.dot(xh - xc) > 0. ? 1. : -1.);
+  Vect dxn = dx - 
+      n * (n.dot(dx) / n.sqrnorm()) - 
+      t * (std::min(0., t.dot(dx) / t.sqrnorm() * sg) * sg);
   return xc + dxn;
 }
 
