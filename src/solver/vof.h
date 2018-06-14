@@ -851,6 +851,7 @@ class Vof : public AdvectionSolver<M_> {
     size_t part_maxiter = 100; // num iter
     size_t part_dump_fr = 100; // num frames dump
     size_t part_report_fr = 100; // num frames report
+    Scal part_intth = 1e-3; // interface detection threshold
     std::unique_ptr<Dumper> dmp; // dumper for particles
   };
   std::shared_ptr<Par> par;
@@ -1073,16 +1074,29 @@ class Vof : public AdvectionSolver<M_> {
     assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
     return h;
   }
+  // oriented angle from (x1-x0) to (x2-x1)
+  static Scal GetAn(Vect x0, Vect x1, Vect x2) {
+    Vect dm = x1 - x0;
+    Vect dp = x2 - x1;
+    Scal lm = dm.norm();
+    Scal lp = dp.norm();
+    Scal sin = dm.cross_third(dp) / (lm * lp);
+    return std::asin(sin);
+  };
+  // oriented angle from (x[i]-x[i-1]) to (x[i+1]-x[i])
+  static Scal GetAn(const Vect* x, size_t i) {
+    return GetAn(x[i-1], x[i], x[i+1]);
+  };
   // Compute force to advance particles.
   // Assume 2d positions (x,y,0).
   // x: pointer to first particle
   // sx: size of particle string
-  // l: pointer to first line
+  // l: pointer to first array of line ends
   // nl: number of lines
   // Output:
-  // f: position corrections 
+  // f: position corrections of size sx
   void PartForce2d(const Vect* xx, size_t sx, 
-                   const std::pair<Vect,Vect>* ll, size_t sl,
+                   const std::array<Vect, 2>* ll, size_t sl,
                    Vect* ff) {
     if (!sx) {
       return;
@@ -1091,23 +1105,8 @@ class Vof : public AdvectionSolver<M_> {
     Vect h = GetCellSize();
     Scal hm = h.norminf();
 
-    // oriented angle from (xi-xim) to (xip-xi) 
-    auto an = [&](int i) {
-      int im = i - 1;
-      int ip = i + 1;
-      Vect x = xx[i];
-      Vect xm = xx[im];
-      Vect xp = xx[ip];
-      Vect dm = x - xm;
-      Vect dp = xp - x;
-      Scal lm = dm.norm();
-      Scal lp = dp.norm();
-      Scal sin = dm.cross_third(dp) / (lm * lp);
-      return std::asin(sin);
-    };
-
     // mean angle
-    Scal anm = (an(1) + an(2) + an(3)) / 3.; 
+    Scal anm = (GetAn(xx,1) + GetAn(xx,2) + GetAn(xx,3)) / 3.; 
 
     // clear force
     for (size_t i = 0; i < sx; ++i) {
@@ -1126,14 +1125,14 @@ class Vof : public AdvectionSolver<M_> {
 
     // attracting spring to nearest point on nearest line
     for (size_t i = 0; i < sx; ++i) {
-      Vect x = x[i];
+      Vect x = xx[i];
 
       if (sl) {
         Vect xn;  // nearest point
         Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
         for (size_t j = 0; j < sl; ++j) {
-          auto& p = ll[j];
-          Vect xl = GetNearest(x, p.first, p.second);
+          auto& e = ll[j];
+          Vect xl = GetNearest(x, e[0], e[1]);
           Scal dl = xl.sqrdist(x);
           if (dl < dn) {
             xn = xl;
@@ -1162,7 +1161,7 @@ class Vof : public AdvectionSolver<M_> {
       Vect np = Vect(dp[1], -dp[0], 0.) / lp;
       // torque
       Scal t = par->part_kbend * lm * lp * 
-          (an(i) - anm * (par->part_bendmean ? 1. : 0.));
+          (GetAn(xx,i) - anm * (par->part_bendmean ? 1. : 0.));
       // forces
       Vect fm = nm * (t / (2. * lm));
       Vect fp = np * (t / (2. * lp));
@@ -1179,20 +1178,7 @@ class Vof : public AdvectionSolver<M_> {
     }
 
     if (sem("part")) {
-      auto& bc = m.GetBlockCells();
-      auto& bn = m.GetBlockNodes();
-      using MIdx = typename M::MIdx;
-      Vect h = GetCellSize();
-      Scal hm = h.norminf();
-
       SeedParticles(uc);
-
-      const int sw = 1; // stencil halfwidth, [-sw,sw]
-      const int sn = sw * 2 + 1; // stencil size
-      // block offset
-      GBlock<IdxCell, dim> bo(
-          MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
-          MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
 
       bool dm = par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
                               this->GetTimeStep());
@@ -1200,141 +1186,100 @@ class Vof : public AdvectionSolver<M_> {
         DumpParticles(0);
       }
 
-      // oriented angle from (xi-xim) to (xip-xi) 
-      auto an = [&](int i, IdxCell c) {
-        int im = i - 1;
-        int ip = i + 1;
-        Vect x = fcp_[c][i];
-        Vect xm = fcp_[c][im];
-        Vect xp = fcp_[c][ip];
-        Vect dm = x - xm;
-        Vect dp = xp - x;
-        Scal lm = dm.norm();
-        Scal lp = dp.norm();
-        Scal sin = dm.cross_third(dp) / (lm * lp);
-        return std::asin(sin);
-      };
+      // particle strings
+      std::vector<IdxCell> sc; // cell
+      std::vector<Vect> xx; // particle positions
+      std::vector<size_t> sx; // xx index, plus sx.size() 
+      std::vector<std::array<Vect, 2>> ll; // interface lines
+      std::vector<size_t> sl; // sl index, plus sl.size() 
+
+      for (auto c : m.Cells()) {
+        // XXX: assume fcps_[c] % kNp == 0
+        for (int is = 0; is < fcps_[c] / kNp; ++is) {
+          int i0 = is * kNp;
+          int i1 = (is + 1) * kNp;
+
+          sc.push_back(c);
+
+          // Copy particles
+          sx.push_back(xx.size());
+          for (int i = i0; i < i1; ++i) {
+            xx.push_back(fcp_[c][i]);
+          }
+
+          // Extract interface lines
+          sl.push_back(ll.size());
+          auto& bc = m.GetBlockCells();
+          using MIdx = typename M::MIdx;
+          Vect h = GetCellSize();
+
+          const int sw = 1; // stencil halfwidth, [-sw,sw]
+          const int sn = sw * 2 + 1; // stencil size
+
+          // block of offsets
+          GBlock<IdxCell, dim> bo(
+              MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
+              MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
+
+          auto w = bc.GetMIdx(c);
+          for (auto wo : bo) {
+            auto cc = bc.GetIdx(w + wo);
+            Scal u = uc[cc];
+            Scal th = par->part_intth;
+            if (u > th && u < 1. - th) {
+              ll.push_back(GetLineEnds(fc_n_[cc], fc_a_[cc], h));
+            }
+          }
+        }
+      }
+      sx.push_back(xx.size());
+      sl.push_back(ll.size());
+
+      assert(sx.size() == sc.size() + 1);
+      assert(sl.size() == sc.size() + 1);
+
+      std::vector<Vect> ff(xx.size()); // force
 
       // advance particles
       for (size_t it = 0; it < par->part_maxiter; ++it) {
-        // compute correction
-        for (auto c : m.Cells()) {
-          // mean angle
-          Scal anm = (an(1,c) + an(2,c) + an(3,c)) / 3.; 
-
-          // clear force (needed for bending as applied from each corner)
-          for (int i = 0; i < fcps_[c]; ++i) {
-            fcpt_[c][i] = Vect(0); 
-          }
-
-          // traverse strings, assume fcps_[c] % kNp == 0
-          for (int is = 0; is < fcps_[c] / kNp; ++is) {
-            int i0 = is * kNp;
-            int i1 = (is + 1) * kNp;
-            // traverse particles, append to force
-            for (int i = i0; i < i1; ++i) {
-              const Vect& x = fcp_[c][i];
-              Vect& t = fcpt_[c][i]; 
-
-              // springs to adjacent particles
-              for (int ii : {i - 1, i + 1}) {
-                if (ii >= i0 && ii < i1) {
-                  const Vect& xx = fcp_[c][ii];
-                  Vect dx = x - xx;
-                  Scal d = par->part_h * hm - dx.norm();
-                  t += dx / dx.norm() * d * par->part_kstr;
-                }
-              }
-
-              // spring to nearest point at reconstructed interface
-              auto w = bc.GetMIdx(c);
-              bool fnd = false; // found at least one cell
-              Vect xb;  // best point on the interface (nearest)
-              for (auto wo : bo) {
-                auto cc = bc.GetIdx(w + wo);
-                Scal u = uc[cc];
-                auto n = fc_n_[cc];
-                Scal th = 1e-3;
-                if (u > th && u < 1. - th) {
-                  // nearest point to interface in cc
-                  Vect xcc = m.GetCenter(cc);
-                  Vect xn = xcc + GetNearest(x - xcc, n, fc_a_[cc], h);
-                  //Vect xn = xcc + GetCenter(n, fc_a_[cc], h);
-                  if (!fnd || x.sqrdist(xn) < x.sqrdist(xb)) {
-                    xb = xn;
-                    fnd = true;
-                  }
-                }
-              }
-              if (fnd) {
-                t += (xb - x) * par->part_kattr;
-              }
-
-              // bending
-              if (i > i0 && i < i1 - 1) {
-                int im = i - 1;
-                int ip = i + 1;
-                Vect xm = fcp_[c][im];
-                Vect xp = fcp_[c][ip];
-                Vect dm = x - xm;
-                Vect dp = xp - x;
-                Scal lm = dm.norm();
-                Scal lp = dp.norm();
-
-                Vect fm, fp;
-                if(0) { // circle-fit
-                  // normals to segments, <nm,dm> positively oriented
-                  Vect nm = Vect(dm[1], -dm[0], 0.) / lm; 
-                  Vect np = Vect(dp[1], -dp[0], 0.) / lp;
-                  // torque
-                  Scal t = par->part_kbend * lm * lp * 
-                    (an(i,c) - anm * (par->part_bendmean ? 1. : 0.));
-                  // forces
-                  fm = nm * (t / (2. * lm));
-                  fp = np * (t / (2. * lp));
-                } else {
-                  fm = (dm * (dm.dot(dp) / (lm * lm)) + dp) *
-                      (par->part_kbend * std::sqrt(std::max(0.,
-                          (lm * lp - dm.dot(dp)) / (lm * lp + dm.dot(dp)))));
-                  fp = (dp * (-dm.dot(dp) / (lp * lp)) + dm) *
-                      (par->part_kbend * std::sqrt(std::max(0.,
-                          (lm * lp - dm.dot(dp)) / (lm * lp + dm.dot(dp)))));
-                }
-
-                // apply
-                fcpt_[c][im] += fm;
-                fcpt_[c][ip] += fp;
-                fcpt_[c][i] -= (fm + fp);
-              }
-            }
-          }
+        for (size_t i = 0; i < sc.size(); ++i) {
+          PartForce2d(&(xx[sx[i]]), sx[i+1] - sx[i],
+                      &(ll[sl[i]]), sl[i+1] - sl[i],
+                      &(ff[sx[i]]));
         }
 
-        // compute error
-        Scal tmax = 0.;
-        Scal anmax = 0.;
-        Scal anavg = 0; // aveage difference from mean angle
-        size_t anavgn = 0;
-        for (auto c : m.Cells()) {
-          if (fcps_[c]) {
-            // mean angle
-            Scal anm = (an(1,c) + an(2,c) + an(3,c)) / 3.; 
-            for (size_t i = 0; i < fcps_[c]; ++i) {
-              fcp_[c][i] += fcpt_[c][i] * par->part_relax;
-              tmax = std::max(tmax, fcpt_[c][i].norm());
-              if (i > 0 && i < kNp - 1) {
-                Scal e = std::abs(anm - an(i, c));
-                anavg += e;
-                ++anavgn;
-                anmax = std::max(anmax, e);
-              }
-            }
-          }
-        }
-        anavg /= anavgn;
+
+        // report error
         size_t dr = std::max<size_t>(1, 
             par->part_maxiter / par->part_report_fr);
         if (it % dr == 0 || it + 1 == par->part_maxiter) {
+          Scal tmax = 0.;
+          Scal anmax = 0.;
+          Scal anavg = 0; // aveage difference from mean angle
+          size_t anavgn = 0;
+          for (size_t i = 0; i < sc.size(); ++i) {
+            const Vect* px = &(xx[sx[i]]);
+            // maximum force
+            for (size_t j = sx[i]; j < sx[i+1]; ++j) {
+              tmax = std::max(tmax, ff[j].norm());
+            }
+            Scal anm = 0.;
+            size_t anmn = 0;
+            // mean angle in string
+            for (size_t j = sx[i] + 1; j + 1 < sx[i+1]; ++j) {
+              anm += GetAn(xx.data(), j);
+              ++anmn;
+            }
+            anm /= anmn;
+            // error in angle
+            for (size_t j = sx[i] + 1; j + 1 < sx[i+1]; ++j) {
+              Scal e = std::abs(anm - GetAn(xx.data(), j));
+              anavg += e;
+              ++anavgn;
+              anmax = std::max(anmax, e);
+            }
+          }
+          anavg /= anavgn;
           std::cout 
               << "it=" << it 
               << " dxmax=" << tmax 
@@ -1344,9 +1289,19 @@ class Vof : public AdvectionSolver<M_> {
         }
 
         // advance
-        for (auto c : m.Cells()) {
-          for (size_t i = 0; i < fcps_[c]; ++i) {
-            fcp_[c][i] += fcpt_[c][i] * par->part_relax;
+        for (size_t i = 0; i < xx.size(); ++i) {
+          xx[i] += ff[i];
+        }
+
+        // copy back to field
+        if (dm || it + 1 == par->part_maxiter) {
+          fcps_.Reinit(m, 0);
+
+          for (size_t i = 0; i < sc.size(); ++i) {
+            auto c = sc[i];
+            for (size_t j = sx[i]; j < sx[i+1]; ++j) {
+              fcp_[c][fcps_[c]++] = xx[j];
+            }
           }
         }
 
