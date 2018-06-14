@@ -7,4 +7,3 @@ make
 c=sphere.conf
 
 time ./t.advection $c
-time ./plot.py
