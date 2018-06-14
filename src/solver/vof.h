@@ -1321,6 +1321,12 @@ class Vof : public AdvectionSolver<M_> {
           PartForce2d(&(xx[sx[i]]), sx[i+1] - sx[i],
                       &(ll[sl[i]]), sl[i+1] - sl[i],
                       &(ff[sx[i]]));
+
+          // freeze central particle
+          Vect f = ff[(sx[i] + sx[i+1] - 1) / 2];
+          for (size_t j = sx[i]; j < sx[i+1]; ++j) {
+            ff[j] -= f;
+          }
         }
 
 
