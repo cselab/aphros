@@ -4,18 +4,7 @@ set -ue
 
 make
 ./clean
-#c=uni.conf
-#c=str.conf
-#c=a.conf
-#c=adump01.conf
-#c=circle.conf
-#c=circlelast.conf
 c=circleplain.conf
-#c=sphere.conf
-
 
 time ./t.advection $c
-
-rm -f partit.0.csv
-
 time ./plot.py
