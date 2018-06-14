@@ -398,6 +398,7 @@ void Plot() {
 }
 
 void TestFit() {
+  std::cerr << "check plane fitting" << std::endl;
   using namespace solver;
 
   using V = Vect;
@@ -426,17 +427,17 @@ void TestFit() {
     assert(n.dist(ne) < 1e-12);
   };
 
-  g({V(0., 0., 0.), V(0., 1., 0.), V(0., 1., 1.), V(0., 0., 1.)}, 
-      V(1., 0., 0.));
+  g({V(0., 0., 0.), V(0., 1., 0.), V(0., 1., 1.), V(0., 0., 1.)}, V(1., 0., 0.));
 }
 
 void TestNearest() {
+  std::cerr << "check nearest to polygon" << std::endl;
   using namespace solver;
   using V = Vect;
 
-  auto f = [](V x, V x0, V x1, V n, V xne) {
+  auto f1 = [](V x, V x0, V x1, V n, V xne) {
     auto xn = GetNearestHalf(x, x0, x1, n);
-    std::cout 
+    std::cout << "x0x1:"
         << " x=" << x 
         << " x0=" << x0
         << " x1=" << x1
@@ -447,13 +448,13 @@ void TestNearest() {
     assert(xne.dist(xn) < 1e-12);
   };
 
-  auto g = [](V x, V x0, V x1, V xh, V n, V xne) {
+  auto f2 = [](V x, V x0, V x1, V xh, V n, V xne) {
     auto xn = GetNearestHalf(x, x0, x1, xh, n);
-    std::cout 
+    std::cout << "xh:"
         << " x=" << x 
         << " x0=" << x0
         << " x1=" << x1
-        << " xh=" << x1
+        << " xh=" << xh
         << " n=" << n
         << " xn=" << xn
         << " xne=" << xne
@@ -461,11 +462,34 @@ void TestNearest() {
     assert(xne.dist(xn) < 1e-12);
   };
 
-  f(V(1.,1.,7.), V(-8.,0.,0.), V(7.,0.,0.), V(0.,0.,3.), V(1.,1.,0.));
-  f(V(1.,1.,9.), V(12.,0.,0.), V(-3.,0.,0.), V(0.,0.,7.), V(1.,0.,0.));
+  auto f3 = [](V x, const std::vector<V>& xx, V n, V xne) {
+    auto xn = GetNearest(x, xx, n);
+    std::cout << "tri:"
+        << " x=" << x 
+        << " xx=" << xx
+        << " n=" << n
+        << " xn=" << xn
+        << " xne=" << xne
+        << std::endl;
+    assert(xne.dist(xn) < 1e-12);
+  };
 
-  g(V(1.,1.,7.), V(-1.,0.,0.), V(11.,0.,0.), V(0.,1.,0.), V(0.,0.,3.), V(1.,1.,0.));
-  g(V(1.,1.,7.), V(-2.,0.,0.), V(11.,0.,0.), V(0.,-1.,0.), V(0.,0.,3.), V(1.,0.,0.));
+  f1(V(1.,1.,7.), V(-8.,0.,0.), V(7.,0.,0.), V(0.,0.,3.), V(1.,1.,0.));
+  f1(V(1.,1.,9.), V(12.,0.,0.), V(-3.,0.,0.), V(0.,0.,7.), V(1.,0.,0.));
+  f1(V(1.,1.,7.), V(0.,0.,0.), V(0.5,0.,0.), V(0.,0.,3.), V(0.5,1.,0.));
+  f1(V(-1.,1.,7.), V(0.,0.,0.), V(0.5,0.,0.), V(0.,0.,3.), V(0.,1.,0.));
+  f1(V(1.,1.,7.), V(0.5,0.,0.), V(0.,0.,0.), V(0.,0.,3.), V(0.5,0.,0.));
+
+  f2(V(1.,1.,7.), V(-1.,0.,0.), V(11.,0.,0.), V(0.,1.,0.), V(0.,0.,3.), V(1.,1.,0.));
+  f2(V(1.,1.,7.), V(-2.,0.,0.), V(11.,0.,0.), V(0.,-1.,0.), V(0.,0.,3.), V(1.,0.,0.));
+
+  {
+    std::vector<V> xx = {V(0.,0.,0.), V(1.,0.,0.), V(0.,1.,0.)};
+    V n(0.,0.,1.);
+    f3(V(10.,10.,1.), xx, n, V(0.5,0.5,0.));
+    f3(V(10.,0.,1.), xx, n, V(1.,0.,0.));
+    f3(V(0.1,0.2,1.), xx, n, V(0.1,0.2,0.));
+  }
 }
 
 

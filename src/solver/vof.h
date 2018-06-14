@@ -4,6 +4,7 @@
 #include <fstream>
 #include <array>
 #include <memory>
+#include <limits>
 
 #include "advection.h"
 #include "geom/block.h"
@@ -42,6 +43,31 @@ Scal SolveCubic(Scal a, Scal b, Scal c, Scal d, int k) {
       std::cos(1. / 3. * std::acos(r) - 2. * M_PI * k / 3.);
   Scal x = t - b / (3. * a);
   return x;
+}
+
+
+// Center of cloud of ponts.
+template <class Vect>
+inline Vect GetCenter(const std::vector<Vect>& xx) {
+  Vect r(0); // result
+  for (auto& x : xx) {
+    r += x;
+  }
+  return r / xx.size();
+}
+
+// Nearest point to line between ends.
+// x: target point
+// x0,x1: line ends
+template <class Scal>
+inline GVect<Scal, 3> GetNearest(const GVect<Scal, 3> x,
+															   const GVect<Scal, 3> x0,
+															   const GVect<Scal, 3> x1) {
+  using Vect = GVect<Scal, 3>;
+  Vect l = x1 - x0;
+  Scal k = l.dot(x - x0) / l.sqrnorm();
+  Clip(k);
+  return x0 + l * k;
 }
 
 // GetLineU() helper
@@ -428,39 +454,23 @@ inline GVect<Scal, 3> GetLineC(const GVect<Scal, 3>& n, Scal a,
 // XXX: 2d specific
 template <class Scal>
 inline GVect<Scal, 3> GetLineNearest(const GVect<Scal, 3> x,
-                                 const GVect<Scal, 3>& n, Scal a,
-                                 const GVect<Scal, 3>& h) {
+                                     const GVect<Scal, 3>& n, Scal a,
+                                     const GVect<Scal, 3>& h) {
   using Vect = GVect<Scal, 3>;
   std::array<Vect, 2> e = GetLineEnds(n, a, h);
-  Vect p = x + n * (e[0] - x).dot(n) / n.sqrnorm(); // projection to line
-  if ((p - e[0]).dot(p - e[1]) < 0.) { // projection between ends
-    return p;
-  } else if ((x - e[0]).sqrnorm() < (x - e[1]).sqrnorm()) {
-    return e[0];
-  } 
-  return e[1];
+  return GetNearest(x, e[0], e[1]);
 }
 
 
+// Projection to plane 'n.dot(x) = a'
+// x: target point
+// n: normal
+// a: constant 
 template <class Scal>
 inline GVect<Scal, 3> GetPlaneProj(const GVect<Scal, 3> x,
                                    const GVect<Scal, 3>& n, Scal a) {
   using Vect = GVect<Scal, 3>;
-  // equation of plane: n.dot(x) - a = 0
-  // distance to plane * n.norm()
-  Scal dst = n.dot(x) - a;
-  // projection
-  return x - n * (dst / n.sqrnorm());
-}
-
-// Center of cloud of ponts.
-template <class Vect>
-inline Vect GetCenter(const std::vector<Vect>& xx) {
-  Vect r(0); // result
-  for (auto& x : xx) {
-    r += x;
-  }
-  return r / xx.size();
+  return x - n * ((n.dot(x) - a) / n.sqrnorm());
 }
 
 // Solves 3x3 singular system Ax=0
@@ -641,22 +651,18 @@ template <class Scal>
 GVect<Scal, 3> GetCenter(const GVect<Scal, 3>& n, Scal a,
                          const GVect<Scal, 3>& h) {
   auto xx = GetCutPoly2(n, a, h);
-  using Vect = GVect<Scal, 3>;
-  Vect xc(0);
-  for (auto& x : xx) {
-    xc += x;
-  }
-  xc /= xx.size();
-  return xc;
+  return GetCenter(xx);
 }
 
-// Nearest point to half-plane.
+// TODO: remove
+// Nearest point to open-ended rectangle.
 // x: target point
-// x0,x1: straight line
+// x0,x1: edge
 // n: plane normal
 // Returns:
 // xn: point on plane <xc,n> nearest to x such that
 //     t.dot(xn-xc) >= 0
+//   and projection to edge lies between x0 and x1
 //   where t = n.cross(x1-x0), xc = 0.5 * (x0 + x1)
 template <class Scal>
 GVect<Scal, 3> GetNearestHalf(const GVect<Scal, 3>& x,
@@ -667,14 +673,18 @@ GVect<Scal, 3> GetNearestHalf(const GVect<Scal, 3>& x,
 
   Vect xc = (x0 + x1) * 0.5;
   Vect t = n.cross(x1 - x0);
+  Vect l = t.cross(n);
   Vect dx = x - xc;
   Vect dxn = dx - 
       n * (n.dot(dx) / n.sqrnorm()) - 
-      t * std::min(0., t.dot(dx) / t.sqrnorm());
+      t * std::min(0., t.dot(dx) / t.sqrnorm()) - 
+      l * std::max(0., l.dot(x - x1) / l.sqrnorm()) -
+      l * std::min(0., l.dot(x - x0) / l.sqrnorm());
   return xc + dxn;
 }
 
-// Nearest point to half-plane.
+// TODO: remove
+// Nearest point to open-ended rectangle.
 // x: target point
 // x0,x1: edge of half-plane
 // xh: point on half-plane
@@ -682,6 +692,7 @@ GVect<Scal, 3> GetNearestHalf(const GVect<Scal, 3>& x,
 // Returns:
 // xn: point on plane <xc,n> nearest to x such that
 //     t.dot(xn-xc) * t.dot(xh-xc) >= 0
+//   and projection to edge lies between x0 and x1
 //   where t = n.cross(x1-x0), xc = 0.5 * (x0 + x1)
 template <class Scal>
 GVect<Scal, 3> GetNearestHalf(const GVect<Scal, 3>& x,
@@ -693,33 +704,105 @@ GVect<Scal, 3> GetNearestHalf(const GVect<Scal, 3>& x,
 
   Vect xc = (x0 + x1) * 0.5;
   Vect t = n.cross(x1 - x0);
+  Vect l = t.cross(n);
   Vect dx = x - xc;
   Scal sg = (t.dot(xh - xc) > 0. ? 1. : -1.);
   Vect dxn = dx - 
       n * (n.dot(dx) / n.sqrnorm()) - 
-      t * (std::min(0., t.dot(dx) / t.sqrnorm() * sg) * sg);
+      t * (std::min(0., t.dot(dx) / t.sqrnorm() * sg) * sg) -
+      l * std::max(0., l.dot(x - x1) / l.sqrnorm()) -
+      l * std::min(0., l.dot(x - x0) / l.sqrnorm());
   return xc + dxn;
 }
 
-// Closest point on cut polygon.
+// Check if two points (or their projections) lie on 
+// the same side from a line on plane.
+// x,xs: target points
+// x0,x1: two points defining line
+// n: plane normal
+// Returns true if:
+//   t.dot(xp-xc) * t.dot(xsp - xc) >= 0
+//   where t = n.cross(x1 - x0), xc = 0.5 * (x0 + x1)
+template <class Scal>
+bool IsSameSide(const GVect<Scal, 3>& x, const GVect<Scal, 3>& xs,
+                const GVect<Scal, 3>& x0, const GVect<Scal, 3>& x1,
+                const GVect<Scal, 3>& n) {
+  using Vect = GVect<Scal, 3>;
+
+  Vect xc = (x0 + x1) * 0.5;
+  Vect t = n.cross(x1 - x0);
+  return (t.dot(x - xc) >= 0.) == (t.dot(xs - xc) >= 0.);
+}
+
+// Check if projection of point lies inside convex polygon on plane.
+// x: target point
+// xx: polygon points 
+// n: normal
+template <class Scal>
+bool IsInside(const GVect<Scal, 3>& x,
+              const std::vector<GVect<Scal, 3>>& xx,
+              const GVect<Scal, 3>& n) {
+  using Vect = GVect<Scal, 3>;
+
+  Vect xc = GetCenter(xx);
+  size_t s = xx.size();
+
+  for (size_t i = 0; i < s; ++i) {
+    if (!IsSameSide(x, xc, xx[i], xx[(i + 1) % s], n)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Nearest point to convex polygon on plane.
+// x: target point
+// xx: polygon points 
+// n: normal
+template <class Scal>
+GVect<Scal, 3> GetNearest(const GVect<Scal, 3>& x,
+                          const std::vector<GVect<Scal, 3>>& xx,
+                          const GVect<Scal, 3>& n) {
+  using Vect = GVect<Scal, 3>;
+
+  if (IsInside(x, xx, n)) {
+    return GetPlaneProj(x, n, 0.);
+  }
+
+  Scal dn = std::numeric_limits<Scal>::max(); // minimal sqrdist
+  Vect xn; // point with minimal distance
+  size_t s = xx.size();
+  for (size_t i = 0; i < s; ++i) {
+    // nearest point to edge
+    Vect xe = GetNearest(x, xx[i], xx[(i + 1) % s]);
+    Scal de = xe.sqrdist(x);
+    if (de < dn) {
+      dn = de;
+      xn = xe;
+    }
+    std::cerr << "gn:" 
+        << " x0=" << xx[i] 
+        << " x1=" << xx[(i + 1) % s] 
+        << " xe=" << xe 
+        << " de=" << de 
+        << " xn=" << xn 
+        << " dn=" << dn 
+        << std::endl;
+  }
+  return xn;
+}
+
+// Nearest point to polygon cut by cell.
 // x: target point
 // n: normal
 // a: line constant, relative to x=0
 // h: cell size
 template <class Scal>
-inline GVect<Scal, 3> GetNearest(const GVect<Scal, 3>& x,
-                                 const GVect<Scal, 3>& n, Scal a,
-                                 const GVect<Scal, 3>& h) {
+GVect<Scal, 3> GetNearest(const GVect<Scal, 3>& x,
+                          const GVect<Scal, 3>& n, Scal a,
+                          const GVect<Scal, 3>& h) {
   auto xx = GetCutPoly2(n, a, h);
-  using Vect = GVect<Scal, 3>;
-  std::array<Vect, 2> e = GetLineEnds(n, a, h);
-  Vect p = x + n * (e[0] - x).dot(n) / n.sqrnorm(); // projection to line
-  if ((p - e[0]).dot(p - e[1]) < 0.) { // projection between ends
-    return p;
-  } else if ((x - e[0]).sqrnorm() < (x - e[1]).sqrnorm()) {
-    return e[0];
-  } 
-  return e[1];
+  return GetNearest(x, xx, n);
 }
 
 
