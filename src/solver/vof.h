@@ -978,56 +978,8 @@ class Vof : public AdvectionSolver<M_> {
       fc_n_[c] = g;
     }
   }
-  // Normal with height function
-  // XXX: no curvature
-  void CalcNormalHeight(const FieldCell<Scal>& uc) {
-    using MIdx = typename M::MIdx;
-    using Dir = typename M::Dir;
-    auto& bc = m.GetBlockCells();
-    const int sw = 1; // stencil width
-    const int sn = sw * 2 + 1; // stencil size
-    GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, 0), MIdx(sn, sn, 1)); // offset
-    std::array<Scal, sn> e; // h[e]ight function
-    auto h = GetCellSize();
-    for (auto c : m.SuCells()) {
-      Vect tn; // bes[t] normal
-      Scal tk; // bes[t] slope with minimal abs
-      for (Dir d : {Dir::i, Dir::j}) {
-        // zero e
-        for (size_t i = 0; i < sn; ++i) {
-          e[i] = 0.;
-        }
-        auto w = bc.GetMIdx(c);
-        // calc e
-        for (auto o : bo) {
-          e[o[size_t(d)] + sw] += uc[bc.GetIdx(w + o)];
-        }
-        // slope
-        Scal km = (e[sw] - e[0]); // backward (minus)
-        Scal kc = (e[sw + 1] - e[0]) * 0.5; // centered
-        Scal kp = (e[sw + 1] - e[sw]); // forward (plus)
-        // best slope with maximum abs
-        //Scal k = Maxmod(km, Maxmod(kc, kp));
-        Scal k = kc; // XXX: force centered approx
-        // direction perpendicular 
-        Dir dp(1 - size_t(d)); 
-        // sign in dp
-        Scal sg = uc[bc.GetIdx(w + MIdx(dp))] - uc[bc.GetIdx(w - MIdx(dp))];
-        // normal
-        Vect n;
-        n[size_t(d)] = -k;
-        n[size_t(dp)] = sg > 0. ? -1. : 1.;
-        // check best with minimal abs
-        if (d == Dir::i || std::abs(k) < std::abs(tk)) {
-          tn = n;
-          tk = k;
-        } 
-      }
-      fc_n_[c] = tn;
-    }
-  }
   // Normal with height function evaluated at only two points
-  void CalcNormalHeightLite(const FieldCell<Scal>& uc) {
+  void CalcNormalHeight(const FieldCell<Scal>& uc) {
     using MIdx = typename M::MIdx;
     using Dir = typename M::Dir;
     auto& bc = m.GetBlockCells();
@@ -1381,7 +1333,7 @@ class Vof : public AdvectionSolver<M_> {
     auto sem = m.GetSem("reconst");
     if (sem("height")) {
       // Reconstuction with normal from height functions
-      CalcNormalHeightLite(uc);
+      CalcNormalHeight(uc);
       auto h = GetCellSize();
       for (auto c : m.AllCells()) {
         fc_a_[c] = GetLineA(fc_n_[c], uc[c], h);
