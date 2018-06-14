@@ -1118,7 +1118,7 @@ class Vof : public AdvectionSolver<M_> {
       Vect dx = xx[i + 1] - xx[i];
       Scal k = par->part_kstr;
       Scal d0 = par->part_h * hm; // equilibrium length
-      Vect f = dx * (k * (d0 / dx.norm() - 1.));
+      Vect f = dx * (k * (1. - d0 / dx.norm()));
       ff[i] += f;
       ff[i + 1] -= f;
     }
@@ -1227,7 +1227,9 @@ class Vof : public AdvectionSolver<M_> {
             Scal u = uc[cc];
             Scal th = par->part_intth;
             if (u > th && u < 1. - th) {
-              ll.push_back(GetLineEnds(fc_n_[cc], fc_a_[cc], h));
+              auto xcc = m.GetCenter(cc);
+              auto e = GetLineEnds(fc_n_[cc], fc_a_[cc], h);
+              ll.push_back({xcc + e[0], xcc + e[1]});
             }
           }
         }
@@ -1290,7 +1292,7 @@ class Vof : public AdvectionSolver<M_> {
 
         // advance
         for (size_t i = 0; i < xx.size(); ++i) {
-          xx[i] += ff[i];
+          xx[i] += ff[i] * par->part_relax;
         }
 
         // copy back to field
