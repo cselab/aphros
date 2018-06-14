@@ -799,6 +799,40 @@ GVect<Scal, 3> GetNearest(const GVect<Scal, 3>& x,
   return GetNearest(x, xx, n);
 }
 
+// Intersection of plane convex polygon and plane.
+// xx: points of polygon
+// xc: point on plane
+// n: plane normal
+// Output:
+// e: line ends
+template <class Scal>
+bool GetInterPoly(const std::vector<GVect<Scal, 3>>& xx,
+                  const GVect<Scal, 3>& xc,
+                  const GVect<Scal, 3>& n,
+                  std::array<GVect<Scal, 3>, 2>& e) {
+  using Vect = GVect<Scal, 3>;
+
+  size_t j = 0; // index in e
+
+  size_t sx = xx.size();
+  for (size_t i = 0; i < xx.size(); ++i) {
+    size_t ip = (i + 1) % sx;
+    Vect x0 = xx[i];
+    Vect x1 = xx[ip];
+    if ((n.dot(x0 - xc) > 0.) != (n.dot(x1 - xc) > 0.)) { // opposite sides
+      Scal l = (xc - x0).dot(n)  / (x1 - x0).dot(n);
+      e[j++] = x0 + (x1 - x0) * l;
+
+      //std::cerr << "e[j]=" << e[j-1] << std::endl;
+
+      if (j == 2) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 
 template <class M_>
 class Vof : public AdvectionSolver<M_> {
@@ -1221,6 +1255,15 @@ class Vof : public AdvectionSolver<M_> {
               MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
               MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
 
+          // current string center
+          Vect rc = fcp_[c][(i0 + i1 + 1) / 2];
+          // tangent (assume staright line)
+          Vect rt = (fcp_[c][i0 + 1] - fcp_[c][i0]);
+          // interface normal
+          Vect n = fc_n_[c];
+          // string plane normal
+          Vect rn = rt.cross(n);
+
           auto w = bc.GetMIdx(c);
           for (auto wo : bo) {
             auto cc = bc.GetIdx(w + wo);
@@ -1228,8 +1271,12 @@ class Vof : public AdvectionSolver<M_> {
             Scal th = par->part_intth;
             if (u > th && u < 1. - th) {
               auto xcc = m.GetCenter(cc);
-              auto e = GetLineEnds(fc_n_[cc], fc_a_[cc], h);
-              ll.push_back({xcc + e[0], xcc + e[1]});
+              auto xx = GetCutPoly(xcc, fc_n_[cc], fc_a_[cc], h);
+              std::array<Vect, 2> e;
+              if (GetInterPoly(xx, rc, rn, e)) {
+                ll.push_back(e);
+              }
+              //auto e = GetLineEnds(fc_n_[cc], fc_a_[cc], h);
             }
           }
         }
