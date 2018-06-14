@@ -890,8 +890,10 @@ class Vof : public AdvectionSolver<M_> {
           for (int i = 0; i < kNp; ++i) {
             fcp_[c][fcps_[c]++] = x + t0 * ((Scal(i) - kNp / 2) * pd);
           }
-          for (int i = 0; i < kNp; ++i) {
-            fcp_[c][fcps_[c]++] = x + t1 * ((Scal(i) - kNp / 2) * pd);
+          if (par->dim == 3) {
+            for (int i = 0; i < kNp; ++i) {
+              fcp_[c][fcps_[c]++] = x + t1 * ((Scal(i) - kNp / 2) * pd);
+            }
           }
         }
       }
@@ -1201,7 +1203,8 @@ class Vof : public AdvectionSolver<M_> {
                 auto cc = bc.GetIdx(w + wo);
                 Scal u = uc[cc];
                 auto n = fc_n_[cc];
-                if (u > 1e-3 && u < 1. - 1e-3) {
+                Scal th = 1e-3;
+                if (u > th && u < 1. - th) {
                   // nearest point to interface in cc
                   Vect xcc = m.GetCenter(cc);
                   Vect xn = xcc + GetNearest(x - xcc, n, fc_a_[cc], h);
@@ -1325,8 +1328,7 @@ class Vof : public AdvectionSolver<M_> {
       // compute curvature
       fckp_.Reinit(m, 0.);
       for (auto c : m.Cells()) {
-        // contains particles
-        if (fcps_[c]) {
+        if (fcps_[c]) { // contains particles
           // computes curvatures based on angle centered at i
           auto kk = [&](int i) -> Scal {
             int im = i - 1;

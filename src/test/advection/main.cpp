@@ -139,6 +139,7 @@ void Advection<M>::Init(Sem& sem) {
     } else if (as == "vof") {
       using AS = solver::Vof<M>;
       auto p = std::make_shared<typename AS::Par>();
+      p->dim = var.Int["dim"];
       p->curvgrad = var.Int["curvgrad"];
       p->part = var.Int["part"];
       p->part_relax = var.Double["part_relax"];
