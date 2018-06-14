@@ -1355,7 +1355,7 @@ class Vof : public AdvectionSolver<M_> {
         if (it % dr == 0 || it + 1 == par->part_maxiter) {
           Scal tmax = 0.;
           Scal anmax = 0.;
-          Scal anavg = 0; // aveage difference from mean angle
+          Scal anavg = 0; // average difference from mean angle
           size_t anavgn = 0;
           for (size_t i = 0; i < sc.size(); ++i) {
             const Vect* px = &(xx[sx[i]]);
@@ -1433,6 +1433,9 @@ class Vof : public AdvectionSolver<M_> {
             k += sk[i];
             ++i;
             ++nk;
+          }
+          if (par->dim == 3) {
+            k *= 2.;
           }
           fckp_[c] = k / nk;
         }
