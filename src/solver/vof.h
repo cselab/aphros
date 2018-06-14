@@ -1004,14 +1004,16 @@ class Vof : public AdvectionSolver<M_> {
 
           // traverse strings, assume fcps_[c] % kNp == 0
           for (int is = 0; is < fcps_[c] / kNp; ++is) {
+            int i0 = is * kNp;
+            int i1 = (is + 1) * kNp;
             // traverse particles, append to force
-            for (int i = is * kNp; i < (is + 1) * kNp; ++i) {
+            for (int i = i0; i < i1; ++i) {
               const Vect& x = fcp_[c][i];
               Vect& t = fcpt_[c][i]; 
 
               // springs to adjacent particles
               for (int ii : {i - 1, i + 1}) {
-                if (ii >= 0 && ii < kNp) {
+                if (ii >= i0 && ii < i1) {
                   const Vect& xx = fcp_[c][ii];
                   Vect dx = x - xx;
                   Scal d = par->part_h * hm - dx.norm();
@@ -1043,7 +1045,7 @@ class Vof : public AdvectionSolver<M_> {
               }
 
               // bending
-              if (i > 0 && i < kNp - 1) {
+              if (i > i0 && i < i1 - 1) {
                 int im = i - 1;
                 int ip = i + 1;
                 Vect xm = fcp_[c][im];
@@ -1065,12 +1067,34 @@ class Vof : public AdvectionSolver<M_> {
                 Vect fp = np * (t / (2. * lp));
                 */
                 
-                Vect fm = (dm * (dm.dot(dp) / (lm * lm)) - dp) *
-                    (par->part_kbend * std::sqrt(
-                        (lm * lp + dm.dot(dp)) / (lm * lp - dm.dot(dp))));
-                Vect fp = (dp * (dm.dot(dp) / (lp * lp)) - dm) *
-                    (par->part_kbend * std::sqrt(
-                        (lm * lp + dm.dot(dp)) / (lm * lp - dm.dot(dp))));
+                Vect fm = (dm * (dm.dot(dp) / (lm * lm)) + dp) *
+                    (par->part_kbend * std::sqrt(std::max(0.,
+                        (lm * lp - dm.dot(dp)) / (lm * lp + dm.dot(dp)))));
+                Vect fp = (dp * (-dm.dot(dp) / (lp * lp)) + dm) *
+                    (par->part_kbend * std::sqrt(std::max(0.,
+                        (lm * lp - dm.dot(dp)) / (lm * lp + dm.dot(dp)))));
+
+                /*
+                if (IsNan(fm) || IsNan(fp) || lm < 1e-10 || lp < 1e-10) {
+                  std::cerr
+                      << "c=" << c.GetRaw()
+                      << " i=" << i
+                      << " im=" << im
+                      << " ip=" << ip
+                      << " x=" << x
+                      << " xm=" << xm
+                      << " xp=" << xp
+                      << " dm=" << dm
+                      << " dp=" << dp
+                      << " lm=" << lm
+                      << " lp=" << lp
+                      << " fm=" << fm
+                      << " fp=" << fp
+                      << " dm.dot(dp)=" << dm.dot(dp)
+                      << std::endl;
+                  std::terminate();
+                }
+                */
 
                 // apply
                 fcpt_[c][im] += fm;
