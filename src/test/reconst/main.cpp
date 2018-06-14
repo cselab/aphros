@@ -335,7 +335,7 @@ void TestCenter() {
 }
 
 // nearest point to line
-void TestNearest() {
+void TestLineNearest() {
   // x: target point
   // nx, ny: normal
   // u: volume fraction
@@ -347,7 +347,7 @@ void TestNearest() {
     n /= n.norm();
     Scal a = solver::GetLineA(n, u, h);
     std::array<Vect, 2> xx = solver::GetLineEnds(n, a, h); 
-    Vect p = solver::GetNearest(x, n, a, h);
+    Vect p = solver::GetLineNearest(x, n, a, h);
     std::cerr 
         << "n=" << n
         << " u=" << u
@@ -397,7 +397,7 @@ void Plot() {
   }
 }
 
-void TestSolve() {
+void TestFit() {
   using namespace solver;
 
   using V = Vect;
@@ -430,15 +430,37 @@ void TestSolve() {
       V(1., 0., 0.));
 }
 
+void TestNearest() {
+  using namespace solver;
+  using V = Vect;
+
+  auto f = [](V x, V x0, V x1, V n, V xne) {
+    auto xn = GetNearestHalf(x, x0, x1, n);
+    std::cout 
+        << " x=" << x 
+        << " x0=" << x0
+        << " x1=" << x1
+        << " n=" << n
+        << " xn=" << xn
+        << " xne=" << xne
+        << std::endl;
+    assert(xne.dist(xn) < 1e-12);
+  };
+
+  f(V(1.,1.,7.), V(0.,0.,0.), V(11.,0.,0.), V(0.,0.,3.), V(1.,1.,0.));
+  f(V(1.,1.,9.), V(12.,0.,0.), V(0.,0.,0.), V(0.,0.,7.), V(1.,0.,0.));
+}
+
 
 int main() {
-  TestSolve();
+  TestNearest();
   return 0;
+  TestFit();
   Plot();
   TestRect();
   TestRandom();
   TestVol();
   TestVolStr();
   TestCenter();
-  TestNearest();
+  TestLineNearest();
 }
