@@ -420,7 +420,7 @@ inline GVect<Scal, 3> GetLineC(const GVect<Scal, 3>& n, Scal a,
   return (e[0] + e[1]) * 0.5;
 }
 
-// Closest point to line
+// Closest point to cut line.
 // x: target point
 // n: normal
 // a: line constant
@@ -451,27 +451,6 @@ inline GVect<Scal, 3> GetPlaneProj(const GVect<Scal, 3> x,
   Scal dst = n.dot(x) - a;
   // projection
   return xp = x - n * (dst / n.sqrnorm());
-}
-
-
-// Closest point to plane
-// x: target point
-// n: normal
-// a: line constant
-// h: cell size
-template <class Scal>
-inline GVect<Scal, 3> GetNearest(const GVect<Scal, 3> x,
-                                 const GVect<Scal, 3>& n, Scal a,
-                                 const GVect<Scal, 3>& h) {
-  using Vect = GVect<Scal, 3>;
-  std::array<Vect, 2> e = GetLineEnds(n, a, h);
-  Vect p = x + n * (e[0] - x).dot(n) / n.sqrnorm(); // projection to line
-  if ((p - e[0]).dot(p - e[1]) < 0.) { // projection between ends
-    return p;
-  } else if ((x - e[0]).sqrnorm() < (x - e[1]).sqrnorm()) {
-    return e[0];
-  } 
-  return e[1];
 }
 
 // Center of cloud of ponts.
@@ -670,6 +649,28 @@ GVect<Scal, 3> GetCenter(const GVect<Scal, 3>& n, Scal a,
   xc /= xx.size();
   return xc;
 }
+
+// Closest point to cut polygon.
+// x: target point
+// n: normal
+// a: line constant, relative to x=0
+// h: cell size
+template <class Scal>
+inline GVect<Scal, 3> GetNearest(const GVect<Scal, 3> x,
+                                 const GVect<Scal, 3>& n, Scal a,
+                                 const GVect<Scal, 3>& h) {
+  auto xx = GetCutPoly2(n, a, h);
+  using Vect = GVect<Scal, 3>;
+  std::array<Vect, 2> e = GetLineEnds(n, a, h);
+  Vect p = x + n * (e[0] - x).dot(n) / n.sqrnorm(); // projection to line
+  if ((p - e[0]).dot(p - e[1]) < 0.) { // projection between ends
+    return p;
+  } else if ((x - e[0]).sqrnorm() < (x - e[1]).sqrnorm()) {
+    return e[0];
+  } 
+  return e[1];
+}
+
 
 template <class M_>
 class Vof : public AdvectionSolver<M_> {
