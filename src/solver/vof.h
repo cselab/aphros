@@ -771,16 +771,16 @@ GVect<Scal, 3> GetNearest(const GVect<Scal, 3>& x,
     return GetPlaneProj(x, n, n.dot(xc));
   }
 
-  Scal dn = std::numeric_limits<Scal>::max(); // minimal sqrdist
   Vect xn; // point with minimal distance
+  Scal dn = std::numeric_limits<Scal>::max(); // minimal sqrdist
   size_t s = xx.size();
   for (size_t i = 0; i < s; ++i) {
     // nearest point to edge
     Vect xe = GetNearest(x, xx[i], xx[(i + 1) % s]);
     Scal de = xe.sqrdist(x);
     if (de < dn) {
-      dn = de;
       xn = xe;
+      dn = de;
     }
   }
   return xn;
@@ -1072,6 +1072,105 @@ class Vof : public AdvectionSolver<M_> {
         m.GetNode(m.GetNeighbourNode(c0, 0));
     assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
     return h;
+  }
+  // Compute force to advance particles.
+  // Assume 2d positions (x,y,0).
+  // x: pointer to first particle
+  // sx: size of particle string
+  // l: pointer to first line
+  // nl: number of lines
+  // Output:
+  // f: position corrections 
+  void PartForce2d(const Vect* xx, size_t sx, 
+                   const std::pair<Vect,Vect>* ll, size_t sl,
+                   Vect* ff) {
+    if (!sx) {
+      return;
+    }
+
+    Vect h = GetCellSize();
+    Scal hm = h.norminf();
+
+    // oriented angle from (xi-xim) to (xip-xi) 
+    auto an = [&](int i) {
+      int im = i - 1;
+      int ip = i + 1;
+      Vect x = xx[i];
+      Vect xm = xx[im];
+      Vect xp = xx[ip];
+      Vect dm = x - xm;
+      Vect dp = xp - x;
+      Scal lm = dm.norm();
+      Scal lp = dp.norm();
+      Scal sin = dm.cross_third(dp) / (lm * lp);
+      return std::asin(sin);
+    };
+
+    // mean angle
+    Scal anm = (an(1) + an(2) + an(3)) / 3.; 
+
+    // clear force
+    for (size_t i = 0; i < sx; ++i) {
+      ff[i] = Vect(0);
+    }
+
+    // stretching springs
+    for (size_t i = 0; i < sx - 1; ++i) {
+      Vect dx = xx[i + 1] - xx[i];
+      Scal k = par->part_kstr;
+      Scal d0 = par->part_h * hm; // equilibrium length
+      Vect f = dx * (k * (d0 / dx.norm() - 1.));
+      ff[i] += f;
+      ff[i + 1] -= f;
+    }
+
+    // attracting spring to nearest point on nearest line
+    for (size_t i = 0; i < sx; ++i) {
+      Vect x = x[i];
+
+      if (sl) {
+        Vect xn;  // nearest point
+        Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
+        for (size_t j = 0; j < sl; ++j) {
+          auto& p = ll[j];
+          Vect xl = GetNearest(x, p.first, p.second);
+          Scal dl = xl.sqrdist(x);
+          if (dl < dn) {
+            xn = xl;
+            dn = dl;
+          }
+        }
+
+        ff[i] += (xn - x) * par->part_kattr;
+      }
+    }
+
+    // bending
+    for (size_t i = 1; i < sx - 1; ++i) {
+      size_t im = i - 1;
+      size_t ip = i + 1;
+      Vect x = xx[i];
+      Vect xm = xx[im];
+      Vect xp = xx[ip];
+      Vect dm = x - xm;
+      Vect dp = xp - x;
+      Scal lm = dm.norm();
+      Scal lp = dp.norm();
+
+      // normals to segments, <nm,dm> positively oriented
+      Vect nm = Vect(dm[1], -dm[0], 0.) / lm; 
+      Vect np = Vect(dp[1], -dp[0], 0.) / lp;
+      // torque
+      Scal t = par->part_kbend * lm * lp * 
+          (an(i) - anm * (par->part_bendmean ? 1. : 0.));
+      // forces
+      Vect fm = nm * (t / (2. * lm));
+      Vect fp = np * (t / (2. * lp));
+      // apply
+      ff[im] += fm;
+      ff[ip] += fp;
+      ff[i] -= (fm + fp);
+    }
   }
   void Part(const FieldCell<Scal>& uc, typename M::Sem& sem) {
     if (sem("part-comma")) {
