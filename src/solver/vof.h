@@ -737,16 +737,16 @@ bool IsSameSide(const GVect<Scal, 3>& x, const GVect<Scal, 3>& xs,
 // Check if projection of point lies inside convex polygon on plane.
 // x: target point
 // xx: polygon points 
+// xc: polygon center
 // n: normal
 template <class Scal>
 bool IsInside(const GVect<Scal, 3>& x,
               const std::vector<GVect<Scal, 3>>& xx,
+              const GVect<Scal, 3>& xc,
               const GVect<Scal, 3>& n) {
   using Vect = GVect<Scal, 3>;
 
-  Vect xc = GetCenter(xx);
   size_t s = xx.size();
-
   for (size_t i = 0; i < s; ++i) {
     if (!IsSameSide(x, xc, xx[i], xx[(i + 1) % s], n)) {
       return false;
@@ -765,8 +765,10 @@ GVect<Scal, 3> GetNearest(const GVect<Scal, 3>& x,
                           const GVect<Scal, 3>& n) {
   using Vect = GVect<Scal, 3>;
 
-  if (IsInside(x, xx, n)) {
-    return GetPlaneProj(x, n, 0.);
+  Vect xc = GetCenter(xx);
+
+  if (IsInside(x, xx, xc, n)) {
+    return GetPlaneProj(x, n, n.dot(xc));
   }
 
   Scal dn = std::numeric_limits<Scal>::max(); // minimal sqrdist
@@ -780,14 +782,6 @@ GVect<Scal, 3> GetNearest(const GVect<Scal, 3>& x,
       dn = de;
       xn = xe;
     }
-    std::cerr << "gn:" 
-        << " x0=" << xx[i] 
-        << " x1=" << xx[(i + 1) % s] 
-        << " xe=" << xe 
-        << " de=" << de 
-        << " xn=" << xn 
-        << " dn=" << dn 
-        << std::endl;
   }
   return xn;
 }
@@ -1116,6 +1110,15 @@ class Vof : public AdvectionSolver<M_> {
       fck_[c] = bk * (u > th && u < 1. - th ? 1. : 0.);
     }
   }
+  Vect GetCellSize() const {
+    Vect h; // cell size
+    // XXX: specific for structured 3D mesh
+    IdxCell c0(0);
+    h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
+        m.GetNode(m.GetNeighbourNode(c0, 0));
+    assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
+    return h;
+  }
   void Part(const FieldCell<Scal>& uc, typename M::Sem& sem) {
     if (sem("part-comma")) {
       m.Comm(&fc_n_);
@@ -1126,16 +1129,17 @@ class Vof : public AdvectionSolver<M_> {
       auto& bc = m.GetBlockCells();
       auto& bn = m.GetBlockNodes();
       using MIdx = typename M::MIdx;
-      MIdx wb = bn.GetBegin();
-      Vect xb = m.GetNode(bn.GetIdx(wb));
-      Vect h = m.GetNode(bn.GetIdx(wb + MIdx(1))) - xb;
+      Vect h = GetCellSize();
       Scal hm = h.norminf();
 
       SeedParticles(uc);
 
-      const int sw = 1; // stencil width
+      const int sw = 2; // stencil halfwidth, [-sw,sw]
       const int sn = sw * 2 + 1; // stencil size
-      GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, 0), MIdx(sn, sn, 1)); // offset
+      // block offset
+      GBlock<IdxCell, dim> bo(
+          MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
+          MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
 
       bool dm = par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
                               this->GetTimeStep());
@@ -1200,8 +1204,8 @@ class Vof : public AdvectionSolver<M_> {
                 if (u > 1e-3 && u < 1. - 1e-3) {
                   // nearest point to interface in cc
                   Vect xcc = m.GetCenter(cc);
-                  //Vect xn = xcc + GetNearest(x - xcc, n, fc_a_[cc], h);
-                  Vect xn = xcc + GetCenter(n, fc_a_[cc], h);
+                  Vect xn = xcc + GetNearest(x - xcc, n, fc_a_[cc], h);
+                  //Vect xn = xcc + GetCenter(n, fc_a_[cc], h);
                   if (!fnd || x.sqrdist(xn) < x.sqrdist(xb)) {
                     xb = xn;
                     fnd = true;
@@ -1394,6 +1398,7 @@ class Vof : public AdvectionSolver<M_> {
       }
     }
   }
+  // Print column of datafield
   void Print(const FieldFace<Scal>& ff, std::string name) {
     using MIdx = typename M::MIdx;
     auto ibc = m.GetInBlockCells();
@@ -1412,7 +1417,7 @@ class Vof : public AdvectionSolver<M_> {
     }
     std::cerr << std::endl;
   }
-
+  // Print column of datafield
   void Print(const FieldCell<Scal>& fc, std::string name) {
     using MIdx = typename M::MIdx;
     auto ibc = m.GetInBlockCells();
@@ -1428,16 +1433,6 @@ class Vof : public AdvectionSolver<M_> {
       std::cerr << std::setw(10) << fc[c] << " ";
     }
     std::cerr << std::endl;
-  }
-
-  Vect GetCellSize() const {
-    Vect h; // cell size
-    // XXX: Adhoc for structured 3D mesh
-    IdxCell c0(0);
-    h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
-        m.GetNode(m.GetNeighbourNode(c0, 0));
-    assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
-    return h;
   }
 
   void MakeIteration() override {
