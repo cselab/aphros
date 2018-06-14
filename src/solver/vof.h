@@ -427,6 +427,39 @@ inline GVect<Scal, 3> GetLineC(const GVect<Scal, 3>& n, Scal a,
 // h: cell size
 // XXX: 2d specific
 template <class Scal>
+inline GVect<Scal, 3> GetLineNearest(const GVect<Scal, 3> x,
+                                 const GVect<Scal, 3>& n, Scal a,
+                                 const GVect<Scal, 3>& h) {
+  using Vect = GVect<Scal, 3>;
+  std::array<Vect, 2> e = GetLineEnds(n, a, h);
+  Vect p = x + n * (e[0] - x).dot(n) / n.sqrnorm(); // projection to line
+  if ((p - e[0]).dot(p - e[1]) < 0.) { // projection between ends
+    return p;
+  } else if ((x - e[0]).sqrnorm() < (x - e[1]).sqrnorm()) {
+    return e[0];
+  } 
+  return e[1];
+}
+
+
+template <class Scal>
+inline GVect<Scal, 3> GetPlaneProj(const GVect<Scal, 3> x,
+                                   const GVect<Scal, 3>& n, Scal a) {
+  using Vect = GVect<Scal, 3>;
+  // equation of plane: n.dot(x) - a = 0
+  // distance to plane * n.norm()
+  Scal dst = n.dot(x) - a;
+  // projection
+  return xp = x - n * (dst / n.sqrnorm());
+}
+
+
+// Closest point to plane
+// x: target point
+// n: normal
+// a: line constant
+// h: cell size
+template <class Scal>
 inline GVect<Scal, 3> GetNearest(const GVect<Scal, 3> x,
                                  const GVect<Scal, 3>& n, Scal a,
                                  const GVect<Scal, 3>& h) {
