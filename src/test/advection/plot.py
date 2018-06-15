@@ -166,8 +166,11 @@ def CmpCurv(x, y, u, k, kp, po):
     ke = 1. / r
 
     fig, ax = plt.subplots()
-    ax.plot(deg[s], k[s] / ke, label="k")
-    ax.plot(deg[s], kp[s] / ke, label="kp")
+    ax.axhline(y=1., c='k')
+    ax.plot(deg[s], k[s] / ke, label="height")
+    ax.plot(deg[s], kp[s] / ke, label="particles")
+    ax.set_xlabel(r"angle [deg]")
+    ax.set_ylabel(r"normalized curvature")
     ax.legend()
     ax.set_ylim(0., 2.)
     ax.grid()
