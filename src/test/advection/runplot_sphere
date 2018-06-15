@@ -6,4 +6,10 @@ make
 ./clean
 c=sphere.conf
 
-time ./t.advection $c
+time ./t.advection $c &> out
+
+mkdir o
+
+for f in *.csv *.vtk *.pvd *.vts out ; do
+  cp -v $f o/$f
+done

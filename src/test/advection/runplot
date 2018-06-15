@@ -9,7 +9,6 @@ c=circleplain.conf
 time ./t.advection $c &> out
 time ./plot.py
 
-rm -rf o
 mkdir o
 
 for f in *.pdf *.dat out ; do
