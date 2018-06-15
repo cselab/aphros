@@ -975,6 +975,8 @@ void Hydro<M>::Run() {
           << "STEP=" << step_ 
           << " t=" << st_.t
           << " dt=" << st_.dt
+          << " ta=" << as_->GetTime()
+          << " dta=" << as_->GetTimeStep()
           << std::endl;
     }
 
