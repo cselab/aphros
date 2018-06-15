@@ -6,5 +6,12 @@ make
 ./clean
 c=circleplain.conf
 
-time ./t.advection $c
+time ./t.advection $c &> out
 time ./plot.py
+
+rm -rf o
+mkdir o
+
+for f in *.pdf *.dat out ; do
+  cp -v $f o/$f
+done
