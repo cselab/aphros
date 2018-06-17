@@ -4,7 +4,10 @@ set -ue
 
 make
 ./clean
-c=circleplain.conf
+
+c=${1:-circleplain.conf}
+
+echo c=$c
 
 time ./t.advection $c &> out
 time ./plot.py
