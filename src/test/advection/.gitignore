@@ -9,3 +9,5 @@ pressure
 *.dat
 *.pdf
 __pycache__
+*.vtk
+*.csv
