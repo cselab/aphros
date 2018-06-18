@@ -9,7 +9,7 @@ mpirun -n $n ./t.advection "$1"
 
 a=0
 for f in ref/*.dat ; do
-  if ! diff -q "${f#ref/}" "$f"; then
+  if ! ch.diff "${f#ref/}" "$f"; then
     a=1
   fi
 done
