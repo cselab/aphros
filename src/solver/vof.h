@@ -1013,7 +1013,7 @@ class Vof : public AdvectionSolver<M_> {
       fc_n_[c] = g;
     }
   }
-  // Estimation of normal and curvature with height functions
+  // Estimation of normal and curvature with height functions [s]
   void CalcNormalHeight(const FieldCell<Scal>& uc) {
     using MIdx = typename M::MIdx;
     using Dir = typename M::Dir;
@@ -1022,7 +1022,7 @@ class Vof : public AdvectionSolver<M_> {
     fc_n_.Reinit(m, Vect(0));
     fck_.Reinit(m, 0);
 
-    for (auto c : m.Cells()) {
+    for (auto c : m.SuCells()) {
       Vect bn; // best normal
       Scal bhx, bhy; // best first derivative
       Scal bk; // best curvature[k]
@@ -1229,11 +1229,10 @@ class Vof : public AdvectionSolver<M_> {
     return k;
   }
   void Part(const FieldCell<Scal>& uc, typename M::Sem& sem) {
-    // XXX: (already done in Reconst)
-    //if (sem("part-comma")) {
-    //  m.Comm(&fc_n_);
-    //  m.Comm(&fc_a_);
-    //}
+    if (sem("part-comma")) {
+      m.Comm(&fc_a_);
+      m.Comm(&fc_n_);
+    }
 
     if (sem("part")) {
       SeedParticles(uc);
@@ -1476,15 +1475,13 @@ class Vof : public AdvectionSolver<M_> {
   void Reconst(const FieldCell<Scal>& uc) {
     auto sem = m.GetSem("reconst");
     if (sem("height")) {
-      // Reconstuction with normal from height functions
+      // Compute normal and curvature [s]
       CalcNormalHeight(uc);
       auto h = GetCellSize();
-      for (auto c : m.Cells()) {
+      // Reconstruct interface [s]
+      for (auto c : m.SuCells()) {
         fc_a_[c] = GetLineA(fc_n_[c], uc[c], h);
       }
-      m.Comm(&fck_);
-      m.Comm(&fc_a_);
-      m.Comm(&fc_n_);
     }
 
     if (par->part && par->part_n) {
@@ -1659,6 +1656,9 @@ class Vof : public AdvectionSolver<M_> {
         }
         fck_[c] = s / m.GetVolume(c);
       }
+    }
+
+    if (sem("curvcomm")) {
       m.Comm(&fck_);
     }
 
