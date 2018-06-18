@@ -25,9 +25,14 @@ CreateInitU(Vars& par) {
   if (v == "circle") {
     Vect xc = Vect(par.Vect["circle_c"]);
     Scal r = par.Double["circle_r"];
-    g = [xc,r](FieldCell<Scal>& fc, const M& m) { 
+    size_t dim = par.Int["dim"];
+    g = [xc,r,dim](FieldCell<Scal>& fc, const M& m) { 
       for (auto c : m.Cells()) {
-        fc[c] = xc.dist(m.GetCenter(c)) < r ? 1. : 0.;
+        auto dx = m.GetCenter(c) - xc;
+        if (dim == 2) {
+          dx[2] = 0.;
+        }
+        fc[c] = dx.sqrnorm() < sqr(r) ? 1. : 0.;
       }
     };
   } else if (v == "box") {
