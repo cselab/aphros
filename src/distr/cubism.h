@@ -241,6 +241,9 @@ class Cubism : public DistrMesh<KF> {
     if (e >= Elem::es) {
       throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
     }
+    if (d >= Vect::dim) {
+      throw std::runtime_error("ReadBuffer: d >= Vect::dim");
+    }
     auto& bc = m.GetBlockCells();
     for (auto c : m.AllCells()) {
       auto w = bc.GetMIdx(c) - MIdx(hl_) - bc.GetBegin();
@@ -312,6 +315,9 @@ class Cubism : public DistrMesh<KF> {
                      size_t d, Block& b, size_t e, M& m) {
     if (e >= Elem::es) {
       throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
+    }
+    if (d >= Vect::dim) {
+      throw std::runtime_error("ReadBuffer: d >= Vect::dim");
     }
     auto& bc = m.GetBlockCells();
     for (auto c : m.Cells()) {
@@ -502,7 +508,11 @@ auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
   // Get all blocks
   std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
   auto& m = mk.at(MIdx(cc[0].index))->GetMesh();
-  size_t cs = m.GetComm().size(); // comm size
+
+  size_t cs = 0; // comm size
+  for (auto& o : m.GetComm()) {
+    cs += o->GetSize();
+  }
 
   std::vector<BlockInfo> aa;
   // Perform communication if necessary or s_.l not initialized
