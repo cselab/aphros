@@ -41,9 +41,11 @@ class Simple : public KernelMeshPar<M_, GPar> {
   void TestReduce();
 
   bool Cmp(Scal a, Scal b) { return std::abs(a - b) < 1e-10; }
+  bool Cmp(Vect a, Vect b) { return a.dist(b) < 1e-10; }
   bool Cmp(MIdx a, MIdx b) { return a == b; }
 
   FieldCell<Scal> fc_;
+  FieldCell<Vect> fcv_;
   // LS
   using Expr = solver::Expression<Scal, IdxCell, 1 + dim * 2>;
   FieldCell<Expr> fc_system_;
@@ -123,21 +125,35 @@ void Simple<M>::TestComm() {
     }
     return std::sin(v[0]) * std::cos(v[1]) * std::exp(v[2]); 
   };
+  auto fv = [=](Vect v) { 
+    return Vect(f(v), f(v * 2.), f(v * 3.));
+  };
   auto& bc = m.GetBlockCells();
   if (sem("init")) {
     fc_.Reinit(m);
-    for (auto i : m.Cells()) {
-      fc_[i] = f(m.GetCenter(i));
+    fcv_.Reinit(m);
+    for (auto c : m.Cells()) {
+      auto x = m.GetCenter(c);
+      fc_[c] = f(x);
+      fcv_[c] = fv(x);
     }
     m.Comm(&fc_);
+    m.Comm(&fcv_);
   }
   if (sem("check")) {
-    for (auto i : m.AllCells()) {
-      auto x = m.GetCenter(i);
-      if (!Cmp(fc_[i], f(m.GetCenter(i)))) {
+    for (auto c : m.AllCells()) {
+      auto x = m.GetCenter(c);
+      if (!Cmp(fc_[c], f(x))) {
         std::cerr 
-          << bc.GetMIdx(i) << " " 
-          << fc_[i] << " != " << f(x) << " "
+          << bc.GetMIdx(c) << " " 
+          << fc_[c] << " != " << f(x) << " "
+          << std::endl;
+        throw std::runtime_error("");
+      }
+      if (!Cmp(fcv_[c], fv(x))) {
+        std::cerr 
+          << bc.GetMIdx(c) << " " 
+          << fcv_[c] << " != " << fv(x) << " "
           << std::endl;
         throw std::runtime_error("");
       }
