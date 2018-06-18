@@ -32,14 +32,16 @@ def Read(p):
         u = u.reshape(ss)
         return u
 
-# u: numpy array (2d or 3d with shape[2]==1)
+# u: numpy array (2d or 3d slice)
 def Get2d(u):
-    if len(u.shape) == 2:
+    if u is None:
+        return None
+    s = u.shape
+    if len(s) == 2:
         return u
     else:
-        s = u.shape
-        assert len(s) == 3 and s[0] == 1
-        return u.reshape((s[1], s[2]))
+        assert len(s) == 3
+        return u[0,:,:].reshape((s[1], s[2]))
 
 def PlotInit():
     fig, ax = plt.subplots(figsize=(5,5))
