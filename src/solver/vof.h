@@ -1091,7 +1091,7 @@ class Vof : public AdvectionSolver<M_> {
         n[size_t(dty)] = -hy;
         n[size_t(dn)] = -sg;
         // select best with minimal slope
-        if (dn == Dir::i || 
+        if (dn == dd[0] || 
             std::abs(hx) + std::abs(hy) < std::abs(bhx) + std::abs(bhy)) {
           bn = n;
           bhx = hx;
