@@ -1013,7 +1013,7 @@ class Vof : public AdvectionSolver<M_> {
       fc_n_[c] = g;
     }
   }
-  // Normal with height function evaluated at only two points
+  // Estimation of normal and curvature with height functions
   void CalcNormalHeight(const FieldCell<Scal>& uc) {
     using MIdx = typename M::MIdx;
     using Dir = typename M::Dir;
@@ -1022,12 +1022,18 @@ class Vof : public AdvectionSolver<M_> {
     fc_n_.Reinit(m, Vect(0));
     fck_.Reinit(m, 0);
 
-    for (auto c : m.SuCells()) {
+    for (auto c : m.Cells()) {
       Vect bn; // best normal
       Scal bhx, bhy; // best first derivative
       Scal bk; // best curvature[k]
       // direction of plane normal
-      for (Dir dn : {Dir::i, Dir::j, Dir::k}) {
+      std::vector<Dir> dd;
+      if (par->dim == 2) {
+        dd = {Dir::i, Dir::j};
+      } else {
+        dd = {Dir::i, Dir::j, Dir::k};
+      }
+      for (Dir dn : dd) {
         // directions of plane tangents ([d]irection [t]angents)
         Dir dtx((size_t(dn) + 1) % dim); 
         Dir dty((size_t(dn) + 2) % dim); 
@@ -1223,10 +1229,11 @@ class Vof : public AdvectionSolver<M_> {
     return k;
   }
   void Part(const FieldCell<Scal>& uc, typename M::Sem& sem) {
-    if (sem("part-comma")) {
-      m.Comm(&fc_n_);
-      m.Comm(&fc_a_);
-    }
+    // XXX: (already done in Reconst)
+    //if (sem("part-comma")) {
+    //  m.Comm(&fc_n_);
+    //  m.Comm(&fc_a_);
+    //}
 
     if (sem("part")) {
       SeedParticles(uc);
@@ -1472,15 +1479,17 @@ class Vof : public AdvectionSolver<M_> {
       // Reconstuction with normal from height functions
       CalcNormalHeight(uc);
       auto h = GetCellSize();
-      for (auto c : m.AllCells()) {
+      for (auto c : m.Cells()) {
         fc_a_[c] = GetLineA(fc_n_[c], uc[c], h);
       }
       m.Comm(&fck_);
+      m.Comm(&fc_a_);
+      m.Comm(&fc_n_);
     }
 
     if (par->part && par->part_n) {
-      // Correction with normal from particles
       Part(uc, sem);
+      // Correction with normal from particles
       if (sem("parta")) {
         auto h = GetCellSize();
         for (auto c : m.AllCells()) {
