@@ -2,6 +2,8 @@
 
 set -eu
 
+./clean
+
 n=${2:-2}
 mpirun -n $n ./t.advection "$1"
 

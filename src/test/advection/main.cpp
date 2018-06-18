@@ -113,8 +113,12 @@ void Advection<M>::Init(Sem& sem) {
   if (sem("init-create")) {
     // flux
     ff_flux_.Reinit(m, 0);
+    int vdim = var.Int["dim"];
     for (auto f : m.AllFaces()) {
       Vect x = m.GetCenter(f);
+      if (vdim == 2) {
+        x[2] = 0.;
+      }
       ff_flux_[f] = par_.fv(x, 0.).dot(m.GetSurface(f));
     }
 
