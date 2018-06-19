@@ -84,7 +84,7 @@ Mesh GetMesh(MIdx s /*size in cells*/) {
   int hl = 1;         // halos 
   Vect doms = dom.GetDimensions();
   Vect h = dom.GetDimensions() / Vect(s);
-  return InitUniformMesh<Mesh>(dom, b, s, hl);
+  return InitUniformMesh<Mesh>(dom, b, s, hl, true);
 }
 
 template <class T, class Idx, class M>

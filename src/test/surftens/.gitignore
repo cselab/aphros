@@ -17,3 +17,4 @@ job.id
 base.conf
 mesh.conf
 np
+*.csv
