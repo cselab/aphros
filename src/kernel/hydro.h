@@ -28,6 +28,7 @@
 #include "parse/interp.h"
 #include "dump/output.h"
 #include "dump/dumper.h"
+#include "func/init_u.h"
 
 class GPar {};
 
@@ -157,76 +158,8 @@ void Hydro<M>::Init() {
     // initial volume fraction
     // TODO: for 2D wrong values in halos (should be periodic instead)
     fc_vf_.Reinit(m, 0);
-    {
-      const std::string vi = var.String["vf_init"];
-      if (vi == "sin") {
-        Vect k;
-        if (auto p = var.Vect("sin_k")) {
-          k = Vect(*p);
-        } else {
-          k = Vect(2. * M_PI);
-        }
-
-        for (auto i : m.AllCells()) {
-          Vect z = m.GetCenter(i) * k;
-          fc_vf_[i] = std::sin(z[0]) * std::sin(z[1]) * std::sin(z[2]);
-        }
-      } else if (vi == "circle") {
-        const Vect c(var.Vect["circle_c"]);
-        const Scal r(var.Double["circle_r"]);
-        for (auto i : m.AllCells()) {
-          Vect x = m.GetCenter(i);
-          fc_vf_[i] = (c.dist(x) < r ? 1. : 0.);
-        }
-      } else if (vi == "line") {
-        const Vect xc(var.Vect["line_c"]);
-        const Vect n(var.Vect["line_n"]);
-        for (auto i : m.AllCells()) {
-          Vect x = m.GetCenter(i);
-          fc_vf_[i] = ((x - xc).dot(n) > 0. ? 1. : 0.);
-        }
-      } else if (vi == "list" ) {
-        std::string fn = var.String["list_path"];
-        struct P {
-          Vect c;
-          Scal r;
-        };
-        std::vector<P> pp;
-        std::ifstream f(fn);
-        if (!f.good()) {
-          throw std::runtime_error("Can't open particle list '" + fn + "'");
-        }
-        // Read until eof
-        while (true) {
-          P p;
-          // Read single particle: x y z r
-          f >> p.c[0] >> p.c[1] >> p.c[2] >> p.r;
-          if (f.good()) {
-            pp.push_back(p);
-          } else {
-            break;
-          }
-        }
-        if (IsRoot()) {
-          std::cout << "Read " 
-            << pp.size() << " particles from " 
-            << "'" << fn << "'" << std::endl;
-        }
-        // Set volume fraction to 1 inside particles
-        for (auto p : pp) {
-          for (auto i : m.AllCells()) {
-            Vect x = m.GetCenter(i);
-            if (p.c.dist(x) <= p.r) {
-              fc_vf_[i] = 1.;
-            }
-          }
-        }
-      } else if (vi == "zero" ) {
-        // nop
-      } else {
-        throw std::runtime_error("Init(): unknown vf_init=" + vi);
-      }
-    }
+    auto fvf = CreateInitU<M>(var);
+    fvf(fc_vf_, m);
 
     // initial velocity
     fc_vel_.Reinit(m, Vect(0));
