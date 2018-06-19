@@ -6,6 +6,49 @@
 
 #include "parse/vars.h"
 #include "geom/field.h"
+#include "solver/vof.h"
+#include "geom/block.h"
+#include "geom/vect.h"
+
+// Volume fraction cut by interface defined by level-set function
+// f: level-set function, interface f=0, f>0 for volume fraction 1
+// xc: cell center
+// h: cell size
+template <class Scal, size_t dim=3>
+Scal GetLevelSetVolume(std::function<Scal(const GVect<Scal, 3>&)> f,
+                       const GVect<Scal, 3>& xc, const GVect<Scal, 3>& h) {
+  using Vect = GVect<Scal, dim>;
+  using MIdx = GVect<IntIdx, dim>;
+
+  const Scal dx = 1e-3; // step to compute gradient relative to h
+
+  GBlockCells<dim> b(MIdx(2));
+
+  Scal fc = f(xc);
+  for (auto w : b) {
+    Vect x = xc + (Vect(w) - Vect(0.5)) * h;
+    if ((fc > 0.) != (f(x) > 0.)) {
+      Vect dh = h * 1e-3;
+
+      // linear approximation
+      // f(x) = f(xc) + (x - xc).dot(grad(f, xc))
+      Vect n; // normal
+      for (size_t i = 0; i < dim; ++i) {
+        Vect xp(xc), xm(xc);
+        Scal dxh = dx * h[i];
+        xp[i] += dxh * 0.5;
+        xm[i] -= dxh * 0.5;
+        n[i] = (f(xp) - f(xm)) / dxh;
+      }
+      Scal a; // line constant
+      a = f(xc);
+
+      return solver::GetLineU(n, a, h);
+    }
+  }
+
+  return fc > 0. ? 1. : 0.;
+}
 
 // Volume fraction field.
 // par: parameters
@@ -33,6 +76,25 @@ CreateInitU(Vars& par) {
           dx[2] = 0.;
         }
         fc[c] = dx.sqrnorm() < sqr(r) ? 1. : 0.;
+      }
+    };
+  } else if (v == "circlels") {
+    Vect xc = Vect(par.Vect["circle_c"]);
+    Scal r = par.Double["circle_r"];
+    size_t dim = par.Int["dim"];
+    g = [xc,r,dim](FieldCell<Scal>& fc, const M& m) { 
+      auto f = [xc,r,dim](const Vect& x) -> Scal {
+        Vect dx = x - xc;
+        if (dim == 2) {
+          dx[2] = 0.;
+        }
+        return sqr(r) - (x - xc).sqrnorm();
+      };
+      for (auto c : m.Cells()) {
+        auto x = m.GetCenter(c);
+        Vect h = m.GetNode(m.GetNeighbourNode(c, 7)) - 
+            m.GetNode(m.GetNeighbourNode(c, 0));
+        fc[c] = GetLevelSetVolume<Scal>(f, x, h);
       }
     };
   } else if (v == "box") {

@@ -11,6 +11,7 @@
 #include <random>
 
 #include "solver/vof.h"
+#include "func/init_u.h"
 
 using Scal = double;
 using Vect = GVect<Scal, 3>;
@@ -493,10 +494,35 @@ void TestNearest() {
   }
 }
 
+// test init from level-set
+void TestLevelSet() {
+  std::cerr << "check volume from level-set" << std::endl;
+  auto f = [](const Vect& x) -> Scal {
+    return 1. - x.dot(x);
+  };
+
+  auto t = [&](const Vect& xc, const Vect& h, Scal ue) {
+    Scal u = GetLevelSetVolume<Scal>(f, xc, h);
+    std::cout << "circle:"
+        << " xc=" << xc
+        << " h=" << h
+        << " u=" << u
+        << " ue=" << ue
+        << std::endl;
+    assert(std::abs(u - ue) < 1e-12);
+  };
+
+  t(Vect(1.,0.,0.), Vect(0.1), 0.5);
+  t(Vect(1.1,0.,0.), Vect(0.1), 0.);
+  t(Vect(0.9,0.,0.), Vect(0.1), 1.);
+  t(Vect(1./sqrt(2.),1./sqrt(2.),0.), Vect(0.1), 0.5);
+}
 
 int main() {
-  TestNearest();
+  TestLevelSet();
   return 0;
+
+  TestNearest();
   TestFit();
   Plot();
   TestRect();
