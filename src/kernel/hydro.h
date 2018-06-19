@@ -160,6 +160,7 @@ void Hydro<M>::Init() {
     fc_vf_.Reinit(m, 0);
     auto fvf = CreateInitU<M>(var);
     fvf(fc_vf_, m);
+    m.Comm(&fc_vf_);
 
     // initial velocity
     fc_vel_.Reinit(m, Vect(0));
@@ -219,6 +220,7 @@ void Hydro<M>::Init() {
         throw std::runtime_error("Init(): unknown vel_init=" + vi);
       }
     }
+    m.Comm(&fc_vel_);
 
     st_.iter = 0;
     var.Int.Set("iter", st_.iter);
