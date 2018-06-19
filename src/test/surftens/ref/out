@@ -1,0 +1,202 @@
+Loading config from 'aloc.conf'
+
+=== config begin ===
+set string advection_solver vof
+set string convsc quick
+set string dumpformat plain
+set string hypre_gen_solver gmres
+set string hypre_symm_solver pcg
+set string init_vf list
+set string list_path b.dat
+set string surftens kn
+set string vel_init uniform
+set int bsx 32
+set int bsy 32
+set int bsz 2
+set int bx 1
+set int by 1
+set int bz 1
+set int clip_vf 0
+set int comm_size 8
+set int curvgrad 0
+set int dim 2
+set int dump_field_max 10000
+set int dump_part_max 1000
+set int dump_stat_max 1000000
+set int enable_advection 1
+set int enable_fluid 1
+set int enable_surftens 1
+set int hl 2
+set int hypre_gen_maxiter 100
+set int hypre_periodic_x 1
+set int hypre_periodic_y 1
+set int hypre_periodic_z 1
+set int hypre_print 0
+set int hypre_symm_maxiter 1000
+set int inletflux_numid 1
+set int list_ls 1
+set int loc 1
+set int max_iter 10
+set int max_step 1000000
+set int min_iter 1
+set int normalnode 0
+set int output 1
+set int part 1
+set int part_bendmean 1
+set int part_dump_fr 1
+set int part_k 1
+set int part_maxiter 50
+set int part_n 0
+set int part_report_fr 1
+set int px 1
+set int py 1
+set int pz 1
+set int second_order 1
+set int simpler 1
+set int split 0
+set int verbose 0
+set int verbose_stages 0
+set int vf_init_sm 0
+set int vfsmooth 0
+set double convdf o=(0,0,0) dom=(0,0,0),(1,1,0.0625) h=0.03125
+1
+set double dt0 0.02
+set double dtmax 0.02
+set double dump_field_dt 0.2
+set double dump_field_t0 0.2
+set double dump_part_dt 0.2
+set double dump_part_t0 0.2
+set double dump_stat_dt 0
+set double extent 1
+set double hypre_tol 1e-14
+set double mu1 0.001
+set double mu2 0.001
+set double part_h 1
+set double part_h0 1
+set double part_kattr 1
+set double part_kbend 1
+set double part_kstr 1
+set double part_relax 0.1
+set double prelax 0.9
+set double rhie 1
+set double rho1 1
+set double rho2 1
+set double sharp 0
+set double sharpo 0
+set double sigma 0.01
+set double stdiag 1
+set double tmax 0.22
+set double tol 0.001
+set double vort_g1 0.01
+set double vort_g2 0.01
+set double vort_vmax 1
+set double vrelax 0.8
+set vect force 0 0 0 
+set vect gravity 0 0 0 
+set vect vel 0.2 0.1 0 
+set vect vort_x1 0.25 0.25 0 
+set vect vort_x2 0.75 0.75 0 
+=== config end ===
+
+h from gm = 0.03125
+o=(0,0,0) n=0 i=(0,0,0)
+Read 5 particles from 'b.dat'
+Found events: 
+=====
+=====
+STEP=1 t=0.00000000 dt=0.02000000 ta=0.00000000 dta=0.02000000
+it=0 dxmax=0.04591222 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00653451 anmax=0.19580686 anavg=0.02259758
+.....iter=1, diff=3.6336073043056576e-02
+.....iter=2, diff=8.2106257492075077e-03
+.....iter=3, diff=1.9616653220016133e-03
+.....iter=4, diff=4.7954696512966181e-04
+STEP=2 t=0.00000000 dt=0.02000000 ta=0.02000000 dta=0.02000000
+it=0 dxmax=0.04174138 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00265327 anmax=0.17173106 anavg=0.02043995
+.....iter=1, diff=3.3954290928035022e-02
+.....iter=2, diff=9.0294963618155338e-03
+.....iter=3, diff=2.3508458711447100e-03
+.....iter=4, diff=6.0561582497026256e-04
+STEP=3 t=0.02000000 dt=0.02000000 ta=0.04000000 dta=0.02000000
+it=0 dxmax=0.03882495 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00312186 anmax=0.20528372 anavg=0.02259675
+.....iter=1, diff=2.9141619742495895e-02
+.....iter=2, diff=7.8223796804861526e-03
+.....iter=3, diff=2.0140942236005410e-03
+.....iter=4, diff=5.1123790086781687e-04
+STEP=4 t=0.04000000 dt=0.02000000 ta=0.06000000 dta=0.02000000
+it=0 dxmax=0.04225619 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.02359728 anmax=0.28048750 anavg=0.02584928
+.....iter=1, diff=2.8002704800214457e-02
+.....iter=2, diff=7.1222250544124852e-03
+.....iter=3, diff=1.9109630884830949e-03
+.....iter=4, diff=5.1157711175769417e-04
+STEP=5 t=0.06000000 dt=0.02000000 ta=0.08000000 dta=0.02000000
+it=0 dxmax=0.03930911 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.01509957 anmax=0.19586675 anavg=0.02300836
+.....iter=1, diff=2.5941902234179415e-02
+.....iter=2, diff=6.9258467439869678e-03
+.....iter=3, diff=1.8340650404830008e-03
+.....iter=4, diff=4.7835852469098724e-04
+STEP=6 t=0.08000000 dt=0.02000000 ta=0.10000000 dta=0.02000000
+it=0 dxmax=0.03746866 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00465172 anmax=0.16447565 anavg=0.02098634
+.....iter=1, diff=2.6572077670633201e-02
+.....iter=2, diff=6.8995816420081681e-03
+.....iter=3, diff=1.9856845737462720e-03
+.....iter=4, diff=5.6892627831191288e-04
+STEP=7 t=0.10000000 dt=0.02000000 ta=0.12000000 dta=0.02000000
+it=0 dxmax=0.03676914 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00252652 anmax=0.16060520 anavg=0.01974127
+.....iter=1, diff=2.6459751337993082e-02
+.....iter=2, diff=7.6353962827327045e-03
+.....iter=3, diff=2.1769436098496740e-03
+.....iter=4, diff=6.1408353602995141e-04
+STEP=8 t=0.12000000 dt=0.02000000 ta=0.14000000 dta=0.02000000
+it=0 dxmax=0.03183041 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00298249 anmax=0.17146438 anavg=0.01789695
+.....iter=1, diff=2.7088309148770161e-02
+.....iter=2, diff=7.6626371687894528e-03
+.....iter=3, diff=2.1414791155969009e-03
+.....iter=4, diff=5.8934332232093230e-04
+STEP=9 t=0.14000000 dt=0.02000000 ta=0.16000000 dta=0.02000000
+it=0 dxmax=0.03107538 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00299924 anmax=0.15668687 anavg=0.01641503
+.....iter=1, diff=2.3384488353688036e-02
+.....iter=2, diff=6.7539991038906410e-03
+.....iter=3, diff=1.9296557337076560e-03
+.....iter=4, diff=5.3729615017950028e-04
+STEP=10 t=0.16000000 dt=0.02000000 ta=0.18000000 dta=0.02000000
+it=0 dxmax=0.03131720 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00370586 anmax=0.15327737 anavg=0.01636628
+.....iter=1, diff=2.3180254394257627e-02
+.....iter=2, diff=6.3719190701991505e-03
+.....iter=3, diff=1.7123578279984362e-03
+.....iter=4, diff=4.5676941885501512e-04
+STEP=11 t=0.18000000 dt=0.02000000 ta=0.20000000 dta=0.02000000
+it=0 dxmax=0.03175631 anmax=0.00000000 anavg=0.00000000
+dump t=0.22000000 to partit.0.csv
+it=49 dxmax=0.00301540 anmax=0.11582273 anavg=0.01638339
+.....iter=1, diff=2.1974320272803993e-02
+.....iter=2, diff=5.6702306956866264e-03
+.....iter=3, diff=1.4868656982819236e-03
+.....iter=4, diff=4.1418982251587304e-04
+STEP=12 t=0.20000000 dt=0.02000000 ta=0.22000000 dta=0.02000000
+it=0 dxmax=0.03322600 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00287049 anmax=0.09504764 anavg=0.01740153
+.....iter=1, diff=2.0670977981888574e-02
+.....iter=2, diff=5.2687906771505524e-03
+.....iter=3, diff=1.4560776860059891e-03
+.....iter=4, diff=3.9808618382039702e-04
+Dump n=0 t=0.22 target=0
+Dump 0: format=plain
+cells = 2048
+steps = 1000000
+iters = 48
+total = 7 s = 00:00:07.078
+time/cell/iter = 7.20097e-05 s
+
+real	0m7.303s
+user	0m6.770s
+sys	0m0.216s
