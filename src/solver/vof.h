@@ -948,6 +948,7 @@ class Vof : public AdvectionSolver<M_> {
           << " to " << s << std::endl;
       std::ofstream o;
       o.open(s);
+      o.precision(20);
       o << "x,y,z,c\n";
 
       for (auto c : m.Cells()) {

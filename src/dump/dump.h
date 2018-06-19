@@ -15,9 +15,8 @@
 // <data:x=0,y=0,z=0> <data:x=1,y=0,z=0> ...
 template <class Scal, class B=GBlock<IdxCell, 3>>
 void Dump(const FieldCell<Scal>& u, const B& b, std::string op) {
-  std::ofstream o(op.c_str());
-
-  auto l = o.flags();
+  std::ofstream o;
+  o.open(op);
   o.precision(20);
 
   auto s = b.GetDimensions();
@@ -26,8 +25,6 @@ void Dump(const FieldCell<Scal>& u, const B& b, std::string op) {
   for (auto c : b.Range()) {
     o << u[c] << " ";
   }
-
-  o.flags(l);
 
   o << std::endl;
 }
