@@ -823,8 +823,6 @@ bool GetInterPoly(const std::vector<GVect<Scal, 3>>& xx,
       Scal l = (xc - x0).dot(n)  / (x1 - x0).dot(n);
       e[j++] = x0 + (x1 - x0) * l;
 
-      //std::cerr << "e[j]=" << e[j-1] << std::endl;
-
       if (j == 2) {
         return true;
       }
@@ -938,7 +936,7 @@ class Vof : public AdvectionSolver<M_> {
     // dump particles
     auto fr = par->part_dump_fr;
     size_t d = std::max<size_t>(1, par->part_maxiter / fr);
-    if (fr > 1 && it % d == 0 || it + 1 == par->part_maxiter) {
+    if (m.IsRoot() && (fr > 1 && it % d == 0 || it + 1 == par->part_maxiter)) {
       std::string st = "." + std::to_string(par->dmp->GetN());
       std::string sit = fr > 1 ? "_" + std::to_string(it) : "";
       std::string s = "partit" + st + sit + ".csv";
@@ -1359,7 +1357,7 @@ class Vof : public AdvectionSolver<M_> {
         // report error
         size_t dr = std::max<size_t>(1, 
             par->part_maxiter / par->part_report_fr);
-        if (it % dr == 0 || it + 1 == par->part_maxiter) {
+        if (m.IsRoot() && (it % dr == 0 || it + 1 == par->part_maxiter)) {
           Scal tmax = 0.;
           Scal anmax = 0.;
           Scal anavg = 0; // average difference from mean angle
