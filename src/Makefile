@@ -5,6 +5,6 @@ all:
 	+make -C $(b) install 
 
 test:
-	make -C $(b) test
+	+make -C $(b) test
 
 .PHONY: all test

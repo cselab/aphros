@@ -14,7 +14,7 @@ struct MyBlockInfo {
   double origin[3];
   Idx bs;
   int hl; // number of halo cells
-  bool isroot; // root block (single among all PEs)
+  bool isroot; // root block (one among blocks on all PEs)
   bool islead; // lead block (one per each PE)
 };
 

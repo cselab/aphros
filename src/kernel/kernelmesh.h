@@ -19,7 +19,7 @@ M CreateMesh(const MyBlockInfo& bi) {
 
   MIdx o = w * bs; // origin index
   
-  return InitUniformMesh<M>(d, o, bs, hl);
+  return InitUniformMesh<M>(d, o, bs, hl, bi.isroot);
 }
 
 // Abstract Kernel aware of Mesh. Dependency of DistrMesh.

@@ -90,7 +90,6 @@ class DistrMesh : public Distr {
 
 template <class KF>
 void DistrMesh<KF>::MakeKernels(const std::vector<MyBlockInfo>& ee) {
-  bool islead = true;
   for (auto e : ee) {
     MIdx d(e.index);
     mk.emplace(d, std::unique_ptr<K>(kf_.Make(par, e)));

@@ -297,7 +297,7 @@ void Advection<M>::Dump(Sem& sem) {
             Rect<Vect> d(Vect(0), Vect(gs) * (ext / gs.norminf())); // domain
             MIdx o(0); // cell origin
 
-            auto gm = InitUniformMesh<M>(d, o, gs, 0);
+            auto gm = InitUniformMesh<M>(d, o, gs, 0, true);
 
             std::vector<std::vector<Vect>> vv;
             Vect h = GetCellSize(gm);
