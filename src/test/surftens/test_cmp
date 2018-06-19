@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -eu
+
+# config file
+c=${1:-aloc.conf}  
+# block size
+b=${2:-8}
+# number of cores
+n=${3:-2}
+
+# mesh size
+m="32 32 2"
+
+# block size
+bs="$b $b 2"
+
+./clean
+ch.base
+
+# write np
+echo $n > np
+
+# partition mesh
+ch.part $m $bs `cat np` > mesh.conf
+
+# run in foreground
+ch.run "$c"
+
+a=0
+for f in ref/*.dat ; do
+  echo $f
+  if ! ch.diff "${f#ref/}" "$f" "3e-3"; then
+    a=1
+  fi
+done
+
+exit $a
