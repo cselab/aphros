@@ -1,0 +1,15 @@
+#!/bin/bash
+
+pre="$1"
+out="$2"
+w="$3"
+if [ "$w" = "" ] ; then w="-1" ; fi
+
+pwd="$(pwd)"
+
+cmd="ffmpeg -r 10 \
+  -pattern_type glob -i '$pre*.png' \
+  -c:v libx264 -pix_fmt yuv420p \
+  -vf scale=$w:1000 -y '$pwd/$out'"
+echo "$cmd"
+eval "$cmd"

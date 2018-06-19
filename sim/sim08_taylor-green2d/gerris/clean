@@ -1,5 +1,5 @@
 #!/bin/bash -l
 
-rm -vf *.dat
+#rm -vf *.dat
 rm -vf *.vtk
 rm -vf *.pdf

@@ -1,13 +1,20 @@
 1 2 GfsSimulation GfsBox GfsGEdge {} {
-  Time { end = 10 }
+  Global {
+    Include ini_t_bub.h
+  }
+
+  Time { end = 10 dtmax = 0.02 }
 
   Refine 5
 
-  VariableTracerVOF T { cfl = 0.25 }
+  VariableTracerVOF T { cfl = 0.5 }
 
-  InitFraction T (-ellipse(0, 0., 0.2, 0.2))
+  #InitFraction T (-ellipse(0, 0., 0.2, 0.2))
+  InitFraction T (ini_t(x+0.5, y+0.5, z))
 
-  Init {} { U = 0.2 V = 0.4 }
+  #Init {} { U = 0.2 V = 0.4 }
+  #Init {} { U = 0. V = 0. }
+  Init {} { U = 0.02 V = 0.01 }
 
   VariableCurvature K T Kmax
 
