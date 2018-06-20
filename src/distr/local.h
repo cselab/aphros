@@ -177,6 +177,7 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
   using Op = typename M::Op;
   using OpS = typename M::OpS;
   using OpSI = typename M::OpSI;
+  using OpCat = typename M::OpCat;
   auto& f = *mk.at(bb[0]); // first kernel
   auto& mf = f.GetMesh();
   auto& vf = mf.GetReduce();  // pointers to reduce
@@ -223,6 +224,22 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
         auto& v = mk.at(b)->GetMesh().GetReduce(); 
         OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
         ob->Set(r);
+      }
+    } else if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
+      auto r = o->Neut(); // result, empty vector<char>
+
+      // Reduce over all blocks on current rank
+      for (auto& b : bb) {
+        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
+        ob->Append(r); // serialise internal vector<T>, append to r
+      }
+
+      // Write results to all blocks on current rank
+      for (auto& b : bb) {
+        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
+        ob->Set(r);  // deserialize r to internal vector<T>
       }
     } else {
       throw std::runtime_error("Reduce: Unknown M::Op implementation");

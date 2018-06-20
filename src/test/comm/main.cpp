@@ -14,6 +14,17 @@
 #include "solver/solver.h"
 #include "linear/linear.h"
 
+template <class T>
+std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
+  std::string p = "";
+  for (auto a : v) {
+    o << p << a;
+    p = " ";
+  }
+  return o;
+}
+
+
 struct GPar {};
 
 template <class M_>
@@ -43,6 +54,8 @@ class Simple : public KernelMeshPar<M_, GPar> {
   bool Cmp(Scal a, Scal b) { return std::abs(a - b) < 1e-10; }
   bool Cmp(Vect a, Vect b) { return a.dist(b) < 1e-10; }
   bool Cmp(MIdx a, MIdx b) { return a == b; }
+  bool Cmp(const std::vector<Scal>& a, 
+           const std::vector<Scal>& b) { return a == b; }
 
   FieldCell<Scal> fc_;
   FieldCell<Vect> fcv_;
@@ -56,6 +69,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_exsol_;
   Scal r_; // test Reduce
   std::pair<Scal, int> rsi_; // test Reduce minloc
+  std::vector<Scal> rvs_; // reduction vector<Scal> (concatenation)
 };
 
 template <class Idx, class M>
@@ -248,6 +262,22 @@ void Simple<M>::TestReduce() {
     }
     PCMP(rsi_.first, s);
     PCMP(bb.GetMIdx(IdxCell(rsi_.second)), ws);
+  }
+  if (sem("cat")) {
+    MIdx w(bi_.index);
+    rvs_.resize(0);
+    rvs_.push_back(bb.GetIdx(w).GetRaw());
+    using T = typename M::template OpCatT<Scal>;
+    m.Reduce(std::make_shared<T>(&rvs_));
+  }
+  if (sem("cat-check")) {
+    std::vector<Scal> rvs;
+    for (auto w : bb) {
+      rvs.push_back(Scal(bb.GetIdx(w).GetRaw()));
+    }
+    if (m.IsRoot()) {
+      PCMP(rvs_, rvs);
+    }
   }
 }
 
