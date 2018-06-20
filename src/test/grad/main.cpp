@@ -290,6 +290,6 @@ void TestCoeff() {
 }
 
 int main() {
-  //TestGrad();
+  TestGrad();
   TestCoeff();
 }
