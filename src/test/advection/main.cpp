@@ -144,7 +144,6 @@ void Advection<M>::Init(Sem& sem) {
     } else if (as == "vof") {
       using AS = solver::Vof<M>;
       auto p = std::make_shared<typename AS::Par>();
-      p->dim = var.Int["dim"];
       p->curvgrad = var.Int["curvgrad"];
       p->part = var.Int["part"];
       p->part_relax = var.Double["part_relax"];
@@ -159,6 +158,8 @@ void Advection<M>::Init(Sem& sem) {
       p->part_maxiter = var.Int["part_maxiter"];
       p->part_n = var.Int["part_n"];
       p->part_k = var.Int["part_k"];
+      p->dim = var.Int["dim"];
+      p->dumppoly = var.Int["dumppoly"];
       p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
       as_.reset(new AS(m, fcu_, bc, &ff_flux_, 
                        &fc_src_, 0., var.Double["dt"], p));
@@ -224,27 +225,6 @@ void Advection<M>::Dump(Sem& sem) {
           auto nx = par_.ds->GetField(3);
           auto ny = par_.ds->GetField(4);
           auto nz = par_.ds->GetField(5);
-
-          if (IsRoot()) {
-            using MIdx = typename M::MIdx;
-            MIdx gs = bc.GetDimensions(); // global mesh size
-            Scal ext = var.Double["extent"];
-            Rect<Vect> d(Vect(0), Vect(gs) * (ext / gs.norminf())); // domain
-            MIdx o(0); // cell origin
-
-            auto gm = InitUniformMesh<M>(d, o, gs, 0, true);
-
-            std::vector<std::vector<Vect>> vv;
-            Vect h = GetCellSize(gm);
-            for (auto c : gm.Cells()) {
-              if (0.5 - std::abs(u[c] - 0.5) > 1e-3) {
-                Vect n(nx[c], ny[c], nz[c]);
-                vv.push_back(solver::GetCutPoly(gm.GetCenter(c), n, a[c], h));
-              }
-            }
-            auto fn = "s." + std::to_string(dmf_.GetN()) + ".vtk";
-            WriteVtkPoly(vv, fn);
-          }
         }
       }
     }

@@ -9,6 +9,7 @@
 #include "advection.h"
 #include "geom/block.h"
 #include "dump/dumper.h"
+#include "dump/vtk.h"
 
 namespace solver {
 
@@ -866,6 +867,7 @@ class Vof : public AdvectionSolver<M_> {
 
   std::vector<Vect> dpx_; // dump particles x
   std::vector<size_t> dpc_; // dump particles cell
+  std::vector<std::vector<Vect>> dl_; // dump poly
 
  public:
   struct Par {
@@ -888,6 +890,7 @@ class Vof : public AdvectionSolver<M_> {
     size_t part_report_fr = 100; // num frames report
     Scal part_intth = 1e-3; // interface detection threshold
     std::unique_ptr<Dumper> dmp; // dumper for particles
+    bool dumppoly = false; // dump reconstructed interface (cut polygons)
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
@@ -935,13 +938,37 @@ class Vof : public AdvectionSolver<M_> {
       }
     }
   }
+  // Dump cut polygons
+  void DumpPoly() {
+    auto sem = m.GetSem("dumppoly");
+    if (sem("local")) {
+      dl_.clear();
+      auto h = GetCellSize();
+      for (auto c : m.Cells()) {
+        const Scal th = par->part_intth;
+        Scal u = fc_u_.iter_curr[c];
+        if (u > th && u < 1. - th) {
+          dl_.push_back(GetCutPoly(m.GetCenter(c), fc_n_[c], fc_a_[c], h));
+        }
+      }
+      using T = typename M::template OpCatVT<Vect>;
+      m.Reduce(std::make_shared<T>(&dl_));
+    }
+    if (sem("write")) {
+      if (m.IsRoot()) {
+        std::string st = "." + std::to_string(par->dmp->GetN());
+        auto fn = "s" + st + ".vtk";
+        WriteVtkPoly(dl_, fn);
+      }
+    }
+  }
   void DumpParticles(size_t it) {
     auto sem = m.GetSem("partdump");
 
     auto fr = par->part_dump_fr;
     size_t d = std::max<size_t>(1, par->part_maxiter / fr);
     if (fr > 1 && it % d == 0 || it + 1 == par->part_maxiter) {
-      if (sem("comm")) {
+      if (sem("local")) {
         dpx_.clear();
         dpc_.clear();
 
@@ -1695,6 +1722,12 @@ class Vof : public AdvectionSolver<M_> {
 
     if (sem("curvcomm")) {
       m.Comm(&fck_);
+    }
+
+    if (par->dumppoly) {
+      if (sem("dumppoly")) {
+        DumpPoly();
+      }
     }
 
     if (par->part) {
