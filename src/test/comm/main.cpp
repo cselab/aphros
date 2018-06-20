@@ -72,6 +72,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
   std::pair<Scal, int> rsi_; // test Reduce minloc
   std::vector<Scal> rvs_; // reduction vector<Scal> (concatenation)
   std::vector<int> rvi_; // reduction vector<int> (concatenation)
+  std::vector<std::vector<int>> rvvi_; // reduction vector<vector<int>> 
 };
 
 template <class Idx, class M>
@@ -310,6 +311,31 @@ void Simple<M>::TestReduce() {
     }
     if (m.IsRoot()) {
       PCMP(rvi_, rvi);
+    }
+  }
+  if (sem("catvi")) {
+    MIdx w(bi_.index);
+    rvvi_.resize(0);
+    size_t i = bb.GetIdx(w).GetRaw();
+    for (size_t j = 0; j < i % q; ++j) {
+      rvvi_.push_back(std::vector<int>({q * i + j}));
+    }
+    using T = typename M::template OpCatVT<int>;
+    m.Reduce(std::make_shared<T>(&rvvi_));
+  }
+  if (sem("catvi-check")) {
+    std::vector<std::vector<int>> rvvi;
+    for (auto wp : qp) {
+      for (auto wb : qb) {
+        auto w = b * wp + wb;
+        size_t i = bb.GetIdx(w).GetRaw();
+        for (size_t j = 0; j < i % q; ++j) {
+          rvvi.push_back(std::vector<int>({q * i + j}));
+        }
+      }
+    }
+    if (m.IsRoot()) {
+      PCMP(rvvi_, rvvi);
     }
   }
 }
