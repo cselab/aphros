@@ -54,8 +54,9 @@ class Simple : public KernelMeshPar<M_, GPar> {
   bool Cmp(Scal a, Scal b) { return std::abs(a - b) < 1e-10; }
   bool Cmp(Vect a, Vect b) { return a.dist(b) < 1e-10; }
   bool Cmp(MIdx a, MIdx b) { return a == b; }
-  bool Cmp(const std::vector<Scal>& a, 
-           const std::vector<Scal>& b) { return a == b; }
+  template <class T>
+  bool Cmp(const std::vector<T>& a, 
+           const std::vector<T>& b) { return a == b; }
 
   FieldCell<Scal> fc_;
   FieldCell<Vect> fcv_;
@@ -70,6 +71,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
   Scal r_; // test Reduce
   std::pair<Scal, int> rsi_; // test Reduce minloc
   std::vector<Scal> rvs_; // reduction vector<Scal> (concatenation)
+  std::vector<int> rvi_; // reduction vector<int> (concatenation)
 };
 
 template <class Idx, class M>
@@ -273,10 +275,33 @@ void Simple<M>::TestReduce() {
   if (sem("cat-check")) {
     std::vector<Scal> rvs;
     for (auto w : bb) {
-      rvs.push_back(Scal(bb.GetIdx(w).GetRaw()));
+      rvs.push_back(bb.GetIdx(w).GetRaw());
     }
     if (m.IsRoot()) {
       PCMP(rvs_, rvs);
+    }
+  }
+  const size_t q = 10;
+  if (sem("cati")) {
+    MIdx w(bi_.index);
+    rvi_.resize(0);
+    size_t i = bb.GetIdx(w).GetRaw();
+    for (size_t j = 0; j < i % q; ++j) {
+      rvi_.push_back(q * i + j);
+    }
+    using T = typename M::template OpCatT<int>;
+    m.Reduce(std::make_shared<T>(&rvi_));
+  }
+  if (sem("cati-check")) {
+    std::vector<int> rvi;
+    for (auto w : bb) {
+      size_t i = bb.GetIdx(w).GetRaw();
+      for (size_t j = 0; j < i % q; ++j) {
+        rvi.push_back(q * i + j);
+      }
+    }
+    if (m.IsRoot()) {
+      PCMP(rvi_, rvi);
     }
   }
 }
