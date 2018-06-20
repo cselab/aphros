@@ -235,11 +235,14 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
         ob->Append(r); // serialise internal vector<T>, append to r
       }
 
-      // Write results to all blocks on current rank
+      // Write results to root block 
       for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce(); 
-        OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
-        ob->Set(r);  // deserialize r to internal vector<T>
+        auto& m = mk.at(b)->GetMesh();
+        if (m.IsRoot()) {
+          auto& v = m.GetReduce(); 
+          OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
+          ob->Set(r);  // deserialize r to internal vector<T>
+        }
       }
     } else {
       throw std::runtime_error("Reduce: Unknown M::Op implementation");
