@@ -25,6 +25,7 @@ cleandat:
 	rm -vf stat.dat
 	rm -vf *.csv
 	rm -vfr sc
+	rm -vf s*.vtk
 
 cleanall: clean cleandat
 
