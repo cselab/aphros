@@ -958,6 +958,10 @@ class Vof : public AdvectionSolver<M_> {
       if (m.IsRoot()) {
         std::string st = "." + std::to_string(par->dmp->GetN());
         auto fn = "s" + st + ".vtk";
+        std::cout << std::fixed << std::setprecision(8)
+            << "dump" 
+            << " t=" << this->GetTime() + this->GetTimeStep()
+            << " to " << fn << std::endl;
         WriteVtkPoly(dl_, fn);
       }
     }
@@ -991,7 +995,7 @@ class Vof : public AdvectionSolver<M_> {
           std::string st = "." + std::to_string(par->dmp->GetN());
           std::string sit = fr > 1 ? "_" + std::to_string(it) : "";
           std::string s = "partit" + st + sit + ".csv";
-          std::cout 
+          std::cout << std::fixed << std::setprecision(8)
               << "dump" 
               << " t=" << this->GetTime() + this->GetTimeStep()
               << " to " << s << std::endl;
@@ -1725,7 +1729,9 @@ class Vof : public AdvectionSolver<M_> {
     }
 
     if (par->dumppoly) {
-      if (sem("dumppoly")) {
+      bool dm = par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
+                              this->GetTimeStep());
+      if (dm && sem("dumppoly")) {
         DumpPoly();
       }
     }
