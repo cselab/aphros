@@ -428,18 +428,17 @@ void Hydro<M>::Init() {
 
     }
 
-    // Output from var.Double by name
-    auto on = [this](std::string n /*output-name*/,  
-                          std::string p /*parameter*/) {
-        return std::make_shared<output::EntryScalarFunction<Scal>>(
-            n, [&,p](){ return var.Double[p]; });
-      };
+    // Write var.Double[p] as n to stat
+    auto on = [this](std::string n, std::string p) {
+      return std::make_shared<output::EntryScalarFunction<Scal>>(
+          n, [&,p](){ return var.Double[p]; });
+    };
 
-    // Output by pointer
+    // Write *p as n to stat
     auto op = [this](std::string n /*output-name*/,  Scal* p /*pointer*/) {
-        return std::make_shared<output::EntryScalarFunction<Scal>>(
-            n, [p](){ return *p; });
-      };
+      return std::make_shared<output::EntryScalarFunction<Scal>>(
+          n, [p](){ return *p; });
+    };
 
 
     st_.t = fs_->GetTime();
@@ -897,7 +896,9 @@ void Hydro<M>::Run() {
   }
 
   // Dump init
-  Dump(sem);
+  if (var.Int["dumpinit"]) {
+    Dump(sem);
+  }
 
   sem.LoopBegin();
 
