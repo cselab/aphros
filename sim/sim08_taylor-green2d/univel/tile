@@ -1,0 +1,8 @@
+#!/bin/bash
+
+
+for f in vx vy st p ; do
+  echo $f
+  ./tile.py 2 1 ${f}_{ge,ch}.mp4 $f.mp4
+done
+

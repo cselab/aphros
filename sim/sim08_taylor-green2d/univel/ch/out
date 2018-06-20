@@ -1,0 +1,3530 @@
+make[1]: Entering directory '/home/kpetr/work/ethz/proj/electrochem/ch/sim/sim08_taylor-green2d'
+rm -vf *.{png}
+rm -vf *.{bin,log}
+rm -vf lsf.o*
+rm -vf job.id.last job.status arg
+removed 'job.id.last'
+removed 'job.status'
+removed 'arg'
+make[1]: Leaving directory '/home/kpetr/work/ethz/proj/electrochem/ch/sim/sim08_taylor-green2d'
+make[1]: Entering directory '/home/kpetr/work/ethz/proj/electrochem/ch/sim/sim08_taylor-green2d'
+rm -vf *.pdf
+rm -vf *.{xmf,h5}
+rm -vf *.{vts,pvd}
+removed 'p.0.vts'
+removed 'p.100.vts'
+removed 'p.101.vts'
+removed 'p.10.vts'
+removed 'p.11.vts'
+removed 'p.12.vts'
+removed 'p.13.vts'
+removed 'p.14.vts'
+removed 'p.15.vts'
+removed 'p.16.vts'
+removed 'p.17.vts'
+removed 'p.18.vts'
+removed 'p.19.vts'
+removed 'p.1.vts'
+removed 'p.20.vts'
+removed 'p.21.vts'
+removed 'p.22.vts'
+removed 'p.23.vts'
+removed 'p.24.vts'
+removed 'p.25.vts'
+removed 'p.26.vts'
+removed 'p.27.vts'
+removed 'p.28.vts'
+removed 'p.29.vts'
+removed 'p.2.vts'
+removed 'p.30.vts'
+removed 'p.31.vts'
+removed 'p.32.vts'
+removed 'p.33.vts'
+removed 'p.34.vts'
+removed 'p.35.vts'
+removed 'p.36.vts'
+removed 'p.37.vts'
+removed 'p.38.vts'
+removed 'p.39.vts'
+removed 'p.3.vts'
+removed 'p.40.vts'
+removed 'p.41.vts'
+removed 'p.42.vts'
+removed 'p.43.vts'
+removed 'p.44.vts'
+removed 'p.45.vts'
+removed 'p.46.vts'
+removed 'p.47.vts'
+removed 'p.48.vts'
+removed 'p.49.vts'
+removed 'p.4.vts'
+removed 'p.50.vts'
+removed 'p.51.vts'
+removed 'p.52.vts'
+removed 'p.53.vts'
+removed 'p.54.vts'
+removed 'p.55.vts'
+removed 'p.56.vts'
+removed 'p.57.vts'
+removed 'p.58.vts'
+removed 'p.59.vts'
+removed 'p.5.vts'
+removed 'p.60.vts'
+removed 'p.61.vts'
+removed 'p.62.vts'
+removed 'p.63.vts'
+removed 'p.64.vts'
+removed 'p.65.vts'
+removed 'p.66.vts'
+removed 'p.67.vts'
+removed 'p.68.vts'
+removed 'p.69.vts'
+removed 'p.6.vts'
+removed 'p.70.vts'
+removed 'p.71.vts'
+removed 'p.72.vts'
+removed 'p.73.vts'
+removed 'p.74.vts'
+removed 'p.75.vts'
+removed 'p.76.vts'
+removed 'p.77.vts'
+removed 'p.78.vts'
+removed 'p.79.vts'
+removed 'p.7.vts'
+removed 'p.80.vts'
+removed 'p.81.vts'
+removed 'p.82.vts'
+removed 'p.83.vts'
+removed 'p.84.vts'
+removed 'p.85.vts'
+removed 'p.86.vts'
+removed 'p.87.vts'
+removed 'p.88.vts'
+removed 'p.89.vts'
+removed 'p.8.vts'
+removed 'p.90.vts'
+removed 'p.91.vts'
+removed 'p.92.vts'
+removed 'p.93.vts'
+removed 'p.94.vts'
+removed 'p.95.vts'
+removed 'p.96.vts'
+removed 'p.97.vts'
+removed 'p.98.vts'
+removed 'p.99.vts'
+removed 'p.9.vts'
+removed 'p.pvd'
+rm -vf stat.dat
+removed 'stat.dat'
+rm -vf *.csv
+removed 'partit.0.csv'
+removed 'partit.100.csv'
+removed 'partit.10.csv'
+removed 'partit.11.csv'
+removed 'partit.12.csv'
+removed 'partit.13.csv'
+removed 'partit.14.csv'
+removed 'partit.15.csv'
+removed 'partit.16.csv'
+removed 'partit.17.csv'
+removed 'partit.18.csv'
+removed 'partit.19.csv'
+removed 'partit.1.csv'
+removed 'partit.20.csv'
+removed 'partit.21.csv'
+removed 'partit.22.csv'
+removed 'partit.23.csv'
+removed 'partit.24.csv'
+removed 'partit.25.csv'
+removed 'partit.26.csv'
+removed 'partit.27.csv'
+removed 'partit.28.csv'
+removed 'partit.29.csv'
+removed 'partit.2.csv'
+removed 'partit.30.csv'
+removed 'partit.31.csv'
+removed 'partit.32.csv'
+removed 'partit.33.csv'
+removed 'partit.34.csv'
+removed 'partit.35.csv'
+removed 'partit.36.csv'
+removed 'partit.37.csv'
+removed 'partit.38.csv'
+removed 'partit.39.csv'
+removed 'partit.3.csv'
+removed 'partit.40.csv'
+removed 'partit.41.csv'
+removed 'partit.42.csv'
+removed 'partit.43.csv'
+removed 'partit.44.csv'
+removed 'partit.45.csv'
+removed 'partit.46.csv'
+removed 'partit.47.csv'
+removed 'partit.48.csv'
+removed 'partit.49.csv'
+removed 'partit.4.csv'
+removed 'partit.50.csv'
+removed 'partit.51.csv'
+removed 'partit.52.csv'
+removed 'partit.53.csv'
+removed 'partit.54.csv'
+removed 'partit.55.csv'
+removed 'partit.56.csv'
+removed 'partit.57.csv'
+removed 'partit.58.csv'
+removed 'partit.59.csv'
+removed 'partit.5.csv'
+removed 'partit.60.csv'
+removed 'partit.61.csv'
+removed 'partit.62.csv'
+removed 'partit.63.csv'
+removed 'partit.64.csv'
+removed 'partit.65.csv'
+removed 'partit.66.csv'
+removed 'partit.67.csv'
+removed 'partit.68.csv'
+removed 'partit.69.csv'
+removed 'partit.6.csv'
+removed 'partit.70.csv'
+removed 'partit.71.csv'
+removed 'partit.72.csv'
+removed 'partit.73.csv'
+removed 'partit.74.csv'
+removed 'partit.75.csv'
+removed 'partit.76.csv'
+removed 'partit.77.csv'
+removed 'partit.78.csv'
+removed 'partit.79.csv'
+removed 'partit.7.csv'
+removed 'partit.80.csv'
+removed 'partit.81.csv'
+removed 'partit.82.csv'
+removed 'partit.83.csv'
+removed 'partit.84.csv'
+removed 'partit.85.csv'
+removed 'partit.86.csv'
+removed 'partit.87.csv'
+removed 'partit.88.csv'
+removed 'partit.89.csv'
+removed 'partit.8.csv'
+removed 'partit.90.csv'
+removed 'partit.91.csv'
+removed 'partit.92.csv'
+removed 'partit.93.csv'
+removed 'partit.94.csv'
+removed 'partit.95.csv'
+removed 'partit.96.csv'
+removed 'partit.97.csv'
+removed 'partit.98.csv'
+removed 'partit.99.csv'
+removed 'partit.9.csv'
+rm -vfr sc
+make[1]: Leaving directory '/home/kpetr/work/ethz/proj/electrochem/ch/sim/sim08_taylor-green2d'
+
+real	0m0.099s
+user	0m0.036s
+sys	0m0.046s
+Loading config from 'a.conf'
+
+=== config begin ===
+set string advection_solver vof
+set string convsc quick
+set string dumpformat default
+set string hypre_gen_solver gmres
+set string hypre_symm_solver pcg
+set string init_vf list
+set string list_path b.dat
+set string surftens kn
+set string vel_init uniform
+set int bsx 32
+set int bsy 32
+set int bsz 1
+set int bx 1
+set int by 1
+set int bz 1
+set int clip_vf 0
+set int comm_size 8
+set int curvgrad 0
+set int dim 2
+set int dump_field_max 10000
+set int dump_part_max 1000
+set int dump_stat_max 1000000
+set int enable_advection 1
+set int enable_fluid 1
+set int enable_surftens 1
+set int hl 2
+set int hypre_gen_maxiter 30
+set int hypre_periodic_x 1
+set int hypre_periodic_y 1
+set int hypre_periodic_z 1
+set int hypre_print 0
+set int hypre_symm_maxiter 100
+set int inletflux_numid 1
+set int list_ls 1
+set int loc 1
+set int max_iter 10
+set int max_step 1000000
+set int min_iter 1
+set int normalnode 0
+set int output 1
+set int part 1
+set int part_bendmean 1
+set int part_dump_fr 1
+set int part_k 1
+set int part_maxiter 50
+set int part_n 0
+set int part_report_fr 1
+set int px 1
+set int py 1
+set int pz 1
+set int second_order 1
+set int simpler 1
+set int split 0
+set int verbose 0
+set int verbose_stages 1
+set int vf_init_sm 0
+set int vfsmooth 0
+set double convdf o=(0,0,0) dom=(0,0,0),(1,1,0.03125) h=0.03125
+1
+set double dt0 0.02
+set double dtmax 0.02
+set double dump_field_dt 0.1
+set double dump_field_t0 0
+set double dump_part_dt 0.1
+set double dump_part_t0 0
+set double dump_stat_dt 0
+set double extent 1
+set double hypre_tol 0.001
+set double mu1 0.001
+set double mu2 0.001
+set double part_h 1
+set double part_h0 1
+set double part_kattr 1
+set double part_kbend 1
+set double part_kstr 1
+set double part_relax 0.1
+set double prelax 0.9
+set double rhie 1
+set double rho1 1
+set double rho2 1
+set double sharp 0
+set double sharpo 0
+set double sigma 0.01
+set double stdiag 1
+set double tmax 10
+set double tol 0.001
+set double vort_g1 0.01
+set double vort_g2 0.01
+set double vort_vmax 1
+set double vrelax 0.8
+set vect force 0 0 0 
+set vect gravity 0 0 0 
+set vect vel 0.02 0.01 0 
+set vect vort_x1 0.25 0.25 0 
+set vect vort_x2 0.75 0.75 0 
+=== config end ===
+
+h from gm = 0.03125
+o=(0,0,0) n=0 i=(0,0,0)
+Read 5 particles from 'b.dat'
+Found events: 
+=====
+=====
+Dump n=0 t=0 target=0
+Dump 0: format=vtk
+STEP=1 t=0.00000000 dt=0.02000000 ta=0.00000000 dta=0.02000000
+it=0 dxmax=0.04678617 anmax=0.00000000 anavg=0.00000000
+dump t=0.02000000 to partit.0.csv
+it=49 dxmax=0.01223662 anmax=0.21433618 anavg=0.02134143
+.....iter=1, diff=4.2012224287191785e-02
+.....iter=2, diff=8.0291552565373916e-03
+.....iter=3, diff=1.6887121931492899e-03
+.....iter=4, diff=3.6111194860705028e-04
+Dump n=0 t=0 target=0
+Dump 1: format=vtk
+STEP=2 t=0.00000000 dt=0.02000000 ta=0.02000000 dta=0.02000000
+it=0 dxmax=0.04678013 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.01240416 anmax=0.20964150 anavg=0.02072674
+.....iter=1, diff=4.8055459939362707e-02
+.....iter=2, diff=9.8637375161608771e-03
+.....iter=3, diff=2.1224386577806255e-03
+.....iter=4, diff=4.7222305815543394e-04
+STEP=3 t=0.02000000 dt=0.02000000 ta=0.04000000 dta=0.02000000
+it=0 dxmax=0.04676866 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00558410 anmax=0.20454173 anavg=0.02012778
+.....iter=1, diff=4.3212061580996504e-02
+.....iter=2, diff=9.5801763278092252e-03
+.....iter=3, diff=2.1953696461237716e-03
+.....iter=4, diff=5.0305879377408533e-04
+STEP=4 t=0.04000000 dt=0.02000000 ta=0.06000000 dta=0.02000000
+it=0 dxmax=0.04675769 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00862115 anmax=0.21722131 anavg=0.01983818
+.....iter=1, diff=3.7781968442522948e-02
+.....iter=2, diff=8.8647147739652262e-03
+.....iter=3, diff=2.0777222593656918e-03
+.....iter=4, diff=4.8406959673710233e-04
+STEP=5 t=0.06000000 dt=0.02000000 ta=0.08000000 dta=0.02000000
+it=0 dxmax=0.04624317 anmax=0.00000000 anavg=0.00000000
+dump t=0.10000000 to partit.1.csv
+it=49 dxmax=0.01136256 anmax=0.18904747 anavg=0.02079849
+.....iter=1, diff=3.1939259622500965e-02
+.....iter=2, diff=7.6787733452150638e-03
+.....iter=3, diff=1.8163723242954409e-03
+.....iter=4, diff=4.4324802536030943e-04
+STEP=6 t=0.08000000 dt=0.02000000 ta=0.10000000 dta=0.02000000
+it=0 dxmax=0.04308258 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00497657 anmax=0.16548485 anavg=0.01827609
+.....iter=1, diff=2.4376520168700799e-02
+.....iter=2, diff=6.2184940980140871e-03
+.....iter=3, diff=1.5582607174247905e-03
+.....iter=4, diff=3.8651718634077702e-04
+Dump n=1 t=0.1 target=0.1
+Dump 2: format=vtk
+STEP=7 t=0.10000000 dt=0.02000000 ta=0.12000000 dta=0.02000000
+it=0 dxmax=0.04318487 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00371788 anmax=0.16050943 anavg=0.01982325
+.....iter=1, diff=2.0046296767097786e-02
+.....iter=2, diff=4.9229491717227517e-03
+.....iter=3, diff=1.2443554383799250e-03
+.....iter=4, diff=3.1003702240803819e-04
+STEP=8 t=0.12000000 dt=0.02000000 ta=0.14000000 dta=0.02000000
+it=0 dxmax=0.03238483 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00458225 anmax=0.11313291 anavg=0.01787156
+.....iter=1, diff=1.8768306293819190e-02
+.....iter=2, diff=4.1659367360089017e-03
+.....iter=3, diff=1.0047438424043594e-03
+.....iter=4, diff=2.6283317973263033e-04
+STEP=9 t=0.14000000 dt=0.02000000 ta=0.16000000 dta=0.02000000
+it=0 dxmax=0.03198356 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00287805 anmax=0.09945586 anavg=0.01675391
+.....iter=1, diff=1.8184934413933526e-02
+.....iter=2, diff=4.2143542280037270e-03
+.....iter=3, diff=9.9936949389814781e-04
+STEP=10 t=0.16000000 dt=0.02000000 ta=0.18000000 dta=0.02000000
+it=0 dxmax=0.03325191 anmax=0.00000000 anavg=0.00000000
+dump t=0.20000000 to partit.2.csv
+it=49 dxmax=0.00405889 anmax=0.11330698 anavg=0.01662393
+.....iter=1, diff=1.5980251156236462e-02
+.....iter=2, diff=3.6168005214120350e-03
+.....iter=3, diff=8.4610162666145139e-04
+STEP=11 t=0.18000000 dt=0.02000000 ta=0.20000000 dta=0.02000000
+it=0 dxmax=0.03442032 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00419848 anmax=0.11254286 anavg=0.01895297
+.....iter=1, diff=1.4373865257900395e-02
+.....iter=2, diff=3.0960609092139327e-03
+.....iter=3, diff=7.0829254664559220e-04
+Dump n=2 t=0.2 target=0.2
+Dump 3: format=vtk
+STEP=12 t=0.20000000 dt=0.02000000 ta=0.22000000 dta=0.02000000
+it=0 dxmax=0.03534894 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00350840 anmax=0.10639482 anavg=0.02130539
+.....iter=1, diff=1.4251516595909021e-02
+.....iter=2, diff=3.0815268971887025e-03
+.....iter=3, diff=6.9118437322770619e-04
+STEP=13 t=0.22000000 dt=0.02000000 ta=0.24000000 dta=0.02000000
+it=0 dxmax=0.03698385 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00362046 anmax=0.10684738 anavg=0.02375184
+.....iter=1, diff=1.3199982237639444e-02
+.....iter=2, diff=2.9845187791542127e-03
+.....iter=3, diff=6.9712155715614618e-04
+STEP=14 t=0.24000000 dt=0.02000000 ta=0.26000000 dta=0.02000000
+it=0 dxmax=0.03967999 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00721655 anmax=0.12972015 anavg=0.02621138
+.....iter=1, diff=1.4700731892799317e-02
+.....iter=2, diff=3.1777113027494750e-03
+.....iter=3, diff=7.3737515716438195e-04
+STEP=15 t=0.26000000 dt=0.02000000 ta=0.28000000 dta=0.02000000
+it=0 dxmax=0.03478820 anmax=0.00000000 anavg=0.00000000
+dump t=0.30000000 to partit.3.csv
+it=49 dxmax=0.01136613 anmax=0.13493695 anavg=0.02892995
+.....iter=1, diff=1.6075846988110449e-02
+.....iter=2, diff=3.3955382996151348e-03
+.....iter=3, diff=7.5029380204920154e-04
+STEP=16 t=0.28000000 dt=0.02000000 ta=0.30000000 dta=0.02000000
+it=0 dxmax=0.03610901 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00336022 anmax=0.14416518 anavg=0.02735116
+.....iter=1, diff=1.6878016100844561e-02
+.....iter=2, diff=3.5768455905076280e-03
+.....iter=3, diff=8.5635554796010876e-04
+Dump n=3 t=0.3 target=0.3
+Dump 4: format=vtk
+STEP=17 t=0.30000000 dt=0.02000000 ta=0.32000000 dta=0.02000000
+it=0 dxmax=0.03581406 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00531495 anmax=0.14827154 anavg=0.02702426
+.....iter=1, diff=1.7849544984803230e-02
+.....iter=2, diff=4.1808528703688478e-03
+.....iter=3, diff=1.0086992572185844e-03
+.....iter=4, diff=2.4523502535238215e-04
+STEP=18 t=0.32000000 dt=0.02000000 ta=0.34000000 dta=0.02000000
+it=0 dxmax=0.03560313 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00255738 anmax=0.15201435 anavg=0.02656374
+.....iter=1, diff=1.8799146238007717e-02
+.....iter=2, diff=4.6795329324566225e-03
+.....iter=3, diff=1.1462493848899225e-03
+.....iter=4, diff=2.7961346148518070e-04
+STEP=19 t=0.34000000 dt=0.02000000 ta=0.36000000 dta=0.02000000
+it=0 dxmax=0.03497552 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00660521 anmax=0.13839903 anavg=0.02560631
+.....iter=1, diff=1.7302061531200785e-02
+.....iter=2, diff=4.3845991420260622e-03
+.....iter=3, diff=1.0715091403747782e-03
+.....iter=4, diff=2.5938157297662978e-04
+STEP=20 t=0.36000000 dt=0.02000000 ta=0.38000000 dta=0.02000000
+it=0 dxmax=0.03448116 anmax=0.00000000 anavg=0.00000000
+dump t=0.40000000 to partit.4.csv
+it=49 dxmax=0.00534051 anmax=0.12689622 anavg=0.02381352
+.....iter=1, diff=1.3511369926106163e-02
+.....iter=2, diff=3.4722053667542120e-03
+.....iter=3, diff=8.3864188693920068e-04
+STEP=21 t=0.38000000 dt=0.02000000 ta=0.40000000 dta=0.02000000
+it=0 dxmax=0.03593417 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00489674 anmax=0.10888891 anavg=0.02326236
+.....iter=1, diff=1.0874021214309896e-02
+.....iter=2, diff=2.4721545915988735e-03
+.....iter=3, diff=5.7885826010087673e-04
+Dump n=4 t=0.4 target=0.4
+Dump 5: format=vtk
+STEP=22 t=0.40000000 dt=0.02000000 ta=0.42000000 dta=0.02000000
+it=0 dxmax=0.03007479 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00519851 anmax=0.10538037 anavg=0.02124594
+.....iter=1, diff=9.7422224838181071e-03
+.....iter=2, diff=2.2023625457845632e-03
+.....iter=3, diff=5.3665985724732595e-04
+STEP=23 t=0.42000000 dt=0.02000000 ta=0.44000000 dta=0.02000000
+it=0 dxmax=0.03031634 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00559490 anmax=0.08228507 anavg=0.01889074
+.....iter=1, diff=9.5938876654820711e-03
+.....iter=2, diff=2.1171275394719757e-03
+.....iter=3, diff=5.0893773830890620e-04
+STEP=24 t=0.44000000 dt=0.02000000 ta=0.46000000 dta=0.02000000
+it=0 dxmax=0.03054641 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00333925 anmax=0.06665476 anavg=0.01671366
+.....iter=1, diff=1.1622386046385245e-02
+.....iter=2, diff=2.5260194320329333e-03
+.....iter=3, diff=5.7106698935196988e-04
+STEP=25 t=0.46000000 dt=0.02000000 ta=0.48000000 dta=0.02000000
+it=0 dxmax=0.03076622 anmax=0.00000000 anavg=0.00000000
+dump t=0.50000000 to partit.5.csv
+it=49 dxmax=0.00408794 anmax=0.06324629 anavg=0.01613819
+.....iter=1, diff=1.3528632783887478e-02
+.....iter=2, diff=3.2807660387692548e-03
+.....iter=3, diff=7.7697695018256237e-04
+STEP=26 t=0.48000000 dt=0.02000000 ta=0.50000000 dta=0.02000000
+it=0 dxmax=0.03772546 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00644234 anmax=0.07463008 anavg=0.01679930
+.....iter=1, diff=1.6804542082830699e-02
+.....iter=2, diff=3.9646583058335350e-03
+.....iter=3, diff=9.1237931452632561e-04
+Dump n=5 t=0.5 target=0.5
+Dump 6: format=vtk
+STEP=27 t=0.50000000 dt=0.02000000 ta=0.52000000 dta=0.02000000
+it=0 dxmax=0.03481221 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00505438 anmax=0.09553194 anavg=0.01918069
+.....iter=1, diff=1.9037912963260309e-02
+.....iter=2, diff=4.4013191193603453e-03
+.....iter=3, diff=9.9146615324414685e-04
+STEP=28 t=0.52000000 dt=0.02000000 ta=0.54000000 dta=0.02000000
+it=0 dxmax=0.03175853 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00650671 anmax=0.11537729 anavg=0.02118768
+.....iter=1, diff=2.0394368903270187e-02
+.....iter=2, diff=4.6245384465742525e-03
+.....iter=3, diff=1.0264506546026452e-03
+.....iter=4, diff=2.2546671372646293e-04
+STEP=29 t=0.54000000 dt=0.02000000 ta=0.56000000 dta=0.02000000
+it=0 dxmax=0.03511533 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00518596 anmax=0.12947815 anavg=0.02152206
+.....iter=1, diff=2.0990776014039845e-02
+.....iter=2, diff=4.7110034074582235e-03
+.....iter=3, diff=1.0369396795323880e-03
+.....iter=4, diff=2.3960631916757584e-04
+STEP=30 t=0.56000000 dt=0.02000000 ta=0.58000000 dta=0.02000000
+it=0 dxmax=0.03273058 anmax=0.00000000 anavg=0.00000000
+dump t=0.60000000 to partit.6.csv
+it=49 dxmax=0.00536987 anmax=0.13657732 anavg=0.02174249
+.....iter=1, diff=2.0965968881436318e-02
+.....iter=2, diff=4.6579385106024261e-03
+.....iter=3, diff=1.0695803068852831e-03
+.....iter=4, diff=2.5054704716678908e-04
+STEP=31 t=0.58000000 dt=0.02000000 ta=0.60000000 dta=0.02000000
+it=0 dxmax=0.03229966 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00527704 anmax=0.13886619 anavg=0.02302189
+.....iter=1, diff=2.0880541066880771e-02
+.....iter=2, diff=4.7481908211549160e-03
+.....iter=3, diff=1.0986871042917307e-03
+.....iter=4, diff=2.5269832179663398e-04
+Dump n=6 t=0.6 target=0.6
+Dump 7: format=vtk
+STEP=32 t=0.60000000 dt=0.02000000 ta=0.62000000 dta=0.02000000
+it=0 dxmax=0.03254704 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00521976 anmax=0.13878159 anavg=0.02349666
+.....iter=1, diff=1.9406258205323719e-02
+.....iter=2, diff=4.5342851744290319e-03
+.....iter=3, diff=1.0358171578026842e-03
+.....iter=4, diff=2.3537399302009886e-04
+STEP=33 t=0.62000000 dt=0.02000000 ta=0.64000000 dta=0.02000000
+it=0 dxmax=0.03381411 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00492860 anmax=0.13293384 anavg=0.02346774
+.....iter=1, diff=1.9125536669093574e-02
+.....iter=2, diff=4.3587086240580979e-03
+.....iter=3, diff=9.8243604428250274e-04
+STEP=34 t=0.64000000 dt=0.02000000 ta=0.66000000 dta=0.02000000
+it=0 dxmax=0.03427804 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00688254 anmax=0.12932587 anavg=0.02292391
+.....iter=1, diff=1.8549700990854311e-02
+.....iter=2, diff=4.1509495481205708e-03
+.....iter=3, diff=9.2211307563494222e-04
+STEP=35 t=0.66000000 dt=0.02000000 ta=0.68000000 dta=0.02000000
+it=0 dxmax=0.03429102 anmax=0.00000000 anavg=0.00000000
+dump t=0.70000000 to partit.7.csv
+it=49 dxmax=0.00496653 anmax=0.12740358 anavg=0.02236628
+.....iter=1, diff=1.7439516859431334e-02
+.....iter=2, diff=3.8638542280048089e-03
+.....iter=3, diff=8.5666872392550981e-04
+STEP=36 t=0.68000000 dt=0.02000000 ta=0.70000000 dta=0.02000000
+it=0 dxmax=0.03382236 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00525659 anmax=0.12315231 anavg=0.02147717
+.....iter=1, diff=1.6061152409394763e-02
+.....iter=2, diff=3.6082014384220575e-03
+.....iter=3, diff=8.0851577669372257e-04
+Dump n=7 t=0.7 target=0.7
+STEP=37 t=0.70000000 dt=0.02000000 ta=0.72000000 dta=0.02000000
+Dump 8: format=vtk
+it=0 dxmax=0.03294324 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00408242 anmax=0.12004710 anavg=0.02046017
+.....iter=1, diff=1.5427028814170820e-02
+.....iter=2, diff=3.4266629857614508e-03
+.....iter=3, diff=7.6908711167894138e-04
+STEP=38 t=0.72000000 dt=0.02000000 ta=0.74000000 dta=0.02000000
+it=0 dxmax=0.03196251 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00398999 anmax=0.11381025 anavg=0.01961661
+.....iter=1, diff=1.4408087054153822e-02
+.....iter=2, diff=3.2401824835846067e-03
+.....iter=3, diff=7.3281352325631243e-04
+STEP=39 t=0.74000000 dt=0.02000000 ta=0.76000000 dta=0.02000000
+it=0 dxmax=0.03191581 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00666678 anmax=0.10392095 anavg=0.01835714
+.....iter=1, diff=1.3153563793379602e-02
+.....iter=2, diff=2.9769485676633262e-03
+.....iter=3, diff=6.7877914723735167e-04
+STEP=40 t=0.76000000 dt=0.02000000 ta=0.78000000 dta=0.02000000
+it=0 dxmax=0.03177344 anmax=0.00000000 anavg=0.00000000
+dump t=0.80000000 to partit.8.csv
+it=49 dxmax=0.00431988 anmax=0.09213749 anavg=0.01774040
+.....iter=1, diff=1.2130321728968043e-02
+.....iter=2, diff=2.6696128156257224e-03
+.....iter=3, diff=6.1166840574252291e-04
+STEP=41 t=0.78000000 dt=0.02000000 ta=0.80000000 dta=0.02000000
+it=0 dxmax=0.03145290 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00387044 anmax=0.08505892 anavg=0.01649279
+.....iter=1, diff=1.1405141726065068e-02
+.....iter=2, diff=2.3810304977058077e-03
+.....iter=3, diff=5.3357838448627652e-04
+Dump n=8 t=0.8 target=0.8
+Dump 9: format=vtk
+STEP=42 t=0.80000000 dt=0.02000000 ta=0.82000000 dta=0.02000000
+it=0 dxmax=0.03096499 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00290426 anmax=0.07614034 anavg=0.01563571
+.....iter=1, diff=1.0648875310416125e-02
+.....iter=2, diff=2.2386215512684568e-03
+.....iter=3, diff=5.1570251178316602e-04
+STEP=43 t=0.82000000 dt=0.02000000 ta=0.84000000 dta=0.02000000
+it=0 dxmax=0.03176489 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00263531 anmax=0.07737198 anavg=0.01471373
+.....iter=1, diff=1.1257363816105379e-02
+.....iter=2, diff=2.3790850987989460e-03
+.....iter=3, diff=5.0481247699202963e-04
+STEP=44 t=0.84000000 dt=0.02000000 ta=0.86000000 dta=0.02000000
+it=0 dxmax=0.03288521 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00581612 anmax=0.07678457 anavg=0.01354905
+.....iter=1, diff=1.2608364930022577e-02
+.....iter=2, diff=2.7143471043587679e-03
+.....iter=3, diff=5.8269705013896456e-04
+STEP=45 t=0.86000000 dt=0.02000000 ta=0.88000000 dta=0.02000000
+it=0 dxmax=0.03708485 anmax=0.00000000 anavg=0.00000000
+dump t=0.90000000 to partit.9.csv
+it=49 dxmax=0.00412438 anmax=0.07631380 anavg=0.01338966
+.....iter=1, diff=1.3294815182739389e-02
+.....iter=2, diff=2.8850896217802006e-03
+.....iter=3, diff=6.2178892662310135e-04
+STEP=46 t=0.88000000 dt=0.02000000 ta=0.90000000 dta=0.02000000
+it=0 dxmax=0.03676036 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00473211 anmax=0.07649733 anavg=0.01434695
+.....iter=1, diff=1.3290584364753727e-02
+.....iter=2, diff=2.8912620523100555e-03
+.....iter=3, diff=6.2633363738468807e-04
+Dump n=9 t=0.9 target=0.9
+Dump 10: format=vtk
+STEP=47 t=0.90000000 dt=0.02000000 ta=0.92000000 dta=0.02000000
+it=0 dxmax=0.03616619 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00412772 anmax=0.08397274 anavg=0.01500168
+.....iter=1, diff=1.2724206816074484e-02
+.....iter=2, diff=2.8089806687298280e-03
+.....iter=3, diff=6.1387065843723396e-04
+STEP=48 t=0.92000000 dt=0.02000000 ta=0.94000000 dta=0.02000000
+it=0 dxmax=0.03615689 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00400358 anmax=0.10199753 anavg=0.01690785
+.....iter=1, diff=1.3637682914741338e-02
+.....iter=2, diff=2.9859535863007098e-03
+.....iter=3, diff=6.5308623744741274e-04
+STEP=49 t=0.94000000 dt=0.02000000 ta=0.96000000 dta=0.02000000
+it=0 dxmax=0.03851779 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00411127 anmax=0.09099045 anavg=0.01732517
+.....iter=1, diff=1.3613602700106248e-02
+.....iter=2, diff=3.0184727865229699e-03
+.....iter=3, diff=6.6097395302925808e-04
+STEP=50 t=0.96000000 dt=0.02000000 ta=0.98000000 dta=0.02000000
+it=0 dxmax=0.04111025 anmax=0.00000000 anavg=0.00000000
+dump t=1.00000000 to partit.10.csv
+it=49 dxmax=0.00406885 anmax=0.09330224 anavg=0.01778492
+.....iter=1, diff=1.2355402380770578e-02
+.....iter=2, diff=2.8347067912757669e-03
+.....iter=3, diff=6.3858205037251134e-04
+STEP=51 t=0.98000000 dt=0.02000000 ta=1.00000000 dta=0.02000000
+it=0 dxmax=0.04384991 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00709871 anmax=0.12008733 anavg=0.01822053
+.....iter=1, diff=1.3193662834033674e-02
+.....iter=2, diff=2.9974281670975583e-03
+.....iter=3, diff=6.6991356263967298e-04
+Dump n=10 t=1 target=1
+Dump 11: format=vtk
+STEP=52 t=1.00000000 dt=0.02000000 ta=1.02000000 dta=0.02000000
+it=0 dxmax=0.03764197 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00412803 anmax=0.12845996 anavg=0.01729418
+.....iter=1, diff=1.3720186486596111e-02
+.....iter=2, diff=3.0942872857733020e-03
+.....iter=3, diff=6.8805183205581982e-04
+STEP=53 t=1.02000000 dt=0.02000000 ta=1.04000000 dta=0.02000000
+it=0 dxmax=0.03760565 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00477524 anmax=0.07543295 anavg=0.01605857
+.....iter=1, diff=1.3959202170802871e-02
+.....iter=2, diff=3.1237477854733769e-03
+.....iter=3, diff=6.9282171754181116e-04
+STEP=54 t=1.04000000 dt=0.02000000 ta=1.06000000 dta=0.02000000
+it=0 dxmax=0.03753330 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00320638 anmax=0.07580531 anavg=0.01585650
+.....iter=1, diff=1.4165767145417691e-02
+.....iter=2, diff=3.1296254500398279e-03
+.....iter=3, diff=6.9288742891060299e-04
+STEP=55 t=1.06000000 dt=0.02000000 ta=1.08000000 dta=0.02000000
+it=0 dxmax=0.03748721 anmax=0.00000000 anavg=0.00000000
+dump t=1.10000000 to partit.11.csv
+it=49 dxmax=0.00318102 anmax=0.07015971 anavg=0.01495032
+.....iter=1, diff=1.2977894137855083e-02
+.....iter=2, diff=2.9303636922694328e-03
+.....iter=3, diff=6.5256568637754337e-04
+STEP=56 t=1.08000000 dt=0.02000000 ta=1.10000000 dta=0.02000000
+it=0 dxmax=0.03742105 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00315261 anmax=0.07261483 anavg=0.01450498
+.....iter=1, diff=1.2652215958715449e-02
+.....iter=2, diff=2.8183379259454078e-03
+.....iter=3, diff=6.2870489038991371e-04
+Dump n=11 t=1.1 target=1.1
+Dump 12: format=vtk
+STEP=57 t=1.10000000 dt=0.02000000 ta=1.12000000 dta=0.02000000
+it=0 dxmax=0.03737443 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00437176 anmax=0.06617322 anavg=0.01368517
+.....iter=1, diff=1.2427660147907797e-02
+.....iter=2, diff=2.7108539183803666e-03
+.....iter=3, diff=6.0345232917233369e-04
+STEP=58 t=1.12000000 dt=0.02000000 ta=1.14000000 dta=0.02000000
+it=0 dxmax=0.03732342 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00330902 anmax=0.06274357 anavg=0.01418580
+.....iter=1, diff=1.1555550995598844e-02
+.....iter=2, diff=2.5113936471529204e-03
+.....iter=3, diff=5.5910485941550766e-04
+STEP=59 t=1.14000000 dt=0.02000000 ta=1.16000000 dta=0.02000000
+it=0 dxmax=0.03628103 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00562959 anmax=0.06381577 anavg=0.01482505
+.....iter=1, diff=1.1191919616032761e-02
+.....iter=2, diff=2.4521639171251604e-03
+.....iter=3, diff=5.2724068652504482e-04
+STEP=60 t=1.16000000 dt=0.02000000 ta=1.18000000 dta=0.02000000
+it=0 dxmax=0.03661067 anmax=0.00000000 anavg=0.00000000
+dump t=1.20000000 to partit.12.csv
+it=49 dxmax=0.00401121 anmax=0.07226606 anavg=0.01524147
+.....iter=1, diff=1.2211931770791570e-02
+.....iter=2, diff=2.6566058712119262e-03
+.....iter=3, diff=5.6825074747549108e-04
+STEP=61 t=1.18000000 dt=0.02000000 ta=1.20000000 dta=0.02000000
+it=0 dxmax=0.03624914 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00701796 anmax=0.08520319 anavg=0.01551731
+.....iter=1, diff=1.3140250981303392e-02
+.....iter=2, diff=2.8360951465743810e-03
+.....iter=3, diff=6.1037289624558272e-04
+Dump n=12 t=1.2 target=1.2
+STEP=62 t=1.20000000 dt=0.02000000 ta=1.22000000 dta=0.02000000
+Dump 13: format=vtk
+it=0 dxmax=0.03623130 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00584357 anmax=0.09469022 anavg=0.01515042
+.....iter=1, diff=1.3596858023189686e-02
+.....iter=2, diff=2.9405070948419587e-03
+.....iter=3, diff=6.5306407302488710e-04
+STEP=63 t=1.22000000 dt=0.02000000 ta=1.24000000 dta=0.02000000
+it=0 dxmax=0.03620542 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00515201 anmax=0.10247172 anavg=0.01564495
+.....iter=1, diff=1.3078071366152095e-02
+.....iter=2, diff=2.9402718271525552e-03
+.....iter=3, diff=6.6370343023570272e-04
+STEP=64 t=1.24000000 dt=0.02000000 ta=1.26000000 dta=0.02000000
+it=0 dxmax=0.03617683 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00420301 anmax=0.10713266 anavg=0.01565906
+.....iter=1, diff=1.3357768959103206e-02
+.....iter=2, diff=3.0167924693698862e-03
+.....iter=3, diff=6.7265278224813826e-04
+STEP=65 t=1.26000000 dt=0.02000000 ta=1.28000000 dta=0.02000000
+it=0 dxmax=0.03615297 anmax=0.00000000 anavg=0.00000000
+dump t=1.30000000 to partit.13.csv
+it=49 dxmax=0.00355732 anmax=0.10722629 anavg=0.01552263
+.....iter=1, diff=1.3727142549346811e-02
+.....iter=2, diff=3.0114795148845708e-03
+.....iter=3, diff=6.6452060763433796e-04
+STEP=66 t=1.28000000 dt=0.02000000 ta=1.30000000 dta=0.02000000
+it=0 dxmax=0.03613440 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00609292 anmax=0.10233161 anavg=0.01429789
+.....iter=1, diff=1.3463000630971387e-02
+.....iter=2, diff=2.9545435129884568e-03
+.....iter=3, diff=6.4672067764764019e-04
+Dump n=13 t=1.3 target=1.3
+Dump 14: format=vtk
+STEP=67 t=1.30000000 dt=0.02000000 ta=1.32000000 dta=0.02000000
+it=0 dxmax=0.03613797 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00492555 anmax=0.09527073 anavg=0.01480970
+.....iter=1, diff=1.2997129736139318e-02
+.....iter=2, diff=2.8606371115962974e-03
+.....iter=3, diff=6.2214212423270085e-04
+STEP=68 t=1.32000000 dt=0.02000000 ta=1.34000000 dta=0.02000000
+it=0 dxmax=0.03610767 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00396528 anmax=0.08482288 anavg=0.01495349
+.....iter=1, diff=1.2513461387660574e-02
+.....iter=2, diff=2.7342355295109227e-03
+.....iter=3, diff=5.9151310395925895e-04
+STEP=69 t=1.34000000 dt=0.02000000 ta=1.36000000 dta=0.02000000
+it=0 dxmax=0.03613171 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00366019 anmax=0.07618488 anavg=0.01423429
+.....iter=1, diff=1.1811051387155059e-02
+.....iter=2, diff=2.5621046821986703e-03
+.....iter=3, diff=5.5194669153889092e-04
+STEP=70 t=1.36000000 dt=0.02000000 ta=1.38000000 dta=0.02000000
+it=0 dxmax=0.03604576 anmax=0.00000000 anavg=0.00000000
+dump t=1.40000000 to partit.14.csv
+it=49 dxmax=0.00349979 anmax=0.06965047 anavg=0.01494371
+.....iter=1, diff=1.1122359459090816e-02
+.....iter=2, diff=2.4030820077716262e-03
+.....iter=3, diff=5.1632019480080289e-04
+STEP=71 t=1.38000000 dt=0.02000000 ta=1.40000000 dta=0.02000000
+it=0 dxmax=0.03606142 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00445269 anmax=0.07303176 anavg=0.01488154
+.....iter=1, diff=1.0362509747695699e-02
+.....iter=2, diff=2.2306732228430199e-03
+.....iter=3, diff=4.7889884255554021e-04
+Dump n=14 t=1.4 target=1.4
+Dump 15: format=vtk
+STEP=72 t=1.40000000 dt=0.02000000 ta=1.42000000 dta=0.02000000
+it=0 dxmax=0.03597273 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00353974 anmax=0.06100785 anavg=0.01466193
+.....iter=1, diff=9.6288077011541413e-03
+.....iter=2, diff=2.0621743292690863e-03
+.....iter=3, diff=4.4104931058882240e-04
+STEP=73 t=1.42000000 dt=0.02000000 ta=1.44000000 dta=0.02000000
+it=0 dxmax=0.03599029 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00338204 anmax=0.05864380 anavg=0.01446715
+.....iter=1, diff=9.0507838073848497e-03
+.....iter=2, diff=1.9527050996684908e-03
+.....iter=3, diff=4.2603821842124859e-04
+STEP=74 t=1.44000000 dt=0.02000000 ta=1.46000000 dta=0.02000000
+it=0 dxmax=0.03591760 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00339676 anmax=0.06539672 anavg=0.01490833
+.....iter=1, diff=9.7048746889690923e-03
+.....iter=2, diff=2.0834589707952765e-03
+.....iter=3, diff=4.5132002855315795e-04
+STEP=75 t=1.46000000 dt=0.02000000 ta=1.48000000 dta=0.02000000
+it=0 dxmax=0.03614737 anmax=0.00000000 anavg=0.00000000
+dump t=1.50000000 to partit.15.csv
+it=49 dxmax=0.00278965 anmax=0.06384909 anavg=0.01500571
+.....iter=1, diff=1.0251753257447696e-02
+.....iter=2, diff=2.2036051205637495e-03
+.....iter=3, diff=4.7220553762254323e-04
+STEP=76 t=1.48000000 dt=0.02000000 ta=1.50000000 dta=0.02000000
+it=0 dxmax=0.03617635 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00299317 anmax=0.07255652 anavg=0.01502994
+.....iter=1, diff=1.0535524739918279e-02
+.....iter=2, diff=2.2446240151864508e-03
+.....iter=3, diff=4.7923568474339979e-04
+Dump n=15 t=1.5 target=1.5
+Dump 16: format=vtk
+STEP=77 t=1.50000000 dt=0.02000000 ta=1.52000000 dta=0.02000000
+it=0 dxmax=0.03615568 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00340271 anmax=0.07159093 anavg=0.01498237
+.....iter=1, diff=1.0482702325628201e-02
+.....iter=2, diff=2.2211569744637347e-03
+.....iter=3, diff=4.8240472771100812e-04
+STEP=78 t=1.52000000 dt=0.02000000 ta=1.54000000 dta=0.02000000
+it=0 dxmax=0.03615290 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00640118 anmax=0.07198938 anavg=0.01468054
+.....iter=1, diff=1.0471362543670515e-02
+.....iter=2, diff=2.2214044160701403e-03
+.....iter=3, diff=4.8710925963816009e-04
+STEP=79 t=1.54000000 dt=0.02000000 ta=1.56000000 dta=0.02000000
+it=0 dxmax=0.03609621 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00532259 anmax=0.07099904 anavg=0.01469960
+.....iter=1, diff=1.0469038873413994e-02
+.....iter=2, diff=2.2317512104902525e-03
+.....iter=3, diff=4.8161336210428068e-04
+STEP=80 t=1.56000000 dt=0.02000000 ta=1.58000000 dta=0.02000000
+it=0 dxmax=0.03603767 anmax=0.00000000 anavg=0.00000000
+dump t=1.60000000 to partit.16.csv
+it=49 dxmax=0.00442436 anmax=0.06822787 anavg=0.01486223
+.....iter=1, diff=1.0079829052813934e-02
+.....iter=2, diff=2.1615693334987832e-03
+.....iter=3, diff=4.8015031393561881e-04
+STEP=81 t=1.58000000 dt=0.02000000 ta=1.60000000 dta=0.02000000
+it=0 dxmax=0.03592108 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00443383 anmax=0.06815133 anavg=0.01461680
+.....iter=1, diff=9.2544472198261701e-03
+.....iter=2, diff=1.9954131972623212e-03
+.....iter=3, diff=4.4478175645168319e-04
+Dump n=16 t=1.6 target=1.6
+STEP=82 t=1.60000000 dt=0.02000000 ta=1.62000000 dta=0.02000000
+Dump 17: format=vtk
+it=0 dxmax=0.03578664 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00260322 anmax=0.06032575 anavg=0.01438117
+.....iter=1, diff=8.4633654185139809e-03
+.....iter=2, diff=1.8562624178783285e-03
+.....iter=3, diff=4.2850183700997291e-04
+STEP=83 t=1.62000000 dt=0.02000000 ta=1.64000000 dta=0.02000000
+it=0 dxmax=0.03559193 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00270449 anmax=0.06721089 anavg=0.01444744
+.....iter=1, diff=7.7469315071355951e-03
+.....iter=2, diff=1.6896177320237587e-03
+.....iter=3, diff=3.9024147008906662e-04
+STEP=84 t=1.64000000 dt=0.02000000 ta=1.66000000 dta=0.02000000
+it=0 dxmax=0.03537188 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00276693 anmax=0.07650902 anavg=0.01453961
+.....iter=1, diff=8.1194627395981302e-03
+.....iter=2, diff=1.7169769336393653e-03
+.....iter=3, diff=3.6232587643440794e-04
+STEP=85 t=1.66000000 dt=0.02000000 ta=1.68000000 dta=0.02000000
+it=0 dxmax=0.03509943 anmax=0.00000000 anavg=0.00000000
+dump t=1.70000000 to partit.17.csv
+it=49 dxmax=0.00346413 anmax=0.08442184 anavg=0.01489166
+.....iter=1, diff=8.8156192631943155e-03
+.....iter=2, diff=1.8699972382315332e-03
+.....iter=3, diff=3.9659499421123472e-04
+STEP=86 t=1.68000000 dt=0.02000000 ta=1.70000000 dta=0.02000000
+it=0 dxmax=0.03480258 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00342445 anmax=0.08997595 anavg=0.01501069
+.....iter=1, diff=9.3014530546288911e-03
+.....iter=2, diff=1.9894578101870199e-03
+Dump n=17 t=1.7 target=1.7
+.....iter=3, diff=4.2458371564878559e-04
+Dump 18: format=vtk
+STEP=87 t=1.70000000 dt=0.02000000 ta=1.72000000 dta=0.02000000
+it=0 dxmax=0.03446380 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00379491 anmax=0.04881650 anavg=0.01378438
+.....iter=1, diff=9.6428462102104585e-03
+.....iter=2, diff=2.0811293923919637e-03
+.....iter=3, diff=4.4695217794729142e-04
+STEP=88 t=1.72000000 dt=0.02000000 ta=1.74000000 dta=0.02000000
+it=0 dxmax=0.03410678 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00267772 anmax=0.05479342 anavg=0.01374711
+.....iter=1, diff=9.8748585854642364e-03
+.....iter=2, diff=2.1502436322088855e-03
+.....iter=3, diff=4.6458085614358287e-04
+STEP=89 t=1.74000000 dt=0.02000000 ta=1.76000000 dta=0.02000000
+it=0 dxmax=0.03458833 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00287619 anmax=0.06046942 anavg=0.01390755
+.....iter=1, diff=9.5291986348592615e-03
+.....iter=2, diff=2.0850559784540458e-03
+.....iter=3, diff=4.5274753407388904e-04
+STEP=90 t=1.76000000 dt=0.02000000 ta=1.78000000 dta=0.02000000
+it=0 dxmax=0.03325861 anmax=0.00000000 anavg=0.00000000
+dump t=1.80000000 to partit.18.csv
+it=49 dxmax=0.00341581 anmax=0.05932916 anavg=0.01409992
+.....iter=1, diff=9.7014974893540797e-03
+.....iter=2, diff=2.0471748559836070e-03
+.....iter=3, diff=4.4536705956461778e-04
+STEP=91 t=1.78000000 dt=0.02000000 ta=1.80000000 dta=0.02000000
+it=0 dxmax=0.03323207 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00310989 anmax=0.04782566 anavg=0.01340003
+.....iter=1, diff=9.7745060315966061e-03
+.....iter=2, diff=2.0657853883841895e-03
+.....iter=3, diff=4.4977228044678778e-04
+Dump n=18 t=1.8 target=1.8
+Dump 19: format=vtk
+STEP=92 t=1.80000000 dt=0.02000000 ta=1.82000000 dta=0.02000000
+it=0 dxmax=0.03246159 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00318249 anmax=0.05012313 anavg=0.01373170
+.....iter=1, diff=9.6236130263280678e-03
+.....iter=2, diff=2.0313956923329757e-03
+.....iter=3, diff=4.3153612357504852e-04
+STEP=93 t=1.82000000 dt=0.02000000 ta=1.84000000 dta=0.02000000
+it=0 dxmax=0.03208596 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00326875 anmax=0.05366062 anavg=0.01377384
+.....iter=1, diff=9.3323872876158506e-03
+.....iter=2, diff=1.9882984968727009e-03
+.....iter=3, diff=4.3682206518863375e-04
+STEP=94 t=1.84000000 dt=0.02000000 ta=1.86000000 dta=0.02000000
+it=0 dxmax=0.03177138 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00356180 anmax=0.05653614 anavg=0.01399229
+.....iter=1, diff=8.8588245961872068e-03
+.....iter=2, diff=1.9351289010188677e-03
+.....iter=3, diff=4.4045841725339255e-04
+STEP=95 t=1.86000000 dt=0.02000000 ta=1.88000000 dta=0.02000000
+it=0 dxmax=0.03149144 anmax=0.00000000 anavg=0.00000000
+dump t=1.90000000 to partit.19.csv
+it=49 dxmax=0.00544450 anmax=0.05818669 anavg=0.01372376
+.....iter=1, diff=8.2467420012160477e-03
+.....iter=2, diff=1.8998146079777856e-03
+.....iter=3, diff=4.3368110758214496e-04
+STEP=96 t=1.88000000 dt=0.02000000 ta=1.90000000 dta=0.02000000
+it=0 dxmax=0.03127733 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00430664 anmax=0.05916376 anavg=0.01395084
+.....iter=1, diff=8.4373066617069344e-03
+.....iter=2, diff=1.9520692107190660e-03
+.....iter=3, diff=4.4638881077152271e-04
+Dump n=19 t=1.9 target=1.9
+STEP=97 t=1.90000000 dt=0.02000000 ta=1.92000000 dta=0.02000000
+Dump 20: format=vtk
+it=0 dxmax=0.03106052 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00493830 anmax=0.06035974 anavg=0.01366283
+.....iter=1, diff=8.5670176193601393e-03
+.....iter=2, diff=1.8928105066085890e-03
+.....iter=3, diff=4.3092548458061687e-04
+STEP=98 t=1.92000000 dt=0.02000000 ta=1.94000000 dta=0.02000000
+it=0 dxmax=0.03086166 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00553244 anmax=0.06096009 anavg=0.01338975
+.....iter=1, diff=8.4945024665475811e-03
+.....iter=2, diff=1.8676841973288246e-03
+.....iter=3, diff=4.0609820356929123e-04
+STEP=99 t=1.94000000 dt=0.02000000 ta=1.96000000 dta=0.02000000
+it=0 dxmax=0.03067051 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00612021 anmax=0.06017958 anavg=0.01351501
+.....iter=1, diff=8.2433158706111259e-03
+.....iter=2, diff=1.8019612136841634e-03
+.....iter=3, diff=3.9068360086384079e-04
+STEP=100 t=1.96000000 dt=0.02000000 ta=1.98000000 dta=0.02000000
+it=0 dxmax=0.03048491 anmax=0.00000000 anavg=0.00000000
+dump t=2.00000000 to partit.20.csv
+it=49 dxmax=0.00566041 anmax=0.05965938 anavg=0.01311674
+.....iter=1, diff=7.8739451810839120e-03
+.....iter=2, diff=1.7175878000498090e-03
+.....iter=3, diff=3.7247540017153614e-04
+STEP=101 t=1.98000000 dt=0.02000000 ta=2.00000000 dta=0.02000000
+it=0 dxmax=0.03030877 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00581655 anmax=0.07892312 anavg=0.01225478
+.....iter=1, diff=7.3980779331740826e-03
+.....iter=2, diff=1.6110493553624960e-03
+.....iter=3, diff=3.4955765577895183e-04
+Dump n=20 t=2 target=2
+Dump 21: format=vtk
+STEP=102 t=2.00000000 dt=0.02000000 ta=2.02000000 dta=0.02000000
+it=0 dxmax=0.03013563 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00598817 anmax=0.06377684 anavg=0.01162951
+.....iter=1, diff=7.4188975673133021e-03
+.....iter=2, diff=1.6002521875655711e-03
+.....iter=3, diff=3.4360967473296929e-04
+STEP=103 t=2.02000000 dt=0.02000000 ta=2.04000000 dta=0.02000000
+it=0 dxmax=0.02996935 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00584764 anmax=0.05051730 anavg=0.01129248
+.....iter=1, diff=7.4342232926782473e-03
+.....iter=2, diff=1.6021387182093068e-03
+.....iter=3, diff=3.4381991386870075e-04
+STEP=104 t=2.04000000 dt=0.02000000 ta=2.06000000 dta=0.02000000
+it=0 dxmax=0.02979978 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00541695 anmax=0.05144901 anavg=0.01167238
+.....iter=1, diff=7.3201982692531389e-03
+.....iter=2, diff=1.5751078722464553e-03
+.....iter=3, diff=3.3821110241657727e-04
+STEP=105 t=2.06000000 dt=0.02000000 ta=2.08000000 dta=0.02000000
+it=0 dxmax=0.02966108 anmax=0.00000000 anavg=0.00000000
+dump t=2.10000000 to partit.21.csv
+it=49 dxmax=0.00523010 anmax=0.05094091 anavg=0.01221188
+.....iter=1, diff=7.1034639463914782e-03
+.....iter=2, diff=1.5260972205031690e-03
+.....iter=3, diff=3.2756757741110029e-04
+STEP=106 t=2.08000000 dt=0.02000000 ta=2.10000000 dta=0.02000000
+it=0 dxmax=0.03029057 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00504155 anmax=0.04910807 anavg=0.01249733
+.....iter=1, diff=7.3318082692423936e-03
+.....iter=2, diff=1.5265772806297873e-03
+.....iter=3, diff=3.2352045345427618e-04
+Dump n=21 t=2.1 target=2.1
+Dump 22: format=vtk
+STEP=107 t=2.10000000 dt=0.02000000 ta=2.12000000 dta=0.02000000
+it=0 dxmax=0.02939891 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00466675 anmax=0.05202740 anavg=0.01283575
+.....iter=1, diff=7.7166624999269731e-03
+.....iter=2, diff=1.5956448012560851e-03
+.....iter=3, diff=3.3744100937201332e-04
+STEP=108 t=2.12000000 dt=0.02000000 ta=2.14000000 dta=0.02000000
+it=0 dxmax=0.02925214 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00449410 anmax=0.05543150 anavg=0.01310471
+.....iter=1, diff=8.0536049619078232e-03
+.....iter=2, diff=1.6665899688767972e-03
+.....iter=3, diff=3.5169930946214945e-04
+STEP=109 t=2.14000000 dt=0.02000000 ta=2.16000000 dta=0.02000000
+it=0 dxmax=0.02979447 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00432844 anmax=0.05744450 anavg=0.01325204
+.....iter=1, diff=8.4596432850339350e-03
+.....iter=2, diff=1.7510959916522187e-03
+.....iter=3, diff=3.6914433882240949e-04
+STEP=110 t=2.16000000 dt=0.02000000 ta=2.18000000 dta=0.02000000
+it=0 dxmax=0.03094446 anmax=0.00000000 anavg=0.00000000
+dump t=2.20000000 to partit.22.csv
+it=49 dxmax=0.00418361 anmax=0.05865197 anavg=0.01322075
+.....iter=1, diff=8.6311327962034067e-03
+.....iter=2, diff=1.7932477310936366e-03
+.....iter=3, diff=3.7910788526151898e-04
+STEP=111 t=2.18000000 dt=0.02000000 ta=2.20000000 dta=0.02000000
+it=0 dxmax=0.03211374 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00372041 anmax=0.06079172 anavg=0.01296849
+.....iter=1, diff=8.6721312623418319e-03
+.....iter=2, diff=1.8095407503507662e-03
+.....iter=3, diff=3.8031780644981223e-04
+Dump n=22 t=2.2 target=2.2
+Dump 23: format=vtk
+STEP=112 t=2.20000000 dt=0.02000000 ta=2.22000000 dta=0.02000000
+it=0 dxmax=0.03327333 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00350739 anmax=0.06166014 anavg=0.01272455
+.....iter=1, diff=8.6095077398332595e-03
+.....iter=2, diff=1.7918513849722053e-03
+.....iter=3, diff=3.7746771135093821e-04
+STEP=113 t=2.22000000 dt=0.02000000 ta=2.24000000 dta=0.02000000
+it=0 dxmax=0.03444775 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00342749 anmax=0.06162961 anavg=0.01271689
+.....iter=1, diff=8.4852254079366366e-03
+.....iter=2, diff=1.7584127249977248e-03
+.....iter=3, diff=3.7452146449261484e-04
+STEP=114 t=2.24000000 dt=0.02000000 ta=2.26000000 dta=0.02000000
+it=0 dxmax=0.03516084 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00338849 anmax=0.05991142 anavg=0.01274857
+.....iter=1, diff=7.9920410741780475e-03
+.....iter=2, diff=1.6748627373306694e-03
+.....iter=3, diff=3.5970318647782820e-04
+STEP=115 t=2.26000000 dt=0.02000000 ta=2.28000000 dta=0.02000000
+it=0 dxmax=0.02998461 anmax=0.00000000 anavg=0.00000000
+dump t=2.30000000 to partit.23.csv
+it=49 dxmax=0.00344877 anmax=0.05548016 anavg=0.01250059
+.....iter=1, diff=7.1280740004658651e-03
+.....iter=2, diff=1.5292645702825768e-03
+.....iter=3, diff=3.3065568364741983e-04
+STEP=116 t=2.28000000 dt=0.02000000 ta=2.30000000 dta=0.02000000
+it=0 dxmax=0.03026494 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00339309 anmax=0.05186463 anavg=0.01204701
+.....iter=1, diff=6.1712785219223487e-03
+.....iter=2, diff=1.3559465190184688e-03
+.....iter=3, diff=2.9464170586043098e-04
+Dump n=23 t=2.3 target=2.3
+Dump 24: format=vtk
+STEP=117 t=2.30000000 dt=0.02000000 ta=2.32000000 dta=0.02000000
+it=0 dxmax=0.03054147 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00276625 anmax=0.04710769 anavg=0.01149793
+.....iter=1, diff=5.2441455239488127e-03
+.....iter=2, diff=1.1556275676044485e-03
+.....iter=3, diff=2.5216863709010175e-04
+STEP=118 t=2.32000000 dt=0.02000000 ta=2.34000000 dta=0.02000000
+it=0 dxmax=0.03092117 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00277239 anmax=0.04569377 anavg=0.01093061
+.....iter=1, diff=4.7401842325257336e-03
+.....iter=2, diff=1.0213227133345870e-03
+.....iter=3, diff=2.2031737721638479e-04
+STEP=119 t=2.34000000 dt=0.02000000 ta=2.36000000 dta=0.02000000
+it=0 dxmax=0.03132404 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00288195 anmax=0.03980602 anavg=0.01034634
+.....iter=1, diff=4.3394578100252419e-03
+.....iter=2, diff=9.2020331285556489e-04
+STEP=120 t=2.36000000 dt=0.02000000 ta=2.38000000 dta=0.02000000
+it=0 dxmax=0.03174411 anmax=0.00000000 anavg=0.00000000
+dump t=2.40000000 to partit.24.csv
+it=49 dxmax=0.00299835 anmax=0.03560576 anavg=0.00948260
+.....iter=1, diff=4.1686002864238470e-03
+.....iter=2, diff=9.4161105656221386e-04
+STEP=121 t=2.38000000 dt=0.02000000 ta=2.40000000 dta=0.02000000
+it=0 dxmax=0.03214824 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00535216 anmax=0.04507988 anavg=0.00974750
+.....iter=1, diff=4.4660701283255385e-03
+.....iter=2, diff=1.0041560807494652e-03
+.....iter=3, diff=2.2027131456422308e-04
+Dump n=24 t=2.4 target=2.4
+Dump 25: format=vtk
+STEP=122 t=2.40000000 dt=0.02000000 ta=2.42000000 dta=0.02000000
+it=0 dxmax=0.03252991 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00301460 anmax=0.03463678 anavg=0.00962196
+.....iter=1, diff=6.4427067310607591e-03
+.....iter=2, diff=1.4197674957818131e-03
+.....iter=3, diff=3.0731079163099474e-04
+STEP=123 t=2.42000000 dt=0.02000000 ta=2.44000000 dta=0.02000000
+it=0 dxmax=0.03283415 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00311095 anmax=0.04039593 anavg=0.00973164
+.....iter=1, diff=7.2650753263534479e-03
+.....iter=2, diff=1.5859301685168796e-03
+.....iter=3, diff=3.4118102791551818e-04
+STEP=124 t=2.44000000 dt=0.02000000 ta=2.46000000 dta=0.02000000
+it=0 dxmax=0.03278204 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00402731 anmax=0.04873539 anavg=0.01017048
+.....iter=1, diff=7.4653644028157108e-03
+.....iter=2, diff=1.6181084809423344e-03
+.....iter=3, diff=3.4587616517202645e-04
+STEP=125 t=2.46000000 dt=0.02000000 ta=2.48000000 dta=0.02000000
+it=0 dxmax=0.03263517 anmax=0.00000000 anavg=0.00000000
+dump t=2.50000000 to partit.25.csv
+it=49 dxmax=0.00359436 anmax=0.05629525 anavg=0.01132240
+.....iter=1, diff=7.3335361940640807e-03
+.....iter=2, diff=1.5759899004913636e-03
+.....iter=3, diff=3.3571318364000041e-04
+STEP=126 t=2.48000000 dt=0.02000000 ta=2.50000000 dta=0.02000000
+it=0 dxmax=0.03248878 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00394698 anmax=0.06374821 anavg=0.01198896
+.....iter=1, diff=6.9567793811412372e-03
+.....iter=2, diff=1.4840214160620159e-03
+.....iter=3, diff=3.1483073212263378e-04
+Dump n=25 t=2.5 target=2.5
+Dump 26: format=vtk
+STEP=127 t=2.50000000 dt=0.02000000 ta=2.52000000 dta=0.02000000
+it=0 dxmax=0.03470223 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00416764 anmax=0.07043896 anavg=0.01225768
+.....iter=1, diff=6.3378535609751084e-03
+.....iter=2, diff=1.3420395944550201e-03
+.....iter=3, diff=2.8417111741432354e-04
+STEP=128 t=2.52000000 dt=0.02000000 ta=2.54000000 dta=0.02000000
+it=0 dxmax=0.03446316 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00440518 anmax=0.07515022 anavg=0.01255406
+.....iter=1, diff=5.5166553360261788e-03
+.....iter=2, diff=1.1842878118575066e-03
+.....iter=3, diff=2.5446471454859817e-04
+STEP=129 t=2.54000000 dt=0.02000000 ta=2.56000000 dta=0.02000000
+it=0 dxmax=0.03468438 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00466214 anmax=0.07876669 anavg=0.01315333
+.....iter=1, diff=6.0614021236306704e-03
+.....iter=2, diff=1.2984279654449987e-03
+.....iter=3, diff=2.7782626354913646e-04
+STEP=130 t=2.56000000 dt=0.02000000 ta=2.58000000 dta=0.02000000
+it=0 dxmax=0.03457830 anmax=0.00000000 anavg=0.00000000
+dump t=2.60000000 to partit.26.csv
+it=49 dxmax=0.00474345 anmax=0.08050812 anavg=0.01330846
+.....iter=1, diff=6.4977980216352838e-03
+.....iter=2, diff=1.3904010058787282e-03
+.....iter=3, diff=2.9584376517458781e-04
+STEP=131 t=2.58000000 dt=0.02000000 ta=2.60000000 dta=0.02000000
+it=0 dxmax=0.03429651 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00463143 anmax=0.08095245 anavg=0.01347965
+.....iter=1, diff=6.7681698636918655e-03
+.....iter=2, diff=1.4409492444760596e-03
+.....iter=3, diff=3.0488511021729202e-04
+Dump n=26 t=2.6 target=2.6
+Dump 27: format=vtk
+STEP=132 t=2.60000000 dt=0.02000000 ta=2.62000000 dta=0.02000000
+it=0 dxmax=0.03406582 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00471149 anmax=0.07969710 anavg=0.01362541
+.....iter=1, diff=6.8592208598331084e-03
+.....iter=2, diff=1.4555212720534132e-03
+.....iter=3, diff=3.0628948681585836e-04
+STEP=133 t=2.62000000 dt=0.02000000 ta=2.64000000 dta=0.02000000
+it=0 dxmax=0.03372466 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00458951 anmax=0.07749752 anavg=0.01359083
+.....iter=1, diff=6.9009913611013983e-03
+.....iter=2, diff=1.4626150127068709e-03
+.....iter=3, diff=3.0741914675211699e-04
+STEP=134 t=2.64000000 dt=0.02000000 ta=2.66000000 dta=0.02000000
+it=0 dxmax=0.03344551 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00465440 anmax=0.07441236 anavg=0.01366690
+.....iter=1, diff=7.2301148768330456e-03
+.....iter=2, diff=1.5288429968278957e-03
+.....iter=3, diff=3.1887281332553430e-04
+STEP=135 t=2.66000000 dt=0.02000000 ta=2.68000000 dta=0.02000000
+it=0 dxmax=0.03309812 anmax=0.00000000 anavg=0.00000000
+dump t=2.70000000 to partit.27.csv
+it=49 dxmax=0.00458420 anmax=0.07086367 anavg=0.01311765
+.....iter=1, diff=7.5782447015160220e-03
+.....iter=2, diff=1.5900481331222037e-03
+.....iter=3, diff=3.3106011200071924e-04
+STEP=136 t=2.68000000 dt=0.02000000 ta=2.70000000 dta=0.02000000
+it=0 dxmax=0.03293391 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00480440 anmax=0.06510967 anavg=0.01230897
+.....iter=1, diff=7.1994578149672415e-03
+.....iter=2, diff=1.4994316422857706e-03
+.....iter=3, diff=3.1225917889873524e-04
+Dump n=27 t=2.7 target=2.7
+STEP=137 t=2.70000000 dt=0.02000000 ta=2.72000000 dta=0.02000000
+Dump 28: format=vtk
+it=0 dxmax=0.03196651 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00502606 anmax=0.05770298 anavg=0.01219675
+.....iter=1, diff=6.5026961769049582e-03
+.....iter=2, diff=1.3578758598180834e-03
+.....iter=3, diff=2.8314337360651939e-04
+STEP=138 t=2.72000000 dt=0.02000000 ta=2.74000000 dta=0.02000000
+it=0 dxmax=0.03209337 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00512902 anmax=0.05256441 anavg=0.01197336
+.....iter=1, diff=5.7642535394351220e-03
+.....iter=2, diff=1.2219956066883073e-03
+.....iter=3, diff=2.6060083924096106e-04
+STEP=139 t=2.74000000 dt=0.02000000 ta=2.76000000 dta=0.02000000
+it=0 dxmax=0.03247981 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00507958 anmax=0.04840669 anavg=0.01181706
+.....iter=1, diff=5.4901581113444235e-03
+.....iter=2, diff=1.1668956606419199e-03
+.....iter=3, diff=2.4880022629486748e-04
+STEP=140 t=2.76000000 dt=0.02000000 ta=2.78000000 dta=0.02000000
+it=0 dxmax=0.03293061 anmax=0.00000000 anavg=0.00000000
+dump t=2.80000000 to partit.28.csv
+it=49 dxmax=0.00493178 anmax=0.05123809 anavg=0.01157665
+.....iter=1, diff=5.1255887234104916e-03
+.....iter=2, diff=1.0866593668045989e-03
+.....iter=3, diff=2.3163042657737439e-04
+STEP=141 t=2.78000000 dt=0.02000000 ta=2.80000000 dta=0.02000000
+it=0 dxmax=0.03343079 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00481856 anmax=0.05288579 anavg=0.01175866
+.....iter=1, diff=4.8304279439354315e-03
+.....iter=2, diff=1.0377541416539302e-03
+.....iter=3, diff=2.1981724473772146e-04
+Dump n=28 t=2.8 target=2.8
+Dump 29: format=vtk
+STEP=142 t=2.80000000 dt=0.02000000 ta=2.82000000 dta=0.02000000
+it=0 dxmax=0.03396614 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00495056 anmax=0.05444083 anavg=0.01214971
+.....iter=1, diff=5.1494056768443385e-03
+.....iter=2, diff=1.0838348014265491e-03
+.....iter=3, diff=2.2926193980052546e-04
+STEP=143 t=2.82000000 dt=0.02000000 ta=2.84000000 dta=0.02000000
+it=0 dxmax=0.03452639 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00487778 anmax=0.04354879 anavg=0.01187041
+.....iter=1, diff=5.0837118957616006e-03
+.....iter=2, diff=1.0753284339553141e-03
+.....iter=3, diff=2.2769900574848360e-04
+STEP=144 t=2.84000000 dt=0.02000000 ta=2.86000000 dta=0.02000000
+it=0 dxmax=0.03511144 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00499119 anmax=0.04062949 anavg=0.01208636
+.....iter=1, diff=4.9197217492327515e-03
+.....iter=2, diff=1.0425356590504399e-03
+.....iter=3, diff=2.2123511449903457e-04
+STEP=145 t=2.86000000 dt=0.02000000 ta=2.88000000 dta=0.02000000
+it=0 dxmax=0.03198281 anmax=0.00000000 anavg=0.00000000
+dump t=2.90000000 to partit.29.csv
+it=49 dxmax=0.00489472 anmax=0.04123697 anavg=0.01163371
+.....iter=1, diff=4.7846335216196337e-03
+.....iter=2, diff=1.0312724551033590e-03
+.....iter=3, diff=2.3090100357130215e-04
+STEP=146 t=2.88000000 dt=0.02000000 ta=2.90000000 dta=0.02000000
+it=0 dxmax=0.03094151 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00478921 anmax=0.04095133 anavg=0.01171179
+.....iter=1, diff=4.8308669835859866e-03
+.....iter=2, diff=1.0791843759961812e-03
+.....iter=3, diff=2.4075571467339899e-04
+Dump n=29 t=2.9 target=2.9
+Dump 30: format=vtk
+STEP=147 t=2.90000000 dt=0.02000000 ta=2.92000000 dta=0.02000000
+it=0 dxmax=0.02962078 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00467641 anmax=0.03942788 anavg=0.01133574
+.....iter=1, diff=4.9688147999176419e-03
+.....iter=2, diff=1.1160923931226039e-03
+.....iter=3, diff=2.4794161898348567e-04
+STEP=148 t=2.92000000 dt=0.02000000 ta=2.94000000 dta=0.02000000
+it=0 dxmax=0.02944169 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00455477 anmax=0.03835876 anavg=0.01135463
+.....iter=1, diff=5.1554375654170558e-03
+.....iter=2, diff=1.1448217119468787e-03
+.....iter=3, diff=2.5291475690506588e-04
+STEP=149 t=2.94000000 dt=0.02000000 ta=2.96000000 dta=0.02000000
+it=0 dxmax=0.02930272 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00394384 anmax=0.04055383 anavg=0.01134961
+.....iter=1, diff=5.1902932302577637e-03
+.....iter=2, diff=1.1502708029512787e-03
+.....iter=3, diff=2.5313035918587946e-04
+STEP=150 t=2.96000000 dt=0.02000000 ta=2.98000000 dta=0.02000000
+it=0 dxmax=0.02972381 anmax=0.00000000 anavg=0.00000000
+dump t=3.00000000 to partit.30.csv
+it=49 dxmax=0.00396735 anmax=0.04169168 anavg=0.01120652
+.....iter=1, diff=5.0883436909132896e-03
+.....iter=2, diff=1.1072950736522693e-03
+.....iter=3, diff=2.4304666746002642e-04
+STEP=151 t=2.98000000 dt=0.02000000 ta=3.00000000 dta=0.02000000
+it=0 dxmax=0.03015114 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00399429 anmax=0.04178297 anavg=0.01107721
+.....iter=1, diff=5.0663914266364969e-03
+.....iter=2, diff=1.1037621245164632e-03
+.....iter=3, diff=2.3939393456697306e-04
+Dump n=30 t=3 target=3
+Dump 31: format=vtk
+STEP=152 t=3.00000000 dt=0.02000000 ta=3.02000000 dta=0.02000000
+it=0 dxmax=0.03052757 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00388784 anmax=0.04091797 anavg=0.01080703
+.....iter=1, diff=5.0201115537842136e-03
+.....iter=2, diff=1.0894041852323023e-03
+.....iter=3, diff=2.3572680509427384e-04
+STEP=153 t=3.02000000 dt=0.02000000 ta=3.04000000 dta=0.02000000
+it=0 dxmax=0.03079328 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00348757 anmax=0.03854209 anavg=0.01040840
+.....iter=1, diff=4.8939132470679197e-03
+.....iter=2, diff=1.0580330240581638e-03
+.....iter=3, diff=2.2871156499156410e-04
+STEP=154 t=3.04000000 dt=0.02000000 ta=3.06000000 dta=0.02000000
+it=0 dxmax=0.03094326 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00342081 anmax=0.04218651 anavg=0.00982704
+.....iter=1, diff=4.6893222786544633e-03
+.....iter=2, diff=1.0102350971635144e-03
+.....iter=3, diff=2.2049334948679567e-04
+STEP=155 t=3.06000000 dt=0.02000000 ta=3.08000000 dta=0.02000000
+it=0 dxmax=0.03104357 anmax=0.00000000 anavg=0.00000000
+dump t=3.10000000 to partit.31.csv
+it=49 dxmax=0.00344522 anmax=0.04471482 anavg=0.00957204
+.....iter=1, diff=4.4375084742634208e-03
+.....iter=2, diff=9.5559200099547400e-04
+STEP=156 t=3.08000000 dt=0.02000000 ta=3.10000000 dta=0.02000000
+it=0 dxmax=0.03110665 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00468916 anmax=0.04235729 anavg=0.00942218
+.....iter=1, diff=4.0970376589701272e-03
+.....iter=2, diff=8.8029177456406225e-04
+Dump n=31 t=3.1 target=3.1
+Dump 32: format=vtk
+STEP=157 t=3.10000000 dt=0.02000000 ta=3.12000000 dta=0.02000000
+it=0 dxmax=0.03119415 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00360598 anmax=0.04467315 anavg=0.00930267
+.....iter=1, diff=3.7505362965026359e-03
+.....iter=2, diff=8.1545600344533114e-04
+STEP=158 t=3.12000000 dt=0.02000000 ta=3.14000000 dta=0.02000000
+it=0 dxmax=0.03121906 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00348679 anmax=0.04815605 anavg=0.00921872
+.....iter=1, diff=3.5378218873735870e-03
+.....iter=2, diff=7.5595587539912861e-04
+STEP=159 t=3.14000000 dt=0.02000000 ta=3.16000000 dta=0.02000000
+it=0 dxmax=0.03123241 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00328189 anmax=0.05025571 anavg=0.00919845
+.....iter=1, diff=3.6273270424207883e-03
+.....iter=2, diff=7.3887145938827991e-04
+STEP=160 t=3.16000000 dt=0.02000000 ta=3.18000000 dta=0.02000000
+it=0 dxmax=0.03152188 anmax=0.00000000 anavg=0.00000000
+dump t=3.20000000 to partit.32.csv
+it=49 dxmax=0.00373303 anmax=0.05096703 anavg=0.00915980
+.....iter=1, diff=3.3449605954588039e-03
+.....iter=2, diff=6.8874283570587245e-04
+STEP=161 t=3.18000000 dt=0.02000000 ta=3.20000000 dta=0.02000000
+it=0 dxmax=0.03165569 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00690876 anmax=0.05032846 anavg=0.00877543
+.....iter=1, diff=3.3454367298285286e-03
+.....iter=2, diff=7.2196797757321932e-04
+Dump n=32 t=3.2 target=3.2
+Dump 33: format=vtk
+STEP=162 t=3.20000000 dt=0.02000000 ta=3.22000000 dta=0.02000000
+it=0 dxmax=0.03157304 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00464282 anmax=0.04845073 anavg=0.00877179
+.....iter=1, diff=3.4363369331197732e-03
+.....iter=2, diff=7.4091517619983009e-04
+STEP=163 t=3.22000000 dt=0.02000000 ta=3.24000000 dta=0.02000000
+it=0 dxmax=0.03151938 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00404847 anmax=0.05254170 anavg=0.00889737
+.....iter=1, diff=3.4584309251907640e-03
+.....iter=2, diff=7.4515579901728826e-04
+STEP=164 t=3.24000000 dt=0.02000000 ta=3.26000000 dta=0.02000000
+it=0 dxmax=0.03641839 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00318806 anmax=0.04979677 anavg=0.00904458
+.....iter=1, diff=3.3279478658443246e-03
+.....iter=2, diff=7.1534443959148618e-04
+STEP=165 t=3.26000000 dt=0.02000000 ta=3.28000000 dta=0.02000000
+it=0 dxmax=0.03597093 anmax=0.00000000 anavg=0.00000000
+dump t=3.30000000 to partit.33.csv
+it=49 dxmax=0.00357609 anmax=0.05073253 anavg=0.00910073
+.....iter=1, diff=3.6078946213581251e-03
+.....iter=2, diff=7.7745364262189862e-04
+STEP=166 t=3.28000000 dt=0.02000000 ta=3.30000000 dta=0.02000000
+it=0 dxmax=0.03545614 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00353701 anmax=0.05055319 anavg=0.00907700
+.....iter=1, diff=3.9355744343204605e-03
+.....iter=2, diff=8.4548240162356876e-04
+Dump n=33 t=3.3 target=3.3
+Dump 34: format=vtk
+STEP=167 t=3.30000000 dt=0.02000000 ta=3.32000000 dta=0.02000000
+it=0 dxmax=0.03520470 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00309915 anmax=0.05051040 anavg=0.00871890
+.....iter=1, diff=4.2361334902449883e-03
+.....iter=2, diff=9.1038614510189546e-04
+STEP=168 t=3.32000000 dt=0.02000000 ta=3.34000000 dta=0.02000000
+it=0 dxmax=0.03495409 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00365676 anmax=0.04905976 anavg=0.00839726
+.....iter=1, diff=4.4965672115340766e-03
+.....iter=2, diff=9.6533732532277450e-04
+STEP=169 t=3.34000000 dt=0.02000000 ta=3.36000000 dta=0.02000000
+it=0 dxmax=0.03468871 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00269900 anmax=0.03930338 anavg=0.00838805
+.....iter=1, diff=4.6331391560905160e-03
+.....iter=2, diff=9.9496186960170829e-04
+STEP=170 t=3.36000000 dt=0.02000000 ta=3.38000000 dta=0.02000000
+it=0 dxmax=0.03442298 anmax=0.00000000 anavg=0.00000000
+dump t=3.40000000 to partit.34.csv
+it=49 dxmax=0.00216656 anmax=0.03975347 anavg=0.00835819
+.....iter=1, diff=4.7066955049679879e-03
+.....iter=2, diff=1.0100152529236668e-03
+.....iter=3, diff=2.1633702432814802e-04
+STEP=171 t=3.38000000 dt=0.02000000 ta=3.40000000 dta=0.02000000
+it=0 dxmax=0.03408895 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00215204 anmax=0.04266385 anavg=0.00846368
+.....iter=1, diff=4.7521795543355901e-03
+.....iter=2, diff=1.0190896157977764e-03
+.....iter=3, diff=2.1840559173389660e-04
+Dump n=34 t=3.4 target=3.4
+Dump 35: format=vtk
+STEP=172 t=3.40000000 dt=0.02000000 ta=3.42000000 dta=0.02000000
+it=0 dxmax=0.03378575 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00213181 anmax=0.03960451 anavg=0.00844382
+.....iter=1, diff=4.6951837479329347e-03
+.....iter=2, diff=1.0049011983887413e-03
+.....iter=3, diff=2.1535702974207548e-04
+STEP=173 t=3.42000000 dt=0.02000000 ta=3.44000000 dta=0.02000000
+it=0 dxmax=0.03355067 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00208717 anmax=0.03815971 anavg=0.00838254
+.....iter=1, diff=4.5378353113408538e-03
+.....iter=2, diff=9.6875516608436617e-04
+STEP=174 t=3.44000000 dt=0.02000000 ta=3.46000000 dta=0.02000000
+it=0 dxmax=0.03336873 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00239981 anmax=0.03888661 anavg=0.00832837
+.....iter=1, diff=4.1792676603870293e-03
+.....iter=2, diff=8.8918526587191337e-04
+STEP=175 t=3.46000000 dt=0.02000000 ta=3.48000000 dta=0.02000000
+it=0 dxmax=0.03313847 anmax=0.00000000 anavg=0.00000000
+dump t=3.50000000 to partit.35.csv
+it=49 dxmax=0.00312774 anmax=0.03991215 anavg=0.00811822
+.....iter=1, diff=3.9927310324616369e-03
+.....iter=2, diff=8.5310181341788328e-04
+STEP=176 t=3.48000000 dt=0.02000000 ta=3.50000000 dta=0.02000000
+it=0 dxmax=0.03292825 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00301896 anmax=0.03717274 anavg=0.00789454
+.....iter=1, diff=3.6712553753041784e-03
+.....iter=2, diff=7.7891057341892547e-04
+Dump n=35 t=3.5 target=3.5
+Dump 36: format=vtk
+STEP=177 t=3.50000000 dt=0.02000000 ta=3.52000000 dta=0.02000000
+it=0 dxmax=0.03269973 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00379117 anmax=0.03961560 anavg=0.00741585
+.....iter=1, diff=3.6508373560968301e-03
+.....iter=2, diff=7.7138643668966695e-04
+STEP=178 t=3.52000000 dt=0.02000000 ta=3.54000000 dta=0.02000000
+it=0 dxmax=0.03271615 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00400219 anmax=0.03905641 anavg=0.00739705
+.....iter=1, diff=3.7679815558131504e-03
+.....iter=2, diff=7.9572509452610456e-04
+STEP=179 t=3.54000000 dt=0.02000000 ta=3.56000000 dta=0.02000000
+it=0 dxmax=0.03285853 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00399007 anmax=0.03818237 anavg=0.00731299
+.....iter=1, diff=3.7918764233361366e-03
+.....iter=2, diff=8.0153835782911581e-04
+STEP=180 t=3.56000000 dt=0.02000000 ta=3.58000000 dta=0.02000000
+it=0 dxmax=0.03303272 anmax=0.00000000 anavg=0.00000000
+dump t=3.60000000 to partit.36.csv
+it=49 dxmax=0.00397145 anmax=0.03705385 anavg=0.00734540
+.....iter=1, diff=3.7415953908338717e-03
+.....iter=2, diff=7.9233239166862253e-04
+STEP=181 t=3.58000000 dt=0.02000000 ta=3.60000000 dta=0.02000000
+it=0 dxmax=0.03322084 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00394872 anmax=0.03560694 anavg=0.00716475
+.....iter=1, diff=3.6311817591528064e-03
+.....iter=2, diff=7.7020231225461658e-04
+Dump n=36 t=3.6 target=3.6
+Dump 37: format=vtk
+STEP=182 t=3.60000000 dt=0.02000000 ta=3.62000000 dta=0.02000000
+it=0 dxmax=0.03344472 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00372495 anmax=0.04046258 anavg=0.00757044
+.....iter=1, diff=3.4412314979087931e-03
+.....iter=2, diff=7.3175008425102031e-04
+STEP=183 t=3.62000000 dt=0.02000000 ta=3.64000000 dta=0.02000000
+it=0 dxmax=0.03368109 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00384989 anmax=0.04006338 anavg=0.00759986
+.....iter=1, diff=3.1871044944614371e-03
+.....iter=2, diff=6.7856617853063973e-04
+STEP=184 t=3.64000000 dt=0.02000000 ta=3.66000000 dta=0.02000000
+it=0 dxmax=0.03393670 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00396895 anmax=0.03855684 anavg=0.00762349
+.....iter=1, diff=2.9288512819670184e-03
+.....iter=2, diff=6.5244681554159757e-04
+STEP=185 t=3.66000000 dt=0.02000000 ta=3.68000000 dta=0.02000000
+it=0 dxmax=0.03420582 anmax=0.00000000 anavg=0.00000000
+dump t=3.70000000 to partit.37.csv
+it=49 dxmax=0.00407742 anmax=0.03587928 anavg=0.00765370
+.....iter=1, diff=2.7753515291118729e-03
+.....iter=2, diff=6.2122738658099434e-04
+STEP=186 t=3.68000000 dt=0.02000000 ta=3.70000000 dta=0.02000000
+it=0 dxmax=0.03448891 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00418176 anmax=0.03430828 anavg=0.00785576
+.....iter=1, diff=2.5836403690988542e-03
+.....iter=2, diff=5.8129191959711694e-04
+Dump n=37 t=3.7 target=3.7
+Dump 38: format=vtk
+STEP=187 t=3.70000000 dt=0.02000000 ta=3.72000000 dta=0.02000000
+it=0 dxmax=0.03478646 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00411687 anmax=0.04460621 anavg=0.00805411
+.....iter=1, diff=2.4586433663437240e-03
+.....iter=2, diff=5.3081285795925114e-04
+STEP=188 t=3.72000000 dt=0.02000000 ta=3.74000000 dta=0.02000000
+it=0 dxmax=0.03509278 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00420190 anmax=0.04085805 anavg=0.00806430
+.....iter=1, diff=2.6820202317890192e-03
+.....iter=2, diff=5.7959394415729617e-04
+STEP=189 t=3.74000000 dt=0.02000000 ta=3.76000000 dta=0.02000000
+it=0 dxmax=0.03081058 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00412344 anmax=0.03696187 anavg=0.00765239
+.....iter=1, diff=2.8561362708552653e-03
+.....iter=2, diff=6.1501403006490899e-04
+STEP=190 t=3.76000000 dt=0.02000000 ta=3.78000000 dta=0.02000000
+it=0 dxmax=0.03067365 anmax=0.00000000 anavg=0.00000000
+dump t=3.80000000 to partit.38.csv
+it=49 dxmax=0.00404281 anmax=0.03968953 anavg=0.00811959
+.....iter=1, diff=2.9494552085415279e-03
+.....iter=2, diff=6.3248207271702789e-04
+STEP=191 t=3.78000000 dt=0.02000000 ta=3.80000000 dta=0.02000000
+it=0 dxmax=0.03073563 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00395453 anmax=0.03995913 anavg=0.00788008
+.....iter=1, diff=3.0162616734641916e-03
+.....iter=2, diff=6.4099477496305313e-04
+Dump n=38 t=3.8 target=3.8
+Dump 39: format=vtk
+STEP=192 t=3.80000000 dt=0.02000000 ta=3.82000000 dta=0.02000000
+it=0 dxmax=0.03103336 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00386367 anmax=0.03918828 anavg=0.00795202
+.....iter=1, diff=2.9376644278354650e-03
+.....iter=2, diff=6.2552102604035496e-04
+STEP=193 t=3.82000000 dt=0.02000000 ta=3.84000000 dta=0.02000000
+it=0 dxmax=0.03137863 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00457576 anmax=0.03786120 anavg=0.00804897
+.....iter=1, diff=2.7453093850472168e-03
+.....iter=2, diff=5.8536825947934942e-04
+STEP=194 t=3.84000000 dt=0.02000000 ta=3.86000000 dta=0.02000000
+it=0 dxmax=0.03016701 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00485211 anmax=0.03645719 anavg=0.00826073
+.....iter=1, diff=2.5958730661166632e-03
+.....iter=2, diff=5.6023554623021413e-04
+STEP=195 t=3.86000000 dt=0.02000000 ta=3.88000000 dta=0.02000000
+it=0 dxmax=0.02991997 anmax=0.00000000 anavg=0.00000000
+dump t=3.90000000 to partit.39.csv
+it=49 dxmax=0.00451055 anmax=0.03297064 anavg=0.00816585
+.....iter=1, diff=2.5360048330483101e-03
+.....iter=2, diff=5.4411900363509822e-04
+STEP=196 t=3.88000000 dt=0.02000000 ta=3.90000000 dta=0.02000000
+it=0 dxmax=0.02963657 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00440183 anmax=0.03388722 anavg=0.00803886
+.....iter=1, diff=2.3591473518105423e-03
+.....iter=2, diff=5.0472149150396163e-04
+Dump n=39 t=3.9 target=3.9
+Dump 40: format=vtk
+STEP=197 t=3.90000000 dt=0.02000000 ta=3.92000000 dta=0.02000000
+it=0 dxmax=0.03688305 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00419864 anmax=0.03335244 anavg=0.00792513
+.....iter=1, diff=2.1147015182622474e-03
+.....iter=2, diff=4.5140616925321339e-04
+STEP=198 t=3.92000000 dt=0.02000000 ta=3.94000000 dta=0.02000000
+it=0 dxmax=0.03624719 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00424246 anmax=0.03442429 anavg=0.00764327
+.....iter=1, diff=2.3552109383394942e-03
+.....iter=2, diff=4.8470159961467229e-04
+STEP=199 t=3.94000000 dt=0.02000000 ta=3.96000000 dta=0.02000000
+it=0 dxmax=0.03625372 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00445551 anmax=0.03458548 anavg=0.00721713
+.....iter=1, diff=2.4198310797791003e-03
+.....iter=2, diff=5.1489773821750140e-04
+STEP=200 t=3.96000000 dt=0.02000000 ta=3.98000000 dta=0.02000000
+it=0 dxmax=0.03544106 anmax=0.00000000 anavg=0.00000000
+dump t=4.00000000 to partit.40.csv
+it=49 dxmax=0.00793279 anmax=0.03420479 anavg=0.00695395
+.....iter=1, diff=2.5385354991019821e-03
+.....iter=2, diff=5.4830463019325489e-04
+STEP=201 t=3.98000000 dt=0.02000000 ta=4.00000000 dta=0.02000000
+it=0 dxmax=0.03454189 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00271679 anmax=0.03316516 anavg=0.00659733
+.....iter=1, diff=2.7764041381908660e-03
+.....iter=2, diff=5.9954647970219188e-04
+Dump n=40 t=4 target=4
+Dump 41: format=vtk
+STEP=202 t=4.00000000 dt=0.02000000 ta=4.02000000 dta=0.02000000
+it=0 dxmax=0.03395612 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00284810 anmax=0.03166131 anavg=0.00654220
+.....iter=1, diff=2.9928622160605291e-03
+.....iter=2, diff=6.4635110588375617e-04
+STEP=203 t=4.02000000 dt=0.02000000 ta=4.04000000 dta=0.02000000
+it=0 dxmax=0.03348647 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00311899 anmax=0.02960336 anavg=0.00644271
+.....iter=1, diff=3.1651361093467572e-03
+.....iter=2, diff=6.8344056138893827e-04
+STEP=204 t=4.04000000 dt=0.02000000 ta=4.06000000 dta=0.02000000
+it=0 dxmax=0.03410238 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00325996 anmax=0.03024320 anavg=0.00667335
+.....iter=1, diff=3.2709837597442435e-03
+.....iter=2, diff=7.0826545466669657e-04
+STEP=205 t=4.06000000 dt=0.02000000 ta=4.08000000 dta=0.02000000
+it=0 dxmax=0.03472566 anmax=0.00000000 anavg=0.00000000
+dump t=4.10000000 to partit.41.csv
+it=49 dxmax=0.00331400 anmax=0.02611618 anavg=0.00636480
+.....iter=1, diff=3.3425274595815829e-03
+.....iter=2, diff=7.1958900999872328e-04
+STEP=206 t=4.08000000 dt=0.02000000 ta=4.10000000 dta=0.02000000
+it=0 dxmax=0.03535032 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00302729 anmax=0.02391032 anavg=0.00628872
+.....iter=1, diff=3.3439334927918029e-03
+.....iter=2, diff=7.2061876466791820e-04
+Dump n=41 t=4.1 target=4.1
+Dump 42: format=vtk
+STEP=207 t=4.10000000 dt=0.02000000 ta=4.12000000 dta=0.02000000
+it=0 dxmax=0.03522809 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00275119 anmax=0.02575484 anavg=0.00613602
+.....iter=1, diff=3.2681377505501446e-03
+.....iter=2, diff=7.0466642894193162e-04
+STEP=208 t=4.12000000 dt=0.02000000 ta=4.14000000 dta=0.02000000
+it=0 dxmax=0.03589726 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00287528 anmax=0.03030545 anavg=0.00631944
+.....iter=1, diff=3.2681281979589534e-03
+.....iter=2, diff=7.1238234494447783e-04
+STEP=209 t=4.14000000 dt=0.02000000 ta=4.16000000 dta=0.02000000
+it=0 dxmax=0.03082627 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00287377 anmax=0.02810794 anavg=0.00630663
+.....iter=1, diff=3.4373522604330027e-03
+.....iter=2, diff=7.3230468207382518e-04
+STEP=210 t=4.16000000 dt=0.02000000 ta=4.18000000 dta=0.02000000
+it=0 dxmax=0.03181916 anmax=0.00000000 anavg=0.00000000
+dump t=4.20000000 to partit.42.csv
+it=49 dxmax=0.00286800 anmax=0.02938721 anavg=0.00629477
+.....iter=1, diff=3.3509556888624932e-03
+.....iter=2, diff=7.1388738756144189e-04
+STEP=211 t=4.18000000 dt=0.02000000 ta=4.20000000 dta=0.02000000
+it=0 dxmax=0.03039835 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00275318 anmax=0.03050284 anavg=0.00616605
+.....iter=1, diff=3.1532618490047052e-03
+.....iter=2, diff=6.7238500276133864e-04
+Dump n=42 t=4.2 target=4.2
+Dump 43: format=vtk
+STEP=212 t=4.20000000 dt=0.02000000 ta=4.22000000 dta=0.02000000
+it=0 dxmax=0.03016653 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00275832 anmax=0.03164616 anavg=0.00612835
+.....iter=1, diff=2.9069679511793708e-03
+.....iter=2, diff=6.2013782616268047e-04
+STEP=213 t=4.22000000 dt=0.02000000 ta=4.24000000 dta=0.02000000
+it=0 dxmax=0.03010273 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00277231 anmax=0.03247048 anavg=0.00603555
+.....iter=1, diff=2.5998040419628696e-03
+.....iter=2, diff=5.5490574448244538e-04
+STEP=214 t=4.24000000 dt=0.02000000 ta=4.26000000 dta=0.02000000
+it=0 dxmax=0.03028753 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00278386 anmax=0.03028450 anavg=0.00580616
+.....iter=1, diff=2.2908970770851170e-03
+.....iter=2, diff=4.8829518119642519e-04
+STEP=215 t=4.26000000 dt=0.02000000 ta=4.28000000 dta=0.02000000
+it=0 dxmax=0.03015124 anmax=0.00000000 anavg=0.00000000
+dump t=4.30000000 to partit.43.csv
+it=49 dxmax=0.00283022 anmax=0.03091981 anavg=0.00573168
+.....iter=1, diff=2.0030329763758366e-03
+.....iter=2, diff=4.2599666227354394e-04
+STEP=216 t=4.28000000 dt=0.02000000 ta=4.30000000 dta=0.02000000
+it=0 dxmax=0.02997359 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00285722 anmax=0.02974617 anavg=0.00562180
+.....iter=1, diff=1.8028481669660717e-03
+.....iter=2, diff=3.9653543373826487e-04
+Dump n=43 t=4.3 target=4.3
+Dump 44: format=vtk
+STEP=217 t=4.30000000 dt=0.02000000 ta=4.32000000 dta=0.02000000
+it=0 dxmax=0.02990247 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00290060 anmax=0.03022050 anavg=0.00558926
+.....iter=1, diff=1.8735550390154812e-03
+.....iter=2, diff=4.1007361629021163e-04
+STEP=218 t=4.32000000 dt=0.02000000 ta=4.34000000 dta=0.02000000
+it=0 dxmax=0.02981956 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00292220 anmax=0.03054365 anavg=0.00572723
+.....iter=1, diff=1.9315581133663431e-03
+.....iter=2, diff=4.2000028885041642e-04
+STEP=219 t=4.34000000 dt=0.02000000 ta=4.36000000 dta=0.02000000
+it=0 dxmax=0.02970793 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00239875 anmax=0.03067612 anavg=0.00577629
+.....iter=1, diff=1.9779814516699052e-03
+.....iter=2, diff=4.4163003848594803e-04
+STEP=220 t=4.36000000 dt=0.02000000 ta=4.38000000 dta=0.02000000
+it=0 dxmax=0.02956527 anmax=0.00000000 anavg=0.00000000
+dump t=4.40000000 to partit.44.csv
+it=49 dxmax=0.00245931 anmax=0.03052221 anavg=0.00563914
+.....iter=1, diff=1.9810984746346065e-03
+.....iter=2, diff=4.3558017677639135e-04
+STEP=221 t=4.38000000 dt=0.02000000 ta=4.40000000 dta=0.02000000
+it=0 dxmax=0.02943622 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00253363 anmax=0.03029975 anavg=0.00585063
+.....iter=1, diff=2.0482739684160424e-03
+.....iter=2, diff=4.3955913090005345e-04
+Dump n=44 t=4.4 target=4.4
+STEP=222 t=4.40000000 dt=0.02000000 ta=4.42000000 dta=0.02000000
+Dump 45: format=vtk
+it=0 dxmax=0.02936352 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00261078 anmax=0.03020181 anavg=0.00595937
+.....iter=1, diff=2.0980218611945348e-03
+.....iter=2, diff=4.5066653987817917e-04
+STEP=223 t=4.42000000 dt=0.02000000 ta=4.44000000 dta=0.02000000
+it=0 dxmax=0.02933241 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00279822 anmax=0.03401969 anavg=0.00619071
+.....iter=1, diff=1.9688020317530030e-03
+.....iter=2, diff=4.2202268792662976e-04
+STEP=224 t=4.44000000 dt=0.02000000 ta=4.46000000 dta=0.02000000
+it=0 dxmax=0.02929603 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00308949 anmax=0.03362099 anavg=0.00634850
+.....iter=1, diff=2.0795703027943397e-03
+.....iter=2, diff=4.4795628065895604e-04
+STEP=225 t=4.46000000 dt=0.02000000 ta=4.48000000 dta=0.02000000
+it=0 dxmax=0.02929987 anmax=0.00000000 anavg=0.00000000
+dump t=4.50000000 to partit.45.csv
+it=49 dxmax=0.00295607 anmax=0.03308087 anavg=0.00647745
+.....iter=1, diff=2.2139764869981014e-03
+.....iter=2, diff=4.7330458348069851e-04
+STEP=226 t=4.48000000 dt=0.02000000 ta=4.50000000 dta=0.02000000
+it=0 dxmax=0.02969736 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00295034 anmax=0.03235468 anavg=0.00666255
+.....iter=1, diff=2.2787014318897654e-03
+.....iter=2, diff=4.9256915554775837e-04
+Dump n=45 t=4.5 target=4.5
+Dump 46: format=vtk
+STEP=227 t=4.50000000 dt=0.02000000 ta=4.52000000 dta=0.02000000
+it=0 dxmax=0.03011172 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00305959 anmax=0.03151252 anavg=0.00657211
+.....iter=1, diff=2.4826411477032037e-03
+.....iter=2, diff=5.1229090385463121e-04
+STEP=228 t=4.52000000 dt=0.02000000 ta=4.54000000 dta=0.02000000
+it=0 dxmax=0.03053555 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00316182 anmax=0.03053357 anavg=0.00666403
+.....iter=1, diff=2.3681094673737480e-03
+.....iter=2, diff=5.2752325439922739e-04
+STEP=229 t=4.54000000 dt=0.02000000 ta=4.56000000 dta=0.02000000
+it=0 dxmax=0.03096280 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00325618 anmax=0.02946947 anavg=0.00672774
+.....iter=1, diff=2.3915251416176926e-03
+.....iter=2, diff=5.3423667747087020e-04
+STEP=230 t=4.56000000 dt=0.02000000 ta=4.58000000 dta=0.02000000
+it=0 dxmax=0.03138941 anmax=0.00000000 anavg=0.00000000
+dump t=4.60000000 to partit.46.csv
+it=49 dxmax=0.00321534 anmax=0.02826331 anavg=0.00654051
+.....iter=1, diff=2.5107846675776219e-03
+.....iter=2, diff=5.5035596492036321e-04
+STEP=231 t=4.58000000 dt=0.02000000 ta=4.60000000 dta=0.02000000
+it=0 dxmax=0.03180850 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00304867 anmax=0.02700476 anavg=0.00655127
+.....iter=1, diff=2.5967598984523096e-03
+Dump n=46 t=4.6 target=4.6
+.....iter=2, diff=5.6728090611719211e-04
+Dump 47: format=vtk
+STEP=232 t=4.60000000 dt=0.02000000 ta=4.62000000 dta=0.02000000
+it=0 dxmax=0.03222211 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00288658 anmax=0.02562658 anavg=0.00629673
+.....iter=1, diff=2.6525187352667593e-03
+.....iter=2, diff=5.7760394043885439e-04
+STEP=233 t=4.62000000 dt=0.02000000 ta=4.64000000 dta=0.02000000
+it=0 dxmax=0.03262482 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00273110 anmax=0.02482749 anavg=0.00621542
+.....iter=1, diff=2.6788473395546997e-03
+.....iter=2, diff=5.8159627555926419e-04
+STEP=234 t=4.64000000 dt=0.02000000 ta=4.66000000 dta=0.02000000
+it=0 dxmax=0.03287509 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00272673 anmax=0.02383341 anavg=0.00602258
+.....iter=1, diff=2.6800841753025716e-03
+.....iter=2, diff=5.8023376244081641e-04
+STEP=235 t=4.66000000 dt=0.02000000 ta=4.68000000 dta=0.02000000
+it=0 dxmax=0.03300555 anmax=0.00000000 anavg=0.00000000
+dump t=4.70000000 to partit.47.csv
+it=49 dxmax=0.00281178 anmax=0.02274404 anavg=0.00576665
+.....iter=1, diff=2.6493923496758247e-03
+.....iter=2, diff=5.7201647191506308e-04
+STEP=236 t=4.68000000 dt=0.02000000 ta=4.70000000 dta=0.02000000
+it=0 dxmax=0.03314005 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00302168 anmax=0.02369734 anavg=0.00563674
+.....iter=1, diff=2.5912684014492496e-03
+.....iter=2, diff=5.5802603109776844e-04
+Dump n=47 t=4.7 target=4.7
+Dump 48: format=vtk
+STEP=237 t=4.70000000 dt=0.02000000 ta=4.72000000 dta=0.02000000
+it=0 dxmax=0.03328280 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00324531 anmax=0.02467584 anavg=0.00549591
+.....iter=1, diff=2.5147502856419975e-03
+.....iter=2, diff=5.4033958147630507e-04
+STEP=238 t=4.72000000 dt=0.02000000 ta=4.74000000 dta=0.02000000
+it=0 dxmax=0.03020685 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00332413 anmax=0.02503955 anavg=0.00550708
+.....iter=1, diff=2.5304573386781140e-03
+.....iter=2, diff=5.4497848743579106e-04
+STEP=239 t=4.74000000 dt=0.02000000 ta=4.76000000 dta=0.02000000
+it=0 dxmax=0.03020523 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00356196 anmax=0.03061794 anavg=0.00558311
+.....iter=1, diff=2.6742582141202754e-03
+.....iter=2, diff=5.7470156963969040e-04
+STEP=240 t=4.76000000 dt=0.02000000 ta=4.78000000 dta=0.02000000
+it=0 dxmax=0.03019945 anmax=0.00000000 anavg=0.00000000
+dump t=4.80000000 to partit.48.csv
+it=49 dxmax=0.00381724 anmax=0.03059889 anavg=0.00565041
+.....iter=1, diff=2.7349919923014866e-03
+.....iter=2, diff=5.8669403161943170e-04
+STEP=241 t=4.78000000 dt=0.02000000 ta=4.80000000 dta=0.02000000
+it=0 dxmax=0.03031225 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00427805 anmax=0.03055073 anavg=0.00570146
+.....iter=1, diff=2.7478009689571791e-03
+.....iter=2, diff=5.8820116319128579e-04
+Dump n=48 t=4.8 target=4.8
+STEP=242 t=4.80000000 dt=0.02000000 ta=4.82000000 dta=0.02000000
+Dump 49: format=vtk
+it=0 dxmax=0.03040049 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00322749 anmax=0.03046213 anavg=0.00583142
+.....iter=1, diff=2.7142944430204167e-03
+.....iter=2, diff=5.8135510780047968e-04
+STEP=243 t=4.82000000 dt=0.02000000 ta=4.84000000 dta=0.02000000
+it=0 dxmax=0.03050077 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00250179 anmax=0.03014601 anavg=0.00588660
+.....iter=1, diff=2.6440573623053181e-03
+.....iter=2, diff=5.6058859959519998e-04
+STEP=244 t=4.84000000 dt=0.02000000 ta=4.86000000 dta=0.02000000
+it=0 dxmax=0.03062014 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00263831 anmax=0.02997351 anavg=0.00614778
+.....iter=1, diff=2.5476930572697030e-03
+.....iter=2, diff=5.4118087435790199e-04
+STEP=245 t=4.86000000 dt=0.02000000 ta=4.88000000 dta=0.02000000
+it=0 dxmax=0.03054617 anmax=0.00000000 anavg=0.00000000
+dump t=4.90000000 to partit.49.csv
+it=49 dxmax=0.00277958 anmax=0.02911494 anavg=0.00617687
+.....iter=1, diff=2.3745400451232134e-03
+.....iter=2, diff=5.0745331694857356e-04
+STEP=246 t=4.88000000 dt=0.02000000 ta=4.90000000 dta=0.02000000
+it=0 dxmax=0.03036498 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00304087 anmax=0.02882519 anavg=0.00629919
+.....iter=1, diff=2.2115306050654259e-03
+.....iter=2, diff=4.6975082308053337e-04
+Dump n=49 t=4.9 target=4.9
+Dump 50: format=vtk
+STEP=247 t=4.90000000 dt=0.02000000 ta=4.92000000 dta=0.02000000
+it=0 dxmax=0.03016527 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00319678 anmax=0.02827676 anavg=0.00659621
+.....iter=1, diff=2.2198871695614918e-03
+.....iter=2, diff=4.7241402092098710e-04
+STEP=248 t=4.92000000 dt=0.02000000 ta=4.94000000 dta=0.02000000
+it=0 dxmax=0.03231743 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00343422 anmax=0.02904198 anavg=0.00676859
+.....iter=1, diff=2.2277436417910872e-03
+.....iter=2, diff=4.7505409442707519e-04
+STEP=249 t=4.94000000 dt=0.02000000 ta=4.96000000 dta=0.02000000
+it=0 dxmax=0.03213319 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00367430 anmax=0.03326300 anavg=0.00664441
+.....iter=1, diff=2.2255633025683756e-03
+.....iter=2, diff=4.7498766084841870e-04
+STEP=250 t=4.96000000 dt=0.02000000 ta=4.98000000 dta=0.02000000
+it=0 dxmax=0.03181615 anmax=0.00000000 anavg=0.00000000
+dump t=5.00000000 to partit.50.csv
+it=49 dxmax=0.00387073 anmax=0.03387164 anavg=0.00665483
+.....iter=1, diff=2.2266043228505602e-03
+.....iter=2, diff=4.7615488506031807e-04
+STEP=251 t=4.98000000 dt=0.02000000 ta=5.00000000 dta=0.02000000
+it=0 dxmax=0.03154993 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00410647 anmax=0.03319157 anavg=0.00674839
+.....iter=1, diff=2.2202397508769697e-03
+.....iter=2, diff=4.7535060052612637e-04
+Dump n=50 t=5 target=5
+Dump 51: format=vtk
+STEP=252 t=5.00000000 dt=0.02000000 ta=5.02000000 dta=0.02000000
+it=0 dxmax=0.03128359 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00259686 anmax=0.03157254 anavg=0.00675983
+.....iter=1, diff=2.2060700677902479e-03
+.....iter=2, diff=4.7289928582589500e-04
+STEP=253 t=5.02000000 dt=0.02000000 ta=5.04000000 dta=0.02000000
+it=0 dxmax=0.03101887 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00247967 anmax=0.02940082 anavg=0.00678550
+.....iter=1, diff=2.1871744449529834e-03
+.....iter=2, diff=4.8014078293795220e-04
+STEP=254 t=5.04000000 dt=0.02000000 ta=5.06000000 dta=0.02000000
+it=0 dxmax=0.03075711 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00257885 anmax=0.02704518 anavg=0.00674627
+.....iter=1, diff=2.2050568067849261e-03
+.....iter=2, diff=4.8300558886726772e-04
+STEP=255 t=5.06000000 dt=0.02000000 ta=5.08000000 dta=0.02000000
+it=0 dxmax=0.03049821 anmax=0.00000000 anavg=0.00000000
+dump t=5.10000000 to partit.51.csv
+it=49 dxmax=0.00398066 anmax=0.03066745 anavg=0.00683925
+.....iter=1, diff=2.2057662830782124e-03
+.....iter=2, diff=4.8310111008867835e-04
+STEP=256 t=5.08000000 dt=0.02000000 ta=5.10000000 dta=0.02000000
+it=0 dxmax=0.03024252 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00383972 anmax=0.02663730 anavg=0.00679862
+.....iter=1, diff=2.2048184171102698e-03
+.....iter=2, diff=4.9358766124627321e-04
+Dump n=51 t=5.1 target=5.1
+STEP=257 t=5.10000000 dt=0.02000000 ta=5.12000000 dta=0.02000000
+Dump 52: format=vtk
+it=0 dxmax=0.02999114 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00366480 anmax=0.02258296 anavg=0.00681832
+.....iter=1, diff=2.2801876092748224e-03
+.....iter=2, diff=5.1327615557006411e-04
+STEP=258 t=5.12000000 dt=0.02000000 ta=5.14000000 dta=0.02000000
+it=0 dxmax=0.02974422 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00365032 anmax=0.02763268 anavg=0.00678377
+.....iter=1, diff=2.3084374096561159e-03
+.....iter=2, diff=5.2152534886900585e-04
+STEP=259 t=5.14000000 dt=0.02000000 ta=5.16000000 dta=0.02000000
+it=0 dxmax=0.02950058 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00365000 anmax=0.02810998 anavg=0.00681918
+.....iter=1, diff=2.3042215365750751e-03
+.....iter=2, diff=5.2150473048589172e-04
+STEP=260 t=5.16000000 dt=0.02000000 ta=5.18000000 dta=0.02000000
+it=0 dxmax=0.02926055 anmax=0.00000000 anavg=0.00000000
+dump t=5.20000000 to partit.52.csv
+it=49 dxmax=0.00351875 anmax=0.02792133 anavg=0.00692502
+.....iter=1, diff=2.2855529820009048e-03
+.....iter=2, diff=5.1785928043072017e-04
+STEP=261 t=5.18000000 dt=0.02000000 ta=5.20000000 dta=0.02000000
+it=0 dxmax=0.02902155 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00519779 anmax=0.02705276 anavg=0.00662317
+.....iter=1, diff=2.2463107862899160e-03
+.....iter=2, diff=5.1035036735638990e-04
+Dump n=52 t=5.2 target=5.2
+Dump 53: format=vtk
+STEP=262 t=5.20000000 dt=0.02000000 ta=5.22000000 dta=0.02000000
+it=0 dxmax=0.02878701 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00537793 anmax=0.02671126 anavg=0.00655149
+.....iter=1, diff=2.0745544901601383e-03
+.....iter=2, diff=4.7640921655118222e-04
+STEP=263 t=5.22000000 dt=0.02000000 ta=5.24000000 dta=0.02000000
+it=0 dxmax=0.02861966 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00534411 anmax=0.02887712 anavg=0.00644896
+.....iter=1, diff=1.9963763458648739e-03
+.....iter=2, diff=4.5423304238799357e-04
+STEP=264 t=5.24000000 dt=0.02000000 ta=5.26000000 dta=0.02000000
+it=0 dxmax=0.02887497 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00527557 anmax=0.02836547 anavg=0.00629372
+.....iter=1, diff=1.9098111807738982e-03
+.....iter=2, diff=4.3497613221204649e-04
+STEP=265 t=5.26000000 dt=0.02000000 ta=5.28000000 dta=0.02000000
+it=0 dxmax=0.02914284 anmax=0.00000000 anavg=0.00000000
+dump t=5.30000000 to partit.53.csv
+it=49 dxmax=0.00520291 anmax=0.02747662 anavg=0.00618706
+.....iter=1, diff=1.8107180294244503e-03
+.....iter=2, diff=4.1272828285102733e-04
+STEP=266 t=5.28000000 dt=0.02000000 ta=5.30000000 dta=0.02000000
+it=0 dxmax=0.02943098 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00512550 anmax=0.02630202 anavg=0.00605263
+.....iter=1, diff=1.7058262668573220e-03
+.....iter=2, diff=3.8892395071319806e-04
+Dump n=53 t=5.3 target=5.3
+Dump 54: format=vtk
+STEP=267 t=5.30000000 dt=0.02000000 ta=5.32000000 dta=0.02000000
+it=0 dxmax=0.02972001 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00486778 anmax=0.02681918 anavg=0.00607997
+.....iter=1, diff=1.5823589141963205e-03
+.....iter=2, diff=3.6194687030612489e-04
+STEP=268 t=5.32000000 dt=0.02000000 ta=5.34000000 dta=0.02000000
+it=0 dxmax=0.03002215 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00462573 anmax=0.02707650 anavg=0.00614077
+.....iter=1, diff=1.4470754153326105e-03
+.....iter=2, diff=3.3175766282820087e-04
+STEP=269 t=5.34000000 dt=0.02000000 ta=5.36000000 dta=0.02000000
+it=0 dxmax=0.03031957 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00430050 anmax=0.02670824 anavg=0.00612242
+.....iter=1, diff=1.5777194867334704e-03
+.....iter=2, diff=3.4992674338972513e-04
+STEP=270 t=5.36000000 dt=0.02000000 ta=5.38000000 dta=0.02000000
+it=0 dxmax=0.03063054 anmax=0.00000000 anavg=0.00000000
+dump t=5.40000000 to partit.54.csv
+it=49 dxmax=0.00418651 anmax=0.02583957 anavg=0.00607408
+.....iter=1, diff=1.7361075953376531e-03
+.....iter=2, diff=3.8440423149343486e-04
+STEP=271 t=5.38000000 dt=0.02000000 ta=5.40000000 dta=0.02000000
+it=0 dxmax=0.03093760 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00409674 anmax=0.02511756 anavg=0.00608268
+.....iter=1, diff=1.8263109528313974e-03
+.....iter=2, diff=4.0558211830267997e-04
+Dump n=54 t=5.4 target=5.4
+Dump 55: format=vtk
+STEP=272 t=5.40000000 dt=0.02000000 ta=5.42000000 dta=0.02000000
+it=0 dxmax=0.03125787 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00387247 anmax=0.02461029 anavg=0.00625118
+.....iter=1, diff=1.8749585732671828e-03
+.....iter=2, diff=4.1506619919491156e-04
+STEP=273 t=5.42000000 dt=0.02000000 ta=5.44000000 dta=0.02000000
+it=0 dxmax=0.03157309 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00364767 anmax=0.02410464 anavg=0.00620507
+.....iter=1, diff=1.7611004258439053e-03
+.....iter=2, diff=3.7717851870445134e-04
+STEP=274 t=5.44000000 dt=0.02000000 ta=5.46000000 dta=0.02000000
+it=0 dxmax=0.03191287 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00347311 anmax=0.03130170 anavg=0.00633467
+.....iter=1, diff=1.7146393373868333e-03
+.....iter=2, diff=3.7426332012476129e-04
+STEP=275 t=5.46000000 dt=0.02000000 ta=5.48000000 dta=0.02000000
+it=0 dxmax=0.03224890 anmax=0.00000000 anavg=0.00000000
+dump t=5.50000000 to partit.55.csv
+it=49 dxmax=0.00302152 anmax=0.02841287 anavg=0.00605818
+.....iter=1, diff=1.7443384929557715e-03
+.....iter=2, diff=3.7670287766151088e-04
+STEP=276 t=5.48000000 dt=0.02000000 ta=5.50000000 dta=0.02000000
+it=0 dxmax=0.03628797 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00306226 anmax=0.03906733 anavg=0.00628435
+.....iter=1, diff=1.6839397109086422e-03
+.....iter=2, diff=3.6048441148140738e-04
+Dump n=55 t=5.5 target=5.5
+Dump 56: format=vtk
+STEP=277 t=5.50000000 dt=0.02000000 ta=5.52000000 dta=0.02000000
+it=0 dxmax=0.03600536 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00290603 anmax=0.02895076 anavg=0.00597054
+.....iter=1, diff=1.5920046846872550e-03
+.....iter=2, diff=3.4376175350624616e-04
+STEP=278 t=5.52000000 dt=0.02000000 ta=5.54000000 dta=0.02000000
+it=0 dxmax=0.03570116 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00276506 anmax=0.02657586 anavg=0.00579884
+.....iter=1, diff=1.6079455203642848e-03
+.....iter=2, diff=3.4697869491909624e-04
+STEP=279 t=5.54000000 dt=0.02000000 ta=5.56000000 dta=0.02000000
+it=0 dxmax=0.03597500 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00268869 anmax=0.02567878 anavg=0.00582805
+.....iter=1, diff=1.5650957568362465e-03
+.....iter=2, diff=3.3551707364142338e-04
+STEP=280 t=5.56000000 dt=0.02000000 ta=5.58000000 dta=0.02000000
+it=0 dxmax=0.03519777 anmax=0.00000000 anavg=0.00000000
+dump t=5.60000000 to partit.56.csv
+it=49 dxmax=0.00264524 anmax=0.02488159 anavg=0.00554286
+.....iter=1, diff=1.4698473222372456e-03
+.....iter=2, diff=3.1337430556395321e-04
+STEP=281 t=5.58000000 dt=0.02000000 ta=5.60000000 dta=0.02000000
+it=0 dxmax=0.03462569 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00279348 anmax=0.02650350 anavg=0.00562504
+.....iter=1, diff=1.4782293798457210e-03
+.....iter=2, diff=3.1067843615378447e-04
+Dump n=56 t=5.6 target=5.6
+STEP=282 t=5.60000000 dt=0.02000000 ta=5.62000000 dta=0.02000000
+Dump 57: format=vtk
+it=0 dxmax=0.03420908 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00317598 anmax=0.02797850 anavg=0.00562787
+.....iter=1, diff=1.4446790537437884e-03
+.....iter=2, diff=3.1369504467634163e-04
+STEP=283 t=5.62000000 dt=0.02000000 ta=5.64000000 dta=0.02000000
+it=0 dxmax=0.03377569 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00499921 anmax=0.02940211 anavg=0.00568391
+.....iter=1, diff=1.4891823935975800e-03
+.....iter=2, diff=3.2314210089982642e-04
+STEP=284 t=5.64000000 dt=0.02000000 ta=5.66000000 dta=0.02000000
+it=0 dxmax=0.03417608 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00469672 anmax=0.03064827 anavg=0.00570891
+.....iter=1, diff=1.6576949333403051e-03
+.....iter=2, diff=3.2942245171646030e-04
+STEP=285 t=5.66000000 dt=0.02000000 ta=5.68000000 dta=0.02000000
+it=0 dxmax=0.03499999 anmax=0.00000000 anavg=0.00000000
+dump t=5.70000000 to partit.57.csv
+it=49 dxmax=0.00255061 anmax=0.03175314 anavg=0.00586818
+.....iter=1, diff=1.5997613406610837e-03
+.....iter=2, diff=3.5240204015542611e-04
+STEP=286 t=5.68000000 dt=0.02000000 ta=5.70000000 dta=0.02000000
+it=0 dxmax=0.03579154 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00258463 anmax=0.03259315 anavg=0.00583610
+.....iter=1, diff=1.6751112271237505e-03
+.....iter=2, diff=3.7013860804331378e-04
+Dump n=57 t=5.7 target=5.7
+Dump 58: format=vtk
+STEP=287 t=5.70000000 dt=0.02000000 ta=5.72000000 dta=0.02000000
+it=0 dxmax=0.03656905 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00360113 anmax=0.03316416 anavg=0.00595372
+.....iter=1, diff=1.8050300172580509e-03
+.....iter=2, diff=3.9682141581376000e-04
+STEP=288 t=5.72000000 dt=0.02000000 ta=5.74000000 dta=0.02000000
+it=0 dxmax=0.03597800 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00264980 anmax=0.03338369 anavg=0.00596243
+.....iter=1, diff=1.8559539971737267e-03
+.....iter=2, diff=4.0763874943256986e-04
+STEP=289 t=5.74000000 dt=0.02000000 ta=5.76000000 dta=0.02000000
+it=0 dxmax=0.03653082 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00291956 anmax=0.03326119 anavg=0.00610989
+.....iter=1, diff=1.8377563821616392e-03
+.....iter=2, diff=4.0212063280939934e-04
+STEP=290 t=5.76000000 dt=0.02000000 ta=5.78000000 dta=0.02000000
+it=0 dxmax=0.03710109 anmax=0.00000000 anavg=0.00000000
+dump t=5.80000000 to partit.58.csv
+it=49 dxmax=0.00246385 anmax=0.03278429 anavg=0.00605115
+.....iter=1, diff=1.7974209049358761e-03
+.....iter=2, diff=3.9214926965369109e-04
+STEP=291 t=5.78000000 dt=0.02000000 ta=5.80000000 dta=0.02000000
+it=0 dxmax=0.03092566 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00242475 anmax=0.03190542 anavg=0.00609942
+.....iter=1, diff=1.7243591465202076e-03
+.....iter=2, diff=3.7504073299503754e-04
+Dump n=58 t=5.8 target=5.8
+Dump 59: format=vtk
+STEP=292 t=5.80000000 dt=0.02000000 ta=5.82000000 dta=0.02000000
+it=0 dxmax=0.02996598 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00268989 anmax=0.03052878 anavg=0.00622957
+.....iter=1, diff=1.6266761347995403e-03
+.....iter=2, diff=3.5294903976567038e-04
+STEP=293 t=5.82000000 dt=0.02000000 ta=5.84000000 dta=0.02000000
+it=0 dxmax=0.03013064 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00278197 anmax=0.02903549 anavg=0.00625707
+.....iter=1, diff=1.6382426546657106e-03
+.....iter=2, diff=3.4762029570366249e-04
+STEP=294 t=5.84000000 dt=0.02000000 ta=5.86000000 dta=0.02000000
+it=0 dxmax=0.03029153 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00274679 anmax=0.02741585 anavg=0.00622901
+.....iter=1, diff=1.7150625166590704e-03
+.....iter=2, diff=3.5988778654639581e-04
+STEP=295 t=5.86000000 dt=0.02000000 ta=5.88000000 dta=0.02000000
+it=0 dxmax=0.03045032 anmax=0.00000000 anavg=0.00000000
+dump t=5.90000000 to partit.59.csv
+it=49 dxmax=0.00282519 anmax=0.02562284 anavg=0.00616348
+.....iter=1, diff=1.7018696787886021e-03
+.....iter=2, diff=3.5662482612822691e-04
+STEP=296 t=5.88000000 dt=0.02000000 ta=5.90000000 dta=0.02000000
+it=0 dxmax=0.03060777 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00281722 anmax=0.02280490 anavg=0.00596845
+.....iter=1, diff=1.6847563395376160e-03
+.....iter=2, diff=3.5509533132552234e-04
+Dump n=59 t=5.9 target=5.9
+Dump 60: format=vtk
+STEP=297 t=5.90000000 dt=0.02000000 ta=5.92000000 dta=0.02000000
+it=0 dxmax=0.03076418 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00284411 anmax=0.03436976 anavg=0.00616006
+.....iter=1, diff=1.6809972880643578e-03
+.....iter=2, diff=3.5512448901107643e-04
+STEP=298 t=5.92000000 dt=0.02000000 ta=5.94000000 dta=0.02000000
+it=0 dxmax=0.03094554 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00284384 anmax=0.03443432 anavg=0.00598638
+.....iter=1, diff=1.6644540528941731e-03
+.....iter=2, diff=3.5169140227427873e-04
+STEP=299 t=5.94000000 dt=0.02000000 ta=5.96000000 dta=0.02000000
+it=0 dxmax=0.03114765 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00279978 anmax=0.03394559 anavg=0.00600054
+.....iter=1, diff=1.6205691151768907e-03
+.....iter=2, diff=3.4219492081929000e-04
+STEP=300 t=5.96000000 dt=0.02000000 ta=5.98000000 dta=0.02000000
+it=0 dxmax=0.03136618 anmax=0.00000000 anavg=0.00000000
+dump t=6.00000000 to partit.60.csv
+it=49 dxmax=0.00275956 anmax=0.03311287 anavg=0.00599074
+.....iter=1, diff=1.6477983028427828e-03
+.....iter=2, diff=3.5527370269387685e-04
+STEP=301 t=5.98000000 dt=0.02000000 ta=6.00000000 dta=0.02000000
+it=0 dxmax=0.03159193 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00265324 anmax=0.03212995 anavg=0.00588564
+.....iter=1, diff=1.7339145441367622e-03
+.....iter=2, diff=3.7363124666508975e-04
+Dump n=60 t=6 target=6
+Dump 61: format=vtk
+STEP=302 t=6.00000000 dt=0.02000000 ta=6.02000000 dta=0.02000000
+it=0 dxmax=0.03182360 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00266555 anmax=0.03110559 anavg=0.00589629
+.....iter=1, diff=1.7964822439675426e-03
+.....iter=2, diff=3.8654800433158556e-04
+STEP=303 t=6.02000000 dt=0.02000000 ta=6.04000000 dta=0.02000000
+it=0 dxmax=0.03205269 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00257402 anmax=0.02975214 anavg=0.00572200
+.....iter=1, diff=1.8048297618087289e-03
+.....iter=2, diff=3.8753982466969565e-04
+STEP=304 t=6.04000000 dt=0.02000000 ta=6.06000000 dta=0.02000000
+it=0 dxmax=0.03592910 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00285560 anmax=0.04293848 anavg=0.00590232
+.....iter=1, diff=1.7827510375757393e-03
+.....iter=2, diff=3.8241406442747928e-04
+STEP=305 t=6.06000000 dt=0.02000000 ta=6.08000000 dta=0.02000000
+it=0 dxmax=0.03602929 anmax=0.00000000 anavg=0.00000000
+dump t=6.10000000 to partit.61.csv
+it=49 dxmax=0.00283395 anmax=0.04180724 anavg=0.00586876
+.....iter=1, diff=1.7454511604618184e-03
+.....iter=2, diff=3.7448610619330452e-04
+STEP=306 t=6.08000000 dt=0.02000000 ta=6.10000000 dta=0.02000000
+it=0 dxmax=0.03576077 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00277760 anmax=0.04086973 anavg=0.00562619
+.....iter=1, diff=1.6889839308974134e-03
+.....iter=2, diff=3.6209006287853753e-04
+Dump n=61 t=6.1 target=6.1
+STEP=307 t=6.10000000 dt=0.02000000 ta=6.12000000 dta=0.02000000
+Dump 62: format=vtk
+it=0 dxmax=0.03543008 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00287125 anmax=0.04004129 anavg=0.00556560
+.....iter=1, diff=1.6458667736886188e-03
+.....iter=2, diff=3.4993978960054636e-04
+STEP=308 t=6.12000000 dt=0.02000000 ta=6.14000000 dta=0.02000000
+it=0 dxmax=0.03522817 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00288460 anmax=0.03948954 anavg=0.00546581
+.....iter=1, diff=1.7039231787599580e-03
+.....iter=2, diff=3.6250025550439003e-04
+STEP=309 t=6.14000000 dt=0.02000000 ta=6.16000000 dta=0.02000000
+it=0 dxmax=0.03501441 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00294212 anmax=0.03912386 anavg=0.00577074
+.....iter=1, diff=1.7616613952130475e-03
+.....iter=2, diff=3.7510489972446390e-04
+STEP=310 t=6.16000000 dt=0.02000000 ta=6.18000000 dta=0.02000000
+it=0 dxmax=0.03477587 anmax=0.00000000 anavg=0.00000000
+dump t=6.20000000 to partit.62.csv
+it=49 dxmax=0.00331278 anmax=0.03909748 anavg=0.00568162
+.....iter=1, diff=1.8036069755982761e-03
+.....iter=2, diff=3.8465176783798781e-04
+STEP=311 t=6.18000000 dt=0.02000000 ta=6.20000000 dta=0.02000000
+it=0 dxmax=0.03452180 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00316026 anmax=0.03485410 anavg=0.00571719
+.....iter=1, diff=1.8390147594052966e-03
+.....iter=2, diff=3.9203686428236308e-04
+Dump n=62 t=6.2 target=6.2
+Dump 63: format=vtk
+STEP=312 t=6.20000000 dt=0.02000000 ta=6.22000000 dta=0.02000000
+it=0 dxmax=0.03424942 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00331980 anmax=0.03519468 anavg=0.00547383
+.....iter=1, diff=1.8650562084986258e-03
+.....iter=2, diff=3.9759218553734563e-04
+STEP=313 t=6.22000000 dt=0.02000000 ta=6.24000000 dta=0.02000000
+it=0 dxmax=0.03395997 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00246348 anmax=0.03535718 anavg=0.00538223
+.....iter=1, diff=1.8812469963272085e-03
+.....iter=2, diff=4.0075983066670788e-04
+STEP=314 t=6.24000000 dt=0.02000000 ta=6.26000000 dta=0.02000000
+it=0 dxmax=0.03351326 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00385031 anmax=0.03694172 anavg=0.00568167
+.....iter=1, diff=1.9372474432613499e-03
+.....iter=2, diff=4.1444228083537638e-04
+STEP=315 t=6.26000000 dt=0.02000000 ta=6.28000000 dta=0.02000000
+it=0 dxmax=0.03318972 anmax=0.00000000 anavg=0.00000000
+dump t=6.30000000 to partit.63.csv
+it=49 dxmax=0.00267772 anmax=0.03524042 anavg=0.00566796
+.....iter=1, diff=2.0060633416899695e-03
+.....iter=2, diff=4.3010456029376727e-04
+STEP=316 t=6.28000000 dt=0.02000000 ta=6.30000000 dta=0.02000000
+it=0 dxmax=0.03284498 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00257569 anmax=0.03099841 anavg=0.00531875
+.....iter=1, diff=2.1596698881830015e-03
+.....iter=2, diff=4.6410955214234583e-04
+Dump n=63 t=6.3 target=6.3
+Dump 64: format=vtk
+STEP=317 t=6.30000000 dt=0.02000000 ta=6.32000000 dta=0.02000000
+it=0 dxmax=0.03255219 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00255510 anmax=0.03089005 anavg=0.00520743
+.....iter=1, diff=2.2322278841104795e-03
+.....iter=2, diff=4.7853529033652618e-04
+STEP=318 t=6.32000000 dt=0.02000000 ta=6.34000000 dta=0.02000000
+it=0 dxmax=0.03242606 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00278758 anmax=0.03192390 anavg=0.00531609
+.....iter=1, diff=2.2625480229604505e-03
+.....iter=2, diff=4.8681341923344722e-04
+STEP=319 t=6.34000000 dt=0.02000000 ta=6.36000000 dta=0.02000000
+it=0 dxmax=0.03232702 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00304419 anmax=0.03268665 anavg=0.00581193
+.....iter=1, diff=2.2744344862505859e-03
+.....iter=2, diff=4.8969008116709462e-04
+STEP=320 t=6.36000000 dt=0.02000000 ta=6.38000000 dta=0.02000000
+it=0 dxmax=0.03223077 anmax=0.00000000 anavg=0.00000000
+dump t=6.40000000 to partit.64.csv
+it=49 dxmax=0.00332072 anmax=0.03301571 anavg=0.00582392
+.....iter=1, diff=2.2632672889199659e-03
+.....iter=2, diff=4.8852657986126445e-04
+STEP=321 t=6.38000000 dt=0.02000000 ta=6.40000000 dta=0.02000000
+it=0 dxmax=0.03213457 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00345598 anmax=0.03265991 anavg=0.00572685
+.....iter=1, diff=2.2183552335707998e-03
+.....iter=2, diff=4.7975547403239738e-04
+Dump n=64 t=6.4 target=6.4
+Dump 65: format=vtk
+STEP=322 t=6.40000000 dt=0.02000000 ta=6.42000000 dta=0.02000000
+it=0 dxmax=0.03203359 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00373149 anmax=0.03180454 anavg=0.00582675
+.....iter=1, diff=2.1502837273670778e-03
+.....iter=2, diff=4.6620979432633933e-04
+STEP=323 t=6.42000000 dt=0.02000000 ta=6.44000000 dta=0.02000000
+it=0 dxmax=0.03190803 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00369794 anmax=0.03119541 anavg=0.00596057
+.....iter=1, diff=2.0677243519533930e-03
+.....iter=2, diff=4.4969335640454328e-04
+STEP=324 t=6.44000000 dt=0.02000000 ta=6.46000000 dta=0.02000000
+it=0 dxmax=0.03178087 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00381343 anmax=0.03089415 anavg=0.00598462
+.....iter=1, diff=1.9787225503675411e-03
+.....iter=2, diff=4.3167400628618381e-04
+STEP=325 t=6.46000000 dt=0.02000000 ta=6.48000000 dta=0.02000000
+it=0 dxmax=0.03164433 anmax=0.00000000 anavg=0.00000000
+dump t=6.50000000 to partit.65.csv
+it=49 dxmax=0.00392568 anmax=0.03222641 anavg=0.00615000
+.....iter=1, diff=1.8580922509070839e-03
+.....iter=2, diff=4.0759184273142480e-04
+STEP=326 t=6.48000000 dt=0.02000000 ta=6.50000000 dta=0.02000000
+it=0 dxmax=0.03149166 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00403439 anmax=0.03263508 anavg=0.00620648
+.....iter=1, diff=1.9003295188927440e-03
+.....iter=2, diff=4.0844530279758102e-04
+Dump n=65 t=6.5 target=6.5
+Dump 66: format=vtk
+STEP=327 t=6.50000000 dt=0.02000000 ta=6.52000000 dta=0.02000000
+it=0 dxmax=0.03132860 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00414267 anmax=0.03243610 anavg=0.00633464
+.....iter=1, diff=1.9659559737555004e-03
+.....iter=2, diff=4.2225488515396862e-04
+STEP=328 t=6.52000000 dt=0.02000000 ta=6.54000000 dta=0.02000000
+it=0 dxmax=0.03115009 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00424476 anmax=0.03171687 anavg=0.00631499
+.....iter=1, diff=2.0152135030472793e-03
+.....iter=2, diff=4.3197234002134916e-04
+STEP=329 t=6.54000000 dt=0.02000000 ta=6.56000000 dta=0.02000000
+it=0 dxmax=0.03095718 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00418492 anmax=0.03089485 anavg=0.00625788
+.....iter=1, diff=2.0511052297578374e-03
+.....iter=2, diff=4.3887026563021303e-04
+STEP=330 t=6.56000000 dt=0.02000000 ta=6.58000000 dta=0.02000000
+it=0 dxmax=0.03074398 anmax=0.00000000 anavg=0.00000000
+dump t=6.60000000 to partit.66.csv
+it=49 dxmax=0.00427899 anmax=0.02996298 anavg=0.00629351
+.....iter=1, diff=2.0703920910937765e-03
+.....iter=2, diff=4.4217358792443843e-04
+STEP=331 t=6.58000000 dt=0.02000000 ta=6.60000000 dta=0.02000000
+it=0 dxmax=0.03051272 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00421238 anmax=0.02904465 anavg=0.00627501
+.....iter=1, diff=2.0644387849466954e-03
+.....iter=2, diff=4.4002175787321587e-04
+Dump n=66 t=6.6 target=6.6
+Dump 67: format=vtk
+STEP=332 t=6.60000000 dt=0.02000000 ta=6.62000000 dta=0.02000000
+it=0 dxmax=0.03025717 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00414205 anmax=0.02817845 anavg=0.00641519
+.....iter=1, diff=2.0375174602474187e-03
+.....iter=2, diff=4.4698684409907825e-04
+STEP=333 t=6.62000000 dt=0.02000000 ta=6.64000000 dta=0.02000000
+it=0 dxmax=0.02998336 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00366588 anmax=0.02737440 anavg=0.00678010
+.....iter=1, diff=2.1817081903957474e-03
+.....iter=2, diff=4.5375046033534417e-04
+STEP=334 t=6.64000000 dt=0.02000000 ta=6.66000000 dta=0.02000000
+it=0 dxmax=0.02968515 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00403964 anmax=0.02653394 anavg=0.00669207
+.....iter=1, diff=1.9198190485156940e-03
+.....iter=2, diff=4.0679964953340130e-04
+STEP=335 t=6.66000000 dt=0.02000000 ta=6.68000000 dta=0.02000000
+it=0 dxmax=0.02947285 anmax=0.00000000 anavg=0.00000000
+dump t=6.70000000 to partit.67.csv
+it=49 dxmax=0.00449250 anmax=0.02760518 anavg=0.00656987
+.....iter=1, diff=1.8358512924296756e-03
+.....iter=2, diff=3.8894383425866968e-04
+STEP=336 t=6.68000000 dt=0.02000000 ta=6.70000000 dta=0.02000000
+it=0 dxmax=0.02944594 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00434243 anmax=0.02697660 anavg=0.00653452
+.....iter=1, diff=1.7313179710509571e-03
+.....iter=2, diff=3.6642569588516614e-04
+Dump n=67 t=6.7 target=6.7
+Dump 68: format=vtk
+STEP=337 t=6.70000000 dt=0.02000000 ta=6.72000000 dta=0.02000000
+it=0 dxmax=0.02958968 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00421240 anmax=0.02625500 anavg=0.00659537
+.....iter=1, diff=1.6155887939471242e-03
+.....iter=2, diff=3.4166138344603289e-04
+STEP=338 t=6.72000000 dt=0.02000000 ta=6.74000000 dta=0.02000000
+it=0 dxmax=0.02949310 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00424010 anmax=0.02558555 anavg=0.00656392
+.....iter=1, diff=1.4903407691305190e-03
+.....iter=2, diff=3.1490211341672424e-04
+STEP=339 t=6.74000000 dt=0.02000000 ta=6.76000000 dta=0.02000000
+it=0 dxmax=0.02938474 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00410219 anmax=0.02472499 anavg=0.00648107
+.....iter=1, diff=1.3437588705535290e-03
+.....iter=2, diff=2.9083503553872092e-04
+STEP=340 t=6.76000000 dt=0.02000000 ta=6.78000000 dta=0.02000000
+it=0 dxmax=0.02935686 anmax=0.00000000 anavg=0.00000000
+dump t=6.80000000 to partit.68.csv
+it=49 dxmax=0.00372634 anmax=0.02486191 anavg=0.00631364
+.....iter=1, diff=1.2992958387013939e-03
+.....iter=2, diff=2.8114107726281474e-04
+STEP=341 t=6.78000000 dt=0.02000000 ta=6.80000000 dta=0.02000000
+it=0 dxmax=0.02975537 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00365159 anmax=0.02505773 anavg=0.00619243
+.....iter=1, diff=1.2940231123525019e-03
+.....iter=2, diff=2.8036127289324925e-04
+Dump n=68 t=6.8 target=6.8
+STEP=342 t=6.80000000 dt=0.02000000 ta=6.82000000 dta=0.02000000
+Dump 69: format=vtk
+it=0 dxmax=0.03015008 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00372900 anmax=0.02494330 anavg=0.00598313
+.....iter=1, diff=1.3217238719945524e-03
+.....iter=2, diff=2.8287582691981732e-04
+STEP=343 t=6.82000000 dt=0.02000000 ta=6.84000000 dta=0.02000000
+it=0 dxmax=0.03039014 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00379895 anmax=0.02517338 anavg=0.00596412
+.....iter=1, diff=1.4739729956097713e-03
+.....iter=2, diff=3.1827357051852537e-04
+STEP=344 t=6.84000000 dt=0.02000000 ta=6.86000000 dta=0.02000000
+it=0 dxmax=0.03061726 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00389932 anmax=0.02559428 anavg=0.00595643
+.....iter=1, diff=1.6109221841019595e-03
+.....iter=2, diff=3.5032254457084846e-04
+STEP=345 t=6.86000000 dt=0.02000000 ta=6.88000000 dta=0.02000000
+it=0 dxmax=0.03083518 anmax=0.00000000 anavg=0.00000000
+dump t=6.90000000 to partit.69.csv
+it=49 dxmax=0.00386525 anmax=0.03584892 anavg=0.00611266
+.....iter=1, diff=1.1091729040090769e-02
+.....iter=2, diff=2.4960499001429686e-03
+.....iter=3, diff=5.2089225411614069e-04
+STEP=346 t=6.88000000 dt=0.02000000 ta=6.90000000 dta=0.02000000
+it=0 dxmax=0.03104088 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00365791 anmax=0.03424216 anavg=0.00609907
+.....iter=1, diff=1.3726835648459923e-02
+.....iter=2, diff=2.8625065677657033e-03
+.....iter=3, diff=6.0721967866046776e-04
+Dump n=69 t=6.9 target=6.9
+Dump 70: format=vtk
+STEP=347 t=6.90000000 dt=0.02000000 ta=6.92000000 dta=0.02000000
+it=0 dxmax=0.03123677 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00354317 anmax=0.02595987 anavg=0.00555591
+.....iter=1, diff=1.9137533745696609e-03
+.....iter=2, diff=4.1875702066685453e-04
+STEP=348 t=6.92000000 dt=0.02000000 ta=6.94000000 dta=0.02000000
+it=0 dxmax=0.03141381 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00345320 anmax=0.02814617 anavg=0.00575618
+.....iter=1, diff=3.6788275038498524e-03
+.....iter=2, diff=7.2083425207923135e-04
+STEP=349 t=6.94000000 dt=0.02000000 ta=6.96000000 dta=0.02000000
+it=0 dxmax=0.03157240 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00336125 anmax=0.03650748 anavg=0.00584164
+.....iter=1, diff=4.8667387167194934e-03
+.....iter=2, diff=9.7587657616013705e-04
+STEP=350 t=6.96000000 dt=0.02000000 ta=6.98000000 dta=0.02000000
+it=0 dxmax=0.03805109 anmax=0.00000000 anavg=0.00000000
+dump t=7.00000000 to partit.70.csv
+it=49 dxmax=0.00326999 anmax=0.04297307 anavg=0.00639183
+.....iter=1, diff=5.1439401209190036e-03
+.....iter=2, diff=1.0523519282437854e-03
+.....iter=3, diff=2.1830409259549705e-04
+STEP=351 t=6.98000000 dt=0.02000000 ta=7.00000000 dta=0.02000000
+it=0 dxmax=0.03764305 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00273754 anmax=0.04722898 anavg=0.00642208
+.....iter=1, diff=5.1062051540368197e-03
+.....iter=2, diff=1.0640373999080378e-03
+.....iter=3, diff=2.2208014207381245e-04
+Dump n=70 t=7 target=7
+Dump 71: format=vtk
+STEP=352 t=7.00000000 dt=0.02000000 ta=7.02000000 dta=0.02000000
+it=0 dxmax=0.03705622 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00289290 anmax=0.04911663 anavg=0.00666076
+.....iter=1, diff=4.8641731962806318e-03
+.....iter=2, diff=1.0268941569134499e-03
+.....iter=3, diff=2.1628997554107190e-04
+STEP=353 t=7.02000000 dt=0.02000000 ta=7.04000000 dta=0.02000000
+it=0 dxmax=0.03639887 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00330690 anmax=0.05189061 anavg=0.00669527
+.....iter=1, diff=4.5788854519952611e-03
+.....iter=2, diff=9.6866671673467636e-04
+STEP=354 t=7.04000000 dt=0.02000000 ta=7.06000000 dta=0.02000000
+it=0 dxmax=0.03572119 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00368157 anmax=0.05158821 anavg=0.00687658
+.....iter=1, diff=4.1475035448804917e-03
+.....iter=2, diff=8.7910830253273733e-04
+STEP=355 t=7.06000000 dt=0.02000000 ta=7.08000000 dta=0.02000000
+it=0 dxmax=0.03544446 anmax=0.00000000 anavg=0.00000000
+dump t=7.10000000 to partit.71.csv
+it=49 dxmax=0.00424133 anmax=0.05133573 anavg=0.00664459
+.....iter=1, diff=3.6613411683666967e-03
+.....iter=2, diff=7.7902244278243266e-04
+STEP=356 t=7.08000000 dt=0.02000000 ta=7.10000000 dta=0.02000000
+it=0 dxmax=0.03517925 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00332005 anmax=0.05046298 anavg=0.00647225
+.....iter=1, diff=3.1506147512268016e-03
+.....iter=2, diff=6.7178776755126134e-04
+Dump n=71 t=7.1 target=7.1
+Dump 72: format=vtk
+STEP=357 t=7.10000000 dt=0.02000000 ta=7.12000000 dta=0.02000000
+it=0 dxmax=0.03490225 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00245609 anmax=0.04839905 anavg=0.00627509
+.....iter=1, diff=2.6056643221072885e-03
+.....iter=2, diff=5.5595917045011363e-04
+STEP=358 t=7.12000000 dt=0.02000000 ta=7.14000000 dta=0.02000000
+it=0 dxmax=0.03463958 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00292273 anmax=0.04478696 anavg=0.00605143
+.....iter=1, diff=2.0521001629843030e-03
+.....iter=2, diff=4.3765382209255422e-04
+STEP=359 t=7.14000000 dt=0.02000000 ta=7.16000000 dta=0.02000000
+it=0 dxmax=0.03435804 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00242763 anmax=0.04041234 anavg=0.00559204
+.....iter=1, diff=1.6626296569785947e-03
+.....iter=2, diff=3.3993808371034798e-04
+STEP=360 t=7.16000000 dt=0.02000000 ta=7.18000000 dta=0.02000000
+it=0 dxmax=0.03404568 anmax=0.00000000 anavg=0.00000000
+dump t=7.20000000 to partit.72.csv
+it=49 dxmax=0.00246381 anmax=0.04168171 anavg=0.00550620
+.....iter=1, diff=1.4687777791365032e-03
+.....iter=2, diff=3.1014824440332928e-04
+STEP=361 t=7.18000000 dt=0.02000000 ta=7.20000000 dta=0.02000000
+it=0 dxmax=0.03367394 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00244292 anmax=0.03867069 anavg=0.00523333
+.....iter=1, diff=1.2642675447788953e-03
+.....iter=2, diff=2.6611274301711820e-04
+Dump n=72 t=7.2 target=7.2
+Dump 73: format=vtk
+STEP=362 t=7.20000000 dt=0.02000000 ta=7.22000000 dta=0.02000000
+it=0 dxmax=0.03333035 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00243039 anmax=0.03636033 anavg=0.00496771
+.....iter=1, diff=1.1577141821147313e-03
+.....iter=2, diff=2.5402284973926193e-04
+STEP=363 t=7.22000000 dt=0.02000000 ta=7.24000000 dta=0.02000000
+it=0 dxmax=0.03294962 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00252713 anmax=0.03428562 anavg=0.00487541
+.....iter=1, diff=1.1169575095745766e-03
+.....iter=2, diff=2.2895394849126033e-04
+STEP=364 t=7.24000000 dt=0.02000000 ta=7.26000000 dta=0.02000000
+it=0 dxmax=0.03271324 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00339098 anmax=0.03905783 anavg=0.00475368
+.....iter=1, diff=1.1059613679778445e-03
+.....iter=2, diff=2.2968096263035041e-04
+STEP=365 t=7.26000000 dt=0.02000000 ta=7.28000000 dta=0.02000000
+it=0 dxmax=0.03273387 anmax=0.00000000 anavg=0.00000000
+dump t=7.30000000 to partit.73.csv
+it=49 dxmax=0.00376643 anmax=0.03794527 anavg=0.00464898
+.....iter=1, diff=1.3861261537733819e-03
+.....iter=2, diff=3.0304224380417856e-04
+STEP=366 t=7.28000000 dt=0.02000000 ta=7.30000000 dta=0.02000000
+it=0 dxmax=0.03283331 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00367988 anmax=0.03680380 anavg=0.00472385
+.....iter=1, diff=1.6449913699756100e-03
+.....iter=2, diff=3.5820062411534424e-04
+Dump n=73 t=7.3 target=7.3
+Dump 74: format=vtk
+STEP=367 t=7.30000000 dt=0.02000000 ta=7.32000000 dta=0.02000000
+it=0 dxmax=0.03340712 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00549880 anmax=0.03555367 anavg=0.00480402
+.....iter=1, diff=1.8369879951368783e-03
+.....iter=2, diff=3.9598607522696016e-04
+STEP=368 t=7.32000000 dt=0.02000000 ta=7.34000000 dta=0.02000000
+it=0 dxmax=0.03310426 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00594555 anmax=0.03347279 anavg=0.00505810
+.....iter=1, diff=1.9578465500508799e-03
+.....iter=2, diff=4.2177009270897322e-04
+STEP=369 t=7.34000000 dt=0.02000000 ta=7.36000000 dta=0.02000000
+it=0 dxmax=0.03328400 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00488742 anmax=0.03307925 anavg=0.00557596
+.....iter=1, diff=2.0107847709985812e-03
+.....iter=2, diff=4.3262674171775414e-04
+STEP=370 t=7.36000000 dt=0.02000000 ta=7.38000000 dta=0.02000000
+it=0 dxmax=0.03440260 anmax=0.00000000 anavg=0.00000000
+dump t=7.40000000 to partit.74.csv
+it=49 dxmax=0.00460396 anmax=0.04818701 anavg=0.00572221
+.....iter=1, diff=2.0514078412344136e-03
+.....iter=2, diff=4.4183073318343859e-04
+STEP=371 t=7.38000000 dt=0.02000000 ta=7.40000000 dta=0.02000000
+it=0 dxmax=0.03375506 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00455777 anmax=0.04798647 anavg=0.00582448
+.....iter=1, diff=2.0648943829451147e-03
+.....iter=2, diff=4.4455191346060789e-04
+Dump n=74 t=7.4 target=7.4
+Dump 75: format=vtk
+STEP=372 t=7.40000000 dt=0.02000000 ta=7.42000000 dta=0.02000000
+it=0 dxmax=0.03402800 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00410083 anmax=0.04684666 anavg=0.00585372
+.....iter=1, diff=2.0510027121649278e-03
+.....iter=2, diff=4.4188887917112721e-04
+STEP=373 t=7.42000000 dt=0.02000000 ta=7.44000000 dta=0.02000000
+it=0 dxmax=0.03094924 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00422439 anmax=0.04481004 anavg=0.00574025
+.....iter=1, diff=1.9963179791325850e-03
+.....iter=2, diff=4.2927526999994819e-04
+STEP=374 t=7.44000000 dt=0.02000000 ta=7.46000000 dta=0.02000000
+it=0 dxmax=0.03082098 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00433745 anmax=0.04152394 anavg=0.00571793
+.....iter=1, diff=1.9125351461259589e-03
+.....iter=2, diff=4.1035127951663189e-04
+STEP=375 t=7.46000000 dt=0.02000000 ta=7.48000000 dta=0.02000000
+it=0 dxmax=0.03068934 anmax=0.00000000 anavg=0.00000000
+dump t=7.50000000 to partit.75.csv
+it=49 dxmax=0.00426664 anmax=0.03773780 anavg=0.00563444
+.....iter=1, diff=1.7895674949276483e-03
+.....iter=2, diff=3.8350954879956333e-04
+STEP=376 t=7.48000000 dt=0.02000000 ta=7.50000000 dta=0.02000000
+it=0 dxmax=0.03056226 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00419099 anmax=0.03356175 anavg=0.00561216
+.....iter=1, diff=1.6637119402904855e-03
+.....iter=2, diff=3.5718233354817443e-04
+Dump n=75 t=7.5 target=7.5
+Dump 76: format=vtk
+STEP=377 t=7.50000000 dt=0.02000000 ta=7.52000000 dta=0.02000000
+it=0 dxmax=0.03042822 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00410534 anmax=0.03170296 anavg=0.00538441
+.....iter=1, diff=1.5708215289993673e-03
+.....iter=2, diff=3.3899245194443330e-04
+STEP=378 t=7.52000000 dt=0.02000000 ta=7.54000000 dta=0.02000000
+it=0 dxmax=0.03090379 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00401556 anmax=0.03046556 anavg=0.00527780
+.....iter=1, diff=1.5321679755736118e-03
+.....iter=2, diff=3.3095411088382844e-04
+STEP=379 t=7.54000000 dt=0.02000000 ta=7.56000000 dta=0.02000000
+it=0 dxmax=0.03175643 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00378186 anmax=0.02910717 anavg=0.00530270
+.....iter=1, diff=1.6824406601953642e-03
+.....iter=2, diff=3.6275829572462629e-04
+STEP=380 t=7.56000000 dt=0.02000000 ta=7.58000000 dta=0.02000000
+it=0 dxmax=0.02998584 anmax=0.00000000 anavg=0.00000000
+dump t=7.60000000 to partit.76.csv
+it=49 dxmax=0.00356179 anmax=0.02757759 anavg=0.00512053
+.....iter=1, diff=1.6015503242597280e-03
+.....iter=2, diff=3.5256105314672984e-04
+STEP=381 t=7.58000000 dt=0.02000000 ta=7.60000000 dta=0.02000000
+it=0 dxmax=0.02980208 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00333706 anmax=0.02597365 anavg=0.00515163
+.....iter=1, diff=1.4502647747996901e-03
+.....iter=2, diff=3.1850815869507499e-04
+Dump n=76 t=7.6 target=7.6
+Dump 77: format=vtk
+STEP=382 t=7.60000000 dt=0.02000000 ta=7.62000000 dta=0.02000000
+it=0 dxmax=0.02959525 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00330612 anmax=0.02413934 anavg=0.00508185
+.....iter=1, diff=1.2911801598820274e-03
+.....iter=2, diff=2.8332138506684289e-04
+STEP=383 t=7.62000000 dt=0.02000000 ta=7.64000000 dta=0.02000000
+it=0 dxmax=0.02943709 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00360634 anmax=0.02250787 anavg=0.00481315
+.....iter=1, diff=1.2955088948810583e-03
+.....iter=2, diff=2.8237507888027229e-04
+STEP=384 t=7.64000000 dt=0.02000000 ta=7.66000000 dta=0.02000000
+it=0 dxmax=0.02971093 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00380175 anmax=0.02220504 anavg=0.00468361
+.....iter=1, diff=1.2924153654422599e-03
+.....iter=2, diff=2.8010933298940272e-04
+STEP=385 t=7.66000000 dt=0.02000000 ta=7.68000000 dta=0.02000000
+it=0 dxmax=0.02928684 anmax=0.00000000 anavg=0.00000000
+dump t=7.70000000 to partit.77.csv
+it=49 dxmax=0.00415885 anmax=0.02179906 anavg=0.00453383
+.....iter=1, diff=1.2918058742089637e-03
+.....iter=2, diff=2.7989315209144970e-04
+STEP=386 t=7.68000000 dt=0.02000000 ta=7.70000000 dta=0.02000000
+it=0 dxmax=0.02956232 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00403370 anmax=0.02073604 anavg=0.00447869
+.....iter=1, diff=1.2796285427401682e-03
+.....iter=2, diff=2.7710174068403594e-04
+Dump n=77 t=7.7 target=7.7
+Dump 78: format=vtk
+STEP=387 t=7.70000000 dt=0.02000000 ta=7.72000000 dta=0.02000000
+it=0 dxmax=0.02980368 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00348753 anmax=0.02462688 anavg=0.00447979
+.....iter=1, diff=1.2695601115523202e-03
+.....iter=2, diff=2.7505286601745265e-04
+STEP=388 t=7.72000000 dt=0.02000000 ta=7.74000000 dta=0.02000000
+it=0 dxmax=0.03003602 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00483063 anmax=0.02322706 anavg=0.00435032
+.....iter=1, diff=1.2752854666942264e-03
+.....iter=2, diff=2.7324136046025889e-04
+STEP=389 t=7.74000000 dt=0.02000000 ta=7.76000000 dta=0.02000000
+it=0 dxmax=0.03025963 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00310615 anmax=0.02126723 anavg=0.00415418
+.....iter=1, diff=1.2225372658709853e-03
+.....iter=2, diff=2.6313027402774330e-04
+STEP=390 t=7.76000000 dt=0.02000000 ta=7.78000000 dta=0.02000000
+it=0 dxmax=0.03048050 anmax=0.00000000 anavg=0.00000000
+dump t=7.80000000 to partit.78.csv
+it=49 dxmax=0.00290270 anmax=0.02112386 anavg=0.00417879
+.....iter=1, diff=1.2864593767423422e-03
+.....iter=2, diff=2.7687772628126454e-04
+STEP=391 t=7.78000000 dt=0.02000000 ta=7.80000000 dta=0.02000000
+it=0 dxmax=0.03648796 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00311063 anmax=0.03296093 anavg=0.00437425
+.....iter=1, diff=1.3407679374009775e-03
+.....iter=2, diff=2.8841023189426417e-04
+Dump n=78 t=7.8 target=7.8
+Dump 79: format=vtk
+STEP=392 t=7.80000000 dt=0.02000000 ta=7.82000000 dta=0.02000000
+it=0 dxmax=0.03616758 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00306022 anmax=0.03232708 anavg=0.00467195
+.....iter=1, diff=1.4026890820789237e-03
+.....iter=2, diff=2.9991895638068020e-04
+STEP=393 t=7.82000000 dt=0.02000000 ta=7.84000000 dta=0.02000000
+it=0 dxmax=0.03586433 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00301354 anmax=0.03147382 anavg=0.00465606
+.....iter=1, diff=1.4493009734823420e-03
+.....iter=2, diff=3.2740266857363159e-04
+STEP=394 t=7.84000000 dt=0.02000000 ta=7.86000000 dta=0.02000000
+it=0 dxmax=0.03632338 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00276846 anmax=0.03098921 anavg=0.00487889
+.....iter=1, diff=1.5384760883971199e-03
+.....iter=2, diff=3.4913367593663409e-04
+STEP=395 t=7.86000000 dt=0.02000000 ta=7.88000000 dta=0.02000000
+it=0 dxmax=0.03588964 anmax=0.00000000 anavg=0.00000000
+dump t=7.90000000 to partit.79.csv
+it=49 dxmax=0.00289835 anmax=0.03054783 anavg=0.00488873
+.....iter=1, diff=1.4935168232639803e-03
+.....iter=2, diff=3.4095010283001335e-04
+STEP=396 t=7.88000000 dt=0.02000000 ta=7.90000000 dta=0.02000000
+it=0 dxmax=0.03542504 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00295877 anmax=0.03032671 anavg=0.00498368
+.....iter=1, diff=1.4960703347579804e-03
+.....iter=2, diff=3.1963599272492426e-04
+Dump n=79 t=7.9 target=7.9
+Dump 80: format=vtk
+STEP=397 t=7.90000000 dt=0.02000000 ta=7.92000000 dta=0.02000000
+it=0 dxmax=0.03480915 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00281178 anmax=0.03019687 anavg=0.00489624
+.....iter=1, diff=1.5450590113346271e-03
+.....iter=2, diff=3.2630322687838046e-04
+STEP=398 t=7.92000000 dt=0.02000000 ta=7.94000000 dta=0.02000000
+it=0 dxmax=0.03436464 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00361423 anmax=0.03039555 anavg=0.00491007
+.....iter=1, diff=1.5151457069054737e-03
+.....iter=2, diff=3.2134942855248583e-04
+STEP=399 t=7.94000000 dt=0.02000000 ta=7.96000000 dta=0.02000000
+it=0 dxmax=0.03406678 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00286385 anmax=0.03082717 anavg=0.00495000
+.....iter=1, diff=1.4605728845025433e-03
+.....iter=2, diff=3.1284068282876461e-04
+STEP=400 t=7.96000000 dt=0.02000000 ta=7.98000000 dta=0.02000000
+it=0 dxmax=0.03376384 anmax=0.00000000 anavg=0.00000000
+dump t=8.00000000 to partit.80.csv
+it=49 dxmax=0.00304749 anmax=0.03131123 anavg=0.00494364
+.....iter=1, diff=1.6080352172759516e-03
+.....iter=2, diff=3.4177117173302579e-04
+STEP=401 t=7.98000000 dt=0.02000000 ta=8.00000000 dta=0.02000000
+it=0 dxmax=0.03334816 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00301902 anmax=0.03365101 anavg=0.00508742
+.....iter=1, diff=1.6794874994223521e-03
+.....iter=2, diff=3.4552139684460319e-04
+Dump n=80 t=8 target=8
+Dump 81: format=vtk
+STEP=402 t=8.00000000 dt=0.02000000 ta=8.02000000 dta=0.02000000
+it=0 dxmax=0.03358885 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00279509 anmax=0.03303365 anavg=0.00505846
+.....iter=1, diff=1.5863966524143629e-03
+.....iter=2, diff=3.2673388957692694e-04
+STEP=403 t=8.02000000 dt=0.02000000 ta=8.04000000 dta=0.02000000
+it=0 dxmax=0.03261429 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00299935 anmax=0.03297186 anavg=0.00496882
+.....iter=1, diff=1.4473630881606757e-03
+.....iter=2, diff=2.9844640426086703e-04
+STEP=404 t=8.04000000 dt=0.02000000 ta=8.06000000 dta=0.02000000
+it=0 dxmax=0.03233374 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00306159 anmax=0.03316977 anavg=0.00483792
+.....iter=1, diff=1.3006888025064568e-03
+.....iter=2, diff=2.8347522585956601e-04
+STEP=405 t=8.06000000 dt=0.02000000 ta=8.08000000 dta=0.02000000
+it=0 dxmax=0.03209362 anmax=0.00000000 anavg=0.00000000
+dump t=8.10000000 to partit.81.csv
+it=49 dxmax=0.00292790 anmax=0.03323304 anavg=0.00487129
+.....iter=1, diff=1.3052807880890535e-03
+.....iter=2, diff=2.8935542932477954e-04
+STEP=406 t=8.08000000 dt=0.02000000 ta=8.10000000 dta=0.02000000
+it=0 dxmax=0.03185891 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00304472 anmax=0.03371031 anavg=0.00486120
+.....iter=1, diff=1.3178340144869771e-03
+.....iter=2, diff=2.9187210950905893e-04
+Dump n=81 t=8.1 target=8.1
+Dump 82: format=vtk
+STEP=407 t=8.10000000 dt=0.02000000 ta=8.12000000 dta=0.02000000
+it=0 dxmax=0.03166795 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00318497 anmax=0.03392050 anavg=0.00485141
+.....iter=1, diff=1.3271109297154640e-03
+.....iter=2, diff=2.9410826045107711e-04
+STEP=408 t=8.12000000 dt=0.02000000 ta=8.14000000 dta=0.02000000
+it=0 dxmax=0.03148541 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00344693 anmax=0.03415898 anavg=0.00483652
+.....iter=1, diff=1.3198852116660543e-03
+.....iter=2, diff=2.9299573651053875e-04
+STEP=409 t=8.14000000 dt=0.02000000 ta=8.16000000 dta=0.02000000
+it=0 dxmax=0.03133318 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00359033 anmax=0.03373853 anavg=0.00493119
+.....iter=1, diff=1.2982366660163260e-03
+.....iter=2, diff=2.8880943424590947e-04
+STEP=410 t=8.16000000 dt=0.02000000 ta=8.18000000 dta=0.02000000
+it=0 dxmax=0.03119088 anmax=0.00000000 anavg=0.00000000
+dump t=8.20000000 to partit.82.csv
+it=49 dxmax=0.00359490 anmax=0.03305027 anavg=0.00511901
+.....iter=1, diff=1.2819402303245471e-03
+.....iter=2, diff=2.8299548929694007e-04
+STEP=411 t=8.18000000 dt=0.02000000 ta=8.20000000 dta=0.02000000
+it=0 dxmax=0.03104682 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00372394 anmax=0.03209389 anavg=0.00522143
+.....iter=1, diff=1.3783330649465978e-03
+.....iter=2, diff=2.9304835744880099e-04
+Dump n=82 t=8.2 target=8.2
+Dump 83: format=vtk
+STEP=412 t=8.20000000 dt=0.02000000 ta=8.22000000 dta=0.02000000
+it=0 dxmax=0.03090192 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00402175 anmax=0.03150557 anavg=0.00534013
+.....iter=1, diff=1.4525000618017445e-03
+.....iter=2, diff=3.1337052655572609e-04
+STEP=413 t=8.22000000 dt=0.02000000 ta=8.24000000 dta=0.02000000
+it=0 dxmax=0.03075486 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00414614 anmax=0.03296212 anavg=0.00542231
+.....iter=1, diff=1.5081783530629755e-03
+.....iter=2, diff=3.2815942767524804e-04
+STEP=414 t=8.24000000 dt=0.02000000 ta=8.26000000 dta=0.02000000
+it=0 dxmax=0.03060672 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00426487 anmax=0.03717430 anavg=0.00564466
+.....iter=1, diff=1.5678617876168392e-03
+.....iter=2, diff=3.4034596420943027e-04
+STEP=415 t=8.26000000 dt=0.02000000 ta=8.28000000 dta=0.02000000
+it=0 dxmax=0.03046157 anmax=0.00000000 anavg=0.00000000
+dump t=8.30000000 to partit.83.csv
+it=49 dxmax=0.00438014 anmax=0.03750339 anavg=0.00583541
+.....iter=1, diff=1.5822452753818442e-03
+.....iter=2, diff=3.4192346291437052e-04
+STEP=416 t=8.28000000 dt=0.02000000 ta=8.30000000 dta=0.02000000
+it=0 dxmax=0.03031917 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00448843 anmax=0.03719743 anavg=0.00573647
+.....iter=1, diff=1.5588935834506125e-03
+.....iter=2, diff=3.3430892862207676e-04
+Dump n=83 t=8.3 target=8.3
+Dump 84: format=vtk
+STEP=417 t=8.30000000 dt=0.02000000 ta=8.32000000 dta=0.02000000
+it=0 dxmax=0.03017425 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00459144 anmax=0.03629229 anavg=0.00570626
+.....iter=1, diff=1.5471165979928547e-03
+.....iter=2, diff=3.3707318211585735e-04
+STEP=418 t=8.32000000 dt=0.02000000 ta=8.34000000 dta=0.02000000
+it=0 dxmax=0.03002386 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00468880 anmax=0.03514679 anavg=0.00556221
+.....iter=1, diff=1.4923170724135887e-03
+.....iter=2, diff=3.2081338947517496e-04
+STEP=419 t=8.34000000 dt=0.02000000 ta=8.36000000 dta=0.02000000
+it=0 dxmax=0.02986089 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00478163 anmax=0.03377139 anavg=0.00561034
+.....iter=1, diff=2.0534850402884773e-03
+.....iter=2, diff=4.6153138605635669e-04
+STEP=420 t=8.36000000 dt=0.02000000 ta=8.38000000 dta=0.02000000
+it=0 dxmax=0.02968174 anmax=0.00000000 anavg=0.00000000
+dump t=8.40000000 to partit.84.csv
+it=49 dxmax=0.00450251 anmax=0.03382121 anavg=0.00575954
+.....iter=1, diff=2.2735725558110397e-03
+.....iter=2, diff=4.7797436836568115e-04
+STEP=421 t=8.38000000 dt=0.02000000 ta=8.40000000 dta=0.02000000
+it=0 dxmax=0.02954385 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00504528 anmax=0.03200052 anavg=0.00560139
+.....iter=1, diff=2.0185947584792957e-03
+.....iter=2, diff=4.2473531464269355e-04
+Dump n=84 t=8.4 target=8.4
+STEP=422 t=8.40000000 dt=0.02000000 ta=8.42000000 dta=0.02000000
+Dump 85: format=vtk
+it=0 dxmax=0.02950806 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00505623 anmax=0.03003913 anavg=0.00552113
+.....iter=1, diff=1.6213752591075008e-03
+.....iter=2, diff=3.3958614572111482e-04
+STEP=423 t=8.42000000 dt=0.02000000 ta=8.44000000 dta=0.02000000
+it=0 dxmax=0.02948775 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00506538 anmax=0.02822610 anavg=0.00533319
+.....iter=1, diff=1.0827368240076997e-03
+.....iter=2, diff=2.2545862520768827e-04
+STEP=424 t=8.44000000 dt=0.02000000 ta=8.46000000 dta=0.02000000
+it=0 dxmax=0.02947652 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00489473 anmax=0.02667462 anavg=0.00520589
+.....iter=1, diff=8.6386874057494659e-04
+STEP=425 t=8.46000000 dt=0.02000000 ta=8.48000000 dta=0.02000000
+it=0 dxmax=0.02945888 anmax=0.00000000 anavg=0.00000000
+dump t=8.50000000 to partit.85.csv
+it=49 dxmax=0.00472093 anmax=0.02533629 anavg=0.00528630
+.....iter=1, diff=7.9238709464468800e-04
+STEP=426 t=8.48000000 dt=0.02000000 ta=8.50000000 dta=0.02000000
+it=0 dxmax=0.02943567 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00472570 anmax=0.02417923 anavg=0.00509332
+.....iter=1, diff=8.1496692021515806e-04
+Dump n=85 t=8.5 target=8.5
+STEP=427 t=8.50000000 dt=0.02000000 ta=8.52000000 dta=0.02000000
+Dump 86: format=vtk
+it=0 dxmax=0.02939954 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00457991 anmax=0.02376109 anavg=0.00521513
+.....iter=1, diff=8.3252320531055290e-04
+STEP=428 t=8.52000000 dt=0.02000000 ta=8.54000000 dta=0.02000000
+it=0 dxmax=0.02939437 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00412322 anmax=0.02301235 anavg=0.00513738
+.....iter=1, diff=9.1658793095679100e-04
+STEP=429 t=8.54000000 dt=0.02000000 ta=8.56000000 dta=0.02000000
+it=0 dxmax=0.02987090 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00403872 anmax=0.02239711 anavg=0.00507469
+.....iter=1, diff=1.1222299977527242e-03
+.....iter=2, diff=2.3928059829378208e-04
+STEP=430 t=8.56000000 dt=0.02000000 ta=8.58000000 dta=0.02000000
+it=0 dxmax=0.03031020 anmax=0.00000000 anavg=0.00000000
+dump t=8.60000000 to partit.86.csv
+it=49 dxmax=0.00411305 anmax=0.02180040 anavg=0.00500150
+.....iter=1, diff=1.3358338677416598e-03
+.....iter=2, diff=2.8379368117359974e-04
+STEP=431 t=8.58000000 dt=0.02000000 ta=8.60000000 dta=0.02000000
+it=0 dxmax=0.03046738 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00416539 anmax=0.02134122 anavg=0.00504679
+.....iter=1, diff=1.4665570437553015e-03
+.....iter=2, diff=3.1112318867622667e-04
+Dump n=86 t=8.6 target=8.6
+Dump 87: format=vtk
+STEP=432 t=8.60000000 dt=0.02000000 ta=8.62000000 dta=0.02000000
+it=0 dxmax=0.03063451 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00424564 anmax=0.02853547 anavg=0.00501997
+.....iter=1, diff=1.5337913791734143e-03
+.....iter=2, diff=3.2488990544725073e-04
+STEP=433 t=8.62000000 dt=0.02000000 ta=8.64000000 dta=0.02000000
+it=0 dxmax=0.03081199 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00362814 anmax=0.02813963 anavg=0.00496966
+.....iter=1, diff=1.5530112304780472e-03
+.....iter=2, diff=3.2856997197531774e-04
+STEP=434 t=8.64000000 dt=0.02000000 ta=8.66000000 dta=0.02000000
+it=0 dxmax=0.03098970 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00324919 anmax=0.02690550 anavg=0.00489142
+.....iter=1, diff=1.5287099497611454e-03
+.....iter=2, diff=3.2294310188708581e-04
+STEP=435 t=8.66000000 dt=0.02000000 ta=8.68000000 dta=0.02000000
+it=0 dxmax=0.03673798 anmax=0.00000000 anavg=0.00000000
+dump t=8.70000000 to partit.87.csv
+it=49 dxmax=0.00372327 anmax=0.03943582 anavg=0.00509127
+.....iter=1, diff=1.4625448807393080e-03
+.....iter=2, diff=3.1866123628687595e-04
+STEP=436 t=8.68000000 dt=0.02000000 ta=8.70000000 dta=0.02000000
+it=0 dxmax=0.03628431 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00352236 anmax=0.03793726 anavg=0.00501238
+.....iter=1, diff=1.7355017338943006e-03
+.....iter=2, diff=3.9402265086276522e-04
+Dump n=87 t=8.7 target=8.7
+Dump 88: format=vtk
+STEP=437 t=8.70000000 dt=0.02000000 ta=8.72000000 dta=0.02000000
+it=0 dxmax=0.03680037 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00321692 anmax=0.03677285 anavg=0.00510053
+.....iter=1, diff=1.8545241427614836e-03
+.....iter=2, diff=3.9946894225216566e-04
+STEP=438 t=8.72000000 dt=0.02000000 ta=8.74000000 dta=0.02000000
+it=0 dxmax=0.03612907 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00309945 anmax=0.03564076 anavg=0.00502250
+.....iter=1, diff=1.7267565201990521e-03
+.....iter=2, diff=3.7029760773223732e-04
+STEP=439 t=8.74000000 dt=0.02000000 ta=8.76000000 dta=0.02000000
+it=0 dxmax=0.03547588 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00304201 anmax=0.03489741 anavg=0.00488916
+.....iter=1, diff=1.5230076589005106e-03
+.....iter=2, diff=3.2547502858338580e-04
+STEP=440 t=8.76000000 dt=0.02000000 ta=8.78000000 dta=0.02000000
+it=0 dxmax=0.03471402 anmax=0.00000000 anavg=0.00000000
+dump t=8.80000000 to partit.88.csv
+it=49 dxmax=0.00303753 anmax=0.03428128 anavg=0.00473175
+.....iter=1, diff=1.8793350340068037e-03
+.....iter=2, diff=3.9719498423318949e-04
+STEP=441 t=8.78000000 dt=0.02000000 ta=8.80000000 dta=0.02000000
+it=0 dxmax=0.03397557 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00308959 anmax=0.03401464 anavg=0.00475308
+.....iter=1, diff=1.9232012479475844e-03
+.....iter=2, diff=3.8910713518280112e-04
+Dump n=88 t=8.8 target=8.8
+Dump 89: format=vtk
+STEP=442 t=8.80000000 dt=0.02000000 ta=8.82000000 dta=0.02000000
+it=0 dxmax=0.03346327 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00365285 anmax=0.03341065 anavg=0.00494317
+.....iter=1, diff=1.7756623934758317e-03
+.....iter=2, diff=3.6061881840410132e-04
+STEP=443 t=8.82000000 dt=0.02000000 ta=8.84000000 dta=0.02000000
+it=0 dxmax=0.03321788 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00295484 anmax=0.03303957 anavg=0.00486322
+.....iter=1, diff=1.5767074187019901e-03
+.....iter=2, diff=3.3294448699408672e-04
+STEP=444 t=8.84000000 dt=0.02000000 ta=8.86000000 dta=0.02000000
+it=0 dxmax=0.03359293 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00273458 anmax=0.03292293 anavg=0.00481346
+.....iter=1, diff=1.4318717845078249e-03
+.....iter=2, diff=3.0926380735577809e-04
+STEP=445 t=8.86000000 dt=0.02000000 ta=8.88000000 dta=0.02000000
+it=0 dxmax=0.03224532 anmax=0.00000000 anavg=0.00000000
+dump t=8.90000000 to partit.89.csv
+it=49 dxmax=0.00288375 anmax=0.03248930 anavg=0.00479785
+.....iter=1, diff=1.3058470327860896e-03
+.....iter=2, diff=2.8231422923816961e-04
+STEP=446 t=8.88000000 dt=0.02000000 ta=8.90000000 dta=0.02000000
+it=0 dxmax=0.03315824 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00292893 anmax=0.03221944 anavg=0.00496367
+.....iter=1, diff=1.1401599422572854e-03
+.....iter=2, diff=2.4686194280899105e-04
+Dump n=89 t=8.9 target=8.9
+Dump 90: format=vtk
+STEP=447 t=8.90000000 dt=0.02000000 ta=8.92000000 dta=0.02000000
+it=0 dxmax=0.03173011 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00319380 anmax=0.03190847 anavg=0.00470718
+.....iter=1, diff=9.8129948825751529e-04
+STEP=448 t=8.92000000 dt=0.02000000 ta=8.94000000 dta=0.02000000
+it=0 dxmax=0.03157571 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00315073 anmax=0.03096939 anavg=0.00468887
+.....iter=1, diff=9.7161622493706010e-04
+STEP=449 t=8.94000000 dt=0.02000000 ta=8.96000000 dta=0.02000000
+it=0 dxmax=0.03140384 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00325113 anmax=0.02999061 anavg=0.00470109
+.....iter=1, diff=9.3957150568867599e-04
+STEP=450 t=8.96000000 dt=0.02000000 ta=8.98000000 dta=0.02000000
+it=0 dxmax=0.03122298 anmax=0.00000000 anavg=0.00000000
+dump t=9.00000000 to partit.90.csv
+it=49 dxmax=0.00321023 anmax=0.02899189 anavg=0.00470933
+.....iter=1, diff=1.0317341382188891e-03
+.....iter=2, diff=2.2900750610231892e-04
+STEP=451 t=8.98000000 dt=0.02000000 ta=9.00000000 dta=0.02000000
+it=0 dxmax=0.03102972 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00335984 anmax=0.02782709 anavg=0.00485556
+.....iter=1, diff=1.0742395694610422e-03
+.....iter=2, diff=2.2886400796775155e-04
+Dump n=90 t=9 target=9
+Dump 91: format=vtk
+STEP=452 t=9.00000000 dt=0.02000000 ta=9.02000000 dta=0.02000000
+it=0 dxmax=0.03083135 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00367601 anmax=0.02887870 anavg=0.00488689
+.....iter=1, diff=1.0953074662744082e-03
+.....iter=2, diff=2.3339381512955942e-04
+STEP=453 t=9.02000000 dt=0.02000000 ta=9.04000000 dta=0.02000000
+it=0 dxmax=0.03062324 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00361804 anmax=0.03269743 anavg=0.00489040
+.....iter=1, diff=1.1412978609694670e-03
+.....iter=2, diff=2.5124807935856521e-04
+STEP=454 t=9.04000000 dt=0.02000000 ta=9.06000000 dta=0.02000000
+it=0 dxmax=0.03041079 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00347553 anmax=0.03382119 anavg=0.00497318
+.....iter=1, diff=1.4508396696961657e-03
+.....iter=2, diff=3.3290331415923271e-04
+STEP=455 t=9.06000000 dt=0.02000000 ta=9.08000000 dta=0.02000000
+it=0 dxmax=0.03019980 anmax=0.00000000 anavg=0.00000000
+dump t=9.10000000 to partit.91.csv
+it=49 dxmax=0.00349169 anmax=0.03359778 anavg=0.00507158
+.....iter=1, diff=1.5547178402198953e-03
+.....iter=2, diff=3.3665462101469998e-04
+STEP=456 t=9.08000000 dt=0.02000000 ta=9.10000000 dta=0.02000000
+it=0 dxmax=0.02999381 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00350742 anmax=0.03271002 anavg=0.00504488
+.....iter=1, diff=1.3748007044400790e-03
+.....iter=2, diff=2.9536836663863542e-04
+Dump n=91 t=9.1 target=9.1
+Dump 92: format=vtk
+STEP=457 t=9.10000000 dt=0.02000000 ta=9.12000000 dta=0.02000000
+it=0 dxmax=0.03019041 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00345819 anmax=0.03154247 anavg=0.00514513
+.....iter=1, diff=1.4184080427356923e-03
+.....iter=2, diff=3.0384029592358825e-04
+STEP=458 t=9.12000000 dt=0.02000000 ta=9.14000000 dta=0.02000000
+it=0 dxmax=0.02972242 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00354495 anmax=0.03213989 anavg=0.00526404
+.....iter=1, diff=1.5146288695771387e-03
+.....iter=2, diff=3.1826723350177446e-04
+STEP=459 t=9.14000000 dt=0.02000000 ta=9.16000000 dta=0.02000000
+it=0 dxmax=0.02946845 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00322450 anmax=0.03325654 anavg=0.00539686
+.....iter=1, diff=1.5712396121654133e-03
+.....iter=2, diff=3.2971421825208632e-04
+STEP=460 t=9.16000000 dt=0.02000000 ta=9.18000000 dta=0.02000000
+it=0 dxmax=0.02933953 anmax=0.00000000 anavg=0.00000000
+dump t=9.20000000 to partit.92.csv
+it=49 dxmax=0.00326103 anmax=0.03166363 anavg=0.00539423
+.....iter=1, diff=1.7927711882640715e-03
+.....iter=2, diff=3.8407993213522616e-04
+STEP=461 t=9.18000000 dt=0.02000000 ta=9.20000000 dta=0.02000000
+it=0 dxmax=0.02923696 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00326717 anmax=0.03026035 anavg=0.00530236
+.....iter=1, diff=1.8920882527986489e-03
+.....iter=2, diff=3.9665456390714475e-04
+Dump n=92 t=9.2 target=9.2
+Dump 93: format=vtk
+STEP=462 t=9.20000000 dt=0.02000000 ta=9.22000000 dta=0.02000000
+it=0 dxmax=0.02914115 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00314400 anmax=0.02902119 anavg=0.00514280
+.....iter=1, diff=1.8699879109371638e-03
+.....iter=2, diff=3.9332915126304960e-04
+STEP=463 t=9.22000000 dt=0.02000000 ta=9.24000000 dta=0.02000000
+it=0 dxmax=0.02905893 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00316429 anmax=0.02798849 anavg=0.00502021
+.....iter=1, diff=1.7935251820187501e-03
+.....iter=2, diff=3.7865358320857660e-04
+STEP=464 t=9.24000000 dt=0.02000000 ta=9.26000000 dta=0.02000000
+it=0 dxmax=0.02985280 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00318411 anmax=0.02715253 anavg=0.00503711
+.....iter=1, diff=1.6064286837937770e-03
+.....iter=2, diff=3.3909229278035436e-04
+STEP=465 t=9.26000000 dt=0.02000000 ta=9.28000000 dta=0.02000000
+it=0 dxmax=0.02953942 anmax=0.00000000 anavg=0.00000000
+dump t=9.30000000 to partit.93.csv
+it=49 dxmax=0.00320414 anmax=0.02653952 anavg=0.00480053
+.....iter=1, diff=1.6129246157631000e-03
+.....iter=2, diff=3.4367115561584875e-04
+STEP=466 t=9.28000000 dt=0.02000000 ta=9.30000000 dta=0.02000000
+it=0 dxmax=0.02923298 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00396263 anmax=0.02450313 anavg=0.00485205
+.....iter=1, diff=1.2753994030169319e-03
+.....iter=2, diff=2.6689870670589514e-04
+Dump n=93 t=9.3 target=9.3
+Dump 94: format=vtk
+STEP=467 t=9.30000000 dt=0.02000000 ta=9.32000000 dta=0.02000000
+it=0 dxmax=0.02901713 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00389276 anmax=0.02507945 anavg=0.00464397
+.....iter=1, diff=1.4686690608189037e-03
+.....iter=2, diff=3.2119215836173582e-04
+STEP=468 t=9.32000000 dt=0.02000000 ta=9.34000000 dta=0.02000000
+it=0 dxmax=0.02898733 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00400448 anmax=0.02559444 anavg=0.00466940
+.....iter=1, diff=1.5605701816254764e-03
+.....iter=2, diff=3.2880532950424127e-04
+STEP=469 t=9.34000000 dt=0.02000000 ta=9.36000000 dta=0.02000000
+it=0 dxmax=0.02905569 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00399942 anmax=0.02567740 anavg=0.00457918
+.....iter=1, diff=1.4844243558273776e-03
+.....iter=2, diff=3.1416479558336245e-04
+STEP=470 t=9.36000000 dt=0.02000000 ta=9.38000000 dta=0.02000000
+it=0 dxmax=0.02920493 anmax=0.00000000 anavg=0.00000000
+dump t=9.40000000 to partit.94.csv
+it=49 dxmax=0.00408270 anmax=0.02515129 anavg=0.00449767
+.....iter=1, diff=1.3665662049472292e-03
+.....iter=2, diff=2.9031917948667133e-04
+STEP=471 t=9.38000000 dt=0.02000000 ta=9.40000000 dta=0.02000000
+it=0 dxmax=0.02956599 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00416991 anmax=0.02556805 anavg=0.00456645
+.....iter=1, diff=1.4225896236232413e-03
+.....iter=2, diff=3.2929761003954350e-04
+Dump n=94 t=9.4 target=9.4
+Dump 95: format=vtk
+STEP=472 t=9.40000000 dt=0.02000000 ta=9.42000000 dta=0.02000000
+it=0 dxmax=0.02991640 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00426371 anmax=0.02867334 anavg=0.00474339
+.....iter=1, diff=1.5654069779608027e-03
+.....iter=2, diff=3.6216095925772906e-04
+STEP=473 t=9.42000000 dt=0.02000000 ta=9.44000000 dta=0.02000000
+it=0 dxmax=0.03026560 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00422399 anmax=0.03093978 anavg=0.00509188
+.....iter=1, diff=1.6275341152807729e-03
+.....iter=2, diff=3.7974014980361026e-04
+STEP=474 t=9.44000000 dt=0.02000000 ta=9.46000000 dta=0.02000000
+it=0 dxmax=0.03061063 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00433052 anmax=0.02952722 anavg=0.00499296
+.....iter=1, diff=1.5875498713016287e-03
+.....iter=2, diff=3.7422360925476673e-04
+STEP=475 t=9.46000000 dt=0.02000000 ta=9.48000000 dta=0.02000000
+it=0 dxmax=0.03094963 anmax=0.00000000 anavg=0.00000000
+dump t=9.50000000 to partit.95.csv
+it=49 dxmax=0.00426773 anmax=0.02714472 anavg=0.00473213
+.....iter=1, diff=1.4753349336172517e-03
+.....iter=2, diff=3.5433709304748582e-04
+STEP=476 t=9.48000000 dt=0.02000000 ta=9.50000000 dta=0.02000000
+it=0 dxmax=0.03128443 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00423310 anmax=0.02513785 anavg=0.00465474
+.....iter=1, diff=1.4364782308070717e-03
+.....iter=2, diff=3.3625122505790556e-04
+Dump n=95 t=9.5 target=9.5
+Dump 96: format=vtk
+STEP=477 t=9.50000000 dt=0.02000000 ta=9.52000000 dta=0.02000000
+it=0 dxmax=0.03161098 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00436193 anmax=0.02492268 anavg=0.00451962
+.....iter=1, diff=1.3518009618299022e-03
+.....iter=2, diff=2.9827964756437520e-04
+STEP=478 t=9.52000000 dt=0.02000000 ta=9.54000000 dta=0.02000000
+it=0 dxmax=0.03193004 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00431019 anmax=0.02451141 anavg=0.00436805
+.....iter=1, diff=1.3628898624240735e-03
+.....iter=2, diff=2.8756589228630831e-04
+STEP=479 t=9.54000000 dt=0.02000000 ta=9.56000000 dta=0.02000000
+it=0 dxmax=0.03196073 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00445816 anmax=0.02387589 anavg=0.00424486
+.....iter=1, diff=1.3377288656204070e-03
+.....iter=2, diff=2.8741359664839208e-04
+STEP=480 t=9.56000000 dt=0.02000000 ta=9.58000000 dta=0.02000000
+it=0 dxmax=0.03193362 anmax=0.00000000 anavg=0.00000000
+dump t=9.60000000 to partit.96.csv
+it=49 dxmax=0.00366074 anmax=0.02301143 anavg=0.00422019
+.....iter=1, diff=1.3326276293121233e-03
+.....iter=2, diff=2.8564582570553320e-04
+STEP=481 t=9.58000000 dt=0.02000000 ta=9.60000000 dta=0.02000000
+it=0 dxmax=0.03193657 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00399488 anmax=0.02188808 anavg=0.00427495
+.....iter=1, diff=1.3079080068263455e-03
+.....iter=2, diff=2.8019978099583118e-04
+Dump n=96 t=9.6 target=9.6
+Dump 97: format=vtk
+STEP=482 t=9.60000000 dt=0.02000000 ta=9.62000000 dta=0.02000000
+it=0 dxmax=0.03197824 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00350606 anmax=0.02047286 anavg=0.00436386
+.....iter=1, diff=1.2618046639260271e-03
+.....iter=2, diff=2.6997857888210711e-04
+STEP=483 t=9.62000000 dt=0.02000000 ta=9.64000000 dta=0.02000000
+it=0 dxmax=0.03206581 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00321806 anmax=0.02148446 anavg=0.00449073
+.....iter=1, diff=1.1936068227627796e-03
+.....iter=2, diff=2.5507831201036855e-04
+STEP=484 t=9.64000000 dt=0.02000000 ta=9.66000000 dta=0.02000000
+it=0 dxmax=0.03397282 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00479752 anmax=0.04532313 anavg=0.00497316
+.....iter=1, diff=1.2635965690826069e-03
+.....iter=2, diff=2.8721031292346132e-04
+STEP=485 t=9.66000000 dt=0.02000000 ta=9.68000000 dta=0.02000000
+it=0 dxmax=0.03363343 anmax=0.00000000 anavg=0.00000000
+dump t=9.70000000 to partit.97.csv
+it=49 dxmax=0.00471607 anmax=0.04738344 anavg=0.00532832
+.....iter=1, diff=1.6667898208015722e-03
+.....iter=2, diff=3.6741849813351528e-04
+STEP=486 t=9.68000000 dt=0.02000000 ta=9.70000000 dta=0.02000000
+it=0 dxmax=0.03315176 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00463538 anmax=0.04519086 anavg=0.00513519
+.....iter=1, diff=1.9658901066588580e-03
+.....iter=2, diff=4.0977709240826063e-04
+Dump n=97 t=9.7 target=9.7
+Dump 98: format=vtk
+STEP=487 t=9.70000000 dt=0.02000000 ta=9.72000000 dta=0.02000000
+it=0 dxmax=0.03350445 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00379862 anmax=0.03488299 anavg=0.00496254
+.....iter=1, diff=1.9307926845344907e-03
+.....iter=2, diff=4.0515345809696526e-04
+STEP=488 t=9.72000000 dt=0.02000000 ta=9.74000000 dta=0.02000000
+it=0 dxmax=0.03320130 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00384186 anmax=0.03952525 anavg=0.00489211
+.....iter=1, diff=1.7782603720002926e-03
+.....iter=2, diff=3.7500842247193441e-04
+STEP=489 t=9.74000000 dt=0.02000000 ta=9.76000000 dta=0.02000000
+it=0 dxmax=0.03268890 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00398956 anmax=0.03749534 anavg=0.00494303
+.....iter=1, diff=1.5810571692603599e-03
+.....iter=2, diff=3.3537474658470768e-04
+STEP=490 t=9.76000000 dt=0.02000000 ta=9.78000000 dta=0.02000000
+it=0 dxmax=0.03152153 anmax=0.00000000 anavg=0.00000000
+dump t=9.80000000 to partit.98.csv
+it=49 dxmax=0.00387030 anmax=0.03593272 anavg=0.00494455
+.....iter=1, diff=1.3857157274555544e-03
+.....iter=2, diff=3.0310055947063350e-04
+STEP=491 t=9.78000000 dt=0.02000000 ta=9.80000000 dta=0.02000000
+it=0 dxmax=0.03120781 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00380410 anmax=0.03569723 anavg=0.00502873
+.....iter=1, diff=1.5838688256846658e-03
+.....iter=2, diff=3.3755538311272022e-04
+Dump n=98 t=9.8 target=9.8
+STEP=492 t=9.80000000 dt=0.02000000 ta=9.82000000 dta=0.02000000
+Dump 99: format=vtk
+it=0 dxmax=0.03139930 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00371669 anmax=0.03499099 anavg=0.00485166
+.....iter=1, diff=1.5984107297935056e-03
+.....iter=2, diff=3.8396828063536401e-04
+STEP=493 t=9.82000000 dt=0.02000000 ta=9.84000000 dta=0.02000000
+it=0 dxmax=0.03078853 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00364483 anmax=0.03499237 anavg=0.00505376
+.....iter=1, diff=1.7482269574989257e-03
+.....iter=2, diff=3.9258055224991660e-04
+STEP=494 t=9.84000000 dt=0.02000000 ta=9.86000000 dta=0.02000000
+it=0 dxmax=0.03081210 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00373003 anmax=0.03340504 anavg=0.00513787
+.....iter=1, diff=1.5804233251935935e-03
+.....iter=2, diff=3.5655339948935892e-04
+STEP=495 t=9.86000000 dt=0.02000000 ta=9.88000000 dta=0.02000000
+it=0 dxmax=0.03059017 anmax=0.00000000 anavg=0.00000000
+dump t=9.90000000 to partit.99.csv
+it=49 dxmax=0.00374901 anmax=0.03189649 anavg=0.00507072
+.....iter=1, diff=1.3498468135527669e-03
+.....iter=2, diff=3.0717863000534918e-04
+STEP=496 t=9.88000000 dt=0.02000000 ta=9.90000000 dta=0.02000000
+it=0 dxmax=0.03034513 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00359358 anmax=0.03032514 anavg=0.00502300
+.....iter=1, diff=1.3952985467157503e-03
+.....iter=2, diff=2.9613226688310996e-04
+Dump n=99 t=9.9 target=9.9
+Dump 100: format=vtk
+STEP=497 t=9.90000000 dt=0.02000000 ta=9.92000000 dta=0.02000000
+it=0 dxmax=0.03013050 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00366907 anmax=0.02893103 anavg=0.00499786
+.....iter=1, diff=1.3993493283711335e-03
+.....iter=2, diff=2.9477174283976495e-04
+STEP=498 t=9.92000000 dt=0.02000000 ta=9.94000000 dta=0.02000000
+it=0 dxmax=0.02993905 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00360063 anmax=0.02771843 anavg=0.00494738
+.....iter=1, diff=1.3003598143644271e-03
+.....iter=2, diff=2.8586778465881555e-04
+STEP=499 t=9.94000000 dt=0.02000000 ta=9.96000000 dta=0.02000000
+it=0 dxmax=0.02976520 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00336645 anmax=0.03287239 anavg=0.00509162
+.....iter=1, diff=1.5267653594462809e-03
+.....iter=2, diff=3.2657781113811841e-04
+STEP=500 t=9.96000000 dt=0.02000000 ta=9.98000000 dta=0.02000000
+it=0 dxmax=0.02961879 anmax=0.00000000 anavg=0.00000000
+dump t=10.00000000 to partit.100.csv
+it=49 dxmax=0.00335865 anmax=0.03187779 anavg=0.00512659
+.....iter=1, diff=1.4274210924137623e-03
+.....iter=2, diff=3.0991478070421677e-04
+STEP=501 t=9.98000000 dt=0.02000000 ta=10.00000000 dta=0.02000000
+it=0 dxmax=0.02947941 anmax=0.00000000 anavg=0.00000000
+it=49 dxmax=0.00337050 anmax=0.03085096 anavg=0.00508085
+.....iter=1, diff=1.2313791338850544e-03
+.....iter=2, diff=2.6852818465215341e-04
+Dump n=100 t=10 target=10
+Dump 101: format=vtk
+other
+0.00233 s = 0.005%
+last
+0.00001 s = 0.000%
+run:00:init --> init:00:pfixed-reduce
+0.00013 s = 0.000%
+run:00:init --> init:01:fields
+0.00330 s = 0.006%
+run:00:init --> init:02:smooth
+0.00006 s = 0.000%
+run:00:init --> init:03:mixture --> mixture:00:init
+0.00062 s = 0.001%
+run:00:init --> init:03:mixture --> mixture:01:smooth
+0.00002 s = 0.000%
+run:00:init --> init:03:mixture --> mixture:02:calc
+0.00086 s = 0.002%
+run:00:init --> init:04:solv
+0.01152 s = 0.023%
+run:01:dump
+0.00437 s = 0.009%
+run:02:dumpwrite
+0.00001 s = 0.000%
+run:04:loop-check
+0.01844 s = 0.036%
+run:05:as-steps --> steps:01:start --> start:00:rotate
+0.02163 s = 0.042%
+run:05:as-steps --> steps:01:start --> start:01:reconst
+0.00301 s = 0.006%
+run:05:as-steps --> steps:01:start --> start:01:reconst --> reconst:00:height
+0.00427 s = 0.008%
+run:05:as-steps --> steps:02:iter --> iter:00:init
+0.01389 s = 0.027%
+run:05:as-steps --> steps:02:iter --> iter:01:adv
+0.33143 s = 0.651%
+run:05:as-steps --> steps:02:iter --> iter:02:reconst --> reconst:00:height
+1.52647 s = 2.997%
+run:05:as-steps --> steps:02:iter --> iter:03:adv
+0.35489 s = 0.697%
+run:05:as-steps --> steps:02:iter --> iter:04:reconst --> reconst:00:height
+1.46663 s = 2.880%
+run:05:as-steps --> steps:02:iter --> iter:05:curvcomm
+0.21749 s = 0.427%
+run:05:as-steps --> steps:02:iter --> iter:06:part-comma
+0.85222 s = 1.673%
+run:05:as-steps --> steps:02:iter --> iter:07:part
+2.40871 s = 4.730%
+run:05:as-steps --> steps:02:iter --> iter:08:stat
+0.01141 s = 0.022%
+run:05:as-steps --> steps:03:finish
+0.01014 s = 0.020%
+run:05:as-steps --> steps:04:convcheck
+0.00265 s = 0.005%
+run:06:mixture --> mixture:00:init
+0.04026 s = 0.079%
+run:06:mixture --> mixture:01:smooth
+0.00327 s = 0.006%
+run:06:mixture --> mixture:02:calc
+0.78688 s = 1.545%
+run:07:stat --> stat:00:local
+0.02925 s = 0.057%
+run:07:stat --> stat:01:reduce
+0.00330 s = 0.006%
+run:07:stat --> stat:02:dt-local
+0.01536 s = 0.030%
+run:07:stat --> stat:03:dt-reduce
+0.00288 s = 0.006%
+run:08:events
+0.00150 s = 0.003%
+run:09:fs-start --> fluid-start:00:convdiff-init
+0.00920 s = 0.018%
+run:09:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:00:dir-init
+0.00404 s = 0.008%
+run:09:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:01:dir-start
+0.01531 s = 0.030%
+run:09:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:02:dir-init
+0.00271 s = 0.005%
+run:09:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:03:dir-start
+0.01483 s = 0.029%
+run:09:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:04:dir-init
+0.00246 s = 0.005%
+run:09:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:05:dir-start
+0.01407 s = 0.028%
+run:09:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:06:tovect
+0.03370 s = 0.066%
+run:09:fs-start --> fluid-start:02:convdiff-start
+0.02615 s = 0.051%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:00:init
+0.26103 s = 0.513%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:01:bc-inletflux --> inletflux:00:local
+0.01501 s = 0.029%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:01:bc-inletflux --> inletflux:01:corr
+0.00638 s = 0.013%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:02:bc-outlet --> outlet:00:local
+0.01619 s = 0.032%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:02:bc-outlet --> outlet:01:corr
+0.00724 s = 0.014%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:03:bc-derived
+0.00637 s = 0.013%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:04:forceinit --> extforce:00:loc
+1.68690 s = 3.312%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:04:forceinit --> extforce:01:copy
+0.55388 s = 1.088%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:05:forceinit
+0.07440 s = 0.146%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:06:explvisc
+2.56714 s = 5.041%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:07:pgrad
+0.39914 s = 0.784%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:00:copy
+0.20539 s = 0.403%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:01:one --> assemble:00:assemble
+2.59670 s = 5.099%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:02:one --> assemble:00:assemble
+2.54435 s = 4.996%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:03:one --> assemble:00:assemble
+2.44246 s = 4.796%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:01:diag --> diag:00:local
+0.59022 s = 1.159%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:01:diag --> diag:01:interp
+0.21854 s = 0.429%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:02:eval
+1.59304 s = 3.128%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:03:assemble
+1.14908 s = 2.256%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:04:pcorr-solve --> solve:00:solve
+3.56214 s = 6.995%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:04:pcorr-solve --> solve:01:copy
+0.51551 s = 1.012%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:05:apply
+0.85914 s = 1.687%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:09:pgrad
+0.32556 s = 0.639%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:00:source
+0.08736 s = 0.172%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:00:init
+0.02604 s = 0.051%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
+2.30512 s = 4.526%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
+1.17907 s = 2.315%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
+0.03099 s = 0.061%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:03:apply
+0.49508 s = 0.972%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:00:init
+0.02647 s = 0.052%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
+2.11790 s = 4.159%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
+1.11419 s = 2.188%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
+0.02880 s = 0.057%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:03:apply
+0.47144 s = 0.926%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:00:init
+0.02584 s = 0.051%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
+1.97455 s = 3.877%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
+0.81715 s = 1.605%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
+0.02469 s = 0.048%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:03:apply
+0.46779 s = 0.919%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:04:tovect
+0.12130 s = 0.238%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:11:diag --> diag:00:local
+0.53594 s = 1.052%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:11:diag --> diag:01:interp
+0.19410 s = 0.381%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:12:pcorr-assemble
+1.21825 s = 2.392%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:13:pcorr-solve --> solve:00:solve
+3.46916 s = 6.812%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:13:pcorr-solve --> solve:01:copy
+0.51510 s = 1.011%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:14:pcorr-apply
+0.60784 s = 1.194%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:00:dir-corr --> corr:00:apply
+0.52772 s = 1.036%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:01:dir-corr --> corr:00:apply
+0.51028 s = 1.002%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:02:dir-corr --> corr:00:apply
+0.50278 s = 0.987%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:03:tovect
+0.07209 s = 0.142%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:16:inc-iter
+0.00651 s = 0.013%
+run:10:fs-iters --> iter:02:reduce
+0.02144 s = 0.042%
+run:10:fs-iters --> iter:03:report
+0.08644 s = 0.170%
+run:10:fs-iters --> iter:04:convcheck
+0.00877 s = 0.017%
+run:11:fs-finish --> fluid-finish:00:inctime
+0.08277 s = 0.163%
+run:11:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:00:dir-finish
+0.03060 s = 0.060%
+run:11:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:01:dir-finish
+0.02786 s = 0.055%
+run:11:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:02:dir-finish
+0.02870 s = 0.056%
+run:11:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:03:tovect
+0.09284 s = 0.182%
+run:12:dump
+0.56675 s = 1.113%
+run:13:dumpwrite
+0.00493 s = 0.010%
+run:14:dumpstat
+0.03548 s = 0.070%
+
+cells = 1024
+steps = 1000000
+iters = 1170
+total = 50 s = 00:00:50.927
+time/cell/iter = 4.25077e-05 s
+
+real	0m51.204s
+user	0m47.579s
+sys	0m0.574s
