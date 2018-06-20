@@ -140,28 +140,32 @@ CreateInitU(Vars& par) {
         }
         return 1. - xd.sqrnorm();
       };
-      for (auto c : m.Cells()) {
-        auto x = m.GetCenter(c);
-        // find particle with largest value of level-set
-        Scal fm = -std::numeric_limits<Scal>::max(); 
-        size_t im; // index of particle
-        for (size_t i = 0; i < pp.size(); ++i) {
-          auto& p = pp[i];
-          Scal fi = f((x - p.c) / p.r);
-          if (fi > fm) {
-            fm = fi;
-            im = i;
+      if (pp.empty()) {
+        fc.Reinit(m, 0.);
+      } else {
+        for (auto c : m.Cells()) {
+          auto x = m.GetCenter(c);
+          // find particle with largest value of level-set
+          Scal fm = -std::numeric_limits<Scal>::max(); 
+          size_t im; // index of particle
+          for (size_t i = 0; i < pp.size(); ++i) {
+            auto& p = pp[i];
+            Scal fi = f((x - p.c) / p.r);
+            if (fi > fm) {
+              fm = fi;
+              im = i;
+            }
           }
-        }
-        // cell size
-        Vect h = m.GetNode(m.GetNeighbourNode(c, 7)) - 
-            m.GetNode(m.GetNeighbourNode(c, 0));
-        // volume fraction
-        auto& p = pp[im];
-        if (ls) {
-          fc[c] = GetLevelSetVolume<Scal>(f, (x - p.c) / p.r, h / p.r);
-        } else {
-          fc[c] = (fm >= 0. ? 1. : 0.);
+          // cell size
+          Vect h = m.GetNode(m.GetNeighbourNode(c, 7)) - 
+              m.GetNode(m.GetNeighbourNode(c, 0));
+          // volume fraction
+          auto& p = pp[im];
+          if (ls) {
+            fc[c] = GetLevelSetVolume<Scal>(f, (x - p.c) / p.r, h / p.r);
+          } else {
+            fc[c] = (fm >= 0. ? 1. : 0.);
+          }
         }
       }
     };
