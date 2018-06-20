@@ -41,6 +41,7 @@ class Local : public DistrMesh<KF> {
   using P::comm_;
   using P::ext_;
   using P::frame_;
+  using P::dim;
 
   std::vector<FieldCell<Scal>> buf_; // buffer on mesh
   M gm; // global mesh
@@ -195,45 +196,57 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
 
   for (size_t i = 0; i < vf.size(); ++i) {
     if (OpS* o = dynamic_cast<OpS*>(vf[i].get())) {
+      // Reduction on Scal
+      
       auto r = o->Neut(); // result
 
-      // Reduce over all blocks on current rank
+      // Reduce over all blocks 
       for (auto& b : bb) {
         auto& v = mk.at(b)->GetMesh().GetReduce(); 
         OpS* ob = dynamic_cast<OpS*>(v[i].get());
         ob->Append(r);
       }
 
-      // Write results to all blocks on current rank
+      // Write results to all blocks 
       for (auto& b : bb) {
         auto& v = mk.at(b)->GetMesh().GetReduce(); 
         OpS* ob = dynamic_cast<OpS*>(v[i].get());
         ob->Set(r);
       }
     } else if (OpSI* o = dynamic_cast<OpSI*>(vf[i].get())) {
+      // Reduction on std::pair<Scal, int>
+      
       auto r = o->Neut(); // result
 
-      // Reduce over all blocks on current rank
+      // Reduce over all blocks 
       for (auto& b : bb) {
         auto& v = mk.at(b)->GetMesh().GetReduce(); 
         OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
         ob->Append(r);
       }
 
-      // Write results to all blocks on current rank
+      // Write results to all blocks 
       for (auto& b : bb) {
         auto& v = mk.at(b)->GetMesh().GetReduce(); 
         OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
         ob->Set(r);
       }
     } else if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
+      // Concatenation of std::vector<T>
+      
       auto r = o->Neut(); // result
 
-      // Reduce over all blocks on current rank
-      for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce(); 
-        OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
-        ob->Append(r);
+      GBlock<size_t, dim> qp(p_); 
+      GBlock<size_t, dim> qb(b_); 
+
+      // Reduce over all blocks 
+      for (auto wp : qp) { // same ordering as with Cubism
+        for (auto wb : qb) {
+          auto w = b_ * wp + wb;
+          auto& v = mk.at(w)->GetMesh().GetReduce(); 
+          OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
+          ob->Append(r);
+        }
       }
 
       // Write results to root block 

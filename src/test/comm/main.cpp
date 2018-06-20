@@ -184,6 +184,8 @@ void Simple<M>::TestReduce() {
   MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
   // TODO: could be size_t instead of IdxCell, but needed for GetMIdx
   GBlock<IdxCell, dim> bb(p * b); 
+  GBlock<IdxCell, dim> qp(p); 
+  GBlock<IdxCell, dim> qb(b); 
   auto f = [](MIdx w) {
     return std::sin(w[0]+1.7) * std::cos(w[1]) * std::exp(w[2]); 
   };
@@ -274,8 +276,11 @@ void Simple<M>::TestReduce() {
   }
   if (sem("cat-check")) {
     std::vector<Scal> rvs;
-    for (auto w : bb) {
-      rvs.push_back(bb.GetIdx(w).GetRaw());
+    for (auto wp : qp) {
+      for (auto wb : qb) {
+        auto w = b * wp + wb;
+        rvs.push_back(bb.GetIdx(w).GetRaw());
+      }
     }
     if (m.IsRoot()) {
       PCMP(rvs_, rvs);
@@ -294,10 +299,13 @@ void Simple<M>::TestReduce() {
   }
   if (sem("cati-check")) {
     std::vector<int> rvi;
-    for (auto w : bb) {
-      size_t i = bb.GetIdx(w).GetRaw();
-      for (size_t j = 0; j < i % q; ++j) {
-        rvi.push_back(q * i + j);
+    for (auto wp : qp) {
+      for (auto wb : qb) {
+        auto w = b * wp + wb;
+        size_t i = bb.GetIdx(w).GetRaw();
+        for (size_t j = 0; j < i % q; ++j) {
+          rvi.push_back(q * i + j);
+        }
       }
     }
     if (m.IsRoot()) {
