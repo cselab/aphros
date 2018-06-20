@@ -416,6 +416,7 @@ void Hydro<M>::Init() {
         p->part_n = var.Int["part_n"];
         p->part_k = var.Int["part_k"];
         p->dim = var.Int["dim"];
+        p->dumppoly = var.Int["dumppoly"];
         p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
         as_.reset(new AS(
               m, fc_vf_, mf_cond_, 

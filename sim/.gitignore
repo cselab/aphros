@@ -15,3 +15,5 @@ job.id.last
 job.id
 *.dat
 */base.conf
+s*.vtk
+partit*.csv
