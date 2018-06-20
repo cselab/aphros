@@ -1,6 +1,0 @@
-#!/bin/bash -l
-
-rm -vf *.{png}
-rm -vf *.{bin,log}
-rm -vf lsf.o*
-rm -vf out job.id.last job.status pid arg
