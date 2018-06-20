@@ -239,14 +239,6 @@ void Advection<M>::Dump(Sem& sem) {
             for (auto c : gm.Cells()) {
               if (0.5 - std::abs(u[c] - 0.5) > 1e-3) {
                 Vect n(nx[c], ny[c], nz[c]);
-                /*
-                auto ee = solver::GetLineEnds(n, a[c], h);
-                Vect ea = ee[0];
-                Vect eb = ee[1];
-                auto xc = gm.GetCenter(c);
-                Vect dz(0.,0.,h[2]*0.5);
-                vv.push_back({xc+ea-dz, xc+eb-dz, xc+eb+dz, xc+ea+dz});
-                */
                 vv.push_back(solver::GetCutPoly(gm.GetCenter(c), n, a[c], h));
               }
             }
@@ -350,12 +342,5 @@ void Main(MPI_Comm comm, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
-  //using Scal = double;
-  //using Vect = GVect<Scal, 3>;
-  //std::vector<std::vector<Vect>> vv{
-  //  {Vect(0.,0.,0.), Vect(1.,0.,0.), Vect(1.,1.,0.), Vect(0.,1.,0.)}
-  //};
-  //WriteVtkPoly(vv, "s.vtk", "comment");
-
   return RunMpi(argc, argv, Main);
 }
