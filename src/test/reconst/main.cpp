@@ -520,8 +520,6 @@ void TestLevelSet() {
 
 int main() {
   TestLevelSet();
-  return 0;
-
   TestNearest();
   TestFit();
   Plot();
