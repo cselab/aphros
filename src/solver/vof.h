@@ -864,6 +864,9 @@ class Vof : public AdvectionSolver<M_> {
   FieldCell<std::array<Scal, kNp * kNpp>> fcpw_; // cell list weight
   FieldCell<size_t> fcps_; // cell list size
 
+  std::vector<Vect> dpx_; // dump particles x
+  std::vector<size_t> dpc_; // dump particles cell
+
  public:
   struct Par {
     size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
@@ -933,27 +936,48 @@ class Vof : public AdvectionSolver<M_> {
     }
   }
   void DumpParticles(size_t it) {
-    // dump particles
+    auto sem = m.GetSem("partdump");
+
     auto fr = par->part_dump_fr;
     size_t d = std::max<size_t>(1, par->part_maxiter / fr);
-    if (m.IsRoot() && (fr > 1 && it % d == 0 || it + 1 == par->part_maxiter)) {
-      std::string st = "." + std::to_string(par->dmp->GetN());
-      std::string sit = fr > 1 ? "_" + std::to_string(it) : "";
-      std::string s = "partit" + st + sit + ".csv";
-      std::cout 
-          << "dump" 
-          << " t=" << this->GetTime() + this->GetTimeStep()
-          << " to " << s << std::endl;
-      std::ofstream o;
-      o.open(s);
-      o.precision(20);
-      o << "x,y,z,c\n";
+    if (fr > 1 && it % d == 0 || it + 1 == par->part_maxiter) {
+      if (sem("comm")) {
+        dpx_.clear();
+        dpc_.clear();
 
-      for (auto c : m.Cells()) {
-        for (size_t i = 0; i < fcps_[c]; ++i) {
-          Vect x = fcp_[c][i];
-          o << x[0] << "," << x[1] << "," << x[2] 
-              << "," << c.GetRaw() << "\n";
+        // copy to arrays  
+        for (auto c : m.Cells()) {
+          for (size_t i = 0; i < fcps_[c]; ++i) {
+            dpx_.push_back(fcp_[c][i]);
+            dpc_.push_back(c.GetRaw());
+          }
+        }
+
+        // comm
+        using TV = typename M::template OpCatT<Vect>;
+        using TI = typename M::template OpCatT<size_t>;
+        m.Reduce(std::make_shared<TV>(&dpx_));
+        m.Reduce(std::make_shared<TI>(&dpc_));
+      }
+      if (sem("write")) {
+        if (m.IsRoot()) {
+          std::string st = "." + std::to_string(par->dmp->GetN());
+          std::string sit = fr > 1 ? "_" + std::to_string(it) : "";
+          std::string s = "partit" + st + sit + ".csv";
+          std::cout 
+              << "dump" 
+              << " t=" << this->GetTime() + this->GetTimeStep()
+              << " to " << s << std::endl;
+          std::ofstream o;
+          o.open(s);
+          o.precision(20);
+          o << "x,y,z,c\n";
+
+          for (size_t i = 0; i < dpx_.size(); ++i) {
+            Vect x = dpx_[i];
+            o << x[0] << "," << x[1] << "," << x[2] 
+                << "," << dpc_[i] << "\n";
+          }
         }
       }
     }
@@ -1233,15 +1257,20 @@ class Vof : public AdvectionSolver<M_> {
       m.Comm(&fc_n_);
     }
 
-    if (sem("part")) {
-      SeedParticles(uc);
+    bool dm = par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
+                            this->GetTimeStep());
 
-      bool dm = par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
-                              this->GetTimeStep());
+    if (sem("part-seed")) {
+      SeedParticles(uc);
+    }
+
+    if (sem.Nested("part-dump0")) {
       if (dm) {
         DumpParticles(0);
       }
+    }
 
+    if (sem("part-advance")) {
       // particle strings
       std::vector<IdxCell> sc; // cell
       std::vector<Vect> xx; // particle positions
@@ -1415,7 +1444,8 @@ class Vof : public AdvectionSolver<M_> {
         }
 
         if (dm) {
-          DumpParticles(it + 1);
+          //// XXX: disable iter dump to avoid suspender loop
+          //DumpParticles(it + 1); 
         }
       }
 
@@ -1467,6 +1497,12 @@ class Vof : public AdvectionSolver<M_> {
             fc_n_[c] = (nm + np) * (-0.5);
           }
         }
+      }
+    }
+
+    if (sem.Nested("part-dumplast")) {
+      if (dm) {
+        DumpParticles(par->part_maxiter - 1);
       }
     }
   }
