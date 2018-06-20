@@ -191,6 +191,7 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
   }
 
   // TODO: Check operation is the same for all kernels
+  // TODO: avoid code duplication
 
   for (size_t i = 0; i < vf.size(); ++i) {
     if (OpS* o = dynamic_cast<OpS*>(vf[i].get())) {
@@ -226,13 +227,13 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
         ob->Set(r);
       }
     } else if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
-      auto r = o->Neut(); // result, empty vector<char>
+      auto r = o->Neut(); // result
 
       // Reduce over all blocks on current rank
       for (auto& b : bb) {
         auto& v = mk.at(b)->GetMesh().GetReduce(); 
         OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
-        ob->Append(r); // serialise internal vector<T>, append to r
+        ob->Append(r);
       }
 
       // Write results to root block 
@@ -241,7 +242,7 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
         if (m.IsRoot()) {
           auto& v = m.GetReduce(); 
           OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
-          ob->Set(r);  // deserialize r to internal vector<T>
+          ob->Set(r); 
         }
       }
     } else {

@@ -181,8 +181,9 @@ class Cubism : public DistrMesh<KF> {
   };
   S s_;
 
-  static StencilInfo GetStencil(int hl /*halo cells*/,
-                                int cs /*comm size*/) {
+  // hl: number of halo cells from each side
+  // cs: number of fields for communication
+  static StencilInfo GetStencil(int hl, int cs) {
     const int a = -hl;
     const int b = hl + 1;
     assert(cs <= Elem::es);
@@ -578,6 +579,7 @@ void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
   using Op = typename M::Op;
   using OpS = typename M::OpS;
   using OpSI = typename M::OpSI;
+  using OpCat = typename M::OpCat;
   auto& f = *mk.at(bb[0]); // first kernel
   auto& mf = f.GetMesh();
   auto& vf = mf.GetReduce();  // pointers to reduce
@@ -591,6 +593,7 @@ void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
   }
 
   // TODO: Check operation is the same for all kernels
+  // TODO: avoid code duplication
 
   for (size_t i = 0; i < vf.size(); ++i) {
     if (OpS* o = dynamic_cast<OpS*>(vf[i].get())) {
@@ -656,6 +659,68 @@ void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
         OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
         ob->Set(r);
       }
+    } else if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
+      std::vector<char> r = o->Neut(); // result local
+      
+      // Reduce over all local blocks
+      for (auto& b : bb) {
+        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
+        ob->Append(r);
+      }
+
+      int s = r.size(); // size local
+
+      if (isroot_) {
+        int sc; // size of communicator
+        MPI_Comm_size(comm_, &sc);
+
+        std::vector<int> ss(sc); // size of r on all ranks
+
+        // Gather ss
+        MPI_Gather(&s, 1, MPI_INT, 
+                   ss.data(), 1, MPI_INT, 
+                   0, comm_);
+
+
+        int sa = 0; // size all
+        std::vector<int> oo = {0}; // offsets
+        for (auto& q : ss) {
+          sa += q;
+          oo.push_back(oo.back() + q);
+        }
+        oo.pop_back();
+        assert(ss.size() == oo.size());
+
+        std::vector<char> ra(sa); // result all
+
+        // Gather ra
+        MPI_Gatherv(r.data(), r.size(), MPI_CHAR,
+                    ra.data(), ss.data(), oo.data(), MPI_CHAR,
+                    0, comm_);
+       
+        // Write results to root block 
+        size_t cnt = 0;
+        for (auto& b : bb) {
+          auto& m = mk.at(b)->GetMesh();
+          if (m.IsRoot()) {
+            auto& v = m.GetReduce(); 
+            OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
+            ob->Set(ra);
+            ++cnt;
+          }
+        }
+        assert(cnt == 1);
+      } else {
+        // Send s to root
+        MPI_Gather(&s, 1, MPI_INT, nullptr, 0, MPI_INT, 0, comm_);
+
+        // Send r to root
+        MPI_Gatherv(r.data(), r.size(), MPI_CHAR,
+                    nullptr, nullptr, nullptr, MPI_CHAR,
+                    0, comm_);
+      }
+
     } else {
       throw std::runtime_error("Reduce: Unknown M::Op implementation");
     }
