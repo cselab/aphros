@@ -2,6 +2,7 @@
 
 #include <string>
 #include <fstream>
+#include <vector>
 
 #include "geom/block.h"
 #include "geom/field.h"
@@ -28,3 +29,4 @@ void Dump(const FieldCell<Scal>& u, const B& b, std::string op) {
 
   o << std::endl;
 }
+
