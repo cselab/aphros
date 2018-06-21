@@ -110,6 +110,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     p->part_maxiter = var.Int["part_maxiter"];
     p->part_n = var.Int["part_n"];
     p->part_k = var.Int["part_k"];
+    p->part_intth = var.Double["part_intth"];
+    p->clipth = var.Double["clipth"];
     p->dim = var.Int["dim"];
     p->dumppoly = var.Int["dumppoly"];
   }
