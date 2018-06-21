@@ -10,7 +10,7 @@ bool Dumper::Try(double t, double dt) {
     return true;
   }
   if (double* t0 = var.Double(pre_ + "t0")) {
-    if (t < *t0) {
+    if (t < *t0 - dt * 0.5) {
       return false;
     }
   }

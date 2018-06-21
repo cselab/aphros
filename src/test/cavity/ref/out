@@ -1,7 +1,7 @@
 Loading config from 'aloc.conf'
 
 === config begin ===
-set string advection_solver tvd
+set string advection_solver vof
 set string bc_xm wall 0 0 0
 set string bc_xp wall 0 0 0
 set string bc_ym wall 0 0 0
@@ -11,9 +11,10 @@ set string dumpformat plain
 set string ev0 1 set double tol 1e-5
 set string hypre_gen_solver gmres
 set string hypre_symm_solver pcg
+set string init_vf zero
+set string list_path b.dat
 set string surftens kn
 set string vel_init zero
-set string vf_init zero
 set int bsx 8
 set int bsy 8
 set int bsz 2
@@ -25,8 +26,10 @@ set int comm_size 8
 set int curvgrad 0
 set int dim 2
 set int dump_field_max 10000
-set int dump_part_max 100
+set int dump_part_max 1000
 set int dump_stat_max 1000000
+set int dumpinit 0
+set int dumppoly 1
 set int enable_advection 0
 set int enable_fluid 1
 set int enable_surftens 0
@@ -39,16 +42,17 @@ set int hypre_periodic_z 1
 set int hypre_print 0
 set int hypre_symm_maxiter 1000
 set int inletflux_numid 1
+set int list_ls 1
 set int loc 1
 set int max_iter 5
 set int max_step 1000000
 set int min_iter 1
 set int normalnode 0
 set int output 1
-set int part 0
+set int part 1
 set int part_bendmean 1
 set int part_dump_fr 1
-set int part_k 0
+set int part_k 1
 set int part_maxiter 50
 set int part_n 0
 set int part_report_fr 1
@@ -62,14 +66,14 @@ set int verbose 0
 set int verbose_stages 1
 set int vf_init_sm 0
 set int vfsmooth 0
-set double cfla 0.3
+set double cfla 0.5
 set double convdf 1
 set double dt0 1e+10
 set double dtmax 1e+10
 set double dump_field_dt 2e+10
-set double dump_field_t0 1e+10
-set double dump_part_dt 1e+10
-set double dump_part_t0 1e+10
+set double dump_field_t0 2e+10
+set double dump_part_dt 1
+set double dump_part_t0 0
 set double dump_stat_dt 0
 set double extent 1
 set double hypre_tol 1e-10
@@ -87,6 +91,7 @@ set double rho1 1
 set double rho2 1
 set double sharp 0
 set double sharpo 0
+set double sigma 0
 set double stdiag 1
 set double tmax 2e+10
 set double tol 0.0001
@@ -117,210 +122,216 @@ Found events:
 =====
 ev0 1 set double tol 1e-5
 =====
-STEP=1 t=0.00000000 dt=10000000000.00000000 ta=0.00000000 dta=10000000000.00000000
+STEP=0 t=0.00000000 dt=10000000000.00000000 ta=0.00000000 dta=10000000000.00000000
 .....iter=1, diff=6.1191338582371313e-01
 .....iter=2, diff=2.9617739153490841e-01
 .....iter=3, diff=1.8030818366558252e-01
 .....iter=4, diff=1.3642703744068271e-01
 .....iter=5, diff=1.0632359170744840e-01
-STEP=2 t=0.00000000 dt=10000000000.00000000 ta=0.00000000 dta=10000000000.00000000
 Event at t=1.00000000: set double tol 1e-5
+STEP=1 t=10000000000.00000000 dt=10000000000.00000000 ta=0.00000000 dta=20000000000.00000000
 .....iter=1, diff=1.0410929179110730e-01
 .....iter=2, diff=1.0950081991832658e-01
 .....iter=3, diff=9.7912628617511002e-02
 .....iter=4, diff=9.0687585108875091e-02
 .....iter=5, diff=7.6843664668822600e-02
-Dump n=0 t=1e+10 target=0
+Dump n=0 t=2e+10 target=0
+STEP=2 t=20000000000.00000000 dt=10000000000.00000000 ta=0.00000000 dta=30000000000.00000000
 Dump 0: format=plain
+.....iter=1, diff=6.8834106706472845e-02
+.....iter=2, diff=5.9940882018079636e-02
+.....iter=3, diff=5.5711176858979930e-02
+.....iter=4, diff=5.3733972558063198e-02
+.....iter=5, diff=4.9288531181720295e-02
 other
-0.00003 s = 0.002%
+0.00004 s = 0.002%
 last
-0.00007 s = 0.005%
+0.00004 s = 0.001%
 run:00:init --> init:00:pfixed-reduce
-0.00007 s = 0.004%
+0.00023 s = 0.009%
 run:00:init --> init:01:fields
-0.00520 s = 0.335%
+0.00752 s = 0.300%
 run:00:init --> init:02:smooth
-0.00004 s = 0.003%
+0.00005 s = 0.002%
 run:00:init --> init:03:mixture --> mixture:00:init
-0.00070 s = 0.045%
+0.00077 s = 0.031%
 run:00:init --> init:03:mixture --> mixture:01:smooth
-0.00005 s = 0.003%
+0.00005 s = 0.002%
 run:00:init --> init:03:mixture --> mixture:02:calc
-0.00128 s = 0.083%
+0.00133 s = 0.053%
 run:00:init --> init:04:solv
-0.01019 s = 0.655%
-run:01:dump
-0.00003 s = 0.002%
-run:02:dumpwrite
-0.00002 s = 0.001%
-run:04:loop-check
-0.00033 s = 0.021%
+0.01526 s = 0.609%
+run:02:events
+0.00040 s = 0.016%
+run:03:loop-check
+0.00025 s = 0.010%
+run:04:updatepar
+0.00039 s = 0.016%
 run:05:mixture --> mixture:00:init
-0.00050 s = 0.032%
+0.00389 s = 0.155%
 run:05:mixture --> mixture:01:smooth
-0.00008 s = 0.005%
+0.00017 s = 0.007%
 run:05:mixture --> mixture:02:calc
-0.00274 s = 0.176%
+0.00580 s = 0.232%
 run:06:stat --> stat:00:local
-0.00039 s = 0.025%
+0.00086 s = 0.034%
 run:06:stat --> stat:01:reduce
-0.00006 s = 0.004%
-run:06:stat --> stat:02:dt-local
-0.00019 s = 0.012%
-run:06:stat --> stat:03:dt-reduce
-0.00007 s = 0.004%
-run:07:events
-0.00014 s = 0.009%
-run:08:fs-start --> fluid-start:00:convdiff-init
-0.00020 s = 0.013%
-run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:00:dir-init
-0.00012 s = 0.008%
-run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:01:dir-start
-0.00028 s = 0.018%
-run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:02:dir-init
-0.00021 s = 0.014%
-run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:03:dir-start
-0.00051 s = 0.033%
-run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:04:dir-init
-0.00012 s = 0.008%
-run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:05:dir-start
-0.00030 s = 0.020%
-run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:06:tovect
-0.00044 s = 0.028%
-run:08:fs-start --> fluid-start:02:convdiff-start
-0.00050 s = 0.032%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:00:init
-0.00804 s = 0.517%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:01:bc-inletflux --> inletflux:00:local
-0.00205 s = 0.132%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:01:bc-inletflux --> inletflux:01:corr
-0.00139 s = 0.089%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:02:bc-outlet --> outlet:00:local
-0.00192 s = 0.124%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:02:bc-outlet --> outlet:01:corr
-0.00118 s = 0.076%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:03:bc-derived
-0.00258 s = 0.166%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:04:forceinit --> extforce:00:loc
-0.02685 s = 1.726%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:04:forceinit --> extforce:01:copy
-0.00716 s = 0.460%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:05:forceinit
-0.00113 s = 0.073%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:06:explvisc
-0.03070 s = 1.974%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:07:pgrad
-0.00861 s = 0.553%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:00:copy
-0.00293 s = 0.188%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:01:one --> assemble:00:assemble
-0.03992 s = 2.567%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:02:one --> assemble:00:assemble
-0.04251 s = 2.734%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:03:one --> assemble:00:assemble
-0.04886 s = 3.142%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:01:diag --> diag:00:local
-0.01376 s = 0.885%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:01:diag --> diag:01:interp
-0.00880 s = 0.566%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:02:eval
-0.02991 s = 1.923%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:03:assemble
-0.01487 s = 0.956%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:04:pcorr-solve --> solve:00:solve
-0.35839 s = 23.044%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:04:pcorr-solve --> solve:01:copy
-0.00883 s = 0.568%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:05:apply
-0.01593 s = 1.024%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:09:pgrad
-0.00746 s = 0.480%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:00:source
-0.00150 s = 0.097%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:00:init
-0.00095 s = 0.061%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
-0.03288 s = 2.114%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
-0.11224 s = 7.217%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
-0.00205 s = 0.132%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:03:apply
-0.00913 s = 0.587%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:00:init
-0.00115 s = 0.074%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
-0.03703 s = 2.381%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
-0.11547 s = 7.425%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
-0.00133 s = 0.086%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:03:apply
-0.00861 s = 0.553%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:00:init
-0.00097 s = 0.062%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
-0.03488 s = 2.243%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
-0.02509 s = 1.613%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
-0.00127 s = 0.082%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:03:apply
-0.00901 s = 0.579%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:04:tovect
-0.00203 s = 0.130%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:11:diag --> diag:00:local
-0.01026 s = 0.660%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:11:diag --> diag:01:interp
-0.00558 s = 0.359%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:12:pcorr-assemble
-0.02040 s = 1.312%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:13:pcorr-solve --> solve:00:solve
-0.35278 s = 22.683%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:13:pcorr-solve --> solve:01:copy
-0.01007 s = 0.648%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:14:pcorr-apply
-0.01198 s = 0.770%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:00:dir-corr --> corr:00:apply
-0.00949 s = 0.610%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:01:dir-corr --> corr:00:apply
-0.00894 s = 0.575%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:02:dir-corr --> corr:00:apply
-0.00905 s = 0.582%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:03:tovect
-0.00113 s = 0.073%
-run:09:fs-iters --> iter:01:iter --> fluid-iter:16:inc-iter
-0.00047 s = 0.030%
-run:09:fs-iters --> iter:02:reduce
-0.00058 s = 0.037%
-run:09:fs-iters --> iter:03:report
-0.00101 s = 0.065%
-run:09:fs-iters --> iter:04:convcheck
-0.00066 s = 0.043%
-run:10:fs-finish --> fluid-finish:00:inctime
-0.00048 s = 0.031%
-run:10:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:00:dir-finish
-0.00033 s = 0.021%
-run:10:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:01:dir-finish
-0.00033 s = 0.021%
-run:10:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:02:dir-finish
-0.00036 s = 0.023%
-run:10:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:03:tovect
-0.00080 s = 0.051%
+0.00017 s = 0.007%
+run:07:fs-start --> fluid-start:00:convdiff-init
+0.00030 s = 0.012%
+run:07:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:00:dir-init
+0.00028 s = 0.011%
+run:07:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:01:dir-start
+0.00053 s = 0.021%
+run:07:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:02:dir-init
+0.00024 s = 0.009%
+run:07:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:03:dir-start
+0.00056 s = 0.022%
+run:07:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:04:dir-init
+0.00027 s = 0.011%
+run:07:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:05:dir-start
+0.00047 s = 0.019%
+run:07:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:06:tovect
+0.00070 s = 0.028%
+run:07:fs-start --> fluid-start:02:convdiff-start
+0.00070 s = 0.028%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:00:init
+0.01354 s = 0.540%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:01:bc-inletflux --> inletflux:00:local
+0.00376 s = 0.150%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:01:bc-inletflux --> inletflux:01:corr
+0.00272 s = 0.109%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:02:bc-outlet --> outlet:00:local
+0.00329 s = 0.131%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:02:bc-outlet --> outlet:01:corr
+0.00236 s = 0.094%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:03:bc-derived
+0.00607 s = 0.242%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:04:forceinit --> extforce:00:loc
+0.04881 s = 1.948%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:04:forceinit --> extforce:01:copy
+0.01318 s = 0.526%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:05:forceinit
+0.00174 s = 0.069%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:06:explvisc
+0.04365 s = 1.742%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:07:pgrad
+0.01241 s = 0.495%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:00:copy
+0.00448 s = 0.179%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:01:one --> assemble:00:assemble
+0.06451 s = 2.575%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:02:one --> assemble:00:assemble
+0.06195 s = 2.473%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:03:one --> assemble:00:assemble
+0.07219 s = 2.881%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:01:diag --> diag:00:local
+0.01948 s = 0.777%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:01:diag --> diag:01:interp
+0.01321 s = 0.527%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:02:eval
+0.05114 s = 2.041%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:03:assemble
+0.03058 s = 1.221%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:04:pcorr-solve --> solve:00:solve
+0.58907 s = 23.512%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:04:pcorr-solve --> solve:01:copy
+0.01440 s = 0.575%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:05:apply
+0.02490 s = 0.994%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:09:pgrad
+0.01204 s = 0.481%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:00:source
+0.00248 s = 0.099%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:00:init
+0.00168 s = 0.067%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
+0.05507 s = 2.198%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
+0.17756 s = 7.087%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
+0.00222 s = 0.089%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:03:apply
+0.01339 s = 0.534%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:00:init
+0.00174 s = 0.070%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
+0.05507 s = 2.198%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
+0.17656 s = 7.047%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
+0.00208 s = 0.083%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:03:apply
+0.01526 s = 0.609%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:00:init
+0.00180 s = 0.072%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
+0.05550 s = 2.215%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
+0.04057 s = 1.619%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
+0.00216 s = 0.086%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:03:apply
+0.01420 s = 0.567%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:04:tovect
+0.00433 s = 0.173%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:11:diag --> diag:00:local
+0.01551 s = 0.619%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:11:diag --> diag:01:interp
+0.00823 s = 0.328%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:12:pcorr-assemble
+0.03166 s = 1.264%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:13:pcorr-solve --> solve:00:solve
+0.58934 s = 23.523%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:13:pcorr-solve --> solve:01:copy
+0.01352 s = 0.540%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:14:pcorr-apply
+0.01803 s = 0.719%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:00:dir-corr --> corr:00:apply
+0.01396 s = 0.557%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:01:dir-corr --> corr:00:apply
+0.01356 s = 0.541%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:02:dir-corr --> corr:00:apply
+0.01318 s = 0.526%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:03:tovect
+0.00175 s = 0.070%
+run:08:fs-iters --> iter:01:iter --> fluid-iter:16:inc-iter
+0.00070 s = 0.028%
+run:08:fs-iters --> iter:02:reduce
+0.00103 s = 0.041%
+run:08:fs-iters --> iter:03:report
+0.00148 s = 0.059%
+run:08:fs-iters --> iter:04:convcheck
+0.00073 s = 0.029%
+run:09:fs-finish --> fluid-finish:00:inctime
+0.00072 s = 0.029%
+run:09:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:00:dir-finish
+0.00036 s = 0.014%
+run:09:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:01:dir-finish
+0.00040 s = 0.016%
+run:09:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:02:dir-finish
+0.00044 s = 0.018%
+run:09:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:03:tovect
+0.00084 s = 0.033%
+run:10:dt --> dt:00:local
+0.00042 s = 0.017%
+run:10:dt --> dt:01:reduce
+0.00020 s = 0.008%
 run:11:dump
-0.00600 s = 0.386%
+0.00644 s = 0.257%
 run:12:dumpwrite
-0.00008 s = 0.005%
+0.00011 s = 0.005%
 run:13:dumpstat
-0.00021 s = 0.013%
+0.00029 s = 0.011%
+run:14:inc
+0.00009 s = 0.003%
 
 cells = 2048
 steps = 1000000
-iters = 10
-total = 1 s = 00:00:01.555
-time/cell/iter = 7.59379e-05 s
+iters = 15
+total = 2 s = 00:00:02.505
+time/cell/iter = 8.15549e-05 s
 
-real	0m1.707s
-user	0m1.598s
-sys	0m0.128s
+real	0m2.680s
+user	0m2.507s
+sys	0m0.167s

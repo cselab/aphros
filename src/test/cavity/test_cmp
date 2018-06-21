@@ -29,6 +29,7 @@ ch.run "$c"
 
 a=0
 for f in ref/*.dat ; do
+  echo $f
   if ! ch.diff "${f#ref/}" "$f"; then
     a=1
   fi

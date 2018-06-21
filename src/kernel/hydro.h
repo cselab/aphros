@@ -887,7 +887,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 template <class M>
 void Hydro<M>::Dump(Sem& sem) {
   if (sem("dump")) {
-    if (dumper_.Try(st_.t + st_.dt, st_.dt)) {
+    if (dumper_.Try(st_.t, st_.dt)) {
       fc_velux_ = GetComponent(fs_->GetVelocity(), 0);
       m.Dump(&fc_velux_, "vx");
       fc_veluy_ = GetComponent(fs_->GetVelocity(), 1);
@@ -928,7 +928,7 @@ void Hydro<M>::Run() {
     ExecEvents();
   }
   if (sem("loop-check")) {
-    if (fs_->GetTime() >= var.Double["tmax"] || 
+    if (st_.t + st_.dt * 0.25 > var.Double["tmax"] || 
         st_.step >= var.Int["max_step"]) {
       sem.LoopBreak();
     } else {
@@ -1027,16 +1027,16 @@ void Hydro<M>::Run() {
     }
   }
 
+  if (sem.Nested("dt")) {
+    CalcDt(); // must be after CalcStat to keep dt for moving mesh velocity 
+  }
+
   Dump(sem);
 
   if (sem("dumpstat")) {
     if (IsRoot()) {
       ost_->Write();
     }
-  }
-
-  if (sem.Nested("dt")) {
-    CalcDt(); // must be after CalcStat to keep dt for moving mesh velocity 
   }
 
   if (sem("inc")) {
