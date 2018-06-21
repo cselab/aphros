@@ -889,6 +889,7 @@ class Vof : public AdvectionSolver<M_> {
     size_t part_dump_fr = 100; // num frames dump
     size_t part_report_fr = 100; // num frames report
     Scal part_intth = 1e-3; // interface detection threshold
+    Scal clipth = 1e-6; // vf clipping threshold
     std::unique_ptr<Dumper> dmp; // dumper for particles
     bool dumppoly = false; // dump reconstructed interface (cut polygons)
   };
@@ -909,7 +910,7 @@ class Vof : public AdvectionSolver<M_> {
     Scal hm = h.norminf();
 
     for (auto c : m.Cells()) {
-      const Scal th = 1e-3;
+      const Scal th = par->part_intth;
       if (uc[c] > th && uc[c] < 1. - th) {
         Vect x = m.GetCenter(c) + GetCenter(fc_n_[c], fc_a_[c], h);
         Vect n = fc_n_[c];
@@ -1692,7 +1693,7 @@ class Vof : public AdvectionSolver<M_> {
         }
 
         // clip
-        const Scal th = 1e-6;
+        const Scal th = par->clipth;
         for (auto c : m.Cells()) {
           Scal& u = uc[c];
           if (u < th) {
