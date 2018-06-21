@@ -977,10 +977,14 @@ class Vof : public AdvectionSolver<M_> {
         dpc_.clear();
 
         // copy to arrays  
+        auto& bc = m.GetBlockCells();
         for (auto c : m.Cells()) {
           for (size_t i = 0; i < fcps_[c]; ++i) {
             dpx_.push_back(fcp_[c][i]);
-            dpc_.push_back(c.GetRaw());
+            auto w = bc.GetMIdx(c);
+            // XXX: adhoc, hash for cell index, assume mesh size <= mn
+            const size_t mn = 1000; 
+            dpc_.push_back((w[2] * mn + w[1]) * mn + w[0]);
           }
         }
 

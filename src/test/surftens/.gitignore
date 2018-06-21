@@ -18,3 +18,5 @@ base.conf
 mesh.conf
 np
 *.csv
+s*.vtk
+
