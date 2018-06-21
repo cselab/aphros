@@ -57,7 +57,7 @@ for j in range(ny):
         if k + 1 < n:
             o += " [{:}]; ".format(t)
         pr = t
-o += "' -c:v libx264 {:}".format(out)
+o += "' -r 10 -c:v libx264 {:}".format(out)
 
 print(o)
 
