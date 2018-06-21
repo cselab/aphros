@@ -1,0 +1,44 @@
+#!/bin/bash -l
+
+# Run with arguments from arg on number of tasks from np
+
+# run command with time and append to out
+rt () {
+  echo
+  set -o pipefail 
+  c="( time $@ ) |& tee -a out"
+  echo $c
+  eval "$c"
+}
+
+set -eu
+
+# executable
+e=ch.mfer
+# args
+if [ -f arg ] ; then
+  a="`cat arg`"
+else
+  a=
+fi
+# num tasks
+np=`cat np`
+
+js="job.status"
+
+echo running > $js
+
+rm -rf out
+
+[[ -f pre ]] && rt "./pre"
+
+rt "srun -n $np $e $a"
+
+[[ -f post ]] && rt "./post"
+
+mv -vf job.id{,.last}
+
+echo "done" > $js
+
+cat $js
+
