@@ -11,7 +11,6 @@
 // pp: polygons as lists of indices
 // fn: path
 // cm: comment
-// Binary format.
 template <class Vect>
 void WriteVtkPoly(const std::vector<Vect>& xx, 
                   const std::vector<std::vector<size_t>>& pp,  
