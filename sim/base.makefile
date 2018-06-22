@@ -1,5 +1,6 @@
 m ?= 32 32 32
 bs ?= 16 16 16
+np ?= 1
 
 all: cleanall run
 
@@ -12,6 +13,7 @@ submit: conf
 conf: mesh
 	ch.base
 	ch.aconf
+	echo $(np) > np
 
 mesh:
 	ch.part $(m) $(bs) `cat np` > mesh.conf
