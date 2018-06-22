@@ -855,6 +855,7 @@ class Vof : public AdvectionSolver<M_> {
   FieldCell<Scal> fck_; // curvature
   FieldCell<Scal> fckp_; // curvature from particles
   FieldFace<Scal> ffu_; // field on faces
+  FieldFace<Scal> ffvu_; // flux: volume flux * field
   FieldCell<Vect> fcg_; // gradient
   FieldFace<Vect> ffg_; // gradient
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
@@ -1649,45 +1650,58 @@ class Vof : public AdvectionSolver<M_> {
         auto h = GetCellSize();
         auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
         const Scal dt = this->GetTimeStep();
+
+        ffvu_.Reinit(m);
+
+        for (auto f : m.Faces()) {
+          auto p = bf.GetMIdxDir(f);
+          MIdx wf = p.first;
+          Dir df = p.second;
+
+          if (df != md) {
+            continue;
+          }
+
+          // mixture flux
+          const Scal v = ffv[f] * vsc;
+          // upwind cell
+          IdxCell cu = m.GetNeighbourCell(f, v > 0. ? 0 : 1);
+          if (id % 2 == 0) { // Euler Implicit
+            // phase 2 flux
+            Scal qm = GetLineFlux(fc_n_[cu], fc_a_[cu], h, v, dt, d);
+          } else { // Lagrange Explicit
+            // upwind face
+            IdxFace fu = bf.GetIdx(v > 0. ? wf - wd : wf + wd, md);
+            // upwind mixture flux
+            Scal vu = ffv[fu] * vsc;
+            // phase 2 flux
+            Scal q = GetLineFluxStr(fc_n_[cu], fc_a_[cu], h, v, vu, dt, d);
+          }
+        }
+
         for (auto c : m.Cells()) {
           auto w = bc.GetMIdx(c);
           const Scal lc = m.GetVolume(c);
           // faces
           IdxFace fm = bf.GetIdx(w, md);
           IdxFace fp = bf.GetIdx(w + wd, md);
-          // mixture volume fluxes
+          // mixture fluxes
           const Scal vm = ffv[fm] * vsc;
           const Scal vp = ffv[fp] * vsc;
-          // mixture volume cfl
+          // mixture cfl
           const Scal sm = vm * dt / lc;
           const Scal sp = vp * dt / lc;
           const Scal ds = sp - sm;
-          // upwind cells
-          IdxCell cum = m.GetNeighbourCell(fm, vm > 0. ? 0 : 1);
-          IdxCell cup = m.GetNeighbourCell(fp, vp > 0. ? 0 : 1);
+          // phase 2 fluxes
+          Scal qm = ffvu_[fm];
+          Scal qp = ffvu_[fp];
+          // phase 2 cfl
+          const Scal lm = qm * dt / lc;
+          const Scal lp = qp * dt / lc;
+          const Scal dl = lp - lm;
           if (id % 2 == 0) { // Euler Implicit
-            // phase 1 volume fluxes TODO: rename mixture to q, phase 1 to smth
-            Scal qm = GetLineFlux(fc_n_[cum], fc_a_[cum], h, vm, dt, d);
-            Scal qp = GetLineFlux(fc_n_[cup], fc_a_[cup], h, vp, dt, d);
-            // phase 1 cfl
-            const Scal lm = qm * dt / lc;
-            const Scal lp = qp * dt / lc;
-            const Scal dl = lp - lm;
             uc[c] = (uc[c] - dl) / (1. - ds);
           } else { // Lagrange Explicit
-            // upwind faces
-            IdxFace fum = bf.GetIdx(vm > 0. ? w - wd : w, md);
-            IdxFace fup = bf.GetIdx(vp > 0. ? w : w + wd, md);
-            // upwind fluxes
-            Scal vum = ffv[fum] * vsc;
-            Scal vup = ffv[fup] * vsc;
-            // phase 1 volume fluxes
-            Scal qm = GetLineFluxStr(fc_n_[cum], fc_a_[cum], h, vm, vum, dt, d);
-            Scal qp = GetLineFluxStr(fc_n_[cup], fc_a_[cup], h, vp, vup, dt, d);
-            // phase 1 cfl
-            const Scal lm = qm * dt / lc;
-            const Scal lp = qp * dt / lc;
-            const Scal dl = lp - lm;
             uc[c] = uc[c] * (1. + ds) - dl;
           }
         }
