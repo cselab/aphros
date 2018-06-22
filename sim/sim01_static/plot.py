@@ -90,7 +90,7 @@ for f in ff:
     fig, ax = PlotInit()
     plt.contour(x1, y1, vf, 1, colors='k',
                 linestyles="solid", linewidths=1.)
-    ax.imshow(np.flipud(vy), extent=(0, 1, 0, 1), interpolation='nearest')
+    ax.imshow(np.flipud(p), extent=(0, 1, 0, 1), interpolation='nearest')
     print("vymin={:} vymax={:} L1(vy)={:}".format(
         vy.min(), vy.max(), abs(vy).mean()))
     PlotSave(fig, ax, po)
