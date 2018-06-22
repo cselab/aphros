@@ -13,16 +13,18 @@ submit: conf
 conf: mesh
 	ch.base
 	ch.aconf
+
+np: 
 	echo $(np) > np
 
-mesh:
+mesh: np
 	ch.part $(m) $(bs) `cat np` > mesh.conf
 
 clean::
 	rm -vf *.{png}
 	rm -vf *.{bin,log}
-	rm -vf job.id.last job.status arg
-	rm -vf mesh.conf base.conf a.conf
+	rm -vf job.id.last job.status arg job.id
+	rm -vf mesh.conf base.conf a.conf np
 
 cleandat::
 	rm -vf *.pdf
@@ -36,4 +38,4 @@ cleandat::
 
 cleanall: clean cleandat
 
-.PHONY: all run submit mesh clean cleandat base conf
+.PHONY: all run submit mesh clean cleandat base conf np
