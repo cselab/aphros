@@ -1,0 +1,8 @@
+#!/bin/bash
+
+b="../../sim/a.conf"
+
+echo "cat > a.conf << EOF
+`cat $b`
+EOF
+"
