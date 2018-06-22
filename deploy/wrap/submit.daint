@@ -19,7 +19,9 @@ np=`cat np`
 
 tl=`cat tl`
 
-cmd="sbatch -C gpu -A s754 -n $np -t $tl $job"
+nm="$(basename $(pwd))"
+
+cmd="sbatch -J '$nm' -C gpu -A s754 -n $np -t $tl $job"
 echo $cmd
 
 # Execute command 
