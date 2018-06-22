@@ -35,6 +35,7 @@ cleandat::
 	rm -vf s*.vtk
 	rm -vf out
 	rm -vf lsf.o*
+	rm -vf {vx,vy,vz,p,vf}_*.dat
 
 cleanall: clean cleandat
 

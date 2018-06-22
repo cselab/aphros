@@ -1,8 +1,0 @@
-#!/bin/bash 
-
-set -eu
-
-ch.base
-make clean
-make cleandat
-make mesh
