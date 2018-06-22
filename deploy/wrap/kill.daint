@@ -1,0 +1,3 @@
+scancel `cat job.id` -v
+
+echo stopped > job.status
