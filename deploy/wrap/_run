@@ -13,4 +13,8 @@ instfnd run
 instfnd submit
 instfnd kill 
 
+mp="$BB/ch.base.makefile"
+cp -vf ../../sim/base.makefile "$mp"
+echo "echo '$mp'" | instin ${PRE}makesim
+
 src gen.base | instin ${PRE}base
