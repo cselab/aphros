@@ -14,7 +14,7 @@ a__H = 0.125    # particle radius relative to H
 a2__H = a__H * 1.2  # second particle radius
 dpx__H = a__H * 1   # distance between particles relative to H
 nbub = 8          # number of particles
-Ny = 64   # mesh size per H
+Ny = 32          # mesh size per H
 
 # domain L H W
 rhoo = 1.
