@@ -523,6 +523,15 @@ void Hydro<M>::CalcStat() {
     auto& fa = as_->GetField();
     auto& fv = fs_->GetVelocity();
 
+    // check abort TODO: revise,move
+    for (auto c : m.Cells()) {
+      if (fv[c].sqrnorm() > sqr(var.Double["abortvel"])) {
+        std::stringstream g;
+        g << "abortvel exceeded at x=" << m.GetCenter(c);
+        throw std::runtime_error(g.str());
+      }
+    }
+
     // Store vc1 and vc2
     s.vc1 = s.c1;
     s.vc2 = s.c2;
