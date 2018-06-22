@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Submit job found as ch.job in PATH,
+# read number of tasts from np
+# read time limit in minutes from tl
+
+set -eu
+
+if [ -f job.id ]; then
+  echo "Skip, job.id exists"
+  exit 1
+fi
+
+echo "$@" > arg
+
+job="`type -p ch.job`"
+
+np=`cat np`
+
+tl=`cat tl`
+
+cmd="sbatch -C gpu -A s754 -n $np -t $tl $job"
+echo $cmd
+
+# Execute command 
+msg=`eval $cmd`
+echo "$msg"
+
+id=`echo "$msg" | sed -e "s/[^0-9]*\([0-9]*\)[^0-9]*/\1/"`
+echo "Write $id to job.id"
+echo $id > job.id
+
+echo "pending" > job.status
