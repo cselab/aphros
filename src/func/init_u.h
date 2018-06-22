@@ -60,7 +60,7 @@ Scal GetLevelSetVolume(std::function<Scal(const GVect<Scal, 3>&)> f,
 // m: mesh
 template <class M>
 std::function<void(FieldCell<typename M::Scal>&,const M&)> 
-CreateInitU(Vars& par) {
+CreateInitU(Vars& par, bool verb=true) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   std::function<void(FieldCell<Scal>&,const M&)> g; // result
@@ -126,8 +126,10 @@ CreateInitU(Vars& par) {
       }
     }
 
-    std::cout << "Read " << pp.size() << " particles from " 
-        << "'" << fn << "'" << std::endl;
+    if (verb) {
+      std::cout << "Read " << pp.size() << " particles from " 
+          << "'" << fn << "'" << std::endl;
+    }
 
     g = [dim,ls,pp](FieldCell<Scal>& fc, const M& m) { 
       // level-set for particle of radius 1 centered at zero,
