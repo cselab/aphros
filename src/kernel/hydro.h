@@ -141,6 +141,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_vf_; // volume fraction used by constructor and Dump()
   FieldCell<Vect> fc_vel_; // velocity used by constructor
   FieldCell<Scal> fc_smvf_; // smoothed volume fraction used by CalcMixture()
+  FieldCell<Scal> fc_smvfst_; // smoothed volume fraction for surface tension
   FieldFace<Scal> ff_smvf_; // interpolated fc_smvf_
   Scal diff_;  // convergence indicator
   Scal pdist_, pdistmin_; // distance to pfixed cell
@@ -718,10 +719,15 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     fc_force_.Reinit(m, Vect(0));
     ffbp_.Reinit(m, 0);
     fc_smvf_ = fc_vf0;
+    fc_smvfst_ = fc_vf0;
   }
 
   if (sem.Nested("smooth")) {
     solver::Smoothen(fc_smvf_, mf_cond_, m, var.Int["vfsmooth"]);
+  }
+
+  if (sem.Nested("smoothst")) {
+    solver::Smoothen(fc_smvfst_, mf_cond_, m, var.Int["vfsmoothst"]);
   }
 
   if (sem("calc")) {
@@ -840,6 +846,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       } else if (st == "kn") {  // curvature * normal
         auto& fck = as_->GetCurv(); // [a]
         ff_st_.Reinit(m, 0);
+        auto& ast = fc_smvfst_;
 
         //Scal rad = 0.2;
         //Scal k = 1. / rad;
@@ -848,9 +855,9 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           IdxCell cp = m.GetNeighbourCell(f, 1);
           Vect dm = m.GetVectToCell(f, 0);
           Vect dp = m.GetVectToCell(f, 1);
-          Scal ga = (a[cp] - a[cm]) / (dp - dm).norm();
+          Scal ga = (ast[cp] - ast[cm]) / (dp - dm).norm();
           Scal k;
-          if (std::abs(a[cm] - 0.5) < std::abs(a[cp] - 0.5)) {
+          if (std::abs(ast[cm] - 0.5) < std::abs(ast[cp] - 0.5)) {
             k = fck[cm];
           } else {
             k = fck[cp];
@@ -1010,7 +1017,7 @@ void Hydro<M>::Run() {
       if (sn("report")) {
         if (IsRoot()) {
           std::cout << std::fixed << std::setprecision(8)
-              << ".....adv=" << as_->GetTime() 
+              << ".....adv: t=" << as_->GetTime() 
               << " dt=" << as_->GetTimeStep()
               << std::endl;
         }
