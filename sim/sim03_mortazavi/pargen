@@ -48,7 +48,7 @@ set string vel_init pois
 set double poisvel {Uc}
 
 # initial volume fraction
-set string vf_init circle
+set string init_vf circle
 set vect circle_c {x0} {y0} 0
 set double circle_r {a}
 

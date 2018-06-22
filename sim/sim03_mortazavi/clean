@@ -1,7 +1,0 @@
-#!/bin/bash -l
-
-rm -vf *.{png}
-rm -vf *.{bin,log}
-
-#rm -vf *.{xmf,h5}
-#rm -vf *.{vts,pvd}
