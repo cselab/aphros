@@ -1680,13 +1680,18 @@ class Vof : public AdvectionSolver<M_> {
         }
 
 
-        // boundary fluxes
-        // interpolate field value
-        InterpolateB(uc, mfc_, ffvu_, m);
-        // multiply by mixture flux
+        ffu_.Reinit(m);
+        // interpolate field value to boundaries
+        InterpolateB(uc, mfc_, ffu_, m);
+
+        // override upwind flux
         for (const auto& it : mfc_) {
           IdxFace f = it.GetIdx();
-          ffvu_[f] *= ffv[f];
+          CondFace* cb = it.GetValue().get(); 
+          Scal v = ffv[f];
+          if ((cb->GetNci() == 0) != (v > 0.)) {
+            ffvu_[f] = v * ffu_[f];
+          }
         }
 
         for (auto c : m.Cells()) {
