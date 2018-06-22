@@ -1679,6 +1679,16 @@ class Vof : public AdvectionSolver<M_> {
           }
         }
 
+
+        // boundary fluxes
+        // interpolate field value
+        InterpolateB(uc, mfc_, ffvu_, m);
+        // multiply by mixture flux
+        for (const auto& it : mfc_) {
+          IdxFace f = it.GetIdx();
+          ffvu_[f] *= ffv[f];
+        }
+
         for (auto c : m.Cells()) {
           auto w = bc.GetMIdx(c);
           const Scal lc = m.GetVolume(c);
