@@ -1668,14 +1668,14 @@ class Vof : public AdvectionSolver<M_> {
           IdxCell cu = m.GetNeighbourCell(f, v > 0. ? 0 : 1);
           if (id % 2 == 0) { // Euler Implicit
             // phase 2 flux
-            Scal qm = GetLineFlux(fc_n_[cu], fc_a_[cu], h, v, dt, d);
+            ffvu_[f] = GetLineFlux(fc_n_[cu], fc_a_[cu], h, v, dt, d);
           } else { // Lagrange Explicit
             // upwind face
             IdxFace fu = bf.GetIdx(v > 0. ? wf - wd : wf + wd, md);
             // upwind mixture flux
             Scal vu = ffv[fu] * vsc;
             // phase 2 flux
-            Scal q = GetLineFluxStr(fc_n_[cu], fc_a_[cu], h, v, vu, dt, d);
+            ffvu_[f] = GetLineFluxStr(fc_n_[cu], fc_a_[cu], h, v, vu, dt, d);
           }
         }
 
