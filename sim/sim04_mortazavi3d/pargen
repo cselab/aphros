@@ -14,6 +14,7 @@ a__H = 0.125    # particle radius relative to H
 a2__H = a__H * 1.2  # second particle radius
 dpx__H = a__H * 1   # distance between particles relative to H
 nbub = 8          # number of particles
+Ny = 64   # mesh size per H
 
 # domain L H W
 rhoo = 1.
@@ -45,6 +46,14 @@ T0 = 5
 dt0 = 1e-6
 T = T0 * H / Uc
 dt = dt0 * H / Uc
+
+# Write mesh size
+Nx = int(L * Ny / H + 0.5)
+Nz = int(W * Ny / H + 0.5)
+fn = "mesh"
+with open(fn, 'w') as f:
+    f.write("{:} {:} {:}".format(Nx, Ny, Nz))
+
 
 # Create list of particles.
 # Single row of particles with same distance from wall.
@@ -80,17 +89,15 @@ set double extent {extent}
 
 # time
 set double tmax {T}
-set double cfl 0.5
-set double cfla 0.1
 
 # initial velocity
 set string vel_init pois
 set double poisvel {Uc}
 
 # initial volume fraction
-set string vf_init list
+set string init_vf list
 set string list_path {lp}
-#set string vf_init circle
+#set string init_vf circle
 #set vect circle_c {x0} {y0} {x0}
 #set double circle_r {a}
 
