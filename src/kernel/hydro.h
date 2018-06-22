@@ -15,6 +15,7 @@
 #include <mpi.h>
 #include <stdexcept>
 #include <memory>
+#include <limits>
 
 #include "geom/mesh.h"
 #include "solver/solver.h"
@@ -122,6 +123,19 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       Update(as->GetPar());
     }
   }
+  // Surface tension time step
+  Scal GetStDt() {
+    Scal sig = var.Double["sigma"];
+    Scal* cflst = var.Double("cflst");
+    if (cflst && sig > 0.) {
+      Scal pi = M_PI;
+      Scal h3 = m.GetVolume(IdxCell(0));
+      Scal r1 = var.Double["rho1"];
+      Scal r2 = var.Double["rho2"];
+      return (*cflst) * std::sqrt(h3 * (r1 + r2) / (4. * pi * sig));
+    }
+    return std::numeric_limits<Scal>::max();
+  }
 
   FieldCell<Scal> fc_mu_; // viscosity
   FieldCell<Scal> fc_rho_; // density
@@ -195,7 +209,7 @@ void Hydro<M>::Init() {
     // initial volume fraction
     // TODO: for 2D wrong values in halos (should be periodic instead)
     fc_vf_.Reinit(m, 0);
-    auto fvf = CreateInitU<M>(var);
+    auto fvf = CreateInitU<M>(var, m.IsRoot());
     fvf(fc_vf_, m);
     m.Comm(&fc_vf_);
 
@@ -266,6 +280,11 @@ void Hydro<M>::Init() {
       MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
       MIdx bs(var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]);
       gs = p * b * bs;
+    }
+
+    if (m.IsRoot()) {
+      std::cout << "global mesh=" << gs << std::endl;
+      std::cout << "surface tension dt=" << GetStDt() << std::endl;
     }
 
     using Dir = typename M::Dir;
@@ -598,6 +617,9 @@ void Hydro<M>::CalcDt() {
       st_.dt = st_.dtt * (*cfl);
       st_.dt = std::min<Scal>(st_.dt, var.Double["dtmax"]);
     }
+
+    // constraint from surface tension
+    st_.dt = std::min<Scal>(st_.dt, GetStDt());
 
     fs_->SetTimeStep(st_.dt);
     var.Double["dt"] = st_.dt;
