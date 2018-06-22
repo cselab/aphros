@@ -4,11 +4,13 @@ set -eu
 
 ./clean
 
+c=${1:-al16.conf}
 n=${2:-2}
-mpirun -n $n ./t.advection "$1"
+mpirun -n $n ./t.advection "$c"
 
 a=0
 for f in ref/*.dat ; do
+  echo $f
   if ! ch.diff "${f#ref/}" "$f"; then
     a=1
   fi
