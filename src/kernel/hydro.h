@@ -922,7 +922,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             auto c = m.GetNeighbourCell(f, 1);
             Scal r = xf.dist(m.GetCenter(c));
             auto n = m.GetNormal(f);
-            if (ast[c] > 0.1) {
+            const Scal th = 0.1;
+            if (ast[c] > th && ast[c] < 1. - th) {
               Vect s = Vect(-1, xf[1] < y0 ? 1. : -1., 0.) * 
                   (sig / r * var.Double["contangk"] * ffk_[f]);
               if (gf[f][0] > 0.) {
