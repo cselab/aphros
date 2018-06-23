@@ -902,6 +902,17 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           IdxFace f = it.GetIdx();
           ff_st_[f] = 0.;
         }
+        // Zero if x > zerostx XXX: adhoc TODO: revise
+        const Scal x1 = var.Double["zerostx1"];
+        const Scal x2 = var.Double["zerostx2"];
+        // Append to force
+        for (auto f : m.Faces()) {
+          Scal x = m.GetCenter(f)[0];
+          if (x > x1) {
+            ff_st_[f] *= std::max(0., (x2 - x) / (x2 - x1));
+          }
+        }
+
         // Append to force
         for (auto f : m.Faces()) {
           ffbp_[f] += ff_st_[f];
