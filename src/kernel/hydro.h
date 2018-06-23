@@ -144,6 +144,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Vect> fc_force_;  // force 
   FieldFace<Scal> ffbp_;  // balanced force projections
   FieldFace<Scal> ff_st_;  // surface tension projections
+  FieldFace<Scal> ffk_;  // curvature on faces
   MapFace<std::shared_ptr<solver::CondFace>> mf_cond_;
   MapFace<std::shared_ptr<solver::CondFaceFluid>> mf_velcond_;
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
@@ -879,37 +880,66 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         ff_st_.Reinit(m, 0);
         auto& ast = fc_smvfst_;
 
-        //Scal rad = 0.2;
-        //Scal k = 1. / rad;
+        ffk_.Reinit(m, 0);
+        // interpolate curvature
+        for (auto f : m.Faces()) {
+          IdxCell cm = m.GetNeighbourCell(f, 0);
+          IdxCell cp = m.GetNeighbourCell(f, 1);
+          if (std::abs(ast[cm] - 0.5) < std::abs(ast[cp] - 0.5)) {
+            ffk_[f] = fck[cm];
+          } else {
+            ffk_[f] = fck[cp];
+          }
+        }
+        // neighbour cell for boundaries
+        for (auto it : mf_velcond_) {
+          IdxFace f = it.GetIdx();
+          IdxCell c = m.GetNeighbourCell(
+              f, it.GetValue()->GetNci());
+          ffk_[f] = fck[c];
+        }
+
+        // compute force projections
         for (auto f : m.Faces()) {
           IdxCell cm = m.GetNeighbourCell(f, 0);
           IdxCell cp = m.GetNeighbourCell(f, 1);
           Vect dm = m.GetVectToCell(f, 0);
           Vect dp = m.GetVectToCell(f, 1);
           Scal ga = (ast[cp] - ast[cm]) / (dp - dm).norm();
-          Scal k;
-          if (std::abs(ast[cm] - 0.5) < std::abs(ast[cp] - 0.5)) {
-            k = fck[cm];
-          } else {
-            k = fck[cp];
-          }
-          //k = (fck[cm] + fck[cp]) * 0.5;
-          ff_st_[f] += ga * k * sig;
+          ff_st_[f] += ga * ffk_[f] * sig;
         }
-
-        // Zero if boundary
+        // zero on boundaries
         for (auto it : mf_velcond_) {
           IdxFace f = it.GetIdx();
           ff_st_[f] = 0.;
         }
+        // adhoc force
+        Scal y0 = var.Double["contangy0"];
+        Scal y1 = var.Double["contangy1"];
+        for (auto f : m.Faces()) {
+          auto xf = m.GetCenter(f);
+          if (xf[1] < y0 || xf[1] > y1) {
+            auto c = m.GetNeighbourCell(f, 1);
+            Scal r = xf.dist(m.GetCenter(c));
+            auto n = m.GetNormal(f);
+            if (ast[c] > 0.1) {
+              Vect s = Vect(-1, xf[1] < y0 ? 1. : -1., 0.) * 
+                  (sig / r * var.Double["contangk"] * ffk_[f]);
+              if (gf[f][0] > 0.) {
+                s[0] *= -1.;
+              }
+              ff_st_[f] = s.dot(n);
+            }
+          }
+        }
         // Zero if x > zerostx XXX: adhoc TODO: revise
+        const Scal x0 = var.Double["zerostx0"];
         const Scal x1 = var.Double["zerostx1"];
-        const Scal x2 = var.Double["zerostx2"];
         // Append to force
         for (auto f : m.Faces()) {
           Scal x = m.GetCenter(f)[0];
-          if (x > x1) {
-            ff_st_[f] *= std::max(0., (x2 - x) / (x2 - x1));
+          if (x > x0) {
+            ff_st_[f] *= std::max(0., (x1 - x) / (x1 - x0));
           }
         }
 
