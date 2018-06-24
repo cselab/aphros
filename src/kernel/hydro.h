@@ -894,8 +894,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         // neighbour cell for boundaries
         for (auto it : mf_velcond_) {
           IdxFace f = it.GetIdx();
-          IdxCell c = m.GetNeighbourCell(
-              f, it.GetValue()->GetNci());
+          IdxCell c = m.GetNeighbourCell(f, it.GetValue()->GetNci());
           ffk_[f] = fck[c];
         }
 
@@ -913,27 +912,61 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           IdxFace f = it.GetIdx();
           ff_st_[f] = 0.;
         }
-        // adhoc force
-        Scal y0 = var.Double["contangy0"];
-        Scal y1 = var.Double["contangy1"];
-        for (auto f : m.Faces()) {
-          auto xf = m.GetCenter(f);
-          if (xf[1] < y0 || xf[1] > y1) {
-            auto c = m.GetNeighbourCell(f, 1);
-            Scal r = xf.dist(m.GetCenter(c));
-            auto n = m.GetNormal(f);
-            const Scal th = 0.1;
-            if (ast[c] > th && ast[c] < 1. - th) {
-              Vect s = Vect(-1, xf[1] < y0 ? 1. : -1., 0.) * 
-                  (sig / r * var.Double["contangk"] * ffk_[f]);
-              if (gf[f][0] > 0.) {
-                s[0] *= -1.;
-              }
-              ff_st_[f] = s.dot(n);
+        // contact angle on boundaries
+        Scal pi = M_PI;
+        // angle between normal to boundary and normal to interface
+        //Scal ang = var.Double["contang"] * pi / 180.;
+        // TODO: controller for contact angle
+        Scal k = var.Double["contangk"];
+        // apply correction to curvature on boundaries
+        for (auto it : mf_velcond_) {
+          IdxFace fb = it.GetIdx();
+          auto nci = it.GetValue()->GetNci();
+          IdxCell c = m.GetNeighbourCell(fb, nci);
+          const Scal th = 1e-2;
+          // TODO: move th to conf
+          if (ast[c] > th && ast[c] < 1. - th) { 
+            for (auto q : m.Nci(c)) {
+              auto f = m.GetNeighbourFace(c, q);
+              ff_st_[f] *= k;
             }
+            /*
+            // outer normal to interface (if vf=1 inside bubble)
+            Vect n = -gc[c]; 
+            n /= n.norm();
+            // outer normal to boundary
+            Vect nb = m.GetNormal(fb) * (nci == 1 ? 1. : -1.); 
+            // vector along boundary
+            Vect a = n - nb * nb.dot(n);
+            a /= a.norm();
+            // vector with angle ang to boundary normal
+            Vect ns = nb * std::cos(ang) + a * std::sin(ang);
+            // surface tension force
+            Vect s = ns * (-fck[c] * k * std::abs(gc[c].dot(ns)));
+            // set to all upwind neighbour faces
+            if(0)
+            std::cout 
+              << " nb=" << nb 
+              << " x=" << m.GetCenter(c)
+              << " s=" << s
+              << " gc=" << gc[c]
+              << std::endl;
+            //s = fck[c] * k * gc[c];
+            for (auto q : m.Nci(c)) {
+              auto f = m.GetNeighbourFace(c, q);
+              //ff_st_[f] = ffk_[f] * k * gf[f].dot(m.GetNormal(f));
+              ff_st_[f] *= k;
+              if ((m.GetCenter(f) - m.GetCenter(c)).dot(s) < 0. ||
+                  m.GetNormal(f) == m.GetNormal(fb)) {
+                ff_st_[f] = s.dot(m.GetNormal(f));
+              }
+            }
+            */
           }
         }
-        // Zero if x > zerostx XXX: adhoc TODO: revise
+
+        // Surface tension decay between x0 and x1 
+        // XXX: adhoc TODO: revise
         const Scal x0 = var.Double["zerostx0"];
         const Scal x1 = var.Double["zerostx1"];
         // Append to force
