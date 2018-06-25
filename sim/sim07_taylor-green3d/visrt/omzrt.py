@@ -33,7 +33,12 @@ if len(av) < 2:
 else:
   base = av[1]
 
+skipfirst = 0
+if len(av) > 2:
+  skipfirst = int(av[2])
+
 Log("Using base={:}".format(base))
+Log("skipping first {:} files".format(skipfirst))
 
 
 #### disable automatic camera reset on 'Show'
@@ -96,7 +101,7 @@ def F(pre):
   l = glob(p)
   assert len(l), "no files found by pattern %r" % p
   Log("Found {:} files by pattern '{:}'".format(len(l), p))
-  return natsorted(l)
+  return natsorted(l)[skipfirst:]
 
 # create a new 'XDMF Reader'
 fn = F("vx")
@@ -373,6 +378,8 @@ nfr = len(fn)
 for fr in range(nfr):
 # save screenshot
   Log("Frame {:}/{:}".format(fr + 1, nfr))
-  SaveScreenshot('aa.{:05d}.png'.format(fr), renderView1, ImageResolution=[2000,2000])
+  fn = 'aa.{:05d}.png'.format(fr + skipfirst)
+  Log("Save to {:}".format(fn))
+  SaveScreenshot(fn, renderView1, ImageResolution=[2000,2000])
   anim.GoToNext()
 
