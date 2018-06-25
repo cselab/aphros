@@ -898,6 +898,8 @@ class Vof : public AdvectionSolver<M_> {
     Scal bcc_k1 = 1.;   
     Scal bcc_t0 = -1.;   // duration of phases (one negative to disable)
     Scal bcc_t1 = -1.;   
+    Scal bcc_y0 = -1e10; // overwrite u=0 if y<y0 or y>y1
+    Scal bcc_y1 = 1e10;  // (to remove periodic contidions)
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
@@ -1550,6 +1552,21 @@ class Vof : public AdvectionSolver<M_> {
   }
 
   void Reconst(const FieldCell<Scal>& uc) {
+    
+    // XXX: adhoc
+    // overwrite u=0 if y<y0 or y>y0
+    {
+      Scal y0 = par->bcc_y0;
+      Scal y1 = par->bcc_y1;
+      auto& uu = const_cast<FieldCell<Scal>&>(uc);
+      for (auto c : m.AllCells()) {
+        auto x = m.GetCenter(c);
+        if (x[1] < y0 || x[1] > y1) {
+          uu[c] = 0.;
+        }
+      }
+    }
+
     auto sem = m.GetSem("reconst");
     if (sem("height")) {
       // Compute normal and curvature [s]
