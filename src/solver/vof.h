@@ -893,6 +893,11 @@ class Vof : public AdvectionSolver<M_> {
     Scal clipth = 1e-6; // vf clipping threshold
     std::unique_ptr<Dumper> dmp; // dumper for particles
     bool dumppoly = false; // dump reconstructed interface (cut polygons)
+    // XXX: adhoc
+    Scal bcc_k0 = 1.;   // mul corrections to bc 
+    Scal bcc_k1 = 1.;   
+    Scal bcc_t0 = -1.;   // duration of phases (one negative to disable)
+    Scal bcc_t1 = -1.;   
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
@@ -1691,6 +1696,21 @@ class Vof : public AdvectionSolver<M_> {
           Scal v = ffv[f];
           if ((cb->GetNci() == 0) != (v > 0.)) {
             ffvu_[f] = v * ffu_[f];
+            // XXX: adhoc
+            // Alternating mul correction of flux
+            // (done for bubble detachment)
+            if (par->bcc_t0 > 0. && par->bcc_t1 > 0.) {
+              Scal k0 = par->bcc_k0;
+              Scal k1 = par->bcc_k1;
+              Scal t0 = par->bcc_t0;
+              Scal t1 = par->bcc_t1;
+              Scal t = this->GetTime();
+              Scal ts = t0 + t1;
+              Scal ph = t / ts; 
+              ph = ph - int(ph);
+              ph *= ts;
+              ffvu_[f] *= (ph < t0 ? k0 : k1);
+            }
           }
         }
 
