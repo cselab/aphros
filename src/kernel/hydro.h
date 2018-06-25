@@ -115,6 +115,10 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     p->clipth = var.Double["clipth"];
     p->dim = var.Int["dim"];
     p->dumppoly = var.Int["dumppoly"];
+    p->bcc_k0 = var.Double["bcc_k0"];
+    p->bcc_k1 = var.Double["bcc_k1"];
+    p->bcc_t0 = var.Double["bcc_t0"];
+    p->bcc_t1 = var.Double["bcc_t1"];
   }
   void UpdateAsPar() {
     if (auto as = dynamic_cast<AST*>(as_.get())) {
