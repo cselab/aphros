@@ -6,13 +6,13 @@ from glob import glob
 import sys
 import re
 
-flog = open("log", 'w')
+#flog = open("log", 'w')
 
 def Log(s):
   s += "\n"
-  flog.write(s)
-  flog.flush()
-  o = sys.stdout
+  #flog.write(s)
+  #flog.flush()
+  o = sys.stderr
   o.write(s)
   o.flush()
 
@@ -23,22 +23,33 @@ def natkey(s, _nsre=re.compile('([0-9]+)')):
 
 def natsorted(v):
   return sorted(v, key=natkey)
+# Returns sorted list of files in base by pattern pre_*.xmf
 
+def GetFiles(pre):
+  global base
+  p = base + "/{:}_*.xmf".format(pre)
+  l = glob(p)
+  return natsorted(l)
 
-# read data folder
 av = sys.argv
 if len(av) < 2:
   sys.stderr.write("usage: {:} basedir\n".format(av[0]))
   exit(1)
-else:
-  base = av[1]
 
-skipfirst = 0
-if len(av) > 2:
-  skipfirst = int(av[2])
+# base folder
+base = av[1]
+# frames to skip
+skipfirst = int(av[2]) if len(av) > 2 else 0
+
+# number of frames
+nfr = len(GetFiles("vf"))
 
 Log("Using base={:}".format(base))
-Log("skipping first {:} files".format(skipfirst))
+Log("Skipping first {:} of {:} frames".format(skipfirst, nfr))
+
+if skipfirst >= nfr:
+  Log("No frames left")
+  exit(0)
 
 
 #### disable automatic camera reset on 'Show'
@@ -92,16 +103,10 @@ SetActiveView(renderView1)
 # setup the data processing pipelines
 # ----------------------------------------------------------------
 
-# create a new 'XDMF Reader'
-
-# Returns sorted list of files found by pattern pre_*.xmf
-# pre: prefix
 def F(pre):
-  p = base + "/{:}_*.xmf".format(pre)
-  l = glob(p)
-  assert len(l), "no files found by pattern %r" % p
-  Log("Found {:} files by pattern '{:}'".format(len(l), p))
-  return natsorted(l)[skipfirst:]
+  l = GetFiles(pre)
+  assert len(l) == nfr, "found %r files by '%r', expected %r" % (len(l), pre, nfr)
+  return l[skipfirst:]
 
 # create a new 'XDMF Reader'
 fn = F("vx")
@@ -373,13 +378,10 @@ anim.GoToFirst()
 
 import sys
 
-nfr = anim.NumberOfFrames
-nfr = len(fn)
-for fr in range(nfr):
-# save screenshot
-  Log("Frame {:}/{:}".format(fr + 1, nfr))
-  fn = 'aa.{:05d}.png'.format(fr + skipfirst)
-  Log("Save to {:}".format(fn))
+#nfr = anim.NumberOfFrames
+for fr in range(skipfirst,nfr):
+  fn = 'aa.{:05d}.png'.format(fr)
+  Log("{:}/{:}: {:}".format(fr + 1, nfr, fn))
   SaveScreenshot(fn, renderView1, ImageResolution=[2000,2000])
   anim.GoToNext()
 
