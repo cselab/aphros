@@ -2,6 +2,7 @@
 
 # Submit job found as ch.job in PATH
 # reading number of tasks from np
+# read time limit in minutes from tl
 
 set -eu
 
@@ -16,7 +17,11 @@ job="`type -p ch.job`"
 
 np=`cat np`
 
-cmd="bsub -n $np < $job"
+tl=`cat tl`
+
+nm="$(basename $(pwd))"
+
+cmd="bsub -J '$nm' -n '$np' -W '$tl' < $job"
 echo $cmd
 
 # Execute command 
