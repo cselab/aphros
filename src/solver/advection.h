@@ -15,9 +15,10 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
   const FieldCell<Scal>* fcs_; // source [value/time]
 
  public:
+  // ffv: volume flux
+  // fcs: source
   AdvectionSolver(double t, double dt, M& m,
-                  const FieldFace<Scal>* ffv /*volume flux*/,
-                  const FieldCell<Scal>* fcs /*source*/)
+                  const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs)
       : UnsteadyIterativeSolver(t, dt)
       , m(m), ffv_(ffv), fcs_(fcs) {}
   virtual const FieldCell<Scal>& GetField(Layers) const = 0;
