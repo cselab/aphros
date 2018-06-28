@@ -158,8 +158,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_velux_; // velocity
   FieldCell<Scal> fc_veluy_; 
   FieldCell<Scal> fc_veluz_; 
-  FieldCell<Scal> fc_p_; // pressure
+  FieldCell<Scal> fc_p_; // pressure used by Dump()
   FieldCell<Scal> fc_vf_; // volume fraction used by constructor and Dump()
+  FieldCell<Scal> fco_; // color 
   FieldCell<Vect> fc_vel_; // velocity used by constructor
   FieldCell<Scal> fc_smvf_; // smoothed volume fraction used by CalcMixture()
   FieldCell<Scal> fc_smvfst_; // smoothed volume fraction for surface tension
@@ -214,11 +215,16 @@ void Hydro<M>::Init() {
     fc_src_.Reinit(m, 0.);
 
     // initial volume fraction
-    // TODO: for 2D wrong values in halos (should be periodic instead)
     fc_vf_.Reinit(m, 0);
     auto fvf = CreateInitU<M>(var, m.IsRoot());
     fvf(fc_vf_, m);
     m.Comm(&fc_vf_);
+
+    // initial color
+    fco_.Reinit(m, 0);
+    auto fo = CreateInitO<M>(var, m.IsRoot());
+    fo(fco_, fc_vf_, m);
+    m.Comm(&fco_);
 
     // initial velocity
     fc_vel_.Reinit(m, Vect(0));
