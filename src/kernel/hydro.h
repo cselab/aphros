@@ -30,7 +30,7 @@
 #include "dump/output.h"
 #include "dump/dumper.h"
 #include "func/init_u.h"
-#include "func/init_o.h"
+#include "func/init_cl.h"
 
 class GPar {};
 
@@ -161,7 +161,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_veluz_; 
   FieldCell<Scal> fc_p_; // pressure used by Dump()
   FieldCell<Scal> fc_vf_; // volume fraction used by constructor and Dump()
-  FieldCell<Scal> fco_; // color 
+  FieldCell<Scal> fccl_; // color 
   FieldCell<Vect> fc_vel_; // velocity used by constructor
   FieldCell<Scal> fc_smvf_; // smoothed volume fraction used by CalcMixture()
   FieldCell<Scal> fc_smvfst_; // smoothed volume fraction for surface tension
@@ -217,15 +217,15 @@ void Hydro<M>::Init() {
 
     // initial volume fraction
     fc_vf_.Reinit(m, 0);
-    auto fvf = CreateInitU<M>(var, m.IsRoot());
-    fvf(fc_vf_, m);
+    auto ivf = CreateInitU<M>(var, m.IsRoot());
+    ivf(fc_vf_, m);
     m.Comm(&fc_vf_);
 
     // initial color
-    fco_.Reinit(m, 0);
-    auto fo = CreateInitO<M>(var, m.IsRoot());
-    fo(fco_, fc_vf_, m);
-    m.Comm(&fco_);
+    fccl_.Reinit(m, 0);
+    auto icl = CreateInitCl<M>(var, m.IsRoot());
+    icl(fccl_, fc_vf_, m);
+    m.Comm(&fccl_);
 
     // initial velocity
     fc_vel_.Reinit(m, Vect(0));

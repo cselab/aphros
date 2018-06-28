@@ -12,7 +12,7 @@
 #include "geom/vect.h"
 #include "solver/tracker.h"
 
-// Volume fraction field.
+// Init of color function.
 // par: parameters
 // M: mesh
 // Returns:
@@ -20,11 +20,13 @@
 // fc: field to fill [i]
 // m: mesh
 template <class M>
-std::function<void(FieldCell<typename M::Scal>&,const M&)> 
-CreateInitO(Vars& par, bool verb=true) {
+std::function<void(FieldCell<typename M::Scal>&,
+                   const FieldCell<typename M::Scal>&,const M&)> 
+CreateInitCl(Vars& par, bool verb=true) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  std::function<void(FieldCell<Scal>&,const M&)> g; // result
+  // result
+  std::function<void(FieldCell<Scal>&,const FieldCell<Scal>&,const M&)> g;
 
   std::string v = par.String["init_vf"];
   if (v == "list") {
@@ -57,42 +59,43 @@ CreateInitO(Vars& par, bool verb=true) {
           << "'" << fn << "'" << std::endl;
     }
 
-    g = [dim,pp](FieldCell<Scal>& fc, const M& m) { 
+    g = [dim,pp](FieldCell<Scal>& cl, const FieldCell<Scal>& vf, const M& m) { 
       if (pp.empty()) {
-        fc.Reinit(m, 0.);
+        cl.Reinit(m, 0.);
       } else {
         for (auto c : m.Cells()) {
           auto x = m.GetCenter(c);
-          for (size_t i = 0; i < pp.size(); ++i) {
-            auto& p = pp[i];
-            fc[c] = (fm >= 0. ? 1. : 0.);
+          // find nearest particle
+          // TODO: check if distance to particle edge needed instead
+          size_t im = 0;
+          for (size_t i = 1; i < pp.size(); ++i) {
+            if ((x - pp[i].c).sqrnorm() < (x - pp[im].c).sqrnorm()) {
+              im = i;
+            }
           }
-          // cell size
-          Vect h = m.GetNode(m.GetNeighbourNode(c, 7)) - 
-              m.GetNode(m.GetNeighbourNode(c, 0));
-          // volume fraction
-          auto& p = pp[im];
-          fc[c] = (fm >= 0. ? 1. : 0.);
+          // index of nearest particle
+          // (assume exact 0 outside particles)
+          cl[c] = (vf[c] > 0. ? im : 0.);
         }
       }
     };
   } else if (v == "box") {
     Vect xc(par.Vect["box_c"]);
     Scal s = par.Double["box_s"];
-    g = [xc,s](FieldCell<Scal>& fc, const M& m) { 
+    g = [xc,s](FieldCell<Scal>& fc, const FieldCell<Scal>& fcvf, const M& m) { 
       for (auto c : m.Cells()) {
         fc[c] = (xc - m.GetCenter(c)).norminf() < s * 0.5 ? 1. : 0.; 
       }
     };
   } else if (v == "zero") {
-    g = [](FieldCell<Scal>& fc, const M& m) { 
+    g = [](FieldCell<Scal>& fc, const FieldCell<Scal>& fcvf, const M& m) { 
       for (auto c : m.Cells()) {
         fc[c] = 0.;
       }
     };
   } else {
     if (verb) {
-      std::cout << "Notify: no color function for init_vf=" << v << std::endl;
+      std::cout << "Info: no color function for init_vf=" << v << std::endl;
     }
   }
   return g;
