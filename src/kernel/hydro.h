@@ -30,6 +30,7 @@
 #include "dump/output.h"
 #include "dump/dumper.h"
 #include "func/init_u.h"
+#include "func/init_o.h"
 
 class GPar {};
 
