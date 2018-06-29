@@ -1,0 +1,9 @@
+set -eu
+
+t=t.pdf
+pdfnup *kcmp.pdf *u_ch.pdf --nup 5x2 --outfile $t
+
+o=curv_ge.pdf
+pdfcrop $t $o
+
+rm $t
