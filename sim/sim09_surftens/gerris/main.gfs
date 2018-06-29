@@ -1,0 +1,40 @@
+# bubble density
+#Define RHO2 0.001
+Define RHO2 1.
+
+Define AVG(T,v0,v1) (v0 + CLAMP(T,0,1)*(v1-v0))
+
+Define RHO(T) (AVG(T,1.,RHO2))
+
+1 2 GfsSimulation GfsBox GfsGEdge {} {
+  Global {
+    Include ini_t_bub.h
+  }
+
+  Time { end = 5 dtmax = 0.01 }
+
+  Refine 5
+
+  VariableTracerVOF T { cfl = 0.5 }
+
+  #InitFraction T (-ellipse(0, 0., 0.2, 0.2))
+  InitFraction T (ini_t(x+0.5, y+0.5, z))
+
+  #Init {} { U = 0.2 V = 0.4 }
+  #Init {} { U = 0. V = 0. }
+  Init {} { U = 0.2 V = 0.19 }
+
+  VariableCurvature K T Kmax
+
+  SourceTension T 0.1  K
+
+  SourceViscosity 0.01
+
+  PhysicalParams { alpha = (1./RHO(T)) }
+
+  OutputSimulation { step = 1. } u_%07ld.vtk { variables = T,P,U,V,K format = VTK}
+  OutputTime { istep = 1 } stderr
+}
+GfsBox {}
+1 1 right
+1 1 top

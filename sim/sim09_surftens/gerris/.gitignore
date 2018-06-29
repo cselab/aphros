@@ -1,0 +1,13 @@
+*.log
+*.status
+alpha
+pressure
+*.h5
+*.xmf
+*.vts
+*.pvd
+*.dat
+*.pdf
+__pycache__
+*.vtk
+*.csv

@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -ue
+
+o=o
+
+rm -rvf $o
+mkdir -p $o
+
+# bubble
+#br="0.125"
+bc="0.5212 0.4593 0. "
+
+for br in 0.25 0.125 0.0625 0.045 0.037 ; do
+#for br in 0.125 ; do
+  echo br=$br
+  echo "$bc $br" > b.dat
+
+  # ch
+  echo "ch"
+  make #&> /dev/null
+
+  # ge
+  echo "ge"
+  (cd gerris ; ./runconv) #&> /dev/null
+
+  ./plot.py
+
+  p=r${br}_
+  mv -v cmp*.pdf o/${p}cmp.pdf
+  mv vf*.pdf o/${p}vf.pdf
+done
