@@ -900,6 +900,7 @@ class Vof : public AdvectionSolver<M_> {
     Scal bcc_t1 = -1.;   
     Scal bcc_y0 = -1e10; // overwrite u=0 if y<y0 or y>y1
     Scal bcc_y1 = 1e10;  // (to remove periodic contidions)
+    bool part_constr = false; // exact constraints
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
@@ -1237,7 +1238,7 @@ class Vof : public AdvectionSolver<M_> {
           }
         }
 
-        ff[i] += (xn - x) * par->part_relax; // XXX: instead of part_kattr
+        ff[i] += (xn - x) * par->part_relax;  // scale hm
       }
     }
 
@@ -1294,10 +1295,14 @@ class Vof : public AdvectionSolver<M_> {
     Scal da = 0.;
     Scal dt = 0.;
     for (size_t i = 0; i < sx; ++i) {
-      da += ff[i].dot(xa[i]);
+      da += ff[i].dot(xa[i]); // scale hm*hm
       dt += ff[i].dot(xt[i]);
     }
 
+    // rescale to 1
+    da /= hm * hm; 
+    dt /= hm * hm; 
+    
     // relaxation
     da *= par->part_kattr;
     dt *= par->part_kbend;
@@ -1584,7 +1589,7 @@ class Vof : public AdvectionSolver<M_> {
       // advance particles
       for (size_t it = 0; it < par->part_maxiter; ++it) {
         for (size_t i = 0; i < sc.size(); ++i) {
-          if (1) {
+          if (par->part_constr) {
             PartForce2dC(&(xx[sx[i]]), sx[i+1] - sx[i],
                         &(ll[sl[i]]), sl[i+1] - sl[i],
                         &(ff[sx[i]]));
@@ -1631,7 +1636,7 @@ class Vof : public AdvectionSolver<M_> {
             }
           }
           anavg /= anavgn;
-          std::cout 
+          std::cout << std::setprecision(10)
               << "it=" << it 
               << " dxmax=" << tmax 
               << " anmax=" << anmax 
