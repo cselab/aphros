@@ -209,7 +209,7 @@ def PlotPart(ax, p, sk=1):
     # plot strings
     n = 0
     for i in tt:
-        if i % sk == 1:
+        if i % sk == 0:
             ti = np.array(tt[i])
             cl = cmap(c[ti[0]])
             # connecting lines
