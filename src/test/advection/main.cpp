@@ -69,12 +69,45 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using Sem = typename Mesh::Sem;
+  using AST = solver::AdvectionSolverExplicit<M>; // advection TVD
+  using ASV = solver::Vof<M>; // advection VOF
 
   //using P::P; // inherit constructor
   Advection(Vars& var, const MyBlockInfo& bi, Par& par);
   void Run() override;
   void Init(Sem& sem);
   void Dump(Sem& sem);
+  void Update(typename AST::Par* p) {
+    p->sharp = var.Double["sharp"];
+    p->sharpo = var.Double["sharpo"];
+    p->split = var.Int["split"];
+  }
+  void Update(typename ASV::Par* p) {
+    p->curvgrad = var.Int["curvgrad"];
+    p->part = var.Int["part"];
+    p->part_relax = var.Double["part_relax"];
+    p->part_h0 = var.Double["part_h0"];
+    p->part_h = var.Double["part_h"];
+    p->part_kstr = var.Double["part_kstr"];
+    p->part_kattr = var.Double["part_kattr"];
+    p->part_kbend = var.Double["part_kbend"];
+    p->part_bendmean = var.Int["part_bendmean"];
+    p->part_dump_fr = var.Int["part_dump_fr"];
+    p->part_report_fr = var.Int["part_report_fr"];
+    p->part_maxiter = var.Int["part_maxiter"];
+    p->part_n = var.Int["part_n"];
+    p->part_k = var.Int["part_k"];
+    p->part_intth = var.Double["part_intth"];
+    p->clipth = var.Double["clipth"];
+    p->dim = var.Int["dim"];
+    p->dumppoly = var.Int["dumppoly"];
+    p->bcc_k0 = var.Double["bcc_k0"];
+    p->bcc_k1 = var.Double["bcc_k1"];
+    p->bcc_t0 = var.Double["bcc_t0"];
+    p->bcc_t1 = var.Double["bcc_t1"];
+    p->bcc_y0 = var.Double["bcc_y0"];
+    p->bcc_y1 = var.Double["bcc_y1"];
+  }
 
  protected:
   using P::var;
@@ -134,36 +167,15 @@ void Advection<M>::Init(Sem& sem) {
 
     std::string as = var.String["advection_solver"];
     if (as == "tvd") {
-      using AS = solver::AdvectionSolverExplicit<M>;
-      auto p = std::make_shared<typename AS::Par>();
-      p->sharp = var.Double["sharp"];
-      p->sharpo = var.Double["sharpo"];
-      p->split = var.Int["split"];
-      as_.reset(new AS(m, fcu_, bc, &ff_flux_, 
+      auto p = std::make_shared<typename AST::Par>();
+      Update(p.get());
+      as_.reset(new AST(m, fcu_, bc, &ff_flux_, 
                        &fc_src_, 0., var.Double["dt"], p));
     } else if (as == "vof") {
-      using AS = solver::Vof<M>;
-      auto p = std::make_shared<typename AS::Par>();
-      p->curvgrad = var.Int["curvgrad"];
-      p->part = var.Int["part"];
-      p->part_relax = var.Double["part_relax"];
-      p->part_h0 = var.Double["part_h0"];
-      p->part_h = var.Double["part_h"];
-      p->part_kstr = var.Double["part_kstr"];
-      p->part_kattr = var.Double["part_kattr"];
-      p->part_kbend = var.Double["part_kbend"];
-      p->part_bendmean = var.Int["part_bendmean"];
-      p->part_dump_fr = var.Int["part_dump_fr"];
-      p->part_report_fr = var.Int["part_report_fr"];
-      p->part_maxiter = var.Int["part_maxiter"];
-      p->part_n = var.Int["part_n"];
-      p->part_k = var.Int["part_k"];
-      p->dim = var.Int["dim"];
-      p->part_intth = var.Double["part_intth"];
-      p->clipth = var.Double["clipth"];
-      p->dumppoly = var.Int["dumppoly"];
+      auto p = std::make_shared<typename ASV::Par>();
+      Update(p.get());
       p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
-      as_.reset(new AS(m, fcu_, bc, &ff_flux_, 
+      as_.reset(new ASV(m, fcu_, bc, &ff_flux_, 
                        &fc_src_, 0., var.Double["dt"], p));
     } else {
       throw std::runtime_error("Unknown advection_solver=" + as);
