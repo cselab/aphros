@@ -1210,6 +1210,7 @@ class Vof : public AdvectionSolver<M_> {
     if (!sx) {
       return;
     }
+    assert(sx == kNp && sx % 2 == 1);
 
     Vect h = GetCellSize();
     Scal hm = h.norminf();
@@ -1245,22 +1246,22 @@ class Vof : public AdvectionSolver<M_> {
     auto rr = [](const Vect& x) {
       return Vect(-x[1], x[0], 0.);
     };
-    // Rotates vector to angle a given by unit vector
+    // Rotates vector to angle 'a' given by unit vector
     // x: vector of plane coordinates
     // e: Vect(cos(a), sin(a), 0)
     auto re = [](const Vect& x, const Vect& e) {
-      return Vect(x[0] * e[0] - x[1] * e[1], x[0] * e[1] + x[1] * e[0]);
+      return Vect(x[0] * e[0] - x[1] * e[1], x[0] * e[1] + x[1] * e[0], 0.);
     };
-    // Rotates vector to angle -a given by unit vector
+    // Rotates vector to angle '-a' with 'a' given by unit vector
     // x: vector of plane coordinates
     // e: Vect(cos(a), sin(a), 0)
     auto rem = [](const Vect& x, const Vect& e) {
-      return Vect(x[0] * e[0] + x[1] * e[1], -x[0] * e[1] + x[1] * e[0]);
+      return Vect(x[0] * e[0] + x[1] * e[1], -x[0] * e[1] + x[1] * e[0], 0.);
     };
     // Returns vector at angle a
     // x: vector of plane coordinates
     // e: Vect(cos(a), sin(a), 0)
-    auto ra = [](const Vect& x, Scal a) {
+    auto ra = [](Scal a) {
       return Vect(std::cos(a), std::sin(a), 0.);
     };
 
@@ -1270,22 +1271,23 @@ class Vof : public AdvectionSolver<M_> {
     // derivatives of positions by angles
     std::array<Vect, kNp> xa; // dx/dalpha
     std::array<Vect, kNp> xt; // dx/dtheta
-
-    // central particle
+    // central 
     const size_t ic = (sx - 1) / 2; 
     xa[ic] = Vect(0.);
     xt[ic] = Vect(0.);
-    // forward 
-    for (size_t i = ic + 1; i < sx; ++i) {
-      auto dm = xx[i] - xx[i - 1];
-      xa[i] = xa[i - 1] + rr(dm);
-      xt[i] = xt[i - 1] + rr(dm) * (i - ic - 0.5);
-    }
-    // backward
-    for (size_t i = ic - 1; i >= 0; --i) {
-      auto dp = xx[i + 1] - xx[i];
-      xa[i] = xa[i - 1] + rr(dp);
-      xt[i] = xt[i - 1] - rr(dp) * (i - ic - 0.5);
+    for (size_t q = 1; q <= ic; ++q) {
+      size_t i;
+      Vect d;
+      // forward 
+      i = ic + q;
+      d = xx[i] - xx[i - 1];
+      xa[i] = xa[i - 1] + rr(d);
+      xt[i] = xt[i - 1] + rr(d) * (q - 0.5);
+      // backward
+      i = ic - q;
+      d = xx[i + 1] - xx[i];
+      xa[i] = xa[i + 1] - rr(d);
+      xt[i] = xt[i + 1] + rr(d) * (q - 0.5);
     }
 
     // correction of angles
@@ -1295,6 +1297,7 @@ class Vof : public AdvectionSolver<M_> {
       da += ff[i].dot(xa[i]);
       dt += ff[i].dot(xt[i]);
     }
+
     // relaxation
     da *= par->part_kattr;
     dt *= par->part_kbend;
@@ -1306,34 +1309,48 @@ class Vof : public AdvectionSolver<M_> {
     // vector at angle dt
     Vect et = re(eth, eth);
 
+    // copy xx to ff
+    for (size_t i = 0; i < sx; ++i) {
+      ff[i] = xx[i];
+    }
+
     // apply da, rotate around ic
     for (size_t i = 0; i < sx; ++i) {
-      xx[i] = xx[ic] + re(xx[i] - xx[ic], ea);
+      ff[i] = ff[ic] + re(ff[i] - ff[ic], ea);
     }
+
+    // apply dt
     // segment vectors corrected by dt
     std::array<Vect, kNp> dd;
     dd[ic] = Vect(0.);
     // vector at current multiple of dt
     Vect e = eth;
-    // forward
-    for (size_t i = ic + 1; i < sx; ++i) {
-      dd[i] = re(xx[i] - xx[i - 1], e);
+    for (size_t q = 1; q <= ic; ++q) {
+      size_t i;
+      // forward
+      i = ic + q;
+      dd[i] = re(ff[i] - ff[i - 1], e);
+      // backward
+      i = ic - q;
+      dd[i] = rem(ff[i + 1] - ff[i], e);
+      // next
       e = re(e, et);
-    }
-    // reinit
-    e = eth;
-    // backward
-    for (size_t i = ic - 1; i >= 0; --i) {
-      dd[i] = rem(xx[i + 1] - xx[i], e);
-      e = rem(e, et);
     }
 
     // restore from dd
-    for (size_t i = ic + 1; i < sx; ++i) {
-      xx[i] = xx[i - 1] + dd[i];
+    for (size_t q = 1; q <= ic; ++q) {
+      size_t i;
+      // forward
+      i = ic + q;
+      ff[i] = ff[i - 1] + dd[i];
+      // backward
+      i = ic - q;
+      ff[i] = ff[i + 1] - dd[i];
     }
-    for (size_t i = ic - 1; i >= 0; --i) {
-      xx[i] = xx[i + 1] - dd[i];
+
+    // convert to position correction
+    for (size_t i = 0; i < sx; ++i) {
+      ff[i] -= xx[i];
     }
   }
   // Compute force to advance particles.
@@ -1465,15 +1482,15 @@ class Vof : public AdvectionSolver<M_> {
       // particle strings
       std::vector<IdxCell> sc; // cell
       std::vector<Vect> xx; // particle positions
-      std::vector<size_t> sx; // xx index, plus sx.size() 
+      std::vector<size_t> sx; // xx index, plus element sx.size() 
       std::vector<std::array<Vect, 2>> ll; // interface lines
-      std::vector<size_t> sl; // sl index, plus sl.size() 
+      std::vector<size_t> sl; // sl index, plus element sl.size() 
       std::vector<Vect> smx; // local unit x
       std::vector<Vect> smy; // local unit y
       std::vector<Vect> smc; // local center
       std::vector<Scal> sk; // curvature
 
-      // Extract interface, seed particles
+      // Extract interface, project particles
       for (auto c : m.Cells()) {
         // XXX: assume fcps_[c] % kNp == 0
         for (int is = 0; is < fcps_[c] / kNp; ++is) {
@@ -1567,14 +1584,19 @@ class Vof : public AdvectionSolver<M_> {
       // advance particles
       for (size_t it = 0; it < par->part_maxiter; ++it) {
         for (size_t i = 0; i < sc.size(); ++i) {
-          PartForce2d(&(xx[sx[i]]), sx[i+1] - sx[i],
-                      &(ll[sl[i]]), sl[i+1] - sl[i],
-                      &(ff[sx[i]]));
-
-          // freeze central particle
-          Vect f = ff[(sx[i] + sx[i+1] - 1) / 2];
-          for (size_t j = sx[i]; j < sx[i+1]; ++j) {
-            ff[j] -= f;
+          if (1) {
+            PartForce2dC(&(xx[sx[i]]), sx[i+1] - sx[i],
+                        &(ll[sl[i]]), sl[i+1] - sl[i],
+                        &(ff[sx[i]]));
+          } else {
+            PartForce2d(&(xx[sx[i]]), sx[i+1] - sx[i],
+                        &(ll[sl[i]]), sl[i+1] - sl[i],
+                        &(ff[sx[i]]));
+            // freeze central particle
+            Vect f = ff[(sx[i] + sx[i+1] - 1) / 2];
+            for (size_t j = sx[i]; j < sx[i+1]; ++j) {
+              ff[j] -= f;
+            }
           }
         }
 
