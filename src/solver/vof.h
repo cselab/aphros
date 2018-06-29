@@ -859,7 +859,7 @@ class Vof : public AdvectionSolver<M_> {
   FieldCell<Vect> fcg_; // gradient
   FieldFace<Vect> ffg_; // gradient
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
-  static constexpr size_t kNp = 5; // particles in on string
+  static constexpr size_t kNp = 5; // particles in one string
   static constexpr size_t kNpp = 2; // maximum strings per cell
   FieldCell<std::array<Vect, kNp * kNpp>> fcp_; // cell list
   FieldCell<std::array<Vect, kNp * kNpp>> fcpt_; // cell list tmp
@@ -1194,6 +1194,148 @@ class Vof : public AdvectionSolver<M_> {
   static Scal GetAn(const Vect* x, size_t i) {
     return GetAn(x[i-1], x[i], x[i+1]);
   };
+  // Compute force to advance particles with exact constraints.
+  // Assume 2d positions (x,y,0).
+  // x: pointer to first particle
+  // sx: size of particle string
+  // l: pointer to first array of line ends
+  // sl: number of lines
+  // par->part_kattr: relaxation factor for absolute angle
+  // par->part_kbend: relaxation factor for angle between segments
+  // Output:
+  // f: position corrections of size sx
+  void PartForce2dC(const Vect* xx, size_t sx, 
+                    const std::array<Vect, 2>* ll, size_t sl,
+                    Vect* ff) {
+    if (!sx) {
+      return;
+    }
+
+    Vect h = GetCellSize();
+    Scal hm = h.norminf();
+
+    // clear force
+    for (size_t i = 0; i < sx; ++i) {
+      ff[i] = Vect(0);
+    }
+
+    // attracting spring to nearest point on nearest line
+    for (size_t i = 0; i < sx; ++i) {
+      Vect x = xx[i];
+
+      if (sl) {
+        Vect xn;  // nearest point
+        Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
+        for (size_t j = 0; j < sl; ++j) {
+          auto& e = ll[j];
+          Vect xl = GetNearest(x, e[0], e[1]);
+          Scal dl = xl.sqrdist(x);
+          if (dl < dn) {
+            xn = xl;
+            dn = dl;
+          }
+        }
+
+        ff[i] += (xn - x) * par->part_relax; // XXX: instead of part_kattr
+      }
+    }
+
+    // Rotates vector by pi/2
+    // x: vector of plane coordinates
+    auto rr = [](const Vect& x) {
+      return Vect(-x[1], x[0], 0.);
+    };
+    // Rotates vector to angle a given by unit vector
+    // x: vector of plane coordinates
+    // e: Vect(cos(a), sin(a), 0)
+    auto re = [](const Vect& x, const Vect& e) {
+      return Vect(x[0] * e[0] - x[1] * e[1], x[0] * e[1] + x[1] * e[0]);
+    };
+    // Rotates vector to angle -a given by unit vector
+    // x: vector of plane coordinates
+    // e: Vect(cos(a), sin(a), 0)
+    auto rem = [](const Vect& x, const Vect& e) {
+      return Vect(x[0] * e[0] + x[1] * e[1], -x[0] * e[1] + x[1] * e[0]);
+    };
+    // Returns vector at angle a
+    // x: vector of plane coordinates
+    // e: Vect(cos(a), sin(a), 0)
+    auto ra = [](const Vect& x, Scal a) {
+      return Vect(std::cos(a), std::sin(a), 0.);
+    };
+
+    // alpha: angle between x-axis and normal
+    // theta: angle between segments
+    
+    // derivatives of positions by angles
+    std::array<Vect, kNp> xa; // dx/dalpha
+    std::array<Vect, kNp> xt; // dx/dtheta
+
+    // central particle
+    const size_t ic = (sx - 1) / 2; 
+    xa[ic] = Vect(0.);
+    xt[ic] = Vect(0.);
+    // forward 
+    for (size_t i = ic + 1; i < sx; ++i) {
+      auto dm = xx[i] - xx[i - 1];
+      xa[i] = xa[i - 1] + rr(dm);
+      xt[i] = xt[i - 1] + rr(dm) * (i - ic - 0.5);
+    }
+    // backward
+    for (size_t i = ic - 1; i >= 0; --i) {
+      auto dp = xx[i + 1] - xx[i];
+      xa[i] = xa[i - 1] + rr(dp);
+      xt[i] = xt[i - 1] - rr(dp) * (i - ic - 0.5);
+    }
+
+    // correction of angles
+    Scal da = 0.;
+    Scal dt = 0.;
+    for (size_t i = 0; i < sx; ++i) {
+      da += ff[i].dot(xa[i]);
+      dt += ff[i].dot(xt[i]);
+    }
+    // relaxation
+    da *= par->part_kattr;
+    dt *= par->part_kbend;
+
+    // vector at angle da
+    Vect ea = ra(da);
+    // vector at angle dt/2
+    Vect eth = ra(dt);
+    // vector at angle dt
+    Vect et = re(eth, eth);
+
+    // apply da, rotate around ic
+    for (size_t i = 0; i < sx; ++i) {
+      xx[i] = xx[ic] + re(xx[i] - xx[ic], ea);
+    }
+    // segment vectors corrected by dt
+    std::array<Vect, kNp> dd;
+    dd[ic] = Vect(0.);
+    // vector at current multiple of dt
+    Vect e = eth;
+    // forward
+    for (size_t i = ic + 1; i < sx; ++i) {
+      dd[i] = re(xx[i] - xx[i - 1], e);
+      e = re(e, et);
+    }
+    // reinit
+    e = eth;
+    // backward
+    for (size_t i = ic - 1; i >= 0; --i) {
+      dd[i] = rem(xx[i + 1] - xx[i], e);
+      e = rem(e, et);
+    }
+
+    // restore from dd
+    for (size_t i = ic + 1; i < sx; ++i) {
+      xx[i] = xx[i - 1] + dd[i];
+    }
+    for (size_t i = ic - 1; i >= 0; --i) {
+      xx[i] = xx[i + 1] - dd[i];
+    }
+  }
   // Compute force to advance particles.
   // Assume 2d positions (x,y,0).
   // x: pointer to first particle
@@ -1277,6 +1419,11 @@ class Vof : public AdvectionSolver<M_> {
       ff[ip] += fp;
       ff[i] -= (fm + fp);
     }
+
+    // scale by relaxaion factor
+    for (size_t i = 0; i < sx; ++i) {
+      ff[i] *= par->part_relax;
+    }
   }
   // Curvature for plane string
   Scal PartK(Vect* xx, size_t sx) {
@@ -1326,6 +1473,7 @@ class Vof : public AdvectionSolver<M_> {
       std::vector<Vect> smc; // local center
       std::vector<Scal> sk; // curvature
 
+      // Extract interface, seed particles
       for (auto c : m.Cells()) {
         // XXX: assume fcps_[c] % kNp == 0
         for (int is = 0; is < fcps_[c] / kNp; ++is) {
@@ -1334,7 +1482,7 @@ class Vof : public AdvectionSolver<M_> {
 
           sc.push_back(c);
 
-          // Local coordinates
+          // Plane coordinates
           // center
           Vect rc = fcp_[c][(i0 + i1 + 1) / 2];
           // tangent, assume straight line
@@ -1355,6 +1503,10 @@ class Vof : public AdvectionSolver<M_> {
           smy.push_back(my);
           smc.push_back(mc);
 
+          // Transform to plane coordinates.
+          // x: space coordinates
+          // Returns:
+          // Vect(xl, yl, 0): plane coordinates
           auto pr = [&](Vect x) -> Vect {
             Vect q(0);
             q[0] = (x - mc).dot(mx);
@@ -1395,7 +1547,6 @@ class Vof : public AdvectionSolver<M_> {
                 // projected line ends
                 ll.push_back({pr(e[0]), pr(e[1])});
               }
-              //auto e = GetLineEnds(fc_n_[cc], fc_a_[cc], h);
             }
           }
         }
@@ -1468,7 +1619,7 @@ class Vof : public AdvectionSolver<M_> {
 
         // advance
         for (size_t i = 0; i < xx.size(); ++i) {
-          xx[i] += ff[i] * par->part_relax;
+          xx[i] += ff[i];
         }
 
         // copy back to field
