@@ -9,11 +9,10 @@ c=${1:-circleplain.conf}
 
 echo c=$c
 
-time ./t.advection $c &> out
+time ./t.advection $c 
 time ./plot.py
 
-mkdir o
-
-for f in *.pdf *.dat out ; do
-  cp -v $f o/$f
-done
+#mkdir o
+#for f in *.pdf *.dat out ; do
+#  cp -v $f o/$f
+#done
