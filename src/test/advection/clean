@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-rm -vf *.dat
+rm -vf *_.dat
 rm -vf *.pdf
 rm -vf *.vtk
 rm -vf *.vts
