@@ -324,8 +324,8 @@ def PlotTraj(xx, yy, ll):
     ax.set_xlabel(r"x")
     ax.set_ylabel(r"y")
     ax.legend()
-    ax.set_xlim(0., 1.)
-    ax.set_ylim(0., 1.)
+    ax.set_xlim(0.2, 0.8)
+    ax.set_ylim(0.2, 0.8)
     ax.grid()
     plt.title("R={:.3f}, R/h={:.3f}".format(reff, reff / hx))
     po = 'cmp.pdf'

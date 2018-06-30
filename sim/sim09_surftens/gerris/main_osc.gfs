@@ -27,7 +27,7 @@ Define INI(x,y)     (x*x + y*y - RADIUS(x,y)*RADIUS(x,y))
     VariableCurvature K T Kmax
     SourceTension T 1. K
 
-    SourceViscosity 0.01
+    SourceViscosity 0.001
 
 
     Init {} { U = 0.4 V = 0.3 }
