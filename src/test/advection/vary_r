@@ -18,15 +18,15 @@ mkdir -p $o
 # bubble
 #br="0.125"
 bc="0.5212 0.4593 0. "
+# rx/ry ratio
+k=1.2
 
 for br in 0.25 0.125 0.0625 0.045 0.037 ; do
-  echo br=$br
+  brx=`bc -l <<< "$br * $k"`
+  bry=`bc -l <<< "$br / $k"`
+  echo "brx=$brx, bry=$bry"
 
-  echo "$bc $br" > b.dat
-  #echo "0.6 0.5 0. 0.1" > b.dat
-  #echo "0.7 0.5 0. 0.1" >> b.dat
-  #echo "0.65 0.55 0. 0.05" >> b.dat
-  #echo "0.65 0.45 0. 0.05" >> b.dat
+  echo "$bc $brx $bry" > b.dat
 
   ./t.advection $c  &> /dev/null
   g="gerris_k"

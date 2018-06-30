@@ -6,7 +6,7 @@
 // x y z r
 
 typedef struct {
-  double x, y, z, r;
+  double x, y, z, r, ry;
 } Bub;
 
 static void read(char* fn, Bub* l, int* n) {
@@ -16,12 +16,13 @@ static void read(char* fn, Bub* l, int* n) {
     abort();
   }
   int i = 0;
-  double x, y, z, r;
-  while (fscanf(b, "%lf %lf %lf %lf\n", &x, &y, &z, &r) > 0) {
+  double x, y, z, r, ry;
+  while (fscanf(b, "%lf %lf %lf %lf %lf\n", &x, &y, &z, &r, &ry) > 0) {
     l[i].x = x;
     l[i].y = y;
     l[i].z = z;
     l[i].r = r;
+    l[i].ry = ry;
     ++i;
   }
   *n = i;
@@ -36,8 +37,11 @@ static double dist(Bub* b, double x, double y, double z) {
   double dx = b->x - x;
   double dy = b->y - y;
   double dz = b->z - z;
+  dx /= b->r;
+  dy /= b->ry;
+  dz /= b->r;
   double d = sqrt(dx * dx + dy * dy + dz * dz);
-  d -= b->r;
+  d -= 1.;
   return d;
 }
 
