@@ -167,16 +167,22 @@ def CmpCurv(x, y, u, kk, ll, po):
 
     s = np.argsort(an)
 
-    ke = 1. / reff  # exact
+    kea = 1. / reff  # exact curvature average
 
+    # exact curvature
+    ane = np.linspace(-np.pi, np.pi, 200)
+    dege = np.degrees(ane)
+    cx,cy,cz,rx,ry = np.loadtxt('b.dat')
+    ke = rx*ry / ((ry * np.cos(ane)) ** 2 + (rx * np.sin(ane)) ** 2) ** (3. / 2.)
 
     fig, ax = plt.subplots()
-    ax.axhline(y=1., c='k')
+    #ax.axhline(y=1., c="0.5")
+    ax.plot(dege, ke / kea, label="exact", c="0.5")
 
     for k,l in zip(kk,ll):
         if k is not None:
             print("plot l={:}, median={:}".format(l, np.max(k)))
-            ax.plot(deg[s], k[ii][s] / ke, label=l)
+            ax.plot(deg[s], k[ii][s] / kea, label=l)
 
     ax.set_xlabel(r"angle [deg]")
     ax.set_ylabel(r"normalized curvature")
