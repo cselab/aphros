@@ -8,6 +8,7 @@ import glob
 import os
 import re
 import scipy.interpolate
+import sys
 
 # natural sort
 def natkey(s, _nsre=re.compile('([0-9]+)')):
@@ -54,6 +55,9 @@ def Get2d(u):
     else:
         assert len(s) == 3
         return u[0,:,:].reshape((s[1], s[2]))
+
+def Read2d(p):
+    return Get2d(Read(p))
 
 def PlotInit():
     plt.close()
@@ -249,89 +253,134 @@ def PlotPart(ax, p, sk=1):
             ax.scatter(x[ti], y[ti], c=cl, s=2, lw=0.3, zorder=11, edgecolor='black')
         n += 1
 
-
-
-# main
-
-pre = 'vf'
-pp = natsorted(glob.glob(pre + "*.dat"))
-for p in pp[-1:]:
-    suf = re.findall(pre + "(.*)", p)[0]
-    base = re.findall(pre + "([^.]*)", p)[0]
-    print("p={:}, suf={:}".format(p, suf))
-
-    vf = Get2d(Read(p))
-
-    [sx, sy] = vf.shape # cells
-
-    # check if gerris (odd sx)
-    ge = (sx % 2 == 1)
-
-    if ge:
-        sx -= 1
-        sy -= 1
-
+# s: shape of data array
+# Returns:
+# x1,y1: coordinates of cell centers
+def GetGeom(s):
+    [nx, ny] = s
+    # check if gerris (odd nx)
+    ge = (nx % 2 == 1)
+    # cells
+    sx,sy = (nx,ny) if not ge else (nx-1,ny-1)
     hx = 1. / sx
     hy = 1. / sy
-
-    # equivalent radius
-    reff = ((vf.sum() * hx * hy) / np.pi) ** 0.5
-    print("reff={:}".format(reff))
-
-    # nodes, 1 means 1d
-    xn1 = np.arange(sx + 1) * hx
-    yn1 = np.arange(sy + 1) * hy
-    # cell centers
-    x1 = (0.5 + np.arange(sx)) * hx
-    y1 = (0.5 + np.arange(sy)) * hy
-    x, y = np.meshgrid(x1, y1)
-
-    vx = Get2d(Read('vx' + suf)) # normal
-    vy = Get2d(Read('vy' + suf))
-
-
-    # invert curvature if gerris
+    # mesh
     if ge:
-        k = -k
+        x1 = (0. + np.arange(nx)) * hx
+        y1 = (0. + np.arange(nx)) * hy
+    else:
+        x1 = (0.5 + np.arange(nx)) * hx
+        y1 = (0.5 + np.arange(nx)) * hy
+    #x, y = np.meshgrid(x1, y1)
+    return x1,y1,hx,hy
 
-    # volume fraction u
-    po = os.path.splitext(p)[0] + ".pdf"
-    print(po)
+def GetMeshNodes(s):
+    x1,y1,hx,hy = GetGeom(s)
+    xn1 = np.arange(0., 1. + hx * 0.5, hx)
+    yn1 = np.arange(0., 1. + hx * 0.5, hy)
+    return xn1, yn1
+
+# pre: prefix
+# d: directory
+def GetFiles(d, pre):
+    pp = natsorted(glob.glob("{:}/{:}*.dat".format(d, pre)))
+    return pp
+
+# Extracts trajectory of center of mass.
+# pp: list of paths to volume fraction fields
+# Returns:
+# x,y: arrays
+def GetTraj(pp):
+    # result
+    cx = [] ; cy = []
+    for i,p in enumerate(pp):
+        # report
+        sys.stdout.write("{:} ".format(i))
+        sys.stdout.flush()
+        # read array
+        vf = Read2d(p)
+        x1,y1,hx,hy = GetGeom(vf.shape)
+        x,y = np.meshgrid(x1, y1)
+        # compute center
+        cx0 = (x * vf).sum() / vf.sum()
+        cy0 = (y * vf).sum() / vf.sum()
+        cx.append(cx0)
+        cy.append(cy0)
+
+    cx = np.array(cx)
+    cy = np.array(cy)
+    print()
+    return cx,cy
+
+# Plots trajectories
+# xx,yy: list of arrays
+# ll: labels
+def PlotTraj(xx, yy, ll):
+    global reff, hx
     fig, ax = PlotInit()
-    PlotGrid(ax, xn1, yn1)
-    PlotFieldGray(ax, vf, vmin=0., vmax=1.)
-    # plot partilces
-    n = re.findall("_(\d*)\.", suf)
-    if n:
-        pa = "partit.{:}.csv".format(n[0])
-        if os.path.isfile(pa):
-            print(pa)
-            PlotPart(ax, pa, sk=5)
-    # save
+    ax.set_aspect('equal')
+    for x,y,l in zip(xx, yy, ll):
+        ax.plot(x, y, label=l)
+    ax.set_xlabel(r"x")
+    ax.set_ylabel(r"y")
+    ax.legend()
+    ax.set_xlim(0., 1.)
+    ax.set_ylim(0., 1.)
+    ax.grid()
+    plt.title("R={:.3f}, R/h={:.3f}".format(reff, reff / hx))
+    po = 'cmp.pdf'
     PlotSave(fig, ax, po)
 
-    # velocity vx
-    if vx is not None:
-        po = 'vx' + base + ".pdf"
-        print(po)
-        fig, ax = PlotInit()
-        PlotGrid(ax, xn1, yn1)
+# Returns effective radius
+def GetReff(vf):
+    x1,y1,hx,hy = GetGeom(vf.shape)
+    return ((vf.sum() * hx * hy) / np.pi) ** 0.5
 
-        dvx = vx - vx.mean()
-        vm = abs(dvx).max()
-        PlotFieldBwr(ax, vx-vx.mean(), vmin=-vm, vmax=vm)
-        PlotSave(fig, ax, po)
+# Exact trajectory.
+# x0,y0: initial center
+# vx0,vy0: velocity
+# t: time
+# n: frames
+def GetTrajE(x0, y0, vx0, vy0, t, n=100):
+    x = np.linspace(x0, x0 + vx0 * t, n)
+    y = np.linspace(y0, y0 + vy0 * t, n)
+    return x,y
 
-    # plot curvature comparison
-    vx = Get2d(Read('vx' + suf))
-    vy = Get2d(Read('vy' + suf))
-    gvx = Get2d(Read(GetLast('gerris/vx*.dat')))
-    gvy = Get2d(Read(GetLast('gerris/vy*.dat')))
-    po = 'cmp' + base + ".pdf"
-    vvx = [vx, gvx]
-    vvy = [vy, gvy]
-    ll = ["ch", "gerris"]
-    vx0 = 0.2
-    vy0 = 0.19
-    Cmp(x, y, x1, y1, vf, vvx, vvy, ll, po, vx0, vy0)
+dd = ["./", "gerris"]
+ll = ["ch", "gerris"]
+xx = []
+yy = []
+
+global reff, hx
+
+pre = "vf"
+for d,l in zip(dd, ll):
+    pp = GetFiles(d, pre)
+    vf = Read2d(pp[0])
+    x1,y1,hx,hy = GetGeom(vf.shape)
+    reff = GetReff(vf)
+    x,y = GetTraj(pp)
+    xx.append(x)
+    yy.append(y)
+
+vf = Read2d(GetFiles(dd[0], pre)[0])
+x1,y1,hx,hy = GetGeom(vf.shape)
+reff = GetReff(vf)
+
+x,y = GetTrajE(0.3, 0.3, 0.4, 0.3, 1.)
+xx.append(x)
+yy.append(y)
+ll.append("exact")
+
+# Plot trajectory
+PlotTraj(xx, yy, ll)
+
+# Plot volume fraction
+xn1,yn1 = GetMeshNodes(vf.shape)
+po = "vf.pdf"
+print(po)
+fig, ax = PlotInit()
+PlotGrid(ax, xn1, yn1)
+PlotFieldGray(ax, vf, vmin=0., vmax=1.)
+PlotSave(fig, ax, po)
 

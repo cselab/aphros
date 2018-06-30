@@ -1,0 +1,36 @@
+Define LAPLACE 120
+Define TMAX 10
+Define LEVEL 5
+Define DT 0.
+
+Define CIRCLE (ellipse (-0.5,0.5,0.4,0.4))
+Define MU sqrt(0.8/LAPLACE)
+
+1 0 GfsSimulation GfsBox GfsGEdge {} {
+  Time { end = TMAX }
+  Refine LEVEL
+  #RefineSurface {return 10;} CIRCLE
+
+  #ApproxProjectionParams { tolerance = 1e-6 }
+  #ProjectionParams { tolerance = 1e-6 }
+  #AdvectionParams { scheme = none }
+
+  #VariableTracerVOFHeight T
+  VariableTracerVOF T
+  VariableCurvature K T
+  SourceTension T 1 K
+  SourceViscosity MU
+
+  InitFraction T CIRCLE
+  Init {} { Tref = T }
+
+  #AdaptGradient { istep = 1 } { cmax = 1e-6 maxlevel = LEVEL } T
+  EventStop { istep = 10 } T DT
+
+  OutputSimulation { step = 1. } u_%07ld.vtk { variables = T,P,U,V,K format = VTK}
+  OutputTime { istep = 1 } stderr
+}
+GfsBox {
+  top = Boundary
+  left = Boundary
+}

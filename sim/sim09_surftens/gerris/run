@@ -2,5 +2,7 @@
 
 set -ue
 
-ge.run2d -m main.gfs
+#c="main.gfs"
+c="main_osc.gfs"
+ge.run2d -m $c
 

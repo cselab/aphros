@@ -1,0 +1,44 @@
+Define RAD0 0.05
+Define LEVEL 5
+Define EPSILON 0.05
+Define VAR(T,min,max)   (min + CLAMP(T,0,1)*(max - min))
+Define RHO1 1.
+Define RHO2 1.
+Define RHO(T)           VAR(T, RHO1, RHO2)
+Define RADIUS(x,y)      (RAD0*(1. + EPSILON*cos (2.*atan2 (y, x))))
+Define INI(x,y)     (x*x + y*y - RADIUS(x,y)*RADIUS(x,y)) 
+
+1 2 GfsSimulation GfsBox GfsGEdge {} {
+    Global {
+      Include ini_t_bub.h
+    }
+
+    Time { end = 1 dtmax = 2e-3 }
+
+    Refine LEVEL
+
+    VariableTracerVOFHeight T
+    VariableFiltered T1 T 1
+
+    #InitFraction T (INI(x-0.01, y-0.03))
+    InitFraction T (ini_t(x+0.5, y+0.5, z))
+
+    PhysicalParams { alpha = 1./RHO(T1) }
+    VariableCurvature K T Kmax
+    SourceTension T 1. K
+
+    SourceViscosity 0.01
+
+
+    Init {} { U = 0.4 V = 0.3 }
+    #Init {} { U = 0. V = 0. }
+
+    OutputSimulation { step = 0.01 } u_%07ld.vtk { variables = T,P,U,V,K format = VTK}
+    OutputTime { istep = 1 } stderr
+}
+GfsBox {
+    #left = Boundary
+    #bottom = Boundary
+}
+1 1 right
+1 1 top

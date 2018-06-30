@@ -9,12 +9,18 @@ mkdir -p $o
 
 # bubble
 #br="0.125"
-bc="0.5212 0.4593 0. "
+bc="0.5 0.6 0. "
+bcx=0.3
+bcy=0.3
+b=b.dat
 
 for br in 0.25 0.125 0.0625 0.045 0.037 ; do
-#for br in 0.125 ; do
+#for br in 0.045 ; do
+#for br in 0.0625 ; do
+  bcyy=`bc -l <<< "$bcy + 0.5*$br"`
   echo br=$br
-  echo "$bc $br" > b.dat
+  echo "$bcx $bcy 0. $br" > $b
+  #echo "$bcx $bcyy 0. $br" >> $b
 
   # ch
   echo "ch"
@@ -27,6 +33,6 @@ for br in 0.25 0.125 0.0625 0.045 0.037 ; do
   ./plot.py
 
   p=r${br}_
-  mv -v cmp*.pdf o/${p}cmp.pdf
-  mv vf*.pdf o/${p}vf.pdf
+  mv -v cmp.pdf o/${p}cmp.pdf
+  mv -v vf.pdf o/${p}vf.pdf
 done
