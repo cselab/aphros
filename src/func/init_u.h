@@ -4,6 +4,7 @@
 #include <functional>
 #include <cmath>
 #include <limits>
+#include <sstream>
 
 #include "parse/vars.h"
 #include "geom/field.h"
@@ -106,7 +107,11 @@ CreateInitU(Vars& par, bool verb=true) {
     bool ls = par.Int["list_ls"]; // level-set if 1, else stepwise
     size_t dim = par.Int["dim"];
 
-    struct P { Vect c; Scal r; };
+    // elliptic partilces TODO: generalize
+    struct P { 
+      Vect c;  // center
+      Vect r;  // axes in coordinate directions
+    };
     std::vector<P> pp;
 
     std::ifstream f(fn);
@@ -114,12 +119,34 @@ CreateInitU(Vars& par, bool verb=true) {
       throw std::runtime_error("Can't open particle list '" + fn + "'");
     }
 
+    f >> std::skipws;
     // Read until eof
     while (true) {
       P p;
       // Read single particle: x y z r
-      f >> p.c[0] >> p.c[1] >> p.c[2] >> p.r;
+      // first character (to skip empty strings)
+      char c;
+      f >> c;
       if (f.good()) {
+        // still have lines
+        std::string s;
+        std::getline(f, s);
+        s = c + s; // append first character
+        std::stringstream st(s);
+        st >> p.c[0] >> p.c[1] >> p.c[2];
+        st >> p.r[0];
+        if (st.fail()) {
+          throw std::runtime_error("list: missing rx in '" + s + "'");
+        }
+        st >> p.r[1];
+        if (st.fail()) {
+          p.r[1] = p.r[0];
+        } else {
+          st >> p.r[2];
+          if (st.fail()) {
+            p.r[2] = p.r[0];
+          }
+        }
         pp.push_back(p);
       } else {
         break;
