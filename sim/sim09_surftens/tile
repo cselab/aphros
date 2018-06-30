@@ -1,9 +1,13 @@
 set -eu
 
+for f in *{cmp,vf}.pdf ; do
+  pdfcrop --margins '5 5 5 5' $f cr_$f
+done
+
 t=t.pdf
-pdfnup *cmp.pdf *vf.pdf --nup 5x2 --outfile $t
+pdfnup cr_*cmp.pdf cr_*vf.pdf --nup 5x2 --outfile $t
 
 o=univel.pdf
-pdfcrop $t $o
+pdfcrop --margins '5 5 5 5' $t $o
 
-rm $t
+rm $t cr_*.pdf

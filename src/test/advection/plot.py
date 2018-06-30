@@ -281,7 +281,7 @@ for p in pp:
     fig, ax = PlotInit()
     PlotGrid(ax, xn1, yn1)
     vmax = abs(u).max()
-    PlotFieldGray(ax, u, vmin=-vmax, vmax=vmax)
+    PlotFieldGray(ax, u, vmin=0., vmax=1.)
     #PlotField(ax, np.clip(u, 0., 1.))
     if all([e is not None for e in [a, nx, ny]]):
         l = GetLines(x, y, a, nx, ny, hx, hy, u)

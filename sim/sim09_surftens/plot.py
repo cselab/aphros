@@ -322,14 +322,14 @@ def PlotTraj(xx, yy, ll, s):
     ax.set_aspect('equal')
     for x,y,l in zip(xx, yy, ll):
         ax.plot(x, y, label=l)
-    ax.set_xlabel(r"x")
-    ax.set_ylabel(r"y")
+    #ax.set_xlabel(r"x")
+    #ax.set_ylabel(r"y")
     ax.legend()
     ax.set_xlim(0., 1.)
     ax.set_ylim(0., 1.)
     xn1,yn1 = GetMeshNodes(s)
     PlotGrid(ax, xn1, yn1)
-    plt.title("R={:.3f}, R/h={:.3f}".format(reff, reff / hx))
+    plt.title("R/h={:.3f}".format(reff / hx))
     po = 'cmp.pdf'
     PlotSave(fig, ax, po)
 
