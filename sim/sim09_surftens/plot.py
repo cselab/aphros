@@ -315,7 +315,8 @@ def GetTraj(pp):
 # Plots trajectories
 # xx,yy: list of arrays
 # ll: labels
-def PlotTraj(xx, yy, ll):
+# s: shape of of data array
+def PlotTraj(xx, yy, ll, s):
     global reff, hx
     fig, ax = PlotInit()
     ax.set_aspect('equal')
@@ -324,9 +325,10 @@ def PlotTraj(xx, yy, ll):
     ax.set_xlabel(r"x")
     ax.set_ylabel(r"y")
     ax.legend()
-    ax.set_xlim(0.2, 0.8)
-    ax.set_ylim(0.2, 0.8)
-    ax.grid()
+    ax.set_xlim(0., 1.)
+    ax.set_ylim(0., 1.)
+    xn1,yn1 = GetMeshNodes(s)
+    PlotGrid(ax, xn1, yn1)
     plt.title("R={:.3f}, R/h={:.3f}".format(reff, reff / hx))
     po = 'cmp.pdf'
     PlotSave(fig, ax, po)
@@ -367,13 +369,14 @@ vf = Read2d(GetFiles(dd[0], pre)[0])
 x1,y1,hx,hy = GetGeom(vf.shape)
 reff = GetReff(vf)
 
+# exact trajectory
 x,y = GetTrajE(0.3, 0.3, 0.4, 0.3, 1.)
-xx.append(x)
-yy.append(y)
-ll.append("exact")
+xx = [x] + xx
+yy = [y] + yy
+ll = ["exact"] + ll
 
-# Plot trajectory
-PlotTraj(xx, yy, ll)
+# Plot trajectories
+PlotTraj(xx, yy, ll, vf.shape)
 
 # Plot volume fraction
 xn1,yn1 = GetMeshNodes(vf.shape)

@@ -36,3 +36,5 @@ for br in 0.25 0.125 0.0625 0.045 0.037 ; do
   mv -v cmp.pdf o/${p}cmp.pdf
   mv -v vf.pdf o/${p}vf.pdf
 done
+
+(cd $o ; ../tile)
