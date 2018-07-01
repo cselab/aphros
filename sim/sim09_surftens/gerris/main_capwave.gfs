@@ -1,0 +1,21 @@
+Define LEVEL 5
+Define WL (1./5)
+Define A 0.05
+1 1 GfsSimulation GfsBox GfsGEdge {} {
+  Time { end = 3. }
+  Refine LEVEL
+  #ApproxProjectionParams { tolerance = 1e-6 }
+  #ProjectionParams { tolerance = 1e-6 }
+  VariableTracerVOFHeight T
+  VariableCurvature K T
+  SourceTension T 1 K
+  #SourceDiffusion U 0.0182571749236
+  #SourceDiffusion V 0.0182571749236
+  InitFraction T (y - A*cos (2.*M_PI*x/WL))
+	OutputSimulation { step = 0.01 } u_%07ld.vtk { variables = T,P,U,V,K format = VTK}
+	OutputTime { istep = 1 } stderr
+}
+GfsBox {}
+1 1 right
+#1 1 top
+
