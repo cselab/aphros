@@ -18,8 +18,10 @@ mkdir -p $o
 # bubble
 #br="0.125"
 bc="0.5212 0.4593 0. "
+
 # rx/ry ratio
 k=1.2
+#k=1.
 
 for br in 0.25 0.125 0.0625 0.045 0.037 ; do
   brx=`bc -l <<< "$br * $k"`
