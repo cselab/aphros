@@ -167,13 +167,15 @@ def CmpCurv(x, y, u, kk, ll, po):
 
     s = np.argsort(an)
 
-    kea = 1. / reff  # exact curvature average
 
     # exact curvature
     ane = np.linspace(-np.pi, np.pi, 200)
     dege = np.degrees(ane)
     cx,cy,cz,rx,ry = np.loadtxt('b.dat')
     ke = rx*ry / ((ry * np.cos(ane)) ** 2 + (rx * np.sin(ane)) ** 2) ** (3. / 2.)
+
+    #kea = 1. / reff  # average curvature from area
+    kea = ke.mean()
 
     fig, ax = plt.subplots()
     #ax.axhline(y=1., c="0.5")
@@ -192,7 +194,8 @@ def CmpCurv(x, y, u, kk, ll, po):
     ax.legend()
     ax.set_ylim(0., 2.)
     ax.grid()
-    plt.title("R/h={:.3f}".format(reff / hx))
+    #plt.title("R/h={:.3f}".format(reff / hx))
+    plt.title("rx/h={:.3f}, ry/h={:.3f}".format(rx / hx, ry / hx))
     fig.tight_layout()
     fig.savefig(po, dpi=300)
     plt.close()
