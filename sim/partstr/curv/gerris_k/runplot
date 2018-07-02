@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -eu
+
+c=main.gfs
+./clean
+ge.run2d -m $c
+./convert
+../plot.py

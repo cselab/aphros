@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -eu
+
+./clean
+ch.base
+../plot.py
