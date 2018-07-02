@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -eu
+
+./clean
+time ge.run2d -m main_tg.gfs
+

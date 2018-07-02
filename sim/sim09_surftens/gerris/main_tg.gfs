@@ -1,0 +1,89 @@
+# Reynolds number for Taylor-Green
+Define RE 1600
+# Weber number
+Define WE 1.
+# density ratio (rho_i / rho_o)
+Define RHOR 1.
+# dynamic viscosity ratio (mu_i / mu_o)
+Define MUR 1.
+
+Define PI 3.14159265358979323846
+# domain width
+Define WIDTH (2. * PI)
+# domain volume
+Define VOLUME (WIDTH * WIDTH * WIDTH)
+
+# wave number for Taylor-Green
+Define WN 1.
+
+# refinement levels 
+Define LEVEL 6
+
+# bubble radius
+#Define R (WIDTH/16)
+Define R (0.2)
+
+# utils
+Define AVG(T,v0,v1) (v0 + CLAMP(T,0,1)*(v1-v0))
+Define HAVG(T,v0,v1) (1. / AVG(T, 1./v0, 1./v1))
+Define NORM2(x0,y0,z0) (x0*x0 + y0*y0 + z0*z0)
+
+# density
+Define RHO(T) (AVG(T,1.,RHOR))
+
+# dynamic viscosity
+Define MUO     (1. / RE)
+Define MUI     (MUO * MUR)
+Define MU(T)   (AVG(T,MUO,MUI))
+
+Define MAXTIME 10.
+Define OutputFieldStep 1.
+Define OutputStatStep 0.01
+Define OutputRestartStep 100.
+
+1 2 GfsSimulation GfsBox GfsGEdge { x=0.5 y=0.5 } {
+  PhysicalParams { L = WIDTH }
+
+  Time { end = MAXTIME }
+  Refine LEVEL
+
+  VariableTracerVOFHeight T
+
+  # T=1 in bubble, T=0 in surrounding liquid
+  #InitFraction T (ini_t(x, y, z))
+
+  VariableCurvature K T 
+
+  SourceTension T (1.0/WE) K
+
+  VariableFiltered T1 T 1
+  PhysicalParams { alpha = (1./RHO(T1)) }
+  SourceViscosity (MU(T1)) 
+
+  #Init {} { U = VEL0 + y * DVEL  V = 0. }
+  # Taylor-Green vortex
+  Init {} {
+    U = sin(WN * x) * cos(WN * y)
+    V = -cos(WN * x) * sin(WN * y)
+  }
+  InitFraction T (-ellipse(2., 1., R, R))
+
+	OutputSimulation { step = 0.2 } u_%07ld.vtk { variables = T,P,U,V,K format = VTK}
+	OutputTime { istep = 1 } stderr
+}
+GfsBox {}
+#GfsBox {
+#  top = Boundary {
+#    #BcDirichlet U (VEL0 + DVEL * 0.5 * cos(t * 2. * M_PI / TPER))
+#    #BcDirichlet U (DVEL * sin(t * 2. * M_PI / TPER))
+#    BcDirichlet V (0)
+#  }
+#  bottom = Boundary {
+#    #BcDirichlet U (VEL0 - DVEL * 0.5)
+#    BcDirichlet U (DVEL * sin(t * 2. * M_PI / TPER))
+#    BcDirichlet U (0)
+#    BcDirichlet V (0)
+#  }
+#}
+1 1 right
+1 1 top

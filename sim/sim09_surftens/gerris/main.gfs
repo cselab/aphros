@@ -20,8 +20,8 @@ Define RHO(T) (AVG(T,1.,RHO2))
   #ApproxProjectionParams { tolerance = 1e-6 }
   #ProjectionParams { tolerance = 1e-6 }
   
-  #InitFraction T (-ellipse(0, 0., 0.2, 0.2))
-  InitFraction T (ini_t(x+0.5, y+0.5, z))
+  InitFraction T (ellipse(0, 0., 0.2, 0.2))
+  #InitFraction T (ini_t(x+0.5, y+0.5, z))
 
   #Init {} { U = 0.2 V = 0.4 }
   Init {} { U = y V = 0. }

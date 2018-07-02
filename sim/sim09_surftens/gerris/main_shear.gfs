@@ -1,0 +1,37 @@
+Define LEVEL 4
+Define SIG 10
+Define MU 0.001
+Define DVEL 10.
+Define VEL0 0.
+Define R 0.2
+Define TPER 1.
+1 1 GfsSimulation GfsBox GfsGEdge {} {
+  Time { end = 5. }
+  Refine LEVEL
+  #ApproxProjectionParams { tolerance = 1e-6 }
+  #ProjectionParams { tolerance = 1e-6 }
+  VariableTracerVOFHeight T
+  VariableCurvature K T
+  SourceTension T SIG K
+  SourceViscosity MU
+
+  #Init {} { U = VEL0 + y * DVEL  V = 0. }
+  InitFraction T (ellipse(0, 0, R, R))
+
+	OutputSimulation { step = 0.05 } u_%07ld.vtk { variables = T,P,U,V,K format = VTK}
+	OutputTime { istep = 1 } stderr
+}
+GfsBox {
+  top = Boundary {
+    #BcDirichlet U (VEL0 + DVEL * 0.5 * cos(t * 2. * M_PI / TPER))
+    BcDirichlet U (DVEL * sin(t * 2. * M_PI / TPER))
+    BcDirichlet V (0)
+  }
+  bottom = Boundary {
+    #BcDirichlet U (VEL0 - DVEL * 0.5)
+    BcDirichlet U (-DVEL * sin(t * 2. * M_PI / TPER))
+    BcDirichlet U (0)
+    BcDirichlet V (0)
+  }
+}
+1 1 right
