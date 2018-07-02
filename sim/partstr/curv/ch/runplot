@@ -4,4 +4,4 @@ set -eu
 
 ./clean
 ch.base
-../plot.py
+./t.advection

@@ -8,3 +8,5 @@ rm -vf *.{h5,xmf}
 rm -vf *.csv
 rm -vrf o
 rm -vf out
+rm -vf *.dat
+rm -vf base.conf
