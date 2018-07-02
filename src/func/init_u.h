@@ -141,6 +141,7 @@ CreateInitU(Vars& par, bool verb=true) {
         st >> p.r[1];
         if (st.fail()) {
           p.r[1] = p.r[0];
+          p.r[2] = p.r[0];
         } else {
           st >> p.r[2];
           if (st.fail()) {
