@@ -44,13 +44,11 @@ def Get2d(u):
         return u[0,:,:].reshape((s[1], s[2]))
 
 def PlotInitSq():
-    plt.close()
     fig, ax = plt.subplots(figsize=(5,5))
     ax.set_aspect('equal')
     return fig, ax
 
 def PlotInit():
-    plt.close()
     fig, ax = plt.subplots(figsize=(5,3))
     ax.set_aspect('equal')
     return fig, ax
@@ -199,15 +197,18 @@ def PlotPart(ax, p, sk=1):
             ax.scatter(x[ti], y[ti], c=cl, s=2, lw=0.3, zorder=11, edgecolor='black')
         n += 1
 
+def IsGerris(s):
+    # check if gerris (odd nx)
+    return s[0] % 2 == 1
 
 # s: shape of data array
 # Returns:
 # x1,y1: coordinates of cell centers
+# hx,hy: mesh steps
 def GetGeom(s):
     [nx, ny] = s
-    # check if gerris (odd nx)
-    ge = (nx % 2 == 1)
     # cells
+    ge = IsGerris(s)
     sx,sy = (nx,ny) if not ge else (nx-1,ny-1)
     hx = 1. / sx
     hy = 1. / sy
@@ -258,3 +259,16 @@ def ReadField(pt, fld):
 
 def ReadField2d(pt, fld):
     return Get2d(ReadField(pt, fld))
+
+# Save figure with title only
+# t: title
+# po: output path
+def FigTitle(t, po):
+    fig, ax = plt.subplots(figsize=(3,0.5))
+    ax.text(0., 0., t, fontsize=15)
+    ax.axis('off')
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+    fig.tight_layout()
+    fig.savefig(po, bbox_inches='tight')
+    plt.close()

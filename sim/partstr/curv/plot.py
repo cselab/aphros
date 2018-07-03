@@ -10,30 +10,32 @@ import re
 from plotlib import *
 
 # Figure with curvature comparison
-# kk: list of fields
+# vf: volume fraction field
+# kk: list of curvature fields
 # ll: list of labels
-def FigCmp(x, y, u, kk, ll, po):
-    global reff, hx
+def FigCmp(vf, kk, ll, po):
+    # mesh
+    x1,y1,hx,hy = GetGeom(vf.shape)
+    x,y = GetMesh(x1, y1)
 
-    cx = (x * u).sum() / u.sum()
-    cy = (y * u).sum() / u.sum()
+    # center of mass
+    cx = (x * vf).sum() / vf.sum()
+    cy = (y * vf).sum() / vf.sum()
     th = 1e-3
-    ii = np.where((u > th) & (u < 1. - th))
+    ii = np.where((vf > th) & (vf < 1. - th))
     x = x[ii];   y = y[ii]
     dx = x - cx; dy = y - cy
     an = np.arctan2(dy, dx)
     deg = np.degrees(an)
-
     s = np.argsort(an)
-
 
     # exact curvature
     ane = np.linspace(-np.pi, np.pi, 200)
     dege = np.degrees(ane)
-    cx,cy,cz,rx,ry = np.loadtxt('b.dat')
+    dm,dm,dm,rx,ry = np.loadtxt('b.dat')
     ke = rx*ry / ((ry * np.cos(ane)) ** 2 + (rx * np.sin(ane)) ** 2) ** (3. / 2.)
 
-    #kea = 1. / reff  # average curvature from area
+    # average curvature
     kea = ke.mean()
 
     fig, ax = plt.subplots()
@@ -59,6 +61,32 @@ def FigCmp(x, y, u, kk, ll, po):
     fig.savefig(po, dpi=300)
     plt.close()
 
+# Figure with volume fraction
+# pt: path template
+# suf: output name suffix
+def FigK(pt):
+    k = ReadField2d(pt, 'k')
+    vf = ReadField2d(pt, 'u')
+
+    fig, ax = PlotInitSq()
+    x1,y1,hx,hy = GetGeom(vf.shape)
+    xn1,yn1 = GetMeshNodes(hx, hy)
+    x,y = GetMesh(x1, y1)
+
+    # grid
+    PlotGrid(ax, xn1, yn1)
+    reff = GetReff(vf)
+    # average curvature
+    ke = 1. / reff
+    # exclude points with zero curvature (for ch)
+    k[np.where(k == 0.)] = np.nan
+
+    PlotFieldBwr(ax, k / ke, vmin=0.8, vmax=1.2)
+
+    # save
+    po = GetFieldPath(pt, "k", "pdf")
+    print(po)
+    PlotSave(fig, ax, po)
 
 # Figure with volume fraction
 # pt: path template
@@ -94,17 +122,47 @@ def FigVf(pt):
     PlotSave(fig, ax, po)
 
 
+def Glob(d):
+    return sorted(glob.glob(os.path.join(d, "u*.dat")))
+
 def Main():
     # directories
     dd = ['ch', 'ge']
+    # labels
+    ll = ['mfer', 'gerris']
+    # curvature arrays
+    kk = []
 
-    for d in dd:
+    for d,l in zip(dd, ll):
         print(d)
-        pp = sorted(glob.glob(os.path.join(d, "u*.dat")))
-        if not pp:
-            continue
+        pp = Glob(d)
+        assert pp is not None
         pt = GetPathTemplate(pp[-1])
+
+        # volume fraction
         FigVf(pt)
+        # curvature
+        FigK(pt)
+        # title
+        vf = ReadField2d(pt, "u")
+        cx,cy,cz,rx,ry = np.loadtxt('b.dat')
+        x1,y1,hx,hy = GetGeom(vf.shape)
+        FigTitle("rx/h={:} ry/h={:}".format(rx / hx, ry / hx),
+                 GetFieldPath(pt, "ttl", "pdf"))
+
+        # append curvature
+        k = ReadField2d(pt, "k")
+        assert k is not None
+        if IsGerris(vf.shape):
+            k = k * (-1)
+        kk.append(k)
+
+    # curvature comparison
+    pp = Glob(dd[0])
+    pt = GetPathTemplate(pp[-1])
+    vf = ReadField2d(pt, "u")
+    po = 'cmp.pdf'
+    FigCmp(vf, kk, ll, po)
 
     exit()
 

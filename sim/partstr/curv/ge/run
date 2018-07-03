@@ -6,4 +6,3 @@ c=main.gfs
 ./clean
 ge.run2d -m $c
 ./convert
-../plot.py
