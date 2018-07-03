@@ -2,12 +2,21 @@
 
 set -eu
 
-for f in *{cmp,vf_ch}.pdf ; do
+# count number of files by pattern p
+cnt() {
+  p="$@"
+  arr=($p)
+  echo ${#arr[@]}
+}
+
+
+for f in r*{cmp,vf_ch}.pdf ; do
   pdfcrop --margins '5 10 5 10' $f cr_$f
 done
 
 t=t.pdf
-pdfnup cr_*cmp.pdf cr_*vf_ch.pdf --nup 5x2 --outfile $t
+n=`cnt "cr_*cmp.pdf"`
+pdfnup cr_*cmp.pdf cr_*vf_ch.pdf --nup ${n}x2 --outfile $t
 
 o=curv.pdf
 pdfcrop --margins '5 5 5 5' $t $o

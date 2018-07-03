@@ -15,7 +15,7 @@ from matplotlib.colors import LinearSegmentedColormap
 # <Nx> <Ny> <Nz>
 # <u[0,0,0]> <u[0,0,1]> ...
 # Return:
-# array of shape (Nz, Ny, Nx)
+# array of shape (Nx, Ny, Nz) (reversed dimensions)
 # None if file not found
 def Read(p):
     if not os.path.isfile(p):
@@ -30,6 +30,8 @@ def Read(p):
         u = np.array(ll[1].split(), dtype=float)
         # data z,y,x
         u = u.reshape(ss)
+        # data x,y,z
+        u = np.transpose(u)
         return u
 
 # u: numpy array (2d or 3d slice)
@@ -37,19 +39,25 @@ def Get2d(u):
     if u is None:
         return None
     s = u.shape
+    assert len(s) in [2, 3]
     if len(s) == 2:
-        return u
+        return np.transpose(u)
     else:
-        assert len(s) == 3
-        return u[0,:,:].reshape((s[1], s[2]))
+        return u[:,:,0].reshape((s[0], s[1]))
+
+# u: numpy array (2d or 3d)
+def Get3d(u):
+    if u is None:
+        return None
+    s = u.shape
+    assert len(s) in [2, 3]
+    if len(s) == 2:
+        return u[:,:,np.newaxis]
+    else:
+        return u
 
 def PlotInitSq():
     fig, ax = plt.subplots(figsize=(5,5))
-    ax.set_aspect('equal')
-    return fig, ax
-
-def PlotInit():
-    fig, ax = plt.subplots(figsize=(5,3))
     ax.set_aspect('equal')
     return fig, ax
 
@@ -215,14 +223,51 @@ def GetGeom(s):
     # mesh
     if ge:
         x1 = (0. + np.arange(nx)) * hx
-        y1 = (0. + np.arange(nx)) * hy
+        y1 = (0. + np.arange(ny)) * hy
     else:
         x1 = (0.5 + np.arange(nx)) * hx
-        y1 = (0.5 + np.arange(nx)) * hy
+        y1 = (0.5 + np.arange(ny)) * hy
     return x1,y1,hx,hy
 
+# s: shape of data array
+# Returns:
+# x1,y1: coordinates of cell centers
+# hx,hy: mesh steps
+def GetGeom3(s):
+    [nx, ny, nz] = s
+    # cells
+    ge = IsGerris(s)
+    sx,sy,sz = (nx,ny,nz) if not ge else (nx-1,ny-1,nz-1)
+    hx = 1. / sx
+    hy = 1. / sy
+    hz = 1. / sz
+    # mesh
+    if ge:
+        x1 = (0. + np.arange(nx)) * hx
+        y1 = (0. + np.arange(ny)) * hy
+        z1 = (0. + np.arange(nz)) * hz
+    else:
+        x1 = (0.5 + np.arange(nx)) * hx
+        y1 = (0.5 + np.arange(ny)) * hy
+        z1 = (0.5 + np.arange(nz)) * hz
+    return x1,y1,z1,hx,hy,hz
+
 def GetMesh(x, y):
-    return np.meshgrid(x, y)
+    return np.meshgrid(x, y, indexing='ij')
+
+def GetMesh3(x, y, z):
+    return np.meshgrid(x, y, z, indexing='ij')
+
+# assuming uniform mesh
+def GetMeshStep(s):
+    if IsGerris(s):
+        return 1. / (s[0] - 1)
+    return 1. / s[0]
+
+def GetDim(s):
+    if len(s) == 2 or s[2] == 1:
+        return 2
+    return 3
 
 # Returns mesh nodes
 # assume [0,1]x[0,1] domain
@@ -231,10 +276,23 @@ def GetMeshNodes(hx, hy):
     yn1 = np.arange(0., 1. + hx * 0.5, hy)
     return xn1, yn1
 
+# Returns mesh nodes
+# assume [0,1]x[0,1]x[0,1] domain
+def GetMeshNodes3(hx, hy, hz):
+    xn1 = np.arange(0., 1. + hx * 0.5, hx)
+    yn1 = np.arange(0., 1. + hy * 0.5, hy)
+    zn1 = np.arange(0., 1. + hz * 0.5, hz)
+    return xn1, yn1, zn1
+
 # Returns effective radius
 def GetReff(vf):
     x1,y1,hx,hy = GetGeom(vf.shape)
     return ((vf.sum() * hx * hy) / np.pi) ** 0.5
+
+# Returns effective radius
+def GetReff3(vf):
+    x1,y1,z1,hx,hy,hz = GetGeom3(vf.shape)
+    return ((vf.sum() * hx * hy * hz) / np.pi * 3. / 4.) ** (1. / 3.)
 
 # Returns path template from sample path
 def GetPathTemplate(p):
@@ -260,15 +318,47 @@ def ReadField(pt, fld):
 def ReadField2d(pt, fld):
     return Get2d(ReadField(pt, fld))
 
+def ReadField3d(pt, fld):
+    return Get3d(ReadField(pt, fld))
+
 # Save figure with title only
 # t: title
 # po: output path
 def FigTitle(t, po):
-    fig, ax = plt.subplots(figsize=(3,0.5))
+    fig, ax = plt.subplots(figsize=(5,0.5))
     ax.text(0., 0., t, fontsize=15)
     ax.axis('off')
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
-    fig.tight_layout()
-    fig.savefig(po, bbox_inches='tight')
+    #fig.tight_layout()
+    #fig.savefig(po, bbox_inches='tight')
+    fig.savefig(po)
     plt.close()
+
+# Histogram of curvature
+def FigHistK(vf, kk, ll, po):
+    dim = GetDim(vf.shape)
+    # inteface cells
+    th = 1e-3
+    ii = np.where((vf > th) & (vf < 1. - th))
+
+    # exact curvature, TODO: ellipsoid
+    # q: dummy
+    q,q,q,rx,q = np.loadtxt('b.dat')
+    ke = (2. if dim == 3 else 1.) / rx
+
+    fig, ax = plt.subplots()
+    for k,l in zip(kk,ll):
+        if IsGerris(vf.shape):
+            k *= -1
+        k = k[ii]
+        h,b = np.histogram(k / ke, 200, range=(0., 2.), density=False)
+        bc = (b[1:] + b[:-1]) * 0.5
+        ax.plot(bc, h, label=l)
+
+    ax.axvline(x=1., label="exact", c="0.5", ls='--')
+    ax.set_ylim(0)
+    ax.set_xlabel(r"normalized curvature")
+    ax.legend()
+    ax.grid()
+    PlotSave(fig, ax, po)

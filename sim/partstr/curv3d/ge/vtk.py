@@ -116,7 +116,7 @@ def interp_to_uniform(xp, yp, fields=[], n=None):
     x1 = np.linspace(xp.min(), xp.max(), n)
     y1 = np.linspace(yp.min(), yp.max(), n)
 
-    x, y = np.meshgrid(x1, y1)
+    x, y = np.meshgrid(x1, y1, indexing='ij')
     pts = np.vstack((xp, yp)).T
 
     r = []
@@ -126,4 +126,31 @@ def interp_to_uniform(xp, yp, fields=[], n=None):
         r.append(f)
 
     return x1, y1, r
+
+# Interpolate points to uniform grid assuming cubic mesh
+# xp, yp, zp: coords, 3d arrays
+# fields: list of data arrays
+# n=(len(xp))**(1/3) -- mesh size
+# Return: (x1, y1, z1, r)
+# x1, y1, z1: coords 1D
+# r: list of data arrays (shape: z, y, x)
+def interp_to_uniform3(xp, yp, zp, fields=[], n=None):
+    if n is None:
+        n = int(len(xp) ** (1. / 3.) + 0.5)
+
+    x1 = np.linspace(xp.min(), xp.max(), n)
+    y1 = np.linspace(yp.min(), yp.max(), n)
+    z1 = np.linspace(zp.min(), zp.max(), n)
+
+    x, y, z = np.meshgrid(x1, y1, z1, indexing='ij')
+    pts = np.vstack((xp, yp, zp)).T
+
+    r = []
+    for fp in fields:
+        f = scipy.interpolate.griddata(pts, fp, (x, y, z), method="nearest")
+        # convert to z,y,x
+        f = np.transpose(f)
+        r.append(f)
+
+    return x1, y1, z1, r
 

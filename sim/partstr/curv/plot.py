@@ -9,11 +9,11 @@ import os
 import re
 from plotlib import *
 
-# Figure with curvature comparison
+# Figure with curvature depending on angle
 # vf: volume fraction field
 # kk: list of curvature fields
 # ll: list of labels
-def FigCmp(vf, kk, ll, po):
+def FigAng(vf, kk, ll, po):
     # mesh
     x1,y1,hx,hy = GetGeom(vf.shape)
     x,y = GetMesh(x1, y1)
@@ -39,7 +39,6 @@ def FigCmp(vf, kk, ll, po):
     kea = ke.mean()
 
     fig, ax = plt.subplots()
-    #ax.axhline(y=1., c="0.5")
     ax.plot(dege, ke / kea, label="exact", c="0.5")
 
     for k,l in zip(kk,ll):
@@ -55,11 +54,8 @@ def FigCmp(vf, kk, ll, po):
     ax.legend()
     ax.set_ylim(0., 2.)
     ax.grid()
-    #plt.title("R/h={:.3f}".format(reff / hx))
     plt.title("rx/h={:.3f}, ry/h={:.3f}".format(rx / hx, ry / hx))
-    fig.tight_layout()
-    fig.savefig(po, dpi=300)
-    plt.close()
+    PlotSave(fig, ax, po)
 
 # Figure with volume fraction
 # pt: path template
@@ -148,24 +144,31 @@ def Main():
         FigVf(pt)
         # curvature
         FigK(pt)
-        # title
-        vf = ReadField2d(pt, "u")
-        cx,cy,cz,rx,ry = np.loadtxt('b.dat')
-        x1,y1,hx,hy = GetGeom(vf.shape)
-        FigTitle("rx/h={:0.3f} ry/h={:0.3f}".format(rx / hx, ry / hx),
-                 GetFieldPath(pt, "ttl", "pdf"))
 
         # append curvature
         k = ReadField2d(pt, "k")
         assert k is not None
-        if IsGerris(vf.shape):
+        if IsGerris(k.shape):
             k = k * (-1)
         kk.append(k)
 
-    # curvature comparison
+    # volume fraction from dd[0]
     pp = Glob(dd[0])
     pt = GetPathTemplate(pp[-1])
     vf = ReadField2d(pt, "u")
-    po = 'cmp.pdf'
-    FigCmp(vf, kk, ll, po)
 
+    # title
+    cx,cy,cz,rx,ry = np.loadtxt('b.dat')
+    x1,y1,hx,hy = GetGeom(vf.shape)
+    po = 'ttl.pdf'
+    FigTitle("rx/h={:0.3f} ry/h={:0.3f}".format(rx / hx, ry / hx), po)
+
+    # curvature vs angle
+    po = 'ang.pdf'
+    FigAng(vf, kk, ll, po)
+
+    # curvature histogram
+    po = 'hist.pdf'
+    FigHistK(vf, kk, ll, po)
+
+Main()

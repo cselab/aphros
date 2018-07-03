@@ -12,8 +12,9 @@ rm -vf $o/*.pdf
 mkdir -p $o
 
 # bubble
-#br="0.125"
 bc="0.51 0.47 0.56 "
+#bc="0.5 0.5 0.5 "
+#bc="0.2 0.35 0.5 "
 
 # rx/ry ratio
 #k=1.2
@@ -24,8 +25,7 @@ echo k=$k
 l="out"
 echo > $l
 
-for br in 0.25 0.125 0.0625 0.045 0.037 ; do
-#for br in 0.045 ; do
+for br in 0.40 0.25 0.125 0.0625 0.045 0.037 ; do
   brx=`bc -l <<< "$br * $k"`
   bry=`bc -l <<< "$br / $k"`
   echo "brx=$brx, bry=$bry"
@@ -46,14 +46,17 @@ for br in 0.25 0.125 0.0625 0.045 0.037 ; do
 
   d="ch"
   mv -f $d/vf_0.pdf $o/${p}vf_$d.pdf
-  mv -f $d/k_0.pdf $o/${p}k_$d.pdf
+  #mv -f $d/k_0.pdf $o/${p}k_$d.pdf
   d="ge"
   mv -f $d/vf_0001.pdf $o/${p}vf_$d.pdf
-  mv -f $d/k_0001.pdf $o/${p}k_$d.pdf
-  cp -v cmp.pdf $o/${p}cmp.pdf
+  #mv -f $d/k_0001.pdf $o/${p}k_$d.pdf
+  cp -v hist.pdf $o/${p}hist.pdf
+  cp -v ang.pdf $o/${p}ang.pdf
+  cp -v ang.pdf $o/${p}ang.pdf
 done
 
 # tile all pdf
 (cd $o ; ../tile)
-mv $o ${o}_$k
 
+#rm -rf ${o}_$k/*
+#mv -f $o ${o}_$k
