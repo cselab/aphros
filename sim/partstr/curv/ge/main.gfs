@@ -1,25 +1,17 @@
 1 0 GfsAdvection GfsBox GfsGEdge {} {
-  Time { end = 5  dtmax = 0.5 }
+  Time { end = 1  dtmax = 1 }
 
   Refine 5
 
-  #VariableTracerVOFHeight T
   VariableTracerVOF T
-
-  #InitFraction T (-ellipse(0, -.236338, 0.2, 0.2))
 
   Global { 
     Include ini_t_bub.h 
   }
   InitFraction T (ini_t(x+0.5, y+0.5, z))
-
-
-  #VariableStreamFunction {
-  #  step = 2.5 
-  #} Psi (t < 2.5 ? 1. : -1.)*sin((x + 0.5)*M_PI)*sin((y + 0.5)*M_PI)/M_PI
   
-  VariableCurvature K T Kmax
+  VariableCurvature K T 
 
-  OutputSimulation { step = 2.5 } u%04ld.vtk { variables = T,K format = VTK}
+  OutputSimulation { step = 1 start = 1 } u_%04ld.vtk { variables = T,K format = VTK}
 }
 GfsBox {}

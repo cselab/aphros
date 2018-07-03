@@ -16,8 +16,8 @@ mkdir -p $o
 bc="0.51 0.47 0. "
 
 # rx/ry ratio
-k=1.2
-#k=1.
+#k=1.2
+k=1.
 
 # log
 l="out"
@@ -32,18 +32,27 @@ for br in 0.25 0.125 0.0625 0.045 0.037 ; do
   p="r${br}_"
 
   # runplot ch
-  ch="ch"
-  (cd $ch ; ./run) &>> $l
+  d="ch"
+  (cd $d ; ./run) &>> $l
+
 
   # runplot ge
-  ge="ge"
-  (cd $ge ; ./run) &>> $l
+  d="ge"
+  (cd $d ; ./run) &>> $l
 
   # plot cmp
   ./plot.py &>> $l
-  exit
+
+  d="ch"
+  mv -f $d/vf_0.pdf $o/${p}vf_$d.pdf
+  mv -f $d/k_0.pdf $o/${p}k_$d.pdf
+  d="ge"
+  mv -f $d/vf_0001.pdf $o/${p}vf_$d.pdf
+  mv -f $d/k_0001.pdf $o/${p}k_$d.pdf
+  cp -v cmp.pdf $o/${p}cmp.pdf
 done
 
 # tile all pdf
 (cd $o ; ../tile)
+mv $o ${o}_$k
 

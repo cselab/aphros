@@ -33,5 +33,5 @@ for p in pp:
     d = vtk.read_vtk(p)
     x,y,[u,k] = vtk.interp_to_uniform(d['x'], d['y'], [d['T'], d['K']])
     print(po)
-    Write(u, "u_" + po[1:])
-    Write(k, "k_" + po[1:])
+    Write(u, "u" + po[1:])
+    Write(k, "k" + po[1:])

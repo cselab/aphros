@@ -2,12 +2,12 @@
 
 set -eu
 
-for f in *{cmp,u_ch}.pdf ; do
+for f in *{cmp,vf_ch}.pdf ; do
   pdfcrop --margins '5 10 5 10' $f cr_$f
 done
 
 t=t.pdf
-pdfnup cr_*cmp.pdf cr_*u_ch.pdf --nup 5x2 --outfile $t
+pdfnup cr_*cmp.pdf cr_*vf_ch.pdf --nup 5x2 --outfile $t
 
 o=curv.pdf
 pdfcrop --margins '5 5 5 5' $t $o

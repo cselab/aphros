@@ -65,8 +65,13 @@ def FigCmp(vf, kk, ll, po):
 # pt: path template
 # suf: output name suffix
 def FigK(pt):
-    k = ReadField2d(pt, 'k')
     vf = ReadField2d(pt, 'u')
+
+    k = ReadField2d(pt, 'k')
+    if IsGerris(vf.shape):
+        k *= -1
+    # exclude points with zero curvature (for ch)
+    k[np.where(k == 0.)] = np.nan
 
     fig, ax = PlotInitSq()
     x1,y1,hx,hy = GetGeom(vf.shape)
@@ -78,10 +83,10 @@ def FigK(pt):
     reff = GetReff(vf)
     # average curvature
     ke = 1. / reff
-    # exclude points with zero curvature (for ch)
-    k[np.where(k == 0.)] = np.nan
+    print(ke)
 
     PlotFieldBwr(ax, k / ke, vmin=0.8, vmax=1.2)
+    print(np.nanmean(k))
 
     # save
     po = GetFieldPath(pt, "k", "pdf")
@@ -147,7 +152,7 @@ def Main():
         vf = ReadField2d(pt, "u")
         cx,cy,cz,rx,ry = np.loadtxt('b.dat')
         x1,y1,hx,hy = GetGeom(vf.shape)
-        FigTitle("rx/h={:} ry/h={:}".format(rx / hx, ry / hx),
+        FigTitle("rx/h={:0.3f} ry/h={:0.3f}".format(rx / hx, ry / hx),
                  GetFieldPath(pt, "ttl", "pdf"))
 
         # append curvature
