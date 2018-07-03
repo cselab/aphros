@@ -17,7 +17,8 @@ bc="0.51 0.47 0. "
 
 # rx/ry ratio
 #k=1.2
-k=1.
+: ${k=1.}
+echo k=$k
 
 # log
 l="out"
