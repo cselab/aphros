@@ -1437,6 +1437,7 @@ class Vof : public AdvectionSolver<M_> {
 
       if (sl) {
         Vect xn;  // nearest point
+        /*
         Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
         for (size_t j = 0; j < sl; ++j) {
           auto& e = ll[j];
@@ -1447,6 +1448,13 @@ class Vof : public AdvectionSolver<M_> {
             dn = dl;
           }
         }
+        */
+
+        auto bc = ll[sl-1][0];
+        auto br = ll[sl-1][1][0];
+        auto dx = x - bc;
+        dx /= dx.norm();
+        xn = bc + dx * br;
 
         ff[i] += (xn - x) * par->part_relax;  // scale hm
       }
@@ -1524,35 +1532,58 @@ class Vof : public AdvectionSolver<M_> {
     // vector at angle dt
     Vect et = re(eth, eth);
 
-    // copy xx to ff
-    for (size_t i = 0; i < sx; ++i) {
-      ff[i] = xx[i];
-    }
-
-    // apply da, rotate around ic
-    for (size_t i = 0; i < sx; ++i) {
-      ff[i] = ff[ic] + re(ff[i] - ff[ic], ea);
-    }
-
-    // apply dt
-    // segment vectors corrected by dt
+    // segment vectors 
     std::array<Vect, kNp> dd;
     dd[ic] = Vect(0.);
-    // vector at current multiple of dt
-    Vect e = eth;
+    // initialize from xx
     for (size_t q = 1; q <= ic; ++q) {
       size_t i;
       // forward
       i = ic + q;
-      dd[i] = re(ff[i] - ff[i - 1], e);
+      dd[i] = xx[i] - xx[i - 1];
       // backward
       i = ic - q;
-      dd[i] = rem(ff[i + 1] - ff[i], e);
-      // next
-      e = re(e, et);
+      dd[i] = xx[i + 1] - xx[i];
     }
 
-    // restore from dd
+    // apply da
+    {
+      for (size_t q = 1; q <= ic; ++q) {
+        size_t i;
+        // forward
+        i = ic + q;
+        dd[i] = re(dd[i], ea);
+        // backward
+        i = ic - q;
+        dd[i] = re(dd[i], ea);
+      }
+    }
+
+    // apply dt
+    {
+      Vect e = eth;
+      for (size_t q = 1; q <= ic; ++q) {
+        size_t i;
+        // forward
+        i = ic + q;
+        dd[i] = re(dd[i], e);
+        // backward
+        i = ic - q;
+        dd[i] = rem(dd[i], e);
+        // next
+        e = re(e, et);
+      }
+    }
+
+    // displacement of center
+    Vect dx(0);
+    for (size_t i = 0; i < sx; ++i) {
+      dx += ff[i];
+    }
+    dx *= par->part_kstr;
+
+    // restore new xx from segments, store in ff
+    ff[ic] = xx[ic];
     for (size_t q = 1; q <= ic; ++q) {
       size_t i;
       // forward
@@ -1561,6 +1592,11 @@ class Vof : public AdvectionSolver<M_> {
       // backward
       i = ic - q;
       ff[i] = ff[i + 1] - dd[i];
+    }
+
+    // apply dx
+    for (size_t i = 0; i < sx; ++i) {
+      ff[i] += dx;
     }
 
     // convert to position correction
@@ -1766,6 +1802,17 @@ class Vof : public AdvectionSolver<M_> {
               MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
               MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
 
+    static Vect bbc;
+    static Scal bbr = 0;
+    static bool loaded = false;
+    if (!loaded) {
+      std::ifstream f("../b.dat");
+      f >> bbc[0] >> bbc[1] >> bbc[2];
+      f >> bbr;
+      std::cout << "Loaded bbc=" << bbc << " bbr=" << bbr << std::endl;
+      loaded = true;
+    }
+
           auto w = bc.GetMIdx(c);
           for (auto wo : bo) {
             auto cc = bc.GetIdx(w + wo);
@@ -1779,6 +1826,7 @@ class Vof : public AdvectionSolver<M_> {
                 // projected line ends
                 ll.push_back({pr(e[0]), pr(e[1])});
               }
+              ll.push_back({pr(bbc), Vect(bbr,bbr,bbr)});
             }
           }
         }

@@ -51,8 +51,8 @@ for br in 0.40 0.25 0.125 0.0625 0.045 0.037 ; do
   mv -f $d/vf_0001.pdf $o/${p}vf_$d.pdf
   #mv -f $d/k_0001.pdf $o/${p}k_$d.pdf
   cp -v hist.pdf $o/${p}hist.pdf
-  cp -v ang.pdf $o/${p}ang.pdf
-  cp -v ang.pdf $o/${p}ang.pdf
+  cp -v ttl.pdf $o/${p}ttl.pdf
+  #cp -v ang.pdf $o/${p}ang.pdf
 done
 
 # tile all pdf
