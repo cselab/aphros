@@ -1437,7 +1437,6 @@ class Vof : public AdvectionSolver<M_> {
 
       if (sl) {
         Vect xn;  // nearest point
-        /*
         Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
         for (size_t j = 0; j < sl; ++j) {
           auto& e = ll[j];
@@ -1448,13 +1447,14 @@ class Vof : public AdvectionSolver<M_> {
             dn = dl;
           }
         }
-        */
 
+        /*
         auto bc = ll[sl-1][0];
         auto br = ll[sl-1][1][0];
         auto dx = x - bc;
         dx /= dx.norm();
         xn = bc + dx * br;
+        */
 
         ff[i] += (xn - x) * par->part_relax;  // scale hm
       }
