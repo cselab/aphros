@@ -25,6 +25,10 @@ echo k=$k
 l="out"
 echo > $l
 
+# error
+e="err"
+echo > $e
+
 for br in 0.40 0.25 0.125 0.0625 0.045 0.037 ; do
   brx=`bc -l <<< "$br * $k"`
   bry=`bc -l <<< "$br / $k"`
@@ -43,6 +47,9 @@ for br in 0.40 0.25 0.125 0.0625 0.045 0.037 ; do
 
   # plot cmp
   ./plot.py &>> $l
+
+  # append error
+  cat er >> $e
 
   d="ch"
   mv -f $d/vf_0.pdf $o/${p}vf_$d.pdf
