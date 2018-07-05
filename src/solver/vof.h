@@ -941,7 +941,7 @@ class Vof : public AdvectionSolver<M_> {
           for (int i = 0; i < kNp; ++i) {
             fcp_[c][fcps_[c]++] = x + t0 * ((Scal(i) - kNp / 2) * pd);
           }
-          if (par->dim == 3) {
+          if (false && par->dim == 3) { // XXX adhoc no second in 3d
             for (int i = 0; i < kNp; ++i) {
               fcp_[c][fcps_[c]++] = x + t1 * ((Scal(i) - kNp / 2) * pd);
             }
@@ -1134,7 +1134,7 @@ class Vof : public AdvectionSolver<M_> {
         const Scal hym = hh(-oty);
         const Scal hyp = hh(oty);
         // corners: hxy
-        const Scal hmm = hh(-otx - oty);
+        const Scal hmm = hh(-otx - oty); 
         const Scal hmp = hh(-otx + oty);
         const Scal hpm = hh(otx - oty);
         const Scal hpp = hh(otx + oty);
@@ -1173,6 +1173,19 @@ class Vof : public AdvectionSolver<M_> {
       Scal u = uc[c];
       const Scal th = 1e-6;
       fck_[c] = bk * (u > th && u < 1. - th ? 1. : 0.);
+      // XXX: adhoc: exact normal from sphere
+      static Vect bbc;
+      static Scal bbr = 0;
+      static bool loaded = false;
+      if (!loaded) {
+        std::ifstream f("../b.dat");
+        f >> bbc[0] >> bbc[1] >> bbc[2];
+        f >> bbr;
+        std::cout << "Loaded bbc=" << bbc << " bbr=" << bbr << std::endl;
+        loaded = true;
+      }
+      auto q = m.GetCenter(c) - bbc;
+      fc_n_[c] = q / q.norm();
     }
   }
   Vect GetCellSize() const {
@@ -1449,6 +1462,7 @@ class Vof : public AdvectionSolver<M_> {
         }
 
         /*
+        // XXX: adhoc: attraction to exact sphere
         auto bc = ll[sl-1][0];
         auto br = ll[sl-1][1][0];
         auto dx = x - bc;
@@ -1802,16 +1816,19 @@ class Vof : public AdvectionSolver<M_> {
               MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
               MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
 
-    static Vect bbc;
-    static Scal bbr = 0;
-    static bool loaded = false;
-    if (!loaded) {
-      std::ifstream f("../b.dat");
-      f >> bbc[0] >> bbc[1] >> bbc[2];
-      f >> bbr;
-      std::cout << "Loaded bbc=" << bbc << " bbr=" << bbr << std::endl;
-      loaded = true;
-    }
+          /*
+          // XXX: adhoc: attraction to exact sphere
+          static Vect bbc;
+          static Scal bbr = 0;
+          static bool loaded = false;
+          if (!loaded) {
+            std::ifstream f("../b.dat");
+            f >> bbc[0] >> bbc[1] >> bbc[2];
+            f >> bbr;
+            std::cout << "Loaded bbc=" << bbc << " bbr=" << bbr << std::endl;
+            loaded = true;
+          }
+          */
 
           auto w = bc.GetMIdx(c);
           for (auto wo : bo) {
@@ -1826,7 +1843,7 @@ class Vof : public AdvectionSolver<M_> {
                 // projected line ends
                 ll.push_back({pr(e[0]), pr(e[1])});
               }
-              ll.push_back({pr(bbc), Vect(bbr,bbr,bbr)});
+              //ll.push_back({pr(bbc), Vect(bbr,bbr,bbr)}); // XXX: adhoc
             }
           }
         }
