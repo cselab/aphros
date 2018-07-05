@@ -24,7 +24,11 @@ echo k=$k
 l="out"
 echo > $l
 
-for br in 0.25 0.125 0.0625 0.045 0.037 ; do
+# error
+e="err"
+echo > $e
+
+for br in 0.4 0.25 0.125 0.0625 0.045 0.037 ; do
 #for br in 0.045 ; do
   brx=`bc -l <<< "$br * $k"`
   bry=`bc -l <<< "$br / $k"`
@@ -32,17 +36,20 @@ for br in 0.25 0.125 0.0625 0.045 0.037 ; do
   echo "$bc $brx $bry" > b.dat
   p="r${br}_"
 
-  # runplot ch
+
+  # run ch
   d="ch"
   (cd $d ; ./run) &>> $l
 
-
-  # runplot ge
+  # run ge
   d="ge"
   (cd $d ; ./run) &>> $l
 
   # plot cmp
   ./plot.py &>> $l
+
+  # append error
+  cat er >> $e
 
   d="ch"
   mv -f $d/vf_0.pdf $o/${p}vf_$d.pdf

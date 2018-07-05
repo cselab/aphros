@@ -32,8 +32,12 @@ def FigAng(vf, kk, ll, po):
     # exact curvature
     ane = np.linspace(-np.pi, np.pi, 200)
     dege = np.degrees(ane)
-    dm,dm,dm,rx,ry = np.loadtxt('b.dat')
-    ke = rx*ry / ((ry * np.cos(ane)) ** 2 + (rx * np.sin(ane)) ** 2) ** (3. / 2.)
+    cx,cy,cz,rx,ry = np.loadtxt('b.dat')
+    # a: angle [rad]
+    def fke(a):
+        return rx*ry / ((ry * np.cos(a)) ** 2 + (rx * np.sin(a)) ** 2) ** (3. / 2.)
+
+    ke = fke(ane)
 
     # average curvature
     kea = ke.mean()
@@ -56,6 +60,7 @@ def FigAng(vf, kk, ll, po):
     ax.grid()
     plt.title("rx/h={:.3f}, ry/h={:.3f}".format(rx / hx, ry / hx))
     PlotSave(fig, ax, po)
+
 
 # Figure with volume fraction
 # pt: path template

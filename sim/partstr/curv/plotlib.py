@@ -72,19 +72,19 @@ from matplotlib.colors import LinearSegmentedColormap
 # po: output path
 def PlotFieldGray(ax, u, vmin=None, vmax=None):
     cmap = LinearSegmentedColormap.from_list('mycmap', ['#c8c5bd', '#787672'])
-    ax.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation='nearest',
+    ax.imshow(np.flipud(u.T), extent=(0, 1, 0, 1), interpolation='nearest',
               vmin=vmin, vmax=vmax, cmap=cmap)
 
 # u: 2d numpy array
 # po: output path
 def PlotField(ax, u, vmin=None, vmax=None):
-    ax.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation='nearest',
+    ax.imshow(np.flipud(u.T), extent=(0, 1, 0, 1), interpolation='nearest',
               vmin=vmin, vmax=vmax)
 
 # u: 2d numpy array
 # po: output path
 def PlotFieldBwr(ax, u, vmin=None, vmax=None):
-    ax.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation='nearest',
+    ax.imshow(np.flipud(u.T), extent=(0, 1, 0, 1), interpolation='nearest',
               vmin=vmin, vmax=vmax, cmap=plt.get_cmap("bwr"))
 
 # sx, sy: number of cells
@@ -335,17 +335,38 @@ def FigTitle(t, po):
     fig.savefig(po)
     plt.close()
 
+# Computes norms: max, L1, L2
+# u: array
+# Returns:
+# m, l1, l2
+def GetNorm(k):
+    k = abs(k)
+    m = k.max()
+    l1 = k.mean()
+    l2 = (k ** 2).mean() ** 0.5
+    return m, l1, l2
+
+
 # Histogram of curvature
 def FigHistK(vf, kk, ll, po):
     dim = GetDim(vf.shape)
+    hx = GetMeshStep(vf.shape)
     # inteface cells
     th = 1e-3
     ii = np.where((vf > th) & (vf < 1. - th))
 
     # exact curvature, TODO: ellipsoid
     # q: dummy
-    q,q,q,rx,q = np.loadtxt('b.dat')
-    ke = (2. if dim == 3 else 1.) / rx
+    q,q,q,rx,ry = np.loadtxt('b.dat')
+    # a: angle [rad]
+    def fke(a):
+        if dim == 3:
+            assert(rx == ry)
+            return 2. / rx + np.zeros_like(a)
+        # 2d ellipse
+        return rx*ry / ((ry * np.cos(a)) ** 2 + (rx * np.sin(a)) ** 2) ** (3. / 2.)
+
+    ke = fke(vf[ii]) # XXX: assume constant
 
     fig, ax = plt.subplots()
     for k,l in zip(kk,ll):
@@ -362,3 +383,14 @@ def FigHistK(vf, kk, ll, po):
     ax.legend()
     ax.grid()
     PlotSave(fig, ax, po)
+
+    # write error: label rx ry max l1 l2
+    with open("er", 'w') as f:
+        for k,l in zip(kk,ll):
+            if k is not None:
+                k = k[ii]
+                ke = fke(k) # XXX: assume constant
+                kea = ke.mean()
+                m,l1,l2 = GetNorm((k - ke) / kea)
+                f.write("{:} {:} {:} {:} {:} {:}\n".format(
+                        l, rx/hx, ry/hx, m, l1, l2))
