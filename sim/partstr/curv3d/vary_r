@@ -29,8 +29,8 @@ echo > $l
 e="err"
 echo > $e
 
-#for br in 0.40 0.25 0.125 0.0625 0.045 0.037 ; do
-for br in 0.40 ; do
+for br in 0.40 0.25 0.125 0.0625 0.045 0.037 ; do
+#for br in 0.40 ; do
   brx=`bc -l <<< "$br * $k"`
   bry=`bc -l <<< "$br / $k"`
   echo "brx=$brx, bry=$bry"

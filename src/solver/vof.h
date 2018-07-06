@@ -1185,6 +1185,9 @@ class Vof : public AdvectionSolver<M_> {
         loaded = true;
       }
       auto q = m.GetCenter(c) - bbc;
+      if (par->dim == 2) {
+        q[2] = 0.;
+      }
       fc_n_[c] = q / q.norm();
     }
   }
