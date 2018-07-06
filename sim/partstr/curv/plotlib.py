@@ -322,8 +322,12 @@ def GetExactK(dim, x, y, z):
             assert(rx == ry)
             return 2. / rx + np.zeros_like(a)
         # 2d ellipse
-        return rx*ry / ((ry * np.cos(a)) ** 2 + (rx * np.sin(a)) ** 2) ** (3. / 2.)
-
+        r =  (rx * ry) / ((ry * np.cos(a)) ** 2 + (rx * np.sin(a)) ** 2) ** 0.5
+        x = r * np.cos(a)
+        y = r * np.sin(a)
+        return rx * ry / (rx ** 2 - x ** 2 + (ry * x / rx) ** 2) ** (3. / 2.)
+        # valid for parametrization: x=rx*cos(a), y=ry*sin(a)
+        #return rx * ry / ((ry * np.cos(a)) ** 2 + (rx * np.sin(a)) ** 2) ** (3. / 2.)
     return fk(a)
 
 # Histogram of curvature

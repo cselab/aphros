@@ -5,4 +5,3 @@ set -eu
 ./clean
 ch.base
 ./t.advection
-(cd ../ ; ./plot.py)
