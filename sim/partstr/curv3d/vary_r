@@ -13,8 +13,6 @@ mkdir -p $o
 
 # bubble
 bc="0.51 0.47 0.56 "
-#bc="0.5 0.5 0.5 "
-#bc="0.2 0.35 0.5 "
 
 # rx/ry ratio
 #k=1.2
@@ -29,20 +27,18 @@ echo > $l
 e="err"
 echo > $e
 
-for br in 0.40 0.25 0.125 0.0625 0.045 0.037 ; do
-#for br in 0.40 ; do
+for br in 0.4 0.25 0.125 0.0625 0.045 0.037 ; do
   brx=`bc -l <<< "$br * $k"`
   bry=`bc -l <<< "$br / $k"`
   echo "brx=$brx, bry=$bry"
   echo "$bc $brx $bry" > b.dat
   p="r${br}_"
 
-  # runplot ch
+  # run ch
   d="ch"
   (cd $d ; ./run) &>> $l
 
-
-  # runplot ge
+  # run ge
   d="ge"
   (cd $d ; ./run) &>> $l
 
@@ -58,13 +54,17 @@ for br in 0.40 0.25 0.125 0.0625 0.045 0.037 ; do
   d="ge"
   mv -f $d/vf_0001.pdf $o/${p}vf_$d.pdf
   #mv -f $d/k_0001.pdf $o/${p}k_$d.pdf
-  cp -v hist.pdf $o/${p}hist.pdf
-  cp -v ttl.pdf $o/${p}ttl.pdf
-  #cp -v ang.pdf $o/${p}ang.pdf
+  mv -v ttl.pdf $o/${p}ttl.pdf
+  mv -v hist.pdf $o/${p}hist.pdf
+  [ -f ang.pdf ] && mv -v ang.pdf $o/${p}ang.pdf
 done
 
 # tile all pdf
 (cd $o ; ../tile)
+# rename folder
+d=${o}_$k
+rm -rf $d
+mv -T $o $d
 
 #rm -rf ${o}_$k/*
 #mv -f $o ${o}_$k

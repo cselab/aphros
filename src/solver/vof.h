@@ -11,6 +11,11 @@
 #include "dump/dumper.h"
 #include "dump/vtk.h"
 
+// attraction to exact sphere
+#define ADHOC_ATTR 0
+// normal from exact sphere
+#define ADHOC_NORM 1
+
 namespace solver {
 
 template <class Scal>
@@ -1173,7 +1178,8 @@ class Vof : public AdvectionSolver<M_> {
       Scal u = uc[c];
       const Scal th = 1e-6;
       fck_[c] = bk * (u > th && u < 1. - th ? 1. : 0.);
-      // XXX: adhoc: exact normal from sphere
+
+      #ifdef ADHOC_NORM
       static Vect bbc;
       static Scal bbr = 0;
       static bool loaded = false;
@@ -1189,6 +1195,7 @@ class Vof : public AdvectionSolver<M_> {
         q[2] = 0.;
       }
       fc_n_[c] = q / q.norm();
+      #endif 
     }
   }
   Vect GetCellSize() const {
@@ -1464,14 +1471,13 @@ class Vof : public AdvectionSolver<M_> {
           }
         }
 
-        /*
-        // XXX: adhoc: attraction to exact sphere
-        auto bc = ll[sl-1][0];
-        auto br = ll[sl-1][1][0];
-        auto dx = x - bc;
-        dx /= dx.norm();
-        xn = bc + dx * br;
-        */
+        if (ADHOC_ATTR) {
+          auto bc = ll[sl-1][0];
+          auto br = ll[sl-1][1][0];
+          auto dx = x - bc;
+          dx /= dx.norm();
+          xn = bc + dx * br;
+        }
 
         ff[i] += (xn - x) * par->part_relax;  // scale hm
       }
@@ -1819,8 +1825,7 @@ class Vof : public AdvectionSolver<M_> {
               MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
               MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
 
-          /*
-          // XXX: adhoc: attraction to exact sphere
+          #ifdef ADHOC_ATTR
           static Vect bbc;
           static Scal bbr = 0;
           static bool loaded = false;
@@ -1831,7 +1836,7 @@ class Vof : public AdvectionSolver<M_> {
             std::cout << "Loaded bbc=" << bbc << " bbr=" << bbr << std::endl;
             loaded = true;
           }
-          */
+          #endif
 
           auto w = bc.GetMIdx(c);
           for (auto wo : bo) {
@@ -1846,7 +1851,9 @@ class Vof : public AdvectionSolver<M_> {
                 // projected line ends
                 ll.push_back({pr(e[0]), pr(e[1])});
               }
-              //ll.push_back({pr(bbc), Vect(bbr,bbr,bbr)}); // XXX: adhoc
+              #ifdef ADHOC_ATTR
+              ll.push_back({pr(bbc), Vect(bbr,bbr,bbr)}); 
+              #endif
             }
           }
         }
