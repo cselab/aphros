@@ -14,40 +14,42 @@ from plotlib import *
 # kk: list of curvature fields
 # ll: list of labels
 def FigAng(vf, kk, ll, po):
-    # mesh
-    x1,y1,hx,hy = GetGeom(vf.shape)
-    x,y = GetMesh(x1, y1)
+    dim = GetDim(vf.shape)
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+    x,y,z = GetMesh(x1, y1, z1)
 
-    # center of mass
-    cx = (x * vf).sum() / vf.sum()
-    cy = (y * vf).sum() / vf.sum()
+    # interface cells
     th = 1e-3
     ii = np.where((vf > th) & (vf < 1. - th))
-    x = x[ii];   y = y[ii]
-    dx = x - cx; dy = y - cy
+    x = x[ii]; y = y[ii]; z = z[ii]
+
+    # exact curvature
+    ke = GetExactK(dim, x, y, z)
+    # average curvature
+    kea = ke.mean()
+
+    # hires angle (high resolution)
+    anh = np.linspace(-np.pi, np.pi, 200)
+    degh = np.degrees(anh)
+    # hires points
+    cx,cy,cz,rx,ry = np.loadtxt('b.dat')
+    xh = cx + np.cos(anh)
+    yh = cy + np.sin(anh)
+    # hires curvature
+    keh = GetExactK(dim, xh, yh, cz)
+
+    dx = x - cx ; dy = y - cy
     an = np.arctan2(dy, dx)
     deg = np.degrees(an)
     s = np.argsort(an)
 
-    # exact curvature
-    ane = np.linspace(-np.pi, np.pi, 200)
-    dege = np.degrees(ane)
-    cx,cy,cz,rx,ry = np.loadtxt('b.dat')
-    # a: angle [rad]
-    def fke(a):
-        return rx*ry / ((ry * np.cos(a)) ** 2 + (rx * np.sin(a)) ** 2) ** (3. / 2.)
-
-    ke = fke(ane)
-
-    # average curvature
-    kea = ke.mean()
-
+    # plot exact curvature
     fig, ax = plt.subplots()
-    ax.plot(dege, ke / kea, label="exact", c="0.5")
+    ax.plot(degh, keh / kea, label="exact", c="0.5")
 
+    # plot estimates
     for k,l in zip(kk,ll):
         if k is not None:
-            print("plot l={:}, median={:}".format(l, np.max(k)))
             ax.plot(deg[s], k[ii][s] / kea, label=l)
 
     ax.set_xlabel(r"angle [deg]")
@@ -66,28 +68,27 @@ def FigAng(vf, kk, ll, po):
 # pt: path template
 # suf: output name suffix
 def FigK(pt):
-    vf = ReadField2d(pt, 'u')
+    vf = ReadField(pt, 'u')
 
-    k = ReadField2d(pt, 'k')
+    k = ReadField(pt, 'k')
     if IsGerris(vf.shape):
         k *= -1
     # exclude points with zero curvature (for ch)
     k[np.where(k == 0.)] = np.nan
 
     fig, ax = PlotInitSq()
-    x1,y1,hx,hy = GetGeom(vf.shape)
-    xn1,yn1 = GetMeshNodes(hx, hy)
-    x,y = GetMesh(x1, y1)
+    # q: dummy
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+    xn1,yn1,zn1 = GetMeshNodes(hx, hy, hz)
+    x,y,z = GetMesh(x1, y1, z1)
 
     # grid
     PlotGrid(ax, xn1, yn1)
-    reff = GetReff(vf)
+    reff = GetReff(vf, GetDim(k.shape))
     # average curvature
     ke = 1. / reff
-    print(ke)
 
     PlotFieldBwr(ax, k / ke, vmin=0.8, vmax=1.2)
-    print(np.nanmean(k))
 
     # save
     po = GetFieldPath(pt, "k", "pdf")
@@ -98,15 +99,16 @@ def FigK(pt):
 # pt: path template
 # suf: output name suffix
 def FigVf(pt):
-    a = ReadField2d(pt, 'a')
-    nx = ReadField2d(pt, 'nx')
-    ny = ReadField2d(pt, 'ny')
-    vf = ReadField2d(pt, 'u')
+    a = ReadField(pt, 'a')
+    nx = ReadField(pt, 'nx')
+    ny = ReadField(pt, 'ny')
+    vf = ReadField(pt, 'u')
 
     fig, ax = PlotInitSq()
-    x1,y1,hx,hy = GetGeom(vf.shape)
-    xn1,yn1 = GetMeshNodes(hx, hy)
-    x,y = GetMesh(x1, y1)
+    # q: dummy
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+    xn1,yn1,zn1 = GetMeshNodes(hx, hy, hz)
+    x,y,z = GetMesh(x1, y1, z1)
 
     # grid
     PlotGrid(ax, xn1, yn1)
@@ -151,7 +153,7 @@ def Main():
         FigK(pt)
 
         # append curvature
-        k = ReadField2d(pt, "k")
+        k = ReadField(pt, "k")
         assert k is not None
         if IsGerris(k.shape):
             k = k * (-1)
@@ -160,11 +162,11 @@ def Main():
     # volume fraction from dd[0]
     pp = Glob(dd[0])
     pt = GetPathTemplate(pp[-1])
-    vf = ReadField2d(pt, "u")
+    vf = ReadField(pt, "u")
 
     # title
     cx,cy,cz,rx,ry = np.loadtxt('b.dat')
-    x1,y1,hx,hy = GetGeom(vf.shape)
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
     po = 'ttl.pdf'
     FigTitle("rx/h={:0.3f} ry/h={:0.3f}".format(rx / hx, ry / hx), po)
 

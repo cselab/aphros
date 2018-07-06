@@ -14,12 +14,11 @@ from plotlib import *
 # pt: path template
 # suf: output name suffix
 def FigVf(pt):
-    # load 3d field
-    vf = ReadField3d(pt, 'u')
+    vf = ReadField(pt, 'u')
 
     # center of mass
-    x1,y1,z1,hx,hy,hz = GetGeom3(vf.shape)
-    x,y,z = GetMesh3(x1, y1, z1)
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+    x,y,z = GetMesh(x1, y1, z1)
     ii = np.where(np.isfinite(vf))
     cx = np.sum(x[ii] * vf[ii]) / np.sum(vf[ii])
     cy = np.sum(y[ii] * vf[ii]) / np.sum(vf[ii])
@@ -28,12 +27,12 @@ def FigVf(pt):
     print("FigVf: c={:}, ciz={:}".format((cx, cy, cz), iz))
 
     # slice through center of mass
-    if vf is not None: vf = vf[:,:,iz]
+    if vf is not None: vf = vf[:,:,iz:iz+1]
 
     fig, ax = PlotInitSq()
-    x1,y1,hx,hy = GetGeom(vf.shape)
-    xn1,yn1 = GetMeshNodes(hx, hy)
-    x,y = GetMesh(x1, y1)
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+    xn1,yn1,zn1 = GetMeshNodes(hx, hy, hz)
+    x,y,z = GetMesh(x1, y1, z1)
 
     # grid
     PlotGrid(ax, xn1, yn1)
@@ -68,7 +67,7 @@ def Main():
         FigVf(pt)
 
         # append curvature
-        k = ReadField3d(pt, "k")
+        k = ReadField(pt, "k")
         assert k is not None
         if IsGerris(k.shape):
             k = k * (-1)
@@ -77,11 +76,11 @@ def Main():
     # volume fraction from dd[0]
     pp = Glob(dd[0])
     pt = GetPathTemplate(pp[-1])
-    vf = ReadField3d(pt, "u")
+    vf = ReadField(pt, "u")
 
     # title
     cx,cy,cz,rx,ry = np.loadtxt('b.dat')
-    x1,y1,z1,hx,hy,hz = GetGeom3(vf.shape)
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
     po = 'ttl.pdf'
     FigTitle("rx/h={:0.3f} ry/h={:0.3f}".format(rx / hx, ry / hx), po)
 

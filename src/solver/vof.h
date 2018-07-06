@@ -14,7 +14,7 @@
 // attraction to exact sphere
 #define ADHOC_ATTR 0
 // normal from exact sphere
-#define ADHOC_NORM 1
+#define ADHOC_NORM 0
 
 namespace solver {
 
@@ -1179,7 +1179,7 @@ class Vof : public AdvectionSolver<M_> {
       const Scal th = 1e-6;
       fck_[c] = bk * (u > th && u < 1. - th ? 1. : 0.);
 
-      #ifdef ADHOC_NORM
+      #if ADHOC_NORM
       static Vect bbc;
       static Scal bbr = 0;
       static bool loaded = false;
@@ -1825,7 +1825,7 @@ class Vof : public AdvectionSolver<M_> {
               MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
               MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
 
-          #ifdef ADHOC_ATTR
+          #if ADHOC_ATTR
           static Vect bbc;
           static Scal bbr = 0;
           static bool loaded = false;
@@ -1851,7 +1851,7 @@ class Vof : public AdvectionSolver<M_> {
                 // projected line ends
                 ll.push_back({pr(e[0]), pr(e[1])});
               }
-              #ifdef ADHOC_ATTR
+              #if ADHOC_ATTR
               ll.push_back({pr(bbc), Vect(bbr,bbr,bbr)}); 
               #endif
             }
