@@ -13,6 +13,8 @@
 
 // attraction to exact sphere
 #define ADHOC_ATTR 0
+// attraction to approximate sphere
+#define ADHOC_ATTRX 1
 // normal from exact sphere
 #define ADHOC_NORM 0
 
@@ -1180,17 +1182,8 @@ class Vof : public AdvectionSolver<M_> {
       fck_[c] = bk * (u > th && u < 1. - th ? 1. : 0.);
 
       #if ADHOC_NORM
-      static Vect bbc;
-      static Scal bbr = 0;
-      static bool loaded = false;
-      if (!loaded) {
-        std::ifstream f("../b.dat");
-        f >> bbc[0] >> bbc[1] >> bbc[2];
-        f >> bbr;
-        std::cout << "Loaded bbc=" << bbc << " bbr=" << bbr << std::endl;
-        loaded = true;
-      }
-      auto q = m.GetCenter(c) - bbc;
+      auto cr = GetBubble();
+      auto q = m.GetCenter(c) - cr.first;
       if (par->dim == 2) {
         q[2] = 0.;
       }
@@ -1454,6 +1447,9 @@ class Vof : public AdvectionSolver<M_> {
       ff[i] = Vect(0);
     }
 
+    // current curvature
+    Scal k = PartK(xx, sx);
+
     // attracting spring to nearest point on nearest line
     for (size_t i = 0; i < sx; ++i) {
       Vect x = xx[i];
@@ -1461,23 +1457,51 @@ class Vof : public AdvectionSolver<M_> {
       if (sl) {
         Vect xn;  // nearest point
         Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
+        size_t jn = 0;
         for (size_t j = 0; j < sl; ++j) {
           auto& e = ll[j];
           Vect xl = GetNearest(x, e[0], e[1]);
           Scal dl = xl.sqrdist(x);
+
           if (dl < dn) {
             xn = xl;
             dn = dl;
+            jn = j;
           }
         }
 
-        if (ADHOC_ATTR) {
-          auto bc = ll[sl-1][0];
-          auto br = ll[sl-1][1][0];
-          auto dx = x - bc;
-          dx /= dx.norm();
-          xn = bc + dx * br;
+        #if ADHOC_ATTRX
+        auto& e = ll[jn];
+        Vect xc = (e[0] + e[1]) * 0.5;
+        Vect n = e[1] - e[0];
+        n = Vect(-n[1], n[0], 0.);
+        n /= n.norm();
+        if (n.dot(xc - ll[sl-1][0]) < 0.) {
+          n *= -1.;
         }
+        if (std::abs(k) > 1e-6) {
+          Scal br = 1. / k;
+          // circle through e[0],e[1] with radius br
+          Scal l = e[0].dist(e[1]);
+          if (sqr(l) < sqr(br) * 4.) {
+            Vect bc = xc - n * std::sqrt(sqr(br) - sqr(l) / 4.); // location of center
+            auto dx = x - bc;
+            dx /= dx.norm();
+            auto xnn = bc + dx * br;
+            if (xnn.dist(xn) < l * 0.1) {
+              xn = xnn;
+            }
+          }
+        }
+        #endif 
+
+        #if ADHOC_ATTR
+        auto bc = ll[sl-1][0];
+        auto br = ll[sl-1][1][0];
+        auto dx = x - bc;
+        dx /= dx.norm();
+        xn = bc + dx * br;
+        #endif 
 
         ff[i] += (xn - x) * par->part_relax;  // scale hm
       }
@@ -1717,7 +1741,7 @@ class Vof : public AdvectionSolver<M_> {
     }
   }
   // Curvature for plane string
-  Scal PartK(Vect* xx, size_t sx) {
+  Scal PartK(const Vect* xx, size_t sx) {
     size_t i = (sx - 1) / 2;
     Vect x = xx[i];
     Vect xm = xx[i - 1];
@@ -1732,6 +1756,28 @@ class Vof : public AdvectionSolver<M_> {
       k = -k;
     }
     return k;
+  }
+  std::pair<Vect, Vect> GetBubble() {
+    static Vect c(0);
+    static Vect r(0);
+    static bool ld = false;
+    if (!ld) {
+      std::ifstream f("../b.dat");
+      f >> c[0] >> c[1] >> c[2];
+      f >> r[0];
+      f >> r[1];
+      if (!f.good()) {
+        r[1] = r[0];
+      } else {
+        f >> r[2];
+        if (!f.good()) {
+          r[2] = r[0];
+        }
+      }
+      std::cout << "Loaded c=" << c << " r=" << r << std::endl;
+      ld = true;
+    }
+    return std::make_pair(c, r);
   }
   void Part(const FieldCell<Scal>& uc, typename M::Sem& sem) {
     if (sem("part-comma")) {
@@ -1825,19 +1871,6 @@ class Vof : public AdvectionSolver<M_> {
               MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
               MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
 
-          #if ADHOC_ATTR
-          static Vect bbc;
-          static Scal bbr = 0;
-          static bool loaded = false;
-          if (!loaded) {
-            std::ifstream f("../b.dat");
-            f >> bbc[0] >> bbc[1] >> bbc[2];
-            f >> bbr;
-            std::cout << "Loaded bbc=" << bbc << " bbr=" << bbr << std::endl;
-            loaded = true;
-          }
-          #endif
-
           auto w = bc.GetMIdx(c);
           for (auto wo : bo) {
             auto cc = bc.GetIdx(w + wo);
@@ -1851,8 +1884,9 @@ class Vof : public AdvectionSolver<M_> {
                 // projected line ends
                 ll.push_back({pr(e[0]), pr(e[1])});
               }
-              #if ADHOC_ATTR
-              ll.push_back({pr(bbc), Vect(bbr,bbr,bbr)}); 
+              #if ADHOC_ATTR || ADHOC_ATTRX
+              auto cr = GetBubble();
+              ll.push_back({pr(cr.first), cr.second}); 
               #endif
             }
           }
@@ -1898,12 +1932,14 @@ class Vof : public AdvectionSolver<M_> {
         size_t dr = std::max<size_t>(1, 
             par->part_maxiter / par->part_report_fr);
         if (m.IsRoot() && (it % dr == 0 || it + 1 == par->part_maxiter)) {
+          Vect h = GetCellSize();
+          Scal hm = h.norminf();
           Scal tmax = 0.;
           Scal anmax = 0.;
           Scal anavg = 0; // average difference from mean angle
+          Scal lmax = 0.; // maximum error in sement length
           size_t anavgn = 0;
           for (size_t i = 0; i < sc.size(); ++i) {
-            const Vect* px = &(xx[sx[i]]);
             // maximum force
             for (size_t j = sx[i]; j < sx[i+1]; ++j) {
               tmax = std::max(tmax, ff[j].norm());
@@ -1923,6 +1959,11 @@ class Vof : public AdvectionSolver<M_> {
               ++anavgn;
               anmax = std::max(anmax, e);
             }
+            // maximum error in sement length
+            for (size_t j = sx[i]; j + 1 < sx[i+1]; ++j) {
+              lmax = std::max(
+                  lmax, std::abs(xx[j + 1].dist(xx[j]) - par->part_h * hm));
+            }
           }
           anavg /= anavgn;
           std::cout << std::setprecision(10)
@@ -1930,6 +1971,7 @@ class Vof : public AdvectionSolver<M_> {
               << " dxmax=" << tmax 
               << " anmax=" << anmax 
               << " anavg=" << anavg 
+              << " lmax=" << lmax / (par->part_h * hm)
               << std::endl;
         }
 
