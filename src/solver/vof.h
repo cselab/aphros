@@ -13,8 +13,6 @@
 
 // attraction to exact sphere
 #define ADHOC_ATTR 0
-// attraction to approximate sphere
-#define ADHOC_ATTRX 1
 // normal from exact sphere
 #define ADHOC_NORM 0
 
@@ -910,6 +908,7 @@ class Vof : public AdvectionSolver<M_> {
     int part_constr = 0; // 0: no constraints
                          // 1: fixed distance, constant angle
                          // 2: fixed distance, linear angle
+    Scal part_segcirc = 1.; // factor for circular segment
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
@@ -1483,47 +1482,48 @@ class Vof : public AdvectionSolver<M_> {
         xn = bc + dx * br;
         #endif 
 
-        #if ADHOC_ATTRX
-        auto& e = ll[jn];
-        // outer normal
-        Vect n = e[1] - e[0];
-        n = Vect(n[1], -n[0], 0.);
-        n /= n.norm();
-        // center
-        Vect xc = (e[0] + e[1]) * 0.5;
-        // distance from center
-        Scal dc = xc.dist(xn);
-        // max distance from center
-        Scal mdc = e[0].dist(xc);
+        if (par->part_segcirc != 0.) {
+          auto& e = ll[jn];
+          // outer normal
+          Vect n = e[1] - e[0];
+          n = Vect(n[1], -n[0], 0.);
+          n /= n.norm();
+          // center
+          Vect xc = (e[0] + e[1]) * 0.5;
+          // distance from center
+          Scal dc = xc.dist(xn);
+          // max distance from center
+          Scal mdc = e[0].dist(xc);
 
-        // Circle profile along line
-        // k: curvature of circle
-        // l: segment half-length
-        // d: distance from segment center to target point (d<l)
-        auto fs = [](Scal k, Scal l, Scal d) {
-          Scal t1 = std::sqrt(1. - sqr(k) * sqr(l));
-          Scal t2 = std::sqrt(1. - sqr(k) * sqr(d));
-          return k * (sqr(l) - sqr(d)) / (t1 + t2);
-        };
-        #if 0
-        { // fs debug
-          std::ofstream f("a.dat");
-          Scal k = 1.;
-          Scal r = 1. / k;
-          Scal l = r * 0.5;
-          for (Scal d = 0. ; d < l; d += l * 0.01) {
-            f << d << " " << fs(k, l, d) << std::endl;
+          // Circle profile along line
+          // k: curvature of circle
+          // l: segment half-length
+          // d: distance from segment center to target point (d<l)
+          auto fs = [](Scal k, Scal l, Scal d) {
+            Scal t1 = std::sqrt(1. - sqr(k) * sqr(l));
+            Scal t2 = std::sqrt(1. - sqr(k) * sqr(d));
+            return k * (sqr(l) - sqr(d)) / (t1 + t2);
+          };
+          #if 0
+          { // fs debug
+            std::ofstream f("a.dat");
+            Scal k = 1.;
+            Scal r = 1. / k;
+            Scal l = r * 0.5;
+            for (Scal d = 0. ; d < l; d += l * 0.01) {
+              f << d << " " << fs(k, l, d) << std::endl;
+            }
+            std::terminate();
           }
-          std::terminate();
-        }
-        #endif
+          #endif
 
-        // shift from line to circle
-        //Scal s = dc - mdc; // proportional to length
-        Scal s = fs(k, mdc, dc);  // exact circle
-        //Scal s = fs(k, 0., dc);  // exact circle at center
-        xn += n * s;
-        #endif
+          // shift from line to circle
+          //Scal s = dc - mdc; // proportional to length
+          Scal s = fs(k, mdc, dc);  // exact circle
+          //Scal s = fs(k, 0., dc);  // exact circle at center
+          s *= par->part_segcirc;
+          xn += n * s;
+        }
 
         ff[i] += (xn - x) * par->part_relax;  // scale hm
       }
