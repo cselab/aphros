@@ -866,8 +866,8 @@ class Vof : public AdvectionSolver<M_> {
   FieldCell<Vect> fcg_; // gradient
   FieldFace<Vect> ffg_; // gradient
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
-  static constexpr size_t kNp = 5; // particles in one string
-  static constexpr size_t kNpp = 2; // maximum strings per cell
+  static constexpr size_t kNp = 11; // particles in one string
+  static constexpr size_t kNpp = 4; // maximum strings per cell
   FieldCell<std::array<Vect, kNp * kNpp>> fcp_; // cell list
   FieldCell<std::array<Vect, kNp * kNpp>> fcpt_; // cell list tmp
   FieldCell<std::array<Scal, kNp * kNpp>> fcpw_; // cell list weight
@@ -945,12 +945,17 @@ class Vof : public AdvectionSolver<M_> {
         t1 /= t1.norm();
         const Scal pd = hm * par->part_h0; // distance between particles
         if (fcps_[c] == 0) { // if no particles yet
-          for (int i = 0; i < kNp; ++i) {
-            fcp_[c][fcps_[c]++] = x + t0 * ((Scal(i) - kNp / 2) * pd);
-          }
-          if (false && par->dim == 3) { // XXX adhoc no second in 3d
+          Scal a = 0.; // angle of tangent
+          // number of strings
+          size_t ns = (par->dim == 2 ? 1 : kNpp);
+          for (int s = 0; s < ns; ++s) {
+            // tangent to string
+            Vect t = t0 * std::cos(a) + t1 * std::sin(a);
             for (int i = 0; i < kNp; ++i) {
-              fcp_[c][fcps_[c]++] = x + t1 * ((Scal(i) - kNp / 2) * pd);
+              fcp_[c][fcps_[c]++] = x + t * ((i - (kNp - 1) * 0.5) * pd);
+            }
+            if (ns > 1) {
+              a += M_PI / ns;
             }
           }
         }
@@ -1461,48 +1466,6 @@ class Vof : public AdvectionSolver<M_> {
         for (size_t j = 0; j < sl; ++j) {
           auto& e = ll[j];
           Vect xl = GetNearest(x, e[0], e[1]);
-
-          #if ADHOC_ATTRX
-          // outer normal
-          Vect n = e[1] - e[0];
-          n = Vect(n[1], -n[0], 0.);
-          n /= n.norm();
-          // center
-          Vect xc = (e[0] + e[1]) * 0.5;
-          // distance from center
-          Scal dc = xc.dist(xl);
-          // max distance from center
-          Scal mdc = e[0].dist(xc);
-
-          // Circle profile along line
-          // k: curvature of circle
-          // l: segment half-length
-          // d: distance from segment center to target point (d<l)
-          auto fs = [](Scal k, Scal l, Scal d) {
-            Scal t1 = std::sqrt(1. - sqr(k) * sqr(l));
-            Scal t2 = std::sqrt(1. - sqr(k) * sqr(d));
-            return k * (sqr(l) - sqr(d)) / (t1 + t2);
-          };
-
-          #if 0
-          { // fs debug
-            std::ofstream f("a.dat");
-            Scal k = 1.;
-            Scal r = 1. / k;
-            Scal l = r * 0.5;
-            for (Scal d = 0. ; d < l; d += l * 0.01) {
-              f << d << " " << fs(k, l, d) << std::endl;
-            }
-            std::terminate();
-          }
-          #endif
-
-          // shift from line to circle
-          //Scal s = dc - mdc; // proportional to length
-          Scal s = fs(k, mdc, dc);  // exact circle
-          xl += n * s;
-          #endif
-
           Scal dl = xl.sqrdist(x);
 
           if (dl < dn) {
@@ -1519,6 +1482,48 @@ class Vof : public AdvectionSolver<M_> {
         dx /= dx.norm();
         xn = bc + dx * br;
         #endif 
+
+        #if ADHOC_ATTRX
+        auto& e = ll[jn];
+        // outer normal
+        Vect n = e[1] - e[0];
+        n = Vect(n[1], -n[0], 0.);
+        n /= n.norm();
+        // center
+        Vect xc = (e[0] + e[1]) * 0.5;
+        // distance from center
+        Scal dc = xc.dist(xn);
+        // max distance from center
+        Scal mdc = e[0].dist(xc);
+
+        // Circle profile along line
+        // k: curvature of circle
+        // l: segment half-length
+        // d: distance from segment center to target point (d<l)
+        auto fs = [](Scal k, Scal l, Scal d) {
+          Scal t1 = std::sqrt(1. - sqr(k) * sqr(l));
+          Scal t2 = std::sqrt(1. - sqr(k) * sqr(d));
+          return k * (sqr(l) - sqr(d)) / (t1 + t2);
+        };
+        #if 0
+        { // fs debug
+          std::ofstream f("a.dat");
+          Scal k = 1.;
+          Scal r = 1. / k;
+          Scal l = r * 0.5;
+          for (Scal d = 0. ; d < l; d += l * 0.01) {
+            f << d << " " << fs(k, l, d) << std::endl;
+          }
+          std::terminate();
+        }
+        #endif
+
+        // shift from line to circle
+        //Scal s = dc - mdc; // proportional to length
+        Scal s = fs(k, mdc, dc);  // exact circle
+        //Scal s = fs(k, 0., dc);  // exact circle at center
+        xn += n * s;
+        #endif
 
         ff[i] += (xn - x) * par->part_relax;  // scale hm
       }
