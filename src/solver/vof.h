@@ -1461,6 +1461,48 @@ class Vof : public AdvectionSolver<M_> {
         for (size_t j = 0; j < sl; ++j) {
           auto& e = ll[j];
           Vect xl = GetNearest(x, e[0], e[1]);
+
+          #if ADHOC_ATTRX
+          // outer normal
+          Vect n = e[1] - e[0];
+          n = Vect(n[1], -n[0], 0.);
+          n /= n.norm();
+          // center
+          Vect xc = (e[0] + e[1]) * 0.5;
+          // distance from center
+          Scal dc = xc.dist(xl);
+          // max distance from center
+          Scal mdc = e[0].dist(xc);
+
+          // Circle profile along line
+          // k: curvature of circle
+          // l: segment half-length
+          // d: distance from segment center to target point (d<l)
+          auto fs = [](Scal k, Scal l, Scal d) {
+            Scal t1 = std::sqrt(1. - sqr(k) * sqr(l));
+            Scal t2 = std::sqrt(1. - sqr(k) * sqr(d));
+            return k * (sqr(l) - sqr(d)) / (t1 + t2);
+          };
+
+          #if 0
+          { // fs debug
+            std::ofstream f("a.dat");
+            Scal k = 1.;
+            Scal r = 1. / k;
+            Scal l = r * 0.5;
+            for (Scal d = 0. ; d < l; d += l * 0.01) {
+              f << d << " " << fs(k, l, d) << std::endl;
+            }
+            std::terminate();
+          }
+          #endif
+
+          // shift from line to circle
+          //Scal s = dc - mdc; // proportional to length
+          Scal s = fs(k, mdc, dc);  // exact circle
+          xl += n * s;
+          #endif
+
           Scal dl = xl.sqrdist(x);
 
           if (dl < dn) {
@@ -1469,31 +1511,6 @@ class Vof : public AdvectionSolver<M_> {
             jn = j;
           }
         }
-
-        #if ADHOC_ATTRX
-        auto& e = ll[jn];
-        Vect xc = (e[0] + e[1]) * 0.5;
-        Vect n = e[1] - e[0];
-        n = Vect(-n[1], n[0], 0.);
-        n /= n.norm();
-        if (n.dot(xc - ll[sl-1][0]) < 0.) {
-          n *= -1.;
-        }
-        if (std::abs(k) > 1e-6) {
-          Scal br = 1. / k;
-          // circle through e[0],e[1] with radius br
-          Scal l = e[0].dist(e[1]);
-          if (sqr(l) < sqr(br) * 4.) {
-            Vect bc = xc - n * std::sqrt(sqr(br) - sqr(l) / 4.); // location of center
-            auto dx = x - bc;
-            dx /= dx.norm();
-            auto xnn = bc + dx * br;
-            if (xnn.dist(xn) < l * 0.1) {
-              xn = xnn;
-            }
-          }
-        }
-        #endif 
 
         #if ADHOC_ATTR
         auto bc = ll[sl-1][0];
@@ -1881,10 +1898,17 @@ class Vof : public AdvectionSolver<M_> {
               auto xx = GetCutPoly(xcc, fc_n_[cc], fc_a_[cc], h);
               std::array<Vect, 2> e;
               if (GetInterPoly(xx, rc, rn, e)) {
-                // projected line ends
-                ll.push_back({pr(e[0]), pr(e[1])});
+                // projected line ends 
+                // <pncc,pe1-pe0> positively oriented
+                auto pncc = pr(fc_n_[cc]);
+                auto pe0 = pr(e[0]);
+                auto pe1 = pr(e[1]);
+                if (pncc.cross_third(pe1 - pe0) < 0.) {
+                  std::swap(pe0, pe1);
+                }
+                ll.push_back({pe0, pe1});
               }
-              #if ADHOC_ATTR || ADHOC_ATTRX
+              #if ADHOC_ATTR 
               auto cr = GetBubble();
               ll.push_back({pr(cr.first), cr.second}); 
               #endif
