@@ -1180,15 +1180,11 @@ class Vof : public AdvectionSolver<M_> {
           bk = k;
         } 
       }
-
-      Scal u = uc[c];
-
-      //bn /= bn.norm();
-      //bn *= u * (1. - u);
-      //bn *= 1e-1;
+      bn /= bn.norm1();
       fc_n_[c] = bn;
 
       const Scal th = 1e-6;
+      Scal u = uc[c];
       fck_[c] = bk * (u > th && u < 1. - th ? 1. : 0.);
 
       #if ADHOC_NORM
@@ -1817,8 +1813,11 @@ class Vof : public AdvectionSolver<M_> {
           Vect rn = rt.cross(n);
           rn /= rn.norm();
 
+          // unit in x
           Vect mx = rt;
+          // unit in y
           Vect my = n;
+          // center
           Vect mc = rc;
 
           smx.push_back(mx);
@@ -1868,7 +1867,7 @@ class Vof : public AdvectionSolver<M_> {
               if (GetInterPoly(xx, rc, rn, e)) {
                 // projected line ends 
                 // <pncc,pe1-pe0> positively oriented
-                auto pncc = pr(fc_n_[cc]);
+                auto pncc = pr(mc + fc_n_[cc]);
                 auto pe0 = pr(e[0]);
                 auto pe1 = pr(e[1]);
                 if (pncc.cross_third(pe1 - pe0) < 0.) {
