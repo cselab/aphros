@@ -59,6 +59,8 @@ for br in 0.037 0.045 0.0625 0.125 0.25 0.4 ; do
   [ -f ang.pdf ] && mv -v ang.pdf $o/${p}ang.pdf
 done
 
+mv -v err $o/
+
 # tile all pdf
 (cd $o ; ../tile)
 # rename folder
