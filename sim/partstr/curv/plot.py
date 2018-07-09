@@ -19,7 +19,7 @@ def FigAng(vf, kk, ll, po):
     x,y,z = GetMesh(x1, y1, z1)
 
     # interface cells
-    th = 1e-3
+    th = 0
     ii = np.where((vf > th) & (vf < 1. - th))
     x = x[ii]; y = y[ii]; z = z[ii]
 
