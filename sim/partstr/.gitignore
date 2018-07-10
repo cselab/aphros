@@ -1,3 +1,7 @@
-base.conf
+*.pyc
+__pycache__
+*.vtk
+*.dat
 er
 err
+base.conf

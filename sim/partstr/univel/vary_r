@@ -8,12 +8,7 @@ rm -vf $o/*.pdf
 mkdir -p $o
 
 # bubble
-: ${bc="0.51 0.47 0.56 "}
-
-# rx/ry ratio
-#k=1.2
-: ${k=1.}
-echo k=$k
+: ${bc="0.3 0.3 0.3 "}
 
 # log
 l="out"
@@ -23,11 +18,10 @@ echo > $l
 e="err"
 echo > $e
 
-for br in 0.037 0.045 0.0625 0.125 0.25 0.4 ; do
-  brx=`bc -l <<< "$br * $k"`
-  bry=`bc -l <<< "$br / $k"`
-  echo "brx=$brx, bry=$bry"
-  echo "$bc $brx $bry" > b.dat
+#for br in 0.037 0.045 0.0625 0.125 0.25 ; do
+for br in 0.037 ; do
+  echo "br=$br"
+  echo "$bc $br $br" > b.dat
   p="r${br}_"
 
   # run ch
@@ -57,7 +51,6 @@ mv -v err $o/
 
 # tile all pdf
 (cd $o ; ../tile)
-
 # rename folder
 d=${o}_$k
 rm -rf $d

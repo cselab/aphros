@@ -23,8 +23,8 @@ job.id
 s*.vtk
 partit*.csv
 
-*/base.conf
+**/base.conf
 mesh.conf
-*/a.conf
-*/np
-*/tl
+a.conf
+np
+tl
