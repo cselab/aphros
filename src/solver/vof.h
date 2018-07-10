@@ -857,12 +857,13 @@ class Vof : public AdvectionSolver<M_> {
   FieldCell<Vect> fc_n_; // n (normal to plane)
   FieldCell<Scal> fc_us_; // smooth field
   FieldFace<Scal> ff_fu_; // volume flux
-  FieldCell<Scal> fck_; // curvature
+  FieldCell<Scal> fck_; // curvature from height functions
   FieldCell<Scal> fckp_; // curvature from particles
   FieldFace<Scal> ffu_; // field on faces
   FieldFace<Scal> ffvu_; // flux: volume flux * field
   FieldCell<Vect> fcg_; // gradient
   FieldFace<Vect> ffg_; // gradient
+  FieldCell<bool> fci_; // interface mask (1: contains interface)
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
   static constexpr size_t kNp = 11; // particles in one string
   static constexpr size_t kNpp = 4; // maximum strings per cell
@@ -904,7 +905,7 @@ class Vof : public AdvectionSolver<M_> {
     Scal bcc_t0 = -1.;   // duration of phases (one negative to disable)
     Scal bcc_t1 = -1.;   
     Scal bcc_y0 = -1e10; // overwrite u=0 if y<y0 or y>y1
-    Scal bcc_y1 = 1e10;  // (to remove periodic contidions)
+    Scal bcc_y1 = 1e10;  // (to remove periodic conditions)
     int part_constr = 0; // 0: no constraints
                          // 1: fixed distance, constant angle
                          // 2: fixed distance, linear angle
@@ -1085,8 +1086,12 @@ class Vof : public AdvectionSolver<M_> {
   Scal Maxmod(Scal a, Scal b) {
     return std::abs(b) < std::abs(a) ? a : b;
   }
-  // Normal with gradients
-  void CalcNormal(const FieldCell<Scal>& uc) {
+  // Computes normal by gradient.
+  // uc: volume fraction
+  // msk: interface mask (1: contains interface)
+  // Output: modified in cells with msk=1
+  // fcn: normal [s] 
+  void CalcNormalGrad(const FieldCell<Scal>& uc) {
     auto uf = Interpolate(uc, mfc_, m);
     auto gc = Gradient(uf, m);
     for (auto c : m.AllCells()) {
@@ -1094,53 +1099,78 @@ class Vof : public AdvectionSolver<M_> {
       fc_n_[c] = g;
     }
   }
-  // Normal with Young's scheme (interpolation from nodes) [s]
-  void CalcNormalYoung(const FieldCell<Scal>& uc) {
-    static FieldNode<Vect> gn; // XXX: static, not suspendable
-    static FieldNode<Vect> l;
-    gn.Reinit(m, Vect(0));
+  // Computes normal by Young's scheme (interpolation from nodes).
+  // fcu: volume fraction
+  // fci: interface mask (1: contains interface)
+  // Output: modified in cells with fci=1, resized to m
+  // fcn: normal with norm1()=1, antigradient of fcu [s] 
+  // XXX: uses static variables, not suspendable
+  // TODO: check non-uniform mesh
+  void CalcNormalYoung(const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
+                       FieldCell<Vect>& fcn) {
+    static FieldNode<Vect> g;  // gradient
+    static FieldNode<Vect> l;  // step from cell to node
+    g.Reinit(m, Vect(0));
     l.Reinit(m, Vect(0));
+    // values from cells to neighbour nodes
     for (auto c : m.AllCells()) {
       Vect xc = m.GetCenter(c);
       for (size_t q = 0; q < m.GetNumNeighbourNodes(c); ++q) {
         IdxNode n = m.GetNeighbourNode(c, q);
         Vect xn = m.GetNode(n);
         for (size_t d = 0; d < dim; ++d) {
-          gn[n][d] += (xc[d] - xn[d] > 0. ? 1. : -1.) * uc[c];
+          g[n][d] += (xc[d] - xn[d] > 0. ? 1. : -1.) * fcu[c];
           l[n][d] += std::abs(xc[d] - xn[d]);
         }
-      } } for (auto n : m.SuNodes()) {
-      gn[n] /= l[n];
+      } 
+    } 
+    // gradient on nodes
+    for (auto n : m.SuNodes()) {
+      g[n] /= l[n];
     }
-    fc_n_.Reinit(m, Vect(0));
+
+    // gradient on cells
+    fcn.Reinit(m);
     for (auto c : m.SuCells()) {
-      for (size_t q = 0; q < m.GetNumNeighbourNodes(c); ++q) {
-        IdxNode n = m.GetNeighbourNode(c, q);
-        fc_n_[c] += gn[n];
+      if (fci[c]) {
+        // sum over neighbour nodes
+        auto& v = fcn[c];
+        v = Vect(0);
+        for (size_t q = 0; q < m.GetNumNeighbourNodes(c); ++q) {
+          IdxNode n = m.GetNeighbourNode(c, q);
+          v += g[n];
+        }
+        // normalize
+        v /= -v.norm1();
       }
-      fc_n_[c] /= m.GetNumNeighbourNodes(c);
-      fc_n_[c] /= -(fc_n_[c].norm1() + 1e-10);
     }
   }
-  // Estimation of normal and curvature with height functions [s]
-  void CalcNormalHeight(const FieldCell<Scal>& uc) {
+  // Computes normal and curvature from height functions.
+  // fcu: volume fraction
+  // fci: interface mask (1: contains interface)
+  // ow: 1: force overwrite, 0: update only if gives steeper profile
+  // Output: modified in cells with fci=1, resized to m
+  // fcn: normal, antigradient of fcu, if gives steeper profile or ow=1 [s] 
+  // fck: curvature [s] 
+  void CalcNormalHeight(const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
+                        bool ow, FieldCell<Vect>& fcn, FieldCell<Scal>& fck) {
     using MIdx = typename M::MIdx;
     using Dir = typename M::Dir;
     auto& bc = m.GetBlockCells();
 
-    CalcNormalYoung(uc);
-
-    //fc_n_.Reinit(m, Vect(0));
-    fck_.Reinit(m, 0);
+    fcn.Reinit(m); // XXX
+    fck.Reinit(m);
 
     for (auto c : m.SuCells()) {
+      if (!fci[c]) {
+        continue;
+      }
       Vect bn; // best normal
       Scal bhx, bhy; // best first derivative
       Scal bk; // best curvature[k]
       Dir bd;  // best direction
       bool fst = true; // first
-      // direction of plane normal
-      std::vector<Dir> dd;
+      std::vector<Dir> dd; // direction of plane normal
       if (par->dim == 2) {
         dd = {Dir::i, Dir::j};
       } else {
@@ -1167,9 +1197,9 @@ class Vof : public AdvectionSolver<M_> {
         // o: offset from w
         auto hh = [&](MIdx o) -> Scal {
           return 
-            (uc[bc.GetIdx(w + o - on)] + 
-            uc[bc.GetIdx(w + o)] + 
-            uc[bc.GetIdx(w + o + on)]) * ln;
+            (fcu[bc.GetIdx(w + o - on)] + 
+            fcu[bc.GetIdx(w + o)] + 
+            fcu[bc.GetIdx(w + o + on)]) * ln;
         };
 
         // height function
@@ -1189,14 +1219,12 @@ class Vof : public AdvectionSolver<M_> {
         Scal hy = (hyp - hym) / (2. * ly); 
         // sign: +1 if u increases in dn
         Scal sg = 
-            (uc[bc.GetIdx(w + on)] - uc[bc.GetIdx(w - on)] > 0. ? 1. : -1.);
+            (fcu[bc.GetIdx(w + on)] - fcu[bc.GetIdx(w - on)] > 0. ? 1. : -1.);
         // second derivative 
         Scal hxx = (hxp - 2. * h + hxm) / (lx * lx);
         Scal hyy = (hyp - 2. * h + hym) / (ly * ly);
         Scal hxy = ((hpp - hmp) - (hpm - hmm)) / (4. * lx * ly);
         // curvature
-        //Scal k = -(hxp - 2. * h + hxm) / lx / 
-        //    std::pow(1. + hx * hx, 3. / 2.); // 2d
         Scal k = (2. * hx * hy * hxy 
             -(sqr(hy) + 1.) * hxx -(sqr(hx) + 1.) * hyy) / 
             std::pow(sqr(hx) + sqr(hy) + 1., 3. / 2.);
@@ -1216,16 +1244,15 @@ class Vof : public AdvectionSolver<M_> {
           fst = false;
         } 
       }
-      bn /= bn.norm1();
+      bn /= bn.norm1(); // normalize
 
-      // update if gives steeper profile
-      if (std::abs(bn[size_t(bd)]) < std::abs(fc_n_[c][size_t(bd)])) {
-        fc_n_[c] = bn;
+      // update if ow=1 or gives steeper profile in plane dn
+      if (ow || std::abs(bn[size_t(bd)]) < std::abs(fcn[c][size_t(bd)])) {
+        fcn[c] = bn;
       }
 
-      const Scal th = 1e-6;
-      Scal u = uc[c];
-      fck_[c] = bk * (u > th && u < 1. - th ? 1. : 0.);
+      // curvature
+      fck[c] = bk;
 
       #if ADHOC_NORM
       auto cr = GetBubble();
@@ -1233,9 +1260,23 @@ class Vof : public AdvectionSolver<M_> {
       if (par->dim == 2) {
         q[2] = 0.;
       }
-      fc_n_[c] = q / q.norm();
+      fcn[c] = q / q.norm();
       #endif 
     }
+  }
+  // Computes normal by combined Young scheme and height-functions
+  // and curvature from height-functions.
+  // fcu: volume fraction
+  // fci: interface mask (1: contains interface)
+  // Output: set to NaN if fci=0
+  // fcn: normal with norm1()=1, antigradient of fcu [s] 
+  // fck: curvature
+  void CalcNormal(const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
+                  FieldCell<Vect>& fcn, FieldCell<Scal>& fck) {
+    fcn.Reinit(m, Vect(GetNan<Scal>()));
+    fck.Reinit(m, GetNan<Scal>());
+    CalcNormalYoung(fcu, fci, fcn);
+    CalcNormalHeight(fcu, fci, false, fcn, fck);
   }
   Vect GetCellSize() const {
     Vect h; // cell size
@@ -1246,7 +1287,7 @@ class Vof : public AdvectionSolver<M_> {
     assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
     return h;
   }
-  // oriented angle from (x1-x0) to (x2-x1)
+  // Oriented angle from (x1-x0) to (x2-x1)
   static Scal GetAn(Vect x0, Vect x1, Vect x2) {
     Vect dm = x1 - x0;
     Vect dp = x2 - x1;
@@ -1255,7 +1296,7 @@ class Vof : public AdvectionSolver<M_> {
     Scal sin = dm.cross_third(dp) / (lm * lp);
     return std::asin(sin);
   };
-  // oriented angle from (x[i]-x[i-1]) to (x[i+1]-x[i])
+  // Oriented angle from (x[i]-x[i-1]) to (x[i+1]-x[i])
   static Scal GetAn(const Vect* x, size_t i) {
     return GetAn(x[i-1], x[i], x[i+1]);
   };
@@ -2092,10 +2133,11 @@ class Vof : public AdvectionSolver<M_> {
   }
 
   void Reconst(const FieldCell<Scal>& uc) {
-    
+    auto sem = m.GetSem("reconst");
+
     // XXX: adhoc
     // overwrite u=0 if y<y0 or y>y0
-    {
+    if (sem("bc-zero")) {
       Scal y0 = par->bcc_y0;
       Scal y1 = par->bcc_y1;
       auto& uu = const_cast<FieldCell<Scal>&>(uc);
@@ -2107,10 +2149,9 @@ class Vof : public AdvectionSolver<M_> {
       }
     }
 
-    auto sem = m.GetSem("reconst");
     if (sem("height")) {
       // Compute normal and curvature [s]
-      CalcNormalHeight(uc);
+      CalcNormal(uc, fci_, fc_n_, fck_);
       auto h = GetCellSize();
       // Reconstruct interface [s]
       for (auto c : m.SuCells()) {
@@ -2118,9 +2159,9 @@ class Vof : public AdvectionSolver<M_> {
       }
     }
 
+    // Correction with normal from particles
     if (par->part && par->part_n) {
       Part(uc, sem);
-      // Correction with normal from particles
       if (sem("parta")) {
         auto h = GetCellSize();
         for (auto c : m.AllCells()) {

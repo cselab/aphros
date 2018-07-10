@@ -2,6 +2,8 @@
 
 #include <exception>
 #include <memory>
+#include <limits>
+#include <cmath>
 
 #include "geom/mesh.h"
 #include "linear/linear.h"
@@ -9,8 +11,28 @@
 #include "approx.h"
 
 template <class Scal>
+bool IsFinite(Scal a) {
+  return std::isfinite(a);
+}
+
+template <class T, class Idx>
+bool IsFinite(const GField<T, Idx>& u) {
+  for (auto i : u.GetRange()) {
+    if (!IsFinite(u[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template <class Scal>
 bool IsNan(Scal a) {
-  return !(a * Scal(0) == Scal(0));
+  return std::isnan(a);
+}
+
+template <class Scal>
+Scal GetNan() {
+  return std::numeric_limits<Scal>::quiet_NaN();
 }
 
 template <class T, class Idx>
