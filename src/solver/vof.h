@@ -929,7 +929,7 @@ class Vof : public AdvectionSolver<M_> {
 
     for (auto c : m.Cells()) {
       const Scal th = par->part_intth;
-      if (uc[c] > th && uc[c] < 1. - th) {
+      if (fci_[c] && uc[c] > th && uc[c] < 1. - th) {
         Vect x = m.GetCenter(c) + GetCenter(fc_n_[c], fc_a_[c], h);
         Vect n = fc_n_[c];
         n /= n.norm();
@@ -971,7 +971,7 @@ class Vof : public AdvectionSolver<M_> {
       for (auto c : m.Cells()) {
         const Scal th = par->part_intth;
         Scal u = fc_u_.iter_curr[c];
-        if (u > th && u < 1. - th) {
+        if (fci_[c] && u > th && u < 1. - th) {
           dl_.push_back(GetCutPoly(m.GetCenter(c), fc_n_[c], fc_a_[c], h));
         }
       }
@@ -1941,7 +1941,7 @@ class Vof : public AdvectionSolver<M_> {
             auto cc = bc.GetIdx(w + wo);
             Scal u = uc[cc];
             Scal th = par->part_intth;
-            if (u > th && u < 1. - th) {
+            if (fci_[c] && u > th && u < 1. - th) {
               auto xcc = m.GetCenter(cc);
               auto xx = GetCutPoly(xcc, fc_n_[cc], fc_a_[cc], h);
               std::array<Vect, 2> e;
@@ -2150,6 +2150,21 @@ class Vof : public AdvectionSolver<M_> {
     }
 
     if (sem("height")) {
+      fci_.Reinit(m, false);
+      for (auto c : m.AllCells()) {
+        Scal u = uc[c];
+        if (u > 0. && u < 1.) {
+          fci_[c] = true;
+        }
+      }
+      for (auto f : m.SuFaces()) {
+        IdxCell cm = m.GetNeighbourCell(f, 0);
+        IdxCell cp = m.GetNeighbourCell(f, 1);
+        if (uc[cm] != uc[cp]) {
+          fci_[cm] = true;
+          fci_[cp] = true;
+        }
+      }
       // Compute normal and curvature [s]
       CalcNormal(uc, fci_, fc_n_, fck_);
       auto h = GetCellSize();
@@ -2269,16 +2284,20 @@ class Vof : public AdvectionSolver<M_> {
           const Scal v = ffv[f] * vsc;
           // upwind cell
           IdxCell cu = m.GetNeighbourCell(f, v > 0. ? 0 : 1);
-          if (id % 2 == 0) { // Euler Implicit
-            // phase 2 flux
-            ffvu_[f] = GetLineFlux(fc_n_[cu], fc_a_[cu], h, v, dt, d);
-          } else { // Lagrange Explicit
-            // upwind face
-            IdxFace fu = bf.GetIdx(v > 0. ? wf - wd : wf + wd, md);
-            // upwind mixture flux
-            Scal vu = ffv[fu] * vsc;
-            // phase 2 flux
-            ffvu_[f] = GetLineFluxStr(fc_n_[cu], fc_a_[cu], h, v, vu, dt, d);
+          if (fci_[cu]) { // cell contains interface, flux from reconstruction
+            if (id % 2 == 0) { // Euler Implicit
+              // phase 2 flux
+              ffvu_[f] = GetLineFlux(fc_n_[cu], fc_a_[cu], h, v, dt, d);
+            } else { // Lagrange Explicit
+              // upwind face
+              IdxFace fu = bf.GetIdx(v > 0. ? wf - wd : wf + wd, md);
+              // upwind mixture flux
+              Scal vu = ffv[fu] * vsc;
+              // phase 2 flux
+              ffvu_[f] = GetLineFluxStr(fc_n_[cu], fc_a_[cu], h, v, vu, dt, d);
+            }
+          } else {
+            ffvu_[f] = v * uc[cu];
           }
         }
 
@@ -2287,7 +2306,7 @@ class Vof : public AdvectionSolver<M_> {
         // interpolate field value to boundaries
         InterpolateB(uc, mfc_, ffu_, m);
 
-        // override upwind flux
+        // override boundary upwind flux
         for (const auto& it : mfc_) {
           IdxFace f = it.GetIdx();
           CondFace* cb = it.GetValue().get(); 
@@ -2362,14 +2381,16 @@ class Vof : public AdvectionSolver<M_> {
       fcg_ = Gradient(ffu_, m); // [s]
       ffg_ = Interpolate(fcg_, mfvz_, m); // [i]
 
-      fck_.Reinit(m); // curvature [i]
+      fck_.Reinit(m, GetNan<Scal>()); // curvature [i]
       for (auto c : m.Cells()) {
+        if (!fci_[c]) {
+          continue;
+        }
         Scal s = 0.;
         for (auto q : m.Nci(c)) {
           IdxFace f = m.GetNeighbourFace(c, q);
           auto& g = ffg_[f];
-          // TODO: revise 1e-6
-          auto n = g / (g.norm() + 1e-6);  // inner normal
+          auto n = g / g.norm();  // inner normal
           s += -n.dot(m.GetOutwardSurface(c, q));
         }
         fck_[c] = s / m.GetVolume(c);
