@@ -1094,19 +1094,51 @@ class Vof : public AdvectionSolver<M_> {
       fc_n_[c] = g;
     }
   }
+  // Normal with Young's scheme (interpolation from nodes) [s]
+  void CalcNormalYoung(const FieldCell<Scal>& uc) {
+    static FieldNode<Vect> gn; // XXX: static, not suspendable
+    static FieldNode<Vect> l;
+    gn.Reinit(m, Vect(0));
+    l.Reinit(m, Vect(0));
+    for (auto c : m.AllCells()) {
+      Vect xc = m.GetCenter(c);
+      for (size_t q = 0; q < m.GetNumNeighbourNodes(c); ++q) {
+        IdxNode n = m.GetNeighbourNode(c, q);
+        Vect xn = m.GetNode(n);
+        for (size_t d = 0; d < dim; ++d) {
+          gn[n][d] += (xc[d] - xn[d] > 0. ? 1. : -1.) * uc[c];
+          l[n][d] += std::abs(xc[d] - xn[d]);
+        }
+      } } for (auto n : m.SuNodes()) {
+      gn[n] /= l[n];
+    }
+    fc_n_.Reinit(m, Vect(0));
+    for (auto c : m.SuCells()) {
+      for (size_t q = 0; q < m.GetNumNeighbourNodes(c); ++q) {
+        IdxNode n = m.GetNeighbourNode(c, q);
+        fc_n_[c] += gn[n];
+      }
+      fc_n_[c] /= m.GetNumNeighbourNodes(c);
+      fc_n_[c] /= -(fc_n_[c].norm1() + 1e-10);
+    }
+  }
   // Estimation of normal and curvature with height functions [s]
   void CalcNormalHeight(const FieldCell<Scal>& uc) {
     using MIdx = typename M::MIdx;
     using Dir = typename M::Dir;
     auto& bc = m.GetBlockCells();
 
-    fc_n_.Reinit(m, Vect(0));
+    CalcNormalYoung(uc);
+
+    //fc_n_.Reinit(m, Vect(0));
     fck_.Reinit(m, 0);
 
     for (auto c : m.SuCells()) {
       Vect bn; // best normal
       Scal bhx, bhy; // best first derivative
       Scal bk; // best curvature[k]
+      Dir bd;  // best direction
+      bool fst = true; // first
       // direction of plane normal
       std::vector<Dir> dd;
       if (par->dim == 2) {
@@ -1130,7 +1162,8 @@ class Vof : public AdvectionSolver<M_> {
         const Scal lx = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - otx)));
         const Scal ly = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - oty)));
         const Scal ln = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - on)));
-        // evaluates height function
+
+        // Evaluates height function
         // o: offset from w
         auto hh = [&](MIdx o) -> Scal {
           return 
@@ -1138,6 +1171,7 @@ class Vof : public AdvectionSolver<M_> {
             uc[bc.GetIdx(w + o)] + 
             uc[bc.GetIdx(w + o + on)]) * ln;
         };
+
         // height function
         const Scal h = hh(MIdx(0));
         const Scal hxm = hh(-otx);
@@ -1172,16 +1206,22 @@ class Vof : public AdvectionSolver<M_> {
         n[size_t(dty)] = -hy;
         n[size_t(dn)] = -sg;
         // select best with minimal slope
-        if (dn == dd[0] || 
+        if (fst || 
             std::abs(hx) + std::abs(hy) < std::abs(bhx) + std::abs(bhy)) {
           bn = n;
           bhx = hx;
           bhy = hy;
           bk = k;
+          bd = dn;
+          fst = false;
         } 
       }
       bn /= bn.norm1();
-      fc_n_[c] = bn;
+
+      // update if gives steeper profile
+      if (std::abs(bn[size_t(bd)]) < std::abs(fc_n_[c][size_t(bd)])) {
+        fc_n_[c] = bn;
+      }
 
       const Scal th = 1e-6;
       Scal u = uc[c];
