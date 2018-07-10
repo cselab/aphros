@@ -1,0 +1,10 @@
+#!/bin/bash
+
+a="partit.0.csv"
+o="a.csv"
+
+l=`sed '2!d' $a`
+c=`sed -r 's/.*,(\d*)/\1/' <<< "$l"`
+
+echo "x,y,z,c" > $o
+grep ",$c" $a >> $o
