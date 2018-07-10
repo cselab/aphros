@@ -3,7 +3,18 @@ bs ?= 16 16 16  # block size
 np ?= 1         # number of tasks
 tl ?= 60        # time limit in minutes
 
-all: cleanall run
+error:
+	@echo Error: no target specified. Available targets:
+	@echo - cleanrun: cleanall, run
+	@echo - run: start in foreground
+	@echo - submit: submit job or start in background
+	@echo - clean: remove logs, generated conf
+	@echo - cleandat: remove output data
+	@echo - cleanall: clean, cleandat
+	@exit 2
+
+
+cleanrun: cleanall run
 
 run: conf
 	ch.run
@@ -47,4 +58,4 @@ cleandat::
 
 cleanall: clean cleandat
 
-.PHONY: all run submit mesh clean cleandat base conf np tl kill
+.PHONY: error cleanrun run submit mesh clean cleandat base conf np tl kill
