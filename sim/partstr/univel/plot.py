@@ -205,6 +205,9 @@ def Main():
     # Plot trajectories
     PlotTraj(xx, yy, ll, vf.shape)
     # Plot pressure along
-    PlotTrajFld(tt, ee, ll, "x", "p", "trajp.pdf")
+    PlotTrajFld(tt, ee, ll, "t", "p", "trajp.pdf")
+    # Plot x,y along
+    PlotTrajFld(tt, xx, ll, "t", "x", "trajx.pdf")
+    PlotTrajFld(tt, yy, ll, "t", "y", "trajy.pdf")
 
 Main()

@@ -14,44 +14,33 @@ mkdir -p $o
 l="out"
 echo > $l
 
-# error
-e="err"
-echo > $e
-
-#for br in 0.037 0.045 0.0625 0.125 0.25 ; do
-for br in 0.037 ; do
+for br in 0.037 0.045 0.0625 0.125 0.25 ; do
+#for br in 0.0625 ; do
   echo "br=$br"
   echo "$bc $br $br" > b.dat
   p="r${br}_"
 
   # run ch
   d="ch"
+  echo $d
   (cd $d ; ./run) &>> $l
 
   # run ge
   d="ge"
+  echo $d
   (cd $d ; ./run) &>> $l
 
   # plot cmp
   ./plot.py &>> $l
 
-  # append error
-  cat er >> $e
-
   d="ch"
   mv -f $d/vf_0.pdf $o/${p}vf_$d.pdf
   d="ge"
-  mv -f $d/vf_0001.pdf $o/${p}vf_$d.pdf
-  mv -v ttl.pdf $o/${p}ttl.pdf
-  mv -v hist.pdf $o/${p}hist.pdf
-  [ -f ang.pdf ] && mv -v ang.pdf $o/${p}ang.pdf
+  mv -f $d/vf_0000.pdf $o/${p}vf_$d.pdf
+  for f in ttl traj trajp trajx trajy ; do
+    mv -v $f.pdf $o/${p}${f}.pdf
+  done
 done
-
-mv -v err $o/
 
 # tile all pdf
 (cd $o ; ../tile)
-# rename folder
-d=${o}_$k
-rm -rf $d
-mv -T $o $d

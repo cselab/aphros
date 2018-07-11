@@ -9,7 +9,7 @@ cnt() {
   echo ${#arr[@]}
 }
 
-for f in *{hist,ang,vf_ch}.pdf ; do
+for f in *{traj,trajp,trajx,trajy,vf_ch}.pdf ; do
   pdfcrop --margins '5 10 5 10' $f cr_$f
 done
 
@@ -19,7 +19,7 @@ done
 
 t=t.pdf
 n=`cnt "cr_*ttl.pdf"`
-pdfnup cr_*{ttl,hist,ang,vf_ch}.pdf --nup ${n}x4 --outfile $t
+pdfnup cr_*{traj,trajp,trajx,trajy,vf_ch}.pdf --nup ${n}x4 --outfile $t
 
 o=curv.pdf
 pdfcrop --margins '5 5 5 5' $t $o
