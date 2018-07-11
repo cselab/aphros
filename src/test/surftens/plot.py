@@ -209,7 +209,7 @@ def PlotPart(ax, p, sk=1):
     # plot strings
     n = 0
     for i in tt:
-        if i % sk == 1:
+        if i % sk == 0:
             ti = np.array(tt[i])
             cl = cmap(c[ti[0]])
             # connecting lines
@@ -242,13 +242,12 @@ for p in pp:
     print(po)
     fig, ax = PlotInit()
     PlotGrid(ax, xn1, yn1)
-    vmax = abs(u).max()
-    PlotFieldGray(ax, u, vmin=-vmax, vmax=vmax)
+    PlotFieldGray(ax, u, vmin=0., vmax=1.)
     # plot partilces
     n = re.findall("_(\d*)\.", suf)[0]
     pa = "partit.{:}.csv".format(n)
     if os.path.isfile(pa):
         print(pa)
-        PlotPart(ax, pa, sk=5)
+        PlotPart(ax, pa, sk=1)
     PlotSave(fig, ax, po)
 
