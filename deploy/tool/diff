@@ -45,7 +45,7 @@ e = float(v[3]) if len(v) > 3 else 1e-8
 ua = Read(a)
 ub = Read(b)
 
-d = np.max(np.abs(ua - ub))
+d = np.nanmax(np.abs(ua - ub))
 
 print(d)
 

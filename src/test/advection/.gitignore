@@ -11,3 +11,7 @@ pressure
 __pycache__
 *.vtk
 *.csv
+out
+arg
+np
+job.id*
