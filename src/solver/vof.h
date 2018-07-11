@@ -471,19 +471,6 @@ class Vof : public AdvectionSolver<M_> {
     assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
     return h;
   }
-  // Oriented angle from (x1-x0) to (x2-x1)
-  static Scal GetAn(Vect x0, Vect x1, Vect x2) {
-    Vect dm = x1 - x0;
-    Vect dp = x2 - x1;
-    Scal lm = dm.norm();
-    Scal lp = dp.norm();
-    Scal sin = dm.cross_third(dp) / (lm * lp);
-    return std::asin(sin);
-  };
-  // Oriented angle from (x[i]-x[i-1]) to (x[i+1]-x[i])
-  static Scal GetAn(const Vect* x, size_t i) {
-    return GetAn(x[i-1], x[i], x[i+1]);
-  };
   // Compute force to advance particles with exact contraints on ellipse.
   // Instead of equal angles of circle, allow difference in 
   // angles -1 and +1 such that there sum equals angle 0.
@@ -500,61 +487,6 @@ class Vof : public AdvectionSolver<M_> {
                     const std::array<Vect, 2>* ll, size_t sl, Vect* ff) {
     PS::InterfaceForce(xx, sx, ll, sl, par->part_segcirc, ff);
     Constr2(xx, sx, ff);
-  }
-  // Apply stretching and bending forces
-  void Constr0(const Vect* xx, size_t sx, Vect* ff) {
-    Vect h = GetCellSize();
-    Scal hm = h.norminf();
-
-    // relaxation
-    for (size_t i = 0; i < sx; ++i) {
-      ff[i] *= par->part_relax;
-    }
-
-    // stretching springs
-    for (size_t i = 0; i < sx - 1; ++i) {
-      Vect dx = xx[i + 1] - xx[i];
-      Scal k = par->part_kstr;
-      Scal d0 = par->part_h * hm; // equilibrium length
-      Vect f = dx * (k * (1. - d0 / dx.norm()));
-      ff[i] += f;
-      ff[i + 1] -= f;
-    }
-
-    // mean angle
-    Scal anm = (GetAn(xx,1) + GetAn(xx,2) + GetAn(xx,3)) / 3.; 
-
-    // bending to mean angle
-    for (size_t i = 1; i < sx - 1; ++i) {
-      size_t im = i - 1;
-      size_t ip = i + 1;
-      Vect x = xx[i];
-      Vect xm = xx[im];
-      Vect xp = xx[ip];
-      Vect dm = x - xm;
-      Vect dp = xp - x;
-      Scal lm = dm.norm();
-      Scal lp = dp.norm();
-
-      // normals to segments, <nm,dm> positively oriented
-      Vect nm = Vect(dm[1], -dm[0], 0.) / lm; 
-      Vect np = Vect(dp[1], -dp[0], 0.) / lp;
-      // torque
-      Scal t = par->part_kbend * lm * lp * 
-          (GetAn(xx,i) - anm * (par->part_bendmean ? 1. : 0.));
-      // forces
-      Vect fm = nm * (t / (2. * lm));
-      Vect fp = np * (t / (2. * lp));
-      // apply
-      ff[im] += fm;
-      ff[ip] += fp;
-      ff[i] -= (fm + fp);
-    }
-
-    // scale by relaxaion factor
-    for (size_t i = 0; i < sx; ++i) {
-      ff[i] *= par->part_relax;
-    }
   }
   // Apply exact constraints on force
   void Constr1(const Vect* xx, size_t sx, Vect* ff) {
@@ -906,24 +838,11 @@ class Vof : public AdvectionSolver<M_> {
   void PartForce2d(const Vect* xx, size_t sx, 
                    const std::array<Vect, 2>* ll, size_t sl, Vect* ff) {
     PS::InterfaceForce(xx, sx, ll, sl, par->part_segcirc, ff);
-    Constr0(xx, sx, ff);
-  }
-  // Curvature for plane string
-  Scal PartK(const Vect* xx, size_t sx) {
-    size_t i = (sx - 1) / 2;
-    Vect x = xx[i];
-    Vect xm = xx[i - 1];
-    Vect xp = xx[i + 1];
-    Vect dm = x - xm;
-    Vect dp = xp - x;
-    Scal lm = dm.norm();
-    Scal lp = dp.norm();
-    Scal lmp = lm * lp;
-    Scal k = std::sqrt(2. * (lmp - dm.dot(dp))) / lmp;
-    if (dm.cross_third(dp) > 0.) {
-      k = -k;
-    }
-    return k;
+
+    Vect h = GetCellSize();
+    Scal hm = h.norminf();
+    PS::Constr0(xx, sx, par->part_kstr, par->part_h * hm,
+                par->part_kbend, par->part_bendmean, par->part_relax, ff);
   }
   std::pair<Vect, Vect> GetBubble() {
     static Vect c(0);
@@ -1126,13 +1045,13 @@ class Vof : public AdvectionSolver<M_> {
             size_t anmn = 0;
             // mean angle in string
             for (size_t j = sx[i] + 1; j + 1 < sx[i+1]; ++j) {
-              anm += GetAn(xx.data(), j);
+              anm += PS::GetAn(xx.data(), j);
               ++anmn;
             }
             anm /= anmn;
             // error in angle
             for (size_t j = sx[i] + 1; j + 1 < sx[i+1]; ++j) {
-              Scal e = std::abs(anm - GetAn(xx.data(), j));
+              Scal e = std::abs(anm - PS::GetAn(xx.data(), j));
               anavg += e;
               ++anavgn;
               anmax = std::max(anmax, e);
@@ -1182,7 +1101,7 @@ class Vof : public AdvectionSolver<M_> {
 
       // compute curvature on strings
       for (size_t i = 0; i < sc.size(); ++i) {
-        sk[i] = PartK(&(xx[sx[i]]), sx[i + 1] - sx[i]);
+        sk[i] = PS::PartK(&(xx[sx[i]]), sx[i + 1] - sx[i]);
       }
 
       // compute curvature in cells
