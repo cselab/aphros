@@ -17,6 +17,7 @@ bs="$b $b 2"
 
 ./clean
 ch.base
+ch.aconf
 
 # write np
 echo $n > np
@@ -25,7 +26,7 @@ echo $n > np
 ch.part $m $bs `cat np` > mesh.conf
 
 # run in foreground
-ch.run "$c"
+ch.run ch.mfer "$c"
 
 a=0
 for f in ref/*.dat ; do
