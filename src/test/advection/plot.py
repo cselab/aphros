@@ -277,12 +277,6 @@ for p in pp:
     a = Get2d(Read('a' + suf)) # alpha
     nx = Get2d(Read('nx' + suf)) # normal
     ny = Get2d(Read('ny' + suf))
-    k = Get2d(Read('k' + suf))
-
-
-    # invert curvature if gerris
-    if ge:
-        k = -k
 
     # volume fraction u
     po = os.path.splitext(p)[0] + ".pdf"
@@ -304,25 +298,3 @@ for p in pp:
             PlotPart(ax, pa, sk=5)
     # save
     PlotSave(fig, ax, po)
-
-    # curvature k
-    if k is not None:
-        po = os.path.splitext('k' + suf)[0] + ".pdf"
-        print(po)
-        fig, ax = PlotInit()
-        PlotGrid(ax, xn1, yn1)
-
-        # average curvature
-        ke = 1. / reff  # exact
-
-        # exclude points with zero curvature (for ch)
-        k[np.where(k == 0.)] = np.nan
-
-        PlotFieldBwr(ax, k / ke, vmin=0.8, vmax=1.2)
-        # plot lines
-        if all([e is not None for e in [a, nx, ny]]):
-            l = GetLines(x, y, a, nx, ny, hx, hy, u)
-            PlotLines(ax, *l)
-
-        PlotSave(fig, ax, po)
-
