@@ -326,15 +326,3 @@ for p in pp:
 
         PlotSave(fig, ax, po)
 
-    # plot curvature comparison
-    kh = Get2d(Read('kh' + suf))
-    kp = Get2d(Read('kp' + suf))
-    kg = Get2d(Read('gerris_k/k0011.dat'))
-    if kg is not None:
-        kg = -kg
-    if kh is not None and kp is not None:
-        po = os.path.splitext('kcmp' + suf)[0] + ".pdf"
-        kk = [kh, kp, kg]
-        ll = ["height", "particles", "gerris"]
-        CmpCurv(x, y, u, kk, ll, po)
-
