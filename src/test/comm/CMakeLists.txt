@@ -9,5 +9,5 @@ add_executable(${EXE} main.cpp)
 
 target_link_libraries(${EXE} distr)
 
-add_test(NAME ${p}-loc COMMAND mpirun -n 2 ./${EXE} loc.conf)
-add_test(NAME ${p}-cub COMMAND mpirun -n 2 ./${EXE} cub.conf)
+add_test(NAME ${p}-loc COMMAND ch.run ./${EXE} tloc)
+add_test(NAME ${p}-cub COMMAND ch.run ./${EXE} tcub)

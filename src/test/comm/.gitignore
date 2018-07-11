@@ -6,3 +6,6 @@ pressure
 *.xmf
 *.vts
 *.pvd
+arg
+job.id*
+out
