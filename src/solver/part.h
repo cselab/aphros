@@ -129,6 +129,74 @@ class GPartStr {
       }
     }
   }
+  // Oriented angle from (x1-x0) to (x2-x1)
+  static Scal GetAn(Vect x0, Vect x1, Vect x2) {
+    Vect dm = x1 - x0;
+    Vect dp = x2 - x1;
+    Scal lm = dm.norm();
+    Scal lp = dp.norm();
+    Scal sin = dm.cross_third(dp) / (lm * lp);
+    return std::asin(sin);
+  };
+  // Oriented angle from (x[i]-x[i-1]) to (x[i+1]-x[i])
+  static Scal GetAn(const Vect* x, size_t i) {
+    return GetAn(x[i-1], x[i], x[i+1]);
+  };
+  // Stretching and bending forces.
+  // xx: array of positions
+  // sx: size of xx
+  // kstr: factor for stretching
+  // leq: equilibrium length
+  // kbend: factor for bending
+  // bendmean: 1: bending to mean angle, 0: bending to straight angle
+  // relax: relaxation factor
+  // Output:
+  // ff: appended with forces
+  static void Constr0(const Vect* xx, size_t sx, 
+                      Scal kstr, Scal leq, Scal kbend, 
+                      bool bendmean, Scal relax, Vect* ff) {
+    // stretching 
+    for (size_t i = 0; i < sx - 1; ++i) {
+      Vect dx = xx[i + 1] - xx[i];
+      Vect f = dx * (kstr * (1. - leq / dx.norm()));
+      ff[i] += f;
+      ff[i + 1] -= f;
+    }
+
+    // mean angle
+    Scal anm = (GetAn(xx,1) + GetAn(xx,2) + GetAn(xx,3)) / 3.; 
+
+    // bending 
+    for (size_t i = 1; i < sx - 1; ++i) {
+      size_t im = i - 1;
+      size_t ip = i + 1;
+      Vect x = xx[i];
+      Vect xm = xx[im];
+      Vect xp = xx[ip];
+      Vect dm = x - xm;
+      Vect dp = xp - x;
+      Scal lm = dm.norm();
+      Scal lp = dp.norm();
+
+      // normals to segments, <nm,dm> positively oriented
+      Vect nm = Vect(dm[1], -dm[0], 0.) / lm; 
+      Vect np = Vect(dp[1], -dp[0], 0.) / lp;
+      // torque
+      Scal t = kbend * lm * lp * (GetAn(xx,i) - anm * (bendmean ? 1. : 0.));
+      // forces
+      Vect fm = nm * (t / (2. * lm));
+      Vect fp = np * (t / (2. * lp));
+      // apply
+      ff[im] += fm;
+      ff[ip] += fp;
+      ff[i] -= (fm + fp);
+    }
+
+    // relaxation
+    for (size_t i = 0; i < sx; ++i) {
+      ff[i] *= relax;
+    }
+  }
   /*
   // Compute force to advance particles with exact contraints on ellipse.
   // Angle between segments linearly depends on index.
