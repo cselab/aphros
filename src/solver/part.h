@@ -5,511 +5,150 @@
 #include <array>
 #include <memory>
 #include <limits>
+#include <vector>
 
-#include "advection.h"
 #include "geom/block.h"
 #include "dump/dumper.h"
-#include "dump/vtk.h"
+#include "geom/vect.h"
 #include "reconst.h"
-#include "part.h"
 
 // attraction to exact sphere
 #define ADHOC_ATTR 0
 // normal from exact sphere
 #define ADHOC_NORM 0
 
-namespace solver {
-
-template <class M_>
-class Vof : public AdvectionSolver<M_> {
-  using M = M_;
-  using P = AdvectionSolver<M>;
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  using R = GReconst<Scal>;
-  using PS = GPartStr<Scal>;
-  static constexpr size_t dim = M::dim;
-
-  using P::m;
-  using P::ffv_;
-  using P::fcs_;
-  LayersData<FieldCell<Scal>> fc_u_;
-  MapFace<std::shared_ptr<CondFace>> mfc_;
-  MapFace<std::shared_ptr<CondFace>> mfvz_; // zero-derivative bc for Vect
-
-  FieldCell<Scal> fc_a_; // alpha (plane constant)
-  FieldCell<Vect> fc_n_; // n (normal to plane)
-  FieldCell<Scal> fc_us_; // smooth field
-  FieldFace<Scal> ff_fu_; // volume flux
-  FieldCell<Scal> fck_; // curvature from height functions
-  FieldCell<Scal> fckp_; // curvature from particles
-  FieldFace<Scal> ffu_; // field on faces
-  FieldFace<Scal> ffvu_; // flux: volume flux * field
-  FieldCell<Vect> fcg_; // gradient
-  FieldFace<Vect> ffg_; // gradient
-  FieldCell<bool> fci_; // interface mask (1: contains interface)
-  size_t count_ = 0; // number of MakeIter() calls, used for splitting
-  static constexpr size_t kNp = 11; // particles in one string
-  static constexpr size_t kNpp = 4; // maximum strings per cell
-  FieldCell<std::array<Vect, kNp * kNpp>> fcp_; // cell list
-  FieldCell<std::array<Vect, kNp * kNpp>> fcpt_; // cell list tmp
-  FieldCell<std::array<Scal, kNp * kNpp>> fcpw_; // cell list weight
-  FieldCell<size_t> fcps_; // cell list size
-
-  std::vector<Vect> dpx_; // dump particles x
-  std::vector<size_t> dpc_; // dump particles cell
-  std::vector<std::vector<Vect>> dl_; // dump poly
-
+// particle strings
+template <class Scal>
+class GPartStr {
  public:
-  struct Par {
-    size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
-    bool curvgrad = false; // compute curvature using gradient
-    bool part = false; // particles
-    Scal part_relax = 1.; 
-    Scal part_h0 = 1.; // dist init
-    Scal part_h = 1.;  // dist eq
-    Scal part_kstr = 1.; // stretching
-    Scal part_kattr = 1.; // attraction to reconstructed interface
-    Scal part_kbend = 1.; // bending
-    bool part_bendmean = true; // bending to mean angle (fit circle)
-    bool part_n = false; // normal from particles
-    // curvature from particles
-    // if true, GetCurv returns fckp_
-    bool part_k = false; // curvature from particles
-    size_t part_maxiter = 100; // num iter
-    size_t part_dump_fr = 100; // num frames dump
-    size_t part_report_fr = 100; // num frames report
-    Scal part_intth = 1e-3; // interface detection threshold
-    Scal clipth = 1e-6; // vf clipping threshold
-    std::unique_ptr<Dumper> dmp; // dumper for particles
-    bool dumppoly = false; // dump reconstructed interface (cut polygons)
-    // XXX: adhoc
-    Scal bcc_k0 = 1.;   // mul corrections to bc 
-    Scal bcc_k1 = 1.;   
-    Scal bcc_t0 = -1.;   // duration of phases (one negative to disable)
-    Scal bcc_t1 = -1.;   
-    Scal bcc_y0 = -1e10; // overwrite u=0 if y<y0 or y>y1
-    Scal bcc_y1 = 1e10;  // (to remove periodic conditions)
-    int part_constr = 0; // 0: no constraints
-                         // 1: fixed distance, constant angle
-                         // 2: fixed distance, linear angle
-    Scal part_segcirc = 1.; // factor for circular segment
-  };
-  std::shared_ptr<Par> par;
-  Par* GetPar() { return par.get(); }
-  void SeedParticles(const FieldCell<Scal>& uc) {
-    fcps_.Reinit(m, 0);
-    fcp_.Reinit(m);
-    fcpt_.Reinit(m);
-    fcpw_.Reinit(m);
+  static constexpr size_t dim = 3;
+  using Vect = GVect<Scal, dim>;
+  using R=GReconst<Scal>;
 
-    auto& bc = m.GetBlockCells();
-    auto& bn = m.GetBlockNodes();
-    using MIdx = typename M::MIdx;
-    MIdx wb = bn.GetBegin();
-    Vect xb = m.GetNode(bn.GetIdx(wb));
-    Vect h = m.GetNode(bn.GetIdx(wb + MIdx(1))) - xb;
-    Scal hm = h.norminf();
-
-    for (auto c : m.Cells()) {
-      const Scal th = par->part_intth;
-      if (fci_[c] && uc[c] > th && uc[c] < 1. - th) {
-        Vect x = m.GetCenter(c) + R::GetCenter(fc_n_[c], fc_a_[c], h);
-        Vect n = fc_n_[c];
-        n /= n.norm();
-        // direction in which normal has minimal component
-        size_t d = n.abs().argmin(); 
-        Vect xd(0); 
-        xd[d] = 1.;
-        // t0 orthogonal to n and d, <n,d,t0> positively oriented
-        Vect t0 = n.cross(xd); 
-        t0 /= t0.norm();
-        // t1 orthogonal to n and t0
-        Vect t1 = n.cross(t0);
-        t1 /= t1.norm();
-        const Scal pd = hm * par->part_h0; // distance between particles
-        if (fcps_[c] == 0) { // if no particles yet
-          Scal a = 0.; // angle of tangent
-          // number of strings
-          size_t ns = (par->dim == 2 ? 1 : kNpp);
-          for (int s = 0; s < ns; ++s) {
-            // tangent to string
-            Vect t = t0 * std::cos(a) + t1 * std::sin(a);
-            for (int i = 0; i < kNp; ++i) {
-              fcp_[c][fcps_[c]++] = x + t * ((i - (kNp - 1) * 0.5) * pd);
-            }
-            if (ns > 1) {
-              a += M_PI / ns;
-            }
-          }
-        }
-      }
-    }
-  }
-  // Dump cut polygons
-  void DumpPoly() {
-    auto sem = m.GetSem("dumppoly");
-    if (sem("local")) {
-      dl_.clear();
-      auto h = GetCellSize();
-      for (auto c : m.Cells()) {
-        const Scal th = par->part_intth;
-        Scal u = fc_u_.iter_curr[c];
-        if (fci_[c] && u > th && u < 1. - th) {
-          dl_.push_back(R::GetCutPoly(m.GetCenter(c), fc_n_[c], fc_a_[c], h));
-        }
-      }
-      using T = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<T>(&dl_));
-    }
-    if (sem("write")) {
-      if (m.IsRoot()) {
-        std::string st = "." + std::to_string(par->dmp->GetN());
-        auto fn = "s" + st + ".vtk";
-        std::cout << std::fixed << std::setprecision(8)
-            << "dump" 
-            << " t=" << this->GetTime() + this->GetTimeStep()
-            << " to " << fn << std::endl;
-        WriteVtkPoly(dl_, fn);
-      }
-    }
-  }
-  void DumpParticles(size_t it) {
-    auto sem = m.GetSem("partdump");
-
-    auto fr = par->part_dump_fr;
-    size_t d = std::max<size_t>(1, par->part_maxiter / fr);
-    if (fr > 1 && it % d == 0 || it + 1 == par->part_maxiter) {
-      if (sem("local")) {
-        dpx_.clear();
-        dpc_.clear();
-
-        // copy to arrays  
-        auto& bc = m.GetBlockCells();
-        for (auto c : m.Cells()) {
-          for (size_t i = 0; i < fcps_[c]; ++i) {
-            dpx_.push_back(fcp_[c][i]);
-            auto w = bc.GetMIdx(c);
-            // XXX: adhoc, hash for cell index, assume mesh size <= mn
-            const size_t mn = 1000; 
-            dpc_.push_back((w[2] * mn + w[1]) * mn + w[0]);
-          }
-        }
-
-        // comm
-        using TV = typename M::template OpCatT<Vect>;
-        using TI = typename M::template OpCatT<size_t>;
-        m.Reduce(std::make_shared<TV>(&dpx_));
-        m.Reduce(std::make_shared<TI>(&dpc_));
-      }
-      if (sem("write")) {
-        if (m.IsRoot()) {
-          std::string st = "." + std::to_string(par->dmp->GetN());
-          std::string sit = fr > 1 ? "_" + std::to_string(it) : "";
-          std::string s = "partit" + st + sit + ".csv";
-          std::cout << std::fixed << std::setprecision(8)
-              << "dump" 
-              << " t=" << this->GetTime() + this->GetTimeStep()
-              << " to " << s << std::endl;
-          std::ofstream o;
-          o.open(s);
-          o.precision(20);
-          o << "x,y,z,c\n";
-
-          for (size_t i = 0; i < dpx_.size(); ++i) {
-            Vect x = dpx_[i];
-            o << x[0] << "," << x[1] << "," << x[2] 
-                << "," << dpc_[i] << "\n";
-          }
-        }
-      }
-    }
-  }
-  Vof(M& m, const FieldCell<Scal>& fcu,
-      const MapFace<std::shared_ptr<CondFace>>& mfc,
-      const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
-      double t, double dt, std::shared_ptr<Par> par)
-      : AdvectionSolver<M>(t, dt, m, ffv, fcs)
-      , mfc_(mfc), par(par)
-      , fc_a_(m, 0), fc_n_(m, Vect(0)), fc_us_(m, 0), ff_fu_(m, 0) 
-      , fck_(m, 0), fckp_(m, 0)
-  {
-    fc_u_.time_curr = fcu;
-    for (auto it : mfc_) {
-      IdxFace f = it.GetIdx();
-      mfvz_[f] = std::make_shared<
-          CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
-    }
-  }
-  void StartStep() override {
-    auto sem = m.GetSem("start");
-    if (sem("rotate")) {
-      this->ClearIter();
-      fc_u_.time_prev = fc_u_.time_curr;
-      fc_u_.iter_curr = fc_u_.time_prev;
-    }
-
-    if (sem.Nested("reconst")) {
-      if (this->GetTime() == 0.) {
-          Reconst(fc_u_.time_curr);
-      }
-    }
-
-      /*
-      if (par->part) {
-        if (sem("seed")) {
-          SeedParticles(fc_u_.time_curr);
-          if (par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
-                            this->GetTimeStep())) {
-            DumpParticles(par->part_maxiter - 1);
-          }
-        }
-      }
-      */
-  }
-  Scal Maxmod(Scal a, Scal b) {
-    return std::abs(b) < std::abs(a) ? a : b;
-  }
-  // Computes normal by gradient.
-  // uc: volume fraction
-  // msk: interface mask (1: contains interface)
-  // Output: modified in cells with msk=1
-  // fcn: normal [s] 
-  void CalcNormalGrad(const FieldCell<Scal>& uc) {
-    auto uf = Interpolate(uc, mfc_, m);
-    auto gc = Gradient(uf, m);
-    for (auto c : m.AllCells()) {
-      Vect g = gc[c];
-      fc_n_[c] = g;
-    }
-  }
-  // Computes normal by Young's scheme (interpolation from nodes).
-  // fcu: volume fraction
-  // fci: interface mask (1: contains interface)
-  // Output: modified in cells with fci=1, resized to m
-  // fcn: normal with norm1()=1, antigradient of fcu [s] 
-  // XXX: uses static variables, not suspendable
-  // TODO: check non-uniform mesh
-  void CalcNormalYoung(const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
-                       FieldCell<Vect>& fcn) {
-    static FieldNode<Vect> g;  // gradient
-    static FieldNode<Vect> l;  // step from cell to node
-    g.Reinit(m, Vect(0));
-    l.Reinit(m, Vect(0));
-    // values from cells to neighbour nodes
-    for (auto c : m.AllCells()) {
-      Vect xc = m.GetCenter(c);
-      for (size_t q = 0; q < m.GetNumNeighbourNodes(c); ++q) {
-        IdxNode n = m.GetNeighbourNode(c, q);
-        Vect xn = m.GetNode(n);
-        for (size_t d = 0; d < dim; ++d) {
-          g[n][d] += (xc[d] - xn[d] > 0. ? 1. : -1.) * fcu[c];
-          l[n][d] += std::abs(xc[d] - xn[d]);
-        }
-      } 
-    } 
-    // gradient on nodes
-    for (auto n : m.SuNodes()) {
-      g[n] /= l[n];
-    }
-
-    // gradient on cells
-    fcn.Reinit(m);
-    for (auto c : m.SuCells()) {
-      if (fci[c]) {
-        // sum over neighbour nodes
-        auto& v = fcn[c];
-        v = Vect(0);
-        for (size_t q = 0; q < m.GetNumNeighbourNodes(c); ++q) {
-          IdxNode n = m.GetNeighbourNode(c, q);
-          v += g[n];
-        }
-        // normalize
-        v /= -v.norm1();
-      }
-    }
-  }
-  // Computes normal and curvature from height functions.
-  // fcu: volume fraction
-  // fci: interface mask (1: contains interface)
-  // ow: 1: force overwrite, 0: update only if gives steeper profile
-  // Output: modified in cells with fci=1, resized to m
-  // fcn: normal, antigradient of fcu, if gives steeper profile or ow=1 [s] 
-  // fck: curvature [s] 
-  void CalcNormalHeight(const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
-                        bool ow, FieldCell<Vect>& fcn, FieldCell<Scal>& fck) {
-    using MIdx = typename M::MIdx;
-    using Dir = typename M::Dir;
-    auto& bc = m.GetBlockCells();
-
-    fcn.Reinit(m); // XXX
-    fck.Reinit(m);
-
-    for (auto c : m.SuCells()) {
-      if (!fci[c]) {
-        continue;
-      }
-      Vect bn; // best normal
-      Scal bhx, bhy; // best first derivative
-      Scal bk; // best curvature[k]
-      Dir bd;  // best direction
-      bool fst = true; // first
-      std::vector<Dir> dd; // direction of plane normal
-      if (par->dim == 2) {
-        dd = {Dir::i, Dir::j};
-      } else {
-        dd = {Dir::i, Dir::j, Dir::k};
-      }
-      for (Dir dn : dd) {
-        // directions of plane tangents ([d]irection [t]angents)
-        Dir dtx((size_t(dn) + 1) % dim); 
-        Dir dty((size_t(dn) + 2) % dim); 
-
-        MIdx w = bc.GetMIdx(c);
-
-        // offset in normal direction
-        MIdx on = MIdx(dn);
-        // offset in dtx,dty
-        MIdx otx = MIdx(dtx);
-        MIdx oty = MIdx(dty);
-        // mesh step
-        const Scal lx = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - otx)));
-        const Scal ly = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - oty)));
-        const Scal ln = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - on)));
-
-        // Evaluates height function
-        // o: offset from w
-        auto hh = [&](MIdx o) -> Scal {
-          return 
-            (fcu[bc.GetIdx(w + o - on)] + 
-            fcu[bc.GetIdx(w + o)] + 
-            fcu[bc.GetIdx(w + o + on)]) * ln;
-        };
-
-        // height function
-        const Scal h = hh(MIdx(0));
-        const Scal hxm = hh(-otx);
-        const Scal hxp = hh(otx);
-        const Scal hym = hh(-oty);
-        const Scal hyp = hh(oty);
-        // corners: hxy
-        const Scal hmm = hh(-otx - oty); 
-        const Scal hmp = hh(-otx + oty);
-        const Scal hpm = hh(otx - oty);
-        const Scal hpp = hh(otx + oty);
-
-        // first derivative (slope)
-        Scal hx = (hxp - hxm) / (2. * lx);  // centered
-        Scal hy = (hyp - hym) / (2. * ly); 
-        // sign: +1 if u increases in dn
-        Scal sg = 
-            (fcu[bc.GetIdx(w + on)] - fcu[bc.GetIdx(w - on)] > 0. ? 1. : -1.);
-        // second derivative 
-        Scal hxx = (hxp - 2. * h + hxm) / (lx * lx);
-        Scal hyy = (hyp - 2. * h + hym) / (ly * ly);
-        Scal hxy = ((hpp - hmp) - (hpm - hmm)) / (4. * lx * ly);
-        // curvature
-        Scal k = (2. * hx * hy * hxy 
-            -(sqr(hy) + 1.) * hxx -(sqr(hx) + 1.) * hyy) / 
-            std::pow(sqr(hx) + sqr(hy) + 1., 3. / 2.);
-        // outer normal
-        Vect n;
-        n[size_t(dtx)] = -hx;
-        n[size_t(dty)] = -hy;
-        n[size_t(dn)] = -sg;
-        // select best with minimal slope
-        if (fst || 
-            std::abs(hx) + std::abs(hy) < std::abs(bhx) + std::abs(bhy)) {
-          bn = n;
-          bhx = hx;
-          bhy = hy;
-          bk = k;
-          bd = dn;
-          fst = false;
-        } 
-      }
-      bn /= bn.norm1(); // normalize
-
-      // update if ow=1 or gives steeper profile in plane dn
-      if (ow || std::abs(bn[size_t(bd)]) < std::abs(fcn[c][size_t(bd)])) {
-        fcn[c] = bn;
-      }
-
-      // curvature
-      fck[c] = bk;
-
-      #if ADHOC_NORM
-      auto cr = GetBubble();
-      auto q = m.GetCenter(c) - cr.first;
-      if (par->dim == 2) {
-        q[2] = 0.;
-      }
-      fcn[c] = q / q.norm();
-      #endif 
-    }
-  }
-  // Computes normal by combined Young scheme and height-functions
-  // and curvature from height-functions.
-  // fcu: volume fraction
-  // fci: interface mask (1: contains interface)
-  // Output: set to NaN if fci=0
-  // fcn: normal with norm1()=1, antigradient of fcu [s] 
-  // fck: curvature
-  void CalcNormal(const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
-                  FieldCell<Vect>& fcn, FieldCell<Scal>& fck) {
-    fcn.Reinit(m, Vect(GetNan<Scal>()));
-    fck.Reinit(m, GetNan<Scal>());
-    CalcNormalYoung(fcu, fci, fcn);
-    CalcNormalHeight(fcu, fci, false, fcn, fck);
-  }
-  Vect GetCellSize() const {
-    Vect h; // cell size
-    // XXX: specific for structured 3D mesh
-    IdxCell c0(0);
-    h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
-        m.GetNode(m.GetNeighbourNode(c0, 0));
-    assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
-    return h;
-  }
-  // Oriented angle from (x1-x0) to (x2-x1)
-  static Scal GetAn(Vect x0, Vect x1, Vect x2) {
-    Vect dm = x1 - x0;
-    Vect dp = x2 - x1;
+  // Curvature of particle string.
+  // xx: array of positions
+  // sx: size of xx
+  static Scal PartK(const Vect* xx, size_t sx) {
+    assert(sx % 2 == 1);
+    size_t i = (sx - 1) / 2;
+    Vect x = xx[i];
+    Vect xm = xx[i - 1];
+    Vect xp = xx[i + 1];
+    Vect dm = x - xm;
+    Vect dp = xp - x;
     Scal lm = dm.norm();
     Scal lp = dp.norm();
-    Scal sin = dm.cross_third(dp) / (lm * lp);
-    return std::asin(sin);
+    Scal lmp = lm * lp;
+    Scal k = std::sqrt(2. * (lmp - dm.dot(dp))) / lmp;
+    if (dm.cross_third(dp) > 0.) {
+      k = -k;
+    }
+    return k;
+  }
+  // Circular profile along segment.
+  // k: curvature 
+  // l: segment half-length
+  // d: distance from segment center to target point (d<l)
+  static Scal SegCirc(Scal k, Scal l, Scal d) {
+    Scal t1 = std::sqrt(1. - sqr(k) * sqr(l));
+    Scal t2 = std::sqrt(1. - sqr(k) * sqr(d));
+    return k * (sqr(l) - sqr(d)) / (t1 + t2);
   };
-  // Oriented angle from (x[i]-x[i-1]) to (x[i+1]-x[i])
-  static Scal GetAn(const Vect* x, size_t i) {
-    return GetAn(x[i-1], x[i], x[i+1]);
-  };
+  // Force on particles from interface.
+  // xx: array of positions
+  // sx: size of xx
+  // ll: array of lines
+  // sl: size of ll
+  // segcirc: factor for shift to circular segment 
+  // Output:
+  // ff: forces
+  static void InterfaceForce(const Vect* xx, size_t sx, 
+                      const std::array<Vect, 2>* ll, size_t sl, 
+                      Scal segcirc, Vect* ff) {
+    if (!sx) {
+      return;
+    }
+    assert(sx % 2 == 1);
+
+    // clear force
+    for (size_t i = 0; i < sx; ++i) {
+      ff[i] = Vect(0);
+    }
+
+    // current curvature
+    Scal k = PartK(xx, sx);
+
+    // attracting spring to nearest point on nearest line
+    for (size_t i = 0; i < sx; ++i) {
+      Vect x = xx[i];
+
+      if (sl) {
+        Vect xn;  // nearest point
+        Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
+        size_t jn = 0;
+        for (size_t j = 0; j < sl; ++j) {
+          auto& e = ll[j];
+          Vect xl = R::GetNearest(x, e[0], e[1]);
+          Scal dl = xl.sqrdist(x);
+
+          if (dl < dn) {
+            xn = xl;
+            dn = dl;
+            jn = j;
+          }
+        }
+
+        #if ADHOC_ATTR
+        auto bc = ll[sl-1][0];
+        auto br = ll[sl-1][1][0];
+        auto dx = x - bc;
+        dx /= dx.norm();
+        xn = bc + dx * br;
+        #endif 
+
+        if (segcirc != 0.) {
+          auto& e = ll[jn];
+          // outer normal
+          Vect n = e[1] - e[0];
+          n = Vect(n[1], -n[0], 0.);
+          n /= n.norm();
+          // center
+          Vect xc = (e[0] + e[1]) * 0.5;
+          // distance from center
+          Scal dc = xc.dist(xn);
+          // max distance from center
+          Scal mdc = e[0].dist(xc);
+
+          // shift from line to circle
+          Scal s = SegCirc(k, mdc, dc);  
+          s *= segcirc;
+          xn += n * s;
+        }
+
+        ff[i] += xn - x; 
+      }
+    }
+  }
+  /*
   // Compute force to advance particles with exact contraints on ellipse.
-  // Instead of equal angles of circle, allow difference in 
-  // angles -1 and +1 such that there sum equals angle 0.
-  // Assume 2d positions (x,y,0).
-  // x: pointer to first particle
-  // sx: size of particle string
-  // l: pointer to first array of line ends
-  // sl: number of lines
+  // Angle between segments linearly depends on index.
+  // xx: array of positions
+  // sx: size of xx
+  // ll: array of lines
+  // sl: size of ll
   // par->part_kattr: relaxation factor for absolute angle
   // par->part_kbend: relaxation factor for angle between segments
   // Output:
   // f: position corrections of size sx
   void PartForce2dCE(const Vect* xx, size_t sx, 
-                    const std::array<Vect, 2>* ll, size_t sl, Vect* ff) {
-    PS::InterfaceForce(xx, sx, ll, sl, par->part_segcirc, ff);
+                     const std::array<Vect, 2>* ll, size_t sl, Vect* ff) {
+    InterfaceForce(xx, sx, ll, sl, ff);
     Constr2(xx, sx, ff);
   }
   // Apply stretching and bending forces
   void Constr0(const Vect* xx, size_t sx, Vect* ff) {
     Vect h = GetCellSize();
     Scal hm = h.norminf();
-
-    // relaxation
-    for (size_t i = 0; i < sx; ++i) {
-      ff[i] *= par->part_relax;
-    }
 
     // stretching springs
     for (size_t i = 0; i < sx - 1; ++i) {
@@ -560,11 +199,6 @@ class Vof : public AdvectionSolver<M_> {
   void Constr1(const Vect* xx, size_t sx, Vect* ff) {
     Vect h = GetCellSize();
     Scal hm = h.norminf();
-
-    // relaxation
-    for (size_t i = 0; i < sx; ++i) {
-      ff[i] *= par->part_relax;
-    }
 
     // Rotates vector by pi/2
     // x: vector of plane coordinates
@@ -714,11 +348,6 @@ class Vof : public AdvectionSolver<M_> {
   void Constr2(const Vect* xx, size_t sx, Vect* ff) {
     Vect h = GetCellSize();
     Scal hm = h.norminf();
-
-    // relaxation
-    for (size_t i = 0; i < sx; ++i) {
-      ff[i] *= par->part_relax;
-    }
 
     // Rotates vector by pi/2
     // x: vector of plane coordinates
@@ -892,7 +521,7 @@ class Vof : public AdvectionSolver<M_> {
   void PartForce2dC(const Vect* xx, size_t sx, 
                     const std::array<Vect, 2>* ll, size_t sl,
                     Vect* ff) {
-    PS::InterfaceForce(xx, sx, ll, sl, par->part_segcirc, ff);
+    InterfaceForce(xx, sx, ll, sl, ff);
     Constr1(xx, sx, ff);
   }
   // Compute force to advance particles.
@@ -905,25 +534,8 @@ class Vof : public AdvectionSolver<M_> {
   // f: position corrections of size sx
   void PartForce2d(const Vect* xx, size_t sx, 
                    const std::array<Vect, 2>* ll, size_t sl, Vect* ff) {
-    PS::InterfaceForce(xx, sx, ll, sl, par->part_segcirc, ff);
+    InterfaceForce(xx, sx, ll, sl, ff);
     Constr0(xx, sx, ff);
-  }
-  // Curvature for plane string
-  Scal PartK(const Vect* xx, size_t sx) {
-    size_t i = (sx - 1) / 2;
-    Vect x = xx[i];
-    Vect xm = xx[i - 1];
-    Vect xp = xx[i + 1];
-    Vect dm = x - xm;
-    Vect dp = xp - x;
-    Scal lm = dm.norm();
-    Scal lp = dp.norm();
-    Scal lmp = lm * lp;
-    Scal k = std::sqrt(2. * (lmp - dm.dot(dp))) / lmp;
-    if (dm.cross_third(dp) > 0.) {
-      k = -k;
-    }
-    return k;
   }
   std::pair<Vect, Vect> GetBubble() {
     static Vect c(0);
@@ -1552,3 +1164,5 @@ class Vof : public AdvectionSolver<M_> {
 };
 
 } // namespace solver
+*/
+};
