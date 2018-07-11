@@ -11,16 +11,27 @@ rt () {
   eval "$c"
 }
 
+argfirst () {
+  echo "$1"
+}
+
+argrest () {
+  shift
+  echo "$@"
+}
+
 set -eu
 
-# executable
-e=ch.mfer
-# args
+# read arg
 if [ -f arg ] ; then
   a="`cat arg`"
 else
   a=
 fi
+# executable
+e=`argfirst $a`
+# args
+a=`argrest $a`
 # num tasks
 np=`cat np`
 

@@ -5,9 +5,10 @@ set -eu
 ./clean
 
 c=${1:-al16.conf}
-n=${2:-2}
+np=${2:-2}
+echo $np > np
 ch.base
-mpirun -n $n ./t.advection "$c"
+ch.run ./t.advection "$c"
 
 a=0
 for f in ref/*.dat ; do

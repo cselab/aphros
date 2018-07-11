@@ -17,10 +17,10 @@ error:
 cleanrun: cleanall run
 
 run: conf
-	ch.run
+	ch.run ch.mfer
 
 submit: conf
-	ch.submit
+	ch.submit ch.mfer
 
 kill:
 	ch.kill
