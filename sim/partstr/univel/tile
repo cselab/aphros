@@ -9,19 +9,28 @@ cnt() {
   echo ${#arr[@]}
 }
 
-for f in *{traj,trajp,trajx,trajy,vf_ch}.pdf ; do
-  pdfcrop --margins '5 10 5 10' $f cr_$f
+echo "crop"
+for f in r*{traj,trajp,trajx,trajy,vf_ch}.pdf ; do
+  echo $f
+  pdfcrop --margins '5 10 5 10' $f cr_$f &> /dev/null
 done
 
-for f in *ttl.pdf ; do
-  pdfcrop --margins '50 100 50 100' $f cr_$f
+for f in r*ttl.pdf ; do
+  pdfcrop --margins '50 100 50 100' $f cr_$f &> /dev/null
 done
 
 t=t.pdf
 n=`cnt "cr_*ttl.pdf"`
-pdfnup cr_*{traj,trajp,trajx,trajy,vf_ch}.pdf --nup ${n}x4 --outfile $t
 
-o=curv.pdf
-pdfcrop --margins '5 5 5 5' $t $o
+echo "tile"
+pdfnup cr_*{traj,vf_ch}.pdf --nup ${n}x2 --fitpaper false --outfile $t
+pdfcrop --margins '5 5 5 5' $t traj.pdf &> /dev/null
+
+pdfnup cr_*{trajp,trajx,trajy}.pdf --nup ${n}x3 --fitpaper false --outfile $t
+pdfcrop --margins '5 5 5 5' $t trajcomp.pdf &> /dev/null
+
+
+echo "merge"
+pdfunite traj.pdf trajcomp.pdf merge.pdf
 
 rm $t cr_*.pdf
