@@ -6,6 +6,7 @@ set -eu
 
 c=${1:-al16.conf}
 n=${2:-2}
+ch.base
 mpirun -n $n ./t.advection "$c"
 
 a=0
