@@ -19,7 +19,7 @@
 
   Init {} { U = 0.4 V = 0.3 }
 
-  OutputSimulation { step = 0.01 } u_%07ld.vtk { variables = T,P,U,V,K format = VTK}
+  OutputSimulation { step = 0.01 } u_%04ld.vtk { variables = T,P,U,V,K format = VTK}
   OutputTime { istep = 1 } stderr
 }
 GfsBox {}

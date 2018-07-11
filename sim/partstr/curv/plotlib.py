@@ -9,6 +9,17 @@ import os
 import re
 from matplotlib.colors import LinearSegmentedColormap
 
+# natural sort
+def natkey(s, _nsre=re.compile('([0-9]+)')):
+      return [int(text) if text.isdigit() else text.lower()
+                      for text in re.split(_nsre, s)]
+
+def natsorted(v):
+  return sorted(v, key=natkey)
+
+def Glob(d, fld):
+    return natsorted(glob.glob(os.path.join(d, "{:}*.dat".format(fld))))
+
 # Read uniform grid data
 # p: path
 # Format:
