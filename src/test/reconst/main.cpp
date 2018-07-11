@@ -15,8 +15,7 @@
 
 using Scal = double;
 using Vect = GVect<Scal, 3>;
-
-using solver::cube;
+using R = GReconst<Scal>;
 
 template <class T>
 std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
@@ -44,8 +43,8 @@ void TestRandom() {
       Scal u = f(g);
       using namespace solver;
 
-      Scal a = GetLineA1(n, u);
-      Scal uu = GetLineU1(n, a);
+      Scal a = R::GetLineA1(n, u);
+      Scal uu = R::GetLineU1(n, a);
       e += std::abs(u - uu);
       em = std::max(em, std::abs(u - uu));
 
@@ -58,7 +57,7 @@ void TestRandom() {
       */
 
       Vect h(0.1, 0.2, 0.3);
-      e += std::abs(solver::GetLineU(n, solver::GetLineA(n, u, h), h) - u);
+      e += std::abs(R::GetLineU(n, R::GetLineA(n, u, h), h) - u);
 
       ++nis;
     }
@@ -84,12 +83,12 @@ void TestRect() {
     Vect n(nx, ny, nz);
     Vect h(hx, hy, hz);
     n /= n.norm();
-    Scal a = solver::GetLineA(n, u, h);
-    Scal ua = solver::GetLineU(n, a, h);
+    Scal a = R::GetLineA(n, u, h);
+    Scal ua = R::GetLineU(n, a, h);
     Scal dx = 0.5 * hx; // advection in x
     Vect hs(dx, hy, 1.); // size of acceptor
     Vect d = Vect(hx * 0.5 + dx * 0.5, 0., 0.); // shift of center
-    Scal uadv = solver::GetLineU(n, a - n.dot(d), hs); 
+    Scal uadv = R::GetLineU(n, a - n.dot(d), hs); 
     std::cerr 
         << "n=" << n
         << " u=" << u
@@ -101,7 +100,7 @@ void TestRect() {
   };
   auto v = [](Scal nx, Scal ny, Scal nz, Scal a, Scal ue) {
     Vect n(nx, ny, nz);
-    Scal u = solver::GetLineU(n, a, Vect(1.));
+    Scal u = R::GetLineU(n, a, Vect(1.));
     std::cerr 
         << "n=" << n
         << " a=" << a
@@ -132,9 +131,9 @@ void TestVol() {
     Vect n(nx, ny, 0.);
     Vect h(hx, hy, 1.);
     n /= n.norm();
-    Scal a = solver::GetLineA(n, u, h);
+    Scal a = R::GetLineA(n, u, h);
     Scal dv;
-    dv = solver::GetLineVol(n, a, h, dx, xx ? 0 : 1);
+    dv = R::GetLineVol(n, a, h, dx, xx ? 0 : 1);
     std::cerr << std::setprecision(16)
         << "n=" << n
         << " u=" << u
@@ -243,9 +242,9 @@ void TestVolStr() {
     Vect n(nx, ny, 0.);
     Vect h(hx, hy, 1.);
     n /= n.norm();
-    Scal a = solver::GetLineA(n, u, h);
+    Scal a = R::GetLineA(n, u, h);
     Scal dv;
-    dv = solver::GetLineVolStr(n, a, h, dx, dxu, xx ? 0 : 1);
+    dv = R::GetLineVolStr(n, a, h, dx, dxu, xx ? 0 : 1);
     std::cerr 
         << "n=" << n
         << " u=" << u
@@ -304,9 +303,9 @@ void TestCenter() {
     Vect n(nx, ny, 0.);
     Vect h(hx, hy, 1.);
     n /= n.norm();
-    Scal a = solver::GetLineA(n, u, h);
-    std::array<Vect, 2> xx = solver::GetLineEnds(n, a, h); 
-    Vect c = solver::GetLineC(n, a, h);
+    Scal a = R::GetLineA(n, u, h);
+    std::array<Vect, 2> xx = R::GetLineEnds(n, a, h); 
+    Vect c = R::GetLineC(n, a, h);
     std::cerr 
         << "n=" << n
         << " u=" << u
@@ -346,9 +345,9 @@ void TestLineNearest() {
     Vect n(nx, ny, 0.);
     Vect h(hx, hy, 1.);
     n /= n.norm();
-    Scal a = solver::GetLineA(n, u, h);
-    std::array<Vect, 2> xx = solver::GetLineEnds(n, a, h); 
-    Vect p = solver::GetLineNearest(x, n, a, h);
+    Scal a = R::GetLineA(n, u, h);
+    std::array<Vect, 2> xx = R::GetLineEnds(n, a, h); 
+    Vect p = R::GetLineNearest(x, n, a, h);
     std::cerr 
         << "n=" << n
         << " u=" << u
@@ -384,7 +383,7 @@ void Plot() {
     std::string fn = "vof_a.dat";
     std::ofstream f(fn);
     for (Scal u = 0.; u < 1.+1e-6; u += 0.001) {
-      f << u << " " << GetLineA1(n, u) << "\n";
+      f << u << " " << R::GetLineA1(n, u) << "\n";
     }
   }
 
@@ -393,7 +392,7 @@ void Plot() {
     std::ofstream f(fn);
     Scal nh = n.norm1() * 0.5;
     for (Scal a = -nh; a < nh+1e-6; a += 0.001 * nh * 2.) {
-      f << a << " " << GetLineU1(n, a) << "\n";
+      f << a << " " << R::GetLineU1(n, a) << "\n";
     }
   }
 }
@@ -406,7 +405,7 @@ void TestFit() {
   using VV = GVect<V, 3>;
 
   auto f = [](const VV& a, const V& xe) {
-    auto x = SolveSingular(a);
+    auto x = R::SolveSingular(a);
     std::cout 
         << "a=" << a
         << " x=" << x 
@@ -419,7 +418,7 @@ void TestFit() {
   f(VV(V(1., 0., 0.), V(0., 1., 0.), V(1., 1., 0.)), V(0., 0., 1.));
 
   auto g = [](const std::vector<V>& xx, const V& ne) {
-    auto n = GetFitN(xx);
+    auto n = R::GetFitN(xx);
     std::cout 
         << "xx=" << xx
         << " n=" << n 
@@ -437,7 +436,7 @@ void TestNearest() {
   using V = Vect;
 
   auto f1 = [](V x, V x0, V x1, V n, V xne) {
-    auto xn = GetNearestHalf(x, x0, x1, n);
+    auto xn = R::GetNearestHalf(x, x0, x1, n);
     std::cout << "x0x1:"
         << " x=" << x 
         << " x0=" << x0
@@ -450,7 +449,7 @@ void TestNearest() {
   };
 
   auto f2 = [](V x, V x0, V x1, V xh, V n, V xne) {
-    auto xn = GetNearestHalf(x, x0, x1, xh, n);
+    auto xn = R::GetNearestHalf(x, x0, x1, xh, n);
     std::cout << "xh:"
         << " x=" << x 
         << " x0=" << x0
@@ -464,7 +463,7 @@ void TestNearest() {
   };
 
   auto f3 = [](V x, const std::vector<V>& xx, V n, V xne) {
-    auto xn = GetNearest(x, xx, n);
+    auto xn = R::GetNearest(x, xx, n);
     std::cout << "tri:"
         << " x=" << x 
         << " xx=" << xx

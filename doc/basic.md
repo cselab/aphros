@@ -47,6 +47,11 @@ First describe the interface in a separate class, then implement.
 ## Formatting
 * initialization list: 4 spaces indent `:` and `,` starting each line.
 
+## Toolbox classes
+* combines multiple templated functions to avoid repeating template parameters
+* acts as namespace
+* contains only static functions
+
 ## Dereference pointers to references or values if possible
 But: use pointer arguments to prevent passing an rvalue
 

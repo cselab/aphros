@@ -8,7 +8,7 @@
 
 #include "parse/vars.h"
 #include "geom/field.h"
-#include "solver/vof.h"
+#include "solver/reconst.h"
 #include "geom/block.h"
 #include "geom/vect.h"
 
@@ -45,7 +45,7 @@ Scal GetLevelSetVolume(std::function<Scal(const GVect<Scal, 3>&)> f,
       Scal a; // line constant
       a = f(xc);
 
-      return solver::GetLineU(n, a, h);
+      return GReconst<Scal>::GetLineU(n, a, h);
     }
   }
 
