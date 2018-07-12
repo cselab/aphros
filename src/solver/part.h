@@ -197,6 +197,167 @@ class GPartStr {
       ff[i] *= relax;
     }
   }
+  // Apply exact constraints on force
+  // xx: array of positions
+  // sx: size of xx
+  // ka: relaxation factor for angle between normal and x-axis
+  // kt: relaxation factor for angle between segments
+  // kx: relaxation factor for position 
+  // hm: cell size
+  // relax: relaxation factor for force
+  // XXX: uses static variables
+  static void Constr1(const Vect* xx, size_t sx, 
+                      Scal ka, Scal kt, Scal kx, Scal hm, Scal relax,
+                      Vect* ff) {
+    // relaxation
+    for (size_t i = 0; i < sx; ++i) {
+      ff[i] *= relax;
+    }
+
+    // Rotates vector by pi/2
+    // x: vector of plane coordinates
+    auto rr = [](const Vect& x) {
+      return Vect(-x[1], x[0], 0.);
+    };
+    // Rotates vector to angle 'a' given by unit vector
+    // x: vector of plane coordinates
+    // e: Vect(cos(a), sin(a), 0)
+    auto re = [](const Vect& x, const Vect& e) {
+      return Vect(x[0] * e[0] - x[1] * e[1], x[0] * e[1] + x[1] * e[0], 0.);
+    };
+    // Rotates vector to angle '-a' with 'a' given by unit vector
+    // x: vector of plane coordinates
+    // e: Vect(cos(a), sin(a), 0)
+    auto rem = [](const Vect& x, const Vect& e) {
+      return Vect(x[0] * e[0] + x[1] * e[1], -x[0] * e[1] + x[1] * e[0], 0.);
+    };
+    // Returns vector at angle a
+    // x: vector of plane coordinates
+    // e: Vect(cos(a), sin(a), 0)
+    auto ra = [](Scal a) {
+      return Vect(std::cos(a), std::sin(a), 0.);
+    };
+
+    // alpha: angle between x-axis and normal
+    // theta: angle between segments
+    
+    // derivatives of positions by angles
+    static std::vector<Vect> xa(sx); // dx/dalpha
+    static std::vector<Vect> xt(sx); // dx/dtheta
+    // central 
+    const size_t ic = (sx - 1) / 2; 
+    xa[ic] = Vect(0.);
+    xt[ic] = Vect(0.);
+    for (size_t q = 1; q <= ic; ++q) {
+      size_t i;
+      Vect d;
+      // forward 
+      i = ic + q;
+      d = xx[i] - xx[i - 1];
+      xa[i] = xa[i - 1] + rr(d);
+      xt[i] = xt[i - 1] + rr(d) * (q - 0.5);
+      // backward
+      i = ic - q;
+      d = xx[i + 1] - xx[i];
+      xa[i] = xa[i + 1] - rr(d);
+      xt[i] = xt[i + 1] + rr(d) * (q - 0.5);
+    }
+
+    // correction of angles
+    Scal da = 0.;
+    Scal dt = 0.;
+    for (size_t i = 0; i < sx; ++i) {
+      da += ff[i].dot(xa[i]); // scale hm*hm
+      dt += ff[i].dot(xt[i]);
+    }
+
+    // rescale to 1
+    da /= hm * hm; 
+    dt /= hm * hm; 
+    
+    // relaxation
+    da *= ka;
+    dt *= kt;
+
+    // vector at angle da
+    Vect ea = ra(da);
+    // vector at angle dt/2
+    Vect eth = ra(dt);
+    // vector at angle dt
+    Vect et = re(eth, eth);
+
+    // segment vectors 
+    static std::vector<Vect> dd(sx);
+    dd[ic] = Vect(0.);
+    // initialize from xx
+    for (size_t q = 1; q <= ic; ++q) {
+      size_t i;
+      // forward
+      i = ic + q;
+      dd[i] = xx[i] - xx[i - 1];
+      // backward
+      i = ic - q;
+      dd[i] = xx[i + 1] - xx[i];
+    }
+
+    // apply da
+    {
+      for (size_t q = 1; q <= ic; ++q) {
+        size_t i;
+        // forward
+        i = ic + q;
+        dd[i] = re(dd[i], ea);
+        // backward
+        i = ic - q;
+        dd[i] = re(dd[i], ea);
+      }
+    }
+
+    // apply dt
+    {
+      Vect e = eth;
+      for (size_t q = 1; q <= ic; ++q) {
+        size_t i;
+        // forward
+        i = ic + q;
+        dd[i] = re(dd[i], e);
+        // backward
+        i = ic - q;
+        dd[i] = rem(dd[i], e);
+        // next
+        e = re(e, et);
+      }
+    }
+
+    // displacement of center
+    Vect dx(0);
+    for (size_t i = 0; i < sx; ++i) {
+      dx += ff[i];
+    }
+    dx *= kx;
+
+    // restore new xx from segments, store in ff
+    ff[ic] = xx[ic];
+    for (size_t q = 1; q <= ic; ++q) {
+      size_t i;
+      // forward
+      i = ic + q;
+      ff[i] = ff[i - 1] + dd[i];
+      // backward
+      i = ic - q;
+      ff[i] = ff[i + 1] - dd[i];
+    }
+
+    // apply dx
+    for (size_t i = 0; i < sx; ++i) {
+      ff[i] += dx;
+    }
+
+    // convert to position correction
+    for (size_t i = 0; i < sx; ++i) {
+      ff[i] -= xx[i];
+    }
+  }
   /*
   // Compute force to advance particles with exact contraints on ellipse.
   // Angle between segments linearly depends on index.
