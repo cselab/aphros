@@ -471,192 +471,6 @@ class Vof : public AdvectionSolver<M_> {
     assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
     return h;
   }
-  // Compute force to advance particles with exact contraints on ellipse.
-  // Instead of equal angles of circle, allow difference in 
-  // angles -1 and +1 such that there sum equals angle 0.
-  // Assume 2d positions (x,y,0).
-  // x: pointer to first particle
-  // sx: size of particle string
-  // l: pointer to first array of line ends
-  // sl: number of lines
-  // par->part_kattr: relaxation factor for absolute angle
-  // par->part_kbend: relaxation factor for angle between segments
-  // Output:
-  // f: position corrections of size sx
-  void PartForce2dCE(const Vect* xx, size_t sx, 
-                    const std::array<Vect, 2>* ll, size_t sl, Vect* ff) {
-    PS::InterfaceForce(xx, sx, ll, sl, par->part_segcirc, ff);
-    Constr2(xx, sx, ff);
-  }
-  // Constraints with linear angle
-  void Constr2(const Vect* xx, size_t sx, Vect* ff) {
-    Vect h = GetCellSize();
-    Scal hm = h.norminf();
-
-    // relaxation
-    for (size_t i = 0; i < sx; ++i) {
-      ff[i] *= par->part_relax;
-    }
-
-    // Rotates vector by pi/2
-    // x: vector of plane coordinates
-    auto rr = [](const Vect& x) {
-      return Vect(-x[1], x[0], 0.);
-    };
-    // Rotates vector to angle 'a' given by unit vector
-    // x: vector of plane coordinates
-    // e: Vect(cos(a), sin(a), 0)
-    auto re = [](const Vect& x, const Vect& e) {
-      return Vect(x[0] * e[0] - x[1] * e[1], x[0] * e[1] + x[1] * e[0], 0.);
-    };
-    // Rotates vector to angle '-a' with 'a' given by unit vector
-    // x: vector of plane coordinates
-    // e: Vect(cos(a), sin(a), 0)
-    auto rem = [](const Vect& x, const Vect& e) {
-      return Vect(x[0] * e[0] + x[1] * e[1], -x[0] * e[1] + x[1] * e[0], 0.);
-    };
-    // Returns vector at angle a
-    // x: vector of plane coordinates
-    // e: Vect(cos(a), sin(a), 0)
-    auto ra = [](Scal a) {
-      return Vect(std::cos(a), std::sin(a), 0.);
-    };
-
-    // alpha: angle between x-axis and normal
-    // theta: angle between segments
-    // gamma: difference for angle 1
-    
-    // derivatives of positions by angles
-    std::array<Vect, kNp> xa; // dx/dalpha
-    std::array<Vect, kNp> xt; // dx/dtheta
-    std::array<Vect, kNp> xg; // dx/dgamma
-    // central 
-    const size_t ic = (sx - 1) / 2; 
-    xa[ic] = Vect(0.);
-    xt[ic] = Vect(0.);
-    xg[ic] = Vect(0.);
-    for (size_t q = 1; q <= ic; ++q) {
-      size_t i;
-      Vect d;
-      // forward 
-      i = ic + q;
-      d = xx[i] - xx[i - 1];
-      xa[i] = xa[i - 1] + rr(d);
-      xt[i] = xt[i - 1] + rr(d) * (q - 0.5);
-      xg[i] = xg[i - 1] + rr(d) * (q - 1.);
-      // backward
-      i = ic - q;
-      d = xx[i + 1] - xx[i];
-      xa[i] = xa[i + 1] - rr(d);
-      xt[i] = xt[i + 1] + rr(d) * (q - 0.5);
-      xg[i] = xg[i + 1] - rr(d) * (q - 1.);
-    }
-
-    // correction of angles
-    Scal da = 0.;
-    Scal dt = 0.;
-    Scal dg = 0.;
-    for (size_t i = 0; i < sx; ++i) {
-      da += ff[i].dot(xa[i]); // scale hm*hm
-      dt += ff[i].dot(xt[i]);
-      dg += ff[i].dot(xg[i]);
-    }
-
-    // rescale to 1
-    da /= hm * hm; 
-    dt /= hm * hm; 
-    dg /= hm * hm; 
-    
-    // relaxation
-    da *= par->part_kattr;
-    dt *= par->part_kbend;
-    dg *= par->part_kstr;
-
-    // vector at angle da
-    Vect ea = ra(da);
-    // vector at angle dt/2
-    Vect eth = ra(dt);
-    // vector at angle dt
-    Vect et = re(eth, eth);
-    // vector at angle dg
-    Vect eg = ra(dg);
-
-    // segment vectors 
-    std::array<Vect, kNp> dd;
-    dd[ic] = Vect(0.);
-    // initialize from xx
-    for (size_t q = 1; q <= ic; ++q) {
-      size_t i;
-      // forward
-      i = ic + q;
-      dd[i] = xx[i] - xx[i - 1];
-      // backward
-      i = ic - q;
-      dd[i] = xx[i + 1] - xx[i];
-    }
-
-    // apply da
-    {
-      for (size_t q = 1; q <= ic; ++q) {
-        size_t i;
-        // forward
-        i = ic + q;
-        dd[i] = re(dd[i], ea);
-        // backward
-        i = ic - q;
-        dd[i] = re(dd[i], ea);
-      }
-    }
-
-    // apply dt
-    {
-      Vect e = eth;
-      for (size_t q = 1; q <= ic; ++q) {
-        size_t i;
-        // forward
-        i = ic + q;
-        dd[i] = re(dd[i], e);
-        // backward
-        i = ic - q;
-        dd[i] = rem(dd[i], e);
-        // next
-        e = re(e, et);
-      }
-    }
-
-    // apply dg
-    {
-      Vect e = eg;
-      for (size_t q = 2; q <= ic; ++q) {
-        size_t i;
-        // forward
-        i = ic + q;
-        dd[i] = re(dd[i], e);
-        // backward
-        i = ic - q;
-        dd[i] = re(dd[i], e);
-        // next
-        e = re(e, eg);
-      }
-    }
-
-    // restore new xx from segments, store in ff
-    ff[ic] = xx[ic];
-    for (size_t q = 1; q <= ic; ++q) {
-      size_t i;
-      // forward
-      i = ic + q;
-      ff[i] = ff[i - 1] + dd[i];
-      // backward
-      i = ic - q;
-      ff[i] = ff[i + 1] - dd[i];
-    }
-
-    // convert to position correction
-    for (size_t i = 0; i < sx; ++i) {
-      ff[i] -= xx[i];
-    }
-  }
   // Compute force to advance particles with exact constraints.
   // Assume 2d positions (x,y,0).
   // xx: array of positions
@@ -854,15 +668,12 @@ class Vof : public AdvectionSolver<M_> {
       // advance particles
       for (size_t it = 0; it < par->part_maxiter; ++it) {
         for (size_t i = 0; i < sc.size(); ++i) {
-          if (par->part_constr == 1) {
+          const int cn = par->part_constr;
+          if (cn == 1) {
             PartForce2dC(&(xx[sx[i]]), sx[i+1] - sx[i],
                         &(ll[sl[i]]), sl[i+1] - sl[i],
                         &(ff[sx[i]]));
-          } else if (par->part_constr == 2) {
-            PartForce2dCE(&(xx[sx[i]]), sx[i+1] - sx[i],
-                        &(ll[sl[i]]), sl[i+1] - sl[i],
-                        &(ff[sx[i]]));
-          } else {
+          } else if (cn == 0) {
             PartForce2d(&(xx[sx[i]]), sx[i+1] - sx[i],
                         &(ll[sl[i]]), sl[i+1] - sl[i],
                         &(ff[sx[i]]));
@@ -871,6 +682,9 @@ class Vof : public AdvectionSolver<M_> {
             for (size_t j = sx[i]; j < sx[i+1]; ++j) {
               ff[j] -= f;
             }
+          } else {
+            throw std::runtime_error("Unknown part_constr=" + 
+                                     std::to_string(cn));
           }
         }
 
