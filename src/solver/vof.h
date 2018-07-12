@@ -471,26 +471,6 @@ class Vof : public AdvectionSolver<M_> {
     assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
     return h;
   }
-  // Compute force to advance particles with exact constraints.
-  // Assume 2d positions (x,y,0).
-  // xx: array of positions
-  // sx: size of xx
-  // ll: array of lines
-  // sl: size of ll
-  // par->part_kattr: relaxation factor for angle between normal and x-axis
-  // par->part_kbend: relaxation factor for angle between segments
-  // par->part_kstr: relaxation factor for position 
-  // Output:
-  // f: position corrections of size sx
-  void PartForce2dC(const Vect* xx, size_t sx, 
-                    const std::array<Vect, 2>* ll, size_t sl,
-                    Vect* ff) {
-    PS::InterfaceForce(xx, sx, ll, sl, par->part_segcirc, ff);
-
-    Scal hm = GetCellSize().norminf();
-    PS::Constr1(xx, sx, par->part_kattr, par->part_kbend, par->part_kstr,
-                hm, par->part_relax, ff);
-  }
   // Compute force to advance particles.
   // Assume 2d positions (x,y,0).
   // x: pointer to first particle
@@ -499,13 +479,21 @@ class Vof : public AdvectionSolver<M_> {
   // nl: number of lines
   // Output:
   // f: position corrections of size sx
-  void PartForce2d(const Vect* xx, size_t sx, 
+  void PartForce(const Vect* xx, size_t sx, 
                    const std::array<Vect, 2>* ll, size_t sl, Vect* ff) {
     PS::InterfaceForce(xx, sx, ll, sl, par->part_segcirc, ff);
 
-    Scal hm = GetCellSize().norminf();
-    PS::Constr0(xx, sx, par->part_kstr, par->part_h * hm,
-                par->part_kbend, par->part_bendmean, par->part_relax, ff);
+    Scal hm = GetCellSize().norminf(); // cell size
+    const int cn = par->part_constr; // constraint type
+    if (cn == 0) {
+      PS::Constr0(xx, sx, par->part_kstr, par->part_h * hm,
+                  par->part_kbend, par->part_bendmean, par->part_relax, ff);
+    } else if (cn == 1) {
+      PS::Constr1(xx, sx, par->part_kattr, par->part_kbend, par->part_kstr,
+                  hm, par->part_relax, ff);
+    } else {
+      throw std::runtime_error("Unknown part_constr=" + std::to_string(cn));
+    }
   }
   std::pair<Vect, Vect> GetBubble() {
     static Vect c(0);
@@ -668,24 +656,8 @@ class Vof : public AdvectionSolver<M_> {
       // advance particles
       for (size_t it = 0; it < par->part_maxiter; ++it) {
         for (size_t i = 0; i < sc.size(); ++i) {
-          const int cn = par->part_constr;
-          if (cn == 1) {
-            PartForce2dC(&(xx[sx[i]]), sx[i+1] - sx[i],
-                        &(ll[sl[i]]), sl[i+1] - sl[i],
-                        &(ff[sx[i]]));
-          } else if (cn == 0) {
-            PartForce2d(&(xx[sx[i]]), sx[i+1] - sx[i],
-                        &(ll[sl[i]]), sl[i+1] - sl[i],
-                        &(ff[sx[i]]));
-            // freeze central particle
-            Vect f = ff[(sx[i] + sx[i+1] - 1) / 2];
-            for (size_t j = sx[i]; j < sx[i+1]; ++j) {
-              ff[j] -= f;
-            }
-          } else {
-            throw std::runtime_error("Unknown part_constr=" + 
-                                     std::to_string(cn));
-          }
+          PartForce(&(xx[sx[i]]), sx[i+1] - sx[i],
+                    &(ll[sl[i]]), sl[i+1] - sl[i], &(ff[sx[i]]));
         }
 
         // report error
@@ -719,7 +691,7 @@ class Vof : public AdvectionSolver<M_> {
               ++anavgn;
               anmax = std::max(anmax, e);
             }
-            // maximum error in sement length
+            // maximum error in segment length
             for (size_t j = sx[i]; j + 1 < sx[i+1]; ++j) {
               lmax = std::max(
                   lmax, std::abs(xx[j + 1].dist(xx[j]) - par->part_h * hm));

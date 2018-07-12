@@ -196,6 +196,12 @@ class GPartStr {
     for (size_t i = 0; i < sx; ++i) {
       ff[i] *= relax;
     }
+
+    // freeze central particle
+    Vect fc = ff[(sx - 1) / 2];
+    for (size_t i = 0; i < sx; ++i) {
+      ff[i] -= fc;
+    }
   }
   // Apply exact constraints on force
   // xx: array of positions
@@ -412,5 +418,6 @@ class GPartStr {
       }
     }
   }
+
 */
 };
