@@ -56,9 +56,32 @@ class Vof : public AdvectionSolver<M_> {
   FieldCell<std::array<Scal, kNp * kNpp>> fcpw_; // cell list weight
   FieldCell<size_t> fcps_; // cell list size
 
+  using PSP = typename PS::Par;
+  std::unique_ptr<PS> partstr_; // particle strings
+  std::vector<IdxCell> vsc_; // vsc_[s] is cell of string s
+
   std::vector<Vect> dpx_; // dump particles x
   std::vector<size_t> dpc_; // dump particles cell
   std::vector<std::vector<Vect>> dl_; // dump poly
+
+  void Update(typename PS::Par* p) const {
+    Scal hc = GetCellSize().norminf(); // cell size
+
+    p->leq = par->part_h;
+    p->relax = par->part_relax;
+    p->constr = par->part_constr;
+    p->npmax = par->part_np;
+    p->segcirc = par->part_segcirc;
+    p->hc = hc;
+
+    p->kstr = par->part_kstr;
+    p->kbend = par->part_kbend;
+    p->kattr = par->part_kattr;
+    p->bendmean = par->part_bendmean;
+    p->ka = par->part_kattr;
+    p->kt = par->part_kbend;
+    p->kx = par->part_kstr;
+  }
 
  public:
   struct Par {
@@ -242,6 +265,11 @@ class Vof : public AdvectionSolver<M_> {
       mfvz_[f] = std::make_shared<
           CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
     }
+
+    // particle strings
+    auto p = std::make_shared<typename PS::Par>();
+    Update(p.get());
+    partstr_ = std::unique_ptr<PS>(new PS(p));
   }
   void StartStep() override {
     auto sem = m.GetSem("start");
@@ -477,29 +505,7 @@ class Vof : public AdvectionSolver<M_> {
              const FieldCell<Vect>& fcn, const FieldCell<bool>& fci) {
     using MIdx = typename M::MIdx;
     auto& bc = m.GetBlockCells();
-    Vect h = GetCellSize();
-    Scal hc = h.norminf(); // cell size
-
-    using PSP = typename PS::Par;
-    PSP p;
-    p.leq = par->part_h;
-    p.relax = par->part_relax;
-    p.constr = par->part_constr;
-    p.npmax = par->part_np;
-    p.segcirc = par->part_segcirc;
-    p.hc = hc;
-
-    p.kstr = par->part_kstr;
-    p.kbend = par->part_kbend;
-    p.kattr = par->part_kattr;
-    p.bendmean = par->part_bendmean;
-    p.ka = par->part_kattr;
-    p.kt = par->part_kbend;
-    p.kx = par->part_kstr;
-
-    auto partstr_ = std::unique_ptr<PS>(new PS(std::make_shared<PSP>(p)));
-
-    std::vector<IdxCell> vsc_; // vsc_[s] is cell of string s
+    Vect h = GetCellSize(); // cell size
 
     std::vector<std::array<Vect, 2>> ll; // buffer for interface lines
     for (auto c : m.Cells()) {
@@ -642,6 +648,7 @@ class Vof : public AdvectionSolver<M_> {
                             this->GetTimeStep());
 
     if (sem("part-seed")) {
+      Seed0(fc_u_.iter_curr, fc_a_, fc_n_, fci_);
       SeedParticles(uc);
     }
 
