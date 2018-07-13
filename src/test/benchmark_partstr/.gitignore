@@ -6,6 +6,12 @@ pressure
 *.xmf
 *.vts
 *.pvd
-arg
-job.id*
+*.dat
+*.pdf
+__pycache__
+*.vtk
+*.csv
 out
+arg
+np
+job.id*

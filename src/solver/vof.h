@@ -554,7 +554,7 @@ class Vof : public AdvectionSolver<M_> {
     auto mc = v[0];
     auto mx = v[1];
     auto my = v[2];
-    return Vect((x - mc).dot(mx), (x - mc).dot(my));
+    return Vect((x - mc).dot(mx), (x - mc).dot(my), 0.);
   }
   // Convert from plane to space coordinates.
   // (xl,yl,0): plane coordinates
@@ -575,47 +575,14 @@ class Vof : public AdvectionSolver<M_> {
 
     std::vector<std::array<Vect, 2>> ll; // buffer for interface lines
     for (auto c : m.Cells()) {
+      Vect xc = m.GetCenter(c);
       const Scal th = par->part_intth;
       if (fci[c] && fcu[c] >= th && fcu[c] <= 1. - th) {
-        // center of interface
-        Vect xc = m.GetCenter(c) + R::GetCenter(fcn[c], fca[c], h);
-        // unit normal to interface
-        Vect n = fcn[c];
-        n /= n.norm();
-        // direction in which normal has minimal component
-        size_t d = n.abs().argmin(); 
-        Vect xd(0); 
-        xd[d] = 1.;
-        // t0 orthogonal to n and d, <n,d,t0> positively oriented
-        Vect t0 = n.cross(xd); 
-        t0 /= t0.norm();
-        // t1 orthogonal to n and t0, <t0,t1,n> positively oriented
-        Vect t1 = n.cross(t0);
-        t1 /= t1.norm();
-
         // number of strings
         size_t ns = (par->dim == 2 ? 1 : par->part_ns);
         for (int s = 0; s < ns; ++s) {
           Scal a = s * M_PI / ns; // angle
-          Vect t = t0 * std::cos(a) + t1 * std::sin(a); // tangent to string
-          t /= t.norm();
-
-          // Local coordinates in plane 
-          Vect mx = t;  // unit in x
-          Vect my = n;  // unit in y
-          Vect mc = xc;  // center
-          Vect mn = mx.cross(my);  // normal to plane
-          mn /= mn.norm();
-
-          // Transforms from space to plane coordinates.
-          // x: space coordinates
-          // Returns:
-          // Vect(xl, yl, 0): plane coordinates
-          auto pr = [&](Vect x) -> Vect {
-            Scal xl = (x - mc).dot(mx);
-            Scal yl = (x - mc).dot(my);
-            return Vect(xl, yl, 0.);
-          };
+          auto v = GetPlaneBasis(xc, fcn[c], fca[c], a);
 
           // block of offsets to neighbours in stencil [-sw,sw]
           const int sw = 2; // stencil halfwidth
@@ -629,19 +596,19 @@ class Vof : public AdvectionSolver<M_> {
           for (auto wo : bo) {
             IdxCell cc = bc.GetIdx(w + wo); // neighbour cell
             if (fci[cc] && fcu[cc] >= th && fcu[cc] <= 1. - th) {
-              // center of cell
-              auto xcc = m.GetCenter(cc);
-              // interface polygon
-              auto xx = R::GetCutPoly(xcc, fcn[cc], fca[cc], h);
-              // ends of intersection 
-              std::array<Vect, 2> e;
+              auto xcc = m.GetCenter(cc); // center of cell
+              auto xx = R::GetCutPoly(xcc, fcn[cc], fca[cc], h); // polygon
+              std::array<Vect, 2> e; // ends of intersection 
+              Vect mc = v[0];  // plane center
+              Vect mx = v[1];  // unit in x
+              Vect my = v[2];  // unit in y
+              Vect mn = mx.cross(my); // normal to plane
               if (R::GetInterPoly(xx, mc, mn, e)) { // non-empty
-                // points in local coordinates
                 // interface normal 
-                auto pncc = pr(mc + fcn[cc]);
+                auto pncc = GetPlaneCoords(mc + fcn[cc], v);
                 // line ends
-                auto pe0 = pr(e[0]);
-                auto pe1 = pr(e[1]);
+                auto pe0 = GetPlaneCoords(e[0], v);
+                auto pe1 = GetPlaneCoords(e[1], v);
                 // make <pncc,pe1-pe0> positively oriented
                 if (pncc.cross_third(pe1 - pe0) < 0.) {
                   std::swap(pe0, pe1);
