@@ -94,6 +94,8 @@ class Vof : public AdvectionSolver<M_> {
                          // 1: fixed distance, constant angle
                          // 2: fixed distance, linear angle
     Scal part_segcirc = 1.; // factor for circular segment
+    size_t part_np = 11; // number of particles per string
+    size_t part_ns = 4; // number of strings per cell
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
@@ -470,6 +472,119 @@ class Vof : public AdvectionSolver<M_> {
         m.GetNode(m.GetNeighbourNode(c0, 0));
     assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
     return h;
+  }
+  void Seed0(const FieldCell<Scal>& fcu, const FieldCell<Scal>& fca, 
+             const FieldCell<Vect>& fcn, const FieldCell<bool>& fci) {
+    using MIdx = typename M::MIdx;
+    auto& bc = m.GetBlockCells();
+    Vect h = GetCellSize();
+    Scal hc = h.norminf(); // cell size
+
+    using PSP = typename PS::Par;
+    PSP p;
+    p.leq = par->part_h;
+    p.relax = par->part_relax;
+    p.constr = par->part_constr;
+    p.npmax = par->part_np;
+    p.segcirc = par->part_segcirc;
+    p.hc = hc;
+
+    p.kstr = par->part_kstr;
+    p.kbend = par->part_kbend;
+    p.kattr = par->part_kattr;
+    p.bendmean = par->part_bendmean;
+    p.ka = par->part_kattr;
+    p.kt = par->part_kbend;
+    p.kx = par->part_kstr;
+
+    auto partstr_ = std::unique_ptr<PS>(new PS(std::make_shared<PSP>(p)));
+
+    std::vector<IdxCell> vsc_; // vsc_[s] is cell of string s
+
+    std::vector<std::array<Vect, 2>> ll; // buffer for interface lines
+    for (auto c : m.Cells()) {
+      const Scal th = par->part_intth;
+      if (fci[c] && fcu[c] >= th && fcu[c] <= 1. - th) {
+        // center of interface
+        Vect xc = m.GetCenter(c) + R::GetCenter(fcn[c], fca[c], h);
+        // unit normal to interface
+        Vect n = fcn[c];
+        n /= n.norm();
+        // direction in which normal has minimal component
+        size_t d = n.abs().argmin(); 
+        Vect xd(0); 
+        xd[d] = 1.;
+        // t0 orthogonal to n and d, <n,d,t0> positively oriented
+        Vect t0 = n.cross(xd); 
+        t0 /= t0.norm();
+        // t1 orthogonal to n and t0, <t0,t1,n> positively oriented
+        Vect t1 = n.cross(t0);
+        t1 /= t1.norm();
+
+        // number of strings
+        size_t ns = (par->dim == 2 ? 1 : par->part_ns);
+        for (int s = 0; s < ns; ++s) {
+          Scal a = s * M_PI / ns; // angle
+          Vect t = t0 * std::cos(a) + t1 * std::sin(a); // tangent to string
+          t /= t.norm();
+
+          // Local coordinates in plane 
+          Vect mx = t;  // unit in x
+          Vect my = n;  // unit in y
+          Vect mc = xc;  // center
+          Vect mn = mx.cross(my);  // normal to plane
+          mn /= mn.norm();
+
+          // Transforms from space to plane coordinates.
+          // x: space coordinates
+          // Returns:
+          // Vect(xl, yl, 0): plane coordinates
+          auto pr = [&](Vect x) -> Vect {
+            Scal xl = (x - mc).dot(mx);
+            Scal yl = (x - mc).dot(my);
+            return Vect(xl, yl, 0.);
+          };
+
+          // block of offsets to neighbours in stencil [-sw,sw]
+          const int sw = 2; // stencil halfwidth
+          const int sn = sw * 2 + 1; // stencil size
+          GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
+                                  MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
+
+          auto w = bc.GetMIdx(c);
+          // Cut interface in neighbour cells by plane.
+          ll.clear();
+          for (auto wo : bo) {
+            IdxCell cc = bc.GetIdx(w + wo); // neighbour cell
+            if (fci[cc] && fcu[cc] >= th && fcu[cc] <= 1. - th) {
+              // center of cell
+              auto xcc = m.GetCenter(cc);
+              // interface polygon
+              auto xx = R::GetCutPoly(xcc, fcn[cc], fca[cc], h);
+              // ends of intersection 
+              std::array<Vect, 2> e;
+              if (R::GetInterPoly(xx, mc, mn, e)) { // non-empty
+                // points in local coordinates
+                // interface normal 
+                auto pncc = pr(mc + fcn[cc]);
+                // line ends
+                auto pe0 = pr(e[0]);
+                auto pe1 = pr(e[1]);
+                // make <pncc,pe1-pe0> positively oriented
+                if (pncc.cross_third(pe1 - pe0) < 0.) {
+                  std::swap(pe0, pe1);
+                }
+                ll.push_back({pe0, pe1});
+              }
+            }
+          }
+
+          // add string 
+          partstr_->Add(Vect(0.), Vect(1., 0., 0.), ll.data(), ll.size());
+          vsc_.push_back(c);
+        }
+      }
+    }
   }
   // Compute force to advance particles.
   // Assume 2d positions (x,y,0).

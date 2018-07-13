@@ -600,9 +600,8 @@ class Reconst {
   // n: normal
   // a: line constant
   // h: cell size
-  static std::vector<Vect> GetCutPoly(const Vect& xc,
-                                         const Vect& n, Scal a,
-                                         const Vect& h) {
+  static std::vector<Vect> GetCutPoly(const Vect& xc, const Vect& n, 
+                                      Scal a, const Vect& h) {
     auto xx = GetCutPoly2(n, a, h);
     for (auto& x : xx) {
       x += xc;
@@ -614,8 +613,7 @@ class Reconst {
   // n: normal
   // a: line constant
   // h: cell size
-  static Vect GetCenter(const Vect& n, Scal a,
-                           const Vect& h) {
+  static Vect GetCenter(const Vect& n, Scal a, const Vect& h) {
     auto xx = GetCutPoly2(n, a, h);
     return GetCenter(xx);
   }
@@ -765,10 +763,11 @@ class Reconst {
   // n: plane normal
   // Output:
   // e: line ends
+  // Returns:
+  // 1: non-empty intersection
   static bool GetInterPoly(const std::vector<Vect>& xx,
-                    const Vect& xc,
-                    const Vect& n,
-                    std::array<Vect, 2>& e) {
+                           const Vect& xc, const Vect& n,
+                           std::array<Vect, 2>& e) {
     using Vect = Vect;
 
     size_t j = 0; // index in e

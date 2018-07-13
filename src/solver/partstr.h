@@ -59,29 +59,42 @@ class PartStr {
   static constexpr size_t dim = 3;
   using Vect = GVect<Scal, dim>;
 
-  PartStr(std::shared_ptr<Par> par);
+  PartStr(std::shared_ptr<Par> par) : par(par) {
+    Clear();
+  }
   Par* GetPar() { return par.get(); }
+  // Number of strings
+  size_t GetNumStr() const {
+    return sx_.size();
+  }
+  // Remove all strings
+  void Clear() {
+    xx_.clear();
+    sx_.clear();
+    sx_.push_back(0);
+    ll_.clear();
+    sl_.clear();
+  }
   // Adds particle string with attached interface.
   // xc: center 
   // t: tangent
   // ll: array of lines
   // sl: size of ll
   // Returns:
-  // s: index of new string
+  // index of new string, equals GetNumStr()-1
   size_t Add(const Vect& xc, const Vect& t, 
              const std::array<Vect, 2>* ll, size_t sl) {
     size_t np = par->npmax;
     Scal leq = par->leq;
-    size_t s = sx_.size();
-    sx_.push_back(xx_.size());
-    sl_.push_back(ll_.size());
     for (size_t i = 0; i < np; ++i) {
       xx_.push_back(xc + t * ((Scal(i) - (np - 1) * 0.5) * leq));
     }
     for (size_t i = 0; i < sl; ++i) {
       ll_.push_back(ll[i]);
     }
-    return s;
+    sx_.push_back(xx_.size());
+    sl_.push_back(ll_.size());
+    return GetNumStr() - 1;
   }
   // Computes forces ff and advances particles of single string.
   // s: string index
@@ -128,7 +141,7 @@ class PartStr {
   // itermax: maximum number of iterations
   // Returns:
   // last Iter()
-  Scal Run0(size_t s, Scal tol, size_t itermax) {
+  Scal Equil0(size_t s, Scal tol, size_t itermax) {
     Scal r = 0.;
     for (size_t it = 0; it < itermax; ++it) {
       r = Iter(s);
@@ -142,17 +155,23 @@ class PartStr {
   // tol: tolerance
   // itermax: maximum number of iterations
   // Returns:
-  // max over all Run0()
-  Scal Run(Scal tol, size_t itermax) {
+  // max over all Equil0()
+  Scal Equil(Scal tol, size_t itermax) {
     Scal r = 0.;
     for (size_t s = 0; s < sx_.size(); ++s) {
-      r = std::max(r, Run(s, tol, itermax));
+      r = std::max(r, Equil0(s, tol, itermax));
     }
     return r;
   }
+  // Curvature of single string
+  // s: string index
+  Scal GetCurv(size_t s) {
+    Vect* xx = &(xx_[s]);
+    size_t sx = sx_[s + 1] - sx_[s];
+    return PartK(xx, sx);
+  }
 
- //private:
- public:
+ private:
   std::shared_ptr<Par> par;
 
   // size of arrays sx_, sl_, sk_ is the number of strings
@@ -160,11 +179,13 @@ class PartStr {
   // lines attached to string i start from ll_[sl_[i]]
 
   std::vector<Vect> xx_; // particle positions
-  std::vector<size_t> sx_; // xx index, plus element sx.size() 
+  std::vector<size_t> sx_; // xx index, ending with sx.size() 
   std::vector<std::array<Vect, 2>> ll_; // interface lines
-  std::vector<size_t> sl_; // sl index, plus element sl.size() 
+  std::vector<size_t> sl_; // sl index, ending with sl.size() 
 
   using R = Reconst<Scal>;
+
+ public:
 
   // Curvature of particle string.
   // xx: array of positions
