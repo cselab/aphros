@@ -1,14 +1,11 @@
 #pragma once
 
 #include <exception>
-#include <fstream>
 #include <array>
 #include <memory>
 #include <limits>
 #include <vector>
 
-#include "geom/block.h"
-#include "dump/dumper.h"
 #include "geom/vect.h"
 #include "reconst.h"
 
@@ -140,28 +137,35 @@ class PartStr {
   // tol: tolerance
   // itermax: maximum number of iterations
   // Returns:
-  // last Iter()
-  Scal Equil0(size_t s, Scal tol, size_t itermax) {
+  // last Iter(), number of iterations
+  std::pair<Scal, size_t> Run0(size_t s, Scal tol, size_t itermax) {
     Scal r = 0.;
-    for (size_t it = 0; it < itermax; ++it) {
+    size_t it;
+    for (it = 0; it < itermax; ++it) {
       r = Iter(s);
       if (r < tol) {
-        return r;
+        break;
       }
     }
-    return r;
+    return std::make_pair(r, it);
   }
   // Iterations for all strings until convergence.
   // tol: tolerance
   // itermax: maximum number of iterations
   // Returns:
-  // max over all Equil0()
-  Scal Equil(Scal tol, size_t itermax) {
-    Scal r = 0.;
+  // max over all Run0()
+  std::pair<Scal, size_t> Run(Scal tol, size_t itermax) {
+    Scal rm = 0.;
+    size_t itm = 0;
     for (size_t s = 0; s < sx_.size(); ++s) {
-      r = std::max(r, Equil0(s, tol, itermax));
+      auto rit = Run0(s, tol, itermax);
+      Scal r = rit.first;
+      size_t it = rit.second;
+      std::cout << "s=" << s << " r=" << r << " it=" << it << std::endl;
+      rm = std::max(rm, r);
+      itm = std::max(itm, it);
     }
-    return r;
+    return std::make_pair(rm, itm);
   }
   // Curvature of single string
   // s: string index
