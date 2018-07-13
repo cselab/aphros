@@ -45,7 +45,7 @@ Scal GetLevelSetVolume(std::function<Scal(const GVect<Scal, 3>&)> f,
       Scal a; // line constant
       a = f(xc);
 
-      return GReconst<Scal>::GetLineU(n, a, h);
+      return Reconst<Scal>::GetLineU(n, a, h);
     }
   }
 
