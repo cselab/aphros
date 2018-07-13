@@ -60,6 +60,7 @@ class Vof : public AdvectionSolver<M_> {
   using PSP = typename PS::Par;
   std::unique_ptr<PS> partstr_; // particle strings
   std::vector<IdxCell> vsc_; // vsc_[s] is cell of string s
+  std::vector<Scal> vsan_; // vsc_[s] is angle of tangent (see GetPlaneBasis)
 
   std::vector<Vect> dpx_; // dump particles x
   std::vector<size_t> dpc_; // dump particles cell
@@ -216,18 +217,27 @@ class Vof : public AdvectionSolver<M_> {
 
         // copy to arrays  
         auto& bc = m.GetBlockCells();
+        IdxCell cp = IdxCell::None(); // previous cell
+        std::array<Vect, 3> v; // output of GetPlaneBasis
         for (size_t s = 0; s < partstr_->GetNumStr(); ++s) {
+          // cell
+          IdxCell c = vsc_[s];
+          // update v if needed
+          if (c != cp) {
+            v = GetPlaneBasis(m.GetCenter(c), fc_n_[c], fc_a_[c], vsan_[s]);
+            cp = c;
+          }
           auto p = partstr_->GetStr(s);
           Vect* xx = p.first;
           size_t sx = p.second;
-          IdxCell c = vsc_[s];
           auto w = bc.GetMIdx(c);
           // XXX: adhoc, hash for cell index, assume mesh size <= mn
           const size_t mn = 1000; 
-          size_t hsc = (w[2] * mn + w[1]) * mn + w[0];
+          size_t ic = (w[2] * mn + w[1]) * mn + w[0]; // cell index
           for (size_t i = 0; i < sx; ++i) {
-            dpx_.push_back(xx[i]);
-            dpc_.push_back(hsc);
+            auto x = GetSpaceCoords(xx[i], v);
+            dpx_.push_back(x);
+            dpc_.push_back(ic);
           }
         }
 
@@ -573,7 +583,13 @@ class Vof : public AdvectionSolver<M_> {
     auto& bc = m.GetBlockCells();
     Vect h = GetCellSize(); // cell size
 
+    // clear string list
+    partstr_->Clear();
+    vsc_.clear();
+    vsan_.clear();
+
     std::vector<std::array<Vect, 2>> ll; // buffer for interface lines
+    // Traverse cells, seed strings in cells with interface.
     for (auto c : m.Cells()) {
       Vect xc = m.GetCenter(c);
       const Scal th = par->part_intth;
@@ -581,8 +597,8 @@ class Vof : public AdvectionSolver<M_> {
         // number of strings
         size_t ns = (par->dim == 2 ? 1 : par->part_ns);
         for (int s = 0; s < ns; ++s) {
-          Scal a = s * M_PI / ns; // angle
-          auto v = GetPlaneBasis(xc, fcn[c], fca[c], a);
+          Scal an = s * M_PI / ns; // angle
+          auto v = GetPlaneBasis(xc, fcn[c], fca[c], an);
 
           // block of offsets to neighbours in stencil [-sw,sw]
           const int sw = 2; // stencil halfwidth
@@ -593,6 +609,7 @@ class Vof : public AdvectionSolver<M_> {
           auto w = bc.GetMIdx(c);
           // Cut interface in neighbour cells by plane.
           ll.clear();
+          // Traverse neighbours, attach intersection with interface to string.
           for (auto wo : bo) {
             IdxCell cc = bc.GetIdx(w + wo); // neighbour cell
             if (fci[cc] && fcu[cc] >= th && fcu[cc] <= 1. - th) {
@@ -621,7 +638,9 @@ class Vof : public AdvectionSolver<M_> {
           // add string 
           partstr_->Add(Vect(0.), Vect(1., 0., 0.), ll.data(), ll.size());
           vsc_.push_back(c);
+          vsan_.push_back(an);
           assert(vsc_.size() == partstr_->GetNumStr());
+          assert(vsan_.size() == partstr_->GetNumStr());
         }
       }
     }
@@ -688,7 +707,7 @@ class Vof : public AdvectionSolver<M_> {
       partstr_->Run(par->part_tol, par->part_itermax);
     }
 
-    if (0 && sem.Nested("part-dump0")) {
+    if (sem.Nested("part-dump0")) {
       if (dm) {
         DumpParticles(0);
       }
