@@ -62,7 +62,7 @@ class PartStr {
   Par* GetPar() { return par.get(); }
   // Number of strings
   size_t GetNumStr() const {
-    return sx_.size();
+    return sx_.size() - 1;
   }
   // Remove all strings
   void Clear() {
@@ -99,7 +99,7 @@ class PartStr {
   // r = max(ff) / (hc * relax)
   // XXX: uses static variables
   Scal Iter(size_t s) {
-    Vect* xx = &(xx_[s]);
+    Vect* xx = &(xx_[sx_[s]]);
     size_t sx = sx_[s + 1] - sx_[s];
 
     static std::vector<Vect> ff(sx);
@@ -170,9 +170,16 @@ class PartStr {
   // Curvature of single string
   // s: string index
   Scal GetCurv(size_t s) {
-    Vect* xx = &(xx_[s]);
+    Vect* xx = &(xx_[sx_[s]]);
     size_t sx = sx_[s + 1] - sx_[s];
     return PartK(xx, sx);
+  }
+  // Returns single string.
+  // s: string index
+  // Output:
+  // array of positions, length
+  std::pair<Vect*, size_t> GetStr(size_t s) {
+    return std::make_pair(&(xx_[sx_[s]]), sx_[s + 1] - sx_[s]);
   }
 
  private:
