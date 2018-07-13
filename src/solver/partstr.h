@@ -82,7 +82,7 @@ class PartStr {
   size_t Add(const Vect& xc, const Vect& t, 
              const std::array<Vect, 2>* ll, size_t sl) {
     size_t np = par->npmax;
-    Scal leq = par->leq;
+    Scal leq = par->leq * par->hc;
     for (size_t i = 0; i < np; ++i) {
       xx_.push_back(xc + t * ((Scal(i) - (np - 1) * 0.5) * leq));
     }
