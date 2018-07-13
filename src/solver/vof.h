@@ -11,7 +11,7 @@
 #include "dump/dumper.h"
 #include "dump/vtk.h"
 #include "reconst.h"
-#include "part.h"
+#include "partstr.h"
 
 // attraction to exact sphere
 #define ADHOC_ATTR 0
@@ -26,8 +26,8 @@ class Vof : public AdvectionSolver<M_> {
   using P = AdvectionSolver<M>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  using R = GReconst<Scal>;
-  using PS = GPartStr<Scal>;
+  using R = Reconst<Scal>;
+  using PS = PartStr<Scal>;
   static constexpr size_t dim = M::dim;
 
   using P::m;
@@ -251,7 +251,7 @@ class Vof : public AdvectionSolver<M_> {
 
     if (sem.Nested("reconst")) {
       if (this->GetTime() == 0.) {
-          Reconst(fc_u_.time_curr);
+        Rec(fc_u_.time_curr);
       }
     }
 
@@ -792,7 +792,8 @@ class Vof : public AdvectionSolver<M_> {
     }
   }
 
-  void Reconst(const FieldCell<Scal>& uc) {
+  // reconstruct interface
+  void Rec(const FieldCell<Scal>& uc) {
     auto sem = m.GetSem("reconst");
 
     // XXX: adhoc
@@ -1031,7 +1032,7 @@ class Vof : public AdvectionSolver<M_> {
         m.Comm(&uc);
       }
       if (sem.Nested("reconst")) {
-        Reconst(fc_u_.iter_curr);
+        Rec(fc_u_.iter_curr);
       }
     }
 

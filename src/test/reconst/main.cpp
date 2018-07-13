@@ -15,7 +15,7 @@
 
 using Scal = double;
 using Vect = GVect<Scal, 3>;
-using R = GReconst<Scal>;
+using R = Reconst<Scal>;
 
 template <class T>
 std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {

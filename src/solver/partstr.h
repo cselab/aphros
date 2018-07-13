@@ -17,13 +17,154 @@
 // normal from exact sphere
 #define ADHOC_NORM 0
 
+// Particle strings class.
+// Single string:
+// - seed particles
+// - attach interface
+// - compute forces from interface
+// - apply constraints
+// - advance
+// - iteration until equilibration
+// - arrays passed by pointer and length
+// Multiple strings:
+// - collection of independent strings
+// - stored in contiguous array
+// Client:
+// - constructor with Par
+
 // particle strings
+// Assume 2d vectors (x[2]=0).
 template <class Scal>
-class GPartStr {
+class PartStr {
  public:
+  struct Par {
+    Scal leq = 0.35; // equilibrium length of segment relative to cell size
+    Scal relax = 0.01; // relaxation factor
+    int constr = 1;  // constraint type
+    size_t npmax = 11; // maximum number particles in string
+    Scal segcirc = 1.; // factor for shift to circular segment
+    Scal hc; // cell size [length]
+
+    // specific for Constr0
+    Scal kstr = 1.;  // factor for stretching 
+    Scal kbend = 1.;  // factor for bending 
+    Scal kattr = 1.;  // factor for attraction 
+    bool bendmean = true; // 1: bending to mean angle, 0: to straight angle
+    // specific for Constr1
+    Scal ka = 1.;  // factor for angle between normal and x-axis 
+    Scal kt = 1.;  // factor for angle between segments
+    Scal kx = 1.;  // factor for position
+  };
+
   static constexpr size_t dim = 3;
   using Vect = GVect<Scal, dim>;
-  using R=GReconst<Scal>;
+
+  PartStr(std::shared_ptr<Par> par);
+  Par* GetPar() { return par.get(); }
+  // Adds particle string with attached interface.
+  // xc: center 
+  // t: tangent
+  // ll: array of lines
+  // sl: size of ll
+  // Returns:
+  // s: index of new string
+  size_t Add(const Vect& xc, const Vect& t, 
+             const std::array<Vect, 2>* ll, size_t sl) {
+    size_t np = par->npmax;
+    Scal leq = par->leq;
+    size_t s = sx_.size();
+    sx_.push_back(xx_.size());
+    sl_.push_back(ll_.size());
+    for (size_t i = 0; i < np; ++i) {
+      xx_.push_back(xc + t * ((Scal(i) - (np - 1) * 0.5) * leq));
+    }
+    for (size_t i = 0; i < sl; ++i) {
+      ll_.push_back(ll[i]);
+    }
+    return s;
+  }
+  // Computes forces ff and advances particles of single string.
+  // s: string index
+  // Returns:
+  // r = max(ff) / (hc * relax)
+  // XXX: uses static variables
+  Scal Iter(size_t s) {
+    Vect* xx = &(xx_[s]);
+    size_t sx = sx_[s + 1] - sx_[s];
+
+    static std::vector<Vect> ff(sx);
+    
+    // compute interface forces
+    InterfaceForce(xx, sx, &(ll_[s]), sl_[s + 1] - sl_[s],
+                   par->segcirc, ff.data());
+
+    // apply constraints
+    int cs = par->constr;
+    if (cs == 0) {
+      Constr0(xx, sx, par->kstr, par->leq * par->hc,
+              par->kbend, par->bendmean, par->relax, ff.data());
+    } else if (cs == 1) {
+      Constr1(xx, sx, par->kattr, par->kbend, par->kstr,
+              par->hc, par->relax, ff.data());
+    } else {
+      throw std::runtime_error("Unknown constr=" + std::to_string(cs));
+    }
+
+    // advance particles
+    for (size_t i = 0; i < sx; ++i) {
+      xx[i] += ff[i];
+    }
+
+    Scal r = 0.; // residual
+    for (size_t i = 0; i < sx; ++i) {
+      r = std::max(r, ff[i].norminf());
+    }
+    r /= par->hc * par->relax;
+    return r;
+  }
+  // Iterations for single string until convergence.
+  // s: string index
+  // tol: tolerance
+  // itermax: maximum number of iterations
+  // Returns:
+  // last Iter()
+  Scal Run0(size_t s, Scal tol, size_t itermax) {
+    Scal r = 0.;
+    for (size_t it = 0; it < itermax; ++it) {
+      r = Iter(s);
+      if (r < tol) {
+        return r;
+      }
+    }
+    return r;
+  }
+  // Iterations for all strings until convergence.
+  // tol: tolerance
+  // itermax: maximum number of iterations
+  // Returns:
+  // max over all Run0()
+  Scal Run(Scal tol, size_t itermax) {
+    Scal r = 0.;
+    for (size_t s = 0; s < sx_.size(); ++s) {
+      r = std::max(r, Run(s, tol, itermax));
+    }
+    return r;
+  }
+
+ //private:
+ public:
+  std::shared_ptr<Par> par;
+
+  // size of arrays sx_, sl_, sk_ is the number of strings
+  // positions of string i start from xx_[sx_[i]]
+  // lines attached to string i start from ll_[sl_[i]]
+
+  std::vector<Vect> xx_; // particle positions
+  std::vector<size_t> sx_; // xx index, plus element sx.size() 
+  std::vector<std::array<Vect, 2>> ll_; // interface lines
+  std::vector<size_t> sl_; // sl index, plus element sl.size() 
+
+  using R = Reconst<Scal>;
 
   // Curvature of particle string.
   // xx: array of positions
@@ -215,11 +356,6 @@ class GPartStr {
   static void Constr1(const Vect* xx, size_t sx, 
                       Scal ka, Scal kt, Scal kx, Scal hm, Scal relax,
                       Vect* ff) {
-    // relaxation
-    for (size_t i = 0; i < sx; ++i) {
-      ff[i] *= relax;
-    }
-
     // Rotates vector by pi/2
     // x: vector of plane coordinates
     auto rr = [](const Vect& x) {
@@ -246,7 +382,7 @@ class GPartStr {
 
     // alpha: angle between x-axis and normal
     // theta: angle between segments
-    
+  
     // derivatives of positions by angles
     static std::vector<Vect> xa(sx); // dx/dalpha
     static std::vector<Vect> xt(sx); // dx/dtheta
@@ -267,6 +403,11 @@ class GPartStr {
       d = xx[i + 1] - xx[i];
       xa[i] = xa[i + 1] - rr(d);
       xt[i] = xt[i + 1] + rr(d) * (q - 0.5);
+    }
+
+    // relaxation of force
+    for (size_t i = 0; i < sx; ++i) {
+      ff[i] *= relax;
     }
 
     // correction of angles
@@ -363,6 +504,10 @@ class GPartStr {
     for (size_t i = 0; i < sx; ++i) {
       ff[i] -= xx[i];
     }
+  }
+  static void Advance0(const Vect* xx, size_t sx, 
+                      Scal ka, Scal kt, Scal kx, Scal hm, Scal relax,
+                      Vect* ff) {
   }
   /*
   void Reconst(const FieldCell<Scal>& uc) {

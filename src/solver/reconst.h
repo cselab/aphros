@@ -10,7 +10,7 @@
 #include "geom/vect.h"
 
 template <class Scal>
-class GReconst {
+class Reconst {
  public:
   using Vect = GVect<Scal, 3>;
 
