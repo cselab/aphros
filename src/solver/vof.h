@@ -119,6 +119,8 @@ class Vof : public AdvectionSolver<M_> {
     Scal part_segcirc = 1.; // factor for circular segment
     size_t part_np = 11; // number of particles per string
     size_t part_ns = 4; // number of strings per cell
+    size_t part_itermax = 100; // itermax
+    Scal part_tol = 0.01; // tolerance
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
@@ -648,17 +650,19 @@ class Vof : public AdvectionSolver<M_> {
                             this->GetTimeStep());
 
     if (sem("part-seed")) {
-      Seed0(fc_u_.iter_curr, fc_a_, fc_n_, fci_);
       SeedParticles(uc);
+
+      Seed0(fc_u_.iter_curr, fc_a_, fc_n_, fci_);
+      partstr_->Run(par->part_tol, par->part_itermax);
     }
 
-    if (sem.Nested("part-dump0")) {
+    if (0 && sem.Nested("part-dump0")) {
       if (dm) {
         DumpParticles(0);
       }
     }
 
-    if (sem("part-advance")) {
+    if (0 && sem("part-advance")) {
       // particle strings
       std::vector<IdxCell> sc; // cell
       std::vector<Vect> xx; // particle positions

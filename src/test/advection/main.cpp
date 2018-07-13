@@ -109,6 +109,8 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
     p->bcc_y1 = var.Double["bcc_y1"];
     p->part_constr = var.Int["part_constr"];
     p->part_segcirc = var.Double["part_segcirc"];
+    p->part_itermax = var.Int["part_itermax"];
+    p->part_tol = var.Double["part_tol"];
   }
 
  protected:
