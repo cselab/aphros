@@ -49,12 +49,13 @@ class Vof : public AdvectionSolver<M_> {
   FieldFace<Vect> ffg_; // gradient
   FieldCell<bool> fci_; // interface mask (1: contains interface)
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
-  static constexpr size_t kNp = 11; // particles in one string
-  static constexpr size_t kNpp = 4; // maximum strings per cell
-  FieldCell<std::array<Vect, kNp * kNpp>> fcp_; // cell list
-  FieldCell<std::array<Vect, kNp * kNpp>> fcpt_; // cell list tmp
-  FieldCell<std::array<Scal, kNp * kNpp>> fcpw_; // cell list weight
-  FieldCell<size_t> fcps_; // cell list size
+
+  //static constexpr size_t kNp = 11; // particles in one string
+  //static constexpr size_t kNpp = 4; // maximum strings per cell
+  //FieldCell<std::array<Vect, kNp * kNpp>> fcp_; // cell list
+  //FieldCell<std::array<Vect, kNp * kNpp>> fcpt_; // cell list tmp
+  //FieldCell<std::array<Scal, kNp * kNpp>> fcpw_; // cell list weight
+  //FieldCell<size_t> fcps_; // cell list size
 
   using PSP = typename PS::Par;
   std::unique_ptr<PS> partstr_; // particle strings
@@ -124,6 +125,7 @@ class Vof : public AdvectionSolver<M_> {
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
+  /*
   void SeedParticles(const FieldCell<Scal>& uc) {
     fcps_.Reinit(m, 0);
     fcp_.Reinit(m);
@@ -173,6 +175,7 @@ class Vof : public AdvectionSolver<M_> {
       }
     }
   }
+  */
   // Dump cut polygons
   void DumpPoly() {
     auto sem = m.GetSem("dumppoly");
@@ -213,13 +216,18 @@ class Vof : public AdvectionSolver<M_> {
 
         // copy to arrays  
         auto& bc = m.GetBlockCells();
-        for (auto c : m.Cells()) {
-          for (size_t i = 0; i < fcps_[c]; ++i) {
-            dpx_.push_back(fcp_[c][i]);
-            auto w = bc.GetMIdx(c);
-            // XXX: adhoc, hash for cell index, assume mesh size <= mn
-            const size_t mn = 1000; 
-            dpc_.push_back((w[2] * mn + w[1]) * mn + w[0]);
+        for (size_t s = 0; s < partstr_->GetNumStr(); ++s) {
+          auto p = partstr_->GetStr(s);
+          Vect* xx = p.first;
+          size_t sx = p.second;
+          IdxCell c = vsc_[s];
+          auto w = bc.GetMIdx(c);
+          // XXX: adhoc, hash for cell index, assume mesh size <= mn
+          const size_t mn = 1000; 
+          size_t hsc = (w[2] * mn + w[1]) * mn + w[0];
+          for (size_t i = 0; i < sx; ++i) {
+            dpx_.push_back(xx[i]);
+            dpc_.push_back(hsc);
           }
         }
 
@@ -503,6 +511,62 @@ class Vof : public AdvectionSolver<M_> {
     assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
     return h;
   }
+  // Local coordinates in plane section of the interface.
+  // xc: cell center
+  // n: normal to interface
+  // a: plane constant
+  // an: angle
+  // Returns:
+  // {mc,mx,my,mn}: 
+  // mc: coordinate center
+  // mx: unit in x, tangent to interface
+  // my: unit in y, normal to interface
+  // mn: unit vector to from orthonormal positively oriented basis <mx,my,mn> 
+  std::array<Vect, 3> GetPlaneBasis(const Vect& xc, Vect n, Scal a, Scal an) {
+    Vect h = GetCellSize();
+    // unit normal to interface
+    n /= n.norm();
+    // direction in which normal has minimal component
+    size_t d = n.abs().argmin(); 
+    Vect xd(0); 
+    xd[d] = 1.;
+    // t0 orthogonal to n and d, <n,d,t0> positively oriented
+    Vect t0 = n.cross(xd); 
+    t0 /= t0.norm();
+    // t1 orthogonal to n and t0, <t0,t1,n> positively oriented
+    Vect t1 = n.cross(t0);
+    t1 /= t1.norm();
+    // tangent at angle an
+    Vect t = t0 * std::cos(a) + t1 * std::sin(a); 
+    t /= t.norm();
+
+    Vect mc = xc + R::GetCenter(n, a, h); // center of interface
+    Vect mx = t;  // unit in x, tangent
+    Vect my = n;  // unit in y, normal 
+    return {mc, mx, my};
+  }
+  // Convert from space to plane coordinates.
+  // x: space coordinates
+  // v: output of GetPlaneBasis()
+  // Returns:
+  // Vect(xl,yl,0) with plane coordinates xl,yl
+  Vect GetPlaneCoords(const Vect& x, const std::array<Vect, 3>& v) {
+    auto mc = v[0];
+    auto mx = v[1];
+    auto my = v[2];
+    return Vect((x - mc).dot(mx), (x - mc).dot(my));
+  }
+  // Convert from plane to space coordinates.
+  // (xl,yl,0): plane coordinates
+  // v: output of GetPlaneBasis()
+  // Returns:
+  // x: space coordinates
+  Vect GetSpaceCoords(const Vect& xl, const std::array<Vect, 3>& v) {
+    auto mc = v[0];
+    auto mx = v[1];
+    auto my = v[2];
+    return mc + mx * xl[0] + my * xl[1];
+  }
   void Seed0(const FieldCell<Scal>& fcu, const FieldCell<Scal>& fca, 
              const FieldCell<Vect>& fcn, const FieldCell<bool>& fci) {
     using MIdx = typename M::MIdx;
@@ -590,6 +654,7 @@ class Vof : public AdvectionSolver<M_> {
           // add string 
           partstr_->Add(Vect(0.), Vect(1., 0., 0.), ll.data(), ll.size());
           vsc_.push_back(c);
+          assert(vsc_.size() == partstr_->GetNumStr());
         }
       }
     }
@@ -650,7 +715,7 @@ class Vof : public AdvectionSolver<M_> {
                             this->GetTimeStep());
 
     if (sem("part-seed")) {
-      SeedParticles(uc);
+      //SeedParticles(uc);
 
       Seed0(fc_u_.iter_curr, fc_a_, fc_n_, fci_);
       partstr_->Run(par->part_tol, par->part_itermax);
@@ -662,6 +727,7 @@ class Vof : public AdvectionSolver<M_> {
       }
     }
 
+    #if 0
     if (0 && sem("part-advance")) {
       // particle strings
       std::vector<IdxCell> sc; // cell
@@ -910,6 +976,7 @@ class Vof : public AdvectionSolver<M_> {
         }
       }
     }
+    #endif
 
     if (sem.Nested("part-dumplast")) {
       if (dm) {
