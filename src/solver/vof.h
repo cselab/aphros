@@ -49,13 +49,6 @@ class Vof : public AdvectionSolver<M_> {
   FieldCell<bool> fci_; // interface mask (1: contains interface)
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
-  //static constexpr size_t kNp = 11; // particles in one string
-  //static constexpr size_t kNpp = 4; // maximum strings per cell
-  //FieldCell<std::array<Vect, kNp * kNpp>> fcp_; // cell list
-  //FieldCell<std::array<Vect, kNp * kNpp>> fcpt_; // cell list tmp
-  //FieldCell<std::array<Scal, kNp * kNpp>> fcpw_; // cell list weight
-  //FieldCell<size_t> fcps_; // cell list size
-
   using PSP = typename PS::Par;
   std::unique_ptr<PS> partstr_; // particle strings
   std::vector<IdxCell> vsc_; // vsc_[s] is cell of string s
@@ -100,7 +93,6 @@ class Vof : public AdvectionSolver<M_> {
     // curvature from particles
     // if true, GetCurv returns fckp_
     bool part_k = false; // curvature from particles
-    size_t part_maxiter = 100; // num iter
     size_t part_dump_fr = 100; // num frames dump
     size_t part_report_fr = 100; // num frames report
     Scal part_intth = 1e-3; // interface detection threshold
@@ -120,62 +112,11 @@ class Vof : public AdvectionSolver<M_> {
     Scal part_segcirc = 1.; // factor for circular segment
     size_t part_np = 11; // number of particles per string
     size_t part_ns = 4; // number of strings per cell
-    size_t part_itermax = 100; // itermax
+    size_t part_itermax = 100; // particles itermax
     Scal part_tol = 0.01; // tolerance
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
-  /*
-  void SeedParticles(const FieldCell<Scal>& uc) {
-    fcps_.Reinit(m, 0);
-    fcp_.Reinit(m);
-    fcpt_.Reinit(m);
-    fcpw_.Reinit(m);
-
-    auto& bc = m.GetBlockCells();
-    auto& bn = m.GetBlockNodes();
-    using MIdx = typename M::MIdx;
-    MIdx wb = bn.GetBegin();
-    Vect xb = m.GetNode(bn.GetIdx(wb));
-    Vect h = m.GetNode(bn.GetIdx(wb + MIdx(1))) - xb;
-    Scal hm = h.norminf();
-
-    for (auto c : m.Cells()) {
-      const Scal th = par->part_intth;
-      if (fci_[c] && uc[c] > th && uc[c] < 1. - th) {
-        Vect x = m.GetCenter(c) + R::GetCenter(fc_n_[c], fc_a_[c], h);
-        Vect n = fc_n_[c];
-        n /= n.norm();
-        // direction in which normal has minimal component
-        size_t d = n.abs().argmin(); 
-        Vect xd(0); 
-        xd[d] = 1.;
-        // t0 orthogonal to n and d, <n,d,t0> positively oriented
-        Vect t0 = n.cross(xd); 
-        t0 /= t0.norm();
-        // t1 orthogonal to n and t0
-        Vect t1 = n.cross(t0);
-        t1 /= t1.norm();
-        const Scal pd = hm * par->part_h0; // distance between particles
-        if (fcps_[c] == 0) { // if no particles yet
-          Scal a = 0.; // angle of tangent
-          // number of strings
-          size_t ns = (par->dim == 2 ? 1 : kNpp);
-          for (int s = 0; s < ns; ++s) {
-            // tangent to string
-            Vect t = t0 * std::cos(a) + t1 * std::sin(a);
-            for (int i = 0; i < kNp; ++i) {
-              fcp_[c][fcps_[c]++] = x + t * ((i - (kNp - 1) * 0.5) * pd);
-            }
-            if (ns > 1) {
-              a += M_PI / ns;
-            }
-          }
-        }
-      }
-    }
-  }
-  */
   // Dump cut polygons
   void DumpPoly() {
     auto sem = m.GetSem("dumppoly");
@@ -204,12 +145,11 @@ class Vof : public AdvectionSolver<M_> {
       }
     }
   }
-  void DumpParticles(size_t it) {
+  void DumpParticles() {
     auto sem = m.GetSem("partdump");
-
     auto fr = par->part_dump_fr;
-    size_t d = std::max<size_t>(1, par->part_maxiter / fr);
-    if (fr > 1 && it % d == 0 || it + 1 == par->part_maxiter) {
+    size_t it = 1;
+    if (1) { // TODO: revise frames
       if (sem("local")) {
         dpx_.clear();
         dpc_.clear();
@@ -571,7 +511,7 @@ class Vof : public AdvectionSolver<M_> {
     vsan_.clear();
 
     std::vector<std::array<Vect, 2>> ll; // buffer for interface lines
-    // Traverse cells, seed strings in cells with interface.
+    // Seed strings in cells with interface.
     for (auto c : m.Cells()) {
       Vect xc = m.GetCenter(c);
       const Scal th = par->part_intth;
@@ -589,9 +529,8 @@ class Vof : public AdvectionSolver<M_> {
                                   MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
 
           auto w = bc.GetMIdx(c);
-          // Cut interface in neighbour cells by plane.
           ll.clear();
-          // Traverse neighbours, attach intersection with interface to string.
+          // Extract interface from neighbour cells.
           for (auto wo : bo) {
             IdxCell cc = bc.GetIdx(w + wo); // neighbour cell
             if (fci[cc] && fcu[cc] >= th && fcu[cc] <= 1. - th) {
@@ -627,30 +566,6 @@ class Vof : public AdvectionSolver<M_> {
       }
     }
   }
-  // Compute force to advance particles.
-  // Assume 2d positions (x,y,0).
-  // x: pointer to first particle
-  // sx: size of particle string
-  // l: pointer to first array of line ends
-  // nl: number of lines
-  // Output:
-  // f: position corrections of size sx
-  void PartForce(const Vect* xx, size_t sx, 
-                   const std::array<Vect, 2>* ll, size_t sl, Vect* ff) {
-    PS::InterfaceForce(xx, sx, ll, sl, par->part_segcirc, ff);
-
-    Scal hm = GetCellSize().norminf(); // cell size
-    const int cn = par->part_constr; // constraint type
-    if (cn == 0) {
-      PS::Constr0(xx, sx, par->part_kstr, par->part_h * hm,
-                  par->part_kbend, par->part_bendmean, par->part_relax, ff);
-    } else if (cn == 1) {
-      PS::Constr1(xx, sx, par->part_kattr, par->part_kbend, par->part_kstr,
-                  hm, par->part_relax, ff);
-    } else {
-      throw std::runtime_error("Unknown part_constr=" + std::to_string(cn));
-    }
-  }
   std::pair<Vect, Vect> GetBubble() {
     static Vect c(0);
     static Vect r(0);
@@ -674,7 +589,7 @@ class Vof : public AdvectionSolver<M_> {
     return std::make_pair(c, r);
   }
   void Part(const FieldCell<Scal>& uc, typename M::Sem& sem) {
-    if (sem("part-comma")) {
+    if (sem("part-comm")) {
       m.Comm(&fc_a_);
       m.Comm(&fc_n_);
     }
@@ -682,269 +597,32 @@ class Vof : public AdvectionSolver<M_> {
     bool dm = par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
                             this->GetTimeStep());
 
-    if (sem("part-seed")) {
-      //SeedParticles(uc);
-
+    if (sem("part-run")) {
       Seed0(fc_u_.iter_curr, fc_a_, fc_n_, fci_);
       partstr_->Run(par->part_tol, par->part_itermax);
+      // compute curvature
+      // XXX: assume strings from same cell contiguous
+      auto ns = partstr_->GetNumStr();
+      size_t s = 0;
+      while (s < ns) { // new cell
+        size_t nsc = 0; // number of strings in current cell
+        IdxCell c = vsc_[s];
+        fckp_[c] = 0.; // reset sum
+        while (s < ns && c == vsc_[s]) {
+          fckp_[c] += partstr_->GetCurv(s);
+          ++nsc;
+          ++s;
+        }
+        fckp_[c] /= nsc;
+        if (par->dim == 3) {
+          fckp_[c] *= 2.;
+        }
+      }
     }
 
-    if (sem.Nested("part-dump0")) {
+    if (sem.Nested("part-dump")) {
       if (dm) {
-        DumpParticles(0);
-      }
-    }
-
-    #if 0
-    if (sem("part-advance")) {
-      // particle strings
-      std::vector<IdxCell> sc; // cell
-      std::vector<Vect> xx; // particle positions
-      std::vector<size_t> sx; // xx index, plus element sx.size() 
-      std::vector<std::array<Vect, 2>> ll; // interface lines
-      std::vector<size_t> sl; // sl index, plus element sl.size() 
-      std::vector<Vect> smx; // local unit x
-      std::vector<Vect> smy; // local unit y
-      std::vector<Vect> smc; // local center
-      std::vector<Scal> sk; // curvature
-
-      // Extract interface, project particles
-      for (auto c : m.Cells()) {
-        // XXX: assume fcps_[c] % kNp == 0
-        for (int is = 0; is < fcps_[c] / kNp; ++is) {
-          int i0 = is * kNp;
-          int i1 = (is + 1) * kNp;
-
-          sc.push_back(c);
-
-          // Plane coordinates
-          // center
-          Vect rc = fcp_[c][(i0 + i1 + 1) / 2];
-          // tangent, assume straight line
-          Vect rt = (fcp_[c][i0 + 1] - fcp_[c][i0]);
-          rt /= rt.norm();
-          // interface normal, assume orthogonal to rt
-          Vect n = fc_n_[c];
-          n /= n.norm();
-          // string plane normal
-          Vect rn = rt.cross(n);
-          rn /= rn.norm();
-
-          // unit in x
-          Vect mx = rt;
-          // unit in y
-          Vect my = n;
-          // center
-          Vect mc = rc;
-
-          smx.push_back(mx);
-          smy.push_back(my);
-          smc.push_back(mc);
-
-          // Transform to plane coordinates.
-          // x: space coordinates
-          // Returns:
-          // Vect(xl, yl, 0): plane coordinates
-          auto pr = [&](Vect x) -> Vect {
-            Vect q(0);
-            q[0] = (x - mc).dot(mx);
-            q[1] = (x - mc).dot(my);
-            return q;
-          };
-
-          // Copy projected particles
-          sx.push_back(xx.size());
-          for (int i = i0; i < i1; ++i) {
-            xx.push_back(pr(fcp_[c][i]));
-          }
-
-          // Extract interface lines
-          sl.push_back(ll.size());
-          auto& bc = m.GetBlockCells();
-          using MIdx = typename M::MIdx;
-          Vect h = GetCellSize();
-
-          const int sw = 2; // stencil halfwidth, [-sw,sw]
-          const int sn = sw * 2 + 1; // stencil size
-
-          // block of offsets
-          GBlock<IdxCell, dim> bo(
-              MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
-              MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
-
-          auto w = bc.GetMIdx(c);
-          for (auto wo : bo) {
-            auto cc = bc.GetIdx(w + wo);
-            Scal u = uc[cc];
-            Scal th = par->part_intth;
-            if (fci_[c] && u > th && u < 1. - th) {
-              auto xcc = m.GetCenter(cc);
-              auto xx = R::GetCutPoly(xcc, fc_n_[cc], fc_a_[cc], h);
-              std::array<Vect, 2> e;
-              if (R::GetInterPoly(xx, rc, rn, e)) {
-                // projected line ends 
-                // <pncc,pe1-pe0> positively oriented
-                auto pncc = pr(mc + fc_n_[cc]);
-                auto pe0 = pr(e[0]);
-                auto pe1 = pr(e[1]);
-                if (pncc.cross_third(pe1 - pe0) < 0.) {
-                  std::swap(pe0, pe1);
-                }
-                ll.push_back({pe0, pe1});
-              }
-            }
-          }
-        }
-      }
-      sx.push_back(xx.size());
-      sl.push_back(ll.size());
-
-      assert(sx.size() == sc.size() + 1);
-      assert(sl.size() == sc.size() + 1);
-      assert(smx.size() == sc.size());
-      assert(smy.size() == sc.size());
-      assert(smc.size() == sc.size());
-
-      sk.resize(sc.size(), 0.);
-
-      std::vector<Vect> ff(xx.size()); // force
-
-      // advance particles
-      for (size_t it = 0; it < par->part_maxiter; ++it) {
-        for (size_t i = 0; i < sc.size(); ++i) {
-          PartForce(&(xx[sx[i]]), sx[i+1] - sx[i],
-                    &(ll[sl[i]]), sl[i+1] - sl[i], &(ff[sx[i]]));
-        }
-
-        // report error
-        size_t dr = std::max<size_t>(1, 
-            par->part_maxiter / par->part_report_fr);
-        if (m.IsRoot() && (it % dr == 0 || it + 1 == par->part_maxiter)) {
-          Vect h = GetCellSize();
-          Scal hm = h.norminf();
-          Scal tmax = 0.;
-          Scal anmax = 0.;
-          Scal anavg = 0; // average difference from mean angle
-          Scal lmax = 0.; // maximum error in sement length
-          size_t anavgn = 0;
-          for (size_t i = 0; i < sc.size(); ++i) {
-            // maximum force
-            for (size_t j = sx[i]; j < sx[i+1]; ++j) {
-              tmax = std::max(tmax, ff[j].norm());
-            }
-            Scal anm = 0.;
-            size_t anmn = 0;
-            // mean angle in string
-            for (size_t j = sx[i] + 1; j + 1 < sx[i+1]; ++j) {
-              anm += PS::GetAn(xx.data(), j);
-              ++anmn;
-            }
-            anm /= anmn;
-            // error in angle
-            for (size_t j = sx[i] + 1; j + 1 < sx[i+1]; ++j) {
-              Scal e = std::abs(anm - PS::GetAn(xx.data(), j));
-              anavg += e;
-              ++anavgn;
-              anmax = std::max(anmax, e);
-            }
-            // maximum error in segment length
-            for (size_t j = sx[i]; j + 1 < sx[i+1]; ++j) {
-              lmax = std::max(
-                  lmax, std::abs(xx[j + 1].dist(xx[j]) - par->part_h * hm));
-            }
-          }
-          anavg /= anavgn;
-          std::cout << std::setprecision(10)
-              << "it=" << it 
-              << " dxmax=" << tmax 
-              << " anmax=" << anmax 
-              << " anavg=" << anavg 
-              << " lmax=" << lmax / (par->part_h * hm)
-              << std::endl;
-        }
-
-        // advance
-        for (size_t i = 0; i < xx.size(); ++i) {
-          xx[i] += ff[i];
-        }
-
-        // copy back to field
-        if (dm || it + 1 == par->part_maxiter) {
-          fcps_.Reinit(m, 0);
-
-          for (size_t i = 0; i < sc.size(); ++i) {
-            IdxCell c = sc[i];
-            Vect mx = smx[i];
-            Vect my = smy[i];
-            Vect mc = smc[i];
-            for (size_t j = sx[i]; j < sx[i+1]; ++j) {
-              auto q = xx[j];
-              fcp_[c][fcps_[c]++] = mc + mx * q[0] + my * q[1];
-            }
-          }
-        }
-
-        if (dm) {
-          //// XXX: disable iter dump to avoid suspender loop
-          //DumpParticles(it + 1); 
-        }
-      }
-
-      // compute curvature on strings
-      for (size_t i = 0; i < sc.size(); ++i) {
-        sk[i] = PS::PartK(&(xx[sx[i]]), sx[i + 1] - sx[i]);
-      }
-
-      // compute curvature in cells
-      fckp_.Reinit(m, 0.);
-      {
-        size_t i = 0;
-        while (i < sc.size()) {
-          IdxCell c = sc[i];
-          Scal k = sk[i];
-          ++i;
-          size_t nk = 1;
-          // average over all strings in c
-          while (i < sc.size() && sc[i] == c) {
-            k += sk[i];
-            ++i;
-            ++nk;
-          }
-          if (par->dim == 3) {
-            k *= 2.;
-          }
-          fckp_[c] = k / nk;
-        }
-      }
-      m.Comm(&fckp_);
-
-      // compute normal
-      if (par->part_n) {
-        for (auto c : m.Cells()) {
-          if (fcps_[c]) {
-            int i = 2;
-            int im = i - 1;
-            int ip = i + 1;
-            Vect x = fcp_[c][i];
-            Vect xm = fcp_[c][im];
-            Vect xp = fcp_[c][ip];
-            Vect dm = x - xm;
-            Vect dp = xp - x;
-            Scal lm = dm.norm();
-            Scal lp = dp.norm();
-            // normals to segments, <nm,dm> positively oriented
-            Vect nm = Vect(dm[1], -dm[0], 0.) / lm; 
-            Vect np = Vect(dp[1], -dp[0], 0.) / lp;
-            fc_n_[c] = (nm + np) * (-0.5);
-          }
-        }
-      }
-    }
-    #endif
-
-    if (sem.Nested("part-dumplast")) {
-      if (dm) {
-        DumpParticles(par->part_maxiter - 1);
+        DumpParticles();
       }
     }
   }
