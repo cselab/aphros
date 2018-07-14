@@ -171,7 +171,8 @@ class PartStr {
       auto rit = Run0(s, tol, itermax);
       Scal r = rit.first;
       size_t it = rit.second;
-      if (s % std::max<size_t>(1, GetNumStr() / 10) == 0) {
+      // report
+      if (verb && s % std::max<size_t>(1, GetNumStr() / 10) == 0) {
         auto fl = std::cout.flags();
         std::cout.precision(16);
         std::cout 

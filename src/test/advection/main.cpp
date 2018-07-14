@@ -85,8 +85,8 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   void Update(typename ASV::Par* p) {
     p->curvgrad = var.Int["curvgrad"];
     p->part = var.Int["part"];
+    p->part_verb = var.Int["part_verb"];
     p->part_relax = var.Double["part_relax"];
-    p->part_h0 = var.Double["part_h0"];
     p->part_h = var.Double["part_h"];
     p->part_kstr = var.Double["part_kstr"];
     p->part_kattr = var.Double["part_kattr"];

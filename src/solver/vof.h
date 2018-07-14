@@ -83,8 +83,8 @@ class Vof : public AdvectionSolver<M_> {
     bool curvgrad = false; // compute curvature using gradient
     bool part = false; // particles
     Scal part_relax = 1.; 
-    Scal part_h0 = 1.; // dist init
     Scal part_h = 1.;  // dist eq
+    bool part_verb = false; // debug output
     Scal part_kstr = 1.; // stretching
     Scal part_kattr = 1.; // attraction to reconstructed interface
     Scal part_kbend = 1.; // bending
@@ -600,7 +600,8 @@ class Vof : public AdvectionSolver<M_> {
 
     if (sem("part-run")) {
       Seed0(fc_u_.iter_curr, fc_a_, fc_n_, fci_);
-      partstr_->Run(par->part_tol, par->part_itermax, m.IsRoot());
+      partstr_->Run(par->part_tol, par->part_itermax, 
+                    par->part_verb && m.IsRoot());
       // compute curvature
       fckp_.Reinit(m, GetNan<Scal>());
       // XXX: assume strings from same cell contiguous
