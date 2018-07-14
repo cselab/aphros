@@ -39,6 +39,7 @@ class Vof : public AdvectionSolver<M_> {
 
   FieldCell<Scal> fc_a_; // alpha (plane constant)
   FieldCell<Vect> fc_n_; // n (normal to plane)
+  // XXX: fc_a_ and fc_n_ are proportional, separate scaling is invalid
   FieldCell<Scal> fc_us_; // smooth field
   FieldFace<Scal> ff_fu_; // volume flux
   FieldCell<Scal> fck_; // curvature from height functions
@@ -217,22 +218,18 @@ class Vof : public AdvectionSolver<M_> {
 
         // copy to arrays  
         auto& bc = m.GetBlockCells();
-        IdxCell cp = IdxCell::None(); // previous cell
-        std::array<Vect, 3> v; // output of GetPlaneBasis
         for (size_t s = 0; s < partstr_->GetNumStr(); ++s) {
           // cell
           IdxCell c = vsc_[s];
-          // update v if needed
-          if (c != cp) {
-            v = GetPlaneBasis(m.GetCenter(c), fc_n_[c], fc_a_[c], vsan_[s]);
-            cp = c;
-          }
+          auto v = GetPlaneBasis(m.GetCenter(c), fc_n_[c], fc_a_[c], vsan_[s]);
+
           auto p = partstr_->GetStr(s);
           Vect* xx = p.first;
           size_t sx = p.second;
+
           auto w = bc.GetMIdx(c);
-          // XXX: adhoc, hash for cell index, assume mesh size <= mn
           const size_t mn = 1000; 
+          // XXX: adhoc, hash for cell index, assume mesh size <= mn
           size_t ic = (w[2] * mn + w[1]) * mn + w[0]; // cell index
           for (size_t i = 0; i < sx; ++i) {
             auto x = GetSpaceCoords(xx[i], v);
@@ -532,10 +529,9 @@ class Vof : public AdvectionSolver<M_> {
   // mx: unit in x, tangent to interface
   // my: unit in y, normal to interface
   // mn: unit vector to from orthonormal positively oriented basis <mx,my,mn> 
-  std::array<Vect, 3> GetPlaneBasis(const Vect& xc, Vect n, Scal a, Scal an) {
+  std::array<Vect, 3> GetPlaneBasis(const Vect& xc, const Vect& n, 
+                                    Scal a, Scal an) {
     Vect h = GetCellSize();
-    // unit normal to interface
-    n /= n.norm();
     // direction in which normal has minimal component
     size_t d = n.abs().argmin(); 
     Vect xd(0); 
@@ -547,12 +543,12 @@ class Vof : public AdvectionSolver<M_> {
     Vect t1 = n.cross(t0);
     t1 /= t1.norm();
     // tangent at angle an
-    Vect t = t0 * std::cos(a) + t1 * std::sin(a); 
+    Vect t = t0 * std::cos(an) + t1 * std::sin(an); 
     t /= t.norm();
 
     Vect mc = xc + R::GetCenter(n, a, h); // center of interface
     Vect mx = t;  // unit in x, tangent
-    Vect my = n;  // unit in y, normal 
+    Vect my = n / n.norm();  // unit in y, normal 
     return {mc, mx, my};
   }
   // Convert from space to plane coordinates.

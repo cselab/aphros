@@ -1,0 +1,4 @@
+#!/bin/bash -l
+
+make -f `ch.makesim` cleanall
+rm -vf *_*.dat
