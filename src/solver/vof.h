@@ -95,7 +95,8 @@ class Vof : public AdvectionSolver<M_> {
     bool part_k = false; // curvature from particles
     size_t part_dump_fr = 100; // num frames dump
     size_t part_report_fr = 100; // num frames report
-    Scal part_intth = 1e-3; // interface detection threshold
+    Scal part_intth = 1e-5; // interface threshold for particle seed
+    Scal poly_intth = 0.; // interface threshold for DumpPoly
     Scal clipth = 1e-6; // vf clipping threshold
     std::unique_ptr<Dumper> dmp; // dumper for particles
     bool dumppoly = false; // dump reconstructed interface (cut polygons)
@@ -124,7 +125,7 @@ class Vof : public AdvectionSolver<M_> {
       dl_.clear();
       auto h = GetCellSize();
       for (auto c : m.Cells()) {
-        const Scal th = par->part_intth;
+        const Scal th = par->poly_intth;
         Scal u = fc_u_.iter_curr[c];
         if (fci_[c] && u > th && u < 1. - th) {
           dl_.push_back(R::GetCutPoly(m.GetCenter(c), fc_n_[c], fc_a_[c], h));
@@ -601,6 +602,7 @@ class Vof : public AdvectionSolver<M_> {
       Seed0(fc_u_.iter_curr, fc_a_, fc_n_, fci_);
       partstr_->Run(par->part_tol, par->part_itermax);
       // compute curvature
+      fckp_.Reinit(m, GetNan<Scal>());
       // XXX: assume strings from same cell contiguous
       auto ns = partstr_->GetNumStr();
       size_t s = 0;
@@ -646,17 +648,22 @@ class Vof : public AdvectionSolver<M_> {
     }
 
     if (sem("height")) {
+      // interface cells:
       fci_.Reinit(m, false);
+      // volume fraction different from 0 or 1
       for (auto c : m.AllCells()) {
         Scal u = uc[c];
         if (u > 0. && u < 1.) {
           fci_[c] = true;
         }
       }
+      // neighbour cell has different value but both are 0 or 1
       for (auto f : m.SuFaces()) {
         IdxCell cm = m.GetNeighbourCell(f, 0);
         IdxCell cp = m.GetNeighbourCell(f, 1);
-        if (uc[cm] != uc[cp]) {
+        Scal um = uc[cm];
+        Scal up = uc[cp];
+        if ((um == 0. || um == 1.) && (up == 0. || up == 1.) && (um != up)) {
           fci_[cm] = true;
           fci_[cp] = true;
         }

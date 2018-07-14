@@ -4,6 +4,7 @@
 #include <memory>
 #include <limits>
 #include <cmath>
+#include <sstream>
 
 #include "geom/mesh.h"
 #include "linear/linear.h"
@@ -40,6 +41,18 @@ bool IsNan(const GField<T, Idx>& u) {
   for (auto i : u.GetRange()) {
     if (IsNan(u[i])) {
       return true;
+    }
+  }
+  return false;
+}
+
+template <class T, class Idx, class M>
+bool CheckNan(const GField<T, Idx>& u, std::string name, const M& m) {
+  for (auto i : m.template Get<Idx>()) {
+    if (IsNan(u[i])) {
+      std::stringstream s;
+      s << "Nan " << name << " at x=" << m.GetCenter(i);
+      throw std::runtime_error(s.str());
     }
   }
   return false;
