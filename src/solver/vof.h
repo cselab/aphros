@@ -620,6 +620,31 @@ class Vof : public AdvectionSolver<M_> {
           fckp_[c] *= 2.;
         }
       }
+      // if interface cell but still nan, find from neighbour
+      // block of offsets to neighbours in stencil [-sw,sw]
+      const int sw = 1; // stencil halfwidth
+      const int sn = sw * 2 + 1; // stencil size
+      using MIdx = typename M::MIdx;
+      GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
+                              MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
+      auto& bc = m.GetBlockCells();
+      for (auto c : m.Cells()) {
+        if (fci_[c] && IsNan(fckp_[c])) {
+          auto w = bc.GetMIdx(c);
+          for (auto wo : bo) {
+            auto cc = bc.GetIdx(w + wo);
+            if (!IsNan(fckp_[cc])) {
+              fckp_[c] = fckp_[cc];
+              break;
+            }
+          }
+          if (IsNan(fckp_[c])) { // still nan
+            std::stringstream s;
+            s << "all neighbours have nan curvature at x=" << m.GetCenter(c);
+            throw std::runtime_error(s.str());
+          }
+        }
+      }
     }
 
     if (sem.Nested("part-dump")) {
