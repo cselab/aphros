@@ -13,8 +13,6 @@
 #include "reconst.h"
 #include "partstr.h"
 
-// attraction to exact sphere
-#define ADHOC_ATTR 0
 // normal from exact sphere
 #define ADHOC_NORM 0
 
@@ -301,18 +299,6 @@ class Vof : public AdvectionSolver<M_> {
         Rec(fc_u_.time_curr);
       }
     }
-
-      /*
-      if (par->part) {
-        if (sem("seed")) {
-          SeedParticles(fc_u_.time_curr);
-          if (par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
-                            this->GetTimeStep())) {
-            DumpParticles(par->part_maxiter - 1);
-          }
-        }
-      }
-      */
   }
   Scal Maxmod(Scal a, Scal b) {
     return std::abs(b) < std::abs(a) ? a : b;
@@ -710,7 +696,7 @@ class Vof : public AdvectionSolver<M_> {
     }
 
     #if 0
-    if (0 && sem("part-advance")) {
+    if (sem("part-advance")) {
       // particle strings
       std::vector<IdxCell> sc; // cell
       std::vector<Vect> xx; // particle positions
@@ -806,10 +792,6 @@ class Vof : public AdvectionSolver<M_> {
                 }
                 ll.push_back({pe0, pe1});
               }
-              #if ADHOC_ATTR 
-              auto cr = GetBubble();
-              ll.push_back({pr(cr.first), cr.second}); 
-              #endif
             }
           }
         }

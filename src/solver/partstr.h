@@ -9,11 +9,6 @@
 #include "geom/vect.h"
 #include "reconst.h"
 
-// attraction to exact sphere
-#define ADHOC_ATTR 0
-// normal from exact sphere
-#define ADHOC_NORM 0
-
 // Particle strings class.
 // Single string:
 // - seed particles
@@ -102,11 +97,13 @@ class PartStr {
     Vect* xx = &(xx_[sx_[s]]);
     size_t sx = sx_[s + 1] - sx_[s];
 
-    static std::vector<Vect> ff(sx);
+    static std::vector<Vect> ff;
+    ff.resize(sx);
+    std::fill(ff.begin(), ff.end(), Vect(0,par->relax,0.)); // XXX
     
     // compute interface forces
-    InterfaceForce(xx, sx, &(ll_[s]), sl_[s + 1] - sl_[s],
-                   par->segcirc, ff.data());
+    //InterfaceForce(xx, sx, &(ll_[sl_[s]]), sl_[s + 1] - sl_[s],
+    //               par->segcirc, ff.data()); // XXX
 
     // apply constraints
     int cs = par->constr;
@@ -157,7 +154,7 @@ class PartStr {
   std::pair<Scal, size_t> Run(Scal tol, size_t itermax) {
     Scal rm = 0.;
     size_t itm = 0;
-    for (size_t s = 0; s < sx_.size(); ++s) {
+    for (size_t s = 0; s < GetNumStr(); ++s) {
       auto rit = Run0(s, tol, itermax);
       Scal r = rit.first;
       size_t it = rit.second;
@@ -270,14 +267,6 @@ class PartStr {
             jn = j;
           }
         }
-
-        #if ADHOC_ATTR
-        auto bc = ll[sl-1][0];
-        auto br = ll[sl-1][1][0];
-        auto dx = x - bc;
-        dx /= dx.norm();
-        xn = bc + dx * br;
-        #endif 
 
         if (segcirc != 0.) {
           auto& e = ll[jn];
@@ -412,189 +401,201 @@ class PartStr {
       return Vect(std::cos(a), std::sin(a), 0.);
     };
 
-    // alpha: angle between x-axis and normal
-    // theta: angle between segments
-  
-    // derivatives of positions by angles
-    static std::vector<Vect> xa(sx); // dx/dalpha
-    static std::vector<Vect> xt(sx); // dx/dtheta
-    // central 
-    const size_t ic = (sx - 1) / 2; 
-    xa[ic] = Vect(0.);
-    xt[ic] = Vect(0.);
-    for (size_t q = 1; q <= ic; ++q) {
-      size_t i;
-      Vect d;
-      // forward 
-      i = ic + q;
-      d = xx[i] - xx[i - 1];
-      xa[i] = xa[i - 1] + rr(d);
-      xt[i] = xt[i - 1] + rr(d) * (q - 0.5);
-      // backward
-      i = ic - q;
-      d = xx[i + 1] - xx[i];
-      xa[i] = xa[i + 1] - rr(d);
-      xt[i] = xt[i + 1] + rr(d) * (q - 0.5);
-    }
-
     // relaxation of force
     for (size_t i = 0; i < sx; ++i) {
       ff[i] *= relax;
     }
 
-    // correction of angles
-    Scal da = 0.;
-    Scal dt = 0.;
+    // new positions
+    static std::vector<Vect> xxn; // dx/dtheta
+    xxn.resize(sx);
+    // initialize
     for (size_t i = 0; i < sx; ++i) {
-      da += ff[i].dot(xa[i]); // scale hm*hm
-      dt += ff[i].dot(xt[i]);
+      xxn[i] = xx[i];
     }
 
-    // rescale to 1
-    da /= hm * hm; 
-    dt /= hm * hm; 
-    
-    // relaxation
-    da *= ka;
-    dt *= kt;
-
-    // vector at angle da
-    Vect ea = ra(da);
-    // vector at angle dt/2
-    Vect eth = ra(dt);
-    // vector at angle dt
-    Vect et = re(eth, eth);
-
-    // segment vectors 
-    static std::vector<Vect> dd(sx);
-    dd[ic] = Vect(0.);
-    // initialize from xx
-    for (size_t q = 1; q <= ic; ++q) {
-      size_t i;
-      // forward
-      i = ic + q;
-      dd[i] = xx[i] - xx[i - 1];
-      // backward
-      i = ic - q;
-      dd[i] = xx[i + 1] - xx[i];
-    }
-
-    // apply da
-    {
-      for (size_t q = 1; q <= ic; ++q) {
-        size_t i;
-        // forward
-        i = ic + q;
-        dd[i] = re(dd[i], ea);
-        // backward
-        i = ic - q;
-        dd[i] = re(dd[i], ea);
-      }
-    }
-
-    // apply dt
-    {
-      Vect e = eth;
-      for (size_t q = 1; q <= ic; ++q) {
-        size_t i;
-        // forward
-        i = ic + q;
-        dd[i] = re(dd[i], e);
-        // backward
-        i = ic - q;
-        dd[i] = rem(dd[i], e);
-        // next
-        e = re(e, et);
-      }
-    }
+    // Note:
+    // New positions without contraints would be xxn=xx+ff.
+    // ff acts as correction of positions.
+    // Constraints are applied separately:
+    // 1) displacement of center:
+    //    xxn += dx
+    //    ff -= dx
+    // 2) angles
+    //    xxn = X(alpha, theta)
+    //    ff ignored
 
     // displacement of center
-    Vect dx(0);
-    for (size_t i = 0; i < sx; ++i) {
-      dx += ff[i];
-    }
-    dx *= kx;
+    {
+      Vect dx(0);
+      for (size_t i = 0; i < sx; ++i) {
+        dx += ff[i];
+      }
+      dx *= kx / sx;
 
-    // restore new xx from segments, store in ff
-    ff[ic] = xx[ic];
-    for (size_t q = 1; q <= ic; ++q) {
-      size_t i;
-      // forward
-      i = ic + q;
-      ff[i] = ff[i - 1] + dd[i];
-      // backward
-      i = ic - q;
-      ff[i] = ff[i + 1] - dd[i];
+      // apply
+      for (size_t i = 0; i < sx; ++i) {
+        xxn[i] += dx;
+        ff[i] -= dx;
+      }
     }
 
-    // apply dx
-    for (size_t i = 0; i < sx; ++i) {
-      ff[i] += dx;
+    // alpha: angle between x-axis and normal
+    {
+      // derivative of positions by alpha
+      static std::vector<Vect> xa; // dx/dalpha
+      xa.resize(sx);
+      // central 
+      const size_t ic = (sx - 1) / 2; 
+      xa[ic] = Vect(0.);
+      for (size_t q = 1; q <= ic; ++q) {
+        size_t i;
+        Vect d;
+        // forward 
+        i = ic + q;
+        d = xxn[i] - xxn[i - 1];
+        xa[i] = xa[i - 1] + rr(d);
+        // backward
+        i = ic - q;
+        d = xxn[i + 1] - xxn[i];
+        xa[i] = xa[i + 1] - rr(d);
+      }
+
+      // projection of f
+      Scal fa = 0.;  // f dot xa
+      Scal na = 0.; // xa dot xa
+      for (size_t i = 0; i < sx; ++i) {
+        fa += ff[i].dot(xa[i]); 
+        na += xa[i].dot(xa[i]);
+      }
+
+      // correction of alpha
+      Scal da = fa / na * ka;
+
+      // vector at angle da
+      Vect ea = ra(da);
+
+      // segment vectors 
+      static std::vector<Vect> dd;
+      dd.resize(sx);
+      dd[ic] = Vect(0.);
+      // initialize from xxn
+      for (size_t q = 1; q <= ic; ++q) {
+        size_t i;
+        // forward
+        i = ic + q;
+        dd[i] = xxn[i] - xxn[i - 1];
+        // backward
+        i = ic - q;
+        dd[i] = xxn[i + 1] - xxn[i];
+      }
+
+      // apply da
+      for (size_t q = 1; q <= ic; ++q) {
+        size_t i;
+        // forward
+        i = ic + q;
+        dd[i] = re(dd[i], ea);
+        // backward
+        i = ic - q;
+        dd[i] = re(dd[i], ea);
+      }
+
+      // restore new xxn from segments
+      for (size_t q = 1; q <= ic; ++q) {
+        size_t i;
+        // forward
+        i = ic + q;
+        xxn[i] = xxn[i - 1] + dd[i];
+        // backward
+        i = ic - q;
+        xxn[i] = xxn[i + 1] - dd[i];
+      }
+    }
+
+    // theta: angle between segments
+    {
+      // derivative of positions by theta
+      static std::vector<Vect> xt; // dx/dtheta
+      xt.resize(sx);
+      // central 
+      const size_t ic = (sx - 1) / 2; 
+      xt[ic] = Vect(0.);
+      for (size_t q = 1; q <= ic; ++q) {
+        size_t i;
+        Vect d;
+        // forward 
+        i = ic + q;
+        d = xxn[i] - xxn[i - 1];
+        xt[i] = xt[i - 1] + rr(d) * (q - 0.5);
+        // backward
+        i = ic - q;
+        d = xxn[i + 1] - xxn[i];
+        xt[i] = xt[i + 1] + rr(d) * (q - 0.5);
+      }
+
+      // projection of f
+      Scal ft = 0.;  // f dot xt
+      Scal nt = 0.; // xt dot xt
+      for (size_t i = 0; i < sx; ++i) {
+        ft += ff[i].dot(xt[i]); 
+        nt += xt[i].dot(xt[i]);
+      }
+
+      // correction of theta
+      Scal dt = ft / nt * kt;
+
+      // vector at angle dt/2
+      Vect eth = ra(dt);
+      // vector at angle dt
+      Vect et = re(eth, eth);
+
+      // segment vectors 
+      static std::vector<Vect> dd;
+      dd.resize(sx);
+      dd[ic] = Vect(0.);
+      // initialize from xxn
+      for (size_t q = 1; q <= ic; ++q) {
+        size_t i;
+        // forward
+        i = ic + q;
+        dd[i] = xxn[i] - xxn[i - 1];
+        // backward
+        i = ic - q;
+        dd[i] = xxn[i + 1] - xxn[i];
+      }
+
+      // apply dt
+      {
+        Vect e = eth;
+        for (size_t q = 1; q <= ic; ++q) {
+          size_t i;
+          // forward
+          i = ic + q;
+          dd[i] = re(dd[i], e);
+          // backward
+          i = ic - q;
+          dd[i] = rem(dd[i], e);
+          // next
+          e = re(e, et);
+        }
+      }
+
+      // restore new xxn from segments
+      for (size_t q = 1; q <= ic; ++q) {
+        size_t i;
+        // forward
+        i = ic + q;
+        xxn[i] = xxn[i - 1] + dd[i];
+        // backward
+        i = ic - q;
+        xxn[i] = xxn[i + 1] - dd[i];
+      }
     }
 
     // convert to position correction
     for (size_t i = 0; i < sx; ++i) {
-      ff[i] -= xx[i];
+      ff[i] = xxn[i] - xx[i];
     }
   }
-  static void Advance0(const Vect* xx, size_t sx, 
-                      Scal ka, Scal kt, Scal kx, Scal hm, Scal relax,
-                      Vect* ff) {
-  }
-  /*
-  void Reconst(const FieldCell<Scal>& uc) {
-    auto sem = m.GetSem("reconst");
-
-    // XXX: adhoc
-    // overwrite u=0 if y<y0 or y>y0
-    if (sem("bc-zero")) {
-      Scal y0 = par->bcc_y0;
-      Scal y1 = par->bcc_y1;
-      auto& uu = const_cast<FieldCell<Scal>&>(uc);
-      for (auto c : m.AllCells()) {
-        auto x = m.GetCenter(c);
-        if (x[1] < y0 || x[1] > y1) {
-          uu[c] = 0.;
-        }
-      }
-    }
-
-    if (sem("height")) {
-      fci_.Reinit(m, false);
-      for (auto c : m.AllCells()) {
-        Scal u = uc[c];
-        if (u > 0. && u < 1.) {
-          fci_[c] = true;
-        }
-      }
-      for (auto f : m.SuFaces()) {
-        IdxCell cm = m.GetNeighbourCell(f, 0);
-        IdxCell cp = m.GetNeighbourCell(f, 1);
-        if (uc[cm] != uc[cp]) {
-          fci_[cm] = true;
-          fci_[cp] = true;
-        }
-      }
-      // Compute normal and curvature [s]
-      CalcNormal(uc, fci_, fc_n_, fck_);
-      auto h = GetCellSize();
-      // Reconstruct interface [s]
-      for (auto c : m.SuCells()) {
-        fc_a_[c] = R::GetLineA(fc_n_[c], uc[c], h);
-      }
-    }
-
-    // Correction with normal from particles
-    if (par->part && par->part_n) {
-      Part(uc, sem);
-      if (sem("parta")) {
-        auto h = GetCellSize();
-        for (auto c : m.AllCells()) {
-          fc_a_[c] = R::GetLineA(fc_n_[c], uc[c], h);
-        }
-      }
-    }
-  }
-
-*/
 };
