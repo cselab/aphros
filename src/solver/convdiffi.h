@@ -44,9 +44,7 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
   Par* GetPar() { return par.get(); }
   void StartStep() override {
     this->GetIter();
-    if (IsNan(fcu_.time_curr)) {
-      throw std::runtime_error("NaN initial field");
-    }
+    CheckNan(fcu_.time_curr, "fcu_.time_curr", m);
     fcu_.iter_curr = fcu_.time_curr;
     Scal ge = par->guessextra;
     for (auto c : m.Cells()) {
@@ -181,6 +179,7 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
       Solve(fcuc_);
     }
     if (sem("apply")) {
+      CheckNan(fcuc_, "convdiffi:fcuc_", m);
       auto& fc_prev = fcu_.iter_prev;
       auto& fc_curr = fcu_.iter_curr;
       for (auto c : m.Cells()) {
@@ -193,9 +192,7 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
   void FinishStep() override {
     fcu_.time_prev = fcu_.time_curr;
     fcu_.time_curr = fcu_.iter_curr;
-    if (IsNan(fcu_.time_curr)) {
-      throw std::runtime_error("NaN field");
-    }
+    CheckNan(fcu_.time_curr, "fcu_.time_curr", m);
     this->IncTime();
     dtp_ = this->GetTimeStep();
   }

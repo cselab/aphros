@@ -461,9 +461,7 @@ class FluidSimple : public FluidSolver<M_> {
     auto sem = m.GetSem("fluid-start");
     if (sem("convdiff-init")) {
       this->ClearIter();
-      if (IsNan(fcp_.time_curr)) {
-        throw std::runtime_error("simple::StartStep(): NaN pressure");
-      }
+      CheckNan(fcp_.time_curr, "fcp_.time_curr", m);
       cd_->SetTimeStep(this->GetTimeStep());
     }
 
@@ -672,6 +670,7 @@ class FluidSimple : public FluidSolver<M_> {
       for (auto c : m.Cells()) {
         fc[c] = lsx_[i++];
       }
+      CheckNan(fc, "simple:Solve():fc", m);
       m.Comm(&fc);
     }
   }
@@ -950,9 +949,7 @@ class FluidSimple : public FluidSolver<M_> {
       ffv_.time_prev = ffv_.time_curr;
       fcp_.time_curr = fcp_.iter_curr;
       ffv_.time_curr = ffv_.iter_curr;
-      if (IsNan(fcp_.time_curr)) {
-        throw std::runtime_error("NaN pressure");
-      }
+      CheckNan(fcp_.time_curr, "fcp_.time_curr", m);
       this->IncTime();
     }
     if (sem.Nested("convdiff-finish")) {

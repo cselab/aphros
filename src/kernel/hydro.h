@@ -112,6 +112,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     p->part_n = var.Int["part_n"];
     p->part_k = var.Int["part_k"];
     p->part_intth = var.Double["part_intth"];
+    p->poly_intth = var.Double["poly_intth"];
     p->clipth = var.Double["clipth"];
     p->dim = var.Int["dim"];
     p->dumppoly = var.Int["dumppoly"];
@@ -915,7 +916,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           IdxCell c = m.GetNeighbourCell(f, it.GetValue()->GetNci());
           ffk_[f] = fck[c];
         }
-
         // compute force projections
         for (auto f : m.Faces()) {
           IdxCell cm = m.GetNeighbourCell(f, 0);
@@ -923,7 +923,18 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           Vect dm = m.GetVectToCell(f, 0);
           Vect dp = m.GetVectToCell(f, 1);
           Scal ga = (ast[cp] - ast[cm]) / (dp - dm).norm();
-          ff_st_[f] += ga * ffk_[f] * sig;
+          if (ga != 0.) {
+            if (IsNan(ffk_[f])) {
+              std::stringstream s;
+              s << "Nan curvature at x=" << m.GetCenter(f)
+                  << " vf[cm]=" << ast[cm]
+                  << " vf[cp]=" << ast[cp]
+                  << " fck[cm]=" << fck[cm]
+                  << " fck[cp]=" << fck[cp];
+              throw std::runtime_error(s.str());
+            }
+            ff_st_[f] += ga * ffk_[f] * sig;
+          }
         }
         // zero on boundaries
         for (auto it : mf_velcond_) {
