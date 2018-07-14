@@ -2,5 +2,9 @@
 
 set -eu
 
+./clean
+echo 1 > np
+echo > mesh.conf
 ch.base
+ch.aconf
 ch.run ./t.advection
