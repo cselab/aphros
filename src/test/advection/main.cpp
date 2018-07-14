@@ -94,7 +94,6 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
     p->part_bendmean = var.Int["part_bendmean"];
     p->part_dump_fr = var.Int["part_dump_fr"];
     p->part_report_fr = var.Int["part_report_fr"];
-    p->part_maxiter = var.Int["part_maxiter"];
     p->part_n = var.Int["part_n"];
     p->part_k = var.Int["part_k"];
     p->part_intth = var.Double["part_intth"];
@@ -111,6 +110,8 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
     p->part_segcirc = var.Double["part_segcirc"];
     p->part_itermax = var.Int["part_itermax"];
     p->part_tol = var.Double["part_tol"];
+    p->part_np = var.Int["part_np"];
+    p->part_ns = var.Int["part_ns"];
   }
 
  protected:

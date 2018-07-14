@@ -122,7 +122,7 @@ def FigVf(pt):
     pa = GetFieldPath(pt, "partit")
     if os.path.isfile(pa):
         print(pa)
-        PlotPart(ax, pa, sk=4)
+        PlotPart(ax, pa, sk=1)
 
     # save
     po = GetFieldPath(pt, "vf", "pdf")

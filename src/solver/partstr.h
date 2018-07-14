@@ -123,8 +123,8 @@ class PartStr {
       Constr0(xx, sx, par->kstr, par->leq * par->hc,
               par->kbend, par->bendmean, par->relax, ff.data());
     } else if (cs == 1) {
-      Constr1(xx, sx, par->kattr, par->kbend, par->kstr,
-              par->hc, par->relax, ff.data());
+      Constr1(xx, sx, par->kattr, 
+              par->kbend, par->kstr, par->relax, ff.data());
     } else {
       throw std::runtime_error("Unknown constr=" + std::to_string(cs));
     }
@@ -392,12 +392,10 @@ class PartStr {
   // ka: relaxation factor for angle between normal and x-axis
   // kt: relaxation factor for angle between segments
   // kx: relaxation factor for position 
-  // hm: cell size
   // relax: relaxation factor for force
   // XXX: uses static variables
   static void Constr1(const Vect* xx, size_t sx, 
-                      Scal ka, Scal kt, Scal kx, Scal hm, Scal relax,
-                      Vect* ff) {
+                      Scal ka, Scal kt, Scal kx, Scal relax, Vect* ff) {
     // Rotates vector by pi/2
     // x: vector of plane coordinates
     auto rr = [](const Vect& x) {
