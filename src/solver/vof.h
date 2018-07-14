@@ -599,7 +599,7 @@ class Vof : public AdvectionSolver<M_> {
                             this->GetTimeStep());
 
     if (sem("part-run")) {
-      Seed0(fc_u_.iter_curr, fc_a_, fc_n_, fci_);
+      Seed0(uc, fc_a_, fc_n_, fci_);
       partstr_->Run(par->part_tol, par->part_itermax, 
                     par->part_verb && m.IsRoot());
       // compute curvature
@@ -621,6 +621,9 @@ class Vof : public AdvectionSolver<M_> {
           fckp_[c] *= 2.;
         }
       }
+      m.Comm(&fckp_);
+    }
+    if (sem("part-nan")) {
       // if interface cell but still nan, find from neighbour
       // block of offsets to neighbours in stencil [-sw,sw]
       const int sw = 1; // stencil halfwidth
@@ -646,6 +649,7 @@ class Vof : public AdvectionSolver<M_> {
           }
         }
       }
+      m.Comm(&fckp_);
     }
 
     if (sem.Nested("part-dump")) {
@@ -674,26 +678,7 @@ class Vof : public AdvectionSolver<M_> {
     }
 
     if (sem("height")) {
-      // interface cells:
-      fci_.Reinit(m, false);
-      // volume fraction different from 0 or 1
-      for (auto c : m.AllCells()) {
-        Scal u = uc[c];
-        if (u > 0. && u < 1.) {
-          fci_[c] = true;
-        }
-      }
-      // neighbour cell has different value but both are 0 or 1
-      for (auto f : m.SuFaces()) {
-        IdxCell cm = m.GetNeighbourCell(f, 0);
-        IdxCell cp = m.GetNeighbourCell(f, 1);
-        Scal um = uc[cm];
-        Scal up = uc[cp];
-        if ((um == 0. || um == 1.) && (up == 0. || up == 1.) && (um != up)) {
-          fci_[cm] = true;
-          fci_[cp] = true;
-        }
-      }
+      DetectInterface(uc);
       // Compute normal and curvature [s]
       CalcNormal(uc, fci_, fc_n_, fck_);
       auto h = GetCellSize();
@@ -749,6 +734,28 @@ class Vof : public AdvectionSolver<M_> {
       std::cerr << std::setw(10) << fc[c] << " ";
     }
     std::cerr << std::endl;
+  }
+
+  void DetectInterface(const FieldCell<Scal>& uc) {
+    fci_.Reinit(m, false);
+    // volume fraction different from 0 or 1
+    for (auto c : m.AllCells()) {
+      Scal u = uc[c];
+      if (u > 0. && u < 1.) {
+        fci_[c] = true;
+      }
+    }
+    // neighbour cell has different value but both are 0 or 1
+    for (auto f : m.SuFaces()) {
+      IdxCell cm = m.GetNeighbourCell(f, 0);
+      IdxCell cp = m.GetNeighbourCell(f, 1);
+      Scal um = uc[cm];
+      Scal up = uc[cp];
+      if ((um == 0. || um == 1.) && (up == 0. || up == 1.) && (um != up)) {
+        fci_[cm] = true;
+        fci_[cp] = true;
+      }
+    }
   }
 
   void MakeIteration() override {
