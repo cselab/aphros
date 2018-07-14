@@ -66,6 +66,7 @@ class PartStr {
     sx_.push_back(0);
     ll_.clear();
     sl_.clear();
+    sl_.push_back(0);
   }
   // Adds particle string with attached interface.
   // xc: center 
@@ -94,16 +95,27 @@ class PartStr {
   // r = max(ff) / (hc * relax)
   // XXX: uses static variables
   Scal Iter(size_t s) {
+    assert(s < GetNumStr());
     Vect* xx = &(xx_[sx_[s]]);
     size_t sx = sx_[s + 1] - sx_[s];
 
     static std::vector<Vect> ff;
     ff.resize(sx);
-    std::fill(ff.begin(), ff.end(), Vect(0,par->relax,0.)); // XXX
+    /*
+    Vect ffm(0);
+    for (size_t i = 0; i < sx; ++i) { // XXX
+      ff[i] = Vect(0., std::abs(i - (sx - 1) / 2.), 0.);
+      ffm += ff[i];
+    }
+    ffm /= sx;
+    for (size_t i = 0; i < sx; ++i) { // XXX
+      ff[i] -= ffm;
+    }
+    */
     
     // compute interface forces
-    //InterfaceForce(xx, sx, &(ll_[sl_[s]]), sl_[s + 1] - sl_[s],
-    //               par->segcirc, ff.data()); // XXX
+    InterfaceForce(xx, sx, &(ll_[sl_[s]]), sl_[s + 1] - sl_[s],
+                   par->segcirc, ff.data()); // XXX
 
     // apply constraints
     int cs = par->constr;
@@ -158,7 +170,16 @@ class PartStr {
       auto rit = Run0(s, tol, itermax);
       Scal r = rit.first;
       size_t it = rit.second;
-      std::cout << "s=" << s << " r=" << r << " it=" << it << std::endl;
+      if (s % std::max<size_t>(1, GetNumStr() / 10) == 0) {
+        auto fl = std::cout.flags();
+        std::cout.precision(16);
+        std::cout 
+            << "s=" << std::setw(10) << s 
+            << " r=" << std::setw(20) << r 
+            << " it=" << std::setw(5) << it 
+            << std::endl;
+        std::cout.flags(fl);
+      }
       rm = std::max(rm, r);
       itm = std::max(itm, it);
     }
@@ -199,7 +220,7 @@ class PartStr {
   // xx: array of positions
   // sx: size of xx
   static Scal PartK(const Vect* xx, size_t sx) {
-    assert(sx % 2 == 1);
+    assert(sx % 2 == 1 && sx >= 3);
     size_t i = (sx - 1) / 2;
     Vect x = xx[i];
     Vect xm = xx[i - 1];
@@ -250,7 +271,7 @@ class PartStr {
 
     // attracting spring to nearest point on nearest line
     for (size_t i = 0; i < sx; ++i) {
-      Vect x = xx[i];
+      const Vect& x = xx[i];
 
       if (sl) {
         Vect xn;  // nearest point
@@ -421,9 +442,12 @@ class PartStr {
     // 1) displacement of center:
     //    xxn += dx
     //    ff -= dx
-    // 2) angles
-    //    xxn = X(alpha, theta)
-    //    ff ignored
+    // 2) alpha
+    //    xxn = X(alpha)
+    //    ff -= dx
+    // 2) alpha
+    //    xxn = X(theta)
+    //    ff -= dx
 
     // displacement of center
     {
@@ -432,6 +456,7 @@ class PartStr {
         dx += ff[i];
       }
       dx *= kx / sx;
+      dx[0] = 0.;
 
       // apply
       for (size_t i = 0; i < sx; ++i) {
@@ -504,12 +529,17 @@ class PartStr {
       // restore new xxn from segments
       for (size_t q = 1; q <= ic; ++q) {
         size_t i;
+        Vect dx;
         // forward
         i = ic + q;
-        xxn[i] = xxn[i - 1] + dd[i];
+        dx = xxn[i - 1] + dd[i] - xxn[i];
+        xxn[i] += dx;
+        ff[i] -= dx;
         // backward
         i = ic - q;
-        xxn[i] = xxn[i + 1] - dd[i];
+        dx = xxn[i + 1] - dd[i] - xxn[i];
+        xxn[i] += dx;
+        ff[i] -= dx;
       }
     }
 
@@ -584,12 +614,17 @@ class PartStr {
       // restore new xxn from segments
       for (size_t q = 1; q <= ic; ++q) {
         size_t i;
+        Vect dx;
         // forward
         i = ic + q;
-        xxn[i] = xxn[i - 1] + dd[i];
+        dx = xxn[i - 1] + dd[i] - xxn[i];
+        xxn[i] += dx;
+        ff[i] -= dx;
         // backward
         i = ic - q;
-        xxn[i] = xxn[i + 1] - dd[i];
+        dx = xxn[i + 1] - dd[i] - xxn[i];
+        xxn[i] += dx;
+        ff[i] -= dx;
       }
     }
 
