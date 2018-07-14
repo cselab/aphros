@@ -600,7 +600,7 @@ class Vof : public AdvectionSolver<M_> {
 
     if (sem("part-run")) {
       Seed0(fc_u_.iter_curr, fc_a_, fc_n_, fci_);
-      partstr_->Run(par->part_tol, par->part_itermax);
+      partstr_->Run(par->part_tol, par->part_itermax, m.IsRoot());
       // compute curvature
       fckp_.Reinit(m, GetNan<Scal>());
       // XXX: assume strings from same cell contiguous

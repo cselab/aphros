@@ -161,9 +161,10 @@ class PartStr {
   // Iterations for all strings until convergence.
   // tol: tolerance
   // itermax: maximum number of iterations
+  // verb: 1: debug output
   // Returns:
   // max over all Run0()
-  std::pair<Scal, size_t> Run(Scal tol, size_t itermax) {
+  std::pair<Scal, size_t> Run(Scal tol, size_t itermax, bool verb) {
     Scal rm = 0.;
     size_t itm = 0;
     for (size_t s = 0; s < GetNumStr(); ++s) {

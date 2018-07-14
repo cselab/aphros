@@ -54,6 +54,7 @@ for br in 0.037 0.045 0.0625 0.125 0.25 0.4 ; do
 done
 
 mv -v err $o/
+mv -v out $o/
 
 # tile all pdf
 (cd $o ; ../tile)
