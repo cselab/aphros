@@ -632,6 +632,8 @@ class Vof : public AdvectionSolver<M_> {
       GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
                               MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
       auto& bc = m.GetBlockCells();
+      size_t nan = 0;
+      IdxCell cnan;
       for (auto c : m.Cells()) {
         if (fci_[c] && IsNan(fckp_[c])) {
           auto w = bc.GetMIdx(c);
@@ -642,12 +644,20 @@ class Vof : public AdvectionSolver<M_> {
               break;
             }
           }
-          if (IsNan(fckp_[c])) { // still nan
-            std::stringstream s;
-            s << "all neighbours have nan curvature at x=" << m.GetCenter(c);
-            throw std::runtime_error(s.str());
+          if (IsNan(fckp_[c])) { // still nan, fill with zero
+            ++nan;
+            cnan = c;
+            fckp_[c] = 0.;
           }
         }
+      }
+      if (nan) {
+        std::stringstream s;
+        s << "all neighbours of " << nan 
+            << "cells have nan curvature, one at x=" << m.GetCenter(cnan)
+            << " with vf=" << uc[cnan];
+        //throw std::runtime_error(s.str());
+        std::cout << s.str() << std::endl;
       }
       m.Comm(&fckp_);
     }
