@@ -653,8 +653,9 @@ class Vof : public AdvectionSolver<M_> {
       }
       if (nan) {
         std::stringstream s;
-        s << "all neighbours of " << nan 
-            << "cells have nan curvature, one at x=" << m.GetCenter(cnan)
+        s.precision(16);
+        s << "nan curvature in all neighbours of " << nan 
+            << " cells, one at x=" << m.GetCenter(cnan)
             << " with vf=" << uc[cnan];
         //throw std::runtime_error(s.str());
         std::cout << s.str() << std::endl;

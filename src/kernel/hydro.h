@@ -917,6 +917,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           ffk_[f] = fck[c];
         }
         // compute force projections
+        size_t nan = 0;
+        IdxFace fnan;
         for (auto f : m.Faces()) {
           IdxCell cm = m.GetNeighbourCell(f, 0);
           IdxCell cp = m.GetNeighbourCell(f, 1);
@@ -925,16 +927,26 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           Scal ga = (ast[cp] - ast[cm]) / (dp - dm).norm();
           if (ga != 0.) {
             if (IsNan(ffk_[f])) {
-              std::stringstream s;
-              s << "Nan curvature at x=" << m.GetCenter(f)
-                  << " vf[cm]=" << ast[cm]
-                  << " vf[cp]=" << ast[cp]
-                  << " fck[cm]=" << fck[cm]
-                  << " fck[cp]=" << fck[cp];
-              throw std::runtime_error(s.str());
+              ++nan;
+              fnan = f;
+              ffk_[f] = 0.;
             }
             ff_st_[f] += ga * ffk_[f] * sig;
           }
+        }
+        if (nan) {
+          auto f = fnan;
+          IdxCell cm = m.GetNeighbourCell(f, 0);
+          IdxCell cp = m.GetNeighbourCell(f, 1);
+          std::stringstream s;
+          s.precision(16);
+          s << "nan curvature in " << nan 
+              << " faces, one at x=" << m.GetCenter(f)
+              << " vf[cm]=" << ast[cm]
+              << " vf[cp]=" << ast[cp]
+              << " fck[cm]=" << fck[cm]
+              << " fck[cp]=" << fck[cp];
+          std::cout << s.str() << std::endl;
         }
         // zero on boundaries
         for (auto it : mf_velcond_) {
