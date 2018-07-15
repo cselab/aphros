@@ -211,7 +211,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       }
       m.Reduce(&(mst[name + "_mn"] = min), "min");
       m.Reduce(&(mst[name + "_mx"] = max), "max");
-      m.Reduce(&(mst[name + "_sum"] = min), "sum");
+      m.Reduce(&(mst[name + "_sum"] = sum), "sum");
     }
     // Add component comp of vector field for stat.
     void Add(const FieldCell<Vect>& fc, size_t comp, std::string name, M& m) {
@@ -226,7 +226,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       }
       m.Reduce(&(mst[name + "_mn"] = min), "min");
       m.Reduce(&(mst[name + "_mx"] = max), "max");
-      m.Reduce(&(mst[name + "_sum"] = min), "sum");
+      m.Reduce(&(mst[name + "_sum"] = sum), "sum");
     }
     void Print(std::ostream& out) {
       std::string dl = "";
