@@ -197,6 +197,60 @@ class Hydro : public KernelMeshPar<M_, GPar> {
         , dumpn(0), meshpos(0)
         , ekin(0)
     {}
+    std::map<std::string, Scal> mst; // map stat
+    // Add scalar field for stat.
+    void Add(const FieldCell<Scal>& fc, std::string name, M& m) {
+      Scal min = std::numeric_limits<Scal>::max();
+      Scal max = -std::numeric_limits<Scal>::max();
+      Scal sum = 0.;
+      for (auto c : m.Cells()) {
+        Scal v = fc[c];
+        min = std::min(min, v);
+        max = std::max(max, v);
+        sum += v * m.GetVolume(c);
+      }
+      m.Reduce(&(mst[name + "_mn"] = min), "min");
+      m.Reduce(&(mst[name + "_mx"] = max), "max");
+      m.Reduce(&(mst[name + "_sum"] = min), "sum");
+    }
+    // Add component comp of vector field for stat.
+    void Add(const FieldCell<Vect>& fc, size_t comp, std::string name, M& m) {
+      Scal min = std::numeric_limits<Scal>::max();
+      Scal max = -std::numeric_limits<Scal>::max();
+      Scal sum = 0.;
+      for (auto c : m.Cells()) {
+        Scal v = fc[c][comp];
+        min = std::min(min, v);
+        max = std::max(max, v);
+        sum += v * m.GetVolume(c);
+      }
+      m.Reduce(&(mst[name + "_mn"] = min), "min");
+      m.Reduce(&(mst[name + "_mx"] = max), "max");
+      m.Reduce(&(mst[name + "_sum"] = min), "sum");
+    }
+    void Print(std::ostream& out) {
+      std::string dl = "";
+      auto fl = out.flags();
+      out.precision(16);
+      out << std::scientific << std::setprecision(20);
+      size_t i = 0;
+      for (auto it : mst) {
+        if (i % 3 == 0) {
+          out << "> ";
+          dl = "";
+        }
+        out << dl << it.first << "=" << it.second;
+        dl = ", ";
+        ++i;
+        if (i % 3 == 0) {
+          out << std::endl;
+        }
+      }
+      out.flags(fl);
+    }
+    void Clear() {
+      mst.clear();
+    }
   };
   Stat st_;
   std::shared_ptr<output::Session> ost_; // output stat
@@ -538,11 +592,25 @@ void Hydro<M>::CalcStat() {
   auto sem = m.GetSem("stat");
 
   auto& s = st_;
+  auto& fa = as_->GetField();
+  auto& fv = fs_->GetVelocity();
+
+  if (sem("stat-add")) {
+    s.Add(fa, "vf", m);
+    s.Add(as_->GetCurv(), "k", m);
+    s.Add(fv, 0, "vx", m);
+    s.Add(fv, 1, "vy", m);
+    s.Add(fv, 2, "vz", m);
+    s.Add(fs_->GetPressure(), "p", m);
+  }
+  if (sem("stat-print")) {
+    if (m.IsRoot()) {
+      s.Print(std::cout);
+    }
+    s.Clear();
+  }
 
   if (sem("local")) {
-    auto& fa = as_->GetField();
-    auto& fv = fs_->GetVelocity();
-
     // check abort TODO: revise,move
     for (auto c : m.Cells()) {
       if (fv[c].sqrnorm() > sqr(var.Double["abortvel"])) {
