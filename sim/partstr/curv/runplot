@@ -3,5 +3,5 @@
 set -eu
 
 (cd ch ; ./run)
-(cd ge ; ./run)
+(cd ge; ./run)
 ./plot.py

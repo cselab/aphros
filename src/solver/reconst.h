@@ -57,7 +57,6 @@ class Reconst {
   static Vect GetNearest(const Vect x,
                                    const Vect x0,
                                    const Vect x1) {
-    using Vect = Vect;
     Vect l = x1 - x0;
     Scal k = l.dot(x - x0) / l.sqrnorm();
     Clip(k);
@@ -148,7 +147,6 @@ class Reconst {
   // Equation of reconstructed line 
   // x.dot(n) = a
   static Scal GetLineU1(const Vect& n0, Scal a) {
-    using Vect = Vect;
 
     Vect n = n0.abs();
     Sort(n);
@@ -224,7 +222,6 @@ class Reconst {
   // Equation of reconstructed line 
   // x.dot(n) = a
   static Scal GetLineA1(const Vect& n0, Scal u) {
-    using Vect = Vect;
     Vect n = n0.abs();
     Sort(n);
     Clip(u);
@@ -253,7 +250,6 @@ class Reconst {
   // assume dx > 0
   static Scal GetLineVol0(const Vect& n, Scal a, 
                           const Vect& h, Scal dx, size_t d) {
-    using Vect = Vect;
     // Acceptor is a rectangular box adjacent to current cell.
     Vect hh = h; // acceptor size
     hh[d] = dx;
@@ -293,7 +289,6 @@ class Reconst {
   static Scal GetLineVolStr0(const Vect& n, Scal a, 
                              const Vect& h, Scal dx, Scal dxu, 
                              size_t d) {
-    using Vect = Vect;
     Scal u = GetLineU(n, a, h); // volume fraction
     Vect sh = h; // stretched size
     sh[d] = h[d] + dx - dxu;
@@ -375,8 +370,6 @@ class Reconst {
   // XXX: 2d specific
   static std::array<Vect, 2> GetLineEnds(
       const Vect& n, Scal a, const Vect& h) {
-
-    using Vect = Vect;
     // equation x.dot(n) = a;
     // (cell center is 0)
     Vect hh = h * 0.5;
@@ -416,7 +409,6 @@ class Reconst {
   // XXX: 2d specific
   static Vect GetLineC(const Vect& n, Scal a,
                                  const Vect& h) {
-    using Vect = Vect;
     std::array<Vect, 2> e = GetLineEnds(n, a, h);
     return (e[0] + e[1]) * 0.5;
   }
@@ -430,7 +422,6 @@ class Reconst {
   static Vect GetLineNearest(const Vect x,
                                        const Vect& n, Scal a,
                                        const Vect& h) {
-    using Vect = Vect;
     std::array<Vect, 2> e = GetLineEnds(n, a, h);
     return GetNearest(x, e[0], e[1]);
   }
@@ -442,7 +433,6 @@ class Reconst {
   // a: constant 
   static Vect GetPlaneProj(const Vect x,
                                      const Vect& n, Scal a) {
-    using Vect = Vect;
     return x - n * ((n.dot(x) - a) / n.sqrnorm());
   }
 
@@ -453,8 +443,6 @@ class Reconst {
   static Vect SolveSingular(const GVect<Vect, 3>& a) {
     auto p = [](size_t i) { return (i + 1) % 3; };
     auto pp = [](size_t i) { return (i + 2) % 3; };
-
-    using Vect = Vect;
 
     // d[i][j] is det of matrix without row i and column j
     GVect<Vect, 3> d; 
@@ -502,8 +490,6 @@ class Reconst {
   // Returns:
   // n: normal
   static Vect GetFitN(std::vector<Vect> xx) {
-    using Vect = Vect;
-
     auto xc = GetCenter(xx);
     for (auto& x : xx) {
       x -= xc;
@@ -523,7 +509,6 @@ class Reconst {
   // GetCutPoly() helper for unit cell, 
   // assume 0 < nx < ny < nz, a < 0.
   static std::vector<GVect<Scal ,3>> GetCutPoly0(const Vect& n, Scal a) {
-    using Vect = Vect;
     std::vector<Vect> xx; // result
 
     Scal f = a + 0.5 * n.sum();
@@ -564,7 +549,6 @@ class Reconst {
 
   // GetCutPoly() helper for unit cell.
   static std::vector<GVect<Scal ,3>> GetCutPoly1(const Vect& n0, Scal a) {
-    using Vect = Vect;
     auto n = n0.abs();
     auto r = Argsort(n);
     auto xx = GetCutPoly0(Vect(n[r[0]], n[r[1]], n[r[2]]), -std::abs(a));
@@ -632,8 +616,6 @@ class Reconst {
                                 const Vect& x0,
                                 const Vect& x1,
                                 const Vect& n) {
-    using Vect = Vect;
-
     Vect xc = (x0 + x1) * 0.5;
     Vect t = n.cross(x1 - x0);
     Vect l = t.cross(n);
@@ -662,8 +644,6 @@ class Reconst {
                                 const Vect& x1,
                                 const Vect& xh,
                                 const Vect& n) {
-    using Vect = Vect;
-
     Vect xc = (x0 + x1) * 0.5;
     Vect t = n.cross(x1 - x0);
     Vect l = t.cross(n);
@@ -688,8 +668,6 @@ class Reconst {
   static bool IsSameSide(const Vect& x, const Vect& xs,
                   const Vect& x0, const Vect& x1,
                   const Vect& n) {
-    using Vect = Vect;
-
     Vect xc = (x0 + x1) * 0.5;
     Vect t = n.cross(x1 - x0);
     return (t.dot(x - xc) >= 0.) == (t.dot(xs - xc) >= 0.);
@@ -704,8 +682,6 @@ class Reconst {
                 const std::vector<Vect>& xx,
                 const Vect& xc,
                 const Vect& n) {
-    using Vect = Vect;
-
     size_t s = xx.size();
     for (size_t i = 0; i < s; ++i) {
       if (!IsSameSide(x, xc, xx[i], xx[(i + 1) % s], n)) {
@@ -722,8 +698,6 @@ class Reconst {
   static Vect GetNearest(const Vect& x,
                             const std::vector<Vect>& xx,
                             const Vect& n) {
-    using Vect = Vect;
-
     Vect xc = GetCenter(xx);
 
     if (IsInside(x, xx, xc, n)) {
@@ -768,8 +742,6 @@ class Reconst {
   static bool GetInterPoly(const std::vector<Vect>& xx,
                            const Vect& xc, const Vect& n,
                            std::array<Vect, 2>& e) {
-    using Vect = Vect;
-
     size_t j = 0; // index in e
 
     size_t sx = xx.size();
@@ -785,6 +757,26 @@ class Reconst {
           return true;
         }
       }
+    }
+    return false;
+  }
+
+  // Intersection of plane segment and straigh line.
+  // e: line ends
+  // x0: point on line
+  // t: line direction
+  // Assume 2d vectors.
+  // Output:
+  // xi: intersection point on straight line e
+  // Returns:
+  // 1: xi lies between e[0] and e[1]
+  static bool GetInterLine(const std::array<Vect, 2>& e, 
+                           const Vect& x0, const Vect& t,
+                           Vect& xi) {
+    Scal a = t.cross_third(x0 - e[0]) / t.cross_third(e[1] - e[0]);
+    xi = e[0] + (e[1] - e[0]) * a;
+    if (a >= 0. && a <= 1) {
+      return true;
     }
     return false;
   }

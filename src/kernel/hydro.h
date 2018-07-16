@@ -128,6 +128,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     p->part_tol = var.Double["part_tol"];
     p->part_np = var.Int["part_np"];
     p->part_ns = var.Int["part_ns"];
+    p->part_tmax = var.Double["part_tmax"];
+    p->part_dtmax = var.Double["part_dtmax"];
+    p->part_anglim = var.Double["part_anglim"];
   }
   void UpdateAsPar() {
     if (auto as = dynamic_cast<AST*>(as_.get())) {

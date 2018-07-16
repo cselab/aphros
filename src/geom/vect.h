@@ -162,6 +162,9 @@ class GVect {
     }
     return true;
   }
+  bool operator!=(const GVect& other) const {
+    return !(*this == other);
+  }
   bool operator<(const GVect& other) const {
     for (size_t i = 0; i < dim; ++i) {
       if (!(comp_[i] < other.comp_[i])) {

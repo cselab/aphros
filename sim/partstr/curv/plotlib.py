@@ -172,7 +172,7 @@ def PlotPart(ax, p, sk=1):
     d = np.loadtxt(p, skiprows=1, delimiter=',')
     if d.size == 0:
         return None
-    x,y,z,c = d.T
+    x,y,z,c = d.T[0:4,:]
     c = c.astype(int)
 
 
