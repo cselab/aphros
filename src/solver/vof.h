@@ -56,6 +56,7 @@ class Vof : public AdvectionSolver<M_> {
 
   std::vector<Vect> dpx_; // dump particles x
   std::vector<size_t> dpc_; // dump particles cell
+  std::vector<Scal> dpk_; // dump particles curvature
   std::vector<std::vector<Vect>> dl_; // dump poly
 
   void Update(typename PS::Par* p) const {
@@ -75,6 +76,9 @@ class Vof : public AdvectionSolver<M_> {
     p->ka = par->part_kattr;
     p->kt = par->part_kbend;
     p->kx = par->part_kstr;
+    p->tmax = par->part_tmax;
+    p->dtmax = par->part_dtmax;
+    p->anglim = par->part_anglim;
   }
 
  public:
@@ -115,6 +119,9 @@ class Vof : public AdvectionSolver<M_> {
     size_t part_ns = 4; // number of strings per cell
     size_t part_itermax = 100; // particles itermax
     Scal part_tol = 0.01; // tolerance
+    Scal part_tmax = 180.; 
+    Scal part_dtmax = 10.; 
+    Scal part_anglim = 90.; 
   };
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
@@ -154,6 +161,7 @@ class Vof : public AdvectionSolver<M_> {
       if (sem("local")) {
         dpx_.clear();
         dpc_.clear();
+        dpk_.clear();
 
         // copy to arrays  
         auto& bc = m.GetBlockCells();
@@ -174,14 +182,17 @@ class Vof : public AdvectionSolver<M_> {
             auto x = GetSpaceCoords(xx[i], v);
             dpx_.push_back(x);
             dpc_.push_back(ic);
+            dpk_.push_back(partstr_->GetCurv(s));
           }
         }
 
         // comm
         using TV = typename M::template OpCatT<Vect>;
         using TI = typename M::template OpCatT<size_t>;
+        using TS = typename M::template OpCatT<Scal>;
         m.Reduce(std::make_shared<TV>(&dpx_));
         m.Reduce(std::make_shared<TI>(&dpc_));
+        m.Reduce(std::make_shared<TS>(&dpk_));
       }
       if (sem("write")) {
         if (m.IsRoot()) {
@@ -195,12 +206,14 @@ class Vof : public AdvectionSolver<M_> {
           std::ofstream o;
           o.open(s);
           o.precision(20);
-          o << "x,y,z,c\n";
+          o << "x,y,z,c,k\n";
 
           for (size_t i = 0; i < dpx_.size(); ++i) {
             Vect x = dpx_[i];
             o << x[0] << "," << x[1] << "," << x[2] 
-                << "," << dpc_[i] << "\n";
+                << "," << dpc_[i] 
+                << "," << dpk_[i] 
+                << "\n";
           }
         }
       }

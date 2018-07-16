@@ -36,7 +36,6 @@ class PartStr {
     size_t npmax = 11; // maximum number particles in string
     Scal segcirc = 1.; // factor for shift to circular segment
     Scal hc; // cell size [length]
-
     // specific for Constr0
     Scal kstr = 1.;  // factor for stretching 
     Scal kbend = 1.;  // factor for bending 
@@ -46,6 +45,9 @@ class PartStr {
     Scal ka = 1.;  // factor for angle between normal and x-axis 
     Scal kt = 1.;  // factor for angle between segments
     Scal kx = 1.;  // factor for position
+    Scal tmax = 180.; // limit for total theta of string [deg]
+    Scal dtmax = 10.; // limit for dt [deg]
+    Scal anglim = 90.; // limit for dt [deg]
   };
 
   static constexpr size_t dim = 3;
@@ -101,21 +103,10 @@ class PartStr {
 
     static std::vector<Vect> ff;
     ff.resize(sx);
-    /*
-    Vect ffm(0);
-    for (size_t i = 0; i < sx; ++i) { // XXX
-      ff[i] = Vect(0., std::abs(i - (sx - 1) / 2.), 0.);
-      ffm += ff[i];
-    }
-    ffm /= sx;
-    for (size_t i = 0; i < sx; ++i) { // XXX
-      ff[i] -= ffm;
-    }
-    */
     
     // compute interface forces
     InterfaceForce(xx, sx, &(ll_[sl_[s]]), sl_[s + 1] - sl_[s],
-                   par->segcirc, ff.data()); // XXX
+                   par->segcirc, par->anglim * M_PI / 180., ff.data());
 
     // apply constraints
     int cs = par->constr;
@@ -124,7 +115,9 @@ class PartStr {
               par->kbend, par->bendmean, par->relax, ff.data());
     } else if (cs == 1) {
       Constr1(xx, sx, par->kattr, 
-              par->kbend, par->kstr, par->relax, ff.data());
+              par->kbend, par->kstr, par->relax, 
+              par->tmax * M_PI / 180., par->dtmax * M_PI / 180.,
+              ff.data());
     } else {
       throw std::runtime_error("Unknown constr=" + std::to_string(cs));
     }
@@ -253,12 +246,13 @@ class PartStr {
   // ll: array of lines
   // sl: size of ll
   // segcirc: factor for shift to circular segment 
+  // anglim: limit for angle between string and interface
   // Output:
   // ff: forces
   static void InterfaceForce(const Vect* xx, size_t sx, 
                       const std::array<Vect, 2>* ll, size_t sl, 
-                      Scal segcirc, Vect* ff) {
-    if (!sx) {
+                      Scal segcirc, Scal anglim, Vect* ff) {
+    if (sx == 0) {
       return;
     }
     assert(sx % 2 == 1);
@@ -268,51 +262,152 @@ class PartStr {
       ff[i] = Vect(0);
     }
 
+    if (sl == 0) {
+      return;
+    }
+
     // current curvature
     Scal k = PartK(xx, sx);
 
-    // attracting spring to nearest point on nearest line
-    for (size_t i = 0; i < sx; ++i) {
-      const Vect& x = xx[i];
+    // find nearest segment
+    // x: target point
+    // Returns:
+    // jn: index of nearest segment ll[jn]
+    auto findnear = [sl,ll](const Vect& x) -> size_t {
+      Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
+      size_t jn = -1;
+      // find distance to nearest segment
+      for (size_t j = 0; j < sl; ++j) {
+        auto& e = ll[j];
+        Scal dl = x.sqrdist(R::GetNearest(x, e[0], e[1]));
+        if (dl < dn) {
+          dn = dl;
+          jn = j;
+        }
+      }
+      assert(jn != -1);
+      return jn;
+    };
 
-      if (sl) {
-        Vect xn;  // nearest point
-        Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
-        size_t jn = 0;
-        for (size_t j = 0; j < sl; ++j) {
-          auto& e = ll[j];
-          Vect xl = R::GetNearest(x, e[0], e[1]);
-          Scal dl = xl.sqrdist(x);
-
+    // find nearest segment with angle limit
+    // x: target point
+    // n: normal to string
+    // ang: angle limit (skip if exceeded)
+    // Returns:
+    // jn: index of nearest segment ll[jn]
+    auto findnearang = [sl,ll](const Vect& x, const Vect& n, Scal ang) {
+      Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
+      size_t jn = -1;
+      // find distance to nearest segment
+      for (size_t j = 0; j < sl; ++j) {
+        auto& e = ll[j];
+        Vect ne = e[1] - e[0];
+        ne = Vect(ne[1], -ne[0], 0.);
+        if (ne.dot(n) / (ne.norm() * n.norm()) >= std::cos(ang)) {
+          Scal dl = x.sqrdist(R::GetNearest(x, e[0], e[1]));
           if (dl < dn) {
-            xn = xl;
             dn = dl;
             jn = j;
           }
         }
+      }
+      return jn;
+    };
 
-        if (segcirc != 0.) {
-          auto& e = ll[jn];
-          // outer normal
-          Vect n = e[1] - e[0];
-          n = Vect(n[1], -n[0], 0.);
-          n /= n.norm();
-          // center
-          Vect xc = (e[0] + e[1]) * 0.5;
-          // distance from center
-          Scal dc = xc.dist(xn);
-          // max distance from center
-          Scal mdc = e[0].dist(xc);
-
-          // shift from line to circle
-          Scal s = SegCirc(k, mdc, dc);  
-          s *= segcirc;
-          xn += n * s;
+    // find segment with nearest angle
+    // x: point
+    // t: direction
+    // Returns:
+    // jn: index of segment ll[jn] with one end e minimizing angle
+    //     between (x-e) and t (maximizing t.dot(x-e) / (x-a).norm())
+    auto findang = [sl,ll](const Vect& x, const Vect& t, Scal sgn) -> size_t {
+      Scal sn = -std::numeric_limits<Scal>::max();  // scalar product with t
+      size_t jn = -1;
+      for (size_t j = 0; j < sl; ++j) {
+        for (size_t k = 0; k < 2; ++k) {
+          auto e = ll[j][k];
+          auto s = t.dot(e - x) / (e - x).norm();
+          if (s > sn && t.cross_third(e - x) * sgn >= 0.) {
+            sn = s;
+            jn = j;
+          }
         }
+      }
+      assert(jn != -1);
+      return jn;
+    };
 
-        ff[i] += xn - x; 
+    Scal leq = xx[0].dist(xx[1]);
+
+    // find nearest segment with distance along line.
+    // x: point
+    // t: direction
+    // Returns:
+    // jn: index of segment ll[jn] such that line x+t*a intersects the segment
+    //     and the intersection point provides minimal distance to x
+    // jn=-1 if no intersecting segments
+    auto findint = [sl,ll,leq](const Vect& x, const Vect& t) -> size_t {
+      Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
+      size_t jn = -1;
+      // find distance to nearest segment
+      for (size_t j = 0; j < sl; ++j) {
+        auto& e = ll[j];
+        Vect xi;
+        bool in = R::GetInterLine(e, x, t, xi);
+        Scal d = x.sqrdist(xi);
+        if (in && d < dn && d < sqr(4 * leq)) {
+          dn = d;
+          jn = j;
+        }
+      }
+      return jn;
+    };
+
+    // central: 
+    // attraction to nearest interface
+    const size_t ic = (sx - 1) / 2;
+    {
+      const Vect& x = xx[ic];
+      size_t jn = findnear(x);
+      auto& e = ll[jn];
+      Vect xn = R::GetNearest(x, e[0], e[1]);
+      ff[ic] = xn - x;
+    }
+
+    // forward and backward:
+    for (size_t q = 1; q <= ic; ++q) {
+      for (int k : {-1, 1}) {
+        size_t i = ic + q * k;
+        Vect x = xx[i]; // target point
+        Vect n = xx[i] - xx[i - k]; // normal to string
+        n = Vect(-n[1], n[0], 0.) * k;
+        size_t jn = findnearang(xx[i], n, anglim); // nearest segment
+        if (jn != -1) {
+          Vect xn = R::GetNearest(x, ll[jn][0], ll[jn][1]);
+          if (segcirc != 0.) {
+            auto& e = ll[jn];
+            // outer normal
+            Vect n = e[1] - e[0];
+            n = Vect(n[1], -n[0], 0.);
+            n /= n.norm();
+            // center
+            Vect xc = (e[0] + e[1]) * 0.5;
+            // distance from center
+            Scal dc = xc.dist(xn);
+            // max distance from center
+            Scal mdc = e[0].dist(xc);
+
+            // shift from line to circle
+            Scal s = SegCirc(k, mdc, dc);  
+            s *= segcirc;
+            xn += n * s;
+          }
+          ff[i] += xn - x;  
+        }
       }
     }
+
+
   }
   // Oriented angle from (x1-x0) to (x2-x1)
   static Scal GetAn(Vect x0, Vect x1, Vect x2) {
@@ -397,7 +492,9 @@ class PartStr {
   // relax: relaxation factor for force
   // XXX: uses static variables
   static void Constr1(const Vect* xx, size_t sx, 
-                      Scal ka, Scal kt, Scal kx, Scal relax, Vect* ff) {
+                      Scal ka, Scal kt, Scal kx, Scal relax, 
+                      Scal tmax, Scal dtmax,
+                      Vect* ff) {
     // Rotates vector by pi/2
     // x: vector of plane coordinates
     auto rr = [](const Vect& x) {
@@ -445,7 +542,7 @@ class PartStr {
     // 2) alpha
     //    xxn = X(alpha)
     //    ff -= dx
-    // 2) alpha
+    // 3) theta
     //    xxn = X(theta)
     //    ff -= dx
 
@@ -574,6 +671,14 @@ class PartStr {
 
       // correction of theta
       Scal dt = ft / nt * kt;
+      // limabs
+      // la > 0.
+      auto limabs = [](Scal a, Scal la) {
+        return std::min(std::abs(a), la) * (a > 0. ? 1. : -1);
+      };
+      dt = limabs(dt, dtmax / (sx - 1));
+      Scal t = GetAn(xx, (sx - 1) / 2);
+      dt = limabs(t + dt, tmax / (sx - 1)) - t;
 
       // vector at angle dt/2
       Vect eth = ra(dt);
