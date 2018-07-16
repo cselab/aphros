@@ -9,7 +9,7 @@ set grid
 set logscale x 2
 set logscale y 2
 
-d="o_1."
+d="."
 
 set yrange [0.003:1]
 
