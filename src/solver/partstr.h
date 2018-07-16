@@ -267,7 +267,7 @@ class PartStr {
     }
 
     // current curvature
-    Scal k = PartK(xx, sx);
+    Scal crv = PartK(xx, sx);
 
     // find nearest segment
     // x: target point
@@ -363,6 +363,30 @@ class PartStr {
       return jn;
     };
 
+    // Apply shift from segment to circle
+    // j: segment idx
+    // x: curent point on segment
+    auto shsegcirc = [ll,sl,crv,segcirc](size_t j, Vect& x) {
+      if (segcirc != 0.) {
+        auto& e = ll[j];
+        // outer normal
+        Vect n = e[1] - e[0];
+        n = Vect(n[1], -n[0], 0.);
+        n /= n.norm();
+        // center
+        Vect xc = (e[0] + e[1]) * 0.5;
+        // distance from center
+        Scal dc = xc.dist(x);
+        // max distance from center
+        Scal mdc = e[0].dist(xc);
+
+        // shift from line to circle
+        Scal s = SegCirc(crv, mdc, dc);  
+        s *= segcirc;
+        x += n * s;
+      }
+    };
+
     // central: 
     // attraction to nearest interface
     const size_t ic = (sx - 1) / 2;
@@ -371,37 +395,21 @@ class PartStr {
       size_t jn = findnear(x);
       auto& e = ll[jn];
       Vect xn = R::GetNearest(x, e[0], e[1]);
+      shsegcirc(jn, xn);
       ff[ic] = xn - x;
     }
 
     // forward and backward:
     for (size_t q = 1; q <= ic; ++q) {
-      for (int k : {-1, 1}) {
-        size_t i = ic + q * k;
+      for (int g : {-1, 1}) {
+        size_t i = ic + q * g;
         Vect x = xx[i]; // target point
-        Vect n = xx[i] - xx[i - k]; // normal to string
-        n = Vect(-n[1], n[0], 0.) * k;
+        Vect n = xx[i] - xx[i - g]; // normal to string
+        n = Vect(-n[1], n[0], 0.) * g;
         size_t jn = findnearang(xx[i], n, anglim); // nearest segment
         if (jn != -1) {
           Vect xn = R::GetNearest(x, ll[jn][0], ll[jn][1]);
-          if (segcirc != 0.) {
-            auto& e = ll[jn];
-            // outer normal
-            Vect n = e[1] - e[0];
-            n = Vect(n[1], -n[0], 0.);
-            n /= n.norm();
-            // center
-            Vect xc = (e[0] + e[1]) * 0.5;
-            // distance from center
-            Scal dc = xc.dist(xn);
-            // max distance from center
-            Scal mdc = e[0].dist(xc);
-
-            // shift from line to circle
-            Scal s = SegCirc(k, mdc, dc);  
-            s *= segcirc;
-            xn += n * s;
-          }
+          shsegcirc(jn, xn);
           ff[i] += xn - x;  
         }
       }
