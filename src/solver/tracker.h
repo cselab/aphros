@@ -11,7 +11,7 @@ template <class M_>
 class Tracker {
   using M = M_;
   using Scal = typename M::Scal;
-  using M::dim;
+  static constexpr size_t dim = M::dim;
 
  public:
   // fccl: initial color, [g]roup [a]
@@ -24,13 +24,13 @@ class Tracker {
   void Update(const FieldCell<Scal>& fcu);
   // Returns color [a]
   const FieldCell<Scal>& GetColor() const { return fccl_; }
+  static constexpr Scal kNone = -1.; // no color
 
  private:
   M& m;
   FieldCell<Scal> fccl_; // color [a]
   size_t dm_;
   Scal th_;
-  const Scal kNone = std::numeric_limits<Scal>::max(); // no color
 };
 
 template <class M_>
@@ -38,26 +38,35 @@ void Tracker<M_>::Update(const FieldCell<Scal>& fcu) {
   using MIdx = typename M::MIdx;
   auto& bc = m.GetBlockCells();
 
-  const size_t sw = 1; // stencil halfwidth, [sw,sw]
-  const int sn = sw * 2 + 1; // stencil size
-  // block of offsets
-  GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, dm_ == 2 ? 0 : -sw), 
-                          MIdx(sn, sn, dm_ == 2 ? 1 : sn)); 
+  auto sem = m.GetSem("upd");
 
-  for (auto c : m.Cells()) {
-    Scal& o = fccl_[c];
-    MIdx w = bc.GetMIdx(c);
-    if (fcu[c] > th_) { // cell contains liquid
-      // traverse neighbours, pick smallest color
-      for (MIdx wo : bo) {
-        IdxCell cn = bc.GetIdx(w + wo); // neighbour cell
-        if (fcu[cn] > th_) { // if neighbout contains liquid
-          o = std::min(o, fccl_[cn]);
+  if (sem("")) {
+    const size_t sw = 1; // stencil halfwidth, [sw,sw]
+    const int sn = sw * 2 + 1; // stencil size
+    // block of offsets
+    GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, dm_ == 2 ? 0 : -sw), 
+                            MIdx(sn, sn, dm_ == 2 ? 1 : sn)); 
+
+    for (auto c : m.Cells()) {
+      Scal& o = fccl_[c];
+      MIdx w = bc.GetMIdx(c);
+      if (fcu[c] > th_) { // liquid in cell
+        Scal mo = std::numeric_limits<Scal>::max(); // minimal color
+        // traverse neighbours, pick minimal color
+        for (MIdx wo : bo) {
+          IdxCell cn = bc.GetIdx(w + wo); // neighbour 
+          Scal on = fccl_[cn];
+          if (fcu[cn] > th_ && on != kNone) { // liquid and color in neighbour
+            if (o == kNone || on < o) { // update if empty or smaller
+              o = on;
+            }
+          }
         }
+      } else {  // no liquid in cell
+        o = kNone;
       }
-    } else {  // no liquid in cell
-      o = kNone;
     }
+    m.Comm(&fccl_);
   }
 }
 
