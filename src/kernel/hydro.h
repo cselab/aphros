@@ -165,12 +165,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapFace<std::shared_ptr<solver::CondFaceFluid>> mf_velcond_;
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
-  FieldCell<Scal> fc_velux_; // velocity
-  FieldCell<Scal> fc_veluy_; 
-  FieldCell<Scal> fc_veluz_; 
-  FieldCell<Scal> fc_p_; // pressure used by Dump()
-  FieldCell<Scal> fc_vf_; // volume fraction used by constructor and Dump()
-  FieldCell<Scal> fccl_; // color 
+  FieldCell<Scal> fc_vf_; // volume fraction used by constructor 
+  FieldCell<Scal> fccl_; // color used by constructor  
   FieldCell<Vect> fc_vel_; // velocity used by constructor
   FieldCell<Scal> fc_smvf_; // smoothed volume fraction used by CalcMixture()
   FieldCell<Scal> fc_smvfst_; // smoothed volume fraction for surface tension
@@ -1115,16 +1111,13 @@ template <class M>
 void Hydro<M>::Dump(Sem& sem) {
   if (sem("dump")) {
     if (dumper_.Try(st_.t, st_.dt)) {
-      fc_velux_ = GetComponent(fs_->GetVelocity(), 0);
-      m.Dump(&fc_velux_, "vx");
-      fc_veluy_ = GetComponent(fs_->GetVelocity(), 1);
-      m.Dump(&fc_veluy_, "vy");
-      fc_veluz_ = GetComponent(fs_->GetVelocity(), 2);
-      m.Dump(&fc_veluz_, "vz");
-      fc_p_ = fs_->GetPressure();
-      m.Dump(&fc_p_, "p"); 
-      fc_vf_ = as_->GetField();
-      m.Dump(&fc_vf_, "vf"); 
+      auto& fcv = fs_->GetVelocity();
+      m.Dump(&fcv, 0, "vx");
+      m.Dump(&fcv, 1, "vy");
+      m.Dump(&fcv, 2, "vz");
+      m.Dump(&fs_->GetPressure(), "p");
+      m.Dump(&as_->GetField(), "vf");
+      m.Dump(&fccl_, "cl");
       if (IsRoot()) {
         dumper_.Report();
       }
