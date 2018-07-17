@@ -17,7 +17,7 @@
 // M: mesh
 // Returns:
 // std::function<void(GField<Cell>& fc,const M& m)>
-// fc: field to fill [i]
+// fc: field to fill [i], resized if needed
 // m: mesh
 template <class M>
 std::function<void(FieldCell<typename M::Scal>&,
@@ -33,21 +33,47 @@ CreateInitCl(Vars& par, bool verb=true) {
     std::string fn = par.String["list_path"];
     size_t dim = par.Int["dim"];
 
-    // TODO: move, same from init_u.h
-    struct P { Vect c; Scal r; };
+    // elliptic partilces TODO: generalize
+    struct P { 
+      Vect c;  // center
+      Vect r;  // axes in coordinate directions
+    };
     std::vector<P> pp;
 
     std::ifstream f(fn);
     if (!f.good()) {
-      throw std::runtime_error("Can't open particle list '" + fn + "'");
+      throw std::runtime_error("color: Can't open particle list '" + fn + "'");
     }
 
+    f >> std::skipws;
     // Read until eof
     while (true) {
       P p;
       // Read single particle: x y z r
-      f >> p.c[0] >> p.c[1] >> p.c[2] >> p.r;
+      // first character (to skip empty strings)
+      char c;
+      f >> c;
       if (f.good()) {
+        // still have lines
+        std::string s;
+        std::getline(f, s);
+        s = c + s; // append first character
+        std::stringstream st(s);
+        st >> p.c[0] >> p.c[1] >> p.c[2];
+        st >> p.r[0];
+        if (st.fail()) {
+          throw std::runtime_error("color_list: missing rx in '" + s + "'");
+        }
+        st >> p.r[1];
+        if (st.fail()) {
+          p.r[1] = p.r[0];
+          p.r[2] = p.r[0];
+        } else {
+          st >> p.r[2];
+          if (st.fail()) {
+            p.r[2] = p.r[0];
+          }
+        }
         pp.push_back(p);
       } else {
         break;
@@ -60,22 +86,38 @@ CreateInitCl(Vars& par, bool verb=true) {
     }
 
     g = [dim,pp](FieldCell<Scal>& cl, const FieldCell<Scal>& vf, const M& m) { 
+      // level-set for particle of radius 1 centered at zero,
+      // positive inside,
+      // cylinder along z if dim=2
+      auto f = [dim](const Vect& x) -> Scal {
+        Vect xd = x;
+        if (dim == 2) {
+          xd[2] = 0.;
+        }
+        return 1. - xd.sqrnorm();
+      };
+
+      auto kNone = solver::Tracker<M>::kNone;
+      cl.Reinit(m, kNone);
       if (pp.empty()) {
-        cl.Reinit(m, 0.);
-      } else {
-        for (auto c : m.Cells()) {
+        return;
+      }
+
+      for (auto c : m.Cells()) {
+        if (vf[c] > 0.) { // liquid in cell // TODO: threshold
           auto x = m.GetCenter(c);
-          // find nearest particle
-          // TODO: check if distance to particle edge needed instead
-          size_t im = 0;
-          for (size_t i = 1; i < pp.size(); ++i) {
-            if ((x - pp[i].c).sqrnorm() < (x - pp[im].c).sqrnorm()) {
+          // find particle with largest value of level-set
+          Scal fm = -std::numeric_limits<Scal>::max(); 
+          size_t im; // index of particle
+          for (size_t i = 0; i < pp.size(); ++i) {
+            auto& p = pp[i];
+            Scal fi = f((x - p.c) / p.r);
+            if (fi > fm) {
+              fm = fi;
               im = i;
             }
           }
-          // index of nearest particle
-          // (assume exact 0 outside particles)
-          cl[c] = (vf[c] > 0. ? im : 0.);
+          cl[c] = im;
         }
       }
     };

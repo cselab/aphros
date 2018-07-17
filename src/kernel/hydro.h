@@ -22,6 +22,7 @@
 #include "solver/advection.h"
 #include "solver/vof.h"
 #include "solver/tvd.h"
+#include "solver/tracker.h"
 #include "solver/simple.h"
 #include "kernel.h"
 #include "kernelmesh.h"
@@ -80,6 +81,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using FS = solver::FluidSimple<M>;
   using AST = solver::AdvectionSolverExplicit<M>; // advection TVD
   using ASV = solver::Vof<M>; // advection VOF
+  using TR = solver::Tracker<M>; // color tracker
 
   void Update(typename FS::Par* p) {
     p->prelax = var.Double["prelax"];
@@ -165,6 +167,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapFace<std::shared_ptr<solver::CondFaceFluid>> mf_velcond_;
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
+  std::unique_ptr<TR> tr_; // color tracker
   FieldCell<Scal> fc_vf_; // volume fraction used by constructor 
   FieldCell<Scal> fccl_; // color used by constructor  
   FieldCell<Vect> fc_vel_; // velocity used by constructor
@@ -279,12 +282,6 @@ void Hydro<M>::Init() {
     auto ivf = CreateInitU<M>(var, m.IsRoot());
     ivf(fc_vf_, m);
     m.Comm(&fc_vf_);
-
-    // initial color
-    fccl_.Reinit(m, 0);
-    auto icl = CreateInitCl<M>(var, m.IsRoot());
-    icl(fccl_, fc_vf_, m);
-    m.Comm(&fccl_);
 
     // initial velocity
     fc_vel_.Reinit(m, Vect(0));
@@ -470,6 +467,13 @@ void Hydro<M>::Init() {
     CalcMixture(fc_vf_);
   }
 
+  if (sem("color-ini")) {
+    // initial color
+    auto icl = CreateInitCl<M>(var, m.IsRoot());
+    icl(fccl_, fc_vf_, m);
+    m.Comm(&fccl_);
+  }
+
   if (sem("solv")) {
     // time step
     const Scal dt = var.Double["dt0"];
@@ -528,6 +532,11 @@ void Hydro<M>::Init() {
       } else {
         throw std::runtime_error("Unknown advection_solver=" + as);
       }
+    }
+
+    // Init color tracker
+    {
+      tr_.reset(new TR(m, fccl_, var.Double["color_th"], var.Int["dim"]));
     }
 
     st_.iter = 0;
@@ -1117,7 +1126,9 @@ void Hydro<M>::Dump(Sem& sem) {
       m.Dump(&fcv, 2, "vz");
       m.Dump(&fs_->GetPressure(), "p");
       m.Dump(&as_->GetField(), "vf");
-      m.Dump(&fccl_, "cl");
+      if (tr_) {
+        m.Dump(&tr_->GetColor(), "cl");
+      }
       if (IsRoot()) {
         dumper_.Report();
       }
@@ -1244,6 +1255,11 @@ void Hydro<M>::Run() {
       if (sem("as-clip")) {
         Clip(as_->GetField(), 0., 1.);
       }
+    }
+  }
+  if (var.Int["enable_color"] && as_) {
+    if (sem.Nested("color")) {
+      tr_->Update(as_->GetField());
     }
   }
 
