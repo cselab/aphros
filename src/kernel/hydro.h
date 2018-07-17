@@ -177,6 +177,10 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Scal diff_;  // convergence indicator
   Scal pdist_, pdistmin_; // distance to pfixed cell
 
+  std::vector<Scal> clr_cl_; // color reduce: cl
+  std::vector<std::vector<Scal>> clr_v_; // color reduce: vector
+  std::vector<std::string> clr_nm_; // color reduce: variable name
+
   struct Stat {
     Scal m1, m2; // mass
     Vect c1, c2;  // center of mass 
@@ -257,6 +261,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Stat st_;
   std::shared_ptr<output::Session> ost_; // output stat
   Dumper dumper_;
+  Dumper dmptraj_; // dumper for traj
 };
 
 template <class M>
@@ -593,6 +598,7 @@ template <class M>
 Hydro<M>::Hydro(Vars& var, const MyBlockInfo& bi, Par& par) 
   : KernelMeshPar<M,Par>(var, bi, par)
   , dumper_(var, "dump_field_")
+  , dmptraj_(var, "dump_traj_")
 {}
 
 template <class M>
@@ -1260,6 +1266,102 @@ void Hydro<M>::Run() {
   if (var.Int["enable_color"] && as_) {
     if (sem.Nested("color")) {
       tr_->Update(as_->GetField());
+    }
+    bool dm = dmptraj_.Try(st_.t, st_.dt);
+    if (sem("color-calc")) {
+      if (dm) {
+        std::map<Scal, std::vector<Scal>> mp; // map color to vector
+        Scal th = var.Double["color_th"]; // TODO: intergration in neighbours
+        auto kNone = TR::kNone;
+        auto& cl = tr_->GetColor();
+        auto& vf = as_->GetField();
+        auto& vel = fs_->GetVelocity();
+        auto& p = fs_->GetPressure();
+        clr_nm_.clear();
+        // traverse cells, reduce to map
+        for (auto c : m.Cells()) {
+          if (cl[c] != kNone) {
+            auto& v = mp[cl[c]]; // vector for data
+            size_t i = 0;
+            // append value to vector
+            auto add = [&v,&i,this](Scal a, std::string name) {
+              if (i >= v.size()) {
+                v.resize(i + 1);
+                clr_nm_.resize(i + 1);
+                clr_nm_[i] = name;
+              }
+              v[i] += a;
+              ++i;
+            };
+            // volume
+            auto w = vf[c] * m.GetVolume(c);
+            add(w, "vf");
+            // vx
+            add(vel[c][0] * w, "vx");
+          }
+        }
+        // traverse map, copy to vector
+        clr_cl_.clear();
+        clr_v_.clear();
+        for (auto it : mp) {
+          clr_cl_.push_back(it.first); // color
+          clr_v_.push_back(it.second); // vector
+        }
+        using TS = typename M::template OpCatT<Scal>; 
+        using TVS = typename M::template OpCatVT<Scal>; 
+        m.Reduce(std::make_shared<TS>(&clr_cl_));
+        m.Reduce(std::make_shared<TVS>(&clr_v_));
+      }
+    }
+    if (sem("color-reduce")) {
+      if (dm) {
+        if (m.IsRoot()) {
+          // root has concatenation of all clr_cl_ and clr_v_
+          if (clr_cl_.size() != clr_v_.size()) {
+            throw std::runtime_error(
+                "color-reduce: clr_cl_.size() != clr_v_.size()");
+          }
+          std::map<Scal, std::vector<Scal>> mp; // map color to vector
+          // traverse arrays, reduce to map
+          for (size_t k = 0; k < clr_cl_.size(); ++k) {
+            auto cl = clr_cl_[k];
+            auto& v = clr_v_[k];
+            auto& vm = mp[cl];
+            vm.resize(v.size(), 0.);
+            for (size_t i = 0; i < v.size(); ++i) {
+              vm[i] += v[i];
+            }
+          }
+          // dump
+          std::string s = GetDumpName("traj", ".csv", dmptraj_.GetN());
+          std::cout << std::fixed << std::setprecision(8)
+              << "dump" 
+              << " t=" << st_.t
+              << " to " << s << std::endl;
+          std::ofstream o;
+          o.open(s);
+          o.precision(20);
+          // header
+          {
+            o << "cl";
+            for (auto& nm : clr_nm_) {
+              o << "," << nm;
+            }
+            o << std::endl;
+          }
+
+          // content
+          for (auto it : mp) {
+            auto cl = it.first;
+            auto& v = it.second;
+            o << cl;
+            for (auto& a : v) {
+              o << "," << a;
+            }
+            o << "\n";
+          }
+        }
+      }
     }
   }
 
