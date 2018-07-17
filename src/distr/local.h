@@ -90,7 +90,7 @@ auto Local<KF>::CreateMesh(MIdx bs, MIdx b, MIdx p, int es, Scal ext) -> M {
     << " h=" << h
     << std::endl;
 
-  return InitUniformMesh<M>(d, o, mm, 0, true);
+  return InitUniformMesh<M>(d, o, mm, 0, true, mm);
 }
 
 template <class KF>
@@ -126,6 +126,7 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par)
     b.h_gridpoint = h;
     b.ptrBlock = nullptr;
     b.hl = hl_;
+    b.gs = p_ * b_ * bs_;
     bb_.push_back(b);
   }
 

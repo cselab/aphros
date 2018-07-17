@@ -16,10 +16,11 @@ M CreateMesh(const MyBlockInfo& bi) {
   Vect d0(bi.origin); // origin coord
   Vect d1 = d0 + Vect(bs) * h;      // end coord
   Rect<Vect> d(d0, d1);
+  MIdx gs(bi.gs);
 
   MIdx o = w * bs; // origin index
   
-  return InitUniformMesh<M>(d, o, bs, hl, bi.isroot);
+  return InitUniformMesh<M>(d, o, bs, hl, bi.isroot, gs);
 }
 
 // Abstract Kernel aware of Mesh. Dependency of DistrMesh.
