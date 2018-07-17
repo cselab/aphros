@@ -1152,8 +1152,8 @@ void Hydro<M>::Dump(Sem& sem) {
 
 template <class M>
 void Hydro<M>::DumpTraj(Sem& sem) {
-  bool dm = dmptraj_.Try(st_.t, st_.dt);
   if (sem("color-calc")) {
+    bool dm = dmptraj_.Try(st_.t, st_.dt);
     if (dm) {
       std::map<Scal, std::vector<Scal>> mp; // map color to vector
       Scal th = var.Double["color_th"]; // TODO: intergration in neighbours
@@ -1203,6 +1203,7 @@ void Hydro<M>::DumpTraj(Sem& sem) {
     }
   }
   if (sem("color-reduce")) {
+    bool dm = dmptraj_.Try(st_.t, st_.dt);
     if (dm) {
       if (m.IsRoot()) {
         // root has concatenation of all clr_cl_ and clr_v_
