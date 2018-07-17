@@ -1295,9 +1295,13 @@ void Hydro<M>::Run() {
             };
             // volume
             auto w = vf[c] * m.GetVolume(c);
-            add(w, "vf");
-            // vx
+            add(w, "vf"); // XXX: adhoc, vf must be first, divided on dump
+            add(m.GetCenter(c)[0] * w, "x");
+            add(m.GetCenter(c)[1] * w, "y");
+            add(m.GetCenter(c)[2] * w, "z");
             add(vel[c][0] * w, "vx");
+            add(vel[c][1] * w, "vy");
+            add(vel[c][2] * w, "vz");
           }
         }
         // traverse map, copy to vector
@@ -1355,7 +1359,9 @@ void Hydro<M>::Run() {
             auto cl = it.first;
             auto& v = it.second;
             o << cl;
-            for (auto& a : v) {
+            for (size_t i = 0; i < v.size(); ++i) {
+              Scal vf = v[0]; // XXX: assume vf is first
+              Scal a = (i == 0 ? vf : v[i] / vf);
               o << "," << a;
             }
             o << "\n";
