@@ -9,6 +9,7 @@
 
 #include "output.h"
 #include "geom/mesh.h"
+#include "dump/dumper.h"
 
 namespace output {
 
@@ -164,9 +165,9 @@ class SessionParaviewStructured : public SessionParaview {
     WriteCollectionFooter(collection_);
   }
   void Write(double time, std::string /*title*/) override {
-    std::string datafile_name = filename_ + "." + std::to_string(timestep_) + ".vts";
-    WriteCollectionEntry(collection_, time, datafile_name);
-    CreateDataFile(datafile_name);
+    std::string fn = GetDumpName(filename_, ".vts", timestep_);
+    WriteCollectionEntry(collection_, time, fn);
+    CreateDataFile(fn);
     ++timestep_;
   }
 };

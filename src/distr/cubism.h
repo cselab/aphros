@@ -8,6 +8,7 @@
 
 #include "distr.h"
 #include "icubism.h"
+#include "dump/dumper.h"
 
 #include "Cubism/BlockInfo.h"
 #include "Cubism/Grid.h"
@@ -751,10 +752,9 @@ void Cubism<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
       }
       // Write dump
       for (auto& on : m.GetDump()) {
-        auto suff = "_" + std::to_string(frame_);
         StreamHdfDyn<Block>::ID = k;
         StreamHdfDyn<Block>::NAME = on.second;
-        auto fn = on.second + suff;
+        auto fn = GetDumpName(on.second, "", frame_);
         DumpHDF5_MPI<Grid, StreamHdfDyn<Block>>(g_, frame_, frame_, fn);
         k += on.first->GetSize();
         if (on.first->GetSize() != 1) {

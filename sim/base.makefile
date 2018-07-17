@@ -46,11 +46,12 @@ clean::
 
 cleandat::
 	rm -vf *.pdf
-	rm -vf *.{xmf,h5}
-	rm -vf *.{vts,pvd}
+	rm -vf *_*.{xmf,h5}
+	rm -vf *_*.vts
+	rm -vf p.pvd
 	rm -vf stat.dat
-	rm -vf partit*.csv
-	rm -vf s*.vtk
+	rm -vf partit_*.csv
+	rm -vf s_*.vtk
 	rm -vf out
 	rm -vf lsf.o*
 	rm -vf slurm*.out

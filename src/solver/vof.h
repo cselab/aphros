@@ -143,8 +143,7 @@ class Vof : public AdvectionSolver<M_> {
     }
     if (sem("write")) {
       if (m.IsRoot()) {
-        std::string st = "." + std::to_string(par->dmp->GetN());
-        auto fn = "s" + st + ".vtk";
+        std::string fn = GetDumpName("s", ".vtk", par->dmp->GetN());
         std::cout << std::fixed << std::setprecision(8)
             << "dump" 
             << " t=" << this->GetTime() + this->GetTimeStep()
@@ -196,9 +195,8 @@ class Vof : public AdvectionSolver<M_> {
       }
       if (sem("write")) {
         if (m.IsRoot()) {
-          std::string st = "." + std::to_string(par->dmp->GetN());
-          std::string sit = fr > 1 ? "_" + std::to_string(it) : "";
-          std::string s = "partit" + st + sit + ".csv";
+          std::string s = GetDumpName("partit", ".csv", par->dmp->GetN(), 
+                                      fr > 1 ? it : -1);
           std::cout << std::fixed << std::setprecision(8)
               << "dump" 
               << " t=" << this->GetTime() + this->GetTimeStep()
