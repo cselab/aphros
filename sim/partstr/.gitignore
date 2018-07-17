@@ -5,3 +5,4 @@ __pycache__
 er
 err
 base.conf
+*.csv

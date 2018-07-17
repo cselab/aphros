@@ -2,6 +2,8 @@
 #include <cassert>
 #include <string>
 #include <limits>
+#include <sstream>
+#include <iomanip>
 
 #include "dumper.h"
 
@@ -43,4 +45,19 @@ void Dumper::Report() {
       << " t=" << pt_
       << " target=" << ptt_
       << std::endl;
+}
+
+std::string GetDumpName(std::string fld, std::string ext, size_t t, size_t it) {
+  std::stringstream s;
+  s << fld;
+  s << "_" << std::setfill('0') << std::setw(4) << t;
+  if (it != -1) {
+    s << "_" << std::setfill('0') << std::setw(4) << it;
+  }
+  s << ext;
+  return s.str();
+}
+
+std::string GetDumpName(std::string fld, std::string ext, size_t t) {
+  return GetDumpName(fld, ext, t, -1);
 }

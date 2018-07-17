@@ -1,9 +1,11 @@
 #pragma once
 
+#include <limits>
+#include <string>
+
 #include "parse/vars.h"
 
 // TODO: rename to e.g. DumpScheduler
-
 
 class Dumper {
  public:
@@ -25,3 +27,13 @@ class Dumper {
   double ptt_; // dum[p] target time
 };
 
+// fld: field name
+// ext: extension
+// t: time step
+// it: iteration, skip if -1
+std::string GetDumpName(std::string fld, std::string ext, size_t t, size_t it);
+
+// fld: field name
+// ext: extension
+// t: time step
+std::string GetDumpName(std::string fld, std::string ext, size_t t);
