@@ -16,6 +16,7 @@ struct MyBlockInfo {
   int hl; // number of halo cells
   bool isroot; // root block (one among blocks on all PEs)
   bool islead; // lead block (one per each PE)
+  Idx gs; // global size
 };
 
 class Kernel {

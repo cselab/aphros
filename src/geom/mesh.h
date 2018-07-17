@@ -68,14 +68,19 @@ class MeshStructured {
   FieldCell<bool> fc_is_inner_;
   FieldFace<bool> ff_is_inner_;
   bool isroot_;
+  MIdx gs_;
 
  public:
   // b_nodes: block of nodes
   // fn_node: field of b_nodes with node positions
   // isroot: root block
+  // gs: global size
   MeshStructured(const BlockNodes& b_nodes, 
                  const FieldNode<Vect>& fn_node, 
-                 int hl, bool isroot);
+                 int hl, bool isroot, MIdx gs);
+  MIdx GetGlobalSize() const {
+    return gs_;
+  }
   // TODO: rename to GetBlockAllCells()
   const BlockCells& GetBlockCells() const {
     return b_cells_;
@@ -759,7 +764,7 @@ template <class _Scal, size_t _dim>
 MeshStructured<_Scal, _dim>::MeshStructured(
     const BlockNodes& b_nodes,
     const FieldNode<Vect>& fn_node,
-    int hl, bool isroot)
+    int hl, bool isroot, MIdx gs)
     : b_nodes_(b_nodes)
     , fn_node_(fn_node)
     , b_cells_(b_nodes_.GetBegin(), b_nodes_.GetDimensions() - MIdx(1))
@@ -790,6 +795,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     , fc_is_inner_(b_cells_, false)
     , ff_is_inner_(b_faces_, false)
     , isroot_(isroot)
+    , gs_(gs)
 {
   static_assert(dim == 3, "Not implemented for dim != 3");
   MIdx mb = b_cells_.GetBegin(), me = b_cells_.GetEnd();
@@ -917,27 +923,29 @@ MeshStructured<_Scal, _dim>::MeshStructured(
 // s: number of inner cells in each direction
 // hl: number of halo layers
 // isroot: root block
-template <class Mesh>
-Mesh InitUniformMesh(Rect<typename Mesh::Vect> domain,
-                     typename Mesh::MIdx begin,
-                     typename Mesh::MIdx s, int hl, bool isroot) {
-  using Vect = typename Mesh::Vect;
-  using MIdx = typename Mesh::MIdx;
-  typename Mesh::BlockNodes b_nodes(begin - MIdx(hl), s + MIdx(1 + 2*hl));
+// gs: global mesh size
+template <class M>
+M InitUniformMesh(Rect<typename M::Vect> domain,
+                     typename M::MIdx begin,
+                     typename M::MIdx s, int hl, bool isroot,
+                     typename M::MIdx gs) {
+  using Vect = typename M::Vect;
+  using MIdx = typename M::MIdx;
+  typename M::BlockNodes b_nodes(begin - MIdx(hl), s + MIdx(1 + 2*hl));
   FieldNode<Vect> fn_node(b_nodes);
   for (auto midx : b_nodes) {
     IdxNode idxnode = b_nodes.GetIdx(midx);
     Vect unit = Vect(midx - b_nodes.GetBegin() - MIdx(hl)) / Vect(s);
     fn_node[idxnode] = domain.lb + unit * domain.GetDimensions();
   }
-  return Mesh(b_nodes, fn_node, hl, isroot);
+  return M(b_nodes, fn_node, hl, isroot, gs);
 }
 
-template <class Mesh>
-Mesh InitUniformMesh(const Rect<typename Mesh::Vect>& domain,
-                     typename Mesh::MIdx mesh_size) {
-  using MIdx = typename Mesh::MIdx;
-  return InitUniformMesh<Mesh>(domain, MIdx(0), mesh_size, true);
+template <class M>
+M InitUniformMesh(const Rect<typename M::Vect>& domain,
+                     typename M::MIdx s, typename M::MIdx gs) {
+  using MIdx = typename M::MIdx;
+  return InitUniformMesh<M>(domain, MIdx(0), s, true, gs);
 }
 
 

@@ -495,6 +495,10 @@ Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par)
     MIdx d(e.index);
     e.isroot = (d == MIdx(0));
     e.islead = islead;
+    MIdx gs = p_ * b_ * bs_; // global size
+    for (int j = 0; j < 3; ++j) {
+      e.gs[j] = gs[j];
+    }
     islead = false;
   }
 
