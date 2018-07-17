@@ -702,6 +702,7 @@ class Vof : public AdvectionSolver<M_> {
     }
 
     if (sem("height")) {
+      CheckNan(uc, "vof:Rec:uc", m);
       DetectInterface(uc);
       // Compute normal and curvature [s]
       CalcNormal(uc, fci_, fc_n_, fck_);
@@ -926,6 +927,8 @@ class Vof : public AdvectionSolver<M_> {
             u = 0.;
           } else if (u > 1. - th) {
             u = 1.;
+          } else if (IsNan(u)) {
+            u = 0.;
           }
         }
         m.Comm(&uc);
