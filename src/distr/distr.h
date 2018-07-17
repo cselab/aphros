@@ -15,6 +15,7 @@
 #include "kernel/kernel.h"
 #include "linear/hypre.h"
 #include "dump/dump.h"
+#include "dump/dumper.h"
 
 // Abstract block processor.
 class Distr {
@@ -142,8 +143,7 @@ void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
       }
       // Write dump
       for (auto& on : m.GetDump()) {
-        auto suff = "_" + std::to_string(frame_);
-        std::string fn = on.second + suff + ".dat";
+        std::string fn = GetDumpName(on.second, ".dat", frame_);
         auto bc = GetGlobalBlock();
         auto fc = GetGlobalField(k);
         if (isroot_) {
