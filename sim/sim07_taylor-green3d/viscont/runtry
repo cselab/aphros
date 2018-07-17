@@ -18,6 +18,9 @@ cnt() {
 # log file
 l=log
 
+# script
+c="contrt.py"
+
 # total number of frames
 smax=`cnt "$b/vf*.xmf"`
 echo "Found smax=$smax frames" >> $l
@@ -31,7 +34,7 @@ while [ "$a" -ge 0 ]; do
     break
   fi
   echo "$a" attempts left, skip first "$s" frames >> $l
-  cmd="r.pvbatch omzrt.py '$b' '$s'"
+  cmd="r.pvbatch '$c' '$b' '$s'"
   echo -e "\n$cmd" >> $l
   eval "$cmd" &>> $l
   let a=a-1

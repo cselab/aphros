@@ -1,0 +1,41 @@
+#!/bin/bash
+
+shopt -s nullglob
+
+# count number of files by pattern p
+cnt() {
+  p="$@"
+  arr=($p)
+  echo ${#arr[@]}
+}
+
+# base path
+: ${b=../}
+
+# tries
+: ${a=100}
+
+# log file
+l=log
+
+# script
+c="omzrt.py"
+
+# total number of frames
+smax=`cnt "$b/vf*.xmf"`
+echo "Found smax=$smax frames" >> $l
+
+while [ "$a" -ge 0 ]; do
+  # frames done
+  s=`cnt '*.png'`
+  # break if no frames left
+  if [ "$s" -ge "$smax" ] ; then
+    echo "Done." >> $l
+    break
+  fi
+  echo "$a" attempts left, skip first "$s" frames >> $l
+  cmd="r.pvbatch '$c' '$b' '$s'"
+  echo -e "\n$cmd" >> $l
+  eval "$cmd" &>> $l
+  let a=a-1
+done
