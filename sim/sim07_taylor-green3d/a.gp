@@ -9,7 +9,7 @@ set grid
 
 v='dk'
 
-l="nx64 nx128p64 nx128p512t20 nx128p64t20i2"
+l="ref ."
 
 plot for [f in l] "<paste ".f."/sc/{t,".v."}" w l lw 3 t "".f.""
 
