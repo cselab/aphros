@@ -1148,6 +1148,8 @@ void Hydro<M>::Dump(Sem& sem) {
       if (dl.count("vz")) m.Dump(&fcv, 2, "vz");
       if (dl.count("p")) m.Dump(&fs_->GetPressure(), "p");
       if (dl.count("vf")) m.Dump(&as_->GetField(), "vf");
+      if (dl.count("rho")) m.Dump(&fc_rho_, "rho");
+      if (dl.count("mu")) m.Dump(&fc_mu_, "mu");
       if (tr_) {
         if (dl.count("cl")) m.Dump(&tr_->GetColor(), "cl");
         auto& im = tr_->GetImage();
@@ -1183,6 +1185,8 @@ void Hydro<M>::DumpTraj(Sem& sem) {
       Scal ext = var.Double["extent"]; // TODO: revise
       Vect gh = Vect(gs) * ext / gs.max(); // global domain length
       clr_nm_.clear();
+      // list of vars // TODO: revise
+      clr_nm_ = {"vf", "x", "y", "z", "vx", "vy", "vz", "p"};
       // traverse cells, reduce to map
       for (auto c : m.Cells()) {
         if (cl[c] != kNone) {
@@ -1192,8 +1196,6 @@ void Hydro<M>::DumpTraj(Sem& sem) {
           auto add = [&v,&i,this](Scal a, std::string name) {
             if (i >= v.size()) {
               v.resize(i + 1);
-              clr_nm_.resize(i + 1);
-              clr_nm_[i] = name;
             }
             v[i] += a;
             ++i;
@@ -1203,6 +1205,7 @@ void Hydro<M>::DumpTraj(Sem& sem) {
           add(w, "vf"); // XXX: adhoc, vf must be first, divided on dump
           auto x = m.GetCenter(c);
           x += im[c] * gh;
+          // list of vars, XXX: keep consistent with clr_nm_ 
           add(x[0] * w, "x");
           add(x[1] * w, "y");
           add(x[2] * w, "z");
