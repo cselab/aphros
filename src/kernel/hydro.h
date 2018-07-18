@@ -350,13 +350,7 @@ void Hydro<M>::Init() {
     m.Comm(&fc_vel_);
 
     // global mesh size
-    MIdx gs;
-    {
-      MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
-      MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
-      MIdx bs(var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]);
-      gs = p * b * bs;
-    }
+    MIdx gs = m.GetGlobalSize();
 
     if (m.IsRoot()) {
       std::cout << "global mesh=" << gs << std::endl;
