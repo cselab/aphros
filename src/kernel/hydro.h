@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <memory>
 #include <limits>
+#include <set>
 
 #include "geom/mesh.h"
 #include "solver/solver.h"
@@ -84,6 +85,22 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using ASV = solver::Vof<M>; // advection VOF
   using TR = solver::Tracker<M>; // color tracker
 
+  // Converts space-separated list to set
+  static std::set<std::string> ParseList(std::string s) {
+    std::set<std::string> r;
+    std::stringstream st(s);
+    st >> std::skipws;
+    while (true) {
+      std::string e;
+      st >> e;
+      if (st) {
+        r.insert(e);
+      } else {
+        break;
+      }
+    }
+    return r;
+  }
   void Update(typename FS::Par* p) {
     p->prelax = var.Double["prelax"];
     p->vrelax = var.Double["vrelax"];
@@ -1121,17 +1138,22 @@ template <class M>
 void Hydro<M>::Dump(Sem& sem) {
   if (sem("dump")) {
     if (dumper_.Try(st_.t, st_.dt)) {
-      auto& fcv = fs_->GetVelocity();
-      m.Dump(&fcv, 0, "vx");
-      m.Dump(&fcv, 1, "vy");
-      m.Dump(&fcv, 2, "vz");
-      m.Dump(&fs_->GetPressure(), "p");
-      m.Dump(&as_->GetField(), "vf");
-      if (tr_) {
-        m.Dump(&tr_->GetColor(), "cl");
-      }
       if (IsRoot()) {
         dumper_.Report();
+      }
+      auto dl = ParseList(var.String["dumplist"]);
+      auto& fcv = fs_->GetVelocity();
+      if (dl.count("vx")) m.Dump(&fcv, 0, "vx");
+      if (dl.count("vy")) m.Dump(&fcv, 1, "vy");
+      if (dl.count("vz")) m.Dump(&fcv, 2, "vz");
+      if (dl.count("p")) m.Dump(&fs_->GetPressure(), "p");
+      if (dl.count("vf")) m.Dump(&as_->GetField(), "vf");
+      if (tr_) {
+        if (dl.count("cl")) m.Dump(&tr_->GetColor(), "cl");
+        auto& im = tr_->GetImage();
+        if (dl.count("imx")) m.Dump(&im, 0, "imx");
+        if (dl.count("imy")) m.Dump(&im, 1, "imy");
+        if (dl.count("imz")) m.Dump(&im, 2, "imz");
       }
     }
   }
