@@ -74,9 +74,11 @@ void Tracker<M_>::Update(const FieldCell<Scal>& fcu) {
         }
       } else {  // no liquid in cell
         o = kNone;
+        fcim_[c] = Vect(0);
       }
     }
     m.Comm(&fccl_);
+    m.Comm(&fcim_);
   }
 }
 
