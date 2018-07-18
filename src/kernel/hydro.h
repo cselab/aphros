@@ -1153,9 +1153,13 @@ void Hydro<M>::DumpTraj(Sem& sem) {
       Scal th = var.Double["color_th"]; // TODO: intergration in neighbours
       auto kNone = TR::kNone;
       auto& cl = tr_->GetColor();
+      auto& im = tr_->GetImage();
       auto& vf = as_->GetField();
       auto& vel = fs_->GetVelocity();
       auto& p = fs_->GetPressure();
+      MIdx gs = m.GetGlobalSize(); // global mesh size
+      Scal ext = var.Double["extent"]; // TODO: revise
+      Vect gh = Vect(gs) * ext / gs.max(); // global domain length
       clr_nm_.clear();
       // traverse cells, reduce to map
       for (auto c : m.Cells()) {
@@ -1175,9 +1179,11 @@ void Hydro<M>::DumpTraj(Sem& sem) {
           // volume
           auto w = vf[c] * m.GetVolume(c);
           add(w, "vf"); // XXX: adhoc, vf must be first, divided on dump
-          add(m.GetCenter(c)[0] * w, "x");
-          add(m.GetCenter(c)[1] * w, "y");
-          add(m.GetCenter(c)[2] * w, "z");
+          auto x = m.GetCenter(c);
+          x += im[c] * gh;
+          add(x[0] * w, "x");
+          add(x[1] * w, "y");
+          add(x[2] * w, "z");
           add(vel[c][0] * w, "vx");
           add(vel[c][1] * w, "vy");
           add(vel[c][2] * w, "vz");
