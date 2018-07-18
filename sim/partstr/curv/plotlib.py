@@ -54,9 +54,14 @@ def GetImg(u):
     return np.flipud(u.T)
 
 def PlotInitSq():
-    fig, ax = plt.subplots(figsize=(5,5))
+    fig, ax = plt.subplots(figsize=(3,3))
     ax.set_aspect('equal')
     return fig, ax
+
+def PlotInit():
+    fig, ax = plt.subplots(figsize=(5,3))
+    return fig, ax
+
 
 def PlotSave(fig, ax, po):
     fig.tight_layout()
@@ -357,7 +362,7 @@ def FigHistK(vf, kk, ll, po):
     # average curvature
     kea = ke.mean()
 
-    fig, ax = plt.subplots()
+    fig, ax = PlotInit()
     for k,l in zip(kk,ll):
         if IsGerris(vf.shape):
             k *= -1

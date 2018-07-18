@@ -16,8 +16,20 @@ from plotlib import *
 def FigVf(pt):
     vf = ReadField(pt, 'vf')
 
+    # center of mass
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+    x,y,z = GetMesh(x1, y1, z1)
+    ii = np.where(np.isfinite(vf))
+    cx = np.sum(x[ii] * vf[ii]) / np.sum(vf[ii])
+    cy = np.sum(y[ii] * vf[ii]) / np.sum(vf[ii])
+    cz = np.sum(z[ii] * vf[ii]) / np.sum(vf[ii])
+    iz = np.argmin(abs(cz - z))
+    print("FigVf: c={:}, ciz={:}".format((cx, cy, cz), iz))
+
+    # slice through center of mass
+    if vf is not None: vf = vf[:,:,iz:iz+1]
+
     fig, ax = PlotInitSq()
-    # q: dummy
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
     xn1,yn1,zn1 = GetMeshNodes(hx, hy, hz)
     x,y,z = GetMesh(x1, y1, z1)
@@ -26,12 +38,6 @@ def FigVf(pt):
     PlotGrid(ax, xn1, yn1)
     # field
     PlotFieldGray(ax, vf, vmin=0., vmax=1.)
-    # partilces
-    pa = GetFieldPath(pt, "partit")
-    if os.path.isfile(pa):
-        print(pa)
-        PlotPart(ax, pa, sk=4)
-
     # save
     po = GetFieldPath(pt, "vf", "pdf")
     print(po)
@@ -54,7 +60,7 @@ def GetTrajE(x0, y0, vx0, vy0, t, n=150):
 # x,y: arrays
 def GetTraj(pp):
     # result
-    cx = [] ; cy = []
+    cx = [] ; cy = [] ; cz = []
     for i,p in enumerate(pp):
         # report
         sys.stdout.write("{:} ".format(i))
@@ -66,14 +72,17 @@ def GetTraj(pp):
         # compute center
         cx0 = (x * vf).sum() / vf.sum()
         cy0 = (y * vf).sum() / vf.sum()
+        cz0 = (z * vf).sum() / vf.sum()
         cx.append(cx0)
         cy.append(cy0)
+        cz.append(cz0)
     sys.stdout.write("\n")
     sys.stdout.flush()
 
     cx = np.array(cx)
     cy = np.array(cy)
-    return cx,cy
+    cz = np.array(cz)
+    return cx,cy,cz
 
 # Extracts value of field along trajectory.
 # pp: list of paths to volume fraction fields
@@ -81,7 +90,7 @@ def GetTraj(pp):
 # fld: field prefix (e.g. 'p')
 # Returns:
 # cu: field at center
-def GetTrajFld(pp, cx, cy, fld):
+def GetTrajFld(pp, cx, cy, cz, fld):
     cu = []
     for i,p in enumerate(pp):
         # report
@@ -97,8 +106,9 @@ def GetTrajFld(pp, cx, cy, fld):
         # index
         ci0 = int(cx[i] / hx)
         cj0 = int(cy[i] / hy)
+        ck0 = int(cz[i] / hy)
         # field
-        cu.append(u[ci0, cj0, 0])
+        cu.append(u[ci0, cj0, ck0])
     sys.stdout.write("\n")
     sys.stdout.flush()
 
@@ -177,7 +187,7 @@ def Main():
     x,y = GetTrajE(0.3, 0.3, 0.4, 0.3, 1.)
     # exact pressure jump
     sig = 1.
-    eex = sig / rx
+    eex = 2. * sig / rx
     e = x * 0 + eex
     # relative to exact
     e /= eex
@@ -198,11 +208,11 @@ def Main():
         # volume fraction
         FigVf(pt)
         # trajectory
-        x,y = GetTraj(pp)
+        x,y,z = GetTraj(pp)
         # pressure
-        e = GetTrajFld(pp, x, y, "p")
+        e = GetTrajFld(pp, x, y, z, "p")
         # pressure at corner
-        e0 = GetTrajFld(pp, x * 0, y * 0, "p")
+        e0 = GetTrajFld(pp, x * 0, y * 0, z * 0, "p")
         # pressure jump
         e -= e0
         # relative to exact

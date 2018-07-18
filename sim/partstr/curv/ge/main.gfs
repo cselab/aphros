@@ -1,7 +1,7 @@
 1 0 GfsAdvection GfsBox GfsGEdge {} {
   Time { end = 1  dtmax = 1 }
 
-  Refine 5
+  Refine 6
 
   VariableTracerVOF T
 

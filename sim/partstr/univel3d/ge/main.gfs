@@ -10,18 +10,19 @@
 
   VariableTracerVOF T
 
-  InitFraction T (ini_t2(x+0.5, y+0.5))
+  InitFraction T (ini_t(x+0.5, y+0.5, z+0.5))
 
   VariableCurvature K T 
   SourceTension T 1 K
 
   SourceViscosity 0.001
 
-  Init {} { U = 0.4 V = 0.3 }
+  Init {} { U = 0.4 V = 0.3 W = 0.2 }
 
-  OutputSimulation { step = 0.01 } u_%04ld.vtk { variables = T,P,U,V,K format = VTK}
+  OutputSimulation { step = 0.01 } u_%04ld.vtk { variables = T,P,U,V,W,K format = VTK}
   OutputTime { istep = 1 } stderr
 }
 GfsBox {}
 1 1 right
 1 1 top
+1 1 front

@@ -44,7 +44,7 @@ def FigAng(vf, kk, ll, po):
     s = np.argsort(an)
 
     # plot exact curvature
-    fig, ax = plt.subplots()
+    fig, ax = PlotInit()
     ax.plot(degh, keh / kea, label="exact", c="0.5")
 
     # plot estimates

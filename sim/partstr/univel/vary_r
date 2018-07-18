@@ -14,8 +14,8 @@ mkdir -p $o
 l="out"
 echo > $l
 
-for br in 0.037 0.045 0.0625 0.125 0.25 ; do
-#for br in 0.0625 ; do
+for exp in `seq 2 6` ; do
+  br=`bc -l <<< "0.4 * sqrt(2 ^ (-$exp))"`
   echo "br=$br"
   echo "$bc $br $br" > b.dat
   p="r${br}_"
@@ -34,7 +34,7 @@ for br in 0.037 0.045 0.0625 0.125 0.25 ; do
   ./plot.py &>> $l
 
   d="ch"
-  mv -f $d/vf_0.pdf $o/${p}vf_$d.pdf
+  mv -f $d/vf_0000.pdf $o/${p}vf_$d.pdf
   d="ge"
   mv -f $d/vf_0000.pdf $o/${p}vf_$d.pdf
   for f in ttl traj trajp trajx trajy ; do

@@ -8,7 +8,7 @@ rm -vf $o/*.pdf
 mkdir -p $o
 
 # bubble
-: ${bc="0.51 0.47 0.56 "}
+: ${bc="0.51 0.49 0.56 "}
 
 # rx/ry ratio
 #k=1.2
@@ -23,7 +23,8 @@ echo > $l
 e="err"
 echo > $e
 
-for br in 0.037 0.045 0.0625 0.125 0.25 0.4 ; do
+for exp in `seq 0 9` ; do
+  br=`bc -l <<< "0.4 * sqrt(2 ^ (-$exp))"`
   brx=`bc -l <<< "$br * $k"`
   bry=`bc -l <<< "$br / $k"`
   echo "brx=$brx, bry=$bry"
@@ -45,7 +46,7 @@ for br in 0.037 0.045 0.0625 0.125 0.25 0.4 ; do
   cat er >> $e
 
   d="ch"
-  mv -f $d/vf_0.pdf $o/${p}vf_$d.pdf
+  mv -f $d/vf_0000.pdf $o/${p}vf_$d.pdf
   d="ge"
   mv -f $d/vf_0001.pdf $o/${p}vf_$d.pdf
   mv -v ttl.pdf $o/${p}ttl.pdf
