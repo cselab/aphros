@@ -1209,6 +1209,7 @@ void Hydro<M>::DumpTraj(Sem& sem) {
           add(vel[c][0] * w, "vx");
           add(vel[c][1] * w, "vy");
           add(vel[c][2] * w, "vz");
+          add(p[c] * w, "p");
         }
       }
       // traverse map, copy to vector
