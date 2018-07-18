@@ -470,7 +470,8 @@ void Main(MPI_Comm comm, Vars& var0) {
 
   using Scal = double;
   Rect<Vect> dom(Vect(0), Vect(1));
-  auto m = InitUniformMesh<M>(dom, MIdx(0), b.GetDimensions(), 0, true);
+  MIdx ms = b.GetDimensions();
+  auto m = InitUniformMesh<M>(dom, MIdx(0), ms, 0, true, ms);
 
   if (isroot) {
     std::cerr << "solve bs/2" << std::endl;
