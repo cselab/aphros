@@ -97,7 +97,7 @@ CreateInitCl(Vars& par, bool verb=true) {
         return 1. - xd.sqrnorm();
       };
 
-      auto kNone = solver::Tracker<M>::kNone;
+      Scal kNone = solver::Tracker<M>::kNone;
       cl.Reinit(m, kNone);
       if (pp.empty()) {
         return;
@@ -125,15 +125,18 @@ CreateInitCl(Vars& par, bool verb=true) {
     Vect xc(par.Vect["box_c"]);
     Scal s = par.Double["box_s"];
     g = [xc,s](FieldCell<Scal>& fc, const FieldCell<Scal>& fcvf, const M& m) { 
+      Scal kNone = solver::Tracker<M>::kNone;
+      fc.Reinit(m, kNone);
       for (auto c : m.Cells()) {
-        fc[c] = (xc - m.GetCenter(c)).norminf() < s * 0.5 ? 1. : 0.; 
+        if ((xc - m.GetCenter(c)).norminf() < s * 0.5) {
+          fc[c] = 1.; 
+        }
       }
     };
   } else if (v == "zero") {
     g = [](FieldCell<Scal>& fc, const FieldCell<Scal>& fcvf, const M& m) { 
-      for (auto c : m.Cells()) {
-        fc[c] = 0.;
-      }
+      Scal kNone = solver::Tracker<M>::kNone;
+      fc.Reinit(m, kNone);
     };
   } else {
     if (verb) {

@@ -541,7 +541,7 @@ void Hydro<M>::Init() {
     }
 
     // Init color tracker
-    {
+    if (var.Int["enable_color"] && as_) {
       tr_.reset(new TR(m, fccl_, var.Double["color_th"], var.Int["dim"]));
     }
 
@@ -1145,7 +1145,7 @@ void Hydro<M>::Dump(Sem& sem) {
     // Empty stage for DumpWrite
     // TODO: revise
   }
-  if (var.Int["enable_color"] && as_) {
+  if (tr_) {
     DumpTraj(sem);
   }
 }

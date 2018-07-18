@@ -126,7 +126,10 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par)
     b.h_gridpoint = h;
     b.ptrBlock = nullptr;
     b.hl = hl_;
-    b.gs = p_ * b_ * bs_;
+    MIdx gs = p_ * b_ * bs_; // global size
+    for (int j = 0; j < 3; ++j) {
+      b.gs[j] = gs[j];
+    }
     bb_.push_back(b);
   }
 
