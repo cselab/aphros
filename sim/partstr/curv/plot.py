@@ -60,7 +60,6 @@ def FigAng(vf, kk, ll, po):
     ax.legend()
     ax.set_ylim(0., 2.)
     ax.grid()
-    plt.title("rx/h={:.3f}, ry/h={:.3f}".format(rx / hx, ry / hx))
     PlotSave(fig, ax, po)
 
 
@@ -122,7 +121,7 @@ def FigVf(pt):
     pa = GetFieldPath(pt, "partit")
     if os.path.isfile(pa):
         print(pa)
-        PlotPart(ax, pa, sk=1)
+        PlotPart(ax, pa, sk=3)
 
     # save
     po = GetFieldPath(pt, "vf", "pdf")
@@ -167,8 +166,7 @@ def Main():
     # title
     cx,cy,cz,rx,ry = np.loadtxt('b.dat')
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
-    po = 'ttl.pdf'
-    FigTitle("rx/h={:0.3f} ry/h={:0.3f}".format(rx / hx, ry / hx), po)
+    title = "rx/h={:0.3f} ry/h={:0.3f}".format(rx / hx, ry / hx)
 
     # curvature vs angle
     po = 'ang.pdf'
@@ -176,6 +174,6 @@ def Main():
 
     # curvature histogram
     po = 'hist.pdf'
-    FigHistK(vf, kk, ll, po)
+    FigHistK(vf, kk, ll, po, title=title)
 
 Main()

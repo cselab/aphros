@@ -59,7 +59,7 @@ def PlotInitSq():
     return fig, ax
 
 def PlotInit():
-    fig, ax = plt.subplots(figsize=(5,3))
+    fig, ax = plt.subplots(figsize=(4,3))
     return fig, ax
 
 
@@ -287,7 +287,7 @@ def GetPathTemplate(p):
 # fld: field name
 def GetFieldPath(pt, fld, ext="dat"):
     if fld == "partit":
-        return pt.format(fld + ".", "csv")
+        return pt.format(fld + "_", "csv")
     return pt.format(fld + "_", ext)
 
 def ReadField(pt, fld):
@@ -347,7 +347,7 @@ def GetExactK(dim, x, y, z):
     return fk(a)
 
 # Histogram of curvature
-def FigHistK(vf, kk, ll, po):
+def FigHistK(vf, kk, ll, po, title=None):
     dim = GetDim(vf.shape)
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
     x,y,z = GetMesh(x1, y1, z1)
@@ -375,6 +375,8 @@ def FigHistK(vf, kk, ll, po):
     ax.set_ylim(0)
     ax.set_xlabel(r"curvature error")
     ax.legend()
+    if title is not None:
+        ax.set_title(title)
     ax.grid()
     PlotSave(fig, ax, po)
 

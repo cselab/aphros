@@ -49,7 +49,6 @@ for exp in `seq 0 9` ; do
   mv -f $d/vf_0000.pdf $o/${p}vf_$d.pdf
   d="ge"
   mv -f $d/vf_0001.pdf $o/${p}vf_$d.pdf
-  mv -v ttl.pdf $o/${p}ttl.pdf
   mv -v hist.pdf $o/${p}hist.pdf
   [ -f ang.pdf ] && mv -v ang.pdf $o/${p}ang.pdf
 done

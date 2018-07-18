@@ -37,7 +37,7 @@ for exp in `seq 2 6` ; do
   mv -f $d/vf_0000.pdf $o/${p}vf_$d.pdf
   d="ge"
   mv -f $d/vf_0000.pdf $o/${p}vf_$d.pdf
-  for f in ttl traj trajp trajx trajy ; do
+  for f in traj trajp trajx trajy ; do
     mv -v $f.pdf $o/${p}${f}.pdf
   done
 done

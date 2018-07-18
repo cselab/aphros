@@ -15,12 +15,8 @@ for f in r*{traj,trajp,trajx,trajy,vf_ch}.pdf ; do
   pdfcrop --margins '5 10 5 10' $f cr_$f &> /dev/null
 done
 
-for f in r*ttl.pdf ; do
-  pdfcrop --margins '50 100 50 100' $f cr_$f &> /dev/null
-done
-
 t=t.pdf
-n=`cnt "cr_*ttl.pdf"`
+n=`cnt "cr_*traj.pdf"`
 
 echo "tile"
 pdfnup cr_*{traj,vf_ch}.pdf --nup ${n}x2 --fitpaper false --outfile $t

@@ -81,11 +81,10 @@ def Main():
     # title
     cx,cy,cz,rx,ry = np.loadtxt('b.dat')
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
-    po = 'ttl.pdf'
-    FigTitle("rx/h={:0.3f} ry/h={:0.3f}".format(rx / hx, ry / hx), po)
+    title = "r/h={:0.3f}".format(rx / hx)
 
     # curvature depending on angle
     po = 'hist.pdf'
-    FigHistK(vf, kk, ll, po)
+    FigHistK(vf, kk, ll, po, title=title)
 
 Main()

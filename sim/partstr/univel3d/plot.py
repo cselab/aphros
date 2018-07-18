@@ -155,8 +155,6 @@ def PlotTraj(xx, yy, ll, s):
 
     q,q,q,rx,ry = np.loadtxt('b.dat')
     x1,y1,z1,hx,hy,hz = GetGeom(s)
-    po = 'ttl.pdf'
-    FigTitle("r/h={:0.3f}".format(rx / hx), po)
     plt.title("r/h={:0.3f}".format(rx / hx))
     po = 'traj.pdf'
     PlotSave(fig, ax, po)
@@ -177,11 +175,8 @@ def Main():
     pt = GetPathTemplate(pp[0])
     vf = ReadField(pt, "vf")
 
-    # title
     cx,cy,cz,rx,ry = np.loadtxt('b.dat')
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
-    po = 'ttl.pdf'
-    FigTitle("r/h={:0.3f}".format(rx / hx), po)
 
     # exact trajectories
     x,y = GetTrajE(0.3, 0.3, 0.4, 0.3, 1.)

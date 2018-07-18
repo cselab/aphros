@@ -15,3 +15,5 @@
   OutputSimulation { step = 1 start = 1 } u_%04ld.vtk { variables = T,K format = VTK}
 }
 GfsBox {}
+1 1 right
+1 1 top
