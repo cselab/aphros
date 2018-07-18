@@ -662,7 +662,7 @@ class Vof : public AdvectionSolver<M_> {
           }
         }
       }
-      if (nan) {
+      if (nan && par->part_verb) {
         std::stringstream s;
         s.precision(16);
         s << "nan curvature in all neighbours of " << nan 
