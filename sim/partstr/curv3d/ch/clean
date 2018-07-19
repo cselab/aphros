@@ -10,3 +10,5 @@ rm -vrf o
 rm -vf out
 rm -vf *.dat
 rm -vf base.conf
+rm -vf *.png
+rm -vf partitf.csv

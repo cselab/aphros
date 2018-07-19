@@ -1,10 +1,28 @@
-#!/bin/bash
+#!/usr/bin/env python
 
-a="partit.0.csv"
-o="a.csv"
+import numpy as np
 
-l=`sed '2!d' $a`
-c=`sed -r 's/.*,(\d*)/\1/' <<< "$l"`
+a="partit_0000.csv"
+o="partitf.csv"
 
-echo "x,y,z,c" > $o
-grep ",$c" $a >> $o
+u = np.genfromtxt(a, delimiter=',', names=True)
+
+c = np.unique(u["c"])
+
+# select beta cells or at least nmin
+beta = 0.1
+nmin = 10
+nmax = 1000
+c = np.random.choice(c, min(nmax, max(nmin, int(len(c) * beta))))
+c = np.unique(c)
+
+# filtered u
+ii = np.where(u["c"][:,np.newaxis] == c[np.newaxis,:])[0]
+uf = u[ii]
+
+# write csv
+with open(o, "w") as fo:
+    fo.write(",".join(u.dtype.names) + '\n')
+    for l in uf:
+        fo.write(",".join([str(e) for e in l]) + '\n')
+

@@ -47,6 +47,7 @@ for exp in `seq 0 9` ; do
 
   d="ch"
   mv -f $d/vf_0000.pdf $o/${p}vf_$d.pdf
+  [ -f $d/s.png ] && mv -v $d/s.png $o/${p}s.png
   d="ge"
   mv -f $d/vf_0001.pdf $o/${p}vf_$d.pdf
   mv -v hist.pdf $o/${p}hist.pdf

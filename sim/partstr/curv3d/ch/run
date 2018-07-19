@@ -5,3 +5,5 @@ set -eu
 ./clean
 ch.base
 ./t.advection
+./partit.filt
+./plot
