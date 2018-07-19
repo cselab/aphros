@@ -25,8 +25,6 @@ def FigAng(vf, kk, ll, po):
 
     # exact curvature
     ke = GetExactK(dim, x, y, z)
-    # average curvature
-    kea = ke.mean()
 
     # hires angle (high resolution)
     anh = np.linspace(-np.pi, np.pi, 200)
@@ -37,20 +35,23 @@ def FigAng(vf, kk, ll, po):
     yh = cy + np.sin(anh)
     # hires curvature
     keh = GetExactK(dim, xh, yh, cz)
+    # average curvature
+    kea = keh.mean()
 
     dx = x - cx ; dy = y - cy
     an = np.arctan2(dy, dx)
     deg = np.degrees(an)
     s = np.argsort(an)
 
-    # plot exact curvature
     fig, ax = PlotInit()
-    ax.plot(degh, keh / kea, label="exact", c="0.5")
 
     # plot estimates
     for k,l in zip(kk,ll):
         if k is not None:
             ax.plot(deg[s], k[ii][s] / kea, label=l)
+
+    # plot exact curvature
+    ax.plot(degh, keh / kea, label="exact", c="0.5", ls='--')
 
     ax.set_xlabel(r"angle [deg]")
     ax.set_ylabel(r"normalized curvature")

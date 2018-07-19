@@ -115,8 +115,13 @@ def PlotTrajFld(xx, yy, ll, lx, ly, po, vmin=None, vmax=None, ystep=None):
     fig, ax = PlotInit()
     if vmin is None: vmin = yy[0].min()
     if vmax is None: vmax = yy[0].max()
+    i = 0
     for x,y,l in zip(xx, yy, ll):
-        ax.plot(x, y, label=l)
+        if i == len(xx) - 1: # separate for last
+            ax.plot(x, y, label=l, c="0.5", ls='--')
+        else:
+            ax.plot(x, y, label=l)
+        i += 1
     ax.legend()
     ax.grid(True)
     ax.set_xlabel(lx)
@@ -134,8 +139,13 @@ def PlotTraj(xx, yy, ll, s):
     global reff, hx
     fig, ax = PlotInitSq()
     ax.set_aspect('equal')
+    i = 0
     for x,y,l in zip(xx, yy, ll):
-        ax.plot(x, y, label=l)
+        if i == len(xx) - 1: # separate for last
+            ax.plot(x, y, label=l, c="0.5", ls='--')
+        else:
+            ax.plot(x, y, label=l)
+        i += 1
     ax.legend()
     ax.set_xlim(0., 1.)
     ax.set_ylim(0., 1.)
@@ -205,6 +215,12 @@ def Main():
         xx.append(x[1:])
         yy.append(y[1:])
         ee.append(e[1:])
+
+    # reorder lines
+    xx = xx[1:] + [xx[0]]
+    yy = yy[1:] + [yy[0]]
+    ee = ee[1:] + [ee[0]]
+    ll = ll[1:] + [ll[0]]
 
     # time
     tt = []

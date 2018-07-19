@@ -59,7 +59,7 @@ mv -v out $o/
 
 gnuplot a.gp
 mv -v err $o/
-mv  -v er.pdf $o/
+mv -v er*.pdf $o/
 
 
 # tile all pdf
