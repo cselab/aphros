@@ -9,13 +9,21 @@ cnt() {
   echo ${#arr[@]}
 }
 
-for f in *{hist,vf_ch}.pdf ; do
+for f in *s.png ; do
+  t="t.png"
+  convert -trim $f $t
+  convert $t ${f%.png}.pdf
+  rm $t
+done
+
+for f in *{hist,vf_ch,s}.pdf ; do
   pdfcrop --margins '5 10 5 10' $f cr_$f
 done
 
+
 t=t.pdf
 n=`cnt "cr_*hist.pdf"`
-pdfnup cr_*{hist,vf_ch}.pdf --nup ${n}x4 --outfile $t
+pdfnup cr_*{hist,vf_ch,s}.pdf --nup ${n}x3 --outfile $t
 
 o=curv.pdf
 pdfcrop --margins '5 5 5 5' $t $o

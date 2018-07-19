@@ -4,7 +4,7 @@ set -ue
 
 # output folder
 o=o
-rm -vf $o/*.pdf
+rm -vf $o/*.{pdf,png}
 mkdir -p $o
 
 # bubble
