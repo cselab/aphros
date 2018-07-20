@@ -34,17 +34,40 @@ Mesh GetMesh(MIdx s /*size in cells*/) {
   return InitUniformMesh<Mesh>(dom, b, s, hl, true, s);
 }
 
-class Empty : public Timer {
-  Mesh& m;
+class TimerMesh : public Timer {
  public:
-  Empty(Mesh& m) : Timer("empty"), m(m) {}
+  TimerMesh(const std::string& name, Mesh& m) : Timer(name), m(m) {}
+
+ protected:
+  Mesh& m;
+};
+
+/*
+class IFactoryTimerMesh {
+ public:
+  virtual TimerMesh* Make(Mesh& m) = 0;
+};
+
+std::vector<std::unique_ptr<IFactoryTimerMesh>> reg;
+
+template <class T>
+class FactoryTimerMesh : IFactoryTimerMesh {
+ public:
+  TimerMesh* Make(Mesh& m) override {
+    return new T(m);
+  }
+};
+*/
+
+class Empty : public TimerMesh {
+ public: 
+  Empty(Mesh& m) : TimerMesh("empty", m) {}
   void F() override {}
 };
 
-class LoopPlain : public Timer {
-  Mesh& m;
+class LoopPlain : public TimerMesh {
  public:
-  LoopPlain(Mesh& m) : Timer("loop-plain"), m(m) {}
+  LoopPlain(Mesh& m) : TimerMesh("loop-plain", m) {}
   void F() override {
     volatile size_t a = 0;
     for (size_t i = 0; i < m.GetNumCells(); ++i) {
@@ -53,10 +76,9 @@ class LoopPlain : public Timer {
   }
 };
 
-class LoopAllCells : public Timer {
-  Mesh& m;
+class LoopAllCells : public TimerMesh {
  public:
-  LoopAllCells(Mesh& m) : Timer("loop-allcells"), m(m) {}
+  LoopAllCells(Mesh& m) : TimerMesh("loop-allcells", m) {}
   void F() override {
     volatile size_t a = 0;
     for (auto i : m.AllCells()) {
@@ -65,10 +87,9 @@ class LoopAllCells : public Timer {
   }
 };
 
-class LoopInCells : public Timer {
-  Mesh& m;
+class LoopInCells : public TimerMesh {
  public:
-  LoopInCells(Mesh& m) : Timer("loop-incells"), m(m) {}
+  LoopInCells(Mesh& m) : TimerMesh("loop-incells", m) {}
   void F() override {
     volatile size_t a = 0;
     for (auto i : m.Cells()) {
@@ -77,10 +98,9 @@ class LoopInCells : public Timer {
   }
 };
 
-class LoopAllFaces : public Timer {
-  Mesh& m;
+class LoopAllFaces : public TimerMesh {
  public:
-  LoopAllFaces(Mesh& m) : Timer("loop-allfaces"), m(m) {}
+  LoopAllFaces(Mesh& m) : TimerMesh("loop-allfaces", m) {}
   void F() override {
     volatile size_t a = 0;
     for (auto i : m.AllFaces()) {
@@ -89,10 +109,9 @@ class LoopAllFaces : public Timer {
   }
 };
 
-class LoopInFaces : public Timer {
-  Mesh& m;
+class LoopInFaces : public TimerMesh {
  public:
-  LoopInFaces(Mesh& m) : Timer("loop-infaces"), m(m) {}
+  LoopInFaces(Mesh& m) : TimerMesh("loop-infaces", m) {}
   void F() override {
     volatile size_t a = 0;
     for (auto i : m.Faces()) {
@@ -103,11 +122,9 @@ class LoopInFaces : public Timer {
 
 
 // Loop with array
-class LoopArPlain : public Timer {
-  Mesh& m;
-  std::vector<Scal> v;
+class LoopArPlain : public TimerMesh {
  public:
-  LoopArPlain(Mesh& m) : Timer("loop-ar-plain"), m(m), v(m.GetNumCells()) {}
+  LoopArPlain(Mesh& m) : TimerMesh("loop-ar-plain", m), v(m.GetNumCells()) {}
   void F() override {
     volatile Scal a = 0;
     for (size_t i = 0; i < m.GetNumCells(); ++i) {
@@ -115,13 +132,14 @@ class LoopArPlain : public Timer {
       a = v[i];
     }
   }
+
+ private:
+  std::vector<Scal> v;
 };
 
-class LoopArAllCells : public Timer {
-  Mesh& m;
-  FieldCell<Scal> v;
+class LoopArAllCells : public TimerMesh {
  public:
-  LoopArAllCells(Mesh& m) : Timer("loop-ar-allcells"), m(m), v(m) {}
+  LoopArAllCells(Mesh& m) : TimerMesh("loop-ar-allcells", m), v(m) {}
   void F() override {
     volatile Scal a = 0;
     for (auto i : m.AllCells()) {
@@ -129,13 +147,15 @@ class LoopArAllCells : public Timer {
       a = v[i];
     }
   }
+
+ private:
+  FieldCell<Scal> v;
 };
 
 
-class LoopMIdxAllCells : public Timer {
-  Mesh& m;
+class LoopMIdxAllCells : public TimerMesh {
  public:
-  LoopMIdxAllCells(Mesh& m) : Timer("loop-midx-allcells"), m(m) {}
+  LoopMIdxAllCells(Mesh& m) : TimerMesh("loop-midx-allcells", m) {}
   void F() override {
     volatile size_t a = 0;
     for (auto i : m.AllCells()) {
@@ -145,10 +165,9 @@ class LoopMIdxAllCells : public Timer {
   }
 };
 
-class LoopMIdxAllFaces : public Timer {
-  Mesh& m;
+class LoopMIdxAllFaces : public TimerMesh {
  public:
-  LoopMIdxAllFaces(Mesh& m) : Timer("loop-midx-allfaces"), m(m) {}
+  LoopMIdxAllFaces(Mesh& m) : TimerMesh("loop-midx-allfaces", m) {}
   void F() override {
     volatile size_t a = 0;
     for (auto i : m.AllFaces()) {
@@ -160,13 +179,9 @@ class LoopMIdxAllFaces : public Timer {
   }
 };
 
-class Interp : public Timer {
-  Mesh& m;
-  FieldCell<Scal> fc;
-  MapFace<std::shared_ptr<solver::CondFace>> mfc;
-  FieldFace<Scal> ff;
+class Interp : public TimerMesh {
  public:
-  Interp(Mesh& m) : Timer("interp"), m(m), fc(m), ff(m) {
+  Interp(Mesh& m) : TimerMesh("interp", m), fc(m), ff(m) {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
@@ -184,14 +199,16 @@ class Interp : public Timer {
     ff = solver::Interpolate(fc, mfc, m);
     a = ff[IdxFace(a)];
   }
+
+ private:
+  FieldCell<Scal> fc;
+  MapFace<std::shared_ptr<solver::CondFace>> mfc;
+  FieldFace<Scal> ff;
 };
 
-class Grad : public Timer {
-  Mesh& m;
-  FieldCell<Vect> fc;
-  FieldFace<Scal> ff;
+class Grad : public TimerMesh {
  public:
-  Grad(Mesh& m) : Timer("grad"), m(m), fc(m), ff(m) {
+  Grad(Mesh& m) : TimerMesh("grad", m), fc(m), ff(m) {
     for (auto i : m.AllFaces()) {
       ff[i] = std::sin(i.GetRaw());
     }
@@ -201,19 +218,16 @@ class Grad : public Timer {
     fc = solver::Gradient(ff, m);
     a = fc[IdxCell(a % m.GetNumCells())][0];
   }
+
+ private:
+  FieldCell<Vect> fc;
+  FieldFace<Scal> ff;
 };
 
 
-class ExplVisc : public Timer {
-  Mesh& m;
-  FieldCell<Vect> fcv;
-  FieldCell<Vect> fcf;
-  FieldFace<Scal> ffmu;
-  MapFace<std::shared_ptr<solver::CondFace>> mfc;
-  MapFace<std::shared_ptr<solver::CondFace>> mfcf;
-
+class ExplVisc : public TimerMesh {
  public:
-  ExplVisc(Mesh& m) : Timer("explvisc"), m(m), fcv(m), fcf(m), ffmu(m) {
+  ExplVisc(Mesh& m) : TimerMesh("explvisc", m), fcv(m), fcf(m), ffmu(m) {
     for (auto i : m.AllCells()) {
       auto a = i.GetRaw();
       fcv[i] = Vect(std::sin(a), std::sin(a+1), std::sin(a+2));
@@ -253,7 +267,27 @@ class ExplVisc : public Timer {
     }
     a = fcf[IdxCell(a % m.GetNumCells())][0];
   }
+
+ private:
+  FieldCell<Vect> fcv;
+  FieldCell<Vect> fcf;
+  FieldFace<Scal> ffmu;
+  MapFace<std::shared_ptr<solver::CondFace>> mfc;
+  MapFace<std::shared_ptr<solver::CondFace>> mfcf;
 };
+
+// i: target index
+// k: current index
+// Output:
+// create if k == i
+// ++k
+// p: pointer to new instance
+template <class T>
+void Try(Mesh& m, size_t i, size_t& k, Timer*& p) {
+  if (k++ == i) {
+    p = new T(m);
+  } 
+}
 
 // i: test index
 // m: mesh
@@ -263,24 +297,24 @@ class ExplVisc : public Timer {
 // mem: memory usage in bytes
 // name: test name
 // Returns 1 if test with index i found
-bool Run(size_t i, Mesh& m,
+bool Run(const size_t i, Mesh& m,
          double& t, size_t& n, size_t& mem, std::string& name) {
   size_t k = 0;
   Timer* p = nullptr;
 
-  k++ == i && (p = new Empty(m));
-  k++ == i && (p = new LoopPlain(m));
-  k++ == i && (p = new LoopAllCells(m));
-  k++ == i && (p = new LoopInCells(m));
-  k++ == i && (p = new LoopAllFaces(m));
-  k++ == i && (p = new LoopInFaces(m));
-  k++ == i && (p = new LoopArPlain(m));
-  k++ == i && (p = new LoopArAllCells(m));
-  k++ == i && (p = new LoopMIdxAllCells(m));
-  k++ == i && (p = new LoopMIdxAllFaces(m));
-  k++ == i && (p = new Interp(m));
-  k++ == i && (p = new Grad(m));
-  k++ == i && (p = new ExplVisc(m));
+  Try<Empty>(m, i, k, p);
+  Try<LoopPlain>(m, i, k, p);
+  Try<LoopAllCells>(m, i, k, p);
+  Try<LoopInCells>(m, i, k, p);
+  Try<LoopAllFaces>(m, i, k, p);
+  Try<LoopInFaces>(m, i, k, p);
+  Try<LoopArPlain>(m, i, k, p);
+  Try<LoopArAllCells>(m, i, k, p);
+  Try<LoopMIdxAllCells>(m, i, k, p);
+  Try<LoopMIdxAllFaces>(m, i, k, p);
+  Try<Interp>(m, i, k, p);
+  Try<Grad>(m, i, k, p);
+  Try<ExplVisc>(m, i, k, p);
 
   if (!p) {
     return false;
