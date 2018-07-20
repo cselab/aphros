@@ -7,8 +7,12 @@ import sys
 import re
 import math
 
+#flog = open("log", 'w')
+
 def Log(s):
   s += "\n"
+  #flog.write(s)
+  #flog.flush()
   o = sys.stderr
   o.write(s)
   o.flush()
@@ -39,7 +43,7 @@ base = av[1]
 skipfirst = int(av[2]) if len(av) > 2 else 0
 
 # number of frames
-nfr = len(GetFiles("vf"))
+nfr = len(GetFiles("traj"))
 
 Log("Using base={:}".format(base))
 Log("Skipping first {:} of {:} frames".format(skipfirst, nfr))
@@ -61,8 +65,6 @@ renderView1.ViewSize = [2028, 1186]
 renderView1.AnnotationColor = [0.0, 0.0, 0.0]
 renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.OrientationAxesVisibility = 0
-renderView1.OrientationAxesLabelColor = [0.0, 0.0, 0.0]
-renderView1.OrientationAxesOutlineColor = [0.0, 0.0, 0.0]
 renderView1.CenterOfRotation = [3.14159274101257, 3.14159274101257, 3.14159488677979]
 renderView1.StereoType = 0
 renderView1.CameraPosition = [20.4106540350961, -4.24286245650427, 9.37676218590444]
@@ -134,8 +136,7 @@ calcvel.ResultArrayName = 'vel'
 calcvel.Function = 'vx*iHat+vy*jHat+vz*kHat'
 
 # create a new 'Glyph'
-glyph1 = Glyph(Input=calcvel,
-    GlyphType='Arrow')
+glyph1 = Glyph(Input=calcvel, GlyphType='Arrow')
 glyph1.Scalars = ['POINTS', 'None']
 glyph1.Vectors = ['POINTS', 'vel']
 glyph1.ScaleMode = 'vector'
@@ -153,14 +154,13 @@ box1Display = Show(box1, renderView1)
 # trace defaults for the display properties.
 box1Display.Representation = 'Wireframe'
 box1Display.ColorArrayName = [None, '']
-box1Display.OSPRayScaleArray = 'Normals'
-box1Display.OSPRayScaleFunction = 'PiecewiseFunction'
 box1Display.SelectOrientationVectors = 'None'
 box1Display.ScaleFactor = 0.628000020980835
 box1Display.SelectScaleArray = 'None'
 box1Display.GlyphType = 'Arrow'
 box1Display.GlyphTableIndexArray = 'None'
 box1Display.GaussianRadius = 0.03140000104904175
+box1Display.AmbientColor = [1.0, 1.0, 1.0]
 box1Display.SetScaleArray = ['POINTS', 'Normals']
 box1Display.ScaleTransferFunction = 'PiecewiseFunction'
 box1Display.OpacityArray = ['POINTS', 'Normals']
@@ -196,8 +196,6 @@ glyph1Display = Show(glyph1, renderView1)
 # trace defaults for the display properties.
 glyph1Display.Representation = 'Surface'
 glyph1Display.ColorArrayName = [None, '']
-glyph1Display.OSPRayScaleArray = 'GlyphVector'
-glyph1Display.OSPRayScaleFunction = 'PiecewiseFunction'
 glyph1Display.SelectOrientationVectors = 'GlyphVector'
 glyph1Display.ScaleFactor = 0.6983555465936662
 glyph1Display.SelectScaleArray = 'GlyphVector'
@@ -212,12 +210,6 @@ glyph1Display.DataAxesGrid = 'GridAxesRepresentation'
 glyph1Display.SelectionCellLabelFontFile = ''
 glyph1Display.SelectionPointLabelFontFile = ''
 glyph1Display.PolarAxes = 'PolarAxesRepresentation'
-
-# init the 'PiecewiseFunction' selected for 'ScaleTransferFunction'
-glyph1Display.ScaleTransferFunction.Points = [-1.0501925945281982, 0.0, 0.5, 0.0, 1.1530451774597168, 1.0, 0.5, 0.0]
-
-# init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
-glyph1Display.OpacityTransferFunction.Points = [-1.0501925945281982, 0.0, 0.5, 0.0, 1.1530451774597168, 1.0, 0.5, 0.0]
 
 # init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
 glyph1Display.DataAxesGrid.XTitleFontFile = ''
@@ -238,37 +230,29 @@ calcrDisplay = Show(calcr, renderView1)
 
 # get color transfer function/color map for 'p'
 pLUT = GetColorTransferFunction('p')
-pLUT.RGBPoints = [0.6525707835974837, 0.231373, 0.298039, 0.752941, 0.9967081099513457, 0.865003, 0.865003, 0.865003, 1.3408454363052076, 0.705882, 0.0156863, 0.14902]
-pLUT.ScalarRangeInitialized = 1.0
+pLUT.AutomaticRescaleRangeMode = 'Never'
+pLUT.RescaleTransferFunction(0.7, 1.3)
+pLUT.ApplyPreset('Cool to Warm', True)
 
 # trace defaults for the display properties.
 calcrDisplay.Representation = 'Points'
+calcrDisplay.AmbientColor = [0.0, 0.0, 0.0]
 calcrDisplay.ColorArrayName = ['POINTS', 'p']
 calcrDisplay.LookupTable = pLUT
-calcrDisplay.OSPRayUseScaleArray = 1
 calcrDisplay.OSPRayScaleArray = 'r'
+calcrDisplay.OSPRayUseScaleArray = 1
 calcrDisplay.OSPRayScaleFunction = 'PiecewiseFunction'
-calcrDisplay.OSPRayMaterial = 'thin glass'
+calcrDisplay.OSPRayScaleFunction.RescaleTransferFunction(0.0, 1.0)
 calcrDisplay.SelectOrientationVectors = 'None'
-calcrDisplay.ScaleFactor = 0.6084381384713844
-calcrDisplay.SelectScaleArray = 'r'
 calcrDisplay.GlyphType = 'Arrow'
-calcrDisplay.GlyphTableIndexArray = 'r'
-calcrDisplay.GaussianRadius = 0.03042190692356922
-calcrDisplay.SetScaleArray = ['POINTS', 'r']
-calcrDisplay.ScaleTransferFunction = 'PiecewiseFunction'
-calcrDisplay.OpacityArray = ['POINTS', 'r']
+calcrDisplay.GlyphTableIndexArray = 'None'
+calcrDisplay.GaussianRadius = 0.03042157170338156
+calcrDisplay.OpacityArray = ['POINTS', 'cl']
 calcrDisplay.OpacityTransferFunction = 'PiecewiseFunction'
 calcrDisplay.DataAxesGrid = 'GridAxesRepresentation'
 calcrDisplay.SelectionCellLabelFontFile = ''
 calcrDisplay.SelectionPointLabelFontFile = ''
 calcrDisplay.PolarAxes = 'PolarAxesRepresentation'
-
-# init the 'PiecewiseFunction' selected for 'ScaleTransferFunction'
-calcrDisplay.ScaleTransferFunction.Points = [0.09648003388216281, 0.0, 0.5, 0.0, 0.09715293552566363, 1.0, 0.5, 0.0]
-
-# init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
-calcrDisplay.OpacityTransferFunction.Points = [0.09648003388216281, 0.0, 0.5, 0.0, 0.09715293552566363, 1.0, 0.5, 0.0]
 
 # init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
 calcrDisplay.DataAxesGrid.XTitleFontFile = ''
@@ -284,8 +268,6 @@ calcrDisplay.PolarAxes.PolarAxisLabelFontFile = ''
 calcrDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
 calcrDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
 
-# setup the color legend parameters for each legend in this view
-
 # get color legend/bar for pLUT in view renderView1
 pLUTColorBar = GetScalarBar(pLUT, renderView1)
 pLUTColorBar.Title = 'p'
@@ -294,10 +276,10 @@ pLUTColorBar.TitleFontFile = ''
 pLUTColorBar.LabelFontFile = ''
 
 # set color bar visibility
-pLUTColorBar.Visibility = 1
+pLUTColorBar.Visibility = 0
 
 # show color legend
-calcrDisplay.SetScalarBarVisibility(renderView1, True)
+calcrDisplay.SetScalarBarVisibility(renderView1, False)
 
 # ----------------------------------------------------------------
 # setup color maps and opacity mapes used in the visualization
@@ -305,9 +287,9 @@ calcrDisplay.SetScalarBarVisibility(renderView1, True)
 # ----------------------------------------------------------------
 
 # get opacity transfer function/opacity map for 'p'
-pPWF = GetOpacityTransferFunction('p')
-pPWF.Points = [0.6525707835974837, 0.0, 0.5, 0.0, 1.3408454363052076, 1.0, 0.5, 0.0]
-pPWF.ScalarRangeInitialized = 1
+#pPWF = GetOpacityTransferFunction('p')
+#pPWF.Points = [0.6525707835974837, 0.0, 0.5, 0.0, 1.3408454363052076, 1.0, 0.5, 0.0]
+#pPWF.ScalarRangeInitialized = 1
 
 
 # ----------------------------------------------------------------
