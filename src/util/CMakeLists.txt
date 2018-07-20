@@ -1,3 +1,2 @@
-set(TARG "suspender")
-
-add_library(${TARG} suspender.cpp)
+add_library(suspender suspender.cpp)
+add_library(sysinfo sysinfo.cpp)
