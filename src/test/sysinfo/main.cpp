@@ -15,7 +15,7 @@ void F(size_t s) {
   static std::vector<char> v(s, 0);
 }
 
-size_t MB(size_t s) {
+double MB(size_t s) {
   return s / (double(1 << 20));
 }
 
@@ -29,7 +29,7 @@ void Test() {
 
   b = GetMem();
   std::cout << MB(a) << " " << MB(b) << std::endl;
-  assert(b >= a + s / 2);
+  assert(b >= a + s);
 }
 
 int main() {
