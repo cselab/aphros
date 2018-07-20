@@ -11,6 +11,7 @@
 #include "geom/mesh.h"
 #include "solver/solver.h"
 #include "timer.h"
+#include "util/sysinfo.h"
 
 const int dim = 3;
 using MIdx = GMIdx<dim>;
@@ -254,73 +255,98 @@ class ExplVisc : public Timer {
   }
 };
 
+// i: test index
+// m: mesh
+// Output:
+// t: total per one call [sec] 
+// n: number of calls 
+// mem: memory usage in bytes
+// name: test name
+// Returns 1 if test with index i found
+bool Run(size_t i, Mesh& m,
+         double& t, size_t& n, size_t& mem, std::string& name) {
+  size_t k = 0;
+  Timer* p = nullptr;
+
+  k++ == i && (p = new Empty(m));
+  k++ == i && (p = new LoopPlain(m));
+  k++ == i && (p = new LoopAllCells(m));
+  k++ == i && (p = new LoopInCells(m));
+  k++ == i && (p = new LoopAllFaces(m));
+  k++ == i && (p = new LoopInFaces(m));
+  k++ == i && (p = new LoopArPlain(m));
+  k++ == i && (p = new LoopArAllCells(m));
+  k++ == i && (p = new LoopMIdxAllCells(m));
+  k++ == i && (p = new LoopMIdxAllFaces(m));
+  k++ == i && (p = new Interp(m));
+  k++ == i && (p = new Grad(m));
+  k++ == i && (p = new ExplVisc(m));
+
+  if (!p) {
+    return false;
+  }
+
+  std::pair<double, size_t> e = p->Run();
+  t = e.first;
+  n = e.second;
+  mem = sysinfo::GetMem();
+  name = p->GetName();
+  delete p;
+
+  return true;
+}
 
 int main() {
+  // mesh size
   std::vector<MIdx> ss = {
         MIdx(4)
       , MIdx(8)
       , MIdx(16)
       , MIdx(32)
       , MIdx(64) 
+      , MIdx(128) 
   };
 
   using std::setw;
   std::cout 
-      << setw(20) 
-      << "name"
-      << setw(15) 
-      << "cell_a [ns]" 
-      << setw(15) 
-      << "cell_i [ns]" 
-      << setw(15) 
-      << "total [ns]" 
-      << setw(15) 
-      << "iters"
+      << setw(20) << "name"
+      << setw(20) << "t/allcells [ns]" 
+      << setw(20) << "t/incells [ns]" 
+      << setw(20) << "t [ns]" 
+      << setw(20) << "iters"
+      << setw(20) << "mem [MB]"
+      << setw(20) << "mem/allcells [B]"
       << std::endl
       << std::endl;
 
   for (auto s : ss) {
+    size_t mem0 = sysinfo::GetMem();
     auto m = GetMesh(s);
+    const size_t nca = m.GetBlockCells().size();
+    const size_t nci = m.GetInBlockCells().size();
     std::cout 
         << "Mesh" 
         << " size=" << s
-        << " numcells=" << m.GetNumCells() 
+        << " allcells=" << nca 
+        << " incells=" << nci 
         << std::endl;
 
-    std::vector<Timer*> tt {
-          new Empty(m)
-        , new LoopPlain(m)
-        , new LoopAllCells(m)
-        , new LoopInCells(m)
-        , new LoopAllFaces(m)
-        , new LoopInFaces(m)
-        , new LoopArPlain(m)
-        , new LoopArAllCells(m)
-        , new LoopMIdxAllCells(m)
-        , new LoopMIdxAllFaces(m)
-        , new Interp(m)
-        , new Grad(m)
-        , new ExplVisc(m)
-      };
-
-    for (auto& t : tt) {
-      auto e = t->Run();
+    int i = 0;
+    double t;
+    size_t n;
+    size_t mem;
+    std::string name;
+    while (Run(i++, m, t, n, mem, name)) {
+      size_t dmem = mem - mem0;
       std::cout 
-          << setw(20) 
-          << t->GetName()
-          << setw(15) 
-          << e.first * 1e9 / m.GetBlockCells().size()
-          << setw(15) 
-          << e.first * 1e9 / m.GetInBlockCells().size()
-          << setw(15) 
-          << e.first * 1e9 
-          << setw(15) 
-          << e.second
+          << setw(20) << name 
+          << setw(20) << t * 1e9 / nca
+          << setw(20) << t * 1e9 / nci
+          << setw(20) << t * 1e9 * n
+          << setw(20) << n
+          << setw(20) << (dmem / double(1 << 20))
+          << setw(20) << (dmem / nca)
           << std::endl;
-    }
-
-    for (auto& t : tt) {
-      delete t;
     }
     std::cout << std::endl;
   }

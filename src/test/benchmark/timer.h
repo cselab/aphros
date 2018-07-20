@@ -3,16 +3,20 @@
 #include <string>
 #include <utility>
 
-
 class Timer {
  public:
-  Timer(std::string name, double timeout /*sec*/, size_t batch);
+  // name: returned by GetName()
+  // timeout: time in seconds for which to repeat F() 
+  // batch: number of calls F() at every iteration
+  Timer(std::string name, double timeout, size_t batch);
+  // batch=1
   Timer(std::string name, double timeout);
+  // timeout=0.01, batch=1
   Timer(std::string name);
   virtual ~Timer() {}
   std::string GetName() const;
-  // Runs F() until reaching the timeout in batches of b_ iterations.
-  // Returns execution time per iteration and number of iterations.
+  // Runs F() until reaching the timeout in batches of b_ calls.
+  // Returns execution time per call and number of calls.
   std::pair<double, size_t> Run();
 
  private:
