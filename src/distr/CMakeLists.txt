@@ -1,10 +1,10 @@
 set(T "local")
 add_library(${T} local.cpp)
-target_link_libraries(${T} hypre suspender vars interp report)
+target_link_libraries(${T} hypre suspender vars interp report sysinfo)
 
 set(T "cubism")
 add_library(${T} cubism.cpp)
-target_link_libraries(${T} hypre suspender vars interp report)
+target_link_libraries(${T} hypre suspender vars interp report sysinfo)
 # cubism specific
 target_compile_definitions(${T} PUBLIC _ALIGNBYTES_=16)
 # HDF5

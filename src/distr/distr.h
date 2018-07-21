@@ -17,6 +17,7 @@
 #include "dump/dump.h"
 #include "dump/dumper.h"
 #include "report.h"
+#include "util/sysinfo.h"
 
 // Abstract block processor.
 class Distr {
@@ -140,6 +141,8 @@ void DistrMesh<KF>::TimerReport(const std::vector<MIdx>& bb) {
   if (fn.length()) {
     std::ofstream out;
     out.open(fn);
+    out << "mem=" << (sysinfo::GetMem() / double(1 << 20)) << " MB" 
+        << std::endl;
     ParseReport(mtp_.GetMap(), out);
     mtp_.Reset();
   }
@@ -378,6 +381,9 @@ void DistrMesh<KF>::Report() {
     if (par.Int["verbose_stages"]) {
       std::cout << std::fixed;
       auto& mp = mt_.GetMap();
+      std::cout 
+          << "mem=" << (sysinfo::GetMem() / double(1 << 20)) << " MB" 
+          << std::endl;
       ParseReport(mp, std::cout);
       for (auto e : mp) {
         auto n = e.first; // name
