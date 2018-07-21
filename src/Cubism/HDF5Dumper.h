@@ -82,21 +82,21 @@ void DumpHDF5(const TGrid &grid, const int iCounter, const Real absTime, const s
 
     ///////////////////////////////////////////////////////////////////////////
     // write data
-    static const unsigned int NCHANNELS = Streamer::NCHANNELS;
-    const unsigned int NX = grid.getBlocksPerDimension(0)*B::sizeX;
-    const unsigned int NY = grid.getBlocksPerDimension(1)*B::sizeY;
-    const unsigned int NZ = grid.getBlocksPerDimension(2)*B::sizeZ;
+    static const size_t NCHANNELS = Streamer::NCHANNELS;
+    const size_t NX = grid.getBlocksPerDimension(0)*B::sizeX;
+    const size_t NY = grid.getBlocksPerDimension(1)*B::sizeY;
+    const size_t NZ = grid.getBlocksPerDimension(2)*B::sizeZ;
 
     std::cout << "Allocating " << (NX * NY * NZ * NCHANNELS * sizeof(Real))/(1024.*1024.*1024.) << " GB of HDF5 data" << std::endl;
     Real * array_all = new Real[NX * NY * NZ * NCHANNELS];
 
-    const unsigned int sX = 0;
-    const unsigned int sY = 0;
-    const unsigned int sZ = 0;
+    const size_t sX = 0;
+    const size_t sY = 0;
+    const size_t sZ = 0;
 
-    const unsigned int eX = B::sizeX;
-    const unsigned int eY = B::sizeY;
-    const unsigned int eZ = B::sizeZ;
+    const size_t eX = B::sizeX;
+    const size_t eY = B::sizeY;
+    const size_t eZ = B::sizeZ;
 
     hsize_t count[4] = {
         grid.getBlocksPerDimension(2)*B::sizeZ,
@@ -114,27 +114,27 @@ void DumpHDF5(const TGrid &grid, const int iCounter, const Real absTime, const s
     for(int i=0; i<(int)vInfo_local.size(); i++)
     {
         BlockInfo& info = vInfo_local[i];
-        const unsigned int idx[3] = {info.index[0], info.index[1], info.index[2]};
+        const size_t idx[3] = {info.index[0], info.index[1], info.index[2]};
         B & b = *(B*)info.ptrBlock;
         Streamer streamer(b);
 
-        for(unsigned int iz=sZ; iz<eZ; iz++)
-            for(unsigned int iy=sY; iy<eY; iy++)
-                for(unsigned int ix=sX; ix<eX; ix++)
+        for(size_t iz=sZ; iz<eZ; iz++)
+            for(size_t iy=sY; iy<eY; iy++)
+                for(size_t ix=sX; ix<eX; ix++)
                 {
                     Real output[NCHANNELS];
-                    for(unsigned int i=0; i<NCHANNELS; ++i)
+                    for(size_t i=0; i<NCHANNELS; ++i)
                         output[i] = 0;
 
                     streamer.operate(ix, iy, iz, (Real*)output);
 
-                    const unsigned int gx = idx[0]*B::sizeX + ix;
-                    const unsigned int gy = idx[1]*B::sizeY + iy;
-                    const unsigned int gz = idx[2]*B::sizeZ + iz;
+                    const size_t gx = idx[0]*B::sizeX + ix;
+                    const size_t gy = idx[1]*B::sizeY + iy;
+                    const size_t gz = idx[2]*B::sizeZ + iz;
 
                     Real * const ptr = array_all + NCHANNELS*(gx + NX * (gy + NY * gz));
 
-                    for(unsigned int i=0; i<NCHANNELS; ++i)
+                    for(size_t i=0; i<NCHANNELS; ++i)
                         ptr[i] = output[i];
                 }
     }

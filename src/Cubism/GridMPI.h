@@ -79,7 +79,7 @@ public:
 
         const double blockwidth = (maxextent / std::max(nX*npeX, std::max(nY*npeY, nZ*npeZ)));
         const double extents[3] = {blockwidth*nX*npeX, blockwidth*nY*npeY, blockwidth*nZ*npeZ};
-        const unsigned int nBlocks[3] = {nX*npeX, nY*npeY, nZ*npeZ};
+        const size_t nBlocks[3] = {(size_t)nX*npeX, (size_t)nY*npeY, (size_t)nZ*npeZ};
         for (int i = 0; i < 3; ++i)
         {
             MeshMap<Block>* m = new MeshMap<Block>(0.0, extents[i], nBlocks[i], blocksize[i]);
@@ -291,16 +291,16 @@ public:
 		return *SynchronizerMPIs.find(p.stencil)->second;
 	}
 
-	int getResidentBlocksPerDimension(int idim) const
+	size_t getResidentBlocksPerDimension(int idim) const
 	{
 		assert(idim>=0 && idim<3);
-		return mybpd[idim];
+		return (size_t)mybpd[idim];
 	}
 
-	int getBlocksPerDimension(int idim) const
+	size_t getBlocksPerDimension(int idim) const override
 	{
 		assert(idim>=0 && idim<3);
-		return mybpd[idim]*pesize[idim];
+		return (size_t)mybpd[idim]*pesize[idim];
 	}
 
 	void peindex(int mypeindex[3]) const

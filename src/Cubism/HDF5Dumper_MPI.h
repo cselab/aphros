@@ -149,7 +149,8 @@ void DumpHDF5_MPI(const TGrid &grid, int iCounter, Real absTime,
   for(size_t i=0; i<vInfo_local.size(); i++)
   {
     BlockInfo& info = vInfo_local[i];
-    const size_t idx[3] = {info.index[0], info.index[1], info.index[2]};
+    const size_t idx[3] = 
+        {(size_t)info.index[0], (size_t)info.index[1], (size_t)info.index[2]};
     B & b = *(B*)info.ptrBlock;
     Streamer streamer(b);
 
@@ -251,10 +252,10 @@ void ReadHDF5_MPI(TGrid &grid, const std::string f_name, const std::string dump_
     int coords[3];
     grid.peindex(coords);
 
-    const int NX = grid.getResidentBlocksPerDimension(0)*B::sizeX;
-    const int NY = grid.getResidentBlocksPerDimension(1)*B::sizeY;
-    const int NZ = grid.getResidentBlocksPerDimension(2)*B::sizeZ;
-    static const int NCHANNELS = Streamer::NCHANNELS;
+    const size_t NX = grid.getResidentBlocksPerDimension(0)*B::sizeX;
+    const size_t NY = grid.getResidentBlocksPerDimension(1)*B::sizeY;
+    const size_t NZ = grid.getResidentBlocksPerDimension(2)*B::sizeZ;
+    static const size_t NCHANNELS = Streamer::NCHANNELS;
 
     Real * array_all = new Real[NX * NY * NZ * NCHANNELS];
 

@@ -52,10 +52,10 @@ void DumpZBin_MPI(const TGrid &grid, const int iCounter, const Real t, const str
 	int coords[3];
 	grid.peindex(coords);
 
-	const unsigned int NX = grid.getResidentBlocksPerDimension(0)*B::sizeX;
-	const unsigned int NY = grid.getResidentBlocksPerDimension(1)*B::sizeY;
-	const unsigned int NZ = grid.getResidentBlocksPerDimension(2)*B::sizeZ;
-	static const unsigned int NCHANNELS = Streamer::NCHANNELS;
+	const size_t NX = grid.getResidentBlocksPerDimension(0)*B::sizeX;
+	const size_t NY = grid.getResidentBlocksPerDimension(1)*B::sizeY;
+	const size_t NZ = grid.getResidentBlocksPerDimension(2)*B::sizeZ;
+	static const size_t NCHANNELS = Streamer::NCHANNELS;
 
 	if (rank==0)
 	{
@@ -68,13 +68,13 @@ void DumpZBin_MPI(const TGrid &grid, const int iCounter, const Real t, const str
 
 	vector<BlockInfo> vInfo_local = grid.getResidentBlocksInfo();
 
-	static const unsigned int sX = 0;
-	static const unsigned int sY = 0;
-	static const unsigned int sZ = 0;
+	static const size_t sX = 0;
+	static const size_t sY = 0;
+	static const size_t sZ = 0;
 
-	static const unsigned int eX = B::sizeX;
-	static const unsigned int eY = B::sizeY;
-	static const unsigned int eZ = B::sizeZ;
+	static const size_t eX = B::sizeX;
+	static const size_t eY = B::sizeY;
+	static const size_t eZ = B::sizeZ;
 
 	sprintf(filename, "%s/%s.zbin", dump_path.c_str(), fullname.c_str());
 
@@ -88,27 +88,27 @@ void DumpZBin_MPI(const TGrid &grid, const int iCounter, const Real t, const str
 	long previous_offset = 0;
 	header tag; 	// moved here
 
-	for (unsigned int ichannel = 0; ichannel < NCHANNELS; ichannel++)
+	for (size_t ichannel = 0; ichannel < NCHANNELS; ichannel++)
 	{
 
 
 #pragma omp parallel for
-	for(unsigned int i=0; i<vInfo_local.size(); i++)
+	for(size_t i=0; i<vInfo_local.size(); i++)
 	{
 		BlockInfo& info = vInfo_local[i];
-		const unsigned int idx[3] = {info.index[0], info.index[1], info.index[2]};
+		const size_t idx[3] = {info.index[0], info.index[1], info.index[2]};
 		B & b = *(B*)info.ptrBlock;
 		Streamer streamer(b);
 
-		for(unsigned int ix=sX; ix<eX; ix++)
+		for(size_t ix=sX; ix<eX; ix++)
 		{
-			const unsigned int gx = idx[0]*B::sizeX + ix;
-			for(unsigned int iy=sY; iy<eY; iy++)
+			const size_t gx = idx[0]*B::sizeX + ix;
+			for(size_t iy=sY; iy<eY; iy++)
 			{
-				const unsigned int gy = idx[1]*B::sizeY + iy;
-				for(unsigned int iz=sZ; iz<eZ; iz++)
+				const size_t gy = idx[1]*B::sizeY + iy;
+				for(size_t iz=sZ; iz<eZ; iz++)
 				{
-					const unsigned int gz = idx[2]*B::sizeZ + iz;
+					const size_t gz = idx[2]*B::sizeZ + iz;
 
 					assert((gz + NZ * (gy + NY * gx)) < NX * NY * NZ);
 
@@ -137,7 +137,7 @@ void DumpZBin_MPI(const TGrid &grid, const int iCounter, const Real t, const str
 	long local_bytes =  local_count * sizeof(Real);
 	long offset; // global offset
 
-	unsigned int max = local_bytes;
+	size_t max = local_bytes;
 //	int layout[4] = {NCHANNELS, NX, NY, NZ};
 	int layout[4] = {NX, NY, NZ, 1};
 	long compressed_bytes = ZZcompress((unsigned char *)array_all, local_bytes, layout, &max);	// "in place"
@@ -190,10 +190,10 @@ void ReadZBin_MPI(TGrid &grid, const string f_name, const string dump_path=".")
 	int coords[3];
 	grid.peindex(coords);
 
-	const int NX = grid.getResidentBlocksPerDimension(0)*B::sizeX;
-	const int NY = grid.getResidentBlocksPerDimension(1)*B::sizeY;
-	const int NZ = grid.getResidentBlocksPerDimension(2)*B::sizeZ;
-	static const int NCHANNELS = Streamer::NCHANNELS;
+	const size_t NX = grid.getResidentBlocksPerDimension(0)*B::sizeX;
+	const size_t NY = grid.getResidentBlocksPerDimension(1)*B::sizeY;
+	const size_t NZ = grid.getResidentBlocksPerDimension(2)*B::sizeZ;
+	static const size_t NCHANNELS = Streamer::NCHANNELS;
 
 	Real * array_all = new Real[NX * NY * NZ * NCHANNELS];
 
@@ -231,7 +231,7 @@ void ReadZBin_MPI(TGrid &grid, const string f_name, const string dump_path=".")
 	}
 #endif
 
-	for (unsigned int ichannel = 0; ichannel < NCHANNELS; ichannel++)
+	for (size_t ichannel = 0; ichannel < NCHANNELS; ichannel++)
 	{
 
 	//MPI_File_read_at(file_id, (rank*2+0)*sizeof(long), &offset     , 1, MPI_LONG, &status);

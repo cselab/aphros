@@ -24,8 +24,8 @@ public:
     const bool uniform;
     MeshDensity(const bool _uniform) : uniform(_uniform) {}
 
-    virtual void compute_spacing(const double xS, const double xE, const unsigned int ncells, double* const ary,
-            const unsigned int ghostS=0, const unsigned int ghostE=0, double* const ghost_spacing=NULL) const = 0;
+    virtual void compute_spacing(const double xS, const double xE, const size_t ncells, double* const ary,
+            const size_t ghostS=0, const size_t ghostE=0, double* const ghost_spacing=NULL) const = 0;
 };
 
 
@@ -34,8 +34,8 @@ class UniformDensity : public MeshDensity
 public:
     UniformDensity() : MeshDensity(true) {}
 
-    virtual void compute_spacing(const double xS, const double xE, const unsigned int ncells, double* const ary,
-            const unsigned int ghostS=0, const unsigned int ghostE=0, double* const ghost_spacing=NULL) const
+    virtual void compute_spacing(const double xS, const double xE, const size_t ncells, double* const ary,
+            const size_t ghostS=0, const size_t ghostE=0, double* const ghost_spacing=NULL) const
     {
         const double h = (xE - xS) / ncells;
         for (int i = 0; i < ncells; ++i)
@@ -65,10 +65,10 @@ public:
 
     GaussianDensity(const DefaultParameter d=DefaultParameter()) : MeshDensity(false), A(d.A), B(d.B) {}
 
-    virtual void compute_spacing(const double xS, const double xE, const unsigned int ncells, double* const ary,
-            const unsigned int ghostS=0, const unsigned int ghostE=0, double* const ghost_spacing=NULL) const
+    virtual void compute_spacing(const double xS, const double xE, const size_t ncells, double* const ary,
+            const size_t ghostS=0, const size_t ghostE=0, double* const ghost_spacing=NULL) const
     {
-        const unsigned int total_cells = ncells + ghostE + ghostS;
+        const size_t total_cells = ncells + ghostE + ghostS;
         double* const buf = new double[total_cells];
 
         const double y = 1.0/(B*(total_cells+1));
@@ -127,13 +127,13 @@ public:
     SmoothHeavisideDensity(const double A, const double B, const double c, const double eps) : MeshDensity(false), A(A), B(B), c(c), eps(eps) {}
     SmoothHeavisideDensity(const DefaultParameter d=DefaultParameter()) : MeshDensity(false), A(d.A), B(d.B), c(d.c1), eps(d.eps1) {}
 
-    virtual void compute_spacing(const double xS, const double xE, const unsigned int ncells, double* const ary,
-            const unsigned int ghostS=0, const unsigned int ghostE=0, double* const ghost_spacing=NULL) const
+    virtual void compute_spacing(const double xS, const double xE, const size_t ncells, double* const ary,
+            const size_t ghostS=0, const size_t ghostE=0, double* const ghost_spacing=NULL) const
     {
         assert(std::min(A,B) > 0.0);
         assert(0.5*eps <= c && c <= 1.0-0.5*eps);
 
-        const unsigned int total_cells = ncells + ghostE + ghostS;
+        const size_t total_cells = ncells + ghostE + ghostS;
         double* const buf = new double[total_cells];
 
         double ducky = 0.0;
@@ -188,14 +188,14 @@ public:
 
     SmoothHatDensity(const DefaultParameter d=DefaultParameter()) : SmoothHeavisideDensity(d.A,d.B,d.c1,d.eps1), c2(d.c2), eps2(d.eps2) {}
 
-    virtual void compute_spacing(const double xS, const double xE, const unsigned int ncells, double* const ary,
-            const unsigned int ghostS=0, const unsigned int ghostE=0, double* const ghost_spacing=NULL) const
+    virtual void compute_spacing(const double xS, const double xE, const size_t ncells, double* const ary,
+            const size_t ghostS=0, const size_t ghostE=0, double* const ghost_spacing=NULL) const
     {
         assert(std::min(A,B) > 0.0);
         assert(0.5*eps <= c && c <= c2-0.5*eps2);
         assert(c2 <= 1.0-0.5*eps2);
 
-        const unsigned int total_cells = ncells + ghostE + ghostS;
+        const size_t total_cells = ncells + ghostE + ghostS;
         double* const buf = new double[total_cells];
 
         double ducky = 0.0;
@@ -266,8 +266,8 @@ public:
     box_left(d.box_left), box_right(d.box_right), abs_tol(d.abs_tol),
     box_ncells(d.box_ncells) {}
 
-    virtual void compute_spacing(const double xS, const double xE, const unsigned int ncells, double* const ary,
-            const unsigned int ghostS=0, const unsigned int ghostE=0, double* const ghost_spacing=NULL) const
+    virtual void compute_spacing(const double xS, const double xE, const size_t ncells, double* const ary,
+            const size_t ghostS=0, const size_t ghostE=0, double* const ghost_spacing=NULL) const
     {
         const double box_width = box_right - box_left;
         const double length_left = box_left - xS;
@@ -293,7 +293,7 @@ public:
         assert(cells_left >= 0);
         assert(cells_right >= 0);
 
-        const unsigned int total_cells = ncells + ghostE + ghostS;
+        const size_t total_cells = ncells + ghostE + ghostS;
         double* const buf = new double[total_cells];
         double* const buf_left  = &buf[ghostS];
         double* const buf_middle= &buf[ghostS+cells_left];
@@ -362,7 +362,7 @@ private:
     double _newton(const std::vector<double>& xi, const double L, const double tol=1.0e-8) const
     {
         double alpha = 0.0; // initial guess
-        unsigned int steps = 0;
+        size_t steps = 0;
         while (true)
         {
             const double F = _F(xi,alpha,L);
@@ -377,14 +377,14 @@ private:
         return alpha;
     }
 
-    void _compute_fade(double* const buf, const unsigned int N, const double L, const double h0, const int nLast=6) const
+    void _compute_fade(double* const buf, const size_t N, const double L, const double h0, const int nLast=6) const
     {
         if (N > 0)
         {
             assert(N > 20); // not a strict limit but should prefereably be at least this
             const double h_xi = 1.0/N;
             std::vector<double> xi(N);
-            for (unsigned int i = 0; i < N; ++i)
+            for (size_t i = 0; i < N; ++i)
                 xi[i] = h_xi*(i+0.5);
 
             // find growth factor
@@ -394,19 +394,19 @@ private:
             // characteristic 1D boundaries, otherwise need non-uniform scheme
             // there)
             assert(nLast < N);
-            for (unsigned int i = 0; i < N; ++i)
+            for (size_t i = 0; i < N; ++i)
                 buf[i] = h0*_f(xi[i], alpha);
 
-            const unsigned int k = N-nLast;
-            for (unsigned int i = k; i < N; ++i)
+            const size_t k = N-nLast;
+            for (size_t i = k; i < N; ++i)
                 buf[i] = buf[k-1];
 
             double sum = 0.0;
-            for (unsigned int i = 0; i < N; ++i)
+            for (size_t i = 0; i < N; ++i)
                 sum += buf[i];
 
             const double scale = L/sum;
-            for (unsigned int i = 0; i < N; ++i)
+            for (size_t i = 0; i < N; ++i)
                 buf[i] *= scale;
         }
     }
@@ -507,7 +507,7 @@ template <typename TBlock>
 class MeshMap
 {
 public:
-    MeshMap(const double xS, const double xE, const unsigned int Nblocks,
+    MeshMap(const double xS, const double xE, const size_t Nblocks,
             const size_t bs) :
         m_xS(xS), m_xE(xE), m_extent(xE-xS), m_Nblocks(Nblocks),
         m_Ncells(Nblocks*bs), bs(bs),
@@ -523,7 +523,7 @@ public:
         }
     }
 
-    void init(const MeshDensity* const kernel, const unsigned int ghostS=0, const unsigned int ghostE=0, double* const ghost_spacing=NULL)
+    void init(const MeshDensity* const kernel, const size_t ghostS=0, const size_t ghostE=0, double* const ghost_spacing=NULL)
     {
         _alloc();
 
@@ -545,8 +545,8 @@ public:
     inline double start() const { return m_xS; }
     inline double end() const { return m_xE; }
     inline double extent() const { return m_extent; }
-    inline unsigned int nblocks() const { return m_Nblocks; }
-    inline unsigned int ncells() const { return m_Ncells; }
+    inline size_t nblocks() const { return m_Nblocks; }
+    inline size_t ncells() const { return m_Ncells; }
     inline bool uniform() const { return m_uniform; }
 
     inline double cell_width(const int ix) const
@@ -582,8 +582,8 @@ private:
     const double m_xS;
     const double m_xE;
     const double m_extent;
-    const unsigned int m_Nblocks;
-    const unsigned int m_Ncells;
+    const size_t m_Nblocks;
+    const size_t m_Ncells;
     const size_t bs; // block size (current direction)
 
     bool m_uniform;
