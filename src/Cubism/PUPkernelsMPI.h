@@ -13,7 +13,7 @@ using namespace std;
 #pragma once
 
 inline void pack(const Real * const srcbase, Real * const dst,
-			   const unsigned int gptfloats,
+			   const size_t gptfloats,
 			   int * selected_components, const int ncomponents,
 			   const int xstart, const int ystart, const int zstart,
 			   const int xend, const int yend, const int zend,
@@ -32,7 +32,7 @@ inline void pack(const Real * const srcbase, Real * const dst,
 }
 
 inline void pack_stripes1(const Real * const srcbase, Real * const dst,
-					   const unsigned int gptfloats, 
+					   const size_t gptfloats, 
 					   const int selstart, const int selend, 
 					   const int xstart, const int ystart, const int zstart,
 					   const int xend, const int yend, const int zend,
@@ -50,7 +50,7 @@ inline void pack_stripes1(const Real * const srcbase, Real * const dst,
 }
 
 inline void pack_stripes_(const Real * const srcbase, Real * const dst,
-					   const unsigned int gptfloats, 
+					   const size_t gptfloats, 
 					   const int selstart, const int selend, 
 					   const int xstart, const int ystart, const int zstart,
 					   const int xend, const int yend, const int zend,
@@ -74,7 +74,7 @@ inline void pack_stripes_(const Real * const srcbase, Real * const dst,
 }
 
 inline void pack_stripes_x(const Real * const srcbase, Real * const dst,
-					   const unsigned int gptfloats, 
+					   const size_t gptfloats, 
 					   const int selstart, const int selend, 
 					   const int xstart, const int ystart, const int zstart,
 					   const int xend, const int yend, const int zend,
@@ -109,7 +109,7 @@ inline void pack_stripes_x(const Real * const srcbase, Real * const dst,
 #endif
 
 inline void pack_stripes_unroll0(const Real * const srcbase, Real * const dst,
-					   const unsigned int gptfloats, 
+					   const size_t gptfloats, 
 					   const int selstart, const int selend, 
 					   const int xstart, const int ystart, const int zstart,
 					   const int xend, const int yend, const int zend,
@@ -179,7 +179,7 @@ inline void pack_stripes_unroll0(const Real * const srcbase, Real * const dst,
 }
 
 inline void pack_stripesxx(const Real * const srcbase, Real * const dst,
-					   const unsigned int gptfloats, 
+					   const size_t gptfloats, 
 					   const int selstart, const int selend, 
 					   const int xstart, const int ystart, const int zstart,
 					   const int xend, const int yend, const int zend,
@@ -247,7 +247,7 @@ inline void pack_stripesxx(const Real * const srcbase, Real * const dst,
 }
 
 inline void pack_stripes(const Real * const srcbase, Real * const dst,
-					   const unsigned int gptfloats, 
+					   const size_t gptfloats, 
 					   const int selstart, const int selend, 
 					   const int xstart, const int ystart, const int zstart,
 					   const int xend, const int yend, const int zend,
@@ -302,7 +302,7 @@ inline void pack_stripes(const Real * const srcbase, Real * const dst,
 }
 
 inline void unpack(const Real * const pack, Real * const dstbase,
-		  const unsigned int gptfloats,
+		  const size_t gptfloats,
 		  const int * const selected_components, const int ncomponents,
 		  const int nsrc,
 		  const int dstxstart, const int dstystart, const int dstzstart,
@@ -320,7 +320,7 @@ inline void unpack(const Real * const pack, Real * const dstbase,
 }
 
 inline void unpack1(const Real * const pack, Real * const dstbase,
-		  const unsigned int gptfloats,
+		  const size_t gptfloats,
 		  const int * const selected_components, const int ncomponents,
 		  const int nsrc,
 		  const int dstxstart, const int dstystart, const int dstzstart,
@@ -342,7 +342,7 @@ inline void unpack1(const Real * const pack, Real * const dstbase,
 
 
 inline void unpack2(const Real * const pack, Real * const dstbase,
-		  const unsigned int gptfloats,
+		  const size_t gptfloats,
 		  const int * const selected_components, const int ncomponents,
 		  const int nsrc,
 		  const int dstxstart, const int dstystart, const int dstzstart,
@@ -386,7 +386,7 @@ inline void unpack2(const Real * const pack, Real * const dstbase,
 
 
 inline void unpack_subregion(const Real * const pack, Real * const dstbase,
-			const unsigned int gptfloats,
+			const size_t gptfloats,
 			const int * const selected_components, const int ncomponents,
 			const int srcxstart, const int srcystart, const int srczstart,
 			const int LX, const int LY,

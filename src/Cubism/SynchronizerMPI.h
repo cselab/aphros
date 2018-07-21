@@ -727,7 +727,7 @@ public:
 			_myfree(all_mallocs[i]);
 	}
 
-	virtual void sync(unsigned int gptfloats, MPI_Datatype MPIREAL, const int timestamp)
+	virtual void sync(size_t gptfloats, MPI_Datatype MPIREAL, const int timestamp)
 	{
 		//0. wait for pending sends, couple of checks
 		//1. pack all stuff
@@ -921,7 +921,7 @@ public:
 	}
 
     //peh
-	virtual void sync0(unsigned int gptfloats, MPI_Datatype MPIREAL, const int timestamp)
+	virtual void sync0(size_t gptfloats, MPI_Datatype MPIREAL, const int timestamp)
 	{
 		double t0, t1;
 

@@ -35,7 +35,7 @@ class Grid
 protected:
 
 	const double maxextent;
-	const unsigned int N, NX, NY, NZ;
+	const size_t N, NX, NY, NZ;
 
     const bool m_own_mesh_maps;
     std::vector<MeshMap<Block>*> m_mesh_maps;
@@ -76,7 +76,7 @@ protected:
 		}
 	}
 
-	Block* _linaccess(const unsigned int idx) const
+	Block* _linaccess(const size_t idx) const
 	{
 		assert(idx >= 0);
 		assert(idx < N);
@@ -84,7 +84,7 @@ protected:
 		return m_blocks + idx;
 	}
 
-	unsigned int _encode(const unsigned int ix, const unsigned int iy, const unsigned int iz) const
+	size_t _encode(const size_t ix, const size_t iy, const size_t iz) const
 	{
 		assert(ix>=0 && ix<NX);
 		assert(iy>=0 && iy<NY);
@@ -97,7 +97,7 @@ public:
 
 	typedef Block BlockType;
 
-    Grid(const unsigned int NX, const unsigned int NY = 1, const unsigned int NZ = 1, const double maxextent = 1) :
+    Grid(const size_t NX, const size_t NY = 1, const size_t NZ = 1, const double maxextent = 1) :
         m_blocks(NULL), NX(NX), NY(NY), NZ(NZ), N(NX*NY*NZ), maxextent(maxextent),
         m_own_mesh_maps(true)
     {
@@ -114,7 +114,7 @@ public:
         const double h = std::max(bs[0], std::max(bs[1], bs[2])) * hc;
 
         const double extents[3] = {hc*nn[0], hc*nn[1], hc*nn[2]};
-        const unsigned int nBlocks[3] = {NX, NY, NZ};
+        const size_t nBlocks[3] = {NX, NY, NZ};
         for (int i = 0; i < 3; ++i)
         {
             MeshMap<Block>* m = new MeshMap<Block>(
@@ -124,12 +124,12 @@ public:
             m_mesh_maps.push_back(m);
         }
 
-        for(unsigned int iz=0; iz<NZ; iz++)
-            for(unsigned int iy=0; iy<NY; iy++)
-                for(unsigned int ix=0; ix<NX; ix++)
+        for(size_t iz=0; iz<NZ; iz++)
+            for(size_t iy=0; iy<NY; iy++)
+                for(size_t ix=0; ix<NX; ix++)
                 {
                     const long long blockID = _encode(ix, iy, iz);
-                    const int idx[3] = {ix, iy, iz};
+                    const int idx[3] = {(int)ix, (int)iy, (int)iz};
                     const double origin[3] = {ix*h, iy*h, iz*h};
 
                     m_vInfo.push_back(BlockInfo(blockID, idx, origin, h, hc, _linaccess(blockID)));
@@ -150,9 +150,9 @@ public:
         m_mesh_maps.push_back(mapY);
         m_mesh_maps.push_back(mapZ);
 
-        for(unsigned int iz=0; iz<NZ; iz++)
-            for(unsigned int iy=0; iy<NY; iy++)
-                for(unsigned int ix=0; ix<NX; ix++)
+        for(size_t iz=0; iz<NZ; iz++)
+            for(size_t iy=0; iy<NY; iy++)
+                for(size_t ix=0; ix<NX; ix++)
                 {
                     const long long blockID = _encode(ix, iy, iz);
                     const int idx[3] = {ix, iy, iz};
@@ -163,7 +163,7 @@ public:
 
 	virtual ~Grid() { _dealloc(); }
 
-	void setup(const unsigned int nX, const unsigned int nY, const unsigned int nZ)
+	void setup(const size_t nX, const size_t nY, const size_t nZ)
 	{
         // TODO: [fabianw@mavt.ethz.ch; Wed May 03 2017 04:30:53 PM (-0700)]
         // dead code (?)
@@ -176,7 +176,7 @@ public:
 		std::cout << "done. " << std::endl;
 	}
 
-	virtual int getBlocksPerDimension(int idim) const
+	virtual size_t getBlocksPerDimension(int idim) const
 	{
 		assert(idim>=0 && idim<3);
 
@@ -190,9 +190,9 @@ public:
 		}
 	}
 
-	virtual bool avail(unsigned int ix, unsigned int iy=0, unsigned int iz=0) const { return true; }
+	virtual bool avail(size_t ix, size_t iy=0, size_t iz=0) const { return true; }
 
-	virtual Block& operator()(unsigned int ix, unsigned int iy=0, unsigned int iz=0) const
+	virtual Block& operator()(size_t ix, size_t iy=0, size_t iz=0) const
 	{
 		return *_linaccess( _encode((ix+NX) % NX, (iy+NY) % NY, (iz+NZ) % NZ) );
 	}
@@ -242,7 +242,7 @@ template <typename Block, template<typename X> class allocator>
 std::ifstream& operator>> (std::ifstream& in, Grid<Block, allocator>& grid)
 {
 	//read metadata
-	unsigned int nx, ny, nz;
+	size_t nx, ny, nz;
 	in >> nx;
     in.ignore(1,' ');
     in >> ny;

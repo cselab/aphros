@@ -207,9 +207,9 @@ class Cubism : public DistrMesh<KF> {
     } else if (cs == 8) {
       return StencilInfo(a,a,a,b,b,b, true, cs, 0,1,2,3,4,5,6,7);
     } else {
-      std::cerr << "GetStencil(): Unknown cs=" << cs << std::endl;
-      assert(false);
+      throw std::runtime_error("GetStencil(): Unknown cs=" + std::to_string(cs));
     }
+    return StencilInfo();
   }
   // Convert Cubism BlockInfo to MyBlockInfo
   static std::vector<MyBlockInfo> GetBlocks(
