@@ -2,7 +2,6 @@
 
 #include <list>
 #include <string>
-#include <sstream>
 
 // TODO: Sequence like 
 //   GetSem();
@@ -72,4 +71,3 @@ class Suspender {
   std::string curname_; // name+suff of current stage
   size_t depth_;
 };
-
