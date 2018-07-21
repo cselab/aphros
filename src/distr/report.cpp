@@ -1,4 +1,3 @@
-#include <iostream>
 #include <sstream>
 #include <vector>
 #include <iomanip>
@@ -63,7 +62,7 @@ struct N {
   }
 };
 
-void ParseReport(const std::map<std::string, double>& mp) {
+void ParseReport(const std::map<std::string, double>& mp, std::ostream& out) {
   std::vector<std::string> ss0; // list of strings previous
   N r("all"); // root
   // split strings, mp stores graph traversal in depth-first order
@@ -89,5 +88,5 @@ void ParseReport(const std::map<std::string, double>& mp) {
   }
 
   r.FillTime();
-  r.Print(std::cout, "", r.t);
+  r.Print(out, "", r.t);
 }

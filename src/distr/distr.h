@@ -75,8 +75,7 @@ class DistrMesh : public Distr {
   // Reduce TODO: extend doc
   virtual void Reduce(const std::vector<MIdx>& bb) = 0;
   virtual void Solve(const std::vector<MIdx>& bb);
-  // Writes dumps assuming last m.GetDump().size() fields
-  // from m.GetComm().size() are for dump.
+  // Writes dumps.
   virtual void DumpWrite(const std::vector<MIdx>& bb);
   virtual void ClearComm(const std::vector<MIdx>& bb);
   virtual void ClearDump(const std::vector<MIdx>& bb);
@@ -85,9 +84,12 @@ class DistrMesh : public Distr {
   // Create a kernel for each block and put into mk
   // Requires initialized isroot_;
   virtual void MakeKernels(const std::vector<MyBlockInfo>&);
+  virtual void TimerReport(const std::vector<MIdx>& bb);
+  virtual void ClearTimerReport(const std::vector<MIdx>& bb);
 
  private:
-  MultiTimer<std::string> mt_;
+  MultiTimer<std::string> mt_; // timer all
+  MultiTimer<std::string> mtp_; // timer partial
 };
 
 template <class KF>
@@ -128,6 +130,26 @@ template <class KF>
 void DistrMesh<KF>::ClearDump(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     mk.at(b)->GetMesh().ClearDump();
+  }
+}
+
+template <class KF>
+void DistrMesh<KF>::TimerReport(const std::vector<MIdx>& bb) {
+  auto& m = mk.at(bb[0])->GetMesh(); // assume same on all blocks
+  std::string fn = m.GetTimerReport();
+  if (fn.length()) {
+    std::ofstream out;
+    out.open(fn);
+    ParseReport(mtp_.GetMap(), out);
+    mtp_.Reset();
+  }
+  ClearTimerReport(bb);
+}
+
+template <class KF>
+void DistrMesh<KF>::ClearTimerReport(const std::vector<MIdx>& bb) {
+  for (auto& b : bb) {
+    mk.at(b)->GetMesh().ClearTimerReport();
   }
 }
 
@@ -294,6 +316,7 @@ auto DistrMesh<KF>::GetGlobalField(size_t i) -> FieldCell<Scal> {
 template <class KF>
 void DistrMesh<KF>::Run() {
   mt_.Push();
+  mtp_.Push();
   do {
     auto bb = GetBlocks();
     
@@ -312,6 +335,10 @@ void DistrMesh<KF>::Run() {
 
     mt_.Pop(mk.at(bb[0])->GetMesh().GetCurName());
     mt_.Push();
+
+    mtp_.Pop(mk.at(bb[0])->GetMesh().GetCurName());
+    TimerReport(bb);
+    mtp_.Push();
 
     Run(bb);
 
@@ -337,6 +364,7 @@ void DistrMesh<KF>::Run() {
     }
   } while (true);
   mt_.Pop("last");
+  mtp_.Pop("last");
 
   Report();
 }
@@ -352,7 +380,7 @@ void DistrMesh<KF>::Report() {
     if (par.Int["verbose_stages"]) {
       std::cout << std::fixed;
       auto& mp = mt_.GetMap();
-      ParseReport(mp);
+      ParseReport(mp, std::cout);
       for (auto e : mp) {
         auto n = e.first; // name
         if (n == "") {
