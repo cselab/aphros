@@ -44,7 +44,7 @@ void Tracker<M_>::Update(const FieldCell<Scal>& fcu) {
   auto sem = m.GetSem("upd");
 
   if (sem("")) {
-    const size_t sw = 1; // stencil halfwidth, [sw,sw]
+    const int sw = 1; // stencil halfwidth, [sw,sw]
     const int sn = sw * 2 + 1; // stencil size
     // block of offsets
     GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, dm_ == 2 ? 0 : -sw), 

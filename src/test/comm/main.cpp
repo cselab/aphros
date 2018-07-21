@@ -318,7 +318,7 @@ void Simple<M>::TestReduce() {
     rvvi_.resize(0);
     size_t i = bb.GetIdx(w).GetRaw();
     for (size_t j = 0; j < i % q; ++j) {
-      rvvi_.push_back(std::vector<int>({q * i + j}));
+      rvvi_.push_back(std::vector<int>({int(q * i + j)}));
     }
     using T = typename M::template OpCatVT<int>;
     m.Reduce(std::make_shared<T>(&rvvi_));
@@ -330,7 +330,7 @@ void Simple<M>::TestReduce() {
         auto w = b * wp + wb;
         size_t i = bb.GetIdx(w).GetRaw();
         for (size_t j = 0; j < i % q; ++j) {
-          rvvi.push_back(std::vector<int>({q * i + j}));
+          rvvi.push_back(std::vector<int>({int(q * i + j)}));
         }
       }
     }
