@@ -31,9 +31,9 @@ class Dumper {
 // ext: extension
 // t: time step
 // it: iteration, skip if -1
-std::string GetDumpName(std::string fld, std::string ext, size_t t, size_t it);
+std::string GetDumpName(std::string fld, std::string ext, int t, int it);
 
 // fld: field name
 // ext: extension
 // t: time step
-std::string GetDumpName(std::string fld, std::string ext, size_t t);
+std::string GetDumpName(std::string fld, std::string ext, int t);

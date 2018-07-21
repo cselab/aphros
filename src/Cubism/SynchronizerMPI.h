@@ -721,9 +721,9 @@ public:
 		assert(send.pending.size() == 0);
 	}
 
-	~SynchronizerMPI()
+	virtual ~SynchronizerMPI()
 	{
-		for(int i=0;i<all_mallocs.size();++i)
+		for(size_t i=0;i<all_mallocs.size();++i)
 			_myfree(all_mallocs[i]);
 	}
 
@@ -775,7 +775,6 @@ public:
 
 			if (!contiguous)
 			{
-#pragma omp parallel for schedule(runtime)
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
@@ -787,7 +786,6 @@ public:
 				const int selstart = selcomponents.front();
 				const int selend = selcomponents.back()+1;
 
-#pragma omp parallel for schedule(runtime)
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
@@ -975,7 +973,6 @@ public:
 
 			if (!contiguous)
 			{
-#pragma omp parallel for schedule(runtime)
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
@@ -987,7 +984,6 @@ public:
 				const int selstart = selcomponents.front();
 				const int selend = selcomponents.back()+1;
 
-#pragma omp parallel for //schedule(runtime)
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
