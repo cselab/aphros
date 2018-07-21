@@ -240,8 +240,6 @@ void Advection<M>::Dump(Sem& sem) {
     if (sem("dumpsurf")) {
       if (dmf_.Try(var.Double["t"], var.Double["dt"])) {
         if (IsLead()) {
-          auto bc = par_.ds->GetBlock();
-
           auto u = par_.ds->GetField(0);
           auto k = par_.ds->GetField(1);
           auto a = par_.ds->GetField(2);
@@ -330,7 +328,6 @@ void Advection<M>::Run() {
 
 void Main(MPI_Comm comm, Vars& var) {
   using M = MeshStructured<double, 3>;
-  using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
   using K = Advection<M>;

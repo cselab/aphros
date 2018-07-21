@@ -19,7 +19,7 @@ class Tracker {
   // th: threshold for detection u > 0
   // dm: space dimension, 2 or 3
   Tracker(M& m, const FieldCell<Scal>& fccl, Scal th, size_t dm)
-      : m(m), fccl_(fccl), fcim_(m, Vect(0)), th_(th), dm_(dm) {}
+      : m(m), fccl_(fccl), fcim_(m, Vect(0)), dm_(dm), th_(th) {}
   // Propagates color.
   // fcu: volume fraction [a]
   void Update(const FieldCell<Scal>& fcu);

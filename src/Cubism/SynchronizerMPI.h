@@ -35,14 +35,13 @@ class SynchronizerMPI
 
 		bool operator<(const I3& a) const
 		{
-			return ix<a.ix || ix==a.ix && iy<a.iy || ix==a.ix && iy==a.iy && iz<a.iz;
+			return ix<a.ix || (ix==a.ix && iy<a.iy) || (ix==a.ix && iy==a.iy && iz<a.iz);
 		}
 	};
 
 	struct PackInfo { Real * block, * pack; int sx, sy, sz, ex, ey, ez; };
 	struct SubpackInfo { Real * block, * pack; int sx, sy, sz, ex, ey, ez; int x0, y0, z0, xpacklenght, ypacklenght; };
 
-	DependencyCubeMPI<MPI_Request> cube;
 	bool isroot;
 	const int synchID;
 	int send_thickness[3][2], recv_thickness[3][2];
@@ -54,8 +53,9 @@ class SynchronizerMPI
 	vector<Real *> all_mallocs;
 
 	vector<BlockInfo> globalinfos;
+	DependencyCubeMPI<MPI_Request> cube;
 
-    map<Region, vector<BlockInfo> > region2infos;
+  map<Region, vector<BlockInfo> > region2infos;
 
 	//?static?
 	MPI_Comm cartcomm;
@@ -73,7 +73,7 @@ class SynchronizerMPI
 
 	bool _face_needed(const int d) const
 	{
-		return periodic[d] || mypeindex[d] > 0 && mypeindex[d] < pesize[d]-1;
+		return periodic[d] || (mypeindex[d] > 0 && mypeindex[d] < pesize[d]-1);
 	}
 
 	bool _myself(const int indx[3])
@@ -629,6 +629,7 @@ class SynchronizerMPI
 
 			int error = posix_memalign((void**)&ret_val, std::max(8, ALIGN), NBYTES);
 
+      (void)sizeof(error);
 			assert(error == 0);
 
 			all_mallocs.push_back(ret_val);
@@ -642,14 +643,18 @@ class SynchronizerMPI
 	void _myfree(Real *& ptr) {if (ptr!=NULL) { free(ptr); ptr=NULL;} }
 
 	//forbidden methods
-	SynchronizerMPI(const SynchronizerMPI& c):cube(-1,-1,-1), synchID(-1), isroot(true){ abort(); }
+	SynchronizerMPI(const SynchronizerMPI& c) = delete;
 
-	void operator=(const SynchronizerMPI& c){ abort(); }
+	void operator=(const SynchronizerMPI& c) = delete;
 
 public:
 
-	SynchronizerMPI(const int synchID, StencilInfo stencil, vector<BlockInfo> globalinfos, MPI_Comm cartcomm, const int mybpd[3], const int blocksize[3]):
-	synchID(synchID), stencil(stencil), globalinfos(globalinfos), cube(mybpd[0], mybpd[1], mybpd[2]), cartcomm(cartcomm)
+	SynchronizerMPI(const int synchID, StencilInfo stencil, 
+                  vector<BlockInfo> globalinfos, MPI_Comm cartcomm, 
+                  const int mybpd[3], const int blocksize[3])
+      : synchID(synchID), stencil(stencil), 
+        globalinfos(globalinfos), cube(mybpd[0], mybpd[1], mybpd[2]), 
+        cartcomm(cartcomm)
 	{
 		int myrank;
         MPI_Comm_rank(cartcomm, &myrank);
@@ -671,16 +676,17 @@ public:
 		for(int i=0; i<3; ++i) this->mybpd[i]=mybpd[i];
 		for(int i=0; i<3; ++i) this->blocksize[i]=blocksize[i];
 
-		for(int i=0; i< globalinfos.size(); ++i)
-		{
-			I3 coord(globalinfos[i].index[0], globalinfos[i].index[1], globalinfos[i].index[2]);
+		for(size_t i=0; i< globalinfos.size(); ++i) {
+			I3 coord(globalinfos[i].index[0], 
+               globalinfos[i].index[1], 
+               globalinfos[i].index[2]);
 			c2i[coord] = i;
 		}
 
 		const int origin[3] = {
-			mypeindex[0]*mybpd[0],
-			mypeindex[1]*mybpd[1],
-			mypeindex[2]*mybpd[2]
+      mypeindex[0]*mybpd[0],
+      mypeindex[1]*mybpd[1],
+      mypeindex[2]*mybpd[2]
 		};
 
 		const int s[3] = {stencil.sx, stencil.sy, stencil.sz};
@@ -921,7 +927,7 @@ public:
     //peh
 	virtual void sync0(size_t gptfloats, MPI_Datatype MPIREAL, const int timestamp)
 	{
-		double t0, t1;
+		//double t0, t1;
 
 		//0. wait for pending sends, couple of checks
 		//1. pack all stuff
@@ -961,7 +967,7 @@ public:
 
 		//1. pack
 		{
-			double t0, t1;
+			//double t0, t1;
 
 
 			const int N = send_packinfos.size();
@@ -1308,8 +1314,8 @@ public:
 			{
 				vector<int> indices(NPENDING);
 				int NSOLVED = 0;
-				if (blockinfo_counter == globalinfos.size())
-                    MPI_Testsome(NPENDING, &pending.front(), &NSOLVED, &indices.front(), MPI_STATUSES_IGNORE);
+				if (blockinfo_counter == int(globalinfos.size()))
+          MPI_Testsome(NPENDING, &pending.front(), &NSOLVED, &indices.front(), MPI_STATUSES_IGNORE);
 				else
 				{
 					MPI_Waitsome(NPENDING, &pending.front(), &NSOLVED, &indices.front(), MPI_STATUSES_IGNORE);
@@ -1375,7 +1381,7 @@ public:
 	{
 		vector<BlockInfo> accumulator;
 
-		while(accumulator.size()<smallest && !done())
+		while(accumulator.size()<size_t(smallest) && !done())
 		{
 			const vector<BlockInfo> r = avail();
 

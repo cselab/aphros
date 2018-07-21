@@ -132,7 +132,7 @@ template <class M>
 void Simple<M>::TestComm() {
   auto sem = m.GetSem("Comm");
   auto f = [](Vect v) { 
-    for (int i = 0; i < dim; ++i) {
+    for (size_t i = 0; i < dim; ++i) {
       while (v[i] < 0.) {
         v[i] += 1.;
       }
@@ -346,7 +346,7 @@ void Simple<M>::TestSolve() {
   auto sem = m.GetSem("Solve");
   auto& bc = m.GetBlockCells();
   auto f = [](Vect v) { 
-    for (int i = 0; i < dim; ++i) {
+    for (size_t i = 0; i < dim; ++i) {
       while (v[i] < 0.) {
         v[i] += 1.;
       }
@@ -386,14 +386,6 @@ void Simple<M>::TestSolve() {
       IdxCell ipz = bc.GetIdx(mi + MIdx(0, 0, 1));
       IdxCell imz = bc.GetIdx(mi + MIdx(0, 0, -1));
 
-      Vect x = m.GetCenter(i);
-      Vect xpx = m.GetCenter(ipx);
-      Vect xmx = m.GetCenter(imx);
-      Vect xpy = m.GetCenter(ipy);
-      Vect xmy = m.GetCenter(imy);
-      Vect xpz = m.GetCenter(ipz);
-      Vect xmz = m.GetCenter(imz);
-
       MIdx mpx = bc.GetMIdx(ipx);
       MIdx mmx = bc.GetMIdx(imx);
       MIdx mpy = bc.GetMIdx(ipy);
@@ -412,12 +404,6 @@ void Simple<M>::TestSolve() {
       e.InsertTerm(MIdx(0) <= mmy || per ? -1.0 : 0., imy);
       e.InsertTerm(mpz < gs || per       ? -1.0 : 0., ipz);
       e.InsertTerm(MIdx(0) <= mmz || per ? -1.0 : 0., imz);
-
-      /*
-      if (i == *m.Cells().begin()) {
-        e *= 0.;
-      }
-      */
 
       e.InsertTerm(6., i);
 

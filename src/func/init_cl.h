@@ -108,7 +108,7 @@ CreateInitCl(Vars& par, bool verb=true) {
           auto x = m.GetCenter(c);
           // find particle with largest value of level-set
           Scal fm = -std::numeric_limits<Scal>::max(); 
-          size_t im; // index of particle
+          size_t im = 0;; // index of particle
           for (size_t i = 0; i < pp.size(); ++i) {
             auto& p = pp[i];
             Scal fi = f((x - p.c) / p.r);
@@ -124,7 +124,7 @@ CreateInitCl(Vars& par, bool verb=true) {
   } else if (v == "box") {
     Vect xc(par.Vect["box_c"]);
     Scal s = par.Double["box_s"];
-    g = [xc,s](FieldCell<Scal>& fc, const FieldCell<Scal>& fcvf, const M& m) { 
+    g = [xc,s](FieldCell<Scal>& fc, const FieldCell<Scal>& /*fcvf*/, const M& m) { 
       Scal kNone = solver::Tracker<M>::kNone;
       fc.Reinit(m, kNone);
       for (auto c : m.Cells()) {
@@ -134,7 +134,7 @@ CreateInitCl(Vars& par, bool verb=true) {
       }
     };
   } else if (v == "zero") {
-    g = [](FieldCell<Scal>& fc, const FieldCell<Scal>& fcvf, const M& m) { 
+    g = [](FieldCell<Scal>& fc, const FieldCell<Scal>& /*fcvf*/, const M& m) { 
       Scal kNone = solver::Tracker<M>::kNone;
       fc.Reinit(m, kNone);
     };

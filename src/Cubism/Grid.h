@@ -192,7 +192,7 @@ public:
 		}
 	}
 
-	virtual bool avail(size_t ix, size_t iy=0, size_t iz=0) const { return true; }
+	virtual bool avail(size_t, size_t, size_t) const { return true; }
 
 	virtual Block& operator()(size_t ix, size_t iy=0, size_t iz=0) const
 	{

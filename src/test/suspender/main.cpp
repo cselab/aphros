@@ -63,7 +63,7 @@ void D(S& s) {
   b += "D2";
 }
 
-void C(S& s) { // no sem
+void C(S&) { // no sem
   b += "C1";
   b += "C2";
 }

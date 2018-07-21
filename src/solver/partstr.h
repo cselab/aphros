@@ -275,9 +275,9 @@ class PartStr {
     // jn: index of nearest segment ll[jn]
     auto findnear = [sl,ll](const Vect& x) -> size_t {
       Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
-      size_t jn = -1;
+      size_t jn = 0;
       // find distance to nearest segment
-      for (size_t j = 0; j < sl; ++j) {
+      for (size_t j = 1; j < sl; ++j) {
         auto& e = ll[j];
         Scal dl = x.sqrdist(R::GetNearest(x, e[0], e[1]));
         if (dl < dn) {
@@ -285,7 +285,6 @@ class PartStr {
           jn = j;
         }
       }
-      assert(jn != -1);
       return jn;
     };
 
@@ -297,7 +296,7 @@ class PartStr {
     // jn: index of nearest segment ll[jn]
     auto findnearang = [sl,ll](const Vect& x, const Vect& n, Scal ang) {
       Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
-      size_t jn = -1;
+      size_t jn = size_t(-1);
       // find distance to nearest segment
       for (size_t j = 0; j < sl; ++j) {
         auto& e = ll[j];
@@ -314,6 +313,7 @@ class PartStr {
       return jn;
     };
 
+    /*
     // find segment with nearest angle
     // x: point
     // t: direction
@@ -336,9 +336,9 @@ class PartStr {
       assert(jn != -1);
       return jn;
     };
+    */
 
-    Scal leq = xx[0].dist(xx[1]);
-
+    /*
     // find nearest segment with distance along line.
     // x: point
     // t: direction
@@ -362,6 +362,7 @@ class PartStr {
       }
       return jn;
     };
+    */
 
     // Apply shift from segment to circle
     // j: segment idx
@@ -407,7 +408,7 @@ class PartStr {
         Vect n = xx[i] - xx[i - g]; // normal to string
         n = Vect(-n[1], n[0], 0.) * g;
         size_t jn = findnearang(xx[i], n, anglim); // nearest segment
-        if (jn != -1) {
+        if (jn != size_t(-1)) {
           Vect xn = R::GetNearest(x, ll[jn][0], ll[jn][1]);
           shsegcirc(jn, xn);
           ff[i] += xn - x;  

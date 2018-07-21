@@ -268,10 +268,8 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
         maxiter = par.Int["hypre_symm_maxiter"];
         break;
       default:
-        std::cerr 
-            << "Solve(): Unknown system type = " 
-            << static_cast<size_t>(sf.t) << std::endl;
-        assert(false);
+        throw std::runtime_error(
+            "Solve(): Unknown system type = " + std::to_string((size_t)sf.t));
     }
 
     Hypre hp(comm_, lbb, gs, per, 
@@ -288,7 +286,7 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
 
 template <class KF>
 bool DistrMesh<KF>::Pending(const std::vector<MIdx>& bb) {
-  int np = 0;
+  size_t np = 0;
   for (auto& b : bb) {
     auto& k = *mk.at(b);
     auto& m = k.GetMesh();
@@ -296,7 +294,7 @@ bool DistrMesh<KF>::Pending(const std::vector<MIdx>& bb) {
       ++np;
     }
   }
-  // Check either all done or all pending
+  // Check either all blocks done or all pending
   assert(np == 0 || np == bb.size());
   return np;
 }
@@ -308,7 +306,7 @@ auto DistrMesh<KF>::GetGlobalBlock() const -> typename M::BlockCells {
 }
 
 template <class KF>
-auto DistrMesh<KF>::GetGlobalField(size_t i) -> FieldCell<Scal> {
+auto DistrMesh<KF>::GetGlobalField(size_t) -> FieldCell<Scal> {
   throw std::runtime_error("Not implemented");
   return FieldCell<Scal>();
 }

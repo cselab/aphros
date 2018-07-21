@@ -173,7 +173,7 @@ class FluidSimple : public FluidSolver<M_> {
       ilfe_.resize(nid);
       ila_.resize(nid);
 
-      for (int id = 0; id < nid; ++id) {
+      for (size_t id = 0; id < nid; ++id) {
         ilft_[id] = 0.;
         ilfe_[id] = 0.;
         ila_[id] = 0.;
@@ -205,7 +205,7 @@ class FluidSimple : public FluidSolver<M_> {
         }
       }
       
-      for (int id = 0; id < nid; ++id) {
+      for (size_t id = 0; id < nid; ++id) {
         m.Reduce(&ilft_[id], "sum");
         m.Reduce(&ilfe_[id], "sum");
         m.Reduce(&ila_[id], "sum");
@@ -213,7 +213,7 @@ class FluidSimple : public FluidSolver<M_> {
     }
 
     if (sem("corr")) {
-      for (int id = 0; id < nid; ++id) {
+      for (size_t id = 0; id < nid; ++id) {
         // Apply additive correction
         Scal dv = (ilft_[id] - ilfe_[id]) / ila_[id];  // velocity
         for (auto it : mfc_) {
@@ -367,7 +367,7 @@ class FluidSimple : public FluidSolver<M_> {
               )
       : FluidSolver<M>(time, time_step, fcr, fcd, fcf, ffbp, fcsv, fcsm)
       , m(m), dr_(0, dim), mfc_(mfc) , mcc_(mcc)
-      , ffvc_(m), fcpcs_(m), par(par)
+      , fcpcs_(m), ffvc_(m), par(par)
   {
     using namespace fluid_condition;
 
@@ -520,8 +520,8 @@ class FluidSimple : public FluidSolver<M_> {
         Scal o = ((*ffbp_)[f] - gp) * m.GetArea(f) / ffk[f];
 
         // wide
-        Vect wm = (fcb_[cm] - fcgp_[cm]) / fck[cm];
-        Vect wp = (fcb_[cp] - fcgp_[cp]) / fck[cp];
+        Vect wm = (fcb_[cm] - fcgp[cm]) / fck[cm];
+        Vect wp = (fcb_[cp] - fcgp[cp]) / fck[cp];
         Scal w = (wm + wp).dot(m.GetSurface(f)) * 0.5;
 
         // apply
@@ -659,7 +659,7 @@ class FluidSimple : public FluidSolver<M_> {
   void Solve(const FieldCell<Expr>& fce, FieldCell<Scal>& fc) {
     auto sem = m.GetSem("solve");
     if (sem("solve")) {
-      auto l = ConvertLs(fcpcs_, lsa_, lsb_, lsx_, m);
+      auto l = ConvertLs(fce, lsa_, lsb_, lsx_, m);
       using T = typename M::LS::T; 
       l.t = T::symm; // solver type
       m.Solve(l);

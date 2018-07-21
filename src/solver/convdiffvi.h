@@ -63,7 +63,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
       const FieldFace<Scal>* ffv, // volume flux
       double t, double dt, std::shared_ptr<Par> par)
       : ConvectionDiffusion<M>(t, dt, fcr, ffd, fcs, ffv)
-      , m(m) , mfc_(mfc) , mcc_(mcc), par(par), dr_(0, dim)
+      , m(m) , mfc_(mfc) , mcc_(mcc), dr_(0, dim), par(par)
   {
     for (auto d : dr_) {
       // Face conditions for each velocity component

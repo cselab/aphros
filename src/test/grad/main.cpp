@@ -82,8 +82,6 @@ Mesh GetMesh(MIdx s /*size in cells*/) {
   Rect<Vect> dom(Vect(0.1, 0.2, 0.1), Vect(1.1, 1.2, 1.3));
   MIdx b(-2, -3, -4); // lower index
   int hl = 1;         // halos 
-  Vect doms = dom.GetDimensions();
-  Vect h = dom.GetDimensions() / Vect(s);
   return InitUniformMesh<Mesh>(dom, b, s, hl, true, s);
 }
 
@@ -233,16 +231,16 @@ std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
 }
 
 void TestGrad() {
-  EE(Single([](Vect x) { return 0.; }));
-  EE(Single([](Vect x) { return 1.; }));
+  EE(Single([](Vect) { return 0.; }));
+  EE(Single([](Vect) { return 1.; }));
   EE(Single([](Vect x) { return x[0]; }));
   EE(Single([](Vect x) { return x[0] * x[1] * x[2]; }));
   EE(Conv([](Vect x) { return std::sin(x[0] + sqr(x[1]) + cube(x[2])); }));
 
-  EE(SingleG([](Vect x) { return 1.; },
-             [](Vect x) { return Vect(0., 0., 0.); }));
+  EE(SingleG([](Vect) { return 1.; },
+             [](Vect) { return Vect(0., 0., 0.); }));
   EE(SingleG([](Vect x) { return x[0]; },
-             [](Vect x) { return Vect(1., 0., 0.); }));
+             [](Vect) { return Vect(1., 0., 0.); }));
   EE(SingleG([](Vect x) { return sqr(x[0]); },
              [](Vect x) { return Vect(2 * x[0], 0., 0.); }));
   EE(SingleG([](Vect x) { return sqr(x[0]); },
@@ -264,7 +262,7 @@ void TestGrad() {
 
 void TestCoeff() {
   auto p = [](Scal x, const std::vector<Scal>& z, 
-              const std::vector<Scal>& ke, size_t b=0) {
+              const std::vector<Scal>& ke, size_t b) {
     std::vector<Scal> k;
     if (b == 0) {
       k = solver::GetGradCoeffs(x, z);
@@ -283,10 +281,10 @@ void TestCoeff() {
     }
   };
 
-  p(0, {-1, 0}, {-1, 1});
-  p(0, {-2, -1, 0}, {0.5, -2., 1.5});
+  p(0, {-1, 0}, {-1, 1}, 0);
+  p(0, {-2, -1, 0}, {0.5, -2., 1.5}, 0);
   p(0, {-2, -1, 0}, {0, -1, 1}, 1);
-  p(0, {-1, 0, 1}, {-0.5, 0, 0.5});
+  p(0, {-1, 0, 1}, {-0.5, 0, 0.5}, 0);
 }
 
 int main() {
