@@ -35,9 +35,9 @@ public:
 		gLastZ = grid.getBlocksPerDimension(2)-1;
 	}
 	
-	void load(const BlockInfo& info, const Real t=0, const bool applybc=true)
+	void load(const BlockInfo& info)
 	{		
-		MyBlockLab::load(info, t, false);
+		MyBlockLab::load(info);
 		
 		assert(refSynchronizerMPI != NULL);
 		
@@ -79,8 +79,6 @@ public:
 									  sizeof(ET)/sizeof(Real),
 									  rsx, rex, rsy, rey, rsz, rez);
 		}
-		
-		if (applybc) MyBlockLab::_apply_bc(info, t);
 	}
     
     void release()

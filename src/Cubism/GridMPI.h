@@ -92,7 +92,7 @@ public:
 
         const double h_gridpoint = maxextent / (double)max(getBlocksPerDimension(0)*blocksize[0], max(getBlocksPerDimension(1)*blocksize[1], getBlocksPerDimension(2)*blocksize[2]));
 
-        for(int i=0; i<vInfo.size(); ++i)
+        for(size_t i=0; i<vInfo.size(); ++i)
         {
             BlockInfo info = vInfo[i];
 

@@ -30,12 +30,12 @@ class Grid
  
  private:
 	Block * m_blocks;
-    std::vector<BlockInfo> m_vInfo;
+  std::vector<BlockInfo> m_vInfo;
 
 protected:
 
+	const size_t NX, NY, NZ, N;
 	const double maxextent;
-	const size_t N, NX, NY, NZ;
 
     const bool m_own_mesh_maps;
     std::vector<MeshMap<Block>*> m_mesh_maps;
@@ -63,6 +63,7 @@ protected:
 		assert(m_blocks!=NULL);
 
 		//numa touch
+    #if 0
 		#pragma omp parallel
 		{
 #ifdef _USE_NUMA_
@@ -74,6 +75,7 @@ protected:
 			for(int i=0; i<(int)N; ++i)
 				m_blocks[i].clear();
 		}
+    #endif
 	}
 
 	Block* _linaccess(const size_t idx) const

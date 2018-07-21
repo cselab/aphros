@@ -16,7 +16,7 @@ std::vector<std::string> Split(const std::string& str) {
     st >> s;  // skip 
   }
   return ss;
-};
+}
 
 // Node
 struct N { 

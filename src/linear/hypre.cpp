@@ -72,8 +72,8 @@ Hypre::Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs,
   HYPRE_StructMatrixInitialize(hd->a);
   for (auto& b : bb) {
     std::vector<int> sti(st.size()); // stencil index (1-to-1)
-    for (int i = 0; i < sti.size(); ++i) {
-      sti[i] = i;
+    for (size_t i = 0; i < sti.size(); ++i) {
+      sti[i] = (int)i;
     }
 
     HYPRE_StructMatrixSetBoxValues(

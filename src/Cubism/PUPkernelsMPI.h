@@ -122,7 +122,7 @@ inline void pack_stripes_unroll0(const Real * const srcbase, Real * const dst,
 		for(int iy=ystart; iy<yend; ++iy)
 		{
 			int xentries = xend - xstart;
-			int unroll = 4;
+			//int unroll = 4;
 			
 			int repeat = (xentries / 4);
 			int left = (xentries % 4);
@@ -304,10 +304,10 @@ inline void pack_stripes(const Real * const srcbase, Real * const dst,
 inline void unpack(const Real * const pack, Real * const dstbase,
 		  const size_t gptfloats,
 		  const int * const selected_components, const int ncomponents,
-		  const int nsrc,
+		  const int /*nsrc*/,
 		  const int dstxstart, const int dstystart, const int dstzstart,
 		  const int dstxend, const int dstyend, const int dstzend,
-		  const int xsize, const int ysize, const int zsize)
+		  const int xsize, const int ysize, const int /*zsize*/)
 {
 	for(int s=0, zd=dstzstart; zd<dstzend; ++zd)
 		for(int yd=dstystart; yd<dstyend; ++yd)
@@ -322,10 +322,10 @@ inline void unpack(const Real * const pack, Real * const dstbase,
 inline void unpack1(const Real * const pack, Real * const dstbase,
 		  const size_t gptfloats,
 		  const int * const selected_components, const int ncomponents,
-		  const int nsrc,
+		  const int /*nsrc*/,
 		  const int dstxstart, const int dstystart, const int dstzstart,
 		  const int dstxend, const int dstyend, const int dstzend,
-		  const int xsize, const int ysize, const int zsize)
+		  const int xsize, const int ysize, const int /*zsize*/)
 {
 	int first_component = selected_components[0];
 	for(int s=0, zd=dstzstart; zd<dstzend; ++zd)
@@ -344,10 +344,10 @@ inline void unpack1(const Real * const pack, Real * const dstbase,
 inline void unpack2(const Real * const pack, Real * const dstbase,
 		  const size_t gptfloats,
 		  const int * const selected_components, const int ncomponents,
-		  const int nsrc,
+		  const int /*nsrc*/,
 		  const int dstxstart, const int dstystart, const int dstzstart,
 		  const int dstxend, const int dstyend, const int dstzend,
-		  const int xsize, const int ysize, const int zsize)
+		  const int xsize, const int ysize, const int /*zsize*/)
 {
 	int first_component = selected_components[0];
 	const int nbytes = ncomponents*sizeof(Real);
@@ -392,7 +392,7 @@ inline void unpack_subregion(const Real * const pack, Real * const dstbase,
 			const int LX, const int LY,
 			const int dstxstart, const int dstystart, const int dstzstart,
 			const int dstxend, const int dstyend, const int dstzend,
-			const int xsize, const int ysize, const int zsize)
+			const int xsize, const int ysize, const int /*zsize*/)
 {
 	for(int zd=dstzstart; zd<dstzend; ++zd)
 		for(int yd=dstystart; yd<dstyend; ++yd)

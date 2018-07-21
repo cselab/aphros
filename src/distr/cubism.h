@@ -394,14 +394,14 @@ struct StreamHdf {
   StreamHdf(B& b): b(b) {}
 
   // write
-  void operate(const int ix, const int iy, const int iz, Scal out[0]) const
+  void operate(const int ix, const int iy, const int iz, Scal* out) const
   {
     const T& in = *((T*)&b.data[iz][iy][ix].a[0]);
     out[0] = in.a[ID];
   }
 
   // read
-  void operate(const Scal out[0], const int ix, const int iy, const int iz) const
+  void operate(const Scal* out, const int ix, const int iy, const int iz) const
   {
     T& in = *((T*)&b.data[iz][iy][ix].a[0]);
     in.a[ID] = out[0];
@@ -431,14 +431,14 @@ struct StreamHdfDyn {
   StreamHdfDyn(B& b): b(b) {}
 
   // write
-  void operate(const int ix, const int iy, const int iz, Scal out[0]) const
+  void operate(const int ix, const int iy, const int iz, Scal* out) const
   {
     const T& in = *((T*)&b.data[iz][iy][ix].a[0]);
     out[0] = in.a[ID];
   }
 
   // read
-  void operate(const Scal out[0], const int ix, const int iy, const int iz) const
+  void operate(const Scal* out, const int ix, const int iy, const int iz) const
   {
     T& in = *((T*)&b.data[iz][iy][ix].a[0]);
     in.a[ID] = out[0];
@@ -565,7 +565,7 @@ void Cubism<Par, KF>::ReadBuffer(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     auto& k = *mk.at(b); // kernel
     auto& m = k.GetMesh();
-    s_.l->load(s_.mb[b], stage_);
+    s_.l->load(s_.mb[b]);
     ReadBuffer(m, *s_.l);
   }
 }
@@ -581,7 +581,6 @@ void Cubism<Par, KF>::WriteBuffer(const std::vector<MIdx>& bb) {
 
 template <class Par, class KF>
 void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
-  using Op = typename M::Op;
   using OpS = typename M::OpS;
   using OpSI = typename M::OpSI;
   using OpCat = typename M::OpCat;
@@ -802,7 +801,7 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       // resize field for block mesh
       fc.Reinit(m);
       // load from grid to lab
-      s_.l->load(s_.mb[b], stage_);
+      s_.l->load(s_.mb[b]);
       // read from lab to fc
       ReadBuffer(fc, *s_.l, e, m);
       // get corner of inner cells block
@@ -839,7 +838,7 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       // resize field for block mesh
       fc.Reinit(m);
       // load from grid to lab
-      s_.l->load(s_.mb[b], stage_);
+      s_.l->load(s_.mb[b]);
       // read from lab to fc
       ReadBuffer(fc, *s_.l, e, m);
       // get corner of inner cells block

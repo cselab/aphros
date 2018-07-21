@@ -62,8 +62,6 @@ protected:
 
 	const Grid<BlockType, allocator>* m_refGrid;
 
-	virtual void _apply_bc(const BlockInfo& info, const Real t=0) { }
-
 	template<typename T>
 	void _release(T *& t)
 	{
@@ -104,9 +102,6 @@ public:
 	}
 
 	inline ElementType * getBuffer() const { return &m_cacheBlock->LinAccess(0);}
-
-    // rasthofer May 2016: required for non-relecting time-dependent boundary conditions
-    virtual void apply_bc_update(const BlockInfo& info, const Real dt=0, const Real a=0, const Real b=0) { }
 
 	void prepare(Grid<BlockType,allocator>& grid, int startX, int endX, int startY, int endY, int startZ, int endZ, const bool istensorial)
 	{
@@ -185,7 +180,7 @@ public:
 	 * @param info  Reference to info of block to be loaded.
 	 */
 
-	void load(const BlockInfo& info, const Real t=0, const bool applybc=true)
+	void load(const BlockInfo& info)
 	{
 //		double t0 = omp_get_wtime();
 		const Grid<BlockType,allocator>& grid = *m_refGrid;
@@ -413,26 +408,12 @@ public:
 #endif
 			}
 
-//			double t2 = omp_get_wtime();
-
-			if (applybc) _apply_bc(info, t);
-
-//			double t3 = omp_get_wtime();
 
 			m_state = eMRAGBlockLab_Loaded;
 
-//			printf("load: %5.10e %5.10e %5.10e %5.10e\n", t1-t0, t2-t1, t3-t2, t3-t0);
 		}
 	}
 
-	/**
-	 * Get a single element from the block.
-	 * stencil_start and stencil_end refer to the values passed in BlockLab::prepare().
-	 *
-	 * @param ix    Index in x-direction (stencil_start[0] <= ix < BlockType::sizeX + stencil_end[0] - 1).
-	 * @param iy    Index in y-direction (stencil_start[1] <= iy < BlockType::sizeY + stencil_end[1] - 1).
-	 * @param iz    Index in z-direction (stencil_start[2] <= iz < BlockType::sizeZ + stencil_end[2] - 1).
-	 */
 	ElementType& operator()(int ix, int iy=0, int iz=0)
 	{
 #ifndef NDEBUG

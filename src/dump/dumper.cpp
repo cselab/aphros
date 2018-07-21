@@ -47,7 +47,7 @@ void Dumper::Report() {
       << std::endl;
 }
 
-std::string GetDumpName(std::string fld, std::string ext, size_t t, size_t it) {
+std::string GetDumpName(std::string fld, std::string ext, int t, int it) {
   std::stringstream s;
   s << fld;
   s << "_" << std::setfill('0') << std::setw(4) << t;
@@ -58,6 +58,6 @@ std::string GetDumpName(std::string fld, std::string ext, size_t t, size_t it) {
   return s.str();
 }
 
-std::string GetDumpName(std::string fld, std::string ext, size_t t) {
+std::string GetDumpName(std::string fld, std::string ext, int t) {
   return GetDumpName(fld, ext, t, -1);
 }
