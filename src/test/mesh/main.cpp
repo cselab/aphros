@@ -109,7 +109,7 @@ void TestMesh() {
   // Face area
   for (int q = 0; q < dim; ++q) {
     Dir d(q);
-    IdxFace f;
+    IdxFace f(0);
     // Find any face with direction d
     for (IdxFace i : m.AllFaces()) {
       if (m.GetDir(i) == d) {
