@@ -19,7 +19,7 @@ std::function<Vect(Vect, Scal)> CreateInitVel(Vars& par) {
   std::string v = par.String["init_vel"];
   if (v == "uni") {
     Vect vel(par.Vect["vel"]);
-    f = [vel](Vect x, Scal) -> Vect { 
+    f = [vel](Vect, Scal) -> Vect { 
       return vel; 
     };
   } else if (v == "sincos") {

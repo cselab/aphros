@@ -26,7 +26,7 @@
 #include "MeshMap.h"
 
 template<typename TGrid, typename Streamer>
-void DumpHDF5_MPI(const TGrid &grid, int iCounter, Real absTime, 
+void DumpHDF5_MPI(const TGrid &grid, int /*iCounter*/, Real absTime, 
                   std::string f_name, std::string dump_path=".", 
                   bool bXMF=true) {
   using B = typename TGrid::BlockType;
@@ -69,7 +69,7 @@ void DumpHDF5_MPI(const TGrid &grid, int iCounter, Real absTime,
       std::vector<double> vertices(m.ncells()+1, m.start());
       mesh_dims.push_back(vertices.size());
 
-      for (int j = 0; j < m.ncells(); ++j)
+      for (size_t j = 0; j < m.ncells(); ++j)
         vertices[j+1] = vertices[j] + m.cell_width(j);
 
       hsize_t dim[1] = {vertices.size()};
@@ -167,10 +167,10 @@ void DumpHDF5_MPI(const TGrid &grid, int iCounter, Real absTime,
           assert(idx < NX * NY * NZ * NCHANNELS);
           Real * const ptr = array_all + idx;
           Real output[NCHANNELS];
-          for(int i=0; i<NCHANNELS; ++i)
+          for(size_t i=0; i<NCHANNELS; ++i)
             output[i] = 0;
           streamer.operate(ix, iy, iz, (Real*)output);
-          for(int i=0; i<NCHANNELS; ++i)
+          for(size_t i=0; i<NCHANNELS; ++i)
             ptr[i] = output[i];
         }
       }
@@ -225,7 +225,7 @@ void DumpHDF5_MPI(const TGrid &grid, int iCounter, Real absTime,
     fprintf(xmf, "     </Geometry>\n\n");
     fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Cell\">\n", 
         Streamer::NAME.c_str(), Streamer::getAttributeName());
-    fprintf(xmf, "       <DataItem Dimensions=\"%d %d %d %d\" NumberType=\"Float\" Precision=\"%d\" Format=\"HDF\">\n",(int)dims[0], (int)dims[1], (int)dims[2], (int)dims[3], sizeof(Real));
+    fprintf(xmf, "       <DataItem Dimensions=\"%d %d %d %d\" NumberType=\"Float\" Precision=\"%lu\" Format=\"HDF\">\n",(int)dims[0], (int)dims[1], (int)dims[2], (int)dims[3], sizeof(Real));
     fprintf(xmf, "        %s:/data\n",(fullname+".h5").c_str());
     fprintf(xmf, "       </DataItem>\n");
     fprintf(xmf, "     </Attribute>\n");

@@ -43,12 +43,12 @@ int main (int argc, char ** argv) {
   b.st = st;
 
   size_t n = 1;
-  for (int i = 0; i < dim; ++i) {
+  for (size_t i = 0; i < dim; ++i) {
     n *= b.u[i] - b.l[i] + 1;
   }
 
   // exact solution
-  auto f = [](Scal x, Scal y, Scal z) {
+  auto f = [](Scal x, Scal, Scal) {
     return std::sin(x);
   };
 

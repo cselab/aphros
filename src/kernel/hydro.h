@@ -414,10 +414,6 @@ void Hydro<M>::Init() {
       } 
       return false;
     };
-    // any boundary of global mesh
-    auto gb = [&](IdxFace i) -> bool {
-      return gxm(i) || gxp(i) || gym(i) || gyp(i) || gzm(i) || gzp(i);
-    };
 
     // Boundary conditions for fluid 
     auto ff = m.AllFaces();
@@ -564,10 +560,12 @@ void Hydro<M>::Init() {
     var.Double.Set("t", st_.t);
 
     // Stat: var.Double[p] with name n
+    /*
     auto on = [this](std::string n, std::string p) {
       return std::make_shared<output::EntryScalarFunction<Scal>>(
           n, [&,p](){ return var.Double[p]; });
     };
+    */
 
     // Stat: *p with name n
     auto op = [this](std::string n,  Scal* p) {
@@ -679,7 +677,7 @@ void Hydro<M>::CalcStat() {
     m.Reduce(&s.m1, "sum");
     m.Reduce(&s.m2, "sum");
     m.Reduce(&s.ekin, "sum");
-    for (auto d = 0; d < dim; ++d) {
+    for (size_t d = 0; d < dim; ++d) {
       m.Reduce(&s.c1[d], "sum");
       m.Reduce(&s.c2[d], "sum");
       m.Reduce(&s.v1[d], "sum");
@@ -727,7 +725,6 @@ void Hydro<M>::CalcStat() {
 template <class M>
 void Hydro<M>::CalcDt() {
   auto sem = m.GetSem("dt");
-  auto& s = st_;
 
   if (sem("local")) {
     st_.t = fs_->GetTime();
@@ -1050,7 +1047,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           ff_st_[f] = 0.;
         }
         // contact angle on boundaries
-        Scal pi = M_PI;
         // angle between normal to boundary and normal to interface
         //Scal ang = var.Double["contang"] * pi / 180.;
         // TODO: controller for contact angle
@@ -1186,7 +1182,7 @@ void Hydro<M>::DumpTraj(Sem& sem) {
     bool dm = dmptraj_.Try(st_.t, st_.dt);
     if (dm) {
       std::map<Scal, std::vector<Scal>> mp; // map color to vector
-      Scal th = var.Double["color_th"]; // TODO: intergration in neighbours
+      //Scal th = var.Double["color_th"]; // TODO: intergration in neighbours
       auto kNone = TR::kNone;
       auto& cl = tr_->GetColor();
       auto& im = tr_->GetImage();
@@ -1205,7 +1201,7 @@ void Hydro<M>::DumpTraj(Sem& sem) {
           auto& v = mp[cl[c]]; // vector for data
           size_t i = 0;
           // append value to vector
-          auto add = [&v,&i,this](Scal a, std::string name) {
+          auto add = [&v,&i,this](Scal a) {
             if (i >= v.size()) {
               v.resize(i + 1);
             }
@@ -1214,17 +1210,17 @@ void Hydro<M>::DumpTraj(Sem& sem) {
           };
           // volume
           auto w = vf[c] * m.GetVolume(c);
-          add(w, "vf"); // XXX: adhoc, vf must be first, divided on dump
+          add(w); // vf,  XXX: adhoc, vf must be first, divided on dump
           auto x = m.GetCenter(c);
           x += im[c] * gh;
           // list of vars, XXX: keep consistent with clr_nm_ 
-          add(x[0] * w, "x");
-          add(x[1] * w, "y");
-          add(x[2] * w, "z");
-          add(vel[c][0] * w, "vx");
-          add(vel[c][1] * w, "vy");
-          add(vel[c][2] * w, "vz");
-          add(p[c] * w, "p");
+          add(x[0] * w); // x
+          add(x[1] * w); // y
+          add(x[2] * w); // z
+          add(vel[c][0] * w); // vx
+          add(vel[c][1] * w); // vy
+          add(vel[c][2] * w); // vz
+          add(p[c] * w); // p
         }
       }
       // traverse map, copy to vector
@@ -1315,7 +1311,7 @@ void Hydro<M>::Run() {
   }
   if (sem("loop-check")) {
     if (st_.t + st_.dt * 0.25 > var.Double["tmax"] || 
-        st_.step >= var.Int["max_step"]) {
+        int(st_.step) >= var.Int["max_step"]) {
       sem.LoopBreak();
     } else {
       if (IsRoot()) { 
@@ -1365,8 +1361,8 @@ void Hydro<M>::Run() {
       if (sn("convcheck")) {
         assert(fs_->GetError() <= diff_);
         auto it = fs_->GetIter();
-        if ((diff_ < var.Double["tol"] && it >= var.Int["min_iter"]) ||
-            it >= var.Int["max_iter"]) {
+        if ((diff_ < var.Double["tol"] && (int)it >= var.Int["min_iter"]) ||
+            (int)it >= var.Int["max_iter"]) {
           sn.LoopBreak();
         }
       }

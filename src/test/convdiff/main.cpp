@@ -256,7 +256,7 @@ void Convdiff<M>::TestSolve(
       return dim >= 3 && m.GetDir(i) == Dir::k &&
           m.GetBlockFaces().GetMIdx(i)[2] == gs[2];
     };
-    auto parse = [](std::string s, IdxFace, size_t nci, M& m) 
+    auto parse = [](std::string s, IdxFace, size_t nci, M&) 
        -> std::shared_ptr<solver::CondFace> {
       std::stringstream arg(s);
 
@@ -289,10 +289,6 @@ void Convdiff<M>::TestSolve(
         return true;
       } 
       return false;
-    };
-    // any boundary of global mesh
-    auto gb = [&](IdxFace i) -> bool {
-      return gxm(i) || gxp(i) || gym(i) || gyp(i) || gzm(i) || gzp(i);
     };
 
     // Boundary conditions for fluid 
@@ -347,7 +343,7 @@ void Convdiff<M>::TestSolve(
       fc_exact_[i] = fe(x);
     }
   }
-  for (size_t n = 0; n < var.Int["num_steps"]; ++n) {
+  for (size_t n = 0; n < size_t(var.Int["num_steps"]); ++n) {
     if (sem.Nested("as->StartStep()")) {
       as_->StartStep();
     }
@@ -406,12 +402,10 @@ void Convdiff<M>::Run() {
   auto f = [](Vect x) { 
       return std::sin(x[0]) * std::cos(x[1]) * std::exp(x[2]); 
     };
-  auto f0 = [](Vect x) { return 0.; };
-  auto f1 = [](Vect x) { return 1.; };
+  //auto f0 = [](Vect { return 0.; };
+  //auto f1 = [](Vect) { return 1.; };
   auto fx = [](Vect x) { return Vect(1., -1., 1.).dot(x); };
   auto fex = [=](Vect x) { x -= vel * t; return fx(x); };
-
-  bool fatal = var.Int["fatal"];
 
   if (sem.Nested()) {
     TestSolve(fx, fex, 6, "fx", false);
@@ -468,7 +462,6 @@ void Main(MPI_Comm comm, Vars& var0) {
   FC fa, fea, fb, feb;
   std::tie(b, fa, fea) = Solve(comm, var); // fa non-empty only on root
 
-  using Scal = double;
   Rect<Vect> dom(Vect(0), Vect(1));
   MIdx ms = b.GetDimensions();
   auto m = InitUniformMesh<M>(dom, MIdx(0), ms, 0, true, ms);

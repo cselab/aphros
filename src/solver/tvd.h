@@ -48,7 +48,7 @@ class AdvectionSolverExplicit : public AdvectionSolver<M> {
       const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
       double t, double dt, std::shared_ptr<Par> par)
       : AdvectionSolver<Mesh>(t, dt, m, ffv, fcs)
-      , mfc_(mfc), par(par), fck_(m, 0)
+      , mfc_(mfc), fck_(m, 0), par(par)
   {
     fcu_.time_curr = fcu;
     for (auto it : mfc_) {

@@ -26,14 +26,18 @@ Hypre::Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs,
     assert(b.l.size() == dim);
     assert(b.u.size() == dim);
     for (auto& s : b.st) {
-      assert(s.size() == dim);
+      if (s.size() != dim) {
+        throw std::runtime_error("Hypre(): s.size() != dim");
+      }
     }
   }
 
   // Check all blocks have the same stencil
   std::vector<MIdx> st = bb[0].st;
   for (auto& b : bb) {
-    assert(b.st == st);
+    if (b.st != st) {
+      throw std::runtime_error("Hypre(): b.st != st");
+    }
   }
 
   // Check size of data 

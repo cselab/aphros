@@ -30,8 +30,6 @@ Scal GetLevelSetVolume(std::function<Scal(const GVect<Scal, 3>&)> f,
   for (auto w : b) {
     Vect x = xc + (Vect(w) - Vect(0.5)) * h;
     if ((fc > 0.) != (f(x) > 0.)) {
-      Vect dh = h * 1e-3;
-
       // linear approximation
       // f(x) = f(xc) + (x - xc).dot(grad(f, xc))
       Vect n; // normal

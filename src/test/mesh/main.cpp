@@ -206,7 +206,7 @@ int main() {
           std::cout << (*i).first << " " << (*i).second.GetLetter() << std::endl;
         };
 
-      size_t c = 0;
+      int c = 0;
       for (i = sb.begin(); i != sb.end(); ++i) {
         l();
         ++c;

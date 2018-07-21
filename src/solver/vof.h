@@ -222,9 +222,8 @@ class Vof : public AdvectionSolver<M_> {
       const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
       double t, double dt, std::shared_ptr<Par> par)
       : AdvectionSolver<M>(t, dt, m, ffv, fcs)
-      , mfc_(mfc), par(par)
-      , fc_a_(m, 0), fc_n_(m, Vect(0)), fc_us_(m, 0), ff_fu_(m, 0) 
-      , fck_(m, 0), fckp_(m, 0)
+      , mfc_(mfc), fc_a_(m, 0), fc_n_(m, Vect(0)), fc_us_(m, 0), ff_fu_(m, 0) 
+      , fck_(m, 0), fckp_(m, 0), par(par)
   {
     fc_u_.time_curr = fcu;
     for (auto it : mfc_) {
@@ -335,9 +334,9 @@ class Vof : public AdvectionSolver<M_> {
         continue;
       }
       Vect bn; // best normal
-      Scal bhx, bhy; // best first derivative
-      Scal bk; // best curvature[k]
-      Dir bd;  // best direction
+      Scal bhx = 0., bhy = 0.; // best first derivative
+      Scal bk = 0.; // best curvature[k]
+      Dir bd = Dir::i;  // best direction
       bool fst = true; // first
       std::vector<Dir> dd; // direction of plane normal
       if (par->dim == 2) {
@@ -530,7 +529,7 @@ class Vof : public AdvectionSolver<M_> {
       if (fci[c] && fcu[c] >= th && fcu[c] <= 1. - th) {
         // number of strings
         size_t ns = (par->dim == 2 ? 1 : par->part_ns);
-        for (int s = 0; s < ns; ++s) {
+        for (size_t s = 0; s < ns; ++s) {
           Scal an = s * M_PI / ns; // angle
           auto v = GetPlaneBasis(xc, fcn[c], fca[c], an);
 
@@ -794,7 +793,6 @@ class Vof : public AdvectionSolver<M_> {
 
     using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
-    auto& bf = m.GetBlockFaces();
     // directions, format: {dir LE, dir EI, ...}
     std::vector<size_t> dd; 
     Scal vsc; // scaling factor for ffv, used for splitting

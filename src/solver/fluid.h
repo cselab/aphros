@@ -178,11 +178,12 @@ class GivenPressureFixed : public GivenPressure<M> {
 } // namespace fluid_condition
 
 
+// argstr: argument string
+// f: target face 
+// nc: target neighbour cell id
 template <class M>
-std::shared_ptr<CondFaceFluid> Parse(std::string argstr,
-                                          IdxFace idxface,
-                                          size_t nc /*neighbour cell id*/, 
-                                          const M& m) {
+std::shared_ptr<CondFaceFluid> Parse(std::string argstr, IdxFace /*f*/,
+                                     size_t nc, const M& /*m*/) {
   using namespace fluid_condition;
   using Vect=  typename M::Vect;
   std::stringstream arg(argstr);

@@ -150,9 +150,9 @@ public:
 		assert(m_stencilStart[2]<=m_stencilEnd[2]);
 
 		if (m_cacheBlock == NULL ||
-			m_cacheBlock->getSize()[0]!= BlockType::sizeX + m_stencilEnd[0] - m_stencilStart[0] -1 ||
-			m_cacheBlock->getSize()[1]!= BlockType::sizeY + m_stencilEnd[1] - m_stencilStart[1] -1 ||
-			m_cacheBlock->getSize()[2]!= BlockType::sizeZ + m_stencilEnd[2] - m_stencilStart[2] -1 )
+			(int)m_cacheBlock->getSize()[0]!= (int)BlockType::sizeX + m_stencilEnd[0] - m_stencilStart[0] -1 ||
+			(int)m_cacheBlock->getSize()[1]!= (int)BlockType::sizeY + m_stencilEnd[1] - m_stencilStart[1] -1 ||
+			(int)m_cacheBlock->getSize()[2]!= (int)BlockType::sizeZ + m_stencilEnd[2] - m_stencilStart[2] -1 )
 		{
 			if (m_cacheBlock != NULL)
 				_release(m_cacheBlock);
@@ -282,9 +282,12 @@ public:
 			const bool yperiodic = is_yperiodic();
 			const bool zperiodic = is_zperiodic();
 
-			const bool xskin = info.index[0]==0 || info.index[0]==grid.getBlocksPerDimension(0)-1;
-			const bool yskin = info.index[1]==0 || info.index[1]==grid.getBlocksPerDimension(1)-1;
-			const bool zskin = info.index[2]==0 || info.index[2]==grid.getBlocksPerDimension(2)-1;
+			const bool xskin = 
+          info.index[0]==0 || info.index[0]==(int)grid.getBlocksPerDimension(0)-1;
+			const bool yskin = 
+          info.index[1]==0 || info.index[1]==(int)grid.getBlocksPerDimension(1)-1;
+			const bool zskin = 
+          info.index[2]==0 || info.index[2]==(int)grid.getBlocksPerDimension(2)-1;
 
 			const int xskip = info.index[0]==0 ? -1 : 1;
 			const int yskip = info.index[1]==0 ? -1 : 1;

@@ -127,7 +127,7 @@ void TestVol() {
   // u: volume fraction
   // dx: displacement
   // dve: volume surplus (exact)
-  auto f = [](Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Scal dx, Scal dve, bool xx=true) {
+  auto fg = [](Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Scal dx, Scal dve, bool xx) {
     Vect n(nx, ny, 0.);
     Vect h(hx, hy, 1.);
     n /= n.norm();
@@ -144,6 +144,13 @@ void TestVol() {
         << " dve=" << dve
         << std::endl;
     assert(std::abs(dv - dve) < 1e-6);
+  };
+  auto fx = [&fg](Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Scal dx, Scal dve) {
+    fg(nx, ny, u, hx, hy, dx, dve, true);
+  };
+  // f=fy
+  auto f = [&fg](Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Scal dx, Scal dve) {
+    fg(nx, ny, u, hx, hy, dx, dve, false);
   };
 
   Scal nx, ny, u, hx, hy, dx;
@@ -220,10 +227,10 @@ void TestVol() {
   f(nx, ny, u=0.4, hx, hy, dx=0.01, 0.);
   f(ny, nx, u=0.6, hx, hy, dx=0.01, 0.006 * hy);
   f(ny, nx, u=0.4, hx, hy, dx=0.01, 0.004 * hy);
-  f(nx, ny, u=0.6, hx, hy, dx=0.01, 0.006 * hx, false);
-  f(nx, ny, u=0.4, hx, hy, dx=0.01, 0.004 * hx, false);
-  f(ny, nx, u=0.6, hx, hy, dx=0.01, 0., false);
-  f(ny, nx, u=0.4, hx, hy, dx=0.01, 0., false);
+  fx(nx, ny, u=0.6, hx, hy, dx=0.01, 0.006 * hx);
+  fx(nx, ny, u=0.4, hx, hy, dx=0.01, 0.004 * hx);
+  fx(ny, nx, u=0.6, hx, hy, dx=0.01, 0.);
+  fx(ny, nx, u=0.4, hx, hy, dx=0.01, 0.);
   u = u0;
   nx = nx0;
   hx = hx0;
@@ -238,13 +245,13 @@ void TestVolStr() {
   // dxu: displacement upwind
   // dve: volume surplus (exact)
   auto f = [](Scal nx, Scal ny, Scal u, Scal hx, Scal hy, 
-              Scal dx, Scal dxu, Scal dve, bool xx=true) {
+              Scal dx, Scal dxu, Scal dve) {
     Vect n(nx, ny, 0.);
     Vect h(hx, hy, 1.);
     n /= n.norm();
     Scal a = R::GetLineA(n, u, h);
     Scal dv;
-    dv = R::GetLineVolStr(n, a, h, dx, dxu, xx ? 0 : 1);
+    dv = R::GetLineVolStr(n, a, h, dx, dxu, 0);
     std::cerr 
         << "n=" << n
         << " u=" << u

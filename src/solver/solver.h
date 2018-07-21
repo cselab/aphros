@@ -81,7 +81,6 @@ FieldFace<T> Interpolate(const FieldNode<T>& fn, const M& m) {
 template <class T, class M>
 void InterpolateI(const FieldCell<T>& fc, FieldFace<T>& ff, const M& m) {
   using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
 
   for (auto f : m.Faces()) {
     IdxCell cm = m.GetNeighbourCell(f, 0);
@@ -98,7 +97,6 @@ void InterpolateI(const FieldCell<T>& fc, FieldFace<T>& ff, const M& m) {
 template <class T, class M>
 void InterpolateS(const FieldCell<T>& fc, FieldFace<T>& ff, const M& m) {
   using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
 
   for (auto f : m.SuFaces()) {
     IdxCell cm = m.GetNeighbourCell(f, 0);
@@ -170,9 +168,6 @@ FieldFace<T> Interpolate(
     const FieldCell<T>& fc,
     const MapFace<std::shared_ptr<CondFace>>& mfc, 
     const M& m) {
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-
   FieldFace<T> ff(m, T(0)); // Valid 0 needed for CondFaceExtrap
 
   InterpolateS(fc, ff, m);

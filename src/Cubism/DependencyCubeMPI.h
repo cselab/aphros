@@ -210,7 +210,7 @@ public:
 		}
 	}
 	
-	void make_dependencies(const bool isroot)
+	void make_dependencies(const bool /*isroot*/)
 	{
 		//set the center
 		{

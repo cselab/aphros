@@ -49,12 +49,12 @@ public:
 		const bool yskin = (info.index[1] == yorigin || info.index[1] == yorigin + mybpd[1]-1);
 		const bool zskin = (info.index[2] == zorigin || info.index[2] == zorigin + mybpd[2]-1);
 		
-		const bool xboundary = info.index[0]==0 || info.index[0]==gLastX;
-		const bool yboundary = info.index[1]==0 || info.index[1]==gLastY;
-		const bool zboundary = info.index[2]==0 || info.index[2]==gLastZ;		
+		//const bool xboundary = info.index[0]==0 || info.index[0]==gLastX;
+		//const bool yboundary = info.index[1]==0 || info.index[1]==gLastY;
+		//const bool zboundary = info.index[2]==0 || info.index[2]==gLastZ;		
 		
-		const bool any_periodic = this->is_xperiodic() || this->is_yperiodic() || this->is_zperiodic();
-		const bool any_boundary = xboundary || yboundary || zboundary;
+		//const bool any_periodic = this->is_xperiodic() || this->is_yperiodic() || this->is_zperiodic();
+		//const bool any_boundary = xboundary || yboundary || zboundary;
 		
 		if ((xskin || yskin || zskin))// && (!any_boundary || any_boundary && any_periodic))
 		{

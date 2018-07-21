@@ -71,7 +71,7 @@ class Local : public DistrMesh<KF> {
 };
 
 template <class KF>
-auto Local<KF>::CreateMesh(MIdx bs, MIdx b, MIdx p, int es, Scal ext) -> M {
+auto Local<KF>::CreateMesh(MIdx bs, MIdx b, MIdx p, int /*es*/, Scal ext) -> M {
   // Init global mesh
   MIdx ms(bs); // block size 
   MIdx mb(b); // number of blocks
@@ -179,20 +179,19 @@ void Local<KF>::WriteBuffer(const std::vector<MIdx>& bb) {
 
 template <class KF>
 void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
-  using Op = typename M::Op;
   using OpS = typename M::OpS;
   using OpSI = typename M::OpSI;
   using OpCat = typename M::OpCat;
   auto& f = *mk.at(bb[0]); // first kernel
   auto& mf = f.GetMesh();
-  auto& vf = mf.GetReduce();  // pointers to reduce
+  auto& vf = mf.GetReduce();  // reduce requests
 
   // Check size is the same for all kernels
   for (auto& b : bb) {
-    // TODO: collapse next 2 lines
-    auto& k = *mk.at(b); // kernel
-    auto& m = k.GetMesh();
-    auto& v = m.GetReduce();  // pointers to reduce
+    auto& v = mk.at(b)->GetMesh().GetReduce();  // reduce requests
+    if (v.size() != vf.size()) {
+      throw std::runtime_error("Reduce: v.size() != vf.size()");
+    }
   }
 
   // TODO: Check operation is the same for all kernels

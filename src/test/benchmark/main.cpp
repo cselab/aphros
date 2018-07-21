@@ -29,8 +29,6 @@ Mesh GetMesh(MIdx s /*size in cells*/) {
   Rect<Vect> dom(Vect(0.1, 0.2, 0.1), Vect(1.1, 1.2, 1.3));
   MIdx b(-2, -3, -4); // lower index
   int hl = 2;         // halos 
-  Vect doms = dom.GetDimensions();
-  Vect h = dom.GetDimensions() / Vect(s);
   return InitUniformMesh<Mesh>(dom, b, s, hl, true, s);
 }
 
@@ -236,15 +234,6 @@ class ExplVisc : public TimerMesh {
       auto a = i.GetRaw();
       ffmu[i] = std::sin(a);
     }
-    auto& bf = m.GetBlockFaces();
-    /*
-    for (auto i : m.Faces()) {
-      if (bf.GetMIdx(i)[0] == 0 && bf.GetDir(i) == Dir::i) {
-        mfc[i] = std::make_shared<solver::
-            CondFaceGradFixed<Scal>>(0);
-      }
-    }
-    */
   }
   void F() override {
     static volatile size_t a = 0;

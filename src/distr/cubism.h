@@ -101,9 +101,9 @@ struct GBlock {
   }
 
   inline Elem& operator()(int x, int y=0, int z=0) {
-    assert(0 <= x && x < bx);
-    assert(0 <= y && y < by);
-    assert(0 <= z && z < bz);
+    assert(0 <= x && x < (int)bx);
+    assert(0 <= y && y < (int)by);
+    assert(0 <= z && z < (int)bz);
 
     return data[z][y][x];
   }
@@ -184,9 +184,9 @@ class Cubism : public DistrMesh<KF> {
 
   // hl: number of halo cells from each side
   // cs: number of fields for communication
-  static StencilInfo GetStencil(int hl, int cs) {
-    const int a = -hl;
-    const int b = hl + 1;
+  static StencilInfo GetStencil(size_t hl, size_t cs) {
+    const int a = -int(hl);
+    const int b = int(hl) + 1;
     assert(cs <= Elem::es);
     if (cs == 0) {
       return StencilInfo(a,a,a,b,b,b, true, cs);
@@ -584,16 +584,14 @@ void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
   using OpS = typename M::OpS;
   using OpSI = typename M::OpSI;
   using OpCat = typename M::OpCat;
-  auto& f = *mk.at(bb[0]); // first kernel
-  auto& mf = f.GetMesh();
-  auto& vf = mf.GetReduce();  // pointers to reduce
+  auto& vf = mk.at(bb[0])->GetMesh().GetReduce();  // pointers to reduce
 
   // Check size is the same for all kernels
   for (auto& b : bb) {
-    auto& k = *mk.at(b); // kernel
-    auto& m = k.GetMesh();
-    auto& v = m.GetReduce();  // pointers to reduce
-    assert(v.size() == vf.size());
+    auto& v = mk.at(b)->GetMesh().GetReduce();  // pointers to reduce
+    if (v.size() != vf.size()) {
+      throw std::runtime_error("Reduce: v.size() != vf.size()");
+    }
   }
 
   // TODO: Check operation is the same for all kernels

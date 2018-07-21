@@ -57,7 +57,6 @@ void InterpolateI(const FieldCell<T>& fc,
                   const M& m, ConvSc sc, typename M::Scal df=1.,
                   typename M::Scal th=1e-10) {
   using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
 
   // f = fmm*a[0] + fm*a[1] + fp*a[2]
   std::array<Scal, 3> a;
@@ -210,7 +209,6 @@ class FaceGrad : public Approx<IdxFace, Expr> {
 template <class M, class Expr>
 void GradientI(FieldFace<Expr>& ff, const M& m) {
   using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
 
   ff.Reinit(m);
   for (auto f : m.Faces()) {
