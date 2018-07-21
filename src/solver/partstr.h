@@ -277,7 +277,7 @@ class PartStr {
       Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
       size_t jn = 0;
       // find distance to nearest segment
-      for (size_t j = 1; j < sl; ++j) {
+      for (size_t j = 0; j < sl; ++j) {
         auto& e = ll[j];
         Scal dl = x.sqrdist(R::GetNearest(x, e[0], e[1]));
         if (dl < dn) {
