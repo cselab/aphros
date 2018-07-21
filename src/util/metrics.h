@@ -31,6 +31,8 @@ class MultiTimer {
   void Pop() { Pop(""); }
   // Returns map of accumulated time
   const std::map<Key, Value>& GetMap() const;
+  // Resets all accumulated time to zero 
+  void Reset();
 
  private:
   using Clock = std::chrono::steady_clock;
@@ -65,4 +67,9 @@ void MultiTimer<K>::Pop(const Key& k) {
 template <class K>
 auto MultiTimer<K>::GetMap() const -> const std::map<Key, Value>&  {
   return a_;
+}
+
+template <class K>
+void MultiTimer<K>::Reset() {
+  a_.clear();
 }

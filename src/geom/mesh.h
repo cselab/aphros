@@ -514,11 +514,22 @@ class MeshStructured {
   void ClearSolve() {
     vls_.clear();
   }
+  // Request timer report to file s
+  void TimerReport(const std::string& s) {
+    trep_ = s;
+  }
+  std::string GetTimerReport() const {
+    return trep_;
+  }
+  void ClearTimerReport() {
+    trep_ = "";
+  }
 
  private:
   Suspender susp_;
   std::vector<std::shared_ptr<Co>> vcm_; // comm
   std::vector<std::pair<std::shared_ptr<Co>, std::string>> vd_;  // dump
+  std::string trep_; // timer report filename
   Rd rd_;
   std::vector<LS> vls_; // solve
 };

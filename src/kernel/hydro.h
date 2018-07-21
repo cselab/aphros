@@ -280,6 +280,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::shared_ptr<output::Session> ost_; // output stat
   Dumper dumper_;
   Dumper dmptraj_; // dumper for traj
+  Dumper dmptrep_; // dumper for timer report
 };
 
 template <class M>
@@ -611,6 +612,7 @@ Hydro<M>::Hydro(Vars& var, const MyBlockInfo& bi, Par& par)
   : KernelMeshPar<M,Par>(var, bi, par)
   , dumper_(var, "dump_field_")
   , dmptraj_(var, "dump_traj_")
+  , dmptrep_(var, "dump_trep_")
 {}
 
 template <class M>
@@ -1165,6 +1167,16 @@ void Hydro<M>::Dump(Sem& sem) {
   }
   if (tr_) {
     DumpTraj(sem);
+  }
+  if (sem("dmptrep")) {
+    if (m.IsRoot() && dmptrep_.Try(st_.t, st_.dt)) {
+      std::string s = GetDumpName("trep", ".log", dmptrep_.GetN());
+      m.TimerReport(s);
+      std::cout << std::fixed << std::setprecision(8)
+          << "timer report" 
+          << " t=" << st_.t
+          << " to " << s << std::endl;
+    }
   }
 }
 
