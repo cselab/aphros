@@ -127,6 +127,7 @@ void TestVol() {
   // u: volume fraction
   // dx: displacement
   // dve: volume surplus (exact)
+  // xx: direction x
   auto fg = [](Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Scal dx, Scal dve, bool xx) {
     Vect n(nx, ny, 0.);
     Vect h(hx, hy, 1.);
@@ -145,12 +146,12 @@ void TestVol() {
         << std::endl;
     assert(std::abs(dv - dve) < 1e-6);
   };
-  auto fx = [&fg](Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Scal dx, Scal dve) {
-    fg(nx, ny, u, hx, hy, dx, dve, true);
-  };
-  // f=fy
-  auto f = [&fg](Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Scal dx, Scal dve) {
+  auto fy = [&fg](Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Scal dx, Scal dve) {
     fg(nx, ny, u, hx, hy, dx, dve, false);
+  };
+  // f=fx
+  auto f = [&fg](Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Scal dx, Scal dve) {
+    fg(nx, ny, u, hx, hy, dx, dve, true);
   };
 
   Scal nx, ny, u, hx, hy, dx;
@@ -227,10 +228,10 @@ void TestVol() {
   f(nx, ny, u=0.4, hx, hy, dx=0.01, 0.);
   f(ny, nx, u=0.6, hx, hy, dx=0.01, 0.006 * hy);
   f(ny, nx, u=0.4, hx, hy, dx=0.01, 0.004 * hy);
-  fx(nx, ny, u=0.6, hx, hy, dx=0.01, 0.006 * hx);
-  fx(nx, ny, u=0.4, hx, hy, dx=0.01, 0.004 * hx);
-  fx(ny, nx, u=0.6, hx, hy, dx=0.01, 0.);
-  fx(ny, nx, u=0.4, hx, hy, dx=0.01, 0.);
+  fy(nx, ny, u=0.6, hx, hy, dx=0.01, 0.006 * hx);
+  fy(nx, ny, u=0.4, hx, hy, dx=0.01, 0.004 * hx);
+  fy(ny, nx, u=0.6, hx, hy, dx=0.01, 0.);
+  fy(ny, nx, u=0.4, hx, hy, dx=0.01, 0.);
   u = u0;
   nx = nx0;
   hx = hx0;
