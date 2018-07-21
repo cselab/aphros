@@ -16,6 +16,7 @@
 #include "linear/hypre.h"
 #include "dump/dump.h"
 #include "dump/dumper.h"
+#include "report.h"
 
 // Abstract block processor.
 class Distr {
@@ -350,7 +351,9 @@ void DistrMesh<KF>::Report() {
 
     if (par.Int["verbose_stages"]) {
       std::cout << std::fixed;
-      for (auto e : mt_.GetMap()) {
+      auto& mp = mt_.GetMap();
+      ParseReport(mp);
+      for (auto e : mp) {
         auto n = e.first; // name
         if (n == "") {
           n = "other";

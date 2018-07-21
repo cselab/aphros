@@ -1,22 +1,24 @@
-set(TARGL "local")
-add_library(${TARGL} local.cpp)
-target_link_libraries(${TARGL} hypre suspender vars interp)
+set(T "local")
+add_library(${T} local.cpp)
+target_link_libraries(${T} hypre suspender vars interp report)
 
-
-set(TARGC "cubism")
-add_library(${TARGC} cubism.cpp)
-target_link_libraries(${TARGC} hypre suspender vars interp)
+set(T "cubism")
+add_library(${T} cubism.cpp)
+target_link_libraries(${T} hypre suspender vars interp report)
 # cubism specific
-target_compile_definitions(${TARGC} PUBLIC _ALIGNBYTES_=16)
+target_compile_definitions(${T} PUBLIC _ALIGNBYTES_=16)
 # HDF5
 set(HDF5_PREFER_PARALLEL on)
 find_package(HDF5 REQUIRED)
-target_include_directories(${TARGC} PUBLIC ${HDF5_INCLUDE_DIRS})
-target_link_libraries(${TARGC} ${HDF5_LIBRARIES})
-target_compile_definitions(${TARGC} PUBLIC _USE_HDF_)
+target_include_directories(${T} PUBLIC ${HDF5_INCLUDE_DIRS})
+target_link_libraries(${T} ${HDF5_LIBRARIES})
+target_compile_definitions(${T} PUBLIC _USE_HDF_)
 
+set(T "report")
+add_library(${T} report.cpp)
+target_link_libraries(${T})
 
-set(TARG "distr")
-add_library(${TARG} distrsolver.cpp)
-target_link_libraries(${TARG} interp suspender vars cubism local dumper)
+set(T "distr")
+add_library(${T} distrsolver.cpp)
+target_link_libraries(${T} interp suspender vars cubism local dumper)
 
