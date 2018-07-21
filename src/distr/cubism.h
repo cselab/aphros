@@ -481,7 +481,7 @@ Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par)
   : DistrMesh<KF>(comm, kf, par)
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm)
 {
-  assert(bs_ == MIdx(Block::bx, Block::by, Block::bz));
+  assert(bs_[0] == Block::bx && bs_[1] == Block::by && bs_[2] == Block::bz);
 
   int r;
   MPI_Comm_rank(comm, &r);
