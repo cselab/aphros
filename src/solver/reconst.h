@@ -123,7 +123,7 @@ class Reconst {
 
   // Returns sequence of indices r such that v[r] would be sorted
   static GVect<size_t, 3> Argsort(Vect v) {
-    GVect<size_t, 3> r(0, 1, 2);
+    GVect<size_t, 3> r(0ul, 1ul, 2ul);
     if (v[1] < v[0]) {
       std::swap(v[0], v[1]);
       std::swap(r[0], r[1]);
@@ -375,24 +375,24 @@ class Reconst {
     Vect hh = h * 0.5;
 
     // intersection with -hh
-    Vect xl((a + hh[1] * n[1]) / n[0], (a + hh[0] * n[0]) / n[1], 0); 
+    Vect xl((a + hh[1] * n[1]) / n[0], (a + hh[0] * n[0]) / n[1], 0.); 
     // intersection with +hh
-    Vect xr((a - hh[1] * n[1]) / n[0], (a - hh[0] * n[0]) / n[1], 0); 
+    Vect xr((a - hh[1] * n[1]) / n[0], (a - hh[0] * n[0]) / n[1], 0.); 
 
     std::array<Vect, 2> e{Vect(0), Vect(0)}; // default to center
     size_t i = 0;
 
     if (-hh[0] <= xl[0] && xl[0] <= hh[0]) {
-      e[i++] = Vect(xl[0], -hh[1], 0);
+      e[i++] = Vect(xl[0], -hh[1], 0.);
     } 
     if (-hh[0] <= xr[0] && xr[0] <= hh[0]) {
-      e[i++] = Vect(xr[0], hh[1], 0);
+      e[i++] = Vect(xr[0], hh[1], 0.);
     } 
     if (i < 2 && -hh[1] <= xl[1] && xl[1] <= hh[1]) {
-      e[i++] = Vect(-hh[0], xl[1], 0);
+      e[i++] = Vect(-hh[0], xl[1], 0.);
     } 
     if (i < 2 && -hh[1] <= xr[1] && xr[1] <= hh[1]) {
-      e[i++] = Vect(hh[0], xr[1], 0);
+      e[i++] = Vect(hh[0], xr[1], 0.);
     } 
     if (i == 1) { // if only one point found, set second to the same
       e[i++] = e[0];
