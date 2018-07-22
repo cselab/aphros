@@ -40,7 +40,6 @@ class MeshStructured {
  private:
   // b:Block, fc:FieldCell, ff:FieldFace, fn:FieldNode
   BlockNodes b_nodes_;
-  FieldNode<Vect> fn_node_;
   BlockCells b_cells_;
   BlockFaces b_faces_;
   // inner 
@@ -52,21 +51,6 @@ class MeshStructured {
   BlockFaces b_sufaces_;
   BlockNodes b_sunodes_;
 
-
-  FieldCell<Scal> fc_volume_;
-  FieldFace<Vect> ff_center_;
-  FieldFace<Scal> ff_area_;
-  FieldFace<Vect> ff_surface_;
-  std::array<IntIdx, kCellNumNeighbourFaces> cell_neighbour_cell_offset_;
-  FieldCell<std::array<IdxFace, kCellNumNeighbourFaces>> fc_neighbour_face_;
-  FieldCell<IdxNode> fc_neighbour_node_base_;
-  std::array<IntIdx, kCellNumNeighbourNodes> cell_neighbour_node_offset_;
-  FieldFace<Dir> ff_direction_;
-  FieldFace<std::array<IdxCell, kFaceNumNeighbourCells>> ff_neighbour_cell_;
-  FieldFace<std::array<IdxNode, kFaceNumNeighbourNodes>> ff_neighbour_node_;
-  FieldFace<std::array<Vect, kFaceNumNeighbourCells>> ff_to_cell_;
-  FieldCell<bool> fc_is_inner_;
-  FieldFace<bool> ff_is_inner_;
   bool isroot_;
   MIdx gs_;
   MIdx mb_, me_;
@@ -403,52 +387,6 @@ class MeshStructured {
   // Is root block
   bool IsRoot() const { return isroot_; }
 
- private:
-   Vect CalcCenter(IdxCell idxcell) const {
-     Vect res = Vect::kZero;
-     for (size_t i = 0; i < GetNumNeighbourNodes(idxcell); ++i) {
-       res += GetNode(GetNeighbourNode(idxcell, i));
-     }
-     return res / Scal(GetNumNeighbourNodes(idxcell));
-   }
-   // TODO: Face center using weighted sum
-   Vect CalcCenter(IdxFace idxface) const {
-     Vect res = Vect::kZero;
-     for (size_t i = 0; i < GetNumNeighbourNodes(idxface); ++i) {
-       res += GetNode(GetNeighbourNode(idxface, i));
-     }
-     return res / Scal(GetNumNeighbourNodes(idxface));
-   }
-   static Vect CalcTriangleSurface(Vect a, Vect b, Vect c) {
-     return (b - a).cross(c - a) * 0.5;
-   }
-   static Vect CalcTriangleCenter(Vect a, Vect b, Vect c) {
-     return (a + b + c) / 3.;
-   }
-   Vect CalcSurface(IdxFace idxface) const {
-     Vect res = Vect::kZero;
-
-     for (size_t i = 2; i < GetNumNeighbourNodes(idxface); ++i) {
-       Vect a = GetNode(GetNeighbourNode(idxface, 0));
-       Vect b = GetNode(GetNeighbourNode(idxface, i - 1));
-       Vect c = GetNode(GetNeighbourNode(idxface, i));
-       res += CalcTriangleSurface(a, b, c);
-     }
-
-     return res;
-   }
-   Scal CalcArea(IdxFace idxface) const {
-     return CalcSurface(idxface).norm();
-   }
-   Scal CalcVolume(IdxCell idxcell) const {
-     Scal res = 0.;
-     for (size_t i = 0; i < GetNumNeighbourFaces(idxcell); ++i) {
-       IdxFace idxface = GetNeighbourFace(idxcell, i);
-       res += GetCenter(idxface)[0] * GetOutwardSurface(idxcell, i)[0];
-     }
-     return res;
-   }
-
   // TODO: move to separate class: Sem, LS, Comm, Reduce, Solve
   // BEGIN DISTR
  public:
@@ -615,7 +553,6 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     const FieldNode<Vect>& fn_node,
     int hl, bool isroot, MIdx gs)
     : b_nodes_(b_nodes)
-    , fn_node_(fn_node)
     , b_cells_(b_nodes_.GetBegin(), b_nodes_.GetDimensions() - MIdx(1))
     , b_faces_(b_nodes_.GetBegin(), b_cells_.GetDimensions())
     , b_incells_(b_cells_.GetBegin() + MIdx(hl), 
@@ -630,145 +567,18 @@ MeshStructured<_Scal, _dim>::MeshStructured(
                  b_cells_.GetDimensions() - MIdx(2))
     , b_sunodes_(b_nodes_.GetBegin() + MIdx(1), 
                  b_nodes_.GetDimensions() - MIdx(2))
-    , fc_volume_(b_cells_)
-    , ff_center_(b_faces_)
-    , ff_area_(b_faces_)
-    , ff_surface_(b_faces_)
-    , fc_neighbour_face_(b_cells_)
-    , fc_neighbour_node_base_(b_cells_)
-    , ff_direction_(b_faces_)
-    , ff_neighbour_cell_(b_faces_)
-    , ff_neighbour_node_(b_faces_)
-    , ff_to_cell_(b_faces_)
-    , fc_is_inner_(b_cells_, false)
-    , ff_is_inner_(b_faces_, false)
     , isroot_(isroot)
     , gs_(gs)
 {
   static_assert(dim == 3, "Not implemented for dim != 3");
   mb_ = b_cells_.GetBegin();
   me_ = b_cells_.GetEnd();
-  MIdx mb = mb_, me = me_;
 
   // domain rect
   dom_ = Rect<Vect>(fn_node[b_nodes_.GetIdx(mb_)], 
                     fn_node[b_nodes_.GetIdx(me_)]);
   h_ = dom_.GetDimensions() / Vect(b_cells_.GetDimensions());
   hh_ = h_ * 0.5;
-
-  // Base for cell neighbours
-  for (auto midx : b_cells_) {
-    IdxCell idxcell(b_cells_.GetIdx(midx));
-    fc_neighbour_node_base_[idxcell] = b_nodes_.GetIdx(midx);
-
-    auto nface = [this, midx](IntIdx i, IntIdx j, IntIdx k, Dir dir) {
-      return b_faces_.GetIdx(midx + MIdx(i, j, k), dir);
-    };
-    fc_neighbour_face_[idxcell] = {{
-        nface(0, 0, 0, Dir::i),
-        nface(1, 0, 0, Dir::i),
-        nface(0, 0, 0, Dir::j),
-        nface(0, 1, 0, Dir::j),
-        nface(0, 0, 0, Dir::k),
-        nface(0, 0, 1, Dir::k)}};
-  }
-
-  // Mark inner cells
-  for (auto i : this->Cells()) {
-    fc_is_inner_[i] = true;
-  }
-
-  // Offset for cell neighbour cells
-  {
-    auto offset = [this](IntIdx i, IntIdx j, IntIdx k) {
-      return static_cast<IntIdx>(b_cells_.GetIdx(MIdx(i, j, k)).GetRaw() -
-          b_cells_.GetIdx(MIdx(0, 0, 0)).GetRaw());
-    };
-
-    cell_neighbour_cell_offset_ = {{offset(-1, 0, 0), offset(1, 0, 0),
-                                  offset(0, -1, 0), offset(0, 1, 0),
-                                  offset(0, 0, -1), offset(0, 0, 1)}};
-  }
-
-  // Offset for cell neighbour nodes
-  {
-    auto offset = [this](IntIdx i, IntIdx j, IntIdx k) {
-      return static_cast<IntIdx>(b_nodes_.GetIdx(MIdx(i, j, k)).GetRaw() -
-          b_nodes_.GetIdx(MIdx(0, 0, 0)).GetRaw());
-    };
-
-    cell_neighbour_node_offset_ = {{offset(0, 0, 0), offset(1, 0, 0),
-                                  offset(0, 1, 0), offset(1, 1, 0),
-                                  offset(0, 0, 1), offset(1, 0, 1),
-                                  offset(0, 1, 1), offset(1, 1, 1)}};
-  }
-
-  // Base for i-face and j-face neighbours
-  for (Dir dir : {Dir::i, Dir::j, Dir::k}) {
-    for (auto midx : BlockCells(mb, me - mb + MIdx(dir))) {
-      IdxFace idxface = b_faces_.GetIdx(midx, dir);
-      ff_direction_[idxface] = dir;
-      ff_neighbour_cell_[idxface] = {{
-          b_cells_.GetIdx(midx - MIdx(dir)),
-          b_cells_.GetIdx(midx)}};
-
-      auto l = [this, &midx](IntIdx i, IntIdx j, IntIdx k) {
-        return b_nodes_.GetIdx(midx + MIdx(i, j, k));
-      };
-      if (dir == Dir::i) {
-        ff_neighbour_node_[idxface] = {{
-            l(0,0,0), l(0,1,0), l(0,1,1), l(0,0,1)}};
-      } else if (dir == Dir::j) {
-        ff_neighbour_node_[idxface] = {{
-            l(0,0,0), l(0,0,1), l(1,0,1), l(1,0,0)}};
-      } else {
-        // dir == Dir::k
-        ff_neighbour_node_[idxface] = {{
-            l(0,0,0), l(1,0,0), l(1,1,0), l(0,1,0)}};
-      }
-
-      const size_t sd(dir);
-      if (midx[sd] == mb[sd]) {
-        ff_neighbour_cell_[idxface][0] = IdxCell::None();
-      }
-      if (midx[sd] == me[sd]) {
-        ff_neighbour_cell_[idxface][1] = IdxCell::None();
-      }
-    }
-  }
-
-  // Face centers, area
-  for (auto idx : this->AllFaces()) {
-    ff_center_[idx] = CalcCenter(idx);
-    ff_area_[idx] = CalcArea(idx);
-    ff_surface_[idx] = CalcSurface(idx);
-  }
-
-  // Cell centers, volume
-  for (auto idx : this->AllCells()) {
-    fc_volume_[idx] = CalcVolume(idx);
-  }
-
-  // Vect to cell
-  for (Dir dir : {Dir::i, Dir::j, Dir::k}) {
-    for (auto midx : BlockCells(mb, me - mb + MIdx(dir))) {
-      IdxFace idxface = b_faces_.GetIdx(midx, dir);
-      IdxCell c;
-      c = GetNeighbourCell(idxface, 0);
-      if (!c.IsNone()) {
-        ff_to_cell_[idxface][0] = GetCenter(c) - GetCenter(idxface);
-      }
-      c = GetNeighbourCell(idxface, 1);
-      if (!c.IsNone()) {
-        ff_to_cell_[idxface][1] = GetCenter(c) - GetCenter(idxface);
-      }
-    }
-  }
-
-  // Mark inner faces
-  for (auto idxface : this->Faces()) {
-    ff_is_inner_[idxface] = true; 
-  }
 }
 
 
