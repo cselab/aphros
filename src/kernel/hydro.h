@@ -1011,7 +1011,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
         // compute force projections
         size_t nan = 0;
-        IdxFace fnan;
+        IdxFace fnan(0);
         for (auto f : m.Faces()) {
           IdxCell cm = m.GetNeighbourCell(f, 0);
           IdxCell cp = m.GetNeighbourCell(f, 1);
