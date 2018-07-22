@@ -1,2 +1,6 @@
+#!/bin/bash
+
+set -eu
+
 (cd benchmark ; ./t.benchmark ) > out
 (cd surftens  ; ./test_cmp > /dev/null ; cat trep_0000.log) >> out

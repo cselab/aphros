@@ -53,7 +53,6 @@ class MeshStructured {
   BlockNodes b_sunodes_;
 
 
-  FieldCell<Vect> fc_center_;
   FieldCell<Scal> fc_volume_;
   FieldFace<Vect> ff_center_;
   FieldFace<Scal> ff_area_;
@@ -70,6 +69,10 @@ class MeshStructured {
   FieldFace<bool> ff_is_inner_;
   bool isroot_;
   MIdx gs_;
+  MIdx mb_, me_;
+  Rect<Vect> dom_;
+  Vect h_;
+  Vect hh_; // h_/2
 
  public:
   // b_nodes: block of nodes
@@ -113,10 +116,15 @@ class MeshStructured {
     return b_sunodes_;
   }
   Vect GetCenter(IdxCell idx) const {
-    return fc_center_[idx];
+    return (dom_.lb + hh_) + Vect(b_cells_.GetMIdx(idx) - mb_) * h_;
   }
   Vect GetCenter(IdxFace idx) const {
-    return ff_center_[idx];
+    auto p = b_faces_.GetMIdxDir(idx);
+    MIdx w(p.first);
+    size_t d(p.second);
+    Vect r = (dom_.lb + hh_) + Vect(w - mb_) * h_;
+    r[d] -= hh_[d];
+    return r;
   }
   Vect GetSurface(IdxFace idx) const {
     return ff_surface_[idx];
@@ -124,8 +132,8 @@ class MeshStructured {
   Vect GetNode(IdxNode idx) const {
     return fn_node_[idx];
   }
-  Scal GetVolume(IdxCell idx) const {
-    return fc_volume_[idx];
+  Scal GetVolume(IdxCell) const {
+    return h_.prod();
   }
   Scal GetArea(IdxFace idx) const {
     return ff_area_[idx];
@@ -556,7 +564,6 @@ MeshStructured<_Scal, _dim>::MeshStructured(
                  b_cells_.GetDimensions() - MIdx(2))
     , b_sunodes_(b_nodes_.GetBegin() + MIdx(1), 
                  b_nodes_.GetDimensions() - MIdx(2))
-    , fc_center_(b_cells_)
     , fc_volume_(b_cells_)
     , ff_center_(b_faces_)
     , ff_area_(b_faces_)
@@ -573,7 +580,14 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     , gs_(gs)
 {
   static_assert(dim == 3, "Not implemented for dim != 3");
-  MIdx mb = b_cells_.GetBegin(), me = b_cells_.GetEnd();
+  mb_ = b_cells_.GetBegin();
+  me_ = b_cells_.GetEnd();
+  MIdx mb = mb_, me = me_;
+
+  // domain rect
+  dom_ = Rect<Vect>(fn_node[b_nodes_.GetIdx(mb_)], fn_node[b_nodes_.GetIdx(me_)]);
+  h_ = dom_.GetDimensions() / Vect(b_cells_.GetDimensions());
+  hh_ = h_ * 0.5;
 
   // Base for cell neighbours
   for (auto midx : b_cells_) {
@@ -665,7 +679,6 @@ MeshStructured<_Scal, _dim>::MeshStructured(
 
   // Cell centers, volume
   for (auto idx : this->AllCells()) {
-    fc_center_[idx] = CalcCenter(idx);
     fc_volume_[idx] = CalcVolume(idx);
   }
 
