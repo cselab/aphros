@@ -127,16 +127,26 @@ class MeshStructured {
     return r;
   }
   Vect GetSurface(IdxFace idx) const {
-    return ff_surface_[idx];
+    size_t d(b_faces_.GetDir(idx));
+    switch (d) {
+      case 0: return Vect(h_[1] * h_[2], 0., 0.);
+      case 1: return Vect(0., h_[2] * h_[0], 0.);
+      default: return Vect(0., 0., h_[0] * h_[1]);
+    }
   }
   Vect GetNode(IdxNode idx) const {
-    return fn_node_[idx];
+    return dom_.lb + Vect(b_nodes_.GetMIdx(idx) - mb_) * h_;
   }
   Scal GetVolume(IdxCell) const {
     return h_.prod();
   }
   Scal GetArea(IdxFace idx) const {
-    return ff_area_[idx];
+    size_t d(b_faces_.GetDir(idx));
+    switch (d) {
+      case 0: return h_[1] * h_[2];
+      case 1: return h_[2] * h_[0];
+      default: return h_[0] * h_[1];
+    }
   }
   size_t GetNumCells() const {
     return b_cells_.size();
