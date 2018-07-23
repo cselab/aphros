@@ -17,24 +17,24 @@ class GBlock<IdxFace, dim_> {
 
   class iterator {
     const GBlock* o_; // owner
-    MIdx x_;
+    MIdx w_;
     Dir d_;
 
    public:
-    explicit iterator(const GBlock* o, MIdx x, Dir d)
-        : o_(o), x_(x), d_(d)
+    explicit iterator(const GBlock* o, MIdx w, Dir d)
+        : o_(o), w_(w), d_(d)
     {}
     iterator& operator++() {
-      MIdx xd(d_);
+      MIdx wd(d_);
       for (size_t n = 0; n < dim; ++n) {
-        ++x_[n]; // increment current
-        if (x_[n] == o_->b_[n] + o_->cs_[n] + xd[n]) { // if end reached
+        ++w_[n]; // increment current
+        if (w_[n] == o_->b_[n] + o_->cs_[n] + wd[n]) { // if end reached
           if (n < dim - 1) {  
-            x_[n] = o_->b_[n];  // reset to begin
+            w_[n] = o_->b_[n];  // reset to begin
           } else {  // if end reached for last dim
             if (size_t(d_) < dim - 1) {
               d_ = Dir(size_t(d_) + 1);
-              x_ = o_->b_;
+              w_ = o_->b_;
             }
           }
         } else {
@@ -44,24 +44,24 @@ class GBlock<IdxFace, dim_> {
       return *this;
     }
     bool operator==(const iterator& o) const {
-      return x_ == o.x_ && d_ == o.d_;
+      return w_ == o.w_ && d_ == o.d_;
     }
     bool operator!=(const iterator& o) const {
       return !(*this == o);
     }
     std::pair<MIdx, Dir> operator*() const {
-      return std::make_pair(x_, d_);
+      return std::make_pair(w_, d_);
     }
     // Returns number of calls ++i_ for which
     // GetIdx(*++i_).GetRaw() == GetIdx(*i_).GetRaw() + 1
     // (i.e. increment of iterator equivalent to increment of index)
     size_t GetLite() const {
-      MIdx xd(d_);
-      assert(x_[0] + 1 <= o_->b_[0] + o_->cs_[0] + xd[0]);
-      return o_->b_[0] + o_->cs_[0] + xd[0] - x_[0] - 1;
+      MIdx wd(d_);
+      assert(w_[0] + 1 <= o_->b_[0] + o_->cs_[0] + wd[0]);
+      return o_->b_[0] + o_->cs_[0] + wd[0] - w_[0] - 1;
     }
     void IncLite(size_t a) {
-      x_[0] += a;
+      w_[0] += a;
     }
   };
 
@@ -97,11 +97,26 @@ class GBlock<IdxFace, dim_> {
   Idx GetIdx(std::pair<MIdx, Dir> p) const {
     return GetIdx(p.first, p.second);
   }
-  MIdx GetMIdx(Idx idx) const {
-    return GetMIdxDir(idx).first;
+  Dir GetDir(Idx f) const {
+    size_t r = f.GetRaw();
+    size_t d = 0;
+    while (r >= GetNumFaces(d) && d < dim) {
+      r -= GetNumFaces(d);
+      ++d;
+    }
+    return Dir(d);
   }
-  Dir GetDir(Idx idx) const {
-    return GetMIdxDir(idx).second;
+  std::pair<MIdx, Dir> GetMIdxDir(Idx f) const {
+    size_t r = f.GetRaw();
+    size_t d = 0;
+    while (r >= GetNumFaces(d) && d < dim) {
+      r -= GetNumFaces(d);
+      ++d;
+    }
+    return {GetMIdxFromOffset(r, d), Dir(d)};
+  }
+  MIdx GetMIdx(Idx f) const {
+    return GetMIdxDir(f).first;
   }
   MIdx GetSize() const {
     return cs_;
@@ -110,10 +125,10 @@ class GBlock<IdxFace, dim_> {
     return iterator(this, b_, Dir(0));
   }
   iterator end() const {
-    MIdx x = b_;
+    MIdx w = b_;
     auto ld = dim - 1; // last direction
-    x[ld] = (b_ + cs_)[ld] + 1;
-    return iterator(this, x, Dir(ld));
+    w[ld] = (b_ + cs_)[ld] + 1;
+    return iterator(this, w, Dir(ld));
   }
 
  private:
@@ -142,26 +157,17 @@ class GBlock<IdxFace, dim_> {
     }
     return r;
   }
-  MIdx GetMIdxFromOffset(size_t raw, Dir dir) const {
+  // r: offset from first face with direction d
+  // d: direction
+  MIdx GetMIdxFromOffset(size_t r, size_t d) const {
     MIdx bcs = cs_;
-    ++bcs[size_t(dir)];
-    MIdx midx;
+    ++bcs[d];
+    MIdx w;
     for (size_t i = 0; i < dim; ++i) {
-      midx[i] = raw % bcs[i];
-      raw /= bcs[i];
+      w[i] = r % bcs[i];
+      r /= bcs[i];
     }
-    return b_ + midx;
-  }
-
- public:
-  std::pair<MIdx, Dir> GetMIdxDir(Idx idxface) const {
-    size_t raw = idxface.GetRaw();
-    size_t diridx = 0;
-    while (raw >= GetNumFaces(diridx) && diridx < dim) {
-      raw -= GetNumFaces(diridx);
-      ++diridx;
-    }
-    Dir dir(diridx); return {GetMIdxFromOffset(raw, dir), dir};
+    return b_ + w;
   }
 };
 
