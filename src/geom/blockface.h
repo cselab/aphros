@@ -56,6 +56,17 @@ class GBlock<IdxFace, dim_> {
     std::pair<MIdx, Dir> operator*() const {
       return std::make_pair(x_, d_);
     }
+    // Returns number of calls ++i_ for which
+    // GetIdx(*++i_).GetRaw() == GetIdx(*i_).GetRaw() + 1
+    // (i.e. increment of iterator equivalent to increment of index)
+    size_t GetLite() const {
+      MIdx xd(d_);
+      assert(x_[0] + 1 <= o_->b_[0] + o_->cs_[0] + xd[0]);
+      return o_->b_[0] + o_->cs_[0] + xd[0] - x_[0] - 1;
+    }
+    void IncLite(size_t a) {
+      x_[0] += a;
+    }
   };
 
   GBlock()

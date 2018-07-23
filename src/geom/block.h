@@ -52,6 +52,16 @@ class GBlock {
     MIdx operator*() const {
       return w_;
     }
+    // Returns number of calls ++i_ for which
+    // GetIdx(*++i_).GetRaw() == GetIdx(*i_).GetRaw() + 1
+    // (i.e. increment of iterator equivalent to increment of index)
+    size_t GetLite() const {
+      assert(w_[0] + 1 <= p_->GetEnd()[0]);
+      return p_->GetEnd()[0] - w_[0] - 1;
+    }
+    void IncLite(size_t a) {
+      w_[0] += a;
+    }
   };
 
   GBlock()
