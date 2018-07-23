@@ -37,28 +37,6 @@ class MeshStructured {
   static constexpr size_t kFaceNumNeighbourNodes = std::pow(2, dim - 1);
   static constexpr size_t kFaceNumNeighbourCells = 2;
 
- private:
-  // b:Block, fc:FieldCell, ff:FieldFace, fn:FieldNode
-  BlockNodes b_nodes_;
-  BlockCells b_cells_;
-  BlockFaces b_faces_;
-  // inner 
-  BlockCells b_incells_;
-  BlockFaces b_infaces_;
-  BlockNodes b_innodes_;
-  // support
-  BlockCells b_sucells_;
-  BlockFaces b_sufaces_;
-  BlockNodes b_sunodes_;
-
-  bool isroot_;
-  MIdx gs_;
-  MIdx mb_, me_;
-  Rect<Vect> dom_;
-  Vect h_;
-  Vect hh_; // h_/2
-
- public:
   // b_nodes: block of nodes
   // fn_node: field of b_nodes with node positions
   // isroot: root block
@@ -110,14 +88,8 @@ class MeshStructured {
     r[d] -= hh_[d];
     return r;
   }
-  Vect GetSurface(IdxFace idx) const {
-    size_t d(b_faces_.GetDir(idx));
-    switch (d) {
-      case 0: return Vect(h_[1] * h_[2], 0., 0.);
-      case 1: return Vect(0., h_[2] * h_[0], 0.);
-      default: 
-      case 2: return Vect(0., 0., h_[0] * h_[1]);
-    }
+  const Vect& GetSurface(IdxFace f) const {
+    return vs_[size_t(b_faces_.GetDir(f))];
   }
   Vect GetNode(IdxNode idx) const {
     return dom_.lb + Vect(b_nodes_.GetMIdx(idx) - mb_) * h_;
@@ -125,14 +97,8 @@ class MeshStructured {
   Scal GetVolume(IdxCell) const {
     return h_.prod();
   }
-  Scal GetArea(IdxFace idx) const {
-    size_t d(b_faces_.GetDir(idx));
-    switch (d) {
-      case 0: return h_[1] * h_[2];
-      case 1: return h_[2] * h_[0];
-      default: 
-      case 2: return h_[0] * h_[1];
-    }
+  Scal GetArea(IdxFace f) const {
+    return va_[size_t(b_faces_.GetDir(f))];
   }
   size_t GetNumCells() const {
     return b_cells_.size();
@@ -143,24 +109,10 @@ class MeshStructured {
   size_t GetNumNodes() const {
     return b_nodes_.size();
   }
-  IdxCell GetNeighbourCell(IdxCell idx, size_t n) const {
-    // TODO: 3d specific
-    assert(n < kCellNumNeighbourFaces);
-    MIdx w = b_cells_.GetMIdx(idx);
-    MIdx wo;
-    switch (n) {
-      case 0: wo = MIdx(-1, 0, 0); break;
-      case 1: wo = MIdx(1, 0, 0); break;
-      case 2: wo = MIdx(0, -1, 0); break;
-      case 3: wo = MIdx(0, 1, 0); break;
-      case 4: wo = MIdx(0, 0, -1); break;
-      default: 
-      case 5: wo = MIdx(0, 0, 1); break;
-    };
-    if (b_cells_.IsInside(w + wo)) {
-      return b_cells_.GetIdx(w + wo);
-    } 
-    return IdxCell::None();
+  IdxCell GetNeighbourCell(IdxCell c, size_t q) const {
+    assert(q < kCellNumNeighbourFaces);
+    c.AddRaw(cnc_[q]);
+    return c;
   }
   IdxFace GetNeighbourFace(IdxCell idxcell, size_t n) const {
     assert(n < kCellNumNeighbourFaces);
@@ -538,12 +490,37 @@ class MeshStructured {
   }
 
  private:
+  // b:Block, fc:FieldCell, ff:FieldFace, fn:FieldNode
+  BlockNodes b_nodes_;
+  BlockCells b_cells_;
+  BlockFaces b_faces_;
+  // inner 
+  BlockCells b_incells_;
+  BlockFaces b_infaces_;
+  BlockNodes b_innodes_;
+  // support
+  BlockCells b_sucells_;
+  BlockFaces b_sufaces_;
+  BlockNodes b_sunodes_;
+
+  bool isroot_;
+  MIdx gs_;
+  MIdx mb_, me_;
+  Rect<Vect> dom_;
+  Vect h_;
+  Vect hh_; // h_/2
+  std::array<Vect, dim> vs_; // surface vectors
+  Vect va_; // surface area
+  // cell neighbour cell (offset to base)
+  std::array<size_t, kCellNumNeighbourFaces> cnc_; 
+
   Suspender susp_;
   std::vector<std::shared_ptr<Co>> vcm_; // comm
   std::vector<std::pair<std::shared_ptr<Co>, std::string>> vd_;  // dump
   std::string trep_; // timer report filename
   Rd rd_;
   std::vector<LS> vls_; // solve
+
 };
 
 
@@ -577,8 +554,40 @@ MeshStructured<_Scal, _dim>::MeshStructured(
   // domain rect
   dom_ = Rect<Vect>(fn_node[b_nodes_.GetIdx(mb_)], 
                     fn_node[b_nodes_.GetIdx(me_)]);
+
+  // mesh step
   h_ = dom_.GetDimensions() / Vect(b_cells_.GetDimensions());
   hh_ = h_ * 0.5;
+
+  // surface area
+  va_[0] = h_[1] * h_[2];
+  va_[1] = h_[2] * h_[0];
+  va_[2] = h_[0] * h_[1];
+
+  // surface vectors
+  vs_[0] = Vect(va_[0], 0., 0.);
+  vs_[1] = Vect(0., va_[1], 0.);
+  vs_[2] = Vect(0., 0., va_[2]);
+
+  // cell neighbour cell offset
+  {
+    MIdx w = b_cells_.GetBegin();
+    IdxCell c = b_cells_.GetIdx(w);
+    for (auto q : Nci(c)) {
+      MIdx wo;
+      switch (q) {
+        case 0: wo = MIdx(-1, 0, 0); break;
+        case 1: wo = MIdx(1, 0, 0); break;
+        case 2: wo = MIdx(0, -1, 0); break;
+        case 3: wo = MIdx(0, 1, 0); break;
+        case 4: wo = MIdx(0, 0, -1); break;
+        default: 
+        case 5: wo = MIdx(0, 0, 1); break;
+      };
+      IdxCell cn = b_cells_.GetIdx(w + wo);
+      cnc_[q] = cn.GetRaw() - c.GetRaw();
+    }
+  }
 }
 
 
