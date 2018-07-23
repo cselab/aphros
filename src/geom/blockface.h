@@ -69,32 +69,34 @@ class GBlock<IdxFace, dim_> {
     }
   };
 
-  GBlock()
-      : b_(MIdx::kZero), cs_(MIdx::kZero)
-  {}
-  GBlock(MIdx block_cells_size)
-      : b_(MIdx::kZero), cs_(block_cells_size)
-  {}
-  GBlock(MIdx begin, MIdx block_cells_size)
-      : b_(begin), cs_(block_cells_size)
-  {}
-  size_t size() const {
-    size_t res = 0;
-    for (size_t i = 0; i < dim; ++i) {
-      res += GetNumFaces(i);
+  // b: begin, lower corner
+  // cs: cells size
+  GBlock(MIdx b, MIdx cs) 
+      : b_(b), cs_(cs)
+  {
+    // number of faces
+    nfa_ = 0;
+    for (size_t d = 0; d < dim; ++d) {
+      nf_[d] = CalcNumFaces(d);
+      nfa_ += nf_[d];
     }
-    return res;
+    // cumulative number of faces
+    nfc_[0] = 0;
+    for (size_t d = 1; d < dim; ++d) {
+      nfc_[d] = nfc_[d - 1] + nf_[d - 1];
+    }
+  }
+  GBlock(MIdx cs) : GBlock(MIdx(0), cs) {}
+  GBlock() : GBlock(MIdx(0), MIdx(0)) {}
+  size_t size() const {
+    return nfa_;
   }
   operator GRange<Idx>() const {
     return GRange<Idx>(0, size());
   }
-  Idx GetIdx(MIdx midx, Dir dir) const {
-    size_t raw = 0;
-    for (size_t i = 0; i < size_t(dir); ++i) {
-      raw += GetNumFaces(i);
-    }
-    raw += GetFlat(midx, dir);
-    return Idx(raw);
+  Idx GetIdx(MIdx w, Dir d) const {
+    size_t r = nfc_[size_t(d)] + GetFlat(w, size_t(d));
+    return Idx(r);
   }
   Idx GetIdx(std::pair<MIdx, Dir> p) const {
     return GetIdx(p.first, p.second);
@@ -119,31 +121,30 @@ class GBlock<IdxFace, dim_> {
   }
 
  private:
-  MIdx b_;
-  MIdx cs_; // cells size
-  size_t GetNumFaces(Dir dir) const {
-    MIdx bcs = cs_;
-    ++bcs[size_t(dir)];
-    size_t res = 1;
-    for (size_t i = 0; i < dim; ++i) {
-      res *= bcs[i];
-    }
-    return res;
+  const MIdx b_;
+  const MIdx cs_; // cells size
+  MIdx nf_; // number of faces in each direction
+  size_t nfa_; // total number of faces
+  MIdx nfc_; // cumulative number of faces up to direction: sum(nf_[0:d])
+  size_t GetNumFaces(size_t d) const {
+    return nf_[d];
   }
-  size_t GetNumFaces(size_t i) const {
-    return GetNumFaces(Dir(i));
-  }
-  size_t GetFlat(MIdx midx, Dir dir) const {
-    midx -= b_;
+  size_t CalcNumFaces(size_t d) const {
     MIdx bcs = cs_;
-    ++bcs[size_t(dir)];
-    size_t res = 0;
+    ++bcs[d];
+    return bcs.prod();
+  }
+  size_t GetFlat(MIdx w, size_t d) const {
+    w -= b_;
+    MIdx bcs = cs_;
+    ++bcs[d];
+    size_t r = 0;
     for (size_t i = dim; i != 0; ) {
       --i;
-      res *= bcs[i];
-      res += midx[i];
+      r *= bcs[i];
+      r += w[i];
     }
-    return res;
+    return r;
   }
   MIdx GetMIdxFromOffset(size_t raw, Dir dir) const {
     MIdx bcs = cs_;
