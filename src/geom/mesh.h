@@ -93,8 +93,8 @@ class MeshStructured {
   const BlockNodes& GetAllBlockNodes() const {
     return bna_;
   }
-  Vect GetCenter(IdxCell idx) const {
-    return (dom_.lb + hh_) + Vect(bcr_.GetMIdx(idx) - mb_) * h_;
+  Vect GetCenter(IdxCell c) const {
+    return (dom_.lb + hh_) + Vect(bcr_.GetMIdx(c) - mb_) * h_;
   }
   Vect GetCenter(IdxFace f) const {
     auto p = bfr_.GetMIdxDir(f);
@@ -107,8 +107,8 @@ class MeshStructured {
   const Vect& GetSurface(IdxFace f) const {
     return vs_[size_t(bfr_.GetDir(f))];
   }
-  Vect GetNode(IdxNode idx) const {
-    return dom_.lb + Vect(bnr_.GetMIdx(idx) - mb_) * h_;
+  Vect GetNode(IdxNode n) const {
+    return dom_.lb + Vect(bnr_.GetMIdx(n) - mb_) * h_;
   }
   Scal GetVolume(IdxCell) const {
     return vol_;
@@ -172,8 +172,8 @@ class MeshStructured {
     return kFaceNumNeighbourNodes;
   }
   // inner means not halo
-  bool IsInner(IdxCell idxcell) const {
-    MIdx w = bcr_.GetMIdx(idxcell);
+  bool IsInner(IdxCell c) const {
+    MIdx w = bcr_.GetMIdx(c);
     return bci_.GetBegin() <= w && w < bci_.GetEnd();
   }
 
@@ -278,29 +278,30 @@ class MeshStructured {
     return GetAll<IdxNode>();
   }
 
-  bool IsInside(IdxCell idxcell, Vect vect) const {
-    for (size_t i = 0; i < GetNumNeighbourFaces(idxcell); ++i) {
-      IdxFace idxface = GetNeighbourFace(idxcell, i);
-      if (GetOutwardSurface(idxcell, i).dot(vect - GetCenter(idxface)) > 0) {
+  bool IsInside(IdxCell c, Vect vect) const {
+    for (auto q : Nci()) {
+      IdxFace f = GetNeighbourFace(c, q);
+      if (GetOutwardSurface(c, q).dot(vect - GetCenter(f)) > 0) {
         return false;
       }
     }
     return true;
   }
-  IdxCell FindNearestCell(Vect point) const {
-    IdxCell idxcell_nearest = IdxCell(0);
-    for (auto idxcell : Cells()) {
-      if (point.dist(GetCenter(idxcell)) <
-          point.dist(GetCenter(idxcell_nearest))) {
-        idxcell_nearest = idxcell;
+  IdxCell FindNearestCell(Vect x) const {
+    Scal dn = std::numeric_limits<Scal>::max(); // sqrdist to nearest
+    IdxCell cn(0); // cell nearest
+    for (auto c : Cells()) {
+      Scal d = x.sqrdist(GetCenter(c));
+      if (d < dn) {
+        dn = d;
+        cn = c;
       }
     }
-    return idxcell_nearest;
+    return cn;
   }
-  Vect GetNormal(IdxFace idxface) const {
-    return GetSurface(idxface) / GetArea(idxface);
+  Vect GetNormal(IdxFace f) const {
+    return GetSurface(f) / GetArea(f);
   }
-  // Is root block
   bool IsRoot() const { return isroot_; }
 
   // TODO: move to separate class: Sem, LS, Comm, Reduce, Solve
@@ -383,7 +384,6 @@ class MeshStructured {
   void Dump(const std::shared_ptr<Co>& o, std::string name) {
     vd_.push_back(std::make_pair(o, name));
   }
-  // XXX Reduce
   void Solve(const LS& ls) {
     vls_.push_back(ls);
   }
