@@ -33,7 +33,7 @@ void TestBlock() {
   MIdx sa = si + MIdx(2 * hl); // size all
 
   GBlockFaces<dim> bi(oi, si);
-  GBlockFaces<dim> ba(oa, sa);
+  GBlockPad<IdxFace, dim> ba(oa, sa);
 
   GRange<IdxFace> ra(ba);
   GRangeIn<IdxFace, dim> ri(ba, bi);
@@ -129,15 +129,15 @@ void TestMesh() {
 
   // Number of elements
   auto sh = s + MIdx(hl * 2); // size with halos
-  PCMP(m.GetNumCells(), sh.prod());
+  PCMP(m.GetAllBlockCells().size(), sh.prod());
   size_t nf = 0;
   for (int q = 0; q < 3; ++q) {
     auto w = sh;
     ++w[q];
     nf += w.prod();
   }
-  PCMP(m.GetNumFaces(), nf);
-  PCMP(m.GetNumNodes(), (sh + MIdx(1)).prod());
+  PCMP(m.GetAllBlockFaces().size(), nf);
+  PCMP(m.GetAllBlockNodes().size(), (sh + MIdx(1)).prod());
 
   // Distance between centers
   for (auto i : m.Cells()) {
@@ -172,10 +172,10 @@ int main() {
     MIdx s(2, 2, 2);    // size in cells
     int hl = 0;         // halos 
     M m = InitUniformMesh<M>(dom, b, s, hl, true, s);
-    for (auto i : m.GetBlockCells()) {
+    for (auto i : m.GetAllBlockCells()) {
       std::cout << i << std::endl;
     }
-    auto bf = m.GetBlockFaces();
+    auto bf = m.GetAllBlockFaces();
     for (auto i : bf) {
       std::cout 
           << i.first << " " << i.second.GetLetter() << " "

@@ -48,7 +48,7 @@ bool IsNan(const GField<T, Idx>& u) {
 
 template <class T, class Idx, class M>
 bool CheckNan(const GField<T, Idx>& u, std::string name, const M& m) {
-  for (auto i : m.template Get<Idx>()) {
+  for (auto i : m.template GetIn<Idx>()) {
     if (IsNan(u[i])) {
       std::stringstream s;
       s << "Nan " << name << " at x=" << m.GetCenter(i);
@@ -368,7 +368,7 @@ Scal CalcDiff(const GField<typename M::Vect, Idx>& first,
                 const GField<typename M::Vect, Idx>& second,
                 const M& m) {
   Scal res = 0.;
-  for (Idx idx : m.template Get<Idx>()) {
+  for (Idx idx : m.template GetIn<Idx>()) {
     res = std::max(res, first[idx].dist(second[idx]));
   }
   return res;

@@ -123,10 +123,10 @@ class LoopInFaces : public TimerMesh {
 // Loop access to field
 class LoopFldPlain : public TimerMesh {
  public:
-  LoopFldPlain(Mesh& m) : TimerMesh("loop-fld-plain", m), v(m.GetNumCells()) {}
+  LoopFldPlain(Mesh& m) : TimerMesh("loop-fld-plain", m), v(GRange<IdxCell>(m).size()) {}
   void F() override {
     volatile Scal a = 0;
-    for (size_t i = 0; i < m.GetNumCells(); ++i) {
+    for (size_t i = 0; i < v.size(); ++i) {
       v[i] += a;
       a = v[i];
     }
@@ -349,7 +349,7 @@ class Grad : public TimerMesh {
   void F() override {
     static volatile size_t a = 0;
     fc = solver::Gradient(ff, m);
-    a = fc[IdxCell(a % m.GetNumCells())][0];
+    a = fc[IdxCell(0)][0];
   }
 
  private:
@@ -389,7 +389,7 @@ class ExplVisc : public TimerMesh {
         fcf[idxcell] += sum / mesh.GetVolume(idxcell);
       }
     }
-    a = fcf[IdxCell(a % m.GetNumCells())][0];
+    a = fcf[IdxCell(0)][0];
   }
 
  private:

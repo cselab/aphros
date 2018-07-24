@@ -67,14 +67,14 @@ class GBlock {
   GBlock(MIdx b, MIdx s) : b_(b), s_(s), e_(b_ + s_) {}
   GBlock() : GBlock(MIdx(0), MIdx(0)) {}
   GBlock(MIdx s) : GBlock(MIdx(0), s) {}
-  MIdx GetDimensions() const {
-    return s_;
-  }
   MIdx GetBegin() const {
     return b_;
   }
   MIdx GetEnd() const {
     return e_;
+  }
+  MIdx GetSize() const {
+    return s_;
   }
   size_t size() const {
     size_t r = 1;
@@ -99,9 +99,16 @@ class GBlock {
     }
     return Idx(r);
   }
+  template <class I>
+  size_t GetRaw(I i) const {
+    return i.GetRaw();
+  }
+  size_t GetRaw(size_t i) const {
+    return i;
+  }
   MIdx GetMIdx(Idx i) const {
     MIdx w;
-    size_t a = i.GetRaw();
+    size_t a = GetRaw(i);
     for (size_t d = 0; d < dim; ++d) {
       w[d] = a % s_[d];
       a /= s_[d];
@@ -143,13 +150,16 @@ class GBlockPad {
   // b: begin
   // s: size
   GBlockPad(MIdx b, MIdx s) : b_(b), s_(s), e_(b_ + s_) {}
-  GBlockPad() : GBlock(MIdx(0), MIdx(0)) {}
-  GBlockPad(MIdx s) : GBlock(MIdx(0), s) {}
+  GBlockPad() : GBlockPad(MIdx(0), MIdx(0)) {}
+  GBlockPad(MIdx s) : GBlockPad(MIdx(0), s) {}
   MIdx GetBegin() const {
     return b_;
   }
   MIdx GetEnd() const {
     return e_;
+  }
+  MIdx GetSize() const {
+    return s_;
   }
   size_t size() const {
     return s_.prod();
@@ -194,11 +204,8 @@ class GBlockPad {
   const MIdx e_; // end
 };
 
-
 template <size_t dim>
 using GBlockCells = GBlock<IdxCell, dim>;
 
 template <size_t dim>
 using GBlockNodes = GBlock<IdxNode, dim>;
-
-

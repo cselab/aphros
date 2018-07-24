@@ -65,7 +65,7 @@ class GBlock<IdxFace, dim_> {
     }
   };
 
-  // b: begin, lower corner
+  // b: begin, lower corner cell index
   // cs: cells size
   GBlock(MIdx b, MIdx cs) 
       : b_(b), cs_(cs)
@@ -198,8 +198,8 @@ class GBlockPad<IdxFace, dim_> {
       nfc_[d] = nfc_[d - 1] + nf_[d - 1];
     }
   }
-  GBlockFacesPad(MIdx rs) : GBlockFacesPad(MIdx(0), rs) {}
-  GBlockFacesPad() : GBlockFacesPad(MIdx(0), MIdx(0)) {}
+  GBlockPad(MIdx rs) : GBlockPad(MIdx(0), rs) {}
+  GBlockPad() : GBlockPad(MIdx(0), MIdx(0)) {}
   size_t size() const {
     return nfa_;
   }
@@ -207,7 +207,7 @@ class GBlockPad<IdxFace, dim_> {
     return GRange<Idx>(0, size());
   }
   Idx GetIdx(MIdx w, Dir d) const {
-    size_t r = GetBase(size_t(d)) + br_.GetIdx(w).GetRaw();
+    size_t r = GetBase(size_t(d)) + br_.GetIdx(w);
     return Idx(r);
   }
   Idx GetIdx(std::pair<MIdx, Dir> p) const {
@@ -244,7 +244,7 @@ class GBlockPad<IdxFace, dim_> {
  private:
   const MIdx b_;
   const MIdx rs_; // size of cells with padding
-  const GBlock<IdxCell, dim> br_; // block of cells with padding
+  const GBlock<size_t, dim> br_; // block of cells with padding
   MIdx nf_; // number of faces in each direction with padding
   size_t nfa_; // total number of indices with padding
   MIdx nfc_; // cumulative number of faces up to direction: sum(nf_[0:d])
@@ -255,8 +255,8 @@ class GBlockPad<IdxFace, dim_> {
   size_t GetBase(size_t d) const {
     return nfc_[d];
   }
-  size_t CalcNumFaces(size_t d) const {
-    return bs_.size();
+  size_t CalcNumFaces(size_t /*d*/) const {
+    return br_.size();
   }
 };
 

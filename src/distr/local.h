@@ -334,7 +334,7 @@ size_t Local<KF>::ReadBuffer(FieldCell<Scal>& fc, size_t e,  M& m) {
   }
   auto& bc = m.GetBlockCells();
   auto& gbc = gm.GetBlockCells();
-  MIdx gs = gbc.GetDimensions();
+  MIdx gs = gbc.GetSize();
   for (auto c : m.AllCells()) {
     auto w = bc.GetMIdx(c);
     // periodic
@@ -360,7 +360,7 @@ size_t Local<KF>::ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e,  M& m) {
   }
   auto& bc = m.GetBlockCells();
   auto& gbc = gm.GetBlockCells();
-  MIdx gs = gbc.GetDimensions();
+  MIdx gs = gbc.GetSize();
   for (auto c : m.AllCells()) {
     auto w = bc.GetMIdx(c);
     // periodic
@@ -494,7 +494,7 @@ void Local<KF>::WriteBuffer(M& m) {
 
 template <class KF>
 auto Local<KF>::GetGlobalBlock() const -> typename M::BlockCells {
-  return gm.GetBlockCells();
+  return gm.GetInBlockCells();
 }
 
 template <class KF>
