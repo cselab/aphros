@@ -76,11 +76,6 @@ class GBlock<IdxFace, dim_> {
       nf_[d] = CalcNumFaces(d);
       nfa_ += nf_[d];
     }
-    // cumulative number of faces
-    nfc_[0] = 0;
-    for (size_t d = 1; d < dim; ++d) {
-      nfc_[d] = nfc_[d - 1] + nf_[d - 1];
-    }
   }
   GBlock(MIdx cs) : GBlock(MIdx(0), cs) {}
   GBlock() : GBlock(MIdx(0), MIdx(0)) {}
@@ -89,34 +84,6 @@ class GBlock<IdxFace, dim_> {
   }
   operator GRange<Idx>() const {
     return GRange<Idx>(0, size());
-  }
-  Idx GetIdx(MIdx w, Dir d) const {
-    size_t r = nfc_[size_t(d)] + GetFlat(w, size_t(d));
-    return Idx(r);
-  }
-  Idx GetIdx(std::pair<MIdx, Dir> p) const {
-    return GetIdx(p.first, p.second);
-  }
-  Dir GetDir(Idx f) const {
-    size_t r = f.GetRaw();
-    size_t d = 0;
-    while (r >= GetNumFaces(d) && d < dim) {
-      r -= GetNumFaces(d);
-      ++d;
-    }
-    return Dir(d);
-  }
-  std::pair<MIdx, Dir> GetMIdxDir(Idx f) const {
-    size_t r = f.GetRaw();
-    size_t d = 0;
-    while (r >= GetNumFaces(d) && d < dim) {
-      r -= GetNumFaces(d);
-      ++d;
-    }
-    return {GetMIdxFromOffset(r, d), Dir(d)};
-  }
-  MIdx GetMIdx(Idx f) const {
-    return GetMIdxDir(f).first;
   }
   MIdx GetSize() const {
     return cs_;
@@ -136,7 +103,6 @@ class GBlock<IdxFace, dim_> {
   const MIdx cs_; // cells size
   MIdx nf_; // number of faces in each direction
   size_t nfa_; // total number of faces
-  MIdx nfc_; // cumulative number of faces up to direction: sum(nf_[0:d])
   size_t GetNumFaces(size_t d) const {
     return nf_[d];
   }
