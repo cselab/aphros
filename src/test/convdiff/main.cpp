@@ -79,14 +79,15 @@ bool Cmp<double>(double a, double b) {
 }
 
 
-template <class Idx, class B, class Scal>
+template <class Idx, class B, class I, class Scal>
 Scal DiffMax(
     const B& b,
+    const I& nd,
     const GField<Scal, Idx>& u,
     const GField<Scal, Idx>& v,
     const GField<bool, Idx>& mask) {
   Scal r = 0;
-  for (auto i : GRange<Idx>(b)) {
+  for (auto i : GRangeIn<Idx, B::dim>(nd, b)) {
     if (mask[i]) {
       r = std::max(r, std::abs(u[i] - v[i]));
     }
@@ -94,13 +95,14 @@ Scal DiffMax(
   return r;
 }
 
-template <class Idx, class B, class Scal>
+template <class Idx, class B, class I, class Scal>
 Scal Max(
     const B& b,
+    const I& nd,
     const GField<Scal, Idx>& u,
     const GField<bool, Idx>& mask) {
   Scal r = 0;
-  for (auto i : GRange<Idx>(b)) {
+  for (auto i : GRangeIn<Idx, B::dim>(nd, b)) {
     if (mask[i]) {
       r = std::max(r, u[i]);
     }
@@ -108,14 +110,15 @@ Scal Max(
   return r;
 }
 
-template <class Idx, class B, class Scal>
+template <class Idx, class B, class I, class Scal>
 Scal Mean(
     const B& b,
+    const I& nd,
     const GField<Scal, Idx>& u,
     const GField<bool, Idx>& mask) {
   Scal r = 0;
   Scal w = 0.;
-  for (auto i : GRange<Idx>(b)) {
+  for (auto i : GRangeIn<Idx, B::dim>(nd, b)) {
     if (mask[i]) {
       r += u[i];
       w += 1.;
@@ -133,7 +136,7 @@ typename M::Scal DiffMax(
     const GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
-  for (auto i : m.template Get<Idx>()) {
+  for (auto i : m.template GetIn<Idx>()) {
     if (mask[i]) {
       r = std::max(r, std::abs(u[i] - v[i]));
     }
@@ -165,7 +168,7 @@ typename M::Scal Mean(
   using Scal = typename M::Scal;
   Scal r = 0;
   Scal w = 0.;
-  for (auto i : m.template Get<Idx>()) {
+  for (auto i : m.template GetIn<Idx>()) {
     if (mask[i]) {
       r += u[i];
       w += 1.;
@@ -234,27 +237,27 @@ void Convdiff<M>::TestSolve(
     // boundary xm of global mesh
     auto gxm = [this](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::i &&
-          m.GetBlockFaces().GetMIdx(i)[0] == 0;
+          m.GetIndexFaces().GetMIdx(i)[0] == 0;
     };
     auto gxp = [this,gs](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::i &&
-          m.GetBlockFaces().GetMIdx(i)[0] == gs[0];
+          m.GetIndexFaces().GetMIdx(i)[0] == gs[0];
     };
     auto gym = [this](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::j &&
-          m.GetBlockFaces().GetMIdx(i)[1] == 0;
+          m.GetIndexFaces().GetMIdx(i)[1] == 0;
     };
     auto gyp = [this,gs](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::j &&
-          m.GetBlockFaces().GetMIdx(i)[1] == gs[1];
+          m.GetIndexFaces().GetMIdx(i)[1] == gs[1];
     };
     auto gzm = [this](IdxFace i) -> bool {
       return dim >= 3 && m.GetDir(i) == Dir::k &&
-          m.GetBlockFaces().GetMIdx(i)[2] == 0;
+          m.GetIndexFaces().GetMIdx(i)[2] == 0;
     };
     auto gzp = [this,gs](IdxFace i) -> bool {
       return dim >= 3 && m.GetDir(i) == Dir::k &&
-          m.GetBlockFaces().GetMIdx(i)[2] == gs[2];
+          m.GetIndexFaces().GetMIdx(i)[2] == gs[2];
     };
     auto parse = [](std::string s, IdxFace, size_t nci, M&) 
        -> std::shared_ptr<solver::CondFace> {
@@ -419,18 +422,20 @@ using Scal = double;
 using M = MeshStructured<Scal, 3>;
 using K = Convdiff<M>;
 using BC = typename M::BlockCells;
+using IC = typename M::IndexCells;
 using FC = FieldCell<Scal>;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
-std::tuple<BC, FC, FC> Solve(MPI_Comm comm, Vars& var) {
+std::tuple<BC, IC, FC, FC> Solve(MPI_Comm comm, Vars& var) {
   using Par = typename K::Par;
   Par par;
 
   DistrSolver<M, K> ds(comm, var, par);
   ds.Run();
 
-  return std::make_tuple(ds.GetBlock(), ds.GetField(0), ds.GetField(1));
+  return std::make_tuple(
+      ds.GetBlock(), ds.GetIndex(), ds.GetField(0), ds.GetField(1));
 }
 
 void Dump(std::vector<const FC*> u, std::vector<std::string> un, 
@@ -458,35 +463,43 @@ void Main(MPI_Comm comm, Vars& var0) {
     std::cerr << "solve ref" << std::endl;
   }
 
-  BC b, bb;
-  FC fa, fea, fb, feb;
-  std::tie(b, fa, fea) = Solve(comm, var); // fa non-empty only on root
+  // solve on user-defined mesh
+  auto tp1 = Solve(comm, var); 
+  BC& b1 = std::get<0>(tp1);
+  IC& nd1 = std::get<1>(tp1);
+  FC& f1 = std::get<2>(tp1);
+  FC& fe1 = std::get<3>(tp1);
 
   Rect<Vect> dom(Vect(0), Vect(1));
-  MIdx ms = b.GetDimensions();
+  MIdx ms = b1.GetSize();
   auto m = InitUniformMesh<M>(dom, MIdx(0), ms, 0, true, ms);
 
   if (isroot) {
     std::cerr << "solve bs/2" << std::endl;
   }
 
+  // reduce block size, keep same mesh size
   var.Int["bsx"] /= 2;
   var.Int["bsy"] /= 2;
   var.Int["bsz"] /= 2;
   var.Int["bx"] *= 2;
   var.Int["by"] *= 2;
   var.Int["bz"] *= 2;
-  std::tie(bb, fb, feb) = Solve(comm, var); // fb non-empty only on root
+  auto tp2 = Solve(comm, var); 
+  BC& b2 = std::get<0>(tp2);
+  //IC& nd2 = std::get<1>(tp2);
+  FC& f2 = std::get<2>(tp2);
+  //FC& fe2 = std::get<3>(tp2);
 
   if (isroot) {
-    PCMP(b.GetEnd(), bb.GetEnd(), true);
+    PCMP(b1.GetEnd(), b2.GetEnd(), true);
 
-    FieldCell<bool> mask(b, true);
+    FieldCell<bool> mask(nd1, true);
 
-    Dump({&fa, &fea, &fb}, {"a", "ea", "b"}, m, "a");
+    Dump({&f1, &fe1, &f2}, {"a", "ea", "b"}, m, "a");
 
-    PCMP(Mean(b, fa, mask), Mean(b, fb, mask), true);
-    PCMP(DiffMax(b, fa, fb, mask), 0., true);
+    PCMP(Mean(b1, nd1, f1, mask), Mean(b1, nd1, f2, mask), true);
+    PCMP(DiffMax(b1, nd1, f1, f2, mask), 0., true);
   }
 }
 

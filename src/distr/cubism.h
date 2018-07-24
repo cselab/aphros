@@ -18,8 +18,8 @@
 #include "Cubism/StencilInfo.h"
 #include "Cubism/HDF5Dumper_MPI.h"
 
-// Hide implementation and avoid collision with GBlock
-// TODO: rename cubism_impl::GBlock
+// Hide implementation and avoid collision with GBlk
+// TODO: rename cubism_impl::GBlk
 namespace cubism_impl {
 
 // Static parameters for Cubism
@@ -54,7 +54,7 @@ struct GElem {
 };
 
 template <class Par_>
-struct GBlock {
+struct GBlk {
   using Par = Par_;
   using Scal = typename Par::Scal;
   static const size_t bx = Par::bx;
@@ -112,9 +112,9 @@ struct GBlock {
 
 // Par - instance of GPar
 template<class Par, template<typename X> class A=std::allocator>
-class LabPer : public BlockLab<GBlock<Par>, A>
+class LabPer : public BlockLab<GBlk<Par>, A>
 {
-  using Block = GBlock<Par>;
+  using Block = GBlk<Par>;
   using ElementTypeBlock = typename Block::Elem;
 
  public:
@@ -148,11 +148,12 @@ class Cubism : public DistrMesh<KF> {
 
   Cubism(MPI_Comm comm, KF& kf, Vars& par);
   typename M::BlockCells GetGlobalBlock() const override;
+  typename M::IndexCells GetGlobalIndex() const override;
   FieldCell<Scal> GetGlobalField(size_t i) override; 
 
  private:
   using Lab = GLab<Par>;
-  using Block = GBlock<Par>;
+  using Block = GBlk<Par>;
   using Grid = GGrid<Block>;
   using Elem = typename Block::Elem;
   using Synch = typename Grid::Synch;
@@ -160,6 +161,7 @@ class Cubism : public DistrMesh<KF> {
   using P = DistrMesh<KF>; // parent
   using MIdx = typename M::MIdx;
 
+  using P::dim;
   using P::mk;
   using P::kf_;
   using P::par;
@@ -378,7 +380,7 @@ class Cubism : public DistrMesh<KF> {
 };
 
 
-// B_ - instance of GBlock
+// B_ - instance of GBlk
 template <class B_, int ID>
 struct StreamHdf {
   using B = B_;
@@ -780,16 +782,22 @@ auto Cubism<Par, KF>::GetGlobalBlock() const -> typename M::BlockCells {
 }
 
 template <class Par, class KF>
+auto Cubism<Par, KF>::GetGlobalIndex() const -> typename M::IndexCells {
+  return typename M::IndexCells(p_ * b_ * bs_);
+}
+
+template <class Par, class KF>
 auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
   using BC = typename M::BlockCells;
-  auto gbc = GetGlobalBlock();
+  auto gbc = GetGlobalIndex();
   // collective, does actual communication
   auto bb = GetBlocks();
   FieldCell<Scal> fc; // tmp
   std::vector<Scal> v(bs_.prod()); // tmp
   MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
-  BC bc(bs_); // cells
-  BC gbb(p_ * b_);  // all blocks
+  BC bc(bs_); // cells of one block
+  GBlock<size_t, dim> bq(p_ * b_);  // indices of block
+  GIndex<size_t, dim> ndq(p_ * b_);  // flat
   if (isroot_) {
     FieldCell<Scal> gfc(gbc); // result
     // Copy from blocks on root
@@ -812,14 +820,14 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       }
     }
     // recv from other ranks
-    for (auto b : gbb) {
+    for (auto b : bq) {
       if (!s_.mb.count(b)) { // not local block
         MPI_Status st;
         MPI_Recv(v.data(), v.size(), mt, MPI_ANY_SOURCE, 
                  MPI_ANY_TAG, comm_, &st);
 
         size_t i = 0;
-        MIdx wb = gbb.GetMIdx(IdxCell(st.MPI_TAG)) * bs_;
+        MIdx wb = ndq.GetMIdx(size_t(st.MPI_TAG)) * bs_;
         for (auto w : bc) {
           gfc[gbc.GetIdx(wb + w)] = v[i++];
         }
@@ -850,7 +858,7 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
         v[i++] = fc[mbc.GetIdx(wb + w)];
       }
       // XXX: assume same order of Recv on root
-      MPI_Send(v.data(), v.size(), mt, 0, gbb.GetIdx(b).GetRaw(), comm_);
+      MPI_Send(v.data(), v.size(), mt, 0, ndq.GetIdx(b), comm_);
     }
     MPI_Barrier(comm_);
     return FieldCell<Scal>();

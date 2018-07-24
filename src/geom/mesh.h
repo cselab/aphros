@@ -571,7 +571,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     , bfa_(bca_.GetBegin(), bca_.GetSize())
     , bna_(bca_.GetBegin(), bca_.GetSize() + MIdx(1))
       // support
-    , bcs_(bca_.GetBegin() - MIdx(1), bca_.GetSize() - MIdx(2))
+    , bcs_(bca_.GetBegin() + MIdx(1), bca_.GetSize() - MIdx(2))
     , bfs_(bcs_.GetBegin(), bcs_.GetSize())
     , bns_(bcs_.GetBegin(), bcs_.GetSize() + MIdx(1))
       // raw

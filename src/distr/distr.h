@@ -42,6 +42,7 @@ class DistrMesh : public Distr {
   virtual void Report();
   virtual ~DistrMesh() {}
   virtual typename M::BlockCells GetGlobalBlock() const;
+  virtual typename M::IndexCells GetGlobalIndex() const;
   // Returns data field i from buffer defined on global mesh
   virtual FieldCell<Scal> GetGlobalField(size_t i); 
 
@@ -170,10 +171,11 @@ void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
       // Write dump
       for (auto& on : m.GetDump()) {
         std::string fn = GetDumpName(on.second, ".dat", frame_);
+        auto ndc = GetGlobalIndex();
         auto bc = GetGlobalBlock();
         auto fc = GetGlobalField(k);
         if (isroot_) {
-          Dump(fc, bc, fn);
+          Dump(fc, ndc, bc, fn);
         }
         k += on.first->GetSize();
         if (on.first->GetSize() != 1) {
@@ -306,6 +308,12 @@ template <class KF>
 auto DistrMesh<KF>::GetGlobalBlock() const -> typename M::BlockCells {
   throw std::runtime_error("Not implemented");
   return typename M::BlockCells();
+}
+
+template <class KF>
+auto DistrMesh<KF>::GetGlobalIndex() const -> typename M::IndexCells {
+  throw std::runtime_error("Not implemented");
+  return typename M::IndexCells();
 }
 
 template <class KF>
