@@ -26,7 +26,7 @@ void Dump(const FieldCell<Scal>& u, const GIndex<IdxCell, 3>& ndc,
   auto s = bc.GetSize();
   o << s[0] << " " << s[1] << " " << s[2] << std::endl;
 
-  for (auto c : ndc.Range()) {
+  for (auto c : GRangeIn<IdxCell, 3>(ndc, bc) ) {
     o << u[c] << " ";
   }
 
