@@ -195,8 +195,13 @@ class MeshStructured {
     assert(n < kFaceNumNeighbourCells);
     return GetCenter(GetNeighbourCell(f, n)) - GetCenter(f);
   }
-  IdxNode GetNeighbourNode(IdxFace f, size_t n) const {
-    assert(n < kFaceNumNeighbourNodes);
+  IdxNode GetNeighbourNode(IdxFace f, size_t q) const {
+    auto qm = kFaceNumNeighbourNodes;
+    assert(q < qm);
+    size_t d(bfr_.GetDir(f));
+    return IdxNode(size_t(f) + fnn_[d * qm + q]);
+
+    /*
     auto p = bfr_.GetMIdxDir(f);
     MIdx w = p.first;
     size_t d(p.second);
@@ -228,6 +233,7 @@ class MeshStructured {
       }
     }
     return bnr_.GetIdx(w + wo);
+    */
   }
   size_t GetNumNeighbourFaces(IdxCell) const {
     return kCellNumNeighbourFaces;
@@ -560,6 +566,8 @@ class MeshStructured {
   std::array<size_t, kCellNumNeighbourFaces> cnf_; 
   // face neighbour cell
   std::array<size_t, kFaceNumNeighbourCells * dim> fnc_; 
+  // face neighbour node
+  std::array<size_t, kFaceNumNeighbourNodes * dim> fnn_; 
 
   Suspender susp_;
   std::vector<std::shared_ptr<Co>> vcm_; // comm
@@ -667,6 +675,45 @@ MeshStructured<_Scal, _dim>::MeshStructured(
         };
         IdxCell cn = bcr_.GetIdx(w + wo);
         fnc_[d * qm + q] = cn.GetRaw() - f.GetRaw();
+      }
+    }
+  }
+
+  // face neighbour cell offset
+  {
+    MIdx w = bcr_.GetBegin(); // any cell
+    for (size_t d = 0; d < dim; ++d) {
+      IdxFace f = bfr_.GetIdx(w, Dir(d));
+      auto qm = kFaceNumNeighbourNodes;
+      for (size_t q = 0; q < qm; ++q) {
+        MIdx wo;
+        if (d == 0) {
+          switch (q) {
+            case 0: wo = MIdx(0,0,0); break;
+            case 1: wo = MIdx(0,1,0); break;
+            case 2: wo = MIdx(0,1,1); break;
+            default:
+            case 3: wo = MIdx(0,0,1); break;
+          }
+        } else if (d == 1) {
+          switch (q) {
+            case 0: wo = MIdx(0,0,0); break;
+            case 1: wo = MIdx(0,0,1); break;
+            case 2: wo = MIdx(1,0,1); break;
+            default:
+            case 3: wo = MIdx(1,0,0); break;
+          }
+        } else {
+          switch (q) {
+            case 0: wo = MIdx(0,0,0); break;
+            case 1: wo = MIdx(1,0,0); break;
+            case 2: wo = MIdx(1,1,0); break;
+            default:
+            case 3: wo = MIdx(0,1,0); break;
+          }
+        }
+        IdxNode nn = bnr_.GetIdx(w + wo);
+        fnn_[d * qm + q] = nn.GetRaw() - f.GetRaw();
       }
     }
   }
