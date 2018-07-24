@@ -172,30 +172,37 @@ int main() {
     MIdx s(2, 2, 2);    // size in cells
     int hl = 0;         // halos 
     M m = InitUniformMesh<M>(dom, b, s, hl, true, s);
-    for (auto i : m.GetAllBlockCells()) {
-      std::cout << i << std::endl;
+
+    std::cout << "m.GetAllBlockCells()" << std::endl;
+    auto bc = m.GetAllBlockCells();
+    auto bcr = m.GetBlockCells();
+    for (auto w : bc) {
+      std::cout << w << " " << bcr.GetIdx(w).GetRaw() << std::endl;
     }
+
+    std::cout << "m.GetAllBlockFaces()" << std::endl;
     auto bf = m.GetAllBlockFaces();
-    for (auto i : bf) {
+    auto bfr = m.GetBlockFaces();
+    for (auto p : bf) {
       std::cout 
-          << i.first << " " << i.second.GetLetter() << " "
-          << bf.GetIdx(i).GetRaw() << " " 
+          << p.first << " " << p.second.GetLetter() << ","
+          << bfr.GetIdx(p).GetRaw()
           << std::endl;
     }
     std::cout << std::endl;
 
+    std::cout << "(MIdx,Dir) <-> IdxFace" << std::endl;
     using B = GBlock<IdxFace, 3>;
     B sb(b, s);
-    for (auto i : sb) {
-      auto j = sb.GetIdx(i);
-      auto p = sb.GetMIdxDir(j);
-      auto jj = sb.GetIdx(p);
+    for (auto p : sb) { // p: (w,d)
+      auto j = sb.GetIdx(p);
+      auto pp = sb.GetMIdxDir(j);
+      auto jj = sb.GetIdx(pp);
       assert(j == jj);
       std::cout 
-          << i.first << " " << i.second.GetLetter() << " | "
-          << j.GetRaw() << " | "
-          << p.first << " " << p.second.GetLetter() << " | "
-          << jj.GetRaw() << " "
+          << p.first << "," << p.second.GetLetter() << " " << j.GetRaw() 
+          << " | "
+          << pp.first << "," << pp.second.GetLetter() << " " << jj.GetRaw()
           << std::endl;
     }
 
