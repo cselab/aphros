@@ -96,9 +96,9 @@ class MeshStructured {
   Vect GetCenter(IdxCell idx) const {
     return (dom_.lb + hh_) + Vect(bcr_.GetMIdx(idx) - mb_) * h_;
   }
-  Vect GetCenter(IdxFace idx) const {
-    auto p = bfr_.GetMIdxDir(idx);
-    MIdx w = p.first;
+  Vect GetCenter(IdxFace f) const {
+    auto p = bfr_.GetMIdxDir(f);
+    const MIdx& w = p.first;
     size_t d(p.second);
     Vect r = (dom_.lb + hh_) + Vect(w - mb_) * h_;
     r[d] -= hh_[d];
@@ -111,7 +111,7 @@ class MeshStructured {
     return dom_.lb + Vect(bnr_.GetMIdx(idx) - mb_) * h_;
   }
   Scal GetVolume(IdxCell) const {
-    return h_.prod();
+    return vol_;
   }
   Scal GetArea(IdxFace f) const {
     return va_[size_t(bfr_.GetDir(f))];
@@ -139,9 +139,10 @@ class MeshStructured {
     return bfr_.GetIdx(std::make_pair(w + wo, d));
     */
   }
-  Scal GetOutwardFactor(IdxCell, size_t n) const {
-    // TODO: <= 3d specific, maybe replace with odd/even convention
-    assert(n < kCellNumNeighbourFaces);
+  Scal GetOutwardFactor(IdxCell, size_t q) const {
+    assert(q < kCellNumNeighbourFaces);
+    return co_[q];
+    /*
     switch (n) {
       case 0:
       case 2:
@@ -153,6 +154,7 @@ class MeshStructured {
       case 5:
         return 1.;
     }
+    */
   }
   Vect GetOutwardSurface(IdxCell c, size_t n) const {
     assert(n < kCellNumNeighbourFaces);
@@ -562,12 +564,15 @@ class MeshStructured {
   const Rect<Vect> dom_; // domain covering bci_
   const Vect h_;
   const Vect hh_; // h_/2
+  const Scal vol_;
   std::array<Vect, dim> vs_; // surface vectors
   Vect va_; // surface area
   // cell neighbour cell 
   std::array<size_t, kCellNumNeighbourFaces> cnc_; 
   // cell neighbour face 
   std::array<size_t, kCellNumNeighbourFaces> cnf_; 
+  // cell outward factor
+  std::array<Scal, kCellNumNeighbourFaces> co_; 
   // cell neighbour node
   std::array<size_t, kCellNumNeighbourNodes> cnn_; 
   // face neighbour cell
@@ -610,6 +615,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     , dom_(dom)
     , h_(dom.GetDimensions() / Vect(bci_.GetSize()))
     , hh_(h_ * 0.5)
+    , vol_(h_.prod())
 {
   static_assert(dim == 3, "Not implemented for dim != 3");
 
@@ -663,6 +669,13 @@ MeshStructured<_Scal, _dim>::MeshStructured(
       };
       IdxFace fn = bfr_.GetIdx(std::make_pair(w + wo, d));
       cnf_[q] = fn.GetRaw() - c.GetRaw();
+    }
+  }
+
+  // cell outward factor
+  {
+    for (size_t q = 0; q < kCellNumNeighbourFaces; ++q) {
+      co_[q] = (q % 2 == 0 ? -1. : 1.);
     }
   }
 
