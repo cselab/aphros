@@ -206,7 +206,7 @@ void Convdiff<M>::TestSolve(
     std::string name,
     bool check /*abort if different from exact*/) {
   auto sem = m.GetSem("TestSolve");
-  auto& bc = m.GetBlockCells();
+  auto& bc = m.GetIndexCells();
   if (sem("init")) {
     if (IsRoot()) {
       std::cerr << name << std::endl;

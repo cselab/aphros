@@ -286,7 +286,7 @@ std::ostream& operator<<(std::ostream& out,
 
 template <class M, class S>
 void PrintSystem(S& s, M& m, std::ostream& o) {
-  auto bc = m.GetBlockCells();
+  auto bc = m.GetIndexCells();
   for (auto i : m.Cells()) {
     o << bc.GetMIdx(i) << " "; 
     auto& e = s[i];
@@ -877,7 +877,7 @@ typename M::LS ConvertLs(
   using LS = typename M::LS;
   using MIdx = typename M::MIdx;
   using IdxCell = IdxCell;
-  auto& bc = m.GetBlockCells();
+  auto& bc = m.GetIndexCells();
   LS l;
   // Get stencil from first inner cell
   {

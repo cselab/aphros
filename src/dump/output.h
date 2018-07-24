@@ -167,7 +167,7 @@ class SessionPlain : public Session {
     out_ << "\n";
 
     out_ << "Dim: ";
-    MIdx dim = mesh.GetBlockCells().GetDimensions();
+    MIdx dim = mesh.GetInBlockCells().GetSize();
     for (size_t i = 0; i < dim.size(); ++i) {
       out_ << dim[i] << " ";
     }

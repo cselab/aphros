@@ -174,7 +174,7 @@ class GBlock<IdxFace, dim_> {
 // Specialization for IdxFace
 // Enumeration order (to more frequent): dir, z, y, x
 template <size_t dim_>
-class GBlockPad<IdxFace, dim_> {
+class GIndex<IdxFace, dim_> {
  public:
   static constexpr size_t dim = dim_;
   using Idx = IdxFace;
@@ -183,7 +183,7 @@ class GBlockPad<IdxFace, dim_> {
 
   // b: begin, lower corner
   // rs: raw size (underlying block that fits all faces_)
-  GBlockPad(MIdx b, MIdx rs) 
+  GIndex(MIdx b, MIdx rs) 
       : b_(b), rs_(rs), br_(b_, rs_)
   {
     // number of faces in each direction
@@ -198,8 +198,8 @@ class GBlockPad<IdxFace, dim_> {
       nfc_[d] = nfc_[d - 1] + nf_[d - 1];
     }
   }
-  GBlockPad(MIdx rs) : GBlockPad(MIdx(0), rs) {}
-  GBlockPad() : GBlockPad(MIdx(0), MIdx(0)) {}
+  GIndex(MIdx rs) : GIndex(MIdx(0), rs) {}
+  GIndex() : GIndex(MIdx(0), MIdx(0)) {}
   size_t size() const {
     return nfa_;
   }
@@ -244,7 +244,7 @@ class GBlockPad<IdxFace, dim_> {
  private:
   const MIdx b_;
   const MIdx rs_; // size of cells with padding
-  const GBlock<size_t, dim> br_; // block of cells with padding
+  const GIndex<size_t, dim> br_; // index cells
   MIdx nf_; // number of faces in each direction with padding
   size_t nfa_; // total number of indices with padding
   MIdx nfc_; // cumulative number of faces up to direction: sum(nf_[0:d])
