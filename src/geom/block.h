@@ -64,16 +64,9 @@ class GBlock {
     }
   };
 
-  GBlock()
-    : b_(0), s_(0), e_(0)
-  {}
-  GBlock(MIdx s /*size*/)
-    : b_(0), s_(s), e_(b_ + s_)
-  {}
-  GBlock(MIdx b /*begin*/, MIdx s /*size*/)
-    : b_(b), s_(s), e_(b_ + s_)
-  {}
-  // TODO: rename to GetSize
+  GBlock(MIdx b, MIdx s) : b_(b), s_(s), e_(b_ + s_) {}
+  GBlock() : GBlock(MIdx(0), MIdx(0)) {}
+  GBlock(MIdx s) : GBlock(MIdx(0), s) {}
   MIdx GetDimensions() const {
     return s_;
   }
@@ -134,10 +127,73 @@ class GBlock {
   }
 
  private:
-  MIdx b_; // begin
-  MIdx s_; // size
-  MIdx e_; // end
+  const MIdx b_; // begin
+  const MIdx s_; // size
+  const MIdx e_; // end
 };
+
+template <class Idx_, size_t dim_>
+class GBlockPad {
+ public:
+  using Idx = Idx_;
+  using MIdx = GMIdx<dim_>;
+
+  static constexpr size_t dim = dim_;
+
+  // b: begin
+  // s: size
+  GBlockPad(MIdx b, MIdx s) : b_(b), s_(s), e_(b_ + s_) {}
+  GBlockPad() : GBlock(MIdx(0), MIdx(0)) {}
+  GBlockPad(MIdx s) : GBlock(MIdx(0), s) {}
+  MIdx GetBegin() const {
+    return b_;
+  }
+  MIdx GetEnd() const {
+    return e_;
+  }
+  size_t size() const {
+    return s_.prod();
+  }
+  GRange<Idx> Range() const {
+    return GRange<Idx>(0, size());
+  }
+  operator GRange<Idx>() const {
+    return Range();
+  }
+  Idx GetIdx(MIdx w) const {
+    w -= b_;
+    size_t r = 0;
+    for (size_t d = dim; d != 0; ) {
+      --d;
+      r *= s_[d];
+      r += w[d];
+    }
+    return Idx(r);
+  }
+  MIdx GetMIdx(Idx i) const {
+    MIdx w;
+    size_t a = i.GetRaw();
+    for (size_t d = 0; d < dim; ++d) {
+      w[d] = a % s_[d];
+      a /= s_[d];
+    }
+    return b_ + w;
+  }
+  bool IsInside(MIdx w) const {
+    return b_ <= w && w < e_;
+  }
+  void Clip(MIdx& w) const {
+    for (size_t d = 0; d < b_.size(); ++d) {
+      w[d] = std::max(b_[d], std::min(e_[d] - 1, w[d]));
+    }
+  }
+
+ private:
+  const MIdx b_; // begin
+  const MIdx s_; // size
+  const MIdx e_; // end
+};
+
 
 template <size_t dim>
 using GBlockCells = GBlock<IdxCell, dim>;
