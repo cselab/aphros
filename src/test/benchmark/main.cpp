@@ -69,7 +69,7 @@ class LoopPlain : public TimerMesh {
   LoopPlain(Mesh& m) : TimerMesh("loop-plain", m) {}
   void F() override {
     volatile size_t a = 0;
-    for (size_t i = 0; i < m.GetNumCells(); ++i) {
+    for (size_t i = 0; i < m.GetBlockCells().size(); ++i) {
       a += i;
     }
   }
@@ -349,7 +349,7 @@ class Grad : public TimerMesh {
   void F() override {
     static volatile size_t a = 0;
     fc = solver::Gradient(ff, m);
-    a = fc[IdxCell(0)][0];
+    a += fc[IdxCell(0)][0];
   }
 
  private:
@@ -389,7 +389,7 @@ class ExplVisc : public TimerMesh {
         fcf[idxcell] += sum / mesh.GetVolume(idxcell);
       }
     }
-    a = fcf[IdxCell(0)][0];
+    a += fcf[IdxCell(0)][0];
   }
 
  private:
