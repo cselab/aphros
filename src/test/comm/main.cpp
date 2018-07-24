@@ -145,7 +145,7 @@ void Simple<M>::TestComm() {
   auto fv = [=](Vect v) { 
     return Vect(f(v), f(v * 2.), f(v * 3.));
   };
-  auto& bc = m.GetBlockCells();
+  auto& bc = m.GetIndexCells();
   if (sem("init")) {
     fc_.Reinit(m);
     fcv_.Reinit(m);
@@ -344,7 +344,7 @@ void Simple<M>::TestReduce() {
 template <class M>
 void Simple<M>::TestSolve() {
   auto sem = m.GetSem("Solve");
-  auto& bc = m.GetBlockCells();
+  auto& bc = m.GetIndexCells();
   auto f = [](Vect v) { 
     for (size_t i = 0; i < dim; ++i) {
       while (v[i] < 0.) {

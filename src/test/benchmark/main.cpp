@@ -69,7 +69,7 @@ class LoopPlain : public TimerMesh {
   LoopPlain(Mesh& m) : TimerMesh("loop-plain", m) {}
   void F() override {
     volatile size_t a = 0;
-    for (size_t i = 0; i < m.GetBlockCells().size(); ++i) {
+    for (size_t i = 0; i < m.GetAllBlockCells().GetSize().prod(); ++i) {
       a += i;
     }
   }
@@ -157,9 +157,9 @@ class LoopMIdxAllCells : public TimerMesh {
   LoopMIdxAllCells(Mesh& m) : TimerMesh("loop-midx-allcells", m) {}
   void F() override {
     volatile size_t a = 0;
-    for (auto i : m.AllCells()) {
-      auto ii = m.GetBlockCells().GetMIdx(i);
-      a += ii[0];
+    for (auto c : m.AllCells()) {
+      auto w = m.GetIndexCells().GetMIdx(c);
+      a += w[0];
     }
   }
 };
@@ -169,11 +169,10 @@ class LoopMIdxAllFaces : public TimerMesh {
   LoopMIdxAllFaces(Mesh& m) : TimerMesh("loop-midx-allfaces", m) {}
   void F() override {
     volatile size_t a = 0;
-    for (auto i : m.AllFaces()) {
-      auto ii = m.GetBlockFaces().GetMIdx(i);
-      auto id = m.GetBlockFaces().GetDir(i);
-      a += ii[0];
-      a += id.GetLetter();
+    for (auto f : m.AllFaces()) {
+      auto wd = m.GetIndexCells().GetMIdxDir(f);
+      a += wd.first[0];
+      a += wd.second.GetLetter();
     }
   }
 };
@@ -318,7 +317,7 @@ class Interp : public TimerMesh {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
-    auto& bf = m.GetBlockFaces();
+    auto& bf = m.GetIndexFaces();
     for (auto i : m.Faces()) {
       if (bf.GetMIdx(i)[0] == 0 && bf.GetDir(i) == Dir::i) {
         mfc[i] = std::make_shared<solver::
@@ -492,7 +491,7 @@ int main() {
   for (auto s : ss) {
     size_t mem0 = sysinfo::GetMem();
     auto m = GetMesh(s);
-    const size_t nca = m.GetBlockCells().size();
+    const size_t nca = m.GetAllBlockCells().size();
     const size_t nci = m.GetInBlockCells().size();
     std::cout 
         << "Mesh" 

@@ -332,8 +332,8 @@ size_t Local<KF>::ReadBuffer(FieldCell<Scal>& fc, size_t e,  M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
   }
-  auto& bc = m.GetBlockCells();
-  auto& gbc = gm.GetBlockCells();
+  auto& bc = m.GetIndexCells();
+  auto& gbc = gm.GetIndexCells();
   MIdx gs = gbc.GetSize();
   for (auto c : m.AllCells()) {
     auto w = bc.GetMIdx(c);
@@ -358,9 +358,9 @@ size_t Local<KF>::ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e,  M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
   }
-  auto& bc = m.GetBlockCells();
-  auto& gbc = gm.GetBlockCells();
-  MIdx gs = gbc.GetSize();
+  auto& bc = m.GetIndexCells();
+  auto& gbc = gm.GetIndexCells();
+  MIdx gs = gm.GetInBlockCells().GetSize();
   for (auto c : m.AllCells()) {
     auto w = bc.GetMIdx(c);
     // periodic
@@ -421,8 +421,9 @@ size_t Local<KF>::WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
   }
-  auto& bc = m.GetBlockCells();
-  auto& gbc = gm.GetBlockCells();
+  auto& bc = m.GetIndexCells();
+  auto& gbc = gm.GetIndexCells();
+  MIdx gs = gm.GetInBlockCells().GetSize();
   for (auto c : m.Cells()) {
     auto w = bc.GetMIdx(c); 
     auto gc = gbc.GetIdx(w); 
@@ -442,8 +443,9 @@ size_t Local<KF>::WriteBuffer(const FieldCell<Vect>& fc,
   if (e >= buf_.size()) {
     throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
   }
-  auto& bc = m.GetBlockCells();
-  auto& gbc = gm.GetBlockCells();
+  auto& bc = m.GetIndexCells();
+  auto& gbc = gm.GetIndexCells();
+  MIdx gs = gm.GetInBlockCells().GetSize();
   for (auto c : m.Cells()) {
     auto w = bc.GetMIdx(c); 
     auto gc = gbc.GetIdx(w); 

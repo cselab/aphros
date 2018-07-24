@@ -29,12 +29,12 @@ class MeshStructured {
   using Vect = GVect<Scal, dim>;
   using Dir = GDir<dim>;
   using MIdx = GMIdx<dim>;
-  using BlockNodes = GBlockNodes<dim>;
   using BlockCells = GBlockCells<dim>;
   using BlockFaces = GBlockFaces<dim>;
-  using BlockNodesPad = GBlockPad<IdxNode,dim>;
-  using BlockCellsPad = GBlockPad<IdxCell,dim>;
-  using BlockFacesPad = GBlockPad<IdxFace,dim>;
+  using BlockNodes = GBlockNodes<dim>;
+  using IndexCells = GIndex<IdxCell,dim>;
+  using IndexFaces = GIndex<IdxFace,dim>;
+  using IndexNodes = GIndex<IdxNode,dim>;
   static constexpr size_t kCellNumNeighbourFaces = 2 * dim;
   static constexpr size_t kCellNumNeighbourNodes = std::pow(2, dim);
   static constexpr size_t kFaceNumNeighbourNodes = std::pow(2, dim - 1);
@@ -50,14 +50,14 @@ class MeshStructured {
   MIdx GetGlobalSize() const {
     return gs_;
   }
-  // Raw blocks
-  const BlockCellsPad& GetBlockCells() const {
+  // Indexer
+  const IndexCells& GetIndexCells() const {
     return bcr_;
   }
-  const BlockFacesPad& GetBlockFaces() const {
+  const IndexFaces& GetIndexFaces() const {
     return bfr_;
   }
-  const BlockNodesPad& GetBlockNodes() const {
+  const IndexNodes& GetIndexNodes() const {
     return bnr_;
   }
 
@@ -279,13 +279,13 @@ class MeshStructured {
     return GetIn((Idx*)0);
   }
   GRangeIn<IdxCell, dim> GetIn(IdxCell*) const {
-    return GRangeIn<IdxCell, dim>(GetBlockCells(), GetInBlockCells());
+    return GRangeIn<IdxCell, dim>(GetIndexCells(), GetInBlockCells());
   }
   GRangeIn<IdxFace, dim> GetIn(IdxFace*) const {
-    return GRangeIn<IdxFace, dim>(GetBlockFaces(), GetInBlockFaces());
+    return GRangeIn<IdxFace, dim>(GetIndexFaces(), GetInBlockFaces());
   }
   GRangeIn<IdxNode, dim> GetIn(IdxNode*) const {
-    return GRangeIn<IdxNode, dim>(GetBlockNodes(), GetInBlockNodes());
+    return GRangeIn<IdxNode, dim>(GetIndexNodes(), GetInBlockNodes());
   }
   GRangeIn<IdxCell, dim> Cells() const {
     return GetIn<IdxCell>();
@@ -303,13 +303,13 @@ class MeshStructured {
     return GetSu((Idx*)0);
   }
   GRangeIn<IdxCell, dim> GetSu(IdxCell*) const {
-    return GRangeIn<IdxCell, dim>(GetBlockCells(), GetSuBlockCells());
+    return GRangeIn<IdxCell, dim>(GetIndexCells(), GetSuBlockCells());
   }
   GRangeIn<IdxFace, dim> GetSu(IdxFace*) const {
-    return GRangeIn<IdxFace, dim>(GetBlockFaces(), GetSuBlockFaces());
+    return GRangeIn<IdxFace, dim>(GetIndexFaces(), GetSuBlockFaces());
   }
   GRangeIn<IdxNode, dim> GetSu(IdxNode*) const {
-    return GRangeIn<IdxNode, dim>(GetBlockNodes(), GetSuBlockNodes());
+    return GRangeIn<IdxNode, dim>(GetIndexNodes(), GetSuBlockNodes());
   }
   GRangeIn<IdxCell, dim> SuCells() const {
     return GetSu<IdxCell>();
@@ -327,13 +327,13 @@ class MeshStructured {
     return GetAll((Idx*)0);
   }
   GRangeIn<IdxCell, dim> GetAll(IdxCell*) const {
-    return GRangeIn<IdxCell, dim>(GetBlockCells(), GetAllBlockCells());
+    return GRangeIn<IdxCell, dim>(GetIndexCells(), GetAllBlockCells());
   }
   GRangeIn<IdxFace, dim> GetAll(IdxFace*) const {
-    return GRangeIn<IdxFace, dim>(GetBlockFaces(), GetAllBlockFaces());
+    return GRangeIn<IdxFace, dim>(GetIndexFaces(), GetAllBlockFaces());
   }
   GRangeIn<IdxNode, dim> GetAll(IdxNode*) const {
-    return GRangeIn<IdxNode, dim>(GetBlockNodes(), GetAllBlockNodes());
+    return GRangeIn<IdxNode, dim>(GetIndexNodes(), GetAllBlockNodes());
   }
   GRangeIn<IdxCell, dim> AllCells() const {
     return GetAll<IdxCell>();
@@ -523,28 +523,28 @@ class MeshStructured {
  private:
   // b:Block, fc:FieldCell, ff:FieldFace, fn:FieldNode
   // inner 
-  BlockCells bci_;
-  BlockFaces bfi_;
-  BlockNodes bni_;
+  const BlockCells bci_;
+  const BlockFaces bfi_;
+  const BlockNodes bni_;
   // all
-  BlockCells bca_;
-  BlockFaces bfa_;
-  BlockNodes bna_;
+  const BlockCells bca_;
+  const BlockFaces bfa_;
+  const BlockNodes bna_;
   // support
-  BlockCells bcs_;
-  BlockFaces bfs_;
-  BlockNodes bns_;
+  const BlockCells bcs_;
+  const BlockFaces bfs_;
+  const BlockNodes bns_;
   // raw
-  BlockCellsPad bcr_;
-  BlockFacesPad bfr_;
-  BlockNodesPad bnr_;
+  const IndexCells bcr_;
+  const IndexFaces bfr_;
+  const IndexNodes bnr_;
 
-  bool isroot_;
-  MIdx gs_;
-  MIdx mb_, me_; // begin,end of bci_
-  Rect<Vect> dom_; // domain covering bci_
-  Vect h_;
-  Vect hh_; // h_/2
+  const bool isroot_;
+  const MIdx gs_;
+  const MIdx mb_, me_; // begin,end of bci_
+  const Rect<Vect> dom_; // domain covering bci_
+  const Vect h_;
+  const Vect hh_; // h_/2
   std::array<Vect, dim> vs_; // surface vectors
   Vect va_; // surface area
   // cell neighbour cell (offset to base)
@@ -583,14 +583,12 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     , mb_(bci_.GetBegin())
     , me_(bci_.GetEnd())
     , dom_(dom)
+    , h_(dom.GetDimensions() / Vect(bci_.GetSize()))
+    , hh_(h_ * 0.5)
 {
   static_assert(dim == 3, "Not implemented for dim != 3");
-  mb_ = bci_.GetBegin();
-  me_ = bci_.GetEnd();
 
   // mesh step
-  h_ = dom.GetDimensions() / Vect(bci_.GetSize());
-  hh_ = h_ * 0.5;
 
   // surface area
   va_[0] = h_[1] * h_[2];

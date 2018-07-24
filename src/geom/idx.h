@@ -24,6 +24,9 @@ class GIdx {
   size_t GetRaw() const {
     return i_;
   }
+  explicit operator size_t() const {
+    return i_;
+  }
   void AddRaw(IntIdx add) {
     i_ += add;
   }

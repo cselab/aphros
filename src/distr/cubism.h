@@ -225,7 +225,7 @@ class Cubism : public DistrMesh<KF> {
     if (e >= Elem::es) {
       throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
     }
-    auto& bc = m.GetBlockCells();
+    auto& bc = m.GetIndexCells();
     for (auto c : m.AllCells()) {
       auto w = bc.GetMIdx(c) - MIdx(hl_) - bc.GetBegin();
       fc[c] = l(w[0], w[1], w[2]).a[e];
@@ -246,7 +246,7 @@ class Cubism : public DistrMesh<KF> {
     if (d >= Vect::dim) {
       throw std::runtime_error("ReadBuffer: d >= Vect::dim");
     }
-    auto& bc = m.GetBlockCells();
+    auto& bc = m.GetIndexCells();
     for (auto c : m.AllCells()) {
       auto w = bc.GetMIdx(c) - MIdx(hl_) - bc.GetBegin();
       fc[c][d] = l(w[0], w[1], w[2]).a[e];
@@ -299,9 +299,10 @@ class Cubism : public DistrMesh<KF> {
     if (e >= Elem::es) {
       throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
     }
-    auto& bc = m.GetBlockCells();
+    auto& bc = m.GetIndexCells();
+    auto& bci = m.GetInBlockCells();
     for (auto c : m.Cells()) {
-      auto w = m.GetBlockCells().GetMIdx(c) - MIdx(hl_) - bc.GetBegin();
+      auto w = bc.GetMIdx(c) - bci.GetBegin();
       b.data[w[2]][w[1]][w[0]].a[e] = fc[c];
     }
     return 1;
@@ -321,9 +322,10 @@ class Cubism : public DistrMesh<KF> {
     if (d >= Vect::dim) {
       throw std::runtime_error("ReadBuffer: d >= Vect::dim");
     }
-    auto& bc = m.GetBlockCells();
+    auto& bc = m.GetIndexCells();
+    auto& bci = m.GetInBlockCells();
     for (auto c : m.Cells()) {
-      auto w = m.GetBlockCells().GetMIdx(c) - MIdx(hl_) - bc.GetBegin();
+      auto w = bc.GetMIdx(c) - bci.GetBegin();
       b.data[w[2]][w[1]][w[0]].a[e] = fc[c][d];
     }
     return 1;
@@ -794,8 +796,8 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
     for (auto& b : bb) {
       // block mesh
       auto& m = mk.at(b)->GetMesh();
-      // block cells
-      auto& mbc = m.GetBlockCells();
+      // index cells
+      auto& mbc = m.GetIndexCells();
       // resize field for block mesh
       fc.Reinit(m);
       // load from grid to lab
@@ -832,7 +834,7 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       // block mesh
       auto& m = mk.at(b)->GetMesh();
       // block cells
-      auto& mbc = m.GetBlockCells();
+      auto& mbc = m.GetIndexCells();
       // resize field for block mesh
       fc.Reinit(m);
       // load from grid to lab

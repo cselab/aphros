@@ -5,6 +5,7 @@
 #include "idx.h"
 #include "range.h"
 
+// Block of multi-indices.
 template <class Idx_, size_t dim_>
 class GBlock {
  public:
@@ -18,9 +19,9 @@ class GBlock {
     MIdx w_;
 
    public:
-    explicit iterator(const GBlock* p /*parent*/, MIdx w)
-      : p_(p), w_(w)
-    {}
+    // p: parent
+    // w: current position
+    iterator(const GBlock* p, MIdx w) : p_(p), w_(w) {}
     iterator& operator++() {
       for (size_t d = 0; d < dim; ++d) {
         ++w_[d];
@@ -77,48 +78,11 @@ class GBlock {
     return s_;
   }
   size_t size() const {
-    size_t r = 1;
-    for (size_t d = 0; d < dim; ++d) {
-      r *= s_[d];
-    }
-    return r;
-  }
-  GRange<Idx> Range() const {
-    return GRange<Idx>(0, size());
-  }
-  operator GRange<Idx>() const {
-    return Range();
-  }
-  Idx GetIdx(MIdx w) const {
-    w -= b_;
-    size_t r = 0;
-    for (size_t d = dim; d != 0; ) {
-      --d;
-      r *= s_[d];
-      r += w[d];
-    }
-    return Idx(r);
-  }
-  template <class I>
-  size_t GetRaw(I i) const {
-    return i.GetRaw();
-  }
-  size_t GetRaw(size_t i) const {
-    return i;
-  }
-  MIdx GetMIdx(Idx i) const {
-    MIdx w;
-    size_t a = GetRaw(i);
-    for (size_t d = 0; d < dim; ++d) {
-      w[d] = a % s_[d];
-      a /= s_[d];
-    }
-    return b_ + w;
+    return s_.prod();
   }
   bool IsInside(MIdx w) const {
     return b_ <= w && w < e_;
   }
-  // TODO: rename to clip
   void Clip(MIdx& w) const {
     for (size_t d = 0; d < b_.size(); ++d) {
       w[d] = std::max(b_[d], std::min(e_[d] - 1, w[d]));
@@ -139,8 +103,9 @@ class GBlock {
   const MIdx e_; // end
 };
 
+// Flat index for multi-index.
 template <class Idx_, size_t dim_>
-class GBlockPad {
+class GIndex {
  public:
   using Idx = Idx_;
   using MIdx = GMIdx<dim_>;
@@ -149,9 +114,9 @@ class GBlockPad {
 
   // b: begin
   // s: size
-  GBlockPad(MIdx b, MIdx s) : b_(b), s_(s), e_(b_ + s_) {}
-  GBlockPad() : GBlockPad(MIdx(0), MIdx(0)) {}
-  GBlockPad(MIdx s) : GBlockPad(MIdx(0), s) {}
+  GIndex(MIdx b, MIdx s) : b_(b), s_(s), e_(b_ + s_) {}
+  GIndex() : GIndex(MIdx(0), MIdx(0)) {}
+  GIndex(MIdx s) : GIndex(MIdx(0), s) {}
   MIdx GetBegin() const {
     return b_;
   }
@@ -182,7 +147,7 @@ class GBlockPad {
   }
   MIdx GetMIdx(Idx i) const {
     MIdx w;
-    size_t a = i.GetRaw();
+    size_t a(i);
     for (size_t d = 0; d < dim; ++d) {
       w[d] = a % s_[d];
       a /= s_[d];

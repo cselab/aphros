@@ -79,7 +79,7 @@ class SessionParaviewStructured : public SessionParaview {
     out << "<VTKFile type=\"StructuredGrid\" "
         << "version=\"0.1\" byte_order=\"LittleEndian\">\n";
 
-    MIdx size = mesh.GetBlockCells().GetSize();
+    MIdx size = mesh.GetInBlockCells().GetSize();
     out << "  <StructuredGrid WholeExtent=\""
         << "0 " << size[0]
         << " 0 " << size[1]
