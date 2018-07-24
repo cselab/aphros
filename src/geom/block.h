@@ -174,3 +174,9 @@ using GBlockCells = GBlock<IdxCell, dim>;
 
 template <size_t dim>
 using GBlockNodes = GBlock<IdxNode, dim>;
+
+template <size_t dim>
+using GIndexCells = GIndex<IdxCell, dim>;
+
+template <size_t dim>
+using GIndexNodes = GIndex<IdxNode, dim>;

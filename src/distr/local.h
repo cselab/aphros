@@ -21,6 +21,7 @@ class Local : public DistrMesh<KF> {
 
   Local(MPI_Comm comm, KF& kf, Vars& par);
   typename M::BlockCells GetGlobalBlock() const override;
+  typename M::IndexCells GetGlobalIndex() const override;
   // Returns data field i from buffer defined on global mesh
   FieldCell<Scal> GetGlobalField(size_t i) override; 
 
@@ -115,7 +116,7 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par)
   std::cerr << "h from gm = " << h << std::endl;
   for (MIdx i : bc) {
     MyBlockInfo b;
-    IdxNode n = gm.GetBlockNodes().GetIdx(i * ms);
+    IdxNode n = gm.GetIndexNodes().GetIdx(i * ms);
     Vect o = gm.GetNode(n);
     std::cerr << "o=" << o << " n=" << n.GetRaw() <<  " i=" << i << std::endl;
     for (int q = 0; q < 3; ++q) {
@@ -423,7 +424,6 @@ size_t Local<KF>::WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m) {
   }
   auto& bc = m.GetIndexCells();
   auto& gbc = gm.GetIndexCells();
-  MIdx gs = gm.GetInBlockCells().GetSize();
   for (auto c : m.Cells()) {
     auto w = bc.GetMIdx(c); 
     auto gc = gbc.GetIdx(w); 
@@ -445,7 +445,6 @@ size_t Local<KF>::WriteBuffer(const FieldCell<Vect>& fc,
   }
   auto& bc = m.GetIndexCells();
   auto& gbc = gm.GetIndexCells();
-  MIdx gs = gm.GetInBlockCells().GetSize();
   for (auto c : m.Cells()) {
     auto w = bc.GetMIdx(c); 
     auto gc = gbc.GetIdx(w); 
@@ -497,6 +496,11 @@ void Local<KF>::WriteBuffer(M& m) {
 template <class KF>
 auto Local<KF>::GetGlobalBlock() const -> typename M::BlockCells {
   return gm.GetInBlockCells();
+}
+
+template <class KF>
+auto Local<KF>::GetGlobalIndex() const -> typename M::IndexCells {
+  return gm.GetIndexCells();
 }
 
 template <class KF>

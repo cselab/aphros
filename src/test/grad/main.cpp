@@ -46,7 +46,7 @@ typename Mesh::Scal DiffMax(
     const M& m) {
   using Scal = typename Mesh::Scal;
   Scal r = 0;
-  for (auto i : m.template Get<Idx>()) {
+  for (auto i : m.template GetIn<Idx>()) {
     r = std::max(r, std::abs(u[i] - v[i]));
   }
   return r;
@@ -59,7 +59,7 @@ typename Mesh::Scal DiffMax(
     const M& m) {
   using Scal = typename Mesh::Scal;
   Scal r = 0;
-  for (auto i : m.template Get<Idx>()) {
+  for (auto i : m.template GetIn<Idx>()) {
     r = std::max(r, (u[i] - v[i]).norminf());
   }
   return r;

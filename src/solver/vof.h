@@ -821,7 +821,7 @@ class Vof : public AdvectionSolver<M_> {
         MIdx wd(md); // offset in direction d
         auto& uc = fc_u_.iter_curr;
         auto& bc = m.GetIndexCells();
-        auto& bf = m.GetBlockFaces();
+        auto& bf = m.GetIndexFaces();
         auto h = GetCellSize();
         auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
         const Scal dt = this->GetTimeStep();

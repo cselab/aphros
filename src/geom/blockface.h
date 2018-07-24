@@ -262,3 +262,6 @@ class GIndex<IdxFace, dim_> {
 
 template <size_t dim>
 using GBlockFaces = GBlock<IdxFace, dim>;
+
+template <size_t dim>
+using GIndexFaces = GIndex<IdxFace, dim>;

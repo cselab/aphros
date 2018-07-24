@@ -69,7 +69,7 @@ class LoopPlain : public TimerMesh {
   LoopPlain(Mesh& m) : TimerMesh("loop-plain", m) {}
   void F() override {
     volatile size_t a = 0;
-    for (size_t i = 0; i < m.GetAllBlockCells().GetSize().prod(); ++i) {
+    for (size_t i = 0; i < m.GetAllBlockCells().size(); ++i) {
       a += i;
     }
   }
@@ -170,7 +170,7 @@ class LoopMIdxAllFaces : public TimerMesh {
   void F() override {
     volatile size_t a = 0;
     for (auto f : m.AllFaces()) {
-      auto wd = m.GetIndexCells().GetMIdxDir(f);
+      auto wd = m.GetIndexFaces().GetMIdxDir(f);
       a += wd.first[0];
       a += wd.second.GetLetter();
     }
@@ -320,8 +320,7 @@ class Interp : public TimerMesh {
     auto& bf = m.GetIndexFaces();
     for (auto i : m.Faces()) {
       if (bf.GetMIdx(i)[0] == 0 && bf.GetDir(i) == Dir::i) {
-        mfc[i] = std::make_shared<solver::
-            CondFaceGradFixed<Scal>>(0, 1);
+        mfc[i] = std::make_shared<solver::CondFaceGradFixed<Scal>>(0, 1);
       }
     }
     assert(mfc.size() > 0);

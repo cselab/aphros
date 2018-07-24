@@ -82,7 +82,7 @@ typename M::Scal DiffMax(
     const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
-  for (auto i : m.template Get<Idx>()) {
+  for (auto i : m.template GetIn<Idx>()) {
     r = std::max(r, std::abs(u[i] - v[i]));
   }
   return r;
@@ -94,7 +94,7 @@ typename M::Scal Max(
     const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
-  for (auto i : m.template Get<Idx>()) {
+  for (auto i : m.template GetIn<Idx>()) {
     r = std::max(r, u[i]);
   }
   return r;
@@ -107,7 +107,7 @@ typename M::Scal Mean(
   using Scal = typename M::Scal;
   Scal r = 0;
   Scal w = 0.;
-  for (auto i : m.template Get<Idx>()) {
+  for (auto i : m.template GetIn<Idx>()) {
     r += u[i];
     w += 1.;
   }
@@ -183,8 +183,8 @@ void Simple<M>::TestReduce() {
   auto sem = m.GetSem("Reduce");
   MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
   MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
-  // TODO: could be size_t instead of IdxCell, but needed for GetMIdx
-  GBlock<IdxCell, dim> bb(p * b); 
+  GBlock<IdxCell, dim> bq(p * b); 
+  GIndex<size_t, dim> ndq(p * b); 
   GBlock<IdxCell, dim> qp(p); 
   GBlock<IdxCell, dim> qb(b); 
   auto f = [](MIdx w) {
@@ -196,7 +196,7 @@ void Simple<M>::TestReduce() {
   }
   if (sem("sum-check")) {
     Scal s = 0.;
-    for (auto b : bb) {
+    for (auto b : bq) {
       s += f(b);
     }
     PCMP(r_, s);
@@ -207,7 +207,7 @@ void Simple<M>::TestReduce() {
   }
   if (sem("prod-check")) {
     Scal s = 1.;
-    for (auto b : bb) {
+    for (auto b : bq) {
       s *= f(b);
     }
     PCMP(r_, s);
@@ -218,7 +218,7 @@ void Simple<M>::TestReduce() {
   }
   if (sem("max-check")) {
     Scal s = std::numeric_limits<Scal>::min();
-    for (auto b : bb) {
+    for (auto b : bq) {
       s = std::max(s, f(b));
     }
     PCMP(r_, s);
@@ -229,49 +229,49 @@ void Simple<M>::TestReduce() {
   }
   if (sem("min-check")) {
     Scal s = std::numeric_limits<Scal>::max();
-    for (auto b : bb) {
+    for (auto b : bq) {
       s = std::min(s, f(b));
     }
     PCMP(r_, s);
   }
   if (sem("minloc")) {
     MIdx w(bi_.index);
-    rsi_ = std::make_pair(f(w), bb.GetIdx(w).GetRaw());
+    rsi_ = std::make_pair(f(w), ndq.GetIdx(w));
     m.Reduce(std::make_shared<typename M::OpMinloc>(&rsi_));
   }
   if (sem("minloc-check")) {
     Scal s = std::numeric_limits<Scal>::max();
     MIdx ws;
-    for (auto w : bb) {
+    for (auto w : bq) {
       if (f(w) < s) {
         ws = w;
         s = f(w);
       }
     }
     PCMP(rsi_.first, s);
-    PCMP(bb.GetMIdx(IdxCell(rsi_.second)), ws);
+    PCMP(ndq.GetMIdx(rsi_.second), ws);
   }
   if (sem("maxloc")) {
     MIdx w(bi_.index);
-    rsi_ = std::make_pair(f(w), bb.GetIdx(w).GetRaw());
+    rsi_ = std::make_pair(f(w), ndq.GetIdx(w));
     m.Reduce(std::make_shared<typename M::OpMaxloc>(&rsi_));
   }
   if (sem("maxloc-check")) {
     Scal s = std::numeric_limits<Scal>::min();
     MIdx ws;
-    for (auto w : bb) {
+    for (auto w : bq) {
       if (f(w) > s) {
         ws = w;
         s = f(w);
       }
     }
     PCMP(rsi_.first, s);
-    PCMP(bb.GetMIdx(IdxCell(rsi_.second)), ws);
+    PCMP(ndq.GetMIdx(rsi_.second), ws);
   }
   if (sem("cat")) {
     MIdx w(bi_.index);
     rvs_.resize(0);
-    rvs_.push_back(bb.GetIdx(w).GetRaw());
+    rvs_.push_back(ndq.GetIdx(w));
     using T = typename M::template OpCatT<Scal>;
     m.Reduce(std::make_shared<T>(&rvs_));
   }
@@ -280,7 +280,7 @@ void Simple<M>::TestReduce() {
     for (auto wp : qp) {
       for (auto wb : qb) {
         auto w = b * wp + wb;
-        rvs.push_back(bb.GetIdx(w).GetRaw());
+        rvs.push_back(ndq.GetIdx(w));
       }
     }
     if (m.IsRoot()) {
@@ -291,7 +291,7 @@ void Simple<M>::TestReduce() {
   if (sem("cati")) {
     MIdx w(bi_.index);
     rvi_.resize(0);
-    size_t i = bb.GetIdx(w).GetRaw();
+    size_t i = ndq.GetIdx(w);
     for (size_t j = 0; j < i % q; ++j) {
       rvi_.push_back(q * i + j);
     }
@@ -303,7 +303,7 @@ void Simple<M>::TestReduce() {
     for (auto wp : qp) {
       for (auto wb : qb) {
         auto w = b * wp + wb;
-        size_t i = bb.GetIdx(w).GetRaw();
+        size_t i = ndq.GetIdx(w);
         for (size_t j = 0; j < i % q; ++j) {
           rvi.push_back(q * i + j);
         }
@@ -316,7 +316,7 @@ void Simple<M>::TestReduce() {
   if (sem("catvi")) {
     MIdx w(bi_.index);
     rvvi_.resize(0);
-    size_t i = bb.GetIdx(w).GetRaw();
+    size_t i = ndq.GetIdx(w);
     for (size_t j = 0; j < i % q; ++j) {
       rvvi_.push_back(std::vector<int>({int(q * i + j)}));
     }
@@ -328,7 +328,7 @@ void Simple<M>::TestReduce() {
     for (auto wp : qp) {
       for (auto wb : qb) {
         auto w = b * wp + wb;
-        size_t i = bb.GetIdx(w).GetRaw();
+        size_t i = ndq.GetIdx(w);
         for (size_t j = 0; j < i % q; ++j) {
           rvvi.push_back(std::vector<int>({int(q * i + j)}));
         }
