@@ -17,13 +17,16 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   static constexpr size_t dim = M::dim;
+
   struct Par {
     Scal relax = 1.;      // relaxation factor [0,1] (1 -- no relaxation)
     Scal guessextra = 0.; // next iteration guess extrapolation weight [0,1]
     bool second = true; // second order in time
     ConvSc sc = ConvSc::quick; // scheme for convective flux (see convdiffi.h)
     Scal df = 1.; // deferred correction factor
+    Scal th = 1e-10; // threshold for flow direction
   };
+
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
   ConvectionDiffusionScalarImplicit(
       M& m,
@@ -68,7 +71,7 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
 
       // Calc convective fluxes:
 			// all inner
-      InterpolateI(fcu, fcgu_, ffv, ffqc_, m, par->sc, par->df);
+      InterpolateI(fcu, fcgu_, ffv, ffqc_, m, par->sc, par->df, par->th);
       for (auto f : m.Faces()) {
         ffqc_[f] *= (*ffv_)[f];
       }
