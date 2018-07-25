@@ -39,24 +39,34 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
       const FieldFace<Scal>* ffv, // volume flux
       double t, double dt, std::shared_ptr<Par> par)
       : ConvectionDiffusionScalar<M>(t, dt, fcr, ffd, fcs, ffv)
-      , m(m), par(par), mfc_(mfc), mcc_(mcc), dtp_(-1.)
+      , m(m), par(par), mfc_(mfc), mcc_(mcc), dtp_(-1.), er_(0)
   {
     fcu_.time_curr = fcu;
-    fcu_.time_prev = fcu_.time_curr;
+    fcu_.time_prev = fcu;
+    fcu_.iter_curr = fcu;
   }
   Par* GetPar() { return par.get(); }
+  // Fields:
   void StartStep() override {
-    this->GetIter();
+    this->ClearIter();
     CheckNan(fcu_.time_curr, "fcu_.time_curr", m);
-    fcu_.iter_curr = fcu_.time_curr;
+
+    // initial guess by extrapolation
     Scal ge = par->guessextra;
-    for (auto c : m.Cells()) {
-      fcu_.iter_curr[c] +=
-          (fcu_.time_curr[c] - fcu_.time_prev[c]) * ge;
+    if (ge != 0.) {
+      for (auto c : m.AllCells()) {
+        fcu_.iter_curr[c] = 
+            fcu_.time_curr[c] * (1. + ge) - fcu_.time_prev[c] * ge;
+      }
+    } else {
+      fcu_.iter_curr = fcu_.time_curr;
     }
-    if (dtp_ == -1.) {
+
+    if (dtp_ == -1.) { // TODO: revise
       dtp_ = this->GetTimeStep();
     }
+
+    er_ = 0.;
   }
   // Assembles linear system
   // fcu: field from previous iteration [a]
@@ -190,38 +200,45 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
   }
   void MakeIteration() override {
     auto sem = m.GetSem("convdiff-iter");
-    if (sem.Nested("init")) {
-      fcu_.iter_prev = fcu_.iter_curr;
+
+    auto& prev = fcu_.iter_prev;
+    auto& curr = fcu_.iter_curr;
+
+    if (sem("init")) {
+      prev.swap(curr);
     }
     if (sem.Nested("assemble")) {
-      Assemble(fcu_.iter_prev, *ffv_, fcucs_);
+      Assemble(prev, *ffv_, fcucs_);
     }
     if (sem.Nested("solve")) {
-      Solve(fcucs_, fcuc_);
+      Solve(fcucs_, curr); // solve for correction, store in curr
     }
     if (sem("apply")) {
-      CheckNan(fcuc_, "convdiffi:fcuc_", m);
-      auto& fc_prev = fcu_.iter_prev;
-      auto& fc_curr = fcu_.iter_curr;
+      CheckNan(curr, "convdiffi:fcuc_", m);
+      // calc error (norm of correction)
+      Scal er = 0;
       for (auto c : m.Cells()) {
-        fc_curr[c] = fc_prev[c] + fcuc_[c];
+        er = std::max<Scal>(er, curr[c]);
       }
-      m.Comm(&fc_curr);
+      er_ = er;
+
+      // apply, store result in curr
+      for (auto c : m.Cells()) {
+        curr[c] += prev[c];
+      }
+      m.Comm(&curr);
       this->IncIter();
     }
   }
   void FinishStep() override {
-    fcu_.time_prev = fcu_.time_curr;
+    fcu_.time_prev.swap(fcu_.time_curr);
     fcu_.time_curr = fcu_.iter_curr;
     CheckNan(fcu_.time_curr, "fcu_.time_curr", m);
     this->IncTime();
     dtp_ = this->GetTimeStep();
   }
   double GetError() const override {
-    if (this->GetIter() == 0) {
-      return 1.;
-    }
-    return CalcDiff(fcu_.iter_curr, fcu_.iter_prev, m);
+    return er_;
   }
   const FieldCell<Scal>& GetField() const override {
     return fcu_.time_curr;
@@ -232,7 +249,7 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
   // Apply correction to field and comm
   // uc: correction [i]
   // Output:
-  // u(l) += du [a]
+  // u(l) += uc [a]
   void CorrectField(Layers l, const FieldCell<Scal>& uc) override {
     auto sem = m.GetSem("corr");
     if (sem("apply")) {
@@ -260,13 +277,12 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
   using P::ffv_;
 
   FieldCell<Expr> fcucs_;  // linear system for correction
-  FieldCell<Scal> fcuc_;   // field correction
 
   // tmp for ConvertLs
   std::vector<Scal> lsa_, lsb_, lsx_;
 
   Scal dtp_; // dt prev
-
+  Scal er_; // error 
 };
 
 } // namespace solver

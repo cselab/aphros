@@ -16,26 +16,11 @@ class Approx {
 // Convection scheme
 enum class ConvSc { fou, cd, sou, quick };
 
-std::string GetName(ConvSc sc) {
-  switch (sc) {
-    case ConvSc::fou: return "fou";
-    case ConvSc::cd: return "cd";
-    case ConvSc::sou: return "sou";
-    case ConvSc::quick: return "quick";
-    default: throw std::runtime_error("InterpolateI: invalid ConvSc");
-  }
-  return "";
-}
+// Convection scheme name
+std::string GetName(ConvSc sc);
 
-ConvSc GetConvSc(std::string s) {
-  auto l = {ConvSc::fou, ConvSc::cd, ConvSc::sou, ConvSc::quick};
-  for (ConvSc sc : l) {
-    if (GetName(sc) == s) {
-      return sc;
-    }
-  }
-  throw std::runtime_error("ConvSc: invalid name=" + s);
-}
+// Convection scheme by name.
+ConvSc GetConvSc(std::string s);
 
 // Implicit interpolation to inner faces with deferred correction.
 // fc: field cell [s]

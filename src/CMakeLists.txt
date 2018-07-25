@@ -30,10 +30,11 @@ include_directories(.)
 add_subdirectory(linear)
 add_subdirectory(distr)
 add_subdirectory(util)
+add_subdirectory(solver)
 add_subdirectory(parse)
 add_subdirectory(dump)
 
-target_link_libraries(${EXE} distr)
+target_link_libraries(${EXE} distr solver)
 
 add_subdirectory(test)
 enable_testing()

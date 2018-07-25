@@ -29,7 +29,8 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
   using P::ffd_;
   using P::fcs_;
   using P::ffv_;
-  LayersData<FieldCell<Vect>> fcvel_;
+  FieldCell<Vect> fcvel_;
+  Layers lvel_; // current level loaded in fcvel_
   MapFace<std::shared_ptr<CondFace>> mfc_; // vect face cond
   MapCell<std::shared_ptr<CondCell>> mcc_; // vect cell cond
   GRange<size_t> dr_;  // dimension range
@@ -45,11 +46,13 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
   using Par = typename CD::Par;
   std::shared_ptr<Par> par;
   Par* GetPar() { return par.get(); }
-  // Copy velocity components from solvers
-  void CopyToVect(Layers l) {
-    fcvel_.Get(l).Reinit(m);
+  // Copy from solvers to vector field.
+  // l: layer in component solvers
+  // fcv: vector field
+  void CopyToVect(Layers l, FieldCell<Vect>& fcv) {
+    fcv.Reinit(m);
     for (auto d : dr_) {
-      SetComponent(fcvel_.Get(l), d, vs_[d]->GetField(l));
+      SetComponent(fcv, d, vs_[d]->GetField(l));
     }
   }
   ConvectionDiffusionImplicit(
@@ -83,8 +86,8 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
           MapCell<std::shared_ptr<CondCell>>(), /*TODO *** Cell cond */
           fcr_, ffd_, &(vfcs_[d]), ffv, t, dt, par);
     }
-    CopyToVect(Layers::time_curr);
-    CopyToVect(Layers::time_prev);
+    CopyToVect(Layers::time_curr, fcvel_);
+    lvel_ = Layers::time_curr;
   }
   void StartStep() override {
     auto sem = m.GetSem("convdiffmulti-start");
@@ -97,7 +100,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
       }
     }
     if (sem("tovect")) {
-      CopyToVect(Layers::iter_curr);
+      lvel_ = Layers::iter_curr;
       this->ClearIter();
     }
   }
@@ -131,8 +134,8 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
     }
 
     if (sem("tovect")) {
-      CopyToVect(Layers::iter_prev);
-      CopyToVect(Layers::iter_curr);
+      CopyToVect(Layers::iter_curr, fcvel_);
+      lvel_ = Layers::iter_curr;
       this->IncIter();
     }
   }
@@ -145,22 +148,28 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
       }
     }
     if (sem("tovect")) {
-      CopyToVect(Layers::time_prev);
-      CopyToVect(Layers::time_curr);
+      lvel_ = Layers::time_curr;
       this->IncTime();
     }
   }
   double GetError() const override {
-    if (this->GetIter() == 0) {
-      return 1.;
+    Scal r = 0.; // result
+    for (auto d : dr_) {
+      r = std::max<Scal>(r, vs_[d]->GetError());
     }
-    return CalcDiff(fcvel_.iter_curr, fcvel_.iter_prev, m);
+    return r;
+  }
+  const FieldCell<Vect>& GetVelocity(Layers l) const override {
+    if (l == lvel_) {
+      return fcvel_;
+    }
+    throw std::runtime_error(
+        "GetVelocity: requested layer '" + 
+        GetName(l) + "' but '" + 
+        GetName(lvel_) + "' is loaded");
   }
   const FieldCell<Vect>& GetVelocity() const override {
-    return fcvel_.time_curr;
-  }
-  const FieldCell<Vect>& GetVelocity(Layers layer) const override {
-    return fcvel_.Get(layer);
+    return GetVelocity(Layers::time_curr);
   }
   void CorrectVelocity(Layers l, const FieldCell<Vect>& fc) override {
     auto sem = m.GetSem("corr");
@@ -170,7 +179,8 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
       }
     }
     if (sem("tovect")) {
-      CopyToVect(l);
+      CopyToVect(l, fcvel_);
+      lvel_ = l;
     }
   }
   const FieldCell<Expr>& GetVelocityEquations(size_t d) const override {
