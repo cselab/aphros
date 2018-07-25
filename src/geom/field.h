@@ -43,6 +43,9 @@ class GField {
   bool empty() const {
     return d_.empty();
   }
+  void swap(GField& o) {
+    d_.swap(o.d_);
+  }
   // Cont::pointer (instead of Value*) required for vector<bool>
   typename Cont::pointer data() {
     return d_.data();

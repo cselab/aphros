@@ -5,7 +5,7 @@ set(EXE t.${p})
 
 add_executable(${EXE} main.cpp)
 
-target_link_libraries(${EXE} distr)
+target_link_libraries(${EXE} distr solver)
 
 add_test(NAME adv-loc8 COMMAND runshort tloc 8)
 add_test(NAME adv-loc16 COMMAND runshort tloc 16)
