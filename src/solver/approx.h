@@ -159,7 +159,7 @@ class FaceGrad : public Approx<IdxFace, Expr> {
   const M& m;
 };
 
-// Gradient to inner faces.
+// Implicit gradient in inner faces.
 // fc: field cell [s]
 // fc: gradient [s]
 // ffw: flow direction [i]

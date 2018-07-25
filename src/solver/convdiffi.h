@@ -62,18 +62,21 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
   // fcu: field from previous iteration [a]
   // ffv: volume flux
   // Output:
-  // fcucs_: linear system
-  void Assemble(const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv) {
+  // fcl: linear system
+  void Assemble(const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv,
+                FieldCell<Expr>& fcl) {
     auto sem = m.GetSem("assemble");
 
     if (sem("assemble")) {
-      fcgu_ = Gradient(Interpolate(fcu, mfc_, m), m);
+      FieldCell<Vect> fcg = Gradient(Interpolate(fcu, mfc_, m), m);
+
+      FieldFace<Expr> ffq;  // flux tmp
 
       // Calc convective fluxes:
 			// all inner
-      InterpolateI(fcu, fcgu_, ffv, ffqc_, m, par->sc, par->df, par->th);
+      InterpolateI(fcu, fcg, ffv, ffq, m, par->sc, par->df, par->th);
       for (auto f : m.Faces()) {
-        ffqc_[f] *= (*ffv_)[f];
+        ffq[f] *= (*ffv_)[f];
       }
 
 			// overwrite with bc
@@ -81,49 +84,57 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
       for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
         IdxFace f = it->GetIdx();
         Expr e = ub.GetExpr(f);
-        ffqc_[f] = e * (*ffv_)[f];
+        ffq[f] = e * (*ffv_)[f];
       }
 
-      // Calc diffusive fluxes
-      // all inner
-      GradientI(ffqd_, m);
-      for (auto f : m.Faces()) {
-        ffqd_[f] *= (-(*ffd_)[f]) * m.GetArea(f);
-      }
-			// overwrite with bc
-      FaceGradB<M, Expr> gb(m, mfc_);
-      for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
-        IdxFace f = it->GetIdx();
-				Expr e = gb.GetExpr(f);
-        ffqd_[f] = e * (-(*ffd_)[f]) * m.GetArea(f);
-      }
-
-      // Assemble the system
-      fcucs_.Reinit(m);
+      // Init system with convective flux, time derivative, source
+      fcl.Reinit(m);
+      Scal dt = this->GetTimeStep();
+      std::vector<Scal> ac = GetGradCoeffs(
+          0., {-(dt + dtp_), -dt, 0.}, par->second ? 0 : 1);
       for (IdxCell c : m.Cells()) {
         Expr& e = fcucs_[c];
+
         Expr sc; // sum convective
         for (auto q : m.Nci(c)) {
           IdxFace f = m.GetNeighbourFace(c, q);
-          sc += ffqc_[f] * m.GetOutwardFactor(c, q);
+          sc += ffq[f] * m.GetOutwardFactor(c, q);
         }
-
-        Expr sd; // sum diffusive
-        for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
-          sd += ffqd_[f] * m.GetOutwardFactor(c, q);
-        }
-
-        Scal dt = this->GetTimeStep();
-        std::vector<Scal> ac = GetGradCoeffs(
-            0., {-(dt + dtp_), -dt, 0.}, par->second ? 0 : 1);
 
         Expr tt; // time derivative term
         tt.InsertTerm(ac[2], c);
         tt.SetConstant(ac[0] * fcu_.time_prev[c] + ac[1] * fcu_.time_curr[c]);
 
         auto vol = m.GetVolume(c);
-        e = (tt + sc / vol) * (*fcr_)[c] + sd / vol - Expr((*fcs_)[c]);
+        e = (tt + sc / vol) * (*fcr_)[c] - Expr((*fcs_)[c]);
+      }
+
+      // Calc diffusive fluxes
+      // all inner
+      GradientI(ffq, m);
+      for (auto f : m.Faces()) {
+        ffq[f] *= (-(*ffd_)[f]) * m.GetArea(f);
+      }
+			// overwrite with bc
+      FaceGradB<M, Expr> gb(m, mfc_);
+      for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
+        IdxFace f = it->GetIdx();
+				Expr e = gb.GetExpr(f);
+        ffq[f] = e * (-(*ffd_)[f]) * m.GetArea(f);
+      }
+
+      // Append diffusive flux, convert to delta-form, apply underelaxation
+      for (IdxCell c : m.Cells()) {
+        Expr& e = fcl[c];
+
+        Expr sd; // sum diffusive
+        for (auto q : m.Nci(c)) {
+          IdxFace f = m.GetNeighbourFace(c, q);
+          sd += ffq[f] * m.GetOutwardFactor(c, q);
+        }
+
+        auto vol = m.GetVolume(c);
+        e += sd / vol;
 
         // Convert to delta-form
         e.SetConstant(e.Evaluate(fcu));
@@ -132,12 +143,12 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
         e[e.Find(c)].coeff /= par->relax;
       }
 
-      // Include cell conditions for velocity
+      // Overwrite with cell conditions 
       for (auto it = mcc_.cbegin(); it != mcc_.cend(); ++it) {
         auto dt = this->GetTimeStep();
         IdxCell c(it->GetIdx());
         CondCell* cb = it->GetValue().get(); // cond base
-        auto& eqn = fcucs_[c];
+        auto& eqn = fcl[c];
         if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
           eqn.Clear();
           // TODO: Revise dt coefficient for fixed-value cell condition
@@ -146,17 +157,24 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
         }
       }
     }
-
   }
-  // Solve linear system.
-  // fcucs_ : system to solve
+  // Assembles linear system
+  // fcu: field from previous iteration [a]
+  // ffv: volume flux
+  // Output:
+  // fcl: linear system
+  void Assemble(const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv) {
+    Assemble(fcu, ffv, fcucs_);
+  }
+  // Solves linear system.
+  // fcl : system to solve
   // Output:
   // fcu: result
   // lsa_, lsb_, lsx_: modified temporary fields
-  void Solve(FieldCell<Scal>& fcu) {
+  void Solve(const FieldCell<Expr>& fcl, FieldCell<Scal>& fcu) {
     auto sem = m.GetSem("solve");
     if (sem("convert")) {
-      auto l = ConvertLs(fcucs_, lsa_, lsb_, lsx_, m);
+      auto l = ConvertLs(fcl, lsa_, lsb_, lsx_, m);
       using T = typename M::LS::T;
       l.t = T::gen;
       m.Solve(l);
@@ -176,10 +194,10 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
       fcu_.iter_prev = fcu_.iter_curr;
     }
     if (sem.Nested("assemble")) {
-      Assemble(fcu_.iter_prev, *ffv_);
+      Assemble(fcu_.iter_prev, *ffv_, fcucs_);
     }
     if (sem.Nested("solve")) {
-      Solve(fcuc_);
+      Solve(fcucs_, fcuc_);
     }
     if (sem("apply")) {
       CheckNan(fcuc_, "convdiffi:fcuc_", m);
@@ -241,16 +259,14 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
   using P::fcs_;
   using P::ffv_;
 
-  FieldFace<Expr> ffqc_;   // convective flux
-  FieldFace<Expr> ffqd_;   // diffusive flux
   FieldCell<Expr> fcucs_;  // linear system for correction
   FieldCell<Scal> fcuc_;   // field correction
-  FieldCell<Vect> fcgu_;   // gradient of field
 
   // tmp for ConvertLs
   std::vector<Scal> lsa_, lsb_, lsx_;
 
   Scal dtp_; // dt prev
+
 };
 
 } // namespace solver
