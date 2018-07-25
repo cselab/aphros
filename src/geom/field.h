@@ -14,21 +14,25 @@ class GField {
   using Cont = std::vector<Value>; // container
 
   GField() {}
+
   template <class U>
-  GField(const GField<U, Idx>& o /*other*/)
-    : d_(o.d_.begin(), o.d_.end()) {}
-  explicit GField(const Range& r)
-    : d_(r.size()) {}
-  GField(const Range& r, const Value& val)
-    : d_(r.size(), val) {}
-  size_t size() const {
-    return d_.size();
+  GField(const GField<U, Idx>& o) : d_(o.d_.begin(), o.d_.end()) {}
+
+  explicit GField(const Range& r) : d_(r.size()) {}
+
+  GField(const Range& r, const Value& val) : d_(r.size(), val) {}
+
+  size_t size() const { 
+    return d_.size(); 
   }
   void Reinit(const Range& r) {
     d_.resize(r.size());
   }
   void Reinit(const Range& r, const Value& v) {
     d_.assign(r.size(), v);
+  }
+  void Free() {
+    Cont().swap(d_);
   }
   Range GetRange() const {
     return Range(0, size());
