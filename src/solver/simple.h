@@ -104,10 +104,7 @@ class FluidSimple : public FluidSolver<M_> {
   FieldFace<Scal> ffk_;    // diag coeff of velocity equation 
   FieldFace<Expr> ffvc_;   // expression for corrected volume flux [i]
 
-  // LS
-  std::vector<Scal> lsa_, lsb_, lsx_;
-
-  // TODO: somhow track dependencies to define execution order
+  // TODO: somehow track dependencies to define execution order
   void UpdateDerivedConditions() {
     using namespace fluid_condition;
 
@@ -633,20 +630,29 @@ class FluidSimple : public FluidSolver<M_> {
   // fce: expressions [i]
   // Output:
   // fc: result [a]
-  // lsa_, lsb_, lsx_: modified tmp fields
+  // m.GetSolveTmp(): modified temporary fields
   void Solve(const FieldCell<Expr>& fce, FieldCell<Scal>& fc) {
     auto sem = m.GetSem("solve");
     if (sem("solve")) {
-      auto l = ConvertLs(fce, lsa_, lsb_, lsx_, m);
+      std::vector<Scal>* lsa;
+      std::vector<Scal>* lsb;
+      std::vector<Scal>* lsx;
+      m.GetSolveTmp(lsa, lsb, lsx);
+      auto l = ConvertLs(fce, *lsa, *lsb, *lsx, m);
       using T = typename M::LS::T; 
       l.t = T::symm; // solver type
       m.Solve(l);
     }
     if (sem("copy")) {
+      std::vector<Scal>* lsa;
+      std::vector<Scal>* lsb;
+      std::vector<Scal>* lsx;
+      m.GetSolveTmp(lsa, lsb, lsx);
+
       fc.Reinit(m);
       size_t i = 0;
       for (auto c : m.Cells()) {
-        fc[c] = lsx_[i++];
+        fc[c] = (*lsx)[i++];
       }
       CheckNan(fc, "simple:Solve():fc", m);
       m.Comm(&fc);

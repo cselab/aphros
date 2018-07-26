@@ -868,12 +868,9 @@ class LinearSolverFactory {
 };
 
 template <class M, class Expr, class Scal=typename M::Scal>
-typename M::LS ConvertLs(
-    const FieldCell<Expr>& fce,
-    std::vector<Scal>& la, 
-    std::vector<Scal>& lb, 
-    std::vector<Scal>& lx, 
-    const M& m) {
+typename M::LS ConvertLs(const FieldCell<Expr>& fce, std::vector<Scal>& la, 
+                         std::vector<Scal>& lb, std::vector<Scal>& lx, 
+                         const M& m) {
   using LS = typename M::LS;
   using MIdx = typename M::MIdx;
   using IdxCell = IdxCell;
