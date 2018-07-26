@@ -180,22 +180,31 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
   // fcl : system to solve
   // Output:
   // fcu: result
-  // lsa_, lsb_, lsx_: modified temporary fields
+  // m.GetSolveTmp(): modified temporary fields
   void Solve(const FieldCell<Expr>& fcl, FieldCell<Scal>& fcu) {
     auto sem = m.GetSem("solve");
     if (sem("convert")) {
-      auto l = ConvertLs(fcl, lsa_, lsb_, lsx_, m);
+      std::vector<Scal>* lsa;
+      std::vector<Scal>* lsb;
+      std::vector<Scal>* lsx;
+      m.GetSolveTmp(lsa, lsb, lsx);
+      auto l = ConvertLs(fcl, *lsa, *lsb, *lsx, m);
       using T = typename M::LS::T;
       l.t = T::gen;
       m.Solve(l);
     }
     if (sem("copy")) {
+      std::vector<Scal>* lsa;
+      std::vector<Scal>* lsb;
+      std::vector<Scal>* lsx;
+      m.GetSolveTmp(lsa, lsb, lsx);
+
       fcu.Reinit(m);
       size_t i = 0;
       for (auto c : m.Cells()) {
-        fcu[c] = lsx_[i++];
+        fcu[c] = (*lsx)[i++];
       }
-      assert(i == lsx_.size());
+      assert(i == lsx->size());
     }
   }
   void MakeIteration() override {
@@ -277,9 +286,6 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
   using P::ffv_;
 
   FieldCell<Expr> fcucs_;  // linear system for correction
-
-  // tmp for ConvertLs
-  std::vector<Scal> lsa_, lsb_, lsx_;
 
   Scal dtp_; // dt prev
   Scal er_; // error 

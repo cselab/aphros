@@ -384,6 +384,13 @@ class MeshStructured {
   void Dump(const std::shared_ptr<Co>& o, std::string name) {
     vd_.push_back(std::make_pair(o, name));
   }
+  // Returns buffers for linear system
+  void GetSolveTmp(std::vector<Scal>*& a, std::vector<Scal>*& b, 
+                   std::vector<Scal>*& x) {
+    a = &lsa_;
+    b = &lsb_;
+    x = &lsx_;
+  }
   void Solve(const LS& ls) {
     vls_.push_back(ls);
   }
@@ -435,7 +442,6 @@ class MeshStructured {
   void ClearReduce() {
     rd_.Clear();
   }
-
   const std::vector<LS>& GetSolve() const {
     return vls_;
   }
@@ -500,6 +506,10 @@ class MeshStructured {
   std::string trep_; // timer report filename
   Rd rd_;
   std::vector<LS> vls_; // solve
+  // tmp for GetSolveTmp()
+  std::vector<Scal> lsa_; // matrix coeffs of size n * st.size()
+  std::vector<Scal> lsb_; // rhs of size n
+  std::vector<Scal> lsx_; // solution and initial guess of size n
 };
 
 
