@@ -60,6 +60,9 @@ class DistrSolver {
   GBlock<IdxCell, dim> GetBlock() const {
     return d_->GetGlobalBlock();
   }
+  GIndex<IdxCell, dim> GetIndex() const {
+    return d_->GetGlobalIndex();
+  }
   FieldCell<Scal> GetField() const {
     return d_->GetGlobalField(0);
   }

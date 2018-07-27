@@ -33,7 +33,7 @@ void TestBlock() {
   MIdx sa = si + MIdx(2 * hl); // size all
 
   GBlockFaces<dim> bi(oi, si);
-  GBlockFaces<dim> ba(oa, sa);
+  GIndex<IdxFace, dim> ba(oa, sa);
 
   GRange<IdxFace> ra(ba);
   GRangeIn<IdxFace, dim> ri(ba, bi);
@@ -129,15 +129,15 @@ void TestMesh() {
 
   // Number of elements
   auto sh = s + MIdx(hl * 2); // size with halos
-  PCMP(m.GetNumCells(), sh.prod());
+  PCMP(m.GetAllBlockCells().size(), sh.prod());
   size_t nf = 0;
   for (int q = 0; q < 3; ++q) {
     auto w = sh;
     ++w[q];
     nf += w.prod();
   }
-  PCMP(m.GetNumFaces(), nf);
-  PCMP(m.GetNumNodes(), (sh + MIdx(1)).prod());
+  PCMP(m.GetAllBlockFaces().size(), nf);
+  PCMP(m.GetAllBlockNodes().size(), (sh + MIdx(1)).prod());
 
   // Distance between centers
   for (auto i : m.Cells()) {
@@ -161,46 +161,54 @@ void TestMesh() {
 
 int main() {
   TestBlock();
-
   TestMesh();
-
 
   {
     Rect<Vect> dom(Vect(0.), Vect(1.));
     using M = MeshStructured<Scal, dim>;
-    MIdx b(3, 2, 5); // lower index
+    MIdx b(1, 1, 1); // lower index
     MIdx s(2, 2, 2);    // size in cells
     int hl = 0;         // halos 
     M m = InitUniformMesh<M>(dom, b, s, hl, true, s);
-    for (auto i : m.GetBlockCells()) {
-      std::cout << i << std::endl;
+
+    std::cout << "m.GetAllBlockCells()" << std::endl;
+    auto bca = m.GetAllBlockCells();
+    auto bc = m.GetIndexCells();
+    for (auto w : bca) {
+      std::cout << w << " " << bc.GetIdx(w).GetRaw() << std::endl;
     }
-    auto bf = m.GetBlockFaces();
-    for (auto i : bf) {
+    std::cout << std::endl;
+
+    std::cout << "m.GetAllBlockFaces()" << std::endl;
+    auto bfa = m.GetAllBlockFaces();
+    auto bf = m.GetIndexFaces();
+    for (auto p : bfa) {
       std::cout 
-          << i.first << " " << i.second.GetLetter() << " "
-          << bf.GetIdx(i).GetRaw() << " " 
+          << p.first << " " << p.second.GetLetter() << ","
+          << bf.GetIdx(p).GetRaw()
           << std::endl;
     }
     std::cout << std::endl;
 
-    using B = GBlock<IdxFace, 3>;
-    B sb(b, s);
-    for (auto i : sb) {
-      auto j = sb.GetIdx(i);
-      auto p = sb.GetMIdxDir(j);
-      auto jj = sb.GetIdx(p);
-      assert(j == jj);
+    std::cout << "(MIdx,Dir) <-> IdxFace" << std::endl;
+    GBlock<IdxFace, 3> sb(b, s);
+    GIndex<IdxFace, 3> ind(b, s + MIdx(1));
+    for (auto p : sb) { // p: (w,d)
+      auto j = ind.GetIdx(p);
+      auto pp = ind.GetMIdxDir(j);
+      auto jj = ind.GetIdx(pp);
       std::cout 
-          << i.first << " " << i.second.GetLetter() << " | "
-          << j.GetRaw() << " | "
-          << p.first << " " << p.second.GetLetter() << " | "
-          << jj.GetRaw() << " "
+          << p.first << "," << p.second.GetLetter() << " " << j.GetRaw() 
+          << " | "
+          << pp.first << "," << pp.second.GetLetter() << " " << jj.GetRaw()
           << std::endl;
+      assert(j == jj);
+      assert(p == pp);
     }
+    std::cout << std::endl;
 
     {
-      using I = typename B::iterator;
+      using I = typename GBlock<IdxFace, 3>::iterator;
       I i(&sb, MIdx(0, 0, 0), Dir::i);
       auto l = [&]() {
           std::cout << (*i).first << " " << (*i).second.GetLetter() << std::endl;
@@ -214,5 +222,4 @@ int main() {
       assert(c == 3 * s.prod() + s[0] * s[1] + s[1] * s[2] + s[2] * s[0]); 
     }
   }
-
 }

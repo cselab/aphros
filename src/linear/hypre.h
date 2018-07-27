@@ -21,17 +21,19 @@ class Hypre {
     std::vector<Scal>* x; // solution and initial guess of size n
   };
 
-  Hypre(MPI_Comm comm, 
-        std::vector<Block> bb, 
-        MIdx gs /*global size*/,
-        std::vector<bool> per /*periodic per direction*/,
-        Scal tol /*tolerance*/,
-        int print /*print level*/,
-        std::string solver,
-        int maxiter);
+  // bb: blocks
+  // gs: global size
+  // per: periodic in each direction
+  // tol: tolerance
+  // print: print level
+  // solver: solver name
+  // maxiter: maximum number of iterations
+  Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs, std::vector<bool> per, 
+        Scal tol, int print, std::string solver, int maxiter);
   Hypre() = delete;
   Hypre(const Hypre&) = delete;
 
+  void Update();
   void Solve();
   ~Hypre();
  

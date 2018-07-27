@@ -86,38 +86,25 @@ class FluidSimple : public FluidSolver<M_> {
   
   // Cell fields:
   FieldCell<Vect> fcgp_;   // gradient of pressure 
-  FieldCell<Vect> fcwe_;   // predicted velocity 
   FieldCell<Scal> fck_;    // diag coeff of velocity equation 
   FieldCell<Expr> fcpcs_;  // pressure correction linear system [i]
   FieldCell<Scal> fcpc_;   // pressure correction
   FieldCell<Vect> fcgpc_;  // gradient of pressure correction
   FieldCell<Vect> fcwc_;   // velocity correction
-  FieldCell<Scal> fcwo_;   // one velocity component
   FieldCell<Vect> fcb_;    // restored balanced force [s]
   FieldCell<Vect> fcfcd_;  // force for convdiff [i]
 
   // tmp
   std::array<FieldCell<Scal>, 3> fcta_; // TODO renname to vfct
-  FieldCell<Scal> fct_;
-  FieldCell<Scal> fct1_;
-  FieldCell<Vect> fctv_;
-  FieldFace<Vect> fftv_;
-  FieldFace<Vect> fftv2_;
-  FieldFace<Scal> fft_;
+  FieldCell<Vect> fct_; // TODO renname to vfct
 
   // Face fields:
   FieldFace<Scal> ffd_;    // dynamic viscosity
-  FieldFace<Scal> ffp_;    // pressure
-  FieldFace<Vect> ffwe_;   // predicted velocity 
   FieldFace<Scal> ffve_;   // predicted volume flux [i]
   FieldFace<Scal> ffk_;    // diag coeff of velocity equation 
   FieldFace<Expr> ffvc_;   // expression for corrected volume flux [i]
-  FieldFace<Vect> ffb_;    // restored balanced force [i]
 
-  // LS
-  std::vector<Scal> lsa_, lsb_, lsx_;
-
-  // TODO: somhow track dependencies to define execution order
+  // TODO: somehow track dependencies to define execution order
   void UpdateDerivedConditions() {
     using namespace fluid_condition;
 
@@ -297,10 +284,10 @@ class FluidSimple : public FluidSolver<M_> {
   // Restore force from projections.
   // ffbp: force projections, bp=b.dot(n)
   // Output:
-  // fcb, ffb: restored force
+  // fcb: restored force
   // fcta_: modified tmp field
   void CalcExtForce(const FieldFace<Scal>& ffbp, 
-                    FieldCell<Vect>& fcb, FieldFace<Vect>& ffb) {
+                    FieldCell<Vect>& fcb) {
     auto sem = m.GetSem("extforce");
 
     if (sem("loc")) {
@@ -320,18 +307,8 @@ class FluidSimple : public FluidSolver<M_> {
         fcb[c] = s / m.GetVolume(c);
       }
 
-      // TODO: comm fffp_ instead
-      for (auto d : dr_) {
-        fcta_[d] = GetComponent(fcb, d);
-        m.Comm(&fcta_[d]);
-      }
-    }
-
-    if (sem("copy")) {
-      for (auto d : dr_) {
-        SetComponent(fcb, d, fcta_[d]);
-      }
-      ffb = Interpolate(fcb, mfcf_, m);
+      // TODO: comm ffbp_ instead
+      m.Comm(&fcb);
     }
   }
 
@@ -440,11 +417,10 @@ class FluidSimple : public FluidSolver<M_> {
     fcp_.time_prev = fcp_.time_curr;
 
     // Calc initial volume fluxes
-    fcwe_ = cd_->GetVelocity();
-    ffwe_ = Interpolate(fcwe_, mfcw_, m);
+    auto ffwe = Interpolate(cd_->GetVelocity(), mfcw_, m);
     ffv_.time_curr.Reinit(m, 0.);
     for (auto f : m.Faces()) {
-      ffv_.time_curr[f] = ffwe_[f].dot(m.GetSurface(f));
+      ffv_.time_curr[f] = ffwe[f].dot(m.GetSurface(f));
     }
     // Apply meshvel
     const Vect& meshvel = par->meshvel;
@@ -454,8 +430,8 @@ class FluidSimple : public FluidSolver<M_> {
 
     ffv_.time_prev = ffv_.time_curr;
 
-    ffp_ = Interpolate(fcp_.time_curr, mfcp_, m);
-    fcgp_ = Gradient(ffp_, m);
+    auto ffp = Interpolate(fcp_.time_curr, mfcp_, m);
+    fcgp_ = Gradient(ffp, m);
   }
   void StartStep() override {
     auto sem = m.GetSem("fluid-start");
@@ -493,20 +469,19 @@ class FluidSimple : public FluidSolver<M_> {
   // fck, ffk: diag coeff [s]
   // Output:
   // ffv: result [i]
-  // fftv_: modified tmp fields
   void RhieChow(const FieldCell<Vect>& fcw,
                 const FieldCell<Scal>& fcp,  
                 const FieldCell<Vect>& fcgp,
                 const FieldCell<Scal>& fck,
                 const FieldFace<Scal>& ffk,
                 FieldFace<Scal>& ffv) {
-    fftv_ = Interpolate(fcw, mfcw_, m); 
+    auto fftv = Interpolate(fcw, mfcw_, m); 
 
     const Scal rh = par->rhie; // rhie factor
     ffv.Reinit(m);
     for (auto f : m.Faces()) {
       // Init with mean flux
-      ffv[f] = fftv_[f].dot(m.GetSurface(f));
+      ffv[f] = fftv[f].dot(m.GetSurface(f));
       if (!ffbd_[f]) { // if not boundary
         IdxCell cm = m.GetNeighbourCell(f, 0);
         IdxCell cp = m.GetNeighbourCell(f, 1);
@@ -655,20 +630,29 @@ class FluidSimple : public FluidSolver<M_> {
   // fce: expressions [i]
   // Output:
   // fc: result [a]
-  // lsa_, lsb_, lsx_: modified tmp fields
+  // m.GetSolveTmp(): modified temporary fields
   void Solve(const FieldCell<Expr>& fce, FieldCell<Scal>& fc) {
     auto sem = m.GetSem("solve");
     if (sem("solve")) {
-      auto l = ConvertLs(fce, lsa_, lsb_, lsx_, m);
+      std::vector<Scal>* lsa;
+      std::vector<Scal>* lsb;
+      std::vector<Scal>* lsx;
+      m.GetSolveTmp(lsa, lsb, lsx);
+      auto l = ConvertLs(fce, *lsa, *lsb, *lsx, m);
       using T = typename M::LS::T; 
       l.t = T::symm; // solver type
       m.Solve(l);
     }
     if (sem("copy")) {
+      std::vector<Scal>* lsa;
+      std::vector<Scal>* lsb;
+      std::vector<Scal>* lsx;
+      m.GetSolveTmp(lsa, lsb, lsx);
+
       fc.Reinit(m);
       size_t i = 0;
       for (auto c : m.Cells()) {
-        fc[c] = lsx_[i++];
+        fc[c] = (*lsx)[i++];
       }
       CheckNan(fc, "simple:Solve():fc", m);
       m.Comm(&fc);
@@ -702,19 +686,12 @@ class FluidSimple : public FluidSolver<M_> {
   // fcw: velocity [a]
   // Output:
   // fcf += viscous term [i]
-  // fftv_, fft_, fctv_, fftv2_: modified tmp fields
   void AppendExplViscous(const FieldCell<Vect>& fcw, FieldCell<Vect>& fcf) {
-    auto& wc = fcw; // [a]
-    auto& wf = fftv_; // [s]
-    auto& wfo = fft_; // [s]
-    auto& gc = fctv_; // [s]
-    auto& gf = fftv2_; // [i]
-
-    wf = Interpolate(wc, mfcw_, m); 
+    auto wf = Interpolate(fcw, mfcw_, m); 
     for (auto d : dr_) {
-      wfo = GetComponent(wf, d);
-      gc = Gradient(wfo, m);
-      gf = Interpolate(gc, mfcf_, m); // XXX adhoc zero-deriv cond
+      auto wfo = GetComponent(wf, d);
+      auto gc = Gradient(wfo, m);
+      auto gf = Interpolate(gc, mfcf_, m); // XXX adhoc zero-deriv cond
       for (auto c : m.Cells()) {
         Vect s(0);
         for (auto q : m.Nci(c)) {
@@ -730,14 +707,15 @@ class FluidSimple : public FluidSolver<M_> {
   // fcw: given velocity
   // ffv: given volume flux
   // fcpp: previous pressure
+  // Output:
   // fcp: output pressure (may be aliased with fcpp)
+  // fct_: modified tmp 
   void CalcPressure(const FieldCell<Vect>& fcw,
                     const FieldFace<Scal>& ffv,
                     const FieldCell<Scal>& fcpp,
                     FieldCell<Scal>& fcp) {
     auto sem = m.GetSem("calcpressure");
-    auto& fcl = fctv_; // evaluation of velocity equations
-    auto& ffa = fft_; // addition to flux TODO revise comment
+    auto& fcl = fct_; // evaluation of velocity equations
     if (sem.Nested("cd-asm")) {
       cd_->Assemble(fcw, ffv);
     }
@@ -745,28 +723,19 @@ class FluidSimple : public FluidSolver<M_> {
       GetDiagCoeff(fck_, ffk_);
     }
     if (sem("eval")) {
-      for (auto d : dr_) {
-        auto& w = fct_; // w^{s+1}
-        w = GetComponent(fcw, d);
-        auto& cd = cd_->GetSolver(d);
-        auto& fce = cd.GetEquations();
-        fcta_[d].Reinit(m);
-        for (auto c : m.Cells()) {
-          auto& e = fce[c];
-          fcta_[d][c] = e.GetConstant(); // Evaluate(0)
+      fcl.Reinit(m);
+      for (auto c : m.Cells()) {
+        for (auto d : dr_) {
+          auto& cd = cd_->GetSolver(d);
+          auto& fce = cd.GetEquations();
+          fct_[c][d] = fce[c].GetConstant(); // Evaluate(0)
         }
-        m.Comm(&fcta_[d]);
       }
+      m.Comm(&fcl);
     }
     if (sem("assemble")) {
-      // copy eval to vect
-      fcl.Reinit(m);
-      for (auto d : dr_) {
-        SetComponent(fcl, d, fcta_[d]);
-      }
-
       const Scal rh = par->rhie; // rhie factor
-      ffa.Reinit(m);
+      FieldFace<Scal> ffa(m); // addition to flux TODO revise comment
       for (auto f : m.Faces()) {
         auto& e = ffvc_[f];
         e.Clear();
@@ -821,7 +790,7 @@ class FluidSimple : public FluidSolver<M_> {
   }
   void CalcForce(typename M::Sem& sem) {
     if (sem.Nested("forceinit")) {
-      CalcExtForce(*ffbp_, fcb_, ffb_);
+      CalcExtForce(*ffbp_, fcb_);
     }
 
     if (sem("forceinit")) {
@@ -858,8 +827,8 @@ class FluidSimple : public FluidSolver<M_> {
     CalcForce(sem);
 
     if (sem("pgrad")) {
-      ffp_ = Interpolate(fcp_curr, mfcp_, m);
-      fcgp_ = Gradient(ffp_, m);
+      auto ffp = Interpolate(fcp_curr, mfcp_, m);
+      fcgp_ = Gradient(ffp, m);
 
       // append pressure gradient to force
       for (auto c : m.Cells()) {
@@ -874,8 +843,8 @@ class FluidSimple : public FluidSolver<M_> {
       }
 
       if (sem("pgrad")) {
-        ffp_ = Interpolate(fcp_curr, mfcp_, m);
-        fcgp_ = Gradient(ffp_, m);
+        auto ffp = Interpolate(fcp_curr, mfcp_, m);
+        fcgp_ = Gradient(ffp, m);
 
         // append pressure correction gradient to force
         for (auto c : m.Cells()) {
@@ -934,8 +903,6 @@ class FluidSimple : public FluidSolver<M_> {
     if (sem.Nested("convdiff-corr")) {
       // Correct velocity and comm
       cd_->CorrectVelocity(Layers::iter_curr, fcwc_); 
-      //const_cast<FieldCell<Vect>&>(cd_->GetVelocity(Layers::iter_curr)) =
-      //    cd_->GetVelocity(Layers::iter_prev); // XXX: adhoc keep velocity
     }
 
     if (sem("inc-iter")) {

@@ -90,8 +90,8 @@ class EntryFunction :
       , function_(function)
   {}
   void Prepare() override {
-    for (auto idx : mesh_.template Get<Idx>()) {
-      scalar_field_[idx] = function_(idx);
+    for (auto i : mesh_.template GetRaw<Idx>()) {
+      scalar_field_[i] = function_(i);
     }
   }
   const ScalarField& GetField() override {
@@ -167,7 +167,7 @@ class SessionPlain : public Session {
     out_ << "\n";
 
     out_ << "Dim: ";
-    MIdx dim = mesh.GetBlockCells().GetDimensions();
+    MIdx dim = mesh.GetInBlockCells().GetSize();
     for (size_t i = 0; i < dim.size(); ++i) {
       out_ << dim[i] << " ";
     }

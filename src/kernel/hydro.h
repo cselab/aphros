@@ -379,27 +379,27 @@ void Hydro<M>::Init() {
     // boundary xm of global mesh
     auto gxm = [this](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::i &&
-          m.GetBlockFaces().GetMIdx(i)[0] == 0;
+          m.GetIndexFaces().GetMIdx(i)[0] == 0;
     };
     auto gxp = [this,gs](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::i &&
-          m.GetBlockFaces().GetMIdx(i)[0] == gs[0];
+          m.GetIndexFaces().GetMIdx(i)[0] == gs[0];
     };
     auto gym = [this](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::j &&
-          m.GetBlockFaces().GetMIdx(i)[1] == 0;
+          m.GetIndexFaces().GetMIdx(i)[1] == 0;
     };
     auto gyp = [this,gs](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::j &&
-          m.GetBlockFaces().GetMIdx(i)[1] == gs[1];
+          m.GetIndexFaces().GetMIdx(i)[1] == gs[1];
     };
     auto gzm = [this](IdxFace i) -> bool {
       return dim >= 3 && m.GetDir(i) == Dir::k &&
-          m.GetBlockFaces().GetMIdx(i)[2] == 0;
+          m.GetIndexFaces().GetMIdx(i)[2] == 0;
     };
     auto gzp = [this,gs](IdxFace i) -> bool {
       return dim >= 3 && m.GetDir(i) == Dir::k &&
-          m.GetBlockFaces().GetMIdx(i)[2] == gs[2];
+          m.GetIndexFaces().GetMIdx(i)[2] == gs[2];
     };
     // Set condition bc for face i on global box boundary
     // choosing proper neighbour cell id (nci)
@@ -960,7 +960,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         if (var.Int["dim"] <= 2) {
           for (auto f : m.Faces()) {
             using Dir = typename M::Dir;
-            if (m.GetBlockFaces().GetDir(f) == Dir::k) {
+            if (m.GetIndexFaces().GetDir(f) == Dir::k) {
               gf[f] = Vect(0); // XXX: zero in z
             }
             gf[f][2] = 0.;
@@ -1011,7 +1011,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
         // compute force projections
         size_t nan = 0;
-        IdxFace fnan;
+        IdxFace fnan(0);
         for (auto f : m.Faces()) {
           IdxCell cm = m.GetNeighbourCell(f, 0);
           IdxCell cp = m.GetNeighbourCell(f, 1);
@@ -1123,7 +1123,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     if (var.Int["dim"] <= 2) {
       for (auto f : m.Faces()) {
         using Dir = typename M::Dir;
-        if (m.GetBlockFaces().GetDir(f) == Dir::k) {
+        if (m.GetIndexFaces().GetDir(f) == Dir::k) {
           ffbp_[f] = 0.; // XXX: zero in z
         }
       }
