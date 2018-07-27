@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vector>
 #include <ostream>
 
 #include "range.h"
@@ -11,64 +10,82 @@ class GField {
   using Idx = Idx_;
   using Value = Value_;
   using Range = GRange<Idx>;
-  using Cont = std::vector<Value>; // container
 
-  GField() {}
+  // Constructs field for range of zero size
+  GField() : d_(nullptr) {}
 
+  // Constructs field for range r
+  explicit GField(const Range& r) : r_(r), d_(new Value[r_.size()]) {}
+
+  // Constructs field for range r and initializes with v
+  GField(const Range& r, const Value& v) : GField(r) {
+    for (auto i : r_) {
+      (*this)[i] = v;
+    }
+  }
+  ~GField() {
+    Free();
+  }
+  // Copies field of different type
   template <class U>
-  GField(const GField<U, Idx>& o) : d_(o.d_.begin(), o.d_.end()) {}
-
-  explicit GField(const Range& r) : d_(r.size()) {}
-
-  GField(const Range& r, const Value& val) : d_(r.size(), val) {}
-
+  GField(const GField<U, Idx>& o) : GField(o.r_) {
+    for (auto i : r_) {
+      (*this)[i] = o[i];
+    }
+  }
   size_t size() const { 
-    return d_.size(); 
-  }
-  void Reinit(const Range& r) {
-    d_.resize(r.size());
-  }
-  void Reinit(const Range& r, const Value& v) {
-    d_.assign(r.size(), v);
-  }
-  void Free() {
-    Cont().swap(d_);
-  }
-  Range GetRange() const {
-    return Range(0, size());
-  }
-  void resize(size_t size) {
-    d_.resize(size);
+    return r_.size(); 
   }
   bool empty() const {
-    return d_.empty();
+    return size() == 0;
+  }
+  // Changes range to r, reallocates memory if size differs
+  void Reinit(const Range& r) {
+    if (r != r_) {
+      GField(r).swap(*this);
+    }
+  }
+  // Changes range to r, reallocates memory if size differs, overwrites with v
+  void Reinit(const Range& r, const Value& v) {
+    Reinit(r);
+    for (auto i : r_) {
+      (*this)[i] = v;
+    }
+  }
+  // Deallocates memory, resets range to zero size
+  void Free() {
+    Range().swap(r_);
+    delete[] d_;
+    d_ = nullptr;
+  }
+  Range GetRange() const {
+    return r_;
   }
   void swap(GField& o) {
-    d_.swap(o.d_);
+    r_.swap(o.r_);
+    std::swap(d_, o.d_);
   }
-  // Cont::pointer (instead of Value*) required for vector<bool>
-  typename Cont::pointer data() {
-    return d_.data();
+  Value* data() {
+    return d_;
   }
-  typename Cont::const_pointer data() const {
-    return d_.data();
+  const Value* data() const {
+    return d_;
   }
-  void push_back(const Value& v) {
-    d_.push_back(v);
+  Value& operator[](const Idx& i) {
+    assert(size_t(i) >= 0 && size_t(i) < r_.size());
+    return d_[size_t(i)];
   }
-  typename Cont::reference operator[](const Idx& idx) {
-    return d_[idx.GetRaw()];
-  }
-  typename Cont::const_reference operator[](const Idx& idx) const {
-    return d_[idx.GetRaw()];
+  const Value& operator[](const Idx& i) const {
+    assert(size_t(i) >= 0 && size_t(i) < r_.size());
+    return d_[size_t(i)];
   }
 
  private:
-  // Required for constructor copying from another type
-  template <class OValue, class OIdx>
+  template <class, class>
   friend class GField;
 
-  std::vector<Value> d_;
+  Range r_;
+  Value* d_;
 };
 
 template <class T>
