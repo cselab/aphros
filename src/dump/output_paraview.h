@@ -52,8 +52,7 @@ class SessionParaviewStructured : public SessionParaview {
   void WriteDataArrayFooter(std::ostream& out) {
     out << "        </DataArray>\n";
   }
-  void WriteField(std::ostream& out,
-                  EntryField<FieldCell<Scal>>* entry) {
+  void WriteField(std::ostream& out, OutFld<FieldCell<Scal>>* entry) {
     auto& field = entry->GetField();
 
     WriteDataArrayHeader(out, entry->GetName(), 1);
@@ -64,7 +63,7 @@ class SessionParaviewStructured : public SessionParaview {
     WriteDataArrayFooter(out);
   }
   void WriteField(std::ostream& out,
-                  EntryField<FieldNode<Scal>>* entry) {
+                  OutFld<FieldNode<Scal>>* entry) {
     auto& field = entry->GetField();
 
     WriteDataArrayHeader(out, entry->GetName(), 1);
@@ -98,7 +97,7 @@ class SessionParaviewStructured : public SessionParaview {
   void WriteDataFileContent(std::ostream& out) {
     out << "      <PointData>\n";
     for (auto& entry_generic : content_) {
-      if (auto entry = dynamic_cast<EntryField<FieldNode<Scal>>*>(
+      if (auto entry = dynamic_cast<OutFld<FieldNode<Scal>>*>(
           entry_generic.get())) {
         entry->Prepare();
         WriteField(out, entry);
@@ -108,7 +107,7 @@ class SessionParaviewStructured : public SessionParaview {
 
     out << "      <CellData>\n";
     for (auto& entry_generic : content_) {
-      if (auto entry = dynamic_cast<EntryField<FieldCell<Scal>>*>(
+      if (auto entry = dynamic_cast<OutFld<FieldCell<Scal>>*>(
           entry_generic.get())) {
         entry->Prepare();
         WriteField(out, entry);

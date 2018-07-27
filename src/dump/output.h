@@ -11,120 +11,86 @@
 
 namespace output {
 
-class EntryGeneric {
-  std::string name_;
+class Out {
  public:
-  EntryGeneric(std::string name)
-      : name_(name)
-  {}
-  virtual std::string GetName() {
-    return name_;
-  }
+  // n: name
+  Out(std::string n) : n_(n) {}
+
+  virtual std::string GetName() { return n_; }
+
   virtual void Prepare() = 0;
-  virtual ~EntryGeneric() {}
+
+  virtual ~Out() {}
+
+ private:
+  std::string n_;
 };
 
-template <class FieldType>
-class EntryField : public EntryGeneric {
+// F: field
+template <class F>
+class OutFld : public Out {
  public:
-  EntryField(std::string name)
-      : EntryGeneric(name)
-  {}
-  virtual const FieldType& GetField() = 0;
+  OutFld(std::string n) : Out(n) {}
+
+  virtual const F& GetField() = 0;
 };
 
-template <class FieldType>
-class EntryFieldCopy : public EntryField<FieldType> {
-  const FieldType& field_;
+// V: value type
+// I: index type
+// M: m
+template <class V, class I, class M>
+class OutFldFunc : public OutFld<GField<V, I>> {
  public:
-  EntryFieldCopy(std::string name, const FieldType& field)
-      : EntryField<FieldType>(name)
-      , field_(field)
-  {}
-  void Prepare() override {}
-  const FieldType& GetField() override {
-    return field_;
-  }
-};
+  using F = GField<V, I>;
 
-template <class Vect, class IdxType>
-class EntryExtractScalar :
-    public EntryField<GField<typename Vect::value_type, IdxType>> {
-  using VectField = GField<Vect, IdxType>;
-  using ScalarField = GField<typename Vect::value_type, IdxType>;
-  const VectField& vect_field_;
-  ScalarField scalar_field_;
-  size_t component_number_;
- public:
-  EntryExtractScalar(std::string name, const VectField& vect_field,
-                     size_t component_number)
-      : EntryField<ScalarField>(name)
-      , vect_field_(vect_field)
-      , scalar_field_(vect_field_.size())
-      , component_number_(component_number)
-  {}
+  // Constructor.
+  // n: name
+  // m: mesh
+  // f: function returning output value
+  OutFldFunc(std::string n, const M& m, const std::function<V(I)>& u)
+      : OutFld<F>(n), m(m), f_(m), u_(u) {}
+
+  // Updates field from function.
   void Prepare() override {
-    for (size_t i = 0; i < vect_field_.size(); ++i) {
-      IdxType idx(i);
-      scalar_field_[idx] = vect_field_[idx][component_number_];
+    for (auto i : m.template GetIn<I>()) {
+      f_[i] = u_(i);
     }
   }
-  const ScalarField& GetField() override {
-    return scalar_field_;
+  const F& GetField() override {
+    return f_;
   }
+
+ private:
+  const M& m; // mesh
+  F f_; // field
+  std::function<V(I)> u_; // function returning output value
 };
 
-template <class Value, class Idx, class Mesh>
-class EntryFunction :
-    public EntryField<GField<Value, Idx>> {
-  using ScalarField = GField<Value, Idx>;
-  using Function = std::function<Value (Idx)>;
-  const Mesh& mesh_;
-  ScalarField scalar_field_;
-  Function function_;
+template <class V>
+class OutScal : public Out {
  public:
-  EntryFunction(std::string name, const Mesh& mesh, const Function& function)
-      : EntryField<ScalarField>(name)
-      , mesh_(mesh)
-      , scalar_field_(mesh_)
-      , function_(function)
-  {}
-  void Prepare() override {
-    for (auto i : mesh_.template GetIn<Idx>()) {
-      scalar_field_[i] = function_(i);
-    }
-  }
-  const ScalarField& GetField() override {
-    return scalar_field_;
-  }
+  OutScal(std::string n) : Out(n) {}
+  virtual V GetValue() = 0;
 };
 
-template <class Value>
-class EntryScalar : public EntryGeneric {
+template <class V>
+class OutScalFunc : public OutScal<V> {
  public:
-  EntryScalar(std::string name)
-      : EntryGeneric(name)
-  {}
-  virtual Value GetValue() = 0;
-};
+  // Constructor.
+  // n: name
+  // u: function returning output value
+  OutScalFunc(std::string n, const std::function<V()>& u)
+      : OutScal<V>(n), u_(u) {}
 
-template <class Value>
-class EntryScalarFunction :
-    public EntryScalar<Value> {
-  using Function = std::function<Value ()>;
-  Function function_;
- public:
-  EntryScalarFunction(std::string name, const Function& function)
-      : EntryScalar<Value>(name)
-      , function_(function)
-  {}
   void Prepare() override {}
-  Value GetValue() override {
-    return function_();
-  }
+
+  V GetValue() override { return u_(); }
+
+ private:
+  std::function<V()> u_; // function for single value
 };
 
-using Content = std::vector<std::shared_ptr<EntryGeneric>>;
+using Content = std::vector<std::shared_ptr<Out>>;
 
 class Session {
  public:
@@ -134,40 +100,40 @@ class Session {
 
 namespace plain {
 
-// Requires structured mesh
-template <class Mesh>
+// Requires structured m
+template <class M>
 class SessionPlain : public Session {
-  using Scal = typename Mesh::Scal;
-  using MIdx = typename Mesh::MIdx;
-  const Mesh& mesh;
+  using Scal = typename M::Scal;
+  using MIdx = typename M::MIdx;
+  const M& m;
   Content content_;
   std::ostream& out_;
   std::ofstream output_file_;
   void WriteHeader() {
     out_ << "Cell: ";
     for (auto& entry_generic : content_)
-    if (auto entry = dynamic_cast<EntryField<FieldCell<Scal>>*>(
+    if (auto entry = dynamic_cast<OutFld<FieldCell<Scal>>*>(
         entry_generic.get())) {
       out_ << entry->GetName() << " ";
     }
     out_ << "\n";
     out_ << "Face: ";
     for (auto& entry_generic : content_)
-    if (auto entry = dynamic_cast<EntryField<FieldFace<Scal>>*>(
+    if (auto entry = dynamic_cast<OutFld<FieldFace<Scal>>*>(
         entry_generic.get())) {
       out_ << entry->GetName() << " ";
     }
     out_ << "\n";
     out_ << "Node: ";
     for (auto& entry_generic : content_)
-    if (auto entry = dynamic_cast<EntryField<FieldNode<Scal>>*>(
+    if (auto entry = dynamic_cast<OutFld<FieldNode<Scal>>*>(
         entry_generic.get())) {
       out_ << entry->GetName() << " ";
     }
     out_ << "\n";
 
     out_ << "Dim: ";
-    MIdx dim = mesh.GetInBlockCells().GetSize();
+    MIdx dim = m.GetInBlockCells().GetSize();
     for (size_t i = 0; i < dim.size(); ++i) {
       out_ << dim[i] << " ";
     }
@@ -177,8 +143,8 @@ class SessionPlain : public Session {
     out_.flush();
   }
   template <class FieldType>
-  bool TryWriteField(EntryGeneric* entry_generic) {
-    if (auto entry = dynamic_cast<EntryField<FieldType>*>(
+  bool TryWriteField(Out* entry_generic) {
+    if (auto entry = dynamic_cast<OutFld<FieldType>*>(
         entry_generic)) {
       auto& field = entry->GetField();
       for (size_t i = 0; i < field.size(); ++i) {
@@ -190,8 +156,8 @@ class SessionPlain : public Session {
     return false;
   }
  public:
-  SessionPlain(const Content& content, std::string filename, const Mesh& mesh)
-      : mesh(mesh)
+  SessionPlain(const Content& content, std::string filename, const M& m)
+      : m(m)
       , content_(content)
       , out_(output_file_)
   {
@@ -237,9 +203,9 @@ class SessionPlainScalar : public Session {
     out_.precision(16);
     for (auto& eg : content_) { // entry generic
       eg->Prepare();
-      if (auto e = dynamic_cast<EntryScalar<Scal>*>(eg.get())) { 
+      if (auto e = dynamic_cast<OutScal<Scal>*>(eg.get())) { 
         out_ << e->GetValue() << " ";
-      } else if (auto e = dynamic_cast<EntryScalar<int>*>(eg.get())) {
+      } else if (auto e = dynamic_cast<OutScal<int>*>(eg.get())) {
         out_ << e->GetValue() << " ";
       } else {
         throw std::runtime_error(
@@ -261,7 +227,7 @@ class SessionPlainScalar : public Session {
 template <class Scal>
 using SessionPlainScalar = plain::SessionPlainScalar<Scal>;
 
-template <class Mesh>
-using SessionPlain = plain::SessionPlain<Mesh>;
+template <class M>
+using SessionPlain = plain::SessionPlain<M>;
 
 } // namespace output
