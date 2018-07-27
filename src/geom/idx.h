@@ -10,25 +10,22 @@ using IntIdx = std::ptrdiff_t;
 template <size_t dim>
 using GMIdx = GVect<IntIdx, dim>;
 
-// Typed integer index, instances distinct by id_.
+// Typed index, instances distinct by id_.
 template <int id_>
 class GIdx {
-  static constexpr int id = id_; 
-  size_t i_;
-  static constexpr size_t kNone = -1;
  public:
-  GIdx() {}
-  explicit GIdx(size_t i)
-    : i_(i)
-  {}
+  GIdx() : i_(0) {}
+
+  explicit GIdx(size_t i) : i_(i) {}
+
+  explicit operator size_t() const { 
+    return i_; 
+  }
   size_t GetRaw() const {
     return i_;
   }
-  explicit operator size_t() const {
-    return i_;
-  }
-  void AddRaw(IntIdx add) {
-    i_ += add;
+  void AddRaw(IntIdx a) {
+    i_ += a;
   }
   bool operator==(GIdx o) const {
     return i_ == o.i_;
@@ -36,12 +33,10 @@ class GIdx {
   bool operator!=(GIdx o) const {
     return !(*this == o);
   }
-  static GIdx None() {
-    return GIdx(-1);
-  }
-  bool IsNone() const {
-    return *this == None();
-  }
+
+ public:
+  static constexpr int id = id_; 
+  size_t i_;
 };
 
 using IdxCell = GIdx<0>;
