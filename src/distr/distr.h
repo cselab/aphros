@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <stdexcept>
 #include <string>
+#include <sstream>
 
 #include "geom/mesh.h"
 #include "util/suspender.h"
@@ -42,6 +43,7 @@ class DistrMesh : public Distr {
   virtual void Report();
   virtual ~DistrMesh() {}
   virtual typename M::BlockCells GetGlobalBlock() const;
+  virtual typename M::IndexCells GetGlobalIndex() const;
   // Returns data field i from buffer defined on global mesh
   virtual FieldCell<Scal> GetGlobalField(size_t i); 
 
@@ -91,6 +93,8 @@ class DistrMesh : public Distr {
  private:
   MultiTimer<std::string> mt_; // timer all
   MultiTimer<std::string> mtp_; // timer partial
+  using LS = typename M::LS;
+  std::map<typename LS::T, std::unique_ptr<Hypre>> mhp_; // hypre instances
 };
 
 template <class KF>
@@ -170,10 +174,11 @@ void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
       // Write dump
       for (auto& on : m.GetDump()) {
         std::string fn = GetDumpName(on.second, ".dat", frame_);
+        auto ndc = GetGlobalIndex();
         auto bc = GetGlobalBlock();
         auto fc = GetGlobalField(k);
         if (isroot_) {
-          Dump(fc, bc, fn);
+          Dump(fc, ndc, bc, fn);
         }
         k += on.first->GetSize();
         if (on.first->GetSize() != 1) {
@@ -194,90 +199,91 @@ void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
 template <class KF>
 void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
   const size_t dim = 3;
-  auto& f = *mk.at(bb[0]); // first kernel
-  auto& mf = f.GetMesh();
-  auto& vf = mf.GetSolve();  // LS to solve
+  auto& vf = mk.at(bb[0])->GetMesh().GetSolve();  // systems to solve on bb[0]
 
-  // Check size is the same for all kernels
+  // Check size is the same for all blocks
   for (auto& b : bb) {
-    auto& k = *mk.at(b); // kernel
-    auto& m = k.GetMesh();
-    auto& v = m.GetSolve();  // pointers to reduce
+    auto& v = mk.at(b)->GetMesh().GetSolve();  // systems to solve
     if (v.size() != vf.size()) {
-      std::cerr 
-          << "v.size()=" << v.size() 
-          << ",b=" << b
+      std::stringstream s;
+      s << "v.size()=" << v.size() << ",b=" << b
           << " != "
-          << "vf.size()=" << vf.size() 
-          << ",bf=" << bb[0]
-          << std::endl;
-      assert(false);
+          << "vf.size()=" << vf.size() << ",bf=" << bb[0];
+      throw std::runtime_error(s.str());
     }
   }
 
   for (size_t j = 0; j < vf.size(); ++j) {
-    using LB = typename Hypre::Block;
-    std::vector<LB> lbb;
-    using LI = typename Hypre::MIdx;
+    auto& sf = vf[j];  // system to solve on bb[0]
+    auto k = sf.t; // key
 
-    using MIdx = typename K::MIdx;
-    auto& sf = vf[j];  // first LS
-    std::vector<MIdx> st = sf.st; // stencil
+    if (!mhp_.count(k)) { // create new instance of hypre // XXX
+      using LB = typename Hypre::Block;
+      std::vector<LB> lbb;
+      using LI = typename Hypre::MIdx;
 
-    for (auto& b : bb) {
-      LB lb;
-      auto& k = *mk.at(b); // kernel
-      auto& m = k.GetMesh();
-      auto& v = m.GetSolve(); 
-      auto& bc = m.GetInBlockCells();
-      auto& s = v[j];  
-      lb.l = bc.GetBegin();
-      lb.u = bc.GetEnd() - MIdx(1);
-      for (MIdx& e : st) {
-        lb.st.emplace_back(e);
+      using MIdx = typename K::MIdx;
+      std::vector<MIdx> st = sf.st; // stencil
+
+      for (auto& b : bb) {
+        LB lb;
+        auto& m = mk.at(b)->GetMesh();
+        auto& v = m.GetSolve();
+        auto& bc = m.GetInBlockCells();
+        auto& s = v[j];  
+        lb.l = bc.GetBegin();
+        lb.u = bc.GetEnd() - MIdx(1);
+        for (MIdx& e : st) {
+          lb.st.emplace_back(e);
+        }
+        lb.a = s.a;
+        lb.r = s.b;
+        lb.x = s.x;
+        lbb.push_back(lb);
       }
-      lb.a = s.a;
-      lb.r = s.b;
-      lb.x = s.x;
-      lbb.push_back(lb);
+
+      std::vector<bool> per(dim, false);
+      per[0] = par.Int["hypre_periodic_x"];
+      per[1] = par.Int["hypre_periodic_y"];
+      per[2] = par.Int["hypre_periodic_z"];
+
+      LI gs(dim);
+      for (size_t i = 0; i < dim; ++i) {
+        gs[i] = bs_[i] * b_[i] * p_[i];
+      }
+
+      std::string srs = par.String["hypre_symm_solver"]; // solver symm
+      assert(srs == "pcg+smg" || srs == "smg" || srs == "pcg" || srs == "zero");
+
+      std::string srg = par.String["hypre_gen_solver"]; // solver gen
+      assert(srg == "gmres" || srg == "zero");
+
+      std::string sr; // solver 
+      int maxiter;
+      using T = typename M::LS::T; // system type
+      switch (sf.t) {
+        case T::gen:
+          sr = srg;
+          maxiter = par.Int["hypre_gen_maxiter"];
+          break;
+        case T::symm:
+          sr = srs;
+          maxiter = par.Int["hypre_symm_maxiter"];
+          break;
+        default:
+          throw std::runtime_error(
+              "Solve(): Unknown system type = " + std::to_string((size_t)sf.t));
+      }
+
+      Hypre* hp = new Hypre(comm_, lbb, gs, per, 
+                            par.Double["hypre_tol"], par.Int["hypre_print"], 
+                            sr, maxiter);
+      mhp_.emplace(k, std::unique_ptr<Hypre>(hp));
+    } else { // update current instance
+      mhp_.at(k)->Update();
     }
-
-    std::vector<bool> per(dim, false);
-    per[0] = par.Int["hypre_periodic_x"];
-    per[1] = par.Int["hypre_periodic_y"];
-    per[2] = par.Int["hypre_periodic_z"];
-
-    LI gs(dim);
-    for (size_t i = 0; i < dim; ++i) {
-      gs[i] = bs_[i] * b_[i] * p_[i];
-    }
-
-    std::string srs = par.String["hypre_symm_solver"]; // solver symm
-    assert(srs == "pcg+smg" || srs == "smg" || srs == "pcg" || srs == "zero");
-
-    std::string srg = par.String["hypre_gen_solver"]; // solver gen
-    assert(srg == "gmres" || srg == "zero");
-
-    std::string sr; // solver 
-    int maxiter;
-    using T = typename M::LS::T; // system type
-    switch (sf.t) {
-      case T::gen:
-        sr = srg;
-        maxiter = par.Int["hypre_gen_maxiter"];
-        break;
-      case T::symm:
-        sr = srs;
-        maxiter = par.Int["hypre_symm_maxiter"];
-        break;
-      default:
-        throw std::runtime_error(
-            "Solve(): Unknown system type = " + std::to_string((size_t)sf.t));
-    }
-
-    Hypre hp(comm_, lbb, gs, per, 
-             par.Double["hypre_tol"], par.Int["hypre_print"], sr, maxiter);
-    hp.Solve();
+    mhp_.at(k)->Solve();
+    //mhp_.erase(k);
   }
 
   for (auto& b : bb) {
@@ -306,6 +312,12 @@ template <class KF>
 auto DistrMesh<KF>::GetGlobalBlock() const -> typename M::BlockCells {
   throw std::runtime_error("Not implemented");
   return typename M::BlockCells();
+}
+
+template <class KF>
+auto DistrMesh<KF>::GetGlobalIndex() const -> typename M::IndexCells {
+  throw std::runtime_error("Not implemented");
+  return typename M::IndexCells();
 }
 
 template <class KF>

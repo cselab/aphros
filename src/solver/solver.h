@@ -5,6 +5,7 @@
 #include <limits>
 #include <cmath>
 #include <sstream>
+#include <string>
 
 #include "geom/mesh.h"
 #include "linear/linear.h"
@@ -48,7 +49,7 @@ bool IsNan(const GField<T, Idx>& u) {
 
 template <class T, class Idx, class M>
 bool CheckNan(const GField<T, Idx>& u, std::string name, const M& m) {
-  for (auto i : m.template Get<Idx>()) {
+  for (auto i : m.template GetIn<Idx>()) {
     if (IsNan(u[i])) {
       std::stringstream s;
       s << "Nan " << name << " at x=" << m.GetCenter(i);
@@ -331,6 +332,8 @@ class UnsteadyIterativeSolver : public UnsteadySolver {
 //   time_prev -- previous step
 enum class Layers { time_curr, time_prev, iter_curr, iter_prev };
 
+std::string GetName(Layers);
+
 template <class T>
 struct LayersData {
   T time_curr, time_prev, iter_curr, iter_prev;
@@ -354,24 +357,24 @@ struct LayersData {
 // GetValue(field, idx) vs GetNorm(field)
 
 template <class Field, class M, class Scal = typename M::Scal>
-Scal CalcDiff(const Field& first, const Field& second, const M& m) {
-  Scal res = 0.;
+Scal CalcDiff(const Field& fa, const Field& fb, const M& m) {
+  Scal r = 0.;
   using Idx = typename Field::Idx;
-  for (Idx idx : GRange<Idx>(m)) {
-    res = std::max(res, std::abs(first[idx] - second[idx]));
+  for (Idx i : m.template GetIn<Idx>()) {
+    r = std::max<Scal>(r, std::abs(fa[i] - fb[i]));
   }
-  return res;
+  return r;
 }
 
 template <class Idx, class M, class Scal = typename M::Scal>
-Scal CalcDiff(const GField<typename M::Vect, Idx>& first,
-                const GField<typename M::Vect, Idx>& second,
+Scal CalcDiff(const GField<typename M::Vect, Idx>& fa,
+                const GField<typename M::Vect, Idx>& fb,
                 const M& m) {
-  Scal res = 0.;
-  for (Idx idx : m.template Get<Idx>()) {
-    res = std::max(res, first[idx].dist(second[idx]));
+  Scal r = 0.;
+  for (Idx i : m.template GetIn<Idx>()) {
+    r = std::max<Scal>(r, (fa[i] - fb[i]).norminf());
   }
-  return res;
+  return r;
 }
 
 // Coefficients for approximation of gradient with polynomial.

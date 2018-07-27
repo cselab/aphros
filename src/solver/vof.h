@@ -163,7 +163,7 @@ class Vof : public AdvectionSolver<M_> {
         dpk_.clear();
 
         // copy to arrays  
-        auto& bc = m.GetBlockCells();
+        auto& bc = m.GetIndexCells();
         for (size_t s = 0; s < partstr_->GetNumStr(); ++s) {
           // cell
           IdxCell c = vsc_[s];
@@ -324,7 +324,7 @@ class Vof : public AdvectionSolver<M_> {
                         bool ow, FieldCell<Vect>& fcn, FieldCell<Scal>& fck) {
     using MIdx = typename M::MIdx;
     using Dir = typename M::Dir;
-    auto& bc = m.GetBlockCells();
+    auto& bc = m.GetIndexCells();
 
     fcn.Reinit(m); // XXX
     fck.Reinit(m);
@@ -513,7 +513,7 @@ class Vof : public AdvectionSolver<M_> {
   void Seed0(const FieldCell<Scal>& fcu, const FieldCell<Scal>& fca, 
              const FieldCell<Vect>& fcn, const FieldCell<bool>& fci) {
     using MIdx = typename M::MIdx;
-    auto& bc = m.GetBlockCells();
+    auto& bc = m.GetIndexCells();
     Vect h = GetCellSize(); // cell size
 
     // clear string list
@@ -641,7 +641,7 @@ class Vof : public AdvectionSolver<M_> {
       using MIdx = typename M::MIdx;
       GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
                               MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
-      auto& bc = m.GetBlockCells();
+      auto& bc = m.GetIndexCells();
       size_t nan = 0;
       IdxCell cnan;
       for (auto c : m.Cells()) {
@@ -725,7 +725,7 @@ class Vof : public AdvectionSolver<M_> {
   void Print(const FieldFace<Scal>& ff, std::string name) {
     using MIdx = typename M::MIdx;
     auto ibc = m.GetInBlockCells();
-    auto bc = m.GetBlockCells();
+    auto bc = m.GetIndexCells();
     auto bf = m.GetBlockFaces();
     MIdx wb = ibc.GetBegin();
     MIdx we = ibc.GetEnd();
@@ -744,7 +744,7 @@ class Vof : public AdvectionSolver<M_> {
   void Print(const FieldCell<Scal>& fc, std::string name) {
     using MIdx = typename M::MIdx;
     auto ibc = m.GetInBlockCells();
-    auto bc = m.GetBlockCells();
+    auto bc = m.GetIndexCells();
     MIdx wb = ibc.GetBegin();
     MIdx we = ibc.GetEnd();
     MIdx wc = (wb + we - MIdx(1)) / 2;
@@ -820,8 +820,8 @@ class Vof : public AdvectionSolver<M_> {
         Dir md(d); // direction as Dir
         MIdx wd(md); // offset in direction d
         auto& uc = fc_u_.iter_curr;
-        auto& bc = m.GetBlockCells();
-        auto& bf = m.GetBlockFaces();
+        auto& bc = m.GetIndexCells();
+        auto& bf = m.GetIndexFaces();
         auto h = GetCellSize();
         auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
         const Scal dt = this->GetTimeStep();

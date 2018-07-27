@@ -1,0 +1,332 @@
+                name     t/allcells [ns]      t/incells [ns]              t [ns]               iters            mem [MB]    mem/allcells [B]
+
+Mesh size=(4,4,4) allcells=512 incells=64
+               empty           0.0511806            0.409445               1e+07              381615                   0                   0
+          loop-plain             2.09905             16.7924         1.00002e+07                9305                   0                   0
+       loop-allcells             2.10114             16.8091         1.00005e+07                9296                   0                   0
+        loop-incells            0.318335             2.54668         1.00001e+07               61355                   0                   0
+       loop-allfaces             6.25668             50.0534         1.00011e+07                3122                   0                   0
+        loop-infaces             1.04889             8.39115         1.00001e+07               18621                   0                   0
+      loop-fld-plain             4.14933             33.1946         1.00019e+07                4708                   0                   0
+   loop-fld-allcells             2.98726             23.8981         1.00012e+07                6539                   0                   0
+  loop-midx-allcells             8.40188              67.215         1.00016e+07                2325                   0                   0
+  loop-midx-allfaces             85.3588              682.87         1.00081e+07                 229                   0                   0
+              interp             82.3567             658.853         1.00357e+07                 238                   0                   0
+                grad             4.90741             39.2593         1.00001e+07                3980             2.06641                4232
+            explvisc             532.755             4262.04         1.00925e+07                  37             2.06641                4232
+       m-cell-volume            0.694674             5.55739         1.00001e+07               28116             2.06641                4232
+       m-cell-center              1.2698             10.1584         1.00004e+07               15382             2.06641                4232
+       m-face-center             17.2058             137.647         1.00075e+07                1136             2.06641                4232
+         m-face-surf             2.61746             20.9397         1.00001e+07                7462             2.06641                4232
+         m-face-area              2.7292             21.8336         1.00008e+07                7157             2.06641                4232
+       m-cell-n-cell             1.69521             13.5617         1.00005e+07               11522             2.06641                4232
+       m-cell-n-face             1.64697             13.1757         1.00001e+07               11859             2.06641                4232
+      m-cell-outward             4.91401             39.3121          1.0001e+07                3975             2.06641                4232
+       m-cell-n-node              4.7778             38.2224         1.00075e+07                4091             2.06641                4232
+       m-face-n-cell             25.2513             202.011         1.00068e+07                 774             2.06641                4232
+       m-face-n-node             47.1048             376.838         1.00088e+07                 415             2.06641                4232
+
+Mesh size=(8,8,8) allcells=1728 incells=512
+               empty           0.0147847           0.0498983               1e+07              391422                   0                   0
+          loop-plain             2.11872             7.15066         1.00022e+07                2732                   0                   0
+       loop-allcells             1.87266             6.32022         1.00023e+07                3091                   0                   0
+        loop-incells            0.560259             1.89087         1.00008e+07               10330                   0                   0
+       loop-allfaces             6.11648             20.6431         1.00091e+07                 947                   0                   0
+        loop-infaces              1.8375             6.20157         1.00019e+07                3150                   0                   0
+      loop-fld-plain             3.76983             12.7232         1.00059e+07                1536                   0                   0
+   loop-fld-allcells             2.93247             9.89707         1.00029e+07                1974                   0                   0
+  loop-midx-allcells             8.31225             28.0538         1.00114e+07                 697                   0                   0
+  loop-midx-allfaces             76.9838              259.82         1.01101e+07                  76                   0                   0
+              interp             101.545             342.715         1.00018e+07                  57                   0                   0
+                grad             6.74884             22.7773          1.0006e+07                 858            0.113281                  68
+            explvisc             750.593             2533.25         1.03762e+07                   8            0.289062                 175
+       m-cell-volume             1.50124             5.06668         1.00004e+07                3855             0.09375                  56
+       m-cell-center             2.90961             9.81993         1.00003e+07                1989             0.09375                  56
+       m-face-center             32.0208              108.07         1.00151e+07                 181             0.09375                  56
+         m-face-surf             4.87257             16.4449         1.00027e+07                1188             0.09375                  56
+         m-face-area             4.89196             16.5104         1.00003e+07                1183             0.09375                  56
+       m-cell-n-cell             3.94029             13.2985         1.00021e+07                1469             0.09375                  56
+       m-cell-n-face             3.93927              13.295         1.00064e+07                1470             0.09375                  56
+      m-cell-outward             11.4895              38.777         1.00063e+07                 504             0.09375                  56
+       m-cell-n-node             10.1717             34.3294         1.00011e+07                 569             0.09375                  56
+       m-face-n-cell             68.8944             232.519         1.00002e+07                  84             0.09375                  56
+       m-face-n-node             101.296             341.874         1.01523e+07                  58             0.09375                  56
+
+Mesh size=(16,16,16) allcells=8000 incells=4096
+               empty          0.00331238           0.0064695               1e+07              377372                   0                   0
+          loop-plain             2.02014             3.94559         1.01653e+07                 629                   0                   0
+       loop-allcells              1.8566             3.62617         1.00108e+07                 674                   0                   0
+        loop-incells            0.942456             1.84073         1.00051e+07                1327                   0                   0
+       loop-allfaces             5.64481              11.025         1.00252e+07                 222                   0                   0
+        loop-infaces             3.03446             5.92667         1.00016e+07                 412                   0                   0
+      loop-fld-plain             3.41429             6.66853         1.00243e+07                 367                   0                   0
+   loop-fld-allcells             2.90198             5.66794          1.0006e+07                 431                   0                   0
+  loop-midx-allcells             10.7137             20.9251          1.0028e+07                 117                   0                   0
+  loop-midx-allfaces             83.5366             163.158         1.06927e+07                  16                   0                   0
+              interp             133.917             261.557         1.07134e+07                  10            0.160156                  20
+                grad             8.05217             15.7269         1.00491e+07                 156            0.328125                  43
+            explvisc             835.161             1631.17         1.33626e+07                   2             1.47266                 193
+       m-cell-volume             2.57375             5.02685         1.00067e+07                 486            0.472656                  61
+       m-cell-center             4.80909             9.39276         1.00029e+07                 260            0.472656                  61
+       m-face-center              49.838             97.3399         1.03663e+07                  26            0.472656                  61
+         m-face-surf             7.90695             15.4433         1.00576e+07                 159            0.472656                  61
+         m-face-area             7.86236             15.3562         1.00009e+07                 159            0.472656                  61
+       m-cell-n-cell             6.55608             12.8048         1.00177e+07                 191            0.472656                  61
+       m-cell-n-face             7.14746             13.9599         1.00064e+07                 175            0.472656                  61
+      m-cell-outward             19.9474             38.9598         1.00535e+07                  63            0.472656                  61
+       m-cell-n-node             16.7262             32.6683         1.00357e+07                  75            0.472656                  61
+       m-face-n-cell              82.844             161.805          1.0604e+07                  16            0.472656                  61
+       m-face-n-node             154.583              301.92           1.113e+07                   9            0.472656                  61
+
+Mesh size=(32,32,32) allcells=46656 incells=32768
+               empty         0.000554696         0.000789792               1e+07              386401                   0                   0
+          loop-plain             2.11579             3.01252         1.00688e+07                 102                   0                   0
+       loop-allcells             1.84089             2.62112          1.0049e+07                 117                   0                   0
+        loop-incells             1.28263             1.82624         1.00535e+07                 168                   0                   0
+       loop-allfaces             6.34038             9.02762         1.03536e+07                  35                   0                   0
+        loop-infaces             4.43293             6.31173         1.01343e+07                  49                   0                   0
+      loop-fld-plain             3.78385             5.38756         1.00627e+07                  57                   0                   0
+   loop-fld-allcells             2.88369             4.10588         1.00906e+07                  75                   0                   0
+  loop-midx-allcells             8.63788             12.2989         1.00752e+07                  25                   0                   0
+  loop-midx-allfaces             72.7702             103.612         1.35807e+07                   4                   0                   0
+              interp              147.61             210.171         1.37738e+07                   2             1.03516                  23
+                grad             10.3263             14.7028         1.01174e+07                  21             3.09375                  69
+            explvisc             993.051             1413.93         4.63318e+07                   1              8.8125                 198
+       m-cell-volume             3.55724              5.0649          1.0124e+07                  61             2.19922                  49
+       m-cell-center              6.5758             9.36281         1.01244e+07                  33             2.19922                  49
+       m-face-center             66.8481             95.1803         1.24755e+07                   4             2.19922                  49
+         m-face-surf             10.3083             14.6773         1.00999e+07                  21             2.19922                  49
+         m-face-area             10.4466             14.8742         1.02353e+07                  21             2.19922                  49
+       m-cell-n-cell             9.64861              13.738         1.03538e+07                  23             2.19922                  49
+       m-cell-n-face             9.41335              13.403         1.01014e+07                  23             2.19922                  49
+      m-cell-outward              27.761             39.5269         1.03617e+07                   8             2.19922                  49
+       m-cell-n-node             21.3534             30.4036         1.09589e+07                  11             2.19922                  49
+       m-face-n-cell             104.992             149.491         1.46956e+07                   3             2.19922                  49
+       m-face-n-node             207.905             296.021            1.94e+07                   2             2.19922                  49
+
+Mesh size=(64,64,64) allcells=314432 incells=262144
+               empty         8.21738e-05         9.85645e-05               1e+07              387026                   0                   0
+          loop-plain               2.225             2.66881         1.04942e+07                  15                   0                   0
+       loop-allcells             1.83487             2.20085         1.03849e+07                  18                   0                   0
+        loop-incells              1.5408             1.84813          1.0174e+07                  21                   0                   0
+       loop-allfaces             5.66733             6.79776         1.06919e+07                   6                   0                   0
+        loop-infaces             4.63778             5.56285         1.02079e+07                   7                   0                   0
+      loop-fld-plain             3.14266             3.76951         1.08697e+07                  11                   0                   0
+   loop-fld-allcells             2.95213             3.54097         1.02107e+07                  11                   0                   0
+  loop-midx-allcells              8.0015              9.5975         1.00637e+07                   4                   0                   0
+  loop-midx-allfaces             69.6209             83.5076          2.1891e+07                   1                   0                   0
+              interp             145.751             174.823         4.58287e+07                   1             7.69922                  25
+                grad             16.3977             19.6684         1.03119e+07                   2             19.5117                  65
+            explvisc              1058.7             1269.87         3.32889e+08                   1             59.4336                 198
+       m-cell-volume             4.22662             5.06968         1.06319e+07                   8             12.4531                  41
+       m-cell-center             7.60909             9.12683         1.19627e+07                   5             12.4531                  41
+       m-face-center             77.0275             92.3916         2.42199e+07                   1             12.4531                  41
+         m-face-surf             13.2605             15.9055         1.25086e+07                   3             12.4531                  41
+         m-face-area             12.0412              14.443         1.13584e+07                   3             12.4531                  41
+       m-cell-n-cell             11.3863             13.6574         1.07406e+07                   3             12.4531                  41
+       m-cell-n-face             10.8381             12.9999         1.02235e+07                   3             12.4531                  41
+      m-cell-outward              32.161             38.5759         1.01124e+07                   1             12.4531                  41
+       m-cell-n-node             25.3486             30.4047         1.59408e+07                   2             12.4531                  41
+       m-face-n-cell             123.389                 148         3.87974e+07                   1             12.4531                  41
+       m-face-n-node             253.245             303.759         7.96285e+07                   1             12.4531                  41
+
+Mesh size=(128,128,128) allcells=2299968 incells=2097152
+               empty         1.13037e-05         1.23969e-05               1e+07              384644                   0                   0
+          loop-plain             2.20464             2.41785         1.01412e+07                   2                   0                   0
+       loop-allcells             1.86553             2.04595          1.2872e+07                   3                   0                   0
+        loop-incells             1.72676             1.89375         1.19145e+07                   3                   0                   0
+       loop-allfaces             5.66487             6.21272          1.3029e+07                   1                   0                   0
+        loop-infaces             5.07608             5.56699         1.16748e+07                   1                   0                   0
+      loop-fld-plain             3.06311             3.35934         1.40901e+07                   2             3.08984                   1
+   loop-fld-allcells             2.99398             3.28353         1.37721e+07                   2             3.08984                   1
+  loop-midx-allcells             8.98852              9.8578         2.06733e+07                   1             3.08984                   1
+  loop-midx-allfaces             75.9694             83.3164         1.74727e+08                   1             3.08984                   1
+              interp             153.905             168.789         3.53977e+08                   1             58.2734                  26
+                grad             19.6514             21.5519         4.51976e+07                   1             110.223                  50
+            explvisc             1149.92             1261.13         2.64477e+09                   1             163.664                  74
+       m-cell-volume             4.65424             5.10435         1.07046e+07                   1             4.42969                   2
+       m-cell-center             8.38463             9.19551         1.92844e+07                   1             4.42969                   2
+       m-face-center             85.3441             93.5977         1.96289e+08                   1             4.42969                   2
+         m-face-surf             13.9313             15.2786         3.20415e+07                   1             4.42969                   2
+         m-face-area             13.3142             14.6019         3.06223e+07                   1             4.42969                   2
+       m-cell-n-cell             12.7771             14.0128          2.9387e+07                   1             4.42969                   2
+       m-cell-n-face             13.2462             14.5273         3.04659e+07                   1             4.42969                   2
+      m-cell-outward             37.6477             41.2886         8.65885e+07                   1             4.42969                   2
+       m-cell-n-node             27.8801             30.5764         6.41234e+07                   1             4.42969                   2
+       m-face-n-cell             139.754             153.269         3.21429e+08                   1             4.42969                   2
+       m-face-n-node             272.391             298.734          6.2649e+08                   1             4.42969                   2
+
+mem=104.363 MB
+all [6.1518 s, 100%]
+|     other [1.2925e-05 s, 0.00021%]
+|     run:00:init [0.023041 s, 0.375%]
+|     |     init:00:pfixed-reduce [7.6776e-05 s, 0.00125%]
+|     |     init:01:fields [0.0051779 s, 0.0842%]
+|     |     init:02:smooth [5.2049e-05 s, 0.000846%]
+|     |     init:03:mixture [0.0035093 s, 0.057%]
+|     |     |     mixture:00:init [0.00097547 s, 0.0159%]
+|     |     |     mixture:01:smooth [5.4224e-05 s, 0.000881%]
+|     |     |     mixture:02:smoothst [5.2111e-05 s, 0.000847%]
+|     |     |     mixture:03:calc [0.0024275 s, 0.0395%]
+|     |     init:04:color-ini [0.0012881 s, 0.0209%]
+|     |     init:05:solv [0.012937 s, 0.21%]
+|     run:02:events [0.00026363 s, 0.00429%]
+|     run:03:loop-check [0.00085938 s, 0.014%]
+|     run:04:updatepar [0.0012828 s, 0.0209%]
+|     run:05:mixture [0.091167 s, 1.48%]
+|     |     mixture:00:init [0.0017322 s, 0.0282%]
+|     |     mixture:01:smooth [0.00040931 s, 0.00665%]
+|     |     mixture:02:smoothst [0.00038931 s, 0.00633%]
+|     |     mixture:03:calc [0.088636 s, 1.44%]
+|     run:06:stat [0.008548 s, 0.139%]
+|     |     stat:00:stat-add [0.0028211 s, 0.0459%]
+|     |     stat:01:stat-print [0.0016199 s, 0.0263%]
+|     |     stat:02:local [0.0036423 s, 0.0592%]
+|     |     stat:03:reduce [0.00046465 s, 0.00755%]
+|     run:07:fs-start [0.0080732 s, 0.131%]
+|     |     fluid-start:00:convdiff-init [0.00043713 s, 0.00711%]
+|     |     fluid-start:01:convdiff-start [0.0061025 s, 0.0992%]
+|     |     |     convdiffmulti-start:00:dir-init [0.00061937 s, 0.0101%]
+|     |     |     convdiffmulti-start:01:dir-start [0.0010264 s, 0.0167%]
+|     |     |     convdiffmulti-start:02:dir-init [0.00049138 s, 0.00799%]
+|     |     |     convdiffmulti-start:03:dir-start [0.00094302 s, 0.0153%]
+|     |     |     convdiffmulti-start:04:dir-init [0.00052232 s, 0.00849%]
+|     |     |     convdiffmulti-start:05:dir-start [0.00090643 s, 0.0147%]
+|     |     |     convdiffmulti-start:06:tovect [0.0015936 s, 0.0259%]
+|     |     fluid-start:02:convdiff-start [0.0015335 s, 0.0249%]
+|     run:08:fs-iters [5.4353 s, 88.4%]
+|     |     iter:01:iter [5.4258 s, 88.2%]
+|     |     |     fluid-iter:00:init [0.056218 s, 0.914%]
+|     |     |     fluid-iter:01:bc-inletflux [0.0055774 s, 0.0907%]
+|     |     |     |     inletflux:00:local [0.003074 s, 0.05%]
+|     |     |     |     inletflux:01:corr [0.0025034 s, 0.0407%]
+|     |     |     fluid-iter:02:bc-outlet [0.0056193 s, 0.0913%]
+|     |     |     |     outlet:00:local [0.0032624 s, 0.053%]
+|     |     |     |     outlet:01:corr [0.0023569 s, 0.0383%]
+|     |     |     fluid-iter:03:bc-derived [0.0020715 s, 0.0337%]
+|     |     |     fluid-iter:04:forceinit [0.21713 s, 3.53%]
+|     |     |     |     extforce:00:loc [0.14377 s, 2.34%]
+|     |     |     |     extforce:01:copy [0.07336 s, 1.19%]
+|     |     |     fluid-iter:05:forceinit [0.0052845 s, 0.0859%]
+|     |     |     fluid-iter:06:explvisc [0.30065 s, 4.89%]
+|     |     |     fluid-iter:07:pgrad [0.058076 s, 0.944%]
+|     |     |     fluid-iter:08:simpler [1.9805 s, 32.2%]
+|     |     |     |     calcpressure:00:cd-asm [0.83292 s, 13.5%]
+|     |     |     |     |     asm:00:copy [0.013061 s, 0.212%]
+|     |     |     |     |     asm:01:one [0.27377 s, 4.45%]
+|     |     |     |     |     |     assemble:00:assemble [0.27377 s, 4.45%]
+|     |     |     |     |     asm:02:one [0.27257 s, 4.43%]
+|     |     |     |     |     |     assemble:00:assemble [0.27257 s, 4.43%]
+|     |     |     |     |     asm:03:one [0.27352 s, 4.45%]
+|     |     |     |     |     |     assemble:00:assemble [0.27352 s, 4.45%]
+|     |     |     |     calcpressure:01:diag [0.093316 s, 1.52%]
+|     |     |     |     |     diag:00:local [0.039726 s, 0.646%]
+|     |     |     |     |     diag:01:interp [0.05359 s, 0.871%]
+|     |     |     |     calcpressure:02:eval [0.1028 s, 1.67%]
+|     |     |     |     calcpressure:03:assemble [0.15482 s, 2.52%]
+|     |     |     |     calcpressure:04:pcorr-solve [0.70846 s, 11.5%]
+|     |     |     |     |     solve:00:solve [0.67285 s, 10.9%]
+|     |     |     |     |     solve:01:copy [0.035606 s, 0.579%]
+|     |     |     |     calcpressure:05:apply [0.088175 s, 1.43%]
+|     |     |     fluid-iter:09:pgrad [0.057339 s, 0.932%]
+|     |     |     fluid-iter:10:convdiff-iter [1.4611 s, 23.7%]
+|     |     |     |     convdiffmulti-iter:00:source [0.0072603 s, 0.118%]
+|     |     |     |     convdiffmulti-iter:01:dir-iter [0.51123 s, 8.31%]
+|     |     |     |     |     convdiff-iter:00:init [0.0042841 s, 0.0696%]
+|     |     |     |     |     convdiff-iter:01:assemble [0.26901 s, 4.37%]
+|     |     |     |     |     |     assemble:00:assemble [0.26901 s, 4.37%]
+|     |     |     |     |     convdiff-iter:02:solve [0.20251 s, 3.29%]
+|     |     |     |     |     |     solve:00:convert [0.19706 s, 3.2%]
+|     |     |     |     |     |     solve:01:copy [0.0054453 s, 0.0885%]
+|     |     |     |     |     convdiff-iter:03:apply [0.035433 s, 0.576%]
+|     |     |     |     convdiffmulti-iter:02:dir-iter [0.50908 s, 8.28%]
+|     |     |     |     |     convdiff-iter:00:init [0.0045177 s, 0.0734%]
+|     |     |     |     |     convdiff-iter:01:assemble [0.26666 s, 4.33%]
+|     |     |     |     |     |     assemble:00:assemble [0.26666 s, 4.33%]
+|     |     |     |     |     convdiff-iter:02:solve [0.20359 s, 3.31%]
+|     |     |     |     |     |     solve:00:convert [0.19845 s, 3.23%]
+|     |     |     |     |     |     solve:01:copy [0.0051395 s, 0.0835%]
+|     |     |     |     |     convdiff-iter:03:apply [0.034318 s, 0.558%]
+|     |     |     |     convdiffmulti-iter:03:dir-iter [0.42329 s, 6.88%]
+|     |     |     |     |     convdiff-iter:00:init [0.0041896 s, 0.0681%]
+|     |     |     |     |     convdiff-iter:01:assemble [0.26638 s, 4.33%]
+|     |     |     |     |     |     assemble:00:assemble [0.26638 s, 4.33%]
+|     |     |     |     |     convdiff-iter:02:solve [0.11832 s, 1.92%]
+|     |     |     |     |     |     solve:00:convert [0.11304 s, 1.84%]
+|     |     |     |     |     |     solve:01:copy [0.0052794 s, 0.0858%]
+|     |     |     |     |     convdiff-iter:03:apply [0.034408 s, 0.559%]
+|     |     |     |     convdiffmulti-iter:04:tovect [0.010187 s, 0.166%]
+|     |     |     fluid-iter:11:diag [0.094118 s, 1.53%]
+|     |     |     |     diag:00:local [0.040317 s, 0.655%]
+|     |     |     |     diag:01:interp [0.053801 s, 0.875%]
+|     |     |     fluid-iter:12:pcorr-assemble [0.2936 s, 4.77%]
+|     |     |     fluid-iter:13:pcorr-solve [0.70796 s, 11.5%]
+|     |     |     |     solve:00:solve [0.67254 s, 10.9%]
+|     |     |     |     solve:01:copy [0.035412 s, 0.576%]
+|     |     |     fluid-iter:14:pcorr-apply [0.065434 s, 1.06%]
+|     |     |     fluid-iter:15:convdiff-corr [0.11303 s, 1.84%]
+|     |     |     |     corr:00:dir-corr [0.036511 s, 0.593%]
+|     |     |     |     |     corr:00:apply [0.036511 s, 0.593%]
+|     |     |     |     corr:01:dir-corr [0.035673 s, 0.58%]
+|     |     |     |     |     corr:00:apply [0.035673 s, 0.58%]
+|     |     |     |     corr:02:dir-corr [0.034921 s, 0.568%]
+|     |     |     |     |     corr:00:apply [0.034921 s, 0.568%]
+|     |     |     |     corr:03:tovect [0.0059238 s, 0.0963%]
+|     |     |     fluid-iter:16:inc-iter [0.0021829 s, 0.0355%]
+|     |     iter:02:reduce [0.0023578 s, 0.0383%]
+|     |     iter:03:report [0.0051943 s, 0.0844%]
+|     |     iter:04:convcheck [0.0018951 s, 0.0308%]
+|     run:09:fs-finish [0.0084029 s, 0.137%]
+|     |     fluid-finish:00:inctime [0.0026928 s, 0.0438%]
+|     |     fluid-finish:01:convdiff-finish [0.0057101 s, 0.0928%]
+|     |     |     convdiffmulti-finish:00:dir-finish [0.001108 s, 0.018%]
+|     |     |     convdiffmulti-finish:01:dir-finish [0.0009991 s, 0.0162%]
+|     |     |     convdiffmulti-finish:02:dir-finish [0.0010044 s, 0.0163%]
+|     |     |     convdiffmulti-finish:03:tovect [0.0025986 s, 0.0422%]
+|     run:10:as-steps [0.52973 s, 8.61%]
+|     |     steps:01:start [0.0016021 s, 0.026%]
+|     |     |     start:00:rotate [0.0011311 s, 0.0184%]
+|     |     |     start:01:reconst [0.00047097 s, 0.00766%]
+|     |     |     |     reconst:00:bc-zero [0.00057827 s, 0.0094%]
+|     |     |     |     reconst:01:height [0.011338 s, 0.184%]
+|     |     steps:02:iter [0.52572 s, 8.55%]
+|     |     |     iter:00:init [0.00079971 s, 0.013%]
+|     |     |     iter:01:adv [0.014038 s, 0.228%]
+|     |     |     iter:02:reconst [0.11899 s, 1.93%]
+|     |     |     |     reconst:00:bc-zero [0.0065182 s, 0.106%]
+|     |     |     |     reconst:01:height [0.11247 s, 1.83%]
+|     |     |     iter:03:adv [0.013063 s, 0.212%]
+|     |     |     iter:04:reconst [0.11448 s, 1.86%]
+|     |     |     |     reconst:00:bc-zero [0.0061505 s, 0.1%]
+|     |     |     |     reconst:01:height [0.10833 s, 1.76%]
+|     |     |     iter:05:curvcomm [0.0089307 s, 0.145%]
+|     |     |     iter:06:dumppoly [0.0011132 s, 0.0181%]
+|     |     |     |     dumppoly:00:local [0.00022055 s, 0.00359%]
+|     |     |     |     dumppoly:01:write [0.00089265 s, 0.0145%]
+|     |     |     iter:06:part-comm [0.029277 s, 0.476%]
+|     |     |     iter:07:part-comm [0.0034459 s, 0.056%]
+|     |     |     iter:07:part-run [0.18844 s, 3.06%]
+|     |     |     iter:08:part-nan [0.0086266 s, 0.14%]
+|     |     |     iter:08:part-run [0.018037 s, 0.293%]
+|     |     |     iter:09:part-dump [0.00057189 s, 0.0093%]
+|     |     |     iter:09:part-nan [0.00085778 s, 0.0139%]
+|     |     |     iter:10:part-dump [0.0043684 s, 0.071%]
+|     |     |     |     partdump:00:local [0.00042706 s, 0.00694%]
+|     |     |     |     partdump:01:write [0.0039413 s, 0.0641%]
+|     |     |     iter:10:stat [0.00062463 s, 0.0102%]
+|     |     |     iter:11:stat [5.0285e-05 s, 0.000817%]
+|     |     steps:03:finish [0.0006306 s, 0.0103%]
+|     |     steps:04:report [0.0012879 s, 0.0209%]
+|     |     steps:05:convcheck [0.00049288 s, 0.00801%]
+|     run:11:color [0.034275 s, 0.557%]
+|     |     upd:00: [0.034275 s, 0.557%]
+|     run:12:dt [0.0013964 s, 0.0227%]
+|     |     dt:00:local [0.00085625 s, 0.0139%]
+|     |     dt:01:reduce [0.00054017 s, 0.00878%]
+|     run:13:dump [0.007133 s, 0.116%]
+|     run:14:dumpwrite [0.00029315 s, 0.00477%]
+|     run:15:color-calc [0.00040648 s, 0.00661%]
+|     run:16:color-reduce [0.00049921 s, 0.00811%]
+|     run:17:dmptrep [0.00032408 s, 0.00527%]
+|     run:18:dumpstat [0.00060391 s, 0.00982%]
+|     run:19:inc [0.00026085 s, 0.00424%]

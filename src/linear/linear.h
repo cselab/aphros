@@ -286,7 +286,7 @@ std::ostream& operator<<(std::ostream& out,
 
 template <class M, class S>
 void PrintSystem(S& s, M& m, std::ostream& o) {
-  auto bc = m.GetBlockCells();
+  auto bc = m.GetIndexCells();
   for (auto i : m.Cells()) {
     o << bc.GetMIdx(i) << " "; 
     auto& e = s[i];
@@ -868,16 +868,13 @@ class LinearSolverFactory {
 };
 
 template <class M, class Expr, class Scal=typename M::Scal>
-typename M::LS ConvertLs(
-    const FieldCell<Expr>& fce,
-    std::vector<Scal>& la, 
-    std::vector<Scal>& lb, 
-    std::vector<Scal>& lx, 
-    const M& m) {
+typename M::LS ConvertLs(const FieldCell<Expr>& fce, std::vector<Scal>& la, 
+                         std::vector<Scal>& lb, std::vector<Scal>& lx, 
+                         const M& m) {
   using LS = typename M::LS;
   using MIdx = typename M::MIdx;
   using IdxCell = IdxCell;
-  auto& bc = m.GetBlockCells();
+  auto& bc = m.GetIndexCells();
   LS l;
   // Get stencil from first inner cell
   {

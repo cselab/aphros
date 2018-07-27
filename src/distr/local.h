@@ -21,6 +21,7 @@ class Local : public DistrMesh<KF> {
 
   Local(MPI_Comm comm, KF& kf, Vars& par);
   typename M::BlockCells GetGlobalBlock() const override;
+  typename M::IndexCells GetGlobalIndex() const override;
   // Returns data field i from buffer defined on global mesh
   FieldCell<Scal> GetGlobalField(size_t i) override; 
 
@@ -115,7 +116,7 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par)
   std::cerr << "h from gm = " << h << std::endl;
   for (MIdx i : bc) {
     MyBlockInfo b;
-    IdxNode n = gm.GetBlockNodes().GetIdx(i * ms);
+    IdxNode n = gm.GetIndexNodes().GetIdx(i * ms);
     Vect o = gm.GetNode(n);
     std::cerr << "o=" << o << " n=" << n.GetRaw() <<  " i=" << i << std::endl;
     for (int q = 0; q < 3; ++q) {
@@ -161,9 +162,7 @@ auto Local<KF>::GetBlocks() -> std::vector<MIdx> {
 template <class KF>
 void Local<KF>::ReadBuffer(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
-    auto& k = *mk.at(b); // kernel
-    auto& m = k.GetMesh();
-
+    auto& m = mk.at(b)->GetMesh();
     ReadBuffer(m);
   }
 }
@@ -171,8 +170,7 @@ void Local<KF>::ReadBuffer(const std::vector<MIdx>& bb) {
 template <class KF>
 void Local<KF>::WriteBuffer(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
-    auto& k = *mk.at(b); // kernel
-    auto& m = k.GetMesh();
+    auto& m = mk.at(b)->GetMesh();
     WriteBuffer(m);
   }
 }
@@ -332,17 +330,17 @@ size_t Local<KF>::ReadBuffer(FieldCell<Scal>& fc, size_t e,  M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
   }
-  auto& bc = m.GetBlockCells();
-  auto& gbc = gm.GetBlockCells();
-  MIdx gs = gbc.GetDimensions();
+  auto& ndc = m.GetIndexCells();
+  auto& gndc = gm.GetIndexCells();
+  MIdx gs = gm.GetInBlockCells().GetSize();
   for (auto c : m.AllCells()) {
-    auto w = bc.GetMIdx(c);
+    auto w = ndc.GetMIdx(c);
     // periodic
     for (int d = 0; d < 3; ++d) {
       w[d] = (w[d] + gs[d]) % gs[d];
     }
-    auto gi = gbc.GetIdx(w);
-    fc[c] = buf_[e][gi];
+    auto gc = gndc.GetIdx(w);
+    fc[c] = buf_[e][gc];
   }
   return 1;
 }
@@ -358,9 +356,9 @@ size_t Local<KF>::ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e,  M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
   }
-  auto& bc = m.GetBlockCells();
-  auto& gbc = gm.GetBlockCells();
-  MIdx gs = gbc.GetDimensions();
+  auto& bc = m.GetIndexCells();
+  auto& gbc = gm.GetIndexCells();
+  MIdx gs = gm.GetInBlockCells().GetSize();
   for (auto c : m.AllCells()) {
     auto w = bc.GetMIdx(c);
     // periodic
@@ -421,8 +419,8 @@ size_t Local<KF>::WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
   }
-  auto& bc = m.GetBlockCells();
-  auto& gbc = gm.GetBlockCells();
+  auto& bc = m.GetIndexCells();
+  auto& gbc = gm.GetIndexCells();
   for (auto c : m.Cells()) {
     auto w = bc.GetMIdx(c); 
     auto gc = gbc.GetIdx(w); 
@@ -442,8 +440,8 @@ size_t Local<KF>::WriteBuffer(const FieldCell<Vect>& fc,
   if (e >= buf_.size()) {
     throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
   }
-  auto& bc = m.GetBlockCells();
-  auto& gbc = gm.GetBlockCells();
+  auto& bc = m.GetIndexCells();
+  auto& gbc = gm.GetIndexCells();
   for (auto c : m.Cells()) {
     auto w = bc.GetMIdx(c); 
     auto gc = gbc.GetIdx(w); 
@@ -494,7 +492,12 @@ void Local<KF>::WriteBuffer(M& m) {
 
 template <class KF>
 auto Local<KF>::GetGlobalBlock() const -> typename M::BlockCells {
-  return gm.GetBlockCells();
+  return gm.GetInBlockCells();
+}
+
+template <class KF>
+auto Local<KF>::GetGlobalIndex() const -> typename M::IndexCells {
+  return gm.GetIndexCells();
 }
 
 template <class KF>

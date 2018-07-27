@@ -16,29 +16,13 @@ class Approx {
 // Convection scheme
 enum class ConvSc { fou, cd, sou, quick };
 
-std::string GetName(ConvSc sc) {
-  switch (sc) {
-    case ConvSc::fou: return "fou";
-    case ConvSc::cd: return "cd";
-    case ConvSc::sou: return "sou";
-    case ConvSc::quick: return "quick";
-    default: throw std::runtime_error("InterpolateI: invalid ConvSc");
-  }
-  return "";
-}
+// Convection scheme name
+std::string GetName(ConvSc sc);
 
-ConvSc GetConvSc(std::string s) {
-  auto l = {ConvSc::fou, ConvSc::cd, ConvSc::sou, ConvSc::quick};
-  for (ConvSc sc : l) {
-    if (GetName(sc) == s) {
-      return sc;
-    }
-  }
-  throw std::runtime_error("ConvSc: invalid name=" + s);
-}
+// Convection scheme by name.
+ConvSc GetConvSc(std::string s);
 
-// Interpolation to inner faces with deferred correction.
-// in terms of exprssions.
+// Implicit interpolation to inner faces with deferred correction.
 // fc: field cell [s]
 // fc: gradient [s]
 // ffw: flow direction [i]
@@ -48,14 +32,15 @@ ConvSc GetConvSc(std::string s) {
 //   - sou: second order upwind
 //   - quick: QUICK
 // df: deferred correction factor (1. fully deferred)
+// th: threshold for flow direction, ffw > th or ffw < -th
 // Output:
-// ff: face cell [i]
+// ff: face cell [i], resize if needed
 template <class T, class M, class Expr>
 void InterpolateI(const FieldCell<T>& fc,
                   const FieldCell<typename M::Vect>& fcgp,
                   const FieldFace<T>& ffw, FieldFace<Expr>& ff, 
-                  const M& m, ConvSc sc, typename M::Scal df=1.,
-                  typename M::Scal th=1e-10) {
+                  const M& m, ConvSc sc, typename M::Scal df,
+                  typename M::Scal th) {
   using Scal = typename M::Scal;
 
   // f = fmm*a[0] + fm*a[1] + fp*a[2]
@@ -100,47 +85,6 @@ void InterpolateI(const FieldCell<T>& fc,
     }
   }
 }
-
-template <class M, class Expr>
-class FaceVal : public Approx<IdxFace, Expr> {
- public:
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  FaceVal(const M& m, const FieldFace<Scal>& w, 
-          const FieldCell<Scal>& fcp, const FieldCell<Vect>& fcgp, 
-          Scal th = 1e-10)
-      : m(m), w_(w), fcp_(fcp), fcgp_(fcgp), th_(th) {}
-  Expr GetExpr(IdxFace f) const override {
-    Expr e;
-    IdxCell cm = m.GetNeighbourCell(f, 0);
-    IdxCell cp = m.GetNeighbourCell(f, 1);
-    // f = fmm + fm + fp
-    //const std::array<Scal, 3> a = {0., 1., 0.}; // FOU
-    //const std::array<Scal, 3> a = {0., 0.5, 0.5}; // CD
-    //const std::array<Scal, 3> a = {-0.5, 1.5, 0.}; // SOU
-    const std::array<Scal, 3> a = {-1./8., 6./8., 3./8.}; // QUICK
-    if (w_[f] > th_) {
-      e.InsertTerm(a[1], cm);
-      e.InsertTerm(a[2] + a[0], cp);
-      e.SetConstant(4. * a[0] * fcgp_[cm].dot(m.GetVectToCell(f, 0)));
-    } else if (w_[f] < -th_) {
-      e.InsertTerm(a[2] + a[0], cm);
-      e.InsertTerm(a[1], cp);
-      e.SetConstant(4. * a[0] * fcgp_[cp].dot(m.GetVectToCell(f, 1)));
-    } else {
-      e.InsertTerm(0.5, cm);
-      e.InsertTerm(0.5, cp);
-    }
-    return e;
-  }
-
- private:
-  const M& m;
-  const FieldFace<Scal>& w_; // flow direction (wind)
-  const FieldCell<Scal>& fcp_; // previous
-  const FieldCell<Vect>& fcgp_; // gradient of previous
-  const Scal th_;
-};
 
 template <class M, class Expr>
 class FaceValB : public Approx<IdxFace, Expr> {
@@ -200,7 +144,7 @@ class FaceGrad : public Approx<IdxFace, Expr> {
   const M& m;
 };
 
-// Gradient to inner faces.
+// Implicit gradient in inner faces.
 // fc: field cell [s]
 // fc: gradient [s]
 // ffw: flow direction [i]

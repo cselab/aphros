@@ -39,7 +39,7 @@ class Tracker {
 template <class M_>
 void Tracker<M_>::Update(const FieldCell<Scal>& fcu) {
   using MIdx = typename M::MIdx;
-  auto& bc = m.GetBlockCells();
+  auto& bc = m.GetIndexCells();
 
   auto sem = m.GetSem("upd");
 

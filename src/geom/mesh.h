@@ -29,179 +29,131 @@ class MeshStructured {
   using Vect = GVect<Scal, dim>;
   using Dir = GDir<dim>;
   using MIdx = GMIdx<dim>;
-  using BlockNodes = GBlockNodes<dim>;
   using BlockCells = GBlockCells<dim>;
   using BlockFaces = GBlockFaces<dim>;
+  using BlockNodes = GBlockNodes<dim>;
+  using IndexCells = GIndex<IdxCell,dim>;
+  using IndexFaces = GIndex<IdxFace,dim>;
+  using IndexNodes = GIndex<IdxNode,dim>;
   static constexpr size_t kCellNumNeighbourFaces = 2 * dim;
   static constexpr size_t kCellNumNeighbourNodes = std::pow(2, dim);
   static constexpr size_t kFaceNumNeighbourNodes = std::pow(2, dim - 1);
   static constexpr size_t kFaceNumNeighbourCells = 2;
 
- private:
-  // b:Block, fc:FieldCell, ff:FieldFace, fn:FieldNode
-  BlockNodes b_nodes_;
-  FieldNode<Vect> fn_node_;
-  BlockCells b_cells_;
-  BlockFaces b_faces_;
-  // inner 
-  BlockCells b_incells_;
-  BlockFaces b_infaces_;
-  BlockNodes b_innodes_;
-  // support
-  BlockCells b_sucells_;
-  BlockFaces b_sufaces_;
-  BlockNodes b_sunodes_;
-
-
-  FieldCell<Vect> fc_center_;
-  FieldCell<Scal> fc_volume_;
-  FieldFace<Vect> ff_center_;
-  FieldFace<Scal> ff_area_;
-  FieldFace<Vect> ff_surface_;
-  std::array<IntIdx, kCellNumNeighbourFaces> cell_neighbour_cell_offset_;
-  FieldCell<std::array<IdxFace, kCellNumNeighbourFaces>> fc_neighbour_face_;
-  FieldCell<IdxNode> fc_neighbour_node_base_;
-  std::array<IntIdx, kCellNumNeighbourNodes> cell_neighbour_node_offset_;
-  FieldFace<Dir> ff_direction_;
-  FieldFace<std::array<IdxCell, kFaceNumNeighbourCells>> ff_neighbour_cell_;
-  FieldFace<std::array<IdxNode, kFaceNumNeighbourNodes>> ff_neighbour_node_;
-  FieldFace<std::array<Vect, kFaceNumNeighbourCells>> ff_to_cell_;
-  FieldCell<bool> fc_is_inner_;
-  FieldFace<bool> ff_is_inner_;
-  bool isroot_;
-  MIdx gs_;
-
- public:
-  // b_nodes: block of nodes
-  // fn_node: field of b_nodes with node positions
+  // b: begin, lower corner cell index
+  // cs: inner cells size
+  // dom: domain, rectangle covering inner cells
+  // hl: halo cells from each side
   // isroot: root block
-  // gs: global size
-  MeshStructured(const BlockNodes& b_nodes, 
-                 const FieldNode<Vect>& fn_node, 
-                 int hl, bool isroot, MIdx gs);
+  // gs: global mesh size
+  MeshStructured(MIdx b, MIdx cs, Rect<Vect> dom, int hl, bool isroot, MIdx gs);
   MIdx GetGlobalSize() const {
     return gs_;
   }
-  // TODO: rename to GetBlockAllCells()
-  const BlockCells& GetBlockCells() const {
-    return b_cells_;
+  // Indexer
+  const IndexCells& GetIndexCells() const {
+    return bcr_;
   }
-  const BlockFaces& GetBlockFaces() const {
-    return b_faces_;
+  const IndexFaces& GetIndexFaces() const {
+    return bfr_;
   }
-  const BlockNodes& GetBlockNodes() const {
-    return b_nodes_;
+  const IndexNodes& GetIndexNodes() const {
+    return bnr_;
   }
-  // TODO: rename to GetBlockCells()
+
+  // In blocks
   const BlockCells& GetInBlockCells() const {
-    return b_incells_;
+    return bci_;
   }
   const BlockFaces& GetInBlockFaces() const {
-    return b_infaces_;
+    return bfi_;
   }
   const BlockNodes& GetInBlockNodes() const {
-    return b_innodes_;
+    return bni_;
   }
-  // TODO: rename to GetBlockCells()
+
+  // Su blocks
   const BlockCells& GetSuBlockCells() const {
-    return b_sucells_;
+    return bcs_;
   }
   const BlockFaces& GetSuBlockFaces() const {
-    return b_sufaces_;
+    return bfs_;
   }
   const BlockNodes& GetSuBlockNodes() const {
-    return b_sunodes_;
+    return bns_;
   }
-  Vect GetCenter(IdxCell idx) const {
-    return fc_center_[idx];
+
+  // All blocks
+  const BlockCells& GetAllBlockCells() const {
+    return bca_;
   }
-  Vect GetCenter(IdxFace idx) const {
-    return ff_center_[idx];
+  const BlockFaces& GetAllBlockFaces() const {
+    return bfa_;
   }
-  Vect GetSurface(IdxFace idx) const {
-    return ff_surface_[idx];
+  const BlockNodes& GetAllBlockNodes() const {
+    return bna_;
   }
-  Vect GetNode(IdxNode idx) const {
-    return fn_node_[idx];
+  Vect GetCenter(IdxCell c) const {
+    return (dom_.lb + hh_) + Vect(bcr_.GetMIdx(c) - mb_) * h_;
   }
-  Scal GetVolume(IdxCell idx) const {
-    return fc_volume_[idx];
+  Vect GetCenter(IdxFace f) const {
+    auto p = bfr_.GetMIdxDir(f);
+    const MIdx& w = p.first;
+    size_t d(p.second);
+    Vect r = (dom_.lb + hh_) + Vect(w - mb_) * h_;
+    r[d] -= hh_[d];
+    return r;
   }
-  Scal GetArea(IdxFace idx) const {
-    return ff_area_[idx];
+  const Vect& GetSurface(IdxFace f) const {
+    return vs_[size_t(bfr_.GetDir(f))];
   }
-  size_t GetNumCells() const {
-    return b_cells_.size();
+  Vect GetNode(IdxNode n) const {
+    return dom_.lb + Vect(bnr_.GetMIdx(n) - mb_) * h_;
   }
-  size_t GetNumFaces() const {
-    return b_faces_.size();
+  Scal GetVolume(IdxCell) const {
+    return vol_;
   }
-  size_t GetNumNodes() const {
-    return b_nodes_.size();
+  Scal GetArea(IdxFace f) const {
+    return va_[size_t(bfr_.GetDir(f))];
   }
-  IdxCell GetNeighbourCell(IdxCell idx, size_t n) const {
-    // TODO: 3d specific
+  IdxCell GetNeighbourCell(IdxCell c, size_t q) const {
+    assert(q < kCellNumNeighbourFaces);
+    return IdxCell(size_t(c) + cnc_[q]);
+  }
+  IdxFace GetNeighbourFace(IdxCell c, size_t q) const {
+    assert(q < kCellNumNeighbourFaces);
+    return IdxFace(size_t(c) + cnf_[q]);
+  }
+  Scal GetOutwardFactor(IdxCell, size_t q) const {
+    assert(q < kCellNumNeighbourFaces);
+    return co_[q];
+  }
+  Vect GetOutwardSurface(IdxCell c, size_t n) const {
     assert(n < kCellNumNeighbourFaces);
-    if (fc_is_inner_[idx]) {
-      idx.AddRaw(cell_neighbour_cell_offset_[n]);
-    } else {
-      MIdx base = b_cells_.GetMIdx(idx);
-      MIdx offset = (std::vector<MIdx>{
-        MIdx{-1, 0, 0}, MIdx{1, 0, 0},
-        MIdx{0, -1, 0}, MIdx{0, 1, 0},
-        MIdx{0, 0, -1}, MIdx{0, 0, 1}})[n];
-      if (b_cells_.IsInside(base + offset)) {
-        idx.AddRaw(cell_neighbour_cell_offset_[n]);
-      } else {
-        idx = IdxCell::None();
-      }
-    }
-    return idx;
+    return GetSurface(GetNeighbourFace(c, n)) * GetOutwardFactor(c, n);
   }
-  IdxFace GetNeighbourFace(IdxCell idxcell, size_t n) const {
-    assert(n < kCellNumNeighbourFaces);
-    return fc_neighbour_face_[idxcell][n];
+  IdxNode GetNeighbourNode(IdxCell c, size_t q) const {
+    assert(q < kCellNumNeighbourNodes);
+    return IdxNode(size_t(c) + cnn_[q]);
   }
-  Scal GetOutwardFactor(IdxCell, size_t n) const {
-    // TODO: <= 3d specific, maybe replace with odd/even convention
-    assert(n < kCellNumNeighbourFaces);
-    Scal factor;
-    switch (n) {
-      case 0:
-      case 2:
-      case 4:
-        factor = -1.;
-        break;
-      default: // n == 1, 3, 5
-        factor = 1.;
-    }
-    return factor;
+  Dir GetDir(IdxFace f) const {
+    return bfr_.GetDir(f);
   }
-  Vect GetOutwardSurface(IdxCell idxcell, size_t n) const {
-    assert(n < kCellNumNeighbourFaces);
-    return GetSurface(GetNeighbourFace(idxcell, n)) *
-        GetOutwardFactor(idxcell, n);
+  IdxCell GetNeighbourCell(IdxFace f, size_t q) const {
+    auto qm = kFaceNumNeighbourCells;
+    assert(q < qm);
+    size_t d(bfr_.GetDir(f));
+    return IdxCell(size_t(f) + fnc_[d * qm + q]);
   }
-  IdxNode GetNeighbourNode(IdxCell idxcell, size_t n) const {
-    assert(n < kCellNumNeighbourNodes);
-    IdxNode idxnode = fc_neighbour_node_base_[idxcell];
-    idxnode.AddRaw(cell_neighbour_node_offset_[n]);
-    return idxnode;
-  }
-  Dir GetDir(IdxFace idx) const {
-    return ff_direction_[idx];
-  }
-  IdxCell GetNeighbourCell(IdxFace idx, size_t n) const {
+  Vect GetVectToCell(IdxFace f, size_t n) const {
     assert(n < kFaceNumNeighbourCells);
-    return ff_neighbour_cell_[idx][n];
+    return GetCenter(GetNeighbourCell(f, n)) - GetCenter(f);
   }
-  Vect GetVectToCell(IdxFace idx, size_t n) const {
-    assert(n < kFaceNumNeighbourCells);
-    return ff_to_cell_[idx][n];
-  }
-  IdxNode GetNeighbourNode(IdxFace idx, size_t n) const {
-    assert(n < kFaceNumNeighbourNodes);
-    return ff_neighbour_node_[idx][n];
+  IdxNode GetNeighbourNode(IdxFace f, size_t q) const {
+    auto qm = kFaceNumNeighbourNodes;
+    assert(q < qm);
+    size_t d(bfr_.GetDir(f));
+    return IdxNode(size_t(f) + fnn_[d * qm + q]);
   }
   size_t GetNumNeighbourFaces(IdxCell) const {
     return kCellNumNeighbourFaces;
@@ -220,64 +172,62 @@ class MeshStructured {
     return kFaceNumNeighbourNodes;
   }
   // inner means not halo
-  bool IsInner(IdxCell idxcell) const {
-    return fc_is_inner_[idxcell];
-  }
-  bool IsInner(IdxFace idxface) const {
-    return ff_is_inner_[idxface];
+  bool IsInner(IdxCell c) const {
+    MIdx w = bcr_.GetMIdx(c);
+    return bci_.GetBegin() <= w && w < bci_.GetEnd();
   }
 
-  // Returns range of all indices
+  // Returns range of raw indices
   template <class Idx>
-  GRange<Idx> GetAll() const { 
-    return GetAll((Idx*)0);
+  GRange<Idx> GetRaw() const { 
+    return GetRaw((Idx*)0);
   }
-  GRange<IdxCell> GetAll(IdxCell*) const { 
-    return GRange<IdxCell>(0, GetNumCells());
+  GRange<IdxCell> GetRaw(IdxCell*) const { 
+    return GRange<IdxCell>(0, bcr_.size());
   }
-  GRange<IdxFace> GetAll(IdxFace*) const { 
-    return GRange<IdxFace>(0, GetNumFaces());
+  GRange<IdxFace> GetRaw(IdxFace*) const { 
+    return GRange<IdxFace>(0, bfr_.size());
   }
-  GRange<IdxNode> GetAll(IdxNode*) const { 
-    return GRange<IdxNode>(0, GetNumNodes());
+  GRange<IdxNode> GetRaw(IdxNode*) const { 
+    return GRange<IdxNode>(0, bnr_.size());
   }
-  GRange<IdxCell> AllCells() const {
-    return GetAll<IdxCell>();
+  GRange<IdxCell> RawCells() const {
+    return GetRaw<IdxCell>();
   }
-  GRange<IdxFace> AllFaces() const {
-    return GetAll<IdxFace>();
+  GRange<IdxFace> RawFaces() const {
+    return GetRaw<IdxFace>();
   }
-  GRange<IdxNode> AllNodes() const {
-    return GetAll<IdxNode>();
+  GRange<IdxNode> RawNodes() const {
+    return GetRaw<IdxNode>();
   }
   // Type-cast to GRange required for GField initialization
   template <class Idx>
   operator GRange<Idx>() const {
-    return GetAll<Idx>(); 
+    return GetRaw<Idx>(); 
   }
 
   // Returns range of inner indices
   template <class Idx>
-  GRangeIn<Idx, dim> Get() const { 
-    return Get((Idx*)0);
+  GRangeIn<Idx, dim> GetIn() const { 
+    return GetIn((Idx*)0);
   }
-  GRangeIn<IdxCell, dim> Get(IdxCell*) const {
-    return GRangeIn<IdxCell, dim>(GetBlockCells(), GetInBlockCells());
+  GRangeIn<IdxCell, dim> GetIn(IdxCell*) const {
+    return GRangeIn<IdxCell, dim>(GetIndexCells(), GetInBlockCells());
   }
-  GRangeIn<IdxFace, dim> Get(IdxFace*) const {
-    return GRangeIn<IdxFace, dim>(GetBlockFaces(), GetInBlockFaces());
+  GRangeIn<IdxFace, dim> GetIn(IdxFace*) const {
+    return GRangeIn<IdxFace, dim>(GetIndexFaces(), GetInBlockFaces());
   }
-  GRangeIn<IdxNode, dim> Get(IdxNode*) const {
-    return GRangeIn<IdxNode, dim>(GetBlockNodes(), GetInBlockNodes());
+  GRangeIn<IdxNode, dim> GetIn(IdxNode*) const {
+    return GRangeIn<IdxNode, dim>(GetIndexNodes(), GetInBlockNodes());
   }
   GRangeIn<IdxCell, dim> Cells() const {
-    return Get<IdxCell>();
+    return GetIn<IdxCell>();
   }
   GRangeIn<IdxFace, dim> Faces() const {
-    return Get<IdxFace>();
+    return GetIn<IdxFace>();
   }
   GRangeIn<IdxNode, dim> Nodes() const {
-    return Get<IdxNode>();
+    return GetIn<IdxNode>();
   }
 
   // Returns range of support indices
@@ -286,13 +236,13 @@ class MeshStructured {
     return GetSu((Idx*)0);
   }
   GRangeIn<IdxCell, dim> GetSu(IdxCell*) const {
-    return GRangeIn<IdxCell, dim>(GetBlockCells(), GetSuBlockCells());
+    return GRangeIn<IdxCell, dim>(GetIndexCells(), GetSuBlockCells());
   }
   GRangeIn<IdxFace, dim> GetSu(IdxFace*) const {
-    return GRangeIn<IdxFace, dim>(GetBlockFaces(), GetSuBlockFaces());
+    return GRangeIn<IdxFace, dim>(GetIndexFaces(), GetSuBlockFaces());
   }
   GRangeIn<IdxNode, dim> GetSu(IdxNode*) const {
-    return GRangeIn<IdxNode, dim>(GetBlockNodes(), GetSuBlockNodes());
+    return GRangeIn<IdxNode, dim>(GetIndexNodes(), GetSuBlockNodes());
   }
   GRangeIn<IdxCell, dim> SuCells() const {
     return GetSu<IdxCell>();
@@ -304,76 +254,55 @@ class MeshStructured {
     return GetSu<IdxNode>();
   }
 
-  bool IsInside(IdxCell idxcell, Vect vect) const {
-    for (size_t i = 0; i < GetNumNeighbourFaces(idxcell); ++i) {
-      IdxFace idxface = GetNeighbourFace(idxcell, i);
-      if (GetOutwardSurface(idxcell, i).dot(vect - GetCenter(idxface)) > 0) {
+  // Returns range of all indices
+  template <class Idx>
+  GRangeIn<Idx, dim> GetAll() const { 
+    return GetAll((Idx*)0);
+  }
+  GRangeIn<IdxCell, dim> GetAll(IdxCell*) const {
+    return GRangeIn<IdxCell, dim>(GetIndexCells(), GetAllBlockCells());
+  }
+  GRangeIn<IdxFace, dim> GetAll(IdxFace*) const {
+    return GRangeIn<IdxFace, dim>(GetIndexFaces(), GetAllBlockFaces());
+  }
+  GRangeIn<IdxNode, dim> GetAll(IdxNode*) const {
+    return GRangeIn<IdxNode, dim>(GetIndexNodes(), GetAllBlockNodes());
+  }
+  GRangeIn<IdxCell, dim> AllCells() const {
+    return GetAll<IdxCell>();
+  }
+  GRangeIn<IdxFace, dim> AllFaces() const {
+    return GetAll<IdxFace>();
+  }
+  GRangeIn<IdxNode, dim> AllNodes() const {
+    return GetAll<IdxNode>();
+  }
+
+  bool IsInside(IdxCell c, Vect vect) const {
+    for (auto q : Nci()) {
+      IdxFace f = GetNeighbourFace(c, q);
+      if (GetOutwardSurface(c, q).dot(vect - GetCenter(f)) > 0) {
         return false;
       }
     }
     return true;
   }
-  IdxCell FindNearestCell(Vect point) const {
-    IdxCell idxcell_nearest = IdxCell(0);
-    for (auto idxcell : Cells()) {
-      if (point.dist(GetCenter(idxcell)) <
-          point.dist(GetCenter(idxcell_nearest))) {
-        idxcell_nearest = idxcell;
+  IdxCell FindNearestCell(Vect x) const {
+    Scal dn = std::numeric_limits<Scal>::max(); // sqrdist to nearest
+    IdxCell cn(0); // cell nearest
+    for (auto c : Cells()) {
+      Scal d = x.sqrdist(GetCenter(c));
+      if (d < dn) {
+        dn = d;
+        cn = c;
       }
     }
-    return idxcell_nearest;
+    return cn;
   }
-  Vect GetNormal(IdxFace idxface) const {
-    return GetSurface(idxface) / GetArea(idxface);
+  Vect GetNormal(IdxFace f) const {
+    return GetSurface(f) / GetArea(f);
   }
-  // Is root block
   bool IsRoot() const { return isroot_; }
-
- private:
-   Vect CalcCenter(IdxCell idxcell) const {
-     Vect res = Vect::kZero;
-     for (size_t i = 0; i < GetNumNeighbourNodes(idxcell); ++i) {
-       res += GetNode(GetNeighbourNode(idxcell, i));
-     }
-     return res / Scal(GetNumNeighbourNodes(idxcell));
-   }
-   // TODO: Face center using weighted sum
-   Vect CalcCenter(IdxFace idxface) const {
-     Vect res = Vect::kZero;
-     for (size_t i = 0; i < GetNumNeighbourNodes(idxface); ++i) {
-       res += GetNode(GetNeighbourNode(idxface, i));
-     }
-     return res / Scal(GetNumNeighbourNodes(idxface));
-   }
-   static Vect CalcTriangleSurface(Vect a, Vect b, Vect c) {
-     return (b - a).cross(c - a) * 0.5;
-   }
-   static Vect CalcTriangleCenter(Vect a, Vect b, Vect c) {
-     return (a + b + c) / 3.;
-   }
-   Vect CalcSurface(IdxFace idxface) const {
-     Vect res = Vect::kZero;
-
-     for (size_t i = 2; i < GetNumNeighbourNodes(idxface); ++i) {
-       Vect a = GetNode(GetNeighbourNode(idxface, 0));
-       Vect b = GetNode(GetNeighbourNode(idxface, i - 1));
-       Vect c = GetNode(GetNeighbourNode(idxface, i));
-       res += CalcTriangleSurface(a, b, c);
-     }
-
-     return res;
-   }
-   Scal CalcArea(IdxFace idxface) const {
-     return CalcSurface(idxface).norm();
-   }
-   Scal CalcVolume(IdxCell idxcell) const {
-     Scal res = 0.;
-     for (size_t i = 0; i < GetNumNeighbourFaces(idxcell); ++i) {
-       IdxFace idxface = GetNeighbourFace(idxcell, i);
-       res += GetCenter(idxface)[0] * GetOutwardSurface(idxcell, i)[0];
-     }
-     return res;
-   }
 
   // TODO: move to separate class: Sem, LS, Comm, Reduce, Solve
   // BEGIN DISTR
@@ -455,7 +384,13 @@ class MeshStructured {
   void Dump(const std::shared_ptr<Co>& o, std::string name) {
     vd_.push_back(std::make_pair(o, name));
   }
-  // XXX Reduce
+  // Returns buffers for linear system
+  void GetSolveTmp(std::vector<Scal>*& a, std::vector<Scal>*& b, 
+                   std::vector<Scal>*& x) {
+    a = &lsa_;
+    b = &lsb_;
+    x = &lsx_;
+  }
   void Solve(const LS& ls) {
     vls_.push_back(ls);
   }
@@ -507,7 +442,6 @@ class MeshStructured {
   void ClearReduce() {
     rd_.Clear();
   }
-
   const std::vector<LS>& GetSolve() const {
     return vls_;
   }
@@ -526,168 +460,228 @@ class MeshStructured {
   }
 
  private:
+  // b:Block, fc:FieldCell, ff:FieldFace, fn:FieldNode
+  // inner 
+  const BlockCells bci_;
+  const BlockFaces bfi_;
+  const BlockNodes bni_;
+  // all
+  const BlockCells bca_;
+  const BlockFaces bfa_;
+  const BlockNodes bna_;
+  // support
+  const BlockCells bcs_;
+  const BlockFaces bfs_;
+  const BlockNodes bns_;
+  // raw
+  const IndexCells bcr_;
+  const IndexFaces bfr_;
+  const IndexNodes bnr_;
+
+  const bool isroot_;
+  const MIdx gs_;
+  const MIdx mb_, me_; // begin,end of bci_
+  const Rect<Vect> dom_; // domain covering bci_
+  const Vect h_;
+  const Vect hh_; // h_/2
+  const Scal vol_;
+  std::array<Vect, dim> vs_; // surface vectors
+  Vect va_; // surface area
+  // cell neighbour cell 
+  std::array<size_t, kCellNumNeighbourFaces> cnc_; 
+  // cell neighbour face 
+  std::array<size_t, kCellNumNeighbourFaces> cnf_; 
+  // cell outward factor
+  std::array<Scal, kCellNumNeighbourFaces> co_; 
+  // cell neighbour node
+  std::array<size_t, kCellNumNeighbourNodes> cnn_; 
+  // face neighbour cell
+  std::array<size_t, kFaceNumNeighbourCells * dim> fnc_; 
+  // face neighbour node
+  std::array<size_t, kFaceNumNeighbourNodes * dim> fnn_; 
+
   Suspender susp_;
   std::vector<std::shared_ptr<Co>> vcm_; // comm
   std::vector<std::pair<std::shared_ptr<Co>, std::string>> vd_;  // dump
   std::string trep_; // timer report filename
   Rd rd_;
   std::vector<LS> vls_; // solve
+  // tmp for GetSolveTmp()
+  std::vector<Scal> lsa_; // matrix coeffs of size n * st.size()
+  std::vector<Scal> lsb_; // rhs of size n
+  std::vector<Scal> lsx_; // solution and initial guess of size n
 };
 
 
 template <class _Scal, size_t _dim>
 MeshStructured<_Scal, _dim>::MeshStructured(
-    const BlockNodes& b_nodes,
-    const FieldNode<Vect>& fn_node,
-    int hl, bool isroot, MIdx gs)
-    : b_nodes_(b_nodes)
-    , fn_node_(fn_node)
-    , b_cells_(b_nodes_.GetBegin(), b_nodes_.GetDimensions() - MIdx(1))
-    , b_faces_(b_nodes_.GetBegin(), b_cells_.GetDimensions())
-    , b_incells_(b_cells_.GetBegin() + MIdx(hl), 
-                 b_cells_.GetDimensions() - MIdx(2*hl))
-    , b_infaces_(b_cells_.GetBegin() + MIdx(hl), 
-                 b_cells_.GetDimensions() - MIdx(2*hl))
-    , b_innodes_(b_nodes_.GetBegin() + MIdx(hl), 
-                 b_nodes_.GetDimensions() - MIdx(2*hl))
-    , b_sucells_(b_cells_.GetBegin() + MIdx(1), 
-                 b_cells_.GetDimensions() - MIdx(2))
-    , b_sufaces_(b_cells_.GetBegin() + MIdx(1), 
-                 b_cells_.GetDimensions() - MIdx(2))
-    , b_sunodes_(b_nodes_.GetBegin() + MIdx(1), 
-                 b_nodes_.GetDimensions() - MIdx(2))
-    , fc_center_(b_cells_)
-    , fc_volume_(b_cells_)
-    , ff_center_(b_faces_)
-    , ff_area_(b_faces_)
-    , ff_surface_(b_faces_)
-    , fc_neighbour_face_(b_cells_)
-    , fc_neighbour_node_base_(b_cells_)
-    , ff_direction_(b_faces_)
-    , ff_neighbour_cell_(b_faces_)
-    , ff_neighbour_node_(b_faces_)
-    , ff_to_cell_(b_faces_)
-    , fc_is_inner_(b_cells_, false)
-    , ff_is_inner_(b_faces_, false)
+    MIdx b, MIdx cs, Rect<Vect> dom, int hl, bool isroot, MIdx gs)
+      // inner
+    : bci_(b, cs)
+    , bfi_(bci_.GetBegin(), bci_.GetSize())
+    , bni_(bci_.GetBegin(), bci_.GetSize() + MIdx(1))
+      // all
+    , bca_(b - MIdx(hl), cs + MIdx(2 * hl))
+    , bfa_(bca_.GetBegin(), bca_.GetSize())
+    , bna_(bca_.GetBegin(), bca_.GetSize() + MIdx(1))
+      // support
+    , bcs_(bca_.GetBegin() + MIdx(1), bca_.GetSize() - MIdx(2))
+    , bfs_(bcs_.GetBegin(), bcs_.GetSize())
+    , bns_(bcs_.GetBegin(), bcs_.GetSize() + MIdx(1))
+      // raw
+    , bcr_(bca_.GetBegin(), bca_.GetSize() + MIdx(1))
+    , bfr_(bcr_.GetBegin(), bcr_.GetSize())
+    , bnr_(bcr_.GetBegin(), bcr_.GetSize())
     , isroot_(isroot)
     , gs_(gs)
+    , mb_(bci_.GetBegin())
+    , me_(bci_.GetEnd())
+    , dom_(dom)
+    , h_(dom.GetDimensions() / Vect(bci_.GetSize()))
+    , hh_(h_ * 0.5)
+    , vol_(h_.prod())
 {
   static_assert(dim == 3, "Not implemented for dim != 3");
-  MIdx mb = b_cells_.GetBegin(), me = b_cells_.GetEnd();
 
-  // Base for cell neighbours
-  for (auto midx : b_cells_) {
-    IdxCell idxcell(b_cells_.GetIdx(midx));
-    fc_neighbour_node_base_[idxcell] = b_nodes_.GetIdx(midx);
+  // mesh step
 
-    auto nface = [this, midx](IntIdx i, IntIdx j, IntIdx k, Dir dir) {
-      return b_faces_.GetIdx(midx + MIdx(i, j, k), dir);
-    };
-    fc_neighbour_face_[idxcell] = {{
-        nface(0, 0, 0, Dir::i),
-        nface(1, 0, 0, Dir::i),
-        nface(0, 0, 0, Dir::j),
-        nface(0, 1, 0, Dir::j),
-        nface(0, 0, 0, Dir::k),
-        nface(0, 0, 1, Dir::k)}};
-  }
+  // surface area
+  va_[0] = h_[1] * h_[2];
+  va_[1] = h_[2] * h_[0];
+  va_[2] = h_[0] * h_[1];
 
-  // Mark inner cells
-  for (auto i : this->Cells()) {
-    fc_is_inner_[i] = true;
-  }
+  // surface vectors
+  vs_[0] = Vect(va_[0], 0., 0.);
+  vs_[1] = Vect(0., va_[1], 0.);
+  vs_[2] = Vect(0., 0., va_[2]);
 
-  // Offset for cell neighbour cells
+  // cell neighbour cell offset
   {
-    auto offset = [this](IntIdx i, IntIdx j, IntIdx k) {
-      return static_cast<IntIdx>(b_cells_.GetIdx(MIdx(i, j, k)).GetRaw() -
-          b_cells_.GetIdx(MIdx(0, 0, 0)).GetRaw());
-    };
-
-    cell_neighbour_cell_offset_ = {{offset(-1, 0, 0), offset(1, 0, 0),
-                                  offset(0, -1, 0), offset(0, 1, 0),
-                                  offset(0, 0, -1), offset(0, 0, 1)}};
-  }
-
-  // Offset for cell neighbour nodes
-  {
-    auto offset = [this](IntIdx i, IntIdx j, IntIdx k) {
-      return static_cast<IntIdx>(b_nodes_.GetIdx(MIdx(i, j, k)).GetRaw() -
-          b_nodes_.GetIdx(MIdx(0, 0, 0)).GetRaw());
-    };
-
-    cell_neighbour_node_offset_ = {{offset(0, 0, 0), offset(1, 0, 0),
-                                  offset(0, 1, 0), offset(1, 1, 0),
-                                  offset(0, 0, 1), offset(1, 0, 1),
-                                  offset(0, 1, 1), offset(1, 1, 1)}};
-  }
-
-  // Base for i-face and j-face neighbours
-  for (Dir dir : {Dir::i, Dir::j, Dir::k}) {
-    for (auto midx : BlockCells(mb, me - mb + MIdx(dir))) {
-      IdxFace idxface = b_faces_.GetIdx(midx, dir);
-      ff_direction_[idxface] = dir;
-      ff_neighbour_cell_[idxface] = {{
-          b_cells_.GetIdx(midx - MIdx(dir)),
-          b_cells_.GetIdx(midx)}};
-
-      auto l = [this, &midx](IntIdx i, IntIdx j, IntIdx k) {
-        return b_nodes_.GetIdx(midx + MIdx(i, j, k));
+    MIdx w = bcr_.GetBegin(); // any cell
+    IdxCell c = bcr_.GetIdx(w);
+    for (auto q : Nci(c)) {
+      MIdx wo;
+      switch (q) {
+        case 0: wo = MIdx(-1, 0, 0); break;
+        case 1: wo = MIdx(1, 0, 0); break;
+        case 2: wo = MIdx(0, -1, 0); break;
+        case 3: wo = MIdx(0, 1, 0); break;
+        case 4: wo = MIdx(0, 0, -1); break;
+        default: 
+        case 5: wo = MIdx(0, 0, 1); break;
       };
-      if (dir == Dir::i) {
-        ff_neighbour_node_[idxface] = {{
-            l(0,0,0), l(0,1,0), l(0,1,1), l(0,0,1)}};
-      } else if (dir == Dir::j) {
-        ff_neighbour_node_[idxface] = {{
-            l(0,0,0), l(0,0,1), l(1,0,1), l(1,0,0)}};
-      } else {
-        // dir == Dir::k
-        ff_neighbour_node_[idxface] = {{
-            l(0,0,0), l(1,0,0), l(1,1,0), l(0,1,0)}};
-      }
+      IdxCell cn = bcr_.GetIdx(w + wo);
+      cnc_[q] = cn.GetRaw() - c.GetRaw();
+    }
+  }
 
-      const size_t sd(dir);
-      if (midx[sd] == mb[sd]) {
-        ff_neighbour_cell_[idxface][0] = IdxCell::None();
-      }
-      if (midx[sd] == me[sd]) {
-        ff_neighbour_cell_[idxface][1] = IdxCell::None();
+  // cell neighbour face offset
+  {
+    MIdx w = bcr_.GetBegin(); // any cell
+    IdxCell c = bcr_.GetIdx(w);
+    for (auto q : Nci(c)) {
+      MIdx wo;
+      Dir d;
+      switch (q) {
+        case 0: wo = MIdx(0, 0, 0); d = Dir::i; break;
+        case 1: wo = MIdx(1, 0, 0); d = Dir::i; break;
+        case 2: wo = MIdx(0, 0, 0); d = Dir::j; break;
+        case 3: wo = MIdx(0, 1, 0); d = Dir::j; break;
+        case 4: wo = MIdx(0, 0, 0); d = Dir::k; break;
+        default: 
+        case 5: wo = MIdx(0, 0, 1); d = Dir::k; break;
+      };
+      IdxFace fn = bfr_.GetIdx(std::make_pair(w + wo, d));
+      cnf_[q] = fn.GetRaw() - c.GetRaw();
+    }
+  }
+
+  // cell outward factor
+  {
+    for (size_t q = 0; q < kCellNumNeighbourFaces; ++q) {
+      co_[q] = (q % 2 == 0 ? -1. : 1.);
+    }
+  }
+
+  // cell neighbour node offset
+  {
+    MIdx w = bcr_.GetBegin(); // any cell
+    IdxCell c = bcr_.GetIdx(w);
+    auto qm = kCellNumNeighbourNodes;
+    for (size_t q = 0; q < qm; ++q) {
+      MIdx wo;
+      switch (q) {
+        case 0: wo = MIdx(0, 0, 0); break;
+        case 1: wo = MIdx(1, 0, 0); break;
+        case 2: wo = MIdx(0, 1, 0); break;
+        case 3: wo = MIdx(1, 1, 0); break;
+        case 4: wo = MIdx(0, 0, 1); break;
+        case 5: wo = MIdx(1, 0, 1); break;
+        case 6: wo = MIdx(0, 1, 1); break;
+        default: 
+        case 7: wo = MIdx(1, 1, 1); break;
+      };
+      IdxNode nn = bnr_.GetIdx(w + wo);
+      cnn_[q] = nn.GetRaw() - c.GetRaw();
+    }
+  }
+
+  // face neighbour cell offset
+  {
+    MIdx w = bcr_.GetBegin(); // any cell
+    for (size_t d = 0; d < dim; ++d) {
+      IdxFace f = bfr_.GetIdx(w, Dir(d));
+      auto qm = kFaceNumNeighbourCells;
+      for (size_t q = 0; q < qm; ++q) {
+        MIdx wo(0);
+        switch (q) {
+          case 0: wo[d] = -1;  break;
+          default: 
+          case 1: wo[d] = 0;  break;
+        };
+        IdxCell cn = bcr_.GetIdx(w + wo);
+        fnc_[d * qm + q] = cn.GetRaw() - f.GetRaw();
       }
     }
   }
 
-  // Face centers, area
-  for (auto idx : this->AllFaces()) {
-    ff_center_[idx] = CalcCenter(idx);
-    ff_area_[idx] = CalcArea(idx);
-    ff_surface_[idx] = CalcSurface(idx);
-  }
-
-  // Cell centers, volume
-  for (auto idx : this->AllCells()) {
-    fc_center_[idx] = CalcCenter(idx);
-    fc_volume_[idx] = CalcVolume(idx);
-  }
-
-  // Vect to cell
-  for (Dir dir : {Dir::i, Dir::j, Dir::k}) {
-    for (auto midx : BlockCells(mb, me - mb + MIdx(dir))) {
-      IdxFace idxface = b_faces_.GetIdx(midx, dir);
-      IdxCell c;
-      c = GetNeighbourCell(idxface, 0);
-      if (!c.IsNone()) {
-        ff_to_cell_[idxface][0] = GetCenter(c) - GetCenter(idxface);
-      }
-      c = GetNeighbourCell(idxface, 1);
-      if (!c.IsNone()) {
-        ff_to_cell_[idxface][1] = GetCenter(c) - GetCenter(idxface);
+  // face neighbour cell offset
+  {
+    MIdx w = bcr_.GetBegin(); // any cell
+    for (size_t d = 0; d < dim; ++d) {
+      IdxFace f = bfr_.GetIdx(w, Dir(d));
+      auto qm = kFaceNumNeighbourNodes;
+      for (size_t q = 0; q < qm; ++q) {
+        MIdx wo;
+        if (d == 0) {
+          switch (q) {
+            case 0: wo = MIdx(0,0,0); break;
+            case 1: wo = MIdx(0,1,0); break;
+            case 2: wo = MIdx(0,1,1); break;
+            default:
+            case 3: wo = MIdx(0,0,1); break;
+          }
+        } else if (d == 1) {
+          switch (q) {
+            case 0: wo = MIdx(0,0,0); break;
+            case 1: wo = MIdx(0,0,1); break;
+            case 2: wo = MIdx(1,0,1); break;
+            default:
+            case 3: wo = MIdx(1,0,0); break;
+          }
+        } else {
+          switch (q) {
+            case 0: wo = MIdx(0,0,0); break;
+            case 1: wo = MIdx(1,0,0); break;
+            case 2: wo = MIdx(1,1,0); break;
+            default:
+            case 3: wo = MIdx(0,1,0); break;
+          }
+        }
+        IdxNode nn = bnr_.GetIdx(w + wo);
+        fnn_[d * qm + q] = nn.GetRaw() - f.GetRaw();
       }
     }
-  }
-
-  // Mark inner faces
-  for (auto idxface : this->Faces()) {
-    ff_is_inner_[idxface] = true; 
   }
 }
 
@@ -704,21 +698,12 @@ M InitUniformMesh(Rect<typename M::Vect> domain,
                      typename M::MIdx begin,
                      typename M::MIdx s, int hl, bool isroot,
                      typename M::MIdx gs) {
-  using Vect = typename M::Vect;
-  using MIdx = typename M::MIdx;
-  typename M::BlockNodes b_nodes(begin - MIdx(hl), s + MIdx(1 + 2*hl));
-  FieldNode<Vect> fn_node(b_nodes);
-  for (auto midx : b_nodes) {
-    IdxNode idxnode = b_nodes.GetIdx(midx);
-    Vect unit = Vect(midx - b_nodes.GetBegin() - MIdx(hl)) / Vect(s);
-    fn_node[idxnode] = domain.lb + unit * domain.GetDimensions();
-  }
-  return M(b_nodes, fn_node, hl, isroot, gs);
+  return M(begin, s, domain, hl, isroot, gs);
 }
 
 template <class M>
 M InitUniformMesh(const Rect<typename M::Vect>& domain,
-                     typename M::MIdx s, typename M::MIdx gs) {
+                  typename M::MIdx s, typename M::MIdx gs) {
   using MIdx = typename M::MIdx;
   return InitUniformMesh<M>(domain, MIdx(0), s, true, gs);
 }

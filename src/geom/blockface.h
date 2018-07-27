@@ -5,10 +5,6 @@
 #include "block.h"
 #include "dir.h"
 
-#define BLOCKFACE_DZYX
-//#define BLOCKFACE_ZYXD
-
-#ifdef BLOCKFACE_DZYX
 // Specialization for IdxFace
 // Enumeration order (to more frequent): dir, z, y, x
 template <size_t dim_>
@@ -21,24 +17,24 @@ class GBlock<IdxFace, dim_> {
 
   class iterator {
     const GBlock* o_; // owner
-    MIdx x_;
+    MIdx w_;
     Dir d_;
 
    public:
-    explicit iterator(const GBlock* o, MIdx x, Dir d)
-        : o_(o), x_(x), d_(d)
+    explicit iterator(const GBlock* o, MIdx w, Dir d)
+        : o_(o), w_(w), d_(d)
     {}
     iterator& operator++() {
-      MIdx xd(d_);
+      MIdx wd(d_);
       for (size_t n = 0; n < dim; ++n) {
-        ++x_[n]; // increment current
-        if (x_[n] == o_->b_[n] + o_->cs_[n] + xd[n]) { // if end reached
+        ++w_[n]; // increment current
+        if (w_[n] == o_->b_[n] + o_->cs_[n] + wd[n]) { // if end reached
           if (n < dim - 1) {  
-            x_[n] = o_->b_[n];  // reset to begin
+            w_[n] = o_->b_[n];  // reset to begin
           } else {  // if end reached for last dim
             if (size_t(d_) < dim - 1) {
               d_ = Dir(size_t(d_) + 1);
-              x_ = o_->b_;
+              w_ = o_->b_;
             }
           }
         } else {
@@ -48,51 +44,46 @@ class GBlock<IdxFace, dim_> {
       return *this;
     }
     bool operator==(const iterator& o) const {
-      return x_ == o.x_ && d_ == o.d_;
+      return w_ == o.w_ && d_ == o.d_;
     }
     bool operator!=(const iterator& o) const {
       return !(*this == o);
     }
     std::pair<MIdx, Dir> operator*() const {
-      return std::make_pair(x_, d_);
+      return std::make_pair(w_, d_);
+    }
+    // Returns number of calls ++i_ for which
+    // GetIdx(*++i_).GetRaw() == GetIdx(*i_).GetRaw() + 1
+    // (i.e. increment of iterator equivalent to increment of index)
+    size_t GetLite() const {
+      MIdx wd(d_);
+      assert(w_[0] + 1 <= o_->b_[0] + o_->cs_[0] + wd[0]);
+      return o_->b_[0] + o_->cs_[0] + wd[0] - w_[0] - 1;
+    }
+    void IncLite(size_t a) {
+      w_[0] += a;
     }
   };
 
-  GBlock()
-      : b_(MIdx::kZero), cs_(MIdx::kZero)
-  {}
-  GBlock(MIdx block_cells_size)
-      : b_(MIdx::kZero), cs_(block_cells_size)
-  {}
-  GBlock(MIdx begin, MIdx block_cells_size)
-      : b_(begin), cs_(block_cells_size)
-  {}
-  size_t size() const {
-    size_t res = 0;
-    for (size_t i = 0; i < dim; ++i) {
-      res += GetNumFaces(i);
+  // b: begin, lower corner cell index
+  // cs: cells size
+  GBlock(MIdx b, MIdx cs) 
+      : b_(b), cs_(cs)
+  {
+    // number of faces
+    nfa_ = 0;
+    for (size_t d = 0; d < dim; ++d) {
+      nf_[d] = CalcNumFaces(d);
+      nfa_ += nf_[d];
     }
-    return res;
+  }
+  GBlock(MIdx cs) : GBlock(MIdx(0), cs) {}
+  GBlock() : GBlock(MIdx(0), MIdx(0)) {}
+  size_t size() const {
+    return nfa_;
   }
   operator GRange<Idx>() const {
     return GRange<Idx>(0, size());
-  }
-  Idx GetIdx(MIdx midx, Dir dir) const {
-    size_t raw = 0;
-    for (size_t i = 0; i < size_t(dir); ++i) {
-      raw += GetNumFaces(i);
-    }
-    raw += GetFlat(midx, dir);
-    return Idx(raw);
-  }
-  Idx GetIdx(std::pair<MIdx, Dir> p) const {
-    return GetIdx(p.first, p.second);
-  }
-  MIdx GetMIdx(Idx idx) const {
-    return GetMIdxDir(idx).first;
-  }
-  Dir GetDir(Idx idx) const {
-    return GetMIdxDir(idx).second;
   }
   MIdx GetSize() const {
     return cs_;
@@ -101,240 +92,142 @@ class GBlock<IdxFace, dim_> {
     return iterator(this, b_, Dir(0));
   }
   iterator end() const {
-    MIdx x = b_;
+    MIdx w = b_;
     auto ld = dim - 1; // last direction
-    x[ld] = (b_ + cs_)[ld] + 1;
-    return iterator(this, x, Dir(ld));
+    w[ld] = (b_ + cs_)[ld] + 1;
+    return iterator(this, w, Dir(ld));
   }
 
  private:
-  MIdx b_;
-  MIdx cs_; // cells size
-  size_t GetNumFaces(Dir dir) const {
-    MIdx bcs = cs_;
-    ++bcs[size_t(dir)];
-    size_t res = 1;
-    for (size_t i = 0; i < dim; ++i) {
-      res *= bcs[i];
-    }
-    return res;
+  const MIdx b_;
+  const MIdx cs_; // cells size
+  MIdx nf_; // number of faces in each direction
+  size_t nfa_; // total number of faces
+  size_t GetNumFaces(size_t d) const {
+    return nf_[d];
   }
-  size_t GetNumFaces(size_t i) const {
-    return GetNumFaces(Dir(i));
-  }
-  size_t GetFlat(MIdx midx, Dir dir) const {
-    midx -= b_;
+  size_t CalcNumFaces(size_t d) const {
     MIdx bcs = cs_;
-    ++bcs[size_t(dir)];
-    size_t res = 0;
+    ++bcs[d];
+    return bcs.prod();
+  }
+  size_t GetFlat(MIdx w, size_t d) const {
+    w -= b_;
+    MIdx bcs = cs_;
+    ++bcs[d];
+    size_t r = 0;
     for (size_t i = dim; i != 0; ) {
       --i;
-      res *= bcs[i];
-      res += midx[i];
+      r *= bcs[i];
+      r += w[i];
     }
-    return res;
+    return r;
   }
-  MIdx GetMIdxFromOffset(size_t raw, Dir dir) const {
+  // r: offset from first face with direction d
+  // d: direction
+  MIdx GetMIdxFromOffset(size_t r, size_t d) const {
     MIdx bcs = cs_;
-    ++bcs[size_t(dir)];
-    MIdx midx;
+    ++bcs[d];
+    MIdx w;
     for (size_t i = 0; i < dim; ++i) {
-      midx[i] = raw % bcs[i];
-      raw /= bcs[i];
+      w[i] = r % bcs[i];
+      r /= bcs[i];
     }
-    return b_ + midx;
-  }
-
- public:
-  std::pair<MIdx, Dir> GetMIdxDir(Idx idxface) const {
-    size_t raw = idxface.GetRaw();
-    size_t diridx = 0;
-    while (raw >= GetNumFaces(diridx) && diridx < dim) {
-      raw -= GetNumFaces(diridx);
-      ++diridx;
-    }
-    Dir dir(diridx); return {GetMIdxFromOffset(raw, dir), dir};
+    return b_ + w;
   }
 };
-#endif
 
-#ifdef BLOCKFACE_ZYXD
 // Specialization for IdxFace
-// Enumeration order (to more frequent): z, y, x, dir
+// Enumeration order (to more frequent): dir, z, y, x
 template <size_t dim_>
-class GBlock<IdxFace, dim_> { // [s]andbox
+class GIndex<IdxFace, dim_> {
  public:
   static constexpr size_t dim = dim_;
   using Idx = IdxFace;
   using MIdx = GMIdx<dim>;
   using Dir = GDir<dim>;
-  
-  static_assert(dim == 3, "GBlock<IdxFace,...> implemented only for dim=3");
 
-  class iterator {
-    const GBlock* o_; // owner
-    MIdx x_;
-    Dir d_;
-
-   public:
-    explicit iterator(const GBlock* o, MIdx x, Dir d)
-        : o_(o), x_(x), d_(d)
-    {}
-    iterator& operator++() {
-      auto& s = o_->cs_;
-      auto& x = x_;
-      auto& b = o_->b_;
-      auto& e = o_->e_;
-      auto& d = d_;
-
-      if (x[2] == e[2]) { // z-boundary
-        ++x[0];
-        if (x[0] == e[0]) {
-          x[0] = b[0];
-          ++x[1];  // end would be: (b[0], e[1], e[2])
-        }
-      } else if (x[1] == e[1]) { // y-edge
-        ++x[0];
-        if (x[0] == e[0]) { // next x-end
-          ++x[2];
-          x[1] = b[1];
-          x[0] = b[0];
-          d = Dir(0);
-          if (x[2] == e[2]) { // next z-edge
-            d = Dir(2);
-          } 
-        } 
-      } else if (x[0] == e[0]) { // x-edge
-          x[0] = b[0];
-          ++x[1];
-          if (x[1] == e[1]) { // next y-edge
-            d = Dir(1);
-          }
-      } else if (d == Dir(2)) { // dirz
-        ++x[0];
-        d = Dir(0);
-      } else {
-        d = Dir(size_t(d) + 1);
-      }
-
-      return *this;
+  // b: begin, lower corner
+  // rs: raw size (underlying block that fits all faces_)
+  GIndex(MIdx b, MIdx rs) 
+      : b_(b), rs_(rs), br_(b_, rs_)
+  {
+    // number of faces in each direction
+    nfa_ = 0;
+    for (size_t d = 0; d < dim; ++d) {
+      nf_[d] = CalcNumFaces(d);
+      nfa_ += nf_[d];
     }
-    bool operator==(const iterator& o) const {
-      return x_ == o.x_ && d_ == o.d_;
+    // cumulative number of faces
+    nfc_[0] = 0;
+    for (size_t d = 1; d < dim; ++d) {
+      nfc_[d] = nfc_[d - 1] + nf_[d - 1];
     }
-    bool operator!=(const iterator& o) const {
-      return !(*this == o);
-    }
-    std::pair<MIdx, Dir> operator*() const {
-      return std::make_pair(x_, d_);
-    }
-  };
-
-  GBlock(MIdx begin, MIdx cells)
-      : b_(begin), cs_(cells), e_(b_ + cs_)
-  {}
-  GBlock(MIdx cells)
-      : GBlock(MIdx(0), cells)
-  {}
-  GBlock()
-      : GBlock(MIdx(0), MIdx(0))
-  {}
+  }
+  GIndex(MIdx rs) : GIndex(MIdx(0), rs) {}
+  GIndex() : GIndex(MIdx(0), MIdx(0)) {}
   size_t size() const {
-    size_t res = 0;
-    for (size_t i = 0; i < dim; ++i) {
-      res += GetNumFaces(i);
-    }
-    return res;
+    return nfa_;
   }
   operator GRange<Idx>() const {
     return GRange<Idx>(0, size());
   }
-  Idx GetIdx(MIdx x, Dir d) const {
-    x -= b_;
-    size_t r = 0;
-    auto& s = cs_;
-    r += (s[1] * s[0] + (s[1] + 1) * s[0] + (s[0] + 1) * s[1]) * x[2]; 
-    if (x[2] == s[2]) {
-      r += s[0] * x[1] + x[0];   // z-boundary
-    } else {
-      r += (3 * s[0] + 1) * x[1];
-      if (x[1] == s[1]) {
-        r += x[0]; // y-boundary
-      } else {
-        r += 3 * x[0] + size_t(d);
-      }
-    }
+  Idx GetIdx(MIdx w, Dir d) const {
+    size_t r = GetBase(size_t(d)) + br_.GetIdx(w);
     return Idx(r);
   }
   Idx GetIdx(std::pair<MIdx, Dir> p) const {
     return GetIdx(p.first, p.second);
   }
-  MIdx GetMIdx(Idx idx) const {
-    return GetMIdxDir(idx).first;
-  }
-  Dir GetDir(Idx idx) const {
-    return GetMIdxDir(idx).second;
-  }
-  MIdx GetSize() const {
-    return cs_;
-  }
-  iterator begin() const {
-    return iterator(this, b_, Dir(0));
-  }
-  iterator end() const {
-    return iterator(this, MIdx(b_[0], e_[1], e_[2]), Dir(2));
-  }
-  std::pair<MIdx, Dir> GetMIdxDir(Idx i) const {
-    size_t r = i.GetRaw();
-    MIdx x;
-    Dir d;
-    auto& s = cs_;
-    const size_t n = size();
-    if (r >= n - s[0] * s[1]) {  // z-boundary
-      r -= n - s[0] * s[1];
-      x[2] = s[2];
-      x[1] = r / s[0];
-      x[0] = r % s[0];
-      d = Dir(2);
-    } else {
-      auto w = (s[1] * s[0] + (s[1] + 1) * s[0] + (s[0] + 1) * s[1]);
-      x[2] = r / w;
-      r = r % w;
-      if (r >= w - s[0]) { // y-boundary
-        r -= w - s[0];
-        x[1] = s[1];
-        x[0] = r;
-        d = Dir(1);
-      } else {
-        auto q = 3 * s[0] + 1;
-        x[1] = r / q;
-        r = r % q;
-        x[0] = r / 3;
-        d = Dir(r % 3);
-      }
+  Dir GetDir(Idx f) const {
+    size_t r = f.GetRaw();
+    size_t d = 0;
+    while (r >= GetNumFaces(d) && d < dim) {
+      r -= GetNumFaces(d);
+      ++d;
     }
-    return std::make_pair(b_ + x, d);
+    return Dir(d);
+  }
+  std::pair<MIdx, Dir> GetMIdxDir(Idx f) const {
+    size_t r = f.GetRaw();
+    size_t d = 0;
+    while (r >= GetNumFaces(d) && d < dim) {
+      r -= GetNumFaces(d);
+      ++d;
+    }
+    return {br_.GetMIdx(r), Dir(d)};
+  }
+  MIdx GetMIdx(Idx f) const {
+    size_t r = f.GetRaw();
+    size_t d = 0;
+    while (r >= GetNumFaces(d) && d < dim) {
+      r -= GetNumFaces(d);
+      ++d;
+    }
+    return br_.GetMIdx(r);
   }
 
  private:
-  MIdx b_;  // begin
-  MIdx cs_; // cells size
-  MIdx e_;  // end
-  size_t GetNumFaces(Dir dir) const {
-    MIdx bcs = cs_;
-    ++bcs[size_t(dir)];
-    size_t res = 1;
-    for (size_t i = 0; i < dim; ++i) {
-      res *= bcs[i];
-    }
-    return res;
+  const MIdx b_;
+  const MIdx rs_; // size of cells with padding
+  const GIndex<size_t, dim> br_; // index cells
+  MIdx nf_; // number of faces in each direction with padding
+  size_t nfa_; // total number of indices with padding
+  MIdx nfc_; // cumulative number of faces up to direction: sum(nf_[0:d])
+             // (base index for faces of direction d)
+  size_t GetNumFaces(size_t d) const {
+    return nf_[d];
   }
-  size_t GetNumFaces(size_t i) const {
-    return GetNumFaces(Dir(i));
+  size_t GetBase(size_t d) const {
+    return nfc_[d];
+  }
+  size_t CalcNumFaces(size_t /*d*/) const {
+    return br_.size();
   }
 };
-#endif
 
 template <size_t dim>
 using GBlockFaces = GBlock<IdxFace, dim>;
 
+template <size_t dim>
+using GIndexFaces = GIndex<IdxFace, dim>;
