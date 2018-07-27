@@ -11,12 +11,16 @@ class GField {
   using Value = Value_;
   using Range = GRange<Idx>;
 
-  // Constructs field for range of zero size
+  // Constructs field for empty range
   GField() : d_(nullptr) {}
-
   // Constructs field for range r
-  explicit GField(const Range& r) : r_(r), d_(new Value[r_.size()]) {}
-
+  explicit GField(const Range& r) : r_(r), d_(new Value[r_.size()]) { }
+  // Copy constructor
+  GField(const GField& o) : GField(o.r_) {
+    for (auto i : r_) {
+      (*this)[i] = o[i];
+    }
+  }
   // Constructs field for range r and initializes with v
   GField(const Range& r, const Value& v) : GField(r) {
     for (auto i : r_) {
@@ -26,12 +30,12 @@ class GField {
   ~GField() {
     Free();
   }
-  // Copies field of different type
-  template <class U>
-  GField(const GField<U, Idx>& o) : GField(o.r_) {
+  GField& operator=(const GField& o) {
+    Reinit(o.r_);
     for (auto i : r_) {
       (*this)[i] = o[i];
     }
+    return *this;
   }
   size_t size() const { 
     return r_.size(); 
@@ -81,9 +85,6 @@ class GField {
   }
 
  private:
-  template <class, class>
-  friend class GField;
-
   Range r_;
   Value* d_;
 };
