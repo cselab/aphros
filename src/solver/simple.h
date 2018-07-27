@@ -95,7 +95,6 @@ class FluidSimple : public FluidSolver<M_> {
   FieldCell<Vect> fcfcd_;  // force for convdiff [i]
 
   // tmp
-  std::array<FieldCell<Scal>, 3> fcta_; // TODO renname to vfct
   FieldCell<Vect> fct_; // TODO renname to vfct
 
   // Face fields:
@@ -285,7 +284,6 @@ class FluidSimple : public FluidSolver<M_> {
   // ffbp: force projections, bp=b.dot(n)
   // Output:
   // fcb: restored force
-  // fcta_: modified tmp field
   void CalcExtForce(const FieldFace<Scal>& ffbp, 
                     FieldCell<Vect>& fcb) {
     auto sem = m.GetSem("extforce");
@@ -754,6 +752,7 @@ class FluidSimple : public FluidSolver<M_> {
           ffa[f] = 0.;
         }
       }
+      fcl.Free();
 
       GetFlux(fcpp, ffk_, ffa, ffvc_);
 
@@ -907,6 +906,8 @@ class FluidSimple : public FluidSolver<M_> {
 
     if (sem("inc-iter")) {
       this->IncIter();
+      fcwc_.Free();
+      fck_.Free();
     }
   }
   void FinishStep() override {

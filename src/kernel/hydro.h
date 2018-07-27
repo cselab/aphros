@@ -175,11 +175,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   FieldCell<Scal> fc_mu_; // viscosity
   FieldCell<Scal> fc_rho_; // density
-  FieldFace<Scal> ff_rho_; // density
   FieldCell<Scal> fc_src_; // source
   FieldCell<Vect> fc_force_;  // force 
   FieldFace<Scal> ffbp_;  // balanced force projections
-  FieldFace<Scal> ff_st_;  // surface tension projections
   FieldFace<Scal> ffk_;  // curvature on faces
   MapFace<std::shared_ptr<solver::CondFace>> mf_cond_;
   MapFace<std::shared_ptr<solver::CondFaceFluid>> mf_velcond_;
@@ -523,6 +521,7 @@ void Hydro<M>::Init() {
             m, fc_vel_, mf_velcond_, mc_velcond, 
             &fc_rho_, &fc_mu_, &fc_force_, &ffbp_,
             &fc_src_, &fc_src_, 0., st_.dt, p));
+      // TODO: check fc_src_ for Simple()
     }
 
     // Init advection solver
@@ -859,7 +858,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
   if (sem("init")) {
     fc_mu_.Reinit(m);
     fc_rho_.Reinit(m);
-    ff_rho_.Reinit(m);
     fc_force_.Reinit(m, Vect(0));
     ffbp_.Reinit(m, 0);
     fc_smvf_ = fc_vf0;
@@ -894,18 +892,19 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       fc_mu_[c] = m1 * v1 + m2 * v2;
     }
 
+    FieldFace<Scal> ff_rho(m);
     // Init density and viscosity
     for (auto f : m.AllFaces()) {
       const Scal v2 = af[f];
       const Scal v1 = 1. - v2;
-      ff_rho_[f] = r1 * v1 + r2 * v2;
+      ff_rho[f] = r1 * v1 + r2 * v2;
     }
 
     // Append gravity to force
     for (auto f : m.AllFaces()) {
       Vect n = m.GetNormal(f);
       ffbp_[f] += force.dot(n);
-      ffbp_[f] += grav.dot(n) * ff_rho_[f];
+      ffbp_[f] += grav.dot(n) * ff_rho[f];
     }
 
     // Surface tension
@@ -989,7 +988,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       } else if (st == "kn") {  // curvature * normal
         auto& fck = as_->GetCurv(); // [a]
-        ff_st_.Reinit(m, 0);
+        FieldFace<Scal> ff_st(m, 0.);  // surface tension projections
         auto& ast = fc_smvfst_;
 
         ffk_.Reinit(m, 0);
@@ -1024,7 +1023,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
               fnan = f;
               ffk_[f] = 0.;
             }
-            ff_st_[f] += ga * ffk_[f] * sig;
+            ff_st[f] += ga * ffk_[f] * sig;
           }
         }
         if (nan) {
@@ -1044,7 +1043,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         // zero on boundaries
         for (auto it : mf_velcond_) {
           IdxFace f = it.GetIdx();
-          ff_st_[f] = 0.;
+          ff_st[f] = 0.;
         }
         // contact angle on boundaries
         // angle between normal to boundary and normal to interface
@@ -1061,7 +1060,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           if (ast[c] > th && ast[c] < 1. - th) { 
             for (auto q : m.Nci(c)) {
               auto f = m.GetNeighbourFace(c, q);
-              ff_st_[f] *= k;
+              ff_st[f] *= k;
             }
             /*
             // outer normal to interface (if vf=1 inside bubble)
@@ -1087,11 +1086,11 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             //s = fck[c] * k * gc[c];
             for (auto q : m.Nci(c)) {
               auto f = m.GetNeighbourFace(c, q);
-              //ff_st_[f] = ffk_[f] * k * gf[f].dot(m.GetNormal(f));
-              ff_st_[f] *= k;
+              //ff_st[f] = ffk_[f] * k * gf[f].dot(m.GetNormal(f));
+              ff_st[f] *= k;
               if ((m.GetCenter(f) - m.GetCenter(c)).dot(s) < 0. ||
                   m.GetNormal(f) == m.GetNormal(fb)) {
-                ff_st_[f] = s.dot(m.GetNormal(f));
+                ff_st[f] = s.dot(m.GetNormal(f));
               }
             }
             */
@@ -1102,17 +1101,17 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         // XXX: adhoc TODO: revise
         const Scal x0 = var.Double["zerostx0"];
         const Scal x1 = var.Double["zerostx1"];
-        // Append to force
+        // apply
         for (auto f : m.Faces()) {
           Scal x = m.GetCenter(f)[0];
           if (x > x0) {
-            ff_st_[f] *= std::max(0., (x1 - x) / (x1 - x0));
+            ff_st[f] *= std::max(0., (x1 - x) / (x1 - x0));
           }
         }
 
         // Append to force
         for (auto f : m.Faces()) {
-          ffbp_[f] += ff_st_[f];
+          ffbp_[f] += ff_st[f];
         }
       } else {
         throw std::runtime_error("Unknown surftens=" + st);

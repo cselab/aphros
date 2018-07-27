@@ -31,23 +31,17 @@ class Vof : public AdvectionSolver<M_> {
   using P::m;
   using P::ffv_;
   using P::fcs_;
-  LayersData<FieldCell<Scal>> fc_u_;
+  LayersData<FieldCell<Scal>> fcu_;
   MapFace<std::shared_ptr<CondFace>> mfc_;
   MapFace<std::shared_ptr<CondFace>> mfvz_; // zero-derivative bc for Vect
 
-  FieldCell<Scal> fc_a_; // alpha (plane constant)
-  FieldCell<Vect> fc_n_; // n (normal to plane)
-  // XXX: fc_a_ and fc_n_ are proportional, separate scaling is invalid
-  FieldCell<Scal> fc_us_; // smooth field
-  FieldFace<Scal> ff_fu_; // volume flux
+  FieldCell<Scal> fca_; // alpha (plane constant)
+  FieldCell<Vect> fcn_; // n (normal to plane)
   FieldCell<Scal> fck_; // curvature from height functions
   FieldCell<Scal> fckp_; // curvature from particles
-  FieldFace<Scal> ffu_; // field on faces
-  FieldFace<Scal> ffvu_; // flux: volume flux * field
-  FieldCell<Vect> fcg_; // gradient
-  FieldFace<Vect> ffg_; // gradient
   FieldCell<bool> fci_; // interface mask (1: contains interface)
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
+  // XXX: fca_ and fcn_ are proportional, separate scaling is invalid
 
   using PSP = typename PS::Par;
   std::unique_ptr<PS> partstr_; // particle strings
@@ -133,9 +127,9 @@ class Vof : public AdvectionSolver<M_> {
       auto h = GetCellSize();
       for (auto c : m.Cells()) {
         const Scal th = par->poly_intth;
-        Scal u = fc_u_.iter_curr[c];
+        Scal u = fcu_.iter_curr[c];
         if (fci_[c] && u > th && u < 1. - th) {
-          dl_.push_back(R::GetCutPoly(m.GetCenter(c), fc_n_[c], fc_a_[c], h));
+          dl_.push_back(R::GetCutPoly(m.GetCenter(c), fcn_[c], fca_[c], h));
         }
       }
       using T = typename M::template OpCatVT<Vect>;
@@ -167,7 +161,7 @@ class Vof : public AdvectionSolver<M_> {
         for (size_t s = 0; s < partstr_->GetNumStr(); ++s) {
           // cell
           IdxCell c = vsc_[s];
-          auto v = GetPlaneBasis(m.GetCenter(c), fc_n_[c], fc_a_[c], vsan_[s]);
+          auto v = GetPlaneBasis(m.GetCenter(c), fcn_[c], fca_[c], vsan_[s]);
 
           auto p = partstr_->GetStr(s);
           Vect* xx = p.first;
@@ -222,10 +216,10 @@ class Vof : public AdvectionSolver<M_> {
       const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
       double t, double dt, std::shared_ptr<Par> par)
       : AdvectionSolver<M>(t, dt, m, ffv, fcs)
-      , mfc_(mfc), fc_a_(m, 0), fc_n_(m, Vect(0)), fc_us_(m, 0), ff_fu_(m, 0) 
+      , mfc_(mfc), fca_(m, 0), fcn_(m, Vect(0)) 
       , fck_(m, 0), fckp_(m, 0), par(par)
   {
-    fc_u_.time_curr = fcu;
+    fcu_.time_curr = fcu;
     for (auto it : mfc_) {
       IdxFace f = it.GetIdx();
       mfvz_[f] = std::make_shared<
@@ -241,13 +235,13 @@ class Vof : public AdvectionSolver<M_> {
     auto sem = m.GetSem("start");
     if (sem("rotate")) {
       this->ClearIter();
-      fc_u_.time_prev = fc_u_.time_curr;
-      fc_u_.iter_curr = fc_u_.time_prev;
+      fcu_.time_prev = fcu_.time_curr;
+      fcu_.iter_curr = fcu_.time_prev;
     }
 
     if (sem.Nested("reconst")) {
       if (this->GetTime() == 0.) {
-        Rec(fc_u_.time_curr);
+        Rec(fcu_.time_curr);
       }
     }
   }
@@ -264,7 +258,7 @@ class Vof : public AdvectionSolver<M_> {
     auto gc = Gradient(uf, m);
     for (auto c : m.AllCells()) {
       Vect g = gc[c];
-      fc_n_[c] = g;
+      fcn_[c] = g;
     }
   }
   // Computes normal by Young's scheme (interpolation from nodes).
@@ -601,15 +595,15 @@ class Vof : public AdvectionSolver<M_> {
   }
   void Part(const FieldCell<Scal>& uc, typename M::Sem& sem) {
     if (sem("part-comm")) {
-      m.Comm(&fc_a_);
-      m.Comm(&fc_n_);
+      m.Comm(&fca_);
+      m.Comm(&fcn_);
     }
 
     bool dm = par->dmp->Try(this->GetTime() + this->GetTimeStep(), 
                             this->GetTimeStep());
 
     if (sem("part-run")) {
-      Seed0(uc, fc_a_, fc_n_, fci_);
+      Seed0(uc, fca_, fcn_, fci_);
       partstr_->Run(par->part_tol, par->part_itermax, 
                     par->part_verb && m.IsRoot());
       // compute curvature
@@ -702,11 +696,11 @@ class Vof : public AdvectionSolver<M_> {
       CheckNan(uc, "vof:Rec:uc", m);
       DetectInterface(uc);
       // Compute normal and curvature [s]
-      CalcNormal(uc, fci_, fc_n_, fck_);
+      CalcNormal(uc, fci_, fcn_, fck_);
       auto h = GetCellSize();
       // Reconstruct interface [s]
       for (auto c : m.SuCells()) {
-        fc_a_[c] = R::GetLineA(fc_n_[c], uc[c], h);
+        fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
       }
     }
 
@@ -716,7 +710,7 @@ class Vof : public AdvectionSolver<M_> {
       if (sem("parta")) {
         auto h = GetCellSize();
         for (auto c : m.AllCells()) {
-          fc_a_[c] = R::GetLineA(fc_n_[c], uc[c], h);
+          fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
         }
       }
     }
@@ -783,10 +777,10 @@ class Vof : public AdvectionSolver<M_> {
   void MakeIteration() override {
     auto sem = m.GetSem("iter");
     if (sem("init")) {
-      auto& uc = fc_u_.iter_curr;
+      auto& uc = fcu_.iter_curr;
       const Scal dt = this->GetTimeStep();
       for (auto c : m.Cells()) {
-        uc[c] = fc_u_.time_prev[c] +  // previous time step
+        uc[c] = fcu_.time_prev[c] +  // previous time step
             dt * (*fcs_)[c]; // source
       }
     }
@@ -814,19 +808,18 @@ class Vof : public AdvectionSolver<M_> {
       vsc = 1.0;
     }
     for (size_t id = 0; id < dd.size(); ++id) {
-      // TODO: fluxes computed twice, consider buffer
       if (sem("adv")) {
         size_t d = dd[id]; // direction as index
         Dir md(d); // direction as Dir
         MIdx wd(md); // offset in direction d
-        auto& uc = fc_u_.iter_curr;
+        auto& uc = fcu_.iter_curr;
         auto& bc = m.GetIndexCells();
         auto& bf = m.GetIndexFaces();
         auto h = GetCellSize();
         auto& ffv = *ffv_; // [f]ield [f]ace [v]olume flux
         const Scal dt = this->GetTimeStep();
 
-        ffvu_.Reinit(m);
+        FieldFace<Scal> ffvu(m); // flux: volume flux * field
 
         for (auto f : m.Faces()) {
           auto p = bf.GetMIdxDir(f);
@@ -844,24 +837,23 @@ class Vof : public AdvectionSolver<M_> {
           if (fci_[cu]) { // cell contains interface, flux from reconstruction
             if (id % 2 == 0) { // Euler Implicit
               // phase 2 flux
-              ffvu_[f] = R::GetLineFlux(fc_n_[cu], fc_a_[cu], h, v, dt, d);
+              ffvu[f] = R::GetLineFlux(fcn_[cu], fca_[cu], h, v, dt, d);
             } else { // Lagrange Explicit
               // upwind face
               IdxFace fu = bf.GetIdx(v > 0. ? wf - wd : wf + wd, md);
               // upwind mixture flux
               Scal vu = ffv[fu] * vsc;
               // phase 2 flux
-              ffvu_[f] = R::GetLineFluxStr(fc_n_[cu], fc_a_[cu], h, v, vu, dt, d);
+              ffvu[f] = R::GetLineFluxStr(fcn_[cu], fca_[cu], h, v, vu, dt, d);
             }
           } else {
-            ffvu_[f] = v * uc[cu];
+            ffvu[f] = v * uc[cu];
           }
         }
 
-
-        ffu_.Reinit(m);
+        FieldFace<Scal> ffu(m);
         // interpolate field value to boundaries
-        InterpolateB(uc, mfc_, ffu_, m);
+        InterpolateB(uc, mfc_, ffu, m);
 
         // override boundary upwind flux
         for (const auto& it : mfc_) {
@@ -869,7 +861,7 @@ class Vof : public AdvectionSolver<M_> {
           CondFace* cb = it.GetValue().get(); 
           Scal v = ffv[f];
           if ((cb->GetNci() == 0) != (v > 0.)) {
-            ffvu_[f] = v * ffu_[f];
+            ffvu[f] = v * ffu[f];
             // XXX: adhoc
             // Alternating mul correction of flux
             // (done for bubble detachment)
@@ -883,7 +875,7 @@ class Vof : public AdvectionSolver<M_> {
               Scal ph = t / ts; 
               ph = ph - int(ph);
               ph *= ts;
-              ffvu_[f] *= (ph < t0 ? k0 : k1);
+              ffvu[f] *= (ph < t0 ? k0 : k1);
             }
           }
         }
@@ -902,8 +894,8 @@ class Vof : public AdvectionSolver<M_> {
           const Scal sp = vp * dt / lc;
           const Scal ds = sp - sm;
           // phase 2 fluxes
-          Scal qm = ffvu_[fm];
-          Scal qp = ffvu_[fp];
+          Scal qm = ffvu[fm];
+          Scal qp = ffvu[fp];
           // phase 2 cfl
           const Scal lm = qm * dt / lc;
           const Scal lp = qp * dt / lc;
@@ -930,15 +922,15 @@ class Vof : public AdvectionSolver<M_> {
         m.Comm(&uc);
       }
       if (sem.Nested("reconst")) {
-        Rec(fc_u_.iter_curr);
+        Rec(fcu_.iter_curr);
       }
     }
 
     // Curvature from gradient of volume fraction
     if (par->curvgrad && sem("curv")) {
-      ffu_ = Interpolate(fc_u_.iter_curr, mfc_, m); // [s]
-      fcg_ = Gradient(ffu_, m); // [s]
-      ffg_ = Interpolate(fcg_, mfvz_, m); // [i]
+      auto ffu = Interpolate(fcu_.iter_curr, mfc_, m); // [s]
+      auto fcg = Gradient(ffu, m); // [s]
+      auto ffg = Interpolate(fcg, mfvz_, m); // [i]
 
       fck_.Reinit(m, GetNan<Scal>()); // curvature [i]
       for (auto c : m.Cells()) {
@@ -948,7 +940,7 @@ class Vof : public AdvectionSolver<M_> {
         Scal s = 0.;
         for (auto q : m.Nci(c)) {
           IdxFace f = m.GetNeighbourFace(c, q);
-          auto& g = ffg_[f];
+          auto& g = ffg[f];
           auto n = g / g.norm();  // inner normal
           s += -n.dot(m.GetOutwardSurface(c, q));
         }
@@ -969,7 +961,7 @@ class Vof : public AdvectionSolver<M_> {
     }
 
     if (par->part) {
-      Part(fc_u_.iter_curr, sem);
+      Part(fcu_.iter_curr, sem);
     }
 
     if (sem("stat")) {
@@ -978,17 +970,17 @@ class Vof : public AdvectionSolver<M_> {
     }
   }
   void FinishStep() override {
-    fc_u_.time_curr = fc_u_.iter_curr;
+    fcu_.time_curr = fcu_.iter_curr;
     this->IncTime();
   }
   const FieldCell<Scal>& GetField(Layers l) const override {
-    return fc_u_.Get(l);
+    return fcu_.Get(l);
   }
   const FieldCell<Scal>& GetAlpha() const {
-    return fc_a_;
+    return fca_;
   }
   const FieldCell<Vect>& GetNormal() const {
-    return fc_n_;
+    return fcn_;
   }
   const FieldCell<Scal>& GetCurv() const override {
     return par->part_k ? fckp_ : fck_;
