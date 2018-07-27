@@ -561,14 +561,14 @@ void Hydro<M>::Init() {
     // Stat: var.Double[p] with name n
     /*
     auto on = [this](std::string n, std::string p) {
-      return std::make_shared<output::EntryScalarFunction<Scal>>(
+      return std::make_shared<output::OutScalFunc<Scal>>(
           n, [&,p](){ return var.Double[p]; });
     };
     */
 
     // Stat: *p with name n
     auto op = [this](std::string n,  Scal* p) {
-      return std::make_shared<output::EntryScalarFunction<Scal>>(
+      return std::make_shared<output::OutScalFunc<Scal>>(
           n, [p](){ return *p; });
     };
 
@@ -576,7 +576,7 @@ void Hydro<M>::Init() {
       auto& s = st_;
       output::Content con = {
           op("t", &s.t),
-          std::make_shared<output::EntryScalarFunction<int>>(
+          std::make_shared<output::OutScalFunc<int>>(
               "iter", [this](){ return st_.iter; }),
           op("dt", &s.dt),
           op("dta", &s.dta),
@@ -590,9 +590,9 @@ void Hydro<M>::Init() {
           op("vc2x", &s.vc2[0]), op("vc2y", &s.vc2[1]), op("vc2z", &s.vc2[2]),
           op("v1x", &s.v1[0]), op("v1y", &s.v1[1]), op("v1z", &s.v1[2]),
           op("v2x", &s.v2[0]), op("v2y", &s.v2[1]), op("v2z", &s.v2[2]),
-          std::make_shared<output::EntryScalarFunction<Scal>>(
+          std::make_shared<output::OutScalFunc<Scal>>(
               "meshposx", [this](){ return st_.meshpos[0]; }),
-          std::make_shared<output::EntryScalarFunction<Scal>>(
+          std::make_shared<output::OutScalFunc<Scal>>(
               "meshvelx", [this](){ return st_.meshvel[0]; }),
       };
       ost_ = std::make_shared<

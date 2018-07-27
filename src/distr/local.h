@@ -294,7 +294,7 @@ void Local<KF>::DumpWrite(const std::vector<MIdx>& bb) {
         // Write dump
         for (auto& on : m.GetDump()) {
           c.emplace_back(
-              new output::EntryFunction<Scal, IdxCell, M>(
+              new output::OutFldFunc<Scal, IdxCell, M>(
                   on.second, gm, [this,k](IdxCell i) { return buf_[k][i]; }));
           k += on.first->GetSize();
           if (on.first->GetSize() != 1) {

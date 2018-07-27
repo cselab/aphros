@@ -440,7 +440,7 @@ void Dump(std::vector<const FC*> u,
   for (size_t k = 0; k < u.size(); ++k) {
     auto p = u[k];
     con.emplace_back(
-        new output::EntryFunction<Scal, IdxCell, M>(
+        new output::OutFldFunc<Scal, IdxCell, M>(
             un[k], m, [p](IdxCell i) { return (*p)[i]; }));
   }
 
