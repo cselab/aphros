@@ -41,6 +41,16 @@ class GRange {
   size_t size() const {
     return e_ - b_;
   }
+  void swap(GRange& o) {
+    std::swap(b_, o.b_);
+    std::swap(e_, o.e_);
+  }
+  bool operator==(const GRange& o) const {
+    return b_ == o.b_ && e_ == o.e_;
+  }
+  bool operator!=(const GRange& o) const {
+    return !(*this == o);
+  }
 
  private:
   size_t b_, e_;
