@@ -150,7 +150,7 @@ class ConvectionDiffusionScalarImplicit : public ConvectionDiffusionScalar<M_> {
         e.SetConstant(e.Evaluate(fcu));
 
         // Apply under-relaxation
-        e[e.Find(c)].coeff /= par->relax;
+        e[e.Find(c)].a /= par->relax;
       }
 
       // Overwrite with cell conditions 
