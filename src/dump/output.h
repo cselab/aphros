@@ -90,7 +90,7 @@ class EntryFunction :
       , function_(function)
   {}
   void Prepare() override {
-    for (auto i : mesh_.template GetRaw<Idx>()) {
+    for (auto i : mesh_.template GetIn<Idx>()) {
       scalar_field_[i] = function_(i);
     }
   }

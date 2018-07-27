@@ -222,13 +222,7 @@ void Convdiff<M>::TestSolve(
     }
 
     // global mesh size
-    MIdx gs;
-    {
-      MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
-      MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
-      MIdx bs(var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]);
-      gs = p * b * bs;
-    }
+    MIdx gs = m.GetGlobalSize();
 
     using Dir = typename M::Dir;
 
@@ -438,8 +432,10 @@ std::tuple<BC, IC, FC, FC> Solve(MPI_Comm comm, Vars& var) {
       ds.GetBlock(), ds.GetIndex(), ds.GetField(0), ds.GetField(1));
 }
 
-void Dump(std::vector<const FC*> u, std::vector<std::string> un, 
-          M& m, std::string fn="a") {
+// fn: filename
+void Dump(std::vector<const FC*> u, 
+          std::vector<std::string> un, 
+          M& m, std::string fn) {
   output::Content con;
   for (size_t k = 0; k < u.size(); ++k) {
     auto p = u[k];
@@ -448,7 +444,7 @@ void Dump(std::vector<const FC*> u, std::vector<std::string> un,
             un[k], m, [p](IdxCell i) { return (*p)[i]; }));
   }
 
-  output::SessionParaviewStructured<M> ses(con, "", fn /*filename*/, m);
+  output::SessionParaviewStructured<M> ses(con, "", fn, m);
   ses.Write(0, "t");
 }
 
