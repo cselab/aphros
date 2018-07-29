@@ -46,7 +46,7 @@ class Local : public DistrMesh<KF> {
 
   std::vector<FieldCell<Scal>> buf_; // buffer on mesh
   M gm; // global mesh
-  std::unique_ptr<output::Session> session_;
+  std::unique_ptr<output::Ser> oser_; // output series
   std::vector<MyBlockInfo> bb_;
 
   size_t WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m);
@@ -283,9 +283,9 @@ void Local<KF>::DumpWrite(const std::vector<MIdx>& bb) {
 
     if (df == "vtk") {
       // Initialize on first call
-      if (!session_) {
+      if (!oser_) {
         // TODO: check all blocks are same as first
-        output::Content c;
+        output::VOut v;
         size_t k = 0; // offset in buffer
         // Skip comm 
         for (auto& o : m.GetComm()) {
@@ -293,7 +293,7 @@ void Local<KF>::DumpWrite(const std::vector<MIdx>& bb) {
         }
         // Write dump
         for (auto& on : m.GetDump()) {
-          c.emplace_back(
+          v.emplace_back(
               new output::OutFldFunc<Scal, IdxCell, M>(
                   on.second, gm, [this,k](IdxCell i) { return buf_[k][i]; }));
           k += on.first->GetSize();
@@ -302,14 +302,13 @@ void Local<KF>::DumpWrite(const std::vector<MIdx>& bb) {
           }
         }
 
-        session_.reset(new output::
-            SessionParaviewStructured<M>(c, "title", "p", gm));
+        oser_.reset(new output::SerVtkStruct<M>(v, "title", "p", gm));
       }
 
       // TODO: Check no change in comm list between time steps
-      //       (otherwise session_ needs reinitialization)
+      //       (otherwise oser_ needs reinitialization)
 
-      session_->Write(frame_, "title"); // TODO: t instead of stage_
+      oser_->Write(frame_, "title"); // TODO: t instead of stage_
       std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
       ++frame_;
     } else {
