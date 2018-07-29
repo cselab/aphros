@@ -90,144 +90,56 @@ class OutScalFunc : public OutScal<V> {
   std::function<V()> u_; // function for single value
 };
 
-using Content = std::vector<std::shared_ptr<Out>>;
+using VOut = std::vector<std::shared_ptr<Out>>;
 
-class Session {
+// Series
+class Ser {
  public:
-  virtual void Write(double time = 0., std::string title = "") = 0;
-  virtual ~Session() {}
+  virtual void Write(double time, std::string title) = 0;
+  virtual ~Ser() {}
 };
 
 namespace plain {
 
-// Requires structured m
-template <class M>
-class SessionPlain : public Session {
-  using Scal = typename M::Scal;
-  using MIdx = typename M::MIdx;
-  const M& m;
-  Content content_;
-  std::ostream& out_;
-  std::ofstream output_file_;
-  void WriteHeader() {
-    out_ << "Cell: ";
-    for (auto& entry_generic : content_)
-    if (auto entry = dynamic_cast<OutFld<FieldCell<Scal>>*>(
-        entry_generic.get())) {
-      out_ << entry->GetName() << " ";
-    }
-    out_ << "\n";
-    out_ << "Face: ";
-    for (auto& entry_generic : content_)
-    if (auto entry = dynamic_cast<OutFld<FieldFace<Scal>>*>(
-        entry_generic.get())) {
-      out_ << entry->GetName() << " ";
-    }
-    out_ << "\n";
-    out_ << "Node: ";
-    for (auto& entry_generic : content_)
-    if (auto entry = dynamic_cast<OutFld<FieldNode<Scal>>*>(
-        entry_generic.get())) {
-      out_ << entry->GetName() << " ";
-    }
-    out_ << "\n";
-
-    out_ << "Dim: ";
-    MIdx dim = m.GetInBlockCells().GetSize();
-    for (size_t i = 0; i < dim.size(); ++i) {
-      out_ << dim[i] << " ";
-    }
-    out_ << std::endl;
-  }
-  void WriteFooter() {
-    out_.flush();
-  }
-  template <class FieldType>
-  bool TryWriteField(Out* entry_generic) {
-    if (auto entry = dynamic_cast<OutFld<FieldType>*>(
-        entry_generic)) {
-      auto& field = entry->GetField();
-      for (size_t i = 0; i < field.size(); ++i) {
-        out_ << field[typename FieldType::IdxType(i)] << " ";
-      }
-      out_ << "\n";
-      return true;
-    }
-    return false;
-  }
- public:
-  SessionPlain(const Content& content, std::string filename, const M& m)
-      : m(m)
-      , content_(content)
-      , out_(output_file_)
-  {
-    output_file_.open(filename);
-    WriteHeader();
-  }
-  void Write(double time = 0., std::string title = "") override {
-    out_ << "Zone: time " << time
-        << ", title " << title << std::endl;
-    for (auto& entry_generic : content_) {
-      entry_generic->Prepare();
-    }
-    for (auto& entry_generic : content_) {
-      TryWriteField<FieldCell<Scal>>(entry_generic.get());
-    }
-    for (auto& entry_generic : content_) {
-      TryWriteField<FieldFace<Scal>>(entry_generic.get());
-    }
-    for (auto& entry_generic : content_) {
-      TryWriteField<FieldNode<Scal>>(entry_generic.get());
-    }
-    out_ << std::endl;
-  }
-  ~SessionPlain() {
-    WriteFooter();
-  }
-};
-
 template <class Scal>
-class SessionPlainScalar : public Session {
+class SerScalPlain : public Ser {
  public:
-  SessionPlainScalar(const Content& content, std::string filename)
-      : content_(content)
-      , out_(output_file_)
+  // vo: instances of Out
+  // fn: output filename
+  SerScalPlain(const VOut& vo, std::string fn)
+      : vo_(vo)
   {
-    output_file_.open(filename);
-    for (auto& entry_generic : content_) {
-      out_ << entry_generic->GetName() << " ";
+    out_.open(fn);
+    out_.precision(16);
+    for (auto& o : vo_) {
+      out_ << o->GetName() << " ";
     }
     out_ << std::endl;
   }
-  void Write(double /*time = 0.*/, std::string /*title = ""*/) override {
-    out_.precision(16);
-    for (auto& eg : content_) { // entry generic
-      eg->Prepare();
-      if (auto e = dynamic_cast<OutScal<Scal>*>(eg.get())) { 
-        out_ << e->GetValue() << " ";
-      } else if (auto e = dynamic_cast<OutScal<int>*>(eg.get())) {
-        out_ << e->GetValue() << " ";
+  void Write(double /*time*/, std::string /*title*/) override {
+    for (auto& og : vo_) { // out generic
+      og->Prepare();
+      if (auto o = dynamic_cast<OutScal<Scal>*>(og.get())) { 
+        out_ << o->GetValue() << " ";
+      } else if (auto o = dynamic_cast<OutScal<int>*>(og.get())) {
+        out_ << o->GetValue() << " ";
       } else {
-        throw std::runtime_error(
-            "SessionPlainScalar: Unknown entry type");
+        throw std::runtime_error("SerScalPlain: Unknown entry type");
       }
     }
 
     out_ << std::endl;
   }
+
  private:
-  Content content_;
-  std::ostream& out_;
-  std::ofstream output_file_;
+  VOut vo_;
+  std::ofstream out_;
 };
 
 
 } // namespace plain
 
 template <class Scal>
-using SessionPlainScalar = plain::SessionPlainScalar<Scal>;
-
-template <class M>
-using SessionPlain = plain::SessionPlain<M>;
+using SerScalPlain = plain::SerScalPlain<Scal>;
 
 } // namespace output

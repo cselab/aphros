@@ -5,7 +5,6 @@
 #include <memory>
 #include <cassert>
 #include <fstream>
-#include <fstream>
 
 #include "output.h"
 #include "geom/mesh.h"
@@ -13,169 +12,159 @@
 
 namespace output {
 
-namespace paraview {
+namespace vtk {
 
-class SessionParaview : public Session {
+class SerVtk : public Ser {
  protected:
-  Content content_;
-  std::string title_;
-  std::string filename_;
-  std::ofstream collection_;
+  VOut vo_;
+  std::string tl_; // tl for collection
+  std::string bn_; // basename
+  std::ofstream oc_; // out collection (.pvd)
  public:
-  SessionParaview(const Content& content,
-                  std::string title,
-                  std::string filename)
-      : content_(content),
-        title_(title),
-        filename_(filename),
-        collection_(filename_ + ".pvd") {
-    collection_.sync_with_stdio(false);
-  }
+  SerVtk(const VOut& vo, std::string tl, std::string fn)
+      : vo_(vo), tl_(tl), bn_(fn), oc_(bn_ + ".pvd") {}
 };
 
-template <class Mesh>
-class SessionParaviewStructured : public SessionParaview {
-  using Scal = typename Mesh::Scal;
-  using Vect = typename Mesh::Vect;
-  using MIdx = typename Mesh::MIdx;
+template <class M>
+class SerVtkStruct : public SerVtk {
+ public:
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  using MIdx = typename M::MIdx;
 
-  const Mesh& mesh;
-  size_t timestep_;
-  void WriteDataArrayHeader(std::ostream& out,
-                            std::string name,
-                            size_t num_components) {
+  // vo: instances of Out
+  // tl: title
+  // fn: filename
+  SerVtkStruct(const VOut& vo, std::string tl, std::string fn, const M& m)
+      : SerVtk(vo, tl, fn), m(m), fr_(0) {
+    ColHead(oc_);
+  }
+  ~SerVtkStruct() {
+    ColFoot(oc_);
+  }
+  void Write(double t, std::string /*tl*/) override {
+    std::string fn = GetDumpName(bn_, ".vts", fr_);
+    ColEntry(oc_, t, fn);
+    CreateFile(fn);
+    ++fr_;
+  }
+
+ private:
+  void ArHead(std::ostream& out, std::string name, size_t dim) {
     out << "        <DataArray "
         << "Name=\"" << name << "\" "
-        << "NumberOfComponents=\"" << num_components << "\" "
+        << "NumberOfComponents=\"" << dim << "\" "
         << "type=\"Float32\" format=\"ascii\">\n";
   }
-  void WriteDataArrayFooter(std::ostream& out) {
+  void ArFoot(std::ostream& out) {
     out << "        </DataArray>\n";
   }
-  void WriteField(std::ostream& out, OutFld<FieldCell<Scal>>* entry) {
+  void ArData(std::ostream& out, OutFld<FieldCell<Scal>>* entry) {
     auto& field = entry->GetField();
 
-    WriteDataArrayHeader(out, entry->GetName(), 1);
-    for (auto idxcell : mesh.Cells()) {
+    ArHead(out, entry->GetName(), 1);
+    for (auto idxcell : m.Cells()) {
       out << field[idxcell] << " ";
     }
     out << "\n";
-    WriteDataArrayFooter(out);
+    ArFoot(out);
   }
-  void WriteField(std::ostream& out,
-                  OutFld<FieldNode<Scal>>* entry) {
-    auto& field = entry->GetField();
+  void ArData(std::ostream& out, OutFld<FieldNode<Scal>>* o) {
+    auto& f = o->GetField();
 
-    WriteDataArrayHeader(out, entry->GetName(), 1);
-    for (auto idxnode : mesh.Nodes()) {
-      out << field[idxnode] << " ";
+    ArHead(out, o->GetName(), 1);
+    for (auto n : m.Nodes()) {
+      out << f[n] << " ";
     }
     out << "\n";
-    WriteDataArrayFooter(out);
+    ArFoot(out);
   }
-  void WriteDataFileHeader(std::ostream& out) {
+  void FileHead(std::ostream& out) {
     out << "<?xml version=\"1.0\"?>\n";
     out << "<VTKFile type=\"StructuredGrid\" "
         << "version=\"0.1\" byte_order=\"LittleEndian\">\n";
 
-    MIdx size = mesh.GetInBlockCells().GetSize();
+    MIdx s = m.GetInBlockCells().GetSize();
     out << "  <StructuredGrid WholeExtent=\""
-        << "0 " << size[0]
-        << " 0 " << size[1]
-        << " 0 " << (Mesh::dim == 3 ? size[2] : 0) << "\">\n";
+        << "0 " << s[0]
+        << " 0 " << s[1]
+        << " 0 " << (M::dim == 3 ? s[2] : 0) << "\">\n";
 
     out << "    <Piece Extent=\""
-        << "0 " << size[0]
-        << " 0 " << size[1]
-        << " 0 " << (Mesh::dim == 3 ? size[2] : 0) << "\">\n";
+        << "0 " << s[0]
+        << " 0 " << s[1]
+        << " 0 " << (M::dim == 3 ? s[2] : 0) << "\">\n";
   }
-  void WriteDataFileFooter(std::ostream& out) {
+  void FileFoot(std::ostream& out) {
     out << "    </Piece>\n";
     out << "  </StructuredGrid>\n";
     out << "</VTKFile>\n";
   }
-  void WriteDataFileContent(std::ostream& out) {
+  void FileData(std::ostream& out) {
+    // node fields
     out << "      <PointData>\n";
-    for (auto& entry_generic : content_) {
-      if (auto entry = dynamic_cast<OutFld<FieldNode<Scal>>*>(
-          entry_generic.get())) {
-        entry->Prepare();
-        WriteField(out, entry);
+    for (auto& og : vo_) {
+      if (auto o = dynamic_cast<OutFld<FieldNode<Scal>>*>(og.get())) {
+        o->Prepare();
+        ArData(out, o);
       }
     }
     out << "      </PointData>\n";
 
+    // cell fields
     out << "      <CellData>\n";
-    for (auto& entry_generic : content_) {
-      if (auto entry = dynamic_cast<OutFld<FieldCell<Scal>>*>(
-          entry_generic.get())) {
-        entry->Prepare();
-        WriteField(out, entry);
+    for (auto& og : vo_) {
+      if (auto o = dynamic_cast<OutFld<FieldCell<Scal>>*>(og.get())) {
+        o->Prepare();
+        ArData(out, o);
       }
     }
     out << "      </CellData>\n";
 
+    // mesh nodes
     out << "      <Points>\n";
-    WriteDataArrayHeader(out, "mesh", 3);
-    for (auto idxnode : mesh.Nodes()) {
-      Vect p = mesh.GetNode(idxnode);
+    ArHead(out, "m", 3);
+    for (auto n : m.Nodes()) {
+      Vect p = m.GetNode(n);
       for (size_t i = 0; i < 3; ++i) {
-        out << (i < Mesh::dim ? p[i] : 0.) << " ";
+        out << (i < M::dim ? p[i] : 0.) << " ";
       }
     }
-    WriteDataArrayFooter(out);
+    ArFoot(out);
     out << "      </Points>\n";
   }
-  void CreateDataFile(std::string datafile_name) {
-    std::ofstream datafile(datafile_name);
-    datafile.sync_with_stdio(false);
-    WriteDataFileHeader(datafile);
-    WriteDataFileContent(datafile);
-    WriteDataFileFooter(datafile);
+  void CreateFile(std::string fn) {
+    std::ofstream out(fn);
+    out.sync_with_stdio(false);
+    FileHead(out);
+    FileData(out);
+    FileFoot(out);
   }
-  void WriteCollectionHeader(std::ostream& out) {
+  void ColHead(std::ostream& out) {
     out << "<?xml version=\"1.0\"?>\n";
     out << "<VTKFile type=\"Collection\" "
         << "version=\"0.1\" byte_order=\"LittleEndian\">\n";
     out << "  <Collection>\n";
   }
-  void WriteCollectionFooter(std::ostream& out) {
+  void ColFoot(std::ostream& out) {
     out << "  </Collection>\n";
     out << "</VTKFile>\n";
   }
-  void WriteCollectionEntry(std::ostream& out,
-                            double time,
-                            std::string datafile_name) {
-     out << "    <DataSet timestep=\"" << time << "\" "
+  void ColEntry(std::ostream& out, double t, std::string fn) {
+     out << "    <DataSet tstep=\"" << t << "\" "
          << "group=\"\" part=\"0\" "
-         << "file=\"" << datafile_name << "\"/>\n";
+         << "file=\"" << fn << "\"/>\n";
   }
- public:
-  SessionParaviewStructured(const Content& content,
-                            std::string title,
-                            std::string filename,
-                            const Mesh& mesh)
-      : SessionParaview(content, title, filename),
-        mesh(mesh),
-        timestep_(0) {
-    WriteCollectionHeader(collection_);
-  }
-  ~SessionParaviewStructured() {
-    WriteCollectionFooter(collection_);
-  }
-  void Write(double time, std::string /*title*/) override {
-    std::string fn = GetDumpName(filename_, ".vts", timestep_);
-    WriteCollectionEntry(collection_, time, fn);
-    CreateDataFile(fn);
-    ++timestep_;
-  }
+
+  const M& m;
+  size_t fr_; // frame index
 };
 
-} // namespace paraview
+} // namespace vtk
 
-using SessionParaview = paraview::SessionParaview;
+using SerVtk = vtk::SerVtk;
 
-template <class Mesh>
-using SessionParaviewStructured = paraview::SessionParaviewStructured<Mesh>;
+template <class M>
+using SerVtkStruct = vtk::SerVtkStruct<M>;
 
 } // namespace output

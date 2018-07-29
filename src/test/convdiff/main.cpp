@@ -436,7 +436,7 @@ std::tuple<BC, IC, FC, FC> Solve(MPI_Comm comm, Vars& var) {
 void Dump(std::vector<const FC*> u, 
           std::vector<std::string> un, 
           M& m, std::string fn) {
-  output::Content con;
+  output::VOut con;
   for (size_t k = 0; k < u.size(); ++k) {
     auto p = u[k];
     con.emplace_back(
@@ -444,8 +444,8 @@ void Dump(std::vector<const FC*> u,
             un[k], m, [p](IdxCell i) { return (*p)[i]; }));
   }
 
-  output::SessionParaviewStructured<M> ses(con, "", fn, m);
-  ses.Write(0, "t");
+  output::SerVtkStruct<M> s(con, "", fn, m);
+  s.Write(0, "t");
 }
 
 void Main(MPI_Comm comm, Vars& var0) {

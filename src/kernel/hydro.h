@@ -275,7 +275,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     }
   };
   Stat st_;
-  std::shared_ptr<output::Session> ost_; // output stat
+  std::shared_ptr<output::Ser> ost_; // output stat
   Dumper dumper_;
   Dumper dmptraj_; // dumper for traj
   Dumper dmptrep_; // dumper for timer report
@@ -574,7 +574,7 @@ void Hydro<M>::Init() {
 
     if (IsRoot()) {
       auto& s = st_;
-      output::Content con = {
+      output::VOut con = {
           op("t", &s.t),
           std::make_shared<output::OutScalFunc<int>>(
               "iter", [this](){ return st_.iter; }),
@@ -595,8 +595,7 @@ void Hydro<M>::Init() {
           std::make_shared<output::OutScalFunc<Scal>>(
               "meshvelx", [this](){ return st_.meshvel[0]; }),
       };
-      ost_ = std::make_shared<
-          output::SessionPlainScalar<Scal>>(con, "stat.dat");
+      ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
     }
 
     ParseEvents();
@@ -606,10 +605,10 @@ void Hydro<M>::Init() {
 
 template <class M>
 Hydro<M>::Hydro(Vars& var, const MyBlockInfo& bi, Par& par) 
-  : KernelMeshPar<M,Par>(var, bi, par)
-  , dumper_(var, "dump_field_")
-  , dmptraj_(var, "dump_traj_")
-  , dmptrep_(var, "dump_trep_")
+    : KernelMeshPar<M,Par>(var, bi, par)
+    , dumper_(var, "dump_field_")
+    , dmptraj_(var, "dump_traj_")
+    , dmptrep_(var, "dump_trep_")
 {}
 
 template <class M>
@@ -1421,7 +1420,7 @@ void Hydro<M>::Run() {
 
   if (sem("dumpstat")) {
     if (IsRoot()) {
-      ost_->Write();
+      ost_->Write(0., "");
     }
   }
 
