@@ -12,6 +12,9 @@
 #include "reconst.h"
 #include "partstr.h"
 
+// normal from exact sphere
+#define ADHOC_NORM 0
+
 namespace solver {
 
 template <class M_>
@@ -20,38 +23,11 @@ struct Vof<M_>::Imp {
   using PS = PartStr<Scal>;
   static constexpr size_t dim = M::dim;
 
-  Vof* owner_;
-  M& m;
-
-  LayersData<FieldCell<Scal>> fcu_;
-  MapFace<std::shared_ptr<CondFace>> mfc_;
-  MapFace<std::shared_ptr<CondFace>> mfvz_; // zero-derivative bc for Vect
-
-  FieldCell<Scal> fca_; // alpha (plane constant)
-  FieldCell<Vect> fcn_; // n (normal to plane)
-  FieldCell<Scal> fck_; // curvature from height functions
-  FieldCell<Scal> fckp_; // curvature from particles
-  FieldCell<bool> fci_; // interface mask (1: contains interface)
-  size_t count_ = 0; // number of MakeIter() calls, used for splitting
-  // XXX: fca_ and fcn_ are proportional, separate scaling is invalid
-
-  using PSP = typename PS::Par;
-  std::unique_ptr<PS> partstr_; // particle strings
-  std::vector<IdxCell> vsc_; // vsc_[s] is cell of string s
-  std::vector<Scal> vsan_; // vsc_[s] is angle of tangent (see GetPlaneBasis)
-
-  std::vector<Vect> dpx_; // dump particles x
-  std::vector<size_t> dpc_; // dump particles cell
-  std::vector<Scal> dpk_; // dump particles curvature
-  std::vector<std::vector<Vect>> dl_; // dump poly
-
-  std::shared_ptr<Par> par;
-
   Imp(Vof* owner, const FieldCell<Scal>& fcu,
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
       std::shared_ptr<Par> par)
-      : owner_(owner), m(owner_->m), mfc_(mfc), fca_(m, 0), fcn_(m, Vect(0)) 
-      , fck_(m, 0), fckp_(m, 0), par(par)
+      : owner_(owner), par(par), m(owner_->m)
+      , mfc_(mfc), fca_(m, 0), fcn_(m, Vect(0)), fck_(m, 0), fckp_(m, 0)
   {
     fcu_.time_curr = fcu;
     for (auto it : mfc_) {
@@ -65,7 +41,6 @@ struct Vof<M_>::Imp {
     Update(p.get());
     partstr_ = std::unique_ptr<PS>(new PS(p));
   }
-
   void Update(typename PS::Par* p) const {
     Scal hc = GetCellSize().norminf(); // cell size
 
@@ -885,12 +860,32 @@ struct Vof<M_>::Imp {
     fcu_.time_curr = fcu_.iter_curr;
     owner_->IncTime();
   }
-};
 
-template <class M_>
-auto Vof<M_>::GetPar() -> Par* {
-  return imp->par.get();
-}
+  Vof* owner_;
+  std::shared_ptr<Par> par;
+  M& m;
+
+  LayersData<FieldCell<Scal>> fcu_;
+  MapFace<std::shared_ptr<CondFace>> mfc_;
+  MapFace<std::shared_ptr<CondFace>> mfvz_; // zero-derivative bc for Vect
+
+  FieldCell<Scal> fca_; // alpha (plane constant)
+  FieldCell<Vect> fcn_; // n (normal to plane)
+  FieldCell<Scal> fck_; // curvature from height functions
+  FieldCell<Scal> fckp_; // curvature from particles
+  FieldCell<bool> fci_; // interface mask (1: contains interface)
+  size_t count_ = 0; // number of MakeIter() calls, used for splitting
+  // XXX: fca_ and fcn_ are proportional, separate scaling is invalid
+
+  std::unique_ptr<PS> partstr_; // particle strings
+  std::vector<IdxCell> vsc_; // vsc_[s] is cell of string s
+  std::vector<Scal> vsan_; // vsc_[s] is angle of tangent (see GetPlaneBasis)
+
+  std::vector<Vect> dpx_; // dump particles x
+  std::vector<size_t> dpc_; // dump particles cell
+  std::vector<Scal> dpk_; // dump particles curvature
+  std::vector<std::vector<Vect>> dl_; // dump poly
+};
 
 template <class M_>
 Vof<M_>::Vof(M& m, const FieldCell<Scal>& fcu,
@@ -899,7 +894,11 @@ Vof<M_>::Vof(M& m, const FieldCell<Scal>& fcu,
     double t, double dt, std::shared_ptr<Par> par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)
     , imp(new Imp(this, fcu, mfc, par))
-{
+{}
+
+template <class M_>
+auto Vof<M_>::GetPar() -> Par* {
+  return imp->par.get();
 }
 
 template <class M_>

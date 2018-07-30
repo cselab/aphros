@@ -5,9 +5,6 @@
 #include "advection.h"
 #include "dump/dumper.h"
 
-// normal from exact sphere
-#define ADHOC_NORM 0
-
 namespace solver {
 
 template <class M_>
@@ -60,32 +57,39 @@ class Vof : public AdvectionSolver<M_> {
     Scal part_anglim = 90.; 
   };
 
-  struct Imp; // implementation
-  std::unique_ptr<Imp> imp;
-
-  using P::m;
-
-  // Returns pointer to parameters
-  Par* GetPar();
-
+  // Constructor
   Vof(M& m, const FieldCell<Scal>& fcu,
       const MapFace<std::shared_ptr<CondFace>>& mfc,
       const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
       double t, double dt, std::shared_ptr<Par> par);
-
+  // Parameters
+  Par* GetPar();
+  // ...
   void StartStep() override;
+  // ...
   void MakeIteration() override;
+  // ...
   void FinishStep() override;
+  // Volume fraction
   const FieldCell<Scal>& GetField(Layers l) const override;
-  const FieldCell<Scal>& GetAlpha() const;
-  const FieldCell<Vect>& GetNormal() const;
-  // curvature default
-  const FieldCell<Scal>& GetCurv() const override;
-  // curvature from height functions
-  const FieldCell<Scal>& GetCurvH() const;
-  // curvature from particles
-  const FieldCell<Scal>& GetCurvP() const;
+  // ...
   using P::GetField;
+  // Plane constant
+  const FieldCell<Scal>& GetAlpha() const;
+  // Normal to interface
+  const FieldCell<Vect>& GetNormal() const;
+  // Default curvature 
+  const FieldCell<Scal>& GetCurv() const override;
+  // Curvature from height functions
+  const FieldCell<Scal>& GetCurvH() const;
+  // Curvature from particles
+  const FieldCell<Scal>& GetCurvP() const;
+
+ private:
+  struct Imp; // implementation
+  std::unique_ptr<Imp> imp;
+
+  using P::m;
 };
 
 } // namespace solver
