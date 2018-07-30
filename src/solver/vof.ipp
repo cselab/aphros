@@ -17,11 +17,12 @@ namespace solver {
 
 template <class M_>
 struct Vof<M_>::Imp {
+  using Owner = Vof<M_>;
   using R = Reconst<Scal>;
   using PS = PartStr<Scal>;
   static constexpr size_t dim = M::dim;
 
-  Imp(Vof* owner, const FieldCell<Scal>& fcu,
+  Imp(Owner* owner, const FieldCell<Scal>& fcu,
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m)
@@ -668,7 +669,7 @@ struct Vof<M_>::Imp {
     owner_->IncTime();
   }
 
-  Vof* owner_;
+  Owner* owner_;
   std::shared_ptr<Par> par;
   M& m;
 
@@ -695,13 +696,17 @@ struct Vof<M_>::Imp {
 };
 
 template <class M_>
-Vof<M_>::Vof(M& m, const FieldCell<Scal>& fcu,
+Vof<M_>::Vof(
+    M& m, const FieldCell<Scal>& fcu,
     const MapFace<std::shared_ptr<CondFace>>& mfc,
     const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
     double t, double dt, std::shared_ptr<Par> par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)
     , imp(new Imp(this, fcu, mfc, par))
 {}
+
+template <class M_>
+Vof<M_>::~Vof() = default;
 
 template <class M_>
 auto Vof<M_>::GetPar() -> Par* {

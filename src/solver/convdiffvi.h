@@ -17,7 +17,7 @@ class ConvectionDiffusionImplicit : public ConvectionDiffusion<M_> {
   using P = ConvectionDiffusion<M_>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  using CD = ConvectionDiffusionScalarImplicit<M>;
+  using CD = ConvDiffScalImp<M>;
 
   static constexpr size_t dim = M::dim;
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
