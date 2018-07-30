@@ -13,3 +13,7 @@ add_library(${T} normal.cpp)
 
 set(T "convdiffi")
 add_library(${T} convdiffi.cpp)
+
+set(T "convdiffvi")
+add_library(${T} convdiffvi.cpp)
+target_link_libraries(${T} convdiffi)
