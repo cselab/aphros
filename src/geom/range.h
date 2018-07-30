@@ -45,6 +45,9 @@ class GRange {
     std::swap(b_, o.b_);
     std::swap(e_, o.e_);
   }
+  void clear() {
+    GRange().swap(*this);
+  }
   bool operator==(const GRange& o) const {
     return b_ == o.b_ && e_ == o.e_;
   }
