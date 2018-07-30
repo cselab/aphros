@@ -21,6 +21,11 @@ class GField {
       (*this)[i] = o[i];
     }
   }
+  // Move constructor
+  GField(GField&& o) : r_(o.r_), d_(o.d_) {
+    o.r_.clear();
+    o.d_ = nullptr;
+  } 
   // Constructs field for range r and initializes with v
   GField(const Range& r, const Value& v) : GField(r) {
     for (auto i : r_) {
@@ -30,11 +35,21 @@ class GField {
   ~GField() {
     Free();
   }
+  // Assignment
   GField& operator=(const GField& o) {
     Reinit(o.r_);
     for (auto i : r_) {
       (*this)[i] = o[i];
     }
+    return *this;
+  }
+  // Move assignment
+  GField& operator=(GField&& o) {
+    Free();
+    r_ = o.r_;
+    d_ = o.d_;
+    o.r_.clear();
+    o.d_ = nullptr;
     return *this;
   }
   size_t size() const { 
@@ -58,7 +73,7 @@ class GField {
   }
   // Deallocates memory, resets range to zero size
   void Free() {
-    Range().swap(r_);
+    r_.clear();
     delete[] d_;
     d_ = nullptr;
   }
