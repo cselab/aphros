@@ -5,6 +5,7 @@
 #include <memory>
 #include <limits>
 #include <vector>
+#include <iomanip>
 
 #include "geom/vect.h"
 #include "reconst.h"
