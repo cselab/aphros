@@ -27,7 +27,7 @@ class FluidSimple : public FluidSolver<M_> {
   using Vect = typename M::Vect;
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
-  using CD = ConvectionDiffusionImplicit<M>; // convdiff solver
+  using CD = ConvDiffVectImp<M>; // convdiff solver
 
   // domain (cells/faces)
   // [i]: inner
@@ -406,7 +406,7 @@ class FluidSimple : public FluidSolver<M_> {
 
       fcfcd_.Reinit(m, Vect(0));
       cd_ = std::make_shared<
-          ConvectionDiffusionImplicit<M>>(
+          ConvDiffVectImp<M>>(
               m, fcw, mfcw_, mccw_, fcr, &ffd_, 
               &fcfcd_, &ffv_.iter_prev, time, time_step, p);
     }
