@@ -10,3 +10,6 @@ target_link_libraries(${T} solver)
 
 set(T "normal")
 add_library(${T} normal.cpp)
+
+set(T "convdiffi")
+add_library(${T} convdiffi.cpp)

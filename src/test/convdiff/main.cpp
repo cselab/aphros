@@ -59,7 +59,7 @@ class Convdiff : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_exact_;
   FieldFace<Scal> ff_flux_;
   FieldCell<Scal> fc_src_;
-  using AS = solver::ConvectionDiffusionScalarImplicit<M>;
+  using AS = solver::ConvDiffScalImp<M>;
   std::unique_ptr<AS> as_;
   MIdx gs_; // global mesh size
   Vect ge_; // global extent

@@ -187,6 +187,9 @@ Tvd<M_>::Tvd(M& m, const FieldCell<Scal>& fcu,
 {}
 
 template <class M_>
+Tvd<M_>::~Tvd() = default;
+
+template <class M_>
 auto Tvd<M_>::GetPar() -> Par* { 
   return imp->par.get(); 
 }

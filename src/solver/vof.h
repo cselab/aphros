@@ -62,6 +62,7 @@ class Vof : public AdvectionSolver<M_> {
       const MapFace<std::shared_ptr<CondFace>>& mfc,
       const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
       double t, double dt, std::shared_ptr<Par> par);
+  ~Vof();
   // Parameters
   Par* GetPar();
   // ...
@@ -88,8 +89,6 @@ class Vof : public AdvectionSolver<M_> {
  private:
   struct Imp; // implementation
   std::unique_ptr<Imp> imp;
-
-  using P::m;
 };
 
 } // namespace solver
