@@ -21,10 +21,13 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
                   const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs)
       : UnsteadyIterativeSolver(t, dt)
       , m(m), ffv_(ffv), fcs_(fcs) {}
+  // Volume fraction
   virtual const FieldCell<Scal>& GetField(Layers) const = 0;
+  // Volume fraction at last time step
   virtual const FieldCell<Scal>& GetField() const {
     return GetField(Layers::time_curr);
   }
+  // Curvature
   virtual const FieldCell<Scal>& GetCurv() const = 0;
 };
 

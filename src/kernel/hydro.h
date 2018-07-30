@@ -81,7 +81,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void ExecEvents();
 
   using FS = solver::FluidSimple<M>;
-  using AST = solver::AdvectionSolverExplicit<M>; // advection TVD
+  using AST = solver::Tvd<M>; // advection TVD
   using ASV = solver::Vof<M>; // advection VOF
   using TR = solver::Tracker<M>; // color tracker
 

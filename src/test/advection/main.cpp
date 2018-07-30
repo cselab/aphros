@@ -69,7 +69,7 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using Sem = typename Mesh::Sem;
-  using AST = solver::AdvectionSolverExplicit<M>; // advection TVD
+  using AST = solver::Tvd<M>; // advection TVD
   using ASV = solver::Vof<M>; // advection VOF
 
   //using P::P; // inherit constructor
