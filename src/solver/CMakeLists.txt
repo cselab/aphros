@@ -13,7 +13,12 @@ add_library(${T} normal.cpp)
 
 set(T "convdiffi")
 add_library(${T} convdiffi.cpp)
+target_link_libraries(${T} solver)
 
 set(T "convdiffvi")
 add_library(${T} convdiffvi.cpp)
 target_link_libraries(${T} convdiffi)
+
+set(T "simple")
+add_library(${T} simple.cpp)
+target_link_libraries(${T} vof tvd convdiffvi)

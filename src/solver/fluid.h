@@ -19,6 +19,7 @@ class FluidSolver : public UnsteadyIterativeSolver {
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
  protected:
+  M& m;
   FieldCell<Scal>* fcr_;   // density
   FieldCell<Scal>* fcd_;   // dynamic viscosity
   FieldCell<Vect>* fcf_;   // force
@@ -27,24 +28,33 @@ class FluidSolver : public UnsteadyIterativeSolver {
   FieldCell<Scal>* fcsm_;  // mass source
 
  public:
-  FluidSolver(double time, double time_step,
-              FieldCell<Scal>* fcr,   // density
-              FieldCell<Scal>* fcd,   // dynamic viscosity
-              FieldCell<Vect>* fcf,   // force 
-              FieldFace<Scal>* ffbp, // balanced force projections 
-              FieldCell<Scal>* fcsv,  // volume source
-              FieldCell<Scal>* fcsm)  // mass source
-      : UnsteadyIterativeSolver(time, time_step)
-      , fcr_(fcr) , fcd_(fcd) , fcf_(fcf), ffbp_(ffbp)
-      , fcsv_(fcsv) , fcsm_(fcsm)
+  // fcr: density
+  // fcd: dynamic viscosity
+  // fcf: force
+  // ffbp: projections of balanced force
+  // fcsv: volume source
+  // fcsm: mass source
+  FluidSolver(double t, double dt, M& m,
+              FieldCell<Scal>* fcr, FieldCell<Scal>* fcd, 
+              FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
+              FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm)
+      : UnsteadyIterativeSolver(t, dt)
+      , m(m), fcr_(fcr), fcd_(fcd), fcf_(fcf), ffbp_(ffbp)
+      , fcsv_(fcsv), fcsm_(fcsm)
   {}
-  virtual const FieldCell<Vect>& GetVelocity() = 0;
-  virtual const FieldCell<Vect>& GetVelocity(Layers layer) = 0;
-  virtual const FieldCell<Scal>& GetPressure() = 0;
-  virtual const FieldCell<Scal>& GetPressure(Layers layer) = 0;
-  virtual const FieldFace<Scal>& GetVolumeFlux() = 0;
-  virtual const FieldFace<Scal>& GetVolumeFlux(Layers layer) = 0;
-  virtual double GetAutoTimeStep() { return GetTimeStep(); }
+  virtual const FieldCell<Vect>& GetVelocity(Layers) const = 0;
+  virtual const FieldCell<Vect>& GetVelocity() const {
+    return GetVelocity(Layers::time_curr);
+  }
+  virtual const FieldCell<Scal>& GetPressure(Layers) const = 0;
+  virtual const FieldCell<Scal>& GetPressure() const {
+    return GetPressure(Layers::time_curr);
+  }
+  virtual const FieldFace<Scal>& GetVolumeFlux(Layers) const = 0;
+  virtual const FieldFace<Scal>& GetVolumeFlux() const {
+    return GetVolumeFlux(Layers::time_curr);
+  }
+  virtual double GetAutoTimeStep() const { return GetTimeStep(); }
 };
 
 class CondFaceFluid : public CondFace {
