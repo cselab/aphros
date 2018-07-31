@@ -289,6 +289,7 @@ class PartStr {
       return jn;
     };
 
+    /*
     // find nearest segment with angle limit
     // x: target point
     // n: normal to string
@@ -313,6 +314,7 @@ class PartStr {
       }
       return jn;
     };
+    */
 
     /*
     // find segment with nearest angle
@@ -363,7 +365,6 @@ class PartStr {
       }
       return jn;
     };
-    */
 
     // Apply shift from segment to circle
     // j: segment idx
@@ -410,12 +411,26 @@ class PartStr {
         n = Vect(-n[1], n[0], 0.) * g;
         size_t jn = findnearang(xx[i], n, anglim); // nearest segment
         if (jn != size_t(-1)) {
-          Vect xn = R::GetNearest(x, ll[jn][0], ll[jn][1]);
+          auto& e = ll[jn];
+          Vect xn = R::GetNearest(x, e[0], e[1]);
           shsegcirc(jn, xn);
           ff[i] += xn - x;  
         }
       }
     }
+    */
+
+    for (size_t i = 0; i < sx; ++i) {
+      const Vect& x = xx[i];
+      size_t jn = findnear(x);
+      auto& e = ll[jn];
+      Vect xn = R::GetNearest(x, e[0], e[1]);
+      ff[i] = (xn - x) * 
+          (1. - 0.5 * xn.dist((e[0] + e[1]) * 0.5) / e[0].dist(e[1]) * 2.);
+    }
+    (void)anglim;
+    (void)crv;
+    (void)segcirc;
 
 
   }
@@ -683,12 +698,16 @@ class PartStr {
       Scal dt = ft / nt * kt;
       // limabs
       // la > 0.
+      /*
       auto limabs = [](Scal a, Scal la) {
         return std::min(std::abs(a), la) * (a > 0. ? 1. : -1);
       };
       dt = limabs(dt, dtmax / (sx - 1));
       Scal t = GetAn(xx, (sx - 1) / 2);
       dt = limabs(t + dt, tmax / (sx - 1)) - t;
+      */
+      (void) tmax;
+      (void) dtmax;
 
       // vector at angle dt/2
       Vect eth = ra(dt);
