@@ -34,7 +34,7 @@ add_subdirectory(solver)
 add_subdirectory(parse)
 add_subdirectory(dump)
 
-target_link_libraries(${EXE} distr solver vof tvd convdiffvi)
+target_link_libraries(${EXE} distr solver vof tvd convdiffvi simple)
 
 add_subdirectory(test)
 enable_testing()

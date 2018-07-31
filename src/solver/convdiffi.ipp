@@ -10,8 +10,7 @@ template <class M_>
 struct ConvDiffScalImp<M_>::Imp {
   using Owner = ConvDiffScalImp<M_>;
 
-  Imp(
-      Owner* owner, const FieldCell<Scal>& fcu,
+  Imp(Owner* owner, const FieldCell<Scal>& fcu,
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
       const MapCell<std::shared_ptr<CondCell>>& mcc,
       std::shared_ptr<Par> par)

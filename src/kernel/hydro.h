@@ -80,7 +80,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   // Exec events due and remove from ev_
   void ExecEvents();
 
-  using FS = solver::FluidSimple<M>;
+  using FS = solver::Simple<M>;
   using AST = solver::Tvd<M>; // advection TVD
   using ASV = solver::Vof<M>; // advection VOF
   using TR = solver::Tracker<M>; // color tracker
@@ -711,10 +711,10 @@ void Hydro<M>::CalcStat() {
       Vect mask(var.Vect["meshvel_mask"]); // components 0 or 1
       v *= mask;
       double w = var.Double["meshvel_weight"];
-      Vect vp = fs_->par->meshvel;
-      fs_->par->meshvel = v * w + vp * (1. - w);
+      Vect vp = fs_->GetPar()->meshvel;
+      fs_->GetPar()->meshvel = v * w + vp * (1. - w);
 
-      st_.meshvel = fs_->par->meshvel;
+      st_.meshvel = fs_->GetPar()->meshvel;
       st_.meshpos += st_.meshvel * st_.dt;
     }
   }
