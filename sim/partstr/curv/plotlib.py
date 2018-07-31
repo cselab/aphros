@@ -150,7 +150,7 @@ def GetLines(xc, yc, a, nx, ny, hx, hy, u):
     xb = []
     yb = []
     for i in range(len(xc)):
-        th = 1e-5
+        th = 1e-10
         if u[i] > th and u[i] < 1. - th:
             e = GetLineEnds(nx[i] * hx, ny[i] * hy, a[i])
             if len(e) == 2:
@@ -182,30 +182,33 @@ def PlotPart(ax, p, sk=1):
 
 
     # separate particles strings by cell
-    tt = dict()  # lists of indices in x
+    tt = dict()  # lists of indices in x, cell is key
     for i in range(len(c)):
         ci = c[i]
         if not ci in tt:
             tt[ci] = []
         tt[ci].append(i)
 
-    # map cell index to color
+    # map cell index to [0:nc]
     nc = 16
-    c = (c * (2 ** 31 - 1) % nc).astype(float) / (nc - 1)
+    #c = (c * (2 ** 31 - 1) % nc).astype(float) / (nc - 1)
+    cu = np.unique(c)
+    np.random.seed(0)
+    rnd = np.random.choice(np.arange(nc), len(cu))
+    mcl = dict(zip(cu, rnd))
 
     cmap = plt.get_cmap("Set1")
 
     # plot strings
-    n = 0
     for i in tt:
-        if i % sk == 0:
+        if np.random.randint(sk) == 0:
             ti = np.array(tt[i])
-            cl = cmap(c[ti[0]])
+            cl = cmap(mcl[i])
             # connecting lines
             ax.plot(x[ti], y[ti], c=cl, zorder=10, lw=1, alpha=0.5)
             # points
             ax.scatter(x[ti], y[ti], c=cl, s=2, lw=0.3, zorder=11, edgecolor='black')
-        n += 1
+            #ax.scatter(x[ti], y[ti], c=cl, s=0.5, lw=0.2, zorder=11, alpha=0.8, edgecolor='black') # XXX
 
 def IsGerris(s):
     # check if gerris (odd nx)
@@ -353,7 +356,7 @@ def FigHistK(vf, kk, ll, po, title=None):
     x,y,z = GetMesh(x1, y1, z1)
 
     # interface cells
-    th = 1e-3
+    th = 1e-8
     ii = np.where((vf > th) & (vf < 1. - th))
     x = x[ii]; y = y[ii]; z = z[ii]
 

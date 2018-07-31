@@ -8833,11 +8833,11 @@
     </Proxy>
     <Proxy group="sources" type="CSVReader" id="8147" servers="1">
       <Property name="FileName" id="8147.FileName" number_of_elements="1">
-        <Element index="0" value="/home/kpetr/s/ch_partstr/curvbub/partit.0.csv"/>
+        <Element index="0" value="/home/kpetr/s/ch_partstr/curvbub/partit_0000.csv"/>
         <Domain name="files" id="8147.FileName.files"/>
       </Property>
       <Property name="FileNameInfo" id="8147.FileNameInfo" number_of_elements="1">
-        <Element index="0" value="/home/kpetr/s/ch_partstr/curvbub/partit.0.csv"/>
+        <Element index="0" value="/home/kpetr/s/ch_partstr/curvbub/partit_0000.csv"/>
       </Property>
       <Property name="TimestepValues" id="8147.TimestepValues"/>
       <Property name="AddTabFieldDelimiter" id="8147.AddTabFieldDelimiter" number_of_elements="1">
@@ -8866,10 +8866,10 @@
     </Proxy>
     <Proxy group="sources" type="LegacyVTKFileReader" id="8051" servers="1">
       <Property name="FileNameInfo" id="8051.FileNameInfo" number_of_elements="1">
-        <Element index="0" value="/home/kpetr/s/ch_partstr/curvbub/s.0.vtk"/>
+        <Element index="0" value="/home/kpetr/s/ch_partstr/curvbub/s_0000.vtk"/>
       </Property>
       <Property name="FileNames" id="8051.FileNames" number_of_elements="1">
-        <Element index="0" value="/home/kpetr/s/ch_partstr/curvbub/s.0.vtk"/>
+        <Element index="0" value="/home/kpetr/s/ch_partstr/curvbub/s_0000.vtk"/>
         <Domain name="files" id="8051.FileNames.files"/>
       </Property>
       <Property name="TimestepValues" id="8051.TimestepValues"/>
@@ -10094,8 +10094,8 @@
       <Item id="8404" name="TableToPoints1"/>
       <Item id="9321" name="TableToPoints2"/>
       <Item id="9297" name="a.csv"/>
-      <Item id="8147" name="partit.0.csv"/>
-      <Item id="8051" name="s.0.vtk"/>
+      <Item id="8147" name="partit_0000.csv"/>
+      <Item id="8051" name="s_0000.vtk"/>
     </ProxyCollection>
     <ProxyCollection name="timekeeper">
       <Item id="259" name="TimeKeeper1"/>

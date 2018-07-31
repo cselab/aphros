@@ -1,6 +1,6 @@
 #!/bin/bash
 
-a="partit.0.csv"
+a="partit_0000.csv"
 o="a.csv"
 
 # line number
