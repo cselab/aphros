@@ -31,8 +31,8 @@ template <class Scal>
 class PartStr {
  public:
   struct Par {
-    Scal leq = 0.35; // equilibrium length of segment relative to cell size
-    Scal relax = 0.01; // relaxation factor
+    Scal leq = 4.; // equilibrium length of string relative to cell size
+    Scal relax = 0.5; // relaxation factor
     int constr = 1;  // constraint type
     size_t npmax = 11; // maximum number particles in string
     Scal segcirc = 1.; // factor for shift to circular segment
@@ -81,7 +81,7 @@ class PartStr {
   size_t Add(const Vect& xc, const Vect& t, 
              const std::array<Vect, 2>* ll, size_t sl) {
     size_t np = par->npmax;
-    Scal leq = par->leq * par->hc;
+    Scal leq = par->leq * par->hc / np; // length of segment
     for (size_t i = 0; i < np; ++i) {
       xx_.push_back(xc + t * ((Scal(i) - (np - 1) * 0.5) * leq));
     }
@@ -112,7 +112,7 @@ class PartStr {
     // apply constraints
     int cs = par->constr;
     if (cs == 0) {
-      Constr0(xx, sx, par->kstr, par->leq * par->hc,
+      Constr0(xx, sx, par->kstr, par->leq * par->hc / par->npmax,
               par->kbend, par->bendmean, par->relax, ff.data());
     } else if (cs == 1) {
       Constr1(xx, sx, par->kattr, 
@@ -425,14 +425,12 @@ class PartStr {
       size_t jn = findnear(x);
       auto& e = ll[jn];
       Vect xn = R::GetNearest(x, e[0], e[1]);
-      ff[i] = (xn - x) * 
-          (1. - 0.5 * xn.dist((e[0] + e[1]) * 0.5) / e[0].dist(e[1]) * 2.);
+      ff[i] = (xn - x);
+      //ff[i] *= (1. - 0.5 * xn.dist((e[0] + e[1]) * 0.5) / e[0].dist(e[1]) * 2.);
     }
     (void)anglim;
     (void)crv;
     (void)segcirc;
-
-
   }
   // Oriented angle from (x1-x0) to (x2-x1)
   static Scal GetAn(Vect x0, Vect x1, Vect x2) {
