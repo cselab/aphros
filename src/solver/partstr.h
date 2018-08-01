@@ -426,7 +426,8 @@ class PartStr {
       auto& e = ll[jn];
       Vect xn = R::GetNearest(x, e[0], e[1]);
       ff[i] = (xn - x);
-      //ff[i] *= (1. - 0.5 * xn.dist((e[0] + e[1]) * 0.5) / e[0].dist(e[1]) * 2.);
+      //auto q = xn.dist((e[0] + e[1]) * 0.5) / e[0].dist(e[1]) * 2.;
+      //ff[i] *= (0.0 + 0.5 * q);
     }
     (void)anglim;
     (void)crv;
