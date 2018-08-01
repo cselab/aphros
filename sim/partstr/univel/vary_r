@@ -15,6 +15,7 @@ l="out"
 echo > $l
 
 for exp in `seq 2 6` ; do
+#for exp in 4 ; do
   br=`bc -l <<< "0.4 * sqrt(2 ^ (-$exp))"`
   echo "br=$br"
   echo "$bc $br $br" > b.dat
