@@ -365,6 +365,7 @@ class PartStr {
       }
       return jn;
     };
+    */
 
     // Apply shift from segment to circle
     // j: segment idx
@@ -390,6 +391,7 @@ class PartStr {
       }
     };
 
+    /*
     // central: 
     // attraction to nearest interface
     const size_t ic = (sx - 1) / 2;
@@ -425,6 +427,7 @@ class PartStr {
       size_t jn = findnear(x);
       auto& e = ll[jn];
       Vect xn = R::GetNearest(x, e[0], e[1]);
+      shsegcirc(jn, xn);
       ff[i] = (xn - x);
       //auto q = xn.dist((e[0] + e[1]) * 0.5) / e[0].dist(e[1]) * 2.;
       //ff[i] *= (0.0 + 0.5 * q);
