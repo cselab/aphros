@@ -25,10 +25,16 @@ renderView1.OrientationAxesLabelColor = [0.0, 0.0, 0.0]
 renderView1.OrientationAxesOutlineColor = [0.0, 0.0, 0.0]
 renderView1.CenterOfRotation = [0.5099512603467459, 0.49048581092909566, 0.5599339630758458]
 renderView1.StereoType = 0
-renderView1.CameraPosition = [2.813868569960714, -0.5074590100179297, 1.4878129079851992]
-renderView1.CameraFocalPoint = [0.5099512603467459, 0.49048581092909566, 0.5599339630758458]
-renderView1.CameraViewUp = [-0.31739082620003495, 0.13938956480260697, 0.9379944630264078]
-renderView1.CameraParallelScale = 0.6927889287942449
+if 0:
+    renderView1.CameraPosition = [2.813868569960714, -0.5074590100179297, 1.4878129079851992]
+    renderView1.CameraFocalPoint = [0.5099512603467459, 0.49048581092909566, 0.5599339630758458]
+    renderView1.CameraViewUp = [-0.31739082620003495, 0.13938956480260697, 0.9379944630264078]
+    renderView1.CameraParallelScale = 0.6927889287942449
+else:
+    renderView1.CameraPosition = [0.39800458083951107, 0.6522102516464146, 1.0596291883480715]
+    renderView1.CameraFocalPoint = [0.5100810080766677, 0.4898284971714025, 0.56021748483181]
+    renderView1.CameraViewUp = [0.05872615649612774, 0.9531525463623923, -0.29673466583141267]
+    renderView1.CameraParallelScale = 0.13897908169648868
 renderView1.Background = [1.0, 1.0, 1.0]
 renderView1.EnableOSPRay = 1
 renderView1.Shadows = 1

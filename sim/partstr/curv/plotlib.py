@@ -322,21 +322,75 @@ def GetNorm(k):
     l2 = (k ** 2).mean() ** 0.5
     return m, l1, l2
 
-# Evaluates exact curvature.
+def LoadBub():
+    return np.loadtxt("b.dat")
+
+# Returns mean curvature of surface z=h(x,y) at point (x,y,z)
+# h: function h(x,y)
+# x,y: coordinates
+# dx: step to compute derivative
+def GetCurv(h, x, y, dx=1e-3):
+    dy = dx
+    # returns df/dx of function f(x,y)
+    def Dx(f):
+        return lambda x,y: (f(x + dx, y) - f(x - dx, y)) / (2. * dx)
+    # returns df/dy of function f(x,y)
+    def Dy(f):
+        return lambda x,y: (f(x, y + dy) - f(x, y - dy)) / (2. * dy)
+
+    hx = Dx(h)(x,y)
+    hy = Dy(h)(x,y)
+    hxx = Dx(Dx(h))(x,y)
+    hxy = 0.5 * (Dx(Dy(h))(x,y) + Dy(Dx(h))(x,y))
+    hyy = Dy(Dy(h))(x,y)
+
+    a = hx ** 2 * hxx + 2. * hx * hy * hxy + hy ** 2 * hyy
+    b = (hx ** 2 + hy ** 2 + 1.) * (hxx + hyy)
+    c = (hx ** 2 + hy ** 2 + 1.) ** (3. / 2)
+
+    return (a - b) / c
+
+def P(x, lbl):
+    print("{:}: min={:}, max={:}, avg={:}".format(lbl, x.min(), x.max(), x.mean()))
+
+# Returns curvature of ellipse (x/ry)**2 + (y/ry)**2 = 1 at point x
+def GetEllip2Curv0(x, rx, ry):
+    dx = rx * 1e-3
+    x = np.clip(x, -rx + dx * 2, rx - dx * 2) # XXX clip
+    return GetCurv(lambda xx,zz: (1. - (xx / rx) ** 2) ** 0.5 * ry, x, 0., dx=dx)
+
+# Returns curvature of ellipse (x/ry)**2 + (y/ry)**2 = 1 at point x,y
+def GetEllip2Curv(x, y, rx, ry):
+    if abs(x) < abs(y):
+        return GetEllip2Curv0(x, rx, ry)
+    return GetEllip2Curv0(y, ry, rx)
+
+# Evaluates exact curvature of ellipsoid
 # dim: dimension, 2 or 3
 # x,y,z: points
 # Returns:
 # k: curvature of shape x
 def GetExactK(dim, x, y, z):
-    cx,cy,cz,rx,ry = np.loadtxt('b.dat')
+    cx,cy,cz,rx,ry,rz = LoadBub()
 
     dx = x - cx; dy = y - cy; dz = z - cz
-    # angle of (dx,dy)
-    a = np.arctan2(dy, dx)
 
+    k = np.zeros_like(x)
+    P(dx,'dx')
+    P(dy,'dy')
+
+    if dim == 2:
+        for i,wx,wy in zip(range(len(dx)),dx,dy):
+            k[i] = GetEllip2Curv(wx, wy, rx, ry)
+            print(wx, wy, rx, ry, k[i])
+
+    return k
+
+if 0:
     # Curvature from angle
     # a: angle [rad]
     def fk(a):
+        P(a,'a')
         if dim == 3: # assume sphere  TODO: ellipsoid
             assert(rx == ry)
             return 2. / rx + np.zeros_like(a)
@@ -344,10 +398,17 @@ def GetExactK(dim, x, y, z):
         r =  (rx * ry) / ((ry * np.cos(a)) ** 2 + (rx * np.sin(a)) ** 2) ** 0.5
         x = r * np.cos(a)
         y = r * np.sin(a)
-        return rx * ry / (rx ** 2 - x ** 2 + (ry * x / rx) ** 2) ** (3. / 2.)
-        # valid for parametrization: x=rx*cos(a), y=ry*sin(a)
-        #return rx * ry / ((ry * np.cos(a)) ** 2 + (rx * np.sin(a)) ** 2) ** (3. / 2.)
-    return fk(a)
+        #return rx * ry / (rx ** 2 - x ** 2 + (ry * x / rx) ** 2) ** (3. / 2.)
+        k = np.empty_like(a)
+        for i,wx,wy in zip(range(len(dx)),x,y):
+            wx = abs(wx)
+            wy = abs(wy)
+            if (abs(wy) > abs(wx)):
+                k[i] = GetCurv(lambda xx,zz: (1. - (xx / rx) ** 2) ** 0.5 * ry, wx, 0., dx=rx * 1e-3)
+            else:
+                k[i] = GetCurv(lambda yy,zz: (1. - (yy / ry) ** 2) ** 0.5 * rx, wy, 0., dx=rx * 1e-3)
+        P(k, 'k')
+        return k
 
 # Histogram of curvature
 def FigHistK(vf, kk, ll, po, title=None):
@@ -384,7 +445,7 @@ def FigHistK(vf, kk, ll, po, title=None):
     PlotSave(fig, ax, po)
 
     # write error: label rx ry max l1 l2
-    cx,cy,cz,rx,ry = np.loadtxt('b.dat')
+    cx,cy,cz,rx,ry,rz = LoadBub()
     with open("er", 'w') as f:
         for k,l in zip(kk,ll):
             if k is not None:

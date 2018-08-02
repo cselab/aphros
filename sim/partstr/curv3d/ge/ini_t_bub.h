@@ -6,7 +6,7 @@
 // x y z r
 
 typedef struct {
-  double x, y, z, r, ry;
+  double x, y, z, r, ry, rz;
 } Bub;
 
 // zeroz: if true, set z=0 for all bubbles
@@ -17,13 +17,14 @@ static void read(char* fn, Bub* l, int* n, int zeroz) {
     abort();
   }
   int i = 0;
-  double x, y, z, r, ry;
-  while (fscanf(b, "%lf %lf %lf %lf %lf\n", &x, &y, &z, &r, &ry) > 0) {
+  double x, y, z, r, ry, rz;
+  while (fscanf(b, "%lf %lf %lf %lf %lf %lf\n", &x, &y, &z, &r, &ry, &rz) > 0) {
     l[i].x = x;
     l[i].y = y;
     l[i].z = (zeroz ? 0. : z);
     l[i].r = r;
     l[i].ry = ry;
+    l[i].rz = rz;
     ++i;
   }
   *n = i;
@@ -41,7 +42,7 @@ static double dist(Bub* b, double x, double y, double z) {
   double dz = b->z - z;
   dx /= b->r;
   dy /= b->ry;
-  dz /= b->r;
+  dz /= b->rz;
   double d = sqrt(dx * dx + dy * dy + dz * dz);
   d -= 1.;
   return d;

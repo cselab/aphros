@@ -79,7 +79,7 @@ def Main():
     vf = ReadField(pt, "u")
 
     # title
-    cx,cy,cz,rx,ry = np.loadtxt('b.dat')
+    cx,cy,cz,rx,ry,rz = LoadBub()
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
     title = "r/h={:0.3f}".format(rx / hx)
 

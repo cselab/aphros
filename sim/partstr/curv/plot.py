@@ -23,16 +23,13 @@ def FigAng(vf, kk, ll, po):
     ii = np.where((vf > th) & (vf < 1. - th))
     x = x[ii]; y = y[ii]; z = z[ii]
 
-    # exact curvature
-    ke = GetExactK(dim, x, y, z)
-
     # hires angle (high resolution)
     anh = np.linspace(-np.pi, np.pi, 200)
     degh = np.degrees(anh)
     # hires points
-    cx,cy,cz,rx,ry = np.loadtxt('b.dat')
-    xh = cx + np.cos(anh)
-    yh = cy + np.sin(anh)
+    cx,cy,cz,rx,ry,rz = LoadBub()
+    xh = cx + rx * np.cos(anh)
+    yh = cy + ry * np.sin(anh)
     # hires curvature
     keh = GetExactK(dim, xh, yh, cz)
     # average curvature
@@ -165,7 +162,7 @@ def Main():
     vf = ReadField(pt, "u")
 
     # title
-    cx,cy,cz,rx,ry = np.loadtxt('b.dat')
+    cx,cy,cz,rx,ry,rz = LoadBub()
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
     title = "rx/h={:0.3f} ry/h={:0.3f}".format(rx / hx, ry / hx)
 
