@@ -344,10 +344,13 @@ def GetCurv(h, x, y, dx=1e-3):
     hxy = 0.5 * (Dx(Dy(h))(x,y) + Dy(Dx(h))(x,y))
     hyy = Dy(Dy(h))(x,y)
 
+    #a = (1. + hx ** 2) * hyy - 2. * hx * hy * hxy + (1. + hy ** 2) * hxx
+    #c = (hx ** 2 + hy ** 2 + 1.) ** (3. / 2)
+    #return -a / c
+
     a = hx ** 2 * hxx + 2. * hx * hy * hxy + hy ** 2 * hyy
     b = (hx ** 2 + hy ** 2 + 1.) * (hxx + hyy)
     c = (hx ** 2 + hy ** 2 + 1.) ** (3. / 2)
-
     return (a - b) / c
 
 def P(x, lbl):

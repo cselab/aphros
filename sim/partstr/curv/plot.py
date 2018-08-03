@@ -28,8 +28,9 @@ def FigAng(vf, kk, ll, po):
     degh = np.degrees(anh)
     # hires points
     cx,cy,cz,rx,ry,rz = LoadBub()
-    xh = cx + rx * np.cos(anh)
-    yh = cy + ry * np.sin(anh)
+    r =  (rx * ry) / ((ry * np.cos(anh)) ** 2 + (rx * np.sin(anh)) ** 2) ** 0.5
+    xh = cx + r * np.cos(anh)
+    yh = cy + r * np.sin(anh)
     # hires curvature
     keh = GetExactK(dim, xh, yh, cz)
     # average curvature
