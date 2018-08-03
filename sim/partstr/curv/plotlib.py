@@ -356,17 +356,42 @@ def GetCurv(h, x, y, dx=1e-3):
 def P(x, lbl):
     print("{:}: min={:}, max={:}, avg={:}".format(lbl, x.min(), x.max(), x.mean()))
 
-# Returns curvature of ellipse (x/ry)**2 + (y/ry)**2 = 1 at point x
+# Returns curvature of ellipse
+# (x/rx)**2 + (y/ry)**2 = 1 at point x
 def GetEllip2Curv0(x, rx, ry):
     dx = rx * 1e-3
     x = np.clip(x, -rx + dx * 2, rx - dx * 2) # XXX clip
-    return GetCurv(lambda xx,zz: (1. - (xx / rx) ** 2) ** 0.5 * ry, x, 0., dx=dx)
+    return GetCurv(
+        lambda xx,zz:
+        max(0., 1. - (xx / rx) ** 2) ** 0.5 * ry,
+        x, 0., dx=dx)
 
-# Returns curvature of ellipse (x/ry)**2 + (y/ry)**2 = 1 at point x,y
+# Returns curvature of ellipse
+# (x/rx)**2 + (y/ry)**2 = 1 at point x,y
 def GetEllip2Curv(x, y, rx, ry):
     if abs(x) < abs(y):
         return GetEllip2Curv0(x, rx, ry)
     return GetEllip2Curv0(y, ry, rx)
+
+# Returns curvature of ellipsoid
+# (x/rx)**2 + (y/ry)**2 + (z/rz) ** 2 = 1 at point x,y
+def GetEllip3Curv0(x, y, rx, ry, rz):
+    dd = 1e-3
+    dx = rx * dd
+    dy = ry * dd
+    return GetCurv(
+        lambda xx,yy: max(0., 1. - (xx / rx) ** 2 - (yy / ry) ** 2) ** 0.5 * rz,
+        x, y, dx=dx)
+
+# Returns curvature of ellipsoid
+# (x/rx)**2 + (y/ry)**2 + (z/rz) ** 2 = 1 at point x,y,z
+def GetEllip3Curv(x, y, z, rx, ry, rz):
+    if abs(z) >= abs(x) and abs(z) >= abs(y): # z(x,y)
+        return GetEllip3Curv0(x, y, rx, ry, rz)
+    elif abs(y) >= abs(x) and abs(y) >= abs(z): # y(x,z)
+        return GetEllip3Curv0(x, z, rx, rz, ry)
+    # x(y,z)
+    return GetEllip3Curv0(y, z, ry, rz, rx)
 
 # Evaluates exact curvature of ellipsoid
 # dim: dimension, 2 or 3
@@ -379,39 +404,17 @@ def GetExactK(dim, x, y, z):
     dx = x - cx; dy = y - cy; dz = z - cz
 
     k = np.zeros_like(x)
-    P(dx,'dx')
-    P(dy,'dy')
 
     if dim == 2:
         for i,wx,wy in zip(range(len(dx)),dx,dy):
             k[i] = GetEllip2Curv(wx, wy, rx, ry)
-            print(wx, wy, rx, ry, k[i])
+
+    if dim == 3:
+        for i,wx,wy,wz in zip(range(len(dx)),dx,dy,dz):
+            k[i] = GetEllip3Curv(wx, wy, wz, rx, ry, rz)
 
     return k
 
-if 0:
-    # Curvature from angle
-    # a: angle [rad]
-    def fk(a):
-        P(a,'a')
-        if dim == 3: # assume sphere  TODO: ellipsoid
-            assert(rx == ry)
-            return 2. / rx + np.zeros_like(a)
-        # 2d ellipse
-        r =  (rx * ry) / ((ry * np.cos(a)) ** 2 + (rx * np.sin(a)) ** 2) ** 0.5
-        x = r * np.cos(a)
-        y = r * np.sin(a)
-        #return rx * ry / (rx ** 2 - x ** 2 + (ry * x / rx) ** 2) ** (3. / 2.)
-        k = np.empty_like(a)
-        for i,wx,wy in zip(range(len(dx)),x,y):
-            wx = abs(wx)
-            wy = abs(wy)
-            if (abs(wy) > abs(wx)):
-                k[i] = GetCurv(lambda xx,zz: (1. - (xx / rx) ** 2) ** 0.5 * ry, wx, 0., dx=rx * 1e-3)
-            else:
-                k[i] = GetCurv(lambda yy,zz: (1. - (yy / ry) ** 2) ** 0.5 * rx, wy, 0., dx=rx * 1e-3)
-        P(k, 'k')
-        return k
 
 # Histogram of curvature
 def FigHistK(vf, kk, ll, po, title=None):
