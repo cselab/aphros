@@ -48,6 +48,9 @@ def FigAng(vf, kk, ll, po):
         if k is not None:
             ax.plot(deg[s], k[ii][s] / kea, label=l)
 
+    # plot lowres exact curvature
+    ax.plot(deg[s], GetExactK(dim, x, y, z)[s] / kea, label="exact")
+
     # plot exact curvature
     ax.plot(degh, keh / kea, label="exact", c="0.5", ls='--')
 

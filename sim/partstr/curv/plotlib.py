@@ -62,6 +62,11 @@ def PlotInit():
     fig, ax = plt.subplots(figsize=(4,3))
     return fig, ax
 
+def PlotInit3():
+    fig = plt.figure(figsize=(4,3))
+    ax = fig.gca(projection='3d')
+    return fig, ax
+
 
 def PlotSave(fig, ax, po):
     fig.tight_layout()
@@ -354,7 +359,8 @@ def GetCurv(h, x, y, dx=1e-3):
     return (a - b) / c
 
 def P(x, lbl):
-    print("{:}: min={:}, max={:}, avg={:}".format(lbl, x.min(), x.max(), x.mean()))
+    print("{:}: shape={:} min={:}, max={:}, avg={:}".format(
+        lbl, x.shape, x.min(), x.max(), x.mean()))
 
 # Returns curvature of ellipse
 # (x/rx)**2 + (y/ry)**2 = 1 at point x
@@ -406,10 +412,22 @@ def GetExactK(dim, x, y, z):
     k = np.zeros_like(x)
 
     if dim == 2:
+        u = np.arctan2(dy, dx)
+        r = ((np.cos(u) / rx) ** 2 + (np.sin(u) / ry) ** 2) ** (-0.5)
+        dx = r * np.cos(u)
+        dy = r * np.sin(u)
         for i,wx,wy in zip(range(len(dx)),dx,dy):
             k[i] = GetEllip2Curv(wx, wy, rx, ry)
 
     if dim == 3:
+        u = np.arctan2(dy, dx)
+        v = np.arctan2(dz, (dx ** 2 + dy ** 2) ** 0.5)
+        r = ((np.cos(u) * np.cos(v) / rx) ** 2 +
+             (np.sin(u) * np.cos(v) / ry) ** 2 +
+             (np.sin(v) / rz) ** 2) ** (-0.5)
+        dx = r * np.cos(u) * np.cos(v)
+        dy = r * np.sin(u) * np.cos(v)
+        dz = r * np.sin(v)
         for i,wx,wy,wz in zip(range(len(dx)),dx,dy,dz):
             k[i] = GetEllip3Curv(wx, wy, wz, rx, ry, rz)
 
@@ -437,7 +455,8 @@ def FigHistK(vf, kk, ll, po, title=None):
         if IsGerris(vf.shape):
             k *= -1
         k = k[ii]
-        h,b = np.histogram((k - ke) / kea, 200, range=(-1., 1.), density=False)
+        er = (k - ke) / kea  # error
+        h,b = np.histogram(er, 200, range=(-1., 1.), density=False)
         bc = (b[1:] + b[:-1]) * 0.5
         ax.plot(bc, h, label=l)
 

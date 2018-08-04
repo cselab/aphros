@@ -16,14 +16,14 @@ for f in *s.png ; do
   rm $t
 done
 
-for f in *{hist,vf_ch,s}.pdf ; do
+for f in *{hist,ang,s}.pdf ; do
   pdfcrop --margins '5 10 5 10' $f cr_$f
 done
 
 
 t=t.pdf
 n=`cnt "cr_*hist.pdf"`
-pdfnup cr_*{hist,vf_ch,s}.pdf --nup ${n}x3 --outfile $t
+pdfnup cr_*{hist,ang,s}.pdf --nup ${n}x3 --outfile $t
 
 o=curv.pdf
 pdfcrop --margins '5 5 5 5' $t $o
