@@ -5,13 +5,13 @@
 #include <fstream>
 
 #include "parse/vars.h"
-#include "parse/interp.h"
+#include "parse/parser.h"
 
 namespace simple {
 
 void Simple() {
   Vars par;
-  Interp ip(par);
+  Parser ip(par);
 
   std::stringstream s;
   s << "set string a 1" << std::endl;
@@ -38,7 +38,7 @@ void TestFile() {
 
   // run all commands
   Vars par;
-  Interp ip(par);
+  Parser ip(par);
   ip.RunAll(fi);
 
   // print variables to cout

@@ -10,7 +10,7 @@ int RunMpi(int argc, const char ** argv,
   bool isroot = (!rank);
 
   Vars var;   // parameter storage
-  Interp ip(var); // interpretor (parser)
+  Parser ip(var); // parser
 
   std::string fn = "a.conf";
   if (argc == 1) {

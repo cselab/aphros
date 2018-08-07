@@ -5,7 +5,7 @@ set(EXE t.${p})
 
 add_executable(${EXE} main.cpp)
      
-target_link_libraries(${EXE} dumper interp)
+target_link_libraries(${EXE} dumper parser)
 
 add_test(NAME ${p} COMMAND ${EXE})
 

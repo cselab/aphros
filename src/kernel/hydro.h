@@ -28,7 +28,7 @@
 #include "kernel.h"
 #include "kernelmesh.h"
 #include "parse/vars.h"
-#include "parse/interp.h"
+#include "parse/parser.h"
 #include "dump/output.h"
 #include "dump/dumper.h"
 #include "func/init_u.h"
@@ -827,7 +827,7 @@ void Hydro<M>::ExecEvents() {
           std::cout << a << std::endl;
         }
       } else if (c == "set") {
-        Interp p(var);
+        Parser p(var);
         if (IsLead()) {
           p.Run(c + " " + a);
         }

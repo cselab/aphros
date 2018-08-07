@@ -10,7 +10,7 @@
 #include "distr.h"
 #include "icubism.h"
 #include "ilocal.h"
-#include "parse/interp.h"
+#include "parse/parser.h"
 #include "geom/vect.h"
 #include "geom/block.h"
 

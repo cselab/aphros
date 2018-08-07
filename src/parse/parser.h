@@ -5,9 +5,9 @@
 
 #include "vars.h"
 
-class Interp {
+class Parser {
  public:
-  Interp(Vars& v);
+  Parser(Vars& v);
   // Executes single command
   void Run(std::string); 
   // Executes single line from stream
