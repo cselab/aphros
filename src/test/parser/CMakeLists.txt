@@ -5,6 +5,6 @@ set(EXE t.${p})
 
 add_executable(${EXE} main.cpp)
      
-target_link_libraries(${EXE} vars interp)
+target_link_libraries(${EXE} vars parser)
 
 add_test(NAME ${p} COMMAND ./test_cmp )

@@ -3,16 +3,16 @@
 #include <fstream>
 #include <stdexcept>
 
-#include "interp.h"
+#include "parser.h"
 #include "vars.h"
 
-Interp::Interp(Vars& v) : v_(v) {}
+Parser::Parser(Vars& v) : v_(v) {}
 
-std::string Interp::RemoveComment(std::string s) {
+std::string Parser::RemoveComment(std::string s) {
   return s.substr(0, s.find('#', 0));
 }
 
-void Interp::Cmd(std::string s) {
+void Parser::Cmd(std::string s) {
   s = RemoveComment(s);
   std::stringstream b(s);
   std::string cmd; 
@@ -32,7 +32,7 @@ void Interp::Cmd(std::string s) {
   }
 }
 
-void Interp::CmdSet(std::string s) {
+void Parser::CmdSet(std::string s) {
   std::string cmd, type, key, val;
   std::stringstream b(s);
   b >> std::skipws;
@@ -47,7 +47,7 @@ void Interp::CmdSet(std::string s) {
   v_.SetStr(type, key, val);
 }
 
-void Interp::CmdSetNext(std::string s) {
+void Parser::CmdSetNext(std::string s) {
   std::string cmd, type, key, val;
   std::stringstream b(s);
   b >> std::skipws;
@@ -68,7 +68,7 @@ void Interp::CmdSetNext(std::string s) {
 }
 
 
-void Interp::CmdDel(std::string s) {
+void Parser::CmdDel(std::string s) {
   std::string cmd, key;
   std::stringstream b(s);
   b >> cmd >> key;
@@ -77,7 +77,7 @@ void Interp::CmdDel(std::string s) {
   }
 }
 
-void Interp::CmdInclude(std::string s) {
+void Parser::CmdInclude(std::string s) {
   std::string cmd, fn;
   std::stringstream b(s);
   b >> cmd >> fn;
@@ -94,24 +94,24 @@ void Interp::CmdInclude(std::string s) {
   RunAll(r);
 }
 
-void Interp::Run(std::string s) {
+void Parser::Run(std::string s) {
   Cmd(s);
 }
 
-void Interp::RunNext(std::istream& in) {
+void Parser::RunNext(std::istream& in) {
   std::string s;
   std::getline(in, s);
   Cmd(s);
 }
 
-void Interp::RunAll(std::istream& in) {
+void Parser::RunAll(std::istream& in) {
   while (in) {
     RunNext(in);
   }
 }
 
 template <class T>
-void Interp::Print(Vars::Map<T>& m, std::ostream& out) {
+void Parser::Print(Vars::Map<T>& m, std::ostream& out) {
   for (auto& a : m) {
     out 
         << "set "
@@ -121,14 +121,14 @@ void Interp::Print(Vars::Map<T>& m, std::ostream& out) {
   }
 }
 
-void Interp::PrintAll(std::ostream& out) {
+void Parser::PrintAll(std::ostream& out) {
   Print(v_.String, out);
   Print(v_.Int, out);
   Print(v_.Double, out);
   Print(v_.Vect, out);
 }
 
-void Interp::PrintAll() {
+void Parser::PrintAll() {
   PrintAll(std::cout);
 }
 
