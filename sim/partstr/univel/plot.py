@@ -153,7 +153,7 @@ def PlotTraj(xx, yy, ll, s):
     xn1,yn1,zn1 = GetMeshNodes(hx, hy, hz)
     PlotGrid(ax, xn1, yn1)
 
-    q,q,q,rx,ry = np.loadtxt('b.dat')
+    q,q,q,rx,ry,rz = LoadBub()
     x1,y1,z1,hx,hy,hz = GetGeom(s)
     plt.title("r/h={:0.3f}".format(rx / hx))
     po = 'traj.pdf'
@@ -175,7 +175,7 @@ def Main():
     pt = GetPathTemplate(pp[0])
     vf = ReadField(pt, "vf")
 
-    cx,cy,cz,rx,ry = np.loadtxt('b.dat')
+    cx,cy,cz,rx,ry,rz = LoadBub()
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
 
     # exact trajectories

@@ -18,7 +18,7 @@ for exp in `seq 2 6` ; do
 #for exp in 4 ; do
   br=`bc -l <<< "0.4 * sqrt(2 ^ (-$exp))"`
   echo "br=$br"
-  echo "$bc $br $br" > b.dat
+  echo "$bc $br $br $br" > b.dat
   p="r${br}_"
 
   # run ch
@@ -45,3 +45,5 @@ done
 
 # tile all pdf
 (cd $o ; ../tile)
+
+mv -v out $o/
