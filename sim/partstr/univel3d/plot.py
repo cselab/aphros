@@ -45,14 +45,15 @@ def FigVf(pt):
 
 
 # Exact trajectory.
-# x0,y0: initial center
-# vx0,vy0: velocity
+# x0,y0,z0: initial center
+# vx0,vy0,vz0: velocity
 # t: time
 # n: frames
-def GetTrajE(x0, y0, vx0, vy0, t, n=150):
+def GetTrajE(x0, y0, z0, vx0, vy0, vz0, t, n=150):
     x = np.linspace(x0, x0 + vx0 * t, n)
     y = np.linspace(y0, y0 + vy0 * t, n)
-    return x,y
+    z = np.linspace(z0, z0 + vz0 * t, n)
+    return x,y,z
 
 # Extracts trajectory of center of mass.
 # pp: list of paths to volume fraction fields
@@ -177,6 +178,7 @@ def Main():
     # trajectories
     xx = []
     yy = []
+    zz = []
     # pressure along trajectories
     ee = []
 
@@ -188,8 +190,10 @@ def Main():
     cx,cy,cz,rx,ry,rz = LoadBub()
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
 
+    # exact velocity
+    vele = [0.4, 0.3, 0.2]   # TODO: read from conf
     # exact trajectories
-    x,y = GetTrajE(0.3, 0.3, 0.4, 0.3, 1.)
+    x,y,z = GetTrajE(cx, cy, cz, *vele, 1.)
     # exact pressure jump
     sig = 1.
     eex = 2. * sig / rx
@@ -199,6 +203,7 @@ def Main():
     # append
     xx.append(x)
     yy.append(y)
+    zz.append(z)
     ee.append(e)
     ll.append("exact")
 
@@ -224,11 +229,13 @@ def Main():
         e /= eex
         xx.append(x[1:])
         yy.append(y[1:])
+        zz.append(z[1:])
         ee.append(e[1:])
 
     # reorder lines
     xx = xx[1:] + [xx[0]]
     yy = yy[1:] + [yy[0]]
+    zz = zz[1:] + [zz[0]]
     ee = ee[1:] + [ee[0]]
     ll = ll[1:] + [ll[0]]
 
@@ -243,7 +250,9 @@ def Main():
     # Plot pressure jump
     PlotTrajFld(tt, ee, ll, "t", "p", "trajp.pdf", vmin=0., vmax=2.)
     # Plot x,y
-    PlotTrajFld(tt, xx, ll, "t", "x", "trajx.pdf", ystep=0.1, vmin=0.25, vmax=0.75)
-    PlotTrajFld(tt, yy, ll, "t", "y", "trajy.pdf", ystep=0.1, vmin=0.25, vmax=0.65)
+    gp = 0.05 # gap
+    PlotTrajFld(tt, xx, ll, "t", "x", "trajx.pdf", ystep=0.1, vmin=cx - gp, vmax=cx + vele[0] + gp)
+    PlotTrajFld(tt, yy, ll, "t", "y", "trajy.pdf", ystep=0.1, vmin=cy - gp, vmax=cy + vele[1] + gp)
+    PlotTrajFld(tt, zz, ll, "t", "z", "trajz.pdf", ystep=0.1, vmin=cz - gp, vmax=cz + vele[2] + gp)
 
 Main()
