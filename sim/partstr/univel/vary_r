@@ -8,7 +8,7 @@ rm -vf $o/*.pdf
 mkdir -p $o
 
 # bubble
-: ${bc="0.3 0.3 0.3 "}
+: ${bc="0.31 0.29 0.26 "}
 
 # log
 l="out"
@@ -38,7 +38,7 @@ for exp in `seq 2 6` ; do
   mv -f $d/vf_0000.pdf $o/${p}vf_$d.pdf
   d="ge"
   mv -f $d/vf_0000.pdf $o/${p}vf_$d.pdf
-  for f in `ls {traj,trajp,trajx,trajy,trajz}.pdf` ; do
+  for f in `ls {traj,trajp,trajx,trajy,trajz,trajvxm,trajvym,trajvzm,trajvx2,trajvy2,trajvz2}.pdf` ; do
     mv -v $f $o/${p}${f}
   done
 done

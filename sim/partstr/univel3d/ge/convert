@@ -30,8 +30,12 @@ print(pp)
 for p in pp:
     b = os.path.splitext(p)[0]
     po = b + ".dat"
+    bs = po[1:] # basename
     d = vtk.read_vtk(p)
-    x,y,z,[u,e] = vtk.interp_to_uniform3(d['x'], d['y'], d['z'], [d['T'], d['P']])
+    x,y,z,[u,e,vx,vy,vz] = vtk.interp_to_uniform3(d['x'], d['y'], d['z'], [d['T'], d['P'], d['U'], d['V']])
     print(po)
-    Write(u, "vf" + po[1:])
-    Write(e, "p" + po[1:])
+    Write(u, "vf" + bs)
+    Write(e, "p" + bs)
+    Write(vx, "vx" + bs)
+    Write(vy, "vy" + bs)
+    Write(vz, "vz" + bs)

@@ -298,6 +298,9 @@ def GetFieldPath(pt, fld, ext="dat"):
         return pt.format(fld + "_", "csv")
     return pt.format(fld + "_", ext)
 
+# Reads field by prefix
+# pt: path template
+# fld: field prefix
 def ReadField(pt, fld):
     p = GetFieldPath(pt, fld)
     return ReadArray(GetFieldPath(pt, fld))

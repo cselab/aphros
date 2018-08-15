@@ -1,4 +1,4 @@
-1 2 GfsSimulation GfsBox GfsGEdge {} {
+1 3 GfsSimulation GfsBox GfsGEdge {} {
   Global {
     Include ini_t_bub.h
   }
