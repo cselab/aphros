@@ -172,7 +172,7 @@ struct Vof<M_>::Imp {
   // mc: coordinate center
   // mx: unit in x, tangent to interface
   // my: unit in y, normal to interface
-  // mn: unit vector to from orthonormal positively oriented basis <mx,my,mn> 
+  // mn: unit vector to form orthonormal positively oriented basis <mx,my,mn> 
   std::array<Vect, 3> GetPlaneBasis(const Vect& xc, const Vect& n, 
                                     Scal a, Scal an) {
     Vect h = GetCellSize();
