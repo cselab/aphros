@@ -422,6 +422,7 @@ class PartStr {
     }
     */
 
+    // particle attracted to nearest interface
     for (size_t i = 0; i < sx; ++i) {
       const Vect& x = xx[i];
       size_t jn = findnear(x);
@@ -429,9 +430,38 @@ class PartStr {
       Vect xn = R::GetNearest(x, e[0], e[1]);
       shsegcirc(jn, xn);
       ff[i] = (xn - x);
-      //auto q = xn.dist((e[0] + e[1]) * 0.5) / e[0].dist(e[1]) * 2.;
-      //ff[i] *= (0.0 + 0.5 * q);
     }
+
+    #if 0
+    // segment turned to match angle of nearest interface
+    for (size_t im = 0; im + 1 < sx; ++im) {
+      size_t ip = im + 1;
+      const Vect& xm = xx[im];
+      const Vect& xp = xx[ip];
+      Vect x = (xm + xp) * 0.5; // segment center
+      size_t jn = findnear(x);
+      auto& e = ll[jn];
+      Vect ne(e[0][1] - e[1][1], e[1][0] - e[0][0], 0.); // normal to interface
+      Vect ns(xp[1] - xm[1], xm[0] - xp[0], 0.); // normal to segment
+      if (ne.dot(ns) > 0.) {
+        ne /= ne.norm();
+        ns /= ns.norm();
+        Scal sin = ne.cross_third(ns); // sin of angle between normals
+        (void)sin;
+        //Vect xn = R::GetNearest(x, e[0], e[1]);
+        // torque
+        Scal t = segcirc * sin;
+        // segment length
+        Scal l = xp.dist(xm);
+        // forces
+        Vect fm = ns * (t / (2. * l));
+        Vect fp = -ns * (t / (2. * l));
+        ff[im] += fm;
+        ff[ip] += fp;
+      }
+    }
+    #endif
+
     (void)anglim;
     (void)crv;
     (void)segcirc;
