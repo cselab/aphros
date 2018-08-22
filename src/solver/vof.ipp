@@ -89,7 +89,8 @@ struct Vof<M_>::Imp {
             << "dump" 
             << " t=" << owner_->GetTime() + owner_->GetTimeStep()
             << " to " << fn << std::endl;
-        WriteVtkPoly(fn, dl_, {}, {}, "Reconstructed linear interface");
+        WriteVtkPoly(fn, dl_, {&dlc_}, {"c"}, 
+            "Reconstructed linear interface");
       }
     }
   }
@@ -193,7 +194,8 @@ struct Vof<M_>::Imp {
             << "dump" 
             << " t=" << owner_->GetTime() + owner_->GetTimeStep()
             << " to " << fn << std::endl;
-        WriteVtkPoly(fn, dl_, {}, {}, "Lines of interface around particles");
+        WriteVtkPoly(fn, dl_, {&dlc_}, {"c"}, 
+            "Lines of interface around particles");
       }
     }
   }
