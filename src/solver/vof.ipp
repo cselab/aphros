@@ -66,16 +66,21 @@ struct Vof<M_>::Imp {
     auto sem = m.GetSem("dumppoly");
     if (sem("local")) {
       dl_.clear();
+      dlc_.clear();
       auto h = GetCellSize();
+      auto& bc = m.GetIndexCells();
       for (auto c : m.Cells()) {
         const Scal th = par->poly_intth;
         Scal u = fcu_.iter_curr[c];
         if (fci_[c] && u > th && u < 1. - th) {
           dl_.push_back(R::GetCutPoly(m.GetCenter(c), fcn_[c], fca_[c], h));
+          dlc_.push_back(GetCellHash(bc.GetMIdx(c)));
         }
       }
-      using T = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<T>(&dl_));
+      using TV = typename M::template OpCatVT<Vect>;
+      m.Reduce(std::make_shared<TV>(&dl_));
+      using TS = typename M::template OpCatT<Scal>;
+      m.Reduce(std::make_shared<TS>(&dlc_));
     }
     if (sem("write")) {
       if (m.IsRoot()) {
@@ -84,9 +89,14 @@ struct Vof<M_>::Imp {
             << "dump" 
             << " t=" << owner_->GetTime() + owner_->GetTimeStep()
             << " to " << fn << std::endl;
-        WriteVtkPoly(dl_, fn);
+        WriteVtkPoly(fn, dl_, {}, {}, "Reconstructed linear interface");
       }
     }
+  }
+  IntIdx GetCellHash(typename M::MIdx w) {
+    // XXX: adhoc, hash for cell index, assume mesh size <= mn
+    const size_t mn = 1000; 
+    return (w[2] * mn + w[1]) * mn + w[0]; 
   }
   void DumpParticles() {
     auto sem = m.GetSem("partdump");
@@ -98,8 +108,8 @@ struct Vof<M_>::Imp {
         dpc_.clear();
         dpk_.clear();
 
-        // copy to arrays  
         auto& bc = m.GetIndexCells();
+        // loop over strings
         for (size_t s = 0; s < partstr_->GetNumStr(); ++s) {
           // cell
           IdxCell c = vsc_[s];
@@ -109,10 +119,7 @@ struct Vof<M_>::Imp {
           const Vect* xx = p.first;
           size_t sx = p.second;
 
-          auto w = bc.GetMIdx(c);
-          const size_t mn = 1000; 
-          // XXX: adhoc, hash for cell index, assume mesh size <= mn
-          size_t ic = (w[2] * mn + w[1]) * mn + w[0]; // cell index
+          size_t ic = GetCellHash(bc.GetMIdx(c)); 
           for (size_t i = 0; i < sx; ++i) {
             auto x = GetSpaceCoords(xx[i], v);
             dpx_.push_back(x);
@@ -158,6 +165,9 @@ struct Vof<M_>::Imp {
     auto sem = m.GetSem("dumppartinter");
     if (sem("local")) {
       dl_.clear();
+      dlc_.clear();
+
+      auto& bc = m.GetIndexCells();
       for (size_t s = 0; s < partstr_->GetNumStr(); ++s) {
         // cell containing string
         IdxCell c = vsc_[s];
@@ -168,10 +178,13 @@ struct Vof<M_>::Imp {
           Vect xa = GetSpaceCoords(l[0], v);
           Vect xb = GetSpaceCoords(l[1], v);
           dl_.push_back({xa, xb});
+          dlc_.push_back(GetCellHash(bc.GetMIdx(c)));
         }
       }
-      using T = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<T>(&dl_));
+      using TV = typename M::template OpCatVT<Vect>;
+      m.Reduce(std::make_shared<TV>(&dl_));
+      using TS = typename M::template OpCatT<Scal>;
+      m.Reduce(std::make_shared<TS>(&dlc_));
     }
     if (sem("write")) {
       if (m.IsRoot()) {
@@ -180,7 +193,7 @@ struct Vof<M_>::Imp {
             << "dump" 
             << " t=" << owner_->GetTime() + owner_->GetTimeStep()
             << " to " << fn << std::endl;
-        WriteVtkPoly(dl_, fn);
+        WriteVtkPoly(fn, dl_, {}, {}, "Lines of interface around particles");
       }
     }
   }
@@ -729,6 +742,7 @@ struct Vof<M_>::Imp {
   std::vector<size_t> dpc_; // dump particles cell
   std::vector<Scal> dpk_; // dump particles curvature
   std::vector<std::vector<Vect>> dl_; // dump poly
+  std::vector<Scal> dlc_; // dump poly
 };
 
 template <class M_>

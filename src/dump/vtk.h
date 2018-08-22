@@ -9,12 +9,16 @@
 // Writes legacy vtk polydata 
 // xx: points
 // pp: polygons as lists of indices
+// dd: list of scalar cell-based datasets of size pp.size()
+// dn: list of names for dd
 // fn: path
 // cm: comment
-template <class Vect>
-void WriteVtkPoly(const std::vector<Vect>& xx, 
+template <class Vect, class Scal=typename Vect::value_type>
+void WriteVtkPoly(const std::string& fn, 
+                  const std::vector<Vect>& xx, 
                   const std::vector<std::vector<size_t>>& pp,  
-                  const std::string& fn,
+                  const std::vector<const std::vector<Scal>*>& dd,
+                  const std::vector<std::string>& dn,
                   const std::string& cm="") {
   std::ofstream f(fn.c_str());
   f << "# vtk DataFile Version 2.0\n";
@@ -39,6 +43,18 @@ void WriteVtkPoly(const std::vector<Vect>& xx,
     }
     f << "\n";
   }
+
+  // cell-based datasets
+  for (size_t i = 0; i < dd.size(); ++i) {
+    auto& d = *(dd[i]);
+    auto& n = dn[i];
+    f << "CELL_DATA " << d.size() << "\n"
+        << "SCALARS " << n << " float\n"
+        << "LOOKUP_TABLE default\n";
+    for (auto& a : d) {
+      f << a << "\n";
+    }
+  }
 }
 
 // Converts to index representation.
@@ -61,16 +77,20 @@ void Convert(const std::vector<std::vector<Vect>>& vv,
   }
 }
 
-// Writes legacy vtk polydata 
+// Writes legacy vtk polydata with cell-based dataset.
 // vv: polygons as lists of points
+// dd: cell-based dataset of size vv.size()
+// dn: name of dataset
 // fn: path
 // cm: comment
-template <class Vect>
-void WriteVtkPoly(const std::vector<std::vector<Vect>>& vv,  
-                  const std::string& fn,
-                  const std::string& cm="") {
+template <class Vect, class Scal=typename Vect::value_type>
+void WriteVtkPoly(const std::string& fn,
+                  const std::vector<std::vector<Vect>>& vv,  
+                  const std::vector<const std::vector<Scal>*>& dd,
+                  const std::vector<std::string>& dn,
+                  const std::string& cm) {
   std::vector<Vect> xx;
   std::vector<std::vector<size_t>> pp;
   Convert(vv, xx, pp);
-  WriteVtkPoly(xx, pp, fn, cm);
+  WriteVtkPoly(fn, xx, pp, dd, dn, cm);
 }
