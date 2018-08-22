@@ -5,6 +5,7 @@
 #include <memory>
 #include <cassert>
 #include <fstream>
+#include <cmath>
 
 #include "output.h"
 #include "geom/mesh.h"
@@ -59,12 +60,16 @@ class SerVtkStruct : public SerVtk {
   void ArFoot(std::ostream& out) {
     out << "        </DataArray>\n";
   }
-  void ArData(std::ostream& out, OutFld<FieldCell<Scal>>* entry) {
-    auto& field = entry->GetField();
+  void ArData(std::ostream& out, OutFld<FieldCell<Scal>>* e) {
+    auto& fc = e->GetField();
 
-    ArHead(out, entry->GetName(), 1);
-    for (auto idxcell : m.Cells()) {
-      out << field[idxcell] << " ";
+    ArHead(out, e->GetName(), 1);
+    for (auto c : m.Cells()) {
+      if (!std::isnan(fc[c])) {
+        out << fc[c] << " ";
+      } else {
+        out << "0 ";
+      }
     }
     out << "\n";
     ArFoot(out);
