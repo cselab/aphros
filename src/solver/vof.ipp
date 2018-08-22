@@ -153,6 +153,37 @@ struct Vof<M_>::Imp {
       }
     }
   }
+  // Dumps interface around particle strings
+  void DumpPartInter() {
+    auto sem = m.GetSem("dumppartinter");
+    if (sem("local")) {
+      dl_.clear();
+      for (size_t s = 0; s < partstr_->GetNumStr(); ++s) {
+        // cell containing string
+        IdxCell c = vsc_[s];
+        auto v = GetPlaneBasis(m.GetCenter(c), fcn_[c], fca_[c], vsan_[s]);
+        auto p = partstr_->GetInter(s);
+        for (size_t i = 0; i < p.second; ++i) {
+          auto& l = p.first[i];
+          Vect xa = GetSpaceCoords(l[0], v);
+          Vect xb = GetSpaceCoords(l[1], v);
+          dl_.push_back({xa, xb});
+        }
+      }
+      using T = typename M::template OpCatVT<Vect>;
+      m.Reduce(std::make_shared<T>(&dl_));
+    }
+    if (sem("write")) {
+      if (m.IsRoot()) {
+        std::string fn = GetDumpName("sp", ".vtk", par->dmp->GetN());
+        std::cout << std::fixed << std::setprecision(8)
+            << "dump" 
+            << " t=" << owner_->GetTime() + owner_->GetTimeStep()
+            << " to " << fn << std::endl;
+        WriteVtkPoly(dl_, fn);
+      }
+    }
+  }
   Vect GetCellSize() const {
     Vect h; // cell size
     // XXX: specific for structured 3D mesh
@@ -383,6 +414,11 @@ struct Vof<M_>::Imp {
     if (sem.Nested("part-dump")) {
       if (dm) {
         DumpParticles();
+      }
+    }
+    if (sem.Nested("partinter-dump")) {
+      if (dm) {
+        DumpPartInter();
       }
     }
   }
