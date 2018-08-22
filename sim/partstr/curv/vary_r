@@ -26,8 +26,8 @@ echo > $l
 e="err"
 echo > $e
 
-for exp in `seq 0 9` ; do
-#for exp in 2 4 6 8 ; do
+#for exp in `seq 0 9` ; do
+for exp in 2 4 6 8 ; do
   br=`bc -l <<< "0.4 * sqrt(2 ^ (-$exp))"`
   brx=`bc -l <<< "$br"`
   bry=`bc -l <<< "$br / $k"`

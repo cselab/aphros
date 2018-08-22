@@ -9,6 +9,8 @@ import os
 import re
 from matplotlib.colors import LinearSegmentedColormap
 
+kThin = True
+
 # natural sort
 def natkey(s, _nsre=re.compile('([0-9]+)')):
       return [int(text) if text.isdigit() else text.lower()
@@ -111,7 +113,10 @@ def PlotLines(ax, xa, ya, xb, yb):
     xy = np.vstack((xa, xb, ya, yb))
     xy = xy.T
     xy = xy.reshape((xa.size * 2, 2))
-    ax.plot(*xy, c='k', alpha=0.9, lw=1)
+    if kThin:
+        ax.plot(*xy, c='k', alpha=0.9, lw=0.5)
+    else:
+        ax.plot(*xy, c='k', alpha=0.9, lw=1)
 
 # assume 0 < nx < ny, a < 0
 def GetLineEnds(nx, ny, a):
@@ -209,11 +214,14 @@ def PlotPart(ax, p, sk=1):
         if np.random.randint(sk) == 0:
             ti = np.array(tt[i])
             cl = cmap(mcl[i])
-            # connecting lines
-            ax.plot(x[ti], y[ti], c=cl, zorder=10, lw=1, alpha=0.5)
-            # points
-            ax.scatter(x[ti], y[ti], c=cl, s=2, lw=0.3, zorder=11, edgecolor='black')
-            #ax.scatter(x[ti], y[ti], c=cl, s=0.5, lw=0.2, zorder=11, alpha=0.8, edgecolor='black') # XXX
+            if kThin:
+                ax.plot(x[ti], y[ti], c=cl, zorder=10, lw=0.5, alpha=0.5)
+                ax.scatter(x[ti], y[ti], c=cl, s=0.5, lw=0.2,
+                           zorder=11, alpha=0.8, edgecolor='black')
+            else:
+                ax.plot(x[ti], y[ti], c=cl, zorder=10, lw=1, alpha=0.5)
+                ax.scatter(x[ti], y[ti], c=cl, s=2, lw=0.3,
+                           zorder=11, edgecolor='black')
 
 def IsGerris(s):
     # check if gerris (odd nx)

@@ -227,6 +227,7 @@ def Main():
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
 
     vele = [0.4, 0.3, 0.]
+    #vele = [0., 0., 0.]
 
     # exact trajectories
     x,y = GetTrajE(0.3, 0.3, vele[0], vele[1], 1.)
@@ -274,15 +275,15 @@ def Main():
         vym, vy1, vy2 = GetDiff(pp, "vy", vele[1])
         #vzmax, vz1, vz2 = GetDiff(pp, "vz", vele[2])
         # append
-        xx.append(x[1:])
-        yy.append(y[1:])
-        ee.append(e[1:])
-        vvxm.append(vxm[1:])
-        vvym.append(vym[1:])
-        vvzm.append(vym[1:]) # TODO: vzmax
-        vvx2.append(vx2[1:])
-        vvy2.append(vy2[1:])
-        vvz2.append(vy2[1:]) # TODO: vz2
+        xx.append(x)
+        yy.append(y)
+        ee.append(e)
+        vvxm.append(vxm)
+        vvym.append(vym)
+        vvzm.append(vym) # TODO: vzmax
+        vvx2.append(vx2)
+        vvy2.append(vy2)
+        vvz2.append(vy2) # TODO: vz2
 
     # reorder lines
     xx = xx[1:] + [xx[0]]
@@ -303,18 +304,20 @@ def Main():
 
     # Plot trajectories
     PlotTraj(xx, yy, ll, vf.shape)
-    PlotTrajFld(tt, xx, ll, "t", "x", "trajx.pdf", ystep=0.1, vmin=0.25, vmax=0.75)
-    PlotTrajFld(tt, yy, ll, "t", "y", "trajy.pdf", ystep=0.1, vmin=0.25, vmax=0.65)
+    PlotTrajFld(tt, xx, ll, "t", "x", "trajx.pdf", ystep=1/16, vmin=0, vmax=1)
+    PlotTrajFld(tt, yy, ll, "t", "y", "trajy.pdf", ystep=1/16, vmin=0, vmax=1)
     # Plot pressure jump
     PlotTrajFld(tt, ee, ll, "t", "p", "trajp.pdf", vmin=0., vmax=2.)
     # Plot error in velocity
+    vmin = 1e-6
+    vmax = 1e1
     PlotTrajFld(tt, vvxm, ll, "t", "vx", "trajvxm.pdf",
-                vmin=1e-3, vmax=10, ylog=True)
+                vmin=vmin, vmax=vmax, ylog=True)
     PlotTrajFld(tt, vvym, ll, "t", "vy", "trajvym.pdf",
-                vmin=1e-3, vmax=10, ylog=True)
+                vmin=vmin, vmax=vmax, ylog=True)
     PlotTrajFld(tt, vvx2, ll, "t", "vx", "trajvx2.pdf",
-                vmin=1e-3, vmax=10, ylog=True)
+                vmin=vmin, vmax=vmax, ylog=True)
     PlotTrajFld(tt, vvy2, ll, "t", "vy", "trajvy2.pdf",
-                vmin=1e-3, vmax=10, ylog=True)
+                vmin=vmin, vmax=vmax, ylog=True)
 
 Main()

@@ -114,7 +114,8 @@ def FigVf(pt):
     # grid
     PlotGrid(ax, xn1, yn1)
     # field
-    PlotFieldGray(ax, vf, vmin=0., vmax=1.)
+    #PlotFieldGray(ax, vf, vmin=0., vmax=1.)
+    PlotField(ax, vf, vmin=0., vmax=1.)
     # lines
     if all([e is not None for e in [a, nx, ny]]):
         l = GetLines(x, y, a, nx, ny, hx, hy, vf)
@@ -123,7 +124,7 @@ def FigVf(pt):
     pa = GetFieldPath(pt, "partit")
     if os.path.isfile(pa):
         print(pa)
-        PlotPart(ax, pa, sk=1) # XXX
+        PlotPart(ax, pa, sk=8) # XXX
 
     # save
     po = GetFieldPath(pt, "vf", "pdf")

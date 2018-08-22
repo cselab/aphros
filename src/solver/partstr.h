@@ -192,8 +192,15 @@ class PartStr {
   // s: string index
   // Output:
   // array of positions, length
-  std::pair<Vect*, size_t> GetStr(size_t s) {
+  std::pair<const Vect*, size_t> GetStr(size_t s) {
     return std::make_pair(&(xx_[sx_[s]]), sx_[s + 1] - sx_[s]);
+  }
+  // Returns interface for single string.
+  // s: string index
+  // Output:
+  // array of lines, length
+  std::pair<const std::array<Vect, 2>*, size_t> GetInter(size_t s) {
+    return std::make_pair(&(ll_[sl_[s]]), sl_[s + 1] - sl_[s]);
   }
 
  private:
