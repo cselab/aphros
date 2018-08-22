@@ -106,7 +106,7 @@ struct Vof<M_>::Imp {
           auto v = GetPlaneBasis(m.GetCenter(c), fcn_[c], fca_[c], vsan_[s]);
 
           auto p = partstr_->GetStr(s);
-          Vect* xx = p.first;
+          const Vect* xx = p.first;
           size_t sx = p.second;
 
           auto w = bc.GetMIdx(c);
