@@ -81,7 +81,7 @@ class PartStr {
   size_t Add(const Vect& xc, const Vect& t, 
              const std::array<Vect, 2>* ll, size_t sl) {
     size_t np = par->npmax;
-    Scal leq = par->leq * par->hc / np; // length of segment
+    Scal leq = par->leq * par->hc / (np - 1); // length of segment
     for (size_t i = 0; i < np; ++i) {
       xx_.push_back(xc + t * ((Scal(i) - (np - 1) * 0.5) * leq));
     }
@@ -277,6 +277,7 @@ class PartStr {
     // current curvature
     Scal crv = PartK(xx, sx);
 
+    /*
     // find nearest segment
     // x: target point
     // Returns:
@@ -295,6 +296,28 @@ class PartStr {
       }
       return jn;
     };
+    */
+
+    /*
+    // find segment with nearest center
+    // x: target point
+    // Returns:
+    // jn: index of segment ll[jn] with nearest center
+    auto findnearc = [sl,ll](const Vect& x) -> size_t {
+      Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
+      size_t jn = 0;
+      // find distance to nearest segment
+      for (size_t j = 0; j < sl; ++j) {
+        auto& e = ll[j];
+        Scal dl = x.sqrdist((e[0] + e[1]) * 0.5);
+        if (dl < dn) {
+          dn = dl;
+          jn = j;
+        }
+      }
+      return jn;
+    };
+    */
 
     /*
     // find nearest segment with angle limit
@@ -374,6 +397,7 @@ class PartStr {
     };
     */
 
+    /*
     // Apply shift from segment to circle
     // j: segment idx
     // x: curent point on segment
@@ -397,6 +421,7 @@ class PartStr {
         x += n * s;
       }
     };
+    */
 
     /*
     // central: 
@@ -429,6 +454,7 @@ class PartStr {
     }
     */
 
+    #if 0
     // particle attracted to nearest interface
     for (size_t i = 0; i < sx; ++i) {
       const Vect& x = xx[i];
@@ -438,7 +464,37 @@ class PartStr {
       shsegcirc(jn, xn);
       ff[i] = (xn - x);
     }
+    #endif
 
+    const size_t kNone(-1);
+    std::vector<size_t> pnl(sx, kNone); // particle nearest line
+
+    auto lc = [&ll](size_t j) {
+      auto& e = ll[j];
+      return (e[0] + e[1]) * 0.5;
+    };
+
+    // loop over interface lines
+    for (size_t j = 0; j < sl; ++j) {
+      Vect xl = lc(j);
+      size_t in = 0; // particle nearest to line j
+      for (size_t i = 1; i < sx; ++i) {
+        if (xx[i].sqrdist(xl) < xx[in].sqrdist(xl)) {
+          in = i;
+        }
+      }
+      // nearest line to particle
+      if (pnl[in] == kNone || 
+          xx[in].sqrdist(lc(j)) < xx[in].sqrdist(lc(pnl[in]))) {
+        pnl[in] = j;
+      }
+    }
+    // apply force
+    for (size_t i = 0; i < sx; ++i) {
+      if (pnl[i] != kNone) {
+        ff[i] += (lc(pnl[i]) - xx[i]);
+      }
+    }
     #if 0
     // segment turned to match angle of nearest interface
     for (size_t im = 0; im + 1 < sx; ++im) {
