@@ -226,8 +226,8 @@ def Main():
     cx,cy,cz,rx,ry,rz = LoadBub()
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
 
-    vele = [0.4, 0.3, 0.]
-    #vele = [0., 0., 0.]
+    #vele = [0.4, 0.3, 0.]
+    vele = [0., 0., 0.] # XXX
 
     # exact trajectories
     x,y = GetTrajE(0.3, 0.3, vele[0], vele[1], 1.)
