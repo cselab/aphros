@@ -328,6 +328,12 @@ struct Vof<M_>::Imp {
                 lx.push_back(pe0);
                 lx.push_back(pe1);
                 ls.push_back(2);
+
+                lx.push_back(GetPlaneCoords(xcc + Vect(-h[0], -h[1], 0.) * 0.5, v));
+                lx.push_back(GetPlaneCoords(xcc + Vect(h[0], -h[1], 0.) * 0.5, v));
+                lx.push_back(GetPlaneCoords(xcc + Vect(h[0], h[1], 0.) * 0.5, v));
+                lx.push_back(GetPlaneCoords(xcc + Vect(-h[0], h[1], 0.) * 0.5, v));
+                ls.push_back(4);
               }
             }
           }
