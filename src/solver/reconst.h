@@ -781,6 +781,42 @@ class Reconst {
     return false;
   }
 
+  // Cut plane convex polygon by line. 
+  // Keep part positively oriented with e[1]-e[0].
+  // xx: points of polygon
+  // e: line ends
+  // TODO: describe orientation requirements
+  // Assume 2d vectors.
+  // Output:
+  // points of cut polygon
+  static std::vector<Vect> GetCutPoly(const std::vector<Vect>& xx, 
+                                      const std::array<Vect, 2>& e) {
+    Vect de = e[1] - e[0];
+    Vect n(-de[1], de[0], 0.); // normal, <de,n> positively oriented
+    std::vector<Vect> r; // result
+
+    for (size_t i = 0; i < xx.size(); ++i) {
+      size_t ip = (i + 1 == xx.size() ? 0 : i + 1);
+      Vect x = xx[i];
+      Vect xp = xx[ip];
+      bool s = ((x - e[0]).dot(n) > 0.); // x inside
+      bool sp = ((xp - e[0]).dot(n) > 0.); // xp inside
+      if (s && sp) { // both inside
+        r.push_back(xp);
+      } else { 
+        if (s || sp) { // opposite sides
+          Vect xi; // intersection between <s,sp> and e
+          GetInterLine({x, xp}, e[0], de, xi);
+          r.push_back(xi);
+          if (sp) {
+            r.push_back(xp);
+          }
+        }
+      }
+    }
+    return r;
+  }
+
   // Intersection of plane and surface of fluid volume
   // xc: cell center
   // n: interface normal
