@@ -67,29 +67,42 @@ class PartStr {
     xx_.clear();
     sx_.clear();
     sx_.push_back(0);
-    ll_.clear();
+    lx_.clear();
+    ls_.clear();
+    lo_.clear();
+    lo_.push_back(0);
     sl_.clear();
     sl_.push_back(0);
   }
   // Adds particle string with attached interface.
   // xc: center 
   // t: tangent
-  // ll: array of lines
-  // sl: size of ll
+  // lx: nodes of all lines
+  // ls: ls[l]: size of line l
   // Returns:
   // index of new string, equals GetNumStr()-1
   size_t Add(const Vect& xc, const Vect& t, 
-             const std::array<Vect, 2>* ll, size_t sl) {
+             const std::vector<Vect>& lx, const std::vector<size_t>& ls) {
     size_t np = par->npmax;
+    // seed particles
     Scal leq = par->leq * par->hc / (np - 1); // length of segment
     for (size_t i = 0; i < np; ++i) {
       xx_.push_back(xc + t * ((Scal(i) - (np - 1) * 0.5) * leq));
     }
-    for (size_t i = 0; i < sl; ++i) {
-      ll_.push_back(ll[i]);
-    }
     sx_.push_back(xx_.size());
-    sl_.push_back(ll_.size());
+
+    size_t i = 0; // index in lx
+    // loop over lines
+    for (size_t l = 0; l < ls.size(); ++l) {
+      // loop over nodes of line l
+      for (size_t k = 0; k < ls[l]; ++k) {
+        lx_.push_back(lx[i]);
+        ++i;
+      }
+      ls_.push_back(ls[l]);
+      lo_.push_back(lx_.size());
+    }
+    sl_.push_back(ls_.size());
     return GetNumStr() - 1;
   }
   // Computes forces ff and advances particles of single string.
@@ -106,7 +119,8 @@ class PartStr {
     ff.resize(sx);
     
     // compute interface forces
-    InterfaceForce(xx, sx, &(ll_[sl_[s]]), sl_[s + 1] - sl_[s],
+    InterfaceForce(xx, sx, 
+                   &(lx_[lo_[sl_[s]]]), &(ls_[sl_[s]]), sl_[s + 1] - sl_[s],
                    par->segcirc, par->anglim * M_PI / 180., ff.data());
 
     // apply constraints
@@ -195,12 +209,17 @@ class PartStr {
   std::pair<const Vect*, size_t> GetStr(size_t s) {
     return std::make_pair(&(xx_[sx_[s]]), sx_[s + 1] - sx_[s]);
   }
+  struct Inter {
+    const Vect* x; // nodes 
+    const size_t* s; // sizes 
+    size_t n; // number of lines
+  };
   // Returns interface for single string.
   // s: string index
   // Output:
-  // array of lines, length
-  std::pair<const std::array<Vect, 2>*, size_t> GetInter(size_t s) {
-    return std::make_pair(&(ll_[sl_[s]]), sl_[s + 1] - sl_[s]);
+  // Inter 
+  Inter GetInter(size_t s) {
+    return {&(lx_[lo_[sl_[s]]]), &(ls_[sl_[s]]), sl_[s + 1] - sl_[s]};
   }
 
  private:
@@ -212,8 +231,12 @@ class PartStr {
 
   std::vector<Vect> xx_; // particle positions
   std::vector<size_t> sx_; // xx index, ending with sx.size() 
-  std::vector<std::array<Vect, 2>> ll_; // interface lines
-  std::vector<size_t> sl_; // sl index, ending with sl.size() 
+  std::vector<Vect> lx_; // nodes of all lines 
+  std::vector<size_t> ls_; // ls_[l]: size of line l
+  std::vector<size_t> lo_; // lo_[l]: first node of line l, index in lx_
+                           // lo_[-1]: lx_.size()
+  std::vector<size_t> sl_; // sl_[s]: first line of string s, index in ls_,lo_ 
+                           // sl_[-1]: ls_.size()
 
   using R = Reconst<Scal>;
 
@@ -251,14 +274,15 @@ class PartStr {
   // Force on particles from interface.
   // xx: array of positions
   // sx: size of xx
-  // ll: array of lines
-  // sl: size of ll
+  // lx: nodes of lines
+  // ls: sizes of lines
+  // sl: size of ls
   // segcirc: factor for shift to circular segment 
   // anglim: limit for angle between string and interface
   // Output:
   // ff: forces
   static void InterfaceForce(const Vect* xx, size_t sx, 
-                      const std::array<Vect, 2>* ll, size_t sl, 
+                      const Vect* lx, const size_t* ls, size_t sl, 
                       Scal segcirc, Scal anglim, Vect* ff) {
     if (sx == 0) {
       return;
@@ -397,7 +421,7 @@ class PartStr {
     };
     */
 
-    /*
+    #if 0
     // Apply shift from segment to circle
     // j: segment idx
     // x: curent point on segment
@@ -421,7 +445,7 @@ class PartStr {
         x += n * s;
       }
     };
-    */
+    #endif
 
     /*
     // central: 
@@ -469,30 +493,40 @@ class PartStr {
     const size_t kNone(-1);
     std::vector<size_t> pnl(sx, kNone); // particle nearest line
 
-    auto lc = [&ll](size_t j) {
-      auto& e = ll[j];
-      return (e[0] + e[1]) * 0.5;
+    // center of segment j,j+1
+    // j: index in lx
+    auto lc = [&lx](size_t j) {
+      return (lx[j] + lx[j + 1]) * 0.5;
     };
 
     // loop over interface lines
-    for (size_t j = 0; j < sl; ++j) {
-      Vect xl = lc(j);
-      size_t in = 0; // particle nearest to line j
-      for (size_t i = 1; i < sx; ++i) {
-        if (xx[i].sqrdist(xl) < xx[in].sqrdist(xl)) {
-          in = i;
+    size_t j = 0;
+    for (size_t l = 0; l < sl; ++l) {
+      // loop over segments of line l
+      for (size_t k = 0; k + 1 < ls[l]; ++k) {
+        Vect xl = lc(j);
+        size_t in = 0; // particle nearest to line j
+        for (size_t i = 1; i < sx; ++i) {
+          if (xx[i].sqrdist(xl) < xx[in].sqrdist(xl)) {
+            in = i;
+          }
         }
+        // nearest line to particle
+        if (pnl[in] == kNone || 
+            xx[in].sqrdist(lc(j)) < xx[in].sqrdist(lc(pnl[in]))) {
+          pnl[in] = j;
+        }
+        ++j;
       }
-      // nearest line to particle
-      if (pnl[in] == kNone || 
-          xx[in].sqrdist(lc(j)) < xx[in].sqrdist(lc(pnl[in]))) {
-        pnl[in] = j;
-      }
+      ++j;
     }
     // apply force
     for (size_t i = 0; i < sx; ++i) {
       if (pnl[i] != kNone) {
-        ff[i] += (lc(pnl[i]) - xx[i]);
+        size_t j = pnl[i];
+        Vect x = lc(j);
+        //shsegcirc(j, x);
+        ff[i] += x - xx[i];
       }
     }
     #if 0

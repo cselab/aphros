@@ -173,12 +173,19 @@ struct Vof<M_>::Imp {
         // cell containing string
         IdxCell c = vsc_[s];
         auto v = GetPlaneBasis(m.GetCenter(c), fcn_[c], fca_[c], vsan_[s]);
-        auto p = partstr_->GetInter(s);
-        for (size_t i = 0; i < p.second; ++i) {
-          auto& l = p.first[i];
-          Vect xa = GetSpaceCoords(l[0], v);
-          Vect xb = GetSpaceCoords(l[1], v);
-          dl_.push_back({xa, xb});
+        auto in = partstr_->GetInter(s);
+        std::cout 
+            << "in.n " << in.n 
+            << "in.s[0] " << in.s[0]
+            << std::endl;
+        size_t i = 0;
+        for (size_t l = 0; l < in.n; ++l) {
+          std::vector<Vect> xx;
+          for (size_t k = 0; k < in.s[l]; ++k) {
+            xx.push_back(GetSpaceCoords(in.x[i], v));
+            ++i;
+          }
+          dl_.push_back(xx);
           dlc_.push_back(GetCellHash(bc.GetMIdx(c)));
         }
       }
@@ -274,7 +281,9 @@ struct Vof<M_>::Imp {
     vsc_.clear();
     vsan_.clear();
 
-    std::vector<std::array<Vect, 2>> ll; // buffer for interface lines
+    // buffer for interface lines
+    std::vector<Vect> lx; // nodes
+    std::vector<size_t> ls; // sizes
     // Seed strings in cells with interface.
     for (auto c : m.Cells()) {
       Vect xc = m.GetCenter(c);
@@ -293,7 +302,8 @@ struct Vof<M_>::Imp {
                                   MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
 
           auto w = bc.GetMIdx(c);
-          ll.clear();
+          lx.clear();
+          ls.clear();
           // Extract interface from neighbour cells.
           for (auto wo : bo) {
             IdxCell cc = bc.GetIdx(w + wo); // neighbour cell
@@ -315,13 +325,15 @@ struct Vof<M_>::Imp {
                 if (pncc.cross_third(pe1 - pe0) < 0.) {
                   std::swap(pe0, pe1);
                 }
-                ll.push_back({pe0, pe1});
+                lx.push_back(pe0);
+                lx.push_back(pe1);
+                ls.push_back(2);
               }
             }
           }
 
           // add string 
-          partstr_->Add(Vect(0.), Vect(1., 0., 0.), ll.data(), ll.size());
+          partstr_->Add(Vect(0.), Vect(1., 0., 0.), lx, ls);
           vsc_.push_back(c);
           vsan_.push_back(an);
           assert(vsc_.size() == partstr_->GetNumStr());
