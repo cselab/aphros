@@ -508,7 +508,7 @@ class Reconst {
 
   // GetCutPoly() helper for unit cell, 
   // assume 0 < nx < ny < nz, a < 0.
-  static std::vector<GVect<Scal ,3>> GetCutPoly0(const Vect& n, Scal a) {
+  static std::vector<Vect> GetCutPoly0(const Vect& n, Scal a) {
     std::vector<Vect> xx; // result
 
     Scal f = a + 0.5 * n.sum();
@@ -548,7 +548,7 @@ class Reconst {
   }
 
   // GetCutPoly() helper for unit cell.
-  static std::vector<GVect<Scal ,3>> GetCutPoly1(const Vect& n0, Scal a) {
+  static std::vector<Vect> GetCutPoly1(const Vect& n0, Scal a) {
     auto n = n0.abs();
     auto r = Argsort(n);
     auto xx = GetCutPoly0(Vect(n[r[0]], n[r[1]], n[r[2]]), -std::abs(a));
@@ -779,6 +779,22 @@ class Reconst {
       return true;
     }
     return false;
+  }
+
+  // Intersection of plane and surface of fluid volume
+  // xc: cell center
+  // n: interface normal
+  // a: line constant
+  // h: cell size
+  // xp: point on plane
+  // np: plane normal
+  // Returns:
+  // nodes of polygon
+  static std::vector<Vect> GetCutInter(const Vect& xc, const Vect& n, 
+                                      Scal a, const Vect& h,
+                                      const Vect& xp, const Vect& np) {
+    // TODO
+    throw std::runtime_error("not implemented");
   }
 }; 
 
