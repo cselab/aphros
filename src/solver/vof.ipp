@@ -307,9 +307,17 @@ struct Vof<M_>::Imp {
           // Extract interface from neighbour cells.
           for (auto wo : bo) {
             IdxCell cc = bc.GetIdx(w + wo); // neighbour cell
+            auto xcc = m.GetCenter(cc); // center of cell
+
+            // cell contour polygon
+            std::vector<Vect> pc;
+            pc.push_back(GetPlaneCoords(xcc + Vect(-h[0], -h[1], 0.) * 0.5, v));
+            pc.push_back(GetPlaneCoords(xcc + Vect(h[0], -h[1], 0.) * 0.5, v));
+            pc.push_back(GetPlaneCoords(xcc + Vect(h[0], h[1], 0.) * 0.5, v));
+            pc.push_back(GetPlaneCoords(xcc + Vect(-h[0], h[1], 0.) * 0.5, v));
+
             if (fci[cc] && fcu[cc] >= th && fcu[cc] <= 1. - th) {
-              auto xcc = m.GetCenter(cc); // center of cell
-              auto xx = R::GetCutPoly(xcc, fcn[cc], fca[cc], h); // polygon
+              auto xx = R::GetCutPoly(xcc, fcn[cc], fca[cc], h); // interface
               std::array<Vect, 2> e; // ends of intersection 
               Vect mc = v[0];  // plane center
               Vect mx = v[1];  // unit in x
@@ -325,16 +333,17 @@ struct Vof<M_>::Imp {
                 if (pncc.cross_third(pe1 - pe0) < 0.) {
                   std::swap(pe0, pe1);
                 }
-                lx.push_back(pe0);
-                lx.push_back(pe1);
-                ls.push_back(2);
-
-                lx.push_back(GetPlaneCoords(xcc + Vect(-h[0], -h[1], 0.) * 0.5, v));
-                lx.push_back(GetPlaneCoords(xcc + Vect(h[0], -h[1], 0.) * 0.5, v));
-                lx.push_back(GetPlaneCoords(xcc + Vect(h[0], h[1], 0.) * 0.5, v));
-                lx.push_back(GetPlaneCoords(xcc + Vect(-h[0], h[1], 0.) * 0.5, v));
-                ls.push_back(4);
+                // polygon of fluid volume
+                auto pv = R::GetCutPoly(pc, {pe0, pe1});
+                lx.insert(lx.end(), pv.begin(), pv.end());
+                ls.push_back(pv.size());
+              } else {
+                lx.insert(lx.end(), pc.begin(), pc.end());
+                ls.push_back(pc.size());
               }
+            } else if (fcu[cc] > 1. - th) {
+              lx.insert(lx.end(), pc.begin(), pc.end());
+              ls.push_back(pc.size());
             }
           }
 
