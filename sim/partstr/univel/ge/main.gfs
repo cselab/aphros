@@ -21,12 +21,13 @@ Define DUMPDT 0.05
 
   VariableCurvature K T 
   SourceTension T 1 K
+  #SourceTension T 10 K
 
   #SourceViscosity 0.001
   SourceViscosity 0.01
 
-  Init {} { U = 0.4 V = 0.3 }
-  #Init {} { U = 0. V = 0. }
+  #Init {} { U = 0.4 V = 0.3 }
+  Init {} { U = 0. V = 0. }
 
   OutputSimulation { step = DUMPDT } u_%04ld.vtk { variables = T,P,U,V,K format = VTK}
   OutputTime { istep = 10 } stderr
