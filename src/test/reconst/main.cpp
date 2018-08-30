@@ -525,7 +525,40 @@ void TestLevelSet() {
   t(Vect(1./sqrt(2.),1./sqrt(2.),0.), Vect(0.1), 0.5);
 }
 
+// intersection of line and point
+void TestInter() {
+  std::cerr << "check Reconst::GetInter" << std::endl;
+  using V = Vect;
+  // xx: polygon
+  // xc: point on line
+  // t: line tangent
+  // aae: reference intersection
+  auto f = [](const std::vector<V>& xx, V xc, V t, std::array<Scal, 2> aae) {
+    std::array<Scal, 2> aa;
+    R::GetInter(xx.data(), xx.size(), xc, t, aa);
+    if (aa[1] < aa[0]) {
+      std::swap(aa[0], aa[1]);
+    }
+
+    std::cout << "GetInter:"
+        << " xx=" << xx
+        << " xc=" << xc
+        << " t=" << t
+        << " aa=(" << aa[0] << "," << aa[1] << ")"
+        << " aae=(" << aae[0] << "," << aae[1] << ")"
+        << std::endl;
+    assert(std::abs(aa[0] - aae[0])  < 1e-12);
+    assert(std::abs(aa[1] - aae[1])  < 1e-12);
+  };
+
+  std::vector<V> xx = {V(0.,0.,0.), V(1.,0.,0.), V(0.,1.,0.)};
+  f(xx,  V(0.,0.,0.), V(1.,1.,0.), {0., 0.5});
+  f(xx,  V(-1,-1.,0.), V(1.,1.,0.), {1., 1.5});
+  f(xx,  V(0.,0.5,0.), V(1.,0.,0.), {0., 0.5});
+}
+
 int main() {
+  TestInter();
   TestLevelSet();
   TestNearest();
   TestFit();
