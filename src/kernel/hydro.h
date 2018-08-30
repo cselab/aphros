@@ -1007,16 +1007,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           IdxCell c = m.GetNeighbourCell(f, it.GetValue()->GetNci());
           ffk_[f] = fck[c];
         }
-        // propagate to cells
-        auto fckk = fck;
-        for (auto f : m.Faces()) {
-          for (size_t q = 0; q < 2; ++q) {
-            IdxCell c = m.GetNeighbourCell(f, q);
-            if (IsNan(fckk[c])) {
-              fckk[c] = ffk_[f];
-            }
-          }
-        }
         // compute force projections
         size_t nan = 0;
         IdxFace fnan(0);
@@ -1032,9 +1022,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
               fnan = f;
               ffk_[f] = 0.;
             }
-            ff_st[f] += (ast[cp] * fckk[cp] - ast[cm] * fckk[cm]) / 
-                (dp - dm).norm() * sig;
-            //ff_st[f] += ga * ffk_[f] * sig;
+            ff_st[f] += ga * ffk_[f] * sig;
           }
         }
         if (nan) {
