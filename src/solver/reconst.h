@@ -22,6 +22,11 @@ class Reconst {
     Clip(a, 0., 1.);
   }
 
+  static Scal GetClip(Scal a) {
+    Clip(a, 0., 1.);
+    return a;
+  }
+
   static Scal cube(Scal a) {
     return a * a * a;
   }
@@ -733,19 +738,19 @@ class Reconst {
 
   // Intersection of plane convex polygon and plane.
   // xx: points of polygon
+  // sx: size of xx
   // xc: point on plane
   // n: plane normal
   // Output:
   // e: line ends
   // Returns:
   // 1: non-empty intersection
-  static bool GetInterPoly(const std::vector<Vect>& xx,
+  static bool GetInterPoly(const Vect* xx, size_t sx,
                            const Vect& xc, const Vect& n,
                            std::array<Vect, 2>& e) {
     size_t j = 0; // index in e
 
-    size_t sx = xx.size();
-    for (size_t i = 0; i < xx.size(); ++i) {
+    for (size_t i = 0; i < sx; ++i) {
       size_t ip = (i + 1) % sx;
       Vect x0 = xx[i];
       Vect x1 = xx[ip];
@@ -759,6 +764,20 @@ class Reconst {
       }
     }
     return false;
+  }
+
+  // Intersection of plane convex polygon and plane.
+  // xx: points of polygon
+  // xc: point on plane
+  // n: plane normal
+  // Output:
+  // e: line ends
+  // Returns:
+  // 1: non-empty intersection
+  static bool GetInterPoly(const std::vector<Vect>& xx,
+                           const Vect& xc, const Vect& n,
+                           std::array<Vect, 2>& e) {
+    return GetInterPoly(xx.data(), xx.size(), xc, n, e);
   }
 
   // Intersection of plane segment and straigh line.
@@ -831,6 +850,44 @@ class Reconst {
                                       const Vect& xp, const Vect& np) {
     // TODO
     throw std::runtime_error("not implemented");
+  }
+
+  // Intersection of 2d convex polygon and line.
+  // xx: points of polygon
+  // sx: size of xx
+  // xc: point on line
+  // t: line tangent
+  // Assume zero z-component.
+  // Output:
+  // aa: intersection points in form: xc + t*a
+  // Returns:
+  // 1: non-empty intersection
+  static bool GetInter(const Vect* xx, size_t sx,
+                       const Vect& xc, const Vect& t,
+                       std::array<Scal, 2>& aa) {
+    size_t j = 0; // index in e
+
+    // Intersection of lines x0,x1 and xc + t*a
+    // [xc + t * a - x0, x1 - x0] = 0
+    // [xc - x0, x1 - x0] + a * [t, x1 - x0] = 0
+    // a = -[xc - x0, x1 - x0] / [t, x1 - x0]
+    // Condition for points on opposite sides of line xc + t * a
+    // [x0 - xc, t] * [x1 - xc, t] < 0
+
+    for (size_t i = 0; i < sx; ++i) {
+      size_t ip = (i + 1 == sx ? 0 : i + 1);
+      Vect x0 = xx[i];
+      Vect x1 = xx[ip];
+      if ((t.cross_third(x0 - xc) > 0.) != (t.cross_third(x1 - xc) > 0.)) {
+        Scal a = -(xc - x0).cross_third(x1 - x0) / t.cross_third(x1 - x0);
+        aa[j++] = a;
+
+        if (j == 2) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }; 
 
