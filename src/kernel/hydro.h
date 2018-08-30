@@ -995,11 +995,22 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         for (auto f : m.Faces()) {
           IdxCell cm = m.GetNeighbourCell(f, 0);
           IdxCell cp = m.GetNeighbourCell(f, 1);
-          if (std::abs(ast[cm] - 0.5) < std::abs(ast[cp] - 0.5)) {
+          if (!IsNan(fck[cm]) && !IsNan(fck[cp])) {
+            ffk_[f] = (fck[cm] + fck[cp]) * 0.5;
+          } else if (!IsNan(fck[cm])) {
             ffk_[f] = fck[cm];
           } else {
             ffk_[f] = fck[cp];
           }
+
+          /*
+            if (std::abs(ast[cm] - 0.5) < std::abs(ast[cp] - 0.5)) {
+              ffk_[f] = fck[cm];
+            } else {
+              ffk_[f] = fck[cp];
+            }
+          }
+          */
         }
         // neighbour cell for boundaries
         for (auto it : mf_velcond_) {
