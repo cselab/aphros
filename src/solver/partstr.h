@@ -282,8 +282,8 @@ class PartStr {
   // Output:
   // ff: forces
   static void InterfaceForce(const Vect* xx, size_t sx, 
-                      const Vect* lx, const size_t* ls, size_t sl, 
-                      Scal segcirc, Scal anglim, Vect* ff) {
+                             const Vect* lx, const size_t* ls, size_t sl, 
+                             Scal segcirc, Scal anglim, Vect* ff) {
     if (sx == 0) {
       return;
     }
@@ -301,195 +301,7 @@ class PartStr {
     // current curvature
     Scal crv = PartK(xx, sx);
 
-    /*
-    // find nearest segment
-    // x: target point
-    // Returns:
-    // jn: index of nearest segment ll[jn]
-    auto findnear = [sl,ll](const Vect& x) -> size_t {
-      Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
-      size_t jn = 0;
-      // find distance to nearest segment
-      for (size_t j = 0; j < sl; ++j) {
-        auto& e = ll[j];
-        Scal dl = x.sqrdist(R::GetNearest(x, e[0], e[1]));
-        if (dl < dn) {
-          dn = dl;
-          jn = j;
-        }
-      }
-      return jn;
-    };
-    */
-
-    /*
-    // find segment with nearest center
-    // x: target point
-    // Returns:
-    // jn: index of segment ll[jn] with nearest center
-    auto findnearc = [sl,ll](const Vect& x) -> size_t {
-      Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
-      size_t jn = 0;
-      // find distance to nearest segment
-      for (size_t j = 0; j < sl; ++j) {
-        auto& e = ll[j];
-        Scal dl = x.sqrdist((e[0] + e[1]) * 0.5);
-        if (dl < dn) {
-          dn = dl;
-          jn = j;
-        }
-      }
-      return jn;
-    };
-    */
-
-    /*
-    // find nearest segment with angle limit
-    // x: target point
-    // n: normal to string
-    // ang: angle limit (skip if exceeded)
-    // Returns:
-    // jn: index of nearest segment ll[jn]
-    auto findnearang = [sl,ll](const Vect& x, const Vect& n, Scal ang) {
-      Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
-      size_t jn = size_t(-1);
-      // find distance to nearest segment
-      for (size_t j = 0; j < sl; ++j) {
-        auto& e = ll[j];
-        Vect ne = e[1] - e[0];
-        ne = Vect(ne[1], -ne[0], 0.);
-        if (ne.dot(n) / (ne.norm() * n.norm()) >= std::cos(ang)) {
-          Scal dl = x.sqrdist(R::GetNearest(x, e[0], e[1]));
-          if (dl < dn) {
-            dn = dl;
-            jn = j;
-          }
-        }
-      }
-      return jn;
-    };
-    */
-
-    /*
-    // find segment with nearest angle
-    // x: point
-    // t: direction
-    // Returns:
-    // jn: index of segment ll[jn] with one end e minimizing angle
-    //     between (x-e) and t (maximizing t.dot(x-e) / (x-a).norm())
-    auto findang = [sl,ll](const Vect& x, const Vect& t, Scal sgn) -> size_t {
-      Scal sn = -std::numeric_limits<Scal>::max();  // scalar product with t
-      size_t jn = -1;
-      for (size_t j = 0; j < sl; ++j) {
-        for (size_t k = 0; k < 2; ++k) {
-          auto e = ll[j][k];
-          auto s = t.dot(e - x) / (e - x).norm();
-          if (s > sn && t.cross_third(e - x) * sgn >= 0.) {
-            sn = s;
-            jn = j;
-          }
-        }
-      }
-      assert(jn != -1);
-      return jn;
-    };
-    */
-
-    /*
-    // find nearest segment with distance along line.
-    // x: point
-    // t: direction
-    // Returns:
-    // jn: index of segment ll[jn] such that line x+t*a intersects the segment
-    //     and the intersection point provides minimal distance to x
-    // jn=-1 if no intersecting segments
-    auto findint = [sl,ll,leq](const Vect& x, const Vect& t) -> size_t {
-      Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
-      size_t jn = -1;
-      // find distance to nearest segment
-      for (size_t j = 0; j < sl; ++j) {
-        auto& e = ll[j];
-        Vect xi;
-        bool in = R::GetInterLine(e, x, t, xi);
-        Scal d = x.sqrdist(xi);
-        if (in && d < dn && d < sqr(4 * leq)) {
-          dn = d;
-          jn = j;
-        }
-      }
-      return jn;
-    };
-    */
-
     #if 0
-    // Apply shift from segment to circle
-    // j: segment idx
-    // x: curent point on segment
-    auto shsegcirc = [ll,sl,crv,segcirc](size_t j, Vect& x) {
-      if (segcirc != 0.) {
-        auto& e = ll[j];
-        // outer normal
-        Vect n = e[1] - e[0];
-        n = Vect(n[1], -n[0], 0.);
-        n /= n.norm();
-        // center
-        Vect xc = (e[0] + e[1]) * 0.5;
-        // distance from center
-        Scal dc = xc.dist(x);
-        // max distance from center
-        Scal mdc = e[0].dist(xc);
-
-        // shift from line to circle
-        Scal s = SegCirc(crv, mdc, dc);  
-        s *= segcirc;
-        x += n * s;
-      }
-    };
-    #endif
-
-    /*
-    // central: 
-    // attraction to nearest interface
-    const size_t ic = (sx - 1) / 2;
-    {
-      const Vect& x = xx[ic];
-      size_t jn = findnear(x);
-      auto& e = ll[jn];
-      Vect xn = R::GetNearest(x, e[0], e[1]);
-      shsegcirc(jn, xn);
-      ff[ic] = xn - x;
-    }
-
-    // forward and backward:
-    for (size_t q = 1; q <= ic; ++q) {
-      for (int g : {-1, 1}) {
-        size_t i = ic + q * g;
-        Vect x = xx[i]; // target point
-        Vect n = xx[i] - xx[i - g]; // normal to string
-        n = Vect(-n[1], n[0], 0.) * g;
-        size_t jn = findnearang(xx[i], n, anglim); // nearest segment
-        if (jn != size_t(-1)) {
-          auto& e = ll[jn];
-          Vect xn = R::GetNearest(x, e[0], e[1]);
-          shsegcirc(jn, xn);
-          ff[i] += xn - x;  
-        }
-      }
-    }
-    */
-
-    #if 0
-    // particle attracted to nearest interface
-    for (size_t i = 0; i < sx; ++i) {
-      const Vect& x = xx[i];
-      size_t jn = findnear(x);
-      auto& e = ll[jn];
-      Vect xn = R::GetNearest(x, e[0], e[1]);
-      shsegcirc(jn, xn);
-      ff[i] = (xn - x);
-    }
-    #endif
-
     const size_t kNone(-1);
     std::vector<size_t> pnl(sx, kNone); // particle nearest line
 
@@ -529,35 +341,49 @@ class PartStr {
         ff[i] += x - xx[i];
       }
     }
-    #if 0
-    // segment turned to match angle of nearest interface
-    for (size_t im = 0; im + 1 < sx; ++im) {
-      size_t ip = im + 1;
-      const Vect& xm = xx[im];
-      const Vect& xp = xx[ip];
-      Vect x = (xm + xp) * 0.5; // segment center
-      size_t jn = findnear(x);
-      auto& e = ll[jn];
-      Vect ne(e[0][1] - e[1][1], e[1][0] - e[0][0], 0.); // normal to interface
-      Vect ns(xp[1] - xm[1], xm[0] - xp[0], 0.); // normal to segment
-      if (ne.dot(ns) > 0.) {
-        ne /= ne.norm();
-        ns /= ns.norm();
-        Scal sin = ne.cross_third(ns); // sin of angle between normals
-        (void)sin;
-        //Vect xn = R::GetNearest(x, e[0], e[1]);
-        // torque
-        Scal t = segcirc * sin;
-        // segment length
-        Scal l = xp.dist(xm);
-        // forces
-        Vect fm = ns * (t / (2. * l));
-        Vect fp = -ns * (t / (2. * l));
-        ff[im] += fm;
-        ff[ip] += fp;
-      }
-    }
     #endif
+
+    // apply force
+    // loop over inner particles
+    for (size_t i = 0; i < sx; ++i) {
+      size_t ip = (i + 1 == sx ? sx - 1 : i + 1);
+      size_t im = (i == 0 ? 0 : i - 1);
+      Vect n = xx[ip] - xx[im];
+      n = Vect(-n[1], n[0], 0.);
+      n *= (sx - 1) * segcirc / (ip - im); // rescale to length of string
+      Scal sp = 0.; // length of intersection on side +n
+      Scal sm = 0.; // length of intersection on side -n
+
+      std::cout.precision(5);
+
+      // loop over interface lines
+      size_t j = 0;
+      for (size_t l = 0; l < sl; ++l) {
+        std::array<Scal, 2> aa;
+        if (R::GetInter(&(lx[j]), ls[l], xx[i], n, aa)) {
+          /*
+          std::cout 
+              << " i=" << i << " l=" << l
+              << " aa=" << "(" << aa[0] << "," << aa[1] << ")"
+              << std::endl;
+              */
+          sp += std::abs(R::GetClip(aa[1]) - R::GetClip(aa[0]));
+          sm += std::abs(R::GetClip(-aa[0]) - R::GetClip(-aa[1]));
+        }
+        j += ls[l];
+      }
+      /*
+      std::cout 
+          << " i=" << i 
+          << " xx[i]=" << xx[i]
+          << " n[i]=" << n
+          << " sm=" << sm
+          << " sp=" << sp
+          << std::endl;
+          */
+
+      ff[i] += n * (sm - 1. + sp);
+    }
 
     (void)anglim;
     (void)crv;
