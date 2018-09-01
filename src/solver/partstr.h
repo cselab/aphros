@@ -534,6 +534,7 @@ class PartStr {
       }
       dx *= kx / sx;
       dx[0] = 0.;
+      dx[1] = 0.;
 
       // apply
       for (size_t i = 0; i < sx; ++i) {

@@ -55,6 +55,11 @@ class Vof : public AdvectionSolver<M_> {
     Scal part_tmax = 180.; 
     Scal part_dtmax = 10.; 
     Scal part_anglim = 90.; 
+    enum class Attr { // attraction force type
+        interface  // to reconstructed interface
+      , volume // to fluid volume
+    }; 
+    Attr part_attr = Attr::interface;
   };
 
   // Constructor

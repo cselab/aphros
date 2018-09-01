@@ -266,6 +266,67 @@ struct Vof<M_>::Imp {
     auto my = v[2];
     return mc + mx * xl[0] + my * xl[1];
   }
+  // Appends interface line
+  void AppendInterfaceLine() {
+  }
+  // Appends interface volume
+  void AppendInterfaceVolume() {
+  }
+  // Appends interface element (line or volume) of one cell.
+  // v: output of GetPlaneBasis()
+  // xc: cell center
+  // u: volume fraction
+  // a: plane constant
+  // n: interface normal
+  // in: interface flag
+  // lx: nodes
+  // ls: sizes
+  // Output:
+  // lx, ls: appended with interface element
+  void AppendInterface(const std::array<Vect, 3>& v,
+                       Vect xc, Scal u, Scal a, const Vect& n, bool in,
+                       std::vector<Vect>& lx, std::vector<size_t>& ls) { 
+    Vect h = GetCellSize(); // cell size
+
+    // cell contour polygon // TODO: general for 3d cell
+    std::vector<Vect> pc;
+    pc.push_back(GetPlaneCoords(xc + Vect(-h[0], -h[1], 0.) * 0.5, v));
+    pc.push_back(GetPlaneCoords(xc + Vect(h[0], -h[1], 0.) * 0.5, v));
+    pc.push_back(GetPlaneCoords(xc + Vect(h[0], h[1], 0.) * 0.5, v));
+    pc.push_back(GetPlaneCoords(xc + Vect(-h[0], h[1], 0.) * 0.5, v));
+
+    const Scal th = par->part_intth;
+
+    if (in && u >= th && u <= 1. - th) {
+      auto xx = R::GetCutPoly(xc, n, a, h); // interface polygon
+      std::array<Vect, 2> e; // ends of intersection 
+      Vect mc = v[0];  // plane center
+      Vect mx = v[1];  // unit in x
+      Vect my = v[2];  // unit in y
+      Vect mn = mx.cross(my); // normal to plane
+      if (R::GetInterPoly(xx, mc, mn, e)) { // intersection non-empty
+        // interface normal 
+        auto pn = GetPlaneCoords(mc + n, v);
+        // line ends
+        auto pe0 = GetPlaneCoords(e[0], v);
+        auto pe1 = GetPlaneCoords(e[1], v);
+        // make <pn,pe1-pe0> positively oriented
+        if (pn.cross_third(pe1 - pe0) < 0.) {
+          std::swap(pe0, pe1);
+        }
+        // polygon of fluid volume
+        auto pv = R::GetCutPoly(pc, {pe0, pe1});
+        lx.insert(lx.end(), pv.begin(), pv.end());
+        ls.push_back(pv.size());
+      } else {
+        lx.insert(lx.end(), pc.begin(), pc.end());
+        ls.push_back(pc.size());
+      }
+    } else if (u > 1. - th) {
+      lx.insert(lx.end(), pc.begin(), pc.end());
+      ls.push_back(pc.size());
+    }
+  }
   void Seed0(const FieldCell<Scal>& fcu, const FieldCell<Scal>& fca, 
              const FieldCell<Vect>& fcn, const FieldCell<bool>& fci) {
     using MIdx = typename M::MIdx;
@@ -277,9 +338,6 @@ struct Vof<M_>::Imp {
     vsc_.clear();
     vsan_.clear();
 
-    // buffer for interface lines
-    std::vector<Vect> lx; // nodes
-    std::vector<size_t> ls; // sizes
     // Seed strings in cells with interface.
     for (auto c : m.Cells()) {
       Vect xc = m.GetCenter(c);
@@ -298,8 +356,9 @@ struct Vof<M_>::Imp {
                                   MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
 
           auto w = bc.GetMIdx(c);
-          lx.clear();
-          ls.clear();
+          // buffer for interface lines
+          std::vector<Vect> lx; // nodes
+          std::vector<size_t> ls; // sizes
           // Extract interface from neighbour cells.
           for (auto wo : bo) {
             IdxCell cc = bc.GetIdx(w + wo); // neighbour cell
@@ -353,6 +412,54 @@ struct Vof<M_>::Imp {
       }
     }
   }
+  void Seed(const FieldCell<Scal>& fcu, const FieldCell<Scal>& fca, 
+             const FieldCell<Vect>& fcn, const FieldCell<bool>& fci) {
+    using MIdx = typename M::MIdx;
+    auto& bc = m.GetIndexCells();
+
+    // clear string list
+    partstr_->Clear();
+    vsc_.clear();
+    vsan_.clear();
+
+    // Seed strings in cells with interface.
+    for (auto c : m.Cells()) {
+      Vect xc = m.GetCenter(c);
+      const Scal th = par->part_intth;
+      if (fci[c] && fcu[c] >= th && fcu[c] <= 1. - th) {
+        // number of strings
+        size_t ns = (par->dim == 2 ? 1 : par->part_ns);
+        for (size_t s = 0; s < ns; ++s) {
+          Scal an = s * M_PI / ns; // angle
+          auto v = GetPlaneBasis(xc, fcn[c], fca[c], an);
+
+          // block of offsets to neighbours in stencil [-sw,sw]
+          const int sw = 2; // stencil halfwidth
+          const int sn = sw * 2 + 1; // stencil size
+          GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
+                                  MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
+
+          auto w = bc.GetMIdx(c);
+          // buffer for interface lines
+          std::vector<Vect> lx; // nodes
+          std::vector<size_t> ls; // sizes
+          // Extract interface from neighbour cells.
+          for (auto wo : bo) {
+            IdxCell cc = bc.GetIdx(w + wo); // neighbour cell
+            AppendInterface(v, m.GetCenter(cc), fcu[cc], fca[cc], fcn[cc],
+                            fci[cc], lx, ls);
+          }
+
+          // add string 
+          partstr_->Add(Vect(0.), Vect(1., 0., 0.), lx, ls);
+          vsc_.push_back(c);
+          vsan_.push_back(an);
+          assert(vsc_.size() == partstr_->GetNumStr());
+          assert(vsan_.size() == partstr_->GetNumStr());
+        }
+      }
+    }
+  }
   std::pair<Vect, Vect> GetBubble() {
     static Vect c(0);
     static Vect r(0);
@@ -385,7 +492,7 @@ struct Vof<M_>::Imp {
                             owner_->GetTimeStep());
 
     if (sem("part-run")) {
-      Seed0(uc, fca_, fcn_, fci_);
+      Seed(uc, fca_, fcn_, fci_);
       partstr_->Run(par->part_tol, par->part_itermax, 
                     par->part_verb && m.IsRoot());
       // compute curvature
