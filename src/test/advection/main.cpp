@@ -82,7 +82,9 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
     p->sharpo = var.Double["sharpo"];
     p->split = var.Int["split"];
   }
+  // TODO: unify with hydro.h
   void Update(typename ASV::Par* p) {
+    using Par = typename ASV::Par;
     p->curvgrad = var.Int["curvgrad"];
     p->part = var.Int["part"];
     p->part_verb = var.Int["part_verb"];
@@ -116,6 +118,17 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
     p->part_tmax = var.Double["part_tmax"];
     p->part_dtmax = var.Double["part_dtmax"];
     p->part_anglim = var.Double["part_anglim"];
+
+    {
+      std::string s = var.String["part_attr"];
+      if (s == "line") {
+        p->part_attr = Par::Attr::line;
+      } else if (s == "volume") {
+        p->part_attr = Par::Attr::volume;
+      } else {
+        throw std::runtime_error("Update: unknown part_attr=" + s);
+      }
+    }
   }
 
  protected:
