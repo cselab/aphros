@@ -15,7 +15,7 @@ Define DUMPDT 0.05
 
   Refine 4
 
-  VariableTracerVOF T
+  VariableTracerVOFHeight T
 
   InitFraction T (ini_t2(x+0.5, y+0.5))
 
