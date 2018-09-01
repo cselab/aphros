@@ -118,6 +118,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     p->split = var.Int["split"];
   }
   void Update(typename ASV::Par* p) {
+    using Par = typename ASV::Par;
     p->curvgrad = var.Int["curvgrad"];
     p->part = var.Int["part"];
     p->part_verb = var.Int["part_verb"];
@@ -151,6 +152,17 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     p->part_tmax = var.Double["part_tmax"];
     p->part_dtmax = var.Double["part_dtmax"];
     p->part_anglim = var.Double["part_anglim"];
+
+    {
+      std::string s = var.String["part_attr"];
+      if (s == "line") {
+        p->part_attr = Par::Attr::line;
+      } else if (s == "volume") {
+        p->part_attr = Par::Attr::volume;
+      } else {
+        throw std::runtime_error("Update: unknown part_attr=" + s);
+      }
+    }
   }
   void UpdateAsPar() {
     if (auto as = dynamic_cast<AST*>(as_.get())) {
