@@ -118,6 +118,7 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
     p->part_tmax = var.Double["part_tmax"];
     p->part_dtmax = var.Double["part_dtmax"];
     p->part_anglim = var.Double["part_anglim"];
+    p->part_dn = var.Int["part_dn"];
 
     {
       std::string s = var.String["part_attrforce"];

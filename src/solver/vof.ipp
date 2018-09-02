@@ -60,6 +60,7 @@ struct Vof<M_>::Imp {
     p->tmax = par->part_tmax;
     p->dtmax = par->part_dtmax;
     p->anglim = par->part_anglim;
+    p->dn = par->part_dn;
 
     {
       using FT = typename PS::FT;

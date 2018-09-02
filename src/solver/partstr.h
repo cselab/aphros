@@ -42,6 +42,7 @@ class PartStr {
     size_t npmax = 11; // maximum number particles in string
     Scal segcirc = 1.; // factor for shift to circular segment
     Scal hc; // cell size [length]
+    FT forcetype = FT::line; // attraction force type
     // specific for Constr0
     Scal kstr = 1.;  // factor for stretching 
     Scal kbend = 1.;  // factor for bending 
@@ -54,7 +55,7 @@ class PartStr {
     Scal tmax = 180.; // limit for total theta of string [deg]
     Scal dtmax = 10.; // limit for dt [deg]
     Scal anglim = 90.; // limit for dt [deg]
-    FT forcetype = FT::line; // attraction force type
+    bool dn = false; // normal displacement
   };
 
   static constexpr size_t dim = 3;
@@ -138,7 +139,7 @@ class PartStr {
     } else if (cs == 1) {
       Constr1(xx, sx, par->kattr, 
               par->kbend, par->kstr, par->relax, 
-              par->tmax * M_PI / 180., par->dtmax * M_PI / 180.,
+              par->tmax * M_PI / 180., par->dtmax * M_PI / 180., par->dn,
               ff.data());
     } else {
       throw std::runtime_error("Unknown constr=" + std::to_string(cs));
@@ -513,10 +514,13 @@ class PartStr {
   // kt: relaxation factor for angle between segments
   // kx: relaxation factor for position 
   // relax: relaxation factor for force
+  // tmax: ignored // TODO: revise
+  // dtmax: ignored // TODO: revise
+  // dn: 1: enable normal displacement, 0: fix central particle
   // XXX: uses static variables
   static void Constr1(const Vect* xx, size_t sx, 
                       Scal ka, Scal kt, Scal kx, Scal relax, 
-                      Scal tmax, Scal dtmax,
+                      Scal tmax, Scal dtmax, bool dn,
                       Vect* ff) {
     // Rotates vector by pi/2
     // x: vector of plane coordinates
@@ -570,14 +574,14 @@ class PartStr {
     //    ff -= dx
 
     // displacement of center
-    {
+    if (dn) {
       Vect dx(0);
       for (size_t i = 0; i < sx; ++i) {
         dx += ff[i];
       }
       dx *= kx / sx;
       dx[0] = 0.;
-      dx[1] = 0.;
+      //dx[1] = 0.;
 
       // apply
       for (size_t i = 0; i < sx; ++i) {
