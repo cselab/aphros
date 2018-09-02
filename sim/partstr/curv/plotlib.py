@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import glob
 import os
 import re
+import sys
 from matplotlib.colors import LinearSegmentedColormap
 
 kThin = True
@@ -21,6 +22,217 @@ def natsorted(v):
 
 def Glob(d, fld):
     return natsorted(glob.glob(os.path.join(d, "{:}*.dat".format(fld))))
+
+# Writes message to stdout
+# s: string
+def Log(s, noeol=False):
+    if not noeol:
+        s += s + "\n"
+    sys.stdout.write(s)
+    sys.stdout.flush()
+
+# Figure with volume fraction
+# pt: path template
+# suf: output name suffix
+def FigVf(pt):
+    vf = ReadField(pt, 'vf')
+    # center of mass
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+    x,y,z = GetMesh(x1, y1, z1)
+    ii = np.where(np.isfinite(vf))
+    cx = np.sum(x[ii] * vf[ii]) / np.sum(vf[ii])
+    cy = np.sum(y[ii] * vf[ii]) / np.sum(vf[ii])
+    cz = np.sum(z[ii] * vf[ii]) / np.sum(vf[ii])
+    iz = np.argmin(abs(cz - z))
+    print("FigVf: c={:}, ciz={:}".format((cx, cy, cz), iz))
+
+    # slice through center of mass
+    if vf is not None: vf = vf[:,:,iz:iz+1]
+
+    fig, ax = PlotInitSq()
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+    xn1,yn1,zn1 = GetMeshNodes(hx, hy, hz)
+    x,y,z = GetMesh(x1, y1, z1)
+
+    # grid
+    PlotGrid(ax, xn1, yn1)
+    # field
+    PlotFieldGray(ax, vf, vmin=0., vmax=1.)
+    # partilces
+    pa = GetFieldPath(pt, "partit")
+    if os.path.isfile(pa) and GetDim(vf.shape) == 2:
+        Log(pa)
+        PlotPart(ax, pa, sk=4)
+    # save
+    po = GetFieldPath(pt, "vf", "pdf")
+    Log(po)
+    PlotSave(fig, ax, po)
+
+# Exact trajectory.
+# x0: initial center, shape (3)
+# vx0: velocity, shape (3)
+# tmax: total time
+# n: number of segments
+def GetTrajE(x0, vx0, tmax, n=150):
+    x = [np.linspace(x0[d], x0[d] + vx0[d] * tmax, n) for d in range(3)]
+    return x
+
+# Extracts trajectory of center of mass.
+# pp: list of paths to volume fraction fields
+# Returns:
+# x,y: arrays
+def GetTraj(pp):
+    # result
+    cx = [] ; cy = [] ; cz = []
+    for i,p in enumerate(pp):
+        # report
+        Log("{:} ".format(i), True)
+        # read array
+        vf = ReadArray(p)
+        x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+        x,y,z = GetMesh(x1, y1, z1)
+        # compute center
+        cx0 = (x * vf).sum() / vf.sum()
+        cy0 = (y * vf).sum() / vf.sum()
+        cz0 = (z * vf).sum() / vf.sum()
+        cx.append(cx0)
+        cy.append(cy0)
+        cz.append(cz0)
+    Log("")
+
+    cx = np.array(cx)
+    cy = np.array(cy)
+    cz = np.array(cz)
+    return cx,cy,cz
+
+# Extracts value of field along trajectory.
+# pp: list of paths to volume fraction fields
+# cx,cy,cz: trajectory
+# fld: field prefix (e.g. 'p')
+# Returns:
+# cu: field at center
+def GetTrajFld(pp, cx, cy, cz, fld):
+    cu = []
+    for i,p in enumerate(pp):
+        # report
+        Log("{:} ".format(i), True)
+        # path template
+        pt = GetPathTemplate(p)
+        # read field
+        u = ReadField(pt, fld)
+        # mesh
+        x1,y1,z1,hx,hy,hz = GetGeom(u.shape)
+        x,y,z = GetMesh(x1, y1, z1)
+        # index
+        ci0 = int(cx[i] / hx)
+        cj0 = int(cy[i] / hy)
+        ck0 = int(cz[i] / hz)
+        # field
+        cu.append(u[ci0, cj0, ck0])
+    Log("")
+
+    cu = np.array(cu)
+    return cu
+
+# Average field weighed with volume fraction along trajectory.
+# pp: list of paths to volume fraction fields
+# fld: field prefix (e.g. 'p')
+# Returns:
+# cu: average field at every point in pp
+def GetAvgFld(pp, fld):
+    cu = []
+    for i,p in enumerate(pp):
+        # read field
+        u = ReadField(GetPathTemplate(p), fld)
+        # read volume fraction
+        v = ReadArray(p)
+        # field value
+        cu.append((u * v).mean() / v.mean())
+    cu = np.array(cu)
+    return cu
+
+# Magnitude of difference from uniform reference field.
+# pp: list of paths to volume fraction fields
+# fld: field prefix (e.g. 'vx')
+# ue: reference
+# Returns:
+# umax: max norm
+# u1: l1 norm
+# u2: l2 norm
+def GetDiff(pp, fld, ue):
+    umax = []
+    u1 = []
+    u2 = []
+    for i,p in enumerate(pp):
+        # read field
+        u = ReadField(GetPathTemplate(p), fld)
+        # difference
+        du = abs(u - ue)
+        # norms
+        umax.append(du.max())
+        u1.append(du.mean())
+        u2.append((du ** 2).mean() ** 0.5)
+    umax = np.array(umax)
+    u1 = np.array(u1)
+    u2 = np.array(u2)
+    return umax, u1, u2
+
+
+# Plots trajectories
+# xx,yy: list of arrays for axes
+# ll: line labels
+# lx,ly: axes labels
+# ylog: log-scale in y
+# po: output path
+def PlotTrajFld(xx, yy, ll, lx, ly, po, vmin=None, vmax=None, ystep=None,
+                ylog=False):
+    fig, ax = PlotInit()
+    if vmin is None: vmin = yy[0].min()
+    if vmax is None: vmax = yy[0].max()
+    i = 0
+    for x,y,l in zip(xx, yy, ll):
+        if i == len(xx) - 1: # separate for last
+            ax.plot(x, y, label=l, c="0.5", ls='--')
+        else:
+            ax.plot(x, y, label=l)
+        i += 1
+    ax.legend()
+    ax.grid(True)
+    ax.set_xlabel(lx)
+    ax.set_ylabel(ly)
+    ax.set_ylim(vmin, vmax)
+    if ylog:
+        ax.set_yscale('log')
+    if ystep is not None:
+        ax.set_yticks(np.arange(vmin, vmax + 1e-10, ystep))
+    PlotSave(fig, ax, po)
+
+# Plots trajectories
+# xx,yy: list of arrays
+# ll: labels
+# s: shape of of data array
+def PlotTraj(xx, yy, ll, s):
+    fig, ax = PlotInitSq()
+    ax.set_aspect('equal')
+    i = 0
+    for x,y,l in zip(xx, yy, ll):
+        if i == len(xx) - 1: # separate for last
+            ax.plot(x, y, label=l, c="0.5", ls='--')
+        else:
+            ax.plot(x, y, label=l)
+        i += 1
+    ax.legend()
+    ax.set_xlim(0., 1.)
+    ax.set_ylim(0., 1.)
+    x1,y1,z1,hx,hy,hz = GetGeom(s)
+    xn1,yn1,zn1 = GetMeshNodes(hx, hy, hz)
+    PlotGrid(ax, xn1, yn1)
+
+    q,q,q,rx,ry,rz = LoadBub()
+    x1,y1,z1,hx,hy,hz = GetGeom(s)
+    plt.title("r/h={:0.3f}".format(rx / hx))
+    po = 'traj.pdf'
+    PlotSave(fig, ax, po)
 
 # Read uniform grid data
 # p: path
@@ -341,6 +553,9 @@ def GetNorm(k):
 def LoadBub():
     return np.loadtxt("b.dat")
 
+def LoadVel():
+    return np.loadtxt("vel")
+
 # Returns mean curvature of surface z=h(x,y) at point (x,y,z)
 # h: function h(x,y)
 # x,y: coordinates
@@ -369,6 +584,7 @@ def GetCurv(h, x, y, dx=1e-3):
     c = (hx ** 2 + hy ** 2 + 1.) ** (3. / 2)
     return (a - b) / c
 
+# Prints stat of field x with label lbl.
 def P(x, lbl):
     print("{:}: shape={:} min={:}, max={:}, avg={:}".format(
         lbl, x.shape, x.min(), x.max(), x.mean()))
@@ -489,3 +705,141 @@ def FigHistK(vf, kk, ll, po, title=None):
                 m,l1,l2 = GetNorm((k - ke) / kea)
                 f.write("{:} {:} {:} {:} {:} {:}\n".format(
                         l, rx/hx, ry/hx, m, l1, l2))
+
+def Univel3():
+    # directories
+    dd = ['ch', 'ge']
+    # labels
+    ll = []
+    # trajectories
+    xx = []
+    yy = []
+    zz = []
+    # pressure along trajectories
+    ee = []
+    # velocity error max
+    vvxm = []
+    vvym = []
+    vvzm = []
+    # velocity error l2
+    vvx2 = []
+    vvy2 = []
+    vvz2 = []
+
+    # volume fraction from dd[0]
+    pp = Glob(dd[0], "vf")
+    pt = GetPathTemplate(pp[0])
+    vf = ReadField(pt, "vf")
+
+    dim = GetDim(vf.shape)
+
+    cx,cy,cz,rx,ry,rz = LoadBub()
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+
+    # exact velocity
+    vele = LoadVel()
+    # exact trajectories
+    x,y,z = GetTrajE([cx, cy, cz], vele, 1.)
+    # exact pressure jump
+    sig = 1.
+    eex = sig / rx
+    # error in pressure jump
+    e = (x * 0 + eex) / eex
+    # error in velocity
+    vx = x * 0
+    vy = x * 0
+    vz = x * 0
+    # append
+    xx.append(x)
+    yy.append(y)
+    zz.append(z)
+    vvxm.append(vx)
+    vvym.append(vy)
+    vvzm.append(vz)
+    vvx2.append(vx)
+    vvy2.append(vy)
+    vvz2.append(vz)
+    ee.append(e)
+    ll.append("exact")
+
+    # lines
+    ll.append('mfer')
+    ll.append('gerris')
+    for d,l in zip(dd, ll):
+        print(d)
+        pp = Glob(d, "vf")
+        assert len(pp)
+        pt = GetPathTemplate(pp[0])
+        # volume fraction
+        FigVf(pt)
+        # trajectory
+        x,y,z = GetTraj(pp)
+        # pressure
+        e = GetTrajFld(pp, x, y, z, "p")
+        # pressure at corner
+        e0 = GetTrajFld(pp, x * 0, y * 0, z * 0, "p")
+        # pressure jump relative to exact
+        e = (e - e0) / eex
+        # error in velocity
+        vxm, vx1, vx2 = GetDiff(pp, "vx", vele[0])
+        vym, vy1, vy2 = GetDiff(pp, "vy", vele[1])
+        if dim == 3:
+            vzm, vz1, vz2 = GetDiff(pp, "vz", vele[2])
+            vvzm.append(vzm)
+            vvz2.append(vz2)
+        xx.append(x)
+        yy.append(y)
+        zz.append(z)
+        ee.append(e)
+        vvxm.append(vxm)
+        vvym.append(vym)
+        vvx2.append(vx2)
+        vvy2.append(vy2)
+
+    # reorder lines
+    xx = xx[1:] + [xx[0]]
+    yy = yy[1:] + [yy[0]]
+    zz = zz[1:] + [zz[0]]
+    ee = ee[1:] + [ee[0]]
+    vvxm = vvxm[1:] + [vvxm[0]]
+    vvym = vvym[1:] + [vvym[0]]
+    vvx2 = vvx2[1:] + [vvx2[0]]
+    vvy2 = vvy2[1:] + [vvy2[0]]
+    if dim == 3:
+        vvzm = vvzm[1:] + [vvzm[0]]
+        vvz2 = vvz2[1:] + [vvz2[0]]
+    ll = ll[1:] + [ll[0]]
+
+    # time
+    tt = []
+    for i,x in enumerate(xx):
+        tt.append(np.linspace(0., 1., len(x)))
+
+    # Plot trajectories
+    PlotTraj(xx, yy, ll, vf.shape)
+    # Plot pressure jump
+    PlotTrajFld(tt, ee, ll, "t", "p", "trajp.pdf", vmin=0., vmax=2.)
+    # Plot x,y
+    gp = 0.05 # gap
+    PlotTrajFld(tt, xx, ll, "t", "x", "trajx.pdf", ystep=0.1,
+                vmin=cx - gp, vmax=cx + vele[0] + gp)
+    PlotTrajFld(tt, yy, ll, "t", "y", "trajy.pdf", ystep=0.1,
+                vmin=cy - gp, vmax=cy + vele[1] + gp)
+    PlotTrajFld(tt, zz, ll, "t", "z", "trajz.pdf", ystep=0.1,
+                vmin=cz - gp, vmax=cz + vele[2] + gp)
+    # Plot error in velocity
+    vmin = 1e-6
+    vmax = 1e1
+    PlotTrajFld(tt, vvxm, ll, "t", "vx", "trajvxm.pdf",
+                vmin=vmin, vmax=vmax, ylog=True)
+    PlotTrajFld(tt, vvym, ll, "t", "vy", "trajvym.pdf",
+                vmin=vmin, vmax=vmax, ylog=True)
+    PlotTrajFld(tt, vvx2, ll, "t", "vx", "trajvx2.pdf",
+                vmin=vmin, vmax=vmax, ylog=True)
+    PlotTrajFld(tt, vvy2, ll, "t", "vy", "trajvy2.pdf",
+                vmin=vmin, vmax=vmax, ylog=True)
+    if dim == 3:
+        PlotTrajFld(tt, vvzm, ll, "t", "vz", "trajvzm.pdf",
+                    vmin=vmin, vmax=vmax, ylog=True)
+        PlotTrajFld(tt, vvz2, ll, "t", "vz", "trajvz2.pdf",
+                    vmin=vmin, vmax=vmax, ylog=True)

@@ -9,6 +9,7 @@ mkdir -p $o
 
 # bubble
 : ${bc="0.31 0.29 0.26 "}
+: ${vel="0.4 0.3 0.2 "}
 
 # log
 l="out"
@@ -20,6 +21,8 @@ for exp in `seq 2 6` ; do
   echo "br=$br"
   echo "$bc $br $br $br" > b.dat
   p="r${br}_"
+
+  echo "$vel" > vel
 
   # run ch
   d="ch"

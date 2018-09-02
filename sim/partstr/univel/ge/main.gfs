@@ -1,11 +1,11 @@
-#Define TMAX 1
-#Define DUMPDT 0.01
+Define TMAX 1
+Define DUMPDT 0.01
 #Define TMAX 10
 #Define DUMPDT 0.1
 #Define TMAX 5
 #Define DUMPDT 0.05
-Define TMAX 50
-Define DUMPDT 0.5
+#Define TMAX 50
+#Define DUMPDT 0.5
 
 1 2 GfsSimulation GfsBox GfsGEdge {} {
   Global {
