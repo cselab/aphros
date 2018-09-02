@@ -1,8 +1,9 @@
-#Define TMAX 1
+Define TMAX 1
+Define DUMPDT 0.01
 #Define TMAX 10
 #Define DUMPDT 0.1
-Define TMAX 5
-Define DUMPDT 0.05
+#Define TMAX 5
+#Define DUMPDT 0.05
 
 1 2 GfsSimulation GfsBox GfsGEdge {} {
   Global {
@@ -26,8 +27,8 @@ Define DUMPDT 0.05
   #SourceViscosity 0.001
   SourceViscosity 0.01
 
-  #Init {} { U = 0.4 V = 0.3 }
-  Init {} { U = 0. V = 0. }
+  Init {} { U = 0.4 V = 0.3 }
+  #Init {} { U = 0. V = 0. }
 
   OutputSimulation { step = DUMPDT } u_%04ld.vtk { variables = T,P,U,V,K format = VTK}
   OutputTime { istep = 10 } stderr
