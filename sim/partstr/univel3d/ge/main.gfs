@@ -3,8 +3,7 @@
     Include ini_t_bub.h
   }
 
-  #Time { end = 1 dtmax = 2e-3 }
-  Time { end = 1 }
+  Time { end = TMAX } 
 
   Refine 4
 
@@ -17,10 +16,10 @@
 
   SourceViscosity 0.001
 
-  Init {} { U = 0.4 V = 0.3 W = 0.2 }
+  Init {} { U = VELX V = VELY W = VELZ }
 
-  OutputSimulation { step = 0.01 } u_%04ld.vtk { variables = T,P,U,V,W,K format = VTK}
-  OutputTime { istep = 1 } stderr
+  OutputSimulation { step = DUMPDT } u_%04ld.vtk { variables = T,P,U,V,W,K format = VTK}
+  OutputTime { istep = 10 } stderr
 }
 GfsBox {}
 1 1 right
