@@ -32,7 +32,7 @@ for p in pp:
     po = b + ".dat"
     bs = po[1:] # basename
     d = vtk.read_vtk(p)
-    x,y,z,[u,e,vx,vy,vz] = vtk.interp_to_uniform3(d['x'], d['y'], d['z'], [d['T'], d['P'], d['U'], d['V']])
+    x,y,z,[u,e,vx,vy,vz] = vtk.interp_to_uniform3(d['x'], d['y'], d['z'], [d['T'], d['P'], d['U'], d['V'], d['W']])
     print(po)
     Write(u, "vf" + bs)
     Write(e, "p" + bs)
