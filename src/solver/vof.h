@@ -55,6 +55,7 @@ class Vof : public AdvectionSolver<M_> {
     Scal part_tmax = 180.; 
     Scal part_dtmax = 10.; 
     Scal part_anglim = 90.; 
+    bool part_dn = false;
     enum class AF { // attraction force type
         line   // nearest line
       , center // nearest line center
