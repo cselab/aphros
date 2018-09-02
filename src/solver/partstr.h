@@ -574,14 +574,22 @@ class PartStr {
     //    ff -= dx
 
     // displacement of center
-    if (dn) {
+    if (dn) { // average over all particles
       Vect dx(0);
       for (size_t i = 0; i < sx; ++i) {
         dx += ff[i];
       }
       dx *= kx / sx;
       dx[0] = 0.;
-      //dx[1] = 0.;
+
+      // apply
+      for (size_t i = 0; i < sx; ++i) {
+        xxn[i] += dx;
+        ff[i] -= dx;
+      }
+    } else { // by central particle
+      Vect dx(0);
+      dx[1] += ff[(sx - 1) / 2][1];
 
       // apply
       for (size_t i = 0; i < sx; ++i) {
