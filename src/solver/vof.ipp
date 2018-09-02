@@ -60,6 +60,23 @@ struct Vof<M_>::Imp {
     p->tmax = par->part_tmax;
     p->dtmax = par->part_dtmax;
     p->anglim = par->part_anglim;
+
+    {
+      using FT = typename PS::FT;
+      switch (par->part_attrforce) { 
+        case Par::AF::line:
+          p->forcetype = FT::line;
+          break;
+        case Par::AF::center:
+          p->forcetype = FT::center;
+          break;
+        case Par::AF::volume:
+          p->forcetype = FT::volume;
+          break;
+        default:
+          throw std::runtime_error("Update(): Unknown part_attrforce");
+      }
+    }
   }
   // Dump cut polygons
   void DumpPoly() {
@@ -291,8 +308,8 @@ struct Vof<M_>::Imp {
           std::swap(pe0, pe1);
         }
         // polygon of fluid volume
-        lx.push_back(e[0]);
-        lx.push_back(e[1]);
+        lx.push_back(pe0);
+        lx.push_back(pe1);
         ls.push_back(2);
         return true;
       }
@@ -362,10 +379,10 @@ struct Vof<M_>::Imp {
   bool AppendInterface(const std::array<Vect, 3>& v,
                        Vect xc, Scal u, Scal a, const Vect& n, bool in,
                        std::vector<Vect>& lx, std::vector<size_t>& ls) { 
-    switch (par->part_attr) { 
-      case Par::Attr::line:
+    switch (par->part_attrreconst) { 
+      case Par::AR::line:
         return AppendInterfaceLine(v, xc, u, a, n, in, lx, ls);
-      case Par::Attr::volume:
+      case Par::AR::volume:
         return AppendInterfaceVolume(v, xc, u, a, n, in, lx, ls);
       default:
         throw std::runtime_error("AppendInterface(): Unknown part_attr");

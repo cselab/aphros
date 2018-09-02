@@ -154,13 +154,25 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     p->part_anglim = var.Double["part_anglim"];
 
     {
-      std::string s = var.String["part_attr"];
+      std::string s = var.String["part_attrforce"];
       if (s == "line") {
-        p->part_attr = Par::Attr::line;
+        p->part_attrforce = Par::AF::line;
+      } else if (s == "center") {
+        p->part_attrforce = Par::AF::center;
       } else if (s == "volume") {
-        p->part_attr = Par::Attr::volume;
+        p->part_attrforce = Par::AF::volume;
       } else {
-        throw std::runtime_error("Update: unknown part_attr=" + s);
+        throw std::runtime_error("Update: unknown part_attrforce=" + s);
+      }
+    }
+    {
+      std::string s = var.String["part_attrreconst"];
+      if (s == "line") {
+        p->part_attrreconst = Par::AR::line;
+      } else if (s == "volume") {
+        p->part_attrreconst = Par::AR::volume;
+      } else {
+        throw std::runtime_error("Update: unknown part_attrreconst=" + s);
       }
     }
   }

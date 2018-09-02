@@ -30,6 +30,11 @@
 template <class Scal>
 class PartStr {
  public:
+  enum class FT { // attraction force type
+      line   // interface line
+    , center // interface center
+    , volume // fluid volume
+  };
   struct Par {
     Scal leq = 4.; // equilibrium length of string relative to cell size
     Scal relax = 0.5; // relaxation factor
@@ -49,6 +54,7 @@ class PartStr {
     Scal tmax = 180.; // limit for total theta of string [deg]
     Scal dtmax = 10.; // limit for dt [deg]
     Scal anglim = 90.; // limit for dt [deg]
+    FT forcetype = FT::line; // attraction force type
   };
 
   static constexpr size_t dim = 3;
@@ -121,7 +127,8 @@ class PartStr {
     // compute interface forces
     InterfaceForce(xx, sx, 
                    &(lx_[lo_[sl_[s]]]), &(ls_[sl_[s]]), sl_[s + 1] - sl_[s],
-                   par->segcirc, par->anglim * M_PI / 180., ff.data());
+                   par->segcirc, par->anglim * M_PI / 180., ff.data(),
+                   par->forcetype);
 
     // apply constraints
     int cs = par->constr;
@@ -279,11 +286,13 @@ class PartStr {
   // sl: size of ls
   // segcirc: factor for shift to circular segment 
   // anglim: limit for angle between string and interface
+  // ft: force type
   // Output:
   // ff: forces
   static void InterfaceForce(const Vect* xx, size_t sx, 
                              const Vect* lx, const size_t* ls, size_t sl, 
-                             Scal segcirc, Scal anglim, Vect* ff) {
+                             Scal segcirc, Scal anglim, Vect* ff,
+                             FT ft) {
     if (sx == 0) {
       return;
     }
@@ -301,93 +310,127 @@ class PartStr {
     // current curvature
     Scal crv = PartK(xx, sx);
 
-    #if 0
-    const size_t kNone(-1);
-    std::vector<size_t> pnl(sx, kNone); // particle nearest line
-
-    // center of segment j,j+1
-    // j: index in lx
-    auto lc = [&lx](size_t j) {
-      return (lx[j] + lx[j + 1]) * 0.5;
-    };
-
-    // loop over interface lines
-    size_t j = 0;
-    for (size_t l = 0; l < sl; ++l) {
-      // loop over segments of line l
-      for (size_t k = 0; k + 1 < ls[l]; ++k) {
-        Vect xl = lc(j);
-        size_t in = 0; // particle nearest to line j
-        for (size_t i = 1; i < sx; ++i) {
-          if (xx[i].sqrdist(xl) < xx[in].sqrdist(xl)) {
-            in = i;
-          }
-        }
-        // nearest line to particle
-        if (pnl[in] == kNone || 
-            xx[in].sqrdist(lc(j)) < xx[in].sqrdist(lc(pnl[in]))) {
-          pnl[in] = j;
-        }
-        ++j;
-      }
-      ++j;
-    }
-    // apply force
-    for (size_t i = 0; i < sx; ++i) {
-      if (pnl[i] != kNone) {
-        size_t j = pnl[i];
-        Vect x = lc(j);
-        //shsegcirc(j, x);
-        ff[i] += x - xx[i];
-      }
-    }
-    #endif
-
-    // apply force
-    // loop over inner particles
-    for (size_t i = 0; i < sx; ++i) {
-      size_t ip = (i + 1 == sx ? sx - 1 : i + 1);
-      size_t im = (i == 0 ? 0 : i - 1);
-      Vect n = xx[ip] - xx[im];
-      n = Vect(-n[1], n[0], 0.);
-      n *= (sx - 1) * segcirc / (ip - im); // rescale to length of string
-      Scal sp = 0.; // length of intersection on side +n
-      Scal sm = 0.; // length of intersection on side -n
-
-      std::cout.precision(5);
+    // find nearest segment over all interface lines
+    // x: target point
+    // Returns:
+    // e: segment ends
+    auto findnear = [&lx,&ls,&sl](const Vect& x) -> std::array<Vect, 2> {
+      std::array<Vect, 2> en; // result
+      Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest 
 
       // loop over interface lines
-      size_t j = 0;
+      size_t b = 0; // index in lx
       for (size_t l = 0; l < sl; ++l) {
-        std::array<Scal, 2> aa;
-        if (R::GetInter(&(lx[j]), ls[l], xx[i], n, aa)) {
-          /*
-          std::cout 
-              << " i=" << i << " l=" << l
-              << " aa=" << "(" << aa[0] << "," << aa[1] << ")"
-              << std::endl;
-              */
-          sp += std::abs(R::GetClip(aa[1]) - R::GetClip(aa[0]));
-          sm += std::abs(R::GetClip(-aa[0]) - R::GetClip(-aa[1]));
+        // loop over segments of line l
+        for (size_t k = 0; k < ls[l]; ++k) {
+          size_t kp = (k + 1 == ls[l] ? 0 : k + 1);
+          Scal d = x.sqrdist(R::GetNearest(x, lx[b + k], lx[b + kp]));
+          if (d < dn) {
+            dn = d;
+            en = {lx[b + k], lx[b + kp]};
+          }
+          if (ls[l] == 2) {
+            break;;
+          }
         }
-        j += ls[l];
+        b += ls[l];
       }
-      /*
-      std::cout 
-          << " i=" << i 
-          << " xx[i]=" << xx[i]
-          << " n[i]=" << n
-          << " sm=" << sm
-          << " sp=" << sp
-          << std::endl;
-          */
+      return en;
+    };
 
-      ff[i] += n * (sm - 1. + sp);
+    // Apply shift from segment to circle
+    // e: segment ends
+    // x: curent point on segment
+    auto shsegcirc = [crv,segcirc](const std::array<Vect, 2>& e, Vect& x) {
+      if (segcirc != 0.) {
+        // outer normal
+        Vect n = e[1] - e[0];
+        n = Vect(n[1], -n[0], 0.);
+        n /= n.norm();
+        // center
+        Vect xc = (e[0] + e[1]) * 0.5;
+        // distance from center
+        Scal dc = xc.dist(x);
+        // max distance from center
+        Scal mdc = e[0].dist(xc);
+        // shift from line to circle
+        Scal s = SegCirc(crv, mdc, dc);  
+        s *= segcirc;
+        x += n * s;
+      }
+    };
+
+    if (ft == FT::center) { // attraction to nearest center
+      const Scal kNone = std::numeric_limits<Scal>::max();
+      std::vector<Vect> px(sx, Vect(kNone)); // nearest point to particle
+
+      // loop over interface lines
+      size_t b = 0;
+      for (size_t l = 0; l < sl; ++l) {
+        // loop over segments of line l
+        for (size_t k = 0; k < ls[l]; ++k) {
+          size_t kp = (k + 1 == ls[l] ? 0 : k + 1);
+          // segment enter
+					Vect xc = (lx[b + k] + lx[b + kp]) * 0.5;
+          size_t in = 0; // particle nearest to line k
+          for (size_t i = 1; i < sx; ++i) {
+            if (xx[i].sqrdist(xc) < xx[in].sqrdist(xc)) {
+              in = i;
+            }
+          }
+          // nearest line to particle
+          if (px[in][0] == kNone || 
+              xx[in].sqrdist(xc) < xx[in].sqrdist(px[in])) {
+            px[in] = xc;
+          }
+        }
+        b += ls[l];
+      }
+      // apply force
+      for (size_t i = 0; i < sx; ++i) {
+        if (px[i][0] != kNone) {
+          ff[i] += px[i] - xx[i];
+        }
+      }
+    } else if (ft == FT::line) { // attraction to nearest line
+      for (size_t i = 0; i < sx; ++i) {
+        const Vect& x = xx[i];
+        auto e = findnear(x);
+        Vect xn = R::GetNearest(x, e[0], e[1]);
+        shsegcirc(e, xn);
+        ff[i] += xn - x;
+      }
+    } else if (ft == FT::volume) { // atraction to fluid volume
+      for (size_t i = 0; i < sx; ++i) {
+        size_t ip = (i + 1 == sx ? sx - 1 : i + 1);
+        size_t im = (i == 0 ? 0 : i - 1);
+        Vect n = xx[ip] - xx[im];
+        n = Vect(-n[1], n[0], 0.);
+        n *= (sx - 1) * segcirc / (ip - im); // rescale to length of string
+        Scal sp = 0.; // length of intersection on side +n
+        Scal sm = 0.; // length of intersection on side -n
+
+        std::cout.precision(5);
+
+        // loop over interface lines
+        size_t j = 0;
+        for (size_t l = 0; l < sl; ++l) {
+          std::array<Scal, 2> aa;
+          if (R::GetInter(&(lx[j]), ls[l], xx[i], n, aa)) {
+            sp += std::abs(R::GetClip(aa[1]) - R::GetClip(aa[0]));
+            sm += std::abs(R::GetClip(-aa[0]) - R::GetClip(-aa[1]));
+          }
+          j += ls[l];
+        }
+
+        ff[i] += n * (sm - 1. + sp);
+      }
+    } else {
+      throw std::runtime_error("InterfaceForce: unknown ft");
     }
 
     (void)anglim;
     (void)crv;
-    (void)segcirc;
   }
   // Oriented angle from (x1-x0) to (x2-x1)
   static Scal GetAn(Vect x0, Vect x1, Vect x2) {
