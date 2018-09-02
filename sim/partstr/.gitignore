@@ -8,3 +8,7 @@ base.conf
 *.csv
 *.png
 vel
+tmax
+main.gen.gfs
+t.conf
+vel.conf

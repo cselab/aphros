@@ -2,4 +2,12 @@
 
 set -eu
 
-make cleanrun  > /dev/null
+echo "set vect vel `cat ../vel`" > vel.conf
+
+tmax=`cat ../tmax`
+dumpdt=`bc -l <<< "0.01 * $tmax"`
+echo "set double tmax $tmax
+set double dump_field_dt $dumpdt
+set double dump_part_dt $dumpdt" > t.conf
+
+make cleanrun 

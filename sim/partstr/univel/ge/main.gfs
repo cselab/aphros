@@ -1,18 +1,7 @@
-Define TMAX 1
-Define DUMPDT 0.01
-#Define TMAX 10
-#Define DUMPDT 0.1
-#Define TMAX 5
-#Define DUMPDT 0.05
-#Define TMAX 50
-#Define DUMPDT 0.5
-
 1 2 GfsSimulation GfsBox GfsGEdge {} {
   Global {
     Include ini_t_bub.h
   }
-
-  #Time { end = 1 dtmax = 2e-3 }
 
   Time { end = TMAX } 
 
@@ -24,13 +13,10 @@ Define DUMPDT 0.01
 
   VariableCurvature K T 
   SourceTension T 1 K
-  #SourceTension T 10 K
 
-  #SourceViscosity 0.001
   SourceViscosity 0.01
 
-  #Init {} { U = 0.4 V = 0.3 }
-  Init {} { U = 0. V = 0. }
+  Init {} { U = VELX V = VELY }
 
   OutputSimulation { step = DUMPDT } u_%04ld.vtk { variables = T,P,U,V,K format = VTK}
   OutputTime { istep = 10 } stderr

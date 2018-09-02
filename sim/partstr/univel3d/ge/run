@@ -2,7 +2,23 @@
 
 set -eu
 
-c=main.gfs
+c=main.gen.gfs
 ./clean
+
+echo > $c
+
+IFS=' ' read vx vy vz < ../vel
+echo -e "Define VELX $vx
+Define VELY $vy
+Define VELZ $vz" >> $c
+
+tmax=`cat ../tmax`
+dumpdt=`bc -l <<< "0.01 * $tmax"`
+echo -e "Define TMAX $tmax
+Define DUMPDT $dumpdt" >> $c
+
+cat main.gfs >> $c
+
 ge.run3d -m $c
+./rename
 ./convert
