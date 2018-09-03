@@ -9,7 +9,7 @@ mkdir -p $o
 
 : ${bc="0.31 0.29 0.26 "} # bubble center
 : ${vel="0.4 0.3 0.2 "} # velocity
-: ${ttmax="250"} # total time dimensionless
+: ${tosc="3"} # number of shape n=2 oscillations
 : ${la="7200"}  # laplace number
 : ${lexp="2 3 4 5 6"}  # list of exponents for radius: r=0.4 * 2 ** (-exp / 2)
 : ${mu=0.01}   # viscosity
@@ -25,14 +25,18 @@ echo "vel=$vel"
 echo "mu=$mu"
 echo "rho=$rho"
 echo "la=$la"
+echo "tosc=$tosc"
 
 for exp in $lexp ; do
-  echo 
   # bubble radius
   br=`bc -l <<< "0.4 * sqrt(2 ^ (-$exp))"`
 
   sig=`bc -l <<< "$la * $mu * $mu / (2. * $br * $rho)"` # surface tesnion
-  tmax=`bc -l <<< "$ttmax * $mu * 2. * $br / $sig"`
+
+  n=2
+  om=`bc -l <<< "sqrt(($n ^ 3 - $n) * $sig / (2. * $rho * ($br ^ 3)))"`
+  tmax=`bc -l <<< "$tosc * 3.1415926 * 2 / $om"`
+  #tmax=`bc -l <<< "$ttmax * $mu * 2. * $br / $sig"`
 
   # write config
   bry=`bc -l <<< "$br * $bryk"`
@@ -80,7 +84,7 @@ mv -v out $o/
 
 # rename folder
 IFS=' ' read velx vely velz <<< "$vel"
-dout=${o}_vel${velx}_t${ttmax}
+dout=${o}_vel${velx}_t${tosc}
 echo $dout
 rm -rf $dout
 mv -T $o $dout
