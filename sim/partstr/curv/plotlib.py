@@ -472,7 +472,7 @@ def GetMeshStep(s):
     return 1. / s[0]
 
 def GetDim(s):
-    if len(s) == 2 or s[2] == 1:
+    if len(s) == 2 or s[2] in [1, 2]:
         return 2
     return 3
 
@@ -550,11 +550,21 @@ def GetNorm(k):
     l2 = (k ** 2).mean() ** 0.5
     return m, l1, l2
 
+# bubble location
 def LoadBub():
     return np.loadtxt("b.dat")
 
+# initial velocity
 def LoadVel():
     return np.loadtxt("vel")
+
+# surface tension
+def LoadSig():
+    return np.loadtxt("sig")
+
+# viscosity
+def LoadMu():
+    return np.loadtxt("mu")
 
 # Returns mean curvature of surface z=h(x,y) at point (x,y,z)
 # h: function h(x,y)
@@ -735,15 +745,17 @@ def Univel3():
 
     cx,cy,cz,rx,ry,rz = LoadBub()
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+    sig = LoadSig()
+    mu = LoadMu()
 
     # exact velocity
     vele = LoadVel()
     # exact trajectories
     x,y,z = GetTrajE([cx, cy, cz], vele, 1.)
     # exact pressure jump
-    sig = 1.
     eex = sig / rx
-    # error in pressure jump
+    if dim == 3:
+        eex *= 2
     e = (x * 0 + eex) / eex
     # error in velocity
     vx = x * 0
@@ -783,18 +795,19 @@ def Univel3():
         # error in velocity
         vxm, vx1, vx2 = GetDiff(pp, "vx", vele[0])
         vym, vy1, vy2 = GetDiff(pp, "vy", vele[1])
+        q = mu / sig # scale
         if dim == 3:
             vzm, vz1, vz2 = GetDiff(pp, "vz", vele[2])
-            vvzm.append(vzm)
-            vvz2.append(vz2)
+            vvzm.append(vzm * q)
+            vvz2.append(vz2 * q)
         xx.append(x)
         yy.append(y)
         zz.append(z)
         ee.append(e)
-        vvxm.append(vxm)
-        vvym.append(vym)
-        vvx2.append(vx2)
-        vvy2.append(vy2)
+        vvxm.append(vxm * q)
+        vvym.append(vym * q)
+        vvx2.append(vx2 * q)
+        vvy2.append(vy2 * q)
 
     # reorder lines
     xx = xx[1:] + [xx[0]]

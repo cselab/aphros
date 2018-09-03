@@ -7,28 +7,48 @@ o=o
 rm -vf $o/*.pdf
 mkdir -p $o
 
-# bubble
-: ${bc="0.31 0.29 0.26 "}
-: ${vel="0.4 0.3 0.2 "}
-: ${tmax="1."}
-: ${lexp="2 3 4 5 6"}
+: ${bc="0.31 0.29 0.26 "} # bubble center
+: ${vel="0.4 0.3 0.2 "} # velocity
+: ${ttmax="250"} # total time dimensionless
+: ${la="7200"}  # laplace number
+: ${lexp="2 3 4 5 6"}  # list of exponents for radius: r=0.4 * 2 ** (-exp / 2)
+: ${mu=0.01}   # viscosity
+: ${rho=1}    # density
+: ${bryk=1}   # factor for bry
 
 # log
 l="out"
 echo > $l
 
-echo "vel=$vel"
-echo "tmax=$tmax"
 echo "lexp=$lexp"
+echo "vel=$vel"
+echo "mu=$mu"
+echo "rho=$rho"
+echo "la=$la"
 
 for exp in $lexp ; do
+  echo 
+  # bubble radius
   br=`bc -l <<< "0.4 * sqrt(2 ^ (-$exp))"`
-  echo "br=$br"
-  echo "$bc $br $br $br" > b.dat
-  p="r${br}_"
 
+  sig=`bc -l <<< "$la * $mu * $mu / (2. * $br * $rho)"` # surface tesnion
+  tmax=`bc -l <<< "$ttmax * $mu * 2. * $br / $sig"`
+
+  # write config
+  bry=`bc -l <<< "$br * $bryk"`
+  echo "$bc $br $bry $br" > b.dat
   echo "$vel" > vel
   echo "$tmax" > tmax
+  echo "$sig" > sig
+  echo "$mu" > mu
+
+  # print config
+  echo "$bc $br $bry $br" 
+  echo "br=$br"
+  echo "sig=$sig"
+  echo "tmax=$tmax"
+
+  p="r${br}_" # prefix for output
 
   # run ch
   d="ch"
@@ -50,6 +70,7 @@ for exp in $lexp ; do
   for f in `ls {traj,trajp,trajx,trajy,trajz,trajvxm,trajvym,trajvzm,trajvx2,trajvy2,trajvz2}.pdf` ; do
     mv -v $f $o/${p}${f}
   done
+
 done
 
 # tile all pdf
@@ -59,7 +80,7 @@ mv -v out $o/
 
 # rename folder
 IFS=' ' read velx vely velz <<< "$vel"
-dout=${o}_vel${velx}_t${tmax}
+dout=${o}_vel${velx}_t${ttmax}
 echo $dout
 rm -rf $dout
 mv -T $o $dout

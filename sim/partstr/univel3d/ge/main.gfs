@@ -14,7 +14,7 @@
   VariableCurvature K T 
   SourceTension T 1 K
 
-  SourceViscosity 0.001
+  SourceViscosity 0.01
 
   Init {} { U = VELX V = VELY W = VELZ }
 

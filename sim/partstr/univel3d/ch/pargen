@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -eu
+
+tmax=`cat ../tmax`
+dumpdt=`bc -l <<< "0.01 * $tmax"`
+sig=`cat ../sig`
+mu=`cat ../mu`
+vel="`cat ../vel`"
+c="par.conf"
+
+echo "set double tmax $tmax
+set double dump_field_dt $dumpdt
+set double dump_part_dt $dumpdt
+set double sigma $sig
+set double mu1 $mu
+set double mu2 $mu
+set vect vel $vel
+" > $c
+

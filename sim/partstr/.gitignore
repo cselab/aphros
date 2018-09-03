@@ -9,6 +9,7 @@ base.conf
 *.png
 vel
 tmax
+mu
+sig
 main.gen.gfs
-t.conf
-vel.conf
+par.conf

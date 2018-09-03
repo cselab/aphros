@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -eu
+
+c=main.gen.gfs
+
+echo > $c
+
+IFS=' ' read vx vy vz < ../vel
+echo -e "Define VELX $vx
+Define VELY $vy
+Define VELZ $vz" >> $c
+
+tmax=`cat ../tmax`
+dumpdt=`bc -l <<< "0.01 * $tmax"`
+echo -e "Define TMAX $tmax
+Define DUMPDT $dumpdt" >> $c
+
+sig=`cat ../sig`
+echo -e "Define SIGMA $sig" >> $c
+
+mu=`cat ../mu`
+echo -e "Define MU $mu" >> $c
+
+cat main.gfs >> $c
+
+echo $c

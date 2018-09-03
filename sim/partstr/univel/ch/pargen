@@ -1,0 +1,7 @@
+#!/bin/bash
+
+. ../../univel3d/ch/pargen
+
+IFS=" " read vx vy vz <<< "$vel"
+echo "set vect vel $vx $vy 0" >> $c
+
