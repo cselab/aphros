@@ -10,7 +10,7 @@ cnt() {
 }
 
 echo "crop"
-for f in r*{traj,vf_ch,trajp,trajx,trajy,trajz}.pdf ; do
+for f in `ls r*{traj,trajp,trajx,trajy,trajz,trajvxm,trajvym,trajvzm,trajvx2,trajvy2,trajvz2,vf_ch}.pdf` ; do
   echo $f
   pdfcrop --margins '5 10 5 10' $f cr_$f &> /dev/null
 done
@@ -25,8 +25,13 @@ pdfcrop --margins '5 5 5 5' $t traj.pdf &> /dev/null
 pdfnup cr_*{trajp,trajx,trajy,trajz}.pdf --nup ${n}x4 --fitpaper false --outfile $t
 pdfcrop --margins '5 5 5 5' $t trajcomp.pdf &> /dev/null
 
+pdfnup cr_*{trajvxm,trajvym,trajvzm}.pdf --nup ${n}x3 --fitpaper false --outfile $t
+pdfcrop --margins '5 5 5 5' $t trajvm.pdf &> /dev/null
+
+pdfnup cr_*{trajvx2,trajvy2,trajvz2}.pdf --nup ${n}x3 --fitpaper false --outfile $t
+pdfcrop --margins '5 5 5 5' $t trajv2.pdf &> /dev/null
 
 echo "merge"
-pdfunite traj.pdf trajcomp.pdf merge.pdf
+pdfunite {traj,trajcomp,trajvm,trajv2}.pdf merge.pdf
 
 rm $t cr_*.pdf
