@@ -1,6 +1,9 @@
 #!/bin/bash
 
 for nxexp in 5; do
+  lexp="2 4 6"
+  lexp="6"
   echo NXEXP=$nxexp
-  bryk=1.2 vel="0 0 0" lexp="2 4 6" tosc="2" bc="0.56 0.54 0.51" nxexp=$nxexp ./vary_r
+  #bryk=1.2 vel="0 0 0" lexp="$lexp" tosc="2" bc="0.56 0.54 0.51" nxexp=$nxexp ./vary_r
+  bryk=1.2 lexp="$lexp" tosc="2" nxexp=$nxexp ./vary_r
 done

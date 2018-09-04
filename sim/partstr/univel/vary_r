@@ -8,7 +8,7 @@ rm -f $o/*.pdf
 mkdir -p $o
 
 : ${bc="0.31 0.29 0.26 "} # bubble center
-: ${vel="0.4 0.3 0.2 "} # velocity
+: ${vel="0.4 0.3 0.2 "} # velocity relative to 1/tmax
 : ${tosc="3"} # number of shape n=2 oscillations
 : ${la="7200"}  # laplace number
 : ${lexp="0 1 2 3 4"}  # list of exponents for radius: r/h = 2 ** (exp/2)
@@ -50,7 +50,12 @@ for exp in $lexp ; do
   # write config
   bry=`bc -l <<< "$br * $bryk"`
   echo "$bc $br $bry $br" > b.dat
-  echo "$vel" > vel
+
+  IFS=" " read vx vy vz <<< "$vel"
+  vx=`bc -l <<< "$vx / $tmax"`
+  vy=`bc -l <<< "$vy / $tmax"`
+  vz=`bc -l <<< "$vz / $tmax"`
+  echo "$vx $vy $vz" > vel
   echo "$tmax" > tmax
   echo "$sig" > sig
   echo "$mu" > mu

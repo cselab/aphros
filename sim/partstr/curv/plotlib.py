@@ -566,6 +566,10 @@ def LoadSig():
 def LoadMu():
     return np.loadtxt("mu")
 
+# viscosity
+def LoadTmax():
+    return np.loadtxt("tmax")
+
 # Returns mean curvature of surface z=h(x,y) at point (x,y,z)
 # h: function h(x,y)
 # x,y: coordinates
@@ -751,7 +755,8 @@ def Univel3():
     # exact velocity
     vele = LoadVel()
     # exact trajectories
-    x,y,z = GetTrajE([cx, cy, cz], vele, 1.)
+    tmax = LoadTmax()
+    x,y,z = GetTrajE([cx, cy, cz], vele, tmax)
     # exact pressure jump
     eex = sig / rx
     if dim == 3:
@@ -835,11 +840,11 @@ def Univel3():
     # Plot x,y
     gp = 0.05 # gap
     PlotTrajFld(tt, xx, ll, "t", "x", "trajx.pdf", ystep=0.1,
-                vmin=cx - gp, vmax=cx + vele[0] + gp)
+                vmin=cx - gp, vmax=cx + vele[0] * tmax + gp)
     PlotTrajFld(tt, yy, ll, "t", "y", "trajy.pdf", ystep=0.1,
-                vmin=cy - gp, vmax=cy + vele[1] + gp)
+                vmin=cy - gp, vmax=cy + vele[1] * tmax + gp)
     PlotTrajFld(tt, zz, ll, "t", "z", "trajz.pdf", ystep=0.1,
-                vmin=cz - gp, vmax=cz + vele[2] + gp)
+                vmin=cz - gp, vmax=cz + vele[2] * tmax + gp)
     # Plot error in velocity
     vmin = 1e-6
     vmax = 1e1
