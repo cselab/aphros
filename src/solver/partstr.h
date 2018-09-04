@@ -411,8 +411,6 @@ class PartStr {
         Scal sp = 0.; // length of intersection on side +n
         Scal sm = 0.; // length of intersection on side -n
 
-        std::cout.precision(5);
-
         // loop over interface lines
         size_t j = 0;
         for (size_t l = 0; l < sl; ++l) {

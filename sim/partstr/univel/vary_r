@@ -4,7 +4,7 @@ set -ue
 
 # output folder
 o=o
-rm -vf $o/*.pdf
+rm -f $o/*.pdf
 mkdir -p $o
 
 : ${bc="0.31 0.29 0.26 "} # bubble center
@@ -27,14 +27,17 @@ echo "mu=$mu"
 echo "rho=$rho"
 echo "la=$la"
 echo "tosc=$tosc"
+echo "nxexp=$nxexp"
 
 for exp in $lexp ; do
   # mesh size
   nx=`bc -l <<< "2 ^ $nxexp"`
   # mesh step
   hx=`bc -l <<< "1. / $nx"`
+  # bubble radius / hx
+  brh=`bc -l <<< "sqrt(2 ^ $exp)"`
   # bubble radius
-  br=`bc -l <<< "$hx * sqrt(2 ^ $exp)"`
+  br=`bc -l <<< "$hx * $brh"`
 
   # surface tesnion
   sig=`bc -l <<< "$la * $mu * $mu / (2. * $br * $rho)"` 
@@ -54,13 +57,9 @@ for exp in $lexp ; do
   echo "$nxexp" > nxexp
 
   # print config
-  echo "$bc $br $bry $br" 
-  echo "br=$br"
-  echo "sig=$sig"
-  echo "tmax=$tmax"
-  echo "nxexp=$nxexp"
+  echo "br/h=$brh"
 
-  p="r${br}_" # prefix for output
+  p="r${exp}_" # prefix for output
 
   # run ch
   d="ch"
@@ -79,16 +78,17 @@ for exp in $lexp ; do
   mv -f $d/vf_0000.pdf $o/${p}vf_$d.pdf
   d="ge"
   mv -f $d/vf_0000.pdf $o/${p}vf_$d.pdf
-  for f in `ls {traj,trajp,trajx,trajy,trajz,trajvxm,trajvym,trajvzm,trajvx2,trajvy2,trajvz2}.pdf` ; do
-    mv -v $f $o/${p}${f}
+  ff="$(ls traj*.pdf 2> /dev/null)"
+  for f in $ff ; do
+    mv $f $o/${p}${f}
   done
-
 done
 
 # tile all pdf
-(cd $o ; ../tile)
+echo "tile"
+(cd $o ; ../tile &> /dev/null)
 
-mv -v out $o/
+mv out $o/
 
 # rename folder
 IFS=' ' read velx vely velz <<< "$vel"

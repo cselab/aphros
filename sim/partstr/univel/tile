@@ -11,8 +11,7 @@ cnt() {
 
 echo "crop"
 for f in `ls r*{traj,trajp,trajx,trajy,trajvxm,trajvym,trajvx2,trajvy2,vf_ch}.pdf` ; do
-  echo $f
-  pdfcrop --margins '5 10 5 10' $f cr_$f &> /dev/null
+  pdfcrop --margins '5 10 5 10' $f cr_$f 
 done
 
 t=t.pdf
@@ -20,13 +19,13 @@ n=`cnt "cr_*traj.pdf"`
 
 echo "tile"
 pdfnup cr_*{traj,vf_ch}.pdf --nup ${n}x2 --fitpaper false --outfile $t
-pdfcrop --margins '5 5 5 5' $t traj.pdf &> /dev/null
+pdfcrop --margins '5 5 5 5' $t traj.pdf 
 
-pdfnup cr_*{trajp,trajx,trajy}.pdf --nup ${n}x3 --fitpaper false --outfile $t
-pdfcrop --margins '5 5 5 5' $t trajcomp.pdf &> /dev/null
+pdfnup cr_*{trajp,trajx,trajy}.pdf --nup ${n}x3 --fitpaper false --outfile $t 
+pdfcrop --margins '5 5 5 5' $t trajcomp.pdf 
 
-pdfnup cr_*{trajvxm,trajvym,trajvx2,trajvy2}.pdf --nup ${n}x4 --fitpaper false --outfile $t
-pdfcrop --margins '5 5 5 5' $t trajv.pdf &> /dev/null
+pdfnup cr_*{trajvxm,trajvym,trajvx2,trajvy2}.pdf --nup ${n}x4 --fitpaper false --outfile $t 
+pdfcrop --margins '5 5 5 5' $t trajv.pdf 
 
 echo "merge"
 pdfunite {traj,trajcomp,trajv}.pdf merge.pdf

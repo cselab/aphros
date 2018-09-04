@@ -1,12 +1,12 @@
 #!/bin/bash -l
 
-rm -vf *_.dat
-rm -vf *.pdf
-rm -vf *.vtk
-rm -vf *.vts
-rm -vf *.{h5,xmf}
-rm -vf *.csv
-rm -vrf o
-rm -vf out
-rm -vf *.dat
-rm -vf base.conf
+rm -f *_.dat
+rm -f *.pdf
+rm -f *.vtk
+rm -f *.vts
+rm -f *.{h5,xmf}
+rm -f *.csv
+rm -rf o
+rm -f out
+rm -f *.dat
+rm -f base.conf

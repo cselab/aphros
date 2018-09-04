@@ -1,4 +1,4 @@
 set -eu
 
-rm -vf *.dat *.vtk *.pdf
+rm -f *.dat *.vtk *.pdf
 
