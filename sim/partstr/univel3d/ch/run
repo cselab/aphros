@@ -4,4 +4,7 @@ set -eu
 
 ./pargen
 
-make cleanrun 
+nxexp=`cat ../nxexp`
+nx=`bc -l <<< "2 ^ $nxexp"`
+
+make m="$nx $nx $nx" cleanrun 

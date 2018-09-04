@@ -5,7 +5,7 @@
 
   Time { end = TMAX } 
 
-  Refine 4
+  Refine REFINE
 
   VariableTracerVOF T
 

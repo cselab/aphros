@@ -1,1 +1,10 @@
-../../univel3d/ch/run
+#!/bin/bash
+
+set -eu
+
+./pargen
+
+nxexp=`cat ../nxexp`
+nx=`bc -l <<< "2 ^ $nxexp"`
+
+make m="$nx $nx 1" cleanrun 
