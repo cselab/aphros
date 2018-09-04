@@ -7,7 +7,7 @@ o=o
 rm -f $o/*.pdf
 mkdir -p $o
 
-: ${bc="0.31 0.29 0.26 "} # bubble center
+: ${bc="0.29 0.31 0.26 "} # bubble center
 : ${vel="0.4 0.3 0.2 "} # velocity relative to 1/tmax
 : ${tosc="3"} # number of shape n=2 oscillations
 : ${la="7200"}  # laplace number

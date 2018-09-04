@@ -26,14 +26,12 @@ def Write(u, p):
 
 
 pp = sorted(glob.glob("*.vtk"))
-print(pp)
 for p in pp:
     b = os.path.splitext(p)[0]
     po = b + ".dat"
     bs = po[1:] # basename
     d = vtk.read_vtk(p)
     x,y,[u,e,vx,vy] = vtk.interp_to_uniform(d['x'], d['y'], [d['T'], d['P'], d['U'], d['V']])
-    print(po)
     Write(u, "vf" + bs)
     Write(e, "p" + bs)
     Write(vx, "vx" + bs)

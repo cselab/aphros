@@ -10,7 +10,7 @@ import re
 import sys
 from matplotlib.colors import LinearSegmentedColormap
 
-kThin = True
+kThin = False
 
 # natural sort
 def natkey(s, _nsre=re.compile('([0-9]+)')):
@@ -36,6 +36,7 @@ def Log(s, noeol=False):
 # suf: output name suffix
 def FigVf(pt):
     vf = ReadField(pt, 'vf')
+    dim = GetDim(vf.shape)
     # center of mass
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
     x,y,z = GetMesh(x1, y1, z1)
@@ -60,7 +61,7 @@ def FigVf(pt):
     PlotFieldGray(ax, vf, vmin=0., vmax=1.)
     # partilces
     pa = GetFieldPath(pt, "partit")
-    if os.path.isfile(pa) and GetDim(vf.shape) == 2:
+    if os.path.isfile(pa) and dim == 2:
         Log(pa)
         PlotPart(ax, pa, sk=4)
     # save

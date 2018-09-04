@@ -12,7 +12,9 @@ Define VELY $vy
 Define VELZ $vz" >> $c
 
 tmax=`cat ../tmax`
-dumpdt=`bc -l <<< "0.01 * $tmax"`
+# number of frames from ch
+nfr=`ls ../ch/vf_*.dat | wc -l`
+dumpdt=`bc -l <<< "$tmax / ($nfr - 1)"`
 echo -e "Define TMAX $tmax
 Define DUMPDT $dumpdt" >> $c
 
