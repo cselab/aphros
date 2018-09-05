@@ -13,3 +13,4 @@ echo $np > np
 
 echo "split to $ns parts, partition for $np PEs"
 
+

@@ -4,12 +4,16 @@ set -eu
 
 ./clean
 c="`./maingen`"
-echo > out
+spl=".main.gfs"
 
 npexp="`cat ../npexp`"
-./split "$c" "$npexp" |& tee -a out
+np=`bc <<< "2^($npexp)"`
 
-#ge.run3d -m "$c" |& tee -a out
+echo > out
+
+./split "$c" "$npexp" |& tee -a out
+ge.run3d -n $np -m "$spl" |& tee -a out
+
 echo "rename"
 ./rename
 echo "convert"

@@ -14,6 +14,10 @@ Define VELZ $vz" >> $c
 tmax=`cat ../tmax`
 # number of frames from ch
 nfr=`ls ../ch/vf_*.dat | wc -l`
+if [ "$nfr" -le "1" ] ; then
+  echo "Error: Need at least 2 frames in ../ch, found $nfr" 1>&2
+  exit 1
+fi
 dumpdt=`bc -l <<< "$tmax / ($nfr - 1)"`
 echo -e "Define TMAX $tmax
 Define DUMPDT $dumpdt" >> $c

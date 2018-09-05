@@ -1,6 +1,12 @@
 #!/bin/bash
 
-set -ue
+# Splits domain for given config file.
+# $1: config file (e.g. main.gfs)
+# $2: exponent for number of processors np=2 ^ $2
+# Output:
+# .main.gfs: config file for split domain
+
+set -eu
 
 orig="$1"
 npexp="$2"
@@ -12,6 +18,10 @@ s=1
 p=$npexp
 # number of split domains
 ns=`bc <<< "2^($dim * $s)"`
+# number of processors
+np=`bc <<< "2^($p)"`
+
+echo "split to $ns parts, partition for $np PEs" >&2
 
 mkdir -p `eval echo "o/{0..$(expr $ns - 1)}"`
 mkdir -p o/-1
@@ -29,4 +39,3 @@ else
   ge.run3d -p $p -m $t > $spl
 fi
 rm -vf $t
-

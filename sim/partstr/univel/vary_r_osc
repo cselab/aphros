@@ -2,11 +2,11 @@
 
 for nxexp in 5; do
   echo NXEXP=$nxexp
-  export lexp="0 1 2 3 4"
-  #export lexp="4"
+  #export lexp="0 1 2 3 4"
+  export lexp="4"
   export la=1000
   export bryk="1.2"
-  export tosc="2"
+  export tosc="0.1"
   export nxexp
   export npexp="1"
 
