@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -ue
+
+orig="$1"
+npexp="$2"
+spl=".main.gfs"
+dim=3
+# split s times in each direction
+s=1
+# partition to 2^p domains
+p=$npexp
+# number of split domains
+ns=`bc <<< "2^($dim * $s)"`
+
+mkdir -p `eval echo "o/{0..$(expr $ns - 1)}"`
+mkdir -p o/-1
+
+t=".smain.gfs"
+if test $s -eq 0; then
+  cp -vf $orig $t
+else
+  ge.run3d -s $s -m $orig > $t
+fi
+
+if test $p -eq 0; then
+  cp -vf $t $spl
+else
+  ge.run3d -p $p -m $t > $spl
+fi
+rm -vf $t
+

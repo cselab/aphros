@@ -15,6 +15,7 @@ mkdir -p $o
 : ${rho=1}    # density
 : ${bryk=1}   # factor for bry
 : ${nxexp=4}    # exponent for mesh size, nx = 2 ** nxexp
+: ${npexp=1}    # exponent for number of processors
 
 # log
 l="out"
@@ -59,6 +60,7 @@ for exp in $lexp ; do
   echo "$sig" > sig
   echo "$mu" > mu
   echo "$nxexp" > nxexp
+  echo "$npexp" > npexp
 
   # print config
   echo "br/h=$brh"

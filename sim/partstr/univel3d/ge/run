@@ -4,7 +4,12 @@ set -eu
 
 ./clean
 c="`./maingen`"
-ge.run3d -m "$c" |& tee out
+echo > out
+
+npexp="`cat ../npexp`"
+./split "$c" "$npexp" |& tee -a out
+
+#ge.run3d -m "$c" |& tee -a out
 echo "rename"
 ./rename
 echo "convert"

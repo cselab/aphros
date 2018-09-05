@@ -1,0 +1,177 @@
+# Gerris Flow Solver 3D version 1.3.2 (131206-155120)
+8 24 GfsSimulation GfsBox GfsGEdge { rootlevel = 1 x = -0.25 y = -0.25 z = -0.25 version = 131206 } {
+  GfsGlobal {
+#define MAXBUB 10000
+#define FBUB "../b.dat"
+
+// file format:
+// one line per bubble:
+// x y z r
+
+typedef struct {
+  double x, y, z, r, ry, rz;
+} Bub;
+
+// zeroz: if true, set z=0 for all bubbles
+static void read(char* fn, Bub* l, int* n, int zeroz) {
+  FILE* b = fopen(fn, "r");
+  if (b == NULL) {
+    fprintf(stderr, "ini_t_bub.h: can't open %s\n", fn);
+    abort();
+  }
+  int i = 0;
+  double x, y, z, r, ry, rz;
+  while (fscanf(b, "%lf %lf %lf %lf %lf %lf\n", &x, &y, &z, &r, &ry, &rz) > 0) {
+    l[i].x = x;
+    l[i].y = y;
+    l[i].z = (zeroz ? 0. : z);
+    l[i].r = r;
+    l[i].ry = ry;
+    l[i].rz = rz;
+    ++i;
+  }
+  *n = i;
+  g_assert(*n <= MAXBUB);
+
+  fclose(b);
+
+  fprintf(stderr, "Read %d bubbles\n", *n);
+}
+
+// distance to bubble interface
+static double dist(Bub* b, double x, double y, double z) {
+  double dx = b->x - x;
+  double dy = b->y - y;
+  double dz = b->z - z;
+  dx /= b->r;
+  dy /= b->ry;
+  dz /= b->rz;
+  double d = sqrt(dx * dx + dy * dy + dz * dz);
+  d -= 1.;
+  return d;
+}
+
+// smallest distance to bubble surface
+// (negative if inside)
+static double mindist(Bub* l, int n, double x, double y, double z) {
+  double m = dist(&l[0], x, y, z);
+  int i;
+  for (i = 1; i < n; ++i) {
+    double d = dist(&l[i], x, y, z);
+    if (d < m) {
+      m = d;
+    }
+  }
+  return m;
+}
+
+
+Bub l[MAXBUB];
+int n = -1;
+
+static double ini_t(double x, double y, double z) {
+  if (n == -1) {
+    read(FBUB, l, &n, 0);
+  }
+  return -mindist(l, n, x, y, z);
+}
+
+static double ini_t2(double x, double y) {
+  if (n == -1) {
+    read(FBUB, l, &n, 1);
+  }
+  return -mindist(l, n, x, y, 0);
+}
+
+
+  }
+  GfsTime { i = 0 t = 0 end = 0.0316858 }
+  GfsRefine 5
+  GfsVariableTracerVOF { istep = 1073741823 } T {
+  cfl      = 0.5
+  gradient = gfs_center_van_leer_gradient
+  flux     = gfs_face_advection_flux
+  average  = 0
+  scheme   = godunov
+}
+  GfsInitFraction { } T ( ini_t(x+0.5, y+0.5, z+0.5) ) {}
+  GfsVariableCurvature { istep = 1 } K T
+  GfsSourceTension { istep = 1 } T 1.60000000000000000000 K
+  GfsSourceViscosity { istep = 1 } 0.01 {
+  tolerance = 1e-06
+  nrelax    = 4
+  erelax    = 1
+  minlevel  = 0
+  nitermax  = 100
+  nitermin  = 1
+  weighted  = 0
+  beta      = 1
+}
+  GfsInit { } {
+  U = 12.62396322972111307752
+  V = 9.46797242229083480814
+  W = 6.31198161486055653876
+}
+  GfsOutputSimulation { step = 0.00176032 } u_%04ld.vtk { variables = T,P,U,V,W,K format = VTK }
+  GfsOutputTime { istep = 10 } stderr
+  GfsPhysicalParams { g = 1 L = 1 }
+  GfsAdvectionParams {
+  cfl      = 0.8
+  gradient = gfs_center_gradient
+  flux     = gfs_face_velocity_advection_flux
+  average  = 1
+  scheme   = godunov
+}
+  GfsApproxProjectionParams {
+  tolerance = 0.001
+  nrelax    = 4
+  erelax    = 1
+  minlevel  = 0
+  nitermax  = 100
+  nitermin  = 1
+  weighted  = 0
+  beta      = 1
+}
+  GfsProjectionParams {
+  tolerance = 0.001
+  nrelax    = 4
+  erelax    = 1
+  minlevel  = 0
+  nitermax  = 100
+  nitermin  = 1
+  weighted  = 0
+  beta      = 1
+}
+}
+GfsBox { id = 1 pid = 1 size = 1 x = -0.25 y = -0.25 z = -0.25 left = GfsBoundaryPeriodic bottom = GfsBoundaryPeriodic back = GfsBoundaryPeriodic }
+GfsBox { id = 2 pid = 1 size = 1 x = -0.25 y = 0.25 z = 0.25 left = GfsBoundaryPeriodic top = GfsBoundaryPeriodic front = GfsBoundaryPeriodic }
+GfsBox { id = 3 pid = 0 size = 1 x = 0.25 y = 0.25 z = 0.25 right = GfsBoundaryPeriodic top = GfsBoundaryPeriodic front = GfsBoundaryPeriodic }
+GfsBox { id = 4 pid = 1 size = 1 x = -0.25 y = -0.25 z = 0.25 left = GfsBoundaryPeriodic bottom = GfsBoundaryPeriodic front = GfsBoundaryPeriodic }
+GfsBox { id = 5 pid = 0 size = 1 x = 0.25 y = -0.25 z = 0.25 right = GfsBoundaryPeriodic bottom = GfsBoundaryPeriodic front = GfsBoundaryPeriodic }
+GfsBox { id = 6 pid = 1 size = 1 x = -0.25 y = 0.25 z = -0.25 left = GfsBoundaryPeriodic top = GfsBoundaryPeriodic back = GfsBoundaryPeriodic }
+GfsBox { id = 7 pid = 0 size = 1 x = 0.25 y = 0.25 z = -0.25 right = GfsBoundaryPeriodic top = GfsBoundaryPeriodic back = GfsBoundaryPeriodic }
+GfsBox { id = 8 pid = 0 size = 1 x = 0.25 y = -0.25 z = -0.25 right = GfsBoundaryPeriodic bottom = GfsBoundaryPeriodic back = GfsBoundaryPeriodic }
+4 1 front
+4 1 back
+6 1 top
+6 1 bottom
+1 8 right
+8 1 right
+2 3 right
+2 4 top
+2 4 bottom
+2 6 front
+2 6 back
+3 2 right
+3 5 top
+3 5 bottom
+3 7 front
+3 7 back
+4 5 right
+5 4 right
+5 8 front
+5 8 back
+6 7 right
+7 6 right
+7 8 top
+7 8 bottom

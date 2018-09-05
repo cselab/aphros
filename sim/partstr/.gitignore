@@ -14,3 +14,5 @@ sig
 main.gen.gfs
 par.conf
 nxexp
+npexp
+.main.gfs
