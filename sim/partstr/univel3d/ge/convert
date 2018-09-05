@@ -50,9 +50,18 @@ def ConvertNative(p, ff):
     for i,k in enumerate(ff):
         Write(uu[i], GetDatPath(p, ff[k]))
 
+# Converts vtk to plain format with external tool mfer.vtk2dat
+# p: path to vtk,.
+# ff: output of GetFields()
+def ConvertExt(p, ff):
+    for k in ff:
+        c = "mfer.vtk2dat {:} {:} {:}".format(p, k, GetDatPath(p, ff[k]))
+        os.system(c)
+
 pp = sorted(glob.glob("*.vtk"))
 ff = GetFields()
 
 for p in pp:
-    ConvertNative(p, ff)
+    #ConvertNative(p, ff)
+    ConvertExt(p, ff)
 

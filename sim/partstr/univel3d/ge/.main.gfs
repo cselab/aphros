@@ -112,7 +112,7 @@ static double ini_t2(double x, double y) {
   V = 11.83496552786354351018
   W = 7.88997701857569567345
 }
-  GfsOutputSimulation { step = 0.00844954 } o/%d/u_%04ld.vtk { variables = T,P,U,V,W,K format = VTK }
+  GfsOutputSimulation { step = 0.00844954 } o/%d/u_%04ld.vtk { variables = T,P,U,V,W format = VTK }
   GfsOutputTime { istep = 10 } stderr
   GfsPhysicalParams { g = 1 L = 1 }
   GfsAdvectionParams {

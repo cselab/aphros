@@ -23,7 +23,7 @@ np=`bc <<< "2^($p)"`
 
 echo "split to $ns parts, partition for $np PEs" >&2
 
-mkdir -p `eval echo "o/{0..$(expr $ns - 1)}"`
+mkdir -p `eval echo "o/{0..$(expr $np - 1)}"`
 mkdir -p o/-1
 
 t=".smain.gfs"

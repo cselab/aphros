@@ -14,6 +14,8 @@ echo > out
 ./split "$c" "$npexp" |& tee -a out
 ge.run3d -n $np -m "$spl" |& tee -a out
 
+echo "merge"
+./merge
 echo "rename"
 ./rename
 echo "convert"

@@ -1,0 +1,16 @@
+#!/bin/bash -l
+
+set -ue
+
+# dir
+export OMP_NUM_THREADS=64
+i=o
+o=.
+mkdir -p $o
+
+for p in $i/0/*.vtk ; do
+  f=`basename "$p"` 
+  echo $f
+  c="mfer.cmerge $i/*/$f $o/$f"
+  eval "$c" &>> out
+done
