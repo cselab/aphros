@@ -12,14 +12,21 @@ orig="$1"
 npexp="$2"
 spl=".main.gfs"
 dim=3
-# split s times in each direction
-s=1
-# partition to 2^p domains
+
 p=$npexp
-# number of split domains
-ns=`bc <<< "2^($dim * $s)"`
 # number of processors
 np=`bc <<< "2^($p)"`
+
+# split s times in each direction
+s=1
+while true ;  do
+  # number of split domains
+  ns=`bc <<< "2^($dim * $s)"`
+  if [ "$ns" -ge "$np" ] ; then
+    break
+  fi
+  s=$(($s + 1))
+done
 
 echo "split to $ns parts, partition for $np PEs" >&2
 
