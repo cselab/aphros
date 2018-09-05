@@ -83,7 +83,7 @@ for exp in $lexp ; do
   mv -f $d/vf_0000.pdf $o/${p}vf_$d.pdf
   d="ge"
   mv -f $d/vf_0000.pdf $o/${p}vf_$d.pdf
-  ff="$(ls traj*.pdf 2> /dev/null)"
+  ff="$(ls traj*.pdf traj*.dat 2> /dev/null)"
   for f in $ff ; do
     mv $f $o/${p}${f}
   done

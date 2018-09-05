@@ -3,10 +3,10 @@
 for nxexp in 4; do
   echo NXEXP=$nxexp
   export lexp="0 1 2 3 4"
-  export lexp="4"
+  #export lexp="4"
   export la=1000
   export bryk="1.2"
-  export tosc="1"
+  export tosc="2"
   export nxexp
 
   #export vel="0 0 0"

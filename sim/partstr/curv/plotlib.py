@@ -178,6 +178,28 @@ def GetDiff(pp, fld, ue):
     u2 = np.array(u2)
     return umax, u1, u2
 
+# Writes line as x,y columns.
+# x,y: 1d arrays
+# po: output path
+def WriteLine0(x, y, po):
+    np.savetxt(po, np.array((x,y)).T)
+
+# Output path for single line.
+# l: line label
+# po: output path [base].[ext]
+# Returns:
+# [base]_[l].dat
+def GetLinePath(l, po):
+    b = os.path.splitext(po)[0]
+    return "{:}_{:}.dat".format(b, l)
+
+# Writes line as x,y columns.
+# x,y: 1d arrays
+# l: line label
+# po: output path [base].[ext]
+def WriteLine(x, y, l, po):
+    WriteLine0(x, y, GetLinePath(l, po))
+
 
 # Plots trajectories
 # xx,yy: list of arrays for axes
@@ -192,6 +214,7 @@ def PlotTrajFld(xx, yy, ll, lx, ly, po, vmin=None, vmax=None, ystep=None,
     if vmax is None: vmax = yy[0].max()
     i = 0
     for x,y,l in zip(xx, yy, ll):
+        WriteLine(x, y, l, po)
         if i == len(xx) - 1: # separate for last
             ax.plot(x, y, label=l, c="0.5", ls='--')
         else:
@@ -212,12 +235,14 @@ def PlotTrajFld(xx, yy, ll, lx, ly, po, vmin=None, vmax=None, ystep=None,
 # xx,yy: list of arrays
 # ll: labels
 # s: shape of of data array
-def PlotTraj(xx, yy, ll, s):
+# po: output path
+def PlotTraj(xx, yy, ll, s, po):
     fig, ax = PlotInitSq()
     ax.set_aspect('equal')
     i = 0
     for x,y,l in zip(xx, yy, ll):
-        if i == len(xx) - 1: # separate for last
+        WriteLine(x, y, l, po)
+        if i == len(xx) - 1: # different style for last (exact)
             ax.plot(x, y, label=l, c="0.5", ls='--')
         else:
             ax.plot(x, y, label=l)
@@ -232,7 +257,6 @@ def PlotTraj(xx, yy, ll, s):
     q,q,q,rx,ry,rz = LoadBub()
     x1,y1,z1,hx,hy,hz = GetGeom(s)
     plt.title("r/h={:0.3f}".format(rx / hx))
-    po = 'traj.pdf'
     PlotSave(fig, ax, po)
 
 # Read uniform grid data
@@ -842,7 +866,7 @@ def Univel3():
         tt.append(np.linspace(0., 1., len(x)))
 
     # Plot trajectories
-    PlotTraj(xx, yy, ll, vf.shape)
+    PlotTraj(xx, yy, ll, vf.shape, "traj.pdf")
     # Plot pressure jump
     PlotTrajFld(tt, ee, ll, "t", "p", "trajp.pdf", vmin=0., vmax=2.)
     # Plot x,y
