@@ -14,6 +14,12 @@ echo > out
 ./split "$c" "$npexp" |& tee -a out
 ge.run3d -n $np -m "$spl" |& tee -a out
 
+# move output in case np=1
+for f in `ls o/-1/*` ; do
+  mv $f o/0/
+done
+
+
 echo "merge"
 ./merge
 echo "rename"

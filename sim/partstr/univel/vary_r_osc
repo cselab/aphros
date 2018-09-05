@@ -8,7 +8,7 @@ for nxexp in 5; do
   export bryk="1.2"
   export tosc="0.1"
   export nxexp
-  export npexp="1"
+  export npexp="0"
 
   #export vel="0 0 0"
   #export bc="0.56 0.54 0.51"
