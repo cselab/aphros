@@ -758,10 +758,17 @@ def Univel3():
     # exact trajectories
     tmax = LoadTmax()
     x,y,z = GetTrajE([cx, cy, cz], vele, tmax)
-    # exact pressure jump
-    eex = sig / rx
+    # exact average curvature
     if dim == 3:
-        eex *= 2
+        vol = 4. / 3. * np.pi * rx * ry * rz
+        req = (vol * 3. / (4. * np.pi)) ** (1. / 3.)
+        kavg = 2. / req
+    else:
+        vol = np.pi * rx * ry
+        req = (vol / np.pi) ** 0.5
+        kavg = 1. / req
+    # exact pressure jump
+    eex = sig * kavg
     e = (x * 0 + eex) / eex
     # error in velocity
     vx = x * 0

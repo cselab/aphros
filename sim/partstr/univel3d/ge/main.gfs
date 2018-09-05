@@ -12,9 +12,9 @@
   InitFraction T (ini_t(x+0.5, y+0.5, z+0.5))
 
   VariableCurvature K T 
-  SourceTension T 1 K
+  SourceTension T SIGMA K
 
-  SourceViscosity 0.01
+  SourceViscosity MU
 
   Init {} { U = VELX V = VELY W = VELZ }
 

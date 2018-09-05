@@ -1,5 +1,1 @@
-#!/bin/bash
-
-set -ue
-
-. ../univel/vary_r
+../univel/vary_r

@@ -4,6 +4,8 @@ set -eu
 
 ./clean
 c="`./maingen`"
-ge.run3d -m "$c"
+ge.run3d -m "$c" |& tee out
+echo "rename"
 ./rename
+echo "convert"
 ./convert
