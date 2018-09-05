@@ -27,7 +27,7 @@ def Glob(d, fld):
 # s: string
 def Log(s, noeol=False):
     if not noeol:
-        s += s + "\n"
+        s += "\n"
     sys.stdout.write(s)
     sys.stdout.flush()
 
@@ -45,7 +45,6 @@ def FigVf(pt):
     cy = np.sum(y[ii] * vf[ii]) / np.sum(vf[ii])
     cz = np.sum(z[ii] * vf[ii]) / np.sum(vf[ii])
     iz = np.argmin(abs(cz - z))
-    print("FigVf: c={:}, ciz={:}".format((cx, cy, cz), iz))
 
     # slice through center of mass
     if vf is not None: vf = vf[:,:,iz:iz+1]
