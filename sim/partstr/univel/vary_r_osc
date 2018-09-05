@@ -1,14 +1,16 @@
 #!/bin/bash
 
+set -eu
+
 for nxexp in 5; do
   echo NXEXP=$nxexp
   #export lexp="0 1 2 3 4"
   export lexp="4"
   export la=1000
   export bryk="1.2"
-  export tosc="0.1"
+  export tosc="0.01"
   export nxexp
-  export npexp="0"
+  export npexp="3"
 
   #export vel="0 0 0"
   #export bc="0.56 0.54 0.51"
