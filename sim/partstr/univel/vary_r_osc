@@ -2,13 +2,13 @@
 
 set -eu
 
-for nxexp in 6; do
+for nxexp in 5; do
   echo NXEXP=$nxexp
-  #export lexp="0 1 2 3 4"
-  export lexp="4"
+  #export lexp="0 2 4 6"
+  export lexp="2"
   export la=1000
   export bryk="1.2"
-  export tosc="2"
+  export we="10"
   export nxexp
   export npexp="6"
 

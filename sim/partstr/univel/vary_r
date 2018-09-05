@@ -8,14 +8,17 @@ rm -f $o/*.pdf
 mkdir -p $o 
 : ${bc="0.29 0.31 0.26 "} # bubble center
 : ${vel="0.4 0.3 0.2 "} # velocity relative to 1/tmax
-: ${tosc="3"} # number of shape n=2 oscillations
-: ${la="7200"}  # laplace number
+#: ${tosc="2"} # number of shape n=2 oscillations
+: ${la="1000"}  # Laplace number
+: ${we="1"}     # Weber number
 : ${lexp="0 1 2 3 4"}  # list of exponents for radius: r/h = 2 ** (exp/2)
 : ${mu=0.01}   # viscosity
-: ${rho=1}    # density
+rho=1    # density 
 : ${bryk=1}   # factor for bry
 : ${nxexp=4}    # exponent for mesh size, nx = 2 ** nxexp
 : ${npexp=1}    # exponent for number of processors
+
+# TODO: add nfr (number of frames)
 
 # log
 l="out"
@@ -26,7 +29,8 @@ echo "vel=$vel"
 echo "mu=$mu"
 echo "rho=$rho"
 echo "la=$la"
-echo "tosc=$tosc"
+echo "we=$we"
+#echo "tosc=$tosc"
 echo "nxexp=$nxexp"
 
 for exp in $lexp ; do
@@ -38,23 +42,39 @@ for exp in $lexp ; do
   brh=`bc -l <<< "sqrt(2 ^ $exp)"`
   # bubble radius
   br=`bc -l <<< "$hx * $brh"`
+  # bubble diameter
+  bd=`bc -l <<< "$br * 2"`
+  # surface tension
+  sig=`bc -l <<< "$la * $mu * $mu / ($bd * $rho)"` 
+  # velocity 
+  vv=`bc -l <<< "sqrt($we * $sig / ($bd * $rho))"` 
 
-  # surface tesnion
-  sig=`bc -l <<< "$la * $mu * $mu / (2. * $br * $rho)"` 
+  #n=2
+  #om=`bc -l <<< "sqrt(($n ^ 3 - $n) * $sig / (2. * $rho * ($br ^ 3)))"`
+  #tmax=`bc -l <<< "$tosc * 3.1415926 * 2 / $om"`
 
-  n=2
-  om=`bc -l <<< "sqrt(($n ^ 3 - $n) * $sig / (2. * $rho * ($br ^ 3)))"`
-  tmax=`bc -l <<< "$tosc * 3.1415926 * 2 / $om"`
-  #tmax=`bc -l <<< "$ttmax * $mu * 2. * $br / $sig"`
+  # bubble size in y
+  bry=`bc -l <<< "$br * $bryk"`
+
+  # velocity
+  IFS=" " read vx vy vz <<< "$vel"
+  vx0=$vx
+  vx=`bc -l <<< "$vx / $vx0 * $vv"`
+  vy=`bc -l <<< "$vy / $vx0 * $vv"`
+  vz=`bc -l <<< "$vz / $vx0 * $vv"`
+
+  # total time
+  tmax=`bc -l <<< "$vx0 / $vv"`
+
+  # weber number check
+  we1=`bc -l <<< "$rho * ($vx ^ 2) * 2 * $br / $sig"`
+  #echo we=$we1
+  # laplace number check
+  la1=`bc -l <<< "$rho * $sig * $bd / $mu ^ 2"`
+  #echo la=$la1
 
   # write config
-  bry=`bc -l <<< "$br * $bryk"`
   echo "$bc $br $bry $br" > b.dat
-
-  IFS=" " read vx vy vz <<< "$vel"
-  vx=`bc -l <<< "$vx / $tmax"`
-  vy=`bc -l <<< "$vy / $tmax"`
-  vz=`bc -l <<< "$vz / $tmax"`
   echo "$vx $vy $vz" > vel
   echo "$tmax" > tmax
   echo "$sig" > sig
@@ -63,7 +83,7 @@ for exp in $lexp ; do
   echo "$npexp" > npexp
 
   # print config
-  echo "br/h=$brh"
+  echo "r/h=$brh"
 
   p="r${exp}_" # prefix for output
 
@@ -72,14 +92,42 @@ for exp in $lexp ; do
   echo $d
   (cd $d ; ./run) &>> $l
 
+  # move ch
+  oo=$o/$p$d
+  mkdir -p $oo
+  ff="$(ls $d/s_*.vtk || true)"
+  if [ -n "$ff" ] ; then
+    mv -f $ff $oo
+  fi
+
   # run ge
   d="ge"
   echo $d
   (cd $d ; ./run) &>> $l
 
+  # move ge
+  oo=$o/$p$d
+  mkdir -p $oo
+  ff="$(ls $d/u_*.vtk || true)"
+  if [ -n "$ff" ] ; then
+    mv -f $ff $oo
+  fi
+
   # plot cmp
   echo "plot"
   ./plot.py &>> $l
+
+  # paraview
+  echo "paraview"
+  (./vis.py $o/${p}ch $o/${p}ge || true) &>> $l
+
+  # move paraview
+  oo=$o/${p}vis
+  mkdir -p $oo
+  ff="$(ls a_*.png || true)"
+  if [ -n "$ff" ] ; then
+    mv -f $ff $oo
+  fi
 
   d="ch"
   mv -f $d/vf_0000.pdf $o/${p}vf_$d.pdf
@@ -99,7 +147,7 @@ mv out $o/
 
 # rename folder
 IFS=' ' read velx vely velz <<< "$vel"
-dout=${o}_vel${velx}_t${tosc}_nx${nx}
+dout=${o}_vel${velx}_we${we}_la${la}_nx${nx}
 echo $dout
 rm -rf $dout
 mv -T $o $dout
