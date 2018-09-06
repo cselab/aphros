@@ -1,5 +1,5 @@
 set -eu
 
-rm -f *.dat *.vtk *.pdf
+rm -f *.dat *.vtk out
 rm -rf o
 rm -f main.gen.gfs .main.gfs .smain.gfs

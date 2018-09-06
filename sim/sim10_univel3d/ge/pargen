@@ -1,0 +1,35 @@
+#!/usr/bin/env python
+
+import glob
+
+c = {}
+exec(open("../conf.py").read(), None, c)
+
+# number of frames from ch
+nfr = len(glob.glob("../ch/vf_*.dat"))
+assert nfr >= 2, "Error: Need at least 2 frames in ../ch, found %r" % nfr
+
+c['nfr'] = nfr
+c['dumpdt'] = c['tmax'] / c['nfr']
+
+
+nx = c['nx']
+nxexp = nx.bit_length() - 1
+assert nx == 2 ** nxexp, "Mesh size nx=%r but must be power of 2" % nx
+c['nxexp'] = nxexp
+
+
+o = '''Define VELX {vel[0]}
+Define VELY {vel[1]}
+Define VELZ {vel[1]}
+Define TMAX {tmax}
+Define DUMPDT {dumpdt}
+Define SIGMA {sig}
+Define MU {mu}
+Define REFINE {nxexp}
+
+'''.format(**c)
+
+o += open("main.gfs").read()
+
+open("main.gen.gfs", 'w').write(o)

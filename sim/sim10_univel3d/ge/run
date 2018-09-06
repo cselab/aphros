@@ -1,28 +1,36 @@
-#!/bin/bash
+#!/usr/bin/env python
 
-set -eu
+import os
+sh = os.system
 
-./clean
-c="`./maingen`"
-spl=".main.gfs"
+def sh(s, fatal=True):
+    print(s)
+    # XXX: actual return value is (signal,code) on UNIX
+    r = os.system(s)
+    assert not fatal or r == 0
 
-npexp="`cat ../npexp`"
-np=`bc <<< "2^($npexp)"`
+c = {}
+exec(open("../conf.py").read(), None, c)
+np = c['np']
+npexp = np.bit_length() - 1
+assert np == 2 ** npexp, "np=%r but must be power of 2" % np
 
-echo > out
+m = "main.gen.gfs"
+mspl = ".main.gfs"
+o = "out"
 
-./split "$c" "$npexp" |& tee -a out
-ge.run3d -n $np -m "$spl" |& tee -a out
+sh("./clean")
+sh("./pargen")
 
-# move output in case np=1
-for f in `ls o/-1/*` ; do
-  mv $f o/0/
-done
+sh("./split '{m}' {npexp} |& tee -a {o}".format(**locals()))
+sh("ge.run3d -n {np} -m '{mspl}' |& tee -a {o}".format(**locals()))
 
+# move output from -1 in case np=1
+if np == 1:
+  sh("mv o/-1/* o/0/")
 
-echo "merge"
-./merge
-echo "rename"
-./rename
-echo "convert"
-./convert
+sh("./merge")
+
+sh("./rename")
+
+sh("./convert") 
