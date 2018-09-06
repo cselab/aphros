@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+
+import os
+
+sh = os.system
+
+# create par.conf
+sh("./pargen")
+
+c = {}
+exec(open("../conf.py").read(), None, c)
+
+sh("make m='{nx} {nx} {nx}' np={np} cleanrun".format(**c))

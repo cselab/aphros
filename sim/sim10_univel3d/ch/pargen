@@ -1,0 +1,23 @@
+#!/usr/bin/env python
+
+c = {}
+exec(open("../conf.py").read(), None, c)
+
+o="par.conf"
+
+vels = "{:} {:} {:}".format(*c['vel'])
+
+loc = 1 if c["np"] == 1 else 0
+
+t = '''set double tmax {tmax}
+set double dump_field_dt {dumpdt}
+set double dump_part_dt {dumpdt}
+set double sigma {sig}
+set double mu1 {mu}
+set double mu2 {mu}
+set vect vel {vels}
+set int loc {loc}
+'''.format(**c, **locals())
+
+open(o, 'w').write(t)
+
