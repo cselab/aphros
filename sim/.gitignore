@@ -20,8 +20,10 @@ job.id.last
 job.id
 
 *.dat
-s*.vtk
+s_*.vtk
+sp_*.vtk
 partit*.csv
+traj*.csv
 
 **/base.conf
 mesh.conf
