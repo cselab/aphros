@@ -56,6 +56,7 @@ skipfirst = len(glob(bo.format("*")))
 
 # total number of frames
 nfr = len(GetFiles(os.path.join(chdir, "s_*.vtk")))
+nfr = min(nfr, len(GetFiles(os.path.join(gedir, "u_*.vtk"))))
 
 Log("Using chdir={:} gedir={:}".format(chdir, gedir))
 Log("Skipping first {:} of {:} frames".format(skipfirst, nfr))
@@ -108,7 +109,7 @@ SetActiveView(renderView1)
 def F(p):
   global skipfirst
   l = GetFiles(p)
-  assert len(l) == nfr, "found %r files by '%r', expected %r" % (len(l), p, nfr)
+  assert len(l) >= nfr, "found %r files by '%r', expected at least %r" % (len(l), p, nfr)
   return l[skipfirst:]
 
 # create a new 'XDMF Reader'

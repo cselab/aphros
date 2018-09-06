@@ -2,10 +2,10 @@
 
 set -eu
 
-for nxexp in 5; do
+for nxexp in 6; do
   echo NXEXP=$nxexp
   #export lexp="0 2 4 6"
-  export lexp="2"
+  export lexp="0 2 4 6 7 8"
   export la=1000
   export bryk="1.2"
   export we="10"
@@ -15,5 +15,5 @@ for nxexp in 5; do
   #export vel="0 0 0"
   #export bc="0.56 0.54 0.51"
 
-  time ./vary_r
+  time ./vary_r &>> out
 done
