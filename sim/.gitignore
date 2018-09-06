@@ -30,3 +30,6 @@ mesh.conf
 a.conf
 np
 tl
+
+# gerris
+u_*.vtk

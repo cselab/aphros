@@ -21,7 +21,7 @@ c['nxexp'] = nxexp
 
 o = '''Define VELX {vel[0]}
 Define VELY {vel[1]}
-Define VELZ {vel[1]}
+Define VELZ {vel[2]}
 Define TMAX {tmax}
 Define DUMPDT {dumpdt}
 Define SIGMA {sig}

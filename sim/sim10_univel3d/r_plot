@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -eu
+
+./plot.py
+
+d=traj
+rm -rf $d
+
+mkdir -p $d/pdf
+mv -f traj*.pdf $d/pdf
+
+mkdir -p $d/dat
+mv -f traj*.dat $d/dat
+

@@ -1,1 +1,5 @@
 conf.py
+.main.gfs
+main.gen.gfs
+vis/
+traj/

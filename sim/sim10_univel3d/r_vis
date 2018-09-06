@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -eu
+
+
+./vis.py ch ge || true
+
+d=vis
+rm -rf $d
+mkdir -p $d
+mv -f *.png $d/
+

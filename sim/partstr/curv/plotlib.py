@@ -580,6 +580,11 @@ def GetNorm(k):
 def LoadBub():
     return np.loadtxt("b.dat")
 
+def GetConf(p):
+    c = {}
+    exec(open(p).read(), None, c)
+    return c
+
 # initial velocity
 def LoadVel():
     return np.loadtxt("vel")
@@ -773,15 +778,17 @@ def Univel3():
 
     dim = GetDim(vf.shape)
 
+    conf = GetConf("./conf.py")
+
     cx,cy,cz,rx,ry,rz = LoadBub()
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
-    sig = LoadSig()
-    mu = LoadMu()
+    sig = conf['sig']
+    mu = conf['mu']
 
     # exact velocity
-    vele = LoadVel()
+    vele = np.array(conf['vel'])
     # exact trajectories
-    tmax = LoadTmax()
+    tmax = conf['tmax']
     x,y,z = GetTrajE([cx, cy, cz], vele, tmax)
     # exact average curvature
     if dim == 3:

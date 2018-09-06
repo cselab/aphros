@@ -38,9 +38,9 @@ def GetFiles(p):
 
 av = sys.argv
 if len(av) < 3:
-  sys.stderr.write('''usage: {:} ch ge skip
+  sys.stderr.write('''usage: {:} ch ge
 ch: folder with s_*.vtk, interface from ch
-ge: folder with u_*.vtk, fields from gerris, merged by mfer.cmerge
+ge: folder with u_*.vtk, fields from gerris merged by mfer.cmerge
 '''.format(av[0]))
   exit(1)
 
