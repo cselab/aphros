@@ -578,7 +578,10 @@ def GetNorm(k):
 
 # bubble location
 def LoadBub():
-    return np.loadtxt("b.dat")
+    bb = np.loadtxt("b.dat")
+    if len(bb.shape) == 2:
+        return bb[0,:]
+    return bb
 
 def GetConf(p):
     c = {}

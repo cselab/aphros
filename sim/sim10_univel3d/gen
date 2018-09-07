@@ -12,6 +12,8 @@ def Default():
     bryk = (1.2 , "stretching factor for bubble size in y")
     bxr = ([4., 3., 2.] , "bubble displacement relative to radius")
     bcoh = ([0.2, 0.4, 0.6], "offset of bubble center relative to cell size")
+    b2xr = ([2., 0., 0.] , "second bubble displacement realative to br")
+    b2rr = (0. , "second bubble radius relative br")
     nfr = (100   , "number of frames")
     mu0 = (0.01     , "dynamic viscosity of carrier fluid")
     mu = (1.     , "dynamic viscosity of bubble relative to carrier")
@@ -93,6 +95,10 @@ def GetConf(a):
     # bubble center
     bc = [hx * (r / hx + 1 + o) for r,o in zip(br,a.bcoh)]
 
+    # second bubble
+    b2r = [br[i] * a.b2rr for i in range(3)]
+    b2c = [bc[i] + br[i] * a.b2xr[i] for i in range(3)]
+
     assert IsClose(we, rho * norm(vel) ** 2 * bd / sig)
     assert IsClose(la, rho * sig * bd / mu ** 2)
 
@@ -100,7 +106,7 @@ def GetConf(a):
     dumpdt = tmax / a.nfr
 
     # derived variables to return
-    kk = ['tmax', 'sig', 'vel', 'dumpdt', 'br', 'bc']
+    kk = ['tmax', 'sig', 'vel', 'dumpdt', 'br', 'bc', 'b2r', 'b2c']
     for k in kk:
         d[k] = locals()[k]
 
@@ -122,7 +128,11 @@ c = GetConf(a)
 cpy = GetDictPy(c)
 open("conf.py", 'w').write(cpy + "\n")
 
-b = GetBub(c['bc'], c['br'])
-open("b.dat", 'w').write(b)
+with open("b.dat", 'w') as fb:
+    b = GetBub(c['bc'], c['br'])
+    fb.write(b + "\n")
+    if c['b2r'][0] > 0.:
+        b2 = GetBub(c['b2c'], c['b2r'])
+        fb.write(b2 + "\n")
 
 open("dim", 'w').write(str(c['dim']))
