@@ -116,7 +116,7 @@ def GetConf(a):
 # c: center, shape 3
 # r: size, shape 3
 def GetBub(c, r):
-    return "{:} {:} {:} {:} {:} {:}".format(*c, *r)
+    return "{:} {:} {:} {:} {:} {:}".format(*(c + r))
 
 # Returns python code defining config derived from c.
 # c: Namespace, output of GetArgs()

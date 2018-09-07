@@ -5,12 +5,12 @@ exec(open("../conf.py").read(), None, c)
 
 o="par.conf"
 
-vels = "{:} {:} {:}".format(*c['vel'])
+c['vels'] = "{:} {:} {:}".format(*(c['vel']))
 
-loc = 1 if c["np"] == 1 else 0
+c['loc'] = 1 if c["np"] == 1 else 0
 
-mu2 = c['mu0'] * c['mu']
-rho2 = c['rho0'] * c['rho']
+c['mu2'] = c['mu0'] * c['mu']
+c['rho2'] = c['rho0'] * c['rho']
 
 t = '''set double tmax {tmax}
 set double dump_field_dt {dumpdt}
@@ -24,7 +24,7 @@ set int vfsmooth {chsm}
 set vect vel {vels}
 set int loc {loc}
 set int dim {dim}
-'''.format(**c, **locals())
+'''.format(**c)
 
 open(o, 'w').write(t)
 
