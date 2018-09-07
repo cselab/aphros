@@ -1,49 +1,47 @@
 #!/usr/bin/env python
 
-import os
+import argparse
 
+# Pairs of (value, description)
 def Default():
-    we = 1.     # Weber number
-    la = 1000.  # Laplace number
-    np = 1      # number of processors
-    nx = 64     # mesh size
-    brh = 4.    # r/h, cells per bubble radius
-    bryk = 1.2  # stretching factor for bubble size in y
-    bxr = [4., 3., 2.]  # bubble displacement relative to radius
-    bcoh = [0.2, 0.4, 0.6] # offset of bubble center relative to cell size
-    nfr = 100    # number of frames
-    mu = 0.01      # dynamic viscosity
-    rho = 1.     # density
-    dom = 1.     # domain size
+    we = (1., "Weber number")
+    la = (1000. , "Laplace number")
+    np = (1     , "number of processors")
+    nx = (64    , "mesh size")
+    brh = (4.   , "r/h, cells per bubble radius")
+    bryk = (1.2 , "stretching factor for bubble size in y")
+    bxr = ([4., 3., 2.] , "bubble displacement relative to radius")
+    bcoh = ([0.2, 0.4, 0.6], "offset of bubble center relative to cell size")
+    nfr = (100   , "number of frames")
+    mu = (0.01     , "dynamic viscosity")
+    rho = (1.    , "density")
+    dom = (1.    , "domain size")
 
     return locals().copy()
 
 def IsClose(a, b):
     return abs(a - b) < 1e-10
 
-# Updates c from environ
-def ParseEnv(c):
-    e = os.environ
+# Returns Namespace with parameters from Default() overriden by args
+def GetArgs():
+    p = argparse.ArgumentParser(
+            description='Generate conf.py and b.dat',  
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    # Updates c with c[k]=f(e[k])
-    def E(k, f=float):
-        if k in e:
-            c[k] = f(e[k])
+    c = Default()
 
-    stov = lambda v: list(map(float, v.split()))
+    for k in c:
+        v,h = c[k]
+        if type(v) == list:
+            m = ('X','Y','Z')
+            p.add_argument('-' + k, nargs=len(v), metavar=m, 
+                           default=v, help=h, type=type(v[0]))
+        else:
+            p.add_argument('-' + k, nargs='?',  
+                           default=v, help=h, type=type(v))
 
-    E("we")
-    E("la")
-    E("np", int)
-    E("nx", int)
-    E("brh")
-    E("bryk")
-    E("bxr", stov)
-    E("bcoh", stov)
-    E("nfr", int)
-    E("mu")
-    E("rho")
-    E("dom")
+    a = p.parse_args()
+    return a
 
 # Returns python code defining variables from dict c
 # Returns python code defining config based on c.
@@ -56,25 +54,25 @@ def norm(v):
     return sum([a ** 2 for a in v]) ** 0.5
 
 # Returns dictionary with config derived from c.
-# c: dict including Default().keys()
-def GetConf(c):
-    d = dict(c)
+# a: Namespace, output of GetArgs()
+def GetConf(a):
+    d = dict(vars(a))
 
-    we = c['we']
-    la = c['la']
-    nx = c['nx']
-    np = c['np']
-    brh = c['brh']
-    bxr = c['bxr']
-    mu = c['mu']
-    rho = c['rho']
-    dom = c['dom']
+    we = a.we
+    la = a.la
+    nx = a.nx
+    np = a.np
+    brh = a.brh
+    bxr = a.bxr
+    mu = a.mu
+    rho = a.rho
+    dom = a.dom
 
     # mesh step
     hx = dom / nx
     # bubble radius
     brx = brh * hx
-    bry = brx * c['bryk']
+    bry = brx * a.bryk
     brz = brx
     br = [brx, bry, brz]
     # bubble diameter
@@ -88,13 +86,13 @@ def GetConf(c):
     # velocity
     vel = [x * vm / norm(bxr) for x in bxr]
     # bubble center
-    bc = [hx * (r / hx + 1 + o) for r,o in zip(br,c['bcoh'])]
+    bc = [hx * (r / hx + 1 + o) for r,o in zip(br,a.bcoh)]
 
     assert IsClose(we, rho * norm(vel) ** 2 * bd / sig)
     assert IsClose(la, rho * sig * bd / mu ** 2)
 
     # dump interval
-    dumpdt = tmax / c['nfr']
+    dumpdt = tmax / a.nfr
 
     # derived variables to return
     kk = ['tmax', 'sig', 'vel', 'dumpdt', 'br', 'bc']
@@ -110,16 +108,15 @@ def GetBub(c, r):
     return "{:} {:} {:} {:} {:} {:}".format(*c, *r)
 
 # Returns python code defining config derived from c.
-# c: dict such that c.keys() includes Default().keys()
+# c: Namespace, output of GetArgs()
 def GetConfPy(c):
     return GetDictPy(GetConf(c))
 
-c = Default()
-ParseEnv(c)
-d = GetConf(c)
-dpy = GetConfPy(d)
-open("conf.py", 'w').write(dpy)
+a = GetArgs()
+c = GetConf(a)
+cpy = GetDictPy(c)
+open("conf.py", 'w').write(cpy + "\n")
 
-b = GetBub(d['bc'], d['br'])
+b = GetBub(c['bc'], c['br'])
 open("b.dat", 'w').write(b)
 
