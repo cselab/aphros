@@ -121,3 +121,4 @@ open("conf.py", 'w').write(cpy + "\n")
 b = GetBub(c['bc'], c['br'])
 open("b.dat", 'w').write(b)
 
+open("dim", 'w').write(str(c['dim']))

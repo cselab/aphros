@@ -12,5 +12,5 @@ for p in $i/0/*.vtk ; do
   f=`basename "$p"` 
   echo $f
   c="mfer.cmerge $i/*/$f $o/$f"
-  eval "$c" &>> out
+  eval "$c"
 done

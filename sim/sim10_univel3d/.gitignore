@@ -1,9 +1,11 @@
 conf.py
 ge/.main.gfs
 ge/main.gen.gfs
+ge/error.gfs
 ch/par.conf
 vis/
 traj/
 *.pdf
 *.png
 *.dat
+dim

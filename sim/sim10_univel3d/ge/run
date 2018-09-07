@@ -11,7 +11,10 @@ def sh(s, fatal=True):
 
 c = {}
 exec(open("../conf.py").read(), None, c)
+
 np = c['np']
+loc = True if np == 1 else False
+dim = c['dim']
 npexp = np.bit_length() - 1
 assert np == 2 ** npexp, "np=%r but must be power of 2" % np
 
@@ -19,18 +22,20 @@ m = "main.gen.gfs"
 mspl = ".main.gfs"
 o = "out"
 
+l = locals()
+
 sh("./clean")
 sh("./pargen")
 
-sh("./split '{m}' {npexp} |& tee -a {o}".format(**locals()))
-sh("ge.run3d -n {np} -m '{mspl}' |& tee -a {o}".format(**locals()))
+sh("./split '{m}' {npexp} {dim} |& tee -a {o}".format(**l))
+sh("ge.run{dim}d -n {np} -m '{mspl}' |& tee -a {o}".format(**l))
 
 # move output from -1 in case np=1
 if np == 1:
   sh("mv o/-1/* o/0/")
 
-sh("./merge")
+sh("./merge &>> {o}".format(**l))
 
 sh("./rename")
 
-sh("./convert") 
+sh("./convert &>> {o}".format(**l))

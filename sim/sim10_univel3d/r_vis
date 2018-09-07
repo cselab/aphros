@@ -2,8 +2,9 @@
 
 set -eu
 
+dim=`cat dim`
 
-./vis.py ch ge || true
+./vis${dim}.py ch ge || true
 
 d=vis
 rm -rf $d

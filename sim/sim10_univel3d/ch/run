@@ -7,7 +7,6 @@ c = {}
 exec(open("../conf.py").read(), None, c)
 
 np = c['np']
-
 loc = True if np == 1 else False
 dim = c['dim']
 d3 = (dim == 3)

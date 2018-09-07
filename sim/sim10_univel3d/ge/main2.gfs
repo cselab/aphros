@@ -18,7 +18,7 @@
 
   Init {} { U = VELX V = VELY }
 
-  OutputSimulation { step = DUMPDT } u_%04ld.vtk { variables = T,P,U,V,K format = VTK}
+  OutputSimulation { step = DUMPDT } o/%d/u_%04ld.vtk { variables = T,P,U,V format = VTK}
   OutputTime { istep = 10 } stderr
 }
 GfsBox {}
