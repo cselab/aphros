@@ -9,12 +9,18 @@ vels = "{:} {:} {:}".format(*c['vel'])
 
 loc = 1 if c["np"] == 1 else 0
 
+mu2 = c['mu0'] * c['mu']
+rho2 = c['rho0'] * c['rho']
+
 t = '''set double tmax {tmax}
 set double dump_field_dt {dumpdt}
 set double dump_part_dt {dumpdt}
 set double sigma {sig}
-set double mu1 {mu}
-set double mu2 {mu}
+set double mu1 {mu0}
+set double mu2 {mu2}
+set double rho1 {rho0}
+set double rho2 {rho2}
+set int vfsmooth {chsm}
 set vect vel {vels}
 set int loc {loc}
 set int dim {dim}

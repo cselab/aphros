@@ -13,10 +13,14 @@ def Default():
     bxr = ([4., 3., 2.] , "bubble displacement relative to radius")
     bcoh = ([0.2, 0.4, 0.6], "offset of bubble center relative to cell size")
     nfr = (100   , "number of frames")
-    mu = (0.01     , "dynamic viscosity")
-    rho = (1.    , "density")
+    mu0 = (0.01     , "dynamic viscosity of carrier fluid")
+    mu = (1.     , "dynamic viscosity of bubble relative to carrier")
+    rho0 = (1.    , "density of carrier fluid")
+    rho = (1.    , "density of bubble relative to carrier")
     dom = (1.    , "domain size")
     dim = (3    , "dimension, 2 or 3")
+    chsm = (1    , "ch smooth steps (rhor>10: 1, rhor>100: 2)")
+    gesm = (1    , "ge smooth steps")
 
     return locals().copy()
 
@@ -65,8 +69,8 @@ def GetConf(a):
     np = a.np
     brh = a.brh
     bxr = a.bxr
-    mu = a.mu
-    rho = a.rho
+    mu = max(a.mu0, a.mu0 * a.mu)
+    rho = max(a.rho0, a.rho0 * a.rho)
     dom = a.dom
 
     # mesh step

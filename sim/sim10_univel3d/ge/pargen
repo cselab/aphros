@@ -21,13 +21,20 @@ nxexp = nx.bit_length() - 1
 assert nx == 2 ** nxexp, "Mesh size nx=%r but must be power of 2" % nx
 c['nxexp'] = nxexp
 
+c['rho2'] = c['rho0'] * c['rho']
+c['mu2'] = c['mu0'] * c['mu']
+
 o = '''Define VELX {vel[0]}
 Define VELY {vel[1]}
 Define VELZ {vel[2]}
 Define TMAX {tmax}
 Define DUMPDT {dumpdt}
 Define SIGMA {sig}
-Define MU {mu}
+Define RHO1 {rho0}
+Define RHO2 {rho2}
+Define MU1 {mu0}
+Define MU2 {mu2}
+Define GESM {gesm}
 Define REFINE {nxexp}
 
 '''.format(**c)
