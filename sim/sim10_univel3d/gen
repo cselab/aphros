@@ -2,7 +2,7 @@
 
 import argparse
 
-# Pairs of (value, description)
+# Returns dict of {name:(value, description)}
 def Default():
     we = (1., "Weber number")
     la = (1000. , "Laplace number")

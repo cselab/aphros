@@ -163,6 +163,7 @@ transform1Display = Show(transform1, renderView1)
 
 # trace defaults for the display properties.
 transform1Display.Representation = 'Outline'
+transform1Display.AmbientColor = [1.0, 1.0, 1.0]
 transform1Display.ColorArrayName = [None, '']
 transform1Display.LineWidth = 2.0
 transform1Display.OSPRayScaleArray = 'P'

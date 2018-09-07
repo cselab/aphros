@@ -1,5 +1,9 @@
 conf.py
-.main.gfs
-main.gen.gfs
+ge/.main.gfs
+ge/main.gen.gfs
+ch/par.conf
 vis/
 traj/
+*.pdf
+*.png
+*.dat
