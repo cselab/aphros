@@ -883,8 +883,9 @@ def Univel3():
                 vmin=cx - gp, vmax=cx + vele[0] * tmax + gp)
     PlotTrajFld(tt, yy, ll, "t", "y", "trajy.pdf", ystep=0.1,
                 vmin=cy - gp, vmax=cy + vele[1] * tmax + gp)
-    PlotTrajFld(tt, zz, ll, "t", "z", "trajz.pdf", ystep=0.1,
-                vmin=cz - gp, vmax=cz + vele[2] * tmax + gp)
+    if dim == 3:
+        PlotTrajFld(tt, zz, ll, "t", "z", "trajz.pdf", ystep=0.1,
+                    vmin=cz - gp, vmax=cz + vele[2] * tmax + gp)
     # Plot error in velocity
     vmin = 1e-6
     vmax = 1e1
