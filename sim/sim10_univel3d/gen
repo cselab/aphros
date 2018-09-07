@@ -16,6 +16,7 @@ def Default():
     mu = (0.01     , "dynamic viscosity")
     rho = (1.    , "density")
     dom = (1.    , "domain size")
+    dim = (3    , "dimension, 2 or 3")
 
     return locals().copy()
 

@@ -17,6 +17,7 @@ set double mu1 {mu}
 set double mu2 {mu}
 set vect vel {vels}
 set int loc {loc}
+set int dim {dim}
 '''.format(**c, **locals())
 
 open(o, 'w').write(t)
