@@ -6,6 +6,7 @@ c = {}
 exec(open("../conf.py").read(), None, c)
 
 dim = c['dim']
+d2 = (dim == 2)
 d3 = (dim == 3)
 
 # number of frames from ch
@@ -40,8 +41,48 @@ Define REFINE {nxexp}
 '''.format(**c)
 
 # base config file
-mb = "main{:}.gfs".format(dim)
+mb = "main.gfs"
 print("Reading base config from {:}".format(mb))
-o += open(mb).read()
+bt = open(mb).read()
+
+# dimension
+bt = bt.replace('[D2]', '' if d2 else '#')
+bt = bt.replace('[D3]', '' if d3 else '#')
+
+drz = "BcDirichlet W (0)" if d3 else ""
+wl = '''{{:}} = Boundary {{{{
+  BcDirichlet U (0) 
+  BcDirichlet V (0) 
+  {drz} 
+  }}}}
+{{:}} = Boundary {{{{
+  BcDirichlet U (0) 
+  BcDirichlet V (0) 
+  {drz} 
+  }}}}'''.format(drz=drz)
+
+b0 = {'X':'left', 'Y':'bottom', 'Z':'back'}
+b1 = {'X':'right', 'Y':'top', 'Z':'front'}
+
+numedge = 0
+
+dd = ['X', 'Y', 'Z'] if d3 else ['X', 'Y']
+
+# wall conditions
+for d in dd:
+    if c['wall{:}'.format(d.lower())]:
+        bt = bt.replace('[BC{:}]'.format(d), wl.format(b0[d], b1[d]))
+    else:
+        numedge += 1
+        bt = bt.replace('[EDGE{:}]'.format(d), "1 1 {:}".format(b1[d]))
+
+bt = bt.replace('[NUMEDGE]'.format(d), str(numedge))
+
+# cleanup
+for d in ['X', 'Y', 'Z']:
+    bt = bt.replace('[BC{:}]'.format(d), '')
+    bt = bt.replace('[EDGE{:}]'.format(d), '')
+
+o += bt
 
 open("main.gen.gfs", 'w').write(o)

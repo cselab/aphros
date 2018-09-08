@@ -26,6 +26,9 @@ def Default():
     dim = (3    , "dimension, 2 or 3")
     chsm = (1    , "ch smooth steps (rhor>10: 1, rhor>100: 2)")
     gesm = (1    , "ge smooth steps")
+    wallx = (0    , "walls in x direction, else periodic")
+    wally = (0    , "walls in y direction, else periodic")
+    wallz = (0    , "walls in z direction, else periodic")
 
     return locals().copy()
 

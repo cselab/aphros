@@ -26,5 +26,15 @@ set int loc {loc}
 set int dim {dim}
 '''.format(**c)
 
+dim = c['dim']
+
+for d in ['x', 'y', 'z'][0:dim]:
+    if c['wall' + d]:
+        t += ''' 
+set int hypre_periodic_{d} 0
+set string bc_{d}m wall 0 0 0
+set string bc_{d}p wall 0 0 0
+    '''.format(d=d)
+
 open(o, 'w').write(t)
 
