@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import math
 
 # Returns dict of {name:(value, description)}
 def Default():
@@ -10,12 +11,13 @@ def Default():
     nx = (64    , "mesh size")
     brh = (4.   , "r/h, cells per bubble radius")
     bryk = (1.2 , "stretching factor for bubble size in y")
-    bxr = ([4., 3., 2.] , "bubble displacement relative to radius")
+    vel0 = ([4., 3., 2.], "direction of velocity")
+    tmax = (1. , "total dimensionless time")
     bcoh = ([0.2, 0.4, 0.6], "offset of bubble center relative to cell size")
     b2xr = ([2., 0., 0.] , "second bubble displacement realative to br")
     b2rr = (0. , "second bubble radius relative br")
     nfr = (100   , "number of frames")
-    mu0 = (0.01     , "dynamic viscosity of carrier fluid")
+    #mu0 = (0.01     , "dynamic viscosity of carrier fluid")
     mu = (1.     , "dynamic viscosity of bubble relative to carrier")
     rho0 = (1.    , "density of carrier fluid")
     rho = (1.    , "density of bubble relative to carrier")
@@ -47,6 +49,11 @@ def GetArgs():
             p.add_argument('-' + k, nargs='?',  
                            default=v, help=h, type=type(v))
 
+    p.add_argument('-mode', default="vel", choices=["vel", "osc"], help=
+"timescale; \
+vel: velocity magnitude br * 2; \
+osc: oscillation frequency sqrt(7) / pi")
+
     a = p.parse_args()
     return a
 
@@ -54,7 +61,13 @@ def GetArgs():
 # Returns python code defining config based on c.
 # c: dict such that c.keys() includes Default().keys()
 def GetDictPy(c):
-    return '\n'.join(["{:} = {:}".format(k, c[k]) for k in c])
+    t = ""
+    for k in c:
+        v = c[k]
+        v = '"{:}"'.format(v) if type(v) == str else str(v)
+        t += "{:} = {:}\n".format(k, v)
+
+    return t
 
 def norm(v):
     assert len(v) == 3
@@ -70,10 +83,11 @@ def GetConf(a):
     nx = a.nx
     np = a.np
     brh = a.brh
-    bxr = a.bxr
-    mu = max(a.mu0, a.mu0 * a.mu)
-    rho = max(a.rho0, a.rho0 * a.rho)
+    vel0 = a.vel0 if a.dim == 3 else [a.vel0[0], a.vel0[1], 0.]
     dom = a.dom
+    #mu = max(a.mu0, a.mu0 * a.mu)
+    rho = max(a.rho0, a.rho0 * a.rho)
+    tmax = a.tmax
 
     # mesh step
     hx = dom / nx
@@ -84,29 +98,40 @@ def GetConf(a):
     br = [brx, bry, brz]
     # bubble diameter
     bd = brx * 2
-    # surface tension
-    sig = la * mu ** 2 / (rho * bd)
-    # velocity magnitude
-    vm = (we * sig / (bd * rho)) ** 0.5
-    # total time
-    tmax = norm(bxr) * brx / vm
-    # velocity
-    vel = [x * vm / norm(bxr) for x in bxr]
     # bubble center
     bc = [hx * (r / hx + 1 + o) for r,o in zip(br,a.bcoh)]
-
     # second bubble
     b2r = [br[i] * a.b2rr for i in range(3)]
     b2c = [bc[i] + br[i] * a.b2xr[i] for i in range(3)]
 
+    if a.mode == "vel":
+        # velocity magnitude brx * 2
+        vm = brx * 2
+        sig = vm ** 2 * bd * rho / we
+    elif a.mode == "osc":
+        # oscillation frequency: sqrt(7) / pi ~= 0.84
+        sig = rho * bd ** 3
+
+    # viscosity
+    mu = (sig * rho * bd / la) ** 0.5
+    # velocity magnitude
+    vm = (we * sig / (bd * rho)) ** 0.5
+    # velocity
+    vel = [x * vm / norm(vel0) for x in vel0]
+
     assert IsClose(we, rho * norm(vel) ** 2 * bd / sig)
     assert IsClose(la, rho * sig * bd / mu ** 2)
+
+    if a.rho > 1.: # droplet, phase 2 heavier
+        mu0 = mu / a.mu
+    else: # bubble
+        mu0 = mu
 
     # dump interval
     dumpdt = tmax / a.nfr
 
     # derived variables to return
-    kk = ['tmax', 'sig', 'vel', 'dumpdt', 'br', 'bc', 'b2r', 'b2c']
+    kk = ['sig', 'vel', 'dumpdt', 'br', 'bc', 'b2r', 'b2c', 'mu0']
     for k in kk:
         d[k] = locals()[k]
 
@@ -126,7 +151,7 @@ def GetConfPy(c):
 a = GetArgs()
 c = GetConf(a)
 cpy = GetDictPy(c)
-open("conf.py", 'w').write(cpy + "\n")
+open("conf.py", 'w').write(cpy)
 
 with open("b.dat", 'w') as fb:
     b = GetBub(c['bc'], c['br'])
