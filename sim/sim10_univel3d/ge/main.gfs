@@ -19,7 +19,7 @@ Define MU(T) (AVG(T,MU1,MU2))
   Refine REFINE
 
   [D2]VariableTracerVOFHeight T
-  [D3]VariableCurvature K T 
+  [D3]VariableTracerVOF T
 
   [D2]InitFraction T (ini_t2(x+0.5, y+0.5))
   [D3]InitFraction T (ini_t(x+0.5, y+0.5, z+0.5))
