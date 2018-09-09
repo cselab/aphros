@@ -37,6 +37,8 @@ class Vof : public AdvectionSolver<M_> {
     Scal clipth = 1e-6; // vf clipping threshold
     std::unique_ptr<Dumper> dmp; // dumper for particles
     bool dumppoly = false; // dump reconstructed interface (cut polygons)
+    bool dumppart = false; // dump particles
+    bool dumppartinter = false; // dump interface for particles
     // XXX: adhoc
     Scal bcc_k0 = 1.;   // mul corrections to bc 
     Scal bcc_k1 = 1.;   

@@ -103,6 +103,8 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
     p->clipth = var.Double["clipth"];
     p->dim = var.Int["dim"];
     p->dumppoly = var.Int["dumppoly"];
+    p->dumppart = var.Int["dumppart"];
+    p->dumppartinter = var.Int["dumppartinter"];
     p->bcc_k0 = var.Double["bcc_k0"];
     p->bcc_k1 = var.Double["bcc_k1"];
     p->bcc_t0 = var.Double["bcc_t0"];

@@ -618,12 +618,12 @@ struct Vof<M_>::Imp {
       m.Comm(&fckp_);
     }
 
-    if (sem.Nested("part-dump")) {
+    if (par->dumppart && sem.Nested("part-dump")) {
       if (dm) {
         DumpParticles();
       }
     }
-    if (sem.Nested("partinter-dump")) {
+    if (par->dumppartinter && sem.Nested("partinter-dump")) {
       if (dm) {
         DumpPartInter();
       }
