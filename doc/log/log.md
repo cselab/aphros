@@ -44,3 +44,21 @@ Data:
 
 
 
+2018-09-09 11:59:47
+
+# march=native
+
+Goal:
+  use automatic vectorization and specific optimizations
+
+What:
+  add `-march=native` to CMAKE_C_FLAGS and CMAKE_CXX_FLAGS
+
+Result:
+  slight improvement of performance (3.76 vs 3.60 s for confdiff:01:assemble),
+  64 cores on Euler.
+
+Data:
+    log03_native: 
+    out_std: standard flags
+    out_native: -march=native
