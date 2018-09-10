@@ -221,7 +221,7 @@ def ReadPar(b):
     return c
 
 # Writes file with dimension
-def WriteDim(dim, f):
+def WriteDim(dim):
     open("dim", 'w').write(str(dim))
 
 # Returns arguments for base.makefile
