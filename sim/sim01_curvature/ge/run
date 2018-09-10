@@ -2,7 +2,12 @@
 
 set -eu
 
-c=main.gfs
+dim=`cat ../dim`
+
+o=out
+echo > $o
+
 ./clean
-ge.run3d -m $c
-./convert
+./pargen
+ge.run${dim}d -m "main.gen.gfs" >> $o
+./convert >> $o

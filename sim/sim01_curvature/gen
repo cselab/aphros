@@ -14,12 +14,16 @@ hx = dom / nx
 
 bc = [o * hx + 0.5 for o in c['bcoh']]
 
-if c['dim'] == 2:
+dim = c['dim']
+
+if dim == 2:
     bc[2] = hx * 0.5
 
 br = c['cpr'] / nx
 br = [br, br * c['bryk'], br]
 
 ch.par.WriteBub([bc], [br])
+
+ch.par.WriteDim(dim)
 
 ch.WritePar(c)

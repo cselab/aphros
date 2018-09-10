@@ -25,14 +25,42 @@ def Write(u, p):
         np.savetxt(f, u, newline='', fmt='%.16g ')
 
 
-pp = sorted(glob.glob("*.vtk"))
-print(pp)
-for p in pp:
-    b = os.path.splitext(p)[0]
-    po = b + ".dat"
+# Dictionary of names of fields with corresponding aliases
+# key: name of field in vtk (e.g. T)
+# value: prefix of output (e.g. vf)
+def GetFields():
+    return {'T':'vf', 'U':'vx', 'V':'vy', 'W':'vz', 'P':'p', 'K':'k'}
+
+# Path to dat from vtk
+# p: path to vtk
+# k: field name
+def GetDatPath(p, k):
+    d = os.path.dirname(p)
+    f = os.path.basename(p)
+    fn,fe = os.path.splitext(f)
+    s = fn[1:]  # suffix of filename without extension
+    return "{:}{:}.dat".format(k, s)
+
+# Converts vtk to plain format with native python implementation
+# p: path to vtk,.
+# ff: output of GetFields()
+def ConvertNative(p, ff):
     d = vtk.read_vtk(p)
-    #x,y,[u,k] = vtk.interp_to_uniform(d['x'], d['y'], [d['T'], d['K']])
-    x,y,z,[u,k] = vtk.interp_to_uniform3(d['x'], d['y'], d['z'], [d['T'], d['K']])
-    print(po)
-    Write(u, "u" + po[1:])
-    Write(k, "k" + po[1:])
+    x,y,z,uu = vtk.interp_to_uniform3(d['x'], d['y'], d['z'], [d[k] for k in ff])
+    for i,k in enumerate(ff):
+        Write(uu[i], GetDatPath(p, ff[k]))
+
+# Converts vtk to plain format with external tool mfer.vtk2dat
+# p: path to vtk,.
+# ff: output of GetFields()
+def ConvertExt(p, ff):
+    for k in ff:
+        c = "mfer.vtk2dat {:} {:} {:}".format(p, k, GetDatPath(p, ff[k]))
+        os.system(c)
+
+pp = sorted(glob.glob("u_*.vtk"))
+ff = {'T':'u', 'K':'k'}
+
+for p in pp:
+    ConvertNative(p, ff)
+

@@ -1,0 +1,32 @@
+#!/usr/bin/env python
+
+import glob
+import ch
+
+c = ch.ReadPar('..')
+
+dim = c['dim']
+d2 = (dim == 2)
+d3 = (dim == 3)
+
+nx = c['nx']
+nxexp = nx.bit_length() - 1
+assert nx == 2 ** nxexp, "Mesh size nx=%r but must be power of 2" % nx
+c['nxexp'] = nxexp
+
+o = '''Define REFINE {nxexp}
+
+'''.format(**c)
+
+# base config file
+mb = "main.gfs"
+print("Reading base config from {:}".format(mb))
+bt = open(mb).read()
+
+# dimension
+bt = bt.replace('[D2]', '' if d2 else '#')
+bt = bt.replace('[D3]', '' if d3 else '#')
+
+o += bt
+
+open("main.gen.gfs", 'w').write(o)

@@ -1,14 +1,17 @@
 1 0 GfsAdvection GfsBox GfsGEdge {} {
   Time { end = 1  dtmax = 1 }
 
-  Refine 6
+  Refine REFINE
 
-  VariableTracerVOF T
+  [D2]VariableTracerVOFHeight T
+  [D3]VariableTracerVOF T
 
   Global { 
     Include ini_t_bub.h 
   }
-  InitFraction T (ini_t(x+0.5, y+0.5, z+0.5))
+
+  [D2]InitFraction T (ini_t2(x+0.5, y+0.5))
+  [D3]InitFraction T (ini_t(x+0.5, y+0.5, z+0.5))
   
   VariableCurvature K T 
 
