@@ -1,2 +1,0 @@
-make cleanall
-rm -f par.conf

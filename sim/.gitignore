@@ -28,6 +28,7 @@ traj*.csv
 **/base.conf
 mesh.conf
 a.conf
+par.conf
 np
 tl
 

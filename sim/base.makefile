@@ -42,7 +42,7 @@ clean::
 	rm -vf *.{png}
 	rm -vf *.{bin,log}
 	rm -vf job.id.last job.status arg job.id
-	rm -vf mesh.conf base.conf a.conf np tl
+	rm -vf mesh.conf base.conf a.conf par.conf np tl
 
 cleandat::
 	rm -vf *.pdf

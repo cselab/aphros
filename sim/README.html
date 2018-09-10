@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>README</title>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<h2 id="list-of-setups">List of setups</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">id</th>
+<th style="text-align: left;">name</th>
+<th style="text-align: center;">ch</th>
+<th style="text-align: center;">ge</th>
+<th style="text-align: center;">2d</th>
+<th style="text-align: center;">3d</th>
+<th style="text-align: left;">parameters</th>
+<th style="text-align: left;">bc</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">00</td>
+<td style="text-align: left;">curvature</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: left;">-</td>
+<td style="text-align: left;">-</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">01</td>
+<td style="text-align: left;">hydrostatic</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: left;">Ga</td>
+<td style="text-align: left;">wall</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">02</td>
+<td style="text-align: left;">cavity</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;"></td>
+<td style="text-align: left;">Re</td>
+<td style="text-align: left;">wallvel</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">03</td>
+<td style="text-align: left;">univel</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: left;">La, Ca</td>
+<td style="text-align: left;">per, wall</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">04</td>
+<td style="text-align: left;">Mortazavi (from univel)</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: left;">Re, Ca, x0, R</td>
+<td style="text-align: left;">per, wall</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">05</td>
+<td style="text-align: left;">Taylor-Green with bubbles</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: left;">Re, Ca, <code>b.dat</code></td>
+<td style="text-align: left;">per</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">06</td>
+<td style="text-align: left;">growth</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: left;">Re, Ca, rate</td>
+<td style="text-align: left;">per, wall, inlet</td>
+</tr>
+</tbody>
+</table>
+<h3 id="boundary-conditions">Boundary conditions</h3>
+<p><strong>wallvel</strong>: no-slip with given velocity</p>
+<p><strong>wall</strong>: no-slip with zero velocity</p>
+<p><strong>per</strong>: periodic</p>
+<h1 id="old">Old</h1>
+<h2 id="workflow">Workflow</h2>
+<ul>
+<li>folders <code>sim*</code> contain simulation setups</li>
+<li>setups are machine-independent</li>
+<li>tools to run are installed globally</li>
+<li>tools include:
+<ul>
+<li>setenv: set environment for build and run</li>
+<li>run: run locally</li>
+<li>submit: submit job (or run in background)</li>
+<li>kill: remove job (or stop background process)</li>
+</ul></li>
+<li>tool setenv:
+<ul>
+<li>set environment variables and load modules</li>
+<li>should be shared with setenv from build</li>
+<li>supposed to be sourced to current shell (needed for modules)</li>
+</ul></li>
+<li>tool run:
+<ul>
+<li>source setenv (though Euler requires loading modules at submit)</li>
+<li>run executable (normaly, run the job file)</li>
+<li>wait for executable to finish</li>
+</ul></li>
+<li>tool submit:
+<ul>
+<li>source setenv</li>
+<li>submit job (or run process in background)</li>
+<li>write job id (or process id) to job.id</li>
+</ul></li>
+<li>tool kill:
+<ul>
+<li>remove job (or kill background process)</li>
+<li>rename to <code>job.id.last</code></li>
+</ul></li>
+</ul>
+</body>
+</html>

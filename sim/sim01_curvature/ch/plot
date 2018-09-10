@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -eu
+
+pvbatch s.py s_0000.vtk partitf.csv
