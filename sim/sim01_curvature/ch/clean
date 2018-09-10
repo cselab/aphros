@@ -1,1 +1,4 @@
 make cleanall
+rm -f {a,k,kh,kp,nx,ny,nz,u}_*.dat
+rm -f partitf.csv
+rm -f *.png

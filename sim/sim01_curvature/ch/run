@@ -2,8 +2,16 @@
 
 set -eu
 
-make clean
-ch.base
+a=`ch.makearg ../`
+
+make cleanall
+
+./pargen
+
+c="make $a conf"
+eval "$c"
+
 ch.run t.advection
-./partit.filt
+
+./filtcsv
 ./plot

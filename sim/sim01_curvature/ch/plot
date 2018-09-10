@@ -2,4 +2,4 @@
 
 set -eu
 
-pvbatch s.py s_0000.vtk partitf.csv
+pvbatch vis.py s_0000.vtk partitf.csv

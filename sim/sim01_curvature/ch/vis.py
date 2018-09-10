@@ -17,7 +17,7 @@ materialLibrary1 = GetMaterialLibrary()
 
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
-renderView1.ViewSize = [1998, 923]
+renderView1.ViewSize = [1000, 1000]
 renderView1.AnnotationColor = [0.0, 0.0, 0.0]
 renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.OrientationAxesVisibility = 0
@@ -230,7 +230,6 @@ ccPWF.ScalarRangeInitialized = 1
 
 # reset view to fit data
 renderView1.ResetCamera()
-
 
 # save screenshot
 SaveScreenshot('s.png', renderView1, ImageResolution=[1000, 1000])

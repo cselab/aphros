@@ -9,7 +9,7 @@ u = np.genfromtxt(a, delimiter=',', names=True)
 
 c = np.unique(u["c"])
 
-# select beta cells or at least nmin
+# select fraction beta or at least nmin cells
 beta = 0.1
 nmin = 10
 nmax = 1000

@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+
+import ch
+
+a = ch.GetStdPar('nx', 'dim', 'cpr', 'bcoh', 'bryk')
+
+c = vars(ch.GetArgs(a))
+
+c['np'] = 1
+
+dom = 1.
+nx = c['nx']
+hx = dom / nx
+
+bc = [o * hx + 0.5 for o in c['bcoh']]
+
+if c['dim'] == 2:
+    bc[2] = hx * 0.5
+
+br = c['cpr'] / nx
+br = [br, br * c['bryk'], br]
+
+ch.par.WriteBub([bc], [br])
+
+ch.WritePar(c)

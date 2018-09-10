@@ -4,7 +4,7 @@ import os
 sh = os.system
 
 c = {}
-exec(open("../conf.py").read(), None, c)
+exec(open("../par.py").read(), None, c)
 
 np = c['np']
 loc = True if np == 1 else False

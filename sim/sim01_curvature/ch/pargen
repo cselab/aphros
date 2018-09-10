@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+
+import ch
+
+c = ch.ReadPar('..')
+
+o = "par.conf"
+
+t = '''set int dim {dim}
+'''.format(**c)
+
+open(o, 'w').write(t)
+
