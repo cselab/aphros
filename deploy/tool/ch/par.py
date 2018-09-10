@@ -2,6 +2,7 @@
 
 import argparse
 import math
+import os
 
 # Returns dictionary with standard parameters {k : (v,h)}
 # k: name
@@ -28,6 +29,10 @@ def StdParAll():
     wallx = (0, "wall in x direction, else periodic")
     wally = (0, "wall in y direction, else periodic")
     wallz = (0, "wall in z direction, else periodic")
+    vel0 = ([4., 3., 2.], "direction of velocity")
+    bcoh = ([0.2, 0.4, 0.6], "offset of bubble center relative to h")
+    bcor = ([0., 0., 0.], "offset of bubble center relative to br")
+    bryk = (1. , "stretching factor for bubble size in y")
     return locals().copy()
 
 # ordering:
@@ -54,7 +59,9 @@ def GetGa(x, rho, mu, sig):
 
 # Returns a selection from StdParAll().
 # kk: list of names
-def StdPar(l):
+def GetStdPar(*kk):
+    if type(kk) == str:
+        kk = [kk]
     d = StdParAll()
     r = dict()  # result
     for k in kk:
@@ -67,13 +74,13 @@ def IsClose(a, b):
 # Returns Namespace with parameters from c overriden by args
 # c: dict with parameters as in StdParAll()
 # desc: description for command line help
-def GetArgs(c, desc):
+def GetArgs(c, desc=None):
     p = argparse.ArgumentParser(description=desc,
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     for k in c:
         v,h = c[k]
-        if v[0] in [int, float, list]:
+        if v in [int, float, list]:
             t = v
             v = None
         else:
@@ -88,20 +95,11 @@ def GetArgs(c, desc):
             t = type(v[0]) if v is not None else float
             p.add_argument(n, nargs=len(m), metavar=m, default=v, help=h, type=t)
         else:
-            p.add_argument(n, nargs='1', default=v, help=h, type=t)
+            p.add_argument(n, nargs='?', default=v, help=h, type=t)
 
     a = p.parse_args()
     return a
 
-# Returns python code defining variables from dict c
-def GetDictPy(c):
-    t = ""
-    for k in c:
-        v = c[k]
-        v = '"{:}"'.format(v) if type(v) == str else str(v)
-        t += "{:} = {:}\n".format(k, v)
-
-    return t
 
 def norm(v):
     assert len(v) == 3
@@ -199,15 +197,52 @@ def WriteBub(cc, rr):
 def GetParName():
     return "par.py"
 
-def WritePar(t):
-    n = GetParName()
-    open(n, 'w').write(t)
+# Returns python code defining variables from dict c
+def GetDictPy(c):
+    t = ""
+    for k in c:
+        v = c[k]
+        v = '"{:}"'.format(v) if type(v) == str else str(v)
+        t += "{:} = {:}\n".format(k, v)
 
-# Returns python code defining config derived from c.
-# c: Namespace, output of GetArgs()
-def GetParPy(c):
-    return GetDictPy(GetConf(c))
+    return t
+
+# Writes file with parameters to current directory
+# c: dict with parameters
+def WritePar(c):
+    open(GetParName(), 'w').write(GetDictPy(c))
+
+# Returns dict with parameters
+# b: folder containing 'par.conf'
+def ReadPar(b):
+    f = os.path.join(b, GetParName())
+    c = {}
+    exec(open(f).read(), None, c)
+    return c
 
 # Writes file with dimension
-def WriteDim(dim):
+def WriteDim(dim, f):
     open("dim", 'w').write(str(dim))
+
+# Returns arguments for base.makefile
+# c: dict with parameters, output of ReadPar()
+# Required parameters: np, dim, nx
+def GetMakeArg(c):
+    np = c['np']
+    loc = True if np == 1 else False
+    dim = c['dim']
+    d3 = (dim == 3)
+
+    # minimal size in z
+    mz = 1 if loc else 2
+
+    nx = c['nx']
+    ny = nx
+    nz = nx if d3 else mz
+
+    # block size
+    bx = 8 if d3 else 16
+    by = bx
+    bz = bx if d3 else mz
+
+    return "m='{nx} {ny} {nz}' bs='{bx} {by} {bz}' np={np}" .format(**locals())

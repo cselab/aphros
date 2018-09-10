@@ -1,1 +1,1 @@
-import ch.par
+from ch.par import *
