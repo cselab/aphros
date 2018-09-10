@@ -1,4 +1,28 @@
-# Workflow
+## List of setups
+
+| id | name                               | ch| ge| 2d| 3d| parameters      | bc               |
+|:--:|:-----------------------------------|:-:|:-:|:-:|:-:|:----------------|:-----------------|
+| 01 | curvature                          | x | x | x | x | -               | -                |
+| 02 | hydrostatic                        | x | x | x | x | Ga              | wall             |
+| 03 | cavity                             | x | x | x |   | Re              | wallvel          |
+| 04 | univel                             | x | x | x | x | La, Ca          | per, wall        |
+| 05 | Mortazavi (from univel)            | x | x | x | x | Re, Ca, x0, R   | per, wall        |
+| 06 | Taylor-Green with bubbles          | x | x | x | x | Re, Ca, `b.dat` | per              |
+| 07 | growth                             | x |   | x | x | Re, Ca, rate    | per, wall, inlet |
+
+
+### Boundary conditions
+
+**wallvel**: no-slip with given velocity
+
+**wall**: no-slip with zero velocity
+
+**per**: periodic
+
+
+# Old
+
+## Workflow
 
 * folders `sim*` contain simulation setups
 * setups are machine-independent
