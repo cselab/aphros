@@ -507,10 +507,14 @@ void Hydro<M>::Init() {
   }
 
   if (sem("color-ini")) {
-    // initial color
-    auto icl = CreateInitCl<M>(var, m.IsRoot());
-    icl(fccl_, fc_vf_, m);
-    m.Comm(&fccl_);
+    if (var.Int["enable_color"]) {
+      // initial color
+      auto icl = CreateInitCl<M>(var, m.IsRoot());
+      icl(fccl_, fc_vf_, m);
+      m.Comm(&fccl_);
+    } else {
+      fccl_.Reinit(m, 0.);
+    }
   }
 
   if (sem("solv")) {
