@@ -14,3 +14,6 @@ instfnd statcopy
 instfnd part0
 instfnd part
 instfnd diff
+
+cp -rvf ch1 "$BB/"
+
