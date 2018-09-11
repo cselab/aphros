@@ -12,6 +12,7 @@
 stat.dat
 
 *.pdf
+*.png
 
 pid
 arg
@@ -24,6 +25,7 @@ s_*.vtk
 sp_*.vtk
 partit*.csv
 traj*.csv
+er
 
 **/base.conf
 mesh.conf

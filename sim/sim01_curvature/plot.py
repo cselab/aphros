@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import glob
 import os
 import re
-from plotlib import *
+from ch.plot import *
 import scipy
 import scipy.interpolate
 

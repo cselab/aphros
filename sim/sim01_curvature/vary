@@ -2,5 +2,5 @@
 
 set -eu
 
-./gen -nx 64 -cpr 28 -dim 3
+./gen -nx 16 -cpr 4 -dim 3
 ./run
