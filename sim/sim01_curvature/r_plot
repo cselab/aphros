@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -eu
+
+(cd ch ; ./plot)
+
+./plot.py
+
+d=plot
+dp=$d/pdf
+dt=$d/dat
+
+#rm -rf $d
+mkdir -p $dp
+
+mv -f *.pdf $dp
+
+for s in ch ge ; do
+  mkdir -p $dp/$s
+  mv $s/*.{pdf,png} $dp/$s || true
+done
+
+#mkdir -p $d/dat
+#mv -f p*.dat $d/dat
+

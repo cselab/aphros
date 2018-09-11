@@ -15,6 +15,6 @@
   
   VariableCurvature K T 
 
-  OutputSimulation { step = 1 start = 1 } u_%04ld.vtk { variables = T,K format = VTK}
+  OutputSimulation { step = 1 start = end } u_%04ld.vtk { variables = T,K format = VTK}
 }
 GfsBox {}

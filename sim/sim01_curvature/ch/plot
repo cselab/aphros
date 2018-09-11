@@ -2,4 +2,7 @@
 
 set -eu
 
-pvbatch vis.py s_0000.vtk partitf.csv
+if [ "`cat ../dim`" == 3 ] ; then
+  ./filtcsv
+  pvbatch vis.py s_0000.vtk partitf.csv
+fi

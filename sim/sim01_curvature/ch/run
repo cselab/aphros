@@ -13,5 +13,3 @@ eval "$c"
 
 ch.run t.advection
 
-./filtcsv
-./plot

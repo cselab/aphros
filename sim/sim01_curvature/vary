@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -eu
+
+./gen -nx 64 -cpr 28 -dim 3
+./run

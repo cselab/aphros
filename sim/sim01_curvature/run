@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -eu
+
+./r_ch
+./r_ge
+./r_plot
