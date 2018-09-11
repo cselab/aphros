@@ -46,7 +46,12 @@ def GetDatPath(p, k):
 # ff: output of GetFields()
 def ConvertNative(p, ff):
     d = vtk.read_vtk(p)
-    x,y,z,uu = vtk.interp_to_uniform3(d['x'], d['y'], d['z'], [d[k] for k in ff])
+    dim = int(open('../dim').read())
+    if dim == 2:
+        x,y,uu = vtk.interp_to_uniform(d['x'], d['y'], [d[k] for k in ff])
+    else:
+        x,y,z,uu = vtk.interp_to_uniform3(d['x'], d['y'], d['z'], [d[k] for k in ff])
+
     for i,k in enumerate(ff):
         Write(uu[i], GetDatPath(p, ff[k]))
 

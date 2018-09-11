@@ -122,7 +122,7 @@ def interp_to_uniform(xp, yp, fields=[], n=None):
     r = []
     for fp in fields:
         f = scipy.interpolate.griddata(pts, fp, (x, y), method="nearest")
-        #assert np.all(np.isfinite(f))
+        f = np.transpose(f)
         r.append(f)
 
     return x1, y1, r

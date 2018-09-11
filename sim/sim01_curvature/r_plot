@@ -17,9 +17,9 @@ mv -f *.pdf $dp
 
 for s in ch ge ; do
   mkdir -p $dp/$s
-  mv $s/*.{pdf,png} $dp/$s || true
+  mv $s/*.{pdf,png} $dp/$s 2> /dev/null || true
 done
 
-#mkdir -p $d/dat
-#mv -f p*.dat $d/dat
+mkdir -p $dt
+mv -f {ang,hist}_*.dat $dt 2> /dev/null || true
 

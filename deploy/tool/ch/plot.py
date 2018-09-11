@@ -9,6 +9,8 @@ import os
 import re
 import sys
 from matplotlib.colors import LinearSegmentedColormap
+import scipy
+import scipy.interpolate
 
 kThin = False
 
@@ -31,232 +33,6 @@ def Log(s, noeol=False):
     sys.stdout.write(s)
     sys.stdout.flush()
 
-# Figure with volume fraction
-# pt: path template
-# suf: output name suffix
-def FigVf(pt):
-    vf = ReadField(pt, 'vf')
-    dim = GetDim(vf.shape)
-    # center of mass
-    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
-    x,y,z = GetMesh(x1, y1, z1)
-    ii = np.where(np.isfinite(vf))
-    cx = np.sum(x[ii] * vf[ii]) / np.sum(vf[ii])
-    cy = np.sum(y[ii] * vf[ii]) / np.sum(vf[ii])
-    cz = np.sum(z[ii] * vf[ii]) / np.sum(vf[ii])
-    iz = np.argmin(abs(cz - z))
-
-    # slice through center of mass
-    if vf is not None: vf = vf[:,:,iz:iz+1]
-
-    fig, ax = PlotInitSq()
-    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
-    xn1,yn1,zn1 = GetMeshNodes(hx, hy, hz)
-    x,y,z = GetMesh(x1, y1, z1)
-
-    # grid
-    PlotGrid(ax, xn1, yn1)
-    # field
-    PlotFieldGray(ax, vf, vmin=0., vmax=1.)
-    # partilces
-    pa = GetFieldPath(pt, "partit")
-    if os.path.isfile(pa) and dim == 2:
-        Log(pa)
-        PlotPart(ax, pa, sk=4)
-    # save
-    po = GetFieldPath(pt, "vf", "pdf")
-    Log(po)
-    PlotSave(fig, ax, po)
-
-# Exact trajectory.
-# x0: initial center, shape (3)
-# vx0: velocity, shape (3)
-# tmax: total time
-# n: number of segments
-def GetTrajE(x0, vx0, tmax, n=150):
-    x = [np.linspace(x0[d], x0[d] + vx0[d] * tmax, n) for d in range(3)]
-    return x
-
-# Extracts trajectory of center of mass.
-# pp: list of paths to volume fraction fields
-# Returns:
-# x,y: arrays
-def GetTraj(pp):
-    # result
-    cx = [] ; cy = [] ; cz = []
-    for i,p in enumerate(pp):
-        # report
-        Log("{:} ".format(i), True)
-        # read array
-        vf = ReadArray(p)
-        x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
-        x,y,z = GetMesh(x1, y1, z1)
-        # compute center
-        cx0 = (x * vf).sum() / vf.sum()
-        cy0 = (y * vf).sum() / vf.sum()
-        cz0 = (z * vf).sum() / vf.sum()
-        cx.append(cx0)
-        cy.append(cy0)
-        cz.append(cz0)
-    Log("")
-
-    cx = np.array(cx)
-    cy = np.array(cy)
-    cz = np.array(cz)
-    return cx,cy,cz
-
-# Extracts value of field along trajectory.
-# pp: list of paths to volume fraction fields
-# cx,cy,cz: trajectory
-# fld: field prefix (e.g. 'p')
-# Returns:
-# cu: field at center
-def GetTrajFld(pp, cx, cy, cz, fld):
-    cu = []
-    for i,p in enumerate(pp):
-        # report
-        Log("{:} ".format(i), True)
-        # path template
-        pt = GetPathTemplate(p)
-        # read field
-        u = ReadField(pt, fld)
-        # mesh
-        x1,y1,z1,hx,hy,hz = GetGeom(u.shape)
-        x,y,z = GetMesh(x1, y1, z1)
-        # index
-        ci0 = int(cx[i] / hx)
-        cj0 = int(cy[i] / hy)
-        ck0 = int(cz[i] / hz)
-        # field
-        cu.append(u[ci0, cj0, ck0])
-    Log("")
-
-    cu = np.array(cu)
-    return cu
-
-# Average field weighed with volume fraction along trajectory.
-# pp: list of paths to volume fraction fields
-# fld: field prefix (e.g. 'p')
-# Returns:
-# cu: average field at every point in pp
-def GetAvgFld(pp, fld):
-    cu = []
-    for i,p in enumerate(pp):
-        # read field
-        u = ReadField(GetPathTemplate(p), fld)
-        # read volume fraction
-        v = ReadArray(p)
-        # field value
-        cu.append((u * v).mean() / v.mean())
-    cu = np.array(cu)
-    return cu
-
-# Magnitude of difference from uniform reference field.
-# pp: list of paths to volume fraction fields
-# fld: field prefix (e.g. 'vx')
-# ue: reference
-# Returns:
-# umax: max norm
-# u1: l1 norm
-# u2: l2 norm
-def GetDiff(pp, fld, ue):
-    umax = []
-    u1 = []
-    u2 = []
-    for i,p in enumerate(pp):
-        # read field
-        u = ReadField(GetPathTemplate(p), fld)
-        # difference
-        du = abs(u - ue)
-        # norms
-        umax.append(du.max())
-        u1.append(du.mean())
-        u2.append((du ** 2).mean() ** 0.5)
-    umax = np.array(umax)
-    u1 = np.array(u1)
-    u2 = np.array(u2)
-    return umax, u1, u2
-
-# Writes line as x,y columns.
-# x,y: 1d arrays
-# po: output path
-def WriteLine0(x, y, po):
-    np.savetxt(po, np.array((x,y)).T)
-
-# Output path for single line.
-# l: line label
-# po: output path [base].[ext]
-# Returns:
-# [base]_[l].dat
-def GetLinePath(l, po):
-    b = os.path.splitext(po)[0]
-    return "{:}_{:}.dat".format(b, l)
-
-# Writes line as x,y columns.
-# x,y: 1d arrays
-# l: line label
-# po: output path [base].[ext]
-def WriteLine(x, y, l, po):
-    WriteLine0(x, y, GetLinePath(l, po))
-
-
-# Plots trajectories
-# xx,yy: list of arrays for axes
-# ll: line labels
-# lx,ly: axes labels
-# ylog: log-scale in y
-# po: output path
-def PlotTrajFld(xx, yy, ll, lx, ly, po, vmin=None, vmax=None, ystep=None,
-                ylog=False):
-    fig, ax = PlotInit()
-    if vmin is None: vmin = yy[0].min()
-    if vmax is None: vmax = yy[0].max()
-    i = 0
-    for x,y,l in zip(xx, yy, ll):
-        WriteLine(x, y, l, po)
-        if i == len(xx) - 1: # separate for last
-            ax.plot(x, y, label=l, c="0.5", ls='--')
-        else:
-            ax.plot(x, y, label=l)
-        i += 1
-    ax.legend()
-    ax.grid(True)
-    ax.set_xlabel(lx)
-    ax.set_ylabel(ly)
-    ax.set_ylim(vmin, vmax)
-    if ylog:
-        ax.set_yscale('log')
-    if ystep is not None:
-        ax.set_yticks(np.arange(vmin, vmax + 1e-10, ystep))
-    PlotSave(fig, ax, po)
-
-# Plots trajectories
-# xx,yy: list of arrays
-# ll: labels
-# s: shape of of data array
-# po: output path
-def PlotTraj(xx, yy, ll, s, po):
-    fig, ax = PlotInitSq()
-    ax.set_aspect('equal')
-    i = 0
-    for x,y,l in zip(xx, yy, ll):
-        WriteLine(x, y, l, po)
-        if i == len(xx) - 1: # different style for last (exact)
-            ax.plot(x, y, label=l, c="0.5", ls='--')
-        else:
-            ax.plot(x, y, label=l)
-        i += 1
-    ax.legend()
-    ax.set_xlim(0., 1.)
-    ax.set_ylim(0., 1.)
-    x1,y1,z1,hx,hy,hz = GetGeom(s)
-    xn1,yn1,zn1 = GetMeshNodes(hx, hy, hz)
-    PlotGrid(ax, xn1, yn1)
-
-    q,q,q,rx,ry,rz = LoadBub()
-    x1,y1,z1,hx,hy,hz = GetGeom(s)
-    plt.title("r/h={:0.3f}".format(rx / hx))
-    PlotSave(fig, ax, po)
 
 # Read uniform grid data
 # p: path
@@ -465,6 +241,12 @@ def IsGerris(s):
     # check if gerris (odd nx)
     return s[0] % 2 == 1
 
+# Returns dimension by shape
+def GetDim(s):
+    if len(s) == 2 or s[2] in [1, 2]:
+        return 2
+    return 3
+
 # s: shape of data array
 # Returns:
 # x1,y1,z1: coordinates of cell centers
@@ -474,9 +256,11 @@ def GetGeom(s):
     # cells
     ge = IsGerris(s)
     sx,sy,sz = (nx,ny,nz) if not ge else (nx-1,ny-1,nz-1)
-    hx = 1. / sx
-    hy = 1. / sy
-    hz = 1. / sz if sz > 0 else 1.
+    ext = 1.  # extent
+    h = ext / max(sx, sy, sz)
+    hx = h
+    hy = h
+    hz = h
     # mesh
     if ge:
         x1 = (0. + np.arange(nx)) * hx
@@ -496,11 +280,6 @@ def GetMeshStep(s):
     if IsGerris(s):
         return 1. / (s[0] - 1)
     return 1. / s[0]
-
-def GetDim(s):
-    if len(s) == 2 or s[2] in [1, 2]:
-        return 2
-    return 3
 
 # Returns mesh nodes
 # assume [0,1]x[0,1]x[0,1] domain
@@ -564,6 +343,240 @@ def FigTitle(t, po):
     #fig.savefig(po, bbox_inches='tight')
     fig.savefig(po)
     plt.close()
+
+# Figure with volume fraction
+# pt: path template
+# vfn: volume fraction field name
+def FigVf(pt, vfn='vf'):
+    vf = ReadField(pt, vfn)
+    dim = GetDim(vf.shape)
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+    x,y,z = GetMesh(x1, y1, z1)
+    ii = np.where(np.isfinite(vf))
+    # center of mass
+    cx = np.sum(x[ii] * vf[ii]) / np.sum(vf[ii])
+    cy = np.sum(y[ii] * vf[ii]) / np.sum(vf[ii])
+    cz = np.sum(z[ii] * vf[ii]) / np.sum(vf[ii])
+    iz = np.argmin(abs(cz - z))
+
+    # slice through center of mass
+    if vf is not None: vf = vf[:,:,iz:iz+1]
+
+    fig, ax = PlotInitSq()
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+    xn1,yn1,zn1 = GetMeshNodes(hx, hy, hz)
+    x,y,z = GetMesh(x1, y1, z1)
+
+    # grid
+    PlotGrid(ax, xn1, yn1)
+    # field
+    PlotFieldGray(ax, vf, vmin=0., vmax=1.)
+    # lines
+    if dim == 2:
+        a,nx,ny = [ReadField(pt, n) for n in ['a', 'nx', 'ny']]
+        if all(u is not None for u in [a, nx, ny]):
+            l = GetLines(x, y, a, nx, ny, hx, hy, vf)
+            PlotLines(ax, *l)
+    # partilces
+    pa = GetFieldPath(pt, "partit")
+    if os.path.isfile(pa) and dim == 2:
+        Log(pa)
+        PlotPart(ax, pa, sk=4)
+    # save
+    po = GetFieldPath(pt, "vf", "pdf")
+    Log(po)
+    PlotSave(fig, ax, po)
+
+# Exact trajectory.
+# x0: initial center, shape (3)
+# vx0: velocity, shape (3)
+# tmax: total time
+# n: number of segments
+def GetTrajE(x0, vx0, tmax, n=150):
+    x = [np.linspace(x0[d], x0[d] + vx0[d] * tmax, n) for d in range(3)]
+    return x
+
+# Extracts trajectory of center of mass.
+# pp: list of paths to volume fraction fields
+# Returns:
+# x,y: arrays
+def GetTraj(pp):
+    # result
+    cx = [] ; cy = [] ; cz = []
+    for i,p in enumerate(pp):
+        # report
+        Log("{:} ".format(i), True)
+        # read array
+        vf = ReadArray(p)
+        x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+        x,y,z = GetMesh(x1, y1, z1)
+        # compute center
+        cx0 = (x * vf).sum() / vf.sum()
+        cy0 = (y * vf).sum() / vf.sum()
+        cz0 = (z * vf).sum() / vf.sum()
+        cx.append(cx0)
+        cy.append(cy0)
+        cz.append(cz0)
+    Log("")
+
+    cx = np.array(cx)
+    cy = np.array(cy)
+    cz = np.array(cz)
+    return cx,cy,cz
+
+# Extracts value of field along trajectory.
+# pp: list of paths to volume fraction fields
+# cx,cy,cz: trajectory
+# fld: field prefix (e.g. 'p')
+# Returns:
+# cu: field at center
+def GetTrajFld(pp, cx, cy, cz, fld):
+    cu = []
+    for i,p in enumerate(pp):
+        # report
+        Log("{:} ".format(i), True)
+        # path template
+        pt = GetPathTemplate(p)
+        # read field
+        u = ReadField(pt, fld)
+        # mesh
+        x1,y1,z1,hx,hy,hz = GetGeom(u.shape)
+        x,y,z = GetMesh(x1, y1, z1)
+        # index
+        ci0 = int(cx[i] / hx)
+        cj0 = int(cy[i] / hy)
+        ck0 = int(cz[i] / hz)
+        # field
+        cu.append(u[ci0, cj0, ck0])
+    Log("")
+
+    cu = np.array(cu)
+    return cu
+
+# Average field weighed with volume fraction along trajectory.
+# pp: list of paths to volume fraction fields
+# fld: field prefix (e.g. 'p')
+# Returns:
+# cu: average field at every point in pp
+def GetAvgFld(pp, fld):
+    cu = []
+    for i,p in enumerate(pp):
+        # read field
+        u = ReadField(GetPathTemplate(p), fld)
+        # read volume fraction
+        v = ReadArray(p)
+        # field value
+        cu.append((u * v).mean() / v.mean())
+    cu = np.array(cu)
+    return cu
+
+# Magnitude of difference from uniform reference field.
+# pp: list of paths to volume fraction fields
+# fld: field prefix (e.g. 'vx')
+# ue: reference
+# Returns:
+# umax: max norm
+# u1: l1 norm
+# u2: l2 norm
+def GetDiff(pp, fld, ue):
+    umax = []
+    u1 = []
+    u2 = []
+    for i,p in enumerate(pp):
+        # read field
+        u = ReadField(GetPathTemplate(p), fld)
+        # difference
+        du = abs(u - ue)
+        # norms
+        umax.append(du.max())
+        u1.append(du.mean())
+        u2.append((du ** 2).mean() ** 0.5)
+    umax = np.array(umax)
+    u1 = np.array(u1)
+    u2 = np.array(u2)
+    return umax, u1, u2
+
+# Writes line as x,y columns.
+# x,y: 1d arrays
+# po: output path
+def WriteLine0(x, y, po):
+    np.savetxt(po, np.array((x,y)).T)
+
+# Output path for single line.
+# l: line label
+# po: output path [base].[ext]
+# Returns:
+# "[base]_[l].dat"
+def GetLinePath(l, po):
+    b = os.path.splitext(po)[0]
+    return "{:}_{:}.dat".format(b, l)
+
+# Writes line as x,y columns.
+# x,y: 1d arrays
+# l: line label
+# po: output path [base].[ext]
+# Output:
+# [base]_[l].dat: file with x,y columns
+def WriteLine(x, y, l, po):
+    WriteLine0(x, y, GetLinePath(l, po))
+
+# Plots trajectories
+# xx,yy: list of arrays for axes
+# ll: line labels
+# lx,ly: axes labels
+# ylog: log-scale in y
+# po: output path
+def PlotTrajFld(xx, yy, ll, lx, ly, po, vmin=None, vmax=None, ystep=None,
+                ylog=False):
+    fig, ax = PlotInit()
+    if vmin is None: vmin = yy[0].min()
+    if vmax is None: vmax = yy[0].max()
+    i = 0
+    for x,y,l in zip(xx, yy, ll):
+        WriteLine(x, y, l, po)
+        if i == len(xx) - 1: # separate for last
+            ax.plot(x, y, label=l, c="0.5", ls='--')
+        else:
+            ax.plot(x, y, label=l)
+        i += 1
+    ax.legend()
+    ax.grid(True)
+    ax.set_xlabel(lx)
+    ax.set_ylabel(ly)
+    ax.set_ylim(vmin, vmax)
+    if ylog:
+        ax.set_yscale('log')
+    if ystep is not None:
+        ax.set_yticks(np.arange(vmin, vmax + 1e-10, ystep))
+    PlotSave(fig, ax, po)
+
+# Plots trajectories
+# xx,yy: list of arrays
+# ll: labels
+# s: shape of of data array
+# po: output path
+def PlotTraj(xx, yy, ll, s, po):
+    fig, ax = PlotInitSq()
+    ax.set_aspect('equal')
+    i = 0
+    for x,y,l in zip(xx, yy, ll):
+        WriteLine(x, y, l, po)
+        if i == len(xx) - 1: # different style for last (exact)
+            ax.plot(x, y, label=l, c="0.5", ls='--')
+        else:
+            ax.plot(x, y, label=l)
+        i += 1
+    ax.legend()
+    ax.set_xlim(0., 1.)
+    ax.set_ylim(0., 1.)
+    x1,y1,z1,hx,hy,hz = GetGeom(s)
+    xn1,yn1,zn1 = GetMeshNodes(hx, hy, hz)
+    PlotGrid(ax, xn1, yn1)
+
+    q,q,q,rx,ry,rz = LoadBub()
+    x1,y1,z1,hx,hy,hz = GetGeom(s)
+    plt.title("r/h={:0.3f}".format(rx / hx))
+    PlotSave(fig, ax, po)
 
 # Computes norms: max, L1, L2
 # u: array
@@ -725,14 +738,23 @@ def FigHistK(vf, kk, ll, po, title=None):
     # average curvature
     kea = ke.mean()
 
+    def ER(k):
+        if IsGerris(vf.shape):
+            k = -k
+        k = k[ii]
+        return (k - ke) / kea * hx  # error
+
     fig, ax = PlotInit()
     for k,l in zip(kk,ll):
         if IsGerris(vf.shape):
-            k *= -1
+            k = -k
         k = k[ii]
         er = (k - ke) / kea  # error
-        h,b = np.histogram(er, 200, range=(-1., 1.), density=False)
+        #rm = np.std(er) * 3
+        rm = 1.
+        h,b = np.histogram(er, 200, range=(-rm, rm), density=False)
         bc = (b[1:] + b[:-1]) * 0.5
+        WriteLine(bc, h, l, po)
         ax.plot(bc, h, label=l)
 
     ax.axvline(x=0., label="exact", c="0.5", ls='--')
@@ -746,7 +768,7 @@ def FigHistK(vf, kk, ll, po, title=None):
 
     # write error: label rx ry max l1 l2
     cx,cy,cz,rx,ry,rz = LoadBub()
-    with open("er", 'w') as f:
+    with open(GetLinePath("norm", po), 'w') as f:
         for k,l in zip(kk,ll):
             if k is not None:
                 k = k[ii]
@@ -754,7 +776,165 @@ def FigHistK(vf, kk, ll, po, title=None):
                 f.write("{:} {:} {:} {:} {:} {:}\n".format(
                         l, rx/hx, ry/hx, m, l1, l2))
 
-def Univel3():
+# Figure of curvature vs angle.
+# vf: volume fraction field
+# kk: list of curvature fields of shape vf.shape
+# ll: list of labels
+def FigAng(vf, kk, ll, po):
+    dim = GetDim(vf.shape)
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+    x,y,z = GetMesh(x1, y1, z1)
+
+    # select interface points from x,y,z
+    th = 0
+    ii = np.where((vf > th) & (vf < 1. - th))
+    x = x[ii]; y = y[ii]; z = z[ii]
+
+    cx,cy,cz,rx,ry,rz = LoadBub()
+
+    # cartesian to spherical for points x,y,z on interface
+    dx = x - cx ; dy = y - cy ; dz = z - cz
+    u = np.arctan2(dy, dx)
+    v = np.arctan2(dz, (dx ** 2 + dy ** 2) ** 0.5)
+    # angles of interface points in deg
+    degu = np.degrees(u)
+    degv = np.degrees(v)
+
+    # hires angle
+    uh = np.linspace(-np.pi, np.pi, 200)
+    if dim == 3:
+        vh = np.linspace(-np.pi * 0.5, np.pi * 0.5, 200)
+    else:
+        vh = np.array([0.])
+    # hires points
+    # ellipsoid in spherical coordinates: r=r(u,v)
+    r = ((np.cos(uh) * np.cos(vh) / rx) ** 2 +
+         (np.sin(uh) * np.cos(vh) / ry) ** 2 +
+         (np.sin(vh) / rz) ** 2) ** (-0.5)
+    xh = cx + r * np.cos(uh) * np.cos(vh)
+    yh = cy + r * np.sin(uh) * np.cos(vh)
+    zh = cz + r * np.sin(vh)
+    # hires curvature
+    keh = GetExactK(dim, xh.flatten(), yh.flatten(), zh.flatten())
+    keh = keh.reshape(xh.shape)
+    # average curvature
+    kea = keh.mean()
+
+    # line in angles
+    nls = 200
+    us = np.linspace(-np.pi, np.pi, nls)
+    if dim == 3:
+        vs = np.linspace(-np.pi * 0.5, np.pi * 0.5, nls)
+    else:
+        vs = np.linspace(0., 0., nls)
+    # angles of line in deg
+    degus = np.degrees(us)
+    degvs = np.degrees(vs)
+
+    # Interpolate to line
+    # u,v: source points
+    # k: source field
+    # ut,vt: target points
+    # Returns:
+    # kt: field k interpolated from u,x to ut,vt
+    def IL(u, v, k, ut, vt):
+        if v.ptp() > 0.:
+            return scipy.interpolate.griddata((u, v), k, (ut, vt))
+        else: # XXX: adhoc for 2d
+            fk = scipy.interpolate.interp1d(u, k, bounds_error=False)
+            return fk(ut)
+
+    # interpolate curvature to line
+    kks = []
+    for k in kk:
+        if k is not None:
+            kks.append(IL(degu, degv, k[ii], degus, degvs))
+        else:
+            kks.append(None)
+
+
+    fig, ax = PlotInit()
+
+    # plot interpolated curvature along line
+    for k,l in zip(kks,ll):
+        if k is not None:
+            WriteLine(degus, k / kea, l, po)
+            ax.plot(degus, k / kea, label=l)
+
+    # plot lowres exact curvature
+    ke = GetExactK(dim, x, y, z)
+    kes = IL(degu, degv, ke, degus, degvs)
+    WriteLine(degus, kes / kea, "exact", po)
+    ax.plot(degus, kes / kea, label="exact")
+
+    # plot hires exact curvature
+    WriteLine(degus, keh / kea, "exacth", po)
+    ax.plot(degus, keh / kea, label="exact", c="0.5", ls='--')
+
+    ax.set_xlabel(r"$\varphi$ [deg]")
+    ax.set_ylabel(r"normalized curvature")
+    ax.grid()
+    ax.legend()
+    ax.set_ylim(0., 2.)
+    PlotSave(fig, ax, po)
+
+# Figure with curvature depending on angle, 2D
+# XXX: deprecated
+# vf: volume fraction field
+# kk: list of curvature fields
+# ll: list of labels
+def FigAng2(vf, kk, ll, po):
+    dim = GetDim(vf.shape)
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+    x,y,z = GetMesh(x1, y1, z1)
+
+    # interface cells
+    th = 0
+    ii = np.where((vf > th) & (vf < 1. - th))
+    x = x[ii]; y = y[ii]; z = z[ii]
+
+    # hires angle
+    anh = np.linspace(-np.pi, np.pi, 200)
+    degh = np.degrees(anh)
+    # hires points
+    cx,cy,cz,rx,ry,rz = LoadBub()
+    r =  (rx * ry) / ((ry * np.cos(anh)) ** 2 + (rx * np.sin(anh)) ** 2) ** 0.5
+    xh = cx + r * np.cos(anh)
+    yh = cy + r * np.sin(anh)
+    # hires curvature
+    keh = GetExactK(dim, xh, yh, cz)
+    # average curvature
+    kea = keh.mean()
+
+    dx = x - cx ; dy = y - cy
+    an = np.arctan2(dy, dx)
+    deg = np.degrees(an)
+    s = np.argsort(an)
+
+    fig, ax = PlotInit()
+
+    # plot estimates
+    for k,l in zip(kk,ll):
+        if k is not None:
+            ax.plot(deg[s], k[ii][s] / kea, label=l)
+
+    # plot lowres exact curvature
+    ax.plot(deg[s], GetExactK(dim, x, y, z)[s] / kea, label="exact")
+
+    # plot exact curvature
+    ax.plot(degh, keh / kea, label="exact", c="0.5", ls='--')
+
+    ax.set_xlabel(r"angle [deg]")
+    ax.set_ylabel(r"normalized curvature")
+    q=180.
+    ax.set_xticks(np.arange(-q, q*1.1, 90.))
+    ax.set_xlim(-q, q)
+    ax.legend()
+    ax.set_ylim(0., 2.)
+    ax.grid()
+    PlotSave(fig, ax, po)
+
+def Univel():
     # directories
     dd = ['ch', 'ge']
     # labels
@@ -905,3 +1085,51 @@ def Univel3():
                     vmin=vmin, vmax=vmax, ylog=True)
         PlotTrajFld(tt, vvz2, ll, "t", "vz", "trajvz2.pdf",
                     vmin=vmin, vmax=vmax, ylog=True)
+
+def Curv():
+    # directories
+    dd = ['ch', 'ge']
+    # labels
+    ll = ['mfer', 'gerris']
+    # curvature arrays
+    kk = []
+
+    for d,l in zip(dd, ll):
+        print(d)
+        pp = Glob(d, 'u')
+        assert pp is not None
+        pt = GetPathTemplate(pp[-1])
+
+        # volume fraction
+        FigVf(pt, 'u')
+
+        # append curvature
+        k = ReadField(pt, 'k')
+        assert k is not None
+        if IsGerris(k.shape):
+            k = k * (-1)
+        kk.append(k)
+
+
+    # volume fraction from dd[0]
+    pp = Glob(dd[0], 'u')
+    pt = GetPathTemplate(pp[-1])
+    vf = ReadField(pt, "u")
+    dim = GetDim(vf.shape)
+
+    # title
+    cx,cy,cz,rx,ry,rz = LoadBub()
+    x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
+    if dim == 2:
+        title = "rx/h={:0.2f} ry/h={:0.2f}".format(rx / hx, ry / hx)
+    else:
+        title = "rx/h={:0.2f} ry/h={:0.2f} rz/h={:0.2f}".format(
+                rx / hx, ry / hx, rz / hx)
+
+    # curvature vs angle
+    po = 'ang.pdf'
+    FigAng(vf, kk, ll, po)
+
+    # curvature histogram
+    po = 'hist.pdf'
+    FigHistK(vf, kk, ll, po, title=title)

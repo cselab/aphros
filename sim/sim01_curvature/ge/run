@@ -9,5 +9,5 @@ echo > $o
 
 ./clean
 ./pargen
-ge.run${dim}d -m "main.gen.gfs" >> $o
-./convert >> $o
+ge.run${dim}d -m "main.gen.gfs" &>> $o
+./convert &>> $o

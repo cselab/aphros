@@ -11,5 +11,5 @@ make cleanall
 c="make $a conf"
 eval "$c"
 
-ch.run t.advection
+ch.run t.advection &> /dev/null
 
