@@ -45,7 +45,7 @@ probably due to stronger coupling or penalization of deformed interfaces
 - [`dn1.mp4`](log02_dn/dn1.mp4): with normal displacement
 
 
-## march=native
+## `march=native`
 
 2018-09-09 11:59:47
 
@@ -64,3 +64,27 @@ with 64 cores on Euler
 
 - `out_std`: standard flags
 - `out_native`: `-march=native`
+
+## `max_iter`
+
+2018-09-12 14:03:27
+
+**Goal**:
+choose optimal number of iterations `max_iter`
+
+**What**:
+Taylor-Green with bubbles (`sim06`) with `max_iter`=1,2,3,4,5
+and `convsc`=`cd`,`quick`.
+
+**Result**
+
+- qualitatively different trajectories for `max_iter`=1,2;
+- convergence at `max_iter`=4
+- no major difference between `cd` and `quick`,
+- no difference between `simpler`=0 and 1
+
+**Data**:
+[`log04_maxit`](log04_maxit)
+
+- `kedr.pdf`: kinetic energy dissipation rate
+- `traj.pdf`: x-component of trajectory of bubble 2
