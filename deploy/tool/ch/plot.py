@@ -201,9 +201,8 @@ def PlotPart(ax, p, sk=1):
     d = np.loadtxt(p, skiprows=1, delimiter=',')
     if d.size == 0:
         return None
-    x,y,z,c = d.T[0:4,:]
+    x,y,z,c = (d.T)[0:4,:]
     c = c.astype(int)
-
 
     # separate particles strings by cell
     tt = dict()  # lists of indices in x, cell is key
@@ -353,13 +352,17 @@ def FigVf(pt, vfn='vf'):
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
     x,y,z = GetMesh(x1, y1, z1)
     ii = np.where(np.isfinite(vf))
-    # center of mass
-    cx = np.sum(x[ii] * vf[ii]) / np.sum(vf[ii])
-    cy = np.sum(y[ii] * vf[ii]) / np.sum(vf[ii])
-    cz = np.sum(z[ii] * vf[ii]) / np.sum(vf[ii])
-    iz = np.argmin(abs(cz - z))
 
-    # slice through center of mass
+    # bubble
+    cx,cy,cz,rx,ry,rz = LoadBub()
+
+    # center of mass
+    #cx = np.sum(x[ii] * vf[ii]) / np.sum(vf[ii])
+    #cy = np.sum(y[ii] * vf[ii]) / np.sum(vf[ii])
+    #cz = np.sum(z[ii] * vf[ii]) / np.sum(vf[ii])
+
+    # xy slice through center of mass
+    iz = np.argmin(abs(cz - z))
     if vf is not None: vf = vf[:,:,iz:iz+1]
 
     fig, ax = PlotInitSq()
@@ -381,7 +384,10 @@ def FigVf(pt, vfn='vf'):
     pa = GetFieldPath(pt, "partit")
     if os.path.isfile(pa) and dim == 2:
         Log(pa)
-        PlotPart(ax, pa, sk=4)
+        PlotPart(ax, pa, sk=1)
+    # closeup
+    ax.set_xlim([cx - rx - hx, cx + rx + hx])
+    ax.set_ylim([cy - ry - hy, cy + ry + hy])
     # save
     po = GetFieldPath(pt, "vf", "pdf")
     Log(po)

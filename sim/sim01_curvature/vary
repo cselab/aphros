@@ -1,6 +1,44 @@
-#!/bin/bash
+#!/usr/bin/env python
 
-set -eu
+import os
+import itertools as it
+import numpy as np
 
-./gen -nx 32 -cpr 3 -bryk 1. -dim 2
-./run &> out
+def sh(s, fatal=True):
+    print(s)
+    r = os.system(s)
+    assert not fatal or r == 0
+
+o = "out"
+
+sh("echo > {:}".format(o))
+
+ff = []
+ddim = [3]
+for dim,cpr in it.product(ddim, 2 ** (np.arange(3) * 0.5)):
+    nxm = 16 if dim == 2 else 8
+    nx = max(nxm, 2 ** (int(cpr * 2 + 2).bit_length()))
+    fo="plot_dim{:}_cpr{:.2f}".format(dim, cpr)
+    ff.append(fo)
+
+    if not os.path.isdir(fo):
+        sh("./gen -nx {nx} -cpr {cpr} -bryk 1. -dim {dim}".format(**locals()))
+        sh("./run &>> {:}".format(o))
+        sh("cp -rfT plot {:}".format(fo))
+
+    # convert surface plot to s.pdf
+    fch = "{:}/pdf/ch/".format(fo)
+    if dim == 3:
+        t = "t.png"
+        sh("convert -trim {p}s.png {p}{t} ; \
+            convert {p}{t} {p}s.pdf ; rm {p}{t}".format(p=fch, t=t))
+    else:
+        sh("cp {p}vf_0000.pdf {p}s.pdf".format(p=fch))
+
+
+#sh("./tile")
+ny = len(ddim)
+nx = len(ff) // ny
+
+sh("pdfnup {:} --nup {nx}x{ny} --fitpaper false --outfile merge.pdf".format(
+    ' '.join([f + "/pdf/ch/s.pdf" for f in ff]), nx=nx, ny=ny))
