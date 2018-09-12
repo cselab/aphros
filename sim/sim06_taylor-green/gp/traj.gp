@@ -9,11 +9,11 @@ set grid
 
 v='x'
 
-l="nx256 nx512"
+l=system("ls nx128*.dat")
 
 set xlabel "n"
 set ylabel v
-plot for [f in l] "<awk 'NR!=2' ".f."/t0" using "n":"".v."" w l lw 3 t "".f.""
+plot for [f in l] "<awk 'NR!=2' ".f using "n":"".v."" w l lw 3 t "".f.""
 
 set xrange [0:2]
 set yrange [-0.002:0.014]

@@ -1,5 +1,12 @@
-b = 0
-all:
-	(cd nx256 ; ch.gettraj $(b) > t0)
-	(cd nx512 ; ch.gettraj $(b) > t0)
-	gnuplot a.gp
+b = 2
+
+ff = $(subst /,,$(dir $(wildcard nx*/out)))
+
+%.dat : %/out
+	cd $(basename $@) ; ch.gettraj $(b) > ../$(basename $@).dat
+
+all: $(ff:=.dat)
+	gnuplot traj.gp
+	gnuplot kedr.gp
+
+.PHONY: all
