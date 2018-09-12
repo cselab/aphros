@@ -12,8 +12,6 @@ def sh(s, fatal=True):
 
 o = "out"
 
-sh("echo > {:}".format(o))
-
 ff = []
 ddim = [2,3]
 for dim,cpr in it.product(ddim, 2 ** (np.arange(-2,17) * 0.25)):
@@ -37,11 +35,47 @@ for dim in [2,3]:
     nx = len(fd) 
     ww = []
     o='merge_dim{:}.pdf'.format(dim)
-    for l in ll:
-        ww += [os.path.join(f,'pdf',l) for f in fd]
-    sh("pdfjam --nup {nx}x{ny} --outfile {o} -- {:}".format(
-        ' '.join(ww), nx=nx, ny=ny, o=o))
-    sh("pdfcrop --margins '5 5 5 5' {o} {o}".format(o=o))
+    if not os.path.isfile(o):
+        for l in ll:
+            ww += [os.path.join(f,'pdf',l) for f in fd]
+        sh("pdfjam --nup {nx}x{ny} --outfile {o} -- {:}".format(
+            ' '.join(ww), nx=nx, ny=ny, o=o))
+        sh("pdfcrop --margins '5 5 5 5' {o} {o}".format(o=o))
 
-    sh("pdfjoin {:} --outfile sdim{:}.pdf".format(
-        ' '.join([os.path.join(f, 'pdf/ch/s.pdf') for f in fd]), dim))
+    o='sdim{:}.pdf'.format(dim)
+    if not os.path.isfile(o):
+        sh("pdfjoin {:} --outfile {:}".format(
+            ' '.join([os.path.join(f, 'pdf/ch/s.pdf') for f in fd]), o))
+
+    # gather error
+    ee = {}
+    for f in fd:
+        fe = os.path.join(f, "dat/hist_norm.dat") # max l1 l2
+        for l in open(fe):
+            n,rx,ry,em,e1,e2 = l.split() # n: solver name
+            if not n in ee:
+                ee[n] = dict()
+            def A(k, v):
+                if not k in ee[n]:
+                    ee[n][k] = []
+                ee[n][k].append(v)
+            A('rx', rx)
+            A('ry', ry)
+            A('max', em)
+            A('l1', e1)
+            A('l2', e2)
+
+    # write error
+    for n in ee:
+        e = ee[n]
+        an = {'gerris':'ge', 'mfer':'ch'} # alias
+        o = "er_d{:}_{:}.dat".format(dim, an[n])
+        if os.path.isfile(o):
+            continue
+
+        cc = ['rx', 'ry', 'max', 'l1', 'l2']
+        with open(o, 'w') as fo:
+            fo.write(' '.join(cc) + '\n')
+            for i in range(len(e[cc[0]])):
+                fo.write(' '.join([str(float(e[c][i])) for c in cc]) + '\n')
+
