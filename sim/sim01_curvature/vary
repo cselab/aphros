@@ -5,6 +5,9 @@ import itertools as it
 import numpy as np
 from glob import glob
 
+import ch.plot as chp
+
+
 def sh(s, fatal=True):
     print(s)
     r = os.system(s)
@@ -14,7 +17,7 @@ o = "out"
 
 ff = []
 ddim = [2,3]
-for dim,cpr in it.product(ddim, 2 ** (np.arange(-2,17) * 0.25)):
+for dim,cpr in it.product(ddim, 2 ** (np.arange(-2,23) * 0.25)):
     nxm = 16 if dim == 2 else 8
     nx = max(nxm, 2 ** (int(cpr * 2 + 2).bit_length()))
     fo="plot_dim{:}_cpr{:05.02f}".format(dim, cpr)
@@ -58,7 +61,7 @@ for dim in [2,3]:
             def A(k, v):
                 if not k in ee[n]:
                     ee[n][k] = []
-                ee[n][k].append(v)
+                ee[n][k].append(float(v))
             A('rx', rx)
             A('ry', ry)
             A('max', em)
@@ -66,16 +69,41 @@ for dim in [2,3]:
             A('l2', e2)
 
     # write error
+    cc = ['rx', 'ry', 'max', 'l1', 'l2']
     for n in ee:
         e = ee[n]
         an = {'gerris':'ge', 'mfer':'ch'} # alias
         o = "er_d{:}_{:}.dat".format(dim, an[n])
         if os.path.isfile(o):
             continue
+        print(o)
 
-        cc = ['rx', 'ry', 'max', 'l1', 'l2']
         with open(o, 'w') as fo:
             fo.write(' '.join(cc) + '\n')
             for i in range(len(e[cc[0]])):
-                fo.write(' '.join([str(float(e[c][i])) for c in cc]) + '\n')
+                fo.write(' '.join([str(e[c][i]) for c in cc]) + '\n')
+
+    # plot error
+    for m in ['max', 'l1', 'l2']:
+        o = "er_d{:}_{:}.pdf".format(dim, m)
+        if os.path.isfile(o) and 0:
+            continue
+        print(o)
+        fig, ax = chp.PlotInit()
+        for n in ee:
+            e = ee[n]
+            #ax.plot(e['rx'], e[m], label=n)
+            ax.plot(e['rx'], e[m], label=n, marker='.')
+        ax.legend()
+        ax.grid(True)
+        ax.set_xlabel('r/h')
+        ax.set_ylabel('curvature error: ' + m)
+        ax.set_ylim(1e-4, 10)
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        xt = 2 ** np.arange(0, 5)
+        ax.set_xticks(xt)
+        ax.set_xticklabels(xt)
+        chp.PlotSave(fig, ax, o)
+
 
