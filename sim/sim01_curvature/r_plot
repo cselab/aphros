@@ -13,7 +13,11 @@ dt=$d/dat
 #rm -rf $d
 mkdir -p $dp
 
-mv -f *.pdf $dp
+mv -f {ang,hist}.pdf $dp
+
+if [ ! -f ch/s.pdf ] ; then
+  cp ch/{vf_0000,s}.pdf
+fi
 
 for s in ch ge ; do
   mkdir -p $dp/$s

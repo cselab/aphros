@@ -10,6 +10,4 @@ if [ "`cat ../dim`" == 3 ] ; then
   convert -trim s.png $t
   convert $t $o
   rm $t
-else
-  cp vf_0000.pdf $o
 fi

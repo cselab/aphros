@@ -3,6 +3,7 @@
 import os
 import itertools as it
 import numpy as np
+from glob import glob
 
 def sh(s, fatal=True):
     print(s)
@@ -14,31 +15,33 @@ o = "out"
 sh("echo > {:}".format(o))
 
 ff = []
-ddim = [3]
-for dim,cpr in it.product(ddim, 2 ** (np.arange(3) * 0.5)):
+ddim = [2,3]
+for dim,cpr in it.product(ddim, 2 ** (np.arange(-2,17) * 0.25)):
     nxm = 16 if dim == 2 else 8
     nx = max(nxm, 2 ** (int(cpr * 2 + 2).bit_length()))
-    fo="plot_dim{:}_cpr{:.2f}".format(dim, cpr)
+    fo="plot_dim{:}_cpr{:05.02f}".format(dim, cpr)
     ff.append(fo)
 
     if not os.path.isdir(fo):
         sh("./gen -nx {nx} -cpr {cpr} -bryk 1. -dim {dim}".format(**locals()))
         sh("./run &>> {:}".format(o))
-        sh("cp -rfT plot {:}".format(fo))
-
-    # convert surface plot to s.pdf
-    fch = "{:}/pdf/ch/".format(fo)
-    if dim == 3:
-        t = "t.png"
-        sh("convert -trim {p}s.png {p}{t} ; \
-            convert {p}{t} {p}s.pdf ; rm {p}{t}".format(p=fch, t=t))
-    else:
-        sh("cp {p}vf_0000.pdf {p}s.pdf".format(p=fch))
-
+        sh("rm -rf {:}".format(fo))
+        sh("mv plot {:}".format(fo))
 
 #sh("./tile")
-ny = len(ddim)
-nx = len(ff) // ny
+ll = ['ang.pdf', 'hist.pdf', 'ch/s.pdf']
+ny = len(ll)
 
-sh("pdfnup {:} --nup {nx}x{ny} --fitpaper false --outfile merge.pdf".format(
-    ' '.join([f + "/pdf/ch/s.pdf" for f in ff]), nx=nx, ny=ny))
+for dim in [2,3]:
+    fd = [f for f in ff if "dim{:}".format(dim) in f]
+    nx = len(fd) 
+    ww = []
+    o='merge_dim{:}.pdf'.format(dim)
+    for l in ll:
+        ww += [os.path.join(f,'pdf',l) for f in fd]
+    sh("pdfjam --nup {nx}x{ny} --outfile {o} -- {:}".format(
+        ' '.join(ww), nx=nx, ny=ny, o=o))
+    sh("pdfcrop --margins '5 5 5 5' {o} {o}".format(o=o))
+
+    sh("pdfjoin {:} --outfile sdim{:}.pdf".format(
+        ' '.join([os.path.join(f, 'pdf/ch/s.pdf') for f in fd]), dim))
