@@ -386,8 +386,9 @@ def FigVf(pt, vfn='vf'):
         Log(pa)
         PlotPart(ax, pa, sk=1)
     # closeup
-    ax.set_xlim([cx - rx - hx, cx + rx + hx])
-    ax.set_ylim([cy - ry - hy, cy + ry + hy])
+    r = max(rx, ry) * 1.2
+    ax.set_xlim([cx - r, cx + r])
+    ax.set_ylim([cy - r, cy + r])
     # save
     po = GetFieldPath(pt, "vf", "pdf")
     Log(po)
