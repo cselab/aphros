@@ -9,6 +9,7 @@
 #### import the simple module from the paraview
 import sys
 from paraview.simple import *
+import numpy as np
 #### disable automatic camera reset on 'Show'
 paraview.simple._DisableFirstRenderCameraReset()
 
@@ -25,22 +26,17 @@ renderView1.OrientationAxesLabelColor = [0.0, 0.0, 0.0]
 renderView1.OrientationAxesOutlineColor = [0.0, 0.0, 0.0]
 renderView1.CenterOfRotation = [0.5099512603467459, 0.49048581092909566, 0.5599339630758458]
 renderView1.StereoType = 0
-if 0:
-    renderView1.CameraPosition = [2.813868569960714, -0.5074590100179297, 1.4878129079851992]
-    renderView1.CameraFocalPoint = [0.5099512603467459, 0.49048581092909566, 0.5599339630758458]
-    renderView1.CameraViewUp = [-0.31739082620003495, 0.13938956480260697, 0.9379944630264078]
-    renderView1.CameraParallelScale = 0.6927889287942449
-else:
-    renderView1.CameraPosition = [0.39800458083951107, 0.6522102516464146, 1.0596291883480715]
-    renderView1.CameraFocalPoint = [0.5100810080766677, 0.4898284971714025, 0.56021748483181]
-    renderView1.CameraViewUp = [0.05872615649612774, 0.9531525463623923, -0.29673466583141267]
-    renderView1.CameraParallelScale = 0.13897908169648868
+renderView1.CameraPosition = [0.39800458083951107, 0.6522102516464146, 1.0596291883480715]
+renderView1.CameraFocalPoint = [0.5100810080766677, 0.4898284971714025, 0.56021748483181]
+renderView1.CameraViewUp = [0.05872615649612774, 0.9531525463623923, -0.29673466583141267]
+renderView1.CameraParallelScale = 0.13897908169648868
 renderView1.Background = [1.0, 1.0, 1.0]
 renderView1.EnableOSPRay = 1
 renderView1.Shadows = 1
 renderView1.AmbientSamples = 5
 renderView1.SamplesPerPixel = 5
 renderView1.OSPRayMaterialLibrary = materialLibrary1
+renderView1.CameraParallelProjection = 1
 
 # init the 'GridAxes3DActor' selected for 'AxesGrid'
 renderView1.AxesGrid.XTitleColor = [0.0, 0.0, 0.0]
@@ -229,7 +225,22 @@ ccPWF.ScalarRangeInitialized = 1
 # ----------------------------------------------------------------
 
 # reset view to fit data
-renderView1.ResetCamera()
+#renderView1.ResetCamera()
+
+# Get data bounds
+s_vtk.UpdatePipeline(None)
+di = s_vtk.GetDataInformation()
+lim = di.DataInformation.GetBounds()
+lim0 = np.array(lim[::2])
+lim1 = np.array(lim[1::2])
+limc = (lim0 + lim1) * 0.5
+sc = np.max(lim1 - lim0)
+ln = np.array([0.4,0.2,1.]) * sc
+
+renderView1.CameraPosition = limc + ln * 2
+renderView1.CameraFocalPoint = limc + ln  * 1
+renderView1.CameraViewUp = [0,1,0]
+renderView1.CameraParallelScale = sc * 0.6
 
 # save screenshot
 SaveScreenshot('s.png', renderView1, ImageResolution=[1000, 1000])

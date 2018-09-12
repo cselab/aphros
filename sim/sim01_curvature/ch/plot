@@ -2,7 +2,14 @@
 
 set -eu
 
+o=s.pdf
 if [ "`cat ../dim`" == 3 ] ; then
   ./filtcsv
   pvbatch vis.py s_0000.vtk partitf.csv
+  t=t.png
+  convert -trim s.png $t
+  convert $t $o
+  rm $t
+else
+  cp vf_0000.pdf $o
 fi
