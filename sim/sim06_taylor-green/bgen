@@ -111,8 +111,8 @@ def GetCluster(w, r, beta, rnd):
 
 
 w = 2. * np.pi  # domain width
-r = w / 32.   # bubble radius
-beta = 0.0003 # volume fraction
+r = w / 24.   # bubble radius
+beta = 0.0009 # volume fraction
 #beta = 0. 
 rnd = True # random cluster
 
@@ -122,8 +122,9 @@ rnd = True # random cluster
 # b50.dat: beta=0.05 (actual 0.051), r=w/16
 # b12.dat: beta=0.01, r=w/16
 # b10.dat: beta=0.0003 (actual 0.0012783173232), r=w/32
+# b10w24.dat: beta=0.0009 (actual 0.003), r=w/24
 
 b = GetCluster(w, r, beta, rnd)
 
-fn = "b10.dat"
+fn = "b10w24.dat"
 np.savetxt(fn, np.vstack(b).T)
