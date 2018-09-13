@@ -749,15 +749,11 @@ def FigHistK(vf, kk, ll, po, title=None):
         if IsGerris(vf.shape):
             k = -k
         k = k[ii]
-        return (k - ke) / kea * hx  # error
+        return (k - ke) / kea  # error
 
     fig, ax = PlotInit()
     for k,l in zip(kk,ll):
-        if IsGerris(vf.shape):
-            k = -k
-        k = k[ii]
-        er = (k - ke) / kea  # error
-        #rm = np.std(er) * 3
+        er = ER(k)
         rm = 1.
         h,b = np.histogram(er, 200, range=(-rm, rm), density=False)
         bc = (b[1:] + b[:-1]) * 0.5
@@ -778,8 +774,7 @@ def FigHistK(vf, kk, ll, po, title=None):
     with open(GetLinePath("norm", po), 'w') as f:
         for k,l in zip(kk,ll):
             if k is not None:
-                k = k[ii]
-                m,l1,l2 = GetNorm((k - ke) / kea)
+                m,l1,l2 = GetNorm(ER(k))
                 f.write("{:} {:} {:} {:} {:} {:}\n".format(
                         l, rx/hx, ry/hx, m, l1, l2))
 
@@ -793,7 +788,7 @@ def FigAng(vf, kk, ll, po):
     x,y,z = GetMesh(x1, y1, z1)
 
     # select interface points from x,y,z
-    th = 0
+    th = 0.
     ii = np.where((vf > th) & (vf < 1. - th))
     x = x[ii]; y = y[ii]; z = z[ii]
 
@@ -846,9 +841,11 @@ def FigAng(vf, kk, ll, po):
     # kt: field k interpolated from u,x to ut,vt
     def IL(u, v, k, ut, vt):
         if v.ptp() > 0.:
-            return scipy.interpolate.griddata((u, v), k, (ut, vt))
+            return scipy.interpolate.griddata((u, v), k, (ut, vt),
+                                              method='nearest')
         else: # XXX: adhoc for 2d
-            fk = scipy.interpolate.interp1d(u, k, bounds_error=False)
+            fk = scipy.interpolate.interp1d(u, k, bounds_error=False,
+                                            kind='nearest')
             return fk(ut)
 
     # interpolate curvature to line
@@ -858,7 +855,6 @@ def FigAng(vf, kk, ll, po):
             kks.append(IL(degu, degv, k[ii], degus, degvs))
         else:
             kks.append(None)
-
 
     fig, ax = PlotInit()
 
@@ -884,6 +880,25 @@ def FigAng(vf, kk, ll, po):
     ax.legend()
     ax.set_ylim(0., 2.)
     PlotSave(fig, ax, po)
+
+    poe = 'er' + po
+
+    fig, ax = PlotInit()
+    # plot interpolated curvature along line
+    ke = GetExactK(dim, x, y, z)
+    kes = IL(degu, degv, ke, degus, degvs)
+    for k,l in zip(kks,ll):
+        if k is not None:
+            WriteLine(degus, (k - kes) / kea, l, poe)
+            ax.plot(degus, abs((k -kes) / kea), label=l)
+
+    ax.set_xlabel(r"$\varphi$ [deg]")
+    ax.set_ylabel(r"curvature error")
+    ax.set_yscale('log')
+    ax.set_ylim(1e-5, 1)
+    ax.grid()
+    ax.legend()
+    PlotSave(fig, ax, poe)
 
 # Figure with curvature depending on angle, 2D
 # XXX: deprecated
