@@ -7,6 +7,7 @@ from glob import glob
 
 import ch.plot as chp
 
+force=True
 
 def sh(s, fatal=True):
     print(s)
@@ -18,12 +19,14 @@ o = "out"
 ff = []
 ddim = [2,3]
 for dim,cpr in it.product(ddim, 2 ** (np.arange(-2,23) * 0.25)):
+    if abs(13.45 - cpr) > 1: # XXX
+        continue
     nxm = 16 if dim == 2 else 8
     nx = max(nxm, 2 ** (int(cpr * 2 + 2).bit_length()))
-    fo="plot_dim{:}_cpr{:05.02f}".format(dim, cpr)
+    fo="plot_dim{:}_cpr{:06.02f}".format(dim, cpr)
     ff.append(fo)
 
-    if not os.path.isdir(fo):
+    if not os.path.isdir(fo) or force:
         sh("./gen -nx {nx} -cpr {cpr} -bryk 1. -dim {dim}".format(**locals()))
         sh("./run &>> {:}".format(o))
         sh("rm -rf {:}".format(fo))
@@ -38,7 +41,7 @@ for dim in [2,3]:
     nx = len(fd) 
     ww = []
     o='merge_dim{:}.pdf'.format(dim)
-    if not os.path.isfile(o):
+    if not os.path.isfile(o) or force:
         for l in ll:
             ww += [os.path.join(f,'pdf',l) for f in fd]
         sh("pdfjam --nup {nx}x{ny} --outfile {o} -- {:}".format(
@@ -46,7 +49,7 @@ for dim in [2,3]:
         sh("pdfcrop --margins '5 5 5 5' {o} {o}".format(o=o))
 
     o='sdim{:}.pdf'.format(dim)
-    if not os.path.isfile(o):
+    if not os.path.isfile(o) or force:
         sh("pdfjoin {:} --outfile {:}".format(
             ' '.join([os.path.join(f, 'pdf/ch/s.pdf') for f in fd]), o))
 
@@ -74,7 +77,7 @@ for dim in [2,3]:
         e = ee[n]
         an = {'gerris':'ge', 'mfer':'ch'} # alias
         o = "er_d{:}_{:}.dat".format(dim, an[n])
-        if os.path.isfile(o):
+        if os.path.isfile(o) and not force:
             continue
         print(o)
 
@@ -86,14 +89,17 @@ for dim in [2,3]:
     # plot error
     for m in ['max', 'l1', 'l2']:
         o = "er_d{:}_{:}.pdf".format(dim, m)
-        if os.path.isfile(o) and 0:
+        if os.path.isfile(o) and not force:
             continue
         print(o)
         fig, ax = chp.PlotInit()
+        r = np.array(e['rx'])
         for n in ee:
             e = ee[n]
-            #ax.plot(e['rx'], e[m], label=n)
-            ax.plot(e['rx'], e[m], label=n, marker='.')
+            ax.plot(r, e[m], label=n, marker='.')
+        ax.plot(r, 1 / r, label='first', ls='--')
+        ax.plot(r, 1 / r ** 2, label='second', ls='-.')
+
         ax.legend()
         ax.grid(True)
         ax.set_xlabel('r/h')

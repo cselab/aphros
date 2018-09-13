@@ -13,7 +13,7 @@ dt=$d/dat
 #rm -rf $d
 mkdir -p $dp
 
-mv -f {ang,hist}.pdf $dp
+mv -f {ang,hist,erang}.pdf $dp
 
 if [ ! -f ch/s.pdf ] ; then
   cp ch/{vf_0000,s}.pdf
@@ -25,5 +25,5 @@ for s in ch ge ; do
 done
 
 mkdir -p $dt
-mv -f {ang,hist}_*.dat $dt 2> /dev/null || true
+mv -f {ang,hist,erang}_*.dat $dt 2> /dev/null || true
 
