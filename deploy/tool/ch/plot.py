@@ -991,7 +991,7 @@ def Univel():
 
     dim = GetDim(vf.shape)
 
-    conf = GetConf("./conf.py")
+    conf = GetConf("./par.py")
 
     cx,cy,cz,rx,ry,rz = LoadBub()
     x1,y1,z1,hx,hy,hz = GetGeom(vf.shape)
