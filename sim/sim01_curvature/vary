@@ -7,7 +7,7 @@ from glob import glob
 
 import ch.plot as chp
 
-force=True
+force=False
 
 def sh(s, fatal=True):
     print(s)
@@ -17,10 +17,10 @@ def sh(s, fatal=True):
 o = "out"
 
 ff = []
-ddim = [2,3]
+ddim = [2]
 for dim,cpr in it.product(ddim, 2 ** (np.arange(-2,23) * 0.25)):
-    if abs(13.45 - cpr) > 1: # XXX
-        continue
+    #if abs(13.45 - cpr) > 1: # XXX
+    #    continue
     nxm = 16 if dim == 2 else 8
     nx = max(nxm, 2 ** (int(cpr * 2 + 2).bit_length()))
     fo="plot_dim{:}_cpr{:06.02f}".format(dim, cpr)
@@ -33,10 +33,10 @@ for dim,cpr in it.product(ddim, 2 ** (np.arange(-2,23) * 0.25)):
         sh("mv plot {:}".format(fo))
 
 #sh("./tile")
-ll = ['ang.pdf', 'hist.pdf', 'ch/s.pdf']
+ll = ['ang.pdf', 'erang.pdf', 'hist.pdf', 'ch/s.pdf']
 ny = len(ll)
 
-for dim in [2,3]:
+for dim in ddim:
     fd = [f for f in ff if "dim{:}".format(dim) in f]
     nx = len(fd) 
     ww = []

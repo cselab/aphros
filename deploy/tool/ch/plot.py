@@ -660,6 +660,8 @@ def P(x, lbl):
 # Returns curvature of ellipse
 # (x/rx)**2 + (y/ry)**2 = 1 at point x
 def GetEllip2Curv0(x, rx, ry):
+    if rx == ry:
+        return 1. / rx
     dx = rx * 1e-3
     x = np.clip(x, -rx + dx * 2, rx - dx * 2) # XXX clip
     return GetCurv(
@@ -677,6 +679,8 @@ def GetEllip2Curv(x, y, rx, ry):
 # Returns curvature of ellipsoid
 # (x/rx)**2 + (y/ry)**2 + (z/rz) ** 2 = 1 at point x,y
 def GetEllip3Curv0(x, y, rx, ry, rz):
+    if rx == ry and ry == rz:
+        return 2. / rx
     dd = 1e-3
     dx = rx * dd
     dy = ry * dd
@@ -837,13 +841,17 @@ def FigAng(vf, kk, ll, po):
     # u,v: source points
     # k: source field
     # ut,vt: target points
+    # peru: period in u
     # Returns:
     # kt: field k interpolated from u,x to ut,vt
-    def IL(u, v, k, ut, vt):
-        if v.ptp() > 0.:
+    def IL(u, v, k, ut, vt, peru=None):
+        if v.ptp() > 0.: # 3d
             return scipy.interpolate.griddata((u, v), k, (ut, vt),
                                               method='nearest')
-        else: # XXX: adhoc for 2d
+        else: # 2d
+            if peru is not None:
+                u = np.hstack([u - peru, u, u + peru])
+                k = np.hstack([k, k, k])
             fk = scipy.interpolate.interp1d(u, k, bounds_error=False,
                                             kind='nearest')
             return fk(ut)
@@ -852,7 +860,7 @@ def FigAng(vf, kk, ll, po):
     kks = []
     for k in kk:
         if k is not None:
-            kks.append(IL(degu, degv, k[ii], degus, degvs))
+            kks.append(IL(degu, degv, k[ii], degus, degvs, peru=360.))
         else:
             kks.append(None)
 
@@ -866,7 +874,7 @@ def FigAng(vf, kk, ll, po):
 
     # plot lowres exact curvature
     ke = GetExactK(dim, x, y, z)
-    kes = IL(degu, degv, ke, degus, degvs)
+    kes = IL(degu, degv, ke, degus, degvs, peru=360.)
     WriteLine(degus, kes / kea, "exact", po)
     ax.plot(degus, kes / kea, label="exact")
 
@@ -886,7 +894,7 @@ def FigAng(vf, kk, ll, po):
     fig, ax = PlotInit()
     # plot interpolated curvature along line
     ke = GetExactK(dim, x, y, z)
-    kes = IL(degu, degv, ke, degus, degvs)
+    kes = IL(degu, degv, ke, degus, degvs, peru=360.)
     for k,l in zip(kks,ll):
         if k is not None:
             WriteLine(degus, (k - kes) / kea, l, poe)
@@ -895,7 +903,7 @@ def FigAng(vf, kk, ll, po):
     ax.set_xlabel(r"$\varphi$ [deg]")
     ax.set_ylabel(r"curvature error")
     ax.set_yscale('log')
-    ax.set_ylim(1e-5, 1)
+    ax.set_ylim(1e-5, 3)
     ax.grid()
     ax.legend()
     PlotSave(fig, ax, poe)
