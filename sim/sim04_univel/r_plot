@@ -4,7 +4,7 @@ set -eu
 
 ./plot.py
 
-d=traj
+d=plot/traj
 rm -rf $d
 
 mkdir -p $d/pdf

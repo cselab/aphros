@@ -9,7 +9,7 @@ def Default():
     la = (1000. , "Laplace number")
     np = (1     , "number of processors")
     nx = (64    , "mesh size")
-    brh = (4.   , "br/h, cells per bubble radius")
+    cpr = (4.   , "br/h, cells per bubble radius")
     bryk = (1.2 , "stretching factor for bubble size in y")
     vel0 = ([4., 3., 2.], "direction of velocity")
     tmax = (1. , "total dimensionless time")
@@ -38,7 +38,7 @@ def IsClose(a, b):
 # Returns Namespace with parameters from Default() overriden by args
 def GetArgs():
     p = argparse.ArgumentParser(
-            description='Generate conf.py and b.dat',  
+            description='Generate par.py and b.dat',  
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     c = Default()
@@ -89,7 +89,7 @@ def GetConf(a):
     la = a.la
     nx = a.nx
     np = a.np
-    brh = a.brh
+    cpr = a.cpr
     vel0 = a.vel0 if a.dim == 3 else [a.vel0[0], a.vel0[1], 0.]
     dom = a.dom
     #mu = max(a.mu0, a.mu0 * a.mu)
@@ -99,7 +99,7 @@ def GetConf(a):
     # mesh step
     hx = dom / nx
     # bubble radius
-    brx = brh * hx
+    brx = cpr * hx
     bry = brx * a.bryk
     brz = brx
     br = [brx, bry, brz]
@@ -166,7 +166,7 @@ def GetConfPy(c):
 a = GetArgs()
 c = GetConf(a)
 cpy = GetDictPy(c)
-open("conf.py", 'w').write(cpy)
+open("par.py", 'w').write(cpy)
 
 with open("b.dat", 'w') as fb:
     b = GetBub(c['bc'], c['br'])

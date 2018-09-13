@@ -3,7 +3,7 @@
 import glob
 
 c = {}
-exec(open("../conf.py").read(), None, c)
+exec(open("../par.py").read(), None, c)
 
 dim = c['dim']
 d2 = (dim == 2)

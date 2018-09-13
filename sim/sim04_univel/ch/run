@@ -25,5 +25,5 @@ bz = bx if d3 else mz
 
 sh("make cleanall")
 sh("./pargen")
-sh("make m='{nx} {ny} {nz}' bs='{bx} {by} {bz}' np={np} cleanrun"
+sh("make m='{nx} {ny} {nz}' bs='{bx} {by} {bz}' np={np} run"
         .format(**locals()))

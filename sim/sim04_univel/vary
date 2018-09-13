@@ -16,24 +16,33 @@ def sh(s, fatal=True):
 
 o = "out"
 
+# Retunrs lower power of 2 which is upper limit
+def Upper2(a):
+    r = 0
+    while a > 2 ** r:
+        r += 1
+    return 2 ** r
+
 ff = []
 ddim = [2,3]
-for dim,cpr in it.product(ddim, 2 ** (np.arange(-2,24) * 0.25)):
+for dim,cpr in it.product(ddim, 2 ** np.arange(0,3,1)):
     #if abs(13.45 - cpr) > 1: # XXX
     #    continue
     nxm = 16 if dim == 2 else 8
-    nx = max(nxm, 2 ** (int(cpr * 2 + 2).bit_length()))
+    tmax = 3.
+    We = 0.01
+    nx = max(nxm, Upper2(2 * cpr * (1. + tmax)))
     fo="plot_dim{:}_cpr{:06.02f}".format(dim, cpr)
     ff.append(fo)
 
     if not os.path.isdir(fo) or force:
-        sh("./gen -nx {nx} -cpr {cpr} -bryk 1. -dim {dim}".format(**locals()))
+        sh("./gen -nx {nx} -cpr {cpr} -bryk 1. -we {We} \
+            -dim {dim} -tmax {tmax}".format(**locals()))
         sh("./run &>> {:}".format(o))
         sh("rm -rf {:}".format(fo))
         sh("mv plot {:}".format(fo))
 
-#sh("./tile")
-ll = ['ang.pdf', 'erang.pdf', 'hist.pdf', 'ch/s.pdf']
+ll = ['traj.pdf', 'trajp.pdf', 'trajvxm.pdf', 'trajvx2.pdf']
 ny = len(ll)
 
 for dim in ddim:
@@ -43,16 +52,12 @@ for dim in ddim:
     o='merge_dim{:}.pdf'.format(dim)
     if not os.path.isfile(o) or force:
         for l in ll:
-            ww += [os.path.join(f,'pdf',l) for f in fd]
+            ww += [os.path.join(f,'traj/pdf',l) for f in fd]
         sh("pdfjam --nup {nx}x{ny} --outfile {o} -- {:}".format(
             ' '.join(ww), nx=nx, ny=ny, o=o))
         sh("pdfcrop --margins '5 5 5 5' {o} {o}".format(o=o))
 
-    o='sdim{:}.pdf'.format(dim)
-    if not os.path.isfile(o) or force:
-        sh("pdfjoin {:} --outfile {:}".format(
-            ' '.join([os.path.join(f, 'pdf/ch/s.pdf') for f in fd]), o))
-
+    continue
     # gather error
     ee = {}
     for f in fd:

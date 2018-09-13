@@ -6,7 +6,7 @@ dim=`cat dim`
 
 ./vis${dim}.py ch ge || true
 
-d=vis
+d=plot/vis
 rm -rf $d
 mkdir -p $d
 mv -f *.png $d/
