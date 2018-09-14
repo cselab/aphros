@@ -1084,7 +1084,7 @@ def Univel():
     # time
     tt = []
     for i,x in enumerate(xx):
-        tt.append(np.linspace(0., 1., len(x)))
+        tt.append(np.linspace(0., conf['tmax'], len(x)))
 
     # Plot trajectories
     PlotTraj(xx, yy, ll, vf.shape, "traj.pdf")

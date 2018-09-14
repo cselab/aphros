@@ -13,7 +13,7 @@ def Default():
     bryk = (1.2 , "stretching factor for bubble size in y")
     vel0 = ([4., 3., 2.], "direction of velocity")
     tmax = (1. , "total dimensionless time")
-    bcoh = ([1.2, 1.4, 1.6], "offset of bubble center relative to h")
+    bcoh = ([0.2, 0.4, 0.6], "offset of bubble center relative to h")
     bcor = ([0., 0., 0.], "offset of bubble center relative to br")
     b2xr = ([2., 0., 0.] , "second bubble displacement realative to br")
     b2rr = (0. , "second bubble radius relative to br")
@@ -53,10 +53,12 @@ def GetArgs():
             p.add_argument('-' + k, nargs='?',  
                            default=v, help=h, type=type(v))
 
-    p.add_argument('-mode', default="vel", choices=["vel", "osc"], help=
+    p.add_argument('-mode', default="vel", choices=["vel", "osc", 'mu'], help=
 '''timescale; 
-vel: velocity magnitude br * 2; 
-osc: oscillation frequency sqrt(7) / pi''')
+vel: velocity magnitude D; 
+osc: oscillation frequency sqrt(7) / pi;
+mu: viscosity mu = rho * D ^ 2
+''')
 
     p.add_argument('-pos', default="corner", choices=["center", "corner"], 
             help= "initial position of bubbles")
@@ -113,6 +115,9 @@ def GetConf(a):
     elif a.mode == "osc":
         # oscillation frequency: sqrt(7) / pi ~= 0.84
         sig = rho * bd ** 3
+    elif a.mode == 'mu':
+        mu = rho * bd ** 2
+        sig = la * mu ** 2 / (rho * bd)
 
     # viscosity
     mu = (sig * rho * bd / la) ** 0.5
@@ -133,17 +138,26 @@ def GetConf(a):
     dumpdt = tmax / a.nfr
 
     r3 = range(3)
-    # bubble center
-    bc = [r + hx * o + oo * r for r,o,oo in zip(br,a.bcoh,a.bcor)]
+    # center of first bubble 
+    bc = [br[i] + hx for i in r3] # one cell from corner
+
+    # second bubble enabled
+    b2 = bool(a.b2rr > 0)
+
+    if a.pos == "center":
+        # domain center
+        dc = [a.dom * 0.5 for i in r3] 
+        # center of mass of bubbles (XXX: assume same radius)
+        c = [bc[i] + br[i] * a.b2xr[i] * 0.5 for i in r3] if b2 else bc
+        # shift first to center
+        bc = [bc[i] - c[i] + dc[i] for i in r3]
+
+    # shift of first bubble
+    bc = [bc[i] + hx * a.bcoh[i] + a.bcor[i] * br[i] for i in r3]
+
     # second bubble
     b2r = [br[i] * a.b2rr for i in r3]
     b2c = [bc[i] + br[i] * a.b2xr[i] for i in r3]
-
-    if a.pos == "center":
-        dc = [a.dom * 0.5 for i in r3] # domain center
-        c = [(bc[i] + b2c[i]) * 0.5 for i in r3]
-        bc = [bc[i] - c[i] + dc[i] for i in r3]
-        b2c = [b2c[i] - c[i] + dc[i] for i in r3]
 
     # derived variables to return
     kk = ['sig', 'vel', 'dumpdt', 'br', 'bc', 'b2r', 'b2c', 'mu0']

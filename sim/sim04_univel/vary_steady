@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -eu
+
+./gen -nx 8 -mode mu -dim 3 -pos center\
+  -we 0 -bryk 1. -tmax 1 -la 1200 -cpr 3\
+  -bcoh 0. 0. 0.5
+./run
