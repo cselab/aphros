@@ -12,6 +12,9 @@ def sh(s, fatal=True):
 c = {}
 exec(open("../par.py").read(), None, c)
 
+if not c['ge']:
+    exit(0)
+
 np = c['np']
 loc = True if np == 1 else False
 dim = c['dim']

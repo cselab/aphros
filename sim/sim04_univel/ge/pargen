@@ -37,6 +37,8 @@ Define MU1 {mu0}
 Define MU2 {mu2}
 Define GESM {gesm}
 Define REFINE {nxexp}
+Define PGRAD {pgrad}
+Define POISVEL {poisvel}
 
 '''.format(**c)
 
@@ -48,6 +50,10 @@ bt = open(mb).read()
 # dimension
 bt = bt.replace('[D2]', '' if d2 else '#')
 bt = bt.replace('[D3]', '' if d3 else '#')
+
+# Poiseuille flow
+bt = bt.replace('[POIS]', '' if c['pois'] else '#')
+bt = bt.replace('[!POIS]', '' if not c['pois'] else '#')
 
 drz = "BcDirichlet W (0)" if d3 else ""
 wl = '''{{:}} = Boundary {{{{

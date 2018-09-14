@@ -26,6 +26,13 @@ set int loc {loc}
 set int dim {dim}
 '''.format(**c)
 
+if c['pois']:
+    t += '''
+set string vel_init pois
+set double poisvel {poisvel}
+set vect force {pgrad} 0 0 
+    '''.format(**c)
+
 dim = c['dim']
 
 for d in ['x', 'y', 'z'][0:dim]:

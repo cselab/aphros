@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -eu
+
+./gen -nx 32 -mode pois -dim 2 -pos center\
+  -We 0.5 -Red 10 -bryk 1. -tmax 1 -br 0.125\
+  -pois 1\
+  -wally 1
+./run
