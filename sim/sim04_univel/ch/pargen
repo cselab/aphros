@@ -33,6 +33,13 @@ set double poisvel {poisvel}
 set vect force {pgrad} 0 0 
     '''.format(**c)
 
+if c['meshvel']:
+    t += '''
+set string meshvel_auto v
+set double meshvel_weight 0.5
+set vect meshvel_mask 1 0 0
+    '''.format(**c)
+
 dim = c['dim']
 
 for d in ['x', 'y', 'z'][0:dim]:

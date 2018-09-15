@@ -33,6 +33,7 @@ echo "split to $ns parts, partition for $np PEs" >&2
 
 mkdir -p `eval echo "o/{0..$(expr $np - 1)}"`
 mkdir -p o/-1
+mkdir -p o/sc
 
 ex="ge.run${dim}d"
 

@@ -16,6 +16,8 @@ def Default():
     r['cpr'][0] = int
     r['bcod'][0] = [0., 0.325, 0.]
     r['bcoh'][0] = [0., 0., 0.]
+    r['mode'][0] = 'pois'
+    r['meshvel'] = [0, "moving mesh in ch", [0, 1]]
     return r
 
 
@@ -32,8 +34,8 @@ def GetConf(a):
     dom = a.dom
     cpr = a.cpr if a.cpr is not None else nx * a.br / dom
     vel0 = a.vel0 if a.dim == 3 else [a.vel0[0], a.vel0[1], 0.]
-    #mu = max(a.mu0, a.mu0 * a.mu)
-    rho = max(a.rho0, a.rho0 * a.rho)
+    rho0 = a.rho0
+    rhom = max(a.rho0, a.rho0 * a.rho)
     tmax = a.tmax
 
     # mesh step
@@ -49,32 +51,34 @@ def GetConf(a):
     if a.mode == "vel":
         # velocity magnitude brx * 2
         vm = brx * 2
-        sig = vm ** 2 * bd * rho / we
+        sig = vm ** 2 * bd * rho0 / we
     elif a.mode == "osc":
         # oscillation frequency: sqrt(7) / pi ~= 0.84
         sig = rho * bd ** 3
     elif a.mode == 'mu':
-        mu = rho * bd ** 2
-        sig = la * mu ** 2 / (rho * bd)
+        mu = rho0 * bd ** 2
+        sig = la * mu ** 2 / (rho0 * bd)
     elif a.mode == 'pois':
         # velocity agnitude brx
         vm = dom
         # red = bd * vm * rho / mu0
-        mu = bd * vm * rho / red
-        sig = vm ** 2 * bd * rho / we
+        mu = bd * vm * rho0 / red
+        sig = vm ** 2 * bd * rho0 / we
 
     # velocity magnitude
-    vm = (we * sig / (bd * rho)) ** 0.5
+    vm = (we * sig / (bd * rho0)) ** 0.5
     # viscosity
     if la is not None:
-        mu = (sig * rho * bd / la) ** 0.5
+        mu = (sig * rhom * bd / la) ** 0.5
     # velocity
     vel = [x * vm / norm(vel0) for x in vel0]
 
-    assert we is None or IsClose(we, rho * norm(vel) ** 2 * bd / sig)
-    assert la is None or IsClose(la, rho * sig * bd / mu ** 2)
+    assert we is None or IsClose(we, rho0 * norm(vel) ** 2 * bd / sig)
+    assert la is None or IsClose(la, rhom * sig * bd / mu ** 2)
 
-    if a.rho > 1.: # droplet, phase 2 heavier
+    if a.mode == 'pois':
+      mu0 = mu
+    elif a.rho > 1.: # droplet, phase 2 heavier
         mu0 = mu / a.mu
     else: # bubble
         mu0 = mu
