@@ -92,7 +92,7 @@ def GetArgs(cc, desc=None):
     p = argparse.ArgumentParser(description=desc,
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    for k in cc:
+    for k in sorted(cc):
         c = cc[k]
         v = c[0]  # default value
         h = c[1]  # help message
