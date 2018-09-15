@@ -11,3 +11,4 @@ rm -rf $d
 mkdir -p $d
 mv -f *.png $d/
 
+(cd $d ; r.pngmp4)

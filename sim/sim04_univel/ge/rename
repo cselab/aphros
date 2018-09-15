@@ -4,7 +4,7 @@ set -eu
 
 i=0
 for f in *.vtk ; do
-  iz=$(printf "%04d" $i)
+  iz=$(printf "%06d" $i)
   ff="u_$iz.vtk"
   if [ "$f" != "$ff" ] ; then
     mv $f $ff

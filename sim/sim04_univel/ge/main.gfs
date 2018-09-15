@@ -37,8 +37,8 @@ Define MU(T) (AVG(T,MU1,MU2))
   [POIS]Source U (PGRAD / RHO(TS))
   [POIS]Init {} { U = POISVEL * y * (1 - y) / 0.25 }
 
-  [D2]OutputSimulation { step = DUMPDT } o/%d/u_%04ld.vtk { variables = T,P,U,V format = VTK}
-  [D3]OutputSimulation { step = DUMPDT } o/%d/u_%04ld.vtk { variables = T,P,U,V,W format = VTK}
+  [D2]OutputSimulation { step = DUMPDT } o/%d/u_%06ld.vtk { variables = T,P,U,V format = VTK}
+  [D3]OutputSimulation { step = DUMPDT } o/%d/u_%06ld.vtk { variables = T,P,U,V,W format = VTK}
   OutputTime { istep = 10 } stderr
 
   [POIS]SpatialSum { step = STDT } vol T
