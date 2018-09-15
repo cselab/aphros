@@ -218,7 +218,7 @@ def GetParName():
 # Returns python code defining variables from dict c
 def GetDictPy(c):
     t = ""
-    for k in c:
+    for k in sorted(c):
         v = c[k]
         v = '"{:}"'.format(v) if type(v) == str else str(v)
         t += "{:} = {:}\n".format(k, v)
