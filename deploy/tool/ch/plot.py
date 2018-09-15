@@ -983,6 +983,10 @@ def Univel():
     vvx2 = []
     vvy2 = []
     vvz2 = []
+    # average velocity
+    vvx = []
+    vvy = []
+    vvz = []
 
     # volume fraction from dd[0]
     pp = Glob(dd[0], "vf")
@@ -1029,6 +1033,9 @@ def Univel():
     vvx2.append(vx)
     vvy2.append(vy)
     vvz2.append(vz)
+    vvx.append(vx)
+    vvy.append(vy)
+    vvz.append(vz)
     ee.append(e)
     ll.append("exact")
 
@@ -1053,11 +1060,17 @@ def Univel():
         # error in velocity
         vxm, vx1, vx2 = GetDiff(pp, "vx", vele[0])
         vym, vy1, vy2 = GetDiff(pp, "vy", vele[1])
-        q = mu / sig # scale
+        # velocity
+        vx = GetAvgFld(pp, "vx")
+        vy = GetAvgFld(pp, "vy")
+        # velocity dimensionless factor
+        q = mu / sig
         if dim == 3:
             vzm, vz1, vz2 = GetDiff(pp, "vz", vele[2])
+            vz = GetAvgFld(pp, "vz")
             vvzm.append(vzm * q)
             vvz2.append(vz2 * q)
+            vvz.append(vz * q)
         xx.append(x)
         yy.append(y)
         zz.append(z)
@@ -1066,6 +1079,8 @@ def Univel():
         vvym.append(vym * q)
         vvx2.append(vx2 * q)
         vvy2.append(vy2 * q)
+        vvx.append(vx)
+        vvy.append(vy)
 
     # reorder lines
     xx = xx[1:] + [xx[0]]
@@ -1076,9 +1091,12 @@ def Univel():
     vvym = vvym[1:] + [vvym[0]]
     vvx2 = vvx2[1:] + [vvx2[0]]
     vvy2 = vvy2[1:] + [vvy2[0]]
+    vvx = vvx[1:] + [vvx[0]]
+    vvy = vvy[1:] + [vvy[0]]
     if dim == 3:
         vvzm = vvzm[1:] + [vvzm[0]]
         vvz2 = vvz2[1:] + [vvz2[0]]
+        vvz = vvz[1:] + [vvz[0]]
     ll = ll[1:] + [ll[0]]
 
     # time
@@ -1110,11 +1128,14 @@ def Univel():
                 vmin=vmin, vmax=vmax, ylog=True)
     PlotTrajFld(tt, vvy2, ll, "t", "vy", "trajvy2.pdf",
                 vmin=vmin, vmax=vmax, ylog=True)
+    PlotTrajFld(tt, vvx, ll, "t", "vx", "trajvx.pdf")
+    PlotTrajFld(tt, vvy, ll, "t", "vy", "trajvy.pdf")
     if dim == 3:
         PlotTrajFld(tt, vvzm, ll, "t", "vz", "trajvzm.pdf",
                     vmin=vmin, vmax=vmax, ylog=True)
         PlotTrajFld(tt, vvz2, ll, "t", "vz", "trajvz2.pdf",
                     vmin=vmin, vmax=vmax, ylog=True)
+        PlotTrajFld(tt, vvz, ll, "t", "vz", "trajvz.pdf")
 
 def Curv():
     # directories
