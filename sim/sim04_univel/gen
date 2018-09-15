@@ -10,7 +10,7 @@ def Default():
         'dim', 'pos', 'mode', 'mu', 'rho', 'nfr', 'dom', 'rho0',
         'np', 'nx', 'cpr', 'bryk', 'vel0', 'tmax', 'bcoh', 'bcor', 'bcod',
         'b2xr', 'b2rr', 'chsm', 'gesm', 'wallx', 'wally', 'wallz', 'pois',
-        'g0', 'Fr')
+        'g0', 'Fr', 'Ga')
     r['We'][0] = 0.5
     r['Red'][0] = 10
     r['cpr'][0] = int
@@ -75,17 +75,22 @@ def GetConf(a):
     vel = [x * vm / norm(vel0) for x in vel0]
 
     # gravity magnitude
+    gm = 0.
     fr = a.Fr
-    if fr == 0:
-        g = [0., 0., 0.]
-    else:
-        gm = vm ** 2 / (fr ** 2 * bd)
-        g0 = a.g0
-        g = [x * gm / norm(g0) for x in g0]
-    
+    ga = a.Ga
+    assert fr is None or ga is None, 'Conflict: both Fr and Ga defined'
+    if fr is not None:
+        gm = vm ** 2 / (fr ** 2 * bd) 
+    elif ga is not None:
+        gm = ga * mu ** 2 / (bd ** 3 * rhom ** 2)
+
+    g0 = a.g0
+    g = [x * gm / norm(g0) for x in g0]
+
     assert we is None or IsClose(we, rho0 * norm(vel) ** 2 * bd / sig)
     assert la is None or IsClose(la, rhom * sig * bd / mu ** 2)
-    assert fr is None or fr == 0 or IsClose(fr, norm(vel) / (norm(g) * bd) ** 0.5)
+    assert fr is None or IsClose(fr, norm(vel) / (norm(g) * bd) ** 0.5)
+    assert ga is None or IsClose(ga, norm(g) * bd ** 3 * rhom ** 2 / mu ** 2)
 
     if a.mode == 'pois':
       mu0 = mu
