@@ -156,7 +156,7 @@ transform1 = Transform(Input=u_00)
 transform1.Transform = 'Transform'
 
 # init the 'Transform' selected for 'Transform'
-transform1.Transform.Translate = [0.5, 0.5, 0.0]
+transform1.Transform.Translate = [0., 0., 0.]
 
 # create a new 'Contour'
 contour1 = Contour(Input=transform1)

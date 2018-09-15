@@ -21,8 +21,8 @@ Define MU(T) (AVG(T,MU1,MU2))
   [D2]VariableTracerVOFHeight T
   [D3]VariableTracerVOF T
 
-  [D2]InitFraction T (ini_t2(x+0.5, y+0.5))
-  [D3]InitFraction T (ini_t(x+0.5, y+0.5, z+0.5))
+  [D2]InitFraction T (ini_t2(x, y))
+  [D3]InitFraction T (ini_t(x, y, z))
 
   VariableCurvature K T 
   SourceTension T SIGMA K
@@ -35,13 +35,25 @@ Define MU(T) (AVG(T,MU1,MU2))
   [!POIS][D3]Init {} { U = VELX V = VELY W = VELZ }
 
   [POIS]Source U (PGRAD / RHO(TS))
-  [POIS]Init {} { U = POISVEL * (0.5 + y) * (0.5 - y) / 0.25 }
+  [POIS]Init {} { U = POISVEL * y * (1 - y) / 0.25 }
 
   [D2]OutputSimulation { step = DUMPDT } o/%d/u_%04ld.vtk { variables = T,P,U,V format = VTK}
   [D3]OutputSimulation { step = DUMPDT } o/%d/u_%04ld.vtk { variables = T,P,U,V,W format = VTK}
   OutputTime { istep = 10 } stderr
+
+  [POIS]SpatialSum { step = STDT } vol T
+  [POIS]OutputScalarStats { step = STDT } { mfer.ge.sc o/sc/t  } { v = t }
+  [POIS]OutputScalarSum { step = STDT } { mfer.ge.sc o/sc/x }  { v = T*x/vol }
+  [POIS]OutputScalarSum { step = STDT } { mfer.ge.sc o/sc/y }  { v = T*y/vol }
+  [POIS][D3]OutputScalarSum { step = STDT } { mfer.ge.sc o/sc/z }  { v = T*z/vol }
+  [POIS]OutputScalarSum { step = STDT } { mfer.ge.sc o/sc/vx } { v = T*U/vol }
+  [POIS]OutputScalarSum { step = STDT } { mfer.ge.sc o/sc/vy } { v = T*V/vol }
+  [POIS][D3]OutputScalarSum { step = STDT } { mfer.ge.sc o/sc/vy } { v = T*W/vol }
+  [POIS]OutputScalarSum { step = STDT } { mfer.ge.sc o/sc/m }  {  v = T  }
 }
 GfsBox {
+  [D2]x = 0.5 y = 0.5
+  [D3]x = 0.5 y = 0.5 z = 0.5
   [BCX]
   [BCY]
   [BCZ]
