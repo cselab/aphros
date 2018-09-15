@@ -26,6 +26,10 @@ c['nxexp'] = nxexp
 c['rho2'] = c['rho0'] * c['rho']
 c['mu2'] = c['mu0'] * c['mu']
 
+c['gx'] = c['g'][0]
+c['gy'] = c['g'][1]
+c['gz'] = c['g'][2]
+
 o = '''Define VELX {vel[0]}
 Define VELY {vel[1]}
 Define VELZ {vel[2]}
@@ -41,6 +45,9 @@ Define GESM {gesm}
 Define REFINE {nxexp}
 Define PGRAD {pgrad}
 Define POISVEL {poisvel}
+Define GX {gx}
+Define GY {gy}
+Define GZ {gz}
 
 '''.format(**c)
 

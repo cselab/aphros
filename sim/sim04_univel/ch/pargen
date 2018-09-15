@@ -24,6 +24,7 @@ set int vfsmooth {chsm}
 set vect vel {vels}
 set int loc {loc}
 set int dim {dim}
+set vect gravity {g[0]} {g[1]} {g[2]}
 '''.format(**c)
 
 if c['pois']:

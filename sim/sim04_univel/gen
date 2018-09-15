@@ -9,7 +9,8 @@ def Default():
     r = GetStdPar('Red', 'We', 'La', 'ch', 'ge', 'br',
         'dim', 'pos', 'mode', 'mu', 'rho', 'nfr', 'dom', 'rho0',
         'np', 'nx', 'cpr', 'bryk', 'vel0', 'tmax', 'bcoh', 'bcor', 'bcod',
-        'b2xr', 'b2rr', 'chsm', 'gesm', 'wallx', 'wally', 'wallz', 'pois')
+        'b2xr', 'b2rr', 'chsm', 'gesm', 'wallx', 'wally', 'wallz', 'pois',
+        'g0', 'Fr')
     r['We'][0] = 0.5
     r['Red'][0] = 10
     r['cpr'][0] = int
@@ -73,8 +74,18 @@ def GetConf(a):
     # velocity
     vel = [x * vm / norm(vel0) for x in vel0]
 
+    # gravity magnitude
+    fr = a.Fr
+    if fr == 0:
+        g = [0., 0., 0.]
+    else:
+        gm = vm ** 2 / (fr ** 2 * bd)
+        g0 = a.g0
+        g = [x * gm / norm(g0) for x in g0]
+    
     assert we is None or IsClose(we, rho0 * norm(vel) ** 2 * bd / sig)
     assert la is None or IsClose(la, rhom * sig * bd / mu ** 2)
+    assert fr is None or fr == 0 or IsClose(fr, norm(vel) / (norm(g) * bd) ** 0.5)
 
     if a.mode == 'pois':
       mu0 = mu
@@ -112,7 +123,7 @@ def GetConf(a):
     poisvel = vm
 
     # derived variables to return
-    kk = ['sig', 'vel', 'dumpdt', 'br', 'bc', 'b2r', 'b2c', 'mu0', 
+    kk = ['sig', 'vel', 'dumpdt', 'br', 'bc', 'b2r', 'b2c', 'mu0', 'g',
             'pgrad', 'poisvel']
     for k in kk:
         d[k] = locals()[k]

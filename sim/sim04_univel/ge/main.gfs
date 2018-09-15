@@ -34,8 +34,11 @@ Define MU(T) (AVG(T,MU1,MU2))
   [!POIS][D2]Init {} { U = VELX V = VELY }
   [!POIS][D3]Init {} { U = VELX V = VELY W = VELZ }
 
-  [POIS]Source U (PGRAD / RHO(TS))
+  [POIS]Source U (PGRAD / RHO(TS) + GX)
   [POIS]Init {} { U = POISVEL * y * (1 - y) / 0.25 }
+  [!POIS]Source U (GX)
+  Source V (GY)
+  [D3]Source W (GZ)
 
   [D2]OutputSimulation { step = DUMPDT } o/%d/u_%06ld.vtk { variables = T,P,U,V format = VTK}
   [D3]OutputSimulation { step = DUMPDT } o/%d/u_%06ld.vtk { variables = T,P,U,V,W format = VTK}
