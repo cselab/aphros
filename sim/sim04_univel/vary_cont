@@ -4,14 +4,16 @@ set -eu
 
 r=0.1
 
-./gen -nx 16 -np 1 -mode mu -dim 2 -pos center\
-  -We 0 -La 1000 -bryk 1.2 -tmax 0.1 -br 0.2\
-  -mu $r -rho $r -pois 1 -wally 1 -meshvel 0\
-  -bcod 0 0 0 \
-  -Ga 10
+./gen -nx 32 -np 1 -mode pois -dim 2 -pos center\
+  -We 1 -Re 50 -bryk 1 -tmax 5 -br 0.07\
+  -mu $r -rho $r -pois 1 -wallx 0 -wally 1 -meshvel 0\
+  -g0 0 -1 0  \
+  -bcod 0 0.5 0 -bcor 0 -1 0 -Eo 0. -nfr 100 \
+  -b2xr 3.5 0 0 -b2rr 0.8 \
+  -nb 4
 
 ./r_ch > /dev/null
-./r_ge > /dev/null
+#./r_ge > /dev/null
 #./r_plot
-./r_vis
+#./r_vis
 #./run

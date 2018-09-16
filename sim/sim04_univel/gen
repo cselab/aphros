@@ -10,7 +10,7 @@ def Default():
         'dim', 'pos', 'mode', 'mu', 'rho', 'nfr', 'dom', 'rho0',
         'np', 'nx', 'cpr', 'bryk', 'vel0', 'tmax', 'bcoh', 'bcor', 'bcod',
         'b2xr', 'b2rr', 'chsm', 'gesm', 'wallx', 'wally', 'wallz', 'pois',
-        'g0', 'Fr', 'Ga')
+        'g0', 'Fr', 'Ga', 'Eo')
     r['We'][0] = 0.5
     r['Red'][0] = 10
     r['cpr'][0] = int
@@ -19,6 +19,7 @@ def Default():
     r['bcoh'][0] = [0., 0., 0.]
     r['mode'][0] = 'pois'
     r['meshvel'] = [0, "moving mesh in ch", [0, 1]]
+    r['nb'] = [1, "number of bubbles"]
     return r
 
 
@@ -78,11 +79,15 @@ def GetConf(a):
     gm = 0.
     fr = a.Fr
     ga = a.Ga
+    eo = a.Eo
+    assert len([n for n in [fr, ga, eo] if n is not None]) <= 1
     assert fr is None or ga is None, 'Conflict: both Fr and Ga defined'
     if fr is not None:
         gm = vm ** 2 / (fr ** 2 * bd) 
     elif ga is not None:
         gm = ga * mu ** 2 / (bd ** 3 * rhom ** 2)
+    elif eo is not None:
+        gm = eo * sig / (rhom * bd ** 2)
 
     g0 = a.g0
     g = [x * gm / norm(g0) for x in g0]
@@ -91,6 +96,7 @@ def GetConf(a):
     assert la is None or IsClose(la, rhom * sig * bd / mu ** 2)
     assert fr is None or IsClose(fr, norm(vel) / (norm(g) * bd) ** 0.5)
     assert ga is None or IsClose(ga, norm(g) * bd ** 3 * rhom ** 2 / mu ** 2)
+    assert eo is None or IsClose(eo, rhom * norm(g) * bd ** 2 / sig)
 
     if a.mode == 'pois':
       mu0 = mu
@@ -103,33 +109,45 @@ def GetConf(a):
     dumpdt = tmax / a.nfr
 
     r3 = range(3)
-    # center of first bubble 
+    # center of first bubble in corner
     bc = [br[i] + hx for i in r3] # one cell from corner
 
-    # second bubble enabled
-    b2 = bool(a.b2rr > 0)
+    # list of bubbles
+    bbc = []
+    bbr = []
+    b2r = [br[i] * a.b2rr for i in r3]
+    for k in range(a.nb):
+        if not bbc:
+            bbc.append(bc)
+        else:
+            bbc.append([bbc[-1][i] + a.b2xr[i] * br[i] for i in r3])
+        bbr.append(br if len(bbr) % 2 == 0 else b2r)
+
+    assert len(bbr) == len(bbc) and len(bbc) == a.nb
+
 
     if a.pos == "center":
+        # current center of bubbles
+        bc0 = [0, 0, 0]
+        for k in range(a.nb):
+            bc0 = [bc0[i] + bbc[k][i] for i in r3]
+        bc0 = [bc0[i] / a.nb for i in r3]
         # domain center
-        dc = [a.dom * 0.5 for i in r3] 
-        # center of mass of bubbles (XXX: assume same radius)
-        c = [bc[i] + br[i] * a.b2xr[i] * 0.5 for i in r3] if b2 else bc
-        # shift first to center
-        bc = [bc[i] - c[i] + dc[i] for i in r3]
+        dc = [a.dom * 0.5 for i in r3]
+        # shift to center
+        for k in range(a.nb):
+            bbc[k] = [bbc[k][i] + dc[i] - bc0[i] for i in r3]
 
-    # shift of first bubble
-    bc = [bc[i] + dom * a.bcod[i] + hx * a.bcoh[i] + a.bcor[i] * br[i] for i in r3]
-
-    # second bubble
-    b2r = [br[i] * a.b2rr for i in r3]
-    b2c = [bc[i] + br[i] * a.b2xr[i] for i in r3]
+    # shift of bubbles
+    for k in range(len(bbc)):
+        bbc[k] = [bbc[k][i] + dom * a.bcod[i] + hx * a.bcoh[i] 
+                + a.bcor[i] * br[i] for i in r3]
 
     pgrad = 8 * vm * mu0 / dom ** 2
     poisvel = vm
 
     # derived variables to return
-    kk = ['sig', 'vel', 'dumpdt', 'br', 'bc', 'b2r', 'b2c', 'mu0', 'g',
-            'pgrad', 'poisvel']
+    kk = ['sig', 'vel', 'dumpdt', 'bbc', 'bbr', 'mu0', 'g', 'pgrad', 'poisvel']
     for k in kk:
         d[k] = locals()[k]
 
@@ -153,10 +171,7 @@ cpy = GetDictPy(c)
 open("par.py", 'w').write(cpy)
 
 with open("b.dat", 'w') as fb:
-    b = GetBub(c['bc'], c['br'])
-    fb.write(b + "\n")
-    if c['b2r'][0] > 0.:
-        b2 = GetBub(c['b2c'], c['b2r'])
-        fb.write(b2 + "\n")
+    for k in range(len(c['bbc'])):
+        fb.write(GetBub(c['bbc'][k], c['bbr'][k]) + "\n")
 
 open("dim", 'w').write(str(c['dim']))
