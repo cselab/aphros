@@ -6,15 +6,12 @@ from ch import *
 
 # Returns dict of {name:(value, description, choices)}
 def Default():
-    r = GetStdPar('Red', 'We', 'La', 'ch', 'ge', 'br',
+    r = GetStdPar('Red', 'Reh', 'We', 'Ca', 'La', 'ch', 'ge', 'br',
         'dim', 'pos', 'mode', 'mu', 'rho', 'nfr', 'dom', 'rho0',
         'np', 'nx', 'cpr', 'bryk', 'vel0', 'tmax', 'bcoh', 'bcor', 'bcod',
         'b2xr', 'b2rr', 'chsm', 'gesm', 'wallx', 'wally', 'wallz', 'pois',
         'g0', 'Fr', 'Ga', 'Eo')
-    r['We'][0] = 0.5
-    r['Red'][0] = 10
-    r['cpr'][0] = int
-    r['cpr'][0] = int
+    r['cpr'][0] = float
     r['bcod'][0] = [0., 0.325, 0.]
     r['bcoh'][0] = [0., 0., 0.]
     r['mode'][0] = 'pois'
@@ -30,7 +27,9 @@ def GetConf(a):
 
     we = a.We
     la = a.La
+    ca = a.Ca
     red = a.Red
+    reh = a.Reh
     nx = a.nx
     np = a.np
     dom = a.dom
@@ -61,14 +60,19 @@ def GetConf(a):
         mu = rho0 * bd ** 2
         sig = la * mu ** 2 / (rho0 * bd)
     elif a.mode == 'pois':
-        # velocity agnitude brx
+        # velocity magnitude dom
         vm = dom
-        # red = bd * vm * rho / mu0
-        mu = bd * vm * rho0 / red
-        sig = vm ** 2 * bd * rho0 / we
+        assert (red is None) != (reh is None)
+        mu = vm * rho0 * ((bd / red) if red is not None else (dom / reh))
+        assert (we is None) != (ca is None)
+        if we is not None:
+            sig = vm ** 2 * bd * rho0 / we
+        else:
+            sig = vm * mu / ca
 
     # velocity magnitude
-    vm = (we * sig / (bd * rho0)) ** 0.5
+    if vm is None:
+        vm = (we * sig / (bd * rho0)) ** 0.5 
     # viscosity
     if la is not None:
         mu = (sig * rhom * bd / la) ** 0.5
@@ -92,18 +96,20 @@ def GetConf(a):
     g0 = a.g0
     g = [x * gm / norm(g0) for x in g0]
 
+    if a.mode == 'pois':
+        mu0 = mu
+    elif a.rho > 1.: # droplet, phase 2 heavier
+        mu0 = mu / a.mu
+    else: # bubble
+        mu0 = mu
+
     assert we is None or IsClose(we, rho0 * norm(vel) ** 2 * bd / sig)
     assert la is None or IsClose(la, rhom * sig * bd / mu ** 2)
     assert fr is None or IsClose(fr, norm(vel) / (norm(g) * bd) ** 0.5)
     assert ga is None or IsClose(ga, norm(g) * bd ** 3 * rhom ** 2 / mu ** 2)
     assert eo is None or IsClose(eo, rhom * norm(g) * bd ** 2 / sig)
-
-    if a.mode == 'pois':
-      mu0 = mu
-    elif a.rho > 1.: # droplet, phase 2 heavier
-        mu0 = mu / a.mu
-    else: # bubble
-        mu0 = mu
+    assert red is None or IsClose(red, bd * vm * rho0 / mu0)
+    assert reh is None or IsClose(reh, dom * vm * rho0 / mu0)
 
     # dump interval
     dumpdt = tmax / a.nfr
