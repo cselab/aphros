@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -eu
+
+r=0.1
+
+./gen -nx 64 -np 16 -mode pois -dim 2 -pos center\
+  -We 1 -Red 50 -bryk 1. -tmax 2 -br 0.1\
+  -mu $r -rho $r -pois 1 -wally 1 -meshvel 0\
+  -bcod 0 0.35 0 \
+  -b2rr 1. -b2xr 2.4 0.4 0 -nfr 100
+./r_ch > /dev/null
+./r_ge > /dev/null
+#./r_plot
+./r_vis
+#./run
