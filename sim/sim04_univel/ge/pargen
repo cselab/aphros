@@ -10,7 +10,7 @@ d2 = (dim == 2)
 d3 = (dim == 3)
 
 # number of frames from ch
-g = "../ch/vf_*.dat"
+g = "../ch/s_*.vtk"
 nfr = len(glob.glob(g))
 assert nfr >= 2, "Error: Need at least 2 frames $r, found %r" % (g, nfr)
 
