@@ -11,6 +11,7 @@ import os
 def StdParAll():
     Re = [float, "Reynolds number"]
     Red = [float, "Reynolds number by bubble diameter"]
+    Reh = [float, "Reynolds number by channel height"]
     Ca = [float, "capillary number"]
     We = [float, "Weber number"]
     La = [float, "Laplace number"]
