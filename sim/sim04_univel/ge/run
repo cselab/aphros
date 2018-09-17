@@ -9,11 +9,15 @@ def sh(s, fatal=True):
     r = os.system(s)
     assert not fatal or r == 0
 
+if os.path.isfile("done"):
+  print("'done' found, exiting")
+  exit(0)
+
 c = {}
 exec(open("../par.py").read(), None, c)
 
 if not c['ge']:
-    exit(0)
+  exit(0)
 
 np = c['np']
 loc = True if np == 1 else False
@@ -42,3 +46,5 @@ sh("./merge &>> {o}".format(**l))
 sh("./rename")
 
 sh("./convert &>> {o}".format(**l))
+
+sh("echo > done")

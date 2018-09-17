@@ -3,6 +3,10 @@
 import os
 sh = os.system
 
+if os.path.isfile("done"):
+  print("'done' found, exiting")
+  exit(0)
+
 c = {}
 exec(open("../par.py").read(), None, c)
 
@@ -30,3 +34,5 @@ sh("make cleanall")
 sh("./pargen")
 sh("make m='{nx} {ny} {nz}' bs='{bx} {by} {bz}' np={np} run"
         .format(**locals()))
+
+sh("echo > done")
