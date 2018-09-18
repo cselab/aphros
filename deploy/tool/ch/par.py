@@ -3,6 +3,7 @@
 import argparse
 import math
 import os
+import sys
 
 # Returns dictionary with standard parameters {k : (v,h)}
 # k: name
@@ -52,6 +53,7 @@ mu: viscosity mu = rho * D ^ 2, pois: velocity magnitude dom''',
     pois = [0, "Poiseuille profile by force along x", [0, 1]]
     b2rr = [0. , "second bubble radius relative to br"]
     b2xr = [[2., 0., 0.] , "second bubble displacement realative to br"]
+    out = [str, "directory for task and output"]
     return locals().copy()
 
 # ordering:
@@ -102,7 +104,7 @@ def GetArgs(cc, desc=None):
         v = c[0]  # default value
         h = c[1]  # help message
         o = c[2] if len(c) > 2 else None  # choices
-        if v in [int, float, list]:
+        if v in [int, float, list, str]:
             t = v
             v = None
         else:
@@ -281,3 +283,8 @@ def Upper2(a):
         r += 1
     return 2 ** r
 
+def sh(s, fatal=True, silent=True):
+    if not silent:
+        print(s)
+    r = os.system(s)
+    assert not fatal or r == 0
