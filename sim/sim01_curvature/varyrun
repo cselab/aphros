@@ -34,12 +34,12 @@ td = av[1]
 td = os.path.realpath(td)
 sh("mkdir -p '{:}'".format(td))
 
+if len(av) > 2:
+    dm = av[2]
+
 print("dummy: '{:}'".format(dm))
 print("taskdir: '{:}'".format(td))
 print("output: '{:}'".format(cd))
-
-if len(av) > 2:
-    dm = av[2]
 
 # files to copy
 ff = "ch ge gen plot.py r_ch r_ge r_plot run vary varyrun"
