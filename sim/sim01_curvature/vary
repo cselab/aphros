@@ -14,25 +14,9 @@ def sh(s, fatal=True):
     r = os.system(s)
     assert not fatal or r == 0
 
-o = "out"
-
-ff = []
 ddim = [2,3]
-for dim,cpr in it.product(ddim, 2 ** (np.arange(-2,24) * 0.25)):
-    #if abs(13.45 - cpr) > 1: # XXX
-    #    continue
-    nxm = 16 if dim == 2 else 8
-    nx = max(nxm, 2 ** (int(cpr * 2 + 2).bit_length()))
-    fo="plot_dim{:}_cpr{:06.02f}".format(dim, cpr)
-    ff.append(fo)
 
-    if not os.path.isdir(fo) or force:
-        sh("./gen -nx {nx} -cpr {cpr} -bryk 1. -dim {dim}".format(**locals()))
-        sh("./run &>> {:}".format(o))
-        sh("rm -rf {:}".format(fo))
-        sh("mv plot {:}".format(fo))
-
-#sh("./tile")
+ff = glob("plot_*")
 ll = ['ang.pdf', 'erang.pdf', 'hist.pdf', 'ch/s.pdf']
 ny = len(ll)
 

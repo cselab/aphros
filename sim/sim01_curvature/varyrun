@@ -1,0 +1,31 @@
+#!/usr/bin/env python
+
+import os
+import itertools as it
+import numpy as np
+from glob import glob
+
+import ch
+
+force=False
+
+def sh(s, fatal=True):
+    print(s)
+    r = os.system(s)
+    assert not fatal or r == 0
+
+o = "out"
+
+ff = []
+ddim = [2,3]
+for dim,cpr in it.product(ddim, 2 ** (np.arange(-2,24) * 0.25)):
+    nxm = 16 if dim == 2 else 8
+    nx = max(nxm, Upper2(2 * cpr))
+    fo="plot_dim{:}_cpr{:06.02f}".format(dim, cpr)
+    ff.append(fo)
+
+    if not os.path.isdir(fo) or force:
+        sh("./gen -nx {nx} -cpr {cpr} -bryk 1. -dim {dim}".format(**locals()))
+        sh("./run &>> {:}".format(o))
+        sh("rm -rf {:}".format(fo))
+        sh("mv plot {:}".format(fo))

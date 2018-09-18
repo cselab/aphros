@@ -269,3 +269,11 @@ def GetMakeArg(c):
     bz = bx if d3 else mz
 
     return "m='{nx} {ny} {nz}' bs='{bx} {by} {bz}' np={np}" .format(**locals())
+
+# Returns lowest power of 2 which is an upper limit
+def Upper2(a):
+    r = 0
+    while a > 2 ** r:
+        r += 1
+    return 2 ** r
+
