@@ -224,6 +224,10 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::vector<std::vector<Scal>> clr_v_; // color reduce: vector
   std::vector<std::string> clr_nm_; // color reduce: variable name
 
+  std::function<void(FieldCell<typename M::Scal>&,const M&)> bgf_; // bubgen
+  Scal bgt_ = -1.; // bubgen last time 
+
+
   struct Stat {
     Scal m1, m2; // mass
     Vect c1, c2;  // center of mass 
@@ -1445,6 +1449,36 @@ void Hydro<M>::Run() {
     if (var.Int["clip_vf"]) {
       if (sem("as-clip")) {
         Clip(as_->GetField(), 0., 1.);
+      }
+    }
+    // XXX: adhoc bubble generation
+    if (var.Int["enable_bubgen"]) {
+      Scal t0 = var.Double["bubgen_t0"];
+      Scal tper = var.Double["bubgen_per"];
+      bool bg = (st_.t > t0 && st_.t - bgt_ >= tper);
+      if (sem("as-bubgen-init")) {
+        if (bg) {
+          if (!bgf_) {
+            Vars vr;
+            vr.String.Set("init_vf", "list");
+            vr.String.Set("list_path", var.String["bubgen_path"]);
+            vr.Int.Set("dim", var.Int["dim"]);
+            vr.Int.Set("list_ls", var.Int["list_ls"]);
+            bgf_ = CreateInitU<M>(vr, m.IsRoot());
+          }
+          fc_vf_.Reinit(m, 0);
+          bgf_(fc_vf_, m);
+          m.Comm(&fc_vf_);
+        }
+      }
+      if (sem("as-bubgen-apply") && bg) {
+        if (bg) {
+          auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
+          for (auto c : m.AllCells()) {
+            u[c] = std::max(u[c], fc_vf_[c]);
+          }
+          bgt_ = st_.t;
+        }
       }
     }
   }
