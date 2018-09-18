@@ -3,6 +3,7 @@
 import ch
 
 a = ch.GetStdPar('nx', 'dim', 'cpr', 'bcoh', 'bryk')
+a['nx'] = [0, 'mesh size, 0: auto based on cpr']
 
 c = vars(ch.GetArgs(a))
 
@@ -10,16 +11,24 @@ c['np'] = 1
 
 dom = 1.
 nx = c['nx']
+
+dim = c['dim']
+
+cpr = c['cpr']
+
+if nx == 0: # auto nx
+    nxm = ch.GetBs(dim)
+    nx = max(nxm, ch.Upper2(2 * cpr + 1 + max(c['bcoh'])))
+    c['nx'] = nx
+
 hx = dom / nx
 
 bc = [o * hx + 0.5 for o in c['bcoh']]
 
-dim = c['dim']
-
 if dim == 2:
     bc[2] = hx * 0.5
 
-br = c['cpr'] / nx
+br = cpr / nx
 br = [br, br * c['bryk'], br]
 
 ch.par.WriteBub([bc], [br])

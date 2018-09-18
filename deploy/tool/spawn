@@ -37,7 +37,7 @@ while true ; do
   fb=$(basename "$f")
   echo "$fb"
   mv "$f" .
-  ./$fb
+  eval "./$fb" || true
   sleep 1
 done
 

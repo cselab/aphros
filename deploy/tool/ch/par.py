@@ -247,6 +247,10 @@ def ReadPar(b):
 def WriteDim(dim):
     open("dim", 'w').write(str(dim))
 
+# Block size
+def GetBs(dim):
+    return 8 if dim == 3 else 16
+
 # Returns arguments for base.makefile
 # c: dict with parameters, output of ReadPar()
 # Required parameters: np, dim, nx
@@ -264,7 +268,7 @@ def GetMakeArg(c):
     nz = nx if d3 else mz
 
     # block size
-    bx = 8 if d3 else 16
+    bx = GetBs(dim)
     by = bx
     bz = bx if d3 else mz
 

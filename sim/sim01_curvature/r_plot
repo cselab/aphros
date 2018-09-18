@@ -6,7 +6,7 @@ set -eu
 
 ./plot.py
 
-d=plot
+d=dat
 dp=$d/pdf
 dt=$d/dat
 
