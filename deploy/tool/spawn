@@ -16,10 +16,14 @@ fi
 t=$(realpath "$1")
 echo "watching tasks in '$t'"
 
-nw=`ls -d w_* 2> /dev/null | wc -w || true`
-nw=$(printf "%02d" "$nw")
-
-w="w_$nw"
+nw=0
+while true ; do
+  w=w_$(printf "%02d" "$nw")
+  if [ ! -e "$w" ] ; then
+    break
+  fi
+  let "nw=nw+1"
+done
 
 echo "creating working directory '$w'"
 mkdir "$w"
