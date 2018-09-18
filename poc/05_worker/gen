@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -eu
+
+p=$1
+
+mkdir -p "$p"
+
+for i in `seq 1 30` ; do
+  o="$p/a_$i"
+  cat > "$o" << EOF
+sleep 1 
+echo $i > $i
+echo $i
+
+EOF
+
+  chmod +x $o
+done
