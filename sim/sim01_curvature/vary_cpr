@@ -6,30 +6,17 @@ import numpy as np
 import sys
 import ch
 
-def sh(s, fatal=True, silent=True):
-    if not silent:
-        print(s)
-    r = os.system(s)
-    assert not fatal or r == 0
+sh = ch.sh
 
-av = sys.argv
-
-if len(av) < 2 or av[1] == "-h":
-    print("""usage: {:} OUT
-OUT: directory for tasks and output
-""".format(os.path.basename(av[0])))
-    exit(1)
-
-o = os.path.realpath(av[1])
+a = ch.GetStdPar('out')
+c = ch.GetArgs(a)
+o = os.path.realpath(c.out)
 sh("mkdir -p '{:}'".format(o))
 
 ddim = [2,3]
 for dim,cpr in it.product(ddim, 2 ** np.arange(0,5,0.5)):
-    # suffix
     sf = "dim{:}_cpr{:06.02f}".format(dim, cpr)
-    # task
     ot = os.path.join(o, "run_{:}".format(sf))
-    # output
     od = os.path.join(o, "dat_{:}".format(sf))
 
     cf = './gen -cpr {cpr} -dim {dim}'.format(**locals())

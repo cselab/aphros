@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -eu
+
+# count number of files by pattern p
+cnt() {
+  p="$@"
+  arr=($p)
+  echo ${#arr[@]}
+}
+
+echo "crop"
+for f in `ls r*{traj,trajp,trajx,trajy,trajz,trajvxm,trajvym,trajvzm,trajvx2,trajvy2,trajvz2,vf_ch}.pdf` ; do
+  echo $f
+  pdfcrop --margins '5 10 5 10' $f cr_$f 
+done
+
+t=t.pdf
+n=`cnt "cr_*traj.pdf"`
+
+echo "tile"
+pdfnup cr_*{traj,vf_ch}.pdf --nup ${n}x2 --fitpaper false --outfile $t
+pdfcrop --margins '5 5 5 5' $t traj.pdf 
+
+pdfnup cr_*{trajp,trajx,trajy,trajz}.pdf --nup ${n}x4 --fitpaper false --outfile $t
+pdfcrop --margins '5 5 5 5' $t trajcomp.pdf
+
+pdfnup cr_*{trajvxm,trajvym,trajvzm}.pdf --nup ${n}x3 --fitpaper false --outfile $t
+pdfcrop --margins '5 5 5 5' $t trajvm.pdf 
+
+pdfnup cr_*{trajvx2,trajvy2,trajvz2}.pdf --nup ${n}x3 --fitpaper false --outfile $t
+pdfcrop --margins '5 5 5 5' $t trajv2.pdf 
+
+echo "merge"
+pdfunite {traj,trajcomp,trajvm,trajv2}.pdf merge.pdf
+
+rm $t cr_*.pdf

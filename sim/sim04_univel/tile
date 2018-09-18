@@ -1,37 +1,94 @@
-#!/bin/bash
+#!/usr/bin/env python
 
-set -eu
+import os
+import itertools as it
+import numpy as np
+from glob import glob
 
-# count number of files by pattern p
-cnt() {
-  p="$@"
-  arr=($p)
-  echo ${#arr[@]}
-}
+import ch
+import ch.plot as chp
 
-echo "crop"
-for f in `ls r*{traj,trajp,trajx,trajy,trajz,trajvxm,trajvym,trajvzm,trajvx2,trajvy2,trajvz2,vf_ch}.pdf` ; do
-  echo $f
-  pdfcrop --margins '5 10 5 10' $f cr_$f 
-done
+def sh(s, fatal=True, silent=True):
+    if not silent:
+        print(s)
+    r = os.system(s)
+    assert not fatal or r == 0
 
-t=t.pdf
-n=`cnt "cr_*traj.pdf"`
+ddim = [2,3]
 
-echo "tile"
-pdfnup cr_*{traj,vf_ch}.pdf --nup ${n}x2 --fitpaper false --outfile $t
-pdfcrop --margins '5 5 5 5' $t traj.pdf 
+ll = ['traj.pdf', 'trajp.pdf', 'trajvxm.pdf', 'trajvx2.pdf']
+ny = len(ll)
 
-pdfnup cr_*{trajp,trajx,trajy,trajz}.pdf --nup ${n}x4 --fitpaper false --outfile $t
-pdfcrop --margins '5 5 5 5' $t trajcomp.pdf
+for dim in ddim:
+    fd = [f for f in ff if "dim{:}".format(dim) in f]
+    nx = len(fd) 
+    ww = []
+    o='merge_dim{:}.pdf'.format(dim)
+    if not os.path.isfile(o) or force:
+        for l in ll:
+            ww += [os.path.join(f,'traj/pdf',l) for f in fd]
+        sh("pdfjam --nup {nx}x{ny} --outfile {o} -- {:}".format(
+            ' '.join(ww), nx=nx, ny=ny, o=o))
+        sh("pdfcrop --margins '5 5 5 5' {o} {o}".format(o=o))
 
-pdfnup cr_*{trajvxm,trajvym,trajvzm}.pdf --nup ${n}x3 --fitpaper false --outfile $t
-pdfcrop --margins '5 5 5 5' $t trajvm.pdf 
+    continue
+    # gather error
+    ee = {}
+    for f in fd:
+        fe = os.path.join(f, "dat/hist_norm.dat") # max l1 l2
+        for l in open(fe):
+            n,rx,ry,em,e1,e2 = l.split() # n: solver name
+            if not n in ee:
+                ee[n] = dict()
+            def A(k, v):
+                if not k in ee[n]:
+                    ee[n][k] = []
+                ee[n][k].append(float(v))
+            A('rx', rx)
+            A('ry', ry)
+            A('max', em)
+            A('l1', e1)
+            A('l2', e2)
 
-pdfnup cr_*{trajvx2,trajvy2,trajvz2}.pdf --nup ${n}x3 --fitpaper false --outfile $t
-pdfcrop --margins '5 5 5 5' $t trajv2.pdf 
+    # write error
+    cc = ['rx', 'ry', 'max', 'l1', 'l2']
+    for n in ee:
+        e = ee[n]
+        an = {'gerris':'ge', 'mfer':'ch'} # alias
+        o = "er_d{:}_{:}.dat".format(dim, an[n])
+        if os.path.isfile(o) and not force:
+            continue
+        print(o)
 
-echo "merge"
-pdfunite {traj,trajcomp,trajvm,trajv2}.pdf merge.pdf
+        with open(o, 'w') as fo:
+            fo.write(' '.join(cc) + '\n')
+            for i in range(len(e[cc[0]])):
+                fo.write(' '.join([str(e[c][i]) for c in cc]) + '\n')
 
-rm $t cr_*.pdf
+    # plot error
+    for m in ['max', 'l1', 'l2']:
+        o = "er_d{:}_{:}.pdf".format(dim, m)
+        if os.path.isfile(o) and not force:
+            continue
+        print(o)
+        fig, ax = chp.PlotInit()
+        r = np.array(e['rx'])
+        for n in ee:
+            e = ee[n]
+            ax.plot(r, e[m], label=n, marker='.')
+        ax.plot(r, 1 / r, label='first', ls='--')
+        ax.plot(r, 1 / r ** 2, label='second', ls='-.')
+
+        ax.legend()
+        ax.grid(True)
+        ax.set_xlabel('r/h')
+        ax.set_ylabel('curvature error: ' + m)
+        ax.set_ylim(1e-4, 10)
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        xt = 2 ** np.arange(0, 5)
+        ax.set_xticks(xt)
+        ax.set_xticklabels(xt)
+        chp.PlotSave(fig, ax, o)
+
+
