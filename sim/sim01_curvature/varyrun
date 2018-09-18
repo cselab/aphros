@@ -50,9 +50,9 @@ for f in ff.split():
     assert os.path.exists(os.path.join(dm, f)), "not found %r in %r" % (f, dm)
 
 ddim = [2,3]
-for dim,cpr in it.product(ddim, 2 ** (np.arange(-2,24) * 0.25)):
+for dim,cpr in it.product(ddim, 2 ** np.arange(-2,5,0.25)):
     nxm = 16 if dim == 2 else 8
-    nx = max(nxm, ch.Upper2(2 * cpr))
+    nx = max(nxm, ch.Upper2(2 * cpr + 2))
     # output folder
     po = "plot_dim{:}_cpr{:06.02f}".format(dim, cpr)
     po = os.path.join(cd, po)
