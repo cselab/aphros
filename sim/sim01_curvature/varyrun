@@ -37,6 +37,8 @@ sh("mkdir -p '{:}'".format(td))
 if len(av) > 2:
     dm = av[2]
 
+dm = os.path.realpath(dm)
+
 print("dummy: '{:}'".format(dm))
 print("taskdir: '{:}'".format(td))
 print("output: '{:}'".format(cd))
@@ -45,7 +47,7 @@ print("output: '{:}'".format(cd))
 ff = "ch ge gen plot.py r_ch r_ge r_plot run vary varyrun"
 
 for f in ff.split():
-    assert os.path.exists(os.path.join(dm, f)), "not found %r in %r" % (f, b)
+    assert os.path.exists(os.path.join(dm, f)), "not found %r in %r" % (f, dm)
 
 ddim = [2,3]
 for dim,cpr in it.product(ddim, 2 ** (np.arange(-2,24) * 0.25)):
