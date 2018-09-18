@@ -16,7 +16,7 @@ def sh(s, fatal=True):
 
 ddim = [2,3]
 
-ff = glob("plot_*")
+ff = sorted(glob("dat_*"))
 ll = ['ang.pdf', 'erang.pdf', 'hist.pdf', 'ch/s.pdf']
 ny = len(ll)
 
