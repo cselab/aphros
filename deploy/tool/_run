@@ -16,6 +16,7 @@ instfnd part
 instfnd diff
 instfnd makearg
 instfnd spawn
+instfnd task
 
 cp -rvf ch "$BB/"
 
