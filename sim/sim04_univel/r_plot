@@ -4,7 +4,7 @@ set -eu
 
 ./plot.py
 
-d=plot/traj
+d=dat/traj
 rm -rf $d
 
 dc=$d/dat/ch
@@ -12,7 +12,7 @@ mkdir -p $dc
 cp ch/stat.dat $dc/
 dg=$d/dat/ge
 mkdir -p $dg
-cp ge/o/sc/* $dg/
+cp -r ge/o/sc/. $dg/
 
 mkdir -p $d/pdf
 mv -f traj*.pdf $d/pdf

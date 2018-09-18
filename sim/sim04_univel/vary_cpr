@@ -30,8 +30,10 @@ for dim,cpr in it.product(ddim, 2 ** np.arange(0,3,1)):
     ot = os.path.join(o, "run_{:}".format(sf))
     od = os.path.join(o, "dat_{:}".format(sf))
 
-    cf = "./gen -nx {nx} -cpr {cpr} -We {We} -La {La}  \
-            -dim {dim} -tmax {tmax} -mode vel".format(**locals())
+    cf = '''
+rm -f ch/done ge/done
+./gen -nx {nx} -cpr {cpr} -We {We} -La {La}  \
+-dim {dim} -tmax {tmax} -mode vel'''.format(**locals())
 
     sh("ch.task {:} > {:} <<< '{:}'".format(od, ot, cf))
     sh("chmod +x {:}".format(ot))

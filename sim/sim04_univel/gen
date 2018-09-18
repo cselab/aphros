@@ -10,12 +10,7 @@ def Default():
         'dim', 'pos', 'mode', 'mu', 'rho', 'nfr', 'dom', 'rho0',
         'np', 'nx', 'cpr', 'bryk', 'vel0', 'tmax', 'bcoh', 'bcor', 'bcod',
         'b2xr', 'b2rr', 'chsm', 'gesm', 'wallx', 'wally', 'wallz', 'pois',
-        'g0', 'Fr', 'Ga', 'Eo')
-    r['cpr'][0] = float
-    r['bcod'][0] = [0., 0.325, 0.]
-    r['bcoh'][0] = [0., 0., 0.]
-    r['mode'][0] = 'pois'
-    r['meshvel'] = [0, "moving mesh in ch", [0, 1]]
+        'g0', 'Fr', 'Ga', 'Eo', 'meshvel')
     r['nb'] = [1, "number of bubbles"]
     return r
 

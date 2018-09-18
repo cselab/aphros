@@ -21,8 +21,8 @@ def StdParAll():
     Ga = [float, "Galilei number"]
     Eo = [float, "Eotvos number"]
     np = [1, "number of processors"]
-    nx = [64, "mesh size"]
-    cpr = [4., "cells per bubble radius"]
+    nx = [int, "mesh size"]
+    cpr = [float, "cells per bubble radius"]
     br = [0.125, "bubble radius relative to dom"]
     tmax = [1., "total time"]
     nfr = [100, "number of frames"]
@@ -38,7 +38,7 @@ def StdParAll():
     wallz = [0, "wall in z direction, else periodic"]
     vel0 = [[4., 3., 2.], "direction of velocity"]
     g0 = [[0., -1., 0.], "direction of gravity"]
-    bcoh = [[0.2, 0.4, 0.6], "offset of bubble center relative to h"]
+    bcoh = [[0., 0., 0.], "offset of bubble center relative to h"]
     bcod = [[0., 0., 0.], "offset of bubble center relative to dom"]
     bcor = [[0., 0., 0.], "offset of bubble center relative to br"]
     bryk = [1. , "stretching factor for bubble size in y"]
@@ -54,6 +54,7 @@ mu: viscosity mu = rho * D ^ 2, pois: velocity magnitude dom''',
     b2rr = [0. , "second bubble radius relative to br"]
     b2xr = [[2., 0., 0.] , "second bubble displacement realative to br"]
     out = [str, "directory for task and output"]
+    meshvel = [0, "moving mesh in ch", [0, 1]]
     return locals().copy()
 
 # ordering:

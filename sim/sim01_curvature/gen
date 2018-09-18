@@ -4,6 +4,7 @@ import ch
 
 a = ch.GetStdPar('nx', 'dim', 'cpr', 'bcoh', 'bryk')
 a['nx'] = [0, 'mesh size, 0: auto based on cpr']
+a['bcoh'][0] = [0.2, 0.4, 0.6]
 
 c = vars(ch.GetArgs(a))
 
