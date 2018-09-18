@@ -4,28 +4,75 @@ import os
 import itertools as it
 import numpy as np
 from glob import glob
+import sys
 
 import ch
 
-force=False
-
-def sh(s, fatal=True):
-    print(s)
+def sh(s, fatal=True, silent=True):
+    if not silent:
+        print(s)
     r = os.system(s)
     assert not fatal or r == 0
 
-o = "out"
+av = sys.argv
 
-ff = []
+# directory containing the script
+dm = os.path.dirname(os.path.realpath(__file__))
+# current directory
+cd = os.getcwd()
+
+if len(av) < 2 or av[1] == "-h":
+    print("""usage: {:} TASKDIR [DUMMY]
+Creates tasks to generate config and compute.
+Moves output to current directory.
+TASKDIR: output dir
+DUMMY: directory containing base simulation setup, defaults to {:}
+""".format(os.path.basename(av[0]), dm))
+    exit(1)
+
+td = av[1]
+td = os.path.realpath(td)
+sh("mkdir -p '{:}'".format(td))
+
+print("dummy: '{:}'".format(dm))
+print("taskdir: '{:}'".format(td))
+print("output: '{:}'".format(cd))
+
+if len(av) > 2:
+    dm = av[2]
+
+# files to copy
+ff = "ch ge gen plot.py r_ch r_ge r_plot run vary varyrun"
+
+for f in ff.split():
+    assert os.path.exists(os.path.join(dm, f)), "not found %r in %r" % (f, b)
+
 ddim = [2,3]
 for dim,cpr in it.product(ddim, 2 ** (np.arange(-2,24) * 0.25)):
     nxm = 16 if dim == 2 else 8
-    nx = max(nxm, Upper2(2 * cpr))
-    fo="plot_dim{:}_cpr{:06.02f}".format(dim, cpr)
-    ff.append(fo)
+    nx = max(nxm, ch.Upper2(2 * cpr))
+    # output folder
+    po = "plot_dim{:}_cpr{:06.02f}".format(dim, cpr)
+    po = os.path.join(cd, po)
+    # script
+    ro = os.path.join(td, "run_dim{:}_cpr{:06.02f}".format(dim, cpr))
 
-    if not os.path.isdir(fo) or force:
-        sh("./gen -nx {nx} -cpr {cpr} -bryk 1. -dim {dim}".format(**locals()))
-        sh("./run &>> {:}".format(o))
-        sh("rm -rf {:}".format(fo))
-        sh("mv plot {:}".format(fo))
+    # output log
+    o = "out"
+    open(ro, 'w').write("""#!/bin/bash
+
+set -eu
+
+if [ -e "{po}" ] ; then
+  echo "skip existing '{po}'"
+  exit 0
+fi
+
+rm -rf {ff}
+cp -rf "{dm}/." .
+./gen -nx {nx} -cpr {cpr} -bryk 1. -dim {dim}
+./run &>> {o}
+mv plot "{po}"
+""".format(**locals()))
+
+    sh("chmod +x {:}".format(ro))
