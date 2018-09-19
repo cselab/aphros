@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -eu
+
+r=0.01
+nx=64
+np=1
+
+./gen -nx $nx -np $np -mode mu -dim 2 -pos center\
+   -We 0 -La 1200 -tmax 1 -cpr 4
+
