@@ -1238,13 +1238,26 @@ void Hydro<M>::DumpTraj(Sem& sem) {
       Vect gh = Vect(gs) * ext / gs.max(); // global domain length
       clr_nm_.clear();
       // list of vars // TODO: revise
-      clr_nm_ = {"vf", "x", "y", "z", "vx", "vy", "vz", "p"};
+      // add scalar name
+      auto nma = [this](const std::string nm) {
+        clr_nm_.push_back(nm);
+      };
+      // add vector name
+      auto nmav = [this](const std::string nm) {
+        clr_nm_.push_back(nm + "x");
+        clr_nm_.push_back(nm + "y");
+        clr_nm_.push_back(nm + "z");
+      };
+      nma("vf");
+      nmav("");
+      nmav("v");
+      nma("p");
       // traverse cells, reduce to map
       for (auto c : m.Cells()) {
         if (cl[c] != kNone) {
           auto& v = mp[cl[c]]; // vector for data
           size_t i = 0;
-          // append value to vector
+          // append scalar value
           auto add = [&v,&i,this](Scal a) {
             if (i >= v.size()) {
               v.resize(i + 1);
@@ -1252,18 +1265,20 @@ void Hydro<M>::DumpTraj(Sem& sem) {
             v[i] += a;
             ++i;
           };
+          // append vector value 
+          auto addv = [&](Vect a) {
+            add(a[0]);
+            add(a[1]);
+            add(a[2]);
+          };
           // volume
           auto w = vf[c] * m.GetVolume(c);
           add(w); // vf,  XXX: adhoc, vf must be first, divided on dump
           auto x = m.GetCenter(c);
           x += im[c] * gh;
           // list of vars, XXX: keep consistent with clr_nm_ 
-          add(x[0] * w); // x
-          add(x[1] * w); // y
-          add(x[2] * w); // z
-          add(vel[c][0] * w); // vx
-          add(vel[c][1] * w); // vy
-          add(vel[c][2] * w); // vz
+          addv(x * w); // x
+          addv(vel[c] * w); // v
           add(p[c] * w); // p
         }
       }
