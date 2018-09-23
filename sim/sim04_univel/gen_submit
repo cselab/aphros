@@ -1,0 +1,7 @@
+#!/bin/bash
+
+#set -eu
+
+ch.kill
+rm job.id
+ch.submit0 ./r_ch

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+#set -eu
+
+ch.run0 ./r_ch > /dev/null

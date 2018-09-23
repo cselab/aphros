@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -eu
+
+r=0.01
+nx=128
+np=64
+
+./gen -nx $nx -np $np -mode pois -dim 2 -pos center\
+   -Ca 0.1 -Reh 234 -bryk 1. -tmax 5 -br 0.05\
+   -mu $r -rho $r -pois 1 -wally 1 -wallz 0\
+   -bcod 0 0.5 0 -bcor 0 -1 0 -nfr 100 \
+   -b2xr 2.5 0 0 -b2rr 0.8 \
+   -nb 2
+
+rm -f ch/done
+./r_ch > /dev/null
