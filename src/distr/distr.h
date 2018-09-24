@@ -77,6 +77,7 @@ class DistrMesh : public Distr {
   virtual void WriteBuffer(const std::vector<MIdx>& bb) = 0;
   // Reduce TODO: extend doc
   virtual void Reduce(const std::vector<MIdx>& bb) = 0;
+  virtual void Bcast(const std::vector<MIdx>& bb) = 0;
   virtual void Solve(const std::vector<MIdx>& bb);
   // Writes dumps.
   virtual void DumpWrite(const std::vector<MIdx>& bb);
@@ -343,6 +344,7 @@ void DistrMesh<KF>::Run() {
     ClearComm(bb);
 
     Reduce(bb);
+    Bcast(bb);
 
     Solve(bb);
 

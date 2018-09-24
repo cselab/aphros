@@ -1249,7 +1249,7 @@ void Hydro<M>::DumpTraj(Sem& sem) {
                                              // to equivalent radius
       const Scal shr = var.Double["shell_r"]; // shell inner radius absolute
       // shell total radius: rr * req + r
-      const Scal shh = var.Int["shell_h"]; // shell thickness in cells
+      const Scal shh = var.Double["shell_h"]; // shell thickness in cells
       clr_nm_.clear();
       // list of vars // TODO: revise
       // add scalar name
@@ -1289,18 +1289,17 @@ void Hydro<M>::DumpTraj(Sem& sem) {
             add(a[1]);
             add(a[2]);
           };
-          // volume
-          auto w = vf[c] * m.GetVolume(c);
-          add(w); // vf,  XXX: adhoc, vf must be first, divided on dump
+          auto w = vf[c] * m.GetVolume(c); // volume
           auto x = m.GetCenter(c);
-          x += im[c] * gh;
+          x += im[c] * gh;  // translation by image vector
+
           // list of vars, XXX: keep consistent with clr_nm_ 
+          add(w); // vf,  XXX: adhoc, vf must be first, divided on dump
           addv(x * w); // x
           addv(vel[c] * w); // v
           add(p[c] * w); // p
           // shell
           if (sh) {
-            //Scal ws = 1. if 
             addv(Vect(shr + shrr)); // v
             add(shh); // p
           }
@@ -1319,7 +1318,7 @@ void Hydro<M>::DumpTraj(Sem& sem) {
       m.Reduce(std::make_shared<TVS>(&clr_v_));
     }
   }
-  if (sem("color-reduce")) {
+  if (sem("color-write")) {
     bool dm = dmptraj_.Try(st_.t, st_.dt);
     if (dm) {
       if (m.IsRoot()) {
@@ -1346,13 +1345,6 @@ void Hydro<M>::DumpTraj(Sem& sem) {
           clr_cl_.push_back(it.first); // color
           clr_v_.push_back(it.second); // vector
         }
-      }
-    }
-  }
-  if (sem("color-write")) {
-    bool dm = dmptraj_.Try(st_.t, st_.dt);
-    if (dm) {
-      if (m.IsRoot()) {
         // dump
         std::string s = GetDumpName("traj", ".csv", dmptraj_.GetN());
         std::cout << std::fixed << std::setprecision(8)
@@ -1364,21 +1356,24 @@ void Hydro<M>::DumpTraj(Sem& sem) {
         o.precision(20);
         // header
         {
-          o << "cl";
-          for (auto& nm : clr_nm_) {
-            o << "," << nm;
+          o << "cl,vf,r";
+          auto& nm = clr_nm_;
+          for (size_t i = 1; i < nm.size(); ++i) {
+            o << "," << nm[i];
           }
           o << std::endl;
         }
-
         // content
         for (auto it : mp) {
           auto cl = it.first;
           auto& v = it.second;
-          o << cl;
-          for (size_t i = 0; i < v.size(); ++i) {
-            Scal vf = v[0]; // XXX: assume vf is first
-            Scal a = (i == 0 ? vf : v[i] / vf);
+          Scal vf = v[0]; // XXX: assume vf is first
+          Scal pi = M_PI;
+          Scal r = std::pow(3. / (4. * pi) * vf, 1. / 3.) ; 
+          o << cl << "," << vf << "," << r;
+          // append remaining dividing by vf
+          for (size_t i = 1; i < v.size(); ++i) {
+            Scal a = v[i] / vf;
             o << "," << a;
           }
           o << "\n";
