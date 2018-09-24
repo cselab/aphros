@@ -338,6 +338,25 @@ void Simple<M>::TestReduce() {
       PCMP(rvvi_, rvvi);
     }
   }
+  if (sem("bcast-catvi")) {
+    MIdx w(bi_.index);
+    rvvi_.resize(0);
+    size_t i = ndq.GetIdx(w);
+    for (size_t j = 0; j < (i + 5) % q; ++j) {
+      rvvi_.push_back(std::vector<int>({int(100 * i + j)}));
+    }
+    using T = typename M::template OpCatVT<int>;
+    m.Bcast(std::make_shared<T>(&rvvi_));
+  }
+  if (sem("bcast-catvi-check")) {
+    // init for root block
+    std::vector<std::vector<int>> rvvi;
+    size_t i = ndq.GetIdx(MIdx(0));
+    for (size_t j = 0; j < (i + 5) % q; ++j) {
+      rvvi.push_back(std::vector<int>({int(100 * i + j)}));
+    }
+    PCMP(rvvi_, rvvi);
+  }
 }
 
 
