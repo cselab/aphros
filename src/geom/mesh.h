@@ -442,6 +442,15 @@ class MeshStructured {
   void ClearReduce() {
     rd_.Clear();
   }
+  void Bcast(const std::shared_ptr<Op>& o) {
+    bcast_.push_back(o);
+  }
+  const std::vector<std::shared_ptr<Op>>& GetBcast() const {
+    return bcast_;
+  }
+  void ClearBcast() {
+    bcast_.clear();
+  }
   const std::vector<LS>& GetSolve() const {
     return vls_;
   }
@@ -506,6 +515,7 @@ class MeshStructured {
   std::string trep_; // timer report filename
   Rd rd_;
   std::vector<LS> vls_; // solve
+  std::vector<std::shared_ptr<Op>> bcast_; // list of broadcast requests
   // tmp for GetSolveTmp()
   std::vector<Scal> lsa_; // matrix coeffs of size n * st.size()
   std::vector<Scal> lsb_; // rhs of size n

@@ -376,6 +376,7 @@ class Cubism : public DistrMesh<KF> {
   void ReadBuffer(const std::vector<MIdx>& bb) override;
   void WriteBuffer(const std::vector<MIdx>& bb) override;
   void Reduce(const std::vector<MIdx>& bb) override;
+  void Bcast(const std::vector<MIdx>& bb) override;
   void DumpWrite(const std::vector<MIdx>& bb) override;
 };
 
@@ -583,6 +584,94 @@ void Cubism<Par, KF>::WriteBuffer(const std::vector<MIdx>& bb) {
   }
 }
 
+template <class Par, class KF>
+void Cubism<Par, KF>::Bcast(const std::vector<MIdx>& bb) {
+  using OpCat = typename M::OpCat;
+  auto& vf = mk.at(bb[0])->GetMesh().GetBcast();  // pointers to broadcast
+
+  // Check size is the same for all kernels
+  for (auto& b : bb) {
+    auto& v = mk.at(b)->GetMesh().GetBcast();  // pointers to broadcast
+    if (v.size() != vf.size()) {
+      throw std::runtime_error("Bcast: v.size() != vf.size()");
+    }
+  }
+
+  for (size_t i = 0; i < vf.size(); ++i) {
+      if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
+      std::vector<char> r = o->Neut(); // result local
+      
+      // Reduce over all local blocks
+      for (auto& b : bb) {
+        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
+        ob->Append(r);
+      }
+
+      int s = r.size(); // size local
+
+      if (isroot_) {
+        int sc; // size of communicator
+        MPI_Comm_size(comm_, &sc);
+
+        std::vector<int> ss(sc); // size of r on all ranks
+
+        // Gather ss
+        MPI_Gather(&s, 1, MPI_INT, 
+                   ss.data(), 1, MPI_INT, 
+                   0, comm_);
+
+
+        int sa = 0; // size all
+        std::vector<int> oo = {0}; // offsets
+        for (auto& q : ss) {
+          sa += q;
+          oo.push_back(oo.back() + q);
+        }
+        oo.pop_back();
+        assert(ss.size() == oo.size());
+
+        std::vector<char> ra(sa); // result all
+
+        // Gather ra
+        MPI_Gatherv(r.data(), r.size(), MPI_CHAR,
+                    ra.data(), ss.data(), oo.data(), MPI_CHAR,
+                    0, comm_);
+       
+        // Write results to root block 
+        size_t cnt = 0;
+        for (auto& b : bb) {
+          auto& m = mk.at(b)->GetMesh();
+          if (m.IsRoot()) {
+            auto& v = m.GetReduce(); 
+            OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
+            ob->Set(ra);
+            ++cnt;
+          }
+        }
+        assert(cnt == 1);
+      } else {
+        // Send s to root
+        MPI_Gather(&s, 1, MPI_INT, nullptr, 0, MPI_INT, 0, comm_);
+
+        // Send r to root
+        MPI_Gatherv(r.data(), r.size(), MPI_CHAR,
+                    nullptr, nullptr, nullptr, MPI_CHAR,
+                    0, comm_);
+      }
+
+    } else {
+      throw std::runtime_error("Bcast: Unknown M::Op implementation");
+    }
+  }
+
+  // Clear reduce requests
+  for (auto& b : bb) {
+    auto& k = *mk.at(b); 
+    auto& m = k.GetMesh();
+    m.ClearReduce();
+  }
+}
 template <class Par, class KF>
 void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
   using OpS = typename M::OpS;

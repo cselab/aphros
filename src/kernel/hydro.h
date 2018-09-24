@@ -224,6 +224,14 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::vector<std::vector<Scal>> clr_v_; // color reduce: vector
   std::vector<std::string> clr_nm_; // color reduce: variable name
 
+  // TODO: revise sh, unify with cl
+  // Sphere
+  struct Sph {
+    Vect x;
+    Scal r;
+  };
+  std::map<Scal, Sph> clrsp_; // color to sphere
+
   std::function<void(FieldCell<typename M::Scal>&,const M&)> bgf_; // bubgen
   Scal bgt_ = -1.; // bubgen last time 
 
@@ -1236,6 +1244,12 @@ void Hydro<M>::DumpTraj(Sem& sem) {
       MIdx gs = m.GetGlobalSize(); // global mesh size
       Scal ext = var.Double["extent"]; // TODO: revise
       Vect gh = Vect(gs) * ext / gs.max(); // global domain length
+      const bool sh = var.Int["enable_shell"]; // enable shell averaging
+      const Scal shrr = var.Double["shell_rr"]; // shell inner radius relative 
+                                             // to equivalent radius
+      const Scal shr = var.Double["shell_r"]; // shell inner radius absolute
+      // shell total radius: rr * req + r
+      const Scal shh = var.Int["shell_h"]; // shell thickness in cells
       clr_nm_.clear();
       // list of vars // TODO: revise
       // add scalar name
@@ -1252,6 +1266,10 @@ void Hydro<M>::DumpTraj(Sem& sem) {
       nmav("");
       nmav("v");
       nma("p");
+      if (sh) {
+        nma("vs"); // velocity shell
+        nma("ps"); // pressure shell
+      }
       // traverse cells, reduce to map
       for (auto c : m.Cells()) {
         if (cl[c] != kNone) {
@@ -1280,6 +1298,12 @@ void Hydro<M>::DumpTraj(Sem& sem) {
           addv(x * w); // x
           addv(vel[c] * w); // v
           add(p[c] * w); // p
+          // shell
+          if (sh) {
+            //Scal ws = 1. if 
+            addv(Vect(shr + shrr)); // v
+            add(shh); // p
+          }
         }
       }
       // traverse map, copy to vector
@@ -1315,6 +1339,20 @@ void Hydro<M>::DumpTraj(Sem& sem) {
             vm[i] += v[i];
           }
         }
+        // traverse map, copy to vector on root
+        clr_cl_.clear();
+        clr_v_.clear();
+        for (auto it : mp) {
+          clr_cl_.push_back(it.first); // color
+          clr_v_.push_back(it.second); // vector
+        }
+      }
+    }
+  }
+  if (sem("color-write")) {
+    bool dm = dmptraj_.Try(st_.t, st_.dt);
+    if (dm) {
+      if (m.IsRoot()) {
         // dump
         std::string s = GetDumpName("traj", ".csv", dmptraj_.GetN());
         std::cout << std::fixed << std::setprecision(8)
