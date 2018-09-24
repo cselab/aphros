@@ -199,6 +199,15 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     }
     return std::numeric_limits<Scal>::max();
   }
+  Vect GetCellSize() const {
+    Vect h; // cell size
+    // XXX: specific for structured 3D mesh
+    IdxCell c0(0);
+    h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
+        m.GetNode(m.GetNeighbourNode(c0, 0));
+    assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
+    return h;
+  }
 
   FieldCell<Scal> fc_mu_; // viscosity
   FieldCell<Scal> fc_rho_; // density
@@ -1232,6 +1241,7 @@ void Hydro<M>::Dump(Sem& sem) {
 
 template <class M>
 void Hydro<M>::DumpTraj(Sem& sem) {
+  const size_t SHS = 9; // start of sh // TODO: adhoc, revise
   if (sem("color-calc")) {
     bool dm = dmptraj_.Try(st_.t, st_.dt);
     if (dm) {
@@ -1254,7 +1264,7 @@ void Hydro<M>::DumpTraj(Sem& sem) {
                                              // to equivalent radius
       const Scal shr = var.Double["shell_r"]; // shell inner radius absolute
       // shell total radius: rr * req + r
-      const Scal shh = var.Double["shell_h"]; // shell thickness in cells
+      const Scal shh = var.Double["shell_h"]; // shell thickness relative to h
       std::map<Scal, Sph> msp; // map color to sphere
       for (size_t i = 0; i < clr_bcl_.size(); ++i) {
         auto& s = clr_bsp_[i];
@@ -1281,18 +1291,17 @@ void Hydro<M>::DumpTraj(Sem& sem) {
       nmav("");
       nmav("v");
       nma("p");
-      if (sh) {
+      if (SHS != clr_nm_.size()) {
+        throw std::runtime_error("wrong SHS");
+      }
+      if (sh) { // keep consistent with SHS
+        nma("sv"); // shell volume
         nmav("vs"); // velocity shell
         nma("ps"); // pressure shell
       }
 
-      if (!msp.empty())
-      {
-        auto sp = msp[0.];
-        std::cout << "x=" << sp.x << " " << sp.r << std::endl;
-      }
-
       // traverse cells, append to mp
+      const Vect h = GetCellSize();
       for (auto c : m.Cells()) {
         if (cl[c] != kNone) {
           auto& v = mp[cl[c]]; // vector for data
@@ -1304,19 +1313,19 @@ void Hydro<M>::DumpTraj(Sem& sem) {
             // TODO: consider case of new color added
           }
 
-          auto w = vf[c] * m.GetVolume(c); // volume
           auto x = m.GetCenter(c); // cell center
           x += im[c] * gh;  // translation by image vector
 
+          auto w = (x.sqrdist(sp.x) < sqr(sp.r * maxr) ? 
+                    vf[c] * m.GetVolume(c) : 0); // volume
+
           size_t i = 0;
-          // append scalar value if within the sphere
-          auto add = [&v,&i,this,&sp,&x,&maxr](Scal a) {
+          // append scalar value
+          auto add = [&v,&i,this,&sp](Scal a) {
             if (i >= v.size()) {
               v.resize(i + 1);
             }
-            if (x.sqrdist(sp.x) < sqr(sp.r * maxr)) {
-              v[i] += a;
-            }
+            v[i] += a;
             ++i;
           };
           // append vector value 
@@ -1332,14 +1341,25 @@ void Hydro<M>::DumpTraj(Sem& sem) {
           addv(x * w); // x
           addv(vel[c] * w); // v
           add(p[c] * w); // p
+
           // shell
           if (sh) {
-            addv(Vect(shr + shrr)); // v
-            add(shh); // p
+            Scal r0 = shrr * sp.r + shr; // shell inner radius
+            // TODO: revise for non-cubic cells
+            Scal h0 = shh * h[0];  // shell thickness
+            Scal rsq = x.sqrdist(sp.x);
+
+            Scal sw(0); // weight
+            if (rsq >= sqr(r0) && rsq <= sqr(r0 + h0)) {
+              sw = m.GetVolume(c);
+            }
+            add(sw); // volume
+            addv(vel[c] * sw); // velocity
+            add(p[c] * sw); // pressure
           }
         }
       }
-      // traverse map, copy to vector
+      // copy to vector
       clr_cl_.clear();
       clr_v_.clear();
       for (auto it : mp) {
@@ -1381,8 +1401,21 @@ void Hydro<M>::DumpTraj(Sem& sem) {
         Scal pi = M_PI;
         r = std::pow(3. / (4. * pi) * vf, 1. / 3.) ; 
         // divide remaining by vf
-        for (size_t i = 2; i < v.size(); ++i) {
+        for (size_t i = 2; i < SHS; ++i) {
           v[i] /= vf;
+        }
+      }
+
+      const bool sh = var.Int["enable_shell"]; // enable shell averaging
+      if (sh) {
+        // divide by sv
+        for (auto& it : mp) {
+          auto& v = it.second;
+          Scal sv = v[SHS]; // XXX: assume vf is first
+          // divide remaining by sv
+          for (size_t i = SHS + 1; i < v.size(); ++i) {
+            v[i] /= sv;
+          }
         }
       }
 
@@ -1393,7 +1426,6 @@ void Hydro<M>::DumpTraj(Sem& sem) {
         clr_bcl_.push_back(it.first); // color
         auto& s = it.second;
         clr_bsp_.push_back(std::vector<Scal>{s[2], s[3], s[4], s[1]}); 
-        std::cout << "========= " << clr_bsp_.back()[0] << std::endl;
       }
     }
     using TS = typename M::template OpCatT<Scal>; 
