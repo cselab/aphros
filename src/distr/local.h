@@ -275,8 +275,49 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
 
 template <class KF>
 void Local<KF>::Bcast(const std::vector<MIdx>& bb) {
-  (void) bb;
-  throw std::runtime_error("Bcast: not implemented");
+  using OpCat = typename M::OpCat;
+  auto& vf = mk.at(bb[0])->GetMesh().GetBcast();  // pointers to broadcast
+
+  // Check size is the same for all kernels
+  for (auto& b : bb) {
+    auto& v = mk.at(b)->GetMesh().GetBcast();  // pointers to broadcast
+    if (v.size() != vf.size()) {
+      throw std::runtime_error("Bcast: v.size() != vf.size()");
+    }
+  }
+
+  for (size_t i = 0; i < vf.size(); ++i) {
+      if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
+      std::vector<char> r = o->Neut(); // buffer
+
+      // read from root block
+      for (auto& b : bb) {
+        auto& m = mk.at(b)->GetMesh();
+        if (m.IsRoot()) {
+          auto& v = m.GetBcast(); 
+          OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
+          ob->Append(r);
+        }
+      }
+
+      // write to all blocks
+      for (auto& b : bb) {
+        auto& m = mk.at(b)->GetMesh();
+        auto& v = m.GetBcast(); 
+        OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
+        ob->Set(r);
+      }
+    } else {
+      throw std::runtime_error("Bcast: Unknown M::Op instance");
+    }
+  }
+
+  // Clear bcast requests
+  for (auto& b : bb) {
+    auto& k = *mk.at(b); 
+    auto& m = k.GetMesh();
+    m.ClearBcast();
+  }
 }
 
 template <class KF>
