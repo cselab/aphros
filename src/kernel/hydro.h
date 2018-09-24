@@ -224,13 +224,14 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::vector<std::vector<Scal>> clr_v_; // color reduce: vector
   std::vector<std::string> clr_nm_; // color reduce: variable name
 
-  // TODO: revise sh, unify with cl
-  // Sphere
   struct Sph {
     Vect x;
     Scal r;
   };
-  std::map<Scal, Sph> clrsp_; // color to sphere
+  // TODO: revise sh, unify with cl
+  std::vector<Scal> clr_bcl_; // bcast color
+  std::vector<std::vector<Scal>> clr_bsp_; // bcast spheres: x,y,z,r
+  // TODO: bcast std::array, or Sph
 
   std::function<void(FieldCell<typename M::Scal>&,const M&)> bgf_; // bubgen
   Scal bgt_ = -1.; // bubgen last time 
@@ -1235,6 +1236,8 @@ void Hydro<M>::DumpTraj(Sem& sem) {
     if (dm) {
       std::map<Scal, std::vector<Scal>> mp; // map color to vector
       //Scal th = var.Double["color_th"]; // TODO: intergration in neighbours
+      Scal maxr = var.Double["color_maxr"]; // radius of integration sphere
+                                            // relative to equivalent radius
       auto kNone = TR::kNone;
       auto& cl = tr_->GetColor();
       auto& im = tr_->GetImage();
@@ -1244,14 +1247,19 @@ void Hydro<M>::DumpTraj(Sem& sem) {
       MIdx gs = m.GetGlobalSize(); // global mesh size
       Scal ext = var.Double["extent"]; // TODO: revise
       Vect gh = Vect(gs) * ext / gs.max(); // global domain length
+
       const bool sh = var.Int["enable_shell"]; // enable shell averaging
       const Scal shrr = var.Double["shell_rr"]; // shell inner radius relative 
                                              // to equivalent radius
       const Scal shr = var.Double["shell_r"]; // shell inner radius absolute
       // shell total radius: rr * req + r
       const Scal shh = var.Double["shell_h"]; // shell thickness in cells
-      clr_nm_.clear();
-      // list of vars // TODO: revise
+      std::map<Scal, Sph> msp; // map color to sphere
+      for (size_t i = 0; i < clr_bcl_.size(); ++i) {
+        auto& s = clr_bsp_[i];
+        msp[clr_bcl_[i]] = Sph{Vect(s[0], s[1], s[2]), s[3]};
+      }
+
       // add scalar name
       auto nma = [this](const std::string nm) {
         clr_nm_.push_back(nm);
@@ -1262,6 +1270,9 @@ void Hydro<M>::DumpTraj(Sem& sem) {
         clr_nm_.push_back(nm + "y");
         clr_nm_.push_back(nm + "z");
       };
+
+      // list of vars // TODO: revise
+      clr_nm_.clear();
       nma("vf");
       nmav("");
       nmav("v");
@@ -1270,17 +1281,31 @@ void Hydro<M>::DumpTraj(Sem& sem) {
         nma("vs"); // velocity shell
         nma("ps"); // pressure shell
       }
-      // traverse cells, reduce to map
+      // traverse cells, append to mp
       for (auto c : m.Cells()) {
         if (cl[c] != kNone) {
           auto& v = mp[cl[c]]; // vector for data
+          Sph sp; // current sphere
+          if (msp.empty()) { // default to infinity
+            sp = Sph{Vect(0), std::numeric_limits<Scal>::max()};
+          } else { 
+            sp = msp.find(cl[c])->second;
+            // TODO: consider case of new color added
+          }
+
+          auto w = vf[c] * m.GetVolume(c); // volume
+          auto x = m.GetCenter(c); // cell center
+          x += im[c] * gh;  // translation by image vector
+
           size_t i = 0;
-          // append scalar value
-          auto add = [&v,&i,this](Scal a) {
+          // append scalar value if within the sphere
+          auto add = [&v,&i,this,&sp,&x,&maxr](Scal a) {
             if (i >= v.size()) {
               v.resize(i + 1);
             }
-            v[i] += a;
+            if (x.sqrdist(sp.x) < sqr(sp.r * maxr)) {
+              v[i] += a;
+            }
             ++i;
           };
           // append vector value 
@@ -1289,9 +1314,6 @@ void Hydro<M>::DumpTraj(Sem& sem) {
             add(a[1]);
             add(a[2]);
           };
-          auto w = vf[c] * m.GetVolume(c); // volume
-          auto x = m.GetCenter(c);
-          x += im[c] * gh;  // translation by image vector
 
           // list of vars, XXX: keep consistent with clr_nm_ 
           add(w); // vf,  XXX: adhoc, vf must be first, divided on dump
