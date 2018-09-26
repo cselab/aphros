@@ -396,11 +396,47 @@ void Hydro<M>::Init() {
             fc_vel_[c][1] += v[1];
           }
         }
-      } else if (vi == "pois") {
-        Scal pv = var.Double["poisvel"];
+      } else if (vi == "pois" || vi == "poisy") {
+        // Poiseuille with walls in y
+        
+        MIdx gs = m.GetGlobalSize(); // global mesh size
+        Scal ext = var.Double["extent"]; // TODO: revise
+        Vect gh = Vect(gs) * ext / gs.max(); // global domain length
+        Scal pv = var.Double["poisvel"]; // centerline velocity
+
         for (auto i : m.AllCells()) {
-          Vect x = m.GetCenter(i);
-          fc_vel_[i][0] = x[1] * (1. - x[1]) * 4. * pv;
+          Scal y = m.GetCenter(i)[1] / gh[1];
+          fc_vel_[i][0] = y * (1. - y) * 4. * pv;
+        }
+      } else if (vi == "poisyz") {
+        // Poiseuille with walls in y and z
+        // Spiga 1994: Symmetric solution for velocity in rectangular ducts
+        
+        MIdx gs = m.GetGlobalSize(); // global mesh size
+        Scal ext = var.Double["extent"]; // TODO: revise
+        Vect gh = Vect(gs) * ext / gs.max(); // global domain length
+        Scal mu = var.Double["poismu"]; // viscosity
+        Scal pg = var.Double["poisgrad"]; // pressure gradient
+        int im = var.Int["poisiter"]; // depth to evaluate series
+        Scal pi = M_PI;
+        Scal ly = gh[1];
+        Scal lz = gh[2];
+        Scal p = sqr(ly) * pg / mu;
+        Scal b = lz / ly;
+        Scal k = 16. * sqr(b) / std::pow(pi, 4);
+
+        // TODO: tests for gh[1] != gh[2]
+        for (auto i : m.AllCells()) {
+          Scal y = m.GetCenter(i)[1] / ly;
+          Scal z = m.GetCenter(i)[2] / lz;
+          Scal s = 0.;
+          for (int iy = 1; iy < im * 2; iy += 2) {
+            for (int iz = 1; iz < im * 2; iz += 2) {
+              s += std::sin(iy * pi * y) *  std::sin(iz * pi * z) / 
+                  (iy * iz * (sqr(b) * sqr(iy) + sqr(iz)));
+            }
+          }
+          fc_vel_[i][0] = p * s * k;
         }
       } else if (vi == "uniform" ) {
         Vect v(var.Vect["vel"]);
