@@ -27,12 +27,26 @@ set int dim {dim}
 set vect gravity {g[0]} {g[1]} {g[2]}
 '''.format(**c)
 
+dim = c['dim']
+d3 = (dim == 3)
+
 if c['pois']:
-    t += '''
-set string vel_init pois
+    if c['wally'] and c['wallz']: # square duct
+        t += '''
+set string vel_init poisyz
+set double poismu {mu0}
+set double poisgrad {pgrad}
+set vect force {pgrad} 0 0 
+set int poisiter 3
+'''.format(**c)
+    elif c['wally']:  # plates
+        t += '''
+set string vel_init poisy
 set double poisvel {poisvel}
 set vect force {pgrad} 0 0 
-    '''.format(**c)
+'''.format(**c)
+    else:
+        assert False, "pois=1 requires wally or wallz"
 
 if c['meshvel']:
     t += '''
@@ -40,8 +54,6 @@ set string meshvel_auto v
 set double meshvel_weight 0.5
 set vect meshvel_mask 1 0 0
     '''.format(**c)
-
-dim = c['dim']
 
 for d in ['x', 'y', 'z'][0:dim]:
     if c['wall' + d]:
