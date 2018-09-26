@@ -33,6 +33,7 @@ add_subdirectory(util)
 add_subdirectory(solver)
 add_subdirectory(parse)
 add_subdirectory(dump)
+add_subdirectory(overlap)
 
 target_link_libraries(${EXE} distr solver vof tvd convdiffvi simple)
 

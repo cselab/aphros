@@ -12,6 +12,7 @@
 
 #include "solver/vof.h"
 #include "func/init_u.h"
+#include "overlap/over.h"
 
 using Scal = double;
 using Vect = GVect<Scal, 3>;
@@ -555,6 +556,10 @@ void TestInter() {
   f(xx,  V(0.,0.,0.), V(1.,1.,0.), {0., 0.5});
   f(xx,  V(-1,-1.,0.), V(1.,1.,0.), {1., 1.5});
   f(xx,  V(0.,0.5,0.), V(1.,0.,0.), {0., 0.5});
+}
+
+void TestOver() {
+
 }
 
 int main() {
