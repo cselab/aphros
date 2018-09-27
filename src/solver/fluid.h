@@ -142,6 +142,13 @@ class OutletAuto : public Outlet<M> {
 };
 
 template <class M>
+class SlipWall : public CondFaceFluid {
+ public:
+  using Vect = typename M::Vect;
+  SlipWall(size_t nci) : CondFaceFluid(nci) {}
+};
+
+template <class M>
 class GivenVelocityAndPressure : public CondCellFluid {
  public:
   using Vect = typename M::Vect;
@@ -225,6 +232,10 @@ std::shared_ptr<CondFaceFluid> Parse(std::string argstr, IdxFace /*f*/,
     // Outlet. Velocity is extrapolated from neighbour cells and corrected
     // to yield zero total flux over outlet and inlet faces.
     return std::make_shared<OutletAuto<M>>(nc);
+  } else if (name == "slipwall") {
+    // Zero derivative for both pressure and velocity.
+    // TODO: revise, should be inpenetration for velocity
+    return std::make_shared<SlipWall<M>>(nc);
   } else {
     throw std::runtime_error("Parse: Unknown boundary condition type");
   }
