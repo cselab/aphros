@@ -60,14 +60,30 @@ class CondFaceGrad : public CondFace {
   virtual V GetGrad() const = 0;
 };
 
+// Extract single component from a Vect condition
+template <class Vect>
+class CondFaceGradComp : public CondFaceGrad<typename Vect::value_type> {
+ public:
+  using Scal = typename Vect::value_type;
+  using P = CondFaceGrad<Scal>; // parent
+  CondFaceGradComp(CondFaceGrad<Vect>* o, size_t d)
+      : P(o->GetNci()), o_(o), d_(d) {}
+  Scal GetGrad() const override { return o_->GetGrad()[d_]; }
+
+ private:
+  CondFaceGrad<Vect>* o_;
+  size_t d_;
+};
+
+
 // Given gradient
 template <class V>
 class CondFaceGradFixed : public CondFaceGrad<V> {
  public:
   explicit CondFaceGradFixed(const V& v, size_t nci)
       : CondFaceGrad<V>(nci), v_(v) {}
-  virtual V GetGrad() const override { return v_; }
-  void Set(const V& v) { v = v; }
+  V GetGrad() const override { return v_; }
+  void Set(const V& v) { v_ = v; }
 
  private:
   V v_;

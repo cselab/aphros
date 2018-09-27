@@ -28,6 +28,8 @@ struct ConvDiffVectImp<M_>::Imp {
         IdxFace f = it->GetIdx();
         if (auto p = dynamic_cast<CondFaceVal<Vect>*>(mfc_[f].get())) {
           vmfc_[d][f] = std::make_shared<CondFaceValComp<Vect>>(p, d);
+        } else if (auto p = dynamic_cast<CondFaceGrad<Vect>*>(mfc_[f].get())) {
+          vmfc_[d][f] = std::make_shared<CondFaceGradComp<Vect>>(p, d);
         } else {
           throw std::runtime_error("Unknown face condition type");
         }
