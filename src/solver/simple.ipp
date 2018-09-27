@@ -69,9 +69,9 @@ struct Simple<M_>::Imp {
             CondFaceExtrap>(nci);
       } else if (auto cd = dynamic_cast<SlipWall<M>*>(cb)) {
         mfcw_[i] = std::make_shared<
-            CondFaceGradFixed<Vect>>(Vect(0.), nci);
+            CondFaceValFixed<Vect>>(Vect(0.), nci);
         mfcp_[i] = std::make_shared<
-            CondFaceGradFixed<Scal>>(0., nci);
+            CondFaceExtrap>(nci);
       } else {
         throw std::runtime_error("Unknown fluid condition");
       }
@@ -141,6 +141,7 @@ struct Simple<M_>::Imp {
     using namespace fluid_condition;
 
     // Face conditions
+    auto& vel = GetVelocity(Layers::iter_curr);
     for (auto it : mfc_) {
       IdxFace i = it.GetIdx();
       CondFaceFluid* cb = it.GetValue().get();
@@ -156,8 +157,11 @@ struct Simple<M_>::Imp {
         auto pd = dynamic_cast<CondFaceValFixed<Vect>*>(p);
         pd->Set(cd->GetVelocity());
       } else if (auto cd = dynamic_cast<SlipWall<M>*>(cb)) {
-        auto pd = dynamic_cast<CondFaceGradFixed<Vect>*>(p);
-        pd->Set(Vect(0));
+        auto pd = dynamic_cast<CondFaceValFixed<Vect>*>(p);
+        IdxCell c = m.GetNeighbourCell(i, cb->GetNci());
+        Vect v = vel[c];
+        Vect n = m.GetNormal(i);
+        pd->Set(v - n * n.dot(v));
       } else {
         throw std::runtime_error("Unknown fluid condition");
       }
