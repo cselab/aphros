@@ -418,9 +418,38 @@ void Hydro<M>::Init() {
         Scal mu = var.Double["poismu"]; // viscosity
         Scal pg = var.Double["poisgrad"]; // pressure gradient
         int im = var.Int["poisiter"]; // depth to evaluate series
+        bool wym = var.Int["poiswym"]; // wallym
+        bool wyp = var.Int["poiswyp"]; // wallyp
+        bool wzm = var.Int["poiswzm"]; // wallzm
+        bool wzp = var.Int["poiswzp"]; // wallzp
         Scal pi = M_PI;
+
         Scal ly = gh[1];
         Scal lz = gh[2];
+
+        if ((!wym && !wyp) || (!wzm && !wzp)) {
+          throw std::runtime_error("poisyz: can't remove both walls");
+        }
+
+        Scal oy = 0.;
+        if (!wym) {
+          oy = 0.5;
+          ly *= 2;
+        } else if (!wyp) {
+          oy = 0;
+          ly *= 2;
+        }
+
+        Scal oz = 0.;
+        if (!wzm) {
+          oz = 0.5;
+          lz *= 2;
+        } else if (!wzp) {
+          oz = 0;
+          lz *= 2;
+        }
+
+
         Scal p = sqr(ly) * pg / mu;
         Scal b = lz / ly;
         Scal k = 16. * sqr(b) / std::pow(pi, 4);
@@ -428,7 +457,9 @@ void Hydro<M>::Init() {
         // TODO: tests for gh[1] != gh[2]
         for (auto i : m.AllCells()) {
           Scal y = m.GetCenter(i)[1] / ly;
+          y = y + oy;
           Scal z = m.GetCenter(i)[2] / lz;
+          z = z + oz;
           Scal s = 0.;
           for (int iy = 1; iy < im * 2; iy += 2) {
             for (int iz = 1; iz < im * 2; iz += 2) {

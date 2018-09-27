@@ -12,6 +12,7 @@ def Default():
         'b2xr', 'b2rr', 'chsm', 'gesm', 'wallx', 'wally', 'wallz', 'pois',
         'g0', 'Fr', 'Ga', 'Eo', 'meshvel')
     r['nb'] = [1, "number of bubbles"]
+    r['symm'] = [0, "symmetry in y and z"]
     return r
 
 # Returns pressure gradient to maintain poiseuille flow in rectangular duct

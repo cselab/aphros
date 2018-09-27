@@ -27,8 +27,12 @@ d3 = (dim == 3)
 mz = 1 if loc else 2
 
 nx = c['nx']
-ny = nx
-nz = nx if d3 else mz
+if c['symm']:
+    ny = nx // 2
+    nz = nx // 2 if d3 else mz
+else:
+    ny = nx
+    nz = nx if d3 else mz
 
 # block size
 bx = 8 if d3 else 16

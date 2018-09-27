@@ -63,5 +63,14 @@ set string bc_{d}m wall 0 0 0
 set string bc_{d}p wall 0 0 0
     '''.format(d=d)
 
+if c['symm']:
+# TODO: consider periodic in y,z
+    t += '''
+set string bc_ym slipwall 
+set string bc_zm slipwall 
+set int poiswym 0
+set int poiswzm 0
+    '''.format(**c)
+
 open(o, 'w').write(t)
 
