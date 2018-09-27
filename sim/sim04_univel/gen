@@ -110,7 +110,7 @@ def GetConf(a):
     assert len([n for n in [fr, ga, eo] if n is not None]) <= 1
     assert fr is None or ga is None, 'Conflict: both Fr and Ga defined'
     if fr is not None:
-        gm = vm ** 2 / (fr ** 2 * bd) 
+        gm = vm ** 2 / (fr ** 2 * dom) 
     elif ga is not None:
         gm = ga * mu ** 2 / (bd ** 3 * rhom ** 2)
     elif eo is not None:
@@ -128,7 +128,7 @@ def GetConf(a):
 
     assert we is None or IsClose(we, rho0 * norm(vel) ** 2 * bd / sig)
     assert la is None or IsClose(la, rhom * sig * bd / mu ** 2)
-    assert fr is None or IsClose(fr, norm(vel) / (norm(g) * bd) ** 0.5)
+    assert fr is None or IsClose(fr, norm(vel) / (norm(g) * dom) ** 0.5)
     assert ga is None or IsClose(ga, norm(g) * bd ** 3 * rhom ** 2 / mu ** 2)
     assert eo is None or IsClose(eo, rhom * norm(g) * bd ** 2 / sig)
     assert red is None or IsClose(red, bd * vm * rho0 / mu0)
