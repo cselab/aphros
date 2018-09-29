@@ -558,11 +558,15 @@ void TestInter() {
   f(xx,  V(0.,0.5,0.), V(1.,0.,0.), {0., 0.5});
 }
 
-void TestOver() {
-
+void TestOverlap() {
+  Scal r = GetSphereOverlap(Vect(0), Vect(1), Vect(0), 1.);
+  std::cout << r << std::endl;
 }
 
 int main() {
+  TestOverlap();
+  return 0;
+
   TestInter();
   TestLevelSet();
   TestNearest();

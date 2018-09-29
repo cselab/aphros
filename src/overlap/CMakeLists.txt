@@ -1,6 +1,6 @@
-set(TARG "over")
+set(TARG "overlap")
 
-if (DEFINED OVERLAP)
+if (OVERLAP)
   set(S "over.cpp")
   find_package(Eigen3 3.0.0 REQUIRED)
   include_directories(${EIGEN3_INCLUDE_DIR})
