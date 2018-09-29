@@ -559,8 +559,13 @@ void TestInter() {
 }
 
 void TestOverlap() {
-  Scal r = GetSphereOverlap(Vect(0), Vect(1), Vect(0), 1.);
-  std::cout << r << std::endl;
+  Vect h(0.1);
+  Vect c(0.);
+  Scal r = 1.;
+  std::cout << GetSphereOverlap(Vect(0), h, c, r) << std::endl;
+  std::cout << GetSphereOverlap(Vect(1), h, c, r) << std::endl;
+  std::cout << GetSphereOverlap(Vect(1., 0., 0.), h, c, r) << std::endl;
+  std::cout << GetSphereOverlap(Vect(0.7, 0.7, 0.), h, c, r) << std::endl;
 }
 
 int main() {
