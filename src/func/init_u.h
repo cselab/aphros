@@ -11,6 +11,7 @@
 #include "solver/reconst.h"
 #include "geom/block.h"
 #include "geom/vect.h"
+#include "overlap/over.h"
 
 // Volume fraction cut by interface defined by level-set function
 // f: level-set function, interface f=0, f>0 for volume fraction 1
@@ -102,7 +103,7 @@ CreateInitU(Vars& par, bool verb=true) {
     };
   } else if (v == "list") {
     std::string fn = par.String["list_path"];
-    bool ls = par.Int["list_ls"]; // level-set if 1, else stepwise
+    int ls = par.Int["list_ls"]; // 0: stepwise, 1: level-set, 2: overlap
     size_t dim = par.Int["dim"];
 
     // elliptic partilces TODO: generalize
@@ -189,8 +190,10 @@ CreateInitU(Vars& par, bool verb=true) {
               m.GetNode(m.GetNeighbourNode(c, 0));
           // volume fraction
           auto& p = pp[im];
-          if (ls) {
+          if (ls == 1) {
             fc[c] = GetLevelSetVolume<Scal>(f, (x - p.c) / p.r, h / p.r);
+          } else if (ls == 2) {
+            fc[c] = GetSphereOverlap((x - p.c) / p.r, h / p.r, Vect(0), 1.);
           } else {
             fc[c] = (fm >= 0. ? 1. : 0.);
           }
