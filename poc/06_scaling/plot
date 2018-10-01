@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+
+from glob import glob
+import re
+import ch.plot as chp
+import numpy as np
+import matplotlib as mp
+
+# f: path to p*/out
+# Returns:
+# n: number of cores
+# t: execution time
+def GetTime0(f):
+    n = int(re.findall("p([0-9]*)", f)[0])
+    a = " ".join([l.strip() for l in open(f).readlines()])
+    t = int(re.findall("total = ([0-9]*)", a)[0])
+    return n,t
+
+def GetTime():
+    ff = glob("p*/out")
+
+    tt = dict()
+    for f in ff:
+        n,t = GetTime0(f)
+        tt[n] = t
+
+    return tt
+
+# tt: dictionary tt {n:t}
+# fo: output path
+def WriteTime(tt, fo="time"):
+    with open(fo, 'w') as o:
+        o.write("n t\n")
+        for n in sorted(tt):
+            o.write("{:} {:}\n".format(n, tt[n]))
+
+# Plot strong scaling
+# tt: dictionary tt {n:t}
+def PlotStrong(tt, po="strong.pdf", poe="strongeff.pdf"):
+    # number of cores
+    n = np.array(sorted(tt))
+    # execution time
+    t = np.array([tt[q] for q in n])
+    # speedup
+    s = t[0] / t * n[0]
+    # ideal speedup
+    si = n
+
+    fig, ax = chp.PlotInit()
+    ax.plot(n, s, label='mfer')
+    ax.plot(n, si, label='ideal')
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_xlabel("cores")
+    ax.set_ylabel("speedup")
+    ax.minorticks_off()
+    ax.set_xticks(n)
+    ax.set_xticklabels(n)
+    ax.set_yticks(n)
+    ax.set_yticklabels(n)
+    ax.legend()
+    chp.PlotSave(fig, ax, po)
+
+    fig, ax = chp.PlotInit()
+    ax.plot(n, s / n, label='mfer')
+    ax.plot(n, si / n, label='ideal')
+    ax.set_xscale('log')
+    ax.set_xlabel("cores")
+    ax.set_ylabel("strong scaling efficiency")
+    ax.minorticks_off()
+    ax.set_xticks(n)
+    ax.set_xticklabels(n)
+    ax.legend()
+    chp.PlotSave(fig, ax, poe)
+
+tt = GetTime()
+WriteTime(tt)
+PlotStrong(tt)
