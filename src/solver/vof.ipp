@@ -575,6 +575,7 @@ struct Vof<M_>::Imp {
         if (par->dim == 3) {
           fckp_[c] *= 2.;
         }
+        //fckp_[c] = 1.42; // XXX: adhoc prescribed curvature
       }
       m.Comm(&fckp_);
     }
@@ -618,6 +619,12 @@ struct Vof<M_>::Imp {
       m.Comm(&fckp_);
     }
 
+    if ("part-reflect") {
+      if (par->bcc_reflect) {
+        BcReflect(fckp_);
+      }
+    }
+
     if (par->dumppart && sem.Nested("part-dump")) {
       if (dm) {
         DumpParticles();
@@ -627,6 +634,36 @@ struct Vof<M_>::Imp {
       if (dm) {
         DumpPartInter();
       }
+    }
+  }
+
+  // apply reflection on boundaries to field
+  void BcReflect(FieldCell<Scal>& uc) {
+    for (const auto& it : mfc_) {
+      IdxFace f = it.GetIdx();
+      CondFace* cb = it.GetValue().get(); 
+      size_t nci = cb->GetNci();
+
+      using MIdx = typename M::MIdx;
+      using Dir = typename M::Dir;
+      auto& bf = m.GetIndexFaces();
+      auto& bc = m.GetIndexCells();
+      auto p = bf.GetMIdxDir(f);
+      Dir df = p.second;
+      // offset from face towards cell (inner normal to boundary)
+      MIdx wo(0);
+      wo[size_t(df)] = (nci == 0 ? -1 : 1);
+      IdxCell cp = m.GetNeighbourCell(f, nci);
+      MIdx wp = bc.GetMIdx(cp);
+      MIdx wpp = wp + wo;
+      MIdx wm = wp - wo;
+      MIdx wmm = wm - wo;
+      IdxCell cpp = bc.GetIdx(wpp);
+      IdxCell cm = bc.GetIdx(wm);
+      IdxCell cmm = bc.GetIdx(wmm);
+      // apply
+      uc[cm] = uc[cp];
+      uc[cmm] = uc[cpp];
     }
   }
 
@@ -649,33 +686,7 @@ struct Vof<M_>::Imp {
       // XXX: adhoc 
       // reflection at boundaries
       if (par->bcc_reflect) {
-        for (const auto& it : mfc_) {
-          IdxFace f = it.GetIdx();
-          CondFace* cb = it.GetValue().get(); 
-          size_t nci = cb->GetNci();
-
-          using MIdx = typename M::MIdx;
-          using Dir = typename M::Dir;
-          auto& bf = m.GetIndexFaces();
-          auto& bc = m.GetIndexCells();
-          auto p = bf.GetMIdxDir(f);
-          Dir df = p.second;
-          // offset from face towards cell (inner normal to boundary)
-          MIdx wo(0);
-          wo[size_t(df)] = (nci == 0 ? -1 : 1);
-          IdxCell cp = m.GetNeighbourCell(f, nci);
-          MIdx wp = bc.GetMIdx(cp);
-          MIdx wpp = wp + wo;
-          MIdx wm = wp - wo;
-          MIdx wmm = wm - wo;
-          IdxCell cpp = bc.GetIdx(wpp);
-          IdxCell cm = bc.GetIdx(wm);
-          IdxCell cmm = bc.GetIdx(wmm);
-          // apply
-          auto& uu = const_cast<FieldCell<Scal>&>(uc);
-          uu[cm] = uu[cp];
-          uu[cmm] = uu[cpp];
-        }
+        BcReflect(uu);
       }
     }
 
