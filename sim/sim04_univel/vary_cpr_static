@@ -30,7 +30,7 @@ for dim,cpr in it.product(ddim, 2 ** np.arange(0,3,0.5)):
 
     cf = '''
 rm -f ch/done ge/done
-./gen -nx {nx} -cpr {cpr} -La {La}  \
+./gen -nx {nx} -cpr {cpr} -La {La} \
 -dim {dim} -We 0 -tmax {tmax} -mode mu -pos center'''.format(**locals())
 
     sh("ch.task {:} > {:} <<< '{:}'".format(od, ot, cf))

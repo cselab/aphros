@@ -174,12 +174,14 @@ def GetConf(a):
 
     # pois
     poisvel = vm   # centerline velocity
-    if a.wally and a.wallz:
-        pgrad = GetPoisGrad(dom, dom, vm, mu0)
-    elif a.wally:
-        pgrad = 8 * vm * mu0 / dom ** 2
-    else:
-        assert False, "pois requires wally or wallz"
+    pgrad = [0., 0., 0.]
+    if a.pois:
+        if a.wally and a.wallz:
+            pgrad = GetPoisGrad(dom, dom, vm, mu0)
+        elif a.wally:
+            pgrad = 8 * vm * mu0 / dom ** 2
+        else:
+            assert False, "pois requires wally or wallz"
 
     # derived variables to return
     kk = ['sig', 'vel', 'dumpdt', 'bbc', 'bbr', 'mu0', 'g', 'pgrad', 'poisvel']
