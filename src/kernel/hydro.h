@@ -1277,6 +1277,7 @@ void Hydro<M>::Dump(Sem& sem) {
       if (dl.count("vz")) m.Dump(&fcv, 2, "vz");
       if (dl.count("p")) m.Dump(&fs_->GetPressure(), "p");
       if (dl.count("vf")) m.Dump(&as_->GetField(), "vf");
+      if (dl.count("k")) m.Dump(&as_->GetCurv(), "k");
       if (dl.count("rho")) m.Dump(&fc_rho_, "rho");
       if (dl.count("mu")) m.Dump(&fc_mu_, "mu");
       if (tr_) {
