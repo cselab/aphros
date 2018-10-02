@@ -26,12 +26,23 @@ struct ConvDiffVectImp<M_>::Imp {
       // (copied from given vector conditions)
       for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
         IdxFace f = it->GetIdx();
-        if (auto p = dynamic_cast<CondFaceVal<Vect>*>(mfc_[f].get())) {
+        CondFace* cb = it->GetValue().get();
+        if (auto p = dynamic_cast<CondFaceVal<Vect>*>(cb)) {
           vmfc_[d][f] = std::make_shared<CondFaceValComp<Vect>>(p, d);
-        } else if (auto p = dynamic_cast<CondFaceGrad<Vect>*>(mfc_[f].get())) {
+        } else if (auto p = dynamic_cast<CondFaceGrad<Vect>*>(cb)) {
           vmfc_[d][f] = std::make_shared<CondFaceGradComp<Vect>>(p, d);
+        } else if (auto p = dynamic_cast<CondFaceReflect*>(cb)) {
+          auto nci = cb->GetNci();
+          // XXX: adhoc for cartesian grid
+          if (d == m.GetNormal(f).abs().argmax()) { 
+            // normal, zero value
+            vmfc_[d][f] = std::make_shared<CondFaceValFixed<Scal>>(0., nci);
+          } else { 
+            // tangential, zero gradient
+            vmfc_[d][f] = std::make_shared<CondFaceGradFixed<Scal>>(0., nci);
+          }
         } else {
-          throw std::runtime_error("Unknown face condition type");
+          throw std::runtime_error("convdiffvi: Unknown face condition type");
         }
       }
 

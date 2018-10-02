@@ -575,7 +575,7 @@ struct Vof<M_>::Imp {
         if (par->dim == 3) {
           fckp_[c] *= 2.;
         }
-        //fckp_[c] = 1.42; // XXX: adhoc prescribed curvature
+        fckp_[c] = 1.42; // XXX: adhoc prescribed curvature
       }
       m.Comm(&fckp_);
     }

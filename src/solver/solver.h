@@ -107,6 +107,21 @@ void InterpolateS(const FieldCell<T>& fc, FieldFace<T>& ff, const M& m) {
   }
 }
 
+template <class T, class M>
+class UReflect {
+ public:
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  // v: value
+  // n: normal to face
+  static Scal Get(Scal v, const Vect& /*n*/) {
+    return v;
+  }
+  static Vect Get(const Vect& v, const Vect& n) {
+    return v - n * n.dot(v);
+  }
+};
+
 
 // Interpolation to faces with defined conditions.
 // fc: field cell [i]
@@ -151,9 +166,16 @@ void InterpolateB(
         }
       }
       ff[f] = a / b;
+    } else if (dynamic_cast<CondFaceReflect*>(cb)) {
+      // TODO test
+      size_t id = cb->GetNci();
+      IdxCell c = m.GetNeighbourCell(f, id);
+      Vect n = m.GetNormal(f);
+      auto v = fc[c];
+      ff[f] = UReflect<T, M>::Get(v, n);
     } else {
       // TODO add name to CondFace etc
-      throw std::runtime_error("Unknown boundary condition type");
+      throw std::runtime_error("InterpolateB: unknown cond");
     }
   }
 }
