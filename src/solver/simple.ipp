@@ -811,6 +811,11 @@ struct Simple<M_>::Imp {
         for (auto c : m.AllCells()) {
           fcp_curr[c] += pr * fcpc_[c];
         }
+        // XXX: adhoc prescribed pressure
+        if(0)
+        for (auto c : m.AllCells()) {
+          fcp_curr[c] = (*owner_->fcd_)[c] * 1e10;
+        }
       }
 
       // Calc divergence-free volume fluxes
