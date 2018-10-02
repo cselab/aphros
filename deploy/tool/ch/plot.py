@@ -1118,7 +1118,7 @@ def Univel():
         PlotTrajFld(tt, zz, ll, "t", "z", "trajz.pdf", ystep=0.1,
                     vmin=cz - gp, vmax=cz + vele[2] * tmax + gp)
     # Plot error in velocity
-    vmin = 1e-6
+    vmin = 1e-12
     vmax = 1e1
     PlotTrajFld(tt, vvxm, ll, "t", "vx", "trajvxm.pdf",
                 vmin=vmin, vmax=vmax, ylog=True)
