@@ -634,9 +634,9 @@ struct Vof<M_>::Imp {
   void Rec(const FieldCell<Scal>& uc) {
     auto sem = m.GetSem("reconst");
 
-    // XXX: adhoc
-    // overwrite u=0 if y<y0 or y>y0
     if (sem("bc-zero")) {
+      // XXX: adhoc
+      // overwrite u=0 if y<y0 or y>y0
       Scal y0 = par->bcc_y0;
       Scal y1 = par->bcc_y1;
       auto& uu = const_cast<FieldCell<Scal>&>(uc);
@@ -644,6 +644,37 @@ struct Vof<M_>::Imp {
         auto x = m.GetCenter(c);
         if (x[1] < y0 || x[1] > y1) {
           uu[c] = 0.;
+        }
+      }
+      // XXX: adhoc 
+      // reflection at boundaries
+      if (par->bcc_reflect) {
+        for (const auto& it : mfc_) {
+          IdxFace f = it.GetIdx();
+          CondFace* cb = it.GetValue().get(); 
+          size_t nci = cb->GetNci();
+
+          using MIdx = typename M::MIdx;
+          using Dir = typename M::Dir;
+          auto& bf = m.GetIndexFaces();
+          auto& bc = m.GetIndexCells();
+          auto p = bf.GetMIdxDir(f);
+          Dir df = p.second;
+          // offset from face towards cell (inner normal to boundary)
+          MIdx wo(0);
+          wo[size_t(df)] = (nci == 0 ? -1 : 1);
+          IdxCell cp = m.GetNeighbourCell(f, nci);
+          MIdx wp = bc.GetMIdx(cp);
+          MIdx wpp = wp + wo;
+          MIdx wm = wp - wo;
+          MIdx wmm = wm - wo;
+          IdxCell cpp = bc.GetIdx(wpp);
+          IdxCell cm = bc.GetIdx(wm);
+          IdxCell cmm = bc.GetIdx(wmm);
+          // apply
+          auto& uu = const_cast<FieldCell<Scal>&>(uc);
+          uu[cm] = uu[cp];
+          uu[cmm] = uu[cpp];
         }
       }
     }
