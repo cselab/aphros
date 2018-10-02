@@ -52,6 +52,15 @@ struct Simple<M_>::Imp {
       CondFaceFluid* cb = it.GetValue().get();
       size_t nci = cb->GetNci();
 
+      mfcf_[i] = std::make_shared<
+          CondFaceGradFixed<Vect>>(Vect(0), nci);
+      mfcpc_[i] = std::make_shared<
+          CondFaceExtrap>(nci);
+      mfcd_[i] = std::make_shared<
+          CondFaceGradFixed<Scal>>(0., nci);
+      mfck_[i] = std::make_shared<
+          CondFaceGradFixed<Scal>>(0, nci);
+
       if (auto cd = dynamic_cast<NoSlipWall<M>*>(cb)) {
         mfcw_[i] = std::make_shared<
             CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
@@ -71,19 +80,12 @@ struct Simple<M_>::Imp {
         mfcw_[i] = std::make_shared<
             CondFaceValFixed<Vect>>(Vect(0.), nci);
         mfcp_[i] = std::make_shared<
-            CondFaceExtrap>(nci);
+            CondFaceGradFixed<Scal>>(0., nci);
+        mfcpc_[i] = std::make_shared<
+            CondFaceGradFixed<Scal>>(0, nci);
       } else {
         throw std::runtime_error("Unknown fluid condition");
       }
-
-      mfcf_[i] = std::make_shared<
-          CondFaceGradFixed<Vect>>(Vect(0), nci);
-      mfcpc_[i] = std::make_shared<
-          CondFaceExtrap>(nci);
-      mfcd_[i] = std::make_shared<
-          CondFaceGradFixed<Scal>>(0., nci);
-      mfck_[i] = std::make_shared<
-          CondFaceGradFixed<Scal>>(0, nci);
     }
 
     for (auto it : mcc_) {
