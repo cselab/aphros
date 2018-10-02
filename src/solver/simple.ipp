@@ -78,13 +78,15 @@ struct Simple<M_>::Imp {
             CondFaceExtrap>(nci);
       } else if (auto cd = dynamic_cast<SlipWall<M>*>(cb)) {
         mfcw_[i] = std::make_shared<
-            CondFaceValFixed<Vect>>(Vect(0.), nci);
+            CondFaceReflect>(nci);
+        mfcf_[i] = std::make_shared<
+            CondFaceReflect>(nci);
         mfcp_[i] = std::make_shared<
             CondFaceGradFixed<Scal>>(0., nci);
         mfcpc_[i] = std::make_shared<
             CondFaceGradFixed<Scal>>(0, nci);
       } else {
-        throw std::runtime_error("Unknown fluid condition");
+        throw std::runtime_error("simple: unknown condition");
       }
     }
 
@@ -101,7 +103,7 @@ struct Simple<M_>::Imp {
         mccw_[c] = std::make_shared<
             CondCellValFixed<Vect>>(cd->GetVelocity());
       } else {
-        throw std::runtime_error("Unknown fluid cell condition");
+        throw std::runtime_error("simple: unknown cell condition");
       }
     }
 
@@ -143,7 +145,6 @@ struct Simple<M_>::Imp {
     using namespace fluid_condition;
 
     // Face conditions
-    auto& vel = GetVelocity(Layers::iter_curr);
     for (auto it : mfc_) {
       IdxFace i = it.GetIdx();
       CondFaceFluid* cb = it.GetValue().get();
@@ -159,13 +160,9 @@ struct Simple<M_>::Imp {
         auto pd = dynamic_cast<CondFaceValFixed<Vect>*>(p);
         pd->Set(cd->GetVelocity());
       } else if (auto cd = dynamic_cast<SlipWall<M>*>(cb)) {
-        auto pd = dynamic_cast<CondFaceValFixed<Vect>*>(p);
-        IdxCell c = m.GetNeighbourCell(i, cb->GetNci());
-        Vect v = vel[c];
-        Vect n = m.GetNormal(i);
-        pd->Set(v - n * n.dot(v));
+        // nop
       } else {
-        throw std::runtime_error("Unknown fluid condition");
+        throw std::runtime_error("simple: Unknown fluid condition");
       }
     }
 
@@ -186,7 +183,7 @@ struct Simple<M_>::Imp {
         auto wd = dynamic_cast<CondCellValFixed<Vect>*>(wb);
         wd->Set(cd->GetVelocity());
       } else {
-        throw std::runtime_error("Unknown fluid cell condition");
+        throw std::runtime_error("simple: Unknown fluid cell condition");
       }
     }
   }

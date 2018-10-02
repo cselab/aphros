@@ -237,7 +237,7 @@ std::shared_ptr<CondFaceFluid> Parse(std::string argstr, IdxFace /*f*/,
     // TODO: revise, should be inpenetration for velocity
     return std::make_shared<SlipWall<M>>(nc);
   } else {
-    throw std::runtime_error("Parse: Unknown boundary condition type");
+    throw std::runtime_error("Parse: unknown cond");
   }
 }
 

@@ -110,10 +110,10 @@ class FaceValB : public Approx<IdxFace, Expr> {
         e.SetConstant(a * cd->GetGrad());
         e.InsertTerm(1., cc);
       } else {
-        throw std::runtime_error("Unknown boundary condition type");
+        throw std::runtime_error("FaceValB: unknown cond");
       }
     } else {
-      throw std::runtime_error("Boundary condition not set");
+      throw std::runtime_error("FaceValB: unset cond");
     }
     return e;
   }
@@ -195,10 +195,10 @@ class FaceGradB : public Approx<IdxFace, Expr> {
         e.SetConstant(a * cd->GetValue());
         e.InsertTerm(-a, c);
       } else {
-        throw std::runtime_error("Unknown boundary condition type");
+        throw std::runtime_error("FaceGradB: unknown cond");
       }
     } else {
-      throw std::runtime_error("Boundary condition not set");
+      throw std::runtime_error("FaceGradB: unset cond");
     }
     return e;
   }
