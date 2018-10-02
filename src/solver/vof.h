@@ -46,6 +46,8 @@ class Vof : public AdvectionSolver<M_> {
     Scal bcc_t1 = -1.;   
     Scal bcc_y0 = -1e10; // overwrite u=0 if y<y0 or y>y1
     Scal bcc_y1 = 1e10;  // (to remove periodic conditions)
+    bool bcc_reflect = false; // reflection at boundaries
+
     int part_constr = 0; // 0: no constraints
                          // 1: fixed distance, constant angle
                          // 2: fixed distance, linear angle
