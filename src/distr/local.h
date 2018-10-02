@@ -48,6 +48,7 @@ class Local : public DistrMesh<KF> {
   M gm; // global mesh
   std::unique_ptr<output::Ser> oser_; // output series
   std::vector<MyBlockInfo> bb_;
+  GVect<bool ,3> per_; // periodic in direction
 
   size_t WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m);
   size_t WriteBuffer(const FieldCell<Vect>& f, size_t d, size_t e, M& m);
@@ -136,6 +137,11 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par)
   }
 
   isroot_ = true; // XXX: overwrite isroot_
+
+  // periodic
+  per_[0] = par.Int["loc_periodic_x"];
+  per_[1] = par.Int["loc_periodic_y"];
+  per_[2] = par.Int["loc_periodic_z"];
 
   bool islead = true;
   for (auto& b : bb_) {
@@ -384,10 +390,17 @@ size_t Local<KF>::ReadBuffer(FieldCell<Scal>& fc, size_t e,  M& m) {
     auto w = ndc.GetMIdx(c);
     // periodic
     for (int d = 0; d < 3; ++d) {
-      w[d] = (w[d] + gs[d]) % gs[d];
+      if (per_[d]) {
+        w[d] = (w[d] + gs[d]) % gs[d];
+      }
     }
-    auto gc = gndc.GetIdx(w);
-    fc[c] = buf_[e][gc];
+    // XXX: addhoc nan in halos
+    if (MIdx(0) <= w && w < gs) {
+      auto gc = gndc.GetIdx(w);
+      fc[c] = buf_[e][gc];
+    } else {
+      fc[c] = std::numeric_limits<Scal>::quiet_NaN();
+    }
   }
   return 1;
 }
@@ -410,10 +423,17 @@ size_t Local<KF>::ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e,  M& m) {
     auto w = bc.GetMIdx(c);
     // periodic
     for (int d = 0; d < 3; ++d) {
-      w[d] = (w[d] + gs[d]) % gs[d];
+      if (per_[d]) {
+        w[d] = (w[d] + gs[d]) % gs[d];
+      }
     }
-    auto gi = gbc.GetIdx(w);
-    fc[c][d] = buf_[e][gi];
+    // XXX: addhoc nan in halos
+    if (MIdx(0) <= w && w < gs) {
+      auto gc = gbc.GetIdx(w);
+      fc[c][d] = buf_[e][gc];
+    } else {
+      fc[c][d] = std::numeric_limits<Scal>::quiet_NaN();
+    }
   }
   return 1;
 }
