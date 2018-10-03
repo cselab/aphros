@@ -49,7 +49,6 @@ bool IsNan(const GField<T, Idx>& u) {
   return false;
 }
 
-
 // Checks for Nan in field.
 // u: field
 // n: name
@@ -97,4 +96,7 @@ bool CheckNan(const GField<T, Idx>& u, std::string n,
 // Requires in scope:
 // m: mesh or GRange
 #define CHECKNAN(F) \
-  CheckNan(F, #F, m, std::string(__FILE__) + ":" + std::to_string(__LINE__));
+  CheckNan(F, #F, m, std::string(__FILE__) \
+      + ":" + std::to_string(__LINE__) \
+      + " in " + std::string(__func__) \
+      );

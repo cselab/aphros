@@ -25,7 +25,7 @@ struct ConvDiffScalImp<M_>::Imp {
   // Fields:
   void StartStep() {
     owner_->ClearIter();
-    CheckNan(fcu_.time_curr, "fcu_.time_curr", m);
+    CHECKNAN(fcu_.time_curr)
 
     // initial guess by extrapolation
     Scal ge = par->guessextra;
@@ -203,7 +203,7 @@ struct ConvDiffScalImp<M_>::Imp {
       Solve(fcucs_, curr); // solve for correction, store in curr
     }
     if (sem("apply")) {
-      CheckNan(curr, "convdiffi:fcuc_", m);
+      CHECKNAN(fcucs_)
       // calc error (norm of correction)
       Scal er = 0;
       for (auto c : m.Cells()) {
@@ -222,7 +222,7 @@ struct ConvDiffScalImp<M_>::Imp {
   void FinishStep() {
     fcu_.time_prev.swap(fcu_.time_curr);
     fcu_.time_curr = fcu_.iter_curr;
-    CheckNan(fcu_.time_curr, "fcu_.time_curr", m);
+    CHECKNAN(fcu_.time_curr)
     owner_->IncTime();
     dtp_ = owner_->GetTimeStep();
   }
