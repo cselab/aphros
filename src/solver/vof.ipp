@@ -651,8 +651,7 @@ struct Vof<M_>::Imp {
       using Dir = typename M::Dir;
       auto& bf = m.GetIndexFaces();
       auto& bc = m.GetIndexCells();
-      auto p = bf.GetMIdxDir(f);
-      Dir df = p.second;
+      Dir df = bf.GetDir(f);
       // offset from face towards cell (inner normal to boundary)
       MIdx wo(0);
       wo[size_t(df)] = (nci == 0 ? -1 : 1);

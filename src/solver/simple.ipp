@@ -592,6 +592,7 @@ struct Simple<M_>::Imp {
         }
         fck[c] = s / dim;
       }
+      CHECKNAN(fck)
 
       m.Comm(&fck);
     }
@@ -786,10 +787,13 @@ struct Simple<M_>::Imp {
     if (sem("pcorr-assemble")) {
       RhieChow(cd_->GetVelocity(Layers::iter_curr), 
                fcp_curr, fcgp_, fck_, ffk_, ffve_);
+      CHECKNAN(ffve_)
 
       GetFlux(ffk_, ffve_, ffvc_);
+      CHECKNAN(ffvc_)
 
       GetFluxSum(ffvc_, *owner_->fcsv_, fcpcs_);
+      CHECKNAN(fcpcs_)
 
       ApplyPcCond(fcp_curr, fcpcs_);
     }
@@ -799,6 +803,8 @@ struct Simple<M_>::Imp {
     }
 
     if (sem("pcorr-apply")) {
+      CHECKNAN(fcpc_)
+
       if (!par->simpler) {
         // Correct pressure
         Scal pr = par->prelax; // pressure relaxation
@@ -816,14 +822,19 @@ struct Simple<M_>::Imp {
       for (auto f : m.Faces()) {
         ffv_.iter_curr[f] = ffvc_[f].Evaluate(fcpc_);
       }
+      CHECKNAN(ffv_.iter_curr)
 
-      fcgpc_ = Gradient(Interpolate(fcpc_, mfcpc_, m), m);
+      auto ffpc = Interpolate(fcpc_, mfcpc_, m);
+      CHECKNAN(ffpc)
+      fcgpc_ = Gradient(ffpc, m);
+      CHECKNAN(fcgpc_)
 
       // Calc velocity correction
       fcwc_.Reinit(m);
       for (auto c : m.Cells()) {
         fcwc_[c] = fcgpc_[c] / (-fck_[c]);
       }
+      CHECKNAN(fcwc_)
     }
 
     if (sem.Nested("convdiff-corr")) {
