@@ -2,6 +2,7 @@
 
 #include <ostream>
 
+#include "idx.h"
 #include "range.h"
 
 template <class Value_, class Idx_>
@@ -151,7 +152,7 @@ void SetComponent(
 template <class T, class Idx>
 std::ostream& operator<<(std::ostream& out, const GField<T, Idx>& u) {
   for (auto i : u.GetRange()) {
-    out << i.GetRaw() << " " << u[i] << "\n";
+    out << size_t(i) << " " << u[i] << "\n";
   }
   return out;
 }

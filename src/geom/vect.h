@@ -6,11 +6,19 @@
 #include <cmath>
 #include <cassert>
 #include <vector>
+#include <limits>
 
 template <class T>
 T sqr(T a) {
   return a * a;
 }
+
+// TODO: move 
+template <class Scal>
+Scal GetNan() {
+  return std::numeric_limits<Scal>::quiet_NaN();
+}
+
 
 template <class Scal, size_t dim_>
 class GVect {

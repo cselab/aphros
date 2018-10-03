@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "convdiffi.h"
+#include "debug/isnan.h"
 
 namespace solver {
 

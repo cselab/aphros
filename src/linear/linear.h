@@ -319,3 +319,17 @@ typename M::LS ConvertLs(const FieldCell<Expr>& fce, std::vector<Scal>& la,
 }
 
 } // namespace solver
+
+template <class Scal, class Idx, size_t Size>
+bool IsNan(const solver::Expression<Scal, Idx, Size>& e) {
+  if (IsNan(e.GetConstant())) {
+    return true;
+  }
+  for (size_t i = 0; i < e.size(); ++i) {
+    if (IsNan(e[i].a)) {
+      return true;
+    }
+  }
+  return false;
+}
+
