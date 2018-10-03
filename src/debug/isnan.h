@@ -91,12 +91,22 @@ bool CheckNan(const GField<T, Idx>& u, std::string n,
   return false;
 }
 
+// Returns path of file relative to src/
+inline std::string SrcPath(const std::string& s) {
+  std::string k = "src/";
+  size_t i = s.rfind(k);
+  if (i != std::string::npos) {
+    return s.substr(i + k.length());
+  }
+  return s;
+}
+
 // CheckNan for field with file and line.
 // F: instance of GField
 // Requires in scope:
 // m: mesh or GRange
 #define CHECKNAN(F) \
-  CheckNan(F, #F, m, std::string(__FILE__) \
+  CheckNan(F, #F, m, SrcPath(__FILE__) \
       + ":" + std::to_string(__LINE__) \
       + " in " + std::string(__func__) \
       );
