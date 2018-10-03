@@ -86,7 +86,9 @@ class Expression {
   typename Fld::Value Evaluate(const Fld& u) const {
     typename Fld::Value r(b_); // result
     for (size_t i = 0; i < s_; ++i) {
-      r += u[tt_[i].idx] * tt_[i].a;
+      if (tt_[i].a != 0.) {
+        r += u[tt_[i].idx] * tt_[i].a;
+      }
     }
     return r;
   }
@@ -251,7 +253,6 @@ void PrintSystem(S& s, M& m, std::ostream& o) {
     o << "\n";
   }
 }
-
 
 template <class M, class Expr, class Scal=typename M::Scal>
 typename M::LS ConvertLs(const FieldCell<Expr>& fce, std::vector<Scal>& la, 
