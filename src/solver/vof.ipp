@@ -88,9 +88,12 @@ struct Vof<M_>::Imp {
       dlc_.clear();
       auto h = GetCellSize();
       auto& bc = m.GetIndexCells();
-      for (auto c : m.Cells()) {
-        const Scal th = par->poly_intth;
+      for (auto c : m.AllCells()) {
         Scal u = fcu_.iter_curr[c];
+        if (IsNan(u) || IsNan(fcn_[c]) || IsNan(fca_[c])) {
+          continue;
+        }
+        const Scal th = par->poly_intth;
         if (fci_[c] && u > th && u < 1. - th) {
           dl_.push_back(R::GetCutPoly(m.GetCenter(c), fcn_[c], fca_[c], h));
           dlc_.push_back(GetCellHash(bc.GetMIdx(c)));
@@ -555,6 +558,12 @@ struct Vof<M_>::Imp {
                             owner_->GetTimeStep());
 
     if (sem("part-run")) {
+      // XXX: adhoc 
+      // reflection at boundaries
+      if (par->bcc_reflect) {
+        BcReflect(fca_);
+        BcReflect(fcn_);
+      }
       Seed(uc, fca_, fcn_, fci_);
       partstr_->Run(par->part_tol, par->part_itermax, 
                     par->part_verb && m.IsRoot());
@@ -576,7 +585,7 @@ struct Vof<M_>::Imp {
         if (par->dim == 3) {
           fckp_[c] *= 2.;
         }
-        fckp_[c] = 1; // XXX: adhoc prescribed curvature
+        //fckp_[c] = 1; // XXX: adhoc prescribed curvature
       }
       m.Comm(&fckp_);
     }
@@ -641,31 +650,36 @@ struct Vof<M_>::Imp {
   }
 
   // apply reflection to field on boundaries 
-  void BcReflect(FieldCell<Scal>& uc) {
+  template <class T>
+  void BcReflect(FieldCell<T>& uc) {
     for (const auto& it : mfc_) {
-      IdxFace f = it.GetIdx();
-      CondFace* cb = it.GetValue().get(); 
-      size_t nci = cb->GetNci();
+      CondFace* cb = it.GetValue().get();
+      if (dynamic_cast<CondFaceReflect*>(cb)) {
+        IdxFace f = it.GetIdx();
+        Vect n = m.GetNormal(f);
+        CondFace* cb = it.GetValue().get(); 
+        size_t nci = cb->GetNci();
 
-      using MIdx = typename M::MIdx;
-      using Dir = typename M::Dir;
-      auto& bf = m.GetIndexFaces();
-      auto& bc = m.GetIndexCells();
-      Dir df = bf.GetDir(f);
-      // offset from face towards cell (inner normal to boundary)
-      MIdx wo(0);
-      wo[size_t(df)] = (nci == 0 ? -1 : 1);
-      IdxCell cp = m.GetNeighbourCell(f, nci);
-      MIdx wp = bc.GetMIdx(cp);
-      MIdx wpp = wp + wo;
-      MIdx wm = wp - wo;
-      MIdx wmm = wm - wo;
-      IdxCell cpp = bc.GetIdx(wpp);
-      IdxCell cm = bc.GetIdx(wm);
-      IdxCell cmm = bc.GetIdx(wmm);
-      // apply
-      uc[cm] = uc[cp];
-      uc[cmm] = uc[cpp];
+        using MIdx = typename M::MIdx;
+        using Dir = typename M::Dir;
+        auto& bf = m.GetIndexFaces();
+        auto& bc = m.GetIndexCells();
+        Dir df = bf.GetDir(f);
+        // offset from face towards cell (inner normal to boundary)
+        MIdx wo(0);
+        wo[size_t(df)] = (nci == 0 ? -1 : 1);
+        IdxCell cp = m.GetNeighbourCell(f, nci);
+        MIdx wp = bc.GetMIdx(cp);
+        MIdx wpp = wp + wo;
+        MIdx wm = wp - wo;
+        MIdx wmm = wm - wo;
+        IdxCell cpp = bc.GetIdx(wpp);
+        IdxCell cm = bc.GetIdx(wm);
+        IdxCell cmm = bc.GetIdx(wmm);
+        // apply
+        uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
+        uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
+      }
     }
   }
 
@@ -685,14 +699,14 @@ struct Vof<M_>::Imp {
           uu[c] = 0.;
         }
       }
-      // XXX: adhoc 
-      // reflection at boundaries
-      if (par->bcc_reflect) {
-        BcReflect(uu);
-      }
     }
 
     if (sem("height")) {
+      // XXX: adhoc 
+      // reflection at boundaries
+      if (par->bcc_reflect) {
+        BcReflect(const_cast<FieldCell<Scal>&>(uc));
+      }
       CHECKNAN(uc)
       DetectInterface(uc);
       // Compute normal and curvature [s]
@@ -701,6 +715,12 @@ struct Vof<M_>::Imp {
       // Reconstruct interface [s]
       for (auto c : m.SuCells()) {
         fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
+      }
+      // XXX: adhoc 
+      // reflection at boundaries
+      if (par->bcc_reflect) {
+        BcReflect(fca_);
+        BcReflect(fcn_);
       }
     }
 

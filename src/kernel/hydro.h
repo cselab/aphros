@@ -547,15 +547,19 @@ void Hydro<M>::Init() {
       } 
     }
 
-    // init with zero-derivative boundary conditions for advection
+    // boundary conditions for advection
     for (auto it : mf_velcond_) {
       IdxFace i = it.GetIdx();
-      mf_cond_[i] = std::make_shared
-          <solver::CondFaceGradFixed<Scal>>(
-              Scal(0), it.GetValue()->GetNci());
+      solver::CondFaceFluid* cb = it.GetValue().get();
+      if (dynamic_cast<solver::fluid_condition::SlipWall<M>*>(cb)) {
+        mf_cond_[i] = std::make_shared<solver::
+            CondFaceReflect>(it.GetValue()->GetNci());
+      } else {
+        mf_cond_[i] = std::make_shared<solver::
+            CondFaceGradFixed<Scal>>(Scal(0), it.GetValue()->GetNci());
+      }
     }
-
-    // Set bc with selection boxes
+    // selection boxes
     // Parameters (N>=0):
     // string boxN -- bc description
     // vect boxN_a -- lower corner
