@@ -9,7 +9,7 @@ Define MU(T) (AVG(T,MU1,MU2))
 # [BCX ] Replaced with bondary conditions in x
 # [EDGEX ] Replaced with connectivity in x
 
-1 [NUMEDGE] GfsSimulation GfsBox GfsGEdge {} {
+1 0 GfsSimulation GfsBox GfsGEdge {} {
   Global {
     Include ini_t_bub.h
   }
@@ -61,6 +61,6 @@ GfsBox {
   [BCY]
   [BCZ]
 }
-[EDGEX]
-[EDGEY]
-[EDGEZ]
+#[EDGEX]
+#[EDGEY]
+#[EDGEZ]

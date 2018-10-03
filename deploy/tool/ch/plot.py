@@ -460,22 +460,38 @@ def GetTrajFld(pp, cx, cy, cz, fld):
     cu = np.array(cu)
     return cu
 
-# Average field weighed with volume fraction along trajectory.
-# pp: list of paths to volume fraction fields
+# Average field weighted with volume fraction.
+# p: path to volume fraction
 # fld: field prefix (e.g. 'p')
 # Returns:
-# cu: average field at every point in pp
+# cu: average value of field
+def GetAvgFld0(p, fld):
+    # read volume fraction
+    v = ReadArray(p)
+    # read field
+    u = ReadField(GetPathTemplate(p), fld)
+    # field value
+    return (u * v).mean() / v.mean()
+
+# pp: list of path to volume fraction
+# fld: field prefix
 def GetAvgFld(pp, fld):
-    cu = []
-    for i,p in enumerate(pp):
-        # read field
-        u = ReadField(GetPathTemplate(p), fld)
-        # read volume fraction
-        v = ReadArray(p)
-        # field value
-        cu.append((u * v).mean() / v.mean())
-    cu = np.array(cu)
-    return cu
+    return np.array([GetAvgFld0(p, fld) for p in pp])
+
+# Function applied to field.
+# f: function
+# p: path to volume fraction
+# fld: field prefix (e.g. 'p')
+# Returns:
+# cu: f(u)
+def GetFuncFld0(f, p, fld):
+    u = ReadField(GetPathTemplate(p), fld)
+    return f(u)
+
+# pp: list of path to volume fraction
+# fld: field prefix
+def GetFuncFld(f, pp, fld):
+    return np.array([GetFuncFld0(f, p, fld) for p in pp])
 
 # Magnitude of difference from uniform reference field.
 # pp: list of paths to volume fraction fields
@@ -1007,6 +1023,7 @@ def Univel():
     # exact trajectories
     tmax = conf['tmax']
     x,y,z = GetTrajE([cx, cy, cz], vele, tmax)
+    zs = x * 0. # zeros
     # exact average curvature
     if dim == 3:
         vol = 4. / 3. * np.pi * rx * ry * rz
@@ -1018,7 +1035,7 @@ def Univel():
         kavg = 1. / req
     # exact pressure jump
     eex = sig * kavg
-    e = (x * 0 + eex) / eex
+    e = zs + 1
     # error in velocity
     vx = x * 0
     vy = x * 0
@@ -1051,12 +1068,8 @@ def Univel():
         FigVf(pt)
         # trajectory
         x,y,z = GetTraj(pp)
-        # pressure
-        e = GetTrajFld(pp, x, y, z, "p")
-        # pressure at corner
-        e0 = GetTrajFld(pp, x * 0, y * 0, z * 0, "p")
         # pressure jump relative to exact
-        e = (e - e0) / eex
+        e = GetFuncFld(np.ptp, pp, 'p') / eex
         # error in velocity
         vxm, vx1, vx2 = GetDiff(pp, "vx", vele[0])
         vym, vy1, vy2 = GetDiff(pp, "vy", vele[1])
