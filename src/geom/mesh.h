@@ -164,7 +164,7 @@ class MeshStructured {
   }
   // Returns id of cell adjacent to c by face f.
   // -1 if f and c are not neighbours
-  size_t GetNci(IdxCell c, IdxFace f) {
+  size_t GetNci(IdxCell c, IdxFace f) const {
     for (size_t q : Nci(c)) {
       if (GetNeighbourFace(c, q) == f) {
         return q;
@@ -174,7 +174,7 @@ class MeshStructured {
   }
   // Returns id of face opposite to q.
   // XXX: assumes indices of neighbours are -x,+x,-y,+y,-z,+z
-  size_t GetOpposite(size_t q) {
+  size_t GetOpposite(size_t q) const {
     if (q == size_t(-1)) {
       return q;
     }
