@@ -75,6 +75,14 @@ class UReflect {
   }
 };
 
+// Linear extrapolation.
+// xt: target
+// x0,x1: points
+// v0,v1: values
+template <class T, class Scal>
+T UExtrap(Scal xt, Scal x0, const T& v0, Scal x1, const T& v1) {
+  return v0 + (v1 - v0) * ((xt - x0) / (x1 - x0));
+}
 
 // Interpolation to faces with defined conditions.
 // fc: field cell [i]
@@ -92,37 +100,34 @@ void InterpolateB(
   for (const auto& it : mfc) {
     IdxFace f = it.GetIdx();
     CondFace* cb = it.GetValue().get(); // cond base
+    size_t nci = cb->GetNci();
     if (auto cd = dynamic_cast<CondFaceVal<T>*>(cb)) {
       ff[f] = cd->GetValue();
     } else if (auto cd = dynamic_cast<CondFaceGrad<T>*>(cb)) {
-      size_t id = cb->GetNci();
-      IdxCell c = m.GetNeighbourCell(f, id);
-      Scal w = (id == 0 ? 1. : -1.);
-      Scal a = m.GetVectToCell(f, id).norm() * w;
+      IdxCell c = m.GetNeighbourCell(f, nci);
+      Scal w = (nci == 0 ? 1. : -1.);
+      Scal a = m.GetVectToCell(f, nci).norm() * w;
       ff[f] = fc[c] + cd->GetGrad() * a;
     } else if (dynamic_cast<CondFaceExtrap*>(cb)) {
       // TODO test
-      size_t id = cb->GetNci();
-      IdxCell c = m.GetNeighbourCell(f, id);
-      Scal w = (id == 0 ? 1. : -1.);
-      Vect n = m.GetNormal(f) * w;
-      Scal h = m.GetVectToCell(f, id).norm();
-      T a = fc[c] / h;
-      Scal b = 1. / h;
-      Scal vol = m.GetVolume(c);
-      for (auto q : m.Nci(c)) {
-        IdxFace fq = m.GetNeighbourFace(c, q);
-        if (fq == f) {
-          b -= m.GetOutwardSurface(c, q).dot(n) / vol;
-        } else {
-          a += ff[fq] * m.GetOutwardSurface(c, q).dot(n) / vol;
-        }
-      }
-      ff[f] = a / b;
+      IdxCell c = m.GetNeighbourCell(f, nci);
+      size_t q = m.GetNci(c, f);
+      size_t qo = m.GetOpposite(q);
+      IdxFace fo = m.GetNeighbourFace(c, qo);
+      Vect n = m.GetNormal(f);
+      // cell 
+      const T& v0 = fc[c];
+      Scal x0 = 0.;
+      // opposite face
+      const T& v1 = ff[fo];
+      Scal x1 = n.dot(m.GetCenter(fo) - m.GetCenter(c));
+      // target 
+      Scal xt = n.dot(m.GetCenter(f) - m.GetCenter(c));
+      
+      ff[f] = UExtrap(xt, x0, v0, x1, v1);
     } else if (dynamic_cast<CondFaceReflect*>(cb)) {
       // TODO test
-      size_t id = cb->GetNci();
-      IdxCell c = m.GetNeighbourCell(f, id);
+      IdxCell c = m.GetNeighbourCell(f, nci);
       Vect n = m.GetNormal(f);
       auto v = fc[c];
       ff[f] = UReflect<T, M>::Get(v, n);
@@ -144,7 +149,7 @@ FieldFace<T> Interpolate(
     const FieldCell<T>& fc,
     const MapFace<std::shared_ptr<CondFace>>& mfc, 
     const M& m) {
-  FieldFace<T> ff(m, T(0)); // Valid 0 needed for CondFaceExtrap
+  FieldFace<T> ff(m); // Valid 0 needed for CondFaceExtrap
 
   InterpolateS(fc, ff, m);
   InterpolateB(fc, mfc, ff, m);

@@ -287,7 +287,13 @@ void TestCoeff() {
   p(0, {-1, 0, 1}, {-0.5, 0, 0.5}, 0);
 }
 
+void TestApprox() {
+  PCMP(solver::UExtrap(5., 0., 2., 1., 3.), 7.);
+}
+
+
 int main() {
+  TestApprox();
   TestGrad();
   TestCoeff();
 }
