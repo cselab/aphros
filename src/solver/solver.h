@@ -60,11 +60,10 @@ void InterpolateS(const FieldCell<T>& fc, FieldFace<T>& ff, const M& m) {
   }
 }
 
-template <class T, class M>
-class UReflect {
+template <class Scal>
+class UReflectFace {
  public:
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
+  using Vect = GVect<Scal, 3>;
   // v: value
   // n: normal to face
   static Scal Get(Scal v, const Vect& /*n*/) {
@@ -74,6 +73,21 @@ class UReflect {
     return v - n * n.dot(v);
   }
 };
+
+template <class Scal>
+class UReflectCell {
+ public:
+  using Vect = GVect<Scal, 3>;
+  // v: value
+  // n: normal to face
+  static Scal Get(Scal v, const Vect& /*n*/) {
+    return v;
+  }
+  static Vect Get(const Vect& v, const Vect& n) {
+    return v - n * (2. * n.dot(v));
+  }
+};
+
 
 // Linear extrapolation.
 // xt: target
@@ -130,7 +144,7 @@ void InterpolateB(
       IdxCell c = m.GetNeighbourCell(f, nci);
       Vect n = m.GetNormal(f);
       auto v = fc[c];
-      ff[f] = UReflect<T, M>::Get(v, n);
+      ff[f] = UReflectFace<Scal>::Get(v, n);
     } else {
       // TODO add name to CondFace etc
       throw std::runtime_error("InterpolateB: unknown cond");
