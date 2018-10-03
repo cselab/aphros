@@ -149,6 +149,24 @@ void TestMesh() {
     }
   }
 
+  // Index of opposite face
+  PCMP(m.GetOpposite(0), 1);
+  PCMP(m.GetOpposite(1), 0);
+  PCMP(m.GetOpposite(2), 3);
+  PCMP(m.GetOpposite(3), 2);
+  PCMP(m.GetOpposite(4), 5);
+  PCMP(m.GetOpposite(5), 4);
+  PCMP(m.GetOpposite(-1), -1);
+  
+  // Index of neighbour face
+  {
+    IdxCell c(0);
+    for (auto q : m.Nci(c)) {
+      IdxFace f = m.GetNeighbourFace(c, q);
+      PCMP(m.GetNci(c, f), q);
+      PCMP(m.GetNci(IdxCell(2), f), -1);
+    }
+  }
 
   // Comm
   FieldCell<Scal> fc;

@@ -162,6 +162,28 @@ class MeshStructured {
   GRange<size_t> Nci(IdxCell c) const {
     return GRange<size_t>(0, GetNumNeighbourFaces(c));
   }
+  // Returns id of cell adjacent to c by face f.
+  // -1 if f and c are not neighbours
+  size_t GetNci(IdxCell c, IdxFace f) {
+    for (size_t q : Nci(c)) {
+      if (GetNeighbourFace(c, q) == f) {
+        return q;
+      }
+    }
+    return size_t(-1);
+  }
+  // Returns id of face opposite to q.
+  // XXX: assumes indices of neighbours are -x,+x,-y,+y,-z,+z
+  size_t GetOpposite(size_t q) {
+    if (q == size_t(-1)) {
+      return q;
+    }
+
+    if (q % 2 == 0) {
+      return ++q;
+    } 
+    return --q;
+  }
   size_t GetNumNeighbourNodes(IdxCell) const {
     return kCellNumNeighbourNodes;
   }
