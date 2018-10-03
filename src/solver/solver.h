@@ -32,6 +32,16 @@ bool IsNan(Scal a) {
   return std::isnan(a);
 }
 
+template <class Scal, size_t dim>
+bool IsNan(const GVect<Scal, dim>& a) {
+  for (size_t i = 0; i < dim; ++i) {
+    if (IsNan(a[i])) {
+      return true;
+    }
+  }
+  return false;
+}
+
 template <class Scal>
 Scal GetNan() {
   return std::numeric_limits<Scal>::quiet_NaN();
@@ -46,6 +56,20 @@ bool IsNan(const GField<T, Idx>& u) {
   }
   return false;
 }
+
+template <class Scal, class Idx, size_t Size>
+bool IsNan(const solver::Expression<Scal, Idx, Size>& e) {
+  if (IsNan(e.GetConstant())) {
+    return true;
+  }
+  for (size_t i = 0; i < e.size(); ++i) {
+    if (IsNan(e[i].a)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 
 template <class T, class Idx, class M>
 bool CheckNan(const GField<T, Idx>& u, std::string name, const M& m) {
