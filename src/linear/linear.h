@@ -10,6 +10,7 @@
 #include <map>
 
 #include "geom/mesh.h"
+#include "debug/isnan.h"
 
 namespace solver {
 

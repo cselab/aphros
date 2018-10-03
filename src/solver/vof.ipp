@@ -694,7 +694,7 @@ struct Vof<M_>::Imp {
     }
 
     if (sem("height")) {
-      CheckNan(uc, "vof:Rec:uc", m);
+      CHECKNAN(uc)
       DetectInterface(uc);
       // Compute normal and curvature [s]
       CalcNormal(uc, fci_, fcn_, fck_);

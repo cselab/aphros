@@ -355,7 +355,7 @@ struct Simple<M_>::Imp {
     auto sem = m.GetSem("fluid-start");
     if (sem("convdiff-init")) {
       owner_->ClearIter();
-      CheckNan(fcp_.time_curr, "fcp_.time_curr", m);
+      CHECKNAN(fcp_.time_curr)
       cd_->SetTimeStep(owner_->GetTimeStep());
     }
 
@@ -573,7 +573,7 @@ struct Simple<M_>::Imp {
       for (auto c : m.Cells()) {
         fc[c] = (*lsx)[i++];
       }
-      CheckNan(fc, "simple:Solve():fc", m);
+      CHECKNAN(fc);
       m.Comm(&fc);
     }
   }
@@ -844,7 +844,7 @@ struct Simple<M_>::Imp {
       ffv_.time_prev = ffv_.time_curr;
       fcp_.time_curr = fcp_.iter_curr;
       ffv_.time_curr = ffv_.iter_curr;
-      CheckNan(fcp_.time_curr, "fcp_.time_curr", m);
+      CHECKNAN(fcp_.time_curr)
       owner_->IncTime();
     }
     if (sem.Nested("convdiff-finish")) {
