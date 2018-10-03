@@ -33,6 +33,7 @@
 #include "dump/dumper.h"
 #include "func/init_u.h"
 #include "func/init_cl.h"
+#include "debug/isnan.h"
 
 class GPar {};
 

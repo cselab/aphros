@@ -8,6 +8,7 @@
 #include "util/metrics.h"
 #include "convdiffvi.h"
 #include "fluid.h"
+#include "debug/isnan.h"
 
 // Rules:
 // - Each function assumes that all fields on layers
@@ -54,28 +55,22 @@ struct Simple<M_>::Imp {
 
       mfcf_[i] = std::make_shared<
           CondFaceGradFixed<Vect>>(Vect(0), nci);
+      mfcp_[i] = std::make_shared<
+          CondFaceExtrap>(nci);
       mfcpc_[i] = std::make_shared<
           CondFaceExtrap>(nci);
       mfcd_[i] = std::make_shared<
           CondFaceGradFixed<Scal>>(0., nci);
-      mfck_[i] = std::make_shared<
-          CondFaceGradFixed<Scal>>(0, nci);
 
       if (auto cd = dynamic_cast<NoSlipWall<M>*>(cb)) {
         mfcw_[i] = std::make_shared<
             CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
-        mfcp_[i] = std::make_shared<
-            CondFaceExtrap>(nci);
       } else if (auto cd = dynamic_cast<Inlet<M>*>(cb)) {
         mfcw_[i] = std::make_shared<
             CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
-        mfcp_[i] = std::make_shared<
-            CondFaceExtrap>(nci);
       } else if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
         mfcw_[i] = std::make_shared<
             CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
-        mfcp_[i] = std::make_shared<
-            CondFaceExtrap>(nci);
       } else if (auto cd = dynamic_cast<SlipWall<M>*>(cb)) {
         mfcw_[i] = std::make_shared<
             CondFaceReflect>(nci);
@@ -601,9 +596,8 @@ struct Simple<M_>::Imp {
       m.Comm(&fck);
     }
     if (sem("interp")) {
-      // TODO: remove mfck_ as probably not needed
-      //       and add InterpolateInner
-      ffk = Interpolate(fck, mfck_, m);
+      ffk.Reinit(m);
+      InterpolateI(fck, ffk, m);
     }
   }
   // Append explicit part of viscous force.
@@ -885,7 +879,6 @@ struct Simple<M_>::Imp {
   MapFace<std::shared_ptr<CondFace>> mfcw_; // velocity cond
   MapFace<std::shared_ptr<CondFace>> mfcp_; // pressure cond
   MapFace<std::shared_ptr<CondFace>> mfcf_; // force cond
-  MapFace<std::shared_ptr<CondFace>> mfck_; // diag coeff cond
   MapFace<std::shared_ptr<CondFace>> mfcpc_; // pressure corr cond
   MapFace<std::shared_ptr<CondFace>> mfcd_; // dynamic viscosity cond
 

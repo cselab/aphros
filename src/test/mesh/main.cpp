@@ -19,8 +19,6 @@ bool Cmp(const GVect<T, d>& a, const GVect<T, d>& b) {
 
 const int dim = 3;
 using MIdx = GMIdx<dim>;
-using IdxCell = IdxCell;
-using IdxFace = IdxFace;
 using Dir = GDir<dim>;
 using Scal = double;
 using Vect = GVect<Scal, dim>;

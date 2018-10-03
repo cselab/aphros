@@ -12,6 +12,7 @@
 #include "reconst.h"
 #include "partstr.h"
 #include "normal.h"
+#include "debug/isnan.h"
 
 namespace solver {
 
@@ -575,7 +576,7 @@ struct Vof<M_>::Imp {
         if (par->dim == 3) {
           fckp_[c] *= 2.;
         }
-        //fckp_[c] = 1; // XXX: adhoc prescribed curvature
+        fckp_[c] = 1; // XXX: adhoc prescribed curvature
       }
       m.Comm(&fckp_);
     }
