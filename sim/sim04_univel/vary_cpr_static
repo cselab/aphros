@@ -23,8 +23,9 @@ for dim,cpr in it.product(ddim, 1.25 * 2 ** np.arange(0,5,0.5)):
     nxm = ch.GetBs(dim)
     La = c.La
     tmax = c.tmax
-    nx = max(nxm, ch.Upper2(cpr * 1.2)) 
     symmcorn = c.symmcorn
+    cprk = 1.2 if c.symmcorn else 2.4;
+    nx = max(nxm, ch.Upper2(cpr * cprk)) 
     dumpdefault = c.dumpdefault
 
     sy = "_symm" if c.symmcorn else ""
@@ -32,7 +33,7 @@ for dim,cpr in it.product(ddim, 1.25 * 2 ** np.arange(0,5,0.5)):
     ot = os.path.join(o, "run_{:}".format(sf))
     od = os.path.join(o, "dat_{:}".format(sf))
 
-    bcod = "-bcod -0.5 -0.5 -0.5"
+    bcod = "-bcod -0.5 -0.5 -0.5" if c.symmcorn else ""
 
     cf = '''
 rm -f ch/done ge/done
