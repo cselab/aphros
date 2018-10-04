@@ -27,7 +27,7 @@ copy ch/*_*.dat ch/s_*.vtk $dcd/
 
 dg=$d/ge
 mkdir -p $dg
-copy ge/o/sc/* ge/main.gen.gfs $dg/
+copy ge/o/sc/* ge/main.gen.gfs ge/.main.gfs $dg/
 dgd=$dg/dat
 mkdir -p $dcd
 copy ge/u_*.vtk $dgd/
