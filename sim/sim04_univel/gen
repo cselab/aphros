@@ -10,9 +10,8 @@ def Default():
         'dim', 'pos', 'mode', 'mu', 'rho', 'nfr', 'dom', 'rho0',
         'np', 'nx', 'cpr', 'bryk', 'vel0', 'tmax', 'bcoh', 'bcor', 'bcod',
         'b2xr', 'b2rr', 'chsm', 'gesm', 'wallx', 'wally', 'wallz', 'pois',
-        'g0', 'Fr', 'Ga', 'Eo', 'meshvel')
-    r['nb'] = [1, "number of bubbles"]
-    r['symm'] = [0, "symmetry in y and z"]
+        'g0', 'Fr', 'Ga', 'Eo', 'meshvel', 'nb', 'symm', 'symmcorn', 
+        'dumpdefault')
     return r
 
 # Returns pressure gradient to maintain poiseuille flow in rectangular duct

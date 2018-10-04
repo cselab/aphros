@@ -55,6 +55,10 @@ mu: viscosity mu = rho * D ^ 2, pois: velocity magnitude dom''',
     b2xr = [[2., 0., 0.] , "second bubble displacement realative to br"]
     out = [str, "directory for task and output"]
     meshvel = [0, "moving mesh in ch", [0, 1]]
+    nb = [1, "number of bubbles"]
+    symm = [0, "symmetry conditions at y=1 and z=1"]
+    symmcorn = [0, "symmetry conditions at x,y,z=0 corner"]
+    dumpdefault = [0, "add dumpformat=default to ch"]
     return locals().copy()
 
 # ordering:

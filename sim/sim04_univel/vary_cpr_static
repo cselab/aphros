@@ -9,29 +9,36 @@ import ch
 
 sh = ch.sh
 
-a = ch.GetStdPar('out', 'La', 'tmax')
+a = ch.GetStdPar('out', 'La', 'tmax', 'symmcorn', 'dumpdefault')
 a['La'][0] = 1200.
 a['tmax'][0] = 1.
+a['symmcorn'][0] = 1
 c = ch.GetArgs(a)
 assert c.out is not None
 o = os.path.realpath(c.out)
 sh("mkdir -p '{:}'".format(o))
 
-ddim = [3]
+ddim = [2, 3]
 for dim,cpr in it.product(ddim, 2 ** np.arange(0,5,0.5)):
     nxm = ch.GetBs(dim)
     La = c.La
     tmax = c.tmax
     nx = max(nxm, ch.Upper2(cpr * 1.2)) 
+    symmcorn = c.symmcorn
+    dumpdefault = c.dumpdefault
 
-    sf = "dim{:}_cpr{:06.02f}_la{:06.01f}".format(dim, cpr, La)
+    sy = "_symm" if c.symmcorn else ""
+    sf = "dim{:}_cpr{:06.02f}_la{:06.01f}{:}".format(dim, cpr, La, sy)
     ot = os.path.join(o, "run_{:}".format(sf))
     od = os.path.join(o, "dat_{:}".format(sf))
 
+    bcod = "-bcod -0.5 -0.5 -0.5"
+
     cf = '''
 rm -f ch/done ge/done
-./gen -nx {nx} -cpr {cpr} -La {La} -bcod -0.5 -0.5 -0.5 \
--dim {dim} -We 0 -tmax {tmax} -mode mu -pos center'''.format(**locals())
+./gen -nx {nx} -cpr {cpr} -La {La} {bcod} -symmcorn {symmcorn} \
+-dim {dim} -We 0 -tmax {tmax} -mode mu -pos center \
+-dumpdefault {dumpdefault}'''.format(**locals())
 
     sh("ch.task {:} > {:} <<< '{:}'".format(od, ot, cf))
     sh("chmod +x {:}".format(ot))

@@ -95,7 +95,9 @@ dd = ['X', 'Y', 'Z'] if d3 else ['X', 'Y']
 
 # wall conditions
 for d in dd:
-    if c['wall{:}'.format(d.lower())]:
+    if c['symmcorn']:
+        pass
+    elif c['wall{:}'.format(d.lower())]:
         bt = bt.replace('[BC{:}]'.format(d), wl.format(b0[d], b1[d]))
     else:
         numedge += 1

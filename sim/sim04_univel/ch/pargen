@@ -53,7 +53,7 @@ if c['meshvel']:
 set string meshvel_auto v
 set double meshvel_weight 0.5
 set vect meshvel_mask 1 0 0
-    '''.format(**c)
+'''
 
 for d in ['x', 'y', 'z'][0:dim]:
     if c['wall' + d]:
@@ -61,7 +61,7 @@ for d in ['x', 'y', 'z'][0:dim]:
 set int hypre_periodic_{d} 0
 set string bc_{d}m wall 0 0 0
 set string bc_{d}p wall 0 0 0
-    '''.format(d=d)
+'''.format(d=d)
 
 if c['symm']:
 # TODO: consider periodic in y,z
@@ -70,7 +70,29 @@ set string bc_yp slipwall
 set string bc_zp slipwall 
 set int poiswyp 0
 set int poiswzp 0
-    '''.format(**c)
+'''
+
+if c['symmcorn']:
+    t += '''
+set int bcc_reflect 1 
+set string bc_xm slipwall 
+set string bc_xp slipwall 
+set int hypre_periodic_x 0
+set string bc_ym slipwall 
+set string bc_yp slipwall 
+set int hypre_periodic_y 0
+'''
+    if d3:
+        t += '''
+set string bc_zm slipwall 
+set string bc_zp slipwall 
+set int hypre_periodic_z 0
+'''
+
+if c['dumpdefault']:
+    t += '''
+set string dumpformat default
+'''
 
 open(o, 'w').write(t)
 
