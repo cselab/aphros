@@ -707,7 +707,7 @@ struct Vof<M_>::Imp {
       if (par->bcc_reflect) {
         BcReflect(const_cast<FieldCell<Scal>&>(uc));
       }
-      CHECKNAN(uc)
+      CHECKNAN(uc, m.CN())
       DetectInterface(uc);
       // Compute normal and curvature [s]
       CalcNormal(uc, fci_, fcn_, fck_);
