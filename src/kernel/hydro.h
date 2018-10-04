@@ -236,6 +236,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::vector<std::string> clr_nm_; // color reduce: variable name
   std::map<Scal, std::vector<Scal>> clmp_; // map color to vector (only root)
 
+  Scal nabort_; // number of abort requests, used by Reduce in checknan Run()
+
   struct Sph {
     Vect x;
     Scal r;
@@ -762,15 +764,6 @@ void Hydro<M>::CalcStat() {
   }
 
   if (sem("local")) {
-    // check abort TODO: revise,move
-    for (auto c : m.Cells()) {
-      if (fv[c].sqrnorm() > sqr(var.Double["abortvel"])) {
-        std::stringstream g;
-        g << "abortvel exceeded at x=" << m.GetCenter(c);
-        throw std::runtime_error(g.str());
-      }
-    }
-
     // Store vc1 and vc2
     s.vc1 = s.c1;
     s.vc2 = s.c2;
@@ -1568,7 +1561,7 @@ void Hydro<M>::Run() {
         int(st_.step) >= var.Int["max_step"]) {
       sem.LoopBreak();
     } else {
-      if (IsRoot()) { 
+      if (m.IsRoot()) { 
         std::cout << std::fixed << std::setprecision(8)
             << "STEP=" << st_.step 
             << " t=" << st_.t
@@ -1577,9 +1570,33 @@ void Hydro<M>::Run() {
             << " dta=" << as_->GetTimeStep()
             << std::endl;
       }
-      CHECKNAN(as_->GetField(), true)
-      CHECKNAN(fs_->GetVelocity(), true)
-      CHECKNAN(fs_->GetPressure(), true)
+      nabort_ = 0.;
+      try {
+        CHECKNAN(as_->GetField(), true)
+        CHECKNAN(fs_->GetVelocity(), true)
+        CHECKNAN(fs_->GetPressure(), true)
+        // check abort TODO: revise,move
+        for (auto c : m.Cells()) {
+          if (fs_->GetVelocity()[c].sqrnorm() > sqr(var.Double["abortvel"])) {
+            std::stringstream g;
+            g << "abortvel exceeded at x=" << m.GetCenter(c);
+            throw std::runtime_error(g.str());
+          }
+        }
+      }
+      catch (const std::runtime_error& e) {
+        std::cout << e.what() << std::endl;
+        nabort_ += 1.;
+      }
+      m.Reduce(&nabort_, "sum");
+    }
+  }
+  if (sem("abort-check")) {
+    if (nabort_ != 0.) {
+      if (m.IsRoot()) {
+        std::cout << "nabort_ = " << nabort_ << std::endl;
+      }
+      sem.LoopBreak();
     }
   }
   if (sem("updatepar")) {
