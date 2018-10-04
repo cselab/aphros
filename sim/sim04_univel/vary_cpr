@@ -9,22 +9,28 @@ import ch
 
 sh = ch.sh
 
-a = ch.GetStdPar('out', 'We', 'La', 'tmax')
+a = ch.GetStdPar('out', 'We', 'La', 'tmax', 'dim', 'dumpdefault')
 a['La'][0] = 1200.
 a['We'][0] = 0.1
 a['tmax'][0] = 2.
+a['cpr0'] = [0, "cpr range left"]
+a['cpr1'] = [5, "cpr range right"]
+a['cprs'] = [0.5, "cpr range step"]
+a['dim'][0] = 2
 c = ch.GetArgs(a)
 assert c.out is not None
 o = os.path.realpath(c.out)
 sh("mkdir -p '{:}'".format(o))
 
-ddim = [2,3]
-for dim,cpr in it.product(ddim, 1.25 * 2 ** np.arange(0,3,0.5)):
+r0,r1,rs = (c.cpr0, c.cpr1, c.cprs)
+
+for dim,cpr in it.product([c.dim], 1.25 * 2 ** np.arange(r0,r1,rs)):
     nxm = ch.GetBs(dim)
     La = c.La
     We = c.We
     tmax = c.tmax
     nx = max(nxm, ch.Upper2(2 * cpr * (1. + tmax)))
+    dumpdefault = c.dumpdefault
 
     sf = "dim{:}_cpr{:06.02f}_we{:06.03f}_la{:06.01f}".format(dim, cpr, We, La)
     ot = os.path.join(o, "run_{:}".format(sf))
