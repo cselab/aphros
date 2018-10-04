@@ -9,21 +9,27 @@ import ch
 
 sh = ch.sh
 
-a = ch.GetStdPar('out', 'La', 'tmax', 'symmcorn', 'dumpdefault')
+a = ch.GetStdPar('out', 'La', 'tmax', 'symmcorn', 'dumpdefault', 'bcoh', 'dim')
 a['La'][0] = 1200.
 a['tmax'][0] = 1.
 a['symmcorn'][0] = 1
+a['cpr0'] = [0, "cpr range left"]
+a['cpr1'] = [5, "cpr range right"]
+a['cprs'] = [0.5, "cpr range step"]
+a['dim'][0] = 2
 c = ch.GetArgs(a)
 assert c.out is not None
 o = os.path.realpath(c.out)
 sh("mkdir -p '{:}'".format(o))
 
-ddim = [2, 3]
-for dim,cpr in it.product(ddim, 1.25 * 2 ** np.arange(0,5,0.5)):
+r0,r1,rs = (c.cpr0, c.cpr1, c.cprs)
+
+for dim,cpr in it.product([c.dim], 1.25 * 2 ** np.arange(r0,r1,rs)):
     nxm = ch.GetBs(dim)
     La = c.La
     tmax = c.tmax
     symmcorn = c.symmcorn
+    bcoh = " ".join(map(str, c.bcoh))
     cprk = 1.2 if c.symmcorn else 2.4;
     nx = max(nxm, ch.Upper2(cpr * cprk)) 
     dumpdefault = c.dumpdefault
@@ -38,6 +44,7 @@ for dim,cpr in it.product(ddim, 1.25 * 2 ** np.arange(0,5,0.5)):
     cf = '''
 rm -f ch/done ge/done
 ./gen -nx {nx} -cpr {cpr} -La {La} {bcod} -symmcorn {symmcorn} \
+-bcoh {bcoh} \
 -dim {dim} -We 0 -tmax {tmax} -mode mu -pos center \
 -dumpdefault {dumpdefault}'''.format(**locals())
 
