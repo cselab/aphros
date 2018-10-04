@@ -3,7 +3,7 @@
 set -ue
 
 # dir
-export OMP_NUM_THREADS=64
+export OMP_NUM_THREADS=1
 i=o
 o=.
 mkdir -p $o
