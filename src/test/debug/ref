@@ -1,0 +1,7 @@
+
+TestRange
+Nan f at i=0
+
+TestMesh
+Nan f at x=(0.25,0.25,0.5)
+test/debug/main.cpp:55 in TestMesh: Nan f at x=(0.25,0.25,0.5)
