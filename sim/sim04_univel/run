@@ -6,3 +6,4 @@ set -eu
 ./r_ge
 ./r_plot
 ./r_vis
+./r_move

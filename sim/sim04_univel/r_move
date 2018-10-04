@@ -1,0 +1,45 @@
+#!/bin/bash
+
+set -eu
+
+move () {
+  c="mv -f $@  || true"
+  eval "$c"
+}
+
+copy () {
+  c="rsync -a $@  || true"
+  eval "$c"
+}
+
+d=dat
+mkdir -p $d
+rm -rf $d/*
+
+copy b.dat par.py $d/
+
+dc=$d/ch
+mkdir -p $dc
+copy ch/{stat.dat,par.conf,add.conf,mesh.conf} $dc/
+dcd=$dc/dat
+mkdir -p $dcd
+copy ch/*_*.dat $dcd/
+
+dg=$d/ge
+mkdir -p $dg
+copy ge/o/sc/* ge/main.gen.gfs $dg/
+dgd=$dg/dat
+mkdir -p $dcd
+copy ge/u_*.vtk $dgd/
+
+dt=$d/traj
+mkdir -p $dt/pdf
+move traj*.pdf $dt/pdf
+
+mkdir -p $dt/dat
+move traj*.dat $dt/dat
+
+dv=$d/vis
+mkdir -p $dv
+move *.{png,mp4} $dv/
+

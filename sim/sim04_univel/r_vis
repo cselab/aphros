@@ -6,9 +6,4 @@ dim=`cat dim`
 
 ./vis${dim}.py ch ge || true
 
-d=dat/vis
-rm -rf $d
-mkdir -p $d
-mv -f *.png $d/
-
-(cd $d ; r.pngmp4)
+r.pngmp4 || true
