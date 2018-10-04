@@ -49,10 +49,11 @@ void TestMesh() {
   PF
 
   M m = GetMesh(); 
+  m.SetCN(true);
   FieldCell<Scal> f(m);
   f[IdxCell(0)] = GetNan<Scal>();
   TR(CheckNan(f, "f", m);)
-  TR(CHECKNAN(f);)
+  TR(CHECKNAN(f, m.CN());)
 }
 
 int main() {

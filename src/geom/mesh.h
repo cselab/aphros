@@ -326,6 +326,10 @@ class MeshStructured {
   }
   bool IsRoot() const { return isroot_; }
 
+  // CheckNan flag
+  bool CN() const { return checknan_; }
+  void SetCN(bool c) { checknan_ = c; }
+
   // TODO: move to separate class: Sem, LS, Comm, Reduce, Solve
   // BEGIN DISTR
  public:
@@ -516,6 +520,7 @@ class MeshStructured {
   const Vect h_;
   const Vect hh_; // h_/2
   const Scal vol_;
+  bool checknan_; // CheckNan flag
   std::array<Vect, dim> vs_; // surface vectors
   Vect va_; // surface area
   // cell neighbour cell 
@@ -572,6 +577,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     , h_(dom.GetDimensions() / Vect(bci_.GetSize()))
     , hh_(h_ * 0.5)
     , vol_(h_.prod())
+    , checknan_(false)
 {
   static_assert(dim == 3, "Not implemented for dim != 3");
 

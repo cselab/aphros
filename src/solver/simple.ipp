@@ -355,7 +355,7 @@ struct Simple<M_>::Imp {
     auto sem = m.GetSem("fluid-start");
     if (sem("convdiff-init")) {
       owner_->ClearIter();
-      CHECKNAN(fcp_.time_curr)
+      CHECKNAN(fcp_.time_curr, m.CN())
       cd_->SetTimeStep(owner_->GetTimeStep());
     }
 
@@ -573,7 +573,7 @@ struct Simple<M_>::Imp {
       for (auto c : m.Cells()) {
         fc[c] = (*lsx)[i++];
       }
-      CHECKNAN(fc);
+      CHECKNAN(fc, m.CN());
       m.Comm(&fc);
     }
   }
@@ -592,7 +592,7 @@ struct Simple<M_>::Imp {
         }
         fck[c] = s / dim;
       }
-      CHECKNAN(fck)
+      CHECKNAN(fck, m.CN())
 
       m.Comm(&fck);
     }
@@ -787,13 +787,13 @@ struct Simple<M_>::Imp {
     if (sem("pcorr-assemble")) {
       RhieChow(cd_->GetVelocity(Layers::iter_curr), 
                fcp_curr, fcgp_, fck_, ffk_, ffve_);
-      CHECKNAN(ffve_)
+      CHECKNAN(ffve_, m.CN())
 
       GetFlux(ffk_, ffve_, ffvc_);
-      CHECKNAN(ffvc_)
+      CHECKNAN(ffvc_, m.CN())
 
       GetFluxSum(ffvc_, *owner_->fcsv_, fcpcs_);
-      CHECKNAN(fcpcs_)
+      CHECKNAN(fcpcs_, m.CN())
 
       ApplyPcCond(fcp_curr, fcpcs_);
     }
@@ -803,7 +803,7 @@ struct Simple<M_>::Imp {
     }
 
     if (sem("pcorr-apply")) {
-      CHECKNAN(fcpc_)
+      CHECKNAN(fcpc_, m.CN())
 
       if (!par->simpler) {
         // Correct pressure
@@ -822,19 +822,19 @@ struct Simple<M_>::Imp {
       for (auto f : m.Faces()) {
         ffv_.iter_curr[f] = ffvc_[f].Evaluate(fcpc_);
       }
-      CHECKNAN(ffv_.iter_curr)
+      CHECKNAN(ffv_.iter_curr, m.CN())
 
       auto ffpc = Interpolate(fcpc_, mfcpc_, m);
-      CHECKNAN(ffpc)
+      CHECKNAN(ffpc, m.CN())
       fcgpc_ = Gradient(ffpc, m);
-      CHECKNAN(fcgpc_)
+      CHECKNAN(fcgpc_, m.CN())
 
       // Calc velocity correction
       fcwc_.Reinit(m);
       for (auto c : m.Cells()) {
         fcwc_[c] = fcgpc_[c] / (-fck_[c]);
       }
-      CHECKNAN(fcwc_)
+      CHECKNAN(fcwc_, m.CN())
     }
 
     if (sem.Nested("convdiff-corr")) {
@@ -855,7 +855,7 @@ struct Simple<M_>::Imp {
       ffv_.time_prev = ffv_.time_curr;
       fcp_.time_curr = fcp_.iter_curr;
       ffv_.time_curr = ffv_.iter_curr;
-      CHECKNAN(fcp_.time_curr)
+      CHECKNAN(fcp_.time_curr, m.CN())
       owner_->IncTime();
     }
     if (sem.Nested("convdiff-finish")) {

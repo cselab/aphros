@@ -101,12 +101,15 @@ inline std::string SrcPath(const std::string& s) {
   return s;
 }
 
-// CheckNan for field with file and line.
+// CheckNan for field if condition evaluates to true.
 // F: instance of GField
+// C: condition
 // Requires in scope:
 // m: mesh or GRange
-#define CHECKNAN(F) \
-  CheckNan(F, #F, m, SrcPath(__FILE__) \
-      + ":" + std::to_string(__LINE__) \
-      + " in " + std::string(__func__) \
-      );
+#define CHECKNAN(F,C) \
+  if (C) {\
+    CheckNan(F, #F, m, SrcPath(__FILE__) \
+        + ":" + std::to_string(__LINE__) \
+        + " in " + std::string(__func__) \
+        );\
+  }

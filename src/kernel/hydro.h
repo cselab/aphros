@@ -1577,6 +1577,9 @@ void Hydro<M>::Run() {
             << " dta=" << as_->GetTimeStep()
             << std::endl;
       }
+      CHECKNAN(as_->GetField(), true)
+      CHECKNAN(fs_->GetVelocity(), true)
+      CHECKNAN(fs_->GetPressure(), true)
     }
   }
   if (sem("updatepar")) {

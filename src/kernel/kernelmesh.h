@@ -34,7 +34,9 @@ class KernelMesh : public Kernel {
   static constexpr size_t dim = M::dim;
 
   KernelMesh(Vars& var, const MyBlockInfo& bi) 
-    : var(var), bi_(bi), m(CreateMesh<M>(bi)) {}
+    : var(var), bi_(bi), m(CreateMesh<M>(bi)) {
+    m.SetCN(var.Int["CHECKNAN"]); // TODO: revise
+  }
   void Run() override = 0;
   M& GetMesh() { return m; }
   bool IsRoot() { return bi_.isroot; }
