@@ -23,7 +23,7 @@ mkdir -p $dc
 copy ch/{stat.dat,par.conf,add.conf,mesh.conf} $dc/
 dcd=$dc/dat
 mkdir -p $dcd
-copy ch/*_*.dat $dcd/
+copy ch/*_*.dat ch/s_*.vtk $dcd/
 
 dg=$d/ge
 mkdir -p $dg

@@ -14,7 +14,7 @@ o = os.path.realpath(c.out)
 sh("mkdir -p '{:}'".format(o))
 
 ddim = [2,3]
-for dim,cpr in it.product(ddim, 2 ** np.arange(0,5,0.5)):
+for dim,cpr in it.product(ddim, 1.25 * 2 ** np.arange(0,5,0.5)):
     sf = "dim{:}_cpr{:06.02f}".format(dim, cpr)
     ot = os.path.join(o, "run_{:}".format(sf))
     od = os.path.join(o, "dat_{:}".format(sf))
