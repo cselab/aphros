@@ -19,7 +19,7 @@ p=$npexp
 np=`bc <<< "2^($p)"`
 
 # split s times in each direction
-s=1
+s=0
 while true ;  do
   # number of split domains
   ns=`bc <<< "2^($dim * $s)"`
