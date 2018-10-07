@@ -50,6 +50,12 @@ class MeshStructured {
   MIdx GetGlobalSize() const {
     return gs_;
   }
+  Vect GetGlobalLength() const {
+    return gl_;
+  }
+  Vect GetCellSize() const {
+    return h_;
+  }
   // Indexer
   const IndexCells& GetIndexCells() const {
     return bcr_;
@@ -514,12 +520,13 @@ class MeshStructured {
   const IndexNodes bnr_;
 
   const bool isroot_;
-  const MIdx gs_;
   const MIdx mb_, me_; // begin,end of bci_
   const Rect<Vect> dom_; // domain covering bci_
   const Vect h_;
   const Vect hh_; // h_/2
   const Scal vol_;
+  const MIdx gs_;  // global mesh size
+  const Vect gl_;  // global domain length
   bool checknan_; // CheckNan flag
   std::array<Vect, dim> vs_; // surface vectors
   Vect va_; // surface area
@@ -570,13 +577,14 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     , bfr_(bcr_.GetBegin(), bcr_.GetSize())
     , bnr_(bcr_.GetBegin(), bcr_.GetSize())
     , isroot_(isroot)
-    , gs_(gs)
     , mb_(bci_.GetBegin())
     , me_(bci_.GetEnd())
     , dom_(dom)
     , h_(dom.GetDimensions() / Vect(bci_.GetSize()))
     , hh_(h_ * 0.5)
     , vol_(h_.prod())
+    , gs_(gs)
+    , gl_(Vect(gs) * h_)
     , checknan_(false)
 {
   static_assert(dim == 3, "Not implemented for dim != 3");
