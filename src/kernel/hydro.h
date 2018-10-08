@@ -364,7 +364,7 @@ void Hydro<M>::Init() {
         for (auto i : m.AllCells()) {
           auto& v = fc_vel_[i];
           auto x = m.GetCenter(i);
-          if (dim == 2) {
+          if (var.Int["dim"] == 2) {
             x[2] = 0.;
           }
           v[0] = std::sin(x[0]) * std::cos(x[1]) * std::cos(x[2]);
