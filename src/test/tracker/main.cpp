@@ -32,16 +32,32 @@ M GetMesh() {
   Rect<Vect> dom(Vect(0., 0., 0.), Vect(1., 1., 1.));
   using M = MeshStructured<Scal, dim>;
   MIdx b(0, 0, 0); // lower index
-  MIdx s(2, 2, 1);    // size in cells
+  MIdx s(10, 10, 10);    // size in cells
   int hl = 0;         // halos 
-  return InitUniformMesh<M>(dom, b, s, hl, true, s);
+  return InitUniformMesh<M>(dom, b, s, hl, true, MIdx(20, 20, 20));
 }
 
 void TestAvg() {
   PF;
 
+  using Sphavg = solver::Sphavg<M>;
+
   M m = GetMesh(); 
-  solver::Sphavg<M> sa(m, 3);
+  solver::Sphavg<M> sa(m, 2);
+
+  FieldCell<Scal> fcu(m);
+  FieldCell<Vect> fcv(m);
+  FieldCell<Vect> fcvm(m);
+  FieldCell<Scal> fcp(m);
+  Scal dt = 1.;
+  using Sph = typename Sphavg::Sph;
+  std::vector<Sph> ss;
+  ss.emplace_back(Vect(1.9), 0.2, 0.05);
+
+  sa.Update(fcu, fcv, fcvm, dt, fcp, ss);
+  sa.Update(fcu, fcv, fcvm, dt, fcp, ss);
+  sa.Update(fcu, fcv, fcvm, dt, fcp, ss);
+  sa.Update(fcu, fcv, fcvm, dt, fcp, ss);
 }
 
 int main() {

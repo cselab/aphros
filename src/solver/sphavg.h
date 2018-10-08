@@ -18,14 +18,55 @@ class Sphavg {
 
  public:
   struct Sph {
-    Vect x;  // center
-    Scal r;  // radius
-    Scal h;  // kernel width
+    Vect x = Vect(0);  // center
+    Scal r = 1.;  // radius
+    Scal h = 1.;  // kernel width
+    Sph() = default;
+    Sph(const Vect& x, Scal r, Scal h) : x(x), r(r), h(h) {} 
   };
   struct Avg {
-    Vect x;  // average of position
-    Scal b;  // total weight
-    Avg() : x(0.), b(0.) {} 
+    Scal b = 0.;  // total weight
+    Vect x = Vect(0);  // average of position
+    Vect v = Vect(0);  // velocity
+    Vect dvt = Vect(0);  // dv/dt
+    Vect dvx = Vect(0);  // dv/dx * v
+    Scal p = 0.;
+    Avg() = default;
+    void App(Scal a, std::vector<Scal>& g) const {
+      g.push_back(a);
+    }
+    void App(const Vect& a, std::vector<Scal>& g) const {
+      App(a[0], g);
+      App(a[1], g);
+      App(a[2], g);
+    }
+    std::vector<Scal> Ser() const {
+      std::vector<Scal> g;
+      App(b, g);
+      App(x, g);
+      App(v, g);
+      App(dvt, g);
+      App(dvx, g);
+      App(p, g);
+      return g;
+    }
+    void Ext(Scal& a, const std::vector<Scal>& g, size_t& i) {
+      a = g[i++];
+    }
+    void Ext(Vect& a, const std::vector<Scal>& g, size_t& i) {
+      Ext(a[0], g, i);
+      Ext(a[1], g, i);
+      Ext(a[2], g, i);
+    }
+    void Des(const std::vector<Scal>& g) {
+      size_t i = 0;
+      Ext(b, g, i);
+      Ext(x, g, i);
+      Ext(v, g, i);
+      Ext(dvt, g, i);
+      Ext(dvx, g, i);
+      Ext(p, g, i);
+    }
   };
   // Constructor.
   // edim: effective dimension, 2 or 3
@@ -34,9 +75,11 @@ class Sphavg {
   // fcu: volume fraction [a]
   // fcv: velocity [a]
   // fcvm: velocity from previous time step [a]
+  // fcp: pressure [a]
   // dt: time between time steps
   void Update(const FieldCell<Scal>& fcu,
               const FieldCell<Vect>& fcv, const FieldCell<Vect>& fcvm, Scal dt,
+              const FieldCell<Scal>& fcp,
               const std::vector<Sph>& ss);
   // Returns spheres from last Update()
   const std::vector<Sph>& GetSph() const {
@@ -47,11 +90,12 @@ class Sphavg {
     return aa_;
   }
 
- private:
+ public:
   M& m;
   size_t edim_; // effective dimension, 2 or 3
   std::vector<Sph> ss_; // spheres from last Update()
   std::vector<Avg> aa_; // averages from last Update()
+  std::vector<std::vector<Scal>> vv_; // tmp for reduction
 
   // Triangular kernel with support [-1,1]
   static Scal Kernel0(const Scal r) {
@@ -68,7 +112,16 @@ class Sphavg {
     Vect r = x;
     auto l = m.GetGlobalLength();
     for (size_t d = 0; d < dim; ++d) {
-      r[d] = (r[d] > 0. ? std::fmod(r[d], l[d]) : -std::fmod(-r[d], l[d]));
+      r[d] = (r[d] >= 0. ? std::fmod(r[d], l[d]) : -std::fmod(-r[d], l[d]));
+    }
+    return r;
+  }
+  // Returns projection to standard domain [0, m.GetGlobalSize())
+  MIdx GetStd(const MIdx& w) const {
+    MIdx r = w;
+    auto gs = m.GetGlobalSize();
+    for (size_t d = 0; d < dim; ++d) {
+      r[d] = (std::abs(r[d]) * gs[d] + r[d]) % gs[d];
     }
     return r;
   }
@@ -76,8 +129,12 @@ class Sphavg {
   // with center in standard domain [0, m.GetGlobalSize())
   Rect<MIdx> GetBox(const Sph& s) const {
     auto h = m.GetCellSize();
-    MIdx wr((s.r + s.h) / h + 1);
-    MIdx wx((GetStd(s.x) + Vect(0.5)) / h);
+    MIdx wr(Vect(s.r + s.h) / h + Vect(1.));
+    MIdx wx((GetStd(s.x)) / h + Vect(0.5));
+    if (edim_ < 3) {
+      wr[2] = 0;
+      wx[2] = 0;
+    }
     return Rect<MIdx>(wx - wr, wx + wr);
   }
   // Returns indices of bounding box (inclusive) of mesh m
@@ -100,15 +157,16 @@ class Sphavg {
     MIdx eo = ro.rt;
     auto gs = m.GetGlobalSize();
     // equivalent to intersection of projections in all directions
-    bool p = true;
     for (size_t d = 0; d < dim; ++d) {
       bool q = false;
-      q = q || Inter(b[d], bo[d], e[d], eo[d]);
-      q = q || Inter(b[d], bo[d] + gs[d], e[d], eo[d] + gs[d]);
-      q = q || Inter(b[d], bo[d] - gs[d], e[d], eo[d] - gs[d]);
-      p = p && q;
+      q = q || Inter(b[d], e[d], bo[d], eo[d]);
+      q = q || Inter(b[d], e[d], bo[d] + gs[d], eo[d] + gs[d]);
+      q = q || Inter(b[d], e[d], bo[d] - gs[d], eo[d] - gs[d]);
+      if (!q) {
+        return false;
+      }
     }
-    return p;
+    return true;
   }
   void ClearAvg(size_t n) {
     aa_.clear();
@@ -120,31 +178,78 @@ template <class M_>
 void Sphavg<M_>::Update(
     const FieldCell<Scal>& fcu,
     const FieldCell<Vect>& fcv, const FieldCell<Vect>& fcvm, Scal dt,
+    const FieldCell<Scal>& fcp,
     const std::vector<Sph>& ss) {
   auto sem = m.GetSem("upd");
 
-  auto& bc = m.GetIndexCells();
+  auto& bd = m.GetIndexCells();
+  auto& bc = m.GetInBlockCells();
+  (void) fcu;
 
   if (sem("calc")) {
     ss_ = ss;
     ClearAvg(ss_.size());
+    auto h = m.GetCellSize();
 
     auto rm = GetBox();
 
-    for (auto& s : ss) {
+    for (size_t i = 0; i < ss_.size(); ++i) {
+      auto& s = ss_[i];
+      auto& a = aa_[i];
       auto rs = GetBox(s);
       if (Inter(rm, rs)) {
-        std::cout << "inter: " 
-            << "[" << rm.lb << "," << rm.rt << "]"
-            << " "
-            << "[" << rs.lb << "," << rs.rt << "]"
-            ;
+        // traverse bounding box
+        typename M::BlockCells bs(rs.lb, rs.GetDimensions() + MIdx(1));
+        for (auto w : bs) {
+          MIdx wt = GetStd(w);
+          Sph st = s;
+          st.x = GetStd(st.x);
+          if (bc.IsInside(wt)) {
+            Vect x(Vect(w) * h);
+            Scal b = Kernel(x, st);
+            IdxCell c = bd.GetIdx(wt);
+            a.b += b;
+            a.x += x * b;
+            a.v += fcv[c] * b;
+            a.dvt += (fcv[c] - fcvm[c]) * (b / dt);
+            a.dvx += Vect(0) * b; // TODO: fill dvx
+            a.p += fcp[c] * b;
+          }
+        }
+        std::cout << std::endl;
       }
     }
+
+    vv_.clear();
+    // serialize
+    for (size_t i = 0; i < ss_.size(); ++i) {
+      vv_.push_back(aa_[i].Ser());
+    }
+    using TVS = typename M::template OpCatVT<Scal>; 
+    m.Reduce(std::make_shared<TVS>(&vv_));
   }
   if (sem("reduce")) {
+    // root has concatenation of all vv_
+    if (m.IsRoot()) {
+      for (size_t i = 1; i < vv_.size(); ++i) {
+        auto& v0 = vv_[0];
+        assert(vv_[i].size() == v0.size());
+        for (size_t j = 0; j < v0.size(); ++j) {
+          v0[j] += vv_[i][j];
+        }
+      }
+      vv_.resize(1);
+    }
+    using TVS = typename M::template OpCatVT<Scal>; 
+    m.Bcast(std::make_shared<TVS>(&vv_));
+  }
+  if (sem("bcast")) {
+    assert(vv_.size() == 1);
+    // deserialize
+    for (size_t i = 0; i < ss_.size(); ++i) {
+      aa_[i].Des(vv_[0]);
+    }
   }
 }
-
 
 } // namespace solver
