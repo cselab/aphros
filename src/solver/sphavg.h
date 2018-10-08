@@ -255,29 +255,38 @@ void Sphavg<M_>::Update(
   if (sem("reduce")) {
     // root has concatenation of all vv_
     if (m.IsRoot()) {
-      auto& v0 = vv_[0];
-      for (size_t i = 1; i < vv_.size(); ++i) {
-        assert(vv_[i].size() == v0.size());
-        for (size_t j = 0; j < v0.size(); ++j) {
-          v0[j] += vv_[i][j];
+      if (vv_.size() % ss_.size()) {
+        throw std::runtime_error(
+            "reduce: vv_.size()=" + std::to_string(vv_.size()) +
+            " notdiv ss_.size()=" + std::to_string(ss_.size()));
+      }
+      auto e = ss_.size();
+      for (size_t i = 0; i < e; ++i) {
+        for (size_t ii = i + e; ii < vv_.size(); ii += e) {
+          for (size_t j = 0; j < vv_[i].size(); ++j) {
+            vv_[i][j] += vv_[ii][j];
+          }
         }
       }
-      for (size_t j = 1; j < v0.size(); ++j) {
-        v0[j] /= v0[0];
+      vv_.resize(e);
+      for (size_t i = 0; i < e; ++i) {
+        for (size_t j = 1; j < vv_[i].size(); ++j) {
+          vv_[i][j] /= vv_[i][0];
+        }
       }
-      vv_.resize(1);
     }
     using TVS = typename M::template OpCatVT<Scal>; 
     m.Bcast(std::make_shared<TVS>(&vv_));
   }
   if (sem("bcast")) {
-    if (vv_.size() != 1) {
+    if (vv_.size() != ss_.size()) {
       throw std::runtime_error(
-          "bcast: vv_.size()=" + std::to_string(vv_.size()) + " != 1");
+          "bcast: vv_.size()=" + std::to_string(vv_.size()) +
+          " != ss_.size()=" + std::to_string(ss_.size()));
     }
     // deserialize
     for (size_t i = 0; i < ss_.size(); ++i) {
-      aa_[i].Des(vv_[0]);
+      aa_[i].Des(vv_[i]);
     }
   }
 }
