@@ -397,6 +397,16 @@ void Hydro<M>::Init() {
             fc_vel_[c][1] += v[1];
           }
         }
+      } else if (vi == "rot") {
+        Vect xc(var.Vect["rot_c"]);
+        Scal om = var.Double["rot_om"];
+        for (auto c : m.AllCells()) {
+          Vect x = m.GetCenter(c);
+          Vect v(0);
+          v[0] = -(x[1] - xc[1]) * om * 0.5;
+          v[1] = (x[0] - xc[0]) * om * 0.5;
+          fc_vel_[c] = v;
+        }
       } else if (vi == "pois" || vi == "poisy") {
         // Poiseuille with walls in y
         
