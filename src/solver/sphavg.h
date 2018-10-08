@@ -30,7 +30,13 @@ class Sphavg {
     Vect v = Vect(0);  // velocity
     Vect dvt = Vect(0);  // dv/dt
     Vect dvx = Vect(0);  // dv/dx * v
+    Vect dvmat = Vect(0);  // dv/dt + dv/dx * v 
+    Vect dp = Vect(0);  // dp/dx
+    Scal vm = 0.; // velocity magnitude
     Scal p = 0.;
+    Scal r = 1.;
+    Scal rhm = 1.;
+    Scal rhp = 1.;
     Avg() = default;
     static std::vector<std::string> GetNames() {
       std::vector<std::string> r;
@@ -47,7 +53,13 @@ class Sphavg {
       av("v");
       av("dvt");
       av("dvx");
+      av("dvmat");
+      av("dp");
+      as("vm");
       as("p");
+      as("r");
+      as("rhm");
+      as("rhp");
       return r;
     }
     void App(Scal a, std::vector<Scal>& g) const {
@@ -65,7 +77,26 @@ class Sphavg {
       App(v, g);
       App(dvt, g);
       App(dvx, g);
+      App(dvmat, g);
+      App(dp, g);
+      App(vm, g);
       App(p, g);
+      return g;
+    }
+    std::vector<Scal> SerOut() const {
+      std::vector<Scal> g;
+      App(b, g);
+      App(x, g);
+      App(v, g);
+      App(dvt, g);
+      App(dvx, g);
+      App(dvmat, g);
+      App(dp, g);
+      App(vm, g);
+      App(p, g);
+      App(r, g);
+      App(rhm, g);
+      App(rhp, g);
       return g;
     }
     void Ext(Scal& a, const std::vector<Scal>& g, size_t& i) {
@@ -83,6 +114,9 @@ class Sphavg {
       Ext(v, g, i);
       Ext(dvt, g, i);
       Ext(dvx, g, i);
+      Ext(dvmat, g, i);
+      Ext(dp, g, i);
+      Ext(vm, g, i);
       Ext(p, g, i);
     }
   };
@@ -217,6 +251,27 @@ void Sphavg<M_>::Update(
 
     auto rm = GetBox();
 
+    // derivative in direction d at point w
+    auto sd = [&h,&bd](const FieldCell<Scal>& f, MIdx w, size_t d) {
+      MIdx wp = w;
+      ++wp[d];
+      MIdx wm = w;
+      --wm[d];
+      IdxCell cp = bd.GetIdx(wp);
+      IdxCell cm = bd.GetIdx(wm);
+      return (f[cp] - f[cm]) / (2. * h[d]);
+    };
+    // derivative of component p in direction d at point w
+    auto vd = [&h,&bd](const FieldCell<Vect>& f, size_t p, MIdx w, size_t d) {
+      MIdx wp = w;
+      ++wp[d];
+      MIdx wm = w;
+      --wm[d];
+      IdxCell cp = bd.GetIdx(wp);
+      IdxCell cm = bd.GetIdx(wm);
+      return (f[cp][p] - f[cm][p]) / (2. * h[d]);
+    };
+
     for (size_t i = 0; i < ss_.size(); ++i) {
       auto& s = ss_[i];
       auto& a = aa_[i];
@@ -232,12 +287,21 @@ void Sphavg<M_>::Update(
             Vect x(Vect(w) * h);
             Scal b = Kernel(x, st);
             IdxCell c = bd.GetIdx(wt);
+            auto v = fcv[c];
             a.b += b;
             a.x += x * b;
-            a.v += fcv[c] * b;
-            a.dvt += (fcv[c] - fcvm[c]) * (b / dt);
-            a.dvx += Vect(0) * b; // TODO: fill dvx
+            a.v += v * b;
+            a.dvt += (v - fcvm[c]) * (b / dt);
+
+            for (size_t p = 0; p < dim; ++p) {
+              for (size_t d = 0; d < dim; ++d) {
+                a.dvx[p] += vd(fcv, p, wt, d) * v[d] * b;
+              }
+              a.dp[p] = sd(fcp, wt, p) * b;
+            }
+            a.dvmat = a.dvt + a.dvx;
             a.p += fcp[c] * b;
+            a.vm += fcv[c].norm() * b;
           }
         }
       }
@@ -287,6 +351,14 @@ void Sphavg<M_>::Update(
     // deserialize
     for (size_t i = 0; i < ss_.size(); ++i) {
       aa_[i].Des(vv_[i]);
+    }
+    // append r
+    for (size_t i = 0; i < ss_.size(); ++i) {
+      auto& a = aa_[i];
+      auto& s = ss_[i];
+      a.r = s.r + 1.;
+      a.rhm = s.r - s.h;
+      a.rhp = s.r + s.h;
     }
   }
 }

@@ -238,6 +238,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::vector<std::vector<Scal>> clr_v_; // color reduce: vector
   std::vector<std::string> clr_nm_; // color reduce: variable name
   std::map<Scal, std::vector<Scal>> clmp_; // tmp map color to vector (only root)
+  FieldCell<Vect> fcvm_; // velocity field time_prev // TODO: revise
 
   using Sph = typename SA::Sph;
   std::vector<Sph> sa_ss_;
@@ -652,6 +653,8 @@ void Hydro<M>::Init() {
     {
       auto p = std::make_shared<typename FS::Par>();
       Update(p.get());
+
+      fcvm_ = fc_vel_;
 
       fs_.reset(new FS(
             m, fc_vel_, mf_velcond_, mc_velcond, 
@@ -1469,8 +1472,9 @@ void Hydro<M>::DumpTraj(bool dm) {
   if (sa_ && sem.Nested("sphavg-update")) {
     auto& vf = as_->GetField();
     auto& vel = fs_->GetVelocity();
+    auto& velm = fcvm_;
     auto& p = fs_->GetPressure();
-    sa_->Update(vf, vel, vel, st_.dt, p, sa_ss_);
+    sa_->Update(vf, vel, velm, st_.dt, p, sa_ss_);
   }
   if (sem("color-dump") && dm) {
     if (m.IsRoot()) {
@@ -1531,7 +1535,7 @@ void Hydro<M>::DumpTraj(bool dm) {
         }
         for (size_t i = 0; i < cl.size(); ++i) {
           o << cl[i];
-          for (auto& a : av[i].Ser()) {
+          for (auto& a : av[i].SerOut()) {
             o << "," << a;
           }
           o << "\n";
@@ -1605,6 +1609,7 @@ void Hydro<M>::Run() {
   if (sem("updatepar")) {
     Update(fs_->GetPar());
     UpdateAsPar();
+    fcvm_ = fs_->GetVelocity();
   }
   if (sem.Nested("mixture")) {
     CalcMixture(as_->GetField());
