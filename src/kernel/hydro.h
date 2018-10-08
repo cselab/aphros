@@ -64,7 +64,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
  private:
   void Init();
   void Dump(Sem& sem);
-  void DumpTraj(Sem& sem);
+  void DumpTraj(bool dm);
   void CalcMixture(const FieldCell<Scal>& vf);
   // Clips v to given range, uses const_cast
   void Clip(const FieldCell<Scal>& v, Scal min, Scal max);
@@ -238,6 +238,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::vector<std::vector<Scal>> clr_v_; // color reduce: vector
   std::vector<std::string> clr_nm_; // color reduce: variable name
   std::map<Scal, std::vector<Scal>> clmp_; // tmp map color to vector (only root)
+
+  using Sph = typename SA::Sph;
+  std::vector<Sph> sa_ss_;
 
   Scal nabort_; // number of abort requests, used by Reduce in checknan Run()
 
@@ -676,7 +679,7 @@ void Hydro<M>::Init() {
     }
 
     // Init sphavg
-    if (var.Int["enable_shell"] && as_) {
+    if (var.Int["enable_shell"] && tr_) {
       sa_.reset(new SA(m, var.Int["dim"]));
     }
 
@@ -1291,7 +1294,11 @@ void Hydro<M>::Dump(Sem& sem) {
     // TODO: revise
   }
   if (tr_) {
-    DumpTraj(sem);
+    if (sem.Nested("trajdump")) {
+      if (dmptraj_.Try(st_.t, st_.dt)) {
+        DumpTraj(1);
+      }
+    }
   }
   if (sem("dmptrep")) {
     if (m.IsRoot() && dmptrep_.Try(st_.t, st_.dt)) {
@@ -1305,320 +1312,84 @@ void Hydro<M>::Dump(Sem& sem) {
   }
 }
 
-/*
 template <class M>
-void Hydro<M>::DumpTraj0(Sem& sem) {
-  const size_t SHS = 9; // start of sh // TODO: adhoc, revise
+void Hydro<M>::DumpTraj(bool dm) {
+  auto sem = m.GetSem("dumptraj");
   if (sem("color-calc")) {
-    bool dm = dmptraj_.Try(st_.t, st_.dt);
-    if (dm) {
-      std::map<Scal, std::vector<Scal>> mp; // map color to vector
-      //Scal th = var.Double["color_th"]; // TODO: intergration in neighbours
-      Scal maxr = var.Double["color_maxr"]; // radius of integration sphere
-                                            // relative to equivalent radius
-      auto kNone = TR::kNone;
-      auto& cl = tr_->GetColor();
-      auto& im = tr_->GetImage();
-      auto& vf = as_->GetField();
-      auto& vel = fs_->GetVelocity();
-      auto& p = fs_->GetPressure();
-      MIdx gs = m.GetGlobalSize(); // global mesh size
-      Scal ext = var.Double["extent"]; // TODO: revise
-      Vect gh = Vect(gs) * ext / gs.max(); // global domain length
+    std::map<Scal, std::vector<Scal>> mp; // map color to vector
+    auto kNone = TR::kNone;
+    auto& cl = tr_->GetColor();
+    auto& im = tr_->GetImage();
+    auto& vf = as_->GetField();
+    auto& vel = fs_->GetVelocity();
+    auto& p = fs_->GetPressure();
+    Vect gh = m.GetGlobalLength(); // global domain length
 
-      const bool sh = var.Int["enable_shell"]; // enable shell averaging
-      const Scal shrr = var.Double["shell_rr"]; // shell inner radius relative 
-                                             // to equivalent radius
-      const Scal shr = var.Double["shell_r"]; // shell inner radius absolute
-      // shell total radius: rr * req + r
-      const Scal shh = var.Double["shell_h"]; // shell thickness relative to h
-      std::map<Scal, Sph> msp; // map color to sphere
-      for (size_t i = 0; i < clr_bcl_.size(); ++i) {
-        auto& s = clr_bsp_[i];
-        msp[clr_bcl_[i]] = Sph{Vect(s[0], s[1], s[2]), s[3]};
-      }
+    // add scalar name
+    auto nma = [this](const std::string nm) {
+      clr_nm_.push_back(nm);
+    };
+    // add vector name
+    auto nmav = [this](const std::string nm) {
+      clr_nm_.push_back(nm + "x");
+      clr_nm_.push_back(nm + "y");
+      clr_nm_.push_back(nm + "z");
+    };
 
-      // add scalar name
-      auto nma = [this](const std::string nm) {
-        clr_nm_.push_back(nm);
-      };
-      // add vector name
-      auto nmav = [this](const std::string nm) {
-        clr_nm_.push_back(nm + "x");
-        clr_nm_.push_back(nm + "y");
-        clr_nm_.push_back(nm + "z");
-      };
+    // XXX: adhoc, the following order assumed in post: vs,r,x,y,z,...
+    
+    // list of vars // TODO: revise
+    clr_nm_.clear();
+    nma("vf");
+    nma("r");
+    nmav("");
+    nmav("v");
+    nma("p");
 
-      // XXX: adhoc, the following order assumed in post: vs,r,x,y,z,...
-      
-      // list of vars // TODO: revise
-      clr_nm_.clear();
-      nma("vf");
-      nma("r");
-      nmav("");
-      nmav("v");
-      nma("p");
-      if (SHS != clr_nm_.size()) {
-        throw std::runtime_error("wrong SHS");
-      }
-      if (sh) { // keep consistent with SHS
-        nma("sv"); // shell volume
-        nmav("vs"); // velocity shell
-        nma("ps"); // pressure shell
-      }
+    // traverse cells, append to mp
+    for (auto c : m.Cells()) {
+      if (cl[c] != kNone) {
+        auto& v = mp[cl[c]]; // vector for data
+        auto x = m.GetCenter(c); // cell center
+        x += im[c] * gh;  // translation by image vector
 
-      // traverse cells, append to mp
-      const Vect h = GetCellSize();
-      for (auto c : m.Cells()) {
-        if (cl[c] != kNone) {
-          auto& v = mp[cl[c]]; // vector for data
-          Sph sp; // current sphere
-          if (msp.empty()) { // default to infinity
-            sp = Sph{Vect(0), std::numeric_limits<Scal>::max()};
-          } else { 
-            sp = msp.find(cl[c])->second;
-            // TODO: consider case of new color added
+        auto w = vf[c] * m.GetVolume(c); // volume
+
+        size_t i = 0;
+        // append scalar value
+        auto add = [&v,&i,this](Scal a) {
+          if (i >= v.size()) {
+            v.resize(i + 1);
           }
+          v[i] += a;
+          ++i;
+        };
+        // append vector value 
+        auto addv = [&](Vect a) {
+          add(a[0]);
+          add(a[1]);
+          add(a[2]);
+        };
 
-          auto x = m.GetCenter(c); // cell center
-          x += im[c] * gh;  // translation by image vector
-
-          auto w = (x.sqrdist(sp.x) < sqr(sp.r * maxr) ? 
-                    vf[c] * m.GetVolume(c) : 0); // volume
-
-          size_t i = 0;
-          // append scalar value
-          auto add = [&v,&i,this,&sp](Scal a) {
-            if (i >= v.size()) {
-              v.resize(i + 1);
-            }
-            v[i] += a;
-            ++i;
-          };
-          // append vector value 
-          auto addv = [&](Vect a) {
-            add(a[0]);
-            add(a[1]);
-            add(a[2]);
-          };
-
-          // list of vars, XXX: keep consistent with clr_nm_ 
-          add(w); // vf,  XXX: adhoc, vf must be first, divided on dump
-          add(0.); // r,  XXX: adhoc, r must be second, computed on dump
-          addv(x * w); // x
-          addv(vel[c] * w); // v
-          add(p[c] * w); // p
-
-          // shell
-          if (sh) {
-            Scal r0 = shrr * sp.r + shr; // shell inner radius
-            // TODO: revise for non-cubic cells
-            Scal h0 = shh * h[0];  // shell thickness
-            Scal rsq = x.sqrdist(sp.x);
-
-            Scal sw(0); // weight
-            if (rsq >= sqr(r0) && rsq <= sqr(r0 + h0)) {
-              sw = m.GetVolume(c);
-            }
-            add(sw); // volume
-            addv(vel[c] * sw); // velocity
-            add(p[c] * sw); // pressure
-          }
-        }
+        // list of vars, XXX: keep consistent with clr_nm_ 
+        add(w); // vf,  XXX: adhoc, vf must be first, divided on dump
+        add(0.); // r,  XXX: adhoc, r must be second, computed on dump
+        addv(x * w); // x
+        addv(vel[c] * w); // v
+        add(p[c] * w); // p
       }
-      // copy to vector
-      clr_cl_.clear();
-      clr_v_.clear();
-      for (auto it : mp) {
-        clr_cl_.push_back(it.first); // color
-        clr_v_.push_back(it.second); // vector
-      }
-      using TS = typename M::template OpCatT<Scal>; 
-      using TVS = typename M::template OpCatVT<Scal>; 
-      m.Reduce(std::make_shared<TS>(&clr_cl_));
-      m.Reduce(std::make_shared<TVS>(&clr_v_));
     }
-  }
-  if (sem("color-post")) {
-    if (m.IsRoot()) {
-      // root has concatenation of all clr_cl_ and clr_v_
-      if (clr_cl_.size() != clr_v_.size()) {
-        throw std::runtime_error(
-            "color-reduce: clr_cl_.size() != clr_v_.size()");
-      }
-
-      auto& mp = clmp_; // map color to vector
-      mp.clear();
-      // reduce to map
-      for (size_t k = 0; k < clr_cl_.size(); ++k) {
-        auto cl = clr_cl_[k];
-        auto& v = clr_v_[k];
-        auto& vm = mp[cl];
-        vm.resize(v.size(), 0.);
-        for (size_t i = 0; i < v.size(); ++i) {
-          vm[i] += v[i];
-        }
-      }
-
-      // divide by vf
-      for (auto& it : mp) {
-        auto& v = it.second;
-        Scal vf = v[0]; // XXX: assume vf is first
-        Scal& r = v[1]; // XXX: assume r is second
-        Scal pi = M_PI;
-        r = std::pow(3. / (4. * pi) * vf, 1. / 3.) ; 
-        // divide remaining by vf
-        for (size_t i = 2; i < SHS; ++i) {
-          v[i] /= vf;
-        }
-      }
-
-      const bool sh = var.Int["enable_shell"]; // enable shell averaging
-      if (sh) {
-        // divide by sv
-        for (auto& it : mp) {
-          auto& v = it.second;
-          Scal sv = v[SHS]; // XXX: assume vf is first
-          // divide remaining by sv
-          for (size_t i = SHS + 1; i < v.size(); ++i) {
-            v[i] /= sv;
-          }
-        }
-      }
-
-      // copy to bcast spheres
-      clr_bcl_.clear();
-      clr_bsp_.clear();
-      for (auto it : mp) {
-        clr_bcl_.push_back(it.first); // color
-        auto& s = it.second;
-        clr_bsp_.push_back(std::vector<Scal>{s[2], s[3], s[4], s[1]}); 
-      }
+    // copy to vector
+    clr_cl_.clear();
+    clr_v_.clear();
+    for (auto it : mp) {
+      clr_cl_.push_back(it.first); // color
+      clr_v_.push_back(it.second); // vector
     }
     using TS = typename M::template OpCatT<Scal>; 
     using TVS = typename M::template OpCatVT<Scal>; 
-    m.Bcast(std::make_shared<TS>(&clr_bcl_));
-    m.Bcast(std::make_shared<TVS>(&clr_bsp_));
-  }
-  if (sem("color-dump")) {
-    bool dm = dmptraj_.Try(st_.t, st_.dt);
-    if (dm) {
-      if (m.IsRoot()) {
-        auto& mp = clmp_; // map color to vector
-
-        std::string s = GetDumpName("traj", ".csv", dmptraj_.GetN());
-        std::cout << std::fixed << std::setprecision(8)
-            << "dump" 
-            << " t=" << st_.t
-            << " to " << s << std::endl;
-        std::ofstream o;
-        o.open(s);
-        o.precision(20);
-        // header
-        {
-          o << "cl";
-          auto& nm = clr_nm_;
-          for (size_t i = 0; i < nm.size(); ++i) {
-            o << "," << nm[i];
-          }
-          o << std::endl;
-        }
-        // content
-        for (auto it : mp) {
-          auto cl = it.first;
-          auto& v = it.second;
-          o << cl;
-          for (size_t i = 0; i < v.size(); ++i) {
-            o << "," << v[i];
-          }
-          o << "\n";
-        }
-      }
-    }
-  }
-}
-*/
-
-template <class M>
-void Hydro<M>::DumpTraj(Sem& sem) {
-  if (sem("color-calc")) {
-    bool dm = dmptraj_.Try(st_.t, st_.dt);
-    if (dm) {
-      std::map<Scal, std::vector<Scal>> mp; // map color to vector
-      auto kNone = TR::kNone;
-      auto& cl = tr_->GetColor();
-      auto& im = tr_->GetImage();
-      auto& vf = as_->GetField();
-      auto& vel = fs_->GetVelocity();
-      auto& p = fs_->GetPressure();
-      Vect gh = m.GetGlobalLength(); // global domain length
-
-      // add scalar name
-      auto nma = [this](const std::string nm) {
-        clr_nm_.push_back(nm);
-      };
-      // add vector name
-      auto nmav = [this](const std::string nm) {
-        clr_nm_.push_back(nm + "x");
-        clr_nm_.push_back(nm + "y");
-        clr_nm_.push_back(nm + "z");
-      };
-
-      // XXX: adhoc, the following order assumed in post: vs,r,x,y,z,...
-      
-      // list of vars // TODO: revise
-      clr_nm_.clear();
-      nma("vf");
-      nma("r");
-      nmav("");
-      nmav("v");
-      nma("p");
-
-      // traverse cells, append to mp
-      for (auto c : m.Cells()) {
-        if (cl[c] != kNone) {
-          auto& v = mp[cl[c]]; // vector for data
-          auto x = m.GetCenter(c); // cell center
-          x += im[c] * gh;  // translation by image vector
-
-          auto w = vf[c] * m.GetVolume(c); // volume
-
-          size_t i = 0;
-          // append scalar value
-          auto add = [&v,&i,this](Scal a) {
-            if (i >= v.size()) {
-              v.resize(i + 1);
-            }
-            v[i] += a;
-            ++i;
-          };
-          // append vector value 
-          auto addv = [&](Vect a) {
-            add(a[0]);
-            add(a[1]);
-            add(a[2]);
-          };
-
-          // list of vars, XXX: keep consistent with clr_nm_ 
-          add(w); // vf,  XXX: adhoc, vf must be first, divided on dump
-          add(0.); // r,  XXX: adhoc, r must be second, computed on dump
-          addv(x * w); // x
-          addv(vel[c] * w); // v
-          add(p[c] * w); // p
-        }
-      }
-      // copy to vector
-      clr_cl_.clear();
-      clr_v_.clear();
-      for (auto it : mp) {
-        clr_cl_.push_back(it.first); // color
-        clr_v_.push_back(it.second); // vector
-      }
-      using TS = typename M::template OpCatT<Scal>; 
-      using TVS = typename M::template OpCatVT<Scal>; 
-      m.Reduce(std::make_shared<TS>(&clr_cl_));
-      m.Reduce(std::make_shared<TVS>(&clr_v_));
-    }
+    m.Reduce(std::make_shared<TS>(&clr_cl_));
+    m.Reduce(std::make_shared<TVS>(&clr_v_));
   }
   if (sem("color-post")) {
     if (m.IsRoot()) {
@@ -1667,11 +1438,63 @@ void Hydro<M>::DumpTraj(Sem& sem) {
     m.Bcast(std::make_shared<TS>(&clr_cl_));
     m.Bcast(std::make_shared<TVS>(&clr_v_));
   }
-  if (sem("color-dump")) {
-    bool dm = dmptraj_.Try(st_.t, st_.dt);
-    if (dm) {
+  if (sa_ && sem("sphavg-sph")) {
+    const Scal shrr = var.Double["shell_rr"]; // shell inner radius relative 
+                                              // to equivalent radius
+    const Scal shr = var.Double["shell_r"]; // shell inner radius absolute
+    // shell total radius: rr * req + r
+    const Scal shh = var.Double["shell_h"]; // shell thickness relative to h
+    auto h = m.GetCellSize();
+
+    auto& ss = sa_ss_;
+    ss.clear();
+    for (size_t i = 0; i < clr_v_.size(); ++i) {
+      auto& s = clr_v_[i];
+      // XXX: adhoc, assume vf,r,x,y,z in clr_v_
+      Vect x(s[2], s[3], s[4]);
+      Scal r = s[1] * shrr + shr;
+      ss.emplace_back(x, r, h[0] * shh);
+    }
+  }
+  if (sa_ && sem.Nested("sphavg-update")) {
+    auto& vf = as_->GetField();
+    auto& vel = fs_->GetVelocity();
+    auto& p = fs_->GetPressure();
+    sa_->Update(vf, vel, vel, st_.dt, p, sa_ss_);
+  }
+  if (sem("color-dump") && dm) {
+    if (m.IsRoot()) {
+      std::string s = GetDumpName("traj", ".csv", dmptraj_.GetN());
+      std::cout << std::fixed << std::setprecision(8)
+          << "dump" 
+          << " t=" << st_.t
+          << " to " << s << std::endl;
+      std::ofstream o;
+      o.open(s);
+      o.precision(20);
+      // header
+      {
+        o << "cl";
+        auto& nm = clr_nm_;
+        for (size_t i = 0; i < nm.size(); ++i) {
+          o << "," << nm[i];
+        }
+        o << std::endl;
+      }
+      // content
+      for (size_t i = 0; i < clr_cl_.size(); ++i) {
+        auto cl = clr_cl_[i];
+        auto& v = clr_v_[i];
+        o << cl;
+        for (size_t j = 0; j < v.size(); ++j) {
+          o << "," << v[j];
+        }
+        o << "\n";
+      }
+    }
+    if (sa_) {
       if (m.IsRoot()) {
-        std::string s = GetDumpName("traj", ".csv", dmptraj_.GetN());
+        std::string s = GetDumpName("trajsh", ".csv", dmptraj_.GetN());
         std::cout << std::fixed << std::setprecision(8)
             << "dump" 
             << " t=" << st_.t
@@ -1681,50 +1504,29 @@ void Hydro<M>::DumpTraj(Sem& sem) {
         o.precision(20);
         // header
         {
+          auto nn = sa_->GetNames();
           o << "cl";
-          auto& nm = clr_nm_;
-          for (size_t i = 0; i < nm.size(); ++i) {
-            o << "," << nm[i];
+          for (auto n : nn) {
+            o << "," << n;
           }
           o << std::endl;
         }
         // content
-        for (size_t i = 0; i < clr_cl_.size(); ++i) {
-          auto cl = clr_cl_[i];
-          auto& v = clr_v_[i];
-          o << cl;
-          for (size_t j = 0; j < v.size(); ++j) {
-            o << "," << v[j];
+        auto cl = clr_cl_;
+        auto av = sa_->GetAvg();
+        if (cl.size() != av.size()) {
+          throw std::runtime_error(
+              "trajsh: cl.size()=" + std::to_string(cl.size()) +
+              " != av.size()=" + std::to_string(av.size()));
+        }
+        for (size_t i = 0; i < cl.size(); ++i) {
+          o << cl[i];
+          for (auto& a : av[i].Ser()) {
+            o << "," << a;
           }
           o << "\n";
         }
       }
-    }
-  }
-  if (sa_) {
-    if (sem("sphavg-update")) {
-      const Scal shrr = var.Double["shell_rr"]; // shell inner radius relative 
-                                                // to equivalent radius
-      const Scal shr = var.Double["shell_r"]; // shell inner radius absolute
-      // shell total radius: rr * req + r
-      const Scal shh = var.Double["shell_h"]; // shell thickness relative to h
-      auto h = m.GetCellSize();
-
-      using Sph = typename SA::Sph;
-      std::vector<Sph> ss;
-
-      for (size_t i = 0; i < clr_v_.size(); ++i) {
-        auto& s = clr_v_[i];
-        // XXX: adhoc, assume vf,r,x,y,z in clr_v_
-        Vect x(s[2], s[3], s[4]);
-        Scal r = s[1] * shrr + shr;
-        ss.emplace_back(x, r, h[0] * shh);
-      }
-
-      auto& vf = as_->GetField();
-      auto& vel = fs_->GetVelocity();
-      auto& p = fs_->GetPressure();
-      sa_->Update(vf, vel, vel, st_.dt, p, ss);
     }
   }
 }
