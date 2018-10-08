@@ -32,6 +32,24 @@ class Sphavg {
     Vect dvx = Vect(0);  // dv/dx * v
     Scal p = 0.;
     Avg() = default;
+    static std::vector<std::string> GetNames() {
+      std::vector<std::string> r;
+      auto as = [&r](std::string n) {
+        r.push_back(n);
+      };
+      auto av = [&as](std::string n) {
+        as(n + "x");
+        as(n + "y");
+        as(n + "z");
+      };
+      as("b");
+      av("");
+      av("v");
+      av("dvt");
+      av("dvx");
+      as("p");
+      return r;
+    }
     void App(Scal a, std::vector<Scal>& g) const {
       g.push_back(a);
     }
@@ -89,6 +107,9 @@ class Sphavg {
   const std::vector<Avg>& GetAvg() const {
     return aa_;
   }
+  const std::vector<std::string> GetNames() const {
+    return Avg::GetNames();
+  }
 
  public:
   M& m;
@@ -130,7 +151,10 @@ class Sphavg {
   Rect<MIdx> GetBox(const Sph& s) const {
     auto h = m.GetCellSize();
     MIdx wr(Vect(s.r + s.h) / h + Vect(1.));
-    MIdx wx((GetStd(s.x)) / h + Vect(0.5));
+    for (size_t d = 0; d < dim; ++d) {
+      wr[d] = std::min(wr[d], m.GetGlobalSize()[d]);
+    }
+    MIdx wx(GetStd(s.x) / h + Vect(0.5));
     if (edim_ < 3) {
       wr[2] = 0;
       wx[2] = 0;
@@ -216,7 +240,6 @@ void Sphavg<M_>::Update(
             a.p += fcp[c] * b;
           }
         }
-        std::cout << std::endl;
       }
     }
 
@@ -225,18 +248,22 @@ void Sphavg<M_>::Update(
     for (size_t i = 0; i < ss_.size(); ++i) {
       vv_.push_back(aa_[i].Ser());
     }
+
     using TVS = typename M::template OpCatVT<Scal>; 
     m.Reduce(std::make_shared<TVS>(&vv_));
   }
   if (sem("reduce")) {
     // root has concatenation of all vv_
     if (m.IsRoot()) {
+      auto& v0 = vv_[0];
       for (size_t i = 1; i < vv_.size(); ++i) {
-        auto& v0 = vv_[0];
         assert(vv_[i].size() == v0.size());
         for (size_t j = 0; j < v0.size(); ++j) {
           v0[j] += vv_[i][j];
         }
+      }
+      for (size_t j = 1; j < v0.size(); ++j) {
+        v0[j] /= v0[0];
       }
       vv_.resize(1);
     }
@@ -244,7 +271,10 @@ void Sphavg<M_>::Update(
     m.Bcast(std::make_shared<TVS>(&vv_));
   }
   if (sem("bcast")) {
-    assert(vv_.size() == 1);
+    if (vv_.size() != 1) {
+      throw std::runtime_error(
+          "bcast: vv_.size()=" + std::to_string(vv_.size()) + " != 1");
+    }
     // deserialize
     for (size_t i = 0; i < ss_.size(); ++i) {
       aa_[i].Des(vv_[0]);
