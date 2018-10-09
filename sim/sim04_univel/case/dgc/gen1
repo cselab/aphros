@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -eu
+
+np=512
+nx=128
+r=0.01
+
+echo $np > np
+echo 1440 > tl
+
+./gen -nx $nx -np $np -mode osc -dim 3 -pos center\
+  -We 0 -La 12000 -tmax 3 -br 0.15\
+  -mu $r -rho $r -wally 1 -wallz 0\
+  -bcod 0 -0.5 0 -bcor 0 1 0 -bcoh 0 0 0 \
+   -b2xr 2 0 0 -b2rr 1 \
+   -nb 2 -nfr 930
+
+
+cat > ch/add.conf << EOF
+set string dumpformat default
+#set string dumplist vf 
+EOF
