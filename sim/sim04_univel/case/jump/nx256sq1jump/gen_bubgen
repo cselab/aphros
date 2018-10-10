@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -eu
+
+r=0.01
+nx=256
+np=512
+
+echo $np > np
+echo 1440 > tl
+
+
+./gen -nx $nx -np $np -mode pois -dim 3 -pos center\
+   -Ca 0.008 -Reh 500 -bryk 1. -tmax 5 -br 0.093\
+   -mu $r -rho $r -pois 1 -wally 1 -wallz 1\
+   -bcod -0.5 0.5 0 -bcor 4 -1.3 0 -nfr 400 \
+   -b2xr 2.15 0.2 0 -b2rr 0.71 \
+   -nb 2 -symm 1
+
+cat > b.dat << EOF
+0.3 0.092 0.092 0.092
+0.45 0.071 0.071 0.071
+EOF
+
+cat > ch/add.conf << EOF
+set string dumpformat default
+set double dump_field_t0 1e10
+EOF
