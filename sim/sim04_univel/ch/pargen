@@ -12,9 +12,12 @@ c['loc'] = 1 if c["np"] == 1 else 0
 c['mu2'] = c['mu0'] * c['mu']
 c['rho2'] = c['rho0'] * c['rho']
 
+c['trepdt'] = c['dumpdt'] * 10
+
 t = '''set double tmax {tmax}
 set double dump_field_dt {dumpdt}
 set double dump_part_dt {dumpdt}
+set double dump_trep_dt {trepdt}
 set double sigma {sig}
 set double mu1 {mu0}
 set double mu2 {mu2}
