@@ -80,6 +80,7 @@ class NoSlipWallFixed : public NoSlipWall<M> {
   using Vect = typename M::Vect;
   NoSlipWallFixed(Vect v, size_t nci) : NoSlipWall<M>(nci), v_(v) {}
   Vect GetVelocity() const override { return v_; }
+  void SetVelocity(const Vect& v) { v_ = v; }
 
  private:
   Vect v_;

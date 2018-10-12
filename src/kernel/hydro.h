@@ -853,6 +853,27 @@ void Hydro<M>::CalcStat() {
       st_.meshpos += st_.meshvel * st_.dt;
     }
   }
+
+  if (sem("vfslip")) {
+    auto kslip = var.Double["kslip"];
+    if (kslip != 0) {
+      // XXX: adhoc, overwrite wall conditions
+      auto& fa = as_->GetField();
+      auto& fv = fs_->GetVelocity();
+      for (auto it : mf_velcond_) {
+        IdxFace f = it.GetIdx();
+        solver::CondFaceFluid* cb = it.GetValue().get();
+        if (auto cd = dynamic_cast<solver::fluid_condition::
+            NoSlipWallFixed<M>*>(cb)) {
+          size_t nci = cd->GetNci();
+          Vect n = m.GetNormal(f);
+          IdxCell c = m.GetNeighbourCell(f, nci);
+          auto v = fv[c];
+          cd->SetVelocity((v - n * n.dot(v)) * fa[c] * kslip);
+        } 
+      }
+    }
+  }
 }
 
 template <class M>
@@ -1272,6 +1293,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
     }
+
   }
 }
 

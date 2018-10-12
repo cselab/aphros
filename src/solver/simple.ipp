@@ -182,6 +182,30 @@ struct Simple<M_>::Imp {
       }
     }
   }
+  /*
+  // XXX adhoc, TODO: revise
+  void UpdateWall() {
+    using namespace fluid_condition;
+
+    auto& vel = GetVelocity(Layers::iter_curr);
+    auto sem = m.GetSem("");
+    if (sem("")) {
+      for (size_t id = 0; id < nid; ++id) {
+        for (auto it : mfc_) {
+          IdxFace i = it.GetIdx();
+          CondFaceFluid* cb = it.GetValue().get(); // cond base
+
+          if (auto cd = dynamic_cast<NoSlipWall<M>*>(cb)) {
+            size_t nci = cd->GetNci();
+            Scal w = (nci == 0 ? -1. : 1.);
+            Vect n = m.GetNormal(i);
+            cd->SetVelocity(cd->GetVelocity() + n * (dv * w));
+          }
+        }
+      }
+    }
+  }
+  */
   // TODO: consider updating from predictor velocity
   void UpdateInletFlux() {
     using namespace fluid_condition;
