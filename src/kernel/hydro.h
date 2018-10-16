@@ -585,9 +585,15 @@ void Hydro<M>::Init() {
           Vect a(var.Vect[k + "_a"]);
           Vect b(var.Vect[k + "_b"]);
           Scal vf = var.Double[k + "_vf"];
+          Scal rlim = std::numeric_limits<Scal>::max();
+          if (Scal* prlim = var.Double(k + "_r")) {
+            rlim = *prlim;
+          }
+          Vect xc = (a + b) * 0.5;
           Rect<Vect> r(a, b);
           for (auto i : m.AllFaces()) {
-            if (r.IsInside(m.GetCenter(i))) {
+            Vect x = m.GetCenter(i);
+            if (r.IsInside(x) && xc.dist(x) < rlim) {
               if (set_bc(i, *p)) {
                 auto b = mf_velcond_[i];
                 mf_cond_[i] = std::make_shared
