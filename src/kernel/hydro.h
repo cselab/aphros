@@ -585,21 +585,62 @@ void Hydro<M>::Init() {
           Vect a(var.Vect[k + "_a"]);
           Vect b(var.Vect[k + "_b"]);
           Scal vf = var.Double[k + "_vf"];
-          Scal rlim = std::numeric_limits<Scal>::max();
-          if (Scal* prlim = var.Double(k + "_r")) {
-            rlim = *prlim;
-          }
-          Vect xc = (a + b) * 0.5;
           Rect<Vect> r(a, b);
           for (auto i : m.AllFaces()) {
             Vect x = m.GetCenter(i);
-            if (r.IsInside(x) && xc.dist(x) < rlim) {
+            if (r.IsInside(x)) {
               if (set_bc(i, *p)) {
                 auto b = mf_velcond_[i];
                 mf_cond_[i] = std::make_shared
                     <solver::CondFaceValFixed<Scal>>(vf, b->GetNci());
               }
             }
+          }
+        } else if (n > nmax) { 
+          break;
+        }
+        ++n;
+      }
+    }
+    // selection spheres
+    // Parameters (N>=0):
+    // string sphN -- bc description ("inlet")
+    // vect sphN_c -- center
+    // double sphN_r0 -- radius inner
+    // double sphN_r1 -- radius outer
+    // double sphN_vf -- inlet volume fraction
+    // vect sphN_vel -- velocity
+    // Check at least first nmax indices and all contiguous
+    {
+      int n = 0;
+      const int nmax = 100;
+      while (true) {
+        std::string k = "sph" + std::to_string(n);
+        if (auto p = var.String(k)) {
+          if (*p == "inlet") {
+            Vect xc(var.Vect[k + "_c"]);
+            Scal r0 = var.Double[k + "_r0"];
+            Scal r1 = var.Double[k + "_r1"];
+            Scal vf = var.Double[k + "_vf"];
+            Vect vel(var.Vect[k + "_vel"]);
+            for (auto i : m.AllFaces()) {
+              Vect x = m.GetCenter(i);
+              if (xc.dist(x) < r1) {
+                Scal r = xc.dist(x);
+                Vect v = vel * std::min(1., (r1 - r) / (r1 - r0));
+                std::string a = "inlet";
+                a += " " + std::to_string(v[0]);
+                a += " " + std::to_string(v[1]);
+                a += " " + std::to_string(v[2]);
+                if (set_bc(i, a)) {
+                  auto b = mf_velcond_[i];
+                  mf_cond_[i] = std::make_shared
+                      <solver::CondFaceValFixed<Scal>>(vf, b->GetNci());
+                }
+              }
+            }
+          } else {
+            throw std::runtime_error("unknown selection sphere cond: " + *p);
           }
         } else if (n > nmax) { 
           break;
