@@ -256,13 +256,12 @@ SetActiveSource(clpnt)
 #####################################################
 
 for i in list(range(len(ss))):
-    SetTime(i)
-
     fn = bo.format("{:04d}".format(ss[i]))
-
     if os.path.isfile(fn):
         Log("skip existing {:}".format(fn))
         continue
+
+    SetTime(i)
 
     Log("{:}/{:}: {:}".format(i + 1, len(ss), fn))
     SaveScreenshot(fn, renderView1, ImageResolution=[700,1400])

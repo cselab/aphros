@@ -173,12 +173,57 @@ confvf.Isosurfaces = [0.5]
 confvf.PointMergeMethod = 'Uniform Binning'
 
 
+# show data from confvf
+confvfDisplay = Show(confvf, renderView1)
+
+# trace defaults for the display properties.
+confvfDisplay.Representation = 'Surface'
+confvfDisplay.ColorArrayName = [None, '']
+confvfDisplay.LineWidth = 3.0
+confvfDisplay.OSPRayScaleArray = 'Normals'
+confvfDisplay.OSPRayScaleFunction = 'PiecewiseFunction'
+confvfDisplay.SelectOrientationVectors = 'None'
+confvfDisplay.ScaleFactor = 0.1
+confvfDisplay.SelectScaleArray = 'None'
+confvfDisplay.GlyphType = 'Arrow'
+confvfDisplay.GlyphTableIndexArray = 'None'
+confvfDisplay.GaussianRadius = 0.005
+confvfDisplay.SetScaleArray = ['POINTS', 'Normals']
+confvfDisplay.ScaleTransferFunction = 'PiecewiseFunction'
+confvfDisplay.OpacityArray = ['POINTS', 'Normals']
+confvfDisplay.OpacityTransferFunction = 'PiecewiseFunction'
+confvfDisplay.DataAxesGrid = 'GridAxesRepresentation'
+confvfDisplay.SelectionCellLabelFontFile = ''
+confvfDisplay.SelectionPointLabelFontFile = ''
+confvfDisplay.PolarAxes = 'PolarAxesRepresentation'
+
+# init the 'PiecewiseFunction' selected for 'ScaleTransferFunction'
+confvfDisplay.ScaleTransferFunction.Points = [-0.9999856352806091, 0.0, 0.5, 0.0, 0.9999890923500061, 1.0, 0.5, 0.0]
+
+# init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
+confvfDisplay.OpacityTransferFunction.Points = [-0.9999856352806091, 0.0, 0.5, 0.0, 0.9999890923500061, 1.0, 0.5, 0.0]
+
+# init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
+confvfDisplay.DataAxesGrid.XTitleFontFile = ''
+confvfDisplay.DataAxesGrid.YTitleFontFile = ''
+confvfDisplay.DataAxesGrid.ZTitleFontFile = ''
+confvfDisplay.DataAxesGrid.XLabelFontFile = ''
+confvfDisplay.DataAxesGrid.YLabelFontFile = ''
+confvfDisplay.DataAxesGrid.ZLabelFontFile = ''
+
+# init the 'PolarAxesRepresentation' selected for 'PolarAxes'
+confvfDisplay.PolarAxes.PolarAxisTitleFontFile = ''
+confvfDisplay.PolarAxes.PolarAxisLabelFontFile = ''
+confvfDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
+confvfDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
+
+
 # create a new 'Append Attributes'
 appnd = AppendAttributes(Input=[vf, vx, vy, vz])
 
 # create a new 'Resample To Image'
 rsmp = ResampleToImage(Input=appnd)
-rsmp.SamplingDimensions = [128, 384, 128]
+rsmp.SamplingDimensions = [129, 385, 129]
 rsmp.SamplingBounds = [0.0, 1.0, 0.0, 3.0, 0.0, 1.0]
 
 # create a new 'Calculator'
@@ -259,12 +304,12 @@ if not vort:
 # get color transfer function/color map for 'omm'
 ommLUT = GetColorTransferFunction('omm')
 ommLUT.AutomaticRescaleRangeMode = 'Never'
-ommLUT.RGBPoints = [1.0, 0.231373, 0.298039, 0.752941, 3.0, 0.865003, 0.865003, 0.865003, 5.0, 0.705882, 0.0156863, 0.14902]
+ommLUT.RGBPoints = [3.0, 0.231373, 0.298039, 0.752941, 11.5, 0.865003, 0.865003, 0.865003, 20.0, 0.705882, 0.0156863, 0.14902]
 ommLUT.ScalarRangeInitialized = 1.0
 
 # get opacity transfer function/opacity map for 'omm'
 ommPWF = GetOpacityTransferFunction('omm')
-ommPWF.Points = [1.0, 0.0, 0.5, 0.0, 5.0, 1.0, 0.5, 0.0]
+ommPWF.Points = [3.0, 0.0, 0.5, 0.0, 20.0, 0.3, 0.5, 0.0]
 ommPWF.ScalarRangeInitialized = 1
 
 # trace defaults for the display properties.
@@ -327,13 +372,12 @@ SetActiveSource(calcomm)
 #####################################################
 
 for i in list(range(len(ss))):
-    SetTime(i)
-
     fn = bo.format("{:04d}".format(ss[i]))
-
     if os.path.isfile(fn):
         Log("skip existing {:}".format(fn))
         continue
+
+    SetTime(i)
 
     Log("{:}/{:}: {:}".format(i + 1, len(ss), fn))
     SaveScreenshot(fn, renderView1, ImageResolution=[700,1400])
