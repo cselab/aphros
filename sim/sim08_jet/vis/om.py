@@ -164,6 +164,15 @@ vft = [vf, vx, vy, vz]
 # END READERS
 # ----------------------------------------------------------------
 
+clpnt = CellDatatoPointData(Input=vf)
+
+# create a new 'Contour'
+confvf = Contour(Input=clpnt)
+confvf.ContourBy = ['POINTS', 'vf']
+confvf.Isosurfaces = [0.5]
+confvf.PointMergeMethod = 'Uniform Binning'
+
+
 # create a new 'Append Attributes'
 appnd = AppendAttributes(Input=[vf, vx, vy, vz])
 
@@ -185,11 +194,10 @@ om.ComputeGradient = 0
 om.ComputeVorticity = 1
 om.VorticityArrayName = 'om'
 
-# create a new 'Contour'
-contvf = Contour(Input=rsmp)
-contvf.ContourBy = ['POINTS', 'vf']
-contvf.Isosurfaces = [0.5]
-contvf.PointMergeMethod = 'Uniform Binning'
+# create a new 'Calculator'
+calcomm = Calculator(Input=om)
+calcomm.ResultArrayName = 'omm'
+calcomm.Function = 'mag(om)'
 
 # ----------------------------------------------------------------
 # setup the visualization in view 'renderView1'
@@ -242,115 +250,67 @@ appndDisplay.PolarAxes.PolarAxisLabelFontFile = ''
 appndDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
 appndDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
 
-# show data from om
-omDisplay = Show(om, renderView1)
+# show data from calcomm
+calcommDisplay = Show(calcomm, renderView1)
 
 if not vort:
-    Hide(om, renderView1)
+    Hide(calcoom, renderView1)
 
-# get color transfer function/color map for 'om'
-omLUT = GetColorTransferFunction('om')
-omLUT.AutomaticRescaleRangeMode = 'Never'
-omLUT.RGBPoints = [1.0, 0.231373, 0.298039, 0.752941, 3.0000000000000004, 0.865003, 0.865003, 0.865003, 5.0, 0.705882, 0.0156863, 0.14902]
-omLUT.ScalarRangeInitialized = 1.0
+# get color transfer function/color map for 'omm'
+ommLUT = GetColorTransferFunction('omm')
+ommLUT.AutomaticRescaleRangeMode = 'Never'
+ommLUT.RGBPoints = [1.0, 0.231373, 0.298039, 0.752941, 3.0, 0.865003, 0.865003, 0.865003, 5.0, 0.705882, 0.0156863, 0.14902]
+ommLUT.ScalarRangeInitialized = 1.0
 
-# get opacity transfer function/opacity map for 'om'
-omPWF = GetOpacityTransferFunction('om')
-omPWF.Points = [1.0, 0.0, 0.5, 0.0, 5.0, 0.5, 0.5, 0.0]
-omPWF.ScalarRangeInitialized = 1
-
-# trace defaults for the display properties.
-omDisplay.Representation = 'Volume'
-omDisplay.ColorArrayName = ['POINTS', 'om']
-omDisplay.LookupTable = omLUT
-omDisplay.OSPRayScaleArray = 'om'
-omDisplay.OSPRayScaleFunction = 'PiecewiseFunction'
-omDisplay.SelectOrientationVectors = 'vel'
-omDisplay.ScaleFactor = 0.3
-omDisplay.SelectScaleArray = 'None'
-omDisplay.GlyphType = 'Arrow'
-omDisplay.GlyphTableIndexArray = 'None'
-omDisplay.GaussianRadius = 0.014999999999999998
-omDisplay.SetScaleArray = ['POINTS', 'om']
-omDisplay.ScaleTransferFunction = 'PiecewiseFunction'
-omDisplay.OpacityArray = ['POINTS', 'om']
-omDisplay.OpacityTransferFunction = 'PiecewiseFunction'
-omDisplay.DataAxesGrid = 'GridAxesRepresentation'
-omDisplay.SelectionCellLabelFontFile = ''
-omDisplay.SelectionPointLabelFontFile = ''
-omDisplay.PolarAxes = 'PolarAxesRepresentation'
-omDisplay.ScalarOpacityUnitDistance = 0.018075664448680195
-omDisplay.ScalarOpacityFunction = omPWF
-omDisplay.Slice = 63
-
-# init the 'PiecewiseFunction' selected for 'OSPRayScaleFunction'
-omDisplay.OSPRayScaleFunction.Points = [0.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
-
-# init the 'PiecewiseFunction' selected for 'ScaleTransferFunction'
-omDisplay.ScaleTransferFunction.Points = [-55.27084924984225, 1.0, 0.5, 0.0, 64.58503003187894, 1.0, 0.5, 0.0]
-
-# init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
-omDisplay.OpacityTransferFunction.Points = [-55.27084924984225, 1.0, 0.5, 0.0, 64.58503003187894, 1.0, 0.5, 0.0]
-
-# init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
-omDisplay.DataAxesGrid.XTitleFontFile = ''
-omDisplay.DataAxesGrid.YTitleFontFile = ''
-omDisplay.DataAxesGrid.ZTitleFontFile = ''
-omDisplay.DataAxesGrid.XLabelFontFile = ''
-omDisplay.DataAxesGrid.YLabelFontFile = ''
-omDisplay.DataAxesGrid.ZLabelFontFile = ''
-
-# init the 'PolarAxesRepresentation' selected for 'PolarAxes'
-omDisplay.PolarAxes.PolarAxisTitleFontFile = ''
-omDisplay.PolarAxes.PolarAxisLabelFontFile = ''
-omDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
-omDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
-
-# show data from contvf
-contvfDisplay = Show(contvf, renderView1)
+# get opacity transfer function/opacity map for 'omm'
+ommPWF = GetOpacityTransferFunction('omm')
+ommPWF.Points = [1.0, 0.0, 0.5, 0.0, 5.0, 1.0, 0.5, 0.0]
+ommPWF.ScalarRangeInitialized = 1
 
 # trace defaults for the display properties.
-contvfDisplay.Representation = 'Surface'
-contvfDisplay.ColorArrayName = [None, '']
-contvfDisplay.OSPRayScaleArray = 'Normals'
-contvfDisplay.OSPRayScaleFunction = 'PiecewiseFunction'
-contvfDisplay.SelectOrientationVectors = 'None'
-contvfDisplay.ScaleFactor = 0.1
-contvfDisplay.SelectScaleArray = 'None'
-contvfDisplay.GlyphType = 'Arrow'
-contvfDisplay.GlyphTableIndexArray = 'None'
-contvfDisplay.GaussianRadius = 0.005
-contvfDisplay.SetScaleArray = ['POINTS', 'Normals']
-contvfDisplay.ScaleTransferFunction = 'PiecewiseFunction'
-contvfDisplay.OpacityArray = ['POINTS', 'Normals']
-contvfDisplay.OpacityTransferFunction = 'PiecewiseFunction'
-contvfDisplay.DataAxesGrid = 'GridAxesRepresentation'
-contvfDisplay.SelectionCellLabelFontFile = ''
-contvfDisplay.SelectionPointLabelFontFile = ''
-contvfDisplay.PolarAxes = 'PolarAxesRepresentation'
-
-# init the 'PiecewiseFunction' selected for 'OSPRayScaleFunction'
-contvfDisplay.OSPRayScaleFunction.Points = [0.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
+calcommDisplay.Representation = 'Volume'
+calcommDisplay.ColorArrayName = ['POINTS', 'omm']
+calcommDisplay.LookupTable = ommLUT
+calcommDisplay.OSPRayScaleArray = 'omm'
+calcommDisplay.OSPRayScaleFunction = 'PiecewiseFunction'
+calcommDisplay.SelectOrientationVectors = 'vel'
+calcommDisplay.ScaleFactor = 0.3
+calcommDisplay.SelectScaleArray = 'omm'
+calcommDisplay.GlyphType = 'Arrow'
+calcommDisplay.GlyphTableIndexArray = 'omm'
+calcommDisplay.GaussianRadius = 0.014999999999999998
+calcommDisplay.SetScaleArray = ['POINTS', 'omm']
+calcommDisplay.ScaleTransferFunction = 'PiecewiseFunction'
+calcommDisplay.OpacityArray = ['POINTS', 'omm']
+calcommDisplay.OpacityTransferFunction = 'PiecewiseFunction'
+calcommDisplay.DataAxesGrid = 'GridAxesRepresentation'
+calcommDisplay.SelectionCellLabelFontFile = ''
+calcommDisplay.SelectionPointLabelFontFile = ''
+calcommDisplay.PolarAxes = 'PolarAxesRepresentation'
+calcommDisplay.ScalarOpacityUnitDistance = 0.018075664448680195
+calcommDisplay.ScalarOpacityFunction = ommPWF
+calcommDisplay.IsosurfaceValues = [92.2075671063679]
+calcommDisplay.Slice = 63
 
 # init the 'PiecewiseFunction' selected for 'ScaleTransferFunction'
-contvfDisplay.ScaleTransferFunction.Points = [-0.9999814629554749, 1.0, 0.5, 0.0, 0.999971866607666, 1.0, 0.5, 0.0]
+calcommDisplay.ScaleTransferFunction.Points = [0.0, 0.0, 0.5, 0.0, 184.4151342127358, 1.0, 0.5, 0.0]
 
 # init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
-contvfDisplay.OpacityTransferFunction.Points = [-0.9999814629554749, 1.0, 0.5, 0.0, 0.999971866607666, 1.0, 0.5, 0.0]
+calcommDisplay.OpacityTransferFunction.Points = [0.0, 0.0, 0.5, 0.0, 184.4151342127358, 1.0, 0.5, 0.0]
 
 # init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
-contvfDisplay.DataAxesGrid.XTitleFontFile = ''
-contvfDisplay.DataAxesGrid.YTitleFontFile = ''
-contvfDisplay.DataAxesGrid.ZTitleFontFile = ''
-contvfDisplay.DataAxesGrid.XLabelFontFile = ''
-contvfDisplay.DataAxesGrid.YLabelFontFile = ''
-contvfDisplay.DataAxesGrid.ZLabelFontFile = ''
+calcommDisplay.DataAxesGrid.XTitleFontFile = ''
+calcommDisplay.DataAxesGrid.YTitleFontFile = ''
+calcommDisplay.DataAxesGrid.ZTitleFontFile = ''
+calcommDisplay.DataAxesGrid.XLabelFontFile = ''
+calcommDisplay.DataAxesGrid.YLabelFontFile = ''
+calcommDisplay.DataAxesGrid.ZLabelFontFile = ''
 
 # init the 'PolarAxesRepresentation' selected for 'PolarAxes'
-contvfDisplay.PolarAxes.PolarAxisTitleFontFile = ''
-contvfDisplay.PolarAxes.PolarAxisLabelFontFile = ''
-contvfDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
-contvfDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
+calcommDisplay.PolarAxes.PolarAxisTitleFontFile = ''
+calcommDisplay.PolarAxes.PolarAxisLabelFontFile = ''
+calcommDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
+calcommDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
 
 # ----------------------------------------------------------------
 # setup color maps and opacity mapes used in the visualization
@@ -359,7 +319,7 @@ contvfDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
 
 # ----------------------------------------------------------------
 # finally, restore active source
-SetActiveSource(om)
+SetActiveSource(calcomm)
 # ----------------------------------------------------------------
 
 #####################################################
