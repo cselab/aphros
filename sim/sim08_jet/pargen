@@ -70,13 +70,15 @@ def Sim(c):
 
     # mesh
     nx = 128
-    ny = round(nx * L / W)
+    #nx = 64 # XXX
+    ny = int(nx * L / W + 0.5)
     nz = nx
 
     # block size
     bs = 16
     # cores
     np = 1536
+    #np = 192 # XXX
     # time limit (minutes)
     tl = 1440
 

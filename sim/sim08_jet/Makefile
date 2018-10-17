@@ -1,7 +1,7 @@
-m ?= $(file < _m)
-bs ?= $(file < _bs)
-np ?= $(file < _np)
-tl ?= $(file < _tl)
+m ?= $(shell cat _m)
+bs ?= $(shell cat _bs)
+np ?= $(shell cat _np)
+tl ?= $(shell cat _tl)
 
 include $(shell ch.makesim)
 
