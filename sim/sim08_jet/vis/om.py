@@ -60,10 +60,17 @@ Current folder:
 ff = natsorted(av[1:])
 # vf basename
 ffb = list(map(os.path.basename, ff))
+# vf dirname
+ffd = list(map(os.path.dirname, ff))
 # steps
 ss = [int(re.findall("_([0-9]*)", fb)[0]) for fb in ffb]
 # vx,vy,vz input
 ffv = [["v{:}_{:04d}.xmf".format(d, s) for s in ss] for d in ['x', 'y', 'z']]
+
+# append dirname
+for fv in ffv:
+  for i in range(len(ss)):
+    fv[i] = os.path.join(ffd[i], fv[i])
 
 # output pattern (:0 substituted by frame number)
 bo = "a_{:}.png"
