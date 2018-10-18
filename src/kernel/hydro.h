@@ -819,7 +819,7 @@ void Hydro<M>::CalcStat() {
     s.Add(fs_->GetPressure(), "p", m);
   }
   if (sem("stat-print")) {
-    if (m.IsRoot()) {
+    if (var.Int["report_stat"] && m.IsRoot()) {
       s.Print(std::cout);
     }
     s.Clear();
@@ -1224,6 +1224,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         // compute force projections
         size_t nan = 0;
         IdxFace fnan(0);
+        bool report_knan = var.Int["report_knan"];
         for (auto f : m.Faces()) {
           IdxCell cm = m.GetNeighbourCell(f, 0);
           IdxCell cp = m.GetNeighbourCell(f, 1);
@@ -1239,7 +1240,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             ff_st[f] += ga * ffk_[f] * sig;
           }
         }
-        if (nan) {
+        if (report_knan && nan) {
           auto f = fnan;
           IdxCell cm = m.GetNeighbourCell(f, 0);
           IdxCell cp = m.GetNeighbourCell(f, 1);
