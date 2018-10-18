@@ -1,1 +1,1 @@
-/users/karnakov/s/scratch16/bench/weak2/std/Makefile
+../std/Makefile
