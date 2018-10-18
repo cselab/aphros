@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -eu
+
+for f in `find -maxdepth 1 -name "p*" | sort` ; do
+  (cd $f ; make submit)
+done

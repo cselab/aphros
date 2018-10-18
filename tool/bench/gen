@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+
+import numpy as np
+import os
+
+def sh(s, fatal=True, silent=True):
+    if not silent:
+        print(s)
+    r = os.system(s)
+    assert not fatal or r == 0
+
+mnodes = 3300
+cpus = 12
+mcores = mnodes * cpus
+bs = 8  # block size
+
+bx = 4
+by = 6
+bz = 6
+
+# ranks 
+ppx = []
+ppy = []
+ppz = []
+# ranks all
+pp = []
+for px in range(1, mcores):
+  if px * bx % by or px * bx % bz:
+    continue
+  py = px * bx // by
+  pz = px * bx // bz
+  p = px * py * pz
+  if p > mcores:
+    continue
+  if p % cpus:
+    continue
+  ppx.append(px)
+  ppy.append(py)
+  ppz.append(pz)
+  pp.append(p)
+
+ppx = np.array(ppx)
+ppy = np.array(ppy)
+ppz = np.array(ppz)
+pp = np.array(pp)
+
+# mesh size 
+nnx = bs * ppx * bx
+nny = bs * ppy * by
+nnz = bs * ppz * bz
+
+print("nx: {:}".format(nnx))
+print("px: {:}".format(ppx))
+print("tasks: {:}".format(pp))
+print("nodes: {:}".format(pp // cpus))
+print("cells per core: {:}".format(nnx ** 3 // pp))
+
+for p,nx,ny,nz in zip(pp,nnx,nny,nnz):
+  d = "p{:06d}".format(p)
+  #sh("rm -rf {:}".format(d))
+  sh("mkdir {:}".format(d))
+
+  sh("echo {p} > {d}/_p".format(**locals()))
+  sh("echo {nx} {ny} {nz} > {d}/_m".format(**locals()))
+  sh("cp -r dummy/. {:}".format(d))
