@@ -29,13 +29,13 @@ def GetTotal(f):
 def GetTime0(f):
     fd = os.path.dirname(f)
     n = int(re.findall("p([0-9]*)", fd)[0])
-    g = glob(os.path.join(fd, "trep_*"))
+    g = sorted(glob(os.path.join(fd, "trep_*")))
     tt = []
     for tr in g:
         t = GetTrep(tr)
         tt.append(GetTrep(tr))
     tt = np.array(tt)
-    return n, np.median(tt)
+    return n, np.min(tt)
 
 def GetTime():
     ff = glob("p*/out")
@@ -91,11 +91,9 @@ def PlotStrong(tt, po="strong.pdf", poe="strongeff.pdf"):
     # ideal speedup
     si = n
 
-    nd = n // 12
-
     fig, ax = chp.PlotInit()
-    ax.plot(nd, s, label='mfer')
-    ax.plot(nd, si, label='ideal')
+    ax.plot(n, s, label='mfer', marker='.')
+    ax.plot(n, si, label='ideal', marker='.')
     ax.set_xscale('log')
     ax.set_yscale('log')
     ax.set_xlabel("nodes")
@@ -109,8 +107,8 @@ def PlotStrong(tt, po="strong.pdf", poe="strongeff.pdf"):
     chp.PlotSave(fig, ax, po)
 
     fig, ax = chp.PlotInit()
-    ax.plot(n, s / n, label='mfer')
-    ax.plot(n, si / n, label='ideal')
+    ax.plot(n, s / n, label='mfer', marker='.')
+    ax.plot(n, si / n, label='ideal', marker='.')
     ax.set_xscale('log')
     ax.set_xlabel("cores")
     ax.set_ylabel("strong scaling efficiency")
@@ -119,7 +117,3 @@ def PlotStrong(tt, po="strong.pdf", poe="strongeff.pdf"):
     ax.set_xticklabels(n)
     ax.legend()
     chp.PlotSave(fig, ax, poe)
-
-tt = GetTime()
-WriteTime(tt)
-PlotWeak(tt)
