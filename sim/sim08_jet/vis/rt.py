@@ -83,7 +83,26 @@ light3.Radius = 1.0
 #light3.Intensity = 0.75
 
 # get the material library
+
+mf = "m.json"
+open(mf, 'w').write('''
+{
+  "family" : "OSPRay",
+  "version" : "0.0",
+  "materials" : {
+    "water" : {
+      "type": "Glass",
+      "doubles" : {
+          "attenuationColor" : [0.22, 0.34, 0.47],
+          "etaInside" : [1.33]
+      }
+    }
+  }
+}
+''')
+
 materialLibrary1 = GetMaterialLibrary()
+materialLibrary1.LoadMaterials = mf
 
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
@@ -99,7 +118,7 @@ renderView1.CameraParallelScale = 2.2437468197126655
 renderView1.Background = [0.75, 0.75, 0.75]
 renderView1.EnableOSPRay = 1
 renderView1.OSPRayRenderer = 'pathtracer'
-renderView1.SamplesPerPixel = 50
+renderView1.SamplesPerPixel = 100
 renderView1.AdditionalLights = light3
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 
