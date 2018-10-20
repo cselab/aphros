@@ -1083,7 +1083,7 @@ def Univel():
             vz = GetAvgFld(pp, "vz")
             vvzm.append(vzm * q)
             vvz2.append(vz2 * q)
-            vvz.append(vz * q)
+            vvz.append(vz)
         xx.append(x)
         yy.append(y)
         zz.append(z)

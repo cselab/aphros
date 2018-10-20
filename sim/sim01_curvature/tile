@@ -81,8 +81,8 @@ for dim in ddim:
         for n in ee:
             e = ee[n]
             ax.plot(r, e[m], label=n, marker='.')
-        ax.plot(r, 1 / r, label='first', ls='--')
-        ax.plot(r, 1 / r ** 2, label='second', ls='-.')
+        #ax.plot(r, 1 / r, label='first', ls='--')
+        #ax.plot(r, 1 / r ** 2, label='second', ls='-.')
 
         ax.legend()
         ax.grid(True)
