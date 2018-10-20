@@ -79,7 +79,7 @@ paraview.simple._DisableFirstRenderCameraReset()
 
 # Create a new 'Light'
 light3 = CreateLight()
-light3.Radius = 1.0
+#light3.Radius = 1.0
 #light3.Intensity = 0.75
 
 # get the material library
@@ -263,10 +263,10 @@ bcolor = [0.5, 0.5, 0.5]
 bcolor2 = [0.75, 0.75, 0.75]
 #bmat = 'glass'
 bmat = "None"
-box1Display = Show(box1, renderView1)
-box1Display.Representation = 'Surface'
-box1Display.OSPRayMaterial = bmat
-box1Display.DiffuseColor = bcolor
+#box1Display = Show(box1, renderView1)
+#box1Display.Representation = 'Surface'
+#box1Display.OSPRayMaterial = bmat
+#box1Display.DiffuseColor = bcolor
 
 # show data from box2
 box2Display = Show(box2, renderView1)
