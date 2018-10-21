@@ -417,6 +417,22 @@ calcrDisplay.DataAxesGrid = 'GridAxesRepresentation'
 calcrDisplay.SelectionCellLabelFontFile = ''
 calcrDisplay.SelectionPointLabelFontFile = ''
 calcrDisplay.PolarAxes = 'PolarAxesRepresentation'
+calcrDisplay.SelectionPointLabelColor = [0.0, 0.0, 0.0]
+calcrDisplay.SelectionPointLabelFontFamily = 'Courier'
+calcrDisplay.SelectionPointLabelFontFile = ''
+calcrDisplay.SelectionPointLabelFontSize = 30
+calcrDisplay.SelectionPointLabelJustification = 'Center'
+calcrDisplay.SelectionPointLabelVisibility = 1
+calcrDisplay.SelectionPointFieldDataArrayName = 'cl'
+
+# select all points
+selsrc = IDSelectionSource()
+ii = []
+for i in range(10):
+    ii.append(0)
+    ii.append(i)
+selsrc.IDs = ii
+calcr.SetSelectionInput(0, selsrc, 0)
 
 # init the 'PiecewiseFunction' selected for 'ScaleTransferFunction'
 calcrDisplay.ScaleTransferFunction.Points = [0.0, 0.0, 0.5, 0.0, 9.0, 1.0, 0.5, 0.0]
