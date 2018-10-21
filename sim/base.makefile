@@ -52,6 +52,7 @@ cleandat::
 	rm -vf stat.dat
 	rm -vf partit_*.csv
 	rm -vf traj_*.csv
+	rm -vf trajsh_*.csv
 	rm -vf s_*.vtk
 	rm -vf sp_*.vtk
 	rm -vf out
