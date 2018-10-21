@@ -387,7 +387,7 @@ void Sphavg<M_>::Update(
     for (size_t i = 0; i < ss_.size(); ++i) {
       auto& a = aa_[i];
       auto& s = ss_[i];
-      a.r = s.r + 1.;
+      a.r = s.r;
       a.rhm = s.r - s.h;
       a.rhp = s.r + s.h;
     }
