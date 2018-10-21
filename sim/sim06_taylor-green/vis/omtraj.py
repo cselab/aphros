@@ -234,7 +234,7 @@ appnd = AppendAttributes(Input=[vf, vx, vy, vz])
 
 # create a new 'Resample To Image'
 rsmp = ResampleToImage(Input=appnd)
-rsmp.SamplingDimensions = [129, 129, 129]
+rsmp.SamplingDimensions = [257, 257, 257]
 pi = 3.141592
 dom = 2 * pi
 rsmp.SamplingBounds = [0.0, dom, 0.0, dom, 0.0, dom]
@@ -326,15 +326,21 @@ calcommDisplay = Show(calcomm, renderView1)
 if not vort:
     Hide(calcoom, renderView1)
 
+k = 0.5
 # get color transfer function/color map for 'omm'
 ommLUT = GetColorTransferFunction('omm')
 ommLUT.AutomaticRescaleRangeMode = 'Never'
-ommLUT.RGBPoints = [1.0, 0.231373, 0.298039, 0.752941, 5.5, 0.865003, 0.865003, 0.865003, 10.0, 0.705882, 0.0156863, 0.14902]
+ommLUT.RGBPoints = [
+    1.0 * k, 0.231373, 0.298039, 0.752941,
+    5.5 * k, 0.865003, 0.865003, 0.865003,
+    10.0 * k, 0.705882, 0.0156863, 0.14902]
 ommLUT.ScalarRangeInitialized = 1.0
 
 # get opacity transfer function/opacity map for 'omm'
 ommPWF = GetOpacityTransferFunction('omm')
-ommPWF.Points = [1.0, 0.0, 0.5, 0.0, 10.0, 0.5073529481887817, 0.5, 0.0]
+ommPWF.Points = [
+    1.0 * k, 0.0, 0.5, 0.0,
+    10.0 * k, 0.5073529481887817, 0.5, 0.0]
 ommPWF.ScalarRangeInitialized = 1
 
 
