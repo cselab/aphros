@@ -31,12 +31,15 @@ class Sphavg {
     Vect dvt = Vect(0);  // dv/dt
     Vect dvx = Vect(0);  // dv/dx * v
     Vect dvmat = Vect(0);  // dv/dt + dv/dx * v 
-    Vect dp = Vect(0);  // dp/dx
+    Vect gp = Vect(0);  // gp/dx
     Scal vm = 0.; // velocity magnitude
-    Scal p = 0.;
-    Scal r = 1.;
-    Scal rhm = 1.;
-    Scal rhp = 1.;
+    Scal p = 0.;  // pressure
+    Scal r = 1.;  // equivalent radius
+    Scal rhm = 1.; // shell inner
+    Scal rhp = 1.; // shell outer
+    Vect gvx = Vect(0);  // dv/dx
+    Vect gvy = Vect(0);  // dv/dy
+    Vect gvz = Vect(0);  // dv/dz
     Avg() = default;
     static std::vector<std::string> GetNames() {
       std::vector<std::string> r;
@@ -54,49 +57,58 @@ class Sphavg {
       av("dvt");
       av("dvx");
       av("dvmat");
-      av("dp");
+      av("gp");
       as("vm");
       as("p");
+      av("gvx");
+      av("gvy");
+      av("gvz");
       as("r");
       as("rhm");
       as("rhp");
       return r;
     }
-    void App(Scal a, std::vector<Scal>& g) const {
+    void Ser(Scal a, std::vector<Scal>& g) const {
       g.push_back(a);
     }
-    void App(const Vect& a, std::vector<Scal>& g) const {
-      App(a[0], g);
-      App(a[1], g);
-      App(a[2], g);
+    void Ser(const Vect& a, std::vector<Scal>& g) const {
+      Ser(a[0], g);
+      Ser(a[1], g);
+      Ser(a[2], g);
     }
     std::vector<Scal> Ser() const {
       std::vector<Scal> g;
-      App(b, g);
-      App(x, g);
-      App(v, g);
-      App(dvt, g);
-      App(dvx, g);
-      App(dvmat, g);
-      App(dp, g);
-      App(vm, g);
-      App(p, g);
+      Ser(b, g);
+      Ser(x, g);
+      Ser(v, g);
+      Ser(dvt, g);
+      Ser(dvx, g);
+      Ser(dvmat, g);
+      Ser(gp, g);
+      Ser(vm, g);
+      Ser(p, g);
+      Ser(gvx, g);
+      Ser(gvy, g);
+      Ser(gvz, g);
       return g;
     }
     std::vector<Scal> SerOut() const {
       std::vector<Scal> g;
-      App(b, g);
-      App(x, g);
-      App(v, g);
-      App(dvt, g);
-      App(dvx, g);
-      App(dvmat, g);
-      App(dp, g);
-      App(vm, g);
-      App(p, g);
-      App(r, g);
-      App(rhm, g);
-      App(rhp, g);
+      Ser(b, g);
+      Ser(x, g);
+      Ser(v, g);
+      Ser(dvt, g);
+      Ser(dvx, g);
+      Ser(dvmat, g);
+      Ser(gp, g);
+      Ser(vm, g);
+      Ser(p, g);
+      Ser(gvx, g);
+      Ser(gvy, g);
+      Ser(gvz, g);
+      Ser(r, g);
+      Ser(rhm, g);
+      Ser(rhp, g);
       return g;
     }
     void Ext(Scal& a, const std::vector<Scal>& g, size_t& i) {
@@ -115,9 +127,12 @@ class Sphavg {
       Ext(dvt, g, i);
       Ext(dvx, g, i);
       Ext(dvmat, g, i);
-      Ext(dp, g, i);
+      Ext(gp, g, i);
       Ext(vm, g, i);
       Ext(p, g, i);
+      Ext(gvx, g, i);
+      Ext(gvy, g, i);
+      Ext(gvz, g, i);
     }
   };
   // Constructor.
@@ -261,6 +276,17 @@ void Sphavg<M_>::Update(
       IdxCell cm = bd.GetIdx(wm);
       return (f[cp] - f[cm]) / (2. * h[d]);
     };
+    // derivative in direction d at point w
+    auto sdv = [&h,&bd](const FieldCell<Vect>& f, MIdx w, size_t d) {
+      MIdx wp = w;
+      ++wp[d];
+      MIdx wm = w;
+      --wm[d];
+      IdxCell cp = bd.GetIdx(wp);
+      IdxCell cm = bd.GetIdx(wm);
+      return (f[cp] - f[cm]) / (2. * h[d]);
+    };
+    /*
     // derivative of component p in direction d at point w
     auto vd = [&h,&bd](const FieldCell<Vect>& f, size_t p, MIdx w, size_t d) {
       MIdx wp = w;
@@ -271,6 +297,7 @@ void Sphavg<M_>::Update(
       IdxCell cm = bd.GetIdx(wm);
       return (f[cp][p] - f[cm][p]) / (2. * h[d]);
     };
+    */
 
     for (size_t i = 0; i < ss_.size(); ++i) {
       auto& s = ss_[i];
@@ -285,23 +312,27 @@ void Sphavg<M_>::Update(
           st.x = GetStd(st.x);
           if (bc.IsInside(wt)) {
             Vect x(Vect(w) * h);
-            Scal b = Kernel(x, st);
+            Scal b = Kernel(x, st); // weight
             IdxCell c = bd.GetIdx(wt);
-            auto v = fcv[c];
+            auto v = fcv[c]; // velocity
             a.b += b;
             a.x += x * b;
             a.v += v * b;
             a.dvt += (v - fcvm[c]) * (b / dt);
 
+            for (size_t d = 0; d < dim; ++d) {
+              a.dvx += sdv(fcv, wt, d) * (v[d] * b);
+            }
             for (size_t p = 0; p < dim; ++p) {
-              for (size_t d = 0; d < dim; ++d) {
-                a.dvx[p] += vd(fcv, p, wt, d) * v[d] * b;
-              }
-              a.dp[p] = sd(fcp, wt, p) * b;
+              a.gp[p] += sd(fcp, wt, p) * b;
             }
             a.dvmat = a.dvt + a.dvx;
             a.p += fcp[c] * b;
             a.vm += fcv[c].norm() * b;
+            // velocity gradient
+            a.gvx += sdv(fcv, wt, 0) * b;
+            a.gvy += sdv(fcv, wt, 1) * b;
+            a.gvz += sdv(fcv, wt, 2) * b;
           }
         }
       }
@@ -335,7 +366,7 @@ void Sphavg<M_>::Update(
       vv_.resize(e);
       for (size_t i = 0; i < e; ++i) {
         for (size_t j = 1; j < vv_[i].size(); ++j) {
-          vv_[i][j] /= vv_[i][0];
+          vv_[i][j] /= vv_[i][0]; // assume weight is [0]
         }
       }
     }
