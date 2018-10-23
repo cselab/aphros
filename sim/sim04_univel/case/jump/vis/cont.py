@@ -147,8 +147,7 @@ clip1.Scalars = ['CELLS', 'c']
 clip1.Value = 32009550.0
 
 # init the 'Box' selected for 'ClipType'
-clip1.ClipType.Bounds = [0.10114700347185135, 0.8403609991073608, 0.0, 0.5078120231628418, 0.0, 0.5078120231628418]
-clip1.ClipType.Scale = [1.0, 0.9, 0.9]
+clip1.ClipType.Bounds = [0., 1., 0., 0.45, 0.0, 0.45]
 
 # create a new 'Box'
 box1 = Box()
