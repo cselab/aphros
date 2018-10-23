@@ -916,7 +916,7 @@ void Hydro<M>::CalcStat() {
           Vect n = m.GetNormal(f);
           IdxCell c = m.GetNeighbourCell(f, nci);
           auto v = fv[c];
-          cd->SetVelocity((v - n * n.dot(v)) * fa[c] * kslip);
+          cd->SetVelocity((v - n * n.dot(v)) * std::min(1., fa[c] * kslip));
         } 
       }
     }
