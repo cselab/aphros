@@ -1133,6 +1133,15 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
                 Vect(0), it.GetValue()->GetNci());
       }
 
+      // zero-derivative bc for Scal
+      MapFace<std::shared_ptr<solver::CondFace>> mfz;
+      for (auto it : mf_velcond_) {
+        IdxFace i = it.GetIdx();
+        mfz[i] = std::make_shared<solver::
+            CondFaceGradFixed<Scal>>(0, it.GetValue()->GetNci());
+      }
+
+
       // gradient on faces
       auto gf = solver::Interpolate(gc, mfvz, m); // [i]
 
@@ -1204,6 +1213,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 
         ffk_.Reinit(m, 0);
         ff_sig_.Reinit(m, 0);
+        ff_sig_ = solver::Interpolate(fc_sig_, mfz, m);
         // interpolate curvature
         for (auto f : m.Faces()) {
           IdxCell cm = m.GetNeighbourCell(f, 0);
@@ -1224,7 +1234,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           } else {
             ffk_[f] = fck[cp];
           }
-          ff_sig_[f] = (fc_sig_[cm] + fc_sig_[cp]) * 0.5;
         }
         // neighbour cell for boundaries
         for (auto it : mf_velcond_) {
@@ -1337,6 +1346,25 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         // Append to force
         for (auto f : m.Faces()) {
           ffbp_[f] += ff_st[f];
+        }
+        
+        // Append Marangoni stress
+        if (var.Int["marangoni"]) {
+          if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
+            auto fc_gsig = solver::Gradient(ff_sig_, m);
+            auto &fcn = as->GetNormal();
+            Scal th = 1e-8;
+            Vect h = m.GetCellSize();
+            for (auto c : m.Cells()) {
+              if (ast[c] > th && ast[c] < 1. - th) { // contains interface
+                Vect g = fc_gsig[c]; // sigma gradient
+                Vect n = fcn[c] / fcn[c].norm(); // unit normal to interface
+                Vect gt = g - n * g.dot(n); 
+                // TODO: revise with area of reconstructed interface 
+                fc_force_[c] += gt / h[0];
+              }
+            }
+          }
         }
       } else {
         throw std::runtime_error("Unknown surftens=" + st);
