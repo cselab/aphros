@@ -33,6 +33,7 @@
 #include "dump/output.h"
 #include "dump/dumper.h"
 #include "func/init_u.h"
+#include "func/init_sig.h"
 #include "func/init_cl.h"
 #include "debug/isnan.h"
 
@@ -234,6 +235,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Scal diff_;  // convergence indicator
   Scal pdist_, pdistmin_; // distance to pfixed cell
 
+  FieldCell<Scal> fc_sig_; // surface tension sigma
+  FieldFace<Scal> ff_sig_; // surface tension sigma
+
   std::vector<Scal> clr_cl_; // color reduce: cl
   std::vector<std::vector<Scal>> clr_v_; // color reduce: vector
   std::vector<std::string> clr_nm_; // color reduce: variable name
@@ -356,6 +360,12 @@ void Hydro<M>::Init() {
     auto ivf = CreateInitU<M>(var, m.IsRoot());
     ivf(fc_vf_, m);
     m.Comm(&fc_vf_);
+
+    // initial surface tension sigma
+    fc_sig_.Reinit(m, 0);
+    auto isig = CreateInitSig<M>(var);
+    isig(fc_sig_, m);
+    m.Comm(&fc_sig_);
 
     // initial velocity
     fc_vel_.Reinit(m, Vect(0));
@@ -1169,7 +1179,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
 
-      auto sig = var.Double["sigma"];
       auto st = var.String["surftens"];
       // implementation by tensor divergence
       if (st == "div") {
@@ -1186,7 +1195,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           }
           r /= m.GetVolume(c);     
           // here: r = stdiag*div(|g|I) - div(g g/|g|) 
-          fc_force_[c] += r * sig;
+          fc_force_[c] += r * fc_sig_[c];
         }
       } else if (st == "kn") {  // curvature * normal
         auto& fck = as_->GetCurv(); // [a]
@@ -1194,6 +1203,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         auto& ast = fc_smvfst_;
 
         ffk_.Reinit(m, 0);
+        ff_sig_.Reinit(m, 0);
         // interpolate curvature
         for (auto f : m.Faces()) {
           IdxCell cm = m.GetNeighbourCell(f, 0);
@@ -1214,6 +1224,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           } else {
             ffk_[f] = fck[cp];
           }
+          ff_sig_[f] = (fc_sig_[cm] + fc_sig_[cp]) * 0.5;
         }
         // neighbour cell for boundaries
         for (auto it : mf_velcond_) {
@@ -1237,7 +1248,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
               fnan = f;
               ffk_[f] = 0.;
             }
-            ff_st[f] += ga * ffk_[f] * sig;
+            ff_st[f] += ga * ffk_[f] * ff_sig_[f];
           }
         }
         if (report_knan && nan) {
@@ -1363,6 +1374,7 @@ void Hydro<M>::Dump(Sem& sem) {
       if (dl.count("k")) m.Dump(&as_->GetCurv(), "k");
       if (dl.count("rho")) m.Dump(&fc_rho_, "rho");
       if (dl.count("mu")) m.Dump(&fc_mu_, "mu");
+      if (dl.count("sig")) m.Dump(&fc_sig_, "sig");
       if (tr_) {
         if (dl.count("cl")) m.Dump(&tr_->GetColor(), "cl");
         auto& im = tr_->GetImage();
