@@ -568,10 +568,67 @@ void TestOverlap() {
   std::cout << GetSphereOverlap(Vect(0.7, 0.7, 0.), h, c, r) << std::endl;
 }
 
-int main() {
-  TestOverlap();
-  return 0;
+void TestArea() {
+  std::cerr << "check area of polygon" << std::endl;
+  using namespace solver;
+  using V = Vect;
 
+  // xx: polygon
+  // ae: area exact
+  auto f = [](const std::vector<V>& xx, Scal ae) {
+    auto xc = R::GetCenter(xx);
+    auto n = (xx[0] - xc).cross(xx[1] - xc);
+    Scal a = R::GetArea(xx, n);
+    std::cout << "area:"
+        << " xx=" << xx
+        << " n=" << n
+        << " a=" << a
+        << " ae=" << ae
+        << std::endl;
+    assert(std::abs(a - ae) < 1e-12);
+  };
+
+  {
+    f({V(0.,0.,0.), V(1.,0.,0.), V(0.,1.,0.)}, 0.5);
+    f({V(0., 0.,0.), V(0., 1.,0.), V(0.,0.,1.)}, 0.5);
+    f({V(0., 5.,0.), V(0., 6.,0.), V(0.,5.,1.)}, 0.5);
+    f({V(0., 0.,0.), V(0., 1.,10.), V(0.,0.,1.)}, 0.5);
+    f({V(0., 0.,0.), V(1., 1.,0.), V(0.,0.,1.)}, std::sqrt(2.) * 0.5);
+    f({V(0., 0.,0.), V(1., 1.,0.), V(1., 1., 0.), V(0.,0.,1.)}, std::sqrt(2.) * 0.5);
+    f({V(0.,0.,0.), V(1.,0.,0.), V(1.,1.,0.), V(0.,1.,0.)}, 1.);
+    // Rotation around axis d at angle p
+    auto r = [](Vect x, size_t d, Scal p) {
+      size_t u = (d + 1) % 3;
+      size_t v = (d + 2) % 3;
+      Scal c = std::cos(p);
+      Scal s = std::sin(p);
+      Vect xr = x;
+      xr[u] = c * x[u] - s * x[v];
+      xr[v] = s * x[u] + c * x[v];
+      return xr;
+    };
+    auto rv = [&r](std::vector<Vect> xx, size_t d, Scal p) {
+      for (auto& x : xx) {
+        x = r(x, d, p);
+      }
+      return xx;
+    };
+    // Scale by k
+    auto sv = [&r](std::vector<Vect> xx, Scal k) {
+      for (auto& x : xx) {
+        x *= k;
+      }
+      return xx;
+    };
+    auto xx = {V(0.,0.,0.), V(1.,0.,0.), V(1.,1.,0.), V(0.,1.,0.)};
+    f(rv(rv(rv(xx, 0, 0.5), 1, 0.9), 2, 4.3), 1.);
+    f(sv(rv(rv(rv(xx, 0, 0.5), 1, 0.9), 2, 4.3), 7.), 49.);
+  }
+}
+
+int main() {
+  TestArea();
+  TestOverlap();
   TestInter();
   TestLevelSet();
   TestNearest();
