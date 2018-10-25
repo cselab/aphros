@@ -36,6 +36,7 @@
 #include "func/init_sig.h"
 #include "func/init_cl.h"
 #include "debug/isnan.h"
+#include "solver/reconst.h"
 
 class GPar {};
 
@@ -1350,9 +1351,11 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         
         // Append Marangoni stress
         if (var.Int["marangoni"]) {
+          using R = Reconst<Scal>;
           if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
             auto fc_gsig = solver::Gradient(ff_sig_, m);
             auto &fcn = as->GetNormal();
+            auto &fca = as->GetAlpha();
             Scal th = 1e-8;
             Vect h = m.GetCellSize();
             for (auto c : m.Cells()) {
@@ -1360,8 +1363,10 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
                 Vect g = fc_gsig[c]; // sigma gradient
                 Vect n = fcn[c] / fcn[c].norm(); // unit normal to interface
                 Vect gt = g - n * g.dot(n); 
-                // TODO: revise with area of reconstructed interface 
-                fc_force_[c] += gt / h[0];
+                auto xx = R::GetCutPoly2(fcn[c], fca[c], h);
+                Scal ar = std::abs(R::GetArea(xx, fcn[c]));
+                Scal vol = h.prod();
+                fc_force_[c] += gt * (ar / vol);
               }
             }
           }
