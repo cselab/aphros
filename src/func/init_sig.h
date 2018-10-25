@@ -53,6 +53,26 @@ CreateInitSig(Vars& par) {
         fc[c] = sig + grad.dot(x - x0);
       }
     };
+  } else if (v == "linearlow") {
+    Scal sig = par.Double["sigma"];
+    Vect x0(par.Vect["sig_x"]);
+    Vect grad(par.Vect["sig_grad"]);
+    g = [sig, x0, grad](FieldCell<Scal>& fc, const M& m) { 
+      for (auto c : m.Cells()) {
+        auto x = m.GetCenter(c);
+        fc[c] = sig + std::min(0., grad.dot(x - x0));
+      }
+    };
+  } else if (v == "linearhigh") {
+    Scal sig = par.Double["sigma"];
+    Vect x0(par.Vect["sig_x"]);
+    Vect grad(par.Vect["sig_grad"]);
+    g = [sig, x0, grad](FieldCell<Scal>& fc, const M& m) { 
+      for (auto c : m.Cells()) {
+        auto x = m.GetCenter(c);
+        fc[c] = sig + std::max(0., grad.dot(x - x0));
+      }
+    };
   } else {
     throw std::runtime_error("Unknown init_sig=" + v);
   }
