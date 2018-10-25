@@ -889,6 +889,38 @@ class Reconst {
     }
     return false;
   }
+
+  // Area of plane convex polygon.
+  // xx: points of polygon
+  // n: normal to plane
+  // Returns:
+  // a: area, positive if <xx[0]-xc,xx[1]-xc,n> is positively oriented
+  static Scal GetArea(const std::vector<Vect>& xx, Vect n) {
+    size_t sx = xx.size();
+
+    if (!sx) {
+      return 0.;
+    }
+
+    // unit normal
+    n /= n.norm(); 
+    // polygon center
+    auto xc = GetCenter(xx);
+    // direction
+    auto xd = (xx[0] - xc);
+    xd /= xd.norm();
+
+    Scal a = 0.;
+    for (size_t i = 0; i < sx; ++i) {
+      size_t ip = (i + 1 == sx ? 0 : i + 1);
+      Vect x0 = xx[i];
+      Vect x1 = xx[ip];
+      Vect s = (x1 - x0).cross(n); // surface element
+      Scal z = ((x0 + x1) * 0.5 - xc).dot(xd); // position along xd
+      a += z * s.dot(xd);
+    }
+    return a;
+  }
 }; 
 
 
