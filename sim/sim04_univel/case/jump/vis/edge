@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -eu
+
+convert $1 -flatten -type Grayscale bmp:- |
+  mkbitmap -f 3 -b 1 -s 1 | potrace -C "#ff0000" | convert eps:- $2
