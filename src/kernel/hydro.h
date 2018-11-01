@@ -273,7 +273,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     Stat()
         : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
         , dtt(0), dt(0), dta(0), iter(0), dumpt(-1e10), step(0)
-        , dumpn(0), meshpos(0)
+        , dumpn(0), meshpos(0), meshvel(0)
         , ekin(0)
     {}
     std::map<std::string, Scal> mst; // map stat
