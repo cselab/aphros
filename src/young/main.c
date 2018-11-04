@@ -29,7 +29,7 @@ static int u(YoungParam param, double r, double th, double *vr,
              double *vp, double *p, double *T)
 {
     double rhov, rhou, muv, muu, hv, hu, gamma1, gamma0, T1, T0;
-    double R, kv, ku, g, av, au, a0, Tc;
+    double R, kv, ku, av, g, au, a0, Tc;
 
     rhov = param.rhov;
     rhou = param.rhou;
@@ -51,6 +51,9 @@ static int u(YoungParam param, double r, double th, double *vr,
     kv = (cube(R)*(hv-hu))/(2*hv+hu);
     ku = (3*hv)/(2*hv+hu);
     g = (Tc*gamma1*muv)/(R*(muv+muu)*(rhov-rhou));
+
+    (void)av;
+    (void)kv;
     
     SET(vr, (au*(sq(r)-sq(R))*cos(th))/(10*muu));
     SET(vp, -(au*(2*sq(r)-sq(R))*sin(th))/(10*muu));
@@ -85,6 +88,10 @@ static int v(YoungParam param, double r, double th, double *vr,
     kv = (cube(R)*(hv-hu))/(2*hv+hu);
     ku = (3*hv)/(2*hv+hu);
     g = (Tc*gamma1*muv)/(R*(muv+muu)*(rhov-rhou));
+
+    (void)a0;
+    (void)au;
+    (void)ku;
     
     SET(vr, (av*(2/r-(2*sq(R))/cube(r))*cos(th))/muv);
     SET(vp, -(av*(sq(R)/cube(r)+1/r)*sin(th))/muv);
@@ -94,7 +101,7 @@ static int v(YoungParam param, double r, double th, double *vr,
     return 0;
 }
 int young_set(YoungParam *p) {
-    double rhov, rhou, muv, muu, hv, hu, gamma1, gamma0, g, T1;
+    double rhov, rhou, muv, muu, hv, hu, gamma1, gamma0, T1;
     double T0, R;
 
     R = 0.2;
