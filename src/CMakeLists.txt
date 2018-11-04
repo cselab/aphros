@@ -34,8 +34,10 @@ add_subdirectory(solver)
 add_subdirectory(parse)
 add_subdirectory(dump)
 add_subdirectory(overlap)
+add_subdirectory(young)
 
-target_link_libraries(${EXE} distr solver vof tvd convdiffvi simple overlap)
+target_link_libraries(${EXE} 
+  distr solver vof tvd convdiffvi simple overlap young)
 
 add_subdirectory(test)
 enable_testing()
