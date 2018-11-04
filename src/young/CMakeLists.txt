@@ -1,5 +1,3 @@
 set(TARG "young")
 
-set(S "main.c")
-
-add_library(${TARG} ${S})
+add_library(${TARG} main.cpp)

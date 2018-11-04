@@ -13,6 +13,7 @@
 #include "solver/vof.h"
 #include "func/init_u.h"
 #include "overlap/over.h"
+#include "young/young.h"
 
 using Scal = double;
 using Vect = GVect<Scal, 3>;
@@ -31,6 +32,14 @@ std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
 void TestYoung() {
   std::cerr << "young solution" << std::endl;
 
+  YoungParam q;
+  young_set(&q);
+  young_ini(q);
+
+  Vect x(0);
+  Scal pvy, pvz, p, T;
+  young_fields(x[1], x[2], &pvy, &pvz, &p, &T);
+  std::cout << std::vector<Scal>{x[1], x[2], pvy, pvz, p, T} << std::endl;
 }
 
 int main() {
