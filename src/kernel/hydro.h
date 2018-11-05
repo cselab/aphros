@@ -37,6 +37,7 @@
 #include "func/init_cl.h"
 #include "debug/isnan.h"
 #include "solver/reconst.h"
+#include "young/young.h"
 
 class GPar {};
 
@@ -213,6 +214,31 @@ class Hydro : public KernelMeshPar<M_, GPar> {
         m.GetNode(m.GetNeighbourNode(c0, 0));
     assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
     return h;
+  }
+  YoungParam GetYoungPar() const {
+    YoungParam q;
+    q.rhov = var.Double["rho1"];
+    q.rhou = var.Double["rho2"];
+    q.muv = var.Double["mu1"];
+    q.muu = var.Double["mu2"];
+    q.hv = 1.;
+    q.hu = 1.;
+    q.gamma0 = var.Double["sigma"];
+    q.gamma1 = var.Vect["sig_grad"][0];
+    q.T0 = 0.;
+    q.T1 = 1.;
+    q.R = var.Double["youngbc_r"];
+    return q;
+  }
+  void InitYoung() {
+    young_ini(GetYoungPar());
+  }
+  Vect GetYoungVel(Vect x) const {
+    Vect v(0);
+    Scal p, T;
+    x -= Vect(0.5);
+    young_fields(x[1], x[0], &v[1], &v[0], &p, &T);
+    return v;
   }
 
   FieldCell<Scal> fc_mu_; // viscosity
@@ -932,6 +958,29 @@ void Hydro<M>::CalcStat() {
       }
     }
   }
+
+  if (sem("young")) {
+    if (var.Int["youngbc"]) {
+      InitYoung();
+      for (auto it : mf_velcond_) {
+        IdxFace f = it.GetIdx();
+        Vect x = m.GetCenter(f);
+        solver::CondFaceFluid* cb = it.GetValue().get();
+        if (auto cd = dynamic_cast<solver::fluid_condition::
+            NoSlipWallFixed<M>*>(cb)) {
+          cd->SetVelocity(GetYoungVel(x));
+        } 
+      }
+      auto& fv = const_cast<FieldCell<Vect>&>(fs_->GetVelocity());
+      for (auto c : m.Cells()) {
+        Vect x = m.GetCenter(c);
+        Vect v(0);
+        Scal p, T;
+        young_fields(x[1], x[0], &v[1], &v[0], &p, &T);
+        fv[c] = v;
+      }
+    }
+  }
 }
 
 template <class M>
@@ -1397,6 +1446,16 @@ void Hydro<M>::Dump(Sem& sem) {
       if (IsRoot()) {
         dumper_.Report();
       }
+
+
+      // XXX ahoc: young
+      InitYoung();
+      auto& fv = const_cast<FieldCell<Vect>&>(fs_->GetVelocity());
+      for (auto c : m.Cells()) {
+        Vect x = m.GetCenter(c);
+        fv[c] = GetYoungVel(x);
+      }
+
       auto dl = ParseList(var.String["dumplist"]);
       auto& fcv = fs_->GetVelocity();
       if (dl.count("vx")) m.Dump(&fcv, 0, "vx");
