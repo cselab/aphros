@@ -62,6 +62,8 @@ draft = 0
 if av[0] == "draft":
   draft = 1
   av = av[1:]
+vol = 1
+cont = 0
 
 # vf input
 ff = natsorted(av[0:])
@@ -102,11 +104,21 @@ open(mf, 'w').write('''
       }
     }
     ,
+    "water2" : {
+      "type": "Glass",
+      "doubles" : {
+          "attenuationColor" : [0.22, 0.34, 0.47],
+          "attenuationDistance" : [5.],
+          "etaInside" : [1.15]
+      }
+    }
+    ,
     "glass2" : {
       "type": "Glass",
       "doubles" : {
           "attenuationColor" : [0.22, 0.34, 0.47]
-          , "etaInside" : [1.2]
+          , "attenuationDistance" : [5.]
+          , "etaInside" : [1.25]
       }
     }
     ,
@@ -124,7 +136,7 @@ open(mf, 'w').write('''
 materialLibrary1 = GetMaterialLibrary()
 materialLibrary1.LoadMaterials = mf
 
-W = 1000 if draft else 8000
+W = 2000 if draft else 6000
 q=2**0.5
 H=int(W*q)
 
@@ -148,6 +160,10 @@ else:
   renderView1.CameraViewUp = [0., 1., 0.]
   renderView1.Background = [0.]*3
 
+if 0:
+  renderView1.CameraParallelScale = 1.5
+  renderView1.CameraParallelProjection = 1
+
 renderView1.EnableOSPRay = 1
 renderView1.OSPRayRenderer = 'pathtracer'
 renderView1.AmbientSamples = 0
@@ -156,7 +172,7 @@ renderView1.LightScale = 1.
 
 D = 10.
 RAD = 20.
-LI = 0.2
+LI = 0.8
 light1 = CreateLight()
 light1.Radius = RAD
 light1.Intensity = LI
@@ -207,41 +223,42 @@ SetActiveView(renderView1)
 # BEGIN BOXES
 # ----------------------------------------------------------------
 
-# create a new 'Box'
+eps = -1e-4
+
+# back
 box1 = Box()
 box1.XLength = 1.
 box1.YLength = 3.1
 box1.ZLength = 0.05
-box1.Center = [0.5, 1.5, -0.025]
+box1.Center = [0.5, 1.5, -0.025 - eps]
 
-# create a new 'Box'
+# left
 box2 = Box()
 box2.XLength = 0.05
 box2.YLength = 3.1
 box2.ZLength = 1.05
-box2.Center = [-0.025, 1.5, 0.475]
+box2.Center = [-0.025 - eps, 1.5, 0.475]
 
-# create a new 'Box'
+# right
 box3 = Box()
 box3.XLength = 0.05
 box3.YLength = 3.1
 box3.ZLength = 1.05
-box3.Center = [1.025, 1.5, 0.475]
+box3.Center = [1.025 + eps, 1.5, 0.475]
 
-
-# create a new 'Box'
+# bottom
 box4 = Box()
 box4.XLength = 1.
 box4.YLength = 0.05
 box4.ZLength = 1.
-box4.Center = [0.5, -0.025, 0.5]
+box4.Center = [0.5, -0.025 - eps, 0.5]
 
-# create a new 'Box'
+# top
 box5 = Box()
 box5.XLength = 1.
 box5.YLength = 0.05
 box5.ZLength = 1.
-box5.Center = [0.5, 3.025, 0.5]
+box5.Center = [0.5, 3.025 + eps, 0.5]
 
 
 # ----------------------------------------------------------------
@@ -276,49 +293,92 @@ vft = [vf]
 # create a new 'Cell Data to Point Data'
 clpnt = CellDatatoPointData(Input=vf)
 
-# create a new 'Contour'
-contour1 = Contour(Input=clpnt)
-contour1.ContourBy = ['POINTS', 'vf']
-contour1.Isosurfaces = [0.5]
-contour1.PointMergeMethod = 'Uniform Binning'
+rsmp = ResampleToImage(Input=clpnt)
+#nx = 128
+#nx = 256
+nx = 320
+rsmp.SamplingDimensions = [nx + 1,  nx * 3 + 1, nx + 1]
+rsmp.SamplingBounds = [0.0, 1.0, 0.0, 3.0, 0.0, 1.0]
+
+clpnt = rsmp
+
+if cont:
+  # create a new 'Contour'
+  contour1 = Contour(Input=clpnt)
+  contour1.ContourBy = ['POINTS', 'vf']
+  contour1.Isosurfaces = [0.5]
+  contour1.PointMergeMethod = 'Uniform Binning'
+
+if vol:
+  isoVolume1 = IsoVolume(Input=clpnt)
+  isoVolume1.InputScalars = ['POINTS', 'vf']
+  isoVolume1.ThresholdRange = [0.0, 0.5]
+
 
 # ----------------------------------------------------------------
 # setup the visualization in view 'renderView1'
 # ----------------------------------------------------------------
 
-# show data from contour1
-contour1Display = Show(contour1, renderView1)
+if cont:
+  # show data from contour1
+  contour1Display = Show(contour1, renderView1)
 
-# trace defaults for the display properties.
-contour1Display.Representation = 'Surface'
-contour1Display.ColorArrayName = [None, '']
-contour1Display.LineWidth = 3.0
-contour1Display.OSPRayScaleArray = 'Normals'
-contour1Display.OSPRayScaleFunction = 'PiecewiseFunction'
-contour1Display.OSPRayMaterial = 'water'
-contour1Display.SelectOrientationVectors = 'None'
-contour1Display.ScaleFactor = 0.2871810391545296
-contour1Display.SelectScaleArray = 'None'
-contour1Display.GlyphType = 'Arrow'
-contour1Display.GlyphTableIndexArray = 'None'
-contour1Display.GaussianRadius = 0.014359051957726479
-contour1Display.SetScaleArray = ['POINTS', 'Normals']
-contour1Display.ScaleTransferFunction = 'PiecewiseFunction'
-contour1Display.OpacityArray = ['POINTS', 'Normals']
-contour1Display.OpacityTransferFunction = 'PiecewiseFunction'
-contour1Display.DataAxesGrid = 'GridAxesRepresentation'
-contour1Display.SelectionCellLabelFontFile = ''
-contour1Display.SelectionPointLabelFontFile = ''
-contour1Display.PolarAxes = 'PolarAxesRepresentation'
+  # trace defaults for the display properties.
+  contour1Display.Representation = 'Surface'
+  contour1Display.ColorArrayName = [None, '']
+  contour1Display.LineWidth = 3.0
+  contour1Display.OSPRayScaleArray = 'Normals'
+  contour1Display.OSPRayScaleFunction = 'PiecewiseFunction'
+  contour1Display.OSPRayMaterial = 'water'
+  contour1Display.SelectOrientationVectors = 'None'
+  contour1Display.ScaleFactor = 0.2871810391545296
+  contour1Display.SelectScaleArray = 'None'
+  contour1Display.GlyphType = 'Arrow'
+  contour1Display.GlyphTableIndexArray = 'None'
+  contour1Display.GaussianRadius = 0.014359051957726479
+  contour1Display.SetScaleArray = ['POINTS', 'Normals']
+  contour1Display.ScaleTransferFunction = 'PiecewiseFunction'
+  contour1Display.OpacityArray = ['POINTS', 'Normals']
+  contour1Display.OpacityTransferFunction = 'PiecewiseFunction'
+  contour1Display.DataAxesGrid = 'GridAxesRepresentation'
+  contour1Display.SelectionCellLabelFontFile = ''
+  contour1Display.SelectionPointLabelFontFile = ''
+  contour1Display.PolarAxes = 'PolarAxesRepresentation'
 
-# init the 'PiecewiseFunction' selected for 'OSPRayScaleFunction'
-contour1Display.OSPRayScaleFunction.Points = [0.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
+  # init the 'PiecewiseFunction' selected for 'OSPRayScaleFunction'
+  contour1Display.OSPRayScaleFunction.Points = [0.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
 
-# init the 'PiecewiseFunction' selected for 'ScaleTransferFunction'
-contour1Display.ScaleTransferFunction.Points = [-0.9999940991401672, 1.0, 0.5, 0.0, 0.9999958872795105, 1.0, 0.5, 0.0]
+  # init the 'PiecewiseFunction' selected for 'ScaleTransferFunction'
+  contour1Display.ScaleTransferFunction.Points = [-0.9999940991401672, 1.0, 0.5, 0.0, 0.9999958872795105, 1.0, 0.5, 0.0]
 
-# init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
-contour1Display.OpacityTransferFunction.Points = [-0.9999940991401672, 1.0, 0.5, 0.0, 0.9999958872795105, 1.0, 0.5, 0.0]
+  # init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
+  contour1Display.OpacityTransferFunction.Points = [-0.9999940991401672, 1.0, 0.5, 0.0, 0.9999958872795105, 1.0, 0.5, 0.0]
+
+
+if vol:
+  # show data from isoVolume1
+  isoVolume1Display = Show(isoVolume1, renderView1)
+
+  # trace defaults for the display properties.
+  isoVolume1Display.Representation = 'Surface'
+  isoVolume1Display.ColorArrayName = ['POINTS', '']
+  isoVolume1Display.OSPRayScaleFunction = 'PiecewiseFunction'
+  isoVolume1Display.OSPRayMaterial = 'water2'
+  isoVolume1Display.SelectOrientationVectors = 'None'
+  isoVolume1Display.ScaleFactor = 0.30000000000000004
+  isoVolume1Display.SelectScaleArray = 'vf'
+  isoVolume1Display.GlyphType = 'Arrow'
+  isoVolume1Display.GlyphTableIndexArray = 'vf'
+  isoVolume1Display.GaussianRadius = 0.015
+  isoVolume1Display.SetScaleArray = [None, '']
+  isoVolume1Display.ScaleTransferFunction = 'PiecewiseFunction'
+  isoVolume1Display.OpacityArray = [None, '']
+  isoVolume1Display.OpacityTransferFunction = 'PiecewiseFunction'
+  isoVolume1Display.DataAxesGrid = 'GridAxesRepresentation'
+  isoVolume1Display.SelectionCellLabelFontFile = ''
+  isoVolume1Display.SelectionPointLabelFontFile = ''
+  isoVolume1Display.ScalarOpacityUnitDistance = 0.01796577493112287
+
 
 # colors
 CR = [0.718, 0.204, 0.035]
@@ -329,35 +389,44 @@ CS = [0.6, 0.6, 0.6]
 matn = "None"
 matg = "glass2"
 
-# back
-box1Display = Show(box1, renderView1)
-box1Display.Representation = 'Surface'
-box1Display.OSPRayMaterial = matn
-box1Display.DiffuseColor = CB
+boxgl = 1
+boxcl = 1
 
-# left
-box2Display = Show(box2, renderView1)
-box2Display.Representation = 'Surface'
-box2Display.OSPRayMaterial = matn
-box2Display.DiffuseColor = CR
+if boxcl:
+  # back
+  box1Display = Show(box1, renderView1)
+  box1Display.Representation = 'Surface'
+  box1Display.OSPRayMaterial = matn
+  box1Display.DiffuseColor = CB
 
-# right
-box3Display = Show(box3, renderView1)
-box3Display.Representation = 'Surface'
-box3Display.OSPRayMaterial = matg
-box3Display.DiffuseColor = CS
+if boxcl:
+  # left
+  box2Display = Show(box2, renderView1)
+  box2Display.Representation = 'Surface'
+  box2Display.OSPRayMaterial = matn
+  box2Display.DiffuseColor = CR
 
-# bottom
-box4Display = Show(box4, renderView1)
-box4Display.Representation = 'Surface'
-box4Display.OSPRayMaterial = matn
-box4Display.DiffuseColor = CG
+if boxgl:
+  # right
+  box3Display = Show(box3, renderView1)
+  box3Display.Representation = 'Surface'
+  box3Display.OSPRayMaterial = matg
+  box3Display.DiffuseColor = CS
 
-# top
-#box5Display = Show(box5, renderView1)
-#box5Display.Representation = 'Surface'
-#box5Display.OSPRayMaterial = matg
-#box5Display.DiffuseColor = CS
+if boxcl:
+  # bottom
+  box4Display = Show(box4, renderView1)
+  box4Display.Representation = 'Surface'
+  box4Display.OSPRayMaterial = matn
+  box4Display.DiffuseColor = CG
+
+if boxcl:
+  pass
+  # top
+  #box5Display = Show(box5, renderView1)
+  #box5Display.Representation = 'Surface'
+  #box5Display.OSPRayMaterial = matg
+  #box5Display.DiffuseColor = CS
 
 # ----------------------------------------------------------------
 # finally, restore active source
