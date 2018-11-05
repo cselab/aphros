@@ -443,6 +443,38 @@ void Hydro<M>::Init() {
             fc_vel_[c][1] += v[1];
           }
         }
+      } else if (vi == "vortexring") {
+        Vect xc(var.Vect["ring_c"]); // center of ring
+        Vect n(var.Vect["ring_n"]);  // normal
+        n /= n.norm();
+        Scal om = var.Double["ring_om"];  // vorticity in crosssection
+        Scal r0 = var.Double["ring_r0"];  // inner radius
+        Scal r1 = var.Double["ring_r1"];  // outer radius
+        Scal qr = (r1 - r0) * 0.5;   // radius
+        Scal qc = (r1 + r0) * 0.5;   // center
+        // rotation in unit circle in 0,1, omega=2
+        auto rot0 = [](Vect x) {
+          return x.sqrnorm() < 1. ? Vect(-x[1], x[0], 0.) : Vect(0);
+        };
+        // rotation in circle at xc with radius r, omega=om
+        auto rot1 = [rot0](Vect x, Vect xc, Scal r, Scal om) {
+          return rot0((x - xc) / r) * om * r * 0.5;
+        };
+        // rotation in plane x,y
+        auto rot2 = [=](Vect x) {
+          return rot1(x, Vect(qc, 0., 0.), qr, om);
+        };
+        const Scal eps = 1e-10;
+        for (auto c : m.AllCells()) {
+          Vect x = m.GetCenter(c) - xc;
+          Scal r = std::max(eps, x.norm());
+          Scal xn = n.dot(x);
+          Vect t = x - n * xn;
+          t /= std::max(eps, t.norm());
+          Vect qx(r, xn, 0.);
+          Vect qv = rot2(qx);
+          fc_vel_[c] = t * qv[0] + n * qv[1];
+        }
       } else if (vi == "rot") {
         Vect xc(var.Vect["rot_c"]);
         Scal om = var.Double["rot_om"];
