@@ -271,6 +271,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::map<Scal, std::vector<Scal>> clmp_; // tmp map color to vector (only root)
   FieldCell<Vect> fcvm_; // velocity field time_prev // TODO: revise
 
+  FieldCell<Vect> fcyv_; // Young velocity
+
   using Sph = typename SA::Sph;
   std::vector<Sph> sa_ss_;
 
@@ -278,7 +280,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   std::function<void(FieldCell<typename M::Scal>&,const M&)> bgf_; // bubgen
   Scal bgt_ = -1.; // bubgen last time 
-
 
   struct Stat {
     Scal m1, m2; // mass
@@ -739,6 +740,17 @@ void Hydro<M>::Init() {
       Update(p.get());
 
       fcvm_ = fc_vel_;
+
+
+      // XXX ahoc: young velocity
+      if (var.Int["youngbc"]) {
+        fcyv_.Reinit(m);
+        InitYoung();
+        for (auto c : m.Cells()) {
+          Vect x = m.GetCenter(c);
+          fcyv_[c] = GetYoungVel(x);
+        }
+      }
 
       fs_.reset(new FS(
             m, fc_vel_, mf_velcond_, mc_velcond, 
@@ -1447,15 +1459,6 @@ void Hydro<M>::Dump(Sem& sem) {
         dumper_.Report();
       }
 
-
-      // XXX ahoc: young
-      InitYoung();
-      auto& fv = const_cast<FieldCell<Vect>&>(fs_->GetVelocity());
-      for (auto c : m.Cells()) {
-        Vect x = m.GetCenter(c);
-        fv[c] = GetYoungVel(x);
-      }
-
       auto dl = ParseList(var.String["dumplist"]);
       auto& fcv = fs_->GetVelocity();
       if (dl.count("vx")) m.Dump(&fcv, 0, "vx");
@@ -1473,6 +1476,11 @@ void Hydro<M>::Dump(Sem& sem) {
         if (dl.count("imx")) m.Dump(&im, 0, "imx");
         if (dl.count("imy")) m.Dump(&im, 1, "imy");
         if (dl.count("imz")) m.Dump(&im, 2, "imz");
+      }
+      if (var.Int["youngbc"]) {
+        if (dl.count("yvx")) m.Dump(&fcyv_, 0, "yvx");
+        if (dl.count("yvy")) m.Dump(&fcyv_, 1, "yvy");
+        if (dl.count("yvz")) m.Dump(&fcyv_, 2, "yvz");
       }
     }
   }
