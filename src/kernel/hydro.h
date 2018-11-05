@@ -234,10 +234,17 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     young_ini(GetYoungPar());
   }
   Vect GetYoungVel(Vect x) const {
-    Vect v(0);
-    Scal p, T;
     x -= Vect(0.5);
-    young_fields(x[1], x[0], &v[1], &v[0], &p, &T);
+    // 0: streamwise
+    // 1,2: crossstream with symmetry around 0-axis
+    Scal r = Vect(0, x[1], x[2]).norm();
+    Vect v(0);
+    Scal vc; // vel cross
+    young_fields(r, x[0], &vc, &v[0], nullptr, nullptr);
+    Scal e1 = x[1] / r;
+    Scal e2 = x[2] / r;
+    v[1] = vc * e1;
+    v[2] = vc * e2;
     return v;
   }
 
@@ -982,14 +989,6 @@ void Hydro<M>::CalcStat() {
             NoSlipWallFixed<M>*>(cb)) {
           cd->SetVelocity(GetYoungVel(x));
         } 
-      }
-      auto& fv = const_cast<FieldCell<Vect>&>(fs_->GetVelocity());
-      for (auto c : m.Cells()) {
-        Vect x = m.GetCenter(c);
-        Vect v(0);
-        Scal p, T;
-        young_fields(x[1], x[0], &v[1], &v[0], &p, &T);
-        fv[c] = v;
       }
     }
   }
