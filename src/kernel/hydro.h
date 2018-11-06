@@ -458,6 +458,7 @@ void Hydro<M>::InitVort() {
   }
   if (sem("vel")) {
     fc_vel_ = GetVort(fctv, GetBcVz(), m);
+    m.Comm(&fc_vel_);
   }
 }
 
