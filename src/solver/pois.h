@@ -29,9 +29,10 @@ class PoisSolver {
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
 
-  PoisSolver(const MapFace<std::shared_ptr<solver::CondFace>>& mf, M& m) {
+  PoisSolver(const MapFace<std::shared_ptr<solver::CondFace>>& mf, M& m) 
+      : m(m) {
     // zero-derivative bc for Scal
-    for (auto it : mf_velcond_) {
+    for (auto it : mf) {
       IdxFace i = it.GetIdx();
       mfz_[i] = std::make_shared<
           CondFaceGradFixed<Scal>>(0, it.GetValue()->GetNci());
@@ -69,10 +70,10 @@ class PoisSolver {
       m.Comm(&fc);
     }
   }
-  void Solve(FieldCell<T>& fcr) {
+  void Solve(FieldCell<Scal>& fcr) {
     auto sem = m.GetSem("pois");
     if (sem("assemble")) {
-      const FieldFace<Expr> ffe(m); // normal derivative
+      FieldFace<Expr> ffe(m); // normal derivative
       // set all faces
       for (auto f : m.Faces()) {
         auto& e = ffe[f];
@@ -81,12 +82,12 @@ class PoisSolver {
         IdxCell cp = m.GetNeighbourCell(f, 1);
         Vect dm = m.GetVectToCell(f, 0);
         Vect dp = m.GetVectToCell(f, 1);
-        Scal a = m.GetArea / (dp - dm).norm();
+        Scal a = m.GetArea(f) / (dp - dm).norm();
         e.InsertTerm(-a, cm);
         e.InsertTerm(a, cp);
       }
       // overwrite boundaries
-      for (auto it : mf) {
+      for (auto it : mfz_) {
         IdxFace f = it.GetIdx();
         IdxCell cm = m.GetNeighbourCell(f, 0);
         IdxCell cp = m.GetNeighbourCell(f, 1);
@@ -104,17 +105,25 @@ class PoisSolver {
           IdxFace f = m.GetNeighbourFace(c, q);
           e += ffe[f] * m.GetOutwardFactor(c, q);
         }
-        e += Expr(fcr[c] * m.GetVolume(c));
+        e += Expr(-fcr[c] * m.GetVolume(c));
       }
     }
     if (sem.Nested("solve")) {
-      LinSolve(fce_, fcu_, m)
+      LinSolve(fce_, fcu_, m);
     }
+    if (sem("comm")) {
+      m.Comm(&fcu_);
+      fce_.Free();
+    }
+  }
+  const FieldCell<Scal>& GetField() const {
+    return fcu_;
   }
 
  private:
-  FieldCell<Expr>& fce_;
-  FieldCell<Scal>& fcu_;
+  M& m;
+  FieldCell<Expr> fce_;
+  FieldCell<Scal> fcu_;
   MapFace<std::shared_ptr<solver::CondFace>> mfz_;
 };
 

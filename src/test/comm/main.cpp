@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <fstream>
 #include <limits>
+#include <cmath>
 
 #include "geom/mesh.h"
 #include "kernel/kernelmeshpar.h"
@@ -13,6 +14,7 @@
 #include "util/suspender.h"
 #include "solver/solver.h"
 #include "linear/linear.h"
+#include "solver/pois.h"
 
 template <class T>
 std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
@@ -50,7 +52,9 @@ class Simple : public KernelMeshPar<M_, GPar> {
   void TestComm();
   void TestSolve();
   void TestReduce();
+  void TestPois();
 
+  // TODO: revise 1e-10
   bool Cmp(Scal a, Scal b) { return std::abs(a - b) < 1e-10; }
   bool Cmp(Vect a, Vect b) { return a.dist(b) < 1e-10; }
   bool Cmp(MIdx a, MIdx b) { return a == b; }
@@ -68,11 +72,13 @@ class Simple : public KernelMeshPar<M_, GPar> {
   std::vector<Scal> lsx_;
   FieldCell<Scal> fc_sol_;
   FieldCell<Scal> fc_exsol_;
+  FieldCell<Scal> fcr_; // rhs
   Scal r_; // test Reduce
   std::pair<Scal, int> rsi_; // test Reduce minloc
   std::vector<Scal> rvs_; // reduction vector<Scal> (concatenation)
   std::vector<int> rvi_; // reduction vector<int> (concatenation)
   std::vector<std::vector<int>> rvvi_; // reduction vector<vector<int>> 
+  std::shared_ptr<solver::PoisSolver<M>> ps_;
 };
 
 template <class Idx, class M>
@@ -86,6 +92,21 @@ typename M::Scal DiffMax(
     r = std::max(r, std::abs(u[i] - v[i]));
   }
   return r;
+}
+
+template <class Idx, class M>
+typename M::Scal DiffMean(
+    const GField<typename M::Scal, Idx>& u,
+    const GField<typename M::Scal, Idx>& v,
+    const M& m) {
+  using Scal = typename M::Scal;
+  Scal r = 0;
+  Scal w = 0;
+  for (auto i : m.template GetIn<Idx>()) {
+    r += std::abs(u[i] - v[i]);
+    w += 1.;
+  }
+  return r / w;
 }
 
 template <class Idx, class M>
@@ -388,6 +409,9 @@ void Simple<M>::TestSolve() {
   }
 
   if (sem("init")) {
+    if (m.IsRoot()) {
+      std::cout << "\n\n*** TestSolve() ***" << std::endl;
+    }
     // exact solution
     fc_exsol_.Reinit(m);
     for (auto i : m.AllCells()) {
@@ -448,6 +472,60 @@ void Simple<M>::TestSolve() {
 }
 
 template <class M>
+void Simple<M>::TestPois() {
+  auto sem = m.GetSem("pois");
+  // exact solution
+  auto fe = [](Vect x) { 
+    Scal pi = M_PI;
+    Scal k = 2 * pi;
+    return std::sin(x[0] * k) * std::sin(x[1] * k) * std::sin(x[2] * k);
+  };
+  // rhs
+  auto fr = [=](Vect x, Vect h) { 
+    auto f = fe;
+    Vect h0(h[0], 0., 0.);
+    Vect h1(0., h[1], 0.);
+    Vect h2(0., 0., h[2]);
+    Scal d0 = (f(x - h0) - 2. * f(x) + f(x + h0)) / sqr(h[0]);
+    Scal d1 = (f(x - h1) - 2. * f(x) + f(x + h1)) / sqr(h[1]);
+    Scal d2 = (f(x - h2) - 2. * f(x) + f(x + h2)) / sqr(h[2]);
+    return d0 + d1 + d2;
+  };
+
+  if (sem("init")) {
+    if (m.IsRoot()) {
+      std::cout << "\n\n*** TestPois() ***" << std::endl;
+    }
+    // solver
+    MapFace<std::shared_ptr<solver::CondFace>> mf;
+    ps_ = std::make_shared<solver::PoisSolver<M>>(mf, m);
+    // exact solution
+    fc_exsol_.Reinit(m);
+    for (auto i : m.AllCells()) {
+      Vect x = m.GetCenter(i);
+      fc_exsol_[i] = fe(x);
+    }
+    // rhs
+    fcr_.Reinit(m);
+    for (auto i : m.AllCells()) {
+      Vect x = m.GetCenter(i);
+      fcr_[i] = fr(x, m.GetCellSize());
+    }
+  }
+  if (sem.Nested("solve")) {
+    ps_->Solve(fcr_);
+  }
+  if (sem("check")) {
+    fc_sol_ = ps_->GetField();
+    // Check
+    PCMP(Mean(fc_exsol_, m), Mean(fc_sol_, m));
+    PCMP(DiffMean(fc_exsol_, fc_sol_, m), 0.);
+    PCMP(DiffMax(fc_exsol_, fc_sol_, m), 0.);
+  }
+}
+
+
+template <class M>
 void Simple<M>::Run() {
   auto sem = m.GetSem("Run");
   if (sem.Nested("Comm")) {
@@ -458,6 +536,9 @@ void Simple<M>::Run() {
   }
   if (sem.Nested("Reduce")) {
     TestReduce();
+  }
+  if (sem.Nested("Pois")) {
+    TestPois();
   }
 }
 
