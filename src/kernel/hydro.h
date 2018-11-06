@@ -290,6 +290,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Vect> fcyv_; // Young velocity
   FieldCell<Vect> fcom_; // vorticity
   FieldCell<Scal> fcomm_; // vorticity magnitude
+  std::shared_ptr<solver::PoisSolver<M>> ps_; // Poisson solver for InitVort
 
   using Sph = typename SA::Sph;
   std::vector<Sph> sa_ss_;
@@ -432,10 +433,31 @@ auto Hydro<M>::GetBcSz() const -> MapFace<std::shared_ptr<solver::CondFace>> {
   return r;
 }
 
+// Compute velocity fc_vel_ from vorticity stored in fc_vel_
 template <class M>
 void Hydro<M>::InitVort() {
   auto sem = m.GetSem("initvort");
+  auto& fct = fcomm_;
+  auto& fctv = fcom_;
   if (sem("initpois")) {
+    ps_ = std::make_shared<solver::PoisSolver<M>>(GetBcSz(), m);
+    m.Comm(&fc_vel_);
+    fctv.Reinit(m);
+  }
+  for (size_t d = 0; d < M::dim; ++d) {
+    std::string dn = std::to_string(d);
+    if (sem("init-" + dn)) {
+      fct = GetComponent(fc_vel_, d);
+    }
+    if (sem.Nested("solve-" + dn)) {
+      ps_->Solve(fct);
+    }
+    if (sem("post-" + dn)) {
+      SetComponent(fctv, d, ps_->GetField());
+    }
+  }
+  if (sem("vel")) {
+    fc_vel_ = GetVort(fctv, GetBcVz(), m);
   }
 }
 
@@ -510,7 +532,7 @@ void Hydro<M>::Init() {
             fc_vel_[c][1] += v[1];
           }
         }
-      } else if (vi == "vortexring") {
+      } else if (vi == "vortexring") { // XXX: use with initvort=1
         Vect xc(var.Vect["ring_c"]); // center of ring
         Vect n(var.Vect["ring_n"]);  // normal
         n /= n.norm();
@@ -518,29 +540,20 @@ void Hydro<M>::Init() {
         Scal r0 = var.Double["ring_r0"];  // inner radius
         Scal r1 = var.Double["ring_r1"];  // outer radius
         Scal qr = (r1 - r0) * 0.5;   // radius
-        Scal qc = (r1 + r0) * 0.5;   // center
-        // rotation in unit circle in 0,1, omega=2
-        auto rot0 = [](Vect x) {
-          return x.sqrnorm() < 1. ? Vect(-x[1], x[0], 0.) : Vect(0);
-        };
-        // rotation in circle at xc with radius r, omega=om
-        auto rot1 = [rot0](Vect x, Vect xc, Scal r, Scal om) {
-          return rot0((x - xc) / r) * om * r * 0.5;
-        };
-        // rotation in plane x,y
-        auto rot2 = [=](Vect x) {
-          return rot1(x, Vect(qc, 0., 0.), qr, om);
-        };
+        Vect qc((r1 + r0) * 0.5, 0., 0.);   // center
         const Scal eps = 1e-10;
         for (auto c : m.AllCells()) {
           Vect x = m.GetCenter(c) - xc;
-          Scal r = std::max(eps, x.norm());
+          // along axis
           Scal xn = n.dot(x);
-          Vect t = x - n * xn;
-          t /= std::max(eps, t.norm());
-          Vect qx(r, xn, 0.);
-          Vect qv = rot2(qx);
-          fc_vel_[c] = t * qv[0] + n * qv[1];
+          // along plane
+          Scal xt = (x - n * xn).norm();
+          // unit along plane
+          Vect t = (x - n * xn) / std::max(eps, xt);
+          // unit along circle 
+          Vect s = n.cross(t);
+          Vect q(xt, xn, 0.);
+          fc_vel_[c] = ((q - qc).sqrnorm() <= sqr(qr) ? s * om : Vect(0));
         }
       } else if (vi == "rot") {
         Vect xc(var.Vect["rot_c"]);
