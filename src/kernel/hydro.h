@@ -1599,13 +1599,17 @@ void Hydro<M>::Dump(Sem& sem) {
         if (dl.count("yvy")) m.Dump(&fcyv_, 1, "yvy");
         if (dl.count("yvz")) m.Dump(&fcyv_, 2, "yvz");
       }
-      if (dl.count("omm")) { 
+      if (dl.count("omx") || dl.count("omy") || dl.count("omz") || 
+          dl.count("omm")) { 
         fcom_ = GetVort(fcv, GetBcVz(), m);
         fcomm_.Reinit(m);
         for (auto c : m.Cells()) {
           fcomm_[c] = fcom_[c].norm();
         }
-        m.Dump(&fcomm_, "omm");
+        if (dl.count("omx")) m.Dump(&fcom_, 0, "omx");
+        if (dl.count("omy")) m.Dump(&fcom_, 1, "omy");
+        if (dl.count("omz")) m.Dump(&fcom_, 2, "omz");
+        if (dl.count("omm")) m.Dump(&fcomm_, "omm");
       }
     }
   }

@@ -130,7 +130,8 @@ void DumpHDF5_MPI(const TGrid &grid, int /*iCounter*/, Real absTime,
 
   if (isroot) {
     std::cout 
-        << "HDF5 dump: "
+        << "HDF5 dump '"
+        << fullname << "': " 
         << "one rank " 
         << double(NX * NY * NZ * NCHANNELS * sizeof(Real)) 
             / (1 << 20) 
