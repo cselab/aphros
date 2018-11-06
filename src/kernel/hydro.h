@@ -38,6 +38,7 @@
 #include "debug/isnan.h"
 #include "solver/reconst.h"
 #include "young/young.h"
+#include "solver/pois.h"
 
 class GPar {};
 
@@ -66,6 +67,14 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
  private:
   void Init();
+  static FieldCell<Vect> GetVort(
+      const FieldCell<Vect>& fcv, 
+      const MapFace<std::shared_ptr<solver::CondFace>>& mf, M& m);
+  void InitVort();
+  // zero-gradient bc vect
+  MapFace<std::shared_ptr<solver::CondFace>> GetBcVz() const;
+  // zero-gradient bc scal
+  MapFace<std::shared_ptr<solver::CondFace>> GetBcSz() const;
   void Dump(Sem& sem);
   void DumpTraj(bool dm);
   void CalcMixture(const FieldCell<Scal>& vf);
@@ -279,6 +288,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Vect> fcvm_; // velocity field time_prev // TODO: revise
 
   FieldCell<Vect> fcyv_; // Young velocity
+  FieldCell<Vect> fcom_; // vorticity
+  FieldCell<Scal> fcomm_; // vorticity magnitude
 
   using Sph = typename SA::Sph;
   std::vector<Sph> sa_ss_;
@@ -371,6 +382,62 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Dumper dmptraj_; // dumper for traj
   Dumper dmptrep_; // dumper for timer report
 };
+
+// Computes vorticity of vector field.
+// fcv: vector field [s]
+// mf: boundary conditions for fcv
+// Returns:
+// fco: vorticity [i]
+template <class M>
+auto Hydro<M>::GetVort(const FieldCell<Vect>& fcv, 
+                       const MapFace<std::shared_ptr<solver::CondFace>>& mf,
+                       M& m) -> FieldCell<Vect> {
+  auto ffv = solver::Interpolate(fcv, mf, m);
+
+  auto d0 = solver::Gradient(GetComponent(ffv, 0), m);
+  auto d1 = solver::Gradient(GetComponent(ffv, 1), m);
+  auto d2 = solver::Gradient(GetComponent(ffv, 2), m);
+
+  FieldCell<Vect> r(m);
+  for (auto c : m.Cells()) {
+    r[c][0] = d2[c][1] - d1[c][2];
+    r[c][1] = d0[c][2] - d2[c][0];
+    r[c][2] = d1[c][0] - d0[c][1];
+  }
+
+  return r;
+}
+
+template <class M>
+auto Hydro<M>::GetBcVz() const -> MapFace<std::shared_ptr<solver::CondFace>> {
+  // zero-derivative bc for Vect
+  MapFace<std::shared_ptr<solver::CondFace>> r;
+  for (auto it : mf_velcond_) {
+    IdxFace f = it.GetIdx();
+    r[f] = std::make_shared<solver::
+      CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
+  }
+  return r;
+}
+
+template <class M>
+auto Hydro<M>::GetBcSz() const -> MapFace<std::shared_ptr<solver::CondFace>> {
+  // zero-derivative bc for Vect
+  MapFace<std::shared_ptr<solver::CondFace>> r;
+  for (auto it : mf_velcond_) {
+    IdxFace f = it.GetIdx();
+    r[f] = std::make_shared<solver::
+      CondFaceGradFixed<Scal>>(0., it.GetValue()->GetNci());
+  }
+  return r;
+}
+
+template <class M>
+void Hydro<M>::InitVort() {
+  auto sem = m.GetSem("initvort");
+  if (sem("initpois")) {
+  }
+}
 
 template <class M>
 void Hydro<M>::Init() {
@@ -724,6 +791,12 @@ void Hydro<M>::Init() {
         }
         ++n;
       }
+    }
+  }
+
+  if (sem.Nested("initvort")) {
+    if (var.Int["initvort"]) {
+      InitVort();
     }
   }
 
@@ -1221,9 +1294,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       MapFace<std::shared_ptr<solver::CondFace>> mfvz;
       for (auto it : mf_velcond_) {
         IdxFace i = it.GetIdx();
-        mfvz[i] = std::make_shared
-            <solver::CondFaceGradFixed<Vect>>(
-                Vect(0), it.GetValue()->GetNci());
+        mfvz[i] = std::make_shared<solver::
+          CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
       }
 
       // zero-derivative bc for Scal
@@ -1512,6 +1584,14 @@ void Hydro<M>::Dump(Sem& sem) {
         if (dl.count("yvx")) m.Dump(&fcyv_, 0, "yvx");
         if (dl.count("yvy")) m.Dump(&fcyv_, 1, "yvy");
         if (dl.count("yvz")) m.Dump(&fcyv_, 2, "yvz");
+      }
+      if (dl.count("omm")) { 
+        fcom_ = GetVort(fcv, GetBcVz(), m);
+        fcomm_.Reinit(m);
+        for (auto c : m.Cells()) {
+          fcomm_[c] = fcom_[c].norm();
+        }
+        m.Dump(&fcomm_, "omm");
       }
     }
   }
