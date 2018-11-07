@@ -136,7 +136,7 @@ open(mf, 'w').write('''
 materialLibrary1 = GetMaterialLibrary()
 materialLibrary1.LoadMaterials = mf
 
-W = 2000 if draft else 6000
+W = 1000 if draft else 6000
 q=2**0.5
 H=int(W*q)
 
@@ -172,7 +172,7 @@ renderView1.LightScale = 1.
 
 D = 10.
 RAD = 20.
-LI = 0.8
+LI = 1.
 light1 = CreateLight()
 light1.Radius = RAD
 light1.Intensity = LI
@@ -380,11 +380,24 @@ if vol:
   isoVolume1Display.ScalarOpacityUnitDistance = 0.01796577493112287
 
 
+
 # colors
 CR = [0.718, 0.204, 0.035]
 CG = [0.718, 0.71, 0.0]
 CB = [0.192, 0.361, 0.655]
 CS = [0.6, 0.6, 0.6]
+
+def Sc(c, k):
+  for i in range(len(c)):
+    c[i] *= k
+
+def Fade(c, k, c0=1.):
+  for i in range(len(c)):
+    c[i] = c[i] * k + c0 * (1. - k)
+
+Fade(CR, 0.5, 0.5)
+Fade(CG, 0.5, 0.5)
+Fade(CB, 0.5, 0.5)
 
 matn = "None"
 matg = "glass2"
