@@ -19,12 +19,28 @@ trn() {
   perl -pe 's/[-+]?\d*(?:\.?\d|\d\.)\d*(?:[eE][-+]?\d+)?/sprintf("%.6f",$&)/ge' | sed "s/-0\.000000/0.000000/g"
 }
 
+trntraj() {
+  cut -d',' -f 10 --complement | trn
+}
+
+trntrajsh() {
+  cut -d',' -f 22 --complement | trn
+}
+
 a=0
-for f in $r/* ; do
+for f in $r/traj_* ; do
   echo $f
   s=$(basename $f)
-  q="diff <( trn < $s ) <( trn < $f )"
-  #echo "$q"
+  q="diff <( trntraj < $s ) <( trntraj < $f )"
+  if ! eval "${q}" ; then
+    a=$((a+1))
+  fi
+done
+
+for f in $r/trajsh_* ; do
+  echo $f
+  s=$(basename $f)
+  q="diff <( trntrajsh < $s ) <( trntrajsh < $f )"
   if ! eval "${q}" ; then
     a=$((a+1))
   fi
