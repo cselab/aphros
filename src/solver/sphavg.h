@@ -309,6 +309,7 @@ void Sphavg<M_>::Update(
         for (auto w : bs) {
           MIdx wt = GetStd(w);
           Sph st = s;
+          Vect xd = st.x - GetStd(st.x); // shift from standard
           st.x = GetStd(st.x);
           if (bc.IsInside(wt)) {
             Vect x(Vect(w) * h);
@@ -316,7 +317,7 @@ void Sphavg<M_>::Update(
             IdxCell c = bd.GetIdx(wt);
             auto v = fcv[c]; // velocity
             a.b += b;
-            a.x += x * b;
+            a.x += (x + xd) * b;
             a.v += v * b;
             a.dvt += (v - fcvm[c]) * (b / dt);
 
