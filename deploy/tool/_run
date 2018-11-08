@@ -15,6 +15,7 @@ instfnd statcopy
 instfnd part0
 instfnd part
 instfnd diff
+instfnd diffnum
 instfnd makearg
 instfnd spawn
 instfnd task
