@@ -13,7 +13,6 @@ arg
 out
 job.id.last
 job.id
-*.dat
 base.conf
 mesh.conf
 np
