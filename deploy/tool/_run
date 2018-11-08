@@ -7,6 +7,7 @@ set -eu
 
 instfnd getcol
 instfnd gettraj
+instfnd gettrajsh
 instfnd deriv
 instfnd scale
 instfnd kedr
