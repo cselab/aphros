@@ -331,9 +331,14 @@ void Sphavg<M_>::Update(
             a.p += fcp[c] * b;
             a.vm += fcv[c].norm() * b;
             // velocity gradient
-            a.gvx += sdv(fcv, wt, 0) * b;
-            a.gvy += sdv(fcv, wt, 1) * b;
-            a.gvz += sdv(fcv, wt, 2) * b;
+            {
+              auto tx = sdv(fcv, wt, 0) * b;
+              auto ty = sdv(fcv, wt, 1) * b;
+              auto tz = sdv(fcv, wt, 2) * b;
+              a.gvx += Vect(tx[0], ty[0], tz[0]);
+              a.gvy += Vect(tx[1], ty[1], tz[1]);
+              a.gvz += Vect(tx[2], ty[2], tz[2]);
+            }
           }
         }
       }
@@ -358,6 +363,7 @@ void Sphavg<M_>::Update(
       }
       auto e = ss_.size();
       for (size_t i = 0; i < e; ++i) {
+        // append all to [i]
         for (size_t ii = i + e; ii < vv_.size(); ii += e) {
           for (size_t j = 0; j < vv_[i].size(); ++j) {
             vv_[i][j] += vv_[ii][j];
