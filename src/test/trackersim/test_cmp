@@ -1,0 +1,33 @@
+#!/bin/bash
+
+set -eu
+
+# test name
+t=$1  
+# config file
+c=_${t}.conf
+# reference
+r=ref${t}
+
+cp "$c" add.conf
+
+# run 
+make -f sim.makefile cleanrun
+
+# truncate to 1e-6
+trn() {
+  perl -pe 's/[-+]?\d*(?:\.?\d|\d\.)\d*(?:[eE][-+]?\d+)?/sprintf("%.6f",$&)/ge' | sed "s/-0\.000000/0.000000/g"
+}
+
+a=0
+for f in $r/* ; do
+  echo $f
+  s=$(basename $f)
+  q="diff <( trn < $s ) <( trn < $f )"
+  #echo "$q"
+  if ! eval "${q}" ; then
+    a=$((a+1))
+  fi
+done
+
+exit $a
