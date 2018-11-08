@@ -566,6 +566,19 @@ void Hydro<M>::Init() {
           v[1] = (x[0] - xc[0]) * om * 0.5;
           fc_vel_[c] = v;
         }
+      } else if (vi == "grad") {
+        Vect xc(var.Vect["grad_c"]);
+        Vect vx(var.Vect["grad_vx"]); // gradient of vel[0]
+        Vect vy(var.Vect["grad_vy"]); // gradient of vel[1]
+        Vect vz(var.Vect["grad_vz"]); // gradient of vel[2]
+        for (auto c : m.AllCells()) {
+          Vect x = m.GetCenter(c) - xc;
+          Vect v;
+          v[0] = vx.dot(x);
+          v[1] = vy.dot(x);
+          v[2] = vz.dot(x);
+          fc_vel_[c] = v;
+        }
       } else if (vi == "pois" || vi == "poisy") {
         // Poiseuille with walls in y
         
