@@ -1,0 +1,54 @@
+#!/usr/bin/env python
+
+import numpy as np
+import sys
+import os
+import re
+
+v = sys.argv
+
+if len(v) < 3:
+  sys.stderr.write(
+"""usage: {:} A B [EPS=1e-8]
+Compares words from A and B allowing tolerance EPS for numbers.
+Returns: 1 if different.
+STDOUT: first failed pair
+""".format(sys.argv[0]))
+  exit(1)
+
+fa = v[1]
+fb = v[2]
+e = float(v[3]) if len(v) > 3 else 1e-8
+
+# text
+ua = ' '.join(open(fa).readlines())
+ub = ' '.join(open(fb).readlines())
+
+# words
+pt='[ ,\t]'
+wa = re.split(pt, ua)
+wb = re.split(pt, ub)
+
+def E(a, b):
+  print("'{:}' '{:}'".format(a, b))
+  exit(1)
+
+la = len(wa)
+lb = len(wb)
+
+for i in range(max(la,lb)):
+  i < la or E('', wb[i])
+  i < lb or E(wa[i], '')
+
+  a = wa[i]
+  b = wb[i]
+  if a == b:
+    continue
+
+  try:
+    na = float(a)
+    nb = float(b)
+  except:
+    E(a, b)
+  abs(na - nb) < e or E(a, b)
+
