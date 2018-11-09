@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -eu
+
+./*.py `ls ../vf*xmf`
