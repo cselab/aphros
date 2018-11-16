@@ -982,7 +982,7 @@ def FigAng2(vf, kk, ll, po):
 
 def Univel():
     # directories
-    dd = ['ch', 'ge']
+    dd = ['ch', 'ge', 'ba']
     # labels
     ll = []
     # trajectories
@@ -1057,8 +1057,9 @@ def Univel():
     ll.append("exact")
 
     # lines
-    ll.append('mfer')
-    ll.append('gerris')
+    ll.append('ch')
+    ll.append('ge')
+    ll.append('ba')
     for d,l in zip(dd, ll):
         print(d)
         pp = Glob(d, "vf")
