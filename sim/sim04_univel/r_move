@@ -29,14 +29,14 @@ dg=$d/ge
 mkdir -p $dg
 copy ge/o/sc/* ge/main.gen.gfs ge/.main.gfs $dg/
 dgd=$dg/dat
-mkdir -p $dcd
+mkdir -p $dgd
 copy ge/u_*.vtk $dgd/
 
 db=$d/ba
-mkdir -p $dg
-copy ba/par.c $dg/
-dbd=$dg/dat
-mkdir -p $dcd
+mkdir -p $db
+copy ba/par.h $db/
+dbd=$db/dat
+mkdir -p $dbd
 copy ba/u_*.vtk $dbd/
 
 dt=$d/traj
