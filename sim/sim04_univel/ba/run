@@ -1,0 +1,10 @@
+#!/bin/bash -l
+
+set -eu
+
+. ba.setenv
+
+./pargen
+
+rm -f *.vtk
+make clean && make main.s && mpirun -n 1 main.s

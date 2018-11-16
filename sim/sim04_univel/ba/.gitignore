@@ -1,0 +1,6 @@
+main.s
+par.h
+*.vtk
+main.s.d
+Makefile.deps
+Makefile.tests
