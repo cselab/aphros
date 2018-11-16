@@ -4,6 +4,6 @@ set -eu
 
 dim=`cat dim`
 
-./vis${dim}.py ch ge || true
+./vis${dim}.py ch ge ba || true
 
 r.pngmp4 || true

@@ -32,6 +32,13 @@ dgd=$dg/dat
 mkdir -p $dcd
 copy ge/u_*.vtk $dgd/
 
+db=$d/ba
+mkdir -p $dg
+copy ba/par.c $dg/
+dbd=$dg/dat
+mkdir -p $dcd
+copy ba/u_*.vtk $dbd/
+
 dt=$d/traj
 mkdir -p $dt/pdf
 move traj*.pdf $dt/pdf
