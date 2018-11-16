@@ -45,7 +45,7 @@ event init (i = 0) {
   boundary ((scalar *){g});
 */
 
-  fraction (f, sq(BR) - (sq(x - BCX) + sq(y - BCY)));
+  fraction (f, sq(BR) - (sq(x - BCX) + sq(y - BCY) + sq(z - BCZ)));
 }
 
 event out (t += DUMPDT ; t < TMAX) {
