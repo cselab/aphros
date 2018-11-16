@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+
+import vtk
+import numpy as np
+import glob 
+import os
+
+
+# Write uniform grid data
+# u -- 2d or 3d array
+# p -- path
+# Format:
+# <Nx> <Ny> <Nz>
+# <u[0,0,0]> <u[1,0,0]> ...
+def Write(u, p):
+    s = u.shape
+    assert len(s) in [2, 3]
+    # reshape 2d to 3d
+    if (len(s) == 2):
+        u = u.reshape((s[0], s[1], 1))
+
+    with open(p, 'w') as f:
+        f.write("{:} {:} {:}\n".format(*u.shape))
+        u = u.flatten()
+        np.savetxt(f, u, newline='', fmt='%.16g ')
+
+
+# Dictionary of names of fields with corresponding aliases
+# key: name of field in vtk (e.g. T)
+# value: prefix of output (e.g. vf)
+def GetFields():
+    return {'f':'vf', 'u.x':'vx', 'u.y':'vy', 'u.z':'vz', 'p':'p'}
+
+# Path to dat from vtk
+# p: path to vtk
+# k: field name
+def GetDatPath(p, k):
+    d = os.path.dirname(p)
+    f = os.path.basename(p)
+    fn,fe = os.path.splitext(f)
+    s = fn[1:]  # suffix of filename without extension
+    return "{:}{:}.dat".format(k, s)
+
+# Converts vtk to plain format with external tool mfer.vtk2dat
+# p: path to vtk,.
+# ff: output of GetFields()
+def ConvertExt(p, ff):
+    for k in ff:
+        c = "mfer.vtkc2dat {:} {:} {:}".format(p, k, GetDatPath(p, ff[k]))
+        os.system(c)
+
+pp = sorted(glob.glob("*.vtk"))
+ff = GetFields()
+
+for p in pp:
+    ConvertExt(p, ff)
+

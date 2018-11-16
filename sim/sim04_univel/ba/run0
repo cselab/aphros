@@ -1,0 +1,7 @@
+#!/bin/bash -l
+
+set -eu
+
+. ba.setenv
+
+make main.s && mpirun -n 1 main.s

@@ -1,10 +1,47 @@
-#!/bin/bash -l
+#!/usr/bin/env python
 
-set -eu
+import os
+sh = os.system
 
-. ba.setenv
+def sh(s, fatal=True):
+    print(s)
+    r = os.system(s)
+    assert not fatal or r == 0
 
-./pargen
+if os.path.isfile("done"):
+    print("'done' found, exiting")
+    exit(0)
 
-rm -f *.vtk
-make clean && make main.s && mpirun -n 1 main.s
+c = {}
+exec(open("../par.py").read(), None, c)
+
+#if not c['ge']:
+#  exit(0)
+
+np = c['np']
+loc = True if np == 1 else False
+dim = c['dim']
+npexp = np.bit_length() - 1
+assert np == 2 ** npexp, "np=%r but must be power of 2" % np
+
+m = "main.gen.gfs"
+mspl = ".main.gfs"
+o = "out"
+
+l = locals()
+
+sh("./clean")
+sh("./pargen")
+
+for i in range(np):
+    os.makedirs("o/{:}".format(i))
+
+sh("./run0 |& tee -a {o}".format(**l))
+
+sh("./merge &>> {o}".format(**l))
+
+sh("./rename")
+
+sh("./convert &>> {o}".format(**l))
+
+sh("echo > done")

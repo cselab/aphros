@@ -4,6 +4,8 @@
 #include "tension.h"
 #include "vtk.h"
 
+#include "io/io.h"
+
 #include "par.h"
 
 int main() {
@@ -33,7 +35,7 @@ event init (i = 0) {
     u.y[] = VELY;
   }
 
-/*j
+/*
   boundary ({p});
   foreach() {
     foreach_dimension() {
@@ -49,9 +51,10 @@ event init (i = 0) {
 event out (t += DUMPDT ; t < TMAX) {
   static int frame = 0;
   char name[1000];
-  sprintf(name, "a_%04d_%04d.vtk", pid(), frame);
+  sprintf(name, "o/%d/u_%04d.vtk", pid(), frame);
+  //sprintf(name, "%04d.vtk", frame);
   ++frame;
   FILE * fp = fopen(name, "w");
   scalar * a = {u, p, f};
-  output_vtk(a, N, fp, 0);
+  io(a, fp);
 }

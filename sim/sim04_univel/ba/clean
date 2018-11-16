@@ -1,0 +1,9 @@
+set -eu
+
+rm -f *.dat *.vtk out
+rm -rf o
+rm -f main.gen.gfs .main.gfs .smain.gfs
+rm -f *.pdf
+rm -f done
+rm -f par.h
+rm -f main.s main.s.d Makefile.deps Makefile.tests

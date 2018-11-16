@@ -1,6 +1,6 @@
-main.s
 par.h
 *.vtk
+main.s
 main.s.d
 Makefile.deps
 Makefile.tests
