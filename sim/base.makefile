@@ -22,6 +22,9 @@ run: conf
 submit: conf
 	ch.submit ch.mfer
 
+submit2: conf
+	ch.submit2 ch.mfer
+
 kill:
 	ch.kill
 
