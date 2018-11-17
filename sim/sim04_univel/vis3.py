@@ -41,12 +41,14 @@ if len(av) < 3:
   sys.stderr.write('''usage: {:} ch ge
 ch: folder with s_*.vtk, interface from ch
 ge: folder with u_*.vtk, fields from gerris merged by mfer.cmerge
+ba: folder with u_*.vtk, fields from basilisk merged by mfer.cmerge
 '''.format(av[0]))
   exit(1)
 
 # base folder
 chdir = av[1]  # ch
 gedir = av[2]  # ge
+badir = av[3]  # ba
 
 # output pattern (:0 substituted by frame number)
 bo = "a_{:}.png"
@@ -112,16 +114,20 @@ def F(p):
   assert len(l) >= nfr, "found %r files by '%r', expected at least %r" % (len(l), p, nfr)
   return l[skipfirst:]
 
-# create a new 'XDMF Reader'
-fn = F(os.path.join(gedir, "u_*.vtk"))
-u_00 = LegacyVTKReader(FileNames=fn)
-
 # create a new 'CSV Reader'
 fn = F(os.path.join(chdir, "s_*.vtk"))
 s_00 = LegacyVTKReader(FileNames=fn)
 
+# create a new 'XDMF Reader'
+fn = F(os.path.join(gedir, "u_*.vtk"))
+u_00 = LegacyVTKReader(FileNames=fn)
+
+# create a new 'XDMF Reader'
+fn = F(os.path.join(badir, "u_*.vtk"))
+ub_00 = LegacyVTKReader(FileNames=fn)
+
 # list of all sources
-vs = [u_00, s_00]
+vs = [u_00, s_00, ub_00]
 
 # time steps
 vt = [np.array(s.TimestepValues) for s in vs]
@@ -129,9 +135,10 @@ vt = [np.array(s.TimestepValues) for s in vs]
 # replace with ForceTime
 u_00 = ForceTime(u_00)
 s_00 = ForceTime(s_00)
+ub_00 = ForceTime(ub_00)
 
 # all ForceTime
-vft = [u_00, s_00]
+vft = [u_00, s_00, ub_00]
 
 # ----------------------------------------------------------------
 # END READERS
@@ -153,6 +160,12 @@ contour1 = Contour(Input=transform1)
 contour1.ContourBy = ['POINTS', 'T']
 contour1.Isosurfaces = [0.5]
 contour1.PointMergeMethod = 'Uniform Binning'
+
+# create a new 'Contour'
+clpnt = CellDatatoPointData(Input=ub_00)
+contour2 = Contour(Input=clpnt)
+contour2.ContourBy = ['POINTS', 'f']
+contour2.Isosurfaces = [0.5]
 
 # ----------------------------------------------------------------
 # setup the visualization in view 'renderView1'
@@ -234,19 +247,36 @@ contour1Display.ScaleTransferFunction.Points = [-0.9715194702148438, 0.0, 0.5, 0
 # init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
 contour1Display.OpacityTransferFunction.Points = [-0.9715194702148438, 0.0, 0.5, 0.0, 0.9762166142463684, 1.0, 0.5, 0.0]
 
-# init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
-contour1Display.DataAxesGrid.XTitleFontFile = ''
-contour1Display.DataAxesGrid.YTitleFontFile = ''
-contour1Display.DataAxesGrid.ZTitleFontFile = ''
-contour1Display.DataAxesGrid.XLabelFontFile = ''
-contour1Display.DataAxesGrid.YLabelFontFile = ''
-contour1Display.DataAxesGrid.ZLabelFontFile = ''
+# show data from contour2
+contour2Display = Show(contour2, renderView1)
 
-# init the 'PolarAxesRepresentation' selected for 'PolarAxes'
-contour1Display.PolarAxes.PolarAxisTitleFontFile = ''
-contour1Display.PolarAxes.PolarAxisLabelFontFile = ''
-contour1Display.PolarAxes.LastRadialAxisTextFontFile = ''
-contour1Display.PolarAxes.SecondaryRadialAxesTextFontFile = ''
+# trace defaults for the display properties.
+contour2Display.Representation = 'Surface'
+contour2Display.ColorArrayName = [None, '']
+contour2Display.DiffuseColor = [0., 0.8, 0.]
+contour2Display.OSPRayScaleArray = 'Normals'
+contour2Display.OSPRayScaleFunction = 'PiecewiseFunction'
+contour2Display.SelectOrientationVectors = 'None'
+contour2Display.ScaleFactor = 0.03803172920884593
+contour2Display.SelectScaleArray = 'None'
+contour2Display.GlyphType = 'Arrow'
+contour2Display.GlyphTableIndexArray = 'None'
+contour2Display.GaussianRadius = 0.001901586460442296
+contour2Display.SetScaleArray = ['POINTS', 'Normals']
+contour2Display.ScaleTransferFunction = 'PiecewiseFunction'
+contour2Display.OpacityArray = ['POINTS', 'Normals']
+contour2Display.OpacityTransferFunction = 'PiecewiseFunction'
+contour2Display.DataAxesGrid = 'GridAxesRepresentation'
+contour2Display.SelectionCellLabelFontFile = ''
+contour2Display.SelectionPointLabelFontFile = ''
+contour2Display.PolarAxes = 'PolarAxesRepresentation'
+
+# init the 'PiecewiseFunction' selected for 'ScaleTransferFunction'
+contour2Display.ScaleTransferFunction.Points = [-0.9715194702148438, 0.0, 0.5, 0.0, 0.9762166142463684, 1.0, 0.5, 0.0]
+
+# init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
+contour2Display.OpacityTransferFunction.Points = [-0.9715194702148438, 0.0, 0.5, 0.0, 0.9762166142463684, 1.0, 0.5, 0.0]
+
 
 # show data from s_00
 s_00Display = Show(s_00, renderView1)
@@ -286,11 +316,6 @@ s_00Display.PolarAxes.PolarAxisTitleFontFile = ''
 s_00Display.PolarAxes.PolarAxisLabelFontFile = ''
 s_00Display.PolarAxes.LastRadialAxisTextFontFile = ''
 s_00Display.PolarAxes.SecondaryRadialAxesTextFontFile = ''
-
-# ----------------------------------------------------------------
-# finally, restore active source
-SetActiveSource(s_00)
-# ----------------------------------------------------------------
 
 #####################################################
 ### END OF STATE FILE

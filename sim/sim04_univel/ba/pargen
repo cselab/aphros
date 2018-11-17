@@ -40,6 +40,7 @@ with open("../b.dat", 'r') as f:
   c['bx'], c['by'], c['bz'], c['br'] = l[0:4]
 
 o = '''
+#define DIM {dim}
 #define VELX {vel[0]}
 #define VELY ({vel[1]})
 #define VELZ ({vel[2]})

@@ -136,7 +136,6 @@ u_00 = LegacyVTKReader(FileNames=fn)
 fn = F(os.path.join(badir, "u_*.vtk"))
 ub_00 = LegacyVTKReader(FileNames=fn)
 
-
 # list of all sources
 vs = [u_00, s_00, ub_00]
 
@@ -177,7 +176,6 @@ clpnt = CellDatatoPointData(Input=ub_00)
 contour2 = Contour(Input=clpnt)
 contour2.ContourBy = ['POINTS', 'f']
 contour2.Isosurfaces = [0.5]
-#contour2.PointMergeMethod = 'Uniform Binning'
 
 # create a new 'Outline'
 outline1 = Outline(Input=transform1)
