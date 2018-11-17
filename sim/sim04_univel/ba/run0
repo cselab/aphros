@@ -12,4 +12,5 @@ if [ "$dim" == "3" ] ; then
   g="multigrid3D"
 fi
 
-make CFLAGS="-grid=$g" main.s && mpirun -n "$np" main.s
+make CFLAGS="-grid=$g" main.s
+ba.run -n "$np" main.s
