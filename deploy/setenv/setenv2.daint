@@ -6,3 +6,4 @@ module swap PrgEnv-cray PrgEnv-gnu
 module load gcc 
 #module load cray-hdf5-parallel # TODO remove next line if ok
 module load cray-hdf5-parallel/1.8.16
+module load cray-python
