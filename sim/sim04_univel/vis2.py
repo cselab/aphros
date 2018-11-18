@@ -121,7 +121,7 @@ SetActiveView(renderView1)
 def F(p):
   global skipfirst
   l = GetFiles(p)
-  assert len(l) >= nfr, "found %r files by '%r', expected at least %r" % (len(l), p, nfr)
+  #assert len(l) >= nfr, "found %r files by '%r', expected at least %r" % (len(l), p, nfr)
   return l[skipfirst:]
 
 # create a new 'CSV Reader'
