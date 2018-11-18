@@ -316,11 +316,14 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     Vect meshpos;  // mesh position
     Vect meshvel;  // mesh velocity
     Scal ekin;  /// kinetic energy
+    Vect vlm; // max-norm of v-"vel"
+    Vect vl2; // l2-norm of v-"vel"
     Stat()
         : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
         , dtt(0), dt(0), dta(0), iter(0), dumpt(-1e10), step(0)
         , dumpn(0), meshpos(0), meshvel(0)
         , ekin(0)
+        , vlm(0), vl2(0)
     {}
     std::map<std::string, Scal> mst; // map stat
     // Add scalar field for stat.
@@ -974,6 +977,14 @@ void Hydro<M>::Init() {
           std::make_shared<output::OutScalFunc<Scal>>(
               "meshvelx", [this](){ return st_.meshvel[0]; }),
       };
+      if (var.Int["statvel"]) {
+        con.push_back(op("vlmx", &s.vlm[0]));
+        con.push_back(op("vlmy", &s.vlm[1]));
+        con.push_back(op("vlmz", &s.vlm[2]));
+        con.push_back(op("vl2x", &s.vl2[0]));
+        con.push_back(op("vl2y", &s.vl2[1]));
+        con.push_back(op("vl2z", &s.vl2[2]));
+      }
       ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
     }
 
@@ -1051,6 +1062,26 @@ void Hydro<M>::CalcStat() {
       m.Reduce(&s.v1[d], "sum");
       m.Reduce(&s.v2[d], "sum");
     }
+
+    if (var.Int["statvel"]) {
+      s.vlm = Vect(0);
+      s.vl2 = Vect(0);
+      Vect v0(var.Vect["vel"]);
+      for (auto c : m.Cells()) {
+        Scal o = m.GetVolume(c);
+        Scal a2 = fa[c];
+        Vect v = fv[c];
+        auto dv = (v - v0).abs();
+        for (size_t d = 0; d < dim; ++d) {
+          s.vlm[d] = std::max(s.vlm[d], dv[d] * a2);
+          s.vl2[d] += sqr(dv[d]) * o * a2;
+        }
+      }
+      for (size_t d = 0; d < dim; ++d) {
+        m.Reduce(&s.vlm[d], "max");
+        m.Reduce(&s.vl2[d], "sum");
+      }
+    }
   }
 
   if (sem("reduce")) {
@@ -1086,6 +1117,12 @@ void Hydro<M>::CalcStat() {
 
       st_.meshvel = fs_->GetPar()->meshvel;
       st_.meshpos += st_.meshvel * st_.dt;
+    }
+
+    if (var.Int["statvel"]) {
+      for (size_t d = 0; d < dim; ++d) {
+        s.vl2[d] = std::sqrt(s.vl2[d] * im2);
+      }
     }
   }
 
