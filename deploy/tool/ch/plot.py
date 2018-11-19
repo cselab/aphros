@@ -506,14 +506,16 @@ def GetDiff(pp, fld, ue):
     u1 = []
     u2 = []
     for i,p in enumerate(pp):
+        # read volume fraction
+        v = ReadArray(p)
         # read field
         u = ReadField(GetPathTemplate(p), fld)
         # difference
         du = abs(u - ue)
         # norms
         umax.append(du.max())
-        u1.append(du.mean())
-        u2.append((du ** 2).mean() ** 0.5)
+        u1.append((du * v).sum() / v.sum())
+        u2.append(((du ** 2 * v).sum() / v.sum()) ** 0.5)
     umax = np.array(umax)
     u1 = np.array(u1)
     u2 = np.array(u2)
@@ -1079,6 +1081,7 @@ def Univel():
         vy = GetAvgFld(pp, "vy")
         # velocity dimensionless factor
         q = mu / sig
+        q=1. # XXX
         if dim == 3:
             vzm, vz1, vz2 = GetDiff(pp, "vz", vele[2])
             vz = GetAvgFld(pp, "vz")
