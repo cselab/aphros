@@ -36,7 +36,7 @@ def StdParAll():
     wallx = [0, "wall in x direction, else periodic"]
     wally = [0, "wall in y direction, else periodic"]
     wallz = [0, "wall in z direction, else periodic"]
-    vel0 = [[4., 3., 2.], "direction of velocity"]
+    vel0 = [[1., 0.8, 0.6], "direction of velocity"]
     g0 = [[0., -1., 0.], "direction of gravity"]
     bcoh = [[0., 0., 0.], "offset of bubble center relative to h"]
     bcod = [[0., 0., 0.], "offset of bubble center relative to dom"]
