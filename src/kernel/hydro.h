@@ -318,12 +318,13 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     Scal ekin;  /// kinetic energy
     Vect vlm; // max-norm of v-"vel"
     Vect vl2; // l2-norm of v-"vel"
+    Scal p0, p1; // pressure min,max
     Stat()
         : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
         , dtt(0), dt(0), dta(0), iter(0), dumpt(-1e10), step(0)
         , dumpn(0), meshpos(0), meshvel(0)
         , ekin(0)
-        , vlm(0), vl2(0)
+        , vlm(0), vl2(0), p0(0), p1(0)
     {}
     std::map<std::string, Scal> mst; // map stat
     // Add scalar field for stat.
@@ -984,6 +985,8 @@ void Hydro<M>::Init() {
         con.push_back(op("vl2x", &s.vl2[0]));
         con.push_back(op("vl2y", &s.vl2[1]));
         con.push_back(op("vl2z", &s.vl2[2]));
+        con.push_back(op("p0", &s.p0));
+        con.push_back(op("p1", &s.p1));
       }
       ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
     }
@@ -1008,6 +1011,7 @@ void Hydro<M>::CalcStat() {
   auto& s = st_;
   auto& fa = as_->GetField();
   auto& fv = fs_->GetVelocity();
+  auto& fp = fs_->GetPressure();
 
   if (sem("stat-add")) {
     s.Add(fa, "vf", m);
@@ -1015,7 +1019,7 @@ void Hydro<M>::CalcStat() {
     s.Add(fv, 0, "vx", m);
     s.Add(fv, 1, "vy", m);
     s.Add(fv, 2, "vz", m);
-    s.Add(fs_->GetPressure(), "p", m);
+    s.Add(fp, "p", m);
   }
   if (sem("stat-print")) {
     if (var.Int["report_stat"] && m.IsRoot()) {
@@ -1066,6 +1070,8 @@ void Hydro<M>::CalcStat() {
     if (var.Int["statvel"]) {
       s.vlm = Vect(0);
       s.vl2 = Vect(0);
+      s.p0 = 1e10;
+      s.p1 = -1e10;
       Vect v0(var.Vect["vel"]);
       for (auto c : m.Cells()) {
         Scal o = m.GetVolume(c);
@@ -1076,11 +1082,15 @@ void Hydro<M>::CalcStat() {
           s.vlm[d] = std::max(s.vlm[d], dv[d] * a2);
           s.vl2[d] += sqr(dv[d]) * o * a2;
         }
+        s.p0 = std::min(s.p0, fp[c]);
+        s.p1 = std::max(s.p1, fp[c]);
       }
       for (size_t d = 0; d < dim; ++d) {
         m.Reduce(&s.vlm[d], "max");
         m.Reduce(&s.vl2[d], "sum");
       }
+      m.Reduce(&s.p0, "min");
+      m.Reduce(&s.p1, "max");
     }
   }
 
