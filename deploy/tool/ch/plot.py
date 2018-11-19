@@ -513,7 +513,7 @@ def GetDiff(pp, fld, ue):
         # difference
         du = abs(u - ue)
         # norms
-        umax.append(du.max())
+        umax.append((du * v).max())
         u1.append((du * v).sum() / v.sum())
         u2.append(((du ** 2 * v).sum() / v.sum()) ** 0.5)
     umax = np.array(umax)
