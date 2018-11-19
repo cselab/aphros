@@ -10,7 +10,7 @@ def sh(s, fatal=True):
 
 if os.path.isfile("done"):
     print("'done' found, exiting")
-    exit(0)
+    #exit(0)
 
 c = {}
 exec(open("../par.py").read(), None, c)

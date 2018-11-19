@@ -49,3 +49,32 @@ event out (t += DUMPDT ; t < TMAX) {
   scalar * a = {u, p, f};
   io(a, fp);
 }
+
+event logfile (i += 1) {
+  double xb = 0., yb = 0., zb = 0., sb = 0.;
+  double vbx = 0., vby = 0., vbz = 0.;
+  foreach(reduction(+:xb) reduction(+:yb) reduction(+:zb)
+   reduction(+:vbx) reduction(+:vby) reduction(+:vbz)
+   reduction(+:sb)) {
+    double dv = (1. - f[])*dv();
+    xb += x*dv;
+    yb += y*dv;
+    zb += z*dv;
+    vbx += u.x[]*dv;
+    vby += u.y[]*dv;
+    vbz += u.z[]*dv;
+    sb += dv;
+  }
+  static char* fn = "o/sc";
+  static FILE* f = NULL;
+  if (!f) {
+    f = fopen(fn, "w");
+    fprintf(f, "t m2 c2x c2y c2z v2x v2y v2z");
+  }
+  fprintf(f,
+    "%.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f\n",
+    t, sb,
+    xb/sb, yb/sb, zb/sb,
+    vbx/sb, vby/sb, vbz/sb);
+  fflush(f);
+}
