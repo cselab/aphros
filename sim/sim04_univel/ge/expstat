@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+
+import numpy as np
+import os
+
+pi = "stat.dat"
+po = "traj.dat"
+
+vv = ['t', 'm2', 'c2x', 'c2y', 'c2z', 'v2x', 'v2y', 'v2z', 
+        'vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z', 'pd']
+
+b = "o/sc/"
+
+# field to filename
+mm = {'c2x':'x', 'cy2':'y', 'c2z':'z', 'v2x':'vx', 'v2y':'vy', 'v2z':'vz'}
+
+# path
+def P(v):
+    r = ""
+    if v in mm:
+        v = mm[v]
+    return os.path.join(b, v)
+
+# number of rows
+def N():
+    return len(np.loadtxt(os.path.join(b, 't')))
+
+# column
+def C(v):
+    p = P(v)
+    if os.path.isfile(p):
+        return np.loadtxt(p)
+    elif v == "pd":
+        return C('p1') - C('p0')
+    else:
+        return np.zeros(N())
+
+
+dd = dict()
+
+for v in vv:
+    dd[v] = C(v)
+
+fo = open(po, 'w')
+
+def W(s):
+    fo.write(s + '\n')
+
+W(' '.join(vv))
+
+for i in range(N()):
+    W(' '.join([str(dd[v][i]) for v in vv]))

@@ -93,13 +93,13 @@ event logfile (i += 1) {
   static FILE* f = NULL;
   if (!f) {
     f = fopen(fn, "w");
-    fprintf(f, "t m2 c2x c2y c2z v2x v2y v2z p0 p1 vlmx vlmy vlmz vl2x vl2y vl2z\n");
+    fprintf(f, "t m2 c2x c2y c2z v2x v2y v2z p0 p1 pd vlmx vlmy vlmz vl2x vl2y vl2z\n");
   }
   fprintf(f,
-    "%.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f\n",
+    "%.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f\n",
     t, sb,
     xb/sb, yb/sb, zb/sb,
-    vbx/sb, vby/sb, vbz/sb, p0, p1,
+    vbx/sb, vby/sb, vbz/sb, p0, p1, p1 - p0,
     vlmx, vlmy, vlmz, 
     sqrt(vl2x/sb), sqrt(vl2y/sb), sqrt(vl2z/sb)
     );
