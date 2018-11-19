@@ -318,13 +318,13 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     Scal ekin;  /// kinetic energy
     Vect vlm; // max-norm of v-"vel"
     Vect vl2; // l2-norm of v-"vel"
-    Scal p0, p1; // pressure min,max
+    Scal p0, p1, pd; // pressure min,max
     Stat()
         : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
         , dtt(0), dt(0), dta(0), iter(0), dumpt(-1e10), step(0)
         , dumpn(0), meshpos(0), meshvel(0)
         , ekin(0)
-        , vlm(0), vl2(0), p0(0), p1(0)
+        , vlm(0), vl2(0), p0(0), p1(0), pd(0)
     {}
     std::map<std::string, Scal> mst; // map stat
     // Add scalar field for stat.
@@ -987,6 +987,7 @@ void Hydro<M>::Init() {
         con.push_back(op("vl2z", &s.vl2[2]));
         con.push_back(op("p0", &s.p0));
         con.push_back(op("p1", &s.p1));
+        con.push_back(op("pd", &s.pd));
       }
       ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
     }
@@ -1133,6 +1134,7 @@ void Hydro<M>::CalcStat() {
       for (size_t d = 0; d < dim; ++d) {
         s.vl2[d] = std::sqrt(s.vl2[d] * im2);
       }
+      s.pd = s.p1 - s.p0;
     }
   }
 
