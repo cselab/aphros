@@ -1,0 +1,60 @@
+#!/usr/bin/env python
+
+import numpy as np
+import os
+
+def sh(s, fatal=True):
+    print(s)
+    r = os.system(s)
+    assert not fatal or r == 0
+
+c = {}
+exec(open("par.py").read(), None, c)
+
+t = np.linspace(0., c['tmax'])
+
+dim = c['dim']
+
+br = c['bbr'][0]
+bc = c['bbc'][0]
+
+def A(u):
+    return t*0 + u
+
+r = br[0]
+m2 = np.pi * r ** 2 if dim == 2 else 4. / 3. * np.pi * r ** 3
+
+vel = c['vel']
+
+c2x = bc[0] + t * vel[0]
+c2y = bc[1] + t * vel[1]
+c2z = bc[2] + t * vel[2]
+
+v2x = vel[0]
+v2y = vel[1]
+v2z = vel[2]
+
+pd = c['sig'] / r
+if dim == 3: pd *= 2
+
+vv = ['t', 'm2', 'c2x', 'c2y', 'c2z', 'v2x', 'v2y', 'v2z', 'pd']
+
+od = "ex"
+
+sh("mkdir -p {:}".format(od))
+
+po = os.path.join(od, "traj.dat")
+
+print(po)
+fo = open(po, 'w')
+
+def W(s):
+    fo.write(s + '\n')
+
+dd = locals()
+
+W(' '.join(vv))
+
+for i in range(len(t)):
+    W(' '.join([str(A(dd[v])[i]) for v in vv]))
+

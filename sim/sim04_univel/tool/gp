@@ -1,0 +1,3 @@
+#!/bin/bash
+
+gnuplot ../a.gp
