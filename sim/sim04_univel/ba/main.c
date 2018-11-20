@@ -32,8 +32,12 @@ int main() {
     periodic (right);
   }
   
-  rho1 = RHO1, mu1 = MU1;
-  rho2 = RHO2, mu2 = RHO2, 
+  rho1 = RHO1; 
+  rho2 = RHO2; 
+
+  mu1 = MU1;
+  mu2 = MU2, 
+
   f.sigma = SIGMA;
 
   run();
@@ -55,7 +59,7 @@ event init (i = 0) {
 #endif
 }
 
-event out (t += DUMPDT ; t < TMAX) {
+event out (t += DUMPDT ; t <= TMAX) {
   static int frame = 0;
   char name[1000];
   sprintf(name, "o/%d/u_%04d.vtk", pid(), frame);
@@ -110,9 +114,7 @@ event logfile (i += 1) {
   if (!f) {
     f = fopen(fn, "w");
     fprintf(f, "t m2 c2x c2y c2z v2x v2y v2z p0 p1 pd vlmx vlmy vlmz vl2x vl2y vl2z\n");
-  } else {
-    f = fopen(fn, "a");
-  }
+  } 
 
   fprintf(f,
     "%.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f\n",
@@ -123,5 +125,5 @@ event logfile (i += 1) {
     sqrt(vl2x/sb), sqrt(vl2y/sb), sqrt(vl2z/sb)
     );
 
-  fclose(f);
+  fflush(f);
 }
