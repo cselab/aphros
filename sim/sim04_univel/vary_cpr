@@ -10,7 +10,7 @@ import ch
 sh = ch.sh
 
 a = ch.GetStdPar('out', 'We', 'La', 'tmax', 'dim', 'dumpdefault', 
-        'nfr', 'np', 'nx')
+        'nfr', 'np', 'nx', 'chsm')
 a['La'][0] = 1200.
 a['We'][0] = 0.01
 a['tmax'][0] = 1.
@@ -38,15 +38,18 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** np.arange(r0,r1,rs)):
     dumpdefault = c.dumpdefault
     np = c.np
     nfr = c.nfr
+    chsm = c.chsm
 
     sf = "dim{:}_cpr{:06.02f}_we{:06.03f}_la{:06.01f}".format(dim, cpr, We, La)
     ot = os.path.join(o, "run_{:}".format(sf))
     od = os.path.join(o, "dat_{:}".format(sf))
 
     cf = '''
-rm -f ch/done ge/done ba/gone
+rm -f ch/done ge/done ba/done
+
 ./gen -nx {nx} -cpr {cpr} -We {We} -La {La} -np {np} -nfr {nfr}  \
--dim {dim} -tmax {tmax} -mode vel
+-dim {dim} -tmax {tmax} -mode vel -chsm {chsm}
+
 echo "set int statvel 1" > ch/add.conf
 '''.format(**locals())
 
