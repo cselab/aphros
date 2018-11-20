@@ -37,6 +37,9 @@ v="pd"
 @s
 @m @r
 
+set logscale y
+set yrange [1e-4:10]
+
 v="vlmx"
 @s
 @m
