@@ -9,7 +9,7 @@ import ch
 
 sh = ch.sh
 
-a = ch.GetStdPar('out', 'We', 'La', 'tmax', 'dim', 'dumpdefault')
+a = ch.GetStdPar('out', 'We', 'La', 'tmax', 'dim', 'dumpdefault', 'nfr', 'np')
 a['La'][0] = 1200.
 a['We'][0] = 0.1
 a['tmax'][0] = 2.
@@ -17,6 +17,8 @@ a['cpr0'] = [0, "cpr range left"]
 a['cpr1'] = [8, "cpr range right"]
 a['cprs'] = [0.5, "cpr range step"]
 a['dim'][0] = 2
+a['np'][0] = 1
+a['nfr'][0] = 5
 c = ch.GetArgs(a)
 assert c.out is not None
 o = os.path.realpath(c.out)
@@ -32,6 +34,8 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** np.arange(r0,r1,rs)):
     #nx = max(nxm, ch.Upper2(2 * cpr * (1. + tmax)))
     nx = 128
     dumpdefault = c.dumpdefault
+    np = c.np
+    nfr = c.nfr
 
     sf = "dim{:}_cpr{:06.02f}_we{:06.03f}_la{:06.01f}".format(dim, cpr, We, La)
     ot = os.path.join(o, "run_{:}".format(sf))
@@ -39,7 +43,7 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** np.arange(r0,r1,rs)):
 
     cf = '''
 rm -f ch/done ge/done ba/gone
-./gen -nx {nx} -cpr {cpr} -We {We} -La {La}  \
+./gen -nx {nx} -cpr {cpr} -We {We} -La {La} -np {np} -nfr {nfr}  \
 -dim {dim} -tmax {tmax} -mode vel'''.format(**locals())
 
     sh("ch.task {:} > {:} <<< '{:}'".format(od, ot, cf))

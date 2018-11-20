@@ -14,8 +14,6 @@ double sqr(double a) {
 int main() {
   init_grid(1 << REFINE);
 
-  printf("dim=%d", dimension);
-
   origin (0.,0.,0.);
   foreach_dimension() {
     periodic (right);
