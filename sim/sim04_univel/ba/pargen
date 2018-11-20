@@ -34,10 +34,28 @@ c['gx'] = c['g'][0]
 c['gy'] = c['g'][1]
 c['gz'] = c['g'][2]
 
+ob = ""
 with open("../b.dat", 'r') as f:
-  l = f.readlines()[0]
-  l = list(map(float, l.split()))
-  c['bx'], c['by'], c['bz'], c['br'] = l[0:4]
+  ll = f.readlines()
+  if len(ll) > 0:
+    l = ll[0]
+    l = list(map(float, l.split()))
+    ob += '''
+#define BCX ({:})
+#define BCY ({:})
+#define BCZ ({:})
+#define BR ({:})
+    '''.format(*l);
+  if len(ll) > 1:
+    l = ll[1]
+    l = list(map(float, l.split()))
+    ob += '''
+#define BC2X ({:})
+#define BC2Y ({:})
+#define BC2Z ({:})
+#define BR2 ({:})
+
+    '''.format(*l);
 
 o = '''
 #define DIM {dim}
@@ -59,11 +77,9 @@ o = '''
 #define GX ({gx})
 #define GY ({gy})
 #define GZ ({gz})
-#define BCX ({bx})
-#define BCY ({by})
-#define BCZ ({bz})
-#define BR ({br})
 
 '''.format(**c)
+
+o += ob
 
 open("par.h", 'w').write(o)
