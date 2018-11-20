@@ -12,7 +12,8 @@ vv = ['t', 'm2', 'c2x', 'c2y', 'c2z', 'v2x', 'v2y', 'v2z',
 b = "o/sc/"
 
 # field to filename
-mm = {'c2x':'x', 'cy2':'y', 'c2z':'z', 'v2x':'vx', 'v2y':'vy', 'v2z':'vz'}
+mm = {'c2x':'x', 'c2y':'y', 'c2z':'z', 'v2x':'vx', 'v2y':'vy', 'v2z':'vz', 
+        'm2':'m'}
 
 # path
 def P(v):

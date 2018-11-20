@@ -20,21 +20,21 @@ copy b.dat par.py $d/
 
 dc=$d/ch
 mkdir -p $dc
-copy ch/{stat.dat,par.conf,add.conf,mesh.conf} $dc/
+copy ch/{stat.dat,par.conf,add.conf,mesh.conf,traj.dat} $dc/
 dcd=$dc/dat
 mkdir -p $dcd
 copy ch/*_*.dat ch/s_*.vtk $dcd/
 
 dg=$d/ge
 mkdir -p $dg
-copy ge/o/sc/* ge/main.gen.gfs ge/.main.gfs $dg/
+copy ge/o/sc/* ge/main.gen.gfs ge/.main.gfs ge/traj.dat $dg/
 dgd=$dg/dat
 mkdir -p $dgd
 copy ge/u_*.vtk $dgd/
 
 db=$d/ba
 mkdir -p $db
-copy ba/par.h $db/
+copy ba/par.h ba/traj.dat $db/
 dbd=$db/dat
 mkdir -p $dbd
 copy ba/u_*.vtk $dbd/

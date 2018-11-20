@@ -17,5 +17,5 @@ def W(s):
 
 W(' '.join(vv))
 
-for a in d:
-    W(' '.join(map(str, a)))
+for i in range(len(d)):
+    W(' '.join([str(d[i][v]) for v in vv]))

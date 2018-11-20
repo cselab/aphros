@@ -43,4 +43,6 @@ sh("./rename")
 
 sh("./convert &>> {o}".format(**l))
 
+sh("./expstat")
+
 sh("echo > done")
