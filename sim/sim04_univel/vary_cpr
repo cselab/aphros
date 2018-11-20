@@ -9,16 +9,18 @@ import ch
 
 sh = ch.sh
 
-a = ch.GetStdPar('out', 'We', 'La', 'tmax', 'dim', 'dumpdefault', 'nfr', 'np')
+a = ch.GetStdPar('out', 'We', 'La', 'tmax', 'dim', 'dumpdefault', 
+        'nfr', 'np', 'nx')
 a['La'][0] = 1200.
-a['We'][0] = 0.1
-a['tmax'][0] = 2.
+a['We'][0] = 0.01
+a['tmax'][0] = 1.
 a['cpr0'] = [0, "cpr range left"]
-a['cpr1'] = [8, "cpr range right"]
-a['cprs'] = [0.5, "cpr range step"]
+a['cpr1'] = [4, "cpr range right"]
+a['cprs'] = [0.25, "cpr range step"]
 a['dim'][0] = 2
 a['np'][0] = 1
 a['nfr'][0] = 5
+a['nx'][0] = 64
 c = ch.GetArgs(a)
 assert c.out is not None
 o = os.path.realpath(c.out)
@@ -32,7 +34,7 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** np.arange(r0,r1,rs)):
     We = c.We
     tmax = c.tmax
     #nx = max(nxm, ch.Upper2(2 * cpr * (1. + tmax)))
-    nx = 128
+    nx = c.nx
     dumpdefault = c.dumpdefault
     np = c.np
     nfr = c.nfr
@@ -44,7 +46,9 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** np.arange(r0,r1,rs)):
     cf = '''
 rm -f ch/done ge/done ba/gone
 ./gen -nx {nx} -cpr {cpr} -We {We} -La {La} -np {np} -nfr {nfr}  \
--dim {dim} -tmax {tmax} -mode vel'''.format(**locals())
+-dim {dim} -tmax {tmax} -mode vel
+echo "set int statvel 1" > ch/add.conf
+'''.format(**locals())
 
     sh("ch.task {:} > {:} <<< '{:}'".format(od, ot, cf))
     sh("chmod +x {:}".format(ot))
