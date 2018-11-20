@@ -44,4 +44,6 @@ sh("./pargen")
 sh("make m='{nx} {ny} {nz}' bs='{bx} {by} {bz}' np={np} run"
         .format(**locals()))
 
+sh("./expstat")
+
 sh("echo > done")
