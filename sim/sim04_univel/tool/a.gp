@@ -17,7 +17,7 @@ set linetype  4 lc rgb c3 lw 3
 set linetype cycle 9
 
 p="/traj.dat"
-m='plot for [f in "ch ba"] f.p u "t":v w l'
+m='plot for [f in "ch ba ge"] f.p u "t":v w l'
 r=', "ex".p u "t":v w l lc rgb "black" dt 2'
 s='set output "a".v.".pdf"'
 
