@@ -17,36 +17,47 @@ set linetype  4 lc rgb c3 lw 3
 set linetype cycle 9
 
 p="/traj.dat"
-ll="ch ba"
-m='plot for [f in "ch ba"] f.p u'
+m='plot for [f in "ch ba"] f.p u "t":v w l'
+r=', "ex".p u "t":v w l lc rgb "black" dt 2'
+s='set output "a".v.".pdf"'
 
-set output "ax.pdf"
-@m "t":"c2x" w l
+v="c2x"
+@s
+@m @r
 
-set output "ay.pdf"
-@m "t":"c2y" w l
+v="c2y"
+@s
+@m @r
 
-set output "az.pdf"
-@m "t":"c2z" w l
+v="c2z"
+@s
+@m @r
 
-set output "ap.pdf"
-@m "t":"pd" w l
+v="pd"
+@s
+@m @r
 
-set output "avlmx.pdf"
-@m "t":"vlmx" w l
+v="vlmx"
+@s
+@m
 
-set output "avlmy.pdf"
-@m "t":"vlmy" w l
+v="vlmy"
+@s
+@m
 
-set output "avlmz.pdf"
-@m "t":"vlmz" w l
+v="vlmz"
+@s
+@m
 
-set output "avl2x.pdf"
-@m "t":"vl2x" w l
+v="vl2x"
+@s
+@m
 
-set output "avl2y.pdf"
-@m "t":"vl2y" w l
+v="vl2y"
+@s
+@m
 
-set output "avl2z.pdf"
-@m "t":"vl2z" w l
+v="vl2z"
+@s
+@m
 
