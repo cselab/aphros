@@ -16,8 +16,13 @@ set linetype  3 lc rgb c1 lw 3
 set linetype  4 lc rgb c3 lw 3
 set linetype cycle 9
 
+
+if (!exists("ll")) {
+  ll = "ch ba ge"
+}
+
 p="/traj.dat"
-m='plot for [f in "ch ba ge"] f.p u "t":v w l'
+m='plot for [f in ll] f.p u "t":v w l'
 r=', "ex".p u "t":v w l lc rgb "black" dt 2'
 s='set output "a".v.".pdf"'
 

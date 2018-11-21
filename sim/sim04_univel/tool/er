@@ -1,0 +1,60 @@
+#!/usr/bin/env python
+
+# Prints error from exact solution.
+# $1: path to data folder (e.g. ch, ba, ge) (if absent, print only header)
+# Current folder:
+# ex/traj.dat: exact (output of ex)
+# par.conf
+
+import numpy as np
+import os
+import sys
+
+def sh(s, fatal=True):
+    print(s)
+    r = os.system(s)
+    assert not fatal or r == 0
+
+# output fields
+vv = ['cpr', 'dim', 'we', 'la', 'm2', 'v2x', 'v2y', 'v2z', 'pd', 
+        'vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z']
+
+av = sys.argv
+
+if len(av) < 2:
+    print(' '.join(vv))
+    exit()
+
+# config
+c = {}
+exec(open("par.py").read(), None, c)
+
+# exact
+ee = np.genfromtxt("ex/traj.dat", names=True)
+
+# target
+dd = np.genfromtxt(os.path.join(av[1], "traj.dat"), names=True)
+
+print(dd.dtype)
+
+dim = c['dim']
+
+oo = dict()
+oo['we'] = c['We']
+oo['la'] = c['La']
+oo['cpr'] = c['cpr']
+oo['dim'] = c['dim']
+
+# fields in ee
+l = ['v2x', 'v2y', 'v2z', 'pd', 'm2']
+for v in l:
+    e = ee[v][0]
+    oo[v] = (dd[v] - e).mean() / e
+
+# fields in dd
+l = ['vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z']
+for v in l:
+    oo[v] = dd[v].mean()
+
+print(' '.join([str(oo[v]) for v in vv]))
+
