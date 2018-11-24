@@ -3,7 +3,6 @@
 #include <exception>
 #include <memory>
 #include <cmath>
-#include <sstream>
 #include <string>
 
 #include "geom/mesh.h"
