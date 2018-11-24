@@ -15,6 +15,9 @@ def sh(s, fatal=True):
     r = os.system(s)
     assert not fatal or r == 0
 
+def W(s):
+    print(s)
+
 # output fields
 vv = ['cpr', 'dim', 'we', 'la', 'm2', 'v2x', 'v2y', 'v2z', 'pd', 
         'vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z']
@@ -22,7 +25,7 @@ vv = ['cpr', 'dim', 'we', 'la', 'm2', 'v2x', 'v2y', 'v2z', 'pd',
 av = sys.argv
 
 if len(av) < 2:
-    print(' '.join(vv))
+    W(' '.join(vv))
     exit()
 
 # config
@@ -34,8 +37,8 @@ ee = np.genfromtxt("ex/traj.dat", names=True)
 
 # target
 dd = np.genfromtxt(os.path.join(av[1], "traj.dat"), names=True)
-
-print(dd.dtype)
+# exclude first samples
+dd = dd[2:]
 
 dim = c['dim']
 
@@ -45,16 +48,36 @@ oo['la'] = c['La']
 oo['cpr'] = c['cpr']
 oo['dim'] = c['dim']
 
-# fields in ee
-l = ['v2x', 'v2y', 'v2z', 'pd', 'm2']
+# fields with relative error
+l = ['v2x', 'v2y', 'v2z', 'm2']
+if dim == 2:
+    l = [v for v in l if v not in ['v2z']]
+
 for v in l:
     e = ee[v][0]
     oo[v] = (dd[v] - e).mean() / e
 
-# fields in dd
+# fields normalized
+l = ['pd']
+for v in l:
+    e = ee[v][0]
+    oo[v] = (dd[v]).mean() / e
+
+# velocity in dd
+# convert to We
 l = ['vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z']
 for v in l:
-    oo[v] = dd[v].mean()
+    u = dd[v].mean()
+    rho = c['rho0']   # density
+    bd = c['bbr'][0][0] * 2   # diameter
+    sig = c['sig']
+    we = rho * u ** 2 * bd / sig
+    oo[v] = we
 
-print(' '.join([str(oo[v]) for v in vv]))
+# zero dim = 2
+if dim == 2:
+    for v in ['v2z', 'vlmz', 'vl2z']:
+        oo[v] = 0.
+
+W(' '.join([str(oo[v]) for v in vv]))
 
