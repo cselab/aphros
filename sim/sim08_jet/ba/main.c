@@ -4,17 +4,30 @@
 #include "two-phase.h"
 #include "tension.h"
 #include "vtk.h"
+#include <mpi.h>
 
 #include "io/io.h"
 
 scalar f0[];
-double uin = 1.;
-u.n[top]  = dirichlet(-f0[] * uin);
-u.t[top]  = dirichlet(0);
-u.r[top]  = dirichlet(0);
-p[top]    = neumann(0);
-f[top]    = f0[];
-u.n[bottom] = neumann(0);
+double uin = INV;
+u.n[top]  = dirichlet(f0[] * uin);
+f[top]    = 1. - f0[];
+//u.t[top]  = dirichlet(0);
+//u.r[top]  = dirichlet(0);
+//p[top]    = neumann(0);
+/*
+u.n[left]  = (y > OUTY0 && y < OUTY1 ? neumann(0) : dirichlet(0));
+u.n[right]  = (y > OUTY0 && y < OUTY1 ? neumann(0) : dirichlet(0));
+u.n[front]  = (y > OUTY0 && y < OUTY1 ? neumann(0) : dirichlet(0));
+u.n[back]  = (y > OUTY0 && y < OUTY1 ? neumann(0) : dirichlet(0));
+*/
+
+u.n[left]  = neumann(0);
+u.n[right]  = neumann(0);
+u.n[front]  = neumann(0);
+u.n[back]  = neumann(0);
+
+//u.n[bottom] = neumann(0);
 p[bottom]   = dirichlet(0);
 
 
@@ -22,7 +35,8 @@ int main() {
   init_grid(NX);
 
   origin(0., 0., 0.);
-  dimensions(nx = 1, ny = EXTENT, nz = 1);
+  dimensions(nx = 4, ny = 16, nz = 4);
+  //size(1.);
 
   rho1 = RHO1; 
   rho2 = RHO2; 
@@ -36,18 +50,22 @@ int main() {
 }
 
 event init (i = 0) {
-  double R = 0.2;
-  fraction(f0, sq(R) - sq(x - 0.5) - sq(z - 0.5));
-
-  fraction(f, 0.);
+  double x0 = INX0;
+  double x1 = INX1;
+  double R = (x1 - x0);
+  //fraction(f0, -min(min(min(x - x0, x1 - x), z - x0), x1 - z));
+  fraction(f0, sq(R) - (sq(x - 0.5) + sq(z - 0.5)));
+  fraction(f, y - (EXTENT - AIRGAP));
 }
+
 
 // gravity
 event acceleration (i++) {
   face vector av = a;
   foreach_face(y)
-    av.y[] = GY;
+    av.y[] += GY;
 }
+
 
 event out (t += DUMPDT ; t <= TMAX) {
   static int frame = 0;
@@ -55,12 +73,17 @@ event out (t += DUMPDT ; t <= TMAX) {
   sprintf(name, "o/%d/u_%04d.vtk", pid(), frame);
   ++frame;
   FILE * fp = fopen(name, "w");
-  scalar * a = {u, p, f};
+  //scalar * a = {u, p, f};
+  scalar * a = {f};
   io(a, fp);
 }
 
 event statout (i += 10) {
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (rank == 0) {
   printf("step i=%05d t=%g\n", i, t);
+  }
 }
 
 event logfile (i += 1) {
@@ -103,6 +126,10 @@ event logfile (i += 1) {
 
   sb = fmax(sb, 1e-10);
 
+  //int rank;
+  //MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  //if (rank == 0) {
+
   if (!f) {
     f = fopen(fn, "w");
     fprintf(f, "t m2 c2x c2y c2z v2x v2y v2z p0 p1 pd vlmx vlmy vlmz vl2x vl2y vl2z\n");
@@ -118,4 +145,5 @@ event logfile (i += 1) {
     );
 
   fflush(f);
+  //}
 }

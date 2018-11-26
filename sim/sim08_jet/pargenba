@@ -17,7 +17,7 @@ def Exp():
 
     # Case h = 43 mm
     Ui = 3.78
-    Di =  6.01e-3 * 2
+    Di =  6.01e-3
 
     ###
     Re = Ui * Di / nu
@@ -36,7 +36,7 @@ def Sim(c):
 
     # domain 
     W = 1. # width
-    L = 1. # length
+    L = 4. # length
     assert L >= W
 
     # square nozzle
@@ -48,8 +48,8 @@ def Sim(c):
     
     # time
     tun = W / U  # unit
-    tmax = tun * 1.
-    dumpdt = tun * 0.01
+    tmax = tun * 5.
+    dumpdt = tmax * 0.1
 
     # air gap
     airgap = W * 0.3
@@ -67,22 +67,18 @@ def Sim(c):
     g = U ** 2 / Fr ** 2 / DC
 
     # gas, ratio to liquid
-    mu = 0.01
-    rho = 0.01
+    mu = 0.1
+    rho = 0.1
 
     # mesh
-    nx = 32
-    #nx = 128
-    #nx = 64 # XXX
+    nx = 128
     ny = int(nx * L / W + 0.5)
     nz = nx
 
     # block size
     bs = 16
     # cores
-    np = 1
-    #np = 1024
-    #np = 192 # XXX
+    np = 256
     # time limit (minutes)
     tl = 1440
 
@@ -216,6 +212,13 @@ def GenBa(c):
 #define GZ (0)
 #define EXTENT ({L})
 #define AIRGAP ({airgap})
+
+#define INV ({inv})
+#define INX0 ({inx0})
+#define INX1 ({inx1})
+
+#define OUTY0 ({outy0})
+#define OUTY1 ({outy1})
 
 /*
 # bc boxes

@@ -33,8 +33,6 @@ sh("./run0 {dim} {np} |& tee -a {o}".format(**l))
 
 sh("./merge &>> {o}".format(**l))
 
-sh("./rename")
-
 sh("./expstat")
 
 sh("echo > done")
