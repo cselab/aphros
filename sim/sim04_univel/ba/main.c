@@ -5,7 +5,7 @@
 #include "tension.h"
 #include "vtk.h"
 
-#include "io/io.h"
+#include "io/iompi.h"
 
 double sqr(double a) {
   return a * a;
@@ -64,9 +64,9 @@ event out (t += DUMPDT ; t <= TMAX) {
   char name[1000];
   sprintf(name, "o/%d/u_%04d.vtk", pid(), frame);
   ++frame;
-  FILE * fp = fopen(name, "w");
+  //FILE * fp = fopen(name, "w");
   scalar * a = {u, p, f};
-  io(a, fp);
+  iompi(a, name);
 }
 
 event statout (i += 10) {
