@@ -194,12 +194,15 @@ void Hypre::Solve() {
 
   //////// SOLVE
   if (solver_ == "pcg+smg" || solver_ == "pcg") {
+    HYPRE_StructPCGSetup(hd->solver, hd->a, hd->r, hd->x);
     HYPRE_StructPCGSolve(hd->solver, hd->a, hd->r, hd->x);
   }
   if (solver_ == "smg") {
+    HYPRE_StructSMGSetup(hd->solver, hd->a, hd->r, hd->x);
     HYPRE_StructSMGSolve(hd->solver, hd->a, hd->r, hd->x);
   }
   if (solver_ == "gmres") {
+    HYPRE_StructGMRESSetup(hd->solver, hd->a, hd->r, hd->x);
     HYPRE_StructGMRESSolve(hd->solver, hd->a, hd->r, hd->x);
   }
 
