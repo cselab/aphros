@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+import os
+sh = os.system
+
+def sh(s, fatal=True):
+    print(s)
+    r = os.system(s)
+    assert not fatal or r == 0
+
+if os.path.isfile("done"):
+    print("'done' found, exiting")
+    #exit(0)
+
+c = {}
+
+np = int(open('_np').read())
+npexp = np.bit_length() - 1
+assert np == 2 ** npexp, "np=%r but must be power of 2" % np
+
+dim = 3
+
+o = "out"
+
+l = locals()
+
+sh("./clean")
+
+for i in range(np if dim == 2 else 1):
+    os.makedirs("o/{:}".format(i))
+
+sh("./run0 {dim} {np} |& tee -a {o}".format(**l))
+
+sh("./merge &>> {o}".format(**l))
+
+sh("./expstat")
+
+sh("echo > done")
