@@ -223,6 +223,8 @@ static int iompi(scalar *list, char* fn) {
 
     free(bc);
 
+    ir && fclose(f);
+
     return 0;
 #   undef p
 }

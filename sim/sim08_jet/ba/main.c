@@ -1,12 +1,14 @@
 #include "par.h"
 
+#define FILTERED
+
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
 #include "tension.h"
 #include "vtk.h"
 #include <mpi.h>
 
-#include "io/io.h"
+#include "io/iompi.h"
 
 scalar f0[];
 double uin = INV;
@@ -15,17 +17,21 @@ f[top]    = 1. - f0[];
 //u.t[top]  = dirichlet(0);
 //u.r[top]  = dirichlet(0);
 //p[top]    = neumann(0);
-/*
+
+
 u.n[left]  = (y > OUTY0 && y < OUTY1 ? neumann(0) : dirichlet(0));
 u.n[right]  = (y > OUTY0 && y < OUTY1 ? neumann(0) : dirichlet(0));
 u.n[front]  = (y > OUTY0 && y < OUTY1 ? neumann(0) : dirichlet(0));
 u.n[back]  = (y > OUTY0 && y < OUTY1 ? neumann(0) : dirichlet(0));
-*/
 
+
+
+/*
 u.n[left]  = neumann(0);
 u.n[right]  = neumann(0);
 u.n[front]  = neumann(0);
 u.n[back]  = neumann(0);
+*/
 
 //u.n[bottom] = neumann(0);
 p[bottom]   = dirichlet(0);
@@ -36,6 +42,7 @@ int main() {
 
   origin(0., 0., 0.);
   dimensions(nx = 4, ny = 16, nz = 4);
+  //dimensions(nx = 2, ny = 8, nz = 2);
   //size(1.);
 
   rho1 = RHO1; 
@@ -46,24 +53,44 @@ int main() {
 
   f.sigma = SIGMA;
 
+  //f.sigma = 0;
+  //rho2 = RHO1; 
+  //mu2 = MU1, 
+
+
   run();
 }
 
 event init (i = 0) {
   double x0 = INX0;
   double x1 = INX1;
-  double R = (x1 - x0);
+  double k = sqrt(4. / pi);
+  double R = (x1 - x0) * 0.5 * k;
   //fraction(f0, -min(min(min(x - x0, x1 - x), z - x0), x1 - z));
   fraction(f0, sq(R) - (sq(x - 0.5) + sq(z - 0.5)));
   fraction(f, y - (EXTENT - AIRGAP));
+
+  DT = 1e-4
 }
 
 
+/*
 // gravity
 event acceleration (i++) {
   face vector av = a;
   foreach_face(y)
     av.y[] += GY;
+}
+*/
+
+event updatedt (i++) {
+  if (t < 1e-2) {
+    DT = 1e-4;
+    //TOLERANCE = 1e-2;
+  } else {
+    DT = 1e-3 * 0.2;
+    //TOLERANCE = 1e-2;
+  }
 }
 
 
@@ -72,17 +99,16 @@ event out (t += DUMPDT ; t <= TMAX) {
   char name[1000];
   sprintf(name, "o/%d/u_%04d.vtk", pid(), frame);
   ++frame;
-  FILE * fp = fopen(name, "w");
   //scalar * a = {u, p, f};
   scalar * a = {f};
-  io(a, fp);
+  iompi(a, name);
 }
 
-event statout (i += 10) {
+event statout (i += 1) {
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank == 0) {
-  printf("step i=%05d t=%g\n", i, t);
+  printf("step i=%05d t=%g dt=%g \n", i, t ,dt);
   }
 }
 

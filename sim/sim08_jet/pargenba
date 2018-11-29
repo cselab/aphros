@@ -48,8 +48,8 @@ def Sim(c):
     
     # time
     tun = W / U  # unit
-    tmax = tun * 5.
-    dumpdt = tmax * 0.1
+    tmax = tun * 10.
+    dumpdt = tmax / 100.
 
     # air gap
     airgap = W * 0.3
@@ -69,6 +69,8 @@ def Sim(c):
     # gas, ratio to liquid
     mu = 0.1
     rho = 0.1
+    mu = 1.
+    rho = 1.
 
     # mesh
     nx = 128
@@ -78,7 +80,7 @@ def Sim(c):
     # block size
     bs = 16
     # cores
-    np = 256
+    np = 256 // 1
     # time limit (minutes)
     tl = 1440
 

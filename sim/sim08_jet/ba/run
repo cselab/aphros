@@ -26,7 +26,7 @@ l = locals()
 
 sh("./clean")
 
-for i in range(np):
+for i in range(np if dim == 2 else 1):
     os.makedirs("o/{:}".format(i))
 
 sh("./run0 {dim} {np} |& tee -a {o}".format(**l))

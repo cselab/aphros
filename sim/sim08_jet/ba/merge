@@ -10,7 +10,12 @@ mkdir -p $o
 
 for p in $i/0/*.vtk ; do
   f=`basename "$p"` 
+  of="$o/$f"
+  if [ -f "$of" ] ; then
+    echo "Skip existing '$of'"
+    continue
+  fi
   echo $f
-  c="mfer.cmerge $i/*/$f $o/$f"
+  c="mfer.cmerge $i/*/$f $of"
   eval "$c"
 done
