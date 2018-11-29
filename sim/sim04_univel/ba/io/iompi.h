@@ -207,7 +207,7 @@ static int iompi(scalar *list, char* fn) {
 
         int i = 0;
         for (int c = 0; c < gnc; ++c) {
-          fprintf(f, "%f ", b[i++]);
+          fprintf(f, "%.10g ", b[i++]);
           fprintf(f, "\n");
         }
         assert0(i == gnc);
