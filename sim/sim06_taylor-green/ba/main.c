@@ -22,15 +22,15 @@ int main() {
   foreach_dimension() {
     periodic (right);
   }
-  dimensions(nx = 8, ny = 8, nz = 4);
+  dimensions(nx = 4, ny = 4, nz = 4);
 
   size(EXTENT);
 
-  rho1 = RHO1; 
-  rho2 = RHO2; 
+  rho1 = RHO2; 
+  rho2 = RHO1; 
 
-  mu1 = MU1;
-  mu2 = MU2, 
+  mu1 = MU2;
+  mu2 = MU1, 
 
   f.sigma = SIGMA;
 

@@ -15,8 +15,6 @@ if os.path.isfile("done"):
 c = {}
 
 np = int(open('_np').read())
-npexp = np.bit_length() - 1
-assert np == 2 ** npexp, "np=%r but must be power of 2" % np
 
 dim = 3
 
