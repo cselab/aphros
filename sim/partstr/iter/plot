@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+
+import numpy as np
+
+f = "part.log"
+
+d = np.genfromtxt(f, names=True, dtype=(int, int, float, float))
+print(d.dtype)
+
+ns = d['string'].max() + 1
+
+h = dict()
+
+#for s in range(ns)[:10]:
+#    h[s] = d['res'][np.where(d['string'] == s)]
+
+r = d['res']
+
+print("ns={:}".format(ns))
+
+assert len(r) % ns == 0
+
+r = r.reshape((ns, len(r) // ns))
+
+rm = np.mean(r, axis=0)
+rs = np.exp(np.std(np.log(r), axis=0))
+
+np.savetxt('o', np.array((rm, rs)).T)
