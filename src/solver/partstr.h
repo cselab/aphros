@@ -188,7 +188,7 @@ class PartStr {
       Scal r = rit.first;
       size_t it = rit.second;
       // report
-      if (verb && s % std::max<size_t>(1, GetNumStr() / 10) == 0) {
+      if (verb && s % std::max<size_t>(1, GetNumStr() / 100) == 0) {
         auto fl = std::cout.flags();
         std::cout.precision(16);
         std::cout 
