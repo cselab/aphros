@@ -7,7 +7,6 @@ f = "part.log"
 d = np.genfromtxt(f, names=True, dtype=(int, int, float, float))
 print(d.dtype)
 
-ns = d['string'].max() + 1
 
 h = dict()
 
@@ -16,13 +15,15 @@ h = dict()
 
 r = d['res']
 
-print("ns={:}".format(ns))
 
+ns = d['string'].max() + 1
+print("ns={:}".format(ns))
 assert len(r) % ns == 0
 
 r = r.reshape((ns, len(r) // ns))
 
 rm = np.mean(r, axis=0)
-rs = np.exp(np.std(np.log(r), axis=0))
+r0 = np.min(r, axis=0)
+r1 = np.max(r, axis=0)
 
-np.savetxt('o', np.array((rm, rs)).T)
+np.savetxt('iter.dat', np.array((rm, r0, r1)).T)
