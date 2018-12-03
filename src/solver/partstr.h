@@ -6,6 +6,7 @@
 #include <limits>
 #include <vector>
 #include <iomanip>
+#include <fstream>
 
 #include "geom/vect.h"
 #include "reconst.h"
@@ -177,10 +178,14 @@ class PartStr {
   // Iterations for all strings until convergence.
   // tol: tolerance
   // itermax: maximum number of iterations
-  // verb: 1: debug output
+  // verb: 1: debug output for 10 strings, 2: full log
   // Returns:
   // max over all Run0()
-  std::pair<Scal, size_t> Run(Scal tol, size_t itermax, bool verb) {
+  std::pair<Scal, size_t> Run(Scal tol, size_t itermax, int verb) {
+    if (verb == 2) {
+      return RunLog(tol, itermax);
+    }
+
     Scal rm = 0.;
     size_t itm = 0;
     for (size_t s = 0; s < GetNumStr(); ++s) {
@@ -188,7 +193,7 @@ class PartStr {
       Scal r = rit.first;
       size_t it = rit.second;
       // report
-      if (verb && s % std::max<size_t>(1, GetNumStr() / 100) == 0) {
+      if (verb && s % std::max<size_t>(1, GetNumStr() / 10) == 0) {
         auto fl = std::cout.flags();
         std::cout.precision(16);
         std::cout 
@@ -203,10 +208,40 @@ class PartStr {
     }
     return std::make_pair(rm, itm);
   }
+  // Iterations for all strings until convergence, create log file.
+  // tol: tolerance
+  // itermax: maximum number of iterations
+  // Returns:
+  // max over all Run0()
+  std::pair<Scal, size_t> RunLog(Scal tol, size_t itermax) {
+    Scal rm = 0.;
+    size_t itm = 0;
+    std::ofstream f("part.log");
+    f.precision(16);
+    f << "string iter k res" << std::endl;
+    for (size_t s = 0; s < GetNumStr(); ++s) {
+      Scal r = 0;
+      size_t it = 0;
+      for (it = 0; it < itermax; ++it) {
+        r = Iter(s);
+
+        // log
+        f << s << ' ' << it << ' ' << GetCurv(s) << ' ' << r << '\n';
+
+        if (r < tol) {
+          break;
+        }
+      }
+
+      rm = std::max(rm, r);
+      itm = std::max(itm, it);
+    }
+    return std::make_pair(rm, itm);
+  }
   // Curvature of single string
   // s: string index
-  Scal GetCurv(size_t s) {
-    Vect* xx = &(xx_[sx_[s]]);
+  Scal GetCurv(size_t s) const {
+    const Vect* xx = &(xx_[sx_[s]]);
     size_t sx = sx_[s + 1] - sx_[s];
     return PartK(xx, sx);
   }
