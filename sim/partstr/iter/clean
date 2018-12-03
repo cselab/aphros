@@ -1,0 +1,14 @@
+#!/bin/bash -l
+
+rm -vf *_.dat
+rm -vf *.pdf
+rm -vf *.vtk
+rm -vf *.vts
+rm -vf *.{h5,xmf}
+rm -vf *.csv
+rm -vrf o
+rm -vrf *_*.dat
+rm -vf out
+rm -vf base.conf
+rm -vf *.png
+rm -vf partitf.csv

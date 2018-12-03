@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -eu
+
+./clean
+ch.base
+ch.run ./t.advection
+#./partit.filt
+#./plot
