@@ -566,7 +566,7 @@ struct Vof<M_>::Imp {
       }
       Seed(uc, fca_, fcn_, fci_);
       partstr_->Run(par->part_tol, par->part_itermax, 
-                    par->part_verb && m.IsRoot());
+                    m.IsRoot() ? par->part_verb : 0);
       // compute curvature
       fckp_.Reinit(m, GetNan<Scal>());
       // XXX: assume strings from same cell contiguous
