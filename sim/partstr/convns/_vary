@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -eu
+
+for n in `seq 1 10` ; do
+    n=`printf "%03d" "$n"`
+    echo "
+    set int part_ns $n
+    " > add.conf
+    ./run
+    ./curv > k$n.dat
+done
+
+

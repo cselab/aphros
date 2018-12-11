@@ -2,7 +2,7 @@
 
 set -eu
 
-for np in `seq 3 2 100` ; do
+for np in `seq 3 2 50` ; do
     np=`printf "%03d" "$np"`
     echo "
     set int part_np $np
