@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+
+import numpy as np
+import os
+
+def sh(s, fatal=True, silent=True):
+    if not silent:
+        print(s)
+    r = os.system(s)
+    assert not fatal or r == 0
+
+
+bb = np.loadtxt('bb')
+
+nx = 32
+hx = 1. / nx
+
+for ri,re in enumerate(np.linspace(-1, 4, 20)):
+    r = hx * 2. ** re
+    for bi,bc in enumerate(bb):
+        with open("b.dat", 'w') as f :
+            f.write("{:} {:} {:} {:}".format(bc[0], bc[1], bc[2], r))
+        print("ri={:}, bi={:}".format(ri, bi))
+        sh("./run ; ./curv > kr{:03d}b{:03d}.dat".format(ri, bi))
+

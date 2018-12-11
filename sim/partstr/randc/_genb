@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+
+# Generates list of random positions
+# in quarter of cell
+
+import random
+
+def R():
+    return random.uniform(0., 1)
+
+nb = 100 # size of output
+cx = 0.5  # center
+nx = 32  # mesh
+hx = 1. / nx # cell
+for i in range(nb):
+    g = hx * 0.5
+    x = cx + R() * g
+    y = cx + R() * g
+    z = cx + R() * g
+    print("{:} {:} {:}".format(x, y, z))

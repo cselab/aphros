@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+
+import numpy as np
+import glob
+import re
+
+nx = 32.
+hx = 1. / nx
+
+rr = [hx * 2. ** re for re in np.linspace(-1., 4., 20)]
+bb = np.loadtxt('bb')
+
+b = np.loadtxt("b.dat")
+br = b[3]
+
+ff = sorted(glob.glob("k*.dat"))
+
+ee = []
+
+for f in ff:
+    m = re.findall("kr([0-9]*)b([0-9]*)", f)[0]
+    ri = int(m[0])
+    bi = int(m[1])
+    r = rr[ri]
+    b = bb[bi]
+    # exact curv
+    kex = 1. / r
+    # particles
+    k = np.loadtxt(f)
+    # curvature error
+    if not k.size:
+        ek = 1.
+    else:
+        ek = np.sqrt((k - kex) ** 2).mean() / kex
+    cpr = nx * r
+    e = [ri, bi, cpr, ek]
+    ee.append(e)
+
+fo = "kerr"
+with open(fo, 'w') as f:
+    for e in ee:
+        f.write(' '.join(map(str, e)) + '\n')
+

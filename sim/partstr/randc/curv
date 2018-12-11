@@ -1,0 +1,24 @@
+#!/usr/bin/env python
+
+# Prints curvature sorted by cell index.
+
+import numpy as np
+import sys
+
+f = "partit_0000.csv"
+
+t = np.genfromtxt(f, names=True, delimiter=',', 
+        dtype=(float, float, float, int, float))
+
+cc = t['c']
+kk = t['k']
+
+ucc = np.unique(cc)
+
+# mean over c=c
+ukk = []
+
+for c in ucc:
+    ukk.append(kk[cc == c].mean())
+
+np.savetxt(sys.stdout, ukk)
