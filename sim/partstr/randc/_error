@@ -10,10 +10,7 @@ hx = 1. / nx
 rr = [hx * 2. ** re for re in np.linspace(-1., 4., 20)]
 bb = np.loadtxt('bb')
 
-b = np.loadtxt("b.dat")
-br = b[3]
-
-ff = sorted(glob.glob("k*.dat"))
+ff = sorted(glob.glob("kr*b*.dat"))
 
 ee = []
 

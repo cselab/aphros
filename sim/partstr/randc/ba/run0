@@ -1,0 +1,10 @@
+#!/bin/bash -l
+
+dim=$1
+np=$2
+
+set -eu
+
+. ba.setenv
+
+ba.run -n "$np" main.s

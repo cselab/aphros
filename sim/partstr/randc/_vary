@@ -10,10 +10,14 @@ def sh(s, fatal=True, silent=True):
     assert not fatal or r == 0
 
 
-bb = np.loadtxt('bb')
+bb = np.loadtxt('bb')[:3]
 
 nx = 32
 hx = 1. / nx
+
+s = 'ba'
+
+sh("mkdir -p {}".format(s))
 
 for ri,re in enumerate(np.linspace(-1, 4, 20)):
     r = hx * 2. ** re
@@ -21,9 +25,10 @@ for ri,re in enumerate(np.linspace(-1, 4, 20)):
         with open("b.dat", 'w') as f :
             f.write("{:} {:} {:} {:}".format(bc[0], bc[1], bc[2], r))
         print("ri={:}, bi={:}".format(ri, bi))
-        o = "kr{:03d}b{:03d}.dat".format(ri, bi)
+        o = "{:}/kr{:03d}b{:03d}.dat".format(s, ri, bi)
         if os.path.isfile(o):
             print("Skip existing {:}".format(o))
             continue
-        sh("./run ; ./curv > {:}".format(o))
+        #sh("./run ; ./curv > t ; mv t {:}".format(o))
+        sh("(cd ba ; ./run) ; mv ba/t {:}".format(o))
 
