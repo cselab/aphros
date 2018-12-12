@@ -382,7 +382,7 @@ class PartStr {
         // outer normal
         Vect n = e[1] - e[0];
         n = Vect(n[1], -n[0], 0.);
-        n /= n.norm();
+        n /= std::max(n.norm(), 1e-10); // XXX: adhoc 
         // center
         Vect xc = (e[0] + e[1]) * 0.5;
         // distance from center
