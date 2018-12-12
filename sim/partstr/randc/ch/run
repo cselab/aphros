@@ -3,3 +3,6 @@
 set -eu
 
 make cleanrun
+
+./curv > ok
+ch.getcol m2 | head -n 1 > ovf

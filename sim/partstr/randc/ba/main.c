@@ -1,4 +1,5 @@
-#include "par.h"
+#define DIM 3
+#define REFINE (5)
 
 #include "fractions.h"
 #include "curvature.h"
@@ -31,7 +32,7 @@ double ls(double x, double y, double z) {
 }
 
 void fraction2(scalar c) {
-  foreach_cell() {
+  foreach() {
     double h = Delta;
     double hh = h * 0.5;
     if (
@@ -59,12 +60,6 @@ void fraction2(scalar c) {
     }
   }
 
-  double a = 0.;
-  foreach() {
-    double h = Delta;
-    a += c[] * h * h * h;
-  }
-  printf("%.16g", a);
 }
 
 
@@ -93,7 +88,7 @@ int main() {
   //curvature(vf, k);
   
   {
-    FILE* q = fopen("t", "w");
+    FILE* q = fopen("ok", "w");
     foreach() {
       if (vf[] > 0. && vf[] < 1.) {
         fprintf(q, "%.16g\n", k[]*0.5);
@@ -103,9 +98,23 @@ int main() {
   }
 
   {
+    FILE* q = fopen("ovf", "w");
+    double s = 0.;
+    foreach() {
+      double h = Delta;
+      s += vf[] * h * h * h;
+    }
+    fprintf(q, "%.16g\n", s);
+    fclose(q);
+  }
+
+
+  /*
+  {
     FILE* q = fopen("u.vtk", "w");
     io({vf, k}, q);
     fclose(q);
   }
+  */
 }
 

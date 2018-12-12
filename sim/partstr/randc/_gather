@@ -34,12 +34,16 @@ for f in ff:
         ek1 = abs(k - kex).mean() / kex
         ek2 = np.sqrt((k - kex) ** 2).mean() / kex
     cpr = nx * r
-    e = [ri, bi, cpr, ekm, ek1, ek2]
+
+    fvf = "vfr{:}b{:}.dat".format(m[0], m[1]) # vf filename
+    vf = float(open(fvf).read())
+
+    e = [ri, bi, cpr, vf, ekm, ek1, ek2]
     ee.append(e)
 
 fo = "kerr"
 with open(fo, 'w') as f:
-    f.write("ri bi crr em e1 e2\n")
+    f.write("ri bi cpr vf em e1 e2\n")
     for e in ee:
         f.write(' '.join(map(str, e)) + '\n')
 

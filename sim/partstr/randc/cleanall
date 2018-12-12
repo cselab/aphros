@@ -1,5 +1,0 @@
-#!/bin/bash -l
-
-./clean
-rm -vf k*.dat kerr
-

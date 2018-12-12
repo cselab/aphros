@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
+# Vary bubble position and radius.
+# $1: solver name (ch, ba)
+
 import numpy as np
 import os
+import sys
 
 def sh(s, fatal=True, silent=True):
     if not silent:
@@ -9,16 +13,18 @@ def sh(s, fatal=True, silent=True):
     r = os.system(s)
     assert not fatal or r == 0
 
-
 bb = np.loadtxt('bb')[:3]
 
 nx = 32
 hx = 1. / nx
 
-s = 'ba'
-s = 'ch'
+s = sys.argv[1]
+
+assert s in ['ba', 'ch']
 
 sh("mkdir -p {}".format(s))
+
+log = "log"
 
 for ri,re in enumerate(np.linspace(-1, 4, 20)):
     r = hx * 2. ** re
@@ -26,10 +32,10 @@ for ri,re in enumerate(np.linspace(-1, 4, 20)):
         with open("b.dat", 'w') as f :
             f.write("{:} {:} {:} {:}".format(bc[0], bc[1], bc[2], r))
         print("ri={:}, bi={:}".format(ri, bi))
-        o = "{:}/kr{:03d}b{:03d}.dat".format(s, ri, bi)
-        if os.path.isfile(o):
-            print("Skip existing {:}".format(o))
+        ok = "{:}/kr{:03d}b{:03d}.dat".format(s, ri, bi)
+        ovf = "{:}/vfr{:03d}b{:03d}.dat".format(s, ri, bi)
+        if os.path.isfile(ok) and os.path.isfile(ovf):
+            print("Skip existing {:}".format(ok))
             continue
-        #sh("./run ; ./curv > t ; mv t {:}".format(o))
-        sh("(cd ba ; ./run) ; mv ba/t {:}".format(o))
+        sh("(cd {s} ; ./run) &>> {log}; mv {s}/ok {ok} ; mv {s}/ovf {ovf}".format(**locals()))
 

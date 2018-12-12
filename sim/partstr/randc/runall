@@ -1,5 +1,5 @@
 #!/bin/bash
 set -eu
 
-(cd ch ; ./run)
+#(cd ch ; ./run)
 (cd ba ; ./run)

@@ -7,4 +7,12 @@ set -eu
 
 . ba.setenv
 
+if [ ! -f main.s ] ; then
+  g="multigrid"
+  if [ "$dim" == "3" ] ; then
+    g="multigrid3D"
+  fi
+  make CFLAGS="-grid=$g" main.s
+fi
+
 ba.run -n "$np" main.s

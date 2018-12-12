@@ -26,8 +26,5 @@ open("par.h", 'w').write(p)
 l = locals()
 o = 'out'
 
-if not os.path.isfile('main.s') or 1:
-    sh("./run0make {dim} {np} |& tee -a {o}".format(**l))
-
 sh("./run0 {dim} {np} |& tee -a {o}".format(**l))
 
