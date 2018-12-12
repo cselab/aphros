@@ -1,5 +1,5 @@
 m = 32 32 32
-bs = 16 16 16
+bs = 32 32 32
 np = 1
 
 include $(shell ch.makesim)

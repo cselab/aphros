@@ -32,7 +32,7 @@ for f in ff:
     else:
         ekm = abs(k - kex).max() / kex
         ek1 = abs(k - kex).mean() / kex
-        ek2 = np.sqrt((k - kex) ** 2).mean() / kex
+        ek2 = ((k - kex) ** 2).mean() ** 0.5 / kex
     cpr = nx * r
 
     fvf = "vfr{:}b{:}.dat".format(m[0], m[1]) # vf filename

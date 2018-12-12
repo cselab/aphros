@@ -27,20 +27,36 @@ ss = ['ba', 'ch'] if s == 'all' else [s]
 
 sh("mkdir -p {}".format(s))
 
-log = "log"
 
-for s in ss:
-    for ri,re in enumerate(np.linspace(-1, 4, 20)):
-        r = hx * 2. ** re
-        for bi,bc in enumerate(bb):
-            with open("b.dat", 'w') as f :
-                f.write("{:} {:} {:} {:}".format(bc[0], bc[1], bc[2], r))
-            print("ri={:}, bi={:}".format(ri, bi))
-            ok = "{:}/kr{:03d}b{:03d}.dat".format(s, ri, bi)
-            ovf = "{:}/vfr{:03d}b{:03d}.dat".format(s, ri, bi)
-            if os.path.isfile(ok) and os.path.isfile(ovf):
-                print("Skip existing {:}".format(ok))
-                continue
-            sh("(cd {s} ; ./run) &>> {log}; mv {s}/ok {ok} ; mv {s}/ovf {ovf}"
-                    .format(**locals()))
+# radius exponent
+rre = np.linspace(-1, 4, 19, endpoint=False)
+
+# ri: index if radius
+# bi: index of bubble center
+# s: solver prefix (ch, ba)
+# force: overwrite existing
+def Run(ri, bi, s, force=False):
+    log = "log"
+    re = rre[ri]
+    bc = bb[bi]
+    r = hx * 2. ** re
+    ok = "{:}/kr{:03d}b{:03d}.dat".format(s, ri, bi)
+    ovf = "{:}/vfr{:03d}b{:03d}.dat".format(s, ri, bi)
+    if os.path.isfile(ok) and os.path.isfile(ovf) and not force:
+        print("Skip existing {:}".format(ok))
+        return
+    with open("b.dat", 'w') as f :
+        f.write("{:} {:} {:} {:}".format(bc[0], bc[1], bc[2], r))
+    print("ri={:}, bi={:}".format(ri, bi))
+    sh("(cd {s} ; ./run) &>> {log}; mv {s}/ok {ok} ; mv {s}/ovf {ovf}"
+            .format(**locals()))
+
+
+def Vary():
+    for s in ss:
+        for ri in range(len(rre)):
+            for bi in range(len(bb)):
+                Run(ri, bi, s)
+
+Vary()
 
