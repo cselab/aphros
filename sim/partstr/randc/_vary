@@ -19,7 +19,7 @@ nx = 32
 hx = 1. / nx
 
 av = sys.argv
-s = av[1] if len(av) > 2 else 'all'
+s = av[1] if len(av) > 1 else 'all'
 
 assert s in ['ba', 'ch', 'all']
 
@@ -53,6 +53,7 @@ def Run(ri, bi, s, force=False):
 
 
 def Vary():
+    print("solvers: {:}".format(ss))
     for s in ss:
         for ri in range(len(rre)):
             for bi in range(len(bb)):

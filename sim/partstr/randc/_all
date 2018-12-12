@@ -1,8 +1,0 @@
-#!/bin/bash
-
-set -eu
-
-./cleanall
-./_vary
-./_error
-./_gp
