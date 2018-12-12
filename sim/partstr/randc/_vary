@@ -13,29 +13,34 @@ def sh(s, fatal=True, silent=True):
     r = os.system(s)
     assert not fatal or r == 0
 
-bb = np.loadtxt('bb')[:3]
+bb = np.loadtxt('bb')
 
 nx = 32
 hx = 1. / nx
 
-s = sys.argv[1]
+av = sys.argv
+s = av[1] if len(av) > 2 else 'all'
 
-assert s in ['ba', 'ch']
+assert s in ['ba', 'ch', 'all']
+
+ss = ['ba', 'ch'] if s == 'all' else [s]
 
 sh("mkdir -p {}".format(s))
 
 log = "log"
 
-for ri,re in enumerate(np.linspace(-1, 4, 20)):
-    r = hx * 2. ** re
-    for bi,bc in enumerate(bb):
-        with open("b.dat", 'w') as f :
-            f.write("{:} {:} {:} {:}".format(bc[0], bc[1], bc[2], r))
-        print("ri={:}, bi={:}".format(ri, bi))
-        ok = "{:}/kr{:03d}b{:03d}.dat".format(s, ri, bi)
-        ovf = "{:}/vfr{:03d}b{:03d}.dat".format(s, ri, bi)
-        if os.path.isfile(ok) and os.path.isfile(ovf):
-            print("Skip existing {:}".format(ok))
-            continue
-        sh("(cd {s} ; ./run) &>> {log}; mv {s}/ok {ok} ; mv {s}/ovf {ovf}".format(**locals()))
+for s in ss:
+    for ri,re in enumerate(np.linspace(-1, 4, 20)):
+        r = hx * 2. ** re
+        for bi,bc in enumerate(bb):
+            with open("b.dat", 'w') as f :
+                f.write("{:} {:} {:} {:}".format(bc[0], bc[1], bc[2], r))
+            print("ri={:}, bi={:}".format(ri, bi))
+            ok = "{:}/kr{:03d}b{:03d}.dat".format(s, ri, bi)
+            ovf = "{:}/vfr{:03d}b{:03d}.dat".format(s, ri, bi)
+            if os.path.isfile(ok) and os.path.isfile(ovf):
+                print("Skip existing {:}".format(ok))
+                continue
+            sh("(cd {s} ; ./run) &>> {log}; mv {s}/ok {ok} ; mv {s}/ovf {ovf}"
+                    .format(**locals()))
 

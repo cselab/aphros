@@ -85,7 +85,7 @@ int main() {
   fraction2(vf);
 
   scalar k[]; // curvature
-  //curvature(vf, k);
+  curvature(vf, k);
   
   {
     FILE* q = fopen("ok", "w");
