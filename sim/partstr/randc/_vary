@@ -16,6 +16,7 @@ nx = 32
 hx = 1. / nx
 
 s = 'ba'
+s = 'ch'
 
 sh("mkdir -p {}".format(s))
 

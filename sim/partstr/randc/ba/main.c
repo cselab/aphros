@@ -3,6 +3,8 @@
 #include "fractions.h"
 #include "curvature.h"
 
+#include "io/io.h"
+
 double sqr(double a) {
   return a * a;
 }
@@ -30,23 +32,31 @@ int main() {
 
   origin (0.,0.,0.);
 
-  scalar f[];
+  scalar vf[]; // volume fraction
 
 #if dimension == 2
-  fraction(f, ifr2(x, y, bx, by, br));
+  fraction(vf, ifr2(x, y, bx, by, br));
 #elif dimension == 3
-  fraction(f, ifr3(x, y, z, bx, by, bz ,br));
+  fraction(vf, ifr3(x, y, z, bx, by, bz ,br));
 #endif
 
-  scalar k[];
-  curvature(f, k);
+  scalar k[]; // curvature
+  curvature(vf, k);
   
-  FILE* q = fopen("t", "w");
-  foreach_cell() {
-    if (f[] != 0. && f[] != 1.) {
-      fprintf(q, "%.16g\n", -k[]*0.5);
+  {
+    FILE* q = fopen("t", "w");
+    foreach() {
+      if (vf[] > 0. && vf[] < 1.) {
+        fprintf(q, "%.16g\n", k[]*0.5);
+      }
     }
+    fclose(q);
   }
-  fclose(q);
+
+  {
+    FILE* q = fopen("u.vtk", "w");
+    io({vf, k}, q);
+    fclose(q);
+  }
 }
 

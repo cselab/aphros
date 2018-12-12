@@ -26,15 +26,20 @@ for f in ff:
     k = np.loadtxt(f)
     # curvature error
     if not k.size:
-        ek = 1.
+        ekm = 1.
+        ek1 = 1.
+        ek2 = 1.
     else:
-        ek = np.sqrt((k - kex) ** 2).mean() / kex
+        ekm = abs(k - kex).max() / kex
+        ek1 = abs(k - kex).mean() / kex
+        ek2 = np.sqrt((k - kex) ** 2).mean() / kex
     cpr = nx * r
-    e = [ri, bi, cpr, ek]
+    e = [ri, bi, cpr, ekm, ek1, ek2]
     ee.append(e)
 
 fo = "kerr"
 with open(fo, 'w') as f:
+    f.write("ri bi crr em e1 e2\n")
     for e in ee:
         f.write(' '.join(map(str, e)) + '\n')
 
