@@ -49,23 +49,32 @@ with open(fo, 'w') as f:
 
 fo = "kerravg"
 with open(fo, 'w') as f:
-    hh = "ri cpr vf em eml emh emsl emsh e2 e2l e2h e2sl e2sh"
+    hh = "ri cpr vf vfl vfh vfsl vfsh em eml emh emsl emsh e2 e2l e2h e2sl e2sh"
     f.write(hh + "\n")
     ee = np.array(ee)
     vri = ee[:,0]
     vbi = ee[:,1]
+    vcpr = ee[:,2]
+    vvf = ee[:,3]
     vem = ee[:,4]
     ve2 = ee[:,6]
     vriu,iu = np.unique(vri, return_index=True)
     ww = []
     for i in iu:
-        ri = int(vri[i])
+        ri = vri[i]
+        cpr = vcpr[i]
+        r = cpr / 32.
+        # exact volume
+        vfex = 4. / 3. * np.pi * r ** 3
         # fields copy
-        w = [ee[i,0], ee[i,2], ee[i,3]]
+        w = [ee[i,0], ee[i,2]]
+        vf = vvf[vri == ri].flatten() / vfex  # relative to exact
         em = vem[vri == ri].flatten()
         lm = np.log(em)
         e2 = ve2[vri == ri].flatten()
         l2 = np.log(e2)
+        # field stat
+        w += [vf.mean(), vf.min(), vf.max(), vf.mean() - vf.std(), vf.mean() + vf.std()]
         # field log
         wl = [lm.mean(), lm.min(), lm.max(), lm.mean() - lm.std(), lm.mean() + lm.std()]
         wl += [l2.mean(), l2.min(), l2.max(), l2.mean() - l2.std(), l2.mean() + l2.std()]
