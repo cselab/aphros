@@ -1,0 +1,19 @@
+1 0 GfsAdvection GfsBox GfsGEdge {} {
+  Time { end = 1  dtmax = 1 }
+
+  Refine 5
+
+  VariableTracerVOF T
+
+  Global { 
+    Include ini_t_bub.h 
+  }
+  InitFraction T (ini_t(x, y, z))
+  
+  VariableCurvature K T 
+
+  OutputSimulation { step = 1 start = 1 } u_%04ld.vtk { variables = T,K format = VTK}
+}
+GfsBox { 
+  x = 0.5 y = 0.5 z = 0.5
+}

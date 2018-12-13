@@ -1,0 +1,4 @@
+set -eu
+
+rm -vf *.dat *.vtk *.pdf ok ovf
+

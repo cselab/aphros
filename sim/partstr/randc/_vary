@@ -13,7 +13,7 @@ def sh(s, fatal=True, silent=True):
     r = os.system(s)
     assert not fatal or r == 0
 
-bb = np.loadtxt('bb')
+bb = np.loadtxt('bb')[:10]
 
 nx = 32
 hx = 1. / nx
@@ -21,9 +21,11 @@ hx = 1. / nx
 av = sys.argv
 s = av[1] if len(av) > 1 else 'all'
 
-assert s in ['ba', 'ch', 'all']
+ssa = ['ba', 'ch', 'ge']
 
-ss = ['ba', 'ch'] if s == 'all' else [s]
+assert s in ssa + ['all']
+
+ss = ssa if s == 'all' else [s]
 
 sh("mkdir -p {}".format(s))
 
