@@ -8,7 +8,7 @@
   Global { 
     Include ini_t_bub.h 
   }
-  InitFraction T (ini_t(x, y, z))
+  InitFraction T (ini_t(x, y, z, "b.dat"))
   
   VariableCurvature K T 
 

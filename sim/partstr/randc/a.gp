@@ -1,6 +1,6 @@
 set terminal pdfcairo
 
-ss="ch ba"
+ss="chnp9 ba ch ge"
 reset
 set output "aem.pdf"
 set logscale y

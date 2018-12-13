@@ -47,7 +47,7 @@ def Run(ri, bi, s, force=False):
     if os.path.isfile(ok) and os.path.isfile(ovf) and not force:
         print("Skip existing {:}".format(ok))
         return
-    with open("b.dat", 'w') as f :
+    with open("{:}/b.dat".format(s), 'w') as f :
         f.write("{:} {:} {:} {:}".format(bc[0], bc[1], bc[2], r))
     print("ri={:}, bi={:}".format(ri, bi))
     sh("(cd {s} ; ./run) &>> {log}; mv {s}/ok {ok} ; mv {s}/ovf {ovf}"

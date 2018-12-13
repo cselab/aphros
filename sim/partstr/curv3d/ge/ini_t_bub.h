@@ -1,5 +1,4 @@
 #define MAXBUB 10000
-#define FBUB "../b.dat"
 
 // file format:
 // one line per bubble:
@@ -18,13 +17,17 @@ static void read(char* fn, Bub* l, int* n, int zeroz) {
   }
   int i = 0;
   double x, y, z, r, ry, rz;
-  while (fscanf(b, "%lf %lf %lf %lf %lf %lf\n", &x, &y, &z, &r, &ry, &rz) > 0) {
+  while (1) {
+    int cnt = fscanf(b, "%lf %lf %lf %lf %lf %lf\n", &x, &y, &z, &r, &ry, &rz);
+    if (cnt < 4) {
+      break;
+    }
     l[i].x = x;
     l[i].y = y;
     l[i].z = (zeroz ? 0. : z);
     l[i].r = r;
-    l[i].ry = ry;
-    l[i].rz = rz;
+    l[i].ry = (cnt > 4 ? ry : r);
+    l[i].rz = (cnt > 5 ? rz : r);
     ++i;
   }
   *n = i;
@@ -66,16 +69,16 @@ static double mindist(Bub* l, int n, double x, double y, double z) {
 Bub l[MAXBUB];
 int n = -1;
 
-static double ini_t(double x, double y, double z) {
+static double ini_t(double x, double y, double z, char* fn) {
   if (n == -1) {
-    read(FBUB, l, &n, 0);
+    read(fn, l, &n, 0);
   }
   return -mindist(l, n, x, y, z);
 }
 
-static double ini_t2(double x, double y) {
+static double ini_t2(double x, double y, char* fn) {
   if (n == -1) {
-    read(FBUB, l, &n, 1);
+    read(fn, l, &n, 1);
   }
   return -mindist(l, n, x, y, 0);
 }

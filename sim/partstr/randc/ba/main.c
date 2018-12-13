@@ -66,7 +66,7 @@ void fraction2(scalar c) {
 int main() {
   init_grid(1 << REFINE);
 
-  FILE* fb = fopen("../b.dat", "r");
+  FILE* fb = fopen("b.dat", "r");
   fscanf(fb, "%lf %lf %lf %lf", &b.x, &b.y, &b.z, &b.r);
   fclose(fb);
 
