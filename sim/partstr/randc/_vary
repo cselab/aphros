@@ -13,25 +13,6 @@ def sh(s, fatal=True, silent=True):
     r = os.system(s)
     assert not fatal or r == 0
 
-bb = np.loadtxt('bb')[:10]
-
-nx = 32
-hx = 1. / nx
-
-av = sys.argv
-s = av[1] if len(av) > 1 else 'all'
-
-ssa = ['ba', 'ch', 'ge']
-
-assert s in ssa + ['all']
-
-ss = ssa if s == 'all' else [s]
-
-sh("mkdir -p {}".format(s))
-
-
-# radius exponent
-rre = np.linspace(-1, 4, 19, endpoint=False)
 
 # ri: index if radius
 # bi: index of bubble center
@@ -54,12 +35,40 @@ def Run(ri, bi, s, force=False):
             .format(**locals()))
 
 
-def Vary():
+def Vary(ss):
+    global bb
     print("solvers: {:}".format(ss))
     for s in ss:
         for ri in range(len(rre)):
             for bi in range(len(bb)):
                 Run(ri, bi, s)
 
-Vary()
 
+
+bb = np.loadtxt('bb')[:10]
+
+nx = 32
+hx = 1. / nx
+
+av = sys.argv
+s = av[1] if len(av) > 1 else 'all'
+
+ssa = ['ba', 'ch', 'ge']
+
+assert s in ssa + ['all']
+
+ss = ssa if s == 'all' else [s]
+
+sh("mkdir -p {}".format(s))
+
+
+# radius exponent
+rre = np.linspace(-1, 4, 19, endpoint=False)
+
+if len(av) > 3:
+    assert s in ssa
+    ri = int(av[2])
+    bi = int(av[3])
+    Run(ri, bi, s, True)
+else:
+    Vary(ss)
