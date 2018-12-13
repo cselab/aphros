@@ -310,8 +310,13 @@ class PartStr {
   // l: segment half-length
   // d: distance from segment center to target point (d<l)
   static Scal SegCirc(Scal k, Scal l, Scal d) {
-    Scal t1 = std::sqrt(1. - sqr(k) * sqr(l));
-    Scal t2 = std::sqrt(1. - sqr(k) * sqr(d));
+    if (k * l >= 0.9) { // XXX: adhoc
+      k = 1. / l;
+    }
+    Scal a1 = 1. - sqr(k * l);
+    Scal a2 = 1. - sqr(k * d);
+    Scal t1 = std::sqrt(a1);
+    Scal t2 = std::sqrt(a2);
     return k * (sqr(l) - sqr(d)) / (t1 + t2);
   };
   // Force on particles from interface.
@@ -407,7 +412,7 @@ class PartStr {
         for (size_t k = 0; k < ls[l]; ++k) {
           size_t kp = (k + 1 == ls[l] ? 0 : k + 1);
           // segment enter
-					Vect xc = (lx[b + k] + lx[b + kp]) * 0.5;
+          Vect xc = (lx[b + k] + lx[b + kp]) * 0.5;
           size_t in = 0; // particle nearest to line k
           for (size_t i = 1; i < sx; ++i) {
             if (xx[i].sqrdist(xc) < xx[in].sqrdist(xc)) {
