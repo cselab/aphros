@@ -19,6 +19,6 @@ ucc = np.unique(cc)
 ukk = []
 
 for c in ucc:
-    ukk.append(kk[(cc == c) & (kk != 0.)].mean())
+    ukk.append(kk[cc == c].mean())
 
 np.savetxt(sys.stdout, ukk)

@@ -45,7 +45,7 @@ def Vary(ss):
 
 
 
-bb = np.loadtxt('bb')[:10]
+bb = np.loadtxt('bb')
 
 nx = 32
 hx = 1. / nx

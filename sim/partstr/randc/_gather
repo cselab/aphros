@@ -47,3 +47,31 @@ with open(fo, 'w') as f:
     for e in ee:
         f.write(' '.join(map(str, e)) + '\n')
 
+fo = "kerravg"
+with open(fo, 'w') as f:
+    hh = "ri cpr vf em eml emh emsl emsh e2 e2l e2h e2sl e2sh"
+    f.write(hh + "\n")
+    ee = np.array(ee)
+    vri = ee[:,0]
+    vbi = ee[:,1]
+    vem = ee[:,4]
+    ve2 = ee[:,6]
+    vriu,iu = np.unique(vri, return_index=True)
+    ww = []
+    for i in iu:
+        ri = int(vri[i])
+        # fields copy
+        w = [ee[i,0], ee[i,2], ee[i,3]]
+        em = vem[vri == ri].flatten()
+        lm = np.log(em)
+        e2 = ve2[vri == ri].flatten()
+        l2 = np.log(e2)
+        # field log
+        wl = [lm.mean(), lm.min(), lm.max(), lm.mean() - lm.std(), lm.mean() + lm.std()]
+        wl += [l2.mean(), l2.min(), l2.max(), l2.mean() - l2.std(), l2.mean() + l2.std()]
+        w += list(np.exp(wl))
+        assert len(w) == len(hh.split()), "%r != %r" % (len(w), len(hh.split()))
+        ww.append(w)
+
+    for w in ww:
+        f.write(' '.join(map(str, w)) + '\n')
