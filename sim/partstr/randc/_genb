@@ -5,16 +5,14 @@
 
 import random
 
+random.seed(0)
+
 def R():
     return random.uniform(0., 1)
 
 nb = 100 # size of output
-cx = 0.5  # center
-nx = 32  # mesh
-hx = 1. / nx # cell
 for i in range(nb):
-    g = hx * 0.5
-    x = cx + R() * g
-    y = cx + R() * g
-    z = cx + R() * g
+    x = R()
+    y = R()
+    z = R()
     print("{:} {:} {:}".format(x, y, z))

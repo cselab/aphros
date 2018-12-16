@@ -12,6 +12,17 @@ def sh(s, fatal=True, silent=True):
     r = os.system(s)
     assert not fatal or r == 0
 
+# ri: radius index
+# Returns:
+# r: radius
+# nxexp: exponent of mesh size, nx=2**nxexp
+# cpr: r*nx
+def GetR(ri):
+    cpr = 2. ** (ri * 0.25 - 1)
+    nxexp = max(4, int((1. + cpr) * 2. + 0.5).bit_length())
+    nx = 2. ** nxexp
+    r = cpr / nx
+    return r, nxexp, cpr
 
 # ri: index if radius
 # bi: index of bubble center
@@ -22,8 +33,11 @@ def Run(ri, bi, s, force=False):
     global dim
     log = "log"
     re = rre[ri]
-    bc = bb[bi]
-    r = hx * 2. ** re
+    r, nxexp, cpr = GetR(ri)
+    nx = 2 ** nxexp
+    hx = 1. / nx
+    bc = bb[bi] # uniform [0,1]
+    bc = 0.5 + bc * hx * 0.5 # cell octant, [0.5, 0.5 + hx*0.5]
     ok = "{:}/kr{:03d}b{:03d}.dat".format(s, ri, bi)
     ovf = "{:}/vfr{:03d}b{:03d}.dat".format(s, ri, bi)
     if os.path.isfile(ok) and os.path.isfile(ovf) and not force:
@@ -33,8 +47,10 @@ def Run(ri, bi, s, force=False):
         f.write("{:} {:} {:} {:}".format(bc[0], bc[1], bc[2], r))
     with open("{:}/dim".format(s), 'w') as f :
         f.write("{:}".format(dim))
+    with open("{:}/nxexp".format(s), 'w') as f :
+        f.write("{:}".format(nxexp))
     print("ri={:}, bi={:}".format(ri, bi))
-    sh("(cd {s} ; ./run) &>> {log}; mv {s}/ok {ok} ; mv {s}/ovf {ovf}"
+    sh("(cd {s} ; ./run) &>> {log} && mv {s}/ok {ok} && mv {s}/ovf {ovf}"
             .format(**locals()))
 
 
@@ -43,13 +59,14 @@ def Vary(ss):
     global dim
     print("solvers: {:}".format(ss))
     for s in ss:
+        print('s={:}'.format(s))
         for ri in range(len(rre)):
             for bi in range(len(bb)):
                 Run(ri, bi, s)
 
 
 
-bb = np.loadtxt('bb')[:10]
+bb = np.loadtxt('bb')[:2]
 
 nx = 32
 hx = 1. / nx

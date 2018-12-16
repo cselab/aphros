@@ -4,10 +4,18 @@ import numpy as np
 import glob
 import re
 
-nx = 32.
-hx = 1. / nx
+# ri: radius index
+# Returns:
+# r: radius
+# nxexp: exponent of mesh size, nx=2**nxexp
+# cpr: r*nx
+def GetR(ri):
+    cpr = 2. ** (ri * 0.25 - 1)
+    nxexp = max(4, int((1. + cpr) * 2. + 0.5).bit_length())
+    nx = 2. ** nxexp
+    r = cpr / nx
+    return r, nxexp, cpr
 
-rr = [hx * 2. ** re for re in np.linspace(-1., 4., 20)]
 bb = np.loadtxt('bb')
 
 ff = sorted(glob.glob("kr*b*.dat"))
@@ -18,7 +26,8 @@ for f in ff:
     m = re.findall("kr([0-9]*)b([0-9]*)", f)[0]
     ri = int(m[0])
     bi = int(m[1])
-    r = rr[ri]
+    r, nxexp, cpr = GetR(ri)
+    nx = 2 ** nxexp
     b = bb[bi]
     # exact curv
     kex = 1. / r
@@ -33,24 +42,23 @@ for f in ff:
         ekm = abs(k - kex).max() / kex
         ek1 = abs(k - kex).mean() / kex
         ek2 = ((k - kex) ** 2).mean() ** 0.5 / kex
-    cpr = nx * r
 
     fvf = "vfr{:}b{:}.dat".format(m[0], m[1]) # vf filename
     vf = float(open(fvf).read())
 
-    e = [ri, bi, cpr, vf, ekm, ek1, ek2]
+    e = [ri, bi, cpr, vf, ekm, ek1, ek2, nx]
     ee.append(e)
 
 fo = "kerr"
 with open(fo, 'w') as f:
-    f.write("ri bi cpr vf em e1 e2\n")
+    f.write("ri bi cpr vf em e1 e2 nx\n")
     for e in ee:
         f.write(' '.join(map(str, e)) + '\n')
 
 fo = "kerravg"
 dim = int(open("dim").read())
 with open(fo, 'w') as f:
-    hh = "ri cpr vf vfl vfh vfsl vfsh em eml emh emsl emsh e2 e2l e2h e2sl e2sh"
+    hh = "ri cpr nx vf vfl vfh vfsl vfsh em eml emh emsl emsh e2 e2l e2h e2sl e2sh"
     f.write(hh + "\n")
     ee = np.array(ee)
     vri = ee[:,0]
@@ -59,17 +67,18 @@ with open(fo, 'w') as f:
     vvf = ee[:,3]
     vem = ee[:,4]
     ve2 = ee[:,6]
+    vnx = ee[:,7]
     vriu,iu = np.unique(vri, return_index=True)
     ww = []
     for i in iu:
         ri = vri[i]
-        cpr = vcpr[i]
-        nx = 32.
-        r = cpr / nx
+        r, nxexp, cpr = GetR(ri)
+        nx = 2 ** nxexp
+        assert nx == vnx[i]
         # exact volume
         vfex = np.pi * r ** 2 / nx if dim == 2 else 4. / 3. * np.pi * r ** 3
         # fields copy
-        w = [ee[i,0], ee[i,2]]
+        w = [vri[i], vcpr[i], vnx[i]]
         vf = vvf[vri == ri].flatten() / vfex  # relative to exact
         em = vem[vri == ri].flatten()
         lm = np.log(em)

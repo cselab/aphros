@@ -3,12 +3,13 @@
 set -eu
 
 ./clean
+nxexp=`cat nxexp`
 
 dim=`cat dim`
 if [ "$dim" == "2" ] ; then
-  ge.run2d -m main2.gfs
+  ge.run2d -m main2.gfs -DREFINE=$nxexp
 else
-  ge.run3d -m main.gfs
+  ge.run3d -m main.gfs -DREFINE=$nxexp
 fi
 
 ./convert

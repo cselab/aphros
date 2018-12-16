@@ -1,5 +1,3 @@
-#define REFINE (5)
-
 #include "fractions.h"
 #include "curvature.h"
 
@@ -67,7 +65,14 @@ void fraction2(scalar c) {
 
 
 int main() {
-  init_grid(1 << REFINE);
+  int nxexp;
+  {
+    FILE* q = fopen("nxexp", "r");
+    fscanf(q, "%d", &nxexp);
+    fclose(q);
+  }
+
+  init_grid(1 << nxexp);
 
   FILE* fb = fopen("b.dat", "r");
   fscanf(fb, "%lf %lf %lf %lf", &b.x, &b.y, &b.z, &b.r);

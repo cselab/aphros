@@ -3,13 +3,15 @@
 set -eu
 
 dim=`cat dim`
+nxexp=`cat nxexp`
+nx=`bc <<< "2 ^ $nxexp"`
 
 echo "set int dim $dim" > add.conf
 
 if [ "$dim" == 2 ] ; then
-  make cleanrun m="32 32 1" bs="32 32 1"
+  make cleanrun m="$nx $nx 1" bs="$nx $nx 1"
 else
-  make cleanrun m="32 32 32" bs="32 32 32"
+  make cleanrun m="$nx $nx $nx" bs="$nx $nx $nx"
 fi
 
 
