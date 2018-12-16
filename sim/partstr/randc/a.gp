@@ -54,7 +54,5 @@ set output "avf.pdf"
 unset logscale y
 set yrange [0:3]
 set ylabel "V / V_{exact}"
-e='(4./3.*pi*(column("cpr")/32)**3)'
-v='(column("vf")/@e)'
 v='"vf"'
 plot @m , @mfs , @mf

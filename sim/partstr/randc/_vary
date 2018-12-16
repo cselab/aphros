@@ -2,7 +2,6 @@
 
 # Vary bubble position and radius.
 # $1: solver name (ch, ba)
-
 import numpy as np
 import os
 import sys
@@ -19,6 +18,8 @@ def sh(s, fatal=True, silent=True):
 # s: solver prefix (ch, ba)
 # force: overwrite existing
 def Run(ri, bi, s, force=False):
+    global bb
+    global dim
     log = "log"
     re = rre[ri]
     bc = bb[bi]
@@ -30,6 +31,8 @@ def Run(ri, bi, s, force=False):
         return
     with open("{:}/b.dat".format(s), 'w') as f :
         f.write("{:} {:} {:} {:}".format(bc[0], bc[1], bc[2], r))
+    with open("{:}/dim".format(s), 'w') as f :
+        f.write("{:}".format(dim))
     print("ri={:}, bi={:}".format(ri, bi))
     sh("(cd {s} ; ./run) &>> {log}; mv {s}/ok {ok} ; mv {s}/ovf {ovf}"
             .format(**locals()))
@@ -37,6 +40,7 @@ def Run(ri, bi, s, force=False):
 
 def Vary(ss):
     global bb
+    global dim
     print("solvers: {:}".format(ss))
     for s in ss:
         for ri in range(len(rre)):
@@ -45,13 +49,15 @@ def Vary(ss):
 
 
 
-bb = np.loadtxt('bb')
+bb = np.loadtxt('bb')[:10]
 
 nx = 32
 hx = 1. / nx
 
 av = sys.argv
-s = av[1] if len(av) > 1 else 'all'
+dim = int(av[1])
+assert dim in [2, 3]
+s = av[2] if len(av) > 2 else 'all'
 
 ssa = ['ba', 'ch', 'ge']
 
@@ -59,16 +65,13 @@ assert s in ssa + ['all']
 
 ss = ssa if s == 'all' else [s]
 
-sh("mkdir -p {}".format(s))
-
-
 # radius exponent
 rre = np.linspace(-1, 4, 19, endpoint=False)
 
-if len(av) > 3:
+if len(av) > 4:
     assert s in ssa
-    ri = int(av[2])
-    bi = int(av[3])
+    ri = int(av[3])
+    bi = int(av[4])
     Run(ri, bi, s, True)
 else:
     Vary(ss)

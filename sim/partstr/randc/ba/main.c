@@ -1,4 +1,3 @@
-#define DIM 3
 #define REFINE (5)
 
 #include "fractions.h"
@@ -28,7 +27,11 @@ double ifr3(double x, double y, double z) {
 }
 
 double ls(double x, double y, double z) {
+#if dimension == 2
+  return ifr2(x, y);
+#elif dimension == 3
   return ifr3(x, y, z);
+#endif
 }
 
 void fraction2(scalar c) {
@@ -74,24 +77,22 @@ int main() {
 
   scalar vf[]; // volume fraction
 
-  /*
-#if dimension == 2
-  fraction(vf, ifr2(x, y));
-#elif dimension == 3
-  fraction(vf, ifr3(x, y, z));
-#endif
-*/
-
   fraction2(vf);
 
   scalar k[]; // curvature
   curvature(vf, k);
+
+#if dimension == 2
+  double kc = 1.;
+#elif dimension == 3
+  double kc = 0.5;
+#endif
   
   {
     FILE* q = fopen("ok", "w");
     foreach() {
       if (vf[] > 0. && vf[] < 1.) {
-        fprintf(q, "%.16g\n", k[]*0.5);
+        fprintf(q, "%.16g\n", k[] * kc);
       }
     }
     fclose(q);

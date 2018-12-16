@@ -2,7 +2,13 @@
 
 set -eu
 
-c=main.gfs
 ./clean
-ge.run3d -m $c
+
+dim=`cat dim`
+if [ "$dim" == "2" ] ; then
+  ge.run2d -m main2.gfs
+else
+  ge.run3d -m main.gfs
+fi
+
 ./convert

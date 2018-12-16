@@ -8,20 +8,8 @@ def sh(s, fatal=True):
     r = os.system(s)
     assert not fatal or r == 0
 
-b = map(float, open("../b.dat").read().split())
-
-dim = 3
+dim = int(open("dim").read())
 np = 1
-
-bx, by, bz, br = b
-
-p = '''
-#define DIM {dim}
-#define REFINE (5)
-'''.format(**locals())
-
-open("par.h", 'w').write(p)
-
 
 l = locals()
 o = 'out'

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+(cd ba ; ./_gather)
+(cd ch ; ./_gather)
+(cd ge ; ./_gather)

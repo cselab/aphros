@@ -33,9 +33,10 @@ for p in pp:
     vf = d['T']
     k = d['K']
     hx = np.unique(d['x'])[:2].ptp()
+    kc = 1. if int(open("dim").read()) == 2 else 0.5
     with open("ok", 'w') as ok:
         for i in range(len(vf)):
             if vf[i] > 0. and vf[i] < 1. and np.isfinite(k[i]):
-                ok.write("{:}\n".format(-k[i] * 0.5))
+                ok.write("{:}\n".format(-k[i] * kc))
     with open("ovf", 'w') as ovf:
         ovf.write("{:}\n".format(vf.sum() * hx ** 3))

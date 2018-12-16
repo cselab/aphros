@@ -48,6 +48,7 @@ with open(fo, 'w') as f:
         f.write(' '.join(map(str, e)) + '\n')
 
 fo = "kerravg"
+dim = int(open("dim").read())
 with open(fo, 'w') as f:
     hh = "ri cpr vf vfl vfh vfsl vfsh em eml emh emsl emsh e2 e2l e2h e2sl e2sh"
     f.write(hh + "\n")
@@ -63,9 +64,10 @@ with open(fo, 'w') as f:
     for i in iu:
         ri = vri[i]
         cpr = vcpr[i]
-        r = cpr / 32.
+        nx = 32.
+        r = cpr / nx
         # exact volume
-        vfex = 4. / 3. * np.pi * r ** 3
+        vfex = np.pi * r ** 2 / nx if dim == 2 else 4. / 3. * np.pi * r ** 3
         # fields copy
         w = [ee[i,0], ee[i,2]]
         vf = vvf[vri == ri].flatten() / vfex  # relative to exact

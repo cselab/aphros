@@ -2,7 +2,16 @@
 
 set -eu
 
-make cleanrun
+dim=`cat dim`
+
+echo "set int dim $dim" > add.conf
+
+if [ "$dim" == 2 ] ; then
+  make cleanrun m="32 32 1" bs="32 32 1"
+else
+  make cleanrun m="32 32 32" bs="32 32 32"
+fi
+
 
 ./curv > ok
 ch.getcol m2 | head -n 1 > ovf
