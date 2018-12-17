@@ -19,7 +19,7 @@ def sh(s, fatal=True, silent=True):
 # cpr: r*nx
 def GetR(ri):
     cpr = 2. ** (ri * 0.25 - 1)
-    nxexp = max(4, int((1. + cpr) * 2. + 0.5).bit_length())
+    nxexp = max(4, int((2. + cpr) * 2. + 0.5).bit_length())
     nx = 2. ** nxexp
     r = cpr / nx
     return r, nxexp, cpr
@@ -32,7 +32,6 @@ def Run(ri, bi, s, force=False):
     global bb
     global dim
     log = "log"
-    re = rre[ri]
     r, nxexp, cpr = GetR(ri)
     nx = 2 ** nxexp
     hx = 1. / nx
@@ -43,6 +42,8 @@ def Run(ri, bi, s, force=False):
     if os.path.isfile(ok) and os.path.isfile(ovf) and not force:
         print("Skip existing {:}".format(ok))
         return
+    if dim == 2:
+        bc[2] = hx * 0.5
     with open("{:}/b.dat".format(s), 'w') as f :
         f.write("{:} {:} {:} {:}".format(bc[0], bc[1], bc[2], r))
     with open("{:}/dim".format(s), 'w') as f :
@@ -54,22 +55,19 @@ def Run(ri, bi, s, force=False):
             .format(**locals()))
 
 
-def Vary(ss):
+def Vary(ss, nri):
     global bb
     global dim
     print("solvers: {:}".format(ss))
     for s in ss:
         print('s={:}'.format(s))
-        for ri in range(len(rre)):
+        for ri in range(nri):
             for bi in range(len(bb)):
                 Run(ri, bi, s)
 
 
 
 bb = np.loadtxt('bb')[:2]
-
-nx = 32
-hx = 1. / nx
 
 av = sys.argv
 dim = int(av[1])
@@ -82,8 +80,7 @@ assert s in ssa + ['all']
 
 ss = ssa if s == 'all' else [s]
 
-# radius exponent
-rre = np.linspace(-1, 4, 19, endpoint=False)
+nri = 30
 
 if len(av) > 4:
     assert s in ssa
@@ -91,4 +88,4 @@ if len(av) > 4:
     bi = int(av[4])
     Run(ri, bi, s, True)
 else:
-    Vary(ss)
+    Vary(ss, nri)

@@ -19,8 +19,7 @@ set style line 1 lt 1 pt 7 ps 0.5
 set style line 2 lt 2 pt 5 ps 0.5
 set style line 3 lt 3 pt 8 ps 0.5
 
-ss="ch ba ge"
-#ss="chnp9 chnp3 chol"
+ss="ch ba ge ch0"
 
 s='pt 7 ps 0.5'
 m='for [i=1:words(ss)] word(ss,i)."/kerravg" \
@@ -32,7 +31,7 @@ mf='for [i=1:words(ss)] word(ss,i)."/kerravg" \
 
 set logscale x 2
 
-set xrange [0.5:16]
+set xrange [0.5:128]
 set xlabel "cpr"
 
 set output "aem.pdf"

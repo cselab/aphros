@@ -5,20 +5,7 @@
 import numpy as np
 import sys
 
-f = "partit_0000.csv"
-
-t = np.genfromtxt(f, names=True, delimiter=',', 
-        dtype=(float, float, float, int, float))
-
-cc = t['c']
-kk = t['k']
-
-ucc = np.unique(cc)
-
-# mean over c=c
-ukk = []
-
-for c in ucc:
-    ukk.append(kk[cc == c].mean())
+ukk = np.loadtxt("k_0000.dat", skiprows=1).flatten()
+ukk = [k for k in ukk if np.isfinite(k)]
 
 np.savetxt(sys.stdout, ukk)

@@ -6,12 +6,14 @@ dim=`cat dim`
 nxexp=`cat nxexp`
 nx=`bc <<< "2 ^ $nxexp"`
 
-echo "set int dim $dim" > add.conf
+make clean
+
+echo "set int dim $dim" > par.conf
 
 if [ "$dim" == 2 ] ; then
-  make cleanrun m="$nx $nx 1" bs="$nx $nx 1"
+  make run m="$nx $nx 1" bs="$nx $nx 1"
 else
-  make cleanrun m="$nx $nx $nx" bs="$nx $nx $nx"
+  make run m="$nx $nx $nx" bs="$nx $nx $nx"
 fi
 
 
