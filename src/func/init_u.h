@@ -186,8 +186,7 @@ CreateInitU(Vars& par, bool verb=true) {
             }
           }
           // cell size
-          Vect h = m.GetNode(m.GetNeighbourNode(c, 7)) - 
-              m.GetNode(m.GetNeighbourNode(c, 0));
+          Vect h = m.GetCellSize();
           // volume fraction
           auto& p = pp[im];
           if (ls == 1) {
