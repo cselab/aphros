@@ -1,0 +1,154 @@
+#!/usr/bin/env python
+
+# Belden 2012: Three-dimensional bubble field resolution ...
+
+def P(d):
+    for key in sorted(d):
+        print("{:} \t=\t {:}".format(key, d[key]))
+    print("\n")
+    return d
+
+
+# Reh: Reynolds number by channel height and average velocity
+def Exp():
+    # SI units
+
+    sig = 73e-3 # surface tension
+    g = 9.8
+    vf = 0.1 # volume fraction
+    W = 0.01 # width [m]
+    # water
+    rho = 1000 # density
+    mu = 1e-3  # dynamic viscosity
+
+    # poiseuille velocity
+    vmax = W ** 2 * g / (16. * mu)
+    Re = W * vmax * rho / mu
+    Ca = mu * vmax / sig
+
+    Re = 10000.
+    Ca = 1.
+
+    return P(locals())
+
+def Sim(c):
+    Re, Ca, vf = (c['Re'], c['Ca'], c['vf'])
+
+    # domain 
+    W = 1. # width
+    L = 2. # length
+    assert L >= W
+   
+    # bubble
+    DV = L * W ** 2 # domain volume
+    BV = DV * vf # bubble volume, 4/3*pi*R**3
+    pi = 3.141592
+    R = (3. / 4. * BV / pi) ** (1. / 3.)
+
+    rho0 = 1.
+  
+    # poiseuille velocity
+    # vmax = W ** 2 * g / (16. * mu)
+    # Re = L * vmax / nu
+    mu0 = W / Re
+    g = 16. / (W * Re)
+
+    sig = mu0 / Ca
+
+    # time
+    tmax = 1000
+    dumpdt = 10
+
+    # liquid
+    rho0 = 1. # density
+
+    # gas, ratio to liquid
+    mu = 0.01
+    rho = 0.01
+
+    # mesh
+    nx = 64
+    ny = int(nx * L / W + 0.5)
+    nz = nx
+
+    # block size
+    bs = 16
+    # cores
+    np = 128
+    # time limit (minutes)
+    tl = 1440
+
+    return P(locals())
+
+def Gen(c):
+    W = c['W']
+    L = c['L']
+    # bubble 
+    bx = W * 0.5
+    by = L  * 0.5
+    bz = W * 0.5
+    brx = c['R']
+    bry = brx
+    brz = brx
+
+    tmax = c['tmax']
+    dumpdt = c['dumpdt']
+
+    rho1 = c['rho0']
+    mu1 = c['mu0']
+    rho2 = rho1 * c['rho']
+    mu2 = mu1 * c['mu']
+    sig = c['sig']
+    
+    kg = 0.1
+    force = c['g']
+    grav = -force * kg
+
+    with open("par.conf", 'w') as f:
+        f.write('''\
+# domain
+set double extent {L}
+
+# time
+set double tmax {tmax}
+set double dump_field_dt {dumpdt}
+
+# physical 
+set double rho1 {rho1}
+set double rho2 {rho2}
+set double mu1 {mu1}
+set double mu2 {mu2}
+set double sigma {sig}
+set vect gravity 0 {grav} 0
+set vect force 0 {force} 0
+
+# bc
+set int hypre_periodic_y 1
+del bc_ym
+del bc_yp
+
+set string bc_xm wall 0 0 0
+set string bc_xp wall 0 0 0
+set string bc_zm wall 0 0 0
+set string bc_zp wall 0 0 0
+
+set string dumplist vf omm p
+
+        '''.format(**locals()))
+
+    with open("b.dat", 'w') as f:
+        f.write("{bx} {by} {bz} {brx} {bry} {brz}\n".format(**locals()))
+    with open("_m", 'w') as f:
+        f.write("{nx} {ny} {nz}".format(**c))
+    with open("_bs", 'w') as f:
+        f.write("{bs} {bs} {bs}".format(**c))
+    with open("_np", 'w') as f:
+        f.write("{np}".format(**c))
+    with open("_tl", 'w') as f:
+        f.write("{tl}".format(**c))
+
+
+
+c = Exp()
+c = Sim(c)
+Gen(c)
