@@ -45,11 +45,10 @@ int main() {
   //dimensions(nx = 2, ny = 8, nz = 2);
   //size(1.);
 
-  rho1 = RHO1; 
-  rho2 = RHO2; 
-
-  mu1 = MU1;
-  mu2 = MU2, 
+  rho1 = RHO2; 
+  rho2 = RHO1; 
+  mu1 = MU2;
+  mu2 = MU1, 
 
   f.sigma = SIGMA;
 
@@ -74,21 +73,22 @@ event init (i = 0) {
 }
 
 
-/*
+
 // gravity
 event acceleration (i++) {
   face vector av = a;
   foreach_face(y)
     av.y[] += GY;
 }
-*/
+
+
 
 event updatedt (i++) {
   if (t < 1e-2) {
     DT = 1e-4;
     //TOLERANCE = 1e-2;
   } else {
-    DT = 1e-3 * 0.2;
+    DT = 1e-3 * 0.5;
     //TOLERANCE = 1e-2;
   }
 }
