@@ -5,7 +5,11 @@
 import numpy as np
 import sys
 
+dim = int(open("dim", 'r').read())
+kc = 0.5 if dim == 3 else 1.
+
 ukk = np.loadtxt("k_0000.dat", skiprows=1).flatten()
-ukk = [k for k in ukk if np.isfinite(k)]
+ukk = [k * kc for k in ukk if np.isfinite(k)]
+
 
 np.savetxt(sys.stdout, ukk)
