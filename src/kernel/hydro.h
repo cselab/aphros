@@ -560,6 +560,43 @@ void Hydro<M>::Init() {
           Vect q(xt, xn, 0.);
           fc_vel_[c] = ((q - qc).sqrnorm() <= sqr(qr) ? s * om : Vect(0));
         }
+      } else if (vi == "vortexgauss") {
+        // XXX: Bergdorf 2007, Direct numerical simulations of vortex rings
+        Scal pi = M_PI;
+        Scal g(var.Double["ring_gamma"]); // circulation
+        Scal sig(var.Double["ring_sigma"]); // sigma
+        Scal rad(var.Double["ring_r"]); // radius
+        Scal nfr(var.Double["ring_noise_freq"]); // noise angular frequency
+        Scal namp(var.Double["ring_noise_amp"]); // noise amp relative to r
+        Vect xc(var.Vect["ring_c"]); // center
+        Vect n(var.Vect["ring_n"]);  // normal
+        n /= n.norm();
+        const Scal eps = 1e-10;
+        for (auto c : m.AllCells()) {
+          Vect x = m.GetCenter(c) - xc;
+          // along axis
+          Scal xn = n.dot(x);
+          // select direction 
+          Vect v(0);
+          v[n.abs().argmin()] = 1.;
+          // unit vectors in plane
+          Vect vx = n.cross(v);
+          Vect vy = n.cross(vx);
+          // angle
+          Scal a = std::atan2(vx.dot(x), vy.dot(x));
+          // noise
+          xn += rad * namp * std::sin(a * nfr);
+          // along plane
+          Scal xt = (x - n * xn).norm();
+          // unit radial along plane
+          Vect et = (x - n * xn) / std::max(eps, xt);
+          // unit along circle 
+          Vect es = n.cross(et);
+          Scal s2 = sqr(xn) + sqr(xt - rad);
+          Scal sig2 = sqr(sig);
+          Scal om = g / (pi * sig2) * std::exp(-s2 / sig2);
+          fc_vel_[c] = es * om;
+        }
       } else if (vi == "rot") {
         Vect xc(var.Vect["rot_c"]);
         Scal om = var.Double["rot_om"];
