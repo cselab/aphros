@@ -206,12 +206,12 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Scal GetStDt() {
     Scal sig = var.Double["sigma"];
     Scal* cflst = var.Double("cflst");
-    if (cflst && sig > 0.) {
+    if (cflst && sig != 0.) {
       Scal pi = M_PI;
       Scal h3 = m.GetVolume(IdxCell(0));
       Scal r1 = var.Double["rho1"];
       Scal r2 = var.Double["rho2"];
-      return (*cflst) * std::sqrt(h3 * (r1 + r2) / (4. * pi * sig));
+      return (*cflst) * std::sqrt(h3 * (r1 + r2) / (4. * pi * std::abs(sig)));
     }
     return std::numeric_limits<Scal>::max();
   }
