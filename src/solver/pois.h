@@ -70,9 +70,25 @@ class PoisSolver {
       m.Comm(&fc);
     }
   }
-  void Solve(FieldCell<Scal>& fcr) {
+  void Solve(const FieldCell<Scal>& fcr) {
     auto sem = m.GetSem("pois");
+    auto& fcrt = fcu_;      // temporary rhs
+    if (sem("reduce")) {
+      fcrt = fcr;             
+      sumr_ = 0.;
+      sumv_ = 0.;
+      for (auto c : m.Cells()) {
+        auto v = m.GetVolume(c);
+        sumr_ += fcrt[c] * v;
+        sumv_ += v;
+      }
+      m.Reduce(&sumr_, "sum");
+      m.Reduce(&sumv_, "sum");
+    }
     if (sem("assemble")) {
+      // compute average rhs
+      sumr_ /= sumv_;
+
       FieldFace<Expr> ffe(m); // normal derivative
       // set all faces
       for (auto f : m.Faces()) {
@@ -105,7 +121,7 @@ class PoisSolver {
           IdxFace f = m.GetNeighbourFace(c, q);
           e += ffe[f] * m.GetOutwardFactor(c, q);
         }
-        e += Expr(-fcr[c] * m.GetVolume(c));
+        e += Expr(-(fcr[c] - sumr_) * m.GetVolume(c));
       }
     }
     if (sem.Nested("solve")) {
@@ -125,6 +141,8 @@ class PoisSolver {
   FieldCell<Expr> fce_;
   FieldCell<Scal> fcu_;
   MapFace<std::shared_ptr<solver::CondFace>> mfz_;
+  Scal sumr_; // sum of rhs * volume
+  Scal sumv_; // sum of volume
 };
 
 
