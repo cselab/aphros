@@ -42,6 +42,8 @@ class Hypre {
   ~Hypre();
  
  private:
+  void SolverSetup();
+  void SolverDestroy();
   size_t dim;
   std::vector<Block> bb;
   struct HypreData;
