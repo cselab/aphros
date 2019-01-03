@@ -292,6 +292,7 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
       m.SetResidual(s->GetResidual());
       m.SetIter(s->GetIter());
     }
+    mhp_.erase(k);
   }
 
   for (auto& b : bb) {
