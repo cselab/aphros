@@ -126,6 +126,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     p->inletflux_numid = var.Int["inletflux_numid"];
     p->convsc = solver::GetConvSc(var.String["convsc"]);
     p->convdf = var.Double["convdf"];
+    p->linreport = var.Int["linreport"];
   }
   void Update(typename AST::Par* p) {
     p->sharp = var.Double["sharp"];

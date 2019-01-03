@@ -374,6 +374,7 @@ struct Simple<M_>::Imp {
     d.second = p.second;
     d.sc = p.convsc;
     d.df = p.convdf;
+    d.linreport = p.linreport;
   }
   void StartStep() {
     auto sem = m.GetSem("fluid-start");
@@ -599,6 +600,13 @@ struct Simple<M_>::Imp {
       }
       CHECKNAN(fc, m.CN());
       m.Comm(&fc);
+      if (par->linreport && m.IsRoot()) {
+        std::cout 
+            << "pcorr:"
+            << " res=" << m.GetResidual()
+            << " iter=" << m.GetIter()
+            << std::endl;
+      }
     }
   }
   // Get diagcoeff from current convdiff equations

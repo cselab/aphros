@@ -23,6 +23,7 @@ class ConvDiffScalImp : public ConvDiffScal<M_> {
     ConvSc sc = ConvSc::quick; // scheme for convective flux (see convdiffi.h)
     Scal df = 1.; // deferred correction factor
     Scal th = 1e-10; // threshold for flow direction
+    bool linreport = false; // report linear solvers
   };
   // Constructor.
   // fcu: initial field

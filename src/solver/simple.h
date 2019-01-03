@@ -27,6 +27,7 @@ class Simple : public FluidSolver<M_> {
     size_t inletflux_numid = 0; // reduction for id from 0 to numid-1
     ConvSc convsc = ConvSc::quick; // convection scheme
     Scal convdf = 1.; // deferred correction factor
+    bool linreport = false; // report linear solvers
   };
   // Constructor.
   // fcw: initial velocity
