@@ -196,14 +196,20 @@ void Hypre::Solve() {
   if (solver_ == "pcg+smg" || solver_ == "pcg") {
     HYPRE_StructPCGSetup(hd->solver, hd->a, hd->r, hd->x);
     HYPRE_StructPCGSolve(hd->solver, hd->a, hd->r, hd->x);
+    HYPRE_StructPCGGetFinalRelativeResidualNorm(hd->solver, &res_);
+    HYPRE_StructPCGGetNumIterations(hd->solver, &iter_);
   }
   if (solver_ == "smg") {
     HYPRE_StructSMGSetup(hd->solver, hd->a, hd->r, hd->x);
     HYPRE_StructSMGSolve(hd->solver, hd->a, hd->r, hd->x);
+    HYPRE_StructSMGGetFinalRelativeResidualNorm(hd->solver, &res_);
+    HYPRE_StructSMGGetNumIterations(hd->solver, &iter_);
   }
   if (solver_ == "gmres") {
     HYPRE_StructGMRESSetup(hd->solver, hd->a, hd->r, hd->x);
     HYPRE_StructGMRESSolve(hd->solver, hd->a, hd->r, hd->x);
+    HYPRE_StructGMRESGetFinalRelativeResidualNorm(hd->solver, &res_);
+    HYPRE_StructGMRESGetNumIterations(hd->solver, &iter_);
   }
 
   if (solver_ == "zero") {

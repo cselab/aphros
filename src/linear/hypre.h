@@ -35,6 +35,10 @@ class Hypre {
 
   void Update();
   void Solve();
+  // Returns relative residual norm from last Solve()
+  Scal GetResidual();
+  // Returns the number of iteration from last Solve()
+  int GetIter();
   ~Hypre();
  
  private:
@@ -44,4 +48,6 @@ class Hypre {
   std::unique_ptr<HypreData> hd;
   std::string solver_;
   int maxiter_;
+  Scal res_;
+  int iter_;
 };
