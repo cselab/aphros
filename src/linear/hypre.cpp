@@ -228,6 +228,14 @@ void Hypre::Solve() {
 
 }
 
+Hypre::Scal Hypre::GetResidual() {
+  return res_;
+}
+
+int Hypre::GetIter() {
+  return iter_;
+}
+
 Hypre::~Hypre() {
   ///////// DESTROY SOLVER
   if (solver_ == "pcg+smg" || solver_ == "pcg") {

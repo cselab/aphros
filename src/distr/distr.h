@@ -283,13 +283,19 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
     } else { // update current instance
       mhp_.at(k)->Update();
     }
-    mhp_.at(k)->Solve();
-    //mhp_.erase(k);
+
+    auto& s = mhp_.at(k);
+    s->Solve();
+
+    for (auto& b : bb) {
+      auto& m = mk.at(b)->GetMesh();
+      m.SetResidual(s->GetResidual());
+      m.SetIter(s->GetIter());
+    }
   }
 
   for (auto& b : bb) {
-    auto& k = *mk.at(b); 
-    auto& m = k.GetMesh();
+    auto& m = mk.at(b)->GetMesh();
     m.ClearSolve();
   }
 }

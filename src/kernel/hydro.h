@@ -458,6 +458,13 @@ void Hydro<M>::InitVort() {
     }
     if (sem("post-" + dn)) {
       SetComponent(fctv, d, ps_->GetField());
+      if (m.IsRoot() && var.Int["vort_report"]) {
+        std::cout 
+            << "om" << ("xyz"[d]) << ":" 
+            << " res=" << m.GetResidual()
+            << " iter=" << m.GetIter()
+            << std::endl;
+      }
     }
   }
   if (sem("vel")) {
