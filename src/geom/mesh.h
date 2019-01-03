@@ -486,6 +486,18 @@ class MeshStructured {
   const std::vector<LS>& GetSolve() const {
     return vls_;
   }
+  Scal GetResidual() const {
+    return lin_res_;
+  }
+  int GetIter() const {
+    return lin_iter_;
+  }
+  void SetResidual(Scal res) {
+    lin_res_ = res;
+  }
+  void SetIter(int iter) {
+    lin_iter_ = iter;
+  }
   void ClearSolve() {
     vls_.clear();
   }
@@ -554,6 +566,8 @@ class MeshStructured {
   std::vector<Scal> lsa_; // matrix coeffs of size n * st.size()
   std::vector<Scal> lsb_; // rhs of size n
   std::vector<Scal> lsx_; // solution and initial guess of size n
+  Scal lin_res_;
+  int lin_iter_;
 };
 
 
