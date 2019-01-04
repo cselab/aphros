@@ -253,46 +253,57 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
         gs[i] = bs_[i] * b_[i] * p_[i];
       }
 
-      std::string srs = par.String["hypre_symm_solver"]; // solver symm
-      assert(srs == "pcg+smg" || srs == "smg" || srs == "pcg" || srs == "zero");
-
-      std::string srg = par.String["hypre_gen_solver"]; // solver gen
-      assert(srg == "gmres" || srg == "zero");
-
-      std::string sr; // solver 
-      int maxiter;
-      using T = typename M::LS::T; // system type
-      switch (sf.t) {
-        case T::gen:
-          sr = srg;
-          maxiter = par.Int["hypre_gen_maxiter"];
-          break;
-        case T::symm:
-          sr = srs;
-          maxiter = par.Int["hypre_symm_maxiter"];
-          break;
-        default:
-          throw std::runtime_error(
-              "Solve(): Unknown system type = " + std::to_string((size_t)sf.t));
-      }
-
-      Hypre* hp = new Hypre(comm_, lbb, gs, per, 
-                            par.Double["hypre_tol"], par.Int["hypre_print"], 
-                            sr, maxiter);
+      Hypre* hp = new Hypre(comm_, lbb, gs, per);
       mhp_.emplace(k, std::unique_ptr<Hypre>(hp));
     } else { // update current instance
       mhp_.at(k)->Update();
     }
 
     auto& s = mhp_.at(k);
-    s->Solve();
+
+    std::string sr; // solver 
+    int maxiter;
+    Scal tol;
+
+    {
+      std::string srs = par.String["hypre_symm_solver"]; // solver symm
+      assert(srs == "pcg+smg" || srs == "smg" || srs == "pcg" || srs == "zero");
+
+      std::string srg = par.String["hypre_gen_solver"]; // solver gen
+      assert(srg == "gmres" || srg == "zero");
+
+      using T = typename M::LS::T; // system type
+      switch (sf.t) {
+        case T::gen:
+          sr = srg;
+          maxiter = par.Int["hypre_gen_maxiter"];
+          tol = par.Double["hypre_gen_tol"];
+          break;
+        case T::symm:
+          sr = srs;
+          maxiter = par.Int["hypre_symm_maxiter"];
+          tol = par.Double["hypre_symm_tol"];
+          break;
+        default:
+          throw std::runtime_error(
+              "Solve(): Unknown system type = " + std::to_string((size_t)sf.t));
+      }
+
+    }
+
+    if (sf.prefix != "") {
+      sr = par.String["hypre_" + sf.prefix + "_solver"];
+      maxiter = par.Int["hypre_" + sf.prefix + "_maxiter"];
+      tol = par.Double["hypre_" + sf.prefix + "_tol"];
+    }
+
+    s->Solve(tol, par.Int["hypre_print"], sr, maxiter);
 
     for (auto& b : bb) {
       auto& m = mk.at(b)->GetMesh();
       m.SetResidual(s->GetResidual());
       m.SetIter(s->GetIter());
     }
-    mhp_.erase(k);
   }
 
   for (auto& b : bb) {

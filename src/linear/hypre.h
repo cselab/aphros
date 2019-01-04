@@ -28,13 +28,12 @@ class Hypre {
   // print: print level
   // solver: solver name
   // maxiter: maximum number of iterations
-  Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs, std::vector<bool> per, 
-        Scal tol, int print, std::string solver, int maxiter);
+  Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs, std::vector<bool> per);
   Hypre() = delete;
   Hypre(const Hypre&) = delete;
 
   void Update();
-  void Solve();
+  void Solve(Scal tol, int print, std::string solver, int maxiter);
   // Returns relative residual norm from last Solve()
   Scal GetResidual();
   // Returns the number of iteration from last Solve()
@@ -42,7 +41,7 @@ class Hypre {
   ~Hypre();
  
  private:
-  void SolverSetup();
+  void SolverSetup(Scal tol, int print, int maxiter);
   void SolverDestroy();
   size_t dim;
   std::vector<Block> bb;

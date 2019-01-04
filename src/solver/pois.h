@@ -53,6 +53,7 @@ class PoisSolver {
       auto l = ConvertLs(fce, *lsa, *lsb, *lsx, m);
       using T = typename M::LS::T; 
       l.t = T::symm; // solver type
+      l.prefix = "vort"; // XXX: adhoc for vorticity
       m.Solve(l);
     }
     if (sem("copy")) {

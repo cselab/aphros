@@ -347,6 +347,7 @@ class MeshStructured {
     std::vector<Scal>* x; // solution and initial guess of size n
     enum class T { gen, symm };
     T t = T::gen;
+    std::string prefix = ""; // custom prefix for config (tol, solver, maxiter)
   };
   Sem GetSem(std::string name="") {
     return susp_.GetSem(name);
