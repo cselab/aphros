@@ -4,8 +4,6 @@
 
 struct Hypre::HypreData {
   MPI_Comm comm;
-  int print;
-  Scal tol;
   HYPRE_StructGrid     grid;
   HYPRE_StructStencil  stencil;
   HYPRE_StructMatrix   a;
@@ -16,17 +14,13 @@ struct Hypre::HypreData {
 };
 
 Hypre::Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs,
-             std::vector<bool> per, Scal tol, int print,
-             std::string solver, int maxiter) 
-  : dim(gs.size()), bb(bb), hd(new HypreData),
-    solver_(solver), maxiter_(maxiter)
+             std::vector<bool> per) 
+  : dim(gs.size()), bb(bb), hd(new HypreData)
 {
   assert(bb.size() > 0);
   assert(dim > 0);
 
   hd->comm = comm;
-  hd->print = print;
-  hd->tol = tol;
 
   // Check size of MIdx
   for (auto& b : bb) {
@@ -106,13 +100,13 @@ Hypre::Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs,
 
 }
 
-void Hypre::SolverSetup() {
+void Hypre::SolverSetup(Scal tol, int print, int maxiter) {
   // PCG solver
   if (solver_ == "pcg") {
     HYPRE_StructPCGCreate(hd->comm, &hd->solver);
-    HYPRE_StructPCGSetMaxIter(hd->solver, maxiter_);
-    HYPRE_StructPCGSetTol(hd->solver, hd->tol); 
-    HYPRE_StructPCGSetPrintLevel(hd->solver, hd->print); 
+    HYPRE_StructPCGSetMaxIter(hd->solver, maxiter);
+    HYPRE_StructPCGSetTol(hd->solver, tol); 
+    HYPRE_StructPCGSetPrintLevel(hd->solver, print); 
     HYPRE_StructPCGSetup(hd->solver, hd->a, hd->r, hd->x);
   }
 
@@ -120,9 +114,9 @@ void Hypre::SolverSetup() {
   if (solver_ == "pcg+smg") {
     // solver
     HYPRE_StructPCGCreate(hd->comm, &hd->solver);
-    HYPRE_StructPCGSetMaxIter(hd->solver, maxiter_);
-    HYPRE_StructPCGSetTol(hd->solver, hd->tol); 
-    HYPRE_StructPCGSetPrintLevel(hd->solver, hd->print); 
+    HYPRE_StructPCGSetMaxIter(hd->solver, maxiter);
+    HYPRE_StructPCGSetTol(hd->solver, tol); 
+    HYPRE_StructPCGSetPrintLevel(hd->solver, print); 
 
     // precond
     HYPRE_StructSMGCreate(hd->comm, &hd->precond);
@@ -143,10 +137,10 @@ void Hypre::SolverSetup() {
   if (solver_ == "smg") {
     HYPRE_StructSMGCreate(hd->comm, &hd->solver);
     HYPRE_StructSMGSetMemoryUse(hd->solver, 0);
-    HYPRE_StructSMGSetMaxIter(hd->solver, maxiter_);
-    HYPRE_StructSMGSetTol(hd->solver, hd->tol);
+    HYPRE_StructSMGSetMaxIter(hd->solver, maxiter);
+    HYPRE_StructSMGSetTol(hd->solver, tol);
     HYPRE_StructSMGSetRelChange(hd->solver, 0);
-    HYPRE_StructSMGSetPrintLevel(hd->solver, hd->print); 
+    HYPRE_StructSMGSetPrintLevel(hd->solver, print); 
     HYPRE_StructSMGSetNumPreRelax(hd->solver, 1);
     HYPRE_StructSMGSetNumPostRelax(hd->solver, 1);
     HYPRE_StructSMGSetup(hd->solver, hd->a, hd->r, hd->x);
@@ -155,9 +149,9 @@ void Hypre::SolverSetup() {
   // GMRES solver
   if (solver_ == "gmres") {
     HYPRE_StructGMRESCreate(hd->comm, &hd->solver);
-    HYPRE_StructGMRESSetTol(hd->solver, hd->tol);
-    HYPRE_StructGMRESSetPrintLevel(hd->solver, hd->print);
-    HYPRE_StructGMRESSetMaxIter(hd->solver, maxiter_);
+    HYPRE_StructGMRESSetTol(hd->solver, tol);
+    HYPRE_StructGMRESSetPrintLevel(hd->solver, print);
+    HYPRE_StructGMRESSetMaxIter(hd->solver, maxiter);
     HYPRE_StructGMRESSetup(hd->solver, hd->a, hd->r, hd->x);
   }
 
@@ -203,8 +197,10 @@ void Hypre::Update() {
   HYPRE_StructVectorAssemble(hd->x);
 }
 
-void Hypre::Solve() {
-  SolverSetup();
+void Hypre::Solve(Scal tol, int print, std::string solver, int maxiter) {
+  solver_ = solver;
+
+  SolverSetup(tol, print, maxiter);
 
   if (solver_ == "pcg+smg" || solver_ == "pcg") {
     HYPRE_StructPCGSolve(hd->solver, hd->a, hd->r, hd->x);

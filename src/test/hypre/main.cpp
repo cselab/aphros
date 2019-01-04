@@ -97,8 +97,8 @@ int main (int argc, char ** argv) {
   int print = 2;
   int maxiter = 80;
 
-  Hypre h(comm, bb, gs, per, tol, print, "gmres", maxiter);
-  h.Solve();
+  Hypre h(comm, bb, gs, per);
+  h.Solve(tol, print, "gmres", maxiter);
 
   // Check solution
   {
