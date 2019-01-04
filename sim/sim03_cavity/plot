@@ -100,8 +100,6 @@ def SaveVy(x1, vy, d):
     np.savetxt(d + "vy", vy1)
 
 def FigVy(x, vy, o):
-    SaveVy(x, vy, "ch")
-
     plt.close()
     fig, ax = PlotInit()
 
@@ -114,7 +112,7 @@ def FigVy(x, vy, o):
     PlotSave1(fig, ax, o)
 
 pre = 'p'
-ff = sorted(glob.glob(pre + "*.dat"))[1:]
+ff = sorted(glob.glob(pre + "*.dat"))[0:]
 #pp = pp[1:2]
 for f in ff:
     suf = re.findall(pre + "(.*)", f)[0]
@@ -131,6 +129,8 @@ for f in ff:
     x1 = (0.5 + np.arange(sx)) * hx
     y1 = (0.5 + np.arange(sy)) * hy
     x, y = np.meshgrid(x1, y1)
+
+    SaveVy(x, vy, "ch")
 
     po = os.path.splitext(f)[0] + ".pdf"
     print(po)
