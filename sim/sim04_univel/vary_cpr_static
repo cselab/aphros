@@ -41,6 +41,7 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
     cprk = 1.2 if c.symmcorn else 2.4;
     #nx = max(nxm, ch.Upper2(cpr * cprk)) 
     nx = c.nx
+    np = c.np
     nfr = c.nfr
     dumpdefault = c.dumpdefault
 
@@ -58,7 +59,7 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
 rm -f ch/done ge/done
 
 ./gen -nx {nx} -cpr {cpr} -La {La} {bcod} -symmcorn {symmcorn} \
--bcoh {bcoh} -nfr {nfr} \
+-bcoh {bcoh} -np {np} -nfr {nfr} \
 -dim {dim} -We 0 -tmax {tmax} -mode mu -pos center \
 -dumpdefault {dumpdefault}
 
