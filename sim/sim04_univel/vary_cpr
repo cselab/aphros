@@ -2,7 +2,7 @@
 
 import os
 import itertools as it
-import numpy as np
+import numpy
 from glob import glob
 
 import ch
@@ -28,7 +28,7 @@ sh("mkdir -p '{:}'".format(o))
 
 r0,r1,rs = (c.cpr0, c.cpr1, c.cprs)
 
-for dim,cpr in it.product([c.dim], 1. * 2 ** np.arange(r0,r1,rs)):
+for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
     nxm = ch.GetBs(dim)
     La = c.La
     We = c.We

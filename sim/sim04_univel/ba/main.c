@@ -6,6 +6,7 @@
 #include "vtk.h"
 
 #include "io/iompi.h"
+#include "io/io.h"
 
 double sqr(double a) {
   return a * a;
@@ -61,12 +62,18 @@ event init (i = 0) {
 
 event out (t += DUMPDT ; t <= TMAX) {
   static int frame = 0;
+  ++frame;
+  scalar * a = {u, p, f};
+
+#if dimension == 2
   char name[1000];
   sprintf(name, "o/%d/u_%04d.vtk", pid(), frame);
-  ++frame;
-  //FILE * fp = fopen(name, "w");
-  scalar * a = {u, p, f};
+  FILE * fp = fopen(name, "w");
+  io(a, fp);
+  fclose(fp);
+#elif dimension == 3
   iompi(a, name);
+#endif
 }
 
 event statout (i += 10) {
