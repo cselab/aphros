@@ -67,9 +67,10 @@ event out (t += DUMPDT ; t <= TMAX) {
   ++frame;
   scalar * a = {u, p, f};
 
-#if dimension == 2
   char name[1000];
   sprintf(name, "o/%d/u_%04d.vtk", pid(), frame);
+
+#if dimension == 2
   FILE * fp = fopen(name, "w");
   io(a, fp);
   fclose(fp);
