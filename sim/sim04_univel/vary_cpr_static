@@ -3,6 +3,7 @@
 import os
 import itertools as it
 import numpy 
+import sys
 from glob import glob
 
 import ch
@@ -28,6 +29,9 @@ sh("mkdir -p '{:}'".format(o))
 
 r0,r1,rs = (c.cpr0, c.cpr1, c.cprs)
 
+args = os.path.abspath(os.path.realpath(sys.argv[0])) 
+args += ' ' + ' '.join(sys.argv[1:])
+
 for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
     nxm = ch.GetBs(dim)
     La = c.La
@@ -48,6 +52,9 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
     bcod = "-bcod -0.5 -0.5 -0.5" if c.symmcorn else ""
 
     cf = '''
+
+# {args}
+
 rm -f ch/done ge/done
 
 ./gen -nx {nx} -cpr {cpr} -La {La} {bcod} -symmcorn {symmcorn} \
@@ -58,5 +65,5 @@ rm -f ch/done ge/done
 echo "set int statvel 1" > ch/add.conf
 '''.format(**locals())
 
-    sh("ch.task {:} > {:} <<< '{:}'".format(od, ot, cf))
+    sh("ch.task {:} {:} > {:} <<< '{:}'".format(__file__, od, ot, cf))
     sh("chmod +x {:}".format(ot))

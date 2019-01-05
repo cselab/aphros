@@ -51,5 +51,5 @@ rm -f ch/done ge/done ba/done
 echo "set int statvel 1" > ch/add.conf
 '''.format(**locals())
 
-    sh("ch.task {:} > {:} <<< '{:}'".format(od, ot, cf))
+    sh("ch.task {:} {:} > {:} <<< '{:}'".format(__file__, od, ot, cf))
     sh("chmod +x {:}".format(ot))

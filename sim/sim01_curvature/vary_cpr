@@ -21,5 +21,5 @@ for dim,cpr in it.product(ddim, 1.25 * 2 ** np.arange(0,5,0.5)):
 
     cf = './gen -cpr {cpr} -dim {dim}'.format(**locals())
 
-    sh("ch.task {:} > {:} <<< '{:}'".format(od, ot, cf))
+    sh("ch.task {:} {:} > {:} <<< '{:}'".format(__file__, od, ot, cf))
     sh("chmod +x {:}".format(ot))
