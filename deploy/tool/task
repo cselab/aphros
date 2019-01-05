@@ -11,29 +11,29 @@ def sh(s, fatal=True, silent=True):
 
 av = sys.argv
 
-# current directory
-cd = os.getcwd()
 
-if len(av) < 2 or av[1] == "-h":
-    print("""usage: {:} DATOUT
-Creates task to generate config and compute.
-Base simulation setup is the content of current directory.
-The task can be executed from any directory.
-It copies the base setup to its working directory,
-runs commands to generate config and executes './run'.
-Output expected in 'dat' is moved to DATOUT
-STDIN: commands to generate config
+if len(av) != 3 or av[1] == "-h":
+    print("""usage: DUMMY DATOUT
+Generates script which: 
+- copies the content of DUMMY to its current directory,
+- executes './run' 
+- moves 'dat' to DATOUT
+Paths converted to absolute.
+STDIN: additional commands
 DATOUT: suffix for output
 
 STDOUT: task
 """.format(os.path.basename(av[0])))
     exit(1)
 
-od = os.path.realpath(av[1])  # output dir
-
-dm = cd  # dummy
-
-cmd = sys.stdin.read()  # commands to generate config
+# DUMMY
+dm = os.path.abspath(os.path.realpath(av[1]))
+if not os.path.isdir(dm):
+    dm = os.path.dirname(dm)
+# DATOUT
+od = os.path.abspath(os.path.realpath(av[2]))
+# additional commands
+cmd = sys.stdin.read()  
 
 # log
 l = "out"
