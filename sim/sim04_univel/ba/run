@@ -24,6 +24,10 @@ dim = c['dim']
 npexp = np.bit_length() - 1
 assert np == 2 ** npexp, "np=%r but must be power of 2" % np
 
+extra = ""
+if c['symmcorn']:
+    extra = "-DSYMMCORN"
+
 o = "out"
 
 l = locals()
@@ -34,7 +38,7 @@ sh("./pargen")
 for i in range(np):
     os.makedirs("o/{:}".format(i))
 
-sh("./run0 {dim} {np} |& tee -a {o}".format(**l))
+sh("./run0 {dim} {np} '{extra}' |& tee -a {o}".format(**l))
 
 
 sh("./merge &>> {o}".format(**l))

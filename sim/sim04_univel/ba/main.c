@@ -29,9 +29,11 @@ int main() {
   init_grid(1 << REFINE);
 
   origin (0.,0.,0.);
+  #ifndef SYMMCORN
   foreach_dimension() {
     periodic (right);
   }
+  #endif
   
   rho1 = RHO1; 
   rho2 = RHO2; 
