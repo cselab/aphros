@@ -1,0 +1,166 @@
+#!/usr/bin/env python
+
+# Reh: Reynolds number by channel height and average velocity
+def Exp():
+
+    # Marcus,Bell 1994
+    # Run 3 (Table 1)
+
+    # a=1: initial ring diameter
+    # gamma: ring circulation
+
+    At = 0.5   # Atwood
+    Re = 5000.  # Reynolds, gamma/nu
+    Frm2 = 0.0125  # Froude^-2, Frm2 = a^3*g/gamma^2
+
+    for key in sorted(locals()):
+        print("{:} \t=\t {:}".format(key, locals()[key]))
+    print("\n")
+
+    return locals()
+
+def Sim(c):
+    # Marcus,Bell 1994
+    # Run 3 (Table 1)
+
+    # a=1: initial ring diameter
+    # gamma: ring circulation
+
+    At = 0.5   # Atwood
+    Re = 5000.  # Reynolds, gamma/nu
+    Frm2 = 0.0125  # Froude^-2, Frm2 = a^3*g/gamma^2
+    At,Re,Frm2 = (c['At'], c['Re'], c['Frm2'])
+
+    # initial ring diameter
+    a = 1.  
+    # circulation
+    gm = 1.
+
+    # domain 
+    W = a * 4  # width
+    L = 2 * W  # length
+    assert L >= W
+
+    # time
+    tun = 1.  # unit
+    tmax = tun * 30
+    dumpdt = tun * 1
+
+    # air gap
+    airgap = L * 0.5
+
+    ringg = gm        # ring_gamma
+    rings = 0.125 * a # ring_sigma
+    ringr = a * 0.5   # ring_r
+
+    # center of ring
+    ringx = W * 0.5
+    ringz = W * 0.5
+    ringdy = 1.75 * a
+    ringy = L - airgap - ringdy
+
+    # liquid
+    rho0 = 1. # density
+    # nu0 == mu0
+    mu0 = 1. / Re  # viscosity
+
+    sig = 0.
+    g = Frm2
+
+    # gas, ratio to liquid
+    rho = (1. - At) / (1. + At)
+    mu = mu0 * rho
+
+    # mesh
+    nx = 64 # XXX
+    ny = int(nx * L / W + 0.5)
+    nz = nx
+
+    # block size
+    bs = 16
+    # cores
+    #np = 256
+    np = 128 # XXX
+    # time limit (minutes)
+    tl = 1440
+
+    for key in sorted(locals()):
+        print("{:} \t=\t {:}".format(key, locals()[key]))
+    print("\n")
+
+    return locals()
+
+def Gen(c):
+    W = c['W']
+    L = c['L']
+    # bubble 
+    bx = W * 0.5
+    by = L 
+    bz = W * 0.5
+    brx = 1e10
+    bry = c['airgap']
+    brz = brx
+
+    tmax = c['tmax']
+    dumpdt = c['dumpdt']
+
+    rho1 = c['rho0']
+    mu1 = c['mu0']
+    rho2 = rho1 * c['rho']
+    mu2 = mu1 * c['mu']
+    sig = c['sig']
+    
+    g = -c['g']
+
+    ringx = c['ringx']
+    ringy = c['ringy']
+    ringz = c['ringz']
+    ringg = c['ringg']
+    rings = c['rings']
+    ringr = c['ringr']
+
+    with open("par.conf", 'w') as f:
+        f.write('''\
+# domain
+set double extent {L}
+
+# time
+set double tmax {tmax}
+set double dump_field_dt {dumpdt}
+
+# physical 
+set double rho1 {rho1}
+set double rho2 {rho2}
+set double mu1 {mu1}
+set double mu2 {mu2}
+set double sigma {sig}
+set vect gravity 0 {g} 0
+
+set int initvort 1
+set string vel_init vortexgauss
+set vect ring_c {ringx} {ringy} {ringz}
+set vect ring_n 0. -1. 0. 
+set double ring_gamma {ringg}
+set double ring_sigma {rings}
+set double ring_r {ringr}
+set double ring_noise_freq 0
+set double ring_noise_amp 0
+
+        '''.format(**locals()))
+
+    with open("b.dat", 'w') as f:
+        f.write("{bx} {by} {bz} {brx} {bry} {brz}\n".format(**locals()))
+    with open("_m", 'w') as f:
+        f.write("{nx} {ny} {nz}".format(**c))
+    with open("_bs", 'w') as f:
+        f.write("{bs} {bs} {bs}".format(**c))
+    with open("_np", 'w') as f:
+        f.write("{np}".format(**c))
+    with open("_tl", 'w') as f:
+        f.write("{tl}".format(**c))
+
+
+
+c = Exp()
+c = Sim(c)
+Gen(c)
