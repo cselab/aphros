@@ -51,41 +51,6 @@ for i in range(len(ss)):
 # output pattern (:0 substituted by frame number)
 bo = "a_{:}.png"
 
-
-# ----------------------------------------------------------------
-# BEGIN READERS
-# ----------------------------------------------------------------
-
-# create a new 'XDMF Reader'
-read_vf = XDMFReader(FileNames=ff)
-read_vf.CellArrayStatus = ['vf']
-read_vf.GridStatus = ['Grid_0']
-
-read_omm = XDMFReader(FileNames=ffomm)
-read_omm.CellArrayStatus = ['omm']
-read_omm.GridStatus = ['Grid_1']
-
-# list of all sources
-vs = [read_vf, read_omm]
-
-# time steps
-vt = [np.array(s.TimestepValues) for s in vs]
-
-# replace with ForceTime
-vf = ForceTime(read_vf)
-read_omm = ForceTime(read_omm)
-
-# all ForceTime
-vft = [read_vf, read_omm]
-
-# ----------------------------------------------------------------
-# END READERS
-# ----------------------------------------------------------------
-
-#####################################################
-### BEGIN OF STATE FILE
-#####################################################
-
 #### disable automatic camera reset on 'Show'
 paraview.simple._DisableFirstRenderCameraReset()
 
@@ -110,6 +75,43 @@ renderView1.CameraParallelScale = 4.0753768202092715
 renderView1.CameraParallelProjection = 1
 renderView1.Background = [1.0, 1.0, 1.0]
 renderView1.OSPRayMaterialLibrary = materialLibrary1
+
+
+
+# ----------------------------------------------------------------
+# BEGIN READERS
+# ----------------------------------------------------------------
+
+# create a new 'XDMF Reader'
+read_vf = XDMFReader(FileNames=ff)
+read_vf.CellArrayStatus = ['vf']
+read_vf.GridStatus = ['Grid_0']
+
+read_omm = XDMFReader(FileNames=ffomm)
+read_omm.CellArrayStatus = ['omm']
+read_omm.GridStatus = ['Grid_1']
+
+# list of all sources
+vs = [read_vf, read_omm]
+
+# time steps
+vt = [np.array(s.TimestepValues) for s in vs]
+
+# replace with ForceTime
+read_vf = ForceTime(read_vf)
+read_omm = ForceTime(read_omm)
+
+# all ForceTime
+vft = [read_vf, read_omm]
+
+
+# ----------------------------------------------------------------
+# END READERS
+# ----------------------------------------------------------------
+
+#####################################################
+### BEGIN OF STATE FILE
+#####################################################
 
 # ----------------------------------------------------------------
 # setup the data processing pipelines
