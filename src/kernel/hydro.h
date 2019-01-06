@@ -1147,6 +1147,7 @@ void Hydro<M>::CalcStat() {
       Vect x0(var.Vect["statbox0"]);
       Vect x1(var.Vect["statbox1"]);
       Vect h = m.GetCellSize();
+      size_t dm = (x1 - x0).argmin();
       // box size at least h
       for (size_t d = 0; d < dim; ++d) {
         x1[d] = std::max<Scal>(x1[d], x0[d] + h[d]);
@@ -1156,11 +1157,11 @@ void Hydro<M>::CalcStat() {
       for (auto c : m.Cells()) {
         auto xc = m.GetCenter(c);
         if (x0 <= xc && xc <= x1) {
-          s.boxomm += m.GetVolume(c) * fcomm_[c];
+          s.boxomm += m.GetVolume(c) * fcom_[c][dm];
         }
       }
       // divide by smallest dimension to get integral over slice
-      s.boxomm /= h[(x1 - x0).argmin()];
+      s.boxomm /= h[dm];
       m.Reduce(&s.boxomm, "sum");
     }
   }
