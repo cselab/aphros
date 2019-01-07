@@ -1733,7 +1733,7 @@ void Hydro<M>::Dump(Sem& sem) {
         if (dl.count("yvz")) m.Dump(&fcyv_, 2, "yvz");
       }
       if (dl.count("omx") || dl.count("omy") || dl.count("omz") || 
-          dl.count("omm")) { 
+          dl.count("omm") || dl.count("omcalc")) { 
         fcom_ = GetVort(fcv, GetBcVz(), m);
         fcomm_.Reinit(m);
         for (auto c : m.Cells()) {
