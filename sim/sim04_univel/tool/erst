@@ -1,0 +1,83 @@
+#!/usr/bin/env python
+
+# Prints error from exact solution.
+# $1: path to data folder (e.g. ch, ba, ge) (if absent, print only header)
+# Current folder:
+# ex/traj.dat: exact (output of ex)
+# par.conf
+
+import numpy as np
+import os
+import sys
+
+def sh(s, fatal=True):
+    print(s)
+    r = os.system(s)
+    assert not fatal or r == 0
+
+def W(s):
+    print(s)
+
+# output fields
+vv = ['cpr', 'dim', 'we', 'la', 'm2', 'pd', 
+        'vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z']
+
+av = sys.argv
+
+if len(av) < 2:
+    W(' '.join(vv))
+    exit()
+
+# config
+c = {}
+exec(open("par.py").read(), None, c)
+
+# exact
+ee = np.genfromtxt("ex/traj.dat", names=True)
+
+# target
+dd = np.genfromtxt(os.path.join(av[1], "traj.dat"), names=True)
+# exclude first samples
+dd = dd[2:]
+
+dim = c['dim']
+
+oo = dict()
+oo['we'] = c['We']
+oo['la'] = c['La']
+oo['cpr'] = c['cpr']
+oo['dim'] = c['dim']
+
+# fields with relative error
+l = ['m2']
+if dim == 2:
+    l = [v for v in l if v not in ['v2z']]
+
+for v in l:
+    e = ee[v][0]
+    oo[v] = (dd[v] - e).mean() / e
+
+# fields normalized
+l = ['pd']
+for v in l:
+    e = ee[v][0]
+    oo[v] = (dd[v]).mean() / e
+
+# velocity in dd
+# convert to We
+l = ['vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z']
+for v in l:
+    u = dd[v][-1]
+    rho = c['rho0']   # density
+    bd = c['bbr'][0][0] * 2   # diameter
+    sig = c['sig']
+    we = rho * u ** 2 * bd / sig
+    oo[v] = we
+
+# zero dim = 2
+if dim == 2:
+    for v in ['v2z', 'vlmz', 'vl2z']:
+        oo[v] = 0.
+
+W(' '.join([str(oo[v]) for v in vv]))
+

@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -eu
+
+# prefix
+p=er
+# exec
+e=erst
+
+for s in ch ba ge ; do
+  o=$p$s
+  echo $o
+  for f in dat* ; do 
+    printf .
+    (cd $f ; ../$e $s) >> $o
+  done
+  echo
+done
