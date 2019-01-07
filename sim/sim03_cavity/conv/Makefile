@@ -1,0 +1,2 @@
+all:
+	gnuplot a.gp
