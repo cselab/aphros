@@ -321,6 +321,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     Vect vl2; // l2-norm of v-"vel"
     Scal p0, p1, pd; // pressure min,max
     Scal boxomm = 0.; // integral of vorticity magnitude over box
+    Scal boxomm2 = 0.; // integral of vorticity magnitude over box
     Stat()
         : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
         , dtt(0), dt(0), dta(0), iter(0), dumpt(-1e10), step(0)
@@ -1026,6 +1027,7 @@ void Hydro<M>::Init() {
       };
       if (var.Int["statbox"]) {
         con.push_back(op("boxomm", &s.boxomm));
+        con.push_back(op("boxomm2", &s.boxomm2));
       }
       if (var.Int["statvel"]) {
         con.push_back(op("vlmx", &s.vlm[0]));
@@ -1144,25 +1146,35 @@ void Hydro<M>::CalcStat() {
     }
 
     if (var.Int["statbox"]) {
-      Vect x0(var.Vect["statbox0"]);
-      Vect x1(var.Vect["statbox1"]);
+      Vect xa(var.Vect["statboxa"]);
+      Vect xb(var.Vect["statboxb"]);
+      Vect x2a(var.Vect["statbox2a"]);
+      Vect x2b(var.Vect["statbox2b"]);
       Vect h = m.GetCellSize();
-      size_t dm = (x1 - x0).argmin();
+      size_t dm = (xa - xb).argmin();
+      size_t dm2 = (x2a - x2b).argmin();
       // box size at least h
       for (size_t d = 0; d < dim; ++d) {
-        x1[d] = std::max<Scal>(x1[d], x0[d] + h[d]);
+        xb[d] = std::max<Scal>(xb[d], xa[d] + h[d]);
+        x2b[d] = std::max<Scal>(x2b[d], x2a[d] + h[d]);
       }
       // integrate
       s.boxomm = 0.;
+      s.boxomm2 = 0.;
       for (auto c : m.Cells()) {
         auto xc = m.GetCenter(c);
-        if (x0 <= xc && xc <= x1) {
+        if (xa <= xc && xc <= xb) {
           s.boxomm += m.GetVolume(c) * fcom_[c][dm];
+        }
+        if (x2a <= xc && xc <= x2b) {
+          s.boxomm2 += m.GetVolume(c) * fcom_[c][dm2];
         }
       }
       // divide by smallest dimension to get integral over slice
       s.boxomm /= h[dm];
+      s.boxomm2 /= h[dm2];
       m.Reduce(&s.boxomm, "sum");
+      m.Reduce(&s.boxomm2, "sum");
     }
   }
 
