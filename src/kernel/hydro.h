@@ -1151,8 +1151,8 @@ void Hydro<M>::CalcStat() {
       Vect x2a(var.Vect["statbox2a"]);
       Vect x2b(var.Vect["statbox2b"]);
       Vect h = m.GetCellSize();
-      size_t dm = (xa - xb).argmin();
-      size_t dm2 = (x2a - x2b).argmin();
+      size_t dm = (xb - xa).argmin();
+      size_t dm2 = (x2b - x2a).argmin();
       // box size at least h
       for (size_t d = 0; d < dim; ++d) {
         xb[d] = std::max<Scal>(xb[d], xa[d] + h[d]);
