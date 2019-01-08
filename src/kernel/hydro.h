@@ -578,6 +578,8 @@ void Hydro<M>::Init() {
         Scal rad(var.Double["ring_r"]); // radius
         Scal nfr(var.Double["ring_noise_freq"]); // noise angular frequency
         Scal namp(var.Double["ring_noise_amp"]); // noise amp relative to r
+        Scal nfr2(var.Double["ring_noise2_freq"]); // noise angular frequency
+        Scal namp2(var.Double["ring_noise2_amp"]); // noise amp relative to r
         Vect xc(var.Vect["ring_c"]); // center
         Vect n(var.Vect["ring_n"]);  // normal
         n /= n.norm();
@@ -598,6 +600,8 @@ void Hydro<M>::Init() {
           xn += rad * namp * std::sin(a * nfr);
           // along plane
           Scal xt = (x - n * xn).norm();
+          // noise2
+          xt += rad * namp2 * std::sin(a * nfr2);
           // unit radial along plane
           Vect et = (x - n * xn) / std::max(eps, xt);
           // unit along circle 
