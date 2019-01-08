@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+
+import numpy as np
+
+i = np.loadtxt("i0")
+vy = np.loadtxt("vy0")
+
+x = (i - i.min()) / i.ptp()
+
+x = np.flip(x)
+vy = np.flip(vy)
+
+np.savetxt("x", x)
+np.savetxt("vy", vy)
