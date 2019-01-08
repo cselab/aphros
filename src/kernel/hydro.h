@@ -322,6 +322,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     Scal p0, p1, pd; // pressure min,max
     Scal boxomm = 0.; // integral of vorticity magnitude over box
     Scal boxomm2 = 0.; // integral of vorticity magnitude over box
+    Vect vomm = Vect(0); // velocity weighted by vorticity
+    Scal vommw = 0; // integral of vorticity
     Stat()
         : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
         , dtt(0), dt(0), dta(0), iter(0), dumpt(-1e10), step(0)
@@ -1024,14 +1026,14 @@ void Hydro<M>::Init() {
           op("vc2x", &s.vc2[0]), op("vc2y", &s.vc2[1]), op("vc2z", &s.vc2[2]),
           op("v1x", &s.v1[0]), op("v1y", &s.v1[1]), op("v1z", &s.v1[2]),
           op("v2x", &s.v2[0]), op("v2y", &s.v2[1]), op("v2z", &s.v2[2]),
-          std::make_shared<output::OutScalFunc<Scal>>(
-              "meshposx", [this](){ return st_.meshpos[0]; }),
-          std::make_shared<output::OutScalFunc<Scal>>(
-              "meshvelx", [this](){ return st_.meshvel[0]; })
+          op("meshposx", &s.meshpos[0]),
+          op("meshvelx", &s.meshvel[0]),
+          op("meshvelz", &s.meshvel[2]),
       };
       if (var.Int["statbox"]) {
         con.push_back(op("boxomm", &s.boxomm));
         con.push_back(op("boxomm2", &s.boxomm2));
+        con.push_back(op("vommz", &s.vomm[2]));
       }
       if (var.Int["statvel"]) {
         con.push_back(op("vlmx", &s.vlm[0]));
@@ -1149,6 +1151,7 @@ void Hydro<M>::CalcStat() {
       m.Reduce(&s.p1, "max");
     }
 
+    // XXX: adhoc: also controls s.vomm
     if (var.Int["statbox"]) {
       Vect xa(var.Vect["statboxa"]);
       Vect xb(var.Vect["statboxb"]);
@@ -1179,6 +1182,18 @@ void Hydro<M>::CalcStat() {
       s.boxomm2 /= h[dm2];
       m.Reduce(&s.boxomm, "sum");
       m.Reduce(&s.boxomm2, "sum");
+
+      // vomm
+      s.vomm = Vect(0);
+      s.vommw = 0;
+      for (auto c : m.Cells()) {
+        s.vomm += fv[c] * fcomm_[c];
+        s.vommw += fcomm_[c];
+      }
+      for (size_t d = 0; d < dim; ++d) {
+        m.Reduce(&s.vomm[d], "sum");
+      }
+      m.Reduce(&s.vommw, "sum");
     }
   }
 
@@ -1189,6 +1204,8 @@ void Hydro<M>::CalcStat() {
     s.c2 *= im2;
     s.v1 *= im1;
     s.v2 *= im2;
+
+    s.vomm /= s.vommw;
 
     // Moving mesh
     s.c1 += st_.meshpos;
