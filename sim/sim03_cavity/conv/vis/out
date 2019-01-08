@@ -1,0 +1,234 @@
+Loading config from 'a.conf'
+
+=== config begin ===
+set string advection_solver vof
+set string bc_xm wall 0 0 0
+set string bc_xp wall 0 0 0
+set string bc_ym wall 0 0 0
+set string bc_yp wall 1 0 0 
+set string bubgen_path bg.dat
+set string convsc quick
+set string dumpformat plain
+set string dumplist vx vy vz p vf cl 
+set string hypre_gen_solver gmres
+set string hypre_symm_solver pcg
+set string hypre_vort_solver smg
+set string init_sig uniform
+set string init_vf zero
+set string list_path b.dat
+set string part_attrforce line
+set string part_attrreconst line
+set string surftens kn
+set string vel_init zero
+set int CHECKNAN 0
+set int bcc_reflect 0
+set int bsx 32
+set int bsy 32
+set int bsz 2
+set int bx 1
+set int by 1
+set int bz 1
+set int clip_vf 0
+set int comm_size 8
+set int curvgrad 0
+set int dim 2
+set int dump_field_max 10000
+set int dump_part_max 10000
+set int dump_stat_max 1000000
+set int dump_traj_max 10000
+set int dump_trep_max 10000
+set int dumpinit 0
+set int dumppart 0
+set int dumppartinter 0
+set int dumppoly 1
+set int enable_advection 0
+set int enable_bubgen 0
+set int enable_color 0
+set int enable_fluid 1
+set int enable_shell 0
+set int enable_surftens 0
+set int hl 2
+set int hypre_gen_maxiter 30
+set int hypre_periodic_x 0
+set int hypre_periodic_y 0
+set int hypre_periodic_z 1
+set int hypre_print 0
+set int hypre_symm_maxiter 100
+set int hypre_vort_maxiter 1000
+set int initvort 0
+set int inletflux_numid 1
+set int linreport 0
+set int list_ls 1
+set int loc 0
+set int loc_periodic_x 1
+set int loc_periodic_y 1
+set int loc_periodic_z 1
+set int marangoni 0
+set int max_iter 5000
+set int max_step 1000000
+set int min_iter 1
+set int normalnode 0
+set int output 1
+set int part 1
+set int part_bendmean 1
+set int part_constr 1
+set int part_dn 0
+set int part_dump_fr 1
+set int part_itermax 20
+set int part_k 1
+set int part_n 0
+set int part_np 9
+set int part_ns 2
+set int part_report_fr 1
+set int part_verb 0
+set int poiswym 1
+set int poiswyp 1
+set int poiswzm 1
+set int poiswzp 1
+set int px 8
+set int py 8
+set int pz 1
+set int report_knan 0
+set int report_stat 0
+set int second_order 0
+set int simpler 1
+set int split 0
+set int statvel 0
+set int verbose 0
+set int verbose_stages 1
+set int vf_init_sm 0
+set int vfsmooth 0
+set int vfsmoothst 0
+set int vort_report 1
+set int youngbc 0
+set double abortvel 1e+10
+set double bcc_k0 1
+set double bcc_k1 1
+set double bcc_t0 -1
+set double bcc_t1 -1
+set double bcc_y0 -1e+10
+set double bcc_y1 1e+10
+set double bubgen_per 1
+set double bubgen_t0 0
+set double cfla 0.5
+set double cflst 2
+set double clipth 1e-10
+set double color_maxr 1e+10
+set double color_th 0.5
+set double contangk 1
+set double contangy0 -1e+10
+set double contangy1 1e+10
+set double convdf 1
+set double dt0 1e+10
+set double dtmax 1e+10
+set double dump_field_dt 1e+10
+set double dump_field_t0 0
+set double dump_part_dt 1
+set double dump_part_t0 0
+set double dump_stat_dt 0
+set double dump_traj_dt 1
+set double dump_traj_t0 0
+set double dump_trep_dt 1
+set double dump_trep_t0 0
+set double extent 1
+set double hypre_gen_tol 0.001
+set double hypre_symm_tol 0.001
+set double hypre_vort_tol 1e-06
+set double kslip 0
+set double mu1 0.0003125
+set double mu2 0.01
+set double part_anglim 120
+set double part_dtmax 10
+set double part_h 4
+set double part_intth 1e-06
+set double part_kattr 1
+set double part_kbend 1
+set double part_kstr 1
+set double part_relax 0.5
+set double part_segcirc 1
+set double part_tmax 180
+set double part_tol 1e-05
+set double poly_intth 0
+set double prelax 1
+set double rhie 1
+set double rho1 1
+set double rho2 1
+set double ring_om 0.01
+set double ring_r0 0.2
+set double ring_r1 0.4
+set double sharp 0
+set double sharpo 0
+set double shell_h 3
+set double shell_r 0
+set double shell_rr 2
+set double sig_k 1.25
+set double sigma 0
+set double stdiag 1
+set double tmax 3e+10
+set double tol 0
+set double vrelax 0.9
+set double zerostx0 1e+10
+set double zerostx1 1e+10
+set vect force 0 0 0 
+set vect gravity 0 0 0 
+set vect ring_c 0.5 0.5 0.5 
+set vect ring_n 1 0 0 
+=== config end ===
+
+global mesh=(256,256,2)
+surface tension dt=1.79769e+308
+Found events: 
+=====
+=====
+STEP=0 t=0.00000000 dt=10000000000.00000000 ta=0.00000000 dta=10000000000.00000000
+.....iter=1, diff=6.0132418127987419e-01
+.....iter=2, diff=1.8848304923775186e-01
+
+
+
+.....iter=4970, diff=2.6052837975709324e-10
+.....iter=4971, diff=2.6695861223398564e-10
+.....iter=4972, diff=2.5949095749416406e-10
+.....iter=4973, diff=2.6562293778598106e-10
+.....iter=4974, diff=2.5948587694362326e-10
+.....iter=4975, diff=2.6369912108502893e-10
+.....iter=4976, diff=2.6020398214721067e-10
+.....iter=4977, diff=2.6135080554821545e-10
+.....iter=4978, diff=2.6150963184891092e-10
+.....iter=4979, diff=2.5955235337576510e-10
+.....iter=4980, diff=2.6255649845363836e-10
+.....iter=4981, diff=2.5823445401776747e-10
+.....iter=4982, diff=2.6314004174400926e-10
+.....iter=4983, diff=2.5707928239961906e-10
+.....iter=4984, diff=2.6291411075373652e-10
+.....iter=4985, diff=2.5686528213091159e-10
+.....iter=4986, diff=2.6183101193015241e-10
+.....iter=4987, diff=2.5736055226939152e-10
+.....iter=4988, diff=2.6049157164452353e-10
+.....iter=4989, diff=2.5829143611548834e-10
+.....iter=4990, diff=2.5899916969087016e-10
+.....iter=4991, diff=2.5957827890567648e-10
+.....iter=4992, diff=2.5748476637502585e-10
+.....iter=4993, diff=2.6056642829284338e-10
+.....iter=4994, diff=2.5610937671912240e-10
+.....iter=4995, diff=2.6088515941978477e-10
+.....iter=4996, diff=2.5497696419881396e-10
+.....iter=4997, diff=2.6041018698500427e-10
+.....iter=4998, diff=2.5436904576020070e-10
+.....iter=4999, diff=2.5949209072829205e-10
+.....iter=5000, diff=2.5459933724127835e-10
+Dump n=2 t=3e+10 target=3e+10
+Dump 2: format=plain
+timer report t=30000000000.00000000 to trep_0002.log
+mem=36.96093750 MB
+all [2747.05098 s, 100.000%]
+
+cells = 131072
+steps = 1000000
+iters = 15000
+total = 2747 s = 00:45:47.050
+time/cell/iter = 1.39722e-06 s
+
+real	45m48.712s
+user	80m15.108s
+sys	102m27.950s

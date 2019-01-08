@@ -1,0 +1,235 @@
+#!/usr/bin/env python
+
+import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import glob
+import os
+import re
+import scipy
+import scipy.interpolate
+import scipy.sparse as sp
+import scipy.sparse.linalg
+
+
+# Read uniform grid data
+# p: path
+# Format:
+# <Nx> <Ny> <Nz>
+# <u[0,0,0]> <u[0,0,1]> ...
+# Return:
+# array of shape (Nz, Ny, Nx)
+# None if file not found
+def Read(p):
+    if not os.path.isfile(p):
+        return None
+    with open(p) as f:
+        ll = f.readlines()
+        # shape x,y,z
+        s = np.array(ll[0].split(), dtype=int)
+        # shape z,y,x
+        ss = tuple(reversed(s))
+        # data flat
+        u = np.array(ll[1].split(), dtype=float)
+        # data z,y,x
+        u = u.reshape(ss)
+        return u
+
+# u: numpy array (2d or 3d slice)
+def Get2d(u):
+    if u is None:
+        return None
+    s = u.shape
+    if len(s) == 2:
+        return u
+    else:
+        assert len(s) == 3
+        return u[0,:,:].reshape((s[1], s[2]))
+
+def PlotInit():
+    fig = plt.figure(figsize=(1.,1.), dpi=1, frameon=False)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    ax.set_axis_off()
+    fig.add_axes(ax)
+
+    return fig, ax
+
+def PlotSave2(fig, ax, po):
+    ax.set_aspect('equal')
+    fig.tight_layout()
+    fig.savefig(po, dpi=300)
+    plt.close()
+
+def PlotSave1(fig, ax, po):
+    fig.tight_layout()
+    fig.savefig(po, dpi=300)
+    plt.close()
+
+# u: 2d numpy array
+# po: output path
+def PlotField(ax, u):
+    u = np.clip(u, 0., 1.)
+    ax.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation='nearest')
+
+# sx, sy: number of cells
+def PlotGrid(ax, x1, y1):
+    ax.set_xticks(x1)
+    ax.set_yticks(y1)
+    plt.setp(ax.get_xticklabels(), visible=False)
+    plt.setp(ax.get_yticklabels(), visible=False)
+    ax.tick_params(axis='both', which='both', length=0)
+    ax.grid(True)
+
+def report(re, n="residual"):
+    re = re.flatten()
+    nr = np.linalg.norm
+    l = len(re)
+    print("{:}: L1: {:}, L2: {:}, Linf: {:}".format(
+        n, nr(re, ord=1) / l, nr(re, ord=2) / (l**0.5), nr(re, ord=np.inf)))
+
+# vorticity: dv/dx - du/dy
+# ADHOC: periodic in x
+def vort(u, v):
+    vx = 0.5 * (np.roll(v, -1, axis=1) - np.roll(v, 1, axis=1))
+    uy = 0.5 * (np.roll(u, -1, axis=0) - np.roll(u, 1, axis=0))
+    om = vx - uy
+    om[:,0] = 0.
+    om[:,-1] = 0.
+    om[0,:] = 0.
+    om[-1,:] = 0.
+    return om
+
+# solve Posson equation for
+# laplace p = -vort(u,v)
+# stream function p (psi) defined via u = dp/dy, v = -dp/dx
+# ADHOC: periodic in x
+def stream(u, v):
+    print("stream_direct")
+    f = -vort(u,v)
+
+    i = np.arange(len(f.flatten())).reshape(f.shape)
+    ones = np.ones_like(i).astype(float)
+
+    # inner: laplacian
+    dc = -4. * ones.copy()
+    dxp = ones.copy()
+    dxm = ones.copy()
+    dyp = ones.copy()
+    dym = ones.copy()
+
+    ic = i
+    ixp = np.roll(i, -1, axis=1)
+    ixm = np.roll(i, 1, axis=1)
+    iyp = np.roll(i, -1, axis=0)
+    iym = np.roll(i, 1, axis=0)
+
+    # boundary conditions: derivatives
+    # laplacian = (xp - c) - (c - xm) + (yp - c) - (c - ym)
+    # subtract gradients at the sides
+    dxp[:,-1] -= 1. ; dc[:,-1] += 1.
+    dxm[:, 0] -= 1. ; dc[:, 0] += 1.
+    dyp[-1,:] -= 1. ; dc[-1,:] += 1.
+    dym[ 0,:] -= 1. ; dc[ 0,:] += 1.
+
+    # add given values
+    f[:,-1] += (v[:,-1] + v[:,-2]) * 0.5
+    f[:, 0] -= (v[:, 0] + v[:, 1]) * 0.5
+    f[-1,:] += -(u[-1,:] + u[-2,:]) * 0.5
+    f[ 0,:] -= -(u[ 0,:] + u[ 1,:]) * 0.5
+
+    # combine
+    ld = (dc, dxp, dxm, dyp, dym)
+    data = np.stack(ld, axis=-1)
+    li = (ic, ixp, ixm, iyp, iym)
+    indices = np.stack(li, axis=-1)
+    rowsize = len(li) * np.ones_like(ic)
+
+    # flatten
+    data = data.flatten()
+    indices = indices.flatten()
+    rowsize = rowsize.flatten()
+    indptr = np.concatenate(([0], np.cumsum(rowsize)))
+
+    # fix s[0] = 0
+    data[0] += 1.
+
+    # solve ax=b
+    a = sp.csr_matrix((data, indices, indptr))
+    b = f.flatten()
+    s = sp.linalg.spsolve(a, b)
+    report(a.dot(s) - b)
+    s = s.reshape(f.shape)
+
+    # compute u,v
+    su = 0.5 * (np.roll(s, -1, axis=0) - np.roll(s, 1, axis=0))
+    sv = -0.5 * (np.roll(s, -1, axis=1) - np.roll(s, 1, axis=1))
+    su[0,:] = (s[1,:] - s[0,:])
+    su[-1,:] = (s[-1,:] - s[-2,:])
+    report((su - u) / (abs(u)).mean(), "|u-su|/mean(|u|)")
+    report((sv - v) / (abs(v)).mean(), "|v-sv|/mean(|v|)")
+
+    return s
+
+
+def PlotStream(x1, y1, vx, vy, o):
+    om = vort(vx, vy)
+    qm = abs(om).max() * 0.1
+    fig, ax = PlotInit()
+    ax.imshow(np.flipud(om), vmin=-qm, vmax=qm, extent=(0, 1, 0, 1), 
+            interpolation='bilinear', cmap=plt.get_cmap("coolwarm"))
+    PlotSave2(fig, ax, o)
+
+def PlotVy(ax, d, l=None):
+    if (l is None):
+        l = d
+
+    os.path.isdir(d) or os.mkdir(d)
+    d = os.path.join(d, "")
+    x = np.loadtxt(d + "x")
+    vy = np.loadtxt(d + "vy")
+    ax.plot(x, vy, label=l)
+
+def SaveVy(x1, vy, d):
+    os.path.isdir(d) or os.mkdir(d)
+    d = os.path.join(d, "")
+    ny = vx.shape[1];
+    vy1 = vy[ny // 2,:]
+    np.savetxt(d + "x", x1)
+    np.savetxt(d + "vy", vy1)
+
+def FigVy(x, vy, o):
+    plt.close()
+    fig, ax = PlotInit()
+
+    PlotVy(ax, "ref")
+    PlotVy(ax, "ch64q")
+    PlotVy(ax, "ch", "ch,nx={:}".format(x.size))
+
+    ax.grid()
+    ax.legend(loc="best")
+    PlotSave1(fig, ax, o)
+
+pre = 'p'
+ff = sorted(glob.glob(pre + "*.dat"))[0:]
+#pp = pp[1:2]
+for f in ff:
+    suf = re.findall(pre + "(.*)", f)[0]
+    vx = Get2d(Read('vx' + suf))
+    vy = Get2d(Read('vy' + suf))
+    p = Get2d(Read('p' + suf))
+    [sx, sy] = vx.shape
+    hx = 1. / sx
+    hy = 1. / sy
+    # nodes, 1 means 1d
+    xn1 = np.arange(sx + 1) * hx
+    yn1 = np.arange(sy + 1) * hy
+    # cell centers
+    x1 = (0.5 + np.arange(sx)) * hx
+    y1 = (0.5 + np.arange(sy)) * hy
+    x, y = np.meshgrid(x1, y1)
+
+    po = os.path.splitext(f)[0] + ".pdf"
+    print(po)
+    PlotStream(x1, y1, vx, vy, po)
+
