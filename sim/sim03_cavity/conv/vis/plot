@@ -176,6 +176,8 @@ def PlotStream(x1, y1, vx, vy, o):
     om = vort(vx, vy)
     qm = abs(om).max() * 0.1
     fig, ax = PlotInit()
+    ax.contour(x1, y1, om, 100, colors='k', linestyles="solid", 
+            linewidths=0.1, alpha=0.3)
     ax.imshow(np.flipud(om), vmin=-qm, vmax=qm, extent=(0, 1, 0, 1), 
             interpolation='bilinear', cmap=plt.get_cmap("coolwarm"))
     PlotSave2(fig, ax, o)
