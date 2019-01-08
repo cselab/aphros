@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -eu
+
+o=er
+echo "n e2 em re" > $o
+
+for nx in 16 32 64 128 ; do
+  echo nx=$nx
+  make m="$nx $nx 1" cleanrun > /dev/null
+  paste -d' ' <(./_error) <(./_re) >> $o
+  mv stat.dat stat_$nx.dat
+done

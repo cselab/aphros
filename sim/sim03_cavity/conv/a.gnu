@@ -1,4 +1,4 @@
-#!/usr/bin/gnuplot
+#!/usr/bin/env gnuplot
 
 set macros
 reset
@@ -45,7 +45,7 @@ plot for [i=1:words(ss)-1] word(ss,i)."/dvy" u 1:(abs($2)) w lp ls i t word(tt,i
 
 f1(x) = a1 / x
 f2(x) = a2 / x ** 2
-set fit logfile 
+set fit logfile "/dev/null"
 fit log(f1(x)) 'er' using "nx":(log(column("e2"))) via a1
 fit log(f2(x)) 'er' using "nx":(log(column("e2"))) via a2
 

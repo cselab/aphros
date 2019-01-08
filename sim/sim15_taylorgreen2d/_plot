@@ -1,0 +1,63 @@
+#!/usr/bin/env gnuplot
+
+set macros
+reset
+
+set terminal pdfcairo color font "Helvetica,14" size 4,2.2 enhanced
+
+c0='#1f77b4'
+c1='#ff7f0e'
+c2='#2ca02c'
+c3='#d62728'
+c4='#9467bd'
+
+set linetype  1 lc rgb c0 lw 1
+set linetype  2 lc rgb c2 lw 1
+set linetype  3 lc rgb c1 lw 1
+set linetype  4 lc rgb c3 lw 1
+set linetype  5 lc rgb c4 lw 1
+set linetype  9 lc rgb "black" lw 1 dt 1
+set linetype cycle 5
+
+set style line 1 lt 1 pt 7 ps 0.3
+set style line 2 lt 2 pt 5 ps 0.3 pi 2
+set style line 3 lt 3 pt 4 ps 0.3 pi 3
+set style line 4 lt 4 pt 6 ps 0.3 pi 3
+set style line 5 lt 5 pt 2 ps 0.3 pi 3
+set style line 9 lt 5 pt 0 ps 0.3 pi 3
+set style line 10 lc rgb "black" lw 2 dt 2
+
+set key vertical outside spacing 1.25 
+
+first(x) = ($0 > 0 ? base : base = x)
+
+ss=system("echo stat_*.dat | xargs -n 1 | sort -V")
+tt=system("tr -cd '[[:digit:] \n]' <<< '".ss."'")
+
+# kinetic energy
+set output "ekin.pdf"
+plot for [i=1:words(ss)] word(ss,i)  \
+u "t":(first(column("ekin")), column("ekin")/base) w lp ls i t word(tt,i)
+
+f(x) = a * x + b
+set fit logfile "/dev/null"
+
+fit f(x) 'er' using (log(column("n"))):(log(column("e2"))) via a,b
+
+# error
+set output "er.pdf"
+set logscale xy 2
+plot \
+  "er" u "n":"e2" w lp ps 0.5 pt 7 t "L2" \
+  , "er" u "n":"em" w lp ps 0.5 pt 7 t "max" \
+  , exp(f(log(x))) ls 10 t sprintf("order %.2f", -a) \
+
+fit f(x) 'er' using (log(column("n"))):(log(column("re"))) via a,b
+
+# effective Reynolds
+set output "re.pdf"
+set logscale xy 2
+plot \
+  "er" u "n":"re" w lp ps 0.5 pt 7 t "Re" \
+  , exp(f(log(x))) ls 10 t sprintf("order %.2f", a) \
+

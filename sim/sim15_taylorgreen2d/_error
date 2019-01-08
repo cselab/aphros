@@ -1,0 +1,72 @@
+#!/usr/bin/env python
+
+import numpy as np
+import glob
+import os
+import re
+
+# Read uniform grid data
+# p: path
+# Format:
+# <Nx> <Ny> <Nz>
+# <u[0,0,0]> <u[0,0,1]> ...
+# Return:
+# array of shape (Nz, Ny, Nx)
+# None if file not found
+def Read(p):
+    if not os.path.isfile(p):
+        return None
+    with open(p) as f:
+        ll = f.readlines()
+        # shape x,y,z
+        s = np.array(ll[0].split(), dtype=int)
+        # shape z,y,x
+        ss = tuple(reversed(s))
+        # data flat
+        u = np.array(ll[1].split(), dtype=float)
+        # data z,y,x
+        u = u.reshape(ss)
+        return u
+
+# u: numpy array (2d or 3d slice)
+def Get2d(u):
+    if u is None:
+        return None
+    s = u.shape
+    if len(s) == 2:
+        return u
+    else:
+        assert len(s) == 3
+        return u[0,:,:].reshape((s[1], s[2]))
+
+def GetSuf(f):
+    return re.findall("[a-z]*(.*)", f)[0]
+
+pre = 'p'
+ff = sorted(glob.glob(pre + "*.dat"))[0:]
+
+assert len(ff) == 2
+
+f0 = ff[0]
+s0 = GetSuf(f0)
+vx0 = Get2d(Read('vx' + s0))
+vy0 = Get2d(Read('vy' + s0))
+vm0 = (vx0 ** 2 + vy0 ** 2) ** 0.5
+
+f1 = ff[1]
+s1 = GetSuf(f1)
+vx1 = Get2d(Read('vx' + s1))
+vy1 = Get2d(Read('vy' + s1))
+vm1 = (vx1 ** 2 + vy1 ** 2) ** 0.5
+
+dm = vm1 - vm0
+
+nx,ny = vx0.shape
+assert nx == ny
+
+# error L2
+e2 = ((dm ** 2).mean()) ** 0.5
+# error max
+em = abs(dm).max()
+
+print("{:} {:} {:}".format(nx, e2, em))
