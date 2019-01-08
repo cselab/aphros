@@ -36,7 +36,8 @@ tt="64 128 256 512 1024"
 
 set output "vy.pdf"
 set xtics 0.2
-plot for [i=1:words(ss)] "<paste ".word(ss,i)."/{x,vy}" w lp ls i t word(tt,i)
+plot for [i=1:words(ss)] "<paste ".word(ss,i)."/{x,vy}" w lp ls i t word(tt,i) \
+  , "<paste ref/{x,vy}" w p pt 6 ps 0.3 lc rgb "black" t "ref,128"
 
 set output "dvy.pdf"
 set logscale y 10
