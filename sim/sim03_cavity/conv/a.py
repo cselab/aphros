@@ -5,8 +5,7 @@ import re
 import numpy as np
 import scipy
 import scipy.interpolate
-
-dd = sorted(glob("ch*"))
+import sys
 
 def GetX(d):
     return np.loadtxt(d + "/x")
@@ -15,19 +14,29 @@ def GetY(d):
     return np.loadtxt(d + "/vy")
 
 def GetN(d):
-    return int(re.findall("ch(\d*)", d)[0])
+    m = re.findall("[a-z]*(\d*)", d)[0]
+    return int(m)
+
+dd = glob("ch*")
+
+# dict {n:d}
+ddn = dict()
+for d in dd:
+    ddn[GetN(d)] = d
 
 # finest mesh
-d = dd[-1]
+d = ddn[max(ddn)]
 nm = GetN(d)
 xm = GetX(d)
+print("finest nx={:}".format(nm))
 
-# (nx:y)
+# dict {n:y}
 yy = dict()
 
-for d in dd:
+# interpolate to finest
+for n in sorted(ddn):
+    d = ddn[n]
     print(d)
-    n = GetN(d)
     x = GetX(d)
     y = GetY(d)
     f = scipy.interpolate.interp1d(x, y,
@@ -37,7 +46,7 @@ for d in dd:
 # write error
 with open('er', 'w') as o:
     o.write("nx e1 e2 em\n")
-    for n in yy:
+    for n in sorted(ddn):
         ym = yy[nm]
         y = yy[n]
         e1 = (abs(y - ym)).mean()
@@ -47,8 +56,8 @@ with open('er', 'w') as o:
         o.write("{:} {:} {:} {:}\n".format(n, e1, e2, em))
 
 # write difference profile
-for d in dd:
-    n = GetN(d)
+for n in sorted(ddn)[:-1]:
+    d = ddn[n]
     ym = yy[nm]
     y = yy[n]
     np.savetxt(d + "/dvy", np.array((xm, y - ym)).T)
