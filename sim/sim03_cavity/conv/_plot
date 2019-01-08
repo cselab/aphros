@@ -25,6 +25,7 @@ set style line 3 lt 3 pt 7 ps 0. pi 3
 set style line 4 lt 4 pt 2 ps 0. pi 3
 set style line 5 lt 5 pt 2 ps 0. pi 3
 set style line 9 lt 5 pt 0 ps 0. pi 3
+set style line 10 lc rgb "black" lw 2 dt 2
 
 set key vertical outside spacing 1.25 
 
@@ -43,17 +44,16 @@ set xtics auto
 set ytics auto
 plot for [i=1:words(ss)-1] word(ss,i)."/dvy" u 1:(abs($2)) w lp ls i t word(tt,i)
 
-f1(x) = a1 / x
-f2(x) = a2 / x ** 2
+f(x) = a * x + b
 set fit logfile "/dev/null"
-fit log(f1(x)) 'er' using "nx":(log(column("e2"))) via a1
-fit log(f2(x)) 'er' using "nx":(log(column("e2"))) via a2
+
+fit f(x) 'er' using (log(column("nx"))):(log(column("e2"))) via a,b
 
 set output "er.pdf"
-set logscale xy 2
+set logscale x 2
+set logscale y 10
 plot \
   "er" u "nx":"e2" w lp ps 0.5 pt 7 t "L2" \
   , "er" u "nx":"em" w lp ps 0.5 pt 7 t "max" \
-  , f1(x) dt 4 t 'first' \
-  , f2(x) dt 2 t 'second' \
+  , exp(f(log(x))) ls 10 t sprintf("order %.2f", -a) \
 
