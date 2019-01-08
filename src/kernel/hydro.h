@@ -1205,7 +1205,9 @@ void Hydro<M>::CalcStat() {
     s.v1 *= im1;
     s.v2 *= im2;
 
-    s.vomm /= s.vommw;
+    if (s.vommw != 0) {
+      s.vomm /= s.vommw;
+    }
 
     // Moving mesh
     s.c1 += st_.meshpos;
@@ -1221,6 +1223,8 @@ void Hydro<M>::CalcStat() {
         v = st_.v2;
       } else if (*s == "vc") {
         v = st_.vc2;
+      } else if (*s == "vomm") {
+        v = st_.vomm;
       } else {
         throw std::runtime_error("Unknown meshvel_auto=" + *s);
       }
