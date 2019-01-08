@@ -11,9 +11,6 @@
 
 stat.dat
 
-*.pdf
-*.png
-
 pid
 arg
 out
