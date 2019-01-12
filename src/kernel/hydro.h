@@ -1212,7 +1212,7 @@ void Hydro<M>::CalcStat() {
       CalcVort();
       s.enstr = 0.;
       for (auto c : m.Cells()) {
-        s.enstr += 0.5 * sqr(fcomm_[c]) * fc_rho_[i] * m.GetVolume(c);
+        s.enstr += 0.5 * sqr(fcomm_[c]) * fc_rho_[c] * m.GetVolume(c);
       }
       m.Reduce(&s.enstr, "sum");
     }
