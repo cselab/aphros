@@ -332,6 +332,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     Scal boxomm2 = 0.; // integral of vorticity magnitude over box
     Vect vomm = Vect(0); // velocity weighted by vorticity
     Scal vommw = 0; // integral of vorticity
+    Scal enstr = 0; // enstrophy
     Stat()
         : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
         , dtt(0), dt(0), dta(0), iter(0), dumpt(-1e10), step(0)
@@ -1054,6 +1055,9 @@ void Hydro<M>::Init() {
         con.push_back(op("p1", &s.p1));
         con.push_back(op("pd", &s.pd));
       }
+      if (var.Int["enstrophy"]) {
+        con.push_back(op("enstr", &s.enstr));
+      }
       ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
     }
 
@@ -1202,6 +1206,15 @@ void Hydro<M>::CalcStat() {
         m.Reduce(&s.vomm[d], "sum");
       }
       m.Reduce(&s.vommw, "sum");
+    }
+
+    if (var.Int["enstrophy"]) {
+      CalcVort();
+      s.enstr = 0.;
+      for (auto c : m.Cells()) {
+        s.enstr += sqr(fcomm_[c]) * m.GetVolume(c);
+      }
+      m.Reduce(&s.enstr, "sum");
     }
   }
 
