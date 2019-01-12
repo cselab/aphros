@@ -243,6 +243,14 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void InitYoung() {
     young_ini(GetYoungPar());
   }
+  void CalcVort() {
+    auto& fcv = fs_->GetVelocity();
+    fcom_ = GetVort(fcv, GetBcVz(), m);
+    fcomm_.Reinit(m);
+    for (auto c : m.Cells()) {
+      fcomm_[c] = fcom_[c].norm();
+    }
+  }
   Vect GetYoungVel(Vect x) const {
     x -= Vect(0.5);
     // 0: streamwise
@@ -1771,11 +1779,7 @@ void Hydro<M>::Dump(Sem& sem) {
       }
       if (dl.count("omx") || dl.count("omy") || dl.count("omz") || 
           dl.count("omm") || dl.count("omcalc")) { 
-        fcom_ = GetVort(fcv, GetBcVz(), m);
-        fcomm_.Reinit(m);
-        for (auto c : m.Cells()) {
-          fcomm_[c] = fcom_[c].norm();
-        }
+        CalcVort();
         if (dl.count("omx")) m.Dump(&fcom_, 0, "omx");
         if (dl.count("omy")) m.Dump(&fcom_, 1, "omy");
         if (dl.count("omz")) m.Dump(&fcom_, 2, "omz");
