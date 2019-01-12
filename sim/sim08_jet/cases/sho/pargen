@@ -76,7 +76,7 @@ def Sim(c):
     # block size
     bs = 16
     # cores
-    np = 1536 // 3
+    np = 256
     # time limit (minutes)
     tl = 1440
 
@@ -145,6 +145,8 @@ set string box1 outlet
 set vect box1_a -1e10 {outy0} -1e10
 set vect box1_b 1e10 {outy1} 1e10
 set double box1_vf 0.
+
+set string dumplist vf omm
 
         '''.format(**locals()))
 
