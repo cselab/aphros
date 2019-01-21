@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -eu
+
+dim=$1
+overlap=$2
+
+o=dim${dim}_overlap${overlap}
+d=randc
+
+rsync -LPa $d/ $o
+
+cd $o
+
+./_vary --dim $dim --overlap 1 --nri 5 --nbi 2 
+./_gatherall
+./a.gnu
