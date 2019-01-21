@@ -3,6 +3,8 @@
 
 #include "io/io.h"
 
+#undef NDEBUG
+
 double sqr(double a) {
   return a * a;
 }
@@ -13,6 +15,8 @@ struct Bub {
   double z;
   double r;
 } b;
+
+int nxexp;
 
 double ifr2(double x, double y) {
   double r2 = sq(x - b.x) + sq(y - b.y);
@@ -63,9 +67,47 @@ void fraction2(scalar c) {
 
 }
 
+void ReadField(scalar c, char* fn) {
+  FILE* f = fopen(fn, "r");
+
+  int nx, ny, nz;
+  fscanf(f, "%d %d %d", &nx, &ny, &nz);
+
+  assert(nx+1 == (1 << nxexp));
+  assert(ny == (1 << nxexp));
+
+#if dimension == 2
+  assert(nz == 1);
+#elif dimension == 3
+  assert(nz == (1 << nxexp));
+#endif
+
+  double uu[nz][ny][nx];
+
+  for (int z = 0; z < nz; ++z) {
+    for (int y = 0; y < ny; ++y) {
+      for (int x = 0; x < nx; ++x) {
+        double a;
+        fscanf(f, "%lf", &a);
+        uu[z][y][x] = a;
+      }
+    }
+  }
+  fclose(f);
+
+  int i = 0;
+  foreach() {
+    double h = Delta;
+    double hmin = 1. / (1 << nxexp);
+    int ix = max(0, min(x / hmin, nx - 1));
+    int iy = max(0, min(y / hmin, ny - 1));
+    int iz = max(0, min(z / hmin, nz - 1));
+    c[] = uu[iz][iy][ix];
+  }
+}
+
 
 int main() {
-  int nxexp;
   {
     FILE* q = fopen("nxexp", "r");
     fscanf(q, "%d", &nxexp);
@@ -82,7 +124,7 @@ int main() {
 
   scalar vf[]; // volume fraction
 
-  fraction2(vf);
+  ReadField(vf, "../ch/vf_0000.dat");
 
   scalar k[]; // curvature
   curvature(vf, k);
@@ -115,12 +157,10 @@ int main() {
   }
 
 
-  /*
   {
     FILE* q = fopen("u.vtk", "w");
     io({vf, k}, q);
     fclose(q);
   }
-  */
 }
 

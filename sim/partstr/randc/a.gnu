@@ -1,3 +1,5 @@
+#!/usr/bin/env gnuplot
+
 set terminal pdfcairo color font "Helvetica,14" size 3.2,2.2 enhanced
 set macro
 reset
@@ -19,7 +21,7 @@ set style line 1 lt 1 pt 7 ps 0.5
 set style line 2 lt 2 pt 5 ps 0.5
 set style line 3 lt 3 pt 8 ps 0.5
 
-ss="ch ba ge ch0"
+ss="ch ba ge"
 
 s='pt 7 ps 0.5'
 m='for [i=1:words(ss)] word(ss,i)."/kerravg" \

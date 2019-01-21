@@ -5,24 +5,13 @@
 import numpy as np
 import os
 import sys
+from getr import *
 
 def sh(s, fatal=True, silent=True):
     if not silent:
         print(s)
     r = os.system(s)
     assert not fatal or r == 0
-
-# ri: radius index
-# Returns:
-# r: radius
-# nxexp: exponent of mesh size, nx=2**nxexp
-# cpr: r*nx
-def GetR(ri):
-    cpr = 2. ** (ri * 0.25 - 1)
-    nxexp = max(4, int((2. + cpr) * 2. + 0.5).bit_length())
-    nx = 2. ** nxexp
-    r = cpr / nx
-    return r, nxexp, cpr
 
 # ri: index if radius
 # bi: index of bubble center
@@ -50,7 +39,6 @@ def Run(ri, bi, s, force=False):
         f.write("{:}".format(dim))
     with open("{:}/nxexp".format(s), 'w') as f :
         f.write("{:}".format(nxexp))
-    print("ri={:}, bi={:}".format(ri, bi))
     sh("(cd {s} ; ./run) &>> {log} && mv {s}/ok {ok} && mv {s}/ovf {ovf}"
             .format(**locals()))
 
@@ -59,28 +47,30 @@ def Vary(ss, nri):
     global bb
     global dim
     print("solvers: {:}".format(ss))
-    for s in ss:
-        print('s={:}'.format(s))
-        for ri in range(nri):
-            for bi in range(len(bb)):
+    for ri in range(nri):
+        for bi in range(len(bb)):
+            print("ri={:}, bi={:}".format(ri, bi))
+            for s in ss:
+                print('s={:}'.format(s))
                 Run(ri, bi, s)
 
+# choices for position
+nbb = 5
+# choices for radius
+nri = 5
 
-
-bb = np.loadtxt('bb')[:2]
+bb = np.loadtxt('bb')[:nbb]
 
 av = sys.argv
 dim = int(av[1])
 assert dim in [2, 3]
 s = av[2] if len(av) > 2 else 'all'
 
-ssa = ['ba', 'ch', 'ge']
+ssa = ['ch', 'ba', 'ge']
 
 assert s in ssa + ['all']
 
 ss = ssa if s == 'all' else [s]
-
-nri = 30
 
 if len(av) > 4:
     assert s in ssa
