@@ -6,9 +6,9 @@
   VariableTracerVOF T
 
   Global { 
-    Include ini_t_bub.h 
+    Include ini_dat.h 
   }
-  InitFraction T (ini_t(x, y, z, "b.dat"))
+  Init {} { T = ini_t(x, y, z, "../ch/vf_0000.dat") }
   
   VariableCurvature K T 
 
