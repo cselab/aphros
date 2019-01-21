@@ -5,7 +5,29 @@
 import numpy as np
 import os
 import sys
+import argparse
 from getr import *
+
+def parse():
+    p = argparse.ArgumentParser()
+
+    p.add_argument('--dim', type=int, default=2, 
+            help='dimension (2, 3)')
+    p.add_argument('--bi', type=int, default=-1, 
+            help='index of position')
+    p.add_argument('--ri', type=int, default=-1, 
+            help='index of radius')
+    p.add_argument('--nbi', type=int, default=10, 
+            help='choices of position')
+    p.add_argument('--nri', type=int, default=10, 
+            help='choices of radius')
+    p.add_argument('--overlap', type=int, default=0, 
+            help='exact volume fraction with overlap (0, 1)')
+    p.add_argument('--solver', type=str, default='all', 
+            help='solver (ch, ba, ge)')
+
+    return p.parse_known_args()
+
 
 def sh(s, fatal=True, silent=True):
     if not silent:
@@ -54,17 +76,29 @@ def Vary(ss, nri):
                 print('s={:}'.format(s))
                 Run(ri, bi, s)
 
+
+# arguments
+args, unk = parse()
+
+print(args)
+
 # choices for position
-nbb = 5
-# choices for radius
-nri = 5
+nbi = args.nbi
 
-bb = np.loadtxt('bb')[:nbb]
+bb = np.loadtxt('bb')[:nbi]
 
-av = sys.argv
-dim = int(av[1])
+dim = args.dim
 assert dim in [2, 3]
-s = av[2] if len(av) > 2 else 'all'
+
+overlap = args.overlap
+
+s = args.solver
+
+with open("ch/overlap.conf", 'w') as f:
+    if overlap:
+        f.write("set int list_ls 2")
+    else:
+        f.write("")
 
 ssa = ['ch', 'ba', 'ge']
 
@@ -72,10 +106,13 @@ assert s in ssa + ['all']
 
 ss = ssa if s == 'all' else [s]
 
-if len(av) > 4:
+if args.solver != "all":
     assert s in ssa
-    ri = int(av[3])
-    bi = int(av[4])
+    ri = args.ri
+    bi = args.bi
     Run(ri, bi, s, True)
 else:
-    Vary(ss, nri)
+    Vary(ss, args.nri)
+
+
+

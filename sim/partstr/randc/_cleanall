@@ -1,0 +1,7 @@
+#!/bin/bash -l
+
+rm -vf *.pdf log
+
+(cd ba ; ./cleanall)
+(cd ch ; ./cleanall)
+(cd ge ; ./cleanall)
