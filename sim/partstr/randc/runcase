@@ -14,6 +14,6 @@ rsync -La $d/ $o
 
 cd $o
 
-./_vary --dim ${dim} --overlap ${overlap} --nri 30 --nbi 1
+./_vary --dim ${dim} --overlap ${overlap} --nri 30 --nbi 100
 ./_gatherall
 ./a.gnu
