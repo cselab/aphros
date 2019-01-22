@@ -11,5 +11,3 @@ module load hdf5/1.8.12
 #module load hdf5
 
 module load python/2.7.14
-
-module load eigen
