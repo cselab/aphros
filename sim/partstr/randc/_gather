@@ -12,6 +12,8 @@ ff = sorted(glob.glob("kr*b*.dat"))
 
 ee = []
 
+dim = int(open("dim").read())
+
 for f in ff:
     m = re.findall("kr([0-9]*)b([0-9]*)", f)[0]
     ri = int(m[0])
@@ -19,8 +21,13 @@ for f in ff:
     r, nxexp, cpr = GetR(ri)
     nx = 2 ** nxexp
     b = bb[bi]
+    # volume
+    fvf = "vfr{:}b{:}.dat".format(m[0], m[1]) # vf filename
+    vf = float(open(fvf).read())
+    # radius from volume 
+    rvf = (vf / np.pi * nx) ** 0.5  if dim == 2 else (vf * 3. / (4. * np.pi)) ** (1. / 3.)
     # exact curv
-    kex = 1. / r
+    kex = 1. / rvf if rvf != 0. else 0.
     # particles
     k = np.loadtxt(f)
     # curvature error
@@ -33,9 +40,6 @@ for f in ff:
         ek1 = abs(k - kex).mean() / kex
         ek2 = ((k - kex) ** 2).mean() ** 0.5 / kex
 
-    fvf = "vfr{:}b{:}.dat".format(m[0], m[1]) # vf filename
-    vf = float(open(fvf).read())
-
     e = [ri, bi, cpr, vf, ekm, ek1, ek2, nx]
     ee.append(e)
 
@@ -46,7 +50,6 @@ with open(fo, 'w') as f:
         f.write(' '.join(map(str, e)) + '\n')
 
 fo = "kerravg"
-dim = int(open("dim").read())
 with open(fo, 'w') as f:
     hh = "ri cpr nx vf vfl vfh vfsl vfsh em eml emh emsl emsh e2 e2l e2h e2sl e2sh"
     f.write(hh + "\n")

@@ -61,6 +61,7 @@ def Run(ri, bi, s, force=False):
         f.write("{:}".format(dim))
     with open("{:}/nxexp".format(s), 'w') as f :
         f.write("{:}".format(nxexp))
+    print("ri={:}, bi={:}, cpr={:.4g}, nx={:}, s={:}".format(ri, bi, cpr, nx, s))
     sh("(cd {s} ; ./run) &>> {log} && mv {s}/ok {ok} && mv {s}/ovf {ovf}"
             .format(**locals()))
 
@@ -71,9 +72,7 @@ def Vary(ss, nri):
     print("solvers: {:}".format(ss))
     for ri in range(nri):
         for bi in range(len(bb)):
-            print("ri={:}, bi={:}".format(ri, bi))
             for s in ss:
-                print('s={:}'.format(s))
                 Run(ri, bi, s)
 
 

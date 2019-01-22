@@ -8,10 +8,12 @@ overlap=$2
 o=dim${dim}_overlap${overlap}
 d=randc
 
-rsync -LPa $d/ $o
+echo "Output to $o"
+
+rsync -La $d/ $o
 
 cd $o
 
-./_vary --dim ${dim} --overlap ${overlap} --nri 5 --nbi 2 
+./_vary --dim ${dim} --overlap ${overlap} --nri 30 --nbi 1
 ./_gatherall
 ./a.gnu
