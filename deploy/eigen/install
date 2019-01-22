@@ -1,0 +1,8 @@
+set -eu
+
+rm -rf "$P/include/Eigen"
+
+c="mv '$d/Eigen' '$P/include'"
+echo "$c"
+eval "$c"
+

@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -eu
+
+. ch.setenv
+. ../util
+
+url='http://bitbucket.org/eigen/eigen/get/3.3.7.tar.bz2'
+f="eigen.tar.bz2"
+
+# download
+#wget -nv "$url" -O $f
+
+d="`tar -tf \"$f\" | head -1`"
+d=${d%/*}
+echo "source directory: $d" 
+
+export P src d
+
+echo "clean before extraction"
+rm -rf "$d"
+
+echo "extract"
+tar -xf "$f" 
+
+run install
+
+echo "clean after install"
+rm -rf "$d"

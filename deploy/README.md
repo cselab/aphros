@@ -3,7 +3,7 @@
 Requires having `$HOME/bin` in `PATH`.
 Prepare the environment and install dependencies:
 
-*   install all packages except for hypre 
+*   install all packages except for hypre and eigen
 
      ```
      P=prefix ./all
@@ -20,6 +20,13 @@ Prepare the environment and install dependencies:
 
      ```
      cd hypre 
+     ./_run
+     ```
+
+*   install eigen
+
+     ```
+     cd eigen
      ./_run
      ```
 
