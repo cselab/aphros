@@ -25,6 +25,8 @@ def parse():
             help='exact volume fraction with overlap (0, 1)')
     p.add_argument('--solver', type=str, default='all', 
             help='solver (ch, ba, ge)')
+    p.add_argument('--plot', action='store_true', 
+            help='plot with bubble RI BI, requires DIM=2')
 
     return p.parse_known_args()
 
@@ -90,6 +92,18 @@ dim = args.dim
 assert dim in [2, 3]
 
 overlap = args.overlap
+
+if args.plot:
+    s = 'ch'
+    ri = args.ri
+    bi = args.bi
+    assert ri != -1
+    assert bi != -1
+    assert dim == 2
+    Run(ri, bi, s, True)
+    o = "vfr{:03d}b{:03d}.pdf".format(ri, bi)
+    sh("(cd {s} ; ./plot ; mv vf_0000.pdf ../{o})".format(**locals()))
+    exit(0)
 
 s = args.solver
 

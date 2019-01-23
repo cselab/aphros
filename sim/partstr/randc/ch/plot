@@ -12,8 +12,6 @@ from matplotlib.colors import LinearSegmentedColormap
 import scipy
 import scipy.interpolate
 
-kThin = False
-
 # natural sort
 def natkey(s, _nsre=re.compile('([0-9]+)')):
       return [int(text) if text.isdigit() else text.lower()
@@ -70,7 +68,7 @@ def GetImg(u):
     return np.flipud(u.T)
 
 def PlotInitSq():
-    fig, ax = plt.subplots(figsize=(3,3))
+    fig, ax = plt.subplots(figsize=(1.5,1.5))
     ax.set_aspect('equal')
     return fig, ax
 
@@ -85,7 +83,7 @@ def PlotInit3():
 
 
 def PlotSave(fig, ax, po):
-    fig.tight_layout()
+    #fig.tight_layout()
     fig.savefig(po, dpi=300)
     plt.close()
 
@@ -127,10 +125,7 @@ def PlotLines(ax, xa, ya, xb, yb):
     xy = np.vstack((xa, xb, ya, yb))
     xy = xy.T
     xy = xy.reshape((xa.size * 2, 2))
-    if kThin:
-        ax.plot(*xy, c='k', alpha=0.9, lw=0.5)
-    else:
-        ax.plot(*xy, c='k', alpha=0.9, lw=1)
+    ax.plot(*xy, c='k', alpha=0.9, lw=1)
 
 # assume 0 < nx < ny, a < 0
 def GetLineEnds(nx, ny, a):
@@ -202,8 +197,10 @@ def PlotVtk(ax, p, sk=1):
         m = re.findall("POINTS (\d*) float", l)[0]
         # number of points
         nv = int(m)
+        if nv == 0:
+            return
         vv = np.zeros((nv, 3))
-        print("vtk: reading {:} points".format(nv))
+        Log("vtk: reading {:} points".format(nv))
         # all points as rows
         for i in range(nv):
             l = rl()
@@ -234,8 +231,6 @@ def PlotVtk(ax, p, sk=1):
         ya = ww[:,0,1]
         xb = ww[:,1,0]
         yb = ww[:,1,1]
-        plt.scatter(xa, ya, s=5.)
-        plt.scatter(xa + 0.1 * (xb - xa), ya + 0.1 * (yb - ya), s=5.)
         PlotLines(ax, xa, ya, xb, yb)
 
 
@@ -275,14 +270,9 @@ def PlotPart(ax, p, sk=1):
         if np.random.randint(sk) == 0:
             ti = np.array(tt[i])
             cl = cmap(mcl[i])
-            if kThin:
-                ax.plot(x[ti], y[ti], c=cl, zorder=10, lw=0.5, alpha=0.5)
-                ax.scatter(x[ti], y[ti], c=cl, s=0.5, lw=0.2,
-                           zorder=11, alpha=0.8, edgecolor='black')
-            else:
-                ax.plot(x[ti], y[ti], c=cl, zorder=10, lw=1, alpha=0.5)
-                ax.scatter(x[ti], y[ti], c=cl, s=2, lw=0.3,
-                           zorder=11, edgecolor='black')
+            ax.plot(x[ti], y[ti], c=cl, zorder=10, lw=2, alpha=1.)
+            ax.scatter(x[ti], y[ti], c=cl, s=5, lw=0.3,
+                       zorder=11, edgecolor='black')
 
 def IsGerris(s):
     # check if gerris (odd nx)
@@ -377,20 +367,6 @@ def ReadField(pt, fld):
     p = GetFieldPath(pt, fld)
     return ReadArray(GetFieldPath(pt, fld))
 
-# Save figure with title only
-# t: title
-# po: output path
-def FigTitle(t, po):
-    fig, ax = plt.subplots(figsize=(5,0.5))
-    ax.text(0., 0., t, fontsize=15)
-    ax.axis('off')
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-    #fig.tight_layout()
-    #fig.savefig(po, bbox_inches='tight')
-    fig.savefig(po)
-    plt.close()
-
 # bubble location
 def LoadBub():
     bb = np.loadtxt("b.dat")
@@ -432,29 +408,26 @@ def FigVf(pt, vfn='vf'):
     PlotGrid(ax, xn1, yn1)
     # field
     PlotFieldGray(ax, vf, vmin=0., vmax=1.)
-    # lines
-    if dim == 2:
-        a,nx,ny = [ReadField(pt, n) for n in ['a', 'nx', 'ny']]
-        if all(u is not None for u in [a, nx, ny]):
-            l = GetLines(x, y, a, nx, ny, hx, hy, vf)
-            PlotLines(ax, *l)
     # partilces
     pa = GetFieldPath(pt, "partit")
     if os.path.isfile(pa) and dim == 2:
         Log(pa)
-        #PlotPart(ax, pa, sk=1)
+        PlotPart(ax, pa, sk=7)
     # interface
     pv = GetFieldPath(pt, "s", "vtk")
     if os.path.isfile(pa) and dim == 2:
         Log(pv)
         PlotVtk(ax, pv)
     # closeup
-    r = max(rx, ry) * 1.2
+    r = max(rx, ry) * 1.5
     ax.set_xlim([cx - r, cx + r])
     ax.set_ylim([cy - r, cy + r])
     # save
     po = GetFieldPath(pt, "vf", "pdf")
     Log(po)
+    g = 0.01
+    fig.subplots_adjust(left=-g, right=1. + g, top=1. + g, bottom=-g)
+    #ax.axis('off')
     PlotSave(fig, ax, po)
 
 # Exact trajectory.
