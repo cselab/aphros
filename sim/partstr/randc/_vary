@@ -27,6 +27,8 @@ def parse():
             help='solver (ch, ba, ge)')
     p.add_argument('--plot', action='store_true', 
             help='plot with bubble RI BI, requires DIM=2')
+    p.add_argument('--force', action='store_true', 
+            help='force overwrite')
 
     return p.parse_known_args()
 
@@ -58,7 +60,11 @@ def Run(ri, bi, s, force=False):
     if dim == 2:
         bc[2] = hx * 0.5
     with open("{:}/b.dat".format(s), 'w') as f :
-        f.write("{:} {:} {:} {:}".format(bc[0], bc[1], bc[2], r))
+        rx = r
+        ry = r
+        rz = r if dim == 3 else 1e5
+        f.write("{:} {:} {:} {:} {:} {:}"
+                .format(bc[0], bc[1], bc[2], rx, ry, rz))
     with open("{:}/dim".format(s), 'w') as f :
         f.write("{:}".format(dim))
     with open("{:}/nxexp".format(s), 'w') as f :
@@ -77,11 +83,24 @@ def Vary(ss, nri):
             for s in ss:
                 Run(ri, bi, s)
 
+def Plot(args):
+    s = 'ch'
+    dim = args.dim
+    ri = args.ri
+    bi = args.bi
+    assert ri != -1
+    assert bi != -1
+    assert dim == 2
+    o = "{:}/pltr{:03d}b{:03d}.pdf".format(s, ri, bi)
+    if os.path.isfile(o) and not args.force:
+        print("Skip existing {:}".format(o))
+        return
+    Run(ri, bi, s, True)
+    sh("(cd {s} ; ./plot &> /dev/null) ; mv {s}/vf_0000.pdf {o}"
+            .format(**locals()))
 
 # arguments
 args, unk = parse()
-
-print(args)
 
 # choices for position
 nbi = args.nbi
@@ -92,26 +111,17 @@ dim = args.dim
 assert dim in [2, 3]
 
 overlap = args.overlap
-
-if args.plot:
-    s = 'ch'
-    ri = args.ri
-    bi = args.bi
-    assert ri != -1
-    assert bi != -1
-    assert dim == 2
-    Run(ri, bi, s, True)
-    o = "vfr{:03d}b{:03d}.pdf".format(ri, bi)
-    sh("(cd {s} ; ./plot ; mv vf_0000.pdf ../{o})".format(**locals()))
-    exit(0)
-
-s = args.solver
-
 with open("ch/overlap.conf", 'w') as f:
     if overlap:
         f.write("set int list_ls 2")
     else:
         f.write("")
+
+if args.plot:
+    Plot(args)
+    exit(0)
+
+s = args.solver
 
 ssa = ['ch', 'ba', 'ge']
 
@@ -123,9 +133,7 @@ if args.solver != "all":
     assert s in ssa
     ri = args.ri
     bi = args.bi
-    Run(ri, bi, s, True)
+    Run(ri, bi, s, args.force)
 else:
     Vary(ss, args.nri)
-
-
 

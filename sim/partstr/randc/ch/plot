@@ -388,7 +388,7 @@ def FigVf(pt, vfn='vf'):
     vv = LoadBub()
     cx,cy,cz,rx = vv[:4]
     ry = vv[4] if len(vv) > 4 else rx
-    ry = vv[5] if len(vv) > 5 else ry
+    rz = vv[5] if len(vv) > 5 else ry
 
     # center of mass
     #cx = np.sum(x[ii] * vf[ii]) / np.sum(vf[ii])
@@ -412,7 +412,7 @@ def FigVf(pt, vfn='vf'):
     pa = GetFieldPath(pt, "partit")
     if os.path.isfile(pa) and dim == 2:
         Log(pa)
-        PlotPart(ax, pa, sk=7)
+        PlotPart(ax, pa, sk=1)
     # interface
     pv = GetFieldPath(pt, "s", "vtk")
     if os.path.isfile(pa) and dim == 2:
