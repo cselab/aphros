@@ -35,11 +35,11 @@ int main() {
   }
   #endif
   
-  rho1 = RHO1; 
-  rho2 = RHO2; 
+  rho1 = RHO2; 
+  rho2 = RHO1; 
 
-  mu1 = MU1;
-  mu2 = MU2, 
+  mu1 = MU2;
+  mu2 = MU1, 
 
   f.sigma = SIGMA;
 
@@ -65,7 +65,8 @@ event init (i = 0) {
 event out (t += DUMPDT ; t <= TMAX) {
   static int frame = 0;
   ++frame;
-  scalar * a = {u, p, f};
+  //scalar * a = {u, p, f};
+  scalar * a = {f};
 
   char name[1000];
   sprintf(name, "o/%d/u_%04d.vtk", pid(), frame);
