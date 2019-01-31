@@ -88,3 +88,22 @@ and `convsc`=`cd`,`quick`.
 
 - `kedr.pdf`: kinetic energy dissipation rate
 - `traj.pdf`: x-component of trajectory of bubble 2
+
+# Number of particles and strings
+
+**Goal**:
+check the influence of the `part_np` and `part_ns` in curvature estimator
+
+**What**:
+Free-flow coalescence of bubbles based on `sim04_univel`
+
+**Result**
+
+- slight differences in shapes comparing `np=5,0` and `ns=2,3`
+
+**Data**:
+[`log05_coalnp`](log05_coalnp)
+
+- `gen1_ns3_np5`: configuration
+- `nx064_ns?_np?.png`: shapes at `t=0.466` with `nx=64`
+- `nx128_ns2_np9.png`: shapes at `t=0.466` with `nx=128`
