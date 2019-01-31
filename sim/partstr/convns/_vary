@@ -2,13 +2,13 @@
 
 set -eu
 
-for n in `seq 1 10` ; do
+for n in `seq 1 5` ; do
     n=`printf "%03d" "$n"`
-    echo "
-    set int part_ns $n
-    " > add.conf
+    o=k$n.dat
+    echo "0.507 0.503 0.5 0.025" > b.dat
+    echo "set int part_ns $n" > add.conf
     ./run
-    ./curv > k$n.dat
+    ./curv > $o
 done
 
 

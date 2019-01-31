@@ -20,15 +20,22 @@ for f in ff:
     k = np.loadtxt(f)
     n = int(re.findall("k([0-9]*)", f)[0])
     # error reference
-    er = np.sqrt((k - kref) ** 2).mean() / kex
+    er2 = np.sqrt((k - kref) ** 2).mean() / kex
+    erm = np.max(np.abs(k - kref)) / kex
     # error exact
-    ek = np.sqrt((k - kex) ** 2).mean() / kex
-    e = [n, er, ek]
+    ek2 = np.sqrt((k - kex) ** 2).mean() / kex
+    ekm = np.max(np.abs(k - kex)) / kex
+    # error exact average
+    kexa = k.mean()
+    ek2a = np.sqrt((k - kexa) ** 2).mean() / kexa
+    ekma = np.max(np.abs(k - kexa)) / kexa
+    e = [n, er2, ek2, erm, ekm, ek2a, ekma]
     ee.append(e)
 
 
 fo = "kerr"
 with open(fo, 'w') as f:
+    f.write('n er2 ek2 erm ekm ek2a ekma\n')
     for e in ee:
         f.write(' '.join(map(str, e)) + '\n')
 

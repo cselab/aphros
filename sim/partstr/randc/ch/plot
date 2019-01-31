@@ -68,7 +68,7 @@ def GetImg(u):
     return np.flipud(u.T)
 
 def PlotInitSq():
-    fig, ax = plt.subplots(figsize=(1.5,1.5))
+    fig, ax = plt.subplots(figsize=(1.2,1.2))
     ax.set_aspect('equal')
     return fig, ax
 
@@ -125,7 +125,7 @@ def PlotLines(ax, xa, ya, xb, yb):
     xy = np.vstack((xa, xb, ya, yb))
     xy = xy.T
     xy = xy.reshape((xa.size * 2, 2))
-    ax.plot(*xy, c='k', alpha=0.9, lw=1)
+    ax.plot(*xy, c='k', alpha=1., lw=1, zorder=20)
 
 # assume 0 < nx < ny, a < 0
 def GetLineEnds(nx, ny, a):

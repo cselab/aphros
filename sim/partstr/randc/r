@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -eu
+
+overlap=0
+
+n=10
+for i in `seq 1 $n` ; do 
+  c="./_vary --plot --ri $i --bi 0 --force --overlap $overlap"
+  echo "$c"
+  eval "$c"
+done
+t=t.pdf
+pdfnup --nup ${n}x1 ch/plt*.pdf --outfile $t
+pdfcrop $t pltoverlap${overlap}.pdf
+rm $t

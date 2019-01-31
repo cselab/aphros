@@ -5,4 +5,4 @@ set -eu
 ./cleanall
 ./_vary
 ./_error
-./_gp
+./a.gnu

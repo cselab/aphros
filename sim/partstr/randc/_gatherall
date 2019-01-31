@@ -2,6 +2,6 @@
 
 set -eu
 
-(cd ba ; ./_gather)
 (cd ch ; ./_gather)
+(cd ba ; ./_gather)
 (cd ge ; ./_gather)

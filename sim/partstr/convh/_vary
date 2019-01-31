@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -eu
+
+for n in `seq 0 1 24` ; do
+#for n in 0 ; do
+    n=`printf "%03d" "$n"`
+    o=k$n.dat
+    h=`bc -l <<< "1. + $n * 0.25"`
+    echo "0.5 0.5 0.5 0.125" > b.dat
+    echo "set double part_h $h" > add.conf
+    ./run
+    ./curv > $o
+done
+
+

@@ -59,10 +59,10 @@ def Run(ri, bi, s, force=False):
         return
     if dim == 2:
         bc[2] = hx * 0.5
-    with open("{:}/b.dat".format(s), 'w') as f :
+    with open("{:}/b.dat".format(s), 'w') as f:
         rx = r
         ry = r
-        rz = r if dim == 3 else 1e5
+        rz = r if dim == 3 else 1e3
         f.write("{:} {:} {:} {:} {:} {:}"
                 .format(bc[0], bc[1], bc[2], rx, ry, rz))
     with open("{:}/dim".format(s), 'w') as f :
@@ -90,14 +90,14 @@ def Plot(args):
     bi = args.bi
     assert ri != -1
     assert bi != -1
-    assert dim == 2
     o = "{:}/pltr{:03d}b{:03d}.pdf".format(s, ri, bi)
     if os.path.isfile(o) and not args.force:
         print("Skip existing {:}".format(o))
         return
     Run(ri, bi, s, True)
-    sh("(cd {s} ; ./plot &> /dev/null) ; mv {s}/vf_0000.pdf {o}"
-            .format(**locals()))
+    if dim == 2:
+        sh("(cd {s} ; ./plot &> /dev/null) ; mv {s}/vf_0000.pdf {o}"
+                .format(**locals()))
 
 # arguments
 args, unk = parse()
@@ -129,11 +129,9 @@ assert s in ssa + ['all']
 
 ss = ssa if s == 'all' else [s]
 
-if args.solver != "all":
+if args.ri != -1 and args.bi != -1:
     assert s in ssa
-    ri = args.ri
-    bi = args.bi
-    Run(ri, bi, s, args.force)
+    Run(args.ri, args.bi, s, args.force)
 else:
     Vary(ss, args.nri)
 
