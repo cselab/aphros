@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+fn = "wall.log"
+
+u = np.loadtxt(fn)
+
+plt.plot(u.cumsum())
+plt.show()
