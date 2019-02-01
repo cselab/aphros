@@ -127,40 +127,79 @@ def PlotLines(ax, xa, ya, xb, yb):
     xy = xy.reshape((xa.size * 2, 2))
     ax.plot(*xy, c='k', alpha=1., lw=1, zorder=20)
 
+# Fits arc to line segment.
 # xa,ya: start
 # xb,yb: end
 # k: curvature
+# x0,y0: orientation point, same side for (xc,yc) 
 # Returns:
 # xc,yc: circle center
 # r: radius
 # t1,t2: theta angles in degrees
-def GetArc(xa, ya, xb, yb, k):
-    xc = (xa + xb) * 0.5
-    yc = (ya + yb) * 0.5
-    t1 = 0
-    t2 = 90
-    r = 1 / k
+def GetArc(xa, ya, xb, yb, k, x0, y0):
+    # segment center
+    xs = (xa + xb) * 0.5
+    ys = (ya + yb) * 0.5
+    # check that (qx,qy),(dx,dy), positively oriented
+    dx = xb - xa
+    dy = yb - ya
+    qx = xs - x0
+    qy = ys - y0
+    if qx * dy - qy * dx < 0.:
+        xa,xb = (xb,xa)
+        ya,yb = (yb,ya)
+
+    r = 1. / k
+    dx = xb - xa
+    dy = yb - ya
+    # segment length
+    l = (dx ** 2 + dy ** 2) ** 0.5
+    # distance from centers of circle and segment
+    dc = (r ** 2 - (l * 0.5) ** 2) ** 0.5
+    # outer unit normal
+    nx = dy / l
+    ny = -dx / l
+    xc = xs - nx * dc
+    yc = ys - ny * dc
+
+    t1 = np.arctan2(ya - yc, xa - xc)
+    t2 = np.arctan2(yb - yc, xb - xc)
+    t1 = np.degrees(t1)
+    t2 = np.degrees(t2)
+
     return xc, yc, r, t1, t2
 
 
 # ax: axes
 # xa,ya: start
 # xb,yb: end
-# kk: curvature
-def PlotArcs(ax, xa, ya, xb, yb, kk):
+# kkc: array of [x,y,k]: position of central particle and curvature
+def PlotArcs(ax, xa, ya, xb, yb, kkc):
     xa = xa.flatten()
     ya = ya.flatten()
     xb = xb.flatten()
     yb = yb.flatten()
-    xy = np.vstack((xa, xb, ya, yb))
-    xy = xy.T
-    xy = xy.reshape((xa.size * 2, 2))
+
+    # curvature of nearest point from kkc
+    def GetCurv(x, y):
+        xx = kkc[:,0]
+        yy = kkc[:,1]
+        kk = kkc[:,2]
+        dd = ((xx - x) ** 2 + (yy - y) ** 2) ** 0.5
+        k = kk[dd.argmin()]
+        return k
+
+    x0 = (xa + xb).mean() * 0.5
+    y0 = (ya + yb).mean() * 0.5
 
     for i in range(len(xa)):
-        xc, yc, r, t1, t2 = GetArc(xa[i], ya[i], xb[i], yb[i], kk[i])
-        e = matplotlib.patches.Arc((xc, yc), r, r, 
+        k = GetCurv((xa[i] + xb[i]) * 0.5, (ya[i] + yb[i]) * 0.5)
+        if k == 0:
+            continue
+        xc, yc, r, t1, t2 = GetArc(xa[i], ya[i], xb[i], yb[i], k, x0, y0)
+        e = matplotlib.patches.Arc((xc, yc), 2*r, 2*r, 
                 angle=0, theta1=t1, theta2=t2,
-                lw=0.5, ls='--', zorder=21)
+                lw=0.5, ls='-', zorder=21, edgecolor='red')
         ax.add_patch(e)
 
 # assume 0 < nx < ny, a < 0
@@ -221,7 +260,10 @@ def GetLines(xc, yc, a, nx, ny, hx, hy, u):
 
     return xa, ya, xb, yb
 
-def PlotVtk(ax, p, sk=1):
+# ax: axi
+# p: path to vtk
+# kkc: array of [x,y,k]: position of central particle and curvature
+def PlotVtk(ax, p, kkc, sk=1):
     with open(p) as f:
         def rl():
             return f.readline()
@@ -268,7 +310,7 @@ def PlotVtk(ax, p, sk=1):
         xb = ww[:,1,0]
         yb = ww[:,1,1]
         PlotLines(ax, xa, ya, xb, yb)
-        PlotArcs(ax, xa, ya, xb, yb, xa*0+1)
+        PlotArcs(ax, xa, ya, xb, yb, kkc)
 
 
 # Plot particle strings
@@ -277,15 +319,17 @@ def PlotVtk(ax, p, sk=1):
 # sk: plot every sk string
 # Output:
 # plots particles on ax with color c
+# Returns:
+# kk: list of (x,y,k): position of central particle and curvature
 def PlotPart(ax, p, sk=1):
     d = np.loadtxt(p, skiprows=1, delimiter=',')
     if d.size == 0:
         return None
-    x,y,z,c = (d.T)[0:4,:]
+    x,y,z,c,k = (d.T)[0:5,:]
     c = c.astype(int)
 
-    # separate particles strings by cell
-    tt = dict()  # lists of indices in x, cell is key
+    # separate strings by cell
+    tt = dict()  # maps cell to lists of indices in x
     for i in range(len(c)):
         ci = c[i]
         if not ci in tt:
@@ -302,6 +346,7 @@ def PlotPart(ax, p, sk=1):
 
     cmap = plt.get_cmap("Set1")
 
+
     # plot strings
     for i in tt:
         if np.random.randint(sk) == 0:
@@ -310,6 +355,16 @@ def PlotPart(ax, p, sk=1):
             ax.plot(x[ti], y[ti], c=cl, zorder=10, lw=2, alpha=1.)
             ax.scatter(x[ti], y[ti], c=cl[np.newaxis], cmap=cmap, s=5, lw=0.3,
                        zorder=11, edgecolor='black')
+
+    # central particle and curvature
+    kk = []
+    for i in tt:
+        ti = np.array(tt[i])
+        # index of central particle
+        ct = ti[len(ti) // 2]
+        kk.append([x[ct], y[ct], k[ct]])
+    return np.array(kk)
+
 
 def IsGerris(s):
     # check if gerris (odd nx)
@@ -447,14 +502,16 @@ def FigVf(pt, vfn='vf'):
     PlotFieldGray(ax, vf, vmin=0., vmax=1.)
     # partilces
     pa = GetFieldPath(pt, "partit")
+    # output of PlotPart
+    kk = None
     if os.path.isfile(pa) and dim == 2:
         Log(pa)
-        PlotPart(ax, pa, sk=1)
+        kk = PlotPart(ax, pa, sk=1)
     # interface
     pv = GetFieldPath(pt, "s", "vtk")
     if os.path.isfile(pa) and dim == 2:
         Log(pv)
-        PlotVtk(ax, pv)
+        PlotVtk(ax, pv, kk)
     # closeup
     r = max(rx, ry) * 1.5
     ax.set_xlim([cx - r, cx + r])
