@@ -3,9 +3,51 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-fn = "wall.log"
+# matploblib color cycle
+def CC():
+    p = plt.rcParams['axes.prop_cycle']
+    return p.by_key()['color']
 
-u = np.loadtxt(fn)
 
-plt.plot(u.cumsum())
+wn = "wall.log"
+sn = "stat.dat"
+tmax = 2.
+
+# liquid density
+rho = 1.
+# bubble radius
+br = 0.15
+# bubble volume
+bv = 4. / 3. * np.pi * br ** 3
+# mass of liquid of volume bv
+bm = bv * rho
+
+
+# wall pressure (mean)
+w = np.loadtxt(wn)
+tw = np.linspace(0., tmax, len(w))
+dt = tw[1] - tw[0]
+# integral in time
+wt = np.cumsum(w) * dt
+
+# kinetic energy
+ss = np.genfromtxt(sn, names=True)
+e = ss["ekin"]
+te = ss["t"]
+
+ax = plt.gca()
+
+#plt.plot(tw, wt, label="pressure cumsum", c=CC()[0])
+vel = wt / bm
+ek = bm * vel ** 2 * np.sign(vel)
+plt.plot(tw, -ek, label="equiv. volume Ekin", c=CC()[0])
+ax.grid()
+
+#ax2 = ax.twinx()
+ax2 = ax
+ax2.plot(te, e, label="mixture Ekin", c=CC()[1])
+
+ax.legend(loc='left')
+ax2.legend(loc='right')
+
 plt.show()
