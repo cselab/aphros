@@ -127,6 +127,42 @@ def PlotLines(ax, xa, ya, xb, yb):
     xy = xy.reshape((xa.size * 2, 2))
     ax.plot(*xy, c='k', alpha=1., lw=1, zorder=20)
 
+# xa,ya: start
+# xb,yb: end
+# k: curvature
+# Returns:
+# xc,yc: circle center
+# r: radius
+# t1,t2: theta angles in degrees
+def GetArc(xa, ya, xb, yb, k):
+    xc = (xa + xb) * 0.5
+    yc = (ya + yb) * 0.5
+    t1 = 0
+    t2 = 90
+    r = 1 / k
+    return xc, yc, r, t1, t2
+
+
+# ax: axes
+# xa,ya: start
+# xb,yb: end
+# kk: curvature
+def PlotArcs(ax, xa, ya, xb, yb, kk):
+    xa = xa.flatten()
+    ya = ya.flatten()
+    xb = xb.flatten()
+    yb = yb.flatten()
+    xy = np.vstack((xa, xb, ya, yb))
+    xy = xy.T
+    xy = xy.reshape((xa.size * 2, 2))
+
+    for i in range(len(xa)):
+        xc, yc, r, t1, t2 = GetArc(xa[i], ya[i], xb[i], yb[i], kk[i])
+        e = matplotlib.patches.Arc((xc, yc), r, r, 
+                angle=0, theta1=t1, theta2=t2,
+                lw=0.5, ls='--', zorder=21)
+        ax.add_patch(e)
+
 # assume 0 < nx < ny, a < 0
 def GetLineEnds(nx, ny, a):
     xl = [(a + 0.5 * ny) / nx, (a + 0.5 * nx) / ny]
@@ -232,6 +268,7 @@ def PlotVtk(ax, p, sk=1):
         xb = ww[:,1,0]
         yb = ww[:,1,1]
         PlotLines(ax, xa, ya, xb, yb)
+        PlotArcs(ax, xa, ya, xb, yb, xa*0+1)
 
 
 # Plot particle strings
@@ -269,9 +306,9 @@ def PlotPart(ax, p, sk=1):
     for i in tt:
         if np.random.randint(sk) == 0:
             ti = np.array(tt[i])
-            cl = cmap(mcl[i])
+            cl = np.array(cmap(mcl[i]))
             ax.plot(x[ti], y[ti], c=cl, zorder=10, lw=2, alpha=1.)
-            ax.scatter(x[ti], y[ti], c=cl, s=5, lw=0.3,
+            ax.scatter(x[ti], y[ti], c=cl[np.newaxis], cmap=cmap, s=5, lw=0.3,
                        zorder=11, edgecolor='black')
 
 def IsGerris(s):

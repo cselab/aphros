@@ -96,7 +96,7 @@ def Plot(args):
         return
     Run(ri, bi, s, True)
     if dim == 2:
-        sh("(cd {s} ; ./plot &> /dev/null) ; mv {s}/vf_0000.pdf {o}"
+        sh("(cd {s} ; ./plot > /dev/null ) && mv {s}/vf_0000.pdf {o}"
                 .format(**locals()))
 
 # arguments
