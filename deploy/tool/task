@@ -46,7 +46,7 @@ if [ -e "{od}" ] ; then
   exit 0
 fi
 
-rsync -a "{dm}/." .
+rsync -aL "{dm}/." .
 {cmd}
 ./run &>> {l}
 mv dat "{od}"
