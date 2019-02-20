@@ -1065,7 +1065,8 @@ def Univel():
     for d,l in zip(dd, ll):
         print(d)
         pp = Glob(d, "vf")
-        assert len(pp)
+        if len(pp) == 0:
+            continue
         pt = GetPathTemplate(pp[0])
         # volume fraction
         FigVf(pt)
