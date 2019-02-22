@@ -1,6 +1,6 @@
 include $(BASILISK)/Makefile.defs
 
-main: main.c
+main: main.c par.h
 	qcc -autolink $(CFLAGS) $(LIBS) -lm $< -o $@
 
 cleandat:
