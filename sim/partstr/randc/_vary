@@ -125,9 +125,9 @@ s = args.solver
 
 ssa = ['ch', 'ba', 'ge']
 
-assert s in ssa + ['all']
+#assert s in ssa + ['all']
 
-ss = ssa if s == 'all' else [s]
+ss = ssa if s == 'all' else s.split()
 
 if args.ri != -1 and args.bi != -1:
     assert s in ssa
