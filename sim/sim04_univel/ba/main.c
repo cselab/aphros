@@ -24,16 +24,18 @@ double ifr3(double x, double y, double z) {
   return fmax(sq(BR) - r, sq(BR2) - r2);
 }
 
+WALLX
+WALLY
+WALLZ
 
 int main() {
   init_grid(1 << REFINE);
 
   origin (0.,0.,0.);
-  #ifndef SYMMCORN
-  foreach_dimension() {
-    periodic (right);
-  }
-  #endif
+
+  PERX
+  PERY
+  PERZ
   
   rho1 = RHO2; 
   rho2 = RHO1; 

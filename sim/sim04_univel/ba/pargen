@@ -34,25 +34,6 @@ c['gx'] = c['g'][0]
 c['gy'] = c['g'][1]
 c['gz'] = c['g'][2]
 
-ob = ""
-with open("../b.dat", 'r') as f:
-  ll = f.readlines()
-  l = list(map(float, ll[0].split())) if len(ll) > 0 else [0., 0., 0., 0.]
-  ob += '''
-#define BCX ({:})
-#define BCY ({:})
-#define BCZ ({:})
-#define BR ({:})
-  '''.format(*l);
-
-  l = list(map(float, ll[1].split())) if len(ll) > 1 else [0., 0., 0., 0.]
-  ob += '''
-#define BC2X ({:})
-#define BC2Y ({:})
-#define BC2Z ({:})
-#define BR2 ({:})
-
-  '''.format(*l);
 
 o = '''
 #define DIM {dim}
@@ -76,6 +57,67 @@ o = '''
 #define GZ ({gz})
 
 '''.format(**c)
+
+
+# boudnary conditions
+
+wallx = ""
+wally = ""
+wallz = ""
+
+perx = "periodic(right);"
+pery = "periodic(top);"
+perz = "periodic(front);"
+
+if c['wallx']:
+  wallx = 'u.t[left] = dirichlet(0); u.t[right] = dirichlet(0);'
+  perx = ""
+
+if c['wally']:
+  wally = 'u.t[bottom] = dirichlet(0); u.t[top] = dirichlet(0);'
+  pery = ""
+
+if dim == 3 and c['wallz']:
+  wallz = 'u.t[back] = dirichlet(0); u.t[front] = dirichlet(0);'
+  perz = ""
+
+if c['symmcorn']:
+  perx = ""
+  pery = ""
+  perz = ""
+
+o += '''
+#define WALLX {wallx}
+#define WALLY {wally}
+#define WALLZ {wallz}
+
+#define PERX {perx}
+#define PERY {pery}
+#define PERZ {perz}
+'''.format(**locals())
+
+
+# bubbles
+
+ob = ""
+with open("../b.dat", 'r') as f:
+  ll = f.readlines()
+  l = list(map(float, ll[0].split())) if len(ll) > 0 else [0., 0., 0., 0.]
+  ob += '''
+#define BCX ({:})
+#define BCY ({:})
+#define BCZ ({:})
+#define BR ({:})
+  '''.format(*l);
+
+  l = list(map(float, ll[1].split())) if len(ll) > 1 else [0., 0., 0., 0.]
+  ob += '''
+#define BC2X ({:})
+#define BC2Y ({:})
+#define BC2Z ({:})
+#define BR2 ({:})
+
+  '''.format(*l);
 
 o += ob
 
