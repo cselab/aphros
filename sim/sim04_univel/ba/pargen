@@ -69,16 +69,30 @@ perx = "periodic(right);"
 pery = "periodic(top);"
 perz = "periodic(front);"
 
+contang = 165.
+
 if c['wallx']:
-  wallx = 'u.t[left] = dirichlet(0); u.t[right] = dirichlet(0);'
+  wallx = 'u.t[left] = dirichlet(0);  \
+u.t[right] = dirichlet(0); \
+h.t[left] = contact_angle({0}*pi/180.); \
+h.t[right] = contact_angle({0}*pi/180.); \
+  '.format(contang)
   perx = ""
 
 if c['wally']:
-  wally = 'u.t[bottom] = dirichlet(0); u.t[top] = dirichlet(0);'
+  wally = 'u.t[bottom] = dirichlet(0); \
+u.t[top] = dirichlet(0); \
+h.t[bottom] = contact_angle({0}*pi/180.); \
+h.t[top] = contact_angle({0}*pi/180.); \
+  '.format(contang)
   pery = ""
 
 if dim == 3 and c['wallz']:
-  wallz = 'u.t[back] = dirichlet(0); u.t[front] = dirichlet(0);'
+  wallz = 'u.t[back] = dirichlet(0); \
+u.t[front] = dirichlet(0); \
+h.t[back] = contact_angle({0}*pi/180.); \
+h.t[front] = contact_angle({0}*pi/180.); \
+  '.format(contang)
   perz = ""
 
 if c['symmcorn']:

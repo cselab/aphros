@@ -2,8 +2,9 @@
 
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
+#include "contact.h"
+#include "vof.h"
 #include "tension.h"
-#include "vtk.h"
 
 #include "io/iompi.h"
 #include "io/io.h"
@@ -24,6 +25,8 @@ double ifr3(double x, double y, double z) {
   return fmax(sq(BR) - r, sq(BR2) - r2);
 }
 
+vector h[];
+
 WALLX
 WALLY
 WALLZ
@@ -43,6 +46,7 @@ int main() {
   mu1 = MU2;
   mu2 = MU1, 
 
+  f.height = h;
   f.sigma = SIGMA;
 
   run();
