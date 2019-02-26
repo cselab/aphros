@@ -1,7 +1,7 @@
 set macros
 reset
 
-set terminal pdfcairo color font ",18" size 5,2.5 enhanced
+set terminal pdfcairo color font "Helvetica,14" size 3.2,2.2 enhanced
 
 set nokey
 c0='#1f77b4'
@@ -18,7 +18,7 @@ set linetype cycle 9
 
 
 if (!exists("ll")) {
-  ll = "ch ba ge"
+  ll = "ch ba"
 }
 
 p="/traj.dat"

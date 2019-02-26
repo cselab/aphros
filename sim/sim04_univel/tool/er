@@ -20,7 +20,7 @@ def W(s):
 
 # output fields
 vv = ['cpr', 'dim', 'we', 'la', 'm2', 'v2x', 'v2y', 'v2z', 'pd', 
-        'vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z']
+        'vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z', 'c2x', 'c2y', 'c2z']
 
 av = sys.argv
 
@@ -74,9 +74,17 @@ for v in l:
     we = rho * u ** 2 * bd / sig
     oo[v] = we
 
+# error in final position
+l = ['c2x', 'c2y', 'c2z'][:dim]
+for i,v in enumerate(l):
+    tmax = dd['t'][-1]
+    qe = c['vel'][i] * tmax  # exact position
+    q = (dd[v][-1] - dd[v][0])  # computed position
+    oo[v] = (q - qe) / qe
+
 # zero dim = 2
 if dim == 2:
-    for v in ['v2z', 'vlmz', 'vl2z']:
+    for v in ['v2z', 'vlmz', 'vl2z', 'c2z']:
         oo[v] = 0.
 
 W(' '.join([str(oo[v]) for v in vv]))
