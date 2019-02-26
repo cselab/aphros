@@ -167,7 +167,7 @@ contour1.PointMergeMethod = 'Uniform Binning'
 
 # create a new 'Resample To Image'
 rsmp = ResampleToImage(Input=omm)
-nx = 256
+nx = 192
 rsmp.SamplingDimensions = [nx + 1] * 3
 pi = 3.141592
 dom = 2 * pi
