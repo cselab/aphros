@@ -48,7 +48,7 @@ int main() {
   mu1 = MU2;
   mu2 = MU1, 
 
-  f.height = h;
+  //f.height = h;
   f.sigma = SIGMA;
 
   run();
