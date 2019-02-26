@@ -62,7 +62,7 @@ def Run(ri, bi, s, force=False):
     with open("{:}/b.dat".format(s), 'w') as f:
         rx = r
         ry = r
-        rz = r if dim == 3 else 1e3
+        rz = r
         f.write("{:} {:} {:} {:} {:} {:}"
                 .format(bc[0], bc[1], bc[2], rx, ry, rz))
     with open("{:}/dim".format(s), 'w') as f :

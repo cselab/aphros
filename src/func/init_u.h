@@ -192,7 +192,13 @@ CreateInitU(Vars& par, bool verb=true) {
           if (ls == 1) {
             fc[c] = GetLevelSetVolume<Scal>(f, (x - p.c) / p.r, h / p.r);
           } else if (ls == 2) {
-            fc[c] = GetSphereOverlap((x - p.c) / p.r, h / p.r, Vect(0), 1.);
+            Vect qx = (x - p.c) / p.r;
+            Vect qh = h / p.r;
+            if (dim == 2) {
+              qh[2] *= 1e-3; // XXX: adhoc, thin cell in 2d
+              qx[2] = 0.;
+            }
+            fc[c] = GetSphereOverlap(qx, qh, Vect(0), 1.);
           } else {
             fc[c] = (fm >= 0. ? 1. : 0.);
           }

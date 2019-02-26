@@ -78,7 +78,9 @@ vector h[];
 
 WALLX
 WALLY
+#if dimension == 3
 WALLZ
+#endif
 
 int main() {
   init_grid(1 << REFINE);
@@ -87,7 +89,9 @@ int main() {
 
   PERX
   PERY
+#if dimension == 3
   PERZ
+#endif
   
   rho1 = RHO2; 
   rho2 = RHO1; 
