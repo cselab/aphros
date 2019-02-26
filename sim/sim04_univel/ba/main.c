@@ -173,6 +173,8 @@ event logfile (i += 1 ; t <= TMAX) {
     p1 = fmax(p1, p[]);
   }
 
+  sb = fmax(sb, 1e-10);
+
   double vlmx = 0., vlmy = 0., vlmz = 0.;
   double vl2x = 0., vl2y = 0., vl2z = 0.;
   foreach(reduction(+:vl2x) reduction(+:vl2y) reduction(+:vl2z)
