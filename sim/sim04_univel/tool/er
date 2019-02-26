@@ -28,6 +28,9 @@ if len(av) < 2:
     W(' '.join(vv))
     exit()
 
+# solver name
+s = av[1]
+
 # config
 c = {}
 exec(open("par.py").read(), None, c)
@@ -36,7 +39,7 @@ exec(open("par.py").read(), None, c)
 ee = np.genfromtxt("ex/traj.dat", names=True)
 
 # target
-dd = np.genfromtxt(os.path.join(av[1], "traj.dat"), names=True)
+dd = np.genfromtxt(os.path.join(s, "traj.dat"), names=True)
 # exclude first samples
 dd = dd[2:]
 
@@ -55,6 +58,8 @@ if dim == 2:
 
 for v in l:
     e = ee[v][0]
+    if v == 'm2' and s == 'ch' and dim == 2: # correction for size in z
+      e /= c['nx'] * (0.5 if c['np'] > 1 else 1)
     oo[v] = (dd[v] - e).mean() / e
 
 # fields normalized
