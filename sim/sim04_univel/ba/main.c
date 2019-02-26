@@ -9,6 +9,8 @@
 #include "io/iompi.h"
 #include "io/io.h"
 
+#define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
+
 double sqr(double a) {
   return a * a;
 }
@@ -69,6 +71,8 @@ event init (i = 0) {
 }
 
 event out (t += DUMPDT ; t <= TMAX) {
+  ONROOT printf("dump i=%05d t=%g dt=%g \n", i, t ,dt);
+
   static int frame = 0;
   ++frame;
   //scalar * a = {u, p, f};
@@ -86,11 +90,11 @@ event out (t += DUMPDT ; t <= TMAX) {
 #endif
 }
 
-event statout (i += 10) {
-  printf("step i=%d\n", i);
+event statout (i += 10 ; t <= TMAX) {
+  ONROOT printf("step i=%05d t=%g dt=%g \n", i, t ,dt);
 }
 
-event logfile (i += 1) {
+event logfile (i += 1 ; t <= TMAX) {
   double xb = 0., yb = 0., zb = 0., sb = 0.;
   double vbx = 0., vby = 0., vbz = 0.;
   double p0 = 1e10, p1 = -1e10;
