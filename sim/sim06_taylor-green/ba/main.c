@@ -46,6 +46,7 @@ event init (i = 0) {
   fraction(f, ifr3(x, y, z));
 }
 
+
 event out (t += DUMPDT ; t <= TMAX) {
   static int frame = 0;
   char name[1000];

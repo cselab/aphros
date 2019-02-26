@@ -63,9 +63,9 @@ static int iompi(scalar *list, char* fn) {
 
       int i = 0;
       foreach_vertex() {
-        b[i++] = x;
-        b[i++] = y;
         b[i++] = z;
+        b[i++] = y;
+        b[i++] = x;
       }
       assert0(i == nv * 3);
 
