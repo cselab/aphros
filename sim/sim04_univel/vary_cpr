@@ -61,7 +61,10 @@ rm -f ch/done ge/done ba/done
 ./gen -nx {nx} -cpr {cpr} -We {We} -La {La} -np {np} -nfr {nfr}  \
 -dim {dim} -tmax {tmax} -mode vel -chsm {chsm}
 
-echo "set int statvel 1" > ch/add.conf
+echo "set int statvel 1
+set int list_ls 2
+set string dumplist vf
+" > ch/add.conf
 '''.format(**locals())
 
     sh("ch.task {:} {:} > {:} <<< '{:}'".format(dummy, od, ot, cf))
