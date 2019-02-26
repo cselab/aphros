@@ -9,6 +9,8 @@
 #include "io/iompi.h"
 #include "io/io.h"
 
+int nxexp = REFINE;
+
 #define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
 
 double sqr(double a) {
@@ -25,6 +27,51 @@ double ifr3(double x, double y, double z) {
   double r = sq(x - BCX) + sq(y - BCY) + sq(z - BCZ);
   double r2 = sq(x - BC2X) + sq(y - BC2Y) + sq(z - BC2Z);
   return fmax(sq(BR) - r, sq(BR2) - r2);
+}
+
+int ReadField(scalar c, char* fn) {
+  FILE* f = fopen(fn, "r");
+
+  if (!f) {
+    return 0;
+  }
+
+  int nx, ny, nz;
+  fscanf(f, "%d %d %d", &nx, &ny, &nz);
+
+  assert(nx+1 == (1 << nxexp));
+  assert(ny == (1 << nxexp));
+
+#if dimension == 2
+  assert(nz == 1);
+#elif dimension == 3
+  assert(nz == (1 << nxexp));
+#endif
+
+  double uu[nz][ny][nx];
+
+  for (int z = 0; z < nz; ++z) {
+    for (int y = 0; y < ny; ++y) {
+      for (int x = 0; x < nx; ++x) {
+        double a;
+        fscanf(f, "%lf", &a);
+        uu[z][y][x] = a;
+      }
+    }
+  }
+  fclose(f);
+
+  int i = 0;
+  foreach() {
+    double h = Delta;
+    double hmin = 1. / (1 << nxexp);
+    int ix = max(0, min(x / hmin, nx - 1));
+    int iy = max(0, min(y / hmin, ny - 1));
+    int iz = max(0, min(z / hmin, nz - 1));
+    c[] = uu[iz][iy][ix];
+  }
+
+  return 1;
 }
 
 vector h[];
@@ -48,6 +95,7 @@ int main() {
   mu1 = MU2;
   mu2 = MU1, 
 
+
   //f.height = h;
   f.sigma = SIGMA;
 
@@ -63,11 +111,17 @@ event init (i = 0) {
 #endif
   }
 
+  char* fn = "../ch/vf_0000.dat";
+  if (ReadField(f, fn)) {
+    ONROOT printf("Volume fraction from %s\n", fn);
+  } else {
+    ONROOT printf("Volume fraction from par.h\n");
 #if dimension == 2
-  fraction(f, ifr2(x, y));
+    fraction(f, ifr2(x, y));
 #elif dimension == 3
-  fraction(f, ifr3(x, y, z));
+    fraction(f, ifr3(x, y, z));
 #endif
+  }
 }
 
 event out (t += DUMPDT ; t <= TMAX) {
