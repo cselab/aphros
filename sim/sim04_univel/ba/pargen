@@ -12,11 +12,11 @@ d3 = (dim == 3)
 
 # number of frames from ch
 nfr = c['nfr']
-if os.path.isfile("../ch/done"):
-  g = "../ch/s_*.vtk"
-  nfr = len(glob.glob(g))
-  print("Found {:} frames as {:}".format(nfr, g))
-  assert nfr >= 2, "Error: Need at least 2 frames $r, found %r" % (g, nfr)
+#if os.path.isfile("../ch/done"):
+#  g = "../ch/s_*.vtk"
+#  nfr = len(glob.glob(g))
+#  print("Found {:} frames as {:}".format(nfr, g))
+#  assert nfr >= 2, "Error: Need at least 2 frames $r, found %r" % (g, nfr)
 
 c['nfr'] = nfr
 c['dumpdt'] = c['tmax'] / c['nfr']

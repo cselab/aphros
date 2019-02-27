@@ -64,6 +64,7 @@ rm -f ch/done ge/done ba/done
 echo "set int statvel 1
 set int list_ls 2
 set string dumplist vf
+set int min_iter 3
 " > ch/add.conf
 '''.format(**locals())
 
