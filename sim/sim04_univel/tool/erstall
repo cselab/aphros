@@ -8,7 +8,7 @@ p=er
 e=er
 
 
-for s in ch ba ge ; do
+for s in ch ba ; do
   o=$p$s
   echo $o
   ./$e > $o
