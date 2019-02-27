@@ -40,8 +40,10 @@ ee = np.genfromtxt("ex/traj.dat", names=True)
 
 # target
 dd = np.genfromtxt(os.path.join(s, "traj.dat"), names=True)
-# exclude first samples
-dd = dd[2:]
+# initial
+dd0 = dd[0]
+# skip first half
+dd = dd[dd.shape[0]//2:]
 
 dim = c['dim']
 
@@ -59,7 +61,7 @@ if dim == 2:
 for v in l:
     e = ee[v][0]
     if v == 'm2' and s == 'ch' and dim == 2: # correction for size in z
-      e /= c['nx'] * (0.5 if c['np'] > 1 else 1)
+        e /= c['nx'] * (0.5 if c['np'] > 1 else 1)
     oo[v] = (dd[v] - e).mean() / e
 
 # fields normalized
@@ -82,9 +84,8 @@ for v in l:
 # error in final position
 l = ['c2x', 'c2y', 'c2z'][:dim]
 for i,v in enumerate(l):
-    tmax = dd['t'][-1]
-    qe = c['vel'][i] * tmax  # exact position
-    q = (dd[v][-1] - dd[v][0])  # computed position
+    qe = c['vel'][i] * c['tmax']  # exact displacement
+    q = (dd[v][-1] - dd0[v])  # computed displacement
     oo[v] = (q - qe) / qe
 
 # zero dim = 2
