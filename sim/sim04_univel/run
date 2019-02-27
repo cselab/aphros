@@ -3,8 +3,6 @@
 set -eu
 
 ./r_ch
-./r_ge
 ./r_ba
-./r_plot
 ./r_vis
 ./r_move
