@@ -71,6 +71,8 @@ int ReadField(scalar c, char* fn) {
     c[] = uu[iz][iy][ix];
   }
 
+  boundary ({c});
+
   return 1;
 }
 
