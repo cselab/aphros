@@ -31,6 +31,9 @@ if len(av) < 2:
 # solver name
 s = av[1]
 
+# static droplet mode
+static = (len(av) > 2 and av[2] == "static")
+
 # config
 c = {}
 exec(open("par.py").read(), None, c)
@@ -74,7 +77,7 @@ for v in l:
 # convert to We
 l = ['vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z']
 for v in l:
-    u = dd[v].mean()
+    u = dd[v].mean() if not static else dd[v][-1]
     rho = c['rho0']   # density
     bd = c['bbr'][0][0] * 2   # diameter
     sig = c['sig']

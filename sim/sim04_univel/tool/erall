@@ -5,7 +5,7 @@ set -eu
 # prefix
 p=er
 # exec
-e=./er
+e=../er
 
 for s in ch ba ge ; do
   o=$p$s
@@ -13,7 +13,7 @@ for s in ch ba ge ; do
   $e > $o
   for f in dat* ; do 
     printf .
-    (cd $f ; ../er $s) >> $o
+    (cd $f ; ../$e $s) >> $o
   done
   echo
 done
