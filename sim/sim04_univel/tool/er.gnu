@@ -38,6 +38,7 @@ set xlabel "R / h"
 
 set format y "10^{%L}"
 set yrange [1e-8:1]
+unset yrange
 set logscale y
 set ylabel "velocity error L_2"
 v="vl2x" ; @s ; @m , 0.0004/x dt 2 lt 5 t "O(h)"
