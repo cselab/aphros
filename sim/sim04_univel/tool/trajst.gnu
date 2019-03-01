@@ -1,3 +1,5 @@
+#!/usr/bin/env gnuplot
+
 set macros
 reset
 
@@ -26,46 +28,13 @@ m='plot for [f in ll] f.p u "t":v w l'
 r=', "ex".p u "t":v w l lc rgb "black" dt 2'
 s='set output "a".v.".pdf"'
 
-v="c2x"
-@s
-@m @r
-
-v="c2y"
-@s
-@m @r
-
-v="c2z"
-@s
-@m @r
-
 v="pd"
 @s
 @m @r
 
 set logscale y
-set yrange [1e-4:10]
+set yrange [1e-10:1]
 
 v="vlmx"
 @s
 @m
-
-v="vlmy"
-@s
-@m
-
-v="vlmz"
-@s
-@m
-
-v="vl2x"
-@s
-@m
-
-v="vl2y"
-@s
-@m
-
-v="vl2z"
-@s
-@m
-

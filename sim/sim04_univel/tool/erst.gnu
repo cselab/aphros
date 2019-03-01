@@ -38,12 +38,12 @@ set xrange [0.5:32]
 set xlabel "R / h"
 
 set format y "10^{%L}"
-set yrange [1e-10:1]
+set yrange [1e-30:1]
 set logscale y
 set ylabel "velocity error L_2"
-v="vl2x" ; @s ; @m , 0.0004/x dt 2 lt 5 t "O(h)"
+v="vl2x" ; @s ; @m
 set ylabel "velocity error L_{/Symbol \245}"
-v="vlmx" ; @s ; @m , 0.001/x dt 2 lt 5 t "O(h)"
+v="vlmx" ; @s ; @m 
 
 unset format y
 unset logscale y
