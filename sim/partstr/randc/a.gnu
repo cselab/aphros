@@ -20,40 +20,47 @@ set linetype cycle 5
 set style line 1 lt 1 pt 7 ps 0.5
 set style line 2 lt 2 pt 5 ps 0.5
 set style line 3 lt 3 pt 8 ps 0.5
+set style line 4 lt 4 pt 2 ps 0.5
 
-ss="ch ba ge"
+ss="ch ba"
+
+xx='(column("cpr"))'
 
 s='pt 7 ps 0.5'
 m='for [i=1:words(ss)] word(ss,i)."/kerravg" \
-    u "cpr":@v w lp t word(ss,i) ls i'
+    u @xx:@v w lp t word(ss,i) ls i'
 mfs='for [i=1:words(ss)] word(ss,i)."/kerravg" \
-    u "cpr":@v."sl":@v."sh" w filledcurve t "" ls i fs transparent solid 0.5'
+    u @xx:@v."sl":@v."sh" w filledcurve t "" ls i fs transparent solid 0.5'
 mf='for [i=1:words(ss)] word(ss,i)."/kerravg" \
-    u "cpr":@v."l":@v."h" w filledcurve t "" ls i fs transparent solid 0.25'
+    u @xx:@v."l":@v."h" w filledcurve t "" ls i fs transparent solid 0.25'
 
 set logscale x 2
 
-set xrange [0.5:128]
-set xlabel "cpr"
+set xrange [0.5:32]
+set xlabel "R/h"
 
 set output "aem.pdf"
 set logscale y
 set ylabel "L_{/Symbol \245}"
-set yrange [0.01:10]
+set yrange [0.001:10]
 v='"em"'
-plot @m , @mfs , @mf
+plot @m , @mfs \
+#, "mdhf/lm" u ($1/2):"e" t "mdhf" w lp ls 3 \
+#, "ref/ba" u ($1/2):"max" t "baweb" w lp ls 4 \
 
 set output "ae2.pdf"
 set logscale y
 set ylabel "L_2"
-set yrange [0.01:10]
+set yrange [0.001:10]
 v='"em"'
 v='"e2"'
-plot @m , @mfs , @mf
+plot @m , @mfs  \
+#, "mdhf/l2" u ($1/2):"e" t "mdhf" w lp ls 3 \
+#, "ref/ba" u ($1/2):"rms" t "baweb" w lp ls 4 \
 
 set output "avf.pdf"
 unset logscale y
 set yrange [0:3]
 set ylabel "V / V_{exact}"
 v='"vf"'
-plot @m , @mfs , @mf
+plot @m , @mfs

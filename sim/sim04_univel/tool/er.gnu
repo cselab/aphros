@@ -40,16 +40,16 @@ set xlabel "R / h"
 set format y "10^{%L}"
 set yrange [1e-10:1]
 set logscale y
-set ylabel "velocity error L_2"
+set ylabel "We_{rms}"
 v="vl2x" ; @s ; @m , 0.0004/x dt 2 lt 5 t "O(h)"
-set ylabel "velocity error L_{/Symbol \245}"
+set ylabel "We_{max}"
 v="vlmx" ; @s ; @m , 0.001/x dt 2 lt 5 t "O(h)"
 
 unset format y
 unset logscale y
 set yrange [0:2]
 set ylabel "pressure jump"
-v="pd" ; @s ; @m
+v="pd" ; @s ; @m , 1 w l dt 2 lt 5
 
 unset yrange
 set ylabel "volume"
