@@ -11,7 +11,7 @@ import ch
 sh = ch.sh
 
 a = ch.GetStdPar('out', 'We', 'La', 'tmax', 'dim', 'dumpdefault', 
-        'nfr', 'np', 'nx', 'chsm')
+        'nfr', 'np', 'nx', 'chsm', 'pos')
 a['La'][0] = 1200.
 a['We'][0] = 0.01
 a['tmax'][0] = 1.
@@ -46,6 +46,7 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
     nfr = c.nfr
     dumpdefault = c.dumpdefault
     chsm = c.chsm
+    pos = c.pos
 
     sf = "dim{:}_cpr{:06.02f}_we{:06.03f}_la{:06.01f}".format(dim, cpr, We, La)
     ot = os.path.join(o, "run_{:}".format(sf))
@@ -59,7 +60,7 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
 rm -f ch/done ge/done ba/done
 
 ./gen -nx {nx} -cpr {cpr} -We {We} -La {La} -np {np} -nfr {nfr}  \
--dim {dim} -tmax {tmax} -mode vel -chsm {chsm}
+-dim {dim} -tmax {tmax} -mode vel -chsm {chsm} -pos {pos}
 
 echo "set int statvel 1
 set int list_ls 2
