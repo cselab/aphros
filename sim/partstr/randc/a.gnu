@@ -4,6 +4,8 @@ set terminal pdfcairo color font "Helvetica,14" size 3.2,2.2 enhanced
 set macro
 reset
 
+set nokey
+
 c0='#1f77b4'
 c1='#ff7f0e'
 c2='#2ca02c'
@@ -37,7 +39,7 @@ mf='for [i=1:words(ss)] word(ss,i)."/kerravg" \
 set logscale x 2
 
 set xrange [0.5:32]
-set xlabel "R/h"
+set xlabel "R / h"
 
 set output "aem.pdf"
 set logscale y

@@ -5,10 +5,7 @@ reset
 
 set terminal pdfcairo color font "Helvetica,14" size 3.2,2.2 enhanced
 
-#set key reverse bottom right Left
 set nokey
-
-
 c0='#1f77b4'
 c1='#ff7f0e'
 c2='#2ca02c'
@@ -42,13 +39,13 @@ set yrange [1e-30:1]
 set logscale y
 set ylabel "velocity error L_2"
 v="vl2x" ; @s ; @m
-set ylabel "velocity error L_{/Symbol \245}"
+set ylabel "We_{max}"
 v="vlmx" ; @s ; @m 
 
 unset format y
 unset logscale y
 set yrange [0:2]
-set ylabel "pressure jump"
+set ylabel "{/Symbol D}p / p_L"
 v="pd" ; @s ; @m
 
 unset yrange
