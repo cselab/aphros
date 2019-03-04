@@ -29,7 +29,14 @@ c='ls -d dim3_overlap1_segcirc1_np9_ns?_hp4'
 c='ls -d dim3_overlap1_segcirc1_np9_ns2_hp?'
 c='ls -d dim3_overlap1_segcirc?_np9_ns2_hp4'
 c='ls -d dim2_overlap0_segcirc?_np9_ns2_hp4'
-ss=system(c)
+
+if (!exists("ss")) {
+  ss = system("ls -d dim*")
+}
+
+if (!exists("pre")) {
+  pre = "a"
+}
 
 tl='system("tr -d _ <<< ".word(ss,i))'
 s='pt 7 ps 0.5'
@@ -40,38 +47,34 @@ mfs='for [i=1:words(ss)] word(ss,i)."/ch/kerravg" \
 mf='for [i=1:words(ss)] word(ss,i)."/ch/kerravg" \
     u "cpr":@v."l":@v."h" w filledcurve t "" ls i fs transparent solid 0.25'
 
+o='set output pre.@v.".pdf"'
+
 set logscale x 2
 
 set xrange [0.5:32]
 set xlabel "R / h"
 
-set output "aem.pdf"
 set logscale y
 set ylabel "L_{/Symbol \245}"
 set yrange [0.001:10]
 v='"em"'
-plot @m , @mfs
+@o ; plot @m , @mfs
 
-set output "ae2.pdf"
 set logscale y
 set ylabel "L_2"
 set yrange [0.001:10]
-v='"em"'
 v='"e2"'
-plot @m  , @mfs
+@o ; plot @m  , @mfs
 
-set output "aes.pdf"
 set logscale y
 set ylabel "L_s"
 set yrange [0.001:10]
-v='"em"'
 v='"es"'
-plot @m  , @mfs
+@o ; plot @m  , @mfs
 
 
-set output "avf.pdf"
 unset logscale y
 set yrange [0:3]
 set ylabel "V / V_{exact}"
 v='"vf"'
-plot @m  , @mfs
+@o ; plot @m  , @mfs
