@@ -5,7 +5,6 @@ import numpy as np
 f = "part.log"
 
 d = np.genfromtxt(f, names=True, dtype=(int, int, float, float))
-print(d.dtype)
 
 
 h = dict()
@@ -17,7 +16,6 @@ r = d['res']
 
 
 ns = d['string'].max() + 1
-print("ns={:}".format(ns))
 assert len(r) % ns == 0
 
 r = r.reshape((ns, len(r) // ns))

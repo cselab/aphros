@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -eu
+
+nx=16  # from mesh.conf
+: ${cpr=2}
+r=`bc -l <<< "$cpr / $nx"`
+: ${eta=0.5}
+
+echo "set double part_relax $eta" > eta.conf
+
+echo "0.5 0.5 0.5 $r" > b.dat
+
+./run
+./plot
+
+mv iter.dat iter_eta${eta}_cpr${cpr}

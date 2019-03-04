@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -eu
+
+rm iter_eta*
+cpr=4 eta=0.5 ./runcase
