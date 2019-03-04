@@ -58,21 +58,22 @@ set logscale y
 set ylabel "L_{/Symbol \245}"
 set yrange [0.001:10]
 v='"em"'
-@o ; plot @m , @mfs
+@o ; plot @m
 
 set logscale y
 set ylabel "L_2"
 set yrange [0.001:10]
 v='"e2"'
-@o ; plot @m  , @mfs
+@o ; plot @m
 
 set logscale y
 set ylabel "L_s"
 set yrange [0.001:10]
 v='"es"'
-@o ; plot @m  , @mfs
+@o ; plot @m
 
 
+exit
 unset logscale y
 set yrange [0:3]
 set ylabel "V / V_{exact}"

@@ -2,12 +2,12 @@
 
 set -eu
 
-dim=2
-overlap=0
-segcirc=0
-np=9
-ns=2
-hp=4
+: ${dim=3}
+: ${overlap=1}
+: ${segcirc=1}
+: ${np=9}
+: ${ns=2}
+: ${hp=4}
 
 
 o=dim${dim}_overlap${overlap}_segcirc${segcirc}_np${np}_ns${ns}_hp${hp}
@@ -25,5 +25,5 @@ set int part_ns $ns
 set double part_h $hp
 " > ch/add.conf
 
-./_vary --dim ${dim} --overlap ${overlap} --nri 16 --nbi 3 --solver ch
+./_vary --dim ${dim} --overlap ${overlap} --nri 25 --nbi 3 --solver ch
 (cd ch ; ./_gather)

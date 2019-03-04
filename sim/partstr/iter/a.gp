@@ -1,1 +1,0 @@
-../../../../partstr/fig/iter/a.gp

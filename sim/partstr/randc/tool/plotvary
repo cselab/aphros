@@ -11,11 +11,14 @@ run () {
   : ${ns=2}
   : ${hp=4}
   v=$1  # var name
-  eval "$v=\?"
-  c=`echo dim${dim}_overlap${overlap}_segcirc${segcirc}_np${np}_ns${ns}_hp${hp}`
+  #eval "$v=\?"
+  c=`eval "$v=\?" ; \
+    echo dim${dim}_overlap${overlap}_segcirc${segcirc}_np${np}_ns${ns}_hp${hp}`
   echo $c
   pre=$v
   gnuplot -e "ss='$c' ; pre='$pre'" plotcase.gnu
 }
 
-run dim
+run np
+run ns
+run hp
