@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -eu
+
+dim=2
+overlap=0
+segcirc=0
+np=9
+ns=2
+hp=4
+
+
+o=dim${dim}_overlap${overlap}_segcirc${segcirc}_np${np}_ns${ns}_hp${hp}
+d=randc
+
+echo "Output to $o"
+
+rsync -La $d/ $o
+
+cd $o
+
+echo "set double part_segcirc $segcirc
+set int part_np $np
+set int part_ns $ns
+set double part_h $hp
+" > ch/add.conf
+
+./_vary --dim ${dim} --overlap ${overlap} --nri 16 --nbi 3 --solver ch
+(cd ch ; ./_gather)
