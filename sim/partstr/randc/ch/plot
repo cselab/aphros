@@ -32,6 +32,15 @@ def Log(s, noeol=False):
     sys.stdout.flush()
 
 
+# Writes message to stdout
+# s: string
+def Err(s, noeol=False):
+    s = str(s)
+    if not noeol:
+        s += "\n"
+    sys.stderr.write(s)
+
+
 # Read uniform grid data
 # p: path
 # Format:
@@ -263,7 +272,7 @@ def GetLines(xc, yc, a, nx, ny, hx, hy, u):
 # ax: axi
 # p: path to vtk
 # kkc: array of [x,y,k]: position of central particle and curvature
-def PlotVtk(ax, p, kkc, sk=1):
+def PlotVtk(ax, p, kkc):
     with open(p) as f:
         def rl():
             return f.readline()
@@ -310,8 +319,13 @@ def PlotVtk(ax, p, kkc, sk=1):
         xb = ww[:,1,0]
         yb = ww[:,1,1]
         PlotLines(ax, xa, ya, xb, yb)
-        PlotArcs(ax, xa, ya, xb, yb, kkc)
+        #PlotArcs(ax, xa, ya, xb, yb, kkc)
 
+
+# matploblib color cycle
+def MC():
+    p = plt.rcParams['axes.prop_cycle']
+    return p.by_key()['color']
 
 # Plot particle strings
 # ax: axes to plot on
@@ -346,15 +360,46 @@ def PlotPart(ax, p, sk=1):
 
     cmap = plt.get_cmap("Set1")
 
+    nh = len(tt[list(tt.keys())[0]]) // 2
+
+    # distance between two strings
+    def D(t1, t2):
+        c1 = t1[nh]
+        c2 = t2[nh]
+        return ((x[c1] - x[c2]) ** 2 + (y[c1] - y[c2]) ** 2) ** 0.5
+
+    # plot string tt[i] with color c
+    def P(i, c):
+        ti = np.array(tt[i])
+        ax.plot(x[ti], y[ti], c=c, zorder=21, lw=0.5, alpha=1)
+        ax.scatter(x[ti], y[ti], c=c, cmap=cmap, s=5, lw=0.25,
+                   zorder=22, edgecolor='black')
+        ih = ti[nh]
+        ax.scatter(x[ih], y[ih], c='none', cmap=cmap, s=5, lw=0.9,
+                   zorder=22, edgecolor='k')
+    
+    # indices in tt of strings already plotted
+    ss = []
+
+    # distance between string t and ss
+    def DS(t):
+        return min([np.inf] + [D(t, tt[i]) for i in ss])
+
+    # index in tt of the farthest string from ss
+    def FS():
+        if not len(ss):
+            return list(tt.keys())[0]
+        ii = list(tt.keys())
+        return ii[np.argmax(np.array([DS(tt[i]) for i in ii]))]
 
     # plot strings
-    for i in tt:
-        if np.random.randint(sk) == 0:
-            ti = np.array(tt[i])
-            cl = np.array(cmap(mcl[i]))
-            ax.plot(x[ti], y[ti], c=cl, zorder=10, lw=2, alpha=1.)
-            ax.scatter(x[ti], y[ti], c=cl[np.newaxis], cmap=cmap, s=5, lw=0.3,
-                       zorder=11, edgecolor='black')
+    ci = 0
+    cc = MC()
+    for q in range(2):
+        s = FS()
+        P(s, cc[ci])
+        ci += 1
+        ss.append(s)
 
     # central particle and curvature
     kk = []
@@ -506,7 +551,7 @@ def FigVf(pt, vfn='vf'):
     kk = None
     if os.path.isfile(pa) and dim == 2:
         Log(pa)
-        kk = PlotPart(ax, pa, sk=1)
+        kk = PlotPart(ax, pa, sk=5)
     # interface
     pv = GetFieldPath(pt, "s", "vtk")
     if os.path.isfile(pa) and dim == 2:

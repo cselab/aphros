@@ -32,6 +32,11 @@ set output "a.pdf"
 
 set xtics 20
 
+set xlabel "m"
+set ylabel "E_m"
+
+set nokey
+
 #Shadecolor = "#80E0A080"
 
 #set arrow from 20, graph 0 to 20, graph 1 nohead lt 5
