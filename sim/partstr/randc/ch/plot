@@ -134,7 +134,7 @@ def PlotLines(ax, xa, ya, xb, yb):
     xy = np.vstack((xa, xb, ya, yb))
     xy = xy.T
     xy = xy.reshape((xa.size * 2, 2))
-    ax.plot(*xy, c='k', alpha=1., lw=1, zorder=20)
+    ax.plot(*xy, c='k', alpha=1, lw=1.5, zorder=20)
 
 # Fits arc to line segment.
 # xa,ya: start
@@ -371,7 +371,7 @@ def PlotPart(ax, p, sk=1):
     # plot string tt[i] with color c
     def P(i, c):
         ti = np.array(tt[i])
-        ax.plot(x[ti], y[ti], c=c, zorder=21, lw=0.5, alpha=1)
+        ax.plot(x[ti], y[ti], c=c, zorder=21, lw=1, alpha=1)
         ax.scatter(x[ti], y[ti], c=c, cmap=cmap, s=5, lw=0.25,
                    zorder=22, edgecolor='black')
         ih = ti[nh]
