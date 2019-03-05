@@ -104,6 +104,8 @@ void ReadField(scalar c, char* fn) {
     int iz = max(0, min(z / hmin, nz - 1));
     c[] = uu[iz][iy][ix];
   }
+
+  boundary ({c});
 }
 
 
