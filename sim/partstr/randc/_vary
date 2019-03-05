@@ -95,9 +95,8 @@ def Plot(args):
         print("Skip existing {:}".format(o))
         return
     Run(ri, bi, s, True)
-    if dim == 2:
-        sh("(cd {s} ; ./plot > /dev/null ) && mv {s}/vf_0000.pdf {o}"
-                .format(**locals()))
+    sh("(cd {s} ; ./plot > /dev/null ) && mv {s}/vf_0000.pdf {o}"
+            .format(**locals()))
 
 # arguments
 args, unk = parse()
