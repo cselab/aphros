@@ -26,7 +26,7 @@ set double part_h $hp
 
 cat > run << EOL
 ./_cleanall
-./_vary --dim ${dim} --overlap ${overlap} --nri 2 --nbi 1 --solver "ch ba"
+./_vary --dim ${dim} --overlap ${overlap} --nri 25 --nbi 100 --solver "ch ba"
 ./_gatherall
 ./_move
 EOL
