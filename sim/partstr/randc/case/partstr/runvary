@@ -2,13 +2,6 @@
 
 set -eu
 
-#: ${dim=3}
-#: ${overlap=1}
-#: ${segcirc=1}
-#: ${np=9}
-#: ${ns=2}
-#: ${hp=4}
-
 dim=2 ./runcase
 ./runcase
 
