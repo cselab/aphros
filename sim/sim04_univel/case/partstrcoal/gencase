@@ -27,11 +27,11 @@ echo $np > np
 echo 1440 > tl
 
 ./gen -nx $nx -np $np -mode osc -dim 3 -pos center\
-  -We 0 -La 40000 -tmax 0.4 -br 0.15\
+  -We 0 -La 40000 -tmax 0.3105398935144 -br 0.15\
   -mu $r -rho $r -wally 1 -wallz 0\
   -bcod 0 0 0 -bcor 0 0 0 -bcoh 0 0 0 \
   -b2xr 2 0 0 -b2rr 1 \
-  -nb 2 -nfr 144
+  -nb 2 -nfr 8
 
 
 cat > ch/add.conf << EOF
