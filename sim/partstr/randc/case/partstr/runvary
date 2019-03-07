@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -eu
+
+#: ${dim=3}
+#: ${overlap=1}
+#: ${segcirc=1}
+#: ${np=9}
+#: ${ns=2}
+#: ${hp=4}
+
+./runcase
+
+np=3 ./runcase
+np=5 ./runcase
+np=7 ./runcase
+
+ns=1 ./runcase
+ns=3 ./runcase
+
+hp=2 ./runcase
+hp=3 ./runcase
+hp=5 ./runcase

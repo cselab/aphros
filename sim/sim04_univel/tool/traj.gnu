@@ -16,12 +16,15 @@ if (!exists("ll")) {
   ll = "ch ba"
 }
 
-set linetype  1 lc rgb c0 lw 3 
-set linetype  2 lc rgb c2 lw 3
-set linetype  3 lc rgb c1 lw 3
-set linetype  4 lc rgb c3 lw 3
+set linetype  1 lc rgb c0 lw 2
+set linetype  2 lc rgb c2 lw 2
+set linetype  3 lc rgb c1 lw 2
+set linetype  4 lc rgb c3 lw 2
 set linetype cycle 9
 
+set style line 1 lt 1 pt 7 ps 0.5
+set style line 2 lt 2 pt 5 ps 0.5
+set style line 3 lt 3 pt 8 ps 0.5 
 
 set xlabel "t / T"
 
@@ -58,7 +61,7 @@ wek=system('python -c "\
 exec(open('."'".'par.py'."'".').read()) ; \
 print(bbr[0][0] * 2 / sig)"')
 
-plot for [f in ll] f.p u "t":(column(v)**2*wek) w l
+plot for [i=1:words(ll)] word(ll,i).p u "t":(column(v)**2*wek) w l ls i
 
 v="vlmy"
 @s

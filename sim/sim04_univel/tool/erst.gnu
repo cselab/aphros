@@ -16,11 +16,11 @@ if (!exists("ss")) {
   ss = "ch ba"
 }
 
-set linetype  1 lc rgb c0 lw 3 
-set linetype  2 lc rgb c2 lw 3
-set linetype  3 lc rgb c1 lw 3
-set linetype  4 lc rgb c3 lw 3
-set linetype  5 lc rgb "black" lw 3
+set linetype  1 lc rgb c0 lw 2
+set linetype  2 lc rgb c2 lw 2
+set linetype  3 lc rgb c1 lw 2
+set linetype  4 lc rgb c3 lw 2
+set linetype  5 lc rgb "black" lw 2
 set linetype cycle 4
 
 set style line 1 lt 1 pt 7 ps 0.5 

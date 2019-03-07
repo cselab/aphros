@@ -19,11 +19,11 @@ if (!exists("ss")) {
   ss = "ch ba"
 }
 
-set linetype  1 lc rgb c0 lw 3 
-set linetype  2 lc rgb c2 lw 3
-set linetype  3 lc rgb c1 lw 3
-set linetype  4 lc rgb c3 lw 3
-set linetype  5 lc rgb "black" lw 3
+set linetype  1 lc rgb c0 lw 2 
+set linetype  2 lc rgb c2 lw 2
+set linetype  3 lc rgb c1 lw 2
+set linetype  4 lc rgb c3 lw 2
+set linetype  5 lc rgb "black" lw 2
 set linetype cycle 4
 
 set style line 1 lt 1 pt 7 ps 0.5 
@@ -41,9 +41,9 @@ set format y "10^{%L}"
 set yrange [1e-6:1]
 set logscale y
 set ylabel "We_{rms}"
-v="vl2x" ; @s ; @m , 0.0004/x dt 2 lt 5 t "O(h)"
+v="vl2x" ; @s ; @m , 0.0004/x dt '-' lt 5 t "O(h)"
 set ylabel "We_{max}"
-v="vlmx" ; @s ; @m , 0.001/x dt 2 lt 5 t "O(h)"
+v="vlmx" ; @s ; @m , 0.001/x dt '-' lt 5 t "O(h)"
 
 unset format y
 unset logscale y

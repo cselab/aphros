@@ -5,6 +5,7 @@ set macro
 reset
 
 set key font ",10"
+unset key
 
 c0='#1f77b4'
 c1='#ff7f0e'

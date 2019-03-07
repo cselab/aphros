@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -eu
+
+for f in dim* ; do
+  echo $f
+  (cd $f/ch ; ../../randc/_gather)
+done
+
