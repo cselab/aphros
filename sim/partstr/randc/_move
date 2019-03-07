@@ -5,4 +5,4 @@ set -eu
 d=dat
 mkdir $d
 
-rsync -aLR run ch/add.conf {ch,ba,ge}/{kerr,kerravg} $d || true
+rsync -aLR run ch/add.conf {ch,ba,ge}/{kerr,kerravg} out log $d || true
