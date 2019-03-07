@@ -13,8 +13,7 @@ copy () {
 }
 
 d=dat
-mkdir -p $d
-rm -rf $d/*
+mkdir $d
 
 copy b.dat par.py $d/
 
