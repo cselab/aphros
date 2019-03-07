@@ -10,6 +10,9 @@ bb = np.loadtxt('bb')
 
 ff = sorted(glob.glob("kr*b*.dat"))
 
+if not len(ff):
+    exit()
+
 ee = []
 
 dim = int(open("dim").read())

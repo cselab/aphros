@@ -11,19 +11,26 @@ set -eu
 
 
 o=dim${dim}_overlap${overlap}_segcirc${segcirc}_np${np}_ns${ns}_hp${hp}
-d=randc
+d=`readlink -f randc`
 
 echo "Output to $o"
 
-rsync -La $d/ $o
+r=run_$o
 
-cd $o
-
+ch.task $d $o > $r << EOF
 echo "set double part_segcirc $segcirc
 set int part_np $np
 set int part_ns $ns
 set double part_h $hp
 " > ch/add.conf
 
-./_vary --dim ${dim} --overlap ${overlap} --nri 25 --nbi 3 --solver ch
-(cd ch ; ./_gather)
+cat > run << EOL
+./_cleanall
+./_vary --dim ${dim} --overlap ${overlap} --nri 2 --nbi 1 --solver "ch ba"
+./_gatherall
+./_move
+EOL
+chmod +x run
+EOF
+
+chmod +x $r

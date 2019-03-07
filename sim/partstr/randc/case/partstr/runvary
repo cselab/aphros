@@ -9,6 +9,8 @@ set -eu
 #: ${ns=2}
 #: ${hp=4}
 
+dim=2 ./runcase
+
 ./runcase
 
 np=3 ./runcase
@@ -21,3 +23,4 @@ ns=3 ./runcase
 hp=2 ./runcase
 hp=3 ./runcase
 hp=5 ./runcase
+
