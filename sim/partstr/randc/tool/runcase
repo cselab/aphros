@@ -8,6 +8,7 @@ set -eu
 : ${np=9}
 : ${ns=2}
 : ${hp=4}
+: ${solver="ch ba"}
 
 
 o=dim${dim}_overlap${overlap}_segcirc${segcirc}_np${np}_ns${ns}_hp${hp}
@@ -26,7 +27,8 @@ set double part_h $hp
 
 cat > run << EOL
 ./_cleanall
-./_vary --dim ${dim} --overlap ${overlap} --nri 25 --nbi 100 --solver "ch ba"
+./_vary --dim ${dim} --overlap ${overlap} --nri 25 --nbi 100 \
+    --solver "$solver"
 ./_gatherall
 ./_move
 EOL
