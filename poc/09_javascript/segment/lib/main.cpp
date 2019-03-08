@@ -16,6 +16,29 @@ struct Segment {
     Scal n[2*D*D], a[D*D];
 } segment;
 
+inline void Clip(Scal& a, Scal l, Scal u) {
+  a = std::max(l, std::min(u, a));
+}
+
+inline void Clip(Scal& a) {
+  Clip(a, 0., 1.);
+};
+
+static Scal GetLineA1(const GVect<Scal, 3>& n, Scal u) {
+  using Vect = GVect<Scal, 3>;
+  Scal nx = std::abs(n[0]);
+  Scal ny = std::abs(n[1]);
+  if (ny < nx) {
+    std::swap(nx, ny);
+  }
+  Clip(u);
+  if (u < 0.5) {
+      return R::GetLineA0(nx, ny, u);
+  } else {
+      return -R::GetLineA0(nx, ny, 1. - u);
+  }
+}
+
 int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa) {
     enum {X, Y, Z};
     Rect<Vect> dom(Vect(0), Vect(1));
@@ -56,7 +79,7 @@ int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa) {
     for (auto c : m.Cells()) {
         u = fcn[c];
         al = alpha[i];
-        a[i] = R::GetLineA1(u, al);
+        a[i] = GetLineA1(u, al);
         i++;
     }
 
