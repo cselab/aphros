@@ -224,4 +224,11 @@ void UNormal<M_>::CalcNormal(
   Imp::CalcNormal(m, fcu, fci, edim, fcn, fck);
 }
 
+template <class M_>
+void UNormal<M_>::CalcNormalYoung(
+    M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
+    FieldCell<Vect>& fcn) {
+  Imp::CalcNormalYoung(m, fcu, fci, fcn);
+}
+
 } // namespace solver
