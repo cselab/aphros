@@ -86,3 +86,16 @@ int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa) {
     *pn = n; *pa = a;
     return 0;
 }
+
+int segment_norm(int i, int j, const double *a, /**/ double *px, double *py) {
+#define b(i, j) (a[(D)*(j) + (i)])
+    double nx, ny, n;
+    nx = (b(i+1,j+1)+2*b(i+1,j)+b(i+1,j-1)-b(i-1,j+1)-2*b(i-1,j)-b(i-1,j-1))/8;
+    ny = (b(i+1,j+1)-b(i+1,j-1)+2*b(i,j+1)-2*b(i,j-1)+b(i-1,j+1)-b(i-1,j-1))/8;
+    n =  -(fabs(nx) + fabs(ny));
+    nx /= n;
+    ny /= n;
+    *px = nx; *py = ny;
+    return 0;
+#undef b
+}
