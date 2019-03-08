@@ -10,7 +10,8 @@ def Default():
         'dim', 'pos', 'mode', 'mu', 'rho', 'nfr', 'dom', 'rho0',
         'np', 'nx', 'cpr', 'bryk', 'vel0', 'tmax', 'bcoh', 'bcor', 'bcod',
         'b2xr', 'b2rr', 'chsm', 'gesm', 'wallx', 'wally', 'wallz', 'pois',
-        'g0', 'Fr', 'Ga', 'Eo', 'meshvel', 'nb', 'symm', 'symmcorn', 
+        'g0', 'Fr', 'Ga', 'Eo', 'meshvel', 'nb', 
+        'symm', 'symmcorn', 'symmxy',
         'dumpdefault')
     return r
 

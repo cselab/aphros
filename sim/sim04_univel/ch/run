@@ -26,13 +26,17 @@ d3 = (dim == 3)
 # minimal size in z
 mz = 1 if loc else 2
 
-nx = c['nx']
+nn = c['nx']
 if c['symm']:
-    ny = nx // 2
-    nz = nx // 2 if d3 else mz
+    ny = nn // 2
+    nz = nn // 2 if d3 else mz
+elif c['symmxy']:
+    nx = nn // 2
+    ny = nn // 2
+    nz = nn if d3 else mz
 else:
-    ny = nx
-    nz = nx if d3 else mz
+    ny = nn
+    nz = nn if d3 else mz
 
 # block size
 bx = 8 if d3 else 16

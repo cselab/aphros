@@ -78,6 +78,20 @@ set int hypre_periodic_z 0
 set int bcc_reflect 1
 '''
 
+if c['symmxy']:
+    t += '''
+set string bc_xp slipwall 
+set string bc_yp slipwall 
+set string bc_xm slipwall 
+set string bc_ym slipwall 
+set int poiswxp 0
+set int poiswyp 0
+set int hypre_periodic_x 0
+set int hypre_periodic_y 0
+set int bcc_reflect 1
+'''
+
+
 if c['symmcorn']:
     t += '''
 set int bcc_reflect 1 
