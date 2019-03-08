@@ -73,6 +73,9 @@ set string bc_yp slipwall
 set string bc_zp slipwall 
 set int poiswyp 0
 set int poiswzp 0
+set int hypre_periodic_y 0
+set int hypre_periodic_z 0
+set int bcc_reflect 1
 '''
 
 if c['symmcorn']:
