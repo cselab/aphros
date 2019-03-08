@@ -11,7 +11,7 @@ int main() {
 
     for (j = 0; j < D; j++)
         for (i = 0; i < D; i++) {
-            alpha[D*j + i] = 1/(sq(i-2.0) + sq(j-2.0));
+            alpha[D*j + i] = 1/(sq(i-2.0) + sq(j-2.0) + 1);
         }
 
     segment_get(alpha, &normal, &a, &s);
