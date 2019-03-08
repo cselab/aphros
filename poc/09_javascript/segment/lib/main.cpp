@@ -49,7 +49,7 @@ int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa, Scal **ps) {
     Vect u;
     MIdx w;
     Scal *n, *a, al, *s;
-    int i;
+    int i, j;
 
     hl = 2;
     M m = InitUniformMesh<M>(dom, b, size, hl, true, size);
@@ -82,10 +82,10 @@ int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa, Scal **ps) {
         i++;
     }
 
-    i = 0;
+    i = j = 0;
     for (auto c : m.Cells()) {
         u = fcn[c];
-        al = alpha[i];
+        al = alpha[j++];
         auto seg = R::GetLineEnds(u, al, Vect(1));
         auto x = m.GetCenter(c);
         seg[0] += x;

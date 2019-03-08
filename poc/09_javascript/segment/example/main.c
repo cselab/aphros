@@ -5,12 +5,14 @@
 #define D (5)
 
 int main() {
+#define sq(x) ((x)*(x))
     int i, j;
     double alpha[D*D], *normal, *a, *s, nx, ny;
 
     for (j = 0; j < D; j++)
-        for (i = 0; i < D; i++)
-            alpha[D*j + i] = (cos(i)*sin(j*i) + 0.0)/(D + 1);
+        for (i = 0; i < D; i++) {
+            alpha[D*j + i] = 1/(sq(i-2.0) + sq(j-2.0));
+        }
 
     segment_get(alpha, &normal, &a, &s);
 
