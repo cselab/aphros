@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -eu
+
+o=neck
+
+rm $o
+
+for f in a_*.png ; do
+  printf "."
+  ./det0.py $f >> $o
+done
+
+echo
