@@ -77,7 +77,7 @@ def GetConf(a):
         sig = vm ** 2 * bd * rho0 / we
     elif a.mode == "osc":
         # oscillation frequency: sqrt(7) / pi ~= 0.84
-        sig = rhom * bd ** 3
+        sig = rhom * brx ** 3
     elif a.mode == 'mu':
         mu = rho0 * bd ** 2
         sig = la * mu ** 2 / (rho0 * bd)
