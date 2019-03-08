@@ -1,8 +1,4 @@
 #undef NDEBUG
-#include <sstream>
-#include <iostream>
-#include <cassert>
-
 #include "geom/mesh.h"
 
 // Returns true if a < b (lex starting from end)
