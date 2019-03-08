@@ -1,17 +1,19 @@
 #include "geom/mesh.h"
+#include "solver/reconst.h"
+
+using Scal = double;
+using R = Reconst<Scal>;
+using std::cout;
 
 int main() {
-    using std::cout;
-    GVect<double, 3> a(1), b(2), c;
+    enum {X, Y, Z};
+    Scal u, u0, a;
+    GVect<Scal, 3> n;
 
-    c = a + b;
-
-    cout << a << '\n';
-    cout << b << '\n';
-    cout << c << '\n';
-
-    cout << a.dot(b) << '\n';
-    cout << a.cross(b) << '\n';
-
+    n[X] = 0.2; n[Y] = 0.3; n[Z] = 0;
+    u = 0.1;
+    a = R::GetLineA1(n, u);
+    u0 = R::GetLineU1(n, a);
+    cout << a << ' ' << u << ' ' << u0 << '\n';
     return 0;
 }
