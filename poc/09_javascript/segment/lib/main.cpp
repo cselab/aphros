@@ -1,5 +1,4 @@
 #include <solver/normal.h>
-#include <solver/reconst.h>
 #include <geom/mesh.h>
 
 #include "segment.h"
@@ -9,7 +8,6 @@ using MIdx = GMIdx<dim>;
 using Dir = GDir<dim>;
 using Vect = GVect<Scal, dim>;
 using M = MeshStructured<Scal, dim>;
-using R = Reconst<Scal>;
 using U = solver::UNormal<M>;
 
 struct Segment {
@@ -46,6 +44,45 @@ static Scal GetLineA1(const GVect<Scal, 3>& n, Scal u) {
       return -GetLineA0(nx, ny, 1. - u);
   }
 }
+
+  // Line ends by line constant
+  // n: normal
+  // a: line constant
+  // h: cell size
+  // Returns:
+  // two ends of segment inside cell (0,0 if no intersection)
+  // XXX: 2d specific
+  static std::array<Vect, 2> GetLineEnds(
+      const Vect& n, Scal a, const Vect& h) {
+    // equation x.dot(n) = a;
+    // (cell center is 0)
+    Vect hh = h * 0.5;
+
+    // intersection with -hh
+    Vect xl((a + hh[1] * n[1]) / n[0], (a + hh[0] * n[0]) / n[1], 0.);
+    // intersection with +hh
+    Vect xr((a - hh[1] * n[1]) / n[0], (a - hh[0] * n[0]) / n[1], 0.);
+
+    std::array<Vect, 2> e{Vect(0), Vect(0)}; // default to center
+    size_t i = 0;
+
+    if (-hh[0] <= xl[0] && xl[0] <= hh[0]) {
+      e[i++] = Vect(xl[0], -hh[1], 0.);
+    }
+    if (-hh[0] <= xr[0] && xr[0] <= hh[0]) {
+      e[i++] = Vect(xr[0], hh[1], 0.);
+    }
+    if (i < 2 && -hh[1] <= xl[1] && xl[1] <= hh[1]) {
+      e[i++] = Vect(-hh[0], xl[1], 0.);
+    }
+    if (i < 2 && -hh[1] <= xr[1] && xr[1] <= hh[1]) {
+      e[i++] = Vect(hh[0], xr[1], 0.);
+    }
+    if (i == 1) { // if only one point found, set second to the same
+      e[i++] = e[0];
+    } // if no points found, return default (cell center)
+    return e;
+  }
 
 int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa, Scal **ps) {
     enum {X, Y, Z};
@@ -95,7 +132,7 @@ int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa, Scal **ps) {
     for (auto c : m.Cells()) {
         u = fcn[c];
         al = alpha[j++];
-        auto seg = R::GetLineEnds(u, al, Vect(1));
+        auto seg = GetLineEnds(u, al, Vect(1));
         auto x = m.GetCenter(c);
         seg[0] += x;
         seg[1] += x;
