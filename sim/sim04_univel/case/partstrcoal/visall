@@ -4,10 +4,10 @@ set -eu
 
 for d in nx* ; do
   echo $d
-  c="(cd $d/ch ; ../vis3chvf.py . ; r.pngmp4)"
+  c="(cd $d/ch ; ../vis3chvf.py . && r.pngmp4 || true)"
   echo "$c"
   eval "$c"
-  c="(cd $d/ba ; ../vis3ba.py . ; r.pngmp4)"
+  c="(cd $d/ba ; ../vis3ba.py . && r.pngmp4 || true)"
   echo "$c"
   eval "$c"
 done
