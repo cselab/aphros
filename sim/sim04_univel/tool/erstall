@@ -4,15 +4,17 @@ set -eu
 
 # prefix
 p=er
-# exec
-e=erst
+# executable
+e=er
 
-for s in ch ba ge ; do
+
+for s in ch ba ; do
   o=$p$s
   echo $o
+  ./$e > $o
   for f in dat* ; do 
     printf .
-    (cd $f ; ../$e $s) >> $o
+    (cd $f ; ../$e $s static) >> $o
   done
   echo
 done

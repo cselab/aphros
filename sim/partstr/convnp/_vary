@@ -2,13 +2,16 @@
 
 set -eu
 
-for np in `seq 3 2 50` ; do
+for np in `seq 3 2 20` ; do
     np=`printf "%03d" "$np"`
-    echo "
-    set int part_np $np
-    " > add.conf
+    o=k$np.dat
+    #echo "0.5 0.5 0.5 0.125" > b.dat
+    #echo "0.507 0.5 0.5 0.0625" > b.dat
+    #echo "0.507 0.515 0.5 0.03125" > b.dat
+    echo "0.507 0.515 0.5 0.03125" > b.dat
+    echo "set int part_np $np" > add.conf
     ./run
-    ./curv > k$np.dat
+    ./curv > $o
 done
 
 

@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -eu
+
+: ${dim=2}
+: ${overlap=1}
+
+o=dim${dim}_overlap${overlap}
+d=randc
+
+mkdir -p $o
+
+echo "Output to $o"
+
+rsync -La $d/ $o
+
+cd $o
+
+: ${r=9}
+./_vary --plot --dim ${dim} --overlap ${overlap} --ri $r --bi 0 --solver ch 
+
+f=ch/pltr$(printf %03d $r)b000.pdf
+
+mv $f .

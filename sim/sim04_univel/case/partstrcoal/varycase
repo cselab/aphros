@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -eu
+
+nx=032 np=8 ./gencase
+nx=064 np=64 ./gencase
+nx=064 np=64 ns=1 ./gencase
+nx=064 np=64 ns=3 ./gencase
+nx=128 np=64 ./gencase
+nx=256 np=512 ./gencase

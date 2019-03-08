@@ -1,0 +1,5 @@
+d=../dummy/
+np=64
+echo $np > np
+echo 1440 > tl
+$d/vary_cpr_static -dummy $d -dim 2 -np $np -out .

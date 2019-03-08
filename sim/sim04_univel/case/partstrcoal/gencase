@@ -1,0 +1,47 @@
+#!/bin/bash
+
+set -eu
+
+: ${np=64}
+: ${nx=064}
+: ${r=0.01}
+: ${ns=2}
+
+d="nx${nx}_ns${ns}"
+
+echo $d
+mkdir $d
+
+rsync -aL dummy/. $d
+
+cd $d
+
+o=gen1
+
+cat > $o << EOG
+#!/bin/bash
+
+set -eu
+
+echo $np > np
+echo 1440 > tl
+
+./gen -nx $nx -np $np -mode osc -dim 3 -pos center\
+  -We 0 -La 40000 -tmax 0.3105398935144 -br 0.15\
+  -mu $r -rho $r -wally 1 -wallz 0\
+  -bcod 0 0 0 -bcor 0 0 0 -bcoh 0 0 0 \
+  -b2xr 2 0 0 -b2rr 1 \
+  -nb 2 -nfr 8
+
+
+cat > ch/add.conf << EOF
+set string dumpformat default
+set string dumplist vf omz
+set int part_ns $ns
+EOF
+
+EOG
+
+chmod +x $o
+
+./$o

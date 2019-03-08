@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -eu
+
+for d in nx* ; do
+  echo $d
+  c="(cd $d/ch ; ../vis3chvf.py . ; r.pngmp4)"
+  echo "$c"
+  eval "$c"
+  c="(cd $d/ba ; ../vis3ba.py . ; r.pngmp4)"
+  echo "$c"
+  eval "$c"
+done

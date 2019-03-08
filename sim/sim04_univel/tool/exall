@@ -2,4 +2,11 @@
 
 set -eu
 
-for f in dat* ; do (echo $f ; cd $f ; ../ex) ; done
+for f in dat* ; do 
+  echo $f
+  if [ -d $f/ex ] ; then
+    echo "skip existing ex"
+    continue
+  fi
+  (cd $f ; ../ex)
+done

@@ -10,6 +10,9 @@ bb = np.loadtxt('bb')
 
 ff = sorted(glob.glob("kr*b*.dat"))
 
+if not len(ff):
+    exit()
+
 ee = []
 
 dim = int(open("dim").read())
@@ -35,23 +38,26 @@ for f in ff:
         ekm = 1.
         ek1 = 1.
         ek2 = 1.
+        eks = 1.
     else:
         ekm = abs(k - kex).max() / kex
         ek1 = abs(k - kex).mean() / kex
         ek2 = ((k - kex) ** 2).mean() ** 0.5 / kex
+        eks = np.std(k) / kex
 
-    e = [ri, bi, cpr, vf, ekm, ek1, ek2, nx]
+    e = [ri, bi, cpr, vf, ekm, ek1, ek2, nx, eks]
     ee.append(e)
 
 fo = "kerr"
 with open(fo, 'w') as f:
-    f.write("ri bi cpr vf em e1 e2 nx\n")
+    f.write("ri bi cpr vf em e1 e2 nx es\n")
     for e in ee:
         f.write(' '.join(map(str, e)) + '\n')
 
 fo = "kerravg"
 with open(fo, 'w') as f:
     hh = "ri cpr nx vf vfl vfh vfsl vfsh em eml emh emsl emsh e2 e2l e2h e2sl e2sh"
+    hh += " es esl esh essl essh"
     f.write(hh + "\n")
     ee = np.array(ee)
     vri = ee[:,0]
@@ -61,6 +67,7 @@ with open(fo, 'w') as f:
     vem = ee[:,4]
     ve2 = ee[:,6]
     vnx = ee[:,7]
+    ves = ee[:,8]
     vriu,iu = np.unique(vri, return_index=True)
     ww = []
     for i in iu:
@@ -77,11 +84,14 @@ with open(fo, 'w') as f:
         lm = np.log(em)
         e2 = ve2[vri == ri].flatten()
         l2 = np.log(e2)
+        es = ves[vri == ri].flatten()
+        ls = np.log(es)
         # field stat
         w += [vf.mean(), vf.min(), vf.max(), vf.mean() - vf.std(), vf.mean() + vf.std()]
         # field log
         wl = [lm.mean(), lm.min(), lm.max(), lm.mean() - lm.std(), lm.mean() + lm.std()]
         wl += [l2.mean(), l2.min(), l2.max(), l2.mean() - l2.std(), l2.mean() + l2.std()]
+        wl += [ls.mean(), ls.min(), ls.max(), ls.mean() - ls.std(), ls.mean() + ls.std()]
         w += list(np.exp(wl))
         assert len(w) == len(hh.split()), "%r != %r" % (len(w), len(hh.split()))
         ww.append(w)

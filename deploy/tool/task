@@ -46,8 +46,16 @@ if [ -e "{od}" ] ; then
   exit 0
 fi
 
-rsync -a "{dm}/." .
+w=w
+
+mkdir $w
+cd $w
+
+rsync -aL "{dm}/." .
 {cmd}
 ./run &>> {l}
 mv dat "{od}"
+
+cd ../
+rm -r $w
 """.format(**locals()))

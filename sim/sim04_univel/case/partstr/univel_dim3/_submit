@@ -1,0 +1,3 @@
+#!/bin/bash
+
+ch.submit0 ch.spawn .

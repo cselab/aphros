@@ -19,5 +19,6 @@ echo 1440 > tl
 
 cat > ch/add.conf << EOF
 set string dumpformat default
-#set string dumplist vf 
+set string dumplist vf omx omy omz p
+set int part_ns 3
 EOF

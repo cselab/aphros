@@ -58,7 +58,6 @@ skipfirst = len(glob(bo.format("*")))
 
 # total number of frames
 nfr = len(GetFiles(os.path.join(chdir, "s_*.vtk")))
-nfr = min(nfr, len(GetFiles(os.path.join(gedir, "u_*.vtk"))))
 
 Log("Using chdir={:} gedir={:}".format(chdir, gedir))
 Log("Skipping first {:} of {:} frames".format(skipfirst, nfr))
@@ -121,34 +120,38 @@ SetActiveView(renderView1)
 def F(p):
   global skipfirst
   l = GetFiles(p)
-  #assert len(l) >= nfr, "found %r files by '%r', expected at least %r" % (len(l), p, nfr)
   return l[skipfirst:]
+
+# list of all sources
+vs = []
+# list of timesteps arrays
+vt = []
+# list of ForceTime sources
+vft = []
+
+def A(s):
+    global vs, vt, vft
+    if s is not None:
+        vs.append(s)
+        vt.append(np.array(s.TimestepValues))
+        s = ForceTime(s)
+        vft.append(s)
+    return s
 
 # create a new 'CSV Reader'
 fn = F(os.path.join(chdir, "s_*.vtk"))
-s_00 = LegacyVTKReader(FileNames=fn)
+s_00 = LegacyVTKReader(FileNames=fn) if len(fn) else None
+s_00 = A(s_00)
 
 # create a new 'XDMF Reader'
 fn = F(os.path.join(gedir, "u_*.vtk"))
-u_00 = LegacyVTKReader(FileNames=fn)
+u_00 = LegacyVTKReader(FileNames=fn) if len(fn) else None
+u_00 = A(u_00)
 
 # create a new 'XDMF Reader'
 fn = F(os.path.join(badir, "u_*.vtk"))
-ub_00 = LegacyVTKReader(FileNames=fn)
-
-# list of all sources
-vs = [u_00, s_00, ub_00]
-
-# time steps
-vt = [np.array(s.TimestepValues) for s in vs]
-
-# replace with ForceTime
-u_00 = ForceTime(u_00)
-s_00 = ForceTime(s_00)
-ub_00 = ForceTime(ub_00)
-
-# all ForceTime
-vft = [u_00, s_00, ub_00]
+ub_00 = LegacyVTKReader(FileNames=fn) if len(fn) else None
+ub_00 = A(ub_00)
 
 # ----------------------------------------------------------------
 # END READERS

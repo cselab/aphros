@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -eu
+
+if [ $# -lt 2 ] || [ "$1" = -h ] ; then 
+  echo "usage: $0 HDF0 [HDF1 [...]]"
+  echo "For every HDF prints average at y=0"
+  exit 1
+fi
+
+o=wall.log
+
+rm -f $o
+
+for f in $@ ; do
+  c="./wall.py $f" 
+  echo "$c >> $o"
+  q=`eval "$c"`
+  echo "$q" >> $o
+done

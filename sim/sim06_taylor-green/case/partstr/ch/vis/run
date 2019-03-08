@@ -1,0 +1,3 @@
+set -eu
+./c.py `ls ../vf_*.xmf`
+r.pngmp4

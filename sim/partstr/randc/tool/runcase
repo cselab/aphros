@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -eu
+
+: ${dim=3}
+: ${overlap=1}
+: ${segcirc=1}
+: ${np=9}
+: ${ns=2}
+: ${hp=4}
+: ${solver="ch ba"}
+
+
+o=dim${dim}_overlap${overlap}_segcirc${segcirc}_np${np}_ns${ns}_hp${hp}
+d=`readlink -f randc`
+
+echo "Output to $o"
+
+r=run_$o
+
+ch.task $d $o > $r << EOF
+echo "set double part_segcirc $segcirc
+set int part_np $np
+set int part_ns $ns
+set double part_h $hp
+" > ch/add.conf
+
+cat > run << EOL
+./_cleanall
+./_vary --dim ${dim} --overlap ${overlap} --nri 25 --nbi 100 \
+    --solver "$solver"
+./_gatherall
+./_move
+EOL
+chmod +x run
+EOF
+
+chmod +x $r

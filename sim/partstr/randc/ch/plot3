@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -eu
+
+./partit.filt
+pvbatch s.py s_0000.vtk partitf.csv
+
+t="t.png"
+convert -trim +repage "s.png" $t
+convert $t "vf_0000.pdf"
+rm $t

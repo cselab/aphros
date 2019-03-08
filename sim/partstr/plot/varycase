@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -eu
+
+for r in `seq 3 10` ; do
+  r=$r ./runcase
+done

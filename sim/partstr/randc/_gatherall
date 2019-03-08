@@ -2,6 +2,9 @@
 
 set -eu
 
-(cd ba ; ./_gather)
-(cd ch ; ./_gather)
-(cd ge ; ./_gather)
+for f in ch ba ge ; do
+  if [ -d $f ] ; then
+    echo $f
+    (cd $f ; ./_gather)
+  fi
+done

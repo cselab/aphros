@@ -2,11 +2,16 @@
 
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
+#include "contact.h"
+#include "vof.h"
 #include "tension.h"
-#include "vtk.h"
 
 #include "io/iompi.h"
 #include "io/io.h"
+
+int nxexp = REFINE;
+
+#define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
 
 double sqr(double a) {
   return a * a;
@@ -24,16 +29,71 @@ double ifr3(double x, double y, double z) {
   return fmax(sq(BR) - r, sq(BR2) - r2);
 }
 
+int ReadField(scalar c, char* fn) {
+  FILE* f = fopen(fn, "r");
+
+  if (!f) {
+    return 0;
+  }
+
+  int nx, ny, nz;
+  fscanf(f, "%d %d %d", &nx, &ny, &nz);
+
+  assert(nx+1 == (1 << nxexp));
+  assert(ny == (1 << nxexp));
+
+#if dimension == 2
+  assert(nz == 1);
+#elif dimension == 3
+  assert(nz == (1 << nxexp));
+#endif
+
+  double uu[nz][ny][nx];
+
+  for (int z = 0; z < nz; ++z) {
+    for (int y = 0; y < ny; ++y) {
+      for (int x = 0; x < nx; ++x) {
+        double a;
+        fscanf(f, "%lf", &a);
+        uu[z][y][x] = a;
+      }
+    }
+  }
+  fclose(f);
+
+  int i = 0;
+  foreach() {
+    double h = Delta;
+    double hmin = 1. / (1 << nxexp);
+    int ix = max(0, min(x / hmin, nx - 1));
+    int iy = max(0, min(y / hmin, ny - 1));
+    int iz = max(0, min(z / hmin, nz - 1));
+    c[] = uu[iz][iy][ix];
+  }
+
+  boundary ({c});
+
+  return 1;
+}
+
+vector h[];
+
+WALLX
+WALLY
+#if dimension == 3
+WALLZ
+#endif
 
 int main() {
   init_grid(1 << REFINE);
 
   origin (0.,0.,0.);
-  #ifndef SYMMCORN
-  foreach_dimension() {
-    periodic (right);
-  }
-  #endif
+
+  PERX
+  PERY
+#if dimension == 3
+  PERZ
+#endif
   
   rho1 = RHO2; 
   rho2 = RHO1; 
@@ -41,6 +101,8 @@ int main() {
   mu1 = MU2;
   mu2 = MU1, 
 
+
+  //f.height = h;
   f.sigma = SIGMA;
 
   run();
@@ -55,14 +117,22 @@ event init (i = 0) {
 #endif
   }
 
+  char* fn = "../ch/vf_0000.dat";
+  if (ReadField(f, fn)) {
+    ONROOT printf("Volume fraction from %s\n", fn);
+  } else {
+    ONROOT printf("Volume fraction from par.h\n");
 #if dimension == 2
-  fraction(f, ifr2(x, y));
+    fraction(f, ifr2(x, y));
 #elif dimension == 3
-  fraction(f, ifr3(x, y, z));
+    fraction(f, ifr3(x, y, z));
 #endif
+  }
 }
 
 event out (t += DUMPDT ; t <= TMAX) {
+  ONROOT printf("dump i=%05d t=%g dt=%g \n", i, t ,dt);
+
   static int frame = 0;
   ++frame;
   //scalar * a = {u, p, f};
@@ -80,11 +150,11 @@ event out (t += DUMPDT ; t <= TMAX) {
 #endif
 }
 
-event statout (i += 10) {
-  printf("step i=%d\n", i);
+event statout (i += 10 ; t <= TMAX) {
+  ONROOT printf("step i=%05d t=%g dt=%g \n", i, t ,dt);
 }
 
-event logfile (i += 1) {
+event logfile (i += 1 ; t <= TMAX) {
   double xb = 0., yb = 0., zb = 0., sb = 0.;
   double vbx = 0., vby = 0., vbz = 0.;
   double p0 = 1e10, p1 = -1e10;
@@ -104,6 +174,8 @@ event logfile (i += 1) {
     p0 = fmin(p0, p[]);
     p1 = fmax(p1, p[]);
   }
+
+  sb = fmax(sb, 1e-10);
 
   double vlmx = 0., vlmy = 0., vlmz = 0.;
   double vl2x = 0., vl2y = 0., vl2z = 0.;

@@ -18,15 +18,30 @@ def sh(s, fatal=True):
 def W(s):
     print(s)
 
+def WE(s):
+    sys.stderr.write("{:}\n".format(s))
+
+
+# exclude list e from list l
+def Excl(l, e):
+    return [v for v in l if v not in e]
+
+
 # output fields
 vv = ['cpr', 'dim', 'we', 'la', 'm2', 'v2x', 'v2y', 'v2z', 'pd', 
-        'vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z']
+        'vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z', 'c2x', 'c2y', 'c2z']
 
 av = sys.argv
 
 if len(av) < 2:
     W(' '.join(vv))
     exit()
+
+# solver name
+s = av[1]
+
+# static droplet mode
+static = (len(av) > 2 and av[2] == "static")
 
 # config
 c = {}
@@ -36,9 +51,11 @@ exec(open("par.py").read(), None, c)
 ee = np.genfromtxt("ex/traj.dat", names=True)
 
 # target
-dd = np.genfromtxt(os.path.join(av[1], "traj.dat"), names=True)
-# exclude first samples
-dd = dd[2:]
+dd = np.genfromtxt(os.path.join(s, "traj.dat"), names=True)
+# initial
+dd0 = dd[0]
+# skip first half
+dd = dd[dd.shape[0]//2:]
 
 dim = c['dim']
 
@@ -51,11 +68,16 @@ oo['dim'] = c['dim']
 # fields with relative error
 l = ['v2x', 'v2y', 'v2z', 'm2']
 if dim == 2:
-    l = [v for v in l if v not in ['v2z']]
+    l = Excl(l, ['v2z'])
 
 for v in l:
     e = ee[v][0]
-    oo[v] = (dd[v] - e).mean() / e
+    if v == 'm2' and s == 'ch' and dim == 2: # correction for size in z
+        e /= c['nx'] * (0.5 if c['np'] > 1 else 1)
+    if static and e == 0:
+        oo[v] = (dd[v] - e)[-1]
+    else:
+        oo[v] = (dd[v] - e).mean() / e
 
 # fields normalized
 l = ['pd']
@@ -67,17 +89,27 @@ for v in l:
 # convert to We
 l = ['vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z']
 for v in l:
-    u = dd[v].mean()
+    u = dd[v].mean() if not static else dd[v][-1]
     rho = c['rho0']   # density
     bd = c['bbr'][0][0] * 2   # diameter
     sig = c['sig']
     we = rho * u ** 2 * bd / sig
     oo[v] = we
 
+# error in final position
+l = ['c2x', 'c2y', 'c2z'][:dim]
+for i,v in enumerate(l):
+    qe = c['vel'][i] * c['tmax']  # exact displacement
+    q = (dd[v][-1] - dd0[v])  # computed displacement
+    if static and qe == 0:
+        oo[v] = (q - qe) / c['bbr'][0][0]
+    else:
+        oo[v] = (q - qe) / qe
+
 # zero dim = 2
 if dim == 2:
-    for v in ['v2z', 'vlmz', 'vl2z']:
+    for v in ['v2z', 'vlmz', 'vl2z', 'c2z']:
         oo[v] = 0.
 
-W(' '.join([str(oo[v]) for v in vv]))
+W(' '.join([str(oo[v]) for v in vv if v in oo]))
 

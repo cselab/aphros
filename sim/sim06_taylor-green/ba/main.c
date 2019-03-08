@@ -22,7 +22,7 @@ int main() {
   foreach_dimension() {
     periodic (right);
   }
-  dimensions(nx = 4, ny = 4, nz = 4);
+  MPIDIM
 
   size(EXTENT);
 
@@ -45,6 +45,7 @@ event init (i = 0) {
 
   fraction(f, ifr3(x, y, z));
 }
+
 
 event out (t += DUMPDT ; t <= TMAX) {
   static int frame = 0;

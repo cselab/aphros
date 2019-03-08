@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -eu
+
+
+run () {
+  : ${dim=3}
+  : ${overlap=1}
+  : ${segcirc=1}
+  : ${np=9}
+  : ${ns=2}
+  : ${hp=4}
+  v=$1  # var name
+  #eval "$v=\?"
+  c=`eval "$v=\?" ; \
+    echo dim${dim}_overlap${overlap}_segcirc${segcirc}_np${np}_ns${ns}_hp${hp}`
+  echo $c
+  pre=$v
+  gnuplot -e "ss='$c' ; pre='$pre'" plotcase.gnu
+}
+
+run np
+run ns
+run hp

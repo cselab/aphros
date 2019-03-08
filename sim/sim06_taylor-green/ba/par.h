@@ -12,3 +12,5 @@
 #define BCY 4.409162652076484612e+00 
 #define BCZ 3.746918904823720808e+00 
 #define BR 1.963495408493620697e-01
+
+#define MPIDIM dimensions(nx = 4, ny = 4, nz = 4);
