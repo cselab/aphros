@@ -8,8 +8,12 @@ set -eu
 : ${ns=2}
 : ${symm=0}
 : ${nfr=40}
+: ${ba=1}
+: ${ch=1}
 
 d="nx${nx}_ns${ns}_symm${symm}"
+[ $ch == "1" ] && runch= || runch="echo > r_ch"
+[ $ba == "1" ] && runba= || runba="echo > r_ba"
 
 echo $d
 mkdir $d
@@ -42,6 +46,9 @@ set string dumpformat default
 set string dumplist vf omz
 set int part_ns $ns
 EOF
+
+$runch
+$runba
 
 EOG
 
