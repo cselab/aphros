@@ -24,6 +24,15 @@ inline void Clip(Scal& a) {
   Clip(a, 0., 1.);
 }
 
+static Scal GetLineA0(Scal nx, Scal ny, Scal u) {
+    Scal u1 = 0.5 * nx / ny;
+    if (u <= u1) {
+      return -0.5 * (nx + ny) + std::sqrt(2. * nx * ny * u);
+    } else {
+      return ny * (u - 0.5);
+    }
+}
+
 static Scal GetLineA1(const GVect<Scal, 3>& n, Scal u) {
   Scal nx = std::abs(n[0]);
   Scal ny = std::abs(n[1]);
@@ -32,9 +41,9 @@ static Scal GetLineA1(const GVect<Scal, 3>& n, Scal u) {
   }
   Clip(u);
   if (u < 0.5) {
-      return R::GetLineA0(nx, ny, u);
+      return GetLineA0(nx, ny, u);
   } else {
-      return -R::GetLineA0(nx, ny, 1. - u);
+      return -GetLineA0(nx, ny, 1. - u);
   }
 }
 

@@ -16,10 +16,9 @@ int main() {
 
     segment_get(alpha, &normal, &a, &s);
 
-    //for (i = 0; i < D*D; i++) printf("%g %g\n", normal[2*i], normal[2*i + 1]);
-    //for (i = 0; i < D*D; i++) printf("%g\n", a[i]);
-
-    //for (i = 0; i < D*D; i++) printf("%g %g %g %g\n", s[4*i], s[4*i + 1], s[4*i + 2], s[4*i + 3]);
+    for (i = 0; i < D*D; i++) printf("%g %g\n", normal[2*i], normal[2*i + 1]);
+    for (i = 0; i < D*D; i++) printf("%g\n", a[i]);
+    for (i = 0; i < D*D; i++) printf("%g %g %g %g\n", s[4*i], s[4*i + 1], s[4*i + 2], s[4*i + 3]);
 
     for (i = 0; i < D*D; i++) {
         printf("%g %g\n", s[4*i], s[4*i + 1]);
