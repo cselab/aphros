@@ -4,9 +4,8 @@ S = ../../../src
 $M: $M.o
 
 CH_CXXFLAGS = -I $S -std=c++11
-CH_LDFLAGS = -L$S/build/util -lsuspender
 
-$M: $M.o; $(CXX) $< $(CH_LDFLAGS) -o $@
+$M: $M.o; $(CXX) $< $(LDFLAGS) -o $@
 .cpp.o:; $(CXX) -c $(CXXFLAGS) $(CH_CXXFLAGS) $< -o $@
 
 .SUFFIXES: .cpp .o

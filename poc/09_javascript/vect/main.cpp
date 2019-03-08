@@ -2,7 +2,7 @@
 
 int main() {
     using std::cout;
-    GVect<double ,3> a(1), b(2), c;
+    GVect<double, 3> a(1), b(2), c;
 
     c = a + b;
 
@@ -12,6 +12,6 @@ int main() {
 
     cout << a.dot(b) << '\n';
     cout << a.cross(b) << '\n';
-    
+
     return 0;
 }
