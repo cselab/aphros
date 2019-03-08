@@ -70,9 +70,8 @@ int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa) {
     i = 0;
     for (auto c : m.Cells()) {
       u = fcn[c];
-      n[i]       = u[X];
-      n[i + D*D] = u[Y];
-      i++;
+      n[i++] = u[X];
+      n[i++] = u[Y];
     }
 
     i = 0;
@@ -80,6 +79,14 @@ int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa) {
         u = fcn[c];
         al = alpha[i];
         a[i] = GetLineA1(u, al);
+        i++;
+    }
+
+    i = 0;
+    for (auto c : m.Cells()) {
+        u = fcn[c];
+        al = alpha[i];
+        auto seg = R::GetLineEnds(u, al, Vect(1));
         i++;
     }
 

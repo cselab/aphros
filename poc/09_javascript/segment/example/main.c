@@ -14,12 +14,15 @@ int main() {
 
     segment_get(alpha, &normal, &a);
 
-    //for (i = 0; i < D*D; i++)
-    //    printf("%g %g\n", normal[i], normal[i + D*D]);
+    for (i = 0; i < D*D; i++)
+        printf("%g %g\n", normal[2*i], normal[2*i + 1]);
 
-    //for (i = 0; i < D*D; i++) printf("%g\n", a[i]);
+    for (i = 0; i < D*D; i++)
+        printf("%g\n", a[i]);
 
     segment_norm(2, 2, alpha, &nx, &ny);
-    printf("%.16e %.16e\n", normal[2*D + 2], normal[2*D + 2 + D*D]);
+
+    i = 2*D + 2;
+    printf("%.16e %.16e\n", normal[2*i], normal[2*i + 1]);
     printf("%.16e %.16e\n", nx, ny);
 }
