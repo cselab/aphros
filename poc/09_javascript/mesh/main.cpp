@@ -18,17 +18,29 @@ int main() {
   MIdx s(5, 5, 1);
   int hl = 2;
   M m = InitUniformMesh<M>(dom, b, s, hl, true, s);
-  FieldCell<Scal> fcu(m);
+  FieldCell<Scal> fcu(m, 0);
   FieldCell<bool> fci(m, true);
   FieldCell<Vect> fcn;
   FieldCell<Scal> fck;
   Vect x;
+  MIdx w;
 
-  for (auto c : m.AllCells()) {
+  for (auto c : m.Cells()) {
       x = m.GetCenter(c);
-      fcu[c] = x[X];
+      fcu[c] = x[X]*x[Y];
   }
-  
   solver::UNormal<M>::CalcNormal(m, fcu, fci, edim, fcn, fck);
-  cout << fcu;
+
+  auto& bc = m.GetIndexCells();
+  for (auto c : m.Cells()) {
+      w = bc.GetMIdx(c);
+      if (w == s/2) {
+          cout << w << '\n';
+          cout << fcn[c] << '\n';
+      }
+  }
+
+  //  cout << fcu;
+
+
 }
