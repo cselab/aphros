@@ -13,7 +13,7 @@ using R = Reconst<Scal>;
 using U = solver::UNormal<M>;
 
 struct Segment {
-    Scal n[2*D], a[D];
+    Scal n[2*D*D], a[D*D];
 } segment;
 
 int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa) {
@@ -47,8 +47,8 @@ int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa) {
     i = 0;
     for (auto c : m.Cells()) {
       u = fcn[c];
-      n[i] = u[X];
-      n[i + 2*D] = u[Y];
+      n[i]       = u[X];
+      n[i + D*D] = u[Y];
       i++;
     }
 
