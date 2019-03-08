@@ -13,7 +13,7 @@ using R = Reconst<Scal>;
 using U = solver::UNormal<M>;
 
 struct Segment {
-    Scal n[2*D*D], a[D*D];
+    Scal n[2*D*D], a[D*D], s[4*D*D];
 } segment;
 
 inline void Clip(Scal& a, Scal l, Scal u) {
@@ -22,10 +22,9 @@ inline void Clip(Scal& a, Scal l, Scal u) {
 
 inline void Clip(Scal& a) {
   Clip(a, 0., 1.);
-};
+}
 
 static Scal GetLineA1(const GVect<Scal, 3>& n, Scal u) {
-  using Vect = GVect<Scal, 3>;
   Scal nx = std::abs(n[0]);
   Scal ny = std::abs(n[1]);
   if (ny < nx) {
@@ -39,26 +38,27 @@ static Scal GetLineA1(const GVect<Scal, 3>& n, Scal u) {
   }
 }
 
-int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa) {
+int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa, Scal **ps) {
     enum {X, Y, Z};
-    Rect<Vect> dom(Vect(0), Vect(1));
+    Rect<Vect> dom(Vect(0), Vect(D));
     MIdx b(0);
-    MIdx s(D, D, 1);
+    MIdx size(D, D, 1);
     int hl;
     FieldCell<Vect> fcn;
     FieldCell<Scal> fck;
     Vect u;
     MIdx w;
-    Scal *n, *a, al;
+    Scal *n, *a, al, *s;
     int i;
 
     hl = 2;
-    M m = InitUniformMesh<M>(dom, b, s, hl, true, s);
+    M m = InitUniformMesh<M>(dom, b, size, hl, true, size);
     FieldCell<Scal> fcu(m, 0);
     FieldCell<bool> fci(m, true);
 
     n = segment.n;
     a = segment.a;
+    s = segment.s;
 
     i = 0;
     for (auto c : m.Cells()) {
@@ -87,10 +87,16 @@ int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa) {
         u = fcn[c];
         al = alpha[i];
         auto seg = R::GetLineEnds(u, al, Vect(1));
-        i++;
+        auto x = m.GetCenter(c);
+        seg[0] += x;
+        seg[1] += x;
+        s[i++] = seg[0][X];
+        s[i++] = seg[0][Y];
+        s[i++] = seg[1][X];
+        s[i++] = seg[1][Y];
     }
 
-    *pn = n; *pa = a;
+    *pn = n; *pa = a; *ps = s;
     return 0;
 }
 
