@@ -7,13 +7,13 @@ using MIdx = GMIdx<dim>;
 using Dir = GDir<dim>;
 using Scal = double;
 using Vect = GVect<Scal, dim>;
+using M = MeshStructured<Scal, dim>;
+using std::cout;
 
 int main() {
   enum {X, Y, Z};
-  using std::cout;
-
   Rect<Vect> dom(Vect(0), Vect(1));
-  using M = MeshStructured<Scal, dim>;
+
   MIdx b(0);
   MIdx s(5, 5, 1);
   int hl = 2;

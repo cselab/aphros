@@ -1,6 +1,6 @@
 M = main
 S = ../../../../src
-T = libnorm_c.a
+T = libsegment.a
 
 CH_CXXFLAGS = -I$S -std=c++11
 $T: $M.o; ar r $@ $< && ranlib $@
