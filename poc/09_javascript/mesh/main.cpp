@@ -19,42 +19,6 @@ using Dir = GDir<dim>;
 using Scal = double;
 using Vect = GVect<Scal, dim>;
 
-void TestBlock() {
-  const size_t hl = 1;
-  MIdx oi(0); // origin inner
-  MIdx si(2); // size inner
-  MIdx oa= oi - MIdx(hl); // origin all
-  MIdx sa = si + MIdx(2 * hl); // size all
-
-  GBlockFaces<dim> bi(oi, si);
-  GIndex<IdxFace, dim> ba(oa, sa);
-
-  GRange<IdxFace> ra(ba);
-  GRangeIn<IdxFace, dim> ri(ba, bi);
-
-  const MIdx xp0 = oa - MIdx(Dir(0));
-  MIdx xp = xp0;
-  Dir dp(0); // direction
-
-  // Check that whole inner block covered with ascending indices
-  for (auto i : ri) {
-    auto x = ba.GetMIdx(i);
-    auto d = ba.GetDir(i);
-
-    // Next direction, reset xp
-    if (dp < d) {
-      xp = xp0;
-    }
-
-    // std::cerr << x << " " << d.GetLetter() << std::endl;
-    assert(Cmp(xp, x));
-    assert(oi <= x && x < oi + si + MIdx(d));
-
-    xp = x;
-    dp = d;
-  }
-}
-
 bool Cmp(Scal a, Scal b) {
   return std::abs(a - b) < 1e-12;
 }
@@ -172,7 +136,6 @@ void TestMesh() {
 }
 
 int main() {
-  TestBlock();
   TestMesh();
 
   {
