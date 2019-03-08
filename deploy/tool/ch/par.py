@@ -56,7 +56,8 @@ mu: viscosity mu = rho * D ^ 2, pois: velocity magnitude dom''',
     out = [str, "directory for task and output"]
     meshvel = [0, "moving mesh in ch", [0, 1]]
     nb = [1, "number of bubbles"]
-    symm = [0, "symmetry conditions at y=1 and z=1"]
+    symm = [0, "symmetry conditions at y=0.5 and z=0.5"]
+    symmxy = [0, "symmetry conditions at x=0.5 and y=0.5"]
     symmcorn = [0, "symmetry conditions at x,y,z=0 corner"]
     dumpdefault = [0, "add dumpformat=default to ch"]
     return locals().copy()
