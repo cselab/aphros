@@ -1,12 +1,13 @@
 M = main
-S = ../../../src
+S = ../../../../src
 
 $M: $M.o
 
 CH_CFLAGS = -I../lib -I$S
-#CH_LDFLAGS = -L$S/build/solver -L$S/build/util -lsolver -lnormal -lsuspender
+CH_LDFLAGS = -L../lib -L$S/build/solver -L$S/build/util \
+-lsegment -lsolver -lnormal -lsuspender
 
-$M: $M.o; $(CC) $< $(CH_LDFLAGS) -o $@
+$M: $M.o; $(CXX) $< $(CH_LDFLAGS) -o $@
 .c.o:; $(CC) -c $(CFLAGS) $(CH_CFLAGS) $< -o $@
 
 .SUFFIXES: .c .o

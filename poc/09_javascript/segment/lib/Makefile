@@ -4,8 +4,9 @@ T = libsegment.a
 
 CH_CXXFLAGS = -I$S -std=c++11
 $T: $M.o; ar r $@ $< && ranlib $@
-.cpp.o:; $(CXX) -c $(CXXFLAGS) $(CH_CXXFLAGS) $< -o $@
+main.o: segment.h
 
+.cpp.o:; $(CXX) -c $(CXXFLAGS) $(CH_CXXFLAGS) $< -o $@
 .SUFFIXES: .cpp .o
 
 .PHONY: clean
