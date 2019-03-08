@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -eu
+
+: ${o=neck}
+: ${x=1}
+: ${y=1}
+
+> $o
+
+for f in vf_*.h5 ; do
+  echo $f
+  ./neck.py $f $x $y >> $o
+done
+
+
