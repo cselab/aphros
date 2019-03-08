@@ -42,7 +42,7 @@ int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa) {
       fcu[c] = alpha[i++];
     }
 
-    U::CalcNormal(m, fcu, fci, edim, /**/ fcn, fck);
+    U::CalcNormalYoung(m, fcu, fci, /**/ fcn);
 
     i = 0;
     for (auto c : m.Cells()) {
