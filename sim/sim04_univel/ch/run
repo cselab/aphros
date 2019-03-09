@@ -28,6 +28,7 @@ mz = 1 if loc else 2
 
 nn = c['nx']
 if c['symm']:
+    nx = nn
     ny = nn // 2
     nz = nn // 2 if d3 else mz
 elif c['symmxy']:
@@ -35,6 +36,7 @@ elif c['symmxy']:
     ny = nn // 2
     nz = nn if d3 else mz
 else:
+    nx = nn
     ny = nn
     nz = nn if d3 else mz
 

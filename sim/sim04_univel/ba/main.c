@@ -9,7 +9,11 @@
 #include "io/iompi.h"
 #include "io/io.h"
 
+#include <assert.h>
+#define myassert(EX) (void)((EX) || (__assert (#EX, __FILE__, __LINE__),0))
+
 int nxexp = REFINE;
+int argnx;
 
 #define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
 
@@ -39,23 +43,23 @@ int ReadField(scalar c, char* fn) {
   int nx, ny, nz;
   fscanf(f, "%d %d %d", &nx, &ny, &nz);
 
-  assert(nx+1 == (1 << nxexp));
-  assert(ny == (1 << nxexp));
+  myassert(nx == argnx);
+  myassert(ny == argnx);
 
 #if dimension == 2
-  assert(nz == 1);
+  myassert(nz == 1);
 #elif dimension == 3
-  assert(nz == (1 << nxexp));
+  myassert(nz == argnx);
 #endif
 
-  double uu[nz][ny][nx];
+  double* uu = malloc(sizeof(double) * nx * ny * nz);
 
   for (int z = 0; z < nz; ++z) {
     for (int y = 0; y < ny; ++y) {
       for (int x = 0; x < nx; ++x) {
         double a;
         fscanf(f, "%lf", &a);
-        uu[z][y][x] = a;
+        uu[z * ny * nx + y * nx + x] = a;
       }
     }
   }
@@ -64,14 +68,16 @@ int ReadField(scalar c, char* fn) {
   int i = 0;
   foreach() {
     double h = Delta;
-    double hmin = 1. / (1 << nxexp);
+    double hmin = 1. / argnx;
     int ix = max(0, min(x / hmin, nx - 1));
     int iy = max(0, min(y / hmin, ny - 1));
     int iz = max(0, min(z / hmin, nz - 1));
-    c[] = uu[iz][iy][ix];
+    c[] = uu[iz * ny * nx + iy * nx + ix];
   }
 
   boundary ({c});
+
+  free(uu);
 
   return 1;
 }
@@ -85,7 +91,9 @@ WALLZ
 #endif
 
 int main() {
-  init_grid(1 << REFINE);
+  argnx = (1 << nxexp);
+
+  init_grid(argnx);
 
   origin (0.,0.,0.);
 

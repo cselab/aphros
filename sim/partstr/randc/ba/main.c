@@ -6,6 +6,10 @@
 #include <assert.h>
 #define myassert(EX) (void)((EX) || (__assert (#EX, __FILE__, __LINE__),0))
 
+#include <mpi.h>
+
+#define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
+
 double sqr(double a) {
   return a * a;
 }
@@ -84,14 +88,14 @@ void ReadField(scalar c, char* fn) {
   myassert(nz == argnx);
 #endif
 
-  double uu[nz][ny][nx];
+  double* uu = malloc(sizeof(double) * nx * ny * nz);
 
   for (int z = 0; z < nz; ++z) {
     for (int y = 0; y < ny; ++y) {
       for (int x = 0; x < nx; ++x) {
         double a;
         fscanf(f, "%lf", &a);
-        uu[z][y][x] = a;
+        uu[z * ny * nx + y * nx + x] = a;
       }
     }
   }
@@ -104,8 +108,10 @@ void ReadField(scalar c, char* fn) {
     int ix = max(0, min(x / hmin, nx - 1));
     int iy = max(0, min(y / hmin, ny - 1));
     int iz = max(0, min(z / hmin, nz - 1));
-    c[] = uu[iz][iy][ix];
+    c[] = uu[iz * ny * nx + iy * nx + ix];
   }
+
+  free(uu);
 
   boundary ({c});
 }
