@@ -3,7 +3,8 @@
 
 #include "io/io.h"
 
-#undef NDEBUG
+#include <assert.h>
+#define myassert(EX) (void)((EX) || (__assert (#EX, __FILE__, __LINE__),0))
 
 double sqr(double a) {
   return a * a;
@@ -73,13 +74,13 @@ void ReadField(scalar c, char* fn) {
   int nx, ny, nz;
   fscanf(f, "%d %d %d", &nx, &ny, &nz);
 
-  assert(nx == argnx);
-  assert(ny == argnx);
+  myassert(nx == argnx);
+  myassert(ny == argnx);
 
 #if dimension == 2
-  assert(nz == 1);
+  myassert(nz == 1);
 #elif dimension == 3
-  assert(nz == argnx);
+  myassert(nz == argnx);
 #endif
 
   double uu[nz][ny][nx];
