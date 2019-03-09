@@ -16,7 +16,7 @@ struct Bub {
   double r;
 } b;
 
-int nxexp;
+int argnx;
 
 double ifr2(double x, double y) {
   double r2 = sq(x - b.x) + sq(y - b.y);
@@ -73,13 +73,13 @@ void ReadField(scalar c, char* fn) {
   int nx, ny, nz;
   fscanf(f, "%d %d %d", &nx, &ny, &nz);
 
-  assert(nx+1 == (1 << nxexp));
-  assert(ny == (1 << nxexp));
+  assert(nx == argnx);
+  assert(ny == argnx);
 
 #if dimension == 2
   assert(nz == 1);
 #elif dimension == 3
-  assert(nz == (1 << nxexp));
+  assert(nz == argnx);
 #endif
 
   double uu[nz][ny][nx];
@@ -98,7 +98,7 @@ void ReadField(scalar c, char* fn) {
   int i = 0;
   foreach() {
     double h = Delta;
-    double hmin = 1. / (1 << nxexp);
+    double hmin = 1. / argnx;
     int ix = max(0, min(x / hmin, nx - 1));
     int iy = max(0, min(y / hmin, ny - 1));
     int iz = max(0, min(z / hmin, nz - 1));
@@ -111,12 +111,12 @@ void ReadField(scalar c, char* fn) {
 
 int main() {
   {
-    FILE* q = fopen("nxexp", "r");
-    fscanf(q, "%d", &nxexp);
+    FILE* q = fopen("nx", "r");
+    fscanf(q, "%d", &argnx);
     fclose(q);
   }
 
-  init_grid(1 << nxexp);
+  init_grid(argnx);
 
   FILE* fb = fopen("b.dat", "r");
   fscanf(fb, "%lf %lf %lf %lf", &b.x, &b.y, &b.z, &b.r);

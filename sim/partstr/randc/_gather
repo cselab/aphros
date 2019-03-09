@@ -21,8 +21,7 @@ for f in ff:
     m = re.findall("kr([0-9]*)b([0-9]*)", f)[0]
     ri = int(m[0])
     bi = int(m[1])
-    r, nxexp, cpr = GetR(ri)
-    nx = 2 ** nxexp
+    r, nx, cpr = GetR(ri)
     b = bb[bi]
     # volume
     fvf = "vfr{:}b{:}.dat".format(m[0], m[1]) # vf filename

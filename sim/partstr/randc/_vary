@@ -47,8 +47,7 @@ def Run(ri, bi, s, force=False):
     global bb
     global dim
     log = "log"
-    r, nxexp, cpr = GetR(ri)
-    nx = 2 ** nxexp
+    r, nx, cpr = GetR(ri)
     hx = 1. / nx
     bc = bb[bi] # uniform [0,1]
     bc = 0.5 + bc * hx * 0.5 # cell octant, [0.5, 0.5 + hx*0.5]
@@ -67,8 +66,8 @@ def Run(ri, bi, s, force=False):
                 .format(bc[0], bc[1], bc[2], rx, ry, rz))
     with open("{:}/dim".format(s), 'w') as f :
         f.write("{:}".format(dim))
-    with open("{:}/nxexp".format(s), 'w') as f :
-        f.write("{:}".format(nxexp))
+    with open("{:}/nx".format(s), 'w') as f :
+        f.write("{:}".format(nx))
     print("ri={:}, bi={:}, cpr={:.4g}, nx={:}, s={:}".format(ri, bi, cpr, nx, s))
     sh("(cd {s} ; ./run) &>> {log} && mv {s}/ok {ok} && mv {s}/ovf {ovf}"
             .format(**locals()))
