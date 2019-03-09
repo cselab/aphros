@@ -17,6 +17,7 @@ struct Bub {
   double r;
 } b;
 
+int nxexp;
 int argnx;
 
 double ifr2(double x, double y) {
@@ -112,10 +113,12 @@ void ReadField(scalar c, char* fn) {
 
 int main() {
   {
-    FILE* q = fopen("nx", "r");
-    fscanf(q, "%d", &argnx);
+    FILE* q = fopen("nxexp", "r");
+    fscanf(q, "%d", &nxexp);
     fclose(q);
   }
+
+  argnx = (1 << nxexp);
 
   init_grid(argnx);
 

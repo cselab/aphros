@@ -3,7 +3,8 @@
 set -eu
 
 dim=`cat dim`
-nx=`cat nx`
+nxexp=`cat nxexp`
+nx=`bc <<< "2 ^ $nxexp"`
 
 make clean
 
