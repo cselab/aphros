@@ -28,6 +28,13 @@ canvas.addEventListener('mousemove', function(e) {
   mouse.y = e.pageY - this.offsetTop;
 }, false);
 
+function Clip(a,l,h) {
+    return Math.min(Math.max(a, l), h);
+}
+
+function sqr(a) {
+    return a * a;
+}
 
 function InitGrid(nx, ny) {
   var u = [];
@@ -35,23 +42,35 @@ function InitGrid(nx, ny) {
   for (var j = 0; j < ny; j++) {
       u[j] = [];
       for (var i = 0; i < nx; i++) {
-          u[j][i] = 0.;
+          u[j][i] = 1. / (sqr(i - (nx - 1) * 0.5) + 
+                    sqr(j - (ny - 1) * 0.5));
+          if (u[j][i] < 0.3) {
+              u[j][i] = 0.;
+          }
       }
   }
 
   return u;
 }
 
-ctx.lineWidth = 3;
-ctx.lineJoin = 'round';
-ctx.lineCap = 'round';
-ctx.strokeStyle = '#00CC99';
-var nx = 5;
-var ny = 5;
-u = InitGrid(nx, ny);
+function CopyGrid(nx, ny, us) {
+  var u = [];
+
+  for (var j = 0; j < ny; j++) {
+      u[j] = [];
+      for (var i = 0; i < nx; i++) {
+          u[j][i] = us[j][i];
+      }
+  }
+
+  return u;
+}
 
 canvas.addEventListener('mousedown', function(e) {
-    //ctx.moveTo(mouse.x, mouse.y);
+    start.x = mouse.x
+    start.y = mouse.y
+
+    ustart = CopyGrid(nx, ny, u);
 
     canvas.addEventListener('mousemove', onPaint, false);
 }, false);
@@ -60,9 +79,6 @@ canvas.addEventListener('mouseup', function() {
     canvas.removeEventListener('mousemove', onPaint, false);
 }, false);
 
-function Clip(a,l,h) {
-    return Math.min(Math.max(a, l), h);
-}
 
 function RGBToHex(r,g,b) {
     r = Clip(r, 0, 255);
@@ -88,23 +104,35 @@ var onPaint = function() {
 
     var w = 60;
 
+    var i = Clip(Math.floor(start.x / w), 0, nx - 1);
+    var j = Clip(Math.floor(start.y / w), 0, ny - 1);
 
-    var i = Clip(Math.floor(mouse.x / w), 0, nx - 1);
-    var j = Clip(Math.floor(mouse.y / w), 0, ny - 1);
-
-    u[j][i] += 10;
+    u[j][i] = Clip(ustart[j][i] + (start.y - mouse.y) * 0.01, 0., 1.);
 
     for (var j = 0 ; j < ny; j++) {
         for (var i = 0 ; i < nx; i++) {
             ctx.strokeRect(i*w, j*w, w, w);
             q = u[j][i];
+            q = Math.floor((1-q) * 255 + q * 127);
             ctx.fillStyle = RGBToHex(q, q, q);
             ctx.fillRect(i*w, j*w, w, w);
         }
     }
     ctx.fillStyle = 'red';
-    ctx.fillRect(mouse.x, mouse.y, 30, 30);
+    ctx.fillRect(mouse.x, mouse.y, 10, 10);
 };
+
+ctx.lineWidth = 3;
+ctx.lineJoin = 'round';
+ctx.lineCap = 'round';
+ctx.strokeStyle = '#505050';
+var nx = 5;
+var ny = 5;
+u = InitGrid(nx, ny);
+ustart = CopyGrid(nx, ny, u);
+var start = {x: 0, y: 0};
+onPaint();
+
 
     </script>
   </body>
