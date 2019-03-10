@@ -1,0 +1,5 @@
+#!/bin/bash
+
+pdfseparate -f 8 -l 8 soto2018.pdf a.pdf
+pdfcrop --bbox  '60 485 220 640' a.pdf b.pdf
+
