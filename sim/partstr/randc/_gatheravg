@@ -1,0 +1,58 @@
+#!/usr/bin/env python
+
+import numpy as np
+import glob
+import re
+from getr import *
+
+ee = []
+
+dim = int(open("dim").read())
+
+ee = np.genfromtxt('kerr', names=True)
+
+fo = "kerravg"
+with open(fo, 'w') as f:
+    hh = "ri cpr nx vf vfl vfh vfsl vfsh em eml emh emsl emsh e2 e2l e2h e2sl e2sh"
+    hh += " es esl esh essl essh"
+    f.write(hh + "\n")
+    vri = ee['ri']
+    vbi = ee['bi']
+    vcpr = ee['cpr'] # cells per radius
+    vvf = ee['vf']   # integral of volume fraction
+    vem = ee['em']   # max versus exact
+    ve2 = ee['e2']   # L2 versus exact
+    vnx = ee['nx']
+    ves = ee['es']   # std over cells
+    vriu,iu = np.unique(vri, return_index=True)
+    ww = []
+    for i in iu:
+        ri = vri[i]
+        r, nxexp, cpr = GetR(ri)
+        nx = 2 ** nxexp
+        assert nx == vnx[i]
+        # exact volume
+        vfex = np.pi * r ** 2 / nx if dim == 2 else 4. / 3. * np.pi * r ** 3
+        # fields 
+        w = []
+        w += [vri[i], vcpr[i], vnx[i]]
+        vf = vvf[vri == ri].flatten() / vfex  # relative to exact
+        em = vem[vri == ri].flatten()
+        e2 = ve2[vri == ri].flatten()
+        es = ves[vri == ri].flatten()
+        def A(v):
+            # percentiles
+            p0 = 10
+            p1 = 90
+            return [v.mean(), v.min(), v.max(), 
+                    np.nanpercentile(v, p0), np.nanpercentile(v, p1)]
+        # field stat
+        w += A(vf)
+        w += A(em)
+        w += A(e2)
+        w += A(es)
+        assert len(w) == len(hh.split()), "%r != %r" % (len(w), len(hh.split()))
+        ww.append(w)
+
+    for w in ww:
+        f.write(' '.join(map(str, w)) + '\n')
