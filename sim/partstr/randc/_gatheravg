@@ -44,7 +44,7 @@ with open(fo, 'w') as f:
             # percentiles
             p0 = 10
             p1 = 90
-            return [v.mean(), v.min(), v.max(), 
+            return [v.median(), v.min(), v.max(), 
                     np.nanpercentile(v, p0), np.nanpercentile(v, p1)]
         # field stat
         w += A(vf)
