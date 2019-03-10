@@ -5,7 +5,7 @@ set -eu
 for f in ch ba ge ; do
   if [ -d $f ] ; then
     echo $f
-    (cd $f ; ./_gather)
+    (cd $f ; ../_gather)
   fi
 done
 
