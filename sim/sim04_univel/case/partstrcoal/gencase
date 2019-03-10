@@ -10,8 +10,9 @@ set -eu
 : ${nfr=40}
 : ${ba=1}
 : ${ch=1}
+: ${suff=}
 
-d="nx${nx}_ns${ns}_symm${symm}"
+d="nx${nx}_ns${ns}_symm${symm}${suff}"
 [ $ch == "1" ] && runch= || runch="echo > r_ch"
 [ $ba == "1" ] && runba= || runba="echo > r_ba"
 
@@ -31,6 +32,16 @@ set -eu
 
 echo $np > np
 echo 1440 > tl
+
+# $0 $@
+# np=$np
+# nx=$nx
+# r=$r
+# ns=$ns
+# symm=$symm
+# nfr=$nfr
+# ba=$ba
+# ch=$ch
 
 ./gen -nx $nx -np $np -mode osc -dim 3 -pos center\
   -We 0 -La 40000 -tmax 0.4 -br 0.15\
