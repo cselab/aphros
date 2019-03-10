@@ -1,0 +1,111 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <style>
+      body {
+        margin: 0px;
+        padding: 0px;
+      }
+    </style>
+  </head>
+  <body>
+   <div id="paint">
+    <canvas id="myCanvas" width="500" height="500"></canvas>
+ </div>
+    <script>
+var canvas = document.getElementById('myCanvas');
+var ctx = canvas.getContext('2d');
+
+var painting = document.getElementById('paint');
+var paint_style = getComputedStyle(painting);
+canvas.width = parseInt(paint_style.getPropertyValue('width'));
+canvas.height = parseInt(paint_style.getPropertyValue('height'));
+
+var mouse = {x: 0, y: 0};
+
+canvas.addEventListener('mousemove', function(e) {
+  mouse.x = e.pageX - this.offsetLeft;
+  mouse.y = e.pageY - this.offsetTop;
+}, false);
+
+
+function InitGrid(nx, ny) {
+  var u = [];
+
+  for (var j = 0; j < ny; j++) {
+      u[j] = [];
+      for (var i = 0; i < nx; i++) {
+          u[j][i] = 0.;
+      }
+  }
+
+  return u;
+}
+
+ctx.lineWidth = 3;
+ctx.lineJoin = 'round';
+ctx.lineCap = 'round';
+ctx.strokeStyle = '#00CC99';
+var nx = 5;
+var ny = 5;
+u = InitGrid(nx, ny);
+
+canvas.addEventListener('mousedown', function(e) {
+    //ctx.moveTo(mouse.x, mouse.y);
+
+    canvas.addEventListener('mousemove', onPaint, false);
+}, false);
+
+canvas.addEventListener('mouseup', function() {
+    canvas.removeEventListener('mousemove', onPaint, false);
+}, false);
+
+function Clip(a,l,h) {
+    return Math.min(Math.max(a, l), h);
+}
+
+function RGBToHex(r,g,b) {
+    r = Clip(r, 0, 255);
+    g = Clip(g, 0, 255);
+    b = Clip(b, 0, 255);
+
+    r = r.toString(16);
+    g = g.toString(16);
+    b = b.toString(16);
+
+    if (r.length == 1)
+        r = "0" + r;
+    if (g.length == 1)
+        g = "0" + g;
+    if (b.length == 1)
+        b = "0" + b;
+
+    return "#" + r + g + b;
+}
+
+var onPaint = function() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    var w = 60;
+
+
+    var i = Clip(Math.floor(mouse.x / w), 0, nx - 1);
+    var j = Clip(Math.floor(mouse.y / w), 0, ny - 1);
+
+    u[j][i] += 10;
+
+    for (var j = 0 ; j < ny; j++) {
+        for (var i = 0 ; i < nx; i++) {
+            ctx.strokeRect(i*w, j*w, w, w);
+            q = u[j][i];
+            ctx.fillStyle = RGBToHex(q, q, q);
+            ctx.fillRect(i*w, j*w, w, w);
+        }
+    }
+    ctx.fillStyle = 'red';
+    ctx.fillRect(mouse.x, mouse.y, 30, 30);
+};
+
+    </script>
+  </body>
+</html>
