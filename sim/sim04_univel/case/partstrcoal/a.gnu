@@ -51,6 +51,15 @@ tt = "64 128 256 512 1024"
 sf = "/ch/neck"
 
 plot \
-"ref/rnexp" w p pt 7 ps 0.1 lc rgb "#000000" t 'exp' , \
-"ref/rn" w l lt 9  t 'exp' , \
+"ref/rnexp" w p pt 7 ps 0.1 lc "black" t 'exp' , \
+"ref/rn" w l lc "black" t 'BI' , \
   for [i=1:words(ll)] word(ll,i).sf u ($0*sim):(($2-0.5)/r) w lp ls i t word(tt,i)
+
+set output "b.pdf"
+
+set yrange [1:2]
+plot \
+  "ref/rnexp" u 1:($2/$1**0.5) w p pt 7 ps 0.1 lc "black" t 'exp' , \
+  "ref/rn" u 1:($2/$1**0.5) w l lc "black" t 'BI' , \
+  for [i=1:words(ll)] word(ll,i).sf u ($0*sim):(($2-0.5)/r/($0*sim)**0.5) w lp ls i t word(tt,i)
+
