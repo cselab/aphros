@@ -9,6 +9,11 @@
     </style>
   </head>
   <body>
+    <div style="margin-left: 50px">
+    <h1> Grid demo </h1>
+    Drag up-down to change the values
+    </div>
+
    <div id="paint">
     <canvas id="myCanvas" width="500" height="500"></canvas>
  </div>
@@ -22,7 +27,10 @@ canvas.width = parseInt(paint_style.getPropertyValue('width'));
 canvas.height = parseInt(paint_style.getPropertyValue('height'));
 
 var mouse = {x: 0, y: 0};
+var base = {x: 100, y: 100}
 
+mouse.x = base.x
+mouse.y = base.y
 canvas.addEventListener('mousemove', function(e) {
   mouse.x = e.pageX - this.offsetLeft;
   mouse.y = e.pageY - this.offsetTop;
@@ -47,6 +55,7 @@ function InitGrid(nx, ny) {
           if (u[j][i] < 0.3) {
               u[j][i] = 0.;
           }
+          u[j][i] = Clip(u[j][i], 0., 1.)
       }
   }
 
@@ -104,18 +113,26 @@ var onPaint = function() {
 
     var w = 60;
 
-    var i = Clip(Math.floor(start.x / w), 0, nx - 1);
-    var j = Clip(Math.floor(start.y / w), 0, ny - 1);
+    var i = Clip(Math.floor((start.x - base.x) / w), 0, nx - 1);
+    var j = Clip(Math.floor((start.y - base.y) / w), 0, ny - 1);
 
-    u[j][i] = Clip(ustart[j][i] + (start.y - mouse.y) * 0.01, 0., 1.);
+    u[j][i] = Clip(ustart[j][i] + (start.y - mouse.y) * 0.005, 0., 1.);
 
     for (var j = 0 ; j < ny; j++) {
         for (var i = 0 ; i < nx; i++) {
-            ctx.strokeRect(i*w, j*w, w, w);
+            x = base.x + i * w;
+            y = base.y + j * w;
+            ctx.strokeRect(x, y, w, w);
             q = u[j][i];
             q = Math.floor((1-q) * 255 + q * 127);
             ctx.fillStyle = RGBToHex(q, q, q);
-            ctx.fillRect(i*w, j*w, w, w);
+            ctx.fillRect(x, y, w, w);
+
+            ctx.font = "20px Arial";
+            ctx.fillStyle = "#000000";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText((u[j][i]).toFixed(2), x + w * 0.5, y + w * 0.5);
         }
     }
     ctx.fillStyle = 'red';
@@ -135,5 +152,6 @@ onPaint();
 
 
     </script>
+
   </body>
 </html>
