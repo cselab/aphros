@@ -6,12 +6,12 @@
 
 static char **argv0;
 
-Scal tof(char **s) {
+Scal tof(char *s) {
     if (s == NULL) {
         fprintf(stderr, "not enough argument\n");
         exit(2);
     }
-    return atof(*s);
+    return atof(s);
 }
 
 int main(int argc, char **argv) {
@@ -20,9 +20,9 @@ int main(int argc, char **argv) {
     Scal ends[4];
 
     argv++;
-    nx = tof(argv++);
-    ny = tof(argv++);
-    a = tof(argv++);
+    nx = tof(*argv++);
+    ny = tof(*argv++);
+    a = tof(*argv++);
 
     segment_ends(nx, ny, a, /**/ ends);
     printf("%g %g %g %g\n", ends[AX], ends[AY], ends[BX], ends[BY]);

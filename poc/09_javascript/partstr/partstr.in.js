@@ -16,7 +16,7 @@ function partstr_norm(i, j, u) {
 }
 
 function _line(nx, ny, u) {
-    u1 = 0.5 * nx / ny;
+    u1 = 0.5 * nx / ny
     if (u <= u1)
       return -0.5 * (nx + ny) + Math.sqrt(2*nx*ny*u)
     else
@@ -24,7 +24,7 @@ function _line(nx, ny, u) {
 }
 
 function partstr_line(nx, ny, u) {
-    var t;
+    var t
     if (ny < nx) {
         t = nx; nx = ny; ny = t
     }
@@ -36,7 +36,7 @@ function partstr_line(nx, ny, u) {
 
 function partstr_vof_line(M, N, u, a) {
     const X = 0, Y = 1
-    var n, u0, a0;
+    var n, u0, a0
     for (i = 0; i < M; i++)
         for (j = 0; j < N; j++) {
             n = partstr_norm(i, j, u)
@@ -44,4 +44,8 @@ function partstr_vof_line(M, N, u, a) {
             a0 = partstr_line(n[X], n[Y], u0)
             a[i][j] = a0
         }
+}
+
+function partstr_ends(nx, ny, a, /**/ s) {
+    s[0] = s[1] = s[2] = s[3] = 0
 }
