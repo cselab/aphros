@@ -18,9 +18,7 @@ function matrix_read(file) {
     N = parseInt(l[1])
     if (Number.isNaN(N))
         throw new Error(`expecting 'N', got '${l[1]}'`)
-    a = new Array(M)
-    for (i = 0; i < M; i++)
-        a[i] = new Array(N)
+    a = matrix_new(M, N)
 
     for (i = 0; i < M; i++) {
         if (nr >= NR)
@@ -50,4 +48,19 @@ function matrix_write(stream, M, N, a) {
         }
         stream.write("\n")
     }
+}
+
+function matrix_new(M, N) {
+    a = new Array(M)
+    for (i = 0; i < M; i++)
+        a[i] = new Array(N)
+    return a
+}
+
+function matrix_zero(M, N) {
+    a = matrix_new(M, N)
+    for (i = 0; i < M; i++)
+        for (j = 0; j < M; j++)
+            a[i][j] = 0
+    return a
 }
