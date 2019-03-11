@@ -13,7 +13,6 @@ function partstr_norm(i, j, u) {
     return p
 }
 
-
 function _line(nx, ny, u) {
     u1 = 0.5 * nx / ny;
     if (u <= u1)
