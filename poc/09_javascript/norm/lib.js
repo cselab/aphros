@@ -3,8 +3,8 @@ function InitGrid(nx, ny, u) {
   for (var j = -b; j < ny + b; j++) {
       u[j] = [];
       for (var i = -b; i < nx + b; i++) {
-          u[j][i] = i + 1
-          //u[j][i] = Clip(u[j][i], 0., 1.)
+          u[j][i] = i*j/(nx*ny)
+          u[j][i] = Clip(u[j][i], 0., 1.)
       }
   }
   return u;
