@@ -1,23 +1,3 @@
-<!DOCTYPE HTML>
-<html>
-  <head>
-    <style>
-      body {
-	margin: 0px;
-	padding: 0px;
-      }
-    </style>
-  </head>
-  <body>
-    <div style="margin-left: 50px">
-    <h1> Grid demo </h1>
-    Drag up-down to change the values
-    </div>
-
-   <div id="paint">
-    <canvas id="myCanvas" width="500" height="500"></canvas>
- </div>
-    <script>
 var canvas = document.getElementById('myCanvas');
 var ctx = canvas.getContext('2d');
 
@@ -157,9 +137,3 @@ u = InitGrid(nx, ny);
 ustart = CopyGrid(nx, ny, u);
 var start = {x: 0, y: 0};
 onPaint();
-
-
-    </script>
-
-  </body>
-</html>
