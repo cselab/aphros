@@ -30,12 +30,12 @@ function InitGrid(nx, ny) {
   for (var j = 0; j < ny; j++) {
       u[j] = [];
       for (var i = 0; i < nx; i++) {
-	  u[j][i] = 1. / (sqr(i - (nx - 1) * 0.5) +
-		    sqr(j - (ny - 1) * 0.5));
-	  if (u[j][i] < 0.3) {
-	      u[j][i] = 0.;
-	  }
-	  u[j][i] = Clip(u[j][i], 0., 1.)
+      u[j][i] = 1. / (sqr(i - (nx - 1) * 0.5) +
+                      sqr(j - (ny - 1) * 0.5));
+      if (u[j][i] < 0.3) {
+          u[j][i] = 0.;
+      }
+          u[j][i] = Clip(u[j][i], 0., 1.)
       }
   }
 
@@ -48,7 +48,7 @@ function CopyGrid(nx, ny, us) {
   for (var j = 0; j < ny; j++) {
       u[j] = [];
       for (var i = 0; i < nx; i++) {
-	  u[j][i] = us[j][i];
+          u[j][i] = us[j][i];
       }
   }
 
@@ -79,12 +79,11 @@ function RGBToHex(r,g,b) {
     b = b.toString(16);
 
     if (r.length == 1)
-	r = "0" + r;
+        r = "0" + r;
     if (g.length == 1)
-	g = "0" + g;
+        g = "0" + g;
     if (b.length == 1)
-	b = "0" + b;
-
+        b = "0" + b;
     return "#" + r + g + b;
 }
 
@@ -107,21 +106,21 @@ var onPaint = function() {
     u[j][i] = Clip(ustart[j][i] + dy, 0., 1.);
 
     for (var j = 0 ; j < ny; j++) {
-	for (var i = 0 ; i < nx; i++) {
-	    x = base.x + i * w;
-	    y = base.y + j * w;
-	    ctx.strokeRect(x, y, w, w);
-	    q = u[j][i];
-	    q = Math.floor((1-q) * 255 + q * 127);
-	    ctx.fillStyle = RGBToHex(q, q, q);
-	    ctx.fillRect(x, y, w, w);
+    for (var i = 0 ; i < nx; i++) {
+        x = base.x + i * w;
+        y = base.y + j * w;
+        ctx.strokeRect(x, y, w, w);
+        q = u[j][i];
+        q = Math.floor((1-q) * 255 + q * 127);
+        ctx.fillStyle = RGBToHex(q, q, q);
+        ctx.fillRect(x, y, w, w);
 
-	    ctx.font = "20px Arial";
-	    ctx.fillStyle = "#000000";
-	    ctx.textAlign = "center";
-	    ctx.textBaseline = "middle";
-	    ctx.fillText((u[j][i]).toFixed(2), x + w * 0.5, y + w * 0.5);
-	}
+        ctx.font = "20px Arial";
+        ctx.fillStyle = "#000000";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText((u[j][i]).toFixed(2), x + w * 0.5, y + w * 0.5);
+    }
     }
     ctx.fillStyle = 'red';
     ctx.fillRect(mouse.x, mouse.y, 10, 10);

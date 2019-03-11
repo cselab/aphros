@@ -16,8 +16,8 @@ Norm(2, 2, u, /**/ n)
 
 for (j = -1; j < ny; j++) {
     for (i = -1; i < nx; i++) {
-	print(expo(u[i][j]))
-	print(" ")
+    print(expo(u[i][j]))
+    print(" ")
     }
     print("\n")
 }
