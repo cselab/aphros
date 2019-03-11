@@ -5,7 +5,8 @@ L = ../../lib
 $M: $M.o
 
 CH_CFLAGS = -I$L -I$S
-CH_LDFLAGS = -L$L -L$S/build/solver -L$S/build/util -lsegment
+CH_LDFLAGS = -L$L -L$S/build/solver -L$S/build/util \
+-lsegment -lnormal -lsuspender
 
 $M: $M.o; $(CXX) $< $(CH_LDFLAGS) -o $@
 .c.o:; $(CC) -c $(CFLAGS) $(CH_CFLAGS) $< -o $@
