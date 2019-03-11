@@ -108,6 +108,11 @@ function RGBToHex(r,g,b) {
     return "#" + r + g + b;
 }
 
+function F(a) {
+    return Math.pow(a, 2);
+}
+
+
 var onPaint = function() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -116,7 +121,10 @@ var onPaint = function() {
     var i = Clip(Math.floor((start.x - base.x) / w), 0, nx - 1);
     var j = Clip(Math.floor((start.y - base.y) / w), 0, ny - 1);
 
-    u[j][i] = Clip(ustart[j][i] + (start.y - mouse.y) * 0.005, 0., 1.);
+    dy = start.y - mouse.y;
+    dy = dy / w;
+    dy = F(Math.abs(dy)) * Math.sign(dy) / F(2.);
+    u[j][i] = Clip(ustart[j][i] + dy, 0., 1.);
 
     for (var j = 0 ; j < ny; j++) {
         for (var i = 0 ; i < nx; i++) {
