@@ -50,6 +50,18 @@ function matrix_write(stream, M, N, a) {
     }
 }
 
+function matrix_lh_write(stream, m, n, M, N, a) {
+    var i, j
+    for (i = m; i < M; i++) {
+        for (j = n; j < N; j++) {
+            if (j > 0)
+                stream.write(" ")
+            stream.write(`${a[i][j]}`)
+        }
+        stream.write("\n")
+    }
+}
+
 function matrix_new(M, N) {
     a = new Array(M)
     for (i = 0; i < M; i++)
