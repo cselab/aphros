@@ -1,18 +1,3 @@
-<!DOCTYPE HTML>
-<html>
-  <head>
-    <style>
-      body {
-        margin: 0px;
-        padding: 0px;
-      }
-    </style>
-  </head>
-  <body>
-   <div id="paint">
-    <canvas id="myCanvas"></canvas>
- </div>
-    <script>
 var canvas = document.getElementById('myCanvas');
 var ctx = canvas.getContext('2d');
 
@@ -53,7 +38,3 @@ var onPaint = function() {
     ctx.fillStyle = 'red';
     ctx.fillRect(mouse.x, mouse.y, 100, 100);
 };
-
-    </script>
-  </body>
-</html>
