@@ -6,16 +6,23 @@
 
 static char **argv0;
 
+Scal tof(char **s) {
+    if (s == NULL) {
+        fprintf(stderr, "not enough argument\n");
+        exit(2);
+    }
+    return atof(*s);
+}
+
 int main(int argc, char **argv) {
     enum {AX, AY, BX, BY};
     Scal nx, ny, a;
     Scal ends[4];
-    argv0 = argv;
-    argv0++;
 
-    nx = atof(*argv0++);
-    ny = atof(*argv0++);
-    a = atof(*argv0++);
+    argv++;
+    nx = tof(argv++);
+    ny = tof(argv++);
+    a = tof(argv++);
 
     segment_ends(nx, ny, a, /**/ ends);
     printf("%g %g %g %g\n", ends[AX], ends[AY], ends[BX], ends[BY]);
