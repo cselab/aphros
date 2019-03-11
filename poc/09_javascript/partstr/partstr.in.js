@@ -20,6 +20,7 @@ function _line(nx, ny, u) {
     else
       return ny * (u - 0.5)
 }
+
 function partstr_line(nx, ny, u) {
     var t;
     if (ny < nx) {
