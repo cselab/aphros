@@ -43,6 +43,7 @@ function matrix_read(file) {
 
 function matrix_write(stream, M, N, a) {
     var i, j
+    stream.write(`${M} ${N}\n`)
     for (i = 0; i < M; i++) {
         for (j = 0; j < N; j++) {
             if (j > 0)
@@ -52,8 +53,3 @@ function matrix_write(stream, M, N, a) {
         stream.write("\n")
     }
 }
-
-a = matrix_read("/dev/stdin")
-M = a.length
-N = a[0].length
-matrix_write(process.stdout, M, N, a)
