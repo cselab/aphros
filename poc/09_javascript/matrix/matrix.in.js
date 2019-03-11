@@ -3,12 +3,10 @@ function matrix_read(file) {
     var a, nr, NR, l, line, i, j, x, m
     var lines = require('fs').readFileSync(file, 'ascii')
         .split('\n')
-        .filter(Boolean);
-
+        .filter(Boolean)
     NR = lines.length
     if (NR < 0)
         throw new Error(`no lines in file ${file}`)
-
     nr = 0
     line = lines[nr++]
     l = line.split(" ")
