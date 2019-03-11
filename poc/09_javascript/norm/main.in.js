@@ -1,6 +1,7 @@
 include(lib.js)
 changequote()
 
+var readline = require('readline');
 var nx = 5, ny = 5, u = []
 InitGrid(5, 5, u)
 
@@ -27,3 +28,4 @@ print(expo(n[0]))
 print(" ")
 print(expo(n[1]))
 print("\n")
+
