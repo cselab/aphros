@@ -4,7 +4,7 @@
 
 #define D (5)
 
-int main() {
+int main(void) {
 #define sq(x) ((x)*(x))
     int i, j;
     double alpha[D*D], *normal, *a, *s, nx, ny;
