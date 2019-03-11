@@ -1,10 +1,11 @@
 M = main
-S = ../../../../src
+S = ../../../../../src
+L = ../../lib
 
 $M: $M.o
 
-CH_CFLAGS = -I../lib -I$S
-CH_LDFLAGS = -L../lib -L$S/build/solver -L$S/build/util \
+CH_CFLAGS = -I$L -I$S
+CH_LDFLAGS = -L$L -L$S/build/solver -L$S/build/util \
 -lsegment -lsolver -lnormal -lsuspender
 
 $M: $M.o; $(CXX) $< $(CH_LDFLAGS) -o $@
