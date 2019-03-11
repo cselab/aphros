@@ -5,6 +5,8 @@ Distributed version of **hydro** based on **Cubism**.
 ## Clone
 
     git clone git@gitlab.ethz.ch:mavt-cse/Cubism-hydro.git
+    cd Cubism-hydro
+    git config pull.rebase true
 
 ## Build and install
 
@@ -21,7 +23,6 @@ prepare environment and install dependencies.
 *   Run tests
 
      ```
-     cd src
      make test
      ```
 
