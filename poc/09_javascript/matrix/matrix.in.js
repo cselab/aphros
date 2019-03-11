@@ -64,6 +64,7 @@ function matrix_lh_write(stream, m, n, M, N, a) {
 }
 
 function matrix_new(M, N) {
+    var i
     a = new Array(M)
     for (i = 0; i < M; i++)
         a[i] = new Array(N)
@@ -71,9 +72,28 @@ function matrix_new(M, N) {
 }
 
 function matrix_zero(M, N) {
+    var i, j
     a = matrix_new(M, N)
     for (i = 0; i < M; i++)
         for (j = 0; j < M; j++)
             a[i][j] = 0
     return a
+}
+
+function matrix_halo_zero(M, N, h, a) {
+    var i, j
+
+    for (i = -h; i <     0; i++) a[i] = []
+    for (i =  N; i < N + h; i++) a[i] = []
+
+    for (i = -h; i < 0; i++)
+        for (j = -h; j < N + h; j++) a[i][j] = 0;
+
+    for (i = 0; i < M; i++) {
+        for (j = -h; j < 0;      j++) a[i][j] = 0;
+        for (j =   N; j < N + h; j++) a[i][j] = 0;
+    }
+
+    for (i = M; i < M + h; i++)
+        for (j = -h; j < N + h; j++) a[i][j] = 0;
 }

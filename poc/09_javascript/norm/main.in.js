@@ -3,6 +3,9 @@ undivert(matrix.js)dnl
 changequote()
 
 var stdout = process.stdout
-var u = []
-InitGrid(5, 5, u)
-matrix_lh_write(stdout, -3, -3, 5, 5, u)
+var n = 5
+var h = 2
+var u = matrix_new(n, n)
+InitGrid(n, n, u)
+matrix_halo_zero(n, n, h, u)
+matrix_lh_write(stdout, -h, -h, n + h, n + h, u)
