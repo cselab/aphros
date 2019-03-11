@@ -146,7 +146,7 @@ int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa, Scal **ps) {
     return 0;
 }
 
-int segment_norm(int i, int j, const double *a, /**/ double *px, double *py) {
+int segment_norm(int i, int j, const Scal *a, /**/ Scal *px, Scal *py) {
 #define b(i, j) (a[(D)*(j) + (i)])
     double nx, ny, n;
     nx = (b(i+1,j+1)+2*b(i+1,j)+b(i+1,j-1)-b(i-1,j+1)-2*b(i-1,j)-b(i-1,j-1))/8;
@@ -157,4 +157,17 @@ int segment_norm(int i, int j, const double *a, /**/ double *px, double *py) {
     *px = nx; *py = ny;
     return 0;
 #undef b
+}
+
+int segment_ends(Scal nx, Scal ny, Scal a, Scal *s) {
+    enum {X, Y, Z};
+    int i;
+    Vect u;
+    u[X] = nx; u[Y] = ny; u[Z] = 0;
+    auto seg = GetLineEnds(u, a, Vect(1));
+    s[i++] = seg[0][X];
+    s[i++] = seg[0][Y];
+    s[i++] = seg[1][X];
+    s[i++] = seg[1][Y];
+    return 0;
 }
