@@ -13,3 +13,7 @@ matrix_lh_write(stdout, -h, -h, n + h, n + h, u)
 
 var p = partstr_norm(2, 0, u)
 stdout.write(`norm: ${p}\n`)
+
+const X = 0, Y = 1
+a = partstr_line(p[X], p[Y], u[2][0])
+stdout.write(`a: ${a}\n`)
