@@ -7,6 +7,6 @@ NODE = node
 all: $M
 main.js: lib.js
 
-run: $M; @$(NODE) main.js
+run: $M; @$(NODE) $M.js
 .PHONY: clean run
 clean:; rm -f $M
