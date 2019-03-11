@@ -1,14 +1,9 @@
-undivert(matrix.js)dnl
 undivert(partstr.js)dnl
 changequote()
 
-var stdout = process.stdout
-var n = 5
-var h = 2
-var u = matrix_new(n, n)
-var a = matrix_new(n, n)
+const AX = 0, AY = 1, BX = 2, BY = 3
+var nx, ny, a
+var seg = Array(4)
 
-InitGrid(n, n, u)
-matrix_halo_zero(n, n, h, u)
-partstr_vof_line(n, n, u, a)
-matrix_write(stdout, n, n, a)
+partstr_ends(nx, ny, a, seg)
+process.stdout.write(`${seg[AX]} ${seg[AY]} ${seg[BX]} ${seg[BY]}\n`)
