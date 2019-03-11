@@ -53,9 +53,10 @@ function matrix_write(stream, M, N, a) {
 function matrix_lh_write(stream, m, n, M, N, a) {
     var i, j
     for (i = m; i < M; i++) {
+        if (a[i] == void 0)
+            throw new Error(`a[${i}] is undefined`)
         for (j = n; j < N; j++) {
-            if (j > 0)
-                stream.write(" ")
+            if (j > n) stream.write(" ")
             stream.write(`${a[i][j]}`)
         }
         stream.write("\n")
