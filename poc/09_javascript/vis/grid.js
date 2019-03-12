@@ -265,10 +265,16 @@ var onPaint = function() {
 
 
 // Parameters
-var w = 60;   // block size
 var nx = 5
 var ny = 5
-var base = {x: 50, y: 200}
+marx = 0.1  // x-margin relative to screen width
+maryb = 1  // y-margin relative to block size
+var wx = window.innerWidth
+            || document.documentElement.clientWidth
+            || document.body.clientWidth;
+wx = Math.min(wx, 1000)
+var w = (wx * (1. - marx * 2)) / nx;   // block size
+var base = {x: wx * marx , y: w * maryb} 
 
 var canvas = document.getElementById('myCanvas');
 
@@ -299,31 +305,33 @@ var paint_style = getComputedStyle(painting);
 
 var textarea = document.getElementById("myTextarea");
 
-canvas.addEventListener('mousemove', function(e) {
+
+function addListenerMulti(element, eventNames, listener) {
+  var events = eventNames.split(' ');
+  for (var i=0, iLen=events.length; i<iLen; i++) {
+    element.addEventListener(events[i], listener, false);
+  }
+}
+
+addListenerMulti(canvas, 'mousemove mousestart', function(e) {
     mouse.x = e.pageX - this.offsetLeft;
     mouse.y = e.pageY - this.offsetTop;
-}, false);
+});
 
-canvas.addEventListener('touchmove', function(e) {
-    x = e.touches[0].pageX - this.offsetLeft;
-    y = e.touches[0].pageY - this.offsetTop;
-    ctx.fillStyle = "green"
-    ctx.fillRect(x, y, w, w);
-}, false);
+addListenerMulti(canvas, 'touchmove touchstart', function(e) {
+    mouse.x = e.touches[0].pageX - this.offsetLeft;
+    mouse.y = e.touches[0].pageY - this.offsetTop;
+});
 
-canvas.addEventListener('mousedown', function(e) {
+addListenerMulti(canvas, 'mousedown touchstart', function(e) {
     mousepressed = true
-}, false);
+});
 
-canvas.addEventListener('mouseup', function(e) {
+addListenerMulti(canvas, 'mouseup mouseout touchend touchcancel', function(e) {
     mousepressed = false
-}, false);
+});
 
-canvas.addEventListener('mouseout', function(e) {
-    mousepressed = false
-}, false);
-
-canvas.addEventListener('mousedown', function(e) {
+addListenerMulti(canvas, 'mousedown touchstart', function(e) {
     start.x = mouse.x
     start.y = mouse.y
 
@@ -331,16 +339,14 @@ canvas.addEventListener('mousedown', function(e) {
 
     onPaint()
     canvas.addEventListener('mousemove', onPaint, false);
-}, false);
+    canvas.addEventListener('touchmove', onPaint, false);
+});
 
-canvas.addEventListener('mouseup', function() {
+addListenerMulti(canvas, 'mouseup mouseout touchend touchcancel', function(e) {
     onPaint()
     canvas.removeEventListener('mousemove', onPaint, false);
-}, false);
-
-canvas.addEventListener('mouseout', function() {
-    canvas.removeEventListener('mousemove', onPaint, false);
-}, false);
+    canvas.removeEventListener('touchmove', onPaint, false);
+});
 
 textarea.addEventListener('change', function(e) {
     UpdateGrid()
