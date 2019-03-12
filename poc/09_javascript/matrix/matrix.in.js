@@ -9,7 +9,7 @@ function matrix_read(file) {
         throw new Error(`no lines in file ${file}`)
     nr = 0
     line = lines[nr++]
-    l = line.split(" ")
+    l = line.trim().split(" ")
     if (l.length != 2)
         throw new Error(`expecting 'M N' got '${line}'`)
     M = parseInt(l[0])
@@ -24,7 +24,7 @@ function matrix_read(file) {
         if (nr >= NR)
             throw new Error(`too few lines in ${file}, expecting ${NR}, got ${nr}`)
         line = lines[nr++]
-        l = line.split(" ")
+        l = line.trim().split(" ")
         if (l.length != N)
             throw new Error(`expecting ${N} numbers, got '${line}'`)
         for (j = 0; j < N; j++) {
