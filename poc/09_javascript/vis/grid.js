@@ -200,6 +200,35 @@ function DrawLines(ee, u) {
     }
 }
 
+function DrawString(pp) {
+    ctx.beginPath();
+    for (var i = 1 ; i < pp.length; ++i) {
+        xa = base.x + (pp[i-1][0]) * w
+        ya = base.y + (pp[i-1][1]) * w
+        xb = base.x + (pp[i][0]) * w
+        yb = base.y + (pp[i][1]) * w
+
+        ctx.strokeStyle = "red";
+        ctx.beginPath();
+        ctx.moveTo(xa, ya)
+        ctx.lineTo(xb, yb)
+        ctx.closePath();
+        ctx.stroke()
+    }
+
+    for (var i = 0 ; i < pp.length; ++i) {
+        x = base.x + (pp[i][0]) * w
+        y = base.y + (pp[i][1]) * w
+
+        ctx.strokeStyle = "black";
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, 2 * Math.PI);
+        ctx.closePath();
+        ctx.stroke();
+    }
+    ctx.closePath();
+}
+
 function DrawBar() {
     q = 8
     qh = q / 2
@@ -253,6 +282,7 @@ function DrawAll() {
 
     DrawGrid(u)
     DrawLines(ends, u)
+    DrawString([[0.3, 0.4], [1, 1], [2, 2], [3, 2.5]])
 }
 
 var onPaint = function() {
