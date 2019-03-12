@@ -171,3 +171,10 @@ int segment_ends(Scal nx, Scal ny, Scal a, Scal *s) {
     s[i++] = seg[1][Y];
     return 0;
 }
+
+Scal segment_line(Scal nx, Scal ny, Scal u) {
+    enum {X, Y, Z};
+    Vect n;
+    n[X] = nx; n[Y] = ny; n[Z] = 0;
+    return GetLineA1(n, u);
+}
