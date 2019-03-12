@@ -1,0 +1,3 @@
+# TEST: circle
+(cd .. && make)
+node main.js data/circle  > main.out.txt

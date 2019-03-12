@@ -1,0 +1,3 @@
+# TEST: ij
+(cd .. && make)
+node main.js data/ij  > main.out.txt
