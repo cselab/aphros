@@ -1,3 +1,4 @@
+
 var canvas = document.getElementById('myCanvas');
 var ctx = canvas.getContext('2d');
 
@@ -11,6 +12,7 @@ var base = {x: 100, y: 100}
 var mousepressed = false
 var w = 60;   // block size
 
+var textarea = document.getElementById("myTextarea");
 
 mouse.x = base.x
 mouse.y = base.y
@@ -32,8 +34,17 @@ canvas.addEventListener('mouseout', function(e) {
     mousepressed = false
 }, false);
 
+textarea.addEventListener('change', function(e) {
+    UpdateGrid()
+    DrawGrid()
+}, false);
+
+
 function Clip(a,l,h) {
-    return Math.min(Math.max(a, l), h);
+    if (isFinite(a)) {
+        return Math.min(Math.max(a, l), h);
+    } 
+    return 0.
 }
 
 function sqr(a) {
@@ -188,8 +199,24 @@ function GridToText(u, ny) {
     return t
 }
 
+function TextToGrid(t, nx, ny, /**/ u) {
+    var v = t.split("\n").join(" ").split(" ")
+    m = 0
+    for (var j = 0; j < ny; j++) {
+        for (var i = 0; i < nx; i++) {
+            u[j][i] = Clip(parseFloat(v[m++]), 0., 1.)
+        }
+    }
+    return u
+}
+
 function UpdateText(t) {
-  document.getElementById("myTextarea").value = t;
+    textarea.value = t
+}
+
+function UpdateGrid() {
+    t = textarea.value
+    TextToGrid(t, nx, ny, u)
 }
 
 var onPaint = function() {
@@ -207,7 +234,6 @@ var onPaint = function() {
 
     UpdateText(GridToText(u, ny))
 };
-
 
 
 ctx.lineWidth = 3;
