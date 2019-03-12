@@ -8,12 +8,28 @@ canvas.height = parseInt(paint_style.getPropertyValue('height'));
 
 var mouse = {x: 0, y: 0};
 var base = {x: 100, y: 100}
+var mousepressed = false
+var w = 60;   // block size
+
 
 mouse.x = base.x
 mouse.y = base.y
+
 canvas.addEventListener('mousemove', function(e) {
     mouse.x = e.pageX - this.offsetLeft;
     mouse.y = e.pageY - this.offsetTop;
+}, false);
+
+canvas.addEventListener('mousedown', function(e) {
+    mousepressed = true
+}, false);
+
+canvas.addEventListener('mouseup', function(e) {
+    mousepressed = false
+}, false);
+
+canvas.addEventListener('mouseout', function(e) {
+    mousepressed = false
 }, false);
 
 function Clip(a,l,h) {
@@ -61,10 +77,12 @@ canvas.addEventListener('mousedown', function(e) {
 
     ustart = CopyGrid(nx, ny, u);
 
+    onPaint()
     canvas.addEventListener('mousemove', onPaint, false);
 }, false);
 
 canvas.addEventListener('mouseup', function() {
+    onPaint()
     canvas.removeEventListener('mousemove', onPaint, false);
 }, false);
 
@@ -101,12 +119,7 @@ function Finv(a) {
     return a;
 }
 
-
-
-var onPaint = function() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    var w = 60;
+function IncCell() {
     var k = 2.;
     var wk = w * k;
 
@@ -130,7 +143,9 @@ var onPaint = function() {
     du = -F(Math.abs(dyn)) * Math.sign(dyn);
 
     u[j][i] = Clip(ustart[j][i] + du, 0., 1.);
+}
 
+function DrawGrid() {
     for (var j = 0 ; j < ny; j++) {
         for (var i = 0 ; i < nx; i++) {
             x = base.x + i * w;
@@ -148,6 +163,9 @@ var onPaint = function() {
             ctx.fillText((u[j][i]).toFixed(2), x + w * 0.5, y + w * 0.5);
         }
     }
+}
+
+function DrawBar() {
     q = 8
     qh = q / 2
     qq = q / 2
@@ -160,6 +178,20 @@ var onPaint = function() {
     ctx.fillRect(start.x-qh, start.y-qh, q, q);
     //ctx.fillStyle = 'red';
     //ctx.fillRect(start.x-qh, start.y + dy-qh, q, q);
+}
+
+var onPaint = function() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (mousepressed) {
+        IncCell()
+    }
+
+    DrawGrid()
+
+    if (mousepressed) {
+        DrawBar()
+    }
 };
 
 ctx.lineWidth = 3;
