@@ -34,7 +34,7 @@ function partstr_line(nx, ny, u) {
 	return -_line(nx, ny, 1 - u)
 }
 
-function partstr_vof_line(M, N, u, a) {
+function partstr_vof_line(M, N, u, /**/ a) {
     const X = 0, Y = 1
     var n, u0, a0
     for (i = 0; i < M; i++)
@@ -43,6 +43,19 @@ function partstr_vof_line(M, N, u, a) {
 	    u0 = u[i][j]
 	    a0 = partstr_line(n[X], n[Y], u0)
 	    a[i][j] = a0
+	}
+}
+
+function partstr_vof_ends(M, N, u, /**/ ends) {
+    const X = 0, Y = 1
+    var n, a, i, j;
+    var e = Array(4)
+    for (i = 0; i < M; i++)
+	for (j = 0; j < N; j++) {
+	    n = partstr_norm(i, j, u)
+	    a = partstr_line(n[X], n[Y], u)
+	    partstr_ends(n[X], n[Y], a, /**/ e)
+	    ends[i][j] = e
 	}
 }
 
