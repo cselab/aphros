@@ -190,12 +190,31 @@ function DrawLines(ee, u) {
             xb = base.x + (e[3]) * w
             yb = base.y + (e[2]) * w
 
-            ctx.strokeStyle = "#000000";
+            // unit normal
+            mx = yb - ya
+            my = -(xb - xa)
+            mm = Math.sqrt(mx * mx + my * my)
+            mx /= mm
+            my /= mm
+            // shift [px]
+            sh = 1
+            dx = sh * mx
+            dy = sh * my
+
+            ctx.strokeStyle = "#808080"
             ctx.beginPath();
-            ctx.moveTo(xa, ya)
-            ctx.lineTo(xb, yb)
-            ctx.closePath();
+            ctx.moveTo(xa + dx, ya + dy)
+            ctx.lineTo(xb + dx, yb + dy)
+            ctx.closePath()
             ctx.stroke()
+
+            ctx.strokeStyle = "#000000"
+            ctx.beginPath();
+            ctx.moveTo(xa - dx, ya - dy)
+            ctx.lineTo(xb - dx, yb - dy)
+            ctx.closePath()
+            ctx.stroke()
+
         }
     }
 }
