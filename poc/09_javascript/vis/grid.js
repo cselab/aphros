@@ -180,6 +180,18 @@ function DrawBar() {
     //ctx.fillRect(start.x-qh, start.y + dy-qh, q, q);
 }
 
+function GridToText(u, ny) {
+    var t = ""
+    for (var j = 0; j < ny; ++j) {
+        t += (j == 0 ? "" : "\n") + u[j].join(" ")
+    }
+    return t
+}
+
+function UpdateText(t) {
+  document.getElementById("myTextarea").value = t;
+}
+
 var onPaint = function() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -192,7 +204,11 @@ var onPaint = function() {
     if (mousepressed) {
         DrawBar()
     }
+
+    UpdateText(GridToText(u, ny))
 };
+
+
 
 ctx.lineWidth = 3;
 ctx.lineJoin = 'round';
