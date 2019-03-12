@@ -1,9 +1,9 @@
-S = ../../..
-PREFIX = ..
+S = ../../../..
+PREFIX = ../..
 
 include $S/make/js.mk
 
-M = partstr.js
+M = matrix.js
 NODE = node
 
 all: $M

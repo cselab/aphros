@@ -1,4 +1,4 @@
-D = partstr matrix
+D = lib0/partstr lib0/matrix
 T = vof_ends
 
 install:
