@@ -1,5 +1,5 @@
 D = lib0/partstr lib0/matrix
-T = vof_ends
+T = example/vof_ends
 
 install:
 	for d in $D; \

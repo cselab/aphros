@@ -1,3 +1,2 @@
 # TEST: ij
-(cd .. && make) 1>/dev/null
 node main.js data/ij  > main.out.txt
