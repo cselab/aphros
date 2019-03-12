@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -eu
+
+: ${o=neck}
+: ${x=0.5}
+: ${y=0.5}
+
+> $o
+
+for f in vf_*.dat ; do
+  echo $f
+  ./neck.py $f $x $y >> $o
+done
+
+
