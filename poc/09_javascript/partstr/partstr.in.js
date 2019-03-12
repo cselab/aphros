@@ -48,14 +48,19 @@ function partstr_vof_line(M, N, u, /**/ a) {
 
 function partstr_vof_ends(M, N, u, /**/ ends) {
     const X = 0, Y = 1
+    const AX = 0, AY = 1, BX = 2, BY = 3
+    const h = 1
     var n, a, i, j;
     var e = Array(4)
     for (i = 0; i < M; i++)
     for (j = 0; j < N; j++) {
         n = partstr_norm(i, j, u)
         a = partstr_line(n[X], n[Y], u)
+        process.stderr.write(`a: ${a}\n`)
         partstr_ends(n[X], n[Y], a, /**/ e)
-        ends[i][j] = e
+        e[AX] += i*h; e[AY] += j*h
+        e[BX] += i*h; e[BY] += j*h
+        ends[i][j] = e.slice()
     }
 }
 
