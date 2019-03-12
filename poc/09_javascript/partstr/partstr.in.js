@@ -5,9 +5,7 @@ function partstr_norm(i, j, u) {
     p = Array(2)
     nx = (u[i+1][j+1]+2*u[i+1][j]+u[i+1][j-1]-u[i-1][j+1]-2*u[i-1][j]-u[i-1][j-1])/8
     ny = (u[i+1][j+1]-u[i+1][j-1]+2*u[i][j+1]-2*u[i][j-1]+u[i-1][j+1]-u[i-1][j-1])/8
-    n =  -(Math.abs(nx) + Math.abs(ny))
-    if (n == 0)
-        throw new Error("n == 0")
+    n =  -(Math.abs(nx) + Math.abs(ny) + 1e-10)
     nx /= n
     ny /= n
     p[X] = nx

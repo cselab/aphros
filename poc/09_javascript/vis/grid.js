@@ -36,7 +36,7 @@ canvas.addEventListener('mouseout', function(e) {
 
 textarea.addEventListener('change', function(e) {
     UpdateGrid()
-    DrawGrid()
+    DrawGrid(u)
 }, false);
 
 
@@ -156,7 +156,7 @@ function IncCell() {
     u[j][i] = Clip(ustart[j][i] + du, 0., 1.);
 }
 
-function DrawGrid() {
+function DrawGrid(u) {
     for (var j = 0 ; j < ny; j++) {
         for (var i = 0 ; i < nx; i++) {
             x = base.x + i * w;
@@ -172,6 +172,27 @@ function DrawGrid() {
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText((u[j][i]).toFixed(2), x + w * 0.5, y + w * 0.5);
+        }
+    }
+}
+
+function DrawLines(ee) {
+    for (var j = 0 ; j < ny; j++) {
+        for (var i = 0 ; i < nx; i++) {
+            e = ee[i][j]
+            xq = nx
+            yq = ny
+            xa = base.x + (e[1]) * w
+            ya = base.y + (e[0]) * w
+            xb = base.x + (e[3]) * w
+            yb = base.y + (e[2]) * w
+
+            ctx.strokeStyle = "#000000";
+            ctx.beginPath();
+            ctx.moveTo(xa, ya)
+            ctx.lineTo(xb, yb)
+            ctx.closePath();
+            ctx.stroke()
         }
     }
 }
@@ -226,7 +247,12 @@ var onPaint = function() {
         IncCell()
     }
 
-    DrawGrid()
+    matrix_halo_zero(nx, ny, 2, u)
+    ends = matrix_new(nx, ny)
+    partstr_vof_ends(nx, ny, u, ends)
+
+    DrawGrid(u)
+    DrawLines(ends)
 
     if (mousepressed) {
         DrawBar()
