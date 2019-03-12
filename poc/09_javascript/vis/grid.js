@@ -57,8 +57,8 @@ function InitGrid(nx, ny) {
     for (var j = 0; j < ny; j++) {
         u[j] = [];
         for (var i = 0; i < nx; i++) {
-            u[j][i] = 1. / (sqr(i - (nx - 1) * 0.5) +
-                sqr(j - (ny - 1) * 0.5));
+            u[j][i] = 1. / (sqr(i - (nx - 1) * 0.5) * 1.1 +
+                sqr(j - (ny - 1) * 0.5) * 1.3 + 0.01);
             if (u[j][i] < 0.3) {
                 u[j][i] = 0.;
             }
@@ -176,9 +176,12 @@ function DrawGrid(u) {
     }
 }
 
-function DrawLines(ee) {
+function DrawLines(ee, u) {
     for (var j = 0 ; j < ny; j++) {
         for (var i = 0 ; i < nx; i++) {
+            if (u[j][i] <= 0 || u[j][i] >= 1) {
+                continue
+            }
             e = ee[i][j]
             xq = nx
             yq = ny
@@ -252,7 +255,7 @@ var onPaint = function() {
     partstr_vof_ends(nx, ny, u, ends)
 
     DrawGrid(u)
-    DrawLines(ends)
+    DrawLines(ends, u)
 
     if (mousepressed) {
         DrawBar()
