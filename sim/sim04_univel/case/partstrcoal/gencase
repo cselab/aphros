@@ -2,6 +2,8 @@
 
 set -eu
 
+eval "$@"
+
 : ${np=64}
 : ${nx=064}
 : ${r=0.01}
@@ -11,10 +13,22 @@ set -eu
 : ${ba=1}
 : ${ch=1}
 : ${suff=}
+: ${tmax=0.4}
+: ${wall=0}
+: ${La=40000}
 
-d="nx${nx}_ns${ns}_symm${symm}${suff}"
+d="nx${nx}_ns${ns}_symm${symm}${suff}_wall${wall}_tmax${tmax}"
 [ $ch == "1" ] && runch= || runch="echo > r_ch"
 [ $ba == "1" ] && runba= || runba="echo > r_ba"
+
+if [ "$wall" == "1" ] ; then
+  bcod=-0.5
+  bcor=1
+else
+  bcod=0
+  bcor=0
+fi
+
 
 echo $d
 mkdir $d
@@ -42,13 +56,16 @@ echo 1440 > tl
 # nfr=$nfr
 # ba=$ba
 # ch=$ch
+# tmax=$tmax
+# wall=$wall
+# La=$La
 
-./gen -nx $nx -np $np -mode osc -dim 3 -pos center\
-  -We 0 -La 40000 -tmax 0.4 -br 0.15\
-  -mu $r -rho $r \
-  -symmxy $symm -wallz 0 \
-  -bcod 0 0 0 -bcor 0 0 0 \
-  -b2xr 2 0 0 -b2rr 1 \
+./gen -nx $nx -np $np -mode osc -dim 3 -pos center \\
+  -We 0 -La $La -tmax $tmax -br 0.15 \\
+  -mu $r -rho $r \\
+  -symmxy $symm -wallz $wall \\
+  -bcod 0 0 $bcod -bcor 0 0 $bcor \\
+  -b2xr 2 0 0 -b2rr 1 \\
   -nb 2 -nfr $nfr 
 
 
