@@ -1,6 +1,6 @@
+#!/usr/bin/env node
 undivert(partstr.js)dnl
-changequote()
-
+changequote()dnl
 var stdout = process.stdout
 var stderr = process.stdout
 
@@ -8,10 +8,10 @@ const AX = 0, AY = 1, BX = 2, BY = 3
 var nx, ny, a
 var seg = Array(4)
 
-i = 2
-nx = parseFloat(process.argv[i++])
-ny = parseFloat(process.argv[i++])
-a  = parseFloat(process.argv[i++])
+var i = 2
+var nx = parseFloat(process.argv[i++])
+var ny = parseFloat(process.argv[i++])
+var u  = parseFloat(process.argv[i++])
 
-partstr_ends(nx, ny, a, seg)
-stdout.write(`${seg[AX]} ${seg[AY]} ${seg[BX]} ${seg[BY]}\n`)
+var a = partstr_line(nx, ny, u)
+stdout.write(`${a}\n`)
