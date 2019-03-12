@@ -99,7 +99,7 @@ function partstr_ends(nx, ny, a, /**/ e) {
 
     cross = (e[BY]-e[AY])*nx-(e[BX]-e[AX])*ny
     if (cross < 0) {
-        t = e[AX]; e[AX] = e[BX]; e[AX] = t
+        t = e[AX]; e[AX] = e[BX]; e[BX] = t
         t = e[AY]; e[AY] = e[BY]; e[BY] = t
     }
 }
