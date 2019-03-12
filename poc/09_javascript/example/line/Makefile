@@ -1,4 +1,4 @@
-S = ../../..
+S = ../../../..
 include $S/make/js.mk
 
 M = main.js
