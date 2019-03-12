@@ -179,7 +179,7 @@ function DrawGrid(u) {
 function DrawLines(ee, u) {
     for (var j = 0 ; j < ny; j++) {
         for (var i = 0 ; i < nx; i++) {
-            if (u[j][i] <= 0 || u[j][i] >= 1) {
+            if (u[i][j] <= 0 || u[i][j] >= 1) {
                 continue
             }
             e = ee[i][j]
