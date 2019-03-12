@@ -218,7 +218,10 @@ function DrawBar() {
 function GridToText(u, ny) {
     var t = ""
     for (var j = 0; j < ny; ++j) {
-        t += (j == 0 ? "" : "\n") + u[j].join(" ")
+        t += (j == 0 ? "" : "\n")
+        for (var i = 0; i < nx; ++i) {
+            t += (i == 0 ? "" : " ") + u[j][i]
+        }
     }
     return t
 }
