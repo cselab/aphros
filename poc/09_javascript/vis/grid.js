@@ -130,8 +130,8 @@ function DrawLines(ee, u) {
             yb = base.y + (e[2]) * w
 
             // unit normal
-            mx = yb - ya
-            my = -(xb - xa)
+            mx = -(yb - ya)
+            my = (xb - xa)
             mm = Math.sqrt(mx * mx + my * my)
             mx /= mm
             my /= mm
@@ -140,7 +140,7 @@ function DrawLines(ee, u) {
             dx = sh * mx
             dy = sh * my
 
-            ctx.strokeStyle = "#808080"
+            ctx.strokeStyle = "#ffffff"
             ctx.beginPath();
             ctx.moveTo(xa + dx, ya + dy)
             ctx.lineTo(xb + dx, yb + dy)

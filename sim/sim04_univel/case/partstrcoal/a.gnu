@@ -3,7 +3,7 @@
 set macros
 reset
 
-set terminal pdfcairo color font "Helvetica,14" size 3.2,2.2 noenhanced
+set terminal pdfcairo color font "Helvetica,14" size 3.2,2.2 enhanced
 
 c0='#1f77b4'
 c1='#ff7f0e'
@@ -29,14 +29,19 @@ set style line 3 lt 3 pt 8 ps 0.5 pi 10
 set style line 4 lt 4 pt 2 ps 0.5 pi 10
 set style line 5 lt 5 pt 2 ps 0.5 pi 10
 
+set style line 11 lt 1 pt 6 ps 0.5 pi 10 dt 2
+set style line 12 lt 2 pt 4 ps 0.5 pi 10 dt 2
+set style line 13 lt 3 pt 8 ps 0.5 pi 10 dt 2
+
 set key bottom
 
-set output "a.pdf"
 
 # frame index to simulation time
 sim = 0.01
 # bubble radius
 r = 0.15
+
+unset key
 
 set xrange [0:0.4]
 
@@ -45,18 +50,40 @@ set ytics 0.2
 
 #ll = system("ls -d *symm1* | grep -v rho3k")
 #ll = system("echo nx512*symm1*")
-ll = system("echo nx{064,128,256,512}*symm1")
-tt = "64 128 256 512 1024"
+llc = system("echo nx{064,128,256}*symm1/ch/neck")
+llb = system("echo nx{064,128,256}*symm1/ba/neck")
 
-sf = "/ch/neck"
 
-plot \
-"ref/rnexp" w p pt 7 ps 0.1 lc "black" t 'exp' , \
-"ref/rn" w l lc "black" t 'BI' , \
-  for [i=1:words(ll)] word(ll,i).sf u ($0*sim):(($2-0.5)/r) w lp ls i t word(tt,i)
+tt = "64 128 256"
+
+set xlabel "t / T"
+set ylabel "r_n"
+
+sf = ""
+
+#llc = system("echo nx{064,128,256}*symm1/ch/neck")
+#llb = system("echo nx{064,128,256}*symm1/ba/neck")
+
+#ttc = llc
+#ttb = llb
+
+m='plot \
+"ref/rnexp" w p pt 7 ps 0.1 lc "black" t "exp" , \
+"ref/rn" w l lc "black" t "BI" , \
+  for [i=1:words(ll)] word(ll,i).sf u ($0*sim):(($2-0.5)/r) w lp ls i t word(tt,i)'
+
+
+set output "rnch.pdf"
+ll = llc
+@m ;
+
+set output "rnba.pdf"
+ll = llb
+@m ;
+
+exit
 
 set output "b.pdf"
-
 set yrange [1:2]
 plot \
   "ref/rnexp" u 1:($2/$1**0.5) w p pt 7 ps 0.1 lc "black" t 'exp' , \
