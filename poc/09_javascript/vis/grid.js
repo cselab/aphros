@@ -154,6 +154,7 @@ function IncCell() {
     du = -F(Math.abs(dyn)) * Math.sign(dyn);
 
     u[j][i] = Clip(ustart[j][i] + du, 0., 1.);
+    return [dy, dym, dyp]
 }
 
 function DrawGrid(u) {
@@ -248,7 +249,7 @@ function DrawString(pp) {
     ctx.closePath();
 }
 
-function DrawBar() {
+function DrawBar(dy, dym, dyp) {
     q = 8
     qh = q / 2
     qq = q / 2
@@ -308,13 +309,13 @@ var onPaint = function() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (mousepressed) {
-        IncCell()
+        dd = IncCell()
     }
 
     DrawAll()
 
     if (mousepressed) {
-        DrawBar()
+        DrawBar(dd[0], dd[1], dd[2])
     }
 
     UpdateText(GridToText(u, ny))
