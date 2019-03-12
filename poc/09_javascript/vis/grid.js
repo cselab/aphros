@@ -1,45 +1,3 @@
-
-var canvas = document.getElementById('myCanvas');
-var ctx = canvas.getContext('2d');
-
-var painting = document.getElementById('paint');
-var paint_style = getComputedStyle(painting);
-canvas.width = parseInt(paint_style.getPropertyValue('width'));
-canvas.height = parseInt(paint_style.getPropertyValue('height'));
-
-var mouse = {x: 0, y: 0};
-var base = {x: 100, y: 100}
-var mousepressed = false
-var w = 60;   // block size
-
-var textarea = document.getElementById("myTextarea");
-
-mouse.x = base.x
-mouse.y = base.y
-
-canvas.addEventListener('mousemove', function(e) {
-    mouse.x = e.pageX - this.offsetLeft;
-    mouse.y = e.pageY - this.offsetTop;
-}, false);
-
-canvas.addEventListener('mousedown', function(e) {
-    mousepressed = true
-}, false);
-
-canvas.addEventListener('mouseup', function(e) {
-    mousepressed = false
-}, false);
-
-canvas.addEventListener('mouseout', function(e) {
-    mousepressed = false
-}, false);
-
-textarea.addEventListener('change', function(e) {
-    UpdateGrid()
-    DrawAll()
-}, false);
-
-
 function Clip(a,l,h) {
     if (isFinite(a)) {
         return Math.min(Math.max(a, l), h);
@@ -81,26 +39,6 @@ function CopyGrid(nx, ny, us) {
 
     return u;
 }
-
-canvas.addEventListener('mousedown', function(e) {
-    start.x = mouse.x
-    start.y = mouse.y
-
-    ustart = CopyGrid(nx, ny, u);
-
-    onPaint()
-    canvas.addEventListener('mousemove', onPaint, false);
-}, false);
-
-canvas.addEventListener('mouseup', function() {
-    onPaint()
-    canvas.removeEventListener('mousemove', onPaint, false);
-}, false);
-
-canvas.addEventListener('mouseout', function() {
-    canvas.removeEventListener('mousemove', onPaint, false);
-}, false);
-
 
 function RGBToHex(r,g,b) {
     r = Clip(r, 0, 255);
@@ -215,7 +153,6 @@ function DrawLines(ee, u) {
             ctx.lineTo(xb - dx, yb - dy)
             ctx.closePath()
             ctx.stroke()
-
         }
     }
 }
@@ -276,7 +213,8 @@ function GridToText(u, ny) {
 }
 
 function TextToGrid(t, nx, ny, /**/ u) {
-    var v = t.split("\n").join(" ").split(" ")
+    t = t.replace(/\s+/g, " ")
+    var v = t.split(" ")
     m = 0
     for (var j = 0; j < ny; j++) {
         for (var i = 0; i < nx; i++) {
@@ -305,8 +243,12 @@ function DrawAll() {
     DrawString([[0.3, 0.4], [1, 1], [2, 2], [3, 2.5]])
 }
 
-var onPaint = function() {
+function Clear() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+var onPaint = function() {
+    Clear()
 
     if (mousepressed) {
         dd = IncCell()
@@ -322,13 +264,91 @@ var onPaint = function() {
 };
 
 
+// Parameters
+var w = 60;   // block size
+var nx = 5
+var ny = 5
+var base = {x: 50, y: 200}
+
+var canvas = document.getElementById('myCanvas');
+
+canvas.width = nx * w + base.x * 2
+canvas.height = ny * w + base.y * 2
+canvas.style.width = canvas.width.toString() + "px"
+canvas.style.height = canvas.height.toString() + "px"
+
+
+var ctx = canvas.getContext('2d');
+
 ctx.lineWidth = 3;
-ctx.lineJoin = 'round';
-ctx.lineCap = 'round';
-ctx.strokeStyle = '#505050';
-var nx = 5;
-var ny = 5;
+ctx.lineJoin = 'round'
+ctx.lineCap = 'round'
+ctx.strokeStyle = '#505050'
+
+var mouse = {x: 0, y: 0}
+var start = {x: 0, y: 0}
+var mousepressed = false
+
+mouse.x = base.x
+mouse.y = base.y
+start.x = base.x
+start.y = base.y
+
+var painting = document.getElementById('paint');
+var paint_style = getComputedStyle(painting);
+
+var textarea = document.getElementById("myTextarea");
+
+canvas.addEventListener('mousemove', function(e) {
+    mouse.x = e.pageX - this.offsetLeft;
+    mouse.y = e.pageY - this.offsetTop;
+}, false);
+
+canvas.addEventListener('touchmove', function(e) {
+    x = e.touches[0].pageX - this.offsetLeft;
+    y = e.touches[0].pageY - this.offsetTop;
+    ctx.fillStyle = "green"
+    ctx.fillRect(x, y, w, w);
+}, false);
+
+canvas.addEventListener('mousedown', function(e) {
+    mousepressed = true
+}, false);
+
+canvas.addEventListener('mouseup', function(e) {
+    mousepressed = false
+}, false);
+
+canvas.addEventListener('mouseout', function(e) {
+    mousepressed = false
+}, false);
+
+canvas.addEventListener('mousedown', function(e) {
+    start.x = mouse.x
+    start.y = mouse.y
+
+    ustart = CopyGrid(nx, ny, u);
+
+    onPaint()
+    canvas.addEventListener('mousemove', onPaint, false);
+}, false);
+
+canvas.addEventListener('mouseup', function() {
+    onPaint()
+    canvas.removeEventListener('mousemove', onPaint, false);
+}, false);
+
+canvas.addEventListener('mouseout', function() {
+    canvas.removeEventListener('mousemove', onPaint, false);
+}, false);
+
+textarea.addEventListener('change', function(e) {
+    UpdateGrid()
+    Clear()
+    DrawAll()
+}, false);
+
+
 u = InitGrid(nx, ny);
 ustart = CopyGrid(nx, ny, u);
-var start = {x: 0, y: 0};
 onPaint();
