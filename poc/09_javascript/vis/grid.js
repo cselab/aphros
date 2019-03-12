@@ -36,7 +36,7 @@ canvas.addEventListener('mouseout', function(e) {
 
 textarea.addEventListener('change', function(e) {
     UpdateGrid()
-    DrawGrid(u)
+    DrawAll()
 }, false);
 
 
@@ -246,6 +246,15 @@ function UpdateGrid() {
     TextToGrid(t, nx, ny, u)
 }
 
+function DrawAll() {
+    matrix_halo_zero(nx, ny, 2, u)
+    ends = matrix_new(nx, ny)
+    partstr_vof_ends(nx, ny, u, ends)
+
+    DrawGrid(u)
+    DrawLines(ends, u)
+}
+
 var onPaint = function() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -253,12 +262,7 @@ var onPaint = function() {
         IncCell()
     }
 
-    matrix_halo_zero(nx, ny, 2, u)
-    ends = matrix_new(nx, ny)
-    partstr_vof_ends(nx, ny, u, ends)
-
-    DrawGrid(u)
-    DrawLines(ends, u)
+    DrawAll()
 
     if (mousepressed) {
         DrawBar()
