@@ -200,3 +200,24 @@ function partstr_shsegcirc(k, a, b, x) {
     s = sc*partstr_segcirc(k, mdc, dc);
     return [x[X] + s*v, x[Y] - s*u]
 }
+
+function partstr_nearest(a, b, x) {
+    const X = 0, Y = 1
+    var u, v, p, q, k, g
+
+    u = b[X] - a[X]
+    v = b[Y] - a[Y]
+
+    p = x[X] - a[X]
+    q = x[Y] - a[Y]
+
+    k = u*p + v*q
+    g = u**2 + v**2
+    if (g > 0)
+        k /= g
+
+    if (k < 0) k = 0
+    if (k > 1) k = 1
+
+    return [a[X] + k*u, a[Y] + k*v]
+}
