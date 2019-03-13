@@ -60,13 +60,16 @@ m='plot \
 "ref/rn" w l lc "black" t "BI" , \
   for [i=1:words(ll)] word(ll,i) u ($0*sim):(($2+shy)/r) w lp ls i t word(tt,i)'
 
+set xlabel "t / T"
+set ylabel "r_n"
 
 if (exists("wall")) {
   llc = system("echo wall/*/ch/neck")
   tt = system("for f in ".llc." ; do g=${f%ns*ch/*} ; echo ${g#wall/nx} ; done")
   set key
   set xrange [0:5]
-  unset xtics
+  set xtics auto
+  set ytics auto
   set style line 1 lt 1 pt 7 ps 0.5 pi 50
   set style line 2 lt 2 pt 5 ps 0.5 pi 50
   set style line 3 lt 3 pt 8 ps 0.5 pi 50
@@ -75,12 +78,7 @@ if (exists("wall")) {
   for [i=1:words(ll)] word(ll,i) u ($0*sim):(($2+shy)/r) w lp ls i t word(tt,i) , \
   for [i=1:words(ll)] word(ll,i) u ($0*sim):(($1+shy)/r) w lp ls i t "" , \
     '
-
 }
-
-set xlabel "t / T"
-set ylabel "r_n"
-
 
 set output "rnch.pdf"
 ll = llc
