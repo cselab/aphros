@@ -1,6 +1,6 @@
 changequote()dnl
 function partstr_norm(i, j, u) {
-    var nx, ny, n
+    var nx, ny, n, p
     var X = 0, Y = 1
     p = Array(2)
     nx = (u[i+1][j+1]+2*u[i+1][j]+u[i+1][j-1]-u[i-1][j+1]-2*u[i-1][j]-u[i-1][j-1])/8
@@ -37,6 +37,7 @@ function partstr_line(nx, ny, u) {
 
 function partstr_vof_line(M, N, u, /**/ a) {
     const X = 0, Y = 1
+    var i, j
     var n, u0, a0
     for (i = 0; i < M; i++)
     for (j = 0; j < N; j++) {
@@ -66,8 +67,9 @@ function partstr_vof_ends(M, N, u, /**/ ends) {
 
 function partstr_ends(M, N, a, /**/ e) {
     const AX = 0, AY = 1, BX = 2, BY = 3
-    var x, y, u, v, h, cross, t
-    var h  = 0.5
+    const h  = 0.5
+    var x, y, u, v, cross, t
+    var j
 
     x = (a + h*N)/M
     y = (a + h*M)/N
@@ -106,7 +108,8 @@ function partstr_ends(M, N, a, /**/ e) {
 
 function partstr_cell_ends(M, N, m, n, /**/ ends) {
     const s = 1
-    var e, ans, k
+    var e, ans, k, Seen
+    Seen = false
     ans = Array(); k = 1
     for (i = m - s; i < m + s + 1; i++) {
 	if (i <  0) continue
@@ -115,12 +118,16 @@ function partstr_cell_ends(M, N, m, n, /**/ ends) {
 	    if (j <  0) continue
 	    if (j >= N) continue
 	    e = ends[i][j]
-	    if (i == n && j == m)
+	    if (i == m && j == n) {
+		Seen = true
 		ans[0] = e
-	    else
+	    } else
 		ans[k++] = e
 	}
     }
+    if (!Seen)
+	throw new Error(
+	    `have not seen ends[${m}][${n}], M = ${M}, N = ${N}\n`)
     return ans
 }
 
