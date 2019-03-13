@@ -106,7 +106,7 @@ function partstr_ends(M, N, a, /**/ e) {
     }
 }
 
-function partstr_cell_ends(M, N, m, n, /**/ ends) {
+function partstr_cell_ends(M, N, m, n, ends) {
     const s = 1
     var e, ans, i, j, k, Seen
     Seen = false
@@ -222,6 +222,23 @@ function partstr_nearest(a, b, x) {
     return [a[X] + k*u, a[Y] + k*v]
 }
 
-function partstr_nearest_ends(ends, x, k) {
-
+function partstr_nearest_ends(n, ends, x, k) {
+    const X = 0, Y = 2
+    const AX = 0, AY = 1, BX = 2, BY = 3
+    var i, a, b, e, y, d
+    var m, j
+    a = Array(2); b = Array(2)
+    for (i = 0; i < n; i++) {
+        e = ends[i]
+        a[X] = e[AX]; a[Y] = e[AY]
+        b[X] = e[BX]; b[Y] = e[BY]
+        y = partstr_nearest(a, b, x)
+        d = (x[X] - y[X])**2 + (x[Y] - y[Y])**2
+        if (i == 0 || d > m) {
+            j = i
+            m = d
+        }
+    }
+    y = partstr_shsegcirc(k, a, b, y)
+    return y
 }
