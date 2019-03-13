@@ -1,0 +1,12 @@
+Norm(a):= sqrt(a . a);
+Dist(a, b):=Norm(a - b);
+Dot(a, b):=a . b;
+
+x1: [b[X], b[Y]];
+x0: [a[X], a[Y]];
+x:  ['x[X], x[Y]];
+
+d: x1 - x0
+k: Dot(d, x - x0) / Dot(d, d)
+
+subst(u = b[X] - a[X], k);
