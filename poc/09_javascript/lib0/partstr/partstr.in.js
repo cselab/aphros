@@ -64,16 +64,16 @@ function partstr_vof_ends(M, N, u, /**/ ends) {
     }
 }
 
-function partstr_ends(nx, ny, a, /**/ e) {
+function partstr_ends(M, N, a, /**/ e) {
     const AX = 0, AY = 1, BX = 2, BY = 3
     var x, y, u, v, h, cross, t
     var h  = 0.5
 
-    x = (a + h*ny)/nx
-    y = (a + h*nx)/ny
+    x = (a + h*N)/M
+    y = (a + h*M)/N
 
-    u = (a - h*ny)/nx
-    v = (a - h*nx)/ny
+    u = (a - h*N)/M
+    v = (a - h*M)/N
 
     e[0] = e[1] = e[2] = e[3] = 0
     j = 0
@@ -97,7 +97,7 @@ function partstr_ends(nx, ny, a, /**/ e) {
         e[2*j] = e[0]; e[2*j + 1] = e[1]
     }
 
-    cross = (e[BY]-e[AY])*nx-(e[BX]-e[AX])*ny
+    cross = (e[BY]-e[AY])*M-(e[BX]-e[AX])*N
     if (cross < 0) {
         t = e[AX]; e[AX] = e[BX]; e[BX] = t
         t = e[AY]; e[AY] = e[BY]; e[BY] = t
