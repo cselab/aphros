@@ -140,3 +140,13 @@ function partstr_ends_write(stream, ends) {
 function partstr_ends_read(stream) {
     return matrix_read(stream, n, 4, ends)
 }
+
+function partstr_part(h, p, a, t) {
+    var n, j, k
+    n = 2*h + 1
+    xx = Array(n)
+    xx[h] = p.slice()
+    for (j = 0; j < h; j++) {
+	
+    }
+}
