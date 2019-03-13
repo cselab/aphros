@@ -13,4 +13,6 @@ var t = parseFloat(process.argv[k++])
 
 var p = [0, 0]
 
-partstr_part(nh, hp, p, a, t)
+var xx = partstr_part(nh, hp, p, a, t)
+var M = xx.length
+matrix_write(stdout, M, 2, xx)
