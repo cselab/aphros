@@ -8,6 +8,8 @@ def Exp():
 
   # bubble diameter
   d = 600e-6
+  # bubble radius
+  r = d * 0.5
   # surface tension
   sigma = 58.7e-3
   # liquid density
@@ -15,7 +17,7 @@ def Exp():
   # viscosity
   mu = 0.964e-3
   # capillary time (from partstr)
-  T = (rho1 * d ** 3 / sigma) ** 0.5
+  T = (rho1 * r ** 3 / sigma) ** 0.5
   # Ohnesorge number
   Oh = mu / (rho1 * d * sigma) ** 0.5
   # time between snaphots (a-o)
