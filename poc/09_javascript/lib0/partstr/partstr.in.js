@@ -257,3 +257,13 @@ function partstr_nearest_ends(n, ends, x, k) {
     y = partstr_shsegcirc(k, a, b, y)
     return y
 }
+
+function partstr_force(ne, ends, np, xx, k, eta, /**/ ff) {
+    const X = 0, Y = 1
+    var i, x, y
+    for (i = 0; i < np; i++) {
+        x = xx[i]
+        y = partstr_nearest_ends(ne, ends, x, k)
+        ff[i] = [ eta*(y[X] - x[X]), eta*(y[Y] - x[Y]) ]
+    }
+}
