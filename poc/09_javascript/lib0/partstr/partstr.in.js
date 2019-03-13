@@ -168,12 +168,13 @@ function partstr_segcirc(k, l, d) {
 	throw new Error(`t1=${t1} < 0, k=${k}, l=${l}, d=${d}\n`)
     if (t2 < 0)
 	throw new Error(`t2=${t2} < 0, k=${k}, l=${l}, d=${d}\n`)
-
     t1 = Math.sqrt(t1)
     t2 = Math.sqrt(t2)
-
     if (t1 + t2 === 0.0)
 	throw new Error(`t1 + t2 === 0, k=${k}, l=${l}, d=${d}\n`)
-
     return k*(l*l - d*d)/(t1 + t2)
+}
+
+function partstr_shsegcirc(k, x0, x1, x) {
+
 }
