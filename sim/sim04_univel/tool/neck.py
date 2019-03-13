@@ -29,15 +29,15 @@ pass 'header' to only print the output header''')
       '''fit circular arcs to the neck'''
 )
   p.add_argument('--plot', action='store_true', help=
-      '''create pdf named after DAT showing
+      '''create png named after DAT showing
 the slice y=Y with the field and circular arcs'''
 )
-  p.add_argument('--th', default=0.1, help=
+  p.add_argument('--th', type=float, default=0.1, help=
       '''threshold for the fitting error
       used for choosing the fitting range'''
 )
-  p.add_argument('--x', default=0.5, help="center of the neck is X*nz")
-  p.add_argument('--y', default=0.5, help="center of the neck Y*nz")
+  p.add_argument('--x', type=float, default=0.5, help="center of the neck is X*nz")
+  p.add_argument('--y', type=float, default=0.5, help="center of the neck Y*nz")
 
   return p.parse_args()
 
@@ -116,12 +116,11 @@ u = ReadExt(datafile)
 
 nz,ny,nx = u.shape[:3]
 
-assert 0 <= x and x <= nx / nz
-assert 0 <= y and y <= ny / nz
-
 # indices of neck center
 ix = int(x * (nz - 1))
 iy = int(y * (nz - 1))
+ix = np.clip(ix, 0, nx - 1)
+iy = np.clip(iy, 0, ny - 1)
 
 # column through neck center
 uz = u[:,iy,ix]
@@ -200,11 +199,10 @@ if args.fitcirc:
       r, i0, i1, zz = rr
       zz += (hh[i0:i1] - zz[i0:i1]).mean()
       e = (zz[i0:i1] -hh[i0:i1]).std()
-      print("w={:} e={:}".format(w, e))
       if e > th:
         break
       rrprev = rr
-    return rrprev
+    return rrprev if rrprev is not None else rr
 
 
   # height function upper (plus)
@@ -212,7 +210,7 @@ if args.fitcirc:
   r0 = -nx
   r, i0, i1, zz = FindRange(hhp, ix, args.th, r0)
   out['k0'] = -nz / r
-  out['cx0'] = ix / nz
+  out['cx0'] = float(ix) / nz
   out['cz0'] = zz[nx // 2] / nz
   rr0 = [i0, i1, zz]
 
@@ -221,7 +219,7 @@ if args.fitcirc:
   r0 = nx
   r, i0, i1, zz = FindRange(hhm, ix, args.th, r0)
   out['k1'] = nz / r
-  out['cx1'] = ix / nz
+  out['cx1'] = float(ix) / nz
   out['cz1'] = zz[nx // 2] / nz
   rr1 = [i0, i1, zz]
 
@@ -243,7 +241,7 @@ if args.plot:
     i0,i1,zz = rr1
     plt.plot(xx[i0:i1], zz[i0:i1])
 
-  o = os.path.splitext(os.path.basename(datafile))[0] + ".pdf"
+  o = os.path.splitext(os.path.basename(datafile))[0] + ".png"
   plt.savefig(o)
 
 
