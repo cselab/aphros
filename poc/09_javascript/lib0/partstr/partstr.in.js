@@ -131,17 +131,20 @@ function partstr_cell_ends(M, N, m, n, ends) {
     return ans
 }
 
+function partstr_ends_read(file) {
+    return matrix_read(file)
+}
+
 function partstr_ends_write(stream, ends) {
     var n
     n = e.length
     matrix_write(stream, n, 4, ends)
 }
 
-function partstr_ends_gnuplot_write(stream, ends) {
+function partstr_ends_gnuplot_write(stream, n, ends) {
     const AX = 0, AY = 1, BX = 2, BY = 3
     const X = 0, Y = 1
-    var n, i, e
-    n = ends.length
+    var i, e
     for (i = 0; i < n; i++) {
         e = ends[i]
         if (i > 0)
@@ -151,10 +154,6 @@ function partstr_ends_gnuplot_write(stream, ends) {
     }
 }
 
-
-function partstr_ends_read(stream) {
-    return matrix_read(stream, n, 4, ends)
-}
 
 function _E(a) { return [Math.cos(a), Math.sin(a)] }
 function _axpy(a, x, y,   /**/ b) {
@@ -240,7 +239,7 @@ function partstr_nearest(a, b, x) {
 function partstr_nearest_ends(n, ends, x, k) {
     const X = 0, Y = 1
     const AX = 0, AY = 1, BX = 2, BY = 3
-    var i, a, b, e, y, d
+    var i, a, b, e, y, z, d
     var m, j
     a = Array(2); b = Array(2)
     for (i = 0; i < n; i++) {
@@ -250,12 +249,12 @@ function partstr_nearest_ends(n, ends, x, k) {
         y = partstr_nearest(a, b, x)
         d = (x[X] - y[X])**2 + (x[Y] - y[Y])**2
         if (i == 0 || d < m) {
-            j = i
             m = d
+            j = i
+            z = partstr_shsegcirc(k, a, b, y)
         }
     }
-    y = partstr_shsegcirc(k, a, b, y)
-    return y
+    return z
 }
 
 function partstr_force(ne, ends, np, xx, k, eta, /**/ ff) {
@@ -266,10 +265,25 @@ function partstr_force(ne, ends, np, xx, k, eta, /**/ ff) {
     if (!Array.isArray(xx))
         throw new Error(`xx is not an array: ${xx}`)
     if (!Array.isArray(ff))
-        throw new Error(`xx is not an array: ${ff}`)
+        throw new Error(`ff is not an array: ${ff}`)
     for (i = 0; i < np; i++) {
         x = xx[i]
         y = partstr_nearest_ends(ne, ends, x, k)
-        ff[i] = [ eta*(y[X] - x[X]), eta*(y[Y] - x[Y]) ]
+        ff[i][X] = eta*(y[X] - x[X])
+        ff[i][Y] = eta*(y[Y] - x[Y])
+    }
+}
+
+function partstr_force_write(stream, n, xx, ff) {
+    const X = 0, Y = 1
+    var i, x, f
+    if (!Array.isArray(ff))
+        throw new Error(`xx is not an array: ${ff}`)
+    if (!Array.isArray(xx))
+        throw new Error(`ff is not an array: ${xx}`)
+
+    for (i = 0; i < n; i++) {
+        x = xx[i]; f = ff[i]
+        stream.write(`${x[X]} ${x[Y]} ${f[X]} ${f[Y]}\n`)
     }
 }

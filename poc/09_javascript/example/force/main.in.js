@@ -7,18 +7,24 @@ const X = 0, Y = 1
 const stdout = process.stdout
 const stderr = process.stderr
 const argv = process.argv
-var ax, ay, bx, by, xx, xy, y
-var k, ends, n, file
+var ename, pname, k, ends, xx, ne, np, eta, ff
 
 argv.shift(); argv.shift()
-file = argv.shift()
+
+ename = argv.shift()
+pname = argv.shift()
 k = parseFloat(argv.shift())
-xx = parseFloat(argv.shift())
-xy = parseFloat(argv.shift())
+ends = partstr_ends_read(ename)
+xx   = matrix_read(pname)
 
-ends = partstr_ends_read(file)
-n = ends.length
-y = partstr_nearest_ends(n, ends, [xx, xy], k)
+ne = ends.length
+np = xx.length
 
-stderr.write(`${y[X]} ${y[Y]}\n`)
-partstr_ends_gnuplot_write(stdout, ends)
+eta = 1
+ff = matrix_new(np, 2)
+partstr_force(ne, ends, np, xx, k, eta, /**/ ff)
+
+stderr.write(`ne = ${ne}\n`)
+
+//partstr_ends_gnuplot_write(stdout, ne, ends)
+partstr_force_write(stdout, np, xx, ff)
