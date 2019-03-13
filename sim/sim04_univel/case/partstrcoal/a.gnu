@@ -33,8 +33,6 @@ set style line 11 lt 1 pt 6 ps 0.5 pi 10 dt 2
 set style line 12 lt 2 pt 4 ps 0.5 pi 10 dt 2
 set style line 13 lt 3 pt 8 ps 0.5 pi 10 dt 2
 
-set key bottom
-
 
 # frame index to simulation time
 sim = 0.01
@@ -52,25 +50,36 @@ set ytics 0.2
 #ll = system("echo nx512*symm1*")
 llc = system("echo nx{064,128,256}*symm1/ch/neck")
 llb = system("echo nx{064,128,256}*symm1/ba/neck")
-
-
 tt = "64 128 256"
+# shift in y
+shy = -0.5
 
-set xlabel "t / T"
-set ylabel "r_n"
-
-sf = ""
-
-#llc = system("echo nx{064,128,256}*symm1/ch/neck")
-#llb = system("echo nx{064,128,256}*symm1/ba/neck")
-
-#ttc = llc
-#ttb = llb
 
 m='plot \
 "ref/rnexp" w p pt 7 ps 0.1 lc "black" t "exp" , \
 "ref/rn" w l lc "black" t "BI" , \
-  for [i=1:words(ll)] word(ll,i).sf u ($0*sim):(($2-0.5)/r) w lp ls i t word(tt,i)'
+  for [i=1:words(ll)] word(ll,i) u ($0*sim):(($2+shy)/r) w lp ls i t word(tt,i)'
+
+
+if (exists("wall")) {
+  llc = system("echo wall/*/ch/neck")
+  tt = system("for f in ".llc." ; do g=${f%ns*ch/*} ; echo ${g#wall/nx} ; done")
+  set key
+  set xrange [0:5]
+  unset xtics
+  set style line 1 lt 1 pt 7 ps 0.5 pi 50
+  set style line 2 lt 2 pt 5 ps 0.5 pi 50
+  set style line 3 lt 3 pt 8 ps 0.5 pi 50
+  shy = -r
+  m='plot \
+  for [i=1:words(ll)] word(ll,i) u ($0*sim):(($2+shy)/r) w lp ls i t word(tt,i) , \
+  for [i=1:words(ll)] word(ll,i) u ($0*sim):(($1+shy)/r) w lp ls i t "" , \
+    '
+
+}
+
+set xlabel "t / T"
+set ylabel "r_n"
 
 
 set output "rnch.pdf"
@@ -83,6 +92,7 @@ ll = llb
 
 exit
 
+# divided by t**0.5
 set output "b.pdf"
 set yrange [1:2]
 plot \
