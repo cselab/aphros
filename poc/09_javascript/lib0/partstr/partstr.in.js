@@ -223,7 +223,7 @@ function partstr_nearest(a, b, x) {
 }
 
 function partstr_nearest_ends(n, ends, x, k) {
-    const X = 0, Y = 2
+    const X = 0, Y = 1
     const AX = 0, AY = 1, BX = 2, BY = 3
     var i, a, b, e, y, d
     var m, j

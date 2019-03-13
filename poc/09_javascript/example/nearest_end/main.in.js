@@ -3,19 +3,21 @@ undivert(partstr.js)dnl
 undefine(shift)dnl
 changequote()
 
+const X = 0, Y = 1
 const stdout = process.stdout
 const stderr = process.stdout
 const argv = process.argv
+var ax, ay, bx, by, xx, xy, y
+var k, ends, n, file
 
 argv.shift(); argv.shift()
-var ax, ay, bx, by, xx, xy
-ax = parseFloat(argv.shift())
-ay = parseFloat(argv.shift())
-
-bx = parseFloat(argv.shift())
-by = parseFloat(argv.shift())
-
+file = argv.shift()
+k = parseFloat(argv.shift())
 xx = parseFloat(argv.shift())
 xy = parseFloat(argv.shift())
 
-stdout.write(`${ partstr_nearest([ax, ay], [bx, by], [xx, xy])}\n`)
+ends = partstr_ends_read(file)
+n = ends.length
+y = partstr_nearest_ends(n, ends, [xx, xy], k)
+
+stdout.write(`${y[X]} ${y[Y]}\n`)
