@@ -221,3 +221,7 @@ function partstr_nearest(a, b, x) {
 
     return [a[X] + k*u, a[Y] + k*v]
 }
+
+function partstr_nearest_ends(ends, x, k) {
+
+}
