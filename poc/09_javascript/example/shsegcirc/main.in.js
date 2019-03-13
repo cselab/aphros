@@ -17,4 +17,4 @@ var by = parseFloat(process.argv[j++])
 var xx = parseFloat(process.argv[j++])
 var xy = parseFloat(process.argv[j++])
 
-stdout.write(`${partstr_shsegcirc(k, [ax, ay], [bx, by], [xx, xy])}\n`)
+stdout.write(`${partstr_shsegcirc(k, [ax, ay], [bx, by], [xx, xy]o)}\n`)
