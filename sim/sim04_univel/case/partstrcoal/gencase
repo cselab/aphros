@@ -17,7 +17,7 @@ eval "$@"
 : ${wall=0}
 : ${La=40000}
 
-d="nx${nx}_ns${ns}_symm${symm}${suff}_wall${wall}_tmax${tmax}"
+d="nx${nx}_ns${ns}_symm${symm}_wall${wall}_tmax${tmax}${suff}"
 [ $ch == "1" ] && runch= || runch="echo > r_ch"
 [ $ba == "1" ] && runba= || runba="echo > r_ba"
 
