@@ -5,14 +5,9 @@ changequote()
 const stdout = process.stdout
 const stderr = process.stdout
 
-var k = 2, i, j, e
-var nh = parseInt(process.argv[k++])
-var hp = parseFloat(process.argv[k++])
-var a = parseFloat(process.argv[k++])
-var t = parseFloat(process.argv[k++])
+var j = 2, k, l, d
+var k = parseFloat(process.argv[j++])
+var l = parseFloat(process.argv[j++])
+var d = parseFloat(process.argv[j++])
 
-var p = [0, 0]
-
-var xx = partstr_part(nh, hp, p, a, t)
-var M = xx.length
-matrix_write(stdout, M, 2, xx)
+stdout.write(`${partstr_segcirc(k, l, d)}\n`)
