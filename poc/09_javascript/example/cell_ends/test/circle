@@ -1,0 +1,2 @@
+# TEST: circle
+node main.js data/circle 1 2 > main.out.txt
