@@ -1,0 +1,7 @@
+#!/bin/bash
+
+c=`./tile.py 2 1 sim.mp4 expw.mp4 tile.mp4`
+echo "$c"
+eval "$c"
+
+

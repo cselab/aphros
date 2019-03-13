@@ -63,6 +63,8 @@ m='plot \
 set xlabel "t / T"
 set ylabel "r_n"
 
+wall = 1
+
 if (exists("wall")) {
   llc = system("echo wall/*/ch/neck")
   tt = system("for f in ".llc." ; do g=${f%ns*ch/*} ; echo ${g#wall/nx} ; done")
@@ -78,11 +80,23 @@ if (exists("wall")) {
   for [i=1:words(ll)] word(ll,i) u ($0*sim):(($2+shy)/r) w lp ls i t word(tt,i) , \
   for [i=1:words(ll)] word(ll,i) u ($0*sim):(($1+shy)/r) w lp ls i t "" , \
     '
+
+  m2='plot \
+  for [i=1:words(ll)] word(ll,i) u ($0*sim):((0.5/column("k0"))/r) w lp ls i t word(tt,i) , \
+  for [i=1:words(ll)] word(ll,i) u ($0*sim):((0.5/column("k1"))/r) w lp ls i t "" , \
+    '
 }
 
 set output "rnch.pdf"
 ll = llc
 @m ;
+
+set xrange [0:0.33]
+set yrange [0:1.3]
+set output "rcch.pdf"
+set ytics 0.4
+ll = llc
+@m2 ;
 
 set output "rnba.pdf"
 ll = llb
