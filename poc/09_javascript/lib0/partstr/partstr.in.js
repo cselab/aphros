@@ -108,7 +108,7 @@ function partstr_ends(M, N, a, /**/ e) {
 
 function partstr_cell_ends(M, N, m, n, /**/ ends) {
     const s = 1
-    var e, ans, k, Seen
+    var e, ans, i, j, k, Seen
     Seen = false
     ans = Array(); k = 1
     for (i = m - s; i < m + s + 1; i++) {
