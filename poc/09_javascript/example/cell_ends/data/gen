@@ -1,0 +1,14 @@
+#!/usr/bin/awk -f
+
+BEGIN {
+    D = 5
+    print D, D
+    for (j = 0; j < D; j++) {
+        for (i = 0; i < D; i++) {
+            printf "%g ", 1/(sq(i-2.0) + 2*sq(j-2.0) + 1)
+        }
+        printf "\n"
+    }
+}
+
+function sq(x) { return x*x }

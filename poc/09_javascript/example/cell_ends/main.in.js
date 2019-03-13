@@ -7,7 +7,7 @@ const stdout = process.stdout
 const stderr = process.stdout
 const hl = 2
 
-var i = 2
+var i = 2, j, e
 var file = process.argv[i++]
 var u = matrix_read(file)
 var M = u.length
@@ -18,11 +18,16 @@ matrix_halo_zero(M, N, hl, u)
 var ends = matrix_new(M, N)
 partstr_vof_ends(M, N, u, ends)
 
-var i, j, eb
-for (i = 0; i < M; i++)
-    for (j = 0; j < M; j++) {
-        e = ends[i][j]
-        stdout.write(`${e[AX]} ${e[AY]}\n`)
-        stdout.write(`${e[BX]} ${e[BY]}\n`)
-        stdout.write("\n")
-    }
+i = 2, j = 2
+e = partstr_cell_ends(M, N, i, j, ends)
+
+/*
+n = e.length
+for (i = 0; i < 1; i++) {
+    f = e[i]
+    stdout.write(`${f[AX]} ${f[AY]}\n`)
+    stdout.write(`${f[BX]} ${f[BY]}\n`)
+    stdout.write("\n")
+    }*/
+
+partstr_ends_write(stdout, e)

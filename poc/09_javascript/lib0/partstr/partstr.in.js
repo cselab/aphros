@@ -105,13 +105,13 @@ function partstr_ends(M, N, a, /**/ e) {
 }
 
 function partstr_cell_ends(M, N, m, n, /**/ ends) {
-    const s = 2
+    const s = 1
     var e, ans, k
     ans = Array(); k = 1
-    for (i = m - s; i < m + s; i++) {
+    for (i = m - s; i < m + s + 1; i++) {
 	if (i <  0) continue
 	if (i >= M) continue
-	for (j = n - s; j < n + s; j++) {
+	for (j = n - s; j < n + s + 1; j++) {
 	    if (j <  0) continue
 	    if (j >= N) continue
 	    e = ends[i][j]
@@ -122,4 +122,14 @@ function partstr_cell_ends(M, N, m, n, /**/ ends) {
 	}
     }
     return ans
+}
+
+function partstr_ends_write(stream, ends) {
+    var n
+    n = e.length
+    matrix_write(stream, n, 4, ends)
+}
+
+function partstr_ends_read(stream) {
+    return matrix_read(stream, n, 4, ends)
 }
