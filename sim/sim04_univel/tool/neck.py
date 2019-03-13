@@ -3,11 +3,11 @@
 """
 Measure the size and curvature of the coalescence neck.
 STDOUT:
-  z0 z1 [k0 x0 t1 k1 x1 y1]
+  z0 z1 [k0 cx0 cz0 k1 cx1 cz1]
 where (length measured in fractions of nz)
 z0,z1: range of the neck
 k0,k1: curvature of the circular arcs
-x0,y0,x1,y1: centers of the circular arcs
+cx0,cz0,cx1,cz1: centers of the circular arcs
 """
 
 import numpy as np
@@ -101,11 +101,13 @@ fitcirc = args.fitcirc
 
 header = ['z0', 'z1']
 if fitcirc:
-  header += ['k0', 'x0', 'y0', 'k1', 'x1', 'y1']
+  header += ['k0', 'cx0', 'cz0', 'k1', 'cx1', 'cz1']
 
 if args.header:
   print(" ".join(header))
   exit()
+
+assert os.path.isfile(datafile), "file '%r' not found" % datafile
 
 # output data
 out = dict()
@@ -141,18 +143,18 @@ out['z0'] = z0
 out['z1'] = z1
 
 
+# slice y=Y
+uxz = u[:,iy,:]
+
+
 if args.fitcirc:
   import scipy.optimize as opt
-
-  # slice y=Y
-  uxz = u[:,iy,:]
-
   # circular arc
   def F(x, r):
     h = (np.maximum(1 - (x / r) ** 2, 0)) ** 0.5
     return (h - 1.) * r
 
-  def GetX():
+  def GetX(nx):
     return np.arange(nx)
 
   # Fits circle to height by minimizing the variance.
@@ -168,15 +170,15 @@ if args.fitcirc:
     nx = hh.shape[0]
     xx = GetX(nx)
     i0 = max(0, ix - w)
-    i1 = min(n, ix + w + 1)
+    i1 = min(nx, ix + w + 1)
     # height from the circle
-    def F(r):
-      zz = F(xx[i0:i1] - ix, r)
+    def H(r):
+      return F(xx[i0:i1] - ix, r)
     # variance
     def E(r):
-      return (F(r) - hh[i0:i1]).var()
+      return (H(r) - hh[i0:i1]).var()
     a = opt.minimize(E, r0)
-    r = a.x
+    r = a.x[0]
     return r, i0, i1, F(xx - ix, r)
 
   # Finds maximum range for fitting circles
@@ -184,48 +186,44 @@ if args.fitcirc:
   # hh: height along x, shape (nx)
   # ix: index of center
   # th: threshold for maximum error
+  # r0: initial radius
   # Returns:
   # r: optimal radius
-  # w: fitting range half-width
-  # i0,i1: fitting range
+  # i0,i1: fitting range, [ix-w,ix+w]
   # zz: height from the circle, shape (nx)
-  def FindRange(hh, th):
+  def FindRange(hh, ix, th, r0):
     nx = hh.shape[0]
     xx = GetX(nx)
+    rrprev = None
     for w in range(1,nx//2):
-      r, i0, i1, zz = FitR(hh, ix, w, -nx)
+      rr = FitR(hh, ix, w, r0)
+      r, i0, i1, zz = rr
       zz += (hh[i0:i1] - zz[i0:i1]).mean()
       e = (zz[i0:i1] -hh[i0:i1]).std()
       print("w={:} e={:}".format(w, e))
       if e > th:
         break
-      return
+      rrprev = rr
+    return rrprev
 
-  out['k0'] =
+
   # height function upper (plus)
   hhp = izc + uxz[izc:,:].sum(axis=0)
+  r0 = -nx
+  r, i0, i1, zz = FindRange(hhp, ix, args.th, r0)
+  out['k0'] = -nz / r
+  out['cx0'] = ix / nz
+  out['cz0'] = zz[nx // 2] / nz
+  rr0 = [i0, i1, zz]
 
   # height function lower (minus)
   hhm = izc - uxz[:izc,:].sum(axis=0)
-
-
-  # threshold for std
-  th = 0.1
-  for w in range(1,30):
-    r, i0, i1 = FitR(hhm, ix, w, nx)
-    zz = F(xx - ix, r)
-    zz += (hhm[i0:i1] - zz[i0:i1]).mean()
-    e = (zz[i0:i1] - hhm[i0:i1]).std()
-    print("w={:} e={:}".format(w, e))
-    if e > th:
-      break
-
-
-
-o = os.path.splitext(os.path.basename(f))[0] + ".pdf"
-plt.savefig(o)
-
-print("{:} {:}".format(z0, z1))
+  r0 = nx
+  r, i0, i1, zz = FindRange(hhm, ix, args.th, r0)
+  out['k1'] = nz / r
+  out['cx1'] = ix / nz
+  out['cz1'] = zz[nx // 2] / nz
+  rr1 = [i0, i1, zz]
 
 if args.plot:
   import matplotlib
@@ -233,9 +231,22 @@ if args.plot:
   import matplotlib.pyplot as plt
 
   plt.imshow(np.flipud(uxz), extent=(0, nx, 0, nz),
-      cmap=plt.get_cmap('Blues'))
+      cmap=plt.get_cmap('gray_r'), alpha=0.5)
   plt.xlim(0, nx)
 
-  plt.plot(xx[i0:i1], zz[i0:i1])
+  if args.fitcirc:
+    xx = GetX(nx)
 
-  plt.plot(xx[i0:i1], zz[i0:i1])
+    i0,i1,zz = rr0
+    plt.plot(xx[i0:i1], zz[i0:i1])
+
+    i0,i1,zz = rr1
+    plt.plot(xx[i0:i1], zz[i0:i1])
+
+  o = os.path.splitext(os.path.basename(datafile))[0] + ".pdf"
+  plt.savefig(o)
+
+
+# output
+print(" ".join([str(out[h]) for h in header]))
+
