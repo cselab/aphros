@@ -141,12 +141,22 @@ function partstr_ends_read(stream) {
     return matrix_read(stream, n, 4, ends)
 }
 
-function partstr_part(h, p, a, t) {
-    var n, j, k
-    n = 2*h + 1
-    xx = Array(n)
-    xx[h] = p.slice()
-    for (j = 0; j < h; j++) {
-	
+function _E(a) { return [Math.cos(a), Math.sin(a)] }
+function _axpy(a, x, y,   /**/ b) {
+    const X = 0, Y = 1
+    b[X] = a*x[X] + y[X]
+    b[Y] = a*x[Y] + y[Y]
+}
+function partstr_part(nh, hp, p, a, t) {
+    var n, j, jp
+    n = 2*nh + 1
+    xx = matrix_new(n, 2)
+    xx[nh] = p.slice()
+    for (j = 0; j < nh; j++) {
+	jp = j + 0.5
+	process.stderr.write(`${a} ${t} ${jp} ${_E(a + t*jp)}\n`)
+	_axpy(hp, _E(a + t*jp), xx[nh + j], /**/ xx[nh + j + 1])
+	_axpy(hp, _E(a - t*jp), xx[nh - j], /**/ xx[nh - j - 1])
     }
+    process.stderr.write(`${xx}\n`)
 }
