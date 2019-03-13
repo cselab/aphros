@@ -5,7 +5,7 @@ changequote()
 
 const X = 0, Y = 1
 const stdout = process.stdout
-const stderr = process.stdout
+const stderr = process.stderr
 const argv = process.argv
 var ax, ay, bx, by, xx, xy, y
 var k, ends, n, file
@@ -20,4 +20,5 @@ ends = partstr_ends_read(file)
 n = ends.length
 y = partstr_nearest_ends(n, ends, [xx, xy], k)
 
-stdout.write(`${y[X]} ${y[Y]}\n`)
+stderr.write(`${y[X]} ${y[Y]}\n`)
+//partstr_ends_gnuplot_write(stdout, ends)

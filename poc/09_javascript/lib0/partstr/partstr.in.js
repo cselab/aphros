@@ -137,6 +137,21 @@ function partstr_ends_write(stream, ends) {
     matrix_write(stream, n, 4, ends)
 }
 
+function partstr_ends_gnuplot_write(stream, ends) {
+    const AX = 0, AY = 1, BX = 2, BY = 3
+    const X = 0, Y = 1
+    var n, i, e
+    n = ends.length
+    for (i = 0; i < n; i++) {
+        e = ends[i]
+        if (i > 0)
+            stream.write("\n")
+        stream.write(`${e[AX]} ${e[AY]}\n`)
+        stream.write(`${e[BX]} ${e[BY]}\n`)
+    }
+}
+
+
 function partstr_ends_read(stream) {
     return matrix_read(stream, n, 4, ends)
 }
@@ -234,7 +249,7 @@ function partstr_nearest_ends(n, ends, x, k) {
         b[X] = e[BX]; b[Y] = e[BY]
         y = partstr_nearest(a, b, x)
         d = (x[X] - y[X])**2 + (x[Y] - y[Y])**2
-        if (i == 0 || d > m) {
+        if (i == 0 || d < m) {
             j = i
             m = d
         }

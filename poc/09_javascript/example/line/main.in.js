@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 undivert(partstr.js)dnl
 changequote()dnl
-var stdout = process.stdout
-var stderr = process.stdout
+const stdout = process.stdout
+const stderr = process.stderr
 
 const AX = 0, AY = 1, BX = 2, BY = 3
 var nx, ny, a

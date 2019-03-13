@@ -3,7 +3,7 @@ undivert(partstr.js)dnl
 changequote()
 
 const stdout = process.stdout
-const stderr = process.stdout
+const stderr = process.stderr
 
 var k = 2, i, j, e
 var nh = parseInt(process.argv[k++])

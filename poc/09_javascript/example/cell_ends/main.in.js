@@ -4,7 +4,8 @@ changequote()
 
 const AX = 0, AY = 1, BX = 2, BY = 3
 const stdout = process.stdout
-const stderr = process.stdout
+const stderr = process.stderr
+
 const hl = 2
 
 var k = 2, i, j, e
