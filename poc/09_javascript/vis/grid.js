@@ -270,8 +270,8 @@ var ny = 5
 marx = 0.1  // x-margin relative to screen width
 maryb = 1  // y-margin relative to block size
 var wx = window.innerWidth
-            || document.documentElement.clientWidth
-            || document.body.clientWidth;
+    || document.documentElement.clientWidth
+    || document.body.clientWidth;
 wx = Math.min(wx, 1000)
 var w = (wx * (1. - marx * 2)) / nx;   // block size
 var base = {x: wx * marx , y: w * maryb} 
@@ -307,10 +307,10 @@ var textarea = document.getElementById("myTextarea");
 
 
 function addListenerMulti(element, eventNames, listener) {
-  var events = eventNames.split(' ');
-  for (var i=0, iLen=events.length; i<iLen; i++) {
-    element.addEventListener(events[i], listener, false);
-  }
+    var events = eventNames.split(' ');
+    for (var i=0, iLen=events.length; i<iLen; i++) {
+        element.addEventListener(events[i], listener, false);
+    }
 }
 
 addListenerMulti(canvas, 'mousemove mousestart', function(e) {
