@@ -1,0 +1,18 @@
+Norm(a):= sqrt(a . a);
+Dist(a, b):=Norm(a - b);
+
+(X: 1, Y: 2);
+
+x1: [a['X], a['Y]];
+x0: [b['X], b['Y]];
+x : [xx, yy];
+
+ld: x1 - x0
+ln: [ld[Y], - ld[X]] / Norm(ld)
+xc: (x0 + x1)/2;
+mdc: Dist(xc, x0);
+dc: Dist(xc, x);
+s: sc * SegCirc(k, mdc, dc);
+
+mdc^2;
+dc^2;

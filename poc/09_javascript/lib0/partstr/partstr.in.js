@@ -175,6 +175,28 @@ function partstr_segcirc(k, l, d) {
     return k*(l*l - d*d)/(t1 + t2)
 }
 
-function partstr_shsegcirc(k, x0, x1, x) {
+function partstr_shsegcirc(k, a, b, x) {
+    const X = 0, Y = 1
+    const sc = 1
+    var u, v, p, q, g, dc, mdc, s
+    u = b[X] - a[X]
+    v = b[Y] - a[Y]
+    p = 0.5*(b[X] + a[X]) - x[X]
+    q = 0.5*(b[Y] + a[Y]) - x[Y]
 
+    mdc = u**2 + v**2
+    mdc = Math.sqrt(mdc)/2.0
+
+    dc =  p**2 + q**2
+    dc = Math.sqrt(dc)
+
+    g = u**2 + v**2
+    if (g > 0) {
+        g = Math.sqrt(g)
+        u /= g
+        v /= g
+    }
+
+    s = sc*partstr_segcirc(k, mdc, dc);
+    return [x[X] + s*v, x[Y] - s*u]
 }
