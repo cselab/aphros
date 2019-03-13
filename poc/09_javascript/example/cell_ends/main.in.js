@@ -18,7 +18,5 @@ matrix_halo_zero(M, N, hl, u)
 var ends = matrix_new(M, N)
 
 partstr_vof_ends(M, N, u, ends)
-stdout.write(`${i} ${j}\n`)
-
 e = partstr_cell_ends(M, N, i, j, ends)
 partstr_ends_write(stdout, e)
