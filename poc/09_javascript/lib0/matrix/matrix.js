@@ -65,7 +65,7 @@ function matrix_lh_write(stream, m, n, M, N, a) {
 }
 
 function matrix_new(M, N) {
-    var i
+    var i, a
     a = new Array(M)
     for (i = 0; i < M; i++)
         a[i] = new Array(N)
@@ -73,7 +73,7 @@ function matrix_new(M, N) {
 }
 
 function matrix_zero(M, N) {
-    var i, j
+    var i, j, a
     a = matrix_new(M, N)
     for (i = 0; i < M; i++)
         for (j = 0; j < M; j++)
