@@ -1,3 +1,4 @@
+include(mh.m4)dnl
 undivert(lib.js)dnl
 undivert(matrix.js)dnl
 undivert(partstr.js)dnl

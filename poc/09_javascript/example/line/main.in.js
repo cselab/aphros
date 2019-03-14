@@ -1,6 +1,7 @@
-#!/usr/bin/env node
+include(mh.m4)dnl
 undivert(partstr.js)dnl
 changequote()dnl
+#!/usr/bin/env node
 const stdout = process.stdout
 const stderr = process.stderr
 
