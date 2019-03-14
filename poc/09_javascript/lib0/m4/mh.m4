@@ -19,21 +19,22 @@ mh_define(<[[mh_rename]]>,
 mh_define(<[[mh_rename_mh]]>,
 <[[mh_rename(<[[$1]]>, <[[mh_$1]]>)]]>)
 
-mh_rename_mh(<[[translit]]>)
 mh_rename_mh(<[[changequote]]>)
 mh_rename_mh(<[[errprint]]>)
-mh_rename_mh(<[[shift]]>)
-mh_rename_mh(<[[ifelse]]>)
-mh_rename_mh(<[[len]]>)
-mh_rename_mh(<[[pushdef]]>)
-mh_rename_mh(<[[popdef]]>)
-mh_rename_mh(<[[eval]]>)
-mh_rename_mh(<[[syscmd]]>)
 mh_rename_mh(<[[esycmd]]>)
+mh_rename_mh(<[[eval]]>)
+mh_rename_mh(<[[ifelse]]>)
+mh_rename_mh(<[[include]]>)
+mh_rename_mh(<[[len]]>)
+mh_rename_mh(<[[popdef]]>)
+mh_rename_mh(<[[pushdef]]>)
+mh_rename_mh(<[[shift]]>)
+mh_rename_mh(<[[syscmd]]>)
 mh_rename_mh(<[[sysval]]>)
 mh_rename_mh(<[[traceoff]]>)
 mh_rename_mh(<[[traceon]]>)
-mh_rename_mh(<[[include]]>)
+mh_rename_mh(<[[translit]]>)
+
 mh_copy(<[[m4exit]]>, <[[mh_exit]]>)
 
 mh_define(<[[mh_location]]>,
