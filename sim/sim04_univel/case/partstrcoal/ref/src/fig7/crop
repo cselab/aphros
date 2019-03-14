@@ -1,0 +1,6 @@
+#!/bin/bash
+
+p=10
+pdfseparate -f $p -l $p soto2018.pdf a.pdf
+pdfcrop --bbox  '80 485 260 640' a.pdf b.pdf
+
