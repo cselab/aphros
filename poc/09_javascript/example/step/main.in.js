@@ -17,7 +17,7 @@ p = [0.1, 0.2]
 nh = 2
 np = 2*nh + 1
 hp = 1.0
-eta = 1.0
+eta = 2.0
 
 ends = partstr_ends_read(ename)
 ne = ends.length
