@@ -8,7 +8,8 @@ set -eu
 
 t=neck.tmp
 
-./neck.py --header --fitcirc > $o
+a=`./neck.py --header --fitcirc`
+echo "i $a" > $o
 
 for f in vf_*.{h5,dat} ; do
   if [ -f $f ] ; then
@@ -20,7 +21,10 @@ for f in vf_*.{h5,dat} ; do
       ./neck.py $f --x $x --y $y --fitcirc --plot > $t
       mv $t $of
     fi
-    cat $of >> $o
+    # frame index from filename
+    i=${f#*_}
+    i=${i%.*}
+    echo "$i `cat $of`" >> $o
   fi
 done
 
