@@ -1,7 +1,7 @@
 include(mh.m4)dnl
+#!/usr/bin/node
 mh_include(matrix.js)dnl
 mh_include(partstr.js)dnl
-undefine(shift)dnl
 
 const X = 0, Y = 1
 const stdout = process.stdout

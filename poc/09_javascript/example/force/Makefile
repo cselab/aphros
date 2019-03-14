@@ -1,7 +1,7 @@
 S = ../../../..
 include $S/make/js.mk
 
-M = main.js
+M = main
 NODE = node
 
 M4FLAGS = -I../../lib

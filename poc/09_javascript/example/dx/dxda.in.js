@@ -7,7 +7,7 @@ const stderr = process.stderr
 const stdout = process.stdout
 function msg(s) { return stderr.write(s) }
 
-const nh = 2, hp = 1, a = 0.1, t = 0.3
+const nh = 2, hp = 3, a = 4, t = 5
 
 var n = 2*nh + 1
 
@@ -18,4 +18,4 @@ partstr_dxda(nh, hp, a, t, /**/ da)
 partstr_dxdt(nh, hp, a, t, /**/ dt)
 
 matrix_write(stdout, n, 2, da)
-matrix_write(stdout, n, 2, dt)
+//matrix_write(stdout, n, 2, dt)
