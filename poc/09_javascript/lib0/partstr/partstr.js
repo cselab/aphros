@@ -288,7 +288,7 @@ function partstr_force_write(stream, n, xx, ff) {
     }
 }
 
-function partstr_dxda(nh, a, t, /**/ xx) {
+function partstr_dxda(nh, hp, a, t, /**/ xx) {
     var n, j, jp, pi
     if (!Array.isArray(xx))
         throw new Error(`xx is not an array: ${xx}`)
@@ -302,7 +302,7 @@ function partstr_dxda(nh, a, t, /**/ xx) {
     }
 }
 
-function partstr_dxdt(nh, a, t, /**/ xx) {
+function partstr_dxdt(nh, hp, a, t, /**/ xx) {
     var n, j, jp, pi
     if (!Array.isArray(xx))
         throw new Error(`xx is not an array: ${xx}`)
