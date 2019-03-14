@@ -95,7 +95,7 @@ and `convsc`=`cd`,`quick`.
 check the influence of the `part_np` and `part_ns` in curvature estimator
 
 **What**:
-Free-flow coalescence of bubbles based on `sim04_univel`
+Free-field coalescence of bubbles based on `sim04_univel`
 
 **Result**
 
@@ -107,3 +107,21 @@ Free-flow coalescence of bubbles based on `sim04_univel`
 - `gen1_ns3_np5`: configuration
 - `nx064_ns?_np?.png`: shapes at `t=0.466` with `nx=64`
 - `nx128_ns2_np9.png`: shapes at `t=0.466` with `nx=128`
+
+# Number of iterations for coalescence
+
+**Goal**:
+check the influence of the `min_iter` and `tol` on bubble coalescence
+
+**What**:
+Free-field coalescence of bubbles based on `sim04_univel/case/partstrcoal`
+
+**Result**
+
+- negligible difference in trajectories between default and `min_iter=10`
+
+**Data**:
+[`log06_coalnp`](log06_coaliter)
+
+- `nx*iter*`: configuration, data, movie
+- `a.gnu`: gnuplot script
