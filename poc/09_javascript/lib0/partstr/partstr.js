@@ -294,7 +294,7 @@ function partstr_dxda(nh, hp, a, t, /**/ xx) {
     if (!Array.isArray(xx))
         throw new Error(`xx is not an array: ${xx}`)
     n = 2*nh + 1
-    pi = Math.PI    
+    pi = Math.PI
     xx[nh] = [0, 0]
     for (j = 0; j < nh; j++) {
         jp = j + 0.5
@@ -317,10 +317,56 @@ function partstr_dxdt(nh, hp, a, t, /**/ xx) {
     }
 }
 
-function partstr_curve(hp, t) {
-    return sqrt(2)/hp*Math.sin(t)/Math.sqrt(1.0 + Math.cos(t))
+function partstr_curv(hp, t) {
+    return Math.sqrt(2)/hp*Math.sin(t)/Math.sqrt(1.0 + Math.cos(t))
 }
 
-function partstr_step(eta, hp, ff, /*io*/ state) {
+function _minus(n, a, b, /**/ c) {
+    const X = 0, Y = 1
+    var i
+    for (i = 0; i < n; i++) {
+        c[i][X] = a[i][X] - b[i][X]
+        c[i][Y] = a[i][Y] - b[i][Y]
+    }
+}
+function _substr(n, a, b, /**/) {
+    const X = 0, Y = 1
+    var i
+    for (i = 0; i < n; i++) {
+        b[i][X] -= a[i][X]
+        b[i][Y] -= a[i][Y]
+    }
+}
+function _append(n, a, b, /**/) {
+    const X = 0, Y = 1
+    var i
+    for (i = 0; i < n; i++) {
+        b[i][X] += a[i][X]
+        b[i][Y] += a[i][Y]
+    }
+}
+function partstr_step(nh, ff, eta, hp, /*io*/ State) {
+    const X = 0, Y = 1
+    var p, a, t, x0, x1, f
+    p = State.p.slice()
+    a = State.a
+    t = State.t
+    f = ff[nh]
+    n = 2*nh + 1
     
+    x0 = matrix_new(n, 2) /**/
+    x1 = matrix_new(n, 2) /* todo */
+    dx = matrix_new(n, 2) /**/
+    
+    partstr_part(nh, hp, p, a, t, /**/ x0)
+    p[X] += f[X]
+    p[Y] += f[Y]
+
+    partstr_part(nh, hp, p, a, t, /**/ x1)
+    _minus(n, x1, x0, /**/ dx)
+    _substr(n, dx, /**/ ff)
+    _append(n, dx, /**/ x0)
+
+    _msg(`x0: ${x0}\n`)
+
 }
