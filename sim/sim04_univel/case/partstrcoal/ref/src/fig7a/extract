@@ -7,13 +7,12 @@ f = open("b.svg")
 
 d = ' '.join([s.strip() for s in f.readlines()])
 
-m = re.findall('translate\(([^,]+?),([^)]+?)\)">', d)
-print(m)
+m = re.findall('m (.+?),(.+?) ', d)
 
 xy = [[float(x), float(y)] for x,y in m]
 
 # size, left top corner
-rect = re.findall('width="([^"]*)" height="([^"]*)" x="([^"]*)" y="([^"]*)"', d)[0]
+rect = re.findall(' width="([^"]*)" height="([^"]*)" x="([^"]*)" y="([^"]*)"', d)[0]
 
 # rect
 rw,rh,rx,ry = map(float, rect)
