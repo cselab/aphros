@@ -242,9 +242,13 @@ function partstr_nearest_ends(n, ends, x, k) {
     const AX = 0, AY = 1, BX = 2, BY = 3
     var i, a, b, e, y, z, d
     var m, j
+    if (!Array.isArray(ends))
+        throw new Error(`ends is not an array: ${ends}`)
     a = Array(2); b = Array(2)
     for (i = 0; i < n; i++) {
         e = ends[i]
+        if (!Array.isArray(e))
+            throw new Error(`e is not an array: ${e}`)
         a[X] = e[AX]; a[Y] = e[AY]
         b[X] = e[BX]; b[Y] = e[BY]
         y = partstr_nearest(a, b, x)
