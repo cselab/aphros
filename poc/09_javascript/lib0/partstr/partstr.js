@@ -13,6 +13,7 @@ function _line(nx, ny, u) {
     else
         return ny * (u - 0.5)
 }
+function _msg(s) { return process.stderr.write(s) }
 /**/
 
 function partstr_norm(i, j, u) {
@@ -293,7 +294,7 @@ function partstr_dxda(nh, hp, a, t, /**/ xx) {
     if (!Array.isArray(xx))
         throw new Error(`xx is not an array: ${xx}`)
     n = 2*nh + 1
-    pi = Math.pi
+    pi = Math.PI    
     xx[nh] = [0, 0]
     for (j = 0; j < nh; j++) {
         jp = j + 0.5
@@ -307,11 +308,11 @@ function partstr_dxdt(nh, hp, a, t, /**/ xx) {
     if (!Array.isArray(xx))
         throw new Error(`xx is not an array: ${xx}`)
     n = 2*nh + 1
-    pi = Math.pi
+    pi = Math.PI
     xx[nh] = [0, 0]
     for (j = 0; j < nh; j++) {
         jp = j + 0.5
-        _axpy(hp, _E(a + t*jp + pi/2), xx[nh + j], /**/ xx[nh + j + 1])
-        _axpy(hp, _E(a - t*jp + pi/2), xx[nh - j], /**/ xx[nh - j - 1])
+        _axpy(hp*jp, _E(a + t*jp + pi/2), xx[nh + j], /**/ xx[nh + j + 1])
+        _axpy(hp*jp, _E(a - t*jp + pi/2), xx[nh - j], /**/ xx[nh - j - 1])
     }
 }

@@ -38,6 +38,8 @@ function matrix_read(file) {
 
 function matrix_write(stream, M, N, a) {
     var i, j
+    if (!Array.isArray(a))
+        throw new Error(`a is not an array: ${a}`)
     stream.write(`${M} ${N}\n`)
     for (i = 0; i < M; i++) {
         if (a[i] === void 0)
@@ -53,6 +55,8 @@ function matrix_write(stream, M, N, a) {
 
 function matrix_lh_write(stream, m, n, M, N, a) {
     var i, j
+    if (!Array.isArray(a))
+        throw new Error(`a is not an array: ${a}`)
     for (i = m; i < M; i++) {
         if (a[i] == void 0)
             throw new Error(`a[${i}] is undefined, M = ${M}, N = ${N}`)
