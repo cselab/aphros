@@ -14,7 +14,7 @@ should include line `include(mh.m4)dnl`.
     function Parstr(nh, hp, eta) {
 		n, nh, hp, eta, a0, t0, segmetns, [storage for particles]
 
-		this.start = function(ends, i, j, a, t) { }
+		this.start = function(a, t, ends, i, j) { }
 		this.step = function(n) { }
 		this.converge = function(nmax, eps) { }
 		this.eps = function() { }
