@@ -1,9 +1,9 @@
-D = lib0/partstr lib0/matrix lib0/m4
+D = lib0/m4 lib0/partstr lib0/matrix
 T = example/vof_ends example/cell_ends
 
 install:
 	for d in $D; \
-	do (cd "$$d" && $(MAKE) $(MAKECMDGOALS)); \
+	do (cd "$$d" && $(MAKE) install); \
 	done
 
 test:
