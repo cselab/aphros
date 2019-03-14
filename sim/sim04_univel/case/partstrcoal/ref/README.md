@@ -20,3 +20,11 @@ rho=1014.5
 capillary time: `tau=sqrt(rho*r**2/sigma)` = 0.683e-3
 
 (same in time.py)
+
+## rcdn
+
+dimensionless rc from Figure 7a
+
+## rcrn
+
+rc depending on rn from Figure 7b
