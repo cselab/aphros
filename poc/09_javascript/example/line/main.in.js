@@ -1,6 +1,5 @@
 include(mh.m4)dnl
-undivert(partstr.js)dnl
-changequote()dnl
+mh_include(partstr.js)dnl
 #!/usr/bin/env node
 const stdout = process.stdout
 const stderr = process.stderr

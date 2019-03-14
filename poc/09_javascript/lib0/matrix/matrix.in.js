@@ -1,4 +1,3 @@
-changequote()dnl
 function matrix_read(file) {
     var a, nr, NR, l, line, i, j, x, m
     var lines = require('fs').readFileSync(file, 'ascii')

@@ -1,8 +1,7 @@
 include(mh.m4)dnl
-undivert(lib.js)dnl
-undivert(matrix.js)dnl
-undivert(partstr.js)dnl
-changequote()
+mh_include(lib.js)dnl
+mh_include(matrix.js)dnl
+mh_include(partstr.js)dnl
 
 var stdout = process.stdout
 var n = 5

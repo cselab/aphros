@@ -1,4 +1,3 @@
-changequote()dnl
 function partstr_norm(i, j, u) {
     var nx, ny, n, p
     var X = 0, Y = 1

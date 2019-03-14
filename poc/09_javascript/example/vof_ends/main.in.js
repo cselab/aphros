@@ -1,7 +1,6 @@
 include(mh.m4)dnl
-undivert(matrix.js)dnl
-undivert(partstr.js)dnl
-changequote()
+mh_include(matrix.js)dnl
+mh_include(partstr.js)dnl
 
 const AX = 0, AY = 1, BX = 2, BY = 3
 const stdout = process.stdout
