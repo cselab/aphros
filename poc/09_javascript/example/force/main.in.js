@@ -1,5 +1,5 @@
 include(mh.m4)dnl
-#!/usr/bin/node
+#!/usr/bin/env node
 mh_include(matrix.js)dnl
 mh_include(partstr.js)dnl
 

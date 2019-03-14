@@ -357,7 +357,8 @@ function _dot(n, a, b) {
 }
 function partstr_step(nh, ff, eta, hp, /*io*/ State) {
     const X = 0, Y = 1
-    var p, a, t, x0, x1, f
+    var p, a, t, x0, x1, f, n, x0, x1, dx, dd
+
     p = State.p.slice()
     a = State.a
     t = State.t
