@@ -162,17 +162,17 @@ function partstr_ends_gnuplot_write(stream, n, ends) {
     }
 }
 
-function partstr_part(nh, hp, p, a, t) {
+function partstr_part(nh, hp, p, a, t, /**/ xx) {
     var n, j, jp, xx
+    if (!Array.isArray(xx))
+        throw new Error(`xx is not an array: ${xx}`)
     n = 2*nh + 1
-    xx = matrix_new(n, 2)
     xx[nh] = p.slice()
     for (j = 0; j < nh; j++) {
         jp = j + 0.5
         _axpy( hp, _E(a + t*jp), xx[nh + j], /**/ xx[nh + j + 1])
         _axpy(-hp, _E(a - t*jp), xx[nh - j], /**/ xx[nh - j - 1])
     }
-    return xx
 }
 
 function partstr_segcirc(k, l, d) {

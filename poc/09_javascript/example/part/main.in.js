@@ -1,4 +1,5 @@
 include(mh.m4)dnl
+#!/usr/bin/node
 mh_include(matrix.js)dnl
 mh_include(partstr.js)dnl
 
@@ -11,8 +12,9 @@ var hp = parseFloat(process.argv[k++])
 var a = parseFloat(process.argv[k++])
 var t = parseFloat(process.argv[k++])
 
-var p = [0, 0]
+var p = [0, 1]
 
-var xx = partstr_part(nh, hp, p, a, t)
+var xx = matrix_new(2*nh + 1, 2)
+partstr_part(nh, hp, p, a, t, /**/ xx)
 var M = xx.length
 matrix_write(stdout, M, 2, xx)
