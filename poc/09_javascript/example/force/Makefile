@@ -2,13 +2,11 @@ S = ../../../..
 include $S/make/js.mk
 
 M = main
-NODE = node
 
 M4FLAGS = -I../../lib
 
 all: $M
 
-run: $M; @$(NODE) $M data/ij
 test: $M; atest test/*
-.PHONY: clean run test
+.PHONY: clean test
 clean:; rm -f $M

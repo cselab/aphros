@@ -316,3 +316,11 @@ function partstr_dxdt(nh, hp, a, t, /**/ xx) {
         _axpy(hp*jp, _E(a - t*jp + pi/2), xx[nh - j], /**/ xx[nh - j - 1])
     }
 }
+
+function partstr_curve(hp, t) {
+    return sqrt(2)/hp*Math.sin(t)/Math.sqrt(1.0 + Math.cos(t))
+}
+
+function partstr_step(eta, hp, ff, /*io*/ state) {
+    
+}
