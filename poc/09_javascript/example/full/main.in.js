@@ -4,6 +4,7 @@ mh_include(matrix.js)dnl
 mh_include(partstr.js)dnl
 
 function Partstr(nh, hl, hp, eta) {
+    "use strict"
     this.nh = nh
     this.hl = hl
     this.hp = hp
@@ -17,6 +18,7 @@ function Partstr(nh, hl, hp, eta) {
         this.p = [i + 0.5, j + 0.5]
     }
     this.step = function() {
+        var nh, p, a, t, hp, eta, ends, np, ff, State, k, ne, xx
         nh = this.nh
         p = this.p
         a = this.a
@@ -38,6 +40,8 @@ function Partstr(nh, hl, hp, eta) {
         this.t = State.t
         this.p = State.p
         this.k = k
+        this.xx = xx
+        this.ff = ff
     }
 }
 
@@ -45,8 +49,8 @@ argv = process.argv
 
 nh = 2
 hl = 2
-hp = 1
-eta = 0.5
+hp = 4 / (2.0*nh)
+eta = 1.0
 a = 0.0
 t = 0.0
 
@@ -60,10 +64,13 @@ ends = matrix_new(M, N)
 partstr_vof_ends(M, N, u, /**/ ends)
 
 partstr = new Partstr(nh, hl, hp, eta)
-i = 2; j = 1
+i = 1; j = 1
 
 partstr.new(M, N, ends, i, j, a, t)
-for (i = 0; i < 100; i++) {
+for (i = 0; i < 2; i++)
     partstr.step()
-    console.log(partstr.t)
-}
+
+ne = partstr.ends.length
+partstr_cell_ends_gnuplot_write(process.stdout, ne, partstr.ends)
+process.stdout.write("\n\n")
+partstr_force_write(process.stdout, 2*nh + 1, partstr.xx, partstr.ff)

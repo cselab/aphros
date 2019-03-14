@@ -149,7 +149,7 @@ function partstr_ends_write(stream, ends) {
     matrix_write(stream, n, 4, ends)
 }
 
-function partstr_ends_gnuplot_write(stream, n, ends) {
+function partstr_cell_ends_gnuplot_write(stream, n, ends) {
     const AX = 0, AY = 1, BX = 2, BY = 3
     const X = 0, Y = 1
     var i, e
@@ -160,6 +160,20 @@ function partstr_ends_gnuplot_write(stream, n, ends) {
         stream.write(`${e[AX]} ${e[AY]}\n`)
         stream.write(`${e[BX]} ${e[BY]}\n`)
     }
+}
+
+function partstr_ends_gnuplot_write(stream, M, N, ends) {
+    const AX = 0, AY = 1, BX = 2, BY = 3
+    const X = 0, Y = 1
+    var i, e
+    for (i = 0; i < M; i++)
+        for (j = 0; j < N; j++) {
+            e = ends[i][j]
+            if (i != 0 || j != 0)
+                stream.write("\n")
+            stream.write(`${e[AX]} ${e[AY]}\n`)
+            stream.write(`${e[BX]} ${e[BY]}\n`)
+        }
 }
 
 function partstr_part(nh, hp, p, a, t, /**/ xx) {
