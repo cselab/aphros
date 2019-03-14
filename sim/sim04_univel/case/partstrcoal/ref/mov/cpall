@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -eu
+
+while read f g ; do 
+    c="cp $f $g"
+    echo "$c"
+    eval "$c"
+done < lname
+

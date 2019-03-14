@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+import glob
+import re
+
+#   t1=1*75 ms a_0247.png
+#   t6=6*75 ms a_0325.png
+
+
+# time between plots in Fig2 [s]
+td = 75e-6
+
+# capillary time [s], from partstrcoal/time.py
+tcap = 0.0006831071910119712
+
+# Soto2018
+
+t1 = 1 * td   # Fig2b [ms]
+t2 = 6 * td   # Fig2g [ms]
+
+# indices of files a_*.png
+i1 = 247
+i2 = 325
+
+ff = sorted(glob.glob("a_*.png"))
+
+# list with new names
+fn = "lname"
+
+with open(fn, 'w') as g:
+    for f in ff:
+        i = int(re.findall("a_(.*).png", f)[0])
+        # time [ms]
+        t = t1 + (t2 - t1) * (i - i1)  / (i2 - i1)
+        tc = t / tcap
+        # new name
+        n = "at_{:04d}.png".format(int(tc * 1e2))
+        g.write("{:} {:} \n".format(f, n))
