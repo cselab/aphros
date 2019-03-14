@@ -1,0 +1,31 @@
+#!/usr/bin/env python
+
+import re
+import numpy as np
+
+f = open("b.svg")
+
+d = ' '.join([s.strip() for s in f.readlines()])
+
+m = re.findall('m (.+?),(.+?) ', d)
+
+xy = [[float(x), float(y)] for x,y in m]
+
+# size, left top corner
+rect = re.findall('y="([^"]*)" x="([^"]*)" height="([^"]*)" width="([^"]*)"', d)[0]
+
+# rect
+ry,rx,rh,rw = map(float, rect)
+
+# bounding box in coordinates, from b.pdf
+bx0,bx1,by0,by1 = (0, 0.8, 0., 8.)
+
+xy = np.array(xy)
+
+for row in xy:
+    x,y = row
+    row[0] = bx0 + (x - rx) / rw * (bx1 - bx0)
+    row[1] = by1 - (y - ry) / rh * (by1 - by0)
+
+np.savetxt('rcrnexp', xy)
+
