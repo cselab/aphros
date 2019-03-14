@@ -329,7 +329,7 @@ function _minus(n, a, b, /**/ c) {
         c[i][Y] = a[i][Y] - b[i][Y]
     }
 }
-function _substr(n, a, b, /**/) {
+function _substr(n, a, /**/ b) {
     const X = 0, Y = 1
     var i
     for (i = 0; i < n; i++) {
@@ -370,21 +370,21 @@ function partstr_step(nh, ff, eta, hp, /*io*/ State) {
     dx = matrix_new(n, 2) /**/
     dd = matrix_new(n, 2) /**/
 
+    /* p */
     partstr_part(nh, hp, p, a, t, /**/ x0)
     p[X] += f[X]
     p[Y] += f[Y]
-
     partstr_part(nh, hp, p, a, t, /**/ x1)
     _minus(n, x1, x0, /**/ dx)
-    _substr(n, dx, /**/ ff)
     _append(n, dx, /**/ x0)
 
+    /* a */
     partstr_dxda(nh, hp, a, t, /**/ dd)
     a += _dot(n, ff, dd)/_dot(n, dd, dd)
     partstr_part(nh, hp, p, a, t, /**/ x1)
     _minus(n, x1, x0, /**/ dx)
-    _substr(n, dx, /**/ ff)
 
+    /* t */
     partstr_dxdt(nh, hp, a, t, /**/ dd)
     t += _dot(n, ff, dd)/_dot(n, dd, dd)
 

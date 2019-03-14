@@ -12,7 +12,7 @@ var hp = parseFloat(process.argv[k++])
 var a = parseFloat(process.argv[k++])
 var t = parseFloat(process.argv[k++])
 
-var p = [0, 1]
+var p = [0, 0]
 
 var xx = matrix_new(2*nh + 1, 2)
 partstr_part(nh, hp, p, a, t, /**/ xx)
