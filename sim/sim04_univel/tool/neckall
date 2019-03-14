@@ -6,12 +6,21 @@ set -eu
 : ${x=0.5}
 : ${y=0.5}
 
+t=neck.tmp
+
 ./neck.py --header --fitcirc > $o
 
 for f in vf_*.{h5,dat} ; do
   if [ -f $f ] ; then
-    echo $f
-    ./neck.py $f --x $x --y $y --fitcirc --plot >> $o
+    of=${f%.*}.neck
+    if [ -f $of ] ; then
+      echo "skip existing $of"
+    else 
+      echo "$f > $of"
+      ./neck.py $f --x $x --y $y --fitcirc --plot > $t
+      mv $t $of
+    fi
+    cat $of >> $o
   fi
 done
 
