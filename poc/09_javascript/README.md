@@ -11,8 +11,8 @@ should include line `include(mh.m4)dnl`.
 
 # Plan
 
-	function Parstr(nh, hp, eta) {
-		segmetns, [storage for particles], n, nh, hp, eta
+	function Partstr(nh, hl, hp, eta) {
+		[storage for segmetns], [storage for particles], n, nh, hp, eta
 		a0, t0
 
 		this.new  = function(a, t, ends, i, j) { }

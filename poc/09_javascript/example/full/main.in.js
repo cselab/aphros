@@ -3,27 +3,67 @@ include(mh.m4)dnl
 mh_include(matrix.js)dnl
 mh_include(partstr.js)dnl
 
-const AX = 0, AY = 1, BX = 2, BY = 3
-const stdout = process.stdout
-const stderr = process.stderr
-const hl = 2
-
-var i = 2
-var file = process.argv[i++]
-var u = matrix_read(file)
-var M = u.length
-var N = u[0].length
-
-matrix_halo_zero(M, N, hl, u)
-
-var ends = matrix_new(M, N)
-partstr_vof_ends(M, N, u, ends)
-
-var i, j, eb
-for (i = 0; i < M; i++)
-    for (j = 0; j < M; j++) {
-        e = ends[i][j]
-        stdout.write(`${e[AX]} ${e[AY]}\n`)
-        stdout.write(`${e[BX]} ${e[BY]}\n`)
-        stdout.write("\n")
+function Partstr(nh, hl, hp, eta) {
+    this.nh = nh
+    this.hl = hl
+    this.hp = hp
+    this.eta = eta
+    this.new = function(M, N, ends, i, j, a, t) {
+        if (!Array.isArray(ends))
+            throw new Error(`ends is not an array: ${ends}`)
+        this.ends = partstr_cell_ends(M, N, i, j, ends)
+        this.a = a
+        this.t = t
+        this.p = [i + 0.5, j + 0.5]
     }
+    this.step = function() {
+        nh = this.nh
+        p = this.p
+        a = this.a
+        t = this.t
+        hp = this.hp
+        eta = this.eta
+        ends = this.ends
+        
+        np = 2*nh + 1
+        ff = matrix_new(np, 2)
+        State = { p: p, a: a, t: t }
+        k = partstr_curv(hp, t)
+        ne = ends.length
+        xx = matrix_new(np, 2)
+        partstr_part(nh, hp, p, a, t, /**/ xx)
+        partstr_force(ne, ends, np, xx, k, eta,     ff)
+        partstr_step(nh, ff, this.eta, this.hp, /*io*/ State)
+        this.a = State.a
+        this.t = State.t
+        this.p = State.p
+        this.k = k
+    }
+}
+
+argv = process.argv
+
+nh = 2
+hl = 2
+hp = 1
+eta = 0.5
+a = 0.0
+t = 0.0
+
+argv.shift(); argv.shift()
+file = argv.shift()
+u = matrix_read(file)
+M = u.length
+N = u[0].length
+matrix_halo_zero(M, N, hl, u)
+ends = matrix_new(M, N)
+partstr_vof_ends(M, N, u, /**/ ends)
+
+partstr = new Partstr(nh, hl, hp, eta)
+i = 2; j = 1
+
+partstr.new(M, N, ends, i, j, a, t)
+for (i = 0; i < 100; i++) {
+    partstr.step()
+    console.log(partstr.t)
+}
