@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -eu
+
+echo 64 > np
+echo 1440 > tl
+
+# ./gencase 
+# np=64
+# nx=256
+# r=0.01
+# ns=2
+# symm=1
+# nfr=40
+# ba=1
+# ch=0
+
+./gen -nx 256 -np 64 -mode osc -dim 3 -pos center  -We 0 -La 40000 -tmax 0.4 -br 0.15  -mu 0.01 -rho 0.01   -symmxy 1 -wallz 0   -bcod 0 0 0 -bcor 0 0 0   -b2xr 2 0 0 -b2rr 1   -nb 2 -nfr 40 
+
+
+cat > ch/add.conf << EOF
+set string dumpformat default
+set string dumplist vf omz
+set int part_ns 2
+EOF
+
+echo > r_ch
+
+
