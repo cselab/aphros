@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 """
-Measure the size and curvature of the coalescence neck.
+Measure the size and radius of the coalescence neck.
 STDOUT:
-  z0 z1 [k0 cx0 cz0 k1 cx1 cz1]
+  z0 z1 [r0 cx0 cz0 r1 cx1 cz1]
 where (length measured in fractions of nz)
 z0,z1: range of the neck
-k0,k1: curvature of the circular arcs
+r0,r1: radius of the circular arcs
 cx0,cz0,cx1,cz1: centers of the circular arcs
 """
 
@@ -101,7 +101,7 @@ fitcirc = args.fitcirc
 
 header = ['z0', 'z1']
 if fitcirc:
-  header += ['k0', 'cx0', 'cz0', 'k1', 'cx1', 'cz1']
+  header += ['r0', 'cx0', 'cz0', 'r1', 'cx1', 'cz1']
 
 if args.header:
   print(" ".join(header))
@@ -209,7 +209,7 @@ if args.fitcirc:
   hhp = izc + uxz[izc:,:].sum(axis=0)
   r0 = -nx
   r, i0, i1, zz = FindRange(hhp, ix, args.th, r0)
-  out['k0'] = -nz / r
+  out['r0'] = -r / nz
   out['cx0'] = float(ix) / nz
   out['cz0'] = zz[nx // 2] / nz
   rr0 = [i0, i1, zz]
@@ -218,7 +218,7 @@ if args.fitcirc:
   hhm = izc - uxz[:izc,:].sum(axis=0)
   r0 = nx
   r, i0, i1, zz = FindRange(hhm, ix, args.th, r0)
-  out['k1'] = nz / r
+  out['r1'] = r / nz
   out['cx1'] = float(ix) / nz
   out['cz1'] = zz[nx // 2] / nz
   rr1 = [i0, i1, zz]
