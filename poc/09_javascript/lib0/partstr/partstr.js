@@ -1,3 +1,20 @@
+/* static */
+function _E(a) { return [Math.cos(a), Math.sin(a)] }
+function _axpy(a, x, y,   /**/ b) {
+    const X = 0, Y = 1
+    b[X] = a*x[X] + y[X]
+    b[Y] = a*x[Y] + y[Y]
+}
+function _line(nx, ny, u) {
+    var u1
+    u1 = 0.5 * nx / ny
+    if (u <= u1)
+        return -0.5 * (nx + ny) + Math.sqrt(2*nx*ny*u)
+    else
+        return ny * (u - 0.5)
+}
+/**/
+
 function partstr_norm(i, j, u) {
     var nx, ny, n, p
     var X = 0, Y = 1
@@ -10,15 +27,6 @@ function partstr_norm(i, j, u) {
     p[X] = nx
     p[Y] = ny
     return p
-}
-
-function _line(nx, ny, u) {
-    var u1
-    u1 = 0.5 * nx / ny
-    if (u <= u1)
-        return -0.5 * (nx + ny) + Math.sqrt(2*nx*ny*u)
-    else
-        return ny * (u - 0.5)
 }
 
 function partstr_line(nx, ny, u) {
@@ -153,13 +161,6 @@ function partstr_ends_gnuplot_write(stream, n, ends) {
     }
 }
 
-
-function _E(a) { return [Math.cos(a), Math.sin(a)] }
-function _axpy(a, x, y,   /**/ b) {
-    const X = 0, Y = 1
-    b[X] = a*x[X] + y[X]
-    b[Y] = a*x[Y] + y[Y]
-}
 function partstr_part(nh, hp, p, a, t) {
     var n, j, jp, xx
     n = 2*nh + 1
@@ -277,12 +278,40 @@ function partstr_force_write(stream, n, xx, ff) {
     const X = 0, Y = 1
     var i, x, f
     if (!Array.isArray(ff))
-        throw new Error(`xx is not an array: ${ff}`)
+        throw new Error(`ff is not an array: ${ff}`)
     if (!Array.isArray(xx))
-        throw new Error(`ff is not an array: ${xx}`)
+        throw new Error(`xx is not an array: ${xx}`)
 
     for (i = 0; i < n; i++) {
         x = xx[i]; f = ff[i]
         stream.write(`${x[X]} ${x[Y]} ${f[X]} ${f[Y]}\n`)
+    }
+}
+
+function partstr_dxda(nh, a, t, /**/ xx) {
+    var n, j, jp, pi
+    if (!Array.isArray(xx))
+        throw new Error(`xx is not an array: ${xx}`)
+    n = 2*nh + 1
+    pi = Math.pi
+    xx[nh] = [0, 0]
+    for (j = 0; j < nh; j++) {
+        jp = j + 0.5
+        _axpy( hp, _E(a + t*jp + pi/2), xx[nh + j], /**/ xx[nh + j + 1])
+        _axpy(-hp, _E(a - t*jp + pi/2), xx[nh - j], /**/ xx[nh - j - 1])
+    }
+}
+
+function partstr_dxdt(nh, a, t, /**/ xx) {
+    var n, j, jp, pi
+    if (!Array.isArray(xx))
+        throw new Error(`xx is not an array: ${xx}`)
+    n = 2*nh + 1
+    pi = Math.pi
+    xx[nh] = [0, 0]
+    for (j = 0; j < nh; j++) {
+        jp = j + 0.5
+        _axpy(hp, _E(a + t*jp + pi/2), xx[nh + j], /**/ xx[nh + j + 1])
+        _axpy(hp, _E(a - t*jp + pi/2), xx[nh - j], /**/ xx[nh - j - 1])
     }
 }
