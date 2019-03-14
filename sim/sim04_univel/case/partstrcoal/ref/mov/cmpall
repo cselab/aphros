@@ -1,0 +1,39 @@
+#!/bin/bash
+
+set -eu
+
+ff=`echo *.png`
+
+: ${th=20}
+
+# raw MAE error
+o=cmpraw
+# list of files similar to previous
+fs=lsimilar
+# list of files different from previous
+fd=ldiff
+
+> $o
+> $fs
+> $fd
+
+# previous
+p=
+for f in $ff ; do
+    echo $f
+    if [ -z "$p" ] ; then
+        p=$f
+        echo $f >> $fd
+        continue
+    fi
+    r=`./cmp $p $f` 
+    echo $r >> $o
+    # 1 if above threshold
+    r=`bc <<< "$r > $th"`
+    if [ "$r" == 1 ] ; then
+        echo $f >> $fd
+    else
+        echo $f >> $fs
+    fi
+    p=$f
+done
