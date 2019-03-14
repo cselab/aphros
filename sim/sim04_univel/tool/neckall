@@ -9,8 +9,10 @@ set -eu
 ./neck.py --header --fitcirc > $o
 
 for f in vf_*.{h5,dat} ; do
-  echo $f
-  ./neck.py $f --x $x --y $y --fitcirc --plot >> $o
+  if [ -f $f ] ; then
+    echo $f
+    ./neck.py $f --x $x --y $y --fitcirc --plot >> $o
+  fi
 done
 
 
