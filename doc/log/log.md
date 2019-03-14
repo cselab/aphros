@@ -121,7 +121,7 @@ Free-field coalescence of bubbles based on `sim04_univel/case/partstrcoal`
 - negligible difference in trajectories between default and `min_iter=10`
 
 **Data**:
-[`log06_coalnp`](log06_coaliter)
+[`log06_coaliter`](log06_coaliter)
 
 - `nx*iter*`: configuration, data, movie
 - `a.gnu`: gnuplot script
