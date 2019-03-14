@@ -11,15 +11,17 @@ should include line `include(mh.m4)dnl`.
 
 # Plan
 
-    function Parstr(nh, hp, eta) {
-		n, nh, hp, eta, a0, t0, segmetns, [storage for particles]
+	function Parstr(nh, hp, eta) {
+		segmetns, [storage for particles], n, nh, hp, eta
+		a0, t0
 
-		this.start = function(a, t, ends, i, j) { }
+		this.new  = function(a, t, ends, i, j) { }
 		this.step = function(n) { }
 		this.converge = function(nmax, eps) { }
+
 		this.eps = function() { }
 		this.a = function() { }
 		this.t = function() { }
 		this.force = function () { }
 		this.particle = function () { }
-    }
+	}
