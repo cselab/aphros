@@ -50,7 +50,7 @@ argv = process.argv
 nh = 2
 hl = 2
 hp = 4 / (2.0*nh)
-eta = 1.0
+eta = 0.5
 a = 0.0
 t = 0.0
 
@@ -64,10 +64,10 @@ ends = matrix_new(M, N)
 partstr_vof_ends(M, N, u, /**/ ends)
 
 partstr = new Partstr(nh, hl, hp, eta)
-i = 1; j = 1
+i = 2; j = 4
 
 partstr.new(M, N, ends, i, j, a, t)
-for (i = 0; i < 2; i++)
+for (i = 0; i < 1000; i++)
     partstr.step()
 
 ne = partstr.ends.length
