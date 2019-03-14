@@ -345,19 +345,31 @@ function _append(n, a, b, /**/) {
         b[i][Y] += a[i][Y]
     }
 }
+function _dot(n, a, b) {
+    const X = 0, Y = 1
+    var i, d
+    d = 0
+    for (i = 0; i < n; i++) {
+        d += a[i][X]*b[i][X]
+        d += a[i][Y]*b[i][Y]
+    }
+    return d
+}
 function partstr_step(nh, ff, eta, hp, /*io*/ State) {
     const X = 0, Y = 1
     var p, a, t, x0, x1, f
     p = State.p.slice()
     a = State.a
     t = State.t
+
     f = ff[nh]
     n = 2*nh + 1
-    
+
     x0 = matrix_new(n, 2) /**/
     x1 = matrix_new(n, 2) /* todo */
     dx = matrix_new(n, 2) /**/
-    
+    dd = matrix_new(n, 2) /**/
+
     partstr_part(nh, hp, p, a, t, /**/ x0)
     p[X] += f[X]
     p[Y] += f[Y]
@@ -367,6 +379,16 @@ function partstr_step(nh, ff, eta, hp, /*io*/ State) {
     _substr(n, dx, /**/ ff)
     _append(n, dx, /**/ x0)
 
-    _msg(`x0: ${x0}\n`)
+    partstr_dxda(nh, hp, a, t, /**/ dd)
+    a += _dot(n, ff, dd)/_dot(n, dd, dd)
+    partstr_part(nh, hp, p, a, t, /**/ x1)
+    _minus(n, x1, x0, /**/ dx)
+    _substr(n, dx, /**/ ff)
 
+    partstr_dxdt(nh, hp, a, t, /**/ dd)
+    t += _dot(n, ff, dd)/_dot(n, dd, dd)
+
+    State.p = p.slice()
+    State.a = a
+    State.t = t
 }

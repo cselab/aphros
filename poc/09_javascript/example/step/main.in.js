@@ -37,4 +37,5 @@ _msg(`ff: ${ff}\n`)
 var p = [0, 0]
 var State = { p: p, a: a, t: t }
 var hp = 1
-partstr_step(nh, ff, eta, hp, State)
+partstr_step(nh, ff, eta, hp, /*io*/ State)
+_msg(`${State.p} ${State.a} ${State.t}\n`)
