@@ -15,24 +15,34 @@ tcap = 0.0006831071910119712
 
 # Soto2018
 
-t1 = 1 * td   # Fig2b [ms]
-t2 = 6 * td   # Fig2g [ms]
+t1 = 1 * td   # Fig2b [s]
+t2 = 6 * td   # Fig2g [s]
 
 # indices of files a_*.png
 i1 = 247
 i2 = 325
 
+pt = "a_{:04d}.png"
+
+f1 = pt.format(i1)
+f2 = pt.format(i2)
+
 ff = sorted(glob.glob("a_*.png"))
+
+# indices in ff
+j1 = ff.index(f1)
+j2 = ff.index(f2)
+
+# time [s] for each ff
+tt = [t1 + (t2 - t1) * (j - j1) / (j2 - j1) for j in range(len(ff))]
 
 # list with new names
 fn = "lname"
 
 with open(fn, 'w') as g:
-    for f in ff:
-        i = int(re.findall("a_(.*).png", f)[0])
-        # time [ms]
-        t = t1 + (t2 - t1) * (i - i1)  / (i2 - i1)
+    for f,t in zip(ff,tt):
+        # time [s]
         tc = t / tcap
         # new name
-        n = "at_{:04d}.png".format(int(tc * 1e2))
+        n = "at_{:04d}.png".format(int(tc * 1e2 + 0.5))
         g.write("{:} {:} \n".format(f, n))
