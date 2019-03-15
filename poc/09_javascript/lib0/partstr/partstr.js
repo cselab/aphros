@@ -120,6 +120,10 @@ function partstr_ends(M, N, a, /**/ e) {
 function partstr_cell_ends(M, N, m, n, ends) {
     var s = 2
     var e, ans, i, j, k
+    if (m >= M)
+        throw new Error("m=" + m + " >= M=" + M)
+    if (n >= N)
+        throw new Error("n=" + n + " >= n=" + N)
     if (ends[m][n] === undefined)
         throw new Error("ends[" + m + "][" + n + "] is undefined")
     ans = []; k = 1

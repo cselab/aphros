@@ -28,7 +28,7 @@ partstr_vof_ends(M, N, u, /**/ ends)
 
 partstr = new Partstr(nh, hl, hp, eta)
 
-i = 2; j = 4
+i = 1; j = 2
 end = partstr_cell_ends(M, N, i, j, ends)
 ne = end.length
 p = [i + 0.5, j + 0.5]
