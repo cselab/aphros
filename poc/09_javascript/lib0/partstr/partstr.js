@@ -2,7 +2,7 @@
 function _sq(a) { return a*a }
 function _E(a) { return [Math.cos(a), Math.sin(a)] }
 function _axpy(a, x, y,   /**/ b) {
-    const X = 0, Y = 1
+    var X = 0, Y = 1
     b[X] = a*x[X] + y[X]
     b[Y] = a*x[Y] + y[Y]
 }
@@ -45,7 +45,7 @@ function partstr_line(nx, ny, u) {
 }
 
 function partstr_vof_line(M, N, u, /**/ a) {
-    const X = 0, Y = 1
+    var X = 0, Y = 1
     var i, j
     var n, u0, a0
     for (i = 0; i < M; i++)
@@ -58,9 +58,9 @@ function partstr_vof_line(M, N, u, /**/ a) {
 }
 
 function partstr_vof_ends(M, N, u, /**/ ends) {
-    const X = 0, Y = 1
-    const AX = 0, AY = 1, BX = 2, BY = 3
-    const h = 1.0
+    var X = 0, Y = 1
+    var AX = 0, AY = 1, BX = 2, BY = 3
+    var h = 1.0
     var n, a, i, j;
     var e = Array(4)
     for (i = 0; i < M; i++)
@@ -77,8 +77,8 @@ function partstr_vof_ends(M, N, u, /**/ ends) {
 }
 
 function partstr_ends(M, N, a, /**/ e) {
-    const AX = 0, AY = 1, BX = 2, BY = 3
-    const h  = 0.5
+    var AX = 0, AY = 1, BX = 2, BY = 3
+    var h  = 0.5
     var x, y, u, v, cross, t
     var j
 
@@ -118,7 +118,7 @@ function partstr_ends(M, N, a, /**/ e) {
 }
 
 function partstr_cell_ends(M, N, m, n, ends) {
-    const s = 2
+    var s = 2
     var e, ans, i, j, k, Seen
     Seen = false
     ans = Array(); k = 1
@@ -154,8 +154,8 @@ function partstr_ends_write(stream, ends) {
 }
 
 function partstr_cell_ends_gnuplot(stream, n, ends) {
-    const AX = 0, AY = 1, BX = 2, BY = 3
-    const X = 0, Y = 1
+    var AX = 0, AY = 1, BX = 2, BY = 3
+    var X = 0, Y = 1
     var i, e
     for (i = 0; i < n; i++) {
         e = ends[i]
@@ -168,8 +168,8 @@ function partstr_cell_ends_gnuplot(stream, n, ends) {
 }
 
 function partstr_ends_gnuplot(stream, M, N, ends) {
-    const AX = 0, AY = 1, BX = 2, BY = 3
-    const X = 0, Y = 1
+    var AX = 0, AY = 1, BX = 2, BY = 3
+    var X = 0, Y = 1
     var i, e
     for (i = 0; i < M; i++)
         for (j = 0; j < N; j++) {
@@ -211,8 +211,8 @@ function partstr_segcirc(k, l, d) {
 }
 
 function partstr_shsegcirc(k, a, b, x) {
-    const X = 0, Y = 1
-    const sc = 1
+    var X = 0, Y = 1
+    var sc = 1
     var u, v, p, q, g, dc, mdc, s
     u = b[X] - a[X]
     v = b[Y] - a[Y]
@@ -237,7 +237,7 @@ function partstr_shsegcirc(k, a, b, x) {
 }
 
 function partstr_nearest(a, b, x) {
-    const X = 0, Y = 1
+    var X = 0, Y = 1
     var u, v, p, q, k, g
 
     u = b[X] - a[X]
@@ -258,8 +258,8 @@ function partstr_nearest(a, b, x) {
 }
 
 function partstr_nearest_ends(n, ends, x, k) {
-    const X = 0, Y = 1
-    const AX = 0, AY = 1, BX = 2, BY = 3
+    var X = 0, Y = 1
+    var AX = 0, AY = 1, BX = 2, BY = 3
     var i, a, b, e, y, z, d
     var m, j
     if (!Array.isArray(ends))
@@ -283,7 +283,7 @@ function partstr_nearest_ends(n, ends, x, k) {
 }
 
 function partstr_force(ne, ends, np, xx, k, eta, /**/ ff) {
-    const X = 0, Y = 1
+    var X = 0, Y = 1
     var i, x, y
     if (!Array.isArray(ends))
         throw new Error(`ends is not an array: ${ends}`)
@@ -300,7 +300,7 @@ function partstr_force(ne, ends, np, xx, k, eta, /**/ ff) {
 }
 
 function partstr_force_write(stream, n, xx, ff) {
-    const X = 0, Y = 1
+    var X = 0, Y = 1
     var i, x, f
     if (!Array.isArray(ff))
         throw new Error(`ff is not an array: ${ff}`)
@@ -346,7 +346,7 @@ function partstr_curv(hp, t) {
 }
 
 function _minus(n, a, b, /**/ c) {
-    const X = 0, Y = 1
+    var X = 0, Y = 1
     var i
     for (i = 0; i < n; i++) {
         c[i][X] = a[i][X] - b[i][X]
@@ -354,7 +354,7 @@ function _minus(n, a, b, /**/ c) {
     }
 }
 function _substr(n, a, /**/ b) {
-    const X = 0, Y = 1
+    var X = 0, Y = 1
     var i
     for (i = 0; i < n; i++) {
         b[i][X] -= a[i][X]
@@ -362,7 +362,7 @@ function _substr(n, a, /**/ b) {
     }
 }
 function _append(n, a, b /**/) {
-    const X = 0, Y = 1
+    var X = 0, Y = 1
     var i
     for (i = 0; i < n; i++) {
         b[i][X] += a[i][X]
@@ -370,7 +370,7 @@ function _append(n, a, b /**/) {
     }
 }
 function _dot(n, a, b) {
-    const X = 0, Y = 1
+    var X = 0, Y = 1
     var i, d
     d = 0
     for (i = 0; i < n; i++) {
@@ -380,7 +380,7 @@ function _dot(n, a, b) {
     return d
 }
 function partstr_step(nh, ff, eta, hp, /*io*/ State) {
-    const X = 0, Y = 1
+    var X = 0, Y = 1
     var p, a, t, x0, x1, f, n, dx, dd
 
     p = State.p.slice()
@@ -419,7 +419,7 @@ function partstr_step(nh, ff, eta, hp, /*io*/ State) {
 }
 
 function Partstr(nh, hp, eta) {
-    const n = 2*nh + 1
+    var n = 2*nh + 1
     this.nh = nh
     this.hp = hp
     this.eta = eta
@@ -441,7 +441,7 @@ function Partstr(nh, hp, eta) {
     this.step = function() {
         var nh, p, a, t, hp, eta, ends, ff, State, k, ne, xx
         nh = this.nh
-        const n = 2*nh + 1
+        var n = 2*nh + 1
         hp = this.hp
         eta = this.eta
         ends = this.ends
