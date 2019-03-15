@@ -22,6 +22,7 @@ var i, j, eb
 for (i = 0; i < M; i++)
     for (j = 0; j < M; j++) {
         e = ends[i][j]
+        if (e === undefined) continue
         stdout.write(`${e[AX]} ${e[AY]}\n`)
         stdout.write(`${e[BX]} ${e[BY]}\n`)
         stdout.write("\n")
