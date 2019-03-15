@@ -240,26 +240,23 @@ function UpdateGrid() {
 }
 
 function DrawAll() {
+    var AX = 0, AY = 1, BX = 2, BY = 3
+    var i, j, k
+
     matrix_halo_zero(nx, ny, 2, u)
     ends = matrix_new(nx, ny)
     partstr_vof_ends(nx, ny, u, ends)
-
     DrawGrid(u)
-
     DrawLines(ends, u)
-
     i = 1; j = 3
     if (ends[i][j] !== undefined) {
         end = partstr_cell_ends(nx, ny, i, j, ends)
         ne = end.length
-        var AX = 0, AY = 1, BX = 2, BY = 3
-
         var nh = 4
         var hp = 4.0 / (2.0*nh)
         var eta = 0.5
         var t = 0.0
         var n = 2*nh + 1
-
         var partstr = new Partstr(nh, hp, eta)
         var e = end[0]
         var p = [(e[AX] + e[BX]) * 0.5, (e[AY] + e[BY]) * 0.5]
@@ -267,9 +264,8 @@ function DrawAll() {
         var dy = e[BY] - e[AY]
         var a = Math.atan2(dy, dx)
         partstr.start(ne, end, a, t, p)
-        for (i = 0; i < 100; i++)
+        for (k = 0; k < 100; k++)
             partstr.step()
-        //DrawString([[0.3, 0.4], [1, 1], [2, 2], [3, 2.5]])
         DrawString(partstr.xx)
     }
 }
