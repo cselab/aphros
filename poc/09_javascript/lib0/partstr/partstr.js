@@ -150,7 +150,7 @@ function partstr_ends_write(stream, ends) {
     matrix_write(stream, n, 4, ends)
 }
 
-function partstr_cell_ends_gnuplot_write(stream, n, ends) {
+function partstr_cell_ends_gnuplot(stream, n, ends) {
     const AX = 0, AY = 1, BX = 2, BY = 3
     const X = 0, Y = 1
     var i, e
@@ -163,7 +163,7 @@ function partstr_cell_ends_gnuplot_write(stream, n, ends) {
     }
 }
 
-function partstr_ends_gnuplot_write(stream, M, N, ends) {
+function partstr_ends_gnuplot(stream, M, N, ends) {
     const AX = 0, AY = 1, BX = 2, BY = 3
     const X = 0, Y = 1
     var i, e

@@ -21,4 +21,4 @@ n = ends.length
 y = partstr_nearest_ends(n, ends, [xx, xy], k)
 
 stderr.write(`${y[X]} ${y[Y]}\n`)
-partstr_ends_gnuplot_write(stdout, ends)
+partstr_ends_gnuplot(stdout, ends)

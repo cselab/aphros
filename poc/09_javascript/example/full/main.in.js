@@ -36,6 +36,6 @@ partstr.start(ne, end, a, t, p)
 for (i = 0; i < 10000; i++)
     partstr.step()
 
-partstr_cell_ends_gnuplot_write(process.stdout, ne, partstr.ends)
+partstr_cell_ends_gnuplot(process.stdout, ne, partstr.ends)
 process.stdout.write("\n\n")
 partstr_force_write(process.stdout, n, partstr.xx, partstr.ff)

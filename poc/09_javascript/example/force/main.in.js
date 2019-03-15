@@ -25,6 +25,6 @@ eta = 1
 ff = matrix_new(np, 2)
 partstr_force(ne, ends, np, xx, k, eta, /**/ ff)
 
-partstr_ends_gnuplot_write(stdout, ne, ends)
+partstr_ends_gnuplot(stdout, ne, ends)
 stdout.write("\n\n")
 partstr_force_write(stdout, np, xx, ff)
