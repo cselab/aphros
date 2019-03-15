@@ -5,9 +5,9 @@ function Clip(a,l,h) {
     return 0.0
 }
 
-function sqr(a) {
-    return a * a;
-}
+function sqr(a)  { return a*a }
+function abs(a)  { return a > 0 ? a : -a }
+function sign(a) { return  a == 0 ? 0 : (a >  0 ? 1 : -1) }
 
 function InitGrid(nx, ny) {
     var u = [];
