@@ -145,7 +145,13 @@ function partstr_cell_ends(M, N, m, n, ends) {
 }
 
 function partstr_ends_read(file) {
-    return matrix_read(file)
+    var ans, M, N
+    ans = matrix_read(file)
+    M = ans.length
+    N = ans[0].length
+    if (N !== 4)
+        throw new Error("wrong matrix size " + [M, N])
+    return ans
 }
 
 function partstr_ends_write(stream, ends) {
