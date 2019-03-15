@@ -117,7 +117,7 @@ function DrawGrid(u) {
             x = base.x + i * w;
             y = base.y + j * w;
             DrawGridFill(q, x, y)
-            DrawGridText(q, x, y)
+            /* DrawGridText(q, x, y) */
         }
     }
 }
