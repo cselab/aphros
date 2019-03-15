@@ -257,13 +257,15 @@ function DrawAll() {
         var nh = 4
         var hp = 4.0 / (2.0*nh)
         var eta = 0.5
-        var a = 0.0
         var t = 0.0
         var n = 2*nh + 1
 
         var partstr = new Partstr(nh, hp, eta)
         var e = end[0]
         var p = [(e[AX] + e[BX]) * 0.5, (e[AY] + e[BY]) * 0.5]
+        var dx = e[BX] - e[AX]
+        var dy = e[BY] - e[AY]
+        var a = Math.atan2(dy, dx)
         partstr.start(ne, end, a, t, p)
         for (i = 0; i < 100; i++)
             partstr.step()
