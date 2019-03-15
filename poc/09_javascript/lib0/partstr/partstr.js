@@ -65,6 +65,8 @@ function partstr_vof_ends(M, N, u, /**/ ends) {
     var e = Array(4)
     for (i = 0; i < M; i++)
         for (j = 0; j < N; j++) {
+            if (u[i][j] <= 0 || u[i][j] >= 1)
+                continue
             n = partstr_norm(i, j, u)
             a = partstr_line(n[X], n[Y], u[i][j])
             partstr_ends(n[X], n[Y], a, /**/ e)
@@ -127,6 +129,7 @@ function partstr_cell_ends(M, N, m, n, ends) {
             if (j <  0) continue
             if (j >= N) continue
             e = ends[i][j]
+            if (e === undefined) continue
             if (i == m && j == n) {
                 Seen = true
                 ans[0] = e
@@ -156,6 +159,7 @@ function partstr_cell_ends_gnuplot(stream, n, ends) {
     var i, e
     for (i = 0; i < n; i++) {
         e = ends[i]
+        if (e === undefined) continue
         if (i > 0)
             stream.write("\n")
         stream.write(`${e[AX]} ${e[AY]}\n`)
@@ -170,6 +174,7 @@ function partstr_ends_gnuplot(stream, M, N, ends) {
     for (i = 0; i < M; i++)
         for (j = 0; j < N; j++) {
             e = ends[i][j]
+            if (e === undefined) continue
             if (i != 0 || j != 0)
                 stream.write("\n")
             stream.write(`${e[AX]} ${e[AY]}\n`)

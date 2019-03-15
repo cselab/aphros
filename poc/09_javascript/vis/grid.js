@@ -118,10 +118,8 @@ function DrawGrid(u) {
 function DrawLines(ee, u) {
     for (var j = 0 ; j < ny; j++) {
         for (var i = 0 ; i < nx; i++) {
-            if (u[i][j] <= 0 || u[i][j] >= 1) {
-                continue
-            }
             e = ee[i][j]
+            if (e === undefined) continue
             xq = nx
             yq = ny
             xa = base.x + (e[1]) * w
