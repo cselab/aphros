@@ -1,7 +1,7 @@
 function Clip(a,l,h) {
     if (isFinite(a)) {
         return Math.min(Math.max(a, l), h);
-    } 
+    }
     return 0.0
 }
 
@@ -95,22 +95,29 @@ function IncCell() {
     return [dy, dym, dyp]
 }
 
+
+function DrawGridFill(q, x, y) {
+    ctx.strokeRect(x, y, w, w);
+    q = Math.floor((1-q) * 255 + q * 127);
+    ctx.fillStyle = RGBToHex(q, q, q);
+    ctx.fillRect(x, y, w, w);
+}
+function DrawGridText(q, x, y) {
+    ctx.font = "20px Arial";
+    ctx.fillStyle = "#000000";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(q.toFixed(2), x + w * 0.5, y + w * 0.5);
+}
 function DrawGrid(u) {
-    for (var j = 0 ; j < ny; j++) {
-        for (var i = 0 ; i < nx; i++) {
+    var i, j, x, y, q
+    for (j = 0 ; j < ny; j++) {
+        for (i = 0 ; i < nx; i++) {
+            q = u[j][i];
             x = base.x + i * w;
             y = base.y + j * w;
-            ctx.strokeRect(x, y, w, w);
-            q = u[j][i];
-            q = Math.floor((1-q) * 255 + q * 127);
-            ctx.fillStyle = RGBToHex(q, q, q);
-            ctx.fillRect(x, y, w, w);
-
-            ctx.font = "20px Arial";
-            ctx.fillStyle = "#000000";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText((u[j][i]).toFixed(2), x + w * 0.5, y + w * 0.5);
+            DrawGridFill(q, x, y)
+            DrawGridText(q, x, y)
         }
     }
 }
@@ -294,7 +301,7 @@ maryb = 1  // y-margin relative to block size
 var wx = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
 wx = Math.min(wx, 1000)
 var w = (wx * (1.0 - marx * 2)) / nx;   // block size
-var base = {x: wx * marx , y: w * maryb} 
+var base = {x: wx * marx , y: w * maryb}
 
 var canvas = document.getElementById('myCanvas');
 
