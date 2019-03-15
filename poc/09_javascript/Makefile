@@ -1,5 +1,5 @@
 D = lib0/m4 lib0/partstr lib0/matrix
-T = example/vof_ends example/cell_ends
+T = example/vof_ends example/cell_ends example/full
 
 install:
 	for d in $D; \
