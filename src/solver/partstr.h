@@ -310,9 +310,8 @@ class PartStr {
   // l: segment half-length
   // d: distance from segment center to target point (d<l)
   static Scal SegCirc(Scal k, Scal l, Scal d) {
-    if (k * l >= 0.9) { // XXX: adhoc
-      k = 1. / l;
-    }
+    d = std::min(d, l);   // XXX: adhoc
+    k = std::min(k, 1. / l);
     Scal a1 = 1. - sqr(k * l);
     Scal a2 = 1. - sqr(k * d);
     Scal t1 = std::sqrt(a1);
@@ -387,7 +386,11 @@ class PartStr {
         // outer normal
         Vect n = e[1] - e[0];
         n = Vect(n[1], -n[0], 0.);
-        n /= std::max(n.norm(), 1e-10); // XXX: adhoc 
+        Scal nn = n.norm();
+        if (nn < 1e-10) { // XXX: adhoc 
+          return; 
+        }
+        n /= nn;
         // center
         Vect xc = (e[0] + e[1]) * 0.5;
         // distance from center
