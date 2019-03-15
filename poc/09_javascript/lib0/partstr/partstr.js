@@ -119,9 +119,10 @@ function partstr_ends(M, N, a, /**/ e) {
 
 function partstr_cell_ends(M, N, m, n, ends) {
     var s = 2
-    var e, ans, i, j, k, Seen
-    Seen = false
-    ans = Array(); k = 1
+    var e, ans, i, j, k
+    if (ends[m][n] === undefined)
+        throw new Error("ends[" + m + "][" + n + "] is undefined")
+    ans = []; k = 1
     for (i = m - s; i < m + s + 1; i++) {
         if (i <  0) continue
         if (i >= M) continue
@@ -130,15 +131,12 @@ function partstr_cell_ends(M, N, m, n, ends) {
             if (j >= N) continue
             e = ends[i][j]
             if (e === undefined) continue
-            if (i == m && j == n) {
-                Seen = true
+            if (i == m && j == n)
                 ans[0] = e
-            } else
+            else
                 ans[k++] = e
         }
     }
-    if (!Seen)
-        throw new Error("have not seen ends[${m}][${n}], M = ${M}, N = ${N}\n")
     return ans
 }
 
