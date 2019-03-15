@@ -139,7 +139,7 @@ function partstr_cell_ends(M, N, m, n, ends) {
     }
     if (!Seen)
         throw new Error(
-            `have not seen ends[${m}][${n}], M = ${M}, N = ${N}\n`)
+            "have not seen ends[${m}][${n}], M = ${M}, N = ${N}\n")
     return ans
 }
 
@@ -162,8 +162,8 @@ function partstr_cell_ends_gnuplot(stream, n, ends) {
         if (e === undefined) continue
         if (i > 0)
             stream.write("\n")
-        stream.write(`${e[AX]} ${e[AY]}\n`)
-        stream.write(`${e[BX]} ${e[BY]}\n`)
+        stream.write("${e[AX]} ${e[AY]}\n")
+        stream.write("${e[BX]} ${e[BY]}\n")
     }
 }
 
@@ -177,15 +177,15 @@ function partstr_ends_gnuplot(stream, M, N, ends) {
             if (e === undefined) continue
             if (i != 0 || j != 0)
                 stream.write("\n")
-            stream.write(`${e[AX]} ${e[AY]}\n`)
-            stream.write(`${e[BX]} ${e[BY]}\n`)
+            stream.write("${e[AX]} ${e[AY]}\n")
+            stream.write("${e[BX]} ${e[BY]}\n")
         }
 }
 
 function partstr_part(nh, hp, p, a, t, /**/ xx) {
     var n, j, jp
     if (!Array.isArray(xx))
-        throw new Error(`xx is not an array: ${xx}`)
+        throw new Error("xx is not an array: ${xx}")
     n = 2*nh + 1
     xx[nh] = p.slice()
     for (j = 0; j < nh; j++) {
@@ -200,13 +200,13 @@ function partstr_segcirc(k, l, d) {
     t1 = 1 - _sq(k*l)
     t2 = 1 - _sq(k*d)
     if (t1 < 0)
-        throw new Error(`t1=${t1} < 0, k=${k}, l=${l}, d=${d}\n`)
+        throw new Error("t1=${t1} < 0, k=${k}, l=${l}, d=${d}\n")
     if (t2 < 0)
-        throw new Error(`t2=${t2} < 0, k=${k}, l=${l}, d=${d}\n`)
+        throw new Error("t2=${t2} < 0, k=${k}, l=${l}, d=${d}\n")
     t1 = Math.sqrt(t1)
     t2 = Math.sqrt(t2)
     if (t1 + t2 === 0.0)
-        throw new Error(`t1 + t2 === 0, k=${k}, l=${l}, d=${d}\n`)
+        throw new Error("t1 + t2 === 0, k=${k}, l=${l}, d=${d}\n")
     return k*(l*l - d*d)/(t1 + t2)
 }
 
@@ -263,12 +263,12 @@ function partstr_nearest_ends(n, ends, x, k) {
     var i, a, b, e, y, z, d
     var m, j
     if (!Array.isArray(ends))
-        throw new Error(`ends is not an array: ${ends}`)
+        throw new Error("ends is not an array: ${ends}")
     a = Array(2); b = Array(2)
     for (i = 0; i < n; i++) {
         e = ends[i]
         if (!Array.isArray(e))
-            throw new Error(`e is not an array: ${e}`)
+            throw new Error("e is not an array: ${e}")
         a[X] = e[AX]; a[Y] = e[AY]
         b[X] = e[BX]; b[Y] = e[BY]
         y = partstr_nearest(a, b, x)
@@ -286,11 +286,11 @@ function partstr_force(ne, ends, np, xx, k, eta, /**/ ff) {
     var X = 0, Y = 1
     var i, x, y
     if (!Array.isArray(ends))
-        throw new Error(`ends is not an array: ${ends}`)
+        throw new Error("ends is not an array: ${ends}")
     if (!Array.isArray(xx))
-        throw new Error(`xx is not an array: ${xx}`)
+        throw new Error("xx is not an array: ${xx}")
     if (!Array.isArray(ff))
-        throw new Error(`ff is not an array: ${ff}`)
+        throw new Error("ff is not an array: ${ff}")
     for (i = 0; i < np; i++) {
         x = xx[i]
         y = partstr_nearest_ends(ne, ends, x, k)
@@ -303,20 +303,20 @@ function partstr_force_write(stream, n, xx, ff) {
     var X = 0, Y = 1
     var i, x, f
     if (!Array.isArray(ff))
-        throw new Error(`ff is not an array: ${ff}`)
+        throw new Error("ff is not an array: ${ff}")
     if (!Array.isArray(xx))
-        throw new Error(`xx is not an array: ${xx}`)
+        throw new Error("xx is not an array: ${xx}")
 
     for (i = 0; i < n; i++) {
         x = xx[i]; f = ff[i]
-        stream.write(`${x[X]} ${x[Y]} ${f[X]} ${f[Y]}\n`)
+        stream.write("${x[X]} ${x[Y]} ${f[X]} ${f[Y]}\n")
     }
 }
 
 function partstr_dxda(nh, hp, a, t, /**/ xx) {
     var n, j, jp, pi
     if (!Array.isArray(xx))
-        throw new Error(`xx is not an array: ${xx}`)
+        throw new Error("xx is not an array: ${xx}")
     n = 2*nh + 1
     pi = Math.PI
     xx[nh] = [0, 0]
@@ -330,7 +330,7 @@ function partstr_dxda(nh, hp, a, t, /**/ xx) {
 function partstr_dxdt(nh, hp, a, t, /**/ xx) {
     var n, j, jp, pi
     if (!Array.isArray(xx))
-        throw new Error(`xx is not an array: ${xx}`)
+        throw new Error("xx is not an array: ${xx}")
     n = 2*nh + 1
     pi = Math.PI
     xx[nh] = [0, 0]
@@ -428,9 +428,9 @@ function Partstr(nh, hp, eta) {
 
     this.start = function(ne, ends, a, t, p) {
         if (!Array.isArray(ends))
-            throw new Error(`ends is not an array: ${ends}`)
+            throw new Error("ends is not an array: ${ends}")
         if (!Array.isArray(p))
-            throw new Error(`p is not an array: ${p}`)
+            throw new Error("p is not an array: ${p}")
         this.ne = ne
         this.ends = ends
         this.a = a

@@ -5,31 +5,31 @@ function matrix_read(file) {
         .filter(Boolean)
     NR = lines.length
     if (NR < 0)
-        throw new Error(`no lines in file ${file}`)
+        throw new Error("no lines in file ${file}")
     nr = 0
     line = lines[nr++]
     l = line.trim().split(" ")
     if (l.length != 2)
-        throw new Error(`expecting 'M N' got '${line}'`)
+        throw new Error("expecting 'M N' got '${line}'")
     M = parseInt(l[0])
     if (Number.isNaN(M))
-        throw new Error(`expecting 'M', got '${l[0]}'`)
+        throw new Error("expecting 'M', got '${l[0]}'")
     N = parseInt(l[1])
     if (Number.isNaN(N))
-        throw new Error(`expecting 'N', got '${l[1]}'`)
+        throw new Error("expecting 'N', got '${l[1]}'")
     a = matrix_new(M, N)
 
     for (i = 0; i < M; i++) {
         if (nr >= NR)
-            throw new Error(`too few lines in ${file}, expecting ${NR}, got ${nr}`)
+            throw new Error("too few lines in ${file}, expecting ${NR}, got ${nr}")
         line = lines[nr++]
         l = line.trim().split(" ")
         if (l.length != N)
-            throw new Error(`expecting ${N} numbers, got '${line}'`)
+            throw new Error("expecting ${N} numbers, got '${line}'")
         for (j = 0; j < N; j++) {
             x = parseFloat(l[j])
             if (Number.isNaN(x))
-                throw new Error(`expecting float, got '${l[i]}'`)
+                throw new Error("expecting float, got '${l[i]}'")
             a[i][j] = x
         }
     }
@@ -39,15 +39,15 @@ function matrix_read(file) {
 function matrix_write(stream, M, N, a) {
     var i, j
     if (!Array.isArray(a))
-        throw new Error(`a is not an array: ${a}`)
-    stream.write(`${M} ${N}\n`)
+        throw new Error("a is not an array: ${a}")
+    stream.write("${M} ${N}\n")
     for (i = 0; i < M; i++) {
         if (a[i] === void 0)
-            throw new Error(`a[${i}] is undefined, M = ${M}, N = ${N}`)
+            throw new Error("a[${i}] is undefined, M = ${M}, N = ${N}")
         for (j = 0; j < N; j++) {
             if (j > 0)
                 stream.write(" ")
-            stream.write(`${a[i][j]}`)
+            stream.write("${a[i][j]}")
         }
         stream.write("\n")
     }
@@ -56,13 +56,13 @@ function matrix_write(stream, M, N, a) {
 function matrix_lh_write(stream, m, n, M, N, a) {
     var i, j
     if (!Array.isArray(a))
-        throw new Error(`a is not an array: ${a}`)
+        throw new Error("a is not an array: ${a}")
     for (i = m; i < M; i++) {
         if (a[i] == void 0)
-            throw new Error(`a[${i}] is undefined, M = ${M}, N = ${N}`)
+            throw new Error("a[${i}] is undefined, M = ${M}, N = ${N}")
         for (j = n; j < N; j++) {
             if (j > n) stream.write(" ")
-            stream.write(`${a[i][j]}`)
+            stream.write("${a[i][j]}")
         }
         stream.write("\n")
     }
@@ -88,9 +88,9 @@ function matrix_zero(M, N) {
 function matrix_halo_zero(M, N, h, a) {
     var i, j
     if (!Array.isArray(a))
-        throw new Error(`a is not an array: ${a}`)
+        throw new Error("a is not an array: ${a}")
     if (!Array.isArray(a[0]))
-        throw new Error(`a[0] is not an array: ${a[0]}`)
+        throw new Error("a[0] is not an array: ${a[0]}")
 
     for (i = -h; i <     0; i++) a[i] = []
     for (i =  N; i < N + h; i++) a[i] = []
