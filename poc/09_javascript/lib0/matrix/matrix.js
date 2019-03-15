@@ -87,6 +87,10 @@ function matrix_zero(M, N) {
 
 function matrix_halo_zero(M, N, h, a) {
     var i, j
+    if (!Array.isArray(a))
+        throw new Error(`a is not an array: ${a}`)
+    if (!Array.isArray(a[0]))
+        throw new Error(`a[0] is not an array: ${a[0]}`)
 
     for (i = -h; i <     0; i++) a[i] = []
     for (i =  N; i < N + h; i++) a[i] = []
