@@ -89,7 +89,7 @@ function IncCell() {
     dy = Clip(dy, -dyp, dym)
 
     // correction
-    du = -F(Math.abs(dyn)) * Math.sign(dyn);
+    du = -F(abs(dyn)) * sign(dyn);
 
     u[j][i] = Clip(ustart[j][i] + du, 0.0, 1.0);
     return [dy, dym, dyp]
