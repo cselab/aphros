@@ -245,7 +245,7 @@ function DrawAll() {
     if (ends[i][j] !== undefined) {
         end = partstr_cell_ends(nx, ny, i, j, ends)
         ne = end.length
-        const AX = 0, AY = 1, BX = 2, BY = 3
+        var AX = 0, AY = 1, BX = 2, BY = 3
 
         var nh = 4
         var hp = 4.0 / (2.0*nh)
