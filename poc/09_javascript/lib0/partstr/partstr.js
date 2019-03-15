@@ -111,14 +111,14 @@ function partstr_ends(M, N, a, /**/ e) {
     }
 
     cross = (e[BY]-e[AY])*M-(e[BX]-e[AX])*N
-    if (cross < 0) {
+    if (cross > 0) {
         t = e[AX]; e[AX] = e[BX]; e[BX] = t
         t = e[AY]; e[AY] = e[BY]; e[BY] = t
     }
 }
 
 function partstr_cell_ends(M, N, m, n, ends) {
-    const s = 1
+    const s = 2
     var e, ans, i, j, k, Seen
     Seen = false
     ans = Array(); k = 1

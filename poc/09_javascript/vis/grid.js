@@ -140,15 +140,15 @@ function DrawLines(ee, u) {
 
             ctx.strokeStyle = "#ffffff"
             ctx.beginPath();
-            ctx.moveTo(xa + dx, ya + dy)
-            ctx.lineTo(xb + dx, yb + dy)
+            ctx.moveTo(xa - dx, ya - dy)
+            ctx.lineTo(xb - dx, yb - dy)
             ctx.closePath()
             ctx.stroke()
 
             ctx.strokeStyle = "#000000"
             ctx.beginPath();
-            ctx.moveTo(xa - dx, ya - dy)
-            ctx.lineTo(xb - dx, yb - dy)
+            ctx.moveTo(xa + dx, ya + dy)
+            ctx.lineTo(xb + dx, yb + dy)
             ctx.closePath()
             ctx.stroke()
         }
@@ -158,10 +158,10 @@ function DrawLines(ee, u) {
 function DrawString(pp) {
     ctx.beginPath();
     for (var i = 1 ; i < pp.length; ++i) {
-        xa = base.x + (pp[i-1][0]) * w
-        ya = base.y + (pp[i-1][1]) * w
-        xb = base.x + (pp[i][0]) * w
-        yb = base.y + (pp[i][1]) * w
+        xa = base.x + (pp[i-1][1]) * w
+        ya = base.y + (pp[i-1][0]) * w
+        xb = base.x + (pp[i][1]) * w
+        yb = base.y + (pp[i][0]) * w
 
         ctx.strokeStyle = "red";
         ctx.beginPath();
@@ -172,8 +172,8 @@ function DrawString(pp) {
     }
 
     for (var i = 0 ; i < pp.length; ++i) {
-        x = base.x + (pp[i][0]) * w
-        y = base.y + (pp[i][1]) * w
+        x = base.x + (pp[i][1]) * w
+        y = base.y + (pp[i][0]) * w
 
         ctx.strokeStyle = "black";
         ctx.beginPath();
@@ -237,8 +237,31 @@ function DrawAll() {
     partstr_vof_ends(nx, ny, u, ends)
 
     DrawGrid(u)
+
     DrawLines(ends, u)
-    DrawString([[0.3, 0.4], [1, 1], [2, 2], [3, 2.5]])
+
+    i = 1; j = 3
+    if (ends[i][j] !== undefined) {
+        end = partstr_cell_ends(nx, ny, i, j, ends)
+        ne = end.length
+        const AX = 0, AY = 1, BX = 2, BY = 3
+
+        var nh = 4
+        var hp = 4. / (2.0*nh)
+        var eta = 0.5
+        var a = 0.0
+        var t = 0.0
+        var n = 2*nh + 1
+
+        var partstr = new Partstr(nh, hp, eta)
+        var e = end[0]
+        var p = [(e[AX] + e[BX]) * 0.5, (e[AY] + e[BY]) * 0.5]
+        partstr.start(ne, end, a, t, p)
+        for (i = 0; i < 100; i++)
+            partstr.step()
+        //DrawString([[0.3, 0.4], [1, 1], [2, 2], [3, 2.5]])
+        DrawString(partstr.xx)
+    }
 }
 
 function Clear() {
