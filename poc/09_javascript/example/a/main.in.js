@@ -4,37 +4,35 @@ include(mh.m4)dnl
 mh_include(matrix.js)dnl
 mh_include(partstr.js)dnl
 
-var argv, nh, hl, hp, eta, a, t, file, u, M, N
+var argv, nh, hl, hp, eta, a, t, file, u, M, N, e, dx, dy
 var ends, p, end, partstr, i, j, ne, n
+var AX = 0, AY = 1, BX = 2, BY = 3
 
 argv = process.argv
 
-nh = 2
-hl = 2
+nh = 4
 hp = 4 / (2.0*nh)
 eta = 0.5
-a = 0.0
 t = 0.0
 n = 2*nh + 1
 
 argv.shift(); argv.shift()
 file = argv.shift()
-u = matrix_read(file)
-M = u.length
-N = u[0].length
-matrix_halo_zero(M, N, hl, u)
-ends = matrix_new(M, N)
-partstr_vof_ends(M, N, u, /**/ ends)
+end = partstr_ends_read(file)
+partstr = new Partstr(nh, hp, eta)
 
-partstr = new Partstr(nh, hl, hp, eta)
+e = end[0]
+p = [(e[AX] + e[BX]) * 0.5, (e[AY] + e[BY]) * 0.5]
+dx = e[BX] - e[AX]
+dy = e[BY] - e[AY]
+a = Math.atan2(dy, dx)
 
-i = 1; j = 2
-end = partstr_cell_ends(M, N, i, j, ends)
 ne = end.length
-p = [i + 0.5, j + 0.5]
 partstr.start(ne, end, a, t, p)
-for (i = 0; i < 10000; i++)
+for (i = 0; i < 100; i++) {
     partstr.step()
+    process.stderr.write(partstr.k + "\n")
+}
 
 partstr_cell_ends_gnuplot(process.stdout, ne, partstr.ends)
 process.stdout.write("\n\n")
