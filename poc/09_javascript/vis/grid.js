@@ -2,7 +2,7 @@ function Clip(a,l,h) {
     if (isFinite(a)) {
         return Math.min(Math.max(a, l), h);
     } 
-    return 0.
+    return 0.0
 }
 
 function sqr(a) {
@@ -15,12 +15,12 @@ function InitGrid(nx, ny) {
     for (var j = 0; j < ny; j++) {
         u[j] = [];
         for (var i = 0; i < nx; i++) {
-            u[j][i] = 1. / (sqr(i - (nx - 1) * 0.5) * 1.1 +
+            u[j][i] = 1.0 / (sqr(i - (nx - 1) * 0.5) * 1.1 +
                 sqr(j - (ny - 1) * 0.5) * 1.3 + 0.01);
             if (u[j][i] < 0.3) {
-                u[j][i] = 0.;
+                u[j][i] = 0.0;
             }
-            u[j][i] = Clip(u[j][i], 0., 1.)
+            u[j][i] = Clip(u[j][i], 0.0, 1.0)
         }
     }
 
@@ -69,7 +69,7 @@ function Finv(a) {
 }
 
 function IncCell() {
-    var k = 2.;
+    var k = 2.0;
     var wk = w * k;
 
     var i = Clip(Math.floor((start.x - base.x) / w), 0, nx - 1);
@@ -78,7 +78,7 @@ function IncCell() {
     // displacement [px]
     dy = mouse.y - start.y;
     // range of u correction: [-dum,dup]
-    dup = 1. - ustart[j][i]
+    dup = 1.0 - ustart[j][i]
     dum = ustart[j][i]
     // normalize
     dyn = dy / wk
@@ -91,7 +91,7 @@ function IncCell() {
     // correction
     du = -F(Math.abs(dyn)) * Math.sign(dyn);
 
-    u[j][i] = Clip(ustart[j][i] + du, 0., 1.);
+    u[j][i] = Clip(ustart[j][i] + du, 0.0, 1.0);
     return [dy, dym, dyp]
 }
 
@@ -157,7 +157,8 @@ function DrawLines(ee, u) {
 
 function DrawString(pp) {
     ctx.beginPath();
-    for (var i = 1 ; i < pp.length; ++i) {
+    var i
+    for (i = 1 ; i < pp.length; ++i) {
         xa = base.x + (pp[i-1][1]) * w
         ya = base.y + (pp[i-1][0]) * w
         xb = base.x + (pp[i][1]) * w
@@ -171,7 +172,7 @@ function DrawString(pp) {
         ctx.stroke()
     }
 
-    for (var i = 0 ; i < pp.length; ++i) {
+    for (i = 0 ; i < pp.length; ++i) {
         x = base.x + (pp[i][1]) * w
         y = base.y + (pp[i][0]) * w
 
@@ -216,7 +217,7 @@ function TextToGrid(t, nx, ny, /**/ u) {
     m = 0
     for (var j = 0; j < ny; j++) {
         for (var i = 0; i < nx; i++) {
-            u[j][i] = Clip(parseFloat(v[m++]), 0., 1.)
+            u[j][i] = Clip(parseFloat(v[m++]), 0.0, 1.0)
         }
     }
     return u
@@ -247,7 +248,7 @@ function DrawAll() {
         const AX = 0, AY = 1, BX = 2, BY = 3
 
         var nh = 4
-        var hp = 4. / (2.0*nh)
+        var hp = 4.0 / (2.0*nh)
         var eta = 0.5
         var a = 0.0
         var t = 0.0
@@ -290,11 +291,9 @@ var nx = 5
 var ny = 5
 marx = 0.1  // x-margin relative to screen width
 maryb = 1  // y-margin relative to block size
-var wx = window.innerWidth
-    || document.documentElement.clientWidth
-    || document.body.clientWidth;
+var wx = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
 wx = Math.min(wx, 1000)
-var w = (wx * (1. - marx * 2)) / nx;   // block size
+var w = (wx * (1.0 - marx * 2)) / nx;   // block size
 var base = {x: wx * marx , y: w * maryb} 
 
 var canvas = document.getElementById('myCanvas');
