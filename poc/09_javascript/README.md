@@ -9,19 +9,10 @@ should include line `include(mh.m4)dnl`.
 	make install
 	make test
 
-# Plan
+# Break
 
-	function Partstr(nh, hl, hp, eta) {
-		[storage for segmetns], [storage for particles], n, nh, hp, eta
-		a0, t0
-
-		this.new  = function(a, t, ends, i, j) { }
-		this.step = function(n) { }
-		this.converge = function(nmax, eps) { }
-
-		this.eps = function() { }
-		this.a = function() { }
-		this.t = function() { }
-		this.force = function () { }
-		this.particle = function () { }
-	}
+	0 0 0 0 0
+	0 0 0 0.2437499999999999 0.309375
+	0 0 0 0.33125000000000004 0.14375
+	0 0 0 0 0
+	0 0 0 0 0
