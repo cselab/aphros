@@ -40,14 +40,14 @@ function matrix_write(stream, M, N, a) {
     var i, j
     if (!Array.isArray(a))
         throw new Error("a is not an array: ${a}")
-    stream.write("${M} ${N}\n")
+    stream.write(M + " " + N + "\n")
     for (i = 0; i < M; i++) {
         if (a[i] === void 0)
             throw new Error("a[${i}] is undefined, M = ${M}, N = ${N}")
         for (j = 0; j < N; j++) {
             if (j > 0)
                 stream.write(" ")
-            stream.write("${a[i][j]}")
+            stream.write(a[i][j] + "")
         }
         stream.write("\n")
     }
@@ -57,12 +57,13 @@ function matrix_lh_write(stream, m, n, M, N, a) {
     var i, j
     if (!Array.isArray(a))
         throw new Error("a is not an array: ${a}")
+    stream.write(M - m + " " + N - n + "\n")
     for (i = m; i < M; i++) {
         if (a[i] == void 0)
             throw new Error("a[${i}] is undefined, M = ${M}, N = ${N}")
         for (j = n; j < N; j++) {
             if (j > n) stream.write(" ")
-            stream.write("${a[i][j]}")
+            stream.write(a[i][j] + "")
         }
         stream.write("\n")
     }

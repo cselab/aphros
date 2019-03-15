@@ -162,8 +162,8 @@ function partstr_cell_ends_gnuplot(stream, n, ends) {
         if (e === undefined) continue
         if (i > 0)
             stream.write("\n")
-        stream.write("${e[AX]} ${e[AY]}\n")
-        stream.write("${e[BX]} ${e[BY]}\n")
+        stream.write(e[AX] + " " + e[AY] + "\n")
+        stream.write(e[BX] + " " + e[BY] + "\n")
     }
 }
 
@@ -177,8 +177,8 @@ function partstr_ends_gnuplot(stream, M, N, ends) {
             if (e === undefined) continue
             if (i != 0 || j != 0)
                 stream.write("\n")
-            stream.write("${e[AX]} ${e[AY]}\n")
-            stream.write("${e[BX]} ${e[BY]}\n")
+            stream.write(e[AX] + " " + e[AY] + "\n")
+            stream.write(e[BX] + " " + e[BY] + "\n")
         }
 }
 
@@ -309,7 +309,7 @@ function partstr_force_write(stream, n, xx, ff) {
 
     for (i = 0; i < n; i++) {
         x = xx[i]; f = ff[i]
-        stream.write("${x[X]} ${x[Y]} ${f[X]} ${f[Y]}\n")
+        stream.write(x[X] + " " + x[Y] + " " + f[X] + " " + f[Y] + "\n")
     }
 }
 
