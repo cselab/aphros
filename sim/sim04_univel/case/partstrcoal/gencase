@@ -15,6 +15,7 @@ eval "$@"
 : ${suff=}
 : ${tmax=0.4}
 : ${wall=0}
+: ${tl=1440}
 : ${Oh=0.005}
 : ${vert=0}
 
@@ -58,7 +59,7 @@ cat > $o << EOG
 set -eu
 
 echo $np > np
-echo 1440 > tl
+echo $tl > tl
 
 # $0 $@
 # np=$np
