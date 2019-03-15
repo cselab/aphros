@@ -30,7 +30,7 @@ set style line 4 lt 4 pt 2 ps 0.5 pi 5 dt 2
 set style line 5 lt 5 pt 2 ps 0.5 pi 5
 
 
-wall = 0
+wall = 1
 
 # frame index to simulation time
 sim = 0.01
@@ -41,13 +41,14 @@ r = 0.15
 shy = wall ? -r : -0.5
 # shift in t
 dt = 0.00
+dtk = 1/1.22
 
 set key
 set key right bottom
 
 # case (directory)
-c="center"
-ll = system("echo ".c."/*/ch/neck")
+c="wall"
+ll = system("ls ".c."/*512*/ch/neck")
 tt = system("for f in ".ll." ; do g=${f#".c."/} ; echo ${g%/*/neck} | tr -d '_' ; done")
 
 set xlabel "t / T"
@@ -58,7 +59,7 @@ krn = 1.
 plot \
 "ref/rn" w l ls 5  lc "black" t "BI" , \
 "ref/rnexp" w p pt 7 ps 0.1 lc "black" t "exp" , \
-for [i=1:words(ll)] word(ll,i) u (column('i')*sim-dt):((column('z1')+shy)/r*krn) w lp ls i t word(tt,i) , \
+for [i=1:words(ll)] word(ll,i) u (column('i')*sim*dtk-dt):((column('z1')+shy)/r*krn) w lp ls i t word(tt,i) , \
 
 #for [i=1:words(ll)] word(ll,i) u ($0*sim):(($1+shy)/r) w lp ls i t ""
 
@@ -73,14 +74,15 @@ set yrange [0:3]
 tcap = 0.683  # ms
 # bubble radius [mm]
 rb = 0.3
-krc = 1.3
+krc = 1.0
 
 plot \
 "ref/rcm" u ($1/tcap):($2/rb) w l lc "black" t "low" , \
 "ref/rcp" u ($1/tcap):($2/rb) w l lc "black" t "up" , \
 "ref/rcbi" u 1:2 w l lc "red" t "BI" , \
 "ref/rcexp" w p pt 7 ps 0.1 lc "black" t "exp" , \
-for [i=1:words(ll)] word(ll,i) u (column('i')*sim-dt):(column("r0")/r*krc) w lp ls i t word(tt,i) , \
+for [i=1:words(ll)] word(ll,i) u (column('i')*sim*dtk-dt):(column("r0")/r*krc) w lp ls i t word(tt,i) , \
+for [i=1:words(ll)] word(ll,i) u (column('i')*sim*dtk-dt):(column("r1")/r*krc) w lp ls i t word(tt,i) , \
 
 
 
