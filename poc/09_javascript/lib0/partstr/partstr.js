@@ -1,4 +1,5 @@
 /* static */
+function _sq(a) { return a*a }
 function _E(a) { return [Math.cos(a), Math.sin(a)] }
 function _axpy(a, x, y,   /**/ b) {
     const X = 0, Y = 1
@@ -145,7 +146,7 @@ function partstr_ends_read(file) {
 
 function partstr_ends_write(stream, ends) {
     var n
-    n = e.length
+    n = ends.length
     matrix_write(stream, n, 4, ends)
 }
 
@@ -177,7 +178,7 @@ function partstr_ends_gnuplot_write(stream, M, N, ends) {
 }
 
 function partstr_part(nh, hp, p, a, t, /**/ xx) {
-    var n, j, jp, xx
+    var n, j, jp
     if (!Array.isArray(xx))
         throw new Error(`xx is not an array: ${xx}`)
     n = 2*nh + 1
@@ -191,8 +192,8 @@ function partstr_part(nh, hp, p, a, t, /**/ xx) {
 
 function partstr_segcirc(k, l, d) {
     var t1, t2
-    t1 = 1 - (k*l)**2
-    t2 = 1 - (k*d)**2
+    t1 = 1 - _sq(k*l)
+    t2 = 1 - _sq(k*d)
     if (t1 < 0)
         throw new Error(`t1=${t1} < 0, k=${k}, l=${l}, d=${d}\n`)
     if (t2 < 0)
@@ -213,13 +214,13 @@ function partstr_shsegcirc(k, a, b, x) {
     p = 0.5*(b[X] + a[X]) - x[X]
     q = 0.5*(b[Y] + a[Y]) - x[Y]
 
-    mdc = u**2 + v**2
+    mdc = _sq(u) + _sq(v)
     mdc = Math.sqrt(mdc)/2.0
 
-    dc =  p**2 + q**2
+    dc =  _sq(p) + _sq(q)
     dc = Math.sqrt(dc)
 
-    g = u**2 + v**2
+    g = _sq(u) + _sq(v)
     if (g > 0) {
         g = Math.sqrt(g)
         u /= g
@@ -241,7 +242,7 @@ function partstr_nearest(a, b, x) {
     q = x[Y] - a[Y]
 
     k = u*p + v*q
-    g = u**2 + v**2
+    g = _sq(u) + _sq(v)
     if (g > 0)
         k /= g
 
@@ -266,7 +267,7 @@ function partstr_nearest_ends(n, ends, x, k) {
         a[X] = e[AX]; a[Y] = e[AY]
         b[X] = e[BX]; b[Y] = e[BY]
         y = partstr_nearest(a, b, x)
-        d = (x[X] - y[X])**2 + (x[Y] - y[Y])**2
+        d = _sq(x[X] - y[X]) + _sq(x[Y] - y[Y])
         if (i == 0 || d < m) {
             m = d
             j = i
@@ -355,7 +356,7 @@ function _substr(n, a, /**/ b) {
         b[i][Y] -= a[i][Y]
     }
 }
-function _append(n, a, b, /**/) {
+function _append(n, a, b /**/) {
     const X = 0, Y = 1
     var i
     for (i = 0; i < n; i++) {
@@ -375,7 +376,7 @@ function _dot(n, a, b) {
 }
 function partstr_step(nh, ff, eta, hp, /*io*/ State) {
     const X = 0, Y = 1
-    var p, a, t, x0, x1, f, n, x0, x1, dx, dd
+    var p, a, t, x0, x1, f, n, dx, dd
 
     p = State.p.slice()
     a = State.a
