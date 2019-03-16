@@ -293,6 +293,8 @@ function DrawAll() {
         var nh = 4
         var hp = 4.0 / (2.0*nh)
         var eta = 0.5
+        var eps = 1e-5
+        var itermax = 20
         var t = 0.0
         var n = 2*nh + 1
         var partstr = new Partstr(nh, hp, eta)
@@ -302,8 +304,7 @@ function DrawAll() {
         var dy = e[BY] - e[AY]
         var a = Math.atan2(dy, dx)
         partstr.start(ne, end, a, t, p)
-        for (var k = 0; k < 100; k++)
-            partstr.step()
+        partstr.converge(eps, itermax)
         DrawString(partstr.xx)
     }
 }
