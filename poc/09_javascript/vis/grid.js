@@ -9,6 +9,12 @@ function sqr(a)  { return a*a }
 function abs(a)  { return a > 0 ? a : -a }
 function sign(a) { return  a == 0 ? 0 : (a >  0 ? 1 : -1) }
 
+function ScreenToIdx(x, y) {
+    i = Clip(Math.floor((x - base.x) / w), 0, nx - 1)
+    j = ny - Clip(Math.floor((y - base.y) / w), 0, ny - 1) - 1
+    return [i, j]
+}
+
 function InitGrid(nx, ny) {
     var u = []
     var i, j
@@ -74,8 +80,9 @@ function IncCell() {
     var k = 2.0;
     var wk = w * k;
 
-    var i = Clip(Math.floor((start.x - base.x) / w), 0, nx - 1)
-    var j = ny - Clip(Math.floor((start.y - base.y) / w), 0, ny - 1) - 1
+    var ij = ScreenToIdx(start.x, start.y)
+    var i = ij[0]
+    var j = ij[1]
 
     // displacement [px]
     dy = mouse.y - start.y;
