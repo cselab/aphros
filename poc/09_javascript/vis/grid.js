@@ -337,10 +337,8 @@ var onPaint = function() {
             DrawStringRun(ij[0], ij[1], "green")
         }
     } else if (selectpos) {
-        if (IsGrid(mouse.x, mouse.y)) {
-            var xyp = ScreenToPhys(mouse.x, mouse.y)
-            DrawSelectPos(xyp[0], xyp[1])
-        }
+        var xyp = ScreenToPhys(mouse.x, mouse.y)
+        DrawSelectPos(xyp[0], xyp[1])
     } else if (mousepressed) { // dragging cell
         var dd = IncCell()
         DrawBar(dd[0], dd[1], dd[2])
@@ -359,9 +357,12 @@ function StartSelect() {
 }
 
 function ApplySelect() {
-    var ij = ScreenToIdx(mouse.x, mouse.y)
-    i0 = ij[0]
-    j0 = ij[1]
+    var x = mouse.x, y = mouse.x;
+    if (IsGrid(x, y)) {
+        var ij = ScreenToIdx(x, y)
+        i0 = ij[0]
+        j0 = ij[1]
+    }
 }
 
 function StopSelect() {
