@@ -16,6 +16,13 @@ function ScreenToIdx(x, y) {
     return [i, j]
 }
 
+function IsGrid(x, y) {
+    var i, j;
+    i = Math.floor((x - base.x) / w);
+    j = ny - Math.floor((y - base.y) / w) - 1;
+    return i >= 0 && i < nx && j >= 0 && j < ny;
+}
+
 function IdxToScreen(i, j) {
     var x, y
     x = base.x + i * w
@@ -240,8 +247,8 @@ function GridToText(u, ny) {
     return t
 }
 
-function TextToGrid(t, nx, ny, /**/ u) {
-    t = t.replace(/\s+/g, " ")
+function TextToGrid(text, nx, ny, /**/ u) {
+    var t = text.replace(/\s+/g, " ")
     var v = t.split(" ")
     var m = 0
     var i, j
@@ -258,7 +265,7 @@ function UpdateText(t) {
 }
 
 function UpdateGrid() {
-    t = textarea.value
+    var t = textarea.value
     TextToGrid(t, nx, ny, u)
 }
 
@@ -316,32 +323,18 @@ function Clear() {
 var onPaint = function() {
     Clear()
 
-
-    if (mousepressed && selectcell) {
-        var ij = ScreenToIdx(start.x, start.y)
-        i0 = ij[0]
-        j0 = ij[1]
-        StopSelect()
-        DrawAll()
-        return
-    }
-
-    if (mousepressed) {
-        var dd = IncCell()
-    }
-
     DrawAll()
 
-    if (mousepressed) {
-        DrawBar(dd[0], dd[1], dd[2])
-    }
-
     if (selectcell) {
-        var ij = ScreenToIdx(mouse.x, mouse.y)
-        DrawSelectCurrent(ij[0], ij[1], 1)
+        if (IsGrid(mouse.x, mouse.y)) {
+            var ij = ScreenToIdx(mouse.x, mouse.y)
+            DrawSelectCurrent(ij[0], ij[1], 1)
+        }
+    } else if (mousepressed) { // dragging cell
+        var dd = IncCell()
+        DrawBar(dd[0], dd[1], dd[2])
+        UpdateText(GridToText(u, ny))
     }
-
-    UpdateText(GridToText(u, ny))
 };
 
 function StartSelect() {
@@ -356,6 +349,12 @@ function StopSelect() {
     onPaint()
     canvas.removeEventListener('mousemove', onPaint, false);
     canvas.removeEventListener('touchmove', onPaint, false);
+}
+
+function SetSample() {
+    u = InitGrid(nx, ny);
+    UpdateText(GridToText(u, ny))
+    onPaint();
 }
 
 
@@ -419,33 +418,33 @@ addListenerMulti(canvas, 'touchmove touchstart', function(e) {
 });
 
 addListenerMulti(canvas, 'mousedown touchstart', function(e) {
-    mousepressed = true
+    if (selectcell) {
+        var ij = ScreenToIdx(mouse.x, mouse.y)
+        i0 = ij[0]
+        j0 = ij[1]
+        StopSelect()
+    } else {
+        mousepressed = true; // start dragging cell
+        ustart = CopyGrid(nx, ny, u);
+        start.x = mouse.x
+        start.y = mouse.y
+        canvas.addEventListener('mousemove', onPaint, false);
+        canvas.addEventListener('touchmove', onPaint, false);
+        onPaint()
+    }
 });
 
 addListenerMulti(canvas, 'mouseup mouseout touchend touchcancel', function(e) {
-    mousepressed = false
+    if (mousepressed) {
+        canvas.removeEventListener('mousemove', onPaint, false);
+        canvas.removeEventListener('touchmove', onPaint, false);
+        mousepressed = false;
+        onPaint()
+    }
 });
 
-addListenerMulti(canvas, 'mousedown touchstart', function(e) {
-    start.x = mouse.x
-    start.y = mouse.y
-
-    ustart = CopyGrid(nx, ny, u);
-
-    onPaint()
-    canvas.addEventListener('mousemove', onPaint, false);
-    canvas.addEventListener('touchmove', onPaint, false);
-});
-
-addListenerMulti(canvas, 'mouseup mouseout touchend touchcancel', function(e) {
-    onPaint()
-    canvas.removeEventListener('mousemove', onPaint, false);
-    canvas.removeEventListener('touchmove', onPaint, false);
-});
-
-textarea.addEventListener('change', function(e) {
+addListenerMulti(textarea, 'change input keyup onpaste oncut', function(e) {
     UpdateGrid()
-    Clear()
     DrawAll()
 }, false);
 
