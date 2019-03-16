@@ -16,24 +16,31 @@ include(mh.m4)dnl
     </div>
     <div style="position: absolute; top:10px; left:10px;">
       <div style="display: inline-block;">
-        <textarea id="myTextarea" rows="5" cols="50"></textarea>
+        <textarea id="myTextarea" rows="5" cols="70"></textarea>
       </div>
       <div style="display: inline-block;">
-        <button style="width:120px; height:50px" onclick="SetSample();">
-          circle, R/h=1.5
+        <button style="width:60px; height:50px" onclick="SetSize(5,5);">
+          5x5
+        </button>
+        <button style="width:60px; height:50px" onclick="SetSize(7,7);">
+          7x7
+        </button>
+        <button style="width:60px; height:50px" onclick="SetSize(9,9);">
+          9x9
+        </button>
+        <button style="width:60px; height:50px" onclick="StartSelectPos(1);">
+          r=1
+        </button>
+        <button style="width:60px; height:50px" onclick="StartSelectPos(2);">
+          r=2
+        </button>
+        <button style="width:60px; height:50px" onclick="StartSelectPos(3);">
+          r=3
+        </button>
+        <button style="width:60px; height:50px" onclick="StartSelect();">
+         cell
         </button>
       </div>
-      <div style="display: inline-block;">
-        <button style="width:120px; height:50px" onclick="StartSelect();">
-          Select cell
-        </button>
-      </div>
-      <div style="display: inline-block;">
-        <button style="width:120px; height:50px" onclick="StartSelectPos();">
-          Select pos
-        </button>
-      </div>
-       
     </div>
 
     <script>

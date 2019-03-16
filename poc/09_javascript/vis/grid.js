@@ -365,9 +365,11 @@ function StopSelect() {
     canvas.removeEventListener('touchmove', onPaint, false);
 }
 
-function StartSelectPos() {
+function StartSelectPos(cr) {
     StopSelect()
     StopSelectPos()
+
+    circrad = cr
 
     selectpos = true;
     onPaint()
@@ -402,8 +404,10 @@ function StopSelectPos() {
     canvas.removeEventListener('touchmove', onPaint, false);
 }
 
-function SetSample() {
-    u = InitGrid(nx, ny);
+function SetSize(nxa, nya) {
+    nx = nxa
+    ny = nya
+    UpdatePar()
     UpdateText(GridToText(u, ny))
     onPaint();
 }
@@ -414,25 +418,35 @@ var nx = 6
 var ny = 6
 var marx = 0.1  // x-margin relative to screen width
 var maryb = 2  // y-margin relative to block size
-var wx = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-wx = Math.min(wx, 1000)
-var w = (wx * (1.0 - marx * 2)) / nx;   // block size
-var base = {x: wx * marx , y: w * maryb}
+var base, w
 
 var canvas = document.getElementById('myCanvas');
-
-canvas.width = nx * w + base.x * 2
-canvas.height = ny * w + base.y * 2
-canvas.style.width = canvas.width.toString() + "px"
-canvas.style.height = canvas.height.toString() + "px"
+var ctx
 
 
-var ctx = canvas.getContext('2d');
+function UpdatePar() {
+    var wx = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+    wx = Math.min(wx, 1000)
+    w = (wx * (1.0 - marx * 2)) / nx;   // block size
+    base = {x: wx * marx , y: w * maryb}
+
+    u = matrix_zero(nx, ny)
+
+    canvas.width = nx * w + base.x * 2
+    canvas.height = ny * w + base.y * 2
+    canvas.style.width = canvas.width.toString() + "px"
+    canvas.style.height = canvas.height.toString() + "px"
+
+    ctx = canvas.getContext('2d');
+}
+
+UpdatePar()
 
 ctx.lineWidth = 3;
 ctx.lineJoin = 'round'
 ctx.lineCap = 'round'
 ctx.strokeStyle = '#505050'
+
 
 var mouse = {x: 0, y: 0}
 var start = {x: 0, y: 0}
@@ -526,10 +540,14 @@ function OneEllipse() {
     return u
 }
 
+var i0 = 2, j0 = 3
+var circrad = 2
+
+SetSize(nx, ny)
+
 var u = TwoEllipses()
 //var u = OneEllipse()
 
 var ustart = CopyGrid(nx, ny, u)
-var i0 = 2, j0 = 3
-var circrad = 2
+
 onPaint()
