@@ -431,7 +431,7 @@ addListenerMulti(textarea, 'change input keyup onpaste oncut', function(e) {
 }, false);
 
 function TwoEllipses() {
-    var lx = 1, ly = 1
+    var lx = 1, ly = lx*ny/nx
     var u = matrix_new(nx, ny)
     var dx = lx/nx, dy = ly/ny
     var Param = {}
@@ -445,7 +445,7 @@ function TwoEllipses() {
 }
 
 function OneEllipse() {
-    var lx = 1, ly = 1
+    var lx = 1, ly = lx*ny/nx
     var u = matrix_new(nx, ny)
     var dx = lx/nx, dy = ly/ny
     var ellipse = {x0: 0.5, y0: 0.5, a: 0.2, b: 0.4}
