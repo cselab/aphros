@@ -14,16 +14,19 @@ include(mh.m4)dnl
     <div id="paint">
       <canvas id="myCanvas"></canvas>
     </div>
-    <div style="margin-left: 50px">
-      <button onclick="u = InitGrid(nx, ny); onPaint();">
-        circle, R/h=1.5
-      </button>
+    <div style="position: absolute; top:10px; left:10px;">
+      <div style="display: inline-block;">
+        <textarea id="myTextarea" rows="5" cols="50"></textarea>
+      </div>
+      <div style="display: inline-block;">
+        <button style="width:200px; height:50px" onclick="u = InitGrid(nx, ny); onPaint();">
+          circle, R/h=1.5
+        </button>
+        <button style="width:200px; height:50px" onclick="StartSelect();">
+          Select cell
+        </button>
+      </div>
        
-      <button onclick="StartSelect();">
-        Select cell
-      </button>
-      <br>
-      <textarea id="myTextarea" rows="5" cols="50"></textarea>
     </div>
 
     <script>
