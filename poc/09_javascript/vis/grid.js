@@ -15,6 +15,12 @@ function ScreenToIdx(x, y) {
     return [i, j]
 }
 
+function IdxToScreen(i, j) {
+    x = base.x + i * w
+    y = base.y + (ny - j - 1) * w
+    return [x, y]
+}
+
 function InitGrid(nx, ny) {
     var u = []
     var i, j
@@ -119,14 +125,13 @@ function DrawGridText(q, x, y) {
     ctx.fillText(q.toFixed(2), x + w * 0.5, y + w * 0.5);
 }
 function DrawGrid(u) {
-    var i, j, x, y, q
+    var i, j, q, xy
     for (j = 0 ; j < ny; j++) {
         for (i = 0 ; i < nx; i++) {
             q = u[i][j];
-            x = base.x + i * w;
-            y = base.y + (ny - j - 1) * w;
-            DrawGridFill(q, x, y)
-            /* DrawGridText(q, x, y) */
+            xy = IdxToScreen(i, j)
+            DrawGridFill(q, xy[0], xy[1])
+            /* DrawGridText(q, xy[0], xy[1]) */
         }
     }
 }
