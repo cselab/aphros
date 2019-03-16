@@ -1,4 +1,5 @@
 /* static */
+function _max(a, b) { return a > b ? a : b }
 function _sq(a) { return a*a }
 function _E(a) { return [Math.cos(a), Math.sin(a)] }
 function _axpy(a, x, y,   /**/ b) {
@@ -14,8 +15,57 @@ function _line(nx, ny, u) {
     else
         return ny * (u - 0.5)
 }
-function _msg(s) { return process.stderr.write(s) }
+
+function _minus(n, a, b, /**/ c) {
+    var X = 0, Y = 1
+    var i
+    for (i = 0; i < n; i++) {
+        c[i][X] = a[i][X] - b[i][X]
+        c[i][Y] = a[i][Y] - b[i][Y]
+    }
+}
+function _substr(n, a, /**/ b) {
+    var X = 0, Y = 1
+    var i
+    for (i = 0; i < n; i++) {
+        b[i][X] -= a[i][X]
+        b[i][Y] -= a[i][Y]
+    }
+}
+function _append(n, a, b /**/) {
+    var X = 0, Y = 1
+    var i
+    for (i = 0; i < n; i++) {
+        b[i][X] += a[i][X]
+        b[i][Y] += a[i][Y]
+    }
+}
+function _dot(n, a, b) {
+    var X = 0, Y = 1
+    var i, d
+    d = 0
+    for (i = 0; i < n; i++) {
+        d += a[i][X]*b[i][X]
+        d += a[i][Y]*b[i][Y]
+    }
+    return d
+}
+
+function _abs(x) { return x > 0 ? x : -x }
+function _absmax(n, a) {
+    var X = 0, Y = 1
+    var m, c, i, b
+    m = 0
+    for (i = 0; i < n; i++) {
+        b = a[i]
+        c = _max(_abs(b[X]), _abs(b[Y]))
+        if (c > m) m = c
+    }
+    return m
+}
+
 /**/
+
 
 function partstr_norm(i, j, u) {
     var nx, ny, n, p
@@ -352,53 +402,6 @@ function partstr_curv(hp, t) {
     return Math.sqrt(2)/hp*Math.sin(t)/Math.sqrt(1.0 + Math.cos(t))
 }
 
-function _minus(n, a, b, /**/ c) {
-    var X = 0, Y = 1
-    var i
-    for (i = 0; i < n; i++) {
-        c[i][X] = a[i][X] - b[i][X]
-        c[i][Y] = a[i][Y] - b[i][Y]
-    }
-}
-function _substr(n, a, /**/ b) {
-    var X = 0, Y = 1
-    var i
-    for (i = 0; i < n; i++) {
-        b[i][X] -= a[i][X]
-        b[i][Y] -= a[i][Y]
-    }
-}
-function _append(n, a, b /**/) {
-    var X = 0, Y = 1
-    var i
-    for (i = 0; i < n; i++) {
-        b[i][X] += a[i][X]
-        b[i][Y] += a[i][Y]
-    }
-}
-function _dot(n, a, b) {
-    var X = 0, Y = 1
-    var i, d
-    d = 0
-    for (i = 0; i < n; i++) {
-        d += a[i][X]*b[i][X]
-        d += a[i][Y]*b[i][Y]
-    }
-    return d
-}
-
-function _abs(x) { return x > 0 ? x : -x }
-function _absmax(n, a) {
-    var X = 0, Y = 1
-    var m, c, i
-    m = 0
-    for (i = 0; i < n; i++) {
-        c = _abs(a[i][X]) + _abs(a[i][Y])
-        if (c > m) m = c
-    }
-    return m
-}
-
 function partstr_step(nh, ff, eta, hp, /*io*/ State) {
     var X = 0, Y = 1
     var p, a, t, x0, x1, f, n, dx, dd
@@ -458,7 +461,7 @@ function Partstr(nh, hp, eta) {
     }
 
     this.step = function() {
-        var a, ends, eta, ff, hp, k, k, key, n, ne, nh, p, State, t, xx
+        var a, ends, eta, ff, hp, k, key, n, ne, nh, p, State, t, xx
         nh = this.nh
         n = 2*nh + 1
         hp = this.hp
@@ -476,7 +479,7 @@ function Partstr(nh, hp, eta) {
         partstr_part(nh, hp, State.p, State.a, State.t, /**/ xx)
         partstr_force(ne, ends, n, xx, k, eta,     ff)
         partstr_step(nh, ff, eta, hp, /*io*/ State)
-        this.k = k
+        this.k = partstr_curv(hp, State.t)
         this.xx = xx
         this.ff = ff
     }
@@ -497,7 +500,20 @@ function Partstr(nh, hp, eta) {
         partstr_part(nh, hp, Prev.p, Prev.a, Prev.t, /**/ dx)
         partstr_part(nh, hp, State.p, State.a, State.t, /**/ xx)
         _substr(n, xx, /*io*/ dx)
-        this.eps = _absmax(n, dx)/this.eta
-        return this.eps
+        this.r = _absmax(n, dx)/this.eta
+        return this.r
+    }
+
+    this.converge = function(eps, itermax) {
+        if (eps === undefined)
+            throw new Error("eps is undefined")
+
+        var i
+        for (i = 0; i < itermax; i++) {
+            partstr.step()
+            partstr.diff()
+            process.stderr.write(i + " " + this.r + " " + this.k + "\n")
+        }
+        return itermax
     }
 }
