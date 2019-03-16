@@ -74,14 +74,14 @@ function IncCell() {
     var k = 2.0;
     var wk = w * k;
 
-    var i = Clip(Math.floor((start.x - base.x) / w), 0, nx - 1);
-    var j = Clip(Math.floor((start.y - base.y) / w), 0, ny - 1);
+    var i = Clip(Math.floor((start.x - base.x) / w), 0, nx - 1)
+    var j = ny - Clip(Math.floor((start.y - base.y) / w), 0, ny - 1) - 1
 
     // displacement [px]
     dy = mouse.y - start.y;
     // range of u correction: [-dum,dup]
-    dup = 1.0 - ustart[j][i]
-    dum = ustart[j][i]
+    dup = 1.0 - ustart[i][j]
+    dum = ustart[i][j]
     // normalize
     dyn = dy / wk
 
@@ -117,7 +117,7 @@ function DrawGrid(u) {
         for (i = 0 ; i < nx; i++) {
             q = u[i][j];
             x = base.x + i * w;
-            y = base.y + j * w;
+            y = base.y + (ny - j - 1) * w;
             DrawGridFill(q, x, y)
             /* DrawGridText(q, x, y) */
         }
@@ -125,16 +125,17 @@ function DrawGrid(u) {
 }
 
 function DrawLines(ee, u) {
-    for (var j = 0 ; j < ny; j++) {
-        for (var i = 0 ; i < nx; i++) {
+    var i, j;
+    for (j = 0 ; j < ny; j++) {
+        for (i = 0 ; i < nx; i++) {
             e = ee[i][j]
             if (e === undefined) continue
             xq = nx
             yq = ny
-            xa = base.x + (e[1]) * w
-            ya = base.y + (e[0]) * w
-            xb = base.x + (e[3]) * w
-            yb = base.y + (e[2]) * w
+            xa = base.x + (e[0]) * w
+            ya = base.y + (ny - e[1]) * w
+            xb = base.x + (e[2]) * w
+            yb = base.y + (ny - e[3]) * w
 
             // unit normal
             mx = -(yb - ya)
@@ -168,10 +169,10 @@ function DrawString(pp) {
     ctx.beginPath();
     var i
     for (i = 1 ; i < pp.length; ++i) {
-        xa = base.x + (pp[i-1][1]) * w
-        ya = base.y + (pp[i-1][0]) * w
-        xb = base.x + (pp[i][1]) * w
-        yb = base.y + (pp[i][0]) * w
+        xa = base.x + (pp[i-1][0]) * w
+        ya = base.y + (ny - pp[i-1][1]) * w
+        xb = base.x + (pp[i][0]) * w
+        yb = base.y + (ny - pp[i][1]) * w
 
         ctx.strokeStyle = "red";
         ctx.beginPath();
@@ -182,8 +183,8 @@ function DrawString(pp) {
     }
 
     for (i = 0 ; i < pp.length; ++i) {
-        x = base.x + (pp[i][1]) * w
-        y = base.y + (pp[i][0]) * w
+        x = base.x + (pp[i][0]) * w
+        y = base.y + (ny - pp[i][1]) * w
 
         ctx.strokeStyle = "black";
         ctx.beginPath();
@@ -211,10 +212,11 @@ function DrawBar(dy, dym, dyp) {
 
 function GridToText(u, ny) {
     var t = ""
-    for (var j = 0; j < ny; ++j) {
+    var i, j
+    for (j = 0; j < ny; ++j) {
         t += (j == 0 ? "" : "\n")
-        for (var i = 0; i < nx; ++i) {
-            t += (i == 0 ? "" : " ") + u[i][j]
+        for (i = 0; i < nx; ++i) {
+            t += (i == 0 ? "" : " ") + u[i][ny - j - 1].toFixed(4)
         }
     }
     return t
@@ -224,9 +226,10 @@ function TextToGrid(t, nx, ny, /**/ u) {
     t = t.replace(/\s+/g, " ")
     var v = t.split(" ")
     m = 0
-    for (var j = 0; j < ny; j++) {
-        for (var i = 0; i < nx; i++) {
-            u[i][j] = Clip(parseFloat(v[m++]), 0.0, 1.0)
+    var i, j
+    for (j = 0; j < ny; j++) {
+        for (i = 0; i < nx; i++) {
+            u[i][ny - j - 1] = Clip(parseFloat(v[m++]), 0.0, 1.0)
         }
     }
     return u
@@ -334,8 +337,9 @@ var textarea = document.getElementById("myTextarea");
 
 
 function addListenerMulti(element, eventNames, listener) {
-    var events = eventNames.split(' ');
-    for (var i=0, iLen=events.length; i<iLen; i++) {
+    var events = eventNames.split(' ')
+    var i, ie;
+    for (i = 0, ie = events.length; i < ie; i++) {
         element.addEventListener(events[i], listener, false);
     }
 }
