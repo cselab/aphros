@@ -423,7 +423,7 @@ function SetSize(nxa, nya) {
 var nx = 6
 var ny = 6
 var marx = 0.1  // x-margin relative to screen width
-var maryb = 2  // y-margin relative to block size
+var maryb = 1  // y-margin relative to block size
 var base, w
 
 var canvas = document.getElementById('myCanvas');
