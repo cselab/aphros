@@ -21,6 +21,38 @@ function vof_trapz(M, N, f, param, x, y, u, v) {
     return s/(4*N*M)
 }
 
+function vof_comosite(x, y, Param) {
+    var f, g, p, q, a, b
+
+    f = Param.f[0]
+    g = Param.f[1]
+
+    p = Param.param[0]
+    q = Param.param[1]
+
+    if (typeof f !== "function")
+        throw new Error("f should be a function: " + f)
+    if (typeof g !== "function")
+        throw new Error("g should be a function: " + g)
+
+    a = f(x, y, p)
+    b = g(x, y, q)
+
+    return a > b ? a : b
+}
+
+function vof_ellipse(x, y, param) {
+    var x0, y0, a, b
+    x0 = param.x0
+    y0 = param.y0
+    a = param.a
+    b = param.b
+
+    x -= x0
+    y -= y0
+    return (x*x)/(a*a) + (y*y)/(b*b) < 1
+}
+
 
 function Vof(dx, dy, f, param) {
     if (typeof f !== "function")

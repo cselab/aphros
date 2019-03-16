@@ -1,7 +1,7 @@
 S = ../../../..
 include $S/make/js.mk
 
-M = trapz circle ellipse
+M = trapz circle ellipse composite
 M4FLAGS = -I../../lib
 
 all: $M
