@@ -386,6 +386,19 @@ function _dot(n, a, b) {
     }
     return d
 }
+
+function _abs(x) { return x > 0 ? x : -x }
+function _absmax(n, a) {
+    var X = 0, Y = 1
+    var m, c, i
+    m = 0
+    for (i = 0; i < n; i++) {
+        c = _abs(a[i][X]) + _abs(a[i][Y])
+        if (c > m) m = c
+    }
+    return m
+}
+
 function partstr_step(nh, ff, eta, hp, /*io*/ State) {
     var X = 0, Y = 1
     var p, a, t, x0, x1, f, n, dx, dd
@@ -432,6 +445,7 @@ function Partstr(nh, hp, eta) {
     this.eta = eta
     this.ff = matrix_new(n, 2)
     this.xx = matrix_new(n, 2)
+    this.dx = matrix_new(n, 2) /* dx = old - new */
 
     this.start = function(ne, ends, a, t, p) {
         if (!Array.isArray(ends))
@@ -440,30 +454,50 @@ function Partstr(nh, hp, eta) {
             throw new Error("p is not an array: " + p)
         this.ne = ne
         this.ends = ends
-        this.a = a
-        this.t = t
-        this.p = p.slice()
+        this.State = {a: a, t: t, p: p.slice() }
     }
 
     this.step = function() {
-        var nh, p, a, t, hp, eta, ends, ff, State, k, ne, xx
+        var a, ends, eta, ff, hp, k, k, key, n, ne, nh, p, State, t, xx
         nh = this.nh
-        var n = 2*nh + 1
+        n = 2*nh + 1
         hp = this.hp
         eta = this.eta
         ends = this.ends
         ne = this.ne
         xx = this.xx
         ff = this.ff
-        p = this.p; a = this.a; t = this.t
-        k = partstr_curv(hp, t)
-        partstr_part(nh, hp, p, a, t, /**/ xx)
+        State = this.State
+        this.Prev = {}
+        for (key in State)
+            this.Prev[key] = State[key]
+
+        k = partstr_curv(hp, State.t)
+        partstr_part(nh, hp, State.p, State.a, State.t, /**/ xx)
         partstr_force(ne, ends, n, xx, k, eta,     ff)
-        State = { p: p, a: a, t: t }
         partstr_step(nh, ff, eta, hp, /*io*/ State)
-        this.a = State.a; this.t = State.t; this.p = State.p
         this.k = k
         this.xx = xx
         this.ff = ff
+    }
+
+    this.diff = function() {
+        var nh, hp, n, State, Prev, dx, xx
+        if (this.Prev === undefined)
+            throw new Error("diff() is called before step()")
+        nh = this.nh
+        hp = this.hp
+        n = 2*nh + 1
+        State = this.State
+        Prev = this.Prev
+        dx = this.dx
+        xx = this.xx
+        if (Prev.p === undefined)
+            throw new Error("call diff() before step()")
+        partstr_part(nh, hp, Prev.p, Prev.a, Prev.t, /**/ dx)
+        partstr_part(nh, hp, State.p, State.a, State.t, /**/ xx)
+        _substr(n, xx, /*io*/ dx)
+        this.eps = _absmax(n, dx)/this.eta
+        return this.eps
     }
 }

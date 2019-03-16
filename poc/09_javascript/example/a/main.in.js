@@ -5,7 +5,7 @@ mh_include(matrix.js)dnl
 mh_include(partstr.js)dnl
 
 var argv, nh, hl, hp, eta, a, t, file, u, M, N, e, dx, dy
-var ends, p, end, partstr, i, j, ne, n
+var ends, p, end, partstr, i, j, ne, n, eps, k
 var AX = 0, AY = 1, BX = 2, BY = 3
 
 argv = process.argv
@@ -31,7 +31,8 @@ ne = end.length
 partstr.start(ne, end, a, t, p)
 for (i = 0; i < 100; i++) {
     partstr.step()
-    process.stderr.write(partstr.k + "\n")
+    eps = partstr.diff()
+    process.stderr.write(eps + "\n")
 }
 
 partstr_cell_ends_gnuplot(process.stdout, ne, partstr.ends)
