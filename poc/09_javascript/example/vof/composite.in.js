@@ -16,9 +16,9 @@ dy = ly/N
 
 a = 0.35; b = 0.20
 Param = {}
+Param.f = [vof_ellipse, vof_ellipse]
 Param.param = [{x0: 0.4, y0: 0.5, a: a, b: b},
                {x0: 0.3, y0: 0.5, a: a, b: b}]
-Param.f = [vof_ellipse, vof_ellipse]
 
 vof = new Vof(dx, dy, vof_comosite, Param)
 u = matrix_new(M, N)

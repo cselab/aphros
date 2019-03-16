@@ -36,24 +36,6 @@ function PhysToScreen(xp, yp) {
     y = base.y + (ny - yp) * w
     return [x, y]
 }
-function InitGrid(nx, ny) {
-    var u = []
-    var i, j
-
-    for (i = 0; i < nx; i++) {
-        u[i] = [];
-        for (j = 0; j < ny; j++) {
-            u[i][j] = 1.0 / (sqr(i - (nx - 1) * 0.5) * 1.1 +
-                sqr(j - (ny - 1) * 0.5) * 1.3 + 0.01);
-            if (u[i][j] < 0.3) {
-                u[i][j] = 0.0;
-            }
-            u[i][j] = Clip(u[i][j], 0.0, 1.0)
-        }
-    }
-
-    return u;
-}
 
 function CopyGrid(nx, ny, us) {
     var u = [];
@@ -359,8 +341,8 @@ function SetSample() {
 
 
 // Parameters
-var nx = 5
-var ny = 5
+var nx = 6
+var ny = 6
 var marx = 0.1  // x-margin relative to screen width
 var maryb = 1  // y-margin relative to block size
 var wx = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
@@ -448,8 +430,33 @@ addListenerMulti(textarea, 'change input keyup onpaste oncut', function(e) {
     DrawAll()
 }, false);
 
+function TwoEllipses() {
+    var lx = 1, ly = 1
+    var u = matrix_new(nx, ny)
+    var dx = lx/nx, dy = ly/ny
+    var Param = {}
+    var ellipseA = {x0: 0.8, y0: 0.5, a: 0.2, b: 0.4}
+    var ellipseB = {x0: 0.2, y0: 0.5, a: 0.2, b: 0.4}
+    Param.param = [ellipseA, ellipseB]
+    Param.f = [vof_ellipse, vof_ellipse]
+    var vof = new Vof(dx, dy, vof_comosite, Param)
+    vof.grid(nx, ny, /**/ u)
+    return u
+}
 
-var u = InitGrid(nx, ny);
-var ustart = CopyGrid(nx, ny, u);
-var i0 = 1, j0 = 3;
-onPaint();
+function OneEllipse() {
+    var lx = 1, ly = 1
+    var u = matrix_new(nx, ny)
+    var dx = lx/nx, dy = ly/ny
+    var ellipse = {x0: 0.5, y0: 0.5, a: 0.2, b: 0.4}
+    var vof = new Vof(dx, dy, vof_ellipse, ellipse)
+    vof.grid(nx, ny, /**/ u)
+    return u
+}
+
+var u = TwoEllipses()
+//var u = OneEllipse()
+
+var ustart = CopyGrid(nx, ny, u)
+var i0 = 2, j0 = 3
+onPaint()
