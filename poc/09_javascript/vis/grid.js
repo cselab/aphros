@@ -279,7 +279,7 @@ function DrawSelectPos(xp, yp) {
     var x = xy[0], y = xy[1];
     ctx.strokeStyle = "black";
     ctx.beginPath();
-    ctx.arc(x, y, 2 * w, 0, 2 * Math.PI);
+    ctx.arc(x, y, circrad * w, 0, 2 * Math.PI);
     ctx.closePath();
     ctx.stroke();
 }
@@ -377,7 +377,22 @@ function StartSelectPos() {
 
 function ApplySelectPos() {
     // draw shape at (mouse.x mouse.y)
-    // ...
+    var xyp = ScreenToPhys(mouse.x, mouse.y)
+    var lx = 1, ly = lx*ny/nx
+    var dx = lx/nx, dy = ly/ny
+    // XXX: implies dx == dy
+    var a = circrad * dx;
+    var b = circrad * dy;
+    var el = {x0: xyp[0] * dx, y0: xyp[1] * dy, a: a, b: b}
+    var vof = new Vof(dx, dy, vof_ellipse, el)
+    var du = matrix_new(nx, ny)
+    vof.grid(nx, ny, /**/ du)
+    var i, j
+    for (i = 0; i < nx; i++) {
+        for (j = 0; j < ny; j++) {
+            u[i][j] = Clip(u[i][j] + du[i][j], 0, 1)
+        }
+    }
 }
 
 function StopSelectPos() {
@@ -516,4 +531,5 @@ var u = TwoEllipses()
 
 var ustart = CopyGrid(nx, ny, u)
 var i0 = 2, j0 = 3
+var circrad = 2
 onPaint()
