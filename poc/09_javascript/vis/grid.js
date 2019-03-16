@@ -37,6 +37,13 @@ function PhysToScreen(xp, yp) {
     return [x, y]
 }
 
+function ScreenToPhys(x, y) {
+    var xp, yp
+    xp = (x - base.x) / w
+    yp = ny - (y - base.y) / w
+    return [xp, yp]
+}
+
 function CopyGrid(nx, ny, us) {
     var u = [];
     var i, j
@@ -267,6 +274,17 @@ function DrawSelectCurrent(i, j) {
     DrawSelect(i, j, true)
 }
 
+function DrawSelectPos(xp, yp) {
+    var xy = PhysToScreen(xp, yp)
+    var x = xy[0], y = xy[1];
+    ctx.strokeStyle = "black";
+    ctx.beginPath();
+    ctx.arc(x, y, 2 * w, 0, 2 * Math.PI);
+    ctx.closePath();
+    ctx.stroke();
+}
+
+
 function DrawAll() {
     var AX = 0, AY = 1, BX = 2, BY = 3
 
@@ -310,7 +328,12 @@ var onPaint = function() {
     if (selectcell) {
         if (IsGrid(mouse.x, mouse.y)) {
             var ij = ScreenToIdx(mouse.x, mouse.y)
-            DrawSelectCurrent(ij[0], ij[1], 1)
+            DrawSelectCurrent(ij[0], ij[1])
+        }
+    } else if (selectpos) {
+        if (IsGrid(mouse.x, mouse.y)) {
+            var xyp = ScreenToPhys(mouse.x, mouse.y)
+            DrawSelectPos(xyp[0], xyp[1])
         }
     } else if (mousepressed) { // dragging cell
         var dd = IncCell()
@@ -320,14 +343,45 @@ var onPaint = function() {
 };
 
 function StartSelect() {
+    StopSelect()
+    StopSelectPos()
+
     selectcell = true;
     onPaint()
     canvas.addEventListener('mousemove', onPaint, false);
     canvas.addEventListener('touchmove', onPaint, false);
 }
 
+function ApplySelect() {
+    var ij = ScreenToIdx(mouse.x, mouse.y)
+    i0 = ij[0]
+    j0 = ij[1]
+}
+
 function StopSelect() {
     selectcell = false;
+    onPaint()
+    canvas.removeEventListener('mousemove', onPaint, false);
+    canvas.removeEventListener('touchmove', onPaint, false);
+}
+
+function StartSelectPos() {
+    StopSelect()
+    StopSelectPos()
+
+    selectpos = true;
+    onPaint()
+    canvas.addEventListener('mousemove', onPaint, false);
+    canvas.addEventListener('touchmove', onPaint, false);
+}
+
+function ApplySelectPos() {
+    // draw shape at (mouse.x mouse.y)
+    // ...
+}
+
+function StopSelectPos() {
+    selectpos = false;
     onPaint()
     canvas.removeEventListener('mousemove', onPaint, false);
     canvas.removeEventListener('touchmove', onPaint, false);
@@ -344,7 +398,7 @@ function SetSample() {
 var nx = 6
 var ny = 6
 var marx = 0.1  // x-margin relative to screen width
-var maryb = 1  // y-margin relative to block size
+var maryb = 2  // y-margin relative to block size
 var wx = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
 wx = Math.min(wx, 1000)
 var w = (wx * (1.0 - marx * 2)) / nx;   // block size
@@ -369,6 +423,7 @@ var mouse = {x: 0, y: 0}
 var start = {x: 0, y: 0}
 var mousepressed = false
 var selectcell = false
+var selectpos = false
 
 mouse.x = base.x
 mouse.y = base.y
@@ -401,10 +456,11 @@ addListenerMulti(canvas, 'touchmove touchstart', function(e) {
 
 addListenerMulti(canvas, 'mousedown touchstart', function(e) {
     if (selectcell) {
-        var ij = ScreenToIdx(mouse.x, mouse.y)
-        i0 = ij[0]
-        j0 = ij[1]
+        ApplySelect()
         StopSelect()
+    } else if (selectpos) {
+        ApplySelectPos()
+        StopSelectPos()
     } else {
         mousepressed = true; // start dragging cell
         ustart = CopyGrid(nx, ny, u);
@@ -427,6 +483,7 @@ addListenerMulti(canvas, 'mouseup mouseout touchend touchcancel', function(e) {
 
 addListenerMulti(textarea, 'change input keyup onpaste oncut', function(e) {
     UpdateGrid()
+    Clear()
     DrawAll()
 }, false);
 
