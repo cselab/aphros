@@ -21,6 +21,12 @@ function IdxToScreen(i, j) {
     return [x, y]
 }
 
+function PhysToScreen(xp, yp) {
+    x = base.x + xp * w
+    y = base.y + (ny - yp) * w
+    return [x, y]
+}
+
 function InitGrid(nx, ny) {
     var u = []
     var i, j
@@ -142,12 +148,10 @@ function DrawLines(ee, u) {
         for (i = 0 ; i < nx; i++) {
             e = ee[i][j]
             if (e === undefined) continue
-            xq = nx
-            yq = ny
-            xa = base.x + (e[0]) * w
-            ya = base.y + (ny - e[1]) * w
-            xb = base.x + (e[2]) * w
-            yb = base.y + (ny - e[3]) * w
+            var xya = PhysToScreen(e[0], e[1])
+            var xyb = PhysToScreen(e[2], e[3])
+            var xa = xya[0], ya = xya[1]
+            var xb = xyb[0], yb = xyb[1]
 
             // unit normal
             mx = -(yb - ya)
@@ -181,10 +185,10 @@ function DrawString(pp) {
     ctx.beginPath();
     var i
     for (i = 1 ; i < pp.length; ++i) {
-        xa = base.x + (pp[i-1][0]) * w
-        ya = base.y + (ny - pp[i-1][1]) * w
-        xb = base.x + (pp[i][0]) * w
-        yb = base.y + (ny - pp[i][1]) * w
+        var xya = PhysToScreen(pp[i - 1][0], pp[i - 1][1])
+        var xyb = PhysToScreen(pp[i][0], pp[i][1])
+        var xa = xya[0], ya = xya[1]
+        var xb = xyb[0], yb = xyb[1]
 
         ctx.strokeStyle = "red";
         ctx.beginPath();
@@ -195,8 +199,8 @@ function DrawString(pp) {
     }
 
     for (i = 0 ; i < pp.length; ++i) {
-        x = base.x + (pp[i][0]) * w
-        y = base.y + (ny - pp[i][1]) * w
+        var xy = PhysToScreen(pp[i][0], pp[i][1])
+        var x = xy[0], y = xy[1]
 
         ctx.strokeStyle = "black";
         ctx.beginPath();
