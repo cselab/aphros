@@ -29,7 +29,6 @@ function PhysToScreen(xp, yp) {
     y = base.y + (ny - yp) * w
     return [x, y]
 }
-
 function InitGrid(nx, ny) {
     var u = []
     var i, j
@@ -263,18 +262,33 @@ function UpdateGrid() {
     TextToGrid(t, nx, ny, u)
 }
 
+function DrawSelect(i, j, current) {
+    var xy = IdxToScreen(i, j)
+    var x = xy[0] + w/2, y = xy[1] + w/2;
+    var q = w / 10
+    ctx.fillStyle = (current ? "green" : "red")
+    ctx.fillRect(x - q, y - q, 2 * q, 2 * q);
+}
+
+function DrawSelectOld(i, j) {
+    DrawSelect(i, j, false)
+}
+
+function DrawSelectCurrent(i, j) {
+    DrawSelect(i, j, true)
+}
+
 function DrawAll() {
     var AX = 0, AY = 1, BX = 2, BY = 3
-    var i, j, k
 
     matrix_halo_zero(nx, ny, 2, u)
     var ends = matrix_new(nx, ny)
     partstr_vof_ends(nx, ny, u, ends)
     DrawGrid(u)
+    DrawSelectOld(i0, j0)
     DrawLines(ends, u)
-    i = 1; j = 3
-    if (ends[i][j] !== undefined) {
-        var end = partstr_cell_ends(nx, ny, i, j, ends)
+    if (ends[i0][j0] !== undefined) {
+        var end = partstr_cell_ends(nx, ny, i0, j0, ends)
         var ne = end.length
         var nh = 4
         var hp = 4.0 / (2.0*nh)
@@ -288,7 +302,7 @@ function DrawAll() {
         var dy = e[BY] - e[AY]
         var a = Math.atan2(dy, dx)
         partstr.start(ne, end, a, t, p)
-        for (k = 0; k < 100; k++)
+        for (var k = 0; k < 100; k++)
             partstr.step()
         DrawString(partstr.xx)
     }
@@ -301,6 +315,16 @@ function Clear() {
 var onPaint = function() {
     Clear()
 
+
+    if (mousepressed && selectcell) {
+        var ij = ScreenToIdx(start.x, start.y)
+        i0 = ij[0]
+        j0 = ij[1]
+        StopSelect()
+        DrawAll()
+        return
+    }
+
     if (mousepressed) {
         var dd = IncCell()
     }
@@ -311,8 +335,27 @@ var onPaint = function() {
         DrawBar(dd[0], dd[1], dd[2])
     }
 
+    if (selectcell) {
+        var ij = ScreenToIdx(mouse.x, mouse.y)
+        DrawSelectCurrent(ij[0], ij[1], 1)
+    }
+
     UpdateText(GridToText(u, ny))
 };
+
+function StartSelect() {
+    selectcell = true;
+    onPaint()
+    canvas.addEventListener('mousemove', onPaint, false);
+    canvas.addEventListener('touchmove', onPaint, false);
+}
+
+function StopSelect() {
+    selectcell = false;
+    onPaint()
+    canvas.removeEventListener('mousemove', onPaint, false);
+    canvas.removeEventListener('touchmove', onPaint, false);
+}
 
 
 // Parameters
@@ -343,6 +386,7 @@ ctx.strokeStyle = '#505050'
 var mouse = {x: 0, y: 0}
 var start = {x: 0, y: 0}
 var mousepressed = false
+var selectcell = false
 
 mouse.x = base.x
 mouse.y = base.y
@@ -407,4 +451,5 @@ textarea.addEventListener('change', function(e) {
 
 var u = InitGrid(nx, ny);
 var ustart = CopyGrid(nx, ny, u);
+var i0 = 1, j0 = 3;
 onPaint();

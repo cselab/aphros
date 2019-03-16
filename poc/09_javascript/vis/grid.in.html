@@ -15,7 +15,15 @@ include(mh.m4)dnl
       <canvas id="myCanvas"></canvas>
     </div>
     <div style="margin-left: 50px">
-    <textarea id="myTextarea" rows="5" cols="50"></textarea>
+      <button onclick="u = InitGrid(nx, ny); onPaint();">
+        circle, R/h=1.5
+      </button>
+       
+      <button onclick="StartSelect();">
+        Select cell
+      </button>
+      <br>
+      <textarea id="myTextarea" rows="5" cols="50"></textarea>
     </div>
 
     <script>
