@@ -104,3 +104,14 @@ function matrix_halo_zero(M, N, h, a) {
     for (i = M; i < M + h; i++)
         for (j = -h; j < N + h; j++) a[i][j] = 0;
 }
+
+function matrix_transpose(M, N, a) {
+    var i, j, b
+    if (!Array.isArray(a))
+        throw new Error("a is not an array: " + a)
+    b = matrix_new(N, M)
+    for (i = 0; i < M; i++)
+        for (j = 0; j < M; j++)
+            b[j][i] = a[i][j]
+    return b
+}
