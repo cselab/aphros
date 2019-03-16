@@ -510,9 +510,8 @@ function Partstr(nh, hp, eta) {
 
         var i
         for (i = 0; i < itermax; i++) {
-            partstr.step()
-            partstr.diff()
-            process.stderr.write(i + " " + this.r + " " + this.k + "\n")
+            this.step()
+            this.diff()
         }
         return itermax
     }
