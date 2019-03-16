@@ -10,17 +10,18 @@ function abs(a)  { return a > 0 ? a : -a }
 function sign(a) { return  a == 0 ? 0 : (a >  0 ? 1 : -1) }
 
 function InitGrid(nx, ny) {
-    var u = [];
+    var u = []
+    var i, j
 
-    for (var j = 0; j < ny; j++) {
-        u[j] = [];
-        for (var i = 0; i < nx; i++) {
-            u[j][i] = 1.0 / (sqr(i - (nx - 1) * 0.5) * 1.1 +
+    for (i = 0; i < nx; i++) {
+        u[i] = [];
+        for (j = 0; j < ny; j++) {
+            u[i][j] = 1.0 / (sqr(i - (nx - 1) * 0.5) * 1.1 +
                 sqr(j - (ny - 1) * 0.5) * 1.3 + 0.01);
-            if (u[j][i] < 0.3) {
-                u[j][i] = 0.0;
+            if (u[i][j] < 0.3) {
+                u[i][j] = 0.0;
             }
-            u[j][i] = Clip(u[j][i], 0.0, 1.0)
+            u[i][j] = Clip(u[i][j], 0.0, 1.0)
         }
     }
 
@@ -29,11 +30,12 @@ function InitGrid(nx, ny) {
 
 function CopyGrid(nx, ny, us) {
     var u = [];
+    var i, j
 
-    for (var j = 0; j < ny; j++) {
-        u[j] = [];
-        for (var i = 0; i < nx; i++) {
-            u[j][i] = us[j][i];
+    for (i = 0; i < nx; i++) {
+        u[i] = [];
+        for (j = 0; j < ny; j++) {
+            u[i][j] = us[i][j];
         }
     }
 
@@ -91,7 +93,7 @@ function IncCell() {
     // correction
     du = -F(abs(dyn)) * sign(dyn);
 
-    u[j][i] = Clip(ustart[j][i] + du, 0.0, 1.0);
+    u[i][j] = Clip(ustart[i][j] + du, 0.0, 1.0);
     return [dy, dym, dyp]
 }
 
@@ -113,7 +115,7 @@ function DrawGrid(u) {
     var i, j, x, y, q
     for (j = 0 ; j < ny; j++) {
         for (i = 0 ; i < nx; i++) {
-            q = u[j][i];
+            q = u[i][j];
             x = base.x + i * w;
             y = base.y + j * w;
             DrawGridFill(q, x, y)
@@ -212,7 +214,7 @@ function GridToText(u, ny) {
     for (var j = 0; j < ny; ++j) {
         t += (j == 0 ? "" : "\n")
         for (var i = 0; i < nx; ++i) {
-            t += (i == 0 ? "" : " ") + u[j][i]
+            t += (i == 0 ? "" : " ") + u[i][j]
         }
     }
     return t
@@ -224,7 +226,7 @@ function TextToGrid(t, nx, ny, /**/ u) {
     m = 0
     for (var j = 0; j < ny; j++) {
         for (var i = 0; i < nx; i++) {
-            u[j][i] = Clip(parseFloat(v[m++]), 0.0, 1.0)
+            u[i][j] = Clip(parseFloat(v[m++]), 0.0, 1.0)
         }
     }
     return u
