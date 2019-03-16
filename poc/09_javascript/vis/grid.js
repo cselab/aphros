@@ -179,7 +179,7 @@ function DrawLines(ee, u) {
     }
 }
 
-function DrawString(pp) {
+function DrawString(pp, color) {
     ctx.beginPath();
     var i
     for (i = 1 ; i < pp.length; ++i) {
@@ -188,7 +188,7 @@ function DrawString(pp) {
         var xa = xya[0], ya = xya[1]
         var xb = xyb[0], yb = xyb[1]
 
-        ctx.strokeStyle = "red";
+        ctx.strokeStyle = color;
         ctx.beginPath();
         ctx.moveTo(xa, ya)
         ctx.lineTo(xb, yb)
@@ -284,16 +284,8 @@ function DrawSelectPos(xp, yp) {
     ctx.stroke();
 }
 
-
-function DrawAll() {
+function DrawStringRun(i0, j0, color) {
     var AX = 0, AY = 1, BX = 2, BY = 3
-
-    matrix_halo_zero(nx, ny, 2, u)
-    var ends = matrix_new(nx, ny)
-    partstr_vof_ends(nx, ny, u, ends)
-    DrawGrid(u)
-    DrawSelectOld(i0, j0)
-    DrawLines(ends, u)
     if (ends[i0][j0] !== undefined) {
         var end = partstr_cell_ends(nx, ny, i0, j0, ends)
         var ne = end.length
@@ -312,8 +304,21 @@ function DrawAll() {
         var a = Math.atan2(dy, dx)
         partstr.start(ne, end, a, t, p)
         partstr.converge(eps, itermax)
-        DrawString(partstr.xx)
+        DrawString(partstr.xx, color)
     }
+}
+
+
+function DrawAll() {
+    var AX = 0, AY = 1, BX = 2, BY = 3
+
+    matrix_halo_zero(nx, ny, 2, u)
+    ends = matrix_new(nx, ny)
+    partstr_vof_ends(nx, ny, u, ends)
+    DrawGrid(u)
+    DrawSelectOld(i0, j0)
+    DrawLines(ends, u)
+    DrawStringRun(i0, j0, "red")
 }
 
 function Clear() {
@@ -329,6 +334,7 @@ var onPaint = function() {
         if (IsGrid(mouse.x, mouse.y)) {
             var ij = ScreenToIdx(mouse.x, mouse.y)
             DrawSelectCurrent(ij[0], ij[1])
+            DrawStringRun(ij[0], ij[1], "green")
         }
     } else if (selectpos) {
         if (IsGrid(mouse.x, mouse.y)) {
@@ -542,6 +548,7 @@ function OneEllipse() {
 
 var i0 = 2, j0 = 3
 var circrad = 2
+var ends
 
 SetSize(nx, ny)
 
