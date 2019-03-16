@@ -10,18 +10,21 @@ function abs(a)  { return a > 0 ? a : -a }
 function sign(a) { return  a == 0 ? 0 : (a >  0 ? 1 : -1) }
 
 function ScreenToIdx(x, y) {
+    var i, j
     i = Clip(Math.floor((x - base.x) / w), 0, nx - 1)
     j = ny - Clip(Math.floor((y - base.y) / w), 0, ny - 1) - 1
     return [i, j]
 }
 
 function IdxToScreen(i, j) {
+    var x, y
     x = base.x + i * w
     y = base.y + (ny - j - 1) * w
     return [x, y]
 }
 
 function PhysToScreen(xp, yp) {
+    var x, y
     x = base.x + xp * w
     y = base.y + (ny - yp) * w
     return [x, y]
@@ -97,20 +100,20 @@ function IncCell() {
     var j = ij[1]
 
     // displacement [px]
-    dy = mouse.y - start.y;
+    var dy = mouse.y - start.y;
     // range of u correction: [-dum,dup]
-    dup = 1.0 - ustart[i][j]
-    dum = ustart[i][j]
+    var dup = 1.0 - ustart[i][j]
+    var dum = ustart[i][j]
     // normalize
-    dyn = dy / wk
+    var dyn = dy / wk
 
-    dyp = Finv(dup) * wk
-    dym = Finv(dum) * wk
+    var dyp = Finv(dup) * wk
+    var dym = Finv(dum) * wk
 
     dy = Clip(dy, -dyp, dym)
 
     // correction
-    du = -F(abs(dyn)) * sign(dyn);
+    var du = -F(abs(dyn)) * sign(dyn);
 
     u[i][j] = Clip(ustart[i][j] + du, 0.0, 1.0);
     return [dy, dym, dyp]
@@ -146,7 +149,7 @@ function DrawLines(ee, u) {
     var i, j;
     for (j = 0 ; j < ny; j++) {
         for (i = 0 ; i < nx; i++) {
-            e = ee[i][j]
+            var e = ee[i][j]
             if (e === undefined) continue
             var xya = PhysToScreen(e[0], e[1])
             var xyb = PhysToScreen(e[2], e[3])
@@ -154,15 +157,15 @@ function DrawLines(ee, u) {
             var xb = xyb[0], yb = xyb[1]
 
             // unit normal
-            mx = -(yb - ya)
-            my = (xb - xa)
-            mm = Math.sqrt(mx * mx + my * my)
+            var mx = -(yb - ya)
+            var my = (xb - xa)
+            var mm = Math.sqrt(mx * mx + my * my)
             mx /= mm
             my /= mm
             // shift [px]
-            sh = 1
-            dx = sh * mx
-            dy = sh * my
+            var sh = 1
+            var dx = sh * mx
+            var dy = sh * my
 
             ctx.strokeStyle = "#ffffff"
             ctx.beginPath();
@@ -212,10 +215,10 @@ function DrawString(pp) {
 }
 
 function DrawBar(dy, dym, dyp) {
-    q = 8
-    qh = q / 2
-    qq = q / 2
-    qqh = qq / 2
+    var q = 8
+    var qh = q / 2
+    var qq = q / 2
+    var qqh = qq / 2
     ctx.fillStyle = '#a0a0a0';
     ctx.fillRect(start.x-qh, start.y +dym, q, -dyp-dym-qq);
     ctx.fillStyle = 'blue';
@@ -241,7 +244,7 @@ function GridToText(u, ny) {
 function TextToGrid(t, nx, ny, /**/ u) {
     t = t.replace(/\s+/g, " ")
     var v = t.split(" ")
-    m = 0
+    var m = 0
     var i, j
     for (j = 0; j < ny; j++) {
         for (i = 0; i < nx; i++) {
@@ -265,14 +268,14 @@ function DrawAll() {
     var i, j, k
 
     matrix_halo_zero(nx, ny, 2, u)
-    ends = matrix_new(nx, ny)
+    var ends = matrix_new(nx, ny)
     partstr_vof_ends(nx, ny, u, ends)
     DrawGrid(u)
     DrawLines(ends, u)
     i = 1; j = 3
     if (ends[i][j] !== undefined) {
-        end = partstr_cell_ends(nx, ny, i, j, ends)
-        ne = end.length
+        var end = partstr_cell_ends(nx, ny, i, j, ends)
+        var ne = end.length
         var nh = 4
         var hp = 4.0 / (2.0*nh)
         var eta = 0.5
@@ -299,7 +302,7 @@ var onPaint = function() {
     Clear()
 
     if (mousepressed) {
-        dd = IncCell()
+        var dd = IncCell()
     }
 
     DrawAll()
@@ -315,8 +318,8 @@ var onPaint = function() {
 // Parameters
 var nx = 5
 var ny = 5
-marx = 0.1  // x-margin relative to screen width
-maryb = 1  // y-margin relative to block size
+var marx = 0.1  // x-margin relative to screen width
+var maryb = 1  // y-margin relative to block size
 var wx = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
 wx = Math.min(wx, 1000)
 var w = (wx * (1.0 - marx * 2)) / nx;   // block size
@@ -402,6 +405,6 @@ textarea.addEventListener('change', function(e) {
 }, false);
 
 
-u = InitGrid(nx, ny);
-ustart = CopyGrid(nx, ny, u);
+var u = InitGrid(nx, ny);
+var ustart = CopyGrid(nx, ny, u);
 onPaint();
