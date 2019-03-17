@@ -77,6 +77,19 @@ function matrix_new(M, N) {
     return a
 }
 
+function matrix_copy(M, N, a) {
+    var b, i, j
+    if (!Array.isArray(a))
+        throw new Error("a is not an array: " + a)
+    b = []
+    for (i = 0; i < M; i++) {
+        b[i] = []
+        for (j = 0; j < N; j++)
+            b[i][j] = a[i][j]
+    }
+    return b
+}
+
 function matrix_zero(M, N) {
     var i, j, a
     a = matrix_new(M, N)
