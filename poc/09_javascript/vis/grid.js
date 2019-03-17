@@ -230,7 +230,7 @@ function GridToText(u, ny) {
     for (j = 0; j < ny; ++j) {
         t += (j == 0 ? "" : "\n")
         for (i = 0; i < nx; ++i) {
-            t += (i == 0 ? "" : " ") + u[i][ny - j - 1].toFixed(4)
+            t += (i == 0 ? "" : " ") + u[i][ny - j - 1].toFixed(3)
         }
     }
     return t
@@ -357,7 +357,7 @@ function StartSelect() {
 }
 
 function ApplySelect() {
-    var x = mouse.x, y = mouse.x;
+    var x = mouse.x, y = mouse.y;
     if (IsGrid(x, y)) {
         var ij = ScreenToIdx(x, y)
         i0 = ij[0]
@@ -419,22 +419,41 @@ function SetSize(nxa, nya) {
     onPaint();
 }
 
+function SetButtons() {
+    var d = document.getElementById('buttons');
+    var bb = d.getElementsByTagName('button');
+    var i, bl = bb.length;
+    for (i = 0, bl = bb.length; i < bl; ++i) {
+        var b = bb[i]
+        b.style.width = (0.9 * wx / bl).toString() + "px"
+        b.style.height = (0.6 * wx / bl).toString() + "px"
+        b.style.fontSize = (wx * 0.05) + "px"
+        b.style.padding = "0"
+    }
+    textarea.style.width = (wx * 0.9) + "px"
+    textarea.style.fontSize = (wx * 0.03) + "px"
+}
+
 
 // Parameters
 var nx = 6
 var ny = 6
-var marx = 0.1  // x-margin relative to screen width
+var marx = 0.05  // x-margin relative to screen width
 var maryb = 1  // y-margin relative to block size
-var base, w
+var base, w, wx, wy
 
 var canvas = document.getElementById('myCanvas');
 var ctx
 
 
 function UpdatePar() {
-    var wx = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-    wx = Math.min(wx, 1000)
+    wx = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+    wy = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
     w = (wx * (1.0 - marx * 2)) / nx;   // block size
+    if (w * ny > 0.55 * wy) {
+        wx = Math.min(wx, wy * 0.6) 
+        w = (wx * (1.0 - marx * 2)) / nx;
+    }
     base = {x: wx * marx , y: w * maryb}
 
     u = matrix_zero(nx, ny)
@@ -445,7 +464,13 @@ function UpdatePar() {
     canvas.style.height = canvas.height.toString() + "px"
 
     ctx = canvas.getContext('2d');
+
+    SetButtons();
 }
+
+var painting = document.getElementById('paint');
+var paint_style = getComputedStyle(painting);
+var textarea = document.getElementById("myTextarea");
 
 UpdatePar()
 
@@ -466,10 +491,6 @@ mouse.y = base.y
 start.x = base.x
 start.y = base.y
 
-var painting = document.getElementById('paint');
-var paint_style = getComputedStyle(painting);
-
-var textarea = document.getElementById("myTextarea");
 
 
 function addListenerMulti(element, eventNames, listener) {

@@ -11,36 +11,34 @@ include(mh.m4)dnl
     </style>
   </head>
   <body>
-    <div style="margin-left:20px; margin-top:20px">
-      <div style="display: inline-block;">
-        <textarea id="myTextarea" rows="5" cols="70"></textarea>
-      </div>
-      <div style="display: inline-block;">
-        <button style="width:60px; height:50px" onclick="SetSize(5,5);">
-          5x5
-        </button>
-        <button style="width:60px; height:50px" onclick="SetSize(7,7);">
-          7x7
-        </button>
-        <button style="width:60px; height:50px" onclick="SetSize(9,9);">
-          9x9
-        </button>
-        <button style="width:60px; height:50px" onclick="StartSelectPos(1);">
-          r=1
-        </button>
-        <button style="width:60px; height:50px" onclick="StartSelectPos(2);">
-          r=2
-        </button>
-        <button style="width:60px; height:50px" onclick="StartSelectPos(3);">
-          r=3
-        </button>
-        <button style="width:60px; height:50px" onclick="StartSelect();">
-         cell
-        </button>
-      </div>
+    <div style="text-align:center;" id="buttons">
+      <button style="width:12%;" onclick="SetSize(5,5);">
+        5x5
+      </button>
+      <button style="width:12%;" onclick="SetSize(7,7);">
+        7x7
+      </button>
+      <button style="width:12%;" onclick="SetSize(9,9);">
+        9x9
+      </button>
+      <button style="width:12%;" onclick="StartSelectPos(1);">
+        r=1
+      </button>
+      <button style="width:12%;" onclick="StartSelectPos(2);">
+        r=2
+      </button>
+      <button style="width:12%;" onclick="StartSelectPos(3);">
+        r=3
+      </button>
+      <button style="width:12%;" onclick="StartSelect();">
+       cell
+      </button>
     </div>
-    <div id="paint">
+    <div id="paint" style="text-align:center">
       <canvas id="myCanvas"></canvas>
+    </div>
+    <div style="text-align:center;margin-left:5%;margin-right:5%;">
+      <textarea id="myTextarea" rows="5" style="width:100%;"></textarea>
     </div>
 
     <script>
