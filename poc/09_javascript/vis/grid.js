@@ -266,16 +266,19 @@ function TextToGrid(t, nx, ny, /**/ u) {
     return u
 }
 
-function UpdateText(t) {
+function UpdateText0(t) {
     textarea.value = t
+}
+
+function UpdateText() {
+    UpdateText0(GridToText(u, ny))
 }
 
 function UpdateGrid() {
     var t = textarea.value
     var nxy = TextToSize(t)
     if (nxy[0] != nx || nxy[1] != ny) {
-        SetSize(nxy[0], nxy[1])
-        textarea.value = t
+        SetSize0(nxy[0], nxy[1])
     }
     TextToGrid(t, nx, ny, u)
 }
@@ -364,7 +367,7 @@ var onPaint = function() {
     } else if (mousepressed) { // dragging cell
         var dd = IncCell()
         DrawBar(dd[0], dd[1], dd[2], dd[3])
-        UpdateText(GridToText(u, ny))
+        UpdateText()
     }
 }
 
@@ -425,6 +428,7 @@ function ApplySelectPos() {
             u[i][j] = Clip(u[i][j] + du[i][j], 0, 1)
         }
     }
+    UpdateText()
 }
 
 function StopSelectPos() {
@@ -434,33 +438,17 @@ function StopSelectPos() {
     canvas.removeEventListener('touchmove', onPaint, false);
 }
 
-function SetSize(nxa, nya) {
+function SetSize0(nxa, nya) {
     nx = nxa
     ny = nya
-    UpdatePar()
-    UpdateText(GridToText(u, ny))
-    onPaint();
+    InitFields()
+    UpdateViewport()
 }
 
-function SetButtons() {
-    var d = document.getElementById('buttons');
-    var bb = d.getElementsByTagName('button');
-    var i, bl = bb.length;
-    for (i = 0, bl = bb.length; i < bl; ++i) {
-        var b = bb[i]
-        b.style.width = (wab_ * wx / bl).toString() + "px"
-        b.style.height = (hb_ * wx).toString() + "px"
-        b.style.fontSize = (hfb_ * wx) + "px"
-        b.style.padding = "0"
-        b.style.margin = "0"
-    }
-    textarea.style.width = (wt_ * wx) + "px"
-    var k_ = 0.9 // XXX: factor to avoid vertical scrolling
-    textarea.style.height = (ht_ * wx * k_) + "px"
-    textarea.style.fontSize = (hf_ * wx) + "px"
-    textarea.style.margin = "0"
-    textarea.style.padding = "0"
-    ctx.lineWidth = (wl_ * wx)
+function SetSize(nxa, nya) {
+    SetSize0(nxa, nya)
+    UpdateText()
+    onPaint()
 }
 
 
@@ -507,8 +495,13 @@ function GetWindowWidth(nx, ny) {
     return [wx, wy, w]
 }
 
+function InitFields() {
+    u = matrix_zero(nx, ny)
+    ustart = matrix_copy(nx, ny, u)
+    ends = matrix_new(nx, ny)
+}
 
-function UpdatePar() {
+function UpdateViewport() {
     var nm = Math.max(nx, ny)
     var ww = GetWindowWidth(nm, nm)
 
@@ -517,10 +510,6 @@ function UpdatePar() {
 
     base = {x: wx * marx_ , y: wx * mary_}
 
-    u = matrix_zero(nx, ny)
-    ustart = matrix_copy(nx, ny, u)
-    ends = matrix_new(nx, ny)
-
     canvas.width = w * nx + base.x * 2
     canvas.height = w * ny + base.y * 2
     canvas.style.width = canvas.width.toString() + "px"
@@ -528,28 +517,30 @@ function UpdatePar() {
 
     ctx = canvas.getContext('2d');
 
-    SetButtons();
+    var d = document.getElementById('buttons');
+    var bb = d.getElementsByTagName('button');
+    var i, bl = bb.length;
+    for (i = 0, bl = bb.length; i < bl; ++i) {
+        var b = bb[i]
+        b.style.width = (wab_ * wx / bl).toString() + "px"
+        b.style.height = (hb_ * wx).toString() + "px"
+        b.style.fontSize = (hfb_ * wx) + "px"
+        b.style.padding = "0"
+        b.style.margin = "0"
+    }
+    textarea.style.width = (wt_ * wx) + "px"
+    var k_ = 0.9 // XXX: factor to avoid vertical scrolling
+    textarea.style.height = (ht_ * wx * k_) + "px"
+    textarea.style.fontSize = (hf_ * wx) + "px"
+    textarea.style.margin = "0"
+    textarea.style.padding = "0"
+    ctx.lineWidth = (wl_ * wx)
+
+    mouse.x = base.x
+    mouse.y = base.y
+    start.x = base.x
+    start.y = base.y
 }
-
-var painting = document.getElementById('paint');
-var paint_style = getComputedStyle(painting);
-var textarea = document.getElementById("myTextarea");
-
-UpdatePar()
-
-
-var mouse = {x: 0, y: 0}
-var start = {x: 0, y: 0}
-var mousepressed = false
-var selectcell = false
-var selectpos = false
-
-mouse.x = base.x
-mouse.y = base.y
-start.x = base.x
-start.y = base.y
-
-
 
 function addListenerMulti(element, eventNames, listener) {
     var events = eventNames.split(' ')
@@ -559,48 +550,52 @@ function addListenerMulti(element, eventNames, listener) {
     }
 }
 
-addListenerMulti(canvas, 'mousemove mousedown', function(e) {
-    mouse.x = e.pageX - this.offsetLeft;
-    mouse.y = e.pageY - this.offsetTop;
-});
+function SetEvents() {
+    addListenerMulti(canvas, 'mousemove mousedown', function(e) {
+        mouse.x = e.pageX - this.offsetLeft;
+        mouse.y = e.pageY - this.offsetTop;
+    });
 
-addListenerMulti(canvas, 'touchmove touchstart', function(e) {
-    mouse.x = e.touches[0].pageX - this.offsetLeft;
-    mouse.y = e.touches[0].pageY - this.offsetTop;
-});
+    addListenerMulti(canvas, 'touchmove touchstart', function(e) {
+        mouse.x = e.touches[0].pageX - this.offsetLeft;
+        mouse.y = e.touches[0].pageY - this.offsetTop;
+    });
 
-addListenerMulti(canvas, 'mousedown touchstart', function(e) {
-    if (selectcell) {
-        ApplySelect()
-        StopSelect()
-    } else if (selectpos) {
-        ApplySelectPos()
-        StopSelectPos()
-    } else {
-        mousepressed = true; // start dragging cell
-        ustart = matrix_copy(nx, ny, u);
-        start.x = mouse.x
-        start.y = mouse.y
-        canvas.addEventListener('mousemove', onPaint, false);
-        canvas.addEventListener('touchmove', onPaint, false);
-        onPaint()
-    }
-});
+    addListenerMulti(canvas, 'mousedown touchstart', function(e) {
+        if (selectcell) {
+            ApplySelect()
+            StopSelect()
+        } else if (selectpos) {
+            ApplySelectPos()
+            StopSelectPos()
+        } else {
+            mousepressed = true; // start dragging cell
+            ustart = matrix_copy(nx, ny, u);
+            start.x = mouse.x
+            start.y = mouse.y
+            canvas.addEventListener('mousemove', onPaint, false);
+            canvas.addEventListener('touchmove', onPaint, false);
+            onPaint()
+        }
+    });
 
-addListenerMulti(canvas, 'mouseup mouseout touchend touchcancel', function(e) {
-    if (mousepressed) {
-        canvas.removeEventListener('mousemove', onPaint, false);
-        canvas.removeEventListener('touchmove', onPaint, false);
-        mousepressed = false;
-        onPaint()
-    }
-});
+    addListenerMulti(canvas, 'mouseup mouseout touchend touchcancel',
+            function(e) {
+        if (mousepressed) {
+            canvas.removeEventListener('mousemove', onPaint, false);
+            canvas.removeEventListener('touchmove', onPaint, false);
+            mousepressed = false;
+            onPaint()
+        }
+    });
 
-addListenerMulti(textarea, 'change input keyup onpaste oncut', function(e) {
-    UpdateGrid()
-    Clear()
-    DrawAll()
-}, false);
+    addListenerMulti(textarea, 'change input keyup onpaste oncut',
+            function(e) {
+        UpdateGrid()
+        Clear()
+        DrawAll()
+    }, false);
+}
 
 function TwoEllipses() {
     var lx = 1, ly = lx*ny/nx
@@ -626,12 +621,23 @@ function OneEllipse() {
     return u
 }
 
-SetSize(nx, ny)
+
+var painting = document.getElementById('paint');
+var paint_style = getComputedStyle(painting);
+var textarea = document.getElementById("myTextarea");
+var mouse = {x: 0, y: 0}
+var start = {x: 0, y: 0}
+var mousepressed = false
+var selectcell = false
+var selectpos = false
+
+SetSize0(nx, ny)
 
 u = TwoEllipses()
 //var u = OneEllipse()
 
 ustart = matrix_copy(nx, ny, u)
-UpdateText(GridToText(u, ny))
+UpdateText()
 
+SetEvents()
 onPaint()
