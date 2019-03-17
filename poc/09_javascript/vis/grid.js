@@ -106,10 +106,10 @@ function IncCell() {
     var dyp = Finv(dup) * wk
     var dym = Finv(dum) * wk
 
-    dy = Clip(dy, -dyp, dym)
+    dy = (dirx ? Clip(dy, -dym, dyp) : Clip(dy, -dyp, dym))
 
     // correction
-    var du = -F(abs(dyn)) * sign(dyn);
+    var du = F(abs(dyn)) * sign(dyn);
 
     u[i][j] = Clip(ustart[i][j] + du, 0.0, 1.0);
     return [dy, dym, dyp, dirx]
@@ -217,7 +217,7 @@ function DrawBar(dy, dym, dyp, dirx) {
     var qqh = qq / 2
     ctx.fillStyle = '#a0a0a0';
     if (dirx) {
-        ctx.fillRect(start.x+dym, start.y-qh, -dyp-dym-qq, q);
+        ctx.fillRect(start.x+dyp, start.y-qh, -dyp-dym-qq, q);
     } else {
         ctx.fillRect(start.x-qh, start.y +dym, q, -dyp-dym-qq);
     }
