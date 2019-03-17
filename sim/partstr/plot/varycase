@@ -2,6 +2,6 @@
 
 set -eu
 
-for r in `seq 3 10` ; do
+for r in `seq 1 10` ; do
   r=$r ./runcase
 done

@@ -16,11 +16,15 @@ function ScreenToIdx(x, y) {
     return [i, j]
 }
 
-function IsGrid(x, y) {
+function ValidScreen(x, y) {
     var i, j;
     i = Math.floor((x - base.x) / w);
     j = ny - Math.floor((y - base.y) / w) - 1;
     return i >= 0 && i < nx && j >= 0 && j < ny;
+}
+
+function ValidIdx(i, j) {
+    return i >= 0 && i < nx && j >= 0 && j < ny
 }
 
 function IdxToScreen(i, j) {
@@ -280,7 +284,7 @@ function DrawSelectPos(xp, yp) {
 
 function DrawStringRun(i0, j0, color) {
     var AX = 0, AY = 1, BX = 2, BY = 3
-    if (ends[i0][j0] !== undefined) {
+    if (ValidIdx(i0, j0) && ends[i0][j0] !== undefined) {
         var end = partstr_cell_ends(nx, ny, i0, j0, ends)
         var ne = end.length
         var nh = 4
@@ -325,7 +329,7 @@ var onPaint = function() {
     DrawAll()
 
     if (selectcell) {
-        if (IsGrid(mouse.x, mouse.y)) {
+        if (ValidScreen(mouse.x, mouse.y)) {
             var ij = ScreenToIdx(mouse.x, mouse.y)
             DrawSelectCurrent(ij[0], ij[1])
             DrawStringRun(ij[0], ij[1], "green")
@@ -352,7 +356,7 @@ function StartSelect() {
 
 function ApplySelect() {
     var x = mouse.x, y = mouse.y;
-    if (IsGrid(x, y)) {
+    if (ValidScreen(x, y)) {
         var ij = ScreenToIdx(x, y)
         i0 = ij[0]
         j0 = ij[1]
@@ -454,6 +458,7 @@ function UpdatePar() {
     base = {x: wx * marx , y: wx * mary}
 
     u = matrix_zero(nx, ny)
+    ends = matrix_new(nx, ny)
 
     canvas.width = nx * w + base.x * 2
     canvas.height = ny * w + base.y * 2
