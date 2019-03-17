@@ -87,15 +87,16 @@ function Finv(a) {
 }
 
 function IncCell() {
-    var k = 2.0;
-    var wk = w * k;
+    var wk = wx * kbar
 
     var ij = ScreenToIdx(start.x, start.y)
     var i = ij[0]
     var j = ij[1]
 
+
+    var dirx = (abs(mouse.x - start.x) > abs(mouse.y - start.y));
     // displacement [px]
-    var dy = mouse.y - start.y;
+    var dy = (dirx ? mouse.x - start.x : mouse.y - start.y)
     // range of u correction: [-dum,dup]
     var dup = 1.0 - ustart[i][j]
     var dum = ustart[i][j]
@@ -111,7 +112,7 @@ function IncCell() {
     var du = -F(abs(dyn)) * sign(dyn);
 
     u[i][j] = Clip(ustart[i][j] + du, 0.0, 1.0);
-    return [dy, dym, dyp]
+    return [dy, dym, dyp, dirx]
 }
 
 
@@ -209,15 +210,23 @@ function DrawString(pp, color) {
     ctx.closePath();
 }
 
-function DrawBar(dy, dym, dyp) {
-    var q = 8
+function DrawBar(dy, dym, dyp, dirx) {
+    var q = wbar
     var qh = q / 2
     var qq = q / 2
     var qqh = qq / 2
     ctx.fillStyle = '#a0a0a0';
-    ctx.fillRect(start.x-qh, start.y +dym, q, -dyp-dym-qq);
+    if (dirx) {
+        ctx.fillRect(start.x+dym, start.y-qh, -dyp-dym-qq, q);
+    } else {
+        ctx.fillRect(start.x-qh, start.y +dym, q, -dyp-dym-qq);
+    }
     ctx.fillStyle = 'blue';
-    ctx.fillRect(start.x-qqh, start.y-qqh, qq, dy);
+    if (dirx) {
+        ctx.fillRect(start.x-qqh, start.y-qqh, dy, qq);
+    } else {
+        ctx.fillRect(start.x-qqh, start.y-qqh, qq, dy);
+    }
     ctx.fillStyle = 'green';
     ctx.fillRect(start.x-qh, start.y-qh, q, q);
     //ctx.fillStyle = 'red';
@@ -341,7 +350,7 @@ var onPaint = function() {
         DrawSelectPos(xyp[0], xyp[1])
     } else if (mousepressed) { // dragging cell
         var dd = IncCell()
-        DrawBar(dd[0], dd[1], dd[2])
+        DrawBar(dd[0], dd[1], dd[2], dd[3])
         UpdateText(GridToText(u, ny))
     }
 };
@@ -433,15 +442,17 @@ function SetButtons() {
     textarea.style.width = (wx * 0.9) + "px"
     textarea.style.fontSize = (wx * 0.03) + "px"
     ctx.lineWidth = (wx * 0.005)
+    wbar = wx* 0.02
 }
 
 
 // Parameters
 var nx = 6
 var ny = 6
+var kbar = 0.2   // bar length relative to screen width
 var marx = 0.05  // x-margin relative to screen width
-var maryb = 1  // y-margin relative to block size
-var base, w, wx, wy
+var mary = kbar * 0.5  // y-margin relative to screen width
+var base, w, wx, wy, wbar
 
 var canvas = document.getElementById('myCanvas');
 var ctx
@@ -455,7 +466,7 @@ function UpdatePar() {
         wx = Math.min(wx, wy * 0.6) 
         w = (wx * (1.0 - marx * 2)) / nx;
     }
-    base = {x: wx * marx , y: w * maryb}
+    base = {x: wx * marx , y: wx * mary}
 
     u = matrix_zero(nx, ny)
 
