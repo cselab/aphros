@@ -229,14 +229,38 @@ function GridToText(u, ny) {
     return t
 }
 
-function TextToGrid(text, nx, ny, /**/ u) {
-    var t = text.replace(/\s+/g, " ")
-    var v = t.split(" ")
-    var m = 0
+function SplitText(t) {
+    var ll = []
+    var ss = t.split(/[\r\n]+/g);
+    var ns = ss.length;
+    var j;
+    for (j = 0; j < ns; ++j) {
+        var s = ss[j].replace(/\s+/g, ' ')
+        s = s.replace(/^\s+|\s+$/g, '')
+        ll[j] = s.split(' ')
+    }
+    return ll
+}
+
+function TextToSize(t) {
+    var ll = SplitText(t)
+    var ny = ll.length;
+    var nx = 0;
+    if (ny > 0) {
+        var j;
+        for (j = 0; j < ny; ++j) {
+            nx = Math.max(nx, ll[j].length)
+        }
+    }
+    return [nx, ny]
+}
+
+function TextToGrid(t, nx, ny, /**/ u) {
+    var ll = SplitText(t)
     var i, j
     for (j = 0; j < ny; j++) {
         for (i = 0; i < nx; i++) {
-            u[i][ny - j - 1] = Clip(parseFloat(v[m++]), 0.0, 1.0)
+            u[i][ny - j - 1] = Clip(parseFloat(ll[j][i]), 0.0, 1.0)
         }
     }
     return u
@@ -248,6 +272,11 @@ function UpdateText(t) {
 
 function UpdateGrid() {
     var t = textarea.value
+    var nxy = TextToSize(t)
+    if (nxy[0] != nx || nxy[1] != ny) {
+        SetSize(nxy[0], nxy[1])
+        textarea.value = t
+    }
     TextToGrid(t, nx, ny, u)
 }
 
@@ -458,6 +487,7 @@ function UpdatePar() {
     base = {x: wx * marx , y: wx * mary}
 
     u = matrix_zero(nx, ny)
+    ustart = matrix_copy(nx, ny, u)
     ends = matrix_new(nx, ny)
 
     canvas.width = nx * w + base.x * 2
@@ -573,5 +603,6 @@ u = TwoEllipses()
 //var u = OneEllipse()
 
 ustart = matrix_copy(nx, ny, u)
+UpdateText(GridToText(u, ny))
 
 onPaint()
