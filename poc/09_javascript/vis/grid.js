@@ -1,3 +1,9 @@
+// naming conventions
+// x,y: screen coordinates
+// xp,yp: physical space
+// i,j: indices on the grid
+
+
 function Clip(a,l,h) {
     if (isFinite(a)) {
         return Math.min(Math.max(a, l), h);
@@ -66,16 +72,6 @@ function RGBToHex(r,g,b) {
     return "#" + r + g + b;
 }
 
-function F(a) {
-    //return a * a;
-    return a;
-}
-
-function Finv(a) {
-    //return Math.sqrt(a);
-    return a;
-}
-
 function IncCell() {
     var wk = wx * kbar
 
@@ -105,27 +101,29 @@ function IncCell() {
 }
 
 
-function DrawGridFill(q, x, y) {
+function DrawCellFill(q, x, y) {
     ctx.strokeRect(x, y, w, w);
     q = Math.floor((1-q) * 255 + q * 127);
     ctx.fillStyle = RGBToHex(q, q, q);
     ctx.fillRect(x, y, w, w);
 }
-function DrawGridText(q, x, y) {
+
+function DrawCellText(q, x, y) {
     ctx.font = "20px Arial";
     ctx.fillStyle = "#000000";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(q.toFixed(2), x + w * 0.5, y + w * 0.5);
 }
+
 function DrawGrid(u) {
     var i, j, q, xy
     for (j = 0 ; j < ny; j++) {
         for (i = 0 ; i < nx; i++) {
             q = u[i][j];
             xy = IdxToScreen(i, j)
-            DrawGridFill(q, xy[0], xy[1])
-            /* DrawGridText(q, xy[0], xy[1]) */
+            DrawCellFill(q, xy[0], xy[1])
+            /* DrawCellText(q, xy[0], xy[1]) */
         }
     }
 }
@@ -170,7 +168,6 @@ function DrawLines(ee, u) {
 }
 
 function DrawString(pp, color) {
-    ctx.beginPath();
     var i
     for (i = 1 ; i < pp.length; ++i) {
         var xya = PhysToScreen(pp[i - 1][0], pp[i - 1][1])
@@ -196,30 +193,28 @@ function DrawString(pp, color) {
         ctx.closePath();
         ctx.stroke();
     }
-    ctx.closePath();
 }
 
 function DrawBar(dy, dym, dyp, dirx) {
+    var x = start.x, y = start.y;
     var q = wbar
     var qh = q / 2
     var qq = q / 2
     var qqh = qq / 2
     ctx.fillStyle = '#a0a0a0';
     if (dirx) {
-        ctx.fillRect(start.x+dym-qqh, start.y-qh, dyp-dym+qh, q);
+        ctx.fillRect(x+dym-qqh, y-qh, dyp-dym+qh, q);
     } else {
-        ctx.fillRect(start.x-qh, start.y-dyp-qqh, q, dyp-dym+qh);
+        ctx.fillRect(x-qh, y-dyp-qqh, q, dyp-dym+qh);
     }
     ctx.fillStyle = 'blue';
     if (dirx) {
-        ctx.fillRect(start.x, start.y-qqh, dy, qq);
+        ctx.fillRect(x, y-qqh, dy, qq);
     } else {
-        ctx.fillRect(start.x-qqh, start.y, qq, -dy);
+        ctx.fillRect(x-qqh, y, qq, -dy);
     }
     ctx.fillStyle = 'green';
-    ctx.fillRect(start.x-qh, start.y-qh, q, q);
-    //ctx.fillStyle = 'red';
-    //ctx.fillRect(start.x-qh, start.y + dy-qh, q, q);
+    ctx.fillRect(x-qh, y-qh, q, q);
 }
 
 function GridToText(u, ny) {
@@ -342,7 +337,7 @@ var onPaint = function() {
         DrawBar(dd[0], dd[1], dd[2], dd[3])
         UpdateText(GridToText(u, ny))
     }
-};
+}
 
 function StartSelect() {
     StopSelect()
@@ -370,6 +365,7 @@ function StopSelect() {
     canvas.removeEventListener('touchmove', onPaint, false);
 }
 
+// cr: cicle radius in cells
 function StartSelectPos(cr) {
     StopSelect()
     StopSelectPos()
@@ -435,13 +431,17 @@ function SetButtons() {
 }
 
 
-// Parameters
-var nx = 6
-var ny = 6
-var kbar = 0.2   // bar length relative to screen width
-var marx = 0.05  // x-margin relative to screen width
+// parameters
+var nx = 6, ny = 6     // initial grid size
+var kbar = 0.2         // bar length relative to screen width
+var marx = 0.05        // x-margin relative to screen width
 var mary = kbar * 0.5  // y-margin relative to screen width
+var i0 = 2, j0 = 3     // initial select cell
+
+// global
+var u, ustart, ends
 var base, w, wx, wy, wbar
+var circrad
 
 var canvas = document.getElementById('myCanvas');
 var ctx
@@ -567,15 +567,11 @@ function OneEllipse() {
     return u
 }
 
-var i0 = 2, j0 = 3
-var circrad = 2
-var ends
-
 SetSize(nx, ny)
 
-var u = TwoEllipses()
+u = TwoEllipses()
 //var u = OneEllipse()
 
-var ustart = matrix_copy(nx, ny, u)
+ustart = matrix_copy(nx, ny, u)
 
 onPaint()
