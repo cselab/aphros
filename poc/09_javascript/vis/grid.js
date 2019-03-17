@@ -73,7 +73,7 @@ function RGBToHex(r,g,b) {
 }
 
 function IncCell() {
-    var wk = wx * kbar
+    var wk = wx * barl_
 
     var ij = ScreenToIdx(start.x, start.y)
     var i = ij[0]
@@ -197,7 +197,7 @@ function DrawString(pp, color) {
 
 function DrawBar(dy, dym, dyp, dirx) {
     var x = start.x, y = start.y;
-    var q = wbar
+    var q = barw_ * wx
     var qh = q / 2
     var qq = q / 2
     var qqh = qq / 2
@@ -456,34 +456,44 @@ function SetButtons() {
     textarea.style.width = (wx * 0.9) + "px"
     textarea.style.fontSize = (wx * 0.03) + "px"
     ctx.lineWidth = (wx * 0.005)
-    wbar = wx* 0.02
 }
 
 
 // parameters
-var nx = 6, ny = 6     // initial grid size
-var kbar = 0.2         // bar length relative to screen width
-var marx = 0.05        // x-margin relative to screen width
-var mary = kbar * 0.5  // y-margin relative to screen width
-var i0 = 2, j0 = 3     // initial select cell
+var nx = 6, ny = 6      // initial grid size
+var barl_ = 0.2         // bar length relative to wx
+var barw_ = 0.02        // bar length relative to wx
+var marx = barl_ * 0.5  // x-margin relative to wx
+var mary = barl_ * 0.5  // y-margin relative to wx
+var i0 = 2, j0 = 3      // initial select cell
 
 // global
 var u, ustart, ends
-var base, w, wx, wy, wbar
-var circrad
+var wx                  // screen width
+var w                   // block width
+var base                // left top corner of grid
+var circrad             // circle radius
 
 var canvas = document.getElementById('myCanvas');
 var ctx
 
 
+// wb: button height relative to width
+// window: 
+// wx = w * nx + wx * marx * 2
+// wy = wb
+
+// width: wx
+// height: 
+
+
 function UpdatePar() {
     wx = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+    var wy
     wy = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
     w = (wx * (1.0 - marx * 2)) / nx;   // block size
-    if (w * ny > 0.55 * wy) {
-        wx = Math.min(wx, wy * 0.6) 
-        w = (wx * (1.0 - marx * 2)) / nx;
-    }
+    w = Math.min(wy * (1.0 - mary * 2 - 0.3)) / ny;   // block size
+    wx = w * nx / (1.0 - marx * 2)
     base = {x: wx * marx , y: wx * mary}
 
     u = matrix_zero(nx, ny)
