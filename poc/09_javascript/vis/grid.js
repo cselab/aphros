@@ -448,24 +448,38 @@ function SetButtons() {
     var i, bl = bb.length;
     for (i = 0, bl = bb.length; i < bl; ++i) {
         var b = bb[i]
-        b.style.width = (0.9 * wx / bl).toString() + "px"
-        b.style.height = (0.6 * wx / bl).toString() + "px"
-        b.style.fontSize = (wx * 0.05) + "px"
+        b.style.width = (wab_ * wx / bl).toString() + "px"
+        b.style.height = (hb_ * wx).toString() + "px"
+        b.style.fontSize = (hfb_ * wx) + "px"
         b.style.padding = "0"
+        b.style.margin = "0"
     }
-    textarea.style.width = (wx * 0.9) + "px"
-    textarea.style.fontSize = (wx * 0.03) + "px"
-    ctx.lineWidth = (wx * 0.005)
+    textarea.style.width = (wt_ * wx) + "px"
+    var k_ = 0.9 // XXX: factor to avoid vertical scrolling
+    textarea.style.height = (ht_ * wx * k_) + "px"
+    textarea.style.fontSize = (hf_ * wx) + "px"
+    textarea.style.margin = "0"
+    textarea.style.padding = "0"
+    ctx.lineWidth = (wl_ * wx)
 }
 
 
-// parameters
-var nx = 6, ny = 6      // initial grid size
-var barl_ = 0.2         // bar length relative to wx
-var barw_ = 0.02        // bar length relative to wx
-var marx = barl_ * 0.5  // x-margin relative to wx
-var mary = barl_ * 0.5  // y-margin relative to wx
-var i0 = 2, j0 = 3      // initial select cell
+// initial
+var nx = 6, ny = 6      // grid size
+var i0 = 2, j0 = 3      // select cell
+
+// sizes relative to wx
+var barl_ = 0.2         // bar length
+var barw_ = 0.02        // bar length
+var marx_ = barl_ * 0.5 // x-margin
+var mary_ = barl_ * 0.5 // y-margin
+var hb_ = 0.1           // button height
+var wab_ = 0.9          // button row width
+var ht_ = 0.3           // text area height
+var wt_ = 0.9           // texte area width
+var hfb_ = 0.05          // button font height
+var hf_ = 0.025          // font height
+var wl_ = 0.005          // line width
 
 // global
 var u, ustart, ends
@@ -478,36 +492,30 @@ var canvas = document.getElementById('myCanvas');
 var ctx
 
 
-// wb: button height relative to width
-// window: 
-// wx = w * nx + wx * marx * 2
-// wy = wb
-
-// width: wx
-// height: 
-
-
 function UpdatePar() {
     wx = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
     var wy
     wy = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-    w = (wx * (1.0 - marx * 2)) / nx;   // block size
-    w = Math.min(wy * (1.0 - mary * 2 - 0.3)) / ny;   // block size
-    wx = w * nx / (1.0 - marx * 2)
-    base = {x: wx * marx , y: wx * mary}
+    w = wx * (1 - marx_ * 2) / nx
+    w = Math.min(w, 
+        wy / (ny + nx * (mary_ * 2 + hb_ + ht_) / (1 - marx_ * 2)))
+
+    wx = w * nx / (1 - marx_ * 2)
+    wy = w * ny + wx * (mary_ * 2 + hb_ + ht_)
+
+    base = {x: wx * marx_ , y: wx * mary_}
+
 
     u = matrix_zero(nx, ny)
     ustart = matrix_copy(nx, ny, u)
     ends = matrix_new(nx, ny)
 
-    canvas.width = nx * w + base.x * 2
-    canvas.height = ny * w + base.y * 2
+    canvas.width = w * nx + base.x * 2
+    canvas.height = w * ny + base.y * 2
     canvas.style.width = canvas.width.toString() + "px"
     canvas.style.height = canvas.height.toString() + "px"
 
     ctx = canvas.getContext('2d');
-
-    ctx.lineWidth = 5;
 
     SetButtons();
 }

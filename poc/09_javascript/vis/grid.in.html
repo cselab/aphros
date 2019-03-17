@@ -6,8 +6,8 @@ include(mh.m4)dnl
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
       body {
-        margin: 0px;
-        padding: 0px;
+        margin: 0;
+        padding: 0;
       }
       textarea {
         white-space: pre;
@@ -18,33 +18,33 @@ include(mh.m4)dnl
   </head>
   <body>
     <div style="text-align:center;" id="buttons">
-      <button style="width:12%;" onclick="SetSize(5,5);">
+      <button onclick="SetSize(5,5);">
         5x5
       </button>
-      <button style="width:12%;" onclick="SetSize(7,7);">
+      <button onclick="SetSize(7,7);">
         7x7
       </button>
-      <button style="width:12%;" onclick="SetSize(9,9);">
+      <button onclick="SetSize(9,9);">
         9x9
       </button>
-      <button style="width:12%;" onclick="StartSelectPos(1);">
+      <button onclick="StartSelectPos(1);">
         r=1
       </button>
-      <button style="width:12%;" onclick="StartSelectPos(2);">
+      <button onclick="StartSelectPos(2);">
         r=2
       </button>
-      <button style="width:12%;" onclick="StartSelectPos(3);">
+      <button onclick="StartSelectPos(3);">
         r=3
       </button>
-      <button style="width:12%;" onclick="StartSelect();">
+      <button onclick="StartSelect();">
        cell
       </button>
     </div>
     <div id="paint" style="text-align:center">
       <canvas id="myCanvas"></canvas>
     </div>
-    <div style="text-align:center;margin-left:5%;margin-right:5%;">
-      <textarea id="myTextarea" rows="5" style="width:100%;"></textarea>
+    <div style="text-align:center">
+      <textarea id="myTextarea" rows="5"></textarea>
     </div>
 
     <script>
