@@ -44,20 +44,6 @@ function ScreenToPhys(x, y) {
     return [xp, yp]
 }
 
-function CopyGrid(nx, ny, us) {
-    var u = [];
-    var i, j
-
-    for (i = 0; i < nx; i++) {
-        u[i] = [];
-        for (j = 0; j < ny; j++) {
-            u[i][j] = us[i][j];
-        }
-    }
-
-    return u;
-}
-
 function RGBToHex(r,g,b) {
     r = Clip(r, 0, 255);
     g = Clip(g, 0, 255);
@@ -529,7 +515,7 @@ addListenerMulti(canvas, 'mousedown touchstart', function(e) {
         StopSelectPos()
     } else {
         mousepressed = true; // start dragging cell
-        ustart = CopyGrid(nx, ny, u);
+        ustart = matrix_copy(nx, ny, u);
         start.x = mouse.x
         start.y = mouse.y
         canvas.addEventListener('mousemove', onPaint, false);
@@ -586,6 +572,6 @@ SetSize(nx, ny)
 var u = TwoEllipses()
 //var u = OneEllipse()
 
-var ustart = CopyGrid(nx, ny, u)
+var ustart = matrix_copy(nx, ny, u)
 
 onPaint()
