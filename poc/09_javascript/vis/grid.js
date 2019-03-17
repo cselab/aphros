@@ -595,6 +595,13 @@ function SetEvents() {
         Clear()
         DrawAll()
     }, false);
+
+    addListenerMulti(window, 'resize',
+            function(e) {
+        UpdateViewport()
+        Clear()
+        DrawAll()
+    }, false);
 }
 
 function TwoEllipses() {
