@@ -79,23 +79,22 @@ function IncCell() {
     var i = ij[0]
     var j = ij[1]
 
-
-    var dirx = (abs(mouse.x - start.x) > abs(mouse.y - start.y));
-    // displacement [px]
-    var dy = (dirx ? mouse.x - start.x : mouse.y - start.y)
-    // range of u correction: [-dum,dup]
+    var dirx = (abs(mouse.x - start.x) >= abs(mouse.y - start.y));
+    // range of u correction: [dum,dup]
     var dup = 1.0 - ustart[i][j]
-    var dum = ustart[i][j]
+    var dum = -ustart[i][j]
+    // displacement [px]
+    var dy = (dirx ? mouse.x - start.x : -(mouse.y - start.y))
     // normalize
     var dyn = dy / wk
 
-    var dyp = Finv(dup) * wk
-    var dym = Finv(dum) * wk
+    var dyp = dup * wk
+    var dym = dum * wk
 
-    dy = (dirx ? Clip(dy, -dym, dyp) : Clip(dy, -dyp, dym))
+    dy = Clip(dy, dym, dyp)
 
     // correction
-    var du = F(abs(dyn)) * sign(dyn);
+    var du = dy / wk
 
     u[i][j] = Clip(ustart[i][j] + du, 0.0, 1.0);
     return [dy, dym, dyp, dirx]
@@ -203,15 +202,15 @@ function DrawBar(dy, dym, dyp, dirx) {
     var qqh = qq / 2
     ctx.fillStyle = '#a0a0a0';
     if (dirx) {
-        ctx.fillRect(start.x+dyp, start.y-qh, -dyp-dym-qq, q);
+        ctx.fillRect(start.x+dym-qqh, start.y-qh, dyp-dym+qh, q);
     } else {
-        ctx.fillRect(start.x-qh, start.y +dym, q, -dyp-dym-qq);
+        ctx.fillRect(start.x-qh, start.y-dyp-qqh, q, dyp-dym+qh);
     }
     ctx.fillStyle = 'blue';
     if (dirx) {
-        ctx.fillRect(start.x-qqh, start.y-qqh, dy, qq);
+        ctx.fillRect(start.x, start.y-qqh, dy, qq);
     } else {
-        ctx.fillRect(start.x-qqh, start.y-qqh, qq, dy);
+        ctx.fillRect(start.x-qqh, start.y, qq, -dy);
     }
     ctx.fillStyle = 'green';
     ctx.fillRect(start.x-qh, start.y-qh, q, q);
@@ -496,7 +495,7 @@ function addListenerMulti(element, eventNames, listener) {
     }
 }
 
-addListenerMulti(canvas, 'mousemove mousestart', function(e) {
+addListenerMulti(canvas, 'mousemove mousedown', function(e) {
     mouse.x = e.pageX - this.offsetLeft;
     mouse.y = e.pageY - this.offsetTop;
 });
