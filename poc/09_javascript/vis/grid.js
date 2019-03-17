@@ -484,18 +484,19 @@ var wl_ = 0.005          // line width
 // global
 var u, ustart, ends
 var wx                  // screen width
-var w                   // block width
+var w                   // cell width
 var base                // left top corner of grid
 var circrad             // circle radius
 
 var canvas = document.getElementById('myCanvas');
 var ctx
 
-
-function UpdatePar() {
-    wx = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-    var wy
-    wy = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+function GetWindowWidth(nx, ny) {
+    var wx, wy, w
+    wx = window.innerWidth || document.documentElement.clientWidth 
+        || document.body.clientWidth;
+    wy = window.innerHeight || document.documentElement.clientHeight 
+        || document.body.clientHeight;
     w = wx * (1 - marx_ * 2) / nx
     w = Math.min(w, 
         wy / (ny + nx * (mary_ * 2 + hb_ + ht_) / (1 - marx_ * 2)))
@@ -503,8 +504,18 @@ function UpdatePar() {
     wx = w * nx / (1 - marx_ * 2)
     wy = w * ny + wx * (mary_ * 2 + hb_ + ht_)
 
-    base = {x: wx * marx_ , y: wx * mary_}
+    return [wx, wy, w]
+}
 
+
+function UpdatePar() {
+    var nm = Math.max(nx, ny)
+    var ww = GetWindowWidth(nm, nm)
+
+    wx = ww[0]
+    w = ww[2]
+
+    base = {x: wx * marx_ , y: wx * mary_}
 
     u = matrix_zero(nx, ny)
     ustart = matrix_copy(nx, ny, u)
