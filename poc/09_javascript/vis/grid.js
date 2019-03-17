@@ -158,7 +158,7 @@ function DrawLines(ee, u) {
             mx /= mm
             my /= mm
             // shift [px]
-            var sh = 1
+            var sh = ctx.lineWidth * 0.2
             var dx = sh * mx
             var dy = sh * my
 
@@ -432,6 +432,7 @@ function SetButtons() {
     }
     textarea.style.width = (wx * 0.9) + "px"
     textarea.style.fontSize = (wx * 0.03) + "px"
+    ctx.lineWidth = (wx * 0.005)
 }
 
 
@@ -465,6 +466,8 @@ function UpdatePar() {
 
     ctx = canvas.getContext('2d');
 
+    ctx.lineWidth = 5;
+
     SetButtons();
 }
 
@@ -473,11 +476,6 @@ var paint_style = getComputedStyle(painting);
 var textarea = document.getElementById("myTextarea");
 
 UpdatePar()
-
-ctx.lineWidth = 3;
-ctx.lineJoin = 'round'
-ctx.lineCap = 'round'
-ctx.strokeStyle = '#505050'
 
 
 var mouse = {x: 0, y: 0}
