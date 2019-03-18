@@ -17,50 +17,46 @@ include(mh.m4)dnl
         padding: 0;
       }
       button {
-        display: flex;
         align-items: center;
-        justify-content: center;
         font-size: 100%;
         line-height: 100%;
         margin: 0;
         padding: 0;
+        vertical-align: top;
       }
-      .flex-container {
-        display: flex;
-        flex-direction: row;
-        justify-content: center;
+      #buttons {
         text-align:center;
         line-height: 50%;
       }
     </style>
   </head>
   <body>
-    <div class="flex-container" id="buttons">
+    <div id="buttons">
       <button onclick="SetSize(5,5);" style="font-size: 60%">
         &#9632;&#9632;<br />
         &#9632;&#9632;<br />
-      </button>
-      <button onclick="SetSize(7,7);" style="font-size: 40%">
+      </button><!--
+-----><button onclick="SetSize(7,7);" style="font-size: 40%">
         &#9632;&#9632;&#9632;<br />
         &#9632;&#9632;&#9632;<br />
         &#9632;&#9632;&#9632;<br />
-      </button>
-      <button onclick="SetSize(9,9);" style="font-size: 30%">
+      </button><!--
+-----><button onclick="SetSize(9,9);" style="font-size: 30%">
         &#9632;&#9632;&#9632;&#9632;<br />
         &#9632;&#9632;&#9632;&#9632;<br />
         &#9632;&#9632;&#9632;&#9632;<br />
         &#9632;&#9632;&#9632;&#9632;<br />
-      </button>
-      <button onclick="StartSelectShape(1);" style="font-size: 50%">
+      </button><!--
+-----><button onclick="StartSelectShape(1);" style="font-size: 50%">
         &#9899
-      </button>
-      <button onclick="StartSelectShape(1.5);" style="font-size: 75%">
+      </button><!--
+-----><button onclick="StartSelectShape(1.5);" style="font-size: 75%">
         &#9899
-      </button>
-      <button onclick="StartSelectShape(2);" style="font-size: 100%">
+      </button><!--
+-----><button onclick="StartSelectShape(2);" style="font-size: 100%">
         &#9899
-      </button>
-      <button onclick="StartSelect();" style="font-size: 60%;" id="selectcell">
+      </button><!--
+-----><button onclick="StartSelect();" style="font-size: 60%;" id="selectcell">
        &#9632
       </button>
     </div>
