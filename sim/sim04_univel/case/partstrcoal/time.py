@@ -24,6 +24,10 @@ def Exp():
   ts = 75e-6
   # dimensionless time between snapshots
   ts_T = ts / T
+  # gravity
+  g = 9.8
+  # Eotvos number
+  Eo = rho1 * g * d ** 2 / sigma
 
   for key in sorted(locals()):
       print("{:} \t=\t {:}".format(key, locals()[key]))

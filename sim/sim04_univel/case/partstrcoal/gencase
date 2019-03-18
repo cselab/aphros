@@ -19,7 +19,7 @@ eval "$@"
 : ${Oh=0.005}
 : ${vert=0}
 
-d="nx${nx}_ns${ns}_Oh${Oh}_symm${symm}_tmax${tmax}${suff}"
+d="nx${nx}_ns${ns}_Oh${Oh}_symm${symm}_tmax${tmax}"
 [ $ch == "1" ] && runch= || runch="echo > r_ch"
 [ $ba == "1" ] && runba= || runba="echo > r_ba"
 
@@ -42,6 +42,8 @@ else
   b2xr="2 0 0"
 fi
 
+
+d=$d$suff
 
 
 echo $d
