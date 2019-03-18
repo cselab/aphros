@@ -283,23 +283,23 @@ function UpdateGrid() {
     TextToGrid(t, nx, ny, u)
 }
 
-function DrawSelect(i, j, current) {
+function DrawSelect(i, j, next) {
     var xy = IdxToScreen(i, j)
     var x = xy[0] + w/2, y = xy[1] + w/2;
     var q = w / 10
-    ctx.fillStyle = (current ? "green" : "red")
+    ctx.fillStyle = (next ? cl_next : cl_curr)
     ctx.fillRect(x - q, y - q, 2 * q, 2 * q);
 }
 
-function DrawSelectOld(i, j) {
+function DrawSelectCurr(i, j) {
     DrawSelect(i, j, false)
 }
 
-function DrawSelectCurrent(i, j) {
+function DrawSelectNext(i, j) {
     DrawSelect(i, j, true)
 }
 
-function DrawSelectPos(xp, yp) {
+function DrawSelectShape(xp, yp) {
     var xy = PhysToScreen(xp, yp)
     var x = xy[0], y = xy[1];
     ctx.strokeStyle = "black";
@@ -341,9 +341,9 @@ function DrawAll() {
     ends = matrix_new(nx, ny)
     partstr_vof_ends(nx, ny, u, ends)
     DrawGrid(u)
-    DrawSelectOld(i0, j0)
+    DrawSelectCurr(i0, j0)
     DrawLines(ends, u)
-    DrawStringRun(i0, j0, "red")
+    DrawStringRun(i0, j0, cl_curr)
 }
 
 function Clear() {
@@ -358,12 +358,12 @@ var onPaint = function() {
     if (selectcell) {
         if (ValidScreen(mouse.x, mouse.y)) {
             var ij = ScreenToIdx(mouse.x, mouse.y)
-            DrawSelectCurrent(ij[0], ij[1])
-            DrawStringRun(ij[0], ij[1], "green")
+            DrawSelectNext(ij[0], ij[1])
+            DrawStringRun(ij[0], ij[1], cl_next)
         }
-    } else if (selectpos) {
+    } else if (selectshape) {
         var xyp = ScreenToPhys(mouse.x, mouse.y)
-        DrawSelectPos(xyp[0], xyp[1])
+        DrawSelectShape(xyp[0], xyp[1])
     } else if (mousepressed) { // dragging cell
         var dd = IncCell()
         DrawBar(dd[0], dd[1], dd[2], dd[3])
@@ -373,7 +373,7 @@ var onPaint = function() {
 
 function StartSelect() {
     StopSelect()
-    StopSelectPos()
+    StopSelectShape()
 
     selectcell = true;
     onPaint()
@@ -385,9 +385,13 @@ function ApplySelect() {
     var x = mouse.x, y = mouse.y;
     if (ValidScreen(x, y)) {
         var ij = ScreenToIdx(x, y)
-        i0 = ij[0]
-        j0 = ij[1]
+        SetCell(ij[0], ij[1])
     }
+}
+
+function SetCell(i0a, j0a) {
+    i0 = i0a
+    j0 = j0a
 }
 
 function StopSelect() {
@@ -398,27 +402,26 @@ function StopSelect() {
 }
 
 // cr: cicle radius in cells
-function StartSelectPos(cr) {
+function StartSelectShape(cr) {
     StopSelect()
-    StopSelectPos()
+    StopSelectShape()
 
     circrad = cr
 
-    selectpos = true;
+    selectshape = true;
     onPaint()
     canvas.addEventListener('mousemove', onPaint, false);
     canvas.addEventListener('touchmove', onPaint, false);
 }
 
-function ApplySelectPos() {
-    // draw shape at (mouse.x mouse.y)
-    var xyp = ScreenToPhys(mouse.x, mouse.y)
-    var lx = 1, ly = lx*ny/nx
-    var dx = lx/nx, dy = ly/ny
-    // XXX: implies dx == dy
-    var a = circrad * dx;
-    var b = circrad * dy;
-    var el = {x0: xyp[0] * dx, y0: xyp[1] * dy, a: a, b: b}
+// xp,yp: center 
+// rp: radius
+// physical coordinates
+function PutCircle(xp, yp, rp) {
+    var lx = 1
+    var dx = lx / nx
+    var dy = dx
+    var el = {x0: xp * dx, y0: yp * dy, a: rp * dx, b: rp * dy}
     var vof = new Vof(dx, dy, vof_ellipse, el)
     var du = matrix_new(nx, ny)
     vof.grid(nx, ny, /**/ du)
@@ -428,11 +431,17 @@ function ApplySelectPos() {
             u[i][j] = Clip(u[i][j] + du[i][j], 0, 1)
         }
     }
+}
+
+function ApplySelectShape() {
+    // draw shape at (mouse.x mouse.y)
+    var xyp = ScreenToPhys(mouse.x, mouse.y)
+    PutCircle(xyp[0], xyp[1], circrad)
     UpdateText()
 }
 
-function StopSelectPos() {
-    selectpos = false;
+function StopSelectShape() {
+    selectshape = false;
     onPaint()
     canvas.removeEventListener('mousemove', onPaint, false);
     canvas.removeEventListener('touchmove', onPaint, false);
@@ -453,8 +462,8 @@ function SetSize(nxa, nya) {
 
 
 // initial
-var nx = 6, ny = 6      // grid size
-var i0 = 2, j0 = 3      // select cell
+var nx = 7, ny = 7      // grid size
+var i0 = 4, j0 = 4      // select cell
 
 // sizes relative to wx
 var barl_ = 0.2         // bar length
@@ -468,6 +477,8 @@ var wt_ = 0.9           // texte area width
 var hfb_ = 0.05          // button font height
 var hf_ = 0.025          // font height
 var wl_ = 0.005          // line width
+var cl_curr = "red"
+var cl_next = "green"
 
 // global
 var u, ustart, ends
@@ -475,9 +486,8 @@ var wx                  // screen width
 var w                   // cell width
 var base                // left top corner of grid
 var circrad             // circle radius
+var ctx                 // canvas context
 
-var canvas = document.getElementById('myCanvas');
-var ctx
 
 function GetWindowWidth(nx, ny) {
     var wx, wy, w
@@ -518,22 +528,19 @@ function UpdateViewport() {
     ctx = canvas.getContext('2d');
 
     var d = document.getElementById('buttons');
+    d.style.fontSize = (hfb_ * wx) + "px"
     var bb = d.getElementsByTagName('button');
     var i, bl = bb.length;
     for (i = 0, bl = bb.length; i < bl; ++i) {
         var b = bb[i]
         b.style.width = (wab_ * wx / bl).toString() + "px"
         b.style.height = (hb_ * wx).toString() + "px"
-        b.style.fontSize = (hfb_ * wx) + "px"
-        b.style.padding = "0"
-        b.style.margin = "0"
+        //b.style.fontSize = (hfb_ * wx) + "px"
     }
     textarea.style.width = (wt_ * wx) + "px"
     var k_ = 0.9 // XXX: factor to avoid vertical scrolling
     textarea.style.height = (ht_ * wx * k_) + "px"
     textarea.style.fontSize = (hf_ * wx) + "px"
-    textarea.style.margin = "0"
-    textarea.style.padding = "0"
     ctx.lineWidth = (wl_ * wx)
 
     mouse.x = base.x
@@ -565,9 +572,9 @@ function SetEvents() {
         if (selectcell) {
             ApplySelect()
             StopSelect()
-        } else if (selectpos) {
-            ApplySelectPos()
-            StopSelectPos()
+        } else if (selectshape) {
+            ApplySelectShape()
+            StopSelectShape()
         } else {
             mousepressed = true; // start dragging cell
             ustart = matrix_copy(nx, ny, u);
@@ -604,47 +611,16 @@ function SetEvents() {
     }, false);
 }
 
-function TwoEllipses() {
-    var lx = 1, ly = lx*ny/nx
-    var u = matrix_new(nx, ny)
-    var dx = lx/nx, dy = ly/ny
-    var Param = {}
-    var ellipseA = {x0: 0.8, y0: 0.5, a: 0.2, b: 0.4}
-    var ellipseB = {x0: 0.2, y0: 0.5, a: 0.2, b: 0.4}
-    Param.param = [ellipseA, ellipseB]
-    Param.f = [vof_ellipse, vof_ellipse]
-    var vof = new Vof(dx, dy, vof_comosite, Param)
-    vof.grid(nx, ny, /**/ u)
-    return u
-}
-
-function OneEllipse() {
-    var lx = 1, ly = lx*ny/nx
-    var u = matrix_new(nx, ny)
-    var dx = lx/nx, dy = ly/ny
-    var ellipse = {x0: 0.5, y0: 0.5, a: 0.2, b: 0.4}
-    var vof = new Vof(dx, dy, vof_ellipse, ellipse)
-    vof.grid(nx, ny, /**/ u)
-    return u
-}
-
-
-var painting = document.getElementById('paint');
-var paint_style = getComputedStyle(painting);
+var canvas = document.getElementById('myCanvas');
 var textarea = document.getElementById("myTextarea");
 var mouse = {x: 0, y: 0}
 var start = {x: 0, y: 0}
 var mousepressed = false
 var selectcell = false
-var selectpos = false
+var selectshape = false
 
-SetSize0(nx, ny)
-
-u = TwoEllipses()
-//var u = OneEllipse()
-
-ustart = matrix_copy(nx, ny, u)
-UpdateText()
-
+SetSize(nx, ny)
+PutCircle(nx / 2 - 1.2, ny / 2 + 1.3, 2)
+PutCircle(nx / 2 + 2.1, ny / 2 - 1.8, 1)
 SetEvents()
 onPaint()

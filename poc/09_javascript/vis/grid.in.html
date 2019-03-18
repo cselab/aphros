@@ -13,31 +13,51 @@ include(mh.m4)dnl
         white-space: pre;
         overflow-wrap: normal;
         overflow-x: scroll;
+        margin: 0;
+        padding: 0;
+      }
+      button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 100%;
+        line-height: 100%;
+      }
+      .flex-container {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
       }
     </style>
   </head>
   <body>
-    <div style="text-align:center;" id="buttons">
-      <button onclick="SetSize(5,5);">
-        5x5
+    <div class="flex-container" id="buttons">
+      <button onclick="SetSize(5,5);" style="font-size: 60%">
+        &#9632;&#9632;<br />
+        &#9632;&#9632;<br />
       </button>
-      <button onclick="SetSize(7,7);">
-        7x7
+      <button onclick="SetSize(7,7);" style="font-size: 40%">
+        &#9632;&#9632;&#9632;<br />
+        &#9632;&#9632;&#9632;<br />
+        &#9632;&#9632;&#9632;<br />
       </button>
-      <button onclick="SetSize(9,9);">
-        9x9
+      <button onclick="SetSize(9,9);" style="font-size: 30%">
+        &#9632;&#9632;&#9632;&#9632;<br />
+        &#9632;&#9632;&#9632;&#9632;<br />
+        &#9632;&#9632;&#9632;&#9632;<br />
+        &#9632;&#9632;&#9632;&#9632;<br />
       </button>
-      <button onclick="StartSelectPos(1);">
-        r=1
+      <button onclick="StartSelectShape(1);" style="font-size: 50%">
+        &#9899
       </button>
-      <button onclick="StartSelectPos(2);">
-        r=2
+      <button onclick="StartSelectShape(1.5);" style="font-size: 75%">
+        &#9899
       </button>
-      <button onclick="StartSelectPos(3);">
-        r=3
+      <button onclick="StartSelectShape(2);" style="font-size: 100%">
+        &#9899
       </button>
-      <button onclick="StartSelect();">
-       cell
+      <button onclick="StartSelect();" style="font-size: 80%">
+       target
       </button>
     </div>
     <div id="paint" style="text-align:center">
