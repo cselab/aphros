@@ -535,8 +535,9 @@ function UpdateViewport() {
         var b = bb[i]
         b.style.width = (wab_ * wx / bl).toString() + "px"
         b.style.height = (hb_ * wx).toString() + "px"
-        //b.style.fontSize = (hfb_ * wx) + "px"
     }
+    document.getElementById('selectcell').style.color = cl_curr;
+
     textarea.style.width = (wt_ * wx) + "px"
     var k_ = 0.9 // XXX: factor to avoid vertical scrolling
     textarea.style.height = (ht_ * wx * k_) + "px"
