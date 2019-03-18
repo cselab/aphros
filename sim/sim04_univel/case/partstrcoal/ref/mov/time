@@ -44,5 +44,5 @@ with open(fn, 'w') as g:
         # time [s]
         tc = t / tcap
         # new name
-        n = "at_{:04d}.png".format(int(tc * 1e2 + 0.5))
+        n = "at_{:04d}.png".format(int(tc * 1e3 + 0.5))
         g.write("{:} {:} \n".format(f, n))

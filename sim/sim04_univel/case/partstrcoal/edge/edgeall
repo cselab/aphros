@@ -5,6 +5,10 @@ set -eu
 for f in ../vis/a_*.png ; do
     echo $f
     o=ae_${f#../vis/a_}
+    if [ -f "$o" ] ; then
+        echo "skip existing $o"
+        continue
+    fi
     echo $o
     ./edge $f $o
 done

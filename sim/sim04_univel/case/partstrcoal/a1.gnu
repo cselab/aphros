@@ -30,7 +30,7 @@ set style line 4 lt 4 pt 2 ps 0.5 pi 5 dt 2
 set style line 5 lt 5 pt 2 ps 0.5 pi 5
 
 
-wall = 0
+wall = 1
 
 # frame index to simulation time
 sim = 0.01
@@ -47,13 +47,13 @@ set key
 set key right bottom
 
 # case (directory)
-c="center"
+c="wall"
 ll = system("echo ".c."/*/ch/neck")
 tt = system("for f in ".ll." ; do g=${f#".c."/} ; echo ${g%/ch/neck} | tr -d '_' ; done")
 
 set xlabel "t / T"
 
-set ylabel "r_n"
+set ylabel "r_n / T"
 set output "rn.pdf"
 krn = 1.
 plot \
@@ -61,10 +61,8 @@ plot \
 "ref/rnexp" w p pt 7 ps 0.1 lc "black" t "exp" , \
 for [i=1:words(ll)] word(ll,i) u (column('i')*sim*dtk-dt):((column('z1')+shy)/r*krn) w lp ls i t word(tt,i) , \
 
-#for [i=1:words(ll)] word(ll,i) u ($0*sim):(($1+shy)/r) w lp ls i t ""
 
-
-set ylabel "R_c"
+set ylabel "R_c / R"
 set output "rc.pdf"
 set xrange [0:0.3]
 set yrange [0:3]
@@ -81,9 +79,7 @@ plot \
 "ref/rcp" u ($1/tcap):($2/rb) w l lc "black" t "up" , \
 "ref/rcbi" u 1:2 w l lc "red" t "BI" , \
 "ref/rcexp" w p pt 7 ps 0.1 lc "black" t "exp" , \
-for [i=1:words(ll)] word(ll,i) u (column('i')*sim*dtk-dt):(column("r0")/r*krc) w lp ls i t word(tt,i) , \
-for [i=1:words(ll)] word(ll,i) u (column('i')*sim*dtk-dt):(column("r1")/r*krc) w lp ls i t word(tt,i) , \
-
+for [i=1:words(ll)] word(ll,i) u (column('i')*sim-dt):(column("r0")/rb*krc) w lp ls i t word(tt,i)
 
 
 set xlabel "r_n / R"
@@ -94,5 +90,5 @@ set yrange [0:5]
 plot \
 "ref/rcrn" u 1:2 w l lc "black" t "BI" , \
 "ref/rcrnexp" w p pt 7 ps 0.1 lc "black" t "exp" , \
-for [i=1:words(ll)] word(ll,i) u ((column("z1")+shy)/r*krn):(column("r0")/r*krc) w lp ls i t word(tt,i) , \
+for [i=1:words(ll)] word(ll,i) u ((column("z1")+shy)/rb*krn):(column("r0")/rb*krc) w lp ls i t word(tt,i) , \
 
