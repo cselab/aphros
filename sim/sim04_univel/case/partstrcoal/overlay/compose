@@ -14,21 +14,18 @@ cmd () {
   if [ -f $f ] ; then
     echo "skip existing $f"
   else
-    dy=215
     dx=225
-    h=400
-    ev convert "'$b' \( '$a'[${h}x${h}] -background none \
+    dy=109
+    ev convert "'$b' \( '$a'[400x500] -background none \
      -geometry +$dx+$dy \
      -scale 107% \) \
      -compose over -composite -depth 8 '$f'"
   fi
 }
 
-rm am_*.png
-
 fr=frames
 
-./frsc sim exp 0.122 > $fr
+./frsc sim exp 0.12 > $fr
 
 d=""
 while read f ; do
