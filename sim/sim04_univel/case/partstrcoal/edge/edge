@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -eu
+
+#convert $1 -flatten -threshold 50% bmp:- |
+#  mkbitmap -f 2 -b 2 -s 1 -t 0.3 | potrace -C "#ff0000" | convert eps:- $2
+
+set -o pipefail
+
+convert "$1" bmp:- |
+convert bmp:- -background black -gravity center -extent 125%  bmp:- |
+mkbitmap -s 1 -f 2 -b 1 -3 -i | 
+potrace -t 100 -C "#ff0000" | 
+convert eps:- bmp:- |
+convert bmp:- -background none -gravity center -extent 80%  bmp:- |
+convert bmp:- -crop 400x500+100+600  bmp:- |
+convert bmp:- "$2"

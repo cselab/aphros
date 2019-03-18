@@ -30,7 +30,7 @@ set style line 4 lt 4 pt 2 ps 0.5 pi 5 dt 2
 set style line 5 lt 5 pt 2 ps 0.5 pi 5
 
 
-wall = 1
+wall = 0
 
 # frame index to simulation time
 sim = 0.01
@@ -41,15 +41,15 @@ r = 0.15
 shy = wall ? -r : -0.5
 # shift in t
 dt = 0.00
-dtk = 1/1.22
+dtk = 1/1.06
 
 set key
 set key right bottom
 
 # case (directory)
-c="wall"
-ll = system("ls ".c."/*512*/ch/neck")
-tt = system("for f in ".ll." ; do g=${f#".c."/} ; echo ${g%/*/neck} | tr -d '_' ; done")
+c="center"
+ll = system("echo ".c."/*/ch/neck")
+tt = system("for f in ".ll." ; do g=${f#".c."/} ; echo ${g%/ch/neck} | tr -d '_' ; done")
 
 set xlabel "t / T"
 
