@@ -491,10 +491,8 @@ var ctx                 // canvas context
 
 function GetWindowWidth(nx, ny) {
     var wx, wy, w
-    wx = window.innerWidth || document.documentElement.clientWidth 
-        || document.body.clientWidth;
-    wy = window.innerHeight || document.documentElement.clientHeight 
-        || document.body.clientHeight;
+    wx = window.innerWidth || document.documentElement.clientWidth  || document.body.clientWidth;
+    wy = window.innerHeight || document.documentElement.clientHeight  || document.body.clientHeight;
     w = wx * (1 - marx_ * 2) / nx
     w = Math.min(w, 
         wy / (ny + nx * (mary_ * 2 + hb_ + ht_) / (1 - marx_ * 2)))
