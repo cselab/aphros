@@ -15,10 +15,10 @@ eval "$@"
 : ${suff=}
 : ${tmax=0.4}
 : ${wall=0}
-: ${La=40000}
+: ${Oh=0.005}
 : ${vert=0}
 
-d="nx${nx}_ns${ns}_symm${symm}_tmax${tmax}${suff}"
+d="nx${nx}_ns${ns}_Oh${Oh}_symm${symm}_tmax${tmax}${suff}"
 [ $ch == "1" ] && runch= || runch="echo > r_ch"
 [ $ba == "1" ] && runba= || runba="echo > r_ba"
 
@@ -71,10 +71,10 @@ echo 1440 > tl
 # ch=$ch
 # tmax=$tmax
 # wall=$wall
-# La=$La
+# Oh=$Oh
 
 ./gen -nx $nx -np $np -mode osc -dim 3 -pos center \\
-  -We 0 -La $La -tmax $tmax -br 0.15 \\
+  -We 0 -Oh $Oh -tmax $tmax -br 0.15 \\
   -mu $r -rho $r \\
   -symmxy $symm -wallz $wall \\
   -bcod 0 0 $bcod -bcor 0 0 $bcor \\

@@ -20,6 +20,7 @@ def StdParAll():
     Fr = [float, "Froude number (zero for no gravity)"]
     Ga = [float, "Galilei number"]
     Eo = [float, "Eotvos number"]
+    Oh = [float, "Ohnesorge number"]
     np = [1, "number of processors"]
     nx = [int, "mesh size"]
     cpr = [float, "cells per bubble radius"]

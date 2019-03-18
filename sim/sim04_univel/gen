@@ -6,7 +6,7 @@ from ch import *
 
 # Returns dict of {name:(value, description, choices)}
 def Default():
-    r = GetStdPar('Red', 'Reh', 'We', 'Ca', 'La', 'ch', 'ge', 'br',
+    r = GetStdPar('Red', 'Reh', 'We', 'Ca', 'La', 'Oh', 'ch', 'ge', 'br',
         'dim', 'pos', 'mode', 'mu', 'rho', 'nfr', 'dom', 'rho0',
         'np', 'nx', 'cpr', 'bryk', 'vel0', 'tmax', 'bcoh', 'bcor', 'bcod',
         'b2xr', 'b2rr', 'chsm', 'gesm', 'wallx', 'wally', 'wallz', 'pois',
@@ -47,7 +47,7 @@ def GetConf(a):
     d = dict(vars(a))
 
     we = a.We
-    la = a.La
+    la = 1. / a.Oh ** 2 if a.Oh is not None else a.La
     ca = a.Ca
     red = a.Red
     reh = a.Reh
