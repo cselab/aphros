@@ -28,3 +28,7 @@ BI rc from Figure 7a
 ## rcrn
 
 rc depending on rn from Figure 7b
+
+## rth0
+
+figure 16

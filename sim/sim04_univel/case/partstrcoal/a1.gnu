@@ -30,7 +30,9 @@ set style line 4 lt 4 pt 2 ps 0.5 pi 5 dt 2
 set style line 5 lt 5 pt 2 ps 0.5 pi 5
 
 
-wall = 1
+# case (directory)
+c="wall" ; wall = 1
+#c="center" ; wall = 0
 
 # frame index to simulation time
 sim = 0.01
@@ -41,13 +43,11 @@ r = 0.15
 shy = wall ? -r : -0.5
 # shift in t
 dt = 0.00
-dtk = 1/1.06
+dtk = 1/1.25
 
 set key
 set key right bottom
 
-# case (directory)
-c="wall"
 ll = system("echo ".c."/*/ch/neck")
 tt = system("for f in ".ll." ; do g=${f#".c."/} ; echo ${g%/ch/neck} | tr -d '_' ; done")
 
@@ -59,7 +59,7 @@ krn = 1.
 plot \
 "ref/rn" w l ls 5  lc "black" t "BI" , \
 "ref/rnexp" w p pt 7 ps 0.1 lc "black" t "exp" , \
-for [i=1:words(ll)] word(ll,i) u (column('i')*sim*dtk-dt):((column('z1')+shy)/r*krn) w lp ls i t word(tt,i) , \
+for [i=1:words(ll)] word(ll,i) u (column('i')*sim*dtk-dt):((column('z1')+shy)/r*krn) w l ls i t word(tt,i) , \
 
 
 set ylabel "R_c / R"
@@ -67,19 +67,19 @@ set output "rc.pdf"
 set xrange [0:0.3]
 set yrange [0:3]
 
-# units from ref/rc*
+# units from experiment, ref/rc*
 # capillary time [ms]
-tcap = 0.683  # ms
+etcap = 0.683  # ms
 # bubble radius [mm]
-rb = 0.3
+er = 0.3
 krc = 1.0
 
 plot \
-"ref/rcm" u ($1/tcap):($2/rb) w l lc "black" t "low" , \
-"ref/rcp" u ($1/tcap):($2/rb) w l lc "black" t "up" , \
+"ref/rcm" u ($1/etcap):($2/er) w l lc "black" t "low" , \
+"ref/rcp" u ($1/etcap):($2/er) w l lc "black" t "up" , \
 "ref/rcbi" u 1:2 w l lc "red" t "BI" , \
 "ref/rcexp" w p pt 7 ps 0.1 lc "black" t "exp" , \
-for [i=1:words(ll)] word(ll,i) u (column('i')*sim-dt):(column("r0")/rb*krc) w lp ls i t word(tt,i)
+for [i=1:words(ll)] word(ll,i) u (column('i')*sim-dt):(column("r0")/r*krc) w l ls i t word(tt,i)
 
 
 set xlabel "r_n / R"
@@ -90,5 +90,19 @@ set yrange [0:5]
 plot \
 "ref/rcrn" u 1:2 w l lc "black" t "BI" , \
 "ref/rcrnexp" w p pt 7 ps 0.1 lc "black" t "exp" , \
-for [i=1:words(ll)] word(ll,i) u ((column("z1")+shy)/rb*krn):(column("r0")/rb*krc) w lp ls i t word(tt,i) , \
+for [i=1:words(ll)] word(ll,i) u ((column("z1")+shy)/r*krn):(column("r0")/r*krc) w l ls i t word(tt,i) , \
+
+
+# units from simulation
+rb = r * 2 ** (1. / 3)
+tb = 1 * 2 ** 0.5
+
+set xlabel "t / t_b"
+set ylabel "r_{{/Symbol q}=0} / R_b"
+set output "rth0.pdf"
+unset xrange
+set xrange [0:20]
+unset yrange
+plot \
+for [i=1:words(ll)] word(ll,i) u ((column('i')*sim-dt)/tb):((0.5-column("x0"))/rb) w l ls i t word(tt,i) , \
 
