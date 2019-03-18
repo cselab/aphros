@@ -16,18 +16,31 @@ eval "$@"
 : ${tmax=0.4}
 : ${wall=0}
 : ${La=40000}
+: ${vert=0}
 
-d="nx${nx}_ns${ns}_symm${symm}_wall${wall}_tmax${tmax}${suff}"
+d="nx${nx}_ns${ns}_symm${symm}_tmax${tmax}${suff}"
 [ $ch == "1" ] && runch= || runch="echo > r_ch"
 [ $ba == "1" ] && runba= || runba="echo > r_ba"
 
 if [ "$wall" == "1" ] ; then
   bcod=-0.5
   bcor=1
+  d=${d}_wall
 else
   bcod=0
   bcor=0
 fi
+
+if [ "$vert" == "1" ] ; then
+  d=${d}_vert
+  b2xr="0 0 2"
+  if [ "$wall" == "1" ] ; then
+    bcor=2
+  fi
+else
+  b2xr="2 0 0"
+fi
+
 
 
 echo $d
@@ -65,7 +78,7 @@ echo 1440 > tl
   -mu $r -rho $r \\
   -symmxy $symm -wallz $wall \\
   -bcod 0 0 $bcod -bcor 0 0 $bcor \\
-  -b2xr 2 0 0 -b2rr 1 \\
+  -b2xr $b2xr -b2rr 1 \\
   -nb 2 -nfr $nfr 
 
 
