@@ -16,7 +16,7 @@ def Exp():
   rho1 = 1014.5
   # viscosity
   mu = 0.964e-3
-  # capillary time (from partstr)
+  # capillary time
   T = (rho1 * r ** 3 / sigma) ** 0.5
   # Ohnesorge number
   Oh = mu / (rho1 * d * sigma) ** 0.5
