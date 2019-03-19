@@ -46,6 +46,8 @@ tn = 2 * pi / ((n-1)*(n+1)*(n+2)) ** 0.5
 
 la = "nx064_ns2_symm0_wall0_tmax10/"
 lb = "nx128x_ns2_symm0_wall0_tmax10/"
+l3 = "nx256_ns2_symm0_wall0_tmax10/"
+l4 = "nx256_ns2_symm0_wall0_tmax10_r075/"
 
 set output "rz.pdf"
 set xlabel "t / t_b"
@@ -69,7 +71,8 @@ set output "ekin.pdf"
 set ylabel "E_{kin}"
 
 plot \
-la."ch/stat.dat" u (column('t')):(column("ekin")*1.4e3) w l t "r0.30-ch" \
+la."ch/stat.dat" u (column('t')):(column("ekin")*1.57e3) w l t "r0.30-ch" \
 , lb."ch/stat.dat" u (column('t')):(column("ekin")*5e4) w l t "r0.15-ch" \
-, exp(-x*0.4)*(sin(pi+2*pi*((x))/(tn*tnlk))*0.3)**2 w l lc rgb "black" lw 2 t  sprintf("lin,T*%g", tnlk)  \
+, l4."ch/stat.dat" u (column('t')):(column("ekin")*6.25e6) w l t "r0.075-ch" \
+, exp(-x*0.36)*(sin(pi+2*pi*((x))/(tn*tnlk))*0.287)**2 w l lc rgb "black" lw 1 t  sprintf("lin,T*%g", tnlk)  \
 
