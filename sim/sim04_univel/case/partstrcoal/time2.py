@@ -9,6 +9,8 @@ def Exp():
   rt = 1.59e-3
   # bottom bubble radius
   rb = 1.01e-3
+  # bottom to top ratio
+  rbt = rb / rt
   # top bubble diameter
   dt = rt * 2
   # surface tension

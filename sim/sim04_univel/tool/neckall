@@ -5,6 +5,7 @@ set -eu
 : ${o=neck}
 : ${x=0.5}
 : ${y=0.5}
+: ${extra=}
 
 t=neck.tmp
 
@@ -18,7 +19,7 @@ for f in vf_*.{h5,dat} ; do
       echo "skip existing $of"
     else 
       echo "$f > $of"
-      ./neck.py $f --x $x --y $y --fitcirc --plot > $t
+      ./neck.py $f --x $x --y $y --fitcirc --plot $extra > $t
       mv $t $of
     fi
     # frame index from filename

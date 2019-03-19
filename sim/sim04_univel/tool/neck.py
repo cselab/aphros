@@ -3,10 +3,11 @@
 """
 Measure the size and radius of the coalescence neck.
 STDOUT:
-  z0 z1 x0 x1 [r0 cx0 cz0 r1 cx1 cz1]
+  z0 z1 x0 x1 zc [r0 cx0 cz0 r1 cx1 cz1]
 length measured in fractions of nz,
 z0,z1: range of the neck
 x0,x1: range in x computed at y=Y and z-center of mass
+zc: z-center of mass or Z (if --z provided)
 r0,r1: radius of the circular arcs
 cx0,cz0,cx1,cz1: centers of the circular arcs
 """
@@ -39,6 +40,7 @@ the slice y=Y with the field and circular arcs'''
 )
   p.add_argument('--x', type=float, default=0.5, help="center of the neck is X*nz")
   p.add_argument('--y', type=float, default=0.5, help="center of the neck Y*nz")
+  p.add_argument('--z', type=float, default=None, help="fixed z=Z*nz for computing x0,x1")
 
   return p.parse_args()
 
@@ -145,11 +147,14 @@ out['z1'] = z1
 
 
 # range in x
-def GetRangeX(u):
-  zz = np.mgrid[0:nz,0:ny,0:nx][0]
-  assert zz.ptp() == nz - 1, "invalid zz.ptp() = %r" % zz.ptp()
-  # z-center of mass
-  zc = (u * zz).sum() / u.sum()
+def GetRangeX(u, fixz=None):
+  if fixz is not None:
+    zc = fixz * nz
+  else:
+    zz = np.mgrid[0:nz,0:ny,0:nx][0]
+    assert zz.ptp() == nz - 1, "invalid zz.ptp() = %r" % zz.ptp()
+    # z-center of mass
+    zc = (u * zz).sum() / u.sum()
   zc = np.clip(int(zc), 0, nz - 1)
   # column
   ux = u[zc,iy,:]
@@ -160,9 +165,9 @@ def GetRangeX(u):
   x0 = (ix - hx0) / nz
   x1 = (ix + hx1) / nz
 
-  return x0, x1
+  return x0, x1, zc / nz
 
-out['x0'], out['x1'] = GetRangeX(u)
+out['x0'], out['x1'], out['zc'] = GetRangeX(u, args.z)
 
 # slice y=Y
 uxz = u[:,iy,:]
