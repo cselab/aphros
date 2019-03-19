@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -eu
+
+for f in partit_*.csv ; do
+  o=partitf_${f#partit_}
+  c="./partit.filt $f $o"
+  echo "$c"
+  eval "$c"
+done
