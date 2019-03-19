@@ -3,9 +3,10 @@
 """
 Measure the size and radius of the coalescence neck.
 STDOUT:
-  z0 z1 [r0 cx0 cz0 r1 cx1 cz1]
-where (length measured in fractions of nz)
+  z0 z1 x0 x1 [r0 cx0 cz0 r1 cx1 cz1]
+length measured in fractions of nz,
 z0,z1: range of the neck
+x0,x1: range in x computed at y=Y and z-center of mass
 r0,r1: radius of the circular arcs
 cx0,cz0,cx1,cz1: centers of the circular arcs
 """
@@ -100,6 +101,7 @@ y = args.y
 fitcirc = args.fitcirc
 
 header = ['z0', 'z1']
+header += ['x0', 'x1']
 if fitcirc:
   header += ['r0', 'cx0', 'cz0', 'r1', 'cx1', 'cz1']
 
@@ -141,6 +143,26 @@ z1 = (izc + hz1) / nz
 out['z0'] = z0
 out['z1'] = z1
 
+
+# range in x
+def GetRangeX(u):
+  zz = np.mgrid[0:nz,0:ny,0:nx][0]
+  assert zz.ptp() == nz - 1, "invalid zz.ptp() = %r" % zz.ptp()
+  # z-center of mass
+  zc = (u * zz).sum() / u.sum()
+  zc = np.clip(int(zc), 0, nz - 1)
+  # column
+  ux = u[zc,iy,:]
+  # height functions
+  hx0 = ux[:ix].sum()
+  hx1 = ux[ix:].sum()
+  # result
+  x0 = (ix - hx0) / nz
+  x1 = (ix + hx1) / nz
+
+  return x0, x1
+
+out['x0'], out['x1'] = GetRangeX(u)
 
 # slice y=Y
 uxz = u[:,iy,:]
