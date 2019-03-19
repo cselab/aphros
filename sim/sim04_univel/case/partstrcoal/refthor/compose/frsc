@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+
+import sys
+import os
+import re
+import glob
+import numpy as np
+
+av = sys.argv
+
+if len(av) < 4 or av[1] == '-h':
+    print('''usage: {:} dirbase diroverlay scale
+'''.format(os.path.basename(av[0])))
+    exit(1)
+
+db = av[1]
+do = av[2]
+sc = float(av[3])
+
+ffb = sorted(glob.glob(os.path.join(db, "*.png")))
+iib = [int(re.findall(".*_(\d*)\.png", os.path.basename(f))[0]) for f in ffb]
+ffo = sorted(glob.glob(os.path.join(do, "*.png")))
+iio = [int(re.findall(".*_(\d*)\.png", os.path.basename(f))[0]) for f in ffo]
+
+iib = np.array(iib)
+iio = np.array(iio)
+
+nb = len(ffb)
+no = len(ffo)
+
+for jb in range(nb):
+    ib = iib[jb]
+    jo = np.argmin(abs(ib - iio * sc))
+    print("{:} {:}".format(ffb[jb], ffo[jo]))

@@ -30,7 +30,7 @@ for iy in `seq 0 $(($ny-1))` ; do
     y=`bc -l <<< "$y0+$iy*$dy"`
     q=`cut -d ' ' -f $(($j+1)) <<< "$qq"`
     q=$(($q / 50))
-    f=a`printf "%02d" "$q"`.png
+    f=`printf "a_%04d" "$q"`.png
     ev convert "'$a' -crop ${w}x${h}+${x}+${y} +repage '$f'"
     let "j=$j+1"
   done

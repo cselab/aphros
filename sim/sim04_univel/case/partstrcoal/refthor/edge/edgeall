@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -eu
+
+for f in ../vis/a_*.png ; do
+    echo $f
+    o=ae_${f#../vis/a_}
+    echo $o
+    ./edge $f $o
+done

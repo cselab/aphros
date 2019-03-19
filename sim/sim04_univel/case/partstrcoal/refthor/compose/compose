@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -eu
+
+ev () {
+  echo "$@"
+  eval "$@"
+}
+
+cmd () {
+  a=$1 ; b=$2
+  f=`basename $a`
+  f=a_${f#*_}
+  if [ -f $f ] ; then
+    echo "skip existing $f"
+  else
+    dx=-23
+    dy=-111
+    h=300
+    ev convert "'$b' \( '$a'[${h}x${h}] -background none \
+     -geometry +$dx+$dy \
+     -scale 130% \) \
+     -compose over -composite -depth 8 '$f'"
+  fi
+}
+
+rm -f a_*.png
+
+fr=frames
+
+./frsc sim exp 1 > $fr
+
+d=""
+while read f ; do
+  cmd $f
+done < $fr
+
+convert a_0013.png q.pdf
