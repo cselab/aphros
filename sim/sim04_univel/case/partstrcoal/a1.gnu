@@ -28,16 +28,19 @@ set style line 5 lt 5 pt 2 ps 0.5 pi 5
 
 
 # case (directory)
-c="wall" ; wall = 1
+c="wallr075" ; wall = 1
 #c="center" ; wall = 0
 
 # frame index to simulation time
 sim = 0.01
 # bubble radius
 r = 0.15
+r2 = 0.075
+
 
 # shift in y
 shy = wall ? -r : -0.5
+shy2 = wall ? -r2 : -0.5
 # shift in t
 dt = 0.00
 dtk = 1/1.2
@@ -45,8 +48,15 @@ dtk = 1/1.2
 set key
 set key right bottom
 
-ll = system("echo ".c."/*/ch/neck")
-tt = system("for f in ".ll." ; do g=${f#".c."/} ; echo ${g%ns*} | tr -d '_' ; done")
+ll = system("echo ".c."/nx*/ch/neck")
+tt = system("for f in ".ll." ; do g=${f#".c."/} ; echo $g | sed -r 's/(nx...).*_(:?r075)?.*\\/ch.*/\\1\\2/' | tr -d '_' ; done")
+
+l1 = word(ll, 1)
+l2 = word(ll, 2)
+l3 = word(ll, 3)
+
+ii1 = '1:2'
+ii2 = '3:3'
 
 set xlabel "t / T"
 
@@ -56,7 +66,8 @@ krn = 1.
 plot \
 "ref/rn" w l ls 5  lc "black" t "BI" , \
 "ref/rnexp" w p pt 7 ps 0.1 lc "black" t "exp" , \
-for [i=1:words(ll)] word(ll,i) u (column('i')*sim*dtk-dt):((column('z1')+shy)/r*krn) w l ls i t word(tt,i) , \
+for [i=@ii1] word(ll,i) u (column('i')*sim*dtk-dt):((column('z1')+shy)/r*krn) w l ls i t word(tt,i) , \
+for [i=@ii2] word(ll,i) u (column('i')*sim*dtk-dt):((column('z1')+shy2)/r2*krn) w l ls i t word(tt,i) , \
 
 
 set ylabel "R_c / R"
@@ -76,7 +87,8 @@ plot \
 "ref/rcp" u ($1/etcap):($2/er) w l lc "black" t "up" , \
 "ref/rcbi" u 1:2 w l lc "red" t "BI" , \
 "ref/rcexp" w p pt 7 ps 0.1 lc "black" t "exp" , \
-for [i=1:words(ll)] word(ll,i) u (column('i')*sim*dtk-dt):(column("r0")/r*krc) w l ls i t word(tt,i)
+for [i=@ii1] word(ll,i) u (column('i')*sim*dtk-dt):(column("r0")/r*krc) w l ls i t word(tt,i) , \
+for [i=@ii2] word(ll,i) u (column('i')*sim*dtk-dt):(column("r0")/r2*krc) w l ls i t word(tt,i) , \
 
 
 set xlabel "r_n / R"
@@ -87,11 +99,13 @@ set yrange [0:5]
 plot \
 "ref/rcrn" u 1:2 w l lc "black" t "BI" , \
 "ref/rcrnexp" w p pt 7 ps 0.1 lc "black" t "exp" , \
-for [i=1:words(ll)] word(ll,i) u ((column("z1")+shy)/r*krn):(column("r0")/r*krc) w l ls i t word(tt,i) \
+for [i=@ii1] word(ll,i) u ((column("z1")+shy)/r*krn):(column("r0")/r*krc) w l ls i t word(tt,i) , \
+for [i=@ii2] word(ll,i) u ((column("z1")+shy2)/r2*krn):(column("r0")/r2*krc) w l ls i t word(tt,i) , \
 
 
 # units from simulation
 rb = r * 2 ** (1. / 3)
+rb2 = r2 * 2 ** (1. / 3)
 tb = 1 * 2 ** 0.5
 # mode n=2 period
 n = 2
@@ -102,10 +116,11 @@ set ylabel "r_{{/Symbol q}=0} / R_b"
 set output "rth0.pdf"
 unset xrange
 set key top
-set xrange [0:10]
+set xrange [0:6]
 unset yrange
 plot \
-"ref/rth0" u 1:2 w l lc "black" t "exp" , \
-[0:10] cos(pi*0.5+2*pi*((x-2.25)/dtk)/tn)*0.2+1 w l lc rgb c4 lw 1 t "lin",  \
-for [i=1:words(ll)] word(ll,i) u ((column('i')*sim-dt)*dtk/tb):((0.5-column("x0"))/rb) w l ls i t word(tt,i) \
+cos(pi*0.5+2*pi*((x-2.25)/dtk)/tn)*0.2+1 w l lc rgb c4 lw 1 t "lin" \
+, for [i=@ii1] word(ll,i) u ((column('i')*sim-dt)*dtk/tb):((0.5-column("x0"))/rb) w l ls i t word(tt,i) \
+, for [i=@ii2] word(ll,i) u ((column('i')*sim-dt)*dtk/tb):((0.5-column("x0"))/rb2) w l ls i t word(tt,i) \
+, "ref/rth0" u 1:2 w l lc "black" t "exp" \
 
