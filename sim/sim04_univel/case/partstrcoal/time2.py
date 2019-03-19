@@ -26,6 +26,21 @@ def Exp():
   # dimensionless time between snapshots
   ts_T = ts / T
 
+  sc = 0.001
+  # top bubble size x
+  d1x = 311 * sc
+  # top bubble size z
+  d1z = 291 * sc
+  d2x = 264 * sc
+  d2z = 283 * sc
+  neckz = 0.5
+  b1cz = neckz + d1z * 0.5
+  b1rx = d1x * 0.5
+  b1rz = d1z * 0.5
+  b2cz = neckz - d2z * 0.5
+  b2rx = d2x * 0.5
+  b2rz = d2z * 0.5
+
   for key in sorted(locals()):
       print("{:} \t=\t {:}".format(key, locals()[key]))
   print("\n")
