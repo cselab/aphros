@@ -103,7 +103,7 @@ y = args.y
 fitcirc = args.fitcirc
 
 header = ['z0', 'z1']
-header += ['x0', 'x1']
+header += ['x0', 'x1', 'zc']
 if fitcirc:
   header += ['r0', 'cx0', 'cz0', 'r1', 'cx1', 'cz1']
 
