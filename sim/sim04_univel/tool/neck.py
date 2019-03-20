@@ -165,7 +165,7 @@ def GetRangeX(u, fixz=None):
   x0 = (ix - hx0) / nz
   x1 = (ix + hx1) / nz
 
-  return x0, x1, zc / nz
+  return x0, x1, float(zc) / nz
 
 out['x0'], out['x1'], out['zc'] = GetRangeX(u, args.z)
 
