@@ -7,6 +7,21 @@ ev () {
   eval "$@"
 }
 
+# exp top bubble radius x [mm]
+b1rx=`bc -l <<< "0.0013177 * 1000"`
+# sim top bubble radius x [-]
+s_b1rx=0.1622
+# length ratio sim[-]/exp[mm]
+lse=`bc -l <<< "${s_b1rx} / ${b1rx}"`
+# length ratio imgexp[px]/exp[mm]
+lie=`bc -l <<< "68"`
+# length ratio imgsim[px]/sim[-]
+lis=`bc -l <<< "1000"`
+# length ratio imgsim[px]/imgexp[px]
+lise=`bc -l <<< $lis*$lse/$lie`
+
+echo $lise
+
 cmd () {
   a=$1 ; b=$2
   f=`basename $a`
@@ -14,15 +29,18 @@ cmd () {
   if [ -f $f ] ; then
     echo "skip existing $f"
   else
-    dx=-23
-    dy=-111
-    h=300
-    ev convert "'$b' \( '$a'[${h}x${h}] -background none \
-     -geometry +$dx+$dy \
-     -scale 130% \) \
+    # shift to center in imgsim[px]
+    ev convert "'$b'[200%] \( '$a'[`bc -l <<< "200. / $lise"`%] -background none \
+    \) \
+     -geometry -112-22 \
+     -gravity center \
      -compose over -composite -depth 8 '$f'"
   fi
 }
+
+# sim0
+#    -alpha set -channel a -evaluate set 50% +channel \
+#     -geometry +0-22 \
 
 rm -f a_*.png
 
@@ -35,4 +53,4 @@ while read f ; do
   cmd $f
 done < $fr
 
-convert a_0013.png q.pdf
+montage a_*.png -tile 6x2 tile.png
