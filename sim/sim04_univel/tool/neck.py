@@ -268,6 +268,8 @@ if args.plot:
     i0,i1,zz = rr1
     plt.plot(xx[i0:i1], zz[i0:i1])
 
+    plt.scatter(out['x0'] * nz, out['zc'] * nz, s=0.3)
+
   o = os.path.splitext(os.path.basename(datafile))[0] + ".png"
   plt.savefig(o)
 
