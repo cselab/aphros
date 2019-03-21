@@ -131,16 +131,19 @@ Free-field coalescence of bubbles based on `sim04_univel/case/partstrcoal`
 2019-03-21 22:48:56
 
 **Goal**:
-check the influence of `vrelax` on bubble coalescence
+check the influence of `vrelax` and `prelax` on bubble coalescence
 
 **What**:
-Near-wall coalescence of bubbles with `vrelax=0.8` and `vrelax=1`
+Near-wall coalescence of bubbles with `vrelax=0.8,prelax=0.8` 
+and `vrelax=0.9,prelax=0.8`
 
 **Result**
 
-- spurious oscillations in the pressure field (`wforce`) with `vrelax=1`
+- spurious oscillations in the pressure field (`wforce`) with `vrelax=0.9`
   after the bubble detachment
 - no effect on x- and y-trajectories, slower rising in z after detachment
+- changed default parameters for `sim04` to 
+  `prelax=0.8`, `vrelax=0.8` and `min_iter=4`
 
 **Data**:
 [`log07_vrelax`](log07_vrelax)
