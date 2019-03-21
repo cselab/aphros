@@ -135,7 +135,7 @@ check the influence of `vrelax` and `prelax` on bubble coalescence
 
 **What**:
 Near-wall coalescence of bubbles with `vrelax=0.8,prelax=0.8` 
-and `vrelax=0.9,prelax=0.8`
+and `vrelax=0.9,prelax=1`
 
 **Result**
 
