@@ -18,6 +18,7 @@ eval "$@"
 : ${tl=1440}
 : ${Oh=0.005}
 : ${vert=0}
+: ${dumplist="vf"}
 
 d="nx${nx}"
 
@@ -87,7 +88,7 @@ echo $tl > tl
 
 cat > ch/add.conf << EOF
 set string dumpformat default
-set string dumplist vf omz
+set string dumplist $dumplist
 set int part_ns $ns
 EOF
 
