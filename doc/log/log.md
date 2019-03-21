@@ -125,3 +125,23 @@ Free-field coalescence of bubbles based on `sim04_univel/case/partstrcoal`
 
 - `nx*iter*`: configuration, data, movie
 - `a.gnu`: gnuplot script
+
+# Relaxation parameters 
+
+**Goal**:
+check the influence of `vrelax` on bubble coalescence
+
+**What**
+Near-wall coalescence of bubbles with `vrelax=0.8` and `vrelax=1`.
+
+**Result**
+
+- spurious oscillations in the pressure field (`wforce`) with `vrelax=1`
+  after the bubble detachment
+
+**Data**:
+[`log07_vrelax`](log07_vrelax)
+
+- `gen1`: generator of parameters for `sim04/gen`
+- `wforce`: force acting on `z=0` and `z=1` 
+- `out`, `stat.dat`: log and statistics

@@ -1,0 +1,1126 @@
+Loading config from 'a.conf'
+
+=== config begin ===
+set string advection_solver vof
+set string bc_xm slipwall 
+set string bc_xp slipwall 
+set string bc_ym slipwall 
+set string bc_yp slipwall 
+set string bc_zm wall 0 0 0
+set string bc_zp wall 0 0 0
+set string bubgen_path bg.dat
+set string convsc quick
+set string dumpformat default
+set string dumplist vf p
+set string hypre_gen_solver gmres
+set string hypre_symm_solver pcg
+set string hypre_vort_solver smg
+set string init_sig uniform
+set string init_vf list
+set string list_path ../b.dat
+set string part_attrforce line
+set string part_attrreconst line
+set string surftens kn
+set string vel_init uniform
+set int CHECKNAN 0
+set int bcc_reflect 1
+set int bsx 8
+set int bsy 8
+set int bsz 8
+set int bx 2
+set int by 2
+set int bz 2
+set int clip_vf 0
+set int comm_size 8
+set int curvgrad 0
+set int dim 3
+set int dump_field_max 10000
+set int dump_part_max 10000
+set int dump_stat_max 1000000
+set int dump_traj_max 10000
+set int dump_trep_max 10000
+set int dumpinit 0
+set int dumppart 0
+set int dumppartinter 0
+set int dumppoly 1
+set int enable_advection 1
+set int enable_bubgen 0
+set int enable_color 0
+set int enable_fluid 1
+set int enable_shell 0
+set int enable_surftens 1
+set int enstrophy 1
+set int hl 2
+set int hypre_gen_maxiter 30
+set int hypre_periodic_x 0
+set int hypre_periodic_y 0
+set int hypre_periodic_z 0
+set int hypre_print 0
+set int hypre_symm_maxiter 100
+set int hypre_vort_maxiter 1000
+set int initvort 0
+set int inletflux_numid 1
+set int linreport 0
+set int list_ls 1
+set int loc 0
+set int loc_periodic_x 1
+set int loc_periodic_y 1
+set int loc_periodic_z 1
+set int marangoni 0
+set int max_iter 10
+set int max_step 1000000
+set int min_iter 1
+set int normalnode 0
+set int output 1
+set int part 1
+set int part_bendmean 1
+set int part_constr 1
+set int part_dn 0
+set int part_dump_fr 1
+set int part_itermax 20
+set int part_k 1
+set int part_n 0
+set int part_np 9
+set int part_ns 2
+set int part_report_fr 1
+set int part_verb 0
+set int poiswxp 0
+set int poiswym 1
+set int poiswyp 0
+set int poiswzm 1
+set int poiswzp 1
+set int px 4
+set int py 4
+set int pz 8
+set int report_knan 0
+set int report_stat 0
+set int second_order 1
+set int simpler 0
+set int split 0
+set int statbox 0
+set int statvel 0
+set int verbose 0
+set int verbose_stages 1
+set int vf_init_sm 0
+set int vfsmooth 1
+set int vfsmoothst 0
+set int vort_report 1
+set int youngbc 0
+set double abortvel 1e+10
+set double bcc_k0 1
+set double bcc_k1 1
+set double bcc_t0 -1
+set double bcc_t1 -1
+set double bcc_y0 -1e+10
+set double bcc_y1 1e+10
+set double bubgen_per 1
+set double bubgen_t0 0
+set double cfl 1
+set double cfla 0.5
+set double cflst 1
+set double clipth 1e-10
+set double color_maxr 1e+10
+set double color_th 0.5
+set double contangk 1
+set double contangy0 -1e+10
+set double contangy1 1e+10
+set double convdf 1
+set double dt0 1e-06
+set double dtmax 1e+10
+set double dump_field_dt 0.01
+set double dump_field_t0 0
+set double dump_part_dt 0.01
+set double dump_part_t0 0
+set double dump_stat_dt 0
+set double dump_traj_dt 1
+set double dump_traj_t0 0
+set double dump_trep_dt 0.1
+set double dump_trep_t0 0
+set double extent 1
+set double hypre_gen_tol 0.001
+set double hypre_symm_tol 0.001
+set double hypre_vort_tol 1e-06
+set double kslip 0
+set double mu1 0.000159099
+set double mu2 1.59099e-06
+set double part_anglim 120
+set double part_dtmax 10
+set double part_h 4
+set double part_intth 1e-06
+set double part_kattr 1
+set double part_kbend 1
+set double part_kstr 1
+set double part_relax 0.5
+set double part_segcirc 1
+set double part_tmax 180
+set double part_tol 1e-05
+set double poly_intth 0
+set double prelax 0.8
+set double rhie 1
+set double rho1 1
+set double rho2 0.01
+set double ring_om 0.01
+set double ring_r0 0.2
+set double ring_r1 0.4
+set double sharp 0
+set double sharpo 0
+set double shell_h 3
+set double shell_r 0
+set double shell_rr 2
+set double sig_k 1.25
+set double sigma 0.003375
+set double stdiag 1
+set double tmax 10
+set double tol 0.001
+set double vrelax 0.8
+set double zerostx0 1e+10
+set double zerostx1 1e+10
+set vect force 0 0 0 
+set vect gravity 0 -0 0 
+set vect ring_c 0.5 0.5 0.5 
+set vect ring_n 1 0 0 
+set vect statbox2a 0 0 0.5 
+set vect statbox2b 1 1 0.5 
+set vect statboxa 0 0 0.5 
+set vect statboxb 1 1 0.5 
+set vect vel 0 0 0 
+=== config end ===
+
+Read 2 particles from '../b.dat'
+global mesh=(64,64,128)
+surface tension dt=0.0033698
+Found events: 
+=====
+=====
+STEP=0 t=0.00000000 dt=0.00000100 ta=0.00000000 dta=0.00000100
+.....iter=1, diff=0.0000000000000000e+00
+dump t=0.00000100 to s_0000.vtk
+.....adv: t=0.00000100 dt=0.00000100
+Dump n=0 t=1e-06 target=0
+HDF5 dump 'p_0000': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0000': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 0: format=hdf
+timer report t=0.00000100 to trep_0000.log
+STEP=1 t=0.00000100 dt=0.00336980 ta=0.00000100 dta=0.00336980
+.....iter=1, diff=2.5015119304679051e-01
+.....iter=2, diff=5.0692001014768319e-02
+.....iter=3, diff=1.0714309601649475e-02
+.....iter=4, diff=2.2240100350562485e-03
+.....iter=5, diff=5.7642553656978642e-04
+.....adv: t=0.00337080 dt=0.00336980
+STEP=2 t=0.00337080 dt=0.00336980 ta=0.00337080 dta=0.00336980
+.....iter=1, diff=1.0190618316830657e-01
+.....iter=2, diff=1.9605495584352622e-02
+.....iter=3, diff=3.8548559656649138e-03
+.....iter=4, diff=1.1520589648628193e-03
+.....iter=5, diff=3.2530965358344569e-04
+.....adv: t=0.00674060 dt=0.00336980
+STEP=3 t=0.00674060 dt=0.00336980 ta=0.00674060 dta=0.00336980
+.....iter=1, diff=2.5346429919379376e-01
+.....iter=2, diff=5.0332439070634102e-02
+.....iter=3, diff=9.9795405795165045e-03
+.....iter=4, diff=2.0279185599388671e-03
+.....iter=5, diff=4.2207130938567994e-04
+dump t=0.01011040 to s_0001.vtk
+.....adv: t=0.01011040 dt=0.00336980
+Dump n=1 t=0.0101104 target=0.01
+HDF5 dump 'p_0001': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0001': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 1: format=hdf
+STEP=4 t=0.01011040 dt=0.00336980 ta=0.01011040 dta=0.00336980
+.....iter=1, diff=2.8782861849812991e-01
+.....iter=2, diff=5.6673440483769051e-02
+.....iter=3, diff=1.1261847476705686e-02
+.....iter=4, diff=2.2263707917557396e-03
+.....iter=5, diff=4.3648174948940122e-04
+.....adv: t=0.01348019 dt=0.00336980
+STEP=5 t=0.01348019 dt=0.00336980 ta=0.01348019 dta=0.00336980
+.....iter=1, diff=2.7608037570277710e-01
+.....iter=2, diff=5.4323783609326610e-02
+.....iter=3, diff=1.0756064902098435e-02
+.....iter=4, diff=2.1436852267728741e-03
+.....iter=5, diff=4.7114294267055720e-04
+.....adv: t=0.01684999 dt=0.00336980
+STEP=6 t=0.01684999 dt=0.00336980 ta=0.01684999 dta=0.00336980
+.....iter=1, diff=2.7347476775301865e-01
+.....iter=2, diff=5.3836232733557934e-02
+.....iter=3, diff=1.0657906189096249e-02
+.....iter=4, diff=2.0676757013657551e-03
+.....iter=5, diff=4.0234628964695181e-04
+dump t=0.02021979 to s_0002.vtk
+.....adv: t=0.02021979 dt=0.00336980
+Dump n=2 t=0.0202198 target=0.02
+HDF5 dump 'p_0002': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0002': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 2: format=hdf
+STEP=7 t=0.02021979 dt=0.00336980 ta=0.02021979 dta=0.00336980
+.....iter=1, diff=2.5040893572752754e-01
+.....iter=2, diff=5.1251706669565127e-02
+.....iter=3, diff=1.0479965198076173e-02
+.....iter=4, diff=2.1434546876233406e-03
+.....iter=5, diff=4.2326721543693930e-04
+.....adv: t=0.02358959 dt=0.00336980
+STEP=8 t=0.02358959 dt=0.00336980 ta=0.02358959 dta=0.00336980
+.....iter=1, diff=2.8073075795692309e-01
+.....iter=2, diff=5.6340774922932955e-02
+.....iter=3, diff=1.1197814572677340e-02
+.....iter=4, diff=2.2476007808217252e-03
+.....iter=5, diff=4.1264236870726850e-04
+.....adv: t=0.02695939 dt=0.00336980
+STEP=9 t=0.02695939 dt=0.00336980 ta=0.02695939 dta=0.00336980
+.....iter=1, diff=1.5739898271882499e-01
+.....iter=2, diff=3.3389997444542761e-02
+.....iter=3, diff=7.3289386584678602e-03
+.....iter=4, diff=1.5711398211900125e-03
+.....iter=5, diff=3.1772878349907831e-04
+dump t=0.03032919 to s_0003.vtk
+.....adv: t=0.03032919 dt=0.00336980
+Dump n=3 t=0.0303292 target=0.03
+HDF5 dump 'p_0003': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0003': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 3: format=hdf
+STEP=10 t=0.03032919 dt=0.00336980 ta=0.03032919 dta=0.00336980
+.....iter=1, diff=2.3150200748996372e-01
+.....iter=2, diff=4.4657152871668111e-02
+.....iter=3, diff=8.6662861043802063e-03
+.....iter=4, diff=1.6846667897927302e-03
+.....iter=5, diff=3.3941274241585431e-04
+.....adv: t=0.03369898 dt=0.00336980
+STEP=11 t=0.03369898 dt=0.00336980 ta=0.03369898 dta=0.00336980
+.....iter=1, diff=2.1694543004005784e-01
+.....iter=2, diff=4.2078450533786720e-02
+.....iter=3, diff=8.1426088050778056e-03
+.....iter=4, diff=1.5722235034683273e-03
+.....iter=5, diff=4.4922206117087678e-04
+.....adv: t=0.03706878 dt=0.00336980
+STEP=12 t=0.03706878 dt=0.00336980 ta=0.03706878 dta=0.00336980
+.....iter=1, diff=2.8896489115402507e-01
+.....iter=2, diff=5.6326170538414773e-02
+.....iter=3, diff=1.2981176343092666e-02
+.....iter=4, diff=3.0334110502944229e-03
+.....iter=5, diff=8.4513796242266807e-04
+dump t=0.04043858 to s_0004.vtk
+.....adv: t=0.04043858 dt=0.00336980
+Dump n=4 t=0.0404386 target=0.04
+HDF5 dump 'p_0004': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0004': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 4: format=hdf
+STEP=13 t=0.04043858 dt=0.00336980 ta=0.04043858 dta=0.00336980
+.....iter=1, diff=3.1778603874779043e-01
+.....iter=2, diff=6.9633245365416541e-02
+.....iter=3, diff=1.4844949245712582e-02
+.....iter=4, diff=3.4714770225623532e-03
+.....iter=5, diff=8.3760246775300973e-04
+.....adv: t=0.04380838 dt=0.00336980
+STEP=14 t=0.04380838 dt=0.00336980 ta=0.04380838 dta=0.00336980
+.....iter=1, diff=1.8529166716960366e-01
+.....iter=2, diff=3.4895874824794053e-02
+.....iter=3, diff=7.3736704696996296e-03
+.....iter=4, diff=1.7740974975177049e-03
+.....iter=5, diff=4.6201839564815711e-04
+.....adv: t=0.04717818 dt=0.00336980
+STEP=15 t=0.04717818 dt=0.00336980 ta=0.04717818 dta=0.00336980
+.....iter=1, diff=3.0505144102619880e-01
+.....iter=2, diff=5.8987702633220368e-02
+.....iter=3, diff=1.3484386327957978e-02
+.....iter=4, diff=3.4805171419978478e-03
+.....iter=5, diff=9.6871047965452423e-04
+dump t=0.05054798 to s_0005.vtk
+.....adv: t=0.05054798 dt=0.00336980
+Dump n=5 t=0.050548 target=0.05
+HDF5 dump 'p_0005': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0005': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 5: format=hdf
+STEP=16 t=0.05054798 dt=0.00336980 ta=0.05054798 dta=0.00336980
+.....iter=1, diff=4.2074939968946717e-01
+.....iter=2, diff=8.8170133111522234e-02
+.....iter=3, diff=2.1007389602612534e-02
+.....iter=4, diff=5.5587061377786696e-03
+.....iter=5, diff=1.5391365451082179e-03
+.....iter=6, diff=5.0302967922705925e-04
+.....adv: t=0.05391777 dt=0.00336980
+STEP=17 t=0.05391777 dt=0.00336980 ta=0.05391777 dta=0.00336980
+.....iter=1, diff=1.4029258826180785e-01
+.....iter=2, diff=3.4691417425015594e-02
+.....iter=3, diff=9.8598505229463840e-03
+.....iter=4, diff=2.7774605331026435e-03
+.....iter=5, diff=7.8924970804621303e-04
+.....adv: t=0.05728757 dt=0.00336980
+STEP=18 t=0.05728757 dt=0.00336980 ta=0.05728757 dta=0.00336980
+.....iter=1, diff=1.7192824935827911e-01
+.....iter=2, diff=3.4607366767837239e-02
+.....iter=3, diff=9.0358252548408437e-03
+.....iter=4, diff=2.9178920204692331e-03
+.....iter=5, diff=8.7033156860709241e-04
+dump t=0.06065737 to s_0006.vtk
+.....adv: t=0.06065737 dt=0.00336980
+Dump n=6 t=0.0606574 target=0.06
+HDF5 dump 'p_0006': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0006': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 6: format=hdf
+STEP=19 t=0.06065737 dt=0.00336980 ta=0.06065737 dta=0.00336980
+.....iter=1, diff=2.9975320715153980e-01
+.....iter=2, diff=5.8610831644192722e-02
+.....iter=3, diff=1.4026266269721236e-02
+.....iter=4, diff=3.1600762104373806e-03
+.....iter=5, diff=8.7300982493795259e-04
+.....adv: t=0.06402717 dt=0.00336980
+STEP=20 t=0.06402717 dt=0.00336980 ta=0.06402717 dta=0.00336980
+.....iter=1, diff=2.5720170114959928e-01
+.....iter=2, diff=5.7563852690144850e-02
+.....iter=3, diff=1.4863201835260905e-02
+.....iter=4, diff=3.8545060187193227e-03
+.....iter=5, diff=1.0266924355537633e-03
+.....iter=6, diff=3.6238603401545280e-04
+.....adv: t=0.06739697 dt=0.00336980
+STEP=21 t=0.06739697 dt=0.00336980 ta=0.06739697 dta=0.00336980
+.....iter=1, diff=1.8970841386933607e-01
+.....iter=2, diff=4.5257417499036265e-02
+.....iter=3, diff=1.0484774419589133e-02
+.....iter=4, diff=2.4328550034198458e-03
+.....iter=5, diff=6.2753167113691543e-04
+dump t=0.07076677 to s_0007.vtk
+.....adv: t=0.07076677 dt=0.00336980
+
+
+
+
+
+
+
+
+
+
+
+
+Dump n=987 t=9.86859 target=9.87
+HDF5 dump 'p_0987': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0987': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 987: format=hdf
+STEP=2945 t=9.86859361 dt=0.00336980 ta=9.86859361 dta=0.00336980
+.....iter=1, diff=2.9018988349883618e-02
+.....iter=2, diff=5.7305455720689626e-03
+.....iter=3, diff=1.1465108455628484e-03
+.....iter=4, diff=2.2967188950827070e-04
+.....adv: t=9.87196341 dt=0.00336980
+STEP=2946 t=9.87196341 dt=0.00336980 ta=9.87196341 dta=0.00336980
+.....iter=1, diff=2.3296622658305698e-02
+.....iter=2, diff=4.5846527705210288e-03
+.....iter=3, diff=1.1409627861851028e-03
+.....iter=4, diff=2.7615160114605262e-04
+.....adv: t=9.87533321 dt=0.00336980
+STEP=2947 t=9.87533321 dt=0.00336980 ta=9.87533321 dta=0.00336980
+.....iter=1, diff=2.2907352150780231e-02
+.....iter=2, diff=4.5340090686058548e-03
+.....iter=3, diff=9.0513872739618126e-04
+dump t=9.87870300 to s_0988.vtk
+.....adv: t=9.87870300 dt=0.00336980
+Dump n=988 t=9.8787 target=9.88
+HDF5 dump 'p_0988': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0988': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 988: format=hdf
+STEP=2948 t=9.87870300 dt=0.00336980 ta=9.87870300 dta=0.00336980
+.....iter=1, diff=2.5036452275217756e-02
+.....iter=2, diff=4.9111079010508395e-03
+.....iter=3, diff=9.6351423313670195e-04
+.....adv: t=9.88207280 dt=0.00336980
+STEP=2949 t=9.88207280 dt=0.00336980 ta=9.88207280 dta=0.00336980
+.....iter=1, diff=2.7313136510222862e-02
+.....iter=2, diff=5.3627088066352229e-03
+.....iter=3, diff=1.0555265104331807e-03
+.....iter=4, diff=2.1158460130543823e-04
+.....adv: t=9.88544260 dt=0.00336980
+STEP=2950 t=9.88544260 dt=0.00336980 ta=9.88544260 dta=0.00336980
+.....iter=1, diff=3.1655038098892557e-02
+.....iter=2, diff=6.2218601189267331e-03
+.....iter=3, diff=1.2356973627638626e-03
+.....iter=4, diff=2.4533205958843468e-04
+dump t=9.88881240 to s_0989.vtk
+.....adv: t=9.88881240 dt=0.00336980
+Dump n=989 t=9.88881 target=9.89
+HDF5 dump 'p_0989': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0989': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 989: format=hdf
+STEP=2951 t=9.88881240 dt=0.00336980 ta=9.88881240 dta=0.00336980
+.....iter=1, diff=3.1427369463211001e-02
+.....iter=2, diff=6.2351331367124507e-03
+.....iter=3, diff=1.2518159411076066e-03
+.....iter=4, diff=2.5122710676531124e-04
+.....adv: t=9.89218220 dt=0.00336980
+STEP=2952 t=9.89218220 dt=0.00336980 ta=9.89218220 dta=0.00336980
+.....iter=1, diff=2.9790296106899674e-02
+.....iter=2, diff=5.8335710922306269e-03
+.....iter=3, diff=1.1517210797083611e-03
+.....iter=4, diff=2.2771345521092299e-04
+.....adv: t=9.89555200 dt=0.00336980
+STEP=2953 t=9.89555200 dt=0.00336980 ta=9.89555200 dta=0.00336980
+.....iter=1, diff=2.5252096625550002e-02
+.....iter=2, diff=4.9789890794303977e-03
+.....iter=3, diff=9.8901564634544721e-04
+dump t=9.89892179 to s_0990.vtk
+.....adv: t=9.89892179 dt=0.00336980
+Dump n=990 t=9.89892 target=9.9
+HDF5 dump 'p_0990': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0990': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 990: format=hdf
+timer report t=9.89892179 to trep_0099.log
+STEP=2954 t=9.89892179 dt=0.00336980 ta=9.89892179 dta=0.00336980
+.....iter=1, diff=2.3095003430292353e-02
+.....iter=2, diff=4.6174088463113950e-03
+.....iter=3, diff=9.1734311307546375e-04
+.....adv: t=9.90229159 dt=0.00336980
+STEP=2955 t=9.90229159 dt=0.00336980 ta=9.90229159 dta=0.00336980
+.....iter=1, diff=2.3949229849246439e-02
+.....iter=2, diff=4.7264890363860577e-03
+.....iter=3, diff=9.4131009925546637e-04
+.....adv: t=9.90566139 dt=0.00336980
+STEP=2956 t=9.90566139 dt=0.00336980 ta=9.90566139 dta=0.00336980
+.....iter=1, diff=2.7472133058894031e-02
+.....iter=2, diff=5.4478005588029649e-03
+.....iter=3, diff=1.0653615348585283e-03
+.....iter=4, diff=2.1460845284704724e-04
+dump t=9.90903119 to s_0991.vtk
+.....adv: t=9.90903119 dt=0.00336980
+Dump n=991 t=9.90903 target=9.91
+HDF5 dump 'p_0991': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0991': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 991: format=hdf
+STEP=2957 t=9.90903119 dt=0.00336980 ta=9.90903119 dta=0.00336980
+.....iter=1, diff=3.0976843766508722e-02
+.....iter=2, diff=6.0785401252078678e-03
+.....iter=3, diff=1.1830357878103077e-03
+.....iter=4, diff=2.2956954084402042e-04
+.....adv: t=9.91240099 dt=0.00336980
+STEP=2958 t=9.91240099 dt=0.00336980 ta=9.91240099 dta=0.00336980
+.....iter=1, diff=3.6176956846609681e-02
+.....iter=2, diff=7.0826288455016796e-03
+.....iter=3, diff=1.3889359959212751e-03
+.....iter=4, diff=2.7228661995012867e-04
+.....adv: t=9.91577079 dt=0.00336980
+STEP=2959 t=9.91577079 dt=0.00336980 ta=9.91577079 dta=0.00336980
+.....iter=1, diff=3.5797841177432191e-02
+.....iter=2, diff=7.0012787878504486e-03
+.....iter=3, diff=1.3861863237023598e-03
+.....iter=4, diff=2.7425421670886828e-04
+dump t=9.91914058 to s_0992.vtk
+.....adv: t=9.91914058 dt=0.00336980
+Dump n=992 t=9.91914 target=9.92
+HDF5 dump 'p_0992': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0992': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 992: format=hdf
+STEP=2960 t=9.91914058 dt=0.00336980 ta=9.91914058 dta=0.00336980
+.....iter=1, diff=3.0067296217640590e-02
+.....iter=2, diff=5.9421073510326087e-03
+.....iter=3, diff=1.1880997113869966e-03
+.....iter=4, diff=2.3731560794425626e-04
+.....adv: t=9.92251038 dt=0.00336980
+STEP=2961 t=9.92251038 dt=0.00336980 ta=9.92251038 dta=0.00336980
+.....iter=1, diff=2.5795141858709639e-02
+.....iter=2, diff=5.0802696536423851e-03
+.....iter=3, diff=9.9507025742243214e-04
+.....adv: t=9.92588018 dt=0.00336980
+STEP=2962 t=9.92588018 dt=0.00336980 ta=9.92588018 dta=0.00336980
+.....iter=1, diff=2.4700705065074172e-02
+.....iter=2, diff=4.9493884091566312e-03
+.....iter=3, diff=1.0028979687298233e-03
+.....iter=4, diff=2.0367640050526195e-04
+dump t=9.92924998 to s_0993.vtk
+.....adv: t=9.92924998 dt=0.00336980
+Dump n=993 t=9.92925 target=9.93
+HDF5 dump 'p_0993': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0993': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 993: format=hdf
+STEP=2963 t=9.92924998 dt=0.00336980 ta=9.92924998 dta=0.00336980
+.....iter=1, diff=2.5210187052530992e-02
+.....iter=2, diff=5.1073736920520547e-03
+.....iter=3, diff=1.0499697795823013e-03
+.....iter=4, diff=2.1604093639499767e-04
+.....adv: t=9.93261978 dt=0.00336980
+STEP=2964 t=9.93261978 dt=0.00336980 ta=9.93261978 dta=0.00336980
+.....iter=1, diff=2.8769008704335131e-02
+.....iter=2, diff=5.5903796041691127e-03
+.....iter=3, diff=1.0753790691127312e-03
+.....iter=4, diff=2.1643263922581000e-04
+.....adv: t=9.93598958 dt=0.00336980
+STEP=2965 t=9.93598958 dt=0.00336980 ta=9.93598958 dta=0.00336980
+.....iter=1, diff=3.2960849737440942e-02
+.....iter=2, diff=6.4396003774379014e-03
+.....iter=3, diff=1.2523156132345659e-03
+.....iter=4, diff=2.4265024188805087e-04
+dump t=9.93935937 to s_0994.vtk
+.....adv: t=9.93935937 dt=0.00336980
+Dump n=994 t=9.93936 target=9.94
+HDF5 dump 'p_0994': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0994': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 994: format=hdf
+STEP=2966 t=9.93935937 dt=0.00336980 ta=9.93935937 dta=0.00336980
+.....iter=1, diff=3.2265444917604968e-02
+.....iter=2, diff=6.2875008468536086e-03
+.....iter=3, diff=1.2332088733598974e-03
+.....iter=4, diff=2.4092438975943062e-04
+.....adv: t=9.94272917 dt=0.00336980
+STEP=2967 t=9.94272917 dt=0.00336980 ta=9.94272917 dta=0.00336980
+.....iter=1, diff=2.7786573815107494e-02
+.....iter=2, diff=5.4209364993101005e-03
+.....iter=3, diff=1.0571599490766521e-03
+.....iter=4, diff=2.0534423813403914e-04
+.....adv: t=9.94609897 dt=0.00336980
+STEP=2968 t=9.94609897 dt=0.00336980 ta=9.94609897 dta=0.00336980
+.....iter=1, diff=2.6490451373195164e-02
+.....iter=2, diff=5.1960931603067303e-03
+.....iter=3, diff=1.0243868196555658e-03
+.....iter=4, diff=2.1275500700680599e-04
+dump t=9.94946877 to s_0995.vtk
+.....adv: t=9.94946877 dt=0.00336980
+Dump n=995 t=9.94947 target=9.95
+HDF5 dump 'p_0995': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0995': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 995: format=hdf
+STEP=2969 t=9.94946877 dt=0.00336980 ta=9.94946877 dta=0.00336980
+.....iter=1, diff=3.2493614491084927e-02
+.....iter=2, diff=6.5584700185139649e-03
+.....iter=3, diff=1.3193030892165668e-03
+.....iter=4, diff=2.6584892920691422e-04
+.....adv: t=9.95283857 dt=0.00336980
+STEP=2970 t=9.95283857 dt=0.00336980 ta=9.95283857 dta=0.00336980
+.....iter=1, diff=2.8923802197059114e-02
+.....iter=2, diff=5.7527897125596887e-03
+.....iter=3, diff=1.1583352166234240e-03
+.....iter=4, diff=2.3361175963761352e-04
+.....adv: t=9.95620837 dt=0.00336980
+STEP=2971 t=9.95620837 dt=0.00336980 ta=9.95620837 dta=0.00336980
+.....iter=1, diff=2.6792025931637275e-02
+.....iter=2, diff=5.3144561760790987e-03
+.....iter=3, diff=1.0575099906134388e-03
+.....iter=4, diff=2.1123990645751774e-04
+dump t=9.95957816 to s_0996.vtk
+.....adv: t=9.95957816 dt=0.00336980
+Dump n=996 t=9.95958 target=9.96
+HDF5 dump 'p_0996': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0996': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 996: format=hdf
+STEP=2972 t=9.95957816 dt=0.00336980 ta=9.95957816 dta=0.00336980
+.....iter=1, diff=2.5276900176069660e-02
+.....iter=2, diff=5.0544055575968251e-03
+.....iter=3, diff=1.0536216266386171e-03
+.....iter=4, diff=2.6386771450049370e-04
+.....adv: t=9.96294796 dt=0.00336980
+STEP=2973 t=9.96294796 dt=0.00336980 ta=9.96294796 dta=0.00336980
+.....iter=1, diff=2.4124597052279713e-02
+.....iter=2, diff=4.9411475295373167e-03
+.....iter=3, diff=9.9944034174986656e-04
+.....adv: t=9.96631776 dt=0.00336980
+STEP=2974 t=9.96631776 dt=0.00336980 ta=9.96631776 dta=0.00336980
+.....iter=1, diff=2.5961867148480464e-02
+.....iter=2, diff=5.2872034351490096e-03
+.....iter=3, diff=1.0625118685089468e-03
+.....iter=4, diff=2.2350747209830260e-04
+dump t=9.96968756 to s_0997.vtk
+.....adv: t=9.96968756 dt=0.00336980
+Dump n=997 t=9.96969 target=9.97
+HDF5 dump 'p_0997': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0997': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 997: format=hdf
+STEP=2975 t=9.96968756 dt=0.00336980 ta=9.96968756 dta=0.00336980
+.....iter=1, diff=2.3697861881494833e-02
+.....iter=2, diff=4.7651123473066073e-03
+.....iter=3, diff=9.4945130164754855e-04
+.....adv: t=9.97305736 dt=0.00336980
+STEP=2976 t=9.97305736 dt=0.00336980 ta=9.97305736 dta=0.00336980
+.....iter=1, diff=2.4946366818254479e-02
+.....iter=2, diff=4.9380509761410025e-03
+.....iter=3, diff=9.8765340874649955e-04
+.....adv: t=9.97642716 dt=0.00336980
+STEP=2977 t=9.97642716 dt=0.00336980 ta=9.97642716 dta=0.00336980
+.....iter=1, diff=2.7163080668771843e-02
+.....iter=2, diff=5.4085782577596771e-03
+.....iter=3, diff=1.0722853844065384e-03
+.....iter=4, diff=2.4843556289479759e-04
+dump t=9.97979695 to s_0998.vtk
+.....adv: t=9.97979695 dt=0.00336980
+Dump n=998 t=9.9798 target=9.98
+HDF5 dump 'p_0998': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0998': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 998: format=hdf
+STEP=2978 t=9.97979695 dt=0.00336980 ta=9.97979695 dta=0.00336980
+.....iter=1, diff=3.0070509898942145e-02
+.....iter=2, diff=5.9722645149734256e-03
+.....iter=3, diff=1.1968387240060027e-03
+.....iter=4, diff=2.4019827541755970e-04
+.....adv: t=9.98316675 dt=0.00336980
+STEP=2979 t=9.98316675 dt=0.00336980 ta=9.98316675 dta=0.00336980
+.....iter=1, diff=2.8780266551484968e-02
+.....iter=2, diff=5.7497521110836010e-03
+.....iter=3, diff=1.1640675564075591e-03
+.....iter=4, diff=2.3637107322497524e-04
+.....adv: t=9.98653655 dt=0.00336980
+STEP=2980 t=9.98653655 dt=0.00336980 ta=9.98653655 dta=0.00336980
+.....iter=1, diff=2.4030058688152774e-02
+.....iter=2, diff=4.8101869389232024e-03
+.....iter=3, diff=9.7502955898209225e-04
+dump t=9.98990635 to s_0999.vtk
+.....adv: t=9.98990635 dt=0.00336980
+Dump n=999 t=9.98991 target=9.99
+HDF5 dump 'p_0999': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_0999': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 999: format=hdf
+STEP=2981 t=9.98990635 dt=0.00336980 ta=9.98990635 dta=0.00336980
+.....iter=1, diff=2.1983525779900853e-02
+.....iter=2, diff=4.4544007334754105e-03
+.....iter=3, diff=9.1153196450636631e-04
+.....adv: t=9.99327615 dt=0.00336980
+STEP=2982 t=9.99327615 dt=0.00336980 ta=9.99327615 dta=0.00336980
+.....iter=1, diff=2.2321129707715954e-02
+.....iter=2, diff=4.5591917537285871e-03
+.....iter=3, diff=9.1631156034684309e-04
+.....adv: t=9.99664595 dt=0.00336980
+STEP=2983 t=9.99664595 dt=0.00336980 ta=9.99664595 dta=0.00336980
+.....iter=1, diff=2.7586519566276790e-02
+.....iter=2, diff=5.4001288697926569e-03
+.....iter=3, diff=1.0472220446003345e-03
+.....iter=4, diff=2.2431152356256970e-04
+dump t=10.00001574 to s_1000.vtk
+.....adv: t=10.00001574 dt=0.00336980
+Dump n=1000 t=10 target=10
+HDF5 dump 'p_1000': one rank 0.03125000 MB, total 4.00000000 MB
+HDF5 dump 'vf_1000': one rank 0.03125000 MB, total 4.00000000 MB
+Dump 1000: format=hdf
+timer report t=10.00001574 to trep_0100.log
+mem=62.73828125 MB
+all [1855.77827 s, 100.000%]
+|     other [0.00426 s, 0.000%]
+|     last [0.00002 s, 0.000%]
+|     run:00:init [0.10282 s, 0.006%]
+|     |     init:00:pfixed-reduce [0.00225 s, 0.000%]
+|     |     init:01:fields [0.07848 s, 0.004%]
+|     |     init:02:initvort [0.00018 s, 0.000%]
+|     |     init:03:smooth [0.00017 s, 0.000%]
+|     |     init:04:mixture [0.00412 s, 0.000%]
+|     |     |     mixture:00:init [0.00090 s, 0.000%]
+|     |     |     mixture:01:smooth [0.00136 s, 0.000%]
+|     |     |     |     smoothen:00: [0.00136 s, 0.000%]
+|     |     |     mixture:02:smoothst [0.00020 s, 0.000%]
+|     |     |     mixture:03:calc [0.00166 s, 0.000%]
+|     |     init:05:color-ini [0.00023 s, 0.000%]
+|     |     init:06:solv [0.01738 s, 0.001%]
+|     run:02:events [0.44084 s, 0.024%]
+|     run:03:loop-check [2.32519 s, 0.125%]
+|     run:04:abort-check [0.41898 s, 0.023%]
+|     run:05:updatepar [1.20327 s, 0.065%]
+|     run:06:mixture [30.33517 s, 1.635%]
+|     |     mixture:00:init [1.41147 s, 0.076%]
+|     |     mixture:01:smooth [4.10016 s, 0.221%]
+|     |     |     smoothen:00: [4.10016 s, 0.221%]
+|     |     mixture:02:smoothst [0.58186 s, 0.031%]
+|     |     mixture:03:calc [24.24169 s, 1.306%]
+|     run:07:stat [10.84347 s, 0.584%]
+|     |     stat:00:stat-add [2.02057 s, 0.109%]
+|     |     stat:01:stat-print [0.51203 s, 0.028%]
+|     |     stat:02:local [6.80066 s, 0.366%]
+|     |     stat:03:reduce [0.49461 s, 0.027%]
+|     |     stat:04:vfslip [0.50270 s, 0.027%]
+|     |     stat:05:young [0.51291 s, 0.028%]
+|     run:08:fs-start [5.97630 s, 0.322%]
+|     |     fluid-start:00:convdiff-init [0.51118 s, 0.028%]
+|     |     fluid-start:01:convdiff-start [4.00896 s, 0.216%]
+|     |     |     convdiffmulti-start:00:dir-init [0.50307 s, 0.027%]
+|     |     |     convdiffmulti-start:01:dir-start [0.69824 s, 0.038%]
+|     |     |     convdiffmulti-start:02:dir-init [0.48645 s, 0.026%]
+|     |     |     convdiffmulti-start:03:dir-start [0.67604 s, 0.036%]
+|     |     |     convdiffmulti-start:04:dir-init [0.48573 s, 0.026%]
+|     |     |     convdiffmulti-start:05:dir-start [0.67167 s, 0.036%]
+|     |     |     convdiffmulti-start:06:tovect [0.48777 s, 0.026%]
+|     |     fluid-start:02:convdiff-start [1.45615 s, 0.078%]
+|     run:09:fs-iters [1180.41549 s, 63.608%]
+|     |     iter:01:iter [1172.53995 s, 63.183%]
+|     |     |     fluid-iter:00:init [12.33096 s, 0.664%]
+|     |     |     fluid-iter:01:bc-inletflux [8.05084 s, 0.434%]
+|     |     |     |     inletflux:00:local [4.87979 s, 0.263%]
+|     |     |     |     inletflux:01:corr [3.17106 s, 0.171%]
+|     |     |     fluid-iter:02:bc-outlet [7.77409 s, 0.419%]
+|     |     |     |     outlet:00:local [4.84078 s, 0.261%]
+|     |     |     |     outlet:01:corr [2.93331 s, 0.158%]
+|     |     |     fluid-iter:03:bc-derived [6.08491 s, 0.328%]
+|     |     |     fluid-iter:04:forceinit [56.84225 s, 3.063%]
+|     |     |     |     extforce:00:loc [56.84225 s, 3.063%]
+|     |     |     fluid-iter:05:forceinit [4.45011 s, 0.240%]
+|     |     |     fluid-iter:06:explvisc [38.43659 s, 2.071%]
+|     |     |     fluid-iter:07:pgrad [11.78249 s, 0.635%]
+|     |     |     fluid-iter:08:convdiff-iter [634.94850 s, 34.215%]
+|     |     |     |     convdiffmulti-iter:00:source [4.13403 s, 0.223%]
+|     |     |     |     convdiffmulti-iter:01:dir-iter [207.29268 s, 11.170%]
+|     |     |     |     |     convdiff-iter:00:init [2.44394 s, 0.132%]
+|     |     |     |     |     convdiff-iter:01:assemble [92.94741 s, 5.009%]
+|     |     |     |     |     |     assemble:00:assemble [92.94741 s, 5.009%]
+|     |     |     |     |     convdiff-iter:02:solve [101.66431 s, 5.478%]
+|     |     |     |     |     |     solve:00:convert [98.58682 s, 5.312%]
+|     |     |     |     |     |     solve:01:copy [3.07749 s, 0.166%]
+|     |     |     |     |     convdiff-iter:03:apply [10.23701 s, 0.552%]
+|     |     |     |     convdiffmulti-iter:02:dir-linreport [2.28889 s, 0.123%]
+|     |     |     |     convdiffmulti-iter:03:dir-iter [205.69971 s, 11.084%]
+|     |     |     |     |     convdiff-iter:00:init [2.22489 s, 0.120%]
+|     |     |     |     |     convdiff-iter:01:assemble [92.47310 s, 4.983%]
+|     |     |     |     |     |     assemble:00:assemble [92.47310 s, 4.983%]
+|     |     |     |     |     convdiff-iter:02:solve [100.89045 s, 5.437%]
+|     |     |     |     |     |     solve:00:convert [98.00553 s, 5.281%]
+|     |     |     |     |     |     solve:01:copy [2.88492 s, 0.155%]
+|     |     |     |     |     convdiff-iter:03:apply [10.11126 s, 0.545%]
+|     |     |     |     convdiffmulti-iter:04:dir-linreport [2.26661 s, 0.122%]
+|     |     |     |     convdiffmulti-iter:05:dir-iter [206.07128 s, 11.104%]
+|     |     |     |     |     convdiff-iter:00:init [2.22652 s, 0.120%]
+|     |     |     |     |     convdiff-iter:01:assemble [92.99894 s, 5.011%]
+|     |     |     |     |     |     assemble:00:assemble [92.99894 s, 5.011%]
+|     |     |     |     |     convdiff-iter:02:solve [100.72624 s, 5.428%]
+|     |     |     |     |     |     solve:00:convert [97.83058 s, 5.272%]
+|     |     |     |     |     |     solve:01:copy [2.89566 s, 0.156%]
+|     |     |     |     |     convdiff-iter:03:apply [10.11957 s, 0.545%]
+|     |     |     |     convdiffmulti-iter:06:dir-linreport [2.26871 s, 0.122%]
+|     |     |     |     convdiffmulti-iter:07:tovect [4.92660 s, 0.265%]
+|     |     |     fluid-iter:09:diag [23.80376 s, 1.283%]
+|     |     |     |     diag:00:local [20.26635 s, 1.092%]
+|     |     |     |     diag:01:interp [3.53741 s, 0.191%]
+|     |     |     fluid-iter:10:pcorr-assemble [99.44420 s, 5.359%]
+|     |     |     fluid-iter:11:pcorr-solve [207.91996 s, 11.204%]
+|     |     |     |     solve:00:solve [197.96992 s, 10.668%]
+|     |     |     |     solve:01:copy [9.95003 s, 0.536%]
+|     |     |     fluid-iter:12:pcorr-apply [23.63479 s, 1.274%]
+|     |     |     fluid-iter:13:convdiff-corr [34.98106 s, 1.885%]
+|     |     |     |     corr:00:dir-corr [11.39887 s, 0.614%]
+|     |     |     |     |     corr:00:apply [11.39887 s, 0.614%]
+|     |     |     |     corr:01:dir-corr [9.95442 s, 0.536%]
+|     |     |     |     |     corr:00:apply [9.95442 s, 0.536%]
+|     |     |     |     corr:02:dir-corr [9.94978 s, 0.536%]
+|     |     |     |     |     corr:00:apply [9.94978 s, 0.536%]
+|     |     |     |     corr:03:tovect [3.67798 s, 0.198%]
+|     |     |     fluid-iter:14:inc-iter [2.05543 s, 0.111%]
+|     |     iter:02:reduce [2.29865 s, 0.124%]
+|     |     iter:03:report [3.20329 s, 0.173%]
+|     |     iter:04:convcheck [2.37361 s, 0.128%]
+|     run:10:fs-finish [4.67844 s, 0.252%]
+|     |     fluid-finish:00:inctime [2.11229 s, 0.114%]
+|     |     fluid-finish:01:convdiff-finish [2.56616 s, 0.138%]
+|     |     |     convdiffmulti-finish:00:dir-finish [0.69205 s, 0.037%]
+|     |     |     convdiffmulti-finish:01:dir-finish [0.68097 s, 0.037%]
+|     |     |     convdiffmulti-finish:02:dir-finish [0.68734 s, 0.037%]
+|     |     |     convdiffmulti-finish:03:tovect [0.50579 s, 0.027%]
+|     run:11:as-steps [501.94214 s, 27.048%]
+|     |     steps:01:start [1.37685 s, 0.074%]
+|     |     |     start:00:rotate [0.87022 s, 0.047%]
+|     |     |     start:01:reconst [0.50663 s, 0.027%]
+|     |     |     |     reconst:00:bc-zero [0.00097 s, 0.000%]
+|     |     |     |     reconst:01:height [0.00647 s, 0.000%]
+|     |     steps:02:iter [498.52715 s, 26.864%]
+|     |     |     iter:00:init [0.65293 s, 0.035%]
+|     |     |     iter:01:adv [4.38209 s, 0.236%]
+|     |     |     iter:02:reconst [21.96804 s, 1.184%]
+|     |     |     |     reconst:00:bc-zero [2.99023 s, 0.161%]
+|     |     |     |     reconst:01:height [18.97781 s, 1.023%]
+|     |     |     iter:03:adv [4.16918 s, 0.225%]
+|     |     |     iter:04:reconst [21.73081 s, 1.171%]
+|     |     |     |     reconst:00:bc-zero [2.96619 s, 0.160%]
+|     |     |     |     reconst:01:height [18.76462 s, 1.011%]
+|     |     |     iter:05:adv [4.06124 s, 0.219%]
+|     |     |     iter:06:reconst [21.70991 s, 1.170%]
+|     |     |     |     reconst:00:bc-zero [2.95416 s, 0.159%]
+|     |     |     |     reconst:01:height [18.75574 s, 1.011%]
+|     |     |     iter:07:adv [4.15937 s, 0.224%]
+|     |     |     iter:08:reconst [21.73249 s, 1.171%]
+|     |     |     |     reconst:00:bc-zero [2.96732 s, 0.160%]
+|     |     |     |     reconst:01:height [18.76517 s, 1.011%]
+|     |     |     iter:09:adv [4.06168 s, 0.219%]
+|     |     |     iter:10:reconst [21.74532 s, 1.172%]
+|     |     |     |     reconst:00:bc-zero [2.96666 s, 0.160%]
+|     |     |     |     reconst:01:height [18.77866 s, 1.012%]
+|     |     |     iter:11:adv [4.15363 s, 0.224%]
+|     |     |     iter:12:reconst [21.75194 s, 1.172%]
+|     |     |     |     reconst:00:bc-zero [2.97269 s, 0.160%]
+|     |     |     |     reconst:01:height [18.77925 s, 1.012%]
+|     |     |     iter:13:curvcomm [2.42033 s, 0.130%]
+|     |     |     iter:14:dumppoly [44.89855 s, 2.419%]
+|     |     |     |     dumppoly:00:local [3.51185 s, 0.189%]
+|     |     |     |     dumppoly:01:write [41.38670 s, 2.230%]
+|     |     |     iter:14:part-comm [4.91115 s, 0.265%]
+|     |     |     iter:15:part-comm [2.34565 s, 0.126%]
+|     |     |     iter:15:part-run [191.54730 s, 10.322%]
+|     |     |     iter:16:part-nan [1.69371 s, 0.091%]
+|     |     |     iter:16:part-run [93.03835 s, 5.013%]
+|     |     |     iter:17:part-nan [0.81486 s, 0.044%]
+|     |     |     iter:17:stat [0.39448 s, 0.021%]
+|     |     |     iter:18:stat [0.18414 s, 0.010%]
+|     |     steps:03:finish [0.64108 s, 0.035%]
+|     |     steps:04:report [0.80078 s, 0.043%]
+|     |     steps:05:convcheck [0.59629 s, 0.032%]
+|     run:12:dt [1.41774 s, 0.076%]
+|     |     dt:00:local [0.92501 s, 0.050%]
+|     |     dt:01:reduce [0.49273 s, 0.027%]
+|     run:13:dump [112.76804 s, 6.077%]
+|     run:14:dumpwrite [0.55813 s, 0.030%]
+|     run:15:dmptrep [0.47544 s, 0.026%]
+|     run:16:dumpstat [1.43759 s, 0.077%]
+|     run:17:inc [0.43494 s, 0.023%]
+other
+0.00426 s = 0.000%
+last
+0.00002 s = 0.000%
+run:00:init --> init:00:pfixed-reduce
+0.00225 s = 0.000%
+run:00:init --> init:01:fields
+0.07848 s = 0.004%
+run:00:init --> init:02:initvort
+0.00018 s = 0.000%
+run:00:init --> init:03:smooth
+0.00017 s = 0.000%
+run:00:init --> init:04:mixture --> mixture:00:init
+0.00090 s = 0.000%
+run:00:init --> init:04:mixture --> mixture:01:smooth --> smoothen:00:
+0.00136 s = 0.000%
+run:00:init --> init:04:mixture --> mixture:02:smoothst
+0.00020 s = 0.000%
+run:00:init --> init:04:mixture --> mixture:03:calc
+0.00166 s = 0.000%
+run:00:init --> init:05:color-ini
+0.00023 s = 0.000%
+run:00:init --> init:06:solv
+0.01738 s = 0.001%
+run:02:events
+0.44084 s = 0.024%
+run:03:loop-check
+2.32519 s = 0.125%
+run:04:abort-check
+0.41898 s = 0.023%
+run:05:updatepar
+1.20327 s = 0.065%
+run:06:mixture --> mixture:00:init
+1.41147 s = 0.076%
+run:06:mixture --> mixture:01:smooth --> smoothen:00:
+4.10016 s = 0.221%
+run:06:mixture --> mixture:02:smoothst
+0.58186 s = 0.031%
+run:06:mixture --> mixture:03:calc
+24.24169 s = 1.306%
+run:07:stat --> stat:00:stat-add
+2.02057 s = 0.109%
+run:07:stat --> stat:01:stat-print
+0.51203 s = 0.028%
+run:07:stat --> stat:02:local
+6.80066 s = 0.366%
+run:07:stat --> stat:03:reduce
+0.49461 s = 0.027%
+run:07:stat --> stat:04:vfslip
+0.50270 s = 0.027%
+run:07:stat --> stat:05:young
+0.51291 s = 0.028%
+run:08:fs-start --> fluid-start:00:convdiff-init
+0.51118 s = 0.028%
+run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:00:dir-init
+0.50307 s = 0.027%
+run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:01:dir-start
+0.69824 s = 0.038%
+run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:02:dir-init
+0.48645 s = 0.026%
+run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:03:dir-start
+0.67604 s = 0.036%
+run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:04:dir-init
+0.48573 s = 0.026%
+run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:05:dir-start
+0.67167 s = 0.036%
+run:08:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:06:tovect
+0.48777 s = 0.026%
+run:08:fs-start --> fluid-start:02:convdiff-start
+1.45615 s = 0.078%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:00:init
+12.33096 s = 0.664%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:01:bc-inletflux --> inletflux:00:local
+4.87979 s = 0.263%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:01:bc-inletflux --> inletflux:01:corr
+3.17106 s = 0.171%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:02:bc-outlet --> outlet:00:local
+4.84078 s = 0.261%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:02:bc-outlet --> outlet:01:corr
+2.93331 s = 0.158%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:03:bc-derived
+6.08491 s = 0.328%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:04:forceinit --> extforce:00:loc
+56.84225 s = 3.063%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:05:forceinit
+4.45011 s = 0.240%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:06:explvisc
+38.43659 s = 2.071%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:07:pgrad
+11.78249 s = 0.635%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:00:source
+4.13403 s = 0.223%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:00:init
+2.44394 s = 0.132%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
+92.94741 s = 5.009%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
+98.58682 s = 5.312%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
+3.07749 s = 0.166%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:03:apply
+10.23701 s = 0.552%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:02:dir-linreport
+2.28889 s = 0.123%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:00:init
+2.22489 s = 0.120%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
+92.47310 s = 4.983%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
+98.00553 s = 5.281%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
+2.88492 s = 0.155%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:03:apply
+10.11126 s = 0.545%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:04:dir-linreport
+2.26661 s = 0.122%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:05:dir-iter --> convdiff-iter:00:init
+2.22652 s = 0.120%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:05:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
+92.99894 s = 5.011%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:05:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
+97.83058 s = 5.272%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:05:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
+2.89566 s = 0.156%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:05:dir-iter --> convdiff-iter:03:apply
+10.11957 s = 0.545%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:06:dir-linreport
+2.26871 s = 0.122%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:08:convdiff-iter --> convdiffmulti-iter:07:tovect
+4.92660 s = 0.265%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:09:diag --> diag:00:local
+20.26635 s = 1.092%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:09:diag --> diag:01:interp
+3.53741 s = 0.191%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:10:pcorr-assemble
+99.44420 s = 5.359%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:11:pcorr-solve --> solve:00:solve
+197.96992 s = 10.668%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:11:pcorr-solve --> solve:01:copy
+9.95003 s = 0.536%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:12:pcorr-apply
+23.63479 s = 1.274%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:13:convdiff-corr --> corr:00:dir-corr --> corr:00:apply
+11.39887 s = 0.614%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:13:convdiff-corr --> corr:01:dir-corr --> corr:00:apply
+9.95442 s = 0.536%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:13:convdiff-corr --> corr:02:dir-corr --> corr:00:apply
+9.94978 s = 0.536%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:13:convdiff-corr --> corr:03:tovect
+3.67798 s = 0.198%
+run:09:fs-iters --> iter:01:iter --> fluid-iter:14:inc-iter
+2.05543 s = 0.111%
+run:09:fs-iters --> iter:02:reduce
+2.29865 s = 0.124%
+run:09:fs-iters --> iter:03:report
+3.20329 s = 0.173%
+run:09:fs-iters --> iter:04:convcheck
+2.37361 s = 0.128%
+run:10:fs-finish --> fluid-finish:00:inctime
+2.11229 s = 0.114%
+run:10:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:00:dir-finish
+0.69205 s = 0.037%
+run:10:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:01:dir-finish
+0.68097 s = 0.037%
+run:10:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:02:dir-finish
+0.68734 s = 0.037%
+run:10:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:03:tovect
+0.50579 s = 0.027%
+run:11:as-steps --> steps:01:start --> start:00:rotate
+0.87022 s = 0.047%
+run:11:as-steps --> steps:01:start --> start:01:reconst
+0.50663 s = 0.027%
+run:11:as-steps --> steps:01:start --> start:01:reconst --> reconst:00:bc-zero
+0.00097 s = 0.000%
+run:11:as-steps --> steps:01:start --> start:01:reconst --> reconst:01:height
+0.00647 s = 0.000%
+run:11:as-steps --> steps:02:iter --> iter:00:init
+0.65293 s = 0.035%
+run:11:as-steps --> steps:02:iter --> iter:01:adv
+4.38209 s = 0.236%
+run:11:as-steps --> steps:02:iter --> iter:02:reconst --> reconst:00:bc-zero
+2.99023 s = 0.161%
+run:11:as-steps --> steps:02:iter --> iter:02:reconst --> reconst:01:height
+18.97781 s = 1.023%
+run:11:as-steps --> steps:02:iter --> iter:03:adv
+4.16918 s = 0.225%
+run:11:as-steps --> steps:02:iter --> iter:04:reconst --> reconst:00:bc-zero
+2.96619 s = 0.160%
+run:11:as-steps --> steps:02:iter --> iter:04:reconst --> reconst:01:height
+18.76462 s = 1.011%
+run:11:as-steps --> steps:02:iter --> iter:05:adv
+4.06124 s = 0.219%
+run:11:as-steps --> steps:02:iter --> iter:06:reconst --> reconst:00:bc-zero
+2.95416 s = 0.159%
+run:11:as-steps --> steps:02:iter --> iter:06:reconst --> reconst:01:height
+18.75574 s = 1.011%
+run:11:as-steps --> steps:02:iter --> iter:07:adv
+4.15937 s = 0.224%
+run:11:as-steps --> steps:02:iter --> iter:08:reconst --> reconst:00:bc-zero
+2.96732 s = 0.160%
+run:11:as-steps --> steps:02:iter --> iter:08:reconst --> reconst:01:height
+18.76517 s = 1.011%
+run:11:as-steps --> steps:02:iter --> iter:09:adv
+4.06168 s = 0.219%
+run:11:as-steps --> steps:02:iter --> iter:10:reconst --> reconst:00:bc-zero
+2.96666 s = 0.160%
+run:11:as-steps --> steps:02:iter --> iter:10:reconst --> reconst:01:height
+18.77866 s = 1.012%
+run:11:as-steps --> steps:02:iter --> iter:11:adv
+4.15363 s = 0.224%
+run:11:as-steps --> steps:02:iter --> iter:12:reconst --> reconst:00:bc-zero
+2.97269 s = 0.160%
+run:11:as-steps --> steps:02:iter --> iter:12:reconst --> reconst:01:height
+18.77925 s = 1.012%
+run:11:as-steps --> steps:02:iter --> iter:13:curvcomm
+2.42033 s = 0.130%
+run:11:as-steps --> steps:02:iter --> iter:14:dumppoly --> dumppoly:00:local
+3.51185 s = 0.189%
+run:11:as-steps --> steps:02:iter --> iter:14:dumppoly --> dumppoly:01:write
+41.38670 s = 2.230%
+run:11:as-steps --> steps:02:iter --> iter:14:part-comm
+4.91115 s = 0.265%
+run:11:as-steps --> steps:02:iter --> iter:15:part-comm
+2.34565 s = 0.126%
+run:11:as-steps --> steps:02:iter --> iter:15:part-run
+191.54730 s = 10.322%
+run:11:as-steps --> steps:02:iter --> iter:16:part-nan
+1.69371 s = 0.091%
+run:11:as-steps --> steps:02:iter --> iter:16:part-run
+93.03835 s = 5.013%
+run:11:as-steps --> steps:02:iter --> iter:17:part-nan
+0.81486 s = 0.044%
+run:11:as-steps --> steps:02:iter --> iter:17:stat
+0.39448 s = 0.021%
+run:11:as-steps --> steps:02:iter --> iter:18:stat
+0.18414 s = 0.010%
+run:11:as-steps --> steps:03:finish
+0.64108 s = 0.035%
+run:11:as-steps --> steps:04:report
+0.80078 s = 0.043%
+run:11:as-steps --> steps:05:convcheck
+0.59629 s = 0.032%
+run:12:dt --> dt:00:local
+0.92501 s = 0.050%
+run:12:dt --> dt:01:reduce
+0.49273 s = 0.027%
+run:13:dump
+112.76804 s = 6.077%
+run:14:dumpwrite
+0.55813 s = 0.030%
+run:15:dmptrep
+0.47544 s = 0.026%
+run:16:dumpstat
+1.43759 s = 0.077%
+run:17:inc
+0.43494 s = 0.023%
+
+cells = 524288
+steps = 1000000
+iters = 11853
+total = 1855 s = 00:30:55.785
+time/cell/iter = 2.98627e-07 s
+
+real	31m1.114s
+user	0m0.960s
+sys	0m1.764s
