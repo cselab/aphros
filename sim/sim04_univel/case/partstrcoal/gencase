@@ -7,6 +7,14 @@ for _i ; do
   export -n "${_i}"
 done
 
+_cmd="$0"
+for _i ; do
+  _k="${_i%%=*}"
+  _v="${_i##*=}"
+  if echo "$_v" | grep -q '[ \t]' ; then _v="\"${_v}\"" ; fi
+  _cmd="${_cmd} ${_k}=${_v}"
+done
+
 
 : ${np=64}
 : ${nx=064}
@@ -68,7 +76,7 @@ set -eu
 echo $np > np
 echo $tl > tl
 
-# $0 $@
+# ${_cmd}
 # np=$np
 # nx=$nx
 # r=$r
