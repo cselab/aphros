@@ -16,11 +16,11 @@ tcap = 0.0006831071910119712
 # Soto2018
 
 t1 = 1 * td   # Fig2b [s]
-t2 = 6 * td   # Fig2g [s]
+t2 = 36 * td   # Fig2g [s]
 
 # indices of files a_*.png
 i1 = 247
-i2 = 325
+i2 = 769
 
 pt = "a_{:04d}.png"
 

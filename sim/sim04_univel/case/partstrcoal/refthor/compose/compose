@@ -53,4 +53,4 @@ while read f ; do
   cmd $f
 done < $fr
 
-montage a_*.png -tile 6x2 tile.png
+montage a_*.png -mode concatenate -tile 6x2 tile.png

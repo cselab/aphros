@@ -50,6 +50,6 @@ lsc = s_b1rx / b1rx
 
 
 plot \
-"nx256/ch/neck" u (column("i")*sim*tcap):((0.5-column("x0"))/lsc/rtb) w l t "sim256"  \
-, "nx512/ch/neck" u (column("i")*sim*tcap):((0.5-column("x0"))/lsc/rtb) w l t "sim512"  \
+"nx256/ch/neck" u (column("i")*sim*tcap):((0.5-column("x0"))/lsc/rtb) w lp ls 1 t "sim256"  \
+, "nx512/ch/neck" u (column("i")*sim*tcap):((0.5-column("x0"))/lsc/rtb) w lp ls 2 t "sim512"  \
 , "../refthor/rn" u ($1):($2) w p pt 7 ps 0.1 lc rgb "black" t "Thoroddsen,2005"

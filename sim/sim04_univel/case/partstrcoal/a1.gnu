@@ -1,5 +1,7 @@
 #!/usr/bin/env gnuplot
 
+  #
+
 set macros
 reset
 
@@ -28,7 +30,7 @@ set style line 5 lt 5 pt 2 ps 0.5 pi 5
 
 
 # case (directory)
-c="wallr075" ; wall = 1
+c="wall" ; wall = 1
 #c="center" ; wall = 0
 
 # frame index to simulation time
@@ -43,14 +45,14 @@ shy = wall ? -r : -0.5
 shy2 = wall ? -r2 : -0.5
 # shift in t
 dt = 0.00
-dtk = 1/1.247
+dtk = 1/1.2
 #dtk = 1/1.14
 #dtk = 1
 
 set key
 set key right bottom
 
-ll = system("echo ".c."/nx*/ch/neck")
+ll = system("echo ".c."/nx*256*/ch/neck")
 tt = system("for f in ".ll." ; do g=${f#".c."/} ; echo $g | sed -r 's/(nx...).*_(:?r075)?.*\\/ch.*/\\1\\2/' | tr -d '_' ; done")
 
 l1 = word(ll, 1)
@@ -62,13 +64,14 @@ ii2 = '3:3'
 
 set xlabel "t / T"
 set xrange [0.:0.4]
-#set xtics 0.1,0.4
 #unset yrange
 #set logscale x 2
 #set logscale y 2
 
-set ylabel "r_n / T"
 set output "rn.pdf"
+set xtics 0.1
+set ylabel "r_n / R"
+set yrange [0.:1.]
 krn = 1.
 plot \
 "ref/rnexp" w p pt 7 ps 0.1 lc "black" t "exp" , \
@@ -88,16 +91,17 @@ set yrange [0:3]
 etcap = 0.683  # ms
 # bubble radius [mm]
 er = 0.3
-krc = 1.15
+krc = 1.2
 
 plot \
 "ref/rcm" u ($1/etcap):($2/er) w l lc "black" t "low" , \
 "ref/rcp" u ($1/etcap):($2/er) w l lc "black" t "up" , \
-"ref/rcbi" u 1:2 w l lc "red" t "BI" , \
 "ref/rcexp" w p pt 7 ps 0.1 lc "black" t "exp" , \
 for [i=@ii1] word(ll,i) u (column('i')*sim*dtk-dt):(column("r0")/r*krc) w l ls i t word(tt,i) , \
+for [i=@ii1] word(ll,i) u (column('i')*sim*dtk-dt):(column("r1")/r*krc) w l ls i t word(tt,i) , \
 for [i=@ii2] word(ll,i) u (column('i')*sim*dtk-dt):(column("r0")/r2*krc) w l ls i t word(tt,i) , \
 
+#"ref/rcbi" u 1:2 w l lc "red" t "BI" , \
 
 set xlabel "r_n / R"
 set ylabel "R_c / R"
@@ -119,18 +123,21 @@ tb = 1 * 2 ** 0.5
 n = 2
 tn = 2 * pi / ((n-1)*(n+1)*(n+2)) ** 0.5
 
+set output "rth0.pdf"
 set xlabel "t / t_b"
 set ylabel "r_{{/Symbol q}=0} / R_b"
-set output "rth0.pdf"
 unset xrange
+unset yrange
+set xtics auto
+set ytics 0.2
 set key top
 set xrange [0:6]
 unset yrange
 plot \
-cos(pi*0.5+2*pi*((x-2.75)/1.13)/tn)*0.2+1 w l dt 2 lc rgb c4 lw 1 t "lin,T*1.13" \
-, cos(pi*0.5+2*pi*((x-2.25)/0.93)/tn)*0.2+1 w l lc rgb c2 lw 1 t "lin,T*0.93" \
-, cos(pi*0.5+2*pi*((x-2.25))/tn)*0.2+1 w l lc rgb c4 lw 1 t "lin" \
-, for [i=@ii1] word(ll,i) u ((column('i')*sim-dt)*dtk/tb):((0.5-column("x0"))/rb) w l ls i t word(tt,i) \
+for [i=@ii1] word(ll,i) u ((column('i')*sim-dt)*dtk/tb):((0.5-column("x0"))/rb) w l ls i t word(tt,i) \
 , for [i=@ii2] word(ll,i) u ((column('i')*sim-dt)*dtk/tb):((0.5-column("x0"))/rb2) w l ls i t word(tt,i) \
 , "ref/rth0" u 1:2 w l lc "black" t "exp" \
 
+#cos(pi*0.5+2*pi*((x-2.75)/1.13)/tn)*0.2+1 w l dt 2 lc rgb c4 lw 1 t "lin,T*1.13" \
+#, cos(pi*0.5+2*pi*((x-2.25)/0.93)/tn)*0.2+1 w l lc rgb c2 lw 1 t "lin,T*0.93" \
+#, cos(pi*0.5+2*pi*((x-2.25))/tn)*0.2+1 w l lc rgb c4 lw 1 t "lin" \
