@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -eu
+
+for d in ../nx* ; do
+  v=vis
+  dv=$d/$v
+  if [ -d $dv ] ; then
+    echo "skip existing $dv"
+    continue
+  fi
+  if [ `cat $d/job.status` != "done" ] ; then
+    echo "skip job status = `cat $d/job.status`"
+    continue
+  fi
+  c="(cd $d && mkdir $v && cd $v && ../vis3chvf.py ../ch/ || true ; r.pngmp4)"
+  echo "$c"
+  eval "$c"
+done

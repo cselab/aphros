@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -eu
+
+echo 12 > np
+echo 1440 > tl
+
+ch.submit0 ./runvisall

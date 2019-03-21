@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -eu
+
+for d in nx* ; do
+  if [ -f $d/job.id ] || [ -f $d/job.id.last ] ; then
+    echo "skip existing job in $d"
+    continue
+  fi
+  (cd $d ; ../submit2)
+done
