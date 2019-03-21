@@ -89,7 +89,7 @@ and `convsc`=`cd`,`quick`.
 - `kedr.pdf`: kinetic energy dissipation rate
 - `traj.pdf`: x-component of trajectory of bubble 2
 
-# Number of particles and strings
+## Number of particles and strings
 
 **Goal**:
 check the influence of the `part_np` and `part_ns` in curvature estimator
@@ -108,7 +108,7 @@ Free-field coalescence of bubbles based on `sim04_univel`
 - `nx064_ns?_np?.png`: shapes at `t=0.466` with `nx=64`
 - `nx128_ns2_np9.png`: shapes at `t=0.466` with `nx=128`
 
-# Number of iterations for coalescence
+## Number of iterations for coalescence
 
 **Goal**:
 check the influence of the `min_iter` and `tol` on bubble coalescence
@@ -126,7 +126,7 @@ Free-field coalescence of bubbles based on `sim04_univel/case/partstrcoal`
 - `nx*iter*`: configuration, data, movie
 - `a.gnu`: gnuplot script
 
-# Relaxation parameters 
+## Relaxation parameters 
 
 2019-03-21 22:48:56
 
