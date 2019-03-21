@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -eu
+
+echo 128 > np
+echo 1440 > tl
+
+# ./gencase nx=128 tmax=10 np=128 ba=0 symm=1 wall=1 nfr=1000 dumplist="vf omm omx omy omz p" suff=_dmp
+# np=128
+# nx=128
+# r=0.01
+# ns=2
+# symm=1
+# nfr=1000
+# ba=0
+# ch=1
+# tmax=10
+# wall=1
+# Oh=0.005
+
+./gen -nx 128 -np 128 -mode osc -dim 3 -pos center \
+  -We 0 -Oh 0.005 -tmax 10 -br 0.15 \
+  -mu 0.01 -rho 0.01 \
+  -symmxy 1 -wallz 1 \
+  -bcod 0 0 -0.5 -bcor 0 0 1 \
+  -b2xr 2 0 0 -b2rr 1 \
+  -nb 2 -nfr 1000 
+
+
+cat > ch/add.conf << EOF
+set string dumpformat default
+set string dumplist vf omm omx omy omz p
+set int part_ns 2
+EOF
+
+
+echo > r_ba
+
