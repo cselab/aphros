@@ -140,6 +140,7 @@ Near-wall coalescence of bubbles with `vrelax=0.8` and `vrelax=1`
 
 - spurious oscillations in the pressure field (`wforce`) with `vrelax=1`
   after the bubble detachment
+- no effect on x- and y-trajectories, slower rising in z after detachment
 
 **Data**:
 [`log07_vrelax`](log07_vrelax)
