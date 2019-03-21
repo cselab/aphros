@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -eu
+
+: ${o=wforce}
+
+t=wforce.tmp
+
+for f in p_*.h5 ; do
+  if [ -f $f ] ; then
+    of=${f%.*}.wforce
+    if [ -f $of ] ; then
+      echo "skip existing $of"
+    else 
+      echo "$f > $of"
+      ./wforce.py $f > $t
+      mv $t $of
+    fi
+    # frame index from filename
+    i=${f#*_}
+    i=${i%.*}
+    echo "$i `cat $of`" >> $o
+  fi
+done
+
+
