@@ -128,11 +128,13 @@ Free-field coalescence of bubbles based on `sim04_univel/case/partstrcoal`
 
 # Relaxation parameters 
 
+2019-03-21 22:48:56
+
 **Goal**:
 check the influence of `vrelax` on bubble coalescence
 
-**What**
-Near-wall coalescence of bubbles with `vrelax=0.8` and `vrelax=1`.
+**What**:
+Near-wall coalescence of bubbles with `vrelax=0.8` and `vrelax=1`
 
 **Result**
 
