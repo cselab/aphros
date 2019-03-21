@@ -2,7 +2,17 @@
 
 set -eu
 
-eval "$@"
+for _arg in "$@" ; do
+  _k=`echo "${_arg}" | cut -s -f1 -d=`
+  _v=`echo "${_arg}" | cut -s -f2 -d=`
+  if [ -n "${_k}" ] && [ -n "${_v}" ] ; then
+    _c="${_k}='${_v}'"
+    eval "${_c}"
+  else
+    echo "expecting arguments name=value, got '${_arg}'"
+    exit 1
+  fi
+done
 
 : ${np=64}
 : ${nx=064}

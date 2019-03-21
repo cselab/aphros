@@ -4,7 +4,7 @@ set -eu
 
 for i in `seq 1 10` ; do
   Oh=$(printf "%0.3f" $(bc <<< "0.001 * $i"))
-  c="./gencase nx=256 np=512 symm=1 ba=0 wall=1 symm=1 tmax=4 nfr=400 vert=1 Oh=$Oh"
+  c="./gencase nx=512 np=1024 symm=1 ba=0 wall=1 symm=1 tmax=4 nfr=400 vert=1 Oh=$Oh"
   echo "$c"
   eval "$c"
 done
