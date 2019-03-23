@@ -6,6 +6,8 @@ set -eu
 
 t=wforce.tmp
 
+> $o
+
 for f in p_*.h5 ; do
   if [ -f $f ] ; then
     of=${f%.*}.wforce
