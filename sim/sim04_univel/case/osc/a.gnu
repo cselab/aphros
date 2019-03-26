@@ -42,7 +42,13 @@ rb = 0.3
 tb = 1
 # mode n=2 period
 n = 2
-tn = 2 * pi / ((n-1)*(n+1)*(n+2)) ** 0.5
+R = 1.1 ** (1. / 3.)
+tn = 2 * pi / ((n-1)*(n+1)*(n+2)) ** 0.5 * (R**3) ** 0.5
+s2 = n * (n + 1) * (n - 1) * (n + 2) / ((n+1)*0.010 + n * 1)
+
+tn = 2 * pi / s2 ** 0.5
+#tn = 2 * pi / ((n-1)*(n+1)*(n+2)) ** 0.5 * (R**3) ** 0.5
+
 
 la = "nx064_ns2_symm0_wall0_tmax10/"
 lb = "nx128x_ns2_symm0_wall0_tmax10/"
@@ -56,6 +62,8 @@ unset xrange
 unset yrange
 
 tnlk = 1.075
+tnlk = 1.02
+tnlk = 1
 #tnl = tn * 1.12
 
 set samples 1000
@@ -65,14 +73,18 @@ la."ch/neck" u ((column('i')*sim)):((0.5-column("z0"))/rb-1) w l t "r0.30-ch"  \
 , la."ba/neck" u ((column('i')*sim)):((0.5-column("z0"))/rb-1) w l t "r0.30-ba"  \
 , lb."ch/neck" u ((column('i')*sim)):((0.5-column("z0"))/rb*2.-1) w l t "r0.15-ch"  \
 , lb."ba/neck" u ((column('i')*sim)):((0.5-column("z0"))/rb*2.-1) w l t "r0.15-ba"  \
-, exp(-x*0.1)*cos(pi+2*pi*((x))/(tn*tnlk))*0.03+0.032 w l lc rgb "black" lw 1 t sprintf("lin,T*%g", tnlk)  \
+, exp(-x*0.1)*cos(pi+2*pi*((x-0.4))/(tn*tnlk))*0.03+0.032 w l lc rgb "black" lw 1 t sprintf("lin,T*%g", tnlk)  \
 
 set output "ekin.pdf"
 set ylabel "E_{kin}"
 
+
+kv=1.1**0.5
 plot \
 la."ch/stat.dat" u (column('t')):(column("ekin")*1.57e3) w l t "r0.30-ch" \
 , lb."ch/stat.dat" u (column('t')):(column("ekin")*5e4) w l t "r0.15-ch" \
+, l3."ch/stat.dat" u (column('t')):(column("ekin")*2e5) w l t "r0.15x-ch" \
 , l4."ch/stat.dat" u (column('t')):(column("ekin")*6.25e6) w l t "r0.075-ch" \
-, exp(-x*0.36)*(sin(pi+2*pi*((x))/(tn*tnlk))*0.287)**2 w l lc rgb "black" lw 1 t  sprintf("lin,T*%g", tnlk)  \
+, exp(-x*0.36)*(sin(pi+2*pi*((x-0.0))/(tn*tnlk))*0.287)**2 w l lc rgb "black" lw 1 t  sprintf("lin,T*%g", tnlk)  \
+
 
