@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -eu
+
+: ${suf=xz}
+: ${extra=}
+
+t="iso.tmp"
+
+for f in vf_????${suf}.dat ; do
+  if [ -f $f ] ; then
+    of=${f%.*}.iso
+    if [ -f $of ] ; then
+      echo "skip existing $of"
+      continue
+    fi 
+
+    echo "$f > $of"
+    ./iso.py < $f > $t
+    mv $t $of
+  fi
+done

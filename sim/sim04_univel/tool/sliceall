@@ -22,7 +22,7 @@ for f in vf_*.{h5,dat} ; do
     of=${f%.*}${suf}.dat
     if [ -f $of ] ; then
       echo "skip existing $of"
-      #continue
+      continue
     fi 
 
     echo "$f > $of"
