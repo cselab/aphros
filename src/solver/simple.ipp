@@ -300,8 +300,12 @@ struct Simple<M_>::Imp {
         if (m.IsInner(c)) {
           if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
             Scal w = (id == 0 ? 1. : -1.);
-            cd->SetVelocity(GetVelocity(Layers::iter_curr)[c]);
-            fo += cd->GetVelocity().dot(m.GetSurface(i)) * w;
+            Vect vc = GetVelocity(Layers::iter_curr)[c];
+            Vect s = m.GetSurface(i);
+            // clip normal component, let only positive
+            vc -= s * (w * std::min(0., vc.dot(s) * w)  / s.dot(s));
+            cd->SetVelocity(vc);
+            fo += cd->GetVelocity().dot(s) * w;
             ao += m.GetArea(i);
           } else if (auto cd = dynamic_cast<Inlet<M>*>(cb)) {
             Scal w = (id == 0 ? -1. : 1.);
