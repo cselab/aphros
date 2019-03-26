@@ -10,6 +10,8 @@ set -eu
 
 t="slice.tmp"
 
+b=${1:-./}
+
 if [ -z "$suf" ] ; then
   suf=""
   [ -z "$x" ] && suf=${suf}x
@@ -17,9 +19,10 @@ if [ -z "$suf" ] ; then
   [ -z "$z" ] && suf=${suf}z
 fi
 
-for f in vf_????.{h5,dat} ; do
+for f in $b/vf_????.{h5,dat} ; do
   if [ -f $f ] ; then
-    of=${f%.*}${suf}.dat
+    of=`basename $f`
+    of=${of%.*}${suf}.dat
     if [ -f $of ] ; then
       echo "skip existing $of"
       continue
