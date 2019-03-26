@@ -143,7 +143,7 @@ svz = ForceTime(svz)
 sp = ForceTime(sp)
 
 # all ForceTime
-vfr = [svf, svx, svy, svz, sp]
+vft = [svf, svx, svy, svz, sp]
 
 # ----------------------------------------------------------------
 # END READERS
@@ -163,14 +163,19 @@ calculator1.ResultArrayName = 'vel'
 # XXX: vy=0
 calculator1.Function = '(iHat*vx+jHat*vy*0+kHat*vz)'
 
-# create a new 'Calculator'
 calculator2 = Calculator(Input=calculator1)
 calculator2.AttributeType = 'Cell Data'
 calculator2.ResultArrayName = 'vm'
 calculator2.Function = 'mag(vel)'
 
+# create a new 'Calculator'
+calculator3 = Calculator(Input=calculator2)
+calculator3.AttributeType = 'Cell Data'
+calculator3.ResultArrayName = 'vmm'
+calculator3.Function = 'vm*(1-vf)'
+
 # create a new 'Slice'
-slice1 = Slice(Input=calculator2)
+slice1 = Slice(Input=calculator3)
 slice1.SliceType = 'Plane'
 slice1.SliceOffsetValues = [0.0]
 
@@ -187,31 +192,13 @@ contour1.ContourBy = ['POINTS', 'vf']
 contour1.Isosurfaces = [0.5]
 contour1.PointMergeMethod = 'Uniform Binning'
 
-# create a new 'Stream Tracer'
-streamTracer1 = StreamTracer(Input=slice1,
-    SeedType='High Resolution Line Source')
-streamTracer1.Vectors = ['CELLS', 'vel']
-streamTracer1.SurfaceStreamlines = 1
-streamTracer1.IntegrationStepUnit = 'Length'
-streamTracer1.InitialStepLength = 0.1
-streamTracer1.MaximumSteps = 3000
-streamTracer1.ComputeVorticity = 0
-
-# init the 'High Resolution Line Source' selected for 'SeedType'
-streamTracer1.SeedType.Point1 = [0.4915396287780425, 0.49999999999999994, 0.005348108746909608]
-streamTracer1.SeedType.Point2 = [0.006522973737289939, 0.5, 0.3953901251344114]
-streamTracer1.SeedType.Resolution = 100
-
 # create a new 'Glyph'
-glyph1 = Glyph(Input=slice1,
-    GlyphType='Arrow')
-glyph1.GlyphTransform = 'Transform2'
-glyph1.ScaleArray = ['CELLS', 'vm']
-glyph1.GlyphDataRange = [0.0, 0.025]
-glyph1.MaximumGlyphSize = 0.025
+glyph1 = Glyph(Input=slice1, GlyphType='Arrow')
 glyph1.OrientationArray = ['CELLS', 'vel']
+glyph1.ScaleArray = ['CELLS', 'vmm']
+glyph1.GlyphTransform = 'Transform2'
 glyph1.GlyphMode = 'Every Nth Point'
-glyph1.MaximumNumberOfSamplePoints = 500
+glyph1.ScaleFactor = 0.4
 glyph1.Stride = 99
 
 # ----------------------------------------------------------------
@@ -229,122 +216,36 @@ pLUT.ScalarRangeInitialized = 1.0
 
 # trace defaults for the display properties.
 slice1Display.Representation = 'Surface'
+slice1Display.AmbientColor = [0.0, 0.0, 0.0]
 slice1Display.ColorArrayName = ['CELLS', 'p']
 slice1Display.LookupTable = pLUT
-slice1Display.PointSize = 30.0
-slice1Display.LineWidth = 3.0
-slice1Display.RenderPointsAsSpheres = 1
-slice1Display.OSPRayScaleFunction = 'PiecewiseFunction'
-slice1Display.SelectOrientationVectors = 'vel'
-slice1Display.ScaleFactor = 0.1
-slice1Display.SelectScaleArray = 'vm'
-slice1Display.GlyphType = 'Arrow'
-slice1Display.GlyphTableIndexArray = 'vm'
-slice1Display.GaussianRadius = 0.005
-slice1Display.SetScaleArray = [None, '']
-slice1Display.ScaleTransferFunction = 'PiecewiseFunction'
-slice1Display.OpacityArray = [None, '']
-slice1Display.OpacityTransferFunction = 'PiecewiseFunction'
-slice1Display.DataAxesGrid = 'GridAxesRepresentation'
-slice1Display.SelectionCellLabelFontFile = ''
-slice1Display.SelectionPointLabelFontFile = ''
-slice1Display.PolarAxes = 'PolarAxesRepresentation'
-
-# init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
-slice1Display.DataAxesGrid.XTitleFontFile = ''
-slice1Display.DataAxesGrid.YTitleFontFile = ''
-slice1Display.DataAxesGrid.ZTitleFontFile = ''
-slice1Display.DataAxesGrid.XLabelFontFile = ''
-slice1Display.DataAxesGrid.YLabelFontFile = ''
-slice1Display.DataAxesGrid.ZLabelFontFile = ''
-
-# init the 'PolarAxesRepresentation' selected for 'PolarAxes'
-slice1Display.PolarAxes.PolarAxisTitleFontFile = ''
-slice1Display.PolarAxes.PolarAxisLabelFontFile = ''
-slice1Display.PolarAxes.LastRadialAxisTextFontFile = ''
-slice1Display.PolarAxes.SecondaryRadialAxesTextFontFile = ''
 
 # show data from contour1
 contour1Display = Show(contour1, renderView1)
 
 # trace defaults for the display properties.
 contour1Display.Representation = 'Surface'
+contour1Display.AmbientColor = [0.0, 0.0, 0.0]
 contour1Display.ColorArrayName = [None, '']
 contour1Display.DiffuseColor = [0.0, 0.0, 0.0]
 contour1Display.PointSize = 30.0
-contour1Display.LineWidth = 5.0
+contour1Display.LineWidth = 10.0
 contour1Display.RenderPointsAsSpheres = 1
 contour1Display.OSPRayScaleArray = 'p'
 contour1Display.OSPRayScaleFunction = 'PiecewiseFunction'
 contour1Display.SelectOrientationVectors = 'vel'
 contour1Display.ScaleFactor = 0.0089234858751297
-contour1Display.SelectScaleArray = 'None'
 contour1Display.GlyphType = 'Arrow'
-contour1Display.GlyphTableIndexArray = 'None'
-contour1Display.GaussianRadius = 0.000446174293756485
-contour1Display.SetScaleArray = ['POINTS', 'p']
-contour1Display.ScaleTransferFunction = 'PiecewiseFunction'
-contour1Display.OpacityArray = ['POINTS', 'p']
-contour1Display.OpacityTransferFunction = 'PiecewiseFunction'
-contour1Display.DataAxesGrid = 'GridAxesRepresentation'
-contour1Display.SelectionCellLabelFontFile = ''
-contour1Display.SelectionPointLabelFontFile = ''
-contour1Display.PolarAxes = 'PolarAxesRepresentation'
-
-# init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
-contour1Display.DataAxesGrid.XTitleFontFile = ''
-contour1Display.DataAxesGrid.YTitleFontFile = ''
-contour1Display.DataAxesGrid.ZTitleFontFile = ''
-contour1Display.DataAxesGrid.XLabelFontFile = ''
-contour1Display.DataAxesGrid.YLabelFontFile = ''
-contour1Display.DataAxesGrid.ZLabelFontFile = ''
-
-# init the 'PolarAxesRepresentation' selected for 'PolarAxes'
-contour1Display.PolarAxes.PolarAxisTitleFontFile = ''
-contour1Display.PolarAxes.PolarAxisLabelFontFile = ''
-contour1Display.PolarAxes.LastRadialAxisTextFontFile = ''
-contour1Display.PolarAxes.SecondaryRadialAxesTextFontFile = ''
 
 # show data from glyph1
 glyph1Display = Show(glyph1, renderView1)
 
 # trace defaults for the display properties.
 glyph1Display.Representation = 'Surface'
+glyph1Display.AmbientColor = [0.0, 0.0, 0.0]
 glyph1Display.ColorArrayName = ['POINTS', '']
 glyph1Display.DiffuseColor = [0.0, 0.0, 0.0]
-glyph1Display.PointSize = 30.0
-glyph1Display.RenderLinesAsTubes = 1
-glyph1Display.RenderPointsAsSpheres = 1
-glyph1Display.OSPRayScaleArray = 'vm'
-glyph1Display.OSPRayScaleFunction = 'PiecewiseFunction'
-glyph1Display.SelectOrientationVectors = 'None'
-glyph1Display.ScaleFactor = 0.09978659774060361
-glyph1Display.SelectScaleArray = 'None'
-glyph1Display.GlyphType = 'Arrow'
-glyph1Display.GlyphTableIndexArray = 'None'
-glyph1Display.GaussianRadius = 0.004989329887030181
-glyph1Display.SetScaleArray = ['POINTS', 'vm']
-glyph1Display.ScaleTransferFunction = 'PiecewiseFunction'
-glyph1Display.OpacityArray = ['POINTS', 'vm']
-glyph1Display.OpacityTransferFunction = 'PiecewiseFunction'
-glyph1Display.DataAxesGrid = 'GridAxesRepresentation'
-glyph1Display.SelectionCellLabelFontFile = ''
-glyph1Display.SelectionPointLabelFontFile = ''
-glyph1Display.PolarAxes = 'PolarAxesRepresentation'
 
-# init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
-glyph1Display.DataAxesGrid.XTitleFontFile = ''
-glyph1Display.DataAxesGrid.YTitleFontFile = ''
-glyph1Display.DataAxesGrid.ZTitleFontFile = ''
-glyph1Display.DataAxesGrid.XLabelFontFile = ''
-glyph1Display.DataAxesGrid.YLabelFontFile = ''
-glyph1Display.DataAxesGrid.ZLabelFontFile = ''
-
-# init the 'PolarAxesRepresentation' selected for 'PolarAxes'
-glyph1Display.PolarAxes.PolarAxisTitleFontFile = ''
-glyph1Display.PolarAxes.PolarAxisLabelFontFile = ''
-glyph1Display.PolarAxes.LastRadialAxisTextFontFile = ''
-glyph1Display.PolarAxes.SecondaryRadialAxesTextFontFile = ''
 
 # ----------------------------------------------------------------
 # setup color maps and opacity mapes used in the visualization
@@ -360,7 +261,6 @@ pPWF.ScalarRangeInitialized = 1
 # finally, restore active source
 SetActiveSource(None)
 # ----------------------------------------------------------------
-
 
 #####################################################
 ### END OF STATE FILE
