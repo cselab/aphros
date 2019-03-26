@@ -110,7 +110,7 @@ iz = np.clip(int(z * (nz - 1)), 0, nz - 1) if z is not None else None
 sx = ix if ix is not None else ":"
 sy = iy if iy is not None else ":"
 sz = iz if iz is not None else ":"
-c = "u[{:},{:},{:}]".format(sx, sy, sz)
+c = "u[{:},{:},{:}]".format(sz, sy, sx)
 uo = eval(c)
 
 WritePlain(sys.stdout, uo)
