@@ -80,7 +80,7 @@ def ReadExt(p):
 # <nx> <ny> <nz>
 # <u[z,x,y]> ...
 def WritePlain(f, u):
-  h = " ".join([str(n) for n in u.shape])
+  h = " ".join([str(n) for n in reversed(u.shape)])
   if not h: h = "1"
   f.write(h + '\n')
   np.savetxt(f, u.flatten(), newline='', fmt='%.16g ')
