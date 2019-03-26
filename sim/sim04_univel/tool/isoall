@@ -7,9 +7,12 @@ set -eu
 
 t="iso.tmp"
 
-for f in vf_????${suf}.dat ; do
+b=${1:-./}
+
+for f in $b/vf_????${suf}.dat ; do
   if [ -f $f ] ; then
-    of=${f%.*}.iso
+    of=`basename $f`
+    of=${of%.*}.iso
     if [ -f $of ] ; then
       echo "skip existing $of"
       continue
