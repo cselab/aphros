@@ -17,7 +17,7 @@ if [ -z "$suf" ] ; then
   [ -z "$z" ] && suf=${suf}z
 fi
 
-for f in vf_*.{h5,dat} ; do
+for f in vf_????.{h5,dat} ; do
   if [ -f $f ] ; then
     of=${f%.*}${suf}.dat
     if [ -f $of ] ; then
