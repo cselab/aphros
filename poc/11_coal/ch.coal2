@@ -82,27 +82,23 @@ vv, uu = t
 assert_file(vv)
 assert_file(uu)
 
-Init = False; cnt = 0
+cnt = 0
 for v, f in zip(vv, uu):
 	u = read_sym(v)
 	zc = int(w_index(u, Z))
 	print(zc)
 	u = read_sym(f)
 	nz, ny, nx = u.shape
-	print(u.shape)
-	if not Init:
-		a = np.zeros((nz, ny, nx))
-		Init = True
+	a = np.zeros_like(u)
 	i = np.array(range(nz))
 	j = i - zc + nz//2
 	mask =  np.logical_and(0 <= j,  j < nz)
 	i = i[mask]
 	j = j[mask]
-	a[j] += u[i]
+	a[j] = u[i]
+	hdf = "%05d.h5" % cnt
+	xmf = "%05d.xmf" % cnt
+	write_field(hdf, a)
+	ch.coal.xmf(xmf, hdf, "vx", nx, ny, nz, ncc = 1)
 	cnt += 1
-a[i] /= cnt
 
-hdf = "o.h5"
-write_field(hdf, a)
-ch.coal.xmf("o.xmf", hdf, "vx", nx, ny, nz, ncc = 1)
-print(u.shape)
