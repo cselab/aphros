@@ -3,25 +3,99 @@
 import h5py
 import sys
 import numpy as np
+import os
 
+X, Y, Z = 0, 1, 2
 me = "ch.coal"
+
 def err(s):
-	sys.stderr.write("%s: %s" % (me, s))
+	sys.stderr.write("%s: %s\n" % (me, s))
 	sys.exit(2)
 
 def read_field(path):	
 	f = "data"
 	try:
-		h = h5py.File(path, 'r')
-		u = h[f]
-		u = np.array(u)
-		u = np.squeeze(u)
+		with h5py.File(path, 'r') as h:
+			u = h[f]
+			u = np.array(u)
+			u = np.squeeze(u)
 	except IOError:
-		err("not an hdf file %s\n" % path)
+		err("not an hdf file %s" % path)
 	except KeyError:
-		err("no field %s in file %s\n" % (f, path))
+		err("no field %s in file %s" % (f, path))
 	return u
 
-u = read_field("/u/p.h5")
+def w_index(u, D):
+	C = (Y, Z), (X, Z), (X, Y) # complimentary
+	n = u.shape[D]
+	i = range(n)
+	v = np.average(u, C[D])
+	s = np.sum(v)
+	d = np.dot(v, i)
+	if s <= 0: err("s <= 0")
+	if d <= 0: err("d <= 0")		
+	return d/s
 
-x = np.mean(u, 1)
+def read_sym(path):
+	u = read_field(path)
+	if Sym:
+		nx, ny, nz = u.shape
+		u = u[:, :ny//2, :]
+		u = u[:nx//2, :, :]
+	return u
+
+def write_field(path, u):
+	nx, ny, nz = u.shape
+	u = u.reshape(nx, ny, nz, 1)
+	with h5py.File(path, 'w') as h:
+		dset = h.create_dataset("data", data=u)
+
+def arg():
+	ans = [ ]
+	argv = sys.argv
+	argv.pop(0)
+	a = []
+	while True:
+		if argv == [ ]:
+			ans.append(a)
+			break
+		i = argv.pop(0)
+		if i == '--':
+			ans.append(a)
+			a = []
+		else:
+			a.append(i)
+	return tuple(ans)
+
+def assert_file(a):
+	for i in a:
+		if not os.path.isfile(i):
+			err("not a file %s" % i)
+
+Sym = False
+t = arg()
+if len(t) != 2:
+	err("wrong argument list")
+vv, uu = t
+assert_file(vv)
+assert_file(uu)
+
+Init = False; cnt = 0
+for v, f in zip(vv, uu):
+	u = read_sym(v)
+	zc = int(w_index(u, Z))
+	u = read_sym(f)
+	nx, ny, nz = u.shape
+	if not Init:
+		a = np.zeros((nx, ny, nz))
+		Init = True
+	i = np.array(range(nz))
+	j = i - zc
+	mask =  np.logical_and(0 <= j,  j < nz)
+	i = i[mask]
+	j = j[mask]
+	a[j] += u[j]
+	cnt += 1
+
+a[i] /= cnt
+write_field("o.hdf", a)
