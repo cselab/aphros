@@ -1,6 +1,6 @@
 def xmf(path, hfn, field, ncx, ncy, ncz, ncc):
 	extent = 1.
-	 
+	
 	nx = ncx + 1
 	ny = ncy + 1
 	nz = ncz + 1

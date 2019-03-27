@@ -100,7 +100,6 @@ for v, f in zip(vv, uu):
 	j = j[mask]
 	a[j] += u[i]
 	cnt += 1
-2
 a[i] /= cnt
 
 hdf = "o.h5"
