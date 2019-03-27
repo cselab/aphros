@@ -671,6 +671,27 @@ struct Vof<M_>::Imp {
         // apply
         uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
         uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
+      } else { // XXX: adhoc, zeros on other boundaries
+        IdxFace f = it.GetIdx();
+        CondFace* cb = it.GetValue().get(); 
+        size_t nci = cb->GetNci();
+
+        using MIdx = typename M::MIdx;
+        using Dir = typename M::Dir;
+        auto& bf = m.GetIndexFaces();
+        auto& bc = m.GetIndexCells();
+        Dir df = bf.GetDir(f);
+        MIdx wo(0);
+        wo[size_t(df)] = (nci == 0 ? -1 : 1);
+        IdxCell cp = m.GetNeighbourCell(f, nci);
+        MIdx wp = bc.GetMIdx(cp);
+        MIdx wm = wp - wo;
+        MIdx wmm = wm - wo;
+        IdxCell cm = bc.GetIdx(wm);
+        IdxCell cmm = bc.GetIdx(wmm);
+        // apply
+        uc[cm] *= 0.;
+        uc[cmm] *= 0.; 
       }
     }
   }
