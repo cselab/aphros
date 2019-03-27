@@ -1,5 +1,27 @@
 #!/usr/bin/env python
 
-import ch.coal
+import h5py
+import sys
+import numpy as np
 
-ch.coal.Q()
+me = "ch.coal"
+def err(s):
+	sys.stderr.write("%s: %s" % (me, s))
+	sys.exit(2)
+
+def read_field(path):	
+	f = "data"
+	try:
+		h = h5py.File(path, 'r')
+		u = h[f]
+		u = np.array(u)
+		u = np.squeeze(u)
+	except IOError:
+		err("not an hdf file %s\n" % path)
+	except KeyError:
+		err("no field %s in file %s\n" % (f, path))
+	return u
+
+u = read_field("/u/p.h5")
+
+x = np.mean(u, 1)
