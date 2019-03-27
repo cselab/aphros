@@ -1,3 +1,4 @@
-install: coal.py
-	cp coal.py $(CHPREFIX)/bin/ch/
-	cp ch.coal $(CHPREFIX)/bin/ch.coal
+M = coal.py ch.coal ch.coal2
+
+install: $M
+	for i in $M; do echo $$i $(CHPREFIX)/bin/ch; done
