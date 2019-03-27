@@ -629,14 +629,6 @@ struct Vof<M_>::Imp {
       m.Comm(&fckp_);
     }
 
-    /*
-    if ("part-reflect") {
-      if (par->bcc_reflect) {
-        BcReflect(fckp_);
-      }
-    }
-    */
-
     if (par->dumppart && sem.Nested("part-dump")) {
       if (dm) {
         DumpParticles();
