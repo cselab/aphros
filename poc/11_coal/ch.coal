@@ -4,8 +4,9 @@ import h5py
 import sys
 import numpy as np
 import os
+import ch.coal
 
-X, Y, Z = 0, 1, 2
+X, Y, Z = 2, 1, 0
 me = "ch.coal"
 
 def err(s):
@@ -26,7 +27,8 @@ def read_field(path):
 	return u
 
 def w_index(u, D):
-	C = (Y, Z), (X, Z), (X, Y) # complimentary
+	C = dict()
+	C[X] = (Y, Z); C[Y] = (X, Z); C[Z] = (X, Y)
 	n = u.shape[D]
 	i = range(n)
 	v = np.average(u, C[D])
@@ -39,14 +41,14 @@ def w_index(u, D):
 def read_sym(path):
 	u = read_field(path)
 	if Sym:
-		nx, ny, nz = u.shape
+		nz, ny, nz = u.shape
 		u = u[:, :ny//2, :]
-		u = u[:nx//2, :, :]
+		u = u[:, :, :nx//2]
 	return u
 
 def write_field(path, u):
-	nx, ny, nz = u.shape
-	u = u.reshape(nx, ny, nz, 1)
+	nz, ny, nx = u.shape
+	u = u.reshape(nz, ny, nx, 1)
 	with h5py.File(path, 'w') as h:
 		dset = h.create_dataset("data", data=u)
 
@@ -84,18 +86,24 @@ Init = False; cnt = 0
 for v, f in zip(vv, uu):
 	u = read_sym(v)
 	zc = int(w_index(u, Z))
+	print(zc)
 	u = read_sym(f)
-	nx, ny, nz = u.shape
+	nz, ny, nx = u.shape
+	print(u.shape)
 	if not Init:
-		a = np.zeros((nx, ny, nz))
+		a = np.zeros((nz, ny, nx))
 		Init = True
 	i = np.array(range(nz))
-	j = i - zc
+	j = i - zc + nz//2
 	mask =  np.logical_and(0 <= j,  j < nz)
 	i = i[mask]
 	j = j[mask]
-	a[j] += u[j]
+	a[j] += u[i]
 	cnt += 1
 
 a[i] /= cnt
-write_field("o.hdf", a)
+
+hdf = "o.h5"
+write_field(hdf, a)
+ch.coal.xmf("o.xmf", hdf, "vx", nx, ny, nz, ncc = 1)
+print(u.shape)
