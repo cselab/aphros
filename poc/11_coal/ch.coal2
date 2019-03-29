@@ -74,6 +74,28 @@ def assert_file(a):
 		if not os.path.isfile(i):
 			err("not a file %s" % i)
 
+def mv(zc, u):
+	nz, ny, nx = u.shape	
+	a = np.zeros_like(u)
+	i = np.array(range(nz))
+	j = i - zc + nz//2
+	mask =  np.logical_and(0 <= j,  j < nz)
+	i = i[mask]
+	j = j[mask]
+	a[j] = u[i]
+	return a
+
+def mirror(u):
+	return 0.5*(u[::-1,:,:] + u)
+
+def dump(b, l, u):
+	hdf = l + b + ".h5"
+	xmf = l + b + ".xmf"
+	print(xmf)
+	write_field(hdf, u)
+	nz, ny, nx = u.shape
+	ch.coal.xmf(xmf, hdf, l, nx, ny, nz, ncc = 1)
+	
 Sym = False
 t = arg()
 if len(t) != 2:
@@ -83,22 +105,21 @@ assert_file(vv)
 assert_file(uu)
 
 cnt = 0
-for v, f in zip(vv, uu):
-	u = read_sym(v)
-	zc = int(w_index(u, Z))
-	print(zc)
-	u = read_sym(f)
-	nz, ny, nx = u.shape
-	a = np.zeros_like(u)
-	i = np.array(range(nz))
-	j = i - zc + nz//2
-	mask =  np.logical_and(0 <= j,  j < nz)
-	i = i[mask]
-	j = j[mask]
-	a[j] = u[i]
-	hdf = "%05d.h5" % cnt
-	xmf = "%05d.xmf" % cnt
-	write_field(hdf, a)
-	ch.coal.xmf(xmf, hdf, "vx", nx, ny, nz, ncc = 1)
+for pvf, pu in zip(vv, uu):
+	vf = read_sym(pvf)
+	u = read_sym(pu)
+	zc = int(w_index(vf, Z))
+
+	u = mv(zc, u)
+	vf = mv(zc, vf)
+
+	u = mirror(u)
+
+	dump("_%05d" % cnt, "u", u)
+	dump("_%05d" % cnt, "vf", vf)
 	cnt += 1
+	
+	
+
+	
 
