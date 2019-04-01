@@ -13,7 +13,7 @@ fi
 
 echo "$@" > arg
 
-: {JOB=ch.job}
+: ${JOB=ch.job}
 job="`type -p $JOB`"
 
 np=`cat np`
@@ -22,7 +22,7 @@ tl=`cat tl`
 
 nm="$(basename $(pwd))"
 
-: {A=s931}
+: ${A=s931}
 cmd="sbatch -J '$nm' -C gpu -A $A -n $np -t $tl $job"
 echo $cmd
 
