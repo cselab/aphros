@@ -4,8 +4,6 @@ ge/main.gen.gfs
 ge/error.gfs
 ch/par.conf
 traj/
-*.pdf
-*.png
 *.dat
 dim
 o
