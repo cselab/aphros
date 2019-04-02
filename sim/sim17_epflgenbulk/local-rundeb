@@ -1,0 +1,3 @@
+#!/bin/bash -l
+
+time mpirun -n 1 gdb -ex=run --args ch.mfer a.conf

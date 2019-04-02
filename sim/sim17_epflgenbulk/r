@@ -1,0 +1,6 @@
+#make cleanrun
+#ch.mfer a.conf
+for f in *.h5 ; do
+	echo $f
+	./genxmf $f 2.
+done
