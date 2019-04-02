@@ -69,4 +69,4 @@ fn = os.path.splitext(hfn)[0] + ".xmf"
 if os.path.isfile(fn):
   fn = os.path.splitext(hfn)[0] + ".uni.xmf"
 print(fn)
-open(fn, 'wx').write(t)
+open(fn, 'w').write(t)
