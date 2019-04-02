@@ -265,6 +265,31 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     v[2] = vc * e2;
     return v;
   }
+  // Returns field with the type (index)
+  // of boundary conditions in an adjacent face:
+  //   0: empty
+  //   1: no-slip wall
+  //   2: free-slip wall
+  //   3: inlet
+  //   4: outlet
+  //   -1: unknown
+  // mf: boundary conditions
+  FieldCell<Scal> GetBcField(
+      MapFace<std::shared_ptr<solver::CondFaceFluid>>& mf, const M& m) {
+    FieldCell<Scal> fc(m, 0);
+    for (auto it : mf) {
+      IdxFace f = it.GetIdx();
+      auto* b = it.GetValue().get();
+      size_t nci = b->GetNci();
+      IdxCell c = m.GetNeighbourCell(f, nci);
+      if (dynamic_cast<solver::fluid_condition::SlipWall<M>*>(b)) {
+        fc[c] = 2.;
+      } else {
+        fc[c] = -1.;
+      }
+    }
+    return fc;
+  }
 
   FieldCell<Scal> fc_mu_; // viscosity
   FieldCell<Scal> fc_rho_; // density
@@ -300,6 +325,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Vect> fcom_; // vorticity
   FieldCell<Scal> fcomm_; // vorticity magnitude
   std::shared_ptr<solver::PoisSolver<M>> ps_; // Poisson solver for InitVort
+  FieldCell<Scal> fcbc_; // boundary condition type by GetBcField()
 
   using Sph = typename SA::Sph;
   std::vector<Sph> sa_ss_;
@@ -647,7 +673,6 @@ void Hydro<M>::Init() {
         }
       } else if (vi == "pois" || vi == "poisy") {
         // Poiseuille with walls in y
-        
         MIdx gs = m.GetGlobalSize(); // global mesh size
         Scal ext = var.Double["extent"]; // TODO: revise
         Vect gh = Vect(gs) * ext / gs.max(); // global domain length
@@ -660,7 +685,6 @@ void Hydro<M>::Init() {
       } else if (vi == "poisyz") {
         // Poiseuille with walls in y and z
         // Spiga 1994: Symmetric solution for velocity in rectangular ducts
-        
         MIdx gs = m.GetGlobalSize(); // global mesh size
         Scal ext = var.Double["extent"]; // TODO: revise
         Vect gh = Vect(gs) * ext / gs.max(); // global domain length
@@ -839,6 +863,39 @@ void Hydro<M>::Init() {
         ++n;
       }
     }
+    // selection faces
+    // Parameters (N>=0):
+    // string faceN -- bc description
+    // vect faceN_a -- lower corner
+    // vect faceN_b -- upper corner
+    // double faceN_vf -- inlet volume fraction
+    // Check at least first nmax indices and all contiguous
+    {
+      int n = 0;
+      const int nmax = 100;
+      while (true) {
+        std::string k = "face" + std::to_string(n);
+        if (auto p = var.String(k)) {
+          Vect a(var.Vect[k + "_a"]);
+          Vect b(var.Vect[k + "_b"]);
+          Scal vf = var.Double[k + "_vf"];
+          Rect<Vect> r(a, b);
+          for (auto i : m.AllFaces()) {
+            Vect x = m.GetCenter(i);
+            if (r.IsInside(x)) {
+              if (set_bc(i, *p)) {
+                auto b = mf_velcond_[i];
+                mf_cond_[i] = std::make_shared
+                    <solver::CondFaceValFixed<Scal>>(vf, b->GetNci());
+              }
+            }
+          }
+        } else if (n > nmax) { 
+          break;
+        }
+        ++n;
+      }
+    }
     // selection spheres
     // Parameters (N>=0):
     // string sphN -- bc description ("inlet")
@@ -962,6 +1019,8 @@ void Hydro<M>::Init() {
             &fc_rho_, &fc_mu_, &fc_force_, &ffbp_,
             &fc_src_, &fc_src_, 0., st_.dt, p));
       // TODO: check fc_src_ for Simple()
+
+      fcbc_ = GetBcField(mf_velcond_, m);
     }
 
     // Init advection solver
