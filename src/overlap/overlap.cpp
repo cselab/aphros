@@ -1,6 +1,6 @@
 #include "overlap.hpp"
 
-#include "over.h"
+#include "overlap.h"
 
 double GetSphereOverlap(const GVect<double, 3>& x, const GVect<double, 3>& h, 
                         const GVect<double, 3>& c, double r) {
