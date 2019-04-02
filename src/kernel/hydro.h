@@ -282,8 +282,14 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       auto* b = it.GetValue().get();
       size_t nci = b->GetNci();
       IdxCell c = m.GetNeighbourCell(f, nci);
-      if (dynamic_cast<solver::fluid_condition::SlipWall<M>*>(b)) {
+      if (dynamic_cast<solver::fluid_condition::NoSlipWall<M>*>(b)) {
+        fc[c] = 1.;
+      } else if (dynamic_cast<solver::fluid_condition::SlipWall<M>*>(b)) {
         fc[c] = 2.;
+      } else if (dynamic_cast<solver::fluid_condition::Inlet<M>*>(b)) {
+        fc[c] = 3.;
+      } else if (dynamic_cast<solver::fluid_condition::Outlet<M>*>(b)) {
+        fc[c] = 4.;
       } else {
         fc[c] = -1.;
       }
