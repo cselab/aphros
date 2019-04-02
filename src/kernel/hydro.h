@@ -1837,6 +1837,7 @@ void Hydro<M>::Dump(Sem& sem) {
       if (dl.count("rho")) m.Dump(&fc_rho_, "rho");
       if (dl.count("mu")) m.Dump(&fc_mu_, "mu");
       if (dl.count("sig")) m.Dump(&fc_sig_, "sig");
+      if (dl.count("bc")) m.Dump(&fcbc_, "bc");
       if (tr_) {
         if (dl.count("cl")) m.Dump(&tr_->GetColor(), "cl");
         auto& im = tr_->GetImage();
