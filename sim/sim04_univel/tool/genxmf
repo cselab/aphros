@@ -13,22 +13,22 @@ import sys
 
 av = sys.argv
 
-if len(av) != 2:
- print('''usage: {:} data.h5
+if len(av) < 2:
+ print('''usage: {:} data.h5 [extent]
 Generate data.xmf with uniform mesh.
 '''.format(av[0]))
  exit(1)
 
 hfn = av[1]
 hfs = "data"
-m = re.findall(".*?-(.*?).h5", os.path.basename(hfn))
-field = av[2] if len(av) > 2 else "data"
+m = re.findall("(.*?)_.*?.h5", os.path.basename(hfn))
+field = m[0] if len(m) else "data"
+extent = float(av[2]) if len(av) > 2 else 1.
 
 h = h5py.File(hfn, 'r')
 u = h[hfs]
 
 ncz,ncy,ncx,ncc = u.shape
-extent = 1.
 
 nx = ncx + 1
 ny = ncy + 1
