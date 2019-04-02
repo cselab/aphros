@@ -302,6 +302,21 @@ class GVect {
     }
     return r;
   }
+  GVect max(GVect o) const {
+    for (size_t i = 0; i < dim; ++i) {
+      o[i] = std::max(comp_[i], o[i]);
+    }
+    return o;
+  }
+  GVect min(GVect o) const {
+    for (size_t i = 0; i < dim; ++i) {
+      o[i] = std::min(comp_[i], o[i]);
+    }
+    return o;
+  }
+  GVect clip(const GVect& v0, const GVect& v1) const {
+    return (*this).max(v0).min(v1);
+  }
   // TODO: revise, may lead to undesired conversion
   template <class T=Scal>
   operator std::vector<T>() const {
