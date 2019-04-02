@@ -81,6 +81,7 @@ s_vtk = LegacyVTKReader(FileNames=[sys.argv[1]])
 # create a new 'Calculator'
 calculator1 = Calculator(Input=tableToPoints1)
 calculator1.ResultArrayName = 'cc'
+calculator1.AttributeType = 'Point Data'
 calculator1.Function = 'sin(1234567*c)'
 
 # ----------------------------------------------------------------
