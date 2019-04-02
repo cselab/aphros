@@ -894,8 +894,14 @@ void Hydro<M>::Init() {
           auto& cb = m.GetInBlockCells();
           auto& fi = m.GetIndexFaces();
           // indices of [a,b), [begin,end)
-          MIdx wa((a + h * 0.5) / h);
-          MIdx wb((b + h * 1.5) / h);
+          Vect xd(0);
+          xd[d] = 1.;
+          // round to faces
+          a = Vect(MIdx((a + h * 0.5) / h)) * h;
+          b = Vect(MIdx((b + h * 0.5) / h)) * h;
+          // indices
+          MIdx wa(a / h + xd * 0.5);
+          MIdx wb(b / h + xd * 0.5);
           wb[d] = wa[d] + 1; // size 1 in direction d
           // direction
           MIdx wd(0);
