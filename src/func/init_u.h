@@ -11,7 +11,7 @@
 #include "solver/reconst.h"
 #include "geom/block.h"
 #include "geom/vect.h"
-#include "overlap/over.h"
+#include "overlap/overlap.h"
 
 // Volume fraction cut by interface defined by level-set function
 // f: level-set function, interface f=0, f>0 for volume fraction 1
