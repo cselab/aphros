@@ -891,10 +891,8 @@ void Hydro<M>::Init() {
           Scal vf = var.Double[k + "_vf"];
           Rect<Vect> r(a, b);
           Vect h = m.GetCellSize();
-          auto& fb = m.GetInBlockFaces();
           auto& cb = m.GetInBlockCells();
           auto& fi = m.GetIndexFaces();
-          auto& ci = m.GetIndexCells();
           // indices of [a,b), [begin,end)
           MIdx wa((a + h * 0.5) / h);
           MIdx wb((b + h * 1.5) / h);
@@ -904,11 +902,9 @@ void Hydro<M>::Init() {
           wd[d] = 1;
           // direction of neighbour cell
           int nci = ((b - a)[d] > 0. ? 0 : 1);
-          std::cout << "wa=" << wa << " wb=" << wb << std::endl;
           // box of valid indices
           MIdx w0 = cb.GetBegin();
           MIdx w1 = cb.GetEnd() + wd;
-          std::cout << "w0=" << w0 << " w1=" << w1 << std::endl;
           // clip (a,b) to valid indices
           wa = wa.clip(w0, w1);
           wb = wb.clip(w0, w1);
@@ -918,35 +914,11 @@ void Hydro<M>::Init() {
             continue;
           }
           typename M::BlockCells bb(wa, ws);
-          std::cout
-              << " w0=" << w0
-              << " w1=" << w1
-              << " wa=" << wa
-              << " wb=" << wb
-              << " ws=" << ws
-              << std::endl;
           for (auto w : bb) {
-            std::cout 
-              << "w=" << w
-              << std::endl;
+            IdxFace f = fi.GetIdx(w, Dir(d));
+            mf_velcond_[f] = solver::Parse(*p, f, nci, m);
           }
-          (void) fi;
-          (void) fb;
           (void) vf;
-          (void) nci;
-          (void) ci;
-          /*
-          for (auto i : m.AllFaces()) {
-            Vect x = m.GetCenter(i);
-            if (r.IsInside(x)) {
-              if (set_bc(i, *p)) {
-                auto b = mf_velcond_[i];
-                mf_cond_[i] = std::make_shared
-                    <solver::CondFaceValFixed<Scal>>(vf, b->GetNci());
-              }
-            }
-          }
-          */
         } else if (n > nmax) { 
           break;
         }
