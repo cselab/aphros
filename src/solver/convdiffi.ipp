@@ -70,6 +70,7 @@ struct ConvDiffScalImp<M_>::Imp {
       for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
         IdxFace f = it->GetIdx();
         Expr e = ub.GetExpr(f);
+        e.SortTerms();
         ffq[f] = e * (*owner_->ffv_)[f];
       }
 
@@ -107,6 +108,7 @@ struct ConvDiffScalImp<M_>::Imp {
         for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
           IdxFace f = it->GetIdx();
           Expr e = gb.GetExpr(f);
+          e.SortTerms();
           ffq[f] = e * (-(*owner_->ffd_)[f]) * m.GetArea(f);
         }
       } else {
