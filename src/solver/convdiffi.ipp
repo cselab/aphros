@@ -137,15 +137,12 @@ struct ConvDiffScalImp<M_>::Imp {
 
       // Overwrite with cell conditions 
       for (auto it = mcc_.cbegin(); it != mcc_.cend(); ++it) {
-        auto dt = owner_->GetTimeStep();
         IdxCell c(it->GetIdx());
         CondCell* cb = it->GetValue().get(); // cond base
-        auto& eqn = fcl[c];
+        auto& e = fcl[c];
         if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
-          eqn.Clear();
-          // TODO: Revise dt coefficient for fixed-value cell condition
-          eqn.InsertTerm(1. / dt, c);
-          eqn.SetConstant((fcu[c] - cd->GetValue()) / dt);
+          Scal v = cd->GetValue() - fcu[c];
+          e.SetKnownValueDiag(c, v);
         }
       }
     }

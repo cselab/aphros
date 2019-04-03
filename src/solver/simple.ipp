@@ -466,10 +466,16 @@ struct Simple<M_>::Imp {
     for (auto it : mccp_) {
       IdxCell ct(it.GetIdx()); // cell target
       CondCell* cb = it.GetValue().get(); // cond base
+      // TODO: revise without loop over cells
+      // TODO: adhoc, replced assuming no references from other cells
+      //       (i.e. only excluded cells)
       if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
+        auto& e = fcs[ct];
+        Scal pc = cd->GetValue() - fcpb[ct];
+        e.SetKnownValueDiag(ct, pc);
+        /*
         for (auto c : m.Cells()) {
           auto& e = fcs[c];
-          Scal pc = cd->GetValue() - fcpb[ct];
           if (c == ct) { 
             // Replace expression with [ct]-pc
             e.SetKnownValueDiag(ct, pc);
@@ -478,6 +484,7 @@ struct Simple<M_>::Imp {
             e.SetKnownValue(ct, pc);
           }
         }
+        */
       }
     }
   }

@@ -23,7 +23,42 @@ struct ConvDiffVectImp<M_>::Imp {
   {
     for (auto d : dr_) {
       // Face conditions for each velocity component
-      // (copied from given vector conditions)
+      for (auto it : mfc_) {
+        IdxFace f = it.GetIdx();
+        CondFace* cb = it.GetValue().get();
+        if (auto p = dynamic_cast<CondFaceVal<Vect>*>(cb)) {
+          vmfc_[d][f] = std::make_shared<CondFaceValComp<Vect>>(p, d);
+        } else if (auto p = dynamic_cast<CondFaceGrad<Vect>*>(cb)) {
+          vmfc_[d][f] = std::make_shared<CondFaceGradComp<Vect>>(p, d);
+        } else if (auto p = dynamic_cast<CondFaceReflect*>(cb)) {
+          auto nci = cb->GetNci();
+          // XXX: adhoc for cartesian grid
+          if (d == m.GetNormal(f).abs().argmax()) { 
+            // normal, zero value
+            vmfc_[d][f] = std::make_shared<CondFaceValFixed<Scal>>(0., nci);
+          } else { 
+            // tangential, zero gradient
+            vmfc_[d][f] = std::make_shared<CondFaceGradFixed<Scal>>(0., nci);
+          }
+        } else {
+          throw std::runtime_error("convdiffvi: unknown face condition");
+        }
+      }
+
+      // Cell conditions for each velocity component
+      for (auto it : mcc) {
+        IdxCell c = it.GetIdx();
+        CondCell* cb = it.GetValue().get(); // cond base
+
+        if (auto cd = dynamic_cast<CondCellVal<Vect>*>(cb)) {
+          // TODO: revise with CondCellValComp
+          vmcc_[d][c] = std::make_shared<
+              CondCellValFixed<Scal>>(cd->GetValue()[d]);
+        } else {
+          throw std::runtime_error("convdiffvi: unknown cell condition");
+        }
+      }
+
       for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
         IdxFace f = it->GetIdx();
         CondFace* cb = it->GetValue().get();
@@ -53,8 +88,7 @@ struct ConvDiffVectImp<M_>::Imp {
 
       // Initialize solver
       vs_[d] = std::make_shared<CD>(
-          m, GetComponent(fcvel, d), vmfc_[d],
-          MapCell<std::shared_ptr<CondCell>>(), /*TODO *** Cell cond */
+          m, GetComponent(fcvel, d), vmfc_[d], vmcc_[d],
           owner_->fcr_, owner_->ffd_, &(vfcs_[d]), owner_->ffv_, 
           owner_->GetTime(), owner_->GetTimeStep(), par);
     }
@@ -185,7 +219,7 @@ struct ConvDiffVectImp<M_>::Imp {
 
   // Scalar components
   VectGeneric<MapFace<std::shared_ptr<CondFace>>> vmfc_; // face cond
-  // TODO *** Cell cond
+  VectGeneric<MapCell<std::shared_ptr<CondCell>>> vmcc_; // cell cond
   VectGeneric<std::shared_ptr<CD>> vs_; // solver
   VectGeneric<FieldCell<Scal>> vfcs_; // force
   VectGeneric<FieldCell<Scal>> vfct_; // tmp
