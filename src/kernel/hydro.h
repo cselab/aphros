@@ -24,6 +24,7 @@
 #include "solver/vof.h"
 #include "parse/vof.h"
 #include "solver/tvd.h"
+#include "parse/tvd.h"
 #include "solver/tracker.h"
 #include "solver/sphavg.h"
 #include "solver/simple.h"
@@ -129,14 +130,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     p->convdf = var.Double["convdf"];
     p->linreport = var.Int["linreport"];
   }
-  void Update(typename AST::Par* p) {
-    p->sharp = var.Double["sharp"];
-    p->sharpo = var.Double["sharpo"];
-    p->split = var.Int["split"];
-  }
-  void UpdateAsPar() {
+  void UpdateAdvectionPar() {
     if (auto as = dynamic_cast<AST*>(as_.get())) {
-      Update(as->GetPar());
+      Parse<M>(as->GetPar(), var);
     } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
       Parse<M>(as->GetPar(), var);
     }
@@ -1045,7 +1041,7 @@ void Hydro<M>::Init() {
       std::string as = var.String["advection_solver"];
       if (as == "tvd") {
         auto p = std::make_shared<typename AST::Par>();
-        Update(p.get());
+        Parse<M>(p.get(), var);
         as_.reset(new AST(
               m, fc_vf_, mf_cond_, 
               &fs_->GetVolumeFlux(solver::Layers::time_curr),
@@ -2183,7 +2179,7 @@ void Hydro<M>::Run() {
   }
   if (sem("updatepar")) {
     Update(fs_->GetPar());
-    UpdateAsPar();
+    UpdateAdvectionPar();
     fcvm_ = fs_->GetVelocity();
   }
   if (sem.Nested("mixture")) {
