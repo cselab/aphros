@@ -34,3 +34,12 @@ FieldCell<typename M::Vect> GetVort(const FieldCell<typename M::Vect>& fcv,
 template <class M>
 void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m);
 
+// Returns fluid conditions on domain boundaries.
+// Output:
+// mfvel: conditions for velocity and pressure
+// mfvf: conditions for volume fraction
+template <class M>
+void GetFluidBc(const Vars& var, const M& m,
+                MapFace<std::shared_ptr<solver::CondFaceFluid>>& mfvel,
+                MapFace<std::shared_ptr<solver::CondFace>>& mfvf);
+

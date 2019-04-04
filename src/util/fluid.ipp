@@ -1,5 +1,8 @@
 #pragma once
 
+#include <functional>
+#include <stdexcept>
+
 #include "solver/fluid.h"
 #include "parse/vars.h"
 
@@ -260,3 +263,217 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
   }
 }
 
+template <class M>
+void GetFluidBc(const Vars& var, const M& m,
+                MapFace<std::shared_ptr<solver::CondFaceFluid>>& mfvel,
+                MapFace<std::shared_ptr<solver::CondFace>>& mfvf) {
+  using Dir = typename M::Dir;
+  using MIdx = typename M::MIdx;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  size_t edim = var.Int["dim"];
+  auto& fi = m.GetIndexFaces();
+  MIdx gs = m.GetGlobalSize();
+
+  // boundary xm of global mesh
+  auto gxm = [&fi](IdxFace i) -> bool {
+    return fi.GetDir(i) == Dir::i && fi.GetMIdx(i)[0] == 0;
+  };
+  auto gxp = [&fi,gs](IdxFace i) -> bool {
+    return fi.GetDir(i) == Dir::i && fi.GetMIdx(i)[0] == gs[0];
+  };
+  auto gym = [&fi](IdxFace i) -> bool {
+    return fi.GetDir(i) == Dir::j && fi.GetMIdx(i)[1] == 0;
+  };
+  auto gyp = [&fi,gs](IdxFace i) -> bool {
+    return fi.GetDir(i) == Dir::j && fi.GetMIdx(i)[1] == gs[1];
+  };
+  auto gzm = [&fi,edim](IdxFace i) -> bool {
+    return edim >= 3 && fi.GetDir(i) == Dir::k && fi.GetMIdx(i)[2] == 0;
+  };
+  auto gzp = [&fi,gs,edim](IdxFace i) -> bool {
+    return edim >= 3 && fi.GetDir(i) == Dir::k && fi.GetMIdx(i)[2] == gs[2];
+  };
+
+  // Set condition bc for face i on global box boundary
+  // choosing proper neighbour cell id (nci)
+  // Return true if on global boundary
+  auto set_bc = [&](IdxFace i, std::string bc) -> bool {
+    if (gxm(i) || gym(i) || gzm(i)) {
+      mfvel[i] = solver::Parse(bc, i, 1, m);
+      return true;
+    } else if (gxp(i) || gyp(i) || gzp(i)) {
+      mfvel[i] = solver::Parse(bc, i, 0, m);
+      return true;
+    }
+    return false;
+  };
+
+  // Boundary conditions for fluid 
+  auto ff = m.AllFaces();
+  std::vector<std::pair<std::string, std::function<bool(IdxFace)>>> pp = 
+      {{"bc_xm", gxm}, {"bc_xp", gxp},
+       {"bc_ym", gym}, {"bc_yp", gyp},
+       {"bc_zm", gzm}, {"bc_zp", gzp}};
+
+  for (auto p : pp) {
+    if (auto bc = var.String(p.first)) {
+      for (auto i : ff) {
+        p.second(i) && set_bc(i, *bc);
+      }
+    }
+  }
+
+  // boundary conditions for advection
+  for (auto it : mfvel) {
+    IdxFace i = it.GetIdx();
+    solver::CondFaceFluid* cb = it.GetValue().get();
+    if (dynamic_cast<solver::fluid_condition::SlipWall<M>*>(cb)) {
+      mfvf[i] = std::make_shared<solver::
+          CondFaceReflect>(it.GetValue()->GetNci());
+    } else {
+      mfvf[i] = std::make_shared<solver::
+          CondFaceGradFixed<Scal>>(Scal(0), it.GetValue()->GetNci());
+    }
+  }
+  // selection boxes
+  // Parameters (N>=0):
+  // string boxN -- bc description
+  // vect boxN_a -- lower corner
+  // vect boxN_b -- upper corner
+  // double boxN_vf -- inlet volume fraction
+  // Check at least first nmax indices and all contiguous
+  {
+    int n = 0;
+    const int nmax = 100;
+    while (true) {
+      std::string k = "box" + std::to_string(n);
+      if (auto p = var.String(k)) {
+        Vect a(var.Vect[k + "_a"]);
+        Vect b(var.Vect[k + "_b"]);
+        Scal vf = var.Double[k + "_vf"];
+        Rect<Vect> r(a, b);
+        for (auto i : m.AllFaces()) {
+          Vect x = m.GetCenter(i);
+          if (r.IsInside(x)) {
+            if (set_bc(i, *p)) {
+              auto b = mfvel[i];
+              mfvf[i] = std::make_shared
+                  <solver::CondFaceValFixed<Scal>>(vf, b->GetNci());
+            }
+          }
+        }
+      } else if (n > nmax) { 
+        break;
+      }
+      ++n;
+    }
+  }
+  // selection faces
+  // Parameters (N>=0):
+  // string faceN -- bc description
+  // vect faceN_a -- lower corner
+  // vect faceN_b -- upper corner
+  // double faceN_vf -- inlet volume fraction
+  // Check at least first nmax indices and all contiguous
+  {
+    int n = -1;
+    const int nmax = 100;
+    while (true) {
+      ++n;
+      std::string k = "face" + std::to_string(n);
+      if (auto p = var.String(k)) {
+        // set boundary conditions on faces of box (a,b) 
+        // normal to d with outer normal towards (b-a)[d]
+        Vect a(var.Vect[k + "_a"]); 
+        Vect b(var.Vect[k + "_b"]);
+        int d(var.Int[k + "_dir"]); // direction: 0:x, 1:y, 2:z
+        Scal vf = var.Double[k + "_vf"];
+        Rect<Vect> r(a, b);
+        Vect h = m.GetCellSize();
+        auto& cb = m.GetInBlockCells();
+        auto& fi = m.GetIndexFaces();
+        // indices of [a,b), [begin,end)
+        Vect xd(0);
+        xd[d] = 1.;
+        // round to faces
+        a = Vect(MIdx((a + h * 0.5) / h)) * h;
+        b = Vect(MIdx((b + h * 0.5) / h)) * h;
+        // indices
+        MIdx wa(a / h + xd * 0.5);
+        MIdx wb(b / h + xd * 0.5);
+        wb[d] = wa[d] + 1; // size 1 in direction d
+        // direction
+        MIdx wd(0);
+        wd[d] = 1;
+        // direction of neighbour cell
+        int nci = ((b - a)[d] > 0. ? 0 : 1);
+        // box of valid indices
+        MIdx w0 = cb.GetBegin();
+        MIdx w1 = cb.GetEnd() + wd;
+        // clip (a,b) to valid indices
+        wa = wa.clip(w0, w1);
+        wb = wb.clip(w0, w1);
+        // size of local block
+        MIdx ws = wb - wa;
+        if (ws.prod() == 0) {
+          continue;
+        }
+        typename M::BlockCells bb(wa, ws);
+        for (auto w : bb) {
+          IdxFace f = fi.GetIdx(w, Dir(d));
+          mfvel[f] = solver::Parse(*p, f, nci, m);
+        }
+        (void) vf;
+      } else if (n > nmax) { 
+        break;
+      }
+    }
+  }
+  // selection spheres
+  // Parameters (N>=0):
+  // string sphN -- bc description ("inlet")
+  // vect sphN_c -- center
+  // double sphN_r0 -- radius inner
+  // double sphN_r1 -- radius outer
+  // double sphN_vf -- inlet volume fraction
+  // vect sphN_vel -- velocity
+  // Check at least first nmax indices and all contiguous
+  {
+    int n = 0;
+    const int nmax = 100;
+    while (true) {
+      std::string k = "sph" + std::to_string(n);
+      if (auto p = var.String(k)) {
+        if (*p == "inlet") {
+          Vect xc(var.Vect[k + "_c"]);
+          Scal r0 = var.Double[k + "_r0"];
+          Scal r1 = var.Double[k + "_r1"];
+          Scal vf = var.Double[k + "_vf"];
+          Vect vel(var.Vect[k + "_vel"]);
+          for (auto i : m.AllFaces()) {
+            Vect x = m.GetCenter(i);
+            if (xc.dist(x) < r1) {
+              Scal r = xc.dist(x);
+              Vect v = vel * std::min(1., (r1 - r) / (r1 - r0));
+              std::string a = "inlet";
+              a += " " + std::to_string(v[0]);
+              a += " " + std::to_string(v[1]);
+              a += " " + std::to_string(v[2]);
+              if (set_bc(i, a)) {
+                auto b = mfvel[i];
+                mfvf[i] = std::make_shared
+                    <solver::CondFaceValFixed<Scal>>(vf, b->GetNci());
+              }
+            }
+          }
+        } else {
+          throw std::runtime_error("unknown selection sphere cond: " + *p);
+        }
+      } else if (n > nmax) { 
+        break;
+      }
+      ++n;
+    }
+  }
+}

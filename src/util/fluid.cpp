@@ -12,3 +12,8 @@ template FieldCell<typename M::Vect> GetVort(
     const MapFace<std::shared_ptr<solver::CondFace>>& mf, M& m);
 
 template void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m);
+
+template void GetFluidBc(
+    const Vars& var, const M& m,
+    MapFace<std::shared_ptr<solver::CondFaceFluid>>& mfvel,
+    MapFace<std::shared_ptr<solver::CondFace>>& mfvf);
