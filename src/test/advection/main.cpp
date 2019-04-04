@@ -22,6 +22,7 @@
 #include "solver/vof.h"
 #include "parse/vof.h"
 #include "solver/tvd.h"
+#include "parse/tvd.h"
 #include "func/init_vel.h"
 #include "func/init_u.h"
 #include "dump/dumper.h"
@@ -78,11 +79,6 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   void Run() override;
   void Init(Sem& sem);
   void Dump(Sem& sem);
-  void Update(typename AST::Par* p) {
-    p->sharp = var.Double["sharp"];
-    p->sharpo = var.Double["sharpo"];
-    p->split = var.Int["split"];
-  }
 
  protected:
   using P::var;
@@ -143,7 +139,7 @@ void Advection<M>::Init(Sem& sem) {
     std::string as = var.String["advection_solver"];
     if (as == "tvd") {
       auto p = std::make_shared<typename AST::Par>();
-      Update(p.get());
+      Parse<M>(p.get(), var);
       as_.reset(new AST(m, fcu_, bc, &ff_flux_, 
                        &fc_src_, 0., var.Double["dt"], p));
     } else if (as == "vof") {
