@@ -20,6 +20,7 @@
 #include "solver/solver.h"
 #include "solver/advection.h"
 #include "solver/vof.h"
+#include "parse/vof.h"
 #include "solver/tvd.h"
 #include "func/init_vel.h"
 #include "func/init_u.h"
@@ -81,70 +82,6 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
     p->sharp = var.Double["sharp"];
     p->sharpo = var.Double["sharpo"];
     p->split = var.Int["split"];
-  }
-  // TODO: unify with hydro.h
-  void Update(typename ASV::Par* p) {
-    using Par = typename ASV::Par;
-    p->curvgrad = var.Int["curvgrad"];
-    p->part = var.Int["part"];
-    p->part_verb = var.Int["part_verb"];
-    p->part_relax = var.Double["part_relax"];
-    p->part_h = var.Double["part_h"];
-    p->part_kstr = var.Double["part_kstr"];
-    p->part_kattr = var.Double["part_kattr"];
-    p->part_kbend = var.Double["part_kbend"];
-    p->part_bendmean = var.Int["part_bendmean"];
-    p->part_dump_fr = var.Int["part_dump_fr"];
-    p->part_report_fr = var.Int["part_report_fr"];
-    p->part_n = var.Int["part_n"];
-    p->part_k = var.Int["part_k"];
-    p->part_intth = var.Double["part_intth"];
-    p->poly_intth = var.Double["poly_intth"];
-    p->clipth = var.Double["clipth"];
-    p->dim = var.Int["dim"];
-    p->dumppoly = var.Int["dumppoly"];
-    p->dumppart = var.Int["dumppart"];
-    p->dumppartinter = var.Int["dumppartinter"];
-    p->bcc_k0 = var.Double["bcc_k0"];
-    p->bcc_k1 = var.Double["bcc_k1"];
-    p->bcc_t0 = var.Double["bcc_t0"];
-    p->bcc_t1 = var.Double["bcc_t1"];
-    p->bcc_y0 = var.Double["bcc_y0"];
-    p->bcc_y1 = var.Double["bcc_y1"];
-    p->bcc_reflect = var.Int["bcc_reflect"];
-    p->part_constr = var.Int["part_constr"];
-    p->part_segcirc = var.Double["part_segcirc"];
-    p->part_itermax = var.Int["part_itermax"];
-    p->part_tol = var.Double["part_tol"];
-    p->part_np = var.Int["part_np"];
-    p->part_ns = var.Int["part_ns"];
-    p->part_tmax = var.Double["part_tmax"];
-    p->part_dtmax = var.Double["part_dtmax"];
-    p->part_anglim = var.Double["part_anglim"];
-    p->part_dn = var.Int["part_dn"];
-
-    {
-      std::string s = var.String["part_attrforce"];
-      if (s == "line") {
-        p->part_attrforce = Par::AF::line;
-      } else if (s == "center") {
-        p->part_attrforce = Par::AF::center;
-      } else if (s == "volume") {
-        p->part_attrforce = Par::AF::volume;
-      } else {
-        throw std::runtime_error("Update: unknown part_attrforce=" + s);
-      }
-    }
-    {
-      std::string s = var.String["part_attrreconst"];
-      if (s == "line") {
-        p->part_attrreconst = Par::AR::line;
-      } else if (s == "volume") {
-        p->part_attrreconst = Par::AR::volume;
-      } else {
-        throw std::runtime_error("Update: unknown part_attrreconst=" + s);
-      }
-    }
   }
 
  protected:
@@ -211,7 +148,7 @@ void Advection<M>::Init(Sem& sem) {
                        &fc_src_, 0., var.Double["dt"], p));
     } else if (as == "vof") {
       auto p = std::make_shared<typename ASV::Par>();
-      Update(p.get());
+      Parse<M>(p.get(), var);
       p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
       as_.reset(new ASV(m, fcu_, bc, &ff_flux_, 
                        &fc_src_, 0., var.Double["dt"], p));
