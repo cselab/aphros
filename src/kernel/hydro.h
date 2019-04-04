@@ -72,9 +72,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
  private:
   void Init();
-  static FieldCell<Vect> GetVort(
-      const FieldCell<Vect>& fcv, 
-      const MapFace<std::shared_ptr<solver::CondFace>>& mf, M& m);
   void InitVort();
   // zero-gradient bc vect
   MapFace<std::shared_ptr<solver::CondFace>> GetBcVz() const;
@@ -302,31 +299,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Dumper dmptraj_; // dumper for traj
   Dumper dmptrep_; // dumper for timer report
 };
-
-// Computes vorticity of vector field.
-// fcv: vector field [s]
-// mf: boundary conditions for fcv
-// Returns:
-// fco: vorticity [i]
-template <class M>
-auto Hydro<M>::GetVort(const FieldCell<Vect>& fcv, 
-                       const MapFace<std::shared_ptr<solver::CondFace>>& mf,
-                       M& m) -> FieldCell<Vect> {
-  auto ffv = solver::Interpolate(fcv, mf, m);
-
-  auto d0 = solver::Gradient(GetComponent(ffv, 0), m);
-  auto d1 = solver::Gradient(GetComponent(ffv, 1), m);
-  auto d2 = solver::Gradient(GetComponent(ffv, 2), m);
-
-  FieldCell<Vect> r(m);
-  for (auto c : m.Cells()) {
-    r[c][0] = d2[c][1] - d1[c][2];
-    r[c][1] = d0[c][2] - d2[c][0];
-    r[c][2] = d1[c][0] - d0[c][1];
-  }
-
-  return r;
-}
 
 template <class M>
 auto Hydro<M>::GetBcVz() const -> MapFace<std::shared_ptr<solver::CondFace>> {
