@@ -33,6 +33,7 @@
 #include "kernelmesh.h"
 #include "parse/vars.h"
 #include "parse/parser.h"
+#include "parse/util.h"
 #include "dump/output.h"
 #include "dump/dumper.h"
 #include "func/init_u.h"
@@ -103,22 +104,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using TR = solver::Tracker<M>; // color tracker
   using SA = solver::Sphavg<M>; // spherical averages
 
-  // Converts space-separated list to set
-  static std::set<std::string> ParseList(std::string s) {
-    std::set<std::string> r;
-    std::stringstream st(s);
-    st >> std::skipws;
-    while (true) {
-      std::string e;
-      st >> e;
-      if (st) {
-        r.insert(e);
-      } else {
-        break;
-      }
-    }
-    return r;
-  }
   void UpdateAdvectionPar() {
     if (auto as = dynamic_cast<AST*>(as_.get())) {
       Parse<M>(as->GetPar(), var);
@@ -1828,7 +1813,7 @@ void Hydro<M>::Dump(Sem& sem) {
         dumper_.Report();
       }
 
-      auto dl = ParseList(var.String["dumplist"]);
+      auto dl = GetWords(var.String["dumplist"]);
       auto& fcv = fs_->GetVelocity();
       if (dl.count("vx")) m.Dump(&fcv, 0, "vx");
       if (dl.count("vy")) m.Dump(&fcv, 1, "vy");
