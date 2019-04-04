@@ -28,6 +28,7 @@
 #include "solver/tracker.h"
 #include "solver/sphavg.h"
 #include "solver/simple.h"
+#include "parse/simple.h"
 #include "kernel.h"
 #include "kernelmesh.h"
 #include "parse/vars.h"
@@ -117,18 +118,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       }
     }
     return r;
-  }
-  void Update(typename FS::Par* p) {
-    p->prelax = var.Double["prelax"];
-    p->vrelax = var.Double["vrelax"];
-    p->rhie = var.Double["rhie"];
-    p->second = var.Int["second_order"];
-    p->simpler = var.Int["simpler"];
-    // TODO: add check for inletflux_numid
-    p->inletflux_numid = var.Int["inletflux_numid"];
-    p->convsc = solver::GetConvSc(var.String["convsc"]);
-    p->convdf = var.Double["convdf"];
-    p->linreport = var.Int["linreport"];
   }
   void UpdateAdvectionPar() {
     if (auto as = dynamic_cast<AST*>(as_.get())) {
@@ -1012,7 +1001,7 @@ void Hydro<M>::Init() {
     // Init fluid solver
     {
       auto p = std::make_shared<typename FS::Par>();
-      Update(p.get());
+      Parse<M>(p.get(), var);
 
       fcvm_ = fc_vel_;
 
@@ -2178,7 +2167,7 @@ void Hydro<M>::Run() {
     }
   }
   if (sem("updatepar")) {
-    Update(fs_->GetPar());
+    Parse<M>(fs_->GetPar(), var);
     UpdateAdvectionPar();
     fcvm_ = fs_->GetVelocity();
   }
