@@ -37,7 +37,7 @@ add_subdirectory(overlap)
 add_subdirectory(young)
 
 target_link_libraries(${EXE} 
-  distr solver vof tvd convdiffvi simple overlap young)
+  distr solver vof tvd convdiffvi simple overlap young utilfluid)
 
 add_subdirectory(test)
 enable_testing()
