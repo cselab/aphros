@@ -124,15 +124,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     }
     return std::numeric_limits<Scal>::max();
   }
-  Vect GetCellSize() const {
-    Vect h; // cell size
-    // XXX: specific for structured 3D mesh
-    IdxCell c0(0);
-    h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
-        m.GetNode(m.GetNeighbourNode(c0, 0));
-    assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
-    return h;
-  }
   YoungParam GetYoungPar() const {
     YoungParam q;
     q.rhov = var.Double["rho1"];
@@ -1763,7 +1754,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         for (auto f : m.Faces()) {
           ffbp_[f] += ff_st[f];
         }
-        
+
         // Append Marangoni stress
         if (var.Int["marangoni"]) {
           using R = Reconst<Scal>;
