@@ -43,6 +43,7 @@
 #include "solver/reconst.h"
 #include "young/young.h"
 #include "solver/pois.h"
+#include "util/fluid.h"
 
 class GPar {};
 
@@ -163,37 +164,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     v[1] = vc * e1;
     v[2] = vc * e2;
     return v;
-  }
-  // Returns field with the type (index)
-  // of boundary conditions in an adjacent face:
-  //   0: empty
-  //   1: no-slip wall
-  //   2: free-slip wall
-  //   3: inlet
-  //   4: outlet
-  //   -1: unknown
-  // mf: boundary conditions
-  FieldCell<Scal> GetBcField(
-      MapFace<std::shared_ptr<solver::CondFaceFluid>>& mf, const M& m) {
-    FieldCell<Scal> fc(m, 0);
-    for (auto it : mf) {
-      IdxFace f = it.GetIdx();
-      auto* b = it.GetValue().get();
-      size_t nci = b->GetNci();
-      IdxCell c = m.GetNeighbourCell(f, nci);
-      if (dynamic_cast<solver::fluid_condition::NoSlipWall<M>*>(b)) {
-        fc[c] = 1.;
-      } else if (dynamic_cast<solver::fluid_condition::SlipWall<M>*>(b)) {
-        fc[c] = 2.;
-      } else if (dynamic_cast<solver::fluid_condition::Inlet<M>*>(b)) {
-        fc[c] = 3.;
-      } else if (dynamic_cast<solver::fluid_condition::Outlet<M>*>(b)) {
-        fc[c] = 4.;
-      } else {
-        fc[c] = -1.;
-      }
-    }
-    return fc;
   }
 
   FieldCell<Scal> fc_mu_; // viscosity
