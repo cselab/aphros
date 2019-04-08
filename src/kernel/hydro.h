@@ -179,7 +179,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fccl_; // color used by constructor  
   FieldCell<Vect> fc_vel_; // velocity used by constructor
   FieldCell<Scal> fc_smvf_; // smoothed volume fraction used by CalcMixture()
-  FieldCell<Scal> fc_smvfst_; // smoothed volume fraction for surface tension
   FieldFace<Scal> ff_smvf_; // interpolated fc_smvf_
   Scal diff_;  // convergence indicator
   std::pair<Scal, int> pdist_; // distance to pfixed cell
@@ -870,15 +869,10 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     fc_force_.Reinit(m, Vect(0));
     ffbp_.Reinit(m, 0);
     fc_smvf_ = fc_vf0;
-    fc_smvfst_ = fc_vf0;
   }
 
   if (sem.Nested("smooth")) {
     solver::Smoothen(fc_smvf_, mf_cond_, m, var.Int["vfsmooth"]);
-  }
-
-  if (sem.Nested("smoothst")) {
-    solver::Smoothen(fc_smvfst_, mf_cond_, m, var.Int["vfsmoothst"]);
   }
 
   if (sem("calc")) {
@@ -1005,7 +999,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       } else if (st == "kn") {  // curvature * normal
         auto& fck = as_->GetCurv(); // [a]
         FieldFace<Scal> ff_st(m, 0.);  // surface tension projections
-        auto& ast = fc_smvfst_;
+        auto& ast = fc_vf0;
 
         ffk_.Reinit(m, 0);
         ff_sig_.Reinit(m, 0);
@@ -1483,7 +1477,6 @@ void Hydro<M>::Run() {
     Init();
   }
 
-  // Dump init
   if (var.Int["dumpinit"]) {
     Dump(sem);
   }
