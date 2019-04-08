@@ -970,7 +970,7 @@ struct Vof<M_>::Imp {
     if (par->dumppoly) {
       bool dm = par->dmp->Try(owner_->GetTime() + owner_->GetTimeStep(), 
                               owner_->GetTimeStep());
-      if (dm && sem("dumppoly")) {
+      if (dm && sem.Nested("dumppoly")) {
         DumpPoly();
       }
     }
