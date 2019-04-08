@@ -83,6 +83,10 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void DumpTraj(bool dm);
   // Calc rho, mu and force based on volume fraction
   void CalcMixture(const FieldCell<Scal>& vf);
+  // fcvf: volume fraction on cells [a]
+  // ffvfsm: smoothed volume fraction on faces [a]
+  void CalcSurfaceTension(const FieldCell<Scal>& fcvf,
+                          const FieldFace<Scal>& ffvfsm);
   // Clips v to given range, uses const_cast
   void Clip(const FieldCell<Scal>& v, Scal min, Scal max);
   void CalcStat();
@@ -860,6 +864,137 @@ void Hydro<M>::Clip(const FieldCell<Scal>& f, Scal a, Scal b) {
 }
 
 template <class M>
+void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
+                                  const FieldFace<Scal>& ffvfsm) {
+  // volume fration gradient on cells
+  FieldCell<Vect> gc = solver::Gradient(ffvfsm, m); // [s]
+  // volume fration gradient on faces
+  FieldFace<Vect> gf = solver::Interpolate(gc, GetBcVz(), m); // [i]
+
+  auto st = var.String["surftens"];
+  if (st == "div") { // divergence of tensor (Hu,Adam 2001)
+    auto stdiag = var.Double["stdiag"];
+    for (auto c : m.Cells()) {
+      Vect r(0);
+      for (auto q : m.Nci(c)) {
+        IdxFace f = m.GetNeighbourFace(c, q);
+        const auto& g = gf[f];
+        // TODO: revise 1e-6
+        auto n = g / (g.norm() + 1e-6);  // inner normal
+        auto s = m.GetOutwardSurface(c, q);
+        r += s * (g.norm() * stdiag) - g * s.dot(n);
+      }
+      r /= m.GetVolume(c);
+      // here: r = stdiag*div(|g|I) - div(g g/|g|)
+      fc_force_[c] += r * fc_sig_[c];
+    }
+  } else if (st == "kn") {  // curvature * normal
+    auto& fck = as_->GetCurv(); // [a]
+    FieldFace<Scal> ff_st(m, 0.);  // surface tension projections
+
+    ffk_.Reinit(m, 0);
+    ff_sig_.Reinit(m, 0);
+    ff_sig_ = solver::Interpolate(fc_sig_, GetBcSz(), m);
+    // interpolate curvature
+    for (auto f : m.Faces()) {
+      IdxCell cm = m.GetNeighbourCell(f, 0);
+      IdxCell cp = m.GetNeighbourCell(f, 1);
+      if (std::abs(fcvf[cm] - 0.5) < std::abs(fcvf[cp] - 0.5)) {
+        ffk_[f] = fck[cm];
+      } else {
+        ffk_[f] = fck[cp];
+      }
+    }
+    // neighbour cell for boundaries
+    for (auto it : mf_velcond_) {
+      IdxFace f = it.GetIdx();
+      IdxCell c = m.GetNeighbourCell(f, it.GetValue()->GetNci());
+      ffk_[f] = fck[c];
+    }
+    // compute force projections
+    size_t nan = 0;
+    IdxFace fnan(0);
+    bool report_knan = var.Int["report_knan"];
+    for (auto f : m.Faces()) {
+      IdxCell cm = m.GetNeighbourCell(f, 0);
+      IdxCell cp = m.GetNeighbourCell(f, 1);
+      Vect dm = m.GetVectToCell(f, 0);
+      Vect dp = m.GetVectToCell(f, 1);
+      Scal ga = (fcvf[cp] - fcvf[cm]) / (dp - dm).norm();
+      if (ga != 0.) {
+        if (IsNan(ffk_[f])) {
+          ++nan;
+          fnan = f;
+          ffk_[f] = 0.;
+        }
+        ff_st[f] += ga * ffk_[f] * ff_sig_[f];
+      }
+    }
+    if (report_knan && nan) {
+      auto f = fnan;
+      IdxCell cm = m.GetNeighbourCell(f, 0);
+      IdxCell cp = m.GetNeighbourCell(f, 1);
+      std::stringstream s;
+      s.precision(16);
+      s << "nan curvature in " << nan 
+          << " faces, one at x=" << m.GetCenter(f)
+          << " vf[cm]=" << fcvf[cm]
+          << " vf[cp]=" << fcvf[cp]
+          << " fck[cm]=" << fck[cm]
+          << " fck[cp]=" << fck[cp];
+      std::cout << s.str() << std::endl;
+    }
+    // zero on boundaries
+    // TODO: test with bubble jump
+    for (auto it : mf_velcond_) {
+      IdxFace f = it.GetIdx();
+      ff_st[f] = 0.;
+    }
+
+    // Surface tension decay between x0 and x1 
+    // XXX: adhoc TODO: revise
+    const Scal x0 = var.Double["zerostx0"];
+    const Scal x1 = var.Double["zerostx1"];
+    // apply
+    for (auto f : m.Faces()) {
+      Scal x = m.GetCenter(f)[0];
+      if (x > x0) {
+        ff_st[f] *= std::max(0., (x1 - x) / (x1 - x0));
+      }
+    }
+
+    // Append to force
+    for (auto f : m.Faces()) {
+      ffbp_[f] += ff_st[f];
+    }
+
+    // Append Marangoni stress
+    if (var.Int["marangoni"]) {
+      using R = Reconst<Scal>;
+      if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
+        auto fc_gsig = solver::Gradient(ff_sig_, m);
+        auto &fcn = as->GetNormal();
+        auto &fca = as->GetAlpha();
+        Vect h = m.GetCellSize();
+        for (auto c : m.Cells()) {
+          if (fcvf[c] > 0. && fcvf[c] < 1.) { // contains interface
+            Vect g = fc_gsig[c]; // sigma gradient
+            Vect n = fcn[c] / fcn[c].norm(); // unit normal to interface
+            Vect gt = g - n * g.dot(n); 
+            auto xx = R::GetCutPoly2(fcn[c], fca[c], h);
+            Scal ar = std::abs(R::GetArea(xx, fcn[c]));
+            Scal vol = h.prod();
+            fc_force_[c] += gt * (ar / vol);
+          }
+        }
+      }
+    }
+  } else {
+    throw std::runtime_error("Unknown surftens=" + st);
+  }
+}
+
+template <class M>
 void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
   auto sem = m.GetSem("mixture");
 
@@ -912,134 +1047,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 
     // Surface tension
     if (var.Int["enable_surftens"] && as_) {
-      // volume fration gradient on cells
-      FieldCell<Vect> gc = solver::Gradient(af, m); // [s]
-      // volume fration gradient on faces
-      FieldFace<Vect> gf = solver::Interpolate(gc, GetBcVz(), m); // [i]
-
-      auto st = var.String["surftens"];
-      if (st == "div") { // divergence of tensor (Hu,Adam 2001)
-        auto stdiag = var.Double["stdiag"];
-        for (auto c : m.Cells()) {
-          Vect r(0);
-          for (auto q : m.Nci(c)) {
-            IdxFace f = m.GetNeighbourFace(c, q);
-            const auto& g = gf[f];
-            // TODO: revise 1e-6
-            auto n = g / (g.norm() + 1e-6);  // inner normal
-            auto s = m.GetOutwardSurface(c, q);
-            r += s * (g.norm() * stdiag) - g * s.dot(n);
-          }
-          r /= m.GetVolume(c);
-          // here: r = stdiag*div(|g|I) - div(g g/|g|)
-          fc_force_[c] += r * fc_sig_[c];
-        }
-      } else if (st == "kn") {  // curvature * normal
-        auto& fck = as_->GetCurv(); // [a]
-        FieldFace<Scal> ff_st(m, 0.);  // surface tension projections
-        auto& ast = fc_vf0;
-
-        ffk_.Reinit(m, 0);
-        ff_sig_.Reinit(m, 0);
-        ff_sig_ = solver::Interpolate(fc_sig_, GetBcSz(), m);
-        // interpolate curvature
-        for (auto f : m.Faces()) {
-          IdxCell cm = m.GetNeighbourCell(f, 0);
-          IdxCell cp = m.GetNeighbourCell(f, 1);
-          if (std::abs(ast[cm] - 0.5) < std::abs(ast[cp] - 0.5)) {
-            ffk_[f] = fck[cm];
-          } else {
-            ffk_[f] = fck[cp];
-          }
-        }
-        // neighbour cell for boundaries
-        for (auto it : mf_velcond_) {
-          IdxFace f = it.GetIdx();
-          IdxCell c = m.GetNeighbourCell(f, it.GetValue()->GetNci());
-          ffk_[f] = fck[c];
-        }
-        // compute force projections
-        size_t nan = 0;
-        IdxFace fnan(0);
-        bool report_knan = var.Int["report_knan"];
-        for (auto f : m.Faces()) {
-          IdxCell cm = m.GetNeighbourCell(f, 0);
-          IdxCell cp = m.GetNeighbourCell(f, 1);
-          Vect dm = m.GetVectToCell(f, 0);
-          Vect dp = m.GetVectToCell(f, 1);
-          Scal ga = (ast[cp] - ast[cm]) / (dp - dm).norm();
-          if (ga != 0.) {
-            if (IsNan(ffk_[f])) {
-              ++nan;
-              fnan = f;
-              ffk_[f] = 0.;
-            }
-            ff_st[f] += ga * ffk_[f] * ff_sig_[f];
-          }
-        }
-        if (report_knan && nan) {
-          auto f = fnan;
-          IdxCell cm = m.GetNeighbourCell(f, 0);
-          IdxCell cp = m.GetNeighbourCell(f, 1);
-          std::stringstream s;
-          s.precision(16);
-          s << "nan curvature in " << nan 
-              << " faces, one at x=" << m.GetCenter(f)
-              << " vf[cm]=" << ast[cm]
-              << " vf[cp]=" << ast[cp]
-              << " fck[cm]=" << fck[cm]
-              << " fck[cp]=" << fck[cp];
-          std::cout << s.str() << std::endl;
-        }
-        // zero on boundaries
-        // TODO: test with bubble jump
-        for (auto it : mf_velcond_) {
-          IdxFace f = it.GetIdx();
-          ff_st[f] = 0.;
-        }
-
-        // Surface tension decay between x0 and x1 
-        // XXX: adhoc TODO: revise
-        const Scal x0 = var.Double["zerostx0"];
-        const Scal x1 = var.Double["zerostx1"];
-        // apply
-        for (auto f : m.Faces()) {
-          Scal x = m.GetCenter(f)[0];
-          if (x > x0) {
-            ff_st[f] *= std::max(0., (x1 - x) / (x1 - x0));
-          }
-        }
-
-        // Append to force
-        for (auto f : m.Faces()) {
-          ffbp_[f] += ff_st[f];
-        }
-
-        // Append Marangoni stress
-        if (var.Int["marangoni"]) {
-          using R = Reconst<Scal>;
-          if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
-            auto fc_gsig = solver::Gradient(ff_sig_, m);
-            auto &fcn = as->GetNormal();
-            auto &fca = as->GetAlpha();
-            Scal th = 1e-8;
-            Vect h = m.GetCellSize();
-            for (auto c : m.Cells()) {
-              if (ast[c] > th && ast[c] < 1. - th) { // contains interface
-                Vect g = fc_gsig[c]; // sigma gradient
-                Vect n = fcn[c] / fcn[c].norm(); // unit normal to interface
-                Vect gt = g - n * g.dot(n); 
-                auto xx = R::GetCutPoly2(fcn[c], fca[c], h);
-                Scal ar = std::abs(R::GetArea(xx, fcn[c]));
-                Scal vol = h.prod();
-                fc_force_[c] += gt * (ar / vol);
-              }
-            }
-          }
-        }
-      } else {
-        throw std::runtime_error("Unknown surftens=" + st);
-      }
+      CalcSurfaceTension(fc_vf0, af);
     }
 
     // zero force in z if 2D
@@ -1051,7 +1059,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
     }
-
   }
 }
 
