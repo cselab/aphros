@@ -876,8 +876,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
   }
 
   if (sem("calc")) {
-    auto& a = fc_smvf_;
-    auto& af = ff_smvf_;  
+    FieldCell<Scal>& a = fc_smvf_;
+    FieldFace<Scal>& af = ff_smvf_;
     af = solver::Interpolate(a, mf_cond_, m);
 
     const Vect force(var.Vect["force"]);
@@ -911,89 +911,27 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     }
 
     // Surface tension
-    if (var.Int["enable_surftens"] && as_) { // (skip if as_ is null)
-      auto af = solver::Interpolate(a, mf_cond_, m);
-      auto gc = solver::Gradient(af, m); // [s]
-
-      // zero-derivative bc for Vect
-      MapFace<std::shared_ptr<solver::CondFace>> mfvz;
-      for (auto it : mf_velcond_) {
-        IdxFace i = it.GetIdx();
-        mfvz[i] = std::make_shared<solver::
-          CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
-      }
-
-      // zero-derivative bc for Scal
-      MapFace<std::shared_ptr<solver::CondFace>> mfz;
-      for (auto it : mf_velcond_) {
-        IdxFace i = it.GetIdx();
-        mfz[i] = std::make_shared<solver::
-            CondFaceGradFixed<Scal>>(0, it.GetValue()->GetNci());
-      }
-
-
-      // gradient on faces
-      auto gf = solver::Interpolate(gc, mfvz, m); // [i]
-
-      // node-based gradient on faces
-      if (var.Int["normalnode"]) {
-        FieldNode<Vect> gn(m, Vect(0));
-        FieldNode<Vect> l(m, Vect(0));
-        for (auto c : m.SuCells()) {
-          Vect xc = m.GetCenter(c);
-          for (size_t q = 0; q < m.GetNumNeighbourNodes(c); ++q) {
-            IdxNode n = m.GetNeighbourNode(c, q);
-            Vect xn = m.GetNode(n);
-            for (size_t d = 0; d < dim; ++d) {
-              gn[n][d] += (xc[d] - xn[d] > 0. ? 1. : -1.) * a[c];
-              l[n][d] += std::abs(xc[d] - xn[d]);
-            }
-          }
-        }
-        for (auto n : m.Nodes()) {
-          gn[n] /= l[n];
-        }
-        gf.Reinit(m, Vect(0));
-        for (auto f : m.Faces()) {
-          for (size_t q = 0; q < m.GetNumNeighbourNodes(f); ++q) {
-            IdxNode n = m.GetNeighbourNode(f, q);
-            gf[f] += gn[n];
-          }
-          gf[f] /= m.GetNumNeighbourNodes(f);
-        }
-        // Zero if boundary
-        for (auto it : mf_velcond_) {
-          IdxFace f = it.GetIdx();
-          gf[f] = Vect(0);
-        }
-        // zero in z if 2D
-        if (var.Int["dim"] <= 2) {
-          for (auto f : m.Faces()) {
-            using Dir = typename M::Dir;
-            if (m.GetIndexFaces().GetDir(f) == Dir::k) {
-              gf[f] = Vect(0); // XXX: zero in z
-            }
-            gf[f][2] = 0.;
-          }
-        }
-      }
+    if (var.Int["enable_surftens"] && as_) {
+      // volume fration gradient on cells
+      FieldCell<Vect> gc = solver::Gradient(af, m); // [s]
+      // volume fration gradient on faces
+      FieldFace<Vect> gf = solver::Interpolate(gc, GetBcVz(), m); // [i]
 
       auto st = var.String["surftens"];
-      // implementation by tensor divergence
-      if (st == "div") {
+      if (st == "div") { // divergence of tensor (Hu,Adam 2001)
         auto stdiag = var.Double["stdiag"];
         for (auto c : m.Cells()) {
-          Vect r(0); 
+          Vect r(0);
           for (auto q : m.Nci(c)) {
             IdxFace f = m.GetNeighbourFace(c, q);
-            auto g = gf[f];
-            auto n = g / (g.norm() + 1e-6);  // inner normal
+            const auto& g = gf[f];
             // TODO: revise 1e-6
+            auto n = g / (g.norm() + 1e-6);  // inner normal
             auto s = m.GetOutwardSurface(c, q);
             r += s * (g.norm() * stdiag) - g * s.dot(n);
           }
-          r /= m.GetVolume(c);     
-          // here: r = stdiag*div(|g|I) - div(g g/|g|) 
+          r /= m.GetVolume(c);
+          // here: r = stdiag*div(|g|I) - div(g g/|g|)
           fc_force_[c] += r * fc_sig_[c];
         }
       } else if (st == "kn") {  // curvature * normal
@@ -1003,22 +941,11 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 
         ffk_.Reinit(m, 0);
         ff_sig_.Reinit(m, 0);
-        ff_sig_ = solver::Interpolate(fc_sig_, mfz, m);
+        ff_sig_ = solver::Interpolate(fc_sig_, GetBcSz(), m);
         // interpolate curvature
         for (auto f : m.Faces()) {
           IdxCell cm = m.GetNeighbourCell(f, 0);
           IdxCell cp = m.GetNeighbourCell(f, 1);
-          /*
-          if (!IsNan(fck[cm]) && !IsNan(fck[cp])) {
-            Scal wm = std::abs(ast[cp] - 0.5);
-            Scal wp = std::abs(ast[cm] - 0.5);
-            ffk_[f] = (fck[cm] * wm + fck[cp] * wp) / (wm + wp);
-          } else if (!IsNan(fck[cm])) {
-            ffk_[f] = fck[cm];
-          } else {
-            ffk_[f] = fck[cp];
-          }
-          */
           if (std::abs(ast[cm] - 0.5) < std::abs(ast[cp] - 0.5)) {
             ffk_[f] = fck[cm];
           } else {
