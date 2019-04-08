@@ -62,6 +62,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   Hydro(Vars&, const MyBlockInfo&, Par&) ;
   void Run() override;
+  void ReportStep();
+  // Issue sem.LoopBreak if abort conditions met
+  void CheckAbort(Sem& sem);
   M& GetMesh() { return m; }
 
  protected:
@@ -81,6 +84,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapFace<std::shared_ptr<solver::CondFace>> GetBcSz() const;
   void Dump(Sem& sem);
   void DumpTraj(bool dm);
+  // Calc rho, mu and force based on volume fraction
   void CalcMixture(const FieldCell<Scal>& vf);
   // Clips v to given range, uses const_cast
   void Clip(const FieldCell<Scal>& v, Scal min, Scal max);
@@ -513,7 +517,6 @@ void Hydro<M>::Init() {
   }
 
   if (sem.Nested("mixture")) {
-    // Init rho, mu and force based on volume fraction
     CalcMixture(fc_vf_);
   }
 
@@ -1487,44 +1490,14 @@ void Hydro<M>::Run() {
         int(st_.step) >= var.Int["max_step"]) {
       sem.LoopBreak();
     } else {
-      if (m.IsRoot()) { 
-        std::cout << std::fixed << std::setprecision(8)
-            << "STEP=" << st_.step 
-            << " t=" << st_.t
-            << " dt=" << st_.dt
-            << " ta=" << as_->GetTime()
-            << " dta=" << as_->GetTimeStep()
-            << std::endl;
-      }
-      nabort_ = 0.;
-      try {
-        CHECKNAN(as_->GetField(), true)
-        CHECKNAN(fs_->GetVelocity(), true)
-        CHECKNAN(fs_->GetPressure(), true)
-        // check abort TODO: revise,move
-        for (auto c : m.Cells()) {
-          if (fs_->GetVelocity()[c].sqrnorm() > sqr(var.Double["abortvel"])) {
-            std::stringstream g;
-            g << "abortvel exceeded at x=" << m.GetCenter(c);
-            throw std::runtime_error(g.str());
-          }
-        }
-      }
-      catch (const std::runtime_error& e) {
-        std::cout << e.what() << std::endl;
-        nabort_ += 1.;
-      }
-      m.Reduce(&nabort_, "sum");
-    }
-  }
-  if (sem("abort-check")) {
-    if (nabort_ != 0.) {
       if (m.IsRoot()) {
-        std::cout << "nabort_ = " << nabort_ << std::endl;
+        ReportStep();
       }
-      sem.LoopBreak();
     }
   }
+
+  CheckAbort(sem);
+
   if (sem("updatepar")) {
     Parse<M>(fs_->GetPar(), var);
     UpdateAdvectionPar();
@@ -1664,3 +1637,47 @@ void Hydro<M>::Run() {
   sem.LoopEnd();
 }
 
+template <class M>
+void Hydro<M>::ReportStep() {
+  std::cout << std::fixed << std::setprecision(8)
+      << "STEP=" << st_.step 
+      << " t=" << st_.t
+      << " dt=" << st_.dt
+      << " ta=" << as_->GetTime()
+      << " dta=" << as_->GetTimeStep()
+      << std::endl;
+}
+
+template <class M>
+void Hydro<M>::CheckAbort(Sem& sem) {
+  if (sem("abort-local")) {
+    nabort_ = 0.;
+    try {
+      CHECKNAN(as_->GetField(), true)
+      CHECKNAN(fs_->GetVelocity(), true)
+      CHECKNAN(fs_->GetPressure(), true)
+      // check abort TODO: revise,move
+      for (auto c : m.Cells()) {
+        if (fs_->GetVelocity()[c].sqrnorm() > sqr(var.Double["abortvel"])) {
+          std::stringstream g;
+          g << "abortvel exceeded at x=" << m.GetCenter(c);
+          throw std::runtime_error(g.str());
+        }
+      }
+    }
+    catch (const std::runtime_error& e) {
+      std::cout << e.what() << std::endl;
+      nabort_ += 1.;
+    }
+    m.Reduce(&nabort_, "sum");
+  }
+
+  if (sem("abort-reduce")) {
+    if (nabort_ != 0.) {
+      if (m.IsRoot()) {
+        std::cout << "nabort_ = " << nabort_ << std::endl;
+      }
+      sem.LoopBreak();
+    }
+  }
+}
