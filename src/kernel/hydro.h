@@ -62,9 +62,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   Hydro(Vars&, const MyBlockInfo&, Par&) ;
   void Run() override;
-  void ReportStep();
-  // Issue sem.LoopBreak if abort conditions met
-  void CheckAbort(Sem& sem);
   M& GetMesh() { return m; }
 
  protected:
@@ -90,6 +87,12 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void Clip(const FieldCell<Scal>& v, Scal min, Scal max);
   void CalcStat();
   void CalcDt();
+  void ReportStep();
+  // Issue sem.LoopBreak if abort conditions met
+  void CheckAbort(Sem& sem);
+  void StepFluid();
+  void StepAdvection();
+  void StepBubgen();
 
   using FS = solver::Simple<M>;
   using AST = solver::Tvd<M>; // advection TVD
@@ -1514,34 +1517,7 @@ void Hydro<M>::Run() {
   }
   if (var.Int["enable_fluid"]) {
     if (sem.Nested("fs-iters")) {
-      auto sn = m.GetSem("iter"); // sem nested
-      sn.LoopBegin();
-      if (sn.Nested("iter")) {
-        fs_->MakeIteration();
-      }
-      if (sn("reduce")) {
-        diff_ = fs_->GetError();
-        m.Reduce(&diff_, "max");
-      }
-      if (sn("report")) {
-        ++st_.iter;
-        var.Int["iter"] = st_.iter;
-        if (m.IsRoot()) {
-          std::cout << std::scientific << std::setprecision(16)
-              << ".....iter=" << fs_->GetIter()
-              << ", diff=" << diff_ << std::endl;
-        }
-      }
-      if (sn("convcheck")) {
-        assert(fs_->GetError() <= diff_);
-        auto it = fs_->GetIter();
-        if ((diff_ < var.Double["tol"] && (int)it >= var.Int["min_iter"]) ||
-            (int)it >= var.Int["max_iter"]) {
-          sn.LoopBreak();
-        }
-      }
-      // TODO: Suspender loop hangs if (probably) Nested is last
-      sn.LoopEnd();
+      StepFluid();
     }
   }
   if (sem.Nested("fs-finish")) {
@@ -1550,65 +1526,16 @@ void Hydro<M>::Run() {
 
   if (var.Int["enable_advection"]) {
     if (sem.Nested("as-steps")) {
-      auto sn = m.GetSem("steps"); // sem nested
-      sn.LoopBegin();
-      if (sn.Nested("start")) {
-        as_->StartStep();
-      }
-      if (sn.Nested("iter")) {
-        as_->MakeIteration();
-      }
-      if (sn.Nested("finish")) {
-        as_->FinishStep();
-      }
-      if (sn("report")) {
-        if (m.IsRoot()) {
-          std::cout << std::fixed << std::setprecision(8)
-              << ".....adv: t=" << as_->GetTime() 
-              << " dt=" << as_->GetTimeStep()
-              << std::endl;
-        }
-      }
-      if (sn("convcheck")) {
-        if (as_->GetTime() >= fs_->GetTime() - 0.5 * as_->GetTimeStep()) {
-          sn.LoopBreak();
-        }
-      }
-      sn.LoopEnd();
+      StepAdvection();
     }
     if (var.Int["clip_vf"]) {
       if (sem("as-clip")) {
         Clip(as_->GetField(), 0., 1.);
       }
     }
-    // XXX: adhoc bubble generation
     if (var.Int["enable_bubgen"]) {
-      Scal t0 = var.Double["bubgen_t0"];
-      Scal tper = var.Double["bubgen_per"];
-      bool bg = (st_.t > t0 && st_.t - bgt_ >= tper);
-      if (sem("as-bubgen-init")) {
-        if (bg) {
-          if (!bgf_) {
-            Vars vr;
-            vr.String.Set("init_vf", "list");
-            vr.String.Set("list_path", var.String["bubgen_path"]);
-            vr.Int.Set("dim", var.Int["dim"]);
-            vr.Int.Set("list_ls", var.Int["list_ls"]);
-            bgf_ = CreateInitU<M>(vr, m.IsRoot());
-          }
-          fc_vf_.Reinit(m, 0);
-          bgf_(fc_vf_, m);
-          m.Comm(&fc_vf_);
-        }
-      }
-      if (sem("as-bubgen-apply") && bg) {
-        if (bg) {
-          auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
-          for (auto c : m.AllCells()) {
-            u[c] = std::max(u[c], fc_vf_[c]);
-          }
-          bgt_ = st_.t;
-        }
+      if (sem.Nested("bubgen")) {
+        StepBubgen();
       }
     }
   }
@@ -1678,6 +1605,97 @@ void Hydro<M>::CheckAbort(Sem& sem) {
         std::cout << "nabort_ = " << nabort_ << std::endl;
       }
       sem.LoopBreak();
+    }
+  }
+}
+
+template <class M>
+void Hydro<M>::StepFluid() {
+  auto sem = m.GetSem("iter"); // sem nested
+  sem.LoopBegin();
+  if (sem.Nested("iter")) {
+    fs_->MakeIteration();
+  }
+  if (sem("reduce")) {
+    diff_ = fs_->GetError();
+    m.Reduce(&diff_, "max");
+  }
+  if (sem("report")) {
+    ++st_.iter;
+    var.Int["iter"] = st_.iter;
+    if (m.IsRoot()) {
+      std::cout << std::scientific << std::setprecision(16)
+          << ".....iter=" << fs_->GetIter()
+          << ", diff=" << diff_ << std::endl;
+    }
+  }
+  if (sem("convcheck")) {
+    assert(fs_->GetError() <= diff_);
+    auto it = fs_->GetIter();
+    if ((diff_ < var.Double["tol"] && (int)it >= var.Int["min_iter"]) ||
+        (int)it >= var.Int["max_iter"]) {
+      sem.LoopBreak();
+    }
+  }
+  // TODO: Suspender loop hangs if (probably) Nested is last
+  sem.LoopEnd();
+}
+
+template <class M>
+void Hydro<M>::StepAdvection() {
+  auto sem = m.GetSem("steps"); // sem nested
+  sem.LoopBegin();
+  if (sem.Nested("start")) {
+    as_->StartStep();
+  }
+  if (sem.Nested("iter")) {
+    as_->MakeIteration();
+  }
+  if (sem.Nested("finish")) {
+    as_->FinishStep();
+  }
+  if (sem("report")) {
+    if (m.IsRoot()) {
+      std::cout << std::fixed << std::setprecision(8)
+          << ".....adv: t=" << as_->GetTime() 
+          << " dt=" << as_->GetTimeStep()
+          << std::endl;
+    }
+  }
+  if (sem("convcheck")) {
+    if (as_->GetTime() >= fs_->GetTime() - 0.5 * as_->GetTimeStep()) {
+      sem.LoopBreak();
+    }
+  }
+  sem.LoopEnd();
+}
+
+template <class M>
+void Hydro<M>::StepBubgen() {
+  auto sem = m.GetSem("bubgen");
+  Scal t0 = var.Double["bubgen_t0"];
+  Scal tper = var.Double["bubgen_per"];
+  bool bg = (st_.t > t0 && st_.t - bgt_ >= tper);
+  if (bg) {
+    if (sem("as-bubgen-init")) {
+      if (!bgf_) {
+        Vars vr;
+        vr.String.Set("init_vf", "list");
+        vr.String.Set("list_path", var.String["bubgen_path"]);
+        vr.Int.Set("dim", var.Int["dim"]);
+        vr.Int.Set("list_ls", var.Int["list_ls"]);
+        bgf_ = CreateInitU<M>(vr, m.IsRoot());
+      }
+      fc_vf_.Reinit(m, 0);
+      bgf_(fc_vf_, m);
+      m.Comm(&fc_vf_);
+    }
+    if (sem("as-bubgen-apply")) {
+      auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
+      for (auto c : m.AllCells()) {
+        u[c] = std::max(u[c], fc_vf_[c]);
+      }
+      bgt_ = st_.t;
     }
   }
 }
