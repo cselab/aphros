@@ -38,10 +38,9 @@ class Suspender {
     // If all lower levels done, next stage.
     // If all stages on current level done, remove current level
     ~Sem();
-    // Returns true if current stage needs execution
-    // and advances stage counter
+    // Next() without nested calls
     bool operator()(std::string suff="" /*name suffix*/);
-    // Same as operator() but allows nested calls
+    // Next() with nested calls
     bool Nested(std::string suff="" /*name suffix*/);
     std::string GetName() const { return name_; }
     void LoopBegin();
@@ -50,6 +49,9 @@ class Suspender {
    private:
     Suspender& p; // parent
     std::string name_;
+    // Returns true if current stage needs execution
+    // and advances stage counter
+    bool Next(std::string suff="" /*name suffix*/);
   };
   friend Sem;
   // Intializes list with auxiliary counter (-1,-1), sets iterator to it
