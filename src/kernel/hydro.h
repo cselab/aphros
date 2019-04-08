@@ -1675,7 +1675,7 @@ void Hydro<M>::Run() {
       if (sn.Nested("start")) {
         as_->StartStep();
       }
-      if (sn("iter")) {
+      if (sn.Nested("iter")) {
         as_->MakeIteration();
       }
       if (sn.Nested("finish")) {
