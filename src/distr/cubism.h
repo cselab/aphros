@@ -843,10 +843,11 @@ auto Cubism<Par, KF>::GetGlobalBlock() const -> typename M::BlockCells {
 
 template <class Par, class KF>
 auto Cubism<Par, KF>::GetGlobalIndex() const -> typename M::IndexCells {
-  // TODO: revise, may cause allocation of data fields
+  // TODO: revise, relies on lightweight mesh,
+  //       may cause allocation of data fields otherwise
   Rect<Vect> dom(Vect(0), Vect(1));
   MIdx s = GetGlobalBlock().GetSize();
-  auto m = InitUniformMesh<M>(dom, MIdx(0), s, 0, true, s);
+  auto m = InitUniformMesh<M>(dom, MIdx(0), s, 0, true, s, 0);
   return m.GetIndexCells();
 }
 

@@ -17,10 +17,13 @@ M CreateMesh(const MyBlockInfo& bi) {
   Vect d1 = d0 + Vect(bs) * h;      // end coord
   Rect<Vect> d(d0, d1);
   MIdx gs(bi.gs);
-
   MIdx o = w * bs; // origin index
-  
-  return InitUniformMesh<M>(d, o, bs, hl, bi.isroot, gs);
+
+  const int idm = 1024;
+  // TODO: revise with the maximum block index
+  int id = w[2] * idm * idm + w[1] * idm + w[0]; // unique id
+
+  return InitUniformMesh<M>(d, o, bs, hl, bi.isroot, gs, id);
 }
 
 // Abstract Kernel aware of Mesh. Dependency of DistrMesh.

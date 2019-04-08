@@ -39,7 +39,19 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m);
 // mfvel: conditions for velocity and pressure
 // mfvf: conditions for volume fraction
 template <class M>
-void GetFluidBc(const Vars& var, const M& m,
-                MapFace<std::shared_ptr<solver::CondFaceFluid>>& mfvel,
-                MapFace<std::shared_ptr<solver::CondFace>>& mfvf);
+void GetFluidFaceCond(
+    const Vars& var, const M& m,
+    MapFace<std::shared_ptr<solver::CondFaceFluid>>& mfvel,
+    MapFace<std::shared_ptr<solver::CondFace>>& mfvf);
 
+
+// Returns fluid cell conditions.
+// Output:
+// mcvel: output
+// pdist, pdistmin: temporary buffer for reduction, 
+// TODO: revise, allow temporary buffers in functions (attached to m)
+template <class M>
+void GetFluidCellCond(
+    const Vars& var, M& m,
+    MapCell<std::shared_ptr<solver::CondCellFluid>>& mcvel,
+    std::pair<typename M::Scal, int>& pdist);

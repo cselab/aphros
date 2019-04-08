@@ -72,6 +72,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
  private:
   void Init();
+  void InitFluid();
+  void InitAdvection();
+  void InitStat();
   void InitVort();
   // zero-gradient bc vect
   MapFace<std::shared_ptr<solver::CondFace>> GetBcVz() const;
@@ -171,6 +174,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldFace<Scal> ffk_;  // curvature on faces
   MapFace<std::shared_ptr<solver::CondFace>> mf_cond_;
   MapFace<std::shared_ptr<solver::CondFaceFluid>> mf_velcond_;
+  MapCell<std::shared_ptr<solver::CondCell>> mc_cond_;
+  MapCell<std::shared_ptr<solver::CondCellFluid>> mc_velcond_;
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
   std::unique_ptr<TR> tr_; // color tracker
@@ -182,7 +187,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_smvfst_; // smoothed volume fraction for surface tension
   FieldFace<Scal> ff_smvf_; // interpolated fc_smvf_
   Scal diff_;  // convergence indicator
-  Scal pdist_, pdistmin_; // distance to pfixed cell
+  std::pair<Scal, int> pdist_; // distance to pfixed cell
 
   FieldCell<Scal> fc_sig_; // surface tension sigma
   FieldFace<Scal> ff_sig_; // surface tension sigma
@@ -361,19 +366,120 @@ void Hydro<M>::InitVort() {
 }
 
 template <class M>
-void Hydro<M>::Init() {
-  auto sem = m.GetSem("init");
-  if (sem("pfixed-reduce")) {
-    if (auto* p = var.Double("pfixed")) {
-      Vect x(var.Vect["pfixed_x"]);
-      // Find cell nearest to pfixed_x
-      IdxCell c = m.FindNearestCell(x);
-      // TODO: add reduce minloc and remove .norm()
-      pdist_ = m.GetCenter(c).dist(x) + MIdx(bi_.index).norm() * 1e-12;
-      pdistmin_ = pdist_;
-      m.Reduce(&pdistmin_, "min");
+void Hydro<M>::InitFluid() {
+  auto p = std::make_shared<typename FS::Par>();
+  Parse<M>(p.get(), var);
+
+  fcvm_ = fc_vel_;
+
+
+  // XXX ahoc: young velocity
+  if (var.Int["youngbc"]) {
+    fcyv_.Reinit(m);
+    InitYoung();
+    for (auto c : m.Cells()) {
+      Vect x = m.GetCenter(c);
+      fcyv_[c] = GetYoungVel(x);
     }
   }
+
+  fs_.reset(new FS(
+        m, fc_vel_, mf_velcond_, mc_velcond_, 
+        &fc_rho_, &fc_mu_, &fc_force_, &ffbp_,
+        &fc_src_, &fc_src_, 0., st_.dt, p));
+  // TODO: check fc_src_ for Simple()
+
+  fcbc_ = GetBcField(mf_velcond_, m);
+}
+
+template <class M>
+void Hydro<M>::InitAdvection() {
+  std::string as = var.String["advection_solver"];
+  if (as == "tvd") {
+    auto p = std::make_shared<typename AST::Par>();
+    Parse<M>(p.get(), var);
+    as_.reset(new AST(
+          m, fc_vf_, mf_cond_, 
+          &fs_->GetVolumeFlux(solver::Layers::time_curr),
+          &fc_src_, 0., st_.dta, p));
+  } else if (as == "vof") {
+    auto p = std::make_shared<typename ASV::Par>();
+    Parse<M>(p.get(), var);
+    p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
+    as_.reset(new ASV(
+          m, fc_vf_, mf_cond_, 
+          &fs_->GetVolumeFlux(solver::Layers::time_curr),
+          &fc_src_, 0., st_.dta, p));
+  } else {
+    throw std::runtime_error("Unknown advection_solver=" + as);
+  }
+}
+
+template <class M>
+void Hydro<M>::InitStat() {
+  if (IsRoot()) {
+
+    // Stat: var.Double[p] with name n
+    /*
+    auto on = [this](std::string n, std::string p) {
+      return std::make_shared<output::OutScalFunc<Scal>>(
+          n, [&,p](){ return var.Double[p]; });
+    };
+    */
+
+    // Stat: *p with name n
+    auto op = [this](std::string n,  Scal* p) {
+      return std::make_shared<output::OutScalFunc<Scal>>(
+          n, [p](){ return *p; });
+    };
+
+    auto& s = st_;
+    output::VOut con = {
+        op("t", &s.t),
+        std::make_shared<output::OutScalFunc<int>>(
+            "iter", [this](){ return st_.iter; }),
+        op("dt", &s.dt),
+        op("dta", &s.dta),
+        op("diff", &diff_),
+        op("m1", &s.m1),
+        op("m2", &s.m2),
+        op("ekin", &s.ekin),
+        op("c1x", &s.c1[0]), op("c1y", &s.c1[1]), op("c1z", &s.c1[2]),
+        op("c2x", &s.c2[0]), op("c2y", &s.c2[1]), op("c2z", &s.c2[2]),
+        op("vc1x", &s.vc1[0]), op("vc1y", &s.vc1[1]), op("vc1z", &s.vc1[2]),
+        op("vc2x", &s.vc2[0]), op("vc2y", &s.vc2[1]), op("vc2z", &s.vc2[2]),
+        op("v1x", &s.v1[0]), op("v1y", &s.v1[1]), op("v1z", &s.v1[2]),
+        op("v2x", &s.v2[0]), op("v2y", &s.v2[1]), op("v2z", &s.v2[2]),
+        op("meshposx", &s.meshpos[0]),
+        op("meshvelx", &s.meshvel[0]),
+        op("meshvelz", &s.meshvel[2]),
+    };
+    if (var.Int["statbox"]) {
+      con.push_back(op("boxomm", &s.boxomm));
+      con.push_back(op("boxomm2", &s.boxomm2));
+      con.push_back(op("vommz", &s.vomm[2]));
+    }
+    if (var.Int["statvel"]) {
+      con.push_back(op("vlmx", &s.vlm[0]));
+      con.push_back(op("vlmy", &s.vlm[1]));
+      con.push_back(op("vlmz", &s.vlm[2]));
+      con.push_back(op("vl2x", &s.vl2[0]));
+      con.push_back(op("vl2y", &s.vl2[1]));
+      con.push_back(op("vl2z", &s.vl2[2]));
+      con.push_back(op("p0", &s.p0));
+      con.push_back(op("p1", &s.p1));
+      con.push_back(op("pd", &s.pd));
+    }
+    if (var.Int["enstrophy"]) {
+      con.push_back(op("enstr", &s.enstr));
+    }
+    ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
+  }
+}
+
+template <class M>
+void Hydro<M>::Init() {
+  auto sem = m.GetSem("init");
 
   if (sem("fields")) {
     fc_src_.Reinit(m, 0.);
@@ -403,8 +509,8 @@ void Hydro<M>::Init() {
       std::cout << "surface tension dt=" << GetStDt() << std::endl;
     }
 
-
-    GetFluidBc(var, m, mf_velcond_, mf_cond_);
+    // boundary conditions
+    GetFluidFaceCond(var, m, mf_velcond_, mf_cond_);
   }
 
   if (sem.Nested("initvort")) {
@@ -433,6 +539,10 @@ void Hydro<M>::Init() {
     }
   }
 
+  if (sem.Nested("getfluidcellcond")) {
+    GetFluidCellCond(var, m, mc_velcond_, pdist_);
+  }
+
   if (sem("solv")) {
     // time step
     const Scal dt = var.Double["dt0"];
@@ -441,118 +551,10 @@ void Hydro<M>::Init() {
     var.Double.Set("dt", st_.dt);
     var.Double.Set("dta", st_.dta);
 
-    // cell conditions for advection
-    // (empty)
-    MapCell<std::shared_ptr<solver::CondCell>> mc_cond;
-    // cell conditions for fluid
-    MapCell<std::shared_ptr<solver::CondCellFluid>> mc_velcond;
-    {
-      // Fix pressure at one cell
-      if (auto* p = var.Double("pfixed")) {
-        Vect x(var.Vect["pfixed_x"]);
-        IdxCell c = m.FindNearestCell(x);
-        if (pdist_ == pdistmin_) {
-          std::cout << "pfixed bi=" << MIdx(bi_.index) 
-              << " dist=" << pdist_ << std::endl;
-          mc_velcond[c] = std::make_shared
-              <solver::fluid_condition::GivenPressureFixed<M>>(*p);
-        }
-      }
-    }
-    // exclude cells
-    {
-      int n = -1;
-      const int nmax = 100;
-      while (true) {
-        ++n;
-        std::string k = "cellbox" + std::to_string(n);
-        if (auto p = var.String(k)) {
-          // set boundary conditions on faces of box (a,b) 
-          // normal to d with outer normal towards (b-a)[d]
-          Vect a(var.Vect[k + "_a"]); 
-          Vect b(var.Vect[k + "_b"]);
-          Rect<Vect> r(a, b);
-          Vect h = m.GetCellSize();
-          auto& cb = m.GetInBlockCells();
-          auto& ci = m.GetIndexCells();
-          // round to faces
-          a = Vect(MIdx((a + h * 0.5) / h)) * h;
-          b = Vect(MIdx((b + h * 0.5) / h)) * h;
-          // indices
-          MIdx wa(a / h);
-          MIdx wb(b / h);
-          // box of valid indices
-          MIdx w0 = cb.GetBegin();
-          MIdx w1 = cb.GetEnd();
-          // clip (a,b) to valid indices
-          wa = wa.clip(w0, w1);
-          wb = wb.clip(w0, w1);
-          // size of local block
-          MIdx ws = wb - wa;
-          if (ws.prod() == 0) {
-            continue;
-          }
-          typename M::BlockCells bb(wa, ws);
-          for (auto w : bb) {
-            IdxCell c = ci.GetIdx(w);
-            mc_velcond[c] = std::make_shared
-                <solver::fluid_condition::
-                GivenVelocityAndPressureFixed<M>>(Vect(0), 0.);
-          }
-        } else if (n > nmax) { 
-          break;
-        }
-      }
-    }
-    // Init fluid solver
-    {
-      auto p = std::make_shared<typename FS::Par>();
-      Parse<M>(p.get(), var);
 
-      fcvm_ = fc_vel_;
+    InitFluid();
 
-
-      // XXX ahoc: young velocity
-      if (var.Int["youngbc"]) {
-        fcyv_.Reinit(m);
-        InitYoung();
-        for (auto c : m.Cells()) {
-          Vect x = m.GetCenter(c);
-          fcyv_[c] = GetYoungVel(x);
-        }
-      }
-
-      fs_.reset(new FS(
-            m, fc_vel_, mf_velcond_, mc_velcond, 
-            &fc_rho_, &fc_mu_, &fc_force_, &ffbp_,
-            &fc_src_, &fc_src_, 0., st_.dt, p));
-      // TODO: check fc_src_ for Simple()
-
-      fcbc_ = GetBcField(mf_velcond_, m);
-    }
-
-    // Init advection solver
-    {
-      std::string as = var.String["advection_solver"];
-      if (as == "tvd") {
-        auto p = std::make_shared<typename AST::Par>();
-        Parse<M>(p.get(), var);
-        as_.reset(new AST(
-              m, fc_vf_, mf_cond_, 
-              &fs_->GetVolumeFlux(solver::Layers::time_curr),
-              &fc_src_, 0., st_.dta, p));
-      } else if (as == "vof") {
-        auto p = std::make_shared<typename ASV::Par>();
-        Parse<M>(p.get(), var);
-        p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
-        as_.reset(new ASV(
-              m, fc_vf_, mf_cond_, 
-              &fs_->GetVolumeFlux(solver::Layers::time_curr),
-              &fc_src_, 0., st_.dta, p));
-      } else {
-        throw std::runtime_error("Unknown advection_solver=" + as);
-      }
-    }
+    InitAdvection();
 
     // Init color tracker
     if (var.Int["enable_color"] && as_) {
@@ -570,63 +572,7 @@ void Hydro<M>::Init() {
     st_.t = fs_->GetTime();
     var.Double.Set("t", st_.t);
 
-    // Stat: var.Double[p] with name n
-    /*
-    auto on = [this](std::string n, std::string p) {
-      return std::make_shared<output::OutScalFunc<Scal>>(
-          n, [&,p](){ return var.Double[p]; });
-    };
-    */
-
-    // Stat: *p with name n
-    auto op = [this](std::string n,  Scal* p) {
-      return std::make_shared<output::OutScalFunc<Scal>>(
-          n, [p](){ return *p; });
-    };
-
-    if (IsRoot()) {
-      auto& s = st_;
-      output::VOut con = {
-          op("t", &s.t),
-          std::make_shared<output::OutScalFunc<int>>(
-              "iter", [this](){ return st_.iter; }),
-          op("dt", &s.dt),
-          op("dta", &s.dta),
-          op("diff", &diff_),
-          op("m1", &s.m1),
-          op("m2", &s.m2),
-          op("ekin", &s.ekin),
-          op("c1x", &s.c1[0]), op("c1y", &s.c1[1]), op("c1z", &s.c1[2]),
-          op("c2x", &s.c2[0]), op("c2y", &s.c2[1]), op("c2z", &s.c2[2]),
-          op("vc1x", &s.vc1[0]), op("vc1y", &s.vc1[1]), op("vc1z", &s.vc1[2]),
-          op("vc2x", &s.vc2[0]), op("vc2y", &s.vc2[1]), op("vc2z", &s.vc2[2]),
-          op("v1x", &s.v1[0]), op("v1y", &s.v1[1]), op("v1z", &s.v1[2]),
-          op("v2x", &s.v2[0]), op("v2y", &s.v2[1]), op("v2z", &s.v2[2]),
-          op("meshposx", &s.meshpos[0]),
-          op("meshvelx", &s.meshvel[0]),
-          op("meshvelz", &s.meshvel[2]),
-      };
-      if (var.Int["statbox"]) {
-        con.push_back(op("boxomm", &s.boxomm));
-        con.push_back(op("boxomm2", &s.boxomm2));
-        con.push_back(op("vommz", &s.vomm[2]));
-      }
-      if (var.Int["statvel"]) {
-        con.push_back(op("vlmx", &s.vlm[0]));
-        con.push_back(op("vlmy", &s.vlm[1]));
-        con.push_back(op("vlmz", &s.vlm[2]));
-        con.push_back(op("vl2x", &s.vl2[0]));
-        con.push_back(op("vl2y", &s.vl2[1]));
-        con.push_back(op("vl2z", &s.vl2[2]));
-        con.push_back(op("p0", &s.p0));
-        con.push_back(op("p1", &s.p1));
-        con.push_back(op("pd", &s.pd));
-      }
-      if (var.Int["enstrophy"]) {
-        con.push_back(op("enstr", &s.enstr));
-      }
-      ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
-    }
+    InitStat();
 
     ParseEvents();
   }
