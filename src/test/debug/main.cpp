@@ -33,7 +33,7 @@ M GetMesh() {
   MIdx b(0, 0, 0); // lower index
   MIdx s(2, 2, 1);    // size in cells
   int hl = 0;         // halos 
-  return InitUniformMesh<M>(dom, b, s, hl, true, s, 0);
+  return InitUniformMesh<M>(dom, b, s, hl, true, true, s, 0);
 }
 
 void TestRange() {

@@ -47,7 +47,8 @@ class MeshStructured {
   // isroot: root block
   // gs: global mesh size
   // id: unique id
-  MeshStructured(MIdx b, MIdx cs, Rect<Vect> dom, int hl, bool isroot, MIdx gs, int id);
+  MeshStructured(MIdx b, MIdx cs, Rect<Vect> dom, int hl, 
+                 bool isroot, bool islead, MIdx gs, int id);
   MIdx GetGlobalSize() const {
     return gs_;
   }
@@ -335,6 +336,7 @@ class MeshStructured {
     return GetSurface(f) / GetArea(f);
   }
   bool IsRoot() const { return isroot_; }
+  bool IsLead() const { return islead_; }
 
   // CheckNan flag
   bool CN() const { return checknan_; }
@@ -537,6 +539,7 @@ class MeshStructured {
   const IndexNodes bnr_;
 
   const bool isroot_;
+  const bool islead_;
   const MIdx mb_, me_; // begin,end of bci_
   const Rect<Vect> dom_; // domain covering bci_
   const Vect h_;
@@ -579,7 +582,8 @@ class MeshStructured {
 
 template <class _Scal, size_t _dim>
 MeshStructured<_Scal, _dim>::MeshStructured(
-    MIdx b, MIdx cs, Rect<Vect> dom, int hl, bool isroot, MIdx gs, int id)
+    MIdx b, MIdx cs, Rect<Vect> dom, int hl, bool isroot, bool islead,
+    MIdx gs, int id)
       // inner
     : bci_(b, cs)
     , bfi_(bci_.GetBegin(), bci_.GetSize())
@@ -597,6 +601,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     , bfr_(bcr_.GetBegin(), bcr_.GetSize())
     , bnr_(bcr_.GetBegin(), bcr_.GetSize())
     , isroot_(isroot)
+    , islead_(islead)
     , mb_(bci_.GetBegin())
     , me_(bci_.GetEnd())
     , dom_(dom)
@@ -759,21 +764,22 @@ MeshStructured<_Scal, _dim>::MeshStructured(
 // s: number of inner cells in each direction
 // hl: number of halo layers
 // isroot: root block
+// islead: lead block
 // gs: global mesh size
 // id: unique id
 template <class M>
 M InitUniformMesh(Rect<typename M::Vect> domain,
                      typename M::MIdx begin,
-                     typename M::MIdx s, int hl, bool isroot,
+                     typename M::MIdx s, int hl, bool isroot, bool islead,
                      typename M::MIdx gs, int id) {
-  return M(begin, s, domain, hl, isroot, gs, id);
+  return M(begin, s, domain, hl, isroot, islead, gs, id);
 }
 
 template <class M>
 M InitUniformMesh(const Rect<typename M::Vect>& domain,
                   typename M::MIdx s, typename M::MIdx gs, int id) {
   using MIdx = typename M::MIdx;
-  return InitUniformMesh<M>(domain, MIdx(0), s, true, gs, id);
+  return InitUniformMesh<M>(domain, MIdx(0), s, true, true, gs, id);
 }
 
 

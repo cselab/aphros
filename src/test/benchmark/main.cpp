@@ -29,7 +29,7 @@ Mesh GetMesh(MIdx s /*size in cells*/) {
   Rect<Vect> dom(Vect(0.1, 0.2, 0.1), Vect(1.1, 1.2, 1.3));
   MIdx b(-2, -3, -4); // lower index
   int hl = 2;         // halos 
-  return InitUniformMesh<Mesh>(dom, b, s, hl, true, s, 0);
+  return InitUniformMesh<Mesh>(dom, b, s, hl, true, true, s, 0);
 }
 
 class TimerMesh : public Timer {

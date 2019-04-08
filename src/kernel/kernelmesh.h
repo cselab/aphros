@@ -23,7 +23,7 @@ M CreateMesh(const MyBlockInfo& bi) {
   // TODO: revise with the maximum block index
   int id = w[2] * idm * idm + w[1] * idm + w[0]; // unique id
 
-  return InitUniformMesh<M>(d, o, bs, hl, bi.isroot, gs, id);
+  return InitUniformMesh<M>(d, o, bs, hl, bi.isroot, bi.islead, gs, id);
 }
 
 // Abstract Kernel aware of Mesh. Dependency of DistrMesh.

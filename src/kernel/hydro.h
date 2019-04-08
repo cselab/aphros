@@ -67,8 +67,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using P::var;
   using P::bi_;
   using P::m;
-  using P::IsRoot;
-  using P::IsLead;
 
  private:
   void Init();
@@ -417,7 +415,7 @@ void Hydro<M>::InitAdvection() {
 
 template <class M>
 void Hydro<M>::InitStat() {
-  if (IsRoot()) {
+  if (m.IsRoot()) {
 
     // Stat: var.Double[p] with name n
     /*
@@ -887,7 +885,7 @@ void Hydro<M>::ParseEvents() {
     ++n;
   }
 
-  if (IsRoot()) {
+  if (m.IsRoot()) {
     std::cout << "Found events: \n=====" << std::endl;
     for (auto p : ev_) {
       Event& e = p.second;
@@ -914,18 +912,18 @@ void Hydro<M>::ExecEvents() {
     std::string a = e.arg;
 
     if (st_.t >= e.t) {
-      if (IsRoot()) {
+      if (m.IsRoot()) {
         std::cout << std::fixed << std::setprecision(8)
             << "Event at t=" << e.t << ": " 
             << c << " " << a << std::endl;
       }
       if (c == "echo") {
-        if (IsRoot()) {
+        if (m.IsRoot()) {
           std::cout << a << std::endl;
         }
       } else if (c == "set") {
         Parser p(var);
-        if (IsLead()) {
+        if (m.IsLead()) {
           p.Run(c + " " + a);
         }
       } else {
@@ -1276,7 +1274,7 @@ template <class M>
 void Hydro<M>::Dump(Sem& sem) {
   if (sem("dump")) {
     if (dumper_.Try(st_.t, st_.dt)) {
-      if (IsRoot()) {
+      if (m.IsRoot()) {
         dumper_.Report();
       }
 
@@ -1646,7 +1644,7 @@ void Hydro<M>::Run() {
       if (sn("report")) {
         ++st_.iter;
         var.Int["iter"] = st_.iter;
-        if (IsRoot()) {
+        if (m.IsRoot()) {
           std::cout << std::scientific << std::setprecision(16)
               << ".....iter=" << fs_->GetIter()
               << ", diff=" << diff_ << std::endl;
@@ -1682,7 +1680,7 @@ void Hydro<M>::Run() {
         as_->FinishStep();
       }
       if (sn("report")) {
-        if (IsRoot()) {
+        if (m.IsRoot()) {
           std::cout << std::fixed << std::setprecision(8)
               << ".....adv: t=" << as_->GetTime() 
               << " dt=" << as_->GetTimeStep()
@@ -1745,7 +1743,7 @@ void Hydro<M>::Run() {
   Dump(sem);
 
   if (sem("dumpstat")) {
-    if (IsRoot()) {
+    if (m.IsRoot()) {
       ost_->Write(0., "");
     }
   }
