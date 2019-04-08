@@ -88,7 +88,7 @@ void TestMesh() {
   int hl = 2;         // halos 
   Vect doms = dom.GetDimensions();
   Vect h = dom.GetDimensions() / Vect(s);
-  M m = InitUniformMesh<M>(dom, b, s, hl, true, s, 0);
+  M m = InitUniformMesh<M>(dom, b, s, hl, true, true, s, 0);
 
   // Total volume
   Scal v = 0.;
@@ -185,7 +185,7 @@ int main() {
     MIdx b(1, 1, 1); // lower index
     MIdx s(2, 2, 2);    // size in cells
     int hl = 0;         // halos 
-    M m = InitUniformMesh<M>(dom, b, s, hl, true, s, 0);
+    M m = InitUniformMesh<M>(dom, b, s, hl, true, true, s, 0);
 
     std::cout << "m.GetAllBlockCells()" << std::endl;
     auto bca = m.GetAllBlockCells();

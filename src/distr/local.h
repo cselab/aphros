@@ -93,7 +93,7 @@ auto Local<KF>::CreateMesh(MIdx bs, MIdx b, MIdx p, int /*es*/, Scal ext) -> M {
     << " h=" << h
     << std::endl;
 
-  return InitUniformMesh<M>(d, o, mm, 0, true, mm, 0);
+  return InitUniformMesh<M>(d, o, mm, 0, true, true, mm, 0);
 }
 
 template <class KF>

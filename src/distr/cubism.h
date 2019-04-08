@@ -847,7 +847,7 @@ auto Cubism<Par, KF>::GetGlobalIndex() const -> typename M::IndexCells {
   //       may cause allocation of data fields otherwise
   Rect<Vect> dom(Vect(0), Vect(1));
   MIdx s = GetGlobalBlock().GetSize();
-  auto m = InitUniformMesh<M>(dom, MIdx(0), s, 0, true, s, 0);
+  auto m = InitUniformMesh<M>(dom, MIdx(0), s, 0, true, true, s, 0);
   return m.GetIndexCells();
 }
 
