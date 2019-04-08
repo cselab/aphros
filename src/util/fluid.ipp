@@ -264,9 +264,10 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
 }
 
 template <class M>
-void GetFluidBc(const Vars& var, const M& m,
-                MapFace<std::shared_ptr<solver::CondFaceFluid>>& mfvel,
-                MapFace<std::shared_ptr<solver::CondFace>>& mfvf) {
+void GetFluidFaceCond(
+    const Vars& var, const M& m,
+    MapFace<std::shared_ptr<solver::CondFaceFluid>>& mfvel,
+    MapFace<std::shared_ptr<solver::CondFace>>& mfvf) {
   using Dir = typename M::Dir;
   using MIdx = typename M::MIdx;
   using Scal = typename M::Scal;
@@ -474,6 +475,86 @@ void GetFluidBc(const Vars& var, const M& m,
         break;
       }
       ++n;
+    }
+  }
+}
+
+template <class M>
+void GetFluidCellCond(
+    const Vars& var, M& m,
+    MapCell<std::shared_ptr<solver::CondCellFluid>>& mcvel,
+    std::pair<typename M::Scal, int>& pdist) {
+  using Vect = typename M::Vect;
+  using MIdx = typename M::MIdx;
+
+  auto sem = m.GetSem(__func__);
+  if (sem("reduce")) {
+    if (auto* p = var.Double("pfixed")) {
+      Vect x(var.Vect["pfixed_x"]);
+      // Find cell nearest to pfixed_x
+      IdxCell c = m.FindNearestCell(x);
+      pdist.first = m.GetCenter(c).dist(x);
+      pdist.second = m.GetId();
+      m.Reduce(std::make_shared<typename M::OpMinloc>(&pdist));
+    }
+  }
+
+  if (sem("set")) {
+    // Fix pressure at one cell
+    if (auto* p = var.Double("pfixed")) {
+      if (pdist.second == m.GetId()) {
+        Vect x(var.Vect["pfixed_x"]);
+        IdxCell c = m.FindNearestCell(x);
+        mcvel[c] = std::make_shared
+            <solver::fluid_condition::GivenPressureFixed<M>>(*p);
+        std::cout 
+            << "pfixed id=" << pdist.second 
+            << " dist=" << pdist.first << std::endl;
+      }
+    }
+
+    // exclude cells
+    int n = -1;
+    const int nmax = 100;
+    while (true) {
+      ++n;
+      std::string k = "cellbox" + std::to_string(n);
+      if (auto p = var.String(k)) {
+        // set boundary conditions on faces of box (a,b) 
+        // normal to d with outer normal towards (b-a)[d]
+        Vect a(var.Vect[k + "_a"]); 
+        Vect b(var.Vect[k + "_b"]);
+        Rect<Vect> r(a, b);
+        Vect h = m.GetCellSize();
+        auto& cb = m.GetInBlockCells();
+        auto& ci = m.GetIndexCells();
+        // round to faces
+        a = Vect(MIdx((a + h * 0.5) / h)) * h;
+        b = Vect(MIdx((b + h * 0.5) / h)) * h;
+        // indices
+        MIdx wa(a / h);
+        MIdx wb(b / h);
+        // box of valid indices
+        MIdx w0 = cb.GetBegin();
+        MIdx w1 = cb.GetEnd();
+        // clip (a,b) to valid indices
+        wa = wa.clip(w0, w1);
+        wb = wb.clip(w0, w1);
+        // size of local block
+        MIdx ws = wb - wa;
+        if (ws.prod() == 0) {
+          continue;
+        }
+        typename M::BlockCells bb(wa, ws);
+        for (auto w : bb) {
+          IdxCell c = ci.GetIdx(w);
+          mcvel[c] = std::make_shared
+              <solver::fluid_condition::
+              GivenVelocityAndPressureFixed<M>>(Vect(0), 0.);
+        }
+      } else if (n > nmax) { 
+        break;
+      }
     }
   }
 }

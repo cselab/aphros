@@ -46,9 +46,13 @@ class MeshStructured {
   // hl: halo cells from each side
   // isroot: root block
   // gs: global mesh size
-  MeshStructured(MIdx b, MIdx cs, Rect<Vect> dom, int hl, bool isroot, MIdx gs);
+  // id: unique id
+  MeshStructured(MIdx b, MIdx cs, Rect<Vect> dom, int hl, bool isroot, MIdx gs, int id);
   MIdx GetGlobalSize() const {
     return gs_;
+  }
+  int GetId() const {
+    return id_;
   }
   Vect GetGlobalLength() const {
     return gl_;
@@ -539,6 +543,7 @@ class MeshStructured {
   const Vect hh_; // h_/2
   const Scal vol_;
   const MIdx gs_;  // global mesh size
+  const int id_;   // unique id
   const Vect gl_;  // global domain length
   bool checknan_; // CheckNan flag
   std::array<Vect, dim> vs_; // surface vectors
@@ -574,7 +579,7 @@ class MeshStructured {
 
 template <class _Scal, size_t _dim>
 MeshStructured<_Scal, _dim>::MeshStructured(
-    MIdx b, MIdx cs, Rect<Vect> dom, int hl, bool isroot, MIdx gs)
+    MIdx b, MIdx cs, Rect<Vect> dom, int hl, bool isroot, MIdx gs, int id)
       // inner
     : bci_(b, cs)
     , bfi_(bci_.GetBegin(), bci_.GetSize())
@@ -599,6 +604,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     , hh_(h_ * 0.5)
     , vol_(h_.prod())
     , gs_(gs)
+    , id_(id)
     , gl_(Vect(gs) * h_)
     , checknan_(false)
 {
@@ -754,19 +760,20 @@ MeshStructured<_Scal, _dim>::MeshStructured(
 // hl: number of halo layers
 // isroot: root block
 // gs: global mesh size
+// id: unique id
 template <class M>
 M InitUniformMesh(Rect<typename M::Vect> domain,
                      typename M::MIdx begin,
                      typename M::MIdx s, int hl, bool isroot,
-                     typename M::MIdx gs) {
-  return M(begin, s, domain, hl, isroot, gs);
+                     typename M::MIdx gs, int id) {
+  return M(begin, s, domain, hl, isroot, gs, id);
 }
 
 template <class M>
 M InitUniformMesh(const Rect<typename M::Vect>& domain,
-                  typename M::MIdx s, typename M::MIdx gs) {
+                  typename M::MIdx s, typename M::MIdx gs, int id) {
   using MIdx = typename M::MIdx;
-  return InitUniformMesh<M>(domain, MIdx(0), s, true, gs);
+  return InitUniformMesh<M>(domain, MIdx(0), s, true, gs, id);
 }
 
 

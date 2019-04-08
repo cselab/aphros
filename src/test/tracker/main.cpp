@@ -34,7 +34,7 @@ M GetMesh() {
   MIdx b(0, 0, 0); // lower index
   MIdx s(10, 10, 10);    // size in cells
   int hl = 2;         // halos 
-  return InitUniformMesh<M>(dom, b, s, hl, true, MIdx(20, 20, 20));
+  return InitUniformMesh<M>(dom, b, s, hl, true, MIdx(20, 20, 20), 0);
 }
 
 void TestAvg() {
