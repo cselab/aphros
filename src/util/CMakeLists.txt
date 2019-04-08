@@ -4,3 +4,7 @@ add_library(sysinfo sysinfo.cpp)
 set(T "utilfluid")
 add_library(${T} fluid.cpp)
 target_link_libraries(${T} vars)
+
+set(T "events")
+add_library(${T} events.cpp)
+target_link_libraries(${T} vars parser)

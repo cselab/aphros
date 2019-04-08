@@ -44,6 +44,7 @@
 #include "young/young.h"
 #include "solver/pois.h"
 #include "util/fluid.h"
+#include "util/events.h"
 
 class GPar {};
 
@@ -85,17 +86,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void Clip(const FieldCell<Scal>& v, Scal min, Scal max);
   void CalcStat();
   void CalcDt();
-
-  struct Event {
-    double t;
-    std::string cmd;
-    std::string arg;
-  };
-  std::map<std::string, Event> ev_;
-  // Parse events from var.String and put to ev_
-  void ParseEvents();
-  // Exec events due and remove from ev_
-  void ExecEvents();
 
   using FS = solver::Simple<M>;
   using AST = solver::Tvd<M>; // advection TVD
@@ -301,6 +291,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Dumper dumper_;
   Dumper dmptraj_; // dumper for traj
   Dumper dmptrep_; // dumper for timer report
+  Events events_;  // events from var
 };
 
 template <class M>
@@ -572,7 +563,7 @@ void Hydro<M>::Init() {
 
     InitStat();
 
-    ParseEvents();
+    events_.Parse();
   }
 }
 
@@ -583,6 +574,7 @@ Hydro<M>::Hydro(Vars& var, const MyBlockInfo& bi, Par& par)
     , dumper_(var, "dump_field_")
     , dmptraj_(var, "dump_traj_")
     , dmptrep_(var, "dump_trep_")
+    , events_(var, m.IsRoot(), m.IsLead())
 {}
 
 template <class M>
@@ -853,89 +845,6 @@ void Hydro<M>::CalcDt() {
     var.Double["dta"] = st_.dta;
   }
 }
-
-template <class M>
-void Hydro<M>::ParseEvents() {
-  // Check at least first nmax indices and all contiguous
-  int n = 0;
-  const int nmax = 100;
-  while (true) {
-    std::string k = "ev" + std::to_string(n);
-    if (auto p = var.String(k)) {
-      Event e;
-      std::stringstream b(*p); // buf
-      b >> std::skipws;
-
-      // format: <time> <cmd> <arg>
-      b >> e.t;
-      b >> e.cmd;
-
-      char c;
-      // Read first non-ws character
-      b >> c;
-      // Read remaining line
-      std::string s;
-      std::getline(b, s);
-      e.arg = c + s;
-
-      ev_.emplace(k, e);
-    } else if (n > nmax) { 
-      break;
-    }
-    ++n;
-  }
-
-  if (m.IsRoot()) {
-    std::cout << "Found events: \n=====" << std::endl;
-    for (auto p : ev_) {
-      Event& e = p.second;
-      std::cout << p.first << " " 
-          << e.t << " " << e.cmd << " " 
-          << e.arg << std::endl;
-    }
-    std::cout << "=====" << std::endl;
-  }
-}
-
-// events: evN <time> <command>
-// comamnds: set, print, setdt, setdta, vf_init
-// set <type> <key> <value>
-// echo string
-// setdt <value>
-// setdta <value>
-// vf_init zero|list
-template <class M>
-void Hydro<M>::ExecEvents() {
-  for (auto it = ev_.begin(); it != ev_.end();) {
-    auto& e = it->second;
-    std::string c = e.cmd;
-    std::string a = e.arg;
-
-    if (st_.t >= e.t) {
-      if (m.IsRoot()) {
-        std::cout << std::fixed << std::setprecision(8)
-            << "Event at t=" << e.t << ": " 
-            << c << " " << a << std::endl;
-      }
-      if (c == "echo") {
-        if (m.IsRoot()) {
-          std::cout << a << std::endl;
-        }
-      } else if (c == "set") {
-        Parser p(var);
-        if (m.IsLead()) {
-          p.Run(c + " " + a);
-        }
-      } else {
-        throw std::runtime_error("ExecEvents(): Unknown command '" + c + "'");
-      }
-      it = ev_.erase(it);
-    } else {
-      ++it;
-    }
-  }
-}
-
 
 template <class M>
 void Hydro<M>::Clip(const FieldCell<Scal>& f, Scal a, Scal b) {
@@ -1571,7 +1480,7 @@ void Hydro<M>::Run() {
   sem.LoopBegin();
 
   if (sem("events")) {
-    ExecEvents();
+    events_.Exec(st_.t);
   }
   if (sem("loop-check")) {
     if (st_.t + st_.dt * 0.25 > var.Double["tmax"] || 
