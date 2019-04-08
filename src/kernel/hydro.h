@@ -539,7 +539,7 @@ void Hydro<M>::Init() {
     }
   }
 
-  if (sem.Nested("getfluidcellcond")) {
+  if (sem.Nested("cellcond")) {
     GetFluidCellCond(var, m, mc_velcond_, pdist_);
   }
 

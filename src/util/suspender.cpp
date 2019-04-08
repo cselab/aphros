@@ -57,7 +57,7 @@ Suspender::Sem::~Sem() {
   i = ip;
 }
 
-bool Suspender::Sem::operator()(std::string suff) {
+bool Suspender::Sem::Next(std::string suff) {
   auto& i = p.lui_;
   if (i->c++ == i->t) {
     if (p.curname_ != "") {
@@ -72,9 +72,14 @@ bool Suspender::Sem::operator()(std::string suff) {
   return false;
 }
 
+bool Suspender::Sem::operator()(std::string suff) {
+  p.nest_ = false;
+  return Next(suff);
+}
+
 bool Suspender::Sem::Nested(std::string suff) {
   p.nest_ = true;
-  return (*this)(suff);
+  return Next(suff);
 }
 
 
