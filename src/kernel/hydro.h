@@ -1248,6 +1248,11 @@ void Hydro<M>::Dump(Sem& sem) {
           << " to " << s << std::endl;
     }
   }
+  if (sem("dumpstat")) {
+    if (m.IsRoot()) {
+      ost_->Write(0., "");
+    }
+  }
 }
 
 template <class M>
@@ -1550,12 +1555,6 @@ void Hydro<M>::Run() {
   }
 
   Dump(sem);
-
-  if (sem("dumpstat")) {
-    if (m.IsRoot()) {
-      ost_->Write(0., "");
-    }
-  }
 
   if (sem("inc")) {
     ++st_.step;
