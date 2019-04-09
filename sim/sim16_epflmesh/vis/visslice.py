@@ -196,6 +196,39 @@ cellDatatoPointData1Display.ColorArrayName = ['POINTS', '']
 cellDatatoPointData1Display.LineWidth = 3.0
 
 
+# create a new 'Box'
+box1 = Box()
+box1.XLength = 0.01
+box1.YLength = 0.4
+box1.ZLength = 1.
+box1.Center = [4.0, 0.5, 0.5]
+box1Display = Show(box1, renderView1)
+box1Display.Representation = 'Surface'
+box1Display.ColorArrayName = [None, '']
+box1Display.Ambient = 0.25
+
+box2 = Box()
+box2.XLength = 4
+box2.YLength = 0.01
+box2.ZLength = 1
+box2.Center = [2.0, 0., 0.5]
+box2Display = Show(box2, renderView1)
+box2Display.Representation = 'Surface'
+box2Display.ColorArrayName = [None, '']
+box2Display.Ambient = 0.25
+
+box3 = Box()
+box3.XLength = 4
+box3.YLength = 0.01
+box3.ZLength = 1
+box3.Center = [2.0, 1., 0.5]
+box3Display = Show(box3, renderView1)
+box3Display.Representation = 'Surface'
+box3Display.ColorArrayName = [None, '']
+box3Display.Ambient = 0.25
+box3Display.Opacity = 0.5
+
+
 # show data from contour1
 contour1Display = Show(contour1, renderView1)
 
