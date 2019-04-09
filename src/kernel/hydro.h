@@ -234,6 +234,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     Vect vomm = Vect(0); // velocity weighted by vorticity
     Scal vommw = 0; // integral of vorticity
     Scal enstr = 0; // enstrophy
+    Scal area = 0;  // interface area
     Stat()
         : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
         , dtt(0), dt(0), dta(0), iter(0), dumpt(-1e10), step(0)
@@ -452,6 +453,7 @@ void Hydro<M>::InitStat() {
         op("meshposx", &s.meshpos[0]),
         op("meshvelx", &s.meshvel[0]),
         op("meshvelz", &s.meshvel[2]),
+        op("area", &s.area),
     };
     if (var.Int["statbox"]) {
       con.push_back(op("boxomm", &s.boxomm));
@@ -728,6 +730,23 @@ void Hydro<M>::CalcStat() {
       }
       m.Reduce(&s.enstr, "sum");
     }
+    // surface area
+    s.area = 0;
+    if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
+      using R = Reconst<Scal>;
+      auto &fcn = as->GetNormal();
+      auto &fca = as->GetAlpha();
+      auto& fcvf = as->GetField();
+      Vect h = m.GetCellSize();
+      for (auto c : m.Cells()) {
+        if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {
+          auto xx = R::GetCutPoly2(fcn[c], fca[c], h);
+          Scal ar = std::abs(R::GetArea(xx, fcn[c]));
+          s.area += ar;
+        }
+      }
+      m.Reduce(&s.area, "sum");
+    }
   }
 
   if (sem("reduce")) {
@@ -970,14 +989,14 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
 
     // Append Marangoni stress
     if (var.Int["marangoni"]) {
-      using R = Reconst<Scal>;
       if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
+        using R = Reconst<Scal>;
         auto fc_gsig = solver::Gradient(ff_sig_, m);
         auto &fcn = as->GetNormal();
         auto &fca = as->GetAlpha();
         Vect h = m.GetCellSize();
         for (auto c : m.Cells()) {
-          if (fcvf[c] > 0. && fcvf[c] < 1.) { // contains interface
+          if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {
             Vect g = fc_gsig[c]; // sigma gradient
             Vect n = fcn[c] / fcn[c].norm(); // unit normal to interface
             Vect gt = g - n * g.dot(n); 
