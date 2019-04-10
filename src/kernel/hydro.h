@@ -144,10 +144,34 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   }
   void CalcVort() {
     auto& fcv = fs_->GetVelocity();
+    // TODO: replace bc with conditions from fluid solver
     fcom_ = GetVort(fcv, GetBcVz(), m);
     fcomm_.Reinit(m);
     for (auto c : m.Cells()) {
       fcomm_[c] = fcom_[c].norm();
+    }
+  }
+  void CalcStrain() {
+    auto& fcv = fs_->GetVelocity();
+    auto& fcs = fc_strain_;
+
+    // TODO: replace bc with conditions from fluid solver
+    auto ffv = solver::Interpolate(fcv, GetBcVz(), m);
+
+    std::array<FieldCell<Vect>, dim> g; // g[i][c][j] is derivative du_i/dx_j
+    for (size_t i = 0; i < dim; ++i) {
+      g[i] = solver::Gradient(GetComponent(ffv, i), m);
+    }
+
+    fcs.Reinit(m, 0);
+    int edim = var.Int["dim"];
+    for (auto c : m.Cells()) {
+      for (int i = 0; i < edim; ++i) {
+        for (int j = 0; j < edim; ++j) {
+          fcs[c] += sqr(g[i][c][j]) + g[i][c][j] * g[j][c][i];
+        }
+      }
+      fcs[c] *= 0.5;
     }
   }
   Vect GetYoungVel(Vect x) const {
@@ -201,6 +225,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fcomm_; // vorticity magnitude
   std::shared_ptr<solver::PoisSolver<M>> ps_; // Poisson solver for InitVort
   FieldCell<Scal> fcbc_; // boundary condition type by GetBcField()
+  FieldCell<Scal> fc_strain_; // double inner product of strain rate tensor
 
   using Sph = typename SA::Sph;
   std::vector<Sph> sa_ss_;
@@ -236,6 +261,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     Scal vommw;             // integral of vorticity
     Scal enstr;             // enstrophy
     Scal area;              // interface area
+    Scal dissip, dissip1, dissip2;   // energy dissipation rate
     std::map<std::string, Scal> mst; // map stat
     // Add scalar field for stat.
     void Add(const FieldCell<Scal>& fc, std::string name, M& m) {
@@ -449,7 +475,6 @@ void Hydro<M>::InitStat() {
         op("meshposx", &s.meshpos[0]),
         op("meshvelx", &s.meshvel[0]),
         op("meshvelz", &s.meshvel[2]),
-        op("area", &s.area),
     };
     if (var.Int["statbox"]) {
       con.push_back(op("boxomm", &s.boxomm));
@@ -471,6 +496,14 @@ void Hydro<M>::InitStat() {
     con.push_back(op("pavg2", &s.pavg2));
     if (var.Int["enstrophy"]) {
       con.push_back(op("enstr", &s.enstr));
+    }
+    if (var.Int["stat_area"]) {
+      con.push_back(op("area", &s.area));
+    }
+    if (var.Int["stat_dissip"]) {
+      con.push_back(op("dissip", &s.dissip));
+      con.push_back(op("dissip1", &s.dissip1));
+      con.push_back(op("dissip2", &s.dissip2));
     }
     ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
   }
@@ -743,24 +776,44 @@ void Hydro<M>::CalcStat() {
       m.Reduce(&s.enstr, "sum");
     }
     // surface area
-    s.area = 0;
-    if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
-      using R = Reconst<Scal>;
-      auto &fcn = as->GetNormal();
-      auto &fca = as->GetAlpha();
-      auto& fcvf = as->GetField();
-      Vect h = m.GetCellSize();
-      for (auto c : m.Cells()) {
-        if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {
-          auto xx = R::GetCutPoly2(fcn[c], fca[c], h);
-          Scal ar = std::abs(R::GetArea(xx, fcn[c]));
-          s.area += ar;
+    if (var.Int["stat_area"]) {
+      s.area = 0;
+      if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
+        using R = Reconst<Scal>;
+        auto &fcn = as->GetNormal();
+        auto &fca = as->GetAlpha();
+        auto& fcvf = as->GetField();
+        Vect h = m.GetCellSize();
+        for (auto c : m.Cells()) {
+          if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {
+            auto xx = R::GetCutPoly2(fcn[c], fca[c], h);
+            Scal ar = std::abs(R::GetArea(xx, fcn[c]));
+            s.area += ar;
+          }
         }
+        if (IsNan(s.area)) {
+          s.area = 0;
+        }
+        m.Reduce(&s.area, "sum");
       }
-      if (IsNan(s.area)) {
-        s.area = 0;
+    }
+    if (var.Int["stat_dissip"]) {
+      CalcStrain();
+      auto& fcmu = fc_mu_;
+      auto& fcd = fc_strain_;
+      auto& fcvf = as_->GetField();
+      for (auto c : m.Cells()) {
+        Scal o = m.GetVolume(c);
+        Scal mu = fcmu[c];
+        Scal d = fcd[c];
+        Scal vf = fcvf[c];
+        s.dissip += 2. * mu * d * o;
+        s.dissip1 += 2. * mu * d * (1. - vf) * o;
+        s.dissip2 += 2. * mu * d * vf * o;
       }
-      m.Reduce(&s.area, "sum");
+      m.Reduce(&s.dissip, "sum");
+      m.Reduce(&s.dissip1, "sum");
+      m.Reduce(&s.dissip2, "sum");
     }
   }
 
