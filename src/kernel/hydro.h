@@ -79,6 +79,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapFace<std::shared_ptr<solver::CondFace>> GetBcVz() const;
   // zero-gradient bc scal
   MapFace<std::shared_ptr<solver::CondFace>> GetBcSz() const;
+  void DumpFields();
   void Dump(Sem& sem);
   void DumpTraj(bool dm);
   // Calc rho, mu and force based on volume fraction
@@ -226,6 +227,10 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::shared_ptr<solver::PoisSolver<M>> ps_; // Poisson solver for InitVort
   FieldCell<Scal> fcbc_; // boundary condition type by GetBcField()
   FieldCell<Scal> fc_strain_; // double inner product of strain rate tensor
+  FieldCell<Scal> fctmp_;    // temporary scalar field
+  FieldCell<Vect> fctmpv_;   // temporary vector field
+  FieldCell<Vect> fcvcurl_;  // curl-component of velocity
+  bool vcurl_;  // compute curl
 
   using Sph = typename SA::Sph;
   std::vector<Sph> sa_ss_;
@@ -354,8 +359,8 @@ auto Hydro<M>::GetBcSz() const -> MapFace<std::shared_ptr<solver::CondFace>> {
 template <class M>
 void Hydro<M>::InitVort() {
   auto sem = m.GetSem("initvort");
-  auto& fct = fcomm_;
-  auto& fctv = fcom_;
+  auto& fct = fctmp_;  // temporary fields
+  auto& fctv = fctmpv_;
   if (sem("initpois")) {
     ps_ = std::make_shared<solver::PoisSolver<M>>(GetBcSz(), m);
     m.Comm(&fc_vel_);
@@ -383,6 +388,8 @@ void Hydro<M>::InitVort() {
   if (sem("vel")) {
     fc_vel_ = GetVort(fctv, GetBcVz(), m);
     m.Comm(&fc_vel_);
+    fctv.Free();
+    fct.Free();
   }
 }
 
@@ -608,6 +615,16 @@ void Hydro<M>::Init() {
     var.Double.Set("t", st_.t);
 
     InitStat();
+
+    // enable curl component of velocity 
+    {
+      auto dl = GetWords(var.String["dumplist"]);
+      if (dl.count("vcurlx") || dl.count("vcurly") || dl.count("vcurlz")) { 
+        vcurl_ = true;
+      } else {
+        vcurl_ = false;
+      }
+    }
 
     events_.Parse();
   }
@@ -1169,52 +1186,70 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
   }
 }
 
-// TODO: Test m.Dump() with pending Comm
 template <class M>
-void Hydro<M>::Dump(Sem& sem) {
-  if (sem("dump")) {
-    if (dumper_.Try(st_.t, st_.dt)) {
-      if (m.IsRoot()) {
-        dumper_.Report();
-      }
-
-      auto dl = GetWords(var.String["dumplist"]);
-      auto& fcv = fs_->GetVelocity();
-      if (dl.count("vx")) m.Dump(&fcv, 0, "vx");
-      if (dl.count("vy")) m.Dump(&fcv, 1, "vy");
-      if (dl.count("vz")) m.Dump(&fcv, 2, "vz");
-      if (dl.count("p")) m.Dump(&fs_->GetPressure(), "p");
-      if (dl.count("vf")) m.Dump(&as_->GetField(), "vf");
-      if (dl.count("k")) m.Dump(&as_->GetCurv(), "k");
-      if (dl.count("rho")) m.Dump(&fc_rho_, "rho");
-      if (dl.count("mu")) m.Dump(&fc_mu_, "mu");
-      if (dl.count("sig")) m.Dump(&fc_sig_, "sig");
-      if (dl.count("bc")) m.Dump(&fcbc_, "bc");
-      if (tr_) {
-        if (dl.count("cl")) m.Dump(&tr_->GetColor(), "cl");
-        auto& im = tr_->GetImage();
-        if (dl.count("imx")) m.Dump(&im, 0, "imx");
-        if (dl.count("imy")) m.Dump(&im, 1, "imy");
-        if (dl.count("imz")) m.Dump(&im, 2, "imz");
-      }
-      if (var.Int["youngbc"]) {
-        if (dl.count("yvx")) m.Dump(&fcyv_, 0, "yvx");
-        if (dl.count("yvy")) m.Dump(&fcyv_, 1, "yvy");
-        if (dl.count("yvz")) m.Dump(&fcyv_, 2, "yvz");
-      }
-      if (dl.count("omx") || dl.count("omy") || dl.count("omz") || 
-          dl.count("omm") || dl.count("omcalc")) { 
-        CalcVort();
-        if (dl.count("omx")) m.Dump(&fcom_, 0, "omx");
-        if (dl.count("omy")) m.Dump(&fcom_, 1, "omy");
-        if (dl.count("omz")) m.Dump(&fcom_, 2, "omz");
-        if (dl.count("omm")) m.Dump(&fcomm_, "omm");
-      }
+void Hydro<M>::DumpFields() {
+  auto sem = m.GetSem("dumpfields");
+  if (vcurl_) {
+    if (sem("vcurl-pre")) {
+      CalcVort();
+      fc_vel_ = fcom_;
+    }
+    if (sem.Nested("vcurl-solve")) {
+      InitVort();
+    }
+    if (sem("vcurl-copy")) {
+      fcvcurl_ = fc_vel_;
     }
   }
-  if (sem("dumpwrite")) {
-    // Empty stage for DumpWrite
-    // TODO: revise
+  if (sem("dump")) {
+    if (m.IsRoot()) {
+      dumper_.Report();
+    }
+
+    auto dl = GetWords(var.String["dumplist"]);
+    auto& fcv = fs_->GetVelocity();
+    if (dl.count("vx")) m.Dump(&fcv, 0, "vx");
+    if (dl.count("vy")) m.Dump(&fcv, 1, "vy");
+    if (dl.count("vz")) m.Dump(&fcv, 2, "vz");
+    if (dl.count("p")) m.Dump(&fs_->GetPressure(), "p");
+    if (dl.count("vf")) m.Dump(&as_->GetField(), "vf");
+    if (dl.count("k")) m.Dump(&as_->GetCurv(), "k");
+    if (dl.count("rho")) m.Dump(&fc_rho_, "rho");
+    if (dl.count("mu")) m.Dump(&fc_mu_, "mu");
+    if (dl.count("sig")) m.Dump(&fc_sig_, "sig");
+    if (dl.count("bc")) m.Dump(&fcbc_, "bc");
+    if (tr_) {
+      if (dl.count("cl")) m.Dump(&tr_->GetColor(), "cl");
+      auto& im = tr_->GetImage();
+      if (dl.count("imx")) m.Dump(&im, 0, "imx");
+      if (dl.count("imy")) m.Dump(&im, 1, "imy");
+      if (dl.count("imz")) m.Dump(&im, 2, "imz");
+    }
+    if (var.Int["youngbc"]) {
+      if (dl.count("yvx")) m.Dump(&fcyv_, 0, "yvx");
+      if (dl.count("yvy")) m.Dump(&fcyv_, 1, "yvy");
+      if (dl.count("yvz")) m.Dump(&fcyv_, 2, "yvz");
+    }
+    if (dl.count("omx") || dl.count("omy") || dl.count("omz") || 
+        dl.count("omm") || dl.count("omcalc")) { 
+      CalcVort();
+      if (dl.count("omx")) m.Dump(&fcom_, 0, "omx");
+      if (dl.count("omy")) m.Dump(&fcom_, 1, "omy");
+      if (dl.count("omz")) m.Dump(&fcom_, 2, "omz");
+      if (dl.count("omm")) m.Dump(&fcomm_, "omm");
+    }
+    if (dl.count("vcurlx")) m.Dump(&fcvcurl_, 0, "vcurlx");
+    if (dl.count("vcurly")) m.Dump(&fcvcurl_, 1, "vcurly");
+    if (dl.count("vcurlz")) m.Dump(&fcvcurl_, 2, "vcurlz");
+  }
+}
+
+template <class M>
+void Hydro<M>::Dump(Sem& sem) {
+  if (sem.Nested("fields")) {
+    if (dumper_.Try(st_.t, st_.dt)) {
+      DumpFields();
+    }
   }
   if (tr_) {
     if (sem.Nested("trajdump")) {
