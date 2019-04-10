@@ -262,6 +262,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     Scal enstr;             // enstrophy
     Scal area;              // interface area
     Scal dissip, dissip1, dissip2;   // energy dissipation rate
+    Scal edis, edis1, edis2;   // dissipated energy
     std::map<std::string, Scal> mst; // map stat
     // Add scalar field for stat.
     void Add(const FieldCell<Scal>& fc, std::string name, M& m) {
@@ -504,6 +505,9 @@ void Hydro<M>::InitStat() {
       con.push_back(op("dissip", &s.dissip));
       con.push_back(op("dissip1", &s.dissip1));
       con.push_back(op("dissip2", &s.dissip2));
+      con.push_back(op("edis", &s.edis));
+      con.push_back(op("edis1", &s.edis1));
+      con.push_back(op("edis2", &s.edis2));
     }
     ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
   }
@@ -798,6 +802,9 @@ void Hydro<M>::CalcStat() {
       }
     }
     if (var.Int["stat_dissip"]) {
+      s.dissip = 0.;
+      s.dissip1 = 0.;
+      s.dissip2 = 0.;
       CalcStrain();
       auto& fcmu = fc_mu_;
       auto& fcd = fc_strain_;
@@ -831,13 +838,18 @@ void Hydro<M>::CalcStat() {
       s.vomm /= s.vommw;
     }
 
+    Scal dt = fs_->GetTimeStep();
+
     // Moving mesh
     s.c1 += st_.meshpos;
     s.c2 += st_.meshpos;
-
-    Scal dt = fs_->GetTimeStep();
     s.vc1 = (s.c1 - s.vc1) / dt;
     s.vc2 = (s.c2 - s.vc2) / dt;
+
+    // dissipated energy
+    s.edis += s.dissip * dt;
+    s.edis1 += s.dissip1 * dt;
+    s.edis2 += s.dissip2 * dt;
 
     if (std::string* s = var.String("meshvel_auto")) {
       Vect v(0);
