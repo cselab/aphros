@@ -1041,6 +1041,12 @@ double Simple<M_>::GetError() const {
   return imp->cd_->GetError();
 }
 
+template <class M_>
+auto Simple<M_>::GetVelocityCond() const -> 
+    const MapFace<std::shared_ptr<CondFace>>& {
+  return imp->mfcw_;
+}
+
 
 } // namespace solver
 
