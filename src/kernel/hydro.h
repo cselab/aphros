@@ -45,6 +45,7 @@
 #include "solver/pois.h"
 #include "util/fluid.h"
 #include "util/events.h"
+#include "util/convdiff.h"
 
 class GPar {};
 
@@ -145,8 +146,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   }
   void CalcVort() {
     auto& fcv = fs_->GetVelocity();
-    // TODO: replace bc with conditions from fluid solver
-    fcom_ = GetVort(fcv, GetBcVz(), m);
+    fcom_ = GetVort(fcv, fs_->GetVelocityCond(), m);
     fcomm_.Reinit(m);
     for (auto c : m.Cells()) {
       fcomm_[c] = fcom_[c].norm();
@@ -156,8 +156,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     auto& fcv = fs_->GetVelocity();
     auto& fcs = fc_strain_;
 
-    // TODO: replace bc with conditions from fluid solver
-    auto ffv = solver::Interpolate(fcv, GetBcVz(), m);
+    auto ffv = solver::Interpolate(fcv, fs_->GetVelocityCond(), m);
 
     std::array<FieldCell<Vect>, dim> g; // g[i][c][j] is derivative du_i/dx_j
     for (size_t i = 0; i < dim; ++i) {
@@ -362,13 +361,14 @@ void Hydro<M>::InitVort() {
   auto& fct = fctmp_;  // temporary fields
   auto& fctv = fctmpv_;
   if (sem("initpois")) {
-    ps_ = std::make_shared<solver::PoisSolver<M>>(GetBcSz(), m);
     m.Comm(&fc_vel_);
     fctv.Reinit(m);
   }
   for (size_t d = 0; d < M::dim; ++d) {
     std::string dn = std::to_string(d);
     if (sem("init-" + dn)) {
+      ps_ = std::make_shared<solver::PoisSolver<M>>(
+          GetScalarCond(fs_->GetVelocityCond(), d, m), m);
       fct = GetComponent(fc_vel_, d);
     }
     if (sem.Nested("solve-" + dn)) {
@@ -386,7 +386,7 @@ void Hydro<M>::InitVort() {
     }
   }
   if (sem("vel")) {
-    fc_vel_ = GetVort(fctv, GetBcVz(), m);
+    fc_vel_ = GetVort(fctv, fs_->GetVelocityCond(), m);
     m.Comm(&fc_vel_);
     fctv.Free();
     fct.Free();
