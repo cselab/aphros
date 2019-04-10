@@ -661,6 +661,8 @@ void Hydro<M>::CalcStat() {
     s.v1 = Vect(0);
     s.v2 = Vect(0);
     s.ekin = 0;
+    s.ekin1 = 0;
+    s.ekin2 = 0;
     for (auto i : m.Cells()) {
       Scal o = m.GetVolume(i);
       Scal a2 = fa[i];
@@ -675,11 +677,15 @@ void Hydro<M>::CalcStat() {
       s.v1 += v * (a1 * o);
       s.v2 += v * (a2 * o);
       s.ekin += 0.5 * v.dot(v) * fc_rho_[i] * o;
+      s.ekin1 += 0.5 * v.dot(v) * fc_rho_[i] * o * (1. - v);
+      s.ekin2 += 0.5 * v.dot(v) * fc_rho_[i] * o * v;
     }
 
     m.Reduce(&s.m1, "sum");
     m.Reduce(&s.m2, "sum");
     m.Reduce(&s.ekin, "sum");
+    m.Reduce(&s.ekin1, "sum");
+    m.Reduce(&s.ekin2, "sum");
     for (size_t d = 0; d < dim; ++d) {
       m.Reduce(&s.c1[d], "sum");
       m.Reduce(&s.c2[d], "sum");
