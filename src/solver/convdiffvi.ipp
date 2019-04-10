@@ -6,6 +6,7 @@
 
 #include "convdiffvi.h"
 #include "util/metrics.h"
+#include "util/convdiff.h"
 
 namespace solver {
 
@@ -23,27 +24,7 @@ struct ConvDiffVectImp<M_>::Imp {
   {
     for (auto d : dr_) {
       // Face conditions for each velocity component
-      for (auto it : mfc_) {
-        IdxFace f = it.GetIdx();
-        CondFace* cb = it.GetValue().get();
-        if (auto p = dynamic_cast<CondFaceVal<Vect>*>(cb)) {
-          vmfc_[d][f] = std::make_shared<CondFaceValComp<Vect>>(p, d);
-        } else if (auto p = dynamic_cast<CondFaceGrad<Vect>*>(cb)) {
-          vmfc_[d][f] = std::make_shared<CondFaceGradComp<Vect>>(p, d);
-        } else if (auto p = dynamic_cast<CondFaceReflect*>(cb)) {
-          auto nci = cb->GetNci();
-          // XXX: adhoc for cartesian grid
-          if (d == m.GetNormal(f).abs().argmax()) { 
-            // normal, zero value
-            vmfc_[d][f] = std::make_shared<CondFaceValFixed<Scal>>(0., nci);
-          } else { 
-            // tangential, zero gradient
-            vmfc_[d][f] = std::make_shared<CondFaceGradFixed<Scal>>(0., nci);
-          }
-        } else {
-          throw std::runtime_error("convdiffvi: unknown face condition");
-        }
-      }
+      vmfc_[d] = GetScalarCond(mfc_, d, m);
 
       // Cell conditions for each velocity component
       for (auto it : mcc) {
