@@ -211,38 +211,31 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Scal bgt_ = -1.; // bubgen last time 
 
   struct Stat {
-    Scal m1, m2; // mass
-    Vect c1, c2;  // center of mass 
-    Vect vc1, vc2;  // center of mass velocity
-    Vect v1, v2;  // average velocity
-    Scal dtt;  // temporary to reduce
-    Scal dt;    // dt fluid 
-    Scal dta;  // dt advection
-    size_t iter; // iter of fluid solver
-    Scal dumpt; // last dump time (rounded to nearest dtdump)
+    Scal m1, m2;            // mass
+    Vect c1, c2;            // center of mass 
+    Vect vc1, vc2;          // center of mass velocity
+    Vect v1, v2;            // average velocity
+    Scal dtt;               // temporary to reduce
+    Scal dt;                // dt fluid 
+    Scal dta;               // dt advection
+    size_t iter;            // iter of fluid solver
+    Scal dumpt = -1e10;     // last dump time (rounded to nearest dtdump)
     Scal t;
     size_t step;
     size_t dumpn;
-    Vect meshpos;  // mesh position
-    Vect meshvel;  // mesh velocity
-    Scal ekin = 0., ekin1 = 0., ekin2 = 0.;  // kinetic energy
-    Scal workst = 0.;       // work by surface tension
-    Vect vlm; // max-norm of v-"vel"
-    Vect vl2; // l2-norm of v-"vel"
-    Scal pmin = 0., pmax = 0., pd = 0.; // pressure min,max
-    Scal pavg1 = 0., pavg2 = 0.; // pressure average
-    Scal boxomm = 0.; // integral of vorticity magnitude over box
-    Scal boxomm2 = 0.; // integral of vorticity magnitude over box
-    Vect vomm = Vect(0); // velocity weighted by vorticity
-    Scal vommw = 0; // integral of vorticity
-    Scal enstr = 0; // enstrophy
-    Scal area = 0;  // interface area
-    Stat()
-        : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
-        , dtt(0), dt(0), dta(0), iter(0), dumpt(-1e10), step(0)
-        , dumpn(0), meshpos(0), meshvel(0)
-        , vlm(0), vl2(0)
-    {}
+    Vect meshpos;           // mesh position
+    Vect meshvel;           // mesh velocity
+    Scal ekin, ekin1, ekin2;// kinetic energy
+    Scal workst;            // work by surface tension
+    Vect vlm, vl2;          // max-norm and l2-norm of velocity minus "vel"
+    Scal pmin, pmax, pd;    // pressure min,max
+    Scal pavg1, pavg2;      // pressure average
+    Scal boxomm;            // integral of vorticity magnitude over box
+    Scal boxomm2;           // integral of vorticity magnitude over box
+    Vect vomm;              // velocity weighted by vorticity
+    Scal vommw;             // integral of vorticity
+    Scal enstr;             // enstrophy
+    Scal area;              // interface area
     std::map<std::string, Scal> mst; // map stat
     // Add scalar field for stat.
     void Add(const FieldCell<Scal>& fc, std::string name, M& m) {
@@ -587,6 +580,7 @@ void Hydro<M>::Init() {
 template <class M>
 Hydro<M>::Hydro(Vars& var, const MyBlockInfo& bi, Par& par) 
     : KernelMeshPar<M,Par>(var, bi, par)
+    , st_{}
     , dumper_(var, "dump_field_")
     , dmptraj_(var, "dump_traj_")
     , dmptrep_(var, "dump_trep_")
@@ -762,6 +756,9 @@ void Hydro<M>::CalcStat() {
           Scal ar = std::abs(R::GetArea(xx, fcn[c]));
           s.area += ar;
         }
+      }
+      if (IsNan(s.area)) {
+        s.area = 0;
       }
       m.Reduce(&s.area, "sum");
     }
