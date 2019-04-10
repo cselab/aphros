@@ -677,8 +677,8 @@ void Hydro<M>::CalcStat() {
       s.v1 += v * (a1 * o);
       s.v2 += v * (a2 * o);
       s.ekin += 0.5 * v.dot(v) * fc_rho_[i] * o;
-      s.ekin1 += 0.5 * v.dot(v) * fc_rho_[i] * o * (1. - v);
-      s.ekin2 += 0.5 * v.dot(v) * fc_rho_[i] * o * v;
+      s.ekin1 += 0.5 * v.dot(v) * fc_rho_[i] * o * a1;
+      s.ekin2 += 0.5 * v.dot(v) * fc_rho_[i] * o * a2;
     }
 
     m.Reduce(&s.m1, "sum");
