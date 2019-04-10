@@ -370,6 +370,9 @@ void Hydro<M>::InitVort() {
       ps_ = std::make_shared<solver::PoisSolver<M>>(
           GetScalarCond(fs_->GetVelocityCond(), d, m), m);
       fct = GetComponent(fc_vel_, d);
+      for (auto c : m.Cells()) {
+        fct[c] *= -1;
+      }
     }
     if (sem.Nested("solve-" + dn)) {
       ps_->Solve(fct);
