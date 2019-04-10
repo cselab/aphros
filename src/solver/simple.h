@@ -75,6 +75,8 @@ class Simple : public FluidSolver<M_> {
   double GetAutoTimeStep() const override;
   // ...
   double GetError() const override;
+  // Returns velocity boundary conditions
+  const MapFace<std::shared_ptr<CondFace>>& GetVelocityCond() const;
 
  private:
   struct Imp;
