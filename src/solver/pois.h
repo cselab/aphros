@@ -9,10 +9,10 @@
 #include "geom/mesh.h"
 #include "linear/linear.h"
 #include "cond.h"
+#include "solver/approx.h"
 
 
 namespace solver {
-
 
 // Solves Poisson equation: \nabla \nabla u = r.
 // fcr: rhs [i]
@@ -30,14 +30,7 @@ class PoisSolver {
 
 
   PoisSolver(const MapFace<std::shared_ptr<solver::CondFace>>& mf, M& m) 
-      : m(m) {
-    // zero-derivative bc for Scal
-    for (auto it : mf) {
-      IdxFace i = it.GetIdx();
-      mfz_[i] = std::make_shared<
-          CondFaceGradFixed<Scal>>(0, it.GetValue()->GetNci());
-    }
-  }
+      : m(m), mf_(mf) {}
   // Solve linear system fce = 0
   // fce: expressions [i]
   // Output:
@@ -91,36 +84,22 @@ class PoisSolver {
       sumr_ /= sumv_;
 
       FieldFace<Expr> ffe(m); // normal derivative
-      // set all faces
-      for (auto f : m.Faces()) {
-        auto& e = ffe[f];
-        e.Clear();
-        IdxCell cm = m.GetNeighbourCell(f, 0);
-        IdxCell cp = m.GetNeighbourCell(f, 1);
-        Vect dm = m.GetVectToCell(f, 0);
-        Vect dp = m.GetVectToCell(f, 1);
-        Scal a = m.GetArea(f) / (dp - dm).norm();
-        e.InsertTerm(-a, cm);
-        e.InsertTerm(a, cp);
-      }
+      GradientI(ffe, m);
       // overwrite boundaries
-      for (auto it : mfz_) {
+      FaceGradB<M, Expr> gb(m, mf_);
+      for (auto it : mf_) {
         IdxFace f = it.GetIdx();
-        IdxCell cm = m.GetNeighbourCell(f, 0);
-        IdxCell cp = m.GetNeighbourCell(f, 1);
-        auto& e = ffe[f];
-        e.Clear();
-        e.InsertTerm(0, cm);
-        e.InsertTerm(0, cp);
+        Expr e = gb.GetExpr(f);
+        e.SortTerms();
       }
 
-      fce_.Reinit(m);
+      fce_.Reinit(m);    // equations in cells
       for (auto c : m.Cells()) {
         auto& e = fce_[c];
         e.Clear();
         for (auto q : m.Nci(c)) {
           IdxFace f = m.GetNeighbourFace(c, q);
-          e += ffe[f] * m.GetOutwardFactor(c, q);
+          e += ffe[f] * (m.GetOutwardFactor(c, q) * m.GetArea(f));
         }
         e += Expr(-(fcr[c] - sumr_) * m.GetVolume(c));
       }
@@ -141,7 +120,7 @@ class PoisSolver {
   M& m;
   FieldCell<Expr> fce_;
   FieldCell<Scal> fcu_;
-  MapFace<std::shared_ptr<solver::CondFace>> mfz_;
+  MapFace<std::shared_ptr<solver::CondFace>> mf_;
   Scal sumr_; // sum of rhs * volume
   Scal sumv_; // sum of volume
 };
