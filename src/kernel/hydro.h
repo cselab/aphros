@@ -225,10 +225,12 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     size_t dumpn;
     Vect meshpos;  // mesh position
     Vect meshvel;  // mesh velocity
-    Scal ekin;  /// kinetic energy
+    Scal ekin = 0., ekin1 = 0., ekin2 = 0.;  // kinetic energy
+    Scal workst = 0.;       // work by surface tension
     Vect vlm; // max-norm of v-"vel"
     Vect vl2; // l2-norm of v-"vel"
-    Scal p0, p1, pd; // pressure min,max
+    Scal pmin = 0., pmax = 0., pd = 0.; // pressure min,max
+    Scal pavg1 = 0., pavg2 = 0.; // pressure average
     Scal boxomm = 0.; // integral of vorticity magnitude over box
     Scal boxomm2 = 0.; // integral of vorticity magnitude over box
     Vect vomm = Vect(0); // velocity weighted by vorticity
@@ -239,8 +241,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
         : m1(0), m2(0), c1(0), c2(0), vc1(0), vc2(0), v1(0), v2(0)
         , dtt(0), dt(0), dta(0), iter(0), dumpt(-1e10), step(0)
         , dumpn(0), meshpos(0), meshvel(0)
-        , ekin(0)
-        , vlm(0), vl2(0), p0(0), p1(0), pd(0)
+        , vlm(0), vl2(0)
     {}
     std::map<std::string, Scal> mst; // map stat
     // Add scalar field for stat.
@@ -444,6 +445,8 @@ void Hydro<M>::InitStat() {
         op("m1", &s.m1),
         op("m2", &s.m2),
         op("ekin", &s.ekin),
+        op("ekin1", &s.ekin1),
+        op("ekin2", &s.ekin2),
         op("c1x", &s.c1[0]), op("c1y", &s.c1[1]), op("c1z", &s.c1[2]),
         op("c2x", &s.c2[0]), op("c2y", &s.c2[1]), op("c2z", &s.c2[2]),
         op("vc1x", &s.vc1[0]), op("vc1y", &s.vc1[1]), op("vc1z", &s.vc1[2]),
@@ -467,10 +470,12 @@ void Hydro<M>::InitStat() {
       con.push_back(op("vl2x", &s.vl2[0]));
       con.push_back(op("vl2y", &s.vl2[1]));
       con.push_back(op("vl2z", &s.vl2[2]));
-      con.push_back(op("p0", &s.p0));
-      con.push_back(op("p1", &s.p1));
-      con.push_back(op("pd", &s.pd));
     }
+    con.push_back(op("pmin", &s.pmin));
+    con.push_back(op("pmax", &s.pmax));
+    con.push_back(op("pd", &s.pd));
+    con.push_back(op("pavg1", &s.pavg1));
+    con.push_back(op("pavg2", &s.pavg2));
     if (var.Int["enstrophy"]) {
       con.push_back(op("enstr", &s.enstr));
     }
@@ -651,11 +656,28 @@ void Hydro<M>::CalcStat() {
       m.Reduce(&s.v2[d], "sum");
     }
 
+    // pressure
+    s.pmin = 1e10;
+    s.pmax = -1e10;
+    s.pavg1 = 0.;
+    s.pavg2 = 0.;
+    for (auto c : m.Cells()) {
+      Scal o = m.GetVolume(c);
+      Scal a2 = fa[c];
+      Scal p = fp[c];
+      s.pmin = std::min(s.pmin, p);
+      s.pmax = std::max(s.pmax, p);
+      s.pavg1 += p * (1. - a2) * o;
+      s.pavg2 += p * a2 * o;
+    }
+    m.Reduce(&s.pmin, "min");
+    m.Reduce(&s.pmax, "max");
+    m.Reduce(&s.pavg1, "sum");
+    m.Reduce(&s.pavg2, "sum");
+
     if (var.Int["statvel"]) {
       s.vlm = Vect(0);
       s.vl2 = Vect(0);
-      s.p0 = 1e10;
-      s.p1 = -1e10;
       Vect v0(var.Vect["vel"]);
       for (auto c : m.Cells()) {
         Scal o = m.GetVolume(c);
@@ -666,15 +688,11 @@ void Hydro<M>::CalcStat() {
           s.vlm[d] = std::max(s.vlm[d], dv[d] * a2);
           s.vl2[d] += sqr(dv[d]) * o * a2;
         }
-        s.p0 = std::min(s.p0, fp[c]);
-        s.p1 = std::max(s.p1, fp[c]);
       }
       for (size_t d = 0; d < dim; ++d) {
         m.Reduce(&s.vlm[d], "max");
         m.Reduce(&s.vl2[d], "sum");
       }
-      m.Reduce(&s.p0, "min");
-      m.Reduce(&s.p1, "max");
     }
 
     // XXX: adhoc: also controls s.vomm
@@ -756,6 +774,8 @@ void Hydro<M>::CalcStat() {
     s.c2 *= im2;
     s.v1 *= im1;
     s.v2 *= im2;
+    s.pavg1 *= im1;
+    s.pavg2 *= im2;
 
     if (s.vommw != 0) {
       s.vomm /= s.vommw;
@@ -794,7 +814,7 @@ void Hydro<M>::CalcStat() {
       for (size_t d = 0; d < dim; ++d) {
         s.vl2[d] = std::sqrt(s.vl2[d] * im2);
       }
-      s.pd = s.p1 - s.p0;
+      s.pd = s.pmax - s.pmin;
     }
   }
 
