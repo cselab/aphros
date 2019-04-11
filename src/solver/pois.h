@@ -89,7 +89,8 @@ class PoisSolver {
       FaceGradB<M, Expr> gb(m, mf_);
       for (auto it : mf_) {
         IdxFace f = it.GetIdx();
-        Expr e = gb.GetExpr(f);
+        Expr& e = ffe[f];
+        e = e * 0. + gb.GetExpr(f); // keep stencil
         e.SortTerms();
       }
 

@@ -292,7 +292,8 @@ typename M::LS ConvertLs(const FieldCell<Expr>& fce, std::vector<Scal>& la,
               << " MIdx(e[j].idx)=" << bc.GetMIdx(e[j].idx)
               << " l.st[j]=" << MIdx(l.st[j]) 
               << std::endl;
-          assert(false);
+
+          throw std::runtime_error("ConvertLs: nonmatching stencils");
         }
         la[i] = e[j].a;
         ++i;
