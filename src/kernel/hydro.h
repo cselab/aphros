@@ -1244,6 +1244,17 @@ void Hydro<M>::DumpFields() {
     if (dl.count("vcurlx")) m.Dump(&fcvcurl_, 0, "vcurlx");
     if (dl.count("vcurly")) m.Dump(&fcvcurl_, 1, "vcurly");
     if (dl.count("vcurlz")) m.Dump(&fcvcurl_, 2, "vcurlz");
+    if (dl.count("dis") || dl.count("strain")) {
+      CalcStrain();
+      if (dl.count("strain")) m.Dump(&fcomm_, "strain");
+      if (dl.count("dis")) {
+        fctmp_ = fc_strain_;
+        for (auto c : m.Cells()) {
+          fctmp_[c] *= 2. * fc_mu_[c];
+        }
+        m.Dump(&fctmp_, "dis");
+      }
+    }
   }
 }
 
