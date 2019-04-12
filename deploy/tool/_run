@@ -19,6 +19,8 @@ instfnd diffnum
 instfnd makearg
 instfnd spawn
 instfnd task
+instfnd intcol
+instfnd getval
 
 cp -rvf ch "$BB/"
 
