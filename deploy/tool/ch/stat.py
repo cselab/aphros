@@ -16,7 +16,7 @@ def GetVal(path, colname, t0):
     for l in f:
       t = float(l.split()[it])
       v = l.split()[iv]
-      if tb is None or abs(t - t0) < abs(t - tb):
+      if tb is None or abs(t - t0) < abs(tb - t0):
         tb = t
         vb = v
 
