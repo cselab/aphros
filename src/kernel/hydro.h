@@ -204,7 +204,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   FieldCell<Scal> fc_mu_; // viscosity
   FieldCell<Scal> fc_rho_; // density
-  FieldCell<Scal> fc_src_; // source
+  FieldCell<Scal> fc_src_; // source of mixture volume
+  FieldCell<Scal> fc_src2_; // source of second phase volume
   FieldCell<Scal> fc_srcm_; // mass source
   FieldCell<Vect> fc_force_;  // force 
   FieldFace<Scal> ffbp_;  // balanced force projections
@@ -446,7 +447,7 @@ void Hydro<M>::InitAdvection() {
     as_.reset(new AST(
           m, fc_vf_, mf_cond_, 
           &fs_->GetVolumeFlux(solver::Layers::time_curr),
-          &fc_src_, 0., st_.dta, p));
+          &fc_src2_, 0., st_.dta, p));
   } else if (as == "vof") {
     auto p = std::make_shared<typename ASV::Par>();
     Parse<M>(p.get(), var);
@@ -454,7 +455,7 @@ void Hydro<M>::InitAdvection() {
     as_.reset(new ASV(
           m, fc_vf_, mf_cond_, 
           &fs_->GetVolumeFlux(solver::Layers::time_curr),
-          &fc_src_, 0., st_.dta, p));
+          &fc_src2_, 0., st_.dta, p));
   } else {
     throw std::runtime_error("Unknown advection_solver=" + as);
   }
@@ -543,6 +544,7 @@ void Hydro<M>::Init() {
 
   if (sem("fields")) {
     fc_src_.Reinit(m, 0.);
+    fc_src2_.Reinit(m, 0.);
     fc_srcm_.Reinit(m, 0.);
 
     // initial volume fraction
@@ -1146,6 +1148,18 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     fc_force_.Reinit(m, Vect(0));
     ffbp_.Reinit(m, 0);
     fc_smvf_ = fc_vf0;
+
+    // XXX: adhoc source
+    Scal source_mag = var.Double["source_mag"];
+    if (source_mag != 0) {
+      Scal source_freq = var.Double["source_freq"];
+      Scal pi = M_PI;
+      Scal s = std::sin(st_.t * source_freq * 2. * pi);
+      fc_src_.Reinit(m, 0);
+      for (auto c : m.Cells()) {
+        fc_src_[c] = s * source_mag * fc_vf0[c];
+      }
+    }
   }
 
   if (sem.Nested("smooth")) {
