@@ -205,6 +205,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_mu_; // viscosity
   FieldCell<Scal> fc_rho_; // density
   FieldCell<Scal> fc_src_; // source
+  FieldCell<Scal> fc_srcm_; // mass source
   FieldCell<Vect> fc_force_;  // force 
   FieldFace<Scal> ffbp_;  // balanced force projections
   FieldFace<Scal> ffk_;  // curvature on faces
@@ -431,8 +432,7 @@ void Hydro<M>::InitFluid() {
   fs_.reset(new FS(
         m, fc_vel_, mf_velcond_, mc_velcond_, 
         &fc_rho_, &fc_mu_, &fc_force_, &ffbp_,
-        &fc_src_, &fc_src_, 0., st_.dt, p));
-  // TODO: check fc_src_ for Simple()
+        &fc_src_, &fc_srcm_, 0., st_.dt, p));
 
   fcbc_ = GetBcField(mf_velcond_, m);
 }
@@ -543,6 +543,7 @@ void Hydro<M>::Init() {
 
   if (sem("fields")) {
     fc_src_.Reinit(m, 0.);
+    fc_srcm_.Reinit(m, 0.);
 
     // initial volume fraction
     fc_vf_.Reinit(m, 0);
