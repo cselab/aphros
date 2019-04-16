@@ -174,6 +174,19 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       fcs[c] *= 0.5;
     }
   }
+  FieldCell<Scal> GetDiv() {
+    FieldCell<Scal> fc(m, 0); // result
+    auto& ffv = fs_->GetVolumeFlux();
+
+    for (auto c : m.Cells()) {
+      for (auto q : m.Nci(c)) {
+        IdxFace f = m.GetNeighbourFace(c, q);
+        fc[c] += ffv[f] * m.GetOutwardFactor(c, q);
+      }
+      fc[c] /= m.GetVolume(c);
+    }
+    return fc;
+  }
   Vect GetYoungVel(Vect x) const {
     x -= Vect(0.5);
     // 0: streamwise
@@ -229,6 +242,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fctmp_;    // temporary scalar field
   FieldCell<Vect> fctmpv_;   // temporary vector field
   FieldCell<Vect> fcvcurl_;  // curl-component of velocity
+  FieldCell<Scal> fcdiv_;  // divergence of velocity
   bool vcurl_;  // compute curl
 
   using Sph = typename SA::Sph;
@@ -1254,6 +1268,10 @@ void Hydro<M>::DumpFields() {
         }
         m.Dump(&fctmp_, "dis");
       }
+    }
+    if (dl.count("div")) {
+     fcdiv_ = GetDiv();
+     m.Dump(&fcdiv_, "div");
     }
   }
 }
