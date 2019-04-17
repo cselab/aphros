@@ -1149,15 +1149,33 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     ffbp_.Reinit(m, 0);
     fc_smvf_ = fc_vf0;
 
-    // XXX: adhoc source
+    // XXX: oscillating source
     Scal source_mag = var.Double["source_mag"];
     if (source_mag != 0) {
       Scal source_freq = var.Double["source_freq"];
+      Scal source_wly = var.Double["source_wly"];
       Scal pi = M_PI;
       Scal s = std::sin(st_.t * source_freq * 2. * pi);
       fc_src_.Reinit(m, 0);
       for (auto c : m.Cells()) {
-        fc_src_[c] = s * source_mag * fc_vf0[c];
+        Vect x = m.GetCenter(c);
+        Scal sy = std::cos(2. * pi * x[1] / source_wly);
+        fc_src_[c] = s * sy * source_mag * fc_vf0[c];
+      }
+    }
+
+    // XXX: oscillating force
+    Scal force_mag = var.Double["force_mag"];
+    if (force_mag != 0) {
+      Scal force_freq = var.Double["force_freq"];
+      Scal force_wly = var.Double["force_wly"];
+      Scal pi = M_PI;
+      Scal s = std::sin(st_.t * force_freq * 2. * pi);
+      fc_src_.Reinit(m, 0);
+      for (auto c : m.Cells()) {
+        Vect x = m.GetCenter(c);
+        Scal sy = std::cos(2. * pi * x[1] / force_wly);
+        fc_force_[c][0] += s * sy * force_mag * fc_vf0[c];
       }
     }
   }
