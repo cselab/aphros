@@ -15,7 +15,7 @@ Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& par) {
   // Check block size
   if (par.Int["bsx"] == bx && 
       par.Int["bsy"] == by && 
-      par.Int["bsz"] == bz) {
+      (par.Int["bsz"] == bz || (bz == 2 && par.Int["bsz"] == 1))) {
     // Check kernel
     if (KF* kfd = dynamic_cast<KF*>(&kf)) {
       return new Cubism<Par, KF>(comm, *kfd, par);
