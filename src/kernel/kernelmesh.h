@@ -38,7 +38,8 @@ class KernelMesh : public Kernel {
 
   KernelMesh(Vars& var, const MyBlockInfo& bi) 
     : var(var), bi_(bi), m(CreateMesh<M>(bi)) {
-    m.SetCN(var.Int["CHECKNAN"]); // TODO: revise
+    m.SetCN(var.Int["CHECKNAN"]); // TODO: revise, avoid optional setters
+    m.SetEdim(var.Int["dim"]);
   }
   void Run() override = 0;
   M& GetMesh() { return m; }
