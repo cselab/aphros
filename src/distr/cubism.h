@@ -307,6 +307,12 @@ class Cubism : public DistrMesh<KF> {
       auto w = bc.GetMIdx(c) - bci.GetBegin();
       b.data[w[2]][w[1]][w[0]].a[e] = fc[c];
     }
+    if (m.GetEdim() == 2 && bci.GetSize()[2] == 1 && b.bz == 2) {
+      for (auto c : m.Cells()) {
+        auto w = bc.GetMIdx(c) - bci.GetBegin();
+        b.data[w[2] + 1][w[1]][w[0]].a[e] = fc[c];
+      }
+    }
     return 1;
   }
   // Writes component of vector field to buffer [i].
