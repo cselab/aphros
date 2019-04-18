@@ -1,0 +1,45 @@
+#!/usr/bin/env python
+
+import numpy as np
+import scipy.signal
+
+s = "stat.dat"
+
+d = np.genfromtxt(s, names=True)
+
+tp = d['t']
+ep = d['ekin']
+
+if len(tp) < 2:
+    exit()
+
+# flim: upper limit for frequency
+def Fft(t, u, flim):
+    dt = t.ptp() / len(t)
+    uh = np.fft.fft(u)
+    f = np.fft.fftfreq(len(t), dt) 
+    s = np.argsort(f)
+    f = f[s]
+    uh = uh[s]
+    return f, np.abs(uh)
+
+def Freq(t, u, flim):
+    dt = t.ptp() / len(t)
+    f, uh = scipy.signal.welch(u, 1. / dt, nfft=10000)
+    if flim is not None:
+        l = np.where(abs(f) < flim)
+        f = f[l]
+        uh = uh[l]
+    return f, uh
+
+tskip = 0.5 * tp.ptp()
+tt = np.linspace(tp.min() + tskip, tp.max(), len(tp))
+ee = np.interp(tt, tp, ep)
+
+flim = 30
+
+#ff,aa = Fft(tt, ee, flim)
+ff,aa = Freq(tt, ee, flim)
+
+for f,a in zip(ff,aa):
+    print("{:} {:}".format(f, a))
