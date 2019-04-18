@@ -117,8 +117,7 @@ CreateInitU(Vars& par, bool verb=true) {
           xd[2] = 0.;
         }
         Scal phi = std::atan2(xd[1], xd[0]);
-        Scal pi = M_PI;
-        return 1. + std::sin(2. * pi * phi * n) * a - xd.norm();
+        return 1. + std::sin(phi * n) * a - xd.norm();
       };
       for (auto c : m.Cells()) {
         auto x = m.GetCenter(c);

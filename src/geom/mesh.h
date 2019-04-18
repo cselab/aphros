@@ -342,6 +342,10 @@ class MeshStructured {
   bool CN() const { return checknan_; }
   void SetCN(bool c) { checknan_ = c; }
 
+  // Effective dimension
+  size_t GetEdim() const { return edim_; }
+  void SetEdim(size_t edim) { edim_ = edim; }
+
   // TODO: move to separate class: Sem, LS, Comm, Reduce, Solve
   // BEGIN DISTR
  public:
@@ -549,6 +553,7 @@ class MeshStructured {
   const int id_;   // unique id
   const Vect gl_;  // global domain length
   bool checknan_; // CheckNan flag
+  size_t edim_; // effective dimension
   std::array<Vect, dim> vs_; // surface vectors
   Vect va_; // surface area
   // cell neighbour cell 
@@ -612,6 +617,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     , id_(id)
     , gl_(Vect(gs) * h_)
     , checknan_(false)
+    , edim_(dim)
 {
   static_assert(dim == 3, "Not implemented for dim != 3");
 
