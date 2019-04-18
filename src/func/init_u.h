@@ -96,8 +96,33 @@ CreateInitU(Vars& par, bool verb=true) {
       };
       for (auto c : m.Cells()) {
         auto x = m.GetCenter(c);
-        Vect h = m.GetNode(m.GetNeighbourNode(c, 7)) - 
-            m.GetNode(m.GetNeighbourNode(c, 0));
+        Vect h = m.GetCellSize();
+        fc[c] = GetLevelSetVolume<Scal>(f, (x - xc) / r, h / r);
+      }
+    };
+  } else if (v == "gear") {
+    Vect xc = Vect(par.Vect["gear_c"]);
+    Scal r = par.Double["gear_r"];
+    Scal a = par.Double["gear_amp"];  // amplitude relative to r
+    Scal n = par.Double["gear_n"];    // number of peaks
+    size_t dim = par.Int["dim"];
+    g = [xc,r,dim,a,n](FieldCell<Scal>& fc, const M& m) { 
+      // level-set for particle of radius 1 centered at zero,
+      // modulated by sine-wave of amplitude a and number of periods n
+      // positive inside,
+      // cylinder along z if dim=2
+      auto f = [dim, n, a](const Vect& x) -> Scal {
+        Vect xd = x;
+        if (dim == 2) {
+          xd[2] = 0.;
+        }
+        Scal phi = std::atan2(xd[1], xd[0]);
+        Scal pi = M_PI;
+        return 1. + std::sin(2. * pi * phi * n) * a - xd.norm();
+      };
+      for (auto c : m.Cells()) {
+        auto x = m.GetCenter(c);
+        Vect h = m.GetCellSize();
         fc[c] = GetLevelSetVolume<Scal>(f, (x - xc) / r, h / r);
       }
     };
