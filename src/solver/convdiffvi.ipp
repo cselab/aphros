@@ -20,7 +20,7 @@ struct ConvDiffVectImp<M_>::Imp {
       const MapCell<std::shared_ptr<CondCell>>& mcc, 
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m)
-      , mfc_(mfc), mcc_(mcc), dr_(0, dim)
+      , mfc_(mfc), mcc_(mcc), dr_(0, m.GetEdim())
   {
     for (auto d : dr_) {
       // Face conditions for each velocity component
@@ -171,7 +171,7 @@ struct ConvDiffVectImp<M_>::Imp {
   Layers lvel_; // current level loaded in fcvel_
   MapFace<std::shared_ptr<CondFace>> mfc_; // vect face cond
   MapCell<std::shared_ptr<CondCell>> mcc_; // vect cell cond
-  GRange<size_t> dr_;  // dimension range
+  GRange<size_t> dr_;  // effective dimension range
 
   template <class T>
   using VectGeneric = std::array<T, dim>;

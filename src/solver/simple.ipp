@@ -41,7 +41,7 @@ struct Simple<M_>::Imp {
       const MapFace<std::shared_ptr<CondFaceFluid>>& mfc, 
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
       std::shared_ptr<Par> par)
-      : owner_(owner), par(par), m(owner_->m), dr_(0, dim)
+      : owner_(owner), par(par), m(owner_->m), dr_(0, m.GetEdim())
       , mfc_(mfc), mcc_(mcc), fcpcs_(m), ffvc_(m)
   {
     using namespace fluid_condition;
@@ -633,7 +633,7 @@ struct Simple<M_>::Imp {
           //sum += cd_->GetVelocityEquations(d)[c].CoeffSum();
           s += cd_->GetVelocityEquations(d)[c].Coeff(c); // XXX
         }
-        fck[c] = s / dim;
+        fck[c] = s / dr_.size();
       }
       CHECKNAN(fck, m.CN())
 
@@ -854,11 +854,6 @@ struct Simple<M_>::Imp {
         for (auto c : m.AllCells()) {
           fcp_curr[c] += pr * fcpc_[c];
         }
-        // XXX: adhoc prescribed pressure
-        if(0)
-        for (auto c : m.AllCells()) {
-          fcp_curr[c] = (*owner_->fcd_)[c] * 1e10;
-        }
       }
 
       // Calc divergence-free volume fluxes
@@ -926,7 +921,7 @@ struct Simple<M_>::Imp {
   Owner* owner_;
   std::shared_ptr<Par> par;
   M& m; // mesh
-  GRange<size_t> dr_;  // dimension range
+  GRange<size_t> dr_;  // effective dimension range
 
   // Face conditions
   MapFace<std::shared_ptr<CondFaceFluid>> mfc_; // fluid cond
