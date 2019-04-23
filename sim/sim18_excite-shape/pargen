@@ -1,0 +1,174 @@
+#!/usr/bin/env python
+
+import math
+
+pi = math.pi
+
+def CheckClose(a, b, e=1e-6):
+    assert abs(b - a) < e, "%r != %r" % (a, b)
+    return
+
+# natural frequency of breathing mode of spherical bubble
+#   Brennen, eqn (4.63)
+# rho: density of liquid
+# r: bubble radius
+# gamma: polytropic exponent
+# p: ambient pressure
+# sigma: surface tension
+def GetFb(rho, r, gamma, p, sigma):
+    return ((3 * gamma * p + 
+        2 * (3 * gamma - 1) * sigma / r) / (rho * r ** 2)) ** 0.5 / (2 * pi)
+
+# natural frequency of all modes of cylindrical bubble
+#   Berrada2016, eqn (19)
+# sigma: surface tension
+# rho: density of liquid
+# r: radius
+# n: mode (number of peaks)
+def GetFn(sigma, rho, r, n):
+    om2 = n * (n - 1) * (n + 1) * sigma / (rho * r ** 3)
+    f = om2 ** 0.5 / (2. * pi)
+    return f
+
+# natural frequency of all modes of cylindrical bubble
+#   Berrada2016, eqn (19)
+# f: frequency of mode n
+# rho: density of liquid
+# r: radius
+# n: mode (number of peaks)
+def GetSigmaFn(f, rho, r, n):
+    om2 = (f * 2. * pi) ** 2
+    sigma = om2 * (rho * r ** 3) / (n * (n - 1) * (n + 1))
+    return sigma
+
+
+CheckClose(GetFn(GetSigmaFn(11,12,13,14), 12,13,14), 11)
+
+
+def Exp():
+  # experiment Berrada 2016
+  # Acoustic pulsation of a microbubble confined between elastic walls
+
+  # Fig 6
+
+  # SI units
+
+  # initial bubble radius
+  r0 = 24e-6
+  # amplitude of breathing mode [length]
+  ra = 3e-6
+  # driving frequency
+  fd = 104e3
+  # velocity
+  vel = ra * fd
+  # viscosity
+  mu = 1e-3
+  # density
+  rho = 1000.
+  # Reynolds number
+  Re = r0 * vel * rho / mu
+  # surface tension
+  sig = 29e-3
+  # Ohnesorge number
+  Oh = mu / (rho * sig * r0) ** 0.5
+  # dimensionless amplitude
+  amp = ra / r0
+
+  # polytropic exponent
+  gm = 1.4
+  # ambient pressure
+  p0 = 1e5
+  # breathing mode natural frequency (Brennen, 4.63) for spherical bubble
+  fb = GetFb(rho, r0, gm, p0, sig)
+  # breathing mode natural frequency without surface tension
+  fbs0 = GetFb(rho, r0, gm, p0, 0)
+
+  # natural frequency of mode n=2
+  f2 = GetFn(sig, rho, r0, 2)
+  # driving frequency relative to f2
+  fd2 = fd / f2
+
+  for key in sorted(locals()):
+      print("{:} \t=\t {:}".format(key, locals()[key]))
+  print("\n")
+
+  return amp, Re, Oh, fd2
+
+# amp: amplitude relative to bubble radius
+# Re: Reynolds number 
+# Oh: Ohnesorge number
+# fd2: driving frequency relative to mode n=2 frequency
+def Sim(amp, Re, Oh, fd2):
+  # density of liquid
+  rho = 1
+  # domain extent
+  ext = 1.
+  # bubble radius relative to domain extent
+  re = 0.1
+  # bubble radius
+  r = re * ext
+  # absolute amplitude
+  ra = amp * r
+  # natural frequency of mode n=2
+  f2 = 1.
+  # surface tension
+  sig = GetSigmaFn(f2, rho, r, 2)
+  # driving frequency
+  fd = f2 * fd2
+  # period
+  T = 1 / fd
+  # velocity
+  vel = ra * fd
+  # viscosity
+  mu = r * vel * rho / Re
+
+  # total time
+  tmax = T * 100   
+  # density ratio
+  rhor = 0.01   
+  # viscosity ratio
+  mur = rhor    
+
+  # source magnitude
+  smag = T * amp
+
+  rho2 = rho * rhor
+  mu2 = mu * mur
+
+  dumpdt = tmax * 0.001
+
+  for key in sorted(locals()):
+      print("{:} \t=\t {:}".format(key, locals()[key]))
+  print("\n")
+
+  o = '''
+# initial
+set vect gear_c 0.5 0.5 0
+set double gear_r {r}
+set double gear_amp 0.01
+
+# time
+set double tmax {tmax}
+set double dump_field_dt {dumpdt}
+set double dump_part_dt {dumpdt}
+
+# physical 
+set double rho1 {rho}
+set double mu1 {mu}
+set double rho2 {rho2}
+set double mu2 {mu2}
+set double sigma {sig}
+
+# source
+set double source_mag {smag}
+set double source_wly 1e100
+set double gear_n 2
+
+'''.format(**locals())
+
+  open("par.conf", 'w').write(o)
+
+
+
+amp,Re,Oh,fd2 = Exp()
+Sim(amp, Re, Oh, fd2)
