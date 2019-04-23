@@ -65,7 +65,7 @@ ffd = list(map(os.path.dirname, ff))
 # steps
 ss = [int(re.findall("_([0-9]*)", fb)[0]) for fb in ffb]
 # omm input
-ffomm = ["omm_{:04d}.xmf".format(s) for s in ss]
+ffomm = ["omm_{:04d}.uni.xmf".format(s) for s in ss]
 
 # append dirname
 for i in range(len(ss)):
@@ -96,15 +96,22 @@ renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.OrientationAxesVisibility = 0
 renderView1.OrientationAxesLabelColor = [0.0, 0.0, 0.0]
 renderView1.OrientationAxesOutlineColor = [0.0, 0.0, 0.0]
-renderView1.CenterOfRotation = [3.1415927410125732, 3.1415927410125732, 3.1415927410125732]
-renderView1.StereoType = 0
-renderView1.CameraPosition = [6.43080086005585, -15.166333096764594, 9.914876482661194]
-renderView1.CameraFocalPoint = [3.0001989267510476, 4.2895772779323025, 2.724262644294233]
-renderView1.CameraViewUp = [-0.05939117461388465, 0.33682408883346476, 0.9396926207859086]
-renderView1.CameraParallelScale = 4.2537082476917885
-renderView1.CameraParallelProjection = 1
 
-renderView1.Background = [1.0, 1.0, 1.0]
+renderView1.CenterOfRotation = [3.14159274101257, 3.14159274101257, 3.14159274101257]
+renderView1.StereoType = 0
+renderView1.CenterOfRotation = [3.14159274101257, 3.14159274101257, 3.14159488677979]
+renderView1.StereoType = 0
+renderView1.CameraPosition = [20.4106540350961, -4.24286245650427, 9.37676218590444]
+renderView1.CameraFocalPoint = [2.31490519108964, 3.59533501902065, 2.08888589162254]
+renderView1.CameraViewUp = [-0.317390826200035, 0.139389564802607, 0.937994463026408]
+renderView1.CameraParallelScale = 5.44139948298291
+
+
+
+renderView1.Shadows = 0
+
+renderView1.Background = [0.0, 0.0, 0.0]
+renderView1.EnableOSPRay = ospray
 renderView1.AmbientSamples = 5
 renderView1.SamplesPerPixel = 5
 renderView1.OSPRayMaterialLibrary = materialLibrary1
@@ -170,6 +177,7 @@ confvfDisplay.ScaleTransferFunction.Points = [-0.9999856352806091, 0.0, 0.5, 0.0
 # init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
 confvfDisplay.OpacityTransferFunction.Points = [-0.9999856352806091, 0.0, 0.5, 0.0, 0.9999890923500061, 1.0, 0.5, 0.0]
 
+'''
 # create a new 'Resample To Image'
 rsmp = ResampleToImage(Input=omm)
 nx = 256
@@ -178,7 +186,19 @@ pi = 3.141592
 dom = 2 * pi
 rsmp.SamplingBounds = [0.0, dom, 0.0, dom, 0.0, dom]
 
-calcomm = rsmp
+#calcomm = rsmp
+'''
+#rsmp = CellDatatoPointData(Input=omm)
+rsmp = omm    # XXX:CCC
+
+maxom = 5.
+calcomm = Calculator(Input=rsmp)
+calcomm.ResultArrayName = 'omm2'
+calcomm.Function = 'min({:}, omm)'.format(maxom)
+calcomm.AttributeType = 'Cell Data'   # XXX:CCC
+
+
+
 
 # ----------------------------------------------------------------
 # setup the visualization in view 'renderView1'
@@ -186,12 +206,11 @@ calcomm = rsmp
 
 # show data from appnd
 appndDisplay = Show(omm, renderView1)
-
 # trace defaults for the display properties.
 appndDisplay.Representation = 'Outline'
 appndDisplay.ColorArrayName = ['CELLS', '']
-appndDisplay.LineWidth = 3.0
-appndDisplay.AmbientColor = [0.0, 0.0, 0.0]
+appndDisplay.LineWidth = 1.0
+appndDisplay.AmbientColor = [1.0, 1.0, 1.0]
 
 # show data from calcomm
 calcommDisplay = Show(calcomm, renderView1)
@@ -200,38 +219,28 @@ if not vort:
     Hide(calcoom, renderView1)
 
 # get color transfer function/color map for 'omm'
-ommLUT = GetColorTransferFunction('omm')
+ommLUT = GetColorTransferFunction('omm2')
 ommLUT.AutomaticRescaleRangeMode = 'Never'
+# XXX: keep consistent with maxom
 ommLUT.RGBPoints = [1.0, 0.231373, 0.298039, 0.752941, 3.0000000000000004, 0.865003, 0.865003, 0.865003, 5.0, 0.705882, 0.0156863, 0.14902]
 ommLUT.ScalarRangeInitialized = 1.0
 
 # get opacity transfer function/opacity map for 'omm'
-ommPWF = GetOpacityTransferFunction('omm')
+ommPWF = GetOpacityTransferFunction('omm2')
 ommPWF.Points = [1.0, 0.0, 0.5, 0.0, 3.1808218955993652, 0.07236842066049576, 0.5, 0.0, 5.0, 0.2565789520740509, 0.5, 0.0]
 ommPWF.ScalarRangeInitialized = 1
-
-# get color transfer function/color map for 'omm'
-ommLUT = GetColorTransferFunction('omm')
-ommLUT.AutomaticRescaleRangeMode = 'Never'
-ommLUT.RGBPoints = [1.0, 0.231373, 0.298039, 0.752941, 3.0000000000000004, 0.865003, 0.865003, 0.865003, 5.0, 0.705882, 0.0156863, 0.14902]
-ommLUT.ScalarRangeInitialized = 1.0
-
-# get opacity transfer function/opacity map for 'omm'
-ommPWF = GetOpacityTransferFunction('omm')
-ommPWF.Points = [1.0, 0.0, 0.5, 0.0, 3.1808218955993652, 0.07236842066049576, 0.5, 0.0, 5.0, 0.2565789520740509, 0.5, 0.0]
-ommPWF.ScalarRangeInitialized = 1
-
 
 
 # trace defaults for the display properties.
 calcommDisplay.Representation = 'Volume'
 calcommDisplay.AmbientColor = [0.0, 0.0, 0.0]
-calcommDisplay.ColorArrayName = ['POINTS', 'omm']
+#calcommDisplay.ColorArrayName = ['POINTS', 'omm2']
+calcommDisplay.ColorArrayName = ['CELLS', 'omm2']  # XXX:CCC
 calcommDisplay.LookupTable = ommLUT
-calcommDisplay.OpacityArray = ['POINTS', 'omm']
-calcommDisplay.OpacityTransferFunction = 'PiecewiseFunction'
 calcommDisplay.ScalarOpacityUnitDistance = 0.04251092259923938
 calcommDisplay.ScalarOpacityFunction = ommPWF
+#calcommDisplay.VolumeRenderingMode = 'Ray Cast Only'
+
 
 # ----------------------------------------------------------------
 # setup color maps and opacity mapes used in the visualization
@@ -241,6 +250,9 @@ calcommDisplay.ScalarOpacityFunction = ommPWF
 #####################################################
 ### END OF STATE FILE
 #####################################################
+
+SetTime(1)
+SaveScreenshot("tmp.png", renderView1)
 
 for i in list(range(len(ss))):
     fn = bo.format("{:04d}".format(ss[i]))
