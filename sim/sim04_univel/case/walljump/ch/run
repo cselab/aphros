@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+
+import os
+
+def sh(s, fatal=True):
+    print(s)
+    # XXX: actual return value is (signal,code) on UNIX
+    r = os.system(s)
+    assert not fatal or r == 0
+
+if os.path.isfile("done"):
+  print("'done' found, exiting")
+  exit(0)
+
+c = {}
+exec(open("../par.py").read(), None, c)
+
+if not c['ch']:
+    exit(0)
+
+np = c['np']
+loc = True if np == 1 else False
+dim = c['dim']
+d3 = (dim == 3)
+
+# minimal size in z
+mz = 1 if loc else 2
+
+nn = c['nx']
+if c['symm']:
+    nx = nn
+    ny = nn // 2
+    nz = nn // 2 if d3 else mz
+elif c['symmxy']:
+    nx = nn // 2
+    ny = nn // 2
+    nz = nn if d3 else mz
+else:
+    nx = nn
+    ny = nn
+    nz = nn if d3 else mz
+
+nz *= 2
+
+# block size
+bx = 16 if d3 else 16
+by = bx
+bz = bx if d3 else mz
+
+sh("make cleanall")
+sh("./pargen")
+sh("make m='{nx} {ny} {nz}' bs='{bx} {by} {bz}' np={np} run"
+        .format(**locals()))
+
+sh("./expstat")
+
+sh("echo > done")

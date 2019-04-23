@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -eu
+
+echo 1024 > np
+echo 1440 > tl
+
+# XXX: ch/run
+# nz *= 2
+
+./gen -nx 256 -np 1024 -mode osc -dim 3 -pos center \
+  -We 0 -Oh 0.003 -tmax 100 -br 0.1 \
+  -mu 0.01 -rho 0.01 \
+  -symmxy 1 -wallz 1 \
+  -bcod 0 0 -0.5 -bcor 0 0 1 \
+  -b2xr 2 0 0 -b2rr 1 \
+  -Eo 0.440 -g0 0 0 -1 \
+  -nb 1 -nfr 400
+
+
+cat > ch/add.conf << EOF
+set string dumpformat default
+set string dumplist vf
+set int part_ns 2
+set double extent 2
+EOF
+
+
+echo > r_ba
+
