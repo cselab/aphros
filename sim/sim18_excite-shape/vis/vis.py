@@ -29,38 +29,36 @@ def natkey(s, _nsre=re.compile('([0-9]+)')):
 
 def natsorted(v):
   return sorted(v, key=natkey)
-# Returns sorted list of files in base by pattern pre_*.xmf
 
-# Returns sorted list of files by glob pattern p
-def GetFiles(p):
-  l = glob(p)
-  return natsorted(l)
+
+# Sets time of datasets to step i
+def SetTime(i):
+    global vft, vt
+    for j in range(len(vft)):
+        s = vft[j]
+        s.ForcedTime = vt[j][i]
+        s.UpdatePipeline()
+
 
 av = sys.argv
-if len(av) < 2:
-  sys.stderr.write('''usage: {:} ch
-ch: folder with s_*.vtk, interface from ch
+if len(av) < 2 or av[1] == '-h':
+    sys.stderr.write('''usage: {:} [s_*.vtk]
+# Output:
+# a_*.png in current folder
 '''.format(av[0]))
-  exit(1)
+    exit(1)
 
-# base folder
-chdir = av[1]  # ch
+# s input
+ff = natsorted(av[1:])
+# s basename
+ffb = list(map(os.path.basename, ff))
+# s dirname
+ffd = list(map(os.path.dirname, ff))
+# steps
+ss = [int(re.findall("_([0-9]*)", fb)[0]) for fb in ffb]
 
 # output pattern (:0 substituted by frame number)
 bo = "a_{:}.png"
-
-# frames to skip (number of finished frames)
-skipfirst = len(glob(bo.format("*")))
-
-# total number of frames
-nfr = len(GetFiles(os.path.join(chdir, "s_*.vtk")))
-
-Log("Using chdir={:}".format(chdir))
-Log("Skipping first {:} of {:} frames".format(skipfirst, nfr))
-
-if skipfirst >= nfr:
-  Log("No frames left")
-  exit(0)
 
 #####################################################
 ### BEGIN OF STATE FILE
@@ -74,34 +72,13 @@ materialLibrary1 = GetMaterialLibrary()
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
 renderView1.ViewSize = [1000, 1000]
-renderView1.AnnotationColor = [0.0, 0.0, 0.0]
-renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.OrientationAxesVisibility = 0
-renderView1.OrientationAxesLabelColor = [0.0, 0.0, 0.0]
-renderView1.OrientationAxesOutlineColor = [0.0, 0.0, 0.0]
-renderView1.CenterOfRotation = [0.5, 0.5, 0.0]
-renderView1.StereoType = 0
 renderView1.CameraPosition = [0.5, 0.5, 1.]
 renderView1.CameraFocalPoint = [0.5, 0.5, 0.0]
 renderView1.CameraParallelScale = 0.5
 renderView1.CameraParallelProjection = 1
 renderView1.Background = [1.0, 1.0, 1.0]
 renderView1.OSPRayMaterialLibrary = materialLibrary1
-
-# init the 'GridAxes3DActor' selected for 'AxesGrid'
-renderView1.AxesGrid.XTitleColor = [0.0, 0.0, 0.0]
-renderView1.AxesGrid.XTitleFontFile = ''
-renderView1.AxesGrid.YTitleColor = [0.0, 0.0, 0.0]
-renderView1.AxesGrid.YTitleFontFile = ''
-renderView1.AxesGrid.ZTitleColor = [0.0, 0.0, 0.0]
-renderView1.AxesGrid.ZTitleFontFile = ''
-renderView1.AxesGrid.GridColor = [0.0, 0.0, 0.0]
-renderView1.AxesGrid.XLabelColor = [0.0, 0.0, 0.0]
-renderView1.AxesGrid.XLabelFontFile = ''
-renderView1.AxesGrid.YLabelColor = [0.0, 0.0, 0.0]
-renderView1.AxesGrid.YLabelFontFile = ''
-renderView1.AxesGrid.ZLabelColor = [0.0, 0.0, 0.0]
-renderView1.AxesGrid.ZLabelFontFile = ''
 
 # ----------------------------------------------------------------
 # restore active view
@@ -111,12 +88,6 @@ SetActiveView(renderView1)
 # ----------------------------------------------------------------
 # BEGIN READERS
 # ----------------------------------------------------------------
-
-# Returns list of files by glob pattern p skipping skipfirst
-def F(p):
-  global skipfirst
-  l = GetFiles(p)
-  return l[skipfirst:]
 
 # list of all sources
 vs = []
@@ -135,8 +106,7 @@ def A(s):
     return s
 
 # create a new 'CSV Reader'
-fn = F(os.path.join(chdir, "s_*.vtk"))
-s_00 = LegacyVTKReader(FileNames=fn) if len(fn) else None
+s_00 = LegacyVTKReader(FileNames=ff)
 s_00 = A(s_00)
 
 # ----------------------------------------------------------------
@@ -151,9 +121,10 @@ s_00 = A(s_00)
 s_00Display = Show(s_00, renderView1)
 
 # trace defaults for the display properties.
-#s_00Display.Representation = 'Wireframe'
-s_00Display.Representation = 'Surface'
-s_00Display.AmbientColor = [0.12156862745098039, 0.4666666666666667, 0.7058823529411765]
+s_00Display.Representation = 'Wireframe'
+#s_00Display.Representation = 'Surface'
+s_00Display.AmbientColor = [
+        0.12156862745098039, 0.4666666666666667, 0.7058823529411765]
 s_00Display.ColorArrayName = ['POINTS', '']
 s_00Display.LineWidth = 3.0
 
@@ -174,15 +145,15 @@ anim.GoToFirst()
 anim.GoToNext()
 anim.GoToPrevious()
 
-import sys
+for i in list(range(len(ss))):
+    fn = bo.format("{:04d}".format(ss[i]))
+    if os.path.isfile(fn):
+        Log("skip existing {:}".format(fn))
+        continue
 
-for fr in range(skipfirst,nfr):
-  dfr = fr - skipfirst
-  for k in range(len(vft)):
-    vft[k].SetPropertyWithName("ForcedTime", vt[k][dfr])
-  fn = bo.format("{:04d}".format(fr))
-  Log("{:}/{:}: {:}".format(fr + 1, nfr, fn))
-  SaveScreenshot(fn, renderView1, ImageResolution=[1000,1000])
-  anim.GoToNext()
+    SetTime(i)
+
+    Log("{:}/{:}: {:}".format(i + 1, len(ss), fn))
+    SaveScreenshot(fn, renderView1)
 
 exit(0)
