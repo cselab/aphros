@@ -1,0 +1,4 @@
+set -eu
+make clean
+./pargen
+make run

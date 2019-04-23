@@ -161,6 +161,7 @@ set double sigma {sig}
 
 # source
 set double source_mag {smag}
+set double source_freq {fd}
 set double source_wly 1e100
 set double gear_n 2
 
