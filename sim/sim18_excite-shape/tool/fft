@@ -8,7 +8,7 @@ s = "stat.dat"
 d = np.genfromtxt(s, names=True)
 
 tp = d['t']
-ep = d['ekin']
+ep = d['pavg2']
 
 if len(tp) < 2:
     exit()
@@ -18,6 +18,10 @@ def Fft(t, u, flim):
     dt = t.ptp() / len(t)
     uh = np.fft.fft(u)
     f = np.fft.fftfreq(len(t), dt) 
+    if flim is not None:
+        l = np.where((f < flim) & (f >= 0))
+        f = f[l]
+        uh = uh[l]
     s = np.argsort(f)
     f = f[s]
     uh = uh[s]
@@ -25,7 +29,7 @@ def Fft(t, u, flim):
 
 def Freq(t, u, flim):
     dt = t.ptp() / len(t)
-    f, uh = scipy.signal.welch(u, 1. / dt, nfft=10000)
+    f, uh = scipy.signal.welch(u, 1. / dt, nfft=5000)
     if flim is not None:
         l = np.where(abs(f) < flim)
         f = f[l]
