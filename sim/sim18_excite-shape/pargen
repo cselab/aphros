@@ -177,7 +177,7 @@ set int stat_area 1
 
 #amp,Oh,fd2 = Exp() ; exit()
 
-amp = 0.1
+amp = 0.15
 Oh = 0.03
 n = 4
 fd2 = GetFn(1, 1, 1, n) / GetFn(1, 1, 1, 2) * 2
