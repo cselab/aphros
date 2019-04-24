@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -eu
+
+rm -f *.png
+./vis.py ../s_*.vtk || true
+r.pngmp4
+

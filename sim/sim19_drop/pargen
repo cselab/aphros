@@ -9,11 +9,11 @@ def Exp():
 
     # water
     rho = 1000 # density
-    mu = 1e-3  # dynamic viscosity
+    mu = 1e-2  # dynamic viscosity
     nu = mu / rho # kinematic viscosity
 
     r =  0.005   # drop radius
-    h = 10 * r   # distance between bubble center and free surface
+    h = 6 * r   # distance between bubble center and free surface
 
     ###
     Oh = mu / (rho * sig * r) ** 0.5
@@ -44,7 +44,7 @@ def Sim(c):
     # time
     tun = (h / g) ** 0.5  # unit
     tmax = tun * 3
-    dumpdt = tun * 0.025
+    dumpdt = tun * 0.1
 
     # gas, ratio to liquid
     mu = 0.01
@@ -114,9 +114,7 @@ set double mu2 {mu2}
 set double sigma {sig}
 set vect gravity 0 0 {g}
 
-set int vfsmooth 2
-
-set double dtmax 1e-3
+set double dtmax 3e-3
 
         '''.format(**locals()))
 

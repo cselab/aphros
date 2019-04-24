@@ -1,0 +1,6 @@
+#!/bin/bash
+set -eu
+killall ch.mfer || true
+make cleanall
+./pargen
+make run
