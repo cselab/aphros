@@ -101,7 +101,7 @@ def Sim(amp, Oh, fd2):
   # domain extent
   ext = 1.
   # bubble radius relative to domain extent
-  re = 0.125
+  re = 0.1
   # bubble radius
   r = re * ext
   # absolute amplitude
@@ -120,7 +120,7 @@ def Sim(amp, Oh, fd2):
   mu = Oh * (rho * sig * r) ** 0.5
 
   # total time
-  tmax = T * 100
+  tmax = T * 200
   # density ratio
   rhor = 0.01
   # viscosity ratio
@@ -129,12 +129,12 @@ def Sim(amp, Oh, fd2):
   # source magnitude
   smag = amp / T
   smag *= 6
-  smag0 = smag * 0.01
+  smag0 = smag * 0.02
 
   rho2 = rho * rhor
   mu2 = mu * mur
 
-  dumpdt = T / 5
+  dumpdt = T / 1.3
 
   for key in sorted(locals()):
       print("{:} \t=\t {:}".format(key, locals()[key]))
@@ -144,8 +144,8 @@ def Sim(amp, Oh, fd2):
 # initial
 set vect gear_c 0.5 0.5 0
 set double gear_r {r}
-set double gear_amp 0.01
-set double gear_n 6
+set double gear_amp 0.05
+set double gear_n 4
 
 # time
 set double tmax {tmax}
@@ -160,10 +160,14 @@ set double mu2 {mu2}
 set double sigma {sig}
 
 # source
-set double source_mag {smag}
+set double source_mag 0
 set double source_freq {fd}
 set double source_wly 1e100
 set double source_mag0 {smag0}
+
+setnext string ev 0.5 set double source_mag {smag}
+
+set int stat_area 1
 
 '''.format(**locals())
 
@@ -173,7 +177,7 @@ set double source_mag0 {smag0}
 #amp,Oh,fd2 = Exp() ; exit()
 
 amp = 0.1
-Oh = 0.02
-n = 3
+Oh = 0.04
+n = 4
 fd2 = GetFn(1, 1, 1, n) / GetFn(1, 1, 1, 2) * 2
 Sim(amp, Oh, fd2)

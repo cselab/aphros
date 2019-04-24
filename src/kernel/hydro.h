@@ -1151,8 +1151,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 
     // XXX: oscillating source
     Scal source_mag = var.Double["source_mag"];
-    Scal source_mag0 = var.Double["source_mag0"]; // constant component
     if (source_mag != 0) {
+      Scal source_mag0 = var.Double["source_mag0"]; // constant component
       Scal source_freq = var.Double["source_freq"];
       Scal source_wly = var.Double["source_wly"];
       Scal pi = M_PI;
