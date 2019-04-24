@@ -256,7 +256,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Scal bgt_ = -1.; // bubgen last time 
 
   struct Stat {
-    Scal m1, m2;            // mass
+    Scal m1, m2;            // volume
+    Scal m20;               // initial volume
+    Scal m2d;               // relative volume difference
     Vect c1, c2;            // center of mass 
     Vect vc1, vc2;          // center of mass velocity
     Vect v1, v2;            // average velocity
@@ -489,6 +491,8 @@ void Hydro<M>::InitStat() {
         op("diff", &diff_),
         op("m1", &s.m1),
         op("m2", &s.m2),
+        op("m20", &s.m20),
+        op("m2d", &s.m2d),
         op("ekin", &s.ekin),
         op("ekin1", &s.ekin1),
         op("ekin2", &s.ekin2),
@@ -877,6 +881,12 @@ void Hydro<M>::CalcStat() {
     s.pavg1 *= im1;
     s.pavg2 *= im2;
 
+    if (s.m20 == 0.) {
+      s.m20 = s.m2;
+    } else {
+      s.m2d = (s.m2 - s.m20) / s.m20;
+    }
+
     if (s.vommw != 0) {
       s.vomm /= s.vommw;
     }
@@ -1152,18 +1162,23 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     // XXX: oscillating source
     Scal source_mag = var.Double["source_mag"];
     if (source_mag != 0) {
-      Scal source_mag0 = var.Double["source_mag0"]; // constant component
-      Scal source_freq = var.Double["source_freq"];
-      Scal source_wly = var.Double["source_wly"];
+      Scal mag = source_mag;
+      Scal mag0 = var.Double["source_mag0"]; // constant component
+      Scal freq = var.Double["source_freq"];
+      Scal wly = var.Double["source_wly"];
+      Scal mexp = var.Double["source_mexp"];
       Scal pi = M_PI;
-      Scal s = std::sin(st_.t * source_freq * 2. * pi);
+      Scal s = std::sin(st_.t * freq * 2. * pi);
       fc_src_.Reinit(m, 0);
       for (auto c : m.Cells()) {
         const Vect x = m.GetCenter(c);
-        const Scal sy = std::cos(2. * pi * x[1] / source_wly);
+        const Scal sy = std::cos(2. * pi * x[1] / wly);
         const Scal vf = fc_vf0[c];
-        fc_src_[c] = s * sy * source_mag * vf;
-        fc_src_[c] += source_mag0 * vf;
+        fc_src_[c] = s * sy * mag * vf;
+        fc_src_[c] += mag0 * vf;
+        if (mexp != 1. && st_.m20 > 0 && st_.m2 > 0) {
+          fc_src_[c] *= std::pow(st_.m2 / st_.m20, mexp);
+        }
       }
     }
 

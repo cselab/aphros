@@ -164,6 +164,7 @@ set double source_mag 0
 set double source_freq {fd}
 set double source_wly 1e100
 set double source_mag0 {smag0}
+set double source_mexp -1
 
 setnext string ev 0.5 set double source_mag {smag}
 
@@ -176,8 +177,8 @@ set int stat_area 1
 
 #amp,Oh,fd2 = Exp() ; exit()
 
-amp = 0.1
+amp = 0.15
 Oh = 0.04
-n = 4
+n = 3
 fd2 = GetFn(1, 1, 1, n) / GetFn(1, 1, 1, 2) * 2
 Sim(amp, Oh, fd2)
