@@ -95,14 +95,14 @@ renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.OrientationAxesVisibility = 0
 renderView1.CenterOfRotation = [0.5, 2, 0.5]
 renderView1.StereoType = 0
-renderView1.CameraPosition = [0.5, 2, -7]
+renderView1.CameraPosition = [0.5, 2, -8]
 renderView1.CameraFocalPoint = [0.5, 2, 0.5]
 renderView1.CameraParallelScale = 1.6583123951777
-renderView1.Background = [1.0, 1.0, 1.0]
+renderView1.Background = [0.0, 0.0, 0.0]
 renderView1.EnableOSPRay = ospray
 renderView1.AmbientSamples = 10
 renderView1.SamplesPerPixel = 10
-renderView1.Shadows = 1
+renderView1.Shadows = 0
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 
 # ----------------------------------------------------------------
