@@ -1151,6 +1151,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 
     // XXX: oscillating source
     Scal source_mag = var.Double["source_mag"];
+    Scal source_mag0 = var.Double["source_mag0"]; // constant component
     if (source_mag != 0) {
       Scal source_freq = var.Double["source_freq"];
       Scal source_wly = var.Double["source_wly"];
@@ -1158,9 +1159,11 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       Scal s = std::sin(st_.t * source_freq * 2. * pi);
       fc_src_.Reinit(m, 0);
       for (auto c : m.Cells()) {
-        Vect x = m.GetCenter(c);
-        Scal sy = std::cos(2. * pi * x[1] / source_wly);
-        fc_src_[c] = s * sy * source_mag * fc_vf0[c];
+        const Vect x = m.GetCenter(c);
+        const Scal sy = std::cos(2. * pi * x[1] / source_wly);
+        const Scal vf = fc_vf0[c];
+        fc_src_[c] = s * sy * source_mag * vf;
+        fc_src_[c] += source_mag0 * vf;
       }
     }
 
