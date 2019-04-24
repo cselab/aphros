@@ -73,10 +73,17 @@ materialLibrary1 = GetMaterialLibrary()
 renderView1 = CreateView('RenderView')
 renderView1.ViewSize = [1000, 1000]
 renderView1.OrientationAxesVisibility = 0
-renderView1.CameraPosition = [3.38060827699219, 2.283201516563153, 1.925719089019077]
-renderView1.CameraFocalPoint = [0.5000000000000002, 0.5000000000000016, 0.9987755119800572]
-renderView1.CameraViewUp = [-0.22201257264706833, -0.14274411445459043, 0.9645385090162057]
-renderView1.CameraParallelScale = 0.7513019528597746
+
+renderView1.CameraPosition = [1.7536929606099154, 3.44405411327432, 1.4829402975071122]
+renderView1.CameraFocalPoint = [0.47975814772145614, 0.5400876539226072, 0.4151288356011742]
+renderView1.CameraViewUp = [-0.11344083319471632, -0.2986712073425839, 0.9475899362427884]
+renderView1.CameraParallelScale = 0.8660254037844386
+
+#renderView1.CameraPosition = [3.38060827699219, 2.283201516563153, 1.925719089019077]
+#renderView1.CameraFocalPoint = [0.5000000000000002, 0.5000000000000016, 0.9987755119800572]
+#renderView1.CameraViewUp = [-0.22201257264706833, -0.14274411445459043, 0.9645385090162057]
+#renderView1.CameraParallelScale = 0.7513019528597746
+
 renderView1.Background = [1.0, 1.0, 1.0]
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 

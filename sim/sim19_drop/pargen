@@ -12,7 +12,7 @@ def Exp():
     mu = 1e-3  # dynamic viscosity
 
     r = 0.01   # drop radius
-    h = 6 * r   # distance between bubble center and free surface
+    h = 4 * r   # distance between bubble center and free surface
 
     ###
     Oh = mu / (rho * sig * r) ** 0.5
@@ -30,7 +30,7 @@ def Sim(c):
 
     # domain 
     W = 1. # width
-    H = 2. # height
+    H = 1. # height
     assert H >= W
 
     g = 1.
@@ -42,25 +42,25 @@ def Sim(c):
 
     # time
     tun = (h / g) ** 0.5  # unit
-    tmax = tun * 3
+    tmax = tun * 2
     dumpdt = tun * 0.1
+    trepdt = dumpdt
 
     # gas, ratio to liquid
     mu = 0.01
     rho = 0.01
 
     # mesh
-    nx = 128
+    nx = 256
     ny = nx
     nz = int(nx * H / W + 0.5)
 
     # block size
     bs = 16
     # cores
-    np = 256
-    #np = 192*3
+    np = 512
     # time limit (minutes)
-    tl = 1440
+    tl = 240
 
     for key in sorted(locals()):
         print("{:} \t=\t {:}".format(key, locals()[key]))
@@ -81,6 +81,7 @@ def Gen(c):
 
     tmax = c['tmax']
     dumpdt = c['dumpdt']
+    trepdt = c['trepdt']
 
     rho2 = c['rho0']
     mu2 = c['mu0']
@@ -113,6 +114,7 @@ set double extent {H}
 set double tmax {tmax}
 set double dump_field_dt {dumpdt}
 set double dump_part_dt {dumpdt}
+set double dump_trep_dt {trepdt}
 
 # physical 
 set double rho1 {rho1}

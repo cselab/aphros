@@ -3,6 +3,6 @@
 set -eu
 
 rm -f *.png
-./vis.py ../s_*.vtk || true
+./vis.py ../s_*.vtk 2> /dev/null || true
 r.pngmp4
 
