@@ -9,10 +9,9 @@ def Exp():
 
     # water
     rho = 1000 # density
-    mu = 1e-2  # dynamic viscosity
-    nu = mu / rho # kinematic viscosity
+    mu = 1e-3  # dynamic viscosity
 
-    r =  0.005   # drop radius
+    r = 0.01   # drop radius
     h = 6 * r   # distance between bubble center and free surface
 
     ###
@@ -51,14 +50,15 @@ def Sim(c):
     rho = 0.01
 
     # mesh
-    nx = 128
+    nx = 256
     ny = nx
     nz = int(nx * H / W + 0.5)
 
     # block size
     bs = 16
     # cores
-    np = 256
+    np = 1024
+    #np = 192*3
     # time limit (minutes)
     tl = 1440
 

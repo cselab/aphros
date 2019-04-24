@@ -251,12 +251,22 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       }
       fcv[i][0] = p * s * k;
     }
-  } else if (vi == "uniform" ) {
+  } else if (vi == "uniform") {
     Vect v(var.Vect["vel"]);
     for (auto i : m.AllCells()) {
       fcv[i] = v;
     }
-  } else if (vi == "zero" ) {
+  } else if (vi == "box") {
+    Vect v(var.Vect["vel"]);
+    Vect a(var.Vect["vel_box_a"]);
+    Vect b(var.Vect["vel_box_b"]);
+    Rect<Vect> r(a, b);
+    for (auto c : m.AllCells()) {
+      if (r.IsInside(m.GetCenter(c))) {
+        fcv[c] = v;
+      }
+    }
+  } else if (vi == "zero") {
     // nop
   } else  {
     throw std::runtime_error("Init(): unknown vel_init=" + vi);
