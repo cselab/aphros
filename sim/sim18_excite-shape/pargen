@@ -120,7 +120,7 @@ def Sim(amp, Oh, fd2):
   mu = Oh * (rho * sig * r) ** 0.5
 
   # total time
-  tmax = T * 400
+  tmax = T * 500
   # density ratio
   rhor = 0.01
   # viscosity ratio
@@ -134,7 +134,8 @@ def Sim(amp, Oh, fd2):
   rho2 = rho * rhor
   mu2 = mu * mur
 
-  dumpdt = T / 1.3
+  dumpdt = T / 10.
+  trepdt = tmax / 10
 
   for key in sorted(locals()):
       print("{:} \t=\t {:}".format(key, locals()[key]))
@@ -151,6 +152,7 @@ set double gear_n 4
 set double tmax {tmax}
 set double dump_field_dt {dumpdt}
 set double dump_part_dt {dumpdt}
+set double dump_trep_dt {trepdt}
 
 # physical 
 set double rho1 {rho}
