@@ -120,7 +120,7 @@ def Sim(amp, Oh, fd2):
   mu = Oh * (rho * sig * r) ** 0.5
 
   # total time
-  tmax = T * 200
+  tmax = T * 400
   # density ratio
   rhor = 0.01
   # viscosity ratio
@@ -129,7 +129,7 @@ def Sim(amp, Oh, fd2):
   # source magnitude
   smag = amp / T
   smag *= 6
-  smag0 = smag * 0.02
+  smag0 = 0.001
 
   rho2 = rho * rhor
   mu2 = mu * mur
@@ -177,8 +177,8 @@ set int stat_area 1
 
 #amp,Oh,fd2 = Exp() ; exit()
 
-amp = 0.15
-Oh = 0.04
-n = 3
+amp = 0.1
+Oh = 0.03
+n = 4
 fd2 = GetFn(1, 1, 1, n) / GetFn(1, 1, 1, 2) * 2
 Sim(amp, Oh, fd2)
