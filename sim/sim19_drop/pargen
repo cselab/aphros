@@ -50,14 +50,14 @@ def Sim(c):
     rho = 0.01
 
     # mesh
-    nx = 256
+    nx = 128
     ny = nx
     nz = int(nx * H / W + 0.5)
 
     # block size
     bs = 16
     # cores
-    np = 1024
+    np = 256
     #np = 192*3
     # time limit (minutes)
     tl = 1440
@@ -96,6 +96,14 @@ def Gen(c):
     bz = srz + c['h']
     br = c['r']
 
+    # init vel box
+    bax =  bx - br
+    bay =  by - br
+    baz =  bz - br
+    bbx =  bx + br
+    bby =  by + br
+    bbz =  bz + br
+
     with open("par.conf", 'w') as f:
         f.write('''\
 # domain
@@ -114,7 +122,13 @@ set double mu2 {mu2}
 set double sigma {sig}
 set vect gravity 0 0 {g}
 
-set double dtmax 3e-3
+set double dtmax 1e-4
+setnext string ev 30e-4 set double dtmax 3e-3
+
+set string vel_init box
+set vect vel 0 0 -1
+set vect vel_box_a {bax} {bay} {baz}
+set vect vel_box_b {bbx} {bby} {bbz}
 
         '''.format(**locals()))
 
