@@ -104,7 +104,8 @@ renderView1.CameraParallelScale = 0.7272703905831369
 renderView1.Background = [0.9254901960784314, 0.9254901960784314, 0.9254901960784314]
 renderView1.Background2 = [0.22745098039215686, 0.5176470588235295, 0.611764705882353]
 renderView1.EnableOSPRay = 1
-renderView1.AmbientSamples = 1
+renderView1.AmbientSamples = 5
+renderView1.SamplesPerPixel = 100
 #renderView1.ProgressivePasses = 1
 renderView1.BackgroundNorth = [0.0, 0.0, 1.0]
 renderView1.BackgroundEast = [1.0, 1.0, 0.0]
@@ -172,9 +173,6 @@ SetActiveSource(contour1)
 #####################################################
 ### END OF STATE FILE
 #####################################################
-
-SetTime(1)
-SaveScreenshot("tmp.png", renderView1)
 
 for i in list(range(len(ss))):
     fn = bo.format("{:04d}".format(ss[i]))
