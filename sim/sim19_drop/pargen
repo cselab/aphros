@@ -12,7 +12,7 @@ def Exp():
     mu = 1e-2  # dynamic viscosity
 
     r = 0.005   # drop radius
-    h = 4 * r   # distance between bubble center and free surface
+    h = 6 * r   # distance between bubble center and free surface
 
     ###
     Oh = mu / (rho * sig * r) ** 0.5
@@ -35,16 +35,16 @@ def Sim(c):
 
     g = 1.
     rho0 = 1
-    r = W * 0.1
+    r = W * 0.05
     sig = rho0 * g * r ** 2 / Eo
     mu0 = Oh * (sig * rho0 * r) ** 0.5
     h = hr * r
 
     # time
     tun = (h / g) ** 0.5  # unit
-    tmax = tun * 2
-    dumpdt = tun * 0.01
-    trepdt = dumpdt * 10
+    tmax = tun * 10
+    dumpdt = tun * 0.02
+    trepdt = tmax / 10
 
     # gas, ratio to liquid
     mu = 0.01
@@ -93,10 +93,10 @@ def Gen(c):
     g = -c['g']
 
     # droplet
-    bx = W * 0.5 + 0.01
-    by = W * 0.5 + 0.02
-    bz = srz + c['h']
     br = c['r']
+    bx = W * 0.5 + 0.1 * br
+    by = W * 0.5 + 0.2 * br
+    bz = srz + c['h']
 
     # init vel box
     bax =  bx - br
@@ -129,7 +129,7 @@ set double dtmax 1e-4
 setnext string ev 30e-4 set double dtmax 3e-3
 
 set string vel_init box
-set vect vel 0 0 -3
+set vect vel 0 0 0
 set vect vel_box_a {bax} {bay} {baz}
 set vect vel_box_b {bbx} {bby} {bbz}
 
