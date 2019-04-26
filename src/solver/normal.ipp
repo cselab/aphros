@@ -125,9 +125,13 @@ struct UNormal<M_>::Imp {
         MIdx otx = MIdx(dtx);
         MIdx oty = MIdx(dty);
         // mesh step
-        const Scal lx = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - otx)));
-        const Scal ly = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - oty)));
-        const Scal ln = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - on)));
+        //const Scal lx = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - otx)));
+        //const Scal ly = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - oty)));
+        //const Scal ln = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - on)));
+        // XXX: adhoc uniform
+        const Scal lx = m.GetCellSize()[size_t(dtx)];
+        const Scal ly = m.GetCellSize()[size_t(dty)];
+        const Scal ln = m.GetCellSize()[size_t(dn)];
 
         // Evaluates height function
         // o: offset from w
