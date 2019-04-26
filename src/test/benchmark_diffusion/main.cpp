@@ -103,7 +103,7 @@ class Interp : public TimerMesh {
 
 class Diffusion : public TimerMesh {
  public:
-  Diffusion(Mesh& m) : TimerMesh("diffusion", m), fc(m), fcv(m), ff(m) {
+  Diffusion(Mesh& m) : TimerMesh("diffusion", m), fc(m), ff(m) {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
@@ -112,21 +112,77 @@ class Diffusion : public TimerMesh {
     volatile size_t ii = 0;
 
     // normal gradient
-    for (auto f : m.SuFaces()) {
+    for (auto f : m.Faces()) {
       auto cm = m.GetNeighbourCell(f, 0);
       auto cp = m.GetNeighbourCell(f, 1);
-      Scal a = Scal(1) * m.GetArea(f) / m.GetVolume(cp) * m.GetNormal(f).sqrnorm();
-      ff[f] = a * (fc[cp] - fc[cm]);
+      Scal a = m.GetArea(f) / m.GetVolume(cp);
+      ff[f] = (fc[cp] - fc[cm]) * a;
     }
 
-    ii = ff[IdxFace(ii)] + fcv[IdxCell(ii)][0];
+    // advance
+    for (auto c : m.Cells()) {
+      Scal s = 0;
+      for (auto q : m.Nci(c)) {
+        IdxFace f = m.GetNeighbourFace(c, q);
+        s += ff[f] * m.GetArea(f) * m.GetOutwardFactor(c, q);
+      }
+      fc[c] += s / m.GetVolume(c);
+    }
+
+    ii = fc[IdxCell(ii)];
   }
 
  private:
   FieldCell<Scal> fc;
-  FieldCell<Vect> fcv;
-  MapFace<std::shared_ptr<solver::CondFace>> mfc;
   FieldFace<Scal> ff;
+};
+
+
+class DiffusionPlain : public TimerMesh {
+ public:
+  DiffusionPlain(Mesh& m) : TimerMesh("diffusion-plain", m), fc(m), fct(m) {
+    for (auto i : m.AllCells()) {
+      fc[i] = std::sin(i.GetRaw());
+    }
+    fct = fc;
+  }
+  void F() override {
+    volatile size_t ii = 0;
+
+
+    auto& bc = m.GetIndexCells();
+    MIdx wb = bc.GetBegin();
+    MIdx ws = bc.GetSize();
+    const size_t hl = -wb[0];  // halo cells
+    const size_t nx = ws[0];   // block size n^3
+    const size_t ny = ws[1];   // block size n^3
+    const size_t nz = ws[2];   // block size n^3
+
+    fc.swap(fct);
+    Scal* d = fc.data();
+    Scal* t = fct.data();
+    for (size_t z = hl, ze = nz - hl; z < ze; ++z) {
+      for (size_t y = hl, ye = ny - hl; y < ye; ++y) {
+        for (size_t x = hl, xe = nx - hl; x < xe; ++x) {
+          size_t i = ((z) * ny + (y)) * nx + (x);
+          size_t ixp = ((z) * ny + (y)) * nx + (x + 1);
+          size_t ixm = ((z) * ny + (y)) * nx + (x - 1);
+          size_t iyp = ((z) * ny + (y + 1)) * nx + (x);
+          size_t iym = ((z) * ny + (y - 1)) * nx + (x);
+          size_t izp = ((z + 1) * ny + (y)) * nx + (x);
+          size_t izm = ((z - 1) * ny + (y)) * nx + (x);
+          d[i] = t[i] + (-6 * t[i] + 
+              t[ixp] + t[ixm] + t[iyp] + t[iym] + t[izp] + t[izm]);
+        }
+      }
+    }
+
+    ii = fc[IdxCell(ii)];
+  }
+
+ private:
+  FieldCell<Scal> fc;
+  FieldCell<Scal> fct;
 };
 
 // i: target index
@@ -155,11 +211,12 @@ bool Run(const size_t i, Mesh& m,
   size_t k = 0;
   Timer* p = nullptr;
 
-  Try<LoopPlain>(m, i, k, p);
-  Try<LoopInCells>(m, i, k, p);
-  Try<LoopFldInCells>(m, i, k, p);
-  Try<Interp>(m, i, k, p);
+  //Try<LoopPlain>(m, i, k, p);
+  //Try<LoopInCells>(m, i, k, p);
+  //Try<LoopFldInCells>(m, i, k, p);
+  //Try<Interp>(m, i, k, p);
   Try<Diffusion>(m, i, k, p);
+  Try<DiffusionPlain>(m, i, k, p);
 
   if (!p) {
     return false;
@@ -177,12 +234,10 @@ bool Run(const size_t i, Mesh& m,
 
 int main() {
   // mesh size
-  std::vector<MIdx> ss = {
-        MIdx(16)
-      , MIdx(32)
-      , MIdx(64)
-      , MIdx(128)
-  };
+  std::vector<MIdx> ss;
+  for (int n : {64, 128, 256, 512, 1024}) {
+    ss.emplace_back(n, n, 8);
+  }
 
   const size_t ww = 16;
 
