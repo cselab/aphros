@@ -42,6 +42,7 @@ struct Simple<M_>::Imp {
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m), dr_(0, m.GetEdim())
+      , drr_(m.GetEdim(), dim)
       , mfc_(mfc), mcc_(mcc), fcpcs_(m), ffvc_(m)
   {
     using namespace fluid_condition;
@@ -687,8 +688,11 @@ struct Simple<M_>::Imp {
         for (auto d : dr_) {
           auto& cd = cd_->GetSolver(d);
           auto& fce = cd.GetEquations();
-          fct_[c][d] = fce[c].GetConstant(); // Evaluate(0)
+          fcl[c][d] = fce[c].GetConstant(); // Evaluate(0)
         }
+      }
+      for (auto d : drr_) {
+        SetComponent(fcl, d, 0);
       }
       m.Comm(&fcl);
     }
@@ -919,6 +923,7 @@ struct Simple<M_>::Imp {
   std::shared_ptr<Par> par;
   M& m; // mesh
   GRange<size_t> dr_;  // effective dimension range
+  GRange<size_t> drr_;  // remaining dimensions
 
   // Face conditions
   MapFace<std::shared_ptr<CondFaceFluid>> mfc_; // fluid cond
