@@ -151,3 +151,26 @@ and `vrelax=0.9,prelax=1`
 - `gen1`: generator of parameters for `sim04/gen`
 - `wforce`: force acting on `z=0` and `z=1` 
 - `out`, `stat.dat`: log and statistics
+
+
+## Reduced usaged of `GetCenter`
+
+2019-04-27 01:19:03
+
+**Goal**:
+Performance improvement.
+
+**What**:
+Reduced usage of `GetCenter` and `GetVectToCell`.
+Test of the Taylor-Green vortex with bubbles.
+
+**Result**:
+Speedup of 15%.
+
+**Data**
+[`log08_getcenter`](log08_getcenter)
+
+- `tg`: setup
+- `tg0_*`: timings before
+- `tg1_*`: timings after
+
