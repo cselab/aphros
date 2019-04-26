@@ -153,7 +153,7 @@ and `vrelax=0.9,prelax=1`
 - `out`, `stat.dat`: log and statistics
 
 
-## Reduced usaged of `GetCenter`
+## Reduced usage of `GetCenter`
 
 2019-04-27 01:19:03
 
