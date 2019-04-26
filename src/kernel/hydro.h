@@ -1072,9 +1072,9 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
     for (auto f : m.Faces()) {
       IdxCell cm = m.GetNeighbourCell(f, 0);
       IdxCell cp = m.GetNeighbourCell(f, 1);
-      Vect dm = m.GetVectToCell(f, 0);
-      Vect dp = m.GetVectToCell(f, 1);
-      Scal ga = (fcvf[cp] - fcvf[cm]) / (dp - dm).norm();
+      // XXX: adhoc uniform (should be half volume cp,cm)
+      Scal hr = m.GetArea(f) / m.GetVolume(cp);
+      Scal ga = (fcvf[cp] - fcvf[cm]) * hr; 
       if (ga != 0.) {
         if (IsNan(ffk_[f])) {
           ++nan;

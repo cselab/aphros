@@ -119,7 +119,7 @@ void InterpolateB(
     } else if (auto cd = dynamic_cast<CondFaceGrad<T>*>(cb)) {
       IdxCell c = m.GetNeighbourCell(f, nci);
       Scal w = (nci == 0 ? 1. : -1.);
-      Scal a = m.GetVectToCell(f, nci).norm() * w;
+      Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * w;
       ff[f] = fc[c] + cd->GetGrad() * a;
     } else if (dynamic_cast<CondFaceExtrap*>(cb)) {
       // TODO test
