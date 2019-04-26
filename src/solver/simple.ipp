@@ -433,11 +433,10 @@ struct Simple<M_>::Imp {
       if (!ffbd_[f]) { // if not boundary
         IdxCell cm = m.GetNeighbourCell(f, 0);
         IdxCell cp = m.GetNeighbourCell(f, 1);
-        Vect dm = m.GetVectToCell(f, 0);
-        Vect dp = m.GetVectToCell(f, 1);
 
         // compact pressure gradient
-        Scal gp = (fcp[cp] - fcp[cm]) / (dp - dm).norm();
+        Scal hr = m.GetArea(f) / m.GetVolume(cp);
+        Scal gp = (fcp[cp] - fcp[cm]) * hr;
 
         // compact
         Scal o = (ffbp[f] - gp) * m.GetArea(f) / ffk[f];
@@ -504,10 +503,9 @@ struct Simple<M_>::Imp {
       e.Clear();
       IdxCell cm = m.GetNeighbourCell(f, 0);
       IdxCell cp = m.GetNeighbourCell(f, 1);
-      Vect dm = m.GetVectToCell(f, 0);
-      Vect dp = m.GetVectToCell(f, 1);
+      Scal hr = m.GetArea(f) / m.GetVolume(cp);
       if (!ffbd_[f]) {  // inner
-        Scal a = -m.GetArea(f) / ((dp - dm).norm() * ffk[f]);
+        Scal a = -m.GetArea(f) * hr / ffk[f];
         e.InsertTerm(-a, cm);
         e.InsertTerm(a, cp);
         e.SetConstant((fcpb[cp] - fcpb[cm]) * a + ffv[f]);
@@ -533,10 +531,9 @@ struct Simple<M_>::Imp {
       e.Clear();
       IdxCell cm = m.GetNeighbourCell(f, 0);
       IdxCell cp = m.GetNeighbourCell(f, 1);
-      Vect dm = m.GetVectToCell(f, 0);
-      Vect dp = m.GetVectToCell(f, 1);
+      Scal hr = m.GetArea(f) / m.GetVolume(cp);
       if (!ffbd_[f]) {  // inner
-        Scal a = -m.GetArea(f) / ((dp - dm).norm() * ffk[f]);
+        Scal a = -m.GetArea(f) * hr / ffk[f];
         e.InsertTerm(-a, cm);
         e.InsertTerm(a, cp);
       } else { // boundary

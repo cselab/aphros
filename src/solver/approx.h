@@ -106,11 +106,11 @@ class FaceValB : public Approx<IdxFace, Expr> {
         e.SetConstant(cd->GetValue());
       } else if (auto cd = dynamic_cast<CondFaceGrad<Scal>*>(cb->get())) {
         size_t id = cd->GetNci();
-        IdxCell cc = m.GetNeighbourCell(f, id);
+        IdxCell c = m.GetNeighbourCell(f, id);
         Scal g = (id == 0 ? 1. : -1.);
-        Scal a = m.GetVectToCell(f, id).norm() * g;
+        Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * g;
         e.SetConstant(a * cd->GetGrad());
-        e.InsertTerm(1., cc);
+        e.InsertTerm(1., c);
       } else {
         throw std::runtime_error("FaceValB: unknown cond");
       }
@@ -134,9 +134,8 @@ class FaceGrad : public Approx<IdxFace, Expr> {
     Expr e;
     IdxCell cm = m.GetNeighbourCell(f, 0);
     IdxCell cp = m.GetNeighbourCell(f, 1);
-    auto dm = m.GetVectToCell(f, 0);
-    auto dp = m.GetVectToCell(f, 1);
-    Scal a = Scal(1) / (dp - dm).norm();
+    // XXX: adhoc uniform
+    Scal a = m.GetArea(f) / m.GetVolume(cp);
     e.InsertTerm(-a, cm);
     e.InsertTerm(a, cp);
     return e;
@@ -163,9 +162,8 @@ void GradientI(FieldFace<Expr>& ff, const M& m) {
 
     IdxCell cm = m.GetNeighbourCell(f, 0);
     IdxCell cp = m.GetNeighbourCell(f, 1);
-    auto dm = m.GetVectToCell(f, 0);
-    auto dp = m.GetVectToCell(f, 1);
-    Scal a = Scal(1) / (dp - dm).norm();
+    // XXX: adhoc uniform
+    Scal a = m.GetArea(f) / m.GetVolume(cp);
     e.InsertTerm(-a, cm);
     e.InsertTerm(a, cp);
   }
@@ -193,7 +191,8 @@ class FaceGradB : public Approx<IdxFace, Expr> {
         size_t id = cd->GetNci();
         IdxCell c = m.GetNeighbourCell(f, id);
         Scal g = (id == 0 ? 1. : -1.);
-        Scal a = 1. / m.GetVectToCell(f, id).norm() * g;
+        Scal hr = m.GetArea(f) / m.GetVolume(c);
+        Scal a = hr * 2 * g;
         e.SetConstant(a * cd->GetValue());
         e.InsertTerm(-a, c);
       } else {
