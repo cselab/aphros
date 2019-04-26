@@ -363,7 +363,7 @@ struct Simple<M_>::Imp {
           // TODO: revise for non-rectangular cell
           IdxFace f = m.GetNeighbourFace(c, q);
           s += m.GetSurface(f) *
-              (ffbp[f] * m.GetCenter(c).dist(m.GetCenter(f)));
+              (ffbp[f] * m.GetVolume(c) / m.GetArea(f) * 0.5);
         }
         fcb[c] = s / m.GetVolume(c);
       }
