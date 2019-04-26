@@ -149,6 +149,16 @@ void SetComponent(
   }
 }
 
+// Set component of vector field.
+// Requires: defined Vect::value_type.
+template <class Vect, class Idx>
+void SetComponent(
+    GField<Vect, Idx>& fv, size_t n, const typename Vect::value_type& s) {
+  for (auto i : fv.GetRange()) {
+    fv[i][n] = s;
+  }
+}
+
 template <class T, class Idx>
 std::ostream& operator<<(std::ostream& out, const GField<T, Idx>& u) {
   for (auto i : u.GetRange()) {
