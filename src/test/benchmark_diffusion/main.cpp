@@ -109,7 +109,10 @@ class Interp : public TimerMesh {
 
 class Diffusion : public TimerMesh {
  public:
-  Diffusion(Mesh& m) : TimerMesh("diffusion", m), fc(m), ff(m) {
+  Diffusion(Mesh& m) 
+      : TimerMesh("diff-face-idx", m)
+      , fc(m), ff(m)
+  {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
@@ -145,23 +148,26 @@ class Diffusion : public TimerMesh {
 class DiffusionNeighb : public TimerMesh {
  public:
   DiffusionNeighb(Mesh& m) 
-    : TimerMesh("diffusion-neighb", m), fc(m), ff(m) {
+      : TimerMesh("diff-cell-idx", m)
+      , fc(m), fct(m)
+  {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
+    fct = fc;
   }
   void F() override {
     volatile size_t ii = 0;
 
-    // advance
+    fc.swap(fct);
     for (auto c : m.Cells()) {
       Scal s = 0;
       for (auto q : m.Nci(c)) {
         IdxCell cc = m.GetNeighbourCell(c, q);
-        s += fc[cc];
+        s += fct[cc];
       }
-      s += -6 * fc[c];
-      fc[c] += s;
+      s += -6 * fct[c];
+      fc[c] = fct[c] + s;
     }
 
     ii = fc[IdxCell(ii)];
@@ -169,12 +175,15 @@ class DiffusionNeighb : public TimerMesh {
 
  private:
   FieldCell<Scal> fc;
-  FieldFace<Scal> ff;
+  FieldCell<Scal> fct;
 };
 
 class DiffusionPlain : public TimerMesh {
  public:
-  DiffusionPlain(Mesh& m) : TimerMesh("diffusion-plain", m), fc(m), fct(m) {
+  DiffusionPlain(Mesh& m) 
+      : TimerMesh("diff-cell-plain", m)
+      , fc(m), fct(m) 
+  {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
@@ -202,14 +211,13 @@ class DiffusionPlain : public TimerMesh {
       for (size_t y = hl, ye = ny - hl; y < ye; ++y) {
         size_t i = (z * ny + y) * nx + hl;
         for (size_t x = hl, xe = nx - hl; x < xe; ++x) {
-          size_t ixp = i + dx;
-          size_t ixm = i - dx;
-          size_t iyp = i + dy;
-          size_t iym = i - dy;
-          size_t izp = i + dz;
-          size_t izm = i - dz;
-          Scal s = (-6 * t[i] + 
-              t[ixp] + t[ixm] + t[iyp] + t[iym] + t[izp] + t[izm]);
+          Scal s = -6 * t[i];
+          s += t[i + dx];
+          s += t[i - dx];
+          s += t[i + dy];
+          s += t[i - dy];
+          s += t[i + dz];
+          s += t[i - dz];
           d[i] = t[i] + s;
           ++i;
         }
@@ -224,6 +232,78 @@ class DiffusionPlain : public TimerMesh {
   FieldCell<Scal> fct;
 };
 
+class DiffusionPlainFace : public TimerMesh {
+ public:
+  DiffusionPlainFace(Mesh& m) 
+      : TimerMesh("diff-face-plain", m)
+      , fc(m), fcx(m), fcy(m), fcz(m)
+  {
+    for (auto i : m.AllCells()) {
+      fc[i] = std::sin(i.GetRaw());
+    }
+  }
+  void F() override {
+    volatile size_t ii = 0;
+
+    auto& bc = m.GetIndexCells();
+    MIdx wb = bc.GetBegin();
+    MIdx ws = bc.GetSize();
+    const size_t hl = -wb[0];  // halo cells
+    const size_t nx = ws[0];   // block size n^3
+    const size_t ny = ws[1];   // block size n^3
+    const size_t nz = ws[2];   // block size n^3
+
+    Scal* d = fc.data();
+    Scal* tx = fcx.data();
+    Scal* ty = fcy.data();
+    Scal* tz = fcz.data();
+
+    const size_t dx = 1;
+    const size_t dy = nx;
+    const size_t dz = nx * ny;
+
+    for (size_t z = hl, ze = nz - hl; z < ze; ++z) {
+      for (size_t y = hl, ye = ny - hl; y < ye; ++y) {
+        for (size_t x = hl, xe = nx - hl; x <= xe; ++x) {
+          size_t i = (z * ny + y) * nx + x;
+          tx[i] = d[i + dx] - d[i];
+        }
+      }
+    }
+    for (size_t z = hl, ze = nz - hl; z < ze; ++z) {
+      for (size_t y = hl, ye = ny - hl; y <= ye; ++y) {
+        for (size_t x = hl, xe = nx - hl; x < xe; ++x) {
+          size_t i = (z * ny + y) * nx + x;
+          ty[i] = d[i + dy] - d[i];
+        }
+      }
+    }
+    for (size_t z = hl, ze = nz - hl; z <= ze; ++z) {
+      for (size_t y = hl, ye = ny - hl; y < ye; ++y) {
+        for (size_t x = hl, xe = nx - hl; x < xe; ++x) {
+          size_t i = (z * ny + y) * nx + x;
+          tz[i] = d[i + dz] - d[i];
+        }
+      }
+    }
+    for (size_t z = hl, ze = nz - hl; z < ze; ++z) {
+      for (size_t y = hl, ye = ny - hl; y < ye; ++y) {
+        for (size_t x = hl, xe = nx - hl; x < xe; ++x) {
+          size_t i = (z * ny + y) * nx + x;
+          d[i] = tx[i + dx] - tx[i] + ty[i + dy] - ty[i] + tz[i + dz] - tz[i];
+        }
+      }
+    }
+
+    ii = fc[IdxCell(ii)];
+  }
+
+ private:
+  FieldCell<Scal> fc;
+  FieldCell<Scal> fcx;
+  FieldCell<Scal> fcy;
+  FieldCell<Scal> fcz;
+};
 
 // i: target index
 // k: current index
@@ -251,11 +331,12 @@ bool Run(const size_t i, Mesh& m,
   size_t k = 0;
   Timer* p = nullptr;
 
-  Try<LoopPlain>(m, i, k, p);
-  Try<LoopInCells>(m, i, k, p);
+  //Try<LoopPlain>(m, i, k, p);
+  //Try<LoopInCells>(m, i, k, p);
   //Try<LoopFldInCells>(m, i, k, p);
   //Try<Interp>(m, i, k, p);
   Try<Diffusion>(m, i, k, p);
+  Try<DiffusionPlainFace>(m, i, k, p);
   Try<DiffusionNeighb>(m, i, k, p);
   Try<DiffusionPlain>(m, i, k, p);
 
@@ -276,8 +357,8 @@ bool Run(const size_t i, Mesh& m,
 int main() {
   // mesh size
   std::vector<MIdx> ss;
-  for (int n : {32, 64, 128, 256, 512, 1024}) {
-    ss.emplace_back(n, n, 8);
+  for (int n : {16, 32, 64, 128}) {
+    ss.emplace_back(n, n, n);
   }
 
   const size_t ww = 16;
@@ -286,26 +367,24 @@ int main() {
 
   for (auto s : ss) {
     auto m = GetMesh(s);
-    const size_t nca = m.GetAllBlockCells().size();
     const size_t nci = m.GetInBlockCells().size();
     std::cout 
         << "Mesh" 
         << " size=" << s
-        << " allcells=" << nca 
         << " incells=" << nci 
         << std::endl;
 
+    /*
     std::cout 
         << setw(ww) << "name"
-        << setw(ww) << "t/allcells [ns]" 
         << setw(ww) << "t/incells [ns]" 
-        << setw(ww) << "t [ns]" 
         << setw(ww) << "iters"
         << std::endl;
-    for (size_t q = 0; q < ww * 5; ++q) {
+    for (size_t q = 0; q < ww * 3; ++q) {
       std::cout << "-";
     }
     std::cout << std::endl;
+    */
 
     int i = 0;
     double t;
@@ -315,9 +394,7 @@ int main() {
     while (Run(i++, m, t, n, mem, name)) {
       std::cout 
           << setw(ww) << name 
-          << setw(ww) << t * 1e9 / nca
           << setw(ww) << t * 1e9 / nci
-          << setw(ww) << t * 1e9 * n
           << setw(ww) << n
           << std::endl;
     }
