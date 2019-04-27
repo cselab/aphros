@@ -28,7 +28,7 @@ submit2: conf
 kill:
 	ch.kill
 
-conf: mesh
+conf: mesh.conf tl
 	ch.base
 	ch.aconf
 
@@ -38,7 +38,7 @@ np:
 tl: 
 	echo $(tl) > tl
 
-mesh: np tl
+mesh.conf: np
 	ch.part $(m) $(bs) `cat np` > mesh.conf
 
 clean::
@@ -65,4 +65,4 @@ cleandat::
 
 cleanall: clean cleandat
 
-.PHONY: error cleanrun run submit mesh clean cleandat base conf np tl kill
+.PHONY: error cleanrun run submit clean cleandat base conf np tl kill

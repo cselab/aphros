@@ -7,3 +7,8 @@ include $(shell ch.makesim)
 
 clean::
 	rm -vrf sc
+
+conf: par.conf
+
+par.conf: pargen
+	./pargen
