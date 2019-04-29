@@ -8,7 +8,7 @@ SPHINXPROJ    = hydro
 SOURCEDIR     = src
 BUILDDIR      = build
 
-default: html
+default: singlehtml
 
 # Put it first so that "make" without argument is like "make help".
 help:
