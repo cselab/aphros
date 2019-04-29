@@ -103,31 +103,39 @@ which requires solving a linear system at every iteration.
 
 In addition to the requirements of the base class,
 the constructor takes mappings describing the boundary
-conditions and the initial fields.
+conditions and the initial fields:
 
 .. includecode:: src/solver/convdiffvi.h
   :func: ConvDiffVectImp
-  :comment:
   :dedent: 2
 
-The linear system is solved by 
+with the initial velocity ``fcvel``, 
+face conditions ``mfc``,
+cell conditions ``mcc``, 
+density ``fcr``,
+viscosity ``fcd``,
+force ``fcs``,
+and volume flux ``ffv``.
+Parameters of the solver are provided by
 
-.. includecode:: src/solver/convdiffi.ipp
-  :func: Solve
-  :comment:
-  :dedent: 2
+.. includecode:: src/solver/convdiffi.h
+  :struct: Par
 
-creating a request for 
+where ``sc`` defines the interpolation scheme
 
-.. includecode:: src/geom/mesh.h
-  :func: Solve
-  :dedent: 2
+.. table:: Interpolation schemes
 
-which leads to calling the Hypre library
+   +--------------------+---------------------------------+
+   | ``ConvSc::fou``    | First Order Upwind              |
+   +--------------------+---------------------------------+
+   | ``ConvSc::cd``     | Central Differences (midpoint)  |
+   +--------------------+---------------------------------+
+   | ``ConvSc::sou``    | Second Order Upwind             |
+   +--------------------+---------------------------------+
+   | ``ConvSc::quick``  | QUICK                           |
+   +--------------------+---------------------------------+
 
-.. includecode:: src/linear/hypre.h
-  :func: Hypre
-  :dedent: 2
+
 
 
 Explicit solver
