@@ -67,5 +67,13 @@ conditions and the initial fields.
 
 .. includecode:: src/solver/simple.h
   :func: Simple
-  :comment:
   :dedent: 2
+
+with the initial velocity ``fcw``, 
+face conditions ``mfc``,
+cell conditions ``mcc``, 
+density ``fcr``,
+viscosity ``fcd``,
+force ``fcf``,
+projections of well-balanced force ``fcbp``,
+volume source ``fcsv`` and mass source ``fcsm``.
