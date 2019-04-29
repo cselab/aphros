@@ -82,9 +82,7 @@ class LiteralIncludeReader:
 
     def read(self, location=None):
         # type: (Tuple[str, int]) -> Tuple[str, int]
-        filters = [self.pyobject_filter,
-                   self.lines_filter,
-                   self.prepend_filter,
+        filters = [self.prepend_filter,
                    self.append_filter,
                    self.dedent_filter]
         lines = self.read_file(self.filename, location=location)
@@ -92,40 +90,6 @@ class LiteralIncludeReader:
             lines = func(lines, location=location)
 
         return ''.join(lines), len(lines)
-
-
-    def pyobject_filter(self, lines, location=None):
-        # type: (List[str], Tuple[str, int]) -> List[str]
-        pyobject = self.options.get('pyobject')
-        if pyobject:
-            from sphinx.pycode import ModuleAnalyzer
-            analyzer = ModuleAnalyzer.for_file(self.filename, '')
-            tags = analyzer.find_tags()
-            if pyobject not in tags:
-                raise ValueError(__('Object named %r not found in include file %r') %
-                                 (pyobject, self.filename))
-            else:
-                start = tags[pyobject][1]
-                end = tags[pyobject][2]
-                lines = lines[start - 1:end]
-
-        return lines
-
-    def lines_filter(self, lines, location=None):
-        # type: (List[str], Tuple[str, int]) -> List[str]
-        linespec = self.options.get('lines')
-        if linespec:
-            linelist = parselinenos(linespec, len(lines))
-            if any(i >= len(lines) for i in linelist):
-                logger.warning(__('line number spec is out of range(1-%d): %r') %
-                               (len(lines), linespec), location=location)
-
-            lines = [lines[n] for n in linelist if n < len(lines)]
-            if lines == []:
-                raise ValueError(__('Line spec %r: no lines pulled from include file %r') %
-                                 (linespec, self.filename))
-
-        return lines
 
     def prepend_filter(self, lines, location=None):
         # type: (List[str], Tuple[str, int]) -> List[str]
@@ -163,15 +127,12 @@ class IncludeCode(SphinxDirective):
         'tab-width': int,
         'language': directives.unchanged_required,
         'encoding': directives.encoding,
-        'pyobject': directives.unchanged_required,
-        'lines': directives.unchanged_required,
         'start-after': directives.unchanged_required,
         'end-before': directives.unchanged_required,
         'start-at': directives.unchanged_required,
         'end-at': directives.unchanged_required,
         'prepend': directives.unchanged_required,
         'append': directives.unchanged_required,
-        'emphasize-lines': directives.unchanged_required,
         'caption': directives.unchanged,
         'class': directives.class_option,
         'name': directives.unchanged,
@@ -202,13 +163,6 @@ class IncludeCode(SphinxDirective):
                 retnode['linenos'] = True
             retnode['classes'] += self.options.get('class', [])
             extra_args = retnode['highlight_args'] = {}
-            if 'emphasize-lines' in self.options:
-                hl_lines = parselinenos(self.options['emphasize-lines'], lines)
-                if any(i >= lines for i in hl_lines):
-                    logger.warning(__('line number spec is out of range(1-%d): %r') %
-                                   (lines, self.options['emphasize-lines']),
-                                   location=location)
-                extra_args['hl_lines'] = [x + 1 for x in hl_lines if x < lines]
 
             if 'caption' in self.options:
                 caption = self.options['caption'] or self.arguments[0]
