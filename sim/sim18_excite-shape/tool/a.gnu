@@ -50,3 +50,12 @@ do for [n=4:8] {
 
 p d u (@Freq / r):((@Fper - @Freq * 2*pi)/per0) every ::1 w l lw 0.2
 
+
+set output "c.pdf"
+reset
+set xlabel "t / T"
+set ylabel "(V - V_0) / V_0"
+unset key
+
+p d u "t":"m2d" every ::1 w l lw 0.2
+
