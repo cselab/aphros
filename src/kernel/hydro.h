@@ -1171,13 +1171,15 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       Scal s = std::sin(st_.t * freq * 2. * pi);
       fc_src_.Reinit(m, 0);
       for (auto c : m.Cells()) {
-        const Vect x = m.GetCenter(c);
-        const Scal sy = std::cos(2. * pi * x[1] / wly);
         const Scal vf = fc_vf0[c];
-        fc_src_[c] = s * sy * mag * vf;
-        fc_src_[c] += mag0 * vf;
-        if (mexp != 1. && st_.m20 > 0 && st_.m2 > 0) {
-          fc_src_[c] *= std::pow(st_.m2 / st_.m20, mexp);
+        if (vf == 1.) {
+          const Vect x = m.GetCenter(c);
+          const Scal sy = std::cos(2. * pi * x[1] / wly);
+          fc_src_[c] = s * sy * mag * vf;
+          fc_src_[c] += mag0 * vf;
+          if (mexp != 1. && st_.m20 > 0 && st_.m2 > 0) {
+            fc_src_[c] *= std::pow(st_.m2 / st_.m20, mexp);
+          }
         }
       }
     }
