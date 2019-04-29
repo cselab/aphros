@@ -1,23 +1,3 @@
-"""
-    sphinx.ext.includecode
-    ~~~~~~~~~~~~~~~~~~~
-
-    Provides the ``includecode`` directive that allows to write documentation
-    that is included depending on configuration variables.
-
-    Usage::
-
-        .. includecode:: releaselevel in ('alpha', 'beta', 'rc')
-
-           This stuff is only included in the built docs for unstable versions.
-
-    The argument for ``includecode`` is a plain Python expression, evaluated in the
-    namespace of the project configuration (that is, all variables from
-    ``conf.py`` are available.)
-
-    :copyright: Copyright 2007-2019 by the Sphinx team, see AUTHORS.
-    :license: BSD, see LICENSE for details.
-"""
 import sys
 import warnings
 
