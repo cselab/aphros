@@ -8,11 +8,13 @@ SPHINXPROJ    = hydro
 SOURCEDIR     = src
 BUILDDIR      = build
 
+default: singlehtml
+
 # Put it first so that "make" without argument is like "make help".
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile
+.PHONY: help Makefile default
 
 clean:
 	rm -rf build

@@ -7,7 +7,8 @@ Cubism-hydro documentation.
    :maxdepth: 1
    :caption: Contents:
 
-   Introduction
+   intro
+   convdiff
 
 Indices and tables
 ==================
