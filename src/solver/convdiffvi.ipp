@@ -229,11 +229,6 @@ auto ConvDiffVectImp<M_>::GetVelocityCond(size_t d)
 }
 
 template <class M_>
-auto ConvDiffVectImp<M_>::GetSolver(size_t d) -> CD& {
-  return *imp->vs_[d];
-}
-
-template <class M_>
 void ConvDiffVectImp<M_>::StartStep() {
   imp->StartStep();
 }
