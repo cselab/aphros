@@ -105,17 +105,7 @@ struct Simple<M_>::Imp {
       }
     }
 
-    // Init convdiff solver
-    {
-      auto p = std::make_shared<typename CDI::Par>();
-      Update(*p, *par); // p from par
-
-      fcfcd_.Reinit(m, Vect(0));
-      cd_ = std::make_shared<
-          ConvDiffVectImp<M>>(m, fcw, mfcw_, mccw_, owner_->fcr_, &ffd_, 
-                              &fcfcd_, &ffv_.iter_prev, 
-                              owner_->GetTime(), owner_->GetTimeStep(), p);
-    }
+    InitConvDiff(fcw);
 
     fcp_.time_curr.Reinit(m, 0.);
     fcp_.time_prev = fcp_.time_curr;
@@ -136,6 +126,26 @@ struct Simple<M_>::Imp {
 
     auto ffp = Interpolate(fcp_.time_curr, mfcp_, m);
     fcgp_ = Gradient(ffp, m);
+  }
+
+  void InitConvDiff(const FieldCell<Vect>& fcw) {
+    fcfcd_.Reinit(m, Vect(0));
+
+    if (par->conv == Conv::imp) {
+      auto p = std::make_shared<typename CDI::Par>();
+      Update(*p, *par);
+
+      cd_ = std::make_shared<CDI>(
+          m, fcw, mfcw_, mccw_, owner_->fcr_, &ffd_, &fcfcd_, 
+          &ffv_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
+    } else if (par->conv == Conv::exp) {
+      auto p = std::make_shared<typename CDE::Par>();
+      Update(*p, *par);
+
+      cd_ = std::make_shared<CDE>(
+          m, fcw, mfcw_, mccw_, owner_->fcr_, &ffd_, &fcfcd_, 
+          &ffv_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
+    }
   }
 
   // TODO: somehow track dependencies to define execution order
