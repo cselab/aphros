@@ -36,6 +36,13 @@ class ConvDiffVect : public UnsteadyIterativeSolver {
   }
   virtual void CorrectVelocity(Layers, const FieldCell<Vect>&) = 0;
   virtual const FieldCell<Expr>& GetVelocityEquations(size_t /*d*/) const = 0;
+  // Assembles linear system
+  // fcw: current velocity
+  // ffv: volume flux
+  // Output:
+  // linear system returned by GetVelocityEquations()
+  virtual void Assemble(
+      const FieldCell<Vect>& fcw, const FieldFace<Scal>& ffv) = 0;
 };
 
 

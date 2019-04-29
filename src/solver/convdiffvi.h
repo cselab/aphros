@@ -40,12 +40,9 @@ class ConvDiffVectImp : public ConvDiffVect<M_> {
   ~ConvDiffVectImp();
   // Parameters
   Par* GetPar();
-  // Assembles linear system
-  // fcw: current velocity
-  // ffv: volume flux
-  // Output:
-  // fcucs_: linear system, overwritten, returned by GetEquations()
-  void Assemble(const FieldCell<Vect>& fcw, const FieldFace<Scal>& ffv);
+  // ...
+  void Assemble(
+      const FieldCell<Vect>& fcw, const FieldFace<Scal>& ffv) override;
   // Corrects field and comm.
   // fc: correction [i]
   // Output:
@@ -56,8 +53,6 @@ class ConvDiffVectImp : public ConvDiffVect<M_> {
   // Velocity conditions.
   // d: component
   MapFace<std::shared_ptr<CondFace>>& GetVelocityCond(size_t d);
-  // Instance of ConvDiffScal for component d
-  CD& GetSolver(size_t d);
   // ...
   void StartStep() override;
   // ...

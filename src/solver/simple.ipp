@@ -35,7 +35,9 @@ namespace solver {
 template <class M_>
 struct Simple<M_>::Imp {
   using Owner = Simple<M_>;
-  using CD = ConvDiffVectImp<M>; // convdiff solver
+  using CD = ConvDiffVect<M>; // convdiff solver
+  using CDI = ConvDiffVectImp<M>; // convdiff solver implicit
+  using CDE = ConvDiffVectImp<M>; // convdiff solver explicit
 
   Imp(Owner* owner, const FieldCell<Vect>& fcw,
       const MapFace<std::shared_ptr<CondFaceFluid>>& mfc, 
@@ -105,7 +107,7 @@ struct Simple<M_>::Imp {
 
     // Init convdiff solver
     {
-      auto p = std::make_shared<typename CD::Par>();
+      auto p = std::make_shared<typename CDI::Par>();
       Update(*p, *par); // p from par
 
       fcfcd_.Reinit(m, Vect(0));
@@ -372,7 +374,7 @@ struct Simple<M_>::Imp {
       m.Comm(&fcb);
     }
   }
-  void Update(typename CD::Par& d, const Par& p) {
+  void Update(typename CDI::Par& d, const Par& p) {
     // Update convdiff parameters
     d.relax = p.vrelax;
     d.guessextra = p.guessextra;
@@ -380,6 +382,9 @@ struct Simple<M_>::Imp {
     d.sc = p.convsc;
     d.df = p.convdf;
     d.linreport = p.linreport;
+  }
+  void Update(CDI* cd, const Par& p) {
+    Update(*cd->GetPar(), p);
   }
   void StartStep() {
     auto sem = m.GetSem("fluid-start");
@@ -686,8 +691,7 @@ struct Simple<M_>::Imp {
       fcl.Reinit(m);
       for (auto c : m.Cells()) {
         for (auto d : dr_) {
-          auto& cd = cd_->GetSolver(d);
-          auto& fce = cd.GetEquations();
+          auto& fce = cd_->GetVelocityEquations(d);
           fcl[c][d] = fce[c].GetConstant(); // Evaluate(0)
         }
       }
@@ -779,7 +783,11 @@ struct Simple<M_>::Imp {
     auto& fcp_curr = fcp_.iter_curr;
     if (sem("init")) {
       // update convdiff par
-      Update(*cd_->GetPar(), *par);
+      if (auto p = dynamic_cast<CDI*>(cd_.get())) {
+        Update(p, *par);
+      } else {
+        throw std::runtime_error(sem.GetName() + ": unknown cd_");
+      }
       // interpolate visosity 
       ffd_ = Interpolate(*owner_->fcd_, mfcd_, m);
 
