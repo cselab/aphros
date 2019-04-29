@@ -16,6 +16,8 @@ class Simple : public FluidSolver<M_> {
   static constexpr size_t dim = M::dim;
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
+  enum class Conv {exp, imp};
+
   struct Par {
     Scal vrelax = 0.8;   // velocity relaxation factor [0,1]
     Scal prelax = 1.;   // pressure relaxation factor [0,1]
@@ -28,6 +30,7 @@ class Simple : public FluidSolver<M_> {
     ConvSc convsc = ConvSc::quick; // convection scheme
     Scal convdf = 1.; // deferred correction factor
     bool linreport = false; // report linear solvers
+    Conv conv = Conv::imp;  // convection-diffusion solver
   };
   // Constructor.
   // fcw: initial velocity
