@@ -9,10 +9,4 @@ Cubism-hydro
    convdiff
    fluid
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 

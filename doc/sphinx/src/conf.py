@@ -1,5 +1,6 @@
-extensions = ['sphinx.ext.mathjax',
+extensions = [
               'sphinx.ext.githubpages',
+              'sphinx.ext.imgmath',
               'sphinx.ext.viewcode',
               'includecode',
               ]
@@ -40,6 +41,9 @@ html_sidebars = {
 }
 
 htmlhelp_basename = 'hydrodoc'
+
+html_math_renderer = 'imgmath'
+#html_math_renderer = ''
 
 # latex
 latex_elements = {}

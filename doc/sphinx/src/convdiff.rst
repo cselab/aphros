@@ -97,7 +97,7 @@ corresponding to the discrete equation
   \Big)
   + \frac{1}{V_c}\sum_{f\in c} \mu_f^s
     \frac{\delta \mathbf{u}_f^{s+1}}{\delta n} S^c_{\!f}
-  + \mathbf{f}_c^s = 0.
+  + \mathbf{f}_c^s = 0
 
 which requires solving a linear system at every iteration.
 
@@ -148,4 +148,4 @@ corresponding to the discrete equation
 Here the solution is advanced by explicit formulas
 and the linear system is constructed
 only to implement ``Assemble()`` and 
-``GetVelocityEquations()`` of the interface.
+``GetVelocityEquations()`` of the base class.
