@@ -123,7 +123,7 @@ Parameters of the solver are provided by
 
 where ``sc`` defines the interpolation scheme
 
-.. table:: Interpolation schemes
+.. table:: Interpolation schemes.
 
    +--------------------+---------------------------------+
    | ``ConvSc::fou``    | First Order Upwind              |
@@ -157,3 +157,4 @@ Here the solution is advanced by explicit formulas
 and the linear system is constructed
 only to implement ``Assemble()`` and 
 ``GetVelocityEquations()`` of the base class.
+
