@@ -1,43 +1,50 @@
 """
-    hydro getsrc extension
-    ~~~~~~~~~~~~~~~
+    sphinx.ext.includecode
+    ~~~~~~~~~~~~~~~~~~~
 
-    Defines directive to include source code.
+    Provides the ``includecode`` directive that allows to write documentation
+    that is included depending on configuration variables.
 
-    :copyright: ETH Zurich
+    Usage::
+
+        .. includecode:: releaselevel in ('alpha', 'beta', 'rc')
+
+           This stuff is only included in the built docs for unstable versions.
+
+    The argument for ``includecode`` is a plain Python expression, evaluated in the
+    namespace of the project configuration (that is, all variables from
+    ``conf.py`` are available.)
+
+    :copyright: Copyright 2007-2019 by the Sphinx team, see AUTHORS.
+    :license: BSD, see LICENSE for details.
 """
+import sys
+import warnings
+from difflib import unified_diff
 
-from docutils.parsers.rst import Directive, directives
 from docutils import nodes
+from docutils.parsers.rst import directives
+from docutils.statemachine import StringList
 
 import sphinx
 from sphinx.util.docutils import SphinxDirective
 from sphinx.util.nodes import nested_parse_with_titles
 
-class getsrc(nodes.Element):
-    pass
+from sphinx import addnodes
+from sphinx.deprecation import RemovedInSphinx40Warning
+from sphinx.locale import __
+from sphinx.util import logging
+from sphinx.util import parselinenos
+from sphinx.util.docutils import SphinxDirective
 
-def process_getsrc_nodes(app, doctree, docname):
-    # type: (Sphinx, nodes.document, str) -> None
-    ns = {confval.name: confval.value for confval in app.config}
-    ns.update(app.config.__dict__.copy())
-    ns['builder'] = app.builder.name
-    for node in doctree.traverse(getsrc):
-        try:
-            res = eval(node['expr'], ns)
-        except Exception as err:
-            # handle exceptions in a clean fashion
-            from traceback import format_exception_only
-            msg = ''.join(format_exception_only(err.__class__, err))
-            newnode = doctree.reporter.error('Exception occured in '
-                                             'ifconfig expression: \n%s' %
-                                             msg, base_node=node)
-            node.replace_self(newnode)
-        else:
-            if not res:
-                node.replace_self([])
-            else:
-                node.replace_self(node.children)
+if False:
+    # For type annotation
+    from typing import Any, Dict, List  # NOQA
+    from sphinx.application import Sphinx  # NOQA
+
+
+class includecode(nodes.Element):
+    pass
 
 class LiteralIncludeReader:
     INVALID_OPTIONS_PAIR = [
@@ -241,14 +248,31 @@ class LiteralIncludeReader:
         else:
             return lines
 
-class GetSrc(SphinxDirective):
-    """
-    Like ``.. include:: :literal:``, but only warns if the include file is
-    not found, and does not raise errors.  Also has several options for
-    selecting what to include.
-    """
+def container_wrapper(directive, literal_node, caption):
+    # type: (SphinxDirective, nodes.Node, str) -> nodes.container
+    container_node = nodes.container('', literal_block=True,
+                                     classes=['literal-block-wrapper'])
+    parsed = nodes.Element()
+    directive.state.nested_parse(StringList([caption], source=''),
+                                 directive.content_offset, parsed)
+    if isinstance(parsed[0], nodes.system_message):
+        msg = __('Invalid caption: %s' % parsed[0].astext())
+        raise ValueError(msg)
+    elif isinstance(parsed[0], nodes.Element):
+        caption_node = nodes.caption(parsed[0].rawsource, '',
+                                     *parsed[0].children)
+        caption_node.source = literal_node.source
+        caption_node.line = literal_node.line
+        container_node += caption_node
+        container_node += literal_node
+        return container_node
+    else:
+        raise RuntimeError  # never reached
 
-    has_content = False
+
+
+class IncludeCode(SphinxDirective):
+    has_content = True
     required_arguments = 1
     optional_arguments = 0
     final_argument_whitespace = True
@@ -275,6 +299,7 @@ class GetSrc(SphinxDirective):
         'diff': directives.unchanged_required,
     }
 
+
     def run(self):
         # type: () -> List[nodes.Node]
         document = self.state.document
@@ -295,7 +320,7 @@ class GetSrc(SphinxDirective):
             text, lines = reader.read(location=location)
 
             retnode = nodes.literal_block(text, text, source=filename)  # type: nodes.Element
-            self.set_source_info(retnode)
+            #self.set_source_info(retnode)
             if self.options.get('diff'):  # if diff is set, set udiff
                 retnode['language'] = 'udiff'
             elif 'language' in self.options:
@@ -303,9 +328,20 @@ class GetSrc(SphinxDirective):
             if ('linenos' in self.options or 'lineno-start' in self.options or
                     'lineno-match' in self.options):
                 retnode['linenos'] = True
-
             retnode['classes'] += self.options.get('class', [])
             extra_args = retnode['highlight_args'] = {}
+            if 'emphasize-lines' in self.options:
+                hl_lines = parselinenos(self.options['emphasize-lines'], lines)
+                if any(i >= lines for i in hl_lines):
+                    logger.warning(__('line number spec is out of range(1-%d): %r') %
+                                   (lines, self.options['emphasize-lines']),
+                                   location=location)
+                extra_args['hl_lines'] = [x + 1 for x in hl_lines if x < lines]
+            extra_args['linenostart'] = reader.lineno_start
+
+            if 'caption' in self.options:
+                caption = self.options['caption'] or self.arguments[0]
+                retnode = container_wrapper(self, retnode, caption)
 
             # retnode will be note_implicit_target that is linked from caption and numref.
             # when options['name'] is provided, it should be primary ID.
@@ -316,14 +352,32 @@ class GetSrc(SphinxDirective):
             return [document.reporter.warning(exc, line=self.lineno)]
 
 
+def process_includecode_nodes(app, doctree, docname):
+    # type: (Sphinx, nodes.document, str) -> None
+    ns = {confval.name: confval.value for confval in app.config}
+    ns.update(app.config.__dict__.copy())
+    ns['builder'] = app.builder.name
+    for node in doctree.traverse(includecode):
+        try:
+            res = eval(node['expr'], ns)
+        except Exception as err:
+            # handle exceptions in a clean fashion
+            from traceback import format_exception_only
+            msg = ''.join(format_exception_only(err.__class__, err))
+            newnode = doctree.reporter.error('Exception occured in '
+                                             'includecode expression: \n%s' %
+                                             msg, base_node=node)
+            node.replace_self(newnode)
+        else:
+            if not res:
+                node.replace_self([])
+            else:
+                node.replace_self(node.children)
+
+
 def setup(app):
-    app.add_directive('getsrc', GetSrc)
-
-    app.add_node(getsrc)
-    app.connect('doctree-resolved', process_getsrc_nodes)
-
-    return {
-        'version': sphinx.__display_version__,
-        'env_version': 1,
-        'parallel_read_safe': True
-    }
+    # type: (Sphinx) -> Dict[str, Any]
+    app.add_node(includecode)
+    app.add_directive('includecode', IncludeCode)
+    app.connect('doctree-resolved', process_includecode_nodes)
+    return {'version': sphinx.__display_version__, 'parallel_read_safe': True}
