@@ -81,5 +81,3 @@ Parameters of the solver are provided by
 
 .. includecode:: src/solver/simple.h
   :struct: Par
-
-
