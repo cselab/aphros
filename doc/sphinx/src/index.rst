@@ -7,6 +7,7 @@ Cubism-hydro
 
    intro
    convdiff
+   fluid
 
 Indices and tables
 ==================
