@@ -52,6 +52,20 @@ def GetFunc(text, f, comment=True):
         text += m.group(0)
     return text
 
+# Extracts struct definition.
+# text: text
+# f: struct name
+def GetStruct(text, f):
+    p = "(^.*struct " + f + " {[\w\W]*?};.*?$)"
+    print(p)
+    m = re.search(p, text, re.MULTILINE)
+    if not f or not m:
+        text = "// Error: struct '{:}' not found in '{:}'".format(
+                f, filename)
+    else:
+        text = m.group(0)
+    return text
+
 class LiteralIncludeReader:
     INVALID_OPTIONS_PAIR = []
 
@@ -79,6 +93,9 @@ class LiteralIncludeReader:
                     f = self.options['func'].strip()
                     c = 'comment' in self.options
                     text = GetFunc(text, f, c)
+                if 'struct' in self.options:
+                    f = self.options['struct'].strip()
+                    text = GetStruct(text, f)
                 if 'tab-width' in self.options:
                     text = text.expandtabs(self.options['tab-width'])
 
@@ -148,6 +165,7 @@ class IncludeCode(SphinxDirective):
         'class': directives.class_option,
         'name': directives.unchanged,
         'func': directives.unchanged,
+        'struct': directives.unchanged,
     }
 
 

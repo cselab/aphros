@@ -77,3 +77,9 @@ viscosity ``fcd``,
 force ``fcf``,
 projections of well-balanced force ``fcbp``,
 volume source ``fcsv`` and mass source ``fcsm``.
+Parameters of the solver are provided by
+
+.. includecode:: src/solver/simple.h
+  :struct: Par
+
+
