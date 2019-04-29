@@ -17,6 +17,8 @@ from sphinx.util import logging
 from sphinx.util import parselinenos
 from sphinx.util.docutils import SphinxDirective
 
+import re
+
 if False:
     # For type annotation
     from typing import Any, Dict, List  # NOQA
@@ -49,6 +51,15 @@ class LiteralIncludeReader:
         try:
             with open(filename, encoding=self.encoding, errors='strict') as f:
                 text = f.read()
+                if 'func' in self.options:
+                    f = self.options['func'].strip()
+                    p = "(^.*{:}\([\w\W]*?;)".format(f)
+                    m = re.search(p, text, re.MULTILINE)
+                    if not f or not m:
+                        text = "// Error: function '{:}' not found in '{:}'".format(
+                                f, filename)
+                    else:
+                        text = m.group(0)
                 if 'tab-width' in self.options:
                     text = text.expandtabs(self.options['tab-width'])
 
@@ -116,6 +127,7 @@ class IncludeCode(SphinxDirective):
         'caption': directives.unchanged,
         'class': directives.class_option,
         'name': directives.unchanged,
+        'func': directives.unchanged,
     }
 
 
@@ -136,6 +148,8 @@ class IncludeCode(SphinxDirective):
 
             retnode = nodes.literal_block(text, text, source=filename)  # type: nodes.Element
             #self.set_source_info(retnode)
+            if 'language' not in self.options:
+                self.options['language'] = 'cpp'
             if 'language' in self.options:
                 retnode['language'] = self.options['language']
             if ('linenos' in self.options or 'lineno-start' in self.options or
