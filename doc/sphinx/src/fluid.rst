@@ -81,3 +81,27 @@ Parameters of the solver are provided by
 
 .. includecode:: src/solver/simple.h
   :struct: Par
+
+Boundary conditions
+-------------------
+
+The boundary conditions are specified by a map
+from ``IdxFace`` to ``CondFaceFluid``,
+instances of which can be generated with function ``solver::Parse()``
+from a string.
+
+.. table:: Fluid boundary conditions.
+
+   +---------------------+--------------------------+-----------------------------------+
+   | class               | Parse() format           | description                       |
+   +=====================+==========================+===================================+
+   | ``NoSlipWallFixed`` | ``wall <x y z>``         | no-slip wall with fixed velocity  |
+   +---------------------+--------------------------+-----------------------------------+
+   | ``InletFixed``      | ``inlet <x y z>``        | inlet with given velocity         |
+   +---------------------+--------------------------+-----------------------------------+
+   | ``InletFlux``       | ``inletflux <x y z id>`` | inlet with given total flux       |
+   +---------------------+--------------------------+-----------------------------------+
+   | ``OutletAuto``      | ``outlet``               | outlet                            |
+   +---------------------+--------------------------+-----------------------------------+
+   | ``SlipWall``        | ``slipwall``             | free-slip wall                    |
+   +---------------------+--------------------------+-----------------------------------+
