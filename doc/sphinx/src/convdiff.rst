@@ -1,5 +1,8 @@
+.. _s:convdiff:
+
 Convection-diffusion equation
 =============================
+
 
 Abstract class ``ConvDiffVect`` describes the interface
 of a solver for the vector convection-diffusion equation
@@ -16,6 +19,8 @@ of a solver for the vector convection-diffusion equation
 in the discrete form
 
 .. math::
+  :label: e:momentum
+
   \rho_c \Big(
   \frac{\delta \mathbf{u}_c}{\delta t}
   + \frac{1}{V_c}\sum_{f\in c} v_f \mathbf{u}_f S^c_{\!f}
@@ -40,15 +45,15 @@ The constructor takes pointers to fields
 of density :math:`\rho`,
 viscosity :math:`\mu`,
 force :math:`\mathbf{f}`
-and volume flux :math:`\mathbf{v} \cdot \mathbf{S}_f`.
+and volume flux :math:`\mathbf{v} \cdot \mathbf{S}_f`:
 
 .. includecode:: src/solver/convdiffv.h
   :func: ConvDiffVect
   :comment:
   :dedent: 2
 
-After an instance is constructed, the solution 
-is advanced by calling the inherited ``MakeIteration()``
+After an implementation is constructed, the solution 
+is advanced by calling ``MakeIteration()``
 and the current velocity field is returned by
 
 .. includecode:: src/solver/convdiffv.h
@@ -95,7 +100,17 @@ corresponding to the discrete equation
   + \mathbf{f}_c^s = 0.
 
 which requires solving a linear system at every iteration.
-The system is solved by 
+
+In addition to the requirements of the base class,
+the constructor takes mappings describing the boundary
+conditions and the initial fields.
+
+.. includecode:: src/solver/convdiffvi.h
+  :func: ConvDiffVectImp
+  :comment:
+  :dedent: 2
+
+The linear system is solved by 
 
 .. includecode:: src/solver/convdiffi.ipp
   :func: Solve
