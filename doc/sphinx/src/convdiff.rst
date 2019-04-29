@@ -6,8 +6,8 @@ Convection-diffusion solver
 
 .. .. includecode:: src/solver/convdiffv.h
 
-.. includecode:: src/solver/convdiffv.h
-  :linenos: 
+.. includecode:: src/solver/convdiffv.h  
+  :linenos:
 
 ..  :language: cpp
 
