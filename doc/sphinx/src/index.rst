@@ -1,7 +1,5 @@
-Welcome to Cubism-hydro documentation
-=====================================
-
-Cubism-hydro documentation.
+Cubism-hydro
+============
 
 .. toctree::
    :maxdepth: 1

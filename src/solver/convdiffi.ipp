@@ -59,13 +59,13 @@ struct ConvDiffScalImp<M_>::Imp {
       FieldFace<Expr> ffq;  // flux tmp
 
       // Calc convective fluxes:
-			// all inner
+      // all inner
       InterpolateI(fcu, fcg, ffv, ffq, m, par->sc, par->df, par->th);
       for (auto f : m.Faces()) {
         ffq[f] *= (*owner_->ffv_)[f];
       }
 
-			// overwrite with bc
+      // overwrite with bc
       FaceValB<M, Expr> ub(m, mfc_); 
       for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
         IdxFace f = it->GetIdx();

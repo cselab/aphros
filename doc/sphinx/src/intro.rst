@@ -1,4 +1,5 @@
-Cubism-hydro Introduction
-=========================
+Introduction
+============
 
-Cubism-hydro is a solver for incompressible multiphase flows.
+Cubism-hydro is a finite volume 
+solver for incompressible multiphase flows.

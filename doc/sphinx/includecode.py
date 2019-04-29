@@ -8,7 +8,7 @@ from docutils.statemachine import StringList
 import sphinx
 from sphinx.util.docutils import SphinxDirective
 from sphinx.util.nodes import nested_parse_with_titles
-from sphinx.directives.code import container_wrapper
+from sphinx.directives.code import container_wrapper,dedent_lines
 
 from sphinx import addnodes
 from sphinx.deprecation import RemovedInSphinx40Warning
@@ -27,6 +27,30 @@ if False:
 
 class includecode(nodes.Element):
     pass
+
+
+# Extracts function prototype from text
+# text: text
+# f: function name
+# comment: if True, include comments above the prototype
+def GetFunc(text, f, comment=True):
+    p = "(^.*" + f + "\([\w\W]*?\).*?$)"
+    m = re.search(p, text, re.MULTILINE)
+    if not f or not m:
+        text = "// Error: function '{:}' not found in '{:}'".format(
+                f, filename)
+    else:
+        if comment:
+            s = m.start(0)
+            ll = text[:s].splitlines(True)
+            i = 0
+            while i > -len(ll) and re.search(" *//", ll[i - 1]):
+                i -= 1
+            text = "".join(ll[i:]) if i != 0 else ""
+        else:
+            text = ""
+        text += m.group(0)
+    return text
 
 class LiteralIncludeReader:
     INVALID_OPTIONS_PAIR = []
@@ -53,13 +77,8 @@ class LiteralIncludeReader:
                 text = f.read()
                 if 'func' in self.options:
                     f = self.options['func'].strip()
-                    p = "(^.*{:}\([\w\W]*?;)".format(f)
-                    m = re.search(p, text, re.MULTILINE)
-                    if not f or not m:
-                        text = "// Error: function '{:}' not found in '{:}'".format(
-                                f, filename)
-                    else:
-                        text = m.group(0)
+                    c = 'comment' in self.options
+                    text = GetFunc(text, f, c)
                 if 'tab-width' in self.options:
                     text = text.expandtabs(self.options['tab-width'])
 
@@ -115,6 +134,7 @@ class IncludeCode(SphinxDirective):
     option_spec = {
         'dedent': int,
         'linenos': directives.flag,
+        'comment': directives.flag,
         'tab-width': int,
         'language': directives.unchanged_required,
         'encoding': directives.encoding,
@@ -152,8 +172,7 @@ class IncludeCode(SphinxDirective):
                 self.options['language'] = 'cpp'
             if 'language' in self.options:
                 retnode['language'] = self.options['language']
-            if ('linenos' in self.options or 'lineno-start' in self.options or
-                    'lineno-match' in self.options):
+            if ('linenos' in self.options):
                 retnode['linenos'] = True
             retnode['classes'] += self.options.get('class', [])
             extra_args = retnode['highlight_args'] = {}
