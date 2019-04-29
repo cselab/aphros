@@ -12,7 +12,7 @@ import sphinx_rtd_theme
 extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.githubpages',
               'sphinx.ext.viewcode',
-              'getsrc'
+              'includecode',
               ]
 
 # Add any paths that contain templates here, relative to this directory.
