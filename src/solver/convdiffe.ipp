@@ -27,7 +27,16 @@ struct ConvDiffScalExp<M_>::Imp {
     owner_->ClearIter();
     CHECKNAN(fcu_.time_curr, m.CN())
 
-    fcu_.iter_curr = fcu_.time_curr;
+    // initial guess by extrapolation
+    Scal ge = par->guessextra;
+    if (ge != 0.) {
+      for (auto c : m.AllCells()) {
+        fcu_.iter_curr[c] = 
+            fcu_.time_curr[c] * (1. + ge) - fcu_.time_prev[c] * ge;
+      }
+    } else {
+      fcu_.iter_curr = fcu_.time_curr;
+    }
 
     if (dtp_ == -1.) { // TODO: revise
       dtp_ = owner_->GetTimeStep();

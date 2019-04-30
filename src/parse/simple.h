@@ -13,6 +13,7 @@ void Parse(typename solver::Simple<M>::Par* p, const Vars& var) {
   p->rhie = var.Double["rhie"];
   p->second = var.Int["second_order"];
   p->simpler = var.Int["simpler"];
+  p->guessextra = var.Double["guessextra"];
   // TODO: add check for inletflux_numid
   p->inletflux_numid = var.Int["inletflux_numid"];
   p->convsc = solver::GetConvSc(var.String["convsc"]);
