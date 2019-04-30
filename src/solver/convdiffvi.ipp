@@ -4,15 +4,14 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "convdiffvi.h"
 #include "util/metrics.h"
 #include "util/convdiff.h"
 
 namespace solver {
 
-template <class M_>
-struct ConvDiffVectImp<M_>::Imp {
-  using Owner = ConvDiffVectImp<M_>;
+template <class M_, class CD_>
+struct ConvDiffVectImp<M_, CD_>::Imp {
+  using Owner = ConvDiffVectImp<M_, CD_>;
 
   Imp(
       Owner* owner, const FieldCell<Vect>& fcvel, 
@@ -185,8 +184,8 @@ struct ConvDiffVectImp<M_>::Imp {
 };
 
 
-template <class M_>
-ConvDiffVectImp<M_>::ConvDiffVectImp(
+template <class M_, class CD_>
+ConvDiffVectImp<M_, CD_>::ConvDiffVectImp(
     M& m, const FieldCell<Vect>& fcvel, 
     const MapFace<std::shared_ptr<CondFace>>& mfc, 
     const MapCell<std::shared_ptr<CondCell>>& mcc, 
@@ -197,59 +196,60 @@ ConvDiffVectImp<M_>::ConvDiffVectImp(
     , imp(new Imp(this, fcvel, mfc, mcc, par))
 {}
 
-template <class M_>
-ConvDiffVectImp<M_>::~ConvDiffVectImp() = default;
+template <class M_, class CD_>
+ConvDiffVectImp<M_, CD_>::~ConvDiffVectImp() = default;
 
-template <class M_>
-auto ConvDiffVectImp<M_>::GetPar() -> Par* {
+template <class M_, class CD_>
+auto ConvDiffVectImp<M_, CD_>::GetPar() -> Par* {
   return imp->par.get();
 }
 
-template <class M_>
-void ConvDiffVectImp<M_>::Assemble(const FieldCell<Vect>& fcw, 
-                                   const FieldFace<Scal>& ffv) {
+template <class M_, class CD_>
+void ConvDiffVectImp<M_, CD_>::Assemble(const FieldCell<Vect>& fcw, 
+                                        const FieldFace<Scal>& ffv) {
   imp->Assemble(fcw, ffv);
 }
 
-template <class M_>
-void ConvDiffVectImp<M_>::CorrectVelocity(Layers l, const FieldCell<Vect>& u) {
+template <class M_, class CD_>
+void ConvDiffVectImp<M_, CD_>::CorrectVelocity(
+    Layers l, const FieldCell<Vect>& u) {
   imp->CorrectVelocity(l, u);
 }
 
-template <class M_>
-auto ConvDiffVectImp<M_>::GetVelocityEquations(size_t d) const 
+template <class M_, class CD_>
+auto ConvDiffVectImp<M_, CD_>::GetVelocityEquations(size_t d) const 
     -> const FieldCell<Expr>& {
   return imp->vs_[d]->GetEquations();
 }
 
-template <class M_>
-auto ConvDiffVectImp<M_>::GetVelocityCond(size_t d) 
+template <class M_, class CD_>
+auto ConvDiffVectImp<M_, CD_>::GetVelocityCond(size_t d) 
     -> MapFace<std::shared_ptr<CondFace>>& {
   return imp->vmfc_[d];
 }
 
-template <class M_>
-void ConvDiffVectImp<M_>::StartStep() {
+template <class M_, class CD_>
+void ConvDiffVectImp<M_, CD_>::StartStep() {
   imp->StartStep();
 }
 
-template <class M_>
-void ConvDiffVectImp<M_>::MakeIteration() {
+template <class M_, class CD_>
+void ConvDiffVectImp<M_, CD_>::MakeIteration() {
   imp->MakeIteration();
 }
 
-template <class M_>
-void ConvDiffVectImp<M_>::FinishStep() {
+template <class M_, class CD_>
+void ConvDiffVectImp<M_, CD_>::FinishStep() {
   imp->FinishStep();
 }
 
-template <class M_>
-double ConvDiffVectImp<M_>::GetError() const {
+template <class M_, class CD_>
+double ConvDiffVectImp<M_, CD_>::GetError() const {
   return imp->GetError();
 }
 
-template <class M_>
-auto ConvDiffVectImp<M_>::GetVelocity(Layers l) const 
+template <class M_, class CD_>
+auto ConvDiffVectImp<M_, CD_>::GetVelocity(Layers l) const 
     -> const FieldCell<Vect>& {
   return imp->GetVelocity(l);
 }

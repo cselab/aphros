@@ -7,6 +7,8 @@
 
 #include "util/metrics.h"
 #include "convdiffvi.h"
+#include "convdiffi.h"
+#include "convdiffe.h"
 #include "fluid.h"
 #include "debug/isnan.h"
 
@@ -36,8 +38,10 @@ template <class M_>
 struct Simple<M_>::Imp {
   using Owner = Simple<M_>;
   using CD = ConvDiffVect<M>; // convdiff solver
-  using CDI = ConvDiffVectImp<M>; // convdiff solver implicit
-  using CDE = ConvDiffVectImp<M>; // convdiff solver explicit
+  // convdiff solver implicit
+  using CDI = ConvDiffVectImp<M, ConvDiffScalImp<M>>; 
+  // convdiff solver explicit
+  using CDE = ConvDiffVectImp<M, ConvDiffScalExp<M>>; 
 
   Imp(Owner* owner, const FieldCell<Vect>& fcw,
       const MapFace<std::shared_ptr<CondFaceFluid>>& mfc, 
@@ -394,6 +398,17 @@ struct Simple<M_>::Imp {
     d.linreport = p.linreport;
   }
   void Update(CDI* cd, const Par& p) {
+    Update(*cd->GetPar(), p);
+  }
+  void Update(typename CDE::Par& d, const Par& p) {
+    // Update convdiff parameters
+    d.relax = p.vrelax;
+    d.second = p.second;
+    d.sc = p.convsc;
+    d.df = p.convdf;
+    d.linreport = p.linreport;
+  }
+  void Update(CDE* cd, const Par& p) {
     Update(*cd->GetPar(), p);
   }
   void StartStep() {
@@ -794,6 +809,8 @@ struct Simple<M_>::Imp {
     if (sem("init")) {
       // update convdiff par
       if (auto p = dynamic_cast<CDI*>(cd_.get())) {
+        Update(p, *par);
+      } else if (auto p = dynamic_cast<CDE*>(cd_.get())) {
         Update(p, *par);
       } else {
         throw std::runtime_error(sem.GetName() + ": unknown cd_");
