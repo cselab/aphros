@@ -245,6 +245,20 @@ struct ConvDiffScalImp<M_>::Imp {
   const FieldCell<Expr>& GetEquations() const {
     return fcucs_;
   }
+  FieldCell<Scal> GetDiag() const {
+    FieldCell<Scal> fc(m);
+    for (auto c : m.Cells()) {
+      fc[c] = fcucs_[c].Coeff(c);
+    }
+    return fc;
+  }
+  FieldCell<Scal> GetConst() const {
+    FieldCell<Scal> fc(m);
+    for (auto c : m.Cells()) {
+      fc[c] = fcucs_[c].GetConstant();
+    }
+    return fc;
+  }
 
   Owner* owner_;
   std::shared_ptr<Par> par;
@@ -294,6 +308,16 @@ void ConvDiffScalImp<M_>::CorrectField(Layers l, const FieldCell<Scal>& uc) {
 template <class M_>
 auto ConvDiffScalImp<M_>::GetEquations() const -> const FieldCell<Expr>& {
   return imp->GetEquations();
+}
+
+template <class M_>
+auto ConvDiffScalImp<M_>::GetDiag() const -> FieldCell<Scal> {
+  return imp->GetDiag();
+}
+
+template <class M_>
+auto ConvDiffScalImp<M_>::GetConst() const -> FieldCell<Scal> {
+  return imp->GetConst();
 }
 
 template <class M_>
