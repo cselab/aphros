@@ -526,28 +526,6 @@ struct Vof<M_>::Imp {
       }
     }
   }
-  std::pair<Vect, Vect> GetBubble() {
-    static Vect c(0);
-    static Vect r(0);
-    static bool ld = false;
-    if (!ld) {
-      std::ifstream f("../b.dat");
-      f >> c[0] >> c[1] >> c[2];
-      f >> r[0];
-      f >> r[1];
-      if (!f.good()) {
-        r[1] = r[0];
-      } else {
-        f >> r[2];
-        if (!f.good()) {
-          r[2] = r[0];
-        }
-      }
-      std::cout << "Loaded c=" << c << " r=" << r << std::endl;
-      ld = true;
-    }
-    return std::make_pair(c, r);
-  }
   void Part(const FieldCell<Scal>& uc, typename M::Sem& sem) {
     if (sem("part-comm")) {
       m.Comm(&fca_);
@@ -585,7 +563,6 @@ struct Vof<M_>::Imp {
         if (par->dim == 3) {
           fckp_[c] *= 2.;
         }
-        //fckp_[c] = 1; // XXX: adhoc prescribed curvature
       }
       m.Comm(&fckp_);
     }
