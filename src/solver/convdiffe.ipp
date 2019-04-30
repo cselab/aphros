@@ -84,34 +84,26 @@ struct ConvDiffScalExp<M_>::Imp {
       if (owner_->ffd_) {
         // Calc diffusive fluxes
         // all inner
-        GradientI(ffqq, m);
+        Gradient(fcu, mfc_, m, ffq);
         for (auto f : m.Faces()) {
-          ffqq[f] *= (-(*owner_->ffd_)[f]) * m.GetArea(f);
-        }
-        // overwrite with bc
-        FaceGradB<M, Expr> gb(m, mfc_);
-        for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
-          IdxFace f = it->GetIdx();
-          Expr e = gb.GetExpr(f);
-          e.SortTerms();
-          ffqq[f] = e * (-(*owner_->ffd_)[f]) * m.GetArea(f);
+          ffq[f] *= (-(*owner_->ffd_)[f]) * m.GetArea(f);
         }
       } else {
-        ffqq.Reinit(m);
+        ffq.Reinit(m);
       }
 
       // Append diffusive flux, convert to delta-form, apply underelaxation
       for (IdxCell c : m.Cells()) {
         Expr& e = fcl[c];
 
-        Expr sd; // sum diffusive
+        Scal sd = 0.; // sum diffusive
         for (auto q : m.Nci(c)) {
           IdxFace f = m.GetNeighbourFace(c, q);
-          sd += ffqq[f] * m.GetOutwardFactor(c, q);
+          sd += ffq[f] * m.GetOutwardFactor(c, q);
         }
 
         auto vol = m.GetVolume(c);
-        e += sd / vol;
+        e += Expr(sd / vol);
 
         // Convert to delta-form
         e.SetConstant(e.Evaluate(fcu));
