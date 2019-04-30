@@ -17,6 +17,7 @@ class ConvDiffScalExp : public ConvDiffScal<M_> {
 
   struct Par {
     Scal relax = 1.;      // relaxation factor [0,1] (1 -- no relaxation)
+    Scal guessextra = 0.; // next iteration guess extrapolation weight [0,1]
     bool second = true; // second order in time
     ConvSc sc = ConvSc::quick; // scheme for convective flux (see convdiffi.h)
     Scal df = 1.; // deferred correction factor

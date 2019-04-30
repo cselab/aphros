@@ -403,6 +403,7 @@ struct Simple<M_>::Imp {
   void Update(typename CDE::Par& d, const Par& p) {
     // Update convdiff parameters
     d.relax = p.vrelax;
+    d.guessextra = p.guessextra;
     d.second = p.second;
     d.sc = p.convsc;
     d.df = p.convdf;
