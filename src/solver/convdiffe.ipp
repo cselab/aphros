@@ -122,6 +122,12 @@ struct ConvDiffScalExp<M_>::Imp {
         // Convert to delta-form
         e.SetConstant(e.Evaluate(fcu));
 
+        // overwrite explicit
+        Expr tt; // time derivative term
+        tt.InsertTerm(ac[2] * (*owner_->fcr_)[c], c);
+        tt.SetConstant(e.GetConstant());
+        e = tt;
+
         // Apply under-relaxation
         e[e.Find(c)].a /= par->relax;
       }
