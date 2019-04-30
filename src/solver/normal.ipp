@@ -4,8 +4,6 @@
 #include "geom/mesh.h"
 #include "solver.h"
 
-// normal from exact sphere
-#define ADHOC_NORM 0
 
 namespace solver {
 
@@ -193,15 +191,6 @@ struct UNormal<M_>::Imp {
 
       // curvature
       fck[c] = bk;
-
-      #if ADHOC_NORM
-      auto cr = GetBubble();
-      auto q = m.GetCenter(c) - cr.first;
-      if (edim == 2) {
-        q[2] = 0.;
-      }
-      fcn[c] = q / q.norm();
-      #endif 
     }
   }
   // Computes normal by combined Young's scheme and height-functions
