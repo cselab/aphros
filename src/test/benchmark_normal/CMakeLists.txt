@@ -5,7 +5,7 @@ set(EXE t.${p})
 
 add_executable(${EXE} main.cpp)
 
-target_link_libraries(${EXE} suspender sysinfo timer)
-     
+target_link_libraries(${EXE} suspender sysinfo timer normal)
+
 add_test(NAME ${p} COMMAND ${EXE})
 

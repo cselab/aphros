@@ -35,7 +35,7 @@ class UNormal {
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
       FieldCell<Vect>& fcn);
 
- private:
+ public:
   struct Imp; // implementation
 };
 
