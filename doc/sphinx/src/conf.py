@@ -29,15 +29,21 @@ pygments_style = 'sphinx'
 
 numfig = True
 
-
 # html
 html_theme = 'classic'
 
-html_theme_options = {}
+html_static_path = ['_static']
+
+html_context = {'css_files': ['_static/center.css']}
+
+html_theme_options = {
+      'nosidebar' : True,
+      'body_max_width' : '80%',
+      }
 
 html_sidebars = {
-   #'**' : ['localtoc.html']
-   '**' : []
+   '**' : ['localtoc.html']
+   #'**' : []
 }
 
 htmlhelp_basename = 'hydrodoc'
