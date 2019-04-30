@@ -80,7 +80,7 @@ struct ConvDiffScalImp<M_>::Imp {
       std::vector<Scal> ac = GetGradCoeffs(
           0., {-(dt + dtp_), -dt, 0.}, par->second ? 0 : 1);
       for (IdxCell c : m.Cells()) {
-        Expr& e = fcucs_[c];
+        Expr& e = fcl[c];
 
         Expr sc; // sum convective
         for (auto q : m.Nci(c)) {
