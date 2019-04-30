@@ -8,3 +8,6 @@ target_link_libraries(${T} vars)
 set(T "events")
 add_library(${T} events.cpp)
 target_link_libraries(${T} vars parser)
+
+set(T "timer")
+add_library(${T} timer.cpp)

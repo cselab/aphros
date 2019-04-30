@@ -9,7 +9,7 @@
 
 #include "geom/mesh.h"
 #include "solver/solver.h"
-#include "timer.h"
+#include "util/timer.h"
 #include "util/sysinfo.h"
 
 const int dim = 3;
