@@ -657,9 +657,13 @@ struct Simple<M_>::Imp {
       for (auto d : dr_) {
         auto fct = cd_->GetDiag(d);
         for (auto c : m.Cells()) {
-          fck[c] += fct[c] / dr_.size();
+          fck[c] += fct[c];
         }
       }
+      for (auto c : m.Cells()) {
+        fck[c] /= dr_.size();
+      }
+
       CHECKNAN(fck, m.CN())
 
       m.Comm(&fck);
