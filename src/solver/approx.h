@@ -209,12 +209,67 @@ class FaceGrad : public Approx<IdxFace, Expr> {
   const M& m;
 };
 
-// Implicit gradient in inner faces.
-// fc: field cell [s]
-// fc: gradient [s]
-// ffw: flow direction [i]
+// Explicit gradient on faces near inner cells.
+// fc: field [s]
 // Output:
-// ff: face cell [i]
+// ff: normal gradient [i]
+template <class M, class T>
+void GradientI(const FieldCell<T>& fc, const M& m, FieldFace<T>& ff) {
+  using Scal = typename M::Scal;
+
+  ff.Reinit(m);
+  for (auto f : m.Faces()) {
+    IdxCell cm = m.GetNeighbourCell(f, 0);
+    IdxCell cp = m.GetNeighbourCell(f, 1);
+    Scal a = m.GetArea(f) / m.GetVolume(cp);
+    ff[f] = (fc[cp] - fc[cm]) * a;
+  }
+}
+
+// Explicit gradient on boundary faces.
+// fc: field [s]
+// mfc: face conditions
+// Output:
+// ff: normal gradient [i]
+template <class M, class T>
+void GradientB(const FieldCell<T>& fc,
+    const MapFace<std::shared_ptr<CondFace>>& mfc,
+    const M& m, FieldFace<T>& ff) {
+  using Scal = typename M::Scal;
+
+  for (const auto& it : mfc) {
+    IdxFace f = it.GetIdx();
+    CondFace* cb = it.GetValue().get(); // cond base
+    if (auto cd = dynamic_cast<CondFaceGrad<T>*>(cb)) {
+      ff[f] = cd->GetGrad();
+    } else if (auto cd = dynamic_cast<CondFaceVal<T>*>(cb)) {
+      size_t id = cd->GetNci();
+      IdxCell c = m.GetNeighbourCell(f, id);
+      Scal g = (id == 0 ? 1. : -1.);
+      Scal hr = m.GetArea(f) / m.GetVolume(c);
+      Scal a = hr * 2 * g;
+      ff[f] = (cd->GetValue() - fc[c]) * a;
+    } else {
+      throw std::runtime_error("GradientB: unknown cond");
+    }
+  }
+}
+
+// Explicit gradient on inner faces.
+// fc: field [s]
+// Output:
+// ff: normal gradient [i]
+template <class M, class T>
+void Gradient(
+    const FieldCell<T>& fc, const MapFace<std::shared_ptr<CondFace>>& mfc,
+    const M& m, FieldFace<T>& ff) {
+  GradientI(fc, m, ff);
+  GradientB(fc, mfc, m, ff);
+}
+
+// Implicit gradient in inner faces.
+// Output:
+// ff: normal gradient [i]
 template <class M, class Expr>
 void GradientI(FieldFace<Expr>& ff, const M& m) {
   using Scal = typename M::Scal;
