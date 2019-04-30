@@ -48,72 +48,61 @@ struct ConvDiffScalExp<M_>::Imp {
       FieldCell<Vect> fcg = Gradient(Interpolate(fcu, mfc_, m), m);
 
       FieldFace<Scal> ffq;  // flux tmp
-      FieldFace<Expr> ffqq;  // flux tmp
+      FieldCell<Scal> fca;  // accumulated
 
-      // Calc convective fluxes:
-      // all inner
+      fca.Reinit(m, 0.);
+
+      // Calc convective fluxes
       Interpolate(fcu, fcg, mfc_, ffv, m, par->sc, par->th, ffq);
-
       for (auto f : m.Faces()) {
         ffq[f] *= (*owner_->ffv_)[f];
       }
-
-      // Init system with convective flux, time derivative, source
-      fcl.Reinit(m);
-      Scal dt = owner_->GetTimeStep();
-      std::vector<Scal> ac = GetGradCoeffs(
-          0., {-(dt + dtp_), -dt, 0.}, par->second ? 0 : 1);
+      // Append
       for (IdxCell c : m.Cells()) {
-        Expr& e = fcucs_[c];
-
-        Scal sc = 0.; // sum convective
+        Scal s = 0.; // sum
         for (auto q : m.Nci(c)) {
           IdxFace f = m.GetNeighbourFace(c, q);
-          sc += ffq[f] * m.GetOutwardFactor(c, q);
+          s += ffq[f] * m.GetOutwardFactor(c, q);
         }
-
-        Expr tt; // time derivative term
-        tt.InsertTerm(ac[2], c);
-        tt.SetConstant(ac[0] * fcu_.time_prev[c] + ac[1] * fcu_.time_curr[c]);
-
-        auto vol = m.GetVolume(c);
-        e = (tt + Expr(sc / vol)) * (*owner_->fcr_)[c] -
-            Expr((*owner_->fcs_)[c]);
+        fca[c] += s / m.GetVolume(c) * (*owner_->fcr_)[c];
       }
 
       if (owner_->ffd_) {
         // Calc diffusive fluxes
-        // all inner
         Gradient(fcu, mfc_, m, ffq);
         for (auto f : m.Faces()) {
           ffq[f] *= (-(*owner_->ffd_)[f]) * m.GetArea(f);
         }
-      } else {
-        ffq.Reinit(m);
+        // Append
+        for (IdxCell c : m.Cells()) {
+          Scal s = 0.; // sum
+          for (auto q : m.Nci(c)) {
+            IdxFace f = m.GetNeighbourFace(c, q);
+            s += ffq[f] * m.GetOutwardFactor(c, q);
+          }
+          fca[c] += s / m.GetVolume(c);
+        }
       }
 
-      // Append diffusive flux, convert to delta-form, apply underelaxation
+      // time derivative coeffs
+      Scal dt = owner_->GetTimeStep();
+      std::vector<Scal> ac = GetGradCoeffs(
+          0., {-(dt + dtp_), -dt, 0.}, par->second ? 0 : 1);
+
+      // Init system
+      fcl.Reinit(m);
       for (IdxCell c : m.Cells()) {
+        fca[c] += -(*owner_->fcs_)[c]; // source
+
+        Scal r = (*owner_->fcr_)[c];
+
         Expr& e = fcl[c];
-
-        Scal sd = 0.; // sum diffusive
-        for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
-          sd += ffq[f] * m.GetOutwardFactor(c, q);
-        }
-
-        auto vol = m.GetVolume(c);
-        e += Expr(sd / vol);
-
+        e.Clear();
+        e.InsertTerm(ac[2] * r, c);
+        e.SetConstant(fca[c] +
+            (ac[0] * fcu_.time_prev[c] + ac[1] * fcu_.time_curr[c]) * r);
         // Convert to delta-form
         e.SetConstant(e.Evaluate(fcu));
-
-        // overwrite explicit
-        Expr tt; // time derivative term
-        tt.InsertTerm(ac[2] * (*owner_->fcr_)[c], c);
-        tt.SetConstant(e.GetConstant());
-        e = tt;
-
         // Apply under-relaxation
         e[e.Find(c)].a /= par->relax;
       }
