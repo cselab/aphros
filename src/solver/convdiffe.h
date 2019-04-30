@@ -14,7 +14,6 @@ class ConvDiffScalExp : public ConvDiffScal<M_> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   static constexpr size_t dim = M::dim;
-  using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
   struct Par {
     Scal relax = 1.;      // relaxation factor [0,1] (1 -- no relaxation)

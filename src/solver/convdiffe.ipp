@@ -39,18 +39,19 @@ struct ConvDiffScalExp<M_>::Imp {
   // fcu: field from previous iteration [a]
   // ffv: volume flux
   // Output:
-  // fcl: linear system
+  // diagonal linear system: fcla * (fcup - fcu) + fclb = 0
+  // where fcup at new iteration
   void Assemble(const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv,
-                FieldCell<Expr>& fcl) {
+                FieldCell<Scal>& fcla, FieldCell<Scal>& fclb) {
     auto sem = m.GetSem("assemble");
 
     if (sem("assemble")) {
       FieldCell<Vect> fcg = Gradient(Interpolate(fcu, mfc_, m), m);
 
-      FieldFace<Scal> ffq;  // flux tmp
-      FieldCell<Scal> fca;  // accumulated
+      fcla.Reinit(m);
+      fclb.Reinit(m, 0.);
 
-      fca.Reinit(m, 0.);
+      FieldFace<Scal> ffq;  // flux tmp
 
       // Calc convective fluxes
       Interpolate(fcu, fcg, mfc_, ffv, m, par->sc, par->th, ffq);
@@ -64,7 +65,7 @@ struct ConvDiffScalExp<M_>::Imp {
           IdxFace f = m.GetNeighbourFace(c, q);
           s += ffq[f] * m.GetOutwardFactor(c, q);
         }
-        fca[c] += s / m.GetVolume(c) * (*owner_->fcr_)[c];
+        fclb[c] += s / m.GetVolume(c) * (*owner_->fcr_)[c];
       }
 
       if (owner_->ffd_) {
@@ -80,7 +81,7 @@ struct ConvDiffScalExp<M_>::Imp {
             IdxFace f = m.GetNeighbourFace(c, q);
             s += ffq[f] * m.GetOutwardFactor(c, q);
           }
-          fca[c] += s / m.GetVolume(c);
+          fclb[c] += s / m.GetVolume(c);
         }
       }
 
@@ -89,32 +90,26 @@ struct ConvDiffScalExp<M_>::Imp {
       std::vector<Scal> ac = GetGradCoeffs(
           0., {-(dt + dtp_), -dt, 0.}, par->second ? 0 : 1);
 
-      // Init system
-      fcl.Reinit(m);
       for (IdxCell c : m.Cells()) {
-        fca[c] += -(*owner_->fcs_)[c]; // source
-
+        // time derivative
         Scal r = (*owner_->fcr_)[c];
-
-        Expr& e = fcl[c];
-        e.Clear();
-        e.InsertTerm(ac[2] * r, c);
-        e.SetConstant(fca[c] +
-            (ac[0] * fcu_.time_prev[c] + ac[1] * fcu_.time_curr[c]) * r);
-        // Convert to delta-form
-        e.SetConstant(e.Evaluate(fcu));
-        // Apply under-relaxation
-        e[e.Find(c)].a /= par->relax;
+        fcla[c] = ac[2] * r;
+        fclb[c] += (ac[0] * fcu_.time_prev[c] + ac[1] * fcu_.time_curr[c]) * r;
+        // source
+        fclb[c] += -(*owner_->fcs_)[c];
+        // delta form
+        fclb[c] += fcla[c] * fcu[c];
+        // under-relaxation
+        fcla[c] /= par->relax;
       }
 
       // Overwrite with cell conditions 
       for (auto it = mcc_.cbegin(); it != mcc_.cend(); ++it) {
         IdxCell c(it->GetIdx());
         CondCell* cb = it->GetValue().get(); // cond base
-        auto& e = fcl[c];
         if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
-          Scal v = cd->GetValue() - fcu[c];
-          e.SetKnownValueDiag(c, v);
+          fcla[c] = 1.;
+          fclb[c] = cd->GetValue() - fcu[c];
         }
       }
     }
@@ -125,20 +120,17 @@ struct ConvDiffScalExp<M_>::Imp {
   // Output:
   // fcl: linear system
   void Assemble(const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv) {
-    Assemble(fcu, ffv, fcucs_);
+    Assemble(fcu, ffv, fcla_, fclb_);
   }
   // Solves linear system.
-  // fcl : system to solve
+  // fcla * u + fclb = 0: system to solve
   // Output:
   // fcu: result
-  // m.GetSolveTmp(): modified temporary fields
-  void Solve(const FieldCell<Expr>& fcl, FieldCell<Scal>& fcu) {
-    auto sem = m.GetSem("solve");
-    if (sem("copy")) {
-      fcu.Reinit(m);
-      for (auto c : m.Cells()) {
-        fcu[c] = -fcl[c].GetConstant() / fcl[c][0].a;
-      }
+  void Solve(const FieldCell<Scal>& fcla, const FieldCell<Scal>& fclb,
+             FieldCell<Scal>& fcu) {
+    fcu.Reinit(m);
+    for (auto c : m.Cells()) {
+      fcu[c] = -fclb[c] / fcla[c];
     }
   }
   void MakeIteration() {
@@ -151,13 +143,12 @@ struct ConvDiffScalExp<M_>::Imp {
       prev.swap(curr);
     }
     if (sem.Nested("assemble")) {
-      Assemble(prev, *owner_->ffv_, fcucs_);
+      Assemble(prev, *owner_->ffv_, fcla_, fclb_);
     }
-    if (sem.Nested("solve")) {
-      Solve(fcucs_, curr); // solve for correction, store in curr
+    if (sem("solve")) {
+      Solve(fcla_, fclb_, curr); // solve for correction, store in curr
     }
     if (sem("apply")) {
-      CHECKNAN(fcucs_, m.CN())
       // calc error (norm of correction)
       Scal er = 0;
       for (auto c : m.Cells()) {
@@ -198,18 +189,10 @@ struct ConvDiffScalExp<M_>::Imp {
     }
   }
   FieldCell<Scal> GetDiag() const {
-    FieldCell<Scal> fc(m);
-    for (auto c : m.Cells()) {
-      fc[c] = fcucs_[c].Coeff(c);
-    }
-    return fc;
+    return fcla_;
   }
   FieldCell<Scal> GetConst() const {
-    FieldCell<Scal> fc(m);
-    for (auto c : m.Cells()) {
-      fc[c] = fcucs_[c].GetConstant();
-    }
-    return fc;
+    return fclb_;
   }
 
   Owner* owner_;
@@ -220,7 +203,9 @@ struct ConvDiffScalExp<M_>::Imp {
   MapFace<std::shared_ptr<CondFace>> mfc_; // face cond
   MapCell<std::shared_ptr<CondCell>> mcc_; // cell cond
 
-  FieldCell<Expr> fcucs_;  // linear system for correction
+  // diagonal linear system: fcla * (fcup - fcu) + fclb = 0
+  FieldCell<Scal> fcla_;
+  FieldCell<Scal> fclb_;
 
   Scal dtp_; // dt prev
   Scal er_; // error 

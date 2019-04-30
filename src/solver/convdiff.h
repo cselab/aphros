@@ -15,7 +15,6 @@ class ConvDiffScal : public UnsteadyIterativeSolver {
   using M = M_;
   using Scal = typename M::Scal;
   static constexpr size_t dim = M::dim;
-  using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
  protected:
   M& m;
