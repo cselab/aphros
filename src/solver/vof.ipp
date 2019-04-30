@@ -700,20 +700,6 @@ struct Vof<M_>::Imp {
   void Rec(const FieldCell<Scal>& uc) {
     auto sem = m.GetSem("reconst");
 
-    if (sem("bc-zero")) {
-      // XXX: adhoc
-      // overwrite u=0 if y<y0 or y>y0
-      Scal y0 = par->bcc_y0;
-      Scal y1 = par->bcc_y1;
-      auto& uu = const_cast<FieldCell<Scal>&>(uc);
-      for (auto c : m.AllCells()) {
-        auto x = m.GetCenter(c);
-        if (x[1] < y0 || x[1] > y1) {
-          uu[c] = 0.;
-        }
-      }
-    }
-
     if (sem("height")) {
       // XXX: adhoc 
       // reflection at boundaries
@@ -877,21 +863,6 @@ struct Vof<M_>::Imp {
           Scal v = ffv[f];
           if ((cb->GetNci() == 0) != (v > 0.)) {
             ffvu[f] = v * ffu[f];
-            // XXX: adhoc
-            // Alternating mul correction of flux
-            // (done for bubble detachment)
-            if (par->bcc_t0 > 0. && par->bcc_t1 > 0.) {
-              Scal k0 = par->bcc_k0;
-              Scal k1 = par->bcc_k1;
-              Scal t0 = par->bcc_t0;
-              Scal t1 = par->bcc_t1;
-              Scal t = owner_->GetTime();
-              Scal ts = t0 + t1;
-              Scal ph = t / ts; 
-              ph = ph - int(ph);
-              ph *= ts;
-              ffvu[f] *= (ph < t0 ? k0 : k1);
-            }
           }
         }
 
