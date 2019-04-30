@@ -3,9 +3,9 @@ get_filename_component(p ${CSD} NAME)
 
 set(EXE t.${p})
 
-add_executable(${EXE} main.cpp timer.cpp)
+add_executable(${EXE} main.cpp)
 
-target_link_libraries(${EXE} suspender sysinfo)
+target_link_libraries(${EXE} suspender sysinfo timer)
      
 add_test(NAME ${p} COMMAND ${EXE})
 
