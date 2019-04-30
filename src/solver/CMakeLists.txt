@@ -15,9 +15,13 @@ set(T "convdiffi")
 add_library(${T} convdiffi.cpp)
 target_link_libraries(${T} solver)
 
+set(T "convdiffe")
+add_library(${T} convdiffe.cpp)
+target_link_libraries(${T} solver)
+
 set(T "convdiffvi")
 add_library(${T} convdiffvi.cpp)
-target_link_libraries(${T} convdiffi)
+target_link_libraries(${T} convdiffi convdiffe)
 
 set(T "simple")
 add_library(${T} simple.cpp)
