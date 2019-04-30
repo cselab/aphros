@@ -38,12 +38,11 @@ html_context = {'css_files': ['_static/center.css']}
 
 html_theme_options = {
       'nosidebar' : True,
-      'body_max_width' : '80%',
+      'body_max_width' : '800px',
       }
 
 html_sidebars = {
-   '**' : ['localtoc.html']
-   #'**' : []
+   #'**' : ['localtoc.html']
 }
 
 htmlhelp_basename = 'hydrodoc'
