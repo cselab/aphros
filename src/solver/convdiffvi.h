@@ -47,8 +47,6 @@ class ConvDiffVectImp : public ConvDiffVect<M_> {
   // Output:
   // vel(l) += fc [a]
   void CorrectVelocity(Layers l, const FieldCell<Vect>& fc) override;
-  // Equations for velocity
-  const FieldCell<Expr>& GetVelocityEquations(size_t d) const override;
   // ...
   FieldCell<Scal> GetDiag(size_t d) const override;
   // ...

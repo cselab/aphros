@@ -197,9 +197,6 @@ struct ConvDiffScalExp<M_>::Imp {
       m.Comm(&u);
     }
   }
-  const FieldCell<Expr>& GetEquations() const {
-    return fcucs_;
-  }
   FieldCell<Scal> GetDiag() const {
     FieldCell<Scal> fc(m);
     for (auto c : m.Cells()) {
@@ -258,11 +255,6 @@ void ConvDiffScalExp<M_>::Assemble(const FieldCell<Scal>& fcu,
 template <class M_>
 void ConvDiffScalExp<M_>::CorrectField(Layers l, const FieldCell<Scal>& uc) {
   imp->CorrectField(l, uc);
-}
-
-template <class M_>
-auto ConvDiffScalExp<M_>::GetEquations() const -> const FieldCell<Expr>& {
-  return imp->GetEquations();
 }
 
 template <class M_>
