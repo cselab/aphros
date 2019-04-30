@@ -24,6 +24,86 @@ std::string GetName(ConvSc sc);
 // Convection scheme by name.
 ConvSc GetConvSc(std::string s);
 
+// sc: scheme:
+//   - fou: first order upwind
+//   - cd: central differences (mean value)
+//   - sou: second order upwind
+//   - quick: QUICK
+template <class Scal>
+std::array<Scal, 3> GetCoeff(ConvSc sc) {
+  std::array<Scal, 3> a;
+  switch (sc) {
+    case ConvSc::fou: 
+      a = {0., 1., 0.}; 
+      break; 
+    case ConvSc::cd: 
+      a = {0., 0.5, 0.5}; 
+      break; 
+    case ConvSc::sou: 
+      a = {-0.5, 1.5, 0.}; 
+      break;
+    case ConvSc::quick: 
+      a = {-1./8., 6./8., 3./8.}; 
+      break;
+    default:
+      throw std::runtime_error("GetCoeff: invalid ConvSc");
+  }
+  return a;
+}
+
+// Explicit interpolation to faces near inner cells.
+// fc: field cell [s]
+// fc: gradient [s]
+// ffw: flow direction [i]
+// sc: scheme:
+// th: threshold for flow direction, ffw > th or ffw < -th
+// Output:
+// ff: face cell [i], resize if needed
+template <class T, class M>
+void InterpolateI(
+    const FieldCell<T>& fc, const FieldCell<typename M::Vect>& fcgp,
+    const FieldFace<T>& ffw,  const M& m, ConvSc sc, typename M::Scal th,
+    FieldFace<T>& ff) {
+  using Scal = typename M::Scal;
+
+  // f = fmm*a[0] + fm*a[1] + fp*a[2]
+  std::array<Scal, 3> a = GetCoeff<Scal>(sc);
+
+  ff.Reinit(m);
+  for (auto f : m.Faces()) {
+    IdxCell cm = m.GetNeighbourCell(f, 0);
+    IdxCell cp = m.GetNeighbourCell(f, 1);
+    if (ffw[f] > th) {
+      ff[f] = 4. * a[0] * fcgp[cm].dot(m.GetVectToCell(f, 0)) +
+          a[1] * fc[cm] + (a[2] + a[0]) * fc[cp];
+    } else if (ffw[f] < -th) {
+      ff[f] = 4. * a[0] * fcgp[cp].dot(m.GetVectToCell(f, 1)) +
+          a[1] * fc[cp] + (a[2] + a[0]) * fc[cm];
+    } else {
+      ff[f] = (fc[cm] + fc[cp]) * 0.5;
+    }
+  }
+}
+
+// Interpolates from cells to inner faces.
+// T: value type (Scal or Vect)
+// fc: field cell [s]
+// fcgp: gradient [s]
+// ffw: flow direction [i]
+// sc: scheme:
+// th: threshold for flow direction, ffw > th or ffw < -th
+// Output:
+// ff: face cell [i], resize if needed
+template <class T, class M>
+void Interpolate(
+    const FieldCell<T>& fc, const FieldCell<typename M::Vect>& fcgp,
+    const MapFace<std::shared_ptr<CondFace>>& mfc, 
+    const FieldFace<T>& ffw,  const M& m, ConvSc sc, typename M::Scal th,
+    FieldFace<T>& ff) {
+  InterpolateI(fc, fcgp, ffw, m, sc, th, ff);
+  InterpolateB(fc, mfc, ff, m);
+}
+
 // Implicit interpolation to inner faces with deferred correction.
 // fc: field cell [s]
 // fc: gradient [s]
@@ -46,23 +126,7 @@ void InterpolateI(const FieldCell<T>& fc,
   using Scal = typename M::Scal;
 
   // f = fmm*a[0] + fm*a[1] + fp*a[2]
-  std::array<Scal, 3> a;
-  switch (sc) {
-    case ConvSc::fou: 
-      a = {0., 1., 0.}; 
-      break; 
-    case ConvSc::cd: 
-      a = {0., 0.5, 0.5}; 
-      break; 
-    case ConvSc::sou: 
-      a = {-0.5, 1.5, 0.}; 
-      break;
-    case ConvSc::quick: 
-      a = {-1./8., 6./8., 3./8.}; 
-      break;
-    default:
-      throw std::runtime_error("InterpolateI: invalid ConvSc");
-  }
+  std::array<Scal, 3> a = GetCoeff<Scal>(sc);
 
   ff.Reinit(m);
   auto dfm = 1. - df;
