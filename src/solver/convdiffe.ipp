@@ -134,28 +134,11 @@ struct ConvDiffScalExp<M_>::Imp {
   // m.GetSolveTmp(): modified temporary fields
   void Solve(const FieldCell<Expr>& fcl, FieldCell<Scal>& fcu) {
     auto sem = m.GetSem("solve");
-    if (sem("convert")) {
-      std::vector<Scal>* lsa;
-      std::vector<Scal>* lsb;
-      std::vector<Scal>* lsx;
-      m.GetSolveTmp(lsa, lsb, lsx);
-      auto l = ConvertLs(fcl, *lsa, *lsb, *lsx, m);
-      using T = typename M::LS::T;
-      l.t = T::gen;
-      m.Solve(l);
-    }
     if (sem("copy")) {
-      std::vector<Scal>* lsa;
-      std::vector<Scal>* lsb;
-      std::vector<Scal>* lsx;
-      m.GetSolveTmp(lsa, lsb, lsx);
-
       fcu.Reinit(m);
-      size_t i = 0;
       for (auto c : m.Cells()) {
-        fcu[c] = (*lsx)[i++];
+        fcu[c] = -fcl[c].GetConstant() / fcl[c][0].a;
       }
-      assert(i == lsx->size());
     }
   }
   void MakeIteration() {
