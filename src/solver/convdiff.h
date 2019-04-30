@@ -40,6 +40,10 @@ class ConvDiffScal : public UnsteadyIterativeSolver {
   }
   virtual void CorrectField(Layers, const FieldCell<Scal>&) = 0;
   virtual const FieldCell<Expr>& GetEquations() const = 0;
+  // Returns the diagonal coefficient of the equation
+  virtual FieldCell<Scal> GetDiag() const = 0;
+  // Returns the constant term of the equation
+  virtual FieldCell<Scal> GetConst() const = 0;
 };
 
 

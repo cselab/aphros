@@ -200,6 +200,20 @@ struct ConvDiffScalExp<M_>::Imp {
   const FieldCell<Expr>& GetEquations() const {
     return fcucs_;
   }
+  FieldCell<Scal> GetDiag() const {
+    FieldCell<Scal> fc(m);
+    for (auto c : m.Cells()) {
+      fc[c] = fcucs_[c].Coeff(c);
+    }
+    return fc;
+  }
+  FieldCell<Scal> GetConst() const {
+    FieldCell<Scal> fc(m);
+    for (auto c : m.Cells()) {
+      fc[c] = fcucs_[c].GetConstant();
+    }
+    return fc;
+  }
 
   Owner* owner_;
   std::shared_ptr<Par> par;
@@ -250,6 +264,17 @@ template <class M_>
 auto ConvDiffScalExp<M_>::GetEquations() const -> const FieldCell<Expr>& {
   return imp->GetEquations();
 }
+
+template <class M_>
+auto ConvDiffScalExp<M_>::GetDiag() const -> FieldCell<Scal> {
+  return imp->GetDiag();
+}
+
+template <class M_>
+auto ConvDiffScalExp<M_>::GetConst() const -> FieldCell<Scal> {
+  return imp->GetConst();
+}
+
 
 template <class M_>
 void ConvDiffScalExp<M_>::StartStep() {
