@@ -698,29 +698,20 @@ struct Vof<M_>::Imp {
 
   // reconstruct interface
   void Rec(const FieldCell<Scal>& uc) {
-    auto sem = m.GetSem("reconst");
-
-    if (sem("height")) {
-      // XXX: adhoc 
-      // reflection at boundaries
-      if (par->bcc_reflect) {
-        BcReflect(const_cast<FieldCell<Scal>&>(uc));
-      }
-      CHECKNAN(uc, m.CN())
-      DetectInterface(uc);
-      // Compute normal and curvature [s]
-      CalcNormal(uc, fci_, fcn_, fck_);
-      auto h = GetCellSize();
-      // Reconstruct interface [s]
-      for (auto c : m.SuCells()) {
-        fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
-      }
-      // XXX: adhoc 
-      // reflection at boundaries
-      if (par->bcc_reflect) {
-        BcReflect(fca_);
-        BcReflect(fcn_);
-      }
+    if (par->bcc_reflect) {
+      BcReflect(const_cast<FieldCell<Scal>&>(uc));
+    }
+    DetectInterface(uc);
+    // Compute normal and curvature [s]
+    CalcNormal(uc, fci_, fcn_, fck_);
+    auto h = GetCellSize();
+    // Reconstruct interface [s]
+    for (auto c : m.SuCells()) {
+      fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
+    }
+    if (par->bcc_reflect) {
+      BcReflect(fca_);
+      BcReflect(fcn_);
     }
   }
   void CalcNormal(const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
@@ -756,8 +747,8 @@ struct Vof<M_>::Imp {
       fcu_.iter_curr = fcu_.time_prev;
     }
 
-    if (sem.Nested("reconst")) {
-      if (owner_->GetTime() == 0.) {
+    if (owner_->GetTime() == 0.) {
+      if (sem("reconst")) {
         Rec(fcu_.time_curr);
       }
     }
@@ -896,7 +887,7 @@ struct Vof<M_>::Imp {
         }
         m.Comm(&uc);
       }
-      if (sem.Nested("reconst")) {
+      if (sem("reconst")) {
         Rec(fcu_.iter_curr);
       }
     }
