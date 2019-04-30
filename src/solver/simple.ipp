@@ -652,16 +652,12 @@ struct Simple<M_>::Imp {
   void GetDiagCoeff(FieldCell<Scal>& fck, FieldFace<Scal>& ffk) {
     auto sem = m.GetSem("diag");
     if (sem("local")) {
-      fck.Reinit(m);
-      for (auto c : m.Cells()) {
-        Scal s = 0.;
-        for (auto d : dr_) {
-          // TODO consider separating diag from other coeffs
-          //      use total sum for SIMPLEC only
-          //sum += cd_->GetVelocityEquations(d)[c].CoeffSum();
-          s += cd_->GetVelocityEquations(d)[c].Coeff(c); // XXX
+      fck.Reinit(m, 0);
+      for (auto d : dr_) {
+        auto fct = cd_->GetDiag(d);
+        for (auto c : m.Cells()) {
+          fck[c] += fct[c] / dr_.size();
         }
-        fck[c] = s / dr_.size();
       }
       CHECKNAN(fck, m.CN())
 
@@ -699,13 +695,13 @@ struct Simple<M_>::Imp {
   // fcpp: previous pressure
   // Output:
   // fcp: output pressure (may be aliased with fcpp)
-  // fct_: modified tmp 
+  // fctv_: modified tmp 
   void CalcPressure(const FieldCell<Vect>& fcw,
                     const FieldFace<Scal>& ffv,
                     const FieldCell<Scal>& fcpp,
                     FieldCell<Scal>& fcp) {
     auto sem = m.GetSem("calcpressure");
-    auto& fcl = fct_; // evaluation of velocity equations
+    auto& fcl = fctv_; // evaluation of velocity equations
     if (sem.Nested("cd-asm")) {
       cd_->Assemble(fcw, ffv);
     }
@@ -714,11 +710,8 @@ struct Simple<M_>::Imp {
     }
     if (sem("eval")) {
       fcl.Reinit(m);
-      for (auto c : m.Cells()) {
-        for (auto d : dr_) {
-          auto& fce = cd_->GetVelocityEquations(d);
-          fcl[c][d] = fce[c].GetConstant(); // Evaluate(0)
-        }
+      for (auto d : dr_) {
+        SetComponent(fcl, d, cd_->GetConst(d));
       }
       for (auto d : drr_) {
         SetComponent(fcl, d, 0);
@@ -1002,7 +995,8 @@ struct Simple<M_>::Imp {
   FieldCell<Vect> fcfcd_;  // force for convdiff [i]
 
   // tmp
-  FieldCell<Vect> fct_; // TODO renname to vfct
+  FieldCell<Scal> fct_;
+  FieldCell<Vect> fctv_;
 
   // Face fields:
   FieldFace<Scal> ffd_;    // dynamic viscosity
