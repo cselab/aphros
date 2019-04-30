@@ -19,7 +19,6 @@ void Parse(typename solver::Vof<M>::Par* p, const Vars& var) {
   p->part_bendmean = var.Int["part_bendmean"];
   p->part_dump_fr = var.Int["part_dump_fr"];
   p->part_report_fr = var.Int["part_report_fr"];
-  p->part_n = var.Int["part_n"];
   p->part_k = var.Int["part_k"];
   p->part_intth = var.Double["part_intth"];
   p->poly_intth = var.Double["poly_intth"];

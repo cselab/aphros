@@ -722,17 +722,6 @@ struct Vof<M_>::Imp {
         BcReflect(fcn_);
       }
     }
-
-    // Correction with normal from particles
-    if (par->part && par->part_n) {
-      Part(uc, sem);
-      if (sem("parta")) {
-        auto h = GetCellSize();
-        for (auto c : m.AllCells()) {
-          fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
-        }
-      }
-    }
   }
   void CalcNormal(const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
                   FieldCell<Vect>& fcn, FieldCell<Scal>& fck) {
