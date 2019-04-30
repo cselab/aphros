@@ -28,12 +28,6 @@ void Parse(typename solver::Vof<M>::Par* p, const Vars& var) {
   p->dumppoly = var.Int["dumppoly"];
   p->dumppart = var.Int["dumppart"];
   p->dumppartinter = var.Int["dumppartinter"];
-  p->bcc_k0 = var.Double["bcc_k0"];
-  p->bcc_k1 = var.Double["bcc_k1"];
-  p->bcc_t0 = var.Double["bcc_t0"];
-  p->bcc_t1 = var.Double["bcc_t1"];
-  p->bcc_y0 = var.Double["bcc_y0"];
-  p->bcc_y1 = var.Double["bcc_y1"];
   p->bcc_reflect = var.Int["bcc_reflect"];
   p->part_constr = var.Int["part_constr"];
   p->part_segcirc = var.Double["part_segcirc"];
