@@ -223,6 +223,16 @@ auto ConvDiffVectImp<M_, CD_>::GetVelocityEquations(size_t d) const
 }
 
 template <class M_, class CD_>
+auto ConvDiffVectImp<M_, CD_>::GetDiag(size_t d) const -> FieldCell<Scal> {
+  return imp->vs_[d]->GetDiag();
+}
+
+template <class M_, class CD_>
+auto ConvDiffVectImp<M_, CD_>::GetConst(size_t d) const -> FieldCell<Scal> {
+  return imp->vs_[d]->GetConst();
+}
+
+template <class M_, class CD_>
 auto ConvDiffVectImp<M_, CD_>::GetVelocityCond(size_t d) 
     -> MapFace<std::shared_ptr<CondFace>>& {
   return imp->vmfc_[d];

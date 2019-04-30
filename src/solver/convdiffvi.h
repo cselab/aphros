@@ -49,6 +49,10 @@ class ConvDiffVectImp : public ConvDiffVect<M_> {
   void CorrectVelocity(Layers l, const FieldCell<Vect>& fc) override;
   // Equations for velocity
   const FieldCell<Expr>& GetVelocityEquations(size_t d) const override;
+  // ...
+  FieldCell<Scal> GetDiag(size_t d) const override;
+  // ...
+  FieldCell<Scal> GetConst(size_t d) const override;
   // Velocity conditions.
   // d: component
   MapFace<std::shared_ptr<CondFace>>& GetVelocityCond(size_t d);
