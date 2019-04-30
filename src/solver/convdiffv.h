@@ -35,12 +35,6 @@ class ConvDiffVect : public UnsteadyIterativeSolver {
     return GetVelocity(Layers::time_curr);
   }
   virtual void CorrectVelocity(Layers, const FieldCell<Vect>&) = 0;
-  // Returns component d of equations in terms of u' in the form:
-  //   rho * (du'/dt + Lu') + rho * (du/dt + Lu) - f = 0
-  // where
-  // u': correction of velocity at one iteration
-  // u: velocity at previous iteration
-  virtual const FieldCell<Expr>& GetVelocityEquations(size_t d) const = 0;
   // Returns the diagonal coefficient of the equation in direction d
   virtual FieldCell<Scal> GetDiag(size_t d) const = 0;
   // Returns the constant term of the equation in direction d

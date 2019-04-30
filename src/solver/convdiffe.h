@@ -49,15 +49,13 @@ class ConvDiffScalExp : public ConvDiffScal<M_> {
   // fcu: field from previous iteration [a]
   // ffv: volume flux
   // Output:
-  // fcucs_: linear system, overwritten, returned by GetEquations()
+  // fcucs_: linear system, overwritten, returned by GetDiag and GetConst
   void Assemble(const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv);
   // Corrects field and comm.
   // uc: correction [i]
   // Output:
   // u(l) += uc [a]
   void CorrectField(Layers l, const FieldCell<Scal>& uc) override;
-  // ...
-  const FieldCell<Expr>& GetEquations() const;
   // ...
   FieldCell<Scal> GetDiag() const override;
   // ...

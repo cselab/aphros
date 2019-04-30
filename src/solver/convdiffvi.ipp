@@ -217,12 +217,6 @@ void ConvDiffVectImp<M_, CD_>::CorrectVelocity(
 }
 
 template <class M_, class CD_>
-auto ConvDiffVectImp<M_, CD_>::GetVelocityEquations(size_t d) const 
-    -> const FieldCell<Expr>& {
-  return imp->vs_[d]->GetEquations();
-}
-
-template <class M_, class CD_>
 auto ConvDiffVectImp<M_, CD_>::GetDiag(size_t d) const -> FieldCell<Scal> {
   return imp->vs_[d]->GetDiag();
 }
