@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "fluid.h"
+#include "linear/linear.h"
 
 namespace solver {
 

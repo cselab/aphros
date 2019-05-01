@@ -6,7 +6,6 @@
 #include <string>
 
 #include "geom/mesh.h"
-#include "linear/linear.h"
 #include "cond.h"
 #include "approx.h"
 
