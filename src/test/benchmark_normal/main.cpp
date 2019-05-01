@@ -40,11 +40,11 @@ class TimerMesh : public Timer {
   Mesh& m;
 };
 
-
+template <int id>
 class Young : public TimerMesh {
  public:
   Young(Mesh& m) 
-      : TimerMesh("young-orig", m)
+      : TimerMesh("young-orig" + std::to_string(id), m)
       , fc(m), fci(m, true)
   {
     for (auto i : m.AllCells()) {
@@ -54,7 +54,11 @@ class Young : public TimerMesh {
   void F() override {
     volatile size_t ii = 0;
 
-    Normal::CalcNormalYoung(m, fc, fci, fcn);
+    if (id == 0) {
+      Normal::CalcNormalYoung(m, fc, fci, fcn);
+    } else {
+      Normal::CalcNormalYoung2(m, fc, fci, fcn);
+    }
 
     ii = fcn[IdxCell(ii)][0];
   }
@@ -62,6 +66,33 @@ class Young : public TimerMesh {
  private:
   FieldCell<Scal> fc;
   FieldCell<bool> fci;
+  FieldCell<Vect> fcn;
+};
+
+
+class Grad : public TimerMesh {
+ public:
+  Grad(Mesh& m) 
+      : TimerMesh("grad", m)
+      , fc(m)
+  {
+    for (auto i : m.AllCells()) {
+      fc[i] = std::sin(i.GetRaw());
+    }
+  }
+  void F() override {
+    volatile size_t ii = 0;
+
+    fcn.Reinit(m);
+
+    Normal::CalcNormalGrad(m, fc, 
+        MapFace<std::shared_ptr<solver::CondFace>>(), fcn);
+
+    ii = fcn[IdxCell(ii)][0];
+  }
+
+ private:
+  FieldCell<Scal> fc;
   FieldCell<Vect> fcn;
 };
 
@@ -92,7 +123,9 @@ bool Run(const size_t i, Mesh& m,
   size_t k = 0;
   Timer* p = nullptr;
 
-  Try<Young>(m, i, k, p);
+  Try<Young<0>>(m, i, k, p);
+  Try<Young<1>>(m, i, k, p);
+  Try<Grad>(m, i, k, p);
 
   if (!p) {
     return false;

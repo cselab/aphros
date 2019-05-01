@@ -77,6 +77,52 @@ struct UNormal<M_>::Imp {
       }
     }
   }
+  // CalcNormalYoung: optimized implementation
+  static void CalcNormalYoung2(M& m, const FieldCell<Scal>& fcu, 
+                               const FieldCell<bool>& fci,
+                               FieldCell<Vect>& fcn) {
+    using MIdx = typename M::MIdx;
+    auto ic = m.GetIndexCells();
+    MIdx s = ic.GetSize();
+    const size_t nx = s[0];
+    const size_t ny = s[1];
+    const size_t nz = s[2];
+    // offset
+    const size_t fx = 1;
+    const size_t fy = nx;
+    const size_t fz = ny * nx;
+
+    fcn.Reinit(m, Vect(1));
+
+    const Vect h = m.GetCellSize();
+
+    const Scal* pu = fcu.data();
+    Vect* pn = fcn.data();
+    const bool* pi = fci.data();
+    for (size_t z = 1; z < nz - 1; ++z) {
+      for (size_t y = 1; y < ny - 1; ++y) {
+        for (size_t x = 1; x < nx - 1; ++x) {
+          size_t i = (z * ny + y) * nx + x;
+          if (!pi[i]) {
+            continue;
+          }
+          auto q = [i,fx,fy,fz,pu](int dx, int dy, int dz) {
+            size_t ii = i;
+            if (dx == 1)  ii += fx;
+            if (dx == -1) ii -= fx;
+            if (dy == 1)  ii += fy;
+            if (dy == -1) ii -= fy;
+            if (dz == 1)  ii += fz;
+            if (dz == -1) ii -= fz;
+            return pu[ii];
+          };
+          pn[i][0] = (q(1,0,0)] - q(-1,0,0)) / h[0];
+          pn[i][1] = (q(0,1,0)] - q(0,-1,0)) / h[1];
+          pn[i][2] = (q(0,0,1)] - q(0,0,-1)) / h[2];
+        }
+      }
+    }
+  }
   // Computes normal and curvature from height functions.
   // fcu: volume fraction
   // fci: interface mask (1: contains interface)
