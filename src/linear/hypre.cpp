@@ -1,3 +1,5 @@
+#undef NDEBUG
+
 #include "HYPRE_struct_ls.h"
 
 #include "hypre.h"
