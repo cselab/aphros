@@ -495,36 +495,27 @@ struct Simple<M_>::Imp {
     }
   }
   // Apply cell conditions for pressure.
-  // fcs: linear system in terms of correction of base pressure [i]
   // fcpb: base pressure [i]
+  // fcs: linear system in terms of correction of base pressure [i]
   void ApplyPcCond(const FieldCell<Scal>& fcpb, FieldCell<Expr>& fcs) {
-    (void) fcpb;
-    (void) fcs;
     for (auto it : mccp_) {
-      IdxCell ct(it.GetIdx()); // cell target
+      IdxCell c(it.GetIdx()); // target cell
       CondCell* cb = it.GetValue().get(); // cond base
-      // TODO: revise without loop over cells
-      // TODO: adhoc, replced assuming no references from other cells
-      //       (i.e. only excluded cells)
       if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
-        // XXX: adhoc removed
-        /*
-        auto& e = fcs[ct];
-        Scal pc = cd->GetValue() - fcpb[ct];
-        e.SetKnownValueDiag(ct, pc); 
-        */
-        /*
-        for (auto c : m.Cells()) {
-          auto& e = fcs[c];
-          if (c == ct) { 
-            // Replace expression with [ct]-pc
-            e.SetKnownValueDiag(ct, pc);
-          } else {
-            // Replace all ct terms with pc
-            e.SetKnownValue(ct, pc);
-          }
+        auto& e = fcs[c];
+        Scal pc = cd->GetValue() - fcpb[c];  // new value for p[c]
+        e = Expr(0);
+        // override target cell
+        e[0] = 1.;
+        e[Expr::dim - 1] = pc;
+        // override neighbours
+        for (size_t q : m.Nci(c)) {
+          IdxCell cn = m.GetNeighbourCell(c, q);
+          auto& en = fcs[cn];
+          size_t qn = (q % 2 == 0 ? q + 1 : q - 1); // id of c from cn
+          en[Expr::dim - 1] += en[1 + qn] * pc;
+          en[1 + qn] = 0;
         }
-        */
       }
     }
   }
