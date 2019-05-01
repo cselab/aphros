@@ -48,7 +48,7 @@ class Young : public TimerMesh {
       , fc(m), fci(m, true)
   {
     for (auto i : m.AllCells()) {
-      fc[i] = std::sin(i.GetRaw());
+      fc[i] = std::sin(i.GetRaw()*0.17);
     }
   }
   void F() override {
@@ -95,6 +95,25 @@ class Grad : public TimerMesh {
   FieldCell<Scal> fc;
   FieldCell<Vect> fcn;
 };
+
+void Cmp() {
+    auto m = GetMesh(MIdx(8));
+    FieldCell<Scal> fc(m);
+    FieldCell<bool> fci(m, true);
+    FieldCell<Vect> fcn(m);
+    for (auto c : m.AllCells()) {
+      fc[c] = std::sin(std::sin(c.GetRaw()) * 123);
+    }
+    for (size_t q : {0, 1}) {
+      if (q == 0) Normal::CalcNormalYoung(m, fc, fci, fcn);
+      if (q == 1) Normal::CalcNormalYoung2(m, fc, fci, fcn);
+      size_t i = 3;
+      for (auto c : m.Cells()) {
+        std::cout << fcn[c] << std::endl;
+        if (!--i) break;
+      }
+    }
+}
 
 
 // i: target index
@@ -144,8 +163,8 @@ bool Run(const size_t i, Mesh& m,
 int main() {
   // mesh size
   std::vector<MIdx> ss;
-  for (int n : {16, 32, 64, 128}) {
-    ss.emplace_back(n, n, n);
+  for (int n : {8, 16, 32, 64}) {
+    ss.emplace_back(n, n, 8);
   }
 
   const size_t ww = 16;
