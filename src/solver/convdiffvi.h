@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "convdiffv.h"
+#include "linear/linear.h"
 
 namespace solver {
 

@@ -17,7 +17,6 @@
 #include "util/suspender.h"
 #include "geom/vect.h"
 #include "geom/mesh.h"
-#include "linear/linear.h"
 #include "solver/solver.h"
 #include "solver/convdiffi.h"
 #include "dump/output.h"
