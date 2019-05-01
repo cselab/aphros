@@ -25,6 +25,19 @@ using Mesh = MeshStructured<Scal, dim>;
 using Normal = typename solver::UNormal<Mesh>::Imp;
 
 
+template <class Idx, class M>
+typename M::Scal DiffMax(
+    const GField<typename M::Vect, Idx>& u,
+    const GField<typename M::Vect, Idx>& v,
+    const M& m) {
+  using Scal = typename M::Scal;
+  Scal r = 0;
+  for (auto i : m.template GetIn<Idx>()) {
+     r = std::max(r, (u[i] - v[i]).norminf());
+  }
+  return r;
+}
+
 Mesh GetMesh(MIdx s /*size in cells*/) {
   Rect<Vect> dom(Vect(0), Vect(1));
   MIdx b(0, 0, 0); // lower index
@@ -97,22 +110,26 @@ class Grad : public TimerMesh {
 };
 
 void Cmp() {
-    auto m = GetMesh(MIdx(8));
-    FieldCell<Scal> fc(m);
-    FieldCell<bool> fci(m, true);
-    FieldCell<Vect> fcn(m);
-    for (auto c : m.AllCells()) {
-      fc[c] = std::sin(std::sin(c.GetRaw()) * 123);
-    }
-    for (size_t q : {0, 1}) {
-      if (q == 0) Normal::CalcNormalYoung(m, fc, fci, fcn);
-      if (q == 1) Normal::CalcNormalYoung2(m, fc, fci, fcn);
-      size_t i = 3;
-      for (auto c : m.Cells()) {
-        std::cout << fcn[c] << std::endl;
-        if (!--i) break;
-      }
-    }
+  auto m = GetMesh(MIdx(8));
+  FieldCell<Scal> fc(m);
+  FieldCell<bool> fci(m, true);
+  FieldCell<Vect> fcn(m);
+  FieldCell<Vect> fcn2(m);
+  for (auto c : m.AllCells()) {
+    fc[c] = std::sin(std::sin(c.GetRaw()) * 123);
+  }
+  Normal::CalcNormalYoung(m, fc, fci, fcn);
+  Normal::CalcNormalYoung2(m, fc, fci, fcn2);
+
+  Scal r = DiffMax(fcn, fcn2, m);
+  Scal eps = 1e-15;
+  if (r > eps) {
+    std::cerr
+      << "Cmp NormalYoung: max difference excceded "
+      << std::scientific << std::setprecision(16)
+      << r << " > " << eps << std::endl;
+    std::terminate();
+  }
 }
 
 
@@ -161,6 +178,8 @@ bool Run(const size_t i, Mesh& m,
 }
 
 int main() {
+  Cmp();
+
   // mesh size
   std::vector<MIdx> ss;
   for (int n : {8, 16, 32, 64}) {
