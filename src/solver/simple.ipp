@@ -42,6 +42,10 @@ struct Simple<M_>::Imp {
   using CDI = ConvDiffVectImp<M, ConvDiffScalImp<M>>; 
   // convdiff solver explicit
   using CDE = ConvDiffVectImp<M, ConvDiffScalExp<M>>; 
+  // Expression on face: v[0] * cm + v[1] * cp + v[2]
+  using ExprFace = GVect<Scal, 3>;
+  // Expression on cell: v[0] * c + v[1] * cxm + ... + v[6] * czp + v[7]
+  using Expr = GVect<Scal, M::dim * 2 + 2>;
 
   Imp(Owner* owner, const FieldCell<Vect>& fcw,
       const MapFace<std::shared_ptr<CondFaceFluid>>& mfc, 
@@ -494,6 +498,8 @@ struct Simple<M_>::Imp {
   // fcs: linear system in terms of correction of base pressure [i]
   // fcpb: base pressure [i]
   void ApplyPcCond(const FieldCell<Scal>& fcpb, FieldCell<Expr>& fcs) {
+    (void) fcpb;
+    (void) fcs;
     for (auto it : mccp_) {
       IdxCell ct(it.GetIdx()); // cell target
       CondCell* cb = it.GetValue().get(); // cond base
@@ -501,9 +507,12 @@ struct Simple<M_>::Imp {
       // TODO: adhoc, replced assuming no references from other cells
       //       (i.e. only excluded cells)
       if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
+        // XXX: adhoc removed
+        /*
         auto& e = fcs[ct];
         Scal pc = cd->GetValue() - fcpb[ct];
-        e.SetKnownValueDiag(ct, pc);
+        e.SetKnownValueDiag(ct, pc); 
+        */
         /*
         for (auto c : m.Cells()) {
           auto& e = fcs[c];
@@ -526,25 +535,24 @@ struct Simple<M_>::Imp {
   // ffk: diag coeff [i]
   // ffv: addition to flux [i]
   // Output:
-  // ffe: result [i]
+  // ffe: result [i], Vect v stores expression: v[0]*cm + v[1]*cp + v[2]
   void GetFlux(const FieldCell<Scal>& fcpb, const FieldFace<Scal>& ffk,
-               const FieldFace<Scal>& ffv, FieldFace<Expr>& ffe) {
+               const FieldFace<Scal>& ffv, FieldFace<ExprFace>& ffe) {
     ffe.Reinit(m);
     for (auto f : m.Faces()) {
       auto& e = ffe[f];
-      e.Clear();
       IdxCell cm = m.GetNeighbourCell(f, 0);
       IdxCell cp = m.GetNeighbourCell(f, 1);
       Scal hr = m.GetArea(f) / m.GetVolume(cp);
       if (!ffbd_[f]) {  // inner
         Scal a = -m.GetArea(f) * hr / ffk[f];
-        e.InsertTerm(-a, cm);
-        e.InsertTerm(a, cp);
-        e.SetConstant((fcpb[cp] - fcpb[cm]) * a + ffv[f]);
+        e[0] = -a;
+        e[1] = a;
+        e[2] = (fcpb[cp] - fcpb[cm]) * a + ffv[f];
       } else { // boundary
-        e.InsertTerm(0, cm);
-        e.InsertTerm(0, cp);
-        e.SetConstant(ffv[f]);
+        e[0] = 0;
+        e[1] = 0;
+        e[2] = ffv[f];
       }
     }
   }
@@ -554,25 +562,23 @@ struct Simple<M_>::Imp {
   // ffk: diag coeff [i]
   // ffv: addition to flux [i]
   // Output:
-  // ffe: result [i]
+  // ffe: result [i], Vect v stores expression: v[0]*cm + v[1]*cp + v[2]
   void GetFlux(const FieldFace<Scal>& ffk, const FieldFace<Scal>& ffv,
-               FieldFace<Expr>& ffe) {
+               FieldFace<ExprFace>& ffe) {
     ffe.Reinit(m);
     for (auto f : m.Faces()) {
       auto& e = ffe[f];
-      e.Clear();
-      IdxCell cm = m.GetNeighbourCell(f, 0);
       IdxCell cp = m.GetNeighbourCell(f, 1);
       Scal hr = m.GetArea(f) / m.GetVolume(cp);
       if (!ffbd_[f]) {  // inner
         Scal a = -m.GetArea(f) * hr / ffk[f];
-        e.InsertTerm(-a, cm);
-        e.InsertTerm(a, cp);
+        e[0] = -a;
+        e[1] = a;
       } else { // boundary
-        e.InsertTerm(0, cm);
-        e.InsertTerm(0, cp);
+        e[0] = 0;
+        e[1] = 0;
       }
-      e.SetConstant(ffv[f]);
+      e[2] = ffv[f];
     }
   }
   // Expressions for sum of fluxes and source:
@@ -581,17 +587,19 @@ struct Simple<M_>::Imp {
   // fcsv: volume source [i]
   // Output:
   // fce: result [i]
-  void GetFluxSum(const FieldFace<Expr>& ffv, const FieldCell<Scal>& fcsv,
+  void GetFluxSum(const FieldFace<ExprFace>& ffv, const FieldCell<Scal>& fcsv,
                   FieldCell<Expr>& fce) {
-    fce.Reinit(m);
+    fce.Reinit(m, Expr(0));
     for (auto c : m.Cells()) {
       auto& e = fce[c];
-      e.Clear();
       for (auto q : m.Nci(c)) {
         IdxFace f = m.GetNeighbourFace(c, q);
-        e += ffv[f] * m.GetOutwardFactor(c, q);
+        ExprFace v = ffv[f] * m.GetOutwardFactor(c, q);
+        e[0] += v[1 - q % 2];
+        e[1 + q] += v[q % 2];
+        e[Expr::dim - 1] += v[2];
       }
-      e -= Expr(fcsv[c] * m.GetVolume(c));
+      e[Expr::dim - 1] -= fcsv[c] * m.GetVolume(c);
     }
   }
   // Expressions for sum of fluxes.
@@ -599,14 +607,16 @@ struct Simple<M_>::Imp {
   // ffv: fluxes [i]
   // Output:
   // fce: result [i]
-  void GetFluxSum(const FieldFace<Expr>& ffv, FieldCell<Expr>& fce) {
-    fce.Reinit(m);
+  void GetFluxSum(const FieldFace<ExprFace>& ffv, FieldCell<Expr>& fce) {
+    fce.Reinit(m, Expr(0));
     for (auto c : m.Cells()) {
       auto& e = fce[c];
-      e.Clear();
       for (auto q : m.Nci(c)) {
         IdxFace f = m.GetNeighbourFace(c, q);
-        e += ffv[f] * m.GetOutwardFactor(c, q);
+        ExprFace v = ffv[f] * m.GetOutwardFactor(c, q);
+        e[0] += v[1 - q % 2];
+        e[1 + q] += v[q % 2];
+        e[Expr::dim - 1] += v[2];
       }
     }
   }
@@ -622,7 +632,7 @@ struct Simple<M_>::Imp {
       std::vector<Scal>* lsb;
       std::vector<Scal>* lsx;
       m.GetSolveTmp(lsa, lsb, lsx);
-      auto l = ConvertLs(fce, *lsa, *lsb, *lsx, m);
+      auto l = ConvertLsCompact(fce, *lsa, *lsb, *lsx, m);
       using T = typename M::LS::T; 
       l.t = T::symm; // solver type
       m.Solve(l);
@@ -728,9 +738,6 @@ struct Simple<M_>::Imp {
       FieldFace<Scal> ffa(m); // addition to flux TODO revise comment
       auto& ffbp = *owner_->ffbp_;
       for (auto f : m.Faces()) {
-        auto& e = ffvc_[f];
-        e.Clear();
-
         IdxCell cm = m.GetNeighbourCell(f, 0);
         IdxCell cp = m.GetNeighbourCell(f, 1);
 
@@ -892,7 +899,10 @@ struct Simple<M_>::Imp {
 
       // Calc divergence-free volume fluxes
       for (auto f : m.Faces()) {
-        ffv_.iter_curr[f] = ffvc_[f].Evaluate(fcpc_);
+        IdxCell cm = m.GetNeighbourCell(f, 0);
+        IdxCell cp = m.GetNeighbourCell(f, 1);
+        auto& e = ffvc_[f];
+        ffv_.iter_curr[f] = e[0] * fcpc_[cm] + e[1] * fcpc_[cp] + e[2];
       }
       CHECKNAN(ffv_.iter_curr, m.CN())
 
@@ -1007,7 +1017,7 @@ struct Simple<M_>::Imp {
   FieldFace<Scal> ffd_;    // dynamic viscosity
   FieldFace<Scal> ffve_;   // predicted volume flux [i]
   FieldFace<Scal> ffk_;    // diag coeff of velocity equation 
-  FieldFace<Expr> ffvc_;   // expression for corrected volume flux [i]
+  FieldFace<ExprFace> ffvc_;   // expression for corrected volume flux [i]
 
 };
 

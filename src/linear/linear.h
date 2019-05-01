@@ -320,6 +320,64 @@ typename M::LS ConvertLs(const FieldCell<Expr>& fce, std::vector<Scal>& la,
   return l;
 }
 
+// V is expression: v[0] * c + v[1] * cxm + ... v[6] * czp + v[7]
+template <class M,
+          class Scal=typename M::Scal,
+          class V=GVect<Scal, M::dim * 2 + 2>>
+typename M::LS ConvertLsCompact(
+    const FieldCell<V>& fce,
+    std::vector<Scal>& la, std::vector<Scal>& lb, std::vector<Scal>& lx,
+    const M& m) {
+  using LS = typename M::LS;
+  LS l;
+
+  // stencil
+  // XXX: adhoc, assumed order in m.GetNeighbourCell()
+  l.st.emplace_back(0, 0, 0);
+  l.st.emplace_back(-1, 0, 0);
+  l.st.emplace_back(1, 0, 0);
+  l.st.emplace_back(0, -1, 0);
+  l.st.emplace_back(0, 1, 0);
+  l.st.emplace_back(0, 0, -1);
+  l.st.emplace_back(0, 0, 1);
+  assert(l.st.size() == V::dim - 1);
+
+  size_t n = m.GetInBlockCells().size(); // number of equations
+  la.resize(n * l.st.size());
+  lb.resize(n, 1.);
+  lx.resize(n, 0.);
+
+  // fill matrix coeffs
+  {
+    size_t i = 0;
+    for (auto c : m.Cells()) {
+      auto& e = fce[c];
+      for (size_t j = 0; j + 1 < e.size(); ++j) {
+        la[i] = e[j];
+        ++i;
+      }
+    }
+    assert(i == n * l.st.size());
+  }
+
+  // fill rhs and zero solution
+  {
+    size_t i = 0;
+    for (auto c : m.Cells()) {
+      auto& e = fce[c];
+      lb[i] = -e[V::dim - 1];
+      lx[i] = 0.;
+      ++i;
+    }
+    assert(i == lb.size());
+  }
+
+  l.a = &la;
+  l.b = &lb;
+  l.x = &lx;
+  return l;
+}
+
 } // namespace solver
 
 template <class Scal, class Idx, size_t Size>
