@@ -15,7 +15,7 @@ build:
     - cd deploy
     - ./all
     - . ch.setenv
-    - echo -e "#!/bin/bash -l  \necho \$PATH \n. ch.setenv\necho\$PATH  \nmake -f \`ch.makesim\` cleanall" > a
+    - echo -e '#!/bin/bash -l  \necho $PATH \n. ch.setenv\necho $PATH  \nmake -f `ch.makesim` cleanall' > a
     - chmod +x a
     - ./a
     - (cd hypre ; ./_run)
