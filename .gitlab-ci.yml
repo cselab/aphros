@@ -11,7 +11,7 @@ build:
     - apt update && apt -y install make cmake libhdf5-openmpi-dev python-numpy
     - mkdir -p ~/bin
     - export PATH=~/bin:$PATH
-    - echo 'export PATH=~/bin:$PATH' >> ~/.bashrc
+    - echo 'export PATH=$HOME/bin:$PATH' >> ~/.bash_profile
     - cd deploy
     - ./all
     - . ch.setenv
