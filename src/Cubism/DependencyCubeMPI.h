@@ -57,7 +57,7 @@ public:
 	
 	struct Object
 	{		
-		virtual Region getRegion() { return Region(); }
+		Region getRegion() { return Region(); }
 	};
 	
 	struct Face : Object

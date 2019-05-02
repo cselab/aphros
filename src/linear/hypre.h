@@ -48,7 +48,6 @@ class Hypre {
   struct HypreData;
   std::unique_ptr<HypreData> hd;
   std::string solver_;
-  int maxiter_;
   Scal res_;
   int iter_;
 };

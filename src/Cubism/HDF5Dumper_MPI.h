@@ -275,10 +275,12 @@ void ReadHDF5_MPI(TGrid &grid, const std::string f_name, const std::string dump_
         grid.getResidentBlocksPerDimension(1)*B::sizeY,
         grid.getResidentBlocksPerDimension(0)*B::sizeX, NCHANNELS};
 
+    /*
     hsize_t dims[4] = {
         grid.getBlocksPerDimension(2)*B::sizeZ,
         grid.getBlocksPerDimension(1)*B::sizeY,
         grid.getBlocksPerDimension(0)*B::sizeX, NCHANNELS};
+        */
 
     hsize_t offset[4] = {
         coords[2]*grid.getResidentBlocksPerDimension(2)*B::sizeZ,
@@ -303,7 +305,7 @@ void ReadHDF5_MPI(TGrid &grid, const std::string f_name, const std::string dump_
     mspace_id = H5Screate_simple(4, count, NULL);
     status = H5Dread(dataset_id, HDF_REAL, mspace_id, fspace_id, fapl_id, array_all);
 
-    for(int i=0; i<vInfo_local.size(); i++)
+    for(int i=0; i<int(vInfo_local.size()); i++)
     {
         BlockInfo& info = vInfo_local[i];
         const int idx[3] = {info.index[0], info.index[1], info.index[2]};

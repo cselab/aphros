@@ -476,7 +476,7 @@ void Hydro<M>::InitStat() {
     */
 
     // Stat: *p with name n
-    auto op = [this](std::string n,  Scal* p) {
+    auto op = [](std::string n,  Scal* p) {
       return std::make_shared<output::OutScalFunc<Scal>>(
           n, [p](){ return *p; });
     };
@@ -1406,7 +1406,7 @@ void Hydro<M>::DumpTraj(bool dm) {
 
         size_t i = 0;
         // append scalar value
-        auto add = [&v,&i,this](Scal a) {
+        auto add = [&v,&i](Scal a) {
           if (i >= v.size()) {
             v.resize(i + 1);
           }

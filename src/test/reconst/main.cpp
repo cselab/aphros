@@ -615,7 +615,7 @@ void TestArea() {
       return xx;
     };
     // Scale by k
-    auto sv = [&r](std::vector<Vect> xx, Scal k) {
+    auto sv = [](std::vector<Vect> xx, Scal k) {
       for (auto& x : xx) {
         x *= k;
       }

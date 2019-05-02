@@ -157,7 +157,7 @@ public:
                 for(size_t ix=0; ix<NX; ix++)
                 {
                     const long long blockID = _encode(ix, iy, iz);
-                    const int idx[3] = {ix, iy, iz};
+                    const int idx[3] = {int(ix), int(iy), int(iz)};
 
                     m_vInfo.push_back(BlockInfo(blockID, idx, mapX, mapY, mapZ, _linaccess(blockID)));
                 }
@@ -192,7 +192,7 @@ public:
 		}
 	}
 
-	virtual bool avail(size_t, size_t, size_t) const { return true; }
+	virtual bool avail(int, int, int) const { return true; }
 
 	virtual Block& operator()(size_t ix, size_t iy=0, size_t iz=0) const
 	{

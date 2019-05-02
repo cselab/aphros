@@ -112,7 +112,7 @@ struct UNormal<M_>::Imp {
           if (!pi[i]) {
             continue;
           }
-          auto q = [i,fx,fy,fz,pu](int dx, int dy, int dz) {
+          auto q = [i,fy,fz,pu](int dx, int dy, int dz) {
             size_t ii = i + dx * fx + dy * fy + dz * fz;
             return pu[ii];
           };
@@ -304,7 +304,7 @@ struct UNormal<M_>::Imp {
           if (!pi[i]) {
             continue;
           }
-          auto q = [i,fx,fy,fz,pu](int dx, int dy, int dz) {
+          auto q = [i,fy,fz,pu](int dx, int dy, int dz) {
             size_t ii = i + dx * fx + dy * fy + dz * fz;
             return pu[ii];
           };

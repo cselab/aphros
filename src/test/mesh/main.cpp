@@ -33,7 +33,6 @@ void TestBlock() {
   GBlockFaces<dim> bi(oi, si);
   GIndex<IdxFace, dim> ba(oa, sa);
 
-  GRange<IdxFace> ra(ba);
   GRangeIn<IdxFace, dim> ri(ba, bi);
 
   const MIdx xp0 = oa - MIdx(Dir(0));
