@@ -21,6 +21,8 @@ build:
     - make -j
     - ls -al ~/bin
     - ls -al ../deploy/prefix/bin
+    - echo $PATH
+    - ch.getcol
     - make test
   artifacts:
     paths:
