@@ -2,14 +2,14 @@
 # use the official gcc image, based on debian
 # can use verions as well, like gcc:5.2
 # see https://hub.docker.com/_/gcc/
-image: gcc
+image: gcc:6.5
 
 build:
   stage: build
   # instead of calling g++ directly you can also use some build toolkit like make
   # install the necessary build tools when needed
   before_script: 
-    - apt update && apt -y install make cmake libmpich-dev libhdf5-mpich-dev
+    - apt update && apt -y install make cmake libhdf5-mpich-dev
     - mkdir -p ~/bin
     - export PATH=~/bin:$PATH
     - cd deploy
