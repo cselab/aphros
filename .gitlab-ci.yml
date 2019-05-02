@@ -10,12 +10,13 @@ build:
   script:
 #    - apt update && apt -y install make cmake libhdf5-openmpi-dev python-numpy sudo
     - apt update && apt -y install sudo
-    - useradd -m mpiuser
-    - chown -R mpiuser:mpiuser ..
+    - useradd -g users -N -m mpiuser
+    - chown -R mpiuser:users ..
     - | 
       sudo -i -H -u mpiuser sh -e -x << 'EOS'
       mkdir -p ~/bin
       export PATH=~/bin:$PATH
+      ls -al .
       cd deploy
       ./all
       . ch.setenv
