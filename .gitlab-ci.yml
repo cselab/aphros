@@ -18,23 +18,22 @@ build:
     - (cd hypre ; ./_run)
     - (cd eigen ; ./_run)
   script:
+    - cd ${CI_PROJECT_DIR}
     - . ch.setenv
     - cd src
     - ./conf
     - make -j
-    - make test
     
 
-  artifacts:
-    paths:
-      - mybinary
-  # depending on your build setup it's most likely a good idea to cache outputs to reduce the build time
-  # cache:
-  #   paths:
-  #     - "*.o"
+cache:
+  paths:
+    - deploy/prefix
 
 # run tests using the binary built before
 test:
   stage: test
   script:
-    - ./runmytests.sh
+    - cd ${CI_PROJECT_DIR}
+    - . ch.setenv
+    - cd src
+    - make test
