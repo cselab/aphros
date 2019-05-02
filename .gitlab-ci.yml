@@ -11,10 +11,11 @@ build:
     - apt update && apt -y install make cmake libhdf5-openmpi-dev python-numpy
     - mkdir -p ~/bin
     - export PATH=~/bin:$PATH
+    - echo 'export PATH=~/bin:$PATH' >> ~/.bashrc
     - cd deploy
     - ./all
     - . ch.setenv
-    - echo -e "#!/bin/bash  \nmake -f \`ch.makesim\` cleanall" > a
+    - echo -e "#!/bin/bash -l  \nmake -f \`ch.makesim\` cleanall" > a
     - chmod +x a
     - ./a
     - (cd hypre ; ./_run)
