@@ -8,20 +8,23 @@ image:
 build:
   stage: build
   script:
-    - apt update && apt -y install make cmake libhdf5-openmpi-dev python-numpy
-    - adduser mpiuser
-    - su -l mpiuser
-    - mkdir -p ~/bin
-    - export PATH=~/bin:$PATH
-    - cd deploy
-    - ./all
-    - . ch.setenv
-    - (cd hypre ; ./_run)
-    - (cd eigen ; ./_run)
-    - cd ../src
-    - ./conf
-    - make -j
-    - make test
+    - apt update && apt -y install make cmake libhdf5-openmpi-dev python-numpy sudo
+    - adduser -m mpiuser
+    - chown -R mpiuser ..
+    - | 
+      sudo -i -H -u mpiuser sh -e -x << 'EOS'
+      mkdir -p ~/bin
+      export PATH=~/bin:$PATH
+      cd deploy
+      ./all
+      . ch.setenv
+      (cd hypre ; ./_run)
+      (cd eigen ; ./_run)
+      cd ../src
+      ./conf
+      make -j
+      make test
+      EOS
   artifacts:
     paths:
     - src/build/Testing/Temporary/LastTest.log
