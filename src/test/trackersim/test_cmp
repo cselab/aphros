@@ -25,6 +25,10 @@ cutpsh() {
 
 eps=1e-6
 
+if [ "$t" == "gravity" ] ; then
+  eps=1e-5
+fi
+
 a=0
 for f in $r/traj_* ; do
   echo $f
