@@ -26,6 +26,10 @@ build:
     - /bin/bash -c 'echo $SHELL'
     - ch.makesim
     - echo `ch.makesim`
+    - make -f `ch.makesim` cleanrun || true
+    - echo 'make -f `ch.makesim` cleanall' > a
+    - chmod +x a
+    - ./a
     - /bin/bash -c 'ch.makesim'
     - make test
   artifacts:
