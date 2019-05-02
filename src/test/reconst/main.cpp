@@ -16,6 +16,7 @@
 
 using Scal = double;
 using Vect = GVect<Scal, 3>;
+using Vect2 = GVect<Scal, 2>;
 using R = Reconst<Scal>;
 
 template <class T>
@@ -526,10 +527,10 @@ void TestLevelSet() {
   t(Vect(1./sqrt(2.),1./sqrt(2.),0.), Vect(0.1), 0.5);
 }
 
-// intersection of line and point
+// intersection of line and convex plane polygon
 void TestInter() {
   std::cerr << "check Reconst::GetInter" << std::endl;
-  using V = Vect;
+  using V = Vect2;
   // xx: polygon
   // xc: point on line
   // t: line tangent
@@ -552,10 +553,10 @@ void TestInter() {
     assert(std::abs(aa[1] - aae[1])  < 1e-12);
   };
 
-  std::vector<V> xx = {V(0.,0.,0.), V(1.,0.,0.), V(0.,1.,0.)};
-  f(xx,  V(0.,0.,0.), V(1.,1.,0.), {0., 0.5});
-  f(xx,  V(-1,-1.,0.), V(1.,1.,0.), {1., 1.5});
-  f(xx,  V(0.,0.5,0.), V(1.,0.,0.), {0., 0.5});
+  std::vector<V> xx = {V(0.,0.), V(1.,0.), V(0.,1.)};
+  f(xx,  V(0.,0.), V(1.,1.), {0., 0.5});
+  f(xx,  V(-1,-1.), V(1.,1.), {1., 1.5});
+  f(xx,  V(0.,0.5), V(1.,0.), {0., 0.5});
 }
 
 void TestOverlap() {

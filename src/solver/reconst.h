@@ -60,6 +60,7 @@ class Reconst {
   // Nearest point to line between ends.
   // x: target point
   // x0,x1: line ends
+  template <class Vect>
   static Vect GetNearest(const Vect x, const Vect x0, const Vect x1) {
     Vect l = x1 - x0;
     Scal k = l.dot(x - x0) / l.sqrnorm();
@@ -765,13 +766,12 @@ class Reconst {
   // e: line ends
   // x0: point on line
   // t: line direction
-  // Assume 2d vectors.
   // Output:
   // xi: intersection point on straight line e
   // Returns:
   // 1: xi lies between e[0] and e[1]
-  static bool GetInterLine(const std::array<Vect, 2>& e, 
-                           const Vect& x0, const Vect& t, Vect& xi) {
+  static bool GetInterLine(const std::array<Vect2, 2>& e, 
+                           const Vect2& x0, const Vect2& t, Vect2& xi) {
     Scal a = t.cross_third(x0 - e[0]) / t.cross_third(e[1] - e[0]);
     xi = e[0] + (e[1] - e[0]) * a;
     if (a >= 0. && a <= 1) {
@@ -785,26 +785,25 @@ class Reconst {
   // xx: points of polygon
   // e: line ends
   // TODO: describe orientation requirements
-  // Assume 2d vectors.
   // Output:
   // points of cut polygon
-  static std::vector<Vect> GetCutPoly(const std::vector<Vect>& xx, 
-                                      const std::array<Vect, 2>& e) {
-    Vect de = e[1] - e[0];
-    Vect n(-de[1], de[0], 0.); // normal, <de,n> positively oriented
-    std::vector<Vect> r; // result
+  static std::vector<Vect2> GetCutPoly(const std::vector<Vect2>& xx, 
+                                      const std::array<Vect2, 2>& e) {
+    Vect2 de = e[1] - e[0];
+    Vect2 n(-de[1], de[0]); // normal, <de,n> positively oriented
+    std::vector<Vect2> r; // result
 
     for (size_t i = 0; i < xx.size(); ++i) {
       size_t ip = (i + 1 == xx.size() ? 0 : i + 1);
-      Vect x = xx[i];
-      Vect xp = xx[ip];
+      Vect2 x = xx[i];
+      Vect2 xp = xx[ip];
       bool s = ((x - e[0]).dot(n) > 0.); // x inside
       bool sp = ((xp - e[0]).dot(n) > 0.); // xp inside
       if (s && sp) { // both inside
         r.push_back(xp);
       } else { 
         if (s || sp) { // opposite sides
-          Vect xi; // intersection between <s,sp> and e
+          Vect2 xi; // intersection between <s,sp> and e
           GetInterLine({x, xp}, e[0], de, xi);
           r.push_back(xi);
           if (sp) {
@@ -842,8 +841,8 @@ class Reconst {
   // aa: intersection points in form: xc + t*a
   // Returns:
   // 1: non-empty intersection
-  static bool GetInter(const Vect* xx, size_t sx,
-                       const Vect& xc, const Vect& t,
+  static bool GetInter(const Vect2* xx, size_t sx,
+                       const Vect2& xc, const Vect2& t,
                        std::array<Scal, 2>& aa) {
     size_t j = 0; // index in e
 
@@ -856,8 +855,8 @@ class Reconst {
 
     for (size_t i = 0; i < sx; ++i) {
       size_t ip = (i + 1 == sx ? 0 : i + 1);
-      Vect x0 = xx[i];
-      Vect x1 = xx[ip];
+      Vect2 x0 = xx[i];
+      Vect2 x1 = xx[ip];
       if ((t.cross_third(x0 - xc) > 0.) != (t.cross_third(x1 - xc) > 0.)) {
         Scal a = -(xc - x0).cross_third(x1 - x0) / t.cross_third(x1 - x0);
         aa[j++] = a;

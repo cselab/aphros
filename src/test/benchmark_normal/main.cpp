@@ -24,6 +24,16 @@ using Vect = GVect<Scal, dim>;
 using Mesh = MeshStructured<Scal, dim>;
 using Normal = typename solver::UNormal<Mesh>::Imp;
 
+Scal Rnd(Scal q) {
+  return std::sin(std::sin(q * 123.456) * 654.321);
+}
+
+// rnd next
+Scal Rndn(Scal& q) {
+  q += 0.1;
+  return std::sin(std::sin(q * 123.456) * 654.321);
+}
+
 
 template <class Idx, class M>
 typename M::Scal DiffMax(
@@ -61,7 +71,7 @@ class Young : public TimerMesh {
       , fc(m), fci(m, true)
   {
     for (auto i : m.AllCells()) {
-      fc[i] = std::sin(i.GetRaw()*0.17);
+      fc[i] = Rnd(i.GetRaw());
     }
   }
   void F() override {
@@ -90,7 +100,7 @@ class Height : public TimerMesh {
       , fc(m), fci(m, true)
   {
     for (auto i : m.AllCells()) {
-      fc[i] = std::sin(i.GetRaw()*0.17);
+      fc[i] = Rnd(i.GetRaw());
     }
   }
   void F() override {
@@ -113,31 +123,33 @@ class Height : public TimerMesh {
   FieldCell<Scal> fck;
 };
 
-class Grad : public TimerMesh {
+class Partstr : public TimerMesh {
  public:
-  Grad(Mesh& m) 
-      : TimerMesh("grad", m)
-      , fc(m)
+  Partstr(Mesh& m) 
+      : TimerMesh("partstr", m)
+      , fc(m), fci(m, true), fcn(m), fca(m)
   {
-    for (auto i : m.AllCells()) {
-      fc[i] = std::sin(i.GetRaw());
+    for (auto c : m.AllCells()) {
+      Scal q = c.GetRaw();
+      fc[c] = Rndn(q);
+      fcn[c] = Vect(Rndn(q), Rndn(q), Rndn(q));
+      fca[c] = Rndn(q);
     }
   }
   void F() override {
     volatile size_t ii = 0;
-
-    fcn.Reinit(m);
-
-    Normal::CalcNormalGrad(m, fc, 
-        MapFace<std::shared_ptr<solver::CondFace>>(), fcn);
 
     ii = fcn[IdxCell(ii)][0];
   }
 
  private:
   FieldCell<Scal> fc;
+  FieldCell<bool> fci;
   FieldCell<Vect> fcn;
+  FieldCell<Scal> fca;
+  FieldCell<Scal> fck;
 };
+
 
 // f=0: youngs
 // f=1: height edim=3
@@ -150,7 +162,7 @@ void Cmp(int f) {
   FieldCell<Vect> fcn2(m);
   FieldCell<Scal> fck(m);
   for (auto c : m.AllCells()) {
-    fc[c] = std::sin(std::sin(c.GetRaw()) * 123);
+    fc[c] = Rnd(c.GetRaw());
   }
   if (f == 0) {
     Normal::CalcNormalYoung(m, fc, fci, fcn);
@@ -209,7 +221,7 @@ bool Run(const size_t i, Mesh& m,
   Try<Young<1>>(m, i, k, p);
   Try<Height<0>>(m, i, k, p);
   Try<Height<1>>(m, i, k, p);
-  Try<Grad>(m, i, k, p);
+  Try<Partstr>(m, i, k, p);
 
   if (!p) {
     return false;
