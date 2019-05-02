@@ -8,7 +8,7 @@ image:
 build:
   stage: build
   script:
-    - apt update && apt -y install make cmake libhdf5-openmpi-dev
+    - apt update && apt -y install make cmake libhdf5-openmpi-dev python-numpy
     - mkdir -p ~/bin
     - export PATH=~/bin:$PATH
     - cd deploy
@@ -23,6 +23,11 @@ build:
     - ls -al ../deploy/prefix/bin
     - echo $PATH
     - ch.getcol
+    - ch.makesim
+    - echo `ch.makesim`
+    - /bin/bash -c 'ch.makesim'
+    - echo $SHELL
+    - /bin/bash -c 'echo $SHELL'
     - make test
   artifacts:
     paths:
