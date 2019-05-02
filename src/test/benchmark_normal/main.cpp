@@ -70,7 +70,7 @@ class Young : public TimerMesh {
     if (id == 0) {
       Normal::CalcNormalYoung(m, fc, fci, fcn);
     } else {
-      Normal::CalcNormalYoung2(m, fc, fci, fcn);
+      Normal::CalcNormalYoung1(m, fc, fci, fcn);
     }
 
     ii = fcn[IdxCell(ii)][0];
@@ -100,7 +100,7 @@ class Height : public TimerMesh {
     if (id == 0) {
       Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn, fck);
     } else {
-      Normal::CalcNormalHeight2(m, fc, fci, edim, true, fcn, fck);
+      Normal::CalcNormalHeight1(m, fc, fci, edim, true, fcn, fck);
     }
 
     ii = fcn[IdxCell(ii)][0];
@@ -140,7 +140,8 @@ class Grad : public TimerMesh {
 };
 
 // f=0: youngs
-// f=1: height
+// f=1: height edim=3
+// f=2: height edim=2
 void Cmp(int f) {
   auto m = GetMesh(MIdx(8));
   FieldCell<Scal> fc(m);
@@ -153,19 +154,24 @@ void Cmp(int f) {
   }
   if (f == 0) {
     Normal::CalcNormalYoung(m, fc, fci, fcn);
-    Normal::CalcNormalYoung2(m, fc, fci, fcn2);
-  } else {
+    Normal::CalcNormalYoung1(m, fc, fci, fcn2);
+  } else if (f == 1) {
     size_t edim = 3;
     Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn, fck);
-    Normal::CalcNormalHeight2(m, fc, fci, edim, true, fcn2, fck);
+    Normal::CalcNormalHeight1(m, fc, fci, edim, true, fcn2, fck);
+  } else {
+    size_t edim = 2;
+    Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn, fck);
+    Normal::CalcNormalHeight1(m, fc, fci, edim, true, fcn2, fck);
   }
 
   Scal r = DiffMax(fcn, fcn2, m);
   Scal eps = 1e-15;
   if (r > eps) {
-    std::string n = (f == 0 ? "NormalYoung" : "NormalHeight");
+    std::vector<std::string> nn = 
+        {"NormalYoung", "NormalHeight,edim=3", "NormalHeight,edim=2"};
     std::cerr
-      << "Cmp " + n + ": max difference excceded "
+      << "Cmp " + nn[f] + ": max difference excceded "
       << std::scientific << std::setprecision(16)
       << r << " > " << eps << std::endl;
     std::terminate();
@@ -222,6 +228,7 @@ bool Run(const size_t i, Mesh& m,
 int main() {
   Cmp(0);
   Cmp(1);
+  Cmp(2);
 
   // mesh size
   std::vector<MIdx> ss;
