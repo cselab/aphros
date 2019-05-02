@@ -27,5 +27,6 @@ build:
   artifacts:
     paths:
     - src/build/Testing/Temporary/LastTest.log
+    when: on_failure
     
     
