@@ -12,12 +12,12 @@ build:
     - apt update && apt -y install sudo
     - useradd -M -d `dirname ${CI_PROJECT_DIR}` -g users -N mpiuser
     - chown -R mpiuser:users `dirname ${CI_PROJECT_DIR}`
-    - | 
+    - |
       sudo -i -H -E -u mpiuser sh -e -x << EOS
       mkdir -p ~/bin
-      export PATH=~/bin:\$PATH
+      export PATH=\$HOME/bin:\$PATH
       cd ${CI_PROJECT_DIR}
-      ls -al .
+      ls -al ~
       cd deploy
       ./all
       . ch.setenv
@@ -32,5 +32,3 @@ build:
     paths:
     - src/build/Testing/Temporary/LastTest.log
     when: on_failure
-    
-    
