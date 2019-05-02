@@ -16,6 +16,7 @@ build:
       sudo -i -H -u mpiuser sh -e -x << 'EOS'
       mkdir -p ~/bin
       export PATH=~/bin:$PATH
+      cd ${CI_PROJECT_DIR}
       ls -al .
       cd deploy
       ./all
