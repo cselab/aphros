@@ -251,12 +251,21 @@ struct UNormal<M_>::Imp {
     }
   }
   template <class Q>
-  static void F(Q& qn, Scal& gxm, Scal& gxp, Scal& gym, Scal& gyp, Scal& sg) {
-    gxm = qn(-1,0,1) + qn(-1,0,0) + qn(-1,0,-1);
-    gxp = qn(1,0,1)  + qn(1,0,0)  + qn(1,0,-1);
-    gym = qn(0,-1,1) + qn(0,-1,0) + qn(0,-1,-1);
-    gyp = qn(0,1,1)  + qn(0,1,0)  + qn(0,1,-1);
+  static void F(Q& qn, Scal& gxm, Scal& gxp, Scal& gym, Scal& gyp, Scal& sg,
+                Scal& gc, Scal& gmm, Scal& gmp, Scal& gpm, Scal& gpp) {
+    auto g = [&qn](int dx, int dy) {
+      return qn(dx,dy,1) + qn(dx,dy,0) + qn(dx,dy,-1);
+    };
+    gxm = g(-1,0);
+    gxp = g(1,0);
+    gym = g(0,-1);
+    gyp = g(0,1);
     sg = (qn(0,0,1) - qn(0,0,-1) > 0. ? 1. : -1);
+    gc = g(0,0);
+    gmm = g(-1,-1);
+    gmp = g(-1,1);
+    gpm = g(1,-1);
+    gpp = g(1,1);
   }
   // CalcNormalHeight: optimized implementation
   static void CalcNormalHeight1(
@@ -279,8 +288,6 @@ struct UNormal<M_>::Imp {
     const size_t xb = wb[0], yb = wb[1], zb = wb[2];
     const size_t xe = we[0], ye = we[1], ze = we[2];
 
-    (void) edim;
-    (void) ow;
     fcn.Reinit(m);
     fck.Reinit(m);
 
@@ -288,6 +295,7 @@ struct UNormal<M_>::Imp {
 
     const Scal* pu = fcu.data();
     Vect* pn = fcn.data();
+    Scal* pk = fck.data();
     const bool* pi = fci.data();
     for (size_t z = zb; z < ze; ++z) {
       for (size_t y = yb; y < ye; ++y) {
@@ -312,6 +320,7 @@ struct UNormal<M_>::Imp {
 
           Vect bn(0); // best normal
           size_t bd = 0;  // best direction
+          Scal bk = 0;    // best curvature
           std::vector<size_t> dd; // direction of plane normal
           if (edim == 2) {
             dd = {0, 1};
@@ -323,27 +332,28 @@ struct UNormal<M_>::Imp {
             size_t dy = (dn + 2) % dim;
 
             // height function
-            Scal gxm;
-            Scal gxp;
-            Scal gym;
-            Scal gyp;
+            Scal gxm, gxp, gym, gyp;
+            Scal gc, gmm, gmp, gpm, gpp;
             // sign: +1 if u increases in dn
             Scal sg;
             switch (dn) {
               case 0: { // dx:1 , dy:2
-                F(qx, gxm, gxp, gym, gyp, sg); break;
+                F(qx, gxm, gxp, gym, gyp, sg, gc, gmm, gmp, gpm, gpp); break;
               }
               case 1: { // dx:2 , dy:0
-                F(qy, gxm, gxp, gym, gyp, sg); break;
+                F(qy, gxm, gxp, gym, gyp, sg, gc, gmm, gmp, gpm, gpp); break;
               }
               default: { // dx:0 , dy:1
-                F(qz, gxm, gxp, gym, gyp, sg); break;
+                F(qz, gxm, gxp, gym, gyp, sg, gc, gmm, gmp, gpm, gpp); break;
               }
             }
 
+            Scal ln = h[dn];
+            Scal lx = h[dx];
+            Scal ly = h[dy];
             // first derivative (slope)
-            Scal gx = (gxp - gxm) * h[dn] / (2. * h[dx]);  // centered
-            Scal gy = (gyp - gym) * h[dn] / (2. * h[dy]);
+            Scal gx = (gxp - gxm) * ln / (2. * lx);  // centered
+            Scal gy = (gyp - gym) * ln / (2. * ly);
             // outer normal
             Vect n;
             n[dx] = -gx;
@@ -354,6 +364,14 @@ struct UNormal<M_>::Imp {
             if (std::abs(n[dn]) > std::abs(bn[bd])) {
               bn = n;
               bd = dn;
+              // second derivative 
+              Scal gxx = (gxp - 2. * gc + gxm) * ln / (lx * lx);
+              Scal gyy = (gyp - 2. * gc + gym) * ln / (ly * ly);
+              Scal gxy = ((gpp - gmp) - (gpm - gmm)) / (4. * lx * ly);
+              // curvature
+              bk = (2. * gx * gy * gxy
+                  -(sqr(gy) + 1.) * gxx -(sqr(gx) + 1.) * gyy) /
+                  std::pow(sqr(gx) + sqr(gy) + 1., 3. / 2.);
             }
           }
 
@@ -361,6 +379,8 @@ struct UNormal<M_>::Imp {
           if (ow || std::abs(bn[bd]) < std::abs(pn[i][bd])) {
             pn[i] = bn;
           }
+          // curvature
+          pk[i] = bk;
         }
       }
     }
