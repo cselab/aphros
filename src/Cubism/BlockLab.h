@@ -89,7 +89,7 @@ public:
 	virtual bool is_yperiodic() { return true; }
 	virtual bool is_zperiodic() { return true; }
 
-	~BlockLab()
+	virtual ~BlockLab()
 	{
 		_release(m_cacheBlock);
 	}

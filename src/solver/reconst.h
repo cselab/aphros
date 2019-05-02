@@ -824,12 +824,14 @@ class Reconst {
   // np: plane normal
   // Returns:
   // nodes of polygon
+  /*
   static std::vector<Vect> GetCutInter(const Vect& xc, const Vect& n, 
                                       Scal a, const Vect& h,
                                       const Vect& xp, const Vect& np) {
     // TODO
     throw std::runtime_error("not implemented");
   }
+  */
 
   // Intersection of 2d convex polygon and line.
   // xx: points of polygon

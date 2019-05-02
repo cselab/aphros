@@ -145,6 +145,7 @@ class UReduce {
     }
 
    protected:
+    using P::Append;
     VT* vt_;
 
    private:
@@ -198,6 +199,7 @@ class UReduce {
     }
 
    protected:
+    using P::Append;
     VT* vt_;
 
    private:

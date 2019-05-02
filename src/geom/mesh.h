@@ -35,9 +35,9 @@ class MeshStructured {
   using IndexCells = GIndex<IdxCell,dim>;
   using IndexFaces = GIndex<IdxFace,dim>;
   using IndexNodes = GIndex<IdxNode,dim>;
-  static constexpr size_t kCellNumNeighbourFaces = 2 * dim;
-  static constexpr size_t kCellNumNeighbourNodes = std::pow(2, dim);
-  static constexpr size_t kFaceNumNeighbourNodes = std::pow(2, dim - 1);
+  static constexpr size_t kCellNumNeighbourFaces = 6;
+  static constexpr size_t kCellNumNeighbourNodes = 8;
+  static constexpr size_t kFaceNumNeighbourNodes = 4;
   static constexpr size_t kFaceNumNeighbourCells = 2;
 
   // b: begin, lower corner cell index

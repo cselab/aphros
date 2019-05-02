@@ -154,7 +154,7 @@ public:
         const std::vector<BlockInfo> vInfo = TGrid::getBlocksInfo();
 
         MeshMap<Block>* const ptr_map[3] = {mapX, mapY, mapZ};
-        for(int i=0; i<vInfo.size(); ++i)
+        for(int i=0; i<int(vInfo.size()); ++i)
         {
             BlockInfo info = vInfo[i];
 
@@ -183,12 +183,12 @@ public:
         MPI_Comm_free(&cartcomm);
 	}
 
-	std::vector<BlockInfo>& getBlocksInfo()
+	std::vector<BlockInfo>& getBlocksInfo() override
 	{
 		return cached_blockinfo;
 	}
 
-	const std::vector<BlockInfo>& getBlocksInfo() const
+	const std::vector<BlockInfo>& getBlocksInfo() const override
 	{
 		return cached_blockinfo;
 	}
@@ -203,7 +203,7 @@ public:
 		return TGrid::getBlocksInfo();
 	}
 
-	virtual bool avail(int ix, int iy=0, int iz=0) const
+	bool avail(int ix, int iy=0, int iz=0) const override
 	{
 		//return true;
 		const int originX = mypeindex[0]*mybpd[0];
