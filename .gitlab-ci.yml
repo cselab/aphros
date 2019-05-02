@@ -24,3 +24,8 @@ build:
     - ./conf
     - make -j
     - make test
+  artifacts:
+    paths:
+    - src/build/Testing/Temporary/LastTest.log
+    
+    
