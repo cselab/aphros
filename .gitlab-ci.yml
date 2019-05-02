@@ -2,7 +2,7 @@
 # use the official gcc image, based on debian
 # can use verions as well, like gcc:5.2
 # see https://hub.docker.com/_/gcc/
-image: gcc:6.5
+image: gcc:7.4
 
 build:
   stage: build
