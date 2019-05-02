@@ -22,12 +22,11 @@ build:
     - ls -al ~/bin
     - ls -al ../deploy/prefix/bin
     - echo $PATH
-    - ch.getcol
+    - echo $SHELL
+    - /bin/bash -c 'echo $SHELL'
     - ch.makesim
     - echo `ch.makesim`
     - /bin/bash -c 'ch.makesim'
-    - echo $SHELL
-    - /bin/bash -c 'echo $SHELL'
     - make test
   artifacts:
     paths:
