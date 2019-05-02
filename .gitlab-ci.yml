@@ -31,6 +31,8 @@ build:
     - chmod +x a
     - ./a
     - /bin/bash -c 'ch.makesim'
+    - cd test/advection/
+    - ./runshort
     - make test
   artifacts:
     paths:
