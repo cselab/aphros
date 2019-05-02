@@ -4,7 +4,6 @@
 # see https://hub.docker.com/_/gcc/
 image: 
   name: gcc:7.4
-  entrypoint: ["/bin/bash"]
 
 build:
   stage: build
@@ -12,6 +11,7 @@ build:
     - apt update && apt -y install make cmake libhdf5-openmpi-dev
     - mkdir -p ~/bin
     - export PATH=~/bin:$PATH
+    - /bin/bash
     - cd deploy
     - ./all
     - . ch.setenv
