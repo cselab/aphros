@@ -59,7 +59,7 @@ class PartStr {
     bool dn = false; // normal displacement
   };
 
-  static constexpr size_t dim = 3;
+  static constexpr size_t dim = 2;
   using Vect = GVect<Scal, dim>;
 
   PartStr(std::shared_ptr<Par> par) : par(par) {
@@ -385,7 +385,7 @@ class PartStr {
       if (segcirc != 0.) {
         // outer normal
         Vect n = e[1] - e[0];
-        n = Vect(n[1], -n[0], 0.);
+        n = Vect(n[1], -n[0]);
         Scal nn = n.norm();
         if (nn < 1e-10) { // XXX: adhoc 
           return; 
@@ -449,7 +449,7 @@ class PartStr {
         size_t ip = (i + 1 == sx ? sx - 1 : i + 1);
         size_t im = (i == 0 ? 0 : i - 1);
         Vect n = xx[ip] - xx[im];
-        n = Vect(-n[1], n[0], 0.);
+        n = Vect(-n[1], n[0]);
         n *= (sx - 1) * segcirc / (ip - im); // rescale to length of string
         Scal sp = 0.; // length of intersection on side +n
         Scal sm = 0.; // length of intersection on side -n
@@ -487,7 +487,7 @@ class PartStr {
   static Scal GetAn(const Vect* x, size_t i) {
     return GetAn(x[i-1], x[i], x[i+1]);
   };
-  // Stretching and bending forces.
+  // Apply soft constaints: stretching and bending forces.
   // xx: array of positions
   // sx: size of xx
   // kstr: factor for stretching
@@ -524,8 +524,8 @@ class PartStr {
       Scal lp = dp.norm();
 
       // normals to segments, <nm,dm> positively oriented
-      Vect nm = Vect(dm[1], -dm[0], 0.) / lm; 
-      Vect np = Vect(dp[1], -dp[0], 0.) / lp;
+      Vect nm = Vect(dm[1], -dm[0]) / lm; 
+      Vect np = Vect(dp[1], -dp[0]) / lp;
       // torque
       Scal t = kbend * lm * lp * (GetAn(xx,i) - anm * (bendmean ? 1. : 0.));
       // forces
@@ -548,7 +548,7 @@ class PartStr {
       ff[i] -= fc;
     }
   }
-  // Apply exact constraints on force
+  // Apply exact constraints on force.
   // xx: array of positions
   // sx: size of xx
   // ka: relaxation factor for angle between normal and x-axis
@@ -566,25 +566,25 @@ class PartStr {
     // Rotates vector by pi/2
     // x: vector of plane coordinates
     auto rr = [](const Vect& x) {
-      return Vect(-x[1], x[0], 0.);
+      return Vect(-x[1], x[0]);
     };
     // Rotates vector to angle 'a' given by unit vector
     // x: vector of plane coordinates
     // e: Vect(cos(a), sin(a), 0)
     auto re = [](const Vect& x, const Vect& e) {
-      return Vect(x[0] * e[0] - x[1] * e[1], x[0] * e[1] + x[1] * e[0], 0.);
+      return Vect(x[0] * e[0] - x[1] * e[1], x[0] * e[1] + x[1] * e[0]);
     };
     // Rotates vector to angle '-a' with 'a' given by unit vector
     // x: vector of plane coordinates
     // e: Vect(cos(a), sin(a), 0)
     auto rem = [](const Vect& x, const Vect& e) {
-      return Vect(x[0] * e[0] + x[1] * e[1], -x[0] * e[1] + x[1] * e[0], 0.);
+      return Vect(x[0] * e[0] + x[1] * e[1], -x[0] * e[1] + x[1] * e[0]);
     };
     // Returns vector at angle a
     // x: vector of plane coordinates
     // e: Vect(cos(a), sin(a), 0)
     auto ra = [](Scal a) {
-      return Vect(std::cos(a), std::sin(a), 0.);
+      return Vect(std::cos(a), std::sin(a));
     };
 
     // relaxation of force
@@ -646,7 +646,7 @@ class PartStr {
       xa.resize(sx);
       // central 
       const size_t ic = (sx - 1) / 2; 
-      xa[ic] = Vect(0.);
+      xa[ic] = Vect(0);
       for (size_t q = 1; q <= ic; ++q) {
         size_t i;
         Vect d;
@@ -677,7 +677,7 @@ class PartStr {
       // segment vectors 
       static std::vector<Vect> dd;
       dd.resize(sx);
-      dd[ic] = Vect(0.);
+      dd[ic] = Vect(0);
       // initialize from xxn
       for (size_t q = 1; q <= ic; ++q) {
         size_t i;
@@ -724,7 +724,7 @@ class PartStr {
       xt.resize(sx);
       // central 
       const size_t ic = (sx - 1) / 2; 
-      xt[ic] = Vect(0.);
+      xt[ic] = Vect(0);
       for (size_t q = 1; q <= ic; ++q) {
         size_t i;
         Vect d;
@@ -769,7 +769,7 @@ class PartStr {
       // segment vectors 
       static std::vector<Vect> dd;
       dd.resize(sx);
-      dd[ic] = Vect(0.);
+      dd[ic] = Vect(0);
       // initialize from xxn
       for (size_t q = 1; q <= ic; ++q) {
         size_t i;
