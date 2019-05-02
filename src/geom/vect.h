@@ -62,14 +62,14 @@ class GVect {
   template <class OtherScal>
   explicit GVect(const std::vector<OtherScal>& v) {
     // TODO dim instead of dim_ causes linker error
-    for (size_t i = 0; i < std::min<size_t>(dim_, v.size()); ++i) {
-      comp_[i] = static_cast<Scal>(v[i]);
+    for (size_t i = 0; i < dim; ++i) {
+      comp_[i] = (i < v.size() ? static_cast<Scal>(v[i]) : 0);
     }
   }
   template <class OtherScal>
   explicit GVect(const std::array<OtherScal, dim>& v) {
     // TODO dim instead of dim_ causes linker error
-    for (size_t i = 0; i < std::min<size_t>(dim_, v.size()); ++i) {
+    for (size_t i = 0; i < dim; ++i) {
       comp_[i] = static_cast<Scal>(v[i]);
     }
   }
