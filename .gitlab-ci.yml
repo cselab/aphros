@@ -17,9 +17,9 @@ build:
     - . ch.setenv
     - echo -e '#!/bin/bash -l \necho $CHSETENV  \necho $PATH \n. ch.setenv\necho $PATH  \nch.makesim' > a
     - chmod +x a
-    - ./a
+    - ./a || true
     - echo -e '#!/bin/bash \necho $CHSETENV  \necho $PATH \n. ch.setenv\necho $PATH  \nch.makesim' > a
-    - ./a
+    - ./a || true
     - ls ~/
     - cat /etc/profile || true
     - cat ~/.bashrc || true
