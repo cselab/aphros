@@ -13,7 +13,7 @@ build:
     - useradd -M -d `dirname ${CI_PROJECT_DIR}` -g users -N mpiuser
     - chown -R mpiuser:users `dirname ${CI_PROJECT_DIR}`
     - | 
-      sudo -i -H -u mpiuser sh -e -x << 'EOS'
+      sudo -i -H -E -u mpiuser sh -e -x << 'EOS'
       mkdir -p ~/bin
       export PATH=~/bin:$PATH
       cd ${CI_PROJECT_DIR}
