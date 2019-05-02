@@ -9,41 +9,18 @@ build:
   stage: build
   script:
     - apt update && apt -y install make cmake libhdf5-openmpi-dev python-numpy
+    - adduser mpiuser
+    - sudo -u mpiuser -i
     - mkdir -p ~/bin
     - export PATH=~/bin:$PATH
-    - echo 'export PATH=$HOME/bin:$PATH' >> ~/.bash_profile
     - cd deploy
     - ./all
     - . ch.setenv
-    - echo -e '#!/bin/bash -l \necho $CHSETENV  \necho $PATH \n. ch.setenv\necho $PATH  \nch.makesim' > a
-    - chmod +x a
-    - ./a || true
-    - echo -e '#!/bin/bash \necho $CHSETENV  \necho $PATH \n. ch.setenv\necho $PATH  \nch.makesim' > a
-    - ./a || true
-    - ls ~/
-    - cat /etc/profile || true
-    - cat ~/.bashrc || true
-    - cat ~/.bash_profile || true
-    - cat ~/.profile || true
     - (cd hypre ; ./_run)
     - (cd eigen ; ./_run)
     - cd ../src
     - ./conf
     - make -j
-    - ls -al ~/bin
-    - ls -al ../deploy/prefix/bin
-    - echo $PATH
-    - echo $SHELL
-    - /bin/bash -c 'echo $SHELL'
-    - ch.makesim
-    - echo `ch.makesim`
-    - make -f `ch.makesim` cleanrun || true
-    - echo 'make -f `ch.makesim` cleanall' > a
-    - chmod +x a
-    - ./a
-    - /bin/bash -c 'ch.makesim'
-    - cd test/advection/
-    - ./runshort
     - make test
   artifacts:
     paths:
