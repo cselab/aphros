@@ -9,7 +9,7 @@ build:
   # instead of calling g++ directly you can also use some build toolkit like make
   # install the necessary build tools when needed
   before_script: 
-    - apt update && apt -y install make cmake mpi-default-dev libhdf5-openmpi-dev
+    - apt update && apt -y install make cmake libmpich-dev libhdf5-mpich-dev
     - mkdir -p ~/bin
     - export PATH=~/bin:$PATH
     - cd deploy
