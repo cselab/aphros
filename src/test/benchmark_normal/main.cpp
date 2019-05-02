@@ -57,7 +57,7 @@ template <int id>
 class Young : public TimerMesh {
  public:
   Young(Mesh& m) 
-      : TimerMesh("young-orig" + std::to_string(id), m)
+      : TimerMesh("young" + std::to_string(id), m)
       , fc(m), fci(m, true)
   {
     for (auto i : m.AllCells()) {
@@ -82,6 +82,36 @@ class Young : public TimerMesh {
   FieldCell<Vect> fcn;
 };
 
+template <int id>
+class Height : public TimerMesh {
+ public:
+  Height(Mesh& m) 
+      : TimerMesh("height" + std::to_string(id), m)
+      , fc(m), fci(m, true)
+  {
+    for (auto i : m.AllCells()) {
+      fc[i] = std::sin(i.GetRaw()*0.17);
+    }
+  }
+  void F() override {
+    volatile size_t ii = 0;
+    size_t edim = 3;
+
+    if (id == 0) {
+      Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn, fck);
+    } else {
+      Normal::CalcNormalHeight2(m, fc, fci, edim, true, fcn, fck);
+    }
+
+    ii = fcn[IdxCell(ii)][0];
+  }
+
+ private:
+  FieldCell<Scal> fc;
+  FieldCell<bool> fci;
+  FieldCell<Vect> fcn;
+  FieldCell<Scal> fck;
+};
 
 class Grad : public TimerMesh {
  public:
@@ -109,23 +139,33 @@ class Grad : public TimerMesh {
   FieldCell<Vect> fcn;
 };
 
-void Cmp() {
+// f=0: youngs
+// f=1: height
+void Cmp(int f) {
   auto m = GetMesh(MIdx(8));
   FieldCell<Scal> fc(m);
   FieldCell<bool> fci(m, true);
   FieldCell<Vect> fcn(m);
   FieldCell<Vect> fcn2(m);
+  FieldCell<Scal> fck(m);
   for (auto c : m.AllCells()) {
     fc[c] = std::sin(std::sin(c.GetRaw()) * 123);
   }
-  Normal::CalcNormalYoung(m, fc, fci, fcn);
-  Normal::CalcNormalYoung2(m, fc, fci, fcn2);
+  if (f == 0) {
+    Normal::CalcNormalYoung(m, fc, fci, fcn);
+    Normal::CalcNormalYoung2(m, fc, fci, fcn2);
+  } else {
+    size_t edim = 3;
+    Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn, fck);
+    Normal::CalcNormalHeight2(m, fc, fci, edim, true, fcn2, fck);
+  }
 
   Scal r = DiffMax(fcn, fcn2, m);
   Scal eps = 1e-15;
   if (r > eps) {
+    std::string n = (f == 0 ? "NormalYoung" : "NormalHeight");
     std::cerr
-      << "Cmp NormalYoung: max difference excceded "
+      << "Cmp " + n + ": max difference excceded "
       << std::scientific << std::setprecision(16)
       << r << " > " << eps << std::endl;
     std::terminate();
@@ -161,6 +201,8 @@ bool Run(const size_t i, Mesh& m,
 
   Try<Young<0>>(m, i, k, p);
   Try<Young<1>>(m, i, k, p);
+  Try<Height<0>>(m, i, k, p);
+  Try<Height<1>>(m, i, k, p);
   Try<Grad>(m, i, k, p);
 
   if (!p) {
@@ -178,7 +220,8 @@ bool Run(const size_t i, Mesh& m,
 }
 
 int main() {
-  Cmp();
+  Cmp(0);
+  Cmp(1);
 
   // mesh size
   std::vector<MIdx> ss;

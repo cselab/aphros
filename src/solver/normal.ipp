@@ -190,10 +190,6 @@ struct UNormal<M_>::Imp {
         MIdx otx = MIdx(dtx);
         MIdx oty = MIdx(dty);
         // mesh step
-        //const Scal lx = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - otx)));
-        //const Scal ly = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - oty)));
-        //const Scal ln = m.GetCenter(c).dist(m.GetCenter(bc.GetIdx(w - on)));
-        // XXX: adhoc uniform
         const Scal lx = m.GetCellSize()[size_t(dtx)];
         const Scal ly = m.GetCellSize()[size_t(dty)];
         const Scal ln = m.GetCellSize()[size_t(dn)];
@@ -258,6 +254,122 @@ struct UNormal<M_>::Imp {
 
       // curvature
       fck[c] = bk;
+    }
+  }
+  // CalcNormalHeight: optimized implementation
+  static void CalcNormalHeight2(
+      M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
+      size_t edim, bool ow, FieldCell<Vect>& fcn, FieldCell<Scal>& fck) {
+    using MIdx = typename M::MIdx;
+    auto ic = m.GetIndexCells();
+    auto bc = m.GetSuBlockCells();
+    MIdx s = ic.GetSize();
+    const size_t nx = s[0];
+    const size_t ny = s[1];
+    // offset
+    const size_t fx = 1;
+    const size_t fy = nx;
+    const size_t fz = ny * nx;
+
+    // index range
+    const MIdx wb = bc.GetBegin() - ic.GetBegin();
+    const MIdx we = bc.GetEnd() - ic.GetBegin();
+    const size_t xb = wb[0], yb = wb[1], zb = wb[2];
+    const size_t xe = we[0], ye = we[1], ze = we[2];
+
+    (void) edim;
+    (void) ow;
+    fcn.Reinit(m);
+    fck.Reinit(m);
+
+    const Vect h = m.GetCellSize();
+
+    const Scal* pu = fcu.data();
+    Vect* pn = fcn.data();
+    const bool* pi = fci.data();
+    for (size_t z = zb; z < ze; ++z) {
+      for (size_t y = yb; y < ye; ++y) {
+        for (size_t x = xb; x < xe; ++x) {
+          size_t i = (z * ny + y) * nx + x;
+          if (!pi[i]) {
+            continue;
+          }
+          /*
+          auto q = [i,fx,fy,fz,pu](int dx, int dy, int dz) {
+            size_t ii = i;
+            if (dx == 1)  ii += fx;
+            if (dx == -1) ii -= fx;
+            if (dy == 1)  ii += fy;
+            if (dy == -1) ii -= fy;
+            if (dz == 1)  ii += fz;
+            if (dz == -1) ii -= fz;
+            return pu[ii];
+          };
+          */
+          auto qw = [i,fx,fy,fz,pu](MIdx w) {
+            size_t ii = i;
+            if (w[0] == 1)  ii += fx;
+            if (w[0] == -1) ii -= fx;
+            if (w[1] == 1)  ii += fy;
+            if (w[1] == -1) ii -= fy;
+            if (w[2] == 1)  ii += fz;
+            if (w[2] == -1) ii -= fz;
+            return pu[ii];
+          };
+
+          Vect bn; // best normal
+          Scal bgx = 0., bgy = 0.; // best first derivative
+          size_t bd = 0;  // best direction
+          bool fst = true; // first
+          std::vector<size_t> dd; // direction of plane normal
+          if (edim == 2) {
+            dd = {0, 1};
+          } else {
+            dd = {0, 1, 2};
+          }
+          for (size_t dn : dd) {
+            size_t dx = (dn + 1) % dim;
+            size_t dy = (dn + 2) % dim;
+
+            MIdx wn(0), wx(0), wy(0);
+            wn[dn] = 1;
+            wx[dx] = 1;
+            wy[dy] = 1;
+
+            // height function [g]
+            const Scal gxm = (qw(wn-wx) + qw(-wx) + qw(-wn-wx));
+            const Scal gxp = (qw(wn+wx) + qw(wx) + qw(-wn+wx));
+            const Scal gym = (qw(wn-wy) + qw(-wy) + qw(-wn-wy));
+            const Scal gyp = (qw(wn+wy) + qw(wy) + qw(-wn+wy));
+
+            // first derivative (slope)
+            Scal gx = (gxp - gxm) * h[dn] / (2. * h[dx]);  // centered
+            Scal gy = (gyp - gym) * h[dn] / (2. * h[dy]);
+            // sign: +1 if u increases in dn
+            Scal sg = (qw(wn) - qw(-wn) > 0. ? 1. : -1.);
+            // outer normal
+            Vect n;
+            n[dx] = -gx;
+            n[dy] = -gy;
+            n[dn] = -sg;
+            // select best with minimal slope
+            if (fst ||
+                std::abs(gx) + std::abs(gy) < std::abs(bgx) + std::abs(bgy)) {
+              bn = n;
+              bgx = gx;
+              bgy = gy;
+              bd = dn;
+              fst = false;
+            }
+          }
+          bn /= bn.norm1(); // normalize
+
+          // update if ow=1 or gives steeper profile in plane dn
+          if (ow || std::abs(bn[bd]) < std::abs(pn[i][bd])) {
+            pn[i] = bn;
+          }
+        }
+      }
     }
   }
   // Computes normal by combined Young's scheme and height-functions
