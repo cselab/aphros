@@ -9,7 +9,7 @@ build:
   stage: build
   script:
     - apt update && apt -y install make cmake libhdf5-openmpi-dev python-numpy sudo
-    - adduser -m mpiuser
+    - useradd -m mpiuser
     - chown -R mpiuser ..
     - | 
       sudo -i -H -u mpiuser sh -e -x << 'EOS'
