@@ -11,7 +11,6 @@ build:
     - apt update && apt -y install make cmake libhdf5-openmpi-dev
     - mkdir -p ~/bin
     - export PATH=~/bin:$PATH
-    - /bin/bash
     - cd deploy
     - ./all
     - . ch.setenv
@@ -20,6 +19,8 @@ build:
     - cd ../src
     - ./conf
     - make -j
+    - ls -al ~/bin
+    - ls -al ../deploy/prefix/bin
     - make test
   artifacts:
     paths:
