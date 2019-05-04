@@ -4,9 +4,9 @@ set -eu
 
 c=${1:-tloc}
 bs=${2:-16}
-bs="$bs $bs 2"
+bs="$bs $bs 1"
 np=${3:-2}
-: ${m="32 32 2"}
+: ${m="32 32 1"}
 : ${r=refshort}
 
 export c bs np m r

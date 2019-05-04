@@ -24,7 +24,7 @@ a=0
 : ${r=reflong}
 for f in $r/*.dat ; do
   echo $f
-  if ! ch.diff "${f#$r/}" "$f"; then
+  if ! ch.diffnum "${f#$r/}" "$f" 1e-12; then
     a=1
   fi
 done
