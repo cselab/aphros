@@ -4,10 +4,10 @@
 
 #include "parse/vars.h"
 #include "solver/vof.h"
+#include "solver/partstrmesh.h"
 
 template <class M>
 void Parse(typename solver::Vof<M>::Par* p, const Vars& var) {
-  using Par = typename solver::Vof<M>::Par;
   p->curvgrad = var.Int["curvgrad"];
   p->part = var.Int["part"];
   p->part_verb = var.Int["part_verb"];
@@ -40,23 +40,25 @@ void Parse(typename solver::Vof<M>::Par* p, const Vars& var) {
   p->part_dn = var.Int["part_dn"];
 
   {
+    using AF = typename solver::PartStrMesh<M>::AF;
     std::string s = var.String["part_attrforce"];
     if (s == "line") {
-      p->part_attrforce = Par::AF::line;
+      p->part_attrforce = AF::line;
     } else if (s == "center") {
-      p->part_attrforce = Par::AF::center;
+      p->part_attrforce = AF::center;
     } else if (s == "volume") {
-      p->part_attrforce = Par::AF::volume;
+      p->part_attrforce = AF::volume;
     } else {
       throw std::runtime_error("Update: unknown part_attrforce=" + s);
     }
   }
   {
+    using AR = typename solver::PartStrMesh<M>::AR;
     std::string s = var.String["part_attrreconst"];
     if (s == "line") {
-      p->part_attrreconst = Par::AR::line;
+      p->part_attrreconst = AR::line;
     } else if (s == "volume") {
-      p->part_attrreconst = Par::AR::volume;
+      p->part_attrreconst = AR::volume;
     } else {
       throw std::runtime_error("Update: unknown part_attrreconst=" + s);
     }

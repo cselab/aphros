@@ -61,6 +61,14 @@ class MeshStructured {
   Vect GetCellSize() const {
     return h_;
   }
+  IntIdx GetHash(MIdx w) {
+    // XXX: adhoc, hash for cell index, assume mesh size <= mn
+    const size_t mn = 1000; 
+    return (w[2] * mn + w[1]) * mn + w[0]; 
+  }
+  IntIdx GetHash(IdxCell c) {
+    return GetHash(GetIndexCells().GetMIdx(c));
+  }
   // Indexer
   const IndexCells& GetIndexCells() const {
     return bcr_;
