@@ -6,18 +6,27 @@ set string bc_xm wall 0 0 0
 set string bc_xp wall 0 0 0
 set string bc_ym wall 0 0 0
 set string bc_yp wall 1 0 0 
+set string bubgen_path bg.dat
+set string conv imp
 set string convsc quick
 set string dumpformat plain
+set string dumplist vx vy vz p vf cl 
 set string ev0 1 set double tol 1e-5
 set string hypre_gen_solver gmres
 set string hypre_symm_solver pcg
+set string hypre_vort_solver smg
+set string init_sig uniform
 set string init_vf zero
 set string list_path b.dat
+set string part_attrforce line
+set string part_attrreconst line
 set string surftens kn
 set string vel_init zero
+set int CHECKNAN 0
+set int bcc_reflect 0
 set int bsx 8
 set int bsy 8
-set int bsz 2
+set int bsz 1
 set int bx 4
 set int by 2
 set int bz 1
@@ -26,13 +35,21 @@ set int comm_size 8
 set int curvgrad 0
 set int dim 2
 set int dump_field_max 10000
-set int dump_part_max 1000
+set int dump_part_max 10000
 set int dump_stat_max 1000000
+set int dump_traj_max 10000
+set int dump_trep_max 10000
 set int dumpinit 0
+set int dumppart 0
+set int dumppartinter 0
 set int dumppoly 1
 set int enable_advection 0
+set int enable_bubgen 0
+set int enable_color 0
 set int enable_fluid 1
+set int enable_shell 0
 set int enable_surftens 0
+set int enstrophy 0
 set int ev 1
 set int hl 2
 set int hypre_gen_maxiter 50
@@ -41,32 +58,61 @@ set int hypre_periodic_y 0
 set int hypre_periodic_z 1
 set int hypre_print 0
 set int hypre_symm_maxiter 1000
+set int hypre_vort_maxiter 1000
+set int initvort 0
 set int inletflux_numid 1
+set int linreport 0
 set int list_ls 1
 set int loc 1
+set int loc_periodic_x 1
+set int loc_periodic_y 1
+set int loc_periodic_z 1
+set int marangoni 0
 set int max_iter 5
 set int max_step 1000000
 set int min_iter 1
-set int normalnode 0
 set int output 1
 set int part 1
 set int part_bendmean 1
+set int part_constr 1
+set int part_dn 0
 set int part_dump_fr 1
+set int part_itermax 20
 set int part_k 1
-set int part_maxiter 50
-set int part_n 0
+set int part_np 9
+set int part_ns 2
 set int part_report_fr 1
+set int part_verb 0
+set int poiswym 1
+set int poiswyp 1
+set int poiswzm 1
+set int poiswzp 1
 set int px 1
 set int py 2
 set int pz 1
+set int report_knan 0
+set int report_stat 0
 set int second_order 0
 set int simpler 1
 set int split 0
+set int stat_area 0
+set int stat_dissip 0
+set int statbox 0
+set int statvel 0
 set int verbose 0
 set int verbose_stages 1
 set int vf_init_sm 0
 set int vfsmooth 0
+set int vort_report 1
+set int youngbc 0
+set double abortvel 1e+10
+set double bubgen_per 1
+set double bubgen_t0 0
 set double cfla 0.5
+set double cflst 2
+set double clipth 1e-10
+set double color_maxr 1e+10
+set double color_th 0.5
 set double convdf 1
 set double dt0 1e+10
 set double dtmax 1e+10
@@ -75,32 +121,68 @@ set double dump_field_t0 2e+10
 set double dump_part_dt 1
 set double dump_part_t0 0
 set double dump_stat_dt 0
+set double dump_traj_dt 1
+set double dump_traj_t0 0
+set double dump_trep_dt 1
+set double dump_trep_t0 0
 set double extent 1
-set double hypre_tol 1e-10
+set double force_mag 0
+set double guessextra 0
+set double hypre_gen_tol 1e-10
+set double hypre_symm_tol 1e-10
+set double hypre_vort_tol 1e-06
+set double kslip 0
 set double mu1 0.0003125
 set double mu2 0.01
-set double part_h 1
-set double part_h0 1
+set double part_anglim 120
+set double part_dtmax 10
+set double part_h 4
+set double part_intth 1e-06
 set double part_kattr 1
 set double part_kbend 1
 set double part_kstr 1
-set double part_relax 0.1
+set double part_relax 0.5
+set double part_segcirc 1
+set double part_tmax 180
+set double part_tol 1e-05
+set double poly_intth 0
 set double prelax 1
 set double rhie 1
 set double rho1 1
 set double rho2 1
+set double ring_om 0.01
+set double ring_r0 0.2
+set double ring_r1 0.4
 set double sharp 0
 set double sharpo 0
+set double shell_h 3
+set double shell_r 0
+set double shell_rr 2
+set double sig_k 1.25
 set double sigma 0
+set double source_mag 0
+set double source_mag0 0
+set double source_mexp 0
+set double source_mexp0 0
 set double stdiag 1
 set double tmax 2e+10
 set double tol 0.0001
 set double vrelax 0.9
+set double zerostx0 1e+10
+set double zerostx1 1e+10
 set vect force 0 0 0 
 set vect gravity 0 0 0 
+set vect ring_c 0.5 0.5 0.5 
+set vect ring_n 1 0 0 
+set vect statbox2a 0 0 0.5 
+set vect statbox2b 1 1 0.5 
+set vect statboxa 0 0 0.5 
+set vect statboxb 1 1 0.5 
 === config end ===
 
-o=(0,0,0) dom=(0,0,0),(1,1,0.0625) h=0.03125
+o=(0,0,0) dom=(0,0,0),(1,1,0.03125) h=0.03125
+global mesh=(32,32,1)
+surface tension dt=1.79769e+308
 h from gm = 0.03125
 o=(0,0,0) n=0 i=(0,0,0)
 o=(0.25,0,0) n=8 i=(1,0,0)
@@ -123,215 +205,340 @@ Found events:
 ev0 1 set double tol 1e-5
 =====
 STEP=0 t=0.00000000 dt=10000000000.00000000 ta=0.00000000 dta=10000000000.00000000
-.....iter=1, diff=6.1191338582371313e-01
-.....iter=2, diff=2.9617739153490841e-01
-.....iter=3, diff=1.8030818366558252e-01
-.....iter=4, diff=1.3642703744068271e-01
-.....iter=5, diff=1.0632359170744840e-01
+.....iter=1, diff=5.4165268930070487e-01
+.....iter=2, diff=3.1964202911631329e-01
+.....iter=3, diff=1.2269989698359615e-01
+.....iter=4, diff=1.1456848501222527e-01
+.....iter=5, diff=1.3181773518011575e-01
+timer report t=10000000000.00000000 to trep_0000.log
 Event at t=1.00000000: set double tol 1e-5
 STEP=1 t=10000000000.00000000 dt=10000000000.00000000 ta=0.00000000 dta=20000000000.00000000
-.....iter=1, diff=1.0410929179110730e-01
-.....iter=2, diff=1.0950081991832658e-01
-.....iter=3, diff=9.7912628617511002e-02
-.....iter=4, diff=9.0687585108875091e-02
-.....iter=5, diff=7.6843664668822600e-02
+.....iter=1, diff=1.4496889470857974e-01
+.....iter=2, diff=1.3563606812686055e-01
+.....iter=3, diff=1.3318219031629155e-01
+.....iter=4, diff=1.2201494262738788e-01
+.....iter=5, diff=1.0984476653028202e-01
 Dump n=0 t=2e+10 target=0
-STEP=2 t=20000000000.00000000 dt=10000000000.00000000 ta=0.00000000 dta=30000000000.00000000
 Dump 0: format=plain
-.....iter=1, diff=6.8834106706472845e-02
-.....iter=2, diff=5.9940882018079636e-02
-.....iter=3, diff=5.5711176858979930e-02
-.....iter=4, diff=5.3733972558063198e-02
-.....iter=5, diff=4.9288531181720295e-02
+timer report t=20000000000.00000000 to trep_0001.log
+mem=33.48046875 MB
+all [0.68710 s, 100.000%]
+|     other [0.00012 s, 0.017%]
+|     last [0.00006 s, 0.009%]
+|     run:00:init [0.04292 s, 6.247%]
+|     |     init:00:fields [0.01811 s, 2.636%]
+|     |     init:01:initvort [0.00014 s, 0.020%]
+|     |     init:02:smooth [0.00011 s, 0.015%]
+|     |     init:03:mixture [0.00532 s, 0.774%]
+|     |     |     mixture:00:init [0.00148 s, 0.215%]
+|     |     |     mixture:01:smooth [0.00020 s, 0.029%]
+|     |     |     mixture:02:calc [0.00365 s, 0.531%]
+|     |     init:04:color-ini [0.00029 s, 0.042%]
+|     |     init:05:cellcond [0.00057 s, 0.083%]
+|     |     |     GetFluidCellCond:00:reduce [0.00014 s, 0.020%]
+|     |     |     GetFluidCellCond:01:set [0.00044 s, 0.064%]
+|     |     init:06:solv [0.01838 s, 2.675%]
+|     run:02:events [0.00042 s, 0.061%]
+|     run:03:loop-check [0.00042 s, 0.061%]
+|     run:04:abort-local [0.00123 s, 0.178%]
+|     run:05:abort-reduce [0.00026 s, 0.038%]
+|     run:06:updatepar [0.00188 s, 0.274%]
+|     run:07:mixture [0.00721 s, 1.049%]
+|     |     mixture:00:init [0.00126 s, 0.183%]
+|     |     mixture:01:smooth [0.00041 s, 0.059%]
+|     |     mixture:02:calc [0.00554 s, 0.806%]
+|     run:08:stat [0.00344 s, 0.501%]
+|     |     stat:00:stat-add [0.00181 s, 0.263%]
+|     |     stat:01:stat-print [0.00032 s, 0.047%]
+|     |     stat:02:local [0.00085 s, 0.124%]
+|     |     stat:03:reduce [0.00021 s, 0.030%]
+|     |     stat:04:vfslip [0.00013 s, 0.019%]
+|     |     stat:05:young [0.00012 s, 0.018%]
+|     run:09:fs-start [0.00328 s, 0.477%]
+|     |     fluid-start:00:convdiff-init [0.00013 s, 0.019%]
+|     |     fluid-start:01:convdiff-start [0.00189 s, 0.275%]
+|     |     |     convdiffmulti-start:00:dir-init [0.00036 s, 0.052%]
+|     |     |     convdiffmulti-start:01:dir-start [0.00046 s, 0.067%]
+|     |     |     convdiffmulti-start:02:dir-init [0.00024 s, 0.035%]
+|     |     |     convdiffmulti-start:03:dir-start [0.00058 s, 0.084%]
+|     |     |     convdiffmulti-start:04:tovect [0.00025 s, 0.037%]
+|     |     fluid-start:02:convdiff-start [0.00125 s, 0.182%]
+|     run:10:fs-iters [0.62076 s, 90.346%]
+|     |     iter:01:iter [0.61832 s, 89.990%]
+|     |     |     fluid-iter:00:init [0.00586 s, 0.853%]
+|     |     |     fluid-iter:01:bc-inletflux [0.00461 s, 0.671%]
+|     |     |     |     inletflux:00:local [0.00237 s, 0.345%]
+|     |     |     |     inletflux:01:corr [0.00224 s, 0.326%]
+|     |     |     fluid-iter:02:bc-outlet [0.00690 s, 1.005%]
+|     |     |     |     outlet:00:local [0.00372 s, 0.542%]
+|     |     |     |     outlet:01:corr [0.00318 s, 0.463%]
+|     |     |     fluid-iter:03:bc-derived [0.00561 s, 0.816%]
+|     |     |     fluid-iter:04:forceinit [0.03524 s, 5.129%]
+|     |     |     |     extforce:00:loc [0.03524 s, 5.129%]
+|     |     |     fluid-iter:05:forceinit [0.00468 s, 0.681%]
+|     |     |     fluid-iter:06:explvisc [0.02085 s, 3.035%]
+|     |     |     fluid-iter:07:pgrad [0.00705 s, 1.026%]
+|     |     |     fluid-iter:08:simpler [0.23951 s, 34.858%]
+|     |     |     |     calcpressure:00:cd-asm [0.07318 s, 10.650%]
+|     |     |     |     |     asm:00:copy [0.00477 s, 0.694%]
+|     |     |     |     |     asm:01:one [0.03495 s, 5.087%]
+|     |     |     |     |     |     assemble:00:assemble [0.03495 s, 5.087%]
+|     |     |     |     |     asm:02:one [0.03346 s, 4.870%]
+|     |     |     |     |     |     assemble:00:assemble [0.03346 s, 4.870%]
+|     |     |     |     calcpressure:01:diag [0.01237 s, 1.800%]
+|     |     |     |     |     diag:00:local [0.01051 s, 1.530%]
+|     |     |     |     |     diag:01:interp [0.00185 s, 0.270%]
+|     |     |     |     calcpressure:02:eval [0.02867 s, 4.173%]
+|     |     |     |     calcpressure:03:assemble [0.00751 s, 1.092%]
+|     |     |     |     calcpressure:04:pcorr-solve [0.10403 s, 15.141%]
+|     |     |     |     |     solve:00:solve [0.09496 s, 13.820%]
+|     |     |     |     |     solve:01:copy [0.00908 s, 1.321%]
+|     |     |     |     calcpressure:05:apply [0.01375 s, 2.001%]
+|     |     |     fluid-iter:09:pgrad [0.00571 s, 0.831%]
+|     |     |     fluid-iter:10:convdiff-iter [0.13274 s, 19.318%]
+|     |     |     |     convdiffmulti-iter:00:source [0.00184 s, 0.269%]
+|     |     |     |     convdiffmulti-iter:01:dir-iter [0.06435 s, 9.366%]
+|     |     |     |     |     convdiff-iter:00:init [0.00098 s, 0.143%]
+|     |     |     |     |     convdiff-iter:01:assemble [0.02164 s, 3.149%]
+|     |     |     |     |     |     assemble:00:assemble [0.02164 s, 3.149%]
+|     |     |     |     |     convdiff-iter:02:solve [0.03265 s, 4.751%]
+|     |     |     |     |     |     solve:00:convert [0.03106 s, 4.520%]
+|     |     |     |     |     |     solve:01:copy [0.00159 s, 0.231%]
+|     |     |     |     |     convdiff-iter:03:apply [0.00909 s, 1.323%]
+|     |     |     |     convdiffmulti-iter:02:dir-linreport [0.00097 s, 0.141%]
+|     |     |     |     convdiffmulti-iter:03:dir-iter [0.06286 s, 9.149%]
+|     |     |     |     |     convdiff-iter:00:init [0.00112 s, 0.162%]
+|     |     |     |     |     convdiff-iter:01:assemble [0.02104 s, 3.062%]
+|     |     |     |     |     |     assemble:00:assemble [0.02104 s, 3.062%]
+|     |     |     |     |     convdiff-iter:02:solve [0.03165 s, 4.606%]
+|     |     |     |     |     |     solve:00:convert [0.03027 s, 4.406%]
+|     |     |     |     |     |     solve:01:copy [0.00137 s, 0.200%]
+|     |     |     |     |     convdiff-iter:03:apply [0.00906 s, 1.318%]
+|     |     |     |     convdiffmulti-iter:04:dir-linreport [0.00090 s, 0.130%]
+|     |     |     |     convdiffmulti-iter:05:tovect [0.00181 s, 0.264%]
+|     |     |     fluid-iter:11:diag [0.01078 s, 1.570%]
+|     |     |     |     diag:00:local [0.00962 s, 1.400%]
+|     |     |     |     diag:01:interp [0.00116 s, 0.169%]
+|     |     |     fluid-iter:12:pcorr-assemble [0.00646 s, 0.941%]
+|     |     |     fluid-iter:13:pcorr-solve [0.10410 s, 15.151%]
+|     |     |     |     solve:00:solve [0.09504 s, 13.832%]
+|     |     |     |     solve:01:copy [0.00907 s, 1.319%]
+|     |     |     fluid-iter:14:pcorr-apply [0.00681 s, 0.991%]
+|     |     |     fluid-iter:15:convdiff-corr [0.02071 s, 3.014%]
+|     |     |     |     corr:00:dir-corr [0.00960 s, 1.397%]
+|     |     |     |     |     corr:00:apply [0.00960 s, 1.397%]
+|     |     |     |     corr:01:dir-corr [0.00956 s, 1.392%]
+|     |     |     |     |     corr:00:apply [0.00956 s, 1.392%]
+|     |     |     |     corr:02:tovect [0.00155 s, 0.225%]
+|     |     |     fluid-iter:16:inc-iter [0.00070 s, 0.102%]
+|     |     iter:02:reduce [0.00076 s, 0.111%]
+|     |     iter:03:report [0.00099 s, 0.144%]
+|     |     iter:04:convcheck [0.00069 s, 0.101%]
+|     run:11:fs-finish [0.00135 s, 0.196%]
+|     |     fluid-finish:00:inctime [0.00080 s, 0.116%]
+|     |     fluid-finish:01:convdiff-finish [0.00055 s, 0.080%]
+|     |     |     convdiffmulti-finish:00:dir-finish [0.00023 s, 0.034%]
+|     |     |     convdiffmulti-finish:01:dir-finish [0.00019 s, 0.028%]
+|     |     |     convdiffmulti-finish:02:tovect [0.00013 s, 0.019%]
+|     run:12:dt [0.00037 s, 0.053%]
+|     |     dt:00:local [0.00021 s, 0.030%]
+|     |     dt:01:reduce [0.00016 s, 0.023%]
+|     run:13:fields [0.00007 s, 0.010%]
+|     |     dumpfields:00:dump [0.00532 s, 0.775%]
+|     run:14:dmptrep [0.00031 s, 0.045%]
+|     run:15:dumpstat [0.00292 s, 0.424%]
+|     run:16:inc [0.00009 s, 0.013%]
 other
-0.00004 s = 0.002%
+0.00012 s = 0.017%
 last
-0.00004 s = 0.001%
-run:00:init --> init:00:pfixed-reduce
-0.00023 s = 0.009%
-run:00:init --> init:01:fields
-0.00752 s = 0.300%
+0.00006 s = 0.009%
+run:00:init --> init:00:fields
+0.01811 s = 2.616%
+run:00:init --> init:01:initvort
+0.00014 s = 0.020%
 run:00:init --> init:02:smooth
-0.00005 s = 0.002%
+0.00011 s = 0.015%
 run:00:init --> init:03:mixture --> mixture:00:init
-0.00077 s = 0.031%
+0.00148 s = 0.213%
 run:00:init --> init:03:mixture --> mixture:01:smooth
-0.00005 s = 0.002%
+0.00020 s = 0.029%
 run:00:init --> init:03:mixture --> mixture:02:calc
-0.00133 s = 0.053%
-run:00:init --> init:04:solv
-0.01526 s = 0.609%
+0.00365 s = 0.527%
+run:00:init --> init:04:color-ini
+0.00029 s = 0.042%
+run:00:init --> init:05:cellcond --> GetFluidCellCond:00:reduce
+0.00014 s = 0.020%
+run:00:init --> init:05:cellcond --> GetFluidCellCond:01:set
+0.00044 s = 0.063%
+run:00:init --> init:06:solv
+0.01838 s = 2.655%
 run:02:events
-0.00040 s = 0.016%
+0.00042 s = 0.060%
 run:03:loop-check
-0.00025 s = 0.010%
-run:04:updatepar
-0.00039 s = 0.016%
-run:05:mixture --> mixture:00:init
-0.00389 s = 0.155%
-run:05:mixture --> mixture:01:smooth
-0.00017 s = 0.007%
-run:05:mixture --> mixture:02:calc
-0.00580 s = 0.232%
-run:06:stat --> stat:00:local
-0.00086 s = 0.034%
-run:06:stat --> stat:01:reduce
-0.00017 s = 0.007%
-run:07:fs-start --> fluid-start:00:convdiff-init
-0.00030 s = 0.012%
-run:07:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:00:dir-init
-0.00028 s = 0.011%
-run:07:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:01:dir-start
-0.00053 s = 0.021%
-run:07:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:02:dir-init
-0.00024 s = 0.009%
-run:07:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:03:dir-start
-0.00056 s = 0.022%
-run:07:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:04:dir-init
-0.00027 s = 0.011%
-run:07:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:05:dir-start
-0.00047 s = 0.019%
-run:07:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:06:tovect
-0.00070 s = 0.028%
-run:07:fs-start --> fluid-start:02:convdiff-start
-0.00070 s = 0.028%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:00:init
-0.01354 s = 0.540%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:01:bc-inletflux --> inletflux:00:local
-0.00376 s = 0.150%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:01:bc-inletflux --> inletflux:01:corr
-0.00272 s = 0.109%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:02:bc-outlet --> outlet:00:local
-0.00329 s = 0.131%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:02:bc-outlet --> outlet:01:corr
-0.00236 s = 0.094%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:03:bc-derived
-0.00607 s = 0.242%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:04:forceinit --> extforce:00:loc
-0.04881 s = 1.948%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:04:forceinit --> extforce:01:copy
-0.01318 s = 0.526%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:05:forceinit
-0.00174 s = 0.069%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:06:explvisc
-0.04365 s = 1.742%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:07:pgrad
-0.01241 s = 0.495%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:00:copy
-0.00448 s = 0.179%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:01:one --> assemble:00:assemble
-0.06451 s = 2.575%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:02:one --> assemble:00:assemble
-0.06195 s = 2.473%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:03:one --> assemble:00:assemble
-0.07219 s = 2.881%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:01:diag --> diag:00:local
-0.01948 s = 0.777%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:01:diag --> diag:01:interp
-0.01321 s = 0.527%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:02:eval
-0.05114 s = 2.041%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:03:assemble
-0.03058 s = 1.221%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:04:pcorr-solve --> solve:00:solve
-0.58907 s = 23.512%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:04:pcorr-solve --> solve:01:copy
-0.01440 s = 0.575%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:05:apply
-0.02490 s = 0.994%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:09:pgrad
-0.01204 s = 0.481%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:00:source
-0.00248 s = 0.099%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:00:init
-0.00168 s = 0.067%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
-0.05507 s = 2.198%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
-0.17756 s = 7.087%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
-0.00222 s = 0.089%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:03:apply
-0.01339 s = 0.534%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:00:init
-0.00174 s = 0.070%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
-0.05507 s = 2.198%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
-0.17656 s = 7.047%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
-0.00208 s = 0.083%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-iter --> convdiff-iter:03:apply
-0.01526 s = 0.609%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:00:init
-0.00180 s = 0.072%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
-0.05550 s = 2.215%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
-0.04057 s = 1.619%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
-0.00216 s = 0.086%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:03:apply
-0.01420 s = 0.567%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:04:tovect
-0.00433 s = 0.173%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:11:diag --> diag:00:local
-0.01551 s = 0.619%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:11:diag --> diag:01:interp
-0.00823 s = 0.328%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:12:pcorr-assemble
-0.03166 s = 1.264%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:13:pcorr-solve --> solve:00:solve
-0.58934 s = 23.523%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:13:pcorr-solve --> solve:01:copy
-0.01352 s = 0.540%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:14:pcorr-apply
-0.01803 s = 0.719%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:00:dir-corr --> corr:00:apply
-0.01396 s = 0.557%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:01:dir-corr --> corr:00:apply
-0.01356 s = 0.541%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:02:dir-corr --> corr:00:apply
-0.01318 s = 0.526%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:03:tovect
-0.00175 s = 0.070%
-run:08:fs-iters --> iter:01:iter --> fluid-iter:16:inc-iter
-0.00070 s = 0.028%
-run:08:fs-iters --> iter:02:reduce
-0.00103 s = 0.041%
-run:08:fs-iters --> iter:03:report
-0.00148 s = 0.059%
-run:08:fs-iters --> iter:04:convcheck
-0.00073 s = 0.029%
-run:09:fs-finish --> fluid-finish:00:inctime
-0.00072 s = 0.029%
-run:09:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:00:dir-finish
-0.00036 s = 0.014%
-run:09:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:01:dir-finish
-0.00040 s = 0.016%
-run:09:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:02:dir-finish
-0.00044 s = 0.018%
-run:09:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:03:tovect
-0.00084 s = 0.033%
-run:10:dt --> dt:00:local
-0.00042 s = 0.017%
-run:10:dt --> dt:01:reduce
-0.00020 s = 0.008%
-run:11:dump
-0.00644 s = 0.257%
-run:12:dumpwrite
-0.00011 s = 0.005%
-run:13:dumpstat
-0.00029 s = 0.011%
-run:14:inc
-0.00009 s = 0.003%
+0.00042 s = 0.060%
+run:04:abort-local
+0.00123 s = 0.177%
+run:05:abort-reduce
+0.00026 s = 0.038%
+run:06:updatepar
+0.00188 s = 0.272%
+run:07:mixture --> mixture:00:init
+0.00126 s = 0.182%
+run:07:mixture --> mixture:01:smooth
+0.00041 s = 0.059%
+run:07:mixture --> mixture:02:calc
+0.00554 s = 0.800%
+run:08:stat --> stat:00:stat-add
+0.00181 s = 0.261%
+run:08:stat --> stat:01:stat-print
+0.00032 s = 0.046%
+run:08:stat --> stat:02:local
+0.00085 s = 0.123%
+run:08:stat --> stat:03:reduce
+0.00021 s = 0.030%
+run:08:stat --> stat:04:vfslip
+0.00013 s = 0.019%
+run:08:stat --> stat:05:young
+0.00012 s = 0.018%
+run:09:fs-start --> fluid-start:00:convdiff-init
+0.00013 s = 0.019%
+run:09:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:00:dir-init
+0.00036 s = 0.052%
+run:09:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:01:dir-start
+0.00046 s = 0.067%
+run:09:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:02:dir-init
+0.00024 s = 0.035%
+run:09:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:03:dir-start
+0.00058 s = 0.083%
+run:09:fs-start --> fluid-start:01:convdiff-start --> convdiffmulti-start:04:tovect
+0.00025 s = 0.037%
+run:09:fs-start --> fluid-start:02:convdiff-start
+0.00125 s = 0.181%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:00:init
+0.00586 s = 0.847%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:01:bc-inletflux --> inletflux:00:local
+0.00237 s = 0.342%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:01:bc-inletflux --> inletflux:01:corr
+0.00224 s = 0.323%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:02:bc-outlet --> outlet:00:local
+0.00372 s = 0.537%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:02:bc-outlet --> outlet:01:corr
+0.00318 s = 0.459%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:03:bc-derived
+0.00561 s = 0.810%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:04:forceinit --> extforce:00:loc
+0.03524 s = 5.090%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:05:forceinit
+0.00468 s = 0.676%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:06:explvisc
+0.02085 s = 3.011%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:07:pgrad
+0.00705 s = 1.018%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:00:copy
+0.00477 s = 0.688%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:01:one --> assemble:00:assemble
+0.03495 s = 5.048%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:00:cd-asm --> asm:02:one --> assemble:00:assemble
+0.03346 s = 4.832%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:01:diag --> diag:00:local
+0.01051 s = 1.518%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:01:diag --> diag:01:interp
+0.00185 s = 0.267%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:02:eval
+0.02867 s = 4.141%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:03:assemble
+0.00751 s = 1.084%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:04:pcorr-solve --> solve:00:solve
+0.09496 s = 13.714%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:04:pcorr-solve --> solve:01:copy
+0.00908 s = 1.311%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:08:simpler --> calcpressure:05:apply
+0.01375 s = 1.986%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:09:pgrad
+0.00571 s = 0.825%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:00:source
+0.00184 s = 0.266%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:00:init
+0.00098 s = 0.141%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
+0.02164 s = 3.125%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
+0.03106 s = 4.485%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
+0.00159 s = 0.229%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:01:dir-iter --> convdiff-iter:03:apply
+0.00909 s = 1.313%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:02:dir-linreport
+0.00097 s = 0.139%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:00:init
+0.00112 s = 0.161%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:01:assemble --> assemble:00:assemble
+0.02104 s = 3.039%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:02:solve --> solve:00:convert
+0.03027 s = 4.372%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:02:solve --> solve:01:copy
+0.00137 s = 0.198%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:03:dir-iter --> convdiff-iter:03:apply
+0.00906 s = 1.308%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:04:dir-linreport
+0.00090 s = 0.129%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:10:convdiff-iter --> convdiffmulti-iter:05:tovect
+0.00181 s = 0.262%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:11:diag --> diag:00:local
+0.00962 s = 1.389%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:11:diag --> diag:01:interp
+0.00116 s = 0.168%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:12:pcorr-assemble
+0.00646 s = 0.933%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:13:pcorr-solve --> solve:00:solve
+0.09504 s = 13.725%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:13:pcorr-solve --> solve:01:copy
+0.00907 s = 1.309%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:14:pcorr-apply
+0.00681 s = 0.983%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:00:dir-corr --> corr:00:apply
+0.00960 s = 1.386%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:01:dir-corr --> corr:00:apply
+0.00956 s = 1.381%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:15:convdiff-corr --> corr:02:tovect
+0.00155 s = 0.224%
+run:10:fs-iters --> iter:01:iter --> fluid-iter:16:inc-iter
+0.00070 s = 0.101%
+run:10:fs-iters --> iter:02:reduce
+0.00076 s = 0.110%
+run:10:fs-iters --> iter:03:report
+0.00099 s = 0.143%
+run:10:fs-iters --> iter:04:convcheck
+0.00069 s = 0.100%
+run:11:fs-finish --> fluid-finish:00:inctime
+0.00080 s = 0.116%
+run:11:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:00:dir-finish
+0.00023 s = 0.033%
+run:11:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:01:dir-finish
+0.00019 s = 0.027%
+run:11:fs-finish --> fluid-finish:01:convdiff-finish --> convdiffmulti-finish:02:tovect
+0.00013 s = 0.019%
+run:12:dt --> dt:00:local
+0.00021 s = 0.030%
+run:12:dt --> dt:01:reduce
+0.00016 s = 0.023%
+run:13:fields
+0.00007 s = 0.010%
+run:13:fields --> dumpfields:00:dump
+0.00532 s = 0.769%
+run:14:dmptrep
+0.00031 s = 0.044%
+run:15:dumpstat
+0.00292 s = 0.421%
+run:16:inc
+0.00009 s = 0.013%
 
-cells = 2048
+cells = 1024
 steps = 1000000
-iters = 15
-total = 2 s = 00:00:02.505
-time/cell/iter = 8.15549e-05 s
+iters = 10
+total = 0 s = 00:00:00.692
+time/cell/iter = 6.76189e-05 s
 
-real	0m2.680s
-user	0m2.507s
-sys	0m0.167s
+real	0m0.981s
+user	0m0.822s
+sys	0m0.183s
