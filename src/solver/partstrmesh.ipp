@@ -234,14 +234,13 @@ struct PartStrMesh<M_>::Imp {
   }
   void Part(const FieldCell<Scal>& uc, 
       FieldCell<Scal>& fca, FieldCell<Vect>& fcn, FieldCell<bool>& fci,
-      Dumper* dmp, Scal t, Scal dt, 
-      const MapFace<std::shared_ptr<CondFace>>& mfc, typename M::Sem& sem) {
+      const MapFace<std::shared_ptr<CondFace>>& mfc) {
+    auto sem = m.GetSem("part");
+
     if (sem("part-comm")) {
       m.Comm(&fca);
       m.Comm(&fcn);
     }
-
-    bool dm = dmp->Try(t + dt, dt);
 
     if (sem("part-run")) {
       // XXX: adhoc
@@ -312,23 +311,17 @@ struct PartStrMesh<M_>::Imp {
       }
       m.Comm(&fckp_);
     }
-
-    if (par->dumppart && sem.Nested("part-dump")) {
-      if (dm) {
-        DumpParticles(fca, fcn, dmp, t, dt);
-      }
-    }
-    if (par->dumppartinter && sem.Nested("partinter-dump")) {
-      if (dm) {
-        DumpPartInter(fca, fcn, dmp, t, dt);
-      }
-    }
   }
 
+  // Dump particles to csv.
+  // fca: plane constant
+  // fcn: normal
+  // n: frame index
+  // t: time
+  // dt: timestep
   void DumpParticles(FieldCell<Scal>& fca, FieldCell<Vect>& fcn,
-                     Dumper* dmp, Scal t, Scal dt) {
+                     size_t id, Scal t, Scal dt) {
     auto sem = m.GetSem("partdump");
-    auto fr = par->dump_fr;
     size_t it = 1;
     if (1) { // TODO: revise frames
       if (sem("local")) {
@@ -365,8 +358,8 @@ struct PartStrMesh<M_>::Imp {
       }
       if (sem("write")) {
         if (m.IsRoot()) {
-          std::string s = GetDumpName("partit", ".csv", dmp->GetN(), 
-                                      fr > 1 ? it : -1);
+          std::string s = GetDumpName("partit", ".csv", id,
+                                      par->dump_fr > 1 ? it : -1);
           std::cout << std::fixed << std::setprecision(8)
               << "dump" 
               << " t=" << t + dt
@@ -389,7 +382,7 @@ struct PartStrMesh<M_>::Imp {
   }
   // Dumps interface around particle strings
   void DumpPartInter(FieldCell<Scal>& fca, FieldCell<Vect>& fcn,
-                     Dumper* dmp, Scal t, Scal dt) {
+                     size_t id, Scal t, Scal dt) {
     auto sem = m.GetSem("dumppartinter");
     if (sem("local")) {
       dl_.clear();
@@ -419,7 +412,7 @@ struct PartStrMesh<M_>::Imp {
     }
     if (sem("write")) {
       if (m.IsRoot()) {
-        std::string fn = GetDumpName("sp", ".vtk", dmp->GetN());
+        std::string fn = GetDumpName("sp", ".vtk", id);
         std::cout << std::fixed << std::setprecision(8)
             << "dump" 
             << " t=" << t + dt
@@ -461,9 +454,20 @@ PartStrMesh<M_>::~PartStrMesh() = default;
 template <class M_>
 void PartStrMesh<M_>::Part(const FieldCell<Scal>& uc, 
     FieldCell<Scal>& fca, FieldCell<Vect>& fcn, FieldCell<bool>& fci,
-    Dumper* dmp, Scal t, Scal dt,
-    const MapFace<std::shared_ptr<CondFace>>& mfc, typename M::Sem& sem) {
-  imp->Part(uc, fca, fcn, fci, dmp, t, dt, mfc, sem);
+    const MapFace<std::shared_ptr<CondFace>>& mfc) {
+  imp->Part(uc, fca, fcn, fci, mfc);
+}
+
+template <class M_>
+void PartStrMesh<M_>::DumpPartInter(
+    FieldCell<Scal>& fca, FieldCell<Vect>& fcn, size_t id, Scal t, Scal dt) {
+  imp->DumpPartInter(fca, fcn, id, t, dt);
+}
+
+template <class M_>
+void PartStrMesh<M_>::DumpParticles(
+    FieldCell<Scal>& fca, FieldCell<Vect>& fcn, size_t id, Scal t, Scal dt) {
+  imp->DumpParticles(fca, fcn, id, t, dt);
 }
 
 template <class M_>
