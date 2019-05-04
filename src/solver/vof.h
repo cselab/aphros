@@ -4,6 +4,7 @@
 
 #include "advection.h"
 #include "dump/dumper.h"
+#include "partstrmesh.h"
 
 namespace solver {
 
@@ -39,13 +40,6 @@ class Vof : public AdvectionSolver<M_> {
     bool dumppoly = false; // dump reconstructed interface (cut polygons)
     bool dumppart = false; // dump particles
     bool dumppartinter = false; // dump interface for particles
-    // XXX: adhoc
-    Scal bcc_k0 = 1.;   // mul corrections to bc 
-    Scal bcc_k1 = 1.;   
-    Scal bcc_t0 = -1.;   // duration of phases (one negative to disable)
-    Scal bcc_t1 = -1.;   
-    Scal bcc_y0 = -1e10; // overwrite u=0 if y<y0 or y>y1
-    Scal bcc_y1 = 1e10;  // (to remove periodic conditions)
     bool bcc_reflect = false; // reflection at boundaries
 
     int part_constr = 0; // 0: no constraints
@@ -53,22 +47,15 @@ class Vof : public AdvectionSolver<M_> {
                          // 2: fixed distance, linear angle
     Scal part_segcirc = 1.; // factor for circular segment
     size_t part_np = 11; // number of particles per string
-    size_t part_ns = 4; // number of strings per cell
+    size_t part_ns = 2; // number of strings per cell
     size_t part_itermax = 100; // particles itermax
     Scal part_tol = 0.01; // tolerance
     Scal part_tmax = 180.; 
     Scal part_dtmax = 10.; 
     Scal part_anglim = 90.; 
     bool part_dn = false;
-    enum class AF { // attraction force type
-        line   // nearest line
-      , center // nearest line center
-      , volume // fluid volume
-    }; 
-    enum class AR { // attraction reconstruction type
-        line   // interface line
-      , volume // fluid volume
-    }; 
+    using AF = typename solver::PartStrMesh<M>::AF;
+    using AR = typename solver::PartStrMesh<M>::AR;
     AF part_attrforce = AF::line;
     AR part_attrreconst = AR::line;
   };

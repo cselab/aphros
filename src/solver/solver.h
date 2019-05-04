@@ -422,5 +422,64 @@ std::vector<Scal> GetGradCoeffs(
   return k;
 }
 
+// apply reflection to field on boundaries 
+template <class T, class M>
+void BcReflect(FieldCell<T>& uc,
+               const MapFace<std::shared_ptr<CondFace>>& mfc,
+               const M& m) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  for (const auto& it : mfc) {
+    CondFace* cb = it.GetValue().get();
+    if (dynamic_cast<CondFaceReflect*>(cb)) {
+      IdxFace f = it.GetIdx();
+      Vect n = m.GetNormal(f);
+      CondFace* cb = it.GetValue().get(); 
+      size_t nci = cb->GetNci();
+
+      using MIdx = typename M::MIdx;
+      using Dir = typename M::Dir;
+      auto& bf = m.GetIndexFaces();
+      auto& bc = m.GetIndexCells();
+      Dir df = bf.GetDir(f);
+      // offset from face towards cell (inner normal to boundary)
+      MIdx wo(0);
+      wo[size_t(df)] = (nci == 0 ? -1 : 1);
+      IdxCell cp = m.GetNeighbourCell(f, nci);
+      MIdx wp = bc.GetMIdx(cp);
+      MIdx wpp = wp + wo;
+      MIdx wm = wp - wo;
+      MIdx wmm = wm - wo;
+      IdxCell cpp = bc.GetIdx(wpp);
+      IdxCell cm = bc.GetIdx(wm);
+      IdxCell cmm = bc.GetIdx(wmm);
+      // apply
+      uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
+      uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
+    } else { // XXX: adhoc, zeros on other boundaries
+      IdxFace f = it.GetIdx();
+      CondFace* cb = it.GetValue().get(); 
+      size_t nci = cb->GetNci();
+
+      using MIdx = typename M::MIdx;
+      using Dir = typename M::Dir;
+      auto& bf = m.GetIndexFaces();
+      auto& bc = m.GetIndexCells();
+      Dir df = bf.GetDir(f);
+      MIdx wo(0);
+      wo[size_t(df)] = (nci == 0 ? -1 : 1);
+      IdxCell cp = m.GetNeighbourCell(f, nci);
+      MIdx wp = bc.GetMIdx(cp);
+      MIdx wm = wp - wo;
+      MIdx wmm = wm - wo;
+      IdxCell cm = bc.GetIdx(wm);
+      IdxCell cmm = bc.GetIdx(wmm);
+      // apply
+      uc[cm] *= 0.;
+      uc[cmm] *= 0.; 
+    }
+  }
+}
+
 } // namespace solver
 

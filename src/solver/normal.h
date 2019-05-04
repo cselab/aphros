@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <geom/mesh.h>
+#include "geom/mesh.h"
 
 namespace solver {
 
