@@ -9,7 +9,7 @@ v = sys.argv
 
 if len(v) < 3:
   sys.stderr.write(
-"""usage: {:} A B [EPS=1e-8]
+"""usage: {:} A B [EPS=1e-8] [sort] [rel]
 Compares words from A and B allowing tolerance EPS for numbers.
 Returns: 1 if different.
 STDOUT: first failed pair
@@ -18,23 +18,33 @@ STDOUT: first failed pair
 
 fa = v[1]
 fb = v[2]
-e = float(v[3]) if len(v) > 3 else 1e-8
+eps = float(v[3]) if len(v) > 3 else 1e-8
 
 # text
-ua = ' '.join(open(fa).readlines())
-ub = ' '.join(open(fb).readlines())
+ua = open(fa).readlines()
+ub = open(fb).readlines()
+
+ua = ' '.join(ua)
+ub = ' '.join(ub)
 
 # words
 pt='[ ,\t]'
 wa = re.split(pt, ua)
 wb = re.split(pt, ub)
 
-def E(a, b):
-  print("'{:}' '{:}'".format(a, b))
+if "sort" in v:
+  wa = sorted(wa)
+  wb = sorted(wb)
+
+def E(a, b, e):
+  global eps
+  print("error exceeded: {:} > {:}\na='{:}' b='{:}', ".format(e, eps, a, b))
   exit(1)
 
 la = len(wa)
 lb = len(wb)
+
+em = 0 # max diff
 
 for i in range(max(la,lb)):
   i < la or E('', wb[i])
@@ -50,5 +60,15 @@ for i in range(max(la,lb)):
     nb = float(b)
   except:
     E(a, b)
-  abs(na - nb) < e or E(a, b)
 
+  if "rel" in v:
+    e = (abs(na) + abs(nb)) * 0.5
+    e = abs(na - nb) / e if e != 0 else 0
+  else:
+    e = abs(na - nb)
+
+  em = max(em, e)
+
+  e <= eps or E(a, b, e)
+
+print("max error: {:}".format(em))
