@@ -49,8 +49,7 @@ struct Vof<M_>::Imp {
     psm->verb = par->part_verb;
     psm->dim = par->dim;
     psm->bcc_reflect = par->bcc_reflect;
-    psm->dumppart = par->dumppart;
-    psm->dumppartinter = par->dumppartinter;
+    psm->dump_fr = par->part_dump_fr;
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm));
   }
   void Update(typename PS::Par* p) const {
@@ -184,6 +183,22 @@ struct Vof<M_>::Imp {
       if (sem("reconst")) {
         Rec(fcu_.time_curr);
       }
+    }
+  }
+  void Dump() {
+    auto sem = m.GetSem("iter");
+    bool dm = par->dmp->Try(owner_->GetTime() + owner_->GetTimeStep(),
+                            owner_->GetTimeStep());
+    if (par->dumppoly && dm && sem.Nested("dumppoly")) {
+      DumpPoly();
+    }
+    if (par->dumppart && dm && sem.Nested("part-dump")) {
+      psm_->DumpParticles(fca_, fcn_, par->dmp->GetN(),
+                          owner_->GetTime(), owner_->GetTimeStep());
+    }
+    if (par->dumppartinter && dm && sem.Nested("partinter-dump")) {
+      psm_->DumpPartInter(fca_, fcn_, par->dmp->GetN(),
+                          owner_->GetTime(), owner_->GetTimeStep());
     }
   }
   void MakeIteration() {
@@ -357,24 +372,15 @@ struct Vof<M_>::Imp {
         fck_[c] = s / m.GetVolume(c);
       }
     }
-
     if (sem("curvcomm")) {
       m.Comm(&fck_);
     }
-
-    if (par->dumppoly) {
-      bool dm = par->dmp->Try(owner_->GetTime() + owner_->GetTimeStep(), 
-                              owner_->GetTimeStep());
-      if (dm && sem.Nested("dumppoly")) {
-        DumpPoly();
-      }
+    if (par->part && sem.Nested("part")) {
+      psm_->Part(fcu_.iter_curr, fca_, fcn_, fci_, mfc_);
     }
-
-    if (par->part) {
-      psm_->Part(fcu_.iter_curr, fca_, fcn_, fci_, par->dmp.get(),
-                 owner_->GetTime(), owner_->GetTimeStep(), mfc_, sem);
+    if (sem.Nested("dump")) {
+      Dump();
     }
-
     if (sem("stat")) {
       owner_->IncIter();
       ++count_;

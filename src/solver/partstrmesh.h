@@ -30,16 +30,14 @@ class PartStrMesh {
 
   struct Par {
     std::shared_ptr<typename PS::Par> ps;
-    Scal intth; // interface threshold for particle seed
-    size_t dump_fr = 100; // num frames dump
+    Scal intth = 0; // interface threshold for particle seed
+    size_t dump_fr = -1; // num frames dump
     size_t ns = 2; // number of strings per cell
     Scal tol = 0.01; // tolerance
     size_t itermax = 20;
     int verb = 0; // debug output
-    size_t dim;
-    bool bcc_reflect;
-    bool dumppart = false; // dump particles
-    bool dumppartinter = false; // dump interface for particles
+    size_t dim = 3;
+    bool bcc_reflect = false;
     AR attrreconst = AR::line;
   };
 
@@ -53,8 +51,17 @@ class PartStrMesh {
   // fci: interface mask (1: contains interface)
   void Part(const FieldCell<Scal>& uc, 
       FieldCell<Scal>& fca, FieldCell<Vect>& fcn, FieldCell<bool>& fci,
-      Dumper* dmp, Scal t, Scal dt,
-      const MapFace<std::shared_ptr<CondFace>>& mfc, typename M::Sem& sem);
+      const MapFace<std::shared_ptr<CondFace>>& mfc);
+  // Dump particles to csv.
+  // fca: plane constant
+  // fcn: normal
+  // n: frame index
+  // t: time
+  // dt: timestep
+  void DumpParticles(FieldCell<Scal>& fca, FieldCell<Vect>& fcn,
+                     size_t id, Scal t, Scal dt);
+  void DumpPartInter(FieldCell<Scal>& fca, FieldCell<Vect>& fcn,
+                     size_t id, Scal t, Scal dt);
   // Returns curvature field from last call of Part()
   const FieldCell<Scal>& GetCurv();
 
