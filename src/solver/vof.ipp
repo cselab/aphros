@@ -222,8 +222,21 @@ struct Vof<M_>::Imp {
       vsc = 1.0;
     }
     for (size_t id = 0; id < dd.size(); ++id) {
+      size_t d = dd[id]; // direction as index
+      if (sem("copyface")) {
+        if (id % 2 == 1) { // copy fluxes for Lagrange Explicit step
+          auto& ffv = *owner_->ffv_; // [f]ield [f]ace [v]olume flux
+          fcfm_.Reinit(m);
+          fcfp_.Reinit(m);
+          for (auto c : m.Cells()) {
+            fcfm_[c] = ffv[m.GetNeighbourFace(c, 2 * d)];
+            fcfp_[c] = ffv[m.GetNeighbourFace(c, 2 * d + 1)];
+          }
+          m.Comm(&fcfm_);
+          m.Comm(&fcfp_);
+        }
+      }
       if (sem("adv")) {
-        size_t d = dd[id]; // direction as index
         Dir md(d); // direction as Dir
         MIdx wd(md); // offset in direction d
         auto& uc = fcu_.iter_curr;
@@ -237,7 +250,6 @@ struct Vof<M_>::Imp {
 
         for (auto f : m.Faces()) {
           auto p = bf.GetMIdxDir(f);
-          MIdx wf = p.first;
           Dir df = p.second;
 
           if (df != md) {
@@ -253,10 +265,9 @@ struct Vof<M_>::Imp {
               // phase 2 flux
               ffvu[f] = R::GetLineFlux(fcn_[cu], fca_[cu], h, v, dt, d);
             } else { // Lagrange Explicit
-              // upwind face
-              IdxFace fu = bf.GetIdx(v > 0. ? wf - wd : wf + wd, md);
+              // XXX: if id % 2 == 1, fcfm_ and fcfp_ contain fluxes
               // upwind mixture flux
-              Scal vu = ffv[fu] * vsc;
+              Scal vu = (v > 0. ? fcfm_[cu] : fcfp_[cu]) * vsc;
               // phase 2 flux
               ffvu[f] = R::GetLineFluxStr(fcn_[cu], fca_[cu], h, v, vu, dt, d);
             }
@@ -392,6 +403,8 @@ struct Vof<M_>::Imp {
   std::vector<Scal> dlc_; // dump poly
 
   std::unique_ptr<PartStrMesh<M>> psm_;
+  // tmp for MakeIteration, volume flux copied to cells
+  FieldCell<Scal> fcfm_, fcfp_;
 };
 
 template <class M_>
