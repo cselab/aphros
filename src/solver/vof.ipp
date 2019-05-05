@@ -187,18 +187,16 @@ struct Vof<M_>::Imp {
   }
   void Dump() {
     auto sem = m.GetSem("iter");
-    bool dm = par->dmp->Try(owner_->GetTime() + owner_->GetTimeStep(),
+    bool dm = par->dmp->Try(owner_->GetTime(),
                             owner_->GetTimeStep());
     if (par->dumppoly && dm && sem.Nested("dumppoly")) {
       DumpPoly();
     }
     if (par->dumppart && dm && sem.Nested("part-dump")) {
-      psm_->DumpParticles(fca_, fcn_, par->dmp->GetN(),
-                          owner_->GetTime(), owner_->GetTimeStep());
+      psm_->DumpParticles(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
     }
     if (par->dumppartinter && dm && sem.Nested("partinter-dump")) {
-      psm_->DumpPartInter(fca_, fcn_, par->dmp->GetN(),
-                          owner_->GetTime(), owner_->GetTimeStep());
+      psm_->DumpPartInter(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
     }
   }
   void MakeIteration() {
@@ -350,7 +348,17 @@ struct Vof<M_>::Imp {
         Rec(fcu_.iter_curr);
       }
     }
-
+    if (sem("stat")) {
+      owner_->IncIter();
+      ++count_;
+    }
+  }
+  void FinishStep() {
+    fcu_.time_curr = fcu_.iter_curr;
+    owner_->IncTime();
+  }
+  void PostStep() {
+    auto sem = m.GetSem("iter");
     // Curvature from gradient of volume fraction
     if (par->curvgrad && sem("curv")) {
       auto ffu = Interpolate(fcu_.iter_curr, mfc_, m); // [s]
@@ -381,15 +389,8 @@ struct Vof<M_>::Imp {
     if (sem.Nested("dump")) {
       Dump();
     }
-    if (sem("stat")) {
-      owner_->IncIter();
-      ++count_;
-    }
   }
-  void FinishStep() {
-    fcu_.time_curr = fcu_.iter_curr;
-    owner_->IncTime();
-  }
+
 
   Owner* owner_;
   std::shared_ptr<Par> par;
@@ -465,6 +466,12 @@ template <class M_>
 auto Vof<M_>::GetCurv() const -> const FieldCell<Scal>& {
   return imp->par->part_k ? imp->psm_->GetCurv() : imp->fck_;
 }
+
+template <class M_>
+void Vof<M_>::PostStep() {
+  return imp->PostStep();
+}
+
 
 // curvature from height function
 template <class M_>

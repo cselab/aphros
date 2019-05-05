@@ -1638,6 +1638,9 @@ void Hydro<M>::Run() {
     if (sem.Nested("as-steps")) {
       StepAdvection();
     }
+    if (sem.Nested("as-post")) {
+      as_->PostStep();
+    }
     if (var.Int["clip_vf"]) {
       if (sem("as-clip")) {
         Clip(as_->GetField(), 0., 1.);
