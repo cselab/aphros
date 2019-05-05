@@ -318,9 +318,8 @@ struct PartStrMesh<M_>::Imp {
   // fcn: normal
   // n: frame index
   // t: time
-  // dt: timestep
   void DumpParticles(FieldCell<Scal>& fca, FieldCell<Vect>& fcn,
-                     size_t id, Scal t, Scal dt) {
+                     size_t id, Scal t) {
     auto sem = m.GetSem("partdump");
     size_t it = 1;
     if (1) { // TODO: revise frames
@@ -361,9 +360,7 @@ struct PartStrMesh<M_>::Imp {
           std::string s = GetDumpName("partit", ".csv", id,
                                       par->dump_fr > 1 ? it : -1);
           std::cout << std::fixed << std::setprecision(8)
-              << "dump" 
-              << " t=" << t + dt
-              << " to " << s << std::endl;
+              << "dump" << " t=" << t << " to " << s << std::endl;
           std::ofstream o;
           o.open(s);
           o.precision(20);
@@ -382,7 +379,7 @@ struct PartStrMesh<M_>::Imp {
   }
   // Dumps interface around particle strings
   void DumpPartInter(FieldCell<Scal>& fca, FieldCell<Vect>& fcn,
-                     size_t id, Scal t, Scal dt) {
+                     size_t id, Scal t) {
     auto sem = m.GetSem("dumppartinter");
     if (sem("local")) {
       dl_.clear();
@@ -414,9 +411,7 @@ struct PartStrMesh<M_>::Imp {
       if (m.IsRoot()) {
         std::string fn = GetDumpName("sp", ".vtk", id);
         std::cout << std::fixed << std::setprecision(8)
-            << "dump" 
-            << " t=" << t + dt
-            << " to " << fn << std::endl;
+            << "dump" << " t=" << t << " to " << fn << std::endl;
         WriteVtkPoly(fn, dl_, {&dlc_}, {"c"}, 
             "Lines of interface around particles");
       }
@@ -460,14 +455,14 @@ void PartStrMesh<M_>::Part(const FieldCell<Scal>& uc,
 
 template <class M_>
 void PartStrMesh<M_>::DumpPartInter(
-    FieldCell<Scal>& fca, FieldCell<Vect>& fcn, size_t id, Scal t, Scal dt) {
-  imp->DumpPartInter(fca, fcn, id, t, dt);
+    FieldCell<Scal>& fca, FieldCell<Vect>& fcn, size_t id, Scal t) {
+  imp->DumpPartInter(fca, fcn, id, t);
 }
 
 template <class M_>
 void PartStrMesh<M_>::DumpParticles(
-    FieldCell<Scal>& fca, FieldCell<Vect>& fcn, size_t id, Scal t, Scal dt) {
-  imp->DumpParticles(fca, fcn, id, t, dt);
+    FieldCell<Scal>& fca, FieldCell<Vect>& fcn, size_t id, Scal t) {
+  imp->DumpParticles(fca, fcn, id, t);
 }
 
 template <class M_>

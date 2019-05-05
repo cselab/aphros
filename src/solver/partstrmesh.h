@@ -57,11 +57,10 @@ class PartStrMesh {
   // fcn: normal
   // n: frame index
   // t: time
-  // dt: timestep
   void DumpParticles(FieldCell<Scal>& fca, FieldCell<Vect>& fcn,
-                     size_t id, Scal t, Scal dt);
+                     size_t id, Scal t);
   void DumpPartInter(FieldCell<Scal>& fca, FieldCell<Vect>& fcn,
-                     size_t id, Scal t, Scal dt);
+                     size_t id, Scal t);
   // Returns curvature field from last call of Part()
   const FieldCell<Scal>& GetCurv();
 
