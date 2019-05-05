@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -eu
+
+# test name
+t=$1
+# config file
+c=_${t}.conf
+# reference
+r=ref${t}
+
+cp "$c" add.conf
+
+# run 
+make -f sim.makefile cleanrun
+
+a=0
+for f in $r/* ; do
+  echo $f
+  if ! ch.diffnum "${f#$r/}" "$f" 1e-12; then
+    a=1
+  fi
+done
+
+exit $a
