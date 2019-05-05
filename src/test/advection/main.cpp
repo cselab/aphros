@@ -259,6 +259,9 @@ void Advection<M>::Run() {
   if (sem.Nested("finish")) {
     as_->FinishStep();
   }
+  if (sem.Nested("post")) {
+    as_->PostStep();
+  }
   if (sem("stat-loc")) {
     sumu_ = 0.;
     auto& u = as_->GetField();
