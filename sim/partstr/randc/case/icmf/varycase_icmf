@@ -10,10 +10,12 @@ f() {
   e=$d/s_0000.vtk
   if [ -f $e ] ; then
     echo "skip existing $e"
-    return
+    #return
   fi
   ./runcase dim=$dim r=$r
-  cp dim${dim}_overlap1/ch/{b.dat,partit_0000.csv,s_0000.vtk,sp_0000.vtk,vf_0000.dat,*.pdf} $d/
+  o=dim${dim}_overlap1/ch/
+  cp $o/{b.dat,partit_0000.csv,s_0000.vtk,sp_0000.vtk,vf_0000.dat} $d/
+  cp $o/*.pdf $d/ || true
 }
 
 for dim in 2 3 ; do

@@ -12,9 +12,9 @@ eval $@
 o=dim${dim}_overlap${overlap}
 
 echo "Output to $o"
-rm -rf $o
-mkdir $o
-
+mkdir -p $o
 rsync -La $d/ $o
 
-(cd $o && ./_vary --plot --dim ${dim} --overlap ${overlap} --ri $r --bi 0 --solver ch)
+pl="--plot"
+if [ "$dim" == 3 ] ; then pl="" ; fi
+(cd $o && ./_vary $pl --dim ${dim} --overlap ${overlap} --ri $r --bi 0 --solver ch)
