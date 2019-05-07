@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -eu
+set -o pipefail
+
+src=$(dirname $(realpath $0))
+dat=${1:-`pwd`}
+dat=$(realpath "$dat")
+
+(cd $dat && $src/t.py)
+
+(cd $src && ./a.py $dat)
+
+mv -v $src/a.png $dat/
