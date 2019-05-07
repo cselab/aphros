@@ -1,0 +1,8 @@
+#!/bin/bash 
+
+set -eu
+
+. ch.prefix
+. ../util
+
+rsync -rPR --update ../.././sim/partstr/randc "$P"
