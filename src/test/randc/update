@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -eu
+
+r=${1:-ref/dim2_overlap1}
+
+ff=`find $r -type f`
+
+for f in $ff ; do
+  s=${f#ref/}
+  echo $f , $s
+  cp -v $s $f
+done
+
