@@ -22,6 +22,7 @@ void WriteVtkPoly(const std::string& fn,
                   const std::vector<std::string>& dn,
                   const std::string& cm="", bool poly=true) {
   std::ofstream f(fn.c_str());
+  f.precision(16);
   f << "# vtk DataFile Version 2.0\n";
   f << cm << "\n";
   f << "ASCII\n";
