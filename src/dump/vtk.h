@@ -13,13 +13,14 @@
 // dn: list of names for dd
 // fn: path
 // cm: comment
+// poly: true: polygons, false: lines
 template <class Vect, class Scal=typename Vect::value_type>
 void WriteVtkPoly(const std::string& fn, 
                   const std::vector<Vect>& xx, 
                   const std::vector<std::vector<size_t>>& pp,  
                   const std::vector<const std::vector<Scal>*>& dd,
                   const std::vector<std::string>& dn,
-                  const std::string& cm="") {
+                  const std::string& cm="", bool poly=true) {
   std::ofstream f(fn.c_str());
   f << "# vtk DataFile Version 2.0\n";
   f << cm << "\n";
@@ -35,7 +36,8 @@ void WriteVtkPoly(const std::string& fn,
   for (auto& p : pp) {
     np += p.size();
   }
-  f << "POLYGONS " << pp.size() << " " << (np + pp.size()) << "\n";
+  f << (poly ? "POLYGONS" : "LINES");
+  f << " " << pp.size() << " " << (np + pp.size()) << "\n";
   for (auto& p : pp) {
     f << p.size();
     for (auto& k : p) {
@@ -83,14 +85,15 @@ void Convert(const std::vector<std::vector<Vect>>& vv,
 // dn: name of dataset
 // fn: path
 // cm: comment
+// poly: true: polygons, false: lines
 template <class Vect, class Scal=typename Vect::value_type>
 void WriteVtkPoly(const std::string& fn,
                   const std::vector<std::vector<Vect>>& vv,  
                   const std::vector<const std::vector<Scal>*>& dd,
                   const std::vector<std::string>& dn,
-                  const std::string& cm) {
+                  const std::string& cm, bool poly) {
   std::vector<Vect> xx;
   std::vector<std::vector<size_t>> pp;
   Convert(vv, xx, pp);
-  WriteVtkPoly(fn, xx, pp, dd, dn, cm);
+  WriteVtkPoly(fn, xx, pp, dd, dn, cm, poly);
 }
