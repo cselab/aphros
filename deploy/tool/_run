@@ -22,5 +22,5 @@ instfnd task
 instfnd intcol
 instfnd getval
 
-cp -rvf ch "$BB/"
+cp -rvf ch "$BB/" || true
 
