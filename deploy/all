@@ -1,6 +1,6 @@
 set -eu
 
-l="setenv wrap tool"
+l="setenv wrap tool sim"
 export P
 for d in $l ; do
   echo Entering $d
