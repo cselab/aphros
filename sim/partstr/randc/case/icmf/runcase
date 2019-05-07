@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -eu
+
+eval $@
+
+: ${dim=2}
+: ${overlap=1}
+: ${d=$CHPREFIX/sim/partstr/randc}
+: ${r=9}
+
+o=dim${dim}_overlap${overlap}
+
+echo "Output to $o"
+rm -rf $o
+mkdir $o
+
+rsync -La $d/ $o
+
+(cd $o && ./_vary --plot --dim ${dim} --overlap ${overlap} --ri $r --bi 0 --solver ch)

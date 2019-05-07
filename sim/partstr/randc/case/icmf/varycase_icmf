@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -eu
+
+f() {
+  dim=$1
+  r=$2
+  d=dim${dim}_pltr$(printf %03d $r)b000
+  mkdir -p $d
+  e=$d/s_0000.vtk
+  if [ -f $e ] ; then
+    echo "skip existing $e"
+    return
+  fi
+  ./runcase dim=$dim r=$r
+  cp dim${dim}_overlap1/ch/{b.dat,partit_0000.csv,s_0000.vtk,sp_0000.vtk,vf_0000.dat,*.pdf} $d/
+}
+
+for dim in 2 3 ; do
+  for r in 1 3 5 ; do
+    f $dim $r
+  done
+done
+
+#f 3 10

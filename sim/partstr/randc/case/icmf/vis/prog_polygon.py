@@ -9,6 +9,17 @@ LN = float(av[0])
 LT = float(av[1])
 # displacement in normal direction
 DN = float(av[2])
+# offset in particle index (+np for next string)
+OI = int(av[3])
+# offset in particle index (+np for next string)
+TYPE = av[4] # 'poly' or 'line'
+
+if TYPE == "poly":
+   poly = True
+elif TYPE == "line":
+   poly = False
+else:
+   assert False
 
 def Cross(a, b):
    return [
@@ -36,6 +47,19 @@ def GetPlane(o, pa, pb):
    pp = [o + et * t * LT * 0.5 + en * (n * LN * 0.5 + DN) for t,n in rr]
    return pp
 
+# o: origin (central particle)
+# pa,pb: points (adjacent particle)
+def GetLine(o, pa, pb):
+   global Norm
+   global LT, LN, DN
+   en = (pa + pb - 2 * o)
+   en /= Norm(en)
+   et = pb - pa
+   et /= Norm(et)
+   pp = [o + en * (LN * 0.5 + DN), o + en * (-LN * 0.5 + DN)]
+   return pp
+
+
 a = inputs[0]
 ap = a.Points
 ad = a.PointData
@@ -47,6 +71,7 @@ np = len(ii) // ns
 assert len(ii) % ns == 0
 
 nph = np // 2
+nph += OI
 
 pp = vtk.vtkPoints()
 
@@ -54,7 +79,11 @@ so = ap[ii[nph]]
 sop = ap[ii[nph + 1]]
 som = ap[ii[nph - 1]]
 
-pl = GetPlane(P(*so), P(*som), P(*sop))
+so = P(*so)
+som = P(*som)
+sop = P(*sop)
+
+pl = GetPlane(so, som, sop) if poly else GetLine(so, som, sop)
 n = len(pl)
 
 for i in range(n):
@@ -63,7 +92,7 @@ for i in range(n):
 o = self.GetPolyDataOutput()
 o.SetPoints(pp)
 
-ll = vtk.vtkPolygon()
+ll = vtk.vtkPolygon() if poly else vtk.vtkPolyLine()
 
 ll.GetPointIds().SetNumberOfIds(n)
 for i in range(n):
