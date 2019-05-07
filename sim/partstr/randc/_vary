@@ -70,8 +70,8 @@ def Run(ri, bi, s, force=False):
     with open("{:}/nxexp".format(s), 'w') as f :
         f.write("{:}".format(nxexp))
     print("ri={:}, bi={:}, cpr={:.4g}, nx={:}, s={:}".format(ri, bi, cpr, nx, s))
-    sh("(cd {s} ; ./run) &>> {log} && mv {s}/ok {ok} && mv {s}/ovf {ovf}"
-            .format(**locals()))
+    sh("(cd {s} && ./run)" .format(**locals()), silent=False)
+    sh("mv {s}/ok {ok} && mv {s}/ovf {ovf}".format(**locals()), silent=False)
 
 
 def Vary(ss, nri):
