@@ -24,7 +24,7 @@ rp=ref
 for f in `find $rp/$o -type f` ; do
   s=${f#$rp/}
   echo $f , $s
-  if ! ch.diffnum "$f" "$s" 1e-10; then
+  if ! ch.diffnum "$f" "$s" 1e-9; then
     a=1
   fi
 done
