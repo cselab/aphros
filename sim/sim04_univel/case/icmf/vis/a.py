@@ -6,13 +6,63 @@
 import sys
 import os
 import glob
+import re
+import numpy as np
 
+
+def F(f):
+    return os.path.join(dat, f)
+
+def FF(f):
+    return sorted(glob.glob(os.path.join(dat, f)))
+
+def Log(s):
+    s += "\n"
+    o = sys.stderr
+    o.write(s)
+    o.flush()
+
+# Sets time of datasets to step i
+def SetTime(i):
+    global vft, vt
+    for j in range(len(vft)):
+        s = vft[j]
+        s.ForcedTime = vt[j][i]
+        s.UpdatePipeline()
+
+
+# Returns bounding box of object o
+def GetBox(o):
+    o.UpdatePipeline()
+    di = o.GetDataInformation()
+    lim = di.DataInformation.GetBounds()
+    lim0 = np.array(lim[::2])
+    lim1 = np.array(lim[1::2])
+    return lim0, lim1
+
+# rv: render view
+# o: object
+# bx0, bx1: box
+# xup: if not None, orient viewup towards xup
+def ZoomToBox(rv, bx0, bx1, xup=None):
+    # center
+    bxc = (bx0 + bx1) * 0.5
+    # scale
+    sc = np.max(bx1 - bx0)
+    # normal
+    ln = np.array([0.4,0.2,1.]) * sc
+
+    rv.CameraPosition = bxc + ln * 2
+    rv.CameraFocalPoint = bxc + ln  * 1
+    if xup is not None:
+        rv.CameraViewUp = np.array(xup) - bxc
+    rv.CameraParallelScale = sc * 0.6
 
 av = sys.argv
 if len(av) < 3:
     sys.stderr.write('''usage: {:} dat out
 dat: folder with s_*.vtk, partit_*.csv
-out: path to output png
+out: folder to output png
 '''.format(av[0]))
     exit(1)
 
@@ -26,29 +76,25 @@ out = os.path.abspath(av[2])
 pinter = True
 ppart = True
 
-def F(f):
-    return os.path.join(dat, f)
+ff = FF("s_*.vtk")
+ffb = list(map(os.path.basename, ff))
+ffd = list(map(os.path.dirname, ff))
+ss = [int(re.findall("_([0-9]*)", fb)[0]) for fb in ffb]
 
-def FF(f):
-    return sorted(glob.glob(os.path.join(dat, f)))
+# output pattern (:0 substituted by frame number)
+bo = out + "/a_{:}.png"
 
 from paraview.simple import *
 paraview.simple._DisableFirstRenderCameraReset()
 
-light2 = CreateLight()
-light2.Type = 'Positional'
-light2.Position = [0.18546666236455242, -0.6018346614839948, 0.33186906365471086]
-light2.FocalPoint = [0.5082919864137087, 0.28176814443494036, 0.48899205815810054]
-
 renderView1 = CreateView('RenderView')
-renderView1.ViewSize = [1000, 1000]
+renderView1.ViewSize = [500, 500]
 renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.OrientationAxesVisibility = 0
 renderView1.CenterOfRotation = [0.5253897160291672, 0.5222961753606796, 0.5137387216091156]
-renderView1.UseLight = 0
+renderView1.UseLight = 1
 renderView1.KeyLightWarmth = 0.5
 renderView1.FillLightWarmth = 0.5
-renderView1.AdditionalLights = light2
 renderView1.CameraPosition = [0.24839119124607448, -0.10623063113324308, 0.3704770501303224]
 renderView1.CameraFocalPoint = [0.7212417088961819, 0.6928833886588502, 0.5883919766652376]
 renderView1.CameraViewUp = [0.7866517756373992, -0.5447244857787051, 0.2906100797970575]
@@ -65,7 +111,7 @@ if os.path.isfile(cam):
 renderView1.Background = [1.0, 1.0, 1.0]
 renderView1.EnableOSPRay = 1
 renderView1.AmbientSamples = 1
-renderView1.SamplesPerPixel = 50
+renderView1.SamplesPerPixel = 5
 renderView1.ProgressivePasses = 1
 materialLibrary1 = GetMaterialLibrary()
 renderView1.OSPRayMaterialLibrary = materialLibrary1
@@ -79,11 +125,23 @@ SetActiveView(renderView1)
 # setup the data processing pipelines
 # ----------------------------------------------------------------
 
-# create a new 'Legacy VTK Reader'
 dat_inter = LegacyVTKReader(FileNames=FF('s_*.vtk'))
-
-# create a new 'Legacy VTK Reader'
 dat_partcon = LegacyVTKReader(FileNames=FF('partit_*.vtk'))
+dat_part = CSVReader(FileName=FF('partit_*.csv'))
+
+# list of all sources
+vs = [dat_inter, dat_partcon, dat_part]
+
+# time steps
+vt = [np.array(s.TimestepValues) for s in vs]
+
+# replace with ForceTime
+dat_inter = ForceTime(dat_inter)
+dat_partcon = ForceTime(dat_partcon)
+dat_part = ForceTime(dat_part)
+
+# all ForceTime
+vft = [dat_inter, dat_partcon, dat_part]
 
 # create a new 'Programmable Filter'
 prog_partcon = ProgrammableFilter(Input=dat_partcon)
@@ -91,9 +149,6 @@ prog_partcon.Script = """execfile("prog_part.py") """
 prog_partcon.RequestInformationScript = ''
 prog_partcon.RequestUpdateExtentScript = ''
 prog_partcon.PythonPath = ''
-
-# create a new 'CSV Reader'
-dat_part = CSVReader(FileName=FF('partit_*.csv'))
 
 # create a new 'Table To Points'
 tableToPoints1 = TableToPoints(Input=dat_part)
@@ -109,20 +164,17 @@ prog_part.RequestUpdateExtentScript = ''
 prog_part.PythonPath = ''
 
 # create a new 'Clip'
-clip1 = Clip(Input=dat_inter)
-clip1.ClipType = 'Plane'
-clip1.Scalars = ['CELLS', 'c']
-clip1.Value = 8007000.0
-clip1.Crinkleclip = 1
-clip1.ClipType.Origin = [0.5788521482325462, 0.408296197740581, 0.5227404940354464]
-clip1.ClipType.Normal = [-0.4573763428286224, 0.8819643456684312, -0.11377949723201745]
-
-# create a new 'Clip'
 clippart = Clip(Input=prog_part)
 clippart.ClipType = 'Scalar'
 clippart.Scalars = ['POINTS', 'sp']
 clippart.Value = 0
 clippart.Invert = 0
+
+# create a new 'Calculator'
+calcpart = Calculator(Input=clippart)
+calcpart.AttributeType = 'Point Data'
+calcpart.ResultArrayName = 'cc'
+calcpart.Function = 'sin(1234.5678*c)'
 
 # create a new 'Clip'
 clip_partcon = Clip(Input=prog_partcon)
@@ -131,42 +183,69 @@ clip_partcon.Scalars = ['CELLS', 'sc']
 clip_partcon.Value = 0
 clip_partcon.Invert = 0
 
+calcpartcon = Calculator(Input=clip_partcon)
+calcpartcon.AttributeType = 'Cell Data'
+calcpartcon.ResultArrayName = 'cc'
+calcpartcon.Function = 'sin(1234.5678*c)'
+
 # ----------------------------------------------------------------
 # setup the visualization in view 'renderView1'
 # ----------------------------------------------------------------
 
-# show data from clip1
+# get color transfer function/color map for 'cc'
+ccLUT = GetColorTransferFunction('cc')
+ccLUT.AutomaticRescaleRangeMode = 'Never'
+ccLUT.RGBPoints = [-1.0, 0.0, 0.0, 1.0, -0.6679999999999999, 0.0, 0.0, 1.0, -0.6659999999999999, 1.0, 0.0, 1.0, -0.33599999999999997, 1.0, 0.0, 1.0, -0.33399999999999996, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0020000000000000018, 0.0, 1.0, 0.0, 0.3320000000000001, 0.0, 1.0, 0.0, 0.3340000000000001, 1.0, 1.0, 0.0, 0.6639999999999997, 1.0, 1.0, 0.0, 0.6659999999999999, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0]
+ccLUT.ColorSpace = 'HSV'
+ccLUT.ScalarRangeInitialized = 1.0
+
+# get opacity transfer function/opacity map for 'cc'
+ccPWF = GetOpacityTransferFunction('cc')
+ccPWF.Points = [-1.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
+ccPWF.ScalarRangeInitialized = 1
+
 if pinter:
-    clip1Display = Show(dat_inter, renderView1)
-    clip1Display.Representation = 'Surface With Edges'
-    clip1Display.AmbientColor = [0.0, 0.0, 0.0]
-    clip1Display.ColorArrayName = ['POINTS', '']
-    clip1Display.DiffuseColor = [0.75, 0.75, 0.75]
-    clip1Display.LineWidth = 0.5
-    clip1Display.RenderLinesAsTubes = 1
-    clip1Display.EdgeColor = [0.0, 0.0, 0.0]
+    interDisplay = Show(dat_inter, renderView1)
+    interDisplay.Representation = 'Surface With Edges'
+    interDisplay.AmbientColor = [0.0, 0.0, 0.0]
+    interDisplay.ColorArrayName = ['POINTS', '']
+    interDisplay.DiffuseColor = [0.75, 0.75, 0.75]
+    interDisplay.LineWidth = 1
+    interDisplay.RenderLinesAsTubes = 1
+    interDisplay.EdgeColor = [0.0, 0.0, 0.0]
 
 if ppart:
-    clippartDisplay = Show(clippart, renderView1)
+    clippartDisplay = Show(calcpart, renderView1)
     clippartDisplay.Representation = 'Surface'
     clippartDisplay.AmbientColor = [0.0, 0.0, 0.0]
-    clippartDisplay.ColorArrayName = ['POINTS', '']
-    clippartDisplay.DiffuseColor = [1.0, 0.4980392156862745, 0.054901960784313725]
+    clippartDisplay.ColorArrayName = ['POINTS', 'cc']
     clippartDisplay.PointSize = 10.0
     clippartDisplay.RenderPointsAsSpheres = 1
+    clippartDisplay.LookupTable = ccLUT
 
-    clip_partconDisplay = Show(clip_partcon, renderView1)
+    clip_partconDisplay = Show(calcpartcon, renderView1)
     clip_partconDisplay.Representation = 'Surface'
     clip_partconDisplay.AmbientColor = [1.0, 0.0, 0.0]
-    clip_partconDisplay.ColorArrayName = ['POINTS', '']
-    clip_partconDisplay.DiffuseColor = [1.0, 0.4980392156862745, 0.054901960784313725]
-    clip_partconDisplay.LineWidth = 2
+    clip_partconDisplay.ColorArrayName = ['CELLS', 'cc']
+    clip_partconDisplay.LineWidth = 5
     clip_partconDisplay.RenderLinesAsTubes = 1
+    clip_partconDisplay.LookupTable = ccLUT
 
 SetActiveSource(None)
 
-sc = GetAnimationScene()
-sc.NumberOfFrames = len(dat_inter.TimestepValues)
-sc.PlayMode = 'Snap To TimeSteps'
+#anim = GetAnimationScene()
+#anim.NumberOfFrames = len(dat_inter.TimestepValues)
+#anim.PlayMode = 'Snap To TimeSteps'
 #SaveAnimation(out, FrameWindow=[0,10], CompressionLevel=9)
-SaveAnimation(out, CompressionLevel=9)
+#SaveAnimation(out, CompressionLevel=9)
+
+for i in list(range(len(ss))):
+    SetTime(i)
+    bx0, bx1 = GetBox(dat_inter)
+    ZoomToBox(renderView1, bx0, bx1, None)
+    fn = bo.format("{:04d}".format(ss[i]))
+    if os.path.isfile(fn):
+        Log("skip existing {:}".format(fn))
+        continue
+    Log("{:}/{:}: {:}".format(i + 1, len(ss), fn))
+    SaveScreenshot(fn, renderView1, CompressionLevel=9)
