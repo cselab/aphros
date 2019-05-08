@@ -144,7 +144,7 @@ clip_partconDisplay.Representation = 'Surface'
 clip_partconDisplay.AmbientColor = [1.0, 0.0, 0.0]
 clip_partconDisplay.ColorArrayName = ['POINTS', '']
 clip_partconDisplay.DiffuseColor = [1.0, 0.4980392156862745, 0.054901960784313725]
-clip_partconDisplay.LineWidth = 2.0
+clip_partconDisplay.LineWidth = 4
 clip_partconDisplay.RenderLinesAsTubes = 1
 
 # show data from clip_line
@@ -155,7 +155,7 @@ clip_lineDisplay.Representation = 'Surface'
 clip_lineDisplay.AmbientColor = [1.0, 0.0, 0.0]
 clip_lineDisplay.ColorArrayName = ['POINTS', '']
 clip_lineDisplay.DiffuseColor = [0.0, 0.0, 0.0]
-clip_lineDisplay.LineWidth = 3.0
+clip_lineDisplay.LineWidth = 6
 clip_lineDisplay.RenderLinesAsTubes = 1
 
 # show data from dat_inter
@@ -166,7 +166,7 @@ dat_interDisplay.Representation = 'Surface With Edges'
 dat_interDisplay.AmbientColor = [0.0, 0.0, 0.0]
 dat_interDisplay.ColorArrayName = ['POINTS', '']
 dat_interDisplay.DiffuseColor = [0.7, 0.7, 0.7]
-dat_interDisplay.LineWidth = 0.5
+dat_interDisplay.LineWidth = 1
 dat_interDisplay.RenderLinesAsTubes = 1
 dat_interDisplay.EdgeColor = [0.0, 0.0, 0.0]
 
