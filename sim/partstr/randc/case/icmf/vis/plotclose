@@ -7,7 +7,7 @@ src=$(dirname $(realpath $0))
 dat=${1:-`pwd`}
 dat=$(realpath "$dat")
 
-(cd $dat && $src/t.py)
+(cd $dat && $src/partcon.py partit_0000.csv o.vtk)
 
 (cd $src && ./aclose.py $dat $dat/a0.png inter)
 (cd $src && ./aclose.py $dat $dat/a1.png inter slice)

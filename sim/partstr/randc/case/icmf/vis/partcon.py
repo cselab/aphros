@@ -5,46 +5,16 @@ import numpy as np
 import os
 import pickle
 import math
-
-cache = False
-
-def GetCache(name):
-    if not cache:
-        return None
-
-    c = "cache_{:}.bin".format(name)
-
-    if os.path.isfile(c):
-        print("Cache hit {:}".format(c))
-        with open(c, 'rb') as f:
-            return pickle.load(f)
-    print("Cache miss {:}".format(c))
-    return None
-
-def SaveCache(name, r):
-    if not cache:
-        return r
-
-    c = "cache_{:}.bin".format(name)
-
-    print("Save to cache: {:}".format(c))
-    with open(c, 'wb') as f:
-        pickle.dump(r, f)
-    return r
+import sys
 
 def Collect(f):
-    cn = "partit"
-    r = GetCache(cn)
-    #if r is not None: return r
-
     u = np.genfromtxt(f, names=True, delimiter=',')
     xx = u['x']
     yy = u['y']
     zz = u['z']
     cc = u['c'].astype(int)
     kk = u['k']
-    r = xx, yy, zz, cc, kk
-    return SaveCache(cn, r)
+    return xx, yy, zz, cc, kk
 
 # array of lines:
 # line: xx, yy, zz, c
@@ -79,8 +49,16 @@ def Vtk(ll, fn, comment=""):
 def IsClose(a, b):
     return abs(a - b) < 1e-5
 
+av = sys.argv
+if len(av) < 3:
+    sys.stderr.write('''usage: {:} src out
+src: file of partit*.csv
+out: output vtk
+'''.format(av[0]))
+    exit(1)
 
-f = sorted(glob.glob("partit*.csv"))[0]
+f = av[1]
+out = av[2]
 
 xx, yy, zz, cc, kk = Collect(f)
 
@@ -99,4 +77,4 @@ for i in range(len(xx)):
     l[1].append(yy[i])
     l[2].append(zz[i])
 
-Vtk(ll, 'o.vtk', comment="lines connecting paritcles")
+Vtk(ll, out, comment="lines connecting paritcles")
