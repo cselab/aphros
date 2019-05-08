@@ -14,9 +14,9 @@ cmd () {
   if [ -f $f ] ; then
     echo "skip existing $f"
   else
-    dx=225
-    dy=109
-    ev convert "'$b' \( '$a'[400x500] -background none \
+    dx=227
+    dy=1
+    ev convert "'$b' \( '$a'[800x650] -background none \
      -geometry +$dx+$dy \
      -scale 107% \) \
      -compose over -composite -depth 8 '$f'"

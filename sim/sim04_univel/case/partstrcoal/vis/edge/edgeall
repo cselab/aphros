@@ -2,9 +2,10 @@
 
 set -eu
 
-for f in ../vis/a_*.png ; do
+pre=../vismirror/am_
+for f in $pre*.png ; do
     echo $f
-    o=ae_${f#../vis/a_}
+    o=ae_${f#$pre}
     if [ -f "$o" ] ; then
         echo "skip existing $o"
         continue

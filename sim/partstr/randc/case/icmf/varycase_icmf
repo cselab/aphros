@@ -18,10 +18,11 @@ f() {
   cp $o/*.pdf $d/ || true
 }
 
+#f 3 10 ; exit
+
 for dim in 2 3 ; do
   for r in 1 3 5 ; do
     f $dim $r
   done
 done
 
-#f 3 10

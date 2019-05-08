@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -eu
+
+# input
+a=$1
+# output
+b=$2
+convert $a \( +clone -flop \) -compose Darken -extent +0+100 -composite $b
+

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -eu
+
+b=../vis
+for f in $b/a_*.png ; do
+    echo $f
+    o=am_${f#$b/a_}
+    if [ -f "$o" ] ; then
+        echo "skip existing $o"
+        continue
+    fi
+    echo $o
+    ./mirror $f $o
+done
