@@ -40,23 +40,36 @@ def GetBox(o):
     lim1 = np.array(lim[1::2])
     return lim0, lim1
 
+def GetCenter(o):
+    o.UpdatePipeline()
+    di = o.GetDataInformation()
+    lim = di.DataInformation.GetBounds()
+    lim0 = np.array(lim[::2])
+    lim1 = np.array(lim[1::2])
+    return (lim0 + lim1) * 0.5
+
+def Norm(v):
+    return sum(v ** 2) ** 0.5
+
+def A(v):
+    return np.array(v)
+
 # rv: render view
 # o: object
 # bx0, bx1: box
-# xup: if not None, orient viewup towards xup
-def ZoomToBox(rv, bx0, bx1, xup=None):
-    # center
-    bxc = (bx0 + bx1) * 0.5
+# bxc: center
+# cp,cf,cv: reference position, focalpoint and viewup
+def ZoomToBox(rv, bx0, bx1, bxc, cp, cf, cv):
     # scale
-    sc = np.max(bx1 - bx0)
+    sc = np.max(bx1 - bx0) * 1.4
     # normal
-    ln = np.array([0.4,0.2,1.]) * sc
+    ln = cp - cf
+    ln *= sc / Norm(ln)
 
-    rv.CameraPosition = bxc + ln * 2
-    rv.CameraFocalPoint = bxc + ln  * 1
-    if xup is not None:
-        rv.CameraViewUp = np.array(xup) - bxc
-    rv.CameraParallelScale = sc * 0.6
+    k = 1
+    rv.CameraPosition = cp * (1 - k) +  bxc * k + ln * 2
+    rv.CameraFocalPoint = cf * (1 - k) + bxc * k + ln  * 1
+    rv.CameraViewUp = cv
 
 av = sys.argv
 if len(av) < 3:
@@ -95,6 +108,7 @@ renderView1.CenterOfRotation = [0.5253897160291672, 0.5222961753606796, 0.513738
 renderView1.UseLight = 1
 renderView1.KeyLightWarmth = 0.5
 renderView1.FillLightWarmth = 0.5
+renderView1.LightScale = 0.85
 renderView1.CameraPosition = [0.24839119124607448, -0.10623063113324308, 0.3704770501303224]
 renderView1.CameraFocalPoint = [0.7212417088961819, 0.6928833886588502, 0.5883919766652376]
 renderView1.CameraViewUp = [0.7866517756373992, -0.5447244857787051, 0.2906100797970575]
@@ -108,10 +122,14 @@ if os.path.isfile(cam):
     renderView1.CameraFocalPoint = eval(ll[1])
     renderView1.CameraViewUp = eval(ll[2])
 
+cam_pos = A(renderView1.CameraPosition)
+cam_foc = A(renderView1.CameraFocalPoint)
+cam_view = A(renderView1.CameraViewUp)
+
 renderView1.Background = [1.0, 1.0, 1.0]
 renderView1.EnableOSPRay = 1
 renderView1.AmbientSamples = 1
-renderView1.SamplesPerPixel = 5
+renderView1.SamplesPerPixel = 50
 renderView1.ProgressivePasses = 1
 materialLibrary1 = GetMaterialLibrary()
 renderView1.OSPRayMaterialLibrary = materialLibrary1
@@ -239,10 +257,12 @@ SetActiveSource(None)
 #SaveAnimation(out, FrameWindow=[0,10], CompressionLevel=9)
 #SaveAnimation(out, CompressionLevel=9)
 
+bx0, bx1 = GetBox(dat_inter)
+
 for i in list(range(len(ss))):
     SetTime(i)
-    bx0, bx1 = GetBox(dat_inter)
-    ZoomToBox(renderView1, bx0, bx1, None)
+    bxc = GetCenter(dat_inter)
+    ZoomToBox(renderView1, bx0, bx1, bxc, cam_pos, cam_foc, cam_view)
     fn = bo.format("{:04d}".format(ss[i]))
     if os.path.isfile(fn):
         Log("skip existing {:}".format(fn))
