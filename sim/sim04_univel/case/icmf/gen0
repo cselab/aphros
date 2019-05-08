@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -eu
+
+d=$CHPREFIX/sim/sim04_univel/case/partstr/dummy
+
+o=sim
+
+rsync -Lva $d/ $o
+
+cd $o
+
+./gen -nx 16 -cpr 1.19 -We 0.01 -La 1200. -np 1 -nfr 184 -dim 3 -bcoh 1 1 1 -tmax 4 -mode vel
+
+echo "set int statvel 1
+set int list_ls 2
+set string dumplist vf
+set int min_iter 3
+set int dumppart 1
+" > ch/add.conf
+
+./r_ch

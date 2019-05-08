@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -eu
+
+for f in partit_*.csv ; do
+  o=${f%csv}vtk
+  echo "$f -> $o"
+  ./partcon.py $f $o
+done
