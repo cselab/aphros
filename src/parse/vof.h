@@ -28,6 +28,7 @@ void Parse(typename solver::Vof<M>::Par* p, const Vars& var) {
   p->dumppart = var.Int["dumppart"];
   p->dumppartinter = var.Int["dumppartinter"];
   p->bcc_reflect = var.Int["bcc_reflect"];
+  p->bcc_fill = var.Double["bcc_fill"];
   p->part_constr = var.Int["part_constr"];
   p->part_segcirc = var.Double["part_segcirc"];
   p->part_itermax = var.Int["part_itermax"];

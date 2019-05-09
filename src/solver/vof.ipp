@@ -131,7 +131,7 @@ struct Vof<M_>::Imp {
   // reconstruct interface
   void Rec(const FieldCell<Scal>& uc) {
     if (par->bcc_reflect) {
-      BcReflect(const_cast<FieldCell<Scal>&>(uc), mfc_, m);
+      BcReflect(const_cast<FieldCell<Scal>&>(uc), mfc_, par->bcc_fill, m);
     }
     DetectInterface(uc);
     // Compute normal and curvature [s]
@@ -142,8 +142,8 @@ struct Vof<M_>::Imp {
       fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
     }
     if (par->bcc_reflect) {
-      BcReflect(fca_, mfc_, m);
-      BcReflect(fcn_, mfc_, m);
+      BcReflect(fca_, mfc_, Scal(0), m);
+      BcReflect(fcn_, mfc_, Vect(0), m);
     }
   }
   void CalcNormal(const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,

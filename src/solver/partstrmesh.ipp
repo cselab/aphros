@@ -246,8 +246,8 @@ struct PartStrMesh<M_>::Imp {
       // XXX: adhoc
       // reflection at boundaries
       if (par->bcc_reflect) {
-        BcReflect(fca, mfc, m);
-        BcReflect(fcn, mfc, m);
+        BcReflect(fca, mfc, Scal(0), m);
+        BcReflect(fcn, mfc, Vect(0), m);
       }
       Seed(uc, fca, fcn, fci);
       partstr_->Run(par->tol, par->itermax,

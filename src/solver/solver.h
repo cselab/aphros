@@ -423,10 +423,11 @@ std::vector<Scal> GetGradCoeffs(
 }
 
 // apply reflection to field on boundaries 
+// fill: value for other types that CondFaceReflect
 template <class T, class M>
 void BcReflect(FieldCell<T>& uc,
                const MapFace<std::shared_ptr<CondFace>>& mfc,
-               const M& m) {
+               T fill, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   for (const auto& it : mfc) {
@@ -475,8 +476,8 @@ void BcReflect(FieldCell<T>& uc,
       IdxCell cm = bc.GetIdx(wm);
       IdxCell cmm = bc.GetIdx(wmm);
       // apply
-      uc[cm] *= 0.;
-      uc[cmm] *= 0.; 
+      uc[cm] = fill;
+      uc[cmm] = fill; 
     }
   }
 }
