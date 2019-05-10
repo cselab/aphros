@@ -26,6 +26,7 @@ traj*.csv
 mesh.conf
 a.conf
 par.conf
+par.make
 np
 tl
 dim
