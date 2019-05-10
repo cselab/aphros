@@ -152,15 +152,14 @@ set double box1_vf 0.
 
     with open("b.dat", 'w') as f:
         f.write("{bx} {by} {bz} {brx} {bry} {brz}\n".format(**locals()))
-    with open("_m", 'w') as f:
-        f.write("{nx} {ny} {nz}".format(**c))
-    with open("_bs", 'w') as f:
-        f.write("{bs} {bs} {bs}".format(**c))
-    with open("_np", 'w') as f:
-        f.write("{np}".format(**c))
-    with open("_tl", 'w') as f:
-        f.write("{tl}".format(**c))
 
+    with open("par.make", 'w') as f:
+        f.write(
+'''m = {nx} {ny} {nz}
+bs = {bs} {bs} {bs}
+np = {np}
+tl = {tl}
+'''.format(**c))
 
 
 c = Exp()
