@@ -24,7 +24,6 @@ class Embed {
   const FieldCell<Scal>& GetCellType() const { return fct_; }
   const FieldCell<Scal>& GetNormal() const { return fcn_; }
   const FieldCell<Vect>& GetPlane() const { return fca_; }
-  static constexpr Scal kNone = -1.; // no color
 
  private:
   M& m;
