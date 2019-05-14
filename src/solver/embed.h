@@ -26,8 +26,10 @@ class Embed {
     InitCells(fnf_, ffs_, fct_, fcn_, fca_, fcs_, m);
   }
   const FieldCell<Type>& GetCellType() const { return fct_; }
-  const FieldCell<Scal>& GetNormal() const { return fcn_; }
-  const FieldCell<Vect>& GetPlane() const { return fca_; }
+  const FieldCell<Vect>& GetNormal() const { return fcn_; }
+  const FieldCell<Scal>& GetPlane() const { return fca_; }
+  const FieldFace<Scal>& GetFaceArea() const { return ffs_; }
+  const FieldCell<Scal>& GetCellArea() const { return fcs_; }
 
   // Dump cut polygons
   void DumpPoly() {
