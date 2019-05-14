@@ -15,9 +15,9 @@
 // cm: comment
 // poly: true: polygons, false: lines
 template <class Vect, class Scal=typename Vect::value_type>
-void WriteVtkPoly(const std::string& fn, 
-                  const std::vector<Vect>& xx, 
-                  const std::vector<std::vector<size_t>>& pp,  
+void WriteVtkPoly(const std::string& fn,
+                  const std::vector<Vect>& xx,
+                  const std::vector<std::vector<size_t>>& pp,
                   const std::vector<const std::vector<Scal>*>& dd,
                   const std::vector<std::string>& dn,
                   const std::string& cm="", bool poly=true) {
@@ -47,12 +47,20 @@ void WriteVtkPoly(const std::string& fn,
     f << "\n";
   }
 
+  // check data size
+  for (auto& d : dd) {
+    (void) d;
+    assert(d->size() == pp.size());
+  }
+
   // cell-based datasets
   for (size_t i = 0; i < dd.size(); ++i) {
     auto& d = *(dd[i]);
     auto& n = dn[i];
-    f << "CELL_DATA " << d.size() << "\n"
-        << "SCALARS " << n << " float\n"
+    if (i == 0) {
+      f << "CELL_DATA " << d.size() << "\n";
+    }
+    f << "SCALARS " << n << " float\n"
         << "LOOKUP_TABLE default\n";
     for (auto& a : d) {
       f << a << "\n";
