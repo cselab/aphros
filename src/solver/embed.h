@@ -34,19 +34,21 @@ class Embed {
     auto sem = m.GetSem("dumppoly");
     if (sem("local")) {
       dl_.clear();
-      dlc_.clear();
-      ffs_.Reinit(m, 0.);
+      dld_.clear();
+      dls_.clear();
 
       for (auto f : m.Faces()) {
         if (fct_[m.GetNeighbourCell(f, 0)] == Type::cut ||
             fct_[m.GetNeighbourCell(f, 1)] == Type::cut) {
           size_t d = m.GetIndexFaces().GetDir(f);
-          if (fft_[f] == Type::cut) {
-            dl_.push_back(ffpoly_[f]);
-            dlc_.push_back(d);
-          } else if (fft_[f] == Type::regular) {
-            dl_.push_back(GetPoly(f, m));
-            dlc_.push_back(d);
+          if (fft_[f] == Type::cut || fft_[f] == Type::regular) {
+            if (fft_[f] == Type::cut) {
+              dl_.push_back(ffpoly_[f]);
+            } else {
+              dl_.push_back(GetPoly(f, m));
+            }
+            dld_.push_back(d);
+            dls_.push_back(ffs_[f]);
           }
         }
       }
@@ -56,14 +58,15 @@ class Embed {
           auto xx = R::GetCutPoly(
               m.GetCenter(c), fcn_[c], fca_[c], m.GetCellSize());
           dl_.push_back(xx);
-          dlc_.push_back(3);
+          dld_.push_back(3);
+          dls_.push_back(fcs_[c]);
         }
       }
 
       using TV = typename M::template OpCatVT<Vect>;
       m.Reduce(std::make_shared<TV>(&dl_));
       using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dlc_));
+      m.Reduce(std::make_shared<TS>(&dld_));
     }
     if (sem("write")) {
       if (m.IsRoot()) {
@@ -71,7 +74,8 @@ class Embed {
         std::cout << std::fixed << std::setprecision(8)
             << "dump" 
             << " to " << fn << std::endl;
-        WriteVtkPoly(fn, dl_, {&dlc_}, {"dir"}, "Embedded boundary", true);
+        WriteVtkPoly(fn, dl_, {&dld_, &dls_}, {"dir", "area"}, 
+                     "Embedded boundary", true);
       }
     }
   }
@@ -208,8 +212,7 @@ class Embed {
 
         auto xx = R::GetCutPoly(
             m.GetCenter(c), fcn[c], fca[c], m.GetCellSize());
-
-        fcs[c] = R::GetArea(xx, fcn[c]);
+        fcs[c] = std::abs(R::GetArea(xx, fcn[c]));
       }
     }
   }
@@ -227,8 +230,9 @@ class Embed {
   FieldCell<Scal> fca_;  // plane constant
   FieldCell<Scal> fcs_;  // area of polygon
   // tmp
-  std::vector<std::vector<Vect>> dl_;  // dump poly
-  std::vector<Scal> dlc_;              // dump poly
+  std::vector<std::vector<Vect>> dl_;  // dump poly, polygon
+  std::vector<Scal> dld_;              // dump poly, direction
+  std::vector<Scal> dls_;              // dump poly, area
 };
 
 
