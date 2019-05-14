@@ -45,6 +45,7 @@ class KernelEmbed : public KernelMeshPar<M_, GPar> {
  private:
   using EM = solver::Embed<M>;
   std::unique_ptr<EM> em_;
+  FieldCell<Scal> fct_;  // cell type
 };
 
 
@@ -52,7 +53,20 @@ template <class M>
 void KernelEmbed<M>::Run() {
   auto sem = m.GetSem("Run");
   if (sem("init")) {
-
+   FieldNode<Scal> fnf(m, 0);
+   for (auto n : m.Nodes()) {
+     auto x = m.GetNode(n);
+     fnf[n] = x.norm() - 1.;
+   }
+   em_ = std::unique_ptr<EM>(new EM(m, fnf));
+   fct_.Reinit(m);
+   for (auto c : m.Cells()) {
+     fct_[c] = em_->GetCellType()[c];
+   }
+   m.Dump(&fct_, "type");
+  }
+  if (sem.Nested("dump")) {
+    em_->DumpPoly();
   }
 }
 
