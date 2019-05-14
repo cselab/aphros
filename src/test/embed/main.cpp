@@ -62,7 +62,7 @@ void KernelEmbed<M>::Run() {
    em_ = std::unique_ptr<EM>(new EM(m, fnf));
    fct_.Reinit(m);
    for (auto c : m.Cells()) {
-     fct_[c] = em_->GetCellType()[c];
+     fct_[c] = size_t(em_->GetCellType()[c]);
    }
    m.Dump(&fct_, "type");
   }
