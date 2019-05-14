@@ -56,7 +56,8 @@ void KernelEmbed<M>::Run() {
    FieldNode<Scal> fnf(m, 0);
    for (auto n : m.Nodes()) {
      auto x = m.GetNode(n);
-     fnf[n] = x.norm() - 1.;
+     fnf[n] = x.norm() * (1 + std::sin(x[0] * 5)*0.1 + std::sin(x[1] * 7)*0.15) - 1.;
+     fnf[n] *= -1;
    }
    em_ = std::unique_ptr<EM>(new EM(m, fnf));
    fct_.Reinit(m);
