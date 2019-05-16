@@ -189,7 +189,7 @@ box1Display.ColorArrayName = [None, '']
 
 appendGeometry2Display = Show(appendGeometry2, renderView1)
 appendGeometry2Display.Representation = 'Surface'
-appendGeometry2Display.AmbientColor = [0.0, 0.0, 0.0]
+appendGeometry2Display.DiffuseColor = np.array([116, 190, 249]) / 255.
 appendGeometry2Display.ColorArrayName = [None, '']
 
 SetActiveSource(None)

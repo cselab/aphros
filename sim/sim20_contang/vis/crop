@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -eu
+
+for f in ../vis/*.png ; do 
+  o=`basename $f`
+  echo "$f -> $o"
+  c="convert $f -gravity center -crop 640x360+0-10 +repage $o"
+  echo "$c"
+  eval "$c"
+done
