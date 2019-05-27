@@ -45,8 +45,8 @@ class KernelEmbed : public KernelMeshPar<M_, GPar> {
   using P::m;
 
  private:
-  using EM = solver::Embed<M>;
-  std::unique_ptr<EM> em_;
+  using EB = solver::Embed<M>;
+  std::unique_ptr<EB> eb_;
   FieldCell<Scal> fct_;  // cell type
   FieldCell<Scal> fcu_;  // field
 };
@@ -63,76 +63,39 @@ void KernelEmbed<M>::Run() {
         (1 + std::sin(x[0] * 5)*0.1 + std::sin(x[1] * 7)*0.15) - 1.;
       //fnf[n] *= -1;
     }
-    em_ = std::unique_ptr<EM>(new EM(m, fnf));
+    eb_ = std::unique_ptr<EB>(new EB(m, fnf));
     fct_.Reinit(m);
     for (auto c : m.Cells()) {
-      fct_[c] = size_t(em_->GetCellType()[c]);
+      fct_[c] = size_t(eb_->GetCellType()[c]);
     }
-    m.Dump(&fct_, "type");
-
+    //m.Dump(&fct_, "type");
     fcu_.Reinit(m, 0.);
-    using Type = typename EM::Type;
-    auto& ffs = em_->GetFaceArea();
-    auto& fcs = em_->GetCellArea();
-    auto& fct = em_->GetCellType();
-    FieldFace<Scal> ffg(m, 0); // gradient on faces
-    FieldCell<Scal> fcg(m, 0); // gradient on embedded boundary
-    Scal a = 1.; // value on boundary
-    // gradient on faces
-    for (auto f : m.Faces()) {
-      auto cm = m.GetNeighbourCell(f, 0);
-      auto cp = m.GetNeighbourCell(f, 1);
-      if (fct[cm] != Type::excluded && fct[cp] != Type::excluded) {
-        ffg[f] = (fcu_[cp] - fcu_[cm]) * m.GetArea(f) / m.GetVolume(cp);
-      } else if (fct[cm] != Type::excluded) {
-        ffg[f] = (a - fcu_[cm]) * m.GetArea(f) / m.GetVolume(cm);
-      } else if (fct[cp] != Type::excluded) {
-        ffg[f] = (fcu_[cp] - a) * m.GetArea(f) / m.GetVolume(cp);
-      }
-    }
-    // gradient on embedded boundary
+  }
+  if (sem.Nested("dumppoly")) {
+    eb_->DumpPoly();
+  }
+  for (size_t t = 0; t < 10; ++t)
+  if (sem("step")) {
+    //using Type = typename EB::Type;
+    //auto& ffs = eb_->GetFaceArea();
+    //auto& fcs = eb_->GetCellArea();
+    //auto& fct = eb_->GetCellType();
+    Scal a = 1.;       // value on boundary
+    Vect vel(1., 0., 0.); // advection velocity
+    // sum of fluxes
+    FieldCell<Scal> fcq(m, 0); // flux on faces
+    Scal dt = 1;
+    (void) dt;
+    (void) a;
+    (void) vel;
+    (void) fcq;
     for (auto c : m.Cells()) {
-      auto xn = R::GetNearest(
-          Vect(0), em_->GetNormal()[c], em_->GetPlane()[c], m.GetCellSize());
-      fcg[c] = (a - fcu_[c]) / xn.norm();
-    }
-    FieldCell<Scal> fcq(m, 0);
-    for (auto c : m.Cells()) {
-      if (fct[c] == Type::cut) {
-        Scal vol = 0;
-        for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
-          auto x = m.GetCenter(c);
-          fcq[c] += ffg[f] * ffs[f] * m.GetOutwardFactor(c, q);
-          vol += x[0] * m.GetOutwardSurface(c, q)[0];
-        }
-        auto n = em_->GetNormal()[c];
-        n /= n.norm();
-        auto xn = R::GetNearest(
-            Vect(0), em_->GetNormal()[c], 
-            em_->GetPlane()[c], m.GetCellSize());
-        fcq[c] += fcg[c] * fcs[c];
-        vol += xn[0] * n[0] * fcs[c];
-        fcq[c] /= vol;
-      } else if (fct[c] == Type::regular) {
-        for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
-          fcq[c] += ffg[f] * m.GetArea(f) * m.GetOutwardFactor(c, q);
-        }
-        fcq[c] /= m.GetVolume(c);
-      }
-    }
-    Scal dt = 0.01;
-    for (auto c : m.Cells()) {
-      if (fct[c] != Type::excluded) {
-        fcu_[c] += dt * fcq[c];
-      }
+      fcu_[c] = eb_->GetCellVolume()[c];
     }
     m.Dump(&fcu_, "u");
-
   }
-  if (sem.Nested("dump")) {
-    em_->DumpPoly();
+  if (sem("dumpwrite")) {
+    // FIXME
   }
 }
 
