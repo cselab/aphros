@@ -23,13 +23,15 @@ class Embed {
   Embed(M& m, const FieldNode<Scal>& fnf)
       : m(m), fnf_(fnf) {
     InitFaces(fnf_, fft_, ffpoly_, ffs_, m);
-    InitCells(fnf_, ffs_, fct_, fcn_, fca_, fcs_, m);
+    InitCells(fnf_, ffs_, fct_, fcn_, fca_, fcs_, fcd_, fcv_, m);
   }
   const FieldCell<Type>& GetCellType() const { return fct_; }
   const FieldCell<Vect>& GetNormal() const { return fcn_; }
   const FieldCell<Scal>& GetPlane() const { return fca_; }
   const FieldFace<Scal>& GetFaceArea() const { return ffs_; }
   const FieldCell<Scal>& GetCellArea() const { return fcs_; }
+  const FieldCell<Scal>& GetCellOffset() const { return fcd_; }
+  const FieldCell<Scal>& GetCellVolume() const { return fcv_; }
 
   // Dump cut polygons
   void DumpPoly() {
@@ -151,6 +153,7 @@ class Embed {
   // Determines the cell types, normals and plane constants.
   // fnf: f on nodes
   // ffs: face area for which f > 0
+  // ffpoly: polygon representing f < 0
   // Output:
   // fct: cell types
   // fcn: normals
@@ -159,11 +162,14 @@ class Embed {
   static void InitCells(const FieldNode<Scal>& fnf, const FieldFace<Scal>& ffs,
                         FieldCell<Type>& fct, FieldCell<Vect>& fcn,
                         FieldCell<Scal>& fca, FieldCell<Scal>& fcs, 
+                        FieldCell<Scal>& fcd, FieldCell<Scal>& fcv, 
                         const M& m) {
     fct.Reinit(m);
     fcn.Reinit(m);
     fca.Reinit(m);
     fcs.Reinit(m);
+    fcd.Reinit(m);
+    fcv.Reinit(m);
     for (auto c : m.Cells()) {
       size_t q = 0; // number of nodes with f > 0
       const size_t mi = m.GetNumNeighbourNodes(c);
@@ -181,9 +187,9 @@ class Embed {
           Vect n(0);
           for (auto q : m.Nci(c)) {
             IdxFace f = m.GetNeighbourFace(c, q);
-            n += m.GetOutwardSurface(c, q) * ffs[f];
+            n += m.GetNormal(f) * ffs[f] * m.GetOutwardFactor(c, q);
           }
-          fcn[c] = n / n.norm1();
+          fcn[c] = -n / n.norm();
         }
 
         // calc plane constant
@@ -212,9 +218,17 @@ class Embed {
           fca[c] = a / aw;
         }
 
+        const auto h = m.GetCellSize();
+
         auto xx = R::GetCutPoly(
-            m.GetCenter(c), fcn[c], fca[c], m.GetCellSize());
+            m.GetCenter(c), fcn[c], fca[c], h);
         fcs[c] = std::abs(R::GetArea(xx, fcn[c]));
+
+        // normal distance from center to face
+        auto xc = R::GetCenter(xx);
+        fcd[c] = (xc - m.GetCenter(c)).dot(fcn[c]);
+        // cut cell volume
+        fcv[c] = R::GetLineU(fcn[c], fca[c], h) * m.GetVolume(c);
       }
     }
   }
@@ -228,9 +242,11 @@ class Embed {
   FieldFace<Scal> ffs_;  // area for which f > 0
   // cells
   FieldCell<Type> fct_;  // cell type (0: regular, 1: cut, 2: excluded)
-  FieldCell<Vect> fcn_;  // normal
+  FieldCell<Vect> fcn_;  // unit outer normal
   FieldCell<Scal> fca_;  // plane constant
   FieldCell<Scal> fcs_;  // area of polygon
+  FieldCell<Scal> fcd_;  // normal component of displacement from cell center
+  FieldCell<Scal> fcv_;  // volume of cut cell
   // tmp
   std::vector<std::vector<Vect>> dl_;  // dump poly, polygon
   std::vector<Scal> dld_;              // dump poly, direction
