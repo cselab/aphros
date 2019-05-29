@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -eu
+
+for i in `seq 1 10` ; do
+  Oh=$(printf "%0.3f" $(bc <<< "0.005 * $i"))
+  #nx=128
+  #np=64
+  nx=256
+  np=256
+  tl=300
+  dl="vf p omx omy omz dis omm"
+  c="./gencase nx=$nx np=$np symm=1 ba=0 wall=1 symm=1 tmax=10 nfr=100 dumplist='$dl' Oh=$Oh tl=$tl"
+  echo "$c"
+  eval "$c"
+done
