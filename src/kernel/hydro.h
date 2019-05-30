@@ -1412,7 +1412,15 @@ void Hydro<M>::DumpFields() {
      m.Dump(&fcdiv_, "div");
     }
     if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
-      auto& n = as->GetNormal();
+      auto& n = fctmpv_;
+      n = as->GetNormal();
+      for (auto c : m.Cells()) {
+        auto& v = n[c];
+        auto i = v.abs().argmax();
+        if (v[i] < 0) {
+          v = -v;
+        }
+      }
       if (dl.count("nx")) m.Dump(&n, 0, "nx");
       if (dl.count("ny")) m.Dump(&n, 1, "ny");
       if (dl.count("nz")) m.Dump(&n, 2, "nz");
