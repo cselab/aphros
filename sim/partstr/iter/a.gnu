@@ -35,7 +35,7 @@ set xtics 20
 set xlabel "m"
 set ylabel "E_m"
 
-set nokey
+#set nokey
 
 #Shadecolor = "#80E0A080"
 

@@ -4,6 +4,7 @@ set -eu
 
 ./clean
 ch.base
+echo 1 > np
 ch.run ./t.advection
 #./partit.filt
 #./plot

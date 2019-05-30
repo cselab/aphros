@@ -6,12 +6,15 @@ nx=16  # from mesh.conf
 : ${cpr=2}
 r=`bc -l <<< "$cpr / $nx"`
 : ${eta=0.5}
+: ${dim=3}
 
-echo "set double part_relax $eta" > eta.conf
+echo "set double part_relax $eta
+set int dim $dim
+" > eta.conf
 
 echo "0.5 0.5 0.5 $r" > b.dat
 
 ./run
 ./plot
 
-mv iter.dat iter_eta${eta}_cpr${cpr}
+mv iter.dat iter_dim${dim}_eta${eta}_cpr${cpr}

@@ -2,5 +2,6 @@
 
 set -eu
 
-rm iter_eta*
+rm -f iter_eta*
 cpr=4 eta=0.5 ./runcase
+cpr=4 eta=0.5 dim=2 ./runcase
