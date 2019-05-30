@@ -1148,6 +1148,7 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
       Vect x0(var.Vect["repulse0"]);
       Vect x1(var.Vect["repulse1"]);
       Scal k(var.Double["repulsek"]);
+      Scal k2(var.Double["repulsek2"]);
       //Scal th(var.Double["repulseth"]);
       Rect<Vect> b(x0, x1);
       const int edim = var.Int["dim"];
@@ -1203,7 +1204,9 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
         if (b.IsInside(m.GetCenter(f)))
         if (m.GetNormal(f).argmax() == 0) {
           IdxCell cp = m.GetNeighbourCell(f, 1);
-          ffbp_[f] -= ffv[f] * k * (1 - fcvf[cp]) / m.GetArea(f);
+          auto w = (1 - fcvf[cp]);
+          ffbp_[f] -= ffv[f] * k * w / m.GetArea(f);
+          ffbp_[f] += k2 * w;
         }
       }
 
@@ -1407,6 +1410,12 @@ void Hydro<M>::DumpFields() {
     if (dl.count("div")) {
      fcdiv_ = GetDiv();
      m.Dump(&fcdiv_, "div");
+    }
+    if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
+      auto& n = as->GetNormal();
+      if (dl.count("nx")) m.Dump(&n, 0, "nx");
+      if (dl.count("ny")) m.Dump(&n, 1, "ny");
+      if (dl.count("nz")) m.Dump(&n, 2, "nz");
     }
   }
 }
