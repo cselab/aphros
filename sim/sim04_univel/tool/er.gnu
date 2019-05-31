@@ -49,7 +49,7 @@ unset format y
 unset logscale y
 set yrange [0:2]
 set ylabel "{/Symbol D}p / p_L"
-v="pd" ; @s ; @m , 1 w l dt 2 lt 5
+v="pd" ; @s ; @m
 
 unset yrange
 set ylabel "volume"
