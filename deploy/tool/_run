@@ -21,6 +21,10 @@ instfnd spawn
 instfnd task
 instfnd intcol
 instfnd getval
+instfnd downsample
+instfnd downsampleall
+instfnd genxmf
+instfnd genxmfall
 
 cp -rvf ch "$BB/" || true
 
