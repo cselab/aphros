@@ -225,9 +225,11 @@ CreateInitU(Vars& par, bool verb=true) {
       char c;
       f >> c;
       if (f.good()) {
-        // still have lines
         std::string s;
         std::getline(f, s);
+        if (c == '#') {
+          continue;
+        }
         s = c + s; // append first character
         std::stringstream st(s);
         st >> p.c[0] >> p.c[1] >> p.c[2];
