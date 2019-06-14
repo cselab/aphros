@@ -266,6 +266,33 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
         fcv[c] = v;
       }
     }
+  } else if (vi == "solitoncos") {
+    Scal xc(var.Double["soliton_xc"]);
+    Scal yc(var.Double["soliton_yc"]);
+    Scal yh(var.Double["soliton_yh"]);
+    Scal xw(var.Double["soliton_xw"]);
+    auto sinh = [](Scal t) { return std::sinh(t); };
+    auto cosh = [](Scal t) { return std::cosh(t); };
+    auto tanh = [](Scal t) { return std::tanh(t); };
+    auto cos = [](Scal t) { return std::cos(t); };
+    auto sin = [](Scal t) { return std::sin(t); };
+    Scal g(Vect(var.Vect["gravity"]).norm());
+    Scal p2 = 2 * M_PI;
+    Scal L = xw;
+    Scal D = yc;
+    Scal C = std::sqrt(g * L * tanh(p2 * D / L) / p2);
+    Scal T = L / C;
+    Scal H = yh;
+    for (auto c : m.AllCells()) {
+      Vect xx = m.GetCenter(c);
+      Scal x = xx[0] - xc;
+      Scal y = xx[1];
+      Scal Ux = H * p2 / T * cosh((p2 / L) * y) * 
+          cos(p2 * x / L) / sinh(p2 * D / L);
+      Scal Uy = H * p2 / T * sinh((p2 / L) * y) * 
+          sin(p2 * x / L) / sinh(p2 * D / L);
+      fcv[c] = Vect(Ux, Uy, 0.);
+    }
   } else if (vi == "zero") {
     // nop
   } else  {

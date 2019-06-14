@@ -135,7 +135,28 @@ CreateInitU(Vars& par, bool verb=true) {
         auto sech = [](Scal t) {
           return 2 * std::exp(t) / (std::exp(2 * t) + 1);
         };
-        return yc - x[1] + sqr(sech((x[0] - xc) * 4. / xw)) * yh;
+        return x[1] - yc - sqr(sech((x[0] - xc) * 4. / xw)) * yh;
+      };
+      for (auto c : m.Cells()) {
+        auto x = m.GetCenter(c);
+        Vect h = m.GetCellSize();
+        fc[c] = GetLevelSetVolume<Scal>(f, x, h);
+      }
+    };
+  } else if (v == "solitoncos") {
+    Scal xc(par.Double["soliton_xc"]);
+    Scal yc(par.Double["soliton_yc"]);
+    Scal yh(par.Double["soliton_yh"]);
+    Scal xw(par.Double["soliton_xw"]);
+    g = [xc,yc,yh,xw](FieldCell<Scal>& fc, const M& m) { 
+      auto f = [xc,yh,yc,xw](const Vect& xx) -> Scal {
+        Scal x = xx[0] - xc;
+        Scal L = xw;
+        Scal D = yc;
+        Scal p2 = 2 * M_PI;
+        Scal H = yh;
+        Scal h = D + std::cos(p2 * x / L) * H;
+        return xx[1] - h;
       };
       for (auto c : m.Cells()) {
         auto x = m.GetCenter(c);
