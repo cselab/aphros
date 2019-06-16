@@ -14,8 +14,15 @@ add_library(${T} timer.cpp)
 
 set(T "git")
 add_library(${T} git.cpp)
-target_compile_definitions(${T} PRIVATE 
-  GITREV="${GITREV}"
-  GITMSG="${GITMSG}"
-  GITDIFF="${GITDIFF}"
-  )
+target_link_libraries(${T} gitgen)
+
+set(C "${CMAKE_CURRENT_SOURCE_DIR}/gitgen.cpp")
+add_library(gitgen ${C})
+add_custom_target(gitrev ALL DEPENDS ${C}_)
+add_custom_command(
+  OUTPUT ${C}_
+  PRE_BUILD
+  COMMAND "${PROJECT_SOURCE_DIR}/../tool/gitrev" ${C}
+  COMMENT "Update Git revision"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)

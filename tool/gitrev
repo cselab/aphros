@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# $1: path to src/util/gitgen.cpp
+o=$1
+a=""
+if [ -f "$o" ] ; then
+  a=$(head -n 1 "$o")
+fi
+b="// $(git describe --always --dirty) $(git diff --name-only | tr '\n' ' ')"
+
+if [ "$a" != "$b" ] ; then 
+  echo "revision updated"
+  cat > $o << EOF
+$b
+const char* kGitRev = "$(git describe --dirty --always --tags)";
+const char* kGitMsg = "$(git log -1 --pretty=%B | tr '"' ' ')";
+const char* kGitDiff = "$(git diff --name-only | tr '\n' ' ')";
+EOF
+fi

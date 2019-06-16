@@ -25,24 +25,6 @@ set_target_properties(${EXE} PROPERTIES PREFIX "ch.")
 set(CHPREFIX $ENV{CHPREFIX})
 install(TARGETS ${EXE} DESTINATION "${CHPREFIX}/bin")
 
-
-function(GitInfo var)
-  find_package(Git QUIET)
-  set(T "")
-  if (${GIT_FOUND})
-    execute_process(COMMAND ${ARGN}
-        COMMAND tr "\n" " "
-        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-        OUTPUT_VARIABLE T)
-    string(STRIP "${T}" T)
-  endif()
-  set(${var} "${T}" CACHE INTERNAL "")
-endfunction()
-
-GitInfo(GITREV git describe --dirty --always --tags)
-GitInfo(GITDIFF git diff --name-only)
-GitInfo(GITMSG git log -1 --pretty=%B)
-
 include_directories(.)
 
 add_subdirectory(linear)
