@@ -23,9 +23,17 @@ set_target_properties(${EXE} PROPERTIES PREFIX "ch.")
 
 # git revision
 set(P "${PROJECT_SOURCE_DIR}/..")
+set(C "${P}/src/util/gitgen.cpp")
+# create on configure
+if (NOT EXISTS ${C})
+  execute_process(
+    COMMAND "${P}/tool/gitrev" "${C}"
+    WORKING_DIRECTORY "${P}"
+  )
+endif()
+# create on build
 add_custom_target(gitrev
-  COMMAND "${P}/tool/gitrev" "${P}/src/util/gitgen.cpp"
-  COMMENT "Update Git revision"
+  COMMAND "${P}/tool/gitrev" "${C}"
   WORKING_DIRECTORY "${P}"
 )
 add_dependencies(${EXE} gitrev)
