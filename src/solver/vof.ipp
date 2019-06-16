@@ -261,6 +261,7 @@ struct Vof<M_>::Imp {
 
         FieldFace<Scal> ffvu(m); // flux: volume flux * field
 
+        ffi_.Reinit(m);
         for (auto f : m.Faces()) {
           auto p = bf.GetMIdxDir(f);
           Dir df = p.second;
@@ -284,8 +285,10 @@ struct Vof<M_>::Imp {
               // phase 2 flux
               ffvu[f] = R::GetLineFluxStr(fcn_[cu], fca_[cu], h, v, vu, dt, d);
             }
+            ffi_[f] = true;
           } else {
             ffvu[f] = v * uc[cu];
+            ffi_[f] = false;
           }
         }
 
@@ -300,6 +303,7 @@ struct Vof<M_>::Imp {
           Scal v = ffv[f];
           if ((cb->GetNci() == 0) != (v > 0.)) {
             ffvu[f] = v * ffu[f];
+            ffi_[f] = true;
           }
         }
 
@@ -309,6 +313,9 @@ struct Vof<M_>::Imp {
           // faces
           IdxFace fm = bf.GetIdx(w, md);
           IdxFace fp = bf.GetIdx(w + wd, md);
+          if (!ffi_[fm] && !ffi_[fp]) {
+            continue;
+          }
           // mixture fluxes
           const Scal vm = ffv[fm] * vsc;
           const Scal vp = ffv[fp] * vsc;
@@ -404,6 +411,7 @@ struct Vof<M_>::Imp {
   FieldCell<Vect> fcn_; // n (normal to plane)
   FieldCell<Scal> fck_; // curvature from height functions
   FieldCell<bool> fci_; // interface mask (1: contains interface)
+  FieldFace<bool> ffi_; // interface mask (1: upwind cell contains interface)
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
   std::vector<std::vector<Vect>> dl_; // dump poly
