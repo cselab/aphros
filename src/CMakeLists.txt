@@ -21,6 +21,15 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra -Werror")
 add_executable(${EXE} main.cpp)
 set_target_properties(${EXE} PROPERTIES PREFIX "ch.")
 
+# git revision
+set(P "${PROJECT_SOURCE_DIR}/..")
+add_custom_target(gitrev
+  COMMAND "${P}/tool/gitrev" "${P}/src/util/gitgen.cpp"
+  COMMENT "Update Git revision"
+  WORKING_DIRECTORY "${P}"
+)
+add_dependencies(${EXE} gitrev)
+
 # install prefix
 set(CHPREFIX $ENV{CHPREFIX})
 install(TARGETS ${EXE} DESTINATION "${CHPREFIX}/bin")
