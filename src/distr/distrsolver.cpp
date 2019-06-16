@@ -1,4 +1,5 @@
 #include "distrsolver.h"
+#include "util/git.h"
 
 
 int RunMpi(int argc, const char ** argv,
@@ -25,6 +26,9 @@ int RunMpi(int argc, const char ** argv,
   }
 
   if (isroot) {
+    std::cerr << "hydro " << GetGitRev() << std::endl;
+    std::cerr << "msg: " << GetGitMsg() << std::endl;
+    std::cerr << "diff: " << GetGitDiff() << std::endl;
     std::cerr << "Loading config from '" << fn << "'" << std::endl;
   }
 
