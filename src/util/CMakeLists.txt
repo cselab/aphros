@@ -11,3 +11,11 @@ target_link_libraries(${T} vars parser)
 
 set(T "timer")
 add_library(${T} timer.cpp)
+
+set(T "git")
+add_library(${T} git.cpp)
+target_compile_definitions(${T} PRIVATE 
+  GITREV="${GITREV}"
+  GITMSG="${GITMSG}"
+  GITDIFF="${GITDIFF}"
+  )
