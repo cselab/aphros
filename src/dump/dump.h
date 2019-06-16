@@ -22,6 +22,7 @@ void Dump(const FieldCell<Scal>& u, const GIndex<IdxCell, 3>& ndc,
   std::ofstream o;
   o.open(op);
   o.precision(20);
+  o.sync_with_stdio(false);
 
   auto s = bc.GetSize();
   o << s[0] << " " << s[1] << " " << s[2] << std::endl;
