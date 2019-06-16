@@ -69,6 +69,6 @@ for i in range(max(la,lb)):
 
   em = max(em, e)
 
-  e <= eps or E(a, b, e)
+  e <= eps or all(np.isnan([na,nb])) or E(a, b, e)
 
 print("max error: {:}".format(em))
