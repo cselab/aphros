@@ -1,16 +1,17 @@
 #include "git.h"
 
+extern const char* kGitRev;
+extern const char* kGitMsg;
+extern const char* kGitDiff;
+
 const char* GetGitRev() {
-  static const char s[] = GITREV;
-  return s;
+  return kGitRev;
 }
 
 const char* GetGitMsg() {
-  static const char s[] = GITMSG;
-  return s;
+  return kGitMsg;
 }
 
 const char* GetGitDiff() {
-  static const char s[] = GITDIFF;
-  return s;
+  return kGitDiff;
 }
