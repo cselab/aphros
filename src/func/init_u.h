@@ -131,11 +131,23 @@ CreateInitU(Vars& par, bool verb=true) {
     Scal yh(par.Double["soliton_yh"]);
     Scal xw(par.Double["soliton_xw"]);
     g = [xc,yc,yh,xw](FieldCell<Scal>& fc, const M& m) { 
-      auto f = [xc,yh,yc,xw](const Vect& x) -> Scal {
-        auto sech = [](Scal t) {
-          return 2 * std::exp(t) / (std::exp(2 * t) + 1);
-        };
-        return x[1] - yc - sqr(sech((x[0] - xc) * 4. / xw)) * yh;
+      auto f = [xc,yh,yc,xw](const Vect& xx) -> Scal {
+        Scal D = yc;
+        Scal H = yh;
+        H /= D;
+        using std::sqrt;
+        auto sech = [](Scal t) { return 1. / std::cosh(t); };
+
+        Scal x = xx[0] - xc;
+        Scal y = xx[1];
+        x /= D;
+        y /= D;
+        Scal z = x * sqrt(3*H/4)*(1 - 5*H/8);
+        Scal s = sech(z)*sech(z);
+        Scal h = 1 + H*s - 4*H*H*s*(1 - s)/3;
+        h *= D;
+
+        return xx[1] - h;
       };
       for (auto c : m.Cells()) {
         auto x = m.GetCenter(c);
@@ -156,6 +168,30 @@ CreateInitU(Vars& par, bool verb=true) {
         Scal p2 = 2 * M_PI;
         Scal H = yh;
         Scal h = D + std::cos(p2 * x / L) * H;
+        return xx[1] - h;
+      };
+      for (auto c : m.Cells()) {
+        auto x = m.GetCenter(c);
+        Vect h = m.GetCellSize();
+        fc[c] = GetLevelSetVolume<Scal>(f, x, h);
+      }
+    };
+  } else if (v == "solitonwang") {
+    Scal xc(par.Double["soliton_xc"]);
+    Scal yc(par.Double["soliton_yc"]);
+    Scal yh(par.Double["soliton_yh"]);
+    Scal xw(par.Double["soliton_xw"]);
+    Scal e(par.Double["soliton_eps"]);
+    g = [xc,yc,yh,xw,e](FieldCell<Scal>& fc, const M& m) { 
+      auto f = [xc,yh,yc,xw,e](const Vect& xx) -> Scal {
+        using std::cos;
+        Scal a = yh;
+        Scal la = xw;
+        Scal k = 2. * M_PI / la;
+        Scal x = xx[0] - xc;
+        Scal kx = k * x;
+        Scal h = yc + a / la * 
+            (cos(kx) + 0.5*e*cos(2*kx)+ 3./8*sqr(e)*cos(3.*kx));
         return xx[1] - h;
       };
       for (auto c : m.Cells()) {
