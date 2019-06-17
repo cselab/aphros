@@ -266,6 +266,33 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
         fcv[c] = v;
       }
     }
+  } else if (vi == "solitonwang") {
+    Scal xc(var.Double["soliton_xc"]);
+    Scal yc(var.Double["soliton_yc"]);
+    Scal yh(var.Double["soliton_yh"]);
+    Scal xw(var.Double["soliton_xw"]);
+    Scal e(var.Double["soliton_eps"]);
+    using std::exp;
+    using std::cos;
+    using std::sin;
+    using std::sqrt;
+    Scal g(Vect(var.Vect["gravity"]).norm());
+    Scal a = yh;
+    Scal la = xw;
+    Scal k = 2. * M_PI / la;
+    for (auto c : m.AllCells()) {
+      Vect xx = m.GetCenter(c);
+      Scal x = xx[0] - xc;
+      Scal y = xx[1];
+      Scal kx = k * x;
+      Scal ky = k * (y - yc);
+      Scal h = yc + a / la * 
+          (cos(kx) + 0.5*e*cos(2*kx)+ 3./8*sqr(e)*cos(3.*kx));
+      Scal om = sqrt(g * k * (1 + sqr(e)));
+      Scal u = om * a * exp(ky) * cos(kx);
+      Scal v = om * a * exp(ky) * sin(kx);
+      fcv[c] = Vect(u, v, 0.) * (y > h ? 0. : 1.);
+    }
   } else if (vi == "solitoncos") {
     Scal xc(var.Double["soliton_xc"]);
     Scal yc(var.Double["soliton_yc"]);
@@ -292,6 +319,99 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       Scal Uy = H * p2 / T * sinh((p2 / L) * y) * 
           sin(p2 * x / L) / sinh(p2 * D / L);
       fcv[c] = Vect(Ux, Uy, 0.);
+    }
+  } else if (vi == "soliton") {
+    Scal xc(var.Double["soliton_xc"]);
+    Scal yc(var.Double["soliton_yc"]);
+    Scal yh(var.Double["soliton_yh"]);
+    Scal xw(var.Double["soliton_xw"]);
+
+    using std::sinh;
+    using std::cosh;
+    using std::tanh;
+    auto sech = [](Scal t) { return 1. / std::cosh(t); };
+    using std::cos;
+    using std::sin;
+    using std::sqrt;
+
+    Scal g(Vect(var.Vect["gravity"]).norm());
+    Scal D = yc;
+    Scal H = yh;
+
+    H /= D;
+    for (auto c : m.AllCells()) {
+      Vect xx = m.GetCenter(c);
+      Scal X = xx[0] - xc;
+      Scal y = xx[1];
+
+      X /= D;
+      y /= D;
+      Scal z = X * sqrt(3*H/4)*(1 - 5*H/8);
+      Scal s = sech(z)*sech(z);
+      Scal t = tanh(z);
+
+      Scal u = H*(1 + H/4 - 3*H*y*y/2)*s + H*H*(-1+9*y*y/4)*s*s;
+      Scal v = sqrt(3)*pow(H, 3.0/2)*y*s*t*(1 - 3*H/8 - H*y*y/2 + H*(-2+3*y*y/2)*s*s);
+      Scal h = 1 + H*s - 4*H*H*s*(1 - s)/3;
+
+      u *= sqrt(g*D);
+      v *= sqrt(g*D);
+      h *= D;
+      y *= D;
+
+      fcv[c] = Vect(u, v, 0.);
+      if (y > h) {
+        fcv[c] *= 0;
+      }
+    }
+  } else if (vi == "solitonmccowan") {
+    Scal xc(var.Double["soliton_xc"]);
+    Scal yc(var.Double["soliton_yc"]);
+    Scal yh(var.Double["soliton_yh"]);
+    Scal xw(var.Double["soliton_xw"]);
+    Scal N(var.Double["soliton_n"]);
+    Scal MM(var.Double["soliton_m"]);
+
+    using std::sinh;
+    using std::cosh;
+    using std::tanh;
+    auto sech = [](Scal t) { return 1. / std::cosh(t); };
+    using std::cos;
+    using std::sin;
+    using std::sqrt;
+
+    Scal g(Vect(var.Vect["gravity"]).norm());
+    Scal D = yc;
+    Scal H = yh;
+
+    H /= D;
+    for (auto c : m.AllCells()) {
+      Vect xx = m.GetCenter(c);
+      Scal x = xx[0] - xc;
+      Scal y = xx[1];
+
+      x /= D;
+      y /= D;
+      Scal z = x * sqrt(3*H/4)*(1 - 5*H/8);
+      Scal s = sech(z)*sech(z);
+      Scal t = tanh(z);
+      Scal mx = MM * x;
+      Scal my = MM * y;
+
+      Scal C = 1. + 0.5 * H - 3./20. * sqr(H);
+      Scal u = C * N * (1. + cos(my)*cosh(mx)) / sqr(cos(my) + cosh(mx));
+      Scal v = C * N * (sin(my)*sinh(mx)) / sqr(cos(my) + cosh(mx));
+      Scal h = 1 + H*s - 4*H*H*s*(1 - s)/3;
+
+      u *= sqrt(g*D);
+      v *= sqrt(g*D);
+      h *= D;
+      y *= D;
+
+      fcv[c] = Vect(u, v, 0.);
+      if (y > h) {
+        fcv[c] *= 0;
+      }
     }
   } else if (vi == "zero") {
     // nop
