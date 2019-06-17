@@ -324,7 +324,6 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     Scal xc(var.Double["soliton_xc"]);
     Scal yc(var.Double["soliton_yc"]);
     Scal yh(var.Double["soliton_yh"]);
-    Scal xw(var.Double["soliton_xw"]);
 
     using std::sinh;
     using std::cosh;
@@ -368,7 +367,6 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     Scal xc(var.Double["soliton_xc"]);
     Scal yc(var.Double["soliton_yc"]);
     Scal yh(var.Double["soliton_yh"]);
-    Scal xw(var.Double["soliton_xw"]);
     Scal N(var.Double["soliton_n"]);
     Scal MM(var.Double["soliton_m"]);
 
@@ -394,7 +392,6 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       y /= D;
       Scal z = x * sqrt(3*H/4)*(1 - 5*H/8);
       Scal s = sech(z)*sech(z);
-      Scal t = tanh(z);
       Scal mx = MM * x;
       Scal my = MM * y;
 
