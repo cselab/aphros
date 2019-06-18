@@ -1,0 +1,38 @@
+Limits the curvature by 1/h
+diff --git a/src/solver/partstrmesh.ipp b/src/solver/partstrmesh.ipp
+index 4347ec94..48e39153 100644
+--- a/src/solver/partstrmesh.ipp
++++ b/src/solver/partstrmesh.ipp
+@@ -252,6 +252,7 @@ struct PartStrMesh<M_>::Imp {
+       Seed(uc, fca, fcn, fci);
+       partstr_->Run(par->tol, par->itermax,
+                     m.IsRoot() ? par->verb : 0);
++      const Scal h = m.GetCellSize().norm();
+       // compute curvature
+       fckp_.Reinit(m, GetNan<Scal>());
+       // XXX: assume strings from same cell contiguous
+@@ -260,16 +261,20 @@ struct PartStrMesh<M_>::Imp {
+       while (s < ns) { // new cell
+         size_t nsc = 0; // number of strings in current cell
+         IdxCell c = vsc_[s];
+-        fckp_[c] = 0.; // reset sum
++        Scal q = 0.; // sum
+         while (s < ns && c == vsc_[s]) {
+-          fckp_[c] += partstr_->GetCurv(s);
++          q += partstr_->GetCurv(s);
+           ++nsc;
+           ++s;
+         }
+-        fckp_[c] /= nsc;
++        q /= nsc;
+         if (par->dim == 3) {
+-          fckp_[c] *= 2.;
++          q *= 2.;
+         }
++        if (std::abs(q) > 2. / h) {
++          q = GetNan<Scal>();
++        }
++        fckp_[c] = q;
+       }
+       m.Comm(&fckp_);
+     }
