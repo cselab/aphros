@@ -67,6 +67,22 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       v[1] = -std::cos(x[0]) * std::sin(x[1]) * std::cos(x[2]);
       v[2] = 0.;
     }
+  } else if (vi == "hill") {
+    auto a = var.Double["hill_a"];
+    (void) a;
+    auto b = var.Double["hill_b"];
+    auto c = var.Double["hill_c"];
+    Vect xc(var.Vect["hill_xc"]);
+    for (auto i : m.AllCells()) {
+      auto& v = fcv[i];
+      auto xx = m.GetCenter(i) - xc;
+      auto x = xx[0];
+      auto y = xx[1];
+      auto z = xx[2];
+      v[0] = x*z - 2*c*y / (x*x + y*y + b);
+      v[1] = y*z + 2*c*x / (x*x + y*y + b);
+      v[2] = 1 - 2 * (x*x + y*y + b) - z*z;
+    }
   } else if (vi == "vortex") {
     Scal pi = M_PI;
     Vect xc1(var.Vect["vort_x1"]);
