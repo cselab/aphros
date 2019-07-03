@@ -580,6 +580,19 @@ void Hydro<M>::Init() {
     GetFluidFaceCond(var, m, mf_velcond_, mf_cond_);
   }
 
+  if (var.Int["bc_wall_init_vel"] && sem("bc_wall_init_vel")) {
+    using solver::fluid_condition::NoSlipWallFixed;
+    // velocity on walls from neighbour cells
+    for (auto it : mf_velcond_) {
+      IdxFace f = it.GetIdx();
+      solver::CondFaceFluid* cb = it.GetValue().get();
+      if (auto cd = dynamic_cast<NoSlipWallFixed<M>*>(cb)) {
+        IdxCell c = m.GetNeighbourCell(f, cd->GetNci());
+        cd->SetVelocity(fc_vel_[c]);
+      }
+    }
+  }
+
   if (sem.Nested("initvort")) {
     if (var.Int["initvort"]) {
       InitVort();
