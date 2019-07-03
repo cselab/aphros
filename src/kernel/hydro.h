@@ -1505,6 +1505,12 @@ void Hydro<M>::DumpTraj(bool dm) {
     nmav("");
     nmav("v");
     nma("p");
+    nma("xx");
+    nma("xy");
+    nma("xz");
+    nma("yy");
+    nma("yz");
+    nma("zz");
 
     // traverse cells, append to mp
     for (auto c : m.Cells()) {
@@ -1537,6 +1543,12 @@ void Hydro<M>::DumpTraj(bool dm) {
         addv(x * w); // x
         addv(vel[c] * w); // v
         add(p[c] * w); // p
+        add(x[0] * x[0] * w); // xx
+        add(x[0] * x[1] * w); // xy
+        add(x[0] * x[2] * w); // xz
+        add(x[1] * x[1] * w); // yy
+        add(x[1] * x[2] * w); // yz
+        add(x[2] * x[2] * w); // zz
       }
     }
     // copy to vector
