@@ -3,6 +3,18 @@
 import subprocess
 import numpy as np
 import sys
+import os
+
+av = sys.argv
+if len(av) == 2 and av[1] == '-h':
+  sys.stderr.write(
+"""usage: ./{:}
+Compute compute semi-axes of fitted ellipsoid.
+STDIN: output of ch.gettraj
+STDOUT: columns <n r0 r1 r2> with semi-axes in ascending order
+""".format(os.path.basename(av[0])))
+  exit(1)
+
 
 def sh(c):
     subprocess.check_call(c, shell=True)
