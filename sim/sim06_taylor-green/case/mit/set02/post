@@ -1,0 +1,5 @@
+#!/bin/bash 
+
+ch.statcopy
+cat sc/dk | ch.scale 0.004031441804149937 > sc/dk1
+mv -f sc/{dk1,dk}
