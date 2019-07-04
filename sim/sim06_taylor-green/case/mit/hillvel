@@ -1,0 +1,46 @@
+#!/usr/bin/env python
+
+from sympy import *
+
+from sympy.printing import ccode
+import textwrap
+
+
+x = Symbol('x')
+y = Symbol('y')
+z = Symbol('z')
+t = Symbol('t')
+V = Symbol('V')  # z-velocity of vortex translation
+Z = V * t
+a = Symbol('a')
+
+Zt = diff(Z, t)
+r = sqrt(x*x + y*y)
+zz = z - Z
+
+# inside
+vri = 3*Zt*r*zz / (2*a*a)
+vzi = Zt * (5*a*a - 3*zz*zz - 6*r*r) / (2*a*a)
+
+R = sqrt(r**2 + zz**2)
+
+# outside
+vro = 3 * a**3 * Zt * r * zz / (2*R**5)
+vzo = a**3 * Zt * (3 * zz**2 - R**2) / (2*R**5)
+
+vri = vri.subs(t, 0)
+vzi = vzi.subs(t, 0)
+vro = vro.subs(t, 0)
+vzo = vzo.subs(t, 0)
+
+ll = []
+ll.append(ccode(vri, assign_to='vr'))
+ll.append(ccode(vzi, assign_to='vz'))
+ll.append(ccode(vro, assign_to='vr'))
+ll.append(ccode(vzo, assign_to='vz'))
+
+#ll = [textwrap.fill(l, 100) for l in ll]
+
+o = "\n".join(ll)
+
+print(o)
