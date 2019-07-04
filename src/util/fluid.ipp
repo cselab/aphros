@@ -83,6 +83,32 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       v[1] = y*z + 2*c*x / (x*x + y*y + b);
       v[2] = 1 - 2 * (x*x + y*y + b) - z*z;
     }
+  } else if (vi == "hillorig") {
+    auto a = var.Double["hill_a"];
+    auto V = var.Double["hill_v"];
+    // sphere r^2 + z^2 = a^2
+    Vect xc(var.Vect["hill_xc"]);
+    using std::pow;
+    using std::sqrt;
+    for (auto i : m.AllCells()) {
+      auto& v = fcv[i];
+      auto xx = m.GetCenter(i) - xc;
+      auto x = xx[0];
+      auto y = xx[1];
+      auto z = xx[2];
+      Scal vr, vz;
+      if (x*x + y*y + z*z < a*a) {
+        vr = (3.0/2.0)*V*z*sqrt(pow(x, 2) + pow(y, 2))/pow(a, 2);
+        vz = (1.0/2.0)*V*(5*pow(a, 2) - 6*pow(x, 2) - 6*pow(y, 2) - 3*pow(z, 2))/pow(a, 2);
+      } else {
+        vr = (3.0/2.0)*V*pow(a, 3)*z*sqrt(pow(x, 2) + pow(y, 2))/pow(pow(x, 2) + pow(y, 2) + pow(z, 2), 5.0/2.0);
+        vz = (1.0/2.0)*V*pow(a, 3)*(-pow(x, 2) - pow(y, 2) + 2*pow(z, 2))/pow(pow(x, 2) + pow(y, 2) + pow(z, 2), 5.0/2.0);
+      }
+      vz -= V;
+      v[0] = vr * x / (sqrt(x*x + y*y) + 1e-16);
+      v[1] = vr * y / (sqrt(x*x + y*y) + 1e-16);
+      v[2] = vz;
+    }
   } else if (vi == "vortex") {
     Scal pi = M_PI;
     Vect xc1(var.Vect["vort_x1"]);
