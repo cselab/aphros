@@ -29,7 +29,7 @@ i1 = i
 print(i)
 
 print("int(xx)")
-i = x * x
+i = x * x * v
 i = integrate(i, r_)
 i = integrate(i, th_)
 i = integrate(i, ph_)

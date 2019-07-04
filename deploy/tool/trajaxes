@@ -41,7 +41,7 @@ mxx = mxx - mx2
 e = np.linalg.eigvalsh(np.transpose(mxx))
 
 # elliposid semi-axes
-r = 2 * np.sqrt(np.maximum(2 * e / np.pi, 0))
+r = np.sqrt(np.maximum(5 * e, 0))
 
 n = d['n']
 n = n[:,np.newaxis]
