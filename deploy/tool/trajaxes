@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+
+import subprocess
+import numpy as np
+import sys
+
+def sh(c):
+    subprocess.check_call(c, shell=True)
+
+d = np.genfromtxt(sys.stdin, names=True)
+
+x = d['x']
+y = d['y']
+z = d['z']
+
+xx = d['xx']
+xy = d['xy']
+xz = d['xz']
+yy = d['yy']
+yz = d['yz']
+zz = d['zz']
+
+mx = np.array([x, y, z])
+mx2 = mx[np.newaxis,:,:] * mx[:,np.newaxis,:] 
+mxx = np.array([[xx, xy, xz], [xy, yy, yz], [xz, yz, zz]])
+
+mxx = mxx - mx2
+
+e = np.linalg.eigvalsh(np.transpose(mxx))
+
+# elliposid semi-axes
+r = 2 * np.sqrt(np.maximum(2 * e / np.pi, 0))
+
+n = d['n']
+n = n[:,np.newaxis]
+
+nr = np.hstack([n, r])
+
+np.savetxt(sys.stdout, nr, header="n r0 r1 r2", comments='')
+
