@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+
+# Hill's vortex trajectory
+
+# ll: array of lines
+# line: xx, yy, zz, c
+# fn: filename
+def Vtk(ll, fn, comment=""):
+    with open(fn, 'w') as o:
+        def W(m): o.write(m + '\n')
+        W("# vtk DataFile Version 2.0")
+        W(comment)
+        W("ASCII")
+        W("DATASET POLYDATA")
+
+        W("POINTS {:} float".format(sum([len(l[0]) for l in ll])))
+        for l in ll:
+            xx,yy,zz,c = l
+            for i in range(len(xx)):
+                W("{:} {:} {:}".format(xx[i], yy[i], zz[i]))
+
+        W("LINES {:} {:}".format(len(ll), sum([len(l[0]) + 1 for l in ll])))
+        p = 0
+        for l in ll:
+            W(' '.join(list(map(str, [len(l[0])] + [p + q for q in range(len(l[0]))]))))
+            p += len(l[0])
+
+        W("CELL_DATA {:}".format(len(ll)))
+        W("SCALARS c float")
+        W("LOOKUP_TABLE default")
+        for l in ll:
+            W("{:}".format(l[3]))
+
+from scipy.integrate import ode
+import numpy as np
+
+b = 0.1
+c = 0.15
+
+x0, t0 = [0.5,0.5,0.5], 0
+
+def f(t, xx):
+    x,y,z = xx
+    vx = x*z - 2*c*y / (x*x + y*y + b);
+    vy = y*z + 2*c*x / (x*x + y*y + b);
+    vz = 1 - 2 * (x*x + y*y + b) - z*z;
+    return [vx, vy, vz]
+
+r = ode(f).set_integrator('dopri5')
+
+r.set_initial_value(x0, t0)
+
+t1 = 100
+dt = 0.1
+i = 0
+idump = 2
+fr = 0
+l = [[], [], [], 0]
+while r.successful() and r.t < t1:
+    xx = r.integrate(r.t+dt)
+    if i % idump == 0:
+        o = "t_{:04d}.csv".format(fr)
+        with open(o, 'w') as f:
+            print("{:} t={:} i={:}".format(o, r.t, fr))
+            f.write("x,y,z\n".format(*xx))
+            f.write("{:},{:},{:}".format(*xx))
+            l[0].append(xx[0])
+            l[1].append(xx[1])
+            l[2].append(xx[2])
+            fr += 1
+    i += 1
+
+Vtk([l], "o.vtk")
