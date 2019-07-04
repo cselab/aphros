@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+
+from sympy import *
+
+th = Symbol('th') # theta
+th_ = (th, 0, 2 * pi)
+
+ph = Symbol('ph') # phi
+ph_ = (ph, -pi / 2, pi / 2)
+
+r = Symbol('r') # rho
+r_ = (r, 0, 1)
+
+x = r * cos(th) * cos(ph)
+y = r * sin(th) * cos(ph)
+z = r * sin(ph)
+
+X = Matrix([x, y, z])
+S = Matrix([r, th, ph])
+
+v = X.jacobian(S).det().simplify()
+
+print("int(1)")
+i = v
+i = integrate(i, r_)
+i = integrate(i, th_)
+i = integrate(i, ph_)
+i1 = i
+print(i)
+
+print("int(xx)")
+i = x * x
+i = integrate(i, r_)
+i = integrate(i, th_)
+i = integrate(i, ph_)
+ixx = i
+print(i)
+
+print("int(xx)/int(1)")
+print(ixx / i1)
+
+ax = Symbol('ax')
+ay = Symbol('ay')
+az = Symbol('az')
+print("Elipsoid of semi-axes ax,ay,az has")
+Mxx = ixx / i1 * ax ** 2
+print("Mxx=", Mxx)
+print("Moment Mxx corresponds to semi-axis")
+mxx = Symbol('Mxx')
+print(solve(Mxx-mxx, ax)[1])
