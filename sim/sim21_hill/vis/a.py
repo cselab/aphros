@@ -164,6 +164,7 @@ confvfDisplay.ScaleTransferFunction.Points = [-0.9999856352806091, 0.0, 0.5, 0.0
 # init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
 confvfDisplay.OpacityTransferFunction.Points = [-0.9999856352806091, 0.0, 0.5, 0.0, 0.9999890923500061, 1.0, 0.5, 0.0]
 
+'''
 # create a new 'Resample To Image'
 rsmp = ResampleToImage(Input=omm)
 nx = 256
@@ -171,6 +172,7 @@ rsmp.SamplingDimensions = [nx + 1] * 3
 dom = 2
 rsmp.SamplingBounds = [0.0, dom, 0.0, dom, 0.0, dom]
 calcomm = rsmp
+'''
 
 
 # create a new 'Contour'
