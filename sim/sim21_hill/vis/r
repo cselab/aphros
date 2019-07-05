@@ -1,0 +1,3 @@
+set -eu
+
+./a.py `ls ../vf_*.xmf`
