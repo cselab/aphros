@@ -69,7 +69,6 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     }
   } else if (vi == "hill") {
     auto a = var.Double["hill_a"];
-    (void) a;
     auto b = var.Double["hill_b"];
     auto c = var.Double["hill_c"];
     Vect xc(var.Vect["hill_xc"]);
@@ -79,9 +78,25 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       auto x = xx[0];
       auto y = xx[1];
       auto z = xx[2];
-      v[0] = x*z - 2*c*y / (x*x + y*y + b);
-      v[1] = y*z + 2*c*x / (x*x + y*y + b);
-      v[2] = 1 - 2 * (x*x + y*y + b) - z*z;
+      Scal vrr;   // vr / r
+      Scal vz;
+      if (x*x + y*y + z*z < 1.) { // inside sphere
+        vrr = z;
+        vz = -2*pow(x, 2) - 2*pow(y, 2) - pow(z, 2) + 1;
+      } else { // outside
+        vrr = z/pow(pow(x, 2) + pow(y, 2) + pow(z, 2), 5.0/2.0);
+        vz = (1.0/3.0)*(-pow(x, 2) - pow(y, 2) + 2*pow(z, 2))/pow(pow(x, 2) + pow(y, 2) + pow(z, 2), 5.0/2.0) - 2.0/3.0;
+      }
+
+      v[0] = vrr * x;
+      v[1] = vrr * y;
+      v[2] = vz;
+
+      // add swirl around z-axis
+      v[0] += -2*c*y / (x*x + y*y + b);
+      v[1] += +2*c*x / (x*x + y*y + b);
+
+      v *= a;
     }
   } else if (vi == "hillorig") {
     auto a = var.Double["hill_a"];
@@ -96,17 +111,18 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       auto x = xx[0];
       auto y = xx[1];
       auto z = xx[2];
-      Scal vr, vz;
+      Scal vrr; // vr / r
+      Scal vz;
       if (x*x + y*y + z*z < a*a) {
-        vr = (3.0/2.0)*V*z*sqrt(pow(x, 2) + pow(y, 2))/pow(a, 2);
+        vrr = (3.0/2.0)*V*z/pow(a, 2);
         vz = (1.0/2.0)*V*(5*pow(a, 2) - 6*pow(x, 2) - 6*pow(y, 2) - 3*pow(z, 2))/pow(a, 2);
       } else {
-        vr = (3.0/2.0)*V*pow(a, 3)*z*sqrt(pow(x, 2) + pow(y, 2))/pow(pow(x, 2) + pow(y, 2) + pow(z, 2), 5.0/2.0);
+        vrr = (3.0/2.0)*V*pow(a, 3)*z/pow(pow(x, 2) + pow(y, 2) + pow(z, 2), 5.0/2.0);
         vz = (1.0/2.0)*V*pow(a, 3)*(-pow(x, 2) - pow(y, 2) + 2*pow(z, 2))/pow(pow(x, 2) + pow(y, 2) + pow(z, 2), 5.0/2.0);
       }
       vz -= V;
-      v[0] = vr * x / (sqrt(x*x + y*y) + 1e-16);
-      v[1] = vr * y / (sqrt(x*x + y*y) + 1e-16);
+      v[0] = vrr * x;
+      v[1] = vrr * y;
       v[2] = vz;
     }
   } else if (vi == "vortex") {
