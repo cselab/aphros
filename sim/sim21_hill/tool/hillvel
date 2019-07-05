@@ -33,13 +33,24 @@ vzi = vzi.subs(t, 0)
 vro = vro.subs(t, 0)
 vzo = vzo.subs(t, 0)
 
-ll = []
-ll.append(ccode(vri, assign_to='vr'))
-ll.append(ccode(vzi, assign_to='vz'))
-ll.append(ccode(vro, assign_to='vr'))
-ll.append(ccode(vzo, assign_to='vz'))
+if 1:
+    # set a=1 V=2/3 and subtract V for Zhong's paper
+    vzi -= V
+    vzo -= V
+    vri = vri.subs(a, 1)
+    vzi = vzi.subs(a, 1)
+    vro = vro.subs(a, 1)
+    vzo = vzo.subs(a, 1)
+    vri = vri.subs(V, "2/3")
+    vzi = vzi.subs(V, "2/3")
+    vro = vro.subs(V, "2/3")
+    vzo = vzo.subs(V, "2/3")
 
-#ll = [textwrap.fill(l, 100) for l in ll]
+ll = []
+ll.append(ccode(vri/r, assign_to='vrr'))
+ll.append(ccode(vzi, assign_to='vz'))
+ll.append(ccode(vro/r, assign_to='vrr'))
+ll.append(ccode(vzo, assign_to='vz'))
 
 o = "\n".join(ll)
 
