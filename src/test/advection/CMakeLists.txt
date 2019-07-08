@@ -16,3 +16,7 @@ add_test(NAME adv-cub8 COMMAND runshort tcub 8)
 add_test(NAME adv-cub16 COMMAND runshort tcub 16)
 add_test(NAME adv-cub32 COMMAND runshort tcub 32 1)
 
+set_tests_properties(
+  adv-loc8 adv-loc16 adv-loc32 
+  adv-cub8 adv-cub16 adv-cub32 
+  PROPERTIES RESOURCE_LOCK ${EXE})

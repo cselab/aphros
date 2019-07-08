@@ -9,3 +9,7 @@ target_link_libraries(${EXE} distr solver convdiffi)
      
 add_test(NAME ${p}-loc COMMAND ch.run ./${EXE} tloc) 
 add_test(NAME ${p}-cub COMMAND ch.run ./${EXE} tcub)
+
+set_tests_properties(
+  ${p}-loc ${p}-cub
+  PROPERTIES RESOURCE_LOCK ${p})
