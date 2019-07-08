@@ -8,6 +8,6 @@ install:
 	+make -C $(b) install 
 
 test:
-	+make -C $(b) test
+	(cd build && ctest -j`nproc`)
 
 .PHONY: all test install
