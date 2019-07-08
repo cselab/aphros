@@ -14,4 +14,5 @@ if [ "$dim" == "3" ] ; then
 fi
 
 make CFLAGS="-grid=$g $extra" main.s
+chmod +x main.s
 ba.run -n "$np" main.s
