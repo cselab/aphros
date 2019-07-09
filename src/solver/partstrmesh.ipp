@@ -185,7 +185,7 @@ struct PartStrMesh<M_>::Imp {
   }
 
   void Seed(const FieldCell<Scal>& fcu, const FieldCell<Scal>& fca, 
-             const FieldCell<Vect>& fcn, const FieldCell<bool>& fci) {
+            const FieldCell<Vect>& fcn, const FieldCell<bool>& fci) {
     using MIdx = typename M::MIdx;
     auto& bc = m.GetIndexCells();
 
@@ -234,6 +234,7 @@ struct PartStrMesh<M_>::Imp {
   }
   void Part(const FieldCell<Scal>& uc, 
       FieldCell<Scal>& fca, FieldCell<Vect>& fcn, FieldCell<bool>& fci,
+      FieldCell<Scal>& fck,
       const MapFace<std::shared_ptr<CondFace>>& mfc) {
     auto sem = m.GetSem("part");
 
@@ -269,6 +270,9 @@ struct PartStrMesh<M_>::Imp {
         fckp_[c] /= nsc;
         if (par->dim == 3) {
           fckp_[c] *= 2.;
+        }
+        if (!IsNan(fck[c])) {
+          fckp_[c] = fck[c];
         }
       }
       m.Comm(&fckp_);
@@ -449,8 +453,9 @@ PartStrMesh<M_>::~PartStrMesh() = default;
 template <class M_>
 void PartStrMesh<M_>::Part(const FieldCell<Scal>& uc, 
     FieldCell<Scal>& fca, FieldCell<Vect>& fcn, FieldCell<bool>& fci,
+    FieldCell<Scal>& fck,
     const MapFace<std::shared_ptr<CondFace>>& mfc) {
-  imp->Part(uc, fca, fcn, fci, mfc);
+  imp->Part(uc, fca, fcn, fci, fck, mfc);
 }
 
 template <class M_>

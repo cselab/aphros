@@ -145,16 +145,14 @@ struct UNormal<M_>::Imp {
   // ow: 1: force overwrite, 0: update only if gives steeper profile
   // Output: modified in cells with fci=1, resized to m
   // fcn: normal, antigradient of fcu, if gives steeper profile or ow=1 [s] 
-  // fck: curvature [s] 
   static void CalcNormalHeight(
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
-      size_t edim, bool ow, FieldCell<Vect>& fcn, FieldCell<Scal>& fck) {
+      size_t edim, bool ow, FieldCell<Vect>& fcn) {
     using MIdx = typename M::MIdx;
     using Dir = typename M::Dir;
     auto& bc = m.GetIndexCells();
 
     fcn.Reinit(m); // XXX
-    fck.Reinit(m);
 
     for (auto c : m.SuCells()) {
       if (!fci[c]) {
@@ -162,7 +160,6 @@ struct UNormal<M_>::Imp {
       }
       Vect bn; // best normal
       Scal bhx = 0., bhy = 0.; // best first derivative
-      Scal bk = 0.; // best curvature[k]
       Dir bd = Dir::i;  // best direction
       bool fst = true; // first
       std::vector<Dir> dd; // direction of plane normal
@@ -198,16 +195,10 @@ struct UNormal<M_>::Imp {
         };
 
         // height function
-        const Scal h = hh(MIdx(0));
         const Scal hxm = hh(-otx);
         const Scal hxp = hh(otx);
         const Scal hym = hh(-oty);
         const Scal hyp = hh(oty);
-        // corners: hxy
-        const Scal hmm = hh(-otx - oty); 
-        const Scal hmp = hh(-otx + oty);
-        const Scal hpm = hh(otx - oty);
-        const Scal hpp = hh(otx + oty);
 
         // first derivative (slope)
         Scal hx = (hxp - hxm) / (2. * lx);  // centered
@@ -215,26 +206,17 @@ struct UNormal<M_>::Imp {
         // sign: +1 if u increases in dn
         Scal sg = 
             (fcu[bc.GetIdx(w + on)] - fcu[bc.GetIdx(w - on)] > 0. ? 1. : -1.);
-        // second derivative 
-        Scal hxx = (hxp - 2. * h + hxm) / (lx * lx);
-        Scal hyy = (hyp - 2. * h + hym) / (ly * ly);
-        Scal hxy = ((hpp - hmp) - (hpm - hmm)) / (4. * lx * ly);
-        // curvature
-        Scal k = (2. * hx * hy * hxy 
-            -(sqr(hy) + 1.) * hxx -(sqr(hx) + 1.) * hyy) / 
-            std::pow(sqr(hx) + sqr(hy) + 1., 3. / 2.);
         // outer normal
         Vect n;
         n[size_t(dtx)] = -hx;
         n[size_t(dty)] = -hy;
         n[size_t(dn)] = -sg;
         // select best with minimal slope
-        if (fst || 
-            std::abs(hx) + std::abs(hy) < std::abs(bhx) + std::abs(bhy)) {
+        using std::abs;
+        if (fst || abs(hx) + abs(hy) < abs(bhx) + abs(bhy)) {
           bn = n;
           bhx = hx;
           bhy = hy;
-          bk = k;
           bd = dn;
           fst = false;
         } 
@@ -245,9 +227,89 @@ struct UNormal<M_>::Imp {
       if (ow || std::abs(bn[size_t(bd)]) < std::abs(fcn[c][size_t(bd)])) {
         fcn[c] = bn;
       }
+    }
+  }
+  // Computes curvature from height functions.
+  // fcu: volume fraction
+  // fci: interface mask (1: contains interface)
+  // edim: effective dimension
+  // Output: modified in cells with fci=1, resized to m
+  // fck: curvature [i] 
+  static void CalcCurvHeight(
+      M& m, const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcud,
+      const FieldCell<Vect>& fcn, size_t edim, FieldCell<Scal>& fck) {
+    using MIdx = typename M::MIdx;
+    using Dir = typename M::Dir;
+    auto& bc = m.GetIndexCells();
 
+    auto I = [](Scal a) { return a > 0 && a < 1; };
+
+    (void) edim;
+    (void) fcud;
+
+    fck.Reinit(m);
+
+    for (auto c : m.Cells()) {
+      if (!I(fcu[c])) {
+        continue;
+      }
+
+      Dir dn(fcn[c].abs().argmax()); // best direction
+      // directions of plane tangents ([d]irection [t]angents)
+      Dir dtx((size_t(dn) + 1) % dim); 
+      Dir dty((size_t(dn) + 2) % dim); 
+
+      MIdx w = bc.GetMIdx(c);
+
+      // offset in normal direction
+      MIdx on = MIdx(dn);
+      // offset in dtx,dty
+      MIdx otx = MIdx(dtx);
+      MIdx oty = MIdx(dty);
+      // mesh step
+      const Scal lx = m.GetCellSize()[size_t(dtx)];
+      const Scal ly = m.GetCellSize()[size_t(dty)];
+      const Scal ln = m.GetCellSize()[size_t(dn)];
+
+      // Evaluates height function
+      // o: offset from w
+      auto hh = [&](MIdx o) -> Scal {
+        IdxCell cmm = bc.GetIdx(w + o - on * 2);
+        IdxCell cm  = bc.GetIdx(w + o - on);
+        IdxCell c   = bc.GetIdx(w + o);
+        IdxCell cp  = bc.GetIdx(w + o + on);
+        IdxCell cpp = bc.GetIdx(w + o + on * 2);
+        if (!I(fcu[cmm]) && !I(fcu[cpp])) {
+          return (fcu[cmm] + fcu[cm] + fcu[c] + fcu[cp] + fcu[cpp]) * ln;
+        }
+        return GetNan<Scal>();
+      };
+
+      // height function
+      const Scal h = hh(MIdx(0));
+      const Scal hxm = hh(-otx);
+      const Scal hxp = hh(otx);
+      const Scal hym = hh(-oty);
+      const Scal hyp = hh(oty);
+      // corners: hxy
+      const Scal hmm = hh(-otx - oty); 
+      const Scal hmp = hh(-otx + oty);
+      const Scal hpm = hh(otx - oty);
+      const Scal hpp = hh(otx + oty);
+
+      // first derivative (slope)
+      Scal hx = (hxp - hxm) / (2. * lx);  // centered
+      Scal hy = (hyp - hym) / (2. * ly); 
+      // second derivative 
+      Scal hxx = (hxp - 2. * h + hxm) / (lx * lx);
+      Scal hyy = (hyp - 2. * h + hym) / (ly * ly);
+      Scal hxy = ((hpp - hmp) - (hpm - hmm)) / (4. * lx * ly);
       // curvature
-      fck[c] = bk;
+      Scal k = (2. * hx * hy * hxy 
+          -(sqr(hy) + 1.) * hxx -(sqr(hx) + 1.) * hyy) / 
+          std::pow(sqr(hx) + sqr(hy) + 1., 3. / 2.);
+      // curvature
+      fck[c] = k;
     }
   }
   template <class Q>
@@ -270,7 +332,7 @@ struct UNormal<M_>::Imp {
   // CalcNormalHeight: optimized implementation
   static void CalcNormalHeight1(
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
-      size_t edim, bool ow, FieldCell<Vect>& fcn, FieldCell<Scal>& fck) {
+      size_t edim, bool ow, FieldCell<Vect>& fcn) {
     using MIdx = typename M::MIdx;
     auto ic = m.GetIndexCells();
     auto bc = m.GetSuBlockCells();
@@ -289,13 +351,11 @@ struct UNormal<M_>::Imp {
     const size_t xe = we[0], ye = we[1], ze = we[2];
 
     fcn.Reinit(m);
-    fck.Reinit(m);
 
     const Vect h = m.GetCellSize();
 
     const Scal* pu = fcu.data();
     Vect* pn = fcn.data();
-    Scal* pk = fck.data();
     const bool* pi = fci.data();
     for (size_t z = zb; z < ze; ++z) {
       for (size_t y = yb; y < ye; ++y) {
@@ -320,7 +380,6 @@ struct UNormal<M_>::Imp {
 
           Vect bn(0); // best normal
           size_t bd = 0;  // best direction
-          Scal bk = 0;    // best curvature
           std::vector<size_t> dd; // direction of plane normal
           if (edim == 2) {
             dd = {0, 1};
@@ -364,14 +423,6 @@ struct UNormal<M_>::Imp {
             if (std::abs(n[dn]) > std::abs(bn[bd])) {
               bn = n;
               bd = dn;
-              // second derivative 
-              Scal gxx = (gxp - 2. * gc + gxm) * ln / (lx * lx);
-              Scal gyy = (gyp - 2. * gc + gym) * ln / (ly * ly);
-              Scal gxy = ((gpp - gmp) - (gpm - gmm)) / (4. * lx * ly);
-              // curvature
-              bk = (2. * gx * gy * gxy
-                  -(sqr(gy) + 1.) * gxx -(sqr(gx) + 1.) * gyy) /
-                  std::pow(sqr(gx) + sqr(gy) + 1., 3. / 2.);
             }
           }
 
@@ -379,8 +430,6 @@ struct UNormal<M_>::Imp {
           if (ow || std::abs(bn[bd]) < std::abs(pn[i][bd])) {
             pn[i] = bn;
           }
-          // curvature
-          pk[i] = bk;
         }
       }
     }
@@ -391,23 +440,30 @@ struct UNormal<M_>::Imp {
   // edim: effective dimension
   // Output: set to NaN if fci=0
   // fcn: normal with norm1()=1, antigradient of fcu [s] 
-  // fck: curvature
   static void CalcNormal(
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
-      size_t edim, FieldCell<Vect>& fcn, FieldCell<Scal>& fck) {
+      size_t edim, FieldCell<Vect>& fcn) {
     fcn.Reinit(m, Vect(GetNan<Scal>()));
-    fck.Reinit(m, GetNan<Scal>());
+    FieldCell<char> fcd(m);
     CalcNormalYoung1(m,fcu, fci, fcn);
-    CalcNormalHeight1(m, fcu, fci, edim, false, fcn, fck);
+    CalcNormalHeight1(m, fcu, fci, edim, false, fcn);
   }
 };
 
 template <class M_>
 void UNormal<M_>::CalcNormal(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
-    size_t edim, FieldCell<Vect>& fcn, FieldCell<Scal>& fck) {
-  Imp::CalcNormal(m, fcu, fci, edim, fcn, fck);
+    size_t edim, FieldCell<Vect>& fcn) {
+  Imp::CalcNormal(m, fcu, fci, edim, fcn);
 }
+
+template <class M_>
+void UNormal<M_>::CalcCurvHeight(
+      M& m, const FieldCell<Scal>& fcu, const FieldCell<Vect> fcud,
+      const FieldCell<Vect>& fcn, size_t edim, FieldCell<Scal>& fck) {
+  Imp::CalcCurvHeight(m, fcu, fcud, fcn, edim, fck);
+}
+
 
 template <class M_>
 void UNormal<M_>::CalcNormalYoung(

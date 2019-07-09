@@ -108,9 +108,9 @@ class Height : public TimerMesh {
     size_t edim = 3;
 
     if (id == 0) {
-      Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn, fck);
+      Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn);
     } else {
-      Normal::CalcNormalHeight1(m, fc, fci, edim, true, fcn, fck);
+      Normal::CalcNormalHeight1(m, fc, fci, edim, true, fcn);
     }
 
     ii = fcn[IdxCell(ii)][0];
@@ -120,7 +120,7 @@ class Height : public TimerMesh {
   FieldCell<Scal> fc;
   FieldCell<bool> fci;
   FieldCell<Vect> fcn;
-  FieldCell<Scal> fck;
+  FieldCell<char> fcd;
 };
 
 class Partstr : public TimerMesh {
@@ -160,7 +160,6 @@ void Cmp(int f) {
   FieldCell<bool> fci(m, true);
   FieldCell<Vect> fcn(m);
   FieldCell<Vect> fcn2(m);
-  FieldCell<Scal> fck(m);
   for (auto c : m.AllCells()) {
     fc[c] = Rnd(c.GetRaw());
   }
@@ -169,12 +168,12 @@ void Cmp(int f) {
     Normal::CalcNormalYoung1(m, fc, fci, fcn2);
   } else if (f == 1) {
     size_t edim = 3;
-    Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn, fck);
-    Normal::CalcNormalHeight1(m, fc, fci, edim, true, fcn2, fck);
+    Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn);
+    Normal::CalcNormalHeight1(m, fc, fci, edim, true, fcn2);
   } else {
     size_t edim = 2;
-    Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn, fck);
-    Normal::CalcNormalHeight1(m, fc, fci, edim, true, fcn2, fck);
+    Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn);
+    Normal::CalcNormalHeight1(m, fc, fci, edim, true, fcn2);
   }
 
   Scal r = DiffMax(fcn, fcn2, m);

@@ -127,7 +127,6 @@ struct Vof<M_>::Imp {
       }
     }
   }
-
   // reconstruct interface
   void Rec(const FieldCell<Scal>& uc) {
     if (par->bcc_reflect) {
@@ -135,7 +134,7 @@ struct Vof<M_>::Imp {
     }
     DetectInterface(uc);
     // Compute normal and curvature [s]
-    CalcNormal(uc, fci_, fcn_, fck_);
+    CalcNormal(uc, fci_, fcn_);
     auto h = m.GetCellSize();
     // Reconstruct interface [s]
     for (auto c : m.SuCells()) {
@@ -147,8 +146,8 @@ struct Vof<M_>::Imp {
     }
   }
   void CalcNormal(const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
-                  FieldCell<Vect>& fcn, FieldCell<Scal>& fck) {
-    UNormal<M>::CalcNormal(m, fcu, fci, par->dim, fcn, fck);
+                  FieldCell<Vect>& fcn) {
+    UNormal<M>::CalcNormal(m, fcu, fci, par->dim, fcn);
   }
   void DetectInterface(const FieldCell<Scal>& uc) {
     fci_.Reinit(m, false);
@@ -391,7 +390,7 @@ struct Vof<M_>::Imp {
       m.Comm(&fck_);
     }
     if (par->part && sem.Nested("part")) {
-      psm_->Part(fcu_.iter_curr, fca_, fcn_, fci_, mfc_);
+      psm_->Part(fcu_.iter_curr, fca_, fcn_, fci_, fck_, mfc_);
     }
     if (sem.Nested("dump")) {
       Dump();
