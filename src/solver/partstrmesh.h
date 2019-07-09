@@ -51,6 +51,7 @@ class PartStrMesh {
   // fci: interface mask (1: contains interface)
   void Part(const FieldCell<Scal>& uc, 
       FieldCell<Scal>& fca, FieldCell<Vect>& fcn, FieldCell<bool>& fci,
+      FieldCell<Scal>& fck,
       const MapFace<std::shared_ptr<CondFace>>& mfc);
   // Dump particles to csv.
   // fca: plane constant
