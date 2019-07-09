@@ -129,13 +129,27 @@ struct Vof<M_>::Imp {
   }
   // fcu: volume fraction [s]
   // fcud: volume fraction difference (xp-xm, yp-ym, zp-zm) [i]
-  void CalcDiff(const FieldCell<Scal>& fcu, FieldCell<Vect>& fcud_) {
-    fcud_.Reinit(m);
+  void CalcDiff(const FieldCell<Scal>& fcu, FieldCell<Vect>& fcud) {
+    fcud.Reinit(m);
     for (auto c : m.Cells()) {
       for (size_t d = 0; d < dim; ++d) {
-        fcud_[c][d] =
-            fcu[m.GetNeighbourCell(c, 2 * d + 1)] -
-            fcu[m.GetNeighbourCell(c, 2 * d)];
+        auto cm = m.GetNeighbourCell(c, 2 * d);
+        auto cp = m.GetNeighbourCell(c, 2 * d + 1);
+        fcud[c][d] = fcu[cp] - fcu[cm];
+      }
+    }
+  }
+  // fcu: volume fraction [a]
+  // fcud2: volume fraction difference double (xpp-xmm, ypp-ymm, zpp-zmm) [i]
+  void CalcDiff2(const FieldCell<Scal>& fcu, FieldCell<Vect>& fcud2) {
+    fcud2.Reinit(m);
+    for (auto c : m.Cells()) {
+      for (size_t d = 0; d < dim; ++d) {
+        auto cm = m.GetNeighbourCell(c, 2 * d);
+        auto cmm = m.GetNeighbourCell(cm, 2 * d);
+        auto cp = m.GetNeighbourCell(c, 2 * d + 1);
+        auto cpp = m.GetNeighbourCell(cp, 2 * d + 1);
+        fcud2[c][d] = fcu[cpp] - fcu[cmm];
       }
     }
   }
@@ -144,7 +158,9 @@ struct Vof<M_>::Imp {
     auto sem = m.GetSem("rec");
     if (sem("vfdiff")) {
       CalcDiff(uc, fcud_);
+      CalcDiff2(uc, fcud2_);
       m.Comm(&fcud_);
+      m.Comm(&fcud2_);
     }
     if (sem("local")) {
       if (par->bcc_reflect) {
@@ -153,7 +169,7 @@ struct Vof<M_>::Imp {
       DetectInterface(uc);
       // Compute normal and curvature [s]
       CalcNormal(uc, fci_, fcn_);
-      CalcCurvHeight(uc, fcud_, fcn_, fck_);
+      CalcCurvHeight(uc, fcud_, fcud2_, fcn_, fck_);
       auto h = m.GetCellSize();
       // Reconstruct interface [s]
       for (auto c : m.SuCells()) {
@@ -170,9 +186,10 @@ struct Vof<M_>::Imp {
     UNormal<M>::CalcNormal(m, fcu, fci, par->dim, fcn);
   }
   void CalcCurvHeight(
-      const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcud,
+      const FieldCell<Scal>& fcu, 
+      const FieldCell<Vect>& fcud, const FieldCell<Vect>& fcud2,
       const FieldCell<Vect>& fcn, FieldCell<Scal>& fck) {
-    UNormal<M>::CalcCurvHeight(m, fcu, fcud, fcn, par->dim, fck);
+    UNormal<M>::CalcCurvHeight(m, fcu, fcud, fcud2, fcn, par->dim, fck);
   }
   void DetectInterface(const FieldCell<Scal>& uc) {
     fci_.Reinit(m, false);
@@ -437,6 +454,7 @@ struct Vof<M_>::Imp {
   FieldCell<bool> fci_; // interface mask (1: contains interface)
   FieldFace<bool> ffi_; // interface mask (1: upwind cell contains interface)
   FieldCell<Vect> fcud_; // volume fraction difference (xp-xm, yp-ym, zp-zm)
+  FieldCell<Vect> fcud2_; // volume fraction difference double
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
   std::vector<std::vector<Vect>> dl_; // dump poly

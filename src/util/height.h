@@ -32,7 +32,7 @@ struct UHeight {
     while (ip < si && I(uu[ip])) { ++ip; }
     if (ip >= si) { return false; }
 
-    if ((uu[ip] - uu[im]) * n > 0) {
+    if ((uu[ip] - uu[im]) * n < 0) {
       return true;
     }
     return false;
