@@ -185,7 +185,8 @@ struct PartStrMesh<M_>::Imp {
   }
 
   void Seed(const FieldCell<Scal>& fcu, const FieldCell<Scal>& fca, 
-            const FieldCell<Vect>& fcn, const FieldCell<bool>& fci) {
+            const FieldCell<Vect>& fcn, const FieldCell<bool>& fci, 
+            const FieldCell<Scal>& fck) {
     using MIdx = typename M::MIdx;
     auto& bc = m.GetIndexCells();
 
@@ -194,11 +195,15 @@ struct PartStrMesh<M_>::Imp {
     vsc_.clear();
     vsan_.clear();
 
+    Vect h = m.GetCellSize();
+    (void) h;
+
     // Seed strings in cells with interface.
     for (auto c : m.Cells()) {
       Vect xc = m.GetCenter(c);
       const Scal th = par->intth;
-      if (fci[c] && fcu[c] >= th && fcu[c] <= 1. - th) {
+      if (fci[c] && fcu[c] >= th && fcu[c] <= 1. - th && 
+          (IsNan(fck[c]) || std::abs(fck[c]) > 1. / (par->maxr * h[0]))) {
         // number of strings
         size_t ns = (par->dim == 2 ? 1 : par->ns);
         for (size_t s = 0; s < ns; ++s) {
@@ -250,11 +255,11 @@ struct PartStrMesh<M_>::Imp {
         BcReflect(fca, mfc, Scal(0), m);
         BcReflect(fcn, mfc, Vect(0), m);
       }
-      Seed(uc, fca, fcn, fci);
+      Seed(uc, fca, fcn, fci, fck);
       partstr_->Run(par->tol, par->itermax,
                     m.IsRoot() ? par->verb : 0);
       // compute curvature
-      fckp_.Reinit(m, GetNan<Scal>());
+      fckp_ = fck;
       // XXX: assume strings from same cell contiguous
       auto ns = partstr_->GetNumStr();
       size_t s = 0;
@@ -270,9 +275,6 @@ struct PartStrMesh<M_>::Imp {
         fckp_[c] /= nsc;
         if (par->dim == 3) {
           fckp_[c] *= 2.;
-        }
-        if (!IsNan(fck[c])) {
-          fckp_[c] = fck[c];
         }
       }
       m.Comm(&fckp_);

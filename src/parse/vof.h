@@ -39,6 +39,7 @@ void Parse(typename solver::Vof<M>::Par* p, const Vars& var) {
   p->part_dtmax = var.Double["part_dtmax"];
   p->part_anglim = var.Double["part_anglim"];
   p->part_dn = var.Int["part_dn"];
+  p->part_maxr = var.Double["part_maxr"];
 
   {
     using AF = typename solver::PartStrMesh<M>::AF;
