@@ -251,7 +251,7 @@ struct UNormal<M_>::Imp {
 
     (void) edim;
 
-    fck.Reinit(m);
+    fck.Reinit(m, GetNan<Scal>());
 
     for (auto c : m.Cells()) {
       if (!I(fcu[c])) {
@@ -303,7 +303,6 @@ struct UNormal<M_>::Imp {
           return (ummmm + ummm + umm + um + u + up + upp + uppp + upppp) * ln;
         }
 
-        std::cout << GVect<Scal, si>(uu) << " n=" << n << std::endl;
         return GetNan<Scal>();
       };
 
@@ -332,9 +331,6 @@ struct UNormal<M_>::Imp {
           std::pow(sqr(hx) + sqr(hy) + 1., 3. / 2.);
       // curvature
       fck[c] = k;
-      if (IsNan(fck[c])) {
-        fck[c] = 10.;
-      }
     }
   }
   template <class Q>

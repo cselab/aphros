@@ -50,6 +50,7 @@ struct Vof<M_>::Imp {
     psm->dim = par->dim;
     psm->bcc_reflect = par->bcc_reflect;
     psm->dump_fr = par->part_dump_fr;
+    psm->maxr = par->part_maxr;
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm));
   }
   void Update(typename PS::Par* p) const {
