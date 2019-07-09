@@ -299,11 +299,7 @@ struct UNormal<M_>::Imp {
         const size_t si = 9;
         std::array<Scal, si> uu = 
             {ummmm, ummm, umm, um, u, up, upp, uppp, upppp};
-        if (UHeight<Scal>::Good(uu, n[di])) {
-          return (ummmm + ummm + umm + um + u + up + upp + uppp + upppp) * ln;
-        }
-
-        return GetNan<Scal>();
+        return UHeight<Scal>::Good(uu, n[di]) * ln;
       };
 
       // height function
