@@ -3,6 +3,7 @@
 
 #include "geom/mesh.h"
 #include "solver.h"
+#include "util/height.h"
 
 
 namespace solver {
@@ -231,7 +232,8 @@ struct UNormal<M_>::Imp {
   }
   // Computes curvature from height functions.
   // fcu: volume fraction
-  // fci: interface mask (1: contains interface)
+  // fcud: volume fraction difference (xp-xm, yp-ym, zp-zm) [i]
+  // fcn: normal, antigradient of fcu
   // edim: effective dimension
   // Output: modified in cells with fci=1, resized to m
   // fck: curvature [i] 
@@ -242,10 +244,9 @@ struct UNormal<M_>::Imp {
     using Dir = typename M::Dir;
     auto& bc = m.GetIndexCells();
 
-    auto I = [](Scal a) { return a > 0 && a < 1; };
+    auto I = [](Scal a) { return a > 0 && a < 1; }; // interface
 
     (void) edim;
-    (void) fcud;
 
     fck.Reinit(m);
 
@@ -254,7 +255,8 @@ struct UNormal<M_>::Imp {
         continue;
       }
 
-      Dir dn(fcn[c].abs().argmax()); // best direction
+      size_t di = fcn[c].abs().argmax(); // best direction index
+      Dir dn(di); // best direction
       // directions of plane tangents ([d]irection [t]angents)
       Dir dtx((size_t(dn) + 1) % dim); 
       Dir dty((size_t(dn) + 2) % dim); 
@@ -274,13 +276,24 @@ struct UNormal<M_>::Imp {
       // Evaluates height function
       // o: offset from w
       auto hh = [&](MIdx o) -> Scal {
-        IdxCell cmm = bc.GetIdx(w + o - on * 2);
-        IdxCell cm  = bc.GetIdx(w + o - on);
         IdxCell c   = bc.GetIdx(w + o);
+        IdxCell cm  = bc.GetIdx(w + o - on);
+        IdxCell cmm = bc.GetIdx(w + o - on * 2);
         IdxCell cp  = bc.GetIdx(w + o + on);
         IdxCell cpp = bc.GetIdx(w + o + on * 2);
-        if (!I(fcu[cmm]) && !I(fcu[cpp])) {
-          return (fcu[cmm] + fcu[cm] + fcu[c] + fcu[cp] + fcu[cpp]) * ln;
+
+        Scal u    = fcu[c];
+        Scal um   = fcu[cm];
+        Scal umm  = fcu[cmm];
+        Scal ummm = um - fcud[cmm][di];
+        Scal up   = fcu[cp];
+        Scal upp  = fcu[cpp];
+        Scal uppp = fcud[cpp][di] + up;
+
+        const size_t si = 7;
+        std::array<Scal, si> uu = {ummm, umm, um, u, up, upp, uppp};
+        if (UHeight<Scal>::Good(uu, fcn[c][di])) {
+          return (ummm + umm + um + u + up + upp + uppp) * ln;
         }
         return GetNan<Scal>();
       };
