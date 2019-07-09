@@ -28,12 +28,14 @@ class UNormal {
   // m: mesh
   // fcu: volume fraction [a]
   // fcud: volume fraction difference (xp-xm, yp-ym, zp-zm) [a]
+  // fcud2: volume fraction difference double (xpp-xmm, ypp-ymm, zpp-zmm) [i]
   // fcn: normal to defining the direction of heights as n.abs().argmax()
   // edim: effective dimension
   // Output: set to NaN if fci=0
   // fck: curvature [i]
   static void CalcCurvHeight(
-      M& m, const FieldCell<Scal>& fcu, const FieldCell<Vect> fcud,
+      M& m, const FieldCell<Scal>& fcu, 
+      const FieldCell<Vect> fcud, const FieldCell<Vect> fcud2,
       const FieldCell<Vect>& fcn, size_t edim, FieldCell<Scal>& fck);
 
   // Computes normal by Youngs scheme

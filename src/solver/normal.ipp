@@ -4,6 +4,7 @@
 #include "geom/mesh.h"
 #include "solver.h"
 #include "util/height.h"
+#include "debug/isnan.h"
 
 
 namespace solver {
@@ -233,12 +234,14 @@ struct UNormal<M_>::Imp {
   // Computes curvature from height functions.
   // fcu: volume fraction
   // fcud: volume fraction difference (xp-xm, yp-ym, zp-zm) [i]
+  // fcud2: volume fraction difference double (xpp-xmm, ypp-ymm, zpp-zmm) [i]
   // fcn: normal, antigradient of fcu
   // edim: effective dimension
   // Output: modified in cells with fci=1, resized to m
   // fck: curvature [i] 
   static void CalcCurvHeight(
-      M& m, const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcud,
+      M& m, const FieldCell<Scal>& fcu, 
+      const FieldCell<Vect>& fcud, const FieldCell<Vect>& fcud2,
       const FieldCell<Vect>& fcn, size_t edim, FieldCell<Scal>& fck) {
     using MIdx = typename M::MIdx;
     using Dir = typename M::Dir;
@@ -273,28 +276,34 @@ struct UNormal<M_>::Imp {
       const Scal ly = m.GetCellSize()[size_t(dty)];
       const Scal ln = m.GetCellSize()[size_t(dn)];
 
+      const Vect n = fcn[c];
       // Evaluates height function
       // o: offset from w
-      auto hh = [&](MIdx o) -> Scal {
-        IdxCell c   = bc.GetIdx(w + o);
+      auto hh = [&w,&on,&fcu,&n,&di,&bc,&fcud,&fcud2,&ln](MIdx o) -> Scal {
+        IdxCell cc   = bc.GetIdx(w + o);
         IdxCell cm  = bc.GetIdx(w + o - on);
         IdxCell cmm = bc.GetIdx(w + o - on * 2);
         IdxCell cp  = bc.GetIdx(w + o + on);
         IdxCell cpp = bc.GetIdx(w + o + on * 2);
 
-        Scal u    = fcu[c];
+        Scal u    = fcu[cc];
         Scal um   = fcu[cm];
         Scal umm  = fcu[cmm];
         Scal ummm = um - fcud[cmm][di];
+        Scal ummmm = u - fcud2[cmm][di];
         Scal up   = fcu[cp];
         Scal upp  = fcu[cpp];
         Scal uppp = fcud[cpp][di] + up;
+        Scal upppp = fcud2[cpp][di] + u;
 
-        const size_t si = 7;
-        std::array<Scal, si> uu = {ummm, umm, um, u, up, upp, uppp};
-        if (UHeight<Scal>::Good(uu, fcn[c][di])) {
-          return (ummm + umm + um + u + up + upp + uppp) * ln;
+        const size_t si = 9;
+        std::array<Scal, si> uu = 
+            {ummmm, ummm, umm, um, u, up, upp, uppp, upppp};
+        if (UHeight<Scal>::Good(uu, n[di])) {
+          return (ummmm + ummm + umm + um + u + up + upp + uppp + upppp) * ln;
         }
+
+        std::cout << GVect<Scal, si>(uu) << " n=" << n << std::endl;
         return GetNan<Scal>();
       };
 
@@ -323,6 +332,9 @@ struct UNormal<M_>::Imp {
           std::pow(sqr(hx) + sqr(hy) + 1., 3. / 2.);
       // curvature
       fck[c] = k;
+      if (IsNan(fck[c])) {
+        fck[c] = 10.;
+      }
     }
   }
   template <class Q>
@@ -472,9 +484,10 @@ void UNormal<M_>::CalcNormal(
 
 template <class M_>
 void UNormal<M_>::CalcCurvHeight(
-      M& m, const FieldCell<Scal>& fcu, const FieldCell<Vect> fcud,
+      M& m, const FieldCell<Scal>& fcu, 
+      const FieldCell<Vect> fcud, const FieldCell<Vect> fcud2,
       const FieldCell<Vect>& fcn, size_t edim, FieldCell<Scal>& fck) {
-  Imp::CalcCurvHeight(m, fcu, fcud, fcn, edim, fck);
+  Imp::CalcCurvHeight(m, fcu, fcud, fcud2, fcn, edim, fck);
 }
 
 
