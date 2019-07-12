@@ -233,20 +233,16 @@ struct UNormal<M_>::Imp {
   }
   // Computes heights.
   // fcu: volume fraction [a]
-  // fcud: volume fraction difference (xp-xm, yp-ym, zp-zm) [a]
   // fcud2: volume fraction difference double (xpp-xmm, ypp-ymm, zpp-zmm) [a]
+  // fcud4: volume fraction difference triple (xp4-xm4, ...) [a]
   // Output:
   // fch: fch[c][d] is absolute position of the interface
   // from a column in direction d starting from an interfacial cell c
   // otherwise, NaN
   static void CalcHeight(
       M& m, const FieldCell<Scal>& fcu,
-      const FieldCell<Vect>& fcud, const FieldCell<Vect>& fcud2,
+      const FieldCell<Vect>& fcud2, const FieldCell<Vect>& fcud4,
       size_t edim, FieldCell<Vect>& fch) {
-    using MIdx = typename M::MIdx;
-    using Dir = typename M::Dir;
-    auto& bc = m.GetIndexCells();
-
     auto I = [](Scal a) { return a > 0 && a < 1; }; // interface
 
     fch.Reinit(m, GetNan<Vect>());
@@ -256,28 +252,38 @@ struct UNormal<M_>::Imp {
         continue;
       }
       for (size_t d = 0; d < edim; ++d) {
-        MIdx on = MIdx(Dir(d));
-        MIdx w = bc.GetMIdx(c);
+        IdxCell cm = m.GetNeighbourCell(c, 2 * d);
+        IdxCell cmm = m.GetNeighbourCell(cm, 2 * d);
+        IdxCell cp = m.GetNeighbourCell(c, 2 * d + 1);
+        IdxCell cpp = m.GetNeighbourCell(cp, 2 * d + 1);
 
-        IdxCell cc   = bc.GetIdx(w);
-        IdxCell cm  = bc.GetIdx(w - on);
-        IdxCell cmm = bc.GetIdx(w - on * 2);
-        IdxCell cp  = bc.GetIdx(w + on);
-        IdxCell cpp = bc.GetIdx(w + on * 2);
+        Scal u    = fcu[c];
 
-        Scal u    = fcu[cc];
         Scal um   = fcu[cm];
-        Scal umm  = fcu[cmm];
-        Scal ummm = um - fcud[cmm][d];
-        Scal ummmm = u - fcud2[cmm][d];
         Scal up   = fcu[cp];
-        Scal upp  = fcu[cpp];
-        Scal uppp = fcud[cpp][d] + up;
-        Scal upppp = fcud2[cpp][d] + u;
 
-        const size_t si = 9;
+        Scal umm  = fcu[cmm];
+        Scal upp  = fcu[cpp];
+
+        Scal um3 = up - fcud2[cm][d];
+        Scal up3 = fcud2[cp][d] + um;
+
+        Scal um4 = u - fcud2[cmm][d];
+        Scal up4 = fcud2[cpp][d] + u;
+
+        // |cm6|cm5|cm4|cm3|cmm| cm| c |cp |cpp|cp3|cp4|cp5|cp6|
+        // |   |   |   |   | * |   | c |   | * |   |   |   |   |
+        // |   |   | * |   |   |   | c |   |   |   | * |   |   |
+
+        Scal um5 = up3 - fcud4[cm][d];
+        Scal up5 = fcud4[cp][d] + um3;
+
+        Scal um6 = up4 - fcud4[cmm][d];
+        Scal up6 = fcud4[cpp][d] + um4;
+
+        const size_t si = 13;
         std::array<Scal, si> uu = 
-            {ummmm, ummm, umm, um, u, up, upp, uppp, upppp};
+            {um6, um5, um4, um3, umm, um, u, up, upp, up3, up4, up5, up6};
         Scal s = UHeight<Scal>::Good(uu);
         fch[c][d] = m.GetCenter(c)[d] + s * m.GetCellSize()[d];
       }
@@ -526,9 +532,9 @@ void UNormal<M_>::CalcNormal(
 template <class M_>
 void UNormal<M_>::CalcHeight(
       M& m, const FieldCell<Scal>& fcu,
-      const FieldCell<Vect>& fcud, const FieldCell<Vect>& fcud2,
+      const FieldCell<Vect>& fcud2, const FieldCell<Vect>& fcud4,
       size_t edim, FieldCell<Vect>& fch) {
-  Imp::CalcHeight(m, fcu, fcud, fcud2, edim, fch);
+  Imp::CalcHeight(m, fcu, fcud2, fcud4, edim, fch);
 }
 
 template <class M_>
