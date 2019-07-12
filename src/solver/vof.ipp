@@ -198,6 +198,7 @@ struct Vof<M_>::Imp {
     }
     if (sem("height")) {
       UNormal<M>::CalcHeight(m, uc, fcud2_, fcud4_, fcud6_, par->dim, fch_);
+      //UNormal<M>::CalcHeight(m, uc, fcud2_, fcud4_, par->dim, fch_);
       m.Comm(&fch_);
     }
     if (sem("local")) {

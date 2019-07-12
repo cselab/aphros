@@ -232,6 +232,7 @@ struct UNormal<M_>::Imp {
     }
   }
   // Computes heights.
+  // S: the number of stages for stencils, column size is [-S*2,S*2]
   // fcu: volume fraction [a]
   // fcud2: volume fraction difference double (xpp-xmm, ypp-ymm, zpp-zmm) [a]
   // fcud4: volume fraction difference triple (xp4-xm4, ...) [a]
@@ -239,10 +240,10 @@ struct UNormal<M_>::Imp {
   // fch: fch[c][d] is absolute position of the interface
   // from a column in direction d starting from an interfacial cell c
   // otherwise, NaN
+  template <size_t S>
   static void CalcHeight(
       M& m, const FieldCell<Scal>& fcu,
-      const FieldCell<Vect>& fcud2, const FieldCell<Vect>& fcud4,
-      const FieldCell<Vect>& fcud6,
+      const std::array<const FieldCell<Vect>*, S> vfcud,
       size_t edim, FieldCell<Vect>& fch) {
     auto I = [](Scal a) { return a > 0 && a < 1; }; // interface
 
@@ -258,50 +259,32 @@ struct UNormal<M_>::Imp {
         IdxCell cp = m.GetNeighbourCell(c, 2 * d + 1);
         IdxCell cpp = m.GetNeighbourCell(cp, 2 * d + 1);
 
-        Scal u    = fcu[c];
+        const size_t si = (S + 1) * 4 + 1;
+        const size_t sih = (S + 1) * 2;
 
-        Scal um   = fcu[cm];
-        Scal up   = fcu[cp];
+        std::array<Scal, si> uu;
 
-        Scal umm  = fcu[cmm];
-        Scal upp  = fcu[cpp];
+        uu[sih] = fcu[c];
+        uu[sih - 1] = fcu[cm];
+        uu[sih + 1] = fcu[cp];
+        uu[sih - 2] = fcu[cmm];
+        uu[sih + 2] = fcu[cpp];
 
-        Scal um3 = up - fcud2[cm][d];
-        Scal up3 = fcud2[cp][d] + um;
+        for (size_t s = 0; s < S; ++s) {
+          const size_t q = (s + 1) * 2; // difference field half-interval
+          const size_t ia = q + 1;
+          const size_t ib = q + 2;
+          const FieldCell<Vect>& fcud = *vfcud[s];
 
-        Scal um4 = u - fcud2[cmm][d];
-        Scal up4 = fcud2[cpp][d] + u;
+          uu[sih - ia] = uu[sih - ia + 2*q] - fcud[cm][d];
+          uu[sih + ia] = uu[sih + ia - 2*q] + fcud[cp][d];
+          uu[sih - ib] = uu[sih - ib + 2*q] - fcud[cmm][d];
+          uu[sih + ib] = uu[sih + ib - 2*q] + fcud[cpp][d];
+        }
 
         // |cm6|cm5|cm4|cm3|cmm| cm| c |cp |cpp|cp3|cp4|cp5|cp6|
         // |   |   |   |   | * |   | c |   | * |   |   |   |   |
         // |   |   | * |   |   |   | c |   |   |   | * |   |   |
-
-        Scal um5 = up3 - fcud4[cm][d];
-        Scal up5 = fcud4[cp][d] + um3;
-
-        Scal um6 = upp - fcud4[cmm][d];
-        Scal up6 = fcud4[cpp][d] + umm;
-
-        (void) fcud6;
-        /*
-        Scal um7 = up5 - fcud6[cm][d];
-        Scal up7 = fcud6[cp][d] + um5;
-
-        Scal um8 = up4 - fcud6[cmm][d];
-        Scal up8 = fcud6[cpp][d] + um4;
-
-        const size_t si = 17;
-        std::array<Scal, si> uu = 
-            {um8, um7, um6, um5, um4, um3, umm, um, 
-              u, 
-              up, upp, up3, up4, up5, up6, up7, up8};
-              */
-
-        const size_t si = 13;
-        std::array<Scal, si> uu = 
-            {um6, um5, um4, um3, umm, um, 
-              u, 
-              up, upp, up3, up4, up5, up6};
 
         Scal s = UHeight<Scal>::Good(uu);
         fch[c][d] = m.GetCenter(c)[d] + s * m.GetCellSize()[d];
@@ -551,10 +534,22 @@ void UNormal<M_>::CalcNormal(
 template <class M_>
 void UNormal<M_>::CalcHeight(
       M& m, const FieldCell<Scal>& fcu,
-      const FieldCell<Vect>& fcud2, const FieldCell<Vect>& fcud4,
-      const FieldCell<Vect>& fcud6,
+      const FieldCell<Vect>& fcdu2,
+      const FieldCell<Vect>& fcdu4,
       size_t edim, FieldCell<Vect>& fch) {
-  Imp::CalcHeight(m, fcu, fcud2, fcud4, fcud6, edim, fch);
+  std::array<const FieldCell<Vect>*, 2> vfcdu = {&fcdu2, &fcdu4};
+  Imp::CalcHeight(m, fcu, vfcdu, edim, fch);
+}
+
+template <class M_>
+void UNormal<M_>::CalcHeight(
+      M& m, const FieldCell<Scal>& fcu,
+      const FieldCell<Vect>& fcdu2,
+      const FieldCell<Vect>& fcdu4,
+      const FieldCell<Vect>& fcdu6,
+      size_t edim, FieldCell<Vect>& fch) {
+  std::array<const FieldCell<Vect>*, 3> vfcdu = {&fcdu2, &fcdu4, &fcdu6};
+  Imp::CalcHeight(m, fcu, vfcdu, edim, fch);
 }
 
 template <class M_>
