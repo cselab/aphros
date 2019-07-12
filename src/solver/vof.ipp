@@ -30,6 +30,7 @@ struct Vof<M_>::Imp {
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m)
       , mfc_(mfc), fca_(m, 0), fcn_(m, Vect(0)), fck_(m, 0)
+      , fch_(m, Vect(0))
   {
     fcu_.time_curr = fcu;
     for (auto it : mfc_) {
@@ -157,11 +158,15 @@ struct Vof<M_>::Imp {
   // reconstruct interface
   void Rec(const FieldCell<Scal>& uc) {
     auto sem = m.GetSem("rec");
-    if (sem("vfdiff")) {
+    if (sem("diff")) {
       CalcDiff(uc, fcud_);
       CalcDiff2(uc, fcud2_);
       m.Comm(&fcud_);
       m.Comm(&fcud2_);
+    }
+    if (sem("height")) {
+      UNormal<M>::CalcHeight(m, uc, fcud_, fcud2_, par->dim, fch_);
+      m.Comm(&fch_);
     }
     if (sem("local")) {
       if (par->bcc_reflect) {
@@ -169,8 +174,8 @@ struct Vof<M_>::Imp {
       }
       DetectInterface(uc);
       // Compute normal and curvature [s]
-      CalcNormal(uc, fci_, fcn_);
-      CalcCurvHeight(uc, fcud_, fcud2_, fcn_, fck_);
+      UNormal<M>::CalcNormal(m, uc, fci_, par->dim, fcn_);
+      UNormal<M>::CalcCurvHeight(m, uc, fch_, fcn_, par->dim, fck_);
       auto h = m.GetCellSize();
       // Reconstruct interface [s]
       for (auto c : m.SuCells()) {
@@ -181,16 +186,6 @@ struct Vof<M_>::Imp {
         BcReflect(fcn_, mfc_, Vect(0), m);
       }
     }
-  }
-  void CalcNormal(const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
-                  FieldCell<Vect>& fcn) {
-    UNormal<M>::CalcNormal(m, fcu, fci, par->dim, fcn);
-  }
-  void CalcCurvHeight(
-      const FieldCell<Scal>& fcu, 
-      const FieldCell<Vect>& fcud, const FieldCell<Vect>& fcud2,
-      const FieldCell<Vect>& fcn, FieldCell<Scal>& fck) {
-    UNormal<M>::CalcCurvHeight(m, fcu, fcud, fcud2, fcn, par->dim, fck);
   }
   void DetectInterface(const FieldCell<Scal>& uc) {
     fci_.Reinit(m, false);
@@ -456,6 +451,7 @@ struct Vof<M_>::Imp {
   FieldFace<bool> ffi_; // interface mask (1: upwind cell contains interface)
   FieldCell<Vect> fcud_; // volume fraction difference (xp-xm, yp-ym, zp-zm)
   FieldCell<Vect> fcud2_; // volume fraction difference double
+  FieldCell<Vect> fch_; // curvature from height functions
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
   std::vector<std::vector<Vect>> dl_; // dump poly
@@ -512,6 +508,11 @@ auto Vof<M_>::GetAlpha() const -> const FieldCell<Scal>& {
 template <class M_>
 auto Vof<M_>::GetNormal() const -> const FieldCell<Vect>& {
   return imp->fcn_;
+}
+
+template <class M_>
+auto Vof<M_>::GetHeight() const -> const FieldCell<Vect>& {
+  return imp->fch_;
 }
 
 template <class M_>

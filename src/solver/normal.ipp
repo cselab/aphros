@@ -231,17 +231,66 @@ struct UNormal<M_>::Imp {
       }
     }
   }
+  // Computes heights.
+  // fcu: volume fraction [a]
+  // fcud: volume fraction difference (xp-xm, yp-ym, zp-zm) [a]
+  // fcud2: volume fraction difference double (xpp-xmm, ypp-ymm, zpp-zmm) [a]
+  // Output:
+  // fch: fch[c][d] is absolute position of the interface
+  // from a column in direction d starting from an interfacial cell c
+  // otherwise, NaN
+  static void CalcHeight(
+      M& m, const FieldCell<Scal>& fcu,
+      const FieldCell<Vect>& fcud, const FieldCell<Vect>& fcud2,
+      size_t edim, FieldCell<Vect>& fch) {
+    using MIdx = typename M::MIdx;
+    using Dir = typename M::Dir;
+    auto& bc = m.GetIndexCells();
+
+    auto I = [](Scal a) { return a > 0 && a < 1; }; // interface
+
+    fch.Reinit(m, GetNan<Vect>());
+
+    for (auto c : m.Cells()) {
+      if (!I(fcu[c])) {
+        continue;
+      }
+      for (size_t d = 0; d < edim; ++d) {
+        MIdx on = MIdx(Dir(d));
+        MIdx w = bc.GetMIdx(c);
+
+        IdxCell cc   = bc.GetIdx(w);
+        IdxCell cm  = bc.GetIdx(w - on);
+        IdxCell cmm = bc.GetIdx(w - on * 2);
+        IdxCell cp  = bc.GetIdx(w + on);
+        IdxCell cpp = bc.GetIdx(w + on * 2);
+
+        Scal u    = fcu[cc];
+        Scal um   = fcu[cm];
+        Scal umm  = fcu[cmm];
+        Scal ummm = um - fcud[cmm][d];
+        Scal ummmm = u - fcud2[cmm][d];
+        Scal up   = fcu[cp];
+        Scal upp  = fcu[cpp];
+        Scal uppp = fcud[cpp][d] + up;
+        Scal upppp = fcud2[cpp][d] + u;
+
+        const size_t si = 9;
+        std::array<Scal, si> uu = 
+            {ummmm, ummm, umm, um, u, up, upp, uppp, upppp};
+        Scal s = UHeight<Scal>::Good(uu);
+        fch[c][d] = m.GetCenter(c)[d] + s * m.GetCellSize()[d];
+      }
+    }
+  }
   // Computes curvature from height functions.
   // fcu: volume fraction
-  // fcud: volume fraction difference (xp-xm, yp-ym, zp-zm) [i]
-  // fcud2: volume fraction difference double (xpp-xmm, ypp-ymm, zpp-zmm) [i]
   // fcn: normal, antigradient of fcu
   // edim: effective dimension
   // Output: modified in cells with fci=1, resized to m
   // fck: curvature [i] 
   static void CalcCurvHeight(
-      M& m, const FieldCell<Scal>& fcu, 
-      const FieldCell<Vect>& fcud, const FieldCell<Vect>& fcud2,
+      M& m, const FieldCell<Scal>& fcu, const FieldCell<Vect>& fch,
       const FieldCell<Vect>& fcn, size_t edim, FieldCell<Scal>& fck) {
     using MIdx = typename M::MIdx;
     using Dir = typename M::Dir;
@@ -276,30 +325,25 @@ struct UNormal<M_>::Imp {
       const Scal ly = m.GetCellSize()[size_t(dty)];
       const Scal ln = m.GetCellSize()[size_t(dn)];
 
-      const Vect n = fcn[c];
-      // Evaluates height function
+      // Evaluates height function from nearest interface
       // o: offset from w
-      auto hh = [&w,&on,&fcu,&n,&di,&bc,&fcud,&fcud2,&ln](MIdx o) -> Scal {
-        IdxCell cc   = bc.GetIdx(w + o);
-        IdxCell cm  = bc.GetIdx(w + o - on);
-        IdxCell cmm = bc.GetIdx(w + o - on * 2);
-        IdxCell cp  = bc.GetIdx(w + o + on);
-        IdxCell cpp = bc.GetIdx(w + o + on * 2);
-
-        Scal u    = fcu[cc];
-        Scal um   = fcu[cm];
-        Scal umm  = fcu[cmm];
-        Scal ummm = um - fcud[cmm][di];
-        Scal ummmm = u - fcud2[cmm][di];
-        Scal up   = fcu[cp];
-        Scal upp  = fcu[cpp];
-        Scal uppp = fcud[cpp][di] + up;
-        Scal upppp = fcud2[cpp][di] + u;
-
-        const size_t si = 9;
-        std::array<Scal, si> uu = 
-            {ummmm, ummm, umm, um, u, up, upp, uppp, upppp};
-        return UHeight<Scal>::Good(uu, n[di]) * ln;
+      auto hh = [&w,&fch,&di,&bc,&ln,&on,&fcu](MIdx o) -> Scal {
+        auto I = [](Scal a) { return a > 0 && a < 1; }; // true if interface
+        const size_t si = 5; // stencil size
+        const size_t sih = si / 2;
+        size_t i = sih; // closest interface to center
+        while (i < si) {
+          auto cn = bc.GetIdx(w + o + on * (Scal(i) - sih));
+          if (I(fcu[cn])) {
+            return fch[cn][di];
+          }
+          if (i > sih) {
+            i = si - i - 1;
+          } else {
+            i = si - i;
+          }
+        }
+        return GetNan<Scal>();
       };
 
       // height function
@@ -309,7 +353,7 @@ struct UNormal<M_>::Imp {
       const Scal hym = hh(-oty);
       const Scal hyp = hh(oty);
       // corners: hxy
-      const Scal hmm = hh(-otx - oty); 
+      const Scal hmm = hh(-otx - oty);
       const Scal hmp = hh(-otx + oty);
       const Scal hpm = hh(otx - oty);
       const Scal hpp = hh(otx + oty);
@@ -325,6 +369,11 @@ struct UNormal<M_>::Imp {
       Scal k = (2. * hx * hy * hxy 
           -(sqr(hy) + 1.) * hxx -(sqr(hx) + 1.) * hyy) / 
           std::pow(sqr(hx) + sqr(hy) + 1., 3. / 2.);
+
+      if (fcn[c][di] < 0) {
+        k *= -1;
+      }
+
       // curvature
       fck[c] = k;
     }
@@ -475,11 +524,18 @@ void UNormal<M_>::CalcNormal(
 }
 
 template <class M_>
+void UNormal<M_>::CalcHeight(
+      M& m, const FieldCell<Scal>& fcu,
+      const FieldCell<Vect>& fcud, const FieldCell<Vect>& fcud2,
+      size_t edim, FieldCell<Vect>& fch) {
+  Imp::CalcHeight(m, fcu, fcud, fcud2, edim, fch);
+}
+
+template <class M_>
 void UNormal<M_>::CalcCurvHeight(
-      M& m, const FieldCell<Scal>& fcu, 
-      const FieldCell<Vect> fcud, const FieldCell<Vect> fcud2,
+      M& m, const FieldCell<Scal>& fcu, const FieldCell<Vect>& fch,
       const FieldCell<Vect>& fcn, size_t edim, FieldCell<Scal>& fck) {
-  Imp::CalcCurvHeight(m, fcu, fcud, fcud2, fcn, edim, fck);
+  Imp::CalcCurvHeight(m, fcu, fch, fcn, edim, fck);
 }
 
 

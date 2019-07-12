@@ -1437,6 +1437,10 @@ void Hydro<M>::DumpFields() {
       if (dl.count("nx")) m.Dump(&n, 0, "nx");
       if (dl.count("ny")) m.Dump(&n, 1, "ny");
       if (dl.count("nz")) m.Dump(&n, 2, "nz");
+      auto& h = as->GetHeight();
+      if (dl.count("hx")) m.Dump(&h, 0, "hx");
+      if (dl.count("hy")) m.Dump(&h, 1, "hy");
+      if (dl.count("hz")) m.Dump(&h, 2, "hz");
     }
   }
 }

@@ -86,6 +86,8 @@ class Vof : public AdvectionSolver<M_> {
   const FieldCell<Scal>& GetAlpha() const;
   // Normal to interface
   const FieldCell<Vect>& GetNormal() const;
+  // Height function
+  const FieldCell<Vect>& GetHeight() const;
   // Default curvature 
   const FieldCell<Scal>& GetCurv() const override;
   // Curvature from height functions
