@@ -13,10 +13,14 @@ T sqr(T a) {
   return a * a;
 }
 
-// TODO: move 
 template <class Scal>
-Scal GetNan() {
+inline Scal GetNan() {
   return std::numeric_limits<Scal>::quiet_NaN();
+}
+
+template <>
+inline double GetNan<double>() {
+  return std::numeric_limits<double>::quiet_NaN();
 }
 
 
@@ -378,4 +382,7 @@ struct Rect {
   }
 };
 
-
+template <>
+inline GVect<double, 3> GetNan<GVect<double, 3>>() {
+  return GVect<double, 3>(GetNan<double>());
+}
