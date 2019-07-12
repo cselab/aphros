@@ -222,7 +222,7 @@ void Vars::SetStr(std::string t, Key k, std::string v) {
   if (e != "" && e != t) {
     std::cerr 
         << "Vars::SetStr(): Attempt to change type of variable '" 
-        << k << "' from '" << t << "' to '" << e << "'" << std::endl;
+        << k << "' from '" << e << "' to '" << t << "'" << std::endl;
     throw std::runtime_error("Vars::SetStr(): Attempt to change type");
   }
   // TODO: Map::Set() still allows same name for two variables
