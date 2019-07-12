@@ -16,4 +16,6 @@ if [ ! -f main.s ] ; then
   make CFLAGS="-grid=$g" main.s
 fi
 
+chmod +x main.s
+
 ba.run -n "$np" main.s
