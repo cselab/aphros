@@ -43,7 +43,7 @@ set logscale y
 set ylabel "We_{rms}"
 v="vl2x" ; @s ; @m , 0.0004/x dt '-' lt 5 t "O(h)"
 set ylabel "We_{max}"
-v="vlmx" ; @s ; @m , 0.001/x dt '-' lt 5 t "O(h)"
+v="vlmx" ; @s ; @m , 0.001/x dt '-' lt 5 t "O(h)" , 0.001/x**2 dt '-.' lt 5 t "O(h)"
 
 unset format y
 unset logscale y
