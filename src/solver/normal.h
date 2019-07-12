@@ -34,7 +34,8 @@ class UNormal {
   // fch: curvature [i]
   static void CalcHeight(
       M& m, const FieldCell<Scal>& fcu,
-      const FieldCell<Vect>& fcud2, const FieldCell<Vect>& fcud4,
+      const FieldCell<Vect>& fcud2,
+      const FieldCell<Vect>& fcud4, const FieldCell<Vect>& fcud6,
       size_t edim, FieldCell<Vect>& fch);
 
   // Computes normal by combined Youngs scheme and height-functions
