@@ -41,6 +41,11 @@ class UNormal {
   static void CalcHeight(
       M& m, const FieldCell<Scal>& fcu,
       const FieldCell<Vect>& fcdu2,
+      size_t edim, FieldCell<Vect>& fch);
+
+  static void CalcHeight(
+      M& m, const FieldCell<Scal>& fcu,
+      const FieldCell<Vect>& fcdu2,
       const FieldCell<Vect>& fcdu4,
       const FieldCell<Vect>& fcdu6,
       size_t edim, FieldCell<Vect>& fch);
