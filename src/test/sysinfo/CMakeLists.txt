@@ -9,3 +9,4 @@ target_link_libraries(${EXE} sysinfo)
      
 add_test(NAME ${p} COMMAND ${EXE})
 
+set_tests_properties(${p} PROPERTIES RUN_SERIAL true)
