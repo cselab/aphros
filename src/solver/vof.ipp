@@ -192,10 +192,12 @@ struct Vof<M_>::Imp {
       CalcDiff4(uc, fcud2_, fcud4_);
       m.Comm(&fcud4_);
     }
+    /*
     if (sem("diff6")) {
       CalcDiff6(uc, fcud4_, fcud6_);
       m.Comm(&fcud6_);
     }
+    */
     if (sem("height")) {
       //UNormal<M>::CalcHeight(m, uc, fcud2_, fcud4_, fcud6_, par->dim, fch_);
       UNormal<M>::CalcHeight(m, uc, fcud2_, fcud4_, par->dim, fch_);

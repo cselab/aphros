@@ -39,7 +39,7 @@ class PartStrMesh {
     size_t dim = 3;
     bool bcc_reflect = false;
     AR attrreconst = AR::line;
-    Scal maxr = 5; // if input radius of curvature 
+    Scal maxr = 0; // if input radius of curvature 
                    // (e.g. from height functions)
                    // is below than maxr*h,
                    // overwrite with estimate from particles
