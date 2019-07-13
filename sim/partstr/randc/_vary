@@ -19,8 +19,8 @@ def parse():
             help='index of radius')
     p.add_argument('--nbi', type=int, default=10, 
             help='choices of position')
-    p.add_argument('--nri', type=int, default=10, 
-            help='choices of radius')
+    p.add_argument('--nri', type=str, default='10', 
+            help='choices of radius: int, (begin,end,skip)')
     p.add_argument('--overlap', type=int, default=0, 
             help='exact volume fraction with overlap (0, 1)')
     p.add_argument('--solver', type=str, default='all', 
@@ -78,7 +78,19 @@ def Vary(ss, nri):
     global bb
     global dim
     print("solvers: {:}".format(ss))
-    for ri in range(nri):
+
+    rr = None
+    try:
+        rr = range(int(nri))
+    except:
+        try:
+            rr = eval("range{:}".format(nri))
+        except:
+            rr = eval(nri)
+
+    print("Vary {:} positions and nri={:}".format(len(bb), nri))
+
+    for ri in rr:
         for bi in range(len(bb)):
             for s in ss:
                 Run(ri, bi, s)
