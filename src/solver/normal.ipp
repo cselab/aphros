@@ -355,11 +355,11 @@ struct UNormal<M_>::Imp {
       };
 
       // height function
-      const Scal h = hh(MIdx(0));
-      const Scal hxm = hh(-otx);
-      const Scal hxp = hh(otx);
-      const Scal hym = hh(-oty);
-      const Scal hyp = hh(oty);
+      const Scal hcc = hh(MIdx(0));
+      const Scal hmc = hh(-otx);
+      const Scal hpc = hh(otx);
+      const Scal hcm = hh(-oty);
+      const Scal hcp = hh(oty);
       // corners: hxy
       const Scal hmm = hh(-otx - oty);
       const Scal hmp = hh(-otx + oty);
@@ -367,11 +367,18 @@ struct UNormal<M_>::Imp {
       const Scal hpp = hh(otx + oty);
 
       // first derivative (slope)
-      Scal hx = (hxp - hxm) / (2. * lx);  // centered
-      Scal hy = (hyp - hym) / (2. * ly); 
-      // second derivative 
-      Scal hxx = (hxp - 2. * h + hxm) / (lx * lx);
-      Scal hyy = (hyp - 2. * h + hym) / (ly * ly);
+      Scal hx = (hpc - hmc) / (2. * lx);  // centered
+      Scal hy = (hcp - hcm) / (2. * ly);
+      // second derivative
+      const Scal fl = 0; // filter factor (Basilisk: fl=0.2)
+      Scal hxx = (
+          (hpm - 2. * hcm + hmm) * fl +
+          (hpc - 2. * hcc + hmc) +
+          (hpp - 2. * hcp + hmp) * fl) / ((1 + 2 * fl) * lx * lx);
+      Scal hyy = (
+          (hmp - 2. * hmc + hmm) * fl +
+          (hcp - 2. * hcc + hcm) +
+          (hpp - 2. * hpc + hpm) * fl) / ((1 + 2 * fl) * ly * ly);
       Scal hxy = ((hpp - hmp) - (hpm - hmm)) / (4. * lx * ly);
       // curvature
       Scal k = (2. * hx * hy * hxy 
@@ -529,6 +536,15 @@ void UNormal<M_>::CalcNormal(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
     size_t edim, FieldCell<Vect>& fcn) {
   Imp::CalcNormal(m, fcu, fci, edim, fcn);
+}
+
+template <class M_>
+void UNormal<M_>::CalcHeight(
+      M& m, const FieldCell<Scal>& fcu,
+      const FieldCell<Vect>& fcdu2,
+      size_t edim, FieldCell<Vect>& fch) {
+  std::array<const FieldCell<Vect>*, 1> vfcdu = {&fcdu2};
+  Imp::CalcHeight(m, fcu, vfcdu, edim, fch);
 }
 
 template <class M_>
