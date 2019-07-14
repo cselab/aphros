@@ -342,7 +342,7 @@ struct UNormal<M_>::Imp {
         int i = sih; // closest interface to center
         while (i < si) {
           auto cn = bc.GetIdx(w + o + on * (i - sih));
-          if (I(fcu[cn]) && !IsNan(fch[cn][di])) {
+          if (I(fcu[cn])) {
             return fch[cn][di];
           }
           if (i > sih) {
