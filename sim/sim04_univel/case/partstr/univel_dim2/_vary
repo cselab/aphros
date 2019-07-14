@@ -2,4 +2,4 @@ d=../dummy/
 np=64
 echo $np > np
 echo 1440 > tl
-$d/vary_cpr -dummy $d -dim 2 -np $np -out .
+$d/vary_cpr -dummy $d -dim 2 -np $np -We 0.1 -out .
