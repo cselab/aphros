@@ -184,26 +184,6 @@ struct Vof<M_>::Imp {
   // reconstruct interface
   void Rec(const FieldCell<Scal>& uc) {
     auto sem = m.GetSem("rec");
-    if (sem("diff2")) {
-      CalcDiff2(uc, fcud2_);
-      m.Comm(&fcud2_);
-    }
-    if (sem("diff4")) {
-      CalcDiff4(uc, fcud2_, fcud4_);
-      m.Comm(&fcud4_);
-    }
-    /*
-    if (sem("diff6")) {
-      CalcDiff6(uc, fcud4_, fcud6_);
-      m.Comm(&fcud6_);
-    }
-    */
-    if (sem("height")) {
-      //UNormal<M>::CalcHeight(m, uc, fcud2_, fcud4_, fcud6_, par->dim, fch_);
-      UNormal<M>::CalcHeight(m, uc, fcud2_, fcud4_, par->dim, fch_);
-      //UNormal<M>::CalcHeight(m, uc, fcud2_, par->dim, fch_);
-      m.Comm(&fch_);
-    }
     if (sem("local")) {
       if (par->bcc_reflect) {
         BcReflect(const_cast<FieldCell<Scal>&>(uc), mfc_, par->bcc_fill, m);
@@ -211,7 +191,6 @@ struct Vof<M_>::Imp {
       DetectInterface(uc);
       // Compute normal and curvature [s]
       UNormal<M>::CalcNormal(m, uc, fci_, par->dim, fcn_);
-      UNormal<M>::CalcCurvHeight(m, uc, fch_, fcn_, par->dim, fck_);
       auto h = m.GetCellSize();
       // Reconstruct interface [s]
       for (auto c : m.SuCells()) {
@@ -460,8 +439,33 @@ struct Vof<M_>::Imp {
         fck_[c] = s / m.GetVolume(c);
       }
     }
-    if (sem("curvcomm")) {
-      m.Comm(&fck_);
+    if (!par->curvgrad) {
+      auto& uc = fcu_.iter_curr;
+      if (sem("diff2")) {
+        CalcDiff2(uc, fcud2_);
+        m.Comm(&fcud2_);
+      }
+      if (sem("diff4")) {
+        CalcDiff4(uc, fcud2_, fcud4_);
+        m.Comm(&fcud4_);
+      }
+      /*
+      if (sem("diff6")) {
+        CalcDiff6(uc, fcud4_, fcud6_);
+        m.Comm(&fcud6_);
+      }
+      */
+      if (sem("height")) {
+        //UNormal<M>::CalcHeight(
+        //    m, uc, fcud2_, fcud4_, fcud6_, par->dim, fch_);
+        UNormal<M>::CalcHeight(m, uc, fcud2_, fcud4_, par->dim, fch_);
+        //UNormal<M>::CalcHeight(m, uc, fcud2_, par->dim, fch_);
+        m.Comm(&fch_);
+      }
+      if (sem("curvcomm")) {
+        UNormal<M>::CalcCurvHeight(m, uc, fch_, fcn_, par->dim, fck_);
+        m.Comm(&fck_);
+      }
     }
     if (par->part && sem.Nested("part")) {
       psm_->Part(fcu_.iter_curr, fca_, fcn_, fci_, fck_, mfc_);
