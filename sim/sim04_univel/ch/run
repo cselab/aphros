@@ -24,7 +24,7 @@ dim = c['dim']
 d3 = (dim == 3)
 
 # minimal size in z
-mz = 1 if loc else 2
+mz = 1
 
 nn = c['nx']
 if c['symm']:
