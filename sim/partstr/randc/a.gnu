@@ -17,7 +17,8 @@ set linetype  2 lc rgb c2 lw 2
 set linetype  3 lc rgb c1 lw 2
 set linetype  4 lc rgb c3 lw 2
 set linetype  5 lc rgb c4 lw 2
-set linetype cycle 5
+set linetype  6 lc rgb "black" lw 2
+set linetype cycle 6
 
 set style line 1 lt 1 pt 7 ps 0.5
 set style line 2 lt 2 pt 5 ps 0.5
@@ -44,19 +45,23 @@ set xlabel "R / h"
 set output "aem.pdf"
 set logscale y
 set ylabel "L_{/Symbol \245}"
-set yrange [0.001:10]
+set yrange [0.0001:10]
 v='"em"'
-plot @m , @mfs \
+plot \
+1/x**2 dt '-.' lc "black" lt 5 , \
+@m , @mfs \
 #, "mdhf/lm" u ($1/2):"e" t "mdhf" w lp ls 3 \
 #, "ref/ba" u ($1/2):"max" t "baweb" w lp ls 4 \
 
 set output "ae2.pdf"
 set logscale y
 set ylabel "L_2"
-set yrange [0.001:10]
+set yrange [0.0001:10]
 v='"em"'
 v='"e2"'
-plot @m , @mfs  \
+plot \
+1/x**2 dt '-.' lc "black" lt 5 , \
+@m , @mfs  \
 #, "mdhf/l2" u ($1/2):"e" t "mdhf" w lp ls 3 \
 #, "ref/ba" u ($1/2):"rms" t "baweb" w lp ls 4 \
 
