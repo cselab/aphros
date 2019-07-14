@@ -337,12 +337,12 @@ struct UNormal<M_>::Imp {
       // o: offset from w
       auto hh = [&w,&fch,&di,&bc,&ln,&on,&fcu](MIdx o) -> Scal {
         auto I = [](Scal a) { return a > 0 && a < 1; }; // true if interface
-        const size_t si = 5; // stencil size
-        const size_t sih = si / 2;
-        size_t i = sih; // closest interface to center
+        const int si = 5; // stencil size
+        const int sih = si / 2;
+        int i = sih; // closest interface to center
         while (i < si) {
-          auto cn = bc.GetIdx(w + o + on * (Scal(i) - sih));
-          if (I(fcu[cn])) {
+          auto cn = bc.GetIdx(w + o + on * (i - sih));
+          if (I(fcu[cn]) && !IsNan(fch[cn][di])) {
             return fch[cn][di];
           }
           if (i > sih) {
@@ -370,7 +370,7 @@ struct UNormal<M_>::Imp {
       Scal hx = (hpc - hmc) / (2. * lx);  // centered
       Scal hy = (hcp - hcm) / (2. * ly);
       // second derivative
-      const Scal fl = 0; // filter factor (Basilisk: fl=0.2)
+      const Scal fl = 0.2; // filter factor (Basilisk: fl=0.2)
       Scal hxx = (
           (hpm - 2. * hcm + hmm) * fl +
           (hpc - 2. * hcc + hmc) +
