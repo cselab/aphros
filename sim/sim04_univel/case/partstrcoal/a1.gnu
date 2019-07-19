@@ -44,9 +44,9 @@ r2 = 0.075
 shy = wall ? -r : -0.5
 shy2 = wall ? -r2 : -0.5
 # shift in t
-dt = 0.00
-dtk = 1/1.2
-#dtk = 1/1.14
+dt = 0
+dtk = 1.2
+#dtk = 1.14
 #dtk = 1
 
 set key
@@ -134,9 +134,10 @@ set key top
 set xrange [0:6]
 unset yrange
 plot \
-for [i=@ii1] word(ll,i) u ((column('i')*sim-dt)*dtk/tb):((0.5-column("x0"))/rb) w l ls i t word(tt,i) \
-, for [i=@ii2] word(ll,i) u ((column('i')*sim-dt)*dtk/tb):((0.5-column("x0"))/rb2) w l ls i t word(tt,i) \
-, "ref/rth0" u 1:2 w l lc "black" t "exp" \
+for [i=@ii1] word(ll,i) u ((column('i')*sim-dt)/tb):((0.5-column("x0"))/rb) w l ls i t word(tt,i) \
+, for [i=@ii2] word(ll,i) u ((column('i')*sim-dt)/tb):((0.5-column("x0"))/rb2) w l ls i t word(tt,i) \
+, "ref/rth0" u ($1*dtk):2 w l lc "black" t "exp,k=1.2" \
+, "ref/rth0" u ($1+0.5):2 w l lc "black" dt '-' t "exp,k=1,shift" \
 
 #cos(pi*0.5+2*pi*((x-2.75)/1.13)/tn)*0.2+1 w l dt 2 lc rgb c4 lw 1 t "lin,T*1.13" \
 #, cos(pi*0.5+2*pi*((x-2.25)/0.93)/tn)*0.2+1 w l lc rgb c2 lw 1 t "lin,T*0.93" \
