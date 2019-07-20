@@ -1,4 +1,5 @@
 #!/bin/bash
 
 make
+#gdb ./t.basilisk
 ./t.basilisk
