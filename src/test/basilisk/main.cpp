@@ -7,6 +7,8 @@
 
 #include "geom/mesh.h"
 #include "solver/solver.h"
+#include "func/init_u.h"
+#include "parse/vars.h"
 
 const int dim = 3;
 using MIdx = GMIdx<dim>;
@@ -31,9 +33,16 @@ Mesh _mesh = GetMesh(MIdx(8));
 
 int main() {
   auto& m = _mesh;
-  FieldCell<Scal> fc(m);
-  for (auto c : m.Cells()) {
-    fc[c] = (m.GetCenter(c).dist(Vect(0.5)) < 0.3 ? 0.5 : 0.);
-  }
-  std::cout << GetNcInter(fc);
+  FieldCell<Scal> fcu(m);
+
+  Vars par;
+  par.SetStr("string", "init_vf", "circlels");
+  par.SetStr("int", "dim", "3");
+  par.SetStr("vect", "circle_c", "0.5 0.5 0.5");
+  par.SetStr("double", "circle_r", "0.3");
+
+  auto fu = CreateInitU<Mesh>(par);
+  fu(fcu, m);
+
+  std::cout << GetNcInter(fcu);
 }
