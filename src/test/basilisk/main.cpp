@@ -27,7 +27,7 @@ Mesh GetMesh(MIdx s /*size in cells*/) {
   return InitUniformMesh<Mesh>(dom, b, s, hl, true, true, s, 0);
 }
 
-Mesh _mesh = GetMesh(MIdx(8));
+Mesh _mesh = GetMesh(MIdx(16));
 
 #include "chpartstr.h"
 
@@ -45,4 +45,6 @@ int main() {
   fu(fcu, m);
 
   std::cout << GetNcInter(fcu);
+
+  DumpFacets(fcu, "o.vtk");
 }
