@@ -1,5 +1,5 @@
 #include "fractions.h"
-#include "curvature.h"
+#include "partstr.h"
 
 #include "io/io.h"
 
@@ -139,7 +139,7 @@ int main() {
   ReadField(vf, "../ch/vf_0000.dat");
 
   scalar k[]; // curvature
-  curvature(vf, k);
+  curvature_partstr(vf, k);
 
 #if dimension == 2
   double kc = 1.;

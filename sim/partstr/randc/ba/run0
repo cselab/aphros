@@ -18,4 +18,6 @@ fi
 
 chmod +x main.s
 
+rm -f *.csv
+
 ba.run -n "$np" main.s
