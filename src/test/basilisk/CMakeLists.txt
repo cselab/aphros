@@ -5,7 +5,7 @@ set(EXE t.${p})
 
 add_executable(${EXE} main.cpp)
 
-target_link_libraries(${EXE} suspender)
+target_link_libraries(${EXE} suspender normal)
      
 add_test(NAME ${p} COMMAND ${EXE})
 
