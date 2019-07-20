@@ -1,1 +1,98 @@
-../../../../../../../../tmp/bapartstr/curv2d/chpartstr.h
+#include "solver/reconst.h"
+#include "solver/normal.h"
+
+struct coord {
+  double x, y, z;
+};
+
+using scalar = FieldCell<Scal>&;
+
+struct vector {
+  FieldCell<Scal>& x;
+  FieldCell<Scal>& y;
+  FieldCell<Scal>& z;
+};
+
+bool interfacial(IdxCell point, scalar c) {
+  return c[point] > 0 && c[point] < 1;
+}
+
+#define static 
+#define dimension 3
+#define Point IdxCell
+#define CELL point
+
+#define POINTXYZ \
+  double x = _mesh.GetCenter(point)[0]; \
+  double y = _mesh.GetCenter(point)[1]; \
+  double z = _mesh.GetCenter(point)[2]; \
+  (void) x; (void) y; (void) z;
+
+
+#define foreach() for (auto point : _mesh.Cells()) { \
+  POINTXYZ
+
+#define foreach_end }
+
+auto _bc = _mesh.GetIndexCells();
+
+#define foreach_neighbor(W) { \
+  GBlock<IdxCell, dim> _bo(MIdx(-W), MIdx(W * 2 + 1)); \
+  MIdx _w = _bc.GetMIdx(point); \
+  for (MIdx _wo : _bo) { \
+    IdxCell point = _bc.GetIdx(_w + _wo); \
+    POINTXYZ
+
+#define foreach_neighbor_end }}
+
+using std::min;
+using std::max;
+
+double t;
+double Delta = _mesh.GetCellSize()[0];
+
+static double clamp(double a, double a0, double a1) {
+  return a > a1 ? a1 : a < a0 ? a0 : a;
+}
+
+static double sq(double a) {
+  return a * a;
+}
+
+double plane_alpha(double vf, coord m) { 
+  return Reconst<Scal>::GetLineA(
+      Vect(m.x, m.y, m.z), vf, _mesh.GetCellSize());
+}
+
+void plane_area_center(coord n, double a, coord* o) {
+  auto x = Reconst<Scal>::GetCenter(
+      Vect(n.x, n.y, n.z), a, _mesh.GetCellSize());
+  o->x = x[0];
+  o->y = x[1];
+  o->z = x[2];
+}
+
+static coord mycs(Point point, scalar fcu) {
+  auto& m = _mesh;
+  static FieldCell<Vect> fcn(m);
+  if (fcn.empty()) {
+    FieldCell<bool> fci(m, false);
+    for (auto c : m.AllCells()) {
+      if (fcu[c] > 0. && fcu[c] < 1.) { fci[c] = true; }
+    }
+    solver::UNormal<Mesh>::CalcNormal(m, fcu, fci, dim, fcn);
+  }
+  auto n = fcn[point];
+  coord r = {n[0], n[1], n[2]};
+  return r;
+}
+
+static int facets(coord m, double alpha, coord* pp, double h=1) {
+  (void) m;
+  (void) alpha;
+  (void) pp;
+  (void) h;
+  return 0;
+}
+
+#include "partstr.h"
