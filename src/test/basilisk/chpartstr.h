@@ -23,18 +23,18 @@ bool interfacial(IdxCell point, scalar c) {
 #define CELL point
 
 #define POINTXYZ \
-  double x = _mesh.GetCenter(point)[0]; \
-  double y = _mesh.GetCenter(point)[1]; \
-  double z = _mesh.GetCenter(point)[2]; \
+  double x = (*_mesh).GetCenter(point)[0]; \
+  double y = (*_mesh).GetCenter(point)[1]; \
+  double z = (*_mesh).GetCenter(point)[2]; \
   (void) x; (void) y; (void) z;
 
 
-#define foreach() for (auto point : _mesh.Cells()) { \
+#define foreach() for (auto point : (*_mesh).Cells()) { \
   POINTXYZ
 
 #define foreach_end }
 
-auto _bc = _mesh.GetIndexCells();
+auto _bc = (*_mesh).GetIndexCells();
 
 #define foreach_neighbor(W) { \
   GBlock<IdxCell, dim> _bo(MIdx(-W), MIdx(W * 2 + 1)); \
@@ -49,7 +49,7 @@ using std::min;
 using std::max;
 
 double t;
-double Delta = _mesh.GetCellSize()[0];
+double Delta = (*_mesh).GetCellSize()[0];
 
 static double clamp(double a, double a0, double a1) {
   return a > a1 ? a1 : a < a0 ? a0 : a;
@@ -70,15 +70,19 @@ void plane_area_center(coord n, double a, coord* o) {
   o->z = x[2];
 }
 
+FieldCell<bool> DetectInterface(const FieldCell<Scal>& fcu) {
+  FieldCell<bool> fci((*_mesh), false);
+  for (auto c : (*_mesh).AllCells()) {
+    if (fcu[c] > 0. && fcu[c] < 1.) { fci[c] = true; }
+  }
+  return fci;
+}
+
 static coord mycs(Point point, scalar fcu) {
-  auto& m = _mesh;
   static FieldCell<Vect> fcn;
   if (fcn.empty()) {
-    FieldCell<bool> fci(m, false);
-    for (auto c : m.AllCells()) {
-      if (fcu[c] > 0. && fcu[c] < 1.) { fci[c] = true; }
-    }
-    solver::UNormal<Mesh>::CalcNormal(m, fcu, fci, dim, fcn);
+    solver::UNormal<Mesh>::CalcNormal(
+        (*_mesh), fcu, DetectInterface(fcu), dim, fcn);
   }
   auto n = fcn[point];
   coord r = {n[0], n[1], n[2]};
