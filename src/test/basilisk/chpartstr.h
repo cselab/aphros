@@ -59,7 +59,7 @@ static double sq(double a) {
   return a * a;
 }
 
-double plane_alpha(double u, coord n) { 
+double plane_alpha(double u, coord n) {
   return Reconst<Scal>::GetLineA(Vect(n.x, n.y, n.z), u, Vect(1));
 }
 
