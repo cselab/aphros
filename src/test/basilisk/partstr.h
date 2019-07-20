@@ -1,0 +1,1 @@
+../../../../../../../../tmp/bapartstr/curv2d/partstr.h
