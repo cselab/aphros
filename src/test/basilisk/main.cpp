@@ -38,7 +38,7 @@ int main() {
   Vars par;
   par.SetStr("string", "init_vf", "circlels");
   par.SetStr("int", "dim", "3");
-  par.SetStr("vect", "circle_c", "0.5 0.5 0.5");
+  par.SetStr("vect", "circle_c", "0.52 0.51 0.5");
   par.SetStr("double", "circle_r", "0.3");
 
   auto fu = CreateInitU<Mesh>(par);
@@ -46,5 +46,10 @@ int main() {
 
   std::cout << GetNcInter(fcu);
 
+  FieldCell<Scal> nx(m), ny(m), nz(m);
+  vector nn = {nx, ny, nz};
+  CalcNormal(fcu, nn);
+
   DumpFacets(fcu, "o.vtk");
+  DumpLines(fcu, nn, kPartstr, "line.vtk");
 }
