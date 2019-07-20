@@ -65,8 +65,7 @@ double plane_alpha(double vf, coord m) {
 }
 
 void plane_area_center(coord n, double a, coord* o) {
-  auto x = Reconst<Scal>::GetCenter(
-      Vect(n.x, n.y, n.z), a, _mesh.GetCellSize());
+  auto x = Reconst<Scal>::GetCenter(Vect(n.x, n.y, n.z), a, Vect(1));
   o->x = x[0];
   o->y = x[1];
   o->z = x[2];
@@ -87,12 +86,19 @@ static coord mycs(Point point, scalar fcu) {
   return r;
 }
 
-static int facets(coord m, double alpha, coord* pp, double h=1) {
-  (void) m;
-  (void) alpha;
-  (void) pp;
-  (void) h;
-  return 0;
+static int facets(coord n, double a, coord* pp, double h_=1) {
+  (void) h_;
+  std::vector<Vect> vv =
+      Reconst<Scal>::GetCutPoly(Vect(0), Vect(n.x, n.y, n.z), a, Vect(1));
+  int i = 0;
+  for (auto& v : vv) {
+    coord& p = pp[i];
+    p.x = v[0];
+    p.y = v[1];
+    p.z = v[2];
+    ++i;
+  }
+  return i;
 }
 
 #include "partstr.h"
