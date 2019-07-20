@@ -12,6 +12,8 @@
 #include "solver/partstrmesh.h"
 #include "kernel/kernelmeshpar.h"
 #include "distr/distrsolver.h"
+#include "debug/isnan.h"
+#include "dump/vtk.h"
 
 using namespace solver;
 
@@ -59,10 +61,47 @@ class Simple : public KernelMeshPar<M_, GPar> {
   FieldCell<Vect> fcn_;
   FieldCell<bool> fci_;
   std::shared_ptr<solver::PartStrMesh<M>> psm_;
+
+  std::vector<std::vector<Vect>> dl_; // dump poly
+  std::vector<Scal> dlc_; // dump poly
+
+  void DumpPoly() {
+    auto sem = m.GetSem("dumppoly");
+    if (sem("local")) {
+      dl_.clear();
+      dlc_.clear();
+      auto h = m.GetCellSize();
+      for (auto c : m.AllCells()) {
+        Scal u = fcu_[c];
+        if (IsNan(u) || IsNan(fcn_[c]) || IsNan(fca_[c])) {
+          continue;
+        }
+        if (fci_[c]) {
+          dl_.push_back(
+              Reconst<Scal>::GetCutPoly(m.GetCenter(c), fcn_[c], fca_[c], h));
+          dlc_.push_back(m.GetHash(c));
+        }
+      }
+      using TV = typename M::template OpCatVT<Vect>;
+      m.Reduce(std::make_shared<TV>(&dl_));
+      using TS = typename M::template OpCatT<Scal>;
+      m.Reduce(std::make_shared<TS>(&dlc_));
+    }
+    if (sem("write")) {
+      if (m.IsRoot()) {
+        std::string fn = "s.vtk";
+        std::cout << std::fixed << std::setprecision(8)
+            << "dump" << " to " << fn << std::endl;
+        WriteVtkPoly(fn, dl_, {&dlc_}, {"c"}, 
+            "Reconstructed linear interface", true);
+      }
+    }
+  }
 };
 
 
 #include "chpartstr.h"
+
 
 template <class M>
 void Simple<M>::Run() {
@@ -71,7 +110,7 @@ void Simple<M>::Run() {
     init(m);
 
     fcu_.Reinit(m);
-    fca_.Reinit(m);
+    fca_.Reinit(m, 0);
     fcn_.Reinit(m);
 
     Vars par;
@@ -105,12 +144,14 @@ void Simple<M>::Run() {
     ps->npmax = kp.Np;
     ps->relax = kp.eta;
     ps->leq = kp.Hp;
+    ps->hc = m.GetCellSize()[0];
 
     auto pm = std::make_shared<typename solver::PartStrMesh<Mesh>::Par>();
     pm->tol = kp.eps;
     pm->ns = kp.Ns;
     pm->itermax = kp.itermax;
     pm->ps = ps;
+    pm->dump_fr = 0;
 
     psm_ = std::make_shared<solver::PartStrMesh<Mesh>>(m, pm);
 
@@ -122,15 +163,20 @@ void Simple<M>::Run() {
       }
     }
     fck_.Reinit(m, GetNan<Scal>());
+    m.Dump(&fcu_, "u");
   }
 
   if (sem.Nested()) {
     psm_->Part(fcu_, fca_, fcn_, fci_, fck_,
-             MapFace<std::shared_ptr<solver::CondFace>>());
+               MapFace<std::shared_ptr<solver::CondFace>>());
   }
 
   if (sem.Nested()) {
-    psm_->DumpParticles(fca_, fcn_, -1, 0);
+    psm_->DumpParticles(fca_, fcn_, 1, 0);
+  }
+
+  if (sem.Nested()) {
+    DumpPoly();
   }
 }
 
