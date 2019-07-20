@@ -1,9 +1,17 @@
 #include "solver/reconst.h"
 #include "solver/normal.h"
 
+Mesh* _mesh;
+double Delta;
+
 struct coord {
   double x, y, z;
 };
+
+void init(Mesh& m) {
+  _mesh = &m;
+  Delta = m.GetCellSize()[0];
+}
 
 using scalar = FieldCell<Scal>&;
 
@@ -26,7 +34,7 @@ bool interfacial(IdxCell point, scalar c) {
   double x = (*_mesh).GetCenter(point)[0]; \
   double y = (*_mesh).GetCenter(point)[1]; \
   double z = (*_mesh).GetCenter(point)[2]; \
-  (void) x; (void) y; (void) z;
+  (void) x; (void) y; (void) z; (void) Delta;
 
 
 #define foreach() for (auto point : (*_mesh).Cells()) { \
@@ -34,10 +42,10 @@ bool interfacial(IdxCell point, scalar c) {
 
 #define foreach_end }
 
-auto _bc = (*_mesh).GetIndexCells();
 
 #define foreach_neighbor(W) { \
   GBlock<IdxCell, dim> _bo(MIdx(-W), MIdx(W * 2 + 1)); \
+  auto _bc = (*_mesh).GetIndexCells(); \
   MIdx _w = _bc.GetMIdx(point); \
   for (MIdx _wo : _bo) { \
     IdxCell point = _bc.GetIdx(_w + _wo); \
@@ -49,7 +57,6 @@ using std::min;
 using std::max;
 
 double t;
-double Delta = (*_mesh).GetCellSize()[0];
 
 static double clamp(double a, double a0, double a1) {
   return a > a1 ? a1 : a < a0 ? a0 : a;
@@ -105,3 +112,8 @@ static int facets(coord n, double a, coord* pp, double h_=1) {
 }
 
 #include "partstr.h"
+
+#undef static
+#undef dimension
+#undef Point
+#undef CELL
