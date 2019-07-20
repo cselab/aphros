@@ -59,9 +59,8 @@ static double sq(double a) {
   return a * a;
 }
 
-double plane_alpha(double vf, coord m) { 
-  return Reconst<Scal>::GetLineA(
-      Vect(m.x, m.y, m.z), vf, _mesh.GetCellSize());
+double plane_alpha(double u, coord n) { 
+  return Reconst<Scal>::GetLineA(Vect(n.x, n.y, n.z), u, Vect(1));
 }
 
 void plane_area_center(coord n, double a, coord* o) {
@@ -73,7 +72,7 @@ void plane_area_center(coord n, double a, coord* o) {
 
 static coord mycs(Point point, scalar fcu) {
   auto& m = _mesh;
-  static FieldCell<Vect> fcn(m);
+  static FieldCell<Vect> fcn;
   if (fcn.empty()) {
     FieldCell<bool> fci(m, false);
     for (auto c : m.AllCells()) {
