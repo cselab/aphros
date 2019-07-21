@@ -686,7 +686,7 @@ static double GetLinesCurv(coord* ll, int nl, double delta, const Trans* w,
     }
 
     if (w) {
-      coord tt[Np];
+      coord tt[kMaxNp];
       for (int i = 0; i < Np; ++i) {
         tt[i] = Add(xx[i], Mul(ff[i], 1. / eta));
         tt[i] = LocToGlb(tt[i], *w);
@@ -718,10 +718,15 @@ static double GetCrossCurv(Point point, scalar c, vector nn,
   Section(point, c, nn, w, ll, &nl);
   double res;
   int it;
+#ifndef NOBA
 #if dimension == 2
   double hash = 1000 * point.j + point.i;
 #else
   double hash = 1000 * (1000 * point.k + point.j) + point.i;
+#endif
+#else
+  static double hash = 0;
+  hash += 1.;
 #endif
   return GetLinesCurv(
       ll, nl, Delta, conf.csv ? &w : NULL, conf, &res, &it, hash);
@@ -876,6 +881,7 @@ static double partstr(Point point, scalar c, vector nn) {
   return k;
 }
 
+#ifndef NOBA
 trace
 cstats curvature_partstr(struct Curvature p)
 {
@@ -926,3 +932,4 @@ cstats curvature_partstr(struct Curvature p)
 
   return (cstats){sh, sf, sa, sc};
 }
+#endif
