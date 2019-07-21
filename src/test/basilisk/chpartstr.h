@@ -28,7 +28,8 @@ bool interfacial(IdxCell point, scalar c) {
 #define static 
 #define dimension 3
 #define Point IdxCell
-#define CELL point
+#define CELLIDX point
+#define NOBA
 
 #define POINTXYZ \
   double x = (*_mesh).GetCenter(point)[0]; \
@@ -116,4 +117,5 @@ static int facets(coord n, double a, coord* pp, double h_=1) {
 #undef static
 #undef dimension
 #undef Point
-#undef CELL
+#undef CELLIDX
+#undef NOBA
