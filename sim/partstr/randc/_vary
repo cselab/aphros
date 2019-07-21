@@ -134,7 +134,7 @@ if args.plot:
 
 s = args.solver
 
-ssa = ['ch', 'ba', 'ge']
+ssa = ['ch', 'ba', 'bap', 'ge']
 
 #assert s in ssa + ['all']
 

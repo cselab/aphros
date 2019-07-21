@@ -2,7 +2,7 @@
 
 set -eu
 
-for f in ch ba ge ; do
+for f in ch ba bap ge ; do
   if [ -d $f ] ; then
     echo $f
     (cd $f ; ../_gatheravg)

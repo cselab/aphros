@@ -38,6 +38,13 @@ dbd=$db/dat
 mkdir -p $dbd
 copy ba/u_*.vtk $dbd/
 
+db=$d/bap
+mkdir -p $db
+copy bap/par.h bap/traj.dat $db/
+dbd=$db/dat
+mkdir -p $dbd
+copy bap/u_*.vtk $dbd/
+
 dt=$d/traj
 mkdir -p $dt/pdf
 move traj*.pdf $dt/pdf

@@ -7,4 +7,4 @@ mkdir $d
 
 #rsync -aLR run ch/add.conf {ch,ba,ge}/{kerr,kerravg,*} out log $d || true
 
-mv ch ba out log run $d || true
+mv ch ba bap out log run $d || true

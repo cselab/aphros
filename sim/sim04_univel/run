@@ -4,5 +4,6 @@ set -eu
 
 ./r_ch
 ./r_ba
+./r_bap
 ./r_vis
 ./r_move
