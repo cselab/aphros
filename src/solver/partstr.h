@@ -355,7 +355,7 @@ class PartStr {
     // Returns:
     // e: segment ends
     auto findnear = [&lx,&ls,&sl](const Vect& x) -> std::array<Vect, 2> {
-      std::array<Vect, 2> en; // result
+      std::array<Vect, 2> en = {Vect(0), Vect(0)}; // result
       Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest 
 
       // loop over interface lines
