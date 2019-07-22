@@ -15,7 +15,7 @@ copy () {
 d=dat
 mkdir $d
 
-copy b.dat par.py $d/
+copy b.dat par.py out $d/
 
 dc=$d/ch
 mkdir -p $dc

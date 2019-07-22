@@ -1,5 +1,5 @@
 set -eu
-./c.py `ls ../u_*.vtk`
+./c.py `ls ../u_*.vtk` || true
 r.pngmp4
 rm -f *.png
 
