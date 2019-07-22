@@ -58,7 +58,9 @@ event out (t += DUMPDT ; t <= TMAX) {
   sprintf(name, "o/%d/u_%04d.vtk", pid(), frame);
   ++frame;
   scalar * a = {u, p, f};
+#if !NOIO
   iompi(a, name);
+#endif
   ONROOT fprintf(stderr, "dump %s step i=%05d t=%g\n", name, i, t);
 }
 

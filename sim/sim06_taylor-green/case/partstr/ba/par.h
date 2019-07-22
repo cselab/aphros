@@ -2,9 +2,9 @@
 #define DUMPDT (0.5)
 #define SIGMA (0.1)
 #define RHO1 (1.0)
-#define RHO2 (1.0)
+#define RHO2 (0.01)
 #define MU1 (0.00125)
-#define MU2 (0.00125)
+#define MU2 (0.0000125)
 #define EXTENT (6.283185307179586)
 
 #define BCX 2.
@@ -20,4 +20,8 @@
 
 #ifndef MPIDIM
 #define MPIDIM 
+#endif
+
+#ifndef NOIO
+#define NOIO 0
 #endif
