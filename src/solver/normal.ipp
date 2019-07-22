@@ -335,7 +335,7 @@ struct UNormal<M_>::Imp {
 
       // Evaluates height function from nearest interface
       // o: offset from w
-      auto hh = [&w,&fch,&di,&bc,&ln,&on,&fcu](MIdx o) -> Scal {
+      auto hh = [&w,&fch,&di,&bc,&on,&fcu](MIdx o) -> Scal {
         auto I = [](Scal a) { return a > 0 && a < 1; }; // true if interface
         const int si = 5; // stencil size
         const int sih = si / 2;
