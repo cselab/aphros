@@ -17,6 +17,7 @@ prepare environment and install dependencies.
      ```
      cd src
      ./conf
+     # ./conf -DOVERLAP=0  # to build without overlap and Eigen
      make
      ```
 

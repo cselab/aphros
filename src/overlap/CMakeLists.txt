@@ -1,6 +1,6 @@
 set(TARG "overlap")
 
-if (NOT DEFINED(OVERLAP))
+if (NOT DEFINED OVERLAP)
   set(OVERLAP 1)
 endif()
 
