@@ -10,7 +10,7 @@ set -eu
 : ${hp=4}
 : ${nri=25}
 : ${nbi=100}
-: ${solver="ch ba"}
+: ${solver="ch ba bap"}
 
 
 o=dim${dim}_overlap${overlap}_segcirc${segcirc}_np${np}_ns${ns}_hp${hp}

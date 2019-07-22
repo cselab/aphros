@@ -144,7 +144,9 @@ int main() {
   kPartstr.Np = PS_Np;
 #endif
 #ifdef PS_Ns
+  #if dimension == 3
   kPartstr.Ns = PS_Ns;
+  #endif
 #endif
 #ifdef PS_Hp
   kPartstr.Hp = PS_Hp;
