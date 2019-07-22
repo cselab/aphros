@@ -129,9 +129,8 @@ CreateInitU(Vars& par, bool verb=true) {
     Scal xc(par.Double["soliton_xc"]);
     Scal yc(par.Double["soliton_yc"]);
     Scal yh(par.Double["soliton_yh"]);
-    Scal xw(par.Double["soliton_xw"]);
-    g = [xc,yc,yh,xw](FieldCell<Scal>& fc, const M& m) { 
-      auto f = [xc,yh,yc,xw](const Vect& xx) -> Scal {
+    g = [xc,yc,yh](FieldCell<Scal>& fc, const M& m) { 
+      auto f = [xc,yh,yc](const Vect& xx) -> Scal {
         Scal D = yc;
         Scal H = yh;
         H /= D;
