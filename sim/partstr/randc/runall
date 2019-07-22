@@ -4,4 +4,5 @@ set -eu
 
 ./_vary --dim 2 --overlap 1 --nri 5 --nbi 2 
 ./_gatherall
+./_gatheravgall
 ./a.gnu

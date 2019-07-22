@@ -2,8 +2,16 @@
 
 set -eu
 
-for f in dim* ; do
-  echo $f
-  (cd $f/ch ; ../../randc/_gather)
+R=`realpath randc`
+for d in dim* ; do
+  echo $d
+  for f in ch ba bap ge ; do
+    df=$d/$f
+    if [ -f $df/dim ] ; then
+      echo $df
+      (cd $df ; $R/_gather)
+      (cd $df ; $R/_gatheravg)
+    fi
+  done
 done
 
