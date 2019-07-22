@@ -7,7 +7,7 @@ p=er
 # executable
 e=er
 
-for s in ch ba ; do
+for s in ch ba bap ; do
   o=$p$s
   echo $o
   ./$e > $o

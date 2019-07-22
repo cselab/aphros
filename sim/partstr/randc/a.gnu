@@ -25,7 +25,7 @@ set style line 2 lt 2 pt 5 ps 0.5
 set style line 3 lt 3 pt 8 ps 0.5
 set style line 4 lt 4 pt 2 ps 0.5
 
-ss="ch ba"
+ss="ch ba bap"
 
 xx='(column("cpr"))'
 
