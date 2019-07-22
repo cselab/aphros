@@ -331,7 +331,6 @@ struct UNormal<M_>::Imp {
       // mesh step
       const Scal lx = m.GetCellSize()[size_t(dtx)];
       const Scal ly = m.GetCellSize()[size_t(dty)];
-      const Scal ln = m.GetCellSize()[size_t(dn)];
 
       // Evaluates height function from nearest interface
       // o: offset from w
