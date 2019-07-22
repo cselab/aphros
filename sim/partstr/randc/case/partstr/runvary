@@ -2,9 +2,6 @@
 
 set -eu
 
-export nbi=3
-export nri=15
-
 dim=2 ./runcase
 ./runcase
 
@@ -12,7 +9,7 @@ export solver="ch bap"
 
 np=3 ./runcase
 np=5 ./runcase
-np=7 ./runcase
+np=9 ./runcase
 
 ns=1 ./runcase
 ns=2 ./runcase

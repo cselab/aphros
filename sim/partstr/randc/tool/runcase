@@ -5,7 +5,7 @@ set -eu
 : ${dim=3}
 : ${overlap=1}
 : ${segcirc=0}
-: ${np=9}
+: ${np=7}
 : ${ns=3}
 : ${hp=4}
 : ${nri=25}

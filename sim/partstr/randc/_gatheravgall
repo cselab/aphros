@@ -3,7 +3,7 @@
 set -eu
 
 for f in ch ba bap ge ; do
-  if [ -d $f ] ; then
+  if [ -d $f/dim ] ; then
     echo $f
     (cd $f ; ../_gatheravg)
   fi
