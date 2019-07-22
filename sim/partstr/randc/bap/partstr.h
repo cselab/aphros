@@ -262,8 +262,9 @@ static void DxDth(coord p, double ph, double th,
 // w: distance from endpoint to center
 // d: distance from point to center
 static double CircDelta(double k, double w, double d) {
-  const double th = 1. - 1e-5;
+  const double th = 0.99;
   k = clamp(k, -th / w, th / w); // limit the curvature for sqrt and division
+                                 // (w must be smaller than radius of curvaure)
   d = min(d, w);
   double t1 = sqrt(1. - sq(k * w));
   double t2 = sqrt(1. - sq(k * d));
