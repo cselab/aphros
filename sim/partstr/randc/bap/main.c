@@ -139,6 +139,29 @@ int main() {
   ReadField(vf, "../ch/vf_0000.dat");
 
   scalar k[]; // curvature
+
+#ifdef PS_Np
+  kPartstr.Np = PS_Np;
+#endif
+#ifdef PS_Ns
+  kPartstr.Ns = PS_Ns;
+#endif
+#ifdef PS_Hp
+  kPartstr.Hp = PS_Hp;
+#endif
+#ifdef PS_eps
+  kPartstr.eps = PS_eps;
+#endif
+#ifdef PS_itermax
+  kPartstr.itermax = PS_itermax;
+#endif
+#ifdef PS_eta
+  kPartstr.eta = PS_eta;
+#endif
+#ifdef PS_circ
+  kPartstr.circ = PS_circ;
+#endif
+
   curvature_partstr(vf, k);
 
 #if dimension == 2
