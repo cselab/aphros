@@ -44,7 +44,7 @@ class Embed {
       for (auto f : m.Faces()) {
         if (fct_[m.GetNeighbourCell(f, 0)] == Type::cut ||
             fct_[m.GetNeighbourCell(f, 1)] == Type::cut) {
-          size_t d = m.GetIndexFaces().GetDir(f);
+          size_t d(m.GetIndexFaces().GetDir(f));
           if (fft_[f] == Type::cut || fft_[f] == Type::regular) {
             if (fft_[f] == Type::cut) {
               dl_.push_back(ffpoly_[f]);
