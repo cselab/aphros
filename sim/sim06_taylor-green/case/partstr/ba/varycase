@@ -2,5 +2,5 @@ for ps in 0 1 ; do
   ./runcase nx=128 np=64  partstr=$ps
   ./runcase nx=192 np=216 partstr=$ps
   ./runcase nx=256 np=512 partstr=$ps
-  ./runcase nx=384 np=512 partstr=$ps
+  ./runcase nx=384 np=512 partstr=$ps noio=1
 done

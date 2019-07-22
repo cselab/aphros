@@ -1,0 +1,5 @@
+set -eu
+./omm.py `ls ../u_*.vtk` || true
+r.pngmp4 a om.mp4
+
+rm -f core.*
