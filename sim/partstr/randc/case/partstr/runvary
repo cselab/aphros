@@ -2,17 +2,23 @@
 
 set -eu
 
+export nbi=3
+export nri=15
+
 dim=2 ./runcase
 ./runcase
 
-solver='ch' np=3 ./runcase
-solver='ch' np=5 ./runcase
-solver='ch' np=7 ./runcase
+export solver="ch bap"
 
-solver='ch' ns=1 ./runcase
-solver='ch' ns=3 ./runcase
+np=3 ./runcase
+np=5 ./runcase
+np=7 ./runcase
 
-solver='ch' hp=2 ./runcase
-solver='ch' hp=3 ./runcase
-solver='ch' hp=5 ./runcase
+ns=1 ./runcase
+ns=2 ./runcase
+ns=4 ./runcase
+
+hp=2 ./runcase
+hp=3 ./runcase
+hp=5 ./runcase
 

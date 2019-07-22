@@ -6,7 +6,7 @@ set -eu
 : ${overlap=1}
 : ${segcirc=0}
 : ${np=9}
-: ${ns=2}
+: ${ns=3}
 : ${hp=4}
 : ${nri=25}
 : ${nbi=100}
