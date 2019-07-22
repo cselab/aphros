@@ -1,3 +1,7 @@
 set -eu
 ./c.py `ls ../u_*.vtk`
 r.pngmp4
+rm -f *.png
+
+
+rm -f core.*

@@ -12,5 +12,7 @@ if [ "$dim" == "3" ] ; then
   g="multigrid3D"
 fi
 
-make CFLAGS="-grid=$g" main.s
-ba.run -n "$np" main.s
+e=main.s
+make CFLAGS="-grid=$g" $e
+chmod +x $e
+ba.run -n "$np" $e

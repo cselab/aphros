@@ -1,12 +1,15 @@
 #include "par.h"
 
-//#define FILTERED
-
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
-#include "tension.h"
 #include "vtk.h"
 #include <mpi.h>
+
+#if PARTSTR
+#include "tension_partstr.h"
+#else
+#include "tension.h"
+#endif
 
 #include "io/iompi.h"
 
