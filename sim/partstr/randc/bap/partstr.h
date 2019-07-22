@@ -48,7 +48,7 @@ const int kMaxNp = 31;           // maximum value of kPartstr.Np
 #define kNs 2
 #endif
 
-static Partstr kPartstr = {9, kNs, 4., 1e-5, 20, 0.5, false, false, true};
+static Partstr kPartstr = {9, kNs, 4., 1e-5, 20, 0.5, false, false, false};
 
 #undef kNs
 
