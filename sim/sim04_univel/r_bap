@@ -2,4 +2,4 @@
 
 set -eu
 
-(cd ba ; ./run)
+(cd bap ; ./run)
