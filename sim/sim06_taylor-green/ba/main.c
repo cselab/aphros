@@ -59,7 +59,7 @@ event out (t += DUMPDT ; t <= TMAX) {
   ++frame;
   scalar * a = {u, p, f};
   iompi(a, name);
-  ONROOT fprintf(stderr, "dump step i=%05d t=%g dt=%g \n", i, t ,dt);
+  ONROOT fprintf(stderr, "dump %s step i=%05d t=%g\n", name, i, t);
 }
 
 event statout (i += 1) {

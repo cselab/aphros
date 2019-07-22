@@ -13,9 +13,15 @@ eval "$@"
 : ${partstr=1}
 : ${np=64}
 : ${tl=1440}
+: ${suff=}
 
-o="nx${nx}_partstr${partstr}"
+o="nx${nx}_partstr${partstr}${suff}"
 d=dummy
+
+if [ -d "$o" ] ; then
+  echo "skip existing $o"
+  exit 1
+fi
 
 echo "Output to $o"
 
