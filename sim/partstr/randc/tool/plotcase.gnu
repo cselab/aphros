@@ -5,7 +5,7 @@ set macro
 reset
 
 set key font ",10"
-unset key
+#unset key
 
 c0='#1f77b4'
 c1='#ff7f0e'
@@ -39,13 +39,15 @@ if (!exists("pre")) {
   pre = "a"
 }
 
+sl='bap'
+
 tl='system("tr -d _ <<< ".word(ss,i))'
 s='pt 7 ps 0.5'
-m='for [i=1:words(ss)] word(ss,i)."/ch/kerravg" \
+m='for [i=1:words(ss)] word(ss,i)."/".sl."/kerravg" \
     u "cpr":@v w lp t '.tl.' ls i'
-mfs='for [i=1:words(ss)] word(ss,i)."/ch/kerravg" \
+mfs='for [i=1:words(ss)] word(ss,i)."/".sl."/kerravg" \
     u "cpr":@v."sl":@v."sh" w filledcurve t "" ls i fs transparent solid 0.5'
-mf='for [i=1:words(ss)] word(ss,i)."/ch/kerravg" \
+mf='for [i=1:words(ss)] word(ss,i)."/".sl."/kerravg" \
     u "cpr":@v."l":@v."h" w filledcurve t "" ls i fs transparent solid 0.25'
 
 o='set output pre.@v.".pdf"'
@@ -67,11 +69,11 @@ set yrange [0.001:10]
 v='"e2"'
 @o ; plot @m
 
-set logscale y
-set ylabel "L_s"
-set yrange [0.001:10]
-v='"es"'
-@o ; plot @m
+#set logscale y
+#set ylabel "L_s"
+#set yrange [0.001:10]
+#v='"es"'
+#@o ; plot @m
 
 
 exit
