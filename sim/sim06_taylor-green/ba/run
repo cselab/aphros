@@ -14,7 +14,7 @@ if os.path.isfile("done"):
 
 c = {}
 
-np = int(open('_np').read())
+np = int(open('np').read())
 
 dim = 3
 

@@ -11,6 +11,8 @@
 #include "tension.h"
 #endif
 
+#define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
+
 #include "io/iompi.h"
 
 double ifr3(double x, double y, double z) {
@@ -57,14 +59,11 @@ event out (t += DUMPDT ; t <= TMAX) {
   ++frame;
   scalar * a = {u, p, f};
   iompi(a, name);
+  ONROOT fprintf(stderr, "dump step i=%05d t=%g dt=%g \n", i, t ,dt);
 }
 
 event statout (i += 1) {
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  if (rank == 0) {
-  printf("step i=%05d t=%g dt=%g \n", i, t ,dt);
-  }
+  ONROOT fprintf(stderr, "step i=%05d t=%g dt=%g \n", i, t ,dt);
 }
 
 event logfile (i += 1) {
