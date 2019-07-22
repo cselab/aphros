@@ -43,8 +43,8 @@ class Expression {
 
   Expression() : b_(0) , srt_(true) , s_(0) {}
 
-  Expression(const Expression& o)
-      : tt_(o.tt_), b_(o.b_), srt_(o.srt_), s_(o.s_) {}
+  Expression(const Expression& o) = default;
+  Expression& operator=(const Expression& o) = default;
 
   explicit Expression(Scal b) : b_(b), srt_(true), s_(0) {}
 
