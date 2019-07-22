@@ -14,11 +14,12 @@ eval "$@"
 : ${np=64}
 : ${tl=1440}
 : ${suff=}
+: ${force=0}
 
 o="nx${nx}_partstr${partstr}${suff}"
 d=dummy
 
-if [ -d "$o" ] ; then
+if [ -d "$o" && ! "$force" != "1" ] ; then
   echo "skip existing $o"
   exit 1
 fi
