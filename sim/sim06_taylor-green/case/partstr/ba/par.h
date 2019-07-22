@@ -3,8 +3,8 @@
 #define SIGMA (0.1)
 #define RHO1 (1.0)
 #define RHO2 (1.0)
-#define MU1 (0.000625)
-#define MU2 (0.000625)
+#define MU1 (0.00125)
+#define MU2 (0.00125)
 #define EXTENT (6.283185307179586)
 
 #define BCX 2.
