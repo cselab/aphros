@@ -4,10 +4,12 @@ set -eu
 
 : ${dim=3}
 : ${overlap=1}
-: ${segcirc=1}
+: ${segcirc=0}
 : ${np=9}
 : ${ns=2}
 : ${hp=4}
+: ${nri=25}
+: ${nbi=100}
 : ${solver="ch ba"}
 
 
@@ -25,9 +27,11 @@ set int part_ns $ns
 set double part_h $hp
 " > ch/add.conf
 
+echo "-DPS_Np=$np -DPS_Ns=$ns -DPS_Hp=$hp -DPS_circ=$segcirc" > bap/extra
+
 cat > run << EOL
 ./_cleanall
-./_vary --dim ${dim} --overlap ${overlap} --nri 25 --nbi 100 \
+./_vary --dim ${dim} --overlap ${overlap} --nri $nri --nbi $nbi \
     --solver "$solver"
 ./_gatherall
 ./_move
