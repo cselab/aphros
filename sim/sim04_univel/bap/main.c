@@ -162,7 +162,7 @@ event init (i = 0) {
   }
 }
 
-event out (t += DUMPDT ; t <= TMAX) {
+event out (t += DUMPDT ; t <= TMAX + DUMPDT) {
   ONROOT printf("dump i=%05d t=%g dt=%g \n", i, t ,dt);
 
   static int frame = 0;
