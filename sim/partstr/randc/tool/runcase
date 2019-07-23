@@ -11,14 +11,18 @@ set -eu
 : ${nri=25}
 : ${nbi=100}
 : ${solver="ch ba bap"}
+: ${suff=}
+: ${nohf=0}
 
+[ "$nohf" == "1" ] && nohf="-DPS_nohf" || nohf=
 
-o=dim${dim}_overlap${overlap}_segcirc${segcirc}_np${np}_ns${ns}_hp${hp}
+o=dim${dim}_overlap${overlap}_segcirc${segcirc}_np${np}_ns${ns}_hp${hp}${suff}
 d=`readlink -f randc`
 
 echo "Output to $o"
 
 r=run_$o
+
 
 ch.task $d $o > $r << EOF
 echo "set double part_segcirc $segcirc
@@ -27,7 +31,7 @@ set int part_ns $ns
 set double part_h $hp
 " > ch/add.conf
 
-echo "-DPS_Np=$np -DPS_Ns=$ns -DPS_Hp=$hp -DPS_circ=$segcirc" > bap/extra
+echo "-DPS_Np=$np -DPS_Ns=$ns -DPS_Hp=$hp -DPS_circ=$segcirc $nohf" > bap/extra
 
 cat > run << EOL
 ./_cleanall

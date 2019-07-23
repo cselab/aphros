@@ -909,8 +909,10 @@ cstats curvature_partstr(struct Curvature p)
   foreach(reduction(+:sh) reduction(+:sc)) {
     if (!interfacial (point, c)) {
       k[CELLIDX] = nodata;
+#ifndef PS_nohf
     } else if ((k[CELLIDX] = height_curvature (point, c, h)) != nodata) {
       sh++;
+#endif
     } else  {
       k[CELLIDX] = partstr(point, c, nn);
       sc++;
