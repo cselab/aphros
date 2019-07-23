@@ -166,12 +166,12 @@ event out (t += DUMPDT ; t <= TMAX + DUMPDT) {
   ONROOT printf("dump i=%05d t=%g dt=%g \n", i, t ,dt);
 
   static int frame = 0;
-  ++frame;
   //scalar * a = {u, p, f};
   scalar * a = {f};
 
   char name[1000];
   sprintf(name, "o/%d/u_%04d.vtk", pid(), frame);
+  ++frame;
 
 #if dimension == 2
   FILE * fp = fopen(name, "w");
