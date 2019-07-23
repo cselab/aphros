@@ -144,7 +144,7 @@ clip_partconDisplay.Representation = 'Surface'
 clip_partconDisplay.AmbientColor = [1.0, 0.0, 0.0]
 clip_partconDisplay.ColorArrayName = ['POINTS', '']
 clip_partconDisplay.DiffuseColor = [1.0, 0.4980392156862745, 0.054901960784313725]
-clip_partconDisplay.LineWidth = 4
+clip_partconDisplay.LineWidth = 7
 clip_partconDisplay.RenderLinesAsTubes = 1
 
 # show data from clip_line
@@ -155,20 +155,23 @@ clip_lineDisplay.Representation = 'Surface'
 clip_lineDisplay.AmbientColor = [1.0, 0.0, 0.0]
 clip_lineDisplay.ColorArrayName = ['POINTS', '']
 clip_lineDisplay.DiffuseColor = [0.0, 0.0, 0.0]
-clip_lineDisplay.LineWidth = 6
+clip_lineDisplay.LineWidth = 4.5
 clip_lineDisplay.RenderLinesAsTubes = 1
 
 # show data from dat_inter
 dat_interDisplay = Show(dat_inter, renderView1)
-
-# trace defaults for the display properties.
-dat_interDisplay.Representation = 'Surface With Edges'
-dat_interDisplay.AmbientColor = [0.0, 0.0, 0.0]
+dat_interDisplay.Representation = 'Surface'
 dat_interDisplay.ColorArrayName = ['POINTS', '']
 dat_interDisplay.DiffuseColor = [0.7, 0.7, 0.7]
-dat_interDisplay.LineWidth = 1
-dat_interDisplay.RenderLinesAsTubes = 1
-dat_interDisplay.EdgeColor = [0.0, 0.0, 0.0]
+dat_interDisplay.Opacity = 0.5
+
+#dat_interDisplay2 = Show(dat_inter, renderView1)
+#dat_interDisplay2.Representation = 'Wireframe'
+#dat_interDisplay2.AmbientColor = [0.0, 0.0, 0.0]
+#dat_interDisplay2.LineWidth = 1.5
+#dat_interDisplay2.Opacity = 1
+#dat_interDisplay2.RenderLinesAsTubes = 1
+#dat_interDisplay2.EdgeColor = [0.0, 0.0, 0.0]
 
 
 # show data from clippart
@@ -179,7 +182,7 @@ clippartDisplay.Representation = 'Surface'
 clippartDisplay.AmbientColor = [0.0, 0.0, 0.0]
 clippartDisplay.ColorArrayName = ['POINTS', '']
 clippartDisplay.DiffuseColor = [1.0, 0.4980392156862745, 0.054901960784313725]
-clippartDisplay.PointSize = 10.0
+clippartDisplay.PointSize = 12.0
 clippartDisplay.RenderPointsAsSpheres = 1
 
 # ----------------------------------------------------------------

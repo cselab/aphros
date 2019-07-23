@@ -59,12 +59,13 @@ out: output vtk
 
 f = av[1]
 out = av[2]
+# particles per string
+nnp = 9 if len(av) < 4 else int(av[3])
 
 xx, yy, zz, cc, kk = Collect(f)
 
 ll = []
 cprev = None
-nnp = 9     # particles per string
 for i in range(len(xx)):
     c = cc[i]
     if cprev is None or c != cprev or len(l[0]) >= nnp:
