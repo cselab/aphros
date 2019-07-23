@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -eu
+
+for d in nx* ; do
+  for s in ch bap ba ; do
+    o=$d/$s
+    f=$o/a.mp4
+    if [ -f "$f" ] ; then
+      echo "skip existing $f"
+      continue
+    fi
+    [ "$s" == "ch" ] && e="vis3chvf.py" || e="vis3ba.py"
+    c="(cd $d/$s ; ../$e . && r.pngmp4 || true)"
+    echo "$c"
+    eval "$c"
+  done
+done
