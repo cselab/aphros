@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Submit job found as ch.job in PATH
-# reading number of tasks from np
+# Submit job found as ch.job in PATH,
+# read number of tasts from np
 # read time limit in minutes from tl
 
 set -eu
@@ -13,7 +13,8 @@ fi
 
 echo "$@" > arg
 
-job="`type -p ch.job`"
+: ${JOB=ch.job}
+job="`type -p $JOB`"
 
 np=`cat np`
 
