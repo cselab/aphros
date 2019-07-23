@@ -10,7 +10,9 @@ for d in nx* ; do
       echo "skip existing $f"
       continue
     fi
-    [ "$s" == "ch" ] && e="vis3chvf.py" || e="vis3ba.py"
+    e="vis3ba.py"
+    [ "$s" == "ch" ] && e="vis3chvf.py"
+    [ "$s" == "bap" ] && e="vis3bap.py"
     c="(cd $d/$s ; ../$e . && r.pngmp4 || true)"
     echo "$c"
     eval "$c"
