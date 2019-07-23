@@ -1,8 +1,6 @@
 #!/bin/bash -l
 
-# Run with arguments from arg on number of tasks from np
-
-set -eu
+# Run with arguments from arg without mpi.
 
 # run command with time and append to out
 rt () {
@@ -45,7 +43,7 @@ rm -rf out
 
 [[ -f pre ]] && rt "./pre"
 
-rt "mpirun -n $np $e $a"
+rt "$e $a"
 
 [[ -f post ]] && rt "./post"
 

@@ -11,6 +11,8 @@ instfnd confdeb
 instfnd job
 instfnd run 
 instfnd submit
+instfnd job0
+instfnd submit0
 instfnd kill 
 
 mp="$BB/ch.base.makefile"
