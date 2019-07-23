@@ -97,13 +97,12 @@ echo $tl > tl
   -symmxy $symm -wallz $wall \\
   -bcod 0 0 $bcod -bcor 0 0 $bcor \\
   -b2xr $b2xr -b2rr 1 \\
-  -nb 2 -nfr $nfr 
+  -nb 2 -nfr $nfr -part_ns $ns
 
 
 cat > ch/add.conf << EOF
 set string dumpformat default
 set string dumplist $dumplist
-set int part_ns $ns
 EOF
 
 $runch
