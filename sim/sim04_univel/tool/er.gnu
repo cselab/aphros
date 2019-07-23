@@ -16,7 +16,7 @@ c3='#d62728'
 c4='#9467bd'
 
 if (!exists("ss")) {
-  ss = "ch ba bap"
+  ss = "bap ba"
 }
 
 set linetype  1 lc rgb c0 lw 2 
@@ -26,8 +26,8 @@ set linetype  4 lc rgb c3 lw 2
 set linetype  5 lc rgb "black" lw 2
 set linetype cycle 4
 
-set style line 1 lt 1 pt 7 ps 0.5 
-set style line 2 lt 2 pt 5 ps 0.5 
+set style line 1 lt 1 pt 5 ps 0.5 
+set style line 2 lt 2 pt 7 ps 0.4 
 set style line 3 lt 3 pt 8 ps 0.5 
 
 p="er"
@@ -38,11 +38,11 @@ set xrange [0.5:32]
 set xlabel "R / h"
 
 set format y "10^{%L}"
-set yrange [1e-6:1]
+set yrange [1e-7:1]
 set logscale y
 set ylabel "We_{rms}"
 v="vl2x" ; @s ; @m , 0.0004/x dt '-' lt 5 t "O(h)"
-set ylabel "We_{max}"
+set ylabel "We_{max}" offset -1
 v="vlmx" ; @s ; @m , 0.001/x dt '-' lt 5 t "O(h)" , 0.001/x**2 dt '-.' lt 5 t "O(h)"
 
 unset format y

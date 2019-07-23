@@ -13,7 +13,7 @@ c3='#d62728'
 c4='#9467bd'
 
 if (!exists("ll")) {
-  ll = "ch ba"
+  ll = "bap ba"
 }
 
 set linetype  1 lc rgb c0 lw 2
@@ -37,9 +37,10 @@ set ylabel "{/Symbol D}p / p_L"
 @m @r
 
 set format y "10^{%L}"
+set xrange [0:1]
 set yrange [1e-30:1]
 set logscale y
-set ylabel "We_{max}"
+set ylabel "We_{max}" offset -1
 
 v="vlmx"
 

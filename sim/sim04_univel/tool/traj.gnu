@@ -50,9 +50,10 @@ v="pd"
 @m @r
 
 set format y "10^{%L}"
-set yrange [1e-6:1]
+set xrange [0:1]
+set yrange [1e-7:1]
 set logscale y
-set ylabel "We_{max}"
+set ylabel "We_{max}" offset -1
 
 v="vlmx"
 
