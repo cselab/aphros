@@ -61,6 +61,13 @@ mu: viscosity mu = rho * D ^ 2, pois: velocity magnitude dom''',
     symmxy = [0, "symmetry conditions at x=0.5 and y=0.5"]
     symmcorn = [0, "symmetry conditions at x,y,z=0 corner"]
     dumpdefault = [0, "add dumpformat=default to ch"]
+    part_np = [7, "particles in one string"]
+    part_ns = [3, "strings per cell"]
+    part_hp = [4., "string length"]
+    part_circ = [0., "segcirc factor"]
+    part_eps = [1e-5, "convergence tolerance"]
+    part_eta = [0.5, "relaxation factor"]
+    part_itermax = [20, "maximum number of iterations"]
     return locals().copy()
 
 # ordering:

@@ -28,6 +28,13 @@ set vect vel {vels}
 set int loc {loc}
 set int dim {dim}
 set vect gravity {g[0]} {g[1]} {g[2]}
+set int part_np {part_np}
+set int part_ns {part_ns}
+set double part_h {part_hp}
+set double part_segcirc {part_circ}
+set int part_itermax {part_itermax}
+set double part_tol {part_eps}
+set double part_relax {part_eta}
 '''.format(**c)
 
 dim = c['dim']

@@ -12,8 +12,11 @@ def Default():
         'b2xr', 'b2rr', 'chsm', 'gesm', 'wallx', 'wally', 'wallz', 'pois',
         'g0', 'Fr', 'Ga', 'Eo', 'meshvel', 'nb', 
         'symm', 'symmcorn', 'symmxy',
+        'part_np', 'part_ns', 'part_hp', 'part_circ', 'part_eps',
+        'part_eta', 'part_itermax',
         'dumpdefault')
     return r
+
 
 # Returns pressure gradient to maintain poiseuille flow in rectangular duct
 # ly,lz: size of duct

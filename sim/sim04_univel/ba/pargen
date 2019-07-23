@@ -34,6 +34,8 @@ c['gx'] = c['g'][0]
 c['gy'] = c['g'][1]
 c['gz'] = c['g'][2]
 
+c['part_circ'] = ("1" if c['part_circ'] == 1. else "0")
+
 
 o = '''
 #define DIM {dim}
@@ -56,6 +58,13 @@ o = '''
 #define GY ({gy})
 #define GZ ({gz})
 
+#define PS_Np ({part_np})
+#define PS_Ns ({part_ns})
+#define PS_Hp ({part_hp})
+#define PS_eps ({part_eps})
+#define PS_itermax ({part_itermax})
+#define PS_eta ({part_eta})
+#define PS_circ ({part_circ})
 '''.format(**c)
 
 

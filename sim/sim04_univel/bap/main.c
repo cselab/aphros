@@ -113,6 +113,30 @@ int main() {
   //f.height = h;
   f.sigma = SIGMA;
 
+#ifdef PS_Np
+  kPartstr.Np = PS_Np;
+#endif
+#ifdef PS_Ns
+  #if dimension == 3
+  kPartstr.Ns = PS_Ns;
+  #endif
+#endif
+#ifdef PS_Hp
+  kPartstr.Hp = PS_Hp;
+#endif
+#ifdef PS_eps
+  kPartstr.eps = PS_eps;
+#endif
+#ifdef PS_itermax
+  kPartstr.itermax = PS_itermax;
+#endif
+#ifdef PS_eta
+  kPartstr.eta = PS_eta;
+#endif
+#ifdef PS_circ
+  kPartstr.circ = PS_circ;
+#endif
+
   run();
 }
 
