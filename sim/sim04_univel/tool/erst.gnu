@@ -13,7 +13,7 @@ c3='#d62728'
 c4='#9467bd'
 
 if (!exists("ss")) {
-  ss = "ch ba"
+  ss = "ch ba bap"
 }
 
 set linetype  1 lc rgb c0 lw 2
