@@ -3,5 +3,6 @@
 set -eu
 
 rm -f iter_eta*
-cpr=4 eta=0.5 ./runcase
-cpr=4 eta=0.5 dim=2 ./runcase
+for eta in 0.{4,5,6} ; do
+  cpr=4 eta=$eta ./runcase
+done

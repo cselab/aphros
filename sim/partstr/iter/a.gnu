@@ -43,8 +43,7 @@ set ylabel "E_m"
 
 ll = system("echo iter*")
 
-plot for [f in ll] f u 0:3 every ::1 w l t f
-
-  #'' using 0:2:3 every ::1 with filledcurve fs transparent solid 0.5 t '' lt 1 ,  \
-  #1e-5 w l lt 5
+plot for [f in ll] f u 0:1 every ::1 w l t f , \
+  for [f in ll] f u 0:2:3 every ::1 with filledcurve fs transparent solid 0.5 t '' lt 1 ,  \
+  1e-5 w l lt 5
 

@@ -20,8 +20,10 @@ assert len(r) % ns == 0
 
 r = r.reshape((ns, len(r) // ns))
 
-rm = np.mean(r, axis=0)
-r0 = np.min(r, axis=0)
-r1 = np.max(r, axis=0)
+i = range(r.shape[1])
+rm = np.median(r, axis=0)
+r0 = np.percentile(r, 10, axis=0)
+r1 = np.percentile(r, 90, axis=0)
+rmx = np.percentile(r, 90, axis=0)
 
-np.savetxt('iter.dat', np.array((rm, r0, r1)).T)
+np.savetxt('iter.dat', np.vstack((i, rm, r0, r1, rmx)).T, header="i rm r0 r1 rmx", comments='')

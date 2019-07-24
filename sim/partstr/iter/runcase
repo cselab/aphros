@@ -2,7 +2,7 @@
 
 set -eu
 
-nx=16  # from mesh.conf
+nx=32  # from mesh.conf
 : ${cpr=2}
 r=`bc -l <<< "$cpr / $nx"`
 : ${eta=0.5}
