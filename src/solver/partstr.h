@@ -217,7 +217,7 @@ class PartStr {
     Scal rm = 0.;
     size_t itm = 0;
     std::ofstream f("part.log");
-    f.precision(16);
+    f.precision(25);
     f << "string iter k res" << std::endl;
     for (size_t s = 0; s < GetNumStr(); ++s) {
       Scal r = 0;
