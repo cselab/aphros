@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+
+import numpy as np
+import glob
+import re
+
+ff = sorted(glob.glob('k???.dat'))
+ffi = sorted(glob.glob('k???.iter'))
+
+ee = []
+
+b = np.loadtxt("b.dat")
+br = b[3]
+# exact curv
+kex = 1. / br
+
+for f,fi in zip(ff,ffi):
+    k = np.loadtxt(f)
+    n = int(re.findall("k([0-9]*)", f)[0])
+    # error exact
+    ek2 = np.sqrt((k - kex) ** 2).mean() / kex
+    ekm = np.max(np.abs(k - kex)) / kex
+    it,it0,it1 = np.loadtxt(fi)
+    eta = n * 0.1
+    e = [n, eta, ek2, ekm, it, it0, it1]
+    ee.append(e)
+
+
+fo = "kerr"
+with open(fo, 'w') as f:
+    f.write('n eta ek2 ekm it it0 it1\n')
+    for e in ee:
+        f.write(' '.join(map(str, e)) + '\n')
+

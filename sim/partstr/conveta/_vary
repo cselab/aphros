@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -eu
+
+rm -f k*.{dat,iter}
+for n in 3 4 5 6 7 8 9 ; do
+    o=k`printf %03d "$n"`.dat
+    oi=k`printf %03d "$n"`.iter
+    eta=`bc <<< "$n * 0.1"`
+    echo "0.5 0.5 0.5 0.125" > b.dat
+    a=add.conf
+    > $a
+    echo "set double part_relax $eta" >> $a
+    echo "set double part_tol 1e-5" >> $a
+    ./run
+    ./curv > $o
+    ./plot > $oi
+done
+
+
