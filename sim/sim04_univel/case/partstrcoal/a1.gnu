@@ -52,7 +52,7 @@ dtk = 1.2
 set key
 set key right bottom
 
-ll = system("echo ".c."/nx*256*/ch/neck")
+ll = system("echo ".c."/nx*{256,512}*/ch/neck")
 tt = system("for f in ".ll." ; do g=${f#".c."/} ; echo $g | sed -r 's/(nx...).*_(:?r075)?.*\\/ch.*/\\1\\2/' | tr -d '_' ; done")
 
 l1 = word(ll, 1)

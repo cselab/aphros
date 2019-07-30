@@ -61,9 +61,7 @@ set ylabel "{/Symbol D} r_z"
 unset xrange
 unset yrange
 
-tnlk = 1.075
-tnlk = 1.02
-tnlk = 1
+tnlk = 1.07
 #tnl = tn * 1.12
 
 set samples 1000
@@ -78,8 +76,6 @@ la."ch/neck" u ((column('i')*sim)):((0.5-column("z0"))/rb-1) w l t "r0.30-ch"  \
 set output "ekin.pdf"
 set ylabel "E_{kin}"
 
-
-kv=1.1**0.5
 plot \
 la."ch/stat.dat" u (column('t')):(column("ekin")*1.57e3) w l t "r0.30-ch" \
 , lb."ch/stat.dat" u (column('t')):(column("ekin")*5e4) w l t "r0.15-ch" \
