@@ -1,1 +1,1 @@
-/cluster/home/kpetr/mfer/ch/sim/sim04_univel/tool/vis3bap.py
+../../../tool/vis3bap.py
