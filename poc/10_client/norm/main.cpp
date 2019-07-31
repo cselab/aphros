@@ -17,7 +17,7 @@ int main() {
   MIdx b(0);
   MIdx s(5, 5, 1);
   int hl = 2;
-  M m = InitUniformMesh<M>(dom, b, s, hl, true, s);
+  M m = InitUniformMesh<M>(dom, b, s, hl, true, true, s, 0);
   FieldCell<Scal> fcu(m, 0);
   FieldCell<bool> fci(m, true);
   FieldCell<Vect> fcn;
@@ -29,7 +29,7 @@ int main() {
       x = m.GetCenter(c);
       fcu[c] = x[X]*x[Y];
   }
-  solver::UNormal<M>::CalcNormal(m, fcu, fci, edim, fcn, fck);
+  solver::UNormal<M>::CalcNormal(m, fcu, fci, edim, fcn);
 
   auto& bc = m.GetIndexCells();
   for (auto c : m.Cells()) {
