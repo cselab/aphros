@@ -22,10 +22,7 @@ else()
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_CXX_EXTENSIONS OFF)
 endif()
-
-# Set up the Eigen3 library.
-find_package(Eigen3 3.0.0 REQUIRED)
-include_directories(${EIGEN3_INCLUDE_DIR})
+include_directories($ENV{EIGEN3_INCLUDE_DIR})
 
 set(EXE "a")
 add_executable(${EXE} a.cpp)
