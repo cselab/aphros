@@ -7,11 +7,12 @@ p=er
 # executable
 e=er
 
-for s in ch ba bap ; do
+for s in ch ba bap bal ; do
   o=$p$s
   echo $o
   ./$e > $o
   for f in dat* ; do 
+    [ -f "$f/$s/traj.dat" ] || continue
     printf .
     (cd $f ; ../$e $s) >> $o
   done
