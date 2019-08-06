@@ -20,7 +20,7 @@ if [ ! -f main.s ] ; then
   if [ "$dim" == "3" ] ; then
     g="multigrid3D"
   fi
-  make CFLAGS="-grid=$g $extra" main.s
+  make CFLAGS="-grid=$g $extra -DCURV_PARTSTR" main.s
 fi
 
 chmod +x main.s

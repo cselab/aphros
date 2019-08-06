@@ -1,18 +1,1 @@
-#!/usr/bin/env python
-
-import os
-sh = os.system
-
-def sh(s, fatal=True):
-    print(s)
-    r = os.system(s)
-    assert not fatal or r == 0
-
-dim = int(open("dim").read())
-np = 1
-
-l = locals()
-o = 'out'
-
-sh("./run0 {dim} {np} |& tee -a {o}".format(**l))
-
+../ba/run
