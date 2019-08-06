@@ -5,7 +5,7 @@ reset
 
 set terminal pdfcairo color font "Helvetica,14" size 3.2,2.2 enhanced
 
-set nokey
+#set nokey
 c0='#1f77b4'
 c1='#ff7f0e'
 c2='#2ca02c'
