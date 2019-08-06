@@ -1,1 +1,18 @@
-../ba/run0
+#!/bin/bash -l
+
+dim=$1
+np=$2
+extra=$3
+
+set -eu
+
+. ba.setenv
+
+g="multigrid"
+if [ "$dim" == "3" ] ; then
+  g="multigrid3D"
+fi
+
+make CFLAGS="-grid=$g $extra -DCURV_PARTSTR" main.s
+chmod +x main.s
+ba.run -n "$np" main.s
