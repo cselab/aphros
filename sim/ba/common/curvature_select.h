@@ -6,5 +6,6 @@
 #elif defined(CURV_LEARN)
   #include "curvature_learn.h"
 #else
+  #include "fractions.h"
   #include "curvature.h"
 #endif
