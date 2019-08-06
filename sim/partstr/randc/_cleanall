@@ -3,5 +3,7 @@
 rm -vf *.pdf log
 
 (cd ba ; ./cleanall)
+(cd bap ; ./cleanall)
+(cd bal ; ./cleanall)
 (cd ch ; ./cleanall)
 (cd ge ; ./cleanall)
