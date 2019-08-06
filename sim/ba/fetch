@@ -1,0 +1,5 @@
+set -eu
+
+u=git@gitlab.ethz.ch:mavt-cse/mfer
+git archive --remote=$u HEAD:poc/bapartstr/ common | tar -x
+git ls-remote $u HEAD > rev
