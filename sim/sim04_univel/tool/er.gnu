@@ -6,7 +6,7 @@ reset
 set terminal pdfcairo color font "Helvetica,14" size 3.2,2.2 enhanced
 
 #set key reverse bottom right Left
-set nokey
+#set nokey
 
 
 c0='#1f77b4'
@@ -43,7 +43,7 @@ set logscale y
 set ylabel "We_{rms}"
 v="vl2x" ; @s ; @m , 0.0004/x dt '-' lt 5 t "O(h)"
 set ylabel "We_{max}" offset -1
-v="vlmx" ; @s ; @m , 0.001/x dt '-' lt 5 t "O(h)" , 0.001/x**2 dt '-.' lt 5 t "O(h)"
+v="vlmx" ; @s ; @m , 0.001/x dt '-' lt 5 t "O(h)" , 0.001/x**2 dt '-.' lt 5 t "O(h^2)"
 
 unset format y
 unset logscale y
