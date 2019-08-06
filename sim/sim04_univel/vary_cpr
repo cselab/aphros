@@ -24,6 +24,7 @@ a['nfr'][0] = 5
 a['nx'][0] = 128
 a['dummy'] = ["", "dummy directory"]
 a['ch'] = [1, "enable ch"]
+a['vis'] = [1, "enable vis"]
 c = ch.GetArgs(a)
 assert c.out is not None
 o = os.path.realpath(c.out)
@@ -50,6 +51,7 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
     pos = c.pos
 
     chrun = "" if c.ch else "echo > r_ch"
+    visrun = "" if c.vis else "echo > r_vis"
 
     sf = "dim{:}_cpr{:06.02f}_we{:06.03f}_la{:06.01f}".format(dim, cpr, We, La)
     ot = os.path.join(o, "run_{:}".format(sf))
@@ -63,6 +65,7 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
 rm -f ch/done ge/done ba/done
 
 {chrun}
+{visrun}
 
 ./gen -nx {nx} -cpr {cpr} -We {We} -La {La} -np {np} -nfr {nfr}  \
 -dim {dim} -tmax {tmax} -mode vel -chsm {chsm} -pos {pos}
