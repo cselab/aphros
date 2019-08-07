@@ -5,15 +5,15 @@ reset
 
 set terminal pdfcairo color font "Helvetica,14" size 3.2,2.2 enhanced
 
-set nokey
+#set nokey
 c0='#1f77b4'
 c1='#ff7f0e'
 c2='#2ca02c'
 c3='#d62728'
 c4='#9467bd'
 
-if (!exists("ll")) {
-  ll = "ch ba"
+if (!exists("ss")) {
+  ss = "ch ba"
 }
 
 set linetype  1 lc rgb c0 lw 2
@@ -29,8 +29,8 @@ set style line 3 lt 3 pt 8 ps 0.5
 set xlabel "t / T"
 
 p="/traj.dat"
-m='plot for [f in ll] f.p u "t":v w l'
-r=', "ex".p u "t":v w l lc rgb "black" dt 2'
+m='plot for [f in ss] f.p u "t":v w l t f'
+r=', "ex".p u "t":v w l lc rgb "black" dt 2 t "flow"'
 s='set output "a".v.".pdf"'
 
 v="c2x"
@@ -62,7 +62,7 @@ wek=system('python -c "\
 exec(open('."'".'par.py'."'".').read()) ; \
 print(bbr[0][0] * 2 / sig)"')
 
-plot for [i=1:words(ll)] word(ll,i).p u "t":(column(v)**2*wek) w l ls i
+plot for [i=1:words(ss)] word(ss,i).p u "t":(column(v)**2*wek) w l ls i t word(ss,i)
 
 v="vlmy"
 @s

@@ -1,7 +1,7 @@
 #!/usr/bin/env gnuplot
 
 set macros
-reset
+#reset
 
 set terminal pdfcairo color font "Helvetica,14" size 3.2,2.2 enhanced
 

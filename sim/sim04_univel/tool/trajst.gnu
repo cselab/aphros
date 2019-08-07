@@ -5,15 +5,15 @@ reset
 
 set terminal pdfcairo color font "Helvetica,14" size 3.2,2.2 enhanced
 
-set nokey
+#set nokey
 c0='#1f77b4'
 c1='#ff7f0e'
 c2='#2ca02c'
 c3='#d62728'
 c4='#9467bd'
 
-if (!exists("ll")) {
-  ll = "bap ba"
+if (!exists("ss")) {
+  ss = "bap ba"
 }
 
 set linetype  1 lc rgb c0 lw 2
@@ -26,7 +26,7 @@ set linetype cycle 9
 set xlabel "t / T"
 
 p="/traj.dat"
-m='plot for [f in ll] f.p u "t":v w l'
+m='plot for [f in ss] f.p u "t":v w l t f'
 r=', "ex".p u "t":v w l lc rgb "black" dt 2'
 s='set output "a".v.".pdf"'
 
@@ -49,4 +49,4 @@ wek=system('python -c "\
 exec(open('."'".'par.py'."'".').read()) ; \
 print(bbr[0][0] * 2 / sig)"')
 
-plot for [f in ll] f.p u "t":(column(v)**2*wek) w l
+plot for [f in ss] f.p u "t":(column(v)**2*wek) w l t f
