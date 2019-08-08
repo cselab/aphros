@@ -2,7 +2,7 @@
 
 set -eu
 
-for f in ch ba bap bal ge ; do
+for f in ch ba bap bal bad ge ; do
   if [ -f $f/dim ] ; then
     echo $f
     (cd $f ; ../_gather)
