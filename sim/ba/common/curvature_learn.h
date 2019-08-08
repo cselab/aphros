@@ -111,10 +111,6 @@ static double ApplySymm(double u[]) {
   }
 #endif
 
-  FlipX(u);
-  FlipY(u);
-  Trans(u);
-
   return q;
 }
 
