@@ -1,0 +1,2 @@
+./a.py ../02_gen3d/dat --neurons '[80,80]' --epochs 500000 --symm 1 --dim 3 --lr 0.01
+./rb
