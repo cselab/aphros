@@ -3,27 +3,10 @@
 
 #include <unistd.h>
 
-#ifndef POINTXYZ
-#define POINTXYZ
-#endif
-
-#ifndef foreach_end
-#define foreach_end
-#endif
-
-#ifndef foreach_neighbor_end
-#define foreach_neighbor_end
-#endif
-
-#ifndef CELLIDX
-#define CELLIDX
-#endif
-
-#define SA (SW*2+1)
-
 
 #include "learn.h"
 
+#define SA (SW*2+1)
 #define GETI(x,y) ((y)*SA+(x))
 #define GET(x,y) (u[GETI(x,y)])
 
@@ -105,7 +88,7 @@ static double ApplySymm(double u[]) {
   }
 
 #ifndef NDEBUG
-  if (!(NX(u) >= 0. && NY(u) >= 0. && NX() <= NY())) {
+  if (!(NX(u) >= 0. && NY(u) >= 0. && NX(u) <= NY(u))) {
     fprintf(stderr, "%s:%d nx=%g ny=%g\n", __FILE__, __LINE__, NX(u), NY(u));
     abort();
   }
@@ -114,7 +97,7 @@ static double ApplySymm(double u[]) {
   return q;
 }
 
-static double partstr(Point point, scalar c) {
+static double Curv(Point point, scalar c) {
   static double u[DIM];
   int i = 0;
   foreach_neighbor(SW)
@@ -126,26 +109,11 @@ static double partstr(Point point, scalar c) {
 }
 
 
-
-#ifndef NOBA
 trace
 cstats curvature_learn(struct Curvature p)
 {
-  /*
-  {
-    scalar kappa = p.kappa;
-    foreach () {
-      kappa[CELLIDX] = 0;
-    }
-    return (cstats){0,0,0,0};
-  }
-  */
   scalar c = p.c, kappa = p.kappa;
   double sigma = p.sigma ? p.sigma : 1.;
-  int sh = 0, sf = 0, sa = 0, sc = 0;
-  vector ch = c.height, h = automatic (ch);
-  if (!ch.x.i)
-    heights (c, h);
 
 #if TREE
   kappa.refine = kappa.prolongation = curvature_prolongation;
@@ -155,30 +123,29 @@ cstats curvature_learn(struct Curvature p)
   scalar k[];
   scalar_clone (k, kappa);
 
-  foreach(reduction(+:sh) reduction(+:sc)) {
+  foreach() {
     if (!interfacial (point, c)) {
-      k[CELLIDX] = nodata;
+      k[] = nodata;
     } else  {
-      k[CELLIDX] = partstr(point, c);
-      sc++;
+      k[] = Curv(point, c);
     }
   }
-  foreach_end
+
   boundary ({k});
 
   foreach () {
-    double kf = k[CELLIDX];
+    double kf = k[];
     if (kf == nodata)
-      kappa[CELLIDX] = nodata;
+      kappa[] = nodata;
     else if (p.add)
-      kappa[CELLIDX] += sigma*kf;
+      kappa[] += sigma*kf;
     else
-      kappa[CELLIDX] = sigma*kf;
+      kappa[] = sigma*kf;
   }
-  foreach_end
+
   boundary ({kappa});
 
-  return (cstats){sh, sf, sa, sc};
+  return (cstats){0, 0, 0, 0};
 }
 
 trace
@@ -187,6 +154,4 @@ cstats curvature_orig(struct Curvature p) {
 }
 
 #define curvature curvature_learn
-
-#endif
 
