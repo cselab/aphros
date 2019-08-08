@@ -69,25 +69,53 @@ static void Trans(double u[]) {
   }
 }
 
-static void ApplySymm(double u[]) {
+static double Mean(const double u[]) {
+  double s = 0.;
+  for (int i = 0; i < DIM; ++i) {
+    s += u[i];
+  }
+  return s / DIM;
+}
+
+static void FlipVal(double u[]) {
+  for (int i = 0; i < DIM; ++i) {
+    u[i] = 1. - u[i];
+  }
+}
+
+static double ApplySymm(double u[]) {
   int w = SW;
 
-  if (NY(u) < 0.) {
-    FlipY(u);
+  double q = 1.;
+  if (Mean(u) > 0.5) {
+    FlipVal(u);
+    q = -1.;
   }
 
   if (NX(u) < 0.) {
     FlipX(u);
   }
 
+  if (NY(u) < 0.) {
+    FlipY(u);
+  }
+
   if (NY(u) < NX(u)) {
     Trans(u);
   }
 
-  if (!(NX(u) >= 0. && NY(u) >= 0.)) {
+#ifndef NDEBUG
+  if (!(NX(u) >= 0. && NY(u) >= 0. && NX() <= NY())) {
     fprintf(stderr, "%s:%d nx=%g ny=%g\n", __FILE__, __LINE__, NX(u), NY(u));
     abort();
   }
+#endif
+
+  FlipX(u);
+  FlipY(u);
+  Trans(u);
+
+  return q;
 }
 
 static double partstr(Point point, scalar c) {
@@ -97,8 +125,8 @@ static double partstr(Point point, scalar c) {
   {
     u[i++] = c[];
   }
-  ApplySymm(u);
-  return Eval(u) / Delta;
+  double q = ApplySymm(u);
+  return q * Eval(u) / Delta;
 }
 
 
