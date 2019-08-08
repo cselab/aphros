@@ -24,7 +24,8 @@
 
 #include "learn.h"
 
-#define GET(i,j) (u[(i)*SA+(j)])
+#define GETI(x,y) ((y)*SA+(x))
+#define GET(x,y) (u[GETI(x,y)])
 
 static void Swap(double u[], int i, int o) {
   double t = u[i];
@@ -32,33 +33,38 @@ static void Swap(double u[], int i, int o) {
   u[o] = t;
 }
 
-static double A(const double u[]) {
+// x-component of normal, anti-gradient of u
+static double NX(const double u[]) {
   const int w = SW;
-  double nx = GET(w, w + 1) - GET(w, w - 1);
-  double ny = GET(w + 1, w) - GET(w - 1, w);
-  return atan2(ny, nx) * 180. / M_PI;
+  return GET(w - 1, w) - GET(w + 1, w);
+}
+
+// y-component of normal, anti-gradient of u
+static double NY(const double u[]) {
+  const int w = SW;
+  return GET(w, w - 1) - GET(w, w + 1);
 }
 
 static void FlipX(double u[]) {
-  for (int i = 0; i < SW; ++i) {
-    for (int j = 0; j < SA; ++j) {
-      Swap(u, j * SA + i, j * SA + (SA - i - 1));
+  for (int y = 0; y < SA; ++y) {
+    for (int x = 0; x < SW; ++x) {
+      Swap(u, GETI(x, y), GETI(SA - x - 1, y));
     }
   }
 }
 
 static void FlipY(double u[]) {
-  for (int i = 0; i < SA; ++i) {
-    for (int j = 0; j < SW; ++j) {
-      Swap(u, j * SA + i, (SA - j - 1) * SA + i);
+  for (int y = 0; y < SW; ++y) {
+    for (int x = 0; x < SA; ++x) {
+      Swap(u, GETI(x, y), GETI(x, SA - y - 1));
     }
   }
 }
 
 static void Trans(double u[]) {
-  for (int i = 0; i < SA; ++i) {
-    for (int j = 0; j < i; ++j) {
-      Swap(u, j * SA + i, i * SA + j);
+  for (int y = 0; y < SA; ++y) {
+    for (int x = 0; x < y; ++x) {
+      Swap(u, GETI(x, y), GETI(y, x));
     }
   }
 }
@@ -66,22 +72,20 @@ static void Trans(double u[]) {
 static void ApplySymm(double u[]) {
   int w = SW;
 
-  if (A(u) < 0) {
+  if (NY(u) < 0.) {
     FlipY(u);
   }
 
-  if (A(u) > 90) {
+  if (NX(u) < 0.) {
     FlipX(u);
   }
 
-  if (A(u) > 45) {
+  if (NY(u) < NX(u)) {
     Trans(u);
   }
 
-  double a = A(u);
-  const double TH = 1e-14;
-  if (!(a >= -TH && a <= 45 + TH)) {
-    fprintf(stderr, "%s:%d %g\n", __FILE__, __LINE__, a);
+  if (!(NX(u) >= 0. && NY(u) >= 0.)) {
+    fprintf(stderr, "%s:%d nx=%g ny=%g\n", __FILE__, __LINE__, NX(u), NY(u));
     abort();
   }
 }
