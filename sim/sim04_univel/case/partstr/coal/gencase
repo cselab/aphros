@@ -24,6 +24,7 @@ done
 : ${nfr=40}
 : ${ba=1}
 : ${bap=1}
+: ${bal=1}
 : ${ch=1}
 : ${suff=}
 : ${tmax=0.4}
@@ -41,6 +42,7 @@ d="${d}_oh${Oh}_wall${wall}_tmax${tmax}"
 [ $ch == "1" ] && runch= || runch="echo > r_ch"
 [ $ba == "1" ] && runba= || runba="echo > r_ba"
 [ $bap == "1" ] && runbap= || runbap="echo > r_bap"
+[ $bal == "1" ] && runbal= || runbal="echo > r_bal"
 
 
 if [ "$wall" == "1" ] ; then
@@ -86,6 +88,8 @@ echo $tl > tl
 # symm=$symm
 # nfr=$nfr
 # ba=$ba
+# bap=$bap
+# bal=$bal
 # ch=$ch
 # tmax=$tmax
 # wall=$wall
@@ -108,6 +112,7 @@ EOF
 $runch
 $runba
 $runbap
+$runbal
 
 EOG
 
