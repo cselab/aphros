@@ -1,13 +1,16 @@
 #ifdef CURV_PARTSTR
-  #ifdef CURV_LEARN
-  #error Both CURV_PARTSTR and CURV_LEARN are defined
-  #endif
+  #warning Using curvature_partstr
   #include "curvature_partstr.h"
-#elif defined(CURV_LEARN)
-  #include "curvature_learn.h"
-#elif defined(CURV_DIV)
-  #include "curvature_div.h"
-#else
-  #include "fractions.h"
-  #include "curvature.h"
 #endif
+
+#ifdef CURV_LEARN
+  #warning Using curvature_learn
+  #include "curvature_learn.h"
+#endif
+
+#ifdef CURV_DIV
+  #warning Using curvature_div
+  #include "curvature_div.h"
+#endif
+
+#include "curvature.h"
