@@ -4,7 +4,6 @@
 
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
-#include "contact.h"
 #include "vof.h"
 #include "tension.h"
 
@@ -84,7 +83,6 @@ int ReadField(scalar c, char* fn) {
   return 1;
 }
 
-vector h[];
 
 WALLX
 WALLY
