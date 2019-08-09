@@ -13,4 +13,9 @@
   #include "curvature_div.h"
 #endif
 
+#ifdef CURV_FIX
+  #warning Using curvature_fix
+  #include "curvature_fix.h"
+#endif
+
 #include "curvature.h"
