@@ -58,3 +58,5 @@ target_link_libraries(${EXE}
 
 add_subdirectory(test)
 enable_testing()
+
+include(header.cmake)
