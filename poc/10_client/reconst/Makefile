@@ -1,9 +1,8 @@
 M = main
-S = ../../../src
 
 $M: $M.o
 
-CH_CXXFLAGS = -I $S -std=c++11
+CH_CXXFLAGS = -I$(CHPREFIX)/include/hydro
 
 $M: $M.o; $(CXX) $< $(LDFLAGS) -o $@
 .cpp.o:; $(CXX) -c $(CXXFLAGS) $(CH_CXXFLAGS) $< -o $@

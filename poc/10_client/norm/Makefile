@@ -1,10 +1,9 @@
 M = main
-S = ../../../src
 
 $M: $M.o
 
-CH_CXXFLAGS = -I$S -std=c++11
-CH_LDFLAGS = -L$S/build/solver -L$S/build/util -lsolver -lnormal -lsuspender
+CH_CXXFLAGS = -I$(CHPREFIX)/include/hydro
+CH_LDFLAGS = -L$(CHPREFIX)/lib -lhydro
 
 $M: $M.o; $(CXX) $< $(CH_LDFLAGS) -o $@
 .cpp.o:; $(CXX) -c $(CXXFLAGS) $(CH_CXXFLAGS) $< -o $@
