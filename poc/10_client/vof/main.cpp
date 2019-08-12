@@ -12,6 +12,10 @@
 #include "distr/distrsolver.h"
 using namespace solver;
 
+extern "C" {
+#include "imp.h"
+}
+
 const int dim = 3;
 using MIdx = GMIdx<dim>;
 using Scal = double;
@@ -66,5 +70,8 @@ void Main(MPI_Comm comm, Vars& var) {
 
 
 int CMain() {
-  return RunMpi(0, NULL, Main);
+  int argc = 1;
+  const char* argv[] = {"main"};
+  return RunMpi(argc, argv, Main);
 }
+
