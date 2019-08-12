@@ -14,6 +14,7 @@ using namespace solver;
 
 extern "C" {
 #include "imp.h"
+static void (*kFunc)(void);
 }
 
 const int dim = 3;
@@ -64,14 +65,18 @@ void Main(MPI_Comm comm, Vars& var) {
   using Par = typename K::Par;
   Par par;
 
+  kFunc();
+  return;
+
   DistrSolver<M, K> ds(comm, var, par);
   ds.Run();
 }
 
 
-int CMain() {
+int CMain(void (*f)(void)) {
   int argc = 1;
   const char* argv[] = {"main"};
+  kFunc = f;
   return RunMpi(argc, argv, Main);
 }
 
