@@ -18,6 +18,15 @@ set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic -Wextra -Werror")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra -Wno-deprecated-copy")
 
+# hdf5
+set(T "hdf")
+set(HDF5_PREFER_PARALLEL on)
+find_package(HDF5 REQUIRED)
+add_library(${T} INTERFACE IMPORTED)
+target_include_directories(${T} PUBLIC INTERFACE ${HDF5_INCLUDE_DIRS})
+target_link_libraries(${T} INTERFACE ${HDF5_LIBRARIES})
+
+
 add_executable(${EXE} main.cpp)
 set_target_properties(${EXE} PROPERTIES PREFIX "ch.")
 
