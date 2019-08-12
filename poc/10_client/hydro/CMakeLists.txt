@@ -4,6 +4,7 @@ project("main")
 
 set(EXE "main")
 
+include("$ENV{CHPREFIX}/include/client.cmake")
 include("$ENV{CHPREFIX}/include/hydro.cmake")
 
 # binary
