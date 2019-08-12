@@ -4,14 +4,9 @@ target_link_libraries(${T} hypre suspender vars parser report sysinfo)
 
 set(T "cubism")
 add_library(${T} cubism.cpp)
-target_link_libraries(${T} hypre suspender vars parser report sysinfo)
+target_link_libraries(${T} hypre suspender vars parser report sysinfo hdf)
 # cubism specific
 target_compile_definitions(${T} PUBLIC _ALIGNBYTES_=16)
-# HDF5
-set(HDF5_PREFER_PARALLEL on)
-find_package(HDF5 REQUIRED)
-target_include_directories(${T} PUBLIC ${HDF5_INCLUDE_DIRS})
-target_link_libraries(${T} ${HDF5_LIBRARIES})
 target_compile_definitions(${T} PUBLIC _USE_HDF_)
 
 set(T "report")
@@ -21,4 +16,5 @@ target_link_libraries(${T})
 set(T "distr")
 add_library(${T} distrsolver.cpp)
 target_link_libraries(${T} parser suspender vars cubism local dumper git)
+
 
