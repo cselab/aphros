@@ -1,15 +1,13 @@
 #include "par.h"
 
+#include "curvature_select.h"
+
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
 #include "vtk.h"
 #include <mpi.h>
 
-#if PARTSTR
-#include "tension_partstr.h"
-#else
 #include "tension.h"
-#endif
 
 #define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
 
