@@ -10,7 +10,6 @@
 #include "parse/vars.h"
 #include "kernel/kernelmeshpar.h"
 #include "distr/distrsolver.h"
-
 using namespace solver;
 
 const int dim = 3;
@@ -66,6 +65,6 @@ void Main(MPI_Comm comm, Vars& var) {
 }
 
 
-int main(int argc, const char** argv) {
-  return RunMpi(argc, argv, Main);
+int CMain() {
+  return RunMpi(0, NULL, Main);
 }
