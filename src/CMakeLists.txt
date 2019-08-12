@@ -4,6 +4,8 @@ project("mfer")
 
 set(EXE "mfer")
 
+set(CHPREFIX $ENV{CHPREFIX})
+
 # C++11
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -26,7 +28,14 @@ add_library(${T} INTERFACE IMPORTED)
 target_include_directories(${T} PUBLIC INTERFACE ${HDF5_INCLUDE_DIRS})
 target_link_libraries(${T} INTERFACE ${HDF5_LIBRARIES})
 
+# hypre
+set(T "hypreext")
+set(HYPRE_DIR ${CHPREFIX})
+add_library(${T} INTERFACE IMPORTED)
+target_include_directories(${T} PUBLIC INTERFACE ${HYPRE_DIR}/include)
+target_link_libraries(${T} INTERFACE -L${HYPRE_DIR}/lib -lHYPRE -lm)
 
+# binary
 add_executable(${EXE} main.cpp)
 set_target_properties(${EXE} PROPERTIES PREFIX "ch.")
 
@@ -48,7 +57,6 @@ add_custom_target(gitrev
 add_dependencies(${EXE} gitrev)
 
 # install prefix
-set(CHPREFIX $ENV{CHPREFIX})
 install(TARGETS ${EXE} DESTINATION "${CHPREFIX}/bin")
 
 include_directories(.)
