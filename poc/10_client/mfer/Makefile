@@ -6,7 +6,8 @@ LINK = $(CXX)
 
 all: $M
 .o:
-	$(LINK) $< $(LDFLAGS) -L$(CHPREFIX)/lib -L$(HDF5_ROOT)/lib -lhydro -lHYPRE -lhdf5 -o $@
+	#$(LINK) $< $(LDFLAGS) -L$(CHPREFIX)/lib -L$(HDF5_ROOT)/lib -lhydro -lHYPRE -lhdf5 -o $@
+	$(LINK) $< $(LDFLAGS) -L$(CHPREFIX)/lib -L$(HDF5_ROOT)/lib -lhydro -lHYPRE -o $@
 
 .cpp.o:
 	$(CXX) $(CFLAGS) -I$(CHPREFIX)/include/hydro $< -c -o $@
