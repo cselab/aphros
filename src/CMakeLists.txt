@@ -25,7 +25,6 @@ add_custom_target(gitrev
 )
 
 include_directories(.)
-
 set_property(GLOBAL PROPERTY ALLTARGETS "")
 
 function(add_library name)
@@ -33,8 +32,6 @@ function(add_library name)
   _add_library(${name} ${ARGN})
   install(TARGETS ${name} EXPORT export DESTINATION ${CHPREFIX}/lib)
 endfunction(add_library)
-install(EXPORT export FILE export.cmake DESTINATION ${CHPREFIX}/include)
-
 add_subdirectory(linear)
 add_subdirectory(distr)
 add_subdirectory(util)
@@ -54,7 +51,6 @@ target_link_libraries(${T} INTERFACE ${alltargets})
 
 # binary
 add_executable(${EXE} main.cpp)
-add_dependencies(${EXE} gitrev)
 install(TARGETS ${EXE} DESTINATION "${CHPREFIX}/bin")
 set_target_properties(${EXE} PROPERTIES PREFIX "ch.")
 target_link_libraries(${EXE} hydro)
@@ -63,5 +59,6 @@ target_link_libraries(${EXE} hydro)
 add_subdirectory(test)
 enable_testing()
 
+install(EXPORT export FILE export.cmake DESTINATION ${CHPREFIX}/include)
 install(FILES client.cmake hydro.cmake DESTINATION ${CHPREFIX}/include)
 include(header.cmake)
