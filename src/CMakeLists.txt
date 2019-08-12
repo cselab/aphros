@@ -73,7 +73,6 @@ add_subdirectory(young)
 set(T "hydro")
 get_property(alltargets GLOBAL PROPERTY ALLTARGETS)
 add_library(${T} INTERFACE)
-message(STATUS ASDF ${alltargets})
 target_link_libraries(${T} INTERFACE ${alltargets})
 
 # binary
@@ -87,11 +86,6 @@ target_link_libraries(${EXE} hydro)
 add_subdirectory(test)
 enable_testing()
 
-get_target_property(OUT ${EXE} LINK_LIBRARIES)
-message(STATUS AWSDF ${OUT})
-
-
-if(LIB)
-  include(header.cmake)
-  install(TARGETS ${alltargets} DESTINATION ${CHPREFIX}/lib)
-endif(LIB)
+install(FILES "client.cmake" DESTINATION ${CHPREFIX}/include)
+include(header.cmake)
+install(TARGETS ${alltargets} DESTINATION ${CHPREFIX}/lib)
