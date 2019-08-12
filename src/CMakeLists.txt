@@ -31,6 +31,7 @@ set_property(GLOBAL PROPERTY ALLTARGETS "")
 function(add_library name)
   set_property(GLOBAL APPEND PROPERTY ALLTARGETS "${name}")
   _add_library(${name} ${ARGN})
+  install(TARGETS ${name} DESTINATION ${CHPREFIX}/lib)
 endfunction(add_library)
 
 add_subdirectory(linear)
@@ -42,12 +43,14 @@ add_subdirectory(dump)
 add_subdirectory(overlap)
 add_subdirectory(young)
 
+# TODO: remove ALLTARGETS
 
 # hydro
 set(T "hydro")
 get_property(alltargets GLOBAL PROPERTY ALLTARGETS)
 add_library(${T} INTERFACE)
 target_link_libraries(${T} INTERFACE ${alltargets})
+install(TARGETS ${T} DESTINATION ${CHPREFIX}/lib)
 
 # binary
 add_executable(${EXE} main.cpp)
@@ -63,4 +66,3 @@ enable_testing()
 install(FILES "client.cmake" DESTINATION ${CHPREFIX}/include)
 install(FILES "hydro.cmake" DESTINATION ${CHPREFIX}/include)
 include(header.cmake)
-install(TARGETS ${alltargets} DESTINATION ${CHPREFIX}/lib)
