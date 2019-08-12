@@ -1,9 +1,5 @@
-set(TARG "hypre")
+set(T "hypre")
 
-#include_directories(.)
-add_library(${TARG} hypre.cpp)
+add_library(${T} hypre.cpp)
+target_link_libraries(${T} hypreext)
 
-# hypre
-set(HYPRE_DIR ${CHPREFIX})
-target_include_directories(${TARG} PUBLIC ${HYPRE_DIR}/include)
-target_link_libraries(${TARG} -L${HYPRE_DIR}/lib -lHYPRE -lm)
