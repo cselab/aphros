@@ -13,6 +13,7 @@ set(T "timer")
 add_library(${T} timer.cpp)
 
 add_library(gitgen gitgen.cpp)
+add_dependencies(gitgen gitrev)
 
 set(T "git")
 add_library(${T} git.cpp)
