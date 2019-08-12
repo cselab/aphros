@@ -4,9 +4,7 @@ project("main")
 
 set(EXE "main")
 
-set(CHPREFIX $ENV{CHPREFIX})
-
-include("${CHPREFIX}/include/client.cmake")
+include("$ENV{CHPREFIX}/include/hydro.cmake")
 
 # binary
 add_executable(${EXE} main.cpp)
