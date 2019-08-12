@@ -56,8 +56,11 @@ void Simple<M>::Run() {
   auto sem = m.GetSem();
   if (sem()) {
     fcu_.Reinit(m);
+    MIdx ws = m.GetIndexCells().GetSize();
+    kFunc(ws[0], ws[1], ws[2], fcu_.data());
     m.Dump(&fcu_, "u");
   }
+  if (sem()) {}
 }
 
 void Main(MPI_Comm comm, Vars& var) {
@@ -65,11 +68,6 @@ void Main(MPI_Comm comm, Vars& var) {
   using K = Simple<M>;
   using Par = typename K::Par;
   Par par;
-
-  double fcu[] = {1, 2, 3};
-  kFunc(var.Int["a"], var.Int["b"], fcu);
-  return;
-
   DistrSolver<M, K> ds(comm, var, par);
   ds.Run();
 }

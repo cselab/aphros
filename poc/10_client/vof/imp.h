@@ -1,2 +1,2 @@
-typedef void (*TFunc)(int, int, double*);
+typedef void (*TFunc)(int, int, int, double*);
 int CMain(TFunc);
