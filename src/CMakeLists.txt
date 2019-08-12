@@ -35,10 +35,6 @@ add_library(${T} INTERFACE IMPORTED)
 target_include_directories(${T} PUBLIC INTERFACE ${HYPRE_DIR}/include)
 target_link_libraries(${T} INTERFACE -L${HYPRE_DIR}/lib -lHYPRE -lm)
 
-# binary
-add_executable(${EXE} main.cpp)
-set_target_properties(${EXE} PROPERTIES PREFIX "ch.")
-
 # git revision
 set(P "${PROJECT_SOURCE_DIR}/..")
 set(C "${P}/src/util/gitgen.cpp")
@@ -54,10 +50,6 @@ add_custom_target(gitrev
   COMMAND "${P}/tool/gitrev" "${C}"
   WORKING_DIRECTORY "${P}"
 )
-add_dependencies(${EXE} gitrev)
-
-# install prefix
-install(TARGETS ${EXE} DESTINATION "${CHPREFIX}/bin")
 
 include_directories(.)
 
@@ -70,13 +62,24 @@ add_subdirectory(dump)
 add_subdirectory(overlap)
 add_subdirectory(young)
 
-target_link_libraries(${EXE} 
+# hydro
+set(T "hydro")
+add_library(${T} INTERFACE)
+target_link_libraries(${T} INTERFACE
   distr solver vof tvd convdiffvi simple overlap young utilfluid events)
 
+# binary
+add_executable(${EXE} main.cpp)
+add_dependencies(${EXE} gitrev)
+install(TARGETS ${EXE} DESTINATION "${CHPREFIX}/bin")
+set_target_properties(${EXE} PROPERTIES PREFIX "ch.")
+target_link_libraries(${EXE} hydro)
+
+# test
 add_subdirectory(test)
 enable_testing()
 
 if(LIB)
-	include(header.cmake)
+  include(header.cmake)
   install(TARGETS distr solver vof tvd convdiffvi simple overlap young utilfluid events normal suspender ARCHIVE DESTINATION ${CHPREFIX}/lib)
 endif(LIB)
