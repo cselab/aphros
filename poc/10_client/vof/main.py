@@ -5,11 +5,11 @@ from ctypes import *
 l = cdll.LoadLibrary("./libimp.so")
 
 
-def callback(a):
-    print(a)
+def callback(a, b, fcu):
+    print(a, b, fcu)
 
 
-c_callback = CFUNCTYPE(None, c_int)(callback)
+c_callback = CFUNCTYPE(None, c_int, c_int, c_char_p)(callback)
 
 
 l.CMain(c_callback)

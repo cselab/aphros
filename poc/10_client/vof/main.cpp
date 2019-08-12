@@ -66,7 +66,8 @@ void Main(MPI_Comm comm, Vars& var) {
   using Par = typename K::Par;
   Par par;
 
-  kFunc(var.Int["a"]);
+  char* a = "asdf";
+  kFunc(var.Int["a"], var.Int["b"], a);
   return;
 
   DistrSolver<M, K> ds(comm, var, par);
