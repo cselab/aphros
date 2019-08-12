@@ -5,8 +5,3 @@ include("$ENV{CHPREFIX}/include/hydro.cmake")
 set(T imp)
 add_library(${T} SHARED main.cpp)
 target_link_libraries(${T} hydro)
-
-
-set(EXE main)
-add_executable(${EXE} main.c)
-target_link_libraries(${EXE} imp)

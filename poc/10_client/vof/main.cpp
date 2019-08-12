@@ -19,9 +19,11 @@ using Scal = double;
 using Vect = GVect<Scal, dim>;
 using Mesh = MeshStructured<Scal, dim>;
 
-extern "C" {
-#include "imp.h"
+typedef void (*TFunc)(int, int, int, double*);
 TFunc kFunc;
+
+extern "C" {
+int CMain(int, const char**, TFunc);
 }
 
 struct GPar {};
