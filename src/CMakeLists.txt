@@ -50,7 +50,6 @@ set(T "hydro")
 get_property(alltargets GLOBAL PROPERTY ALLTARGETS)
 add_library(${T} INTERFACE)
 target_link_libraries(${T} INTERFACE ${alltargets})
-install(TARGETS ${T} DESTINATION ${CHPREFIX}/lib)
 
 # binary
 add_executable(${EXE} main.cpp)
