@@ -12,16 +12,17 @@
 #include "distr/distrsolver.h"
 using namespace solver;
 
-extern "C" {
-#include "imp.h"
-static void (*kFunc)(void);
-}
 
 const int dim = 3;
 using MIdx = GMIdx<dim>;
 using Scal = double;
 using Vect = GVect<Scal, dim>;
 using Mesh = MeshStructured<Scal, dim>;
+
+extern "C" {
+#include "imp.h"
+TFunc kFunc;
+}
 
 struct GPar {};
 
@@ -65,7 +66,7 @@ void Main(MPI_Comm comm, Vars& var) {
   using Par = typename K::Par;
   Par par;
 
-  kFunc();
+  kFunc(var.Int["a"]);
   return;
 
   DistrSolver<M, K> ds(comm, var, par);
@@ -73,7 +74,7 @@ void Main(MPI_Comm comm, Vars& var) {
 }
 
 
-int CMain(void (*f)(void)) {
+int CMain(TFunc f) {
   int argc = 1;
   const char* argv[] = {"main"};
   kFunc = f;
