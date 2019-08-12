@@ -53,6 +53,13 @@ add_custom_target(gitrev
 
 include_directories(.)
 
+set_property(GLOBAL PROPERTY ALLTARGETS "")
+
+function(add_library name)
+  set_property(GLOBAL APPEND PROPERTY ALLTARGETS "${name}")
+  _add_library(${name} ${ARGN})
+endfunction(add_library)
+
 add_subdirectory(linear)
 add_subdirectory(distr)
 add_subdirectory(util)
@@ -64,9 +71,10 @@ add_subdirectory(young)
 
 # hydro
 set(T "hydro")
+get_property(alltargets GLOBAL PROPERTY ALLTARGETS)
 add_library(${T} INTERFACE)
-target_link_libraries(${T} INTERFACE
-  distr solver vof tvd convdiffvi simple overlap young utilfluid events)
+message(STATUS ASDF ${alltargets})
+target_link_libraries(${T} INTERFACE ${alltargets})
 
 # binary
 add_executable(${EXE} main.cpp)
@@ -79,7 +87,11 @@ target_link_libraries(${EXE} hydro)
 add_subdirectory(test)
 enable_testing()
 
+get_target_property(OUT ${EXE} LINK_LIBRARIES)
+message(STATUS AWSDF ${OUT})
+
+
 if(LIB)
   include(header.cmake)
-  install(TARGETS distr solver vof tvd convdiffvi simple overlap young utilfluid events normal suspender ARCHIVE DESTINATION ${CHPREFIX}/lib)
+  install(TARGETS ${alltargets} DESTINATION ${CHPREFIX}/lib)
 endif(LIB)
