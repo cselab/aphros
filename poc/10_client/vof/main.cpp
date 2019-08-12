@@ -56,6 +56,9 @@ void Simple<M>::Run() {
   auto sem = m.GetSem();
   if (sem()) {
     fcu_.Reinit(m);
+    for (auto c : m.AllCells()) {
+      fcu_[c] = m.GetCenter(c).norm();
+    }
     MIdx ws = m.GetIndexCells().GetSize();
     kFunc(ws[0], ws[1], ws[2], fcu_.data());
     m.Dump(&fcu_, "u");
@@ -68,14 +71,13 @@ void Main(MPI_Comm comm, Vars& var) {
   using K = Simple<M>;
   using Par = typename K::Par;
   Par par;
+
   DistrSolver<M, K> ds(comm, var, par);
   ds.Run();
 }
 
 
-int CMain(TFunc f) {
-  int argc = 1;
-  const char* argv[] = {"main"};
+int CMain(int argc, const char** argv, TFunc f) {
   kFunc = f;
   return RunMpi(argc, argv, Main);
 }
