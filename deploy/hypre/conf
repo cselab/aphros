@@ -1,4 +1,5 @@
 cd "$src"
 
-./configure --prefix="$P"
+./configure --enable-shared --prefix="$P"
+#CFLAGS='-O2 -fPIC' CXXFLAGS='-O2 -fPIC'
 
