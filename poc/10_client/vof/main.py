@@ -2,7 +2,6 @@
 
 from ctypes import *
 import numpy as np
-import matplotlib.pyplot as plt
 import sys
 
 l = cdll.LoadLibrary("./libimp.so")
@@ -14,8 +13,6 @@ def callback(nx, ny, nz, fcu):
     u = u.copy()
     print(u.mean())
     print(np.median(u))
-    plt.imshow(u[3,:,:])
-    plt.show()
 
 TF = CFUNCTYPE(None, c_int, c_int, c_int, POINTER(c_double))
 c_callback = TF(callback)
