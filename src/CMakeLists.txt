@@ -29,6 +29,7 @@ include_directories(.)
 function(add_library name)
   _add_library(${name} ${ARGN})
   install(TARGETS ${name} EXPORT export DESTINATION ${CHPREFIX}/lib)
+  target_include_directories(${name} INTERFACE "${CHPREFIX}/include/hydro")
 endfunction(add_library)
 
 add_subdirectory(linear)
