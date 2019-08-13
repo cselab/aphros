@@ -25,13 +25,12 @@ add_custom_target(gitrev
 )
 
 include_directories(.)
-set_property(GLOBAL PROPERTY ALLTARGETS "")
 
 function(add_library name)
-  set_property(GLOBAL APPEND PROPERTY ALLTARGETS "${name}")
   _add_library(${name} ${ARGN})
   install(TARGETS ${name} EXPORT export DESTINATION ${CHPREFIX}/lib)
 endfunction(add_library)
+
 add_subdirectory(linear)
 add_subdirectory(distr)
 add_subdirectory(util)
@@ -41,13 +40,11 @@ add_subdirectory(dump)
 add_subdirectory(overlap)
 add_subdirectory(young)
 
-# TODO: remove ALLTARGETS
-
 # hydro
 set(T "hydro")
-get_property(alltargets GLOBAL PROPERTY ALLTARGETS)
 add_library(${T} INTERFACE)
-target_link_libraries(${T} INTERFACE ${alltargets})
+target_link_libraries(${T} INTERFACE
+    distr solver vof tvd convdiffvi simple overlap young utilfluid events)
 
 # binary
 add_executable(${EXE} main.cpp)
