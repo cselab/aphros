@@ -8,3 +8,4 @@ set -eu
 rsync -aPR --update ../.././sim/partstr/randc "$P"
 rsync -aPR --update ../.././sim/sim04_univel "$P"
 rsync -aPR --update ../.././sim/partstr/curv3d "$P"
+rsync -aPR --update ../.././sim/ba "$P"
