@@ -4,6 +4,7 @@ image:
 build:
   stage: build
   script:
+    - update-alternatives --install /usr/bin/gfortran gfortran /usr/local/bin/gfortran 999
     - apt update && apt -y install make cmake libhdf5-openmpi-dev python-numpy sudo rsync
     - useradd -M -d `dirname ${CI_PROJECT_DIR}` -g users -N mpiuser
     - chown -R mpiuser:users `dirname ${CI_PROJECT_DIR}`
