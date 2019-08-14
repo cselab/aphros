@@ -44,7 +44,6 @@ void GetFluidFaceCond(
     MapFace<std::shared_ptr<solver::CondFaceFluid>>& mfvel,
     MapFace<std::shared_ptr<solver::CondFace>>& mfvf);
 
-
 // Returns fluid cell conditions.
 // Output:
 // mcvel: output
