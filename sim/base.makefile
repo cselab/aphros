@@ -62,6 +62,7 @@ cleandat::
 	rm -vf lsf.o*
 	rm -vf slurm*.out
 	rm -vf {vx,vy,vz,p,vf,cl}_*.dat
+	rm -vf core.*
 
 cleanall: clean cleandat
 
