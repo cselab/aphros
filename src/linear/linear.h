@@ -276,8 +276,8 @@ typename M::LS ConvertLs(const FieldCell<Expr>& fce, std::vector<Scal>& la,
 
   size_t n = m.GetInBlockCells().size();
   la.resize(n * l.st.size());
-  lb.resize(n, 1.);
-  lx.resize(n, 0.);
+  lb.resize(n);
+  lx.resize(n);
 
   // fill matrix coeffs
   {
@@ -333,29 +333,42 @@ typename M::LS ConvertLsCompact(
 
   // stencil
   // XXX: adhoc, assumed order in m.GetNeighbourCell()
-  l.st.emplace_back(0, 0, 0);
-  l.st.emplace_back(-1, 0, 0);
-  l.st.emplace_back(1, 0, 0);
-  l.st.emplace_back(0, -1, 0);
-  l.st.emplace_back(0, 1, 0);
-  l.st.emplace_back(0, 0, -1);
-  l.st.emplace_back(0, 0, 1);
+  /*
+  l.st.emplace_back(0, 0, 0);   // 0
+  l.st.emplace_back(-1, 0, 0);  // 1
+  l.st.emplace_back(1, 0, 0);   // 2
+  l.st.emplace_back(0, -1, 0);  // 3
+  l.st.emplace_back(0, 1, 0);   // 4
+  l.st.emplace_back(0, 0, -1);  // 5
+  l.st.emplace_back(0, 0, 1);   // 6
+  */
+
+  l.st.emplace_back(0, 0, -1);  // 5
+  l.st.emplace_back(0, -1, 0);  // 3
+  l.st.emplace_back(-1, 0, 0);  // 1
+  l.st.emplace_back(0, 0, 0);   // 0
+  l.st.emplace_back(1, 0, 0);   // 2
+  l.st.emplace_back(0, 1, 0);   // 4
+  l.st.emplace_back(0, 0, 1);   // 6
   assert(l.st.size() == V::dim - 1);
 
   size_t n = m.GetInBlockCells().size(); // number of equations
   la.resize(n * l.st.size());
-  lb.resize(n, 1.);
-  lx.resize(n, 0.);
+  lb.resize(n);
+  lx.resize(n);
 
   // fill matrix coeffs
   {
     size_t i = 0;
     for (auto c : m.Cells()) {
       auto& e = fce[c];
-      for (size_t j = 0; j + 1 < e.size(); ++j) {
-        la[i] = e[j];
-        ++i;
-      }
+      la[i++] = e[5];
+      la[i++] = e[3];
+      la[i++] = e[1];
+      la[i++] = e[0];
+      la[i++] = e[2];
+      la[i++] = e[4];
+      la[i++] = e[6];
     }
     assert(i == n * l.st.size());
   }
