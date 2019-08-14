@@ -107,15 +107,17 @@ static void TransZX(double u[]) {
 }
 
 static double Mean(const double u[]) {
+  const int sdim = SX * SY * SZ;
   double s = 0.;
-  for (int i = 0; i < DIM; ++i) {
+  for (int i = 0; i < sdim; ++i) {
     s += u[i];
   }
-  return s / DIM;
+  return s / sdim;
 }
 
 static void FlipVal(double u[]) {
-  for (int i = 0; i < DIM; ++i) {
+  const int sdim = SX * SY * SZ;
+  for (int i = 0; i < sdim; ++i) {
     u[i] = 1. - u[i];
   }
 }
@@ -150,15 +152,87 @@ static double ApplySymm(double u[]) {
   return q;
 }
 
-static double Curv(Point point, scalar c) {
-  static double u[DIM];
-  int i = 0;
-  foreach_neighbor(SW)
+static double ApplySymm2(double u[]) {
+#if dimension == 2
+  return ApplySymm(u);
+#else
+  static const int sw = SW;
+  static const int sa = sw * 2 + 1;
+  double v[sa * sa * sa];
+
   {
+    int j = 0;
+    for (int z = 0; z < sa; ++z) {
+      int i = 0;
+      for (int y = 0; y < SY; ++y) {
+        for (int x = 0; x < SX; ++x) {
+          v[j++] = u[i++];
+        }
+      }
+    }
+  }
+
+  double q = ApplySymm(v);
+  {
+    int i = 0;
+    int j = 0;
+    for (int y = 0; y < SY; ++y) {
+      for (int x = 0; x < SX; ++x) {
+        u[i++] = v[j++];
+      }
+    }
+  }
+  return q;
+#endif
+}
+
+// u: volume fraction in 3D stencil
+// uu: volume fraction in 2D stencil
+// d0,d1: slice directions (0,1,2)
+static void Slice(const double u[], double uu[], int d0, int d1) {
+  static const int sw = SW;
+  static const int sa = sw * 2 + 1;
+  int ii = 0;
+  for (int i1 = 0; i1 < sa; ++i1) {
+    for (int i0 = 0; i0 < sa; ++i0) {
+      int q[3] = {sw, sw, sw}; // central cell
+      q[d0] = i0;
+      q[d1] = i1;
+      int i = sa * sa * q[2] + sa * q[1] + q[0];
+      uu[ii] = u[i];
+      ++ii;
+    }
+  }
+  assert(n == sa * sa);
+}
+
+
+static double EvalSlice(const double u[], int d0, int d1) {
+  const int sa = SW * 2 + 1;
+  double uu[sa * sa];
+  Slice(u, uu, d0, d1);
+  double q = ApplySymm2(uu);
+  printf("slice  %g %g %g %g %g %g %g %g %g \n",
+      uu[0], uu[1], uu[2], uu[3], uu[4], uu[5], uu[6], uu[7], uu[8]);
+  printf("eval: %g\n", q * Eval(uu));
+  printf("qqqs: %g\n", q);
+  return q * Eval(uu);
+}
+
+
+static double Curv(Point point, scalar c) {
+  const int sa = SW * 2 + 1;
+  double u[sa * sa * sa];
+  // volume fraction in 3D stencil
+  int i = 0;
+  foreach_neighbor(SW) {
     u[i++] = c[];
   }
   double q = ApplySymm(u);
-  return q * Eval(u) / Delta;
+
+  printf("qqq: %g\n", q);
+  double k = EvalSlice(u, 0, 1) + EvalSlice(u, 0, 2);
+  return q * k / Delta;
 }
 
 
