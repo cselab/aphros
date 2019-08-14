@@ -786,8 +786,13 @@ void Hydro<M>::CalcStat() {
       }
     }
 
+    if (var.Int["statbox"] || var.Int["enstrophy"]) {
+      CalcVort();
+    }
+
     // XXX: adhoc: also controls s.vomm
     if (var.Int["statbox"]) {
+      // XXX requires CalcVort above
       Vect xa(var.Vect["statboxa"]);
       Vect xb(var.Vect["statboxb"]);
       Vect x2a(var.Vect["statbox2a"]);
@@ -832,7 +837,7 @@ void Hydro<M>::CalcStat() {
     }
 
     if (var.Int["enstrophy"]) {
-      CalcVort();
+      // XXX requires CalcVort above
       s.enstr = 0.;
       for (auto c : m.Cells()) {
         s.enstr += 0.5 * sqr(fcomm_[c]) * fc_rho_[c] * m.GetVolume(c);
