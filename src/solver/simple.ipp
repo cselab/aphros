@@ -58,39 +58,29 @@ struct Simple<M_>::Imp {
     using namespace fluid_condition;
 
     ffbd_.Reinit(m, false);
+
+    mfcw_ = GetVelCond(m, mfc_);
     for (auto it : mfc_) {
       IdxFace i = it.GetIdx();
       ffbd_[i] = true;
       CondFaceFluid* cb = it.GetValue().get();
       size_t nci = cb->GetNci();
 
-      mfcf_[i] = std::make_shared<
-          CondFaceGradFixed<Vect>>(Vect(0), nci);
-      mfcp_[i] = std::make_shared<
-          CondFaceExtrap>(nci);
-      mfcpc_[i] = std::make_shared<
-          CondFaceExtrap>(nci);
-      mfcd_[i] = std::make_shared<
-          CondFaceGradFixed<Scal>>(0., nci);
+      mfcf_[i]  = std::make_shared<CondFaceGradFixed<Vect>>(Vect(0), nci);
+      mfcp_[i]  = std::make_shared<CondFaceExtrap>(nci);
+      mfcpc_[i] = std::make_shared<CondFaceExtrap>(nci);
+      mfcd_[i]  = std::make_shared<CondFaceGradFixed<Scal>>(0., nci);
 
       if (auto cd = dynamic_cast<NoSlipWall<M>*>(cb)) {
-        mfcw_[i] = std::make_shared<
-            CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
+        // nop
       } else if (auto cd = dynamic_cast<Inlet<M>*>(cb)) {
-        mfcw_[i] = std::make_shared<
-            CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
+        // nop
       } else if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
-        mfcw_[i] = std::make_shared<
-            CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
+        // nop
       } else if (auto cd = dynamic_cast<SlipWall<M>*>(cb)) {
-        mfcw_[i] = std::make_shared<
-            CondFaceReflect>(nci);
-        mfcf_[i] = std::make_shared<
-            CondFaceReflect>(nci);
-        mfcp_[i] = std::make_shared<
-            CondFaceGradFixed<Scal>>(0., nci);
-        mfcpc_[i] = std::make_shared<
-            CondFaceGradFixed<Scal>>(0, nci);
+        mfcf_[i]  = std::make_shared<CondFaceReflect>(nci);
+        mfcp_[i]  = std::make_shared<CondFaceGradFixed<Scal>>(0., nci);
+        mfcpc_[i] = std::make_shared<CondFaceGradFixed<Scal>>(0, nci);
       } else {
         throw std::runtime_error("simple: unknown condition");
       }

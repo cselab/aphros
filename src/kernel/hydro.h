@@ -386,7 +386,7 @@ void Hydro<M>::InitVort() {
     std::string dn = std::to_string(d);
     if (sem("init-" + dn)) {
       ps_ = std::make_shared<solver::PoisSolver<M>>(
-          GetScalarCond(mf_velcond_, d, m), m);
+          GetScalarCond(GetVelCond(m, mf_velcond_), d, m), m);
       fct = GetComponent(fc_vel_, d);
       for (auto c : m.Cells()) {
         fct[c] *= -1;
@@ -407,7 +407,7 @@ void Hydro<M>::InitVort() {
     }
   }
   if (sem("vel")) {
-    fc_vel_ = GetVort(fctv, mf_velcond_, m);
+    fc_vel_ = GetVort(fctv, GetVelCond(m, mf_velcond_), m);
     m.Comm(&fc_vel_);
     fctv.Free();
     fct.Free();

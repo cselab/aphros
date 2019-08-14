@@ -241,5 +241,38 @@ std::shared_ptr<CondFaceFluid> Parse(std::string argstr, IdxFace /*f*/,
   }
 }
 
+template <class M>
+MapFace<std::shared_ptr<solver::CondFace>> GetVelCond(
+    const M& m, const MapFace<std::shared_ptr<solver::CondFaceFluid>>& mff) {
+  using Vect = typename M::Vect;
+  (void) m;
+  MapFace<std::shared_ptr<solver::CondFace>> mf;
+  for (auto it : mff) {
+    IdxFace i = it.GetIdx();
+    solver::CondFaceFluid* cb = it.GetValue().get();
+    size_t nci = cb->GetNci();
+
+    using namespace solver;
+    using namespace solver::fluid_condition;
+    if (auto cd = dynamic_cast<NoSlipWall<M>*>(cb)) {
+      mf[i] = std::make_shared<
+          CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
+    } else if (auto cd = dynamic_cast<Inlet<M>*>(cb)) {
+      mf[i] = std::make_shared<
+          CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
+    } else if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
+      mf[i] = std::make_shared<
+          CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
+    } else if (auto cd = dynamic_cast<SlipWall<M>*>(cb)) {
+      mf[i] = std::make_shared<
+          CondFaceReflect>(nci);
+    } else {
+      throw std::runtime_error("GetVelocityCond: unknown condition");
+    }
+  }
+  return mf;
+}
+
+
 } // namespace solver
 
