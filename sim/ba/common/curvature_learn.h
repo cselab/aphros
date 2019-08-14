@@ -212,10 +212,6 @@ static double EvalSlice(const double u[], int d0, int d1) {
   double uu[sa * sa];
   Slice(u, uu, d0, d1);
   double q = ApplySymm2(uu);
-  printf("slice  %g %g %g %g %g %g %g %g %g \n",
-      uu[0], uu[1], uu[2], uu[3], uu[4], uu[5], uu[6], uu[7], uu[8]);
-  printf("eval: %g\n", q * Eval(uu));
-  printf("qqqs: %g\n", q);
   return q * Eval(uu);
 }
 
@@ -223,15 +219,19 @@ static double EvalSlice(const double u[], int d0, int d1) {
 static double Curv(Point point, scalar c) {
   const int sa = SW * 2 + 1;
   double u[sa * sa * sa];
-  // volume fraction in 3D stencil
   int i = 0;
   foreach_neighbor(SW) {
     u[i++] = c[];
   }
   double q = ApplySymm(u);
 
-  printf("qqq: %g\n", q);
+#if DIM == SX * SY * SZ
+  double k = Eval(u);
+#elif DIM == SX * SY
   double k = EvalSlice(u, 0, 1) + EvalSlice(u, 0, 2);
+#else
+  #error Incorrect input size DIM and SX*SY*SZ
+#endif
   return q * k / Delta;
 }
 
