@@ -14,5 +14,5 @@ np = 1
 l = locals()
 o = 'out'
 
-sh("./run0 {dim} {np} |& tee -a {o}".format(**l))
+sh("./run0 {dim} {np} 2>&1 | tee -a {o}".format(**l))
 
