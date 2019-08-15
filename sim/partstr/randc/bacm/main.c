@@ -11,122 +11,34 @@
 
 #define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
 
-double sqr(double a) {
-  return a * a;
-}
-
+typedef struct Bub Bub;
 struct Bub {
     double x, y, z;
-    double r;
+    double rx, ry, rz;
     double u, v, w;
-} b;
+    int type;
+};
+struct Bub b;
 
+enum {BUB_S, BUB_C, BUB_E};
 int nxexp;
 int argnx;
 
-double ifr2(double x, double y) {
-  double r2 = sq(x - b.x) + sq(y - b.y);
-  return sq(b.r) - r2;
-}
-
-double ifr3(double x, double y, double z) {
-  double r2 = sq(x - b.x) + sq(y - b.y) + sq(z - b.z);
-  return sq(b.r) - r2;
-}
-
-double ls(double x, double y, double z) {
-#if dimension == 2
-  return ifr2(x, y);
-#elif dimension == 3
-  return ifr3(x, y, z);
-#endif
-}
-
-void fraction2(scalar c) {
+void CreateField(Bub b, scalar c) {
   foreach() {
     double h = Delta;
-    double hh = h * 0.5;
-    if (
-        ls(x, y, z) * ls(x + h, y + h, z + h) > 0. && 
-        ls(x, y, z) * ls(x + h, y + h, z - h) > 0. && 
-        ls(x, y, z) * ls(x + h, y - h, z + h) > 0. && 
-        ls(x, y, z) * ls(x + h, y - h, z - h) > 0. && 
-        ls(x, y, z) * ls(x - h, y + h, z + h) > 0. && 
-        ls(x, y, z) * ls(x - h, y + h, z - h) > 0. && 
-        ls(x, y, z) * ls(x - h, y - h, z + h) > 0. && 
-        ls(x, y, z) * ls(x - h, y - h, z - h) > 0.
-        ) {
-      c[] = (ls(x, y, z) > 0. ? 1. : 0.);
-    } else {
-      double dx = 1e-3 * h;
-      double q = dx * 0.5;
-      double nx = (ls(x + q, y, z) - ls(x - q, y, z)) / dx;
-      double ny = (ls(x, y + q, z) - ls(x, y - q, z)) / dx;
-      double nz = (ls(x, y, z + q) - ls(x, y, z - q)) / dx;
-      double a = ls(x, y, z);
-      c[] = rectangle_fraction(
-        (coord){nx, ny, nz}, a, 
-        (coord){-hh, -hh, -hh}, 
-        (coord){hh, hh, hh}); 
-    }
-  }
-
-}
-
-void CreateField(scalar c) {
-  double u, v, w;
-  u = 1;
-  v = 1;
-  w = 1;
-  foreach() {
-    double h = Delta;
-    c[] = vof_cylinder((b.x - x)/h , (b.y - y)/h, (b.z - z)/h, b.r/h, u, v, w);
+    c[] = vof_cylinder((b.x - x)/h , (b.y - y)/h, (b.z - z)/h,
+                       b.rx/h, b.u, b.v, b.w);
   }
 }
 
-void ReadField(scalar c, char* fn) {
-  FILE* f = fopen(fn, "r");
-
-  int nx, ny, nz;
-  fscanf(f, "%d %d %d", &nx, &ny, &nz);
-
-  myassert(nx == argnx);
-  myassert(ny == argnx);
-
-#if dimension == 2
-  myassert(nz == 1);
-#elif dimension == 3
-  myassert(nz == argnx);
-#endif
-
-  double* uu = malloc(sizeof(double) * nx * ny * nz);
-
-  for (int z = 0; z < nz; ++z) {
-    for (int y = 0; y < ny; ++y) {
-      for (int x = 0; x < nx; ++x) {
-        double a;
-        fscanf(f, "%lf", &a);
-        uu[z * ny * nx + y * nx + x] = a;
-      }
-    }
-  }
-  fclose(f);
-
-  int i = 0;
-  foreach() {
-    double h = Delta;
-    double hmin = 1. / argnx;
-    int ix = max(0, min(x / hmin, nx - 1));
-    int iy = max(0, min(y / hmin, ny - 1));
-    int iz = max(0, min(z / hmin, nz - 1));
-    c[] = uu[iz * ny * nx + iy * nx + ix];
-  }
-
-  free(uu);
-
-  boundary ({c});
+int Inside(Bub b, double x, double y, double z, double h) {
+    return sq(x -  b.x) + sq(y -  b.y) + sq(z -  b.z) < sq(b.rx + h);
 }
 
+int Read(Bub b, FILE *f) {
+    fscanf(f, "%lf %lf %lf %lf", &b.x, &b.y, &b.z, &b.rx);
+}
 
 int main() {
   {
@@ -134,28 +46,16 @@ int main() {
     fscanf(q, "%d", &nxexp);
     fclose(q);
   }
-
   argnx = (1 << nxexp);
-
   init_grid(argnx);
-
   FILE* fb = fopen("b.dat", "r");
-  fscanf(fb, "%lf %lf %lf %lf", &b.x, &b.y, &b.z, &b.r);
+  Read(b, fb);
   fclose(fb);
-
   origin (0.,0.,0.);
-
-  scalar vf[]; // volume fraction
-
-  //ReadField(vf, "../ch/vf_0000.dat");
-  CreateField(vf);
-  //fraction(vf, ifr3(x, y, z));
-
-  scalar k[]; // curvature
-
-
+  scalar vf[];
+  CreateField(b, vf);
+  scalar k[];
 #ifdef CURV_PARTSTR
-
 #ifdef PS_Np
   kPartstr.Np = PS_Np;
 #endif
@@ -179,11 +79,8 @@ int main() {
 #ifdef PS_circ
   kPartstr.circ = PS_circ;
 #endif
-
 #endif
-
   curvature(vf, k);
-
 #if dimension == 2
   double kc = 1.;
 #elif dimension == 3
@@ -194,7 +91,7 @@ int main() {
     FILE* q = fopen("ok", "w");
     foreach() {
       if (vf[] > 0. && vf[] < 1.) {
-          if (sq(x -  b.x) + sq(y -  b.y) + sq(z -  b.z) < sq(b.r + Delta))
+          if (Inside(b, x, y, z, Delta))
               fprintf(q, "%.16g\n", k[] * kc);
       }
     }
