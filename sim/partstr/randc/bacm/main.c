@@ -20,7 +20,7 @@ struct Shape {
 };
 struct Shape b;
 
-enum {BUB_S, BUB_C, BUB_E};
+enum {SHAPE_S, SHAPE_C, SHAPE_E};
 int nxexp;
 int argnx;
 
