@@ -157,7 +157,7 @@ static double ApplySymm2(double u[]) {
   return ApplySymm(u);
 #else
   static const int sw = SW;
-  static const int sa = sw * 2 + 1;
+  static const int sa = SW * 2 + 1;
   double v[sa * sa * sa];
 
   {
@@ -191,7 +191,7 @@ static double ApplySymm2(double u[]) {
 // d0,d1: slice directions (0,1,2)
 static void Slice(const double u[], double uu[], int d0, int d1) {
   static const int sw = SW;
-  static const int sa = sw * 2 + 1;
+  static const int sa = SW * 2 + 1;
   int ii = 0;
   for (int i1 = 0; i1 < sa; ++i1) {
     for (int i0 = 0; i0 < sa; ++i0) {
@@ -208,8 +208,7 @@ static void Slice(const double u[], double uu[], int d0, int d1) {
 
 
 static double EvalSlice(const double u[], int d0, int d1) {
-  const int sa = SW * 2 + 1;
-  double uu[sa * sa];
+  double uu[SX * SX];
   Slice(u, uu, d0, d1);
   double q = ApplySymm2(uu);
   return q * Eval(uu);
@@ -217,8 +216,7 @@ static double EvalSlice(const double u[], int d0, int d1) {
 
 
 static double Curv(Point point, scalar c) {
-  const int sa = SW * 2 + 1;
-  double u[sa * sa * sa];
+  double u[SX * SX * SX];
   int i = 0;
   foreach_neighbor(SW) {
     u[i++] = c[];
