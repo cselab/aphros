@@ -99,10 +99,14 @@ renderView1 = CreateView('RenderView')
 renderView1.ViewSize = [700, 1400]
 renderView1.OrientationAxesVisibility = 0
 renderView1.CenterOfRotation = S([0.5, 0.5, 1.0])
-renderView1.CameraPosition = S([1.6425854455502384, 5.13700129483183, 2.5543536015045865])
-renderView1.CameraFocalPoint = S([-0.07827000805715982, -1.5208950919834938, 0.24373644377811288])
-renderView1.CameraViewUp = S([-0.07150450344534591, -0.31048145449041503, 0.9478862655427343])
+renderView1.CameraPosition = S(
+    [8.023735598478023, 3.3063072646186735, 3.641632333070597])
+renderView1.CameraFocalPoint = S(
+    [0.5, 0.5, 2.0])
+renderView1.CameraViewUp = S(
+    [-0.18725081813571506, -0.07110396830462755, 0.9797353503874605])
 renderView1.CameraParallelScale = 1.9159375215828818
+#renderView1.CameraParallelProjection = 1
 renderView1.Background = [0.0, 0.0, 0.0]
 renderView1.EnableOSPRay = ospray
 renderView1.AmbientSamples = 10
@@ -235,6 +239,7 @@ resampleToImage1Display.PolarAxes.PolarAxisLabelFontFile = ''
 resampleToImage1Display.PolarAxes.LastRadialAxisTextFontFile = ''
 resampleToImage1Display.PolarAxes.SecondaryRadialAxesTextFontFile = ''
 
+'''
 # show data from appendAttributes2
 appendAttributes2Display = Show(appendAttributes2, renderView1)
 
@@ -281,6 +286,7 @@ appendAttributes2Display.PolarAxes.PolarAxisTitleFontFile = ''
 appendAttributes2Display.PolarAxes.PolarAxisLabelFontFile = ''
 appendAttributes2Display.PolarAxes.LastRadialAxisTextFontFile = ''
 appendAttributes2Display.PolarAxes.SecondaryRadialAxesTextFontFile = ''
+'''
 
 
 #####################################################
