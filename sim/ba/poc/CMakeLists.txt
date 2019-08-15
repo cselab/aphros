@@ -3,7 +3,6 @@ project(one C)
 include("$ENV{CHPREFIX}/include/vof.cmake")
 include("$ENV{CHPREFIX}/include/vofi.cmake")
 
-# MPI
 find_package(MPI REQUIRED)
 set(CMAKE_C_COMPILER ${MPI_C_COMPILER})
 
