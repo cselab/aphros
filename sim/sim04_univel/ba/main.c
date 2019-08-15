@@ -153,9 +153,9 @@ event init (i = 0) {
 
   char* fn = "../ch/vf_0000.dat";
   if (ReadField(f, fn)) {
-    ONROOT printf("Volume fraction from %s\n", fn);
+    ONROOT fprintf(stderr, "Volume fraction from %s\n", fn);
   } else {
-    ONROOT printf("Volume fraction from par.h\n");
+    ONROOT fprintf(stderr, "Volume fraction from par.h\n");
 #if dimension == 2
     fraction(f, ifr2(x, y));
 #elif dimension == 3
@@ -165,7 +165,7 @@ event init (i = 0) {
 }
 
 event out (t += DUMPDT ; t <= TMAX + DUMPDT) {
-  ONROOT printf("dump i=%05d t=%g dt=%g \n", i, t ,dt);
+  ONROOT fprintf(stderr, "dump i=%05d t=%g dt=%g \n", i, t ,dt);
 
   static int frame = 0;
   //scalar * a = {u, p, f};
@@ -185,7 +185,7 @@ event out (t += DUMPDT ; t <= TMAX + DUMPDT) {
 }
 
 event statout (i += 10 ; t <= TMAX) {
-  ONROOT printf("step i=%05d t=%g dt=%g \n", i, t ,dt);
+  ONROOT fprintf(stderr, "step i=%05d t=%g dt=%g \n", i, t ,dt);
 }
 
 event logfile (i += 1 ; t <= TMAX) {
