@@ -1,5 +1,1 @@
-#!/bin/bash -l
-
-./clean
-rm -vf k*.dat vf*.dat kerr log b.dat dim kerravg nxexp
-
+../ba/cleanall

@@ -1,1 +1,1 @@
-../../../ba/common/learn.h
+../ba/learn.h

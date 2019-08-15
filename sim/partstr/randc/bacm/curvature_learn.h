@@ -1,1 +1,1 @@
-../../../ba/common/curvature_learn.h
+../ba/curvature_learn.h

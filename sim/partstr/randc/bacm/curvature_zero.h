@@ -1,1 +1,1 @@
-../../../ba/common/curvature_zero.h
+../ba/curvature_zero.h

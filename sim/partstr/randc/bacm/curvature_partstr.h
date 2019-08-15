@@ -1,1 +1,1 @@
-../../../ba/common/curvature_partstr.h
+../ba/curvature_partstr.h

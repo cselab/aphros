@@ -1,1 +1,1 @@
-../getr.py
+../ba/getr.py

@@ -1,1 +1,1 @@
-../../../ba/common/curvature_fix.h
+../ba/curvature_fix.h

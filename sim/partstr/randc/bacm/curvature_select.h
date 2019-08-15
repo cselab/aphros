@@ -1,1 +1,1 @@
-../../../ba/common/curvature_select.h
+../ba/curvature_select.h
