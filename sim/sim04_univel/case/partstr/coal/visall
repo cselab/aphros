@@ -3,8 +3,13 @@
 set -eu
 
 for d in nx* ; do
-  for s in ch bap ba ; do
+  for s in bap bal ; do
     o=$d/$s
+    fu="$o/u_000000.vtk"
+    if [ ! -f "$fu" ] ; then
+      echo "skip non existing $fu"
+      continue
+    fi
     f=$o/a.mp4
     if [ -f "$f" ] ; then
       echo "skip existing $f"
@@ -13,7 +18,8 @@ for d in nx* ; do
     e="vis3ba.py"
     [ "$s" == "ch" ] && e="vis3chvf.py"
     [ "$s" == "bap" ] && e="vis3bap.py"
-    c="(cd $d/$s ; ../$e . && r.pngmp4 || true)"
+    [ "$s" == "bal" ] && e="vis3bap.py"
+    c="(cd $d/$s ; ../$e . || true ; r.pngmp4 || true)"
     echo "$c"
     eval "$c"
   done
