@@ -11,20 +11,20 @@
 
 #define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
 
-typedef struct Bub Bub;
-struct Bub {
-    double x, y, z;
-    double rx, ry, rz;
-    double u, v, w;
-    int type;
+typedef struct Shape Shape;
+struct Shape {
+  double x, y, z;
+  double rx, ry, rz;
+  double u, v, w;
+  int type;
 };
-struct Bub b;
+struct Shape b;
 
 enum {BUB_S, BUB_C, BUB_E};
 int nxexp;
 int argnx;
 
-void CreateField(Bub b, scalar c) {
+void CreateField(Shape b, scalar c) {
   foreach() {
     double h = Delta;
     c[] = vof_cylinder((b.x - x)/h , (b.y - y)/h, (b.z - z)/h,
@@ -32,12 +32,12 @@ void CreateField(Bub b, scalar c) {
   }
 }
 
-int Inside(Bub b, double x, double y, double z, double h) {
-    return sq(x -  b.x) + sq(y -  b.y) + sq(z -  b.z) < sq(b.rx + h);
+int Inside(Shape b, double x, double y, double z, double h) {
+  return sq(x -  b.x) + sq(y -  b.y) + sq(z -  b.z) < sq(b.rx + h);
 }
 
-int Read(Bub b, FILE *f) {
-    fscanf(f, "%lf %lf %lf %lf", &b.x, &b.y, &b.z, &b.rx);
+int Read(Shape b, FILE *f) {
+  fscanf(f, "%lf %lf %lf %lf", &b.x, &b.y, &b.z, &b.rx);
 }
 
 int main() {
@@ -60,9 +60,9 @@ int main() {
   kPartstr.Np = PS_Np;
 #endif
 #ifdef PS_Ns
-  #if dimension == 3
+#if dimension == 3
   kPartstr.Ns = PS_Ns;
-  #endif
+#endif
 #endif
 #ifdef PS_Hp
   kPartstr.Hp = PS_Hp;
@@ -91,8 +91,8 @@ int main() {
     FILE* q = fopen("ok", "w");
     foreach() {
       if (vf[] > 0. && vf[] < 1.) {
-          if (Inside(b, x, y, z, Delta))
-              fprintf(q, "%.16g\n", k[] * kc);
+        if (Inside(b, x, y, z, Delta))
+          fprintf(q, "%.16g\n", k[] * kc);
       }
     }
     fclose(q);
