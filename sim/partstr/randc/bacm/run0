@@ -20,10 +20,9 @@ if [ ! -f main.s ] ; then
   if [ "$dim" == "3" ] ; then
     g="multigrid3D"
   fi
-  make CFLAGS="-grid=$g $extra -DCURV_LEARN" main.s
+  #make CFLAGS="-grid=$g $extra -DCURV_LEARN" main.s
 fi
-
-chmod +x main.s
+#chmod +x main.s
 
 rm -f *.csv
 

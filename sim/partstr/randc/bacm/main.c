@@ -1,8 +1,8 @@
+#include "grid/multigrid3D.h"
 #include "fractions.h"
 #include "curvature_select.h"
-
-
 #include "io/io.h"
+#include <vof.h>
 
 #include <assert.h>
 #define myassert(EX) (void)((EX) || (__assert (#EX, __FILE__, __LINE__),0))
@@ -16,10 +16,9 @@ double sqr(double a) {
 }
 
 struct Bub {
-  double x;
-  double y;
-  double z;
-  double r;
+    double x, y, z;
+    double r;
+    double u, v, w;
 } b;
 
 int nxexp;
@@ -72,6 +71,17 @@ void fraction2(scalar c) {
     }
   }
 
+}
+
+void CreateField(scalar c) {
+  double u, v, w;
+  u = 1;
+  v = 1;
+  w = 1;
+  foreach() {
+    double h = Delta;
+    c[] = vof_cylinder((b.x - x)/h , (b.y - y)/h, (b.z - z)/h, b.r/h, u, v, w);
+  }
 }
 
 void ReadField(scalar c, char* fn) {
@@ -138,7 +148,8 @@ int main() {
   scalar vf[]; // volume fraction
 
   //ReadField(vf, "../ch/vf_0000.dat");
-  fraction(vf, ifr3(x, y, z));
+  CreateField(vf);
+  //fraction(vf, ifr3(x, y, z));
 
   scalar k[]; // curvature
 
@@ -183,7 +194,8 @@ int main() {
     FILE* q = fopen("ok", "w");
     foreach() {
       if (vf[] > 0. && vf[] < 1.) {
-        fprintf(q, "%.16g\n", k[] * kc);
+          if (sq(x -  b.x) + sq(y -  b.y) + sq(z -  b.z) < sq(b.r + Delta))
+              fprintf(q, "%.16g\n", k[] * kc);
       }
     }
     fclose(q);
