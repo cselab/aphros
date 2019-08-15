@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -eu
+
+./ommvf.py `ls ../vf_*.xmf` || true
+r.pngmp4
+
+rm -f core.*
