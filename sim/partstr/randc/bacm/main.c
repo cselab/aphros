@@ -11,8 +11,6 @@
 #define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
 int nxexp;
 int argnx;
-
-
 int main() {
   Shape b;
   {
@@ -54,6 +52,7 @@ int main() {
   kPartstr.circ = PS_circ;
 #endif
 #endif
+  boundary({vf});
   curvature(vf, k);
 #if dimension == 2
   double kc = 1.;

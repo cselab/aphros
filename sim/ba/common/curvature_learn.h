@@ -203,7 +203,7 @@ static void Slice(const double u[], double uu[], int d0, int d1) {
       ++ii;
     }
   }
-  assert(n == sa * sa);
+  assert(ii == sa * sa);
 }
 
 

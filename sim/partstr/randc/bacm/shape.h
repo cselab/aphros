@@ -52,7 +52,7 @@ Shape Read(FILE *f) {
   char t;
   Shape b;
   int n;
-  char ss[MAX_SIZE], *s = ss;
+  char ss[MAX_SIZE+1], *s = ss;
   fgets(s, MAX_SIZE, f);
   sscanf(s, "%c", &t);
   if (('0' <= t && t <= '9') || t == '.' || t == '-' || t == '+')
