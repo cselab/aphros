@@ -174,3 +174,35 @@ Speedup of 15%.
 - `tg0_*`: timings before
 - `tg1_*`: timings after
 
+## Debug linear solver with `ConvertLsCompact`
+
+2019-08-15 10:04:39
+
+**Goal**:
+Fix `sim12_ringgauss` after reimplementing `simple.ipp` with `ConvertLsCompact` 
+in `48fa3cf0`. Iterations for pressure correction diverged.
+
+**What**:
+Bisection between `1ffd55c5` from `Jan 12 2019`
+and `9cb90989` from `Aug 14 2019`.
+Complication from another bug in `InitVort()`
+which attempted to use uninitialized `fs_` in `hydro.h`
+(fixed by `patch`).
+
+**Result**:
+Found the problem by printing the coefficients of the linear system
+before and after `ConvertLs()` or `ConvertLsCompact()`.
+The problem appeared from changing the order of stencil cells.
+In `sim12`, the symmetric linear solver is called twice:
+for initialization of vorticity and for pressure correction.
+Then Hypre is apparently initialized only once
+and that instance is used for both cases
+which leads to the wrong order of coefficients.
+
+**Data**:
+[`log09_debug_linear`](log09_debug_linear)
+
+- `patch`: fix for `InitVort()`
+- `r`: tool to apply patch and rebuild
+- `simple_{bad,good}.ipp`: two versions of `simple.ipp`
+- `min`: minimal simulation setup

@@ -1,0 +1,65 @@
+diff --git a/src/kernel/hydro.h b/src/kernel/hydro.h
+index c26a6952..3d522ad7 100644
+--- a/src/kernel/hydro.h
++++ b/src/kernel/hydro.h
+@@ -386,7 +386,7 @@ void Hydro<M>::InitVort() {
+     std::string dn = std::to_string(d);
+     if (sem("init-" + dn)) {
+       ps_ = std::make_shared<solver::PoisSolver<M>>(
+-          GetScalarCond(fs_->GetVelocityCond(), d, m), m);
++          GetScalarCond(GetVelCond(m, mf_velcond_), d, m), m);
+       fct = GetComponent(fc_vel_, d);
+       for (auto c : m.Cells()) {
+         fct[c] *= -1;
+@@ -407,7 +407,7 @@ void Hydro<M>::InitVort() {
+     }
+   }
+   if (sem("vel")) {
+-    fc_vel_ = GetVort(fctv, fs_->GetVelocityCond(), m);
++    fc_vel_ = GetVort(fctv, GetVelCond(m, mf_velcond_), m);
+     m.Comm(&fc_vel_);
+     fctv.Free();
+     fct.Free();
+diff --git a/src/solver/fluid.h b/src/solver/fluid.h
+index 5b218be2..725f531f 100644
+--- a/src/solver/fluid.h
++++ b/src/solver/fluid.h
+@@ -241,5 +241,38 @@ std::shared_ptr<CondFaceFluid> Parse(std::string argstr, IdxFace /*f*/,
+   }
+ }
+ 
++template <class M>
++MapFace<std::shared_ptr<solver::CondFace>> GetVelCond(
++    const M& m, const MapFace<std::shared_ptr<solver::CondFaceFluid>>& mff) {
++  using Vect = typename M::Vect;
++  (void) m;
++  MapFace<std::shared_ptr<solver::CondFace>> mf;
++  for (auto it : mff) {
++    IdxFace i = it.GetIdx();
++    solver::CondFaceFluid* cb = it.GetValue().get();
++    size_t nci = cb->GetNci();
++
++    using namespace solver;
++    using namespace solver::fluid_condition;
++    if (auto cd = dynamic_cast<NoSlipWall<M>*>(cb)) {
++      mf[i] = std::make_shared<
++          CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
++    } else if (auto cd = dynamic_cast<Inlet<M>*>(cb)) {
++      mf[i] = std::make_shared<
++          CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
++    } else if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
++      mf[i] = std::make_shared<
++          CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
++    } else if (auto cd = dynamic_cast<SlipWall<M>*>(cb)) {
++      mf[i] = std::make_shared<
++          CondFaceReflect>(nci);
++    } else {
++      throw std::runtime_error("GetVelocityCond: unknown condition");
++    }
++  }
++  return mf;
++}
++
++
+ } // namespace solver
+ 
