@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -eu
+
+for d in b_*/ ; do
+  c="(cd $d && make submit)"
+  echo "$c"
+  eval "$c"
+done
