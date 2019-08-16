@@ -3,17 +3,18 @@ set(CHPREFIX $ENV{CHPREFIX})
 project(curv NONE)
 
 set(T curv)
-set(D ${CHPREFIX}/include/curv)
+set(D ${CHPREFIX}/include)
 set(H
-  curvature_div.h
-  curvature_fix.h
-  curvature_learn.h
-  curvature_partstr.h
-  curvature_select.h
-  curvature_zero.h
-  learn.h
+  curv/curvature_div.h
+  curv/curvature_fix.h
+  curv/curvature_learn.h
+  curv/curvature_partstr.h
+  curv/curvature_select.h
+  curv/curvature_zero.h
+  curv/learn.h
 )
 
 configure_file(conf.in ${T}.conf @ONLY)
-install(FILES ${H} DESTINATION ${D})
-install(FILES  ${T}.conf DESTINATION ${D})
+set(DD ${CHPREFIX}/include/curv)
+install(FILES ${H} DESTINATION ${DD})
+install(FILES  ${T}.conf DESTINATION ${DD})

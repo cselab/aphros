@@ -1,0 +1,8 @@
+/media/storage/tmp/chprefix/include/curv/curvature_div.h
+/media/storage/tmp/chprefix/include/curv/curvature_fix.h
+/media/storage/tmp/chprefix/include/curv/curvature_learn.h
+/media/storage/tmp/chprefix/include/curv/curvature_partstr.h
+/media/storage/tmp/chprefix/include/curv/curvature_select.h
+/media/storage/tmp/chprefix/include/curv/curvature_zero.h
+/media/storage/tmp/chprefix/include/curv/learn.h
+/media/storage/tmp/chprefix/include/curv/curv.conf
