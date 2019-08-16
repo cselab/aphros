@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 2.8)
+set(CHPREFIX $ENV{CHPREFIX})
+project(bashape NONE)
+
+set(T bashape)
+set(D ${CHPREFIX}/include)
+set(H bashape.h)
+configure_file(conf.in ${T}.conf @ONLY)
+install(FILES ${H} DESTINATION ${D})
+install(FILES  ${T}.conf DESTINATION ${D})
