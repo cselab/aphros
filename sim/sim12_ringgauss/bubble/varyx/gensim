@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -eu
+
+ev () {
+  echo "$@"
+  eval "$@"
+}
+
+for f in b_*.dat ; do 
+  d=${f%.dat}
+  a=$d/add.conf
+  ev "mkdir $d && cp -r dummy/* $d/ && echo 'set string list_path ../$f' >> $a"
+done
