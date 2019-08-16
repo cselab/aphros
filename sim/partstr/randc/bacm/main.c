@@ -2,7 +2,7 @@
 #include "grid/multigrid3D.h"
 #include "fractions.h"
 #include ".u/curv/select.h"
-#include "io/io.h"
+#include ".u/io/io.h"
 #include ".u/bashape.h"
 #define myassert(EX) (void)((EX) || (__assert (#EX, __FILE__, __LINE__),0))
 
