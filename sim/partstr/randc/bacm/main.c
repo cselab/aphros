@@ -1,7 +1,7 @@
 #include <assert.h>
 #include "grid/multigrid3D.h"
 #include "fractions.h"
-#include "curvature_select.h"
+#include ".u/curvature_select.h"
 #include "io/io.h"
 #include "shape.h"
 #define myassert(EX) (void)((EX) || (__assert (#EX, __FILE__, __LINE__),0))
