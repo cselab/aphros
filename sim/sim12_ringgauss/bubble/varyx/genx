@@ -1,0 +1,11 @@
+#!/usr/bin/python
+
+y,z,r = 2.785, 10, 0.25
+nb = 10
+x0 = y - 4*r
+x1 = y
+xx = [x0 + (x1 - x0) * i / (nb - 1) for i in range(nb)]
+
+for i,x in enumerate(xx):
+  with open("b_{:02d}.dat".format(i), 'w') as f:
+    f.write("{:} {:} {:} {:}".format(x, y, z, r))
