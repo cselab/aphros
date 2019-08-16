@@ -9,7 +9,9 @@ set(CMAKE_C_COMPILER ${MPI_C_COMPILER})
 
 set(C "main.c")
 add_custom_target(qcc COMMAND ba.env qcc -source ${C})
-add_custom_target(u COMMAND ba.env ba.u "${CHPREFIX}/include/curv/curv.conf")
+add_custom_target(u COMMAND ba.env ba.u
+  "${CHPREFIX}/include/curv/curv.conf"
+  "${CHPREFIX}/include/bashape.conf")
 
 set(T main.s)
 add_executable(${T} "_${C}")
