@@ -5,13 +5,13 @@ project(curv NONE)
 set(T curv)
 set(D ${CHPREFIX}/include)
 set(H
-  curv/curvature_div.h
-  curv/curvature_fix.h
-  curv/curvature_learn.h
-  curv/curvature_partstr.h
-  curv/curvature_select.h
-  curv/curvature_zero.h
+  curv/div.h
+  curv/fix.h
   curv/learn.h
+  curv/partstr.h
+  curv/select.h
+  curv/zero.h
+  curv/learn_eval.h
 )
 
 configure_file(conf.in ${T}.conf @ONLY)
