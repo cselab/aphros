@@ -1,7 +1,0 @@
-/media/storage/tmp/chprefix/include/io/2d.h
-/media/storage/tmp/chprefix/include/io/3d.h
-/media/storage/tmp/chprefix/include/io/io.h
-/media/storage/tmp/chprefix/include/io/iompi.h
-/media/storage/tmp/chprefix/include/io/util.h
-/media/storage/tmp/chprefix/include/io/write.h
-/media/storage/tmp/chprefix/include/io/io.conf

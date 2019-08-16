@@ -1,8 +1,0 @@
-/media/storage/tmp/chprefix/include/curv/div.h
-/media/storage/tmp/chprefix/include/curv/fix.h
-/media/storage/tmp/chprefix/include/curv/learn.h
-/media/storage/tmp/chprefix/include/curv/partstr.h
-/media/storage/tmp/chprefix/include/curv/select.h
-/media/storage/tmp/chprefix/include/curv/zero.h
-/media/storage/tmp/chprefix/include/curv/learn_eval.h
-/media/storage/tmp/chprefix/include/curv/curv.conf
