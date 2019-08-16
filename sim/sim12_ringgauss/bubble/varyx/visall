@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -eu
+
+for d in b_*/ ; do
+  o=$d/vis
+  f=$o/a.mp4
+  if [ -f "$f" ] ; then
+    echo "skip existing $f"
+    continue
+  fi
+  mkdir -p $o
+  touch $f
+  c="(cd $o && ../../ommvf.py \`ls ../vf_*.xmf\` || true && r.pngmp4 || true)"
+  echo "$c"
+  eval "$c"
+done
