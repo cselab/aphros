@@ -1,8 +1,6 @@
 #!/usr/bin/env gnuplot
 
 set macros
-reset
-
 set terminal pdfcairo color font "Helvetica,14" size 3.2,2.2 enhanced
 
 #set nokey
@@ -16,12 +14,15 @@ if (!exists("ss")) {
   ss = "bap ba"
 }
 
+if (!exists("yrange")) {
+  yrange = "[1e-30:1]"
+}
+
 set linetype  1 lc rgb c0 lw 2
 set linetype  2 lc rgb c2 lw 2
 set linetype  3 lc rgb c1 lw 2
 set linetype  4 lc rgb c3 lw 2
 set linetype cycle 9
-
 
 set xlabel "t / T"
 
@@ -38,7 +39,7 @@ set ylabel "{/Symbol D}p / p_L"
 
 set format y "10^{%L}"
 set xrange [0:1]
-set yrange [1e-30:1]
+set yrange @yrange
 set logscale y
 set ylabel "We_{max}" offset -1
 

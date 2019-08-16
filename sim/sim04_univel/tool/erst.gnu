@@ -1,8 +1,6 @@
 #!/usr/bin/env gnuplot
 
 set macros
-reset
-
 set terminal pdfcairo color font "Helvetica,14" size 3.2,2.2 enhanced
 
 #set nokey
@@ -14,6 +12,10 @@ c4='#9467bd'
 
 if (!exists("ss")) {
   ss = "bap ba"
+}
+
+if (!exists("yrange")) {
+  yrange = "[1e-30:1]"
 }
 
 set linetype  1 lc rgb c0 lw 2
@@ -35,7 +37,7 @@ set xrange [0.5:32]
 set xlabel "R / h"
 
 set format y "10^{%L}"
-set yrange [1e-30:1]
+set yrange @yrange
 set logscale y
 set ylabel "velocity error L_2"
 v="vl2x" ; @s ; @m

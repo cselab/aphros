@@ -1,8 +1,6 @@
 #!/usr/bin/env gnuplot
 
 set macros
-reset
-
 set terminal pdfcairo color font "Helvetica,14" size 3.2,2.2 enhanced
 
 #set nokey
@@ -37,14 +35,6 @@ v="c2x"
 @s
 @m @r
 
-v="c2y"
-@s
-@m @r
-
-v="c2z"
-@s
-@m @r
-
 v="pd"
 @s
 @m @r
@@ -63,24 +53,3 @@ exec(open('."'".'par.py'."'".').read()) ; \
 print(bbr[0][0] * 2 / sig)"')
 
 plot for [i=1:words(ss)] word(ss,i).p u "t":(column(v)**2*wek) w l ls i t word(ss,i)
-
-v="vlmy"
-@s
-@m
-
-v="vlmz"
-@s
-@m
-
-v="vl2x"
-@s
-@m
-
-v="vl2y"
-@s
-@m
-
-v="vl2z"
-@s
-@m
-
