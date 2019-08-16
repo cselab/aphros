@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -eu
+
+for d in b_*/ ; do
+  echo $d
+  (cd $d && ch.gettraj 0 > traj.csv)
+done
