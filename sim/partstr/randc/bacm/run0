@@ -6,8 +6,6 @@ nxexp=`cat nxexp`
 
 set -eu
 
-. ba.setenv
-
 e=extra
 if [ -f "$e" ] ; then
   extra=`cat "$e"`
@@ -20,10 +18,8 @@ if [ ! -f main.s ] ; then
   if [ "$dim" == "3" ] ; then
     g="multigrid3D"
   fi
-  #make CFLAGS="-grid=$g $extra -DCURV_LEARN" main.s
+  ch.conf . -DEXTRA="-grid=$g $extra -DCURV_LEARN"
+  make
 fi
-#chmod +x main.s
 
-rm -f *.csv
-
-ba.run -n "$np" main.s
+ba.env ba.run -n "$np" main.s
