@@ -1,1 +1,0 @@
-../ba/curvature_select.h
