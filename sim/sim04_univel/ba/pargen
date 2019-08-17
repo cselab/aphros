@@ -119,29 +119,4 @@ o += '''
 #define PERZ {perz}
 '''.format(**locals())
 
-
-# bubbles
-
-ob = ""
-with open("../b.dat", 'r') as f:
-  ll = f.readlines()
-  l = list(map(float, ll[0].split())) if len(ll) > 0 else [0., 0., 0., 0.]
-  ob += '''
-#define BCX ({:})
-#define BCY ({:})
-#define BCZ ({:})
-#define BR ({:})
-  '''.format(*l);
-
-  l = list(map(float, ll[1].split())) if len(ll) > 1 else [0., 0., 0., 0.]
-  ob += '''
-#define BC2X ({:})
-#define BC2Y ({:})
-#define BC2Z ({:})
-#define BR2 ({:})
-
-  '''.format(*l);
-
-o += ob
-
 open("par.h", 'w').write(o)
