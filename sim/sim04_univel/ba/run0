@@ -6,14 +6,14 @@ extra=$3
 
 set -eu
 
-. ba.setenv
-
 g="multigrid"
 if [ "$dim" == "3" ] ; then
   g="multigrid3D"
 fi
 
-#make CFLAGS="-grid=$g $extra" main.s
-make CFLAGS="-grid=$g $extra -DCURV_FIX" main.s
-chmod +x main.s
-ba.run -n "$np" main.s
+extra="-DCURV_FIX ${extra}"
+
+ch.conf . -DEXTRA="-grid=$g $extra"
+make
+
+ba.env ba.run -n "$np" main.s

@@ -1,1 +1,0 @@
-../ba/curvature_zero.h

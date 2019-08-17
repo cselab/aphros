@@ -1,17 +1,14 @@
 #include "par.h"
 
-#include "curvature_select.h"
+#include ".u/curv/select.h"
+#include ".u/io/io.h"
+#include ".u/io/iompi.h"
+#include ".u/bashape.h"
 
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
 #include "vof.h"
 #include "tension.h"
-
-#include "io/iompi.h"
-#include "io/io.h"
-
-#include <assert.h>
-#define myassert(EX) (void)((EX) || (__assert (#EX, __FILE__, __LINE__),0))
 
 int nxexp = REFINE;
 int argnx;
@@ -20,67 +17,6 @@ int argnx;
 
 double sqr(double a) {
   return a * a;
-}
-
-double ifr2(double x, double y) {
-  double r = sq(x - BCX) + sq(y - BCY);
-  double r2 = sq(x - BC2X) + sq(y - BC2Y);
-  return fmax(sq(BR) - r, sq(BR2) - r2);
-}
-
-double ifr3(double x, double y, double z) {
-  double r = sq(x - BCX) + sq(y - BCY) + sq(z - BCZ);
-  double r2 = sq(x - BC2X) + sq(y - BC2Y) + sq(z - BC2Z);
-  return fmax(sq(BR) - r, sq(BR2) - r2);
-}
-
-int ReadField(scalar c, char* fn) {
-  FILE* f = fopen(fn, "r");
-
-  if (!f) {
-    return 0;
-  }
-
-  int nx, ny, nz;
-  fscanf(f, "%d %d %d", &nx, &ny, &nz);
-
-  myassert(nx == argnx);
-  myassert(ny == argnx);
-
-#if dimension == 2
-  myassert(nz == 1);
-#elif dimension == 3
-  myassert(nz == argnx);
-#endif
-
-  double* uu = malloc(sizeof(double) * nx * ny * nz);
-
-  for (int z = 0; z < nz; ++z) {
-    for (int y = 0; y < ny; ++y) {
-      for (int x = 0; x < nx; ++x) {
-        double a;
-        fscanf(f, "%lf", &a);
-        uu[z * ny * nx + y * nx + x] = a;
-      }
-    }
-  }
-  fclose(f);
-
-  int i = 0;
-  foreach() {
-    double h = Delta;
-    double hmin = 1. / argnx;
-    int ix = max(0, min(x / hmin, nx - 1));
-    int iy = max(0, min(y / hmin, ny - 1));
-    int iz = max(0, min(z / hmin, nz - 1));
-    c[] = uu[iz * ny * nx + iy * nx + ix];
-  }
-
-  boundary ({c});
-
-  free(uu);
-
-  return 1;
 }
 
 
@@ -151,17 +87,19 @@ event init (i = 0) {
 #endif
   }
 
-  char* fn = "../ch/vf_0000.dat";
-  if (ReadField(f, fn)) {
-    ONROOT fprintf(stderr, "Volume fraction from %s\n", fn);
-  } else {
-    ONROOT fprintf(stderr, "Volume fraction from par.h\n");
+  Shape b;
+  FILE* fb = fopen("../b.dat", "r");
+  b = Read(fb);
 #if dimension == 2
-    fraction(f, ifr2(x, y));
-#elif dimension == 3
-    fraction(f, ifr3(x, y, z));
+  b.z = 0;
+  b.u = 0;
+  b.v = 0;
+  b.w = 1;
+  b.type = SHAPE_C;
 #endif
-  }
+  fclose(fb);
+  CreateField(b, f);
+  boundary({f});
 }
 
 event out (t += DUMPDT ; t <= TMAX + DUMPDT) {
