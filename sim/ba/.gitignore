@@ -1,0 +1,13 @@
+__pycache__
+*.pyc
+CMakeFiles
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+bashape/Makefile
+bashape/bashape.conf
+io/Makefile
+io/io.conf
+curv/Makefile
+curv/curv.conf
+/Makefile
