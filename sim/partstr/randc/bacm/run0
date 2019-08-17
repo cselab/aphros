@@ -13,12 +13,14 @@ else
   extra=
 fi
 
+extra="-DCURV_LEARN ${extra}"
+
 if [ ! -f main.s ] ; then
   g="multigrid"
   if [ "$dim" == "3" ] ; then
     g="multigrid3D"
   fi
-  ch.conf . -DEXTRA="-grid=$g $extra -DCURV_LEARN"
+  ch.conf . -DEXTRA="-grid=$g $extra"
   make
 fi
 
