@@ -23,6 +23,13 @@ int main() {
   init_grid(argnx);
   FILE* fb = fopen("b.dat", "r");
   b = Read(fb);
+#if dimension == 2
+  b.z = 0;
+  b.u = 0;
+  b.v = 0;
+  b.w = 1;
+  b.type = SHAPE_C;
+#endif
   fclose(fb);
   origin (0.,0.,0.);
   scalar vf[];
