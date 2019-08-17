@@ -1,1 +1,1 @@
-../../../sim/partstr/randc/bap/curvature_partstr.h
+../../../sim/ba/curv/curv/partstr.h
