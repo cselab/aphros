@@ -4,3 +4,6 @@ main.s
 main.s.d
 Makefile.deps
 Makefile.tests
+Makefile
+.u
+_main.c

@@ -1,12 +1,13 @@
 #include <assert.h>
-#include "grid/multigrid3D.h"
+#include <mpi.h>
+
 #include "fractions.h"
 #include ".u/curv/select.h"
 #include ".u/io/io.h"
 #include ".u/bashape.h"
+
 #define myassert(EX) (void)((EX) || (__assert (#EX, __FILE__, __LINE__),0))
 
-#include <mpi.h>
 
 #define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
 int nxexp;
