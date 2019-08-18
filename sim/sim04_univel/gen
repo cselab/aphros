@@ -44,7 +44,7 @@ def GetPoisGrad(ly, lz, vc, mu, im=5):
     return pgrad
 
 
-# Returns dictionary with config derived from c.
+# Returns dictionary with config derived from a.
 # a: Namespace, output of GetArgs()
 def GetConf(a):
     d = dict(vars(a))

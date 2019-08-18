@@ -11,7 +11,7 @@ import ch
 sh = ch.sh
 
 a = ch.GetStdPar('out', 'La', 'tmax', 'symmcorn', 'dumpdefault', 'bcoh', 'dim',
-        'nfr', 'np', 'nx', 'chsm')
+        'nfr', 'np', 'nx', 'chsm', 'dom')
 a['La'][0] = 1200.
 a['tmax'][0] = 1.
 a['symmcorn'][0] = 1
@@ -53,6 +53,7 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
     nfr = c.nfr
     dumpdefault = c.dumpdefault
     chsm = c.chsm
+    dom = c.dom
 
     chrun = "" if c.ch else "echo > r_ch"
     barun = "" if c.ba else "echo > r_ba"
@@ -81,7 +82,7 @@ rm -f ch/done ge/done
 
 ./gen -nx {nx} -cpr {cpr} -La {La} {bcod} -symmcorn {symmcorn} \
 -bcoh {bcoh} -np {np} -nfr {nfr} -chsm {chsm} \
--dim {dim} -We 0 -tmax {tmax} -mode mu -pos center \
+-dim {dim} -We 0 -tmax {tmax} -mode mu -pos center -dom {dom} \
 -dumpdefault {dumpdefault}
 
 echo "set int statvel 1

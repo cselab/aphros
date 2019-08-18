@@ -43,7 +43,7 @@ def StdParAll():
     bcod = [[0., 0., 0.], "offset of bubble center relative to dom"]
     bcor = [[0., 0., 0.], "offset of bubble center relative to br"]
     bryk = [1. , "stretching factor for bubble size in y"]
-    dom = [1.    , "domain size [ignored]"]
+    dom = [1.    , "domain size"]
     ch = [1, "run ch", [0, 1]]
     ge = [1, "run ge", [0, 1]]
     pos = ["corner", "initial position of bubbles", ["center", "corner"]]

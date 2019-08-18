@@ -30,8 +30,8 @@ int main() {
   argnx = (1 << nxexp);
 
   init_grid(argnx);
-
   origin (0.,0.,0.);
+  size(EXTENT);
 
   PERX
   PERY

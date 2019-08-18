@@ -18,6 +18,7 @@ t = '''set double tmax {tmax}
 set double dump_field_dt {dumpdt}
 set double dump_part_dt {dumpdt}
 set double dump_trep_dt {trepdt}
+set double extent {dom}
 set double sigma {sig}
 set double mu1 {mu0}
 set double mu2 {mu2}

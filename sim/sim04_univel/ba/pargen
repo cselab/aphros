@@ -39,6 +39,7 @@ c['part_circ'] = ("1" if c['part_circ'] == 1. else "0")
 
 o = '''
 #define DIM {dim}
+#define EXTENT {dom}
 #define VELX {vel[0]}
 #define VELY ({vel[1]})
 #define VELZ ({vel[2]})
