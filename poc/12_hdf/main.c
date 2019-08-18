@@ -3,8 +3,6 @@
 #include <mpi.h>
 #include <hdf5.h>
 
-double buf[10*10*10];
-
 static hid_t
 h5_fcreate(MPI_Comm comm, const char *path)
 {
@@ -34,20 +32,46 @@ h5_dwrite(hid_t file, hid_t memspace, hid_t filespace, double *buf)
     return err;
 }
 
+static int
+f(MPI_Comm comm, const char *path, int *isize, int *istart, int *iextent, double *buf)
+{
+    hid_t file, filespace, memspace;
+    herr_t err;
+    int dim;
+    hsize_t size[] = {isize[0], isize[1], isize[2], 1};
+    hsize_t start[] = {istart[0], istart[1], istart[2], 0};
+    hsize_t extent[] = {iextent[0], iextent[1], iextent[2], 0};
+
+    dim = 4;
+    file = h5_fcreate(comm, path);
+    if (file < 0) {
+        fprintf(stderr, "%s : h5_fcreate failed\n", path);
+        return -1;
+    }
+    filespace = H5Screate_simple(dim, size, NULL);
+    memspace = H5Screate_simple(dim, extent, NULL);
+    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start, NULL, extent, NULL);
+    err = h5_dwrite(file, memspace, filespace, buf);
+    H5Sclose(memspace);
+    H5Sclose(filespace);
+    H5Fclose(file);
+    return err;
+}
+
 int
 main(int argc, char **argv)
 {
     int status, rank;
-    hid_t file, filespace, dset;
-    hid_t memspace;
     MPI_Comm comm;
     char path[] = "o.h5";
     int xlo, ylo, zlo, xs, ys, zs;
+    int dim = 4;
     xlo = ylo = zlo = 0;
     xs = ys = zs = 10;
-    hsize_t start[]  = { zlo, ylo, xlo,   0};
-    hsize_t extent[] = { zs, ys, xs,      1};
-    hsize_t size[] = {10*xs, 10*ys, 10*zs,    1};
+    int start[]  = { zlo, ylo, xlo};
+    int extent[] = { zs, ys, xs};
+    int size[] = {10*xs, 10*ys, 10*zs};
+    double buf[10*10*10];
 
     comm = MPI_COMM_WORLD;
     status = MPI_Init(&argc, &argv);
@@ -58,23 +82,8 @@ main(int argc, char **argv)
 
     MPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN);
     MPI_Comm_rank(comm, &rank);
+    f(comm, path, size, start, extent, buf);
 
-    file = h5_fcreate(comm, path);
-    if (file < 0) {
-        fprintf(stderr, "%s : H5Fcreate failed\n", path);
-        exit(2);
-    }
-
-    filespace = H5Screate_simple(4, size, NULL);
-    memspace = H5Screate_simple(4, extent, NULL);
-    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start, NULL, extent, NULL);
-    h5_dwrite(file, memspace, filespace, buf);
-
-    H5Sclose(memspace);
-    H5Sclose(filespace);
-    H5Fclose(file);
-
-    MPI_Barrier(comm);
     fprintf(stderr, "rank: %d\n", rank);
     MPI_Finalize();
     return 0;
