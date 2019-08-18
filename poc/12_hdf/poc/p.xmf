@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
+<Xdmf Version="2.0">
+ <Domain>
+   <Grid GridType="Uniform">
+     <Time Value="1.000000e+02"/>
+
+     <Topology TopologyType="3DRectMesh" Dimensions="65 65 65"/>
+
+     <Geometry GeometryType="VxVyVz">
+       <DataItem Name="mesh_vx" Dimensions="65" NumberType="Float" Precision="8" Format="HDF">
+        p.h5:/vx
+       </DataItem>
+       <DataItem Name="mesh_vy" Dimensions="65" NumberType="Float" Precision="8" Format="HDF">
+        p.h5:/vy
+       </DataItem>
+       <DataItem Name="mesh_vz" Dimensions="65" NumberType="Float" Precision="8" Format="HDF">
+        p.h5:/vz
+       </DataItem>
+     </Geometry>
+
+     <Attribute Name="p" AttributeType="Scalar" Center="Cell">
+       <DataItem Dimensions="64 64 64 1" NumberType="Float" Precision="8" Format="HDF">
+        p.h5:/data
+       </DataItem>
+     </Attribute>
+   </Grid>
+ </Domain>
+</Xdmf>
