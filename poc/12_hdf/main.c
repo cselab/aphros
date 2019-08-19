@@ -69,13 +69,30 @@ f(hid_t file, int *isize, int *istart, int *iextent, double *buf)
         return err;
 }
 
+static int
+g(hid_t file, const char *name, int isize, double *buf)
+{
+  hid_t space, dset;
+        herr_t err;
+        int dim;
+        hsize_t size[] = {isize};
+        dim = 1;
+        space = H5Screate_simple(dim, size, NULL);
+        dset = H5Dcreate(file, name, H5T_NATIVE_DOUBLE,  space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        err = H5Dwrite(dset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,  H5P_DEFAULT, buf);
+        H5Sclose(space);
+        H5Dclose(dset);
+        return err;
+}
+
+
 int
 main(int argc, char **argv)
 {
         int status, rank;
         hid_t file;
         MPI_Comm comm;
-        char path[] = "/o.h5";
+        char path[] = "o.h5";
         int xlo, ylo, zlo, xs, ys, zs;
         xlo = ylo = zlo = 0;
         xs = ys = zs = 10;
@@ -113,6 +130,9 @@ main(int argc, char **argv)
                 exit(2);
         }
         f(file, size, start, extent, buf);
+        if (rank == 0) {
+          g(file, "vx", 10, buf);
+        }
         H5Fclose(file);
 
         MPI_Finalize();
