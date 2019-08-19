@@ -27,6 +27,7 @@ assert np == 2 ** npexp, "np=%r but must be power of 2" % np
 extra = ""
 if c['symmcorn']:
     extra = "-DSYMMCORN"
+extra += c['baextra']
 
 o = "out"
 

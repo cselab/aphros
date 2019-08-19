@@ -28,6 +28,7 @@ a['bap'] = [1, "enable bap"]
 a['bal'] = [1, "enable bal"]
 a['ba'] = [1, "enable ba"]
 a['vis'] = [1, "enable vis"]
+a['extra'] = ["", "extra arguments to ./gen"]
 c = ch.GetArgs(a)
 assert c.out is not None
 o = os.path.realpath(c.out)
@@ -82,7 +83,7 @@ rm -f ch/done ge/done
 
 ./gen -nx {nx} -cpr {cpr} -La {La} {bcod} -symmcorn {symmcorn} \
 -bcoh {bcoh} -np {np} -nfr {nfr} -chsm {chsm} \
--dim {dim} -We 0 -tmax {tmax} -mode mu -pos center -dom {dom} \
+-dim {dim} -We 0 -tmax {tmax} -mode mu -pos center -dom {dom} {extra} \
 -dumpdefault {dumpdefault}
 
 echo "set int statvel 1

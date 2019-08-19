@@ -15,6 +15,7 @@ def Default():
         'part_np', 'part_ns', 'part_hp', 'part_circ', 'part_eps',
         'part_eta', 'part_itermax',
         'dumpdefault')
+    r['baextra'] = ["", 'extra arguments to basilisk qcc']
     return r
 
 

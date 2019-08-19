@@ -7,3 +7,5 @@ rm -f *.pdf
 rm -f done
 rm -f par.h
 rm -f main.s main.s.d Makefile.deps Makefile.tests
+rm -rf CMakeFiles .u .qcc*
+rm -f CMakeCache.txt Makefile cmake_install.cmake _main.c

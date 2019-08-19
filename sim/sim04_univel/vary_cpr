@@ -28,6 +28,7 @@ a['bap'] = [1, "enable bap"]
 a['bal'] = [1, "enable bal"]
 a['ba'] = [1, "enable ba"]
 a['vis'] = [1, "enable vis"]
+a['extra'] = ["", "extra arguments to ./gen"]
 c = ch.GetArgs(a)
 assert c.out is not None
 o = os.path.realpath(c.out)
@@ -53,6 +54,7 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
     chsm = c.chsm
     pos = c.pos
     dom = c.dom
+    extra = c.extra
 
     chrun = "" if c.ch else "echo > r_ch"
     barun = "" if c.ba else "echo > r_ba"
@@ -78,7 +80,7 @@ rm -f ch/done ge/done ba/done
 {visrun}
 
 ./gen -nx {nx} -cpr {cpr} -We {We} -La {La} -np {np} -nfr {nfr}  \
--dim {dim} -tmax {tmax} -mode vel -chsm {chsm} -pos {pos} -dom {dom}
+-dim {dim} -tmax {tmax} -mode vel -chsm {chsm} -pos {pos} -dom {dom} {extra}
 
 echo "set int statvel 1
 set int list_ls 2
@@ -87,5 +89,5 @@ set int min_iter 3
 " > ch/add.conf
 '''.format(**locals())
 
-    sh("ch.task {:} {:} > {:} <<< '{:}'".format(dummy, od, ot, cf))
+    sh("ch.task {:} {:} > {:} << 'EOF'\n {:}\nEOF".format(dummy, od, ot, cf))
     sh("chmod +x {:}".format(ot))
