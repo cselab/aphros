@@ -18,7 +18,7 @@ main(int argc, char **argv)
 	int status, rank;
 	hid_t file;
 	MPI_Comm comm;
-	char path[] = "p.h5";
+	char path[] = "o/p";
 	int xlo, ylo, zlo, xs, ys, zs;
 	unsigned int maj, min, rel;
 	double h;
@@ -59,7 +59,7 @@ main(int argc, char **argv)
 	h = 0.1;
 	h5_spacing(file, rank == 0, size, h);
 	h5_close(file);
-	h5_xmf("p.xmf", size);
+	h5_xmf(path, size);
 	MPI_Finalize();
 	return 0;
 }

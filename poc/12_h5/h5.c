@@ -9,18 +9,45 @@
 #error needs parallel HDF5
 #endif
 
+#define MAX_SIZE 4096
+
+static int
+h5_strcat(const char a[], const char b[], char *c)
+{
+	while ((*c = *a) != '\0') c++, a++;
+	while ((*c++ = *b++) != '\0');
+	return 0;
+}
+
+static int
+h5_basename(const char a[], char *b)
+{
+	const char *i, *j;
+	for (i = a, j = NULL; *i != '\0'; i++)
+		if (*i == '/') j = i;
+	if (j == NULL)
+		while ((*b++ = *a++) != '\0');
+	else {
+		do *b++ = *++j;
+		while (*j != '\0');
+	}
+	return 0;
+}
+
 hid_t
 h5_open(MPI_Comm comm, const char *path)
 {
 	hid_t plist, file;
+	char full[MAX_SIZE];
 
+	h5_strcat(path, ".h5", full);
 	plist = H5Pcreate(H5P_FILE_ACCESS);
 	if (plist < 0) {
 		fprintf(stderr, "%s:%d: H5Pcreate failed\n", __FILE__, __LINE__);
 		return plist;
 	}
 	H5Pset_fapl_mpio(plist, comm, MPI_INFO_NULL);
-	file = H5Fcreate(path, H5F_ACC_TRUNC, H5P_DEFAULT, plist);
+	file = H5Fcreate(full, H5F_ACC_TRUNC, H5P_DEFAULT, plist);
 	H5Pclose(plist);
 	return file;
 }
@@ -134,7 +161,7 @@ h5_xmf(const char *path, int size[3])
 	FILE *f;
 	enum {X, Y, Z};
 	int x, y, z, u, v, w;
-	const char name[] = "p";
+	char base[MAX_SIZE], full[MAX_SIZE];
 	const char s[] = \
 "<?xml version=\"1.0\" ?>\n"\
 "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n"\
@@ -166,14 +193,16 @@ h5_xmf(const char *path, int size[3])
 " </Domain>\n"\
 "</Xdmf>\n"\
 ;
-	f = fopen(path, "w");
+	h5_strcat(path, ".xmf", full);
+	h5_basename(path, base);
+	f = fopen(full, "w");
 	if (f == NULL) {
-		fprintf(stderr, "%s:%d: %s : fail to open\n", __FILE__, __LINE__, path);
+		fprintf(stderr, "%s:%d: %s : fail to open\n", __FILE__, __LINE__, full);
 		return -1;
 	}
 	x = size[X]; y = size[Y]; z = size[Z];
 	u = x + 1; v = y + 1; w = z + 1;
-	fprintf(f, s, u, v, w, u, name, v, name, w, name, x, y, z);
+	fprintf(f, s, u, v, w, u, base, v, base, w, base, x, y, z);
 	fclose(f);
 	return 0;
 }
