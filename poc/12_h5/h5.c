@@ -16,7 +16,7 @@ h5_open(MPI_Comm comm, const char *path)
 
 	plist = H5Pcreate(H5P_FILE_ACCESS);
 	if (plist < 0) {
-		fprintf(stderr, "H5Pcreate failed\n");
+	       fprintf(stderr, "%s:%d: H5Pcreate failed\n", __FILE__, __LINE__);
 		return plist;
 	}
 	H5Pset_fapl_mpio(plist, comm, MPI_INFO_NULL);
@@ -26,12 +26,12 @@ h5_open(MPI_Comm comm, const char *path)
 }
 
 static herr_t
-h5_dwrite(hid_t file, hid_t memspace, hid_t filespace, double *buf)
+h5_dwrite(hid_t file, const char *name, hid_t memspace, hid_t filespace, double *buf)
 {
 	hid_t plist, dset;
 	herr_t err;
 
-	dset = H5Dcreate(file, "data", H5T_NATIVE_FLOAT, filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	dset = H5Dcreate(file, name, H5T_NATIVE_FLOAT, filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 	plist = H5Pcreate(H5P_DATASET_XFER);
 	H5Pset_dxpl_mpio(plist, H5FD_MPIO_COLLECTIVE);
 	err = H5Dwrite(dset, H5T_NATIVE_DOUBLE, memspace, filespace, plist, buf);
@@ -57,14 +57,14 @@ h5_data(hid_t file, int *isize, int *istart, int *iextent, double *buf)
 	filespace = H5Screate_simple(dim, size, NULL);
 	memspace = H5Screate_simple(dim, extent, NULL);
 	H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start, NULL, extent, NULL);
-	err = h5_dwrite(file, memspace, filespace, buf);
+	err = h5_dwrite(file, "data", memspace, filespace, buf);
 	H5Sclose(memspace);
 	H5Sclose(filespace);
 	return err;
 }
 
-int
-h5_spacing(hid_t file, int root, const char *name, int isize, double h)
+static int
+h5_swrite(hid_t file, int root, const char *name, int isize, double h)
 {
 	hid_t space, dset;
 	herr_t err;
@@ -96,6 +96,21 @@ h5_spacing(hid_t file, int root, const char *name, int isize, double h)
 	H5Dclose(dset);
 	free(buf);
 	return 0;
+}
+
+int
+h5_spacing(hid_t file, int root, int size[3], double h)
+{
+    int i, err;
+    const char *name[] = {"vx", "vy", "vz"};
+    for (i = 0; i < 3; i++) {
+	err = h5_swrite(file, root, name[i], size[i], h);
+	if (err < 0) {
+		fprintf(stderr, "%s:%d: h5_swrite failed\n", __FILE__, __LINE__);
+		return err;
+	}
+    }
+    return 0;
 }
 
 int

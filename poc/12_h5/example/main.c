@@ -58,9 +58,7 @@ main(int argc, char **argv)
 
 	double h;
 	h = 0.1;
-	h5_spacing(file, rank == 0, "vx", size[X], h);
-	h5_spacing(file, rank == 0, "vy", size[Y], h);
-	h5_spacing(file, rank == 0, "vz", size[Z], h);
+	h5_spacing(file, rank == 0, size, h);
 
 	h5_close(file);
 	MPI_Finalize();
