@@ -8,6 +8,7 @@ set(T h5)
 add_library(${T} SHARED h5.c h5.h)
 set_target_properties(${T} PROPERTIES PUBLIC_HEADER h5.h)
 target_link_libraries(${T} PUBLIC hdf)
+target_include_directories(${T} PUBLIC "${CHPREFIX}/include")
 install(TARGETS ${T} 
     EXPORT export DESTINATION ${CHPREFIX}/lib
     PUBLIC_HEADER DESTINATION ${CHPREFIX}/include)
