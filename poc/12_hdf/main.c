@@ -66,7 +66,6 @@ f(hid_t file, int *isize, int *istart, int *iextent, double *buf)
 	err = h5_dwrite(file, memspace, filespace, buf);
 	H5Sclose(memspace);
 	H5Sclose(filespace);
-	H5Fclose(file);
 	return err;
 }
 
