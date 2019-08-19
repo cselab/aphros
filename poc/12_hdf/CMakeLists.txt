@@ -1,25 +1,15 @@
 cmake_minimum_required(VERSION 3.3.0)
+set(CHPREFIX $ENV{CHPREFIX})
 project("hdf" C)
 
-find_package(MPI REQUIRED)
-set(CMAKE_C_COMPILER ${MPI_C_COMPILER})
+include(h5.dep.cmake)
 
-set(HDF5_PREFER_PARALLEL on)
-find_package(HDF5 REQUIRED)
-
-if(NOT HDF5_IS_PARALLEL)
-  message(FATAL_ERROR "no parallel HDF5")
-endif()
-
-set(T hdf)
-add_library(${T} INTERFACE IMPORTED)
-set_property(TARGET ${T} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${HDF5_INCLUDE_DIRS})
-set_property(TARGET ${T} APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${HDF5_LIBRARIES})
-
-set(T main)
-add_executable(${T} main.c)
-target_link_libraries(${T} hdf)
-
-set(T ehdf)
-add_executable(${T} hdf.c)
-target_link_libraries(${T} hdf)
+set(T h5)
+add_library(${T} SHARED h5.c h5.h)
+set_target_properties(${T} PROPERTIES PUBLIC_HEADER h5.h)
+target_link_libraries(${T} PUBLIC hdf)
+install(TARGETS ${T} 
+    EXPORT export DESTINATION ${CHPREFIX}/lib
+    PUBLIC_HEADER DESTINATION ${CHPREFIX}/include)
+install(EXPORT export FILE h5.lib.cmake DESTINATION ${CHPREFIX}/include)
+install(FILES h5.dep.cmake h5.cmake DESTINATION ${CHPREFIX}/include)
