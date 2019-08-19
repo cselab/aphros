@@ -65,7 +65,6 @@ main(int argc, char **argv)
     MPI_Comm comm;
     char path[] = "o.h5";
     int xlo, ylo, zlo, xs, ys, zs;
-    int dim = 4;
     xlo = ylo = zlo = 0;
     xs = ys = zs = 10;
     int start[]  = { zlo, ylo, xlo};
