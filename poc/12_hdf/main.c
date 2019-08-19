@@ -3,6 +3,10 @@
 #include <mpi.h>
 #include <hdf5.h>
 
+#ifndef H5_HAVE_PARALLEL
+#error needs parallel HDF5
+#endif
+
 static hid_t
 h5_fcreate(MPI_Comm comm, const char *path)
 {
@@ -77,13 +81,16 @@ main(int argc, char **argv)
 	xlo = ylo = zlo = 0;
 	xs = ys = zs = 10;
 	int start[]	 = { 
-		zlo, ylo, xlo	};
+		zlo, ylo, xlo};
 	int extent[] = { 
-		zs, ys, xs	};
+		zs, ys, xs};
 	int size[] = {
-		10*xs, 10*ys, 10*zs	};
+		10*xs, 10*ys, 10*zs};
 	double buf[10*10*10];
 	unsigned int maj, min, rel;
+
+	H5get_libversion(&maj, &min, &rel);
+        fprintf(stderr, "hdf5: %d.%d.%d\n", maj, min, rel);
 
 	comm = MPI_COMM_WORLD;
 	status = MPI_Init(&argc, &argv);
@@ -92,10 +99,13 @@ main(int argc, char **argv)
 		exit(2);
 	}
 
-	MPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN);
-	MPI_Comm_rank(comm, &rank);
-	fprintf(stderr, "rank: %d\n", rank);
-	H5get_libversion(&maj, &min, &rel);
+	//MPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN);
+	status = MPI_Comm_rank(comm, &rank);
+	if (status != MPI_SUCCESS) {
+		fprintf(stderr, "MPI_Comm_rank failed\n");
+		exit(2);
+	}
+        fprintf(stderr, "rank: %d\n", rank);
 
 	file = h5_fcreate(comm, path);
 	if (file < 0) {
