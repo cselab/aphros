@@ -134,6 +134,7 @@ h5_xmf(const char *path, int size[3])
 	FILE *f;
 	enum {X, Y, Z};
 	int x, y, z, u, v, w;
+	const char name[] = "p";
 	const char s[] = \
 "<?xml version=\"1.0\" ?>\n"\
 "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n"\
@@ -146,13 +147,13 @@ h5_xmf(const char *path, int size[3])
 "\n"\
 "     <Geometry GeometryType=\"VxVyVz\">\n"\
 "       <DataItem Name=\"mesh_vx\" Dimensions=\"%d\" NumberType=\"Float\" Precision=\"8\" Format=\"HDF\">\n"\
-"        p.h5:/vx\n"\
+"        %s.h5:/vx\n"\
 "       </DataItem>\n"\
 "       <DataItem Name=\"mesh_vy\" Dimensions=\"%d\" NumberType=\"Float\" Precision=\"8\" Format=\"HDF\">\n"\
-"        p.h5:/vy\n"\
+"        %s.h5:/vy\n"\
 "       </DataItem>\n"\
 "       <DataItem Name=\"mesh_vz\" Dimensions=\"%d\" NumberType=\"Float\" Precision=\"8\" Format=\"HDF\">\n"\
-"        p.h5:/vz\n"\
+"        %s.h5:/vz\n"\
 "       </DataItem>\n"\
 "     </Geometry>\n"\
 "\n"\
@@ -172,7 +173,7 @@ h5_xmf(const char *path, int size[3])
 	}
 	x = size[X]; y = size[Y]; z = size[Z];
 	u = x + 1; v = y + 1; w = z + 1;
-	fprintf(f, s, u, v, w, u, v, w, x, y, z);
+	fprintf(f, s, u, v, w, u, name, v, name, w, name, x, y, z);
 	fclose(f);
 	return 0;
 }
