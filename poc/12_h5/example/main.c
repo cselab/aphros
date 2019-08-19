@@ -20,6 +20,8 @@ main(int argc, char **argv)
 	MPI_Comm comm;
 	char path[] = "p.h5";
 	int xlo, ylo, zlo, xs, ys, zs;
+	unsigned int maj, min, rel;
+	double h;
 	xlo = ylo = zlo = 0;
 	xs = ys = zs = 64;
 	int start[]	 = {
@@ -28,7 +30,6 @@ main(int argc, char **argv)
 		zs, ys, xs		};
 	int size[] = {
 		xs, ys, zs		};
-	unsigned int maj, min, rel;
 
 	comm = MPI_COMM_WORLD;
 	status = MPI_Init(&argc, &argv);
@@ -55,12 +56,10 @@ main(int argc, char **argv)
 		exit(2);
 	}
 	h5_data(file, size, start, extent, buf);
-
-	double h;
 	h = 0.1;
 	h5_spacing(file, rank == 0, size, h);
-
 	h5_close(file);
+	h5_xmf("p.xmf", size);
 	MPI_Finalize();
 	return 0;
 }
