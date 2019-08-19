@@ -30,6 +30,11 @@ Prepare the environment and install dependencies:
      ./_run
      ```
 
+*   install basilisk from `mfer:/ba/deploy`
+*   install libraries from `learn:/poc/{06,07,08}`
+    with `./conf && make install`
+*   install basilisk libraries from `sim/ba` by `cmake . && make install`
+
 # Other
 
 ## Prefix
