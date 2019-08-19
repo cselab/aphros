@@ -1,4 +1,3 @@
-#include <vof.h>
 #define MAX_SIZE (1024)
 typedef struct Shape Shape;
 struct Shape {
