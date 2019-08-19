@@ -18,4 +18,5 @@
   #include "fix.h"
 #endif
 
+#include "fractions.h"
 #include "curvature.h"
