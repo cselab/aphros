@@ -1,0 +1,10 @@
+d=../dummy/
+np=1
+echo $np > np
+echo 1440 > tl
+$d/vary_cpr -dummy $d -dim 2 -np $np -We 0.1 -ch 0 -ba 1 -bap 0 -bal 0 -vis 0 \
+  -cpr1 4 -nx 32 \
+  -dom 1 \
+  -extra='-baextra=-UCURV_FIX' \
+  -out .
+
