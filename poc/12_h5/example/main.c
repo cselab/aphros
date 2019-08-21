@@ -8,7 +8,7 @@
 #error needs parallel HDF5
 #endif
 
-static double buf[65*64*64];
+static double buf[64*64*64];
 enum {
 	X, Y, Z};
 
@@ -18,10 +18,10 @@ main(int argc, char **argv)
 	int status, rank;
 	hid_t file;
 	MPI_Comm comm;
-	char path[] = "o/p";
+	char path[] = "o/p.000", name[] = "p";
 	int xlo, ylo, zlo, xs, ys, zs;
 	unsigned int maj, min, rel;
-	double h;
+	double origin[3] = {0, 0, 0}, spacing;
 	xlo = ylo = zlo = 0;
 	xs = ys = zs = 64;
 	int start[]	 = {
@@ -56,10 +56,11 @@ main(int argc, char **argv)
 		exit(2);
 	}
 	h5_data(file, size, start, extent, buf);
-	h = 0.1;
-	h5_spacing(file, rank == 0, size, h);
+	spacing = 0.1;
 	h5_close(file);
-	h5_xmf(path, size);
+	h5_xmf(path, name, origin, spacing, size);
+        fputs(path, stderr);
+        fputc('\n', stderr);
 	MPI_Finalize();
 	return 0;
 }
