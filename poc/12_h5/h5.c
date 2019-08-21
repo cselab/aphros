@@ -13,7 +13,7 @@
 #endif
 
 #define MAX_SIZE 4096
-#define WARN(x) do {                                     \
+#define WARN(x) do {                                    \
     fprintf(stderr, "%s:%d: ", __FILE__, __LINE__);     \
     dprint x;                                           \
     fputs("\n", stderr);                                \
@@ -114,7 +114,7 @@ err:
   WARN(("isize: %d %d %d", isize[0], isize[1], isize[2]));
   WARN(("istart: %d %d %d", istart[0], istart[1], istart[2]));
   WARN(("iextent: %d %d %d", iextent[0], iextent[1], iextent[2]));
-  return -1;
+  abort();
 }
 
 static int
