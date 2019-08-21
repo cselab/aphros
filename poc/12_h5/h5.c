@@ -75,13 +75,13 @@ h5_data(hid_t file, int *isize, int *istart, int *iextent, double *buf)
   herr_t err;
   int dim;
   hsize_t size[] = {
-    isize[0], isize[1], isize[2], 1	};
+    isize[0], isize[1], isize[2]};
   hsize_t start[] = {
-    istart[0], istart[1], istart[2], 0	};
+    istart[0], istart[1], istart[2]};
   hsize_t extent[] = {
-    iextent[0], iextent[1], iextent[2], 0	}; // TODO
+    iextent[0], iextent[1], iextent[2]};
 
-  dim = 4;
+  dim = 3;
   filespace = H5Screate_simple(dim, size, NULL);
   memspace = H5Screate_simple(dim, extent, NULL);
   H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start, NULL, extent, NULL);
