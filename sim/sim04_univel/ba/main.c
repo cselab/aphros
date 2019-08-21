@@ -87,18 +87,26 @@ event init (i = 0) {
 #endif
   }
 
-  Shape b;
-  FILE* fb = fopen("../b.dat", "r");
-  b = Read(fb);
+  const int MAX_SHAPES = 10000;
+  int nb = MAX_SHAPES;
+  Shape bb[MAX_SHAPES];
+  nb = ReadList("../b.dat", bb, nb);
+
+  scalar ft[];
+  for (int i = 0; i < nb; ++i) {
+    Shape b = bb[i];
 #if dimension == 2
-  b.z = 0;
-  b.u = 0;
-  b.v = 0;
-  b.w = 1;
-  b.type = SHAPE_C;
+    b.z = 0;
+    b.u = 0;
+    b.v = 0;
+    b.w = 1;
+    b.type = SHAPE_C;
 #endif
-  fclose(fb);
-  CreateField(b, f);
+    CreateField(b, ft);
+    foreach () {
+      f[] = max(f[], ft[]);
+    }
+  }
   boundary({f});
 }
 

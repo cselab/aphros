@@ -85,3 +85,37 @@ Shape Read(FILE *f) {
   }
   return b;
 }
+
+// Reads list of shapes from f.
+// fn: path to b.dat
+// bb: array of Shape
+// *maxnb: maximum size of bb
+// Returns:
+// number of shapes read
+int ReadList(const char* fn, Shape* bb, int maxnb) {
+  FILE* f = fopen(fn, "r");
+
+  // number of non-empty lines
+  int nl = 0; 
+  int sep = 1;
+  while (!feof(f)) {
+    char c = fgetc(f);
+    if (feof(f)) {
+      break;
+    }
+    if (c == '\n') {
+      sep = 1;
+    } else if (sep) {
+      ++nl;
+      sep = 0;
+    }
+  }
+  fclose(f);
+
+  f = fopen(fn, "r");
+  for (int i = 0; i < nl; ++i) {
+    bb[i] = Read(f);
+  }
+  fclose(f);
+  return nl;
+}
