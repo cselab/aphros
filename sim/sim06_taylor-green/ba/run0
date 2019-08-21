@@ -11,8 +11,6 @@ if [ "$dim" == "3" ] ; then
   g="multigrid3D"
 fi
 
-extra="-DCURV_FIX ${extra}"
-
 ch.conf . -DEXTRA="-grid=$g $extra"
 make
 
