@@ -19,10 +19,12 @@
     fputs("\n", stderr);                                \
   } while (0)
 static int dprint(const char *fmt, ...) {
+  int r;
   va_list ap;
   va_start(ap, fmt);
-  vfprintf(stderr, fmt, ap);
+  r = vfprintf(stderr, fmt, ap);
   va_end(ap);
+  return r;
 }
 
 static int
@@ -88,15 +90,16 @@ h5_dwrite(hid_t file, const char *name, hid_t memspace, hid_t filespace, double 
 static int
 h5_data(hid_t file, int *isize, int *istart, int *iextent, double *buf)
 {
+  enum {X, Y, Z};
   hid_t filespace, memspace;
   herr_t err;
   int dim;
   hsize_t size[] = {
-    isize[0], isize[1], isize[2]};
+    isize[X], isize[Y], isize[Z]};
   hsize_t start[] = {
-    istart[0], istart[1], istart[2]};
+    istart[X], istart[Y], istart[Z]};
   hsize_t extent[] = {
-    iextent[0], iextent[1], iextent[2]};
+    iextent[X], iextent[Y], iextent[Z]};
 
   dim = 3;
   filespace = H5Screate_simple(dim, size, NULL);
@@ -111,9 +114,9 @@ h5_data(hid_t file, int *isize, int *istart, int *iextent, double *buf)
   return err;
 err:
   WARN(("invalid selection"));
-  WARN(("isize: %d %d %d", isize[0], isize[1], isize[2]));
-  WARN(("istart: %d %d %d", istart[0], istart[1], istart[2]));
-  WARN(("iextent: %d %d %d", iextent[0], iextent[1], iextent[2]));
+  WARN(("isize: %d %d %d", isize[X], isize[Y], isize[Z]));
+  WARN(("istart: %d %d %d", istart[X], istart[Y], istart[Z]));
+  WARN(("iextent: %d %d %d", iextent[X], iextent[Y], iextent[Z]));
   abort();
 }
 
@@ -139,7 +142,6 @@ h5_xmf(const char *path, const char *name, double origin[3], double spacing, int
 "<Xdmf Version=\"2.0\">\n"\
 " <Domain>\n"\
 "   <Grid GridType=\"Uniform\">\n"\
-"     <Time Value=\"0.000000e+00\"/>\n"\
 "     <Topology TopologyType=\"3DCORECTMesh\" Dimensions=\"%d %d %d\"/>\n"\
 "     <Geometry GeometryType=\"ORIGIN_DXDYDZ\">\n"\
 "       <DataItem Name=\"Origin\" Dimensions=\"3\" NumberType=\"Float\" Precision=\"8\" Format=\"XML\">\n"\
@@ -149,9 +151,9 @@ h5_xmf(const char *path, const char *name, double origin[3], double spacing, int
 "        %.16g %.16g %.16g\n"\
 "       </DataItem>\n"\
 "     </Geometry>\n"\
-"     <Attribute Name=\"%s\" AttributeType=\"Scalar\" Center=\"Node\">\n"\
+"     <Attribute Name=\"%s\" AttributeType=\"Scalar\" Center=\"Cell\">\n"\
 "       <DataItem Dimensions=\"%d %d %d\" NumberType=\"Float\" Precision=\"8\" Format=\"HDF\">\n"\
-"        %s:/data\n"\
+"        ./%s:/data\n"\
 "       </DataItem>\n"\
 "     </Attribute>\n"\
 "   </Grid>\n"\
@@ -167,20 +169,24 @@ h5_xmf(const char *path, const char *name, double origin[3], double spacing, int
     return -1;
   }
   x = size[X]; y = size[Y]; z = size[Z];
-  fprintf(f, s, x, y, z, origin[X], origin[Y], origin[Z], spacing, spacing, spacing, name, x, y, z, hfile);
+  fprintf(f, s, x + 1, y + 1, z + 1, origin[Z], origin[Y], origin[X], spacing, spacing, spacing, name, x, y, z, hfile);
   fclose(f);
   return 0;
 }
 
 int h5_hdf(MPI_Comm comm, const char *path, int size[3], int start[3], int extent[3], double *buf)
 {
-  hid_t file;
+  hid_t file, err;
   file = h5_open(comm, path);
   if (file < 0) {
     WARN(("h5_open failed for '%s'", path));
     return 1;
   }
-  h5_data(file, size, start, extent, buf);
+  err = h5_data(file, size, start, extent, buf);
+  if (err) {
+    WARN(("h5_data failed for '%s'", path));
+    return 1;
+  }
   return h5_close(file);
 }
 
