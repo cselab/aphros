@@ -3,7 +3,7 @@
 #include <mpi.h>
 #include <h5.h>
 
-static double buf[64*64*64];
+static double buf[64*64*64*2];
 enum {
 	X, Y, Z};
 
@@ -14,7 +14,6 @@ main(int argc, char **argv)
 	MPI_Comm comm;
 	char path[] = "o/p.000", name[] = "p";
 	int xlo, ylo, zlo, xs, ys, zs;
-	unsigned int maj, min, rel;
 	double origin[3] = {0, 0, 0}, spacing;
 	xlo = ylo = zlo = 0;
 	xs = ys = zs = 64;
@@ -40,6 +39,7 @@ main(int argc, char **argv)
 	}
 	fprintf(stderr, "rank: %d\n", rank);
 
+        spacing = 0.1;
         h5_silence();
         h5_hdf(comm, path, size, start, extent, buf);
 	h5_xmf(path, name, origin, spacing, size);
