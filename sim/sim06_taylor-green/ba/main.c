@@ -1,17 +1,18 @@
+#include <mpi.h>
+
 #include "par.h"
 
-#include "curvature_select.h"
+#include ".u/curv/select.h"
+#include ".u/io/iompi.h"
+#include ".u/bashape.h"
 
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
-#include "vtk.h"
-#include <mpi.h>
-
+#include "vof.h"
 #include "tension.h"
 
-#define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
 
-#include "io/iompi.h"
+#define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
 
 double ifr3(double x, double y, double z) {
   double r = sq(x - BCX) + sq(y - BCY) + sq(z - BCZ);
