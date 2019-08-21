@@ -55,6 +55,7 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
     dumpdefault = c.dumpdefault
     chsm = c.chsm
     dom = c.dom
+    extra = c.extra
 
     chrun = "" if c.ch else "echo > r_ch"
     barun = "" if c.ba else "echo > r_ba"
