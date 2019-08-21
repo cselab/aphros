@@ -1,7 +1,9 @@
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <mpi.h>
 #include <string.h>
+
+#include <mpi.h>
 #include <hdf5.h>
 
 #include "h5.h"
@@ -11,6 +13,17 @@
 #endif
 
 #define MAX_SIZE 4096
+#define WARN(x) do {                                     \
+    fprintf(stderr, "%s:%d: ", __FILE__, __LINE__);     \
+    dprint x;                                           \
+    fputs("\n", stderr);                                \
+  } while (0)
+static int dprint(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vfprintf(stderr, fmt, ap);
+  va_end(ap);
+}
 
 static int
 h5_strcat(const char a[], const char b[], char *c)
@@ -44,11 +57,15 @@ h5_open(MPI_Comm comm, const char *path)
   h5_strcat(path, ".h5", full);
   plist = H5Pcreate(H5P_FILE_ACCESS);
   if (plist < 0) {
-    fprintf(stderr, "%s:%d: H5Pcreate failed\n", __FILE__, __LINE__);
+    WARN(("H5Pcreate failed"));
     return plist;
   }
   H5Pset_fapl_mpio(plist, comm, MPI_INFO_NULL);
   file = H5Fcreate(full, H5F_ACC_TRUNC, H5P_DEFAULT, plist);
+  if (file < 0) {
+    WARN(("can't open file '%s'", full));
+    return file;
+  }
   H5Pclose(plist);
   return file;
 }
@@ -137,7 +154,7 @@ h5_xmf(const char *path, const char *name, double origin[3], double spacing, int
   h5_strcat(base, ".h5", hfile);
   f = fopen(full, "w");
   if (f == NULL) {
-    fprintf(stderr, "%s:%d: %s : fail to open\n", __FILE__, __LINE__, full);
+    WARN(("can't open file '%s'", full));
     return -1;
   }
   x = size[X]; y = size[Y]; z = size[Z];
@@ -151,8 +168,8 @@ int h5_hdf(MPI_Comm comm, const char *path, int size[3], int start[3], int exten
   hid_t file;
   file = h5_open(comm, path);
   if (file < 0) {
-    fprintf(stderr, "%s : h5_fcreate failed\n", path);
-    exit(2);
+    WARN(("h5_open failed for '%s'", path));
+    return 1;
   }
   h5_data(file, size, start, extent, buf);
   return h5_close(file);
@@ -163,4 +180,3 @@ h5_silence(void)
 {
   return H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
 }
-
