@@ -1,12 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
-#include <hdf5.h>
 #include <h5.h>
-
-#ifndef H5_HAVE_PARALLEL
-#error needs parallel HDF5
-#endif
 
 static double buf[64*64*64];
 enum {
@@ -16,7 +11,6 @@ int
 main(int argc, char **argv)
 {
 	int status, rank;
-	hid_t file;
 	MPI_Comm comm;
 	char path[] = "o/p.000", name[] = "p";
 	int xlo, ylo, zlo, xs, ys, zs;
@@ -46,18 +40,8 @@ main(int argc, char **argv)
 	}
 	fprintf(stderr, "rank: %d\n", rank);
 
-	H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
-	H5get_libversion(&maj, &min, &rel);
-	fprintf(stderr, "hdf5: %d.%d.%d\n", maj, min, rel);
-
-	file = h5_open(comm, path);
-	if (file < 0) {
-		fprintf(stderr, "%s : h5_fcreate failed\n", path);
-		exit(2);
-	}
-	h5_data(file, size, start, extent, buf);
-	spacing = 0.1;
-	h5_close(file);
+        h5_silence();
+        h5_hdf(comm, path, size, start, extent, buf);
 	h5_xmf(path, name, origin, spacing, size);
         fputs(path, stderr);
         fputc('\n', stderr);

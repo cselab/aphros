@@ -35,7 +35,7 @@ h5_basename(const char a[], char *b)
   return 0;
 }
 
-hid_t
+static hid_t
 h5_open(MPI_Comm comm, const char *path)
 {
   hid_t plist, file;
@@ -68,7 +68,7 @@ h5_dwrite(hid_t file, const char *name, hid_t memspace, hid_t filespace, double 
   return err;
 }
 
-int
+static int
 h5_data(hid_t file, int *isize, int *istart, int *iextent, double *buf)
 {
   hid_t filespace, memspace;
@@ -91,7 +91,7 @@ h5_data(hid_t file, int *isize, int *istart, int *iextent, double *buf)
   return err;
 }
 
-int
+static int
 h5_close(hid_t file)
 {
   return H5Fclose(file);
@@ -145,3 +145,22 @@ h5_xmf(const char *path, const char *name, double origin[3], double spacing, int
   fclose(f);
   return 0;
 }
+
+int h5_hdf(MPI_Comm comm, const char *path, int size[3], int start[3], int extent[3], double *buf)
+{
+  hid_t file;
+  file = h5_open(comm, path);
+  if (file < 0) {
+    fprintf(stderr, "%s : h5_fcreate failed\n", path);
+    exit(2);
+  }
+  h5_data(file, size, start, extent, buf);
+  return h5_close(file);
+}
+
+int
+h5_silence(void)
+{
+  return H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+}
+
