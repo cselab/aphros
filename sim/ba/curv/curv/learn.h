@@ -26,7 +26,7 @@ static void Swap(double u[], int i, int o) {
 }
 
 // components of normal, anti-gradient of u
-static double NX(const double u[]) {
+static double _NX(const double u[]) {
   const int x = SX / 2;
   const int y = SY / 2;
   const int z = SZ / 2;
@@ -132,19 +132,19 @@ static double ApplySymm(double u[]) {
   }
 
   // make components positive
-  if (NX(u) < 0.) FlipX(u);
+  if (_NX(u) < 0.) FlipX(u);
   if (NY(u) < 0.) FlipY(u);
   if (NZ(u) < 0.) FlipZ(u);
 
   // order components as 0 <= nz <= ny <= nx
-  if (NX(u) < NY(u)) TransXY(u);
+  if (_NX(u) < NY(u)) TransXY(u);
   if (NY(u) < NZ(u)) TransYZ(u);
-  if (NX(u) < NY(u)) TransXY(u);
+  if (_NX(u) < NY(u)) TransXY(u);
 
 #ifndef NDEBUG
-  if (!(0. <= NZ(u) && NZ(u) <= NY(u) && NY(u) <= NX(u))) {
+  if (!(0. <= NZ(u) && NZ(u) <= NY(u) && NY(u) <= _NX(u))) {
     fprintf(stderr, "%s:%d nx=%g ny=%g nz=%g\n", 
-        __FILE__, __LINE__, NX(u), NY(u), NZ(u));
+        __FILE__, __LINE__, _NX(u), NY(u), NZ(u));
     abort();
   }
 #endif
