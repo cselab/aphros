@@ -102,10 +102,19 @@ h5_data(hid_t file, int *isize, int *istart, int *iextent, double *buf)
   filespace = H5Screate_simple(dim, size, NULL);
   memspace = H5Screate_simple(dim, extent, NULL);
   H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start, NULL, extent, NULL);
+
+  if (!H5Sselect_valid(filespace)) goto err;
+  if (!H5Sselect_valid(memspace)) goto err;
   err = h5_dwrite(file, "data", memspace, filespace, buf);
   H5Sclose(memspace);
   H5Sclose(filespace);
   return err;
+err:
+  WARN(("invalid selection"));
+  WARN(("isize: %d %d %d", isize[0], isize[1], isize[2]));
+  WARN(("istart: %d %d %d", istart[0], istart[1], istart[2]));
+  WARN(("iextent: %d %d %d", iextent[0], iextent[1], iextent[2]));
+  return -1;
 }
 
 static int
