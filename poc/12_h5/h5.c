@@ -169,7 +169,7 @@ h5_xmf(const char *path, const char *name, double origin[3], double spacing, int
     return -1;
   }
   x = size[X]; y = size[Y]; z = size[Z];
-  fprintf(f, s, x + 1, y + 1, z + 1, origin[Z], origin[Y], origin[X], spacing, spacing, spacing, name, x, y, z, hfile);
+  fprintf(f, s, x + 1, y + 1, z + 1, origin[X], origin[Y], origin[Z], spacing, spacing, spacing, name, x, y, z, hfile);
   fclose(f);
   return 0;
 }
