@@ -73,7 +73,7 @@ h5_open(MPI_Comm comm, const char *path)
 }
 
 static herr_t
-h5_dwrite(hid_t file, const char *name, hid_t memspace, hid_t filespace, double *buf)
+h5_dwrite(hid_t file, const char *name, hid_t memspace, hid_t filespace, const double *buf)
 {
   hid_t plist, dset;
   herr_t err;
@@ -88,7 +88,7 @@ h5_dwrite(hid_t file, const char *name, hid_t memspace, hid_t filespace, double 
 }
 
 static int
-h5_data(hid_t file, int *isize, int *istart, int *iextent, double *buf)
+h5_data(hid_t file, const int isize[3], const int istart[3], const int iextent[3], const double *buf)
 {
   enum {I, J, K};
   hid_t filespace, memspace;
@@ -130,7 +130,7 @@ h5_close(hid_t file)
   awk '{gsub(/"/, "\\\""); printf "\"%s\\n\"\\\n", $0}' poc/p.xmf
 */
 int
-h5_xmf(const char *path, const char *name, double origin[3], double spacing, int size[3])
+h5_xmf(const char *path, const char *name, const double origin[3], double spacing, const int size[3])
 {
   FILE *f;
   enum {I, J, K};
@@ -174,7 +174,7 @@ h5_xmf(const char *path, const char *name, double origin[3], double spacing, int
   return 0;
 }
 
-int h5_hdf(MPI_Comm comm, const char *path, int size[3], int start[3], int extent[3], double *buf)
+int h5_hdf(MPI_Comm comm, const char *path, const int size[3], const int start[3], const int extent[3], const double *buf)
 {
   hid_t file, err;
   file = h5_open(comm, path);
