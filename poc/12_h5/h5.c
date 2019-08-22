@@ -90,16 +90,16 @@ h5_dwrite(hid_t file, const char *name, hid_t memspace, hid_t filespace, double 
 static int
 h5_data(hid_t file, int *isize, int *istart, int *iextent, double *buf)
 {
-  enum {X, Y, Z};
+  enum {I, J, K};
   hid_t filespace, memspace;
   herr_t err;
   int dim;
   hsize_t size[] = {
-    isize[X], isize[Y], isize[Z]};
+    isize[I], isize[J], isize[K]};
   hsize_t start[] = {
-    istart[X], istart[Y], istart[Z]};
+    istart[I], istart[J], istart[K]};
   hsize_t extent[] = {
-    iextent[X], iextent[Y], iextent[Z]};
+    iextent[I], iextent[J], iextent[K]};
 
   dim = 3;
   filespace = H5Screate_simple(dim, size, NULL);
@@ -114,9 +114,9 @@ h5_data(hid_t file, int *isize, int *istart, int *iextent, double *buf)
   return err;
 err:
   WARN(("invalid selection"));
-  WARN(("isize: %d %d %d", isize[X], isize[Y], isize[Z]));
-  WARN(("istart: %d %d %d", istart[X], istart[Y], istart[Z]));
-  WARN(("iextent: %d %d %d", iextent[X], iextent[Y], iextent[Z]));
+  WARN(("isize: %d %d %d", isize[I], isize[J], isize[K]));
+  WARN(("istart: %d %d %d", istart[I], istart[J], istart[K]));
+  WARN(("iextent: %d %d %d", iextent[I], iextent[J], iextent[K]));
   abort();
 }
 
@@ -133,8 +133,8 @@ int
 h5_xmf(const char *path, const char *name, double origin[3], double spacing, int size[3])
 {
   FILE *f;
-  enum {X, Y, Z};
-  int x, y, z;
+  enum {I, J, K};
+  int i, j, k;
   char base[MAX_SIZE], full[MAX_SIZE], hfile[MAX_SIZE];
   const char s[] =
 "<?xml version=\"1.0\" ?>\n"\
@@ -168,8 +168,8 @@ h5_xmf(const char *path, const char *name, double origin[3], double spacing, int
     WARN(("can't open file '%s'", full));
     return -1;
   }
-  x = size[X]; y = size[Y]; z = size[Z];
-  fprintf(f, s, x + 1, y + 1, z + 1, origin[X], origin[Y], origin[Z], spacing, spacing, spacing, name, x, y, z, hfile);
+  i = size[I]; j = size[J]; k = size[K];
+  fprintf(f, s, i + 1, j + 1, k + 1, origin[I], origin[J], origin[K], spacing, spacing, spacing, name, i, j, k, hfile);
   fclose(f);
   return 0;
 }
