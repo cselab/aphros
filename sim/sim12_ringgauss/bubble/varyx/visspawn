@@ -1,0 +1,10 @@
+e () {
+  echo "$@"
+  eval "$@"
+}
+
+for i in 1 2 3 4 5 ; do
+  echo $i
+  e "./visallwhite &> vis$i &"
+  sleep 1
+done
