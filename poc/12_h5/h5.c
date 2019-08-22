@@ -177,6 +177,13 @@ h5_xmf(const char *path, const char *name, const double origin[3], double spacin
 int h5_hdf(MPI_Comm comm, const char *path, const int size[3], const int start[3], const int extent[3], const double *buf)
 {
   hid_t file, err;
+  int status;
+  MPI_Initialized(&status);
+  if (status == 0) {
+      WARN(("MPI is not initialized"));
+      return 1;
+  }
+
   file = h5_open(comm, path);
   if (file < 0) {
     WARN(("h5_open failed for '%s'", path));

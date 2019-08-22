@@ -12,7 +12,7 @@ main(int argc, char **argv)
 {
 	int status, rank;
 	MPI_Comm comm;
-	char path[] = "o/p.000", name[] = "p";
+	char path[] = "p.000", name[] = "p";
 	int xlo, ylo, zlo, xs, ys, zs;
 	double origin[3] = {0, 0, 0}, spacing;
 	xlo = ylo = zlo = 0;
@@ -26,6 +26,7 @@ main(int argc, char **argv)
 
 	comm = MPI_COMM_WORLD;
 	status = MPI_Init(&argc, &argv);
+	h5_hdf(comm, path, size, start, extent, buf);
 	if (status != MPI_SUCCESS) {
 		fprintf(stderr, "MPI_Init failed\n");
 		exit(2);
