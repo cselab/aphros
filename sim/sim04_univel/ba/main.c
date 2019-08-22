@@ -4,6 +4,7 @@
 #include ".u/io/io.h"
 #include ".u/io/iompi.h"
 #include ".u/bashape.h"
+#include ".u/bah5.h"
 
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
@@ -118,16 +119,22 @@ event out (t += DUMPDT ; t <= TMAX + DUMPDT) {
   scalar * a = {f};
 
   char name[1000];
-  sprintf(name, "o/%d/u_%04d.vtk", pid(), frame);
-  ++frame;
 
 #if dimension == 2
+  sprintf(name, "o/%d/u_%04d.vtk", pid(), frame);
   FILE * fp = fopen(name, "w");
   io(a, fp);
   fclose(fp);
 #elif dimension == 3
-  iompi(a, name);
+  sprintf(name, "%%s_%04d", frame);
+  scalar vf[];
+  foreach () {
+    vf[] = f[];
+  }
+  bah5_list({vf}, name); /* '%s is replaced by a field name */
 #endif
+
+  ++frame;
 }
 
 event statout (i += 10 ; t <= TMAX) {
