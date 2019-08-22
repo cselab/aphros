@@ -117,7 +117,7 @@ err:
   WARN(("isize: %d %d %d", isize[I], isize[J], isize[K]));
   WARN(("istart: %d %d %d", istart[I], istart[J], istart[K]));
   WARN(("iextent: %d %d %d", iextent[I], iextent[J], iextent[K]));
-  abort();
+  return -1;
 }
 
 static int
@@ -181,20 +181,23 @@ int h5_hdf(MPI_Comm comm, const char *path, const int size[3], const int start[3
   MPI_Initialized(&status);
   if (status == 0) {
       WARN(("MPI is not initialized"));
-      return 1;
+      goto err;
   }
 
   file = h5_open(comm, path);
   if (file < 0) {
     WARN(("h5_open failed for '%s'", path));
-    return 1;
+    goto err;
   }
   err = h5_data(file, size, start, extent, buf);
   if (err) {
     WARN(("h5_data failed for '%s'", path));
-    return 1;
+    goto err;
   }
   return h5_close(file);
+err:
+  MPI_Abort(comm, 2);
+  return 1;
 }
 
 int
