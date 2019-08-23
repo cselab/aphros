@@ -6,7 +6,7 @@
 static int dprint(const char *fmt, ...) {
   int r, rank;
   va_list ap;
-  static FILE *f;
+  static FILE *f = NULL;
   char n[4092];
   if (f == NULL) {
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
