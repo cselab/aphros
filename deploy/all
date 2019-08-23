@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-l="setenv wrap tool sim"
+l="setenv wrap tool sim lib"
 export P
 for d in $l ; do
   echo Entering $d

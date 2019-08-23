@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -eu
+
+. ch.setenv
+. ../util
+
+(cd vofi && ./conf && make install)
+(cd overlap && ./conf && make install)
+(cd vof && ./conf && make install)
