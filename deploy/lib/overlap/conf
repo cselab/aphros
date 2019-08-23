@@ -1,4 +1,5 @@
 echo "EIGEN3_INCLUDE_DIR=${EIGEN3_INCLUDE_DIR}"
+ls ${EIGEN3_INCLUDE_DIR}
 
 cmake . -DCMAKE_BUILD_TYPE=release $@
 
