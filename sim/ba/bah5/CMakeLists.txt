@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 2.8)
+set(CHPREFIX $ENV{CHPREFIX})
+project(bah5 NONE)
+
+set(T bah5)
+set(D ${CHPREFIX}/include)
+set(H bah5.h)
+configure_file(conf.in ${T}.conf @ONLY)
+install(FILES ${H} DESTINATION ${D})
+install(FILES  ${T}.conf DESTINATION ${D})
