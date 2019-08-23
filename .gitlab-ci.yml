@@ -17,7 +17,6 @@ build:
       ./all
       . ch.setenv
       (cd hypre ; ./_run)
-      (cd eigen ; ./_run)
       cd ../src
       ./conf
       make -j
