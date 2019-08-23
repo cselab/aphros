@@ -7,6 +7,7 @@
 #include <hdf5.h>
 
 #include "h5.h"
+#include "h5read.h"
 
 #ifndef H5_HAVE_PARALLEL
 #error needs parallel HDF5
@@ -204,4 +205,160 @@ int
 h5_silence(void)
 {
   return H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+}
+
+void reset_line_end(char *s)
+{
+    for (;;) {
+	if (*s == '\0') break;
+	if (*s == '\n') {
+	    *s = '\0';
+	    break;
+	}
+	s++;
+    }
+}
+
+char *next_line(char *s) {
+    for (; ; s++) {
+	if (*s == '\0')
+	    return s;
+	if (*s == '\n')
+	    return s + 1;
+    }
+}
+
+char *to_quote(char *s, char *out) {
+    for (;;) {
+	if (*s == '\0' || *s == '"') {
+	    *out = '\0';
+	    return s;
+	}
+	*out++ = *s++;
+    }
+}
+
+int
+h5_read_xmf(const char *path, char *name, double origin[3], double *pspa, int size[3])
+{
+    enum {X, Y, Z};
+    enum {I = Z, J = Y, K = X};
+
+    double spa, spacing[3];
+    FILE *f;
+    char full[MAX_SIZE], *p, *q, *s;
+    size_t n;
+    const char *pat;
+
+    h5_strcat(path, ".xmf", full);
+    f = fopen(full, "r");
+    if (f == NULL) {
+	WARN(("can't open '%s'", full));
+	goto err;
+    }
+    if (fseek(f, 0, SEEK_END) != 0) {
+	WARN(("fseek failed for '%s'", full));
+	goto err;
+    }
+    n = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    p = s = malloc(n + 1);
+    if (s == NULL) {
+	WARN(("malloc(%d) failed for '%s'", n, full));
+	goto err;
+    }
+    if (fread(s, 1, n, f) != n) {
+	WARN(("fread failed for '%s'", full));
+	goto err;
+    }
+    s[n++] = '\0';
+
+    p = strstr(p, "<\?xml");
+    if (p == NULL) {
+	WARN(("not an xml file '%s'", full));
+	goto err;
+    }
+
+    p = strstr(p, "Xdmf");
+    if (p == NULL) {
+	WARN(("not an xdmf file '%s'", full));
+	goto err;
+    }
+
+    p = strstr(p, "\"3DCORECTMesh\"");
+    if (p == NULL) {
+	WARN(("no 3DCORECTMesh in '%s'", full));
+	goto err;
+    }
+
+    p = strstr(p, "<DataItem Name=\"Origin\"");
+    if (p == NULL) {
+	WARN(("no <DataItem Name=\"Origin\" in %s", full));
+	goto err;
+    }
+    q = next_line(p);
+    if (sscanf(q, "%lf %lf %lf", &origin[X], &origin[Y], &origin[Z]) != 3) {
+	reset_line_end(p);
+	WARN(("expecting origin[X] origin[Y] origin[Z] in '%s' after", full));
+	WARN(("%s", p));
+	goto err;
+    }
+    p = q;
+
+    p = strstr(p, "<DataItem Name=\"Spacing\"");
+    if (p == NULL) {
+	WARN(("no <DataItem Name=\"Spacing\""));
+	goto err;
+    }
+    q = next_line(p);
+    if (sscanf(q, "%lf %lf %lf", &spacing[X], &spacing[Y], &spacing[Z]) != 3) {
+	reset_line_end(p);
+	WARN(("expecting spacing[X] spacing[Y] spacing[Z] in '%s' after", full));
+	WARN(("%s", p));
+	goto err;
+    }
+    p = q;
+
+    spa = spacing[X];
+    if (spacing[Y] != spa || spacing[Z] != spa) {
+	WARN(("not unifrom spacing '%.16g %.16g %.16g'", spacing[X], spacing[Y], spacing[Z]));
+	goto err;
+    }
+
+    p = next_line(p);
+    pat = "<Attribute Name=\"";
+    q = strstr(p, pat);
+    q += strlen(pat);
+    if (q == NULL) {
+	WARN(("no %s", pat));
+	goto err;
+    }
+    q = to_quote(q, name);
+    if (*q != '"') {
+	reset_line_end(p);
+	WARN(("expecting name in '%s' around", full));
+	WARN(("%s", p));
+	goto err;
+    }
+
+    p = next_line(p);
+    pat = "<DataItem Dimensions=\"";
+    q = strstr(p, pat);
+    q += strlen(pat);
+    if (q == NULL) {
+	WARN(("no %s", pat));
+	goto err;
+    }
+    if (sscanf(q, "%d %d %d", &size[I], &size[J], &size[K]) != 3) {
+	reset_line_end(p);
+	WARN(("expecting size[I] size[J] size[K] in '%s' around", full));
+	WARN(("%s", p));
+	goto err;
+    }
+    free(s);
+    fclose(f);
+    *pspa = spa;
+    return 0;
+err:
+    return 1;
 }
