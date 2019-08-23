@@ -14,11 +14,15 @@ int
 main(int argc, char **argv)
 {
     MPI_Comm comm, cartcomm;
-    int status, mpi_rank, mpi_npe, mpi_coords[3], e, nbuf;
+    int status, mpi_rank, mpi_npe, mpi_coords[3], e, nbuf, level;
     int mpi_dims[dimension] = {0, 0, 0};
     int Period[dimension] = {0, 0, 0};
     int ext[3], siz[3], sta[3];
-    double spa, ori[3], *buf;
+    double L0, X0, Y0, Z0, ori[3], *buf;
+    double x, y, z, Delta;
+    int i, j, k, m;
+    char *path = "ba";
+
     comm = MPI_COMM_WORLD;
     status = MPI_Init(&argc, &argv);
     if (status != MPI_SUCCESS) {
@@ -39,7 +43,9 @@ main(int argc, char **argv)
     WARN(("mpi_dims: %d %d %d", mpi_dims[X], mpi_dims[Y], mpi_dims[Z]));
     WARN(("mpi_dims: %d %d %d", mpi_coords[X], mpi_coords[Y], mpi_coords[Z]));
 
-    e = 10;
+    level = 4;
+    e = 1 << level;
+    L0 = 1.0;
     ext[I] = ext[J] = ext[K] = e;
     siz[I] = e*mpi_dims[X];
     siz[J] = e*mpi_dims[Y];
@@ -50,7 +56,6 @@ main(int argc, char **argv)
     sta[K] = e*mpi_coords[Z];
 
     ori[X] = ori[Y] = ori[Z] = 0;
-    spa = 0.1;
     nbuf = e * e * e;
     buf = malloc(nbuf*sizeof(*buf));
     if (buf == NULL) {
@@ -58,15 +63,17 @@ main(int argc, char **argv)
 	goto err;
     }
 
-    int i, j, k, m;
+    Delta = L0*(1./(1 << level)/mpi_dims[X]);
+    X0 = Y0 = Z0 = 0;
     for (k = m = 0; k < e; k++)
 	for (j = 0; j < e; j++)
 	    for (i = 0; i < e; i++) {
-		buf[m++] = 42;
+		x = (i + sta[X] + 0.5)*Delta + X0;
+		y = (j + sta[Y] + 0.5)*Delta + Y0;
+		z = (k + sta[Z] + 0.5)*Delta + Z0;
+		buf[m++] = x*y*z;
 	    }
-
-    char *path = "ba";
-    status = h5_xmf(path, "u", ori, spa, siz);
+    status = h5_xmf(path, "u", ori, Delta, siz);
     if (status != 0) {
 	WARN(("can't write xmf '%s'", path));
 	goto err;
@@ -76,7 +83,6 @@ main(int argc, char **argv)
 	WARN(("can't write hdf '%s'", path));
 	goto err;
     }
-
     free(buf);
     MPI_Finalize();
     return 0;
