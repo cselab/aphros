@@ -5,6 +5,8 @@ set -eu
 . ch.setenv
 . ../util
 
+echo "EIGEN3_INCLUDE_DIR=${EIGEN3_INCLUDE_DIR}"
+
 (cd vofi && ./conf && make install)
 (cd overlap && ./conf && make install)
 (cd vof && ./conf && make install)
