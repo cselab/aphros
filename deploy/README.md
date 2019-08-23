@@ -23,13 +23,6 @@ Prepare the environment and install dependencies:
      ./_run
      ```
 
-*   install eigen
-
-     ```
-     cd eigen
-     ./_run
-     ```
-
 *   install basilisk from `mfer:/ba/deploy`
 *   install basilisk libraries from `sim/ba` by `cmake . && make install`
 
