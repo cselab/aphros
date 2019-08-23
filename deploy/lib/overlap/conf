@@ -1,11 +1,2 @@
-e () {
-  echo "$@"
-  eval "$@"
-}
-e "echo 'EIGEN3_INCLUDE_DIR=${EIGEN3_INCLUDE_DIR}'"
-e "ls -al ${EIGEN3_INCLUDE_DIR}"
-e "ls -al ${EIGEN3_INCLUDE_DIR}/Eigen"
-e "cat ${EIGEN3_INCLUDE_DIR}/Eigen/Core"
-
 cmake . -DCMAKE_BUILD_TYPE=release $@
 

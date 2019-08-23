@@ -2,16 +2,8 @@ set -eu
 
 rm -rf "$P/include/Eigen"
 
-c="ls -al '$d/Eigen/Core'"
-echo "$c"
-eval "$c"
-
 mkdir -p "$P/include"
 
 c="mv -v '$d/Eigen' '$P/include'"
-echo "$c"
-eval "$c"
-
-c="ls -al '$P/include/Eigen/Core'"
 echo "$c"
 eval "$c"
