@@ -23,16 +23,21 @@ main(int argc, char **argv)
     int i, j, k, m;
     char *path = "ba";
 
+    level = 4; /* input */
+    L0 = 1.0;
+    X0 = 1;
+    Y0 = 2;
+    Z0 = 3;
+
     comm = MPI_COMM_WORLD;
     status = MPI_Init(&argc, &argv);
     if (status != MPI_SUCCESS) {
 	WARN(("MPI_Init failed\n"));
 	goto err;
     }
-    //MPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN);
+    MPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN);
     MPI_Comm_rank(comm, &mpi_rank);
     MPI_Comm_size(comm, &mpi_npe);
-
     status = MPI_Dims_create (mpi_npe, dimension, mpi_dims);
     if (status != MPI_SUCCESS) {
 	WARN(("mpi_dims_create failed"));
@@ -43,37 +48,35 @@ main(int argc, char **argv)
     WARN(("mpi_dims: %d %d %d", mpi_dims[X], mpi_dims[Y], mpi_dims[Z]));
     WARN(("mpi_dims: %d %d %d", mpi_coords[X], mpi_coords[Y], mpi_coords[Z]));
 
-    level = 4;
+    Delta = L0*(1./(1 << level)/mpi_dims[X]);
     e = 1 << level;
-    L0 = 1.0;
-    ext[I] = ext[J] = ext[K] = e;
-    siz[I] = e*mpi_dims[X];
-    siz[J] = e*mpi_dims[Y];
-    siz[K] = e*mpi_dims[Z];
-
-    sta[I] = e*mpi_coords[X];
-    sta[J] = e*mpi_coords[Y];
-    sta[K] = e*mpi_coords[Z];
-
-    ori[X] = ori[Y] = ori[Z] = 0;
     nbuf = e * e * e;
     buf = malloc(nbuf*sizeof(*buf));
     if (buf == NULL) {
 	WARN(("fail to allocate 'nbuf = %d'", nbuf));
 	goto err;
     }
-
-    Delta = L0*(1./(1 << level)/mpi_dims[X]);
-    X0 = Y0 = Z0 = 0;
+    nbuf = e * e * e;
     for (k = m = 0; k < e; k++)
 	for (j = 0; j < e; j++)
 	    for (i = 0; i < e; i++) {
-		x = (i + sta[X] + 0.5)*Delta + X0;
-		y = (j + sta[Y] + 0.5)*Delta + Y0;
-		z = (k + sta[Z] + 0.5)*Delta + Z0;
+		x = (i + e*mpi_coords[X] + 0.5)*Delta + X0;
+		y = (j + e*mpi_coords[Y] + 0.5)*Delta + Y0;
+		z = (k + e*mpi_coords[Z] + 0.5)*Delta + Z0;
 		buf[m++] = x*y*z;
 	    }
+
+    ext[I] = ext[J] = ext[K] = e;
+    siz[I] = e*mpi_dims[X];
+    siz[J] = e*mpi_dims[Y];
+    siz[K] = e*mpi_dims[Z];
+    sta[I] = e*mpi_coords[X];
+    sta[J] = e*mpi_coords[Y];
+    sta[K] = e*mpi_coords[Z];
+    ori[X] = X0; ori[Y] = Y0; ori[Z] = Z0;
     status = h5_xmf(path, "u", ori, Delta, siz);
+    if (mpi_rank == 0)
+	fprintf(stderr, "%s.h5\n%s.xmf\n", path, path);
     if (status != 0) {
 	WARN(("can't write xmf '%s'", path));
 	goto err;
