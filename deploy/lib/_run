@@ -8,3 +8,4 @@ set -eu
 (cd vofi && ./conf && make install)
 (cd overlap && ./conf && make install)
 (cd vof && ./conf && make install)
+(cd h5 && ./conf && make install)
