@@ -6,7 +6,9 @@ c="ls -al '$d/Eigen/Core'"
 echo "$c"
 eval "$c"
 
-c="mv -v '$d/Eigen' '$P/include/'"
+mkdir -p "$P/include"
+
+c="mv -v '$d/Eigen' '$P/include'"
 echo "$c"
 eval "$c"
 
