@@ -5,9 +5,14 @@ set -eu
 . ch.setenv
 . ../util
 
-echo "EIGEN3_INCLUDE_DIR=${EIGEN3_INCLUDE_DIR}"
+e () {
+  echo "$@"
+  eval "$@"
+}
 
-(cd vofi && ./conf && make install)
-(cd overlap && ./conf && make install)
-(cd vof && ./conf && make install)
-(cd h5 && ./conf && make install)
+l="vofi overlap vof h5"
+for d in $l ; do
+  echo Entering $d
+  e "(cd $d && ./conf && make install)"
+done
+
