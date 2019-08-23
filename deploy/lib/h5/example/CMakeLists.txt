@@ -9,3 +9,7 @@ target_link_libraries(${T} h5)
 set(T ba)
 add_executable(${T} ba.c)
 target_link_libraries(${T} h5)
+
+set(T read)
+add_executable(${T} read.c)
+target_link_libraries(${T} h5)
