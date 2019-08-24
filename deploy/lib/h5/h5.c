@@ -385,6 +385,10 @@ int h5_read_hdf(const char *path, /**/ int size[3], double **pbuf)
 	WARN(("can't open '%s'", full));
 	goto err;
     }
+    if (H5LTfind_dataset(file, Name) == 0) {
+	WARN(("can't find dataset '%s' in '%s'", Name, full));
+	goto err;
+    }
     status = H5LTget_dataset_ndims(file, Name, &rank);
     if (status < 0) {
 	WARN(("get_dataset_ndims failed for '%s'", full));
@@ -402,7 +406,7 @@ int h5_read_hdf(const char *path, /**/ int size[3], double **pbuf)
     if (nbytes != sizeof(*buf)) {
 	WARN(("file: %s", full));
 	WARN(("nbytes=%ld != sizeof(*buf)=%d", nbytes, sizeof(*buf)));
-	goto err;
+	//goto err;
     }
     size[X] = dims[I];
     size[Y] = dims[J];
