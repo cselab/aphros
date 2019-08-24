@@ -30,3 +30,6 @@ target_link_libraries(${T} convdiffi convdiffe)
 set(T "simple")
 add_library(${T} simple.cpp)
 target_link_libraries(${T} vof tvd convdiffvi)
+
+set(T "multi")
+add_library(${T} multi.cpp)

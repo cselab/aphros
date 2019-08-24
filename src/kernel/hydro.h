@@ -1456,6 +1456,7 @@ void Hydro<M>::DumpFields() {
       if (dl.count("hz")) m.Dump(&h, 2, "hz");
     }
     if (mul_ && dl.count("mul")) m.Dump(&mul_->GetMask(), "mul");
+    if (mul_ && dl.count("mul")) m.Dump(&mul_->GetMask2(), "mul2");
   }
 }
 
@@ -1796,6 +1797,11 @@ void Hydro<M>::Run() {
   if (var.Int["enable_color"] && as_) {
     if (sem.Nested("color")) {
       tr_->Update(as_->GetField());
+    }
+  }
+  if (mul_) {
+    if (sem.Nested("multi")) {
+      mul_->Update(as_->GetField());
     }
   }
 
