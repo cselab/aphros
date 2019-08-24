@@ -48,7 +48,7 @@ add_library(${T} INTERFACE)
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
     "${CHPREFIX}/include/hydro")
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_LINK_LIBRARIES 
-    distr solver vof tvd convdiffvi simple overlap young utilfluid events)
+    distr solver vof tvd convdiffvi simple overlap young utilfluid events multi)
 
 # binary
 add_executable(${EXE} main.cpp)
