@@ -5,6 +5,7 @@
 
 #include <mpi.h>
 #include <hdf5.h>
+#include <hdf5_hl.h>
 
 #include "h5.h"
 #include "h5read.h"
@@ -12,6 +13,8 @@
 #ifndef H5_HAVE_PARALLEL
 #error needs parallel HDF5
 #endif
+
+const char *Name = "data";
 
 #define MAX_SIZE 4096
 #define WARN(x) do {                                    \
@@ -109,7 +112,7 @@ h5_data(hid_t file, const int isize[3], const int istart[3], const int iextent[3
 
   if (!H5Sselect_valid(filespace)) goto err;
   if (!H5Sselect_valid(memspace)) goto err;
-  err = h5_dwrite(file, "data", memspace, filespace, buf);
+  err = h5_dwrite(file, Name, memspace, filespace, buf);
   H5Sclose(memspace);
   H5Sclose(filespace);
   return err;
@@ -361,4 +364,63 @@ h5_read_xmf(const char *path, char *name, double origin[3], double *pspa, int si
     return 0;
 err:
     return 1;
+}
+
+int h5_read_hdf(const char *path, /**/ int size[3], double **pbuf)
+{
+    enum {X, Y, Z};
+    enum {I = Z, J = Y, K = X};
+
+    hid_t file;
+    herr_t status;
+    int rank, n;
+    hsize_t dims[99];
+    size_t nbytes;
+    char full[MAX_SIZE];
+    double *buf;
+
+    h5_strcat(path, ".h5", full);
+    file = H5Fopen(full, H5F_ACC_RDONLY, H5P_DEFAULT);
+    if (file < 0) {
+	WARN(("can't open '%s'", full));
+	goto err;
+    }
+    status = H5LTget_dataset_ndims(file, Name, &rank);
+    if (status < 0) {
+	WARN(("get_dataset_ndims failed for '%s'", full));
+	goto err;
+    }
+    if (rank != 3) {
+	WARN(("rank=%d != 3 for '%s'", rank, full));
+	goto err;
+    }
+    status = H5LTget_dataset_info(file, Name, dims, NULL, &nbytes);
+    if (status < 0) {
+	WARN(("get_dataset_info failed for '%s'", full));
+	goto err;
+    }
+    if (nbytes != sizeof(*buf)) {
+	WARN(("file: %s", full));
+	WARN(("nbytes=%ld != sizeof(*buf)=%d", nbytes, sizeof(*buf)));
+	goto err;
+    }
+    size[X] = dims[I];
+    size[Y] = dims[J];
+    size[Z] = dims[K];
+    n = size[X] * size[Y] * size[Z];
+    buf = malloc(n*sizeof(*buf));
+    if (buf == NULL) {
+	WARN(("can't allocate n = %ld", n));
+	goto err;
+    }
+    status = H5LTread_dataset_double(file, Name, buf);
+    if (status < 0) {
+	WARN(("read_dataset_double failed for '%s'", full));
+	goto err;
+    }
+    *pbuf = buf;
+    return 0;
+err:
+    return 1;
+
 }
