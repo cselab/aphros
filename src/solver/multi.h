@@ -33,10 +33,4 @@ class MultiMask {
 
 };
 
-/*
-template <class T>
-class Multi<>
-*/
-
-
 } // namespace solver
