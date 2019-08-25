@@ -9,7 +9,7 @@ namespace solver {
 
 // Assign colors to connected sets with u > 0.
 template <class M_>
-class Multi {
+class MultiMask {
   using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
@@ -17,8 +17,8 @@ class Multi {
 
  public:
   // fccl: color [a]
-  Multi(M& m, const FieldCell<Scal>* fccl, size_t edim);
-  ~Multi();
+  MultiMask(M& m, const FieldCell<Scal>* fccl, size_t edim);
+  ~MultiMask();
   // Propagates color.
   // fcu: volume fraction [a]
   void Update(const FieldCell<Scal>& fcu);
@@ -32,6 +32,11 @@ class Multi {
   std::unique_ptr<Imp> imp;
 
 };
+
+/*
+template <class T>
+class Multi<>
+*/
 
 
 } // namespace solver

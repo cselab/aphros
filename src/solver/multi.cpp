@@ -3,7 +3,7 @@
 
 namespace solver {
 
-template class Multi<MeshStructured<double, 3>>;
+template class MultiMask<MeshStructured<double, 3>>;
 
 } // namespace solver
 
