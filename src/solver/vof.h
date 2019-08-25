@@ -80,16 +80,20 @@ class Vof : public AdvectionSolver<M_> {
   void PostStep() override;
   // Volume fraction
   const FieldCell<Scal>& GetField(Layers l) const override;
+  // Volume fraction
+  const FieldCell<Scal>& GetField(Layers l, size_t i) const;
   // ...
   using P::GetField;
   // Plane constant
-  const FieldCell<Scal>& GetAlpha() const;
+  const FieldCell<Scal>& GetAlpha(size_t i) const;
   // Normal to interface
-  const FieldCell<Vect>& GetNormal() const;
+  const FieldCell<Vect>& GetNormal(size_t i) const;
   // Height function
   const FieldCell<Vect>& GetHeight() const;
   // Default curvature 
   const FieldCell<Scal>& GetCurv() const override;
+  // Default curvature 
+  const FieldCell<Scal>& GetCurv(size_t i) const;
   // Curvature from height functions
   const FieldCell<Scal>& GetCurvH() const;
   // Curvature from particles

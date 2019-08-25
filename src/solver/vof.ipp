@@ -542,12 +542,20 @@ auto Vof<M_>::GetField(Layers l) const -> const FieldCell<Scal>& {
 }
 
 template <class M_>
-auto Vof<M_>::GetAlpha() const -> const FieldCell<Scal>& {
+auto Vof<M_>::GetField(Layers l, size_t i) const -> const FieldCell<Scal>& {
+  (void) i;
+  return imp->fcu_.Get(l);
+}
+
+template <class M_>
+auto Vof<M_>::GetAlpha(size_t i) const -> const FieldCell<Scal>& {
+  (void) i;
   return imp->fca_;
 }
 
 template <class M_>
-auto Vof<M_>::GetNormal() const -> const FieldCell<Vect>& {
+auto Vof<M_>::GetNormal(size_t i) const -> const FieldCell<Vect>& {
+  (void) i;
   return imp->fcn_;
 }
 
@@ -558,6 +566,12 @@ auto Vof<M_>::GetHeight() const -> const FieldCell<Vect>& {
 
 template <class M_>
 auto Vof<M_>::GetCurv() const -> const FieldCell<Scal>& {
+  return imp->par->part_k ? imp->psm_->GetCurv() : imp->fck_;
+}
+
+template <class M_>
+auto Vof<M_>::GetCurv(size_t i) const -> const FieldCell<Scal>& {
+  (void) i;
   return imp->par->part_k ? imp->psm_->GetCurv() : imp->fck_;
 }
 

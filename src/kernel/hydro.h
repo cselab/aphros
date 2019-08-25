@@ -857,9 +857,9 @@ void Hydro<M>::CalcStat() {
       s.area = 0;
       if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
         using R = Reconst<Scal>;
-        auto &fcn = as->GetNormal();
-        auto &fca = as->GetAlpha();
-        auto& fcvf = as->GetField();
+        auto &fcn = as->GetNormal(0);
+        auto &fca = as->GetAlpha(0);
+        auto& fcvf = as->GetField(solver::Layers::time_curr, 0);
         Vect h = m.GetCellSize();
         for (auto c : m.Cells()) {
           if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {
@@ -1153,8 +1153,8 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
       if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
         using R = Reconst<Scal>;
         auto fc_gsig = solver::Gradient(ff_sig_, m);
-        auto &fcn = as->GetNormal();
-        auto &fca = as->GetAlpha();
+        auto &fcn = as->GetNormal(0);
+        auto &fca = as->GetAlpha(0);
         Vect h = m.GetCellSize();
         for (auto c : m.Cells()) {
           if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {
@@ -1439,7 +1439,7 @@ void Hydro<M>::DumpFields() {
     }
     if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
       auto& n = fctmpv_;
-      n = as->GetNormal();
+      n = as->GetNormal(0);
       for (auto c : m.Cells()) {
         auto& v = n[c];
         auto i = v.abs().argmax();
