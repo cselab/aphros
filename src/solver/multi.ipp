@@ -17,8 +17,8 @@
 namespace solver {
 
 template <class M_>
-struct Multi<M_>::Imp {
-  using Owner = Multi<M_>;
+struct MultiMask<M_>::Imp {
+  using Owner = MultiMask<M_>;
   static constexpr size_t dim = M::dim;
 
   Imp(Owner* owner, M& m, const FieldCell<Scal>* fccl, size_t edim)
@@ -89,25 +89,25 @@ struct Multi<M_>::Imp {
 };
 
 template <class M_>
-Multi<M_>::Multi(M& m, const FieldCell<Scal>* fccl, size_t edim)
+MultiMask<M_>::MultiMask(M& m, const FieldCell<Scal>* fccl, size_t edim)
     : imp(new Imp(this, m, fccl, edim))
 {}
 
 template <class M_>
-Multi<M_>::~Multi() = default;
+MultiMask<M_>::~MultiMask() = default;
 
 template <class M_>
-void Multi<M_>::Update(const FieldCell<Scal>& fcu) {
+void MultiMask<M_>::Update(const FieldCell<Scal>& fcu) {
   imp->Update(fcu);
 }
 
 template <class M_>
-auto Multi<M_>::GetMask() const -> const FieldCell<Scal>& { 
+auto MultiMask<M_>::GetMask() const -> const FieldCell<Scal>& { 
   return imp->fcmask_; 
 }
 
 template <class M_>
-auto Multi<M_>::GetMask2() const -> const FieldCell<Scal>& { 
+auto MultiMask<M_>::GetMask2() const -> const FieldCell<Scal>& { 
   return imp->fcmask2_; 
 }
 

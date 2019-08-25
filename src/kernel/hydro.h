@@ -105,7 +105,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using AST = solver::Tvd<M>; // advection TVD
   using ASV = solver::Vof<M>; // advection VOF
   using TR = solver::Tracker<M>; // color tracker
-  using MUL = solver::Multi<M>; // multivof
+  using MUL = solver::MultiMask<M>; // multivof
   using SA = solver::Sphavg<M>; // spherical averages
 
   void UpdateAdvectionPar() {
