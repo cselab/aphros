@@ -21,6 +21,20 @@ class Multi {
  public:
   Multi() : d_(1) {}
   Multi(size_t n) : d_(n) {}
+  // cast to pointer
+  template <class U>
+  Multi(Multi<U>& u) : d_(u.size()) {
+    for (size_t i = 0; i < u.size(); ++i) {
+      d_[i] = &u[i];
+    }
+  }
+  // cast to const
+  template <class U>
+  Multi(const Multi<U*>& u) : d_(u.size()) {
+    for (size_t i = 0; i < u.size(); ++i) {
+      d_[i] = const_cast<const U*>(u[i]);
+    }
+  }
   T& operator[](size_t i) {
     return d_[i];
   }
@@ -70,6 +84,11 @@ class Multi {
 template <class M>
 void Propagate(Multi<FieldCell<typename M::Scal>*> mfc,
                const Multi<FieldCell<bool>*>& mask, M& m) {
+
+  if (!mfc.size()) {
+    return;
+  }
+
   using MIdx = typename M::MIdx;
   auto& bc = m.GetIndexCells();
   const int sw = 2; // stencil halfwidth
@@ -95,6 +114,24 @@ void Propagate(Multi<FieldCell<typename M::Scal>*> mfc,
   }
 }
 
+template <class T>
+Multi<FieldCell<T>*> GetLayer(Multi<LayersData<FieldCell<T>>>& u, Layers l) {
+  Multi<FieldCell<T>*> r(u.size());
+  for (size_t i = 0; i < u.size(); ++i) {
+    r[i] = &u[i].Get(l);
+  }
+  return r;
+}
+
+template <class M>
+FieldCell<bool> And(const FieldCell<bool>& u, 
+                   const FieldCell<bool>& v, const M& m) {
+  FieldCell<bool> r = u;
+  for (auto c : m.AllCells()) {
+    r[c] = r[c] && v[c];
+  }
+  return r;
+}
 
 template <class M_>
 struct Vof<M_>::Imp {
@@ -109,16 +146,29 @@ struct Vof<M_>::Imp {
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m)
-      , mfc_(mfc), fca_(m, 0), fck_(m, 0)
+      , mfc_(mfc), fck_(m, 0)
       , fch_(m, Vect(0))
   {
     fcu_.resize(2);
     fcn_.resize(fcu_.size());
+    fca_.resize(fcu_.size());
     fci_.resize(fcu_.size());
+    fcm_.resize(fcu_.size());
 
     fcn_.InitAll(FieldCell<Vect>(m, Vect(0)));
-    fcu_[0].time_curr = fcu;
-    fcu_.InitAll(fcu_[0]);
+    fca_.InitAll(FieldCell<Scal>(m, 0));
+    fcu_[0].time_curr.Reinit(m, 0);
+    fcu_[1].time_curr.Reinit(m, 0);
+    fcm_.InitAll(FieldCell<bool>(m, false));
+    for (auto c : m.AllCells()) {
+      if (m.GetCenter(c)[1] < 0.5) {
+        fcu_[0].time_curr[c] = fcu[c];
+        fcm_[0][c] = true;
+      } else {
+        fcu_[1].time_curr[c] = fcu[c];
+        fcm_[0][c] = true;
+      }
+    }
     for (auto it : mfc_) {
       IdxFace f = it.GetIdx();
       mfvz_[f] = std::make_shared<
@@ -188,15 +238,16 @@ struct Vof<M_>::Imp {
       dlc_.clear();
       auto h = m.GetCellSize();
       auto& fcn = fcn_[0];
+      auto& fca = fca_[0];
       auto& fci = fci_[0];
       for (auto c : m.AllCells()) {
         Scal u = fcu_[0].iter_curr[c];
-        if (IsNan(u) || IsNan(fcn[c]) || IsNan(fca_[c])) {
+        if (IsNan(u) || IsNan(fcn[c]) || IsNan(fca[c])) {
           continue;
         }
         const Scal th = par->poly_intth;
         if (fci[c] && u > th && u < 1. - th) {
-          dl_.push_back(R::GetCutPoly(m.GetCenter(c), fcn[c], fca_[c], h));
+          dl_.push_back(R::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h));
           dlc_.push_back(m.GetHash(c));
         }
       }
@@ -270,47 +321,64 @@ struct Vof<M_>::Imp {
     }
   }
   // reconstruct interface
-  void Rec(const FieldCell<Scal>& uc) {
+  void Rec(const Multi<FieldCell<Scal>*>& uc) {
     auto sem = m.GetSem("rec");
     if (sem("local")) {
-      if (par->bcc_reflect) {
-        BcReflect(const_cast<FieldCell<Scal>&>(uc), mfc_, par->bcc_fill, m);
-      }
       DetectInterface(uc);
-      // Compute normal and curvature [s]
-      auto& fcn = fcn_[0];
-      auto& fci = fci_[0];
-      UNormal<M>::CalcNormal(m, uc, fci, par->dim, fcn);
-      auto h = m.GetCellSize();
-      // Reconstruct interface [s]
-      for (auto c : m.SuCells()) {
-        fca_[c] = R::GetLineA(fcn[c], uc[c], h);
-      }
-      if (par->bcc_reflect) {
-        BcReflect(fca_, mfc_, Scal(0), m);
-        BcReflect(fcn, mfc_, Vect(0), m);
+      fcm_[1] = fci_[1];
+      for (size_t i = 0; i < uc.size(); ++i) {
+        auto& fcn = fcn_[i];
+        auto& fca = fca_[i];
+        auto& fci = fci_[i];
+        auto& fcm = fcm_[i];
+        auto& fcu = *uc[i];
+        if (par->bcc_reflect) {
+          BcReflect(fcu, mfc_, par->bcc_fill, m);
+        }
+        // Compute normal and curvature [s]
+        Propagate(GetLayer(fcu_, Layers::time_curr), fcm_, m);
+        UNormal<M>::CalcNormal(m, fcu, And(fci, fcm, m), par->dim, fcn);
+        auto h = m.GetCellSize();
+        // Reconstruct interface [s]
+        for (auto c : m.SuCells()) {
+          if (fcm[c]) {
+            fca[c] = R::GetLineA(fcn[c], fcu[c], h);
+          }
+        }
+        if (par->bcc_reflect) {
+          BcReflect(fca, mfc_, Scal(0), m);
+          BcReflect(fcn, mfc_, Vect(0), m);
+        }
       }
     }
   }
-  void DetectInterface(const FieldCell<Scal>& uc) {
-    auto& fci = fci_[0];
-    fci.Reinit(m, false);
-    // volume fraction different from 0 or 1
-    for (auto c : m.AllCells()) {
-      Scal u = uc[c];
-      if (u > 0. && u < 1.) {
-        fci[c] = true;
+  void DetectInterface(const Multi<const FieldCell<Scal>*>& uc) {
+    for (size_t i = 0; i < uc.size(); ++i) {
+      auto& fci = fci_[i];
+      auto& fcm = fcm_[i];
+      auto& fcu = *uc[i];
+      fci.Reinit(m, false);
+      // volume fraction different from 0 or 1
+      for (auto c : m.AllCells()) {
+        if (fcm[c]) {
+          Scal u = fcu[c];
+          if (u > 0. && u < 1.) {
+            fci[c] = true;
+          }
+        }
       }
-    }
-    // neighbour cell has different value but both are 0 or 1
-    for (auto f : m.SuFaces()) {
-      IdxCell cm = m.GetNeighbourCell(f, 0);
-      IdxCell cp = m.GetNeighbourCell(f, 1);
-      Scal um = uc[cm];
-      Scal up = uc[cp];
-      if ((um == 0. || um == 1.) && (up == 0. || up == 1.) && (um != up)) {
-        fci[cm] = true;
-        fci[cp] = true;
+      // neighbour cell has different value but both are 0 or 1
+      for (auto f : m.SuFaces()) {
+        IdxCell cm = m.GetNeighbourCell(f, 0);
+        IdxCell cp = m.GetNeighbourCell(f, 1);
+        if (fcm[cm] || fcm[cp]) {
+          Scal um = fcu[cm];
+          Scal up = fcu[cp];
+          if ((um == 0. || um == 1.) && (up == 0. || up == 1.) && (um != up)) {
+            fci[cm] = true;
+            fci[cp] = true;
+          }
+        }
       }
     }
   }
@@ -326,7 +394,7 @@ struct Vof<M_>::Imp {
 
     if (owner_->GetTime() == 0.) {
       if (sem.Nested("reconst")) {
-        Rec(fcu_[0].time_curr);
+        Rec(GetLayer(fcu_, Layers::time_curr));
       }
     }
   }
@@ -338,22 +406,28 @@ struct Vof<M_>::Imp {
       DumpPoly();
     }
     if (par->dumppart && dm && sem.Nested("part-dump")) {
-      psm_->DumpParticles(fca_, fcn_[0], par->dmp->GetN(), owner_->GetTime());
+      psm_->DumpParticles(fca_[0], fcn_[0], par->dmp->GetN(), owner_->GetTime());
     }
     if (par->dumppartinter && dm && sem.Nested("partinter-dump")) {
-      psm_->DumpPartInter(fca_, fcn_[0], par->dmp->GetN(), owner_->GetTime());
+      psm_->DumpPartInter(fca_[0], fcn_[0], par->dmp->GetN(), owner_->GetTime());
     }
   }
   void MakeIteration() {
     auto sem = m.GetSem("iter");
     if (sem("init")) {
-      auto& uc = fcu_[0].iter_curr;
-      const Scal dt = owner_->GetTimeStep();
-      auto& fcs = *owner_->fcs_;
-      for (auto c : m.Cells()) {
-        uc[c] = 
-            fcu_[0].time_prev[c] +  // previous time step
-            dt * fcs[c]; // source
+      for (size_t i = 0; i < fcu_.size(); ++i) {
+        auto& fcm = fcm_[i];
+        auto& fcu = fcu_[i];
+        auto& uc = fcu.iter_curr;
+        const Scal dt = owner_->GetTimeStep();
+        auto& fcs = *owner_->fcs_;
+        for (auto c : m.Cells()) {
+          if (fcm[c]) {
+            uc[c] = 
+                fcu.time_prev[c] +  // previous time step
+                dt * fcs[c]; // source
+          }
+        }
       }
     }
 
@@ -408,6 +482,7 @@ struct Vof<M_>::Imp {
 
         ffi_.Reinit(m);
         auto& fcn = fcn_[0];
+        auto& fca = fca_[0];
         auto& fci = fci_[0];
         for (auto f : m.Faces()) {
           auto p = bf.GetMIdxDir(f);
@@ -424,13 +499,13 @@ struct Vof<M_>::Imp {
           if (fci[cu]) { // cell contains interface, flux from reconstruction
             if (id % 2 == 0) { // Euler Implicit
               // phase 2 flux
-              ffvu[f] = R::GetLineFlux(fcn[cu], fca_[cu], h, v, dt, d);
+              ffvu[f] = R::GetLineFlux(fcn[cu], fca[cu], h, v, dt, d);
             } else { // Lagrange Explicit
               // XXX: if id % 2 == 1, fcfm_ and fcfp_ contain fluxes
               // upwind mixture flux
               Scal vu = (v > 0. ? fcfm_[cu] : fcfp_[cu]) * vsc;
               // phase 2 flux
-              ffvu[f] = R::GetLineFluxStr(fcn[cu], fca_[cu], h, v, vu, dt, d);
+              ffvu[f] = R::GetLineFluxStr(fcn[cu], fca[cu], h, v, vu, dt, d);
             }
             ffi_[f] = true;
           } else {
@@ -499,7 +574,7 @@ struct Vof<M_>::Imp {
         m.Comm(&uc);
       }
       if (sem.Nested("reconst")) {
-        Rec(fcu_[0].iter_curr);
+        Rec(GetLayer(fcu_, Layers::iter_curr));
       }
     }
     if (sem("stat")) {
@@ -566,7 +641,7 @@ struct Vof<M_>::Imp {
       }
     }
     if (par->part && sem.Nested("part")) {
-      psm_->Part(fcu_[0].iter_curr, fca_, fcn_[0], fci_[0], fck_, mfc_);
+      psm_->Part(fcu_[0].iter_curr, fca_[0], fcn_[0], fci_[0], fck_, mfc_);
     }
     if (sem.Nested("dump")) {
       Dump();
@@ -582,10 +657,11 @@ struct Vof<M_>::Imp {
   MapFace<std::shared_ptr<CondFace>> mfc_;
   MapFace<std::shared_ptr<CondFace>> mfvz_; // zero-derivative bc for Vect
 
-  FieldCell<Scal> fca_; // alpha (plane constant)
+  Multi<FieldCell<Scal>> fca_; // alpha (plane constant)
   Multi<FieldCell<Vect>> fcn_; // n (normal to plane)
   FieldCell<Scal> fck_; // curvature from height functions
   Multi<FieldCell<bool>> fci_; // interface mask (1: contains interface)
+  Multi<FieldCell<bool>> fcm_; // layer mask
   FieldFace<bool> ffi_; // interface mask (1: upwind cell contains interface)
   FieldCell<Vect> fcud2_; // volume fraction difference double
   FieldCell<Vect> fcud4_; // volume fraction difference quad
@@ -652,7 +728,7 @@ auto Vof<M_>::GetField(size_t i) const -> const FieldCell<Scal>& {
 template <class M_>
 auto Vof<M_>::GetAlpha(size_t i) const -> const FieldCell<Scal>& {
   (void) i;
-  return imp->fca_;
+  return imp->fca_[i];
 }
 
 template <class M_>
