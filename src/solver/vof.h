@@ -80,8 +80,8 @@ class Vof : public AdvectionSolver<M_> {
   void PostStep() override;
   // Volume fraction
   const FieldCell<Scal>& GetField(Layers l) const override;
-  // Volume fraction
   const FieldCell<Scal>& GetField(Layers l, size_t i) const;
+  const FieldCell<Scal>& GetField(size_t i) const;
   // ...
   using P::GetField;
   // Plane constant
