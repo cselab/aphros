@@ -16,6 +16,37 @@
 
 namespace solver {
 
+template <class T>
+class Multi {
+ public:
+  Multi() : d_(1) {}
+  Multi(size_t n) : d_(n) {}
+  T& operator[](size_t i) {
+    return d_[i];
+  }
+  const T& operator[](size_t i) const {
+    return d_[i];
+  }
+  std::vector<T*> GetPtr() {
+    std::vector<T*> r;
+    for (auto& a : d_) {
+      r.push_bask(&a);
+    }
+    return r;
+  }
+  std::vector<const T*> GetConstPtr() const {
+    std::vector<const T*> r;
+    for (auto& a : d_) {
+      r.push_bask(&a);
+    }
+    return r;
+  }
+
+ private:
+  std::vector<T> d_;
+};
+
+
 template <class M_>
 struct Vof<M_>::Imp {
   using Owner = Vof<M_>;
@@ -32,7 +63,7 @@ struct Vof<M_>::Imp {
       , mfc_(mfc), fca_(m, 0), fcn_(m, Vect(0)), fck_(m, 0)
       , fch_(m, Vect(0))
   {
-    fcu_.time_curr = fcu;
+    fcu_[0].time_curr = fcu;
     for (auto it : mfc_) {
       IdxFace f = it.GetIdx();
       mfvz_[f] = std::make_shared<
@@ -102,7 +133,7 @@ struct Vof<M_>::Imp {
       dlc_.clear();
       auto h = m.GetCellSize();
       for (auto c : m.AllCells()) {
-        Scal u = fcu_.iter_curr[c];
+        Scal u = fcu_[0].iter_curr[c];
         if (IsNan(u) || IsNan(fcn_[c]) || IsNan(fca_[c])) {
           continue;
         }
@@ -227,13 +258,13 @@ struct Vof<M_>::Imp {
     auto sem = m.GetSem("start");
     if (sem("rotate")) {
       owner_->ClearIter();
-      fcu_.time_prev = fcu_.time_curr;
-      fcu_.iter_curr = fcu_.time_prev;
+      fcu_[0].time_prev = fcu_[0].time_curr;
+      fcu_[0].iter_curr = fcu_[0].time_prev;
     }
 
     if (owner_->GetTime() == 0.) {
       if (sem.Nested("reconst")) {
-        Rec(fcu_.time_curr);
+        Rec(fcu_[0].time_curr);
       }
     }
   }
@@ -254,12 +285,12 @@ struct Vof<M_>::Imp {
   void MakeIteration() {
     auto sem = m.GetSem("iter");
     if (sem("init")) {
-      auto& uc = fcu_.iter_curr;
+      auto& uc = fcu_[0].iter_curr;
       const Scal dt = owner_->GetTimeStep();
       auto& fcs = *owner_->fcs_;
       for (auto c : m.Cells()) {
         uc[c] = 
-            fcu_.time_prev[c] +  // previous time step
+            fcu_[0].time_prev[c] +  // previous time step
             dt * fcs[c]; // source
       }
     }
@@ -304,7 +335,7 @@ struct Vof<M_>::Imp {
       if (sem("adv")) {
         Dir md(d); // direction as Dir
         MIdx wd(md); // offset in direction d
-        auto& uc = fcu_.iter_curr;
+        auto& uc = fcu_[0].iter_curr;
         auto& bc = m.GetIndexCells();
         auto& bf = m.GetIndexFaces();
         auto h = m.GetCellSize();
@@ -404,7 +435,7 @@ struct Vof<M_>::Imp {
         m.Comm(&uc);
       }
       if (sem.Nested("reconst")) {
-        Rec(fcu_.iter_curr);
+        Rec(fcu_[0].iter_curr);
       }
     }
     if (sem("stat")) {
@@ -413,14 +444,14 @@ struct Vof<M_>::Imp {
     }
   }
   void FinishStep() {
-    fcu_.time_curr = fcu_.iter_curr;
+    fcu_[0].time_curr = fcu_[0].iter_curr;
     owner_->IncTime();
   }
   void PostStep() {
     auto sem = m.GetSem("iter");
     // Curvature from gradient of volume fraction
     if (par->curvgrad && sem("curv")) {
-      auto ffu = Interpolate(fcu_.iter_curr, mfc_, m); // [s]
+      auto ffu = Interpolate(fcu_[0].iter_curr, mfc_, m); // [s]
       auto fcg = Gradient(ffu, m); // [s]
       auto ffg = Interpolate(fcg, mfvz_, m); // [i]
 
@@ -440,7 +471,7 @@ struct Vof<M_>::Imp {
       }
     }
     if (!par->curvgrad) {
-      auto& uc = fcu_.iter_curr;
+      auto& uc = fcu_[0].iter_curr;
       if (sem("diff2")) {
         CalcDiff2(uc, fcud2_);
         m.Comm(&fcud2_);
@@ -468,7 +499,7 @@ struct Vof<M_>::Imp {
       }
     }
     if (par->part && sem.Nested("part")) {
-      psm_->Part(fcu_.iter_curr, fca_, fcn_, fci_, fck_, mfc_);
+      psm_->Part(fcu_[0].iter_curr, fca_, fcn_, fci_, fck_, mfc_);
     }
     if (sem.Nested("dump")) {
       Dump();
@@ -480,7 +511,7 @@ struct Vof<M_>::Imp {
   std::shared_ptr<Par> par;
   M& m;
 
-  LayersData<FieldCell<Scal>> fcu_;
+  Multi<LayersData<FieldCell<Scal>>> fcu_;
   MapFace<std::shared_ptr<CondFace>> mfc_;
   MapFace<std::shared_ptr<CondFace>> mfvz_; // zero-derivative bc for Vect
 
@@ -538,13 +569,13 @@ void Vof<M_>::FinishStep() {
 
 template <class M_>
 auto Vof<M_>::GetField(Layers l) const -> const FieldCell<Scal>& {
-  return imp->fcu_.Get(l);
+  return imp->fcu_[0].Get(l);
 }
 
 template <class M_>
 auto Vof<M_>::GetField(Layers l, size_t i) const -> const FieldCell<Scal>& {
   (void) i;
-  return imp->fcu_.Get(l);
+  return imp->fcu_[0].Get(l);
 }
 
 template <class M_>
