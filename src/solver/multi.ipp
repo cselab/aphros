@@ -66,6 +66,17 @@ struct Multi<M_>::Imp {
           fcmask2_[c] = max;
         }
       }
+      if(0)
+      for (auto c : m.Cells()) {
+        if (I(c) && cl[c] == fcmask2_[c] && fcmask_[c] != kNone &&
+            fcmask_[c] != cl[c]) {
+          MIdx w = bc.GetMIdx(c);
+          for (MIdx wo : bo) {
+            IdxCell cn = bc.GetIdx(w + wo); 
+            fcmask2_[cn] = fcmask2_[c];
+          }
+        }
+      }
     }
   }
 
