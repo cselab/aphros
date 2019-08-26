@@ -3,7 +3,7 @@
 #include "lib.h"
 
 #define SIZE(a) (int)(sizeof(a)/sizeof(*(a)))
-#define MAX_N 10
+#define MAX_N 42
 enum {FREE = -1};
 
 static int root[MAX_N*MAX_N*MAX_N];

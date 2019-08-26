@@ -2,8 +2,6 @@
 #include <stdio.h>
 #include "lib.h"
 
-static int a[10*10*10];
-
 static int
 vtk(const char *path, int n, const int *a)
 {
@@ -28,7 +26,7 @@ vtk(const char *path, int n, const int *a)
 	return 1;
     }
     spa = 1.0/(n - 1);
-    org = 0.5 - spa/2;
+    org = -0.5 - spa/2;
     
     f = fopen(path, "w");
     if (!f) {
@@ -45,15 +43,17 @@ vtk(const char *path, int n, const int *a)
 int
 main()
 {
-    
+    int *a;
+    int i, j, m, lbl, n, cnt, ret;
     const char *in = "a.vtk", *out = "b.vtk";
-    int i, n, cnt, ret;
 
     ret = scanf("%d", &n);
     if (ret != 1) {
 	fprintf(stderr, "can't read n\n");
 	exit(2);
     }
+    a = malloc(n*n*n*sizeof(*a));
+    
     for (i = 0; i < n*n*n; i++) {
 	ret = scanf("%d", &a[i]);
 	if (ret != 1) {
@@ -66,5 +66,10 @@ main()
     vtk(out, n, a);
 
     fprintf(stderr, "%s %s\n", in, out);
-    fprintf(stderr, "cnt: %d\n", cnt);
+    for (lbl = -1; lbl < cnt; lbl++) {
+	for (m = j = 0; j < n*n*n; j++)
+	    if (a[j] == lbl)
+		m++;
+	fprintf(stderr, "%d : %d\n", lbl, m);
+    }
 }
