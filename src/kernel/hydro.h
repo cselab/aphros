@@ -90,6 +90,14 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   // ffvfsm: smoothed volume fraction on faces [a]
   void CalcSurfaceTension(const FieldCell<Scal>& fcvf,
                           const FieldFace<Scal>& ffvfsm);
+  // ffst: force projections to append
+  // fcu: volume fraction
+  // fck: curvature
+  // fcm: layer mask
+  // ffsig: surface tension coefficient
+  void AppendSurfaceTension(FieldFace<Scal>& ffst, 
+      const FieldCell<Scal>& fcu, const FieldCell<Scal>& fck, 
+      const FieldCell<bool>& fcm, const FieldFace<Scal>& ffsig);
   // Clips v to given range, uses const_cast
   void Clip(const FieldCell<Scal>& v, Scal min, Scal max);
   void CalcStat();
@@ -1045,6 +1053,29 @@ void Hydro<M>::Clip(const FieldCell<Scal>& f, Scal a, Scal b) {
 }
 
 template <class M>
+void Hydro<M>::AppendSurfaceTension(FieldFace<Scal>& ffst,
+    const FieldCell<Scal>& fcu, const FieldCell<Scal>& fck,
+    const FieldCell<bool>& fcm, const FieldFace<Scal>& ffsig) {
+  for (auto f : m.Faces()) {
+    IdxCell cm = m.GetNeighbourCell(f, 0);
+    IdxCell cp = m.GetNeighbourCell(f, 1);
+    if (fcm[cm] || fcm[cp]) {
+      // XXX requires consistent values in cm,cp (i.e. call of Propagate)
+      Scal um = fcu[cm];
+      Scal up = fcu[cp];
+      Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? fck[cm] : fck[cp]);
+      Scal hi = m.GetArea(f) / m.GetVolume(cp);
+      Scal ga = (up - um) * hi;
+      if (ga != 0.) {
+        k = (IsNan(k) ? 0 : k);
+        ffst[f] += ga * k * ffsig[f];
+      }
+    }
+  }
+}
+
+
+template <class M>
 void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
                                   const FieldFace<Scal>& ffvfsm) {
   // volume fration gradient on cells
@@ -1075,41 +1106,10 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
     ff_sig_.Reinit(m, 0);
     ff_sig_ = solver::Interpolate(fc_sig_, GetBcSz(), m);
 
-    auto& fck = as_->GetCurv(); // [a]
-    ffk_.Reinit(m, 0);
-    // interpolate curvature
-    for (auto f : m.Faces()) {
-      IdxCell cm = m.GetNeighbourCell(f, 0);
-      IdxCell cp = m.GetNeighbourCell(f, 1);
-      if (std::abs(fcvf[cm] - 0.5) < std::abs(fcvf[cp] - 0.5)) {
-        ffk_[f] = fck[cm];
-      } else {
-        ffk_[f] = fck[cp];
-      }
-    }
-    // neighbour cell for boundaries
-    for (auto it : mf_velcond_) {
-      IdxFace f = it.GetIdx();
-      IdxCell c = m.GetNeighbourCell(f, it.GetValue()->GetNci());
-      ffk_[f] = fck[c];
-    }
-    // compute force projections
-    for (auto f : m.Faces()) {
-      IdxCell cm = m.GetNeighbourCell(f, 0);
-      IdxCell cp = m.GetNeighbourCell(f, 1);
-      // XXX: adhoc uniform (should be half volume cp,cm)
-      Scal hr = m.GetArea(f) / m.GetVolume(cp);
-      Scal ga = (fcvf[cp] - fcvf[cm]) * hr; 
-      if (ga != 0.) {
-        if (IsNan(ffk_[f])) {
-          ffk_[f] = 0.;
-        }
-        ff_st[f] += ga * ffk_[f] * ff_sig_[f];
-      }
-    }
+    AppendSurfaceTension(ff_st, as_->GetField(), as_->GetCurv(),
+                         FieldCell<bool>(m, true), ff_sig_);
 
     // zero on boundaries
-    // TODO: test with bubble jump
     for (auto it : mf_velcond_) {
       IdxFace f = it.GetIdx();
       ff_st[f] = 0.;
