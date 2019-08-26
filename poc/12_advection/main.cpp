@@ -31,8 +31,6 @@
 #include "dump/dump.h"
 #include "dump/vtk.h"
 
-#include "cmp.h"
-
 template <class T>
 std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
   std::string p = "";

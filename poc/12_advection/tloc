@@ -1,5 +1,0 @@
-include std.conf
-
-set double tmax 0.3
-set double dump_field_dt 0.3
-set double dump_part_dt 0.3

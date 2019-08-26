@@ -18,15 +18,4 @@ echo $np > np
 ch.base
 ch.part $m $bs $np > mesh.conf
 
-ch.run ./t.advection "$c"
-
-a=0
-: ${r=reflong}
-for f in $r/*.dat ; do
-  echo $f
-  if ! ch.diffnum "${f#$r/}" "$f" 1e-11; then
-    a=1
-  fi
-done
-
-exit $a
+ch.run ./main "$c"
