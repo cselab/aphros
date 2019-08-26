@@ -65,11 +65,11 @@ main()
   COLOR_color(n, &cnt, a);
   vtk(out, n, a);
 
-  fprintf(stderr, "%s %s\n", in, out);
+  printf("%s %s\n", in, out);
   for (lbl = -1; lbl < cnt; lbl++) {
     for (m = j = 0; j < n*n*n; j++)
       if (a[j] == lbl)
         m++;
-    fprintf(stderr, "%d : %d\n", lbl, m);
+    printf("%d : %d\n", lbl, m);
   }
 }
