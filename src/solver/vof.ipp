@@ -135,6 +135,13 @@ void Propagate(FieldCell<bool>& mask, size_t sw, M& m) {
   }
 }
 
+template <class M>
+void Propagate(const Multi<FieldCell<bool>*>& mfc, size_t sw, M& m) {
+  for (auto p : mfc.data()) {
+    Propagate(*p, sw, m);
+  }
+}
+
 template <class T>
 Multi<FieldCell<T>*> GetLayer(Multi<LayersData<FieldCell<T>>>& u, Layers l) {
   Multi<FieldCell<T>*> r(u.size());
@@ -377,10 +384,11 @@ struct Vof<M_>::Imp {
     auto sem = m.GetSem("rec");
     if (sem("prop")) {
       Propagate(uc, fcm_, 2, m);
-      fcm
       for (auto u : uc.data()) {
         m.Comm(u);
       }
+      fcm2_ = fcm_;
+      Propagate(fcm2_, 1, m);
     }
     if (sem("detect")) {
       DetectInterface(uc);
@@ -391,19 +399,17 @@ struct Vof<M_>::Imp {
         auto& fca = fca_[i];
         auto& fci = fci_[i];
         auto& fcm = fcm_[i];
+        auto& fcm2 = fcm2_[i];
         auto& fcu = *uc[i];
         if (par->bcc_reflect) {
           BcReflect(fcu, mfc_, par->bcc_fill, m);
         }
-        auto fcm2 = fcm;
-        Propagate(fcm2, 1, m);
         // Compute normal and curvature [s]
         UNormal<M>::CalcNormal(m, fcu, And(fci, fcm2, m), par->dim, fcn);
-        auto h = m.GetCellSize();
         // Reconstruct interface [s]
         for (auto c : m.SuCells()) {
-          if (fcm[c]) {
-            fca[c] = R::GetLineA(fcn[c], fcu[c], h);
+          if (fcm2[c]) {
+            fca[c] = R::GetLineA(fcn[c], fcu[c], m.GetCellSize());
           }
         }
         if (par->bcc_reflect) {
@@ -441,12 +447,12 @@ struct Vof<M_>::Imp {
   void DetectInterface(const Multi<const FieldCell<Scal>*>& uc) {
     for (size_t i = 0; i < uc.size(); ++i) {
       auto& fci = fci_[i];
-      auto& fcm = fcm_[i];
+      auto& fcm2 = fcm2_[i];
       auto& fcu = *uc[i];
       fci.Reinit(m, false);
       // volume fraction different from 0 or 1
       for (auto c : m.AllCells()) {
-        if (fcm[c]) {
+        if (fcm2[c]) {
           Scal u = fcu[c];
           if (u > 0. && u < 1.) {
             fci[c] = true;
@@ -457,7 +463,7 @@ struct Vof<M_>::Imp {
       for (auto f : m.SuFaces()) {
         IdxCell cm = m.GetNeighbourCell(f, 0);
         IdxCell cp = m.GetNeighbourCell(f, 1);
-        if (fcm[cm] && fcm[cp]) {
+        if (fcm2[cm] && fcm2[cp]) {
           Scal um = fcu[cm];
           Scal up = fcu[cp];
           if ((um == 0. || um == 1.) && (up == 0. || up == 1.) && (um != up)) {
@@ -580,10 +586,8 @@ struct Vof<M_>::Imp {
           auto& fcn0 = fcn_[0];
           auto& fca0 = fca_[0];
           auto& fci = fci_[i];
-          auto& fcm = fcm_[i];
+          auto& fcm2 = fcm2_[i];
           auto& fcdp = fcdp_[i];
-          auto fcm2 = fcm;
-          Propagate(fcm2, 1, m);
           for (auto f : m.Faces()) {
             auto p = bf.GetMIdxDir(f);
             Dir df = p.second;
@@ -786,6 +790,7 @@ struct Vof<M_>::Imp {
   Multi<FieldCell<Scal>> fck_; // curvature from height functions
   Multi<FieldCell<bool>> fci_; // interface mask (1: contains interface)
   Multi<FieldCell<bool>> fcm_; // layer mask
+  Multi<FieldCell<bool>> fcm2_; // layer mask
   Multi<FieldCell<bool>> fcdp_; // dependent cells with mask=0
   FieldFace<bool> ffi_; // interface mask (1: upwind cell contains interface)
   FieldCell<Vect> fcud2_; // volume fraction difference double
