@@ -1,7 +1,6 @@
-#undef NDEBUG
-#include "geom/mesh.h"
+#include <geom/mesh.h>
 
-const int dim = 3, edim = 2;
+const int dim = 3;
 using MIdx = GMIdx<dim>;
 using Dir = GDir<dim>;
 using Scal = double;
