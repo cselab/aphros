@@ -8,7 +8,7 @@
 #include <hdf5_hl.h>
 
 #include "h5.h"
-#include "h5read.h"
+#include "h5serial.h"
 
 #ifndef H5_HAVE_PARALLEL
 #error needs parallel HDF5
