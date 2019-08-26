@@ -6,7 +6,7 @@ include(h5.dep.cmake)
 
 set(T h5)
 set(H h5.h h5serial.h)
-add_library(${T} SHARED h5.c h5.h h5serial.h)
+add_library(${T} SHARED main.c h5.h h5serial.h)
 set_target_properties(${T} PROPERTIES PUBLIC_HEADER "${H}")
 target_link_libraries(${T} PUBLIC hdf)
 target_include_directories(${T} PUBLIC "${CHPREFIX}/include")
