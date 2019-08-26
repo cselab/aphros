@@ -8,6 +8,7 @@ BEGIN {
 
 {
     sub(/^\.\//, "")
+    if (/^test\//) next
     printf "install(FILES %s DESTINATION ${CHPREFIX}/include/hydro/%s)\n",
         $0, dirname($0) | "sort"
 }
