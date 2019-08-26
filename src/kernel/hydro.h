@@ -1455,6 +1455,7 @@ void Hydro<M>::DumpFields() {
       if (dl.count("hy")) m.Dump(&h, 1, "hy");
       if (dl.count("hz")) m.Dump(&h, 2, "hz");
 
+      if (dl.count("vf1")) m.Dump(&as->GetField(0), "vf1");
       if (dl.count("vf2")) m.Dump(&as->GetField(1), "vf2");
     }
     if (mul_ && dl.count("mul")) m.Dump(&mul_->GetMask(), "mul");
