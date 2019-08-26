@@ -167,28 +167,33 @@ struct Vof<M_>::Imp {
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m)
-      , mfc_(mfc), fck_(m, 0)
-      , fch_(m, Vect(0))
+      , mfc_(mfc), fch_(m, Vect(0))
   {
-    fcu_.resize(2);
+    fcu_.resize(4);
     fcn_.resize(fcu_.size());
     fca_.resize(fcu_.size());
     fci_.resize(fcu_.size());
     fcm_.resize(fcu_.size());
+    fck_.resize(fcu_.size());
+    psm_.resize(fcu_.size());
 
     fcn_.InitAll(FieldCell<Vect>(m, Vect(0)));
     fca_.InitAll(FieldCell<Scal>(m, 0));
+    fck_.InitAll(FieldCell<Scal>(m, 0));
+
     fcus_.time_curr = fcu;
     fcu_[0].time_curr.Reinit(m, 0);
-    fcu_[1].time_curr.Reinit(m, 0);
+    fcu_.InitAll(fcu_[0]);
     fcm_.InitAll(FieldCell<bool>(m, false));
     for (auto c : m.AllCells()) {
       fcm_[0][c] = true;
-      if (m.GetCenter(c)[1] < 0.5) {
-        fcu_[0].time_curr[c] = fcu[c];
-      } else {
-        fcu_[1].time_curr[c] = fcu[c];
-        fcm_[1][c] = true;
+      size_t x = (m.GetCenter(c)[0] < 0.5 ? 0 : 1);
+      size_t y = (m.GetCenter(c)[1] < 0.5 ? 0 : 1);
+      for (size_t i = 0; i < fcu_.size(); ++i) {
+        if (i == (x + (y << 1))) {
+          fcu_[i].time_curr[c] = fcu[c];
+          fcm_[i][c] = true;
+        }
       }
     }
     for (auto it : mfc_) {
@@ -210,7 +215,9 @@ struct Vof<M_>::Imp {
     psm->bcc_reflect = par->bcc_reflect;
     psm->dump_fr = par->part_dump_fr;
     psm->maxr = par->part_maxr;
-    psm_ = std::unique_ptr<PSM>(new PSM(m, psm));
+    for (auto& p : psm_.data()) {
+      p = std::unique_ptr<PSM>(new PSM(m, psm));
+    }
   }
   void Update(typename PS::Par* p) const {
     Scal hc = m.GetCellSize().norminf(); // cell size
@@ -440,11 +447,15 @@ struct Vof<M_>::Imp {
     if (par->dumppoly && dm && sem.Nested("dumppoly")) {
       DumpPoly();
     }
-    if (par->dumppart && dm && sem.Nested("part-dump")) {
-      psm_->DumpParticles(fca_[0], fcn_[0], par->dmp->GetN(), owner_->GetTime());
-    }
-    if (par->dumppartinter && dm && sem.Nested("partinter-dump")) {
-      psm_->DumpPartInter(fca_[0], fcn_[0], par->dmp->GetN(), owner_->GetTime());
+    for (size_t i = 0; i < fcu_.size(); ++i) {
+      if (par->dumppart && dm && sem.Nested("part-dump")) {
+        psm_[i]->DumpParticles(
+            fca_[i], fcn_[i], par->dmp->GetN(), owner_->GetTime());
+      }
+      if (par->dumppartinter && dm && sem.Nested("partinter-dump")) {
+        psm_[i]->DumpPartInter(
+            fca_[i], fcn_[i], par->dmp->GetN(), owner_->GetTime());
+      }
     }
   }
   void MakeIteration() {
@@ -642,56 +653,56 @@ struct Vof<M_>::Imp {
     auto sem = m.GetSem("iter");
     // Curvature from gradient of volume fraction
     if (par->curvgrad && sem("curv")) {
-      auto ffu = Interpolate(fcu_[0].iter_curr, mfc_, m); // [s]
-      auto fcg = Gradient(ffu, m); // [s]
-      auto ffg = Interpolate(fcg, mfvz_, m); // [i]
+      for (size_t i = 0; i < fcu_.size(); ++i) {
+        auto ffu = Interpolate(fcu_[i].iter_curr, mfc_, m); // [s]
+        auto fcg = Gradient(ffu, m); // [s]
+        auto ffg = Interpolate(fcg, mfvz_, m); // [i]
 
-      fck_.Reinit(m, GetNan<Scal>()); // curvature [i]
-      auto& fci = fci_[0];
-      for (auto c : m.Cells()) {
-        if (!fci[c]) {
-          continue;
+        auto& fck = fck_[i];
+        fck.Reinit(m, GetNan<Scal>()); // curvature [i]
+
+        auto& fci = fci_[i];
+        for (auto c : m.Cells()) {
+          if (!fci[c]) {
+            continue;
+          }
+          Scal s = 0.;
+          for (auto q : m.Nci(c)) {
+            IdxFace f = m.GetNeighbourFace(c, q);
+            auto& g = ffg[f];
+            auto n = g / g.norm();  // inner normal
+            s += -n.dot(m.GetOutwardSurface(c, q));
+          }
+          fck[c] = s / m.GetVolume(c);
         }
-        Scal s = 0.;
-        for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
-          auto& g = ffg[f];
-          auto n = g / g.norm();  // inner normal
-          s += -n.dot(m.GetOutwardSurface(c, q));
-        }
-        fck_[c] = s / m.GetVolume(c);
       }
     }
     if (!par->curvgrad) {
-      auto& uc = fcu_[0].iter_curr;
-      if (sem("diff2")) {
-        CalcDiff2(uc, fcud2_);
-        m.Comm(&fcud2_);
-      }
-      if (sem("diff4")) {
-        CalcDiff4(uc, fcud2_, fcud4_);
-        m.Comm(&fcud4_);
-      }
-      /*
-      if (sem("diff6")) {
-        CalcDiff6(uc, fcud4_, fcud6_);
-        m.Comm(&fcud6_);
-      }
-      */
-      if (sem("height")) {
-        //UNormal<M>::CalcHeight(
-        //    m, uc, fcud2_, fcud4_, fcud6_, par->dim, fch_);
-        UNormal<M>::CalcHeight(m, uc, fcud2_, fcud4_, par->dim, fch_);
-        //UNormal<M>::CalcHeight(m, uc, fcud2_, par->dim, fch_);
-        m.Comm(&fch_);
-      }
-      if (sem("curvcomm")) {
-        UNormal<M>::CalcCurvHeight(m, uc, fch_, fcn_[0], par->dim, fck_);
-        m.Comm(&fck_);
+      for (size_t i = 0; i < fcu_.size(); ++i) {
+        auto& uc = fcu_[i].iter_curr;
+        if (sem("diff2")) {
+          CalcDiff2(uc, fcud2_);
+          m.Comm(&fcud2_);
+        }
+        if (sem("diff4")) {
+          CalcDiff4(uc, fcud2_, fcud4_);
+          m.Comm(&fcud4_);
+        }
+        if (sem("height")) {
+          UNormal<M>::CalcHeight(m, uc, fcud2_, fcud4_, par->dim, fch_);
+          m.Comm(&fch_);
+        }
+        if (sem("curvcomm")) {
+          UNormal<M>::CalcCurvHeight(m, uc, fch_, fcn_[i], par->dim, fck_[i]);
+          m.Comm(&fck_[i]);
+        }
       }
     }
-    if (par->part && sem.Nested("part")) {
-      psm_->Part(fcu_[0].iter_curr, fca_[0], fcn_[0], fci_[0], fck_, mfc_);
+    for (size_t i = 0; i < fcu_.size(); ++i) {
+      if (par->part && sem.Nested("part")) {
+        psm_[i]->Part(
+            fcu_[i].iter_curr, fca_[i], fcn_[i], fci_[i], fck_[i], mfc_);
+      }
     }
     if (sem.Nested("dump")) {
       Dump();
@@ -710,7 +721,7 @@ struct Vof<M_>::Imp {
 
   Multi<FieldCell<Scal>> fca_; // alpha (plane constant)
   Multi<FieldCell<Vect>> fcn_; // n (normal to plane)
-  FieldCell<Scal> fck_; // curvature from height functions
+  Multi<FieldCell<Scal>> fck_; // curvature from height functions
   Multi<FieldCell<bool>> fci_; // interface mask (1: contains interface)
   Multi<FieldCell<bool>> fcm_; // layer mask
   FieldFace<bool> ffi_; // interface mask (1: upwind cell contains interface)
@@ -724,7 +735,7 @@ struct Vof<M_>::Imp {
   std::vector<Scal> dlc_; // dump poly cell
   std::vector<Scal> dll_; // dump poly layer
 
-  std::unique_ptr<PartStrMesh<M>> psm_;
+  Multi<std::unique_ptr<PartStrMesh<M>>> psm_;
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
 };
@@ -805,13 +816,13 @@ auto Vof<M_>::GetHeight() const -> const FieldCell<Vect>& {
 
 template <class M_>
 auto Vof<M_>::GetCurv() const -> const FieldCell<Scal>& {
-  return imp->par->part_k ? imp->psm_->GetCurv() : imp->fck_;
+  return imp->par->part_k ? imp->psm_[0]->GetCurv() : imp->fck_[0];
 }
 
 template <class M_>
 auto Vof<M_>::GetCurv(size_t i) const -> const FieldCell<Scal>& {
   (void) i;
-  return imp->par->part_k ? imp->psm_->GetCurv() : imp->fck_;
+  return imp->par->part_k ? imp->psm_[i]->GetCurv() : imp->fck_[i];
 }
 
 template <class M_>
@@ -823,13 +834,13 @@ void Vof<M_>::PostStep() {
 // curvature from height function
 template <class M_>
 auto Vof<M_>::GetCurvH() const -> const FieldCell<Scal>& {
-  return imp->fck_;
+  return imp->fck_[0];
 }
 
 // curvature from particles
 template <class M_>
 auto Vof<M_>::GetCurvP() const -> const FieldCell<Scal>& {
-  return imp->psm_->GetCurv();
+  return imp->psm_[0]->GetCurv();
 }
 
 } // namespace solver
