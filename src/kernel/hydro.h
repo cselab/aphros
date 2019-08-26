@@ -253,7 +253,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fcbc_; // boundary condition type by GetBcField()
   FieldCell<Scal> fc_strain_; // double inner product of strain rate tensor
   FieldCell<Scal> fctmp_;    // temporary scalar field
-  FieldCell<Scal> fctmp2_;    // temporary scalar field
+  FieldCell<Scal> fctmp2_, fctmp3_, fctmp4_;    // temporary scalar field
   FieldCell<Vect> fctmpv_;   // temporary vector field
   FieldCell<Vect> fcvcurl_;  // curl-component of velocity
   FieldCell<Scal> fcdiv_;  // divergence of velocity
@@ -1447,19 +1447,31 @@ void Hydro<M>::DumpFields() {
 
       if (dl.count("vf1")) m.Dump(&as->GetField(0), "vf1");
       if (dl.count("vf2")) m.Dump(&as->GetField(1), "vf2");
-      if (dl.count("mask1")) { 
-        fctmp_.Reinit(m);
+
+      auto B2S = [this](FieldCell<bool> fcb) -> FieldCell<Scal> {
+        FieldCell<Scal> r(m);
         for (auto c : m.Cells()) {
-          fctmp_[c] = (as->GetMask(0)[c] ? 1. : 0.);
+          r[c] = (fcb[c] ? 1. : 0.);
         }
+        return r;
+      };
+
+      if (dl.count("mask1")) { 
+        fctmp_ = B2S(as->GetMask(0));
         m.Dump(&fctmp_, "mask1");
       }
       if (dl.count("mask2")) { 
-        fctmp2_.Reinit(m);
-        for (auto c : m.Cells()) {
-          fctmp2_[c] = (as->GetMask(1)[c] ? 1. : 0.);
-        }
+        fctmp2_ = B2S(as->GetMask(1));
         m.Dump(&fctmp2_, "mask2");
+      }
+
+      if (dl.count("dep1")) { 
+        fctmp3_ = B2S(as->GetDepend(0));
+        m.Dump(&fctmp3_, "dep1");
+      }
+      if (dl.count("dep2")) { 
+        fctmp4_ = B2S(as->GetDepend(1));
+        m.Dump(&fctmp4_, "dep2");
       }
     }
     if (mul_ && dl.count("mul")) m.Dump(&mul_->GetMask(), "mul");

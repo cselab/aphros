@@ -81,9 +81,10 @@ class Multi {
 // in stencil around each cell with mask=1.
 // mfc: fields to propagate
 // mask: if true, copy values from layer 0 in stencil 1.
+// sw: stencil halfwidth
 template <class M>
 void Propagate(Multi<FieldCell<typename M::Scal>*> mfc,
-               const Multi<FieldCell<bool>*>& mask, M& m) {
+               const Multi<FieldCell<bool>*>& mask, size_t sw, M& m) {
 
   if (!mfc.size()) {
     return;
@@ -91,7 +92,6 @@ void Propagate(Multi<FieldCell<typename M::Scal>*> mfc,
 
   using MIdx = typename M::MIdx;
   auto& bc = m.GetIndexCells();
-  const int sw = 2; // stencil halfwidth
   const int sn = sw * 2 + 1;
   // block of offsets
   GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn)); 
@@ -174,6 +174,8 @@ struct Vof<M_>::Imp {
     fca_.resize(fcu_.size());
     fci_.resize(fcu_.size());
     fcm_.resize(fcu_.size());
+    fcm2_.resize(fcu_.size());
+    fcdp_.resize(fcu_.size());
     fck_.resize(fcu_.size());
     psm_.resize(fcu_.size());
 
@@ -185,6 +187,9 @@ struct Vof<M_>::Imp {
     fcu_[0].time_curr.Reinit(m, 0);
     fcu_.InitAll(fcu_[0]);
     fcm_.InitAll(FieldCell<bool>(m, false));
+    fcm2_.InitAll(FieldCell<bool>(m, false));
+    fcdp_.InitAll(FieldCell<bool>(m, false));
+    /*
     for (auto c : m.AllCells()) {
       fcm_[0][c] = true;
       size_t x = (m.GetCenter(c)[0] < 0.5 ? 0 : 1);
@@ -196,6 +201,19 @@ struct Vof<M_>::Imp {
         }
       }
     }
+    */
+    for (auto c : m.AllCells()) {
+      fcm_[0][c] = true;
+      size_t x = (m.GetCenter(c)[0] < 0.5 ? 1 : 0);
+      size_t x2 = (m.GetCenter(c)[0] > 0.35 ? 1 : 0);
+      if (x && x2) {
+        fcu_[1].time_curr[c] = fcu[c];
+        fcm_[1][c] = true;
+      } else {
+        fcu_[0].time_curr[c] = fcu[c];
+      }
+    }
+
     for (auto it : mfc_) {
       IdxFace f = it.GetIdx();
       mfvz_[f] = std::make_shared<
@@ -357,8 +375,17 @@ struct Vof<M_>::Imp {
   // reconstruct interface
   void Rec(const Multi<FieldCell<Scal>*>& uc) {
     auto sem = m.GetSem("rec");
-    if (sem("local")) {
+    if (sem("prop")) {
+      Propagate(uc, fcm_, 2, m);
+      fcm
+      for (auto u : uc.data()) {
+        m.Comm(u);
+      }
+    }
+    if (sem("detect")) {
       DetectInterface(uc);
+    }
+    if (sem("local")) {
       for (size_t i = 0; i < uc.size(); ++i) {
         auto& fcn = fcn_[i];
         auto& fca = fca_[i];
@@ -368,9 +395,10 @@ struct Vof<M_>::Imp {
         if (par->bcc_reflect) {
           BcReflect(fcu, mfc_, par->bcc_fill, m);
         }
+        auto fcm2 = fcm;
+        Propagate(fcm2, 1, m);
         // Compute normal and curvature [s]
-        //Propagate(GetLayer(fcu_, Layers::time_curr), fcm_, m);
-        UNormal<M>::CalcNormal(m, fcu, And(fci, fcm, m), par->dim, fcn);
+        UNormal<M>::CalcNormal(m, fcu, And(fci, fcm2, m), par->dim, fcn);
         auto h = m.GetCellSize();
         // Reconstruct interface [s]
         for (auto c : m.SuCells()) {
@@ -382,8 +410,33 @@ struct Vof<M_>::Imp {
           BcReflect(fca, mfc_, Scal(0), m);
           BcReflect(fcn, mfc_, Vect(0), m);
         }
+        auto& fcn0 = fcn_[0];
+        auto& fca0 = fca_[0];
+        for (auto c : m.SuCells()) {
+          if (fcm2[c] && !fcm[c]) {
+            fcn0[c] = fcn[c];
+            fca0[c] = fca[c];
+          }
+        }
       }
     }
+    /*
+    if (sem("prop")) {
+      auto& fcu0 = *uc[0];
+      for (size_t i = 1; i < uc.size(); ++i) {
+        auto& fcu = *uc[i];
+        auto& fcm = fcm_[i];
+        for (auto c : m.Cells()) {
+          if (fcu0[c] == fcu[c]) {
+            fcm[c] = false;
+          }
+        }
+        //Propagate(fcm, 1, m);
+        m.Comm(uc[i]);
+      }
+      //Propagate(uc, fcm_, m);
+    }
+    */
   }
   void DetectInterface(const Multi<const FieldCell<Scal>*>& uc) {
     for (size_t i = 0; i < uc.size(); ++i) {
@@ -404,7 +457,7 @@ struct Vof<M_>::Imp {
       for (auto f : m.SuFaces()) {
         IdxCell cm = m.GetNeighbourCell(f, 0);
         IdxCell cp = m.GetNeighbourCell(f, 1);
-        if (fcm[cm] || fcm[cp]) {
+        if (fcm[cm] && fcm[cp]) {
           Scal um = fcu[cm];
           Scal up = fcu[cp];
           if ((um == 0. || um == 1.) && (up == 0. || up == 1.) && (um != up)) {
@@ -413,13 +466,6 @@ struct Vof<M_>::Imp {
           }
         }
       }
-      fcm.Reinit(m, false);
-      for (auto c : m.AllCells()) {
-        if (fcu[c] > 0) {
-          fcm[c] = true;
-        }
-      }
-      Propagate(fcm, 1, m);
     }
   }
   void StartStep() {
@@ -499,6 +545,7 @@ struct Vof<M_>::Imp {
       } 
       vsc = 1.0;
     }
+    dd = {0}; // XXX
     for (size_t id = 0; id < dd.size(); ++id) {
       size_t d = dd[id]; // direction as index
       if (sem("copyface")) {
@@ -530,7 +577,13 @@ struct Vof<M_>::Imp {
           auto& fcu = fcu_[i].iter_curr;
           auto& fcn = fcn_[i];
           auto& fca = fca_[i];
+          auto& fcn0 = fcn_[0];
+          auto& fca0 = fca_[0];
           auto& fci = fci_[i];
+          auto& fcm = fcm_[i];
+          auto& fcdp = fcdp_[i];
+          auto fcm2 = fcm;
+          Propagate(fcm2, 1, m);
           for (auto f : m.Faces()) {
             auto p = bf.GetMIdxDir(f);
             Dir df = p.second;
@@ -543,21 +596,29 @@ struct Vof<M_>::Imp {
             const Scal v = ffv[f] * vsc;
             // upwind cell
             IdxCell cu = m.GetNeighbourCell(f, v > 0. ? 0 : 1);
-            if (fci[cu]) { // cell contains interface, flux from reconstruction
-              if (id % 2 == 0) { // Euler Implicit
-                // phase 2 flux
-                ffvu[f] = R::GetLineFlux(fcn[cu], fca[cu], h, v, dt, d);
-              } else { // Lagrange Explicit
-                // XXX: if id % 2 == 1, fcfm_ and fcfp_ contain fluxes
-                // upwind mixture flux
-                Scal vu = (v > 0. ? fcfm_[cu] : fcfp_[cu]) * vsc;
-                // phase 2 flux
-                ffvu[f] = R::GetLineFluxStr(fcn[cu], fca[cu], h, v, vu, dt, d);
+            // downwind cell
+            IdxCell cd = m.GetNeighbourCell(f, v > 0. ? 1 : 0);
+            if (fcm2[cu] || fcm2[cd]) {
+              fcdp[cu] = true;
+              fcdp[cd] = true;
+              if (fci[cu]) { // cell contains interface, flux from reconstruction
+                Vect n = (fcm2[cu] ? fcn[cu] : fcn0[cu]);
+                Scal a = (fcm2[cu] ? fca[cu] : fca0[cu]);
+                if (id % 2 == 0) { // Euler Implicit
+                  // phase 2 flux
+                  ffvu[f] = R::GetLineFlux(n, a, h, v, dt, d);
+                } else { // Lagrange Explicit
+                  // XXX: if id % 2 == 1, fcfm_ and fcfp_ contain fluxes
+                  // upwind mixture flux
+                  Scal vu = (v > 0. ? fcfm_[cu] : fcfp_[cu]) * vsc;
+                  // phase 2 flux
+                  ffvu[f] = R::GetLineFluxStr(n, a, h, v, vu, dt, d);
+                }
+                ffi_[f] = true;
+              } else {
+                ffvu[f] = v * fcu[cu];
+                ffi_[f] = false;
               }
-              ffi_[f] = true;
-            } else {
-              ffvu[f] = v * fcu[cu];
-              ffi_[f] = false;
             }
           }
 
@@ -576,6 +637,7 @@ struct Vof<M_>::Imp {
             }
           }
 
+          if(0) // XXX
           for (auto c : m.Cells()) {
             auto w = bc.GetMIdx(c);
             const Scal lc = m.GetVolume(c);
@@ -724,6 +786,7 @@ struct Vof<M_>::Imp {
   Multi<FieldCell<Scal>> fck_; // curvature from height functions
   Multi<FieldCell<bool>> fci_; // interface mask (1: contains interface)
   Multi<FieldCell<bool>> fcm_; // layer mask
+  Multi<FieldCell<bool>> fcdp_; // dependent cells with mask=0
   FieldFace<bool> ffi_; // interface mask (1: upwind cell contains interface)
   FieldCell<Vect> fcud2_; // volume fraction difference double
   FieldCell<Vect> fcud4_; // volume fraction difference quad
@@ -797,6 +860,11 @@ auto Vof<M_>::GetAlpha(size_t i) const -> const FieldCell<Scal>& {
 template <class M_>
 auto Vof<M_>::GetMask(size_t i) const -> const FieldCell<bool>& {
   return imp->fcm_[i];
+}
+
+template <class M_>
+auto Vof<M_>::GetDepend(size_t i) const -> const FieldCell<bool>& {
+  return imp->fcdp_[i];
 }
 
 template <class M_>
