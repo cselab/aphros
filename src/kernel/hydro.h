@@ -1070,12 +1070,13 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
       fc_force_[c] += r * fc_sig_[c];
     }
   } else if (st == "kn") {  // curvature * normal
-    auto& fck = as_->GetCurv(); // [a]
     FieldFace<Scal> ff_st(m, 0.);  // surface tension projections
 
-    ffk_.Reinit(m, 0);
     ff_sig_.Reinit(m, 0);
     ff_sig_ = solver::Interpolate(fc_sig_, GetBcSz(), m);
+
+    auto& fck = as_->GetCurv(); // [a]
+    ffk_.Reinit(m, 0);
     // interpolate curvature
     for (auto f : m.Faces()) {
       IdxCell cm = m.GetNeighbourCell(f, 0);
@@ -1093,9 +1094,6 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
       ffk_[f] = fck[c];
     }
     // compute force projections
-    size_t nan = 0;
-    IdxFace fnan(0);
-    bool report_knan = var.Int["report_knan"];
     for (auto f : m.Faces()) {
       IdxCell cm = m.GetNeighbourCell(f, 0);
       IdxCell cp = m.GetNeighbourCell(f, 1);
@@ -1104,27 +1102,12 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
       Scal ga = (fcvf[cp] - fcvf[cm]) * hr; 
       if (ga != 0.) {
         if (IsNan(ffk_[f])) {
-          ++nan;
-          fnan = f;
           ffk_[f] = 0.;
         }
         ff_st[f] += ga * ffk_[f] * ff_sig_[f];
       }
     }
-    if (report_knan && nan) {
-      auto f = fnan;
-      IdxCell cm = m.GetNeighbourCell(f, 0);
-      IdxCell cp = m.GetNeighbourCell(f, 1);
-      std::stringstream s;
-      s.precision(16);
-      s << "nan curvature in " << nan 
-          << " faces, one at x=" << m.GetCenter(f)
-          << " vf[cm]=" << fcvf[cm]
-          << " vf[cp]=" << fcvf[cp]
-          << " fck[cm]=" << fck[cm]
-          << " fck[cp]=" << fck[cp];
-      std::cout << s.str() << std::endl;
-    }
+
     // zero on boundaries
     // TODO: test with bubble jump
     for (auto it : mf_velcond_) {
