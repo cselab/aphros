@@ -16,7 +16,7 @@
 
 const char *Name = "data";
 
-#define MAX_SIZE 4096
+enum {MAX_SIZE = 4096};
 #define WARN(x) do {                                    \
     fprintf(stderr, "%s:%d: ", __FILE__, __LINE__);     \
     dprint x;                                           \
@@ -178,7 +178,8 @@ h5_xmf(const char *path, const char *name, const double origin[3], double spacin
   return 0;
 }
 
-int h5_hdf(MPI_Comm comm, const char *path, const int size[3], const int start[3], const int extent[3], const double *buf)
+int
+h5_hdf(MPI_Comm comm, const char *path, const int size[3], const int start[3], const int extent[3], const double *buf)
 {
   hid_t file, err;
   int status;
@@ -210,7 +211,8 @@ h5_silence(void)
   return H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
 }
 
-void reset_line_end(char *s)
+static void
+reset_line_end(char *s)
 {
     for (;;) {
 	if (*s == '\0') break;
@@ -222,7 +224,8 @@ void reset_line_end(char *s)
     }
 }
 
-char *next_line(char *s) {
+static char*
+next_line(char *s) {
     for (; ; s++) {
 	if (*s == '\0')
 	    return s;
@@ -231,7 +234,9 @@ char *next_line(char *s) {
     }
 }
 
-char *to_quote(char *s, char *out) {
+static char*
+to_quote(char *s, char *out)
+{
     for (;;) {
 	if (*s == '\0' || *s == '"') {
 	    *out = '\0';
@@ -366,7 +371,8 @@ err:
     return 1;
 }
 
-int h5_read_hdf(const char *path, /**/ int size[3], double **pbuf)
+int
+h5_read_hdf(const char *path, /**/ int size[3], double **pbuf)
 {
     enum {X, Y, Z};
     enum {I = Z, J = Y, K = X};
@@ -426,5 +432,34 @@ int h5_read_hdf(const char *path, /**/ int size[3], double **pbuf)
     return 0;
 err:
     return 1;
+}
 
+int
+h5_serial_hdf(const char *path, const char *name, const int size0[3], const double *buf)
+{
+    enum {X, Y, Z};
+    herr_t status;
+    hid_t file;
+    char full[MAX_SIZE];
+    int dimensions = 3;
+    const hsize_t size[] = {size0[X], size0[Y], size0[Z]};
+    
+    h5_strcat(path, ".h5", full);
+    file = H5Fcreate(full, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    if (file < 0) {
+	WARN(("read_dataset_double failed for '%s'", full));
+	goto err;
+    }
+    status = H5LTmake_dataset(file, name, dimensions, size, H5T_NATIVE_DOUBLE, buf);
+    if (status < 0) {
+	WARN(("ake_dataset failed for '%s'", full));
+	goto err;
+    }
+    status = H5Fclose(file);
+    if (status < 0) {
+	WARN(("close failed for '%s'", full));
+	goto err;
+    }
+err:
+    return 1;
 }
