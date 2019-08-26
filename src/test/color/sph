@@ -1,0 +1,42 @@
+#!/usr/bin/awk -f
+
+function f() {
+    #return sph(0, 0, 0, 0.6)
+    return cyl(Y, -0.5, 0, 0.25) || cyl(Y, 0.5, 0, 0.25) || sph(0, 0, 0, 0.2)
+}
+
+BEGIN {
+    X = 0; Y = 1; Z = 2
+    n = 20
+    for (m = i = 0; i < n; i++)
+        for (j = 0; j < n; j++)
+            for (k = 0; k < n; k++) {
+                x = c(i); y = c(j); z = c(k)
+                a[m++] = f() ? 0 :  -1
+            }
+    print n
+    for (i = 0; i in a; i++)
+        print a[i]
+}
+
+function c(i) { return i/(n-1) - 1/2 }
+function sph(u, v, w, r) {
+    u -= x
+    v -= y
+    w -= z
+    return u*u + v*v + w*w < r*r
+}
+
+function cyl(D, u, v, r) {
+    if (D == X) {
+        u -= y
+        v -= z
+    } else if (D == Y) {
+        u -= x
+        v -= z
+    } else if (D == Z) {
+        u -= y
+        v -= z
+    }
+    return u*u + v*v < r*r
+}

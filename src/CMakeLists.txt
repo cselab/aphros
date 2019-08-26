@@ -40,6 +40,7 @@ add_subdirectory(parse)
 add_subdirectory(dump)
 add_subdirectory(overlap)
 add_subdirectory(young)
+add_subdirectory(color)
 
 # hydro
 set(T "hydro")
