@@ -26,7 +26,7 @@ main(int argc, char **argv)
 
     h5_silence();
     status = h5_read_hdf(*argv, size, &buf);
-    if (!status) {
+    if (status != 0) {
 	fprintf(stderr, "h5_read_hdf failed\n");
 	return 2;
     }
