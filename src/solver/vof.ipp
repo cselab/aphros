@@ -258,19 +258,24 @@ struct Vof<M_>::Imp {
     if (sem("local")) {
       dl_.clear();
       dlc_.clear();
+      dll_.clear();
       auto h = m.GetCellSize();
-      auto& fcn = fcn_[0];
-      auto& fca = fca_[0];
-      auto& fci = fci_[0];
-      for (auto c : m.AllCells()) {
-        Scal u = fcu_[0].iter_curr[c];
-        if (IsNan(u) || IsNan(fcn[c]) || IsNan(fca[c])) {
-          continue;
-        }
-        const Scal th = par->poly_intth;
-        if (fci[c] && u > th && u < 1. - th) {
-          dl_.push_back(R::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h));
-          dlc_.push_back(m.GetHash(c));
+      for (size_t i = 0; i < fcu_.size(); ++i) {
+        auto& fcn = fcn_[i];
+        auto& fca = fca_[i];
+        auto& fci = fci_[i];
+        auto& fcu = fcu_[i].iter_curr;
+        for (auto c : m.Cells()) {
+          Scal u = fcu[c];
+          if (IsNan(u) || IsNan(fcn[c]) || IsNan(fca[c])) {
+            continue;
+          }
+          const Scal th = par->poly_intth;
+          if (fci[c] && u > th && u < 1. - th) {
+            dl_.push_back(R::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h));
+            dlc_.push_back(m.GetHash(c));
+            dll_.push_back(i);
+          }
         }
       }
       using TV = typename M::template OpCatVT<Vect>;
@@ -285,7 +290,7 @@ struct Vof<M_>::Imp {
             << "dump" 
             << " t=" << owner_->GetTime() + owner_->GetTimeStep()
             << " to " << fn << std::endl;
-        WriteVtkPoly(fn, dl_, {&dlc_}, {"c"}, 
+        WriteVtkPoly(fn, dl_, {&dlc_, &dll_}, {"c", "l"}, 
             "Reconstructed linear interface", true);
       }
     }
@@ -716,7 +721,8 @@ struct Vof<M_>::Imp {
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
   std::vector<std::vector<Vect>> dl_; // dump poly
-  std::vector<Scal> dlc_; // dump poly
+  std::vector<Scal> dlc_; // dump poly cell
+  std::vector<Scal> dll_; // dump poly layer
 
   std::unique_ptr<PartStrMesh<M>> psm_;
   // tmp for MakeIteration, volume flux copied to cells
@@ -775,6 +781,11 @@ template <class M_>
 auto Vof<M_>::GetAlpha(size_t i) const -> const FieldCell<Scal>& {
   (void) i;
   return imp->fca_[i];
+}
+
+template <class M_>
+auto Vof<M_>::GetMask(size_t i) const -> const FieldCell<bool>& {
+  return imp->fcm_[i];
 }
 
 template <class M_>
