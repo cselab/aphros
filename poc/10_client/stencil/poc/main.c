@@ -1,90 +1,74 @@
+#include <stdlib.h>
 #include <stdio.h>
-#include <assert.h>
+#include "lib.h"
 
-enum {EMPTY = -1};
-enum {FREE = -1};
-#define SIZE(a) (int)(sizeof(a)/sizeof(*(a)))
-static int root[10*10*10];
 static int a[10*10*10];
-static int lbl[10*10*10];
 
-void
-make_(int v)
+static int
+vtk(const char *path, int n, const int *a)
 {
-    root[v] = v;
-}
+    FILE *f;
+    int i;
+    double spa, org;
+    const char *s = \
+	"# vtk DataFile Version 2.0\n"	\
+	"generated with poc\n"		\
+	"ASCII\n"			\
+	"DATASET STRUCTURED_POINTS\n"	\
+	"DIMENSIONS %d %d %d\n"		\
+	"ORIGIN %.16g %.16g %.16g\n"	\
+	"SPACING %.16g %.16g %.16g\n"	\
+	"CELL_DATA %d\n"		\
+	"SCALARS color int\n"		\
+	"LOOKUP_TABLE default\n"	\
+	;
 
-int
-find_(int v)
-{
-    if (v == root[v])
-	return v;
-    return root[v] = find_(root[v]);
-}
-
-void
-union_(int a, int b)
-{
-    a = find_(a);
-    b = find_(b);
-    if (a != b)
-	root[b] = a;
-}
-
-int
-color(int n, /**/ int *pcnt, int *a)
-{
-    enum {I, J, K};
-    int i, j, k, m, N;
-    int u, v, w;
-    int idx, jdx;
-    int x, cnt;
-    int d[][3] = {
-	{0, 0, 1},
-	{0, 1, 0},
-	{0, 1, 1},
-	{1, 0, 0},
-	{1, 0, 1},
-	{1, 1, 0},
-	{1, 1, 1},
-    };
-    N = n*n*n;
-    for (i = 0; i < N; i++) {
-	make_(i);
-	lbl[i] = FREE;
+    if (n <= 1) {
+	fprintf(stderr, "%s:%d: n=%d <= 1\n", __FILE__, __LINE__, n);
+	return 1;
     }
-    for (i = 0; i < n; i++)
-	for (j = 0; j < n; j++)
-	    for (k = 0; k < n; k++)
-		for (m = 0; m < SIZE(d); m++) {
-		    if ((u = i + d[m][I]) >= n) continue;
-		    if ((v = j + d[m][J]) >= n) continue;
-		    if ((w = k + d[m][K]) >= n) continue;
-		    idx = i*n*n + j*n + k;
-		    jdx = u*n*n + v*n + w;
-		    assert(idx < N);
-		    assert(jdx < N);
-		    if (a[idx] == EMPTY) continue;
-		    if (a[jdx] == EMPTY) continue;
-		    union_(idx, jdx);
-		}
-    cnt = 0;
-    for (i = 0; i < N; i++) {
-	x = find_(i);
-	assert(x < N);
-	if (lbl[x] == FREE)
-	    lbl[x] = cnt++;
-	a[i] = lbl[x];
+    spa = 1.0/(n - 1);
+    org = 0.5 - spa/2;
+    
+    f = fopen(path, "w");
+    if (!f) {
+	fprintf(stderr, "%s:%d: can't open '%s'\n", __FILE__, __LINE__, path);
+	return 1;
     }
-    *pcnt = cnt;
+    fprintf(f, s, n + 1, n + 1, n + 1, org, org, org, spa, spa, spa, n*n*n);
+    for (i = 0; i < n*n*n; i++)
+	fprintf(f, "%d\n", a[i]);
+    fclose(f);
     return 0;
 }
 
 int
 main()
 {
-    int n, cnt;
-    n = 3;
+    
+    const char *in = "a.vtk", *out = "b.vtk";
+    int i, n, cnt, ret;
+
+    ret = scanf("%d", &n);
+    if (ret != 1) {
+	fprintf(stderr, "can't read n\n");
+	exit(2);
+    }
+	
+    
+    for (i = 0; i < n*n*n; i++) {
+	ret = scanf("%d", &a[i]);
+	if (ret != 1) {
+	    fprintf(stderr, "can't read a[%d]\n", i);
+	    exit(2);
+	}
+    }
+    
+    vtk(in, n, a);
     color(n, &cnt, a);
+    vtk(out, n, a);
+
+    fprintf(stderr, "%s\n", in);
+    fprintf(stderr, "%s\n", out);
     fprintf(stderr, "cnt: %d\n", cnt);
 }

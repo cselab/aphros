@@ -3,7 +3,9 @@ LINK = $(CC)
 CFLAGS = -g -O2
 
 M = main
-O = main.o
+O = \
+main.o \
+lib.o
 
 main: $O; $(LINK) $O $(LDFLAGS) -o $@
 .c.o:; $(CC) $(CFLAGS) $< -c -o $@
