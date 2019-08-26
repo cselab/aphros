@@ -88,6 +88,8 @@ class Vof : public AdvectionSolver<M_> {
   const FieldCell<Scal>& GetAlpha(size_t i) const;
   // Normal to interface
   const FieldCell<Vect>& GetNormal(size_t i) const;
+  // Number of layers
+  size_t GetNumLayers() const;
   // Layer mask
   const FieldCell<bool>& GetMask(size_t i) const;
   // Height function
