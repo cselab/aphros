@@ -789,6 +789,11 @@ auto Vof<M_>::GetMask(size_t i) const -> const FieldCell<bool>& {
 }
 
 template <class M_>
+size_t Vof<M_>::GetNumLayers() const {
+  return imp->fcu_.size();
+}
+
+template <class M_>
 auto Vof<M_>::GetNormal(size_t i) const -> const FieldCell<Vect>& {
   return imp->fcn_[i];
 }
