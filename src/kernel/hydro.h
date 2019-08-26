@@ -1103,11 +1103,17 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
   } else if (st == "kn") {  // curvature * normal
     FieldFace<Scal> ff_st(m, 0.);  // surface tension projections
 
-    ff_sig_.Reinit(m, 0);
     ff_sig_ = solver::Interpolate(fc_sig_, GetBcSz(), m);
 
-    AppendSurfaceTension(ff_st, as_->GetField(), as_->GetCurv(),
-                         FieldCell<bool>(m, true), ff_sig_);
+    if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
+      for (size_t i = 0; i < as->GetNumLayers(); ++i) {
+        AppendSurfaceTension(ff_st, as->GetField(i), as->GetCurv(i),
+                             as->GetMask(i), ff_sig_);
+      }
+    } else {
+      AppendSurfaceTension(ff_st, as_->GetField(), as_->GetCurv(),
+                           FieldCell<bool>(m, true), ff_sig_);
+    }
 
     // zero on boundaries
     for (auto it : mf_velcond_) {
