@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -eu
+
+./clean
+
+# config file
+: ${c=std.conf}
+# block size
+: ${bs="32 32 1"}
+# number of processors
+: ${np=2}
+# mesh
+: ${m="64 64 1"}
+
+echo $np > np
+
+ch.base
+ch.part $m $bs $np > mesh.conf
+
+ch.run ./t.advection "$c"
+
+a=0
+: ${r=reflong}
+for f in $r/*.dat ; do
+  echo $f
+  if ! ch.diffnum "${f#$r/}" "$f" 1e-11; then
+    a=1
+  fi
+done
+
+exit $a
