@@ -15,7 +15,7 @@ static int bah5_dprint(const char *fmt, ...)
 }
 
 static int
-bah5_write(scalar s, const char *path)
+bah5_write(scalar s, const char *name, const char *path)
 {
   enum {X, Y, Z};
   enum {I = Z, J = Y, K = X};
@@ -73,7 +73,7 @@ bah5_write(scalar s, const char *path)
     BAH5_WARN(("nc=%d  != nbuf=%d", nc, nbuf));
     goto err;
   }
-  status = h5_xmf(path, s.name, ori, spa, siz);
+  status = h5_xmf(path, name, ori, spa, siz);
   if (status != 0) {
     BAH5_WARN(("can't write xmf '%s'", path));
     goto err;
@@ -98,6 +98,20 @@ bah5_list(scalar *list, const char *templ)
       BAH5_WARN(("no '%%s' in templ = '%s'", templ));
       return 0;
     }
-    bah5_write(s, path);
+    bah5_write(s, s.name, path);
+  }
+}
+
+static int
+bah5_list0(scalar *list, char *name[], const char *templ)
+{
+  char path[4096];
+  for (scalar s in list) {
+    if (snprintf(path, 4096, templ, *name) < 0) {
+      BAH5_WARN(("no '%%s' in templ = '%s'", templ));
+      return 0;
+    }
+    bah5_write(s, *name, path);
+    name++;
   }
 }
