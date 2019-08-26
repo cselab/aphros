@@ -92,6 +92,8 @@ class Vof : public AdvectionSolver<M_> {
   size_t GetNumLayers() const;
   // Layer mask
   const FieldCell<bool>& GetMask(size_t i) const;
+  // Dependent cells
+  const FieldCell<bool>& GetDepend(size_t i) const;
   // Height function
   const FieldCell<Vect>& GetHeight() const;
   // Default curvature 
