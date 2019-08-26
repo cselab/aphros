@@ -426,23 +426,6 @@ struct Vof<M_>::Imp {
         }
       }
     }
-    /*
-    if (sem("prop")) {
-      auto& fcu0 = *uc[0];
-      for (size_t i = 1; i < uc.size(); ++i) {
-        auto& fcu = *uc[i];
-        auto& fcm = fcm_[i];
-        for (auto c : m.Cells()) {
-          if (fcu0[c] == fcu[c]) {
-            fcm[c] = false;
-          }
-        }
-        //Propagate(fcm, 1, m);
-        m.Comm(uc[i]);
-      }
-      //Propagate(uc, fcm_, m);
-    }
-    */
   }
   void DetectInterface(const Multi<const FieldCell<Scal>*>& uc) {
     for (size_t i = 0; i < uc.size(); ++i) {
@@ -459,6 +442,7 @@ struct Vof<M_>::Imp {
           }
         }
       }
+      /*
       // neighbour cell has different value but both are 0 or 1
       for (auto f : m.SuFaces()) {
         IdxCell cm = m.GetNeighbourCell(f, 0);
@@ -472,10 +456,16 @@ struct Vof<M_>::Imp {
           }
         }
       }
+      */
     }
   }
   void StartStep() {
     auto sem = m.GetSem("start");
+    if (owner_->GetTime() == 0.) {
+      if (sem.Nested("reconst")) {
+        Rec(GetLayer(fcu_, Layers::time_curr));
+      }
+    }
     if (sem("rotate")) {
       owner_->ClearIter();
       for (auto& u : fcu_.data()) {
@@ -484,12 +474,6 @@ struct Vof<M_>::Imp {
       }
       fcus_.time_prev = fcus_.time_curr;
       fcus_.iter_curr = fcus_.time_prev;
-    }
-
-    if (owner_->GetTime() == 0.) {
-      if (sem.Nested("reconst")) {
-        Rec(GetLayer(fcu_, Layers::time_curr));
-      }
     }
   }
   void Dump() {
@@ -551,7 +535,7 @@ struct Vof<M_>::Imp {
       } 
       vsc = 1.0;
     }
-    dd = {0}; // XXX
+    //dd = {0}; // XXX
     for (size_t id = 0; id < dd.size(); ++id) {
       size_t d = dd[id]; // direction as index
       if (sem("copyface")) {
@@ -583,9 +567,12 @@ struct Vof<M_>::Imp {
           auto& fcu = fcu_[i].iter_curr;
           auto& fcn = fcn_[i];
           auto& fca = fca_[i];
+          auto& fci = fci_[i];
+          auto& fcu0 = fcu_[0].iter_curr;
           auto& fcn0 = fcn_[0];
           auto& fca0 = fca_[0];
-          auto& fci = fci_[i];
+          auto& fci0 = fci_[0];
+          auto& fcm = fcm_[i];
           auto& fcm2 = fcm2_[i];
           auto& fcdp = fcdp_[i];
           for (auto f : m.Faces()) {
@@ -605,7 +592,8 @@ struct Vof<M_>::Imp {
             if (fcm2[cu] || fcm2[cd]) {
               fcdp[cu] = true;
               fcdp[cd] = true;
-              if (fci[cu]) { // cell contains interface, flux from reconstruction
+              bool in = (fcm2[cu] ? fci[cu] : fci0[cu]);
+              if (in) { // cell contains interface, flux from reconstruction
                 Vect n = (fcm2[cu] ? fcn[cu] : fcn0[cu]);
                 Scal a = (fcm2[cu] ? fca[cu] : fca0[cu]);
                 if (id % 2 == 0) { // Euler Implicit
@@ -620,7 +608,8 @@ struct Vof<M_>::Imp {
                 }
                 ffi_[f] = true;
               } else {
-                ffvu[f] = v * fcu[cu];
+                Scal u = (fcm2[cu] ? fcu[cu] : fcu0[cu]);
+                ffvu[f] = v * u;
                 ffi_[f] = false;
               }
             }
@@ -641,8 +630,10 @@ struct Vof<M_>::Imp {
             }
           }
 
-          if(0) // XXX
           for (auto c : m.Cells()) {
+            if (!fcdp[c]) {
+              continue;
+            }
             auto w = bc.GetMIdx(c);
             const Scal lc = m.GetVolume(c);
             // faces
@@ -684,7 +675,19 @@ struct Vof<M_>::Imp {
               u = 0.;
             }
           }
+
+          if (i == 1)
+          for (auto c : m.Cells()) {
+            if (fcm2[c] && !fcm[c]) {
+              fcu0[c] = fcu[c];
+            }
+            if (fcm[c]) {
+              fcu0[c] = 0;
+            }
+          }
+
           m.Comm(&fcu);
+          m.Comm(&fcu0);
         }
       }
       if (sem.Nested("reconst")) {
