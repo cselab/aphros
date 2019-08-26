@@ -460,6 +460,7 @@ h5_serial_hdf(const char *path, const char *name, const int size0[3], const doub
 	WARN(("close failed for '%s'", full));
 	goto err;
     }
+    return 0;
 err:
     return 1;
 }
