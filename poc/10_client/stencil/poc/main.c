@@ -54,8 +54,6 @@ main()
 	fprintf(stderr, "can't read n\n");
 	exit(2);
     }
-	
-    
     for (i = 0; i < n*n*n; i++) {
 	ret = scanf("%d", &a[i]);
 	if (ret != 1) {
@@ -63,12 +61,10 @@ main()
 	    exit(2);
 	}
     }
-    
     vtk(in, n, a);
     color(n, &cnt, a);
     vtk(out, n, a);
 
-    fprintf(stderr, "%s\n", in);
-    fprintf(stderr, "%s\n", out);
+    fprintf(stderr, "%s %s\n", in, out);
     fprintf(stderr, "cnt: %d\n", cnt);
 }
