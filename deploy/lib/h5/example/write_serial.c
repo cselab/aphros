@@ -25,8 +25,8 @@ main(int argc, char **argv)
     }
 
     siz[X] = 10;
-    siz[Y] = 10;
-    siz[Z] = 10;
+    siz[Y] = 15;
+    siz[Z] = 20;
     ori[X] = -0.5;
     ori[Y] = -0.5;
     ori[Z] = -0.5;
@@ -43,18 +43,17 @@ main(int argc, char **argv)
     for (i = 0; i < siz[X]; i++)
 	for (j = 0; j < siz[Y]; j++)
 	    for (k = 0; k < siz[Z]; k++) {
-		buf[m++] = 42.0;
+		buf[m++] = i*j*k;
 	    }
 
     char *path = *argv;
     char *name = "u";
     h5_silence();
-    status = h5_serial_hdf(path, name, siz, buf);
+    status = h5_serial_hdf(path, siz, buf);
     if (status != 0) {
 	fprintf(stderr, "%s:%d: can't wrtie to '%s'\n", __FILE__, __LINE__, *argv);
 	return 2;
     }
-
     status = h5_xmf(path, name, ori, spa, siz);
     if (status != 0) {
 	fprintf(stderr, "%s:%d: can't wrtie to '%s'\n", __FILE__, __LINE__, *argv);

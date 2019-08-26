@@ -27,7 +27,7 @@ main(int argc, char **argv)
     h5_silence();
     status = h5_read_hdf(*argv, size, &buf);
     if (status != 0) {
-	fprintf(stderr, "h5_read_hdf failed\n");
+	fprintf(stderr, "%s:%d: can't read '%s'\n", __FILE__, __LINE__, *argv);
 	return 2;
     }
     fprintf(stderr, "size: %d %d %d\n", size[X], size[Y], size[Z]);

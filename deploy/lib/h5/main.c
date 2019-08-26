@@ -157,7 +157,7 @@ h5_xmf(const char *path, const char *name, const double origin[3], double spacin
 "     </Geometry>\n"\
 "     <Attribute Name=\"%s\" AttributeType=\"Scalar\" Center=\"Cell\">\n"\
 "       <DataItem Dimensions=\"%d %d %d\" NumberType=\"Float\" Precision=\"8\" Format=\"HDF\">\n"\
-"        ./%s:/data\n"\
+"        ./%s:/%s\n"\
 "       </DataItem>\n"\
 "     </Attribute>\n"\
 "   </Grid>\n"\
@@ -173,7 +173,9 @@ h5_xmf(const char *path, const char *name, const double origin[3], double spacin
     return -1;
   }
   i = size[I]; j = size[J]; k = size[K];
-  fprintf(f, s, i + 1, j + 1, k + 1, origin[I], origin[J], origin[K], spacing, spacing, spacing, name, i, j, k, hfile);
+  fprintf(f, s, i + 1, j + 1, k + 1,
+	  origin[I], origin[J], origin[K],
+	  spacing, spacing, spacing, name, i, j, k, hfile, Name);
   fclose(f);
   return 0;
 }
@@ -435,7 +437,7 @@ err:
 }
 
 int
-h5_serial_hdf(const char *path, const char *name, const int size0[3], const double *buf)
+h5_serial_hdf(const char *path, const int size0[3], const double *buf)
 {
     enum {X, Y, Z};
     herr_t status;
@@ -450,7 +452,7 @@ h5_serial_hdf(const char *path, const char *name, const int size0[3], const doub
 	WARN(("read_dataset_double failed for '%s'", full));
 	goto err;
     }
-    status = H5LTmake_dataset(file, name, dimensions, size, H5T_NATIVE_DOUBLE, buf);
+    status = H5LTmake_dataset(file, Name, dimensions, size, H5T_NATIVE_DOUBLE, buf);
     if (status < 0) {
 	WARN(("ake_dataset failed for '%s'", full));
 	goto err;
