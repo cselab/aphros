@@ -221,20 +221,20 @@ struct Vof<M_>::Imp {
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m)
-      , mfc_(mfc), fch_(m, Vect(0))
+      , mfc_(mfc), fch_(m, Vect(0)), layers(0, 4)
   {
-    fcu_.resize(4);
-    fcn_.resize(fcu_.size());
-    fca_.resize(fcu_.size());
-    fci_.resize(fcu_.size());
-    fcm_.resize(fcu_.size());
-    fcm2_.resize(fcu_.size());
-    fcdp_.resize(fcu_.size());
-    fck_.resize(fcu_.size());
-    psm_.resize(fcu_.size());
-    tr_.resize(fcu_.size());
-    ffvu_.resize(fcu_.size());
-    ffi_.resize(fcu_.size());
+    fcu_.resize(layers.size());
+    fcn_.resize(layers.size());
+    fca_.resize(layers.size());
+    fci_.resize(layers.size());
+    fcm_.resize(layers.size());
+    fcm2_.resize(layers.size());
+    fcdp_.resize(layers.size());
+    fck_.resize(layers.size());
+    psm_.resize(layers.size());
+    tr_.resize(layers.size());
+    ffvu_.resize(layers.size());
+    ffi_.resize(layers.size());
 
 
     fcn_.InitAll(FieldCell<Vect>(m, Vect(0)));
@@ -250,7 +250,7 @@ struct Vof<M_>::Imp {
     fcdp_.InitAll(FieldCell<bool>(m, false));
     fcm_[0].Reinit(m, true);
 
-    Multi<FieldCell<Scal>> fccl(fcu_.size());
+    Multi<FieldCell<Scal>> fccl(layers.size());
     fccl.InitAll(FieldCell<Scal>(m, TR::kNone));
 
     ffvu_.InitAll(FieldFace<Scal>(m, 0));
@@ -285,7 +285,7 @@ struct Vof<M_>::Imp {
     }
 
     // color tracker
-    for (size_t i = 0; i < fcu_.size(); ++i) {
+    for (auto i : layers) {
       tr_[i].reset(new TR(m, fccl[i], 0., par->dim));
     }
   }
@@ -337,7 +337,7 @@ struct Vof<M_>::Imp {
       dlc_.clear();
       dll_.clear();
       auto h = m.GetCellSize();
-      for (size_t i = 0; i < fcu_.size(); ++i) {
+      for (auto i : layers) {
         auto& fcn = fcn_[i];
         auto& fca = fca_[i];
         auto& fci = fci_[i];
@@ -507,8 +507,8 @@ struct Vof<M_>::Imp {
       }
     }
     if (sem("prop")) {
-      Multi<const FieldCell<Scal>*> fccl(fcu_.size());
-      for (size_t i = 0; i < fcu_.size(); ++i) {
+      Multi<const FieldCell<Scal>*> fccl(layers.size());
+      for (auto i : layers) {
         fccl[i] = &tr_[i]->GetColor();
       }
       Propagate(uc, fcm_, fccl, 0., 2, m);
@@ -620,7 +620,7 @@ struct Vof<M_>::Imp {
     if (par->dumppoly && dm && sem.Nested("dumppoly")) {
       DumpPoly();
     }
-    for (size_t i = 0; i < fcu_.size(); ++i) {
+    for (auto i : layers) {
       if (par->dumppart && dm && sem.Nested("part-dump")) {
         psm_[i]->DumpParticles(
             fca_[i], fcn_[i], par->dmp->GetN(), owner_->GetTime());
@@ -634,7 +634,7 @@ struct Vof<M_>::Imp {
   void MakeIteration() {
     auto sem = m.GetSem("iter");
     if (sem("init")) {
-      for (size_t i = 0; i < fcu_.size(); ++i) {
+      for (auto i : layers) {
         auto& fcm = fcm_[i];
         auto& fcu = fcu_[i];
         auto& uc = fcu.iter_curr;
@@ -687,12 +687,12 @@ struct Vof<M_>::Imp {
           m.Comm(&fcfm_);
           m.Comm(&fcfp_);
         }
-        for (size_t i = 0; i < fcu_.size(); ++i) {
+        for (auto i : layers) {
           ffvu_[i].Reinit(m, 0);
           ffi_[i].Reinit(m, false);
         }
       }
-      for (size_t i = 0; i < fcu_.size(); ++i) {
+      for (auto i : layers) {
         if (sem("flux")) {
           Dir md(d); // direction as Dir
           MIdx wd(md); // offset in direction d
@@ -780,7 +780,7 @@ struct Vof<M_>::Imp {
           }
         }
       }
-      for (size_t i = 0; i < fcu_.size(); ++i) {
+      for (auto i : layers) {
         if (sem("cell")) {
           Dir md(d); // direction as Dir
           MIdx wd(md); // offset in direction d
@@ -859,7 +859,7 @@ struct Vof<M_>::Imp {
       auto l = Layers::iter_curr;
       auto& fcus = fcus_.Get(l);
       fcus.Reinit(m, 0);
-      for (size_t i = 0; i < fcu_.size(); ++i) {
+      for (auto i : layers) {
         auto& fcm = fcm_[i];
         auto& fcu = fcu_[i].Get(l);
         for (auto c : m.AllCells()) {
@@ -881,7 +881,7 @@ struct Vof<M_>::Imp {
     auto sem = m.GetSem("iter");
     // Curvature from gradient of volume fraction
     if (par->curvgrad && sem("curv")) {
-      for (size_t i = 0; i < fcu_.size(); ++i) {
+      for (auto i : layers) {
         auto ffu = Interpolate(fcu_[i].iter_curr, mfc_, m); // [s]
         auto fcg = Gradient(ffu, m); // [s]
         auto ffg = Interpolate(fcg, mfvz_, m); // [i]
@@ -906,7 +906,7 @@ struct Vof<M_>::Imp {
       }
     }
     if (!par->curvgrad) {
-      for (size_t i = 0; i < fcu_.size(); ++i) {
+      for (auto i : layers) {
         auto& uc = fcu_[i].iter_curr;
         if (sem("diff2")) {
           CalcDiff2(uc, fcud2_);
@@ -926,7 +926,7 @@ struct Vof<M_>::Imp {
         }
       }
     }
-    for (size_t i = 0; i < fcu_.size(); ++i) {
+    for (auto i : layers) {
       if (par->part && sem.Nested("part")) {
         psm_[i]->Part(
             fcu_[i].iter_curr, fca_[i], fcn_[i], fci_[i], fck_[i], mfc_);
@@ -970,6 +970,7 @@ struct Vof<M_>::Imp {
   Multi<std::unique_ptr<TR>> tr_; // color tracker
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
+  GRange<size_t> layers;
 };
 
 template <class M_>
@@ -1043,7 +1044,7 @@ auto Vof<M_>::GetDepend(size_t i) const -> const FieldCell<bool>& {
 
 template <class M_>
 size_t Vof<M_>::GetNumLayers() const {
-  return imp->fcu_.size();
+  return imp->layers.size();
 }
 
 template <class M_>
