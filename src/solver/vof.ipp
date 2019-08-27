@@ -506,21 +506,6 @@ struct Vof<M_>::Imp {
         tr_[i]->Update(*uc[i]);
       }
     }
-    if(0)
-    if (sem("reduce")) {
-      auto& fcu0 = *uc[0];
-      for (size_t i = 1; i < uc.size(); ++i) {
-        auto& fcu = *uc[i];
-        auto& fcm = fcm_[i];
-        const Scal th = 1e-10;
-        for (auto c : m.Cells()) {
-          if (std::abs(fcu[c] - fcu0[c]) < th && fcm[c]) {
-            fcm[c] = false;
-            fcu[c] = 0.;
-          }
-        }
-      }
-    }
     if (sem("prop")) {
       Multi<const FieldCell<Scal>*> fccl(fcu_.size());
       for (size_t i = 0; i < fcu_.size(); ++i) {
