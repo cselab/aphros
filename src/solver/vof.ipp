@@ -13,6 +13,7 @@
 #include "normal.h"
 #include "debug/isnan.h"
 #include "partstr.h"
+#include "solver/tracker.h"
 
 namespace solver {
 
@@ -84,7 +85,7 @@ class Multi {
 // sw: stencil halfwidth
 template <class M>
 void Propagate(Multi<FieldCell<typename M::Scal>*> mfc,
-               const Multi<FieldCell<bool>*>& mask, size_t sw, M& m) {
+               const Multi<const FieldCell<bool>*>& mask, size_t sw, M& m) {
 
   if (!mfc.size()) {
     return;
@@ -107,6 +108,51 @@ void Propagate(Multi<FieldCell<typename M::Scal>*> mfc,
           IdxCell cn = bc.GetIdx(w + wo); 
           if (!ms[cn]) {
             fc[cn] = fc0[cn];
+          }
+        }
+      }
+    }
+  }
+}
+
+// Same as Propagate() but copies only from cells of the same color,
+// writes fill otherwise.
+// fccl: color
+// fill: fill value if color is different
+template <class M>
+void Propagate(Multi<FieldCell<typename M::Scal>*> mfc,
+               const Multi<const FieldCell<bool>*>& mask, 
+               const Multi<const FieldCell<typename M::Scal>*>& fccl, 
+               typename M::Scal fill,
+               size_t sw, M& m) {
+
+  if (!mfc.size()) {
+    return;
+  }
+
+  using MIdx = typename M::MIdx;
+  auto& bc = m.GetIndexCells();
+  const int sn = sw * 2 + 1;
+  // block of offsets
+  GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn)); 
+
+  auto& fc0 = *mfc[0];
+  auto& cl0 = *fccl[0];
+  for (size_t i = 1; i < mfc.size(); ++i) {
+    auto& fc = *mfc[i];
+    auto& ms = *mask[i];
+    auto& cl = *fccl[i];
+    for (auto c : m.Cells()) {
+      if (ms[c]) {
+        MIdx w = bc.GetMIdx(c);
+        for (MIdx wo : bo) {
+          IdxCell cn = bc.GetIdx(w + wo); 
+          if (!ms[cn]) {
+            if (cl[c] == cl0[cn]) {
+              fc[cn] = fc0[cn];
+            } else {
+              fc[cn] = fill;
+            }
           }
         }
       }
@@ -167,6 +213,7 @@ struct Vof<M_>::Imp {
   using R = Reconst<Scal>;
   using PS = PartStr<Scal>;
   using PSM = PartStrMesh<M>;
+  using TR = solver::Tracker<M>;
   static constexpr size_t dim = M::dim;
   using Vect2 = GVect<Scal, 2>;
 
@@ -185,6 +232,8 @@ struct Vof<M_>::Imp {
     fcdp_.resize(fcu_.size());
     fck_.resize(fcu_.size());
     psm_.resize(fcu_.size());
+    tr_.resize(fcu_.size());
+
 
     fcn_.InitAll(FieldCell<Vect>(m, Vect(0)));
     fca_.InitAll(FieldCell<Scal>(m, 0));
@@ -209,6 +258,9 @@ struct Vof<M_>::Imp {
       }
     }
     */
+    Multi<FieldCell<Scal>> fccl(fcu_.size());
+    fccl.InitAll(FieldCell<Scal>(m, -1));
+
     for (auto c : m.AllCells()) {
       fcm_[0][c] = true;
       size_t x = (m.GetCenter(c)[0] < 0.5 ? 1 : 0);
@@ -219,6 +271,11 @@ struct Vof<M_>::Imp {
       } else {
         fcu_[0].time_curr[c] = fcu[c];
       }
+      for (size_t i = 0; i < 2; ++i) {
+        if (fcu_[i].time_curr[c] > 0) {
+          fccl[i][c] = (x ? 0 : 1);
+        }
+      }
     }
 
     for (auto it : mfc_) {
@@ -227,6 +284,7 @@ struct Vof<M_>::Imp {
           CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
     }
 
+    // particles
     auto ps = std::make_shared<typename PS::Par>();
     Update(ps.get());
     auto psm = std::make_shared<typename PSM::Par>();
@@ -242,6 +300,11 @@ struct Vof<M_>::Imp {
     psm->maxr = par->part_maxr;
     for (auto& p : psm_.data()) {
       p = std::unique_ptr<PSM>(new PSM(m, psm));
+    }
+
+    // color tracker
+    for (size_t i = 0; i < fcu_.size(); ++i) {
+      tr_[i].reset(new TR(m, fccl[i], 0., par->dim));
     }
   }
   void Update(typename PS::Par* p) const {
@@ -382,10 +445,33 @@ struct Vof<M_>::Imp {
   // reconstruct interface
   void Rec(const Multi<FieldCell<Scal>*>& uc) {
     auto sem = m.GetSem("rec");
+    for (size_t i = 0; i < uc.size(); ++i) {
+      if (sem.Nested("color")) {
+        tr_[i]->Update(*uc[i]);
+      }
+    }
+    if (sem("reduce")) {
+      auto& fcu0 = *uc[0];
+      for (size_t i = 1; i < uc.size(); ++i) {
+        auto& fcu = *uc[i];
+        auto& fcm = fcm_[i];
+        const Scal th = 1e-10;
+        for (auto c : m.Cells()) {
+          if (std::abs(fcu[c] - fcu0[c]) < th && fcm[c]) {
+            fcm[c] = false;
+            fcu[c] = 0.;
+          }
+        }
+      }
+    }
     if (sem("prop")) {
-      Propagate(uc, fcm_, 2, m);
-      for (auto u : uc.data()) {
-        m.Comm(u);
+      Multi<const FieldCell<Scal>*> fccl(fcu_.size());
+      for (size_t i = 0; i < fcu_.size(); ++i) {
+        fccl[i] = &tr_[i]->GetColor();
+      }
+      Propagate(uc, fcm_, fccl, 0., 2, m);
+      for (size_t i = 0; i < uc.size(); ++i) {
+        m.Comm(uc[i]);
       }
       fcm2_ = fcm_;
       Propagate(fcm2_, 1, m);
@@ -535,7 +621,6 @@ struct Vof<M_>::Imp {
       } 
       vsc = 1.0;
     }
-    //dd = {0}; // XXX
     for (size_t id = 0; id < dd.size(); ++id) {
       size_t d = dd[id]; // direction as index
       if (sem("copyface")) {
@@ -807,6 +892,7 @@ struct Vof<M_>::Imp {
   std::vector<Scal> dll_; // dump poly layer
 
   Multi<std::unique_ptr<PartStrMesh<M>>> psm_;
+  Multi<std::unique_ptr<TR>> tr_; // color tracker
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
 };
@@ -868,6 +954,11 @@ auto Vof<M_>::GetAlpha(size_t i) const -> const FieldCell<Scal>& {
 template <class M_>
 auto Vof<M_>::GetMask(size_t i) const -> const FieldCell<bool>& {
   return imp->fcm_[i];
+}
+
+template <class M_>
+auto Vof<M_>::GetColor(size_t i) const -> const FieldCell<Scal>& {
+  return imp->tr_[i]->GetColor();
 }
 
 template <class M_>

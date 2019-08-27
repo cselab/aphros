@@ -1448,6 +1448,9 @@ void Hydro<M>::DumpFields() {
       if (dl.count("vf1")) m.Dump(&as->GetField(0), "vf1");
       if (dl.count("vf2")) m.Dump(&as->GetField(1), "vf2");
 
+      if (dl.count("cl1")) m.Dump(&as->GetColor(0), "cl1");
+      if (dl.count("cl2")) m.Dump(&as->GetColor(1), "cl2");
+
       auto B2S = [this](FieldCell<bool> fcb) -> FieldCell<Scal> {
         FieldCell<Scal> r(m);
         for (auto c : m.Cells()) {
