@@ -1,18 +1,22 @@
 .POSIX:
+CC = c99
 FC = gfortran
 LINK = $(CC)
 FCFLAGS = -g -O2
 
-#M = sz.o
-O = sz.o
+M = main
+O = \
+main.o\
+sz.o\
 
-all: $O
-#$M: $O; $(LINK) $O $(LDFLAGS) -o $@
+all: $M
+$M: $O; $(LINK) $O $(LDFLAGS) -lm -o $@
 .f90.o:; $(FC) $(FCFLAGS) $< -c -o $@
+.c.o:; $(CC) $(CFLAGS) $< -c -o $@
 
-.SUFFIXES: .o .f90
+.SUFFIXES: .o .f90 .c
 
 lint:; $(MAKE) FCFLAGS='-Wall -Wextra -O2 -g'
 
 .PHONY: clean lint
-clean:; rm -f -- $O
+clean:; rm -f -- $O $M
