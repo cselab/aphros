@@ -217,7 +217,7 @@ struct Vof<M_>::Imp {
   static constexpr size_t dim = M::dim;
   using Vect2 = GVect<Scal, 2>;
 
-  Imp(Owner* owner, const FieldCell<Scal>& fcu,
+  Imp(Owner* owner, const FieldCell<Scal>& fcu0, const FieldCell<Scal>& fccl0,
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m)
@@ -239,54 +239,20 @@ struct Vof<M_>::Imp {
     fca_.InitAll(FieldCell<Scal>(m, 0));
     fck_.InitAll(FieldCell<Scal>(m, 0));
 
-    fcus_.time_curr = fcu;
+    fcus_.time_curr = fcu0;
+
     fcu_[0].time_curr.Reinit(m, 0);
     fcu_.InitAll(fcu_[0]);
     fcm_.InitAll(FieldCell<bool>(m, false));
     fcm2_.InitAll(FieldCell<bool>(m, false));
     fcdp_.InitAll(FieldCell<bool>(m, false));
     fcm_[0].Reinit(m, true);
-    /*
-    for (auto c : m.AllCells()) {
-      fcm_[0][c] = true;
-      size_t x = (m.GetCenter(c)[0] < 0.5 ? 0 : 1);
-      size_t y = (m.GetCenter(c)[1] < 0.5 ? 0 : 1);
-      for (size_t i = 0; i < fcu_.size(); ++i) {
-        if (i == (x + (y << 1))) {
-          fcu_[i].time_curr[c] = fcu[c];
-          fcm_[i][c] = true;
-        }
-      }
-    }
-    */
-    Multi<FieldCell<Scal>> fccl(fcu_.size());
-    fccl.InitAll(FieldCell<Scal>(m, -1));
 
-    /*
-    for (auto c : m.AllCells()) {
-      fcm_[0][c] = true;
-      size_t x = (m.GetCenter(c)[0] < 0.5 ? 1 : 0);
-      size_t x2 = (m.GetCenter(c)[0] > 0.35 ? 1 : 0);
-      if (x && x2) {
-        fcu_[1].time_curr[c] = fcu[c];
-        fcm_[1][c] = true;
-      } else {
-        fcu_[0].time_curr[c] = fcu[c];
-      }
-      for (size_t i = 0; i < 2; ++i) {
-        if (fcu_[i].time_curr[c] > 0) {
-          fccl[i][c] = (x ? 0 : 1);
-        }
-      }
-    }
-    */
-    fcu_[0].time_curr = fcu;
-    for (auto c : m.AllCells()) {
-      size_t x = (m.GetCenter(c)[0] < 0.5 ? 1 : 0);
-      if (fcu_[0].time_curr[c] > 0) {
-        fccl[0][c] = (x ? 0 : 1);
-      }
-    }
+    Multi<FieldCell<Scal>> fccl(fcu_.size());
+    fccl.InitAll(FieldCell<Scal>(m, TR::kNone));
+
+    fcu_[0].time_curr = fcu0;
+    fccl[0] = fccl0;
 
     for (auto it : mfc_) {
       IdxFace f = it.GetIdx();
@@ -951,12 +917,12 @@ struct Vof<M_>::Imp {
 
 template <class M_>
 Vof<M_>::Vof(
-    M& m, const FieldCell<Scal>& fcu,
+    M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
     const MapFace<std::shared_ptr<CondFace>>& mfc,
     const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
     double t, double dt, std::shared_ptr<Par> par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)
-    , imp(new Imp(this, fcu, mfc, par))
+    , imp(new Imp(this, fcu, fccl, mfc, par))
 {}
 
 template <class M_>
