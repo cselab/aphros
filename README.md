@@ -18,7 +18,10 @@ prepare environment and install dependencies.
      cd src
      ./conf
      # ./conf -DOVERLAP=0  # to build without overlap and Eigen
+     # ./conf -CMAKE_SKIP_INSTALL_ALL_DEPENDENCY=1 # to prevent build on
+     install
      make
+     # make target=mfer    # to only build ch.mfer
      ```
 
 *   Run tests
