@@ -1,7 +1,5 @@
 #include <stdio.h>
-double calc_v(double alpha, double, double, double);
-double calc_alpha(double v, double, double, double);
-double calc_flux_plic(double g, double c, double, double, double);
+#include "sz.h"
 
 int main() {
     double alpha, alpha0, a, b, c, v, g, c0;
