@@ -2,6 +2,7 @@ module main
   use iso_c_binding
   implicit none
   real(8), parameter :: CONST_TINY = 1d-25
+  real(8), parameter :: ZERO = 0 ! SL: (?)
   real(8), parameter :: CONST_PI = 3.14159265358979323846d0
 contains
   function cbrt(x)
@@ -11,6 +12,8 @@ contains
     cbrt = x**(1.0/3.0)
   end function cbrt
   function calc_v0(alpha, vma, vmb, vmc) result(v)
+    ! Preconditions: vma in [0, 1], vmb in [0, 1], vmc in [0, 1], vma
+    ! + vmb + vmc = 1.
     implicit none
     real(8), intent(in) :: alpha, vma, vmb, vmc
     real(8) :: v, a, vm1, vm2, vm3, vm12
@@ -41,6 +44,8 @@ contains
   end function calc_v0
 
   function calc_alpha0(v, vma, vmb, vmc) result(alpha)
+    ! Preconditions: v in (0, 1), vma in [0, 1], vmb in [0, 1], vmc in
+    ! [0, 1], vma + vmb + vmc = 1.
     implicit none
     real(8), intent(in) :: v, vma, vmb, vmc
     real(8) :: alpha, w, vm1, vm2, vm3, vm12, v1, v3, a0, a1, a2, q0, sp, th
@@ -82,6 +87,27 @@ contains
     if (v > 0.5d0) alpha = 1d0 - alpha
   end function calc_alpha0
 
+  function calc_flux_plic0(g, c, vn1, vn2, vn3) result(f)
+    ! Preconditions: g in (−1, 1), c in (0, 1).
+    implicit none
+    real(8), intent(in) :: g, c, vn1, vn2, vn3
+    real(8) :: f, absg, alpha, qa, ra, vm1, vm2, vm3
+    absg = abs(g)
+    vm1 = abs(vn1)
+    vm2 = abs(vn2)
+    vm3 = abs(vn3) + CONST_TINY
+    qa = 1d0 / (vm1 + vm2 + vm3)
+    vm1 = vm1 * qa
+    vm2 = vm2 * qa
+    vm3 = vm3 * qa
+    alpha = calc_alpha(c, vm1, vm2, vm3)
+    ra = vm1 * (1d0 - absg)
+    qa = 1d0 / (1d0 - ra)
+    if (g * vn1 > ZERO) alpha = alpha - ra
+    vm1 = vm1 * absg
+    f = calc_v(alpha * qa, vm1 * qa, vm2 * qa, vm3 * qa) * g
+  end function calc_flux_plic0
+
   function calc_v(alpha, a, b, c) bind(c)
     use iso_c_binding
     implicit none
@@ -97,6 +123,12 @@ contains
     real(c_double) :: calc_alpha
     calc_alpha = calc_alpha0(v, a, b, c)
   end function calc_alpha
+
+  function calc_flux_plic(g, c, vn1, vn2, vn3) bind(c)
+    use iso_c_binding
+    implicit none
+    real(c_double), intent(in), value :: g, c, vn1, vn2, vn3
+    real(c_double) :: calc_flux_plic
+    calc_flux_plic  = calc_flux_plic0(g, c, vn1, vn2, vn3)
+  end function calc_flux_plic
 end module main
-
-
