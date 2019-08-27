@@ -233,6 +233,8 @@ struct Vof<M_>::Imp {
     fck_.resize(fcu_.size());
     psm_.resize(fcu_.size());
     tr_.resize(fcu_.size());
+    ffvu_.resize(fcu_.size());
+    ffi_.resize(fcu_.size());
 
 
     fcn_.InitAll(FieldCell<Vect>(m, Vect(0)));
@@ -250,6 +252,10 @@ struct Vof<M_>::Imp {
 
     Multi<FieldCell<Scal>> fccl(fcu_.size());
     fccl.InitAll(FieldCell<Scal>(m, TR::kNone));
+
+    ffvu_.InitAll(FieldFace<Scal>(m, 0));
+    ffi_.InitAll(FieldFace<bool>(m, false));
+
 
     fcu_[0].time_curr = fcu0;
     fccl[0] = fccl0;
@@ -439,6 +445,7 @@ struct Vof<M_>::Imp {
           if (fccl0[c] == 0) {
             bool q = false;
             for (MIdx wo : bo) {
+              q = true; //XXX
               IdxCell cn = bc.GetIdx(w + wo);
               if (fccl0[cn] == 1 && !fcm[cn]) {
                 q = true;
@@ -451,6 +458,12 @@ struct Vof<M_>::Imp {
               fcu0[c] = 0;
               fccl0[c] = TR::kNone;
             }
+          }
+          // XXX
+          if (fccl[c] == 0) {
+            fcm[c] = true;
+          } else {
+            fcm[c] = false;
           }
         }
         m.Comm(uc[i]);
@@ -519,7 +532,6 @@ struct Vof<M_>::Imp {
         auto& fcn0 = fcn_[0];
         auto& fca0 = fca_[0];
         for (auto c : m.SuCells()) {
-          if(0) // XXX
           if (fcm2[c] && !fcm[c] && fccl[c] == fccl0[c] && fci[c]) {
             fcn0[c] = fcn[c];
             fca0[c] = fca[c];
@@ -650,16 +662,21 @@ struct Vof<M_>::Imp {
           m.Comm(&fcfm_);
           m.Comm(&fcfp_);
         }
+        for (size_t i = 0; i < fcu_.size(); ++i) {
+          ffvu_[i].Reinit(m, 0);
+          ffi_[i].Reinit(m, false);
+        }
       }
       for (size_t i = 0; i < fcu_.size(); ++i) {
-        if (sem("adv")) {
+        if (sem("flux")) {
           Dir md(d); // direction as Dir
           MIdx wd(md); // offset in direction d
-          auto& bc = m.GetIndexCells();
           auto& bf = m.GetIndexFaces();
           auto h = m.GetCellSize();
-          auto& ffv = *owner_->ffv_; // [f]ield [f]ace [v]olume flux
           const Scal dt = owner_->GetTimeStep();
+          auto& ffv = *owner_->ffv_; // [f]ield [f]ace [v]olume flux
+          auto& ffvu = ffvu_[i];
+          auto& ffi = ffi_[i];
 
           // Returns phase 2 flux
           auto F = [this,vsc,id,h,dt,d,&ffv](
@@ -677,9 +694,6 @@ struct Vof<M_>::Imp {
             return v * u;
           };
 
-          FieldFace<Scal> ffvu(m); // flux: volume flux * field
-
-          ffi_.Reinit(m);
           auto& fcu = fcu_[i].iter_curr;
           auto& fcn = fcn_[i];
           auto& fca = fca_[i];
@@ -710,13 +724,13 @@ struct Vof<M_>::Imp {
 
               if (fcm2[cu]) {
                 ffvu[f] = F(f, cu, fcu[cu], fcn[cu], fca[cu], fci[cu]);
-                ffi_[f] = fci[cu];
+                ffi[f] = fci[cu];
               } else if (fccl0[cu] == fccl[cd]) {
                 ffvu[f] = F(f, cu, fcu0[cu], fcn0[cu], fca0[cu], fci0[cu]);
-                ffi_[f] = fci0[cu];
+                ffi[f] = fci0[cu];
               } else {
                 ffvu[f] = 0;
-                ffi_[f] = false;
+                ffi[f] = false;
               }
             }
           }
@@ -732,10 +746,23 @@ struct Vof<M_>::Imp {
             Scal v = ffv[f];
             if ((cb->GetNci() == 0) != (v > 0.)) {
               ffvu[f] = v * ffu[f];
-              ffi_[f] = true;
+              ffi[f] = true;
             }
           }
-
+        }
+      }
+      for (size_t i = 0; i < fcu_.size(); ++i) {
+        if (sem("cell")) {
+          Dir md(d); // direction as Dir
+          MIdx wd(md); // offset in direction d
+          const Scal dt = owner_->GetTimeStep();
+          auto& bc = m.GetIndexCells();
+          auto& bf = m.GetIndexFaces();
+          auto& ffv = *owner_->ffv_; // mixture flux
+          auto& ffvu = ffvu_[i];   // phase 2 flux
+          auto& ffi = ffi_[i];
+          auto& fcdp = fcdp_[i];
+          auto& fcu = fcu_[i].iter_curr;
           for (auto c : m.Cells()) {
             if (!fcdp[c]) {
               continue;
@@ -745,7 +772,7 @@ struct Vof<M_>::Imp {
             // faces
             IdxFace fm = bf.GetIdx(w, md);
             IdxFace fp = bf.GetIdx(w + wd, md);
-            if (!ffi_[fm] && !ffi_[fp]) {
+            if (!ffi[fm] && !ffi[fp]) {
               continue;
             }
             // mixture fluxes
@@ -782,15 +809,7 @@ struct Vof<M_>::Imp {
             }
           }
 
-          if (i == 1)
-          for (auto c : m.Cells()) {
-            if (fcm2[c] && !fcm[c] && fccl[c] == fccl0[c] && fcu[c] > 1e-10) {
-              fcu0[c] = fcu[c];
-            }
-          }
-
           m.Comm(&fcu);
-          m.Comm(&fcu0);
         }
       }
       if (sem.Nested("reconst")) {
@@ -898,7 +917,8 @@ struct Vof<M_>::Imp {
   Multi<FieldCell<bool>> fcm_; // layer mask
   Multi<FieldCell<bool>> fcm2_; // layer mask
   Multi<FieldCell<bool>> fcdp_; // dependent cells with mask=0
-  FieldFace<bool> ffi_; // interface mask (1: upwind cell contains interface)
+  Multi<FieldFace<Scal>> ffvu_;  // flux: volume flux * field
+  Multi<FieldFace<bool>> ffi_;   // interface mask (1: upwind cell contains interface)
   FieldCell<Vect> fcud2_; // volume fraction difference double
   FieldCell<Vect> fcud4_; // volume fraction difference quad
   FieldCell<Vect> fcud6_; // volume fraction difference 6th
