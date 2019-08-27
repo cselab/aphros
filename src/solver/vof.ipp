@@ -199,10 +199,20 @@ Multi<FieldCell<T>*> GetLayer(Multi<LayersData<FieldCell<T>>>& u, Layers l) {
 
 template <class M>
 FieldCell<bool> And(const FieldCell<bool>& u, 
-                   const FieldCell<bool>& v, const M& m) {
+                    const FieldCell<bool>& v, const M& m) {
   FieldCell<bool> r = u;
   for (auto c : m.AllCells()) {
     r[c] = r[c] && v[c];
+  }
+  return r;
+}
+
+template <class M>
+FieldCell<bool> Or(const FieldCell<bool>& u, 
+                   const FieldCell<bool>& v, const M& m) {
+  FieldCell<bool> r = u;
+  for (auto c : m.AllCells()) {
+    r[c] = r[c] || v[c];
   }
   return r;
 }
@@ -525,6 +535,7 @@ struct Vof<M_>::Imp {
       for (size_t i = 0; i < uc.size(); ++i) {
         auto& fcn = fcn_[i];
         auto& fci = fci_[i];
+        auto& fci0 = fci_[0];
         auto& fcm = fcm_[i];
         auto& fcm2 = fcm2_[i];
         auto& fcu = *uc[i];
@@ -535,7 +546,8 @@ struct Vof<M_>::Imp {
         if (par->bcc_reflect) {
           BcReflect(fcu, mfc_, par->bcc_fill, m);
         }
-        UNormal<M>::CalcNormal(m, fcu, And(fci, fcm2, m), par->dim, fcn);
+        UNormal<M>::CalcNormal(
+            m, fcu, And(Or(fci, fci0, m), fcm2, m), par->dim, fcn);
         for (auto c : m.SuCells()) {
           if (!fcm[c] && fcm2[c] && fci[c] && fccl[c] == fccl0[c]) {
             fcn0[c] = fcn[c];
@@ -567,12 +579,12 @@ struct Vof<M_>::Imp {
   void DetectInterface(const Multi<const FieldCell<Scal>*>& uc) {
     for (size_t i = 0; i < uc.size(); ++i) {
       auto& fci = fci_[i];
-      auto& fcm2 = fcm2_[i];
+      auto& fcm = fcm_[i];
       auto& fcu = *uc[i];
       fci.Reinit(m, false);
       // volume fraction different from 0 or 1
       for (auto c : m.AllCells()) {
-        if (fcm2[c]) {
+        if (fcm[c]) {
           Scal u = fcu[c];
           if (u > 0. && u < 1.) {
             fci[c] = true;
@@ -584,7 +596,7 @@ struct Vof<M_>::Imp {
       for (auto f : m.SuFaces()) {
         IdxCell cm = m.GetNeighbourCell(f, 0);
         IdxCell cp = m.GetNeighbourCell(f, 1);
-        if (fcm2[cm] && fcm2[cp]) {
+        if (fcm[cm] && fcm[cp]) {
           Scal um = fcu[cm];
           Scal up = fcu[cp];
           if ((um == 0. || um == 1.) && (up == 0. || up == 1.) && (um != up)) {
