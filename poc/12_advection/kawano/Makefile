@@ -3,6 +3,8 @@ CC = c99
 FC = gfortran
 LINK = $(CC)
 FCFLAGS = -g -O2
+CFLAGS = -g -O2
+LDFLAGS = -lgfortran -lm
 
 M = main
 O = \
@@ -10,7 +12,7 @@ main.o\
 sz.o\
 
 all: $M
-$M: $O; $(LINK) $O $(LDFLAGS) -lm -o $@
+$M: $O; $(LINK) $O $(LDFLAGS) -o $@
 .f90.o:; $(FC) $(FCFLAGS) $< -c -o $@
 .c.o:; $(CC) $(CFLAGS) $< -c -o $@
 

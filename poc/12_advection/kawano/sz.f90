@@ -1,4 +1,6 @@
 module main
+  use iso_c_binding
+  implicit none
   real(8), parameter :: CONST_TINY = 1d-25
   real(8), parameter :: CONST_PI = 3.14159265358979323846d0
 contains
@@ -6,10 +8,9 @@ contains
     implicit none
     real(8), intent(in) :: x
     real(8) :: cbrt
-    cbrt = x**1.0/3.0
+    cbrt = x**(1.0/3.0)
   end function cbrt
   function calc_v0(alpha, vma, vmb, vmc) result(v)
-    use constants
     implicit none
     real(8), intent(in) :: alpha, vma, vmb, vmc
     real(8) :: v, a, vm1, vm2, vm3, vm12
@@ -40,7 +41,7 @@ contains
   end function calc_v0
 
   function calc_alpha0(v, vma, vmb, vmc) result(alpha)
-    use constants  
+    implicit none
     real(8), intent(in) :: v, vma, vmb, vmc
     real(8) :: alpha, w, vm1, vm2, vm3, vm12, v1, v3, a0, a1, a2, q0, sp, th
     w = min(v, 1d0 - v)
@@ -80,13 +81,22 @@ contains
     end if
     if (v > 0.5d0) alpha = 1d0 - alpha
   end function calc_alpha0
+
+  function calc_v(alpha, a, b, c) bind(c)
+    use iso_c_binding
+    implicit none
+    real(c_double), intent(in), value :: alpha, a, b, c
+    real(c_double) :: calc_v
+    calc_v = calc_v0(alpha, a, b, c)
+  end function calc_v
+
+  function calc_alpha(v, a, b, c) bind(c)
+    use iso_c_binding
+    implicit none
+    real(c_double), intent(in), value :: v, a, b, c
+    real(c_double) :: calc_alpha
+    calc_alpha = calc_alpha0(v, a, b, c)
+  end function calc_alpha
 end module main
 
-function calc_v(alpha, a, b, c) result(v)
-  use iso_c_binding
-  use main
-  implicit none
-  real(c_double), intent(in) :: alpha, a, b, c
-  real(c_double) :: v
-  v = calc_v0(alpha, a, b, c)
-end function calc_v
+
