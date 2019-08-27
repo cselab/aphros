@@ -245,6 +245,7 @@ struct Vof<M_>::Imp {
     fcm_.InitAll(FieldCell<bool>(m, false));
     fcm2_.InitAll(FieldCell<bool>(m, false));
     fcdp_.InitAll(FieldCell<bool>(m, false));
+    fcm_[0].Reinit(m, true);
     /*
     for (auto c : m.AllCells()) {
       fcm_[0][c] = true;
@@ -261,6 +262,7 @@ struct Vof<M_>::Imp {
     Multi<FieldCell<Scal>> fccl(fcu_.size());
     fccl.InitAll(FieldCell<Scal>(m, -1));
 
+    /*
     for (auto c : m.AllCells()) {
       fcm_[0][c] = true;
       size_t x = (m.GetCenter(c)[0] < 0.5 ? 1 : 0);
@@ -275,6 +277,14 @@ struct Vof<M_>::Imp {
         if (fcu_[i].time_curr[c] > 0) {
           fccl[i][c] = (x ? 0 : 1);
         }
+      }
+    }
+    */
+    fcu_[0].time_curr = fcu;
+    for (auto c : m.AllCells()) {
+      size_t x = (m.GetCenter(c)[0] < 0.5 ? 1 : 0);
+      if (fcu_[0].time_curr[c] > 0) {
+        fccl[0][c] = (x ? 0 : 1);
       }
     }
 
@@ -445,6 +455,42 @@ struct Vof<M_>::Imp {
   // reconstruct interface
   void Rec(const Multi<FieldCell<Scal>*>& uc) {
     auto sem = m.GetSem("rec");
+    if (sem("mask")) {
+      auto& fccl0 = const_cast<FieldCell<Scal>&>(tr_[0]->GetColor());
+      auto& fcu0 = *uc[0];
+      //for (size_t i = 1; i < uc.size(); ++i) {
+      { size_t i = 1;
+        auto& fccl = const_cast<FieldCell<Scal>&>(tr_[i]->GetColor());
+        auto& fcm = fcm_[i];
+        auto& fcu = *uc[i];
+        const int sw = 2; // stencil halfwidth
+        using MIdx = typename M::MIdx;
+        auto& bc = m.GetIndexCells();
+        GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1));
+
+        for (auto c : m.Cells()) {
+          MIdx w = bc.GetMIdx(c);
+          if (fccl0[c] == 0) {
+            bool q = false;
+            for (MIdx wo : bo) {
+              IdxCell cn = bc.GetIdx(w + wo);
+              if (fccl0[cn] == 1 && !fcm[cn]) {
+                q = true;
+              }
+            }
+            if (q) {
+              fcm[c] = true;
+              fcu[c] = fcu0[c];
+              fccl[c] = fccl0[c];
+              fcu0[c] = 0;
+              fccl0[c] = TR::kNone;
+            }
+          }
+        }
+        m.Comm(uc[i]);
+      }
+      m.Comm(uc[0]);
+    }
     for (size_t i = 0; i < uc.size(); ++i) {
       if (sem.Nested("color")) {
         tr_[i]->Update(*uc[i]);
@@ -487,6 +533,8 @@ struct Vof<M_>::Imp {
         auto& fcm = fcm_[i];
         auto& fcm2 = fcm2_[i];
         auto& fcu = *uc[i];
+        auto& fccl = tr_[i]->GetColor();
+        auto& fccl0 = tr_[0]->GetColor();
         if (par->bcc_reflect) {
           BcReflect(fcu, mfc_, par->bcc_fill, m);
         }
@@ -505,7 +553,8 @@ struct Vof<M_>::Imp {
         auto& fcn0 = fcn_[0];
         auto& fca0 = fca_[0];
         for (auto c : m.SuCells()) {
-          if (fcm2[c] && !fcm[c]) {
+          if(0) // XXX
+          if (fcm2[c] && !fcm[c] && fccl[c] == fccl0[c] && fci[c]) {
             fcn0[c] = fcn[c];
             fca0[c] = fca[c];
           }
@@ -646,6 +695,22 @@ struct Vof<M_>::Imp {
           auto& ffv = *owner_->ffv_; // [f]ield [f]ace [v]olume flux
           const Scal dt = owner_->GetTimeStep();
 
+          // Returns phase 2 flux
+          auto F = [this,vsc,id,h,dt,d,&ffv](
+              IdxFace f, IdxCell cu, Scal u, Vect n, Scal a, bool in) {
+            const Scal v = ffv[f] * vsc; // mixture flux
+            if (in) {
+              if (id % 2 == 0) { // Euler Implicit
+                return R::GetLineFlux(n, a, h, v, dt, d);
+              } else {           // Lagrange Explicit
+                // upwind mixture flux
+                Scal vu = (v > 0. ? fcfm_[cu] : fcfp_[cu]) * vsc;
+                return R::GetLineFluxStr(n, a, h, v, vu, dt, d);
+              }
+            }
+            return v * u;
+          };
+
           FieldFace<Scal> ffvu(m); // flux: volume flux * field
 
           ffi_.Reinit(m);
@@ -660,41 +725,31 @@ struct Vof<M_>::Imp {
           auto& fcm = fcm_[i];
           auto& fcm2 = fcm2_[i];
           auto& fcdp = fcdp_[i];
-          for (auto f : m.Faces()) {
-            auto p = bf.GetMIdxDir(f);
-            Dir df = p.second;
+          fcdp.Reinit(m, false);
+          auto& fccl = tr_[i]->GetColor();
+          auto& fccl0 = tr_[0]->GetColor();
 
-            if (df != md) {
+          for (auto f : m.Faces()) {
+            if (bf.GetDir(f) != md) {
               continue;
             }
 
-            // mixture flux
-            const Scal v = ffv[f] * vsc;
             // upwind cell
-            IdxCell cu = m.GetNeighbourCell(f, v > 0. ? 0 : 1);
+            IdxCell cu = m.GetNeighbourCell(f, ffv[f] > 0. ? 0 : 1);
             // downwind cell
-            IdxCell cd = m.GetNeighbourCell(f, v > 0. ? 1 : 0);
+            IdxCell cd = m.GetNeighbourCell(f, ffv[f] > 0. ? 1 : 0);
             if (fcm2[cu] || fcm2[cd]) {
               fcdp[cu] = true;
               fcdp[cd] = true;
-              bool in = (fcm2[cu] ? fci[cu] : fci0[cu]);
-              if (in) { // cell contains interface, flux from reconstruction
-                Vect n = (fcm2[cu] ? fcn[cu] : fcn0[cu]);
-                Scal a = (fcm2[cu] ? fca[cu] : fca0[cu]);
-                if (id % 2 == 0) { // Euler Implicit
-                  // phase 2 flux
-                  ffvu[f] = R::GetLineFlux(n, a, h, v, dt, d);
-                } else { // Lagrange Explicit
-                  // XXX: if id % 2 == 1, fcfm_ and fcfp_ contain fluxes
-                  // upwind mixture flux
-                  Scal vu = (v > 0. ? fcfm_[cu] : fcfp_[cu]) * vsc;
-                  // phase 2 flux
-                  ffvu[f] = R::GetLineFluxStr(n, a, h, v, vu, dt, d);
-                }
-                ffi_[f] = true;
+
+              if (fcm2[cu]) {
+                ffvu[f] = F(f, cu, fcu[cu], fcn[cu], fca[cu], fci[cu]);
+                ffi_[f] = fci[cu];
+              } else if (fccl0[cu] == fccl[cd]) {
+                ffvu[f] = F(f, cu, fcu0[cu], fcn0[cu], fca0[cu], fci0[cu]);
+                ffi_[f] = fci0[cu];
               } else {
-                Scal u = (fcm2[cu] ? fcu[cu] : fcu0[cu]);
-                ffvu[f] = v * u;
+                ffvu[f] = 0;
                 ffi_[f] = false;
               }
             }
@@ -763,11 +818,8 @@ struct Vof<M_>::Imp {
 
           if (i == 1)
           for (auto c : m.Cells()) {
-            if (fcm2[c] && !fcm[c]) {
+            if (fcm2[c] && !fcm[c] && fccl[c] == fccl0[c] && fcu[c] > 1e-10) {
               fcu0[c] = fcu[c];
-            }
-            if (fcm[c]) {
-              fcu0[c] = 0;
             }
           }
 
