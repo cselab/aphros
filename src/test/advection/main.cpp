@@ -146,7 +146,8 @@ void Advection<M>::Init(Sem& sem) {
       auto p = std::make_shared<typename ASV::Par>();
       Parse<M>(p.get(), var);
       p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
-      as_.reset(new ASV(m, fcu_, bc, &ff_flux_, 
+      auto fccl = FieldCell<Scal>(m, -1);
+      as_.reset(new ASV(m, fcu_, fccl, bc, &ff_flux_, 
                        &fc_src_, 0., var.Double["dt"], p));
     } else {
       throw std::runtime_error("Unknown advection_solver=" + as);

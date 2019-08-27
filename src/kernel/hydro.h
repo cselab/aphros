@@ -459,7 +459,7 @@ void Hydro<M>::InitAdvection() {
     auto p = std::make_shared<typename AST::Par>();
     Parse<M>(p.get(), var);
     as_.reset(new AST(
-          m, fc_vf_, mf_cond_, 
+          m, fc_vf_, mf_cond_,
           &fs_->GetVolumeFlux(solver::Layers::time_curr),
           &fc_src2_, 0., st_.dta, p));
   } else if (as == "vof") {
@@ -467,7 +467,7 @@ void Hydro<M>::InitAdvection() {
     Parse<M>(p.get(), var);
     p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
     as_.reset(new ASV(
-          m, fc_vf_, mf_cond_, 
+          m, fc_vf_, fccl_, mf_cond_,
           &fs_->GetVolumeFlux(solver::Layers::time_curr),
           &fc_src2_, 0., st_.dta, p));
   } else {

@@ -63,7 +63,14 @@ class Vof : public AdvectionSolver<M_> {
   };
 
   // Constructor
-  Vof(M& m, const FieldCell<Scal>& fcu,
+  // fcu: initial volume fraction
+  // fccl: initial color
+  // mfc: boundary conditions for volume fraction
+  // ffv: pointer to mixture flux
+  // fcs: poitner to volume sources
+  // t,dt: initial time and timestep
+  // par: parameters
+  Vof(M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
       const MapFace<std::shared_ptr<CondFace>>& mfc,
       const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
       double t, double dt, std::shared_ptr<Par> par);
