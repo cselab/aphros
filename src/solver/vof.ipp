@@ -432,18 +432,23 @@ struct Vof<M_>::Imp {
       auto& fcu0 = *uc[0];
       //for (size_t i = 1; i < uc.size(); ++i) {
       { size_t i = 1;
-        auto& fccl = const_cast<FieldCell<Scal>&>(tr_[i]->GetColor());
-        auto& fcm = fcm_[i];
-        auto& fcu = *uc[i];
         const int sw = 2; // stencil halfwidth
         using MIdx = typename M::MIdx;
         auto& bc = m.GetIndexCells();
         GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1));
 
+        auto& fcu = *uc[i];
+        auto& fccl = const_cast<FieldCell<Scal>&>(tr_[i]->GetColor());
+        auto& fcm = fcm_[i];
+        auto fcmm = fcm; // previous mask
+        fcu.Reinit(m, false);
+
+        // move conflicting cells to layer 1
         for (auto c : m.Cells()) {
           MIdx w = bc.GetMIdx(c);
           if (fccl0[c] == 0) {
             bool q = false;
+            // check if conflicting, i.e. has neighbor with color 1
             for (MIdx wo : bo) {
               IdxCell cn = bc.GetIdx(w + wo);
               if (fccl0[cn] == 1) {
@@ -451,11 +456,44 @@ struct Vof<M_>::Imp {
               }
             }
             if (q) {
-              fcm[c] = true;
-              fcu[c] = fcu0[c];
-              fccl[c] = fccl0[c];
-              fcu0[c] = 0;
-              fccl0[c] = TR::kNone;
+              // if conflictcing, move to layer 1
+              if (!fcmm[c]) {
+                // if not on layer 1, 
+                // move u and cl to layer 1, clear on layer 0
+                fcm[c] = true;
+                fcu[c] = fcu0[c];
+                fccl[c] = fccl0[c];
+                fcu0[c] = 0;
+                fccl0[c] = TR::kNone;
+              } else {
+                // if on layer 1, only restore the mask
+                // (should not happen)
+                fcm[c] = true;
+                std::cerr << "warn: already on layer 1 w=" << w << "\n";
+              }
+            }
+          }
+        }
+        // move non-conflicting cells back to layer 0
+        for (auto c : m.Cells()) {
+          MIdx w = bc.GetMIdx(c);
+          if (fcmm[c] && fccl[c] == 0) {
+            bool q = false;
+            // check if conflicting, i.e. has neighbor with color 1 on layer 0
+            for (MIdx wo : bo) {
+              IdxCell cn = bc.GetIdx(w + wo);
+              if (fccl0[cn] == 1) {
+                q = true;
+              }
+            }
+            if (!q) {
+              // if not conflicting, move to layer 0
+              // move u and cl to layer 0, clear on layer 1
+              fcm[c] = false;
+              fcu0[c] = fcu[c];
+              fccl0[c] = fccl[c];
+              fcu[c] = 0;
+              fccl[c] = TR::kNone;
             }
           }
         }
@@ -649,6 +687,7 @@ struct Vof<M_>::Imp {
       } 
       vsc = 1.0;
     }
+    if(0)
     for (size_t id = 0; id < dd.size(); ++id) {
       size_t d = dd[id]; // direction as index
       if (sem("copyface")) {
