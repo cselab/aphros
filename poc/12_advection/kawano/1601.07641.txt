@@ -1,0 +1,1818 @@
+                                                        A simple volume-of-fluid reconstruction method for three-dimensional
+                                                                                   two-phase flows
+
+                                                                                                      Akio Kawano∗
+                                                   Japan Agency for Marine-Earth Science and Technology, 3173-25, Showa-machi, Kanazawa-ku, Yokohama, 236-0001, Japan
+arXiv:1601.07641v2 [physics.comp-ph] 26 May 2016
+
+
+
+
+                                                   Abstract
+                                                   A new PLIC (piecewise linear interface calculation)-type VOF (volume of fluid) method, called APPLIC
+                                                   (approximated PLIC) method, is presented. Although the PLIC method is one of the most accurate VOF
+                                                   methods, the three-dimensional algorithm is complex. Accordingly, it is hard to develop and maintain the
+                                                   computational code. The APPLIC method reduces the complexity using simple approximation formulae.
+                                                   Three numerical tests were performed to compare the accuracy of the SVOF (simplified volume of fluid),
+                                                   VOF/WLIC (weighed line interface calculation), THINC/SW (tangent of hyperbola for interface captur-
+                                                   ing/slope weighting), THINC/WLIC, PLIC, and APPLIC methods. The results of the tests show that the
+                                                   APPLIC results are as accurate as the PLIC results and are more accurate than the SVOF, VOF/WLIC,
+                                                   THINC/SW, and THINC/WLIC results. It was demonstrated that the APPLIC method is more computa-
+                                                   tionally efficient than the PLIC method.
+                                                   Keywords: Free interface, VOF method, PLIC method, two-phase flows
+
+
+                                                   1. Introduction
+
+                                                       Two-phase flows are essential in many research fields; for example, in relation to cloud and precipitation
+                                                   droplets in the atmosphere, water waves, cooling devices, oil and gas pipelines, chemical industrial plants,
+                                                   and thermal power stations. In the recent decades, many interface tracking methods for simulating two-phase
+                                                   flows have been developed. The VOF (volume of fluid) method, originated by Hirt and Nichols [1], is one
+                                                   of the most widely used algorithms. Excellent reviews of the VOF method have been given by Rudman [2],
+                                                   Rider and Kothe [3], Scardovelli and Zaleski [4], and Pilliod and Puckett [5].
+                                                       The VOF method is based on the spatial discretization of a characteristic function to distinguish between
+                                                   two phases, and the reconstruction of the interfaces for advection. Suppose that we wish to simulate an
+                                                   incompressible two-phase (‘light’ and ‘dark’) flow in the three-dimensional Cartesian space x = (x1 , x2 , x3 ).
+                                                   The characteristic function for the flow is defined as
+                                                                                           (
+                                                                                              0 if there is light fluid at point x,
+                                                                                   χ(x) =                                                                      (1)
+                                                                                              1 if there is dark fluid at point x.
+
+                                                   The interfaces between the two phases are represented by the discontinuity of the characteristic function. In
+                                                   this paper, we suppose that a computational grid composed of cubic cells of a edge ∆x is used. Extension
+                                                   of our analysis to general regular grids is straightforward. By descretizing the characteristic function in a
+                                                   computational cell (i, j, k), we can obtain the volume fraction
+                                                                                                           Z
+                                                                                                       1
+                                                                                            Ci,j,k =              χ(x) dx,                                   (2)
+                                                                                                     (∆x)3 Ωi,j,k
+
+
+                                                     ∗ Correspondingauthor. Tel.:+81 45 778 5871; fax: +81 45 778 5491.
+                                                      Email address: kawanoa@jamstec.go.jp (Akio Kawano)
+
+
+                                                   Preprint submitted to Computers & Fluids                                                             May 27, 2016
+where Ωi,j,k is the domain of the cell.   It is obvious from the definition that
+                             
+                             = 0
+                                          if the cell is filled by light fluid,
+                       Ci,j,k ∈ (0, 1)     if the cell contains both fluids (interface cell),                 (3)
+                             
+                               =1          if the cell is filled by dark fluid.
+                             
+
+    The VOF method reconstructs the shape of the interface in each interface cell to evaluate VOF advection
+fluxes. Various schemes for VOF reconstruction have been presented. The PLIC (piecewise linear interface
+calculation) method [6, 7] reconstructs an interface in a cell as a plane (in three-dimensional space) or a line
+(in two-dimensional space) with a given normal vector. The SLIC (simple line interface calculation) method
+[8] assumes the shape of an interface to be a plane parallel to one of the cell faces. The VOF/WLIC (weighted
+line interface calculation) method [9] evaluates an advection flux through a cell face as a weighted sum of
+SLIC fluxes. The SVOF (simplified volume of fluid) method [10] is similar to the VOF/WLIC method, except
+for the weight formula. In the THINC (tangent of hyperbola for interface capturing) method [11], interfaces
+are represented by the use of the hyperbolic tangent. Improved THINC methods have also been proposed
+[9, 12, 13].
+    Although it is known to be one of the most accurate reconstruction methods, a three-dimensional im-
+plementation of the PLIC method is a troublesome task. The PLIC method requires the solution of two
+geometric problems, as to a cut-volume of a cube by a plane, which are very complicated especially in three-
+dimensional cases. Scardovelli and Zaleski have provided two sophisticated algorithms (hereafter called the
+SZ algorithms) to solve these problems [14]. Although the SZ algorithms make the implementation of the
+PLIC method easier because of their compactness, these are still too complex for quick and easy implementa-
+tion. Computational routines that implement the SZ algorithms must involve multiple “if” statements, which
+make it hard to develop and maintain the routines, and potentially inhibit its optimal compilation, especially
+for processors susceptible to conditional branches, e.g., deeply pipelined processors, processors with SIMD
+(single instruction multiple data) operations, vector processors, and GPUs (graphics processing units) [15].
+    In this paper, a PLIC-type VOF method called the APPLIC (approximated PLIC) method is presented.
+In the APPLIC method, interfaces are reconstructed in a similar manner as in the PLIC method, except that
+the geometric problems are solved through the use of simple approximation formulae.
+    This paper is organized as follows. In Section 2, we describe the APPLIC method. Section 3 compares
+the accuracy and computational efficiency of the APPLIC method with some existing VOF methods. Finally,
+conclusions are summarized in Section 4.
+    The following vector notation is used throughout this paper. Bold letters denote three-dimensional vectors
+and the corresponding non-bold letters with subscripts 1, 2, or 3 denote the vector components. For example,
+u = (u1 , u2 , u3 ) and m00A = (m00A,1 , m00A,2 , m00A,3 ). We use kmkn to represent the n-norm of m; namely,
+kmk1 = |m1 | + |m2 | + |m3 | and kmk2 = (m21 + m22 + m23 )1/2 . The expression m ≥ a stands for the condition
+m1 ≥ a, m2 ≥ a, and m3 ≥ a.
+
+2. Method
+
+2.1. The PLIC method using the SZ algorithms
+    In this paper, we use directional splitting for advection and a regular staggered grid where velocity
+components u1 , u2 , and u3 are stored at the centers of the cell faces {(i + 1/2, j, k)}, {(i, j + 1/2, k)}, and
+{(i, j, k + 1/2)}, respectively. We assume that the Courant-Friedrichs-Lewy (CFL) condition,
+
+                                          |ul |∆t
+                                                  <1   for all l ∈ {1, 2, 3},                                 (4)
+                                            ∆x
+holds, where ∆t is the time step size.
+    Let φ be the face, and uI (I = 1, 2, or 3) the velocity component placed on φ. Let Ω be the donor cell,
+which is the cell that has φ as a cell face and lies on the upwind side of uI . Let φ∗ be the opposite face of the
+face φ in the cell Ω. The cell Ω is partitioned into two subcells by the section σ parallel to φ and laid |uI |∆t
+
+
+                                                          2
+away from φ. Let ΩA and ΩB be the subcells of Ω between φ and σ and between σ and φ∗ , respectively (see
+Fig. 1). The section σ is always located between φ and φ∗ because of the CFL condition. Let CA and CB be
+the partial volume fractions in ΩA and ΩB , respectively, defined as
+                                                      Z
+                                                  1
+                                          CA =             χ(x) dx,                                  (5)
+                                                (∆x)3 ΩA
+                                                      Z
+                                                  1
+                                          CB =             χ(x) dx.                                  (6)
+                                                (∆x)3 ΩB
+
+It is obvious that CA ∈ [0, 1] and CB ∈ [0, 1]. From the definitions, we have
+
+                                                         CA + CB = C,                                                            (7)
+
+where C is the volume fraction in the donor cell Ω.
+
+
+
+
+Figure 1: Schematic illustration of a donor cell with respect to a flux through a cell face φ. The cell is divided into two subcells,
+ΩA and ΩB , by the section σ parallel to φ and laid |uI |∆t away from φ.
+
+
+   The computational advection flux of the volume fraction through the face φ (i.e., the amount of the
+volume fraction through the face during ∆t) is obtained via
+
+                                                         F = CA sgn uI ,                                                         (8)
+
+where sgn is the sign function defined as
+                                                           (
+                                                            1         if x ≥ 0,
+                                                   sgn x =                                                                       (9)
+                                                            −1        if x < 0.
+
+In some cases, CA is easily determined by
+                                                   (
+                                                    0   if C = 0 or |g| = 0,
+                                              CA =                                                                             (10)
+                                                    |g| if C = 1,
+
+where |g| denote the local CFL number in the cell Ω with respect to the flux through the face φ:
+
+                                                                 uI ∆t
+                                                            g=         .                                                       (11)
+                                                                  ∆x
+
+
+                                                                 3
+ Because of the CFL condition, g must be in the range (−1, 1). If C ∈ (0, 1) and |g| > 0, CA is determined
+ through the reconstruction of the interface in the donor cell Ω.
+    Here, we define the two geometric problems crucial to the PLIC method, which are mutually inverse.
+ Consider a unit cube U = {x ∈ [0, 1]3 } and an oriented plane P (α, m) = {x| m · x < α}, where m is the
+ normal vector of the plane, and α is the plane constant. Note that an oriented plane is not a thin object
+ without volume, but is a solid object with an inside and an outside. Let V be the volume of the intersection
+ between the unit cube and the oriented plane. One of the problems, called the forward problem, is to
+ determine the value of V for given α and m. The other problem, called the inverse problem, is to determine
+ the value of α for given V and m. Namely,
+                                              Z
+                                  V (α, m) =             dx,                                             (12)
+                                                U ∩P (α,m)
+                                       0        0
+                                  α(V , m) = α     such that V (α0 , m) = V 0 .                            (13)
+
+ To reduce the complexity of the problems, the SZ algorithms restrict m to a vector so that m ≥ 0 and
+ kmk1 = 1.
+    The functions V (α, m) and α(V, m) have the following properties [4].
+
+   (I) The value of V (α, m) is within the range [0, 1] and
+                                                          (
+                                                            0 if α ≤ 0,
+                                             V (α, m) =                                                    (14)
+                                                            1 if α ≥ 1.
+
+  (II) The value of α(V, m) is within the range [0, 1] for V ∈ [0, 1].
+
+ (III) The functions V and α are invariant with respect to a permutation of m1 , m2 , and m3 .
+ (IV) The functions V and α are continuous, one-to-one, and monotonically increasing functions of α and V
+      in the ranges V ∈ [0, 1] and α ∈ [0, 1], respectively.
+  (V) The first derivatives ∂V /∂α and ∂α/∂V are continuous and monotonically nondecreasing functions of
+      α ∈ (0, 1/2] and V ∈ (0, 1/2], respectively.
+
+ (VI) The curve (α, V ) passes through the points (0, 0), (1/2, 1/2), and (1, 1).
+(VII) If m = (0, 0, 1) and (0, 1/2, 1/2), the values of V (α, m) become α and (2α)2 /2, respectively, for α ∈
+      [0, 1/2].
+(VIII) The curve (α, V ) has point symmetry (or odd symmetry) with respect to (α, V ) = (1/2, 1/2); namely,
+
+                                             V (α, m) = 1 − V (1 − α, m),                                  (15)
+                                             α(V, m) = 1 − α(1 − V, m).                                    (16)
+
+ All the properties except (VII) hold for the arbitrary m.
+     Figure 2 shows an example implementation of the SZ algorithms written in Fortran 90. The cbrt function,
+ used in line 44, is an intrinsic function that returns the real cube root of the argument. Although this is not
+ included in the Fortran 90 standard, many Fortran compilers support this. The abs functions in lines 11 and
+ 40 are used to prevent vm2 being negative owing to the numerical error in floating point arithmetic when
+ vm3 ' 1.
+
+
+
+
+                                                        4
+  i   module constants
+ ii     real(8), parameter :: CONST_TINY = 1d-25 ! an extremely small constant
+iii     real(8), parameter :: CONST_PI = 3.14159265358979323846d0 ! π
+ iv   end module constants
+
+ 1     function calc_v(alpha, vma, vmb, vmc) result(v)
+ 2       ! Preconditions: vma ∈ [0, 1], vmb ∈ [0, 1], vmc ∈ [0, 1], vma + vmb + vmc = 1.
+ 3       use constants
+ 4       real(8), intent(in) :: alpha, vma, vmb, vmc
+ 5       real(8) :: v, a, vm1, vm2, vm3, vm12
+ 6       a = min(alpha, 1d0 - alpha)
+ 7       v = 0d0
+ 8       if (a > 0d0) then
+ 9         vm1 = min(vma, vmb, vmc)            ! Sort vm1, vm2, vm3
+10         vm3 = max(vma, vmb, vmc)           ! such that vm1 ≤ vm2 ≤ vm3 .
+11         vm2 = abs(1d0 - vm3 - vm1)
+12         vm12 = vm1 + vm2
+13         if (a < vm1) then
+14           v = a ** 3 / (6d0 * vm1 * vm2 * vm3)
+15         else if (a < vm2) then
+16           v = a * (a - vm1) / (2d0 * vm2 * vm3) + &
+17               vm1 ** 2 / (6d0 * vm2 * vm3 + CONST_TINY)
+18         else if (a < min(vm12, vm3)) then
+19           v = (a ** 2 * (3d0 * vm12 - a) + vm1 ** 2 * (vm1 - 3d0 * a) + &
+20                vm2 ** 2 * (vm2 - 3d0 * a)) / (6d0 * vm1 * vm2 * vm3)
+21         else if (vm3 < vm12) then
+22           v = (a ** 2 * (3d0 - 2d0 * a) + vm1 ** 2 * (vm1 - 3d0 * a) + &
+23                vm2 ** 2 * (vm2 - 3d0 * a) + vm3 ** 2 * (vm3 - 3d0 * a)) / &
+24                (6d0 * vm1 * vm2 * vm3)
+25         else
+26           v = (a - 0.5d0 * vm12) / vm3
+27         end if
+28       end if
+29       if (alpha > 0.5d0) v = 1d0 - v
+30     end function calc_v
+31
+32     function calc_alpha(v, vma, vmb, vmc) result(alpha)
+33       ! Preconditions: v ∈ (0, 1), vma ∈ [0, 1], vmb ∈ [0, 1], vmc ∈ [0, 1], vma + vmb + vmc = 1.
+34       use constants
+35       real(8), intent(in) :: v, vma, vmb, vmc
+36       real(8) :: alpha, w, vm1, vm2, vm3, vm12, v1, v3, a0, a1, a2, q0, sp, th
+37       w = min(v, 1d0 - v)
+38       vm1 = min(vma, vmb, vmc)           ! Sort vm1, vm2, vm3
+39       vm3 = max(vma, vmb, vmc)          ! such that vm1 ≤ vm2 ≤ vm3 .
+40       vm2 = abs(1d0 - vm3 - vm1)
+41       vm12 = vm1 + vm2
+42       v1 = vm1 ** 2 / (6d0 * vm2 * vm3 + CONST_TINY)
+43       if (w < v1) then
+44         alpha = cbrt(6d0 * vm1 * vm2 * vm3 * w)
+45       else if (w < v1 + (vm2 - vm1) / (2.0 * vm3)) then
+46         alpha = 0.5d0 * (vm1 + sqrt(vm1 ** 2 + 8d0 * vm2 * vm3 * (w - v1)))
+47       else
+48         alpha = 0d0
+49         if (vm3 < vm12) then
+50           v3 = (vm3 ** 2 * (3d0 * vm12 - vm3) + vm1 ** 2 * (vm1 - 3d0 * vm3) + &
+51                  vm2 ** 2 * (vm2 - 3d0 * vm3)) / (6d0 * vm1 * vm2 * vm3)
+52         else
+53           v3 = 0.5d0 * vm12 / vm3
+54           if (v3 <= w) alpha = vm3 * w + 0.5d0 * vm12
+55         end if
+56         if (alpha == 0.0) then
+57           if (w < v3) then
+58             a2 = -3d0 * vm12
+59             a1 = 3d0 * (vm1 ** 2 + vm2 ** 2)
+60             a0 = -(vm1 ** 3 + vm2 ** 3 - 6d0 * vm1 * vm2 * vm3 * w)
+61           else
+62             a2 = -1.5d0
+63             a1 = 1.5d0 * (vm1 ** 2 + vm2 ** 2 + vm3 ** 2)
+64             a0 = -0.5d0 * (vm1 ** 3 + vm2 ** 3 + vm3 ** 3 - 6d0 * vm1 * vm2 * vm3 * w)
+65           end if
+66           q0 = (1d0/6d0) * (a1 * a2 - 3d0 * a0) - a2 ** 3 * (1d0/27d0)
+67           sp = sqrt(-1d0/3d0 * a1 + 1d0/9d0 * a2 ** 2)
+68           th = 1d0/3d0 * acos(q0 / (sp ** 3))
+69           alpha = 2d0 * sp * cos(th + (4d0/3d0 * CONST_PI)) - (1d0/3d0) * a2
+70         end if
+71       end if
+72       if (v > 0.5d0) alpha = 1d0 - alpha
+73     end function calc_alpha
+
+
+        Figure 2: Example implementation of the SZ algorithms written in Fortran 90.
+
+
+                                                    5
+   By using the SZ algorithms to evaluate the functions V (α, m) and α(V, m), the volume fraction CA for
+the PLIC method is determined as
+                                                                 00
+                                          CA (g, C, n) = |g| V (αA  , m00A ),                         (17a)
+with
+                                                 (
+                                         00       Q0A α0            if nI g ≤ 0,
+                                        αA     =    0    0
+                                                                                                      (17b)
+                                                  QA (α − rA ) if nI g > 0,
+                                                 (
+                                                  Q0A m0l |g| if l = I,
+                                      m00A,l   =                                                      (17c)
+                                                  Q0A m0l     if l 6= I,
+                                                1
+                                        Q0A =        ,                                                (17d)
+                                             1 − rA
+                                        rA = m0I (1 − |g|),                                           (17e)
+                                           0             0
+                                         α = α(C, m ),                                                 (17f)
+                                               |nl |
+                                        m0l =        ,                                                (17g)
+                                              knk1
+where l is an index running from one to three, and n is the normal vector of the interface in the donor cell
+Ω oriented from the dark fluid to the light fluid. See Appendix A for the derivation of the equations. The
+vector n is determined as
+                                                      n = −∇C,                                         (18)
+where ∇C is a numerical gradient of the volume fraction. Accurate evaluation of numerical gradients is
+required for accurate results. Various algorithms to evaluate numerical gradients for the VOF method can
+be found in the literature [5, 16–20].
+   Figure 3 shows an example implementation of the PLIC method written in Fortran 90. Here, the argument
+vn1 corresponds to nI , and vn2 and vn3 correspond to the other components of n.
+
+               1   function calc_flux_plic(g, c, vn1, vn2, vn3) result(f)
+               2     ! Preconditions: g ∈ (−1, 1), c ∈ (0, 1).
+               3     use constants
+               4     real(8), intent(in) :: g, c, vn1, vn2, vn3
+               5     real(8) :: f, absg, alpha, qa, ra, vm1, vm2, vm3
+               6     absg = abs(g)
+               7     vm1 = abs(vn1)
+               8     vm2 = abs(vn2)
+               9     vm3 = abs(vn3) + CONST_TINY
+              10     qa = 1d0 / (vm1 + vm2 + vm3)
+              11     vm1 = vm1 * qa
+              12     vm2 = vm2 * qa
+              13     vm3 = vm3 * qa
+              14     alpha = calc_alpha(c, vm1, vm2, vm3)
+              15     ra = vm1 * (1d0 - absg)
+              16     qa = 1d0 / (1d0 - ra)
+              17     if (g * vn1 > ZERO) alpha = alpha - ra
+              18     vm1 = vm1 * absg
+              19     f = calc_v(alpha * qa, vm1 * qa, vm2 * qa, vm3 * qa) * g
+              20   end function calc_flux_plic
+
+
+                   Figure 3: Example implementation of the PLIC algorithm written in Fortran 90.
+
+
+2.2. Approximation of the forward and the inverse problems
+    A basic idea of the APPLIC method is to evaluate V (α, m) and α(V, m) by use of simple approximation
+formulae. In the APPLIC method, the function V (α, m) for α ∈ [0, 1/2] is approximated as
+                                                             1
+                                                  Ve (α, m) = (2α)p ,                                  (19)
+                                                             2
+
+
+                                                             6
+where p is a positive-valued function of m. The approximation of the function α(V, m) for V ∈ [0, 1/2] is
+derived by solving Eq. (19) for α:
+                                                                      1
+                                                        α
+                                                        e(V, m) =       (2V )1/p .                                        (20)
+                                                                      2
+Here a tilde ( e ) indicates an approximation. Using Eqs. (16) and (20), we can give the formula of α
+                                                                                                    e for
+V ∈ [0, 1] as
+                                            
+                                             1 (2V )p
+                                            
+                                                               if V ≤ 1/2,
+                                 e(V, m) = 2 1
+                                 α                                                                   (21)
+                                            1 − [2(1 − V )]p if V > 1/2.
+                                            
+                                                  2
+Similarly, using Eqs. (14), (15), and (19), we have
+                                            
+                                            
+                                            0                                   if α ≤ 0,
+                                             1 (2α)p
+                                            
+                                            
+                                                                                 if 0 < α ≤ 1/2,
+                                            
+                                Ve (α, m) = 2 1                                                                           (22)
+                                            1 − [2(1 − α)]p
+                                                                                if 1/2 < α < 1,
+                                                  2
+                                            
+                                            
+                                            
+                                             1                                   if α ≥ 1.
+                                            
+
+
+The functions Ve and αe satisfy properties (I), (II), (IV), (V), (VI), and (VIII).
+   Let us formulate the function p. First, we determine the optimal p, denoted by popt , that minimizes the
+square error D, defined as
+                                 Z     1                                     Z   1
+                                       2                                         2
+                       D(m) =              [Ve (α, m) − V (α, m)]2 dα +               α(V, m) − α(V, m)]2 dV.
+                                                                                     [e                                   (23)
+                                   0                                         0
+
+The function popt is plotted in Fig. 4.
+
+
+
+                                  1
+                                                                                                    2.6
+
+                                0.8                                                                 2.4
+
+                                                                                                    2.2
+                                0.6                                                                 2
+                           m2
+
+
+
+
+                                                                                                    1.8
+                                0.4
+                                                                                                    1.6
+
+                                0.2                                                                 1.4
+
+                                                                                                    1.2
+                                  0
+                                                                                                    1
+                                           0      0.2      0.4         0.6           0.8     1
+                                                                 m1
+
+
+Figure 4: Plot for popt as a function of m. The component m3 is given by 1 − m1 − m2 . The contour lines are drawn at popt = 1,
+1.2, 1.4, . . ., 2.6.
+
+
+                                                                  7
+   Next, we construct an arithmetic expression of p that approximates popt . We found that popt can be
+approximated as
+
+                                                   c2 ξ 2 + c1 ξ + c0
+                                             p=                       ,                                     (24)
+                                                          ξ + c0
+with
+
+                                      ξ = (b − m1 )(b − m2 )(b − m3 ) − a,                                  (25)
+
+where c0 , c1 , c2 , a, and b are constants. To satisfy property (III), Eq. (25) is designed to be symmetric with
+respect to m1 , m2 , and m3 . We impose the following relations on the constants to satisfy property (VII):
+
+                                                  b
+                                            c0 =    (c2 b + 4c1 − 8),                                       (26)
+                                                 16
+                                                  2
+                                             a = b (b − 1).                                                 (27)
+
+The optimal values of b, c1, and c2, shown in Table 1, were determined by a least-square procedure that
+minimizes the mean square error D̄ with respect to m, defined as
+                                             ZZ            
+                                                        n
+                                                   D          dS
+                                                S1     knk1
+                                        D̄ =       ZZ            ,                                 (28)
+                                                        dS
+                                                             S1
+
+where S1 is the part of the unit spherical surface in the first octant, namely,
+
+                                        S1 = {x | x ≥ 0 and kxk2 = 1},                                      (29)
+
+n is a vector that scans S1 , and dS is the surface element. Figure 5 shows p given by Eq. (24) with the
+optimal b, c1 , and c2 . Here, popt is also plotted for comparison, denoted by white and dotted contour lines.
+The function p given by Eq. (24) fits with popt extremely well.
+
+
+                                     Table 1: Optimal values of the constants
+                                                    b    1.49
+                                                   c1    0.132
+                                                   c2    0.239
+
+
+
+
+                                                         8
+                                 1
+                                                                                         2.6
+
+                               0.8                                                       2.4
+
+                                                                                         2.2
+                          m2   0.6                                                       2
+
+                                                                                         1.8
+                               0.4
+                                                                                         1.6
+
+                               0.2                                                       1.4
+
+                                                                                         1.2
+                                 0
+                                                                                         1
+                                     0       0.2      0.4        0.6    0.8      1
+                                                            m1
+
+
+Figure 5: Plot for p (the color image and the black solid contour lines), as obtained by Eq. (24) as a function of m. The
+component m3 is given by 1 − m1 − m2 . The contour lines for popt are also shown as white dotted lines for comparison. The
+contour lines are drawn at p = 1, 1.2, 1.4, . . ., 2.6.
+
+
+    The square error D for p obtained by Eq. (24) is plotted in Fig. 6. This figure shows that D becomes the
+maximum, Dmax = 2.70 × 10−4 , at m = (0.734, 0.133, 0.133), (0.133, 0.734, 0.133), and (0.133, 0.133, 0.734),
+and becomes zero at m = (1, 0, 0), (0, 1, 0), (0, 0, 1), (0, 1/2, 1/2), (1/2, 0, 1/2), and (1/2, 1/2, 0). In Fig. 7,
+we show V and Ve as functions of α for various orientations of m. In each pane, curves V (α, m) and Ve (α, m)
+are plotted for a specific m. This figure shows that the discrepancy between V and Ve is sufficiently small
+for any m. Panel (q) indicates the case of m = (0.125, 0.125, 0, 75), which has the largest square error (D =
+2.68 × 10−4 ) among the cases plotted in Fig. 7. Note that (0.125, 0.125, 0, 75) is close to (0.133, 0.133, 0.734),
+a case with the maximum square error.
+
+
+
+
+                                                             9
+                                                                                               −4
+                                                                                         (×10 )
+                                 1
+                                                                                         2.5
+                               0.8
+                                                                                         2
+
+                               0.6
+                                                                                         1.5
+                          m2
+
+
+                               0.4
+                                                                                         1
+
+                               0.2
+                                                                                         0.5
+
+                                 0
+                                                                                         0
+                                     0       0.2      0.4        0.6    0.8      1
+                                                            m1
+
+
+Figure 6: Plot for the square error defined as Eq. (23) as a function of m. The component m3 is given by 1 − m1 − m2 . The
+contour lines are drawn at D = 0.5 × 10−4 , 1.0 × 10−4 , 1.5 × 10−4 , . . ., 2.5 × 10−4 .
+
+
+
+
+                                                            10
+                                 m2 = 0         m2 = 0.0625        m2 = 0.125           m2 = 0.1875         m2 = 0.25         m2 = 0.3125
+                               m3 = 1           m3 =               m3 =                 m3 =               m3 =               m3 =
+                     0.4
+                                                0.9375             0.875                0.8125             0.75               0.6875
+
+
+
+
+                                                                                                                                               m1 = 0
+                     0.2                        equal to (b)       equal to (c)         equal to (d)       equal to (e)       equal to (f)
+                                          (a)
+                       0
+                         m3 =                   m3 =               m3 =                 m3 =               m3 =               m3 =
+
+
+
+
+                                                                                                                                               m1 = 0.0625
+                     0.4
+                         0.9375                 0.875              0.8125               0.75               0.6875             0.625
+                     0.2                                           equal to (k)         equal to (l)       equal to (m)       equal to (n)
+                                          (b)              (j)
+                       0
+                         m3 =                   m3 =               m3 =                 m3 =               m3 =               m3 =
+
+
+
+
+                                                                                                                                               m1 = 0.125
+                     0.4
+                         0.875                  0.8125             0.75                 0.6875             0.625              0.5625
+                     0.2                                                                equal to (r)       equal to (s)       equal to (t)
+                                          (c)              (k)                (q)
+                       0
+                         m3 =                   m3 =               m3 =                 m3 =               m3 =               m3 = 0.5
+
+
+
+
+                                                                                                                                               m1 = 0.1875
+                     0.4
+                         0.8125                 0.75               0.6875               0.625              0.5625
+                     0.2                                                                                   equal to (x)       equal to (y)
+                                          (d)              (l)                (r)                  (w)
+                       0
+                         m3 =                   m3 =               m3 =                 m3 =               m3 = 0.5           m3 =
+                     0.4
+
+
+
+
+                                                                                                                                               m1 = 0.25
+                         0.75                   0.6875             0.625                0.5625                                0.4375
+              V, V
+                 ~
+
+
+
+
+                     0.2                                                                                                      equal to (β)
+                                          (e)              (m)                (s)                  (x)                (α)
+                       0
+                         m3 =                   m3 =               m3 =                 m3 = 0.5           m3 =               m3 =
+
+
+
+
+                                                                                                                                               m1 = 0.3125
+                     0.4
+                         0.6875                 0.625              0.5625                                  0.4375             0.375
+                     0.2
+                                          (f)              (n)                (t)                  (y)                (β)                (δ)
+                       0
+                         m3 =                   m3 =               m3 = 0.5             m3 =               m3 =               m3 =
+
+
+
+
+                                                                                                                                               m1 = 0.375
+                     0.4
+                         0.625                  0.5625                                  0.4375             0.375              0.3125
+                     0.2                                                                                                      equal to (δ)
+                                          (g)              (o)                (u)                  (z)                (γ)
+                       0
+                         m3 =                   m3 = 0.5           m3 =                 m3 =               m3 =               m3 =
+                                                                                                                                               m1 = 0.4375
+                     0.4
+                         0.5625                                    0.4375               0.375              0.3125             0.25
+                     0.2                                                                equal to (z)       equal to (β)       equal to (β)
+                                          (h)              (p)                (v)
+                       0
+                         m3 = 0.5               m3 =               m3 =                 m3 =               m3 =               m3 =
+                     0.4
+                                                                                                                                               m1 = 0.5
+
+
+
+
+                                                0.4375             0.375                0.3125             0.25               0.1875
+                     0.2                        equal to (p)       equal to (u)         equal to (y)       equal to (α)       equal to (y)
+                                          (i)
+                       0
+                           0     0.2    0.4 0      0.2     0.4 0      0.2     0.4 0        0.2     0.4 0      0.2     0.4 0      0.2     0.4
+
+                                                                                    α
+
+Figure 7: Comparison between the functions V (α, m) (dashed lines) and Ve (α, m) (solid lines) as functions of α for various m.
+
+
+
+
+                                                                              11
+    Figure 8 shows an example implementation of the functions Ve and α         e written in Fortran 90. In lines
+11 and 24, the expression exp(log(A) ∗ B) is used instead of the expression A ∗∗ B. Both the expressions
+are mathematically equivalent if both A and B are positive. Note that the variables a, w, p, and invp in
+Fig. 8 are always positive. However, the former expression requires slightly less computational cost then the
+latter expression in most computer environments because the evaluation of A ∗∗ B internally involves multiple
+conditional branches, e.g., if A is positive/zero/negative, if B is positive/zero/negative, and if B is an integer
+or not. If C/C++ is used, the expression exp2(log2(A) ∗ B) may slightly more efficient.
+
+                 i   module applic_constants
+                ii     real(8), parameter :: PB = 1.49d0, PC2 = 0.239d0, PC1 = 0.132d0, &
+               iii       PC0 = (PB * (PB * PC2 + 4d0 * PC1 - 8d0) / 16d0), &
+                iv       PA = (PB * PB * (PB - 1d0))
+                 v   end module applic_constants
+
+                1     function calc_approx_v(alpha, vma, vmb, vmc) result(v)
+                2       ! Preconditions: vma ∈ [0, 1], vmb ∈ [0, 1], vmc ∈ [0, 1], vma + vmb + vmc = 1.
+                3       use applic_constants
+                4       real(8), intent(in) :: alpha, vma, vmb, vmc
+                5       real(8) :: v, a, xi, p
+                6       a = min(alpha, 1d0 - alpha)
+                7       v = 0d0
+                8       if (a > 0d0) then
+                9           xi = (PB - vma) * (PB - vmb) * (PB - vmc) - PA
+               10           p = ((PC2 * xi + PC1) * xi + PC0) / (xi + PC0)
+               11           v = 0.5d0 * exp(log(a + a) * p)
+               12       end if
+               13       if (alpha > 0.5d0) v = 1d0 - v
+               14     end function calc_approx_v
+               15
+               16     function calc_approx_alpha(v, vma, vmb, vmc) result(alpha)
+               17       ! Preconditions: v ∈ (0, 1), vma ∈ [0, 1], vmb ∈ [0, 1], vmc ∈ [0, 1], vma + vmb + vmc = 1.
+               18       use applic_constants
+               19       real(8), intent(in) :: v, vma, vmb, vmc
+               20       real(8) :: alpha, w, xi, invp
+               21       w = min(v, ONE - v)
+               22       xi = (PB - vma) * (PB - vmb) * (PB - vmc) - PA
+               23       invp = (xi + PC0) / ((PC2 * xi + PC1) * xi + PC0)
+               24       alpha = 0.5d0 * exp(log(w + w) * invp)
+               25       if (v > 0.5d0) alpha = 1d0 - alpha
+               26     end function calc_approx_alpha
+
+
+
+            Figure 8: Example implementation of the approximation functions Ve and α
+                                                                                   e written in Fortran 90.
+
+2.3. The crude APPLIC method
+    Using the approximation functions Ve (α, m) and αe(V, m) instead of functions V (α, m) and α(V, m) in
+Eq. (17), we can determine computational advection fluxes via Eq. (8). This straightforward method is called
+the crude APPLIC method.
+    The crude APPLIC method is not practical because of a defects described below. Let us examine whether
+fluxes evaluated by the crude APPLIC method have properties which are essential to be satisfied by fluxes
+of volume fractions. The computational advection flux F should satisfy the followings conditions:
+                                              
+                                              ≥ 0 if g > 0,
+                                              
+                                   F (g, C, n) = 0 if g = 0,                                            (30)
+                                              
+                                                ≤ 0 if g < 0,
+                                              
+
+                                 F [g, C, (n1 , n2 , n3 )] = sI F [sI g, C, (s1 n1 , s2 n2 , s3 n3 )],                (31)
+                                 F [g, C, (n1 , n2 , n3 )] = F [g, C, (n1 , n3 , n2 )],                               (32)
+                                                         g = F (g, C, n) + F (g, 1 − C, −n),                          (33)
+                                           |F (g, C, n)| ≤ C,                                                         (34)
+where si in Eq. (31) is either 1 or −1. In Eq. (32) we suppose that I = 1 for simplicity. Condition (30)
+specifies the sign of F . Condition (31) stems from the symmetry of positive and negative directions along
+
+
+                                                                   12
+the coordinate axes. Conditions (32) stems from the permutation symmetry between the second- and the
+third-coordinate axes. As shown in (a) and (b) of Fig. 9, the second term in the right-hand side of Eq. (33)
+corresponds to the flux of the light fluid. Therefore, condition (33) means that the total flux, given by g, is
+the sum of the light fluid flux and the dark fluid flux. Condition (34) provides the upper limit of |F | under
+the CFL condition.
+    A lower limit of |F | is derived from Eqs. (30), (33) and (34) as follows. From Eqs. (30) and (33), we have
+
+                                        |F (g, C, n)| + |F (g, 1 − C, n)| = |g|,
+                                                            |F (g, 1 − C, n)| ≤ 1 − C.                                   (35)
+
+These leads
+
+                                                  |F (g, C, n)| ≥ |g| − (1 − C).                                         (36)
+
+
+
+                                                       σ     |g|
+                                       (a)
+                                                        n
+                                             ϕ*                     ϕ
+                                CB(g, C, n)
+                                                                    CA(g, C, n)
+                                                        1
+
+                                                       σ     |g|
+                                       (b)
+                                                                    CA(g, 1 − C, −n)
+                                             ϕ*                     ϕ
+
+                                                       −n
+
+
+                                                   σ   1 − |g|
+                                       (c)
+                                                                    CA[(1 − |g|) sgn g, C, −n]
+                                             ϕ*                     ϕ
+
+                                                        −n
+
+Figure 9: Two-dimensional schematic of the relation among partial volume fractions in a donor cell. The sides of the cells are
+scaled to be unity.
+
+
+    Although conditions (30), (31), (32), and (33) are always satisfied by the crude APPLIC method, condi-
+tions (34) and (36) are not. To demonstrate this, a set of sample points, S = {(g (l) , C (l) , n(l) ) | l = 1, 2, . . . , N }
+(N = 10, 000, 000), is used. The sample points in the set S were generated such that {g (l) }, {C (l) }, and {n(l) }
+are uniformly distributed on [0, 1], [0, 1], and the unit spherical surface, respectively, by use of pseudoran-
+dom numbers. Among the sample points in the set S, 5.4% of the points do not satisfy the condition
+|g| − (1 − C) ≤ |FeCAPPLIC | ≤ C, where FeCAPPLIC is a flux obtained by the crude APPLIC method. An easy
+remedy for the defect is to adopt the limiter as follows:
+
+                            FeCAPPLIC/L = min{C, max[|FeCAPPLIC |, |g| − (1 − C)]} sgn g,                                (37)
+
+where FeCAPPLIC/L is a flux obtained by the crude APPLIC method with the limiter.
+
+
+                                                                   13
+2.4. The APPLIC method
+    Consider the following relation:
+
+                                                          C
+                                                          eA + C
+                                                               eB = C,                                         (38)
+
+where C
+      eB is obtained by
+
+                                    C              eA [(1 − |g|) sgn g, C, −n].
+                                    eB (g, C, n) = C                                                           (39)
+
+See (a) and (c) of Fig. 9 for a geometric interpretation of Eq. (39). Equation (38) is identical to Eq. (7)
+except that CA and CB are obtained by use of the approximation functions Ve and α  e. Generally, Eq. (38)
+does not hold because of approximation errors in Ve and αe.
+   To improve the crude APPLIC method, we take advantage of the defect that Eq. (38) does not hold.
+There are two ways to calculate F by use of Ve and αe:
+
+                                       FeA (g, C, n) = CeA (g, C, n) sgn g,                                    (40)
+                                       FeB (g, C, n) = [C − C eB (g, C, n)] sgn g.                             (41)
+
+In general, FeA and FeB are close but not equal. The crude APPLIC method uses only Eq. (40) to evaluate
+flux (i.e., FeCAPPLIC is identical to FeA ), whereas the APPLIC method uses either FeA or FeB as follows:
+                                                 (
+                                                   FeA (g, C, n) if pred(g, C, n) is true,
+                           FAPPLIC (g, C, n) =
+                            e                                                                             (42)
+                                                   FeB (g, C, n) otherwise.
+
+where pred is a choice criterion, which is a logical (or Boolean-valued) function that returns either a true
+or false value. The ideal (i.e., impractical) criterion returns true if |FeA (g, C, n) − FPLIC (g, C, n)| is smaller
+than |FeB (g, C, n) − FPLIC (g, C, n)| and false otherwise, where FPLIC denotes the flux obtained by the PLIC
+method.
+    Using Eq. (17), we have
+                                                                 00
+                                        eA (g, C, n) = |g| Ve (e
+                                        C                      αA   , m00A ),                                 (43a)
+                                                                          00
+                                        eB (g, C, n) = (1 − |g|) Ve (e
+                                        C                              αB    , m00B ),                        (43b)
+
+with
+                                                     (
+                                            00           Q0A α
+                                                             e0         if nI g ≤ 0,
+                                          α
+                                          eA   =                                                              (43c)
+                                                         Q0A (e
+                                                              α0 − rA ) if nI g > 0,
+                                                     (
+                                            00      Q0B (e
+                                                         α0 − rB ) if nI g ≤ 0,
+                                          α
+                                          eB     =                                                            (43d)
+                                                    Q0B α
+                                                        e0           if nI g > 0,
+                                                   (
+                                                    Q0B m0l (1 − |g|) if l = I,
+                                        m00B,l   =                                                            (43e)
+                                                    Q0B m0l             if l 6= I,
+                                                  1
+                                         Q0B =          ,                                                     (43f)
+                                               1 − rB
+                                          rB = m0I |g|,                                                       (43g)
+                                             0
+                                           α
+                                           e =α
+                                              e(C, m).                                                        (43h)
+                                                                                        00            00
+   The author proposes the following choice criterion for the APPLIC method: true if |e
+                                                                                      αA   −1/2| > |e
+                                                                                                    αB   −1/2|
+and false otherwise. See Appendix B for the derivation of the choice criterion. Figure 10 shows an example
+implementation of the APPLIC method with the proposed criterion written in Fortran 90.
+
+
+                                                                14
+                  1    function calc_flux_applic(g, c, vn1, vn2, vn3) result(f)
+                  2      ! Preconditions: g ∈ (−1, 1), c ∈ (0, 1).
+                  3      use constants
+                  4      real(8), intent(in) :: g, c, vn1, vn2, vn3
+                  5      real(8) :: f, absg, alpha, alphb, ra, rb, qa, qb, vm1, vm2, vm3, v, sw
+                  6      absg = abs(g)
+                  7      vm1 = abs(vn1)
+                  8      vm2 = abs(vn2)
+                  9      vm3 = abs(vn3) + CONST_TINY
+                 10      qa = 1d0 / (vm1 + vm2 + vm3)
+                 11      vm1 = vm1 * qa
+                 12      vm2 = vm2 * qa
+                 13      vm3 = vm3 * qa
+                 14      alpha = calc_approx_alpha(c, vm1, vm2, vm3)
+                 15      rb = vm1 * absg
+                 16      ra = vm1 - rb
+                 17      qb = 1d0 / (1d0 - rb)
+                 18      qa = 1d0 / (1d0 - ra)
+                 19      alphb = (alpha - merge(0d0, rb, vn1 * g > 0d0)) * qb
+                 20      alpha = (alpha - merge(ra, 0d0, vn1 * g > 0d0)) * qa
+                 21      sw = 0d0
+                 22      if (abs(alphb - 0.5d0) > abs(alpha - 0.5d0)) then
+                 23        sw = 1d0
+                 24        alpha = alphb
+                 25        qa = qb
+                 26        rb = ra
+                 27      end if
+                 28      v = calc_approx_v(alpha, rb * qa, vm2 * qa, vm3 * qa)
+                 29      f = sign((c - v) * sw + v * absg, g)
+                 30    end function calc_flux_applic
+
+
+      Figure 10: Example implementation of the APPLIC method with the proposed criterion written in Fortran 90.
+
+
+    Now the approximation accuracy of fluxes obtained by the APPLIC method is examined. Table 2 compares
+the statistics for the approximation errors of the crude APPLIC method, crude APPLIC method with Eq. (37)
+as a limiter, APPLIC method, and APPLIC method with the ideal criterion, for the point set S. Here, the
+approximation errors of a flux is defined as the difference between the flux and that obtained by the PLIC
+method. It is observed that applying the limiter to the crude APPLIC method reduces the mean error and
+the maximum error. The mean error of the APPLIC method is smaller than the crude APPLIC method with
+the limiter. The last row is for the APPLIC method with the ideal criterion, and indicates the lower limits
+for the mean errors and the maximum errors for any choice criteria.
+
+
+                        Table 2: Statistics of the approximation errors of fluxes for the point set S.
+                  Method                        Correct answer ratea          Mean errorb       Maximum errorc
+               Crude APPLIC                            50.0%                  2.89 × 10−3        3.32 × 10−2
+          Crude APPLIC with limiter                      —                    2.54 × 10−3        2.77 × 10−2
+                  APPLIC                               71.5%                  1.88 × 10−3        2.77 × 10−2
+          APPLIC with ideal criterion                  100%                   1.43 × 10−3        1.67 × 10−2
+         a The percentage of the sample points where the criterion provides true if |FeA − FPLIC | < |FeB − FPLIC |
+          and false otherwise.
+         b The arithmetic mean of the absolute errors.
+         c The   maximum value of the absolute errors.
+
+
+    Figures 11 and 12 show the dependence of approximation errors of fluxes on |g| and C. The errors in the
+figures were evaluated by using 50000 three-dimensional vectors distributed uniformly on the unit spherical
+surface as sample points of n. All the plots are axisymmetric with respect to C = 0.5 since the PLIC, crude
+APPLIC, crude APPLIC with limiter, APPLIC, and APPLIC with ideal criterion satisfy Eq. (33). Moreover,
+the plots for the APPLIC and the APPLIC with ideal criterion are axisymmetric with respect to |g| = 0.5
+since the PLIC, APPLIC, and APPLIC with ideal criterion satisfy that FA equals to FB .
+
+
+
+                                                              15
+                                     1
+                                                                                           0.007
+                                       (a)
+                                        (a)
+                                        (a)
+                                   0.8 (a)
+                                       (a)
+                                        (a)                        (b)
+                                                                    (b)
+                                                                   (b)
+                                                                    (b)
+                                                                   (b)
+                                                                                           0.006
+                                   0.6
+                                   0.4                                                     0.005
+                                   0.2
+                                                                                           0.004
+                                     0
+                               C       (c)
+                                   0.8 (c)
+                                        (c)
+                                        (c)                         (d)
+                                                                   (d)
+                                                                   (d)
+                                                                    (d)
+                                                                    (d)
+                                                                                           0.003
+                                       (c)                         (d)
+                                   0.6                                                     0.002
+                                   0.4
+                                                                                           0.001
+                                   0.2
+                                     0                                                     0
+                                         0   0.2 0.4 0.6 0.8   0     0.2 0.4 0.6 0.8   1
+                                                               |g|
+
+Figure 11: Dependence of the arithmetic means of absolute approximation errors in fluxes Fe(g, C, n) on |g| and C, obtained by
+(a) crude APPLIC, (b) crude APPLIC with limiter, (c) APPLIC, and (d) APPLIC with ideal criterion. The contour lines are
+drawn at 0.001, 0.002, 0.003, . . ., 0.007.
+
+
+
+                                     1
+                                   0.8                                                     0.03
+                                       (a)
+                                        (a)                        (b)
+                                                                    (b)
+                                                                   (b)
+                                                                   (b)
+                                   0.6 (a)
+                                        (a)
+                                        (a)
+                                       (a)                          (b)
+                                                                    (b)
+                                                                                           0.025
+                                   0.4
+                                   0.2                                                     0.02
+                                     0
+                               C
+
+
+
+
+                                                                                           0.015
+                                   0.8
+                                       (c)
+                                        (c)                        (d)
+                                                                    (d)
+                                   0.6 (c)
+                                        (c)
+                                        (c)
+                                       (c)                         (d)
+                                                                    (d)
+                                                                    (d)
+                                                                   (d)                     0.01
+                                   0.4
+                                                                                           0.005
+                                   0.2
+                                     0                                                     0
+                                         0   0.2 0.4 0.6 0.8   0     0.2 0.4 0.6 0.8   1
+                                                               |g|
+
+Figure 12: Dependence of the maximum values of absolute approximation errors in fluxes Fe(g, C, n) on |g| and C, obtained by
+(a) crude APPLIC, (b) crude APPLIC with limiter, (c) APPLIC, and (d) APPLIC with ideal criterion. The contour lines are
+drawn at 0.005, 0.01, 0.015, . . ., 0.03.
+
+
+    The APPLIC method satisfies conditions (34) and (36) as well as conditions (30)-(33). Moreover, the
+following condition tighter than conditions (30), (34), and (36) is also satisfied:
+
+                                                        F ∈ [LB, UB],                                                    (44)
+
+
+
+
+                                                               16
+with
+                                    
+                                    gC
+                                                                 if nI ≤ 0,
+                                LB = max[g − (1 − C), 0]          if nI > 0 and g ≥ 0,                               (45)
+                                    
+                                      max[g, −C]                  if nI > 0 and g < 0,
+                                    
+                                    
+                                    gC
+                                                                if nI ≥ 0,
+                                UB = min[g + (1 − C), 0]         if nI < 0 and g ≤ 0,                                (46)
+                                    
+                                      min[g, C]                  if nI < 0 and g > 0.
+                                    
+
+These bounds are derived from fluxes for SLIC-type fluid configurations [10].
+    We now demonstrate that the APPLIC method satisfies condition (44) using the set S. Among the sample
+points in the set S, 5.6% of the points do not satisfy the relation FeA ∈ [LB, UB]. Similarly, 5.6% of the points
+do not satisfy FeB ∈ [LB, UB]. However, all the points meet either FeA ∈ [LB, UB] or FeB ∈ [LB, UB].
+    Figure 13 depicts the points in the set S such that FeA ∈         / [LB, UB] (blue dots) and FeB ∈ / [LB, UB] (red
+                                     00            00
+dots). Each dot is placed at (|e    αA − 1/2|, |e αB − 1/2|) on the plot. All the blue and the red dots lie in the
+           00             00               00             00
+regions |e
+         αA   − 1/2| < |e
+                        αB   − 1/2| and |e
+                                         αA   − 1/2| > |e
+                                                        αB   − 1/2|, respectively. This indicates that fluxes evaluated
+by the APPLIC method with the proposed choice criterion always satisfy Eq. (44).
+
+
+
+
+Figure 13: The sample points in the set S so that FeA ∈
+                                                      / [LB, UB] (blue dots) and FeB ∈
+                                                                                     / [LB, UB] (red dots). The solid line
+                     α00
+represents the line |e             α00
+                       A − 1/2| = |e B − 1/2|.
+
+
+
+3. Numerical tests
+
+3.1. The accuracy of advection
+     We compare the accuracy of advection for the APPLIC method with other VOF methods over three test
+problems. The VOF methods examined in this section are as follows: SVOF, VOF/WLIC, THINC/SW,
+THINC/WLIC, PLIC, and APPLIC. Each test problem is designed so that the initial distribution (at t = 0)
+of
+P the light3 and dark fluids is theoretically identical with the final distribution. The L1 error, defined as
+   i,j,k (∆x) |Ci,j,k (t = 0) − Ci,j,k (t = T )|, is employed to compare the accuracy, where T is the final time.
+
+
+                                                           17
+Parker and Youngs’ method [16, 21] is adopted to evaluate surface normals. We adopt an operator splitting
+algorithm for the advection of volume fractions as follows:
+                                                                        (n)
+                     ∗           (n)      (n)           (n)           Ci,j,k ∆t
+                    Ci,j,k = Ci,j,k − Fi+ 1 ,j,k + Fi− 1 ,j,k +                   (u1:i+ 12 ,j,k − u1:i− 12 ,j,k ),   (47a)
+                                            2             2             ∆x
+                                                                       (n)
+                     ∗∗       ∗        ∗            ∗
+                                                                      Ci,j,k ∆t
+                    Ci,j,k = Ci,j,k − Fi,j+ 1
+                                              ,k + Fi,j− 1 ,k +                   (u2:i,j+ 12 ,k − u2:i,j− 21 ,k ),   (47b)
+                                                2             2          ∆x
+                                                                       (n)
+                     (n+1)      ∗∗       ∗∗           ∗∗
+                                                                      Ci,j,k ∆t
+                   Ci,j,k    = Ci,j,k − Fi,j,k+ 1 + F
+                                                      i,j,k− 1 +                  (u3:i,j,k+ 12 − u3:i,j,k− 12 ),     (47c)
+                                                    2             2     ∆x
+ where the superscript (n) refers to the temporal indices, and the superscripts ∗ and ∗∗ represent quantities
+at the first and second intermediate steps, respectively. The order of directions of Eq. (47) is changed at each
+time step to minimize possible asymmetries. All floating point arithmetic is done in double-precision.
+
+3.1.1. Test 1
+    In the first test problem, a shape defined as the union of the rectangular parallelepipeds {x ∈ [0.08, 0.48]×
+[0.2, 0.36] × [0.2, 0.36]} and the sphere with center (0.28, 0.28, 0.28) and radius 0.15 is translated in a com-
+putational domain [0, 1] × [0, 1] × [0, 1]. We set the final time as T = 0.8. The shape B is advected in the
+following uniform velocity field:
+                                             (
+                                               (1, 1, 1)       if t < T /2,
+                                         u=                                                                   (48)
+                                               (−1, −1, −1) if t > T /2.
+
+   Figure 14 compares the initial shape and the final shapes using a 100×100×100 (∆x = 0.01) grid with ∆t =
+0.005, where the CFL number is 0.5. The THINC/SW method produces significantly deformed shape. Sliced
+plots of volume fractions are shown in Fig. 15. This figure shows that the PLIC and the APPLIC methods keep
+the interface widths more compact than the SVOF, VOF/WLIC, THINC/SW, and THINC/WLIC methods.
+  Table 3 presents the L1 errors and the corresponding convergence rate for 25 × 25 × 25 (∆x = 0.04),
+50 × 50 × 50 (∆x = 0.02), and 100 × 100 × 100 (∆x = 0.01), grids, where ∆t = 0.02, 0.001, and 0.005,
+respectively. The errors of the PLIC and the APPLIC methods are the lowest and the second lowest for all
+cases.
+
+
+
+
+                                                              18
+                        Initial
+
+
+
+
+                        SVOF                     VOF/WLIC                    THINC/SW
+
+
+
+
+                   THINC/WLIC                       PLIC                       APPLIC
+
+
+
+
+Figure 14: The initial (t = 0) and the final (t = T ) shapes for test 1, using a 100×100×100 grid with ∆t = 0.005.
+
+
+
+
+                                                       19
+                                                                                           0.0001
+                       0.4
+                                                                                              0.01
+                                                                                               0.5
+                                                                                              0.99
+                       0.2
+                                                                                           0.9999
+
+                                          Initial
+                         0
+
+                       0.4
+                 x2
+
+
+
+
+                       0.2
+
+                                          SVOF                        VOF/WLIC                THINC/SW
+                         0
+
+                       0.4
+
+
+                       0.2
+
+                                    THINC/WLIC                          PLIC                      APPLIC
+                         0
+                                    0.2        0.4               0.2        0.4             0.2       0.4
+                                                                       x1
+
+Figure 15: Slice plots of the initial (t = 0) and final (t = T ) volume fractions for test 1 at x3 = 0.24, using a 100 × 100 × 100
+grid with ∆t = 0.005. Volume fractions are drawn by contour lines of 0.00001, 0.01, 0.5, 0.99, and 0.99999.
+
+
+
+                        Table 3: L1 errors and convergence rates using different grid sizes for test 1.
+                   Method             25 × 25 × 25        Rate    50 × 50 × 50      Rate     100 × 100 × 100
+                    SVOF              4.19 × 10−3         0.74    2.50 × 10−3       1.03       1.22 × 10−3
+                  VOF/WLIC            3.77 × 10−3         0.84    2.11 × 10−3       1.23       8.99 × 10−4
+                  THINC/SW            3.35 × 10−3         0.46    2.44 × 10−3       1.03       1.19 × 10−3
+                 THINC/WLIC           4.57 × 10−3         0.86    2.51 × 10−3       1.17       1.12 × 10−3
+                    PLIC              2.71 × 10−3         0.69    1.68 × 10−3       1.15       7.58 × 10−4
+                   APPLIC             2.81 × 10−3         0.67    1.77 × 10−3       1.17       7.87 × 10−4
+
+3.1.2. Test 2
+    Secondly, we examine a test problem proposed by Enright et al. [22], which is analogous with Zalesak’s
+disk problem in two-dimensional space [23]. A sphere of 0.16 radius with a slot of 0.04 wide and 0.2 deep is
+located initially at (0.5, 0.72, 0.24) in a computational domain [0, 1] × [0, 1] × [0, 0.48] and undergoes a rigid
+body rotation. The velocity field is static and is represented by
+                                                     u1 = (2π/T )(0.5 − x2 ),                                                (49)
+                                                     u2 = (2π/T )(x1 − 0.5),                                                 (50)
+                                                     u3 = 0.                                                                 (51)
+
+
+                                                                 20
+We set the final time as T = 6. Figure 16 shows the evolution of the problem.
+
+
+
+
+                                                         1                          1
+                             t=0                       t= T                       t= T
+                                                         8                          4
+
+
+
+
+                              3                          1                          5
+                            t= T                       t= T                       t= T
+                              8                          2                          8
+
+
+
+
+                              3                          7
+                            t= T                       t= T                        t=T
+                              4                          8
+
+
+
+      Figure 16: Evolution of test 2, calculated using the APPLIC method on a 200 × 200 × 96 grid with ∆t = 0.005.
+
+
+    Figure 17 compares the initial (exact) shape and the final shapes using a 100 × 100 × 48 (∆x = 0.01)
+grid and ∆t = 0.01, where the maximum CFL number is approximately 0.5. The SVOF and VOF/WLIC
+methods produces significantly deformed shapes. Sliced plots of volume fractions are shown in Fig. 18. This
+figure shows that the PLIC and the APPLIC methods keep the interface widths more compact than the
+SVOF, VOF/WLIC, THINC/SW, and THINC/WLIC methods. Table 4 presents the L1 errors and the
+corresponding convergence rates for 25 × 25 × 12 (∆x = 0.04), 50 × 50 × 24 (∆x = 0.02), and 100 × 100 × 48
+(∆x = 0.01), grids, where ∆t = 0.04, 0.02, and 0.01, respectively. The errors of the APPLIC and the PLIC
+are the smallest and the second smallest for all cases.
+
+
+
+
+                                                          21
+                       Initial
+
+
+
+
+                       SVOF                     VOF/WLIC                    THINC/SW
+
+
+
+
+                  THINC/WLIC                       PLIC                       APPLIC
+
+
+
+
+Figure 17: The initial (t = 0) and the final (t = T ) shapes for test 2, using a 100×100×48 grid with ∆t = 0.01.
+
+
+
+
+                                                      22
+                                                                                              0.0001
+                        0.8                                                                      0.01
+                                                                                                  0.5
+                                                                                                 0.99
+                        0.6                                                                   0.9999
+
+                                           Initial
+
+
+                        0.8
+                  x2
+
+
+
+
+                        0.6
+
+                                           SVOF                     VOF/WLIC                     THINC/SW
+
+
+                        0.8
+
+
+                        0.6
+
+                                     THINC/WLIC                           PLIC                     APPLIC
+
+                                   0.4        0.6                 0.4         0.6            0.4        0.6
+                                                                         x1
+
+Figure 18: Slice plots of the initial (t = 0) and final (t = T ) volume fractions for test 2 at x3 = 0.24, using a 100 × 100 × 48 grid
+with ∆t = 0.01. Volume fractions are drawn by contour lines of 0.00001, 0.01, 0.5, 0.99, and 0.99999.
+
+
+
+
+                         Table 4: L1 errors and convergence rates using different grid sizes for test 2.
+                    Method               25 × 25 × 12      Rate         50 × 50 × 24   Rate     100 × 100 × 48
+                     SVOF                5.25 × 10−3       0.63         3.40 × 10−3    1.32      1.36 × 10−3
+                   VOF/WLIC              5.39 × 10−3       0.57         3.63 × 10−3    1.35      1.42 × 10−3
+                   THINC/SW              4.42 × 10−3       0.67         2.79 × 10−3    1.50      9.84 × 10−4
+                  THINC/WLIC             5.51 × 10−3       0.71         3.36 × 10−3    1.30      1.37 × 10−3
+                     PLIC                4.00 × 10−3       1.07         1.91 × 10−3    1.58      6.39 × 10−4
+                    APPLIC               3.99 × 10−3       0.98         2.02 × 10−3    1.59      6.73 × 10−4
+
+3.1.3. Test 3
+     In the third test problem, a sphere of 0.15 radius centered at (0.35, 0.35, 0.35) in a computational domain
+[0, 1] × [0, 1] × [0, 1] is deformed in an incompressible flow field proposed by LeVeque [24], expressed by
+
+                                     u1 = 2 sin2 (πx1 ) sin(2πx2 ) sin(2πx3 ) cos(πt/T ),                                       (52)
+                                                              2
+                                     u2 = − sin(2πx1 ) sin (πx2 ) sin(2πx3 ) cos(πt/T ),                                        (53)
+                                                                              2
+                                     u3 = − sin(2πx1 ) sin(2πx2 ) sin (πx3 ) cos(πt/T ).                                        (54)
+
+We set T = 3. Figure 19 shows the evolution of the problem.
+
+
+                                                                  23
+                                                         1                          1
+                             t=0                       t= T                       t= T
+                                                         8                          4
+
+
+
+
+                              3                          1                          5
+                            t= T                       t= T                       t= T
+                              8                          2                          8
+
+
+
+
+                              3                          7
+                            t= T                       t= T                        t=T
+                              4                          8
+
+
+
+     Figure 19: Evolution of test 3, calculated using the APPLIC method on a 200 × 200 × 200 grid with ∆t = 0.00125.
+
+
+    Figure 20 compares the initial (exact) shape and the final shapes using a 100 × 100 × 100 (∆x = 0.01) grid
+with ∆t = 0.0025, where the maximum CFL number is approximately 0.5. The SVOF and the VOF/WLIC
+methods produces significantly deformed shapes. Sliced plots of volume fractions are shown in Fig. 21. Arti-
+ficial Low-density particles and voids are generated by all the VOF methods. In particular the THINC/SW
+and the THINC/WLIC methods generate many particles. the PLIC and the APPLIC methods keep the in-
+terface widths more compact than the SVOF, VOF/WLIC, THINC/SW, and THINC/WLIC methods. The
+shapes produced by the THINC/WLIC method have more prominent bumps than those by the PLIC and the
+APPLIC methods. Table 5 presents the L1 errors and the corresponding convergence rates for 50 × 50 × 50
+(∆x = 0.02), 100 × 100 × 100 (∆x = 0.01), and 200 × 200 × 200 (∆x = 0.005) grids with ∆t = 0.005, 0.0025,
+and 0.00125, respectively. The errors of the PLIC and the APPLIC are the smallest and the second smallest
+for all cases.
+
+
+
+
+                                                           24
+                         Initial
+
+
+
+
+                        SVOF                     VOF/WLIC                    THINC/SW
+
+
+
+
+                    THINC/WLIC                       PLIC                      APPLIC
+
+
+
+
+Figure 20: The initial (t = 0) and the final (t = T ) shapes for test 3, using a 100×100×100 grid with ∆t = 0.0025.
+
+
+
+
+                                                        25
+                                                                                                        0.0001
+                                     0.8                                                                   0.01
+                                     0.6                                                                    0.5
+                                                                                                           0.99
+                                     0.4                                                                0.9999
+
+                                     0.2               Initial
+
+
+                                     0.8
+                  (x2 + x3) / 21/2
+
+
+
+
+                                     0.6
+
+                                     0.4
+
+                                     0.2               SVOF                       VOF/WLIC                 THINC/SW
+
+
+                                     0.8
+
+                                     0.6
+
+                                     0.4
+
+                                     0.2          THINC/WLIC                        PLIC                     APPLIC
+
+                                            0.2 0.4 0.6 0.8             0.2 0.4 0.6 0.8             0.2 0.4 0.6 0.8
+                                                                                   x1
+
+Figure 21: Slice plots of the initial (t = 0) and final (t = T ) volume fractions for test 3 at x2 = x3 , using a 100 × 100 × 100 grid
+with ∆t = 0.0025. Volume fractions are drawn by contour lines of 0.00001, 0.01, 0.5, 0.99, and 0.99999.
+
+
+
+
+                                      Table 5: L1 errors and convergence rates using different grid sizes for test 3.
+                    Method                         25 × 25 × 25       Rate     50 × 50 × 50      Rate     100 × 100 × 100
+                     SVOF                          1.23 × 10−2        0.72     7.47 × 10−3       1.21       3.23 × 10−3
+                   VOF/WLIC                        1.21 × 10−2        0.69     7.49 × 10−3       1.30       3.05 × 10−3
+                   THINC/SW                        1.13 × 10−2        1.10     5.24 × 10−3       1.69       1.62 × 10−3
+                  THINC/WLIC                       1.22 × 10−2        0.88     6.62 × 10−3       1.64       2.12 × 10−3
+                     PLIC                          1.07 × 10−2        1.10     4.98 × 10−3       2.04       1.21 × 10−3
+                    APPLIC                         1.05 × 10−2        1.04     5.09 × 10−3       2.01       1.26 × 10−3
+
+3.2. Computational efficiency
+    We investigate the computational efficiency of the following method: VOF/WLIC, THIC/WLIC, PLIC,
+and APPLIC. The computational efficiency of the THINC/SW and the SVOF methods is comparable to
+that of the THINC/WLIC and the VOF/WLIC methods, respectively. The computational time required to
+evaluate fluxes for the 10,000,000 sample points in the set S, defined in section 2.3, for each method is used
+as a measure of efficiency.
+    The benchmark program is written in the C language. Calculations using both single-precision and
+double-precision floating point arithmetic were conducted. Three different computing platforms, summarized
+in Table 6, were used to measure computational times.
+
+
+                                                                             26
+                              Table 6: Computing platforms to measure the computational time.
+      Platform            Computational processor                         Compiler             Optimization options
+          I               Intel Xeon E5-2643 v3a                   Intel C Compiler 16.0         -O3 -xCORE-AVX2
+         II          Vector processora of NEC SX-ACE                    C++/SX 1.0              -pvctl,noverrchk
+         III                 NVIDIA Tesla K40                        nvcc in CUDA 7.5              -arch=sm 35
+     a Only   one core was used.
+
+
+   The measured computational times are shown in Table 7 (single-precision) and in Table 8 (double-
+precision). As shown in the tables, the APPLIC method was 1.6-2.4 times faster than the PLIC method.
+The VOF/WLIC and the PLIC methods were the fastest and the slowest among the methods, respectively.
+Although the algorithm of the THINC/WLIC method is more simple than that of the APPLIC method, the
+computational times of the two methods were comparable. This is due to the calculations of transcendental
+functions, which are much more time-consuming than the basic arithmetic operations. To evaluate each flux,
+the THINC/WLIC and the APPLIC methods requires five (exp, log×2, and cosh×2) and four (exp×2 and
+log×2) transcendental functions, respectively.
+
+
+                         Table 7: Computational times using single-precision floating point arithmetic.
+                                                          Computational times (ms)
+                                Method             Platform I Platform II Platform III
+                               VOF/WLIC               12.6         5.66          1.31
+                              THINC/WLIC              78.4         57.5          1.74
+                                 PLIC                178.3         97.8          3.79
+                                APPLIC                75.4         62.0          1.66
+
+
+
+                        Table 8: Computational times using double-precision floating point arithmetic.
+                                                          Computational time (ms)
+                                Method             Platform I Platform II Platform III
+                               VOF/WLIC               25.7        7.07          2.67
+                              THINC/WLIC             241.5        62.9          4.04
+                                 PLIC                440.3       117.0          7.55
+                                APPLIC               195.6        75.2          4.15
+
+
+4. Conclusions
+   We have presented a new PLIC-type VOF method called the APPLIC method. In this method, the
+complicated forward and inverse problems that arise with the PLIC method are approximately solved through
+the use of the extremely simple formulae. Accordingly, the APPLIC method is easier to develop and to
+maintain the computational codes than the standard PLIC method. The APPLIC method satisfies Eqs. (30)-
+(34), which are essential to be satisfied for any VOF methods.
+   We conducted computational tests to compare accuracy of the APPLIC method with other VOF methods;
+SVOF, VOF/WLIC, THINC/SW, THINC/WLIC, and PLIC. The results of the tests show that the APPLIC
+method is as accurate as the PLIC method and more accurate than the SVOF, VOF/WLIC, THINC/SW,
+and THINC/WLIC methods. It was demonstrated that the computational time of the APPLIC method is
+shorter than that of the PLIC method and comparable to that of the THINC/WLIC method.
+
+Acknowledgments
+   This research is partially supported by the Center of Innovation Program from Japan Science and Technol-
+ogy Agency, JST. The author thanks Akira Sou, Ippei Oshima, and Kensuke Yokoi for engaging in insightful
+
+
+                                                              27
+discussions and making useful comments.
+
+Appendix A.
+   In this appendix, we explain the derivation of Eq. (17) to evaluate CA .
+   The PLIC method assumes the shape of the dark fluid in the donor cell Ω as the intersection of Ω and
+an oriented plane {x| n · x < α}. The SZ algorithms work with a unit cube and a normal vector m so that
+m ≥ 0 and kmk1 = 1. Therefore, we apply a coordinate transformation from x to x0 so that the donor cell
+Ω is mapped to the unit cube {x0 ∈ [0, 1]3 }, and the normal vector n is mapped to a vector m0 satisfying
+the relation m0 ≥ 0. The transformation, represented by T0 , is written as
+                                                  sgn nl
+                                            x0l =        (xl − ξl ),                                (A.1)
+                                                   ∆x
+where ξ is the origin of the new coordinate, which is chosen from the eight vertices of Ω depending on the
+signs of n1 , n2 , and n3 so that the image of the cell Ω coincides with the unit cube {x0 ∈ [0, 1]3 }. The vertex
+ξ is placed on the face φ∗ if the signs of mI and uI are identical, or on the face φ otherwise. We can express
+the image of the oriented plane {x| n · x < α} under T0 as {x0 | m0 · x0 < α0 }, where α0 is the transformed
+plane constant. The vector m0 is given by
+                                                    nl ∆x
+                                                    sgn nl                |nl |
+                                m0l   =                              =        .                           (A.2)
+                                        n1 ∆x   n2 ∆x   n3 ∆x      knk1
+                                                          
+                                                +        +
+                                         sgn n1     sgn n2     sgn n3
+                                                                     
+
+The plane constant α0 is determined by the solution of the inverse problem
+                                                     α0 = α(C, m0 ).                                        (A.3)
+   Let Ω0A be the image of ΩA under T0 . We apply a further coordinate transformation TA from x0 to x00 so
+that Ω0A is mapped to the unit cube {x00 ∈ [0, 1]3 } and all the components of the transformed normal vector
+are nonnegative. The transformation TA is written as
+                              
+                                  0
+                              x l
+                                                      if l 6= I,
+                          00
+                        xl = x0l /|g|                  if l = I and ξ is placed on φ,                  (A.4)
+                               0
+                                                                                   ∗
+                                [xl − (1 − |g|)]/|g| if l = I and ξ is placed on φ .
+
+We can express the image of the oriented plane {x0 | m0 · x0 < α0 } under TA as {x00 | m00A · x00 < αA
+                                                                                                     00
+                                                                                                        }. The
+                00                       00
+normal vector mA and plane constant αA are given by
+                                    (
+                            00       Q0A m0l |g| if l = I,
+                         mA,l =                                                                           (A.5)
+                                     Q0A m0l     if l 6= I,
+                                    (
+                               00    Q0A [α0 − m0I (1 − |g|)] if ξ is placed on φ∗ ,
+                           αA     =                                                                       (A.6)
+                                      Q0A α0                  if ξ is placed on φ,
+
+where Q0A is the normalization factor determined by
+                                                                     1
+                                       Q0A =
+                                               m01   +   m02   +   m03   − m0I + m0I |g|
+                                                       1
+                                           =                     .                                          (A.7)
+                                               1 − m0I (1 − |g|)
+    Let Ω00A be the image of Ω0A under TA . The volume of the shape Ω00A ∩ {x00 | m00 · x00 < α00 } in the x00
+coordinate system is determined by solving the forward problem V (α00 , m00 ). The partial volume fraction CA
+is thus obtained via Eq. (17).
+
+
+                                                               28
+Appendix B.
+                                                       00             00
+   In this appendix, we derive the choice criterion |e
+                                                     αA   − 1/2| > |e
+                                                                    αB   − 1/2|.
+   We define the approximation errors in FA and FB as
+                                           e        e
+
+                                                εA = (FeA − FPLIC ) sgn g,                               (B.1)
+                                                εB = (FeB − FPLIC ) sgn g.                               (B.2)
+                          00
+Because FPLIC sgn g = V (αA  , m00A )|g| = [C − (1 − |g|)V (αB
+                                                             00
+                                                                , m00B )], we have
+                                                00
+                                    εA = [Ve (e
+                                              αA   , m00A ) − V (αA  00
+                                                                        , m00A )]|g|,                    (B.3)
+                                                    00
+                                    εB = −[Ve (e αB    , m00B ) − V (αB 00
+                                                                           , m00B )](1 − |g|),           (B.4)
+
+where The aim of this appendix is to find a quick and easy criterion to guess whether |εA | < |εB | or not.
+   The approximation error in Ve and α e are defined as
+
+                                          εα (V, m) = αe(V, m) − α(V, m),                                (B.5)
+                                          εV (α, m) = Ve (α, m) − V (α, m).                              (B.6)
+
+Using Eqs. (17b) and (17f), we obtain
+
+                                                α0 = α
+                                                     e0 − εα (C, m0 ),                                   (B.7)
+                                                00         00
+                                               αA    =   α
+                                                         eA     −   Q0A εα (C, m0 ).                     (B.8)
+
+The approximation error εA is then given by
+                                 00
+                     εA = {Ve (e
+                               αA   , m00A ) − V [e
+                                                  αA00
+                                                       − Q0A εα (C, m0 ), m00A ]}|g|
+                                                                                 
+                                   00     00      0           0 ∂
+                        = εV (e αA , mA ) + QA εα (C, m ) V (e        αA , mA ) |g| + O(Q0A |g|ε2α ).
+                                                                        00     00
+                                                                                                         (B.9)
+                                                                ∂α
+
+The value of Q0A |g| is included in the range [0, 1] because m0I ∈ [0, 1] and |g| ∈ (0, 1].
+   Let V ∗ be an arbitrary value within [0, 1]. The following relation holds:
+
+                                                 α(V ∗ )] = V [α(V ∗ )] = V ∗ ,
+                                             Ve [e                                                      (B.10)
+
+Here the second arguments regarding m are omitted for brevity. On the other side, the following can be
+obtained:
+
+                                 V [α(V ∗ )] = V [e
+                                                  α∗ − εα (V ∗ )]
+                                                                           ∂
+                                                   α∗ ) − εα (V ∗ )
+                                              = V (e                            α∗ ) + O(ε2α ),
+                                                                             V (e                       (B.11)
+                                                                          ∂α
+      e∗ stands for α
+where α             e(V ∗ ). Using Eqs. (B.10) and (B.11), we have the relation between εV and εα as
+                                                                      ∂
+                                           α∗ ) = −εα (V ∗ )
+                                       εV (e                               α∗ ) + O(ε2α ).
+                                                                        V (e                            (B.12)
+                                                                     ∂α
+Substituting Eq. (B.12) into (B.9) and neglecting the term O(ε2α ), we obtain
+                                                                 ∂      00
+                                               εA ≈ |g|δA          V (e
+                                                                      αA   , m00A ),                    (B.13)
+                                                                ∂α
+with
+
+                                         δA = Q0A εα (C, m0 ) − εα (VeA00 , m00A ).                     (B.14)
+
+
+                                                                    29
+Similarly,
+                                                                                   ∂      00
+                                                             εB ≈ −(1 − g)δB         V (e
+                                                                                        αB   , m00B ),                      (B.15)
+                                                                                  ∂α
+with
+
+                                                            δB = Q0B εα (C, m0 ) − εα (VeB00 , m00B ).                      (B.16)
+
+Here VeA00 and VeB00 stand for Ve (e
+                                   αA00
+                                        , m00A ) and Ve (e
+                                                         αB00
+                                                              , m00B ), respectively.
+    The value of δA becomes zero when |g| is equal to one (because VeA00 = C, m00A = m0 , and Q0A = 1 if
+|g| = 1). Similarly, δB becomes zero when |g| = 0. It is evident that δA and δB are smooth functions with
+respect to |g|. Considering these conditions, we adopt the following approximations:
+                                                                         |δA |
+                                                                                   ≈ 1 − |g|,                               (B.17)
+                                                                     |δA | + |δB |
+                                                                         |δB |
+                                                                                   ≈ |g|,                                   (B.18)
+                                                                     |δA | + |δB |
+where we attach importance on simplicity rather than on accuracy. Figure B.22 demonstrates the accuracy
+of the approximations. The data points are distributed roughly around the line |δA |/(|δA | + |δB |) = 1 − |g|.
+
+
+                                                       1
+
+
+                                                      0.8
+                               |δA| / (|δA| + |δB|)
+
+
+
+
+                                                      0.6
+
+
+                                                      0.4
+
+
+                                                      0.2
+
+
+                                                       0
+                                                            0         0.2      0.4         0.6           0.8   1
+                                                                                     |g|
+
+Figure B.22: Plot of |g| versus |δA |/(|δA | + |δB |) for the sample points in the set S. In this plot, a small red dot is drawn for
+each point. The black solid line represents the line |δA |/(|δA | + |δB |) = 1 − |g|.
+
+
+    By use of Eqs. (B.17) and (B.18), the inequality |εA | < |εB | can be written as
+                                                             ∂      00             ∂
+                                                               V (e
+                                                                  αA   , m00A ) <    V (e
+                                                                                        αB00
+                                                                                             , m00B ),                      (B.19)
+                                                            ∂α                    ∂α
+We employ the following approximation for simplicity:
+                                                                 ∂                 ∂
+                                                                   V (α, m00A ) =    V (α, m00B ),                          (B.20)
+                                                                ∂α                ∂α
+
+
+                                                                               30
+where α is an arbitrary value. Because ∂V /∂α is a monotonically nondecreasing function of α < 1/2 and has
+even symmetry to α = 1/2, inequality (B.19) becomes
+                                           00             00
+                                        |e
+                                         αA   − 1/2| > |e
+                                                        αB   − 1/2|.                               (B.21)
+
+Thus we obtain the criterion.
+
+
+
+
+                                                    31
+References
+
+ [1] C. W. Hirt, B. D. Nichols, Volume of fluid (VOF) method for the dynamics of free boundaries, Journal
+     of Computational Physics 39 (1981) 201–225.
+ [2] M. Rudman, Volume-tracking methods for interfacial flow calculations, International Journal for Nu-
+     merical Methods in Fluids 24 (1997) 671–691.
+ [3] W. J. Rider, D. B. Kothe, Reconstructing volume tracking, Journal of Computational Physics 141 (1998)
+     112–152.
+ [4] R. Scardovelli, S. Zaleski, Direct numerical simulation of free-surface and interfacial flow, Annual Review
+     of Fluid Mechanics 31 (1999) 567–603.
+ [5] J. E. Pilliod Jr, E. G. Puckett, Second-order accurate volume-of-fluid algorithms for tracking material
+     interfaces, Journal of Computational Physics 199 (2004) 465–502.
+ [6] D. L. Youngs, Time-dependent multi-material flow with large fluid distortion, in: K. W. Morton, M. J.
+     Baines (Eds.), Numerical Methods for Fluid Dynamics, Academic Press, New York, 1982, pp. 273–285.
+ [7] J. Li, Calcul d’interface affine par morceaux (piecewise linear interface calculation), Comptes Rendus
+     des Seances del’ Academie des Sciences Paris, Série IIb 320 (1995) 391–396.
+
+ [8] W. F. Noh, P. Woodward, Slic (simple line interface method), Lecture Notes in Physics 24 (1976)
+     330–340.
+ [9] K. Yokoi, Efficient implementation of THINC scheme: A simple and practical smoothed VOF algorithm,
+     Journal of Computational Physics 226 (2007) 1985–2002.
+
+[10] M. Marek, W. Aniszewski, A. Boguslawski, Simplified volume of fluid method (SVOF) for two-phase
+     flows, TASK Quarterly 12 (2008) 255–265.
+[11] F. Xiao, Y. Honma, T. Kono, A simple algebraic interface capturing scheme using hyperbolic tangent
+     function, International Journal for Numerical Methods in Fluids 48 (2005) 1023–1040.
+
+[12] F. Xiao, S. Ii, C. Chen, Revisit to the THINC scheme: a simple algebraic vof algorithm, Journal of
+     Computational Physics 230 (2011) 7086–7092.
+[13] S. Ii, K. Sugiyama, S. Takeuchi, S. Takagi, Y. Matsumoto, F. Xiao, An interface capturing method
+     with a continuous function: The THINC method with multi-dimensional reconstruction, Journal of
+     Computational Physics 231 (2012) 2328–2358.
+
+[14] R. Scardovelli, S. Zaleski, Analytical relations connecting linear interfaces and volume fractions in rect-
+     angular grids, Journal of Computational Physics 164 (2000) 228–237.
+[15] J. Hennessy, D. Patterson, Computer Architecture: A Quantitative Approach, The Morgan Kaufmann
+     Series in Computer Architecture and Design, Elsevier Science, 2006.
+
+[16] R. Scardovelli, S. Zaleski, Interface reconstruction with least-square fit and split Eulerian–Lagrangian
+     advection, International Journal for Numerical Methods in Fluids 41 (3) (2003) 251–274.
+[17] E. Aulisa, S. Manservisi, R. Scardovelli, S. Zaleski, Interface reconstruction with least-squares fit and
+     split advection in three-dimensional Cartesian geometry, Journal of Computational Physics 225 (2)
+     (2007) 2301–2319.
+
+[18] G. Weymouth, D. K.-P. Yue, Conservative Volume-of-Fluid method for free-surface simulations on
+     Cartesian-grids, Journal of Computational Physics 229 (8) (2010) 2853–2865.
+
+
+
+                                                      32
+[19] C. S. Wu, D. L. Young, H. C. Wu, Simulations of multidimensional interfacial flows by an improved
+     volume-of-fluid method, International Journal of Heat and Mass Transfer 60 (2013) 739–755.
+[20] T. Vignesh, S. Bakshi, Noniterative interface reconstruction algorithms for volume of fluid method,
+     International Journal for Numerical Methods in Fluids 73 (1) (2013) 1–18.
+[21] B. Parker, D. Youngs, Two and Three Dimensional Eulerian Simulation of Fluid Flow with Material
+     Interfaces, Atomic Weapons Establishment, 1992.
+[22] D. Enright, R. Fedkiw, J. Ferziger, I. Mitchell, A hybrid particle level set method for improved interface
+     capturing, Journal of Computational Physics 183 (1) (2002) 83–116.
+[23] S. T. Zalesak, Fully multidimensional flux-corrected transport algorithms for fluids, Journal of Compu-
+     tational Physics 31 (3) (1979) 335–362.
+[24] R. J. LeVeque, High-resolution conservative algorithms for advection in incompressible flow, SIAM
+     Journal on Numerical Analysis 33 (2) (1996) 627–665.
+
+
+
+
+                                                      33
+
