@@ -445,9 +445,8 @@ struct Vof<M_>::Imp {
           if (fccl0[c] == 0) {
             bool q = false;
             for (MIdx wo : bo) {
-              q = true; //XXX
               IdxCell cn = bc.GetIdx(w + wo);
-              if (fccl0[cn] == 1 && !fcm[cn]) {
+              if (fccl0[cn] == 1) {
                 q = true;
               }
             }
@@ -459,12 +458,6 @@ struct Vof<M_>::Imp {
               fccl0[c] = TR::kNone;
             }
           }
-          // XXX
-          if (fccl[c] == 0) {
-            fcm[c] = true;
-          } else {
-            fcm[c] = false;
-          }
         }
         m.Comm(uc[i]);
       }
@@ -475,6 +468,7 @@ struct Vof<M_>::Imp {
         tr_[i]->Update(*uc[i]);
       }
     }
+    if(0)
     if (sem("reduce")) {
       auto& fcu0 = *uc[0];
       for (size_t i = 1; i < uc.size(); ++i) {
@@ -507,35 +501,42 @@ struct Vof<M_>::Imp {
     if (sem("local")) {
       for (size_t i = 0; i < uc.size(); ++i) {
         auto& fcn = fcn_[i];
-        auto& fca = fca_[i];
         auto& fci = fci_[i];
         auto& fcm = fcm_[i];
         auto& fcm2 = fcm2_[i];
         auto& fcu = *uc[i];
         auto& fccl = tr_[i]->GetColor();
         auto& fccl0 = tr_[0]->GetColor();
+        auto& fcn0 = fcn_[0];
+        auto& fca0 = fca_[0];
         if (par->bcc_reflect) {
           BcReflect(fcu, mfc_, par->bcc_fill, m);
         }
-        // Compute normal and curvature [s]
         UNormal<M>::CalcNormal(m, fcu, And(fci, fcm2, m), par->dim, fcn);
-        // Reconstruct interface [s]
         for (auto c : m.SuCells()) {
-          if (fcm2[c]) {
+          if (!fcm[c] && fcm2[c] && fci[c] && fccl[c] == fccl0[c]) {
+            fcn0[c] = fcn[c];
+          }
+        }
+      }
+      for (size_t i = 0; i < uc.size(); ++i) {
+        if (par->bcc_reflect) {
+          auto& fcn = fcn_[i];
+          BcReflect(fcn, mfc_, Vect(0), m);
+        }
+      }
+      for (size_t i = 0; i < uc.size(); ++i) {
+        auto& fcn = fcn_[i];
+        auto& fca = fca_[i];
+        auto& fcm = fcm_[i];
+        auto& fcu = *uc[i];
+        for (auto c : m.SuCells()) {
+          if (fcm[c]) {
             fca[c] = R::GetLineA(fcn[c], fcu[c], m.GetCellSize());
           }
         }
         if (par->bcc_reflect) {
           BcReflect(fca, mfc_, Scal(0), m);
-          BcReflect(fcn, mfc_, Vect(0), m);
-        }
-        auto& fcn0 = fcn_[0];
-        auto& fca0 = fca_[0];
-        for (auto c : m.SuCells()) {
-          if (fcm2[c] && !fcm[c] && fccl[c] == fccl0[c] && fci[c]) {
-            fcn0[c] = fcn[c];
-            fca0[c] = fca[c];
-          }
         }
       }
     }
@@ -675,8 +676,6 @@ struct Vof<M_>::Imp {
           auto h = m.GetCellSize();
           const Scal dt = owner_->GetTimeStep();
           auto& ffv = *owner_->ffv_; // [f]ield [f]ace [v]olume flux
-          auto& ffvu = ffvu_[i];
-          auto& ffi = ffi_[i];
 
           // Returns phase 2 flux
           auto F = [this,vsc,id,h,dt,d,&ffv](
@@ -708,6 +707,10 @@ struct Vof<M_>::Imp {
           fcdp.Reinit(m, false);
           auto& fccl = tr_[i]->GetColor();
           auto& fccl0 = tr_[0]->GetColor();
+          auto& ffvu = ffvu_[i];
+          auto& ffi = ffi_[i];
+          auto& ffvu0 = ffvu_[0];
+          auto& ffi0 = ffi_[0];
 
           for (auto f : m.Faces()) {
             if (bf.GetDir(f) != md) {
@@ -718,14 +721,17 @@ struct Vof<M_>::Imp {
             IdxCell cu = m.GetNeighbourCell(f, ffv[f] > 0. ? 0 : 1);
             // downwind cell
             IdxCell cd = m.GetNeighbourCell(f, ffv[f] > 0. ? 1 : 0);
-            if (fcm2[cu] || fcm2[cd]) {
+            if (fcm[cu] || fcm[cd]) {
               fcdp[cu] = true;
               fcdp[cd] = true;
-
-              if (fcm2[cu]) {
+              if (fcm[cu]) {
                 ffvu[f] = F(f, cu, fcu[cu], fcn[cu], fca[cu], fci[cu]);
                 ffi[f] = fci[cu];
-              } else if (fccl0[cu] == fccl[cd]) {
+                if (!fcm[cd] && fccl[cu] == fccl0[cd]) {
+                  ffvu0[f] = ffvu[f];
+                  ffi0[f] = ffi[f];
+                }
+              } else if (fccl0[cu] == fccl[cd] || fccl0[cu] == TR::kNone) {
                 ffvu[f] = F(f, cu, fcu0[cu], fcn0[cu], fca0[cu], fci0[cu]);
                 ffi[f] = fci0[cu];
               } else {
@@ -738,7 +744,6 @@ struct Vof<M_>::Imp {
           FieldFace<Scal> ffu(m);
           // interpolate field value to boundaries
           InterpolateB(fcu, mfc_, ffu, m);
-
           // override boundary upwind flux
           for (const auto& it : mfc_) {
             IdxFace f = it.GetIdx();
@@ -763,6 +768,9 @@ struct Vof<M_>::Imp {
           auto& ffi = ffi_[i];
           auto& fcdp = fcdp_[i];
           auto& fcu = fcu_[i].iter_curr;
+          auto& fcu0 = fcu_[0].iter_curr;
+          auto& fcm = fcm_[i];
+          auto& fcm2 = fcm2_[i];
           for (auto c : m.Cells()) {
             if (!fcdp[c]) {
               continue;
@@ -806,6 +814,11 @@ struct Vof<M_>::Imp {
               u = 1.;
             } else if (IsNan(u)) {
               u = 0.;
+            }
+            const Scal th = 1e-10;
+            if (!fcm[c] && fcm2[c] && std::abs(fcu[c] - fcu0[c]) > th &&
+                fcu[c] > th) {
+              fcm[c] = true;
             }
           }
 
