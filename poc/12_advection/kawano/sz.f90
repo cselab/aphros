@@ -11,7 +11,7 @@ contains
     real(8) :: cbrt
     cbrt = x**(1.0/3.0)
   end function cbrt
-  function calc_v0(alpha, vma, vmb, vmc) result(v)
+  function vof(alpha, vma, vmb, vmc) result(v)
     ! Preconditions: vma in [0, 1], vmb in [0, 1], vmc in [0, 1], vma
     ! + vmb + vmc = 1.
     implicit none
@@ -41,9 +41,9 @@ contains
        end if
     end if
     if (alpha > 0.5d0) v = 1d0 - v
-  end function calc_v0
+  end function vof
 
-  function calc_alpha0(v, vma, vmb, vmc) result(alpha)
+  function alpha(v, vma, vmb, vmc)
     ! Preconditions: v in (0, 1), vma in [0, 1], vmb in [0, 1], vmc in
     ! [0, 1], vma + vmb + vmc = 1.
     implicit none
@@ -85,13 +85,13 @@ contains
        end if
     end if
     if (v > 0.5d0) alpha = 1d0 - alpha
-  end function calc_alpha0
+  end function alpha
 
-  function calc_flux_plic0(g, c, vn1, vn2, vn3) result(f)
+  function flux_plic(g, c, vn1, vn2, vn3) result(f)
     ! Preconditions: g in (−1, 1), c in (0, 1).
     implicit none
     real(8), intent(in) :: g, c, vn1, vn2, vn3
-    real(8) :: f, absg, alpha, qa, ra, vm1, vm2, vm3
+    real(8) :: f, absg, al, qa, ra, vm1, vm2, vm3
     absg = abs(g)
     vm1 = abs(vn1)
     vm2 = abs(vn2)
@@ -100,35 +100,39 @@ contains
     vm1 = vm1 * qa
     vm2 = vm2 * qa
     vm3 = vm3 * qa
-    alpha = calc_alpha(c, vm1, vm2, vm3)
+    al = alpha(c, vm1, vm2, vm3)
     ra = vm1 * (1d0 - absg)
     qa = 1d0 / (1d0 - ra)
-    if (g * vn1 > ZERO) alpha = alpha - ra
+    if (g * vn1 > ZERO) al = al - ra
     vm1 = vm1 * absg
-    f = calc_v(alpha * qa, vm1 * qa, vm2 * qa, vm3 * qa) * g
-  end function calc_flux_plic0
-
-  function calc_v(alpha, a, b, c) bind(c)
-    use iso_c_binding
-    implicit none
-    real(c_double), intent(in), value :: alpha, a, b, c
-    real(c_double) :: calc_v
-    calc_v = calc_v0(alpha, a, b, c)
-  end function calc_v
-
-  function calc_alpha(v, a, b, c) bind(c)
-    use iso_c_binding
-    implicit none
-    real(c_double), intent(in), value :: v, a, b, c
-    real(c_double) :: calc_alpha
-    calc_alpha = calc_alpha0(v, a, b, c)
-  end function calc_alpha
-
-  function calc_flux_plic(g, c, vn1, vn2, vn3) bind(c)
-    use iso_c_binding
-    implicit none
-    real(c_double), intent(in), value :: g, c, vn1, vn2, vn3
-    real(c_double) :: calc_flux_plic
-    calc_flux_plic  = calc_flux_plic0(g, c, vn1, vn2, vn3)
-  end function calc_flux_plic
+    f = vof(al * qa, vm1 * qa, vm2 * qa, vm3 * qa) * g
+  end function flux_plic
 end module main
+
+function vof(al, a, b, c) bind(c)
+  use iso_c_binding
+  use main, only : f => vof
+  use main
+  implicit none
+  real(c_double), intent(in), value :: al, a, b, c
+  real(c_double) :: vof
+  vof = f(al, a, b, c)
+end function vof
+
+function alpha(v, a, b, c) bind(c)
+  use iso_c_binding
+  use main, only : f => alpha
+  implicit none
+  real(c_double), intent(in), value :: v, a, b, c
+  real(c_double) :: alpha
+  alpha = f(v, a, b, c)
+end function alpha
+
+function flux_plic(g, c, vn1, vn2, vn3) bind(c)
+  use iso_c_binding
+  use main, only : f => flux_plic
+  implicit none
+  real(c_double), intent(in), value :: g, c, vn1, vn2, vn3
+  real(c_double) :: flux_plic
+  flux_plic  = f(g, c, vn1, vn2, vn3)
+end function flux_plic
