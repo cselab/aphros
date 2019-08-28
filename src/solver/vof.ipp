@@ -641,13 +641,19 @@ struct Vof<M_>::Imp {
         for (auto c : m.Cells()) {
           if (fcm2[c] && (fci[c] || fci0[c])) {
             MIdx w = bc.GetMIdx(c);
-            std::array<Scal, 27> u;
+            std::array<Scal, 27> uu;
             size_t k = 0;
             for (MIdx wo : bo) {
               IdxCell cn = bc.GetIdx(w + wo);
-              u[k++] = fcu[cn];
+              Scal u = 0;
+              for (auto j : layers) {
+                if (tr_[j]->GetColor()[cn] == fccl[c]) {
+                  u = (*uc[j])[cn];
+                }
+              }
+              uu[k++] = u;
             }
-            fcn[c] = GetNormalYoungs(u);
+            fcn[c] = GetNormalYoungs(uu);
           }
         }
         //UNormal<M>::CalcNormal(
