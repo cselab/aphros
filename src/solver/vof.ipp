@@ -718,8 +718,8 @@ struct Vof<M_>::Imp {
           }
         }
       }
-      for (auto i : layers) {
-        if (sem("cell")) {
+      if (sem("cell")) {
+        for (auto i : layers) {
           Dir md(d); // direction as Dir
           MIdx wd(md); // offset in direction d
           const Scal dt = owner_->GetTimeStep();
@@ -728,25 +728,20 @@ struct Vof<M_>::Imp {
           auto& ffv = *owner_->ffv_; // mixture flux
           auto& fcu = fcu_[i].iter_curr;
           auto& fccl = fccl_[i];
+
           for (auto c : m.Cells()) {
             auto w = bc.GetMIdx(c);
             const Scal lc = m.GetVolume(c);
+            Scal cl = fccl[c];
+            if (cl == TR::kNone) {
+              continue;
+            }
             // faces
             IdxFace fm = bf.GetIdx(w, md);
             IdxFace fp = bf.GetIdx(w + wd, md);
             // mixture fluxes
             const Scal vm = ffv[fm] * vsc;
             const Scal vp = ffv[fp] * vsc;
-            Scal cl = fccl[c];
-            if (cl == TR::kNone) {
-              // TODO: consider if both are influx
-              if (vm > 0 && ffcl_[i][fm] != TR::kNone) {
-                cl = ffcl_[i][fm];
-              } else if (vp < 0 && ffcl_[i][fp] != TR::kNone) {
-                cl = ffcl_[i][fp];
-              }
-              fccl[c] = cl;
-            }
             // mixture cfl
             const Scal sm = vm * dt / lc;
             const Scal sp = vp * dt / lc;
@@ -772,23 +767,20 @@ struct Vof<M_>::Imp {
               }
             }
             if (!im && !ip) {
-              continue;
+              //continue; // XXX
             }
             // phase 2 cfl
             const Scal lm = qm * dt / lc;
             const Scal lp = qp * dt / lc;
             const Scal dl = lp - lm;
+            auto& u = fcu[c];
             if (id % 2 == 0) { // Euler Implicit
-              fcu[c] = (fcu[c] - dl) / (1. - ds);
+              u = (u - dl) / (1. - ds);
             } else { // Lagrange Explicit
-              fcu[c] = fcu[c] * (1. + ds) - dl;
+              u = u * (1. + ds) - dl;
             }
-          }
-
-          // clip
-          const Scal th = par->clipth;
-          for (auto c : m.Cells()) {
-            Scal& u = fcu[c];
+            // clip
+            const Scal th = par->clipth;
             if (u < th) {
               u = 0.;
             } else if (u > 1. - th) {
@@ -796,13 +788,146 @@ struct Vof<M_>::Imp {
             } else if (IsNan(u)) {
               u = 0.;
             }
+            // update color
             if (u == 0) {
               fccl[c] = TR::kNone;
             }
           }
+        }
+        for (auto i : layers) {
+          m.Comm(&fcu_[i].iter_curr);
+          m.Comm(&fccl_[i]);
+        }
 
-          m.Comm(&fcu);
-          m.Comm(&fccl);
+        for (auto i : layers) {
+          Dir md(d); // direction as Dir
+          MIdx wd(md); // offset in direction d
+          const Scal dt = owner_->GetTimeStep();
+          auto& bc = m.GetIndexCells();
+          auto& bf = m.GetIndexFaces();
+          auto& ffv = *owner_->ffv_; // mixture flux
+          auto& ffvu = ffvu_[i];
+          auto& ffi = ffi_[i];
+          auto& ffcl = ffcl_[i];
+          for (auto f : m.Faces()) {
+            auto p = bf.GetMIdxDir(f);
+            MIdx w = p.first;
+            Dir df = p.second;
+            if (df != md) {
+              continue;
+            }
+            Scal cl = ffcl[f];
+            if (cl == TR::kNone) {
+              continue;
+            }
+
+            const Scal v = ffv[f] * vsc;
+
+            IdxFace fm, fp;
+            IdxCell c;
+            if (v > 0) {
+              fm = f;
+              fp = bf.GetIdx(w + wd, md);
+              c = bc.GetIdx(w);
+            } else {
+              fm = bf.GetIdx(w - wd, md);
+              fp = f;
+              c = bc.GetIdx(w - wd);
+            }
+
+            const Scal lc = m.GetVolume(c);
+
+            // mixture fluxes
+            const Scal vm = ffv[fm] * vsc;
+            const Scal vp = ffv[fp] * vsc;
+            // mixture cfl
+            const Scal sm = vm * dt / lc;
+            const Scal sp = vp * dt / lc;
+            const Scal ds = sp - sm;
+            // phase 2 fluxes
+            Scal qm = 0;
+            Scal qp = 0;
+            // interface
+            bool im = false;
+            bool ip = false;
+            // qm,im from layer with same color
+            for (auto j : layers) {
+              if (ffcl_[j][fm] == cl) {
+                qm = ffvu_[j][fm];
+                im = ffi_[j][fm];
+                break;
+              }
+            }
+            // qp,ip from layer with same color
+            for (auto j : layers) {
+              if (ffcl_[j][fp] == cl) {
+                qp = ffvu_[j][fp];
+                ip = ffi_[j][fp];
+                break;
+              }
+            }
+            if (!im && !ip) {
+              //continue; // XXX
+            }
+            // phase 2 cfl
+            const Scal lm = qm * dt / lc;
+            const Scal lp = qp * dt / lc;
+            const Scal dl = lp - lm;
+
+            // find cell with same color
+            const size_t jnone = -1;
+            size_t j = jnone;
+            for (auto jj : layers) {
+              if (fccl_[jj][c] == cl) {
+                j = jj;
+                break;
+              }
+            }
+            if (j == jnone) { // if not found, find first empty
+              for (auto jj : layers) {
+                if (fccl_[jj][c] == TR::kNone) {
+                  j = jj;
+                  break;
+                }
+              }
+            }
+            if (j == jnone) {
+              std::cerr << "warn: no layer i=" << i << " w=" << w << "\n";
+              j = 0;
+            }
+
+            if (fccl_[j][c] != TR::kNone) {
+              continue;
+            }
+
+            auto& u = fcu_[j].iter_curr[c];
+            if (id % 2 == 0) { // Euler Implicit
+              u = (u - dl) / (1. - ds);
+            } else { // Lagrange Explicit
+              u = u * (1. + ds) - dl;
+            }
+
+            // clip
+            const Scal th = par->clipth;
+            if (u < th) {
+              u = 0.;
+            } else if (u > 1. - th) {
+              u = 1.;
+            } else if (IsNan(u)) {
+              u = 0.;
+            }
+            // update color
+            auto& clc = fccl_[j][c];
+            if (u == 0) {
+              clc = TR::kNone;
+            } else {
+              clc = cl;
+            }
+          }
+        }
+        for (auto i : layers) {
+          m.Comm(&fcu_[i].iter_curr);
+          m.Comm(&fccl_[i]);
         }
       }
       if (sem.Nested("reconst")) {
