@@ -5,6 +5,7 @@
 #include <array>
 #include <memory>
 #include <limits>
+#include <set>
 
 #include "vof.h"
 #include "geom/block.h"
@@ -447,11 +448,14 @@ struct Vof<M_>::Imp {
   // reconstruct interface
   void Rec(const Multi<FieldCell<Scal>*>& uc) {
     auto sem = m.GetSem("rec");
-    if (sem("mask")) {
-      auto& fccl0 = const_cast<FieldCell<Scal>&>(tr_[0]->GetColor());
-      auto& fcu0 = *uc[0];
-      //for (size_t i = 1; i < uc.size(); ++i) {
-      { size_t i = 1;
+    auto& fccl0 = const_cast<FieldCell<Scal>&>(tr_[0]->GetColor());
+    auto& fcu0 = *uc[0];
+    /*
+    if (sem("scan")) {
+    }
+    */
+    for (size_t i = 1; i < uc.size(); ++i) {
+      if (sem("mask")) {
         const int sw = 2; // stencil halfwidth
         using MIdx = typename M::MIdx;
         auto& bc = m.GetIndexCells();
@@ -461,30 +465,53 @@ struct Vof<M_>::Imp {
         auto& fccl = const_cast<FieldCell<Scal>&>(tr_[i]->GetColor());
         auto& fcm = fcm_[i];
 
-        // move conflicting cells to layer 1
+        // move conflicting cells to layer i
         for (auto c : m.Cells()) {
           MIdx w = bc.GetMIdx(c);
-          if (fccl0[c] == 0) {
+
+          if (fccl0[c] == TR::kNone) {
+            continue;
+          }
+
+          /*
+          std::set<Scal> s;
+          for (MIdx wo : bo) {
+            IdxCell cn = bc.GetIdx(w + wo);
+            if (fccl0[cn] != TR::kNone && fccl0[cn] != fccl0[c]) {
+              s.insert(fccl0[cn]);
+            }
+          }
+
+          Scal cl0 = 0;
+          size_t j = i + 1;
+          for (Scal cl : s) {
+            cl0 = cl;
+            if (!--j) break;
+          }
+          */
+
+          if (int(fccl0[c] + 0.5) % (layers.size() - 1) == i - 1) {
+          //if (fccl0[c] != cl0) {
             bool q = false;
             // check if conflicting, i.e. has neighbor with different color
             for (MIdx wo : bo) {
               IdxCell cn = bc.GetIdx(w + wo);
-              if (fccl0[cn] != TR::kNone && fccl0[cn] != fccl[c]) {
+              if (fccl0[cn] != TR::kNone && fccl0[cn] != fccl0[c]) {
                 q = true;
               }
             }
             if (q) {
-              // if conflicting, move to layer 1
+              // if conflicting, move to layer i
               if (!fcm[c]) {
-                // if not on layer 1,
-                // move u and cl to layer 1, clear on layer 0
+                // if not on layer i,
+                // move u and cl to layer i, clear on layer 0
                 fcm[c] = true;
                 fcu[c] = fcu0[c];
                 fccl[c] = fccl0[c];
                 fcu0[c] = 0;
                 fccl0[c] = TR::kNone;
               } else {
-                // if on layer 1, nop
+                // if on layer i, nop
                 // (should not happen)
                 std::cerr << "warn: already on layer 1 w=" << w << "\n";
               }
@@ -534,8 +561,10 @@ struct Vof<M_>::Imp {
           }
         }
         m.Comm(&fcu);
+        m.Comm(&fccl);
+        m.Comm(&fcu0);
+        m.Comm(&fccl0);
       }
-      m.Comm(uc[0]);
     }
     for (size_t i = 0; i < uc.size(); ++i) {
       if (sem.Nested("color")) {
