@@ -466,17 +466,17 @@ struct Vof<M_>::Imp {
           MIdx w = bc.GetMIdx(c);
           if (fccl0[c] == 0) {
             bool q = false;
-            // check if conflicting, i.e. has neighbor with color 1
+            // check if conflicting, i.e. has neighbor with different color
             for (MIdx wo : bo) {
               IdxCell cn = bc.GetIdx(w + wo);
-              if (fccl0[cn] == 1) {
+              if (fccl0[cn] != TR::kNone && fccl0[cn] != fccl[c]) {
                 q = true;
               }
             }
             if (q) {
               // if conflicting, move to layer 1
               if (!fcm[c]) {
-                // if not on layer 1, 
+                // if not on layer 1,
                 // move u and cl to layer 1, clear on layer 0
                 fcm[c] = true;
                 fcu[c] = fcu0[c];
@@ -494,12 +494,12 @@ struct Vof<M_>::Imp {
         // move non-conflicting cells back to layer 0
         for (auto c : m.Cells()) {
           MIdx w = bc.GetMIdx(c);
-          if (fcm[c] && fccl[c] == 0) {
+          if (fcm[c] && fccl[c] != TR::kNone) {
             bool q = false;
-            // check if conflicting, i.e. has neighbor with color 1 on layer 0
+            // check if conflicting, i.e. has neighbor with different color
             for (MIdx wo : bo) {
               IdxCell cn = bc.GetIdx(w + wo);
-              if (fccl0[cn] == 1) {
+              if (fccl0[cn] != TR::kNone && fccl0[cn] != fccl[c]) {
                 q = true;
               }
             }
