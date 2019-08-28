@@ -1445,11 +1445,15 @@ void Hydro<M>::DumpFields() {
       if (dl.count("hy")) m.Dump(&h, 1, "hy");
       if (dl.count("hz")) m.Dump(&h, 2, "hz");
 
-      if (dl.count("vf1")) m.Dump(&as->GetField(0), "vf1");
-      if (dl.count("vf2")) m.Dump(&as->GetField(1), "vf2");
+      if (dl.count("vf0")) m.Dump(&as->GetField(0), "vf0");
+      if (dl.count("vf1")) m.Dump(&as->GetField(1), "vf1");
+      if (dl.count("vf2")) m.Dump(&as->GetField(2), "vf2");
+      if (dl.count("vf3")) m.Dump(&as->GetField(3), "vf3");
 
-      if (dl.count("cl1")) m.Dump(&as->GetColor(0), "cl1");
-      if (dl.count("cl2")) m.Dump(&as->GetColor(1), "cl2");
+      if (dl.count("cl0")) m.Dump(&as->GetColor(0), "cl0");
+      if (dl.count("cl1")) m.Dump(&as->GetColor(1), "cl1");
+      if (dl.count("cl2")) m.Dump(&as->GetColor(2), "cl2");
+      if (dl.count("cl3")) m.Dump(&as->GetColor(3), "cl3");
 
       auto B2S = [this](FieldCell<bool> fcb) -> FieldCell<Scal> {
         FieldCell<Scal> r(m);
@@ -1459,22 +1463,22 @@ void Hydro<M>::DumpFields() {
         return r;
       };
 
-      if (dl.count("mask1")) { 
+      if (dl.count("mask0")) { 
         fctmp_ = B2S(as->GetMask(0));
-        m.Dump(&fctmp_, "mask1");
+        m.Dump(&fctmp_, "mask0");
       }
-      if (dl.count("mask2")) { 
+      if (dl.count("mask1")) { 
         fctmp2_ = B2S(as->GetMask(1));
-        m.Dump(&fctmp2_, "mask2");
+        m.Dump(&fctmp2_, "mask1");
       }
 
-      if (dl.count("dep1")) { 
+      if (dl.count("dep0")) { 
         fctmp3_ = B2S(as->GetDepend(0));
-        m.Dump(&fctmp3_, "dep1");
+        m.Dump(&fctmp3_, "dep0");
       }
-      if (dl.count("dep2")) { 
+      if (dl.count("dep1")) { 
         fctmp4_ = B2S(as->GetDepend(1));
-        m.Dump(&fctmp4_, "dep2");
+        m.Dump(&fctmp4_, "dep1");
       }
     }
     if (mul_ && dl.count("mul")) m.Dump(&mul_->GetMask(), "mul");
