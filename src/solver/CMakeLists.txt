@@ -15,6 +15,10 @@ set(T "partstrmesh")
 add_library(${T} partstrmesh.cpp)
 target_link_libraries(${T} dumper)
 
+set(T "partstrmeshm")
+add_library(${T} partstrmeshm.cpp)
+target_link_libraries(${T} dumper)
+
 set(T "convdiffi")
 add_library(${T} convdiffi.cpp)
 target_link_libraries(${T} solver)
