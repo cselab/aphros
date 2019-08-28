@@ -29,6 +29,13 @@ class Multi {
       d_[i] = &u[i];
     }
   }
+  // dereference pointer
+  template <class U>
+  Multi(const Multi<const U*>& u) : d_(u.size()) {
+    for (size_t i = 0; i < u.size(); ++i) {
+      d_[i] = *u[i];
+    }
+  }
   // copy pointer
   template <class U>
   Multi(Multi<U*>& u) : d_(u.size()) {
@@ -125,12 +132,10 @@ void Propagate(Multi<FieldCell<typename M::Scal>*> mfc,
 // Same as Propagate() but copies only from cells of the same color,
 // writes fill otherwise.
 // fccl: color
-// fill: fill value if color is different
 template <class M>
 void Propagate(Multi<FieldCell<typename M::Scal>*> mfc,
                const Multi<const FieldCell<bool>*>& mfcm, 
                const Multi<const FieldCell<typename M::Scal>*>& mfccl, 
-               typename M::Scal fill,
                size_t sw, M& m) {
 
   if (!mfc.size()) {
@@ -157,8 +162,6 @@ void Propagate(Multi<FieldCell<typename M::Scal>*> mfc,
           if (!fcm[cn]) {
             if (fccl[c] == fccl0[cn]) {
               fc[cn] = fc0[cn];
-            } else {
-              fc[cn] = fill;
             }
           }
         }
@@ -545,8 +548,8 @@ struct Vof<M_>::Imp {
       for (auto i : layers) {
         fccl[i] = const_cast<FieldCell<Scal>*>(&tr_[i]->GetColor());
       }
-      Propagate(uc, fcm_, fccl, 0., 2, m);
-      Propagate(fccl, fcm_, fccl, 0., 2, m);
+      Propagate(uc, fcm_, fccl, 2, m);
+      Propagate(fccl, fcm_, fccl, 2, m);
       for (auto i : layers) {
         m.Comm(uc[i]);
         m.Comm(fccl[i]);
@@ -568,7 +571,6 @@ struct Vof<M_>::Imp {
         auto& fccl = tr_[i]->GetColor();
         auto& fccl0 = tr_[0]->GetColor();
         auto& fcn0 = fcn_[0];
-        auto& fca0 = fca_[0];
         if (par->bcc_reflect) {
           BcReflect(fcu, mfc_, par->bcc_fill, m);
         }
@@ -710,7 +712,6 @@ struct Vof<M_>::Imp {
       } 
       vsc = 1.0;
     }
-    dd = {0}; // XXX
     for (size_t id = 0; id < dd.size(); ++id) {
       size_t d = dd[id]; // direction as index
       if (sem("copyface")) {
@@ -764,7 +765,6 @@ struct Vof<M_>::Imp {
           auto& fca0 = fca_[0];
           auto& fci0 = fci_[0];
           auto& fcm = fcm_[i];
-          auto& fcm2 = fcm2_[i];
           auto& fcdp = fcdp_[i];
           fcdp.Reinit(m, false);
           auto& fccl = tr_[i]->GetColor();
@@ -830,18 +830,9 @@ struct Vof<M_>::Imp {
           auto& ffi = ffi_[i];
           auto& fcdp = fcdp_[i];
           auto& fcu = fcu_[i].iter_curr;
-          auto& fcu0 = fcu_[0].iter_curr;
-          auto& fcm = fcm_[i];
-          auto& fcm2 = fcm2_[i];
           for (auto c : m.Cells()) {
             if (!fcdp[c]) {
               continue;
-            }
-            if (i == 0 && fcm_[1][c]) { // XXX
-              continue;
-            }
-            if (i == 1 && !fcm_[1][c]) { // XXX
-              //continue;
             }
             auto w = bc.GetMIdx(c);
             const Scal lc = m.GetVolume(c);
@@ -849,7 +840,7 @@ struct Vof<M_>::Imp {
             IdxFace fm = bf.GetIdx(w, md);
             IdxFace fp = bf.GetIdx(w + wd, md);
             if (!ffi[fm] && !ffi[fp]) {
-              continue;
+              //continue; // XXX
             }
             // mixture fluxes
             const Scal vm = ffv[fm] * vsc;
