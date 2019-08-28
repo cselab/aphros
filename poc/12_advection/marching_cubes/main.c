@@ -102,8 +102,8 @@ main(int argc, char **argv)
     float PropertiesDiffuse[] = { 0.75, 0.75, 0.75, 1.00 };
     float PropertiesSpecular[] = { 1.00, 1.00, 1.00, 1.00 };
 
-    int Width = 640.0;
-    int Height = 480.0;
+    int Width = 640;
+    int Height = 480;
 
     h = 1.0 / n;
 
