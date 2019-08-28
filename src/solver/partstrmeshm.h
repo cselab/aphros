@@ -6,6 +6,7 @@
 #include "partstr.h"
 #include "dump/dumper.h"
 #include "cond.h"
+#include "multi.h"
 
 namespace solver {
 
@@ -39,9 +40,13 @@ class PartStrMeshM {
     size_t dim = 3;
     bool bcc_reflect = false;
     AR attrreconst = AR::line;
+    Scal maxr = 0; // if input radius of curvature 
+                   // (e.g. from height functions)
+                   // is below than maxr*h,
+                   // overwrite with estimate from particles
   };
 
-  PartStrMeshM(M& m, std::shared_ptr<Par> par);
+  PartStrMeshM(M& m, std::shared_ptr<Par> par, size_t nl);
   ~PartStrMeshM();
 
   // Computes curvature with particles.
@@ -49,22 +54,24 @@ class PartStrMeshM {
   // vfca: plane constant
   // vfcn: normal
   // vfci: interface mask (1: contains interface)
+  // vfccl: color
   void Part(
-      std::vector<const FieldCell<Scal>*> vfcu,
-      std::vector<const FieldCell<Scal>*> vfca,
-      std::vector<const FieldCell<Vect>*> vfcn,
-      std::vector<const FieldCell<bool>*> vfci,
+      const Multi<const FieldCell<Scal>*>& vfcu,
+      const Multi<const FieldCell<Scal>*>& vfca,
+      const Multi<const FieldCell<Vect>*>& vfcn,
+      const Multi<const FieldCell<bool>*>& vfci,
+      const Multi<const FieldCell<Scal>*>& vfccl,
       const MapFace<std::shared_ptr<CondFace>>& mfc);
   // Dump particles to csv.
   // vfca: plane constant
   // vfcn: normal
   // n: frame index
   // t: time
-  void DumpParticles(std::vector<const FieldCell<Scal>*> vfca,
-                     std::vector<const FieldCell<Vect>*> vfcn,
+  void DumpParticles(const Multi<const FieldCell<Scal>*>& vfca,
+                     const Multi<const FieldCell<Vect>*>& vfcn,
                      size_t id, Scal t);
-  void DumpPartInter(std::vector<const FieldCell<Scal>*> vfca,
-                     std::vector<const FieldCell<Vect>*> vfcn,
+  void DumpPartInter(const Multi<const FieldCell<Scal>*>& vfca,
+                     const Multi<const FieldCell<Vect>*>& vfcn,
                      size_t id, Scal t);
   // Returns curvature field from last call of Part()
   const FieldCell<Scal>& GetCurv(size_t l);
