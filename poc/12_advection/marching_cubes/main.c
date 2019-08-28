@@ -14,26 +14,26 @@ struct Vec {
 // that you can look at all at once rather than in pages and pages of
 // unrolled code.
 
-//a2VertexOffset lists the positions, relative to vertex0, of each of
+//VertexOffset lists the positions, relative to vertex0, of each of
 //the 8 vertices of a cube
-static const float a2VertexOffset[][3] = {
+static const float VertexOffset[][3] = {
     {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 1.0, 0.0}, {0.0, 1.0,
 							0.0},
     {0.0, 0.0, 1.0}, {1.0, 0.0, 1.0}, {1.0, 1.0, 1.0}, {0.0, 1.0,
 							1.0}
 };
 
-//a2EdgeConnection lists the index of the endpoint vertices for each
+//EdgeConnection lists the index of the endpoint vertices for each
 //of the 12 edges of the cube
-static const int a2EdgeConnection[][2] = {
+static const int EdgeConnection[][2] = {
     {0, 1}, {1, 2}, {2, 3}, {3, 0},
     {4, 5}, {5, 6}, {6, 7}, {7, 4},
     {0, 4}, {1, 5}, {2, 6}, {3, 7}
 };
 
-//a2EdgeDirection lists the direction vector (vertex1-vertex0) for
+//EdgeDirection lists the direction vector (vertex1-vertex0) for
 //each edge in the cube
-static const float a2EdgeDirection[][3] = {
+static const float EdgeDirection[][3] = {
     {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-1.0, 0.0, 0.0}, {0.0, -1.0,
 							 0.0},
     {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-1.0, 0.0, 0.0}, {0.0, -1.0,
@@ -42,15 +42,15 @@ static const float a2EdgeDirection[][3] = {
 							1.0}
 };
 
-//a2TetrahedronEdgeConnection lists the index of the endpoint
+//TetrahedronEdgeConnection lists the index of the endpoint
 //vertices for each of the 6 edges of the tetrahedron
-static const int a2TetrahedronEdgeConnection[][2] = {
+static const int TetrahedronEdgeConnection[][2] = {
     {0, 1}, {1, 2}, {2, 0}, {0, 3}, {1, 3}, {2, 3}
 };
 
-//a2TetrahedronEdgeConnection lists the index of verticies from a
+//TetrahedronEdgeConnection lists the index of verticies from a
 // cube that made up each of the six tetrahedrons within the cube
-static const int a2TetrahedronsInACube[][4] = {
+static const int TetrahedronsInACube[][4] = {
     {0, 5, 1, 6},
     {0, 1, 2, 6},
     {0, 2, 3, 6},
@@ -507,9 +507,9 @@ MarchCube1(float X, float Y, float Z, float Scale)
     //Make a local copy of the values at the cube's corners
     for (i = 0; i < 8; i++) {
 	CubeValue[i] =
-	    Sample(X + a2VertexOffset[i][0] * Scale,
-		   Y + a2VertexOffset[i][1] * Scale,
-		   Z + a2VertexOffset[i][2] * Scale);
+	    Sample(X + VertexOffset[i][0] * Scale,
+		   Y + VertexOffset[i][1] * Scale,
+		   Z + VertexOffset[i][2] * Scale);
     }
 
     //Find which vertices are inside of the surface and which are outside
@@ -531,19 +531,19 @@ MarchCube1(float X, float Y, float Z, float Scale)
     for (Edge = 0; Edge < 12; Edge++) {
 	//if there is an intersection on this edge
 	if (EdgeFlags & (1 << Edge)) {
-	    Offset = GetOffset(CubeValue[a2EdgeConnection[Edge][0]],
-			       CubeValue[a2EdgeConnection[Edge][1]],
+	    Offset = GetOffset(CubeValue[EdgeConnection[Edge][0]],
+			       CubeValue[EdgeConnection[Edge][1]],
 			       TargetValue);
 
 	    EdgeVertex[Edge].X =
-		X + (a2VertexOffset[a2EdgeConnection[Edge][0]][0] +
-		     Offset * a2EdgeDirection[Edge][0]) * Scale;
+		X + (VertexOffset[EdgeConnection[Edge][0]][0] +
+		     Offset * EdgeDirection[Edge][0]) * Scale;
 	    EdgeVertex[Edge].Y =
-		Y + (a2VertexOffset[a2EdgeConnection[Edge][0]][1] +
-		     Offset * a2EdgeDirection[Edge][1]) * Scale;
+		Y + (VertexOffset[EdgeConnection[Edge][0]][1] +
+		     Offset * EdgeDirection[Edge][1]) * Scale;
 	    EdgeVertex[Edge].Z =
-		Z + (a2VertexOffset[a2EdgeConnection[Edge][0]][2] +
-		     Offset * a2EdgeDirection[Edge][2]) * Scale;
+		Z + (VertexOffset[EdgeConnection[Edge][0]][2] +
+		     Offset * EdgeDirection[Edge][2]) * Scale;
 
 	    GetNormal(&EdgeNorm[Edge], EdgeVertex[Edge].X,
 		      EdgeVertex[Edge].Y, EdgeVertex[Edge].Z);
@@ -599,8 +599,8 @@ MarchTetrahedron(struct Vec *TetrahedronPosition, float *TetrahedronValue)
     for (Edge = 0; Edge < 6; Edge++) {
 	//if there is an intersection on this edge
 	if (EdgeFlags & (1 << Edge)) {
-	    Vert0 = a2TetrahedronEdgeConnection[Edge][0];
-	    Vert1 = a2TetrahedronEdgeConnection[Edge][1];
+	    Vert0 = TetrahedronEdgeConnection[Edge][0];
+	    Vert1 = TetrahedronEdgeConnection[Edge][1];
 	    Offset =
 		GetOffset(TetrahedronValue[Vert0],
 			  TetrahedronValue[Vert1], TargetValue);
@@ -649,9 +649,9 @@ MarchCube2(float X, float Y, float Z, float Scale)
 
     //Make a local copy of the cube's corner positions
     for (i = 0; i < 8; i++) {
-	CubePosition[i].X = X + a2VertexOffset[i][0] * Scale;
-	CubePosition[i].Y = Y + a2VertexOffset[i][1] * Scale;
-	CubePosition[i].Z = Z + a2VertexOffset[i][2] * Scale;
+	CubePosition[i].X = X + VertexOffset[i][0] * Scale;
+	CubePosition[i].Y = Y + VertexOffset[i][1] * Scale;
+	CubePosition[i].Z = Z + VertexOffset[i][2] * Scale;
     }
 
     //Make a local copy of the cube's corner values
@@ -662,7 +662,7 @@ MarchCube2(float X, float Y, float Z, float Scale)
 
     for (Tetrahedron = 0; Tetrahedron < 6; Tetrahedron++) {
 	for (i = 0; i < 4; i++) {
-	    InACube = a2TetrahedronsInACube[Tetrahedron][i];
+	    InACube = TetrahedronsInACube[Tetrahedron][i];
 	    TetrahedronPosition[i].X = CubePosition[InACube].X;
 	    TetrahedronPosition[i].Y = CubePosition[InACube].Y;
 	    TetrahedronPosition[i].Z = CubePosition[InACube].Z;
