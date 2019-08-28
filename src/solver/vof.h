@@ -4,7 +4,7 @@
 
 #include "advection.h"
 #include "dump/dumper.h"
-#include "partstrmesh.h"
+#include "partstrmeshm.h"
 
 namespace solver {
 
@@ -56,8 +56,8 @@ class Vof : public AdvectionSolver<M_> {
     Scal part_anglim = 90.; 
     bool part_dn = false;
     Scal part_maxr = 0;
-    using AF = typename solver::PartStrMesh<M>::AF;
-    using AR = typename solver::PartStrMesh<M>::AR;
+    using AF = typename solver::PartStrMeshM<M>::AF;
+    using AR = typename solver::PartStrMeshM<M>::AR;
     AF part_attrforce = AF::line;
     AR part_attrreconst = AR::line;
   };

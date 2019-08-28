@@ -42,7 +42,7 @@ void Parse(typename solver::Vof<M>::Par* p, const Vars& var) {
   p->part_maxr = var.Double["part_maxr"];
 
   {
-    using AF = typename solver::PartStrMesh<M>::AF;
+    using AF = typename solver::PartStrMeshM<M>::AF;
     std::string s = var.String["part_attrforce"];
     if (s == "line") {
       p->part_attrforce = AF::line;
@@ -55,7 +55,7 @@ void Parse(typename solver::Vof<M>::Par* p, const Vars& var) {
     }
   }
   {
-    using AR = typename solver::PartStrMesh<M>::AR;
+    using AR = typename solver::PartStrMeshM<M>::AR;
     std::string s = var.String["part_attrreconst"];
     if (s == "line") {
       p->part_attrreconst = AR::line;

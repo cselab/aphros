@@ -159,7 +159,7 @@ struct Vof<M_>::Imp {
   using Owner = Vof<M_>;
   using R = Reconst<Scal>;
   using PS = PartStr<Scal>;
-  using PSM = PartStrMesh<M>;
+  using PSM = PartStrMeshM<M>;
   using TR = solver::Tracker<M>;
   static constexpr size_t dim = M::dim;
   using Vect2 = GVect<Scal, 2>;
@@ -177,7 +177,6 @@ struct Vof<M_>::Imp {
     fcdp_.resize(layers.size());
     fcm_.resize(layers.size());
     fck_.resize(layers.size());
-    psm_.resize(layers.size());
     fccl_.resize(layers.size());
     ffvu_.resize(layers.size());
     ffcl_.resize(layers.size());
@@ -189,6 +188,7 @@ struct Vof<M_>::Imp {
     fck_.InitAll(FieldCell<Scal>(m, 0));
     fcdp_.InitAll(FieldCell<bool>(m, false));
     fcm_.InitAll(FieldCell<bool>(m, false));
+    fci_.InitAll(FieldCell<bool>(m, false));
 
     fcus_.time_curr = fcu0;
 
@@ -224,9 +224,7 @@ struct Vof<M_>::Imp {
     psm->bcc_reflect = par->bcc_reflect;
     psm->dump_fr = par->part_dump_fr;
     psm->maxr = par->part_maxr;
-    for (auto& p : psm_.data()) {
-      p = std::unique_ptr<PSM>(new PSM(m, psm));
-    }
+    psm_ = std::unique_ptr<PSM>(new PSM(m, psm));
   }
   void Update(typename PS::Par* p) const {
     Scal hc = m.GetCellSize().norminf(); // cell size
@@ -514,15 +512,11 @@ struct Vof<M_>::Imp {
     if (par->dumppoly && dm && sem.Nested("dumppoly")) {
       DumpPoly();
     }
-    for (auto i : layers) {
-      if (par->dumppart && dm && sem.Nested("part-dump")) {
-        psm_[i]->DumpParticles(
-            fca_[i], fcn_[i], par->dmp->GetN(), owner_->GetTime());
-      }
-      if (par->dumppartinter && dm && sem.Nested("partinter-dump")) {
-        psm_[i]->DumpPartInter(
-            fca_[i], fcn_[i], par->dmp->GetN(), owner_->GetTime());
-      }
+    if (par->dumppart && dm && sem.Nested("part-dump")) {
+      psm_->DumpParticles(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
+    }
+    if (par->dumppartinter && dm && sem.Nested("partinter-dump")) {
+      psm_->DumpPartInter(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
     }
   }
   void MakeIteration() {
@@ -929,11 +923,9 @@ struct Vof<M_>::Imp {
         }
       }
     }
-    for (auto i : layers) {
-      if (par->part && sem.Nested("part")) {
-        psm_[i]->Part(
-            fcu_[i].iter_curr, fca_[i], fcn_[i], fci_[i], fck_[i], mfc_);
-      }
+    if (par->part && sem.Nested("part")) {
+      psm_->Part(GetLayer(fcu_, Layers::iter_curr),
+                 fca_, fcn_, fci_, fccl_, mfc_);
     }
     if (sem.Nested("dump")) {
       Dump();
@@ -970,7 +962,7 @@ struct Vof<M_>::Imp {
   std::vector<Scal> dlc_; // dump poly cell
   std::vector<Scal> dll_; // dump poly layer
 
-  Multi<std::unique_ptr<PartStrMesh<M>>> psm_;
+  std::unique_ptr<PSM> psm_;
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
   GRange<size_t> layers;
@@ -1062,13 +1054,13 @@ auto Vof<M_>::GetHeight() const -> const FieldCell<Vect>& {
 
 template <class M_>
 auto Vof<M_>::GetCurv() const -> const FieldCell<Scal>& {
-  return imp->par->part_k ? imp->psm_[0]->GetCurv() : imp->fck_[0];
+  return imp->par->part_k ? imp->psm_->GetCurv(0) : imp->fck_[0];
 }
 
 template <class M_>
 auto Vof<M_>::GetCurv(size_t i) const -> const FieldCell<Scal>& {
   (void) i;
-  return imp->par->part_k ? imp->psm_[i]->GetCurv() : imp->fck_[i];
+  return imp->par->part_k ? imp->psm_->GetCurv(i) : imp->fck_[i];
 }
 
 template <class M_>
@@ -1086,7 +1078,7 @@ auto Vof<M_>::GetCurvH() const -> const FieldCell<Scal>& {
 // curvature from particles
 template <class M_>
 auto Vof<M_>::GetCurvP() const -> const FieldCell<Scal>& {
-  return imp->psm_[0]->GetCurv();
+  return imp->psm_->GetCurv(0);
 }
 
 } // namespace solver
