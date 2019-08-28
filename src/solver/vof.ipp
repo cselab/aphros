@@ -202,6 +202,7 @@ struct Vof<M_>::Imp {
 
     fcu_[0].time_curr = fcu0;
     fccl_[0] = fccl0;
+    fccls_ = fccl0;
 
     for (auto it : mfc_) {
       IdxFace f = it.GetIdx();
@@ -855,12 +856,14 @@ struct Vof<M_>::Imp {
       auto l = Layers::iter_curr;
       auto& fcus = fcus_.Get(l);
       fcus.Reinit(m, 0);
+      fccls_.Reinit(m, kClNone);
       for (auto i : layers) {
         auto& fccl = fccl_[i];
         auto& fcu = fcu_[i].Get(l);
         for (auto c : m.AllCells()) {
           if (fccl[c] != kClNone) {
             fcus[c] += fcu[c];
+            fccls_[c] = fccl[c];
           }
         }
       }
@@ -938,6 +941,7 @@ struct Vof<M_>::Imp {
 
   Multi<LayersData<FieldCell<Scal>>> fcu_;
   LayersData<FieldCell<Scal>> fcus_;
+  FieldCell<Scal> fccls_;
   MapFace<std::shared_ptr<CondFace>> mfc_;
   MapFace<std::shared_ptr<CondFace>> mfvz_; // zero-derivative bc for Vect
 
@@ -1032,6 +1036,11 @@ auto Vof<M_>::GetMask(size_t i) const -> const FieldCell<bool>& {
 template <class M_>
 auto Vof<M_>::GetColor(size_t i) const -> const FieldCell<Scal>& {
   return imp->fccl_[i];
+}
+
+template <class M_>
+auto Vof<M_>::GetColor() const -> const FieldCell<Scal>& {
+  return imp->fccls_;
 }
 
 template <class M_>
