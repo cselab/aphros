@@ -1,4 +1,8 @@
 #!/u/9/plan9port/bin/ssam -f
-,x/[A-Za-z_][A-Za-z_0-9]*/ v/glut/ v/gl/ s/[a-z0-9]*([A-Z].*)/\1
+,x/[A-Za-z_][A-Za-z_0-9]*/ {
+                           g/X/ v/../ s/X/x
+                           g/Y/ v/../ s/Y/y
+                           g/Z/ v/../ s/Z/z
+}
 ,p
 ,d

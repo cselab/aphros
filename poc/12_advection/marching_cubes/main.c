@@ -5,9 +5,9 @@
 #define	USED(x)		if(x);else{}
 
 struct Vec {
-    float X;
-    float Y;
-    float Z;
+    float x;
+    float y;
+    float z;
 };
 
 //These tables are used so that everything can be done in little loops
@@ -83,17 +83,17 @@ void Special(int Key, int i, int j);
 
 void PrintHelp();
 void SetTime(float Time);
-float Sample1(float X, float Y, float Z);
-float Sample2(float X, float Y, float Z);
-float Sample3(float X, float Y, float Z);
+float Sample1(float x, float y, float z);
+float Sample2(float x, float y, float z);
+float Sample3(float x, float y, float z);
 
-float (*Sample) (float X, float Y, float Z) = Sample1;
+float (*Sample) (float x, float y, float z) = Sample1;
 
 void MarchingCubes();
-void MarchCube1(float X, float Y, float Z, float Scale);
-void MarchCube2(float X, float Y, float Z, float Scale);
+void MarchCube1(float x, float y, float z, float Scale);
+void MarchCube2(float x, float y, float z, float Scale);
 
-void (*MarchCube) (float X, float Y, float Z, float Scale) = MarchCube1;
+void (*MarchCube) (float x, float y, float z, float Scale) = MarchCube1;
 
 int
 main(int argc, char **argv)
@@ -354,22 +354,22 @@ GetOffset(float Value1, float Value2, float ValueDesired)
 void
 GetColor(struct Vec *Color, struct Vec *Normal)
 {
-    float X = Normal->X;
-    float Y = Normal->Y;
-    float Z = Normal->Z;
+    float x = Normal->x;
+    float y = Normal->y;
+    float z = Normal->z;
 
-    Color->X =
-	(X > 0.0 ? X : 0.0) + (Y < 0.0 ? -0.5 * Y : 0.0) + (Z <
+    Color->x =
+	(x > 0.0 ? x : 0.0) + (y < 0.0 ? -0.5 * y : 0.0) + (z <
 							    0.0 ? -0.5
-							    * Z : 0.0);
-    Color->Y =
-	(Y > 0.0 ? Y : 0.0) + (Z < 0.0 ? -0.5 * Z : 0.0) + (X <
+							    * z : 0.0);
+    Color->y =
+	(y > 0.0 ? y : 0.0) + (z < 0.0 ? -0.5 * z : 0.0) + (x <
 							    0.0 ? -0.5
-							    * X : 0.0);
-    Color->Z =
-	(Z > 0.0 ? Z : 0.0) + (X < 0.0 ? -0.5 * X : 0.0) + (Y <
+							    * x : 0.0);
+    Color->z =
+	(z > 0.0 ? z : 0.0) + (x < 0.0 ? -0.5 * x : 0.0) + (y <
 							    0.0 ? -0.5
-							    * Y : 0.0);
+							    * y : 0.0);
 }
 
 void
@@ -378,25 +378,25 @@ NormalizeVector(struct Vec *VectorResult, struct Vec *VectorSource)
     float OldLength;
     float Scale;
 
-    OldLength = sqrtf((VectorSource->X * VectorSource->X) +
-		      (VectorSource->Y * VectorSource->Y) +
-		      (VectorSource->Z * VectorSource->Z));
+    OldLength = sqrtf((VectorSource->x * VectorSource->x) +
+		      (VectorSource->y * VectorSource->y) +
+		      (VectorSource->z * VectorSource->z));
 
     if (OldLength == 0.0) {
-	VectorResult->X = VectorSource->X;
-	VectorResult->Y = VectorSource->Y;
-	VectorResult->Z = VectorSource->Z;
+	VectorResult->x = VectorSource->x;
+	VectorResult->y = VectorSource->y;
+	VectorResult->z = VectorSource->z;
     } else {
 	Scale = 1.0 / OldLength;
-	VectorResult->X = VectorSource->X * Scale;
-	VectorResult->Y = VectorSource->Y * Scale;
-	VectorResult->Z = VectorSource->Z * Scale;
+	VectorResult->x = VectorSource->x * Scale;
+	VectorResult->y = VectorSource->y * Scale;
+	VectorResult->z = VectorSource->z * Scale;
     }
 }
 
 
 //Generate a sample data set.  Sample1(), Sample2() and Sample3() define three scalar fields whose
-// values vary by the X,Y and Z coordinates and by the Time value set by SetTime()
+// values vary by the x,y and z coordinates and by the Time value set by SetTime()
 void
 SetTime(float NewTime)
 {
@@ -404,60 +404,60 @@ SetTime(float NewTime)
     int SourceNum;
 
     for (SourceNum = 0; SourceNum < 3; SourceNum++) {
-	SourcePoint[SourceNum].X = 0.5;
-	SourcePoint[SourceNum].Y = 0.5;
-	SourcePoint[SourceNum].Z = 0.5;
+	SourcePoint[SourceNum].x = 0.5;
+	SourcePoint[SourceNum].y = 0.5;
+	SourcePoint[SourceNum].z = 0.5;
     }
 
     Time = NewTime;
     Offset = 1.0 + sinf(Time);
-    SourcePoint[0].X *= Offset;
-    SourcePoint[1].Y *= Offset;
-    SourcePoint[2].Z *= Offset;
+    SourcePoint[0].x *= Offset;
+    SourcePoint[1].y *= Offset;
+    SourcePoint[2].z *= Offset;
 }
 
-//Sample1 finds the distance of (X, Y, Z) from three moving points
+//Sample1 finds the distance of (x, y, z) from three moving points
 float
-Sample1(float X, float Y, float Z)
+Sample1(float x, float y, float z)
 {
     double Result = 0.0;
     double Dx, Dy, Dz;
 
-    Dx = X - SourcePoint[0].X;
-    Dy = Y - SourcePoint[0].Y;
-    Dz = Z - SourcePoint[0].Z;
+    Dx = x - SourcePoint[0].x;
+    Dy = y - SourcePoint[0].y;
+    Dz = z - SourcePoint[0].z;
     Result += 0.5 / (Dx * Dx + Dy * Dy + Dz * Dz);
 
-    Dx = X - SourcePoint[1].X;
-    Dy = Y - SourcePoint[1].Y;
-    Dz = Z - SourcePoint[1].Z;
+    Dx = x - SourcePoint[1].x;
+    Dy = y - SourcePoint[1].y;
+    Dz = z - SourcePoint[1].z;
     Result += 1.0 / (Dx * Dx + Dy * Dy + Dz * Dz);
 
-    Dx = X - SourcePoint[2].X;
-    Dy = Y - SourcePoint[2].Y;
-    Dz = Z - SourcePoint[2].Z;
+    Dx = x - SourcePoint[2].x;
+    Dy = y - SourcePoint[2].y;
+    Dz = z - SourcePoint[2].z;
     Result += 1.5 / (Dx * Dx + Dy * Dy + Dz * Dz);
 
     return Result;
 }
 
-//Sample2 finds the distance of (X, Y, Z) from three moving lines
+//Sample2 finds the distance of (x, y, z) from three moving lines
 float
-Sample2(float X, float Y, float Z)
+Sample2(float x, float y, float z)
 {
     double Result = 0.0;
     double Dx, Dy, Dz;
 
-    Dx = X - SourcePoint[0].X;
-    Dy = Y - SourcePoint[0].Y;
+    Dx = x - SourcePoint[0].x;
+    Dy = y - SourcePoint[0].y;
     Result += 0.5 / (Dx * Dx + Dy * Dy);
 
-    Dx = X - SourcePoint[1].X;
-    Dz = Z - SourcePoint[1].Z;
+    Dx = x - SourcePoint[1].x;
+    Dz = z - SourcePoint[1].z;
     Result += 0.75 / (Dx * Dx + Dz * Dz);
 
-    Dy = Y - SourcePoint[2].Y;
-    Dz = Z - SourcePoint[2].Z;
+    Dy = y - SourcePoint[2].y;
+    Dz = z - SourcePoint[2].z;
     Result += 1.0 / (Dy * Dy + Dz * Dz);
 
     return Result;
@@ -466,13 +466,13 @@ Sample2(float X, float Y, float Z)
 
 //Sample2 defines a height field by plugging the distance from the center into the sin and cos functions
 float
-Sample3(float X, float Y, float Z)
+Sample3(float x, float y, float z)
 {
     float Height =
 	20.0 * (Time +
-		sqrt((0.5 - X) * (0.5 - X) + (0.5 - Y) * (0.5 - Y)));
+		sqrt((0.5 - x) * (0.5 - x) + (0.5 - y) * (0.5 - y)));
     Height = 1.5 + 0.1 * (sinf(Height) + cosf(Height));
-    double Result = (Height - Z) * 50.0;
+    double Result = (Height - z) * 50.0;
 
     return Result;
 }
@@ -481,18 +481,18 @@ Sample3(float X, float Y, float Z)
 //GetNormal() finds the gradient of the scalar field at a point
 //This gradient can be used as a very accurate vertx normal for lighting calculations
 void
-GetNormal(struct Vec *Normal, float X, float Y, float Z)
+GetNormal(struct Vec *Normal, float x, float y, float z)
 {
-    Normal->X = Sample(X - 0.01, Y, Z) - Sample(X + 0.01, Y, Z);
-    Normal->Y = Sample(X, Y - 0.01, Z) - Sample(X, Y + 0.01, Z);
-    Normal->Z = Sample(X, Y, Z - 0.01) - Sample(X, Y, Z + 0.01);
+    Normal->x = Sample(x - 0.01, y, z) - Sample(x + 0.01, y, z);
+    Normal->y = Sample(x, y - 0.01, z) - Sample(x, y + 0.01, z);
+    Normal->z = Sample(x, y, z - 0.01) - Sample(x, y, z + 0.01);
     NormalizeVector(Normal, Normal);
 }
 
 
 //MarchCube1 performs the Marching Cubes algorithm on a single cube
 void
-MarchCube1(float X, float Y, float Z, float Scale)
+MarchCube1(float x, float y, float z, float Scale)
 {
     extern int CubeEdgeFlags[256];
     extern int a2iTriangleConnectionTable[256][16];
@@ -507,9 +507,9 @@ MarchCube1(float X, float Y, float Z, float Scale)
     //Make a local copy of the values at the cube's corners
     for (i = 0; i < 8; i++) {
 	CubeValue[i] =
-	    Sample(X + VertexOffset[i][0] * Scale,
-		   Y + VertexOffset[i][1] * Scale,
-		   Z + VertexOffset[i][2] * Scale);
+	    Sample(x + VertexOffset[i][0] * Scale,
+		   y + VertexOffset[i][1] * Scale,
+		   z + VertexOffset[i][2] * Scale);
     }
 
     //Find which vertices are inside of the surface and which are outside
@@ -535,18 +535,18 @@ MarchCube1(float X, float Y, float Z, float Scale)
 			       CubeValue[EdgeConnection[Edge][1]],
 			       TargetValue);
 
-	    EdgeVertex[Edge].X =
-		X + (VertexOffset[EdgeConnection[Edge][0]][0] +
+	    EdgeVertex[Edge].x =
+		x + (VertexOffset[EdgeConnection[Edge][0]][0] +
 		     Offset * EdgeDirection[Edge][0]) * Scale;
-	    EdgeVertex[Edge].Y =
-		Y + (VertexOffset[EdgeConnection[Edge][0]][1] +
+	    EdgeVertex[Edge].y =
+		y + (VertexOffset[EdgeConnection[Edge][0]][1] +
 		     Offset * EdgeDirection[Edge][1]) * Scale;
-	    EdgeVertex[Edge].Z =
-		Z + (VertexOffset[EdgeConnection[Edge][0]][2] +
+	    EdgeVertex[Edge].z =
+		z + (VertexOffset[EdgeConnection[Edge][0]][2] +
 		     Offset * EdgeDirection[Edge][2]) * Scale;
 
-	    GetNormal(&EdgeNorm[Edge], EdgeVertex[Edge].X,
-		      EdgeVertex[Edge].Y, EdgeVertex[Edge].Z);
+	    GetNormal(&EdgeNorm[Edge], EdgeVertex[Edge].x,
+		      EdgeVertex[Edge].y, EdgeVertex[Edge].z);
 	}
     }
 
@@ -561,9 +561,9 @@ MarchCube1(float X, float Y, float Z, float Scale)
 						      Corner];
 
 	    GetColor(&Color, &EdgeNorm[i]);
-	    glColor3f(Color.X, Color.Y, Color.Z);
-	    glNormal3f(EdgeNorm[i].X, EdgeNorm[i].Y, EdgeNorm[i].Z);
-	    glVertex3f(EdgeVertex[i].X, EdgeVertex[i].Y, EdgeVertex[i].Z);
+	    glColor3f(Color.x, Color.y, Color.z);
+	    glNormal3f(EdgeNorm[i].x, EdgeNorm[i].y, EdgeNorm[i].z);
+	    glVertex3f(EdgeVertex[i].x, EdgeVertex[i].y, EdgeVertex[i].z);
 	}
     }
 }
@@ -606,18 +606,18 @@ MarchTetrahedron(struct Vec *TetrahedronPosition, float *TetrahedronValue)
 			  TetrahedronValue[Vert1], TargetValue);
 	    InvOffset = 1.0 - Offset;
 
-	    EdgeVertex[Edge].X =
-		InvOffset * TetrahedronPosition[Vert0].X +
-		Offset * TetrahedronPosition[Vert1].X;
-	    EdgeVertex[Edge].Y =
-		InvOffset * TetrahedronPosition[Vert0].Y +
-		Offset * TetrahedronPosition[Vert1].Y;
-	    EdgeVertex[Edge].Z =
-		InvOffset * TetrahedronPosition[Vert0].Z +
-		Offset * TetrahedronPosition[Vert1].Z;
+	    EdgeVertex[Edge].x =
+		InvOffset * TetrahedronPosition[Vert0].x +
+		Offset * TetrahedronPosition[Vert1].x;
+	    EdgeVertex[Edge].y =
+		InvOffset * TetrahedronPosition[Vert0].y +
+		Offset * TetrahedronPosition[Vert1].y;
+	    EdgeVertex[Edge].z =
+		InvOffset * TetrahedronPosition[Vert0].z +
+		Offset * TetrahedronPosition[Vert1].z;
 
-	    GetNormal(&EdgeNorm[Edge], EdgeVertex[Edge].X,
-		      EdgeVertex[Edge].Y, EdgeVertex[Edge].Z);
+	    GetNormal(&EdgeNorm[Edge], EdgeVertex[Edge].x,
+		      EdgeVertex[Edge].y, EdgeVertex[Edge].z);
 	}
     }
     //Draw the triangles that were found.  There can be up to 2 per tetrahedron
@@ -628,9 +628,9 @@ MarchTetrahedron(struct Vec *TetrahedronPosition, float *TetrahedronValue)
 	for (Corner = 0; Corner < 3; Corner++) {
 	    i = a2iTetrahedronTriangles[FlagIndex][3 * iTriangle + Corner];
 	    GetColor(&Color, &EdgeNorm[i]);
-	    glColor3f(Color.X, Color.Y, Color.Z);
-	    glNormal3f(EdgeNorm[i].X, EdgeNorm[i].Y, EdgeNorm[i].Z);
-	    glVertex3f(EdgeVertex[i].X, EdgeVertex[i].Y, EdgeVertex[i].Z);
+	    glColor3f(Color.x, Color.y, Color.z);
+	    glNormal3f(EdgeNorm[i].x, EdgeNorm[i].y, EdgeNorm[i].z);
+	    glVertex3f(EdgeVertex[i].x, EdgeVertex[i].y, EdgeVertex[i].z);
 	}
     }
 }
@@ -639,7 +639,7 @@ MarchTetrahedron(struct Vec *TetrahedronPosition, float *TetrahedronValue)
 
 //MarchCube2 performs the Marching Tetrahedrons algorithm on a single cube by making six calls to MarchTetrahedron
 void
-MarchCube2(float X, float Y, float Z, float Scale)
+MarchCube2(float x, float y, float z, float Scale)
 {
     int i, Tetrahedron, InACube;
     struct Vec CubePosition[8];
@@ -649,23 +649,23 @@ MarchCube2(float X, float Y, float Z, float Scale)
 
     //Make a local copy of the cube's corner positions
     for (i = 0; i < 8; i++) {
-	CubePosition[i].X = X + VertexOffset[i][0] * Scale;
-	CubePosition[i].Y = Y + VertexOffset[i][1] * Scale;
-	CubePosition[i].Z = Z + VertexOffset[i][2] * Scale;
+	CubePosition[i].x = x + VertexOffset[i][0] * Scale;
+	CubePosition[i].y = y + VertexOffset[i][1] * Scale;
+	CubePosition[i].z = z + VertexOffset[i][2] * Scale;
     }
 
     //Make a local copy of the cube's corner values
     for (i = 0; i < 8; i++) {
-	CubeValue[i] = Sample(CubePosition[i].X,
-			      CubePosition[i].Y, CubePosition[i].Z);
+	CubeValue[i] = Sample(CubePosition[i].x,
+			      CubePosition[i].y, CubePosition[i].z);
     }
 
     for (Tetrahedron = 0; Tetrahedron < 6; Tetrahedron++) {
 	for (i = 0; i < 4; i++) {
 	    InACube = TetrahedronsInACube[Tetrahedron][i];
-	    TetrahedronPosition[i].X = CubePosition[InACube].X;
-	    TetrahedronPosition[i].Y = CubePosition[InACube].Y;
-	    TetrahedronPosition[i].Z = CubePosition[InACube].Z;
+	    TetrahedronPosition[i].x = CubePosition[InACube].x;
+	    TetrahedronPosition[i].y = CubePosition[InACube].y;
+	    TetrahedronPosition[i].z = CubePosition[InACube].z;
 	    TetrahedronValue[i] = CubeValue[InACube];
 	}
 	MarchTetrahedron(TetrahedronPosition, TetrahedronValue);
