@@ -31,13 +31,13 @@ static void DrawScene(void);
 static void Resize(int, int);
 static void Keyboard(unsigned char Key, int, int);
 static void Special(int Key, int, int);
-static void PrintHelp();
+static void PrintHelp(void);
 static void SetTime(float Time);
 static float Sample1(float, float, float);
 static float Sample2(float, float, float);
 static float Sample3(float, float, float);
 static float (*Sample) (float, float, float) = Sample1;
-static void MarchingCubes();
+static void MarchingCubes(void);
 static void MarchCube1(float, float, float, float Scale);
 static void MarchCube2(float, float, float, float Scale);
 static void (*MarchCube) (float, float, float, float Scale) = MarchCube1;
@@ -93,7 +93,7 @@ main(int argc, char **argv)
 }
 
 static void
-PrintHelp()
+PrintHelp(void)
 {
     printf
 	("Marching Cubes Example by Cory Bloyd (dejaspaminacan@my-deja.com)\n\n");
@@ -621,7 +621,7 @@ MarchCube2(float x, float y, float z, float Scale)
 
 //MarchingCubes iterates over the entire dataset, calling MarchCube on each cube
 static void
-MarchingCubes()
+MarchingCubes(void)
 {
     int i, j, k;
 
