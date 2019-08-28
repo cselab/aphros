@@ -98,6 +98,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void AppendSurfaceTension(FieldFace<Scal>& ffst, 
       const FieldCell<Scal>& fcu, const FieldCell<Scal>& fck, 
       const FieldCell<bool>& fcm, const FieldFace<Scal>& ffsig);
+  void AppendSurfaceTension2(FieldFace<Scal>& ffst, 
+      const FieldCell<Scal>& fcu, const FieldCell<Scal>& fck, 
+      const FieldFace<Scal>& ffsig);
   // Clips v to given range, uses const_cast
   void Clip(const FieldCell<Scal>& v, Scal min, Scal max);
   void CalcStat();
@@ -1060,7 +1063,6 @@ void Hydro<M>::AppendSurfaceTension(FieldFace<Scal>& ffst,
     IdxCell cm = m.GetNeighbourCell(f, 0);
     IdxCell cp = m.GetNeighbourCell(f, 1);
     if (fcm[cm] || fcm[cp]) {
-      // XXX requires consistent values in cm,cp (i.e. call of Propagate)
       Scal um = fcu[cm];
       Scal up = fcu[cp];
       Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? fck[cm] : fck[cp]);
@@ -1074,6 +1076,24 @@ void Hydro<M>::AppendSurfaceTension(FieldFace<Scal>& ffst,
   }
 }
 
+template <class M>
+void Hydro<M>::AppendSurfaceTension2(FieldFace<Scal>& ffst,
+    const FieldCell<Scal>& fcu, const FieldCell<Scal>& fck,
+    const FieldFace<Scal>& ffsig) {
+  for (auto f : m.Faces()) {
+    IdxCell cm = m.GetNeighbourCell(f, 0);
+    IdxCell cp = m.GetNeighbourCell(f, 1);
+    Scal um = fcu[cm];
+    Scal up = fcu[cp];
+    Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? fck[cm] : fck[cp]);
+    Scal hi = m.GetArea(f) / m.GetVolume(cp);
+    Scal ga = (up - um) * hi;
+    if (ga != 0.) {
+      k = (IsNan(k) ? 0 : k);
+      ffst[f] += ga * k * ffsig[f];
+    }
+  }
+}
 
 template <class M>
 void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
@@ -1106,9 +1126,36 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
     ff_sig_ = solver::Interpolate(fc_sig_, GetBcSz(), m);
 
     if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
-      for (size_t i = 0; i < as->GetNumLayers(); ++i) {
-        AppendSurfaceTension(ff_st, as->GetField(i), as->GetCurv(i),
-                             as->GetMask(i), ff_sig_);
+      //AppendSurfaceTension2(ff_st, as->GetField(i), as->GetCurv(i), ff_sig_);
+      for (auto f : m.Faces()) {
+        IdxCell cm = m.GetNeighbourCell(f, 0);
+        IdxCell cp = m.GetNeighbourCell(f, 1);
+        std::set<Scal> s;
+        for (size_t i = 0; i < as->GetNumLayers(); ++i) {
+          Scal clm = as->GetColor(i)[cm];
+          Scal clp = as->GetColor(i)[cp];
+          if (clm != TR::kNone) s.insert(clm);
+          if (clp != TR::kNone) s.insert(clp);
+        }
+        for (auto cl : s) {
+          size_t jm = 0;
+          size_t jp = 0;
+          for (size_t i = 0; i < as->GetNumLayers(); ++i) {
+            if (as->GetColor(i)[cm] == cl) jm = i;
+            if (as->GetColor(i)[cp] == cl) jp = i;
+          }
+          Scal um = as->GetField(jm)[cm];
+          Scal up = as->GetField(jp)[cp];
+          Scal km = as->GetCurv(jm)[cm];
+          Scal kp = as->GetCurv(jp)[cp];
+          Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
+          Scal hi = m.GetArea(f) / m.GetVolume(cp);
+          Scal ga = (up - um) * hi;
+          if (ga != 0.) {
+            k = (IsNan(k) ? 0 : k);
+            ff_st[f] += ga * k * ff_sig_[f];
+          }
+        }
       }
     } else {
       AppendSurfaceTension(ff_st, as_->GetField(), as_->GetCurv(),
