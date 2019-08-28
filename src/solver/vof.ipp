@@ -808,7 +808,7 @@ struct Vof<M_>::Imp {
               }
             }
             if (j == jnone) {
-              std::cerr << "warn: no layer i=" << i << " w=" << w << "\n";
+              //std::cerr << "warn: no layer i=" << i << " w=" << w << "\n";
               j = 0;
             }
 
