@@ -29,6 +29,13 @@ class Multi {
       d_[i] = &u[i];
     }
   }
+  // copy pointer
+  template <class U>
+  Multi(Multi<U*>& u) : d_(u.size()) {
+    for (size_t i = 0; i < u.size(); ++i) {
+      d_[i] = u[i];
+    }
+  }
   // cast to const
   template <class U>
   Multi(const Multi<U*>& u) : d_(u.size()) {
@@ -121,8 +128,8 @@ void Propagate(Multi<FieldCell<typename M::Scal>*> mfc,
 // fill: fill value if color is different
 template <class M>
 void Propagate(Multi<FieldCell<typename M::Scal>*> mfc,
-               const Multi<const FieldCell<bool>*>& mask, 
-               const Multi<const FieldCell<typename M::Scal>*>& fccl, 
+               const Multi<const FieldCell<bool>*>& mfcm, 
+               const Multi<const FieldCell<typename M::Scal>*>& mfccl, 
                typename M::Scal fill,
                size_t sw, M& m) {
 
@@ -137,18 +144,18 @@ void Propagate(Multi<FieldCell<typename M::Scal>*> mfc,
   GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn)); 
 
   auto& fc0 = *mfc[0];
-  auto& cl0 = *fccl[0];
+  auto& fccl0 = *mfccl[0];
   for (size_t i = 1; i < mfc.size(); ++i) {
     auto& fc = *mfc[i];
-    auto& ms = *mask[i];
-    auto& cl = *fccl[i];
+    auto& fcm = *mfcm[i];
+    auto& fccl = *mfccl[i];
     for (auto c : m.Cells()) {
-      if (ms[c]) {
+      if (fcm[c]) {
         MIdx w = bc.GetMIdx(c);
         for (MIdx wo : bo) {
           IdxCell cn = bc.GetIdx(w + wo); 
-          if (!ms[cn]) {
-            if (cl[c] == cl0[cn]) {
+          if (!fcm[cn]) {
+            if (fccl[c] == fccl0[cn]) {
               fc[cn] = fc0[cn];
             } else {
               fc[cn] = fill;
@@ -450,8 +457,6 @@ struct Vof<M_>::Imp {
         auto& fcu = *uc[i];
         auto& fccl = const_cast<FieldCell<Scal>&>(tr_[i]->GetColor());
         auto& fcm = fcm_[i];
-        auto fcmm = fcm; // previous mask
-        fcu.Reinit(m, false);
 
         // move conflicting cells to layer 1
         for (auto c : m.Cells()) {
@@ -466,8 +471,8 @@ struct Vof<M_>::Imp {
               }
             }
             if (q) {
-              // if conflictcing, move to layer 1
-              if (!fcmm[c]) {
+              // if conflicting, move to layer 1
+              if (!fcm[c]) {
                 // if not on layer 1, 
                 // move u and cl to layer 1, clear on layer 0
                 fcm[c] = true;
@@ -476,9 +481,8 @@ struct Vof<M_>::Imp {
                 fcu0[c] = 0;
                 fccl0[c] = TR::kNone;
               } else {
-                // if on layer 1, only restore the mask
+                // if on layer 1, nop
                 // (should not happen)
-                fcm[c] = true;
                 std::cerr << "warn: already on layer 1 w=" << w << "\n";
               }
             }
@@ -487,7 +491,7 @@ struct Vof<M_>::Imp {
         // move non-conflicting cells back to layer 0
         for (auto c : m.Cells()) {
           MIdx w = bc.GetMIdx(c);
-          if (fcmm[c] && fccl[c] == 0) {
+          if (fcm[c] && fccl[c] == 0) {
             bool q = false;
             // check if conflicting, i.e. has neighbor with color 1 on layer 0
             for (MIdx wo : bo) {
@@ -507,7 +511,27 @@ struct Vof<M_>::Imp {
             }
           }
         }
-        m.Comm(uc[i]);
+        // add cells without color but with non-zero volume fraction
+        for (auto c : m.Cells()) {
+          if (!fcm[c] && fcu[c] > 0 && fccl[c] == TR::kNone) {
+            fcm[c] = true;
+          }
+        }
+        // clear inactive cells
+        for (auto c : m.Cells()) {
+          if (!fcm[c]) {
+            fcu[c] = 0;
+            fccl[c] = TR::kNone;
+          }
+        }
+        m.Comm(&fcu);
+      }
+      // clear cells active on layer 1
+      for (auto c : m.Cells()) {
+        if (fcm_[1][c]) {
+          fcu0[c] = 0;
+          fccl0[c] = TR::kNone;
+        }
       }
       m.Comm(uc[0]);
     }
@@ -517,13 +541,15 @@ struct Vof<M_>::Imp {
       }
     }
     if (sem("prop")) {
-      Multi<const FieldCell<Scal>*> fccl(layers.size());
+      Multi<FieldCell<Scal>*> fccl(layers.size());
       for (auto i : layers) {
-        fccl[i] = &tr_[i]->GetColor();
+        fccl[i] = const_cast<FieldCell<Scal>*>(&tr_[i]->GetColor());
       }
       Propagate(uc, fcm_, fccl, 0., 2, m);
-      for (size_t i = 0; i < uc.size(); ++i) {
+      Propagate(fccl, fcm_, fccl, 0., 2, m);
+      for (auto i : layers) {
         m.Comm(uc[i]);
+        m.Comm(fccl[i]);
       }
       fcm2_ = fcm_;
       Propagate(fcm2_, 1, m);
@@ -532,7 +558,7 @@ struct Vof<M_>::Imp {
       DetectInterface(uc);
     }
     if (sem("local")) {
-      for (size_t i = 0; i < uc.size(); ++i) {
+      for (auto i : layers) {
         auto& fcn = fcn_[i];
         auto& fci = fci_[i];
         auto& fci0 = fci_[0];
@@ -549,18 +575,18 @@ struct Vof<M_>::Imp {
         UNormal<M>::CalcNormal(
             m, fcu, And(Or(fci, fci0, m), fcm2, m), par->dim, fcn);
         for (auto c : m.SuCells()) {
-          if (!fcm[c] && fcm2[c] && fci[c] && fccl[c] == fccl0[c]) {
+          if (!fcm[c] && fcm2[c] && fci0[c] && fccl[c] == fccl0[c]) {
             fcn0[c] = fcn[c];
           }
         }
       }
-      for (size_t i = 0; i < uc.size(); ++i) {
+      for (auto i : layers) {
         if (par->bcc_reflect) {
           auto& fcn = fcn_[i];
           BcReflect(fcn, mfc_, Vect(0), m);
         }
       }
-      for (size_t i = 0; i < uc.size(); ++i) {
+      for (auto i : layers) {
         auto& fcn = fcn_[i];
         auto& fca = fca_[i];
         auto& fcm = fcm_[i];
@@ -577,7 +603,7 @@ struct Vof<M_>::Imp {
     }
   }
   void DetectInterface(const Multi<const FieldCell<Scal>*>& uc) {
-    for (size_t i = 0; i < uc.size(); ++i) {
+    for (auto i : layers) {
       auto& fci = fci_[i];
       auto& fcm = fcm_[i];
       auto& fcu = *uc[i];
@@ -684,7 +710,7 @@ struct Vof<M_>::Imp {
       } 
       vsc = 1.0;
     }
-    if(0)
+    dd = {0}; // XXX
     for (size_t id = 0; id < dd.size(); ++id) {
       size_t d = dd[id]; // direction as index
       if (sem("copyface")) {
@@ -811,6 +837,12 @@ struct Vof<M_>::Imp {
             if (!fcdp[c]) {
               continue;
             }
+            if (i == 0 && fcm_[1][c]) { // XXX
+              continue;
+            }
+            if (i == 1 && !fcm_[1][c]) { // XXX
+              //continue;
+            }
             auto w = bc.GetMIdx(c);
             const Scal lc = m.GetVolume(c);
             // faces
@@ -850,11 +882,6 @@ struct Vof<M_>::Imp {
               u = 1.;
             } else if (IsNan(u)) {
               u = 0.;
-            }
-            const Scal th = 1e-10;
-            if (!fcm[c] && fcm2[c] && std::abs(fcu[c] - fcu0[c]) > th &&
-                fcu[c] > th) {
-              fcm[c] = true;
             }
           }
 
