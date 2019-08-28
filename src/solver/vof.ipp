@@ -242,7 +242,7 @@ struct Vof<M_>::Imp {
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m)
-      , mfc_(mfc), fch_(m, Vect(0)), layers(0, 2)
+      , mfc_(mfc), fch_(m, Vect(0)), layers(0, 4)
   {
     fcu_.resize(layers.size());
     fcn_.resize(layers.size());
@@ -526,7 +526,9 @@ struct Vof<M_>::Imp {
           BcReflect(fca, mfc_, Scal(0), m);
         }
       }
-      for (auto i : layers) {
+    }
+    for (auto i : layers) {
+      if (sem("comm")) {
         auto& fcn = fcn_[i];
         auto& fca = fca_[i];
         m.Comm(&fca);
@@ -794,10 +796,6 @@ struct Vof<M_>::Imp {
             }
           }
         }
-        for (auto i : layers) {
-          m.Comm(&fcu_[i].iter_curr);
-          m.Comm(&fccl_[i]);
-        }
 
         for (auto i : layers) {
           Dir md(d); // direction as Dir
@@ -806,8 +804,6 @@ struct Vof<M_>::Imp {
           auto& bc = m.GetIndexCells();
           auto& bf = m.GetIndexFaces();
           auto& ffv = *owner_->ffv_; // mixture flux
-          auto& ffvu = ffvu_[i];
-          auto& ffi = ffi_[i];
           auto& ffcl = ffcl_[i];
           for (auto f : m.Faces()) {
             auto p = bf.GetMIdxDir(f);
