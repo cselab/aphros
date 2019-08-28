@@ -868,6 +868,14 @@ struct Vof<M_>::Imp {
           }
         }
       }
+      for (auto c : m.AllCells()) {
+        auto& u = fcus[c];
+        if (!(u >= 0)) {
+          u = 0;
+        } else if (!(u <= 1.)) {
+          u = 1;
+        } 
+      }
     }
   }
   void FinishStep() {
