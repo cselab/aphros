@@ -14,7 +14,6 @@
 #include "normal.h"
 #include "debug/isnan.h"
 #include "partstr.h"
-#include "tracker.h"
 #include "multi.h"
 
 namespace solver {
@@ -160,7 +159,7 @@ struct Vof<M_>::Imp {
   using R = Reconst<Scal>;
   using PS = PartStr<Scal>;
   using PSM = PartStrMeshM<M>;
-  using TR = solver::Tracker<M>;
+  static constexpr Scal kClNone = -1;
   static constexpr size_t dim = M::dim;
   using Vect2 = GVect<Scal, 2>;
 
@@ -195,9 +194,9 @@ struct Vof<M_>::Imp {
     fcu_[0].time_curr.Reinit(m, 0);
     fcu_.InitAll(fcu_[0]);
 
-    fccl_.InitAll(FieldCell<Scal>(m, TR::kNone));
+    fccl_.InitAll(FieldCell<Scal>(m, kClNone));
     ffvu_.InitAll(FieldFace<Scal>(m, 0));
-    ffcl_.InitAll(FieldFace<Scal>(m, TR::kNone));
+    ffcl_.InitAll(FieldFace<Scal>(m, kClNone));
     ffi_.InitAll(FieldFace<bool>(m, false));
 
 
@@ -573,7 +572,7 @@ struct Vof<M_>::Imp {
         }
         for (auto i : layers) {
           ffvu_[i].Reinit(m, 0);
-          ffcl_[i].Reinit(m, TR::kNone);
+          ffcl_[i].Reinit(m, kClNone);
           ffi_[i].Reinit(m, false);
         }
       }
@@ -618,7 +617,7 @@ struct Vof<M_>::Imp {
 
             // upwind cell
             IdxCell cu = m.GetNeighbourCell(f, ffv[f] > 0. ? 0 : 1);
-            if (fccl[cu] != TR::kNone) {
+            if (fccl[cu] != kClNone) {
               ffvu[f] = F(f, cu, fcu[cu], fcn[cu], fca[cu], fci[cu]);
               ffi[f] = fci[cu];
               ffcl[f] = fccl[cu];
@@ -655,7 +654,7 @@ struct Vof<M_>::Imp {
             auto w = bc.GetMIdx(c);
             const Scal lc = m.GetVolume(c);
             Scal cl = fccl[c];
-            if (cl == TR::kNone) {
+            if (cl == kClNone) {
               continue;
             }
             // faces
@@ -712,7 +711,7 @@ struct Vof<M_>::Imp {
             }
             // update color
             if (u == 0) {
-              fccl[c] = TR::kNone;
+              fccl[c] = kClNone;
             }
           }
         }
@@ -733,7 +732,7 @@ struct Vof<M_>::Imp {
               continue;
             }
             Scal cl = ffcl[f];
-            if (cl == TR::kNone) {
+            if (cl == kClNone) {
               continue;
             }
 
@@ -801,7 +800,7 @@ struct Vof<M_>::Imp {
             }
             if (j == jnone) { // if not found, find first empty
               for (auto jj : layers) {
-                if (fccl_[jj][c] == TR::kNone) {
+                if (fccl_[jj][c] == kClNone) {
                   j = jj;
                   break;
                 }
@@ -812,7 +811,7 @@ struct Vof<M_>::Imp {
               j = 0;
             }
 
-            if (fccl_[j][c] != TR::kNone) {
+            if (fccl_[j][c] != kClNone) {
               continue;
             }
 
@@ -835,7 +834,7 @@ struct Vof<M_>::Imp {
             // update color
             auto& clc = fccl_[j][c];
             if (u == 0) {
-              clc = TR::kNone;
+              clc = kClNone;
             } else {
               clc = cl;
             }
@@ -860,7 +859,7 @@ struct Vof<M_>::Imp {
         auto& fccl = fccl_[i];
         auto& fcu = fcu_[i].Get(l);
         for (auto c : m.AllCells()) {
-          if (fccl[c] != TR::kNone) {
+          if (fccl[c] != kClNone) {
             fcus[c] += fcu[c];
           }
         }
@@ -967,6 +966,9 @@ struct Vof<M_>::Imp {
   FieldCell<Scal> fcfm_, fcfp_;
   GRange<size_t> layers;
 };
+
+template <class M>
+constexpr typename M::Scal Vof<M>::Imp::kClNone;
 
 template <class M_>
 Vof<M_>::Vof(

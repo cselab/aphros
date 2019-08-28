@@ -87,6 +87,9 @@ struct MultiMask<M_>::Imp {
   size_t edim_;
 };
 
+template <class M>
+constexpr typename M::Scal MultiMask<M>::kNone;
+
 template <class M_>
 MultiMask<M_>::MultiMask(M& m, const FieldCell<Scal>* fccl, size_t edim)
     : imp(new Imp(this, m, fccl, edim))

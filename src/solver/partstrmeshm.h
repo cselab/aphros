@@ -46,7 +46,7 @@ class PartStrMeshM {
                    // overwrite with estimate from particles
   };
 
-  PartStrMeshM(M& m, std::shared_ptr<Par> par, size_t nl);
+  PartStrMeshM(M& m, std::shared_ptr<Par> par);
   ~PartStrMeshM();
 
   // Computes curvature with particles.
