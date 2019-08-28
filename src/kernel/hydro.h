@@ -1501,6 +1501,7 @@ void Hydro<M>::DumpFields() {
       if (dl.count("vf2")) m.Dump(&as->GetField(2), "vf2");
       if (dl.count("vf3")) m.Dump(&as->GetField(3), "vf3");
 
+      if (dl.count("cls")) m.Dump(&as->GetColor(), "cls");
       if (dl.count("cl0")) m.Dump(&as->GetColor(0), "cl0");
       if (dl.count("cl1")) m.Dump(&as->GetColor(1), "cl1");
       if (dl.count("cl2")) m.Dump(&as->GetColor(2), "cl2");

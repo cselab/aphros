@@ -103,6 +103,7 @@ class Vof : public AdvectionSolver<M_> {
   const FieldCell<bool>& GetDepend(size_t i) const;
   // Color
   const FieldCell<Scal>& GetColor(size_t i) const;
+  const FieldCell<Scal>& GetColor() const;
   // Height function
   const FieldCell<Vect>& GetHeight() const;
   // Default curvature 
