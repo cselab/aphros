@@ -5,149 +5,148 @@
 #define	USED(x)		if(x);else{}
 
 struct Vec {
-    float fX;
-    float fY;
-    float fZ;
+    float X;
+    float Y;
+    float Z;
 };
 
 //These tables are used so that everything can be done in little loops
 // that you can look at all at once rather than in pages and pages of
 // unrolled code.
 
-//a2fVertexOffset lists the positions, relative to vertex0, of each of
+//a2VertexOffset lists the positions, relative to vertex0, of each of
 //the 8 vertices of a cube
-static const float a2fVertexOffset[][3] = {
-    { 0.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 1.0, 0.0 }, { 0.0, 1.0,
-							      0.0 },
-    { 0.0, 0.0, 1.0 }, { 1.0, 0.0, 1.0 }, { 1.0, 1.0, 1.0 }, { 0.0, 1.0,
-							      1.0 }
+static const float a2VertexOffset[][3] = {
+    {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 1.0, 0.0}, {0.0, 1.0,
+							0.0},
+    {0.0, 0.0, 1.0}, {1.0, 0.0, 1.0}, {1.0, 1.0, 1.0}, {0.0, 1.0,
+							1.0}
 };
 
-//a2iEdgeConnection lists the index of the endpoint vertices for each
+//a2EdgeConnection lists the index of the endpoint vertices for each
 //of the 12 edges of the cube
-static const int a2iEdgeConnection[][2] = {
-    { 0, 1 }, { 1, 2 }, { 2, 3 }, { 3, 0 },
-    { 4, 5 }, { 5, 6 }, { 6, 7 }, { 7, 4 },
-    { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }
+static const int a2EdgeConnection[][2] = {
+    {0, 1}, {1, 2}, {2, 3}, {3, 0},
+    {4, 5}, {5, 6}, {6, 7}, {7, 4},
+    {0, 4}, {1, 5}, {2, 6}, {3, 7}
 };
 
-//a2fEdgeDirection lists the direction vector (vertex1-vertex0) for
+//a2EdgeDirection lists the direction vector (vertex1-vertex0) for
 //each edge in the cube
-static const float a2fEdgeDirection[][3] = {
-    { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { -1.0, 0.0, 0.0 }, { 0.0, -1.0,
-							       0.0 },
-    { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { -1.0, 0.0, 0.0 }, { 0.0, -1.0,
-							       0.0 },
-    { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 0.0,
-							      1.0 }
+static const float a2EdgeDirection[][3] = {
+    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-1.0, 0.0, 0.0}, {0.0, -1.0,
+							 0.0},
+    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-1.0, 0.0, 0.0}, {0.0, -1.0,
+							 0.0},
+    {0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 0.0,
+							1.0}
 };
 
-//a2iTetrahedronEdgeConnection lists the index of the endpoint
+//a2TetrahedronEdgeConnection lists the index of the endpoint
 //vertices for each of the 6 edges of the tetrahedron
-static const int a2iTetrahedronEdgeConnection[][2] = {
-    { 0, 1 }, { 1, 2 }, { 2, 0 }, { 0, 3 }, { 1, 3 }, { 2, 3 }
+static const int a2TetrahedronEdgeConnection[][2] = {
+    {0, 1}, {1, 2}, {2, 0}, {0, 3}, {1, 3}, {2, 3}
 };
 
-//a2iTetrahedronEdgeConnection lists the index of verticies from a
+//a2TetrahedronEdgeConnection lists the index of verticies from a
 // cube that made up each of the six tetrahedrons within the cube
-static const int a2iTetrahedronsInACube[][4] = {
-    { 0, 5, 1, 6 },
-    { 0, 1, 2, 6 },
-    { 0, 2, 3, 6 },
-    { 0, 3, 7, 6 },
-    { 0, 7, 4, 6 },
-    { 0, 4, 5, 6 },
+static const int a2TetrahedronsInACube[][4] = {
+    {0, 5, 1, 6},
+    {0, 1, 2, 6},
+    {0, 2, 3, 6},
+    {0, 3, 7, 6},
+    {0, 7, 4, 6},
+    {0, 4, 5, 6},
 };
 
-static const float afAmbientGreen[] = { 0.00, 0.25, 0.00, 1.00 };
-static const float afAmbientBlue[] = { 0.00, 0.00, 0.25, 1.00 };
-static const float afDiffuseGreen[] = { 0.00, 0.75, 0.00, 1.00 };
-static const float afDiffuseBlue[] = { 0.00, 0.00, 0.75, 1.00 };
-static const float afSpecularWhite[] = { 1.00, 1.00, 1.00, 1.00 };
+static const float AmbientGreen[] = { 0.00, 0.25, 0.00, 1.00 };
+static const float AmbientBlue[] = { 0.00, 0.00, 0.25, 1.00 };
+static const float DiffuseGreen[] = { 0.00, 0.75, 0.00, 1.00 };
+static const float DiffuseBlue[] = { 0.00, 0.00, 0.75, 1.00 };
+static const float SpecularWhite[] = { 1.00, 1.00, 1.00, 1.00 };
 
 int n = 16;
 float h;
-int ePolygonMode = GL_FILL;
-float fTargetValue = 48.0;
-float fTime = 0.0;
-struct Vec sSourcePoint[3];
-int bSpin = 1;
-int bMove = 1;
-int bLight = 1;
+int PolygonMode = GL_FILL;
+float TargetValue = 48.0;
+float Time = 0.0;
+struct Vec SourcePoint[3];
+int Spin = 1;
+int Move = 1;
+int Light = 1;
 
-void vIdle();
-void vDrawScene();
-void vResize(int, int);
-void vKeyboard(unsigned char cKey, int i, int j);
-void vSpecial(int iKey, int i, int j);
+void Idle();
+void DrawScene();
+void Resize(int, int);
+void Keyboard(unsigned char Key, int i, int j);
+void Special(int Key, int i, int j);
 
-void vPrintHelp();
-void vSetTime(float fTime);
-float fSample1(float fX, float fY, float fZ);
-float fSample2(float fX, float fY, float fZ);
-float fSample3(float fX, float fY, float fZ);
+void PrintHelp();
+void SetTime(float Time);
+float Sample1(float X, float Y, float Z);
+float Sample2(float X, float Y, float Z);
+float Sample3(float X, float Y, float Z);
 
-float (*fSample)(float fX, float fY, float fZ) = fSample1;
+float (*Sample) (float X, float Y, float Z) = Sample1;
 
-void vMarchingCubes();
-void vMarchCube1(float fX, float fY, float fZ, float fScale);
-void vMarchCube2(float fX, float fY, float fZ, float fScale);
+void MarchingCubes();
+void MarchCube1(float X, float Y, float Z, float Scale);
+void MarchCube2(float X, float Y, float Z, float Scale);
 
-void (*vMarchCube)(float fX, float fY, float fZ, float fScale) =
-    vMarchCube1;
+void (*MarchCube) (float X, float Y, float Z, float Scale) = MarchCube1;
 
 int
 main(int argc, char **argv)
 {
-    float afPropertiesAmbient[] = { 0.50, 0.50, 0.50, 1.00 };
-    float afPropertiesDiffuse[] = { 0.75, 0.75, 0.75, 1.00 };
-    float afPropertiesSpecular[] = { 1.00, 1.00, 1.00, 1.00 };
+    float PropertiesAmbient[] = { 0.50, 0.50, 0.50, 1.00 };
+    float PropertiesDiffuse[] = { 0.75, 0.75, 0.75, 1.00 };
+    float PropertiesSpecular[] = { 1.00, 1.00, 1.00, 1.00 };
 
-    int iWidth = 640.0;
-    int iHeight = 480.0;
+    int Width = 640.0;
+    int Height = 480.0;
 
     h = 1.0 / n;
 
     glutInit(&argc, argv);
     glutInitWindowPosition(0, 0);
-    glutInitWindowSize(iWidth, iHeight);
+    glutInitWindowSize(Width, Height);
     glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
     glutCreateWindow("Marching Cubes");
-    glutDisplayFunc(vDrawScene);
-    glutIdleFunc(vIdle);
-    glutReshapeFunc(vResize);
-    glutKeyboardFunc(vKeyboard);
-    glutSpecialFunc(vSpecial);
+    glutDisplayFunc(DrawScene);
+    glutIdleFunc(Idle);
+    glutReshapeFunc(Resize);
+    glutKeyboardFunc(Keyboard);
+    glutSpecialFunc(Special);
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClearDepth(1.0);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
-    glPolygonMode(GL_FRONT_AND_BACK, ePolygonMode);
+    glPolygonMode(GL_FRONT_AND_BACK, PolygonMode);
 
-    glLightfv(GL_LIGHT0, GL_AMBIENT, afPropertiesAmbient);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, afPropertiesDiffuse);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, afPropertiesSpecular);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, PropertiesAmbient);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, PropertiesDiffuse);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, PropertiesSpecular);
     glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 1.0);
 
     glEnable(GL_LIGHT0);
 
-    glMaterialfv(GL_BACK, GL_AMBIENT, afAmbientGreen);
-    glMaterialfv(GL_BACK, GL_DIFFUSE, afDiffuseGreen);
-    glMaterialfv(GL_FRONT, GL_AMBIENT, afAmbientBlue);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, afDiffuseBlue);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, afSpecularWhite);
+    glMaterialfv(GL_BACK, GL_AMBIENT, AmbientGreen);
+    glMaterialfv(GL_BACK, GL_DIFFUSE, DiffuseGreen);
+    glMaterialfv(GL_FRONT, GL_AMBIENT, AmbientBlue);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, DiffuseBlue);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, SpecularWhite);
     glMaterialf(GL_FRONT, GL_SHININESS, 25.0);
 
-    vResize(iWidth, iHeight);
+    Resize(Width, Height);
 
-    vPrintHelp();
+    PrintHelp();
     glutMainLoop();
 }
 
 void
-vPrintHelp()
+PrintHelp()
 {
     printf
 	("Marching Cubes Example by Cory Bloyd (dejaspaminacan@my-deja.com)\n\n");
@@ -164,44 +163,43 @@ vPrintHelp()
 
 
 void
-vResize(int iWidth, int iHeight)
+Resize(int Width, int Height)
 {
-    float fAspect, fHalfWorldSize =
-	(1.4142135623730950488016887242097 / 2);
+    float Aspect, HalfWorldSize = (1.4142135623730950488016887242097 / 2);
 
-    glViewport(0, 0, iWidth, iHeight);
+    glViewport(0, 0, Width, Height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 
-    if (iWidth <= iHeight) {
-	fAspect = (float) iHeight / (float) iWidth;
-	glOrtho(-fHalfWorldSize, fHalfWorldSize, -fHalfWorldSize * fAspect,
-		fHalfWorldSize * fAspect, -10 * fHalfWorldSize,
-		10 * fHalfWorldSize);
+    if (Width <= Height) {
+	Aspect = (float) Height / (float) Width;
+	glOrtho(-HalfWorldSize, HalfWorldSize, -HalfWorldSize * Aspect,
+		HalfWorldSize * Aspect, -10 * HalfWorldSize,
+		10 * HalfWorldSize);
     } else {
-	fAspect = (float) iWidth / (float) iHeight;
-	glOrtho(-fHalfWorldSize * fAspect, fHalfWorldSize * fAspect,
-		-fHalfWorldSize, fHalfWorldSize, -10 * fHalfWorldSize,
-		10 * fHalfWorldSize);
+	Aspect = (float) Width / (float) Height;
+	glOrtho(-HalfWorldSize * Aspect, HalfWorldSize * Aspect,
+		-HalfWorldSize, HalfWorldSize, -10 * HalfWorldSize,
+		10 * HalfWorldSize);
     }
 
     glMatrixMode(GL_MODELVIEW);
 }
 
 void
-vKeyboard(unsigned char cKey, int i, int j)
+Keyboard(unsigned char Key, int i, int j)
 {
     USED(i);
     USED(j);
-    switch (cKey) {
+    switch (Key) {
     case 'w':
 	{
-	    if (ePolygonMode == GL_LINE) {
-		ePolygonMode = GL_FILL;
+	    if (PolygonMode == GL_LINE) {
+		PolygonMode = GL_FILL;
 	    } else {
-		ePolygonMode = GL_LINE;
+		PolygonMode = GL_LINE;
 	    }
-	    glPolygonMode(GL_FRONT_AND_BACK, ePolygonMode);
+	    glPolygonMode(GL_FRONT_AND_BACK, PolygonMode);
 	}
 	break;
     case '+':
@@ -221,102 +219,102 @@ vKeyboard(unsigned char cKey, int i, int j)
 	break;
     case 'c':
 	{
-	    if (vMarchCube == vMarchCube1) {
-		vMarchCube = vMarchCube2;	//Use Marching Tetrahedrons
+	    if (MarchCube == MarchCube1) {
+		MarchCube = MarchCube2;	//Use Marching Tetrahedrons
 	    } else {
-		vMarchCube = vMarchCube1;	//Use Marching Cubes
+		MarchCube = MarchCube1;	//Use Marching Cubes
 	    }
 	}
 	break;
     case 's':
 	{
-	    if (fSample == fSample1) {
-		fSample = fSample2;
-	    } else if (fSample == fSample2) {
-		fSample = fSample3;
+	    if (Sample == Sample1) {
+		Sample = Sample2;
+	    } else if (Sample == Sample2) {
+		Sample = Sample3;
 	    } else {
-		fSample = fSample1;
+		Sample = Sample1;
 	    }
 	}
 	break;
     case 'l':
 	{
-	    if (bLight) {
+	    if (Light) {
 		glDisable(GL_LIGHTING);	//use vertex colors
 	    } else {
 		glEnable(GL_LIGHTING);	//use lit material color
 	    }
 
-	    bLight = !bLight;
+	    Light = !Light;
 	};
     }
 }
 
 
 void
-vSpecial(int iKey, int i, int j)
+Special(int Key, int i, int j)
 {
     USED(i);
     USED(j);
-    switch (iKey) {
+    switch (Key) {
     case GLUT_KEY_PAGE_UP:
 	{
-	    if (fTargetValue < 1000.0) {
-		fTargetValue *= 1.1;
+	    if (TargetValue < 1000.0) {
+		TargetValue *= 1.1;
 	    }
 	}
 	break;
     case GLUT_KEY_PAGE_DOWN:
 	{
-	    if (fTargetValue > 1.0) {
-		fTargetValue /= 1.1;
+	    if (TargetValue > 1.0) {
+		TargetValue /= 1.1;
 	    }
 	}
 	break;
     case GLUT_KEY_HOME:
 	{
-	    bSpin = !bSpin;
+	    Spin = !Spin;
 	}
 	break;
     case GLUT_KEY_END:
 	{
-	    bMove = !bMove;
+	    Move = !Move;
 	}
 	break;
     }
 }
 
 void
-vIdle()
+Idle()
 {
     glutPostRedisplay();
 }
 
 void
-vDrawScene()
+DrawScene()
 {
-    static float fPitch = 0.0;
-    static float fYaw = 0.0;
-    static float fTime = 0.0;
+    static float Pitch = 0.0;
+    static float Yaw = 0.0;
+    static float Time = 0.0;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glPushMatrix();
 
-    if (bSpin) {
-	fPitch += 4.0;
-	fYaw += 2.5;
+    if (Spin) {
+	Pitch += 4.0;
+	Yaw += 2.5;
     }
-    if (bMove) {
-	fTime += 0.025;
+    if (Move) {
+	Time += 0.025;
     }
 
-    vSetTime(fTime);
+    SetTime(Time);
 
     glTranslatef(0.0, 0.0, -1.0);
-    glRotatef(-fPitch, 1.0, 0.0, 0.0);
+    glRotatef(-Pitch, 1.0, 0.0, 0.0);
     glRotatef(0.0, 0.0, 1.0, 0.0);
-    glRotatef(fYaw, 0.0, 0.0, 1.0);
+    glRotatef(Yaw, 0.0, 0.0, 1.0);
 
     glPushAttrib(GL_LIGHTING_BIT);
     glDisable(GL_LIGHTING);
@@ -328,7 +326,7 @@ vDrawScene()
     glPushMatrix();
     glTranslatef(-0.5, -0.5, -0.5);
     glBegin(GL_TRIANGLES);
-    vMarchingCubes();
+    MarchingCubes();
     glEnd();
     glPopMatrix();
 
@@ -338,362 +336,351 @@ vDrawScene()
     glutSwapBuffers();
 }
 
-//fGetOffset finds the approximate point of intersection of the surface
-// between two points with the values fValue1 and fValue2
+//GetOffset finds the approximate point of intersection of the surface
+// between two points with the values Value1 and Value2
 float
-fGetOffset(float fValue1, float fValue2, float fValueDesired)
+GetOffset(float Value1, float Value2, float ValueDesired)
 {
-    double fDelta = fValue2 - fValue1;
+    double Delta = Value2 - Value1;
 
-    if (fDelta == 0.0) {
+    if (Delta == 0.0) {
 	return 0.5;
     }
-    return (fValueDesired - fValue1) / fDelta;
+    return (ValueDesired - Value1) / Delta;
 }
 
 
-//vGetColor generates a color from a given position and normal of a point
+//GetColor generates a color from a given position and normal of a point
 void
-vGetColor(struct Vec *rfColor, struct Vec *rfNormal)
+GetColor(struct Vec *Color, struct Vec *Normal)
 {
-    float fX = rfNormal->fX;
-    float fY = rfNormal->fY;
-    float fZ = rfNormal->fZ;
+    float X = Normal->X;
+    float Y = Normal->Y;
+    float Z = Normal->Z;
 
-    rfColor->fX =
-	(fX > 0.0 ? fX : 0.0) + (fY < 0.0 ? -0.5 * fY : 0.0) + (fZ <
-								0.0 ? -0.5
-								*
-								fZ : 0.0);
-    rfColor->fY =
-	(fY > 0.0 ? fY : 0.0) + (fZ < 0.0 ? -0.5 * fZ : 0.0) + (fX <
-								0.0 ? -0.5
-								*
-								fX : 0.0);
-    rfColor->fZ =
-	(fZ > 0.0 ? fZ : 0.0) + (fX < 0.0 ? -0.5 * fX : 0.0) + (fY <
-								0.0 ? -0.5
-								*
-								fY : 0.0);
+    Color->X =
+	(X > 0.0 ? X : 0.0) + (Y < 0.0 ? -0.5 * Y : 0.0) + (Z <
+							    0.0 ? -0.5
+							    * Z : 0.0);
+    Color->Y =
+	(Y > 0.0 ? Y : 0.0) + (Z < 0.0 ? -0.5 * Z : 0.0) + (X <
+							    0.0 ? -0.5
+							    * X : 0.0);
+    Color->Z =
+	(Z > 0.0 ? Z : 0.0) + (X < 0.0 ? -0.5 * X : 0.0) + (Y <
+							    0.0 ? -0.5
+							    * Y : 0.0);
 }
 
 void
-vNormalizeVector(struct Vec *rfVectorResult, struct Vec *rfVectorSource)
+NormalizeVector(struct Vec *VectorResult, struct Vec *VectorSource)
 {
-    float fOldLength;
-    float fScale;
+    float OldLength;
+    float Scale;
 
-    fOldLength = sqrtf((rfVectorSource->fX * rfVectorSource->fX) +
-		       (rfVectorSource->fY * rfVectorSource->fY) +
-		       (rfVectorSource->fZ * rfVectorSource->fZ));
+    OldLength = sqrtf((VectorSource->X * VectorSource->X) +
+		      (VectorSource->Y * VectorSource->Y) +
+		      (VectorSource->Z * VectorSource->Z));
 
-    if (fOldLength == 0.0) {
-	rfVectorResult->fX = rfVectorSource->fX;
-	rfVectorResult->fY = rfVectorSource->fY;
-	rfVectorResult->fZ = rfVectorSource->fZ;
+    if (OldLength == 0.0) {
+	VectorResult->X = VectorSource->X;
+	VectorResult->Y = VectorSource->Y;
+	VectorResult->Z = VectorSource->Z;
     } else {
-	fScale = 1.0 / fOldLength;
-	rfVectorResult->fX = rfVectorSource->fX * fScale;
-	rfVectorResult->fY = rfVectorSource->fY * fScale;
-	rfVectorResult->fZ = rfVectorSource->fZ * fScale;
+	Scale = 1.0 / OldLength;
+	VectorResult->X = VectorSource->X * Scale;
+	VectorResult->Y = VectorSource->Y * Scale;
+	VectorResult->Z = VectorSource->Z * Scale;
     }
 }
 
 
-//Generate a sample data set.  fSample1(), fSample2() and fSample3() define three scalar fields whose
-// values vary by the X,Y and Z coordinates and by the fTime value set by vSetTime()
+//Generate a sample data set.  Sample1(), Sample2() and Sample3() define three scalar fields whose
+// values vary by the X,Y and Z coordinates and by the Time value set by SetTime()
 void
-vSetTime(float fNewTime)
+SetTime(float NewTime)
 {
-    float fOffset;
-    int iSourceNum;
+    float Offset;
+    int SourceNum;
 
-    for (iSourceNum = 0; iSourceNum < 3; iSourceNum++) {
-	sSourcePoint[iSourceNum].fX = 0.5;
-	sSourcePoint[iSourceNum].fY = 0.5;
-	sSourcePoint[iSourceNum].fZ = 0.5;
+    for (SourceNum = 0; SourceNum < 3; SourceNum++) {
+	SourcePoint[SourceNum].X = 0.5;
+	SourcePoint[SourceNum].Y = 0.5;
+	SourcePoint[SourceNum].Z = 0.5;
     }
 
-    fTime = fNewTime;
-    fOffset = 1.0 + sinf(fTime);
-    sSourcePoint[0].fX *= fOffset;
-    sSourcePoint[1].fY *= fOffset;
-    sSourcePoint[2].fZ *= fOffset;
+    Time = NewTime;
+    Offset = 1.0 + sinf(Time);
+    SourcePoint[0].X *= Offset;
+    SourcePoint[1].Y *= Offset;
+    SourcePoint[2].Z *= Offset;
 }
 
-//fSample1 finds the distance of (fX, fY, fZ) from three moving points
+//Sample1 finds the distance of (X, Y, Z) from three moving points
 float
-fSample1(float fX, float fY, float fZ)
+Sample1(float X, float Y, float Z)
 {
-    double fResult = 0.0;
-    double fDx, fDy, fDz;
+    double Result = 0.0;
+    double Dx, Dy, Dz;
 
-    fDx = fX - sSourcePoint[0].fX;
-    fDy = fY - sSourcePoint[0].fY;
-    fDz = fZ - sSourcePoint[0].fZ;
-    fResult += 0.5 / (fDx * fDx + fDy * fDy + fDz * fDz);
+    Dx = X - SourcePoint[0].X;
+    Dy = Y - SourcePoint[0].Y;
+    Dz = Z - SourcePoint[0].Z;
+    Result += 0.5 / (Dx * Dx + Dy * Dy + Dz * Dz);
 
-    fDx = fX - sSourcePoint[1].fX;
-    fDy = fY - sSourcePoint[1].fY;
-    fDz = fZ - sSourcePoint[1].fZ;
-    fResult += 1.0 / (fDx * fDx + fDy * fDy + fDz * fDz);
+    Dx = X - SourcePoint[1].X;
+    Dy = Y - SourcePoint[1].Y;
+    Dz = Z - SourcePoint[1].Z;
+    Result += 1.0 / (Dx * Dx + Dy * Dy + Dz * Dz);
 
-    fDx = fX - sSourcePoint[2].fX;
-    fDy = fY - sSourcePoint[2].fY;
-    fDz = fZ - sSourcePoint[2].fZ;
-    fResult += 1.5 / (fDx * fDx + fDy * fDy + fDz * fDz);
+    Dx = X - SourcePoint[2].X;
+    Dy = Y - SourcePoint[2].Y;
+    Dz = Z - SourcePoint[2].Z;
+    Result += 1.5 / (Dx * Dx + Dy * Dy + Dz * Dz);
 
-    return fResult;
+    return Result;
 }
 
-//fSample2 finds the distance of (fX, fY, fZ) from three moving lines
+//Sample2 finds the distance of (X, Y, Z) from three moving lines
 float
-fSample2(float fX, float fY, float fZ)
+Sample2(float X, float Y, float Z)
 {
-    double fResult = 0.0;
-    double fDx, fDy, fDz;
+    double Result = 0.0;
+    double Dx, Dy, Dz;
 
-    fDx = fX - sSourcePoint[0].fX;
-    fDy = fY - sSourcePoint[0].fY;
-    fResult += 0.5 / (fDx * fDx + fDy * fDy);
+    Dx = X - SourcePoint[0].X;
+    Dy = Y - SourcePoint[0].Y;
+    Result += 0.5 / (Dx * Dx + Dy * Dy);
 
-    fDx = fX - sSourcePoint[1].fX;
-    fDz = fZ - sSourcePoint[1].fZ;
-    fResult += 0.75 / (fDx * fDx + fDz * fDz);
+    Dx = X - SourcePoint[1].X;
+    Dz = Z - SourcePoint[1].Z;
+    Result += 0.75 / (Dx * Dx + Dz * Dz);
 
-    fDy = fY - sSourcePoint[2].fY;
-    fDz = fZ - sSourcePoint[2].fZ;
-    fResult += 1.0 / (fDy * fDy + fDz * fDz);
+    Dy = Y - SourcePoint[2].Y;
+    Dz = Z - SourcePoint[2].Z;
+    Result += 1.0 / (Dy * Dy + Dz * Dz);
 
-    return fResult;
+    return Result;
 }
 
 
-//fSample2 defines a height field by plugging the distance from the center into the sin and cos functions
+//Sample2 defines a height field by plugging the distance from the center into the sin and cos functions
 float
-fSample3(float fX, float fY, float fZ)
+Sample3(float X, float Y, float Z)
 {
-    float fHeight =
-	20.0 * (fTime +
-		sqrt((0.5 - fX) * (0.5 - fX) + (0.5 - fY) * (0.5 - fY)));
-    fHeight = 1.5 + 0.1 * (sinf(fHeight) + cosf(fHeight));
-    double fResult = (fHeight - fZ) * 50.0;
+    float Height =
+	20.0 * (Time +
+		sqrt((0.5 - X) * (0.5 - X) + (0.5 - Y) * (0.5 - Y)));
+    Height = 1.5 + 0.1 * (sinf(Height) + cosf(Height));
+    double Result = (Height - Z) * 50.0;
 
-    return fResult;
+    return Result;
 }
 
 
-//vGetNormal() finds the gradient of the scalar field at a point
+//GetNormal() finds the gradient of the scalar field at a point
 //This gradient can be used as a very accurate vertx normal for lighting calculations
 void
-vGetNormal(struct Vec *rfNormal, float fX, float fY, float fZ)
+GetNormal(struct Vec *Normal, float X, float Y, float Z)
 {
-    rfNormal->fX = fSample(fX - 0.01, fY, fZ) - fSample(fX + 0.01, fY, fZ);
-    rfNormal->fY = fSample(fX, fY - 0.01, fZ) - fSample(fX, fY + 0.01, fZ);
-    rfNormal->fZ = fSample(fX, fY, fZ - 0.01) - fSample(fX, fY, fZ + 0.01);
-    vNormalizeVector(rfNormal, rfNormal);
+    Normal->X = Sample(X - 0.01, Y, Z) - Sample(X + 0.01, Y, Z);
+    Normal->Y = Sample(X, Y - 0.01, Z) - Sample(X, Y + 0.01, Z);
+    Normal->Z = Sample(X, Y, Z - 0.01) - Sample(X, Y, Z + 0.01);
+    NormalizeVector(Normal, Normal);
 }
 
 
-//vMarchCube1 performs the Marching Cubes algorithm on a single cube
+//MarchCube1 performs the Marching Cubes algorithm on a single cube
 void
-vMarchCube1(float fX, float fY, float fZ, float fScale)
+MarchCube1(float X, float Y, float Z, float Scale)
 {
-    extern int aiCubeEdgeFlags[256];
+    extern int CubeEdgeFlags[256];
     extern int a2iTriangleConnectionTable[256][16];
 
-    int iCorner, i, iTest, iEdge, iTriangle, iFlagIndex, iEdgeFlags;
-    float fOffset;
-    struct Vec sColor;
-    float afCubeValue[8];
-    struct Vec asEdgeVertex[12];
-    struct Vec asEdgeNorm[12];
+    int Corner, i, Test, Edge, iTriangle, FlagIndex, EdgeFlags;
+    float Offset;
+    struct Vec Color;
+    float CubeValue[8];
+    struct Vec EdgeVertex[12];
+    struct Vec EdgeNorm[12];
 
     //Make a local copy of the values at the cube's corners
     for (i = 0; i < 8; i++) {
-	afCubeValue[i] =
-	    fSample(fX + a2fVertexOffset[i][0] * fScale,
-		    fY + a2fVertexOffset[i][1] * fScale,
-		    fZ + a2fVertexOffset[i][2] * fScale);
+	CubeValue[i] =
+	    Sample(X + a2VertexOffset[i][0] * Scale,
+		   Y + a2VertexOffset[i][1] * Scale,
+		   Z + a2VertexOffset[i][2] * Scale);
     }
 
     //Find which vertices are inside of the surface and which are outside
-    iFlagIndex = 0;
-    for (iTest = 0; iTest < 8; iTest++) {
-	if (afCubeValue[iTest] <= fTargetValue)
-	    iFlagIndex |= 1 << iTest;
+    FlagIndex = 0;
+    for (Test = 0; Test < 8; Test++) {
+	if (CubeValue[Test] <= TargetValue)
+	    FlagIndex |= 1 << Test;
     }
 
     //Find which edges are intersected by the surface
-    iEdgeFlags = aiCubeEdgeFlags[iFlagIndex];
+    EdgeFlags = CubeEdgeFlags[FlagIndex];
 
     //If the cube is entirely inside or outside of the surface, then there will be no intersections
-    if (iEdgeFlags == 0) {
+    if (EdgeFlags == 0) {
 	return;
     }
     //Find the point of intersection of the surface with each edge
     //Then find the normal to the surface at those points
-    for (iEdge = 0; iEdge < 12; iEdge++) {
+    for (Edge = 0; Edge < 12; Edge++) {
 	//if there is an intersection on this edge
-	if (iEdgeFlags & (1 << iEdge)) {
-	    fOffset = fGetOffset(afCubeValue[a2iEdgeConnection[iEdge][0]],
-				 afCubeValue[a2iEdgeConnection[iEdge][1]],
-				 fTargetValue);
+	if (EdgeFlags & (1 << Edge)) {
+	    Offset = GetOffset(CubeValue[a2EdgeConnection[Edge][0]],
+			       CubeValue[a2EdgeConnection[Edge][1]],
+			       TargetValue);
 
-	    asEdgeVertex[iEdge].fX =
-		fX + (a2fVertexOffset[a2iEdgeConnection[iEdge][0]][0] +
-		      fOffset * a2fEdgeDirection[iEdge][0]) * fScale;
-	    asEdgeVertex[iEdge].fY =
-		fY + (a2fVertexOffset[a2iEdgeConnection[iEdge][0]][1] +
-		      fOffset * a2fEdgeDirection[iEdge][1]) * fScale;
-	    asEdgeVertex[iEdge].fZ =
-		fZ + (a2fVertexOffset[a2iEdgeConnection[iEdge][0]][2] +
-		      fOffset * a2fEdgeDirection[iEdge][2]) * fScale;
+	    EdgeVertex[Edge].X =
+		X + (a2VertexOffset[a2EdgeConnection[Edge][0]][0] +
+		     Offset * a2EdgeDirection[Edge][0]) * Scale;
+	    EdgeVertex[Edge].Y =
+		Y + (a2VertexOffset[a2EdgeConnection[Edge][0]][1] +
+		     Offset * a2EdgeDirection[Edge][1]) * Scale;
+	    EdgeVertex[Edge].Z =
+		Z + (a2VertexOffset[a2EdgeConnection[Edge][0]][2] +
+		     Offset * a2EdgeDirection[Edge][2]) * Scale;
 
-	    vGetNormal(&asEdgeNorm[iEdge], asEdgeVertex[iEdge].fX,
-		       asEdgeVertex[iEdge].fY, asEdgeVertex[iEdge].fZ);
+	    GetNormal(&EdgeNorm[Edge], EdgeVertex[Edge].X,
+		      EdgeVertex[Edge].Y, EdgeVertex[Edge].Z);
 	}
     }
 
 
     //Draw the triangles that were found.  There can be up to five per cube
     for (iTriangle = 0; iTriangle < 5; iTriangle++) {
-	if (a2iTriangleConnectionTable[iFlagIndex][3 * iTriangle] < 0)
+	if (a2iTriangleConnectionTable[FlagIndex][3 * iTriangle] < 0)
 	    break;
 
-	for (iCorner = 0; iCorner < 3; iCorner++) {
-	    i = a2iTriangleConnectionTable[iFlagIndex][3 * iTriangle +
-						       iCorner];
+	for (Corner = 0; Corner < 3; Corner++) {
+	    i = a2iTriangleConnectionTable[FlagIndex][3 * iTriangle +
+						      Corner];
 
-	    vGetColor(&sColor, &asEdgeNorm[i]);
-	    glColor3f(sColor.fX, sColor.fY, sColor.fZ);
-	    glNormal3f(asEdgeNorm[i].fX, asEdgeNorm[i].fY,
-		       asEdgeNorm[i].fZ);
-	    glVertex3f(asEdgeVertex[i].fX, asEdgeVertex[i].fY,
-		       asEdgeVertex[i].fZ);
+	    GetColor(&Color, &EdgeNorm[i]);
+	    glColor3f(Color.X, Color.Y, Color.Z);
+	    glNormal3f(EdgeNorm[i].X, EdgeNorm[i].Y, EdgeNorm[i].Z);
+	    glVertex3f(EdgeVertex[i].X, EdgeVertex[i].Y, EdgeVertex[i].Z);
 	}
     }
 }
 
-//vMarchTetrahedron performs the Marching Tetrahedrons algorithm on a single tetrahedron
+//MarchTetrahedron performs the Marching Tetrahedrons algorithm on a single tetrahedron
 void
-vMarchTetrahedron(struct Vec *pasTetrahedronPosition,
-		  float *pafTetrahedronValue)
+MarchTetrahedron(struct Vec *TetrahedronPosition, float *TetrahedronValue)
 {
-    extern int aiTetrahedronEdgeFlags[16];
+    extern int TetrahedronEdgeFlags[16];
     extern int a2iTetrahedronTriangles[16][7];
 
-    int iEdge, iVert0, iVert1, iEdgeFlags, iTriangle, iCorner, i,
-	iFlagIndex = 0;
-    float fOffset, fInvOffset;
-    struct Vec asEdgeVertex[6];
-    struct Vec asEdgeNorm[6];
-    struct Vec sColor;
+    int Edge, Vert0, Vert1, EdgeFlags, iTriangle, Corner, i, FlagIndex = 0;
+    float Offset, InvOffset;
+    struct Vec EdgeVertex[6];
+    struct Vec EdgeNorm[6];
+    struct Vec Color;
 
     //Find which vertices are inside of the surface and which are outside
     for (i = 0; i < 4; i++) {
-	if (pafTetrahedronValue[i] <= fTargetValue)
-	    iFlagIndex |= 1 << i;
+	if (TetrahedronValue[i] <= TargetValue)
+	    FlagIndex |= 1 << i;
     }
 
     //Find which edges are intersected by the surface
-    iEdgeFlags = aiTetrahedronEdgeFlags[iFlagIndex];
+    EdgeFlags = TetrahedronEdgeFlags[FlagIndex];
 
     //If the tetrahedron is entirely inside or outside of the surface, then there will be no intersections
-    if (iEdgeFlags == 0) {
+    if (EdgeFlags == 0) {
 	return;
     }
     //Find the point of intersection of the surface with each edge
     // Then find the normal to the surface at those points
-    for (iEdge = 0; iEdge < 6; iEdge++) {
+    for (Edge = 0; Edge < 6; Edge++) {
 	//if there is an intersection on this edge
-	if (iEdgeFlags & (1 << iEdge)) {
-	    iVert0 = a2iTetrahedronEdgeConnection[iEdge][0];
-	    iVert1 = a2iTetrahedronEdgeConnection[iEdge][1];
-	    fOffset =
-		fGetOffset(pafTetrahedronValue[iVert0],
-			   pafTetrahedronValue[iVert1], fTargetValue);
-	    fInvOffset = 1.0 - fOffset;
+	if (EdgeFlags & (1 << Edge)) {
+	    Vert0 = a2TetrahedronEdgeConnection[Edge][0];
+	    Vert1 = a2TetrahedronEdgeConnection[Edge][1];
+	    Offset =
+		GetOffset(TetrahedronValue[Vert0],
+			  TetrahedronValue[Vert1], TargetValue);
+	    InvOffset = 1.0 - Offset;
 
-	    asEdgeVertex[iEdge].fX =
-		fInvOffset * pasTetrahedronPosition[iVert0].fX +
-		fOffset * pasTetrahedronPosition[iVert1].fX;
-	    asEdgeVertex[iEdge].fY =
-		fInvOffset * pasTetrahedronPosition[iVert0].fY +
-		fOffset * pasTetrahedronPosition[iVert1].fY;
-	    asEdgeVertex[iEdge].fZ =
-		fInvOffset * pasTetrahedronPosition[iVert0].fZ +
-		fOffset * pasTetrahedronPosition[iVert1].fZ;
+	    EdgeVertex[Edge].X =
+		InvOffset * TetrahedronPosition[Vert0].X +
+		Offset * TetrahedronPosition[Vert1].X;
+	    EdgeVertex[Edge].Y =
+		InvOffset * TetrahedronPosition[Vert0].Y +
+		Offset * TetrahedronPosition[Vert1].Y;
+	    EdgeVertex[Edge].Z =
+		InvOffset * TetrahedronPosition[Vert0].Z +
+		Offset * TetrahedronPosition[Vert1].Z;
 
-	    vGetNormal(&asEdgeNorm[iEdge], asEdgeVertex[iEdge].fX,
-		       asEdgeVertex[iEdge].fY, asEdgeVertex[iEdge].fZ);
+	    GetNormal(&EdgeNorm[Edge], EdgeVertex[Edge].X,
+		      EdgeVertex[Edge].Y, EdgeVertex[Edge].Z);
 	}
     }
     //Draw the triangles that were found.  There can be up to 2 per tetrahedron
     for (iTriangle = 0; iTriangle < 2; iTriangle++) {
-	if (a2iTetrahedronTriangles[iFlagIndex][3 * iTriangle] < 0)
+	if (a2iTetrahedronTriangles[FlagIndex][3 * iTriangle] < 0)
 	    break;
 
-	for (iCorner = 0; iCorner < 3; iCorner++) {
-	    i = a2iTetrahedronTriangles[iFlagIndex][3 * iTriangle +
-						    iCorner];
-	    vGetColor(&sColor, &asEdgeNorm[i]);
-	    glColor3f(sColor.fX, sColor.fY, sColor.fZ);
-	    glNormal3f(asEdgeNorm[i].fX, asEdgeNorm[i].fY,
-		       asEdgeNorm[i].fZ);
-	    glVertex3f(asEdgeVertex[i].fX, asEdgeVertex[i].fY,
-		       asEdgeVertex[i].fZ);
+	for (Corner = 0; Corner < 3; Corner++) {
+	    i = a2iTetrahedronTriangles[FlagIndex][3 * iTriangle + Corner];
+	    GetColor(&Color, &EdgeNorm[i]);
+	    glColor3f(Color.X, Color.Y, Color.Z);
+	    glNormal3f(EdgeNorm[i].X, EdgeNorm[i].Y, EdgeNorm[i].Z);
+	    glVertex3f(EdgeVertex[i].X, EdgeVertex[i].Y, EdgeVertex[i].Z);
 	}
     }
 }
 
 
 
-//vMarchCube2 performs the Marching Tetrahedrons algorithm on a single cube by making six calls to vMarchTetrahedron
+//MarchCube2 performs the Marching Tetrahedrons algorithm on a single cube by making six calls to MarchTetrahedron
 void
-vMarchCube2(float fX, float fY, float fZ, float fScale)
+MarchCube2(float X, float Y, float Z, float Scale)
 {
-    int i, iTetrahedron, iInACube;
-    struct Vec asCubePosition[8];
-    float afCubeValue[8];
-    struct Vec asTetrahedronPosition[4];
-    float afTetrahedronValue[4];
+    int i, Tetrahedron, InACube;
+    struct Vec CubePosition[8];
+    float CubeValue[8];
+    struct Vec TetrahedronPosition[4];
+    float TetrahedronValue[4];
 
     //Make a local copy of the cube's corner positions
     for (i = 0; i < 8; i++) {
-	asCubePosition[i].fX = fX + a2fVertexOffset[i][0] * fScale;
-	asCubePosition[i].fY = fY + a2fVertexOffset[i][1] * fScale;
-	asCubePosition[i].fZ = fZ + a2fVertexOffset[i][2] * fScale;
+	CubePosition[i].X = X + a2VertexOffset[i][0] * Scale;
+	CubePosition[i].Y = Y + a2VertexOffset[i][1] * Scale;
+	CubePosition[i].Z = Z + a2VertexOffset[i][2] * Scale;
     }
 
     //Make a local copy of the cube's corner values
     for (i = 0; i < 8; i++) {
-	afCubeValue[i] = fSample(asCubePosition[i].fX,
-				 asCubePosition[i].fY,
-				 asCubePosition[i].fZ);
+	CubeValue[i] = Sample(CubePosition[i].X,
+			      CubePosition[i].Y, CubePosition[i].Z);
     }
 
-    for (iTetrahedron = 0; iTetrahedron < 6; iTetrahedron++) {
+    for (Tetrahedron = 0; Tetrahedron < 6; Tetrahedron++) {
 	for (i = 0; i < 4; i++) {
-	    iInACube = a2iTetrahedronsInACube[iTetrahedron][i];
-	    asTetrahedronPosition[i].fX = asCubePosition[iInACube].fX;
-	    asTetrahedronPosition[i].fY = asCubePosition[iInACube].fY;
-	    asTetrahedronPosition[i].fZ = asCubePosition[iInACube].fZ;
-	    afTetrahedronValue[i] = afCubeValue[iInACube];
+	    InACube = a2TetrahedronsInACube[Tetrahedron][i];
+	    TetrahedronPosition[i].X = CubePosition[InACube].X;
+	    TetrahedronPosition[i].Y = CubePosition[InACube].Y;
+	    TetrahedronPosition[i].Z = CubePosition[InACube].Z;
+	    TetrahedronValue[i] = CubeValue[InACube];
 	}
-	vMarchTetrahedron(asTetrahedronPosition, afTetrahedronValue);
+	MarchTetrahedron(TetrahedronPosition, TetrahedronValue);
     }
 }
 
 
-//vMarchingCubes iterates over the entire dataset, calling vMarchCube on each cube
+//MarchingCubes iterates over the entire dataset, calling MarchCube on each cube
 void
-vMarchingCubes()
+MarchingCubes()
 {
     int i, j, k;
 
     for (i = 0; i < n; i++)
 	for (j = 0; j < n; j++)
 	    for (k = 0; k < n; k++)
-		vMarchCube(i * h, j * h, k * h, h);
+		MarchCube(i * h, j * h, k * h, h);
 }
