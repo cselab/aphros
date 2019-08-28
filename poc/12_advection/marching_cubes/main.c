@@ -10,60 +10,11 @@ struct Vec {
     float z;
 };
 
-//These tables are used so that everything can be done in little loops
-// that you can look at all at once rather than in pages and pages of
-// unrolled code.
-
-//VertexOffset lists the positions, relative to vertex0, of each of
-//the 8 vertices of a cube
-static const float VertexOffset[][3] = {
-    {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 1.0, 0.0}, {0.0, 1.0,
-							0.0},
-    {0.0, 0.0, 1.0}, {1.0, 0.0, 1.0}, {1.0, 1.0, 1.0}, {0.0, 1.0,
-							1.0}
-};
-
-//EdgeConnection lists the index of the endpoint vertices for each
-//of the 12 edges of the cube
-static const int EdgeConnection[][2] = {
-    {0, 1}, {1, 2}, {2, 3}, {3, 0},
-    {4, 5}, {5, 6}, {6, 7}, {7, 4},
-    {0, 4}, {1, 5}, {2, 6}, {3, 7}
-};
-
-//EdgeDirection lists the direction vector (vertex1-vertex0) for
-//each edge in the cube
-static const float EdgeDirection[][3] = {
-    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-1.0, 0.0, 0.0}, {0.0, -1.0,
-							 0.0},
-    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-1.0, 0.0, 0.0}, {0.0, -1.0,
-							 0.0},
-    {0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 0.0,
-							1.0}
-};
-
-//TetrahedronEdgeConnection lists the index of the endpoint
-//vertices for each of the 6 edges of the tetrahedron
-static const int TetrahedronEdgeConnection[][2] = {
-    {0, 1}, {1, 2}, {2, 0}, {0, 3}, {1, 3}, {2, 3}
-};
-
-//TetrahedronEdgeConnection lists the index of verticies from a
-// cube that made up each of the six tetrahedrons within the cube
-static const int TetrahedronsInACube[][4] = {
-    {0, 5, 1, 6},
-    {0, 1, 2, 6},
-    {0, 2, 3, 6},
-    {0, 3, 7, 6},
-    {0, 7, 4, 6},
-    {0, 4, 5, 6},
-};
-
-static const float AmbientGreen[] = { 0.00, 0.25, 0.00, 1.00 };
-static const float AmbientBlue[] = { 0.00, 0.00, 0.25, 1.00 };
-static const float DiffuseGreen[] = { 0.00, 0.75, 0.00, 1.00 };
-static const float DiffuseBlue[] = { 0.00, 0.00, 0.75, 1.00 };
-static const float SpecularWhite[] = { 1.00, 1.00, 1.00, 1.00 };
+static float AmbientGreen[] = { 0.00, 0.25, 0.00, 1.00 };
+static float AmbientBlue[] = { 0.00, 0.00, 0.25, 1.00 };
+static float DiffuseGreen[] = { 0.00, 0.75, 0.00, 1.00 };
+static float DiffuseBlue[] = { 0.00, 0.00, 0.75, 1.00 };
+static float SpecularWhite[] = { 1.00, 1.00, 1.00, 1.00 };
 
 int n = 16;
 float h;
@@ -75,25 +26,21 @@ int Spin = 1;
 int Move = 1;
 int Light = 1;
 
-void Idle();
-void DrawScene();
-void Resize(int, int);
-void Keyboard(unsigned char Key, int i, int j);
-void Special(int Key, int i, int j);
-
-void PrintHelp();
-void SetTime(float Time);
-float Sample1(float x, float y, float z);
-float Sample2(float x, float y, float z);
-float Sample3(float x, float y, float z);
-
-float (*Sample) (float x, float y, float z) = Sample1;
-
-void MarchingCubes();
-void MarchCube1(float x, float y, float z, float Scale);
-void MarchCube2(float x, float y, float z, float Scale);
-
-void (*MarchCube) (float x, float y, float z, float Scale) = MarchCube1;
+static void Idle(void);
+static void DrawScene(void);
+static void Resize(int, int);
+static void Keyboard(unsigned char Key, int, int);
+static void Special(int Key, int, int);
+static void PrintHelp();
+static void SetTime(float Time);
+static float Sample1(float, float, float);
+static float Sample2(float, float, float);
+static float Sample3(float, float, float);
+static float (*Sample) (float, float, float) = Sample1;
+static void MarchingCubes();
+static void MarchCube1(float, float, float, float Scale);
+static void MarchCube2(float, float, float, float Scale);
+static void (*MarchCube) (float, float, float, float Scale) = MarchCube1;
 
 int
 main(int argc, char **argv)
@@ -145,7 +92,7 @@ main(int argc, char **argv)
     glutMainLoop();
 }
 
-void
+static void
 PrintHelp()
 {
     printf
@@ -162,7 +109,7 @@ PrintHelp()
 }
 
 
-void
+static void
 Resize(int Width, int Height)
 {
     float Aspect, HalfWorldSize = (1.4142135623730950488016887242097 / 2);
@@ -186,7 +133,7 @@ Resize(int Width, int Height)
     glMatrixMode(GL_MODELVIEW);
 }
 
-void
+static void
 Keyboard(unsigned char Key, int i, int j)
 {
     USED(i);
@@ -251,7 +198,7 @@ Keyboard(unsigned char Key, int i, int j)
 }
 
 
-void
+static void
 Special(int Key, int i, int j)
 {
     USED(i);
@@ -284,14 +231,14 @@ Special(int Key, int i, int j)
     }
 }
 
-void
-Idle()
+static void
+Idle(void)
 {
     glutPostRedisplay();
 }
 
-void
-DrawScene()
+static void
+DrawScene(void)
 {
     static float Pitch = 0.0;
     static float Yaw = 0.0;
@@ -351,7 +298,7 @@ GetOffset(float Value1, float Value2, float ValueDesired)
 
 
 //GetColor generates a color from a given position and normal of a point
-void
+static void
 GetColor(struct Vec *Color, struct Vec *Normal)
 {
     float x = Normal->x;
@@ -372,7 +319,7 @@ GetColor(struct Vec *Color, struct Vec *Normal)
 							    * y : 0.0);
 }
 
-void
+static void
 NormalizeVector(struct Vec *VectorResult, struct Vec *VectorSource)
 {
     float OldLength;
@@ -397,7 +344,7 @@ NormalizeVector(struct Vec *VectorResult, struct Vec *VectorSource)
 
 //Generate a sample data set.  Sample1(), Sample2() and Sample3() define three scalar fields whose
 // values vary by the x,y and z coordinates and by the Time value set by SetTime()
-void
+static void
 SetTime(float NewTime)
 {
     float Offset;
@@ -417,7 +364,7 @@ SetTime(float NewTime)
 }
 
 //Sample1 finds the distance of (x, y, z) from three moving points
-float
+static float
 Sample1(float x, float y, float z)
 {
     double Result = 0.0;
@@ -442,7 +389,7 @@ Sample1(float x, float y, float z)
 }
 
 //Sample2 finds the distance of (x, y, z) from three moving lines
-float
+static float
 Sample2(float x, float y, float z)
 {
     double Result = 0.0;
@@ -465,7 +412,7 @@ Sample2(float x, float y, float z)
 
 
 //Sample2 defines a height field by plugging the distance from the center into the sin and cos functions
-float
+static float
 Sample3(float x, float y, float z)
 {
     float Height =
@@ -480,7 +427,7 @@ Sample3(float x, float y, float z)
 
 //GetNormal() finds the gradient of the scalar field at a point
 //This gradient can be used as a very accurate vertx normal for lighting calculations
-void
+static void
 GetNormal(struct Vec *Normal, float x, float y, float z)
 {
     Normal->x = Sample(x - 0.01, y, z) - Sample(x + 0.01, y, z);
@@ -491,11 +438,11 @@ GetNormal(struct Vec *Normal, float x, float y, float z)
 
 
 //MarchCube1 performs the Marching Cubes algorithm on a single cube
-void
+static void
 MarchCube1(float x, float y, float z, float Scale)
 {
     extern int CubeEdgeFlags[256];
-    extern int a2iTriangleConnectionTable[256][16];
+    extern int TriangleConnectionTable[256][16];
 
     int Corner, i, Test, Edge, iTriangle, FlagIndex, EdgeFlags;
     float Offset;
@@ -553,12 +500,11 @@ MarchCube1(float x, float y, float z, float Scale)
 
     //Draw the triangles that were found.  There can be up to five per cube
     for (iTriangle = 0; iTriangle < 5; iTriangle++) {
-	if (a2iTriangleConnectionTable[FlagIndex][3 * iTriangle] < 0)
+	if (TriangleConnectionTable[FlagIndex][3 * iTriangle] < 0)
 	    break;
 
 	for (Corner = 0; Corner < 3; Corner++) {
-	    i = a2iTriangleConnectionTable[FlagIndex][3 * iTriangle +
-						      Corner];
+	    i = TriangleConnectionTable[FlagIndex][3 * iTriangle + Corner];
 
 	    GetColor(&Color, &EdgeNorm[i]);
 	    glColor3f(Color.x, Color.y, Color.z);
@@ -569,11 +515,11 @@ MarchCube1(float x, float y, float z, float Scale)
 }
 
 //MarchTetrahedron performs the Marching Tetrahedrons algorithm on a single tetrahedron
-void
+static void
 MarchTetrahedron(struct Vec *TetrahedronPosition, float *TetrahedronValue)
 {
     extern int TetrahedronEdgeFlags[16];
-    extern int a2iTetrahedronTriangles[16][7];
+    extern int TetrahedronTriangles[16][7];
 
     int Edge, Vert0, Vert1, EdgeFlags, iTriangle, Corner, i, FlagIndex = 0;
     float Offset, InvOffset;
@@ -622,11 +568,11 @@ MarchTetrahedron(struct Vec *TetrahedronPosition, float *TetrahedronValue)
     }
     //Draw the triangles that were found.  There can be up to 2 per tetrahedron
     for (iTriangle = 0; iTriangle < 2; iTriangle++) {
-	if (a2iTetrahedronTriangles[FlagIndex][3 * iTriangle] < 0)
+	if (TetrahedronTriangles[FlagIndex][3 * iTriangle] < 0)
 	    break;
 
 	for (Corner = 0; Corner < 3; Corner++) {
-	    i = a2iTetrahedronTriangles[FlagIndex][3 * iTriangle + Corner];
+	    i = TetrahedronTriangles[FlagIndex][3 * iTriangle + Corner];
 	    GetColor(&Color, &EdgeNorm[i]);
 	    glColor3f(Color.x, Color.y, Color.z);
 	    glNormal3f(EdgeNorm[i].x, EdgeNorm[i].y, EdgeNorm[i].z);
@@ -638,14 +584,14 @@ MarchTetrahedron(struct Vec *TetrahedronPosition, float *TetrahedronValue)
 
 
 //MarchCube2 performs the Marching Tetrahedrons algorithm on a single cube by making six calls to MarchTetrahedron
-void
+static void
 MarchCube2(float x, float y, float z, float Scale)
 {
+    float CubeValue[8];
+    float TetrahedronValue[4];
     int i, Tetrahedron, InACube;
     struct Vec CubePosition[8];
-    float CubeValue[8];
     struct Vec TetrahedronPosition[4];
-    float TetrahedronValue[4];
 
     //Make a local copy of the cube's corner positions
     for (i = 0; i < 8; i++) {
@@ -674,7 +620,7 @@ MarchCube2(float x, float y, float z, float Scale)
 
 
 //MarchingCubes iterates over the entire dataset, calling MarchCube on each cube
-void
+static void
 MarchingCubes()
 {
     int i, j, k;
