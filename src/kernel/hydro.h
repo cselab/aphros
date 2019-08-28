@@ -1138,16 +1138,20 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
           if (clp != TR::kNone) s.insert(clp);
         }
         for (auto cl : s) {
-          size_t jm = 0;
-          size_t jp = 0;
+          Scal um = 0;
+          Scal up = 0;
+          Scal km = 0;
+          Scal kp = 0;
           for (size_t i = 0; i < as->GetNumLayers(); ++i) {
-            if (as->GetColor(i)[cm] == cl) jm = i;
-            if (as->GetColor(i)[cp] == cl) jp = i;
+            if (as->GetColor(i)[cm] == cl) {
+              um = as->GetField(i)[cm];
+              km = as->GetCurv(i)[cm];
+            }
+            if (as->GetColor(i)[cp] == cl) {
+              up = as->GetField(i)[cp];
+              kp = as->GetCurv(i)[cp];
+            }
           }
-          Scal um = as->GetField(jm)[cm];
-          Scal up = as->GetField(jp)[cp];
-          Scal km = as->GetCurv(jm)[cm];
-          Scal kp = as->GetCurv(jp)[cp];
           Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
           Scal hi = m.GetArea(f) / m.GetVolume(cp);
           Scal ga = (up - um) * hi;
