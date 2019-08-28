@@ -7,7 +7,6 @@
 #include "reconst.h"
 #include "debug/isnan.h"
 #include "dump/vtk.h"
-#include "tracker.h"
 
 namespace solver {
 
@@ -16,7 +15,7 @@ struct PartStrMeshM<M_>::Imp {
   static constexpr size_t dim = M::dim;
   using Vect2 = GVect<Scal, 2>;
   using R = Reconst<Scal>;
-  using TR = solver::Tracker<M_>;
+  static constexpr Scal kClNone = -1;
 
   Imp(M& m, std::shared_ptr<Par> par) : m(m), par(par) {
     // particle strings
@@ -211,7 +210,7 @@ struct PartStrMeshM<M_>::Imp {
         Vect xc = m.GetCenter(c);
         const Scal th = par->intth;
         if (fci[c] && fcu[c] >= th && fcu[c] <= 1. - th &&
-            fccl[c] != TR::kNone) {
+            fccl[c] != kClNone) {
           // number of strings
           size_t ns = (par->dim == 2 ? 1 : par->ns);
           for (size_t s = 0; s < ns; ++s) {
