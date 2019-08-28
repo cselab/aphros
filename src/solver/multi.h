@@ -36,7 +36,7 @@ class MultiMask {
 template <class T>
 class Multi {
  public:
-  Multi() : d_(1) {}
+  Multi() = default;
   Multi(size_t n) : d_(n) {}
   // cast to pointer
   template <class U>
