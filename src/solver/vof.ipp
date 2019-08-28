@@ -242,7 +242,7 @@ struct Vof<M_>::Imp {
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m)
-      , mfc_(mfc), fch_(m, Vect(0)), layers(0, 4)
+      , mfc_(mfc), fch_(m, Vect(0)), layers(0, 5)
   {
     fcu_.resize(layers.size());
     fcn_.resize(layers.size());
@@ -578,12 +578,14 @@ struct Vof<M_>::Imp {
       }
       Propagate(uc, fcm_, fccl, 2, m);
       Propagate(fccl, fcm_, fccl, 2, m);
-      for (auto i : layers) {
-        m.Comm(uc[i]);
-        m.Comm(fccl[i]);
-      }
       fcm2_ = fcm_;
       Propagate(fcm2_, 1, m);
+    }
+    for (auto i : layers) {
+      if (sem("prop")) {
+        m.Comm(uc[i]);
+        m.Comm(const_cast<FieldCell<Scal>*>(&tr_[i]->GetColor()));
+      }
     }
     if (sem("detect")) {
       DetectInterface(uc);
