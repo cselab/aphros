@@ -520,6 +520,12 @@ struct Vof<M_>::Imp {
             fcm[c] = true;
           }
         }
+        // make empty cells inactive 
+        for (auto c : m.Cells()) {
+          if (fcm[c] && fcu[c] == 0) {
+            fcm[c] = false;
+          }
+        }
         // clear inactive cells
         for (auto c : m.Cells()) {
           if (!fcm[c]) {
@@ -528,13 +534,6 @@ struct Vof<M_>::Imp {
           }
         }
         m.Comm(&fcu);
-      }
-      // clear cells active on layer 1
-      for (auto c : m.Cells()) {
-        if (fcm_[1][c]) {
-          fcu0[c] = 0;
-          fccl0[c] = TR::kNone;
-        }
       }
       m.Comm(uc[0]);
     }
@@ -796,6 +795,8 @@ struct Vof<M_>::Imp {
               } else if (fccl0[cu] == fccl[cd] || fccl0[cu] == TR::kNone) {
                 ffvu[f] = F(f, cu, fcu0[cu], fcn0[cu], fca0[cu], fci0[cu]);
                 ffi[f] = fci0[cu];
+                ffvu0[f] = 0;
+                ffi0[f] = false;
               } else {
                 ffvu[f] = 0;
                 ffi[f] = false;
