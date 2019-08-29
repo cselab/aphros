@@ -540,29 +540,62 @@ struct Vof<M_>::Imp {
         m.Comm(&fcclt_[i]);
       }
     }
+    sem.LoopBegin();
     if (sem("min")) {
       const int sw = 1; // stencil halfwidth
       using MIdx = typename M::MIdx;
       auto& bc = m.GetIndexCells();
       GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1));
-      for (auto i : layers) {
-        for (auto c : m.Cells()) {
-          if (fccl_[i][c] != kClNone) {
-            MIdx w = bc.GetMIdx(c);
-            for (MIdx wo : bo) {
-              IdxCell cn = bc.GetIdx(w + wo);
-              for (auto j : layers) {
-                if (fccl_[j][cn] == fccl_[i][c]) {
-                  fcclt_[i][c] = std::min(fcclt_[i][c], fcclt_[j][cn]);
+      size_t tries = 0;
+      size_t cells = 0;
+      while (true) {
+        bool chg = false;
+        for (auto i : layers) {
+          for (auto c : m.Cells()) {
+            if (fccl_[i][c] != kClNone) {
+              MIdx w = bc.GetMIdx(c);
+              for (MIdx wo : bo) {
+                IdxCell cn = bc.GetIdx(w + wo);
+                for (auto j : layers) {
+                  if (fccl_[j][cn] == fccl_[i][c]) {
+                    if (fcclt_[j][cn] < fcclt_[i][c]) {
+                      chg = true;
+                      ++cells;
+                      fcclt_[i][c] = fcclt_[j][cn];
+                    }
+                  }
                 }
               }
             }
           }
         }
+        if (!chg) {
+          break;
+        }
+        ++tries;
+      }
+      for (auto i : layers) {
+        m.Comm(&fcclt_[i]);
+      }
+      recolor_tries_ = tries;
+      m.Reduce(&recolor_tries_, "max");
+    }
+    if (sem("check")) {
+      if (par->verb && m.IsRoot()) {
+        std::cerr << "recolor:"
+          << " max tries: " << recolor_tries_ 
+          << std::endl;
+      }
+      if (!recolor_tries_) {
+        sem.LoopBreak();
       }
     }
+    sem.LoopEnd();
     if (sem("free")) {
       for (auto i : layers) {
+        for (auto c : m.AllCells()) {
+          fccl_[i][c] = fcclt_[i][c];
+        }
         fcclt_[i].Free();
       }
     }
@@ -1030,6 +1063,7 @@ struct Vof<M_>::Imp {
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
   GRange<size_t> layers;
+  Scal recolor_tries_;
 };
 
 template <class M>
