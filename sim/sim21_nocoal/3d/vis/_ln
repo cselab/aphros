@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -eu
+d=d
+
+mkdir -p $d
+
+for f in w?/*.png ; do
+  b=`basename $f`
+  o=$d/$b
+  [ -f $o ] || ln -srv $f $o
+done

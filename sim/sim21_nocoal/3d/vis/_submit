@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -eu
+
+s() {
+  d=$1
+  suf=$2
+  mkdir -p "$d"
+  echo 2 > $d/np
+  echo 1440 > $d/tl
+  (cd "$d" && ch.submit0 ../_run "'$suf'")
+}
+
+s w0 "{0,5}"
+s w1 "{1,6}"
+s w2 "{2,7}"
+s w3 "{3,8}"
+s w4 "{4,9}"
