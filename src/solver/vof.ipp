@@ -177,6 +177,7 @@ struct Vof<M_>::Imp {
     fcm_.resize(layers.size());
     fck_.resize(layers.size());
     fccl_.resize(layers.size());
+    fcclt_.resize(layers.size());
     ffvu_.resize(layers.size());
     ffcl_.resize(layers.size());
     ffi_.resize(layers.size());
@@ -524,6 +525,48 @@ struct Vof<M_>::Imp {
       psm_->DumpPartInter(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
     }
   }
+  void Recolor() {
+    auto sem = m.GetSem("recolor");
+    if (sem("init")) {
+      fcclt_.InitAll(FieldCell<Scal>(m, kClNone));
+      // initial unique color
+      Scal q = m.GetId() * m.GetInBlockCells().size() * layers.size();
+      for (auto i : layers) {
+        for (auto c : m.Cells()) {
+          if (fccl_[i][c] != kClNone) {
+            fcclt_[i][c] = (q += 1);
+          }
+        }
+        m.Comm(&fcclt_[i]);
+      }
+    }
+    if (sem("min")) {
+      const int sw = 1; // stencil halfwidth
+      using MIdx = typename M::MIdx;
+      auto& bc = m.GetIndexCells();
+      GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1));
+      for (auto i : layers) {
+        for (auto c : m.Cells()) {
+          if (fccl_[i][c] != kClNone) {
+            MIdx w = bc.GetMIdx(c);
+            for (MIdx wo : bo) {
+              IdxCell cn = bc.GetIdx(w + wo);
+              for (auto j : layers) {
+                if (fccl_[j][cn] == fccl_[i][c]) {
+                  fcclt_[i][c] = std::min(fcclt_[i][c], fcclt_[j][cn]);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    if (sem("free")) {
+      for (auto i : layers) {
+        fcclt_[i].Free();
+      }
+    }
+  }
   void MakeIteration() {
     auto sem = m.GetSem("iter");
     if (sem("init")) {
@@ -851,6 +894,9 @@ struct Vof<M_>::Imp {
           m.Comm(&fccl_[i]);
         }
       }
+      if (sem.Nested("recolor")) {
+        Recolor();
+      }
       if (sem.Nested("reconst")) {
         Rec(GetLayer(fcu_, Layers::iter_curr));
       }
@@ -965,6 +1011,7 @@ struct Vof<M_>::Imp {
   Multi<FieldCell<bool>> fcm_; // layer mask
   Multi<FieldCell<bool>> fcdp_; // dependent cells with mask=0
   Multi<FieldCell<Scal>> fccl_;  // color
+  Multi<FieldCell<Scal>> fcclt_;  // tmp color
   Multi<FieldFace<Scal>> ffvu_;  // flux: volume flux * field
   Multi<FieldFace<Scal>> ffcl_;  // flux color (from upwind cell)
   Multi<FieldFace<bool>> ffi_;   // interface mask (1: upwind cell contains interface)
