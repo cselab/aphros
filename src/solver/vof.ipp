@@ -296,6 +296,7 @@ struct Vof<M_>::Imp {
       m.Reduce(std::make_shared<TV>(&dl_));
       using TS = typename M::template OpCatT<Scal>;
       m.Reduce(std::make_shared<TS>(&dlc_));
+      m.Reduce(std::make_shared<TS>(&dll_));
     }
     if (sem("write")) {
       if (m.IsRoot()) {
