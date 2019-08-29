@@ -9,6 +9,7 @@
 template <class M>
 void Parse(typename solver::Vof<M>::Par* p, const Vars& var) {
   p->curvgrad = var.Int["curvgrad"];
+  p->verb = var.Int["vof_verb"];
   p->part = var.Int["part"];
   p->part_verb = var.Int["part_verb"];
   p->part_relax = var.Double["part_relax"];

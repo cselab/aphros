@@ -60,6 +60,7 @@ class Vof : public AdvectionSolver<M_> {
     using AR = typename solver::PartStrMeshM<M>::AR;
     AF part_attrforce = AF::line;
     AR part_attrreconst = AR::line;
+    int verb = 0;
   };
 
   // Constructor
