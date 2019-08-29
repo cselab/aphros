@@ -4,6 +4,7 @@
 #include "table.h"
 #include "sample.h"
 #include "lib.h"
+#include "march.h"
 #define	USED(x)		if(x);else{}
 
 struct Sample *sample;

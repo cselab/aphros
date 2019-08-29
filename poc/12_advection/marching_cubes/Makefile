@@ -18,6 +18,7 @@ sample.o: sample.h
 main.o: sample.h
 main.o: lib.h
 lib.o: lib.h
+main.o: march.h
 
 .PHONY: clean lint
 clean:; rm -f -- $M $O
