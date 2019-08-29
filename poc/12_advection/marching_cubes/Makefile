@@ -7,6 +7,7 @@ M = main
 O = \
 main.o\
 sample.o\
+lib.o\
 
 
 $M: $O; $(LINK) $O $(LDFLAGS) $(M_LDFLAGS) -o $@
@@ -15,6 +16,8 @@ lint:; make CFLAGS='-g -Wall -Wextra -pedantic'
 
 sample.o: sample.h
 main.o: sample.h
+main.o: lib.h
+lib.o: lib.h
 
 .PHONY: clean lint
 clean:; rm -f -- $M $O
