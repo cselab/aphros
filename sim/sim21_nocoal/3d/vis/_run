@@ -3,4 +3,4 @@ set -eu
 c="echo ../../s_*$1.vtk"
 echo "$c"
 ll=`eval "$c"`
-../contvtk.py $ll
+../contvtk.py $ll || true
