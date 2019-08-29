@@ -1,0 +1,126 @@
+diff --git a/src/solver/CMakeLists.txt b/src/solver/CMakeLists.txt
+index 33daf54c..1bb0b3c2 100644
+--- a/src/solver/CMakeLists.txt
++++ b/src/solver/CMakeLists.txt
+@@ -2,7 +2,7 @@ add_library(solver solver.cpp)
+ 
+ set(T "vof")
+ add_library(${T} vof.cpp)
+-target_link_libraries(${T} solver normal partstrmeshm)
++target_link_libraries(${T} solver normal partstrmeshm color)
+ 
+ set(T "tvd")
+ add_library(${T} tvd.cpp)
+diff --git a/src/solver/vof.ipp b/src/solver/vof.ipp
+index b6cfe41c..b0c93cba 100644
+--- a/src/solver/vof.ipp
++++ b/src/solver/vof.ipp
+@@ -15,6 +15,7 @@
+ #include "debug/isnan.h"
+ #include "partstr.h"
+ #include "multi.h"
++#include "color/color.h"
+ 
+ namespace solver {
+ 
+@@ -851,6 +852,92 @@ struct Vof<M_>::Imp {
+           m.Comm(&fccl_[i]);
+         }
+       }
++      if (sem("maxcolor")) {
++        maxcolor_ = 0;
++        for (auto i : layers) {
++          for (auto c : m.AllCells()) {
++            maxcolor_ = std::max(maxcolor_, fccl_[i][c]);
++          }
++        }
++        m.Reduce(&maxcolor_, "max");
++      }
++      if (sem("breakup")) {
++        Scal mc = maxcolor_;
++        for (auto i : layers) {
++          auto& fccl = fccl_[i];
++          if (par->bcc_reflect) {
++            BcReflect(fccl, mfc_, kClNone, m);
++          }
++          const int sn = 5; // stencil width
++          using MIdx = typename M::MIdx;
++          auto& bc = m.GetIndexCells();
++          GBlock<IdxCell, dim> bo(MIdx(-2), MIdx(sn));
++          for (auto c : m.Cells()) {
++            if (fccl[c] != kClNone) {
++              MIdx w = bc.GetMIdx(c);
++              std::array<int, sn*sn*sn> uu;
++              size_t k = 0;
++              for (MIdx wo : bo) {
++                IdxCell cn = bc.GetIdx(w + wo);
++                int u = -1;
++                for (auto j : layers) {
++                  if (fccl_[j][cn] == fccl[c]) {
++                    u = 0;
++                    break;
++                  }
++                }
++                uu[k++] = u;
++              }
++              int cnt;
++              COLOR_color(sn, &cnt, uu.data());
++              if (cnt != 1) {
++                std::cerr << "**********" << std::endl;
++                std::cerr << "********** cnt=" << cnt << std::endl;
++                std::cerr << "**********" << std::endl;
++                fccl[c] = (mc + 1);
++              }
++            }
++          }
++        }
++      }
++      if (sem("propagate")) {
++        for (auto i : layers) {
++          auto& fccl = fccl_[i];
++          if (par->bcc_reflect) {
++            BcReflect(fccl, mfc_, kClNone, m);
++          }
++          const int sn = 5; // stencil width
++          using MIdx = typename M::MIdx;
++          auto& bc = m.GetIndexCells();
++          GBlock<IdxCell, dim> bo(MIdx(-2), MIdx(sn));
++          for (auto c : m.Cells()) {
++            if (fccl[c] != kClNone) {
++              MIdx w = bc.GetMIdx(c);
++              std::array<int, sn*sn*sn> uu;
++              size_t k = 0;
++              for (MIdx wo : bo) {
++                IdxCell cn = bc.GetIdx(w + wo);
++                int u = -1;
++                for (auto j : layers) {
++                  if (fccl_[j][cn] == fccl[c]) {
++                    u = 0;
++                    break;
++                  }
++                }
++                uu[k++] = u;
++              }
++              int cnt;
++              COLOR_color(sn, &cnt, uu.data());
++              if (cnt != 1) {
++                std::cerr << "**********" << std::endl;
++                std::cerr << "********** cnt=" << cnt << std::endl;
++                std::cerr << "**********" << std::endl;
++                fccl[c] = (mc + 1);
++              }
++            }
++          }
++        }
++      }
+       if (sem.Nested("reconst")) {
+         Rec(GetLayer(fcu_, Layers::iter_curr));
+       }
+@@ -978,6 +1065,7 @@ struct Vof<M_>::Imp {
+   std::vector<Scal> dlc_; // dump poly cell
+   std::vector<Scal> dll_; // dump poly layer
+   std::vector<Scal> dlcl_; // dump poly color
++  Scal maxcolor_;
+ 
+   std::unique_ptr<PSM> psm_;
+   // tmp for MakeIteration, volume flux copied to cells
