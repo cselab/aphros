@@ -2,7 +2,22 @@
 #include <tgmath.h>
 #include "GL/glut.h"
 #include "table.h"
+#include "sample.h"
 #define	USED(x)		if(x);else{}
+
+struct Sample *sample;
+static double f(double x, double y, double z, void *p) {
+    struct Sample *sample;
+    sample = p;
+    return sample_f(sample, x, y, z);
+}
+
+struct Vec;
+static float GetOffset(float, float, float);
+static void GetNormal(struct Vec*, float, float, float);
+static void GetColor(struct Vec*, struct Vec*);
+static void MarchTetrahedron(struct Vec *, float *);
+static void MarchingCubes(double(*)(double, double, double, void*), void *);
 
 struct Vec {
     float x;
@@ -20,77 +35,9 @@ int n = 16;
 float h;
 int PolygonMode = GL_FILL;
 float TargetValue = 48.0;
-float Time = 0.0;
-struct Vec SourcePoint[3];
 int Spin = 1;
 int Move = 1;
 int Light = 1;
-
-static void Idle(void);
-static void DrawScene(void);
-static void Resize(int, int);
-static void Keyboard(unsigned char Key, int, int);
-static void Special(int Key, int, int);
-static void PrintHelp(void);
-static void SetTime(float Time);
-static float Sample1(float, float, float);
-static float Sample2(float, float, float);
-static float Sample3(float, float, float);
-static float (*Sample) (float, float, float) = Sample1;
-static void MarchingCubes(void);
-static void MarchCube1(float, float, float, float Scale);
-static void MarchCube2(float, float, float, float Scale);
-static void (*MarchCube) (float, float, float, float Scale) = MarchCube1;
-
-int
-main(int argc, char **argv)
-{
-    float PropertiesAmbient[] = { 0.50, 0.50, 0.50, 1.00 };
-    float PropertiesDiffuse[] = { 0.75, 0.75, 0.75, 1.00 };
-    float PropertiesSpecular[] = { 1.00, 1.00, 1.00, 1.00 };
-
-    int Width = 640;
-    int Height = 480;
-
-    h = 1.0 / n;
-
-    glutInit(&argc, argv);
-    glutInitWindowPosition(0, 0);
-    glutInitWindowSize(Width, Height);
-    glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
-    glutCreateWindow("Marching Cubes");
-    glutDisplayFunc(DrawScene);
-    glutIdleFunc(Idle);
-    glutReshapeFunc(Resize);
-    glutKeyboardFunc(Keyboard);
-    glutSpecialFunc(Special);
-
-    glClearColor(0.0, 0.0, 0.0, 1.0);
-    glClearDepth(1.0);
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
-    glPolygonMode(GL_FRONT_AND_BACK, PolygonMode);
-
-    glLightfv(GL_LIGHT0, GL_AMBIENT, PropertiesAmbient);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, PropertiesDiffuse);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, PropertiesSpecular);
-    glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 1.0);
-
-    glEnable(GL_LIGHT0);
-
-    glMaterialfv(GL_BACK, GL_AMBIENT, AmbientGreen);
-    glMaterialfv(GL_BACK, GL_DIFFUSE, DiffuseGreen);
-    glMaterialfv(GL_FRONT, GL_AMBIENT, AmbientBlue);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, DiffuseBlue);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, SpecularWhite);
-    glMaterialf(GL_FRONT, GL_SHININESS, 25.0);
-
-    Resize(Width, Height);
-
-    PrintHelp();
-    glutMainLoop();
-}
 
 static void
 PrintHelp(void)
@@ -133,6 +80,125 @@ Resize(int Width, int Height)
     glMatrixMode(GL_MODELVIEW);
 }
 
+//MarchCube1 performs the Marching Cubes algorithm on a single cube
+static void
+MarchCube1(float x, float y, float z, float h,
+	   double f(double, double, double, void*),
+	   void *p)
+{
+    extern int CubeEdgeFlags[256];
+    extern int TriangleConnectionTable[256][16];
+
+    float cube[8];
+    float Offset;
+    int Corner, i, Test, Edge, iTriangle, FlagIndex, EdgeFlags;
+    struct Vec Color;
+    struct Vec EdgeNorm[12];
+    struct Vec EdgeVertex[12];
+
+    //Make a local copy of the values at the cube's corners
+    for (i = 0; i < 8; i++) {
+	cube[i] =
+	    f(x + VertexOffset[i][0] * h,
+	      y + VertexOffset[i][1] * h,
+	      z + VertexOffset[i][2] * h,
+	      p);
+    }
+
+    //Find which vertices are inside of the surface and which are outside
+    FlagIndex = 0;
+    for (Test = 0; Test < 8; Test++) {
+	if (cube[Test] <= TargetValue)
+	    FlagIndex |= 1 << Test;
+    }
+
+    //Find which edges are intersected by the surface
+    EdgeFlags = CubeEdgeFlags[FlagIndex];
+
+    //If the cube is entirely inside or outside of the surface, then there will be no intersections
+    if (EdgeFlags == 0) {
+	return;
+    }
+    //Find the point of intersection of the surface with each edge
+    //Then find the normal to the surface at those points
+    for (Edge = 0; Edge < 12; Edge++) {
+	//if there is an intersection on this edge
+	if (EdgeFlags & (1 << Edge)) {
+	    Offset = GetOffset(cube[EdgeConnection[Edge][0]],
+			       cube[EdgeConnection[Edge][1]],
+			       TargetValue);
+
+	    EdgeVertex[Edge].x =
+		x + (VertexOffset[EdgeConnection[Edge][0]][0] +
+		     Offset * EdgeDirection[Edge][0]) * h;
+	    EdgeVertex[Edge].y =
+		y + (VertexOffset[EdgeConnection[Edge][0]][1] +
+		     Offset * EdgeDirection[Edge][1]) * h;
+	    EdgeVertex[Edge].z =
+		z + (VertexOffset[EdgeConnection[Edge][0]][2] +
+		     Offset * EdgeDirection[Edge][2]) * h;
+
+	    GetNormal(&EdgeNorm[Edge], EdgeVertex[Edge].x,
+		      EdgeVertex[Edge].y, EdgeVertex[Edge].z);
+	}
+    }
+
+
+    //Draw the triangles that were found.  There can be up to five per cube
+    for (iTriangle = 0; iTriangle < 5; iTriangle++) {
+	if (TriangleConnectionTable[FlagIndex][3 * iTriangle] < 0)
+	    break;
+
+	for (Corner = 0; Corner < 3; Corner++) {
+	    i = TriangleConnectionTable[FlagIndex][3 * iTriangle + Corner];
+
+	    GetColor(&Color, &EdgeNorm[i]);
+	    glColor3f(Color.x, Color.y, Color.z);
+	    glNormal3f(EdgeNorm[i].x, EdgeNorm[i].y, EdgeNorm[i].z);
+	    glVertex3f(EdgeVertex[i].x, EdgeVertex[i].y, EdgeVertex[i].z);
+	}
+    }
+}
+
+//MarchCube2 performs the Marching Tetrahedrons algorithm on a single cube by making six calls to MarchTetrahedron
+static void
+MarchCube2(float x, float y, float z, float Scale,
+	   double f(double, double, double, void*),
+	   void *p)
+{
+    float cube[8];
+    float TetrahedronValue[4];
+    int i, Tetrahedron, InACube;
+    struct Vec CubePosition[8];
+    struct Vec TetrahedronPosition[4];
+
+    //Make a local copy of the cube's corner positions
+    for (i = 0; i < 8; i++) {
+	CubePosition[i].x = x + VertexOffset[i][0] * Scale;
+	CubePosition[i].y = y + VertexOffset[i][1] * Scale;
+	CubePosition[i].z = z + VertexOffset[i][2] * Scale;
+    }
+
+    //Make a local copy of the cube's corner values
+    for (i = 0; i < 8; i++) {
+	cube[i] = f(CubePosition[i].x,
+		    CubePosition[i].y, CubePosition[i].z, p);
+    }
+
+    for (Tetrahedron = 0; Tetrahedron < 6; Tetrahedron++) {
+	for (i = 0; i < 4; i++) {
+	    InACube = TetrahedronsInACube[Tetrahedron][i];
+	    TetrahedronPosition[i].x = CubePosition[InACube].x;
+	    TetrahedronPosition[i].y = CubePosition[InACube].y;
+	    TetrahedronPosition[i].z = CubePosition[InACube].z;
+	    TetrahedronValue[i] = cube[InACube];
+	}
+	MarchTetrahedron(TetrahedronPosition, TetrahedronValue);
+    }
+}
+
+static void (*MarchCube) (float, float, float, float h,
+			  double (*)(double, double, double, void*), void*) = MarchCube1;
 static void
 Keyboard(unsigned char Key, int i, int j)
 {
@@ -175,13 +241,7 @@ Keyboard(unsigned char Key, int i, int j)
 	break;
     case 's':
 	{
-	    if (Sample == Sample1) {
-		Sample = Sample2;
-	    } else if (Sample == Sample2) {
-		Sample = Sample3;
-	    } else {
-		Sample = Sample1;
-	    }
+	    sample_next(sample);
 	}
 	break;
     case 'l':
@@ -256,7 +316,7 @@ DrawScene(void)
 	Time += 0.025;
     }
 
-    SetTime(Time);
+    sample_time(sample, Time);
 
     glTranslatef(0.0, 0.0, -1.0);
     glRotatef(-Pitch, 1.0, 0.0, 0.0);
@@ -273,7 +333,7 @@ DrawScene(void)
     glPushMatrix();
     glTranslatef(-0.5, -0.5, -0.5);
     glBegin(GL_TRIANGLES);
-    MarchingCubes();
+    MarchingCubes(f, sample);
     glEnd();
     glPopMatrix();
 
@@ -285,234 +345,57 @@ DrawScene(void)
 
 //GetOffset finds the approximate point of intersection of the surface
 // between two points with the values Value1 and Value2
-float
-GetOffset(float Value1, float Value2, float ValueDesired)
+static float
+GetOffset(float a, float b, float x)
 {
-    double Delta = Value2 - Value1;
-
-    if (Delta == 0.0) {
+    double d;
+    d = b - a;
+    if (d == 0.0)
 	return 0.5;
-    }
-    return (ValueDesired - Value1) / Delta;
+    return (x - a) / d;
 }
 
+static int
+color0(float x, float y, float z)
+{
+    return (x > 0.0 ? x : 0.0) + (y < 0.0 ? -0.5 * y : 0.0) + (z < 0.0 ? -0.5 * z : 0.0);
+}
 
 //GetColor generates a color from a given position and normal of a point
 static void
-GetColor(struct Vec *Color, struct Vec *Normal)
+GetColor(struct Vec *Color, struct Vec *n)
 {
-    float x = Normal->x;
-    float y = Normal->y;
-    float z = Normal->z;
-
-    Color->x =
-	(x > 0.0 ? x : 0.0) + (y < 0.0 ? -0.5 * y : 0.0) + (z <
-							    0.0 ? -0.5
-							    * z : 0.0);
-    Color->y =
-	(y > 0.0 ? y : 0.0) + (z < 0.0 ? -0.5 * z : 0.0) + (x <
-							    0.0 ? -0.5
-							    * x : 0.0);
-    Color->z =
-	(z > 0.0 ? z : 0.0) + (x < 0.0 ? -0.5 * x : 0.0) + (y <
-							    0.0 ? -0.5
-							    * y : 0.0);
+    Color->x = color0(n->x, n->y, n->z);
+    Color->y = color0(n->y, n->z, n->x);
+    Color->z = color0(n->z, n->x, n->y);
 }
 
 static void
-NormalizeVector(struct Vec *from, struct Vec *from)
+Normalize(struct Vec *v)
 {
-    float OldLength;
-    float Scale;
+    float len;
 
-    OldLength = sqrtf((from->x * from->x) +
-		      (from->y * from->y) +
-		      (from->z * from->z));
-
-    if (OldLength == 0.0) {
-	from->x = from->x;
-	from->y = from->y;
-	from->z = from->z;
-    } else {
-	Scale = 1.0 / OldLength;
-	from->x = from->x * Scale;
-	from->y = from->y * Scale;
-	from->z = from->z * Scale;
+    len = sqrt((v->x * v->x) + (v->y * v->y) + (v->z * v->z));
+    if (len != 0.0) {
+	v->x /= len;
+	v->y /= len;
+	v->z /= len;
     }
 }
-
-
-//Generate a sample data set.  Sample1(), Sample2() and Sample3() define three scalar fields whose
-// values vary by the x,y and z coordinates and by the Time value set by SetTime()
-static void
-SetTime(float NewTime)
-{
-    float Offset;
-    int SourceNum;
-
-    for (SourceNum = 0; SourceNum < 3; SourceNum++) {
-	SourcePoint[SourceNum].x = 0.5;
-	SourcePoint[SourceNum].y = 0.5;
-	SourcePoint[SourceNum].z = 0.5;
-    }
-
-    Time = NewTime;
-    Offset = 1.0 + sinf(Time);
-    SourcePoint[0].x *= Offset;
-    SourcePoint[1].y *= Offset;
-    SourcePoint[2].z *= Offset;
-}
-
-//Sample1 finds the distance of (x, y, z) from three moving points
-static float
-Sample1(float x, float y, float z)
-{
-    double Result = 0.0;
-    double Dx, Dy, Dz;
-
-    Dx = x - SourcePoint[0].x;
-    Dy = y - SourcePoint[0].y;
-    Dz = z - SourcePoint[0].z;
-    Result += 0.5 / (Dx * Dx + Dy * Dy + Dz * Dz);
-
-    Dx = x - SourcePoint[1].x;
-    Dy = y - SourcePoint[1].y;
-    Dz = z - SourcePoint[1].z;
-    Result += 1.0 / (Dx * Dx + Dy * Dy + Dz * Dz);
-
-    Dx = x - SourcePoint[2].x;
-    Dy = y - SourcePoint[2].y;
-    Dz = z - SourcePoint[2].z;
-    Result += 1.5 / (Dx * Dx + Dy * Dy + Dz * Dz);
-
-    return Result;
-}
-
-//Sample2 finds the distance of (x, y, z) from three moving lines
-static float
-Sample2(float x, float y, float z)
-{
-    double Result = 0.0;
-    double Dx, Dy, Dz;
-
-    Dx = x - SourcePoint[0].x;
-    Dy = y - SourcePoint[0].y;
-    Result += 0.5 / (Dx * Dx + Dy * Dy);
-
-    Dx = x - SourcePoint[1].x;
-    Dz = z - SourcePoint[1].z;
-    Result += 0.75 / (Dx * Dx + Dz * Dz);
-
-    Dy = y - SourcePoint[2].y;
-    Dz = z - SourcePoint[2].z;
-    Result += 1.0 / (Dy * Dy + Dz * Dz);
-
-    return Result;
-}
-
-
-//Sample2 defines a height field by plugging the distance from the center into the sin and cos functions
-static float
-Sample3(float x, float y, float z)
-{
-    float Height =
-	20.0 * (Time +
-		sqrt((0.5 - x) * (0.5 - x) + (0.5 - y) * (0.5 - y)));
-    Height = 1.5 + 0.1 * (sinf(Height) + cosf(Height));
-    double Result = (Height - z) * 50.0;
-
-    return Result;
-}
-
 
 //GetNormal() finds the gradient of the scalar field at a point
 //This gradient can be used as a very accurate vertx normal for lighting calculations
 static void
 GetNormal(struct Vec *Normal, float x, float y, float z)
 {
-    Normal->x = Sample(x - 0.01, y, z) - Sample(x + 0.01, y, z);
-    Normal->y = Sample(x, y - 0.01, z) - Sample(x, y + 0.01, z);
-    Normal->z = Sample(x, y, z - 0.01) - Sample(x, y, z + 0.01);
-    NormalizeVector(Normal, Normal);
+#define F(x, y, z) sample_f(sample, (x), (y), (z))
+    Normal->x = F(x - 0.01, y, z) - F(x + 0.01, y, z);
+    Normal->y = F(x, y - 0.01, z) - F(x, y + 0.01, z);
+    Normal->z = F(x, y, z - 0.01) - F(x, y, z + 0.01);
+    Normalize(Normal);
+#undef F
 }
 
-
-//MarchCube1 performs the Marching Cubes algorithm on a single cube
-static void
-MarchCube1(float x, float y, float z, float Scale)
-{
-    extern int CubeEdgeFlags[256];
-    extern int TriangleConnectionTable[256][16];
-
-    int Corner, i, Test, Edge, iTriangle, FlagIndex, EdgeFlags;
-    float Offset;
-    struct Vec Color;
-    float CubeValue[8];
-    struct Vec EdgeVertex[12];
-    struct Vec EdgeNorm[12];
-
-    //Make a local copy of the values at the cube's corners
-    for (i = 0; i < 8; i++) {
-	CubeValue[i] =
-	    Sample(x + VertexOffset[i][0] * Scale,
-		   y + VertexOffset[i][1] * Scale,
-		   z + VertexOffset[i][2] * Scale);
-    }
-
-    //Find which vertices are inside of the surface and which are outside
-    FlagIndex = 0;
-    for (Test = 0; Test < 8; Test++) {
-	if (CubeValue[Test] <= TargetValue)
-	    FlagIndex |= 1 << Test;
-    }
-
-    //Find which edges are intersected by the surface
-    EdgeFlags = CubeEdgeFlags[FlagIndex];
-
-    //If the cube is entirely inside or outside of the surface, then there will be no intersections
-    if (EdgeFlags == 0) {
-	return;
-    }
-    //Find the point of intersection of the surface with each edge
-    //Then find the normal to the surface at those points
-    for (Edge = 0; Edge < 12; Edge++) {
-	//if there is an intersection on this edge
-	if (EdgeFlags & (1 << Edge)) {
-	    Offset = GetOffset(CubeValue[EdgeConnection[Edge][0]],
-			       CubeValue[EdgeConnection[Edge][1]],
-			       TargetValue);
-
-	    EdgeVertex[Edge].x =
-		x + (VertexOffset[EdgeConnection[Edge][0]][0] +
-		     Offset * EdgeDirection[Edge][0]) * Scale;
-	    EdgeVertex[Edge].y =
-		y + (VertexOffset[EdgeConnection[Edge][0]][1] +
-		     Offset * EdgeDirection[Edge][1]) * Scale;
-	    EdgeVertex[Edge].z =
-		z + (VertexOffset[EdgeConnection[Edge][0]][2] +
-		     Offset * EdgeDirection[Edge][2]) * Scale;
-
-	    GetNormal(&EdgeNorm[Edge], EdgeVertex[Edge].x,
-		      EdgeVertex[Edge].y, EdgeVertex[Edge].z);
-	}
-    }
-
-
-    //Draw the triangles that were found.  There can be up to five per cube
-    for (iTriangle = 0; iTriangle < 5; iTriangle++) {
-	if (TriangleConnectionTable[FlagIndex][3 * iTriangle] < 0)
-	    break;
-
-	for (Corner = 0; Corner < 3; Corner++) {
-	    i = TriangleConnectionTable[FlagIndex][3 * iTriangle + Corner];
-
-	    GetColor(&Color, &EdgeNorm[i]);
-	    glColor3f(Color.x, Color.y, Color.z);
-	    glNormal3f(EdgeNorm[i].x, EdgeNorm[i].y, EdgeNorm[i].z);
-	    glVertex3f(EdgeVertex[i].x, EdgeVertex[i].y, EdgeVertex[i].z);
-	}
-    }
-}
 
 //MarchTetrahedron performs the Marching Tetrahedrons algorithm on a single tetrahedron
 static void
@@ -582,51 +465,64 @@ MarchTetrahedron(struct Vec *TetrahedronPosition, float *TetrahedronValue)
 }
 
 
-
-//MarchCube2 performs the Marching Tetrahedrons algorithm on a single cube by making six calls to MarchTetrahedron
-static void
-MarchCube2(float x, float y, float z, float Scale)
-{
-    float CubeValue[8];
-    float TetrahedronValue[4];
-    int i, Tetrahedron, InACube;
-    struct Vec CubePosition[8];
-    struct Vec TetrahedronPosition[4];
-
-    //Make a local copy of the cube's corner positions
-    for (i = 0; i < 8; i++) {
-	CubePosition[i].x = x + VertexOffset[i][0] * Scale;
-	CubePosition[i].y = y + VertexOffset[i][1] * Scale;
-	CubePosition[i].z = z + VertexOffset[i][2] * Scale;
-    }
-
-    //Make a local copy of the cube's corner values
-    for (i = 0; i < 8; i++) {
-	CubeValue[i] = Sample(CubePosition[i].x,
-			      CubePosition[i].y, CubePosition[i].z);
-    }
-
-    for (Tetrahedron = 0; Tetrahedron < 6; Tetrahedron++) {
-	for (i = 0; i < 4; i++) {
-	    InACube = TetrahedronsInACube[Tetrahedron][i];
-	    TetrahedronPosition[i].x = CubePosition[InACube].x;
-	    TetrahedronPosition[i].y = CubePosition[InACube].y;
-	    TetrahedronPosition[i].z = CubePosition[InACube].z;
-	    TetrahedronValue[i] = CubeValue[InACube];
-	}
-	MarchTetrahedron(TetrahedronPosition, TetrahedronValue);
-    }
-}
-
-
 //MarchingCubes iterates over the entire dataset, calling MarchCube on each cube
 static void
-MarchingCubes(void)
+MarchingCubes(double f(double, double, double, void*), void *p)
 {
     int i, j, k;
 
     for (i = 0; i < n; i++)
 	for (j = 0; j < n; j++)
 	    for (k = 0; k < n; k++)
-		MarchCube(i * h, j * h, k * h, h);
+		MarchCube(i * h, j * h, k * h, h, f, p);
+}
+
+int
+main(int argc, char **argv)
+{
+    float PropertiesAmbient[] = { 0.50, 0.50, 0.50, 1.00 };
+    float PropertiesDiffuse[] = { 0.75, 0.75, 0.75, 1.00 };
+    float PropertiesSpecular[] = { 1.00, 1.00, 1.00, 1.00 };
+
+    int Width = 640;
+    int Height = 480;
+
+    h = 1.0 / n;
+    sample = sample_ini();
+    glutInit(&argc, argv);
+    glutInitWindowPosition(0, 0);
+    glutInitWindowSize(Width, Height);
+    glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
+    glutCreateWindow("Marching Cubes");
+    glutDisplayFunc(DrawScene);
+    glutIdleFunc(Idle);
+    glutReshapeFunc(Resize);
+    glutKeyboardFunc(Keyboard);
+    glutSpecialFunc(Special);
+
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glClearDepth(1.0);
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glPolygonMode(GL_FRONT_AND_BACK, PolygonMode);
+
+    glLightfv(GL_LIGHT0, GL_AMBIENT, PropertiesAmbient);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, PropertiesDiffuse);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, PropertiesSpecular);
+    glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 1.0);
+
+    glEnable(GL_LIGHT0);
+
+    glMaterialfv(GL_BACK, GL_AMBIENT, AmbientGreen);
+    glMaterialfv(GL_BACK, GL_DIFFUSE, DiffuseGreen);
+    glMaterialfv(GL_FRONT, GL_AMBIENT, AmbientBlue);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, DiffuseBlue);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, SpecularWhite);
+    glMaterialf(GL_FRONT, GL_SHININESS, 25.0);
+
+    Resize(Width, Height);
+
+    PrintHelp();
+    glutMainLoop();
 }
