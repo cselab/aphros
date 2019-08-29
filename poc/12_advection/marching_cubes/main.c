@@ -320,24 +320,24 @@ GetColor(struct Vec *Color, struct Vec *Normal)
 }
 
 static void
-NormalizeVector(struct Vec *VectorResult, struct Vec *VectorSource)
+NormalizeVector(struct Vec *from, struct Vec *from)
 {
     float OldLength;
     float Scale;
 
-    OldLength = sqrtf((VectorSource->x * VectorSource->x) +
-		      (VectorSource->y * VectorSource->y) +
-		      (VectorSource->z * VectorSource->z));
+    OldLength = sqrtf((from->x * from->x) +
+		      (from->y * from->y) +
+		      (from->z * from->z));
 
     if (OldLength == 0.0) {
-	VectorResult->x = VectorSource->x;
-	VectorResult->y = VectorSource->y;
-	VectorResult->z = VectorSource->z;
+	from->x = from->x;
+	from->y = from->y;
+	from->z = from->z;
     } else {
 	Scale = 1.0 / OldLength;
-	VectorResult->x = VectorSource->x * Scale;
-	VectorResult->y = VectorSource->y * Scale;
-	VectorResult->z = VectorSource->z * Scale;
+	from->x = from->x * Scale;
+	from->y = from->y * Scale;
+	from->z = from->z * Scale;
     }
 }
 

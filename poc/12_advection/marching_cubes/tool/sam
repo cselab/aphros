@@ -1,6 +1,6 @@
 #!/u/9/plan9port/bin/ssam -f
-,x/[A-Za-z_][A-Za-z_0-9]*/ {
-                           s/a2i//
+,x/[A-Za-z_][A-Za-z_0-9]*/ g/VectorResult/ {
+                           s/VectorResult/from
 }
 ,p
 ,d

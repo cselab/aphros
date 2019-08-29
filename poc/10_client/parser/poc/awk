@@ -1,0 +1,56 @@
+#!/usr/bin/awk -f
+
+BEGIN {
+    SPACE = "^[\\t ]+"
+    TOK = "^[_a-zA-Z][_0-9a-zA-Z]*"
+    COMMANDS = "^(set)|(include)|(del)$"
+    TYPES = "^(double)|(int)|(string)$"
+    
+    File = ARGV[1]
+    while (getline < File > 0) {
+        No++
+        line = $0
+        gsub(/#.*/, "")
+        if (/^[\t ]*$/) continue
+        nxt(SPACE)
+        if (!nxt(TOK))
+            err("expecting command")
+        if (Match !~ COMMANDS)
+            err("unexpected command \"%s\"", Match)
+        if (Match == "set") {
+            if (!nxt(SPACE))
+                err("no space after set")
+            if (!nxt(TOK))
+                err("expecting a type")
+            Type = Match
+            if (Type !~ TYPES)
+                err("unknown type \"%s\"", Type)
+            if (!nxt(SPACE))
+                err("no space after type")
+            if (!nxt(TOK))
+                err("not a valid variable name")
+            Key = Match
+            if (!nxt(SPACE))
+                err("no space after variable name")
+            Val = $0
+        } else if (Set == "del") {
+            
+        }
+    }
+}
+
+function nxt(e) {
+    if (!match($0, e))
+        return 0
+    Match = substr($0, RSTART, RLENGTH)
+    $0 = substr($0, RSTART + RLENGTH)
+    return 1
+}
+
+function err(f, a, b, c, d)
+{
+    printf "%s:%d:", File, No | "cat >&2"
+    printf " " f, a , b, c, d  | "cat >&2"
+    printf "\n" | "cat >&2"
+    exit
+}
