@@ -273,11 +273,13 @@ struct Vof<M_>::Imp {
       dl_.clear();
       dlc_.clear();
       dll_.clear();
+      dlcl_.clear();
       auto h = m.GetCellSize();
       for (auto i : layers) {
         auto& fcn = fcn_[i];
         auto& fca = fca_[i];
         auto& fci = fci_[i];
+        auto& fccl = fccl_[i];
         auto& fcu = fcu_[i].iter_curr;
         for (auto c : m.Cells()) {
           Scal u = fcu[c];
@@ -289,6 +291,7 @@ struct Vof<M_>::Imp {
             dl_.push_back(R::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h));
             dlc_.push_back(m.GetHash(c));
             dll_.push_back(i);
+            dlcl_.push_back(fccl[c]);
           }
         }
       }
@@ -297,6 +300,7 @@ struct Vof<M_>::Imp {
       using TS = typename M::template OpCatT<Scal>;
       m.Reduce(std::make_shared<TS>(&dlc_));
       m.Reduce(std::make_shared<TS>(&dll_));
+      m.Reduce(std::make_shared<TS>(&dlcl_));
     }
     if (sem("write")) {
       if (m.IsRoot()) {
@@ -305,7 +309,7 @@ struct Vof<M_>::Imp {
             << "dump" 
             << " t=" << owner_->GetTime() + owner_->GetTimeStep()
             << " to " << fn << std::endl;
-        WriteVtkPoly(fn, dl_, {&dlc_, &dll_}, {"c", "l"}, 
+        WriteVtkPoly(fn, dl_, {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"}, 
             "Reconstructed linear interface", true);
       }
     }
@@ -973,6 +977,7 @@ struct Vof<M_>::Imp {
   std::vector<std::vector<Vect>> dl_; // dump poly
   std::vector<Scal> dlc_; // dump poly cell
   std::vector<Scal> dll_; // dump poly layer
+  std::vector<Scal> dlcl_; // dump poly color
 
   std::unique_ptr<PSM> psm_;
   // tmp for MakeIteration, volume flux copied to cells
