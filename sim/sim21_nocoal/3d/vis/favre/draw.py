@@ -72,13 +72,13 @@ s_0500vtkDisplay.AmbientColor = [0.0, 0.0, 0.0]
 s_0500vtkDisplay.Opacity = 0.5
 
 
-fn = "polygons.png"
+fn = "contour.png"
 Hide(s_0500vtk, renderView1)
 Show(contour1, renderView1)
 SaveScreenshot(fn, renderView1)
 print(fn)
 
-fn = "contour.png"
+fn = "polygons.png"
 Show(s_0500vtk, renderView1)
 Hide(contour1, renderView1)
 SaveScreenshot(fn, renderView1)
