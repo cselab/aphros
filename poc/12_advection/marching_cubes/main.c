@@ -14,8 +14,7 @@ static double f(double x, double y, double z, void *p) {
 }
 
 struct Vec;
-static void GetNormal(struct Vec*, float, float, float);
-static void MarchTetrahedron(struct Vec *, float *);
+static void MarchTetrahedron(struct Vec *, float *, double(*)(double, double, double, void*), void*);
 static void MarchingCubes(double(*)(double, double, double, void*), void *);
 static float AmbientGreen[] = { 0.00, 0.25, 0.00, 1.00 };
 static float AmbientBlue[] = { 0.00, 0.00, 0.25, 1.00 };
@@ -30,23 +29,6 @@ float TargetValue = 48.0;
 int Spin = 1;
 int Move = 1;
 int Light = 1;
-
-static void
-PrintHelp(void)
-{
-    printf
-	("Marching Cubes Example by Cory Bloyd (dejaspaminacan@my-deja.com)\n\n");
-
-    printf("+/-  increase/decrease sample density\n");
-    printf("PageUp/PageDown  increase/decrease surface value\n");
-    printf("s  change sample function\n");
-    printf("c  toggle marching cubes / marching tetrahedrons\n");
-    printf("w  wireframe on/off\n");
-    printf("l  toggle lighting / color-by-normal\n");
-    printf("Home  spin scene on/off\n");
-    printf("End  source point animation on/off\n");
-}
-
 
 static void
 Resize(int Width, int Height)
@@ -131,7 +113,7 @@ MarchCube1(float x, float y, float z, float h,
 		     Offset * EdgeDirection[Edge][2]) * h;
 
 	    GetNormal(&EdgeNorm[Edge], EdgeVertex[Edge].x,
-		      EdgeVertex[Edge].y, EdgeVertex[Edge].z);
+		      EdgeVertex[Edge].y, EdgeVertex[Edge].z, f, p);
 	}
     }
 
@@ -185,7 +167,7 @@ MarchCube2(float x, float y, float z, float Scale,
 	    TetrahedronPosition[i].z = CubePosition[InACube].z;
 	    TetrahedronValue[i] = cube[InACube];
 	}
-	MarchTetrahedron(TetrahedronPosition, TetrahedronValue);
+	MarchTetrahedron(TetrahedronPosition, TetrahedronValue, f, p);
     }
 }
 
@@ -335,36 +317,10 @@ DrawScene(void)
     glutSwapBuffers();
 }
 
-static void
-Normalize(struct Vec *v)
-{
-    float len;
-
-    len = sqrt((v->x * v->x) + (v->y * v->y) + (v->z * v->z));
-    if (len != 0.0) {
-	v->x /= len;
-	v->y /= len;
-	v->z /= len;
-    }
-}
-
-//GetNormal() finds the gradient of the scalar field at a point
-//This gradient can be used as a very accurate vertx normal for lighting calculations
-static void
-GetNormal(struct Vec *Normal, float x, float y, float z)
-{
-#define F(x, y, z) sample_f(sample, (x), (y), (z))
-    Normal->x = F(x - 0.01, y, z) - F(x + 0.01, y, z);
-    Normal->y = F(x, y - 0.01, z) - F(x, y + 0.01, z);
-    Normal->z = F(x, y, z - 0.01) - F(x, y, z + 0.01);
-    Normalize(Normal);
-#undef F
-}
-
-
 //MarchTetrahedron performs the Marching Tetrahedrons algorithm on a single tetrahedron
 static void
-MarchTetrahedron(struct Vec *TetrahedronPosition, float *TetrahedronValue)
+MarchTetrahedron(struct Vec *TetrahedronPosition, float *TetrahedronValue,
+		 double(*f)(double, double, double, void*), void *p)
 {
     extern int TetrahedronEdgeFlags[16];
     extern int TetrahedronTriangles[16][7];
@@ -411,7 +367,7 @@ MarchTetrahedron(struct Vec *TetrahedronPosition, float *TetrahedronValue)
 		Offset * TetrahedronPosition[Vert1].z;
 
 	    GetNormal(&EdgeNorm[Edge], EdgeVertex[Edge].x,
-		      EdgeVertex[Edge].y, EdgeVertex[Edge].z);
+		      EdgeVertex[Edge].y, EdgeVertex[Edge].z, f, p);
 	}
     }
     //Draw the triangles that were found.  There can be up to 2 per tetrahedron
