@@ -14,7 +14,7 @@ static double f(double x, double y, double z, void *p) {
 }
 
 struct Vec;
-static void MarchTetrahedron(struct Vec *, float *, double(*)(double, double, double, void*), void*);
+static void MarchTetrahedron(struct Vec *, double *, double(*)(double, double, double, void*), void*);
 static void MarchingCubes(double(*)(double, double, double, void*), void *);
 static float AmbientGreen[] = { 0.00, 0.25, 0.00, 1.00 };
 static float AmbientBlue[] = { 0.00, 0.00, 0.25, 1.00 };
@@ -23,9 +23,9 @@ static float DiffuseBlue[] = { 0.00, 0.00, 0.75, 1.00 };
 static float SpecularWhite[] = { 1.00, 1.00, 1.00, 1.00 };
 
 int n = 16;
-float h;
+double h;
 int PolygonMode = GL_FILL;
-float TargetValue = 48.0;
+double TargetValue = 48.0;
 int Spin = 1;
 int Move = 1;
 int Light = 1;
@@ -33,19 +33,19 @@ int Light = 1;
 static void
 Resize(int Width, int Height)
 {
-    float Aspect, HalfWorldSize = (1.4142135623730950488016887242097 / 2);
+    double Aspect, HalfWorldSize = (1.4142135623730950488016887242097 / 2);
 
     glViewport(0, 0, Width, Height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 
     if (Width <= Height) {
-	Aspect = (float) Height / (float) Width;
+	Aspect = (double) Height / (double) Width;
 	glOrtho(-HalfWorldSize, HalfWorldSize, -HalfWorldSize * Aspect,
 		HalfWorldSize * Aspect, -10 * HalfWorldSize,
 		10 * HalfWorldSize);
     } else {
-	Aspect = (float) Width / (float) Height;
+	Aspect = (double) Width / (double) Height;
 	glOrtho(-HalfWorldSize * Aspect, HalfWorldSize * Aspect,
 		-HalfWorldSize, HalfWorldSize, -10 * HalfWorldSize,
 		10 * HalfWorldSize);
@@ -56,15 +56,15 @@ Resize(int Width, int Height)
 
 //MarchCube1 performs the Marching Cubes algorithm on a single cube
 static void
-MarchCube1(float x, float y, float z, float h,
+MarchCube1(double x, double y, double z, double h,
 	   double f(double, double, double, void*),
 	   void *p)
 {
     extern int CubeEdgeFlags[256];
     extern int TriangleConnectionTable[256][16];
 
-    float cube[8];
-    float Offset;
+    double cube[8];
+    double Offset;
     int Corner, i, Test, Edge, iTriangle, FlagIndex, EdgeFlags;
     struct Vec Color;
     struct Vec EdgeNorm[12];
@@ -136,12 +136,12 @@ MarchCube1(float x, float y, float z, float h,
 
 //MarchCube2 performs the Marching Tetrahedrons algorithm on a single cube by making six calls to MarchTetrahedron
 static void
-MarchCube2(float x, float y, float z, float Scale,
+MarchCube2(double x, double y, double z, double Scale,
 	   double f(double, double, double, void*),
 	   void *p)
 {
-    float cube[8];
-    float TetrahedronValue[4];
+    double cube[8];
+    double TetrahedronValue[4];
     int i, Tetrahedron, InACube;
     struct Vec CubePosition[8];
     struct Vec TetrahedronPosition[4];
@@ -171,7 +171,7 @@ MarchCube2(float x, float y, float z, float Scale,
     }
 }
 
-static void (*MarchCube) (float, float, float, float h,
+static void (*MarchCube) (double, double, double, double h,
 			  double (*)(double, double, double, void*), void*) = MarchCube1;
 static void
 Keyboard(unsigned char Key, int i, int j)
@@ -274,9 +274,9 @@ Idle(void)
 static void
 DrawScene(void)
 {
-    static float Pitch = 0.0;
-    static float Yaw = 0.0;
-    static float Time = 0.0;
+    static double Pitch = 0.0;
+    static double Yaw = 0.0;
+    static double Time = 0.0;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -319,14 +319,14 @@ DrawScene(void)
 
 //MarchTetrahedron performs the Marching Tetrahedrons algorithm on a single tetrahedron
 static void
-MarchTetrahedron(struct Vec *TetrahedronPosition, float *TetrahedronValue,
+MarchTetrahedron(struct Vec *TetrahedronPosition, double *TetrahedronValue,
 		 double(*f)(double, double, double, void*), void *p)
 {
     extern int TetrahedronEdgeFlags[16];
     extern int TetrahedronTriangles[16][7];
 
     int Edge, Vert0, Vert1, EdgeFlags, iTriangle, Corner, i, FlagIndex = 0;
-    float Offset, InvOffset;
+    double Offset, InvOffset;
     struct Vec EdgeVertex[6];
     struct Vec EdgeNorm[6];
     struct Vec Color;

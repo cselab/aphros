@@ -4,8 +4,8 @@
 
 //GetOffset finds the approximate point of intersection of the surface
 // between two points with the values Value1 and Value2
-float
-GetOffset(float a, float b, float x)
+double
+GetOffset(double a, double b, double x)
 {
     double d;
     d = b - a;
@@ -15,7 +15,7 @@ GetOffset(float a, float b, float x)
 }
 
 static int
-color0(float x, float y, float z)
+color0(double x, double y, double z)
 {
     return (x > 0.0 ? x : 0.0) + (y < 0.0 ? -0.5 * y : 0.0) + (z < 0.0 ? -0.5 * z : 0.0);
 }
@@ -60,7 +60,7 @@ Normalize(struct Vec *v)
 //GetNormal() finds the gradient of the scalar field at a point
 //This gradient can be used as a very accurate vertx normal for lighting calculations
 void
-GetNormal(struct Vec *v, float x, float y, float z,
+GetNormal(struct Vec *v, double x, double y, double z,
 	  double(*f)(double, double, double, void*), void *p)
 {
 #define F(x, y, z) f((x), (y), (z), p)

@@ -636,7 +636,7 @@ static int TriangleConnectionTable[256][16] = {
 
 //VertexOffset lists the positions, relative to vertex0, of each of
 //the 8 vertices of a cube
-static float VertexOffset[][3] = {
+static double VertexOffset[][3] = {
     {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 1.0, 0.0}, {0.0, 1.0,
 							0.0},
     {0.0, 0.0, 1.0}, {1.0, 0.0, 1.0}, {1.0, 1.0, 1.0}, {0.0, 1.0,
@@ -653,7 +653,7 @@ static int EdgeConnection[][2] = {
 
 //EdgeDirection lists the direction vector (vertex1-vertex0) for
 //each edge in the cube
-static float EdgeDirection[][3] = {
+static double EdgeDirection[][3] = {
     {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-1.0, 0.0, 0.0}, {0.0, -1.0,
 							 0.0},
     {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-1.0, 0.0, 0.0}, {0.0, -1.0,
