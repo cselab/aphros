@@ -927,12 +927,12 @@ struct Vof<M_>::Imp {
           m.Comm(&fccl_[i]);
         }
       }
-      if (sem.Nested("recolor")) {
-        Recolor();
-      }
       if (sem.Nested("reconst")) {
         Rec(GetLayer(fcu_, Layers::iter_curr));
       }
+    }
+    if (sem.Nested("recolor")) {
+      Recolor();
     }
     if (sem("stat")) {
       owner_->IncIter();
