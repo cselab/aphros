@@ -16,12 +16,7 @@ static double
 f(double x, double y, double z)
 {
     double ans;
-    if (x > 0)
-	ans = sq(x) + sq(y) + 2*sq(z) - sq(r);
-    else
-	ans = 2*sq(x) + sq(y) + sq(z) - sq(r);
-    //if (ans < 0)
-    //fprintf(stderr, "ans: %g\n", ans);
+    ans = sq(x) + sq(2*y) + sq(3*z) - sq(r);
     return ans;
 }
 
