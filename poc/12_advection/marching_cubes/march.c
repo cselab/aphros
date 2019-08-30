@@ -2,7 +2,7 @@
 #include "march.h"
 #include "table.h"
 
-enum {X, Y, Z};
+enum { X, Y, Z };
 struct Vec {
     double x;
     double y;
@@ -22,8 +22,8 @@ MarchCube1(struct March *q, double x, double y, double z)
     double cube[8];
     double a;
     int c, i, e, j, idx, flag;
-    double norm[3*12];
-    double vert[3*12];
+    double norm[3 * 12];
+    double vert[3 * 12];
     double h;
     double *n, *v;
 
@@ -31,8 +31,7 @@ MarchCube1(struct March *q, double x, double y, double z)
     for (i = 0; i < 8; i++) {
 	cube[i] =
 	    q->f(x + Offset[i][0] * h,
-		 y + Offset[i][1] * h, z + Offset[i][2] * h,
-		 q->fdata);
+		 y + Offset[i][1] * h, z + Offset[i][2] * h, q->fdata);
     }
     idx = 0;
     for (i = 0; i < 8; i++) {
@@ -45,10 +44,9 @@ MarchCube1(struct March *q, double x, double y, double z)
     }
     for (e = 0; e < 12; e++) {
 	if (flag & (1 << e)) {
-	    n = &norm[3*e];
-	    v = &vert[3*e];
-	    a = offset(cube[Connection[e][0]],
-		       cube[Connection[e][1]]);
+	    n = &norm[3 * e];
+	    v = &vert[3 * e];
+	    a = offset(cube[Connection[e][0]], cube[Connection[e][1]]);
 	    v[X] =
 		x + (Offset[Connection[e][0]][0] +
 		     a * Direction[e][0]) * h;
@@ -66,8 +64,8 @@ MarchCube1(struct March *q, double x, double y, double z)
 	    break;
 	for (c = 0; c < 3; c++) {
 	    i = TriangleConnectionTable[idx][3 * j + c];
-	    n = &norm[3*i];
-	    v = &vert[3*i];
+	    n = &norm[3 * i];
+	    v = &vert[3 * i];
 	    q->normal(n[X], n[Y], n[Z], q->cdata);
 	    q->vertex(v[X], v[Y], v[Z], q->cdata);
 	}
@@ -90,8 +88,7 @@ MarchCube2(struct March *q, double x, double y, double z)
 	pos[i].z = z + Offset[i][2] * (q->spacing);
     }
     for (i = 0; i < 8; i++) {
-	cube[i] = q->f(pos[i].x,
-		       pos[i].y, pos[i].z, q->fdata);
+	cube[i] = q->f(pos[i].x, pos[i].y, pos[i].z, q->fdata);
     }
     for (t = 0; t < 6; t++) {
 	for (i = 0; i < 4; i++) {
@@ -107,8 +104,7 @@ MarchCube2(struct March *q, double x, double y, double z)
 }
 
 static int
-MarchTetrahedron(struct March *q, struct Vec *tetr,
-		 double *val)
+MarchTetrahedron(struct March *q, struct Vec *tetr, double *val)
 {
     int e, v0, v1, flag, j, c, i, idx = 0;
     double a, b;
@@ -129,15 +125,9 @@ MarchTetrahedron(struct March *q, struct Vec *tetr,
 	    v1 = TetrahedronConnection[e][1];
 	    a = offset(val[v0], val[v1]);
 	    b = 1.0 - a;
-	    vert[e].x =
-		b * tetr[v0].x +
-		a * tetr[v1].x;
-	    vert[e].y =
-		b * tetr[v0].y +
-		a * tetr[v1].y;
-	    vert[e].z =
-		b * tetr[v0].z +
-		a * tetr[v1].z;
+	    vert[e].x = b * tetr[v0].x + a * tetr[v1].x;
+	    vert[e].y = b * tetr[v0].y + a * tetr[v1].y;
+	    vert[e].z = b * tetr[v0].z + a * tetr[v1].z;
 	    normal(q, vert[e].x, vert[e].y, vert[e].z, &norm[e].x,
 		   &norm[e].y, &norm[e].z);
 	}
