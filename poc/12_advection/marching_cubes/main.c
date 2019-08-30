@@ -6,7 +6,8 @@
 #define	USED(x)		if(x);else{}
 struct Sample *sample;
 
-void
+enum {X, Y, Z};
+static void
 PrintHelp(void)
 {
     printf
@@ -45,18 +46,22 @@ GetColor(double x, double y, double z, double *u, double *v, double *w)
 }
 
 static double
-f(double x, double y, double z, void *p)
+f(double r[3], void *p)
 {
     struct Sample *sample;
 
     sample = p;
-    return sample_f(sample, x, y, z);
+    return sample_f(sample, r);
 }
 
 static int
-normal(double x, double y, double z, void *p)
+normal(double r[3], void *p)
 {
     double u, v, w;
+    double x, y, z;
+    x = r[X];
+    y = r[Y];
+    z = r[Z];
 
     USED(p);
     u = color(x, y, z);
@@ -69,10 +74,10 @@ normal(double x, double y, double z, void *p)
 }
 
 static int
-vertex(double x, double y, double z, void *p)
+vertex(double r[3], void *p)
 {
     USED(p);
-    glVertex3f(x, y, z);
+    glVertex3f(r[X], r[Y], r[Z]);
     return 0;
 }
 static float AmbientGreen[] = { 0.00, 0.25, 0.00, 1.00 };

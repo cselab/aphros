@@ -13,14 +13,17 @@ static void
 get_cube(struct March *q, double r[3], double cube[8])
 {
     int i;
-    double *o;
+    double *o, p[3];
     double h;
 
     h = q->spacing;
     for (i = 0; i < 8; i++) {
 	o = Offset[i];
+	p[X] = r[X] + o[X] * h;
+	p[Y] = r[Y] + o[Y] * h;
+	p[Z] = r[Z] + o[Z] * h;
 	cube[i] =
-	    q->f(r[X] + o[X] * h, r[Y] + o[Y] * h, r[Z] + o[Z] * h, q->fdata);
+	    q->f(p, q->fdata);
     }
 }
 
@@ -65,8 +68,8 @@ MarchCube1(struct March *q, double r[3])
 	    j = TriangleConnectionTable[idx][3 * i + c];
 	    n = &norm[3 * j];
 	    v = &vert[3 * j];
-	    q->normal(n[X], n[Y], n[Z], q->cdata);
-	    q->vertex(v[X], v[Y], v[Z], q->cdata);
+	    q->normal(n, q->cdata);
+	    q->vertex(v, q->cdata);
 	}
     }
     return 0;
@@ -147,8 +150,8 @@ MarchTetrahedron(struct March *q, double *tetr, double *val)
 	    i = TetrahedronTriangles[idx][3 * j + c];
 	    v = &vert[3 * i];
 	    n = &norm[3 * i];
-	    q->normal(n[X], n[Y], n[Z], q->cdata);
-	    q->vertex(v[X], v[Y], v[Z], q->cdata);
+	    q->normal(n, q->cdata);
+	    q->vertex(v, q->cdata);
 	}
     }
     return 0;
@@ -218,18 +221,26 @@ Normalize(double v[3])
     }
 }
 
+static double
+F(struct March *q, double x, double y, double z)
+{
+    double p[3];
+    p[X] = x;
+    p[Y] = y;
+    p[Z] = z;
+    return (q->f)(p, q->fdata);
+}
+
 static void
 normal(struct March *q, double r[3], double n[3])
 {
     double h, x, y, z;
-
-#define F(x, y, z) (q->f)((x), (y), (z), q->fdata)
     h = q->spacing / 10;
     x = r[X];
     y = r[Y];
     z = r[Z];
-    n[X] = F(x - h, y, z) - F(x + h, y, z);
-    n[Y] = F(x, y - h, z) - F(x, y + h, z);
-    n[Z] = F(x, y, z - h) - F(x, y, z + h);
+    n[X] = F(q, x - h, y, z) - F(q, x + h, y, z);
+    n[Y] = F(q, x, y - h, z) - F(q, x, y + h, z);
+    n[Z] = F(q, x, y, z - h) - F(q, x, y, z + h);
     Normalize(n);
 }

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <tgmath.h>
 #include "sample.h"
+enum {X, Y, Z};
 struct Vec {
     double x;
     double y;
@@ -12,20 +13,24 @@ struct Sample {
     double t;
     double level;
 };
-static double Sample1(struct Sample *, double, double, double);
-static double Sample2(struct Sample *, double, double, double);
-static double Sample3(struct Sample *, double, double, double);
+static double Sample1(struct Sample *, double[3]);
+static double Sample2(struct Sample *, double[3]);
+static double Sample3(struct Sample *, double[3]);
 enum { SAMPLE1, SAMPLE2, SAMPLE3, EMPTY };
 
-static double (*sample[3]) (struct Sample *, double, double, double) = {
+static double (*sample[3]) (struct Sample *, double[3]) = {
 Sample1, Sample2, Sample3};
 
 static double
-Sample1(struct Sample *q, double x, double y, double z)
+Sample1(struct Sample *q, double r[3])
 {
+    struct Vec *point;
     double res = 0.0;
     double dx, dy, dz;
-    struct Vec *point;
+    double x, y, z;
+    x = r[X];
+    y = r[Y];
+    z = r[Z];
 
     point = q->point;
     dx = x - point[0].x;
@@ -44,12 +49,15 @@ Sample1(struct Sample *q, double x, double y, double z)
 }
 
 static double
-Sample2(struct Sample *q, double x, double y, double z)
+Sample2(struct Sample *q, double r[3])
 {
     double res = 0.0;
     double dx, dy, dz;
     struct Vec *point;
-
+    double x, y, z;
+    x = r[X];
+    y = r[Y];
+    z = r[Z];
     point = q->point;
     dx = x - point[0].x;
     dy = y - point[0].y;
@@ -64,12 +72,16 @@ Sample2(struct Sample *q, double x, double y, double z)
 }
 
 static double
-Sample3(struct Sample *q, double x, double y, double z)
+Sample3(struct Sample *q, double r[3])
 {
     double res;
     double Height;
     double t;
 
+    double x, y, z;
+    x = r[X];
+    y = r[Y];
+    z = r[Z];
     t = q->t;
     Height =
 	20.0 * (t + sqrt((0.5 - x) * (0.5 - x) + (0.5 - y) * (0.5 - y)));
@@ -96,11 +108,11 @@ sample_fin(struct Sample *q)
 }
 
 double
-sample_f(struct Sample *q, double x, double y, double z)
+sample_f(struct Sample *q, double r[3])
 {
     double f, level;
 
-    f = sample[q->type] (q, x, y, z);
+    f = sample[q->type] (q, r);
     level = q->level;
     return f - level;
 }
