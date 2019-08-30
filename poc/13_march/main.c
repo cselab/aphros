@@ -59,7 +59,6 @@ MarchTetrahedron(double *tetr, double *val, int *pn, double *tri)
     double a, b;
     double *te0, *te1, *v, *t;
     double vert[3 * 6];
-    double norm[3 * 6];
     int n;
 
     n = *pn;
@@ -67,8 +66,7 @@ MarchTetrahedron(double *tetr, double *val, int *pn, double *tri)
 	if (val[i] <= 0)
 	    idx |= 1 << i;
     }
-    flag = TetrahedronEdgeFlags[idx];
-    if (flag == 0)
+    if ((flag = TetrahedronEdgeFlags[idx]) == 0)
 	goto end;
     for (e = 0; e < 6; e++) {
 	if (flag & (1 << e)) {
@@ -84,18 +82,18 @@ MarchTetrahedron(double *tetr, double *val, int *pn, double *tri)
 	    v[Z] = b * te0[Z] + a * te1[Z];
 	}
     }
+
     for (j = 0; j < 2; j++) {
 	if (TetrahedronTriangles[idx][3 * j] < 0)
 	    break;
 	for (c = 0; c < 3; c++) {
 	    i = TetrahedronTriangles[idx][3 * j + c];
-	    v = &vert[3 * j];
-	    t = &tri[3 * n];
-	    tri[X] = v[X];
-	    tri[Y] = v[Y];
-	    tri[Z] = v[Z];
-	    n++;
+	    v = &vert[3 * i];
+	    *tri++ = v[X];
+	    *tri++ = v[Y];
+	    *tri++ = v[Z];
 	}
+	n++;
     }
   end:
     *pn = n;
@@ -109,7 +107,6 @@ tetrahedron(double cube[8], int *pn, double *tri)
     double val[4];
     int i, t, j;
     double *p, *te, *o;
-    double h;
     double pos[3 * 8];
     double tetr[3 * 4];
     int n;
@@ -133,7 +130,7 @@ tetrahedron(double cube[8], int *pn, double *tri)
 	    te[Z] = p[Z];
 	    val[i] = cube[j];
 	}
-	MarchTetrahedron(tetr, val, &n, tri);
+	MarchTetrahedron(tetr, val, &n, &tri[9*n]);
     }
 
     *pn = n;
@@ -170,20 +167,20 @@ march(int (*algorithm)(double *, int *, double *), double u[8],
 
     swap(u, 2, 3);
     swap(u, 6, 7);
-    algorithm(u, pn, tri);
+    s = algorithm(u, pn, tri);
     swap(u, 2, 3);
     swap(u, 6, 7);
-
+    return s;
 }
 
 int
 march_cube(double u[8], int *n, double *tri)
 {
-    march(cube, u, n, tri);
+    return march(cube, u, n, tri);
 }
 
 int
 march_tetrahedron(double u[8], int *n, double *tri)
 {
-    march(tetrahedron, u, n, tri);
+    return march(tetrahedron, u, n, tri);
 }

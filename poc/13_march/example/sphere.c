@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <march.h>
 
-#define SIZE(x) sizeof(x)/sizeof(*(x))
+#define SIZE(x) (sizeof(x)/sizeof(*(x)))
 
 enum { X, Y, Z };
 static double r = 0.25;
 static double lo = -0.5, hi = 0.5;
-static int m = 100;
+static int m = 20;
 
 static double
 sq(double x)
@@ -61,13 +61,13 @@ write(double x, double y, double z, double d, int n, double *tri)
 int
 main()
 {
-    static double tri[3 * 3 * 5];
+    static double tri[3*3*MARCH_NTRI];
     int n, i, j, k, l;
     int u, v, w;
     double x, y, z, d;
     double cube[8];
     double *o;
-    int stat[3 * 6 * 2 * 3 - 1] = { 0 };
+    int stat[MARCH_NTRI] = { 0 };
     printf("# File type: ASCII OBJ\n");
     d = (hi - lo) / (m - 1);
     for (i = 0; i < m; i++)
@@ -85,5 +85,6 @@ main()
 		write(x, y, z, d, n, tri);
 	    }
     for (i = 0; i < SIZE(stat); i++)
-	fprintf(stderr, "%d %04d\n", i, stat[i]);
+	if (stat[i] > 0)
+	    fprintf(stderr, "%2d %7d\n", i, stat[i]);
 }
