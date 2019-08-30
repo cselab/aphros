@@ -52,6 +52,95 @@ cube(double cube[8], int *pn, double *tri)
     return 0;
 }
 
+static int
+MarchTetrahedron(double *tetr, double *val, int *pn, double *tri)
+{
+    int e, v0, v1, flag, j, c, i, idx = 0;
+    double a, b;
+    double *te0, *te1, *v, *t;
+    double vert[3 * 6];
+    double norm[3 * 6];
+    int n;
+
+    n = *pn;
+    for (i = 0; i < 4; i++) {
+	if (val[i] <= 0)
+	    idx |= 1 << i;
+    }
+    flag = TetrahedronEdgeFlags[idx];
+    if (flag == 0)
+	goto end;
+    for (e = 0; e < 6; e++) {
+	if (flag & (1 << e)) {
+	    v0 = TetrahedronConnection[e][0];
+	    v1 = TetrahedronConnection[e][1];
+	    a = offset(val[v0], val[v1]);
+	    b = 1.0 - a;
+	    v = &vert[3 * e];
+	    te0 = &tetr[3 * v0];
+	    te1 = &tetr[3 * v1];
+	    v[X] = b * te0[X] + a * te1[X];
+	    v[Y] = b * te0[Y] + a * te1[Y];
+	    v[Z] = b * te0[Z] + a * te1[Z];
+	}
+    }
+    for (j = 0; j < 2; j++) {
+	if (TetrahedronTriangles[idx][3 * j] < 0)
+	    break;
+	for (c = 0; c < 3; c++) {
+	    i = TetrahedronTriangles[idx][3 * j + c];
+	    v = &vert[3 * j];
+	    t = &tri[3 * n];
+	    tri[X] = v[X];
+	    tri[Y] = v[Y];
+	    tri[Z] = v[Z];
+	    n++;
+	}
+    }
+  end:
+    *pn = n;
+    return 0;
+}
+
+
+static int
+tetrahedron(double cube[8], int *pn, double *tri)
+{
+    double val[4];
+    int i, t, j;
+    double *p, *te, *o;
+    double h;
+    double pos[3 * 8];
+    double tetr[3 * 4];
+    int n;
+
+    for (i = 0; i < 8; i++) {
+	p = &pos[3 * i];
+	o = Offset[i];
+	p[X] = o[X];
+	p[Y] = o[Y];
+	p[Z] = o[Z];
+    }
+
+    n = 0;
+    for (t = 0; t < 6; t++) {
+	for (i = 0; i < 4; i++) {
+	    j = TetrahedronsInACube[t][i];
+	    p = &pos[3 * j];
+	    te = &tetr[3 * i];
+	    te[X] = p[X];
+	    te[Y] = p[Y];
+	    te[Z] = p[Z];
+	    val[i] = cube[j];
+	}
+	MarchTetrahedron(tetr, val, &n, tri);
+    }
+
+    *pn = n;
+    return 0;
+}
+
+
 static double
 offset(double a, double b)
 {
@@ -67,20 +156,34 @@ static void
 swap(double *u, int i, int j)
 {
     double t;
+
     t = u[i];
     u[i] = u[j];
     u[j] = t;
 }
 
-int
-march_cube(double u[8], int *pn, double *tri)
+static int
+march(int (*algorithm)(double *, int *, double *), double u[8],
+      int *pn, double *tri)
 {
     int s;
+
     swap(u, 2, 3);
     swap(u, 6, 7);
-    s = cube(u, pn, tri);
+    algorithm(u, pn, tri);
     swap(u, 2, 3);
     swap(u, 6, 7);
-    return s;
+
 }
-    
+
+int
+march_cube(double u[8], int *n, double *tri)
+{
+    march(cube, u, n, tri);
+}
+
+int
+march_tetrahedron(double u[8], int *n, double *tri)
+{
+    march(tetrahedron, u, n, tri);
+}

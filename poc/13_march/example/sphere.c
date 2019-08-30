@@ -67,7 +67,7 @@ main()
     double x, y, z, d;
     double cube[8];
     double *o;
-    int stat[] = { 0, 0, 0, 0, 0, 0 };
+    int stat[3 * 6 * 2 * 3 - 1] = { 0 };
     printf("# File type: ASCII OBJ\n");
     d = (hi - lo) / (m - 1);
     for (i = 0; i < m; i++)
@@ -80,7 +80,7 @@ main()
 		    o = O[l];
 		    cube[l] = f(x + d * o[X], y + d * o[Y], z + d * o[Z]);
 		}
-		march_cube(cube, &n, tri);
+		march_tetrahedron(cube, &n, tri);
 		stat[n]++;
 		write(x, y, z, d, n, tri);
 	    }
