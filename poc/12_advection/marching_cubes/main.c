@@ -7,6 +7,12 @@
 #include "march.h"
 #define	USED(x)		if(x);else{}
 
+struct Vec {
+    double x;
+    double y;
+    double z;
+};
+
 /***/
 struct March march;
 struct March *q = &march;
@@ -133,8 +139,10 @@ MarchCube1(struct March *q, double x, double y, double z)
 		z + (VertexOffset[EdgeConnection[Edge][0]][2] +
 		     Offset * EdgeDirection[Edge][2]) * h;
 
-	    GetNormal(&EdgeNorm[Edge], EdgeVertex[Edge].x,
-		      EdgeVertex[Edge].y, EdgeVertex[Edge].z, q->f, q->fdata);
+	    GetNormal(EdgeVertex[Edge].x, EdgeVertex[Edge].y, EdgeVertex[Edge].z,
+		      &EdgeNorm[Edge].x, &EdgeNorm[Edge].y, &EdgeNorm[Edge].z,
+		      q->f, q->fdata);
+
 	}
     }
 
@@ -191,7 +199,7 @@ MarchCube2(struct March *q, double x, double y, double z)
 
 static int
 (*march0) (struct March*, double, double, double) = MarchCube1;
-			  
+
 static void
 Keyboard(unsigned char Key, int i, int j)
 {
@@ -380,8 +388,9 @@ MarchTetrahedron(struct March *q, struct Vec *TetrahedronPosition, double *Tetra
 		InvOffset * TetrahedronPosition[Vert0].z +
 		Offset * TetrahedronPosition[Vert1].z;
 
-	    GetNormal(&EdgeNorm[Edge], EdgeVertex[Edge].x,
-		      EdgeVertex[Edge].y, EdgeVertex[Edge].z, q->f, q->fdata);
+	    GetNormal(EdgeVertex[Edge].x, EdgeVertex[Edge].y, EdgeVertex[Edge].z,
+		      &EdgeNorm[Edge].x, &EdgeNorm[Edge].y, &EdgeNorm[Edge].z,
+		      q->f, q->fdata);
 	}
     }
 

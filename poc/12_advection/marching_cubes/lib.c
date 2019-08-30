@@ -46,29 +46,34 @@ PrintHelp(void)
     printf("End  source point animation on/off\n");
 }
 
+static double
+sq(double x)
+{
+    return x*x;
+}
+
 static void
-Normalize(struct Vec *v)
+Normalize(double *u, double *v, double *w)
 {
     double len;
 
-    len = sqrt((v->x * v->x) + (v->y * v->y) + (v->z * v->z));
+    len = sqrt(sq(*u) + sq(*v) + sq(*w));
     if (len != 0.0) {
-	v->x /= len;
-	v->y /= len;
-	v->z /= len;
+	*u /= len;
+	*v /= len;
+	*w /= len;
     }
 }
 
 
-
 void
-GetNormal(struct Vec *v, double x, double y, double z,
+GetNormal(double x, double y, double z, double *u, double *v, double *w,
 	  double (*f) (double, double, double, void *), void *p)
 {
 #define F(x, y, z) f((x), (y), (z), p)
-    v->x = F(x - 0.01, y, z) - F(x + 0.01, y, z);
-    v->y = F(x, y - 0.01, z) - F(x, y + 0.01, z);
-    v->z = F(x, y, z - 0.01) - F(x, y, z + 0.01);
-    Normalize(v);
+    *u = F(x - 0.01, y, z) - F(x + 0.01, y, z);
+    *v = F(x, y - 0.01, z) - F(x, y + 0.01, z);
+    *w = F(x, y, z - 0.01) - F(x, y, z + 0.01);
+    Normalize(u, v, w);
 #undef F
 }
