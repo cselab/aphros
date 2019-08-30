@@ -188,7 +188,7 @@ march_tetrahedron(struct March *q)
     return MarchCubes(q, MarchCube2);
 }
 
-double
+static double
 offset(double a, double b)
 {
     double d;
