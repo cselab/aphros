@@ -3,18 +3,11 @@
 #include "table.h"
 
 enum { X, Y, Z };
-struct Vec {
-    double x;
-    double y;
-    double z;
-};
-struct Vec;
 static int MarchTetrahedron(struct March *, double *tetr, double *);
 static int MarchCubes(struct March *,
 		      int (*)(struct March *, double, double, double));
 static double offset(double, double);
-static void normal(struct March *, double, double, double, double *,
-		   double *, double *);
+static void normal(struct March *, double[3], double[3]);
 
 static int
 MarchCube1(struct March *q, double x, double y, double z)
@@ -25,13 +18,13 @@ MarchCube1(struct March *q, double x, double y, double z)
     double norm[3 * 12];
     double vert[3 * 12];
     double h;
-    double *n, *v;
+    double *n, *v, *off, *dir;
 
     h = q->spacing;
     for (i = 0; i < 8; i++) {
+	off = Offset[i];
 	cube[i] =
-	    q->f(x + Offset[i][0] * h,
-		 y + Offset[i][1] * h, z + Offset[i][2] * h, q->fdata);
+	    q->f(x + off[X] * h, y + off[Y] * h, z + off[Z] * h, q->fdata);
     }
     idx = 0;
     for (i = 0; i < 8; i++) {
@@ -44,19 +37,15 @@ MarchCube1(struct March *q, double x, double y, double z)
     }
     for (e = 0; e < 12; e++) {
 	if (flag & (1 << e)) {
+	    off = Offset[Connection[e][0]];
+	    dir = Direction[e];
 	    n = &norm[3 * e];
 	    v = &vert[3 * e];
 	    a = offset(cube[Connection[e][0]], cube[Connection[e][1]]);
-	    v[X] =
-		x + (Offset[Connection[e][0]][0] +
-		     a * Direction[e][0]) * h;
-	    v[Y] =
-		y + (Offset[Connection[e][0]][1] +
-		     a * Direction[e][1]) * h;
-	    v[Z] =
-		z + (Offset[Connection[e][0]][2] +
-		     a * Direction[e][2]) * h;
-	    normal(q, v[X], v[Y], v[Z], &n[X], &n[Y], &n[Z]);
+	    v[X] = x + (off[X] + a * dir[X]) * h;
+	    v[Y] = y + (off[Y] + a * dir[Y]) * h;
+	    v[Z] = z + (off[Z] + a * dir[Z]) * h;
+	    normal(q, v, n);
 	}
     }
     for (j = 0; j < 5; j++) {
@@ -140,7 +129,7 @@ MarchTetrahedron(struct March *q, double *tetr, double *val)
 	    v[X] = b * te0[X] + a * te1[X];
 	    v[Y] = b * te0[Y] + a * te1[Y];
 	    v[Z] = b * te0[Z] + a * te1[Z];
-	    normal(q, v[X], v[Y], v[Z], &n[X], &n[Y], &n[Z]);
+	    normal(q, v, n);
 	}
     }
     for (j = 0; j < 2; j++) {
@@ -205,28 +194,30 @@ sq(double x)
 }
 
 static void
-Normalize(double *u, double *v, double *w)
+Normalize(double v[3])
 {
     double len;
 
-    len = sqrt(sq(*u) + sq(*v) + sq(*w));
+    len = sqrt(sq(v[X]) + sq(v[Y]) + sq(v[Z]));
     if (len != 0.0) {
-	*u /= len;
-	*v /= len;
-	*w /= len;
+	v[X] /= len;
+	v[Y] /= len;
+	v[Z] /= len;
     }
 }
 
 static void
-normal(struct March *q, double x, double y, double z, double *u, double *v,
-       double *w)
+normal(struct March *q, double r[3], double n[3])
 {
-    double h;
+    double h, x, y, z;
 
 #define F(x, y, z) (q->f)((x), (y), (z), q->fdata)
     h = q->spacing / 10;
-    *u = F(x - h, y, z) - F(x + h, y, z);
-    *v = F(x, y - h, z) - F(x, y + h, z);
-    *w = F(x, y, z - h) - F(x, y, z + h);
-    Normalize(u, v, w);
+    x = r[X];
+    y = r[Y];
+    z = r[Z];
+    n[X] = F(x - h, y, z) - F(x + h, y, z);
+    n[Y] = F(x, y - h, z) - F(x, y + h, z);
+    n[Z] = F(x, y, z - h) - F(x, y, z + h);
+    Normalize(n);
 }
