@@ -197,8 +197,9 @@ MarchCube2(struct March *q, double x, double y, double z)
     return 0;
 }
 
+
 static int
-(*march0) (struct March*, double, double, double) = MarchCube1;
+(*march0) (struct March*) = march_cube;
 
 static void
 Keyboard(unsigned char Key, int i, int j)
@@ -232,13 +233,7 @@ Keyboard(unsigned char Key, int i, int j)
 	}
 	break;
     case 'c':
-	{
-	    if (march0 == MarchCube1) {
-		march0 = MarchCube2;
-	    } else {
-		march0 = MarchCube1;
-	    }
-	}
+	march0 = (march0 == march_cube) ? march_tetrahedron : march_cube;
 	break;
     case 's':
 	{
@@ -332,7 +327,7 @@ DrawScene(void)
     glPushMatrix();
     glTranslatef(-0.5, -0.5, -0.5);
     glBegin(GL_TRIANGLES);
-    MarchingCubes(q, march0);
+    march0(q);
     glEnd();
     glPopMatrix();
 
