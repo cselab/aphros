@@ -61,16 +61,7 @@ static int TetrahedronTriangles[][7] = {
     ,
 };
 
-/* For any edge, if one vertex is inside of the surface and the other
-  is outside of the surface then the edge intersects the surface For
-  each of the 8 vertices of the cube can be two possible states :
-  either inside or outside of the surface For any cube the are 2^8=256
-  possible sets of vertex states This table lists the edges
-  intersected by the surface for all 256 possible vertex states There
-  are 12 edges.  For each entry in the table, if edge #n is
-  intersected, then bit #n is set to 1 */
-
-int CubeEdgeFlags[256] = {
+static int CubeEdgeFlags[256] = {
     0x000, 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c, 0x80c, 0x905,
     0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00,
     0x190, 0x099, 0x393, 0x29a, 0x596, 0x49f, 0x795, 0x69c, 0x99c, 0x895,
@@ -630,12 +621,6 @@ static int TriangleConnectionTable[256][16] = {
     {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}
 };
 
-
-
-
-
-
-
 static double VertexOffset[][3] = {
     {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 1.0, 0.0}, {0.0, 1.0,
 							0.0},
@@ -643,15 +628,11 @@ static double VertexOffset[][3] = {
 							1.0}
 };
 
-
-
 static int EdgeConnection[][2] = {
     {0, 1}, {1, 2}, {2, 3}, {3, 0},
     {4, 5}, {5, 6}, {6, 7}, {7, 4},
     {0, 4}, {1, 5}, {2, 6}, {3, 7}
 };
-
-
 
 static double EdgeDirection[][3] = {
     {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-1.0, 0.0, 0.0}, {0.0, -1.0,
@@ -662,13 +643,9 @@ static double EdgeDirection[][3] = {
 							1.0}
 };
 
-
-
 static int TetrahedronEdgeConnection[][2] = {
     {0, 1}, {1, 2}, {2, 0}, {0, 3}, {1, 3}, {2, 3}
 };
-
-
 
 static int TetrahedronsInACube[][4] = {
     {0, 5, 1, 6},
