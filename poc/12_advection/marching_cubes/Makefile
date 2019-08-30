@@ -7,7 +7,6 @@ M = main
 O = \
 main.o\
 sample.o\
-lib.o\
 march.o\
 
 $M: $O; $(LINK) $O $(LDFLAGS) $(M_LDFLAGS) -o $@

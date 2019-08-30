@@ -1,199 +1,168 @@
+#include <tgmath.h>
 #include "march.h"
 #include "table.h"
-#include "lib.h"
 
+enum {X, Y, Z};
 struct Vec {
     double x;
     double y;
     double z;
 };
 struct Vec;
-static int MarchTetrahedron(struct March*, struct Vec *, double *);
-static int MarchCubes(struct March*, int(*) (struct March*, double, double, double));
+static int MarchTetrahedron(struct March *, struct Vec *, double *);
+static int MarchCubes(struct March *,
+		      int (*)(struct March *, double, double, double));
+static double offset(double, double);
+static void normal(struct March *, double, double, double, double *,
+		   double *, double *);
 
 static int
 MarchCube1(struct March *q, double x, double y, double z)
 {
-    extern int CubeEdgeFlags[256];
-    extern int TriangleConnectionTable[256][16];
-
     double cube[8];
-    double Offset;
-    int Corner, i, Test, Edge, iTriangle, FlagIndex, EdgeFlags;
-    struct Vec EdgeNorm[12];
-    struct Vec EdgeVertex[12];
+    double a;
+    int c, i, e, j, idx, flag;
+    double norm[3*12];
+    double vert[3*12];
     double h;
+    double *n, *v;
 
     h = q->spacing;
     for (i = 0; i < 8; i++) {
 	cube[i] =
-	    q->f(x + VertexOffset[i][0] * h,
-		 y + VertexOffset[i][1] * h, z + VertexOffset[i][2] * h, q->fdata);
+	    q->f(x + Offset[i][0] * h,
+		 y + Offset[i][1] * h, z + Offset[i][2] * h,
+		 q->fdata);
     }
-
-
-    FlagIndex = 0;
-    for (Test = 0; Test < 8; Test++) {
-	if (cube[Test] <= 0)
-	    FlagIndex |= 1 << Test;
+    idx = 0;
+    for (i = 0; i < 8; i++) {
+	if (cube[i] <= 0)
+	    idx |= 1 << i;
     }
-
-
-    EdgeFlags = CubeEdgeFlags[FlagIndex];
-
-
-    if (EdgeFlags == 0) {
+    flag = CubeEdgeFlags[idx];
+    if (flag == 0) {
 	return 0;
     }
-
-
-    for (Edge = 0; Edge < 12; Edge++) {
-
-	if (EdgeFlags & (1 << Edge)) {
-	    Offset = GetOffset(cube[EdgeConnection[Edge][0]],
-			       cube[EdgeConnection[Edge][1]]);
-
-	    EdgeVertex[Edge].x =
-		x + (VertexOffset[EdgeConnection[Edge][0]][0] +
-		     Offset * EdgeDirection[Edge][0]) * h;
-	    EdgeVertex[Edge].y =
-		y + (VertexOffset[EdgeConnection[Edge][0]][1] +
-		     Offset * EdgeDirection[Edge][1]) * h;
-	    EdgeVertex[Edge].z =
-		z + (VertexOffset[EdgeConnection[Edge][0]][2] +
-		     Offset * EdgeDirection[Edge][2]) * h;
-
-	    GetNormal(EdgeVertex[Edge].x, EdgeVertex[Edge].y, EdgeVertex[Edge].z,
-		      &EdgeNorm[Edge].x, &EdgeNorm[Edge].y, &EdgeNorm[Edge].z,
-		      q->f, q->fdata);
-
+    for (e = 0; e < 12; e++) {
+	if (flag & (1 << e)) {
+	    n = &norm[3*e];
+	    v = &vert[3*e];
+	    a = offset(cube[Connection[e][0]],
+		       cube[Connection[e][1]]);
+	    v[X] =
+		x + (Offset[Connection[e][0]][0] +
+		     a * Direction[e][0]) * h;
+	    v[Y] =
+		y + (Offset[Connection[e][0]][1] +
+		     a * Direction[e][1]) * h;
+	    v[Z] =
+		z + (Offset[Connection[e][0]][2] +
+		     a * Direction[e][2]) * h;
+	    normal(q, v[X], v[Y], v[Z], &n[X], &n[Y], &n[Z]);
 	}
     }
-
-
-
-    for (iTriangle = 0; iTriangle < 5; iTriangle++) {
-	if (TriangleConnectionTable[FlagIndex][3 * iTriangle] < 0)
+    for (j = 0; j < 5; j++) {
+	if (TriangleConnectionTable[idx][3 * j] < 0)
 	    break;
-
-	for (Corner = 0; Corner < 3; Corner++) {
-	    i = TriangleConnectionTable[FlagIndex][3 * iTriangle + Corner];
-	    q->normal(EdgeNorm[i].x, EdgeNorm[i].y, EdgeNorm[i].z, q->cdata);
-	    q->vertex(EdgeVertex[i].x, EdgeVertex[i].y, EdgeVertex[i].z, q->cdata);
+	for (c = 0; c < 3; c++) {
+	    i = TriangleConnectionTable[idx][3 * j + c];
+	    n = &norm[3*i];
+	    v = &vert[3*i];
+	    q->normal(n[X], n[Y], n[Z], q->cdata);
+	    q->vertex(v[X], v[Y], v[Z], q->cdata);
 	}
     }
     return 0;
 }
-
 
 static int
 MarchCube2(struct March *q, double x, double y, double z)
 {
     double cube[8];
-    double TetrahedronValue[4];
-    int i, Tetrahedron, InACube;
-    struct Vec CubePosition[8];
-    struct Vec TetrahedronPosition[4];
-
-
-    for (i = 0; i < 8; i++) {
-	CubePosition[i].x = x + VertexOffset[i][0] * (q->spacing);
-	CubePosition[i].y = y + VertexOffset[i][1] * (q->spacing);
-	CubePosition[i].z = z + VertexOffset[i][2] * (q->spacing);
-    }
-
+    double val[4];
+    int i, t, InACube;
+    struct Vec pos[8];
+    struct Vec tetr[4];
 
     for (i = 0; i < 8; i++) {
-	cube[i] = q->f(CubePosition[i].x,
-		       CubePosition[i].y, CubePosition[i].z, q->fdata);
+	pos[i].x = x + Offset[i][0] * (q->spacing);
+	pos[i].y = y + Offset[i][1] * (q->spacing);
+	pos[i].z = z + Offset[i][2] * (q->spacing);
     }
-
-    for (Tetrahedron = 0; Tetrahedron < 6; Tetrahedron++) {
+    for (i = 0; i < 8; i++) {
+	cube[i] = q->f(pos[i].x,
+		       pos[i].y, pos[i].z, q->fdata);
+    }
+    for (t = 0; t < 6; t++) {
 	for (i = 0; i < 4; i++) {
-	    InACube = TetrahedronsInACube[Tetrahedron][i];
-	    TetrahedronPosition[i].x = CubePosition[InACube].x;
-	    TetrahedronPosition[i].y = CubePosition[InACube].y;
-	    TetrahedronPosition[i].z = CubePosition[InACube].z;
-	    TetrahedronValue[i] = cube[InACube];
+	    InACube = TetrahedronsInACube[t][i];
+	    tetr[i].x = pos[InACube].x;
+	    tetr[i].y = pos[InACube].y;
+	    tetr[i].z = pos[InACube].z;
+	    val[i] = cube[InACube];
 	}
-	MarchTetrahedron(q, TetrahedronPosition, TetrahedronValue);
+	MarchTetrahedron(q, tetr, val);
     }
     return 0;
 }
 
 static int
-MarchTetrahedron(struct March *q, struct Vec *TetrahedronPosition, double *TetrahedronValue)
+MarchTetrahedron(struct March *q, struct Vec *tetr,
+		 double *val)
 {
-    extern int TetrahedronEdgeFlags[16];
-    extern int TetrahedronTriangles[16][7];
-
-    int Edge, Vert0, Vert1, EdgeFlags, iTriangle, Corner, i, FlagIndex = 0;
-    double Offset, InvOffset;
-    struct Vec EdgeVertex[6];
-    struct Vec EdgeNorm[6];
+    int e, v0, v1, flag, j, c, i, idx = 0;
+    double a, b;
+    struct Vec vert[6];
+    struct Vec norm[6];
 
     for (i = 0; i < 4; i++) {
-	if (TetrahedronValue[i] <= 0)
-	    FlagIndex |= 1 << i;
+	if (val[i] <= 0)
+	    idx |= 1 << i;
     }
-
-
-    EdgeFlags = TetrahedronEdgeFlags[FlagIndex];
-
-
-    if (EdgeFlags == 0) {
+    flag = TetrahedronEdgeFlags[idx];
+    if (flag == 0) {
 	return 0;
     }
-
-
-    for (Edge = 0; Edge < 6; Edge++) {
-
-	if (EdgeFlags & (1 << Edge)) {
-	    Vert0 = TetrahedronEdgeConnection[Edge][0];
-	    Vert1 = TetrahedronEdgeConnection[Edge][1];
-	    Offset =
-		GetOffset(TetrahedronValue[Vert0],
-			  TetrahedronValue[Vert1]);
-	    InvOffset = 1.0 - Offset;
-
-	    EdgeVertex[Edge].x =
-		InvOffset * TetrahedronPosition[Vert0].x +
-		Offset * TetrahedronPosition[Vert1].x;
-	    EdgeVertex[Edge].y =
-		InvOffset * TetrahedronPosition[Vert0].y +
-		Offset * TetrahedronPosition[Vert1].y;
-	    EdgeVertex[Edge].z =
-		InvOffset * TetrahedronPosition[Vert0].z +
-		Offset * TetrahedronPosition[Vert1].z;
-
-	    GetNormal(EdgeVertex[Edge].x, EdgeVertex[Edge].y, EdgeVertex[Edge].z,
-		      &EdgeNorm[Edge].x, &EdgeNorm[Edge].y, &EdgeNorm[Edge].z,
-		      q->f, q->fdata);
+    for (e = 0; e < 6; e++) {
+	if (flag & (1 << e)) {
+	    v0 = TetrahedronConnection[e][0];
+	    v1 = TetrahedronConnection[e][1];
+	    a = offset(val[v0], val[v1]);
+	    b = 1.0 - a;
+	    vert[e].x =
+		b * tetr[v0].x +
+		a * tetr[v1].x;
+	    vert[e].y =
+		b * tetr[v0].y +
+		a * tetr[v1].y;
+	    vert[e].z =
+		b * tetr[v0].z +
+		a * tetr[v1].z;
+	    normal(q, vert[e].x, vert[e].y, vert[e].z, &norm[e].x,
+		   &norm[e].y, &norm[e].z);
 	}
     }
-
-    for (iTriangle = 0; iTriangle < 2; iTriangle++) {
-	if (TetrahedronTriangles[FlagIndex][3 * iTriangle] < 0)
+    for (j = 0; j < 2; j++) {
+	if (TetrahedronTriangles[idx][3 * j] < 0)
 	    break;
-
-	for (Corner = 0; Corner < 3; Corner++) {
-	    i = TetrahedronTriangles[FlagIndex][3 * iTriangle + Corner];
-	    q->normal(EdgeNorm[i].x, EdgeNorm[i].y, EdgeNorm[i].z, q->cdata);
-	    q->vertex(EdgeVertex[i].x, EdgeVertex[i].y, EdgeVertex[i].z, q->cdata);
+	for (c = 0; c < 3; c++) {
+	    i = TetrahedronTriangles[idx][3 * j + c];
+	    q->normal(norm[i].x, norm[i].y, norm[i].z, q->cdata);
+	    q->vertex(vert[i].x, vert[i].y, vert[i].z, q->cdata);
 	}
     }
     return 0;
 }
 
-
-
 static int
-MarchCubes(struct March *q, int (*march0) (struct March*, double, double, double))
+MarchCubes(struct March *q,
+	   int (*march0) (struct March *, double, double, double))
 {
-    enum {X, Y, Z};
+    enum { X, Y, Z };
     int i, j, k;
     int *size;
     double h;
+
     size = q->size;
     h = q->spacing;
     for (i = 0; i < size[X]; i++)
@@ -208,9 +177,53 @@ march_cube(struct March *q)
 {
     return MarchCubes(q, MarchCube1);
 }
-    
-int march_tetrahedron(struct March *q)
+
+int
+march_tetrahedron(struct March *q)
 {
     return MarchCubes(q, MarchCube2);
 }
 
+double
+offset(double a, double b)
+{
+    double d;
+
+    d = a - b;
+    if (d == 0.0)
+	return 0.5;
+    return a / d;
+}
+
+static double
+sq(double x)
+{
+    return x * x;
+}
+
+static void
+Normalize(double *u, double *v, double *w)
+{
+    double len;
+
+    len = sqrt(sq(*u) + sq(*v) + sq(*w));
+    if (len != 0.0) {
+	*u /= len;
+	*v /= len;
+	*w /= len;
+    }
+}
+
+static void
+normal(struct March *q, double x, double y, double z, double *u, double *v,
+       double *w)
+{
+    double h;
+
+#define F(x, y, z) (q->f)((x), (y), (z), q->fdata)
+    h = q->spacing / 10;
+    *u = F(x - h, y, z) - F(x + h, y, z);
+    *v = F(x, y - h, z) - F(x, y + h, z);
+    *w = F(x, y, z - h) - F(x, y, z + h);
+    Normalize(u, v, w);
+}
