@@ -42,13 +42,13 @@ renderView1.ProgressivePasses = 1
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 
 
-s_0500vtk = LegacyVTKReader(FileNames=['s_0500.vtk'])
+svtk = LegacyVTKReader(FileNames=['s_0500.vtk'])
 
-vf_0500xmf = XDMFReader(FileNames=['vf_0500.xmf'])
-vf_0500xmf.CellArrayStatus = ['vf']
-vf_0500xmf.GridStatus = ['Grid_2']
+vfxmf = XDMFReader(FileNames=['vf_0500.xmf'])
+vfxmf.CellArrayStatus = ['vf']
+vfxmf.GridStatus = ['Grid_2']
 
-cellDatatoPointData1 = CellDatatoPointData(Input=vf_0500xmf)
+cellDatatoPointData1 = CellDatatoPointData(Input=vfxmf)
 
 contour1 = Contour(Input=cellDatatoPointData1)
 contour1.ContourBy = ['POINTS', 'vf']
@@ -66,20 +66,22 @@ contour1Display.Representation = 'Surface'
 contour1Display.AmbientColor = [0.0, 0.0, 0.0]
 contour1Display.Opacity = 0.5
 
-s_0500vtkDisplay = Show(s_0500vtk, renderView1)
-s_0500vtkDisplay.Representation = 'Surface'
-s_0500vtkDisplay.AmbientColor = [0.0, 0.0, 0.0]
-s_0500vtkDisplay.Opacity = 0.5
+svtkDisplay = Show(svtk, renderView1)
+svtkDisplay.Representation = 'Surface'
+svtkDisplay.AmbientColor = [0.0, 0.0, 0.0]
+svtkDisplay.Opacity = 0.5
+svtkDisplay.ColorArrayName = [None, '']
+
 
 
 fn = "contour.png"
-Hide(s_0500vtk, renderView1)
+Hide(svtk, renderView1)
 Show(contour1, renderView1)
 SaveScreenshot(fn, renderView1)
 print(fn)
 
 fn = "polygons.png"
-Show(s_0500vtk, renderView1)
+Show(svtk, renderView1)
 Hide(contour1, renderView1)
 SaveScreenshot(fn, renderView1)
 print(fn)
