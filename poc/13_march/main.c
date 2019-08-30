@@ -5,8 +5,8 @@
 enum { X, Y, Z };
 static double offset(double, double);
 
-int
-march_cube(double cube[8], int *pn, double *tri)
+static int
+cube(double cube[8], int *pn, double *tri)
 {
     double a;
     int c, i, j, idx, flag;
@@ -19,17 +19,19 @@ march_cube(double cube[8], int *pn, double *tri)
 	if (cube[i] <= 0)
 	    idx |= 1 << i;
     }
-    if ((flag = CubeEdgeFlags[idx]) == 0)
+    if ((flag = CubeEdgeFlags[idx]) == 0) {
+	*pn = 0;
 	return 0;
+    }
     for (i = 0; i < 12; i++) {
 	if (flag & (1 << i)) {
 	    o = Offset[Connection[i][0]];
 	    dir = Direction[i];
 	    v = &vert[3 * i];
 	    a = offset(cube[Connection[i][0]], cube[Connection[i][1]]);
-	    v[X] = (o[X] + a * dir[X]);
-	    v[Y] = (o[Y] + a * dir[Y]);
-	    v[Z] = (o[Z] + a * dir[Z]);
+	    v[X] = o[X] + a * dir[X];
+	    v[Y] = o[Y] + a * dir[Y];
+	    v[Z] = o[Z] + a * dir[Z];
 	}
     }
 
@@ -43,8 +45,8 @@ march_cube(double cube[8], int *pn, double *tri)
 	    tri[k++] = v[X];
 	    tri[k++] = v[Y];
 	    tri[k++] = v[Z];
-	    n++;
 	}
+	n++;
     }
     *pn = n;
     return 0;
@@ -60,3 +62,25 @@ offset(double a, double b)
 	return 0.5;
     return a / d;
 }
+
+static void
+swap(double *u, int i, int j)
+{
+    double t;
+    t = u[i];
+    u[i] = u[j];
+    u[j] = t;
+}
+
+int
+march_cube(double u[8], int *pn, double *tri)
+{
+    int s;
+    swap(u, 2, 3);
+    swap(u, 6, 7);
+    s = cube(u, pn, tri);
+    swap(u, 2, 3);
+    swap(u, 6, 7);
+    return s;
+}
+    
