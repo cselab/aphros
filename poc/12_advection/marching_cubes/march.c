@@ -9,6 +9,18 @@ static int MarchCubes(struct March *,
 static double offset(double, double);
 static void normal(struct March *, double[3], double[3]);
 
+static void
+get_cube(struct March *q, double cube[8])
+{
+    int i;
+    double *o;
+    for (i = 0; i < 8; i++) {
+	o = Offset[i];
+//	cube[i] =
+//	    q->f(x + off[X] * h, y + off[Y] * h, z + off[Z] * h, q->fdata);
+    }
+}
+
 static int
 MarchCube1(struct March *q, double x, double y, double z)
 {
@@ -18,33 +30,31 @@ MarchCube1(struct March *q, double x, double y, double z)
     double norm[3 * 12];
     double vert[3 * 12];
     double h;
-    double *n, *v, *off, *dir;
+    double *n, *v, *o, *dir;
 
     h = q->spacing;
     for (i = 0; i < 8; i++) {
-	off = Offset[i];
+	o = Offset[i];
 	cube[i] =
-	    q->f(x + off[X] * h, y + off[Y] * h, z + off[Z] * h, q->fdata);
+	    q->f(x + o[X] * h, y + o[Y] * h, z + o[Z] * h, q->fdata);
     }
     idx = 0;
     for (i = 0; i < 8; i++) {
 	if (cube[i] <= 0)
 	    idx |= 1 << i;
     }
-    flag = CubeEdgeFlags[idx];
-    if (flag == 0) {
+    if ((flag = CubeEdgeFlags[idx]) == 0)
 	return 0;
-    }
     for (i = 0; i < 12; i++) {
 	if (flag & (1 << i)) {
-	    off = Offset[Connection[i][0]];
+	    o = Offset[Connection[i][0]];
 	    dir = Direction[i];
 	    n = &norm[3 * i];
 	    v = &vert[3 * i];
 	    a = offset(cube[Connection[i][0]], cube[Connection[i][1]]);
-	    v[X] = x + (off[X] + a * dir[X]) * h;
-	    v[Y] = y + (off[Y] + a * dir[Y]) * h;
-	    v[Z] = z + (off[Z] + a * dir[Z]) * h;
+	    v[X] = x + (o[X] + a * dir[X]) * h;
+	    v[Y] = y + (o[Y] + a * dir[Y]) * h;
+	    v[Z] = z + (o[Z] + a * dir[Z]) * h;
 	    normal(q, v, n);
 	}
     }
@@ -67,8 +77,8 @@ MarchCube2(struct March *q, double x, double y, double z)
 {
     double cube[8];
     double val[4];
-    int i, t, InACube;
-    double *p, *te, *off;
+    int i, t, j;
+    double *p, *te, *o;
     double h;
     double pos[3 * 8];
     double tetr[3 * 4];
@@ -76,10 +86,10 @@ MarchCube2(struct March *q, double x, double y, double z)
     h = q->spacing;
     for (i = 0; i < 8; i++) {
 	p = &pos[3 * i];
-	off = Offset[i];
-	p[X] = x + off[X] * h;
-	p[Y] = y + off[Y] * h;
-	p[Z] = z + off[Z] * h;
+	o = Offset[i];
+	p[X] = x + o[X] * h;
+	p[Y] = y + o[Y] * h;
+	p[Z] = z + o[Z] * h;
     }
     for (i = 0; i < 8; i++) {
 	p = &pos[3 * i];
@@ -87,13 +97,13 @@ MarchCube2(struct March *q, double x, double y, double z)
     }
     for (t = 0; t < 6; t++) {
 	for (i = 0; i < 4; i++) {
-	    InACube = TetrahedronsInACube[t][i];
-	    p = &pos[3 * InACube];
+	    j = TetrahedronsInACube[t][i];
+	    p = &pos[3 * j];
 	    te = &tetr[3 * i];
 	    te[X] = p[X];
 	    te[Y] = p[Y];
 	    te[Z] = p[Z];
-	    val[i] = cube[InACube];
+	    val[i] = cube[j];
 	}
 	MarchTetrahedron(q, tetr, val);
     }
