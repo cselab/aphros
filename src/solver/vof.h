@@ -61,6 +61,7 @@ class Vof : public AdvectionSolver<M_> {
     AF part_attrforce = AF::line;
     AR part_attrreconst = AR::line;
     int verb = 0;
+    bool vtkbin = false;
   };
 
   // Constructor
