@@ -1,6 +1,1 @@
-struct March {
-/* TODO:   double origin[3]; */
-    int (*vertex) (double[3], void *);
-    void *cdata;
-};
-int march_cube(struct March *, double *cube);
+int march_cube(double cube[8], /**/ int *n, double tri[5*3]);

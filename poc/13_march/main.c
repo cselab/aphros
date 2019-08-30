@@ -6,12 +6,13 @@ enum { X, Y, Z };
 static double offset(double, double);
 
 int
-march_cube(struct March *q, double cube[8])
+march_cube(double cube[8], int *pn, double *tri)
 {
     double a;
     int c, i, j, idx, flag;
     double vert[3 * 12];
     double *v, *o, *dir;
+    int n, k;
 
     idx = 0;
     for (i = 0; i < 8; i++) {
@@ -31,15 +32,21 @@ march_cube(struct March *q, double cube[8])
 	    v[Z] = (o[Z] + a * dir[Z]);
 	}
     }
+
+    n = k = 0;
     for (i = 0; i < 5; i++) {
 	if (TriangleConnectionTable[idx][3 * i] < 0)
 	    break;
 	for (c = 0; c < 3; c++) {
 	    j = TriangleConnectionTable[idx][3 * i + c];
 	    v = &vert[3 * j];
-	    q->vertex(v, q->cdata);
+	    tri[k++] = v[X];
+	    tri[k++] = v[Y];
+	    tri[k++] = v[Z];
+	    n++;
 	}
     }
+    *pn = n;
     return 0;
 }
 
