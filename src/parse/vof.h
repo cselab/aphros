@@ -27,6 +27,7 @@ void Parse(typename solver::Vof<M>::Par* p, const Vars& var) {
   p->clipth = var.Double["clipth"];
   p->dim = var.Int["dim"];
   p->dumppoly = var.Int["dumppoly"];
+  p->dumppolymarch = var.Int["dumppolymarch"];
   p->dumppart = var.Int["dumppart"];
   p->dumppartinter = var.Int["dumppartinter"];
   p->bcc_reflect = var.Int["bcc_reflect"];
