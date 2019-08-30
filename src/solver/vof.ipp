@@ -354,13 +354,9 @@ struct Vof<M_>::Imp {
       dlcl_.clear();
       auto h = m.GetCellSize();
       for (auto i : layers) {
-        auto& fci = fci_[i];
         auto& fccl = fccl_[i];
-        auto& fcu = fcu_[i].iter_curr;
         for (auto c : m.Cells()) {
-          Scal u = fcu[c];
-          const Scal th = par->poly_intth;
-          if (fci[c] && u > th && u < 1. - th) {
+          if (fccl[c] != kClNone) {
             auto uu = GetStencil<1>(
                 GetLayer(fcu_, Layers::iter_curr), c, fccl[c]);
             auto uun = ToNodes<1>(uu);
