@@ -79,23 +79,27 @@ MarchCube2(struct March *q, double x, double y, double z)
     double cube[8];
     double val[4];
     int i, t, InACube;
-    struct Vec pos[8];
+    double pos[3 * 8];
+    double *p;
     struct Vec tetr[4];
 
     for (i = 0; i < 8; i++) {
-	pos[i].x = x + Offset[i][0] * (q->spacing);
-	pos[i].y = y + Offset[i][1] * (q->spacing);
-	pos[i].z = z + Offset[i][2] * (q->spacing);
+	p = &pos[3 * i];
+	p[X] = x + Offset[i][0] * (q->spacing);
+	p[Y] = y + Offset[i][1] * (q->spacing);
+	p[Z] = z + Offset[i][2] * (q->spacing);
     }
     for (i = 0; i < 8; i++) {
-	cube[i] = q->f(pos[i].x, pos[i].y, pos[i].z, q->fdata);
+	p = &pos[3 * i];
+	cube[i] = q->f(p[X], p[Y], p[Z], q->fdata);
     }
     for (t = 0; t < 6; t++) {
 	for (i = 0; i < 4; i++) {
 	    InACube = TetrahedronsInACube[t][i];
-	    tetr[i].x = pos[InACube].x;
-	    tetr[i].y = pos[InACube].y;
-	    tetr[i].z = pos[InACube].z;
+	    p = &pos[3 * InACube];
+	    tetr[i].x = p[X];
+	    tetr[i].y = p[Y];
+	    tetr[i].z = p[Z];
 	    val[i] = cube[InACube];
 	}
 	MarchTetrahedron(q, tetr, val);
