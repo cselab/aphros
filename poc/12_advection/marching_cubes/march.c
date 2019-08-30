@@ -9,7 +9,7 @@ struct Vec {
     double z;
 };
 struct Vec;
-static int MarchTetrahedron(struct March *, struct Vec *, double *);
+static int MarchTetrahedron(struct March *, double *tetr, double *);
 static int MarchCubes(struct March *,
 		      int (*)(struct March *, double, double, double));
 static double offset(double, double);
@@ -79,15 +79,17 @@ MarchCube2(struct March *q, double x, double y, double z)
     double cube[8];
     double val[4];
     int i, t, InACube;
+    double *p, *te;
+    double h;
     double pos[3 * 8];
-    double *p;
-    struct Vec tetr[4];
+    double tetr[3 * 4];
 
+    h = q->spacing;
     for (i = 0; i < 8; i++) {
 	p = &pos[3 * i];
-	p[X] = x + Offset[i][0] * (q->spacing);
-	p[Y] = y + Offset[i][1] * (q->spacing);
-	p[Z] = z + Offset[i][2] * (q->spacing);
+	p[X] = x + Offset[i][0] * h;
+	p[Y] = y + Offset[i][1] * h;
+	p[Z] = z + Offset[i][2] * h;
     }
     for (i = 0; i < 8; i++) {
 	p = &pos[3 * i];
@@ -97,9 +99,10 @@ MarchCube2(struct March *q, double x, double y, double z)
 	for (i = 0; i < 4; i++) {
 	    InACube = TetrahedronsInACube[t][i];
 	    p = &pos[3 * InACube];
-	    tetr[i].x = p[X];
-	    tetr[i].y = p[Y];
-	    tetr[i].z = p[Z];
+	    te = &tetr[3 * i];
+	    te[X] = p[X];
+	    te[Y] = p[Y];
+	    te[Z] = p[Z];
 	    val[i] = cube[InACube];
 	}
 	MarchTetrahedron(q, tetr, val);
@@ -108,12 +111,13 @@ MarchCube2(struct March *q, double x, double y, double z)
 }
 
 static int
-MarchTetrahedron(struct March *q, struct Vec *tetr, double *val)
+MarchTetrahedron(struct March *q, double *tetr, double *val)
 {
     int e, v0, v1, flag, j, c, i, idx = 0;
     double a, b;
-    struct Vec vert[6];
-    struct Vec norm[6];
+    double *te0, *te1, *v, *n;
+    double vert[3 * 6];
+    double norm[3 * 6];
 
     for (i = 0; i < 4; i++) {
 	if (val[i] <= 0)
@@ -129,11 +133,14 @@ MarchTetrahedron(struct March *q, struct Vec *tetr, double *val)
 	    v1 = TetrahedronConnection[e][1];
 	    a = offset(val[v0], val[v1]);
 	    b = 1.0 - a;
-	    vert[e].x = b * tetr[v0].x + a * tetr[v1].x;
-	    vert[e].y = b * tetr[v0].y + a * tetr[v1].y;
-	    vert[e].z = b * tetr[v0].z + a * tetr[v1].z;
-	    normal(q, vert[e].x, vert[e].y, vert[e].z, &norm[e].x,
-		   &norm[e].y, &norm[e].z);
+	    v = &vert[3 * e];
+	    te0 = &tetr[3 * v0];
+	    te1 = &tetr[3 * v1];
+	    n = &norm[3 * e];
+	    v[X] = b * te0[X] + a * te1[X];
+	    v[Y] = b * te0[Y] + a * te1[Y];
+	    v[Z] = b * te0[Z] + a * te1[Z];
+	    normal(q, v[X], v[Y], v[Z], &n[X], &n[Y], &n[Z]);
 	}
     }
     for (j = 0; j < 2; j++) {
@@ -141,8 +148,10 @@ MarchTetrahedron(struct March *q, struct Vec *tetr, double *val)
 	    break;
 	for (c = 0; c < 3; c++) {
 	    i = TetrahedronTriangles[idx][3 * j + c];
-	    q->normal(norm[i].x, norm[i].y, norm[i].z, q->cdata);
-	    q->vertex(vert[i].x, vert[i].y, vert[i].z, q->cdata);
+	    v = &vert[3 * i];
+	    n = &norm[3 * i];
+	    q->normal(n[X], n[Y], n[Z], q->cdata);
+	    q->vertex(v[X], v[Y], v[Z], q->cdata);
 	}
     }
     return 0;
