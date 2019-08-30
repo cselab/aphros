@@ -40,7 +40,6 @@ write(double x, double y, double z, double d, int n, double *tri)
     int i, j, u, v, w;
     double a, b, c;
     static int J = 1;
-    
     if (n == 0)
 	return;
     for (i = j = 0; i < 3*n; i++) {
@@ -69,7 +68,6 @@ main()
     double *o;
     int stat[] = {0, 0, 0, 0, 0, 0};
     printf("# File type: ASCII OBJ\n");
-
     d = (hi - lo)/(m - 1);
     for (i = 0; i < m; i++)
 	for (j = 0; j < m; j++)
