@@ -315,6 +315,66 @@ struct Vof<M_>::Imp {
       }
     }
   }
+  // uu: volume fraction in nodes
+  // xc: cell center
+  // h: cell size
+  std::vector<std::vector<Vect>> GetMarchTriangles(
+      const std::array<Scal, 8>& uu, const Vect& xc, const Vect& h) {
+    std::vector<std::vector<Vect>> vv;
+    vv.push_back({Vect(0), Vect(1), Vect(1.,2.,3.)});
+    for (auto& v : vv) {
+      for (auto& x : v) {
+        x = xc + h * x;
+      }
+    }
+    return vv;
+  }
+  void DumpPolyMarch() {
+    auto sem = m.GetSem("dumppolymarch");
+    if (sem("local")) {
+      dl_.clear();
+      dlc_.clear();
+      dll_.clear();
+      dlcl_.clear();
+      auto h = m.GetCellSize();
+      for (auto i : layers) {
+        auto& fci = fci_[i];
+        auto& fccl = fccl_[i];
+        auto& fcu = fcu_[i].iter_curr;
+        for (auto c : m.Cells()) {
+          Scal u = fcu[c];
+          if (fci[c]) {
+            auto uu = GetStencil<1>(GetLayer(fcu_, Layers::iter_curr), c, fccl[c]);
+            auto uun = ToNodes<1>(uu);
+            auto vv = GetMarchTriangles(uun, m.GetCenter(c), h);
+            for (auto& v : vv) {
+              dl_.push_back(v);
+              dlc_.push_back(m.GetHash(c));
+              dll_.push_back(i);
+              dlcl_.push_back(fccl[c]);
+            }
+          }
+        }
+      }
+      using TV = typename M::template OpCatVT<Vect>;
+      m.Reduce(std::make_shared<TV>(&dl_));
+      using TS = typename M::template OpCatT<Scal>;
+      m.Reduce(std::make_shared<TS>(&dlc_));
+      m.Reduce(std::make_shared<TS>(&dll_));
+      m.Reduce(std::make_shared<TS>(&dlcl_));
+    }
+    if (sem("write")) {
+      if (m.IsRoot()) {
+        std::string fn = GetDumpName("sm", ".vtk", par->dmp->GetN());
+        std::cout << std::fixed << std::setprecision(8)
+            << "dump" 
+            << " t=" << owner_->GetTime() + owner_->GetTimeStep()
+            << " to " << fn << std::endl;
+        WriteVtkPoly(fn, dl_, {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"}, 
+            "Reconstructed linear interface", true, par->vtkbin);
+      }
+    }
+  }
   // fcu: volume fraction [a]
   // fcud2: volume fraction difference double (xpp-xmm, ypp-ymm, zpp-zmm) [i]
   void CalcDiff2(const FieldCell<Scal>& fcu, FieldCell<Vect>& fcud2) {
@@ -395,6 +455,51 @@ struct Vof<M_>::Imp {
 
     n /= -n.norm1();
     return n;
+  }
+  // Returns values over stencil centered at cell c with color cl.
+  // Values for neighbors without color cl are filled with 0.
+  // sw: stencil half-width
+  template <size_t sw, size_t sn=sw*2+1>
+  std::array<Scal, sn*sn*sn> GetStencil(
+      const Multi<const FieldCell<Scal>*>& fc, IdxCell c, Scal cl) {
+    using MIdx = typename M::MIdx;
+    auto& bc = m.GetIndexCells();
+    GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw));
+    MIdx w = bc.GetMIdx(c);
+    std::array<Scal, sn*sn*sn> uu;
+    size_t k = 0;
+    for (MIdx wo : bo) {
+      IdxCell cn = bc.GetIdx(w + wo);
+      Scal u = 0;
+      for (auto j : layers) {
+        if (fccl_[j][cn] == cl) {
+          u = (*fc[j])[cn];
+          break;
+        }
+      }
+      uu[k++] = u;
+    }
+    return uu;
+  }
+  // Interpolates from cells to nodes.
+  // stencil half-width
+  template <size_t sw, size_t sn=sw*2+1, size_t snn=sw*2>
+  std::array<Scal, snn*snn*snn> ToNodes(const std::array<Scal, sn*sn*sn>& uu) {
+    std::array<Scal, snn*snn*snn> uun;
+    size_t i = 0;
+    for (size_t z = 0; z + 1< sw; ++z) {
+      for (size_t y = 0; y + 1< sw; ++y) {
+        for (size_t x = 0; x + 1< sw; ++x) {
+          auto u = [&uu,x,y,z](size_t dx, size_t dy, size_t dz) {
+            return uu[(z+dz)*sn*sn + (y+dy)*sn + (x+dx)];
+          };
+          uun[i++] = (1. / 8.) * (
+              u(0,0,0) + u(1,0,0) + u(0,1,0) + u(1,1,0) +
+              u(0,0,1) + u(1,0,1) + u(0,1,1) + u(1,1,1));
+        }
+      }
+    }
+    return uun;
   }
   // reconstruct interface
   void Rec(const Multi<FieldCell<Scal>*>& uc) {
@@ -515,8 +620,11 @@ struct Vof<M_>::Imp {
     auto sem = m.GetSem("iter");
     bool dm = par->dmp->Try(owner_->GetTime(),
                             owner_->GetTimeStep());
-    if (par->dumppoly && dm && sem.Nested("dumppoly")) {
+    if (par->dumppoly && dm && sem.Nested()) {
       DumpPoly();
+    }
+    if (par->dumppolymarch && dm && sem.Nested()) {
+      DumpPolyMarch();
     }
     if (par->dumppart && dm && sem.Nested("part-dump")) {
       psm_->DumpParticles(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
