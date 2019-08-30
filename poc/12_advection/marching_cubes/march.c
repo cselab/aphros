@@ -35,26 +35,26 @@ MarchCube1(struct March *q, double x, double y, double z)
     if (flag == 0) {
 	return 0;
     }
-    for (e = 0; e < 12; e++) {
-	if (flag & (1 << e)) {
-	    off = Offset[Connection[e][0]];
-	    dir = Direction[e];
-	    n = &norm[3 * e];
-	    v = &vert[3 * e];
-	    a = offset(cube[Connection[e][0]], cube[Connection[e][1]]);
+    for (i = 0; i < 12; i++) {
+	if (flag & (1 << i)) {
+	    off = Offset[Connection[i][0]];
+	    dir = Direction[i];
+	    n = &norm[3 * i];
+	    v = &vert[3 * i];
+	    a = offset(cube[Connection[i][0]], cube[Connection[i][1]]);
 	    v[X] = x + (off[X] + a * dir[X]) * h;
 	    v[Y] = y + (off[Y] + a * dir[Y]) * h;
 	    v[Z] = z + (off[Z] + a * dir[Z]) * h;
 	    normal(q, v, n);
 	}
     }
-    for (j = 0; j < 5; j++) {
-	if (TriangleConnectionTable[idx][3 * j] < 0)
+    for (i = 0; i < 5; i++) {
+	if (TriangleConnectionTable[idx][3 * i] < 0)
 	    break;
 	for (c = 0; c < 3; c++) {
-	    i = TriangleConnectionTable[idx][3 * j + c];
-	    n = &norm[3 * i];
-	    v = &vert[3 * i];
+	    j = TriangleConnectionTable[idx][3 * i + c];
+	    n = &norm[3 * j];
+	    v = &vert[3 * j];
 	    q->normal(n[X], n[Y], n[Z], q->cdata);
 	    q->vertex(v[X], v[Y], v[Z], q->cdata);
 	}
@@ -68,7 +68,7 @@ MarchCube2(struct March *q, double x, double y, double z)
     double cube[8];
     double val[4];
     int i, t, InACube;
-    double *p, *te;
+    double *p, *te, *off;
     double h;
     double pos[3 * 8];
     double tetr[3 * 4];
@@ -76,9 +76,10 @@ MarchCube2(struct March *q, double x, double y, double z)
     h = q->spacing;
     for (i = 0; i < 8; i++) {
 	p = &pos[3 * i];
-	p[X] = x + Offset[i][0] * h;
-	p[Y] = y + Offset[i][1] * h;
-	p[Z] = z + Offset[i][2] * h;
+	off = Offset[i];
+	p[X] = x + off[X] * h;
+	p[Y] = y + off[Y] * h;
+	p[Z] = z + off[Z] * h;
     }
     for (i = 0; i < 8; i++) {
 	p = &pos[3 * i];
