@@ -43,6 +43,7 @@ class PartStrMesh {
                    // (e.g. from height functions)
                    // is below than maxr*h,
                    // overwrite with estimate from particles
+    bool vtkbin = true;  // write binary vtk in DumpPartInter
   };
 
   PartStrMesh(M& m, std::shared_ptr<Par> par);

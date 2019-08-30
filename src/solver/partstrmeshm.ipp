@@ -406,7 +406,7 @@ struct PartStrMeshM<M_>::Imp {
         std::cout << std::fixed << std::setprecision(8)
             << "dump" << " t=" << t << " to " << fn << std::endl;
         WriteVtkPoly(fn, dl_, {&dlc_}, {"c"}, 
-            "Lines of interface around particles", false);
+            "Lines of interface around particles", false, par->vtkbin);
       }
     }
   }
