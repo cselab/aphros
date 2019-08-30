@@ -8,15 +8,21 @@
 #define	USED(x)		if(x);else{}
 
 struct Sample *sample;
-static double f(double x, double y, double z, void *p) {
+static double
+f(double x, double y, double z, void *p)
+{
     struct Sample *sample;
+
     sample = p;
     return sample_f(sample, x, y, z);
 }
 
 struct Vec;
-static void MarchTetrahedron(struct Vec *, double *, double(*)(double, double, double, void*), void*);
-static void MarchingCubes(double(*)(double, double, double, void*), void *);
+static void MarchTetrahedron(struct Vec *, double *,
+			     double (*)(double, double, double, void *),
+			     void *);
+static void MarchingCubes(double (*)(double, double, double, void *),
+			  void *);
 static float AmbientGreen[] = { 0.00, 0.25, 0.00, 1.00 };
 static float AmbientBlue[] = { 0.00, 0.00, 0.25, 1.00 };
 static float DiffuseGreen[] = { 0.00, 0.75, 0.00, 1.00 };
@@ -26,10 +32,9 @@ static float SpecularWhite[] = { 1.00, 1.00, 1.00, 1.00 };
 int n = 16;
 double h;
 int PolygonMode = GL_FILL;
-double TargetValue = 48.0;
-int Spin = 1;
-int Move = 1;
-int Light = 1;
+int Spin = 0;
+int Move = 0;
+int Light = 0;
 
 static void
 Resize(int Width, int Height)
@@ -55,11 +60,10 @@ Resize(int Width, int Height)
     glMatrixMode(GL_MODELVIEW);
 }
 
-//MarchCube1 performs the Marching Cubes algorithm on a single cube
+
 static void
 MarchCube1(double x, double y, double z, double h,
-	   double f(double, double, double, void*),
-	   void *p)
+	   double f(double, double, double, void *), void *p)
 {
     extern int CubeEdgeFlags[256];
     extern int TriangleConnectionTable[256][16];
@@ -71,37 +75,34 @@ MarchCube1(double x, double y, double z, double h,
     struct Vec EdgeNorm[12];
     struct Vec EdgeVertex[12];
 
-    //Make a local copy of the values at the cube's corners
+
     for (i = 0; i < 8; i++) {
 	cube[i] =
 	    f(x + VertexOffset[i][0] * h,
-	      y + VertexOffset[i][1] * h,
-	      z + VertexOffset[i][2] * h,
-	      p);
+	      y + VertexOffset[i][1] * h, z + VertexOffset[i][2] * h, p);
     }
 
-    //Find which vertices are inside of the surface and which are outside
+
     FlagIndex = 0;
     for (Test = 0; Test < 8; Test++) {
-	if (cube[Test] <= TargetValue)
+	if (cube[Test] <= 0)
 	    FlagIndex |= 1 << Test;
     }
 
-    //Find which edges are intersected by the surface
+
     EdgeFlags = CubeEdgeFlags[FlagIndex];
 
-    //If the cube is entirely inside or outside of the surface, then there will be no intersections
+
     if (EdgeFlags == 0) {
 	return;
     }
-    //Find the point of intersection of the surface with each edge
-    //Then find the normal to the surface at those points
+
+
     for (Edge = 0; Edge < 12; Edge++) {
-	//if there is an intersection on this edge
+
 	if (EdgeFlags & (1 << Edge)) {
 	    Offset = GetOffset(cube[EdgeConnection[Edge][0]],
-			       cube[EdgeConnection[Edge][1]],
-			       TargetValue);
+			       cube[EdgeConnection[Edge][1]]);
 
 	    EdgeVertex[Edge].x =
 		x + (VertexOffset[EdgeConnection[Edge][0]][0] +
@@ -119,7 +120,7 @@ MarchCube1(double x, double y, double z, double h,
     }
 
 
-    //Draw the triangles that were found.  There can be up to five per cube
+
     for (iTriangle = 0; iTriangle < 5; iTriangle++) {
 	if (TriangleConnectionTable[FlagIndex][3 * iTriangle] < 0)
 	    break;
@@ -135,11 +136,10 @@ MarchCube1(double x, double y, double z, double h,
     }
 }
 
-//MarchCube2 performs the Marching Tetrahedrons algorithm on a single cube by making six calls to MarchTetrahedron
+
 static void
 MarchCube2(double x, double y, double z, double Scale,
-	   double f(double, double, double, void*),
-	   void *p)
+	   double f(double, double, double, void *), void *p)
 {
     double cube[8];
     double TetrahedronValue[4];
@@ -147,14 +147,14 @@ MarchCube2(double x, double y, double z, double Scale,
     struct Vec CubePosition[8];
     struct Vec TetrahedronPosition[4];
 
-    //Make a local copy of the cube's corner positions
+
     for (i = 0; i < 8; i++) {
 	CubePosition[i].x = x + VertexOffset[i][0] * Scale;
 	CubePosition[i].y = y + VertexOffset[i][1] * Scale;
 	CubePosition[i].z = z + VertexOffset[i][2] * Scale;
     }
 
-    //Make a local copy of the cube's corner values
+
     for (i = 0; i < 8; i++) {
 	cube[i] = f(CubePosition[i].x,
 		    CubePosition[i].y, CubePosition[i].z, p);
@@ -173,7 +173,8 @@ MarchCube2(double x, double y, double z, double Scale,
 }
 
 static void (*MarchCube) (double, double, double, double h,
-			  double (*)(double, double, double, void*), void*) = MarchCube1;
+			  double (*)(double, double, double, void *),
+			  void *) = MarchCube1;
 static void
 Keyboard(unsigned char Key, int i, int j)
 {
@@ -208,9 +209,9 @@ Keyboard(unsigned char Key, int i, int j)
     case 'c':
 	{
 	    if (MarchCube == MarchCube1) {
-		MarchCube = MarchCube2;	//Use Marching Tetrahedrons
+		MarchCube = MarchCube2;
 	    } else {
-		MarchCube = MarchCube1;	//Use Marching Cubes
+		MarchCube = MarchCube1;
 	    }
 	}
 	break;
@@ -222,9 +223,9 @@ Keyboard(unsigned char Key, int i, int j)
     case 'l':
 	{
 	    if (Light) {
-		glDisable(GL_LIGHTING);	//use vertex colors
+		glDisable(GL_LIGHTING);
 	    } else {
-		glEnable(GL_LIGHTING);	//use lit material color
+		glEnable(GL_LIGHTING);
 	    }
 
 	    Light = !Light;
@@ -240,28 +241,16 @@ Special(int Key, int i, int j)
     USED(j);
     switch (Key) {
     case GLUT_KEY_PAGE_UP:
-	{
-	    if (TargetValue < 1000.0) {
-		TargetValue *= 1.1;
-	    }
-	}
+	sample_inc(sample);
 	break;
     case GLUT_KEY_PAGE_DOWN:
-	{
-	    if (TargetValue > 1.0) {
-		TargetValue /= 1.1;
-	    }
-	}
+	sample_dec(sample);
 	break;
     case GLUT_KEY_HOME:
-	{
-	    Spin = !Spin;
-	}
+	Spin = !Spin;
 	break;
     case GLUT_KEY_END:
-	{
-	    Move = !Move;
-	}
+	Move = !Move;
 	break;
     }
 }
@@ -318,10 +307,10 @@ DrawScene(void)
     glutSwapBuffers();
 }
 
-//MarchTetrahedron performs the Marching Tetrahedrons algorithm on a single tetrahedron
+
 static void
 MarchTetrahedron(struct Vec *TetrahedronPosition, double *TetrahedronValue,
-		 double(*f)(double, double, double, void*), void *p)
+		 double (*f) (double, double, double, void *), void *p)
 {
     extern int TetrahedronEdgeFlags[16];
     extern int TetrahedronTriangles[16][7];
@@ -332,29 +321,29 @@ MarchTetrahedron(struct Vec *TetrahedronPosition, double *TetrahedronValue,
     struct Vec EdgeNorm[6];
     struct Vec Color;
 
-    //Find which vertices are inside of the surface and which are outside
+
     for (i = 0; i < 4; i++) {
-	if (TetrahedronValue[i] <= TargetValue)
+	if (TetrahedronValue[i] <= 0)
 	    FlagIndex |= 1 << i;
     }
 
-    //Find which edges are intersected by the surface
+
     EdgeFlags = TetrahedronEdgeFlags[FlagIndex];
 
-    //If the tetrahedron is entirely inside or outside of the surface, then there will be no intersections
+
     if (EdgeFlags == 0) {
 	return;
     }
-    //Find the point of intersection of the surface with each edge
-    // Then find the normal to the surface at those points
+
+
     for (Edge = 0; Edge < 6; Edge++) {
-	//if there is an intersection on this edge
+
 	if (EdgeFlags & (1 << Edge)) {
 	    Vert0 = TetrahedronEdgeConnection[Edge][0];
 	    Vert1 = TetrahedronEdgeConnection[Edge][1];
 	    Offset =
 		GetOffset(TetrahedronValue[Vert0],
-			  TetrahedronValue[Vert1], TargetValue);
+			  TetrahedronValue[Vert1]);
 	    InvOffset = 1.0 - Offset;
 
 	    EdgeVertex[Edge].x =
@@ -371,7 +360,7 @@ MarchTetrahedron(struct Vec *TetrahedronPosition, double *TetrahedronValue,
 		      EdgeVertex[Edge].y, EdgeVertex[Edge].z, f, p);
 	}
     }
-    //Draw the triangles that were found.  There can be up to 2 per tetrahedron
+
     for (iTriangle = 0; iTriangle < 2; iTriangle++) {
 	if (TetrahedronTriangles[FlagIndex][3 * iTriangle] < 0)
 	    break;
@@ -387,9 +376,9 @@ MarchTetrahedron(struct Vec *TetrahedronPosition, double *TetrahedronValue,
 }
 
 
-//MarchingCubes iterates over the entire dataset, calling MarchCube on each cube
+
 static void
-MarchingCubes(double f(double, double, double, void*), void *p)
+MarchingCubes(double f(double, double, double, void *), void *p)
 {
     int i, j, k;
 

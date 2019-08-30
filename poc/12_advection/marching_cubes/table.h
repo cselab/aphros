@@ -630,12 +630,12 @@ static int TriangleConnectionTable[256][16] = {
     {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}
 };
 
-//These tables are used so that everything can be done in little loops
-// that you can look at all at once rather than in pages and pages of
-// unrolled code.
 
-//VertexOffset lists the positions, relative to vertex0, of each of
-//the 8 vertices of a cube
+
+
+
+
+
 static double VertexOffset[][3] = {
     {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 1.0, 0.0}, {0.0, 1.0,
 							0.0},
@@ -643,16 +643,16 @@ static double VertexOffset[][3] = {
 							1.0}
 };
 
-//EdgeConnection lists the index of the endpoint vertices for each
-//of the 12 edges of the cube
+
+
 static int EdgeConnection[][2] = {
     {0, 1}, {1, 2}, {2, 3}, {3, 0},
     {4, 5}, {5, 6}, {6, 7}, {7, 4},
     {0, 4}, {1, 5}, {2, 6}, {3, 7}
 };
 
-//EdgeDirection lists the direction vector (vertex1-vertex0) for
-//each edge in the cube
+
+
 static double EdgeDirection[][3] = {
     {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-1.0, 0.0, 0.0}, {0.0, -1.0,
 							 0.0},
@@ -662,14 +662,14 @@ static double EdgeDirection[][3] = {
 							1.0}
 };
 
-//TetrahedronEdgeConnection lists the index of the endpoint
-//vertices for each of the 6 edges of the tetrahedron
+
+
 static int TetrahedronEdgeConnection[][2] = {
     {0, 1}, {1, 2}, {2, 0}, {0, 3}, {1, 3}, {2, 3}
 };
 
-//TetrahedronEdgeConnection lists the index of verticies from a
-// cube that made up each of the six tetrahedrons within the cube
+
+
 static int TetrahedronsInACube[][4] = {
     {0, 5, 1, 6},
     {0, 1, 2, 6},

@@ -11,14 +11,17 @@ struct Sample {
     int type;
     struct Vec point[3];
     double t;
+    double level;
 };
 
-static double Sample1(struct Sample*, double, double, double);
-static double Sample2(struct Sample*, double, double, double);
-static double Sample3(struct Sample*, double, double, double);
+static double Sample1(struct Sample *, double, double, double);
+static double Sample2(struct Sample *, double, double, double);
+static double Sample3(struct Sample *, double, double, double);
 
-enum {SAMPLE1, SAMPLE2, SAMPLE3,   EMPTY};
-static double (*sample[3])(struct Sample*, double, double, double)  = {Sample1, Sample2, Sample3};
+enum { SAMPLE1, SAMPLE2, SAMPLE3, EMPTY };
+
+static double (*sample[3]) (struct Sample *, double, double, double) = {
+Sample1, Sample2, Sample3};
 
 static double
 Sample1(struct Sample *q, double x, double y, double z)
@@ -26,6 +29,7 @@ Sample1(struct Sample *q, double x, double y, double z)
     double res = 0.0;
     double dx, dy, dz;
     struct Vec *point;
+
     point = q->point;
 
     dx = x - point[0].x;
@@ -52,7 +56,7 @@ Sample2(struct Sample *q, double x, double y, double z)
     double res = 0.0;
     double dx, dy, dz;
     struct Vec *point;
-    
+
     point = q->point;
     dx = x - point[0].x;
     dy = y - point[0].y;
@@ -70,7 +74,7 @@ Sample2(struct Sample *q, double x, double y, double z)
 }
 
 
-//Sample2 defines a height field by plugging the distance from the center into the sin and cos functions
+
 static double
 Sample3(struct Sample *q, double x, double y, double z)
 {
@@ -80,20 +84,21 @@ Sample3(struct Sample *q, double x, double y, double z)
 
     t = q->t;
     Height =
-	20.0 * (t +
-		sqrt((0.5 - x) * (0.5 - x) + (0.5 - y) * (0.5 - y)));
+	20.0 * (t + sqrt((0.5 - x) * (0.5 - x) + (0.5 - y) * (0.5 - y)));
     Height = 1.5 + 0.1 * (sinf(Height) + cosf(Height));
     res = (Height - z) * 50.0;
 
     return res;
 }
 
-struct Sample*
+struct Sample *
 sample_ini(void)
 {
     struct Sample *q;
+
     q = malloc(sizeof(*q));
     q->type = SAMPLE1;
+    q->level = 48.0;
     return q;
 }
 
@@ -106,7 +111,10 @@ sample_fin(struct Sample *q)
 double
 sample_f(struct Sample *q, double x, double y, double z)
 {
-    return sample[q->type](q, x, y, z);
+    double f, level;
+    f = sample[q->type] (q, x, y, z);
+    level = q->level;
+    return f - level;
 }
 
 int
@@ -137,5 +145,21 @@ sample_next(struct Sample *q)
     q->type++;
     if (q->type == EMPTY)
 	q->type = SAMPLE1;
+    return 0;
+}
+
+int
+sample_inc(struct Sample *q)
+{
+    if (q->level < 1000)
+	q->level *= 1.1;
+    return 0;
+}
+
+int
+sample_dec(struct Sample *q)
+{
+    if (q->level > 1)
+	q->level /= 1.1;
     return 0;
 }

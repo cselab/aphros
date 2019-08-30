@@ -4,8 +4,8 @@ struct Vec {
     double z;
 };
 struct Vec;
-double GetOffset(double, double, double);
-void GetColor(struct Vec*, struct Vec*);
+double GetOffset(double, double);
+void GetColor(struct Vec *, struct Vec *);
 void PrintHelp(void);
-void GetNormal(struct Vec*, double, double, double, double(*f)(double, double, double, void*), void*);
-	  
+void GetNormal(struct Vec *, double, double, double,
+	       double (*f) (double, double, double, void *), void *);
