@@ -5,3 +5,7 @@ include("$ENV{CHPREFIX}/include/march.cmake")
 set(T main)
 add_executable(${T} main.c)
 target_link_libraries(${T} march)
+
+set(T sphere)
+add_executable(${T} sphere.c)
+target_link_libraries(${T} march)
