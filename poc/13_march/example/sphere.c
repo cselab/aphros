@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <march.h>
 
 #define SIZE(x) (sizeof(x)/sizeof(*(x)))
@@ -6,7 +7,7 @@
 enum { X, Y, Z };
 static double r = 0.25;
 static double lo = -0.5, hi = 0.5;
-static int m = 20;
+static int m = 100;
 
 static double
 sq(double x)
@@ -19,7 +20,7 @@ f(double x, double y, double z)
 {
     double ans;
 
-    ans = sq(x) + sq(2 * y) + sq(3 * z) - sq(r);
+    ans = sq(x) + sq(2*y) + sq(3*z) - sq(r);
     return ans;
 }
 
@@ -59,15 +60,45 @@ write(double x, double y, double z, double d, int n, double *tri)
 }
 
 int
-main()
+main(int argc, char **argv)
 {
-    static double tri[3 * 3 * MARCH_NTRI];
+    double tri[3 * 3 * MARCH_NTRI];
+    int (*algorithm)(double*, int*, double*);
     int n, i, j, k, l;
     int u, v, w;
     double x, y, z, d;
     double cube[8];
     double *o;
     int stat[MARCH_NTRI] = { 0 };
+
+    if (argv[1] == NULL || argv[1][0] != '-') {
+	fprintf(stderr, "%s: needs -c (cube) or -t (tetrahedron)\n", argv[0]);
+	exit(2);
+    }
+
+    m = 10;
+    algorithm = march_cube;
+    while (argv[1] != NULL && argv++[1][0] == '-')
+	switch (argv[0][1]) {
+	case 'c':
+	    algorithm = march_cube;
+	    break;
+	case 't':
+	    algorithm = march_tetrahedron;
+	    break;
+	case 'n':
+	    if (argv[1] == NULL) {
+		fprintf(stderr, "%s: -n needs an argument\n", argv[0]);
+		exit(2);
+	    }
+	    m = atoi(argv++[1]);
+	    break;
+	default:
+	    fprintf(stderr, "%s: unknow option\n", argv[0]);
+	    exit(2);
+	}
+
+
     printf("# File type: ASCII OBJ\n");
     d = (hi - lo) / (m - 1);
     for (i = 0; i < m; i++)
@@ -80,7 +111,7 @@ main()
 		    o = O[l];
 		    cube[l] = f(x + d * o[X], y + d * o[Y], z + d * o[Z]);
 		}
-		march_tetrahedron(cube, &n, tri);
+		algorithm(cube, &n, tri);
 		stat[n]++;
 		write(x, y, z, d, n, tri);
 	    }
