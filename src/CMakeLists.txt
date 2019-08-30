@@ -7,6 +7,7 @@ set(EXE "mfer")
 set(CHPREFIX $ENV{CHPREFIX})
 
 include("client.cmake")
+include("$ENV{CHPREFIX}/include/march.cmake")
 
 # git revision
 set(P "${PROJECT_SOURCE_DIR}/..")
