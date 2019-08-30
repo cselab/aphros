@@ -8,3 +8,6 @@ struct March {
     int (*vertex)(double, double, double, void *);
     void *cdata;
 };
+
+int march_cube(struct March*);
+int march_tetrahedron(struct March*);

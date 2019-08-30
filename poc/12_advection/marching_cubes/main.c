@@ -42,10 +42,8 @@ vertex(double x, double y, double z, void *p)
 }
 
 struct Vec;
-static void MarchTetrahedron(struct Vec *, double *,
-			     double (*)(double, double, double, void *),
-			     void *);
-static void MarchingCubes(struct March*);
+static void MarchTetrahedron(struct March*, struct Vec *, double *);
+static void MarchingCubes(struct March*, int(*) (struct March*, double, double, double));
 static float AmbientGreen[] = { 0.00, 0.25, 0.00, 1.00 };
 static float AmbientBlue[] = { 0.00, 0.00, 0.25, 1.00 };
 static float DiffuseGreen[] = { 0.00, 0.75, 0.00, 1.00 };
@@ -84,8 +82,8 @@ Resize(int Width, int Height)
 }
 
 
-static void
-MarchCube1(struct March *q, double x, double y, double z, double h)
+static int
+MarchCube1(struct March *q, double x, double y, double z)
 {
     extern int CubeEdgeFlags[256];
     extern int TriangleConnectionTable[256][16];
@@ -115,7 +113,7 @@ MarchCube1(struct March *q, double x, double y, double z, double h)
 
 
     if (EdgeFlags == 0) {
-	return;
+	return 0;
     }
 
 
@@ -152,11 +150,12 @@ MarchCube1(struct March *q, double x, double y, double z, double h)
 	    q->vertex(EdgeVertex[i].x, EdgeVertex[i].y, EdgeVertex[i].z, q->cdata);
 	}
     }
+    return 0;
 }
 
 
-static void
-MarchCube2(struct March *q, double x, double y, double z, double Scale)
+static int
+MarchCube2(struct March *q, double x, double y, double z)
 {
     double cube[8];
     double TetrahedronValue[4];
@@ -166,9 +165,9 @@ MarchCube2(struct March *q, double x, double y, double z, double Scale)
 
 
     for (i = 0; i < 8; i++) {
-	CubePosition[i].x = x + VertexOffset[i][0] * Scale;
-	CubePosition[i].y = y + VertexOffset[i][1] * Scale;
-	CubePosition[i].z = z + VertexOffset[i][2] * Scale;
+	CubePosition[i].x = x + VertexOffset[i][0] * (q->spacing);
+	CubePosition[i].y = y + VertexOffset[i][1] * (q->spacing);
+	CubePosition[i].z = z + VertexOffset[i][2] * (q->spacing);
     }
 
 
@@ -185,12 +184,13 @@ MarchCube2(struct March *q, double x, double y, double z, double Scale)
 	    TetrahedronPosition[i].z = CubePosition[InACube].z;
 	    TetrahedronValue[i] = cube[InACube];
 	}
-	MarchTetrahedron(TetrahedronPosition, TetrahedronValue, q->f, q->fdata);
+	MarchTetrahedron(q, TetrahedronPosition, TetrahedronValue);
     }
+    return 0;
 }
 
-static void
-(*MarchCube) (struct March*, double, double, double, double h) = MarchCube1;
+static int
+(*march0) (struct March*, double, double, double) = MarchCube1;
 			  
 static void
 Keyboard(unsigned char Key, int i, int j)
@@ -225,10 +225,10 @@ Keyboard(unsigned char Key, int i, int j)
 	break;
     case 'c':
 	{
-	    if (MarchCube == MarchCube1) {
-		MarchCube = MarchCube2;
+	    if (march0 == MarchCube1) {
+		march0 = MarchCube2;
 	    } else {
-		MarchCube = MarchCube1;
+		march0 = MarchCube1;
 	    }
 	}
 	break;
@@ -324,7 +324,7 @@ DrawScene(void)
     glPushMatrix();
     glTranslatef(-0.5, -0.5, -0.5);
     glBegin(GL_TRIANGLES);
-    MarchingCubes(q);
+    MarchingCubes(q, march0);
     glEnd();
     glPopMatrix();
 
@@ -336,8 +336,7 @@ DrawScene(void)
 
 
 static void
-MarchTetrahedron(struct Vec *TetrahedronPosition, double *TetrahedronValue,
-		 double (*f) (double, double, double, void *), void *p)
+MarchTetrahedron(struct March *q, struct Vec *TetrahedronPosition, double *TetrahedronValue)
 {
     extern int TetrahedronEdgeFlags[16];
     extern int TetrahedronTriangles[16][7];
@@ -382,7 +381,7 @@ MarchTetrahedron(struct Vec *TetrahedronPosition, double *TetrahedronValue,
 		Offset * TetrahedronPosition[Vert1].z;
 
 	    GetNormal(&EdgeNorm[Edge], EdgeVertex[Edge].x,
-		      EdgeVertex[Edge].y, EdgeVertex[Edge].z, f, p);
+		      EdgeVertex[Edge].y, EdgeVertex[Edge].z, q->f, q->fdata);
 	}
     }
 
@@ -401,7 +400,7 @@ MarchTetrahedron(struct Vec *TetrahedronPosition, double *TetrahedronValue,
 
 
 static void
-MarchingCubes(struct March *q)
+MarchingCubes(struct March *q, int (*march0) (struct March*, double, double, double))
 {
     enum {X, Y, Z};
     int i, j, k;
@@ -412,7 +411,7 @@ MarchingCubes(struct March *q)
     for (i = 0; i < size[X]; i++)
 	for (j = 0; j < size[Y]; j++)
 	    for (k = 0; k < size[Z]; k++)
-		MarchCube(q, i * h, j * h, k * h, h);
+		march0(q, i * h, j * h, k * h);
 }
 
 int
