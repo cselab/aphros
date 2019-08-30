@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <march.h>
 
+#define SIZE(x) sizeof(x)/sizeof(*(x))
+
 enum {X, Y, Z};
 static double r = 0.25;
 static double lo = -0.5, hi = 0.5;
@@ -41,7 +43,6 @@ write(double x, double y, double z, double d, int n, double *tri)
     
     if (n == 0)
 	return;
-    fprintf(stderr, "n: %d\n", n);
     for (i = j = 0; i < 3*n; i++) {
 	a = d*tri[j++] + x;
 	b = d*tri[j++] + y;
@@ -66,7 +67,7 @@ main()
     //double cube[8] = {-1, -1, -1, -1, 1, 1, 1, 1};
     double cube[8];
     double *o;
-    
+    int stat[] = {0, 0, 0, 0, 0, 0};
     printf("# File type: ASCII OBJ\n");
 
     d = (hi - lo)/(m - 1);
@@ -81,7 +82,10 @@ main()
 		    o = O[l];
 		    cube[l] = f(x + d*o[X], y + d*o[Y], z + d*o[Z]);
 		}
+		stat[n]++;
 		march_cube(cube, &n, tri);
 		write(x, y, z, d, n, tri);
 	    }
+    for (i = 0; i < SIZE(stat); i++)
+	fprintf(stderr, "%d %04d\n", i, stat[i]);
 }
