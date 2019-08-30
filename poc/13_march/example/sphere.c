@@ -63,7 +63,6 @@ main()
     int n, i, j, k, l;
     int u, v, w;
     double x, y, z, d;
-    //double cube[8] = {-1, -1, -1, -1, 1, 1, 1, 1};
     double cube[8];
     double *o;
     int stat[] = {0, 0, 0, 0, 0, 0};
@@ -80,8 +79,8 @@ main()
 		    o = O[l];
 		    cube[l] = f(x + d*o[X], y + d*o[Y], z + d*o[Z]);
 		}
-		stat[n]++;
 		march_cube(cube, &n, tri);
+		stat[n]++;
 		write(x, y, z, d, n, tri);
 	    }
     for (i = 0; i < SIZE(stat); i++)
