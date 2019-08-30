@@ -333,14 +333,13 @@ struct Vof<M_>::Imp {
     std::vector<std::vector<Vect>> vv;
 
     vv.resize(n);
-    vv.push_back({Vect(0), Vect(1), Vect(1.,2.,3.)});
     size_t i = 0;
     for (auto& v : vv) {
       v.resize(3);
       for (auto& x : v) {
-        x[0] = tri[i++];
-        x[1] = tri[i++];
-        x[2] = tri[i++];
+        x[0] = tri[i++] - 0.5;
+        x[1] = tri[i++] - 0.5;
+        x[2] = tri[i++] - 0.5;
         x = xc + h * x;
       }
     }
@@ -483,7 +482,7 @@ struct Vof<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& fc, IdxCell c, Scal cl) {
     using MIdx = typename M::MIdx;
     auto& bc = m.GetIndexCells();
-    GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw));
+    GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sn));
     MIdx w = bc.GetMIdx(c);
     std::array<Scal, sn*sn*sn> uu;
     size_t k = 0;
@@ -502,14 +501,14 @@ struct Vof<M_>::Imp {
   }
   // Interpolates from cells to nodes.
   // stencil half-width
-  template <size_t sw, size_t sn=sw*2+1, size_t snn=sw*2>
+  template <int sw, int sn=sw*2+1, int snn=sw*2>
   std::array<Scal, snn*snn*snn> ToNodes(const std::array<Scal, sn*sn*sn>& uu) {
     std::array<Scal, snn*snn*snn> uun;
     size_t i = 0;
-    for (size_t z = 0; z + 1< sw; ++z) {
-      for (size_t y = 0; y + 1< sw; ++y) {
-        for (size_t x = 0; x + 1< sw; ++x) {
-          auto u = [&uu,x,y,z](size_t dx, size_t dy, size_t dz) {
+    for (int z = 0; z < snn; ++z) {
+      for (int y = 0; y < snn; ++y) {
+        for (int x = 0; x < snn; ++x) {
+          auto u = [&uu,x,y,z](int dx, int dy, int dz) {
             return uu[(z+dz)*sn*sn + (y+dy)*sn + (x+dx)];
           };
           uun[i++] = (1. / 8.) * (
