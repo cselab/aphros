@@ -7,6 +7,8 @@
 #include <limits>
 #include <set>
 
+#include <march.h>
+
 #include "vof.h"
 #include "geom/block.h"
 #include "dump/vtk.h"
@@ -320,10 +322,25 @@ struct Vof<M_>::Imp {
   // h: cell size
   std::vector<std::vector<Vect>> GetMarchTriangles(
       const std::array<Scal, 8>& uu, const Vect& xc, const Vect& h) {
+    std::array<double, 8> uuz = uu;
+    for (auto& u : uuz) {
+      u -= 0.5;
+    }
+    int n;
+    std::array<double, 45> tri;
+    march_cube(uuz.data(), &n, tri.data());
+    assert(n * 3 * 3 <= tri.size());
     std::vector<std::vector<Vect>> vv;
+
+    vv.resize(n);
     vv.push_back({Vect(0), Vect(1), Vect(1.,2.,3.)});
+    size_t i = 0;
     for (auto& v : vv) {
+      v.resize(3);
       for (auto& x : v) {
+        x[0] = tri[i++];
+        x[1] = tri[i++];
+        x[2] = tri[i++];
         x = xc + h * x;
       }
     }
@@ -343,8 +360,10 @@ struct Vof<M_>::Imp {
         auto& fcu = fcu_[i].iter_curr;
         for (auto c : m.Cells()) {
           Scal u = fcu[c];
-          if (fci[c]) {
-            auto uu = GetStencil<1>(GetLayer(fcu_, Layers::iter_curr), c, fccl[c]);
+          const Scal th = par->poly_intth;
+          if (fci[c] && u > th && u < 1. - th) {
+            auto uu = GetStencil<1>(
+                GetLayer(fcu_, Layers::iter_curr), c, fccl[c]);
             auto uun = ToNodes<1>(uu);
             auto vv = GetMarchTriangles(uun, m.GetCenter(c), h);
             for (auto& v : vv) {
