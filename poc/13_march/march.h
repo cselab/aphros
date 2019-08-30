@@ -9,4 +9,3 @@ struct March {
     void *cdata;
 };
 int march_cube(struct March *);
-int march_tetrahedron(struct March *);

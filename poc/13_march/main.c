@@ -3,7 +3,6 @@
 #include "table.h"
 
 enum { X, Y, Z };
-static int MarchTetrahedron(struct March *, double *tetr, double *);
 static int MarchCubes(struct March *,
 		      int (*)(struct March *, double[3]));
 static double offset(double, double);
@@ -28,7 +27,7 @@ get_cube(struct March *q, double r[3], double cube[8])
 }
 
 static int
-MarchCube1(struct March *q, double r[3])
+MarchCube(struct March *q, double r[3])
 {
     double cube[8];
     double a;
@@ -75,91 +74,8 @@ MarchCube1(struct March *q, double r[3])
     return 0;
 }
 
-static int
-MarchCube2(struct March *q, double r[3])
-{
-    double cube[8];
-    double val[4];
-    int i, t, j;
-    double *p, *te, *o;
-    double h;
-    double pos[3 * 8];
-    double tetr[3 * 4];
-
-    h = q->spacing;
-    for (i = 0; i < 8; i++) {
-	p = &pos[3 * i];
-	o = Offset[i];
-	p[X] = r[X] + o[X] * h;
-	p[Y] = r[Y] + o[Y] * h;
-	p[Z] = r[Z] + o[Z] * h;
-    }
-    get_cube(q, r, cube);
-    for (t = 0; t < 6; t++) {
-	for (i = 0; i < 4; i++) {
-	    j = TetrahedronsInACube[t][i];
-	    p = &pos[3 * j];
-	    te = &tetr[3 * i];
-	    te[X] = p[X];
-	    te[Y] = p[Y];
-	    te[Z] = p[Z];
-	    val[i] = cube[j];
-	}
-	MarchTetrahedron(q, tetr, val);
-    }
-    return 0;
-}
-
-static int
-MarchTetrahedron(struct March *q, double *tetr, double *val)
-{
-    int e, v0, v1, flag, j, c, i, idx = 0;
-    double a, b;
-    double *te0, *te1, *v, *n;
-    double vert[3 * 6];
-    double norm[3 * 6];
-
-    for (i = 0; i < 4; i++) {
-	if (val[i] <= 0)
-	    idx |= 1 << i;
-    }
-    flag = TetrahedronEdgeFlags[idx];
-    if (flag == 0) {
-	return 0;
-    }
-    for (e = 0; e < 6; e++) {
-	if (flag & (1 << e)) {
-	    v0 = TetrahedronConnection[e][0];
-	    v1 = TetrahedronConnection[e][1];
-	    a = offset(val[v0], val[v1]);
-	    b = 1.0 - a;
-	    v = &vert[3 * e];
-	    te0 = &tetr[3 * v0];
-	    te1 = &tetr[3 * v1];
-	    n = &norm[3 * e];
-	    v[X] = b * te0[X] + a * te1[X];
-	    v[Y] = b * te0[Y] + a * te1[Y];
-	    v[Z] = b * te0[Z] + a * te1[Z];
-	    normal(q, v, n);
-	}
-    }
-    for (j = 0; j < 2; j++) {
-	if (TetrahedronTriangles[idx][3 * j] < 0)
-	    break;
-	for (c = 0; c < 3; c++) {
-	    i = TetrahedronTriangles[idx][3 * j + c];
-	    v = &vert[3 * i];
-	    n = &norm[3 * i];
-	    q->normal(n, q->cdata);
-	    q->vertex(v, q->cdata);
-	}
-    }
-    return 0;
-}
-
-static int
-MarchCubes(struct March *q,
-	   int (*march0) (struct March *, double[3]))
+int
+march_cube(struct March *q)
 {
     enum { X, Y, Z };
     int i, j, k;
@@ -174,21 +90,9 @@ MarchCubes(struct March *q,
 		r[X] = i * h;
 		r[Y] = j * h;
 		r[Z] = k * h;
-		march0(q, r);
+		MarchCube(q, r);
 	    }
     return 0;
-}
-
-int
-march_cube(struct March *q)
-{
-    return MarchCubes(q, MarchCube1);
-}
-
-int
-march_tetrahedron(struct March *q)
-{
-    return MarchCubes(q, MarchCube2);
 }
 
 static double
