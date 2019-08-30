@@ -53,11 +53,11 @@ cube(double cube[8], int *pn, double *tri)
 }
 
 static int
-MarchTetrahedron(double *tetr, double *val, int *pn, double *tri)
+tetrahedron0(double *tetr, double *val, int *pn, double *tri)
 {
     int e, v0, v1, flag, j, c, i, idx = 0;
     double a, b;
-    double *te0, *te1, *v, *t;
+    double *te0, *te1, *v;
     double vert[3 * 6];
     int n;
 
@@ -73,7 +73,7 @@ MarchTetrahedron(double *tetr, double *val, int *pn, double *tri)
 	    v0 = TetrahedronConnection[e][0];
 	    v1 = TetrahedronConnection[e][1];
 	    a = offset(val[v0], val[v1]);
-	    b = 1.0 - a;
+	    b = 1 - a;
 	    v = &vert[3 * e];
 	    te0 = &tetr[3 * v0];
 	    te1 = &tetr[3 * v1];
@@ -106,31 +106,22 @@ tetrahedron(double cube[8], int *pn, double *tri)
 {
     double val[4];
     int i, t, j;
-    double *p, *te, *o;
-    double pos[3 * 8];
+    double *te, *o;
     double tetr[3 * 4];
     int n;
-
-    for (i = 0; i < 8; i++) {
-	p = &pos[3 * i];
-	o = Offset[i];
-	p[X] = o[X];
-	p[Y] = o[Y];
-	p[Z] = o[Z];
-    }
 
     n = 0;
     for (t = 0; t < 6; t++) {
 	for (i = 0; i < 4; i++) {
 	    j = TetrahedronsInACube[t][i];
-	    p = &pos[3 * j];
+	    o = Offset[j];
 	    te = &tetr[3 * i];
-	    te[X] = p[X];
-	    te[Y] = p[Y];
-	    te[Z] = p[Z];
+	    te[X] = o[X];
+	    te[Y] = o[Y];
+	    te[Z] = o[Z];
 	    val[i] = cube[j];
 	}
-	MarchTetrahedron(tetr, val, &n, &tri[9*n]);
+	tetrahedron0(tetr, val, &n, &tri[9*n]);
     }
 
     *pn = n;
