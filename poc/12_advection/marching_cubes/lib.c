@@ -22,14 +22,12 @@ color0(double x, double y, double z)
 							       0.0 ? -0.5 *
 							       z : 0.0);
 }
-
-
 void
-GetColor(struct Vec *Color, struct Vec *n)
+GetColor(double x, double y, double z, double *u, double *v, double *w)
 {
-    Color->x = color0(n->x, n->y, n->z);
-    Color->y = color0(n->y, n->z, n->x);
-    Color->z = color0(n->z, n->x, n->y);
+    *u = color0(x, y, z);
+    *v = color0(y, z, x);
+    *w = color0(z, x, y);
 }
 
 void

@@ -14,11 +14,8 @@ $M: $O; $(LINK) $O $(LDFLAGS) $(M_LDFLAGS) -o $@
 .c.o:; $(CC) $(CFLAGS) $< -c -o $@
 lint:; make CFLAGS='-g -Wall -Wextra -pedantic'
 
-sample.o: sample.h
-main.o: sample.h
-main.o: lib.h
-lib.o: lib.h
-main.o: march.h
-
-.PHONY: clean lint
+.PHONY: clean lint dep
 clean:; rm -f -- $M $O
+
+dep:; ./tool/dep
+include dep.make

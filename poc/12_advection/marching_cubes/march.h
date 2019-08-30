@@ -1,7 +1,7 @@
 struct March {
     double (*f) (double, double, double, void *);
     void *fdata;
-    int n;
+    int size[3];
     double spacing;
 /* TODO:   double origin[3]; */
     int (*normal)(double, double, double, void *);

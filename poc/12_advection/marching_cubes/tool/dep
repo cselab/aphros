@@ -1,0 +1,24 @@
+#!/bin/sh
+
+awk -v me="$0" '
+BEGIN {
+    printf "# generate by %s\n", me
+}
+FNR == 1 {
+    f = FILENAME
+    sub(/\.c$/, ".o", f)
+    sub(/\.cpp$/, ".o", f)
+}
+
+{
+    sub(/\/\/.*/, "") # comment
+}
+
+sub(/^[\t ]*#[\t ]*include[\t ]*/, "") &&
+sub(/^\"/, "") &&
+sub(/".*/, "") {
+    path = $0
+    print f ": " path | "sort"
+}
+' *.c > dep.make
+echo >&2 update dep.make
