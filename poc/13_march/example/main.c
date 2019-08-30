@@ -5,7 +5,7 @@ int
 main()
 {
     double cube[8] = { -1, 0, 0, 0, 0, 0, 0, 1 };
-    double tri[3*3*MARCH_NTRI];
+    double tri[3 * 3 * MARCH_NTRI];
     int n, i, j;
     int u, v, w;
     double a, b, c;

@@ -61,7 +61,7 @@ write(double x, double y, double z, double d, int n, double *tri)
 int
 main()
 {
-    static double tri[3*3*MARCH_NTRI];
+    static double tri[3 * 3 * MARCH_NTRI];
     int n, i, j, k, l;
     int u, v, w;
     double x, y, z, d;

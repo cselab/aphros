@@ -121,7 +121,7 @@ tetrahedron(double cube[8], int *pn, double *tri)
 	    te[Z] = o[Z];
 	    val[i] = cube[j];
 	}
-	tetrahedron0(tetr, val, &n, &tri[9*n]);
+	tetrahedron0(tetr, val, &n, &tri[9 * n]);
     }
 
     *pn = n;
