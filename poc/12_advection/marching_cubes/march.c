@@ -5,39 +5,39 @@
 enum { X, Y, Z };
 static int MarchTetrahedron(struct March *, double *tetr, double *);
 static int MarchCubes(struct March *,
-		      int (*)(struct March *, double, double, double));
+		      int (*)(struct March *, double[3]));
 static double offset(double, double);
 static void normal(struct March *, double[3], double[3]);
 
 static void
-get_cube(struct March *q, double cube[8])
+get_cube(struct March *q, double r[3], double cube[8])
 {
     int i;
     double *o;
+    double h;
+
+    h = q->spacing;
     for (i = 0; i < 8; i++) {
 	o = Offset[i];
-//	cube[i] =
-//	    q->f(x + off[X] * h, y + off[Y] * h, z + off[Z] * h, q->fdata);
+	cube[i] =
+	    q->f(r[X] + o[X] * h, r[Y] + o[Y] * h, r[Z] + o[Z] * h, q->fdata);
     }
 }
 
 static int
-MarchCube1(struct March *q, double x, double y, double z)
+MarchCube1(struct March *q, double r[3])
 {
     double cube[8];
     double a;
-    int c, i, e, j, idx, flag;
+    int c, i, j, idx, flag;
     double norm[3 * 12];
     double vert[3 * 12];
     double h;
     double *n, *v, *o, *dir;
 
     h = q->spacing;
-    for (i = 0; i < 8; i++) {
-	o = Offset[i];
-	cube[i] =
-	    q->f(x + o[X] * h, y + o[Y] * h, z + o[Z] * h, q->fdata);
-    }
+    get_cube(q, r, cube);
+    
     idx = 0;
     for (i = 0; i < 8; i++) {
 	if (cube[i] <= 0)
@@ -52,9 +52,9 @@ MarchCube1(struct March *q, double x, double y, double z)
 	    n = &norm[3 * i];
 	    v = &vert[3 * i];
 	    a = offset(cube[Connection[i][0]], cube[Connection[i][1]]);
-	    v[X] = x + (o[X] + a * dir[X]) * h;
-	    v[Y] = y + (o[Y] + a * dir[Y]) * h;
-	    v[Z] = z + (o[Z] + a * dir[Z]) * h;
+	    v[X] = r[X] + (o[X] + a * dir[X]) * h;
+	    v[Y] = r[Y] + (o[Y] + a * dir[Y]) * h;
+	    v[Z] = r[Z] + (o[Z] + a * dir[Z]) * h;
 	    normal(q, v, n);
 	}
     }
@@ -73,7 +73,7 @@ MarchCube1(struct March *q, double x, double y, double z)
 }
 
 static int
-MarchCube2(struct March *q, double x, double y, double z)
+MarchCube2(struct March *q, double r[3])
 {
     double cube[8];
     double val[4];
@@ -87,14 +87,11 @@ MarchCube2(struct March *q, double x, double y, double z)
     for (i = 0; i < 8; i++) {
 	p = &pos[3 * i];
 	o = Offset[i];
-	p[X] = x + o[X] * h;
-	p[Y] = y + o[Y] * h;
-	p[Z] = z + o[Z] * h;
+	p[X] = r[X] + o[X] * h;
+	p[Y] = r[Y] + o[Y] * h;
+	p[Z] = r[Z] + o[Z] * h;
     }
-    for (i = 0; i < 8; i++) {
-	p = &pos[3 * i];
-	cube[i] = q->f(p[X], p[Y], p[Z], q->fdata);
-    }
+    get_cube(q, r, cube);
     for (t = 0; t < 6; t++) {
 	for (i = 0; i < 4; i++) {
 	    j = TetrahedronsInACube[t][i];
@@ -159,19 +156,23 @@ MarchTetrahedron(struct March *q, double *tetr, double *val)
 
 static int
 MarchCubes(struct March *q,
-	   int (*march0) (struct March *, double, double, double))
+	   int (*march0) (struct March *, double[3]))
 {
     enum { X, Y, Z };
     int i, j, k;
     int *size;
-    double h;
+    double h, r[3];
 
     size = q->size;
     h = q->spacing;
     for (i = 0; i < size[X]; i++)
 	for (j = 0; j < size[Y]; j++)
-	    for (k = 0; k < size[Z]; k++)
-		march0(q, i * h, j * h, k * h);
+	    for (k = 0; k < size[Z]; k++) {
+		r[X] = i * h;
+		r[Y] = j * h;
+		r[Z] = k * h;
+		march0(q, r);
+	    }
     return 0;
 }
 
