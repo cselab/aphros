@@ -7,27 +7,79 @@
 #include "mc.h"
 #include "table.h"
 #define ALLOC_SIZE 65536
-MarchingCubes::MarchingCubes(int size_x,
-			     int size_y,
-			     int size_z):
-_size_x(size_x),
-_size_y(size_y),
-_size_z(size_z),
-_nverts(0),
-_ntrigs(0)
-{
-    _data = new real[_size_x * _size_y * _size_z];
-    _x_verts = new int[_size_x * _size_y * _size_z];
-    _y_verts = new int[_size_x * _size_y * _size_z];
-    _z_verts = new int[_size_x * _size_y * _size_z];
 
-    memset(_x_verts, -1, _size_x * _size_y * _size_z * sizeof(int));
-    memset(_y_verts, -1, _size_x * _size_y * _size_z * sizeof(int));
-    memset(_z_verts, -1, _size_x * _size_y * _size_z * sizeof(int));
-    _nverts = _ntrigs = 0;
-    _Nverts = _Ntrigs = ALLOC_SIZE;
-    _vertices = new Vertex[_Nverts];
-    _triangles = new Triangle[_Ntrigs];
+double
+ MarchingCubes::get_data(int i, int j, int k)
+{
+    return data[i + j * size_x + k * size_x * size_y];
+}
+
+void
+ MarchingCubes::set_data(double val, int i, int j, int k)
+{
+    data[i + j * size_x + k * size_x * size_y] = val;
+}
+
+int
+ MarchingCubes::get_x_vert(int i, int j, int k)
+{
+    return x_verts[i + j * size_x + k * size_x * size_y];
+}
+
+int
+ MarchingCubes::get_y_vert(int i, int j, int k)
+{
+    return y_verts[i + j * size_x + k * size_x * size_y];
+}
+
+int
+ MarchingCubes::get_z_vert(int i, int j, int k)
+{
+    return z_verts[i + j * size_x + k * size_x * size_y];
+}
+
+void
+ MarchingCubes::set_x_vert(int val, int i, int j, int k)
+{
+    x_verts[i + j * size_x + k * size_x * size_y] = val;
+}
+
+void
+ MarchingCubes::set_y_vert(int val, int i, int j, int k)
+{
+    y_verts[i + j * size_x + k * size_x * size_y] = val;
+}
+
+void
+ MarchingCubes::set_z_vert(int val, int i, int j, int k)
+{
+    z_verts[i + j * size_x + k * size_x * size_y] = val;
+}
+
+
+MarchingCubes::MarchingCubes(int x, int y, int z)
+{
+    int N, i;
+
+    size_x = x;
+    size_y = y;
+    size_z = z;
+    N = size_x * size_y * size_z;
+
+    data = new double[N];
+    x_verts = new int[N];
+    y_verts = new int[N];
+    z_verts = new int[N];
+
+    for (i = 0; i < N; i++) {
+	x_verts[i] = -1;
+	y_verts[i] = -1;
+	z_verts[i] = -1;
+    }
+    nverts = ntrigs = 0;
+    Nverts = Ntrigs = ALLOC_SIZE;
+    vertices = new Vertex[Nverts];
+    triangles = new Triangle[Ntrigs];
 }
 
 MarchingCubes::~MarchingCubes()
@@ -39,19 +91,18 @@ void
  MarchingCubes::run()
 {
     compute_intersection_points();
-    for (_k = 0; _k < _size_z - 1; _k++)
-	for (_j = 0; _j < _size_y - 1; _j++)
-	    for (_i = 0; _i < _size_x - 1; _i++) {
-		_lut_entry = 0;
+    for (k = 0; k < size_z - 1; k++)
+	for (j = 0; j < size_y - 1; j++)
+	    for (i = 0; i < size_x - 1; i++) {
+		lut_entry = 0;
 		for (int p = 0; p < 8; ++p) {
-		    _cube[p] =
-			get_data(_i + ((p ^ (p >> 1)) & 1),
-				 _j + ((p >> 1) & 1),
-				 _k + ((p >> 2) & 1));
-		    if (fabs(_cube[p]) < FLT_EPSILON)
-			_cube[p] = FLT_EPSILON;
-		    if (_cube[p] > 0)
-			_lut_entry += 1 << p;
+		    cube[p] =
+			get_data(i + ((p ^ (p >> 1)) & 1),
+				 j + ((p >> 1) & 1), k + ((p >> 2) & 1));
+		    if (fabs(cube[p]) < FLT_EPSILON)
+			cube[p] = FLT_EPSILON;
+		    if (cube[p] > 0)
+			lut_entry += 1 << p;
 		}
 		process_cube();
 	    }
@@ -60,70 +111,70 @@ void
 void
  MarchingCubes::clean_temps()
 {
-    delete[]_data;
-    delete[]_x_verts;
-    delete[]_y_verts;
-    delete[]_z_verts;
-    _data = (real *) NULL;
-    _x_verts = (int *) NULL;
-    _y_verts = (int *) NULL;
-    _z_verts = (int *) NULL;
+    delete[]data;
+    delete[]x_verts;
+    delete[]y_verts;
+    delete[]z_verts;
+    data = (double *) NULL;
+    x_verts = (int *) NULL;
+    y_verts = (int *) NULL;
+    z_verts = (int *) NULL;
 }
 
 void
  MarchingCubes::clean_all()
 {
     clean_temps();
-    delete[]_vertices;
-    delete[]_triangles;
-    _vertices = (Vertex *) NULL;
-    _triangles = (Triangle *) NULL;
-    _nverts = _ntrigs = 0;
-    _Nverts = _Ntrigs = 0;
-    _size_x = _size_y = _size_z = -1;
+    delete[]vertices;
+    delete[]triangles;
+    vertices = (Vertex *) NULL;
+    triangles = (Triangle *) NULL;
+    nverts = ntrigs = 0;
+    Nverts = Ntrigs = 0;
+    size_x = size_y = size_z = -1;
 }
 
 void
  MarchingCubes::compute_intersection_points()
 {
-    for (_k = 0; _k < _size_z; _k++)
-	for (_j = 0; _j < _size_y; _j++)
-	    for (_i = 0; _i < _size_x; _i++) {
-		_cube[0] = get_data(_i, _j, _k);
-		if (_i < _size_x - 1)
-		    _cube[1] = get_data(_i + 1, _j, _k);
+    for (k = 0; k < size_z; k++)
+	for (j = 0; j < size_y; j++)
+	    for (i = 0; i < size_x; i++) {
+		cube[0] = get_data(i, j, k);
+		if (i < size_x - 1)
+		    cube[1] = get_data(i + 1, j, k);
 		else
-		    _cube[1] = _cube[0];
-		if (_j < _size_y - 1)
-		    _cube[3] = get_data(_i, _j + 1, _k);
+		    cube[1] = cube[0];
+		if (j < size_y - 1)
+		    cube[3] = get_data(i, j + 1, k);
 		else
-		    _cube[3] = _cube[0];
-		if (_k < _size_z - 1)
-		    _cube[4] = get_data(_i, _j, _k + 1);
+		    cube[3] = cube[0];
+		if (k < size_z - 1)
+		    cube[4] = get_data(i, j, k + 1);
 		else
-		    _cube[4] = _cube[0];
-		if (fabs(_cube[0]) < FLT_EPSILON)
-		    _cube[0] = FLT_EPSILON;
-		if (fabs(_cube[1]) < FLT_EPSILON)
-		    _cube[1] = FLT_EPSILON;
-		if (fabs(_cube[3]) < FLT_EPSILON)
-		    _cube[3] = FLT_EPSILON;
-		if (fabs(_cube[4]) < FLT_EPSILON)
-		    _cube[4] = FLT_EPSILON;
-		if (_cube[0] < 0) {
-		    if (_cube[1] > 0)
-			set_x_vert(add_x_vertex(), _i, _j, _k);
-		    if (_cube[3] > 0)
-			set_y_vert(add_y_vertex(), _i, _j, _k);
-		    if (_cube[4] > 0)
-			set_z_vert(add_z_vertex(), _i, _j, _k);
+		    cube[4] = cube[0];
+		if (fabs(cube[0]) < FLT_EPSILON)
+		    cube[0] = FLT_EPSILON;
+		if (fabs(cube[1]) < FLT_EPSILON)
+		    cube[1] = FLT_EPSILON;
+		if (fabs(cube[3]) < FLT_EPSILON)
+		    cube[3] = FLT_EPSILON;
+		if (fabs(cube[4]) < FLT_EPSILON)
+		    cube[4] = FLT_EPSILON;
+		if (cube[0] < 0) {
+		    if (cube[1] > 0)
+			set_x_vert(add_x_vertex(), i, j, k);
+		    if (cube[3] > 0)
+			set_y_vert(add_y_vertex(), i, j, k);
+		    if (cube[4] > 0)
+			set_z_vert(add_z_vertex(), i, j, k);
 		} else {
-		    if (_cube[1] < 0)
-			set_x_vert(add_x_vertex(), _i, _j, _k);
-		    if (_cube[3] < 0)
-			set_y_vert(add_y_vertex(), _i, _j, _k);
-		    if (_cube[4] < 0)
-			set_z_vert(add_z_vertex(), _i, _j, _k);
+		    if (cube[1] < 0)
+			set_x_vert(add_x_vertex(), i, j, k);
+		    if (cube[3] < 0)
+			set_y_vert(add_y_vertex(), i, j, k);
+		    if (cube[4] < 0)
+			set_z_vert(add_z_vertex(), i, j, k);
 		}
 	    }
 }
@@ -131,8 +182,8 @@ void
 bool
  MarchingCubes::test_face(schar face)
 {
-    real
-	A,
+    double
+     A,
 	B,
 	C,
 	D;
@@ -140,45 +191,45 @@ bool
     switch (face) {
     case -1:
     case 1:
-	A = _cube[0];
-	B = _cube[4];
-	C = _cube[5];
-	D = _cube[1];
+	A = cube[0];
+	B = cube[4];
+	C = cube[5];
+	D = cube[1];
 	break;
     case -2:
     case 2:
-	A = _cube[1];
-	B = _cube[5];
-	C = _cube[6];
-	D = _cube[2];
+	A = cube[1];
+	B = cube[5];
+	C = cube[6];
+	D = cube[2];
 	break;
     case -3:
     case 3:
-	A = _cube[2];
-	B = _cube[6];
-	C = _cube[7];
-	D = _cube[3];
+	A = cube[2];
+	B = cube[6];
+	C = cube[7];
+	D = cube[3];
 	break;
     case -4:
     case 4:
-	A = _cube[3];
-	B = _cube[7];
-	C = _cube[4];
-	D = _cube[0];
+	A = cube[3];
+	B = cube[7];
+	C = cube[4];
+	D = cube[0];
 	break;
     case -5:
     case 5:
-	A = _cube[0];
-	B = _cube[3];
-	C = _cube[2];
-	D = _cube[1];
+	A = cube[0];
+	B = cube[3];
+	C = cube[2];
+	D = cube[1];
 	break;
     case -6:
     case 6:
-	A = _cube[4];
-	B = _cube[7];
-	C = _cube[6];
-	D = _cube[5];
+	A = cube[4];
+	B = cube[7];
+	C = cube[6];
+	D = cube[5];
 	break;
     default:
 	printf("Invalid face code %d\n", face);
@@ -191,134 +242,133 @@ bool
 bool
  MarchingCubes::test_interior(schar s)
 {
-    real
-	t,
+    double
+     t,
 	At = 0, Bt = 0, Ct = 0, Dt = 0, a, b;
     char
-	test = 0;
+     test = 0;
     char
-	edge = -1;
+     edge = -1;
 
-    switch (_case) {
+    switch (Case) {
     case 4:
     case 10:
-	a = (_cube[4] - _cube[0]) * (_cube[6] - _cube[2]) - (_cube[7] -
-							     _cube[3]) *
-	    (_cube[5] - _cube[1]);
-	b = _cube[2] * (_cube[4] - _cube[0]) + _cube[0] * (_cube[6] -
-							   _cube[2])
-	    - _cube[1] * (_cube[7] - _cube[3]) - _cube[3] * (_cube[5] -
-							     _cube[1]);
+	a = (cube[4] - cube[0]) * (cube[6] - cube[2]) - (cube[7] -
+							 cube[3]) *
+	    (cube[5] - cube[1]);
+	b = cube[2] * (cube[4] - cube[0]) + cube[0] * (cube[6] - cube[2])
+	    - cube[1] * (cube[7] - cube[3]) - cube[3] * (cube[5] -
+							 cube[1]);
 	t = -b / (2 * a);
 	if (t < 0 || t > 1)
 	    return s > 0;
-	At = _cube[0] + (_cube[4] - _cube[0]) * t;
-	Bt = _cube[3] + (_cube[7] - _cube[3]) * t;
-	Ct = _cube[2] + (_cube[6] - _cube[2]) * t;
-	Dt = _cube[1] + (_cube[5] - _cube[1]) * t;
+	At = cube[0] + (cube[4] - cube[0]) * t;
+	Bt = cube[3] + (cube[7] - cube[3]) * t;
+	Ct = cube[2] + (cube[6] - cube[2]) * t;
+	Dt = cube[1] + (cube[5] - cube[1]) * t;
 	break;
     case 6:
     case 7:
     case 12:
     case 13:
-	switch (_case) {
+	switch (Case) {
 	case 6:
-	    edge = test6[_config][2];
+	    edge = test6[config][2];
 	    break;
 	case 7:
-	    edge = test7[_config][4];
+	    edge = test7[config][4];
 	    break;
 	case 12:
-	    edge = test12[_config][3];
+	    edge = test12[config][3];
 	    break;
 	case 13:
-	    edge = tiling13_5_1[_config][_subconfig][0];
+	    edge = tiling13_5_1[config][subconfig][0];
 	    break;
 	}
 	switch (edge) {
 	case 0:
-	    t = _cube[0] / (_cube[0] - _cube[1]);
+	    t = cube[0] / (cube[0] - cube[1]);
 	    At = 0;
-	    Bt = _cube[3] + (_cube[2] - _cube[3]) * t;
-	    Ct = _cube[7] + (_cube[6] - _cube[7]) * t;
-	    Dt = _cube[4] + (_cube[5] - _cube[4]) * t;
+	    Bt = cube[3] + (cube[2] - cube[3]) * t;
+	    Ct = cube[7] + (cube[6] - cube[7]) * t;
+	    Dt = cube[4] + (cube[5] - cube[4]) * t;
 	    break;
 	case 1:
-	    t = _cube[1] / (_cube[1] - _cube[2]);
+	    t = cube[1] / (cube[1] - cube[2]);
 	    At = 0;
-	    Bt = _cube[0] + (_cube[3] - _cube[0]) * t;
-	    Ct = _cube[4] + (_cube[7] - _cube[4]) * t;
-	    Dt = _cube[5] + (_cube[6] - _cube[5]) * t;
+	    Bt = cube[0] + (cube[3] - cube[0]) * t;
+	    Ct = cube[4] + (cube[7] - cube[4]) * t;
+	    Dt = cube[5] + (cube[6] - cube[5]) * t;
 	    break;
 	case 2:
-	    t = _cube[2] / (_cube[2] - _cube[3]);
+	    t = cube[2] / (cube[2] - cube[3]);
 	    At = 0;
-	    Bt = _cube[1] + (_cube[0] - _cube[1]) * t;
-	    Ct = _cube[5] + (_cube[4] - _cube[5]) * t;
-	    Dt = _cube[6] + (_cube[7] - _cube[6]) * t;
+	    Bt = cube[1] + (cube[0] - cube[1]) * t;
+	    Ct = cube[5] + (cube[4] - cube[5]) * t;
+	    Dt = cube[6] + (cube[7] - cube[6]) * t;
 	    break;
 	case 3:
-	    t = _cube[3] / (_cube[3] - _cube[0]);
+	    t = cube[3] / (cube[3] - cube[0]);
 	    At = 0;
-	    Bt = _cube[2] + (_cube[1] - _cube[2]) * t;
-	    Ct = _cube[6] + (_cube[5] - _cube[6]) * t;
-	    Dt = _cube[7] + (_cube[4] - _cube[7]) * t;
+	    Bt = cube[2] + (cube[1] - cube[2]) * t;
+	    Ct = cube[6] + (cube[5] - cube[6]) * t;
+	    Dt = cube[7] + (cube[4] - cube[7]) * t;
 	    break;
 	case 4:
-	    t = _cube[4] / (_cube[4] - _cube[5]);
+	    t = cube[4] / (cube[4] - cube[5]);
 	    At = 0;
-	    Bt = _cube[7] + (_cube[6] - _cube[7]) * t;
-	    Ct = _cube[3] + (_cube[2] - _cube[3]) * t;
-	    Dt = _cube[0] + (_cube[1] - _cube[0]) * t;
+	    Bt = cube[7] + (cube[6] - cube[7]) * t;
+	    Ct = cube[3] + (cube[2] - cube[3]) * t;
+	    Dt = cube[0] + (cube[1] - cube[0]) * t;
 	    break;
 	case 5:
-	    t = _cube[5] / (_cube[5] - _cube[6]);
+	    t = cube[5] / (cube[5] - cube[6]);
 	    At = 0;
-	    Bt = _cube[4] + (_cube[7] - _cube[4]) * t;
-	    Ct = _cube[0] + (_cube[3] - _cube[0]) * t;
-	    Dt = _cube[1] + (_cube[2] - _cube[1]) * t;
+	    Bt = cube[4] + (cube[7] - cube[4]) * t;
+	    Ct = cube[0] + (cube[3] - cube[0]) * t;
+	    Dt = cube[1] + (cube[2] - cube[1]) * t;
 	    break;
 	case 6:
-	    t = _cube[6] / (_cube[6] - _cube[7]);
+	    t = cube[6] / (cube[6] - cube[7]);
 	    At = 0;
-	    Bt = _cube[5] + (_cube[4] - _cube[5]) * t;
-	    Ct = _cube[1] + (_cube[0] - _cube[1]) * t;
-	    Dt = _cube[2] + (_cube[3] - _cube[2]) * t;
+	    Bt = cube[5] + (cube[4] - cube[5]) * t;
+	    Ct = cube[1] + (cube[0] - cube[1]) * t;
+	    Dt = cube[2] + (cube[3] - cube[2]) * t;
 	    break;
 	case 7:
-	    t = _cube[7] / (_cube[7] - _cube[4]);
+	    t = cube[7] / (cube[7] - cube[4]);
 	    At = 0;
-	    Bt = _cube[6] + (_cube[5] - _cube[6]) * t;
-	    Ct = _cube[2] + (_cube[1] - _cube[2]) * t;
-	    Dt = _cube[3] + (_cube[0] - _cube[3]) * t;
+	    Bt = cube[6] + (cube[5] - cube[6]) * t;
+	    Ct = cube[2] + (cube[1] - cube[2]) * t;
+	    Dt = cube[3] + (cube[0] - cube[3]) * t;
 	    break;
 	case 8:
-	    t = _cube[0] / (_cube[0] - _cube[4]);
+	    t = cube[0] / (cube[0] - cube[4]);
 	    At = 0;
-	    Bt = _cube[3] + (_cube[7] - _cube[3]) * t;
-	    Ct = _cube[2] + (_cube[6] - _cube[2]) * t;
-	    Dt = _cube[1] + (_cube[5] - _cube[1]) * t;
+	    Bt = cube[3] + (cube[7] - cube[3]) * t;
+	    Ct = cube[2] + (cube[6] - cube[2]) * t;
+	    Dt = cube[1] + (cube[5] - cube[1]) * t;
 	    break;
 	case 9:
-	    t = _cube[1] / (_cube[1] - _cube[5]);
+	    t = cube[1] / (cube[1] - cube[5]);
 	    At = 0;
-	    Bt = _cube[0] + (_cube[4] - _cube[0]) * t;
-	    Ct = _cube[3] + (_cube[7] - _cube[3]) * t;
-	    Dt = _cube[2] + (_cube[6] - _cube[2]) * t;
+	    Bt = cube[0] + (cube[4] - cube[0]) * t;
+	    Ct = cube[3] + (cube[7] - cube[3]) * t;
+	    Dt = cube[2] + (cube[6] - cube[2]) * t;
 	    break;
 	case 10:
-	    t = _cube[2] / (_cube[2] - _cube[6]);
+	    t = cube[2] / (cube[2] - cube[6]);
 	    At = 0;
-	    Bt = _cube[1] + (_cube[5] - _cube[1]) * t;
-	    Ct = _cube[0] + (_cube[4] - _cube[0]) * t;
-	    Dt = _cube[3] + (_cube[7] - _cube[3]) * t;
+	    Bt = cube[1] + (cube[5] - cube[1]) * t;
+	    Ct = cube[0] + (cube[4] - cube[0]) * t;
+	    Dt = cube[3] + (cube[7] - cube[3]) * t;
 	    break;
 	case 11:
-	    t = _cube[3] / (_cube[3] - _cube[7]);
+	    t = cube[3] / (cube[3] - cube[7]);
 	    At = 0;
-	    Bt = _cube[2] + (_cube[6] - _cube[2]) * t;
-	    Ct = _cube[1] + (_cube[5] - _cube[1]) * t;
-	    Dt = _cube[0] + (_cube[4] - _cube[0]) * t;
+	    Bt = cube[2] + (cube[6] - cube[2]) * t;
+	    Ct = cube[1] + (cube[5] - cube[1]) * t;
+	    Dt = cube[0] + (cube[4] - cube[0]) * t;
 	    break;
 	default:
 	    printf("Invalid edge %d\n", edge);
@@ -326,7 +376,7 @@ bool
 	}
 	break;
     default:
-	printf("Invalid ambiguous case %d\n", _case);
+	printf("Invalid ambiguous case %d\n", Case);
 	break;
     }
     if (At >= 0)
@@ -382,338 +432,338 @@ void
  MarchingCubes::process_cube()
 {
     int
-	v12 = -1;
+     v12 = -1;
 
-    _case = cases[_lut_entry][0];
-    _config = cases[_lut_entry][1];
-    _subconfig = 0;
-    switch (_case) {
+    Case = cases[lut_entry][0];
+    config = cases[lut_entry][1];
+    subconfig = 0;
+    switch (Case) {
     case 0:
 	break;
     case 1:
-	add_triangle(tiling1[_config], 1);
+	add_triangle(tiling1[config], 1);
 	break;
     case 2:
-	add_triangle(tiling2[_config], 2);
+	add_triangle(tiling2[config], 2);
 	break;
     case 3:
-	if (test_face(test3[_config]))
-	    add_triangle(tiling3_2[_config], 4);
+	if (test_face(test3[config]))
+	    add_triangle(tiling3_2[config], 4);
 	else
-	    add_triangle(tiling3_1[_config], 2);
+	    add_triangle(tiling3_1[config], 2);
 	break;
     case 4:
-	if (test_interior(test4[_config]))
-	    add_triangle(tiling4_1[_config], 2);
+	if (test_interior(test4[config]))
+	    add_triangle(tiling4_1[config], 2);
 	else
-	    add_triangle(tiling4_2[_config], 6);
+	    add_triangle(tiling4_2[config], 6);
 	break;
     case 5:
-	add_triangle(tiling5[_config], 3);
+	add_triangle(tiling5[config], 3);
 	break;
     case 6:
-	if (test_face(test6[_config][0]))
-	    add_triangle(tiling6_2[_config], 5);
+	if (test_face(test6[config][0]))
+	    add_triangle(tiling6_2[config], 5);
 	else {
-	    if (test_interior(test6[_config][1]))
-		add_triangle(tiling6_1_1[_config], 3);
+	    if (test_interior(test6[config][1]))
+		add_triangle(tiling6_1_1[config], 3);
 	    else {
 		v12 = add_c_vertex();
-		add_triangle(tiling6_1_2[_config], 9, v12);
+		add_triangle(tiling6_1_2[config], 9, v12);
 	    }
 	}
 	break;
     case 7:
-	if (test_face(test7[_config][0]))
-	    _subconfig += 1;
-	if (test_face(test7[_config][1]))
-	    _subconfig += 2;
-	if (test_face(test7[_config][2]))
-	    _subconfig += 4;
-	switch (_subconfig) {
+	if (test_face(test7[config][0]))
+	    subconfig += 1;
+	if (test_face(test7[config][1]))
+	    subconfig += 2;
+	if (test_face(test7[config][2]))
+	    subconfig += 4;
+	switch (subconfig) {
 	case 0:
-	    add_triangle(tiling7_1[_config], 3);
+	    add_triangle(tiling7_1[config], 3);
 	    break;
 	case 1:
-	    add_triangle(tiling7_2[_config][0], 5);
+	    add_triangle(tiling7_2[config][0], 5);
 	    break;
 	case 2:
-	    add_triangle(tiling7_2[_config][1], 5);
+	    add_triangle(tiling7_2[config][1], 5);
 	    break;
 	case 3:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling7_3[_config][0], 9, v12);
+	    add_triangle(tiling7_3[config][0], 9, v12);
 	    break;
 	case 4:
-	    add_triangle(tiling7_2[_config][2], 5);
+	    add_triangle(tiling7_2[config][2], 5);
 	    break;
 	case 5:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling7_3[_config][1], 9, v12);
+	    add_triangle(tiling7_3[config][1], 9, v12);
 	    break;
 	case 6:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling7_3[_config][2], 9, v12);
+	    add_triangle(tiling7_3[config][2], 9, v12);
 	    break;
 	case 7:
-	    if (test_interior(test7[_config][3]))
-		add_triangle(tiling7_4_2[_config], 9);
+	    if (test_interior(test7[config][3]))
+		add_triangle(tiling7_4_2[config], 9);
 	    else
-		add_triangle(tiling7_4_1[_config], 5);
+		add_triangle(tiling7_4_1[config], 5);
 	    break;
 	};
 	break;
     case 8:
-	add_triangle(tiling8[_config], 2);
+	add_triangle(tiling8[config], 2);
 	break;
     case 9:
-	add_triangle(tiling9[_config], 4);
+	add_triangle(tiling9[config], 4);
 	break;
     case 10:
-	if (test_face(test10[_config][0])) {
-	    if (test_face(test10[_config][1]))
-		add_triangle(tiling10_1_1_[_config], 4);
+	if (test_face(test10[config][0])) {
+	    if (test_face(test10[config][1]))
+		add_triangle(tiling10_1_1_[config], 4);
 	    else {
 		v12 = add_c_vertex();
-		add_triangle(tiling10_2[_config], 8, v12);
+		add_triangle(tiling10_2[config], 8, v12);
 	    }
 	} else {
-	    if (test_face(test10[_config][1])) {
+	    if (test_face(test10[config][1])) {
 		v12 = add_c_vertex();
-		add_triangle(tiling10_2_[_config], 8, v12);
+		add_triangle(tiling10_2_[config], 8, v12);
 	    } else {
-		if (test_interior(test10[_config][2]))
-		    add_triangle(tiling10_1_1[_config], 4);
+		if (test_interior(test10[config][2]))
+		    add_triangle(tiling10_1_1[config], 4);
 		else
-		    add_triangle(tiling10_1_2[_config], 8);
+		    add_triangle(tiling10_1_2[config], 8);
 	    }
 	}
 	break;
     case 11:
-	add_triangle(tiling11[_config], 4);
+	add_triangle(tiling11[config], 4);
 	break;
     case 12:
-	if (test_face(test12[_config][0])) {
-	    if (test_face(test12[_config][1]))
-		add_triangle(tiling12_1_1_[_config], 4);
+	if (test_face(test12[config][0])) {
+	    if (test_face(test12[config][1]))
+		add_triangle(tiling12_1_1_[config], 4);
 	    else {
 		v12 = add_c_vertex();
-		add_triangle(tiling12_2[_config], 8, v12);
+		add_triangle(tiling12_2[config], 8, v12);
 	    }
 	} else {
-	    if (test_face(test12[_config][1])) {
+	    if (test_face(test12[config][1])) {
 		v12 = add_c_vertex();
-		add_triangle(tiling12_2_[_config], 8, v12);
+		add_triangle(tiling12_2_[config], 8, v12);
 	    } else {
-		if (test_interior(test12[_config][2]))
-		    add_triangle(tiling12_1_1[_config], 4);
+		if (test_interior(test12[config][2]))
+		    add_triangle(tiling12_1_1[config], 4);
 		else
-		    add_triangle(tiling12_1_2[_config], 8);
+		    add_triangle(tiling12_1_2[config], 8);
 	    }
 	}
 	break;
     case 13:
-	if (test_face(test13[_config][0]))
-	    _subconfig += 1;
-	if (test_face(test13[_config][1]))
-	    _subconfig += 2;
-	if (test_face(test13[_config][2]))
-	    _subconfig += 4;
-	if (test_face(test13[_config][3]))
-	    _subconfig += 8;
-	if (test_face(test13[_config][4]))
-	    _subconfig += 16;
-	if (test_face(test13[_config][5]))
-	    _subconfig += 32;
-	switch (subconfig13[_subconfig]) {
-	case 0:		/* 13.1 */
-	    add_triangle(tiling13_1[_config], 4);
+	if (test_face(test13[config][0]))
+	    subconfig += 1;
+	if (test_face(test13[config][1]))
+	    subconfig += 2;
+	if (test_face(test13[config][2]))
+	    subconfig += 4;
+	if (test_face(test13[config][3]))
+	    subconfig += 8;
+	if (test_face(test13[config][4]))
+	    subconfig += 16;
+	if (test_face(test13[config][5]))
+	    subconfig += 32;
+	switch (subconfig13[subconfig]) {
+	case 0:
+	    add_triangle(tiling13_1[config], 4);
 	    break;
-	case 1:		/* 13.2 */
-	    add_triangle(tiling13_2[_config][0], 6);
+	case 1:
+	    add_triangle(tiling13_2[config][0], 6);
 	    break;
-	case 2:		/* 13.2 */
-	    add_triangle(tiling13_2[_config][1], 6);
+	case 2:
+	    add_triangle(tiling13_2[config][1], 6);
 	    break;
-	case 3:		/* 13.2 */
-	    add_triangle(tiling13_2[_config][2], 6);
+	case 3:
+	    add_triangle(tiling13_2[config][2], 6);
 	    break;
-	case 4:		/* 13.2 */
-	    add_triangle(tiling13_2[_config][3], 6);
+	case 4:
+	    add_triangle(tiling13_2[config][3], 6);
 	    break;
-	case 5:		/* 13.2 */
-	    add_triangle(tiling13_2[_config][4], 6);
+	case 5:
+	    add_triangle(tiling13_2[config][4], 6);
 	    break;
-	case 6:		/* 13.2 */
-	    add_triangle(tiling13_2[_config][5], 6);
+	case 6:
+	    add_triangle(tiling13_2[config][5], 6);
 	    break;
-	case 7:		/* 13.3 */
+	case 7:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3[_config][0], 10, v12);
+	    add_triangle(tiling13_3[config][0], 10, v12);
 	    break;
-	case 8:		/* 13.3 */
+	case 8:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3[_config][1], 10, v12);
+	    add_triangle(tiling13_3[config][1], 10, v12);
 	    break;
-	case 9:		/* 13.3 */
+	case 9:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3[_config][2], 10, v12);
+	    add_triangle(tiling13_3[config][2], 10, v12);
 	    break;
-	case 10:		/* 13.3 */
+	case 10:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3[_config][3], 10, v12);
+	    add_triangle(tiling13_3[config][3], 10, v12);
 	    break;
-	case 11:		/* 13.3 */
+	case 11:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3[_config][4], 10, v12);
+	    add_triangle(tiling13_3[config][4], 10, v12);
 	    break;
-	case 12:		/* 13.3 */
+	case 12:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3[_config][5], 10, v12);
+	    add_triangle(tiling13_3[config][5], 10, v12);
 	    break;
-	case 13:		/* 13.3 */
+	case 13:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3[_config][6], 10, v12);
+	    add_triangle(tiling13_3[config][6], 10, v12);
 	    break;
-	case 14:		/* 13.3 */
+	case 14:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3[_config][7], 10, v12);
+	    add_triangle(tiling13_3[config][7], 10, v12);
 	    break;
-	case 15:		/* 13.3 */
+	case 15:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3[_config][8], 10, v12);
+	    add_triangle(tiling13_3[config][8], 10, v12);
 	    break;
-	case 16:		/* 13.3 */
+	case 16:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3[_config][9], 10, v12);
+	    add_triangle(tiling13_3[config][9], 10, v12);
 	    break;
-	case 17:		/* 13.3 */
+	case 17:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3[_config][10], 10, v12);
+	    add_triangle(tiling13_3[config][10], 10, v12);
 	    break;
-	case 18:		/* 13.3 */
+	case 18:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3[_config][11], 10, v12);
+	    add_triangle(tiling13_3[config][11], 10, v12);
 	    break;
-	case 19:		/* 13.4 */
+	case 19:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_4[_config][0], 12, v12);
+	    add_triangle(tiling13_4[config][0], 12, v12);
 	    break;
-	case 20:		/* 13.4 */
+	case 20:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_4[_config][1], 12, v12);
+	    add_triangle(tiling13_4[config][1], 12, v12);
 	    break;
-	case 21:		/* 13.4 */
+	case 21:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_4[_config][2], 12, v12);
+	    add_triangle(tiling13_4[config][2], 12, v12);
 	    break;
-	case 22:		/* 13.4 */
+	case 22:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_4[_config][3], 12, v12);
+	    add_triangle(tiling13_4[config][3], 12, v12);
 	    break;
-	case 23:		/* 13.5 */
-	    _subconfig = 0;
-	    if (test_interior(test13[_config][6]))
-		add_triangle(tiling13_5_1[_config][0], 6);
+	case 23:
+	    subconfig = 0;
+	    if (test_interior(test13[config][6]))
+		add_triangle(tiling13_5_1[config][0], 6);
 	    else
-		add_triangle(tiling13_5_2[_config][0], 10);
+		add_triangle(tiling13_5_2[config][0], 10);
 	    break;
-	case 24:		/* 13.5 */
-	    _subconfig = 1;
-	    if (test_interior(test13[_config][6]))
-		add_triangle(tiling13_5_1[_config][1], 6);
+	case 24:
+	    subconfig = 1;
+	    if (test_interior(test13[config][6]))
+		add_triangle(tiling13_5_1[config][1], 6);
 	    else
-		add_triangle(tiling13_5_2[_config][1], 10);
+		add_triangle(tiling13_5_2[config][1], 10);
 	    break;
-	case 25:		/* 13.5 */
-	    _subconfig = 2;
-	    if (test_interior(test13[_config][6]))
-		add_triangle(tiling13_5_1[_config][2], 6);
+	case 25:
+	    subconfig = 2;
+	    if (test_interior(test13[config][6]))
+		add_triangle(tiling13_5_1[config][2], 6);
 	    else
-		add_triangle(tiling13_5_2[_config][2], 10);
+		add_triangle(tiling13_5_2[config][2], 10);
 	    break;
-	case 26:		/* 13.5 */
-	    _subconfig = 3;
-	    if (test_interior(test13[_config][6]))
-		add_triangle(tiling13_5_1[_config][3], 6);
+	case 26:
+	    subconfig = 3;
+	    if (test_interior(test13[config][6]))
+		add_triangle(tiling13_5_1[config][3], 6);
 	    else
-		add_triangle(tiling13_5_2[_config][3], 10);
+		add_triangle(tiling13_5_2[config][3], 10);
 	    break;
-	case 27:		/* 13.3 */
+	case 27:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3_[_config][0], 10, v12);
+	    add_triangle(tiling13_3_[config][0], 10, v12);
 	    break;
-	case 28:		/* 13.3 */
+	case 28:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3_[_config][1], 10, v12);
+	    add_triangle(tiling13_3_[config][1], 10, v12);
 	    break;
-	case 29:		/* 13.3 */
+	case 29:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3_[_config][2], 10, v12);
+	    add_triangle(tiling13_3_[config][2], 10, v12);
 	    break;
-	case 30:		/* 13.3 */
+	case 30:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3_[_config][3], 10, v12);
+	    add_triangle(tiling13_3_[config][3], 10, v12);
 	    break;
-	case 31:		/* 13.3 */
+	case 31:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3_[_config][4], 10, v12);
+	    add_triangle(tiling13_3_[config][4], 10, v12);
 	    break;
-	case 32:		/* 13.3 */
+	case 32:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3_[_config][5], 10, v12);
+	    add_triangle(tiling13_3_[config][5], 10, v12);
 	    break;
-	case 33:		/* 13.3 */
+	case 33:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3_[_config][6], 10, v12);
+	    add_triangle(tiling13_3_[config][6], 10, v12);
 	    break;
-	case 34:		/* 13.3 */
+	case 34:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3_[_config][7], 10, v12);
+	    add_triangle(tiling13_3_[config][7], 10, v12);
 	    break;
-	case 35:		/* 13.3 */
+	case 35:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3_[_config][8], 10, v12);
+	    add_triangle(tiling13_3_[config][8], 10, v12);
 	    break;
-	case 36:		/* 13.3 */
+	case 36:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3_[_config][9], 10, v12);
+	    add_triangle(tiling13_3_[config][9], 10, v12);
 	    break;
-	case 37:		/* 13.3 */
+	case 37:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3_[_config][10], 10, v12);
+	    add_triangle(tiling13_3_[config][10], 10, v12);
 	    break;
-	case 38:		/* 13.3 */
+	case 38:
 	    v12 = add_c_vertex();
-	    add_triangle(tiling13_3_[_config][11], 10, v12);
+	    add_triangle(tiling13_3_[config][11], 10, v12);
 	    break;
-	case 39:		/* 13.2 */
-	    add_triangle(tiling13_2_[_config][0], 6);
+	case 39:
+	    add_triangle(tiling13_2_[config][0], 6);
 	    break;
-	case 40:		/* 13.2 */
-	    add_triangle(tiling13_2_[_config][1], 6);
+	case 40:
+	    add_triangle(tiling13_2_[config][1], 6);
 	    break;
-	case 41:		/* 13.2 */
-	    add_triangle(tiling13_2_[_config][2], 6);
+	case 41:
+	    add_triangle(tiling13_2_[config][2], 6);
 	    break;
-	case 42:		/* 13.2 */
-	    add_triangle(tiling13_2_[_config][3], 6);
+	case 42:
+	    add_triangle(tiling13_2_[config][3], 6);
 	    break;
-	case 43:		/* 13.2 */
-	    add_triangle(tiling13_2_[_config][4], 6);
+	case 43:
+	    add_triangle(tiling13_2_[config][4], 6);
 	    break;
-	case 44:		/* 13.2 */
-	    add_triangle(tiling13_2_[_config][5], 6);
+	case 44:
+	    add_triangle(tiling13_2_[config][5], 6);
 	    break;
-	case 45:		/* 13.1 */
-	    add_triangle(tiling13_1_[_config], 4);
+	case 45:
+	    add_triangle(tiling13_1_[config], 4);
 	    break;
 	default:
 	    printf("Marching Cubes: Impossible case 13?\n");
 	}
 	break;
     case 14:
-	add_triangle(tiling14[_config], 4);
+	add_triangle(tiling14[config], 4);
 	break;
     };
 }
@@ -722,45 +772,45 @@ void
  MarchingCubes::add_triangle(const char *trig, char n, int v12)
 {
     int
-	tv[3];
+     tv[3];
 
     for (int t = 0; t < 3 * n; t++) {
 	switch (trig[t]) {
 	case 0:
-	    tv[t % 3] = get_x_vert(_i, _j, _k);
+	    tv[t % 3] = get_x_vert(i, j, k);
 	    break;
 	case 1:
-	    tv[t % 3] = get_y_vert(_i + 1, _j, _k);
+	    tv[t % 3] = get_y_vert(i + 1, j, k);
 	    break;
 	case 2:
-	    tv[t % 3] = get_x_vert(_i, _j + 1, _k);
+	    tv[t % 3] = get_x_vert(i, j + 1, k);
 	    break;
 	case 3:
-	    tv[t % 3] = get_y_vert(_i, _j, _k);
+	    tv[t % 3] = get_y_vert(i, j, k);
 	    break;
 	case 4:
-	    tv[t % 3] = get_x_vert(_i, _j, _k + 1);
+	    tv[t % 3] = get_x_vert(i, j, k + 1);
 	    break;
 	case 5:
-	    tv[t % 3] = get_y_vert(_i + 1, _j, _k + 1);
+	    tv[t % 3] = get_y_vert(i + 1, j, k + 1);
 	    break;
 	case 6:
-	    tv[t % 3] = get_x_vert(_i, _j + 1, _k + 1);
+	    tv[t % 3] = get_x_vert(i, j + 1, k + 1);
 	    break;
 	case 7:
-	    tv[t % 3] = get_y_vert(_i, _j, _k + 1);
+	    tv[t % 3] = get_y_vert(i, j, k + 1);
 	    break;
 	case 8:
-	    tv[t % 3] = get_z_vert(_i, _j, _k);
+	    tv[t % 3] = get_z_vert(i, j, k);
 	    break;
 	case 9:
-	    tv[t % 3] = get_z_vert(_i + 1, _j, _k);
+	    tv[t % 3] = get_z_vert(i + 1, j, k);
 	    break;
 	case 10:
-	    tv[t % 3] = get_z_vert(_i + 1, _j + 1, _k);
+	    tv[t % 3] = get_z_vert(i + 1, j + 1, k);
 	    break;
 	case 11:
-	    tv[t % 3] = get_z_vert(_i, _j + 1, _k);
+	    tv[t % 3] = get_z_vert(i, j + 1, k);
 	    break;
 	case 12:
 	    tv[t % 3] = v12;
@@ -769,21 +819,21 @@ void
 	    break;
 	}
 	if (tv[t % 3] == -1) {
-	    printf("Marching Cubes: invalid triangle %d\n", _ntrigs + 1);
+	    printf("Marching Cubes: invalid triangle %d\n", ntrigs + 1);
 	}
 	if (t % 3 == 2) {
-	    if (_ntrigs >= _Ntrigs) {
+	    if (ntrigs >= Ntrigs) {
 		Triangle *
-		    temp = _triangles;
+		    temp = triangles;
 
-		_triangles = new Triangle[2 * _Ntrigs];
-		memcpy(_triangles, temp, _Ntrigs * sizeof(Triangle));
+		triangles = new Triangle[2 * Ntrigs];
+		memcpy(triangles, temp, Ntrigs * sizeof(Triangle));
 		delete[]temp;
-		printf("%d allocated triangles\n", _Ntrigs);
-		_Ntrigs *= 2;
+		printf("%d allocated triangles\n", Ntrigs);
+		Ntrigs *= 2;
 	    }
 	    Triangle *
-		T = _triangles + _ntrigs++;
+		T = triangles + ntrigs++;
 
 	    T->v1 = tv[0];
 	    T->v2 = tv[1];
@@ -795,15 +845,15 @@ void
 void
  MarchingCubes::test_vertex_addition()
 {
-    if (_nverts >= _Nverts) {
+    if (nverts >= Nverts) {
 	Vertex *
-	    temp = _vertices;
+	    temp = vertices;
 
-	_vertices = new Vertex[_Nverts * 2];
-	memcpy(_vertices, temp, _Nverts * sizeof(Vertex));
+	vertices = new Vertex[Nverts * 2];
+	memcpy(vertices, temp, Nverts * sizeof(Vertex));
 	delete[]temp;
-	printf("%d allocated vertices\n", _Nverts);
-	_Nverts *= 2;
+	printf("%d allocated vertices\n", Nverts);
+	Nverts *= 2;
     }
 }
 
@@ -812,14 +862,15 @@ int
 {
     test_vertex_addition();
     Vertex *
-	vert = _vertices + _nverts++;
-    real
-	u = (_cube[0]) / (_cube[0] - _cube[1]);
+	vert = vertices + nverts++;
 
-    vert->x = (real) _i + u;
-    vert->y = (real) _j;
-    vert->z = (real) _k;
-    return _nverts - 1;
+    double
+     u = (cube[0]) / (cube[0] - cube[1]);
+
+    vert->x = (double) i + u;
+    vert->y = (double) j;
+    vert->z = (double) k;
+    return nverts - 1;
 }
 
 int
@@ -827,14 +878,15 @@ int
 {
     test_vertex_addition();
     Vertex *
-	vert = _vertices + _nverts++;
-    real
-	u = (_cube[0]) / (_cube[0] - _cube[3]);
+	vert = vertices + nverts++;
 
-    vert->x = (real) _i;
-    vert->y = (real) _j + u;
-    vert->z = (real) _k;
-    return _nverts - 1;
+    double
+     u = (cube[0]) / (cube[0] - cube[3]);
+
+    vert->x = (double) i;
+    vert->y = (double) j + u;
+    vert->z = (double) k;
+    return nverts - 1;
 }
 
 int
@@ -842,14 +894,15 @@ int
 {
     test_vertex_addition();
     Vertex *
-	vert = _vertices + _nverts++;
-    real
-	u = (_cube[0]) / (_cube[0] - _cube[4]);
+	vert = vertices + nverts++;
 
-    vert->x = (real) _i;
-    vert->y = (real) _j;
-    vert->z = (real) _k + u;
-    return _nverts - 1;
+    double
+     u = (cube[0]) / (cube[0] - cube[4]);
+
+    vert->x = (double) i;
+    vert->y = (double) j;
+    vert->z = (double) k + u;
+    return nverts - 1;
 }
 
 int
@@ -857,140 +910,141 @@ int
 {
     test_vertex_addition();
     Vertex *
-	vert = _vertices + _nverts++;
-    real
-	u = 0;
+	vert = vertices + nverts++;
+
+    double
+     u = 0;
     int
-	vid;
+     vid;
 
     vert->x = vert->y = vert->z = 0;
-    vid = get_x_vert(_i, _j, _k);
+    vid = get_x_vert(i, j, k);
     if (vid != -1) {
 	++u;
 	const
-	    Vertex &
-	    v = _vertices[vid];
+	 Vertex &
+	    v = vertices[vid];
 
 	vert->x += v.x;
 	vert->y += v.y;
 	vert->z += v.z;
     }
-    vid = get_y_vert(_i + 1, _j, _k);
+    vid = get_y_vert(i + 1, j, k);
     if (vid != -1) {
 	++u;
 	const
-	    Vertex &
-	    v = _vertices[vid];
+	 Vertex &
+	    v = vertices[vid];
 
 	vert->x += v.x;
 	vert->y += v.y;
 	vert->z += v.z;
     }
-    vid = get_x_vert(_i, _j + 1, _k);
+    vid = get_x_vert(i, j + 1, k);
     if (vid != -1) {
 	++u;
 	const
-	    Vertex &
-	    v = _vertices[vid];
+	 Vertex &
+	    v = vertices[vid];
 
 	vert->x += v.x;
 	vert->y += v.y;
 	vert->z += v.z;
     }
-    vid = get_y_vert(_i, _j, _k);
+    vid = get_y_vert(i, j, k);
     if (vid != -1) {
 	++u;
 	const
-	    Vertex &
-	    v = _vertices[vid];
+	 Vertex &
+	    v = vertices[vid];
 
 	vert->x += v.x;
 	vert->y += v.y;
 	vert->z += v.z;
     }
-    vid = get_x_vert(_i, _j, _k + 1);
+    vid = get_x_vert(i, j, k + 1);
     if (vid != -1) {
 	++u;
 	const
-	    Vertex &
-	    v = _vertices[vid];
+	 Vertex &
+	    v = vertices[vid];
 
 	vert->x += v.x;
 	vert->y += v.y;
 	vert->z += v.z;
     }
-    vid = get_y_vert(_i + 1, _j, _k + 1);
+    vid = get_y_vert(i + 1, j, k + 1);
     if (vid != -1) {
 	++u;
 	const
-	    Vertex &
-	    v = _vertices[vid];
+	 Vertex &
+	    v = vertices[vid];
 
 	vert->x += v.x;
 	vert->y += v.y;
 	vert->z += v.z;
     }
-    vid = get_x_vert(_i, _j + 1, _k + 1);
+    vid = get_x_vert(i, j + 1, k + 1);
     if (vid != -1) {
 	++u;
 	const
-	    Vertex &
-	    v = _vertices[vid];
+	 Vertex &
+	    v = vertices[vid];
 
 	vert->x += v.x;
 	vert->y += v.y;
 	vert->z += v.z;
     }
-    vid = get_y_vert(_i, _j, _k + 1);
+    vid = get_y_vert(i, j, k + 1);
     if (vid != -1) {
 	++u;
 	const
-	    Vertex &
-	    v = _vertices[vid];
+	 Vertex &
+	    v = vertices[vid];
 
 	vert->x += v.x;
 	vert->y += v.y;
 	vert->z += v.z;
     }
-    vid = get_z_vert(_i, _j, _k);
+    vid = get_z_vert(i, j, k);
     if (vid != -1) {
 	++u;
 	const
-	    Vertex &
-	    v = _vertices[vid];
+	 Vertex &
+	    v = vertices[vid];
 
 	vert->x += v.x;
 	vert->y += v.y;
 	vert->z += v.z;
     }
-    vid = get_z_vert(_i + 1, _j, _k);
+    vid = get_z_vert(i + 1, j, k);
     if (vid != -1) {
 	++u;
 	const
-	    Vertex &
-	    v = _vertices[vid];
+	 Vertex &
+	    v = vertices[vid];
 
 	vert->x += v.x;
 	vert->y += v.y;
 	vert->z += v.z;
     }
-    vid = get_z_vert(_i + 1, _j + 1, _k);
+    vid = get_z_vert(i + 1, j + 1, k);
     if (vid != -1) {
 	++u;
 	const
-	    Vertex &
-	    v = _vertices[vid];
+	 Vertex &
+	    v = vertices[vid];
 
 	vert->x += v.x;
 	vert->y += v.y;
 	vert->z += v.z;
     }
-    vid = get_z_vert(_i, _j + 1, _k);
+    vid = get_z_vert(i, j + 1, k);
     if (vid != -1) {
 	++u;
 	const
-	    Vertex &
-	    v = _vertices[vid];
+	 Vertex &
+	    v = vertices[vid];
 
 	vert->x += v.x;
 	vert->y += v.y;
@@ -999,25 +1053,31 @@ int
     vert->x /= u;
     vert->y /= u;
     vert->z /= u;
-    return _nverts - 1;
+    return nverts - 1;
 }
 
 void
-writeObj(MarchingCubes *q)
+writeObj(MarchingCubes * q)
 {
-    int t;
-    int v;
-    int i;
-    Triangle *tri;
-    Vertex *ver;
+    int
+     t;
+    int
+     v;
+    int
+     i;
+    Triangle *
+	tri;
+    Vertex *
+	ver;
 
-    t = q->_ntrigs;
-    v = q->_nverts;
-    tri = q->_triangles;
-    ver = q->_vertices;
+    t = q->ntrigs;
+    v = q->nverts;
+    tri = q->triangles;
+    ver = q->vertices;
     printf("# File type: ASCII OBJ\n");
     for (i = 0; i < v; i++)
 	printf("v %.16g %.16g %.16g\n", ver[i].x, ver[i].y, ver[i].z);
     for (i = 0; i < t; i++)
-	printf("f %d %d %d\n", tri[i].v1 + 1, tri[i].v2 + 1, tri[i].v3 + 1);	
+	printf("f %d %d %d\n", tri[i].v1 + 1, tri[i].v2 + 1,
+	       tri[i].v3 + 1);
 }
