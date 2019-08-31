@@ -21,68 +21,85 @@ materialLibrary1 = GetMaterialLibrary()
 
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
-renderView1.ViewSize = [1000, 1000]
-renderView1.AnnotationColor = [0.0, 0.0, 0.0]
+renderView1.ViewSize = [1000,1000]
 renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.OrientationAxesVisibility = 0
-renderView1.OrientationAxesLabelColor = [0.0, 0.0, 0.0]
-renderView1.OrientationAxesOutlineColor = [0.0, 0.0, 0.0]
-renderView1.CenterOfRotation = [0.5, 0.5, 0.5]
 renderView1.StereoType = 0
-renderView1.CameraPosition = [2.864659435788656, 1.400169527753375, -1.1935958157385422]
-renderView1.CameraFocalPoint = [0.7618904044343615, 0.5023327450596681, 0.36183797116664934]
-renderView1.CameraViewUp = [-0.26122254713626997, 0.9458257135082125, 0.19281208606910466]
-renderView1.CameraParallelScale = 0.8660254037844386
-renderView1.Background = [1.0, 1.0, 1.0]
+renderView1.CameraPosition =\
+[1.326166076499316, 1.581412512627694, 3.5052432288262967]
+renderView1.CameraFocalPoint =\
+[0.45722849374168073, 0.4442839115593683, 0.4806707888589165]
+renderView1.CameraViewUp =\
+[-0.08433283755119116, 0.9404371241304461, -0.3293417496580418]
+renderView1.Background = [0.0, 0.0, 0.0]
 renderView1.EnableOSPRay = 1
 renderView1.Shadows = 1
 renderView1.AmbientSamples = 5
 renderView1.SamplesPerPixel = 10
-renderView1.ProgressivePasses = 1
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 
 
-svtk = LegacyVTKReader(FileNames=['s_0500.vtk'])
 
-vfxmf = XDMFReader(FileNames=['vf_0500.xmf'])
-vfxmf.CellArrayStatus = ['vf']
-vfxmf.GridStatus = ['Grid_2']
+def Draw0():
+    vfxmf = XDMFReader(FileNames=['vf_0500.xmf'])
+    vfxmf.CellArrayStatus = ['vf']
+    vfxmf.GridStatus = ['Grid_2']
 
-cellDatatoPointData1 = CellDatatoPointData(Input=vfxmf)
+    cellDatatoPointData1 = CellDatatoPointData(Input=vfxmf)
+    contour1 = Contour(Input=cellDatatoPointData1)
+    contour1.ContourBy = ['POINTS', 'vf']
+    contour1.Isosurfaces = [0.5]
+    contour1.PointMergeMethod = 'Uniform Binning'
+    contour1Display = Show(contour1, renderView1)
+    contour1Display.Representation = 'Surface'
+    contour1Display.AmbientColor = [0.0, 0.0, 0.0]
 
-contour1 = Contour(Input=cellDatatoPointData1)
-contour1.ContourBy = ['POINTS', 'vf']
-contour1.Isosurfaces = [0.5]
-contour1.PointMergeMethod = 'Uniform Binning'
-
-
-cellDatatoPointData1Display = Show(cellDatatoPointData1, renderView1)
-cellDatatoPointData1Display.Representation = 'Outline'
-cellDatatoPointData1Display.AmbientColor = [0.0, 0.0, 0.0]
-cellDatatoPointData1Display.LineWidth = 1
-
-contour1Display = Show(contour1, renderView1)
-contour1Display.Representation = 'Surface'
-contour1Display.AmbientColor = [0.0, 0.0, 0.0]
-contour1Display.Opacity = 0.5
-
-svtkDisplay = Show(svtk, renderView1)
-svtkDisplay.Representation = 'Surface'
-svtkDisplay.AmbientColor = [0.0, 0.0, 0.0]
-svtkDisplay.Opacity = 0.5
-svtkDisplay.ColorArrayName = [None, '']
+    fn = "contour.png"
+    SaveScreenshot(fn, renderView1)
+    print(fn)
+    Hide(contour1)
 
 
+def Draw1():
+    svtk = LegacyVTKReader(FileNames=['s_0500.vtk'])
+    svtkDisplay = Show(svtk, renderView1)
+    svtkDisplay.Representation = 'Surface'
+    svtkDisplay.AmbientColor = [0.0, 0.0, 0.0]
+    svtkDisplay.ColorArrayName = [None, '']
 
-fn = "contour.png"
-Hide(svtk, renderView1)
-Show(contour1, renderView1)
-SaveScreenshot(fn, renderView1)
-print(fn)
+    fn = "polygons.png"
+    SaveScreenshot(fn, renderView1)
+    print(fn)
+    Hide(svtk)
 
-fn = "polygons.png"
-Show(svtk, renderView1)
-Hide(contour1, renderView1)
-SaveScreenshot(fn, renderView1)
-print(fn)
 
+def Draw2():
+    smvtk = LegacyVTKReader(FileNames=['sm_0100.vtk'])
+    smvtk = GenerateSurfaceNormals(Input=smvtk)
+    clip1 = Clip(Input=smvtk)
+    clip1.ClipType = 'Plane'
+    clip1.Crinkleclip = 1
+    clip1.ClipType.Origin = [0.0, 0.99, 0.0]
+    clip1.ClipType.Normal = [0.0, 1.0, 0.0]
+    surfDisplay = Show(clip1, renderView1)
+    surfDisplay.Representation = 'Surface'
+    surfDisplay.AmbientColor = [0.0, 0.0, 0.0]
+    surfDisplay.ColorArrayName = [None, '']
+    fn = "polygons_march.png"
+    SaveScreenshot(fn, renderView1)
+    print(fn)
+    Hide(clip1)
+
+def Draw(case):
+    if case == 0: Draw0()
+    if case == 1: Draw1()
+    if case == 2: Draw2()
+
+import sys
+av = sys.argv
+
+if len(av) > 1:
+    Draw(int(av[1]))
+else:
+    for case in [0,1,2]:
+        Draw(case)
