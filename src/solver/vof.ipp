@@ -228,6 +228,8 @@ struct Vof<M_>::Imp {
     psm->dump_fr = par->part_dump_fr;
     psm->maxr = par->part_maxr;
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm));
+    psm->vtkbin = par->vtkbin;
+    psm->vtkmerge = par->vtkmerge;
   }
   void Update(typename PS::Par* p) const {
     Scal hc = m.GetCellSize().norminf(); // cell size
@@ -313,7 +315,8 @@ struct Vof<M_>::Imp {
             << " t=" << owner_->GetTime() + owner_->GetTimeStep()
             << " to " << fn << std::endl;
         WriteVtkPoly(fn, dl_, {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"}, 
-            "Reconstructed linear interface", true, par->vtkbin);
+            "Reconstructed linear interface", true, 
+            par->vtkbin, par->vtkmerge);
       }
     }
   }
@@ -385,7 +388,8 @@ struct Vof<M_>::Imp {
             << " t=" << owner_->GetTime() + owner_->GetTimeStep()
             << " to " << fn << std::endl;
         WriteVtkPoly(fn, dl_, {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"}, 
-            "Reconstructed linear interface", true, par->vtkbin);
+            "Reconstructed linear interface", true, 
+            par->vtkbin, par->vtkmerge);
       }
     }
   }

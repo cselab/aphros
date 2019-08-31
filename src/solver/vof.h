@@ -63,6 +63,7 @@ class Vof : public AdvectionSolver<M_> {
     AR part_attrreconst = AR::line;
     int verb = 0;
     bool vtkbin = false;
+    bool vtkmerge = true;
   };
 
   // Constructor
