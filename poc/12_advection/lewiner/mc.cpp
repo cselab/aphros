@@ -11,56 +11,56 @@
 double
  MarchingCubes::get_data(int i, int j, int k)
 {
-    return data[i + j * size_x + k * size_x * size_y];
+    return data[i + j * x + k * x * y];
 }
 
 int
  MarchingCubes::get_x_vert(int i, int j, int k)
 {
-    return x_verts[i + j * size_x + k * size_x * size_y];
+    return x_verts[i + j * x + k * x * y];
 }
 
 int
  MarchingCubes::get_y_vert(int i, int j, int k)
 {
-    return y_verts[i + j * size_x + k * size_x * size_y];
+    return y_verts[i + j * x + k * x * y];
 }
 
 int
  MarchingCubes::get_z_vert(int i, int j, int k)
 {
-    return z_verts[i + j * size_x + k * size_x * size_y];
+    return z_verts[i + j * x + k * x * y];
 }
 
 void
  MarchingCubes::set_x_vert(int val, int i, int j, int k)
 {
-    x_verts[i + j * size_x + k * size_x * size_y] = val;
+    x_verts[i + j * x + k * x * y] = val;
 }
 
 void
  MarchingCubes::set_y_vert(int val, int i, int j, int k)
 {
-    y_verts[i + j * size_x + k * size_x * size_y] = val;
+    y_verts[i + j * x + k * x * y] = val;
 }
 
 void
  MarchingCubes::set_z_vert(int val, int i, int j, int k)
 {
-    z_verts[i + j * size_x + k * size_x * size_y] = val;
+    z_verts[i + j * x + k * x * y] = val;
 }
 
 
-MarchingCubes::MarchingCubes(int x, int y, int z, double *data0)
+MarchingCubes::MarchingCubes(int x0, int y0, int z0, double *data0)
 {
     int N, i;
 
-    size_x = x;
-    size_y = y;
-    size_z = z;
+    x = x0;
+    y = y0;
+    z = z0;
     data = data0;
     
-    N = size_x * size_y * size_z;
+    N = x * y * z;
 
     x_verts = new int[N];
     y_verts = new int[N];
@@ -77,18 +77,13 @@ MarchingCubes::MarchingCubes(int x, int y, int z, double *data0)
     triangles = new Triangle[Ntrigs];
 }
 
-MarchingCubes::~MarchingCubes()
-{
-    clean_all();
-}
-
 void
  MarchingCubes::run()
 {
     compute_intersection_points();
-    for (k = 0; k < size_z - 1; k++)
-	for (j = 0; j < size_y - 1; j++)
-	    for (i = 0; i < size_x - 1; i++) {
+    for (k = 0; k < z - 1; k++)
+	for (j = 0; j < y - 1; j++)
+	    for (i = 0; i < x - 1; i++) {
 		lut_entry = 0;
 		for (int p = 0; p < 8; ++p) {
 		    cube[p] =
@@ -104,46 +99,21 @@ void
 }
 
 void
- MarchingCubes::clean_temps()
-{
-    delete[]x_verts;
-    delete[]y_verts;
-    delete[]z_verts;
-    data = (double *) NULL;
-    x_verts = (int *) NULL;
-    y_verts = (int *) NULL;
-    z_verts = (int *) NULL;
-}
-
-void
- MarchingCubes::clean_all()
-{
-    clean_temps();
-    delete[]vertices;
-    delete[]triangles;
-    vertices = (Vertex *) NULL;
-    triangles = (Triangle *) NULL;
-    nverts = ntrigs = 0;
-    Nverts = Ntrigs = 0;
-    size_x = size_y = size_z = -1;
-}
-
-void
  MarchingCubes::compute_intersection_points()
 {
-    for (k = 0; k < size_z; k++)
-	for (j = 0; j < size_y; j++)
-	    for (i = 0; i < size_x; i++) {
+    for (k = 0; k < z; k++)
+	for (j = 0; j < y; j++)
+	    for (i = 0; i < x; i++) {
 		cube[0] = get_data(i, j, k);
-		if (i < size_x - 1)
+		if (i < x - 1)
 		    cube[1] = get_data(i + 1, j, k);
 		else
 		    cube[1] = cube[0];
-		if (j < size_y - 1)
+		if (j < y - 1)
 		    cube[3] = get_data(i, j + 1, k);
 		else
 		    cube[3] = cube[0];
-		if (k < size_z - 1)
+		if (k < z - 1)
 		    cube[4] = get_data(i, j, k + 1);
 		else
 		    cube[4] = cube[0];

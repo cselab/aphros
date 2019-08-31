@@ -7,11 +7,8 @@ typedef struct {
     int v1, v2, v3;
 } Triangle;
 struct MarchingCubes {
-    MarchingCubes(int size_x, int size_y, int size_z, double*);
-    ~MarchingCubes();
+    MarchingCubes(int x, int y, int z, double*);
     double get_data(int i, int j, int k);
-    void clean_temps();
-    void clean_all();
     void run();
     void process_cube();
     bool test_face(schar face);
@@ -33,9 +30,9 @@ struct MarchingCubes {
     void set_y_vert(int val, int i, int j, int k);
     void set_z_vert(int val, int i, int j, int k);
 
-    int size_x;
-    int size_y;
-    int size_z;
+    int x;
+    int y;
+    int z;
     double *data;
     int *x_verts;
     int *y_verts;

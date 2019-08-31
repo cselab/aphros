@@ -36,9 +36,7 @@ main()
 
     MarchingCubes mc(nx, ny, nz, buf);
     mc.run();
-    mc.clean_temps();
     writeObj(&mc);
-    mc.clean_all();
     free(buf);
     return 0;
 }
