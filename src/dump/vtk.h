@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <unordered_map>
 
 // Returns true if machine is little endian
 static inline bool IsLittleEnd() {
@@ -143,6 +144,41 @@ void Convert(const std::vector<std::vector<Vect>>& vv,
   }
 }
 
+// Converts to index representation merging closely located points.
+// vv: polygons as lists of points
+// Returns:
+// xx: points
+// pp: polygons as lists of indices
+template <class Vect>
+void ConvertMerge(const std::vector<std::vector<Vect>>& vv, 
+             std::vector<Vect>& xx, 
+             std::vector<std::vector<size_t>>& pp) {
+  struct MyHash {
+    size_t operator()(Vect const& x) const noexcept {
+      const int m = 1000000;
+      size_t h0 = std::hash<int>{}(int(x[0] * m));
+      size_t h1 = std::hash<int>{}(int(x[1] * m));
+      size_t h2 = std::hash<int>{}(int(x[2] * m));
+      return h0 ^ (h1 << 1) ^ (h2 << 2);
+    }
+  };
+
+  std::unordered_map<Vect, size_t, MyHash> s;
+  xx.resize(0);
+  pp.resize(0);
+  for (auto& v : vv) {
+    pp.emplace_back();
+    for (auto& x : v) {
+      if (!s.count(x)) {
+        s[x] = xx.size();
+        xx.push_back(x);
+      }
+      pp.back().push_back(s[x]);
+    }
+  }
+}
+
+
 // Writes legacy vtk polydata with cell-based dataset.
 // vv: polygons as lists of points
 // dd: cell-based dataset of size vv.size()
@@ -150,14 +186,21 @@ void Convert(const std::vector<std::vector<Vect>>& vv,
 // fn: path
 // cm: comment
 // poly: true: polygons, false: lines
+// binary: use binary format
+// merge: combine close points
 template <class Vect, class Scal=typename Vect::value_type>
 void WriteVtkPoly(const std::string& fn,
                   const std::vector<std::vector<Vect>>& vv,  
                   const std::vector<const std::vector<Scal>*>& dd,
                   const std::vector<std::string>& dn,
-                  const std::string& cm, bool poly, bool binary) {
+                  const std::string& cm, bool poly, bool binary,
+                  bool merge) {
   std::vector<Vect> xx;
   std::vector<std::vector<size_t>> pp;
-  Convert(vv, xx, pp);
+  if (merge) {
+    ConvertMerge(vv, xx, pp);
+  } else {
+    Convert(vv, xx, pp);
+  }
   WriteVtkPoly(fn, xx, pp, dd, dn, cm, poly, binary);
 }

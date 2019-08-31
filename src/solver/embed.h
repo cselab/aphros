@@ -79,7 +79,7 @@ class Embed {
             << "dump" 
             << " to " << fn << std::endl;
         WriteVtkPoly(fn, dl_, {&dld_, &dls_}, {"dir", "area"}, 
-                     "Embedded boundary", true, true);
+                     "Embedded boundary", true, true, true);
       }
     }
   }

@@ -93,7 +93,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
         std::cout << std::fixed << std::setprecision(8)
             << "dump" << " to " << fn << std::endl;
         WriteVtkPoly(fn, dl_, {&dlc_}, {"c"}, 
-            "Reconstructed linear interface", true, false);
+            "Reconstructed linear interface", true, false, false);
       }
     }
   }
