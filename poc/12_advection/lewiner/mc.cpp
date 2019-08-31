@@ -14,12 +14,6 @@ double
     return data[i + j * size_x + k * size_x * size_y];
 }
 
-void
- MarchingCubes::set_data(double val, int i, int j, int k)
-{
-    data[i + j * size_x + k * size_x * size_y] = val;
-}
-
 int
  MarchingCubes::get_x_vert(int i, int j, int k)
 {
@@ -57,16 +51,17 @@ void
 }
 
 
-MarchingCubes::MarchingCubes(int x, int y, int z)
+MarchingCubes::MarchingCubes(int x, int y, int z, double *data0)
 {
     int N, i;
 
     size_x = x;
     size_y = y;
     size_z = z;
+    data = data0;
+    
     N = size_x * size_y * size_z;
 
-    data = new double[N];
     x_verts = new int[N];
     y_verts = new int[N];
     z_verts = new int[N];
@@ -111,7 +106,6 @@ void
 void
  MarchingCubes::clean_temps()
 {
-    delete[]data;
     delete[]x_verts;
     delete[]y_verts;
     delete[]z_verts;

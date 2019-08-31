@@ -7,10 +7,9 @@ typedef struct {
     int v1, v2, v3;
 } Triangle;
 struct MarchingCubes {
-    MarchingCubes(int size_x, int size_y, int size_z);
+    MarchingCubes(int size_x, int size_y, int size_z, double*);
     ~MarchingCubes();
     double get_data(int i, int j, int k);
-    void set_data(double, int, int, int);
     void clean_temps();
     void clean_all();
     void run();

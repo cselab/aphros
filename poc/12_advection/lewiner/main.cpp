@@ -2,24 +2,21 @@
 #include <stdio.h>
 #include "mc.h"
 
-static int nx = 60, ny = 60, nz = 60;
-
 int
 main()
 {
+    int nx = 60, ny = 60, nz = 60;
     int i, j, k, m;
     double x, y, z;
     double sx, sy, sz;
     double tx, ty, tz;
     double r;
     double *buf;
-    MarchingCubes mc(nx, ny, nz);
     buf = (double*)malloc(nx*ny*nz*sizeof(*buf));
     if (buf == NULL) {
 	fprintf(stderr, "alloc failed\n");
 	exit(2);
     }
-
     r = 1.85;
     sx = nx / 16.0;
     sy = ny / 16.0;
@@ -34,9 +31,10 @@ main()
 		y = j / sy - ty;
 		z = k / sz - tz;
 		buf[m++] = x * x + y * y + z * z - r * r;
-		mc.set_data(x * x + y * y + z * z - r * r, i, j, k);
 	    }
 
+
+    MarchingCubes mc(nx, ny, nz, buf);
     mc.run();
     mc.clean_temps();
     writeObj(&mc);
@@ -44,4 +42,3 @@ main()
     free(buf);
     return 0;
 }
-
