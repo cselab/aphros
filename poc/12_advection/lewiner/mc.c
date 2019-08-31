@@ -7,9 +7,46 @@
 #include "mc.h"
 #include "table.h"
 #define ALLOC_SIZE 65536
-#define SIZE(a) (sizeof(a)/sizeof(*(a)))
+#define SIZE(a) (int)(sizeof(a)/sizeof(*(a)))
 
 enum { X, Y, Z };
+enum { OOO,
+    IOO,
+    IIO,
+    OIO,
+    OOI,
+    IOI,
+    III,
+    OII
+};
+static int CubeDir[] = { IOO, OIO, OOI };
+
+static int CubeOff[][3] = {
+    { 0, 0, 0 },
+    { 1, 0, 0 },
+    { 1, 1, 0 },
+    { 0, 1, 0 },
+    { 0, 0, 1 },
+    { 1, 0, 1 },
+    { 1, 1, 1 },
+    { 0, 1, 1 },
+};
+
+static int COff[][4] = {
+    { 0, 1, 0, X },
+    { 0, 1, 1, X },
+    { 0, 0, 0, X },
+    { 0, 0, 1, X },
+    { 1, 0, 0, Y },
+    { 1, 0, 1, Y },
+    { 0, 0, 0, Y },
+    { 0, 0, 1, Y },
+    { 1, 1, 0, Z },
+    { 1, 0, 0, Z },
+    { 0, 1, 0, Z },
+    { 0, 0, 0, Z }
+};
+
 
 static double get_data(int i, int j, int k);
 static void process_cube();
@@ -62,14 +99,11 @@ static void
 set_vert(int D, int i, int j, int k)
 {
     double u;
-    int m[3];
-
-    m[X] = 1;
-    m[Y] = 3;
-    m[Z] = 4;
+    int d;
 
     test_vertex_addition();
-    u = (cube[0]) / (cube[0] - cube[m[D]]);
+    d = CubeDir[D];
+    u = (cube[OOO]) / (cube[OOO] - cube[d]);
     vertices[3 * nv + X] = i;
     vertices[3 * nv + Y] = j;
     vertices[3 * nv + Z] = k;
@@ -104,17 +138,16 @@ MarchingCubes(int x0, int y0, int z0, double *data0)
 void
 run()
 {
-    int lut_entry;
+    int lut_entry, p, *o;
 
     compute_intersection_points();
     for (k = 0; k < z - 1; k++)
 	for (j = 0; j < y - 1; j++)
 	    for (i = 0; i < x - 1; i++) {
 		lut_entry = 0;
-		for (int p = 0; p < 8; ++p) {
-		    cube[p] =
-			get_data(i + ((p ^ (p >> 1)) & 1),
-				 j + ((p >> 1) & 1), k + ((p >> 2) & 1));
+		for (p = 0; p < SIZE(CubeOff); ++p) {
+		    o = CubeOff[p];
+		    cube[p] = get_data(i + o[X], j + o[Y], k + o[Z]);
 		    if (cube[p] > 0)
 			lut_entry += 1 << p;
 		}
@@ -132,32 +165,32 @@ compute_intersection_points()
     for (k = 0; k < z; k++)
 	for (j = 0; j < y; j++)
 	    for (i = 0; i < x; i++) {
-		cube[0] = get_data(i, j, k);
+		cube[OOO] = get_data(i, j, k);
 		if (i < x - 1)
-		    cube[1] = get_data(i + 1, j, k);
+		    cube[IOO] = get_data(i + 1, j, k);
 		else
-		    cube[1] = cube[0];
+		    cube[IOO] = cube[OOO];
 		if (j < y - 1)
-		    cube[3] = get_data(i, j + 1, k);
+		    cube[OIO] = get_data(i, j + 1, k);
 		else
-		    cube[3] = cube[0];
+		    cube[OIO] = cube[OOO];
 		if (k < z - 1)
-		    cube[4] = get_data(i, j, k + 1);
+		    cube[OOI] = get_data(i, j, k + 1);
 		else
-		    cube[4] = cube[0];
-		if (cube[0] < 0) {
-		    if (cube[1] > 0)
+		    cube[OOI] = cube[OOO];
+		if (cube[OOO] < 0) {
+		    if (cube[IOO] > 0)
 			set_vert(X, i, j, k);
-		    if (cube[3] > 0)
+		    if (cube[OIO] > 0)
 			set_vert(Y, i, j, k);
-		    if (cube[4] > 0)
+		    if (cube[OOI] > 0)
 			set_vert(Z, i, j, k);
 		} else {
-		    if (cube[1] < 0)
+		    if (cube[IOO] < 0)
 			set_vert(X, i, j, k);
-		    if (cube[3] < 0)
+		    if (cube[OIO] < 0)
 			set_vert(Y, i, j, k);
-		    if (cube[4] < 0)
+		    if (cube[OOI] < 0)
 			set_vert(Z, i, j, k);
 		}
 	    }
@@ -171,45 +204,45 @@ test_face(int face)
     switch (face) {
     case -1:
     case 1:
-	A = cube[0];
-	B = cube[4];
-	C = cube[5];
-	D = cube[1];
+	A = cube[OOO];
+	B = cube[OOI];
+	C = cube[IOI];
+	D = cube[IOO];
 	break;
     case -2:
     case 2:
-	A = cube[1];
-	B = cube[5];
-	C = cube[6];
-	D = cube[2];
+	A = cube[IOO];
+	B = cube[IOI];
+	C = cube[III];
+	D = cube[IIO];
 	break;
     case -3:
     case 3:
-	A = cube[2];
-	B = cube[6];
-	C = cube[7];
-	D = cube[3];
+	A = cube[IIO];
+	B = cube[III];
+	C = cube[OII];
+	D = cube[OIO];
 	break;
     case -4:
     case 4:
-	A = cube[3];
-	B = cube[7];
-	C = cube[4];
-	D = cube[0];
+	A = cube[OIO];
+	B = cube[OII];
+	C = cube[OOI];
+	D = cube[OOO];
 	break;
     case -5:
     case 5:
-	A = cube[0];
-	B = cube[3];
-	C = cube[2];
-	D = cube[1];
+	A = cube[OOO];
+	B = cube[OIO];
+	C = cube[IIO];
+	D = cube[IOO];
 	break;
     case -6:
     case 6:
-	A = cube[4];
-	B = cube[7];
-	C = cube[6];
-	D = cube[5];
+	A = cube[OOI];
+	B = cube[OII];
+	C = cube[III];
+	D = cube[IOI];
 	break;
     default:
 	printf("Invalid face code %d\n", face);
@@ -229,19 +262,19 @@ test_interior(int s)
     switch (Case) {
     case 4:
     case 10:
-	a = (cube[4] - cube[0]) * (cube[6] - cube[2]) - (cube[7] -
-							 cube[3]) *
-	    (cube[5] - cube[1]);
-	b = cube[2] * (cube[4] - cube[0]) + cube[0] * (cube[6] - cube[2])
-	    - cube[1] * (cube[7] - cube[3]) - cube[3] * (cube[5] -
-							 cube[1]);
+	a = (cube[OOI] - cube[OOO]) * (cube[III] - cube[IIO]) -
+	    (cube[OII] - cube[OIO]) * (cube[IOI] - cube[IOO]);
+	b = cube[IIO] * (cube[OOI] - cube[OOO]) + cube[OOO] * (cube[III] -
+							       cube[IIO])
+	    - cube[IOO] * (cube[OII] - cube[OIO]) -
+	    cube[OIO] * (cube[IOI] - cube[IOO]);
 	t = -b / (2 * a);
 	if (t < 0 || t > 1)
 	    return s > 0;
-	At = cube[0] + (cube[4] - cube[0]) * t;
-	Bt = cube[3] + (cube[7] - cube[3]) * t;
-	Ct = cube[2] + (cube[6] - cube[2]) * t;
-	Dt = cube[1] + (cube[5] - cube[1]) * t;
+	At = cube[OOO] + (cube[OOI] - cube[OOO]) * t;
+	Bt = cube[OIO] + (cube[OII] - cube[OIO]) * t;
+	Ct = cube[IIO] + (cube[III] - cube[IIO]) * t;
+	Dt = cube[IOO] + (cube[IOI] - cube[IOO]) * t;
 	break;
     case 6:
     case 7:
@@ -263,88 +296,88 @@ test_interior(int s)
 	}
 	switch (edge) {
 	case 0:
-	    t = cube[0] / (cube[0] - cube[1]);
+	    t = cube[OOO] / (cube[OOO] - cube[IOO]);
 	    At = 0;
-	    Bt = cube[3] + (cube[2] - cube[3]) * t;
-	    Ct = cube[7] + (cube[6] - cube[7]) * t;
-	    Dt = cube[4] + (cube[5] - cube[4]) * t;
+	    Bt = cube[OIO] + (cube[IIO] - cube[OIO]) * t;
+	    Ct = cube[OII] + (cube[III] - cube[OII]) * t;
+	    Dt = cube[OOI] + (cube[IOI] - cube[OOI]) * t;
 	    break;
 	case 1:
-	    t = cube[1] / (cube[1] - cube[2]);
+	    t = cube[IOO] / (cube[IOO] - cube[IIO]);
 	    At = 0;
-	    Bt = cube[0] + (cube[3] - cube[0]) * t;
-	    Ct = cube[4] + (cube[7] - cube[4]) * t;
-	    Dt = cube[5] + (cube[6] - cube[5]) * t;
+	    Bt = cube[OOO] + (cube[OIO] - cube[OOO]) * t;
+	    Ct = cube[OOI] + (cube[OII] - cube[OOI]) * t;
+	    Dt = cube[IOI] + (cube[III] - cube[IOI]) * t;
 	    break;
 	case 2:
-	    t = cube[2] / (cube[2] - cube[3]);
+	    t = cube[IIO] / (cube[IIO] - cube[OIO]);
 	    At = 0;
-	    Bt = cube[1] + (cube[0] - cube[1]) * t;
-	    Ct = cube[5] + (cube[4] - cube[5]) * t;
-	    Dt = cube[6] + (cube[7] - cube[6]) * t;
+	    Bt = cube[IOO] + (cube[OOO] - cube[IOO]) * t;
+	    Ct = cube[IOI] + (cube[OOI] - cube[IOI]) * t;
+	    Dt = cube[III] + (cube[OII] - cube[III]) * t;
 	    break;
 	case 3:
-	    t = cube[3] / (cube[3] - cube[0]);
+	    t = cube[OIO] / (cube[OIO] - cube[OOO]);
 	    At = 0;
-	    Bt = cube[2] + (cube[1] - cube[2]) * t;
-	    Ct = cube[6] + (cube[5] - cube[6]) * t;
-	    Dt = cube[7] + (cube[4] - cube[7]) * t;
+	    Bt = cube[IIO] + (cube[IOO] - cube[IIO]) * t;
+	    Ct = cube[III] + (cube[IOI] - cube[III]) * t;
+	    Dt = cube[OII] + (cube[OOI] - cube[OII]) * t;
 	    break;
 	case 4:
-	    t = cube[4] / (cube[4] - cube[5]);
+	    t = cube[OOI] / (cube[OOI] - cube[IOI]);
 	    At = 0;
-	    Bt = cube[7] + (cube[6] - cube[7]) * t;
-	    Ct = cube[3] + (cube[2] - cube[3]) * t;
-	    Dt = cube[0] + (cube[1] - cube[0]) * t;
+	    Bt = cube[OII] + (cube[III] - cube[OII]) * t;
+	    Ct = cube[OIO] + (cube[IIO] - cube[OIO]) * t;
+	    Dt = cube[OOO] + (cube[IOO] - cube[OOO]) * t;
 	    break;
 	case 5:
-	    t = cube[5] / (cube[5] - cube[6]);
+	    t = cube[IOI] / (cube[IOI] - cube[III]);
 	    At = 0;
-	    Bt = cube[4] + (cube[7] - cube[4]) * t;
-	    Ct = cube[0] + (cube[3] - cube[0]) * t;
-	    Dt = cube[1] + (cube[2] - cube[1]) * t;
+	    Bt = cube[OOI] + (cube[OII] - cube[OOI]) * t;
+	    Ct = cube[OOO] + (cube[OIO] - cube[OOO]) * t;
+	    Dt = cube[IOO] + (cube[IIO] - cube[IOO]) * t;
 	    break;
 	case 6:
-	    t = cube[6] / (cube[6] - cube[7]);
+	    t = cube[III] / (cube[III] - cube[OII]);
 	    At = 0;
-	    Bt = cube[5] + (cube[4] - cube[5]) * t;
-	    Ct = cube[1] + (cube[0] - cube[1]) * t;
-	    Dt = cube[2] + (cube[3] - cube[2]) * t;
+	    Bt = cube[IOI] + (cube[OOI] - cube[IOI]) * t;
+	    Ct = cube[IOO] + (cube[OOO] - cube[IOO]) * t;
+	    Dt = cube[IIO] + (cube[OIO] - cube[IIO]) * t;
 	    break;
 	case 7:
-	    t = cube[7] / (cube[7] - cube[4]);
+	    t = cube[OII] / (cube[OII] - cube[OOI]);
 	    At = 0;
-	    Bt = cube[6] + (cube[5] - cube[6]) * t;
-	    Ct = cube[2] + (cube[1] - cube[2]) * t;
-	    Dt = cube[3] + (cube[0] - cube[3]) * t;
+	    Bt = cube[III] + (cube[IOI] - cube[III]) * t;
+	    Ct = cube[IIO] + (cube[IOO] - cube[IIO]) * t;
+	    Dt = cube[OIO] + (cube[OOO] - cube[OIO]) * t;
 	    break;
 	case 8:
-	    t = cube[0] / (cube[0] - cube[4]);
+	    t = cube[OOO] / (cube[OOO] - cube[OOI]);
 	    At = 0;
-	    Bt = cube[3] + (cube[7] - cube[3]) * t;
-	    Ct = cube[2] + (cube[6] - cube[2]) * t;
-	    Dt = cube[1] + (cube[5] - cube[1]) * t;
+	    Bt = cube[OIO] + (cube[OII] - cube[OIO]) * t;
+	    Ct = cube[IIO] + (cube[III] - cube[IIO]) * t;
+	    Dt = cube[IOO] + (cube[IOI] - cube[IOO]) * t;
 	    break;
 	case 9:
-	    t = cube[1] / (cube[1] - cube[5]);
+	    t = cube[IOO] / (cube[IOO] - cube[IOI]);
 	    At = 0;
-	    Bt = cube[0] + (cube[4] - cube[0]) * t;
-	    Ct = cube[3] + (cube[7] - cube[3]) * t;
-	    Dt = cube[2] + (cube[6] - cube[2]) * t;
+	    Bt = cube[OOO] + (cube[OOI] - cube[OOO]) * t;
+	    Ct = cube[OIO] + (cube[OII] - cube[OIO]) * t;
+	    Dt = cube[IIO] + (cube[III] - cube[IIO]) * t;
 	    break;
 	case 10:
-	    t = cube[2] / (cube[2] - cube[6]);
+	    t = cube[IIO] / (cube[IIO] - cube[III]);
 	    At = 0;
-	    Bt = cube[1] + (cube[5] - cube[1]) * t;
-	    Ct = cube[0] + (cube[4] - cube[0]) * t;
-	    Dt = cube[3] + (cube[7] - cube[3]) * t;
+	    Bt = cube[IOO] + (cube[IOI] - cube[IOO]) * t;
+	    Ct = cube[OOO] + (cube[OOI] - cube[OOO]) * t;
+	    Dt = cube[OIO] + (cube[OII] - cube[OIO]) * t;
 	    break;
 	case 11:
-	    t = cube[3] / (cube[3] - cube[7]);
+	    t = cube[OIO] / (cube[OIO] - cube[OII]);
 	    At = 0;
-	    Bt = cube[2] + (cube[6] - cube[2]) * t;
-	    Ct = cube[1] + (cube[5] - cube[1]) * t;
-	    Dt = cube[0] + (cube[4] - cube[0]) * t;
+	    Bt = cube[IIO] + (cube[III] - cube[IIO]) * t;
+	    Ct = cube[IOO] + (cube[IOI] - cube[IOO]) * t;
+	    Dt = cube[OOO] + (cube[OOI] - cube[OOO]) * t;
 	    break;
 	default:
 	    printf("Invalid edge %d\n", edge);
@@ -815,28 +848,14 @@ test_vertex_addition()
 static int
 add_c_vertex()
 {
-    int Off[][4] = {
-	{ 0, 1, 0, X },
-	{ 0, 1, 1, X },
-	{ 0, 0, 0, X },
-	{ 0, 0, 1, X },
-	{ 1, 0, 0, Y },
-	{ 1, 0, 1, Y },
-	{ 0, 0, 0, Y },
-	{ 0, 0, 1, Y },
-	{ 1, 1, 0, Z },
-	{ 1, 0, 0, Z },
-	{ 0, 1, 0, Z },
-	{ 0, 0, 0, Z }
-    };
     double u, rx, ry, rz;
     int g, m, *o;
 
     u = 0;
     test_vertex_addition();
     rx = ry = rz = 0;
-    for (g = 0; g < SIZE(Off); g++) {
-	o = Off[g];
+    for (g = 0; g < SIZE(COff); g++) {
+	o = COff[g];
 	m = get_vert(o[3], i + o[X], j + o[Y], k + o[Z]);
 	if (m != -1) {
 	    u++;
