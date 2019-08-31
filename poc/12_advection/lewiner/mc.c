@@ -70,10 +70,10 @@ set_vert(int D, int i, int j, int k)
 
     test_vertex_addition();
     u = (cube[0]) / (cube[0] - cube[m[D]]);
-    vertices[3*nv + X] = i;
-    vertices[3*nv + Y] = j;
-    vertices[3*nv + Z] = k;
-    vertices[3*nv + D] += u;
+    vertices[3 * nv + X] = i;
+    vertices[3 * nv + Y] = j;
+    vertices[3 * nv + Z] = k;
+    vertices[3 * nv + D] += u;
     verts[D][i + j * x + k * x * y] = nv++;
 }
 
@@ -396,6 +396,7 @@ static void
 process_cube()
 {
     int v12 = -1;
+
     subconfig = 0;
     switch (Case) {
     case 0:
@@ -830,6 +831,7 @@ add_c_vertex()
     };
     double u, rx, ry, rz;
     int g, m, *o;
+
     u = 0;
     test_vertex_addition();
     rx = ry = rz = 0;
@@ -838,14 +840,14 @@ add_c_vertex()
 	m = get_vert(o[3], i + o[X], j + o[Y], k + o[Z]);
 	if (m != -1) {
 	    u++;
-	    rx += vertices[3*m + X];
-	    ry += vertices[3*m + Y];
-	    rz += vertices[3*m + Z];
+	    rx += vertices[3 * m + X];
+	    ry += vertices[3 * m + Y];
+	    rz += vertices[3 * m + Z];
 	}
     }
-    vertices[3*nv + X] = rx / u;
-    vertices[3*nv + Y] = ry / u;
-    vertices[3*nv + Z] = rz / u;
+    vertices[3 * nv + X] = rx / u;
+    vertices[3 * nv + Y] = ry / u;
+    vertices[3 * nv + Z] = rz / u;
     return nv++;
 }
 
@@ -864,8 +866,8 @@ writeObj()
     ver = vertices;
     printf("# File type: ASCII OBJ\n");
     for (i = 0; i < v; i++)
-	printf("v %.16g %.16g %.16g\n", ver[3*i + X], ver[3*i + Y],
-	       ver[3*i + Z]);
+	printf("v %.16g %.16g %.16g\n", ver[3 * i + X], ver[3 * i + Y],
+	       ver[3 * i + Z]);
     for (i = 0; i < t; i++)
 	printf("f %d %d %d\n", tri[3 * i + X] + 1, tri[3 * i + Y] + 1,
 	       tri[3 * i + Z] + 1);
