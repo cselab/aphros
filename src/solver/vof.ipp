@@ -355,8 +355,14 @@ struct Vof<M_>::Imp {
       dlc_.clear();
       dll_.clear();
       dlcl_.clear();
+      // visited cells without color
+      std::set<std::pair<size_t, Scal>> done;
       auto h = m.GetCellSize();
       auto pfcu = GetLayer(fcu_, Layers::iter_curr);
+      FieldCell<bool> in(m, false); // inner cell
+      for (auto c : m.Cells()) {
+        in[c] = true;
+      }
       for (auto i : layers) {
         auto& fccl = fccl_[i];
         for (auto c : m.Cells()) {
@@ -369,6 +375,7 @@ struct Vof<M_>::Imp {
             MIdx w = bc.GetMIdx(c);
             for (MIdx wo : bo) {
               IdxCell cn = bc.GetIdx(w + wo);
+              if (!in[cn]) continue;
               bool q = false;
               for (auto j : layers) {
                 if (fccl_[j][cn] == fccl[c]) {
@@ -377,8 +384,12 @@ struct Vof<M_>::Imp {
                 }
               }
               // Add triangles from c or neighhbor without color
-              // FIXME: this creates duplicates for neighbours without color
               if (c == cn || !q) {
+                auto e = std::make_pair(size_t(cn), fccl[c]);
+                if (!q && done.count(e)) {
+                  continue;
+                }
+                done.insert(e);
                 auto uu = GetStencil<1>(pfcu, cn, fccl[c]);
                 auto uun = ToNodes<1>(uu);
                 auto vv = GetMarchTriangles(uun, m.GetCenter(cn), h);
