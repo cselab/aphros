@@ -74,7 +74,7 @@ def Draw1():
 
 
 def Draw2():
-    smvtk = LegacyVTKReader(FileNames=['sm_0100.vtk'])
+    smvtk = LegacyVTKReader(FileNames=['sm_0500.vtk'])
     smvtk = GenerateSurfaceNormals(Input=smvtk)
     clip1 = Clip(Input=smvtk)
     clip1.ClipType = 'Plane'
