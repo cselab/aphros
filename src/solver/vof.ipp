@@ -356,15 +356,20 @@ struct Vof<M_>::Imp {
       dll_.clear();
       dlcl_.clear();
       auto h = m.GetCellSize();
+      auto pfcu = GetLayer(fcu_, Layers::iter_curr);
       for (auto i : layers) {
         auto& fccl = fccl_[i];
+        auto& fcn = fcn_[i];
         for (auto c : m.Cells()) {
           if (fccl[c] != kClNone) {
-            auto uu = GetStencil<1>(
-                GetLayer(fcu_, Layers::iter_curr), c, fccl[c]);
+            auto uu = GetStencil<1>(pfcu, c, fccl[c]);
             auto uun = ToNodes<1>(uu);
             auto vv = GetMarchTriangles(uun, m.GetCenter(c), h);
             for (auto& v : vv) {
+              // assume v.size === 3
+              if ((v[1] - v[0]).cross(v[2] - v[0]).dot(fcn[c]) < 0) {
+                std::swap(v[1], v[2]);
+              }
               dl_.push_back(v);
               dlc_.push_back(m.GetHash(c));
               dll_.push_back(i);
