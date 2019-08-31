@@ -4,6 +4,8 @@
 #include <fstream>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
+#include <algorithm>
 
 // Returns true if machine is little endian
 static inline bool IsLittleEnd() {
@@ -144,6 +146,28 @@ void Convert(const std::vector<std::vector<Vect>>& vv,
   }
 }
 
+template <class V, class T=typename V::value_type>
+void RemoveDuplicatesUnordered(std::vector<V>& pp) {
+  // returns hash up to permutation of elements in V
+  struct HashPoly {
+    size_t operator()(const V& p) const noexcept {
+      size_t h = 1;
+      for (auto i : p) {
+        h *= std::hash<T>{}(i);
+      }
+      return h;
+    }
+  };
+  std::unordered_set<V, HashPoly> ppu;
+  for (auto& p : pp) {
+    ppu.insert(p);
+  }
+  pp.clear();
+  for (auto p : ppu) {
+    pp.push_back(p);
+  }
+}
+
 // Converts to index representation merging closely located points.
 // vv: polygons as lists of points
 // Returns:
@@ -153,8 +177,8 @@ template <class Vect>
 void ConvertMerge(const std::vector<std::vector<Vect>>& vv, 
              std::vector<Vect>& xx, 
              std::vector<std::vector<size_t>>& pp) {
-  struct MyHash {
-    size_t operator()(Vect const& x) const noexcept {
+  struct HashPoint {
+    size_t operator()(const Vect& x) const noexcept {
       const int m = 1000000;
       size_t h0 = std::hash<int>{}(int(x[0] * m));
       size_t h1 = std::hash<int>{}(int(x[1] * m));
@@ -163,7 +187,7 @@ void ConvertMerge(const std::vector<std::vector<Vect>>& vv,
     }
   };
 
-  std::unordered_map<Vect, size_t, MyHash> s;
+  std::unordered_map<Vect, size_t, HashPoint> s;
   xx.resize(0);
   pp.resize(0);
   for (auto& v : vv) {
