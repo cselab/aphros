@@ -327,7 +327,7 @@ struct Vof<M_>::Imp {
       const std::array<Scal, 8>& uu, const Vect& xc, const Vect& h) {
     std::array<double, 8> uuz = uu;
     for (auto& u : uuz) {
-      u -= 0.5;
+      u -= par->vtkiso;
     }
     int n;
     std::array<double, 45> tri;
