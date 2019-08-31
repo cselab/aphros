@@ -64,6 +64,7 @@ class Vof : public AdvectionSolver<M_> {
     int verb = 0;
     bool vtkbin = false;
     bool vtkmerge = true;
+    Scal vtkiso = 0.5;
   };
 
   // Constructor

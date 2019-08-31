@@ -12,6 +12,7 @@ void Parse(typename solver::Vof<M>::Par* p, const Vars& var) {
   p->verb = var.Int["vof_verb"];
   p->vtkbin = var.Int["vtkbin"];
   p->vtkmerge = var.Int["vtkmerge"];
+  p->vtkiso = var.Double["vtkiso"];
   p->part = var.Int["part"];
   p->part_verb = var.Int["part_verb"];
   p->part_relax = var.Double["part_relax"];
