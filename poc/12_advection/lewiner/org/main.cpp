@@ -22,7 +22,7 @@ int main (int argc, char **argv)
 //-----------------------------------------------------------------------------
 {
   MarchingCubes mc ;
-  mc.set_resolution( 60,60,60 ) ;
+  mc.set_resolution( 40,40,40 ) ;
 
   mc.init_all() ;
   compute_data( mc ) ;
