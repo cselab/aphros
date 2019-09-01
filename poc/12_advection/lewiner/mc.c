@@ -772,51 +772,16 @@ add_triangle3(const int *trig, int n, int v12)
 {
     int tv[3];
     int t;
+    int g, *o;
 
     for (t = 0; t < 3 * n; t++) {
-	switch (trig[t]) {
-	case 0:
-	    tv[t % 3] = get_vert(X, I, J, K);
-	    break;
-	case 1:
-	    tv[t % 3] = get_vert(Y, I + 1, J, K);
-	    break;
-	case 2:
-	    tv[t % 3] = get_vert(X, I, J + 1, K);
-	    break;
-	case 3:
-	    tv[t % 3] = get_vert(Y, I, J, K);
-	    break;
-	case 4:
-	    tv[t % 3] = get_vert(X, I, J, K + 1);
-	    break;
-	case 5:
-	    tv[t % 3] = get_vert(Y, I + 1, J, K + 1);
-	    break;
-	case 6:
-	    tv[t % 3] = get_vert(X, I, J + 1, K + 1);
-	    break;
-	case 7:
-	    tv[t % 3] = get_vert(Y, I, J, K + 1);
-	    break;
-	case 8:
-	    tv[t % 3] = get_vert(Z, I, J, K);
-	    break;
-	case 9:
-	    tv[t % 3] = get_vert(Z, I + 1, J, K);
-	    break;
-	case 10:
-	    tv[t % 3] = get_vert(Z, I + 1, J + 1, K);
-	    break;
-	case 11:
-	    tv[t % 3] = get_vert(Z, I, J + 1, K);
-	    break;
-	case 12:
+	g = trig[t];
+	if (g < 12)
+	{
+	    o = COff[g];
+	    tv[t % 3] = get_vert(o[3], I + o[X], J + o[Y], K + o[Z]);
+	} else
 	    tv[t % 3] = v12;
-	    break;
-	default:
-	    break;
-	}
 	if (tv[t % 3] == -1) {
 	    printf("Marching Cubes: invalid triangle %d\n", nt + 1);
 	}
