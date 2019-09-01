@@ -1,0 +1,6 @@
+make plane > /dev/null
+#p=alpha
+p=volume
+ch=`./plane ${p}_ch $1 $2 $3 $4`
+ba=`./plane ${p}_ba $1 $2 $3 $4`
+echo $ch $ba

@@ -8,3 +8,5 @@ add_executable(${EXE} main.cpp)
 target_link_libraries(${EXE} overlap)
 
 add_test(NAME ${p} COMMAND ${EXE})
+
+add_executable(plane plane.cpp)

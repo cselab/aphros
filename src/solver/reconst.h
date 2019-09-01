@@ -9,7 +9,7 @@
 
 #include "geom/vect.h"
 
-template <class Scal>
+template <class Scal, bool ba=false>
 class Reconst {
  public:
   using Vect2 = GVect<Scal, 2>;
@@ -25,6 +25,10 @@ class Reconst {
 
   static Scal GetClip(Scal a) {
     Clip(a, 0., 1.);
+    return a;
+  }
+  static Scal GetClip(Scal a, Scal a0, Scal a1) {
+    Clip(a, a0, a1);
     return a;
   }
 
@@ -152,10 +156,13 @@ class Reconst {
   // Equation of reconstructed line 
   // x.dot(n) = a
   static Scal GetLineU1(const Vect& n0, Scal a) {
-
     Vect n = n0.abs();
     Sort(n);
     Clip(a, -0.5 * n.sum(), 0.5 * n.sum());
+
+    if (ba) {
+      return GetClip(plane_volume(n[0], n[1], n[2], a), 0, 1);
+    }
 
     if (a < 0.) {
       return GetLineU0(n[0], n[1], n[2], a);
@@ -218,6 +225,136 @@ class Reconst {
     }
   }
 
+  static double plane_alpha(Scal c, Scal nx, Scal ny, Scal nz) {
+    using std::sqrt;
+    using std::abs;
+    using std::acos;
+    using std::cos;
+    using std::max;
+    using std::min;
+    Scal alpha;
+    Scal n1x, n1y, n1z;
+
+    n1x = abs(nx); n1y = abs(ny); n1z = abs(nz);
+
+    Scal m1, m2, m3;
+    m1 = min(n1x, n1y);
+    m3 = max(n1x, n1y);
+    m2 = n1z;
+    if (m2 < m1) {
+      Scal tmp = m1;
+      m1 = m2;
+      m2 = tmp;
+    }
+    else if (m2 > m3) {
+      Scal tmp = m3;
+      m3 = m2;
+      m2 = tmp;
+    }
+    Scal m12 = m1 + m2;
+    Scal pr = max(6.*m1*m2*m3, 1e-50);
+    Scal V1 = m1*m1*m1/pr;
+    Scal V2 = V1 + (m2 - m1)/(2.*m3), V3;
+    Scal mm;
+    if (m3 < m12) {
+      mm = m3;
+      V3 = (m3*m3*(3.*m12 - m3) + m1*m1*(m1 - 3.*m3) + m2*m2*(m2 - 3.*m3))/pr;
+    } else {
+      mm = m12;
+      V3 = mm/(2.*m3);
+    }
+
+    c = GetClip(c, 0., 1.);
+    Scal ch = min(c, 1. - c);
+    if (ch < V1) {
+      alpha = pow (pr*ch, 1./3.);
+    } else if (ch < V2) {
+      alpha = (m1 + sqrt(m1*m1 + 8.*m2*m3*(ch - V1)))/2.;
+    } else if (ch < V3) {
+      Scal p12 = sqrt (2.*m1*m2);
+      Scal q = 3.*(m12 - 2.*m3*ch)/(4.*p12);
+      Scal teta = acos(GetClip(q,-1.,1.))/3.;
+      Scal cs = cos(teta);
+      alpha = p12*(sqrt(3.*(1. - cs*cs)) - cs) + m12;
+    } else if (m12 < m3) {
+      alpha = m3*ch + mm/2.;
+    } else {
+      Scal p = m1*(m2 + m3) + m2*m3 - 1./4., p12 = sqrt(p);
+      Scal q = 3.*m1*m2*m3*(1./2. - ch)/(2.*p*p12);
+      Scal teta = acos(GetClip(q,-1.,1.))/3.;
+      Scal cs = cos(teta);
+      alpha = p12*(sqrt(3.*(1. - cs*cs)) - cs) + 1./2.;
+    }
+    if (c > 1./2.) alpha = 1. - alpha;
+
+    if (nx < 0.) {
+      alpha += nx;
+    }
+    if (ny < 0.) {
+      alpha += ny;
+    }
+    if (nz < 0.) {
+      alpha += nz;
+    }
+
+    return alpha - 0.5 * (nx + ny + nz);
+  }
+
+  static Scal plane_volume(Scal nx, Scal ny, Scal nz, Scal alpha) {
+    using std::sqrt;
+    using std::abs;
+    using std::max;
+    using std::min;
+    Scal al = alpha + (nx + ny + nz)/2. +
+      max(0., -nx) + max(0., -ny) + max(0., -nz);
+    if (al <= 0.) {
+      return 0.;
+    }
+    Scal tmp = abs(nx) + abs(ny) + abs(nz);
+    if (al >= tmp) {
+      return 1.;
+    }
+    if (tmp < 1e-10) {
+      return 0.;
+    }
+    Scal n1 = abs(nx)/tmp;
+    Scal n2 = abs(ny)/tmp;
+    Scal n3 = abs(nz)/tmp;
+    al = max(0., min(1., al/tmp));
+    Scal al0 = min(al, 1. - al);
+    Scal b1 = min(n1, n2);
+    Scal b3 = max(n1, n2);
+    Scal b2 = n3;
+    if (b2 < b1) {
+      tmp = b1;
+      b1 = b2;
+      b2 = tmp;
+    } else if (b2 > b3) {
+      tmp = b3;
+      b3 = b2;
+      b2 = tmp;
+    }
+    Scal b12 = b1 + b2;
+    Scal bm = min(b12, b3);
+    Scal pr = max(6.*b1*b2*b3, 1e-50);
+    if (al0 < b1) {
+      tmp = al0*al0*al0/pr;
+    } else if (al0 < b2) {
+      tmp = 0.5*al0*(al0 - b1)/(b2*b3) +  b1*b1*b1/pr;
+    } else if (al0 < bm) {
+      tmp = (al0*al0*(3.*b12 - al0) + b1*b1*(b1 - 3.*al0) +
+          b2*b2*(b2 - 3.*al0))/pr;
+    } else if (b12 < b3) {
+      tmp = (al0 - 0.5*bm)/b3;
+    } else {
+      tmp = (al0*al0*(3. - 2.*al0) + b1*b1*(b1 - 3.*al0) +
+          b2*b2*(b2 - 3.*al0) + b3*b3*(b3 - 3.*al0))/pr;
+    }
+
+    Scal volume = (al <= 0.5 ? tmp : 1. - tmp);
+    return GetClip(volume, 0., 1.);
+  }
+
   // GetLineA() helper for unit cell.
   // n : normal
   // u: volume fraction
@@ -229,12 +366,15 @@ class Reconst {
     Vect n = n0.abs();
     Sort(n);
     Clip(u);
+    if (ba) {
+      Scal a = plane_alpha(u, n[0], n[1], n[2]);
+      return GetClip(a, -0.5 * n.sum(), 0.5 * n.sum());
+    }
 
     if (u < 0.5) {
       return GetLineA0(n[0], n[1], n[2], u);
-    } else {
-      return -GetLineA0(n[0], n[1], n[2], 1. - u);
     }
+    return -GetLineA0(n[0], n[1], n[2], 1. - u);
   }
 
   // Line constant by volume fraction in rectangular cell.
