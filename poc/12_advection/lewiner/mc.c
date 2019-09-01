@@ -8,7 +8,7 @@
 #include "mc.h"
 #include "table.h"
 
-#define ALLOC_SIZE (10)
+#define ALLOC_SIZE (99999)
 #define SIZE(a) (int)(sizeof(a)/sizeof(*(a)))
 
 enum { X, Y, Z };
@@ -23,7 +23,7 @@ enum { OOO,
 };
 static int CuDir[] = { IOO, OIO, OOI };
 
-static int CuOff[][3] = {
+static int CuOfset[][3] = {
     { 0, 0, 0 },
     { 1, 0, 0 },
     { 1, 1, 0 },
@@ -111,8 +111,8 @@ run(void)
 	for (j = 0; j < y - 1; j++)
 	    for (i = 0; i < x - 1; i++) {
 		lut_entry = 0;
-		for (p = 0; p < SIZE(CuOff); ++p) {
-		    o = CuOff[p];
+		for (p = 0; p < SIZE(CuOfset); ++p) {
+		    o = CuOfset[p];
 		    cu[p] = get_data(i + o[X], j + o[Y], k + o[Z]);
 		    if (cu[p] > 0)
 			lut_entry += 1 << p;
