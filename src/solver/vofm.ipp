@@ -315,7 +315,7 @@ struct Vofm<M_>::Imp {
             << " t=" << owner_->GetTime() + owner_->GetTimeStep()
             << " to " << fn << std::endl;
         WriteVtkPoly(fn, dl_, {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"}, 
-            "PLIC recosntruction of the interface", true,
+            "Interface from PLIC", true,
             par->vtkbin, par->vtkmerge);
       }
     }
