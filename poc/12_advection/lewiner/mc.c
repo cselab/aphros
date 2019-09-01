@@ -115,6 +115,7 @@ void
 MarchingCubes(int x0, int y0, int z0, double *data0)
 {
     int i;
+    int N;
 
     x = x0;
     y = y0;
