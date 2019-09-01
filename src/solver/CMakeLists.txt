@@ -4,6 +4,10 @@ set(T "vofm")
 add_library(${T} vofm.cpp)
 target_link_libraries(${T} solver normal partstrmeshm march)
 
+set(T "vof")
+add_library(${T} vof.cpp)
+target_link_libraries(${T} solver normal partstrmesh)
+
 set(T "tvd")
 add_library(${T} tvd.cpp)
 target_link_libraries(${T} solver)
@@ -33,7 +37,7 @@ target_link_libraries(${T} convdiffi convdiffe)
 
 set(T "simple")
 add_library(${T} simple.cpp)
-target_link_libraries(${T} vofm tvd convdiffvi)
+target_link_libraries(${T} vof vofm tvd convdiffvi)
 
 set(T "multi")
 add_library(${T} multi.cpp)

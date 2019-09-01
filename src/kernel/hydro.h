@@ -22,6 +22,7 @@
 #include "solver/solver.h"
 #include "solver/advection.h"
 #include "solver/vofm.h"
+#include "solver/vof.h"
 #include "parse/vof.h"
 #include "solver/tvd.h"
 #include "parse/tvd.h"
@@ -114,7 +115,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   using FS = solver::Simple<M>;
   using AST = solver::Tvd<M>; // advection TVD
-  using ASV = solver::Vofm<M>; // advection VOF
+  using ASV = solver::Vof<M>; // advection VOF
+  using ASVM = solver::Vofm<M>; // advection VOF
   using TR = solver::Tracker<M>; // color tracker
   using MUL = solver::MultiMask<M>; // multivof
   using SA = solver::Sphavg<M>; // spherical averages
@@ -465,11 +467,19 @@ void Hydro<M>::InitAdvection() {
           m, fc_vf_, mf_cond_,
           &fs_->GetVolumeFlux(solver::Layers::time_curr),
           &fc_src2_, 0., st_.dta, p));
-  } else if (as == "vofm") {
+  } else if (as == "vof") {
     auto p = std::make_shared<typename ASV::Par>();
     Parse<M, ASV>(p.get(), var);
     p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
     as_.reset(new ASV(
+          m, fc_vf_, mf_cond_,
+          &fs_->GetVolumeFlux(solver::Layers::time_curr),
+          &fc_src2_, 0., st_.dta, p));
+  } else if (as == "vofm") {
+    auto p = std::make_shared<typename ASVM::Par>();
+    Parse<M, ASVM>(p.get(), var);
+    p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
+    as_.reset(new ASVM(
           m, fc_vf_, fccl_, mf_cond_,
           &fs_->GetVolumeFlux(solver::Layers::time_curr),
           &fc_src2_, 0., st_.dta, p));
@@ -867,7 +877,7 @@ void Hydro<M>::CalcStat() {
     // surface area
     if (var.Int["stat_area"]) {
       s.area = 0;
-      if (auto as = dynamic_cast<solver::Vofm<M>*>(as_.get())) {
+      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
         using R = Reconst<Scal>;
         auto &fcn = as->GetNormal(0);
         auto &fca = as->GetAlpha(0);
@@ -1125,7 +1135,7 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
 
     ff_sig_ = solver::Interpolate(fc_sig_, GetBcSz(), m);
 
-    if (auto as = dynamic_cast<solver::Vofm<M>*>(as_.get())) {
+    if (auto as = dynamic_cast<ASVM*>(as_.get())) {
       //AppendSurfaceTension2(ff_st, as->GetField(i), as->GetCurv(i), ff_sig_);
       for (auto f : m.Faces()) {
         IdxCell cm = m.GetNeighbourCell(f, 0);
@@ -1191,7 +1201,7 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
 
     // Append Marangoni stress
     if (var.Int["marangoni"]) {
-      if (auto as = dynamic_cast<solver::Vofm<M>*>(as_.get())) {
+      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
         using R = Reconst<Scal>;
         auto fc_gsig = solver::Gradient(ff_sig_, m);
         auto &fcn = as->GetNormal(0);
@@ -1478,7 +1488,7 @@ void Hydro<M>::DumpFields() {
      fcdiv_ = GetDiv();
      m.Dump(&fcdiv_, "div");
     }
-    if (auto as = dynamic_cast<solver::Vofm<M>*>(as_.get())) {
+    if (auto as = dynamic_cast<ASVM*>(as_.get())) {
       auto& n = fctmpv_;
       n = as->GetNormal(0);
       for (auto c : m.Cells()) {
