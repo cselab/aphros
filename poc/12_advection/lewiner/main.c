@@ -53,9 +53,9 @@ main()
 		buf[m++] = T2;
 	    }
 
-    MarchingCubes(nx, ny, nz, buf);
+    ini(nx, ny, nz, buf);
     run();
-    writeObj();
+    obj();
     free(buf);
     return 0;
 }

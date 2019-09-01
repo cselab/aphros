@@ -21,6 +21,7 @@ enum { OOO,
     OII
 };
 static int CubeDir[] = { IOO, OIO, OOI };
+
 static int CubeOff[][3] = {
     { 0, 0, 0 },
     { 1, 0, 0 },
@@ -80,39 +81,8 @@ int z;
 int *triangles;
 double *vertices;
 
-static double
-get_data(int i, int j, int k)
-{
-    double ans;
-
-    ans = data[i + j * x + k * x * y];
-    return fabs(ans) < FLT_EPSILON ? FLT_EPSILON : ans;
-}
-
-static int
-get_vert(int D, int i, int j, int k)
-{
-    return verts[3*(i + j * x + k * x * y) + D];
-}
-
-static void
-set_vert(int D, int i, int j, int k)
-{
-    double u;
-    int d;
-
-    test_vertex_addition();
-    d = CubeDir[D];
-    u = (cube[OOO]) / (cube[OOO] - cube[d]);
-    vertices[3 * nv + X] = i;
-    vertices[3 * nv + Y] = j;
-    vertices[3 * nv + Z] = k;
-    vertices[3 * nv + D] += u;
-    verts[3*(i + j * x + k * x * y) + D] = nv++;
-}
-
 void
-MarchingCubes(int x0, int y0, int z0, double *data0)
+ini(int x0, int y0, int z0, double *data0)
 {
     int i;
     int N;
@@ -132,7 +102,7 @@ MarchingCubes(int x0, int y0, int z0, double *data0)
 }
 
 void
-run()
+run(void)
 {
     int lut_entry, p, *o, i, j, k;
 
@@ -147,15 +117,53 @@ run()
 		    if (cube[p] > 0)
 			lut_entry += 1 << p;
 		}
-		I = i; J = j; K = k;
+		I = i;
+		J = j;
+		K = k;
 		Case = cases[lut_entry][0];
 		config = cases[lut_entry][1];
 		process_cube();
 	    }
 }
 
+static double
+get_data(int i, int j, int k)
+{
+    double ans;
+
+    ans = data[i + j * x + k * x * y];
+    return fabs(ans) < FLT_EPSILON ? FLT_EPSILON : ans;
+}
+
+static int
+get_vert(int D, int i, int j, int k)
+{
+    return verts[3 * (i + j * x + k * x * y) + D];
+}
+
 static void
-compute_intersection_points()
+set_vert(int D, int i, int j, int k)
+{
+    double u;
+    int d;
+
+    test_vertex_addition();
+    d = CubeDir[D];
+    u = (cube[OOO]) / (cube[OOO] - cube[d]);
+    vertices[3 * nv + X] = i;
+    vertices[3 * nv + Y] = j;
+    vertices[3 * nv + Z] = k;
+    vertices[3 * nv + D] += u;
+    verts[3 * (i + j * x + k * x * y) + D] = nv++;
+}
+
+static void
+bc(int i, int j, int k, double *cube)
+{
+}
+
+static void
+compute_intersection_points(void)
 {
     int i, j, k;
 
@@ -423,7 +431,7 @@ test_interior(int s)
 }
 
 static void
-process_cube()
+process_cube(void)
 {
     int v12 = -1;
 
@@ -868,7 +876,7 @@ add_c_vertex()
 }
 
 void
-writeObj()
+obj(void)
 {
     int t;
     int v;
