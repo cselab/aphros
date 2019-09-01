@@ -7,6 +7,7 @@ set(EXE "mfer")
 set(CHPREFIX $ENV{CHPREFIX})
 
 include("client.cmake")
+include("$ENV{CHPREFIX}/include/march.cmake")
 
 # git revision
 set(P "${PROJECT_SOURCE_DIR}/..")
@@ -48,7 +49,7 @@ add_library(${T} INTERFACE)
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
     "${CHPREFIX}/include/hydro")
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_LINK_LIBRARIES 
-    distr solver vof tvd convdiffvi simple overlap young utilfluid events)
+    distr solver vof tvd convdiffvi simple overlap young utilfluid events multi)
 
 # binary
 add_executable(${EXE} main.cpp)

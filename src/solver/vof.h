@@ -38,6 +38,7 @@ class Vof : public AdvectionSolver<M_> {
     Scal clipth = 1e-6; // vf clipping threshold
     std::unique_ptr<Dumper> dmp; // dumper for particles
     bool dumppoly = false; // dump reconstructed interface (cut polygons)
+    bool dumppolymarch = false; // dump reconstructed interface (marching cube)
     bool dumppart = false; // dump particles
     bool dumppartinter = false; // dump interface for particles
     bool bcc_reflect = false; // reflection at boundaries
@@ -60,6 +61,10 @@ class Vof : public AdvectionSolver<M_> {
     using AR = typename solver::PartStrMesh<M>::AR;
     AF part_attrforce = AF::line;
     AR part_attrreconst = AR::line;
+    int verb = 0;
+    bool vtkbin = false;
+    bool vtkmerge = true;
+    Scal vtkiso = 0.5;
   };
 
   // Constructor

@@ -58,6 +58,7 @@ cleandat::
 	rm -vf trajsh_*.csv
 	rm -vf s_*.vtk
 	rm -vf sp_*.vtk
+	rm -vf sm_*.vtk
 	rm -vf out
 	rm -vf lsf.o*
 	rm -vf slurm*.out

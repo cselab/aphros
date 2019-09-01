@@ -1,7 +1,7 @@
 b = build
 
 all:
-	+make -C $(b)
+	+make -C $(b) $(target)
 	+make -C $(b) install 
 
 install:

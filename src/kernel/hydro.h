@@ -21,11 +21,13 @@
 #include "geom/mesh.h"
 #include "solver/solver.h"
 #include "solver/advection.h"
+#include "solver/vofm.h"
 #include "solver/vof.h"
 #include "parse/vof.h"
 #include "solver/tvd.h"
 #include "parse/tvd.h"
 #include "solver/tracker.h"
+#include "solver/multi.h"
 #include "solver/sphavg.h"
 #include "solver/simple.h"
 #include "parse/simple.h"
@@ -89,6 +91,17 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   // ffvfsm: smoothed volume fraction on faces [a]
   void CalcSurfaceTension(const FieldCell<Scal>& fcvf,
                           const FieldFace<Scal>& ffvfsm);
+  // ffst: force projections to append
+  // fcu: volume fraction
+  // fck: curvature
+  // fcm: layer mask
+  // ffsig: surface tension coefficient
+  void AppendSurfaceTension(FieldFace<Scal>& ffst, 
+      const FieldCell<Scal>& fcu, const FieldCell<Scal>& fck, 
+      const FieldCell<bool>& fcm, const FieldFace<Scal>& ffsig);
+  void AppendSurfaceTension2(FieldFace<Scal>& ffst, 
+      const FieldCell<Scal>& fcu, const FieldCell<Scal>& fck, 
+      const FieldFace<Scal>& ffsig);
   // Clips v to given range, uses const_cast
   void Clip(const FieldCell<Scal>& v, Scal min, Scal max);
   void CalcStat();
@@ -103,14 +116,16 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using FS = solver::Simple<M>;
   using AST = solver::Tvd<M>; // advection TVD
   using ASV = solver::Vof<M>; // advection VOF
+  using ASVM = solver::Vofm<M>; // advection VOF
   using TR = solver::Tracker<M>; // color tracker
+  using MUL = solver::MultiMask<M>; // multivof
   using SA = solver::Sphavg<M>; // spherical averages
 
   void UpdateAdvectionPar() {
     if (auto as = dynamic_cast<AST*>(as_.get())) {
       Parse<M>(as->GetPar(), var);
     } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
-      Parse<M>(as->GetPar(), var);
+      Parse<M, ASV>(as->GetPar(), var);
     }
   }
   // Surface tension time step
@@ -217,6 +232,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
   std::unique_ptr<TR> tr_; // color tracker
+  std::unique_ptr<MUL> mul_; // color tracker
   std::unique_ptr<SA> sa_; // spherical averages
   FieldCell<Scal> fc_vf_; // volume fraction used by constructor 
   FieldCell<Scal> fccl_; // color used by constructor  
@@ -242,6 +258,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fcbc_; // boundary condition type by GetBcField()
   FieldCell<Scal> fc_strain_; // double inner product of strain rate tensor
   FieldCell<Scal> fctmp_;    // temporary scalar field
+  FieldCell<Scal> fctmp2_, fctmp3_, fctmp4_;    // temporary scalar field
   FieldCell<Vect> fctmpv_;   // temporary vector field
   FieldCell<Vect> fcvcurl_;  // curl-component of velocity
   FieldCell<Scal> fcdiv_;  // divergence of velocity
@@ -447,15 +464,23 @@ void Hydro<M>::InitAdvection() {
     auto p = std::make_shared<typename AST::Par>();
     Parse<M>(p.get(), var);
     as_.reset(new AST(
-          m, fc_vf_, mf_cond_, 
+          m, fc_vf_, mf_cond_,
           &fs_->GetVolumeFlux(solver::Layers::time_curr),
           &fc_src2_, 0., st_.dta, p));
   } else if (as == "vof") {
     auto p = std::make_shared<typename ASV::Par>();
-    Parse<M>(p.get(), var);
+    Parse<M, ASV>(p.get(), var);
     p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
     as_.reset(new ASV(
-          m, fc_vf_, mf_cond_, 
+          m, fc_vf_, mf_cond_,
+          &fs_->GetVolumeFlux(solver::Layers::time_curr),
+          &fc_src2_, 0., st_.dta, p));
+  } else if (as == "vofm") {
+    auto p = std::make_shared<typename ASVM::Par>();
+    Parse<M, ASVM>(p.get(), var);
+    p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
+    as_.reset(new ASVM(
+          m, fc_vf_, fccl_, mf_cond_,
           &fs_->GetVolumeFlux(solver::Layers::time_curr),
           &fc_src2_, 0., st_.dta, p));
   } else {
@@ -638,6 +663,11 @@ void Hydro<M>::Init() {
     // Init color tracker
     if (var.Int["enable_color"] && as_) {
       tr_.reset(new TR(m, fccl_, var.Double["color_th"], var.Int["dim"]));
+    }
+
+    // Init multivof
+    if (tr_) {
+      mul_.reset(new MUL(m, &tr_->GetColor(), var.Int["dim"]));
     }
 
     // Init sphavg
@@ -847,11 +877,11 @@ void Hydro<M>::CalcStat() {
     // surface area
     if (var.Int["stat_area"]) {
       s.area = 0;
-      if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
+      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
         using R = Reconst<Scal>;
-        auto &fcn = as->GetNormal();
-        auto &fca = as->GetAlpha();
-        auto& fcvf = as->GetField();
+        auto &fcn = as->GetNormal(0);
+        auto &fca = as->GetAlpha(0);
+        auto& fcvf = as->GetField(solver::Layers::time_curr, 0);
         Vect h = m.GetCellSize();
         for (auto c : m.Cells()) {
           if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {
@@ -1036,6 +1066,46 @@ void Hydro<M>::Clip(const FieldCell<Scal>& f, Scal a, Scal b) {
 }
 
 template <class M>
+void Hydro<M>::AppendSurfaceTension(FieldFace<Scal>& ffst,
+    const FieldCell<Scal>& fcu, const FieldCell<Scal>& fck,
+    const FieldCell<bool>& fcm, const FieldFace<Scal>& ffsig) {
+  for (auto f : m.Faces()) {
+    IdxCell cm = m.GetNeighbourCell(f, 0);
+    IdxCell cp = m.GetNeighbourCell(f, 1);
+    if (fcm[cm] || fcm[cp]) {
+      Scal um = fcu[cm];
+      Scal up = fcu[cp];
+      Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? fck[cm] : fck[cp]);
+      Scal hi = m.GetArea(f) / m.GetVolume(cp);
+      Scal ga = (up - um) * hi;
+      if (ga != 0.) {
+        k = (IsNan(k) ? 0 : k);
+        ffst[f] += ga * k * ffsig[f];
+      }
+    }
+  }
+}
+
+template <class M>
+void Hydro<M>::AppendSurfaceTension2(FieldFace<Scal>& ffst,
+    const FieldCell<Scal>& fcu, const FieldCell<Scal>& fck,
+    const FieldFace<Scal>& ffsig) {
+  for (auto f : m.Faces()) {
+    IdxCell cm = m.GetNeighbourCell(f, 0);
+    IdxCell cp = m.GetNeighbourCell(f, 1);
+    Scal um = fcu[cm];
+    Scal up = fcu[cp];
+    Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? fck[cm] : fck[cp]);
+    Scal hi = m.GetArea(f) / m.GetVolume(cp);
+    Scal ga = (up - um) * hi;
+    if (ga != 0.) {
+      k = (IsNan(k) ? 0 : k);
+      ffst[f] += ga * k * ffsig[f];
+    }
+  }
+}
+
+template <class M>
 void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
                                   const FieldFace<Scal>& ffvfsm) {
   // volume fration gradient on cells
@@ -1061,63 +1131,52 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
       fc_force_[c] += r * fc_sig_[c];
     }
   } else if (st == "kn") {  // curvature * normal
-    auto& fck = as_->GetCurv(); // [a]
     FieldFace<Scal> ff_st(m, 0.);  // surface tension projections
 
-    ffk_.Reinit(m, 0);
-    ff_sig_.Reinit(m, 0);
     ff_sig_ = solver::Interpolate(fc_sig_, GetBcSz(), m);
-    // interpolate curvature
-    for (auto f : m.Faces()) {
-      IdxCell cm = m.GetNeighbourCell(f, 0);
-      IdxCell cp = m.GetNeighbourCell(f, 1);
-      if (std::abs(fcvf[cm] - 0.5) < std::abs(fcvf[cp] - 0.5)) {
-        ffk_[f] = fck[cm];
-      } else {
-        ffk_[f] = fck[cp];
-      }
-    }
-    // neighbour cell for boundaries
-    for (auto it : mf_velcond_) {
-      IdxFace f = it.GetIdx();
-      IdxCell c = m.GetNeighbourCell(f, it.GetValue()->GetNci());
-      ffk_[f] = fck[c];
-    }
-    // compute force projections
-    size_t nan = 0;
-    IdxFace fnan(0);
-    bool report_knan = var.Int["report_knan"];
-    for (auto f : m.Faces()) {
-      IdxCell cm = m.GetNeighbourCell(f, 0);
-      IdxCell cp = m.GetNeighbourCell(f, 1);
-      // XXX: adhoc uniform (should be half volume cp,cm)
-      Scal hr = m.GetArea(f) / m.GetVolume(cp);
-      Scal ga = (fcvf[cp] - fcvf[cm]) * hr; 
-      if (ga != 0.) {
-        if (IsNan(ffk_[f])) {
-          ++nan;
-          fnan = f;
-          ffk_[f] = 0.;
+
+    if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+      //AppendSurfaceTension2(ff_st, as->GetField(i), as->GetCurv(i), ff_sig_);
+      for (auto f : m.Faces()) {
+        IdxCell cm = m.GetNeighbourCell(f, 0);
+        IdxCell cp = m.GetNeighbourCell(f, 1);
+        std::set<Scal> s;
+        for (size_t i = 0; i < as->GetNumLayers(); ++i) {
+          Scal clm = as->GetColor(i)[cm];
+          Scal clp = as->GetColor(i)[cp];
+          if (clm != TR::kNone) s.insert(clm);
+          if (clp != TR::kNone) s.insert(clp);
         }
-        ff_st[f] += ga * ffk_[f] * ff_sig_[f];
+        for (auto cl : s) {
+          Scal um = 0;
+          Scal up = 0;
+          Scal km = 0;
+          Scal kp = 0;
+          for (size_t i = 0; i < as->GetNumLayers(); ++i) {
+            if (as->GetColor(i)[cm] == cl) {
+              um = as->GetField(i)[cm];
+              km = as->GetCurv(i)[cm];
+            }
+            if (as->GetColor(i)[cp] == cl) {
+              up = as->GetField(i)[cp];
+              kp = as->GetCurv(i)[cp];
+            }
+          }
+          Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
+          Scal hi = m.GetArea(f) / m.GetVolume(cp);
+          Scal ga = (up - um) * hi;
+          if (ga != 0.) {
+            k = (IsNan(k) ? 0 : k);
+            ff_st[f] += ga * k * ff_sig_[f];
+          }
+        }
       }
+    } else {
+      AppendSurfaceTension(ff_st, as_->GetField(), as_->GetCurv(),
+                           FieldCell<bool>(m, true), ff_sig_);
     }
-    if (report_knan && nan) {
-      auto f = fnan;
-      IdxCell cm = m.GetNeighbourCell(f, 0);
-      IdxCell cp = m.GetNeighbourCell(f, 1);
-      std::stringstream s;
-      s.precision(16);
-      s << "nan curvature in " << nan 
-          << " faces, one at x=" << m.GetCenter(f)
-          << " vf[cm]=" << fcvf[cm]
-          << " vf[cp]=" << fcvf[cp]
-          << " fck[cm]=" << fck[cm]
-          << " fck[cp]=" << fck[cp];
-      std::cout << s.str() << std::endl;
-    }
+
     // zero on boundaries
-    // TODO: test with bubble jump
     for (auto it : mf_velcond_) {
       IdxFace f = it.GetIdx();
       ff_st[f] = 0.;
@@ -1142,11 +1201,11 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
 
     // Append Marangoni stress
     if (var.Int["marangoni"]) {
-      if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
+      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
         using R = Reconst<Scal>;
         auto fc_gsig = solver::Gradient(ff_sig_, m);
-        auto &fcn = as->GetNormal();
-        auto &fca = as->GetAlpha();
+        auto &fcn = as->GetNormal(0);
+        auto &fca = as->GetAlpha(0);
         Vect h = m.GetCellSize();
         for (auto c : m.Cells()) {
           if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {
@@ -1429,9 +1488,9 @@ void Hydro<M>::DumpFields() {
      fcdiv_ = GetDiv();
      m.Dump(&fcdiv_, "div");
     }
-    if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
+    if (auto as = dynamic_cast<ASVM*>(as_.get())) {
       auto& n = fctmpv_;
-      n = as->GetNormal();
+      n = as->GetNormal(0);
       for (auto c : m.Cells()) {
         auto& v = n[c];
         auto i = v.abs().argmax();
@@ -1446,7 +1505,46 @@ void Hydro<M>::DumpFields() {
       if (dl.count("hx")) m.Dump(&h, 0, "hx");
       if (dl.count("hy")) m.Dump(&h, 1, "hy");
       if (dl.count("hz")) m.Dump(&h, 2, "hz");
+
+      if (dl.count("vf0")) m.Dump(&as->GetField(0), "vf0");
+      if (dl.count("vf1")) m.Dump(&as->GetField(1), "vf1");
+      if (dl.count("vf2")) m.Dump(&as->GetField(2), "vf2");
+      if (dl.count("vf3")) m.Dump(&as->GetField(3), "vf3");
+
+      if (dl.count("cls")) m.Dump(&as->GetColor(), "cls");
+      if (dl.count("cl0")) m.Dump(&as->GetColor(0), "cl0");
+      if (dl.count("cl1")) m.Dump(&as->GetColor(1), "cl1");
+      if (dl.count("cl2")) m.Dump(&as->GetColor(2), "cl2");
+      if (dl.count("cl3")) m.Dump(&as->GetColor(3), "cl3");
+
+      auto B2S = [this](FieldCell<bool> fcb) -> FieldCell<Scal> {
+        FieldCell<Scal> r(m);
+        for (auto c : m.Cells()) {
+          r[c] = (fcb[c] ? 1. : 0.);
+        }
+        return r;
+      };
+
+      if (dl.count("mask0")) { 
+        fctmp_ = B2S(as->GetMask(0));
+        m.Dump(&fctmp_, "mask0");
+      }
+      if (dl.count("mask1")) { 
+        fctmp2_ = B2S(as->GetMask(1));
+        m.Dump(&fctmp2_, "mask1");
+      }
+
+      if (dl.count("dep0")) { 
+        fctmp3_ = B2S(as->GetDepend(0));
+        m.Dump(&fctmp3_, "dep0");
+      }
+      if (dl.count("dep1")) { 
+        fctmp4_ = B2S(as->GetDepend(1));
+        m.Dump(&fctmp4_, "dep1");
+      }
     }
+    if (mul_ && dl.count("mul")) m.Dump(&mul_->GetMask(), "mul");
+    if (mul_ && dl.count("mul")) m.Dump(&mul_->GetMask2(), "mul2");
   }
 }
 
@@ -1787,6 +1885,11 @@ void Hydro<M>::Run() {
   if (var.Int["enable_color"] && as_) {
     if (sem.Nested("color")) {
       tr_->Update(as_->GetField());
+    }
+  }
+  if (mul_) {
+    if (sem.Nested("multi")) {
+      mul_->Update(as_->GetField());
     }
   }
 
