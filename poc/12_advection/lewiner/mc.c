@@ -34,20 +34,19 @@ static int CubeOff[][3] = {
 };
 
 static int COff[][4] = {
-    { 0, 1, 0, X },
-    { 0, 1, 1, X },
     { 0, 0, 0, X },
-    { 0, 0, 1, X },
     { 1, 0, 0, Y },
-    { 1, 0, 1, Y },
+    { 0, 1, 0, X },
     { 0, 0, 0, Y },
+    { 0, 0, 1, X },
+    { 1, 0, 1, Y },
+    { 0, 1, 1, X },
     { 0, 0, 1, Y },
-    { 1, 1, 0, Z },
+    { 0, 0, 0, Z },
     { 1, 0, 0, Z },
+    { 1, 1, 0, Z },
     { 0, 1, 0, Z },
-    { 0, 0, 0, Z }
 };
-
 
 static double get_data(int i, int j, int k);
 static void process_cube(void);
