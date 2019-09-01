@@ -6,7 +6,6 @@
 #include <memory>
 #include <limits>
 
-#include "vof.h"
 #include "geom/block.h"
 #include "dump/vtk.h"
 #include "reconst.h"

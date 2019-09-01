@@ -9,7 +9,7 @@
 namespace solver {
 
 template <class M_>
-class Vof : public AdvectionSolver<M_> {
+class Vofm : public AdvectionSolver<M_> {
  public:
   using M = M_;
   using P = AdvectionSolver<M>;
@@ -75,11 +75,11 @@ class Vof : public AdvectionSolver<M_> {
   // fcs: poitner to volume sources
   // t,dt: initial time and timestep
   // par: parameters
-  Vof(M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
+  Vofm(M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
       const MapFace<std::shared_ptr<CondFace>>& mfc,
       const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
       double t, double dt, std::shared_ptr<Par> par);
-  ~Vof();
+  ~Vofm();
   // Parameters
   Par* GetPar();
   // ...

@@ -7,7 +7,6 @@
 
 #include "parse/vars.h"
 #include "geom/field.h"
-#include "solver/vof.h"
 #include "geom/block.h"
 #include "geom/vect.h"
 #include "solver/tracker.h"
