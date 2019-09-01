@@ -19,6 +19,8 @@
 	z*z*x*x - z*z*z*z - 2*z*x*x + 2*z*z*z + x*x - z*z - (x*x - z)*(x*x - z) - y*y*y*y - 2*x*x*y*y - y*y*z*z + 2*y*y*z + y*y \
 	)
 
+enum { X, Y, Z };
+static void obj(int, double *, int, int *);
 
 int
 main()
@@ -30,6 +32,9 @@ main()
     double tx, ty, tz;
     double r, R;
     double *buf;
+    int nv, nt;
+    double *ver;
+    int *tri;
     struct MarchLewiner *march;
 
     buf = (double *) malloc(nx * ny * nz * sizeof(*buf));
@@ -55,14 +60,23 @@ main()
 	    }
 
     march = march_lewiner_ini(nx, ny, nz);
-
-    int nv, nt;
-    double *ver;
-    int *tri;
-
     march_lewiner_apply(march, buf, &nv, &ver, &nt, &tri);
     obj(nv, ver, nt, tri);
     march_lewiner_fin(march);
     free(buf);
     return 0;
+}
+
+static void
+obj(int nv, double *ver, int nt, int *tri)
+{
+    int i;
+
+    printf("# File type: ASCII OBJ\n");
+    for (i = 0; i < nv; i++)
+	printf("v %.16g %.16g %.16g\n", ver[3 * i + X], ver[3 * i + Y],
+	       ver[3 * i + Z]);
+    for (i = 0; i < nt; i++)
+	printf("f %d %d %d\n", tri[3 * i + X] + 1, tri[3 * i + Y] + 1,
+	       tri[3 * i + Z] + 1);
 }

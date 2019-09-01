@@ -925,17 +925,3 @@ add_c_vertex(void)
     q->ver[3 * q->nv + Z] = rz / u;
     return q->nv++;
 }
-
-void
-obj(int nv, double *ver, int nt, int *tri)
-{
-    int i;
-
-    printf("# File type: ASCII OBJ\n");
-    for (i = 0; i < nv; i++)
-	printf("v %.16g %.16g %.16g\n", ver[3 * i + X], ver[3 * i + Y],
-	       ver[3 * i + Z]);
-    for (i = 0; i < nt; i++)
-	printf("f %d %d %d\n", tri[3 * i + X] + 1, tri[3 * i + Y] + 1,
-	       tri[3 * i + Z] + 1);
-}
