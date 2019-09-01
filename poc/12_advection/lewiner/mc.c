@@ -8,7 +8,7 @@
 #include "mc.h"
 #include "table.h"
 
-#define ALLOC_SIZE (99999)
+#define ALLOC_SIZE (10)
 #define SIZE(a) (int)(sizeof(a)/sizeof(*(a)))
 
 enum { X, Y, Z };
@@ -56,7 +56,8 @@ static int test_interior(int s);
 static void intersection(void);
 static void add_tri3(const int *trig, int n, int v12);
 static void add_tri2(const int *trig, int n);
-static void test_vertex_addition(void);
+static void realloc_ver(void);
+static void realloc_tri(void);
 static int add_c_vertex(void);
 static int get_vert(int, int, int, int);
 static void set_vert(int, int, int, int);
@@ -147,9 +148,9 @@ set_vert(int D, int i, int j, int k)
     double u;
     int d;
 
-    test_vertex_addition();
     d = CuDir[D];
     u = (cu[OOO]) / (cu[OOO] - cu[d]);
+    realloc_ver();
     ver[3 * nv + X] = i;
     ver[3 * nv + Y] = j;
     ver[3 * nv + Z] = k;
@@ -786,11 +787,7 @@ add_tri3(const int *trig, int n, int v12)
 	    printf("Marching Cubes: invalid triangle %d\n", nt + 1);
 	}
 	if (t % 3 == 2) {
-	    if (nt >= Nt) {
-		Nt *= 2;
-		tri = realloc(tri, 3 * Nt * sizeof(*tri));
-		fprintf(stderr, "%d allocated triangles\n", Nt);
-	    }
+	    realloc_tri();
 	    tri[3 * nt + X] = tv[0];
 	    tri[3 * nt + Y] = tv[1];
 	    tri[3 * nt + Z] = tv[2];
@@ -800,7 +797,7 @@ add_tri3(const int *trig, int n, int v12)
 }
 
 static void
-test_vertex_addition()
+realloc_ver(void)
 {
     if (nv >= Nv) {
 	Nv *= 2;
@@ -809,14 +806,23 @@ test_vertex_addition()
     }
 }
 
+static void
+realloc_tri(void)
+{
+    if (nt >= Nt) {
+	Nt *= 2;
+	tri = realloc(tri, 3 * Nt * sizeof(*tri));
+	fprintf(stderr, "%d allocated tri\n", Nt);
+    }
+}
+
 static int
-add_c_vertex()
+add_c_vertex(void)
 {
     double u, rx, ry, rz;
     int g, m, *o;
 
     u = 0;
-    test_vertex_addition();
     rx = ry = rz = 0;
     for (g = 0; g < SIZE(COff); g++) {
 	o = COff[g];
@@ -828,6 +834,7 @@ add_c_vertex()
 	    rz += ver[3 * m + Z];
 	}
     }
+    realloc_ver();
     ver[3 * nv + X] = rx / u;
     ver[3 * nv + Y] = ry / u;
     ver[3 * nv + Z] = rz / u;
