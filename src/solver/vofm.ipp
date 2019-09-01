@@ -315,7 +315,7 @@ struct Vofm<M_>::Imp {
             << " t=" << owner_->GetTime() + owner_->GetTimeStep()
             << " to " << fn << std::endl;
         WriteVtkPoly(fn, dl_, {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"}, 
-            "Reconstructed linear interface", true, 
+            "PLIC recosntruction of the interface", true,
             par->vtkbin, par->vtkmerge);
       }
     }
@@ -419,7 +419,7 @@ struct Vofm<M_>::Imp {
             << " t=" << owner_->GetTime() + owner_->GetTimeStep()
             << " to " << fn << std::endl;
         WriteVtkPoly(fn, dl_, {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"}, 
-            "Reconstructed linear interface", true, 
+            "Interface from marching cubes", true, 
             par->vtkbin, par->vtkmerge);
       }
     }
