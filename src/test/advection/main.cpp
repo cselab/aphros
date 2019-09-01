@@ -20,6 +20,7 @@
 #include "solver/solver.h"
 #include "solver/advection.h"
 #include "solver/vof.h"
+#include "solver/vofm.h"
 #include "parse/vof.h"
 #include "solver/tvd.h"
 #include "parse/tvd.h"
@@ -73,6 +74,7 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   using Sem = typename Mesh::Sem;
   using AST = solver::Tvd<M>; // advection TVD
   using ASV = solver::Vof<M>; // advection VOF
+  using ASVM = solver::Vofm<M>; // advection VOF
 
   //using P::P; // inherit constructor
   Advection(Vars& var, const MyBlockInfo& bi, Par& par);
@@ -144,11 +146,17 @@ void Advection<M>::Init(Sem& sem) {
                        &fc_src_, 0., var.Double["dt"], p));
     } else if (as == "vof") {
       auto p = std::make_shared<typename ASV::Par>();
-      Parse<M>(p.get(), var);
+      Parse<M, ASV>(p.get(), var);
+      p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
+      as_.reset(new ASV(m, fcu_, bc, &ff_flux_, 
+                       &fc_src_, 0., var.Double["dt"], p));
+    } else if (as == "vofm") {
+      auto p = std::make_shared<typename ASVM::Par>();
+      Parse<M, ASVM>(p.get(), var);
       p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
       auto fccl = FieldCell<Scal>(m, -1);
-      as_.reset(new ASV(m, fcu_, fccl, bc, &ff_flux_, 
-                       &fc_src_, 0., var.Double["dt"], p));
+      as_.reset(new ASVM(m, fcu_, fccl, bc, &ff_flux_, 
+                         &fc_src_, 0., var.Double["dt"], p));
     } else {
       throw std::runtime_error("Unknown advection_solver=" + as);
     }
@@ -176,6 +184,19 @@ void Advection<M>::Dump(Sem& sem) {
       auto& k = const_cast<FieldCell<Scal>&>(as_->GetCurv());
       m.Dump(&k, "k");
       if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
+        auto& a = const_cast<FieldCell<Scal>&>(as->GetAlpha());
+        m.Dump(&a, "a");
+        auto &n = as->GetNormal();
+        m.Dump(&n, 0, "nx");
+        m.Dump(&n, 1, "ny");
+        m.Dump(&n, 2, "nz");
+
+        auto& kh = const_cast<FieldCell<Scal>&>(as->GetCurvH());
+        m.Dump(&kh, "kh");
+        auto& kp = const_cast<FieldCell<Scal>&>(as->GetCurvP());
+        m.Dump(&kp, "kp");
+      }
+      if (auto as = dynamic_cast<solver::Vofm<M>*>(as_.get())) {
         auto& a = const_cast<FieldCell<Scal>&>(as->GetAlpha(0));
         m.Dump(&a, "a");
         auto &n = as->GetNormal(0);
