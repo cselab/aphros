@@ -3,11 +3,9 @@
 #include <string>
 
 #include "parse/vars.h"
-#include "solver/vof.h"
-#include "solver/partstrmesh.h"
 
-template <class M>
-void Parse(typename solver::Vof<M>::Par* p, const Vars& var) {
+template <class M, class Vof>
+void Parse(typename Vof::Par* p, const Vars& var) {
   p->curvgrad = var.Int["curvgrad"];
   p->verb = var.Int["vof_verb"];
   p->vtkbin = var.Int["vtkbin"];
@@ -46,8 +44,9 @@ void Parse(typename solver::Vof<M>::Par* p, const Vars& var) {
   p->part_dn = var.Int["part_dn"];
   p->part_maxr = var.Double["part_maxr"];
 
+  using Par = typename Vof::Par;
   {
-    using AF = typename solver::PartStrMeshM<M>::AF;
+    using AF = typename Par::AF;
     std::string s = var.String["part_attrforce"];
     if (s == "line") {
       p->part_attrforce = AF::line;
@@ -60,7 +59,7 @@ void Parse(typename solver::Vof<M>::Par* p, const Vars& var) {
     }
   }
   {
-    using AR = typename solver::PartStrMeshM<M>::AR;
+    using AR = typename Par::AR;
     std::string s = var.String["part_attrreconst"];
     if (s == "line") {
       p->part_attrreconst = AR::line;

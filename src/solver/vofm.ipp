@@ -9,7 +9,7 @@
 
 #include <march.h>
 
-#include "vof.h"
+#include "vofm.h"
 #include "geom/block.h"
 #include "dump/vtk.h"
 #include "reconst.h"
@@ -156,8 +156,8 @@ FieldCell<bool> Or(const FieldCell<bool>& u,
 }
 
 template <class M_>
-struct Vof<M_>::Imp {
-  using Owner = Vof<M_>;
+struct Vofm<M_>::Imp {
+  using Owner = Vofm<M_>;
   using R = Reconst<Scal>;
   using PS = PartStr<Scal>;
   using PSM = PartStrMeshM<M>;
@@ -1224,10 +1224,10 @@ struct Vof<M_>::Imp {
 };
 
 template <class M>
-constexpr typename M::Scal Vof<M>::Imp::kClNone;
+constexpr typename M::Scal Vofm<M>::Imp::kClNone;
 
 template <class M_>
-Vof<M_>::Vof(
+Vofm<M_>::Vofm(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
     const MapFace<std::shared_ptr<CondFace>>& mfc,
     const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
@@ -1237,110 +1237,110 @@ Vof<M_>::Vof(
 {}
 
 template <class M_>
-Vof<M_>::~Vof() = default;
+Vofm<M_>::~Vofm() = default;
 
 template <class M_>
-auto Vof<M_>::GetPar() -> Par* {
+auto Vofm<M_>::GetPar() -> Par* {
   return imp->par.get();
 }
 
 template <class M_>
-void Vof<M_>::StartStep() {
+void Vofm<M_>::StartStep() {
   imp->StartStep();
 }
 
 template <class M_>
-void Vof<M_>::MakeIteration() {
+void Vofm<M_>::MakeIteration() {
   imp->MakeIteration();
 }
 
 template <class M_>
-void Vof<M_>::FinishStep() {
+void Vofm<M_>::FinishStep() {
   imp->FinishStep();
 }
 
 template <class M_>
-auto Vof<M_>::GetField(Layers l) const -> const FieldCell<Scal>& {
+auto Vofm<M_>::GetField(Layers l) const -> const FieldCell<Scal>& {
   return imp->fcus_.Get(l);
 }
 
 template <class M_>
-auto Vof<M_>::GetField(Layers l, size_t i) const -> const FieldCell<Scal>& {
+auto Vofm<M_>::GetField(Layers l, size_t i) const -> const FieldCell<Scal>& {
   return imp->fcu_[i].Get(l);
 }
 
 template <class M_>
-auto Vof<M_>::GetField(size_t i) const -> const FieldCell<Scal>& {
+auto Vofm<M_>::GetField(size_t i) const -> const FieldCell<Scal>& {
   return imp->fcu_[i].Get(Layers::time_curr);
 }
 
 template <class M_>
-auto Vof<M_>::GetAlpha(size_t i) const -> const FieldCell<Scal>& {
+auto Vofm<M_>::GetAlpha(size_t i) const -> const FieldCell<Scal>& {
   (void) i;
   return imp->fca_[i];
 }
 
 template <class M_>
-auto Vof<M_>::GetMask(size_t i) const -> const FieldCell<bool>& {
+auto Vofm<M_>::GetMask(size_t i) const -> const FieldCell<bool>& {
   return imp->fcm_[i];
 }
 
 template <class M_>
-auto Vof<M_>::GetColor(size_t i) const -> const FieldCell<Scal>& {
+auto Vofm<M_>::GetColor(size_t i) const -> const FieldCell<Scal>& {
   return imp->fccl_[i];
 }
 
 template <class M_>
-auto Vof<M_>::GetColor() const -> const FieldCell<Scal>& {
+auto Vofm<M_>::GetColor() const -> const FieldCell<Scal>& {
   return imp->fccls_;
 }
 
 template <class M_>
-auto Vof<M_>::GetDepend(size_t i) const -> const FieldCell<bool>& {
+auto Vofm<M_>::GetDepend(size_t i) const -> const FieldCell<bool>& {
   return imp->fcdp_[i];
 }
 
 template <class M_>
-size_t Vof<M_>::GetNumLayers() const {
+size_t Vofm<M_>::GetNumLayers() const {
   return imp->layers.size();
 }
 
 template <class M_>
-auto Vof<M_>::GetNormal(size_t i) const -> const FieldCell<Vect>& {
+auto Vofm<M_>::GetNormal(size_t i) const -> const FieldCell<Vect>& {
   return imp->fcn_[i];
 }
 
 template <class M_>
-auto Vof<M_>::GetHeight() const -> const FieldCell<Vect>& {
+auto Vofm<M_>::GetHeight() const -> const FieldCell<Vect>& {
   return imp->fch_;
 }
 
 template <class M_>
-auto Vof<M_>::GetCurv() const -> const FieldCell<Scal>& {
+auto Vofm<M_>::GetCurv() const -> const FieldCell<Scal>& {
   return imp->par->part_k ? imp->psm_->GetCurv(0) : imp->fck_[0];
 }
 
 template <class M_>
-auto Vof<M_>::GetCurv(size_t i) const -> const FieldCell<Scal>& {
+auto Vofm<M_>::GetCurv(size_t i) const -> const FieldCell<Scal>& {
   (void) i;
   return imp->par->part_k ? imp->psm_->GetCurv(i) : imp->fck_[i];
 }
 
 template <class M_>
-void Vof<M_>::PostStep() {
+void Vofm<M_>::PostStep() {
   return imp->PostStep();
 }
 
 
 // curvature from height function
 template <class M_>
-auto Vof<M_>::GetCurvH() const -> const FieldCell<Scal>& {
+auto Vofm<M_>::GetCurvH() const -> const FieldCell<Scal>& {
   return imp->fck_[0];
 }
 
 // curvature from particles
 template <class M_>
-auto Vof<M_>::GetCurvP() const -> const FieldCell<Scal>& {
+auto Vofm<M_>::GetCurvP() const -> const FieldCell<Scal>& {
   return imp->psm_->GetCurv(0);
 }
 
