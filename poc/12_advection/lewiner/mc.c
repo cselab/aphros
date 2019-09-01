@@ -61,6 +61,7 @@ static void realloc_tri(void);
 static int add_c_vertex(void);
 static int get_vert(int, int, int, int);
 static void set_vert(int, int, int, int);
+static double wavg(double a, double b, double t);
 
 double cu[8];
 double *data;
@@ -127,6 +128,11 @@ run(void)
 	    }
 }
 
+static double wavg(double a, double b, double t)
+{
+    return a + (b - a)*t;
+}
+
 static double
 get_data(int i, int j, int k)
 {
@@ -149,7 +155,7 @@ set_vert(int D, int i, int j, int k)
     int d;
 
     d = CuDir[D];
-    u = (cu[OOO]) / (cu[OOO] - cu[d]);
+    u = cu[OOO] / (cu[OOO] - cu[d]);
     realloc_ver();
     ver[3 * nv + X] = i;
     ver[3 * nv + Y] = j;
@@ -272,10 +278,10 @@ test_interior(int s)
 	t = -b / (2 * a);
 	if (t < 0 || t > 1)
 	    return s > 0;
-	At = cu[OOO] + (cu[OOI] - cu[OOO]) * t;
-	Bt = cu[OIO] + (cu[OII] - cu[OIO]) * t;
-	Ct = cu[IIO] + (cu[III] - cu[IIO]) * t;
-	Dt = cu[IOO] + (cu[IOI] - cu[IOO]) * t;
+	At = wavg(cu[OOO], cu[OOI], t);
+	Bt = wavg(cu[OIO], cu[OII], t);
+	Ct = wavg(cu[IIO], cu[III], t);
+	Dt = wavg(cu[IOO], cu[IOI], t);
 	break;
     case 6:
     case 7:
@@ -299,86 +305,86 @@ test_interior(int s)
 	case 0:
 	    t = cu[OOO] / (cu[OOO] - cu[IOO]);
 	    At = 0;
-	    Bt = cu[OIO] + (cu[IIO] - cu[OIO]) * t;
-	    Ct = cu[OII] + (cu[III] - cu[OII]) * t;
-	    Dt = cu[OOI] + (cu[IOI] - cu[OOI]) * t;
+	    Bt = wavg(cu[OIO], cu[IIO], t);
+	    Ct = wavg(cu[OII], cu[III], t);
+	    Dt = wavg(cu[OOI], cu[IOI], t);
 	    break;
 	case 1:
 	    t = cu[IOO] / (cu[IOO] - cu[IIO]);
 	    At = 0;
-	    Bt = cu[OOO] + (cu[OIO] - cu[OOO]) * t;
-	    Ct = cu[OOI] + (cu[OII] - cu[OOI]) * t;
-	    Dt = cu[IOI] + (cu[III] - cu[IOI]) * t;
+	    Bt = wavg(cu[OOO], cu[OIO], t);
+	    Ct = wavg(cu[OOI], cu[OII], t);
+	    Dt = wavg(cu[IOI], cu[III], t);
 	    break;
 	case 2:
 	    t = cu[IIO] / (cu[IIO] - cu[OIO]);
 	    At = 0;
-	    Bt = cu[IOO] + (cu[OOO] - cu[IOO]) * t;
-	    Ct = cu[IOI] + (cu[OOI] - cu[IOI]) * t;
-	    Dt = cu[III] + (cu[OII] - cu[III]) * t;
+	    Bt = wavg(cu[IOO], cu[OOO], t);
+	    Ct = wavg(cu[IOI], cu[OOI], t);
+	    Dt = wavg(cu[III], cu[OII], t);
 	    break;
 	case 3:
 	    t = cu[OIO] / (cu[OIO] - cu[OOO]);
 	    At = 0;
-	    Bt = cu[IIO] + (cu[IOO] - cu[IIO]) * t;
-	    Ct = cu[III] + (cu[IOI] - cu[III]) * t;
-	    Dt = cu[OII] + (cu[OOI] - cu[OII]) * t;
+	    Bt = wavg(cu[IIO], cu[IOO], t);
+	    Ct = wavg(cu[III], cu[IOI], t);
+	    Dt = wavg(cu[OII], cu[OOI], t);
 	    break;
 	case 4:
 	    t = cu[OOI] / (cu[OOI] - cu[IOI]);
 	    At = 0;
-	    Bt = cu[OII] + (cu[III] - cu[OII]) * t;
-	    Ct = cu[OIO] + (cu[IIO] - cu[OIO]) * t;
-	    Dt = cu[OOO] + (cu[IOO] - cu[OOO]) * t;
+	    Bt = wavg(cu[OII], cu[III], t);
+	    Ct = wavg(cu[OIO], cu[IIO], t);
+	    Dt = wavg(cu[OOO], cu[IOO], t);
 	    break;
 	case 5:
 	    t = cu[IOI] / (cu[IOI] - cu[III]);
 	    At = 0;
-	    Bt = cu[OOI] + (cu[OII] - cu[OOI]) * t;
-	    Ct = cu[OOO] + (cu[OIO] - cu[OOO]) * t;
-	    Dt = cu[IOO] + (cu[IIO] - cu[IOO]) * t;
+	    Bt = wavg(cu[OOI], cu[OII], t);
+	    Ct = wavg(cu[OOO], cu[OIO], t);
+	    Dt = wavg(cu[IOO], cu[IIO], t);
 	    break;
 	case 6:
 	    t = cu[III] / (cu[III] - cu[OII]);
 	    At = 0;
-	    Bt = cu[IOI] + (cu[OOI] - cu[IOI]) * t;
-	    Ct = cu[IOO] + (cu[OOO] - cu[IOO]) * t;
-	    Dt = cu[IIO] + (cu[OIO] - cu[IIO]) * t;
+	    Bt = wavg(cu[IOI], cu[OOI], t);
+	    Ct = wavg(cu[IOO], cu[OOO], t);
+	    Dt = wavg(cu[IIO], cu[OIO], t);
 	    break;
 	case 7:
 	    t = cu[OII] / (cu[OII] - cu[OOI]);
 	    At = 0;
-	    Bt = cu[III] + (cu[IOI] - cu[III]) * t;
-	    Ct = cu[IIO] + (cu[IOO] - cu[IIO]) * t;
-	    Dt = cu[OIO] + (cu[OOO] - cu[OIO]) * t;
+	    Bt = wavg(cu[III], cu[IOI], t);
+	    Ct = wavg(cu[IIO], cu[IOO], t);
+	    Dt = wavg(cu[OIO], cu[OOO], t);
 	    break;
 	case 8:
 	    t = cu[OOO] / (cu[OOO] - cu[OOI]);
 	    At = 0;
-	    Bt = cu[OIO] + (cu[OII] - cu[OIO]) * t;
-	    Ct = cu[IIO] + (cu[III] - cu[IIO]) * t;
-	    Dt = cu[IOO] + (cu[IOI] - cu[IOO]) * t;
+	    Bt = wavg(cu[OIO], cu[OII], t);
+	    Ct = wavg(cu[IIO], cu[III], t);
+	    Dt = wavg(cu[IOO], cu[IOI], t);
 	    break;
 	case 9:
 	    t = cu[IOO] / (cu[IOO] - cu[IOI]);
 	    At = 0;
-	    Bt = cu[OOO] + (cu[OOI] - cu[OOO]) * t;
-	    Ct = cu[OIO] + (cu[OII] - cu[OIO]) * t;
-	    Dt = cu[IIO] + (cu[III] - cu[IIO]) * t;
+	    Bt = wavg(cu[OOO], cu[OOI], t);
+	    Ct = wavg(cu[OIO], cu[OII], t);
+	    Dt = wavg(cu[IIO], cu[III], t);
 	    break;
 	case 10:
 	    t = cu[IIO] / (cu[IIO] - cu[III]);
 	    At = 0;
-	    Bt = cu[IOO] + (cu[IOI] - cu[IOO]) * t;
-	    Ct = cu[OOO] + (cu[OOI] - cu[OOO]) * t;
-	    Dt = cu[OIO] + (cu[OII] - cu[OIO]) * t;
+	    Bt = wavg(cu[IOO], cu[IOI], t);
+	    Ct = wavg(cu[OOO], cu[OOI], t);
+	    Dt = wavg(cu[OIO], cu[OII], t);
 	    break;
 	case 11:
 	    t = cu[OIO] / (cu[OIO] - cu[OII]);
 	    At = 0;
-	    Bt = cu[IIO] + (cu[III] - cu[IIO]) * t;
-	    Ct = cu[IOO] + (cu[IOI] - cu[IOO]) * t;
-	    Dt = cu[OOO] + (cu[OOI] - cu[OOO]) * t;
+	    Bt = wavg(cu[IIO], cu[III], t);
+	    Ct = wavg(cu[IOO], cu[IOI], t);
+	    Dt = wavg(cu[OOO], cu[OOI], t);
 	    break;
 	default:
 	    printf("Invalid edge %d\n", edge);
@@ -754,7 +760,7 @@ process_cu(void)
 	    add_tri2(tiling13_1_[config], 4);
 	    break;
 	default:
-	    printf("Marching Cus: Impossible case 13?\n");
+	    printf("Impossible case 13?\n");
 	}
 	break;
     case 14:
