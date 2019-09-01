@@ -7,7 +7,6 @@
 
 #include "parse/vars.h"
 #include "geom/field.h"
-#include "solver/vof.h"
 #include "geom/block.h"
 #include "geom/vect.h"
 #include "solver/tracker.h"
@@ -57,6 +56,9 @@ CreateInitCl(Vars& par, bool verb=true) {
         // still have lines
         std::string s;
         std::getline(f, s);
+        if (c == '#') {
+          continue;
+        }
         s = c + s; // append first character
         std::stringstream st(s);
         st >> p.c[0] >> p.c[1] >> p.c[2];

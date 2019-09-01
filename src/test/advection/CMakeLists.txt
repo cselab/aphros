@@ -7,7 +7,7 @@ add_executable(${EXE} main.cpp)
 
 install(TARGETS ${EXE} DESTINATION "${CHPREFIX}/bin")
 
-target_link_libraries(${EXE} distr solver vof tvd overlap)
+target_link_libraries(${EXE} distr solver vof vofm tvd overlap)
 
 add_test(NAME adv-loc8 COMMAND runshort tloc 8)
 add_test(NAME adv-loc16 COMMAND runshort tloc 16)

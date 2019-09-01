@@ -6,11 +6,12 @@
 #include "partstr.h"
 #include "dump/dumper.h"
 #include "cond.h"
+#include "multi.h"
 
 namespace solver {
 
 template <class M_>
-class PartStrMesh {
+class PartStrMeshM {
  public:
   using M = M_;
   using Scal = typename M::Scal;
@@ -47,29 +48,35 @@ class PartStrMesh {
     bool vtkmerge = true;  // merge close points in DumpPartInter
   };
 
-  PartStrMesh(M& m, std::shared_ptr<Par> par);
-  ~PartStrMesh();
+  PartStrMeshM(M& m, std::shared_ptr<Par> par);
+  ~PartStrMeshM();
 
   // Computes curvature with particles.
-  // fcu: volume fraction
-  // fca: plane constant
-  // fcn: normal
-  // fci: interface mask (1: contains interface)
-  void Part(const FieldCell<Scal>& uc, 
-      FieldCell<Scal>& fca, FieldCell<Vect>& fcn, FieldCell<bool>& fci,
-      FieldCell<Scal>& fck,
+  // vfcu: volume fraction
+  // vfca: plane constant
+  // vfcn: normal
+  // vfci: interface mask (1: contains interface)
+  // vfccl: color
+  void Part(
+      const Multi<const FieldCell<Scal>*>& vfcu,
+      const Multi<const FieldCell<Scal>*>& vfca,
+      const Multi<const FieldCell<Vect>*>& vfcn,
+      const Multi<const FieldCell<bool>*>& vfci,
+      const Multi<const FieldCell<Scal>*>& vfccl,
       const MapFace<std::shared_ptr<CondFace>>& mfc);
   // Dump particles to csv.
-  // fca: plane constant
-  // fcn: normal
+  // vfca: plane constant
+  // vfcn: normal
   // n: frame index
   // t: time
-  void DumpParticles(FieldCell<Scal>& fca, FieldCell<Vect>& fcn,
+  void DumpParticles(const Multi<const FieldCell<Scal>*>& vfca,
+                     const Multi<const FieldCell<Vect>*>& vfcn,
                      size_t id, Scal t);
-  void DumpPartInter(FieldCell<Scal>& fca, FieldCell<Vect>& fcn,
+  void DumpPartInter(const Multi<const FieldCell<Scal>*>& vfca,
+                     const Multi<const FieldCell<Vect>*>& vfcn,
                      size_t id, Scal t);
   // Returns curvature field from last call of Part()
-  const FieldCell<Scal>& GetCurv();
+  const FieldCell<Scal>& GetCurv(size_t l);
 
  private:
   struct Imp; // implementation

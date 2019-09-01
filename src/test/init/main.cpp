@@ -10,7 +10,7 @@
 #include <stdexcept>
 #include <random>
 
-#include "solver/vof.h"
+#include "solver/vofm.h"
 #include "func/init_u.h"
 #include "overlap/overlap.h"
 #include "young/young.h"

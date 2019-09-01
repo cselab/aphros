@@ -11,12 +11,13 @@
 namespace solver {
 
 template <class M_>
-struct PartStrMesh<M_>::Imp {
+struct PartStrMeshM<M_>::Imp {
   static constexpr size_t dim = M::dim;
   using Vect2 = GVect<Scal, 2>;
   using R = Reconst<Scal>;
+  static constexpr Scal kClNone = -1;
 
-  Imp(M& m, std::shared_ptr<Par> par) : m(m), par(par), fckp_(m, 0) {
+  Imp(M& m, std::shared_ptr<Par> par) : m(m), par(par) {
     // particle strings
     partstr_ = std::unique_ptr<PS>(new PS(par->ps));
   }
@@ -184,138 +185,118 @@ struct PartStrMesh<M_>::Imp {
     }
   }
 
-  void Seed(const FieldCell<Scal>& fcu, const FieldCell<Scal>& fca, 
-            const FieldCell<Vect>& fcn, const FieldCell<bool>& fci, 
-            const FieldCell<Scal>& fck) {
+  void Seed(const Multi<const FieldCell<Scal>*>& vfcu,
+            const Multi<const FieldCell<Scal>*>& vfca,
+            const Multi<const FieldCell<Vect>*>& vfcn,
+            const Multi<const FieldCell<bool>*>& vfci,
+            const Multi<const FieldCell<Scal>*>& vfccl) {
     using MIdx = typename M::MIdx;
     auto& bc = m.GetIndexCells();
 
     // clear string list
     partstr_->Clear();
     vsc_.clear();
+    vsl_.clear();
     vsan_.clear();
 
-    Vect h = m.GetCellSize();
-    (void) h;
-
     // Seed strings in cells with interface.
-    for (auto c : m.Cells()) {
-      Vect xc = m.GetCenter(c);
-      const Scal th = par->intth;
-      if (fci[c] && fcu[c] >= th && fcu[c] <= 1. - th && 
-          (IsNan(fck[c]) || std::abs(fck[c]) > 1. / (par->maxr * h[0]))) {
-        // number of strings
-        size_t ns = (par->dim == 2 ? 1 : par->ns);
-        for (size_t s = 0; s < ns; ++s) {
-          Scal an = s * M_PI / ns; // angle
-          auto v = GetPlaneBasis(xc, fcn[c], fca[c], an);
+    for (size_t l = 0; l < vfcu.size(); ++l) {
+      auto& fcu = *vfcu[l];
+      auto& fca = *vfca[l];
+      auto& fcn = *vfcn[l];
+      auto& fci = *vfci[l];
+      auto& fccl = *vfccl[l];
+      for (auto c : m.Cells()) {
+        Vect xc = m.GetCenter(c);
+        const Scal th = par->intth;
+        if (fci[c] && fcu[c] >= th && fcu[c] <= 1. - th &&
+            fccl[c] != kClNone) {
+          // number of strings
+          size_t ns = (par->dim == 2 ? 1 : par->ns);
+          for (size_t s = 0; s < ns; ++s) {
+            Scal an = s * M_PI / ns; // angle
+            auto v = GetPlaneBasis(xc, fcn[c], fca[c], an);
 
-          // block of offsets to neighbours in stencil [-sw,sw]
-          const int sw = 2; // stencil halfwidth
-          const int sn = sw * 2 + 1; // stencil size
-          GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
-                                  MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
+            // block of offsets to neighbours in stencil [-sw,sw]
+            const int sw = 1; // stencil halfwidth
+            const int sn = sw * 2 + 1; // stencil size
+            GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
+                                    MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
 
-          auto w = bc.GetMIdx(c);
-          // buffer for interface lines
-          std::vector<Vect2> lx; // nodes
-          std::vector<size_t> ls; // sizes
-          // Extract interface from neighbour cells.
-          for (auto wo : bo) {
-            IdxCell cc = bc.GetIdx(w + wo); // neighbour cell
-            AppendInterface(v, m.GetCenter(cc), fcu[cc], fca[cc], fcn[cc],
-                            fci[cc], lx, ls);
+            auto w = bc.GetMIdx(c);
+            // buffer for interface lines
+            std::vector<Vect2> lx; // nodes
+            std::vector<size_t> ls; // sizes
+            // Extract interface from neighbour cells.
+            for (auto wo : bo) {
+              IdxCell cc = bc.GetIdx(w + wo); // neighbour cell
+              for (size_t j = 0; j < vfcu.size(); ++j) {
+                auto& fcu2 = *vfcu[j];
+                auto& fca2 = *vfca[j];
+                auto& fcn2 = *vfcn[j];
+                auto& fci2 = *vfci[j];
+                auto& fccl2 = *vfccl[j];
+                if (fci2[cc] && fccl2[cc] == fccl[c]) {
+                  AppendInterface(v, m.GetCenter(cc), fcu2[cc],
+                                  fca2[cc], fcn2[cc], fci2[cc], lx, ls);
+                }
+              }
+            }
+
+            // add string 
+            partstr_->Add(Vect2(0.), Vect2(1., 0.), lx, ls);
+            vsc_.push_back(c);
+            vsl_.push_back(l);
+            vsan_.push_back(an);
+            assert(vsc_.size() == partstr_->GetNumStr());
+            assert(vsl_.size() == partstr_->GetNumStr());
+            assert(vsan_.size() == partstr_->GetNumStr());
           }
-
-          // add string 
-          partstr_->Add(Vect2(0.), Vect2(1., 0.), lx, ls);
-          vsc_.push_back(c);
-          vsan_.push_back(an);
-          assert(vsc_.size() == partstr_->GetNumStr());
-          assert(vsan_.size() == partstr_->GetNumStr());
         }
       }
     }
   }
-  void Part(const FieldCell<Scal>& uc, 
-      FieldCell<Scal>& fca, FieldCell<Vect>& fcn, FieldCell<bool>& fci,
-      FieldCell<Scal>& fck,
-      const MapFace<std::shared_ptr<CondFace>>& mfc) {
+  void Part(const Multi<const FieldCell<Scal>*>& vfcu,
+            const Multi<const FieldCell<Scal>*>& vfca,
+            const Multi<const FieldCell<Vect>*>& vfcn,
+            const Multi<const FieldCell<bool>*>& vfci,
+            const Multi<const FieldCell<Scal>*>& vfccl,
+            const MapFace<std::shared_ptr<CondFace>>& mfc) {
     auto sem = m.GetSem("part");
-
-    if (sem("part-comm")) {
-      m.Comm(&fca);
-      m.Comm(&fcn);
-    }
+    (void) mfc;
 
     if (sem("part-run")) {
-      // XXX: adhoc
-      // reflection at boundaries
-      if (par->bcc_reflect) {
-        BcReflect(fca, mfc, Scal(0), m);
-        BcReflect(fcn, mfc, Vect(0), m);
-      }
-      Seed(uc, fca, fcn, fci, fck);
+      Seed(vfcu, vfca, vfcn, vfci, vfccl);
       partstr_->Run(par->tol, par->itermax,
                     m.IsRoot() ? par->verb : 0);
       // compute curvature
-      fckp_ = fck;
+      vfckp_.resize(vfcu.size());
+      for (auto& fckp : vfckp_.data()) {
+        fckp.Reinit(m, GetNan<Scal>());
+      }
       // XXX: assume strings from same cell contiguous
       auto ns = partstr_->GetNumStr();
       size_t s = 0;
-      while (s < ns) { // new cell
+      // traverse strings
+      while (s < ns) {
         size_t nsc = 0; // number of strings in current cell
         IdxCell c = vsc_[s];
-        fckp_[c] = 0.; // reset sum
-        while (s < ns && c == vsc_[s]) {
-          fckp_[c] += partstr_->GetCurv(s);
+        size_t l = vsl_[s];
+        auto& k = vfckp_[l][c];
+        k = 0.; // reset sum
+        while (s < ns && c == vsc_[s] && l == vsl_[s]) {
+          k += partstr_->GetCurv(s);
           ++nsc;
           ++s;
         }
-        fckp_[c] /= nsc;
+        k /= nsc;
         if (par->dim == 3) {
-          fckp_[c] *= 2.;
+          k *= 2.;
         }
       }
-      m.Comm(&fckp_);
-    }
-    if (sem("part-nan")) {
-      // if interface cell but still nan, find from neighbour
-      // block of offsets to neighbours in stencil [-sw,sw]
-      const int sw = 1; // stencil halfwidth
-      const int sn = sw * 2 + 1; // stencil size
-      using MIdx = typename M::MIdx;
-      GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
-                              MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
-      auto& bc = m.GetIndexCells();
-      size_t nan = 0;
-      IdxCell cnan;
-      for (auto c : m.Cells()) {
-        if (fci[c] && IsNan(fckp_[c])) {
-          auto w = bc.GetMIdx(c);
-          for (auto wo : bo) {
-            auto cc = bc.GetIdx(w + wo);
-            if (!IsNan(fckp_[cc])) {
-              fckp_[c] = fckp_[cc];
-              break;
-            }
-          }
-          if (IsNan(fckp_[c])) { // still nan, fill with zero
-            ++nan;
-            cnan = c;
-            fckp_[c] = 0.;
-          }
-        }
+      for (auto& fckp : vfckp_.data()) {
+        m.Comm(&fckp);
       }
-      if (nan && par->verb) {
-        std::stringstream s;
-        s.precision(16);
-        s << "nan curvature in all neighbours of " << nan 
-            << " cells, one at x=" << m.GetCenter(cnan)
-            << " with vf=" << uc[cnan];
-        std::cout << s.str() << std::endl;
-      }
-      m.Comm(&fckp_);
     }
   }
 
@@ -324,7 +305,8 @@ struct PartStrMesh<M_>::Imp {
   // fcn: normal
   // n: frame index
   // t: time
-  void DumpParticles(FieldCell<Scal>& fca, FieldCell<Vect>& fcn,
+  void DumpParticles(const Multi<const FieldCell<Scal>*>& vfca,
+                     const Multi<const FieldCell<Vect>*>& vfcn,
                      size_t id, Scal t) {
     auto sem = m.GetSem("partdump");
     size_t it = 1;
@@ -338,7 +320,9 @@ struct PartStrMesh<M_>::Imp {
         for (size_t s = 0; s < partstr_->GetNumStr(); ++s) {
           // cell
           IdxCell c = vsc_[s];
-          auto v = GetPlaneBasis(m.GetCenter(c), fcn[c], fca[c], vsan_[s]);
+          size_t l = vsl_[s];
+          auto v = GetPlaneBasis(m.GetCenter(c),
+                                 (*vfcn[l])[c], (*vfca[l])[c], vsan_[s]);
 
           auto p = partstr_->GetStr(s);
           const Vect2* xx = p.first;
@@ -384,7 +368,8 @@ struct PartStrMesh<M_>::Imp {
     }
   }
   // Dumps interface around particle strings
-  void DumpPartInter(FieldCell<Scal>& fca, FieldCell<Vect>& fcn,
+  void DumpPartInter(const Multi<const FieldCell<Scal>*>& vfca,
+                     const Multi<const FieldCell<Vect>*>& vfcn,
                      size_t id, Scal t) {
     auto sem = m.GetSem("dumppartinter");
     if (sem("local")) {
@@ -394,7 +379,9 @@ struct PartStrMesh<M_>::Imp {
       for (size_t s = 0; s < partstr_->GetNumStr(); ++s) {
         // cell containing string
         IdxCell c = vsc_[s];
-        auto v = GetPlaneBasis(m.GetCenter(c), fcn[c], fca[c], vsan_[s]);
+        size_t l = vsl_[s];
+        auto v = GetPlaneBasis(m.GetCenter(c),
+                               (*vfcn[l])[c], (*vfca[l])[c], vsan_[s]);
         auto in = partstr_->GetInter(s);
         size_t i = 0;
         size_t hc = m.GetHash(c);
@@ -425,17 +412,26 @@ struct PartStrMesh<M_>::Imp {
     }
   }
 
-  const FieldCell<Scal>& GetCurv() {
-    return fckp_;
+  const FieldCell<Scal>& GetCurv(size_t l) {
+    auto& v = vfckp_;
+    size_t s = v.size();
+    if (l >= s) {
+      v.resize(l + 1);
+      for (size_t i = s; i < v.size(); ++i) {
+        v[i].Reinit(m, GetNan<Scal>());
+      }
+    }
+    return v[l];
   }
 
  private:
   M& m;
   std::shared_ptr<Par> par;
-  FieldCell<Scal> fckp_; // curvature from particles
+  Multi<FieldCell<Scal>> vfckp_; // curvature from particles
 
   std::unique_ptr<PS> partstr_; // particle strings
   std::vector<IdxCell> vsc_; // vsc_[s] is cell of string s
+  std::vector<size_t> vsl_; // vsl_[s] is layer of string s
   std::vector<Scal> vsan_; // vsan_[s] is angle of tangent (see GetPlaneBasis)
 
   std::vector<Vect> dpx_; // dump particles x
@@ -447,35 +443,42 @@ struct PartStrMesh<M_>::Imp {
 };
 
 template <class M_>
-PartStrMesh<M_>::PartStrMesh(M& m, std::shared_ptr<Par> par) 
+PartStrMeshM<M_>::PartStrMeshM(M& m, std::shared_ptr<Par> par) 
     : imp(new Imp(m, par)) {}
 
 template <class M_>
-PartStrMesh<M_>::~PartStrMesh() = default;
+PartStrMeshM<M_>::~PartStrMeshM() = default;
 
 template <class M_>
-void PartStrMesh<M_>::Part(const FieldCell<Scal>& uc, 
-    FieldCell<Scal>& fca, FieldCell<Vect>& fcn, FieldCell<bool>& fci,
-    FieldCell<Scal>& fck,
+void PartStrMeshM<M_>::Part(
+    const Multi<const FieldCell<Scal>*>& vfcu,
+    const Multi<const FieldCell<Scal>*>& vfca,
+    const Multi<const FieldCell<Vect>*>& vfcn,
+    const Multi<const FieldCell<bool>*>& vfci,
+    const Multi<const FieldCell<Scal>*>& vfccl,
     const MapFace<std::shared_ptr<CondFace>>& mfc) {
-  imp->Part(uc, fca, fcn, fci, fck, mfc);
+  imp->Part(vfcu, vfca, vfcn, vfci, vfccl, mfc);
 }
 
 template <class M_>
-void PartStrMesh<M_>::DumpPartInter(
-    FieldCell<Scal>& fca, FieldCell<Vect>& fcn, size_t id, Scal t) {
-  imp->DumpPartInter(fca, fcn, id, t);
+void PartStrMeshM<M_>::DumpPartInter(
+    const Multi<const FieldCell<Scal>*>& vfca,
+    const Multi<const FieldCell<Vect>*>& vfcn,
+    size_t id, Scal t) {
+  imp->DumpPartInter(vfca, vfcn, id, t);
 }
 
 template <class M_>
-void PartStrMesh<M_>::DumpParticles(
-    FieldCell<Scal>& fca, FieldCell<Vect>& fcn, size_t id, Scal t) {
-  imp->DumpParticles(fca, fcn, id, t);
+void PartStrMeshM<M_>::DumpParticles(
+    const Multi<const FieldCell<Scal>*>& vfca,
+    const Multi<const FieldCell<Vect>*>& vfcn,
+    size_t id, Scal t) {
+  imp->DumpParticles(vfca, vfcn, id, t);
 }
 
 template <class M_>
-auto PartStrMesh<M_>::GetCurv() -> const FieldCell<Scal>& {
-  return imp->GetCurv();
+auto PartStrMeshM<M_>::GetCurv(size_t l) -> const FieldCell<Scal>& {
+  return imp->GetCurv(l);
 }
 
 } // namespace solver
