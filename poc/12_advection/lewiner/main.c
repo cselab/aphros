@@ -30,6 +30,7 @@ main()
     double tx, ty, tz;
     double r, R;
     double *buf;
+    struct MarchLewiner *march;
 
     buf = (double *) malloc(nx * ny * nz * sizeof(*buf));
     if (buf == NULL) {
@@ -53,9 +54,15 @@ main()
 		buf[m++] = T2;
 	    }
 
-    ini(nx, ny, nz, buf);
-    run();
-    obj();
+    march = march_lewiner_ini(nx, ny, nz);
+
+    int nv, nt;
+    double *ver;
+    int *tri;
+
+    march_lewiner_apply(march, buf, &nv, &ver, &nt, &tri);
+    obj(nv, ver, nt, tri);
+    march_lewiner_fin(march);
     free(buf);
     return 0;
 }

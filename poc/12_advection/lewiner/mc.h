@@ -1,10 +1,8 @@
 void ini(int, int, int, double *);
-void run(void);
-void obj(void);
+void obj(int, double *, int, int *);
 
-/*
 struct MarchLewiner;
-struct MarchLewiner *march_ini(int[3]);
-int march_apply(struct MarchLewiner *, double *, int *nv,
-		double **vert, int *nt, int **tri);
-int march_fin(struct MarchLewiner *); */
+struct MarchLewiner *march_lewiner_ini(int, int, int);
+int march_lewiner_apply(struct MarchLewiner *, double *, int *nv,
+			double **vert, int *nt, int **tri);
+int march_lewiner_fin(struct MarchLewiner *);

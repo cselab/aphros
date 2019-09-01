@@ -49,64 +49,107 @@ static int COff[][4] = {
     { 0, 1, 0, Z },
 };
 
+static int add_c_vertex(void);
+static void add_tri2(const int *trig, int n);
+static void add_tri3(const int *trig, int n, int v12);
+static int apply(void);
 static double get_data(int i, int j, int k);
+static int get_vert(int, int, int, int);
+static void intersection(void);
 static void process_cu(void);
+static void realloc_tri(void);
+static void realloc_ver(void);
+static void set_vert(int, int, int, int);
 static int test_face(int face);
 static int test_interior(int s);
-static void intersection(void);
-static void add_tri3(const int *trig, int n, int v12);
-static void add_tri2(const int *trig, int n);
-static void realloc_ver(void);
-static void realloc_tri(void);
-static int add_c_vertex(void);
-static int get_vert(int, int, int, int);
-static void set_vert(int, int, int, int);
 static double wavg(double a, double b, double t);
 
-double cu[8];
-double *data;
-int Case;
-int config;
-int I;
-int J;
-int K;
-int N;
-int nt;
-int Nt;
-int nv;
-int Nv;
-int subconfig;
-int *verts;
-int x;
-int y;
-int z;
-int *tri;
-double *ver;
+struct MarchLewiner {
+    double cu[8];
+    double *data;
+    int Case;
+    int config;
+    int I;
+    int J;
+    int K;
+    int N;
+    int nt;
+    int Nt;
+    int nv;
+    int Nv;
+    int subconfig;
+    int *verts;
+    int x;
+    int y;
+    int z;
+    int *tri;
+    double *ver;
+} *q;
 
-void
-ini(int x0, int y0, int z0, double *data0)
+struct MarchLewiner *
+march_lewiner_ini(int x0, int y0, int z0)
 {
     int i;
     int N;
+    struct MarchLewiner *q;
 
-    x = x0;
-    y = y0;
-    z = z0;
-    data = data0;
-    N = x * y * z;
-    verts = malloc(3 * N * sizeof(*verts));
+    q = malloc(sizeof(*q));
+    if (!q) {
+	fprintf(stderr, "can't alloc\n");
+	return NULL;
+    }
+    q->x = x0;
+    q->y = y0;
+    q->z = z0;
+    N = x0 * y0 * z0;
+    q->verts = malloc(3 * N * sizeof(*q->verts));
     for (i = 0; i < 3 * N; i++)
-	verts[i] = -1;
-    nv = nt = 0;
-    Nv = Nt = ALLOC_SIZE;
-    ver = malloc(3 * Nv * sizeof(*ver));
-    tri = malloc(3 * Nt * sizeof(*tri));
+	q->verts[i] = -1;
+    q->nv = q->nt = 0;
+    q->Nv = q->Nt = ALLOC_SIZE;
+    q->ver = malloc(3 * q->Nv * sizeof(*q->ver));
+    q->tri = malloc(3 * q->Nt * sizeof(*q->tri));
+    return q;
 }
 
-void
-run(void)
+int
+march_lewiner_fin(struct MarchLewiner *q)
+{
+    free(q->verts);
+    free(q->ver);
+    free(q->tri);
+    free(q);
+    return 0;
+}
+
+int
+march_lewiner_apply(struct MarchLewiner *q0, double *data, int *nv,
+		    double **ver, int *nt, int **tri)
+{
+    int status;
+
+    q = q0;
+    q->data = data;
+    status = apply();
+
+    *nv = q->nv;
+    *ver = q->ver;
+    *nt = q->nt;
+    *tri = q->tri;
+    return status;
+}
+
+static int
+apply(void)
 {
     int lut_entry, p, *o, i, j, k;
+    int x, y, z;
+    double *cu;
+
+    x = q->x;
+    y = q->y;
+    z = q->z;
+    cu = q->cu;
 
     intersection();
     for (k = 0; k < z - 1; k++)
@@ -119,33 +162,42 @@ run(void)
 		    if (cu[p] > 0)
 			lut_entry += 1 << p;
 		}
-		I = i;
-		J = j;
-		K = k;
-		Case = cases[lut_entry][0];
-		config = cases[lut_entry][1];
+		q->I = i;
+		q->J = j;
+		q->K = k;
+		q->Case = cases[lut_entry][0];
+		q->config = cases[lut_entry][1];
 		process_cu();
 	    }
+    return 0;
 }
 
-static double wavg(double a, double b, double t)
+static double
+wavg(double a, double b, double t)
 {
-    return a + (b - a)*t;
+    return a + (b - a) * t;
 }
 
 static double
 get_data(int i, int j, int k)
 {
     double ans;
+    int x, y;
 
-    ans = data[i + j * x + k * x * y];
+    x = q->x;
+    y = q->y;
+    ans = q->data[i + j * x + k * x * y];
     return fabs(ans) < FLT_EPSILON ? FLT_EPSILON : ans;
 }
 
 static int
 get_vert(int D, int i, int j, int k)
 {
-    return verts[3 * (i + j * x + k * x * y) + D];
+    int x, y;
+
+    x = q->x;
+    y = q->y;
+    return q->verts[3 * (i + j * x + k * x * y) + D];
 }
 
 static void
@@ -153,21 +205,34 @@ set_vert(int D, int i, int j, int k)
 {
     double u;
     int d;
+    int x, y;
+    double *cu;
 
+    x = q->x;
+    y = q->y;
+
+    cu = q->cu;
     d = CuDir[D];
     u = cu[OOO] / (cu[OOO] - cu[d]);
     realloc_ver();
-    ver[3 * nv + X] = i;
-    ver[3 * nv + Y] = j;
-    ver[3 * nv + Z] = k;
-    ver[3 * nv + D] += u;
-    verts[3 * (i + j * x + k * x * y) + D] = nv++;
+    q->ver[3 * q->nv + X] = i;
+    q->ver[3 * q->nv + Y] = j;
+    q->ver[3 * q->nv + Z] = k;
+    q->ver[3 * q->nv + D] += u;
+    q->verts[3 * (i + j * x + k * x * y) + D] = q->nv++;
 }
 
 static void
 intersection(void)
 {
     int i, j, k;
+    int x, y, z;
+    double *cu;
+
+    x = q->x;
+    y = q->y;
+    z = q->z;
+    cu = q->cu;
 
     for (k = 0; k < z; k++)
 	for (j = 0; j < y; j++)
@@ -207,7 +272,9 @@ static int
 test_face(int face)
 {
     double A, B, C, D;
+    double *cu;
 
+    cu = q->cu;
     switch (face) {
     case -1:
     case 1:
@@ -266,8 +333,10 @@ test_interior(int s)
     double t, At = 0, Bt = 0, Ct = 0, Dt = 0, a, b;
     int test = 0;
     int edge = -1;
+    double *cu;
 
-    switch (Case) {
+    cu = q->cu;
+    switch (q->Case) {
     case 4:
     case 10:
 	a = (cu[OOI] - cu[OOO]) * (cu[III] - cu[IIO]) -
@@ -287,18 +356,18 @@ test_interior(int s)
     case 7:
     case 12:
     case 13:
-	switch (Case) {
+	switch (q->Case) {
 	case 6:
-	    edge = test6[config][2];
+	    edge = test6[q->config][2];
 	    break;
 	case 7:
-	    edge = test7[config][4];
+	    edge = test7[q->config][4];
 	    break;
 	case 12:
-	    edge = test12[config][3];
+	    edge = test12[q->config][3];
 	    break;
 	case 13:
-	    edge = tiling13_5_1[config][subconfig][0];
+	    edge = tiling13_5_1[q->config][q->subconfig][0];
 	    break;
 	}
 	switch (edge) {
@@ -392,7 +461,7 @@ test_interior(int s)
 	}
 	break;
     default:
-	printf("Invalid ambiguous case %d\n", Case);
+	printf("Invalid ambiguous case %d\n", q->Case);
 	break;
     }
     if (At >= 0)
@@ -437,334 +506,334 @@ process_cu(void)
 {
     int v12 = -1;
 
-    subconfig = 0;
-    switch (Case) {
+    q->subconfig = 0;
+    switch (q->Case) {
     case 0:
 	break;
     case 1:
-	add_tri2(tiling1[config], 1);
+	add_tri2(tiling1[q->config], 1);
 	break;
     case 2:
-	add_tri2(tiling2[config], 2);
+	add_tri2(tiling2[q->config], 2);
 	break;
     case 3:
-	if (test_face(test3[config]))
-	    add_tri2(tiling3_2[config], 4);
+	if (test_face(test3[q->config]))
+	    add_tri2(tiling3_2[q->config], 4);
 	else
-	    add_tri2(tiling3_1[config], 2);
+	    add_tri2(tiling3_1[q->config], 2);
 	break;
     case 4:
-	if (test_interior(test4[config]))
-	    add_tri2(tiling4_1[config], 2);
+	if (test_interior(test4[q->config]))
+	    add_tri2(tiling4_1[q->config], 2);
 	else
-	    add_tri2(tiling4_2[config], 6);
+	    add_tri2(tiling4_2[q->config], 6);
 	break;
     case 5:
-	add_tri2(tiling5[config], 3);
+	add_tri2(tiling5[q->config], 3);
 	break;
     case 6:
-	if (test_face(test6[config][0]))
-	    add_tri2(tiling6_2[config], 5);
+	if (test_face(test6[q->config][0]))
+	    add_tri2(tiling6_2[q->config], 5);
 	else {
-	    if (test_interior(test6[config][1]))
-		add_tri2(tiling6_1_1[config], 3);
+	    if (test_interior(test6[q->config][1]))
+		add_tri2(tiling6_1_1[q->config], 3);
 	    else {
 		v12 = add_c_vertex();
-		add_tri3(tiling6_1_2[config], 9, v12);
+		add_tri3(tiling6_1_2[q->config], 9, v12);
 	    }
 	}
 	break;
     case 7:
-	if (test_face(test7[config][0]))
-	    subconfig += 1;
-	if (test_face(test7[config][1]))
-	    subconfig += 2;
-	if (test_face(test7[config][2]))
-	    subconfig += 4;
-	switch (subconfig) {
+	if (test_face(test7[q->config][0]))
+	    q->subconfig += 1;
+	if (test_face(test7[q->config][1]))
+	    q->subconfig += 2;
+	if (test_face(test7[q->config][2]))
+	    q->subconfig += 4;
+	switch (q->subconfig) {
 	case 0:
-	    add_tri2(tiling7_1[config], 3);
+	    add_tri2(tiling7_1[q->config], 3);
 	    break;
 	case 1:
-	    add_tri2(tiling7_2[config][0], 5);
+	    add_tri2(tiling7_2[q->config][0], 5);
 	    break;
 	case 2:
-	    add_tri2(tiling7_2[config][1], 5);
+	    add_tri2(tiling7_2[q->config][1], 5);
 	    break;
 	case 3:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling7_3[config][0], 9, v12);
+	    add_tri3(tiling7_3[q->config][0], 9, v12);
 	    break;
 	case 4:
-	    add_tri2(tiling7_2[config][2], 5);
+	    add_tri2(tiling7_2[q->config][2], 5);
 	    break;
 	case 5:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling7_3[config][1], 9, v12);
+	    add_tri3(tiling7_3[q->config][1], 9, v12);
 	    break;
 	case 6:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling7_3[config][2], 9, v12);
+	    add_tri3(tiling7_3[q->config][2], 9, v12);
 	    break;
 	case 7:
-	    if (test_interior(test7[config][3]))
-		add_tri2(tiling7_4_2[config], 9);
+	    if (test_interior(test7[q->config][3]))
+		add_tri2(tiling7_4_2[q->config], 9);
 	    else
-		add_tri2(tiling7_4_1[config], 5);
+		add_tri2(tiling7_4_1[q->config], 5);
 	    break;
 	};
 	break;
     case 8:
-	add_tri2(tiling8[config], 2);
+	add_tri2(tiling8[q->config], 2);
 	break;
     case 9:
-	add_tri2(tiling9[config], 4);
+	add_tri2(tiling9[q->config], 4);
 	break;
     case 10:
-	if (test_face(test10[config][0])) {
-	    if (test_face(test10[config][1]))
-		add_tri2(tiling10_1_1_[config], 4);
+	if (test_face(test10[q->config][0])) {
+	    if (test_face(test10[q->config][1]))
+		add_tri2(tiling10_1_1_[q->config], 4);
 	    else {
 		v12 = add_c_vertex();
-		add_tri3(tiling10_2[config], 8, v12);
+		add_tri3(tiling10_2[q->config], 8, v12);
 	    }
 	} else {
-	    if (test_face(test10[config][1])) {
+	    if (test_face(test10[q->config][1])) {
 		v12 = add_c_vertex();
-		add_tri3(tiling10_2_[config], 8, v12);
+		add_tri3(tiling10_2_[q->config], 8, v12);
 	    } else {
-		if (test_interior(test10[config][2]))
-		    add_tri2(tiling10_1_1[config], 4);
+		if (test_interior(test10[q->config][2]))
+		    add_tri2(tiling10_1_1[q->config], 4);
 		else
-		    add_tri2(tiling10_1_2[config], 8);
+		    add_tri2(tiling10_1_2[q->config], 8);
 	    }
 	}
 	break;
     case 11:
-	add_tri2(tiling11[config], 4);
+	add_tri2(tiling11[q->config], 4);
 	break;
     case 12:
-	if (test_face(test12[config][0])) {
-	    if (test_face(test12[config][1]))
-		add_tri2(tiling12_1_1_[config], 4);
+	if (test_face(test12[q->config][0])) {
+	    if (test_face(test12[q->config][1]))
+		add_tri2(tiling12_1_1_[q->config], 4);
 	    else {
 		v12 = add_c_vertex();
-		add_tri3(tiling12_2[config], 8, v12);
+		add_tri3(tiling12_2[q->config], 8, v12);
 	    }
 	} else {
-	    if (test_face(test12[config][1])) {
+	    if (test_face(test12[q->config][1])) {
 		v12 = add_c_vertex();
-		add_tri3(tiling12_2_[config], 8, v12);
+		add_tri3(tiling12_2_[q->config], 8, v12);
 	    } else {
-		if (test_interior(test12[config][2]))
-		    add_tri2(tiling12_1_1[config], 4);
+		if (test_interior(test12[q->config][2]))
+		    add_tri2(tiling12_1_1[q->config], 4);
 		else
-		    add_tri2(tiling12_1_2[config], 8);
+		    add_tri2(tiling12_1_2[q->config], 8);
 	    }
 	}
 	break;
     case 13:
-	if (test_face(test13[config][0]))
-	    subconfig += 1;
-	if (test_face(test13[config][1]))
-	    subconfig += 2;
-	if (test_face(test13[config][2]))
-	    subconfig += 4;
-	if (test_face(test13[config][3]))
-	    subconfig += 8;
-	if (test_face(test13[config][4]))
-	    subconfig += 16;
-	if (test_face(test13[config][5]))
-	    subconfig += 32;
-	switch (subconfig13[subconfig]) {
+	if (test_face(test13[q->config][0]))
+	    q->subconfig += 1;
+	if (test_face(test13[q->config][1]))
+	    q->subconfig += 2;
+	if (test_face(test13[q->config][2]))
+	    q->subconfig += 4;
+	if (test_face(test13[q->config][3]))
+	    q->subconfig += 8;
+	if (test_face(test13[q->config][4]))
+	    q->subconfig += 16;
+	if (test_face(test13[q->config][5]))
+	    q->subconfig += 32;
+	switch (subconfig13[q->subconfig]) {
 	case 0:
-	    add_tri2(tiling13_1[config], 4);
+	    add_tri2(tiling13_1[q->config], 4);
 	    break;
 	case 1:
-	    add_tri2(tiling13_2[config][0], 6);
+	    add_tri2(tiling13_2[q->config][0], 6);
 	    break;
 	case 2:
-	    add_tri2(tiling13_2[config][1], 6);
+	    add_tri2(tiling13_2[q->config][1], 6);
 	    break;
 	case 3:
-	    add_tri2(tiling13_2[config][2], 6);
+	    add_tri2(tiling13_2[q->config][2], 6);
 	    break;
 	case 4:
-	    add_tri2(tiling13_2[config][3], 6);
+	    add_tri2(tiling13_2[q->config][3], 6);
 	    break;
 	case 5:
-	    add_tri2(tiling13_2[config][4], 6);
+	    add_tri2(tiling13_2[q->config][4], 6);
 	    break;
 	case 6:
-	    add_tri2(tiling13_2[config][5], 6);
+	    add_tri2(tiling13_2[q->config][5], 6);
 	    break;
 	case 7:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3[config][0], 10, v12);
+	    add_tri3(tiling13_3[q->config][0], 10, v12);
 	    break;
 	case 8:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3[config][1], 10, v12);
+	    add_tri3(tiling13_3[q->config][1], 10, v12);
 	    break;
 	case 9:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3[config][2], 10, v12);
+	    add_tri3(tiling13_3[q->config][2], 10, v12);
 	    break;
 	case 10:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3[config][3], 10, v12);
+	    add_tri3(tiling13_3[q->config][3], 10, v12);
 	    break;
 	case 11:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3[config][4], 10, v12);
+	    add_tri3(tiling13_3[q->config][4], 10, v12);
 	    break;
 	case 12:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3[config][5], 10, v12);
+	    add_tri3(tiling13_3[q->config][5], 10, v12);
 	    break;
 	case 13:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3[config][6], 10, v12);
+	    add_tri3(tiling13_3[q->config][6], 10, v12);
 	    break;
 	case 14:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3[config][7], 10, v12);
+	    add_tri3(tiling13_3[q->config][7], 10, v12);
 	    break;
 	case 15:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3[config][8], 10, v12);
+	    add_tri3(tiling13_3[q->config][8], 10, v12);
 	    break;
 	case 16:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3[config][9], 10, v12);
+	    add_tri3(tiling13_3[q->config][9], 10, v12);
 	    break;
 	case 17:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3[config][10], 10, v12);
+	    add_tri3(tiling13_3[q->config][10], 10, v12);
 	    break;
 	case 18:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3[config][11], 10, v12);
+	    add_tri3(tiling13_3[q->config][11], 10, v12);
 	    break;
 	case 19:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_4[config][0], 12, v12);
+	    add_tri3(tiling13_4[q->config][0], 12, v12);
 	    break;
 	case 20:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_4[config][1], 12, v12);
+	    add_tri3(tiling13_4[q->config][1], 12, v12);
 	    break;
 	case 21:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_4[config][2], 12, v12);
+	    add_tri3(tiling13_4[q->config][2], 12, v12);
 	    break;
 	case 22:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_4[config][3], 12, v12);
+	    add_tri3(tiling13_4[q->config][3], 12, v12);
 	    break;
 	case 23:
-	    subconfig = 0;
-	    if (test_interior(test13[config][6]))
-		add_tri2(tiling13_5_1[config][0], 6);
+	    q->subconfig = 0;
+	    if (test_interior(test13[q->config][6]))
+		add_tri2(tiling13_5_1[q->config][0], 6);
 	    else
-		add_tri2(tiling13_5_2[config][0], 10);
+		add_tri2(tiling13_5_2[q->config][0], 10);
 	    break;
 	case 24:
-	    subconfig = 1;
-	    if (test_interior(test13[config][6]))
-		add_tri2(tiling13_5_1[config][1], 6);
+	    q->subconfig = 1;
+	    if (test_interior(test13[q->config][6]))
+		add_tri2(tiling13_5_1[q->config][1], 6);
 	    else
-		add_tri2(tiling13_5_2[config][1], 10);
+		add_tri2(tiling13_5_2[q->config][1], 10);
 	    break;
 	case 25:
-	    subconfig = 2;
-	    if (test_interior(test13[config][6]))
-		add_tri2(tiling13_5_1[config][2], 6);
+	    q->subconfig = 2;
+	    if (test_interior(test13[q->config][6]))
+		add_tri2(tiling13_5_1[q->config][2], 6);
 	    else
-		add_tri2(tiling13_5_2[config][2], 10);
+		add_tri2(tiling13_5_2[q->config][2], 10);
 	    break;
 	case 26:
-	    subconfig = 3;
-	    if (test_interior(test13[config][6]))
-		add_tri2(tiling13_5_1[config][3], 6);
+	    q->subconfig = 3;
+	    if (test_interior(test13[q->config][6]))
+		add_tri2(tiling13_5_1[q->config][3], 6);
 	    else
-		add_tri2(tiling13_5_2[config][3], 10);
+		add_tri2(tiling13_5_2[q->config][3], 10);
 	    break;
 	case 27:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3_[config][0], 10, v12);
+	    add_tri3(tiling13_3_[q->config][0], 10, v12);
 	    break;
 	case 28:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3_[config][1], 10, v12);
+	    add_tri3(tiling13_3_[q->config][1], 10, v12);
 	    break;
 	case 29:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3_[config][2], 10, v12);
+	    add_tri3(tiling13_3_[q->config][2], 10, v12);
 	    break;
 	case 30:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3_[config][3], 10, v12);
+	    add_tri3(tiling13_3_[q->config][3], 10, v12);
 	    break;
 	case 31:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3_[config][4], 10, v12);
+	    add_tri3(tiling13_3_[q->config][4], 10, v12);
 	    break;
 	case 32:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3_[config][5], 10, v12);
+	    add_tri3(tiling13_3_[q->config][5], 10, v12);
 	    break;
 	case 33:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3_[config][6], 10, v12);
+	    add_tri3(tiling13_3_[q->config][6], 10, v12);
 	    break;
 	case 34:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3_[config][7], 10, v12);
+	    add_tri3(tiling13_3_[q->config][7], 10, v12);
 	    break;
 	case 35:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3_[config][8], 10, v12);
+	    add_tri3(tiling13_3_[q->config][8], 10, v12);
 	    break;
 	case 36:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3_[config][9], 10, v12);
+	    add_tri3(tiling13_3_[q->config][9], 10, v12);
 	    break;
 	case 37:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3_[config][10], 10, v12);
+	    add_tri3(tiling13_3_[q->config][10], 10, v12);
 	    break;
 	case 38:
 	    v12 = add_c_vertex();
-	    add_tri3(tiling13_3_[config][11], 10, v12);
+	    add_tri3(tiling13_3_[q->config][11], 10, v12);
 	    break;
 	case 39:
-	    add_tri2(tiling13_2_[config][0], 6);
+	    add_tri2(tiling13_2_[q->config][0], 6);
 	    break;
 	case 40:
-	    add_tri2(tiling13_2_[config][1], 6);
+	    add_tri2(tiling13_2_[q->config][1], 6);
 	    break;
 	case 41:
-	    add_tri2(tiling13_2_[config][2], 6);
+	    add_tri2(tiling13_2_[q->config][2], 6);
 	    break;
 	case 42:
-	    add_tri2(tiling13_2_[config][3], 6);
+	    add_tri2(tiling13_2_[q->config][3], 6);
 	    break;
 	case 43:
-	    add_tri2(tiling13_2_[config][4], 6);
+	    add_tri2(tiling13_2_[q->config][4], 6);
 	    break;
 	case 44:
-	    add_tri2(tiling13_2_[config][5], 6);
+	    add_tri2(tiling13_2_[q->config][5], 6);
 	    break;
 	case 45:
-	    add_tri2(tiling13_1_[config], 4);
+	    add_tri2(tiling13_1_[q->config], 4);
 	    break;
 	default:
 	    printf("Impossible case 13?\n");
 	}
 	break;
     case 14:
-	add_tri2(tiling14[config], 4);
+	add_tri2(tiling14[q->config], 4);
 	break;
     };
 }
@@ -781,6 +850,11 @@ add_tri3(const int *trig, int n, int v12)
     int tv[3];
     int t;
     int g, *o;
+    int I, J, K;
+
+    I = q->I;
+    J = q->J;
+    K = q->K;
 
     for (t = 0; t < 3 * n; t++) {
 	g = trig[t];
@@ -790,14 +864,14 @@ add_tri3(const int *trig, int n, int v12)
 	} else
 	    tv[t % 3] = v12;
 	if (tv[t % 3] == -1) {
-	    printf("Marching Cubes: invalid triangle %d\n", nt + 1);
+	    printf("Marching Cubes: invalid triangle %d\n", q->nt + 1);
 	}
 	if (t % 3 == 2) {
 	    realloc_tri();
-	    tri[3 * nt + X] = tv[0];
-	    tri[3 * nt + Y] = tv[1];
-	    tri[3 * nt + Z] = tv[2];
-	    nt++;
+	    q->tri[3 * q->nt + X] = tv[0];
+	    q->tri[3 * q->nt + Y] = tv[1];
+	    q->tri[3 * q->nt + Z] = tv[2];
+	    q->nt++;
 	}
     }
 }
@@ -805,20 +879,20 @@ add_tri3(const int *trig, int n, int v12)
 static void
 realloc_ver(void)
 {
-    if (nv >= Nv) {
-	Nv *= 2;
-	ver = realloc(ver, 3 * Nv * sizeof(*ver));
-	fprintf(stderr, "%d allocated ver\n", Nv);
+    if (q->nv >= q->Nv) {
+	q->Nv *= 2;
+	q->ver = realloc(q->ver, 3 * q->Nv * sizeof(*q->ver));
+	fprintf(stderr, "%d allocated ver\n", q->Nv);
     }
 }
 
 static void
 realloc_tri(void)
 {
-    if (nt >= Nt) {
-	Nt *= 2;
-	tri = realloc(tri, 3 * Nt * sizeof(*tri));
-	fprintf(stderr, "%d allocated tri\n", Nt);
+    if (q->nt >= q->Nt) {
+	q->Nt *= 2;
+	q->tri = realloc(q->tri, 3 * q->Nt * sizeof(*q->tri));
+	fprintf(stderr, "%d allocated tri\n", q->Nt);
     }
 }
 
@@ -827,6 +901,11 @@ add_c_vertex(void)
 {
     double u, rx, ry, rz;
     int g, m, *o;
+    int I, J, K;
+
+    I = q->I;
+    J = q->J;
+    K = q->K;
 
     u = 0;
     rx = ry = rz = 0;
@@ -835,32 +914,28 @@ add_c_vertex(void)
 	m = get_vert(o[3], I + o[X], J + o[Y], K + o[Z]);
 	if (m != -1) {
 	    u++;
-	    rx += ver[3 * m + X];
-	    ry += ver[3 * m + Y];
-	    rz += ver[3 * m + Z];
+	    rx += q->ver[3 * m + X];
+	    ry += q->ver[3 * m + Y];
+	    rz += q->ver[3 * m + Z];
 	}
     }
     realloc_ver();
-    ver[3 * nv + X] = rx / u;
-    ver[3 * nv + Y] = ry / u;
-    ver[3 * nv + Z] = rz / u;
-    return nv++;
+    q->ver[3 * q->nv + X] = rx / u;
+    q->ver[3 * q->nv + Y] = ry / u;
+    q->ver[3 * q->nv + Z] = rz / u;
+    return q->nv++;
 }
 
 void
-obj(void)
+obj(int nv, double *ver, int nt, int *tri)
 {
-    int t;
-    int v;
     int i;
 
-    t = nt;
-    v = nv;
     printf("# File type: ASCII OBJ\n");
-    for (i = 0; i < v; i++)
+    for (i = 0; i < nv; i++)
 	printf("v %.16g %.16g %.16g\n", ver[3 * i + X], ver[3 * i + Y],
 	       ver[3 * i + Z]);
-    for (i = 0; i < t; i++)
+    for (i = 0; i < nt; i++)
 	printf("f %d %d %d\n", tri[3 * i + X] + 1, tri[3 * i + Y] + 1,
 	       tri[3 * i + Z] + 1);
 }
