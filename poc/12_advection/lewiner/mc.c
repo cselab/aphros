@@ -64,9 +64,9 @@ double cube[8];
 double *data;
 int Case;
 int config;
-int i;
-int j;
-int k;
+int I;
+int J;
+int K;
 int N;
 int nt;
 int Nt;
@@ -134,7 +134,7 @@ MarchingCubes(int x0, int y0, int z0, double *data0)
 void
 run()
 {
-    int lut_entry, p, *o;
+    int lut_entry, p, *o, i, j, k;
 
     compute_intersection_points();
     for (k = 0; k < z - 1; k++)
@@ -147,6 +147,7 @@ run()
 		    if (cube[p] > 0)
 			lut_entry += 1 << p;
 		}
+		I = i; J = j; K = k;
 		Case = cases[lut_entry][0];
 		config = cases[lut_entry][1];
 		process_cube();
@@ -773,40 +774,40 @@ add_triangle3(const int *trig, int n, int v12)
     for (t = 0; t < 3 * n; t++) {
 	switch (trig[t]) {
 	case 0:
-	    tv[t % 3] = get_vert(X, i, j, k);
+	    tv[t % 3] = get_vert(X, I, J, K);
 	    break;
 	case 1:
-	    tv[t % 3] = get_vert(Y, i + 1, j, k);
+	    tv[t % 3] = get_vert(Y, I + 1, J, K);
 	    break;
 	case 2:
-	    tv[t % 3] = get_vert(X, i, j + 1, k);
+	    tv[t % 3] = get_vert(X, I, J + 1, K);
 	    break;
 	case 3:
-	    tv[t % 3] = get_vert(Y, i, j, k);
+	    tv[t % 3] = get_vert(Y, I, J, K);
 	    break;
 	case 4:
-	    tv[t % 3] = get_vert(X, i, j, k + 1);
+	    tv[t % 3] = get_vert(X, I, J, K + 1);
 	    break;
 	case 5:
-	    tv[t % 3] = get_vert(Y, i + 1, j, k + 1);
+	    tv[t % 3] = get_vert(Y, I + 1, J, K + 1);
 	    break;
 	case 6:
-	    tv[t % 3] = get_vert(X, i, j + 1, k + 1);
+	    tv[t % 3] = get_vert(X, I, J + 1, K + 1);
 	    break;
 	case 7:
-	    tv[t % 3] = get_vert(Y, i, j, k + 1);
+	    tv[t % 3] = get_vert(Y, I, J, K + 1);
 	    break;
 	case 8:
-	    tv[t % 3] = get_vert(Z, i, j, k);
+	    tv[t % 3] = get_vert(Z, I, J, K);
 	    break;
 	case 9:
-	    tv[t % 3] = get_vert(Z, i + 1, j, k);
+	    tv[t % 3] = get_vert(Z, I + 1, J, K);
 	    break;
 	case 10:
-	    tv[t % 3] = get_vert(Z, i + 1, j + 1, k);
+	    tv[t % 3] = get_vert(Z, I + 1, J + 1, K);
 	    break;
 	case 11:
-	    tv[t % 3] = get_vert(Z, i, j + 1, k);
+	    tv[t % 3] = get_vert(Z, I, J + 1, K);
 	    break;
 	case 12:
 	    tv[t % 3] = v12;
@@ -852,7 +853,7 @@ add_c_vertex()
     rx = ry = rz = 0;
     for (g = 0; g < SIZE(COff); g++) {
 	o = COff[g];
-	m = get_vert(o[3], i + o[X], j + o[Y], k + o[Z]);
+	m = get_vert(o[3], I + o[X], J + o[Y], K + o[Z]);
 	if (m != -1) {
 	    u++;
 	    rx += vertices[3 * m + X];
