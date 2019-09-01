@@ -6,6 +6,7 @@
 #include <float.h>
 #include "mc.h"
 #include "table.h"
+
 #define ALLOC_SIZE 65536
 #define SIZE(a) (int)(sizeof(a)/sizeof(*(a)))
 
@@ -20,7 +21,6 @@ enum { OOO,
     OII
 };
 static int CubeDir[] = { IOO, OIO, OOI };
-
 static int CubeOff[][3] = {
     { 0, 0, 0 },
     { 1, 0, 0 },
@@ -73,7 +73,7 @@ int Nt;
 int nv;
 int Nv;
 int subconfig;
-int *verts[3];
+int *verts;
 int x;
 int y;
 int z;
@@ -92,7 +92,7 @@ get_data(int i, int j, int k)
 static int
 get_vert(int D, int i, int j, int k)
 {
-    return verts[D][i + j * x + k * x * y];
+    return verts[3*(i + j * x + k * x * y) + D];
 }
 
 static void
@@ -108,7 +108,7 @@ set_vert(int D, int i, int j, int k)
     vertices[3 * nv + Y] = j;
     vertices[3 * nv + Z] = k;
     vertices[3 * nv + D] += u;
-    verts[D][i + j * x + k * x * y] = nv++;
+    verts[3*(i + j * x + k * x * y) + D] = nv++;
 }
 
 void
@@ -121,14 +121,9 @@ MarchingCubes(int x0, int y0, int z0, double *data0)
     z = z0;
     data = data0;
     N = x * y * z;
-    verts[X] = malloc(N * sizeof(*verts[X]));
-    verts[Y] = malloc(N * sizeof(*verts[Y]));
-    verts[Z] = malloc(N * sizeof(*verts[Z]));
-    for (i = 0; i < N; i++) {
-	verts[X][i] = -1;
-	verts[Y][i] = -1;
-	verts[Z][i] = -1;
-    }
+    verts = malloc(3 * N * sizeof(*verts));
+    for (i = 0; i < 3 * N; i++)
+	verts[i] = -1;
     nv = nt = 0;
     Nv = Nt = ALLOC_SIZE;
     vertices = malloc(N * sizeof(*vertices));
