@@ -1,6 +1,0 @@
-set -eu
-
-c="echo ../../sm_*$1.vtk"
-echo "$c"
-ll=`eval "$c"`
-../contvtk.py $ll || true

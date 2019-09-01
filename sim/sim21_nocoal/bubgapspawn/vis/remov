@@ -1,2 +1,0 @@
-(mkdir -p w && cd w && ../_run "*")
-r=30 r.pngmp4 w/a a.mp4
