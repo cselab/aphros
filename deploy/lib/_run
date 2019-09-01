@@ -10,7 +10,7 @@ e () {
   eval "$@"
 }
 
-l="vofi overlap vof h5"
+l="vofi overlap vof h5 march"
 for d in $l ; do
   echo Entering $d
   e "(cd $d && ./conf && make install)"
