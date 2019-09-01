@@ -2033,11 +2033,17 @@ void Hydro<M>::StepBubgen() {
       m.Comm(&fc_vf_);
     }
     if (sem("as-bubgen-apply")) {
-      auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
-      for (auto c : m.AllCells()) {
-        u[c] = std::max(u[c], fc_vf_[c]);
+      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+        auto& u = const_cast<FieldCell<Scal>&>(as->GetField(0));
+        auto& cl = const_cast<FieldCell<Scal>&>(as->GetColor(0));
+        for (auto c : m.AllCells()) {
+          if (fc_vf_[c] > u[c]) {
+            u[c] = fc_vf_[c];
+            cl[c] = 1.;
+          }
+        }
+        bgt_ = st_.t;
       }
-      bgt_ = st_.t;
     }
   }
 }
