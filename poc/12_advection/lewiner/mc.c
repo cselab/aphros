@@ -50,14 +50,14 @@ static int COff[][4] = {
 
 
 static double get_data(int i, int j, int k);
-static void process_cube();
+static void process_cube(void);
 static int test_face(int face);
 static int test_interior(int s);
-static void compute_intersection_points();
+static void compute_intersection_points(void);
 static void add_triangle3(const int *trig, int n, int v12);
 static void add_triangle2(const int *trig, int n);
-static void test_vertex_addition();
-static int add_c_vertex();
+static void test_vertex_addition(void);
+static int add_c_vertex(void);
 static int get_vert(int, int, int, int);
 static void set_vert(int, int, int, int);
 
@@ -155,11 +155,6 @@ set_vert(int D, int i, int j, int k)
     vertices[3 * nv + Z] = k;
     vertices[3 * nv + D] += u;
     verts[3 * (i + j * x + k * x * y) + D] = nv++;
-}
-
-static void
-bc(int i, int j, int k, double *cube)
-{
 }
 
 static void
