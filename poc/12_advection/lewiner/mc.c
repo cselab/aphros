@@ -63,6 +63,7 @@ static void set_vert(int, int, int, int);
 static int test_face(int face);
 static int test_interior(int s);
 static double wavg(double a, double b, double t);
+static double rpos(double a, double b);
 
 struct MarchLewiner {
     double cu[8];
@@ -94,10 +95,6 @@ march_lewiner_ini(int x0, int y0, int z0)
     struct MarchLewiner *q;
 
     q = malloc(sizeof(*q));
-    if (!q) {
-	fprintf(stderr, "can't alloc\n");
-	return NULL;
-    }
     q->x = x0;
     q->y = y0;
     q->z = z0;
@@ -179,6 +176,12 @@ wavg(double a, double b, double t)
 }
 
 static double
+rpos(double a, double b)
+{
+    return a / (a - b);
+}
+
+static double
 get_data(int i, int j, int k)
 {
     double ans;
@@ -213,7 +216,7 @@ set_vert(int D, int i, int j, int k)
 
     cu = q->cu;
     d = CuDir[D];
-    u = cu[OOO] / (cu[OOO] - cu[d]);
+    u = rpos(cu[OOO], cu[d]);
     realloc_ver();
     q->ver[3 * q->nv + X] = i;
     q->ver[3 * q->nv + Y] = j;
@@ -372,84 +375,84 @@ test_interior(int s)
 	}
 	switch (edge) {
 	case 0:
-	    t = cu[OOO] / (cu[OOO] - cu[IOO]);
+	    t = rpos(cu[OOO], cu[IOO]);
 	    At = 0;
 	    Bt = wavg(cu[OIO], cu[IIO], t);
 	    Ct = wavg(cu[OII], cu[III], t);
 	    Dt = wavg(cu[OOI], cu[IOI], t);
 	    break;
 	case 1:
-	    t = cu[IOO] / (cu[IOO] - cu[IIO]);
+	    t = rpos(cu[IOO], cu[IIO]);
 	    At = 0;
 	    Bt = wavg(cu[OOO], cu[OIO], t);
 	    Ct = wavg(cu[OOI], cu[OII], t);
 	    Dt = wavg(cu[IOI], cu[III], t);
 	    break;
 	case 2:
-	    t = cu[IIO] / (cu[IIO] - cu[OIO]);
+	    t = rpos(cu[IIO], cu[OIO]);
 	    At = 0;
 	    Bt = wavg(cu[IOO], cu[OOO], t);
 	    Ct = wavg(cu[IOI], cu[OOI], t);
 	    Dt = wavg(cu[III], cu[OII], t);
 	    break;
 	case 3:
-	    t = cu[OIO] / (cu[OIO] - cu[OOO]);
+	    t = rpos(cu[OIO], cu[OOO]);
 	    At = 0;
 	    Bt = wavg(cu[IIO], cu[IOO], t);
 	    Ct = wavg(cu[III], cu[IOI], t);
 	    Dt = wavg(cu[OII], cu[OOI], t);
 	    break;
 	case 4:
-	    t = cu[OOI] / (cu[OOI] - cu[IOI]);
+	    t = rpos(cu[OOI], cu[IOI]);
 	    At = 0;
 	    Bt = wavg(cu[OII], cu[III], t);
 	    Ct = wavg(cu[OIO], cu[IIO], t);
 	    Dt = wavg(cu[OOO], cu[IOO], t);
 	    break;
 	case 5:
-	    t = cu[IOI] / (cu[IOI] - cu[III]);
+	    t = rpos(cu[IOI], cu[III]);
 	    At = 0;
 	    Bt = wavg(cu[OOI], cu[OII], t);
 	    Ct = wavg(cu[OOO], cu[OIO], t);
 	    Dt = wavg(cu[IOO], cu[IIO], t);
 	    break;
 	case 6:
-	    t = cu[III] / (cu[III] - cu[OII]);
+	    t = rpos(cu[III], cu[OII]);
 	    At = 0;
 	    Bt = wavg(cu[IOI], cu[OOI], t);
 	    Ct = wavg(cu[IOO], cu[OOO], t);
 	    Dt = wavg(cu[IIO], cu[OIO], t);
 	    break;
 	case 7:
-	    t = cu[OII] / (cu[OII] - cu[OOI]);
+	    t = rpos(cu[OII], cu[OOI]);
 	    At = 0;
 	    Bt = wavg(cu[III], cu[IOI], t);
 	    Ct = wavg(cu[IIO], cu[IOO], t);
 	    Dt = wavg(cu[OIO], cu[OOO], t);
 	    break;
 	case 8:
-	    t = cu[OOO] / (cu[OOO] - cu[OOI]);
+	    t = rpos(cu[OOO], cu[OOI]);
 	    At = 0;
 	    Bt = wavg(cu[OIO], cu[OII], t);
 	    Ct = wavg(cu[IIO], cu[III], t);
 	    Dt = wavg(cu[IOO], cu[IOI], t);
 	    break;
 	case 9:
-	    t = cu[IOO] / (cu[IOO] - cu[IOI]);
+	    t = rpos(cu[IOO], cu[IOI]);
 	    At = 0;
 	    Bt = wavg(cu[OOO], cu[OOI], t);
 	    Ct = wavg(cu[OIO], cu[OII], t);
 	    Dt = wavg(cu[IIO], cu[III], t);
 	    break;
 	case 10:
-	    t = cu[IIO] / (cu[IIO] - cu[III]);
+	    t = rpos(cu[IIO], cu[III]);
 	    At = 0;
 	    Bt = wavg(cu[IOO], cu[IOI], t);
 	    Ct = wavg(cu[OOO], cu[OOI], t);
 	    Dt = wavg(cu[OIO], cu[OII], t);
 	    break;
 	case 11:
-	    t = cu[OIO] / (cu[OIO] - cu[OII]);
+	    t = rpos(cu[OIO], cu[OII]);
 	    At = 0;
 	    Bt = wavg(cu[IIO], cu[III], t);
 	    Ct = wavg(cu[IOO], cu[IOI], t);
