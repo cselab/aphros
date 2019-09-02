@@ -62,7 +62,9 @@ static void realloc_ver(void);
 static void set_vert(int, int, int, int);
 static int test_face(int face);
 static int test_interior(int s);
+/* weighed average */
 static double wavg(double a, double b, double t);
+/* relative position */
 static double rpos(double a, double b);
 
 struct MarchLewiner {
