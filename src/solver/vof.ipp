@@ -13,6 +13,7 @@
 #include "normal.h"
 #include "debug/isnan.h"
 #include "partstr.h"
+#include "util/vof.h"
 
 namespace solver {
 
@@ -243,7 +244,11 @@ struct Vof<M_>::Imp {
     bool dm = par->dmp->Try(owner_->GetTime(),
                             owner_->GetTimeStep());
     if (par->dumppoly && dm && sem.Nested("dumppoly")) {
-      DumpPoly();
+      uvof_.DumpPoly(
+          fcu_.iter_curr, fcn_, fca_, fci_,
+          GetDumpName("s", ".vtk", par->dmp->GetN()),
+          owner_->GetTime() + owner_->GetTimeStep(),
+          par->poly_intth, par->vtkbin, par->vtkmerge, m);
     }
     if (par->dumppart && dm && sem.Nested("part-dump")) {
       psm_->DumpParticles(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
@@ -502,6 +507,7 @@ struct Vof<M_>::Imp {
   std::unique_ptr<PartStrMesh<M>> psm_;
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
+  UVof<M> uvof_;
 };
 
 template <class M_>

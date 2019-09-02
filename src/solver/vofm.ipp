@@ -17,6 +17,7 @@
 #include "debug/isnan.h"
 #include "partstr.h"
 #include "multi.h"
+#include "util/vof.h"
 
 namespace solver {
 
@@ -670,7 +671,11 @@ struct Vofm<M_>::Imp {
     bool dm = par->dmp->Try(owner_->GetTime(),
                             owner_->GetTimeStep());
     if (par->dumppoly && dm && sem.Nested()) {
-      DumpPoly();
+      uvof_.DumpPoly(
+          layers, GetLayer(fcu_, Layers::iter_curr), fccl_, fcn_, fca_, fci_,
+          GetDumpName("s", ".vtk", par->dmp->GetN()),
+          owner_->GetTime() + owner_->GetTimeStep(),
+          par->poly_intth, par->vtkbin, par->vtkmerge, m);
     }
     if (par->dumppolymarch && dm && sem.Nested()) {
       DumpPolyMarch();
@@ -1221,6 +1226,7 @@ struct Vofm<M_>::Imp {
   FieldCell<Scal> fcfm_, fcfp_;
   GRange<size_t> layers;
   Scal recolor_tries_;
+  UVof<M> uvof_;
 };
 
 template <class M>
