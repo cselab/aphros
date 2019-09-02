@@ -2,11 +2,11 @@ add_library(solver solver.cpp)
 
 set(T "vofm")
 add_library(${T} vofm.cpp)
-target_link_libraries(${T} solver normal partstrmeshm march)
+target_link_libraries(${T} solver normal partstrmeshm march utilvof)
 
 set(T "vof")
 add_library(${T} vof.cpp)
-target_link_libraries(${T} solver normal partstrmesh)
+target_link_libraries(${T} solver normal partstrmesh utilvof)
 
 set(T "tvd")
 add_library(${T} tvd.cpp)
