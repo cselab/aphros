@@ -678,7 +678,11 @@ struct Vofm<M_>::Imp {
           par->poly_intth, par->vtkbin, par->vtkmerge, m);
     }
     if (par->dumppolymarch && dm && sem.Nested()) {
-      DumpPolyMarch();
+      uvof_.DumpPolyMarch(
+          layers, GetLayer(fcu_, Layers::iter_curr), fccl_, fcn_, fca_, fci_,
+          GetDumpName("sm", ".vtk", par->dmp->GetN()),
+          owner_->GetTime() + owner_->GetTimeStep(),
+          par->poly_intth, par->vtkbin, par->vtkmerge, par->vtkiso, m);
     }
     if (par->dumppart && dm && sem.Nested("part-dump")) {
       psm_->DumpParticles(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
