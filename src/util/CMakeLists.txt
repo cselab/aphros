@@ -7,7 +7,7 @@ target_link_libraries(${T} vars)
 
 set(T "utilvof")
 add_library(${T} vof.cpp)
-target_link_libraries(${T})
+target_link_libraries(${T} march)
 
 set(T "events")
 add_library(${T} events.cpp)
