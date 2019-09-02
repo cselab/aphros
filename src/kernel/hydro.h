@@ -1488,23 +1488,19 @@ void Hydro<M>::DumpFields() {
      fcdiv_ = GetDiv();
      m.Dump(&fcdiv_, "div");
     }
-    if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-      auto& n = fctmpv_;
-      n = as->GetNormal(0);
-      for (auto c : m.Cells()) {
-        auto& v = n[c];
-        auto i = v.abs().argmax();
-        if (v[i] < 0) {
-          v = -v;
-        }
-      }
-      if (dl.count("nx")) m.Dump(&n, 0, "nx");
-      if (dl.count("ny")) m.Dump(&n, 1, "ny");
-      if (dl.count("nz")) m.Dump(&n, 2, "nz");
+    if (auto as = dynamic_cast<ASV*>(as_.get())) {
+      if (dl.count("nx")) m.Dump(&as->GetNormal(), 0, "nx");
+      if (dl.count("ny")) m.Dump(&as->GetNormal(), 1, "ny");
+      if (dl.count("nz")) m.Dump(&as->GetNormal(), 2, "nz");
       auto& h = as->GetHeight();
       if (dl.count("hx")) m.Dump(&h, 0, "hx");
       if (dl.count("hy")) m.Dump(&h, 1, "hy");
       if (dl.count("hz")) m.Dump(&h, 2, "hz");
+    }
+    if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+      if (dl.count("nx")) m.Dump(&as->GetNormal(0), 0, "nx");
+      if (dl.count("ny")) m.Dump(&as->GetNormal(0), 1, "ny");
+      if (dl.count("nz")) m.Dump(&as->GetNormal(0), 2, "nz");
 
       if (dl.count("vf0")) m.Dump(&as->GetField(0), "vf0");
       if (dl.count("vf1")) m.Dump(&as->GetField(1), "vf1");
@@ -1516,35 +1512,7 @@ void Hydro<M>::DumpFields() {
       if (dl.count("cl1")) m.Dump(&as->GetColor(1), "cl1");
       if (dl.count("cl2")) m.Dump(&as->GetColor(2), "cl2");
       if (dl.count("cl3")) m.Dump(&as->GetColor(3), "cl3");
-
-      auto B2S = [this](FieldCell<bool> fcb) -> FieldCell<Scal> {
-        FieldCell<Scal> r(m);
-        for (auto c : m.Cells()) {
-          r[c] = (fcb[c] ? 1. : 0.);
-        }
-        return r;
-      };
-
-      if (dl.count("mask0")) { 
-        fctmp_ = B2S(as->GetMask(0));
-        m.Dump(&fctmp_, "mask0");
-      }
-      if (dl.count("mask1")) { 
-        fctmp2_ = B2S(as->GetMask(1));
-        m.Dump(&fctmp2_, "mask1");
-      }
-
-      if (dl.count("dep0")) { 
-        fctmp3_ = B2S(as->GetDepend(0));
-        m.Dump(&fctmp3_, "dep0");
-      }
-      if (dl.count("dep1")) { 
-        fctmp4_ = B2S(as->GetDepend(1));
-        m.Dump(&fctmp4_, "dep1");
-      }
     }
-    if (mul_ && dl.count("mul")) m.Dump(&mul_->GetMask(), "mul");
-    if (mul_ && dl.count("mul")) m.Dump(&mul_->GetMask2(), "mul2");
   }
 }
 
