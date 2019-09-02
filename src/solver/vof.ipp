@@ -8,7 +8,6 @@
 
 #include "vof.h"
 #include "geom/block.h"
-#include "dump/vtk.h"
 #include "reconst.h"
 #include "normal.h"
 #include "debug/isnan.h"
@@ -95,42 +94,6 @@ struct Vof<M_>::Imp {
     }
   }
 
-  // Dump cut polygons
-  void DumpPoly() {
-    auto sem = m.GetSem("dumppoly");
-    if (sem("local")) {
-      dl_.clear();
-      dlc_.clear();
-      auto h = m.GetCellSize();
-      for (auto c : m.AllCells()) {
-        Scal u = fcu_.iter_curr[c];
-        if (IsNan(u) || IsNan(fcn_[c]) || IsNan(fca_[c])) {
-          continue;
-        }
-        const Scal th = par->poly_intth;
-        if (fci_[c] && u > th && u < 1. - th) {
-          dl_.push_back(R::GetCutPoly(m.GetCenter(c), fcn_[c], fca_[c], h));
-          dlc_.push_back(m.GetHash(c));
-        }
-      }
-      using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&dl_));
-      using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dlc_));
-    }
-    if (sem("write")) {
-      if (m.IsRoot()) {
-        std::string fn = GetDumpName("s", ".vtk", par->dmp->GetN());
-        std::cout << std::fixed << std::setprecision(8)
-            << "dump" 
-            << " t=" << owner_->GetTime() + owner_->GetTimeStep()
-            << " to " << fn << std::endl;
-        WriteVtkPoly(fn, dl_, {&dlc_}, {"c"}, 
-            "Interface from PLIC", true,
-            par->vtkbin, par->vtkmerge);
-      }
-    }
-  }
   // fcu: volume fraction [a]
   // fcud2: volume fraction difference double (xpp-xmm, ypp-ymm, zpp-zmm) [i]
   void CalcDiff2(const FieldCell<Scal>& fcu, FieldCell<Vect>& fcud2) {
@@ -500,9 +463,6 @@ struct Vof<M_>::Imp {
   FieldCell<Vect> fcud6_; // volume fraction difference 6th
   FieldCell<Vect> fch_; // curvature from height functions
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
-
-  std::vector<std::vector<Vect>> dl_; // dump poly
-  std::vector<Scal> dlc_; // dump poly
 
   std::unique_ptr<PartStrMesh<M>> psm_;
   // tmp for MakeIteration, volume flux copied to cells
