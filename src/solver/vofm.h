@@ -102,23 +102,13 @@ class Vofm : public AdvectionSolver<M_> {
   const FieldCell<Vect>& GetNormal(size_t i) const;
   // Number of layers
   size_t GetNumLayers() const;
-  // Layer mask
-  const FieldCell<bool>& GetMask(size_t i) const;
-  // Dependent cells
-  const FieldCell<bool>& GetDepend(size_t i) const;
   // Color
   const FieldCell<Scal>& GetColor(size_t i) const;
   const FieldCell<Scal>& GetColor() const;
-  // Height function
-  const FieldCell<Vect>& GetHeight() const;
   // Default curvature 
   const FieldCell<Scal>& GetCurv() const override;
   // Default curvature 
   const FieldCell<Scal>& GetCurv(size_t i) const;
-  // Curvature from height functions
-  const FieldCell<Scal>& GetCurvH() const;
-  // Curvature from particles
-  const FieldCell<Scal>& GetCurvP() const;
 
  private:
   struct Imp; // implementation
