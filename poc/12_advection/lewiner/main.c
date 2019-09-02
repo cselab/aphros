@@ -50,9 +50,10 @@ main()
     tx = nx / (2 * sx);
     ty = ny / (2 * sy) + 1.5;
     tz = nz / (2 * sz);
-    for (m = k = 0; k < nz; k++)
+    m = 0;
+    for (i = 0; i < nx; i++)
 	for (j = 0; j < ny; j++)
-	    for (i = 0; i < nx; i++) {
+	    for (k = 0; k < nz; k++) {
 		x = i / sx - tx;
 		y = j / sy - ty;
 		z = k / sz - tz;

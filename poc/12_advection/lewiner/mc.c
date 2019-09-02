@@ -182,11 +182,11 @@ static double
 get_data(int i, int j, int k)
 {
     double ans;
-    int x, y;
+    int y, z;
 
-    x = q->x;
     y = q->y;
-    ans = q->data[i + j * x + k * x * y];
+    z = q->z;
+    ans = q->data[i * y * z + j * y + k];
     return fabs(ans) < FLT_EPSILON ? FLT_EPSILON : ans;
 }
 
