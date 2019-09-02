@@ -7,11 +7,8 @@
 #include <limits>
 #include <set>
 
-#include <march.h>
-
 #include "vofm.h"
 #include "geom/block.h"
-#include "dump/vtk.h"
 #include "reconst.h"
 #include "normal.h"
 #include "debug/isnan.h"
@@ -268,160 +265,6 @@ struct Vofm<M_>::Imp {
           break;
         default:
           throw std::runtime_error("Update(): Unknown part_attrforce");
-      }
-    }
-  }
-
-  // Dump cut polygons
-  void DumpPoly() {
-    auto sem = m.GetSem("dumppoly");
-    if (sem("local")) {
-      dl_.clear();
-      dlc_.clear();
-      dll_.clear();
-      dlcl_.clear();
-      auto h = m.GetCellSize();
-      for (auto i : layers) {
-        auto& fcn = fcn_[i];
-        auto& fca = fca_[i];
-        auto& fci = fci_[i];
-        auto& fccl = fccl_[i];
-        auto& fcu = fcu_[i].iter_curr;
-        for (auto c : m.Cells()) {
-          Scal u = fcu[c];
-          if (IsNan(u) || IsNan(fcn[c]) || IsNan(fca[c])) {
-            continue;
-          }
-          const Scal th = par->poly_intth;
-          if (fci[c] && u > th && u < 1. - th) {
-            dl_.push_back(R::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h));
-            dlc_.push_back(m.GetHash(c));
-            dll_.push_back(i);
-            dlcl_.push_back(fccl[c]);
-          }
-        }
-      }
-      using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&dl_));
-      using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dlc_));
-      m.Reduce(std::make_shared<TS>(&dll_));
-      m.Reduce(std::make_shared<TS>(&dlcl_));
-    }
-    if (sem("write")) {
-      if (m.IsRoot()) {
-        std::string fn = GetDumpName("s", ".vtk", par->dmp->GetN());
-        std::cout << std::fixed << std::setprecision(8)
-            << "dump" 
-            << " t=" << owner_->GetTime() + owner_->GetTimeStep()
-            << " to " << fn << std::endl;
-        WriteVtkPoly(fn, dl_, {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"}, 
-            "Interface from PLIC", true,
-            par->vtkbin, par->vtkmerge);
-      }
-    }
-  }
-  // uu: volume fraction in nodes
-  // xc: cell center
-  // h: cell size
-  std::vector<std::vector<Vect>> GetMarchTriangles(
-      const std::array<Scal, 8>& uu, const Vect& xc, const Vect& h) {
-    std::array<double, 8> uuz = uu;
-    for (auto& u : uuz) {
-      u -= par->vtkiso;
-    }
-    int n;
-    std::array<double, 45> tri;
-    march_cube(uuz.data(), &n, tri.data());
-    assert(n * 3 * 3 <= tri.size());
-    std::vector<std::vector<Vect>> vv;
-
-    vv.resize(n);
-    size_t i = 0;
-    for (auto& v : vv) {
-      v.resize(3);
-      for (auto& x : v) {
-        x[0] = tri[i++] - 0.5;
-        x[1] = tri[i++] - 0.5;
-        x[2] = tri[i++] - 0.5;
-        x = xc + h * x;
-      }
-    }
-    return vv;
-  }
-  void DumpPolyMarch() {
-    auto sem = m.GetSem("dumppolymarch");
-    if (sem("local")) {
-      dl_.clear();
-      dlc_.clear();
-      dll_.clear();
-      dlcl_.clear();
-      // visited cells without color
-      std::set<std::pair<size_t, Scal>> done;
-      auto h = m.GetCellSize();
-      auto pfcu = GetLayer(fcu_, Layers::iter_curr);
-      FieldCell<bool> in(m, false); // inner cell
-      for (auto c : m.Cells()) {
-        in[c] = true;
-      }
-      for (auto i : layers) {
-        auto& fccl = fccl_[i];
-        for (auto c : m.Cells()) {
-          if (fccl[c] != kClNone) {
-            const size_t sw = 1; // stencil halfwidth
-            const size_t sn = sw * 2 + 1;
-            auto& bc = m.GetIndexCells();
-            using MIdx = typename M::MIdx;
-            GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sn));
-            MIdx w = bc.GetMIdx(c);
-            for (MIdx wo : bo) {
-              IdxCell cn = bc.GetIdx(w + wo);
-              if (!in[cn]) continue;
-              bool q = false;
-              for (auto j : layers) {
-                if (fccl_[j][cn] == fccl[c]) {
-                  q = true;
-                  break;
-                }
-              }
-              // Add triangles from c or neighhbor without color
-              if (c == cn || !q) {
-                auto e = std::make_pair(size_t(cn), fccl[c]);
-                if (!q && done.count(e)) {
-                  continue;
-                }
-                done.insert(e);
-                auto uu = GetStencil<1>(pfcu, cn, fccl[c]);
-                auto uun = ToNodes<1>(uu);
-                auto vv = GetMarchTriangles(uun, m.GetCenter(cn), h);
-                for (auto& v : vv) {
-                  dl_.push_back(v);
-                  dlc_.push_back(m.GetHash(cn));
-                  dll_.push_back(i);
-                  dlcl_.push_back(fccl[c]);
-                }
-              }
-            }
-          }
-        }
-      }
-      using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&dl_));
-      using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dlc_));
-      m.Reduce(std::make_shared<TS>(&dll_));
-      m.Reduce(std::make_shared<TS>(&dlcl_));
-    }
-    if (sem("write")) {
-      if (m.IsRoot()) {
-        std::string fn = GetDumpName("sm", ".vtk", par->dmp->GetN());
-        std::cout << std::fixed << std::setprecision(8)
-            << "dump" 
-            << " t=" << owner_->GetTime() + owner_->GetTimeStep()
-            << " to " << fn << std::endl;
-        WriteVtkPoly(fn, dl_, {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"}, 
-            "Interface from marching cubes", true, 
-            par->vtkbin, par->vtkmerge);
       }
     }
   }
@@ -1219,11 +1062,6 @@ struct Vofm<M_>::Imp {
   FieldCell<Vect> fcud6_; // volume fraction difference 6th
   FieldCell<Vect> fch_; // curvature from height functions
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
-
-  std::vector<std::vector<Vect>> dl_; // dump poly
-  std::vector<Scal> dlc_; // dump poly cell
-  std::vector<Scal> dll_; // dump poly layer
-  std::vector<Scal> dlcl_; // dump poly color
 
   std::unique_ptr<PSM> psm_;
   // tmp for MakeIteration, volume flux copied to cells
