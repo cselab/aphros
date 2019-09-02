@@ -50,16 +50,16 @@ static int COff[][4] = {
 };
 
 static int add_c_vertex(void);
-static void add_tri2(const int *trig, int n);
-static void add_tri3(const int *trig, int n, int v12);
+static int add_tri2(const int *trig, int n);
+static int add_tri3(const int *trig, int n, int v12);
 static int apply(void);
 static double get_data(int i, int j, int k);
 static int get_vert(int, int, int, int);
-static void intersection(void);
-static void process_cu(void);
-static void realloc_tri(void);
-static void realloc_ver(void);
-static void set_vert(int, int, int, int);
+static int intersection(void);
+static int process_cu(void);
+static int realloc_tri(void);
+static int realloc_ver(void);
+static int set_vert(int, int, int, int);
 static int test_face(int face);
 static int test_interior(int s);
 /* weighed average */
@@ -205,7 +205,7 @@ get_vert(int D, int i, int j, int k)
     return q->verts[3 * (i + j * x + k * x * y) + D];
 }
 
-static void
+static int
 set_vert(int D, int i, int j, int k)
 {
     double u;
@@ -227,7 +227,7 @@ set_vert(int D, int i, int j, int k)
     q->verts[3 * (i + j * x + k * x * y) + D] = q->nv++;
 }
 
-static void
+static int
 intersection(void)
 {
     int i, j, k;
@@ -271,6 +271,7 @@ intersection(void)
 			set_vert(Z, i, j, k);
 		}
 	    }
+    return 0;
 }
 
 static int
@@ -506,7 +507,7 @@ test_interior(int s)
     return s < 0;
 }
 
-static void
+static int
 process_cu(void)
 {
     int v12 = -1;
@@ -843,13 +844,13 @@ process_cu(void)
     };
 }
 
-static void
+static int
 add_tri2(const int *trig, int n)
 {
-    add_tri3(trig, n, -1);
+    return add_tri3(trig, n, -1);
 }
 
-static void
+static int
 add_tri3(const int *trig, int n, int v12)
 {
     int tv[3];
@@ -879,9 +880,10 @@ add_tri3(const int *trig, int n, int v12)
 	    q->nt++;
 	}
     }
+    return 0;
 }
 
-static void
+static int
 realloc_ver(void)
 {
     if (q->nv >= q->Nv) {
@@ -891,7 +893,7 @@ realloc_ver(void)
     }
 }
 
-static void
+static int
 realloc_tri(void)
 {
     if (q->nt >= q->Nt) {
