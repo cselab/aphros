@@ -37,7 +37,8 @@ template <class T>
 class Multi {
  public:
   Multi() = default;
-  Multi(size_t n) : d_(n) {}
+  explicit Multi(size_t n) : d_(n) {}
+  Multi(T u) : d_({u}) {}
   // cast to pointer
   template <class U>
   Multi(Multi<U>& u) : d_(u.size()) {
