@@ -203,11 +203,6 @@ void Advection<M>::Dump(Sem& sem) {
         m.Dump(&n, 0, "nx");
         m.Dump(&n, 1, "ny");
         m.Dump(&n, 2, "nz");
-
-        auto& kh = const_cast<FieldCell<Scal>&>(as->GetCurvH());
-        m.Dump(&kh, "kh");
-        auto& kp = const_cast<FieldCell<Scal>&>(as->GetCurvP());
-        m.Dump(&kp, "kp");
       }
 
       if (IsRoot()) {
