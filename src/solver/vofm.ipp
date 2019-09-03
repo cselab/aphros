@@ -157,24 +157,10 @@ struct Vofm<M_>::Imp {
 
         const int sw = 1; // stencil halfwidth
         using MIdx = typename M::MIdx;
-        auto& bc = m.GetIndexCells();
         GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1));
         for (auto c : m.Cells()) {
           if (fci[c]) {
-            MIdx w = bc.GetMIdx(c);
-            std::array<Scal, 27> uu;
-            size_t k = 0;
-            for (MIdx wo : bo) {
-              IdxCell cn = bc.GetIdx(w + wo);
-              Scal u = 0;
-              for (auto j : layers) {
-                if (fccl_[j][cn] == fccl[c]) {
-                  u = (*uc[j])[cn];
-                  break;
-                }
-              }
-              uu[k++] = u;
-            }
+            auto uu = GetStencil<M, 1>{}(layers, uc, fccl_, c, fccl[c], m);
             fcn[c] = UNormal<M>::GetNormalYoungs(uu);
           }
         }

@@ -103,34 +103,6 @@ struct UVof<M_>::Imp {
     }
     return vv;
   }
-  // Returns values over stencil centered at cell c with color cl.
-  // Values for neighbors without color cl are filled with 0.
-  // sw: stencil half-width
-  template <size_t sw, size_t sn=sw*2+1>
-  std::array<Scal, sn*sn*sn> GetStencil(
-      const GRange<size_t>& layers,
-      const Multi<const FieldCell<Scal>*>& fc,
-      const Multi<const FieldCell<Scal>*>& fccl,
-      IdxCell c, Scal cl, M& m) {
-    using MIdx = typename M::MIdx;
-    auto& bc = m.GetIndexCells();
-    GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sn));
-    MIdx w = bc.GetMIdx(c);
-    std::array<Scal, sn*sn*sn> uu;
-    size_t k = 0;
-    for (MIdx wo : bo) {
-      IdxCell cn = bc.GetIdx(w + wo);
-      Scal u = 0;
-      for (auto j : layers) {
-        if ((*fccl[j])[cn] == cl) {
-          u = (*fc[j])[cn];
-          break;
-        }
-      }
-      uu[k++] = u;
-    }
-    return uu;
-  }
   // Interpolates from cells to nodes.
   // stencil half-width
   template <int sw, int sn=sw*2+1, int snn=sw*2>
@@ -203,7 +175,7 @@ struct UVof<M_>::Imp {
                   continue;
                 }
                 done.insert(e);
-                auto uu = GetStencil<1>(layers, fcu, fccl, cn, cl, m);
+                auto uu = GetStencil<M, 1>{}(layers, fcu, fccl, cn, cl, m);
                 auto uun = ToNodes<1>(uu);
                 auto vv = GetMarchTriangles(uun, m.GetCenter(cn), h, iso);
                 for (auto& v : vv) {
