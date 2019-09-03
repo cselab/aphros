@@ -410,7 +410,8 @@ struct UNormal<M_>::Imp {
     gpp = g(1,1);
   }
   template <class Q>
-  static void H(Q& q, Vect& pn, size_t edim, const Vect& h, bool ow) {
+  // TODO: check what optimizer generates with lambdas
+  static void H(Q& q, Vect& pn, size_t edim, bool ow) {
     auto qx = [&q](int dx, int dy, int dz) {
       return q(dz, dx, dy);
     };
@@ -450,12 +451,9 @@ struct UNormal<M_>::Imp {
         }
       }
 
-      Scal ln = h[dn];
-      Scal lx = h[dx];
-      Scal ly = h[dy];
       // first derivative (slope)
-      Scal gx = (gxp - gxm) * ln / (2. * lx);  // centered
-      Scal gy = (gyp - gym) * ln / (2. * ly);
+      Scal gx = (gxp - gxm) * 0.5;  // centered
+      Scal gy = (gyp - gym) * 0.5;
       // outer normal
       Vect n;
       n[dx] = -gx;
@@ -497,8 +495,6 @@ struct UNormal<M_>::Imp {
 
     fcn.Reinit(m);
 
-    const Vect h = m.GetCellSize();
-
     const Scal* pu = fcu.data();
     Vect* pn = fcn.data();
     const bool* pi = fci.data();
@@ -513,7 +509,7 @@ struct UNormal<M_>::Imp {
             size_t ii = i + dx * fx + dy * fy + dz * fz;
             return pu[ii];
           };
-          H(q, pn[i], edim, h, ow);
+          H(q, pn[i], edim, ow);
         }
       }
     }
@@ -562,7 +558,17 @@ struct UNormal<M_>::Imp {
     n /= -n.norm1();
     return n;
   }
+  // u: volume fraction, array of size 3x3x3
+  // pn: guess for normal, updated if heights give steeper estimate
+  static void GetNormalHeight(const std::array<Scal, 27>& u, Vect& n) {
+    auto q = [&u](int dx, int dy, int dz) {
+      const int w = 3;  // stencil width
+      int i = (dx + 1) + (dy + 1) * w + (dz + 1) * w * w;
+      return u[i];
+    };
 
+    H(q, n, 3, false);
+  }
 };
 
 template <class M_>
@@ -620,6 +626,11 @@ void UNormal<M_>::CalcNormalYoung(
 template <class M_>
 auto UNormal<M_>::GetNormalYoungs(const std::array<Scal, 27>& u) -> Vect {
   return Imp::GetNormalYoungs(u);
+}
+
+template <class M_>
+void UNormal<M_>::GetNormalHeight(const std::array<Scal, 27>& u, Vect& n) {
+  return Imp::GetNormalHeight(u, n);
 }
 
 } // namespace solver
