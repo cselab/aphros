@@ -162,6 +162,7 @@ struct Vofm<M_>::Imp {
           if (fci[c]) {
             auto uu = GetStencil<M, 1>{}(layers, uc, fccl_, c, fccl[c], m);
             fcn[c] = UNormal<M>::GetNormalYoungs(uu);
+            UNormal<M>::GetNormalHeight(uu, fcn[c]);
           }
         }
       }

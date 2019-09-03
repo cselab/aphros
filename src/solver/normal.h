@@ -74,6 +74,9 @@ class UNormal {
 
   // u: volume fraction, array of size 3x3x3
   static Vect GetNormalYoungs(const std::array<Scal, 27>& u);
+  // u: volume fraction, array of size 3x3x3
+  // n: guess for normal, updated if heights give steeper estimate
+  static void GetNormalHeight(const std::array<Scal, 27>& u, Vect& n);
 
  public:
   struct Imp; // implementation
