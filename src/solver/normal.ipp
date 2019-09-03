@@ -409,6 +409,71 @@ struct UNormal<M_>::Imp {
     gpm = g(1,-1);
     gpp = g(1,1);
   }
+  template <class Q>
+  static void H(Q& q, Vect& pn, size_t edim, const Vect& h, bool ow) {
+    auto qx = [&q](int dx, int dy, int dz) {
+      return q(dz, dx, dy);
+    };
+    auto qy = [&q](int dx, int dy, int dz) {
+      return q(dy, dz, dx);
+    };
+    auto qz = [&q](int dx, int dy, int dz) {
+      return q(dx, dy, dz);
+    };
+
+    Vect bn(0); // best normal
+    size_t bd = 0;  // best direction
+    std::vector<size_t> dd; // direction of plane normal
+    if (edim == 2) {
+      dd = {0, 1};
+    } else {
+      dd = {0, 1, 2};
+    }
+    for (size_t dn : dd) {
+      size_t dx = (dn + 1) % dim;
+      size_t dy = (dn + 2) % dim;
+
+      // height function
+      Scal gxm, gxp, gym, gyp;
+      Scal gc, gmm, gmp, gpm, gpp;
+      // sign: +1 if u increases in dn
+      Scal sg;
+      switch (dn) {
+        case 0: { // dx:1 , dy:2
+          F(qx, gxm, gxp, gym, gyp, sg, gc, gmm, gmp, gpm, gpp); break;
+        }
+        case 1: { // dx:2 , dy:0
+          F(qy, gxm, gxp, gym, gyp, sg, gc, gmm, gmp, gpm, gpp); break;
+        }
+        default: { // dx:0 , dy:1
+          F(qz, gxm, gxp, gym, gyp, sg, gc, gmm, gmp, gpm, gpp); break;
+        }
+      }
+
+      Scal ln = h[dn];
+      Scal lx = h[dx];
+      Scal ly = h[dy];
+      // first derivative (slope)
+      Scal gx = (gxp - gxm) * ln / (2. * lx);  // centered
+      Scal gy = (gyp - gym) * ln / (2. * ly);
+      // outer normal
+      Vect n;
+      n[dx] = -gx;
+      n[dy] = -gy;
+      n[dn] = -sg;
+      n /= n.norm1();
+      // select best with minimal slope
+      if (std::abs(n[dn]) > std::abs(bn[bd])) {
+        bn = n;
+        bd = dn;
+      }
+    }
+
+    // update if ow=1 or gives steeper profile in plane dn
+    if (ow || std::abs(bn[bd]) < std::abs(pn[bd])) {
+      pn = bn;
+    }
+  }
   // CalcNormalHeight: optimized implementation
   static void CalcNormalHeight1(
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
@@ -448,68 +513,7 @@ struct UNormal<M_>::Imp {
             size_t ii = i + dx * fx + dy * fy + dz * fz;
             return pu[ii];
           };
-          auto qx = [&q](int dx, int dy, int dz) {
-            return q(dz, dx, dy);
-          };
-          auto qy = [&q](int dx, int dy, int dz) {
-            return q(dy, dz, dx);
-          };
-          auto qz = [&q](int dx, int dy, int dz) {
-            return q(dx, dy, dz);
-          };
-
-          Vect bn(0); // best normal
-          size_t bd = 0;  // best direction
-          std::vector<size_t> dd; // direction of plane normal
-          if (edim == 2) {
-            dd = {0, 1};
-          } else {
-            dd = {0, 1, 2};
-          }
-          for (size_t dn : dd) {
-            size_t dx = (dn + 1) % dim;
-            size_t dy = (dn + 2) % dim;
-
-            // height function
-            Scal gxm, gxp, gym, gyp;
-            Scal gc, gmm, gmp, gpm, gpp;
-            // sign: +1 if u increases in dn
-            Scal sg;
-            switch (dn) {
-              case 0: { // dx:1 , dy:2
-                F(qx, gxm, gxp, gym, gyp, sg, gc, gmm, gmp, gpm, gpp); break;
-              }
-              case 1: { // dx:2 , dy:0
-                F(qy, gxm, gxp, gym, gyp, sg, gc, gmm, gmp, gpm, gpp); break;
-              }
-              default: { // dx:0 , dy:1
-                F(qz, gxm, gxp, gym, gyp, sg, gc, gmm, gmp, gpm, gpp); break;
-              }
-            }
-
-            Scal ln = h[dn];
-            Scal lx = h[dx];
-            Scal ly = h[dy];
-            // first derivative (slope)
-            Scal gx = (gxp - gxm) * ln / (2. * lx);  // centered
-            Scal gy = (gyp - gym) * ln / (2. * ly);
-            // outer normal
-            Vect n;
-            n[dx] = -gx;
-            n[dy] = -gy;
-            n[dn] = -sg;
-            n /= n.norm1();
-            // select best with minimal slope
-            if (std::abs(n[dn]) > std::abs(bn[bd])) {
-              bn = n;
-              bd = dn;
-            }
-          }
-
-          // update if ow=1 or gives steeper profile in plane dn
-          if (ow || std::abs(bn[bd]) < std::abs(pn[i][bd])) {
-            pn[i] = bn;
-          }
+          H(q, pn[i], edim, h, ow);
         }
       }
     }
