@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "solver/solver.h"
+#include "geom/range.h"
 
 namespace solver {
 
@@ -107,6 +108,41 @@ class Multi {
 
  private:
   std::vector<T> d_;
+};
+
+
+// Returns values over stencil centered at cell c with color cl.
+// Values for neighbors without color cl are filled with 0.
+// sw: stencil half-width
+template <class M, size_t sw>
+struct GetStencil {
+  static constexpr size_t sn = sw * 2 + 1;
+  using Scal = typename M::Scal;
+
+  std::array<typename M::Scal, sn*sn*sn> operator()(
+      const GRange<size_t>& layers,
+      const Multi<const FieldCell<typename M::Scal>*>& fc,
+      const Multi<const FieldCell<typename M::Scal>*>& fccl,
+      IdxCell c, typename M::Scal cl, const M& m) {
+    using MIdx = typename M::MIdx;
+    auto& bc = m.GetIndexCells();
+    GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn));
+    MIdx w = bc.GetMIdx(c);
+    std::array<typename M::Scal, sn*sn*sn> uu;
+    size_t k = 0;
+    for (MIdx wo : bo) {
+      IdxCell cn = bc.GetIdx(w + wo);
+      typename M::Scal u = 0;
+      for (auto j : layers) {
+        if ((*fccl[j])[cn] == cl) {
+          u = (*fc[j])[cn];
+          break;
+        }
+      }
+      uu[k++] = u;
+    }
+    return uu;
+  }
 };
 
 
