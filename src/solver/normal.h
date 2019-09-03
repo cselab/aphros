@@ -72,6 +72,9 @@ class UNormal {
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
       FieldCell<Vect>& fcn);
 
+  // u: volume fraction, array of size 3x3x3
+  static Vect GetNormalYoungs(const std::array<Scal, 27>& u);
+
  public:
   struct Imp; // implementation
 };
