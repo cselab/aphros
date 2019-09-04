@@ -1,5 +1,5 @@
 .POSIX:
-LINK = $(CXX)
+LINK = $(CC)
 CFLAGS = -g -O2
 
 M = main
