@@ -99,17 +99,37 @@ march_lewiner_ini(int x0, int y0, int z0)
     struct MarchLewiner *q;
 
     q = malloc(sizeof(*q));
+    if (q == NULL) {
+	fprintf(stderr, "%s:%d: can't alloc\n", __FILE__, __LINE__);
+	exit(2);
+    }
+
+
     q->x = x0;
     q->y = y0;
     q->z = z0;
     N = x0 * y0 * z0;
     q->verts = malloc(3 * N * sizeof(*q->verts));
+    if (q->verts == NULL) {
+	fprintf(stderr, "%s:%d: can't alloc\n", __FILE__, __LINE__);
+	exit(2);
+    }
+
     for (i = 0; i < 3 * N; i++)
 	q->verts[i] = -1;
     q->nv = q->nt = 0;
     q->Nv = q->Nt = ALLOC_SIZE;
     q->ver = malloc(3 * q->Nv * sizeof(*q->ver));
+    if (q->ver == NULL) {
+	fprintf(stderr, "%s:%d: can't alloc\n", __FILE__, __LINE__);
+	exit(2);
+    }
+
     q->tri = malloc(3 * q->Nt * sizeof(*q->tri));
+    if (q->tri == NULL) {
+	fprintf(stderr, "%s:%d: can't alloc\n", __FILE__, __LINE__);
+	exit(2);
+    }
     return q;
 }
 
@@ -221,12 +241,17 @@ set_vert(int D, int i, int j, int k)
     cu = q->cu;
     d = CuDir[D];
     u = rpos(cu[OOO], cu[d]);
-    realloc_ver();
+    if (realloc_ver() != 0) {
+	fprintf(stderr, "%s:%d: realloc failed\n", __FILE__, __LINE__);
+	exit(1);
+    }
+
     q->ver[3 * q->nv + X] = i;
     q->ver[3 * q->nv + Y] = j;
     q->ver[3 * q->nv + Z] = k;
     q->ver[3 * q->nv + D] += u;
     q->verts[3 * (i + j * x + k * x * y) + D] = q->nv++;
+    return 0;
 }
 
 static int
@@ -327,7 +352,8 @@ test_face(int face)
 	D = cu[IOI];
 	break;
     default:
-	fprintf(stderr, "Invalid face code %d\n", face);
+	fprintf(stderr, "%s:%d: Invalid face code %d\n", __FILE__,
+		__LINE__, face);
 	exit(2);
     };
     if (fabs(A * C - B * D) < FLT_EPSILON)
@@ -464,13 +490,15 @@ test_interior(int s)
 	    Dt = wavg(cu[OOO], cu[OOI], t);
 	    break;
 	default:
-	    printf("Invalid edge %d\n", edge);
-	    break;
+	    fprintf(stderr, "%s:%d: Invalid edge %d\n", __FILE__, __LINE__,
+		    edge);
+	    exit(2);
 	}
 	break;
     default:
-	printf("Invalid ambiguous case %d\n", q->Case);
-	break;
+	fprintf(stderr, "%s:%d: Invalid ambiguous case %d\n", __FILE__,
+		__LINE__, q->Case);
+	exit(2);
     }
     if (At >= 0)
 	test++;
@@ -837,13 +865,16 @@ process_cu(void)
 	    add_tri2(tiling13_1_[q->config], 4);
 	    break;
 	default:
-	    printf("Impossible case 13?\n");
+	    fprintf(stderr, "%s:%d: Invalid ambiguous case 13?\n",
+		    __FILE__, __LINE__);
+	    exit(2);
 	}
 	break;
     case 14:
 	add_tri2(tiling14[q->config], 4);
 	break;
     };
+    return 0;
 }
 
 static int
@@ -872,10 +903,16 @@ add_tri3(const int *trig, int n, int v12)
 	} else
 	    tv[t % 3] = v12;
 	if (tv[t % 3] == -1) {
-	    printf("Marching Cubes: invalid triangle %d\n", q->nt + 1);
+	    fprintf(stderr, "%s:%d: Marching Cubes: invalid triangle %d\n",
+		    __FILE__, __LINE__, q->nt + 1);
+	    exit(1);
 	}
 	if (t % 3 == 2) {
-	    realloc_tri();
+	    if (realloc_tri() != 0) {
+		fprintf(stderr, "%s:%d: realloc failed\n", __FILE__,
+			__LINE__);
+		exit(1);
+	    }
 	    q->tri[3 * q->nt + X] = tv[0];
 	    q->tri[3 * q->nt + Y] = tv[1];
 	    q->tri[3 * q->nt + Z] = tv[2];
@@ -892,10 +929,9 @@ realloc_ver(void)
 	return 0;
     q->Nv *= 2;
     q->ver = realloc(q->ver, 3 * q->Nv * sizeof(*q->ver));
-    if (q->ver == NULL) {
-	fprintf(stderr, "can't alloc");
+    if (q->ver == NULL)
 	return 1;
-    } else
+    else
 	return 0;
 }
 
@@ -906,10 +942,9 @@ realloc_tri(void)
 	return 0;
     q->Nt *= 2;
     q->tri = realloc(q->tri, 3 * q->Nt * sizeof(*q->tri));
-    if (q->tri == NULL) {
-	fprintf(stderr, "can't alloc");
+    if (q->tri == NULL)
 	return 1;
-    } else
+    else
 	return 0;
 }
 
