@@ -62,8 +62,10 @@ static int realloc_ver(void);
 static int set_vert(int, int, int, int);
 static int test_face(int face);
 static int test_interior(int s);
+
 /* weighed average */
 static double wavg(double a, double b, double t);
+
 /* relative position */
 static double rpos(double a, double b);
 
@@ -886,21 +888,29 @@ add_tri3(const int *trig, int n, int v12)
 static int
 realloc_ver(void)
 {
-    if (q->nv >= q->Nv) {
-	q->Nv *= 2;
-	q->ver = realloc(q->ver, 3 * q->Nv * sizeof(*q->ver));
-	fprintf(stderr, "%d allocated ver\n", q->Nv);
-    }
+    if (q->nv < q->Nv)
+	return 0;
+    q->Nv *= 2;
+    q->ver = realloc(q->ver, 3 * q->Nv * sizeof(*q->ver));
+    if (q->ver == NULL) {
+	fprintf(stderr, "can't alloc");
+	return 1;
+    } else
+	return 0;
 }
 
 static int
 realloc_tri(void)
 {
-    if (q->nt >= q->Nt) {
-	q->Nt *= 2;
-	q->tri = realloc(q->tri, 3 * q->Nt * sizeof(*q->tri));
-	fprintf(stderr, "%d allocated tri\n", q->Nt);
-    }
+    if (q->nt < q->Nt)
+	return 0;
+    q->Nt *= 2;
+    q->tri = realloc(q->tri, 3 * q->Nt * sizeof(*q->tri));
+    if (q->tri == NULL) {
+	fprintf(stderr, "can't alloc");
+	return 1;
+    } else
+	return 0;
 }
 
 static int
