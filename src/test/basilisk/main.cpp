@@ -9,7 +9,7 @@
 #include "solver/solver.h"
 #include "func/init_u.h"
 #include "parse/vars.h"
-#include "solver/partstrmesh.h"
+#include "solver/partstrmeshm.h"
 #include "kernel/kernelmeshpar.h"
 #include "distr/distrsolver.h"
 #include "debug/isnan.h"
@@ -44,6 +44,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
   using Par = GPar;
+  using PSM = solver::PartStrMeshM<M>;
   static constexpr size_t dim = M::dim;
 
   using P::P;
@@ -60,7 +61,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fck_;
   FieldCell<Vect> fcn_;
   FieldCell<bool> fci_;
-  std::shared_ptr<solver::PartStrMesh<M>> psm_;
+  std::shared_ptr<PSM> psm_;
 
   std::vector<std::vector<Vect>> dl_; // dump poly
   std::vector<Scal> dlc_; // dump poly
@@ -146,14 +147,14 @@ void Simple<M>::Run() {
     ps->leq = kp.Hp;
     ps->hc = m.GetCellSize()[0];
 
-    auto pm = std::make_shared<typename solver::PartStrMesh<Mesh>::Par>();
+    auto pm = std::make_shared<typename PSM::Par>();
     pm->tol = kp.eps;
     pm->ns = kp.Ns;
     pm->itermax = kp.itermax;
     pm->ps = ps;
     pm->dump_fr = 0;
 
-    psm_ = std::make_shared<solver::PartStrMesh<Mesh>>(m, pm);
+    psm_ = std::make_shared<PSM>(m, pm);
 
     fci_ = DetectInterface(fcu_);
     solver::UNormal<Mesh>::CalcNormal(m, fcu_, fci_, dim, fcn_);
@@ -167,12 +168,13 @@ void Simple<M>::Run() {
   }
 
   if (sem.Nested()) {
-    psm_->Part(fcu_, fca_, fcn_, fci_, fck_,
+    const FieldCell<Scal>* fccl(nullptr);
+    psm_->Part(&fcu_, &fca_, &fcn_, &fci_, fccl, &fck_,
                MapFace<std::shared_ptr<solver::CondFace>>());
   }
 
   if (sem.Nested()) {
-    psm_->DumpParticles(fca_, fcn_, 1, 0);
+    psm_->DumpParticles(&fca_, &fcn_, 1, 0);
   }
 
   if (sem.Nested()) {
