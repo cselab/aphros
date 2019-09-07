@@ -56,9 +56,9 @@ struct Vofm<M_>::Imp {
     ffi_.resize(layers.size());
 
 
-    fcn_.InitAll(FieldCell<Vect>(m, Vect(0)));
-    fca_.InitAll(FieldCell<Scal>(m, 0));
-    fck_.InitAll(FieldCell<Scal>(m, 0));
+    fcn_.InitAll(FieldCell<Vect>(m, GetNan<Vect>()));
+    fca_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
+    fck_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
     fci_.InitAll(FieldCell<bool>(m, false));
 
     fcus_.time_curr = fcu0;
@@ -150,49 +150,25 @@ struct Vofm<M_>::Imp {
         auto& fcn = fcn_[i];
         auto& fci = fci_[i];
         auto& fcu = *uc[i];
+        auto& fca = fca_[i];
         auto& fccl = fccl_[i];
-        if (par->bcc_reflect) {
-          BcReflect(fcu, mfc_, par->bcc_fill, m);
-        }
 
         const int sw = 1; // stencil halfwidth
         using MIdx = typename M::MIdx;
         GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1));
-        for (auto c : m.Cells()) {
+        auto h = m.GetCellSize();
+        // Compute fcn_, fca_ [s]
+        for (auto c : m.SuCells()) {
           if (fci[c]) {
             auto uu = GetStencil<M, 1>{}(layers, uc, fccl_, c, fccl[c], m);
             fcn[c] = UNormal<M>::GetNormalYoungs(uu);
             UNormal<M>::GetNormalHeight(uu, fcn[c]);
+            fca[c] = R::GetLineA(fcn[c], fcu[c], h);
+          } else {
+            fcn[c] = GetNan<Vect>();
+            fca[c] = GetNan<Scal>();
           }
         }
-      }
-      for (auto i : layers) {
-        if (par->bcc_reflect) {
-          auto& fcn = fcn_[i];
-          BcReflect(fcn, mfc_, Vect(0), m);
-        }
-      }
-      for (auto i : layers) {
-        auto& fcn = fcn_[i];
-        auto& fca = fca_[i];
-        auto& fci = fci_[i];
-        auto& fcu = *uc[i];
-        for (auto c : m.SuCells()) {
-          if (fci[c]) {
-            fca[c] = R::GetLineA(fcn[c], fcu[c], m.GetCellSize());
-          }
-        }
-        if (par->bcc_reflect) {
-          BcReflect(fca, mfc_, Scal(0), m);
-        }
-      }
-    }
-    for (auto i : layers) {
-      if (sem("comm")) {
-        auto& fcn = fcn_[i];
-        auto& fca = fca_[i];
-        m.Comm(&fca);
-        m.Comm(&fcn);
       }
     }
   }
@@ -653,6 +629,11 @@ struct Vofm<M_>::Imp {
           m.Comm(&fccl_[i]);
         }
       }
+      if (par->bcc_reflect && sem("reflect")) {
+        for (auto i : layers) {
+          BcReflect(fcu_[i].iter_curr, mfc_, par->bcc_fill, m);
+        }
+      }
       if (sem.Nested("reconst")) {
         Rec(GetLayer(fcu_, Layers::iter_curr));
       }
@@ -696,31 +677,21 @@ struct Vofm<M_>::Imp {
   }
   void PostStep() {
     auto sem = m.GetSem("iter");
-    // Curvature from gradient of volume fraction
-    if (par->curvgrad && sem("curv")) {
-      for (auto i : layers) {
-        auto ffu = Interpolate(fcu_[i].iter_curr, mfc_, m); // [s]
-        auto fcg = Gradient(ffu, m); // [s]
-        auto ffg = Interpolate(fcg, mfvz_, m); // [i]
-
-        auto& fck = fck_[i];
-        fck.Reinit(m, GetNan<Scal>()); // curvature [i]
-
-        auto& fci = fci_[i];
-        for (auto c : m.Cells()) {
-          if (!fci[c]) {
-            continue;
-          }
-          Scal s = 0.;
-          for (auto q : m.Nci(c)) {
-            IdxFace f = m.GetNeighbourFace(c, q);
-            auto& g = ffg[f];
-            auto n = g / g.norm();  // inner normal
-            s += -n.dot(m.GetOutwardSurface(c, q));
-          }
-          fck[c] = s / m.GetVolume(c);
-        }
+    for (auto i : layers) {
+      if (sem("comm")) {
+        // --> fcu [a]
+        // --> fca [s], fcn [s]
+        m.Comm(&fcn_[i]);
+        m.Comm(&fca_[i]);
       }
+    }
+    if (par->bcc_reflect && sem("reflect")) {
+      // --> fca [a], fcn [a]
+      for (auto i : layers) {
+        BcReflect(fcn_[i], mfc_, Vect(0), m);
+        BcReflect(fca_[i], mfc_, Scal(0), m);
+      }
+      // --> reflected fca [a], fcn [a]
     }
     if (par->part && sem.Nested("part")) {
       psm_->Part(GetLayer(fcu_, Layers::iter_curr),

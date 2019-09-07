@@ -29,8 +29,8 @@ struct Vof<M_>::Imp {
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m)
-      , mfc_(mfc), fca_(m, 0), fcn_(m, Vect(0)), fck_(m, 0)
-      , fch_(m, Vect(0))
+      , mfc_(mfc), fca_(m, GetNan<Scal>()), fcn_(m, GetNan<Vect>())
+      , fck_(m, 0), fch_(m, Vect(0))
   {
     fcu_.time_curr = fcu;
     for (auto it : mfc_) {
@@ -159,7 +159,11 @@ struct Vof<M_>::Imp {
       auto h = m.GetCellSize();
       // Reconstruct interface fca_ [s]
       for (auto c : m.SuCells()) {
-        fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
+        if (fci_[c]) {
+          fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
+        } else {
+          fca_[c] = GetNan<Scal>();
+        }
       }
     }
   }
@@ -355,12 +359,9 @@ struct Vof<M_>::Imp {
             u = 0.;
           }
         }
-        // -->volume fraction uc [i]
         m.Comm(&uc);
       }
       if (par->bcc_reflect && sem.Nested("reflect")) {
-        // -->volume fraction uc [a]
-        // Reflect volume fraction [a]
         BcReflect(fcu_.iter_curr, mfc_, par->bcc_fill, m);
       }
       if (sem.Nested("reconst")) {
