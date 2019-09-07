@@ -149,22 +149,18 @@ struct Vof<M_>::Imp {
     }
   }
   // reconstruct interface
+  // uc: volume fraction [a]
   void Rec(const FieldCell<Scal>& uc) {
     auto sem = m.GetSem("rec");
     if (sem("local")) {
-      if (par->bcc_reflect) {
-        BcReflect(const_cast<FieldCell<Scal>&>(uc), mfc_, par->bcc_fill, m);
-      }
       DetectInterface(uc);
-      // Compute normal and curvature [s]
+      // Compute normal fcn_ [s]
       UNormal<M>::CalcNormal(m, uc, fci_, par->dim, fcn_);
       auto h = m.GetCellSize();
-      // Reconstruct interface [s]
+      // Reconstruct interface fca_ [s]
       for (auto c : m.SuCells()) {
         fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
       }
-      m.Comm(&fca_);
-      m.Comm(&fcn_);
     }
   }
   void DetectInterface(const FieldCell<Scal>& uc) {
@@ -271,6 +267,7 @@ struct Vof<M_>::Imp {
         FieldFace<Scal> ffvu(m); // flux: volume flux * field
 
         ffi_.Reinit(m);
+        // fluxes [i], require fcu_,fcn_,fca_ [s]
         for (auto f : m.Faces()) {
           auto p = bf.GetMIdxDir(f);
           Dir df = p.second;
@@ -358,9 +355,16 @@ struct Vof<M_>::Imp {
             u = 0.;
           }
         }
+        // -->volume fraction uc [i]
         m.Comm(&uc);
       }
+      if (par->bcc_reflect && sem.Nested("reflect")) {
+        // -->volume fraction uc [a]
+        // Reflect volume fraction [a]
+        BcReflect(fcu_.iter_curr, mfc_, par->bcc_fill, m);
+      }
       if (sem.Nested("reconst")) {
+        // Compute fcn_,fca_ [s] , fci_ [a]
         Rec(fcu_.iter_curr);
       }
     }
@@ -376,14 +380,16 @@ struct Vof<M_>::Imp {
   void PostStep() {
     auto sem = m.GetSem("iter");
     if (sem("comm")) {
-      m.Comm(&fcu_.iter_curr);
+      // --> fcu [a]
+      // --> fca [s], fcn [s]
       m.Comm(&fca_);
       m.Comm(&fcn_);
     }
     if (par->bcc_reflect && sem("reflect")) {
-      BcReflect(fcu_.iter_curr, mfc_, par->bcc_fill, m);
+      // --> fca [a], fcn [a]
       BcReflect(fca_, mfc_, Scal(0), m);
       BcReflect(fcn_, mfc_, Vect(0), m);
+      // --> reflected fca [a], fcn [a]
     }
     if (par->curvgrad && sem("curv")) {
       // Curvature from gradient of volume fraction
