@@ -5,7 +5,7 @@ set(EXE t.${p})
 
 add_executable(${EXE} main.cpp)
 
-target_link_libraries(${EXE} normal overlap partstrmesh distr)
+target_link_libraries(${EXE} normal overlap partstrmeshm distr)
 
 add_test(NAME ${p} COMMAND ch.run ./${EXE})
 
