@@ -26,6 +26,7 @@ instfnd downsampleall
 instfnd genxmf
 instfnd genxmfall
 instfnd trajaxes
+instfnd plain2vtk
 
 cp -rvf ch "$BB/" || true
 
