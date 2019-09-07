@@ -11,7 +11,7 @@
 #include "reconst.h"
 #include "normal.h"
 #include "debug/isnan.h"
-#include "partstr.h"
+#include "partstrmeshm.h"
 #include "util/vof.h"
 
 namespace solver {
@@ -21,7 +21,7 @@ struct Vof<M_>::Imp {
   using Owner = Vof<M_>;
   using R = Reconst<Scal>;
   using PS = PartStr<Scal>;
-  using PSM = PartStrMesh<M>;
+  using PSM = PartStrMeshM<M>;
   static constexpr size_t dim = M::dim;
   using Vect2 = GVect<Scal, 2>;
 
@@ -52,6 +52,8 @@ struct Vof<M_>::Imp {
     psm->bcc_reflect = par->bcc_reflect;
     psm->dump_fr = par->part_dump_fr;
     psm->maxr = par->part_maxr;
+    psm->vtkbin = par->vtkbin;
+    psm->vtkmerge = par->vtkmerge;
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm));
   }
   void Update(typename PS::Par* p) const {
@@ -161,30 +163,16 @@ struct Vof<M_>::Imp {
       for (auto c : m.SuCells()) {
         fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
       }
-      if (par->bcc_reflect) {
-        BcReflect(fca_, mfc_, Scal(0), m);
-        BcReflect(fcn_, mfc_, Vect(0), m);
-      }
+      m.Comm(&fca_);
+      m.Comm(&fcn_);
     }
   }
   void DetectInterface(const FieldCell<Scal>& uc) {
     fci_.Reinit(m, false);
-    // volume fraction different from 0 or 1
     for (auto c : m.AllCells()) {
       Scal u = uc[c];
       if (u > 0. && u < 1.) {
         fci_[c] = true;
-      }
-    }
-    // neighbour cell has different value but both are 0 or 1
-    for (auto f : m.SuFaces()) {
-      IdxCell cm = m.GetNeighbourCell(f, 0);
-      IdxCell cp = m.GetNeighbourCell(f, 1);
-      Scal um = uc[cm];
-      Scal up = uc[cp];
-      if ((um == 0. || um == 1.) && (up == 0. || up == 1.) && (um != up)) {
-        fci_[cm] = true;
-        fci_[cp] = true;
       }
     }
   }
@@ -214,10 +202,10 @@ struct Vof<M_>::Imp {
           par->poly_intth, par->vtkbin, par->vtkmerge, m);
     }
     if (par->dumppart && dm && sem.Nested("part-dump")) {
-      psm_->DumpParticles(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
+      psm_->DumpParticles(&fca_, &fcn_, par->dmp->GetN(), owner_->GetTime());
     }
     if (par->dumppartinter && dm && sem.Nested("partinter-dump")) {
-      psm_->DumpPartInter(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
+      psm_->DumpPartInter(&fca_, &fcn_, par->dmp->GetN(), owner_->GetTime());
     }
   }
   void MakeIteration() {
@@ -387,8 +375,18 @@ struct Vof<M_>::Imp {
   }
   void PostStep() {
     auto sem = m.GetSem("iter");
-    // Curvature from gradient of volume fraction
+    if (sem("comm")) {
+      m.Comm(&fcu_.iter_curr);
+      m.Comm(&fca_);
+      m.Comm(&fcn_);
+    }
+    if (par->bcc_reflect && sem("reflect")) {
+      BcReflect(fcu_.iter_curr, mfc_, par->bcc_fill, m);
+      BcReflect(fca_, mfc_, Scal(0), m);
+      BcReflect(fcn_, mfc_, Vect(0), m);
+    }
     if (par->curvgrad && sem("curv")) {
+      // Curvature from gradient of volume fraction
       auto ffu = Interpolate(fcu_.iter_curr, mfc_, m); // [s]
       auto fcg = Gradient(ffu, m); // [s]
       auto ffg = Interpolate(fcg, mfvz_, m); // [i]
@@ -437,7 +435,8 @@ struct Vof<M_>::Imp {
       }
     }
     if (par->part && sem.Nested("part")) {
-      psm_->Part(fcu_.iter_curr, fca_, fcn_, fci_, fck_, mfc_);
+      const FieldCell<Scal>* fccl(nullptr);
+      psm_->Part(&fcu_.iter_curr, &fca_, &fcn_, &fci_, fccl, &fck_, mfc_);
     }
     if (sem.Nested("dump")) {
       Dump();
@@ -464,7 +463,7 @@ struct Vof<M_>::Imp {
   FieldCell<Vect> fch_; // curvature from height functions
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
-  std::unique_ptr<PartStrMesh<M>> psm_;
+  std::unique_ptr<PartStrMeshM<M>> psm_;
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
   UVof<M> uvof_;
@@ -525,7 +524,7 @@ auto Vof<M_>::GetHeight() const -> const FieldCell<Vect>& {
 
 template <class M_>
 auto Vof<M_>::GetCurv() const -> const FieldCell<Scal>& {
-  return imp->par->part_k ? imp->psm_->GetCurv() : imp->fck_;
+  return imp->par->part_k ? imp->psm_->GetCurv(0) : imp->fck_;
 }
 
 template <class M_>
@@ -543,7 +542,7 @@ auto Vof<M_>::GetCurvH() const -> const FieldCell<Scal>& {
 // curvature from particles
 template <class M_>
 auto Vof<M_>::GetCurvP() const -> const FieldCell<Scal>& {
-  return imp->psm_->GetCurv();
+  return imp->psm_->GetCurv(0);
 }
 
 } // namespace solver
