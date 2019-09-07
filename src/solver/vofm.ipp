@@ -12,7 +12,7 @@
 #include "reconst.h"
 #include "normal.h"
 #include "debug/isnan.h"
-#include "partstr.h"
+#include "partstrmeshm.h"
 #include "multi.h"
 #include "util/vof.h"
 
@@ -96,9 +96,9 @@ struct Vofm<M_>::Imp {
     psm->bcc_reflect = par->bcc_reflect;
     psm->dump_fr = par->part_dump_fr;
     psm->maxr = par->part_maxr;
-    psm_ = std::unique_ptr<PSM>(new PSM(m, psm));
     psm->vtkbin = par->vtkbin;
     psm->vtkmerge = par->vtkmerge;
+    psm_ = std::unique_ptr<PSM>(new PSM(m, psm));
   }
   void Update(typename PS::Par* p) const {
     Scal hc = m.GetCellSize().norminf(); // cell size
@@ -724,7 +724,7 @@ struct Vofm<M_>::Imp {
     }
     if (par->part && sem.Nested("part")) {
       psm_->Part(GetLayer(fcu_, Layers::iter_curr),
-                 fca_, fcn_, fci_, fccl_, mfc_);
+                 fca_, fcn_, fci_, fccl_, nullptr, mfc_);
     }
     if (sem.Nested("dump")) {
       Dump();

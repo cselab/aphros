@@ -189,7 +189,8 @@ struct PartStrMeshM<M_>::Imp {
             const Multi<const FieldCell<Scal>*>& vfca,
             const Multi<const FieldCell<Vect>*>& vfcn,
             const Multi<const FieldCell<bool>*>& vfci,
-            const Multi<const FieldCell<Scal>*>& vfccl) {
+            const Multi<const FieldCell<Scal>*>& vfccl,
+            const FieldCell<Scal>* fck) {
     using MIdx = typename M::MIdx;
     auto& bc = m.GetIndexCells();
 
@@ -198,6 +199,8 @@ struct PartStrMeshM<M_>::Imp {
     vsc_.clear();
     vsl_.clear();
     vsan_.clear();
+    bool nocl = (vfcu.size() == 1 && !vfccl[0]); // no color provided
+    Vect h = m.GetCellSize();
 
     // Seed strings in cells with interface.
     for (size_t l = 0; l < vfcu.size(); ++l) {
@@ -209,8 +212,11 @@ struct PartStrMeshM<M_>::Imp {
       for (auto c : m.Cells()) {
         Vect xc = m.GetCenter(c);
         const Scal th = par->intth;
-        if (fci[c] && fcu[c] >= th && fcu[c] <= 1. - th &&
-            fccl[c] != kClNone) {
+        if (fci[c] && fcu[c] >= th && fcu[c] <= 1. - th && 
+            (nocl || fccl[c] != kClNone) &&
+            (IsNan((*fck)[c]) ||
+             std::abs((*fck)[c]) > 1. / (par->maxr * h[0]))) {
+
           // number of strings
           size_t ns = (par->dim == 2 ? 1 : par->ns);
           for (size_t s = 0; s < ns; ++s) {
@@ -218,7 +224,7 @@ struct PartStrMeshM<M_>::Imp {
             auto v = GetPlaneBasis(xc, fcn[c], fca[c], an);
 
             // block of offsets to neighbours in stencil [-sw,sw]
-            const int sw = 1; // stencil halfwidth
+            const int sw = 2; // stencil halfwidth
             const int sn = sw * 2 + 1; // stencil size
             GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
                                     MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
@@ -236,7 +242,7 @@ struct PartStrMeshM<M_>::Imp {
                 auto& fcn2 = *vfcn[j];
                 auto& fci2 = *vfci[j];
                 auto& fccl2 = *vfccl[j];
-                if (fci2[cc] && fccl2[cc] == fccl[c]) {
+                if (fci2[cc] && (nocl || fccl2[cc] == fccl[c])) { // XXX
                   AppendInterface(v, m.GetCenter(cc), fcu2[cc],
                                   fca2[cc], fcn2[cc], fci2[cc], lx, ls);
                 }
@@ -261,18 +267,21 @@ struct PartStrMeshM<M_>::Imp {
             const Multi<const FieldCell<Vect>*>& vfcn,
             const Multi<const FieldCell<bool>*>& vfci,
             const Multi<const FieldCell<Scal>*>& vfccl,
+            const FieldCell<Scal>* fck,
             const MapFace<std::shared_ptr<CondFace>>& mfc) {
     auto sem = m.GetSem("part");
     (void) mfc;
 
     if (sem("part-run")) {
-      Seed(vfcu, vfca, vfcn, vfci, vfccl);
-      partstr_->Run(par->tol, par->itermax,
-                    m.IsRoot() ? par->verb : 0);
+      Seed(vfcu, vfca, vfcn, vfci, vfccl, fck);
+      partstr_->Run(par->tol, par->itermax, m.IsRoot() ? par->verb : 0);
       // compute curvature
       vfckp_.resize(vfcu.size());
       for (auto& fckp : vfckp_.data()) {
         fckp.Reinit(m, GetNan<Scal>());
+      }
+      if (fck) {
+        vfckp_[0] = *fck;
       }
       // XXX: assume strings from same cell contiguous
       auto ns = partstr_->GetNumStr();
@@ -456,8 +465,9 @@ void PartStrMeshM<M_>::Part(
     const Multi<const FieldCell<Vect>*>& vfcn,
     const Multi<const FieldCell<bool>*>& vfci,
     const Multi<const FieldCell<Scal>*>& vfccl,
+    const FieldCell<Scal>* fck,
     const MapFace<std::shared_ptr<CondFace>>& mfc) {
-  imp->Part(vfcu, vfca, vfcn, vfci, vfccl, mfc);
+  imp->Part(vfcu, vfca, vfcn, vfci, vfccl, fck, mfc);
 }
 
 template <class M_>
