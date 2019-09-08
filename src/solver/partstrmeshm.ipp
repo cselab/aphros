@@ -214,7 +214,7 @@ struct PartStrMeshM<M_>::Imp {
         const Scal th = par->intth;
         if (fci[c] && fcu[c] >= th && fcu[c] <= 1. - th && 
             (nocl || fccl[c] != kClNone) &&
-            (IsNan((*fck)[c]) ||
+            (!fck || IsNan((*fck)[c]) ||
              std::abs((*fck)[c]) > 1. / (par->maxr * h[0]))) {
 
           // number of strings
