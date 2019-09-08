@@ -43,6 +43,8 @@ void Parse(typename Vof::Par* p, const Vars& var) {
   p->part_anglim = var.Double["part_anglim"];
   p->part_dn = var.Int["part_dn"];
   p->part_maxr = var.Double["part_maxr"];
+  p->sharpen = var.Int["sharpen"];
+  p->sharpen_cfl = var.Double["sharpen_cfl"];
 
   using Par = typename Vof::Par;
   {

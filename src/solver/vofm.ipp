@@ -302,6 +302,255 @@ struct Vofm<M_>::Imp {
       }
     }
   }
+  void Sharpen() {
+    auto sem = m.GetSem("sharp");
+    using Dir = typename M::Dir;
+    using MIdx = typename M::MIdx;
+    // directions, format: {dir LE, dir EI, ...}
+    std::vector<size_t> dd;
+    if (par->dim == 3) { // 3d
+      if (count_ % 3 == 0) {
+        dd = {0, 0, 1, 1, 2, 2};
+      } else if (count_ % 3 == 1) {
+        dd = {1, 1, 2, 2, 0, 0};
+      } else {
+        dd = {2, 2, 0, 0, 1, 1};
+      }
+    } else {
+      if (count_ % 2 == 0) {
+        dd = {0, 0, 1, 1};
+      } else {
+        dd = {1, 1, 0, 0};
+      }
+    }
+    for (size_t id = 0; id < dd.size(); ++id) {
+      size_t d = dd[id]; // direction as index
+      const Scal dt = owner_->GetTimeStep();
+      const Scal vel =
+          m.GetCellSize()[0] * (id % 2 ? -1 : 1) / dt * par->sharpen_cfl;
+      if (sem("init")) {
+        for (auto i : layers) {
+          ffvu_[i].Reinit(m, 0);
+          ffcl_[i].Reinit(m, kClNone);
+          ffi_[i].Reinit(m, false);
+        }
+      }
+      for (auto i : layers) {
+        if (sem("flux")) {
+          Dir md(d); // direction as Dir
+          MIdx wd(md); // offset in direction d
+          auto& bf = m.GetIndexFaces();
+          auto h = m.GetCellSize();
+
+          // Returns phase 2 flux
+          auto F = [this,h,dt,d,vel](
+              IdxFace f, Scal u, Vect n, Scal a, bool in) {
+            Scal v = vel * m.GetArea(f);
+            if (in) {
+              return R::GetLineFlux(n, a, h, v, dt, d);
+            }
+            return v * u;
+          };
+
+          auto& fcu = fcu_[i].iter_curr;
+          auto& fcn = fcn_[i];
+          auto& fca = fca_[i];
+          auto& fci = fci_[i];
+          auto& fccl = fccl_[i];
+          auto& ffvu = ffvu_[i];
+          auto& ffcl = ffcl_[i];
+          auto& ffi = ffi_[i];
+
+          for (auto f : m.Faces()) {
+            if (bf.GetDir(f) != md) {
+              continue;
+            }
+
+            // upwind cell
+            IdxCell cu = m.GetNeighbourCell(f, vel > 0. ? 0 : 1);
+            if (fccl[cu] != kClNone) {
+              ffvu[f] = F(f, fcu[cu], fcn[cu], fca[cu], fci[cu]);
+              ffi[f] = fci[cu];
+              ffcl[f] = fccl[cu];
+            }
+          }
+        }
+      }
+      if (sem("cell")) {
+        for (auto i : layers) {
+          Dir md(d); // direction as Dir
+          MIdx wd(md); // offset in direction d
+          auto& bc = m.GetIndexCells();
+          auto& bf = m.GetIndexFaces();
+          auto& fcu = fcu_[i].iter_curr;
+          auto& fccl = fccl_[i];
+
+          for (auto c : m.Cells()) {
+            auto w = bc.GetMIdx(c);
+            const Scal lc = m.GetVolume(c);
+            Scal cl = fccl[c];
+            if (cl == kClNone) {
+              continue;
+            }
+            // faces
+            IdxFace fm = bf.GetIdx(w, md);
+            IdxFace fp = bf.GetIdx(w + wd, md);
+            // mixture fluxes
+            const Scal vm = vel * m.GetArea(fm);
+            const Scal vp = vm;
+            // mixture cfl
+            const Scal sm = vm * dt / lc;
+            const Scal sp = vp * dt / lc;
+            const Scal ds = sp - sm;
+            // phase 2 fluxes
+            Scal qm = 0;
+            Scal qp = 0;
+            // interface
+            for (auto j : layers) {
+              if (ffcl_[j][fm] == cl) {
+                qm = ffvu_[j][fm];
+                break;
+              }
+            }
+            for (auto j : layers) {
+              if (ffcl_[j][fp] == cl) {
+                qp = ffvu_[j][fp];
+                break;
+              }
+            }
+            const Scal lm = qm * dt / lc;
+            const Scal lp = qp * dt / lc;
+            const Scal dl = lp - lm;
+            auto& u = fcu[c];
+            u = (u - dl) / (1. - ds);
+            if (u == 0) {
+              fccl[c] = kClNone;
+            }
+          }
+        }
+        for (auto i : layers) {
+          Dir md(d); // direction as Dir
+          MIdx wd(md); // offset in direction d
+          auto& bc = m.GetIndexCells();
+          auto& bf = m.GetIndexFaces();
+          auto& ffcl = ffcl_[i];
+          for (auto f : m.Faces()) {
+            auto p = bf.GetMIdxDir(f);
+            MIdx w = p.first;
+            Dir df = p.second;
+            if (df != md) {
+              continue;
+            }
+            Scal cl = ffcl[f];
+            if (cl == kClNone) {
+              continue;
+            }
+
+            IdxFace fm, fp;
+            IdxCell c;
+            const Scal v = vel * m.GetArea(f);
+            if (v > 0) {
+              fm = f;
+              fp = bf.GetIdx(w + wd, md);
+              c = bc.GetIdx(w);
+            } else {
+              fm = bf.GetIdx(w - wd, md);
+              fp = f;
+              c = bc.GetIdx(w - wd);
+            }
+
+            const Scal lc = m.GetVolume(c);
+
+            // mixture fluxes
+            const Scal vm = v;
+            const Scal vp = vm;
+            // mixture cfl
+            const Scal sm = vm * dt / lc;
+            const Scal sp = vp * dt / lc;
+            const Scal ds = sp - sm;
+            // phase 2 fluxes
+            Scal qm = 0;
+            Scal qp = 0;
+            // qm,im from layer with same color
+            for (auto j : layers) {
+              if (ffcl_[j][fm] == cl) {
+                qm = ffvu_[j][fm];
+                break;
+              }
+            }
+            // qp,ip from layer with same color
+            for (auto j : layers) {
+              if (ffcl_[j][fp] == cl) {
+                qp = ffvu_[j][fp];
+                break;
+              }
+            }
+            // phase 2 cfl
+            const Scal lm = qm * dt / lc;
+            const Scal lp = qp * dt / lc;
+            const Scal dl = lp - lm;
+
+            // find cell with same color
+            const size_t jnone = -1;
+            size_t j = jnone;
+            for (auto jj : layers) {
+              if (fccl_[jj][c] == cl) {
+                j = jj;
+                break;
+              }
+            }
+            if (j == jnone) { // if not found, find first empty
+              for (auto jj : layers) {
+                if (fccl_[jj][c] == kClNone) {
+                  j = jj;
+                  break;
+                }
+              }
+            }
+            if (j == jnone) {
+              j = 0;
+            }
+
+            if (fccl_[j][c] != kClNone) {
+              continue;
+            }
+
+            auto& u = fcu_[j].iter_curr[c];
+            u = (u - dl) / (1. - ds);
+
+            // clip
+            const Scal th = par->clipth;
+            if (u < th) {
+              u = 0.;
+            } else if (u > 1. - th) {
+              u = 1.;
+            } else if (IsNan(u)) {
+              u = 0.;
+            }
+            // update color
+            auto& clc = fccl_[j][c];
+            if (u == 0) {
+              clc = kClNone;
+            } else {
+              clc = cl;
+            }
+          }
+        }
+        for (auto i : layers) {
+          m.Comm(&fcu_[i].iter_curr);
+          m.Comm(&fccl_[i]);
+        }
+      }
+      if (par->bcc_reflect && sem("reflect")) {
+        for (auto i : layers) {
+          BcReflect(fcu_[i].iter_curr, mfc_, par->bcc_fill, m);
+        }
+      }
+      if (sem.Nested("reconst")) {
+        Rec(GetLayer(fcu_, Layers::iter_curr));
+      }
+    }
+  }
   void MakeIteration() {
     auto sem = m.GetSem("iter");
     if (sem("init")) {
@@ -337,7 +586,7 @@ struct Vofm<M_>::Imp {
         dd = {0, 1};
       } else {
         dd = {1, 0};
-      } 
+      }
       vsc = 1.0;
     }
     for (size_t id = 0; id < dd.size(); ++id) {
@@ -637,6 +886,9 @@ struct Vofm<M_>::Imp {
       if (sem.Nested("reconst")) {
         Rec(GetLayer(fcu_, Layers::iter_curr));
       }
+    }
+    if (par->sharpen && sem.Nested("sharp")) {
+      Sharpen();
     }
     if (sem.Nested("recolor")) {
       Recolor();
