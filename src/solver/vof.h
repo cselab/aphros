@@ -65,6 +65,8 @@ class Vof : public AdvectionSolver<M_> {
     bool vtkbin = false;
     bool vtkmerge = true;
     Scal vtkiso = 0.5;
+    bool sharpen = false;
+    Scal sharpen_cfl = 0.5;
   };
 
   // Constructor
