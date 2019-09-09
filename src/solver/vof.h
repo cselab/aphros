@@ -43,6 +43,7 @@ class Vof : public AdvectionSolver<M_> {
     bool dumppartinter = false; // dump interface for particles
     bool bcc_reflect = false; // reflection at boundaries
     Scal bcc_fill = 0;        // fill value for halo cells
+    bool bcc_clear = false;   // set to 0 or 1 near CondFaceReflect
 
     int part_constr = 0; // 0: no constraints
                          // 1: fixed distance, constant angle
