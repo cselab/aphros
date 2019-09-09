@@ -3,7 +3,8 @@
 set -eu
 
 # config file
-c=${1:-aloc.conf}  
+c=${1:-loc}
+c=a${c}.conf
 # block size
 b=${2:-8}
 # number of cores
