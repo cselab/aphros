@@ -156,13 +156,11 @@ struct Vof<M_>::Imp {
       DetectInterface(uc);
       // Compute normal fcn_ [s]
       UNormal<M>::CalcNormal(m, uc, fci_, par->dim, fcn_);
-      //UNormal<M>::CalcNormalYoung(m, uc, fci_, fcn_); // XXX
       auto h = m.GetCellSize();
       // Reconstruct interface fca_ [s]
       for (auto c : m.SuCells()) {
         if (fci_[c]) {
-          //fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
-          fca_[c] = 0; // XXX
+          fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
         } else {
           fca_[c] = GetNan<Scal>();
         }
