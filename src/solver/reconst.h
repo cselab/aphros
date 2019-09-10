@@ -314,7 +314,7 @@ class Reconst {
     if (al >= tmp) {
       return 1.;
     }
-    if (tmp < 1e-10) {
+    if (tmp < 1e-10) { // XXX
       return 0.;
     }
     Scal n1 = abs(nx)/tmp;
@@ -643,8 +643,9 @@ class Reconst {
     return SolveSingular(a);
   }
 
-  // GetCutPoly() helper for unit cell, 
-  // assume 0 < nx < ny < nz, a < 0.
+  // Returns polygon cut by cell, cell center at 0, unit cell,
+  // n: normal, assume 0 < nx < ny < nz
+  // a: line constant, assume a <= 0
   static std::vector<Vect> GetCutPoly0(const Vect& n, Scal a) {
     std::vector<Vect> xx; // result
 
@@ -652,39 +653,45 @@ class Reconst {
     Scal nx = n[0], ny = n[1], nz = n[2];
     Vect b(-0.5); // base
 
+    auto P = [&xx,&b](Scal x0, Scal x1, Scal x2) {
+      xx.push_back(b + Vect(x0, x1, x2));
+    };
+
     if (nx > f) {
-      xx.push_back(b + Vect(f / nx, 0., 0.));
-      xx.push_back(b + Vect(0., f / ny, 0.));
-      xx.push_back(b + Vect(0., 0., f / nz));
+      P(f / nx, 0., 0.);
+      P(0., f / ny, 0.);
+      P(0., 0., f / nz);
     } else if (ny > f) {
-      xx.push_back(b + Vect(1., 0., (f - nx) / nz));
-      xx.push_back(b + Vect(1., (f - nx) / ny, 0.));
-      xx.push_back(b + Vect(0., f / ny, 0.));
-      xx.push_back(b + Vect(0., 0., f / nz));
+      P(1., 0., (f - nx) / nz);
+      P(1., (f - nx) / ny, 0.);
+      P(0., f / ny, 0.);
+      P(0., 0., f / nz);
     } else if (nz > f && nx + ny > f) {
-      xx.push_back(b + Vect(1., 0., (f - nx) / nz));
-      xx.push_back(b + Vect(1., (f - nx) / ny, 0.));
-      xx.push_back(b + Vect((f - ny) / nx, 1., 0.));
-      xx.push_back(b + Vect(0., 1., (f - ny) / nz));
-      xx.push_back(b + Vect(0., 0., f / nz));
+      P(1., 0., (f - nx) / nz);
+      P(1., (f - nx) / ny, 0.);
+      P((f - ny) / nx, 1., 0.);
+      P(0., 1., (f - ny) / nz);
+      P(0., 0., f / nz);
     } else if (nz >= f && nx + ny <= f) {
-      xx.push_back(b + Vect(0., 0., f / nz));
-      xx.push_back(b + Vect(1., 0., (f - nx) / nz));
-      xx.push_back(b + Vect(1., 1., (a + 0.5 * (nz - nx - ny)) / nz));
-      xx.push_back(b + Vect(0., 1., (f - ny) / nz));
+      P(0., 0., f / nz);
+      P(1., 0., (f - nx) / nz);
+      P(1., 1., (a + 0.5 * (nz - nx - ny)) / nz);
+      P(0., 1., (f - ny) / nz);
     } else {
-      xx.push_back(b + Vect(1., 0., (f - nx) / nz));
-      xx.push_back(b + Vect(1., (f - nx) / ny, 0.));
-      xx.push_back(b + Vect((f - ny) / nx, 1., 0.));
-      xx.push_back(b + Vect(0., 1., (f - ny) / nz));
-      xx.push_back(b + Vect(0., (f - nz) / ny, 1.));
-      xx.push_back(b + Vect((f - nz) / nx, 0., 1.));
+      P(1., 0., (f - nx) / nz);
+      P(1., (f - nx) / ny, 0.);
+      P((f - ny) / nx, 1., 0.);
+      P(0., 1., (f - ny) / nz);
+      P(0., (f - nz) / ny, 1.);
+      P((f - nz) / nx, 0., 1.);
     }
 
     return xx;
   }
 
-  // GetCutPoly() helper for unit cell.
+  // Returns polygon cut by cell, cell center at 0, unit cell
+  // n0: normal
+  // a: line constant
   static std::vector<Vect> GetCutPoly1(const Vect& n0, Scal a) {
     auto n = n0.abs();
     auto r = Argsort(n);

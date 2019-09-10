@@ -33,6 +33,7 @@ struct UVof<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& fca,
       const Multi<const FieldCell<bool>*>& fci,
       std::string fn, Scal t, Scal th, bool bin, bool merge, M& m) {
+    (void) th;
     auto sem = m.GetSem("dumppoly");
     if (sem("local")) {
       dl_.clear();
@@ -46,7 +47,7 @@ struct UVof<M_>::Imp {
           if (IsNan(u) || IsNan((*fcn[i])[c]) || IsNan((*fca[i])[c])) {
             continue;
           }
-          if ((*fci[i])[c] && u > th && u < 1 - th) {
+          if ((*fci[i])[c]) {
             dl_.push_back(R::GetCutPoly(
                   m.GetCenter(c), (*fcn[i])[c], (*fca[i])[c], h));
             dlc_.push_back(m.GetHash(c));
