@@ -173,6 +173,7 @@ struct Vofm<M_>::Imp {
     }
   }
   void DetectInterface(const Multi<const FieldCell<Scal>*>& uc) {
+    // cell is 0<u<1
     for (auto i : layers) {
       auto& fci = fci_[i];
       auto& fcu = *uc[i];
@@ -181,6 +182,27 @@ struct Vofm<M_>::Imp {
         Scal u = fcu[c];
         if (u > 0. && u < 1.) {
           fci[c] = true;
+        }
+      }
+      // cell is u=1 and neighbour is u=0
+      for (auto c : m.SuCells()) {
+        if (fcu[c] == 1) {
+          for (auto q : m.Nci(c)) {
+            bool b = false;
+            for (auto j : layers) {
+              IdxCell cn = m.GetNeighbourCell(c, q);
+              if (fccl_[j][cn] == fccl_[i][c]) {
+                if ((*uc[j])[cn] == 0) {
+                  fci[c] = true;
+                }
+                b = true;
+                break;
+              }
+            }
+            if (!b) {
+              fci[c] = true;
+            }
+          }
         }
       }
     }

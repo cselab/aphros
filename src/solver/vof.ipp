@@ -156,11 +156,13 @@ struct Vof<M_>::Imp {
       DetectInterface(uc);
       // Compute normal fcn_ [s]
       UNormal<M>::CalcNormal(m, uc, fci_, par->dim, fcn_);
+      //UNormal<M>::CalcNormalYoung(m, uc, fci_, fcn_); // XXX
       auto h = m.GetCellSize();
       // Reconstruct interface fca_ [s]
       for (auto c : m.SuCells()) {
         if (fci_[c]) {
-          fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
+          //fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
+          fca_[c] = 0; // XXX
         } else {
           fca_[c] = GetNan<Scal>();
         }
@@ -169,10 +171,22 @@ struct Vof<M_>::Imp {
   }
   void DetectInterface(const FieldCell<Scal>& uc) {
     fci_.Reinit(m, false);
+    // cell is 0<u<1
     for (auto c : m.AllCells()) {
       Scal u = uc[c];
       if (u > 0. && u < 1.) {
         fci_[c] = true;
+      }
+    }
+    // cell is u=1 and neighbour is u=0
+    for (auto c : m.SuCells()) {
+      if (uc[c] == 1) {
+        for (auto q : m.Nci(c)) {
+          IdxCell cn = m.GetNeighbourCell(c, q);
+          if (uc[cn] == 0) {
+            fci_[c] = true;
+          }
+        }
       }
     }
   }
