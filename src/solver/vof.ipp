@@ -379,7 +379,7 @@ struct Vof<M_>::Imp {
       }
     }
   }
-  void AdvWeymouth(Sem& sem) {
+  void AdvPlain(Sem& sem, int type) {
     std::vector<size_t> dd; // sweep directions
     if (par->dim == 3) { // 3d
       if (count_ % 3 == 0) {
@@ -401,7 +401,7 @@ struct Vof<M_>::Imp {
       if (sem("sweep")) {
         auto& uc = fcu_.iter_curr;
         Sweep(uc, d, *owner_->ffv_, fcn_, fca_, mfc_,
-              3, 1, nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), m);
+              type, 1, nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), m);
         Clip(uc, par->clipth);
         m.Comm(&uc);
       }
@@ -428,8 +428,18 @@ struct Vof<M_>::Imp {
       }
     }
 
-    //AdvAulisa(sem);
-    AdvWeymouth(sem);
+    using Scheme = typename Par::Scheme;
+    switch (par->scheme) {
+      case Scheme::plain:
+        AdvPlain(sem, 0);
+        break;
+      case Scheme::aulisa:
+        AdvAulisa(sem);
+        break;
+      case Scheme::weymouth:
+        AdvPlain(sem, 3);
+        break;
+    }
 
     if (sem("stat")) {
       owner_->IncIter();
