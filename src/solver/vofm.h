@@ -68,6 +68,8 @@ class Vofm : public AdvectionSolver<M_> {
     Scal vtkiso = 0.5;
     bool sharpen = false;
     Scal sharpen_cfl = 0.5;
+    enum class Scheme {plain, aulisa, weymouth};
+    Scheme scheme;
   };
 
   // Constructor

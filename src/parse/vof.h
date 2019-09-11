@@ -72,4 +72,17 @@ void Parse(typename Vof::Par* p, const Vars& var) {
       throw std::runtime_error("Update: unknown part_attrreconst=" + s);
     }
   }
+  {
+    using Scheme = typename Par::Scheme;
+    std::string s = var.String["vof_scheme"];
+    if (s == "plain") {
+      p->scheme = Scheme::plain;
+    } else if (s == "aulisa") {
+      p->scheme = Scheme::aulisa;
+    } else if (s == "weymouth") {
+      p->scheme = Scheme::weymouth;
+    } else {
+      throw std::runtime_error("Update: unknown vof_scheme=" + s);
+    }
+  }
 }
