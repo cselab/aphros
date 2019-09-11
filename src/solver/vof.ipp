@@ -232,15 +232,17 @@ struct Vof<M_>::Imp {
   //       2: Lagrange Explicit,
   //       3: Weymouth 2010
   // vsc: scale for mixture flux
-  // fcfm,fcfp: upwind mixture flux, required if le=1 [s]
+  // fcfm,fcfp: upwind mixture flux, required if type=2 [s]
+  // fcuu: volume fraction for Weymouth div term
   // dt: time step
-  void Sweep(FieldCell<Scal>& uc, size_t d,
-             const FieldFace<Scal>& ffv,
-             const FieldCell<Vect>& fcn, const FieldCell<Scal>& fca,
-             const MapFace<std::shared_ptr<CondFace>>& mfc,
-             int type, Scal vsc,
-             const FieldCell<Scal>& fcfm, const FieldCell<Scal>& fcfp,
-             Scal dt, const M& m) {
+  static void Sweep(
+      FieldCell<Scal>& uc, size_t d, const FieldFace<Scal>& ffv,
+      const FieldCell<Vect>& fcn, const FieldCell<Scal>& fca,
+      const MapFace<std::shared_ptr<CondFace>>& mfc,
+      int type, Scal vsc, 
+      const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
+      const FieldCell<Scal>* fcuu,
+      Scal dt, const M& m) {
     using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
     Dir md(d); // direction as Dir
@@ -271,7 +273,7 @@ struct Vof<M_>::Imp {
         if (type == 0 || type == 1 || type == 3) {
           ffvu[f] = R::GetLineFlux(fcn[cu], fca[cu], h, v, dt, d);
         } else if (type == 2) { // Lagrange Explicit
-          Scal vu = (v > 0. ? fcfm[cu] : fcfp[cu]) * vsc;
+          Scal vu = (v > 0. ? (*fcfm)[cu] : (*fcfp)[cu]) * vsc;
           ffvu[f] = R::GetLineFluxStr(fcn[cu], fca[cu], h, v, vu, dt, d);
         }
       } else { // pure cell
@@ -309,7 +311,7 @@ struct Vof<M_>::Imp {
       } else if (type == 2) { // Lagrange Explicit
         uc[c] += uc[c] * ds - dl;
       } else if (type == 3) { // Weymouth
-        uc[c] += (uc[c] < 0.5 ? 0 : 1) * ds - dl;
+        uc[c] += (*fcuu)[c] * ds - dl;
       }
     }
   }
@@ -364,7 +366,7 @@ struct Vof<M_>::Imp {
       if (sem("sweep")) {
         auto& uc = fcu_.iter_curr;
         Sweep(uc, d, *owner_->ffv_, fcn_, fca_, mfc_,
-              id % 2 == 0 ? 1 : 2, vsc, fcfm_, fcfp_,
+              id % 2 == 0 ? 1 : 2, vsc, &fcfm_, &fcfp_, nullptr,
               owner_->GetTimeStep(), m);
         Clip(uc, par->clipth);
         m.Comm(&uc);
@@ -373,7 +375,40 @@ struct Vof<M_>::Imp {
         BcReflect(fcu_.iter_curr, mfc_, par->bcc_fill, m);
       }
       if (sem.Nested("reconst")) {
-        // Compute fcn_,fca_ [s] , fci_ [a]
+        Rec(fcu_.iter_curr);
+      }
+    }
+  }
+  void AdvWeymouth(Sem& sem) {
+    std::vector<size_t> dd; // sweep directions
+    if (par->dim == 3) { // 3d
+      if (count_ % 3 == 0) {
+        dd = {0, 1, 2};
+      } else if (count_ % 3 == 1) {
+        dd = {1, 2, 0};
+      } else {
+        dd = {2, 0, 1};
+      }
+    } else { // 2d
+      if (count_ % 2 == 0) {
+        dd = {0, 1};
+      } else {
+        dd = {1, 0};
+      } 
+    }
+    for (size_t id = 0; id < dd.size(); ++id) {
+      size_t d = dd[id]; // direction as index
+      if (sem("sweep")) {
+        auto& uc = fcu_.iter_curr;
+        Sweep(uc, d, *owner_->ffv_, fcn_, fca_, mfc_,
+              3, 1, nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), m);
+        Clip(uc, par->clipth);
+        m.Comm(&uc);
+      }
+      if (par->bcc_reflect && sem.Nested("reflect")) {
+        BcReflect(fcu_.iter_curr, mfc_, par->bcc_fill, m);
+      }
+      if (sem.Nested("reconst")) {
         Rec(fcu_.iter_curr);
       }
     }
@@ -384,14 +419,17 @@ struct Vof<M_>::Imp {
       auto& uc = fcu_.iter_curr;
       const Scal dt = owner_->GetTimeStep();
       auto& fcs = *owner_->fcs_;
+      fcuu_.Reinit(m);
       for (auto c : m.Cells()) {
         uc[c] = 
             fcu_.time_prev[c] +  // previous time step
             dt * fcs[c]; // source
+        fcuu_[c] = (uc[c] < 0.5 ? 0 : 1);
       }
     }
 
-    AdvAulisa(sem);
+    //AdvAulisa(sem);
+    AdvWeymouth(sem);
 
     if (sem("stat")) {
       owner_->IncIter();
@@ -480,6 +518,7 @@ struct Vof<M_>::Imp {
   M& m;
 
   LayersData<FieldCell<Scal>> fcu_;
+  FieldCell<Scal> fcuu_;   // volume fraction for Weymouth div term
   MapFace<std::shared_ptr<CondFace>> mfc_;
   MapFace<std::shared_ptr<CondFace>> mfvz_; // zero-derivative bc for Vect
 
