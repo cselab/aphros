@@ -220,6 +220,110 @@ struct Vof<M_>::Imp {
       psm_->DumpPartInter(&fca_, &fcn_, par->dmp->GetN(), owner_->GetTime());
     }
   }
+  // Makes advection sweep in one direction, updates uc [i]
+  // uc: volume fraction [s]
+  // d: direction
+  // ffv: mixture flux [i]
+  // fcn,fca: normal and plane constant [s]
+  // mfc: face conditions
+  // type: 0: plain,
+  //       1: Euler Explicit,
+  //       2: Lagrange Explicit,
+  //       3: Weymouth 2010
+  // vsc: scale for mixture flux
+  // fcfm,fcfp: upwind mixture flux, required if le=1 [s]
+  // dt: time step
+  void Sweep(FieldCell<Scal>& uc, size_t d,
+             const FieldFace<Scal>& ffv,
+             const FieldCell<Vect>& fcn, const FieldCell<Scal>& fca,
+             const MapFace<std::shared_ptr<CondFace>>& mfc,
+             int type, Scal vsc,
+             const FieldCell<Scal>& fcfm, const FieldCell<Scal>& fcfp,
+             Scal dt, const M& m) {
+    using Dir = typename M::Dir;
+    using MIdx = typename M::MIdx;
+    Dir md(d); // direction as Dir
+    MIdx wd(md); // offset in direction d
+    auto& bc = m.GetIndexCells();
+    auto& bf = m.GetIndexFaces();
+    auto h = m.GetCellSize();
+
+    FieldFace<Scal> ffvu(m); // phase 2 flux
+
+    if (!(type >= 0 && type <= 3)) {
+      throw std::runtime_error(
+          "Sweep(): unknown type '" + std::to_string(type) + "'");
+    }
+
+    // compute fluxes [i]
+    for (auto f : m.Faces()) {
+      auto p = bf.GetMIdxDir(f);
+      Dir df = p.second;
+
+      if (df != md) {
+        continue;
+      }
+
+      const Scal v = ffv[f] * vsc; // mixture flux
+      IdxCell cu = m.GetNeighbourCell(f, v > 0. ? 0 : 1); // upwind cell
+      if (uc[cu] > 0 && uc[cu] < 1) { // interfacial cell
+        if (type == 0 || type == 1 || type == 3) {
+          ffvu[f] = R::GetLineFlux(fcn[cu], fca[cu], h, v, dt, d);
+        } else if (type == 2) { // Lagrange Explicit
+          Scal vu = (v > 0. ? fcfm[cu] : fcfp[cu]) * vsc;
+          ffvu[f] = R::GetLineFluxStr(fcn[cu], fca[cu], h, v, vu, dt, d);
+        }
+      } else { // pure cell
+        ffvu[f] = v * uc[cu];
+      }
+    }
+
+    FieldFace<Scal> ffu(m); // volume fraction on boundaries
+    InterpolateB(uc, mfc, ffu, m);
+
+    // override boundary upwind flux
+    for (const auto& it : mfc) {
+      IdxFace f = it.GetIdx();
+      CondFace* cb = it.GetValue().get(); 
+      Scal v = ffv[f];
+      if ((cb->GetNci() == 0) != (v > 0.)) {
+        ffvu[f] = v * ffu[f];
+      }
+    }
+
+    // update volume fraction [i]
+    for (auto c : m.Cells()) {
+      auto w = bc.GetMIdx(c);
+      const Scal lc = m.GetVolume(c);
+      IdxFace fm = bf.GetIdx(w, md);
+      IdxFace fp = bf.GetIdx(w + wd, md);
+      // mixture cfl
+      const Scal ds = (ffv[fp] - ffv[fm]) * vsc * dt / lc;
+      // phase 2 cfl
+      const Scal dl = (ffvu[fp] - ffvu[fm]) * dt / lc;
+      if (type == 0) {        // plain
+        uc[c] += -dl;
+      } else if (type == 1) { // Euler Implicit
+        uc[c] = (uc[c] - dl) / (1. - ds);
+      } else if (type == 2) { // Lagrange Explicit
+        uc[c] += uc[c] * ds - dl;
+      } else if (type == 3) { // Weymouth
+        uc[c] += (uc[c] < 0.5 ? 0 : 1) * ds - dl;
+      }
+    }
+  }
+  void Clip(FieldCell<Scal>& uc, Scal th) {
+    for (auto c : m.Cells()) {
+      Scal& u = uc[c];
+      if (u < th) {
+        u = 0;
+      } else if (u > 1 - th) {
+        u = 1;
+      } else if (IsNan(u)) {
+        u = 0;
+      }
+    }
+  }
   void MakeIteration() {
     auto sem = m.GetSem("iter");
     if (sem("init")) {
@@ -233,8 +337,6 @@ struct Vof<M_>::Imp {
       }
     }
 
-    using Dir = typename M::Dir;
-    using MIdx = typename M::MIdx;
     // directions, format: {dir LE, dir EI, ...}
     std::vector<size_t> dd; 
     Scal vsc; // scaling factor for ffv, used for splitting
@@ -270,107 +372,12 @@ struct Vof<M_>::Imp {
           m.Comm(&fcfp_);
         }
       }
-      if (sem("adv")) {
-        Dir md(d); // direction as Dir
-        MIdx wd(md); // offset in direction d
+      if (sem("sweep")) {
         auto& uc = fcu_.iter_curr;
-        auto& bc = m.GetIndexCells();
-        auto& bf = m.GetIndexFaces();
-        auto h = m.GetCellSize();
-        auto& ffv = *owner_->ffv_; // [f]ield [f]ace [v]olume flux
-        const Scal dt = owner_->GetTimeStep();
-
-        FieldFace<Scal> ffvu(m); // flux: volume flux * field
-
-        ffi_.Reinit(m);
-        // fluxes [i], require fcu_,fcn_,fca_ [s]
-        for (auto f : m.Faces()) {
-          auto p = bf.GetMIdxDir(f);
-          Dir df = p.second;
-
-          if (df != md) {
-            continue;
-          }
-
-          // mixture flux
-          const Scal v = ffv[f] * vsc;
-          // upwind cell
-          IdxCell cu = m.GetNeighbourCell(f, v > 0. ? 0 : 1);
-          if (fci_[cu]) { // cell contains interface, flux from reconstruction
-            if (id % 2 == 0) { // Euler Implicit
-              // phase 2 flux
-              ffvu[f] = R::GetLineFlux(fcn_[cu], fca_[cu], h, v, dt, d);
-            } else { // Lagrange Explicit
-              // XXX: if id % 2 == 1, fcfm_ and fcfp_ contain fluxes
-              // upwind mixture flux
-              Scal vu = (v > 0. ? fcfm_[cu] : fcfp_[cu]) * vsc;
-              // phase 2 flux
-              ffvu[f] = R::GetLineFluxStr(fcn_[cu], fca_[cu], h, v, vu, dt, d);
-            }
-            ffi_[f] = true;
-          } else {
-            ffvu[f] = v * uc[cu];
-            ffi_[f] = false;
-          }
-        }
-
-        FieldFace<Scal> ffu(m);
-        // interpolate field value to boundaries
-        InterpolateB(uc, mfc_, ffu, m);
-
-        // override boundary upwind flux
-        for (const auto& it : mfc_) {
-          IdxFace f = it.GetIdx();
-          CondFace* cb = it.GetValue().get(); 
-          Scal v = ffv[f];
-          if ((cb->GetNci() == 0) != (v > 0.)) {
-            ffvu[f] = v * ffu[f];
-            ffi_[f] = true;
-          }
-        }
-
-        for (auto c : m.Cells()) {
-          auto w = bc.GetMIdx(c);
-          const Scal lc = m.GetVolume(c);
-          // faces
-          IdxFace fm = bf.GetIdx(w, md);
-          IdxFace fp = bf.GetIdx(w + wd, md);
-          if (!ffi_[fm] && !ffi_[fp]) {
-            continue;
-          }
-          // mixture fluxes
-          const Scal vm = ffv[fm] * vsc;
-          const Scal vp = ffv[fp] * vsc;
-          // mixture cfl
-          const Scal sm = vm * dt / lc;
-          const Scal sp = vp * dt / lc;
-          const Scal ds = sp - sm;
-          // phase 2 fluxes
-          Scal qm = ffvu[fm];
-          Scal qp = ffvu[fp];
-          // phase 2 cfl
-          const Scal lm = qm * dt / lc;
-          const Scal lp = qp * dt / lc;
-          const Scal dl = lp - lm;
-          if (id % 2 == 0) { // Euler Implicit
-            uc[c] = (uc[c] - dl) / (1. - ds);
-          } else { // Lagrange Explicit
-            uc[c] = uc[c] * (1. + ds) - dl;
-          }
-        }
-
-        // clip
-        const Scal th = par->clipth;
-        for (auto c : m.Cells()) {
-          Scal& u = uc[c];
-          if (u < th) {
-            u = 0.;
-          } else if (u > 1. - th) {
-            u = 1.;
-          } else if (IsNan(u)) {
-            u = 0.;
-          }
-        }
+        Sweep(uc, d, *owner_->ffv_, fcn_, fca_, mfc_,
+              id % 2 == 0 ? 1 : 2, vsc, fcfm_, fcfp_,
+              owner_->GetTimeStep(), m);
+        Clip(uc, par->clipth);
         m.Comm(&uc);
       }
       if (par->bcc_reflect && sem.Nested("reflect")) {
@@ -475,7 +482,6 @@ struct Vof<M_>::Imp {
   FieldCell<Vect> fcn_; // n (normal to plane)
   FieldCell<Scal> fck_; // curvature from height functions
   FieldCell<bool> fci_; // interface mask (1: contains interface)
-  FieldFace<bool> ffi_; // interface mask (1: upwind cell contains interface)
   FieldCell<Vect> fcud2_; // volume fraction difference double
   FieldCell<Vect> fcud4_; // volume fraction difference quad
   FieldCell<Vect> fcud6_; // volume fraction difference 6th
