@@ -24,6 +24,7 @@ struct Vof<M_>::Imp {
   using PSM = PartStrMeshM<M>;
   static constexpr size_t dim = M::dim;
   using Vect2 = GVect<Scal, 2>;
+  using Sem = typename M::Sem;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu,
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
@@ -324,22 +325,10 @@ struct Vof<M_>::Imp {
       }
     }
   }
-  void MakeIteration() {
-    auto sem = m.GetSem("iter");
-    if (sem("init")) {
-      auto& uc = fcu_.iter_curr;
-      const Scal dt = owner_->GetTimeStep();
-      auto& fcs = *owner_->fcs_;
-      for (auto c : m.Cells()) {
-        uc[c] = 
-            fcu_.time_prev[c] +  // previous time step
-            dt * fcs[c]; // source
-      }
-    }
-
-    // directions, format: {dir LE, dir EI, ...}
-    std::vector<size_t> dd; 
-    Scal vsc; // scaling factor for ffv, used for splitting
+  void AdvAulisa(Sem& sem) {
+    // directions, format: {dir EI, dir LE, ...}
+    std::vector<size_t> dd;
+    Scal vsc; // scaling factor for ffv
     if (par->dim == 3) { // 3d
       if (count_ % 3 == 0) {
         dd = {0, 1, 1, 2, 2, 0};
@@ -349,7 +338,7 @@ struct Vof<M_>::Imp {
         dd = {2, 0, 0, 1, 1, 2};
       }
       vsc = 0.5;
-    } else {
+    } else { // 2d
       if (count_ % 2 == 0) {
         dd = {0, 1};
       } else {
@@ -388,6 +377,22 @@ struct Vof<M_>::Imp {
         Rec(fcu_.iter_curr);
       }
     }
+  }
+  void MakeIteration() {
+    auto sem = m.GetSem("iter");
+    if (sem("init")) {
+      auto& uc = fcu_.iter_curr;
+      const Scal dt = owner_->GetTimeStep();
+      auto& fcs = *owner_->fcs_;
+      for (auto c : m.Cells()) {
+        uc[c] = 
+            fcu_.time_prev[c] +  // previous time step
+            dt * fcs[c]; // source
+      }
+    }
+
+    AdvAulisa(sem);
+
     if (sem("stat")) {
       owner_->IncIter();
       ++count_;
