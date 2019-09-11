@@ -88,31 +88,6 @@ class Reconst {
     }
   }
 
-  // GetLineU() helper
-  // assuming -0.5 * n.sum() < a < 0, 0 < nx < ny < nz
-  static Scal GetLineU0(Scal nx, Scal ny, Scal nz, Scal a) {
-    Scal f = 0.5 * (nx + ny + nz) + a;
-
-    if (f <= 0) {
-      return 0.;
-    }
-
-    if (nx > f) {
-      return cube(f) / (6. * nx * ny * nz);
-    } else if (ny > f) {
-      return (3. * sqr(f) - 3. * f * nx + sqr(nx)) / (6. * ny * nz);
-    } else if (nz > f && nx + ny > f) {
-      nx = std::max(1e-50, nx);
-      return (3. * sqr(f) - 3. * f * nx + sqr(nx) -
-          std::min(1., (f - ny) / nx) * sqr(f - ny)) / (6. * ny * nz);
-    } else if (nz >= f && nx + ny <= f) {
-      return (2. * f - nx - ny) / (2. * nz);
-    } else {
-      return (cube(f) - cube(f - nx) - cube(f - ny) - cube(f - nz)) / 
-        (6. * nx * ny * nz);
-    }
-  }
-
   // Sort to have a <= b <= c
   static void Sort(Scal& a, Scal& b, Scal& c) {
     if (b < a) {
@@ -148,12 +123,38 @@ class Reconst {
     return r;
   }
 
-  // GetLineU() helper for unit cell
-  // n : normal
-  // a: line constant
+  // Volume fraction from plane constant in unit cell with ordered normal.
+  // nx,ny,nz: normal, 0 <= nx <= ny <= nz
+  // a: plane constant, -0.5*n.sum() <= a <= 0
+  static Scal GetLineU0(Scal nx, Scal ny, Scal nz, Scal a) {
+    Scal f = a + 0.5 * (nx + ny + nz);
+
+    if (f <= 0) {
+      return 0.;
+    }
+    if (nx >= f) { // f>0, nx>0
+      return cube(f) / (6 * nx * ny * nz);
+    }
+    if (ny >= f) {
+      return (3 * sqr(f) - 3 * f * nx + sqr(nx)) / (6 * ny * nz);
+    }
+    if (nz >= f) {
+      if (nx + ny >= f) { // ny>=f/2, ny<f, nx>=f-ny, nx>0
+        return (3 * sqr(f) - 3 * f * nx + sqr(nx) -
+            std::min(1., (f - ny) / nx) * sqr(f - ny)) / (6 * ny * nz);
+      }
+      return (2 * f - nx - ny) / (2 * nz);
+    }
+    return (cube(f) - cube(f - nx) - cube(f - ny) - cube(f - nz)) /
+        (6 * nx * ny * nz);
+  }
+
+  // Volume fraction from plane constant in unit cell.
+  // n0: normal
+  // a: plane constant
   // Returns:
   // u: volume fraction
-  // Equation of reconstructed line 
+  // Equation of reconstructed plane
   // x.dot(n) = a
   static Scal GetLineU1(const Vect& n0, Scal a) {
     Vect n = n0.abs();
@@ -181,8 +182,11 @@ class Reconst {
     return GetLineU1(n * h, a);
   }
 
-  // GetLineA() helper
-  // assuming 0 < u < 0.5, 0 < nx < ny < nz
+  // Plane constant by volume fraction in unit cell.
+  // nx,ny,nz: normal, 0 <= nx <= ny <= nz
+  // u: volume fraction, 0 <= u <= 0.5
+  // Returns:
+  // a: plane constant
   static Scal GetLineA0(Scal nx, Scal ny, Scal nz, Scal u) {
     Scal f;
     if (6. * ny * nz * u < sqr(nx)) {
@@ -216,6 +220,7 @@ class Reconst {
 
   // GetLineA() helper
   // assuming 0 < u < 0.5, 0 < nx < ny
+  // XXX: 2d specific
   static Scal GetLineA0(Scal nx, Scal ny, Scal u) {
     Scal u1 = 0.5 * nx / ny;
     if (u <= u1) {
@@ -355,11 +360,11 @@ class Reconst {
     return GetClip(volume, 0., 1.);
   }
 
-  // GetLineA() helper for unit cell.
+  // Plane constant by volume fraction in unit cell.
   // n : normal
   // u: volume fraction
   // Returns:
-  // a: line constant
+  // a: plane constant
   // Equation of reconstructed line 
   // x.dot(n) = a
   static Scal GetLineA1(const Vect& n0, Scal u) {
@@ -371,10 +376,10 @@ class Reconst {
       return GetClip(a, -0.5 * n.sum(), 0.5 * n.sum());
     }
 
-    if (u < 0.5) {
+    if (u <= 0.5) {
       return GetLineA0(n[0], n[1], n[2], u);
     }
-    return -GetLineA0(n[0], n[1], n[2], 1. - u);
+    return -GetLineA0(n[0], n[1], n[2], 1 - u);
   }
 
   // Line constant by volume fraction in rectangular cell.
