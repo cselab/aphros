@@ -155,10 +155,10 @@ struct Vof<M_>::Imp {
     auto sem = m.GetSem("rec");
     if (sem("local")) {
       DetectInterface(uc);
-      // Compute normal fcn_ [s]
+      // Compute fcn_ [s]
       UNormal<M>::CalcNormal(m, uc, fci_, par->dim, fcn_);
       auto h = m.GetCellSize();
-      // Reconstruct interface fca_ [s]
+      // Compute fca_ [s]
       for (auto c : m.SuCells()) {
         if (fci_[c]) {
           fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
@@ -231,15 +231,13 @@ struct Vof<M_>::Imp {
   //       1: Euler Explicit,
   //       2: Lagrange Explicit,
   //       3: Weymouth 2010
-  // vsc: scale for mixture flux
   // fcfm,fcfp: upwind mixture flux, required if type=2 [s]
   // fcuu: volume fraction for Weymouth div term
   // dt: time step
   static void Sweep(
       FieldCell<Scal>& uc, size_t d, const FieldFace<Scal>& ffv,
       const FieldCell<Vect>& fcn, const FieldCell<Scal>& fca,
-      const MapFace<std::shared_ptr<CondFace>>& mfc,
-      int type, Scal vsc, 
+      const MapFace<std::shared_ptr<CondFace>>& mfc, int type,
       const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
       const FieldCell<Scal>* fcuu,
       Scal dt, const M& m) {
@@ -267,13 +265,13 @@ struct Vof<M_>::Imp {
         continue;
       }
 
-      const Scal v = ffv[f] * vsc; // mixture flux
+      const Scal v = ffv[f]; // mixture flux
       IdxCell cu = m.GetNeighbourCell(f, v > 0. ? 0 : 1); // upwind cell
       if (uc[cu] > 0 && uc[cu] < 1) { // interfacial cell
         if (type == 0 || type == 1 || type == 3) {
           ffvu[f] = R::GetLineFlux(fcn[cu], fca[cu], h, v, dt, d);
         } else if (type == 2) { // Lagrange Explicit
-          Scal vu = (v > 0. ? (*fcfm)[cu] : (*fcfp)[cu]) * vsc;
+          Scal vu = (v > 0. ? (*fcfm)[cu] : (*fcfp)[cu]);
           ffvu[f] = R::GetLineFluxStr(fcn[cu], fca[cu], h, v, vu, dt, d);
         }
       } else { // pure cell
@@ -281,15 +279,13 @@ struct Vof<M_>::Imp {
       }
     }
 
-    FieldFace<Scal> ffu(m); // volume fraction on boundaries
+    FieldFace<Scal> ffu(m);
     InterpolateB(uc, mfc, ffu, m);
-
-    // override boundary upwind flux
+    // override boundary flux
     for (const auto& it : mfc) {
       IdxFace f = it.GetIdx();
-      CondFace* cb = it.GetValue().get(); 
       Scal v = ffv[f];
-      if ((cb->GetNci() == 0) != (v > 0.)) {
+      if ((it.GetValue()->GetNci() == 0) != (v > 0.)) {
         ffvu[f] = v * ffu[f];
       }
     }
@@ -301,7 +297,7 @@ struct Vof<M_>::Imp {
       IdxFace fm = bf.GetIdx(w, md);
       IdxFace fp = bf.GetIdx(w + wd, md);
       // mixture cfl
-      const Scal ds = (ffv[fp] - ffv[fm]) * vsc * dt / lc;
+      const Scal ds = (ffv[fp] - ffv[fm]) * dt / lc;
       // phase 2 cfl
       const Scal dl = (ffvu[fp] - ffvu[fm]) * dt / lc;
       if (type == 0) {        // plain
@@ -330,7 +326,7 @@ struct Vof<M_>::Imp {
   void AdvAulisa(Sem& sem) {
     // directions, format: {dir EI, dir LE, ...}
     std::vector<size_t> dd;
-    Scal vsc; // scaling factor for ffv
+    Scal vsc; // scaling factor for time step
     if (par->dim == 3) { // 3d
       if (count_ % 3 == 0) {
         dd = {0, 1, 1, 2, 2, 0};
@@ -366,8 +362,8 @@ struct Vof<M_>::Imp {
       if (sem("sweep")) {
         auto& uc = fcu_.iter_curr;
         Sweep(uc, d, *owner_->ffv_, fcn_, fca_, mfc_,
-              id % 2 == 0 ? 1 : 2, vsc, &fcfm_, &fcfp_, nullptr,
-              owner_->GetTimeStep(), m);
+              id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
+              owner_->GetTimeStep() * vsc, m);
         Clip(uc, par->clipth);
         m.Comm(&uc);
       }
@@ -401,7 +397,7 @@ struct Vof<M_>::Imp {
       if (sem("sweep")) {
         auto& uc = fcu_.iter_curr;
         Sweep(uc, d, *owner_->ffv_, fcn_, fca_, mfc_,
-              type, 1, nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), m);
+              type, nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), m);
         Clip(uc, par->clipth);
         m.Comm(&uc);
       }
