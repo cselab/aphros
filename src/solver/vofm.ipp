@@ -588,6 +588,185 @@ struct Vofm<M_>::Imp {
       }
     }
   }
+  /*
+  void AdvPlain(Sem& sem, int type) {
+    std::vector<size_t> dd; // sweep directions
+    if (par->dim == 3) { // 3d
+      if (count_ % 3 == 0) {
+        dd = {0, 1, 2};
+      } else if (count_ % 3 == 1) {
+        dd = {1, 2, 0};
+      } else {
+        dd = {2, 0, 1};
+      }
+    } else { // 2d
+      if (count_ % 2 == 0) {
+        dd = {0, 1};
+      } else {
+        dd = {1, 0};
+      } 
+    }
+    for (size_t id = 0; id < dd.size(); ++id) {
+      size_t d = dd[id]; // direction as index
+      if (sem("sweep")) {
+        auto& uc = fcu_.iter_curr;
+        Sweep(uc, d, *owner_->ffv_, fcn_, fca_, mfc_,
+              type, 1, nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), m);
+        Clip(uc, par->clipth);
+        m.Comm(&uc);
+      }
+      if (par->bcc_reflect && sem.Nested("reflect")) {
+        BcReflect(fcu_.iter_curr, mfc_, par->bcc_fill, m);
+      }
+      if (sem.Nested("reconst")) {
+        Rec(fcu_.iter_curr);
+      }
+    }
+  }
+  */
+  // Makes advection sweep in one direction, updates uc [i] and fccl [s]
+  // uc: volume fraction [s]
+  // d: direction
+  // ffv: mixture flux [i]
+  // fcn,fca: normal and plane constant [s]
+  // mfc: face conditions
+  // type: 0: plain,
+  //       1: Euler Explicit,
+  //       2: Lagrange Explicit,
+  //       3: Weymouth 2010
+  // fcfm,fcfp: upwind mixture flux, required if type=2 [s]
+  // fcuu: volume fraction for Weymouth div term
+  // dt: time step
+  static void Sweep(
+      const Multi<FieldCell<Scal>*>& mfcu, size_t d,
+      const GRange<size_t>& layers,
+      const FieldFace<Scal>& ffv,
+      const Multi<FieldCell<Scal>*>& mfccl,
+      const Multi<const FieldCell<Vect>*>& mfcn,
+      const Multi<const FieldCell<Scal>*>& mfca,
+      const MapFace<std::shared_ptr<CondFace>>& mfc, int type,
+      const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
+      const Multi<const FieldCell<Scal>*>& mfcuu,
+      Scal dt, const M& m) {
+    using Dir = typename M::Dir;
+    using MIdx = typename M::MIdx;
+    Dir md(d); // direction as Dir
+    MIdx wd(md); // offset in direction d
+    auto& bc = m.GetIndexCells();
+    auto& bf = m.GetIndexFaces();
+    auto h = m.GetCellSize();
+
+    Multi<FieldFace<Scal>> mffvu(layers.size()); // phase 2 flux
+    Multi<FieldFace<Scal>> mffcl(layers.size()); // face color
+
+    if (!(type >= 0 && type <= 3)) {
+      throw std::runtime_error(
+          "Sweep(): unknown type '" + std::to_string(type) + "'");
+    }
+
+    for (auto i : layers) {
+      auto& fcu = *mfcu[i];
+      auto& fcn = *mfcn[i];
+      auto& fca = *mfca[i];
+      auto& fccl = *mfccl[i];
+      auto& ffvu = mffvu[i];
+      auto& ffcl = mffcl[i];
+
+      // compute fluxes [i] and propagate color to downwind cells
+      ffvu.Reinit(m, GetNan<Scal>());
+      ffcl.Reinit(m, kClNone);
+      for (auto f : m.Faces()) {
+        auto p = bf.GetMIdxDir(f);
+        Dir df = p.second;
+
+        if (df != md) {
+          continue;
+        }
+
+        const Scal v = ffv[f]; // mixture flux
+        IdxCell c = m.GetNeighbourCell(f, v > 0. ? 0 : 1); // upwind cell
+        if (fccl[c] != kClNone) {
+          if (fcu[c] > 0 && fcu[c] < 1) {
+            if (type == 0 || type == 1 || type == 3) {
+              ffvu[f] = R::GetLineFlux(fcn[c], fca[c], h, v, dt, d);
+            } else if (type == 2) {
+              Scal vu = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
+              ffvu[f] = R::GetLineFluxStr(fcn[c], fca[c], h, v, vu, dt, d);
+            }
+          } else { // pure cell
+            ffvu[f] = v * fcu[c];
+          }
+
+          // propagate to downwind cell if empty
+          IdxCell cd = m.GetNeighbourCell(f, v > 0. ? 1 : 0); // downwind cell
+          bool found = false;
+          for (auto j : layers) {
+            if ((*mfccl[j])[cd] == fccl[c]) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            for (auto j : layers) {
+              if ((*mfccl[j])[cd] == kClNone) {
+                (*mfccl[j])[cd] = fccl[c];
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      FieldFace<Scal> ffu(m);
+      InterpolateB(fcu, mfc, ffu, m);
+      // override boundary flux
+      for (const auto& it : mfc) {
+        IdxFace f = it.GetIdx();
+        if (ffcl[f] != kClNone) {
+          Scal v = ffv[f];
+          if ((it.GetValue()->GetNci() == 0) != (v > 0.)) {
+            ffvu[f] = v * ffu[f];
+          }
+        }
+      }
+    }
+
+    // update volume fraction [i]
+    for (auto i : layers) {
+      auto& fcu = *mfcu[i];
+      auto& fcuu = *mfcuu[i];
+      auto& fccl = *mfccl[i];
+      for (auto c : m.Cells()) {
+        if (fccl[c] != kClNone) {
+          auto w = bc.GetMIdx(c);
+          const Scal lc = m.GetVolume(c);
+          IdxFace fm = bf.GetIdx(w, md);
+          IdxFace fp = bf.GetIdx(w + wd, md);
+          // mixture cfl
+          const Scal ds = (ffv[fp] - ffv[fm]) * dt / lc;
+          // phase 2 cfl
+          Scal vm = 0;
+          Scal vp = 0;
+          for (auto j : layers) {
+            if (mffcl[j][fm] == fccl[c]) { vm = mffvu[j][fm]; break; }
+          }
+          for (auto j : layers) {
+            if (mffcl[j][fp] == fccl[c]) { vp = mffvu[j][fp]; break; }
+          }
+          const Scal dl = (vp - vm) * dt / lc;
+          if (type == 0) {        // plain
+            fcu[c] += -dl;
+          } else if (type == 1) { // Euler Implicit
+            fcu[c] = (fcu[c] - dl) / (1. - ds);
+          } else if (type == 2) { // Lagrange Explicit
+            fcu[c] += fcu[c] * ds - dl;
+          } else if (type == 3) { // Weymouth
+            fcu[c] += fcuu[c] * ds - dl;
+          }
+        }
+      }
+    }
+  }
   void MakeIteration() {
     auto sem = m.GetSem("iter");
     if (sem("init")) {
@@ -652,19 +831,19 @@ struct Vofm<M_>::Imp {
           MIdx wd(md); // offset in direction d
           auto& bf = m.GetIndexFaces();
           auto h = m.GetCellSize();
-          const Scal dt = owner_->GetTimeStep();
+          const Scal dt = owner_->GetTimeStep() * vsc;
           auto& ffv = *owner_->ffv_; // [f]ield [f]ace [v]olume flux
 
           // Returns phase 2 flux
-          auto F = [this,vsc,id,h,dt,d,&ffv](
+          auto F = [this,id,h,dt,d,&ffv](
               IdxFace f, IdxCell cu, Scal u, Vect n, Scal a, bool in) {
-            const Scal v = ffv[f] * vsc; // mixture flux
+            const Scal v = ffv[f]; // mixture flux
             if (in) {
               if (id % 2 == 0) { // Euler Implicit
                 return R::GetLineFlux(n, a, h, v, dt, d);
               } else {           // Lagrange Explicit
                 // upwind mixture flux
-                Scal vu = (v > 0. ? fcfm_[cu] : fcfp_[cu]) * vsc;
+                Scal vu = (v > 0. ? fcfm_[cu] : fcfp_[cu]);
                 return R::GetLineFluxStr(n, a, h, v, vu, dt, d);
               }
             }
@@ -695,9 +874,8 @@ struct Vofm<M_>::Imp {
           }
 
           FieldFace<Scal> ffu(m);
-          // interpolate field value to boundaries
           InterpolateB(fcu, mfc_, ffu, m);
-          // override boundary upwind flux
+          // override boundary flux
           for (const auto& it : mfc_) {
             IdxFace f = it.GetIdx();
             CondFace* cb = it.GetValue().get(); 
@@ -713,7 +891,7 @@ struct Vofm<M_>::Imp {
         for (auto i : layers) {
           Dir md(d); // direction as Dir
           MIdx wd(md); // offset in direction d
-          const Scal dt = owner_->GetTimeStep();
+          const Scal dt = owner_->GetTimeStep() * vsc;
           auto& bc = m.GetIndexCells();
           auto& bf = m.GetIndexFaces();
           auto& ffv = *owner_->ffv_; // mixture flux
@@ -731,8 +909,8 @@ struct Vofm<M_>::Imp {
             IdxFace fm = bf.GetIdx(w, md);
             IdxFace fp = bf.GetIdx(w + wd, md);
             // mixture fluxes
-            const Scal vm = ffv[fm] * vsc;
-            const Scal vp = ffv[fp] * vsc;
+            const Scal vm = ffv[fm];
+            const Scal vp = ffv[fp];
             // mixture cfl
             const Scal sm = vm * dt / lc;
             const Scal sp = vp * dt / lc;
