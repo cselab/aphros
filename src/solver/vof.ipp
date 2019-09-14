@@ -234,13 +234,14 @@ struct Vof<M_>::Imp {
   // fcfm,fcfp: upwind mixture flux, required if type=2 [s]
   // fcuu: volume fraction for Weymouth div term
   // dt: time step
+  // clipth: threshold for clipping, values outside [th,1-th] are clipped
   static void Sweep(
       FieldCell<Scal>& uc, size_t d, const FieldFace<Scal>& ffv,
       const FieldCell<Vect>& fcn, const FieldCell<Scal>& fca,
       const MapFace<std::shared_ptr<CondFace>>& mfc, int type,
       const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
       const FieldCell<Scal>* fcuu,
-      Scal dt, const M& m) {
+      Scal dt, Scal clipth, const M& m) {
     using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
     Dir md(d); // direction as Dir
@@ -300,26 +301,21 @@ struct Vof<M_>::Imp {
       const Scal ds = (ffv[fp] - ffv[fm]) * dt / lc;
       // phase 2 cfl
       const Scal dl = (ffvu[fp] - ffvu[fm]) * dt / lc;
+      auto& u = uc[c];
       if (type == 0) {        // plain
-        uc[c] += -dl;
+        u += -dl;
       } else if (type == 1) { // Euler Implicit
-        uc[c] = (uc[c] - dl) / (1. - ds);
+        u = (u - dl) / (1. - ds);
       } else if (type == 2) { // Lagrange Explicit
-        uc[c] += uc[c] * ds - dl;
+        u += u * ds - dl;
       } else if (type == 3) { // Weymouth
-        uc[c] += (*fcuu)[c] * ds - dl;
+        u += (*fcuu)[c] * ds - dl;
       }
-    }
-  }
-  void Clip(FieldCell<Scal>& uc, Scal th) {
-    for (auto c : m.Cells()) {
-      Scal& u = uc[c];
-      if (u < th) {
+      // clip
+      if (!(u >= clipth)) {
         u = 0;
-      } else if (u > 1 - th) {
+      } else if (!(u <= 1 - clipth)) {
         u = 1;
-      } else if (IsNan(u)) {
-        u = 0;
       }
     }
   }
@@ -363,8 +359,7 @@ struct Vof<M_>::Imp {
         auto& uc = fcu_.iter_curr;
         Sweep(uc, d, *owner_->ffv_, fcn_, fca_, mfc_,
               id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
-              owner_->GetTimeStep() * vsc, m);
-        Clip(uc, par->clipth);
+              owner_->GetTimeStep() * vsc, par->clipth, m);
         m.Comm(&uc);
       }
       if (par->bcc_reflect && sem.Nested("reflect")) {
@@ -394,18 +389,55 @@ struct Vof<M_>::Imp {
     }
     for (size_t id = 0; id < dd.size(); ++id) {
       size_t d = dd[id]; // direction as index
+      auto& uc = fcu_.iter_curr;
       if (sem("sweep")) {
-        auto& uc = fcu_.iter_curr;
         Sweep(uc, d, *owner_->ffv_, fcn_, fca_, mfc_,
-              type, nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), m);
-        Clip(uc, par->clipth);
+              type, nullptr, nullptr, &fcuu_,
+              owner_->GetTimeStep(), par->clipth, m);
         m.Comm(&uc);
       }
       if (par->bcc_reflect && sem.Nested("reflect")) {
-        BcReflect(fcu_.iter_curr, mfc_, par->bcc_fill, m);
+        BcReflect(uc, mfc_, par->bcc_fill, m);
       }
       if (sem.Nested("reconst")) {
         Rec(fcu_.iter_curr);
+      }
+    }
+  }
+  void Sharpen() {
+    auto sem = m.GetSem("sharp");
+    std::vector<size_t> dd; // sweep directions
+    if (par->dim == 3) { // 3d
+      if (count_ % 3 == 0) {
+        dd = {0, 0, 1, 1, 2, 2};
+      } else if (count_ % 3 == 1) {
+        dd = {1, 1, 2, 2, 0, 0};
+      } else {
+        dd = {2, 2, 0, 0, 1, 1};
+      }
+    } else { // 2d
+      if (count_ % 2 == 0) {
+        dd = {0, 0, 1, 1};
+      } else {
+        dd = {1, 1, 0, 0};
+      }
+    }
+    for (size_t id = 0; id < dd.size(); ++id) {
+      size_t d = dd[id]; // direction as index
+      auto& uc = fcu_.iter_curr;
+      if (sem("sweep")) {
+        const FieldFace<Scal> ffv(
+            m, m.GetCellSize().prod() * (id % 2 ? -1 : 1) * par->sharpen_cfl);
+
+        Sweep(uc, d, ffv, fcn_, fca_, mfc_,
+            0, nullptr, nullptr, nullptr, 1., par->clipth, m);
+        m.Comm(&uc);
+      }
+      if (par->bcc_reflect && sem("reflect")) {
+        BcReflect(uc, mfc_, par->bcc_fill, m);
+      }
+      if (sem.Nested("reconst")) {
+        Rec(uc);
       }
     }
   }
@@ -433,6 +465,10 @@ struct Vof<M_>::Imp {
       case Scheme::weymouth:
         AdvPlain(sem, 3);
         break;
+    }
+
+    if (sem.Nested("sharpen")) {
+      Sharpen();
     }
 
     if (sem("stat")) {
