@@ -638,6 +638,7 @@ struct Vofm<M_>::Imp {
   // fcfm,fcfp: upwind mixture flux, required if type=2 [s]
   // fcuu: volume fraction for Weymouth div term
   // dt: time step
+  // clipth: threshold for clipping, values outside [th,1-th] are clipped
   static void Sweep(
       const Multi<FieldCell<Scal>*>& mfcu, size_t d,
       const GRange<size_t>& layers,
@@ -648,7 +649,7 @@ struct Vofm<M_>::Imp {
       const MapFace<std::shared_ptr<CondFace>>& mfc, int type,
       const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
       const Multi<const FieldCell<Scal>*>& mfcuu,
-      Scal dt, const M& m) {
+      Scal dt, Scal clipth, const M& m) {
     using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
     Dir md(d); // direction as Dir
@@ -766,26 +767,17 @@ struct Vofm<M_>::Imp {
           } else if (type == 3) { // Weymouth
             u += fcuu[c] * ds - dl;
           }
+          // clip
+          if (!(u >= clipth)) {
+            u = 0;
+          } else if (!(u <= 1 - clipth)) {
+            u = 1;
+          }
+          // clear color
+          if (u == 0) {
+            fccl[c] = kClNone;
+          }
         }
-      }
-    }
-  }
-  void Clip(FieldCell<Scal>& uc, Scal th) {
-    for (auto c : m.Cells()) {
-      Scal& u = uc[c];
-      if (u < th) {
-        u = 0;
-      } else if (u > 1 - th) {
-        u = 1;
-      } else if (IsNan(u)) {
-        u = 0;
-      }
-    }
-  }
-  void ClearColor(FieldCell<Scal>& fccl, const FieldCell<Scal>& fcu) {
-    for (auto c : m.Cells()) {
-      if (fcu[c] == 0) {
-        fccl[c] = kClNone;
       }
     }
   }
@@ -828,12 +820,9 @@ struct Vofm<M_>::Imp {
       if (sem("sweep")) {
         Sweep(mfcu, d, layers, *owner_->ffv_, fccl_, fcn_, fca_, mfc_,
               id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
-              owner_->GetTimeStep() * vsc, m);
+              owner_->GetTimeStep() * vsc, par->clipth, m);
         for (auto i : layers) {
-          auto& uc = *mfcu[i];
-          Clip(uc, par->clipth);
-          ClearColor(fccl_[i], uc);
-          m.Comm(&uc);
+          m.Comm(mfcu[i]);
           m.Comm(&fccl_[i]);
         }
       }
