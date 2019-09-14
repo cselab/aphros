@@ -55,7 +55,7 @@ struct Vof<M_>::Imp {
     psm->maxr = par->part_maxr;
     psm->vtkbin = par->vtkbin;
     psm->vtkmerge = par->vtkmerge;
-    psm_ = std::unique_ptr<PSM>(new PSM(m, psm));
+    psm_ = std::unique_ptr<PSM>(new PSM(m, psm, GRange<size_t>(0, 1)));
   }
   void Update(typename PS::Par* p) const {
     Scal hc = m.GetCellSize().norminf(); // cell size

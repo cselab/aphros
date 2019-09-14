@@ -100,7 +100,7 @@ struct Vofm<M_>::Imp {
     psm->maxr = par->part_maxr;
     psm->vtkbin = par->vtkbin;
     psm->vtkmerge = par->vtkmerge;
-    psm_ = std::unique_ptr<PSM>(new PSM(m, psm));
+    psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
   }
   void Update(typename PS::Par* p) const {
     Scal hc = m.GetCellSize().norminf(); // cell size
