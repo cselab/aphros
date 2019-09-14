@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -eu
+
+# block size
+b=${1:-8}
+# number of cores
+n=${2:-2}
+
+# mesh size
+m="32 32 1"
+
+# block size
+bs="$b $b 1"
+
+./clean
+ch.base
+ch.aconf
+
+# write np
+echo $n > np
+
+# partition mesh
+ch.part $m $bs `cat np` > mesh.conf
+
+# run in foreground
+ch.run ch.mfer
+
+a=0
+for f in ref/{vx,vy,p,cls,vf}*.dat ; do
+  echo $f
+  if ! ch.diffnum "${f#ref/}" "$f" "1e-12"; then
+    a=1
+  fi
+done
+
+exit $a
