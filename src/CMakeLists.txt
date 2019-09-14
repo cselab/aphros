@@ -25,6 +25,8 @@ add_custom_target(gitrev
   WORKING_DIRECTORY "${P}"
 )
 
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY ON)
+
 include_directories(.)
 
 function(add_library name)
