@@ -154,7 +154,7 @@ void Simple<M>::Run() {
     pm->ps = ps;
     pm->dump_fr = 0;
 
-    psm_ = std::make_shared<PSM>(m, pm);
+    psm_ = std::make_shared<PSM>(m, pm, GRange<size_t>(0, 1));
 
     fci_ = DetectInterface(fcu_);
     solver::UNormal<Mesh>::CalcNormal(m, fcu_, fci_, dim, fcn_);

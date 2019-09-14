@@ -17,9 +17,12 @@ struct PartStrMeshM<M_>::Imp {
   using R = Reconst<Scal>;
   static constexpr Scal kClNone = -1;
 
-  Imp(M& m, std::shared_ptr<Par> par) : m(m), par(par) {
+  Imp(M& m, std::shared_ptr<Par> par, const GRange<size_t>& layers) 
+      : m(m), par(par), layers(layers), vfckp_(layers.size())
+  {
     // particle strings
     partstr_ = std::unique_ptr<PS>(new PS(par->ps));
+    vfckp_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
   }
 
   // Local coordinates in plane section of the interface.
@@ -422,20 +425,13 @@ struct PartStrMeshM<M_>::Imp {
   }
 
   const FieldCell<Scal>& GetCurv(size_t l) {
-    auto& v = vfckp_;
-    size_t s = v.size();
-    if (l >= s) {
-      v.resize(l + 1);
-      for (size_t i = s; i < v.size(); ++i) {
-        v[i].Reinit(m, GetNan<Scal>());
-      }
-    }
-    return v[l];
+    return vfckp_[l];
   }
 
  private:
   M& m;
   std::shared_ptr<Par> par;
+  const GRange<size_t> layers;
   Multi<FieldCell<Scal>> vfckp_; // curvature from particles
 
   std::unique_ptr<PS> partstr_; // particle strings
@@ -452,8 +448,9 @@ struct PartStrMeshM<M_>::Imp {
 };
 
 template <class M_>
-PartStrMeshM<M_>::PartStrMeshM(M& m, std::shared_ptr<Par> par) 
-    : imp(new Imp(m, par)) {}
+PartStrMeshM<M_>::PartStrMeshM(M& m, std::shared_ptr<Par> par, 
+                               const GRange<size_t>& layers) 
+    : imp(new Imp(m, par, layers)) {}
 
 template <class M_>
 PartStrMeshM<M_>::~PartStrMeshM() = default;

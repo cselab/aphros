@@ -7,6 +7,7 @@
 #include "dump/dumper.h"
 #include "cond.h"
 #include "multi.h"
+#include "geom/range.h"
 
 namespace solver {
 
@@ -48,7 +49,7 @@ class PartStrMeshM {
     bool vtkmerge = true;  // merge close points in DumpPartInter
   };
 
-  PartStrMeshM(M& m, std::shared_ptr<Par> par);
+  PartStrMeshM(M& m, std::shared_ptr<Par> par, const GRange<size_t>& layers);
   ~PartStrMeshM();
 
   // Computes curvature with particles.
