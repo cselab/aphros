@@ -870,6 +870,10 @@ struct Vofm<M_>::Imp {
         break;
     }
 
+    if (sem.Nested("sharpen")) {
+      Sharpen();
+    }
+
     if (sem.Nested("recolor")) {
       Recolor();
     }
