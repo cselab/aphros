@@ -37,6 +37,7 @@ struct Vofm<M_>::Imp {
   static constexpr Scal kClNone = -1;
   static constexpr size_t dim = M::dim;
   using Vect2 = GVect<Scal, 2>;
+  using Sem = typename M::Sem;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu0, const FieldCell<Scal>& fccl0,
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
@@ -673,7 +674,7 @@ struct Vofm<M_>::Imp {
       auto& ffcl = mffcl[i];
 
       // compute fluxes [i] and propagate color to downwind cells
-      ffvu.Reinit(m, GetNan<Scal>());
+      ffvu.Reinit(m, 0);
       ffcl.Reinit(m, kClNone);
       for (auto f : m.Faces()) {
         auto p = bf.GetMIdxDir(f);
@@ -686,6 +687,7 @@ struct Vofm<M_>::Imp {
         const Scal v = ffv[f]; // mixture flux
         IdxCell c = m.GetNeighbourCell(f, v > 0. ? 0 : 1); // upwind cell
         if (fccl[c] != kClNone) {
+          ffcl[f] = fccl[c];
           if (fcu[c] > 0 && fcu[c] < 1) {
             if (type == 0 || type == 1 || type == 3) {
               ffvu[f] = R::GetLineFlux(fcn[c], fca[c], h, v, dt, d);
@@ -754,20 +756,162 @@ struct Vofm<M_>::Imp {
             if (mffcl[j][fp] == fccl[c]) { vp = mffvu[j][fp]; break; }
           }
           const Scal dl = (vp - vm) * dt / lc;
+          auto& u = fcu[c];
           if (type == 0) {        // plain
-            fcu[c] += -dl;
+            u += -dl;
           } else if (type == 1) { // Euler Implicit
-            fcu[c] = (fcu[c] - dl) / (1. - ds);
+            u = (u - dl) / (1. - ds);
           } else if (type == 2) { // Lagrange Explicit
-            fcu[c] += fcu[c] * ds - dl;
+            u += u * ds - dl;
           } else if (type == 3) { // Weymouth
-            fcu[c] += fcuu[c] * ds - dl;
+            u += fcuu[c] * ds - dl;
           }
         }
       }
     }
   }
+  void Clip(FieldCell<Scal>& uc, Scal th) {
+    for (auto c : m.Cells()) {
+      Scal& u = uc[c];
+      if (u < th) {
+        u = 0;
+      } else if (u > 1 - th) {
+        u = 1;
+      } else if (IsNan(u)) {
+        u = 0;
+      }
+    }
+  }
+  void ClearColor(FieldCell<Scal>& fccl, const FieldCell<Scal>& fcu) {
+    for (auto c : m.Cells()) {
+      if (fcu[c] == 0) {
+        fccl[c] = kClNone;
+      }
+    }
+  }
+  void AdvAulisa(Sem& sem, const Multi<FieldCell<Scal>*>& mfcu) {
+    // directions, format: {dir EI, dir LE, ...}
+    std::vector<size_t> dd;
+    Scal vsc; // scaling factor for time step
+    if (par->dim == 3) { // 3d
+      if (count_ % 3 == 0) {
+        dd = {0, 1, 1, 2, 2, 0};
+      } else if (count_ % 3 == 1) {
+        dd = {1, 2, 2, 0, 0, 1};
+      } else {
+        dd = {2, 0, 0, 1, 1, 2};
+      }
+      vsc = 0.5;
+    } else { // 2d
+      if (count_ % 2 == 0) {
+        dd = {0, 1};
+      } else {
+        dd = {1, 0};
+      } 
+      vsc = 1.0;
+    }
+    for (size_t id = 0; id < dd.size(); ++id) {
+      size_t d = dd[id]; // direction as index
+      if (sem("copyface")) {
+        if (id % 2 == 1) { // copy fluxes for Lagrange Explicit step
+          auto& ffv = *owner_->ffv_; // [f]ield [f]ace [v]olume flux
+          fcfm_.Reinit(m);
+          fcfp_.Reinit(m);
+          for (auto c : m.Cells()) {
+            fcfm_[c] = ffv[m.GetNeighbourFace(c, 2 * d)];
+            fcfp_[c] = ffv[m.GetNeighbourFace(c, 2 * d + 1)];
+          }
+          m.Comm(&fcfm_);
+          m.Comm(&fcfp_);
+        }
+      }
+      if (sem("sweep")) {
+        Sweep(mfcu, d, layers, *owner_->ffv_, fccl_, fcn_, fca_, mfc_,
+              id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
+              owner_->GetTimeStep() * vsc, m);
+        for (auto i : layers) {
+          auto& uc = *mfcu[i];
+          Clip(uc, par->clipth);
+          ClearColor(fccl_[i], uc);
+          m.Comm(&uc);
+          m.Comm(&fccl_[i]);
+        }
+      }
+      if (par->bcc_reflect && sem("reflect")) {
+        for (auto i : layers) {
+          BcReflect(*mfcu[i], mfc_, par->bcc_fill, m);
+        }
+      }
+      if (sem.Nested("reconst")) {
+        Rec(mfcu);
+      }
+    }
+  }
   void MakeIteration() {
+    MakeIteration2();
+  }
+  void MakeIteration2() {
+    auto sem = m.GetSem("iter");
+    if (sem("init")) {
+      for (auto i : layers) {
+        auto& fcu = fcu_[i];
+        auto& uc = fcu.iter_curr;
+        const Scal dt = owner_->GetTimeStep();
+        auto& fcs = *owner_->fcs_;
+        for (auto c : m.Cells()) {
+          uc[c] = fcu.time_prev[c] + dt * fcs[c];
+        }
+      }
+    }
+
+    using Scheme = typename Par::Scheme;
+    auto mfcu = GetLayer(fcu_, Layers::iter_curr);
+    switch (par->scheme) {
+      case Scheme::plain:
+        //AdvPlain(sem, 0);
+        break;
+      case Scheme::aulisa:
+        AdvAulisa(sem, mfcu);
+        break;
+      case Scheme::weymouth:
+        //AdvPlain(sem, 3);
+        break;
+    }
+
+    if (sem.Nested("recolor")) {
+      Recolor();
+    }
+
+    if (sem("stat")) {
+      owner_->IncIter();
+      ++count_;
+    }
+    if (sem("sum")) {
+      auto l = Layers::iter_curr;
+      auto& fcus = fcus_.Get(l);
+      fcus.Reinit(m, 0);
+      fccls_.Reinit(m, kClNone);
+      for (auto i : layers) {
+        auto& fccl = fccl_[i];
+        auto& fcu = fcu_[i].Get(l);
+        for (auto c : m.AllCells()) {
+          if (fccl[c] != kClNone) {
+            fcus[c] += fcu[c];
+            fccls_[c] = fccl[c];
+          }
+        }
+      }
+      for (auto c : m.AllCells()) {
+        auto& u = fcus[c];
+        if (!(u >= 0)) {
+          u = 0;
+        } else if (!(u <= 1.)) {
+          u = 1;
+        }
+      }
+    }
+  }
+  void MakeIteration1() {
     auto sem = m.GetSem("iter");
     if (sem("init")) {
       for (auto i : layers) {
