@@ -46,6 +46,7 @@ struct Vofm<M_>::Imp {
       , mfc_(mfc), layers(0, 4)
   {
     fcu_.resize(layers.size());
+    fcuu_.resize(layers.size());
     fcn_.resize(layers.size());
     fca_.resize(layers.size());
     fci_.resize(layers.size());
@@ -589,8 +590,7 @@ struct Vofm<M_>::Imp {
       }
     }
   }
-  /*
-  void AdvPlain(Sem& sem, int type) {
+  void AdvPlain(Sem& sem, const Multi<FieldCell<Scal>*>& mfcu, int type) {
     std::vector<size_t> dd; // sweep directions
     if (par->dim == 3) { // 3d
       if (count_ % 3 == 0) {
@@ -610,21 +610,24 @@ struct Vofm<M_>::Imp {
     for (size_t id = 0; id < dd.size(); ++id) {
       size_t d = dd[id]; // direction as index
       if (sem("sweep")) {
-        auto& uc = fcu_.iter_curr;
-        Sweep(uc, d, *owner_->ffv_, fcn_, fca_, mfc_,
-              type, 1, nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), m);
-        Clip(uc, par->clipth);
-        m.Comm(&uc);
+        Sweep(mfcu, d, layers, *owner_->ffv_, fccl_, fcn_, fca_, mfc_,
+              type, nullptr, nullptr, fcuu_,
+              owner_->GetTimeStep(), par->clipth, m);
+        for (auto i : layers) {
+          m.Comm(mfcu[i]);
+          m.Comm(&fccl_[i]);
+        }
       }
-      if (par->bcc_reflect && sem.Nested("reflect")) {
-        BcReflect(fcu_.iter_curr, mfc_, par->bcc_fill, m);
+      if (par->bcc_reflect && sem("reflect")) {
+        for (auto i : layers) {
+          BcReflect(*mfcu[i], mfc_, par->bcc_fill, m);
+        }
       }
       if (sem.Nested("reconst")) {
-        Rec(fcu_.iter_curr);
+        Rec(mfcu);
       }
     }
   }
-  */
   // Makes advection sweep in one direction, updates uc [i] and fccl [s]
   // uc: volume fraction [s]
   // d: direction
@@ -842,10 +845,13 @@ struct Vofm<M_>::Imp {
       for (auto i : layers) {
         auto& fcu = fcu_[i];
         auto& uc = fcu.iter_curr;
+        auto& fcuu = fcuu_[i];
+        fcuu.Reinit(m);
         const Scal dt = owner_->GetTimeStep();
         auto& fcs = *owner_->fcs_;
         for (auto c : m.Cells()) {
           uc[c] = fcu.time_prev[c] + dt * fcs[c];
+          fcuu[c] = (uc[c] < 0.5 ? 0 : 1);
         }
       }
     }
@@ -854,13 +860,13 @@ struct Vofm<M_>::Imp {
     auto mfcu = GetLayer(fcu_, Layers::iter_curr);
     switch (par->scheme) {
       case Scheme::plain:
-        //AdvPlain(sem, 0);
+        AdvPlain(sem, mfcu, 0);
         break;
       case Scheme::aulisa:
         AdvAulisa(sem, mfcu);
         break;
       case Scheme::weymouth:
-        //AdvPlain(sem, 3);
+        AdvPlain(sem, mfcu, 3);
         break;
     }
 
@@ -937,6 +943,7 @@ struct Vofm<M_>::Imp {
   M& m;
 
   Multi<LayersData<FieldCell<Scal>>> fcu_;
+  Multi<FieldCell<Scal>> fcuu_;
   LayersData<FieldCell<Scal>> fcus_;
   FieldCell<Scal> fccls_;
   MapFace<std::shared_ptr<CondFace>> mfc_;

@@ -417,9 +417,7 @@ struct Vof<M_>::Imp {
       auto& fcs = *owner_->fcs_;
       fcuu_.Reinit(m);
       for (auto c : m.Cells()) {
-        uc[c] = 
-            fcu_.time_prev[c] +  // previous time step
-            dt * fcs[c]; // source
+        uc[c] = fcu_.time_prev[c] + dt * fcs[c];
         fcuu_[c] = (uc[c] < 0.5 ? 0 : 1);
       }
     }
