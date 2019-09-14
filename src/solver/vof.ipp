@@ -467,7 +467,7 @@ struct Vof<M_>::Imp {
         break;
     }
 
-    if (sem.Nested("sharpen")) {
+    if (par->sharpen && sem.Nested("sharpen")) {
       Sharpen();
     }
 
