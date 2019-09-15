@@ -494,54 +494,31 @@ struct Vof<M_>::Imp {
       BcReflect(fcn_, mfc_, Vect(0), m);
       // --> reflected fca [a], fcn [a]
     }
-    if (par->curvgrad && sem("curv")) {
-      // Curvature from gradient of volume fraction
-      auto ffu = Interpolate(fcu_.iter_curr, mfc_, m); // [s]
-      auto fcg = Gradient(ffu, m); // [s]
-      auto ffg = Interpolate(fcg, mfvz_, m); // [i]
-
-      fck_.Reinit(m, GetNan<Scal>()); // curvature [i]
-      for (auto c : m.Cells()) {
-        if (!fci_[c]) {
-          continue;
-        }
-        Scal s = 0.;
-        for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
-          auto& g = ffg[f];
-          auto n = g / g.norm();  // inner normal
-          s += -n.dot(m.GetOutwardSurface(c, q));
-        }
-        fck_[c] = s / m.GetVolume(c);
-      }
+    auto& uc = fcu_.iter_curr;
+    if (sem("diff2")) {
+      CalcDiff2(uc, fcud2_);
+      m.Comm(&fcud2_);
     }
-    if (!par->curvgrad) {
-      auto& uc = fcu_.iter_curr;
-      if (sem("diff2")) {
-        CalcDiff2(uc, fcud2_);
-        m.Comm(&fcud2_);
-      }
-      if (sem("diff4")) {
-        CalcDiff4(uc, fcud2_, fcud4_);
-        m.Comm(&fcud4_);
-      }
-      /*
-      if (sem("diff6")) {
-        CalcDiff6(uc, fcud4_, fcud6_);
-        m.Comm(&fcud6_);
-      }
-      */
-      if (sem("height")) {
-        //UNormal<M>::CalcHeight(
-        //    m, uc, fcud2_, fcud4_, fcud6_, par->dim, fch_);
-        UNormal<M>::CalcHeight(m, uc, fcud2_, fcud4_, par->dim, fch_);
-        //UNormal<M>::CalcHeight(m, uc, fcud2_, par->dim, fch_);
-        m.Comm(&fch_);
-      }
-      if (sem("curvcomm")) {
-        UNormal<M>::CalcCurvHeight(m, uc, fch_, fcn_, par->dim, fck_);
-        m.Comm(&fck_);
-      }
+    if (sem("diff4")) {
+      CalcDiff4(uc, fcud2_, fcud4_);
+      m.Comm(&fcud4_);
+    }
+    /*
+    if (sem("diff6")) {
+      CalcDiff6(uc, fcud4_, fcud6_);
+      m.Comm(&fcud6_);
+    }
+    */
+    if (sem("height")) {
+      //UNormal<M>::CalcHeight(
+      //    m, uc, fcud2_, fcud4_, fcud6_, par->dim, fch_);
+      UNormal<M>::CalcHeight(m, uc, fcud2_, fcud4_, par->dim, fch_);
+      //UNormal<M>::CalcHeight(m, uc, fcud2_, par->dim, fch_);
+      m.Comm(&fch_);
+    }
+    if (sem("curvcomm")) {
+      UNormal<M>::CalcCurvHeight(m, uc, fch_, fcn_, par->dim, fck_);
+      m.Comm(&fck_);
     }
     if (par->part && sem.Nested("part")) {
       const FieldCell<Scal>* fccl(nullptr);
