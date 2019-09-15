@@ -18,7 +18,6 @@ class Vof : public AdvectionSolver<M_> {
 
   struct Par {
     size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
-    bool curvgrad = false; // compute curvature using gradient
     bool part = false; // particles
     Scal part_relax = 0.5; 
     Scal part_h = 4.;  // particle string equilibrium length

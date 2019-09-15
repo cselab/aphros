@@ -6,7 +6,6 @@
 
 template <class M, class Vof>
 void Parse(typename Vof::Par* p, const Vars& var) {
-  p->curvgrad = var.Int["curvgrad"];
   p->verb = var.Int["vof_verb"];
   p->vtkbin = var.Int["vtkbin"];
   p->vtkmerge = var.Int["vtkmerge"];
