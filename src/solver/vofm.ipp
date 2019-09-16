@@ -347,12 +347,15 @@ struct Vofm<M_>::Imp {
     for (size_t id = 0; id < dd.size(); ++id) {
       size_t d = dd[id]; // direction as index
       if (sem("sweep")) {
-
-        const FieldFace<Scal> ffv(
-            m, m.GetCellSize().prod() * (id % 2 ? -1 : 1) * par->sharpen_cfl);
-
+        const Scal sgn = (id % 2 == count_ / par->dim % 2 ? -1 : 1);
+        FieldFace<Scal> ffv(m, m.GetCellSize().prod() * sgn * par->sharpen_cfl);
+        // zero flux on boundaries
+        for (const auto& it : mfc_) {
+          IdxFace f = it.GetIdx();
+          ffv[f] = 0;
+        }
         Sweep(mfcu, d, layers, ffv, fccl_, fcn_, fca_, mfc_,
-            0, nullptr, nullptr, nullptr, 1., par->clipth, m);
+            3, nullptr, nullptr, fcuu_, 1., par->clipth, m);
         for (auto i : layers) {
           m.Comm(mfcu[i]);
           m.Comm(&fccl_[i]);
