@@ -832,7 +832,8 @@ void Cubism<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
         StreamHdfDyn<Block>::ID = k;
         StreamHdfDyn<Block>::NAME = on.second;
         auto fn = GetDumpName(on.second, "", frame_);
-        DumpHDF5_MPI<Grid, StreamHdfDyn<Block>>(g_, frame_, frame_, fn);
+        DumpHDF5_MPI<Grid, StreamHdfDyn<Block>>(g_, frame_, frame_, fn, ".",
+            Vect(0), m.GetCellSize(), true);
         k += on.first->GetSize();
         if (on.first->GetSize() != 1) {
           throw std::runtime_error("DumpWrite(): Support only size 1");
