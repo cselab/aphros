@@ -669,7 +669,11 @@ struct Vofm<M_>::Imp {
     if (par->sharpen && sem.Nested("sharpen")) {
       Sharpen(mfcu);
     }
-
+    if (par->bcc_clear && sem("clear")) {
+      for (auto i : layers) {
+        BcClear(fcu_[i].iter_curr, mfc_, m);
+      }
+    }
     if (sem.Nested("recolor")) {
       Recolor();
     }

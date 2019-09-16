@@ -372,6 +372,21 @@ struct Vof<M_>::Imp {
       }
     }
   }
+  // set volume fraction to 0 or 1 near wall
+  static void BcClear(FieldCell<Scal>& uc,
+                      const MapFace<std::shared_ptr<CondFace>>& mfc, 
+                      const M& m) {
+    for (const auto& it : mfc) {
+      CondFace* cb = it.GetValue().get();
+      if (dynamic_cast<CondFaceReflect*>(cb)) {
+        IdxFace f = it.GetIdx();
+        CondFace* cb = it.GetValue().get(); 
+        size_t nci = cb->GetNci();
+        IdxCell c = m.GetNeighbourCell(f, nci);
+        uc[c] = (uc[c] > 0.5 ? 1. : 0.);
+      }
+    }
+  }
   void AdvPlain(Sem& sem, int type) {
     std::vector<size_t> dd; // sweep directions
     if (par->dim == 3) { // 3d
@@ -476,7 +491,9 @@ struct Vof<M_>::Imp {
     if (par->sharpen && sem.Nested("sharpen")) {
       Sharpen();
     }
-
+    if (par->bcc_clear && sem("clear")) {
+      BcClear(fcu_.iter_curr, mfc_, m);
+    }
     if (sem("stat")) {
       owner_->IncIter();
       ++count_;
