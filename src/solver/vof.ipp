@@ -226,7 +226,7 @@ struct Vof<M_>::Imp {
   // d: direction
   // ffv: mixture flux [i]
   // fcn,fca: normal and plane constant [s]
-  // mfc: face conditions
+  // mfc: face conditions, nullptr to keep boundary fluxes
   // type: 0: plain,
   //       1: Euler Explicit,
   //       2: Lagrange Explicit,
@@ -238,7 +238,7 @@ struct Vof<M_>::Imp {
   static void Sweep(
       FieldCell<Scal>& uc, size_t d, const FieldFace<Scal>& ffv,
       const FieldCell<Vect>& fcn, const FieldCell<Scal>& fca,
-      const MapFace<std::shared_ptr<CondFace>>& mfc, int type,
+      const MapFace<std::shared_ptr<CondFace>>* mfc, int type,
       const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
       const FieldCell<Scal>* fcuu,
       Scal dt, Scal clipth, const M& m) {
@@ -280,14 +280,16 @@ struct Vof<M_>::Imp {
       }
     }
 
-    FieldFace<Scal> ffu(m);
-    InterpolateB(uc, mfc, ffu, m);
-    // override boundary flux
-    for (const auto& it : mfc) {
-      IdxFace f = it.GetIdx();
-      Scal v = ffv[f];
-      if ((it.GetValue()->GetNci() == 0) != (v > 0.)) {
-        ffvu[f] = v * ffu[f];
+    if (mfc) {
+      // override flux in upwind boundaries
+      FieldFace<Scal> ffu(m);
+      InterpolateB(uc, *mfc, ffu, m);
+      for (const auto& it : *mfc) {
+        IdxFace f = it.GetIdx();
+        Scal v = ffv[f];
+        if ((it.GetValue()->GetNci() == 0) != (v > 0.)) {
+          ffvu[f] = v * ffu[f];
+        }
       }
     }
 
@@ -357,7 +359,7 @@ struct Vof<M_>::Imp {
       }
       if (sem("sweep")) {
         auto& uc = fcu_.iter_curr;
-        Sweep(uc, d, *owner_->ffv_, fcn_, fca_, mfc_,
+        Sweep(uc, d, *owner_->ffv_, fcn_, fca_, &mfc_,
               id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
               owner_->GetTimeStep() * vsc, par->clipth, m);
         m.Comm(&uc);
@@ -391,7 +393,7 @@ struct Vof<M_>::Imp {
       size_t d = dd[id]; // direction as index
       auto& uc = fcu_.iter_curr;
       if (sem("sweep")) {
-        Sweep(uc, d, *owner_->ffv_, fcn_, fca_, mfc_,
+        Sweep(uc, d, *owner_->ffv_, fcn_, fca_, &mfc_,
               type, nullptr, nullptr, &fcuu_,
               owner_->GetTimeStep(), par->clipth, m);
         m.Comm(&uc);
@@ -426,11 +428,15 @@ struct Vof<M_>::Imp {
       size_t d = dd[id]; // direction as index
       auto& uc = fcu_.iter_curr;
       if (sem("sweep")) {
-        const FieldFace<Scal> ffv(
-            m, m.GetCellSize().prod() * (id % 2 ? -1 : 1) * par->sharpen_cfl);
-
-        Sweep(uc, d, ffv, fcn_, fca_, mfc_,
-            0, nullptr, nullptr, nullptr, 1., par->clipth, m);
+        const Scal sgn = (id % 2 == count_ / par->dim % 2 ? -1 : 1);
+        FieldFace<Scal> ffv(m, m.GetCellSize().prod() * sgn * par->sharpen_cfl);
+        // zero flux on boundaries
+        for (const auto& it : mfc_) {
+          IdxFace f = it.GetIdx();
+          ffv[f] = 0;
+        }
+        Sweep(uc, d, ffv, fcn_, fca_, &mfc_,
+            3, nullptr, nullptr, &fcuu_, 1., par->clipth, m);
         m.Comm(&uc);
       }
       if (par->bcc_reflect && sem("reflect")) {
