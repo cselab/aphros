@@ -27,4 +27,4 @@ xx = np.unravel_index(u.argmax(), u.shape)[:3]
 
 xx = np.array(xx)
 xx = xx.astype(float) * h
-print(*xx)
+print("{:} {:} {:}".format(*xx))
