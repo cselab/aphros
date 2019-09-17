@@ -27,6 +27,8 @@ instfnd genxmf
 instfnd genxmfall
 instfnd trajaxes
 instfnd plain2vtk
+instfnd argmax
+instfnd argmaxall
 
 cp -rvf ch "$BB/" || true
 
