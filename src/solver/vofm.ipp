@@ -148,26 +148,63 @@ struct Vofm<M_>::Imp {
       DetectInterface(uc);
     }
     if (sem("local")) {
+      // Compute fcn_ [s]
       for (auto i : layers) {
         auto& fcn = fcn_[i];
         auto& fci = fci_[i];
-        auto& fcu = *uc[i];
-        auto& fca = fca_[i];
         auto& fccl = fccl_[i];
 
         const int sw = 1; // stencil halfwidth
         using MIdx = typename M::MIdx;
         GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1));
-        auto h = m.GetCellSize();
-        // Compute fcn_, fca_ [s]
         for (auto c : m.SuCells()) {
           if (fci[c]) {
             auto uu = GetStencil<M, 1>{}(layers, uc, fccl_, c, fccl[c], m);
             fcn[c] = UNormal<M>::GetNormalYoungs(uu);
             UNormal<M>::GetNormalHeight(uu, fcn[c]);
-            fca[c] = R::GetLineA(fcn[c], fcu[c], h);
           } else {
             fcn[c] = GetNan<Vect>();
+          }
+        }
+      }
+
+      // Override with average fcn_ [s]
+      for (auto c : m.SuCells()) {
+        Vect na(0); // sum of normals
+        Scal w = 0; // number of normals
+        Scal us = 0; // sum of volume fraction
+        for (auto i : layers) {
+          auto& n = fcn_[i][c];
+          if (!IsNan(n)) {
+            na += (n.dot(na) < 0 ? -n : n);
+            w += 1;
+            us += (*uc[i])[c];
+          }
+        }
+        // TODO: smooth transition instead of u>=1
+        if (w > 0 && us >= 1) {
+          na /= w;
+          for (auto i : layers) {
+            auto& n = fcn_[i][c];
+            if (!IsNan(n)) {
+              n = (n.dot(na) < 0 ? -na : na);
+            }
+          }
+        }
+      }
+
+      // Compute fca_ [s]
+      for (auto i : layers) {
+        auto& fcn = fcn_[i];
+        auto& fci = fci_[i];
+        auto& fcu = *uc[i];
+        auto& fca = fca_[i];
+
+        auto h = m.GetCellSize();
+        for (auto c : m.SuCells()) {
+          if (fci[c]) {
+            fca[c] = R::GetLineA(fcn[c], fcu[c], h);
+          } else {
             fca[c] = GetNan<Scal>();
           }
         }
