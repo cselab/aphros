@@ -1,6 +1,6 @@
-c=-C2
-c=
+# C2: view from top
+# C3: view from front parallel
+#c=-C2
 #d=-draft
-d=
-./rt.py $c $d sm_*.vtk || true
+./rt.py $c $d ../sm_*.vtk || true
 r.pngmp4

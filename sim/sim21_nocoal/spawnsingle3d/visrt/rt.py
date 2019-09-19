@@ -58,9 +58,11 @@ def CheckFlag(name):
     return False
 
 
-cam = 1
-if CheckFlag('-C2'):
+cam = 1  # view from side perspective
+if CheckFlag('-C2'):  # view from top
     cam = 2
+if CheckFlag('-C3'):  # view from side parallel
+    cam = 3
 
 draft = CheckFlag('-draft')
 
@@ -104,18 +106,24 @@ def S(v):
   return np.array(v) * ext
 
 C1 = [
-[0.009999999776482587, 0.017085736101117393, 0.06689220003798274],
-[0.009999999776482587, -4.8887864953508836e-05, -0.09613285716127253],
-[0.0, 0.9945218953682734, -0.10452846326765354]
+[0.01, 0.017161797980427655, 0.05424638773025392],
+[0.01, -0.01411619351504851, -0.10666492902928304],
+[0.0, 0.981627183447664, -0.19080899537654494],
     ]
 
 C2 = [
-[0.009999999776482594, 0.09573330232384794, 0.04448879827817405],
-[0.009999999776482594, 0.04438754380182193, 0.025800470520336388],
+[0.01, 0.04969376323491339, 0.02307639700252371],
+[0.01, -0.001651995287112607, 0.004388069244686046],
 [0.0, 0.3420201433256689, -0.9396926207859084]
     ]
 
-C = C2 if cam == 2 else C1
+C3 = [
+[0.009999999776482582, 0.01, 0.06999441558868025],
+[0.009999999776482582, 0.01, 0.009999999776482582],
+[0.0, 1.0, 0.0]
+    ]
+
+C = C2 if cam == 2 else C3 if cam == 3 else C1
 
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
@@ -126,6 +134,10 @@ renderView1.StereoType = 0
 renderView1.CameraPosition = S(C[0])
 renderView1.CameraFocalPoint = S(C[1])
 renderView1.CameraViewUp = C[2]
+
+if cam == 3:
+  renderView1.CameraParallelScale = 0.01*ext
+  renderView1.CameraParallelProjection = 1
 
 renderView1.Background = [0.0]*3
 renderView1.EnableOSPRay = 1
@@ -185,8 +197,6 @@ planecells.Point1 = [0.04, 0.0, -0.02]
 planecells.Point2 = [-0.02, 0.0, 0.04]
 planecells.XResolution = 15
 planecells.YResolution = 15
-
-
 planecellsDisplay = Show(planecells, renderView1)
 planecellsDisplay.Representation = 'Surface With Edges'
 planecellsDisplay.AmbientColor = [0.0, 0.0, 0.0]
@@ -211,6 +221,7 @@ planevertDisplay.LineWidth = 0.5
 planevertDisplay.EdgeColor = [0.6509803921568628, 0.6509803921568628, 0.6509803921568628]
 
 
+'''
 planeglass = Plane()
 planeglass.Origin = [-0.02, 0.01488, -0.02]
 planeglass.Point1 = [0.04, 0.01488, -0.02]
@@ -229,6 +240,7 @@ planeglassclip.Invert = 0
 planeglassclipDisplay = Show(planeglassclip, renderView1)
 planeglassclipDisplay.Representation = 'Surface'
 planeglassclipDisplay.OSPRayMaterial = 'glass'
+'''
 
 #####################################################
 ### END OF STATE FILE
