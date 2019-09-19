@@ -98,7 +98,24 @@ light1.Type = 'Directional'
 light1.Intensity = 1.2
 
 # get the material library
+mf = "m.json"
+open(mf, 'w').write('''
+{
+  "family" : "OSPRay",
+  "version" : "0.0",
+  "materials" : {
+    "water" : {
+      "type": "Glass",
+      "doubles" : {
+          "attenuationColor" : [0.22, 0.34, 0.47],
+          "etaInside" : [1.33]
+      }
+    }
+  }
+}
+''')
 materialLibrary1 = GetMaterialLibrary()
+materialLibrary1.LoadMaterials = mf
 
 ext = 1
 
@@ -187,7 +204,7 @@ surf=clip1
 
 surfDisplay = Show(surf, renderView1)
 surfDisplay.Representation = 'Surface'
-surfDisplay.OSPRayMaterial = 'glass'
+surfDisplay.OSPRayMaterial = 'water'
 
 
 # create a new 'Plane'
@@ -239,7 +256,7 @@ planeglassclip.Value = 0.01
 planeglassclip.Invert = 0
 planeglassclipDisplay = Show(planeglassclip, renderView1)
 planeglassclipDisplay.Representation = 'Surface'
-planeglassclipDisplay.OSPRayMaterial = 'glass'
+planeglassclipDisplay.OSPRayMaterial = 'water'
 '''
 
 #####################################################
