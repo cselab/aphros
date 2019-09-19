@@ -1,0 +1,36 @@
+#!/bin/bash
+
+set -eu
+
+ev () {
+  echo "$@"
+  eval "$@"
+}
+
+a=a.png
+
+w=694
+h=342
+x0=8
+y0=9
+dx=716
+dy=359
+
+# Fig. 2
+qq="0 5 9 14 18 30 50 70"
+
+nx=2
+ny=4
+j=0
+for iy in `seq 0 $(($ny-1))` ; do
+  for ix in `seq 0 $(($nx-1))` ; do
+    x=`bc -l <<< "$x0+$ix*$dx"`
+    y=`bc -l <<< "$y0+$iy*$dy"`
+    q=`cut -d ' ' -f $(($j+1)) <<< "$qq"`
+    q=$q
+    f=`printf "t%03d_sim" "$q"`.png
+    ev convert "'$a' -crop ${w}x${h}+${x}+${y} +repage \
+      -fill white -draw 'rectangle 0,0 220,60' '$f'"
+    let "j=$j+1"
+  done
+done

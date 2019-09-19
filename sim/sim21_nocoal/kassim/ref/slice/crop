@@ -1,0 +1,36 @@
+#!/bin/bash
+
+set -eu
+
+ev () {
+  echo "$@"
+  eval "$@"
+}
+
+a=a.png
+
+w=410
+h=318
+x0=10
+y0=12
+dx=718
+dy=334
+
+# Fig. 2
+qq="000 005 018 030 050 070"
+ss="sim exp"
+
+nx=2
+ny=4
+j=0
+for iy in `seq 0 $(($ny-1))` ; do
+  for ix in `seq 0 $(($nx-1))` ; do
+    x=`bc -l <<< "$x0+$ix*$dx"`
+    y=`bc -l <<< "$y0+$iy*$dy"`
+    q=`cut -d ' ' -f $(($iy+1)) <<< "$qq"`
+    s=`cut -d ' ' -f $(($ix+1)) <<< "$ss"`
+    f="t${q}_${s}.png"
+    ev convert "'$a' -crop ${w}x${h}+${x}+${y} +repage '$f'"
+    let "j=$j+1"
+  done
+done
