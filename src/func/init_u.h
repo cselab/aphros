@@ -60,17 +60,136 @@ Scal GetLevelSetVolume(std::function<Scal(const GVect<Scal, 3>&)> f,
 // m: mesh
 template <class M>
 std::function<void(FieldCell<typename M::Scal>&,const M&)> 
+CreateInitUList(Vars& par, bool verb=true) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+
+  std::string fn = par.String["list_path"];
+  int ls = par.Int["list_ls"]; // 0: stepwise, 1: level-set, 2: overlap
+  size_t dim = par.Int["dim"];
+
+  // elliptic partilces TODO: generalize
+  struct P { 
+    Vect c;  // center
+    Vect r;  // axes in coordinate directions
+  };
+  std::vector<P> pp;
+
+  std::ifstream f(fn);
+  if (!f.good()) {
+    throw std::runtime_error("Can't open particle list '" + fn + "'");
+  }
+
+  f >> std::skipws;
+  // Read until eof
+  while (true) {
+    P p;
+    // Read single particle: x y z r
+    // first character (to skip empty strings)
+    char c;
+    f >> c;
+    if (f.good()) {
+      std::string s;
+      std::getline(f, s);
+      if (c == '#') {
+        continue;
+      }
+      s = c + s; // append first character
+      std::stringstream st(s);
+      st >> p.c[0] >> p.c[1] >> p.c[2];
+      st >> p.r[0];
+      if (st.fail()) {
+        throw std::runtime_error("list: missing rx in '" + s + "'");
+      }
+      st >> p.r[1];
+      if (st.fail()) {
+        p.r[1] = p.r[0];
+        p.r[2] = p.r[0];
+      } else {
+        st >> p.r[2];
+        if (st.fail()) {
+          p.r[2] = p.r[0];
+        }
+      }
+      pp.push_back(p);
+    } else {
+      break;
+    }
+  }
+
+  if (verb) {
+    std::cout << "Read " << pp.size() << " particles from " 
+        << "'" << fn << "'" << std::endl;
+  }
+
+  return [dim,ls,pp](FieldCell<Scal>& fc, const M& m) { 
+    // level-set for particle of radius 1 centered at zero,
+    // positive inside,
+    // cylinder along z if dim=2
+    auto f = [dim](const Vect& x) -> Scal {
+      Vect xd = x;
+      if (dim == 2) {
+        xd[2] = 0.;
+      }
+      return 1. - xd.sqrnorm();
+    };
+    if (pp.empty()) {
+      fc.Reinit(m, 0.);
+    } else {
+      for (auto c : m.Cells()) {
+        auto x = m.GetCenter(c);
+        // find particle with largest value of level-set
+        Scal fm = -std::numeric_limits<Scal>::max(); 
+        size_t im; // index of particle
+        for (size_t i = 0; i < pp.size(); ++i) {
+          auto& p = pp[i];
+          Scal fi = f((x - p.c) / p.r);
+          if (fi > fm) {
+            fm = fi;
+            im = i;
+          }
+        }
+        // cell size
+        Vect h = m.GetCellSize();
+        // volume fraction
+        auto& p = pp[im];
+        if (ls == 1) {
+          fc[c] = GetLevelSetVolume<Scal>(f, (x - p.c) / p.r, h / p.r);
+        } else if (ls == 2) {
+          Vect qx = (x - p.c) / p.r;
+          Vect qh = h / p.r;
+          if (dim == 2) {
+            qh[2] *= 1e-3; // XXX: adhoc, thin cell in 2d
+            qx[2] = 0.;
+          }
+          fc[c] = GetSphereOverlap(qx, qh, Vect(0), 1.);
+        } else {
+          fc[c] = (fm >= 0. ? 1. : 0.);
+        }
+      }
+    }
+  };
+}
+
+// Volume fraction field.
+// par: parameters
+// M: mesh
+// Returns:
+// std::function<void(GField<Cell>& fc,const M& m)>
+// fc: field to fill [i]
+// m: mesh
+template <class M>
+std::function<void(FieldCell<typename M::Scal>&,const M&)> 
 CreateInitU(Vars& par, bool verb=true) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  std::function<void(FieldCell<Scal>&,const M&)> g; // result
 
   std::string v = par.String["init_vf"];
   if (v == "circle") {
     Vect xc = Vect(par.Vect["circle_c"]);
     Scal r = par.Double["circle_r"];
     size_t dim = par.Int["dim"];
-    g = [xc,r,dim](FieldCell<Scal>& fc, const M& m) { 
+    return [xc,r,dim](FieldCell<Scal>& fc, const M& m) { 
       for (auto c : m.Cells()) {
         auto dx = m.GetCenter(c) - xc;
         if (dim == 2) {
@@ -83,7 +202,7 @@ CreateInitU(Vars& par, bool verb=true) {
     Vect xc = Vect(par.Vect["circle_c"]);
     Scal r = par.Double["circle_r"];
     size_t dim = par.Int["dim"];
-    g = [xc,r,dim](FieldCell<Scal>& fc, const M& m) { 
+    return [xc,r,dim](FieldCell<Scal>& fc, const M& m) { 
       // level-set for particle of radius 1 centered at zero,
       // positive inside,
       // cylinder along z if dim=2
@@ -106,7 +225,7 @@ CreateInitU(Vars& par, bool verb=true) {
     Scal a = par.Double["gear_amp"];  // amplitude relative to r
     Scal n = par.Double["gear_n"];    // number of peaks
     size_t dim = par.Int["dim"];
-    g = [xc,r,dim,a,n](FieldCell<Scal>& fc, const M& m) { 
+    return [xc,r,dim,a,n](FieldCell<Scal>& fc, const M& m) { 
       // level-set for particle of radius 1 centered at zero,
       // modulated by sine-wave of amplitude a and number of periods n
       // positive inside,
@@ -129,7 +248,7 @@ CreateInitU(Vars& par, bool verb=true) {
     Scal xc(par.Double["soliton_xc"]);
     Scal yc(par.Double["soliton_yc"]);
     Scal yh(par.Double["soliton_yh"]);
-    g = [xc,yc,yh](FieldCell<Scal>& fc, const M& m) { 
+    return [xc,yc,yh](FieldCell<Scal>& fc, const M& m) { 
       auto f = [xc,yh,yc](const Vect& xx) -> Scal {
         Scal D = yc;
         Scal H = yh;
@@ -159,7 +278,7 @@ CreateInitU(Vars& par, bool verb=true) {
     Scal yc(par.Double["soliton_yc"]);
     Scal yh(par.Double["soliton_yh"]);
     Scal xw(par.Double["soliton_xw"]);
-    g = [xc,yc,yh,xw](FieldCell<Scal>& fc, const M& m) { 
+    return [xc,yc,yh,xw](FieldCell<Scal>& fc, const M& m) { 
       auto f = [xc,yh,yc,xw](const Vect& xx) -> Scal {
         Scal x = xx[0] - xc;
         Scal L = xw;
@@ -181,7 +300,7 @@ CreateInitU(Vars& par, bool verb=true) {
     Scal yh(par.Double["soliton_yh"]);
     Scal xw(par.Double["soliton_xw"]);
     Scal e(par.Double["soliton_eps"]);
-    g = [xc,yc,yh,xw,e](FieldCell<Scal>& fc, const M& m) { 
+    return [xc,yc,yh,xw,e](FieldCell<Scal>& fc, const M& m) { 
       auto f = [xc,yh,yc,xw,e](const Vect& xx) -> Scal {
         using std::cos;
         Scal a = yh;
@@ -200,115 +319,11 @@ CreateInitU(Vars& par, bool verb=true) {
       }
     };
   } else if (v == "list") {
-    std::string fn = par.String["list_path"];
-    int ls = par.Int["list_ls"]; // 0: stepwise, 1: level-set, 2: overlap
-    size_t dim = par.Int["dim"];
-
-    // elliptic partilces TODO: generalize
-    struct P { 
-      Vect c;  // center
-      Vect r;  // axes in coordinate directions
-    };
-    std::vector<P> pp;
-
-    std::ifstream f(fn);
-    if (!f.good()) {
-      throw std::runtime_error("Can't open particle list '" + fn + "'");
-    }
-
-    f >> std::skipws;
-    // Read until eof
-    while (true) {
-      P p;
-      // Read single particle: x y z r
-      // first character (to skip empty strings)
-      char c;
-      f >> c;
-      if (f.good()) {
-        std::string s;
-        std::getline(f, s);
-        if (c == '#') {
-          continue;
-        }
-        s = c + s; // append first character
-        std::stringstream st(s);
-        st >> p.c[0] >> p.c[1] >> p.c[2];
-        st >> p.r[0];
-        if (st.fail()) {
-          throw std::runtime_error("list: missing rx in '" + s + "'");
-        }
-        st >> p.r[1];
-        if (st.fail()) {
-          p.r[1] = p.r[0];
-          p.r[2] = p.r[0];
-        } else {
-          st >> p.r[2];
-          if (st.fail()) {
-            p.r[2] = p.r[0];
-          }
-        }
-        pp.push_back(p);
-      } else {
-        break;
-      }
-    }
-
-    if (verb) {
-      std::cout << "Read " << pp.size() << " particles from " 
-          << "'" << fn << "'" << std::endl;
-    }
-
-    g = [dim,ls,pp](FieldCell<Scal>& fc, const M& m) { 
-      // level-set for particle of radius 1 centered at zero,
-      // positive inside,
-      // cylinder along z if dim=2
-      auto f = [dim](const Vect& x) -> Scal {
-        Vect xd = x;
-        if (dim == 2) {
-          xd[2] = 0.;
-        }
-        return 1. - xd.sqrnorm();
-      };
-      if (pp.empty()) {
-        fc.Reinit(m, 0.);
-      } else {
-        for (auto c : m.Cells()) {
-          auto x = m.GetCenter(c);
-          // find particle with largest value of level-set
-          Scal fm = -std::numeric_limits<Scal>::max(); 
-          size_t im; // index of particle
-          for (size_t i = 0; i < pp.size(); ++i) {
-            auto& p = pp[i];
-            Scal fi = f((x - p.c) / p.r);
-            if (fi > fm) {
-              fm = fi;
-              im = i;
-            }
-          }
-          // cell size
-          Vect h = m.GetCellSize();
-          // volume fraction
-          auto& p = pp[im];
-          if (ls == 1) {
-            fc[c] = GetLevelSetVolume<Scal>(f, (x - p.c) / p.r, h / p.r);
-          } else if (ls == 2) {
-            Vect qx = (x - p.c) / p.r;
-            Vect qh = h / p.r;
-            if (dim == 2) {
-              qh[2] *= 1e-3; // XXX: adhoc, thin cell in 2d
-              qx[2] = 0.;
-            }
-            fc[c] = GetSphereOverlap(qx, qh, Vect(0), 1.);
-          } else {
-            fc[c] = (fm >= 0. ? 1. : 0.);
-          }
-        }
-      }
-    };
+    return CreateInitUList<M>(par, verb);
   } else if (v == "box") {
     Vect xc(par.Vect["box_c"]);
     Scal s = par.Double["box_s"];
-    g = [xc,s](FieldCell<Scal>& fc, const M& m) { 
+    return [xc,s](FieldCell<Scal>& fc, const M& m) { 
       for (auto c : m.Cells()) {
         fc[c] = (xc - m.GetCenter(c)).norminf() < s * 0.5 ? 1. : 0.; 
       }
@@ -317,7 +332,7 @@ CreateInitU(Vars& par, bool verb=true) {
     Vect xc(par.Vect["line_c"]); // center
     Vect n(par.Vect["line_n"]);  // normal
     Scal h(par.Double["line_h"]);  // thickness 
-    g = [xc,n,h](FieldCell<Scal>& fc, const M& m) { 
+    return [xc,n,h](FieldCell<Scal>& fc, const M& m) { 
       for (auto c : m.Cells()) {
         Scal d = (m.GetCenter(c) - xc).dot(n);
         fc[c] = 1. / (1. + std::exp(-d / h));
@@ -331,7 +346,7 @@ CreateInitU(Vars& par, bool verb=true) {
       k = Vect(2. * M_PI);
     }
 
-    g = [k](FieldCell<Scal>& fc, const M& m) { 
+    return [k](FieldCell<Scal>& fc, const M& m) { 
       for (auto c : m.Cells()) {
         Vect z = m.GetCenter(c) * k;
         fc[c] = std::sin(z[0]) * std::sin(z[1]) * std::sin(z[2]);
@@ -339,7 +354,7 @@ CreateInitU(Vars& par, bool verb=true) {
     };
   } else if (v == "sinc") {
     Vect k(par.Vect["sinc_k"]);
-    g = [k](FieldCell<Scal>& fc, const M& m) { 
+    return [k](FieldCell<Scal>& fc, const M& m) { 
       for (auto c : m.Cells()) {
         Vect x = m.GetCenter(c);
         x -= Vect(0.5);
@@ -353,7 +368,7 @@ CreateInitU(Vars& par, bool verb=true) {
       }
     };
   } else if (v == "zero") {
-    g = [](FieldCell<Scal>& fc, const M& m) { 
+    return [](FieldCell<Scal>& fc, const M& m) { 
       for (auto c : m.Cells()) {
         fc[c] = 0.;
       }
@@ -361,5 +376,5 @@ CreateInitU(Vars& par, bool verb=true) {
   } else {
     throw std::runtime_error("Unknown init_vf=" + v);
   }
-  return g;
+  return std::function<void(FieldCell<Scal>&,const M&)>();
 }
