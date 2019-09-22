@@ -24,70 +24,16 @@ std::function<void(FieldCell<typename M::Scal>&,
 CreateInitCl(Vars& par, bool verb=true) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  // result
-  std::function<void(FieldCell<Scal>&,const FieldCell<Scal>&,const M&)> g;
 
   std::string v = par.String["init_vf"];
   if (v == "list") {
     std::string fn = par.String["list_path"];
     size_t dim = par.Int["dim"];
 
-    // elliptic partilces TODO: generalize
-    struct P { 
-      Vect c;  // center
-      Vect r;  // axes in coordinate directions
-    };
-    std::vector<P> pp;
+    auto pp = UPrimList<Scal>::Parse(par.String["list_path"], verb);
 
-    std::ifstream f(fn);
-    if (!f.good()) {
-      throw std::runtime_error("color: Can't open particle list '" + fn + "'");
-    }
-
-    f >> std::skipws;
-    // Read until eof
-    while (true) {
-      P p;
-      // Read single particle: x y z r
-      // first character (to skip empty strings)
-      char c;
-      f >> c;
-      if (f.good()) {
-        // still have lines
-        std::string s;
-        std::getline(f, s);
-        if (c == '#') {
-          continue;
-        }
-        s = c + s; // append first character
-        std::stringstream st(s);
-        st >> p.c[0] >> p.c[1] >> p.c[2];
-        st >> p.r[0];
-        if (st.fail()) {
-          throw std::runtime_error("color_list: missing rx in '" + s + "'");
-        }
-        st >> p.r[1];
-        if (st.fail()) {
-          p.r[1] = p.r[0];
-          p.r[2] = p.r[0];
-        } else {
-          st >> p.r[2];
-          if (st.fail()) {
-            p.r[2] = p.r[0];
-          }
-        }
-        pp.push_back(p);
-      } else {
-        break;
-      }
-    }
-
-    if (verb) {
-      std::cout << "color: Read " << pp.size() << " particles from " 
-          << "'" << fn << "'" << std::endl;
-    }
-
-    g = [dim,pp](FieldCell<Scal>& cl, const FieldCell<Scal>& vf, const M& m) { 
+    return [dim,pp](FieldCell<Scal>& cl, const FieldCell<Scal>& vf, 
+                    const M& m) { 
       // level-set for particle of radius 1 centered at zero,
       // positive inside,
       // cylinder along z if dim=2
@@ -126,7 +72,7 @@ CreateInitCl(Vars& par, bool verb=true) {
   } else if (v == "box") {
     Vect xc(par.Vect["box_c"]);
     Scal s = par.Double["box_s"];
-    g = [xc,s](FieldCell<Scal>& fc, const FieldCell<Scal>& /*fcvf*/, const M& m) { 
+    return [xc,s](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) {
       Scal kNone = solver::Tracker<M>::kNone;
       fc.Reinit(m, kNone);
       for (auto c : m.Cells()) {
@@ -136,14 +82,15 @@ CreateInitCl(Vars& par, bool verb=true) {
       }
     };
   } else if (v == "zero") {
-    g = [](FieldCell<Scal>& fc, const FieldCell<Scal>& /*fcvf*/, const M& m) { 
+    return [](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) { 
       Scal kNone = solver::Tracker<M>::kNone;
       fc.Reinit(m, kNone);
     };
-  } else {
-    if (verb) {
-      std::cout << "Info: no color function for init_vf=" << v << std::endl;
-    }
   }
-  return g;
+  if (verb) {
+    std::cout << "Info: no color function for init_vf=" << v << std::endl;
+  }
+  return std::function<void(FieldCell<typename M::Scal>&, 
+                            const FieldCell<typename M::Scal>&, 
+                            const M&)>();
 }
