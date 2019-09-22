@@ -12,6 +12,7 @@
 #include "geom/block.h"
 #include "geom/vect.h"
 #include "overlap/overlap.h"
+#include "primlist.h"
 
 // Volume fraction cut by interface defined by level-set function
 // f: level-set function, interface f=0, f>0 for volume fraction 1
@@ -51,6 +52,7 @@ Scal GetLevelSetVolume(std::function<Scal(const GVect<Scal, 3>&)> f,
   return fc > 0. ? 1. : 0.;
 }
 
+
 // Volume fraction field.
 // par: parameters
 // M: mesh
@@ -60,67 +62,15 @@ Scal GetLevelSetVolume(std::function<Scal(const GVect<Scal, 3>&)> f,
 // m: mesh
 template <class M>
 std::function<void(FieldCell<typename M::Scal>&,const M&)> 
-CreateInitUList(Vars& par, bool verb=true) {
+CreateInitUList(Vars& par, bool verb) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  std::string fn = par.String["list_path"];
   int ls = par.Int["list_ls"]; // 0: stepwise, 1: level-set, 2: overlap
   size_t dim = par.Int["dim"];
 
   // elliptic partilces TODO: generalize
-  struct P { 
-    Vect c;  // center
-    Vect r;  // axes in coordinate directions
-  };
-  std::vector<P> pp;
-
-  std::ifstream f(fn);
-  if (!f.good()) {
-    throw std::runtime_error("Can't open particle list '" + fn + "'");
-  }
-
-  f >> std::skipws;
-  // Read until eof
-  while (true) {
-    P p;
-    // Read single particle: x y z r
-    // first character (to skip empty strings)
-    char c;
-    f >> c;
-    if (f.good()) {
-      std::string s;
-      std::getline(f, s);
-      if (c == '#') {
-        continue;
-      }
-      s = c + s; // append first character
-      std::stringstream st(s);
-      st >> p.c[0] >> p.c[1] >> p.c[2];
-      st >> p.r[0];
-      if (st.fail()) {
-        throw std::runtime_error("list: missing rx in '" + s + "'");
-      }
-      st >> p.r[1];
-      if (st.fail()) {
-        p.r[1] = p.r[0];
-        p.r[2] = p.r[0];
-      } else {
-        st >> p.r[2];
-        if (st.fail()) {
-          p.r[2] = p.r[0];
-        }
-      }
-      pp.push_back(p);
-    } else {
-      break;
-    }
-  }
-
-  if (verb) {
-    std::cout << "Read " << pp.size() << " particles from " 
-        << "'" << fn << "'" << std::endl;
-  }
+  auto pp = UPrimList<Scal>::Parse(par.String["list_path"], verb);
 
   return [dim,ls,pp](FieldCell<Scal>& fc, const M& m) { 
     // level-set for particle of radius 1 centered at zero,
