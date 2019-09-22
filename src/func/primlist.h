@@ -33,10 +33,12 @@ struct UPrimList {
     std::map<std::string, Scal> r;
     std::stringstream vv(sv);
     std::stringstream kk(sk);
-    std::string q;
-    vv >> q;
-    if (q != name) {
-      return std::map<std::string, Scal>();
+    if (name != "") {
+      std::string q;
+      vv >> q;
+      if (q != name) {
+        return std::map<std::string, Scal>();
+      }
     }
     std::string k;
     Scal v;
@@ -51,7 +53,8 @@ struct UPrimList {
     }
     if (r.size() < n && kk) {
       throw std::runtime_error(
-          "PrimList: missing field '" + k + "' in '" + sv +"'");
+          "PrimList: missing field '" + k + "' in '" + sv +
+          "' while parsing keys '" + sk + "'");
     }
     if (r.size() < n && !kk) {
       throw std::runtime_error(
@@ -61,7 +64,7 @@ struct UPrimList {
     if (vv && !kk) {
       throw std::runtime_error(
           "PrimList: no key for '" + std::to_string(v) + "' in '" + sv +
-          "' after parsing keys '" + sk + "'");
+          "' while parsing keys '" + sk + "'");
     }
     return r;
   }
