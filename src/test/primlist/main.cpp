@@ -9,10 +9,15 @@
 using Scal = double;
 
 int main(int an, char* av[]) {
-  std::map<std::string, Scal> r =
-      UPrimList<Scal>::Parse(av[1], av[2], av[3], atoi(av[4]));
-  for (auto k : r) {
-    std::cout << k.first << ":" << k.second << " ";
+  try {
+    std::map<std::string, Scal> r =
+        UPrimList<Scal>::Parse(av[1], av[2], av[3], atoi(av[4]));
+    for (auto k : r) {
+      std::cout << k.first << ":" << k.second << " ";
+    }
+    std::cout << std::endl;
   }
-  std::cout << std::endl;
+  catch (std::exception& e) {
+    std::cout << e.what() << std::endl;
+  }
 }

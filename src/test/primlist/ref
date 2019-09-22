@@ -1,13 +1,16 @@
-./t.primlist s 's 1 2 3' 'x y z' 3
+./t.primlist 's' 's 1 2 3' 'x y z' '3'
 x:1 y:2 z:3 
-./t.primlist s 's 1 2 3 4' 'x y z' 3
-terminate called after throwing an instance of 'std::runtime_error'
-  what():  PrimList: no key for '4.000000' in 's 1 2 3 4' after parsing keys 'x y z'
-./t.primlist s 's 1 2 3' 'x y z r' 3
+./t.primlist 's' 's 1 2 3 4' 'x y z' '3'
+PrimList: no key for '4.000000' in 's 1 2 3 4' while parsing keys 'x y z'
+./t.primlist 's' 's 1 2 3' 'x y z r' '3'
 x:1 y:2 z:3 
-./t.primlist s 's 1 2 3' 'x y z r' 4
-terminate called after throwing an instance of 'std::runtime_error'
-  what():  PrimList: missing field 'r' in 's 1 2 3'
-./t.primlist s 's 1 2 3' 'x y z' 4
-terminate called after throwing an instance of 'std::runtime_error'
-  what():  PrimList: no keys for 4 required fields in 'x y z'
+./t.primlist 's' 's 1 2 3' 'x y z r' '4'
+PrimList: missing field 'r' in 's 1 2 3' while parsing keys 'x y z r'
+./t.primlist 's' 's 1 2 3' 'x y z' '4'
+PrimList: no keys for 4 required fields in 'x y z'
+./t.primlist '' '1 2 3' 'x y z' '3'
+x:1 y:2 z:3 
+./t.primlist 's' '1 2 3' 'x y z' '3'
+
+./t.primlist '' 's 1 2 3' 'x y z' '3'
+PrimList: missing field 'x' in 's 1 2 3' while parsing keys 'x y z'
