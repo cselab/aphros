@@ -6,6 +6,10 @@
 #include <limits>
 #include <sstream>
 #include <vector>
+#include <map>
+#include <fstream>
+
+#include "geom/vect.h"
 
 template <class Scal>
 struct UPrimList {
@@ -17,6 +21,51 @@ struct UPrimList {
     Vect r;  // axes in coordinate directions
   };
 
+  // Parses string of format:
+  // <name> <r[k1]> <r[k2]> ...
+  // and returns map r[k] if name matches, otherwise returns empty map.
+  // name: prefix
+  // sv: list of values
+  // sk: list of keys
+  // n: number of required fields
+  static std::map<std::string, Scal> Parse(
+      std::string name, std::string sv, std::string sk, size_t n) {
+    std::map<std::string, Scal> r;
+    std::stringstream vv(sv);
+    std::stringstream kk(sk);
+    std::string q;
+    vv >> q;
+    if (q != name) {
+      return std::map<std::string, Scal>();
+    }
+    std::string k;
+    Scal v;
+    while (true) {
+      vv >> v;
+      kk >> k;
+      if (vv && kk) {
+        r[k] = v;
+      } else {
+        break;
+      }
+    }
+    if (r.size() < n && kk) {
+      throw std::runtime_error(
+          "PrimList: missing field '" + k + "' in '" + sv +"'");
+    }
+    if (r.size() < n && !kk) {
+      throw std::runtime_error(
+          "PrimList: no keys for " +std::to_string(n) + 
+          " required fields in '" + sk + "'");
+    }
+    if (vv && !kk) {
+      throw std::runtime_error(
+          "PrimList: no key for '" + std::to_string(v) + "' in '" + sv +
+          "' after parsing keys '" + sk + "'");
+    }
+    return r;
+  }
+
   static std::vector<Primitive> Parse(std::string fn, bool verb) {
     std::vector<Primitive> pp;
     std::ifstream f(fn);
@@ -25,40 +74,31 @@ struct UPrimList {
     }
 
     f >> std::skipws;
+
+    // default
+    auto def = [](std::map<std::string, Scal>& r, std::string k, Scal d) {
+      if (!r.count(k)) { r[k] = d; }
+    };
+
     // Read until eof
-    while (true) {
+    while (f) {
       Primitive p;
-      // Read single particle: x y z r
-      // first character (to skip empty strings)
-      char c;
-      f >> c;
-      if (f.good()) {
-        std::string s;
-        std::getline(f, s);
-        if (c == '#') {
-          continue;
-        }
-        s = c + s; // append first character
-        std::stringstream st(s);
-        st >> p.c[0] >> p.c[1] >> p.c[2];
-        st >> p.r[0];
-        if (st.fail()) {
-          throw std::runtime_error("list: missing rx in '" + s + "'");
-        }
-        st >> p.r[1];
-        if (st.fail()) {
-          p.r[1] = p.r[0];
-          p.r[2] = p.r[0];
-        } else {
-          st >> p.r[2];
-          if (st.fail()) {
-            p.r[2] = p.r[0];
-          }
-        }
-        pp.push_back(p);
-      } else {
-        break;
-      }
+      std::string s;
+      std::getline(f, s);
+
+      std::map<std::string, Scal> r = Parse("s", s, "x y z rx ry rz", 4);
+
+      def(r, "ry", r["rx"]);
+      def(r, "rz", r["ry"]);
+
+      p.c[0] = r["x"];
+      p.c[1] = r["y"];
+      p.c[2] = r["z"];
+      p.r[0] = r["rx"];
+      p.r[1] = r["ry"];
+      p.r[2] = r["rz"];
+
+      pp.push_back(p);
     }
 
     if (verb) {
