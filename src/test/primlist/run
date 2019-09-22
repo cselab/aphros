@@ -1,0 +1,23 @@
+#!/bin/bash
+
+o=out
+
+> $o
+
+R () {
+  c="./t.primlist $1 '$2' '$3' $4"
+  echo "$c" >> $o
+  eval "$c 2>&1" >> $o
+}
+
+R s "s 1 2 3" "x y z" 3 "x:1 y:2 z:3 "
+R s "s 1 2 3 4" "x y z" 3 "x:1 y:2 z:3 "
+R s "s 1 2 3" "x y z r" 3 "x:1 y:2 z:3 "
+R s "s 1 2 3" "x y z r" 4 "x:1 y:2 z:3 "
+R s "s 1 2 3" "x y z" 4 "x:1 y:2 z:3 "
+
+if ! diff -q $o ref ; then
+  exit 1
+fi
+
+rm $o
