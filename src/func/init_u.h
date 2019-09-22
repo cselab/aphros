@@ -69,7 +69,6 @@ CreateInitUList(Vars& par, bool verb) {
   int ls = par.Int["list_ls"]; // 0: stepwise, 1: level-set, 2: overlap
   size_t dim = par.Int["dim"];
 
-  // elliptic partilces TODO: generalize
   auto pp = UPrimList<Scal>::Parse(par.String["list_path"], verb);
 
   return [dim,ls,pp](FieldCell<Scal>& fc, const M& m) { 

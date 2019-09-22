@@ -5,6 +5,7 @@
 #include <functional>
 #include <limits>
 #include <sstream>
+#include <ostream>
 #include <vector>
 #include <map>
 #include <fstream>
@@ -12,14 +13,22 @@
 #include "geom/vect.h"
 
 template <class Scal>
+struct GPrimitive {
+  static constexpr size_t dim = 3;
+  using Vect = GVect<Scal, dim>;
+  Vect c;  // center
+  Vect r;  // axes in coordinate directions
+  Vect n;  // normal
+  Scal th; // ring thickness
+  bool inv;
+};
+
+
+template <class Scal>
 struct UPrimList {
   static constexpr size_t dim = 3;
   using Vect = GVect<Scal, dim>;
-
-  struct Primitive {
-    Vect c;  // center
-    Vect r;  // axes in coordinate directions
-  };
+  using Primitive = GPrimitive<Scal>;
 
   // Parses string of format:
   // <name> <r[k1]> <r[k2]> ...
@@ -36,7 +45,7 @@ struct UPrimList {
     if (name != "") {
       std::string q;
       vv >> q;
-      if (q != name) {
+      if (q.length() == 0 || q[0] == '#' || q != name) {
         return std::map<std::string, Scal>();
       }
     }
@@ -85,15 +94,16 @@ struct UPrimList {
 
     // Read until eof
     while (f) {
-      Primitive p;
       std::string s;
       std::getline(f, s);
-
       std::map<std::string, Scal> r = Parse("s", s, "x y z rx ry rz", 4);
+
+      if (r.empty()) continue;
 
       def(r, "ry", r["rx"]);
       def(r, "rz", r["ry"]);
 
+      Primitive p;
       p.c[0] = r["x"];
       p.c[1] = r["y"];
       p.c[2] = r["z"];
@@ -111,3 +121,15 @@ struct UPrimList {
     return pp;
   }
 };
+
+template <class Scal>
+std::ostream& operator<<(std::ostream& o,
+                         const GPrimitive<Scal>& p) {
+  o << "c=" << p.c
+    << " r=" << p.r
+    << " n=" << p.n
+    << " th=" << p.r
+    << " inv=" << p.inv;
+  return o;
+}
+
