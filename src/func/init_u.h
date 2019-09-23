@@ -67,47 +67,33 @@ CreateInitUList(Vars& par, bool verb) {
   using Vect = typename M::Vect;
 
   int ls = par.Int["list_ls"]; // 0: stepwise, 1: level-set, 2: overlap
-  size_t dim = par.Int["dim"];
 
-  auto pp = UPrimList<Scal>::Parse(par.String["list_path"], verb);
+  size_t edim = par.Int["dim"];
 
-  return [dim,ls,pp](FieldCell<Scal>& fc, const M& m) { 
-    // level-set for particle of radius 1 centered at zero,
-    // positive inside,
-    // cylinder along z if dim=2
-    auto f = [dim](const Vect& x) -> Scal {
-      Vect xd = x;
-      if (dim == 2) {
-        xd[2] = 0.;
-      }
-      return 1. - xd.sqrnorm();
-    };
+  auto pp = UPrimList<Scal>::Parse(
+      par.String["list_path"], verb, edim);
+
+  return [edim,ls,pp](FieldCell<Scal>& fc, const M& m) { 
     if (pp.empty()) {
       fc.Reinit(m, 0.);
     } else {
       for (auto c : m.Cells()) {
         auto x = m.GetCenter(c);
-        // find particle with largest value of level-set
-        Scal fm = -std::numeric_limits<Scal>::max(); 
-        size_t im; // index of particle
+        Scal fm = -std::numeric_limits<Scal>::max(); // maximum level-set
+        size_t im; // index of maximum
         for (size_t i = 0; i < pp.size(); ++i) {
           auto& p = pp[i];
-          Scal fi = f((x - p.c) / p.r);
-          if (fi > fm) {
-            fm = fi;
-            im = i;
-          }
+          Scal fi = p.ls(x);
+          if (fi > fm) { fm = fi; im = i; }
         }
-        // cell size
         Vect h = m.GetCellSize();
-        // volume fraction
         auto& p = pp[im];
         if (ls == 1) {
-          fc[c] = GetLevelSetVolume<Scal>(f, (x - p.c) / p.r, h / p.r);
+          fc[c] = GetLevelSetVolume<Scal>(p.ls, x, h);
         } else if (ls == 2) {
           Vect qx = (x - p.c) / p.r;
           Vect qh = h / p.r;
-          if (dim == 2) {
+          if (edim == 2) {
             qh[2] *= 1e-3; // XXX: adhoc, thin cell in 2d
             qx[2] = 0.;
           }
