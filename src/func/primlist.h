@@ -42,21 +42,29 @@ struct UPrimList {
   // n: number of required fields
   static std::map<std::string, Scal> Parse(
       std::string name, std::string sv, std::string sk, size_t n) {
-    // remove comment
+    // remove comments
     sv = sv.substr(0, sv.find('#', 0));
     // check empty string
     if (std::all_of(sv.cbegin(), sv.cend(),
                     [](char c){ return std::isspace(c); })) {
       return std::map<std::string, Scal>();
     }
+    std::string pre; // name
     std::stringstream vv(sv);
     vv >> std::skipws;
-    if (name != "") {
-      std::string q;
-      vv >> q;
-      if (q != name) {
-        return std::map<std::string, Scal>();
+    {
+      std::stringstream tt(sv);
+      Scal a;
+      tt >> std::skipws;
+      tt >> a;
+      if (tt.good()) { // first is number
+        pre = "";
+      } else {
+        vv >> pre;
       }
+    }
+    if (name != pre) {
+      return std::map<std::string, Scal>();
     }
     std::stringstream kk(sk);
     std::map<std::string, Scal> r;
@@ -110,12 +118,13 @@ struct UPrimList {
       std::getline(f, s);
       std::map<std::string, Scal> r;
 
+      // sphere
       r  = Parse("s", s, "x y z rx ry rz", 4);
       if (r.empty()) {
         r = Parse("", s, "x y z rx ry rz", 4);
       }
 
-      if (!r.empty()) { // sphere
+      if (!r.empty()) {
         def(r, "ry", r["rx"]);
         def(r, "rz", r["ry"]);
 
@@ -135,7 +144,35 @@ struct UPrimList {
           if (edim == 2) {
             xd[2] = 0.;
           }
-          return 1. - xd.sqrnorm();
+          return (1. - xd.sqrnorm()) * sqr(p.r.min());
+        };
+
+        pp.push_back(p);
+      }
+
+      // ring
+      r  = Parse("ring", s, "x y z nx ny nz r th", 8);
+      if (!r.empty()) {
+        Primitive p;
+        p.c[0] = r["x"];
+        p.c[1] = r["y"];
+        p.c[2] = r["z"];
+        p.r[0] = r["r"];
+        p.n[0] = r["nx"];
+        p.n[1] = r["ny"];
+        p.n[2] = r["nz"];
+        p.th = r["th"];
+        p.n /= p.n.norm();
+
+        using Type = typename Primitive::Type;
+        p.type = Type::ring;
+
+        p.ls = [p](const Vect& x) -> Scal {
+          Vect d = x - p.c;
+          Scal xn = d.dot(p.n);
+          Scal xt = (d - p.n * xn).norm();
+          Scal r = p.r[0];
+          return sqr(p.th) - (sqr(xn) + sqr(xt - r));
         };
 
         pp.push_back(p);
