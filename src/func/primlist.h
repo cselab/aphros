@@ -14,13 +14,16 @@
 
 template <class Scal>
 struct GPrimitive {
+  enum class Type { sphere, ring };
   static constexpr size_t dim = 3;
   using Vect = GVect<Scal, dim>;
+  Type type;
   Vect c;  // center
   Vect r;  // axes in coordinate directions
   Vect n;  // normal
   Scal th; // ring thickness
-  bool inv;
+  bool inv; // flip
+  std::function<Scal(const GVect<Scal, 3>&)> ls; // level-set
 };
 
 
@@ -39,16 +42,24 @@ struct UPrimList {
   // n: number of required fields
   static std::map<std::string, Scal> Parse(
       std::string name, std::string sv, std::string sk, size_t n) {
-    std::map<std::string, Scal> r;
+    // remove comment
+    sv = sv.substr(0, sv.find('#', 0));
+    // check empty string
+    if (std::all_of(sv.cbegin(), sv.cend(),
+                    [](char c){ return std::isspace(c); })) {
+      return std::map<std::string, Scal>();
+    }
     std::stringstream vv(sv);
-    std::stringstream kk(sk);
+    vv >> std::skipws;
     if (name != "") {
       std::string q;
       vv >> q;
-      if (q.length() == 0 || q[0] == '#' || q != name) {
+      if (q != name) {
         return std::map<std::string, Scal>();
       }
     }
+    std::stringstream kk(sk);
+    std::map<std::string, Scal> r;
     std::string k;
     Scal v;
     while (true) {
@@ -78,7 +89,8 @@ struct UPrimList {
     return r;
   }
 
-  static std::vector<Primitive> Parse(std::string fn, bool verb) {
+  static std::vector<Primitive> Parse(
+      std::string fn, bool verb, size_t edim) {
     std::vector<Primitive> pp;
     std::ifstream f(fn);
     if (!f.good() && verb) {
@@ -96,22 +108,38 @@ struct UPrimList {
     while (f) {
       std::string s;
       std::getline(f, s);
-      std::map<std::string, Scal> r = Parse("s", s, "x y z rx ry rz", 4);
+      std::map<std::string, Scal> r;
 
-      if (r.empty()) continue;
+      r  = Parse("s", s, "x y z rx ry rz", 4);
+      if (r.empty()) {
+        r = Parse("", s, "x y z rx ry rz", 4);
+      }
 
-      def(r, "ry", r["rx"]);
-      def(r, "rz", r["ry"]);
+      if (!r.empty()) { // sphere
+        def(r, "ry", r["rx"]);
+        def(r, "rz", r["ry"]);
 
-      Primitive p;
-      p.c[0] = r["x"];
-      p.c[1] = r["y"];
-      p.c[2] = r["z"];
-      p.r[0] = r["rx"];
-      p.r[1] = r["ry"];
-      p.r[2] = r["rz"];
+        Primitive p;
+        p.c[0] = r["x"];
+        p.c[1] = r["y"];
+        p.c[2] = r["z"];
+        p.r[0] = r["rx"];
+        p.r[1] = r["ry"];
+        p.r[2] = r["rz"];
 
-      pp.push_back(p);
+        using Type = typename Primitive::Type;
+        p.type = Type::sphere;
+
+        p.ls = [edim,p](const Vect& x) -> Scal {
+          Vect xd = (x - p.c) / p.r;
+          if (edim == 2) {
+            xd[2] = 0.;
+          }
+          return 1. - xd.sqrnorm();
+        };
+
+        pp.push_back(p);
+      }
     }
 
     if (verb) {
