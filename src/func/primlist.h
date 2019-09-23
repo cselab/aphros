@@ -226,11 +226,18 @@ struct UPrimList {
         p.type = Type::ring;
 
         p.vel = [p](const Vect& x) -> Vect {
+          const Scal eps = 1e-10;
           Vect d = x - p.c;
           Scal xn = d.dot(p.n);
           Scal xt = (d - p.n * xn).norm();
-          Scal r = p.r[0];
-          return Vect(sqr(p.th) - (sqr(xn) + sqr(xt - r)), 0, 0);
+          Scal s2 = sqr(xn) + sqr(xt - p.r[0]);
+          Scal sig2 = sqr(p.th);
+          // unit radial along plane
+          Vect et = (d - p.n * xn) / std::max(eps, xt);
+          // unit along circle
+          Vect es = p.n.cross(et);
+          Scal om = p.magn / (M_PI * sig2) * std::exp(-s2 / sig2);
+          return es * om;
         };
 
         pp.push_back(p);
