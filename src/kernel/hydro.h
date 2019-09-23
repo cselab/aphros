@@ -265,7 +265,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldFace<Scal> ffbp_;  // balanced force projections
   FieldFace<Scal> ffk_;  // curvature on faces
   MapFace<std::shared_ptr<solver::CondFace>> mf_cond_;
-  MapFace<std::shared_ptr<solver::CondFaceFluid>> mf_velcond_;
+  MapFace<std::shared_ptr<solver::CondFaceFluid>> mf_velcond_; // fluid cond
+  MapFace<std::shared_ptr<solver::CondFace>> mfcw_; // velocity cond
   MapCell<std::shared_ptr<solver::CondCell>> mc_cond_;
   MapCell<std::shared_ptr<solver::CondCellFluid>> mc_velcond_;
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
@@ -437,12 +438,13 @@ void Hydro<M>::InitVort() {
   if (sem("initpois")) {
     m.Comm(&fc_vel_);
     fctv.Reinit(m);
+    mfcw_ = GetVelCond(m, mf_velcond_);
   }
   for (size_t d = 0; d < M::dim; ++d) {
     std::string dn = std::to_string(d);
     if (sem("init-" + dn)) {
       ps_ = std::make_shared<solver::PoisSolver<M>>(
-          GetScalarCond(GetVelCond(m, mf_velcond_), d, m), m);
+          GetScalarCond(mfcw_, d, m), m);
       fct = GetComponent(fc_vel_, d);
       for (auto c : m.Cells()) {
         fct[c] *= -1;
@@ -463,7 +465,7 @@ void Hydro<M>::InitVort() {
     }
   }
   if (sem("vel")) {
-    fc_vel_ = GetVort(fctv, GetVelCond(m, mf_velcond_), m);
+    fc_vel_ = GetVort(fctv, mfcw_, m);
     m.Comm(&fc_vel_);
     fctv.Free();
     fct.Free();
