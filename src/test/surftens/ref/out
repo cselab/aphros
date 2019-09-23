@@ -1,7 +1,7 @@
-hydro ce9acfa3-dirty
-msg: vofm: remove MakeIteration1()
-diff: src/solver/vof.ipp src/solver/vofm.ipp src/test/surftens/add.conf src/test/surftens/ref/cl_0000.dat src/test/surftens/ref/out src/test/surftens/ref/p_0000.dat src/test/surftens/ref/partit_0000.csv src/test/surftens/ref/vf_0000.dat src/test/surftens/ref/vf_0000.pdf src/test/surftens/ref/vx_0000.dat src/test/surftens/ref/vy_0000.dat src/test/surftens/std.conf 
-Loading config from 'acub.conf'
+hydro 055ab4db-dirty
+msg: primlist: ring gauss
+diff: src/func/primlist.h 
+Loading config from 'aloc.conf'
 
 === config begin ===
 set string advection_solver vof
@@ -20,20 +20,20 @@ set string part_attrforce line
 set string part_attrreconst line
 set string surftens kn
 set string vel_init uniform
+set string vellist_path vel.dat
 set string vof_scheme weymouth
 set int CHECKNAN 0
 set int bc_wall_init_vel 0
 set int bcc_clear 0
 set int bcc_reflect 0
-set int bsx 32
-set int bsy 32
+set int bsx 8
+set int bsy 8
 set int bsz 1
-set int bx 1
-set int by 1
+set int bx 4
+set int by 2
 set int bz 1
 set int clip_vf 0
 set int comm_size 8
-set int curvgrad 0
 set int dim 2
 set int dump_field_max 10000
 set int dump_part_max 10000
@@ -64,7 +64,7 @@ set int initvort 0
 set int inletflux_numid 1
 set int linreport 0
 set int list_ls 1
-set int loc 0
+set int loc 1
 set int loc_periodic_x 1
 set int loc_periodic_y 1
 set int loc_periodic_z 1
@@ -89,7 +89,7 @@ set int poiswyp 1
 set int poiswzm 1
 set int poiswzp 1
 set int px 1
-set int py 1
+set int py 2
 set int pz 1
 set int report_knan 0
 set int report_stat 0
@@ -192,10 +192,28 @@ set vect statboxb 1 1 0.5
 set vect vel 0.2 0.1 0 
 === config end ===
 
+o=(0,0,0) dom=(0,0,0),(1,1,0.03125) h=0.03125
+h from gm = 0.03125
+o=(0,0,0) n=0 i=(0,0,0)
+o=(0.25,0,0) n=8 i=(1,0,0)
+o=(0.5,0,0) n=16 i=(2,0,0)
+o=(0.75,0,0) n=24 i=(3,0,0)
+o=(0,0.25,0) n=264 i=(0,1,0)
+o=(0.25,0.25,0) n=272 i=(1,1,0)
+o=(0.5,0.25,0) n=280 i=(2,1,0)
+o=(0.75,0.25,0) n=288 i=(3,1,0)
+o=(0,0.5,0) n=528 i=(0,2,0)
+o=(0.25,0.5,0) n=536 i=(1,2,0)
+o=(0.5,0.5,0) n=544 i=(2,2,0)
+o=(0.75,0.5,0) n=552 i=(3,2,0)
+o=(0,0.75,0) n=792 i=(0,3,0)
+o=(0.25,0.75,0) n=800 i=(1,3,0)
+o=(0.5,0.75,0) n=808 i=(2,3,0)
+o=(0.75,0.75,0) n=816 i=(3,3,0)
 Read 3 particles from 'b.dat'
 global mesh=(32,32,1)
 surface tension dt=0.00985599
-color: Read 3 particles from 'b.dat'
+Read 3 particles from 'b.dat'
 pfixed id=0 dist=0.020492
 Found events: 
 =====
@@ -205,58 +223,58 @@ STEP=0 t=0.00000000 dt=0.02000000 ta=0.00000000 dta=0.02000000
 .....adv: t=0.02000000 dt=0.02000000
 dump t=0.02000000 to traj_0000.csv
 STEP=1 t=0.02000000 dt=0.00985599 ta=0.02000000 dta=0.00985599
-.....iter=1, diff=4.5841728795793180e-01
+.....iter=1, diff=4.5841728795828884e-01
 .....adv: t=0.02985599 dt=0.00985599
 STEP=2 t=0.02985599 dt=0.00985599 ta=0.02985599 dta=0.00985599
-.....iter=1, diff=9.5929006566192312e-02
+.....iter=1, diff=9.5929006566404532e-02
 .....adv: t=0.03971197 dt=0.00985599
 STEP=3 t=0.03971197 dt=0.00985599 ta=0.03971197 dta=0.00985599
-.....iter=1, diff=1.1544264497575275e-01
+.....iter=1, diff=1.1544264497593512e-01
 .....adv: t=0.04956796 dt=0.00985599
 STEP=4 t=0.04956796 dt=0.00985599 ta=0.04956796 dta=0.00985599
-.....iter=1, diff=1.1668874832410206e-01
+.....iter=1, diff=1.1668874832426429e-01
 .....adv: t=0.05942395 dt=0.00985599
 STEP=5 t=0.05942395 dt=0.00985599 ta=0.05942395 dta=0.00985599
-.....iter=1, diff=9.5442212118140024e-02
+.....iter=1, diff=9.5442212118207401e-02
 .....adv: t=0.06927993 dt=0.00985599
 STEP=6 t=0.06927993 dt=0.00985599 ta=0.06927993 dta=0.00985599
-.....iter=1, diff=8.3821855614674604e-02
+.....iter=1, diff=8.3821855614741717e-02
 .....adv: t=0.07913592 dt=0.00985599
 STEP=7 t=0.07913592 dt=0.00985599 ta=0.07913592 dta=0.00985599
-.....iter=1, diff=9.2697351770675812e-02
+.....iter=1, diff=9.2697351770693673e-02
 .....adv: t=0.08899190 dt=0.00985599
 STEP=8 t=0.08899190 dt=0.00985599 ta=0.08899190 dta=0.00985599
-.....iter=1, diff=7.2397721452946012e-02
+.....iter=1, diff=7.2397721452812841e-02
 .....adv: t=0.09884789 dt=0.00985599
 STEP=9 t=0.09884789 dt=0.00985599 ta=0.09884789 dta=0.00985599
-.....iter=1, diff=8.1558772582296338e-02
+.....iter=1, diff=8.1558772582168940e-02
 .....adv: t=0.10870388 dt=0.00985599
 STEP=10 t=0.10870388 dt=0.00985599 ta=0.10870388 dta=0.00985599
-.....iter=1, diff=8.9400567753262966e-02
+.....iter=1, diff=8.9400567753127783e-02
 .....adv: t=0.11855986 dt=0.00985599
 STEP=11 t=0.11855986 dt=0.00985599 ta=0.11855986 dta=0.00985599
-.....iter=1, diff=9.3400525594015016e-02
+.....iter=1, diff=9.3400525593973396e-02
 .....adv: t=0.12841585 dt=0.00985599
 STEP=12 t=0.12841585 dt=0.00985599 ta=0.12841585 dta=0.00985599
-.....iter=1, diff=1.0196773562658845e-01
+.....iter=1, diff=1.0196773562658511e-01
 .....adv: t=0.13827184 dt=0.00985599
 STEP=13 t=0.13827184 dt=0.00985599 ta=0.13827184 dta=0.00985599
-.....iter=1, diff=1.2199437184369806e-01
+.....iter=1, diff=1.2199437184379482e-01
 .....adv: t=0.14812782 dt=0.00985599
 STEP=14 t=0.14812782 dt=0.00985599 ta=0.14812782 dta=0.00985599
-.....iter=1, diff=1.3510927734440750e-01
+.....iter=1, diff=1.3510927734456768e-01
 .....adv: t=0.15798381 dt=0.00985599
 STEP=15 t=0.15798381 dt=0.00985599 ta=0.15798381 dta=0.00985599
-.....iter=1, diff=1.3428230548287506e-01
+.....iter=1, diff=1.3428230548306289e-01
 .....adv: t=0.16783980 dt=0.00985599
 STEP=16 t=0.16783980 dt=0.00985599 ta=0.16783980 dta=0.00985599
-.....iter=1, diff=1.0685003890966598e-01
+.....iter=1, diff=1.0685003890984422e-01
 .....adv: t=0.17769578 dt=0.00985599
 STEP=17 t=0.17769578 dt=0.00985599 ta=0.17769578 dta=0.00985599
-.....iter=1, diff=6.7823403850383740e-02
+.....iter=1, diff=6.7823403850513247e-02
 .....adv: t=0.18755177 dt=0.00985599
 STEP=18 t=0.18755177 dt=0.00985599 ta=0.18755177 dta=0.00985599
-.....iter=1, diff=6.9461192043274264e-02
+.....iter=1, diff=6.9461192043330094e-02
 .....adv: t=0.19740776 dt=0.00985599
 dump t=0.20726374 to s_0000.vtk
 dump t=0.19740776 to partit_0000.csv
@@ -264,14 +282,14 @@ Dump n=0 t=0.197408 target=0
 Dump 0: format=plain
 timer report t=0.19740776 to trep_0000.log
 STEP=19 t=0.19740776 dt=0.00985599 ta=0.19740776 dta=0.00985599
-.....iter=1, diff=6.4643824325356092e-02
+.....iter=1, diff=6.4643824325216925e-02
 .....adv: t=0.20726374 dt=0.00985599
 cells = 1024
 steps = 1000000
 iters = 20
-total = 0 s = 00:00:00.747
-time/cell/iter = 3.65226e-05 s
+total = 1 s = 00:00:01.200
+time/cell/iter = 5.86277e-05 s
 
-real	0m0.898s
-user	0m0.728s
-sys	0m0.082s
+real	0m1.360s
+user	0m1.260s
+sys	0m0.133s
