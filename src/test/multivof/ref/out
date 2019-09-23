@@ -1,6 +1,6 @@
-hydro ce9acfa3-dirty
-msg: vofm: remove MakeIteration1()
-diff: src/solver/vof.ipp src/solver/vofm.ipp src/test/surftens/add.conf src/test/surftens/ref/cl_0000.dat src/test/surftens/ref/out src/test/surftens/ref/p_0000.dat src/test/surftens/ref/partit_0000.csv src/test/surftens/ref/vf_0000.dat src/test/surftens/ref/vf_0000.pdf src/test/surftens/ref/vx_0000.dat src/test/surftens/ref/vy_0000.dat src/test/surftens/std.conf 
+hydro 055ab4db-dirty
+msg: primlist: ring gauss
+diff: src/func/primlist.h 
 Loading config from 'a.conf'
 
 === config begin ===
@@ -22,6 +22,7 @@ set string part_attrforce line
 set string part_attrreconst line
 set string surftens kn
 set string vel_init zero
+set string vellist_path vel.dat
 set string vof_scheme weymouth
 set int CHECKNAN 0
 set int bc_wall_init_vel 0
@@ -35,7 +36,6 @@ set int by 2
 set int bz 1
 set int clip_vf 0
 set int comm_size 8
-set int curvgrad 0
 set int dim 2
 set int dump_field_max 10000
 set int dump_part_max 10000
@@ -196,7 +196,7 @@ set vect statboxb 1 1 0.5
 Read 4 particles from 'b.dat'
 global mesh=(32,32,1)
 surface tension dt=0.0462287
-color: Read 4 particles from 'b.dat'
+Read 4 particles from 'b.dat'
 pfixed id=0 dist=0.020492
 Found events: 
 =====
@@ -206,75 +206,75 @@ STEP=0 t=0.00000000 dt=0.10000000 ta=0.00000000 dta=0.10000000
 .....adv: t=0.10000000 dt=0.10000000
 timer report t=0.10000000 to trep_0000.log
 STEP=1 t=0.10000000 dt=0.04622867 ta=0.10000000 dta=0.04622867
-.....iter=1, diff=1.1030697384064304e-01
+.....iter=1, diff=1.1030697384053510e-01
 .....adv: t=0.14622867 dt=0.04622867
 STEP=2 t=0.14622867 dt=0.04622867 ta=0.14622867 dta=0.04622867
-.....iter=1, diff=4.5075646935684707e-02
+.....iter=1, diff=4.5075646935677033e-02
 .....adv: t=0.19245735 dt=0.04622867
 STEP=3 t=0.19245735 dt=0.04622867 ta=0.19245735 dta=0.04622867
-.....iter=1, diff=5.2400170966078595e-02
+.....iter=1, diff=5.2400170966111083e-02
 .....adv: t=0.23868602 dt=0.04622867
 STEP=4 t=0.23868602 dt=0.04622867 ta=0.23868602 dta=0.04622867
-.....iter=1, diff=4.7646084691795487e-02
+.....iter=1, diff=4.7646084691787334e-02
 .....adv: t=0.28491470 dt=0.04622867
 STEP=5 t=0.28491470 dt=0.04622867 ta=0.28491470 dta=0.04622867
-.....iter=1, diff=4.7666864855265681e-02
+.....iter=1, diff=4.7666864855262614e-02
 .....adv: t=0.33114337 dt=0.04622867
 STEP=6 t=0.33114337 dt=0.04622867 ta=0.33114337 dta=0.04622867
-.....iter=1, diff=4.8538496905864134e-02
+.....iter=1, diff=4.8538496905864467e-02
 .....adv: t=0.37737204 dt=0.04622867
 STEP=7 t=0.37737204 dt=0.04622867 ta=0.37737204 dta=0.04622867
-.....iter=1, diff=4.8741738355810214e-02
+.....iter=1, diff=4.8741738355815467e-02
 .....adv: t=0.42360072 dt=0.04622867
 STEP=8 t=0.42360072 dt=0.04622867 ta=0.42360072 dta=0.04622867
-.....iter=1, diff=4.8913273659710828e-02
+.....iter=1, diff=4.8913273659715040e-02
 .....adv: t=0.46982939 dt=0.04622867
 STEP=9 t=0.46982939 dt=0.04622867 ta=0.46982939 dta=0.04622867
-.....iter=1, diff=9.3410085740765647e-02
+.....iter=1, diff=9.3410085740802465e-02
 .....adv: t=0.51605807 dt=0.04622867
 STEP=10 t=0.51605807 dt=0.04622867 ta=0.51605807 dta=0.04622867
-.....iter=1, diff=6.1937453711301153e-02
+.....iter=1, diff=6.1937453711495304e-02
 .....adv: t=0.56228674 dt=0.04622867
 STEP=11 t=0.56228674 dt=0.04622867 ta=0.56228674 dta=0.04622867
-.....iter=1, diff=7.8060558008430120e-02
+.....iter=1, diff=7.8060558008478428e-02
 .....adv: t=0.60851541 dt=0.04622867
 STEP=12 t=0.60851541 dt=0.04622867 ta=0.60851541 dta=0.04622867
-.....iter=1, diff=5.6067580285007322e-02
+.....iter=1, diff=5.6067580284994700e-02
 .....adv: t=0.65474409 dt=0.04622867
 STEP=13 t=0.65474409 dt=0.04622867 ta=0.65474409 dta=0.04622867
-.....iter=1, diff=1.0382995959261145e-01
+.....iter=1, diff=1.0382889992390475e-01
 .....adv: t=0.70097276 dt=0.04622867
 STEP=14 t=0.70097276 dt=0.04622867 ta=0.70097276 dta=0.04622867
-.....iter=1, diff=6.8216555603869258e-02
+.....iter=1, diff=6.8211499759828154e-02
 .....adv: t=0.74720144 dt=0.04622867
 STEP=15 t=0.74720144 dt=0.04622867 ta=0.74720144 dta=0.04622867
-.....iter=1, diff=8.7451517317405664e-02
+.....iter=1, diff=8.7449822364645005e-02
 .....adv: t=0.79343011 dt=0.04622867
 STEP=16 t=0.79343011 dt=0.04622867 ta=0.79343011 dta=0.04622867
-.....iter=1, diff=1.1466839471058010e-01
+.....iter=1, diff=1.1467060113338787e-01
 .....adv: t=0.83965878 dt=0.04622867
 STEP=17 t=0.83965878 dt=0.04622867 ta=0.83965878 dta=0.04622867
-.....iter=1, diff=1.4453283064254788e-01
+.....iter=1, diff=1.4453736466127154e-01
 .....adv: t=0.88588746 dt=0.04622867
 STEP=18 t=0.88588746 dt=0.04622867 ta=0.88588746 dta=0.04622867
-.....iter=1, diff=2.2320690528447226e-01
+.....iter=1, diff=2.2321244603494106e-01
 .....adv: t=0.93211613 dt=0.04622867
 STEP=19 t=0.93211613 dt=0.04622867 ta=0.93211613 dta=0.04622867
-.....iter=1, diff=2.4559690519559910e-01
+.....iter=1, diff=2.4559944299676109e-01
 .....adv: t=0.97834481 dt=0.04622867
 dump t=1.02457348 to s_0000.vtk
 Dump n=0 t=0.978345 target=0
 Dump 0: format=plain
 timer report t=0.97834481 to trep_0001.log
 STEP=20 t=0.97834481 dt=0.04622867 ta=0.97834481 dta=0.04622867
-.....iter=1, diff=4.0704495707770522e-01
+.....iter=1, diff=4.0705419050102482e-01
 .....adv: t=1.02457348 dt=0.04622867
 cells = 1024
 steps = 1000000
 iters = 21
-total = 1 s = 00:00:01.652
-time/cell/iter = 7.68266e-05 s
+total = 1 s = 00:00:01.710
+time/cell/iter = 7.95552e-05 s
 
-real	0m1.804s
-user	0m3.194s
-sys	0m0.163s
+real	0m1.885s
+user	0m3.366s
+sys	0m0.118s
