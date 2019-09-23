@@ -22,8 +22,9 @@ struct GPrimitive {
   Vect r;  // axes in coordinate directions
   Vect n;  // normal
   Scal th; // ring thickness
-  bool inv; // flip
+  Scal magn; // magnitude
   std::function<Scal(const GVect<Scal, 3>&)> ls; // level-set
+  std::function<Vect(const GVect<Scal, 3>&)> vel; // velocity
 };
 
 
@@ -181,6 +182,63 @@ struct UPrimList {
 
     if (verb) {
       std::cout << "Read " << pp.size() << " particles from " 
+          << "'" << fn << "'" << std::endl;
+    }
+    return pp;
+  }
+  static std::vector<Primitive> ParseVel(
+      std::string fn, bool verb, size_t edim) {
+    std::vector<Primitive> pp;
+    std::ifstream f(fn);
+    if (!f.good() && verb) {
+      throw std::runtime_error("Can't open primitive list '" + fn + "'");
+    }
+
+    f >> std::skipws;
+
+    // default
+    auto def = [](std::map<std::string, Scal>& r, std::string k, Scal d) {
+      if (!r.count(k)) { r[k] = d; }
+    };
+
+    // Read until eof
+    while (f) {
+      std::string s;
+      std::getline(f, s);
+      std::map<std::string, Scal> r;
+
+      // ring
+      r  = Parse("ring", s, "x y z nx ny nz r th magn", 9);
+      if (!r.empty()) {
+        Primitive p;
+        p.c[0] = r["x"];
+        p.c[1] = r["y"];
+        p.c[2] = r["z"];
+        p.r[0] = r["r"];
+        p.n[0] = r["nx"];
+        p.n[1] = r["ny"];
+        p.n[2] = r["nz"];
+        p.th = r["th"];
+        p.magn = r["magn"];
+        p.n /= p.n.norm();
+
+        using Type = typename Primitive::Type;
+        p.type = Type::ring;
+
+        p.vel = [p](const Vect& x) -> Vect {
+          Vect d = x - p.c;
+          Scal xn = d.dot(p.n);
+          Scal xt = (d - p.n * xn).norm();
+          Scal r = p.r[0];
+          return Vect(sqr(p.th) - (sqr(xn) + sqr(xt - r)), 0, 0);
+        };
+
+        pp.push_back(p);
+      }
+    }
+
+    if (verb) {
+      std::cout << "Read " << pp.size() << " primitives from " 
           << "'" << fn << "'" << std::endl;
     }
     return pp;

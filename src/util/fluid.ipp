@@ -5,6 +5,7 @@
 
 #include "solver/fluid.h"
 #include "parse/vars.h"
+#include "func/primlist.h"
 
 
 template <class M>
@@ -466,6 +467,16 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       fcv[c] = Vect(u, v, 0.);
       if (y > h) {
         fcv[c] *= 0;
+      }
+    }
+  } else if (vi == "list") {
+    auto pp = UPrimList<Scal>::ParseVel(
+        var.String["vellist_path"], m.IsRoot(), var.Int["dim"]);
+    fcv.Reinit(m, Vect(0));
+    for (auto c : m.AllCells()) {
+      Vect x = m.GetCenter(c);
+      for (auto& p : pp) {
+        fcv[c] += p.vel(x);
       }
     }
   } else if (vi == "zero") {
