@@ -9,6 +9,7 @@
 #include <vector>
 #include <map>
 #include <fstream>
+#include <algorithm>
 
 #include "geom/vect.h"
 
