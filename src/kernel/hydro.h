@@ -164,6 +164,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       Parse<M>(as->GetPar(), var);
     } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
       Parse<M, ASV>(as->GetPar(), var);
+    } else if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+      Parse<M, ASVM>(as->GetPar(), var);
     }
   }
   // Surface tension time step
@@ -1886,7 +1888,11 @@ void Hydro<M>::Run() {
   }
   if (var.Int["enable_color"] && as_) {
     if (sem.Nested("color")) {
-      tr_->Update(as_->GetField());
+      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+        tr_->SetColor(as->GetColor());
+      } else {
+        tr_->Update(as_->GetField());
+      }
     }
   }
 

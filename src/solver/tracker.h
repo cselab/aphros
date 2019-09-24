@@ -23,6 +23,7 @@ class Tracker {
   // Propagates color.
   // fcu: volume fraction [a]
   void Update(const FieldCell<Scal>& fcu);
+  void SetColor(const FieldCell<Scal>& fccl);
   // Returns color [a]
   const FieldCell<Scal>& GetColor() const { return fccl_; }
   const FieldCell<Vect>& GetImage() const { return fcim_; }
@@ -80,6 +81,11 @@ void Tracker<M_>::Update(const FieldCell<Scal>& fcu) {
     m.Comm(&fccl_);
     m.Comm(&fcim_);
   }
+}
+
+template <class M_>
+void Tracker<M_>::SetColor(const FieldCell<Scal>& fccl) {
+  fccl_ = fccl;
 }
 
 
