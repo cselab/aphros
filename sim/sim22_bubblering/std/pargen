@@ -1,0 +1,164 @@
+#!/usr/bin/env python
+
+# Belden 2012: Three-dimensional bubble field resolution ...
+
+# Reh: Reynolds number by channel height and average velocity
+def Exp():
+    # SI units
+    sig = 73e-3 # surface tension
+    g = 9.8
+    # water
+    rho = 1000 # density
+    mu = 5e-3  # dynamic viscosity
+    nu = mu / rho # kinematic viscosity
+    # ring radius
+    R = 0.03
+
+    ###
+    Ga = g * R**3 / nu**2
+    Eo = rho * g * R**2 / sig
+
+    for key in sorted(locals()):
+        print("{:} \t=\t {:}".format(key, locals()[key]))
+    print("\n")
+
+    return locals()
+
+
+def Sim(c):
+    Ga,Eo = (c['Ga'], c['Eo'])
+
+    # domain size
+    L = 1
+    # ring radius
+    R = 0.15
+    # ring thickness
+    th = R*0.4
+
+    g = 1
+    # time
+    tun = (R / g) ** 0.5  # unit
+    tmax = tun * 100
+    dumpdt = tun * 0.5
+
+    # liquid
+    rho0 = 1. # density
+    mu0 = (g * R**3 / Ga) ** 0.5  # viscosity
+    sig = rho0 * g * R**2 / Eo
+
+    # gas, ratio to liquid
+    mu = 0.01
+    rho = 0.01
+
+    # mesh
+    extent = 2
+    fine = 1
+    nx = 128 if fine else 64
+    ny = int(extent / L * nx + 0.5)
+    nz = nx
+
+    # block size
+    bs = 16 if fine else 8
+    # cores
+    np = 512
+    # time limit (minutes)
+    tl = 1440
+
+    for key in sorted(locals()):
+        print("{:} \t=\t {:}".format(key, locals()[key]))
+    print("\n")
+
+    return locals()
+
+def Gen(c):
+    # bubble 
+    L = c['L']
+    bx = 0.5 * L
+    by = 0.3 * L
+    bz = 0.5 * L
+    R = c['R']
+    th = c['th']
+    extent = c['extent']
+
+    tmax = c['tmax']
+    dumpdt = c['dumpdt']
+
+    rho1 = c['rho0']
+    mu1 = c['mu0']
+    rho2 = rho1 * c['rho']
+    mu2 = mu1 * c['mu']
+    sig = c['sig']
+    
+    g = -c['g']
+
+    with open("par.conf", 'w') as f:
+        f.write('''\
+# domain
+set double extent {extent}
+
+# time
+set double tmax {tmax}
+set double dump_field_dt {dumpdt}
+set double dump_part_dt {dumpdt}
+
+# physical 
+set double rho1 {rho1}
+set double rho2 {rho2}
+set double mu1 {mu1}
+set double mu2 {mu2}
+set double sigma {sig}
+set vect gravity 0 {g} 0
+
+#set string meshvel_auto vomm
+
+set int hypre_periodic_y 0
+set string bc_ym wall 0 0 0
+set string bc_yp wall 0 0 0
+set int initvort 0
+set string hypre_vort_solver pcg+smg
+
+set double dt0 1e-4
+set double dtmax 0.1
+
+#set string meshvel_auto v
+#set double meshvel_weight 0.5
+#set vect meshvel_mask 0 1 0
+
+#set string dumplist 
+
+set int sharpen 1
+set double sharpen_cfl 0.1
+
+set double cfl 0.5
+set double cfla 0.5
+set double cflst 1
+
+set string conv exp
+set int max_iter 10
+set int min_iter 3
+set double tol 0.005
+set double prelax 0.7
+set double vrelax 0.7
+set int vfsmooth 2
+
+        '''.format(**locals()))
+
+    with open("b.dat", 'w') as f:
+        #f.write("ring {bx} {by} {bz} 0 1 0 {R} {th}\n".format(**locals()))
+        f.write("s {bx} {by} {bz} {R} {th} {R}\n".format(**locals()))
+
+    with open("vel.dat", 'w') as f:
+        f.write("#ring {bx} {by} {bz} 0 1 0 {R} {th} 0.1\n".format(**locals()))
+
+    with open("par.make", 'w') as f:
+        f.write(
+'''m = {nx} {ny} {nz}
+bs = {bs} {bs} {bs}
+np = {np}
+tl = {tl}
+'''.format(**c))
+
+
+c = Exp()
+c = Sim(c)
+Gen(c)
