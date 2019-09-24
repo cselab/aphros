@@ -181,13 +181,21 @@ struct Vofm<M_>::Imp {
             us += (*uc[i])[c];
           }
         }
-        // TODO: smooth transition instead of u>=1
-        if (w > 0 && us >= 1) {
+        if (w > 0 && us >= par->avgnorm0) {
           na /= w;
           for (auto i : layers) {
             auto& n = fcn_[i][c];
             if (!IsNan(n)) {
-              n = (n.dot(na) < 0 ? -na : na);
+              // average normal oriented to have acute angle with current
+              auto nal = (n.dot(na) < 0 ? -na : na);
+              Scal u0 = par->avgnorm0;
+              Scal u1 = par->avgnorm1;
+              if (u0 < u1) {
+                Scal a = std::min(1., std::max(0., (us - u0) / (u1 - u0))); 
+                n = nal * a + n * (1 - a);
+              } else {
+                n = nal;
+              }
             }
           }
         }
