@@ -13,12 +13,13 @@ c['mu2'] = c['mu0'] * c['mu']
 c['rho2'] = c['rho0'] * c['rho']
 
 c['trepdt'] = c['dumpdt'] * 10
+c['domlx'] = c['dom'] * c['lx']
 
 t = '''set double tmax {tmax}
 set double dump_field_dt {dumpdt}
 set double dump_part_dt {dumpdt}
 set double dump_trep_dt {trepdt}
-set double extent {dom}
+set double extent {domlx}
 set double sigma {sig}
 set double mu1 {mu0}
 set double mu2 {mu2}

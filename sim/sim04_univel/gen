@@ -16,6 +16,7 @@ def Default():
         'part_eta', 'part_itermax',
         'dumpdefault')
     r['baextra'] = ["", 'extra arguments to basilisk qcc']
+    r['lx'] = [1., 'domain length']
     return r
 
 

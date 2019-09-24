@@ -27,16 +27,17 @@ d3 = (dim == 3)
 mz = 1
 
 nn = c['nx']
+nxlx = int(nn * c['lx'] + 0.5)
 if c['symm']:
-    nx = nn
+    nx = nxlx
     ny = nn // 2
     nz = nn // 2 if d3 else mz
 elif c['symmxy']:
-    nx = nn // 2
+    nx = nxlx // 2
     ny = nn // 2
     nz = nn if d3 else mz
 else:
-    nx = nn
+    nx = nxlx
     ny = nn
     nz = nn if d3 else mz
 
