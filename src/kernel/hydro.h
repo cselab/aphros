@@ -157,7 +157,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using ASV = solver::Vof<M>; // advection VOF
   using ASVM = solver::Vofm<M>; // advection VOF
   using TR = solver::Tracker<M>; // color tracker
-  using MUL = solver::MultiMask<M>; // multivof
   using SA = solver::Sphavg<M>; // spherical averages
 
   void UpdateAdvectionPar() {
@@ -272,7 +271,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
   std::unique_ptr<TR> tr_; // color tracker
-  std::unique_ptr<MUL> mul_; // color tracker
   std::unique_ptr<SA> sa_; // spherical averages
   FieldCell<Scal> fc_vf_; // volume fraction used by constructor 
   FieldCell<Scal> fccl_; // color used by constructor  
@@ -704,11 +702,6 @@ void Hydro<M>::Init() {
     // Init color tracker
     if (var.Int["enable_color"] && as_) {
       tr_.reset(new TR(m, fccl_, var.Double["color_th"], var.Int["dim"]));
-    }
-
-    // Init multivof
-    if (tr_) {
-      mul_.reset(new MUL(m, &tr_->GetColor(), var.Int["dim"]));
     }
 
     // Init sphavg
@@ -1894,11 +1887,6 @@ void Hydro<M>::Run() {
   if (var.Int["enable_color"] && as_) {
     if (sem.Nested("color")) {
       tr_->Update(as_->GetField());
-    }
-  }
-  if (mul_) {
-    if (sem.Nested("multi")) {
-      mul_->Update(as_->GetField());
     }
   }
 
