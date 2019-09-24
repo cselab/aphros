@@ -1,0 +1,4 @@
+#rm -f *.png
+./omm.py ../vf_*.xmf || true
+#./cont.py ../s_*.vtk || true
+r=3 r.pngmp4

@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-# Belden 2012: Three-dimensional bubble field resolution ...
-
-# Reh: Reynolds number by channel height and average velocity
 def Exp():
     # SI units
     sig = 73e-3 # surface tension
