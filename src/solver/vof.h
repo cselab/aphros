@@ -69,6 +69,8 @@ class Vof : public AdvectionSolver<M_> {
     Scal sharpen_cfl = 0.5;
     enum class Scheme {plain, aulisa, weymouth};
     Scheme scheme;
+    Scal avgnorm0 = 1; // original normal with sum(u)<avgnorm0 
+    Scal avgnorm1 = 1; // overriden normal with sum(u)>=acgnorm1
   };
 
   // Constructor
