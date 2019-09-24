@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -eu
+
+r=1
+nx=64
+np=512
+
+Ca=0.01
+Reh=500
+tmax=10
+
+nfr=1000
+
+echo $np > np
+echo 1440 > tl
+
+
+./gen -nx $nx -np $np -mode pois -dim 3 -pos center\
+   -Ca $Ca -Reh $Reh -tmax $tmax \
+   -chsm 3 \
+   -mu $r -rho $r -pois 1 -wally 1 -wallz 1 \
+   -nfr $nfr -lx 4
+
+cat > ch/add.conf << EOF
+set string dumpformat default
+set double dump_field_t0 1e10
+set double prelax 0.8
+set double vrelax 0.8
+set double dump_traj_dt 0.01
+set int enable_color 1
+set int max_iter 10
+set int sharpen 1
+set double sharpen_cfl 0.1
+set string advection_solver vofm
+set string conv exp
+set string list_path ../bg.dat
+EOF
