@@ -1019,8 +1019,8 @@ void Hydro<M>::CalcStat() {
 
   if (sem("vfslip")) {
     auto kslip = var.Double["kslip"];
-    Vect slipvel(var.Vect["slipvel"]);
     if (kslip != 0) {
+      Vect slipvel(var.Vect["slipvel"]);
       // XXX: adhoc, overwrite wall conditions
       auto& fa = as_->GetField();
       auto& fv = fs_->GetVelocity();
@@ -1032,9 +1032,26 @@ void Hydro<M>::CalcStat() {
           size_t nci = cd->GetNci();
           Vect n = m.GetNormal(f);
           IdxCell c = m.GetNeighbourCell(f, nci);
-          auto v = fv[c];
-          //cd->SetVelocity((v - n * n.dot(v)) * std::min(1., fa[c] * kslip));
           cd->SetVelocity(slipvel*kslip*fa[c]);
+        } 
+      }
+    }
+
+    // XXX: slip velocity penalization
+    const Scal penalslip = var.Double["penalslip"];
+    if (penalslip != 0) {
+      Vect slipvel(var.Vect["slipvel"]);
+      const auto& fa = as_->GetField();
+      const auto& fv = fs_->GetVelocity();
+      for (auto it : mf_velcond_) {
+        IdxFace f = it.GetIdx();
+        solver::CondFaceFluid* cb = it.GetValue().get();
+        if (auto cd = dynamic_cast<solver::fluid_condition::
+            NoSlipWallFixed<M>*>(cb)) {
+          size_t nci = cd->GetNci();
+          Vect n = m.GetNormal(f);
+          IdxCell c = m.GetNeighbourCell(f, nci);
+          fc_force_[c] += (slipvel - fv[c]) * penalslip * fa[c];
         } 
       }
     }
