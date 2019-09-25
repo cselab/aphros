@@ -22,8 +22,6 @@ idx = int(float(v[1]) + 0.5)
 
 pp = sorted(glob.glob(gl))
 
-x0,y0,z0 = None,None,None
-
 if not len(pp):
   exit(0)
 
@@ -39,6 +37,8 @@ x0 = d['x'][idx]
 y0 = d['y'][idx]
 z0 = d['z'][idx]
 
+dom = 1.
+
 print("n x y z")
 
 print("0 {:} {:} {:}".format(x0, y0, z0))
@@ -50,16 +50,29 @@ for i,p in enumerate(pp):
   n = int(n)
   d = R(p)
 
-  xx = d['x'] - x0
-  yy = d['y'] - y0
-  zz = d['z'] - z0
+  def U(x, x0):
+    y = x
+    if abs(y + dom - x0) < abs(y - x0): y += dom
+    if abs(y - dom - x0) < abs(y - x0): y -= dom
+    return y
 
-  j = np.argmin(xx**2 + yy**2 + zz**2)
+  xx = d['x']
+  yy = d['y']
+  zz = d['z']
+
+  for k in range(len(xx)):
+    xx[k] = U(xx[k], x0)
+
+  dx = xx - x0
+  dy = yy - y0
+  dz = zz - z0
+
+  j = np.argmin(dx**2 + dy**2 + dz**2)
 
   x0 = xx[j]
   y0 = yy[j]
   z0 = zz[j]
 
-  print("{:} {:} {:} {:}".format(i, x0, y0, z0))
+  print("{:} {:} {:} {:}".format(n, x0, y0, z0))
 
 sys.stdout.flush()
