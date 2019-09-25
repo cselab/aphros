@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+
+import numpy as np
+import sys
+import glob
+import os
+import re
+
+
+gl = "traj_*.csv"  # glob pattern
+v = sys.argv
+
+# assume columns:
+# cl [...]
+
+if len(v) != 2:
+  print("usage: {:} index".format(os.path.basename(v[0])))
+  print("extract trajectory of single color from '{:}'".format(gl))
+  exit(1)
+
+idx = int(float(v[1]) + 0.5)
+
+pp = sorted(glob.glob(gl))
+
+x0,y0,z0 = None,None,None
+
+if not len(pp):
+  exit(0)
+
+def R(p):
+  return np.genfromtxt(p, names=True, delimiter=',')
+
+d = R(pp[0])
+
+if idx >= len(d):
+  exit(0)
+
+x0 = d['x'][idx]
+y0 = d['y'][idx]
+z0 = d['z'][idx]
+
+print("n x y z")
+
+print("0 {:} {:} {:}".format(x0, y0, z0))
+
+for i,p in enumerate(pp):
+  if i == 0:
+    continue
+  n = re.findall("traj_(\d*).csv", p)[0]
+  n = int(n)
+  d = R(p)
+
+  xx = d['x'] - x0
+  yy = d['y'] - y0
+  zz = d['z'] - z0
+
+  j = np.argmin(xx**2 + yy**2 + zz**2)
+
+  x0 = xx[j]
+  y0 = yy[j]
+  z0 = zz[j]
+
+  print("{:} {:} {:} {:}".format(i, x0, y0, z0))
+
+sys.stdout.flush()
