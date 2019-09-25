@@ -1019,6 +1019,7 @@ void Hydro<M>::CalcStat() {
 
   if (sem("vfslip")) {
     auto kslip = var.Double["kslip"];
+    Vect slipvel(var.Vect["slipvel"]);
     if (kslip != 0) {
       // XXX: adhoc, overwrite wall conditions
       auto& fa = as_->GetField();
@@ -1032,7 +1033,8 @@ void Hydro<M>::CalcStat() {
           Vect n = m.GetNormal(f);
           IdxCell c = m.GetNeighbourCell(f, nci);
           auto v = fv[c];
-          cd->SetVelocity((v - n * n.dot(v)) * std::min(1., fa[c] * kslip));
+          //cd->SetVelocity((v - n * n.dot(v)) * std::min(1., fa[c] * kslip));
+          cd->SetVelocity(slipvel*kslip*fa[c]);
         } 
       }
     }
