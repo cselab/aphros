@@ -1,0 +1,2 @@
+./contfront.py ../ch/sm_*.vtk || true
+r.pngmp4
