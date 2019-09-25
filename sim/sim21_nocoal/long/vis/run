@@ -1,2 +1,2 @@
-./cont.py ../ch/s_*0.vtk || true
+./cont.py ../ch/s_*.vtk || true
 r.pngmp4
