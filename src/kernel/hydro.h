@@ -1041,7 +1041,8 @@ void Hydro<M>::CalcStat() {
     if (penalslip != 0) {
       Scal dt = fs_->GetTimeStep();
       Vect slipvel(var.Vect["slipvel"]);
-      const auto& fa = as_->GetField();
+      //const auto& fa = as_->GetField();
+      const auto& fa = fc_smvf_;
       const auto& fv = fs_->GetVelocity();
       for (auto it : mf_velcond_) {
         IdxFace f = it.GetIdx();
@@ -1051,8 +1052,28 @@ void Hydro<M>::CalcStat() {
           size_t nci = cd->GetNci();
           Vect n = m.GetNormal(f);
           IdxCell c = m.GetNeighbourCell(f, nci);
-          fc_force_[c] += (slipvel - fv[c]) * 
-              (fc_rho_[c] * penalslip * fa[c] / dt);
+          Scal sgn = (slipvel - fv[c]).dot(slipvel);
+          if (sgn > 0) {
+            fc_force_[c] += (slipvel - fv[c]) * 
+                (fc_rho_[c] * penalslip * fa[c] / dt);
+          }
+        } 
+      }
+    }
+    const Scal slipnormal = var.Double["slipnormal"];
+    if (slipnormal != 0) {
+      Scal dt = fs_->GetTimeStep();
+      const auto& fa = fc_smvf_;
+      for (auto it : mf_velcond_) {
+        IdxFace f = it.GetIdx();
+        solver::CondFaceFluid* cb = it.GetValue().get();
+        if (auto cd = dynamic_cast<solver::fluid_condition::
+            NoSlipWallFixed<M>*>(cb)) {
+          size_t nci = cd->GetNci();
+          Vect n = m.GetNormal(f);
+          IdxCell c = m.GetNeighbourCell(f, nci);
+          fc_force_[c] += m.GetNormal(f) * (
+              (nci == 1 ? 1 : -1) * fc_rho_[c] * slipnormal * fa[c]);
         } 
       }
     }
