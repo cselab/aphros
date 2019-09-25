@@ -1023,7 +1023,6 @@ void Hydro<M>::CalcStat() {
       Vect slipvel(var.Vect["slipvel"]);
       // XXX: adhoc, overwrite wall conditions
       auto& fa = as_->GetField();
-      auto& fv = fs_->GetVelocity();
       for (auto it : mf_velcond_) {
         IdxFace f = it.GetIdx();
         solver::CondFaceFluid* cb = it.GetValue().get();
@@ -1040,6 +1039,7 @@ void Hydro<M>::CalcStat() {
     // XXX: slip velocity penalization
     const Scal penalslip = var.Double["penalslip"];
     if (penalslip != 0) {
+      Scal dt = fs_->GetTimeStep();
       Vect slipvel(var.Vect["slipvel"]);
       const auto& fa = as_->GetField();
       const auto& fv = fs_->GetVelocity();
@@ -1051,7 +1051,8 @@ void Hydro<M>::CalcStat() {
           size_t nci = cd->GetNci();
           Vect n = m.GetNormal(f);
           IdxCell c = m.GetNeighbourCell(f, nci);
-          fc_force_[c] += (slipvel - fv[c]) * penalslip * fa[c];
+          fc_force_[c] += (slipvel - fv[c]) * 
+              (fc_rho_[c] * penalslip * fa[c] / dt);
         } 
       }
     }
