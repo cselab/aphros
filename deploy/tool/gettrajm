@@ -39,9 +39,9 @@ z0 = d['z'][idx]
 
 dom = 1.
 
-print("n x y z")
+print("n x y z r")
 
-print("0 {:} {:} {:}".format(x0, y0, z0))
+print("0 {:} {:} {:} {:}".format(x0, y0, z0, d['r'][idx]))
 
 for i,p in enumerate(pp):
   if i == 0:
@@ -73,6 +73,6 @@ for i,p in enumerate(pp):
   y0 = yy[j]
   z0 = zz[j]
 
-  print("{:} {:} {:} {:}".format(n, x0, y0, z0))
+  print("{:} {:} {:} {:} {:}".format(n, x0, y0, z0, d['r'][j]))
 
 sys.stdout.flush()
