@@ -63,9 +63,11 @@ int
 main(int argc, char **argv)
 {
     double tri[3 * 3 * MARCH_NTRI];
+    double offset[3 * MARCH_NTRI];
+    int p[3 * MARCH_NTRI], q[3 * MARCH_NTRI];
     int (*algorithm)(double*, int*, double*);
     int n, i, j, k, l;
-    int u, v, w;
+    int a, b, w;
     double x, y, z, d;
     double cube[8];
     double *o;
@@ -112,6 +114,7 @@ main(int argc, char **argv)
 		    cube[l] = f(x + d * o[X], y + d * o[Y], z + d * o[Z]);
 		}
 		algorithm(cube, &n, tri);
+		//march_cube_location(p, q, offset);
 		stat[n]++;
 		write(x, y, z, d, n, tri);
 	    }
