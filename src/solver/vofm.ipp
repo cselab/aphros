@@ -298,6 +298,16 @@ struct Vofm<M_>::Imp {
   }
   void Recolor() {
     auto sem = m.GetSem("recolor");
+    if (sem("reduce")) {
+      if (par->clfixed >= 0) {
+        IdxCell c = m.FindNearestCell(par->clfixed_x);
+        cldist_.first = m.GetCenter(c).dist(par->clfixed_x);
+        cldist_.second = m.GetId();
+        m.Reduce(std::make_shared<typename M::OpMinloc>(&cldist_));
+      } else {
+        cldist_.second = -1;
+      }
+    }
     if (sem("init")) {
       fcclt_.InitAll(FieldCell<Scal>(m, kClNone));
       // initial unique color
@@ -306,6 +316,12 @@ struct Vofm<M_>::Imp {
         for (auto c : m.Cells()) {
           if (fccl_[i][c] != kClNone) {
             fcclt_[i][c] = (q += 1);
+          }
+        }
+        if (cldist_.second == m.GetId()) {
+          IdxCell c = m.FindNearestCell(par->clfixed_x);
+          if (fccl_[i][c] != kClNone) {
+            fcclt_[i][c] = par->clfixed;
           }
         }
         m.Comm(&fcclt_[i]);
@@ -808,6 +824,7 @@ struct Vofm<M_>::Imp {
   Multi<FieldFace<Scal>> ffcl_;  // flux color (from upwind cell)
   Multi<FieldFace<bool>> ffi_;   // interface mask (1: upwind cell contains interface)
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
+  std::pair<typename M::Scal, int> cldist_;
 
   std::unique_ptr<PSM> psm_;
   // tmp for MakeIteration, volume flux copied to cells

@@ -6,6 +6,7 @@
 
 template <class M, class Vof>
 void Parse(typename Vof::Par* p, const Vars& var) {
+  using Vect = typename M::Vect;
   p->verb = var.Int["vof_verb"];
   p->vtkbin = var.Int["vtkbin"];
   p->vtkmerge = var.Int["vtkmerge"];
@@ -47,6 +48,8 @@ void Parse(typename Vof::Par* p, const Vars& var) {
   p->sharpen_cfl = var.Double["sharpen_cfl"];
   p->avgnorm0 = var.Double["avgnorm0"];
   p->avgnorm1 = var.Double["avgnorm1"];
+  p->clfixed = var.Double["clfixed"];
+  p->clfixed_x = Vect(var.Vect["clfixed_x"]);
 
   using Par = typename Vof::Par;
   {
