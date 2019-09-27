@@ -199,7 +199,7 @@ march_tetrahedron(double u[8], int *n, double *tri)
 }
 
 int
-marta_cube_location(int *x, int *y, double *a)
+march_cube_location(int *x, int *y, double *a)
 {
     int i;
     for (i = 0; i < cube_n; i++) {
