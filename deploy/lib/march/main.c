@@ -3,16 +3,23 @@
 #include "table.h"
 
 enum { X, Y, Z };
+static double cube_a[MARCH_NTRI];
+static int cube_x[MARCH_NTRI], cube_y[MARCH_NTRI];
+static int cube_n;
 static double offset(double, double);
 
 static int
 cube(double cube[8], int *pn, double *tri)
 {
     double a;
-    int c, i, j, idx, flag;
-    double vert[3 * 12];
+    int c, i, j, idx, flag, x, y;
     double *v, *o, *dir;
-    int n, k;
+    int n, k, m;
+    struct {
+	int x, y;
+	double a;
+	double v[3];
+    } ve[12];
 
     idx = 0;
     for (i = 0; i < 8; i++) {
@@ -27,28 +34,33 @@ cube(double cube[8], int *pn, double *tri)
 	if (flag & (1 << i)) {
 	    o = Offset[Connection[i][0]];
 	    dir = Direction[i];
-	    v = &vert[3 * i];
-	    a = offset(cube[Connection[i][0]], cube[Connection[i][1]]);
-	    v[X] = o[X] + a * dir[X];
-	    v[Y] = o[Y] + a * dir[Y];
-	    v[Z] = o[Z] + a * dir[Z];
+	    ve[i].x = x = Connection[i][0];
+	    ve[i].y = y = Connection[i][1];
+	    ve[i].a = a = offset(cube[x], cube[y]);
+	    ve[i].v[X] = o[X] + a * dir[X];
+	    ve[i].v[Y] = o[Y] + a * dir[Y];
+	    ve[i].v[Z] = o[Z] + a * dir[Z];
 	}
     }
 
-    n = k = 0;
+    n = k = m = 0;
     for (i = 0; i < 5; i++) {
 	if (TriangleConnectionTable[idx][3 * i] < 0)
 	    break;
 	for (c = 0; c < 3; c++) {
 	    j = TriangleConnectionTable[idx][3 * i + c];
-	    v = &vert[3 * j];
+	    v = ve[j].v;
 	    tri[k++] = v[X];
 	    tri[k++] = v[Y];
 	    tri[k++] = v[Z];
+	    cube_x[m] = ve[j].x;
+	    cube_y[m] = ve[j].y;
+	    cube_a[m] = ve[j].a;
+	    m++;
 	}
 	n++;
     }
-    *pn = n;
+    *pn = cube_n = n;
     return 0;
 }
 
@@ -141,9 +153,19 @@ offset(double a, double b)
 }
 
 static void
-swap(double *u, int i, int j)
+swap_double(double *u, int i, int j)
 {
     double t;
+
+    t = u[i];
+    u[i] = u[j];
+    u[j] = t;
+}
+
+static void
+swap_int(int *u, int i, int j)
+{
+    int t;
 
     t = u[i];
     u[i] = u[j];
@@ -156,11 +178,11 @@ march(int (*algorithm)(double *, int *, double *), double u[8],
 {
     int s;
 
-    swap(u, 2, 3);
-    swap(u, 6, 7);
+    swap_double(u, 2, 3);
+    swap_double(u, 6, 7);
     s = algorithm(u, pn, tri);
-    swap(u, 2, 3);
-    swap(u, 6, 7);
+    swap_double(u, 2, 3);
+    swap_double(u, 6, 7);
     return s;
 }
 
@@ -174,4 +196,18 @@ int
 march_tetrahedron(double u[8], int *n, double *tri)
 {
     return march(tetrahedron, u, n, tri);
+}
+
+int
+marta_cube_location(int *x, int *y, double *a)
+{
+    int i;
+    for (i = 0; i < cube_n; i++) {
+	x[i] = cube_x[i];
+	y[i] = cube_y[i];
+	a[i] = cube_a[i];
+    }
+    swap_int(x, 2, 3); swap_int(y, 2, 3); swap_double(a, 2, 3);
+    swap_int(x, 6, 7); swap_int(y, 6, 7); swap_double(a, 6, 7);    
+    return 0;
 }
