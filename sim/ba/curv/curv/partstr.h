@@ -48,7 +48,7 @@ const int kMaxNp = 31;           // maximum value of kPartstr.Np
 #define kNs 3
 #endif
 
-static Partstr kPartstr = {7, kNs, 4., 1e-5, 20, 0.5, false, false, false};
+static Partstr kPartstr = {7, kNs, 4., 1e-5, 20, 0.5, false, false};
 
 #undef kNs
 
@@ -275,13 +275,11 @@ static void F(int np, const coord* xx, int nl, const coord* ll,
     return;
   }
   for (int i = 0; i < np; ++i) {
-    int lm = 0;
     coord pm = Nearest(ll[0], ll[1], xx[i]);
 
     for (int l = 0; l < nl; l += 2) {
       coord p = Nearest(ll[l], ll[l + 1], xx[i]);
       if (Sqdist(xx[i], p) < Sqdist(xx[i], pm)) {
-        lm = l;
         pm = p;
       }
     }

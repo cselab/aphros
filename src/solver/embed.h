@@ -78,7 +78,7 @@ class Embed {
         std::cout << std::fixed << std::setprecision(8)
             << "dump" 
             << " to " << fn << std::endl;
-        WriteVtkPoly(fn, dl_, {&dld_, &dls_}, {"dir", "area"}, 
+        WriteVtkPoly<Vect>(fn, dl_, nullptr, {&dld_, &dls_}, {"dir", "area"}, 
                      "Embedded boundary", true, true, true);
       }
     }
