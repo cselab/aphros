@@ -1,5 +1,6 @@
 #!/bin/bash -l
 
+(cd ../ && make install) > /dev/null
 
 r () {
   echo $1
@@ -10,14 +11,13 @@ r () {
     ba.env ba.run main.s
   " &> $t
   if [ $? ] ; then
-    grep "warning Using" $t
+    #grep "warning Using" $t
     grep "time elapsed" $t
   else
     cat $t
   fi
-  rm $t
 }
 
-r -DCURV_ORIG
-r -DCURV_PARTSTR
-r -DCURV_LEARN
+#r -DCURV_ORIG
+r "-DCURV_PARTSTR -DPS_itermax=10 -DPS_eps=0"
+#r -DCURV_LEARN
