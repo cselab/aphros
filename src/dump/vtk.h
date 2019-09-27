@@ -130,7 +130,7 @@ void WriteVtkPoly(const std::string& fn,
   // normals
   if (!nn.empty()) {
     f << "POINT_DATA " << nn.size() << "\n";
-    f << "VECTORS " << "Normals" << " float\n" << "LOOKUP_TABLE default\n";
+    f << "VECTORS " << "nn" << " float\n";
     if (bin) {
       for (auto& n : nn) {
         WFloat(n[0]);
