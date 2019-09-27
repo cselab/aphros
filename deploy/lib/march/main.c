@@ -3,10 +3,13 @@
 #include "table.h"
 
 enum { X, Y, Z };
-static double cube_a[MARCH_NTRI];
-static int cube_x[MARCH_NTRI], cube_y[MARCH_NTRI];
+struct Ver {
+    double a;
+    int x, y;
+} cube_ver[3*MARCH_NTRI];
 static int cube_n;
 static double offset(double, double);
+static int map(int);
 
 static int
 cube(double cube[8], int *pn, double *tri)
@@ -53,9 +56,9 @@ cube(double cube[8], int *pn, double *tri)
 	    tri[k++] = v[X];
 	    tri[k++] = v[Y];
 	    tri[k++] = v[Z];
-	    cube_x[m] = ve[j].x;
-	    cube_y[m] = ve[j].y;
-	    cube_a[m] = ve[j].a;
+	    cube_ver[m].x = ve[j].x;
+	    cube_ver[m].y = ve[j].y;
+	    cube_ver[m].a = ve[j].a;
 	    m++;
 	}
 	n++;
@@ -153,19 +156,9 @@ offset(double a, double b)
 }
 
 static void
-swap_double(double *u, int i, int j)
+swap(double *u, int i, int j)
 {
     double t;
-
-    t = u[i];
-    u[i] = u[j];
-    u[j] = t;
-}
-
-static void
-swap_int(int *u, int i, int j)
-{
-    int t;
 
     t = u[i];
     u[i] = u[j];
@@ -178,11 +171,11 @@ march(int (*algorithm)(double *, int *, double *), double u[8],
 {
     int s;
 
-    swap_double(u, 2, 3);
-    swap_double(u, 6, 7);
+    swap(u, 2, 3);
+    swap(u, 6, 7);
     s = algorithm(u, pn, tri);
-    swap_double(u, 2, 3);
-    swap_double(u, 6, 7);
+    swap(u, 2, 3);
+    swap(u, 6, 7);
     return s;
 }
 
@@ -202,12 +195,17 @@ int
 march_cube_location(int *x, int *y, double *a)
 {
     int i;
-    for (i = 0; i < cube_n; i++) {
-	x[i] = cube_x[i];
-	y[i] = cube_y[i];
-	a[i] = cube_a[i];
+    for (i = 0; i < 3*cube_n; i++) {
+	x[i] = map(cube_ver[i].x);
+	y[i] = map(cube_ver[i].y);
+	a[i] = cube_ver[i].a;
     }
-    swap_int(x, 2, 3); swap_int(y, 2, 3); swap_double(a, 2, 3);
-    swap_int(x, 6, 7); swap_int(y, 6, 7); swap_double(a, 6, 7);    
     return 0;
+}
+
+static int
+map(int i)
+{
+    int m[8] = {0, 1, 3, 2, 4, 5, 7, 6};
+    return m[i];
 }

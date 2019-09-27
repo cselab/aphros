@@ -8,6 +8,10 @@ enum { X, Y, Z };
 static double r = 0.25;
 static double lo = -0.5, hi = 0.5;
 static int m = 100;
+static double av(double a, double b, double o)
+{
+    return a + (b - a)*o;
+}
 
 static double
 sq(double x)
@@ -35,8 +39,7 @@ static double O[][3] = {
     { 1, 1, 1 },
 };
 
-void
-    static
+static void
 write(double x, double y, double z, double d, int n, double *tri)
 {
     int i, j, u, v, w;
@@ -66,10 +69,10 @@ main(int argc, char **argv)
     double offset[3 * MARCH_NTRI];
     int p[3 * MARCH_NTRI], q[3 * MARCH_NTRI];
     int (*algorithm)(double*, int*, double*);
-    int n, i, j, k, l;
+    int n, i, j, k, l, u;
     int a, b, w;
-    double x, y, z, d;
-    double cube[8];
+    double x, y, z, d, pos;
+    double cube[8], xx[8], yy[8], zz[8];
     double *o;
     int stat[MARCH_NTRI] = { 0 };
 
@@ -111,10 +114,18 @@ main(int argc, char **argv)
 		z = lo + d * k;
 		for (l = 0; l < 8; l++) {
 		    o = O[l];
-		    cube[l] = f(x + d * o[X], y + d * o[Y], z + d * o[Z]);
+		    xx[l] = x + d * o[X];
+		    yy[l] = y + d * o[Y];
+		    zz[l] = z + d * o[Z];
+		    cube[l] = f(xx[l], yy[l], zz[l]);
 		}
 		algorithm(cube, &n, tri);
-		//march_cube_location(p, q, offset);
+		march_cube_location(p, q, offset);
+		for (u = 0; u < n; u++) {
+		    //fprintf(stderr, "%d %d %g\n", p[u], q[u], offset[u]);
+		    pos = av(O[p[u]][Z], O[q[u]][Z], offset[u]);
+		    fprintf(stderr, "%g\n", pos - tri[3*u + Z]);
+		}
 		stat[n]++;
 		write(x, y, z, d, n, tri);
 	    }
