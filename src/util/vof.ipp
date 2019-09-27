@@ -80,7 +80,8 @@ struct UVof<M_>::Imp {
   // h: cell size
   // iso: isovalue for surface uu=iso
   void GetMarchTriangles(
-      const std::array<Scal, 8>& uu, const Vect& xc, 
+      const std::array<Scal, 8>& uu, const std::array<Vect, 8>& nn,
+      const Vect& xc, 
       const Vect& h, Scal iso,
       std::vector<std::vector<Vect>>& vv,
       std::vector<std::vector<Vect>>& vvn) {
@@ -121,9 +122,7 @@ struct UVof<M_>::Imp {
           int c0 = vc0[i];
           int c1 = vc1[i];
           ++i;
-          Vect n0(uu[c0] + 0.5);
-          Vect n1(uu[c1] + 0.5);
-          n = n0 * (1 - w) + n1 * w;
+          n = nn[c0] * (1 - w) + nn[c1] * w;
         }
       }
     }
@@ -147,6 +146,30 @@ struct UVof<M_>::Imp {
       }
     }
     return uun;
+  }
+  // Interpolates from cells to nodes.
+  // stencil half-width
+  template <int sw, int sn=sw*2+1, int snn=sw*2>
+  std::array<Vect, snn*snn*snn> GradientNodes(const std::array<Scal, sn*sn*sn>& uu) {
+    std::array<Vect, snn*snn*snn> gg;
+    size_t i = 0;
+    for (int z = 0; z < snn; ++z) {
+      for (int y = 0; y < snn; ++y) {
+        for (int x = 0; x < snn; ++x) {
+          auto u = [&uu,x,y,z](int dx, int dy, int dz) {
+            return uu[(z+dz)*sn*sn + (y+dy)*sn + (x+dx)];
+          };
+          auto& g = gg[i++];
+          g[0] = ((u(1,0,0)+ u(1,1,0)+ u(1,0,1)+ u(1,1,1)) -
+                   (u(0,0,0)+ u(0,1,0)+ u(0,0,1)+ u(0,1,1))) * 0.25;
+          g[1] = ((u(0,1,0)+ u(1,1,0)+ u(0,1,1)+ u(1,1,1)) -
+                   (u(0,0,0)+ u(1,0,0)+ u(0,0,1)+ u(1,0,1))) * 0.25;
+          g[2] = ((u(0,0,1)+ u(1,0,1)+ u(0,1,1)+ u(1,1,1)) -
+                   (u(0,0,0)+ u(1,0,0)+ u(0,1,0)+ u(1,1,0))) * 0.25;
+        }
+      }
+    }
+    return gg;
   }
   void DumpPolyMarch(
       const GRange<size_t>& layers,
@@ -203,8 +226,12 @@ struct UVof<M_>::Imp {
                 done.insert(e);
                 auto uu = GetStencil<M, 1>{}(layers, fcu, fccl, cn, cl, m);
                 auto uun = ToNodes<1>(uu);
+                auto nn = GradientNodes<1>(uu);
+                for (auto& n : nn) {
+                  n = -n;
+                }
                 std::vector<std::vector<Vect>> vv, vvn;
-                GetMarchTriangles(uun, m.GetCenter(cn), h, iso, vv, vvn);
+                GetMarchTriangles(uun, nn, m.GetCenter(cn), h, iso, vv, vvn);
                 for (size_t j = 0; j < vv.size(); ++j) {
                   dl_.push_back(vv[j]);
                   dln_.push_back(vvn[j]);
