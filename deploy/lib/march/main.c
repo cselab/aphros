@@ -3,7 +3,7 @@
 #include "table.h"
 
 enum { X, Y, Z };
-struct Ver {
+static struct Ver {
     double a;
     int x, y;
 } cube_ver[3*MARCH_NTRI];
