@@ -1,0 +1,2 @@
+# TEST: sphere
+./sphere -c > obj.out.obj
