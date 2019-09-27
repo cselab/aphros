@@ -32,7 +32,6 @@ typedef struct {
   double eta;   // relaxation factor
   bool csv;     // dump csv particles and attraction points
   bool dumpit;  // dump the number of iterations and difference
-  bool circ;    // replace line segments with circular arcs
 } Partstr;
 
 const int kMaxSection = 125 * 2; // maximum number of endpoints
@@ -258,36 +257,6 @@ static void DxDth(coord p, double ph, double th,
   }
 }
 
-// Displacement from line to circular arc.
-// k: curvature
-// w: distance from endpoint to center
-// d: distance from point to center
-static double CircDelta(double k, double w, double d) {
-  const double th = 0.99;
-  k = clamp(k, -th / w, th / w); // limit the curvature for sqrt and division
-                                 // (w must be smaller than radius of curvaure)
-  d = min(d, w);
-  double t1 = sqrt(1. - sq(k * w));
-  double t2 = sqrt(1. - sq(k * d));
-  return k * (sq(w) - sq(d)) / (t1 + t2);
-}
-
-// Point on circular arc.
-// k: curvature of circular arc
-// a, b: endpoints
-// y: point on line
-static coord Circ(double k, coord a, coord b, coord y) {
-  coord q = Sub(b, a);
-  coord n;
-  n.x = q.y / Norm(q);
-  n.y = -q.x / Norm(q);
-  n.z = 0;
-  coord c = Mul(Add(a, b), 0.5);
-  double d = Dist(c, y);
-  double w = Dist(c, a);
-  return Add(y, Mul(n, CircDelta(k, w, d)));
-}
-
 // Forces on particles.
 // np: number of particles
 // xx: positions 
@@ -298,7 +267,7 @@ static coord Circ(double k, coord a, coord b, coord y) {
 // Output:
 // ff: forces
 static void F(int np, const coord* xx, int nl, const coord* ll, 
-              double eta, double k, bool circ,coord* ff) {
+              double eta, double k, coord* ff) {
   if (nl == 0) {
     for (int i = 0; i < np; ++i) {
       ff[i] = Zero();
@@ -315,9 +284,6 @@ static void F(int np, const coord* xx, int nl, const coord* ll,
         lm = l;
         pm = p;
       }
-    }
-    if (circ) {
-      pm = Circ(k, ll[lm], ll[lm + 1], pm);
     }
     ff[i] = Mul(Sub(pm, xx[i]), eta);
   }
@@ -678,7 +644,7 @@ static double GetLinesCurv(coord* ll, int nl, double delta, const Trans* w,
     int it = 0;
     for (it = 0; it < itermax; ++it) {
       X(p, ph, th, Np, hp, xx);
-      F(Np, xx, nl, ll, eta, k, conf.circ, ff);
+      F(Np, xx, nl, ll, eta, k, ff);
 
       k = Curv(hp, th);
       res = Iter(&p, &ph, &th, Np, hp, ff, xx);
