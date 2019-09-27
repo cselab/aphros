@@ -30,7 +30,7 @@ ch.part $m $bs `cat np` > mesh.conf
 ch.run ch.mfer "$c"
 
 a=0
-for f in ref/{vx,vy,vz,p,cl,vf}*.dat ; do
+for f in ref/{vx,vy,vz,p,vf}*.dat ; do
   echo $f
   if ! ch.diffnum "${f#ref/}" "$f" "1e-12"; then
     a=1
