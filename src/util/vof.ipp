@@ -140,6 +140,7 @@ struct UVof<M_>::Imp {
     auto sem = m.GetSem("dumppolymarch");
     if (sem("local")) {
       dl_.clear();
+      dln_.clear();
       dlc_.clear();
       dll_.clear();
       dlcl_.clear();
@@ -182,6 +183,12 @@ struct UVof<M_>::Imp {
                 auto vv = GetMarchTriangles(uun, m.GetCenter(cn), h, iso);
                 for (auto& v : vv) {
                   dl_.push_back(v);
+                  auto vn = v;
+                  for (auto& n : vn) {
+                    n -= Vect(0.5);
+                    n /= n.norm();
+                  }
+                  dln_.push_back(vn);
                   dlc_.push_back(m.GetHash(cn));
                   dll_.push_back(i);
                   dlcl_.push_back(cl);
@@ -193,6 +200,7 @@ struct UVof<M_>::Imp {
       }
       using TV = typename M::template OpCatVT<Vect>;
       m.Reduce(std::make_shared<TV>(&dl_));
+      m.Reduce(std::make_shared<TV>(&dln_));
       using TS = typename M::template OpCatT<Scal>;
       m.Reduce(std::make_shared<TS>(&dlc_));
       m.Reduce(std::make_shared<TS>(&dll_));
@@ -202,7 +210,7 @@ struct UVof<M_>::Imp {
       if (m.IsRoot()) {
         std::cout << std::fixed << std::setprecision(8)
             << "dump" << " t=" << t << " to " << fn << std::endl;
-        WriteVtkPoly<Vect>(fn, dl_, nullptr,
+        WriteVtkPoly<Vect>(fn, dl_, &dln_,
             {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"}, 
             "Interface from marching cubes", true, bin, merge);
       }
@@ -210,6 +218,7 @@ struct UVof<M_>::Imp {
   }
 
   std::vector<std::vector<Vect>> dl_; // dump poly
+  std::vector<std::vector<Vect>> dln_; // dump poly normals
   std::vector<Scal> dlc_; // dump poly cell
   std::vector<Scal> dll_; // dump poly layer
   std::vector<Scal> dlcl_; // dump poly color
