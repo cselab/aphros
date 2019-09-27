@@ -87,25 +87,26 @@ materialLibrary1 = GetMaterialLibrary()
 
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
-renderView1.ViewSize = [1400, 700]
+renderView1.ViewSize = [1920, 1080]
 renderView1.OrientationAxesVisibility = 0
 
+renderView1.CenterOfRotation = \
+    [2.0002396481577307, 0.49982515879673883, 0.5001013136352412]
 renderView1.CameraPosition = \
-  [0.8828178821634488, -4.076055392200811, 2.7563305479657894]
+    [4.1725221459017545, 4.290558691659238, 2.1117181099306443]
 renderView1.CameraFocalPoint = \
-  [2.626482081133212, 3.077787159917152, -0.8435425660433065]
+    [0.37576486475267523, -2.37787637240639, -0.7371351849693569]
 renderView1.CameraViewUp = \
-  [0.10631851294057819, 0.4261581357409603, 0.898379439406253]
-renderView1.CameraParallelScale = \
-  1.07460306336
+    [-0.17297883552233423, -0.3020165314331066, 0.9374776462414731]
+renderView1.CameraParallelScale = 1.1625484322433086
 renderView1.CameraParallelProjection = 1
 
-
 renderView1.Shadows = 0
-renderView1.Background = [0.0, 0.0, 0.0]
+renderView1.Background = [1.0, 1.0, 1.0]
 renderView1.EnableOSPRay = 1
-renderView1.AmbientSamples = 5
-renderView1.SamplesPerPixel = 5
+renderView1.AmbientSamples = 10
+renderView1.SamplesPerPixel = 10
+renderView1.LightScale = 0.8
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 
 # ----------------------------------------------------------------
@@ -135,34 +136,34 @@ vft = [surf]
 # END READERS
 # ----------------------------------------------------------------
 
-# create a new 'Clip'
-if 0:
-  clip1 = Clip(Input=surf)
-  clip1.ClipType = 'Plane'
-  clip1.ClipType.Origin = [0.5, 0.5, 0.5]
-  clip1.ClipType.Normal = [0.0, 0.0, 1.0]
-  surf = clip1
+plane1 = Plane()
+plane1.Origin = [0.0, 0.0, 0.0]
+plane1.Point1 = [0.0, 1.0, 0.0]
+plane1.Point2 = [4.0, 0.0, 0.0]
+plane1Display = Show(plane1, renderView1)
+plane1Display.Representation = 'Surface'
+plane1Display.ColorArrayName = [None, '']
+
+plane2 = Plane()
+plane2.Origin = [0.0, 0.0, 1.0]
+plane2.Point1 = [0.0, 1.0, 1.0]
+plane2.Point2 = [4.0, 0.0, 1.0]
+plane2Display = Show(plane2, renderView1)
+plane2Display.Representation = 'Surface'
+plane2Display.ColorArrayName = [None, '']
+plane2Display.Opacity = 0.5
+
+plane3 = Plane()
+plane3.Origin = [0.0, 0.0, 0.0]
+plane3.Point1 = [4.0, 0.0, 0.0]
+plane3.Point2 = [0.0, 0.0, 1.0]
+plane3Display = Show(plane3, renderView1)
+plane3Display.Representation = 'Surface'
+plane3Display.ColorArrayName = [None, '']
 
 surfshow = Show(surf, renderView1)
 surfshow.Representation = 'Surface'
 surfshow.ColorArrayName = ['CELLS', '']
-surfshow.Opacity = 0.5
-
-if 0:
-  calculator1 = Calculator(Input=surf)
-  calculator1.AttributeType = 'Cell Data'
-  calculator1.ResultArrayName = 'scl'
-  calculator1.Function = 'sin(cl*1234567)'
-  calculator1Display = Show(calculator1, renderView1)
-  sclLUT = GetColorTransferFunction('scl')
-  sclLUT.RGBPoints = [-0.999909626352117, 0.278431372549, 0.278431372549, 0.858823529412, -0.7172826127938886, 0.0, 0.0, 0.360784313725, -0.4366320119178857, 0.0, 1.0, 1.0, -0.15202858567743205, 0.0, 0.501960784314, 0.0, 0.12862201519857086, 1.0, 1.0, 0.0, 0.41124902875679914, 1.0, 0.380392156863, 0.0, 0.6938760423150276, 0.419607843137, 0.0, 0.0, 0.9765030558732559, 0.878431372549, 0.301960784314, 0.301960784314]
-  sclLUT.ColorSpace = 'RGB'
-  sclLUT.ScalarRangeInitialized = 1.0
-  calculator1Display.Representation = 'Surface'
-  calculator1Display.ColorArrayName = ['CELLS', 'scl']
-  calculator1Display.LookupTable = sclLUT
-  calculator1Display.Opacity = 0.5
-
 
 
 #####################################################
