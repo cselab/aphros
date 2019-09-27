@@ -8,7 +8,7 @@ find_package(MPI REQUIRED)
 set(CMAKE_C_COMPILER ${MPI_C_COMPILER})
 
 set(C main.c)
-add_custom_target(qcc COMMAND ba.env qcc -source ${EXTRA} ${C} BYPRODUCTS _${C})
+add_custom_target(qcc COMMAND ba.env qcc -source -O3 ${EXTRA} ${C} BYPRODUCTS _${C})
 add_custom_target(u COMMAND ba.env ba.u
   "${CHPREFIX}/include/curv/curv.conf"
   "${CHPREFIX}/include/io/io.conf"

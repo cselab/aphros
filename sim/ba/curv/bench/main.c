@@ -10,7 +10,7 @@
 
 int main() {
   Shape b;
-  init_grid(32);
+  init_grid(16);
   FILE* fb = fopen("b.dat", "r");
   b = Read(fb);
   fclose(fb);
@@ -44,21 +44,18 @@ int main() {
 #endif
 #endif
   boundary({vf});
-  curvature(vf, k);
-#if dimension == 2
-  double kc = 1.;
-#elif dimension == 3
-  double kc = 0.5;
-#endif
 
-  {
-    FILE* q = fopen("ok", "w");
-    foreach() {
-      if (vf[] > 0. && vf[] < 1.) {
-        if (Good(b, x, y, z, Delta))
-          fprintf(q, "%.16g\n", k[] * kc);
-      }
+  double t0 = clock();
+  const int ni = 100;
+  volatile double a = 0;
+  for (int i = 0; i < ni; ++i) {
+    curvature(vf, k);
+    foreach () {
+      a += k[];
+      break;
     }
-    fclose(q);
   }
+  double t1 = clock();
+  double dur = (t1 - t0) / CLOCKS_PER_SEC;
+  printf("time elapsed: %g", dur);
 }

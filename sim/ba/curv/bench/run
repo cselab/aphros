@@ -1,5 +1,23 @@
 #!/bin/bash -l
 
-ch.conf . -DEXTRA="-grid=multigrid3D"
-make
-ba.env ba.run main.s
+
+r () {
+  echo $1
+  t=tmp
+  sh -c "
+    ch.conf . -DEXTRA='-grid=multigrid3D $1'
+    make
+    ba.env ba.run main.s
+  " &> $t
+  if [ $? ] ; then
+    grep "warning Using" $t
+    grep "time elapsed" $t
+  else
+    cat $t
+  fi
+  rm $t
+}
+
+r -DCURV_ORIG
+r -DCURV_PARTSTR
+r -DCURV_LEARN
