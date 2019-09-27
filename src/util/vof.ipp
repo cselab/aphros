@@ -79,31 +79,54 @@ struct UVof<M_>::Imp {
   // xc: cell center
   // h: cell size
   // iso: isovalue for surface uu=iso
-  std::vector<std::vector<Vect>> GetMarchTriangles(
+  void GetMarchTriangles(
       const std::array<Scal, 8>& uu, const Vect& xc, 
-      const Vect& h, Scal iso) {
+      const Vect& h, Scal iso,
+      std::vector<std::vector<Vect>>& vv,
+      std::vector<std::vector<Vect>>& vvn) {
     std::array<double, 8> uuz = uu;
     for (auto& u : uuz) {
       u -= iso;
     }
-    int n;
-    std::array<double, 45> tri;
-    march_cube(uuz.data(), &n, tri.data());
+    int nt;
+    const int ms = MARCH_NTRI;
+    std::array<double, ms> tri;
+    march_cube(uuz.data(), &nt, tri.data());
+    std::array<int, ms> vc0;
+    std::array<int, ms> vc1;
+    std::array<double, ms> vw;
+    march_cube_location(vc0.data(), vc1.data(), vw.data());
     assert(n * 3 * 3 <= tri.size());
-    std::vector<std::vector<Vect>> vv;
 
-    vv.resize(n);
-    size_t i = 0;
-    for (auto& v : vv) {
-      v.resize(3);
-      for (auto& x : v) {
-        x[0] = tri[i++] - 0.5;
-        x[1] = tri[i++] - 0.5;
-        x[2] = tri[i++] - 0.5;
-        x = xc + h * x;
+    vv.resize(nt);
+    {
+      size_t i = 0;
+      for (auto& v : vv) {
+        v.resize(3);
+        for (auto& x : v) {
+          x[0] = tri[i++] - 0.5;
+          x[1] = tri[i++] - 0.5;
+          x[2] = tri[i++] - 0.5;
+          x = xc + h * x;
+        }
       }
     }
-    return vv;
+    vvn.resize(nt);
+    {
+      size_t i = 0;
+      for (auto& vn : vvn) {
+        vn.resize(3);
+        for (auto& n : vn) {
+          Scal w = vw[i];
+          int c0 = vc0[i];
+          int c1 = vc1[i];
+          ++i;
+          Vect n0(uu[c0] + 0.5);
+          Vect n1(uu[c1] + 0.5);
+          n = n0 * (1 - w) + n1 * w;
+        }
+      }
+    }
   }
   // Interpolates from cells to nodes.
   // stencil half-width
@@ -180,15 +203,11 @@ struct UVof<M_>::Imp {
                 done.insert(e);
                 auto uu = GetStencil<M, 1>{}(layers, fcu, fccl, cn, cl, m);
                 auto uun = ToNodes<1>(uu);
-                auto vv = GetMarchTriangles(uun, m.GetCenter(cn), h, iso);
-                for (auto& v : vv) {
-                  dl_.push_back(v);
-                  auto vn = v;
-                  for (auto& n : vn) {
-                    n -= Vect(0.5);
-                    n /= n.norm();
-                  }
-                  dln_.push_back(vn);
+                std::vector<std::vector<Vect>> vv, vvn;
+                GetMarchTriangles(uun, m.GetCenter(cn), h, iso, vv, vvn);
+                for (size_t j = 0; j < vv.size(); ++j) {
+                  dl_.push_back(vv[j]);
+                  dln_.push_back(vvn[j]);
                   dlc_.push_back(m.GetHash(cn));
                   dll_.push_back(i);
                   dlcl_.push_back(cl);
