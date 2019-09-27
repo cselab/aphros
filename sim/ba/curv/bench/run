@@ -1,0 +1,5 @@
+#!/bin/bash -l
+
+ch.conf . -DEXTRA="-grid=multigrid3D"
+make
+ba.env ba.run main.s
