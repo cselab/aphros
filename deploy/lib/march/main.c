@@ -95,7 +95,7 @@ tetrahedron0(double *tetr, double *val, int *pn, double *tri)
 	}
 	n++;
     }
-  end:
+end:
     *pn = n;
     return 0;
 }
