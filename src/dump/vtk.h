@@ -26,6 +26,7 @@ T SwapEnd(T a) {
 
 // Writes legacy vtk polydata 
 // xx: points
+// nn: normals
 // pp: polygons as lists of indices
 // dd: list of scalar cell-based datasets of size pp.size()
 // dn: list of names for dd
@@ -36,6 +37,7 @@ T SwapEnd(T a) {
 template <class Vect, class Scal=typename Vect::value_type>
 void WriteVtkPoly(const std::string& fn,
                   const std::vector<Vect>& xx,
+                  const std::vector<Vect>& nn,
                   const std::vector<std::vector<size_t>>& pp,
                   const std::vector<const std::vector<Scal>*>& dd,
                   const std::vector<std::string>& dn,
@@ -124,6 +126,23 @@ void WriteVtkPoly(const std::string& fn,
       }
     }
   }
+
+  // normals
+  if (!nn.empty()) {
+    f << "POINT_DATA " << nn.size() << "\n";
+    f << "VECTORS " << "Normals" << " float\n" << "LOOKUP_TABLE default\n";
+    if (bin) {
+      for (auto& n : nn) {
+        WFloat(n[0]);
+        WFloat(n[1]);
+        WFloat(n[2]);
+      }
+    } else {
+      for (auto& n : nn) {
+        f << n[0] << " " << n[1] << " " << n[2] << "\n";
+      }
+    }
+  }
 }
 
 // Converts to index representation.
@@ -133,15 +152,25 @@ void WriteVtkPoly(const std::string& fn,
 // pp: polygons as lists of indices
 template <class Vect>
 void Convert(const std::vector<std::vector<Vect>>& vv, 
+             const std::vector<std::vector<Vect>>* vvn, 
              std::vector<Vect>& xx, 
+             std::vector<Vect>& nn, 
              std::vector<std::vector<size_t>>& pp) {
   xx.resize(0);
+  nn.resize(0);
   pp.resize(0);
   for (auto& v : vv) {
     pp.emplace_back();
     for (auto& x : v) {
       pp.back().push_back(xx.size());
       xx.push_back(x);
+    }
+  }
+  if (vvn) {
+    for (auto& v : *vvn) {
+      for (auto& x : v) {
+        nn.push_back(x);
+      }
     }
   }
 }
@@ -174,8 +203,11 @@ void RemoveDuplicatesUnordered(std::vector<V>& pp) {
 // xx: points
 // pp: polygons as lists of indices
 template <class Vect>
-void ConvertMerge(const std::vector<std::vector<Vect>>& vv, 
+void ConvertMerge(
+             const std::vector<std::vector<Vect>>& vv, 
+             const std::vector<std::vector<Vect>>* vvn, 
              std::vector<Vect>& xx, 
+             std::vector<Vect>& nn, 
              std::vector<std::vector<size_t>>& pp) {
   struct HashPoint {
     size_t operator()(const Vect& x) const noexcept {
@@ -189,13 +221,19 @@ void ConvertMerge(const std::vector<std::vector<Vect>>& vv,
 
   std::unordered_map<Vect, size_t, HashPoint> s;
   xx.resize(0);
+  nn.resize(0);
   pp.resize(0);
-  for (auto& v : vv) {
+  for (size_t i = 0; i < vv.size(); ++i) {
+    auto& v = vv[i];
     pp.emplace_back();
-    for (auto& x : v) {
+    for (size_t j = 0; j < v.size(); ++j) {
+      auto& x = v[j];
       if (!s.count(x)) {
         s[x] = xx.size();
         xx.push_back(x);
+        if (vvn) {
+          nn.push_back((*vvn)[i][j]);
+        }
       }
       pp.back().push_back(s[x]);
     }
@@ -205,6 +243,7 @@ void ConvertMerge(const std::vector<std::vector<Vect>>& vv,
 
 // Writes legacy vtk polydata with cell-based dataset.
 // vv: polygons as lists of points
+// vvn: normals, same shape as vv
 // dd: cell-based dataset of size vv.size()
 // dn: name of dataset
 // fn: path
@@ -214,17 +253,19 @@ void ConvertMerge(const std::vector<std::vector<Vect>>& vv,
 // merge: combine close points
 template <class Vect, class Scal=typename Vect::value_type>
 void WriteVtkPoly(const std::string& fn,
-                  const std::vector<std::vector<Vect>>& vv,  
+                  const std::vector<std::vector<Vect>>& vv,
+                  const std::vector<std::vector<Vect>>* vvn,
                   const std::vector<const std::vector<Scal>*>& dd,
                   const std::vector<std::string>& dn,
                   const std::string& cm, bool poly, bool binary,
                   bool merge) {
   std::vector<Vect> xx;
+  std::vector<Vect> nn;
   std::vector<std::vector<size_t>> pp;
   if (merge) {
-    ConvertMerge(vv, xx, pp);
+    ConvertMerge(vv, vvn, xx, nn, pp);
   } else {
-    Convert(vv, xx, pp);
+    Convert(vv, vvn, xx, nn, pp);
   }
-  WriteVtkPoly(fn, xx, pp, dd, dn, cm, poly, binary);
+  WriteVtkPoly(fn, xx, nn, pp, dd, dn, cm, poly, binary);
 }

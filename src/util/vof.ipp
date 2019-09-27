@@ -67,7 +67,8 @@ struct UVof<M_>::Imp {
       if (m.IsRoot()) {
         std::cout << std::fixed << std::setprecision(8)
             << "dump" << " t=" << t << " to " << fn << std::endl;
-        WriteVtkPoly(fn, dl_, {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"},
+        WriteVtkPoly<Vect>(fn, dl_, nullptr, 
+            {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"},
             "Interface from PLIC", true,
             bin, merge);
       }
@@ -201,7 +202,8 @@ struct UVof<M_>::Imp {
       if (m.IsRoot()) {
         std::cout << std::fixed << std::setprecision(8)
             << "dump" << " t=" << t << " to " << fn << std::endl;
-        WriteVtkPoly(fn, dl_, {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"}, 
+        WriteVtkPoly<Vect>(fn, dl_, nullptr,
+            {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"}, 
             "Interface from marching cubes", true, bin, merge);
       }
     }
