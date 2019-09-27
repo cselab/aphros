@@ -214,6 +214,14 @@ struct Vof<M_>::Imp {
           owner_->GetTime() + owner_->GetTimeStep(),
           par->poly_intth, par->vtkbin, par->vtkmerge, m);
     }
+    if (par->dumppolymarch && dm && sem.Nested()) {
+      FieldCell<Scal> fccl(m, 0);
+      uvof_.DumpPolyMarch(
+          GRange<size_t>(0, 1), &fcu_.iter_curr, &fccl, &fcn_, &fca_, &fci_,
+          GetDumpName("sm", ".vtk", par->dmp->GetN()),
+          owner_->GetTime() + owner_->GetTimeStep(),
+          par->poly_intth, par->vtkbin, par->vtkmerge, par->vtkiso, m);
+    }
     if (par->dumppart && dm && sem.Nested("part-dump")) {
       psm_->DumpParticles(&fca_, &fcn_, par->dmp->GetN(), owner_->GetTime());
     }
