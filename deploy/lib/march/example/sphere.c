@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
+#include <tgmath.h>
 #include <march.h>
 
 #define SIZE(x) (sizeof(x)/sizeof(*(x)))
@@ -7,7 +9,7 @@
 enum { X, Y, Z };
 static double r = 0.25;
 static double lo = -0.5, hi = 0.5;
-static int m = 100;
+static int m = 10;
 static double av(double a, double b, double o)
 {
     return a + (b - a)*o;
@@ -81,7 +83,6 @@ main(int argc, char **argv)
 	exit(2);
     }
 
-    m = 10;
     algorithm = march_cube;
     while (argv[1] != NULL && argv++[1][0] == '-')
 	switch (argv[0][1]) {
@@ -123,8 +124,14 @@ main(int argc, char **argv)
 		march_cube_location(p, q, offset);
 		for (u = 0; u < n; u++) {
 		    //fprintf(stderr, "%d %d %g\n", p[u], q[u], offset[u]);
+		    pos = av(O[p[u]][X], O[q[u]][X], offset[u]);
+		    assert(fabs(pos - tri[3*u + X] < 1e-12));
+
+		    pos = av(O[p[u]][Y], O[q[u]][Y], offset[u]);
+		    assert(fabs(pos - tri[3*u + Y] < 1e-12));
+
 		    pos = av(O[p[u]][Z], O[q[u]][Z], offset[u]);
-		    fprintf(stderr, "%g\n", pos - tri[3*u + Z]);
+		    assert(fabs(pos - tri[3*u + Z] < 1e-12));
 		}
 		stat[n]++;
 		write(x, y, z, d, n, tri);
