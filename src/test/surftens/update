@@ -1,8 +1,7 @@
 #!/bin/bash
 
 r=ref
-ff="cl_0000.dat
-out
+ff="out
 p_0000.dat
 partit_0000.csv
 vf_0000.dat
