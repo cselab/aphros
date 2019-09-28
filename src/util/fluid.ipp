@@ -429,6 +429,8 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     Scal h(var.Double["wavelamb_h"]);
     Scal k(var.Double["wavelamb_k"]);
     Scal g = -Vect(var.Vect["gravity"])[1];
+    Vect air(var.Vect["wavelamb_air"]);
+    Scal kvel(var.Double["wavelamb_kvel"]);
 
     using std::sinh;
     using std::cosh;
@@ -468,9 +470,9 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
           (3.0/4.0)*a*eps*g*k*pow(pow(chi, 2) - 1,
           2)*sin(2*k*x)*sinh(2*k*(h + y))/(chi*omega*cosh(2*h*k));
 
-      fcv[c] = Vect(vx, vy, 0.);
+      fcv[c] = Vect(vx, vy, 0.) * kvel;
       if (y > eta) {
-        fcv[c] *= 0;
+        fcv[c] = air;
       }
     }
   } else if (vi == "wavelamb_vort") {
