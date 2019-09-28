@@ -1,7 +1,7 @@
 load("cgrind") $
 load("scifac")$
 
-v: [x = 0.02, y = 0.03, k = 2*%pi, h = 0.5, g = 1, a = 1/10];
+v: [x = 0.01, y = -0.01, ak = a * k, k = 2*%pi, h = 0.5, g = 1, a = 1/10];
 
 eta:
 a*cos(k*x) + e*a/4*c*(3*c^2 - 1)*cos(2*k*x) +
@@ -36,3 +36,18 @@ o: sqrt(o);
 );
 
 
+sq(x):=x*x;
+sgma: sqrt(g*k*tanh(k*h)*
+			   (1. + k*k*a*a*(9./8.*(sq(c) - 1.)*
+					      (sq(c) - 1.) + sq(c))));
+A: a*g/sgma;
+phi1: A*cosh(k*(y + h))/cosh(k*h)*sin(k*x);
+phi2: 3*a*k*A/(8*c)*(sq(c) - 1)*(sq(c) - 1)*
+	  cosh(2*k*(y + h))*sin(2*k*x)/cosh(2*k*h);
+phi3: 1/64*(sq(c) - 1)*(sq(c) + 3)*
+	  (9*sq(c) - 13)*
+	  cosh(3*k*(y + h))/cosh(3*k*h)*a*a*k*k*A*sin(3*k*x);
+Phi: phi1 + a*k*phi2 + a*k*a*k*phi3;
+
+ev(Phi, v, infeval, numer), v;
+ev(phi, v, infeval, numer), v;

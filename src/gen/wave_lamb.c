@@ -9,6 +9,7 @@ static double k = 2*pi;
 static double h = 0.5;
 static double g = 1;
 static double a = 0.1;
+static double ak = 0.6283185307179586;
 
 void
 f0(double x, double y, double *pvx, double *pvy, double *peta)
@@ -82,15 +83,40 @@ a*g*k*sin(k*x)*sinh(k*(h + y))/(omega*cosh(h*k)) +
 
 }
 
-int main() {
-    double x, y, vx, vy, eta;
+void
+f2(double x, double y, double *p)
+{
+    double Phi;
+	double alpa = 1./tanh(k*h);
+	double a = ak/k;
+	double sgma = sqrt(g*k*tanh(k*h)*
+			   (1. + k*k*a*a*(9./8.*(sq(alpa) - 1.)*
+					      (sq(alpa) - 1.) + sq(alpa))));
+	double A = a*g/sgma;
+	double phi1 = A*cosh(k*(y + h))/cosh(k*h)*sin(k*x);
+	double phi2 = 3.*ak*A/(8.*alpa)*(sq(alpa) - 1.)*(sq(alpa) - 1.)*
+	  cosh(2.0*k*(y + h))*sin(2.0*k*x)/cosh(2.0*k*h);
+	double phi3 = 1./64.*(sq(alpa) - 1.)*(sq(alpa) + 3.)*
+	  (9.*sq(alpa) - 13.)*
+	  cosh(3.*k*(y + h))/cosh(3.*k*h)*a*a*k*k*A*sin(3.*k*x);
+	Phi = phi1 + ak*phi2 + ak*ak*phi3;
 
-    x = 0.02;
-    y = 0.03;
+*p = Phi;
+
+}
+
+int main() {
+    double x, y, vx, vy, eta, phi;
+
+    x = 0.03;
+    y = 0.04;
 
     f0(x, y, &vx, &vy, &eta);
     printf("%g %g %g %g %g\n", x, y, vx, vy, eta);
 
     f1(x, y, &vx, &vy, &eta);
     printf("%g %g %g %g %g\n", x, y, vx, vy, eta);
+
+    f2(x, y, &phi);
+    printf("%g %g %g\n", x, y, phi);
 }
