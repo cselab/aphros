@@ -248,16 +248,14 @@ CreateInitU(Vars& par, bool verb=true) {
         Scal eps = a*k;
         Scal chi = 1.0/tanh(h*k);
         Scal eta = (1.0/4.0)*a*chi*eps*(3*pow(chi, 2) - 1)*cos(2*k*x) +
-          a*pow(eps, 2)*((1.0/64.0)*(24*pow(chi, 6) + 3*pow(pow(chi,
-          2) - 1, 2))*cos(3*k*x) + (1.0/8.0)*(-3*pow(chi, 4) +
-          9*pow(chi, 2) - 9)*cos(k*x)) + a*cos(k*x);
+            a*pow(eps, 2)*((1.0/64.0)*(24*pow(chi, 6) + 3*pow(pow(chi,
+            2) - 1, 2))*cos(3*k*x) + (1.0/8.0)*(-3*pow(chi, 4) +
+            9*pow(chi, 2) - 9)*cos(k*x)) + a*cos(k*x);
 
         return y - eta;
       };
       for (auto c : m.Cells()) {
-        auto x = m.GetCenter(c);
-        Vect h = m.GetCellSize();
-        fc[c] = GetLevelSetVolume<Scal>(f, x, h);
+        fc[c] = GetLevelSetVolume<Scal>(f, m.GetCenter(c), m.GetCellSize());
       }
     };
   } else if (v == "solitonwang") {

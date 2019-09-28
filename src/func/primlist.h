@@ -189,6 +189,7 @@ struct UPrimList {
   }
   static std::vector<Primitive> ParseVel(
       std::string fn, bool verb, size_t edim) {
+    (void) dim;
     std::vector<Primitive> pp;
     std::ifstream f(fn);
     if (!f.good() && verb) {
@@ -201,6 +202,7 @@ struct UPrimList {
     auto def = [](std::map<std::string, Scal>& r, std::string k, Scal d) {
       if (!r.count(k)) { r[k] = d; }
     };
+    (void) def;
 
     // Read until eof
     while (f) {
