@@ -95,7 +95,6 @@ struct Vofm<M_>::Imp {
     psm->itermax = par->part_itermax;
     psm->verb = par->part_verb;
     psm->dim = par->dim;
-    psm->bcc_reflect = par->bcc_reflect;
     psm->dump_fr = par->part_dump_fr;
     psm->maxr = par->part_maxr;
     psm->vtkbin = par->vtkbin;
@@ -443,7 +442,7 @@ struct Vofm<M_>::Imp {
       }
       if (par->bcc_reflect && sem("reflect")) {
         for (auto i : layers) {
-          BcReflect(*mfcu[i], mfc_, par->bcc_fill, m);
+          BcReflect(*mfcu[i], mfc_, par->bcc_fill, par->bcc_reflectall, m);
         }
       }
       if (sem.Nested("reconst")) {
@@ -496,7 +495,7 @@ struct Vofm<M_>::Imp {
       }
       if (par->bcc_reflect && sem("reflect")) {
         for (auto i : layers) {
-          BcReflect(*mfcu[i], mfc_, par->bcc_fill, m);
+          BcReflect(*mfcu[i], mfc_, par->bcc_fill, par->bcc_reflectall, m);
         }
       }
       if (sem.Nested("reconst")) {
@@ -707,7 +706,7 @@ struct Vofm<M_>::Imp {
       }
       if (par->bcc_reflect && sem("reflect")) {
         for (auto i : layers) {
-          BcReflect(*mfcu[i], mfc_, par->bcc_fill, m);
+          BcReflect(*mfcu[i], mfc_, par->bcc_fill, par->bcc_reflectall, m);
         }
       }
       if (sem.Nested("reconst")) {
@@ -807,8 +806,8 @@ struct Vofm<M_>::Imp {
     if (par->bcc_reflect && sem("reflect")) {
       // --> fca [a], fcn [a]
       for (auto i : layers) {
-        BcReflect(fcn_[i], mfc_, Vect(0), m);
-        BcReflect(fca_[i], mfc_, Scal(0), m);
+        BcReflect(fcn_[i], mfc_, Vect(0), par->bcc_reflectall, m);
+        BcReflect(fca_[i], mfc_, Scal(0), par->bcc_reflectall, m);
       }
       // --> reflected fca [a], fcn [a]
     }
