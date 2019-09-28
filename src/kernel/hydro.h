@@ -665,6 +665,23 @@ void Hydro<M>::Init() {
     }
   }
 
+  if (var.Int["wavelamb_vort"] && sem("wavelamb")) {
+    FieldCell<Vect> fcvel(m);
+    Vars vr;
+    vr.String.Set("vel_init", "wavelamb");
+    vr.Double.Set("wavelamb_a0", var.Double["wavelamb_a0"]);
+    vr.Double.Set("wavelamb_xc", var.Double["wavelamb_xc"]);
+    vr.Double.Set("wavelamb_h", var.Double["wavelamb_h"]);
+    vr.Double.Set("wavelamb_k", var.Double["wavelamb_k"]);
+    vr.Vect.Set("gravity", var.Vect["gravity"]);
+    InitVel(fcvel, vr, m);
+    for (auto c : m.AllCells()) {
+      if (fcvel[c].sqrnorm() != 0) {
+        fc_vel_[c] = fcvel[c];
+      }
+    }
+  }
+
   if (sem.Nested("smooth")) {
     solver::Smoothen(fc_vf_, mf_cond_, m, var.Int["vf_init_sm"]);
   }
