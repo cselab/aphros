@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Capillary effects on wave breaking
+# Luc Deike, Stephane Popinet and W. Kendall Melville
+# https://doi.org/10.1017/jfm.2015.103
+
 from sympy import *
 from sympy.printing import ccode
 import textwrap
