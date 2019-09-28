@@ -326,6 +326,24 @@ struct Vofm<M_>::Imp {
         }
         m.Comm(&fcclt_[i]);
       }
+
+      // detect overlap
+      auto mfcu = GetLayer(fcu_, Layers::iter_curr);
+      for (auto i : layers) {
+        for (auto c : m.Cells()) {
+          if (fccl_[i][c] != kClNone) {
+            for (auto j : layers) {
+              if (j != i && fccl_[j][c] != kClNone) {
+                if ((*mfcu[i])[c] + (*mfcu[j])[c] > par->coalth) {
+                  Scal cl = std::min(fcclt_[i][c], fcclt_[j][c]);
+                  fcclt_[i][c] = cl;
+                  fcclt_[j][c] = cl;
+                }
+              }
+            }
+          }
+        }
+      }
     }
     sem.LoopBegin();
     if (sem("min")) {
@@ -341,6 +359,7 @@ struct Vofm<M_>::Imp {
           for (auto c : m.Cells()) {
             if (fccl_[i][c] != kClNone) {
               MIdx w = bc.GetMIdx(c);
+              // update color with minimum over neighbours
               for (MIdx wo : bo) {
                 IdxCell cn = bc.GetIdx(w + wo);
                 for (auto j : layers) {

@@ -51,6 +51,7 @@ void Parse(typename Vof::Par* p, const Vars& var) {
   p->clfixed = var.Double["clfixed"];
   p->clfixed_x = Vect(var.Vect["clfixed_x"]);
   p->layers = var.Int["vofm_layers"];
+  p->coalth = var.Double["vofm_coalth"];
 
   using Par = typename Vof::Par;
   {
