@@ -73,6 +73,7 @@ class Vofm : public AdvectionSolver<M_> {
     Scal avgnorm1 = 1; // overriden normal with sum(u)>=acgnorm1
     Scal clfixed = -1; // if >= 0, value for color at point clfixed_x
     Vect clfixed_x = Vect(1e10);
+    size_t layers = 4;
   };
 
   // Constructor

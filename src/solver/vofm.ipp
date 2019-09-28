@@ -43,7 +43,7 @@ struct Vofm<M_>::Imp {
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m)
-      , mfc_(mfc), layers(0, 4)
+      , mfc_(mfc), layers(0, par->layers)
   {
     fcu_.resize(layers.size());
     fcuu_.resize(layers.size());
