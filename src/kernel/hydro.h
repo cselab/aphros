@@ -682,6 +682,16 @@ void Hydro<M>::Init() {
     }
   }
 
+  if (var.Int["vel_init_noise"] && sem("noise")) {
+    Vect vel(var.Vect["noise_vel"]);
+    Vect per(var.Vect["noise_per"]);
+    Vect k = Vect(2 * M_PI) / (per * m.GetCellSize());
+    for (auto c : m.AllCells()) {
+      auto x = m.GetCenter(c);
+      fc_vel_[c] += vel * std::sin(k.dot(x));
+    }
+  }
+
   if (sem.Nested("smooth")) {
     solver::Smoothen(fc_vf_, mf_cond_, m, var.Int["vf_init_sm"]);
   }
