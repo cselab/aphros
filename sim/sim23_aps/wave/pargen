@@ -104,6 +104,13 @@ set double soliton_yc 0.5
 set double soliton_xw 1.
 set double soliton_yh 0.12
 
+#set string init_vf wavelamb
+#set string vel_init wavelamb
+#set double wavelamb_a0 0.08
+#set double wavelamb_xc 0.5
+#set double wavelamb_h 0.5
+#set double wavelamb_k 6.28
+
 set string advection_solver vofm
 
         '''.format(**locals()))
