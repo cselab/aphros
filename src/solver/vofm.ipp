@@ -404,6 +404,11 @@ struct Vofm<M_>::Imp {
         fcclt_[i].Free();
       }
     }
+    if (par->bcc_reflect && sem("reflect")) {
+      for (auto i : layers) {
+        BcReflect(fccl_[i], mfc_, 0., par->bcc_reflectall, m);
+      }
+    }
   }
   void Sharpen(const Multi<FieldCell<Scal>*>& mfcu) {
     auto sem = m.GetSem("sharp");
