@@ -281,12 +281,23 @@ struct Vofm<M_>::Imp {
           owner_->GetTime() + owner_->GetTimeStep(),
           par->poly_intth, par->vtkbin, par->vtkmerge, m);
     }
-    if (par->dumppolymarch && dm && sem.Nested()) {
-      uvof_.DumpPolyMarch(
-          layers, GetLayer(fcu_, Layers::iter_curr), fccl_, fcn_, fca_, fci_,
-          GetDumpName("sm", ".vtk", par->dmp->GetN()),
-          owner_->GetTime() + owner_->GetTimeStep(),
-          par->poly_intth, par->vtkbin, par->vtkmerge, par->vtkiso, m);
+    if (par->dumppolymarch && dm) { 
+      auto& fcut = fcclt_;
+      if (sem("copy")) {
+        for (auto i : layers) {
+          fcut[i] = fcu_[i].iter_curr;
+          if (par->bcc_reflectpoly) {
+            BcReflect(fcut[i], mfc_, par->bcc_fill, true, m);
+          }
+        }
+      }
+      if (sem.Nested()) {
+        uvof_.DumpPolyMarch(
+            layers, fcut, fccl_, fcn_, fca_, fci_,
+            GetDumpName("sm", ".vtk", par->dmp->GetN()),
+            owner_->GetTime() + owner_->GetTimeStep(),
+            par->poly_intth, par->vtkbin, par->vtkmerge, par->vtkiso, m);
+      }
     }
     if (par->dumppart && dm && sem.Nested("part-dump")) {
       psm_->DumpParticles(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
@@ -406,7 +417,7 @@ struct Vofm<M_>::Imp {
     }
     if (par->bcc_reflect && sem("reflect")) {
       for (auto i : layers) {
-        BcReflect(fccl_[i], mfc_, 0., par->bcc_reflectall, m);
+        BcReflect(fccl_[i], mfc_, 0., false, m);
       }
     }
   }
@@ -447,7 +458,7 @@ struct Vofm<M_>::Imp {
       }
       if (par->bcc_reflect && sem("reflect")) {
         for (auto i : layers) {
-          BcReflect(*mfcu[i], mfc_, par->bcc_fill, par->bcc_reflectall, m);
+          BcReflect(*mfcu[i], mfc_, par->bcc_fill, false, m);
         }
       }
       if (sem.Nested("reconst")) {
@@ -500,7 +511,7 @@ struct Vofm<M_>::Imp {
       }
       if (par->bcc_reflect && sem("reflect")) {
         for (auto i : layers) {
-          BcReflect(*mfcu[i], mfc_, par->bcc_fill, par->bcc_reflectall, m);
+          BcReflect(*mfcu[i], mfc_, par->bcc_fill, false, m);
         }
       }
       if (sem.Nested("reconst")) {
@@ -711,7 +722,7 @@ struct Vofm<M_>::Imp {
       }
       if (par->bcc_reflect && sem("reflect")) {
         for (auto i : layers) {
-          BcReflect(*mfcu[i], mfc_, par->bcc_fill, par->bcc_reflectall, m);
+          BcReflect(*mfcu[i], mfc_, par->bcc_fill, false, m);
         }
       }
       if (sem.Nested("reconst")) {
@@ -811,8 +822,8 @@ struct Vofm<M_>::Imp {
     if (par->bcc_reflect && sem("reflect")) {
       // --> fca [a], fcn [a]
       for (auto i : layers) {
-        BcReflect(fcn_[i], mfc_, Vect(0), par->bcc_reflectall, m);
-        BcReflect(fca_[i], mfc_, Scal(0), par->bcc_reflectall, m);
+        BcReflect(fcn_[i], mfc_, Vect(0), false, m);
+        BcReflect(fca_[i], mfc_, Scal(0), false, m);
       }
       // --> reflected fca [a], fcn [a]
     }

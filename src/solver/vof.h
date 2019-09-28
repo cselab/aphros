@@ -40,8 +40,8 @@ class Vof : public AdvectionSolver<M_> {
     bool dumppolymarch = false; // dump reconstructed interface (marching cube)
     bool dumppart = false; // dump particles
     bool dumppartinter = false; // dump interface for particles
-    bool bcc_reflect = false; // reflection at Reflect boundaries
-    bool bcc_reflectall = false; // reflection at all boundaries
+    bool bcc_reflect = false; // reflection or fill at boundaries
+    bool bcc_reflectpoly = true; // reflection for DumpPolyMarch
     Scal bcc_fill = 0;        // fill value for halo cells
     bool bcc_clear = false;   // set to 0 or 1 near CondFaceReflect
 

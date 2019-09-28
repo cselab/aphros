@@ -213,13 +213,22 @@ struct Vof<M_>::Imp {
           owner_->GetTime() + owner_->GetTimeStep(),
           par->poly_intth, par->vtkbin, par->vtkmerge, m);
     }
-    if (par->dumppolymarch && dm && sem.Nested()) {
-      FieldCell<Scal> fccl(m, 0);
-      uvof_.DumpPolyMarch(
-          GRange<size_t>(0, 1), &fcu_.iter_curr, &fccl, &fcn_, &fca_, &fci_,
-          GetDumpName("sm", ".vtk", par->dmp->GetN()),
-          owner_->GetTime() + owner_->GetTimeStep(),
-          par->poly_intth, par->vtkbin, par->vtkmerge, par->vtkiso, m);
+    if (par->dumppolymarch && dm) {
+      auto& fcut = fcfm_;
+      if (sem("copy")) {
+        fcut = fcu_.iter_curr;
+        if (par->bcc_reflectpoly) {
+          BcReflect(fcut, mfc_, par->bcc_fill, true, m);
+        }
+      }
+      if (sem.Nested()) {
+        FieldCell<Scal> fccl(m, 0);
+        uvof_.DumpPolyMarch(
+            GRange<size_t>(0, 1), &fcut, &fccl, &fcn_, &fca_, &fci_,
+            GetDumpName("sm", ".vtk", par->dmp->GetN()),
+            owner_->GetTime() + owner_->GetTimeStep(),
+            par->poly_intth, par->vtkbin, par->vtkmerge, par->vtkiso, m);
+      }
     }
     if (par->dumppart && dm && sem.Nested("part-dump")) {
       psm_->DumpParticles(&fca_, &fcn_, par->dmp->GetN(), owner_->GetTime());
@@ -372,8 +381,7 @@ struct Vof<M_>::Imp {
         m.Comm(&uc);
       }
       if (par->bcc_reflect && sem.Nested("reflect")) {
-        BcReflect(fcu_.iter_curr, mfc_, par->bcc_fill,
-                  par->bcc_reflectall, m);
+        BcReflect(fcu_.iter_curr, mfc_, par->bcc_fill, false, m);
       }
       if (sem.Nested("reconst")) {
         Rec(fcu_.iter_curr);
@@ -422,7 +430,7 @@ struct Vof<M_>::Imp {
         m.Comm(&uc);
       }
       if (par->bcc_reflect && sem.Nested("reflect")) {
-        BcReflect(uc, mfc_, par->bcc_fill, par->bcc_reflectall, m);
+        BcReflect(uc, mfc_, par->bcc_fill, false, m);
       }
       if (sem.Nested("reconst")) {
         Rec(fcu_.iter_curr);
@@ -463,7 +471,7 @@ struct Vof<M_>::Imp {
         m.Comm(&uc);
       }
       if (par->bcc_reflect && sem("reflect")) {
-        BcReflect(uc, mfc_, par->bcc_fill, par->bcc_reflectall, m);
+        BcReflect(uc, mfc_, par->bcc_fill, false, m);
       }
       if (sem.Nested("reconst")) {
         Rec(uc);
@@ -521,8 +529,8 @@ struct Vof<M_>::Imp {
     }
     if (par->bcc_reflect && sem("reflect")) {
       // --> fca [a], fcn [a]
-      BcReflect(fca_, mfc_, Scal(0), par->bcc_reflectall, m);
-      BcReflect(fcn_, mfc_, Vect(0), par->bcc_reflectall, m);
+      BcReflect(fca_, mfc_, Scal(0), false, m);
+      BcReflect(fcn_, mfc_, Vect(0), false, m);
       // --> reflected fca [a], fcn [a]
     }
     auto& uc = fcu_.iter_curr;
