@@ -57,6 +57,7 @@ def A(e, name):
 A(eps_, "eps")
 A(chi_, "chi")
 A(eta, "eta")
+A(omega_, "omega")
 A(vx, "vx")
 A(vy, "vy")
 

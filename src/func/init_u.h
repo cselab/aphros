@@ -229,6 +229,37 @@ CreateInitU(Vars& par, bool verb=true) {
         fc[c] = GetLevelSetVolume<Scal>(f, x, h);
       }
     };
+  } else if (v == "wavelamb") {
+    Scal a0(par.Double["wavelamb_a0"]);
+    Scal xc(par.Double["wavelamb_xc"]);
+    Scal h(par.Double["wavelamb_h"]);
+    Scal k(par.Double["wavelamb_k"]);
+
+    return [a0,xc,h,k](FieldCell<Scal>& fc, const M& m) { 
+      auto f = [a0,xc,h,k](const Vect& xx) -> Scal {
+        using std::tanh;
+        using std::sin;
+        using std::cos;
+        using std::pow;
+        Scal a = a0;
+        Scal x = xx[0] - xc;
+        Scal y = xx[1] - h;
+
+        Scal eps = a*k;
+        Scal chi = 1.0/tanh(h*k);
+        Scal eta = (1.0/4.0)*a*chi*eps*(3*pow(chi, 2) - 1)*cos(2*k*x) +
+          a*pow(eps, 2)*((1.0/64.0)*(24*pow(chi, 6) + 3*pow(pow(chi,
+          2) - 1, 2))*cos(3*k*x) + (1.0/8.0)*(-3*pow(chi, 4) +
+          9*pow(chi, 2) - 9)*cos(k*x)) + a*cos(k*x);
+
+        return y - eta;
+      };
+      for (auto c : m.Cells()) {
+        auto x = m.GetCenter(c);
+        Vect h = m.GetCellSize();
+        fc[c] = GetLevelSetVolume<Scal>(f, x, h);
+      }
+    };
   } else if (v == "solitonwang") {
     Scal xc(par.Double["soliton_xc"]);
     Scal yc(par.Double["soliton_yc"]);
