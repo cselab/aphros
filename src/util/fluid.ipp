@@ -423,6 +423,56 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
         fcv[c] *= 0;
       }
     }
+  } else if (vi == "wavelamb") {
+    Scal a0(var.Double["wavelamb_a0"]);
+    Scal xc(var.Double["wavelamb_xc"]);
+    Scal h(var.Double["wavelamb_h"]);
+    Scal k(var.Double["wavelamb_k"]);
+    Scal g = -Vect(var.Vect["gravity"])[1];
+
+    using std::sinh;
+    using std::cosh;
+    using std::tanh;
+    using std::cos;
+    using std::sin;
+    using std::sqrt;
+    using std::pow;
+
+    for (auto c : m.AllCells()) {
+      auto xx = m.GetCenter(c);
+      Scal x = xx[0] - xc;
+      Scal y = xx[1] - h;
+      Scal a = a0;
+
+      Scal eps = a*k;
+      Scal chi = 1.0/tanh(h*k);
+      Scal eta = (1.0/4.0)*a*chi*eps*(3*pow(chi, 2) - 1)*cos(2*k*x) +
+          a*pow(eps, 2)*((1.0/64.0)*(24*pow(chi, 6) + 3*pow(pow(chi,
+          2) - 1, 2))*cos(3*k*x) + (1.0/8.0)*(-3*pow(chi, 4) +
+          9*pow(chi, 2) - 9)*cos(k*x)) + a*cos(k*x);
+
+      Scal omega = sqrt(g*k*(pow(eps, 2)*(pow(chi, 2) +
+          (9.0/8.0)*pow(pow(chi, 2) - 1, 2)) + 1)*tanh(h*k));
+
+      Scal vx = (3.0/64.0)*a*pow(eps, 2)*g*k*(pow(chi, 2) -
+          1)*(pow(chi, 2) + 3)*(9*pow(chi, 2) -
+          13)*cos(3*k*x)*cosh(3*k*(h + y))/(omega*cosh(3*h*k)) +
+          a*g*k*cos(k*x)*cosh(k*(h + y))/(omega*cosh(h*k)) +
+          (3.0/4.0)*a*eps*g*k*pow(pow(chi, 2) - 1,
+          2)*cos(2*k*x)*cosh(2*k*(h + y))/(chi*omega*cosh(2*h*k));
+
+      Scal vy = (3.0/64.0)*a*pow(eps, 2)*g*k*(pow(chi, 2) -
+          1)*(pow(chi, 2) + 3)*(9*pow(chi, 2) -
+          13)*sin(3*k*x)*sinh(3*k*(h + y))/(omega*cosh(3*h*k)) +
+          a*g*k*sin(k*x)*sinh(k*(h + y))/(omega*cosh(h*k)) +
+          (3.0/4.0)*a*eps*g*k*pow(pow(chi, 2) - 1,
+          2)*sin(2*k*x)*sinh(2*k*(h + y))/(chi*omega*cosh(2*h*k));
+
+      fcv[c] = Vect(vx, vy, 0.);
+      if (y > eta) {
+        fcv[c] *= 0;
+      }
+    }
   } else if (vi == "solitonmccowan") {
     Scal xc(var.Double["soliton_xc"]);
     Scal yc(var.Double["soliton_yc"]);

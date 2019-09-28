@@ -45,8 +45,6 @@ phi = (
 vx = diff(phi, x)
 vy = diff(phi, y)
 
-e = vx
-
 o = []
 
 def A(e, name):
