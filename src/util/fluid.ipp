@@ -6,6 +6,7 @@
 #include "solver/fluid.h"
 #include "parse/vars.h"
 #include "func/primlist.h"
+#include "func/init_u.h"
 
 
 template <class M>
@@ -585,6 +586,52 @@ void GetFluidFaceCond(
               mfvf[i] = std::make_shared
                   <solver::CondFaceValFixed<Scal>>(vf, b->GetNci());
             }
+          }
+        }
+      } else if (n > nmax) { 
+        break;
+      }
+      ++n;
+    }
+  }
+  // inlet spheres
+  // Parameters (N>=0):
+  // vect inlet_sphN_c: center
+  // vect inlet_sphN_r: radius
+  // vect inlet_sphN_vel: maximum velocity
+  // double inlet_sphN_vf: volume faction (0 or 1)
+  // Check at least first nmax indices and all contiguous
+  {
+    int n = 0;
+    const int nmax = 100;
+    while (true) {
+      std::string k = "inlet_sph" + std::to_string(n) + "_";
+      if (auto p = var.Vect(k + "c")) {
+        Vect xc(var.Vect[k + "c"]);
+        Vect r(var.Vect[k + "r"]);
+        Vect vel(var.Vect[k + "vel"]);
+        Scal vf = var.Double[k + "vf"];
+
+
+        auto V = [xc,r,&m](IdxCell c) { 
+          auto ls = [xc,r](const Vect& x) -> Scal {
+            Vect xd = (x - xc) / r;
+            return (1. - xd.sqrnorm()) * sqr(r.min());
+          };
+          return GetLevelSetVolume<Scal>(ls, m.GetCenter(c), m.GetCellSize());
+        };
+
+        for (auto it : mfvel) {
+          IdxFace f = it.GetIdx();
+          solver::CondFaceFluid* cb = it.GetValue().get();
+          auto nci = cb->GetNci();
+          IdxCell c = m.GetNeighbourCell(f, nci);
+          Scal v = V(c);
+          if (v > 0) {
+            mfvel[f] = std::make_shared<solver::fluid_condition::
+                InletFixed<M>>(vel * v, nci);
+            mfvf[f] = std::make_shared<solver::
+                CondFaceValFixed<Scal>>(vf == 0 ? 1. - v : v * vf, nci);
           }
         }
       } else if (n > nmax) { 
