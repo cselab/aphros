@@ -422,62 +422,42 @@ std::vector<Scal> GetGradCoeffs(
   return k;
 }
 
-// apply reflection to field on boundaries 
+// apply reflection to field on Reflect boundaries or other if force=true
 // fill: value for other types that CondFaceReflect
 template <class T, class M>
 void BcReflect(FieldCell<T>& uc,
                const MapFace<std::shared_ptr<CondFace>>& mfc,
-               T fill, const M& m) {
+               T fill, bool force, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using MIdx = typename M::MIdx;
+  using Dir = typename M::Dir;
+  auto& bf = m.GetIndexFaces();
+  auto& bc = m.GetIndexCells();
   for (const auto& it : mfc) {
     CondFace* cb = it.GetValue().get();
-    if (dynamic_cast<CondFaceReflect*>(cb)) {
-      IdxFace f = it.GetIdx();
-      Vect n = m.GetNormal(f);
-      CondFace* cb = it.GetValue().get(); 
-      size_t nci = cb->GetNci();
-
-      using MIdx = typename M::MIdx;
-      using Dir = typename M::Dir;
-      auto& bf = m.GetIndexFaces();
-      auto& bc = m.GetIndexCells();
-      Dir df = bf.GetDir(f);
-      // offset from face towards cell (inner normal to boundary)
-      MIdx wo(0);
-      wo[size_t(df)] = (nci == 0 ? -1 : 1);
-      IdxCell cp = m.GetNeighbourCell(f, nci);
-      MIdx wp = bc.GetMIdx(cp);
-      MIdx wpp = wp + wo;
-      MIdx wm = wp - wo;
-      MIdx wmm = wm - wo;
-      IdxCell cpp = bc.GetIdx(wpp);
-      IdxCell cm = bc.GetIdx(wm);
-      IdxCell cmm = bc.GetIdx(wmm);
-      // apply
+    size_t nci = cb->GetNci();
+    IdxFace f = it.GetIdx();
+    Dir df = bf.GetDir(f);
+    Vect n = m.GetNormal(f);
+    // offset from face towards cell (inner normal to boundary)
+    MIdx wo(0);
+    wo[size_t(df)] = (nci == 0 ? -1 : 1);
+    IdxCell cp = m.GetNeighbourCell(f, nci);
+    MIdx wp = bc.GetMIdx(cp);
+    MIdx wpp = wp + wo;
+    MIdx wm = wp - wo;
+    MIdx wmm = wm - wo;
+    IdxCell cm = bc.GetIdx(wm);
+    IdxCell cmm = bc.GetIdx(wmm);
+    IdxCell cpp = bc.GetIdx(wpp);
+    // apply
+    if (dynamic_cast<CondFaceReflect*>(cb) || force) {
       uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
       uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
-    } else { // XXX: adhoc, zeros on other boundaries
-      IdxFace f = it.GetIdx();
-      CondFace* cb = it.GetValue().get(); 
-      size_t nci = cb->GetNci();
-
-      using MIdx = typename M::MIdx;
-      using Dir = typename M::Dir;
-      auto& bf = m.GetIndexFaces();
-      auto& bc = m.GetIndexCells();
-      Dir df = bf.GetDir(f);
-      MIdx wo(0);
-      wo[size_t(df)] = (nci == 0 ? -1 : 1);
-      IdxCell cp = m.GetNeighbourCell(f, nci);
-      MIdx wp = bc.GetMIdx(cp);
-      MIdx wm = wp - wo;
-      MIdx wmm = wm - wo;
-      IdxCell cm = bc.GetIdx(wm);
-      IdxCell cmm = bc.GetIdx(wmm);
-      // apply
+    } else {
       uc[cm] = fill;
-      uc[cmm] = fill; 
+      uc[cmm] = fill;
     }
   }
 }

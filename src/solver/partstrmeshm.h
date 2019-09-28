@@ -39,7 +39,6 @@ class PartStrMeshM {
     size_t itermax = 20;
     int verb = 0; // debug output
     size_t dim = 3;
-    bool bcc_reflect = false;
     AR attrreconst = AR::line;
     Scal maxr = 0; // if input radius of curvature 
                    // (e.g. from height functions)
