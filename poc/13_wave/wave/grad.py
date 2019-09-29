@@ -26,14 +26,14 @@ def LAPL(s):
 
 s =  Function('s')(u,v)
 
-#pprint(LAPL(s))
-
 suu,suv,svu,svv = S('suu,suv,svu,svv')
 suu_ = diff(s,u,u)
 suv_ = diff(s,u,v)
-svu_ = diff(s,v,u)
 svv_ = diff(s,v,v)
-sd_ = [suu_, suv_, svu_, svv_]
-sd = [suu, suv, svu, svv]
+sd_ = [suu_, suv_, svv_]
+sd = [suu, suv, svv]
 
-pprint(LAPL(s).subs(zip(sd_, sd)))
+l = LAPL(s)
+l = l.subs(zip(sd_, sd))
+p = python(l)
+print(p)
