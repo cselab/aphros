@@ -1,0 +1,13 @@
+lpl(phi):=diff(phi, x, 2) + diff(phi, z, 2);
+
+kin(phi, eta):= diff(phi, z) - diff(eta, x)*diff(phi, x) - diff(eta, t);
+kin_lin(phi, eta):= diff(phi, z) - diff(eta, t);
+
+dyn(phi, eta):=-g*eta - 1/2*(diff(phi, x)^2 + diff(phi, z)^2) - diff(phi, t);
+dyn_lin(phi, eta):=-g*eta - diff(phi, t);
+
+phi: H/2*g/om*cosh(k*(h+z))/cosh(k*h)*sin(k*x-om*t);
+eta: H/2*cos(k*x-om*t);
+
+k: kin_lin(phi, eta);
+fullratsimp(subst(z = 0, k));
