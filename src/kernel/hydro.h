@@ -32,6 +32,8 @@
 #include "solver/sphavg.h"
 #include "solver/simple.h"
 #include "parse/simple.h"
+#include "solver/proj.h"
+#include "parse/proj.h"
 #include "kernel.h"
 #include "kernelmesh.h"
 #include "parse/vars.h"
@@ -154,7 +156,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void StepAdvection();
   void StepBubgen();
 
-  using FS = solver::Simple<M>;
+  using FS = solver::FluidSolver<M>;
+  using FSS = solver::Simple<M>;
+  using FSP = solver::Proj<M>;
   using AST = solver::Tvd<M>; // advection TVD
   using ASV = solver::Vof<M>; // advection VOF
   using ASVM = solver::Vofm<M>; // advection VOF
@@ -476,9 +480,6 @@ void Hydro<M>::InitVort() {
 
 template <class M>
 void Hydro<M>::InitFluid() {
-  auto p = std::make_shared<typename FS::Par>();
-  Parse<M>(p.get(), var);
-
   fcvm_ = fc_vel_;
 
 
@@ -492,10 +493,24 @@ void Hydro<M>::InitFluid() {
     }
   }
 
-  fs_.reset(new FS(
-        m, fc_vel_, mf_velcond_, mc_velcond_, 
-        &fc_rho_, &fc_mu_, &fc_force_, &ffbp_,
-        &fc_src_, &fc_srcm_, 0., st_.dt, p));
+  std::string fs = var.String["fluid_solver"];
+  if (fs == "simple") {
+    auto p = std::make_shared<typename FSS::Par>();
+    Parse<M>(p.get(), var);
+    fs_.reset(new FSS(
+          m, fc_vel_, mf_velcond_, mc_velcond_, 
+          &fc_rho_, &fc_mu_, &fc_force_, &ffbp_,
+          &fc_src_, &fc_srcm_, 0., st_.dt, p));
+  } else if (fs == "proj") {
+    auto p = std::make_shared<typename FSP::Par>();
+    Parse<M>(p.get(), var);
+    fs_.reset(new FSP(
+          m, fc_vel_, mf_velcond_, mc_velcond_, 
+          &fc_rho_, &fc_mu_, &fc_force_, &ffbp_,
+          &fc_src_, &fc_srcm_, 0., st_.dt, p));
+  } else {
+    throw std::runtime_error("Unknown fluid_solver=" + fs);
+  }
 
   fcbc_ = GetBcField(mf_velcond_, m);
 }
@@ -1055,10 +1070,18 @@ void Hydro<M>::CalcStat() {
       Vect mask(var.Vect["meshvel_mask"]); // components 0 or 1
       v *= mask;
       double w = var.Double["meshvel_weight"];
-      Vect vp = fs_->GetPar()->meshvel;
-      fs_->GetPar()->meshvel = v * w + vp * (1. - w);
+      Vect* meshvel;
+      if (auto fs = dynamic_cast<FSS*>(fs_.get())) {
+        meshvel = &(fs->GetPar()->meshvel);
+      } else if (auto fs = dynamic_cast<FSP*>(fs_.get())) {
+        meshvel = &(fs->GetPar()->meshvel);
+      } else {
+        meshvel = nullptr;
+      }
+      Vect vp = *meshvel;
+      (*meshvel) = v * w + vp * (1. - w);
 
-      st_.meshvel = fs_->GetPar()->meshvel;
+      st_.meshvel = *meshvel;
       st_.meshpos += st_.meshvel * st_.dt;
     }
 
@@ -1877,7 +1900,11 @@ void Hydro<M>::Run() {
   CheckAbort(sem);
 
   if (sem("updatepar")) {
-    Parse<M>(fs_->GetPar(), var);
+    if (auto fs = dynamic_cast<FSS*>(fs_.get())) {
+      Parse<M>(fs->GetPar(), var);
+    } else if (auto fs = dynamic_cast<FSP*>(fs_.get())) {
+      Parse<M>(fs->GetPar(), var);
+    }
     UpdateAdvectionPar();
     fcvm_ = fs_->GetVelocity();
   }
