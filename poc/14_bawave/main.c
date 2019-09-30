@@ -1,35 +1,46 @@
 #include ".u/io/io.h"
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
+#include "tension.h"
+#include "reduced.h"
 
 #define DUMPDT (0.01)
-#define TMAX (1)
+#define TMAX (1.0)
 #define ak  (0.55)
 #define h_   (0.5)
 #define k_  (2.*pi)
+#define g_  (1.0)
 
 static double wave(double, double);
-static double wave0(double, double);
+static double phi(double, double);
 
 int main() {
-  init_grid(64);
+  init_grid(32);
   origin (0.,0.,0.);
+  periodic(right);
 
   rho1 = 1;
   rho2 = 0.01;
 
-  mu1 = 0;
-  mu2 = 0;
-
+  mu1 = 0.01;
+  mu2 = 0.01;
+  G.y = -g_;
   run();
 }
 
 event init (i = 0) {
-  foreach() {
-    u.x[] = 1;
-    u.y[] = 0;
-  }
+  scalar Phi[];
   fraction(f, wave(x, y));
+  foreach()
+      Phi[] = phi(x, y);
+  boundary ({Phi});
+  foreach() {
+      foreach_dimension() {
+	  u.x[] = (Phi[1] - Phi[-1])/(2.0*Delta) * f[];
+	  u.x[] = 0.0;
+      }
+  }
+  boundary ((scalar *){u});
 }
 
 event out (t += DUMPDT ; t <= TMAX + DUMPDT) {
@@ -70,4 +81,28 @@ static double
 wave(double x, double y)
 {
     return wave0(x - 0.5, y - 0.5);
+}
+
+static double
+phi0(double x, double y)
+{
+    double alpa = 1./tanh(k_*h_);
+    double a_ = ak/k_;
+    double sgma = sqrt(g_*k_*tanh(k_*h_)*
+		       (1. + k_*k_*a_*a_*(9./8.*(sq(alpa) - 1.)*
+					  (sq(alpa) - 1.) + sq(alpa))));
+    double A_ = a_*g_/sgma;
+    double phi1 = A_*cosh(k_*(y + h_))/cosh(k_*h_)*sin(k_*x);
+    double phi2 = 3.*ak*A_/(8.*alpa)*(sq(alpa) - 1.)*(sq(alpa) - 1.)*
+	cosh(2.0*k_*(y + h_))*sin(2.0*k_*x)/cosh(2.0*k_*h_);
+    double phi3 = 1./64.*(sq(alpa) - 1.)*(sq(alpa) + 3.)*
+	(9.*sq(alpa) - 13.)*
+	cosh(3.*k_*(y + h_))/cosh(3.*k_*h_)*a_*a_*k_*k_*A_*sin(3.*k_*x);
+    return phi1 + ak*phi2 + ak*ak*phi3;
+}
+
+static double
+phi(double x, double y)
+{
+    return phi0(x - 0.5, y - 0.5);
 }
