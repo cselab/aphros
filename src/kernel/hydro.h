@@ -49,6 +49,7 @@
 #include "util/fluid.h"
 #include "util/events.h"
 #include "util/convdiff.h"
+#include "solver/normal.h"
 
 class GPar {};
 
@@ -1529,6 +1530,31 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     // Surface tension
     if (var.Int["enable_surftens"] && as_) {
       CalcSurfaceTension(fc_vf0, af);
+    }
+
+    // normal velocity penalization
+    Scal force_vel_k = var.Double["force_vel_k"];
+    if (force_vel_k != 0 && as_) {
+      Vect force_vel(var.Vect["force_vel"]);
+      FieldCell<Scal> fcu = as_->GetField();
+      FieldCell<bool> fci(m, false);
+      for (auto c : m.Cells()) {
+        if (fcu[c] > 0 && fcu[c] < 1) {
+          fci[c] = true;
+        }
+      }
+      FieldCell<Vect> fcn(m, Vect(0)); // normal to interface
+      solver::UNormal<M>::CalcNormal(m, fcu, fci, var.Int["dim"], fcn);
+      const auto& fv = fs_->GetVelocity();
+      for (auto c : m.Cells()) {
+        Scal u = fcu[c];
+        Vect n = fcn[c];
+        if (u > 0 && u < 1) {
+          // want to have v.dot(n)=force_vel.dot(n)
+          Scal a = (force_vel - fv[c]).dot(n) * force_vel_k * u * (1 - u);
+          fc_force_[c] += n * (a * fc_rho_[c]);
+        }
+      }
     }
 
     // zero force in z if 2D
