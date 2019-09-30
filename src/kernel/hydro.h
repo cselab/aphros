@@ -17,6 +17,7 @@
 #include <memory>
 #include <limits>
 #include <set>
+#include <random>
 
 #include "geom/mesh.h"
 #include "solver/solver.h"
@@ -680,6 +681,40 @@ void Hydro<M>::Init() {
         fc_vel_[c] = fcvel[c];
       }
     }
+  }
+
+  if (var.Int["vel_init_noise"] && sem("noise")) {
+    Vect vel0(var.Vect["noise_vel0"]);
+    Vect vel1(var.Vect["noise_vel1"]);
+    Vect vel2(var.Vect["noise_vel2"]);
+    Vect per0(var.Vect["noise_per0"]);
+    Vect per1(var.Vect["noise_per1"]);
+    Vect per2(var.Vect["noise_per2"]);
+    Vect k0 = Vect(2 * M_PI) / (per0 * m.GetCellSize());
+    Vect k1 = Vect(2 * M_PI) / (per1 * m.GetCellSize());
+    Vect k2 = Vect(2 * M_PI) / (per2 * m.GetCellSize());
+    for (auto c : m.AllCells()) {
+      auto x = m.GetCenter(c);
+      fc_vel_[c] += vel0 * std::sin(k0.dot(x));
+      fc_vel_[c] += vel1 * std::sin(k1.dot(x));
+      fc_vel_[c] += vel2 * std::sin(k2.dot(x));
+    }
+  }
+
+  if (var.Int["vel_init_random"] && sem("random")) {
+    Scal amp = var.Double["random_amp"];
+    Vect vel(var.Vect["random_vel"]);
+    std::default_random_engine g(m.GetId());
+    std::uniform_real_distribution<Scal> u(-amp, amp);
+    for (auto c : m.Cells()) {
+      Vect v = vel * u(g) / 7;
+      for (auto q : m.Nci(c)) {
+        IdxCell cn = m.GetNeighbourCell(c, q);
+        fc_vel_[cn] += v;
+      }
+      fc_vel_[c] += v;
+    }
+    m.Comm(&fc_vel_);
   }
 
   if (sem.Nested("smooth")) {
