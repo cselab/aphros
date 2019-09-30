@@ -4,8 +4,8 @@
 #include "tension.h"
 #include "reduced.h"
 
-#define DUMPDT (0.01)
-#define TMAX (1.0)
+#define DUMPDT (0.025)
+#define TMAX (2.0)
 #define ak  (0.55)
 #define h_   (0.5)
 #define k_  (2.*pi)
@@ -15,15 +15,14 @@ static double wave(double, double);
 static double phi(double, double);
 
 int main() {
-  init_grid(32);
+  init_grid(64);
   origin (0.,0.,0.);
   periodic(right);
 
   rho1 = 1;
   rho2 = 0.01;
 
-  mu1 = 0.01;
-  mu2 = 0.01;
+  mu1 = mu2 = 0;
   G.y = -g_;
   run();
 }
@@ -37,7 +36,6 @@ event init (i = 0) {
   foreach() {
       foreach_dimension() {
 	  u.x[] = (Phi[1] - Phi[-1])/(2.0*Delta) * f[];
-	  u.x[] = 0.0;
       }
   }
   boundary ((scalar *){u});
