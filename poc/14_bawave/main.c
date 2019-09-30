@@ -1,4 +1,3 @@
-#include ".u/curv/select.h"
 #include ".u/io/io.h"
 #include ".u/bashape.h"
 
@@ -6,6 +5,9 @@
 #include "two-phase.h"
 #include "vof.h"
 
+double ls(double x, double y) {
+  return y - 0.5;
+}
 #define DUMPDT 0.01
 #define TMAX 1
 
@@ -27,6 +29,7 @@ event init (i = 0) {
     u.x[] = 1;
     u.y[] = 0;
   }
+  fraction(f, ls(x, y));
 }
 
 event out (t += DUMPDT ; t <= TMAX + DUMPDT) {
@@ -37,7 +40,7 @@ event out (t += DUMPDT ; t <= TMAX + DUMPDT) {
 
   char name[1000];
 
-  sprintf(name, "o/%d/u_%04d.vtk", pid(), frame);
+  sprintf(name, "u_%04d.vtk", frame);
   FILE * fp = fopen(name, "w");
   io(a, fp);
   fclose(fp);
