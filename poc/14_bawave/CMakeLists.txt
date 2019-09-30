@@ -14,7 +14,6 @@ add_custom_target(u COMMAND ba.env ba.u
   "${CHPREFIX}/include/curv/curv.conf"
   "${CHPREFIX}/include/io/io.conf"
   "${CHPREFIX}/include/bashape.conf"
-  "${CHPREFIX}/include/bah5.conf"
   )
 
 set(T main.s)
