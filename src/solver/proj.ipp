@@ -370,14 +370,14 @@ struct Proj<M_>::Imp {
   }
   // Apply cell conditions for pressure.
   // fcpb: base pressure [i]
-  // fcs: linear system in terms of correction of base pressure [i]
+  // fcs: linear system for pressure [i]
   void ApplyPcCond(const FieldCell<Scal>& fcpb, FieldCell<Expr>& fcs) {
     for (auto it : mccp_) {
       IdxCell c(it.GetIdx()); // target cell
       CondCell* cb = it.GetValue().get(); // cond base
       if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
         auto& e = fcs[c];
-        Scal pc = cd->GetValue() - fcpb[c];  // new value for p[c]
+        Scal pc = cd->GetValue();  // new value for p[c]
         e = Expr(0);
         // override target cell
         e[0] = 1.;
