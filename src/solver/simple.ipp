@@ -613,6 +613,11 @@ struct Simple<M_>::Imp {
       std::vector<Scal>* lsb;
       std::vector<Scal>* lsx;
       m.GetSolveTmp(lsa, lsb, lsx);
+      lsx->resize(m.GetInBlockCells().size());
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        (*lsx)[i++] = 0;
+      }
       auto l = ConvertLsCompact(fce, *lsa, *lsb, *lsx, m);
       using T = typename M::LS::T; 
       l.t = T::symm; // solver type

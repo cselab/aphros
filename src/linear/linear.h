@@ -321,6 +321,7 @@ typename M::LS ConvertLs(const FieldCell<Expr>& fce, std::vector<Scal>& la,
 }
 
 // V is expression: v[0] * c + v[1] * cxm + ... v[6] * czp + v[7]
+// lx: initial guess
 template <class M,
           class Scal=typename M::Scal,
           class V=GVect<Scal, M::dim * 2 + 2>>
@@ -379,7 +380,6 @@ typename M::LS ConvertLsCompact(
     for (auto c : m.Cells()) {
       auto& e = fce[c];
       lb[i] = -e[V::dim - 1];
-      lx[i] = 0.;
       ++i;
     }
     assert(i == lb.size());
