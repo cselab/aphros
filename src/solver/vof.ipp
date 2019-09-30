@@ -217,8 +217,11 @@ struct Vof<M_>::Imp {
       auto& fcut = fcfm_;
       if (sem("copy")) {
         fcut = fcu_.iter_curr;
-        if (par->bcc_reflectpoly) {
+          if (par->bcc_reflectpoly) {
           BcReflect(fcut, mfc_, par->bcc_fill, true, m);
+        }
+        if (par->dumppolymarch_fill >= 0) {
+          BcMarchFill(fcut, par->dumppolymarch_fill, m);
         }
       }
       if (sem.Nested()) {
@@ -227,7 +230,8 @@ struct Vof<M_>::Imp {
             GRange<size_t>(0, 1), &fcut, &fccl, &fcn_, &fca_, &fci_,
             GetDumpName("sm", ".vtk", par->dmp->GetN()),
             owner_->GetTime() + owner_->GetTimeStep(),
-            par->poly_intth, par->vtkbin, par->vtkmerge, par->vtkiso, m);
+            par->poly_intth, par->vtkbin, par->vtkmerge, par->vtkiso, 
+            par->dumppolymarch_fill >= 0 ? &fcut : nullptr, m);
       }
     }
     if (par->dumppart && dm && sem.Nested("part-dump")) {
@@ -400,6 +404,15 @@ struct Vof<M_>::Imp {
         size_t nci = cb->GetNci();
         IdxCell c = m.GetNeighbourCell(f, nci);
         uc[c] = (uc[c] > 0.5 ? 1. : 0.);
+      }
+    }
+  }
+  static void BcMarchFill(
+      FieldCell<Scal>& fcu, Scal fill, const M& m) {
+    for (auto c : m.SuCells()) {
+      auto x = m.GetCenter(c);
+      if (!(Vect(0) <= x && x <= m.GetGlobalLength())) {
+        fcu[c] = fill;
       }
     }
   }

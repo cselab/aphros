@@ -616,6 +616,7 @@ struct Simple<M_>::Imp {
       lsx->resize(m.GetInBlockCells().size());
       size_t i = 0;
       for (auto c : m.Cells()) {
+        (void) c;
         (*lsx)[i++] = 0;
       }
       auto l = ConvertLsCompact(fce, *lsa, *lsb, *lsx, m);
