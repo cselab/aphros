@@ -1,9 +1,7 @@
 #include ".u/io/io.h"
-#include ".u/bashape.h"
 
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
-#include "vof.h"
 
 double ls(double x, double y) {
   return y - 0.5;
