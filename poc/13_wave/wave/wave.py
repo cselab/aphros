@@ -19,48 +19,45 @@ def report(re, n="residual"):
 
 
 # xx,yy: functions of uu,vv
-def CalcJ(xx, yy):
-    Jxu = (np.roll(xx, -1, axis=1) - np.roll(xx, 1, axis=1)) * 0.5;
-    Jxv = (np.roll(xx, -1, axis=0) - np.roll(xx, 1, axis=0)) * 0.5;
-    Jyu = (np.roll(yy, -1, axis=1) - np.roll(yy, 1, axis=1)) * 0.5;
-    Jyv = (np.roll(yy, -1, axis=0) - np.roll(yy, 1, axis=0)) * 0.5;
-    Jxu[:,0] = Jxu[:,1]
-    Jxu[:,-1] = Jxu[:,-2]
-    Jyu[:,0] = Jyu[:,1]
-    Jyu[:,-1] = Jyu[:,-2]
-    Jxv[0,:] = Jxv[1,:]
-    Jxv[-1,:] = Jxv[-2,:]
-    Jyv[0,:] = Jyv[1,:]
-    Jyv[-1,:] = Jyv[-2,:]
-    return np.array([[Jxu, Jxv], [Jyu, Jyv]])
+def CalcJp(xx, yy):
+    Jxu = np.roll(xx, -1, axis=1) - xx
+    Jxv = np.roll(xx, -1, axis=0) - xx
+    Jyu = np.roll(yy, -1, axis=1) - yy
+    Jyv = np.roll(yy, -1, axis=0) - yy
+    return np.array([[Jxu, Jyu], [Jxv, Jyv]])
+
+def CalcJm(xx, yy):
+    Jxu = xx - np.roll(xx, 1, axis=1)
+    Jxv = xx - np.roll(xx, 1, axis=0)
+    Jyu = yy - np.roll(yy, 1, axis=1)
+    Jyv = yy - np.roll(yy, 1, axis=0)
+    return np.array([[Jxu, Jyu], [Jxv, Jyv]])
 
 # xx,yy: functions of uu,vv
 def CalcI(J):
     return np.linalg.inv(J.T).T
 
-def CalcDp(s):
+def CalcDp(s, Ip):
+    I=Ip
     su = (np.roll(s, -1, axis=1) - s)
     sv = (np.roll(s, -1, axis=0) - s)
-    sv[-1,:] *= 0
-    return su,sv
+    return I[0,0]*su+I[0,1]*sv, I[1,0]*su+I[1,1]*sv
 
-def CalcDm(s):
+def CalcDm(s, Im):
+    I=Im
     su = (s - np.roll(s, 1, axis=1))
     sv = (s - np.roll(s, 1, axis=0))
-    sv[0,:] *= 0
-    return su,sv
+    return I[0,0]*su+I[0,1]*sv, I[1,0]*su+I[1,1]*sv
 
-def CalcDD(s):
-    su,sv = CalcDp(s)
-    suu,suv = CalcDm(su)
-    svu,suv = CalcDm(sv)
-    return su,(suv+svu)*0.5,sv
+def CalcDD(s, Im, Ip):
+    su,sv = CalcDp(s, Ip)
+    suu,suv = CalcDm(su, Im)
+    svu,svv = CalcDm(sv, Im)
+    return suu,(suv+svu)*0.5,svv
 
-def Lapl(suu, suv, svv, I):
-    return (suu*I[0, 0] + suv*I[1, 0])*I[0, 0] + \
-           (suu*I[0, 1] + suv*I[1, 1])*I[0, 1] + \
-           (suv*I[0, 0] + svv*I[1, 0])*I[1, 0] + \
-           (suv*I[0, 1] + svv*I[1, 1])*I[1, 1]
+def Lapl(s, Im, Ip):
+    suu,suv,svv = CalcDD(s, Im, Ip)
+    return suu + svv
 
 # solve Posson equation for
 # laplace p = -vort(u,v)
@@ -99,7 +96,7 @@ def eta(x):
     return (e*c(2*pi*x) + 0.5*e**2*c(4*pi*x) + 3./8.*e**3*c(6*pi*x)) / (2*pi)
 
 eps = 0.55
-nx = 32
+nx = 64
 
 # range
 # x=[-0.5,0.5], y=[0,1]
@@ -122,26 +119,47 @@ uu,vv = np.meshgrid(u,v)
 xx = uu - 0.5
 yy = vv * (yc + eta(xx))
 
-f = vv*1
+'''
+a = pi*0.125
+sa = np.sin(a)
+ca = np.cos(a)
+xx = uu*ca + -vv*sa
+yy = uu*sa + vv*ca
+'''
+
+f = xx**2 + yy**2
 
 #s = pois(f)
-J = CalcJ(xx, yy)
-I = CalcI(J)
-s = Lapl(*CalcDD(f), I)
-print(s.min(), s.max())
+Jp = CalcJp(xx, yy)
+Jm = CalcJm(xx, yy)
+Im = CalcI(Jm)
+Ip = CalcI(Jp)
+#s = CalcDm(f, Im)[1]
+s = Lapl(f, Im, Ip)
+s[0,:] = np.nan
+s[-1,:] = np.nan
+s[:,0] = np.nan
+s[:,-1] = np.nan
+print(np.nanmin(s), np.nanmax(s))
 
-fig = plt.figure()
+#fig,ax = plt.figure()
+fig,(ax1,ax2) = plt.subplots(1,2)
 
 if 0:
     ax = fig.gca(projection='3d')
     surf = ax.plot_surface(xx, yy, s, linewidth=0, antialiased=False)
 else:
     ax = fig.gca()
-    plt.plot(x, ywave)
-    plt.scatter(xx, yy, c=s, s=12)
-    ax.set_aspect('equal')
-    plt.xlim(-0.5, 0.5)
-    plt.ylim(0, 1)
+    #ax1.plot(x, ywave)
+    ax1.scatter(xx, yy, c=f, s=20)
+    ax1.set_xlim(-0.5, 0.5)
+    ax1.set_ylim(0, 1)
+    ax1.set_aspect('equal')
+
+    ax2.scatter(xx, yy, c=s, s=20)
+    ax2.set_xlim(-0.5, 0.5)
+    ax2.set_ylim(0, 1)
+    ax2.set_aspect('equal')
 
 
 plt.savefig('a.pdf')
