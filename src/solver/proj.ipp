@@ -615,7 +615,6 @@ struct Proj<M_>::Imp {
       }
 
       // Acceleration and correction to center velocity
-      CalcExtForce2(ffv_.iter_curr, ffve_, fcwc_);
       fcwc_.Reinit(m);
       for (auto c : m.Cells()) {
         Vect s(0);
