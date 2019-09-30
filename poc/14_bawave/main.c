@@ -1,3 +1,6 @@
+//#include "grid/multigrid.h"
+#undef _MPI
+#include "grid/quadtree.h"
 #include ".u/io/io.h"
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
@@ -12,11 +15,14 @@
 #define k_  (2.*pi)
 #define g_  (1.0)
 
+int LEVEL = dimension == 2 ? 9 : 6;
+double uemax = 0.005;
+
 static double wave(double, double);
 static double phi(double, double);
 
 int main() {
-  init_grid(128);
+  init_grid(64);
   origin (0.,0.,0.);
   periodic(right);
 
@@ -42,7 +48,12 @@ event init (i = 0) {
   boundary ((scalar *){u});
 }
 
+//event adapt (i++) {
+//  adapt_wavelet ({f,u}, (double[]){0.01,uemax,uemax,uemax}, LEVEL, 5);
+//}
+
 event out (t += DUMPDT ; t <= TMAX + DUMPDT) {
+   FILE * fp;    
   fprintf(stderr, "dump i=%05d t=%g dt=%g \n", i, t ,dt);
 
   static int frame = 0;
@@ -51,9 +62,13 @@ event out (t += DUMPDT ; t <= TMAX + DUMPDT) {
   char name[1000];
 
   sprintf(name, "u_%04d.vtk", frame);
-  FILE * fp = fopen(name, "w");
+  fp = fopen(name, "w");
   io(a, fp);
-  fclose(fp);
+
+  sprintf(name, "u_%04d.ppm", frame);
+  fp = fopen(name, "w");
+  output_ppm (f, fp, min = 0, max = 1, n = 512);
+  fclose(fp);  
 
   ++frame;
 }
@@ -105,3 +120,4 @@ phi(double x, double y)
 {
     return phi0(x - 0.5, y - 0.5);
 }
+
