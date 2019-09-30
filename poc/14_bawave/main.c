@@ -15,14 +15,13 @@
 #define k_  (2.*pi)
 #define g_  (1.0)
 
-int LEVEL = dimension == 2 ? 9 : 6;
+int LEVEL = 6;
 double uemax = 0.005;
 
 static double wave(double, double);
 static double phi(double, double);
 
 int main() {
-  init_grid(64);
   origin (0.,0.,0.);
   periodic(right);
 
@@ -48,9 +47,9 @@ event init (i = 0) {
   boundary ((scalar *){u});
 }
 
-//event adapt (i++) {
-//  adapt_wavelet ({f,u}, (double[]){0.01,uemax,uemax,uemax}, LEVEL, 5);
-//}
+event adapt (i++) {
+  adapt_wavelet ({f,u}, (double[]){0.01,uemax,uemax,uemax}, LEVEL, 5);
+}
 
 event out (t += DUMPDT ; t <= TMAX + DUMPDT) {
    FILE * fp;    
