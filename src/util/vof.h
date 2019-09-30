@@ -45,7 +45,8 @@ class UVof {
       const Multi<const FieldCell<Vect>*>& fcn,
       const Multi<const FieldCell<Scal>*>& fca,
       const Multi<const FieldCell<bool>*>& fci,
-      std::string fn, Scal t, Scal th, bool bin, bool merge, Scal iso, M& m);
+      std::string fn, Scal t, Scal th, bool bin, bool merge, Scal iso, 
+      const FieldCell<Scal>*, M& m);
 
   // Dumps PLIC polygons from single layer.
   // fn: filename

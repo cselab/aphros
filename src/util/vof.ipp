@@ -171,6 +171,29 @@ struct UVof<M_>::Imp {
     }
     return gg;
   }
+    // Returns values over stencil centered at cell c with color cl.
+    // Values for neighbors without color cl are filled with 0.
+    // sw: stencil half-width
+    template <size_t sw>
+    struct GetStencilPure {
+      static constexpr size_t sn = sw * 2 + 1;
+      std::array<Scal, sn*sn*sn> operator()(
+          const FieldCell<Scal>& fc, IdxCell c, const M& m) {
+        using MIdx = typename M::MIdx;
+        auto& bc = m.GetIndexCells();
+        GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn));
+        MIdx w = bc.GetMIdx(c);
+        std::array<typename M::Scal, sn*sn*sn> uu;
+        size_t k = 0;
+        for (MIdx wo : bo) {
+          IdxCell cn = bc.GetIdx(w + wo);
+          uu[k++] = fc[cn];
+        }
+        return uu;
+      }
+    };
+  // bcfill: if >=0. add triangles from 
+  // fcus [a]: sum of volume fractions, add triangles from SuCells if not null
   void DumpPolyMarch(
       const GRange<size_t>& layers,
       const Multi<const FieldCell<Scal>*>& fcu,
@@ -178,7 +201,8 @@ struct UVof<M_>::Imp {
       const Multi<const FieldCell<Vect>*>& fcn,
       const Multi<const FieldCell<Scal>*>& fca,
       const Multi<const FieldCell<bool>*>& fci,
-      std::string fn, Scal t, Scal th, bool bin, bool merge, Scal iso, M& m) {
+      std::string fn, Scal t, Scal th, bool bin, bool merge, Scal iso, 
+      const FieldCell<Scal>* fcus, M& m) {
     (void) fcn;
     (void) fca;
     (void) fci;
@@ -240,6 +264,29 @@ struct UVof<M_>::Imp {
                   dlcl_.push_back(cl);
                 }
               }
+            }
+          }
+        }
+      }
+      if (fcus) {
+        // Append triangles on boundaries
+        auto& bc = m.GetIndexCells();
+        using MIdx = typename M::MIdx;
+        for (auto c : m.SuCells()) {
+          MIdx w = bc.GetMIdx(c);
+          if (!(MIdx(1) <= w && w < m.GetGlobalSize() - MIdx(1))) {
+            auto uu = GetStencilPure<1>{}(*fcus, c, m);
+            auto uun = ToNodes<1>(uu);
+            auto nn = GradientNodes<1>(uu);
+            for (auto& n : nn) { n = -n; }
+            std::vector<std::vector<Vect>> vv, vvn;
+            GetMarchTriangles(uun, nn, m.GetCenter(c), h, iso, vv, vvn);
+            for (size_t j = 0; j < vv.size(); ++j) {
+              dl_.push_back(vv[j]);
+              dln_.push_back(vvn[j]);
+              dlc_.push_back(m.GetHash(c));
+              dll_.push_back(-1);
+              dlcl_.push_back(-1);
             }
           }
         }
@@ -307,9 +354,10 @@ void UVof<M_>::DumpPolyMarch(
     const Multi<const FieldCell<Vect>*>& fcn,
     const Multi<const FieldCell<Scal>*>& fca,
     const Multi<const FieldCell<bool>*>& fci,
-    std::string fn, Scal t, Scal th, bool bin, bool merge, Scal iso, M& m) {
+    std::string fn, Scal t, Scal th, bool bin, bool merge, Scal iso, 
+    const FieldCell<Scal>* fcus, M& m) {
   imp->DumpPolyMarch(
-      layers, fcu, fccl, fcn, fca, fci, fn, t, th, bin, merge, iso, m);
+      layers, fcu, fccl, fcn, fca, fci, fn, t, th, bin, merge, iso, fcus, m);
 }
 
 template <class M>

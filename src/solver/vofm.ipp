@@ -283,6 +283,7 @@ struct Vofm<M_>::Imp {
     }
     if (par->dumppolymarch && dm) { 
       auto& fcut = fcclt_;
+      auto& fcust = fcus_.iter_curr;
       if (sem("copy")) {
         for (auto i : layers) {
           fcut[i] = fcu_[i].iter_curr;
@@ -290,13 +291,17 @@ struct Vofm<M_>::Imp {
             BcReflect(fcut[i], mfc_, par->bcc_fill, true, m);
           }
         }
+        if (par->dumppolymarch_fill >= 0) {
+          BcMarchFill(fcust, par->dumppolymarch_fill, m);
+        }
       }
       if (sem.Nested()) {
         uvof_.DumpPolyMarch(
             layers, fcut, fccl_, fcn_, fca_, fci_,
             GetDumpName("sm", ".vtk", par->dmp->GetN()),
             owner_->GetTime() + owner_->GetTimeStep(),
-            par->poly_intth, par->vtkbin, par->vtkmerge, par->vtkiso, m);
+            par->poly_intth, par->vtkbin, par->vtkmerge, par->vtkiso, 
+            par->dumppolymarch_fill >= 0 ? &fcust : nullptr, m);
       }
     }
     if (par->dumppart && dm && sem.Nested("part-dump")) {
@@ -478,6 +483,15 @@ struct Vofm<M_>::Imp {
         size_t nci = cb->GetNci();
         IdxCell c = m.GetNeighbourCell(f, nci);
         uc[c] = (uc[c] > 0.5 ? 1. : 0.);
+      }
+    }
+  }
+  static void BcMarchFill(
+      FieldCell<Scal>& fcu, Scal fill, const M& m) {
+    for (auto c : m.AllCells()) {
+      auto x = m.GetCenter(c);
+      if (!(Vect(0) <= x && x <= m.GetGlobalLength())) {
+        fcu[c] = fill;
       }
     }
   }
@@ -853,7 +867,7 @@ struct Vofm<M_>::Imp {
   Multi<FieldCell<Scal>> fck_; // curvature from height functions
   Multi<FieldCell<bool>> fci_; // interface mask (1: contains interface)
   Multi<FieldCell<Scal>> fccl_;  // color
-  Multi<FieldCell<Scal>> fcclt_;  // tmp color
+  Multi<FieldCell<Scal>> fcclt_, fcclt2_;  // tmp color
   Multi<FieldFace<Scal>> ffvu_;  // flux: volume flux * field
   Multi<FieldFace<Scal>> ffcl_;  // flux color (from upwind cell)
   Multi<FieldFace<bool>> ffi_;   // interface mask (1: upwind cell contains interface)
