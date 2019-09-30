@@ -12,10 +12,12 @@ namespace solver {
 
 template <class M_>
 class FluidSolver : public UnsteadyIterativeSolver {
+ public:
   using M = M_;
   static constexpr size_t dim = M::dim;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  enum class Conv {exp, imp};
 
  protected:
   M& m;
@@ -27,6 +29,7 @@ class FluidSolver : public UnsteadyIterativeSolver {
   FieldCell<Scal>* fcsm_;  // mass source
 
  public:
+
   // fcr: density
   // fcd: dynamic viscosity
   // fcf: force
@@ -54,6 +57,7 @@ class FluidSolver : public UnsteadyIterativeSolver {
     return GetVolumeFlux(Layers::time_curr);
   }
   virtual double GetAutoTimeStep() const { return GetTimeStep(); }
+  virtual const MapFace<std::shared_ptr<CondFace>>& GetVelocityCond() const = 0;
 };
 
 class CondFaceFluid : public CondFace {

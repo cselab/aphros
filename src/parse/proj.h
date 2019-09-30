@@ -7,7 +7,7 @@
 #include "solver/proj.h"
 
 template <class M>
-void Parse(typename solver::Peoj<M>::Par* p, const Vars& var) {
+void Parse(typename solver::Proj<M>::Par* p, const Vars& var) {
   p->prelax = var.Double["prelax"];
   p->vrelax = var.Double["vrelax"];
   p->second = var.Int["second_order"];

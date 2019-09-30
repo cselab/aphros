@@ -16,8 +16,7 @@ class Simple : public FluidSolver<M_> {
   using Vect = typename M::Vect;
   static constexpr size_t dim = M::dim;
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
-
-  enum class Conv {exp, imp};
+  using Conv = typename P::Conv;
 
   struct Par {
     Scal vrelax = 0.8;   // velocity relaxation factor [0,1]
@@ -80,7 +79,7 @@ class Simple : public FluidSolver<M_> {
   // ...
   double GetError() const override;
   // Returns velocity boundary conditions
-  const MapFace<std::shared_ptr<CondFace>>& GetVelocityCond() const;
+  const MapFace<std::shared_ptr<CondFace>>& GetVelocityCond() const override;
 
  private:
   struct Imp;
