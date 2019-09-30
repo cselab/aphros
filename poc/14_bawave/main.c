@@ -1,11 +1,12 @@
 #include ".u/io/io.h"
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
+#include "navier-stokes/conserving.h"
 #include "tension.h"
 #include "reduced.h"
 
 #define DUMPDT (0.025)
-#define TMAX (2.0)
+#define TMAX (2.5)
 #define ak  (0.55)
 #define h_   (0.5)
 #define k_  (2.*pi)
@@ -15,7 +16,7 @@ static double wave(double, double);
 static double phi(double, double);
 
 int main() {
-  init_grid(64);
+  init_grid(128);
   origin (0.,0.,0.);
   periodic(right);
 
