@@ -1471,6 +1471,21 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       CalcSurfaceTension(fc_vf0, af);
     }
 
+    // vortex force
+    Scal force_vort = var.Double["force_vort_g"];
+    if (force_vort != 0) {
+      Scal r = var.Double["force_vort_r"];
+      Vect xc(var.Vect["force_vort_c"]);
+      for (auto c : m.Cells()) {
+        Vect x = m.GetCenter(c);
+        Vect dx = x - xc;
+        Scal q = std::exp(-dx.sqrnorm() / sqr(r)) * force_vort;
+        Scal fx = -dx[1];
+        Scal fy = dx[0];
+        fc_force_[c] = Vect(fx, fy, 0.) * q * fc_rho_[c];
+      }
+    }
+
     // normal velocity penalization
     Scal force_vel_k = var.Double["force_vel_k"];
     if (force_vel_k != 0 && as_) {
