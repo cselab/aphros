@@ -282,13 +282,17 @@ struct Vofm<M_>::Imp {
           par->poly_intth, par->vtkbin, par->vtkmerge, m);
     }
     if (par->dumppolymarch && dm) { 
-      auto& fcut = fcclt_;
-      auto& fcust = fcus_.iter_curr;
+      auto& fcut = fcclt_; // tmp volume fraction
+      auto& fcust = fcfm_; // tmp total volume
+      auto& fcclt = fcclt2_;  // tmp color;
       if (sem("copy")) {
+        fcust = fcus_.iter_curr;
+        fcclt = fccl_;
         for (auto i : layers) {
           fcut[i] = fcu_[i].iter_curr;
           if (par->bcc_reflectpoly) {
             BcReflect(fcut[i], mfc_, par->bcc_fill, true, m);
+            BcReflect(fcclt[i], mfc_, -3., true, m);
           }
         }
         if (par->dumppolymarch_fill >= 0) {
@@ -297,7 +301,7 @@ struct Vofm<M_>::Imp {
       }
       if (sem.Nested()) {
         uvof_.DumpPolyMarch(
-            layers, fcut, fccl_, fcn_, fca_, fci_,
+            layers, fcut, fcclt, fcn_, fca_, fci_,
             GetDumpName("sm", ".vtk", par->dmp->GetN()),
             owner_->GetTime() + owner_->GetTimeStep(),
             par->poly_intth, par->vtkbin, par->vtkmerge, par->vtkiso, 
