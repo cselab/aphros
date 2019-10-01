@@ -370,14 +370,14 @@ struct Proj<M_>::Imp {
   }
   // Apply cell conditions for pressure.
   // fcpb: base pressure [i]
-  // fcs: linear system in terms of correction of base pressure [i]
+  // fcs: linear system for pressure [i]
   void ApplyPcCond(const FieldCell<Scal>& fcpb, FieldCell<Expr>& fcs) {
     for (auto it : mccp_) {
       IdxCell c(it.GetIdx()); // target cell
       CondCell* cb = it.GetValue().get(); // cond base
       if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
         auto& e = fcs[c];
-        Scal pc = cd->GetValue() - fcpb[c];  // new value for p[c]
+        Scal pc = cd->GetValue();  // new value for p[c]
         e = Expr(0);
         // override target cell
         e[0] = 1.;
@@ -441,16 +441,23 @@ struct Proj<M_>::Imp {
   }
   // Solve linear system fce = 0
   // fce: expressions [i]
+  // fcm: initial guess
   // Output:
   // fc: result [a]
   // m.GetSolveTmp(): modified temporary fields
-  void Solve(const FieldCell<Expr>& fce, FieldCell<Scal>& fc) {
+  void Solve(const FieldCell<Expr>& fce, const FieldCell<Scal>& fcm, 
+             FieldCell<Scal>& fc) {
     auto sem = m.GetSem("solve");
     if (sem("solve")) {
       std::vector<Scal>* lsa;
       std::vector<Scal>* lsb;
       std::vector<Scal>* lsx;
       m.GetSolveTmp(lsa, lsb, lsx);
+      lsx->resize(m.GetInBlockCells().size());
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        (*lsx)[i++] = fcm[c];
+      }
       auto l = ConvertLsCompact(fce, *lsa, *lsb, *lsx, m);
       using T = typename M::LS::T; 
       l.t = T::symm; // solver type
@@ -581,11 +588,7 @@ struct Proj<M_>::Imp {
         ffve_[f] = fftv[f].dot(m.GetSurface(f));
         ffv_.iter_curr[f] = ffve_[f];
         if (!ffbd_[f]) {  // inner
-          IdxCell cm = m.GetNeighbourCell(f, 0);
-          IdxCell cp = m.GetNeighbourCell(f, 1);
-          Scal hr = m.GetArea(f) / m.GetVolume(cp);
-          Scal gp = (fcp_curr[cp] - fcp_curr[cm]) * hr;
-          ffv_.iter_curr[f] += (ffbp[f] - gp) * m.GetArea(f) / ffk_[f];
+          ffv_.iter_curr[f] += ffbp[f] * m.GetArea(f) / ffk_[f];
         } else { // boundary
           // nop, keep the mean flux
         }
@@ -598,14 +601,12 @@ struct Proj<M_>::Imp {
     }
 
     if (sem.Nested("pcorr-solve")) {
-      Solve(fcpcs_, fcpc_);
+      Solve(fcpcs_, fcp_curr, fcpc_);
     }
 
     if (sem("pcorr-apply")) {
-      // correct pressure
-      for (auto c : m.AllCells()) {
-        fcp_curr[c] += fcpc_[c];
-      }
+      // set pressure
+      fcp_curr = fcpc_;
 
       for (auto f : m.Faces()) {
         IdxCell cm = m.GetNeighbourCell(f, 0);
@@ -616,11 +617,21 @@ struct Proj<M_>::Imp {
 
       // Acceleration and correction to center velocity
       fcwc_.Reinit(m);
+      auto& ffbp = *owner_->ffbp_;
       for (auto c : m.Cells()) {
         Vect s(0);
         for (auto q : m.Nci(c)) {
           IdxFace f = m.GetNeighbourFace(c, q);
-          s += m.GetNormal(f) * (ffv_.iter_curr[f] - ffve_[f]) / m.GetArea(f) * 0.5;
+          if (!ffbd_[f]) {  // inner
+            IdxCell cm = m.GetNeighbourCell(f, 0);
+            IdxCell cp = m.GetNeighbourCell(f, 1);
+            Scal hr = m.GetArea(f) / m.GetVolume(cp);
+            Scal gp = (fcp_curr[cp] - fcp_curr[cm]) * hr;
+            Scal a = (ffbp[f] - gp) / ffk_[f];
+            s += m.GetNormal(f) * a * 0.5;
+          } else {
+            // nop, no accelaration
+          }
         }
         fcwc_[c] = s;
       }
