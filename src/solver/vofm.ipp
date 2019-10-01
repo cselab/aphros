@@ -422,7 +422,7 @@ struct Vofm<M_>::Imp {
     }
     if (par->bcc_reflect && sem("reflect")) {
       for (auto i : layers) {
-        BcReflect(fccl_[i], mfc_, 0., false, m);
+        BcReflect(fccl_[i], mfc_, kClNone, false, m);
       }
     }
   }
