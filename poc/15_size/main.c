@@ -1,8 +1,37 @@
+#include <tgmath.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 enum {N = 1024};
+
+struct Mesh {
+    int nt, nv;
+    float *r, *c;
+    int *t;
+};
+
+static float
+sq(float x)
+{
+    return x*x;
+}
+
+static float
+tri_area(float *a, float *b, float *c)
+{
+    enum {X, Y, Z};
+    float bx, by, bz, cx, cy, cz, A;
+
+    bx = b[X] - a[X];
+    by = b[Y] - a[Y];
+    bz = b[Z] - a[Z];
+    cx = c[X] - a[X];
+    cy = c[Y] - a[Y];
+    cz = c[Z] - a[Z];    
+    A = sq(by*cz-bz*cy) + sq(bz*cx-bx*cz) + sq(bx*cy-by*cx);
+    return sqrt(A)/2;
+}
 
 static int
 swap(int n, int size, void *p0) {
@@ -39,6 +68,35 @@ line(char *s, FILE *f)
     return 0;
 }
 
+static int
+get1(float *r, int i, /**/ float *a)
+{
+    enum {X, Y, Z};
+    a[X] = r[3*i + X]; a[Y] = r[3*i + Y]; a[Z] = r[3*i + Z];
+}
+
+static int
+get3(struct Mesh *mesh, int t, /**/ float *a, float *b, float *c)
+{
+    int nt, *tri, i, j, k;
+    float *r;
+    nt = mesh->nt;
+    tri = mesh->t;
+    r = mesh->r;
+    if (i > nt) {
+	fprintf(stderr, "%s:%d: t=%d > nt=%d\n", __FILE__, __LINE__, t, nt);
+	exit(1);
+    }
+    
+    i = tri[3*t];
+    j = tri[3*t + 1];
+    k = tri[3*t + 2];
+    get1(r, i, a);
+    get1(r, j, b);
+    get1(r, k, c);
+    return 0;
+}
+
 int
 main()
 {
@@ -48,6 +106,8 @@ main()
     float *r, *c;
     int *t, *a, *b;
     int i;
+    struct Mesh mesh;
+    float u[3], v[3], w[3];
 
     if (line(s, f) != 0) {
 	fprintf(stderr, "%s:%d: failt to read\n", __FILE__, __LINE__);
@@ -111,8 +171,6 @@ main()
 	*a++ = *b++;
     }
     swap(3*nt, sizeof(*t), t);
-    fprintf(stderr, "%d %d %d\n", t[0], t[1], t[2]);
-    fprintf(stderr, "%d %d %d\n", t[3*nt-3], t[3*nt-2], t[3*nt-1]);
     while (line(s, f) == 0 && s[0] == '\0') ;
     if (sscanf(s, "CELL_DATA %*d") != 0) {
 	fprintf(stderr, "%s:%d: expect CELL_DATA, got '%s'\n", __FILE__, __LINE__, s);
@@ -121,13 +179,13 @@ main()
     line(s, f);
     if (!eq(s, "SCALARS c float")) {
 	fprintf(stderr, "%s:%d: expect SCALARS c, got '%s'\n", __FILE__, __LINE__, s);
-	exit(2);	
+	exit(2);
     }
     line(s, f);
     if (!eq(s, "LOOKUP_TABLE default")) {
 	fprintf(stderr, "%s:%d: expect LOOKUP_TABLE, got '%s'\n", __FILE__, __LINE__, s);
-	exit(2);	
-    }    
+	exit(2);
+    }
     c = malloc(nt*sizeof(*c));
     if (c == NULL) {
 	fprintf(stderr, "%s:%d: failt to alloc, nt = %d\n", __FILE__, __LINE__, nt);
@@ -138,8 +196,18 @@ main()
 	exit(2);
     }
     swap(nt, sizeof(*c), c);
-    for (i = 0; i < nt; i++)
-	fprintf(stdout, "%f\n", c[i]);
+
+    mesh.r = r;
+    mesh.t = t;
+    mesh.c = c;
+    mesh.nt = nt;
+    mesh.nv = nv;
+
+    for (i = 0; i < nt; i++) {
+	get3(&mesh, i, u, v, w);
+	printf("%d %.16g\n", (int)c[i], tri_area(u, v, w));
+    }
+
     free(t);
     free(r);
     free(c);

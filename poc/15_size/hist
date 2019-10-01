@@ -1,0 +1,12 @@
+#!/usr/bin/awk -f
+
+{
+    s[$1] += $2
+    n[$1] ++
+}
+
+END {
+    for (k in s) {
+        print sqrt(s[k]) | "gsl-histogram 0 0.045 40"
+    }
+}

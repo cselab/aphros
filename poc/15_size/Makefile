@@ -1,7 +1,7 @@
 .POSIX:
 LINK = $(CC)
 CFLAGS = -g -Og
-M_LDFLAGS =
+M_LDFLAGS = -lm
 
 M = main
 O = main.o
