@@ -16,3 +16,4 @@ for d in $l ; do
   e "(cd $d && ./conf && make install)"
 done
 
+(cd vtkcolor && make install PRE=$PRE)

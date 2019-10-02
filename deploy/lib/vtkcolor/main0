@@ -1,0 +1,6 @@
+#!/bin/sh
+
+for i
+do
+./main < "$i" | ./rad
+done | awk '{print $1, $2}' | ./hist
