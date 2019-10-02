@@ -69,21 +69,44 @@ line(char *s, FILE *f)
 }
 
 static int
+scalar(FILE *f, int n, char *name, float *c)
+{
+    char s[N];
+    line(s, f);
+    if (sscanf(s, "SCALARS %s float", name) != 1) {
+	fprintf(stderr, "%s:%d: expect SCALARS, got '%s'\n", __FILE__, __LINE__, s);
+	exit(2);
+    }
+
+    line(s, f);
+    if (!eq(s, "LOOKUP_TABLE default")) {
+	fprintf(stderr, "%s:%d: expect LOOKUP_TABLE, got '%s'\n", __FILE__, __LINE__, s);
+	exit(2);
+    }
+    if (fread(c, sizeof(*c), n, f) != n) {
+	fprintf(stderr, "%s:%d: failt to read, n = %d\n", __FILE__, __LINE__, n);
+	exit(2);
+    }
+    return 0;
+}
+
+static int
 get1(float *r, int i, /**/ float *a)
 {
     enum {X, Y, Z};
     a[X] = r[3*i + X]; a[Y] = r[3*i + Y]; a[Z] = r[3*i + Z];
+    return 0;
 }
 
 static int
 get3(struct Mesh *mesh, int t, /**/ float *a, float *b, float *c)
 {
-    int nt, *tri, i, j, k;
+  int nt, *tri, i, j, k;
     float *r;
     nt = mesh->nt;
     tri = mesh->t;
     r = mesh->r;
-    if (i > nt) {
+    if (t > nt) {
 	fprintf(stderr, "%s:%d: t=%d > nt=%d\n", __FILE__, __LINE__, t, nt);
 	exit(1);
     }
@@ -101,8 +124,8 @@ int
 main()
 {
     FILE *f = stdin;
-    char s[N];
-    int nv, nt, nt0;
+    char s[N], name[N];
+    int nv, nt;
     float *r, *c;
     int *t, *a, *b;
     int i;
@@ -147,9 +170,6 @@ main()
 	exit(2);
     }
     swap(3*nv, sizeof(*r), r);
-    //fprintf(stderr, "%g %g %g\n", r[0], r[1], r[2]);
-    //fprintf(stderr, "%g %g %g\n", r[3*nv-3], r[3*nv-2], r[3*nv-1]);
-
     while (line(s, f) == 0 && s[0] == '\0') ;
     if (sscanf(s, "POLYGONS %d %*d", &nt) != 1) {
 	fprintf(stderr, "%s:%d: expect POLYGONS, got '%s'\n", __FILE__, __LINE__, s);
@@ -176,24 +196,10 @@ main()
 	fprintf(stderr, "%s:%d: expect CELL_DATA, got '%s'\n", __FILE__, __LINE__, s);
 	exit(2);
     }
-    line(s, f);
-    if (!eq(s, "SCALARS c float")) {
-	fprintf(stderr, "%s:%d: expect SCALARS c, got '%s'\n", __FILE__, __LINE__, s);
-	exit(2);
-    }
-    line(s, f);
-    if (!eq(s, "LOOKUP_TABLE default")) {
-	fprintf(stderr, "%s:%d: expect LOOKUP_TABLE, got '%s'\n", __FILE__, __LINE__, s);
-	exit(2);
-    }
     c = malloc(nt*sizeof(*c));
-    if (c == NULL) {
-	fprintf(stderr, "%s:%d: failt to alloc, nt = %d\n", __FILE__, __LINE__, nt);
-	exit(2);
-    }
-    if (fread(c, sizeof(*c), nt, f) != nt) {
-	fprintf(stderr, "%s:%d: failt to read, nt = %d\n", __FILE__, __LINE__, nt);
-	exit(2);
+    for (;;) {
+      scalar(f, nt, name, c);
+      if (eq(name, "cl")) break;
     }
     swap(nt, sizeof(*c), c);
 
@@ -205,7 +211,7 @@ main()
 
     for (i = 0; i < nt; i++) {
 	get3(&mesh, i, u, v, w);
-	printf("%d %.16g\n", (int)c[i], tri_area(u, v, w));
+	printf("%ld %.16g\n", (long)c[i], tri_area(u, v, w));
     }
 
     free(t);

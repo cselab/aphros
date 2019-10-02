@@ -7,6 +7,6 @@
 
 END {
     for (k in s) {
-        print sqrt(s[k]) | "gsl-histogram 0 0.045 40"
+        print sqrt(s[k]) | "gsl-histogram 0 0.2 20 | awk '{print $1, $3}'"
     }
 }
