@@ -70,7 +70,7 @@ tri_dot(float *a,  float *b, float *c, double x, double y, double z)
 
     x -= (bx + cx)/3;
     y -= (by + cy)/3;
-    z -= (bz + cz)/3;    
+    z -= (bz + cz)/3;
 
     n = sqrt(nx*nx + ny*ny + nz*nz);
     d = nx*x + ny*y + nz*z;
@@ -147,46 +147,6 @@ get3(struct Mesh *mesh, int t, /**/ float *a, float *b, float *c)
     return 0;
 }
 
-static float
-tri_volume(float *a, float *b, float *c)
-{
-    enum {X, Y, Z};
-    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
-
-    ax = a[X];
-    ay = a[Y];
-    az = a[Z];
-    bx = b[X];
-    by = b[Y];
-    bz = b[Z];
-    cx = c[X];
-    cy = c[Y];
-    cz = c[Z];
-
-    V = (ax*by-ay*bx)*cz+(az*bx-ax*bz)*cy+(ay*bz-az*by)*cx;
-    return V/6;
-}
-
-static float
-tri_volume_y(float *a, float *b, float *c)
-{
-    enum {X, Y, Z};
-    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
-
-    ax = a[X];
-    ay = a[Y];
-    az = a[Z];
-    bx = b[X];
-    by = b[Y];
-    bz = b[Z];
-    cx = c[X];
-    cy = c[Y];
-    cz = c[Z];
-
-    V = (cy+by+ay)*((bz-az)*(cx-ax)-(bx-ax)*(cz-az));
-    return V/6;
-}
-
 static int *u_root;
 static int
 max_arg(int n, int *a)
@@ -257,7 +217,7 @@ main()
     char s[N], name[N];
     int nv, nt, nb, u, v, w;
     float *r, *nn;
-    double *volume, *cx, *cy, *cz, *dot;
+    double *cx, *cy, *cz, *dot;
     int *t, *t0, *a, *b, *id, *c, *cnt;
     int i, j, k;
     float x[3], y[3], z[3], *cl;
@@ -383,20 +343,12 @@ main()
     mesh.t = t;
     mesh.nt = nt;
     mesh.nv = nv;
-    MALLOC(nb, &volume);
     MALLOC(nb, &cx);
     MALLOC(nb, &cy);
     MALLOC(nb, &cz);
     MALLOC(nb, &dot);
     for (i = 0; i < nb; i++)
-	volume[i] = 0;
-    for (i = 0; i < nb; i++)
 	cx[i] = cy[i] = cz[i] = dot[i] = 0;
-    for (i = 0; i < nt; i++) {
-	k = c[i];
-	get3(&mesh, i, x, y, z);
-	volume[k] += tri_volume(x, y, z);
-    }
     for (i = 0; i < nt; i++) {
 	k = c[i];
 	get3(&mesh, i, x, y, z);
@@ -418,9 +370,6 @@ main()
 	if (k != 0 && dot[k] > 0)
 	    c[i] = 0;
     }
-//    for (i = 0; i < nb; i++) {
-//	fprintf(stderr, "%g %g\n", dot[i], volume[i]);
-//    }
 
     for (i = 0; i < nt; i++)
 	if (cl[i] < 0)
@@ -457,5 +406,4 @@ main()
     free(r);
     free(t);
     free(t0);
-    free(volume);
 }
