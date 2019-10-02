@@ -5,10 +5,10 @@ set -eu
 for i
 do
   b=`basename "$i"`
-  echo "$i"
   if [ -f "$b" ] ; then
     echo >&2 "skip existing '$b'"
     continue
   fi
+  echo "$i"
   ch.vtkcolor < "$i" > "$b"
 done
