@@ -21,14 +21,6 @@ struct Mesh {
 };
 
 static int
-big(double x, double y, double z)
-{
-    double n;
-    n = fabs(x) + fabs(y) + fabs(z);
-    return n > 1e-10;
-}
-
-static int
 eq(const char *a, const char *b)
 {
     return strncmp(a, b, N) == 0;
@@ -44,6 +36,48 @@ line(char *s, FILE *f)
     if (n > 0 && s[n - 1] == '\n')
 	s[n - 1] = '\0';
     return 0;
+}
+
+static int
+tri_center(float *a, float *b, float *c, /**/ double *x, double *y, double *z)
+{
+    enum {X, Y, Z};
+    *x += (a[X] + b[X] + c[X])/3;
+    *y += (a[Y] + b[Y] + c[Y])/3;
+    *z += (a[Z] + b[Z] + c[Z])/3;
+    return 0;
+}
+
+static double
+tri_dot(float *a,  float *b, float *c, double x, double y, double z)
+{
+    enum {X, Y, Z};
+    double bx, by, bz, cx, cy, cz, nx, ny, nz, n, d, A;
+
+    x -= a[X];
+    y -= a[Y];
+    z -= a[Z];
+    bx = b[X] - a[X];
+    by = b[Y] - a[Y];
+    bz = b[Z] - a[Z];
+    cx = c[X] - a[X];
+    cy = c[Y] - a[Y];
+    cz = c[Z] - a[Z];
+
+    nx = by*cz-bz*cy;
+    ny = bz*cx-bx*cz;
+    nz = bx*cy-by*cx;
+
+    x -= (bx + cx)/3;
+    y -= (by + cy)/3;
+    z -= (bz + cz)/3;    
+
+    n = sqrt(nx*nx + ny*ny + nz*nz);
+    d = nx*x + ny*y + nz*z;
+    if (n == 0)
+	return 0;
+    else
+	return d/n;
 }
 
 static int
@@ -131,25 +165,6 @@ tri_volume(float *a, float *b, float *c)
 
     V = (ax*by-ay*bx)*cz+(az*bx-ax*bz)*cy+(ay*bz-az*by)*cx;
     return V/6;
-}
-
-static int
-tri_flux(float *a, float *b, float *c, /**/ double *x, double *y, double *z)
-{
-    enum {X, Y, Z};
-    double bx, by, bz, cx, cy, cz;
-
-    bx = b[X] - a[X];
-    by = b[Y] - a[Y];
-    bz = b[Z] - a[Z];
-    cx = c[X] - a[X];
-    cy = c[Y] - a[Y];
-    cz = c[Z] - a[Z];
-
-    *x += by*cz-bz*cy;
-    *y += bz*cx-bx*cz;
-    *z += bx*cy-by*cx;
-    return 0;
 }
 
 static float
@@ -242,7 +257,7 @@ main()
     char s[N], name[N];
     int nv, nt, nb, u, v, w;
     float *r, *nn;
-    double *volume, *fx, *fy, *fz;
+    double *volume, *cx, *cy, *cz, *dot;
     int *t, *t0, *a, *b, *id, *c, *cnt;
     int i, j, k;
     float x[3], y[3], z[3], *cl;
@@ -369,35 +384,43 @@ main()
     mesh.nt = nt;
     mesh.nv = nv;
     MALLOC(nb, &volume);
-    MALLOC(nv, &fx);
-    MALLOC(nv, &fy);
-    MALLOC(nv, &fz);
+    MALLOC(nb, &cx);
+    MALLOC(nb, &cy);
+    MALLOC(nb, &cz);
+    MALLOC(nb, &dot);
     for (i = 0; i < nb; i++)
 	volume[i] = 0;
     for (i = 0; i < nb; i++)
-	fx[i] = fy[i] = fz[i] = 0;
-	
+	cx[i] = cy[i] = cz[i] = dot[i] = 0;
     for (i = 0; i < nt; i++) {
 	k = c[i];
 	get3(&mesh, i, x, y, z);
 	volume[k] += tri_volume(x, y, z);
     }
-
     for (i = 0; i < nt; i++) {
 	k = c[i];
 	get3(&mesh, i, x, y, z);
-	tri_flux(x, y, z, &fx[k], &fy[k], &fz[k]);
+	tri_center(x, y, z, &cx[k], &cy[k], &cz[k]);
     }
-
-    for (i = 0; i < nb; i++)
-	if (big(fx[i], fy[i], fz[i]))
-	    volume[i] = -volume[i];
-    
+    for (i = 0; i < nb; i++) {
+	cx[i] /= cnt[i];
+	cy[i] /= cnt[i];
+	cz[i] /= cnt[i];
+    }
     for (i = 0; i < nt; i++) {
 	k = c[i];
-	if (k != 0 && volume[k] < 0)
+	get3(&mesh, i, x, y, z);
+	dot[k] += tri_dot(x, y, z, cx[k], cy[k], cz[k]);
+    }
+
+    for (i = 0; i < nt; i++) {
+	k = c[i];
+	if (k != 0 && dot[k] > 0)
 	    c[i] = 0;
     }
+//    for (i = 0; i < nb; i++) {
+//	fprintf(stderr, "%g %g\n", dot[i], volume[i]);
+//    }
 
     for (i = 0; i < nt; i++)
 	if (cl[i] < 0)
@@ -426,9 +449,10 @@ main()
     free(cl);
     free(cnt);
     free(id);
-    free(fx);
-    free(fy);
-    free(fz);    
+    free(cx);
+    free(cy);
+    free(cz);
+    free(dot);
     free(nn);
     free(r);
     free(t);
