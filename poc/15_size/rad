@@ -1,0 +1,14 @@
+#!/usr/bin/awk -f
+BEGIN {
+    pi = 3.141592653589793
+}
+
+{
+    s[$1] += $2
+    n[$1] ++
+}
+
+END {
+    for (k in s)
+        print sqrt(s[k]/pi)/2
+}
