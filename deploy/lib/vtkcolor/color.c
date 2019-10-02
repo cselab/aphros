@@ -21,6 +21,14 @@ struct Mesh {
 };
 
 static int
+big(double x, double y, double z)
+{
+    double n;
+    n = fabs(x) + fabs(y) + fabs(z);
+    return n > 1e-10;
+}
+
+static int
 eq(const char *a, const char *b)
 {
     return strncmp(a, b, N) == 0;
@@ -47,7 +55,6 @@ scalar(FILE *f, int n, char *name, float *c)
 	fprintf(stderr, "%s:%d: expect SCALARS, got '%s'\n", __FILE__, __LINE__, s);
 	exit(2);
     }
-
     line(s, f);
     if (!eq(s, "LOOKUP_TABLE default")) {
 	fprintf(stderr, "%s:%d: expect LOOKUP_TABLE, got '%s'\n", __FILE__, __LINE__, s);
@@ -127,6 +134,74 @@ tri_volume(float *a, float *b, float *c)
     return V/6;
 }
 
+static float
+tri_flux_x(float *a, float *b, float *c)
+{
+    enum {X, Y, Z};
+    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
+
+    bx = b[X] - a[X];
+    by = b[Y] - a[Y];
+    bz = b[Z] - a[Z];
+    cx = c[X] - a[X];
+    cy = c[Y] - a[Y];
+    cz = c[Z] - a[Z];
+
+    return by*cz-bz*cy;
+}
+
+static float
+tri_flux_y(float *a, float *b, float *c)
+{
+    enum {X, Y, Z};
+    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
+
+    bx = b[X] - a[X];
+    by = b[Y] - a[Y];
+    bz = b[Z] - a[Z];
+    cx = c[X] - a[X];
+    cy = c[Y] - a[Y];
+    cz = c[Z] - a[Z];
+
+    return (bz*cx-bx*cz);
+}
+
+static float
+tri_volume_y(float *a, float *b, float *c)
+{
+    enum {X, Y, Z};
+    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
+
+    ax = a[X];
+    ay = a[Y];
+    az = a[Z];
+    bx = b[X];
+    by = b[Y];
+    bz = b[Z];
+    cx = c[X];
+    cy = c[Y];
+    cz = c[Z];
+
+    V = ((cy+by+ay)*((bz-az)*(cx-ax)-(bx-ax)*(cz-az)));
+    return V/6;
+}
+
+static float
+tri_flux_z(float *a, float *b, float *c)
+{
+    enum {X, Y, Z};
+    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
+
+    bx = b[X] - a[X];
+    by = b[Y] - a[Y];
+    bz = b[Z] - a[Z];
+    cx = c[X] - a[X];
+    cy = c[Y] - a[Y];
+    cz = c[Z] - a[Z];
+
+    return bx*cy-by*cx;
+}
+
 static int *u_root;
 static int
 max_arg(int n, int *a)
@@ -197,7 +272,7 @@ main()
     char s[N], name[N];
     int nv, nt, nb, u, v, w;
     float *r, *nn;
-    double *volume;
+    double *volume, *fx, *fy, *fz;
     int *t, *t0, *a, *b, *id, *c, *cnt;
     int i, j, k;
     float x[3], y[3], z[3], *cl;
@@ -324,14 +399,35 @@ main()
     mesh.nt = nt;
     mesh.nv = nv;
     MALLOC(nb, &volume);
+    MALLOC(nv, &fx);
+    MALLOC(nv, &fy);
+    MALLOC(nv, &fz);
     for (i = 0; i < nb; i++)
 	volume[i] = 0;
+    for (i = 0; i < nb; i++)
+	fx[i] = fy[i] = fz[i] = 0;
+	
     for (i = 0; i < nt; i++) {
 	k = c[i];
 	get3(&mesh, i, x, y, z);
 	volume[k] += tri_volume(x, y, z);
     }
 
+    for (i = 0; i < nt; i++) {
+	k = c[i];
+	get3(&mesh, i, x, y, z);
+	fx[k] += tri_flux_x(x, y, z);
+	fy[k] += tri_flux_y(x, y, z);
+	fz[k] += tri_flux_z(x, y, z);	
+    }
+
+    for (i = 0; i < nb; i++) {
+	if (big(fx[i], fy[i], fz[i])) {
+	    volume[i] = -volume[i];
+	    fprintf(stderr, "volume[i] = %g\n", volume[i]);
+	}
+    }
+    
     for (i = 0; i < nt; i++) {
 	k = c[i];
 	if (k != 0 && volume[k] < 0)
@@ -365,6 +461,9 @@ main()
     free(cl);
     free(cnt);
     free(id);
+    free(fx);
+    free(fy);
+    free(fz);    
     free(nn);
     free(r);
     free(t);
