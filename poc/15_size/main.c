@@ -21,16 +21,36 @@ static float
 tri_area(float *a, float *b, float *c)
 {
     enum {X, Y, Z};
-    float bx, by, bz, cx, cy, cz, A;
+    double bx, by, bz, cx, cy, cz, A;
 
     bx = b[X] - a[X];
     by = b[Y] - a[Y];
     bz = b[Z] - a[Z];
     cx = c[X] - a[X];
     cy = c[Y] - a[Y];
-    cz = c[Z] - a[Z];    
+    cz = c[Z] - a[Z];
     A = sq(by*cz-bz*cy) + sq(bz*cx-bx*cz) + sq(bx*cy-by*cx);
     return sqrt(A)/2;
+}
+
+static float
+tri_volume(float *a, float *b, float *c)
+{
+    enum {X, Y, Z};
+    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
+
+    ax = a[X];
+    ay = a[Y];
+    az = a[Z];
+    bx = b[X];
+    by = b[Y];
+    bz = b[Z];
+    cx = c[X];
+    cy = c[Y];
+    cz = c[Z];
+
+    V = (ax*by-ay*bx)*cz+(az*bx-ax*bz)*cy+(ay*bz-az*by)*cx;
+    return V/6;
 }
 
 static int
@@ -110,7 +130,7 @@ get3(struct Mesh *mesh, int t, /**/ float *a, float *b, float *c)
 	fprintf(stderr, "%s:%d: t=%d > nt=%d\n", __FILE__, __LINE__, t, nt);
 	exit(1);
     }
-    
+
     i = tri[3*t];
     j = tri[3*t + 1];
     k = tri[3*t + 2];
@@ -211,7 +231,8 @@ main()
 
     for (i = 0; i < nt; i++) {
 	get3(&mesh, i, u, v, w);
-	printf("%ld %.16g\n", (long)c[i], tri_area(u, v, w));
+	printf("%ld %.16g %.16g\n",
+	       (long)c[i], tri_area(u, v, w), tri_volume(u, v, w));
     }
 
     free(t);
