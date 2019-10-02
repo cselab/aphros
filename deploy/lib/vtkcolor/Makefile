@@ -13,6 +13,11 @@ all: $M
 %: %.c
 .SUFFIXES: .o .c
 
+install: all
+	cp -v color ${CHPREFIX}/bin/$(PRE)vtkcolor
+
+
+
 lint:; make CFLAGS='-Wall -Wextra -g -O2'
 .PHONY: clean lint
 clean:; rm -f -- $M $O
