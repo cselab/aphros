@@ -52,7 +52,7 @@ static double
 tri_dot(float *a,  float *b, float *c, double x, double y, double z)
 {
     enum {X, Y, Z};
-    double bx, by, bz, cx, cy, cz, nx, ny, nz, n, d, A;
+    double bx, by, bz, cx, cy, cz, nx, ny, nz;
 
     x -= a[X];
     y -= a[Y];
@@ -72,12 +72,7 @@ tri_dot(float *a,  float *b, float *c, double x, double y, double z)
     y -= (by + cy)/3;
     z -= (bz + cz)/3;
 
-    n = sqrt(nx*nx + ny*ny + nz*nz);
-    d = nx*x + ny*y + nz*z;
-    if (n == 0)
-	return 0;
-    else
-	return d/n;
+    return nx*x + ny*y + nz*z;
 }
 
 static int
