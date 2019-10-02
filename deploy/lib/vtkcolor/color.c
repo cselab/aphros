@@ -7,11 +7,11 @@ enum {N = 1024};
 
 #define MALLOC(n, p)							\
     do {								\
-    *(p) = malloc(n*sizeof(**(p)));					\
-    if (*(p) == NULL) {							\
-	fprintf(stderr, "%s:%d: alloc failed, n = %d\n", __FILE__, __LINE__, n); \
-	exit(2);							\
-    }									\
+	*(p) = malloc(n*sizeof(**(p)));					\
+	if (*(p) == NULL) {						\
+	    fprintf(stderr, "%s:%d: alloc failed, n = %d\n", __FILE__, __LINE__, n); \
+	    exit(2);							\
+	}								\
     } while(0)
 
 struct Mesh {
@@ -61,6 +61,23 @@ scalar(FILE *f, int n, char *name, float *c)
 }
 
 static int
+vector(FILE *f, int n, char *name, float *c)
+{
+    char s[N];
+    int n0;
+    line(s, f);
+    if (sscanf(s, "VECTORS %s float", name) != 1) {
+	fprintf(stderr, "%s:%d: expect VECTOR, got '%s'\n", __FILE__, __LINE__, s);
+	exit(2);
+    }
+    if ((int)fread(c, sizeof(*c), 3*n, f) != 3*n) {
+	fprintf(stderr, "%s:%d: failt to read, n = %d\n", __FILE__, __LINE__, n);
+	exit(2);
+    }
+    return 0;
+}
+
+static int
 get1(float *r, int i, /**/ float *a)
 {
     enum {X, Y, Z};
@@ -71,7 +88,7 @@ get1(float *r, int i, /**/ float *a)
 static int
 get3(struct Mesh *mesh, int t, /**/ float *a, float *b, float *c)
 {
-  int nt, *tri, i, j, k;
+    int nt, *tri, i, j, k;
     float *r;
     nt = mesh->nt;
     tri = mesh->t;
@@ -179,7 +196,7 @@ main()
     FILE *f;
     char s[N], name[N];
     int nv, nt, nb, u, v, w;
-    float *r;
+    float *r, *nn;
     double *volume;
     int *t, *t0, *a, *b, *id, *c, *cnt;
     int i, j, k;
@@ -245,6 +262,25 @@ main()
 	fprintf(stderr, "%s:%d: expect CELL_DATA, got '%s'\n", __FILE__, __LINE__, s);
 	exit(2);
     }
+    MALLOC(nt, &cl);
+    MALLOC(nt, &c);
+    for (;;) {
+	scalar(f, nt, name, cl);
+	if (eq(name, "cl")) break;
+    }
+    swap(nt, sizeof(*cl), cl);
+
+    while (line(s, f) == 0 && s[0] == '\0') ;
+    if (sscanf(s, "POINT_DATA %*d") != 0) {
+	fprintf(stderr, "%s:%d: expect POINT_DATA, got '%s'\n", __FILE__, __LINE__, s);
+	exit(2);
+    }
+    MALLOC(3*nv, &nn);
+    for (;;) {
+	vector(f, nv, name, nn);
+	if (eq(name, "nn")) break;
+    }
+
     u_ini(nv);
     for (i = 0 ; i < nt; i++) {
 	u = t[3*i];
@@ -254,13 +290,6 @@ main()
 	u_union(v, w);
 	u_union(u, w);
     }
-    MALLOC(nt, &cl);
-    MALLOC(nt, &c);
-    for (;;) {
-      scalar(f, nt, name, cl);
-      if (eq(name, "cl")) break;
-    }
-    swap(nt, sizeof(*cl), cl);
     MALLOC(nt, &id);
     for (i = 0; i < nt; i++) {
 	u = t[3*i];
@@ -327,12 +356,16 @@ main()
 	   "LOOKUP_TABLE default\n", nt);
     swap(nt, sizeof(*c), c);
     fwrite(c, sizeof(*c), nt, stdout);
+    printf("POINT_DATA %d\n"
+	   "VECTORS nn float\n", nv);
+    fwrite(nn, sizeof(*nn), 3*nv, stdout);
 
     u_fin();
     free(c);
     free(cl);
     free(cnt);
     free(id);
+    free(nn);
     free(r);
     free(t);
     free(t0);
