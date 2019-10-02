@@ -5,6 +5,15 @@
 
 enum {N = 1024};
 
+#define MALLOC(n, p)							\
+    do {								\
+    *(p) = malloc(n*sizeof(**(p)));					\
+    if (*(p) == NULL) {							\
+	fprintf(stderr, "%s:%d: alloc failed, n = %d\n", __FILE__, __LINE__, n); \
+	exit(2);							\
+    }									\
+    } while(0)
+
 struct Mesh {
     int nt, nv;
     float *r;
@@ -120,11 +129,7 @@ max_arg(int n, int *a)
 static void
 u_ini(int n)
 {
-    u_root = malloc(n*sizeof(*u_root));
-    if (u_root == NULL) {
-	fprintf(stderr, "%s:%d: alloc failed, n = %d\n", __FILE__, __LINE__, n);
-	exit(2);
-    }
+    MALLOC(n, &u_root);
     while (n--)
 	u_root[n] = n;
 }
@@ -210,32 +215,20 @@ main()
 	fprintf(stderr, "%s:%d: expect POINTS, got '%s'\n", __FILE__, __LINE__, s);
 	exit(2);
     }
-    r = malloc(3*nv*sizeof(*r));
-    if (r == NULL) {
-	fprintf(stderr, "%s:%d: failt to alloc, nv = %d\n", __FILE__, __LINE__, nv);
-	exit(2);
-    }
+    MALLOC(3*nv, &r);
     if ((int)fread(r, sizeof(*r), 3*nv, f) != 3*nv) {
 	fprintf(stderr, "%s:%d: failt to read, nv = %d\n", __FILE__, __LINE__, nv);
 	exit(2);
     }
     swap(3*nv, sizeof(*r), r);
-    
+
     while (line(s, f) == 0 && s[0] == '\0') ;
     if (sscanf(s, "POLYGONS %d %*d", &nt) != 1) {
 	fprintf(stderr, "%s:%d: expect POLYGONS, got '%s'\n", __FILE__, __LINE__, s);
 	exit(2);
     }
-    t0 = malloc(4*nt*sizeof(*t0));
-    if (t0 == NULL) {
-	fprintf(stderr, "%s:%d: failt to alloc, nt = %d\n", __FILE__, __LINE__, nt);
-	exit(2);
-    }
-    t = malloc(3*nt*sizeof(*t));
-    if (t == NULL) {
-	fprintf(stderr, "%s:%d: failt to alloc, nt = %d\n", __FILE__, __LINE__, nt);
-	exit(2);
-    }
+    MALLOC(4*nt, &t0);
+    MALLOC(3*nt, &t);
     if ((int)fread(t0, sizeof(*t0), 4*nt, f) != 4*nt) {
 	fprintf(stderr, "%s:%d: failt to read, nt = %d\n", __FILE__, __LINE__, nt);
 	exit(2);
@@ -261,24 +254,14 @@ main()
 	u_union(v, w);
 	u_union(u, w);
     }
-    cl = malloc(nt*sizeof(*cl));
-    c = malloc(nt*sizeof(*c));
-    if (c == NULL) {
-	fprintf(stderr, "%s:%d: failt to alloc, nt = %d\n", __FILE__, __LINE__, nt);
-	exit(2);
-    }
-    
+    MALLOC(nt, &cl);
+    MALLOC(nt, &c);
     for (;;) {
       scalar(f, nt, name, cl);
       if (eq(name, "cl")) break;
     }
     swap(nt, sizeof(*cl), cl);
-    id = malloc(nt*sizeof(*id));
-    if (id == NULL) {
-	fprintf(stderr, "%s:%d: failt to alloc, nt = %d\n", __FILE__, __LINE__, nt);
-	exit(2);
-    }
-    
+    MALLOC(nt, &id);
     for (i = 0; i < nt; i++) {
 	u = t[3*i];
 	c[i] = u_find(u);
@@ -293,16 +276,12 @@ main()
 	c[i] = id[k];
     }
     nb = j;
-    cnt = malloc(nb*sizeof(*cnt));
-    if (cnt == NULL) {
-	fprintf(stderr, "%s:%d: failt to alloc, nb = %d\n", __FILE__, __LINE__, nb);
-	exit(2);
-    }
+    MALLOC(nb, &cnt);
     for (i = 0; i < nb; i++)
 	cnt[i] = 0;
     for (i = 0; i < nt; i++)
 	cnt[c[i]]++;
-    
+
     k = max_arg(nb, cnt);  /* water = 0 */
     for (i = 0 ; i < nt; i++) {
 	if (c[i] == k)
@@ -315,14 +294,9 @@ main()
     mesh.t = t;
     mesh.nt = nt;
     mesh.nv = nv;
-    volume = malloc(nb*sizeof(*volume));
-    if (volume == NULL) {
-	fprintf(stderr, "%s:%d: failt to alloc, nb = %d\n", __FILE__, __LINE__, nb);
-	exit(2);
-    }
+    MALLOC(nb, &volume);
     for (i = 0; i < nb; i++)
 	volume[i] = 0;
-    
     for (i = 0; i < nt; i++) {
 	k = c[i];
 	get3(&mesh, i, x, y, z);
@@ -338,7 +312,7 @@ main()
     for (i = 0; i < nt; i++)
 	if (cl[i] < 0)
 	    c[i] = -1;
-    
+
     printf("# vtk DataFile Version 2.0\n"
 	   "Interface from marching cubes\n"
 	   "BINARY\n"
