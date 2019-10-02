@@ -1,7 +1,0 @@
-#!/bin/sh
-
-for i
-do
-        b=`basename "$i"`
-        ./color < "$i" > "$b"
-done

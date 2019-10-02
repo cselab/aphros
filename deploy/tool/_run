@@ -30,6 +30,7 @@ instfnd trajaxes
 instfnd plain2vtk
 instfnd argmax
 instfnd argmaxall
+instfnd vtkcolorall
 
 cp -rvf ch "$BB/" || true
 
