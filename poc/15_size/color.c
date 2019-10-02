@@ -12,6 +12,46 @@ struct Mesh {
 };
 
 static int
+eq(const char *a, const char *b)
+{
+    return strncmp(a, b, N) == 0;
+}
+
+static int
+line(char *s, FILE *f)
+{
+    int n;
+    if (fgets(s, N, f) == NULL)
+	return 1;
+    n = strlen(s);
+    if (n > 0 && s[n - 1] == '\n')
+	s[n - 1] = '\0';
+    return 0;
+}
+
+static int
+scalar(FILE *f, int n, char *name, float *c)
+{
+    char s[N];
+    line(s, f);
+    if (sscanf(s, "SCALARS %s float", name) != 1) {
+	fprintf(stderr, "%s:%d: expect SCALARS, got '%s'\n", __FILE__, __LINE__, s);
+	exit(2);
+    }
+
+    line(s, f);
+    if (!eq(s, "LOOKUP_TABLE default")) {
+	fprintf(stderr, "%s:%d: expect LOOKUP_TABLE, got '%s'\n", __FILE__, __LINE__, s);
+	exit(2);
+    }
+    if ((int)fread(c, sizeof(*c), n, f) != n) {
+	fprintf(stderr, "%s:%d: failt to read, n = %d\n", __FILE__, __LINE__, n);
+	exit(2);
+    }
+    return 0;
+}
+
+static int
 get1(float *r, int i, /**/ float *a)
 {
     enum {X, Y, Z};
@@ -128,35 +168,17 @@ swap(int n, int size, void *p0) {
     return 0;
 }
 
-static int
-eq(const char *a, const char *b)
-{
-    return strncmp(a, b, N) == 0;
-}
-
-static int
-line(char *s, FILE *f)
-{
-    int n;
-    if (fgets(s, N, f) == NULL)
-	return 1;
-    n = strlen(s);
-    if (n > 0 && s[n - 1] == '\n')
-	s[n - 1] = '\0';
-    return 0;
-}
-
 int
 main()
 {
     FILE *f;
-    char s[N];
+    char s[N], name[N];
     int nv, nt, nb, u, v, w;
     float *r;
     double *volume;
     int *t, *t0, *a, *b, *id, *c, *cnt;
     int i, j, k;
-    float x[3], y[3], z[3];
+    float x[3], y[3], z[3], *cl;
     struct Mesh mesh;
 
     f = stdin;
@@ -239,12 +261,24 @@ main()
 	u_union(v, w);
 	u_union(u, w);
     }
+    cl = malloc(nt*sizeof(*cl));
     c = malloc(nt*sizeof(*c));
-    id = malloc(nt*sizeof(*id));
     if (c == NULL) {
 	fprintf(stderr, "%s:%d: failt to alloc, nt = %d\n", __FILE__, __LINE__, nt);
 	exit(2);
     }
+    
+    for (;;) {
+      scalar(f, nt, name, cl);
+      if (eq(name, "cl")) break;
+    }
+    swap(nt, sizeof(*cl), cl);
+    id = malloc(nt*sizeof(*id));
+    if (id == NULL) {
+	fprintf(stderr, "%s:%d: failt to alloc, nt = %d\n", __FILE__, __LINE__, nt);
+	exit(2);
+    }
+    
     for (i = 0; i < nt; i++) {
 	u = t[3*i];
 	c[i] = u_find(u);
@@ -300,6 +334,11 @@ main()
 	if (k != 0 && volume[k] < 0)
 	    c[i] = 0;
     }
+
+    for (i = 0; i < nt; i++) {
+	if ((int)cl[i] == -1)
+	    c[i] = -1;
+    }
     
     printf("# vtk DataFile Version 2.0\n"
 	   "Interface from marching cubes\n"
@@ -317,11 +356,12 @@ main()
     fwrite(c, sizeof(*c), nt, stdout);
 
     u_fin();
-    free(id);
     free(c);
+    free(cl);
+    free(cnt);
+    free(id);
+    free(r);
     free(t);
     free(t0);
-    free(r);
-    free(cnt);
     free(volume);
 }
