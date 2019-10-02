@@ -3,12 +3,16 @@ LINK = $(CC)
 CFLAGS = -g -Og
 M_LDFLAGS = -lm
 
-M = main
-O = main.o
+M = color main
 
-$M: $O; $(LINK) $O $(LDFLAGS) $(M_LDFLAGS) -o $@
-.c.o:; $(CC) $(CFLAGS) $< -c -o $@
-lint:; make CFLAGS='-g -Wall -Wextra -pedantic'
+all: $M
+.o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@
+.c.o:; $(CC) $(CFLAGS) $< -c
 
-.PHONY: clean lint dep
+.c:
+%: %.c
+.SUFFIXES: .o .c
+
+lint:; make CFLAGS='-Wall -Wextra -g -O2'
+.PHONY: clean lint
 clean:; rm -f -- $M $O

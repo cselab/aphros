@@ -3,4 +3,4 @@
 for i
 do
 ./main < "$i" | ./rad
-done | awk '{print $1, $3}' | ./hist
+done | awk '{print $1, $2}' | ./hist

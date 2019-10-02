@@ -6,7 +6,7 @@ find_package(MPI REQUIRED)
 set(CMAKE_C_COMPILER ${MPI_C_COMPILER})
 
 set(C main.c)
-add_custom_target(qcc COMMAND ba.env qcc -source -grid=multigrid ${EXTRA} ${C} BYPRODUCTS _${C})
+add_custom_target(qcc COMMAND ba.env qcc -source ${EXTRA} ${C} BYPRODUCTS _${C})
 add_custom_target(u COMMAND ba.env ba.u
   "${CHPREFIX}/include/io/io.conf"
   )
