@@ -5,6 +5,62 @@
 
 enum {N = 1024};
 
+struct Mesh {
+    int nt, nv;
+    float *r;
+    int *t;
+};
+
+static int
+get1(float *r, int i, /**/ float *a)
+{
+    enum {X, Y, Z};
+    a[X] = r[3*i + X]; a[Y] = r[3*i + Y]; a[Z] = r[3*i + Z];
+    return 0;
+}
+
+static int
+get3(struct Mesh *mesh, int t, /**/ float *a, float *b, float *c)
+{
+  int nt, *tri, i, j, k;
+    float *r;
+    nt = mesh->nt;
+    tri = mesh->t;
+    r = mesh->r;
+    if (t > nt) {
+	fprintf(stderr, "%s:%d: t=%d > nt=%d\n", __FILE__, __LINE__, t, nt);
+	exit(1);
+    }
+
+    i = tri[3*t];
+    j = tri[3*t + 1];
+    k = tri[3*t + 2];
+    get1(r, i, a);
+    get1(r, j, b);
+    get1(r, k, c);
+    return 0;
+}
+
+static float
+tri_volume(float *a, float *b, float *c)
+{
+    enum {X, Y, Z};
+    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
+
+    ax = a[X];
+    ay = a[Y];
+    az = a[Z];
+    bx = b[X];
+    by = b[Y];
+    bz = b[Z];
+    cx = c[X];
+    cy = c[Y];
+    cz = c[Z];
+
+    V = (ax*by-ay*bx)*cz+(az*bx-ax*bz)*cy+(ay*bz-az*by)*cx;
+    return V/6;
+}
+
 static int *u_root;
 static int
 max_arg(int n, int *a)
@@ -97,8 +153,11 @@ main()
     char s[N];
     int nv, nt, nb, u, v, w;
     float *r;
+    double *volume;
     int *t, *t0, *a, *b, *id, *c, *cnt;
     int i, j, k;
+    float x[3], y[3], z[3];
+    struct Mesh mesh;
 
     f = stdin;
     if (line(s, f) != 0) {
@@ -138,6 +197,8 @@ main()
 	fprintf(stderr, "%s:%d: failt to read, nv = %d\n", __FILE__, __LINE__, nv);
 	exit(2);
     }
+    swap(3*nv, sizeof(*r), r);
+    
     while (line(s, f) == 0 && s[0] == '\0') ;
     if (sscanf(s, "POLYGONS %d %*d", &nt) != 1) {
 	fprintf(stderr, "%s:%d: expect POLYGONS, got '%s'\n", __FILE__, __LINE__, s);
@@ -215,12 +276,37 @@ main()
 	else if (c[i] == 0)
 	    c[i] = k;
     }
+
+    mesh.r = r;
+    mesh.t = t;
+    mesh.nt = nt;
+    mesh.nv = nv;
+    volume = malloc(nb*sizeof(*volume));
+    if (volume == NULL) {
+	fprintf(stderr, "%s:%d: failt to alloc, nb = %d\n", __FILE__, __LINE__, nb);
+	exit(2);
+    }
+    for (i = 0; i < nb; i++)
+	volume[i] = 0;
+    
+    for (i = 0; i < nt; i++) {
+	k = c[i];
+	get3(&mesh, i, x, y, z);
+	volume[k] += tri_volume(x, y, z);
+    }
+
+    for (i = 0; i < nt; i++) {
+	k = c[i];
+	if (k != 0 && volume[k] < 0)
+	    c[i] = 0;
+    }
     
     printf("# vtk DataFile Version 2.0\n"
 	   "Interface from marching cubes\n"
 	   "BINARY\n"
 	   "DATASET POLYDATA\n"
 	   "POINTS %d float\n", nv);
+    swap(3*nv, sizeof(*r), r);
     fwrite(r, sizeof(*r), 3*nv, stdout);
     printf("POLYGONS %d %d\n", nt, 4*nt);
     fwrite(t0, sizeof(*t0), 4*nt, stdout);
@@ -237,4 +323,5 @@ main()
     free(t0);
     free(r);
     free(cnt);
+    free(volume);
 }
