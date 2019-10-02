@@ -335,10 +335,9 @@ main()
 	    c[i] = 0;
     }
 
-    for (i = 0; i < nt; i++) {
-	if ((int)cl[i] == -1)
+    for (i = 0; i < nt; i++)
+	if (cl[i] < 0)
 	    c[i] = -1;
-    }
     
     printf("# vtk DataFile Version 2.0\n"
 	   "Interface from marching cubes\n"
