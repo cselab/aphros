@@ -6,6 +6,21 @@
 enum {N = 1024};
 
 static int *u_root;
+static int
+max_arg(int n, int *a)
+{
+    int i, j, m;
+    j = 0;
+    m = a[j];
+    for (i = 0; i < n; i++) {
+	if (a[i] > m) {
+	    m = a[i];
+	    j = i;
+	}
+    }
+    return j;
+}
+
 static void
 u_ini(int n)
 {
@@ -78,13 +93,14 @@ line(char *s, FILE *f)
 int
 main()
 {
-    FILE *f = stdin;
+    FILE *f;
     char s[N];
-    int nv, nt, u, v, w;
-    float *r, *c;
-    int *t, *a, *b;
-    int i;
+    int nv, nt, nb, u, v, w;
+    float *r;
+    int *t, *t0, *a, *b, *id, *c, *cnt;
+    int i, j, k;
 
+    f = stdin;
     if (line(s, f) != 0) {
 	fprintf(stderr, "%s:%d: failt to read\n", __FILE__, __LINE__);
 	exit(2);
@@ -122,22 +138,26 @@ main()
 	fprintf(stderr, "%s:%d: failt to read, nv = %d\n", __FILE__, __LINE__, nv);
 	exit(2);
     }
-    swap(3*nv, sizeof(*r), r);
     while (line(s, f) == 0 && s[0] == '\0') ;
     if (sscanf(s, "POLYGONS %d %*d", &nt) != 1) {
 	fprintf(stderr, "%s:%d: expect POLYGONS, got '%s'\n", __FILE__, __LINE__, s);
 	exit(2);
     }
-    t = malloc(4*nt*sizeof(*t));
+    t0 = malloc(4*nt*sizeof(*t0));
+    if (t0 == NULL) {
+	fprintf(stderr, "%s:%d: failt to alloc, nt = %d\n", __FILE__, __LINE__, nt);
+	exit(2);
+    }
+    t = malloc(3*nt*sizeof(*t));
     if (t == NULL) {
 	fprintf(stderr, "%s:%d: failt to alloc, nt = %d\n", __FILE__, __LINE__, nt);
 	exit(2);
     }
-    if ((int)fread(t, sizeof(*t), 4*nt, f) != 4*nt) {
+    if ((int)fread(t0, sizeof(*t0), 4*nt, f) != 4*nt) {
 	fprintf(stderr, "%s:%d: failt to read, nt = %d\n", __FILE__, __LINE__, nt);
 	exit(2);
     }
-    for (i = 0, a = b = t; i < nt; i++) {
+    for (i = 0, a = t, b = t0; i < nt; i++) {
 	b++;
 	*a++ = *b++;
 	*a++ = *b++;
@@ -156,22 +176,65 @@ main()
 	w = t[3*i + 2];
 	u_union(u, v);
 	u_union(v, w);
+	u_union(u, w);
     }
-
     c = malloc(nt*sizeof(*c));
+    id = malloc(nt*sizeof(*id));
     if (c == NULL) {
 	fprintf(stderr, "%s:%d: failt to alloc, nt = %d\n", __FILE__, __LINE__, nt);
 	exit(2);
     }
     for (i = 0; i < nt; i++) {
 	u = t[3*i];
-	c[i] = u_find(i);
+	c[i] = u_find(u);
     }
+    for (i = 0; i < nt; i++)
+	id[i] = -1;
+    for (j = i = 0; i < nt; i++) {
+	k = c[i];
+	if (id[k] == -1) {
+	    id[k] = j++;
+	}
+	c[i] = id[k];
+    }
+    nb = j;
+    cnt = malloc(nb*sizeof(*cnt));
+    if (cnt == NULL) {
+	fprintf(stderr, "%s:%d: failt to alloc, nb = %d\n", __FILE__, __LINE__, nb);
+	exit(2);
+    }
+    for (i = 0; i < nb; i++)
+	cnt[i] = 0;
+    for (i = 0; i < nt; i++)
+	cnt[c[i]]++;
+    
+    k = max_arg(nb, cnt);  /* water = 0 */
+    for (i = 0 ; i < nt; i++) {
+	if (c[i] == k)
+	    c[i] = 0;
+	else if (c[i] == 0)
+	    c[i] = k;
+    }
+    
+    printf("# vtk DataFile Version 2.0\n"
+	   "Interface from marching cubes\n"
+	   "BINARY\n"
+	   "DATASET POLYDATA\n"
+	   "POINTS %d float\n", nv);
+    fwrite(r, sizeof(*r), 3*nv, stdout);
+    printf("POLYGONS %d %d\n", nt, 4*nt);
+    fwrite(t0, sizeof(*t0), 4*nt, stdout);
+    printf("CELL_DATA %d\n"
+	   "SCALARS cl int\n"
+	   "LOOKUP_TABLE default\n", nt);
+    swap(nt, sizeof(*c), c);
+    fwrite(c, sizeof(*c), nt, stdout);
 
-    
-    
     u_fin();
+    free(id);
     free(c);
     free(t);
+    free(t0);
     free(r);
+    free(cnt);
 }
