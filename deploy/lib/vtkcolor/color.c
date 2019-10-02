@@ -71,7 +71,6 @@ static int
 vector(FILE *f, int n, char *name, float *c)
 {
     char s[N];
-    int n0;
     line(s, f);
     if (sscanf(s, "VECTORS %s float", name) != 1) {
 	fprintf(stderr, "%s:%d: expect VECTOR, got '%s'\n", __FILE__, __LINE__, s);
@@ -134,11 +133,11 @@ tri_volume(float *a, float *b, float *c)
     return V/6;
 }
 
-static float
-tri_flux_x(float *a, float *b, float *c)
+static int
+tri_flux(float *a, float *b, float *c, /**/ double *x, double *y, double *z)
 {
     enum {X, Y, Z};
-    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
+    double bx, by, bz, cx, cy, cz;
 
     bx = b[X] - a[X];
     by = b[Y] - a[Y];
@@ -147,23 +146,10 @@ tri_flux_x(float *a, float *b, float *c)
     cy = c[Y] - a[Y];
     cz = c[Z] - a[Z];
 
-    return by*cz-bz*cy;
-}
-
-static float
-tri_flux_y(float *a, float *b, float *c)
-{
-    enum {X, Y, Z};
-    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
-
-    bx = b[X] - a[X];
-    by = b[Y] - a[Y];
-    bz = b[Z] - a[Z];
-    cx = c[X] - a[X];
-    cy = c[Y] - a[Y];
-    cz = c[Z] - a[Z];
-
-    return (bz*cx-bx*cz);
+    *x += by*cz-bz*cy;
+    *y += bz*cx-bx*cz;
+    *z += bx*cy-by*cx;
+    return 0;
 }
 
 static float
@@ -182,24 +168,8 @@ tri_volume_y(float *a, float *b, float *c)
     cy = c[Y];
     cz = c[Z];
 
-    V = ((cy+by+ay)*((bz-az)*(cx-ax)-(bx-ax)*(cz-az)));
+    V = (cy+by+ay)*((bz-az)*(cx-ax)-(bx-ax)*(cz-az));
     return V/6;
-}
-
-static float
-tri_flux_z(float *a, float *b, float *c)
-{
-    enum {X, Y, Z};
-    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
-
-    bx = b[X] - a[X];
-    by = b[Y] - a[Y];
-    bz = b[Z] - a[Z];
-    cx = c[X] - a[X];
-    cy = c[Y] - a[Y];
-    cz = c[Z] - a[Z];
-
-    return bx*cy-by*cx;
 }
 
 static int *u_root;
@@ -416,17 +386,12 @@ main()
     for (i = 0; i < nt; i++) {
 	k = c[i];
 	get3(&mesh, i, x, y, z);
-	fx[k] += tri_flux_x(x, y, z);
-	fy[k] += tri_flux_y(x, y, z);
-	fz[k] += tri_flux_z(x, y, z);	
+	tri_flux(x, y, z, &fx[k], &fy[k], &fz[k]);
     }
 
-    for (i = 0; i < nb; i++) {
-	if (big(fx[i], fy[i], fz[i])) {
+    for (i = 0; i < nb; i++)
+	if (big(fx[i], fy[i], fz[i]))
 	    volume[i] = -volume[i];
-	    fprintf(stderr, "volume[i] = %g\n", volume[i]);
-	}
-    }
     
     for (i = 0; i < nt; i++) {
 	k = c[i];
