@@ -124,6 +124,7 @@ vft = [surf]
 
 surf = Calculator(Input=surf)
 surf.ResultNormals = 1
+surf.AttributeType = 'Point Data'
 surf.ResultArrayName = 'normals'
 surf.Function = 'nn'
 
