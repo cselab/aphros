@@ -130,25 +130,10 @@ surf.AttributeType = 'Point Data'
 surf.ResultArrayName = 'normals'
 surf.Function = 'nn'
 
-water = Clip(Input=surf)
-water.ClipType = 'Scalar'
-water.Scalars = ['CELLS', 'cl']
-water.Value = 1.0
-water.Invert = 1
-waterDisplay = Show(water, renderView1)
+waterDisplay = Show(surf, renderView1)
 waterDisplay.Representation = 'Surface'
 waterDisplay.ColorArrayName = [None, '']
 waterDisplay.Opacity = 1
-
-bubbles = Clip(Input=surf)
-bubbles.ClipType = 'Scalar'
-bubbles.Scalars = ['CELLS', 'cl']
-bubbles.Value = 1.0
-bubbles.Invert = 0
-bubblesDisplay = Show(bubbles, renderView1)
-bubblesDisplay.Representation = 'Surface'
-bubblesDisplay.ColorArrayName = [None, '']
-bubblesDisplay.DiffuseColor = [1.0, 0.0, 0.0]
 
 #####################################################
 ### END OF STATE FILE
