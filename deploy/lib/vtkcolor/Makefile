@@ -3,7 +3,7 @@ LINK = $(CC)
 CFLAGS = -g -Og
 M_LDFLAGS = -lm
 
-M = color main
+M = color
 
 all: $M
 .o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@
