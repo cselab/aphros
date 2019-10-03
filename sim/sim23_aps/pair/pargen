@@ -2,20 +2,21 @@
 
 t0=0
 t1=3
-f1x="0.3 0.5 0.5"
-f2x="0.7 0.5 0.5"
+f1x="0.19 0.5 0.5"
+f2x="0.81 0.5 0.5"
+f=0.08
 cat > par.conf << EOF
 set string dumpformat default
 set string dumplist
 
-set vect force_mov 0.005 0 0
+set vect force_mov $f 0 0
 set vect force_mov_x0 0.12 0.5 0.5
 set vect force_mov_x1 $f1x
 set double force_mov_t0 0
 set double force_mov_t1 $t1
 set vect force_mov_sig 0.05 0.2 0.2
 
-set vect force_mov2 -0.005 0 0
+set vect force_mov2 -$f 0 0
 set vect force_mov2_x0 0.88 0.5 0.5
 set vect force_mov2_x1 $f2x
 set double force_mov2_t0 0
@@ -24,7 +25,18 @@ set vect force_mov2_sig 0.05 0.2 0.2
 
 EOF
 
+t1=6
+t2=8
+f1x="0.26 0.5 0.5"
+f2x="0.74 0.5 0.5"
 cat > vofm.conf << EOF
+set double rho2 0.1
+set double cflst 0.5
+set double force_mov_t1 $t1
+set double force_mov2_t1 $t1
+set vect force_mov_x1 $f1x
+set vect force_mov2_x1 $f2x
+
 setnext string ev $t1 set vect force_mov_x0 $f1x
 setnext string ev $t1 set double force_mov_t0 $t1
 setnext string ev $t1 set double force_mov_t1 1e10
@@ -33,12 +45,15 @@ setnext string ev $t1 set vect force_mov2_x0 $f2x
 setnext string ev $t1 set double force_mov2_t0 $t1
 setnext string ev $t1 set double force_mov2_t1 1e10
 
+setnext string ev $t2 set vect force_mov 0 0 0
+setnext string ev $t2 set vect force_mov2 0 0 0
+
 set double cflst 0.5
 set string advection_solver vofm
 EOF
 
-nx=64
-bs=8
+nx=128
+bs=16
 cat > par.make << EOF
 m = $nx $nx $nx 
 bs = $bs $bs $bs
