@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -eu
+
+np=1
+nx=32
+r=0.01
+
+echo $np > np
+echo 1440 > tl
+
+./gen -nx $nx -np $np -mode osc -dim 2 -pos center\
+  -We 0 -La 12000 -tmax 5 -br 0.15\
+  -mu $r -rho $r -wally 1 -wallz 0\
+  -bcod 0 0 0 -bcor 0 0 0 -bcoh 0 0 0 \
+   -b2xr 2 0 0 -b2rr 1 \
+   -nb 1 -nfr 100
+
+
+cat > ch/add.conf << EOF
+set string dumpformat default
+set string dumplist vf omx omy omz p
+set int part_ns 3
+
+
+set vect force_mov 1 0 0
+set vect force_mov_x0 0.25 0.5 0.5
+set vect force_mov_x1 0.5 0.5 0.5
+set double force_mov_t0 2
+set double force_mov_t1 4
+set vect force_mov_sig 0.2 0.4 1
+
+set vect force_mov2 -1 0 0
+set vect force_mov2_x0 0.75 0.5 0.5
+set vect force_mov2_x1 0.5 0.5 0.5
+set double force_mov2_t0 2
+set double force_mov2_t1 4
+set vect force_mov2_sig 0.2 0.4 1
+
+
+EOF
