@@ -5,6 +5,23 @@
 
 enum {N = 1024};
 
+#define MALLOC(n, p)							\
+    do {								\
+	*(p) = malloc(n*sizeof(**(p)));					\
+	if (*(p) == NULL) {						\
+	    fprintf(stderr, "%s:%d: alloc failed, n = %d\n", __FILE__, __LINE__, n); \
+	    exit(2);							\
+	}								\
+    } while(0)
+
+#define FREAD(n, p, f) \
+    do {								\
+	if (fread(p, sizeof(*(p)), (n), (f)) != (n)) {			\
+	    fprintf(stderr, "%s:%d: failt to read, n = %d\n", __FILE__, __LINE__, n); \
+	    exit(2);							\
+	}								\
+} while(0)
+
 struct Mesh {
     int nt, nv;
     float *r, *c;
@@ -103,10 +120,7 @@ scalar(FILE *f, int n, char *name, float *c)
 	fprintf(stderr, "%s:%d: expect LOOKUP_TABLE, got '%s'\n", __FILE__, __LINE__, s);
 	exit(2);
     }
-    if (fread(c, sizeof(*c), n, f) != n) {
-	fprintf(stderr, "%s:%d: failt to read, n = %d\n", __FILE__, __LINE__, n);
-	exit(2);
-    }
+    FREAD(n, c, f);
     return 0;
 }
 
@@ -180,30 +194,16 @@ main()
 	fprintf(stderr, "%s:%d: expect POINTS, got '%s'\n", __FILE__, __LINE__, s);
 	exit(2);
     }
-    r = malloc(3*nv*sizeof(*r));
-    if (r == NULL) {
-	fprintf(stderr, "%s:%d: failt to alloc, nv = %d\n", __FILE__, __LINE__, nv);
-	exit(2);
-    }
-    if (fread(r, sizeof(*r), 3*nv, f) != 3*nv) {
-	fprintf(stderr, "%s:%d: failt to read, nv = %d\n", __FILE__, __LINE__, nv);
-	exit(2);
-    }
+    MALLOC(3*nv, &r);
+    FREAD(3*nv, r, f);
     swap(3*nv, sizeof(*r), r);
     while (line(s, f) == 0 && s[0] == '\0') ;
     if (sscanf(s, "POLYGONS %d %*d", &nt) != 1) {
 	fprintf(stderr, "%s:%d: expect POLYGONS, got '%s'\n", __FILE__, __LINE__, s);
 	exit(2);
     }
-    t = malloc(4*nt*sizeof(*t));
-    if (t == NULL) {
-	fprintf(stderr, "%s:%d: failt to alloc, nt = %d\n", __FILE__, __LINE__, nt);
-	exit(2);
-    }
-    if (fread(t, sizeof(*t), 4*nt, f) != 4*nt) {
-	fprintf(stderr, "%s:%d: failt to read, nt = %d\n", __FILE__, __LINE__, nt);
-	exit(2);
-    }
+    MALLOC(4*nt, &t);
+    FREAD(4*nt, t, f);
     for (i = 0, a = b = t; i < nt; i++) {
 	b++;
 	*a++ = *b++;
@@ -216,7 +216,7 @@ main()
 	fprintf(stderr, "%s:%d: expect CELL_DATA, got '%s'\n", __FILE__, __LINE__, s);
 	exit(2);
     }
-    c = malloc(nt*sizeof(*c));
+    MALLOC(nt, &c);
     for (;;) {
       scalar(f, nt, name, c);
       if (eq(name, "cl")) break;
