@@ -282,7 +282,6 @@ main()
 	exit(2);
     }
     MALLOC(nt, &cl);
-    MALLOC(nt, &c);
     for (;;) {
 	scalar(f, nt, name, cl);
 	if (eq(name, "cl")) break;
@@ -295,6 +294,7 @@ main()
 	exit(2);
     }
 
+    MALLOC(nt, &c);
     u_ini(nv);
     for (i = 0 ; i < nt; i++) {
 	if (cl[i] < 0) continue;
@@ -386,8 +386,8 @@ main()
 	if ((V = volume[i]) < 0 || dot[i]>0)
 	    continue;
 	R = pow(3*V/(4*pi), 1.0/3.0);
-	printf("%.16e %.16e %.16e %.16e\n",
-	       cx[i], cy[i], cz[i], R);
+	printf("%.16e %.16e %.16e %.16e %d\n",
+	       cx[i], cy[i], cz[i], R, cnt[i]);
     }
 
     u_fin();
