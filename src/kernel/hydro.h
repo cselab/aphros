@@ -1486,6 +1486,37 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       }
     }
 
+    // moving force on the interface
+    auto fmov = [this,&a](std::string pre) {
+      Vect force_mov(var.Vect[pre]);
+      if (force_mov.sqrnorm()) {
+        Vect x0(var.Vect[pre + "_x0"]);
+        Vect x1(var.Vect[pre + "_x1"]);
+        Scal t0 = var.Double[pre + "_t0"];
+        Scal t1 = var.Double[pre + "_t1"];
+        Vect sig(var.Vect[pre + "_sig"]);
+        Scal pi = M_PI;
+        int edim = var.Int["dim"];
+
+        Scal t = (st_.t - t0) / (t1 - t0);
+        if (t >= 0 && t <= 1) {
+          for (auto c : m.Cells()) {
+            Vect xt = x0 + (x1 - x0) * t;
+            Vect r = (xt - m.GetCenter(c)) / sig;
+            Scal k = std::exp(-r.sqrnorm() * 0.5) /
+                (std::pow(2*pi, 1./edim) * sig.prod());
+            Scal vf = a[c];
+            fc_force_[c] +=
+                force_mov * (k * fc_rho_[c] * vf * (1 - a[c]) * 2);
+          }
+        }
+      }
+    };
+
+    fmov("force_mov");
+    fmov("force_mov2");
+
+
     // normal velocity penalization
     Scal force_vel_k = var.Double["force_vel_k"];
     if (force_vel_k != 0 && as_) {
