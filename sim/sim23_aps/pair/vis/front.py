@@ -94,7 +94,10 @@ renderView1.CameraParallelScale = 0.3556556576709247
 renderView1.CameraParallelProjection = 0
 renderView1.Background = [0.0]*3
 renderView1.OSPRayMaterialLibrary = materialLibrary1
-renderView1.EnableOSPRay = ospray
+if hasattr(renderView1, 'EnableOSPray'):
+    renderView1.EnableOSPRay = ospray
+if hasattr(renderView1, 'EnableRayTracing'):
+    renderView1.EnableRayTracing = ospray
 
 
 # ----------------------------------------------------------------
