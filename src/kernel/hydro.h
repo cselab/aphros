@@ -1499,10 +1499,10 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         int edim = var.Int["dim"];
 
         Scal t = (st_.t - t0) / (t1 - t0);
-        if (var.Int[pre + "_parab"]) {
-          t = t * t;
-        }
         if (t >= 0 && t <= 1) {
+          if (var.Int[pre + "_parab"]) {
+            t = t * t;
+          }
           for (auto c : m.Cells()) {
             Vect xt = x0 + (x1 - x0) * t;
             Vect r = (xt - m.GetCenter(c)) / sig;
