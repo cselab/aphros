@@ -4,6 +4,7 @@
 #include <string.h>
 
 enum {N = 1024};
+static double pi = 3.141592653589793;
 
 #define MALLOC(n, p)							\
     do {								\
@@ -14,11 +15,39 @@ enum {N = 1024};
 	}								\
     } while(0)
 
+#define FREAD(n, p, f) \
+    do {								\
+	if ((int)fread(p, sizeof(*(p)), (n), (f)) != (n)) {		\
+	    fprintf(stderr, "%s:%d: failt to read, n = %d\n", __FILE__, __LINE__, n); \
+	    exit(2);							\
+	}								\
+} while(0)
+
 struct Mesh {
     int nt, nv;
     float *r;
     int *t;
 };
+
+static float
+tri_volume(float *a, float *b, float *c)
+{
+    enum {X, Y, Z};
+    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
+
+    ax = a[X];
+    ay = a[Y];
+    az = a[Z];
+    bx = b[X];
+    by = b[Y];
+    bz = b[Z];
+    cx = c[X];
+    cy = c[Y];
+    cz = c[Z];
+
+    V = (ax*by-ay*bx)*cz+(az*bx-ax*bz)*cy+(ay*bz-az*by)*cx;
+    return V/6;
+}
 
 static int
 eq(const char *a, const char *b)
@@ -89,10 +118,7 @@ scalar(FILE *f, int n, char *name, float *c)
 	fprintf(stderr, "%s:%d: expect LOOKUP_TABLE, got '%s'\n", __FILE__, __LINE__, s);
 	exit(2);
     }
-    if ((int)fread(c, sizeof(*c), n, f) != n) {
-	fprintf(stderr, "%s:%d: failt to read, n = %d\n", __FILE__, __LINE__, n);
-	exit(2);
-    }
+    FREAD(n, c, f);
     return 0;
 }
 
@@ -196,7 +222,7 @@ main()
     char s[N], name[N];
     int nv, nt, nb, u, v, w;
     float *r;
-    double *cx, *cy, *cz, *dot;
+    double *cx, *cy, *cz, *dot, *volume, R, V;
     int *t, *t0, *a, *b, *id, *c, *cnt;
     int i, j, k;
     float x[3], y[3], z[3], *cl;
@@ -232,10 +258,7 @@ main()
 	exit(2);
     }
     MALLOC(3*nv, &r);
-    if ((int)fread(r, sizeof(*r), 3*nv, f) != 3*nv) {
-	fprintf(stderr, "%s:%d: failt to read, nv = %d\n", __FILE__, __LINE__, nv);
-	exit(2);
-    }
+    FREAD(3*nv, r, f);
     swap(3*nv, sizeof(*r), r);
 
     while (line(s, f) == 0 && s[0] == '\0') ;
@@ -245,10 +268,7 @@ main()
     }
     MALLOC(4*nt, &t0);
     MALLOC(3*nt, &t);
-    if ((int)fread(t0, sizeof(*t0), 4*nt, f) != 4*nt) {
-	fprintf(stderr, "%s:%d: failt to read, nt = %d\n", __FILE__, __LINE__, nt);
-	exit(2);
-    }
+    FREAD(4*nt, t0, f);
     for (i = 0, a = t, b = t0; i < nt; i++) {
 	b++;
 	*a++ = *b++;
@@ -350,6 +370,26 @@ main()
 	if (cl[i] < 0)
 	    c[i] = -1;
 
+    MALLOC(nb, &volume);
+    for (i = 0; i < nb; i++)
+	volume[i] = 0;
+    
+    for (i = 0; i < nt; i++) {
+	if (c[i] == -1) continue;
+	k = c[i];
+	get3(&mesh, i, x, y, z);	
+	volume[k] += tri_volume(x, y, z);
+    }
+
+    //printf("x y z r\n");
+    for (i = 0; i < nb; i++) {
+	if ((V = volume[i]) < 0 || dot[i]>0)
+	    continue;
+	R = pow(3*V/(4*pi), 1.0/3.0);
+	printf("%.16e %.16e %.16e %.16e\n",
+	       cx[i], cy[i], cz[i], R);
+    }
+
     u_fin();
     free(c);
     free(cl);
@@ -362,4 +402,5 @@ main()
     free(r);
     free(t);
     free(t0);
+    free(volume);
 }

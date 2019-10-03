@@ -16,7 +16,7 @@ enum {N = 1024};
 
 #define FREAD(n, p, f) \
     do {								\
-	if (fread(p, sizeof(*(p)), (n), (f)) != (n)) {			\
+	if ((int)fread(p, sizeof(*(p)), (n), (f)) != (n)) {		\
 	    fprintf(stderr, "%s:%d: failt to read, n = %d\n", __FILE__, __LINE__, n); \
 	    exit(2);							\
 	}								\
