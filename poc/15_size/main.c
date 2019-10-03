@@ -231,8 +231,10 @@ main()
 
     for (i = 0; i < nt; i++) {
 	get3(&mesh, i, u, v, w);
-	printf("%ld %.16g %.16g\n",
-	       (long)c[i], tri_area(u, v, w), tri_volume(u, v, w));
+	if ((long)c[i] != -1) {
+	    printf("%ld %.16g %.16g\n",
+		   (long)c[i], tri_area(u, v, w), tri_volume(u, v, w));
+	}
     }
 
     free(t);

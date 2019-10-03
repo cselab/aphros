@@ -3,7 +3,7 @@ LINK = $(CC)
 CFLAGS = -g -Og
 M_LDFLAGS = -lm
 
-M = main
+M = main size
 
 all: $M
 .o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@
