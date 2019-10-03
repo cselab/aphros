@@ -297,7 +297,7 @@ main()
     MALLOC(nt, &c);
     u_ini(nv);
     for (i = 0 ; i < nt; i++) {
-	if (cl[i] < 0) continue;
+	//if (cl[i] < 0) continue;
 	u = t[3*i];
 	v = t[3*i + 1];
 	w = t[3*i + 2];
