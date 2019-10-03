@@ -1,0 +1,60 @@
+#!/bin/bash
+
+set -eu
+
+np=512
+nx=64
+r=0.1
+
+echo $np > np
+echo 1440 > tl
+
+./gen -nx $nx -np $np -mode osc -dim 3 -pos center\
+  -We 0 -La 12000 -tmax 10 -br 0.15\
+  -mu $r -rho $r -wally 0 -wallz 0\
+  -bcod 0 0 0 -bcor 0 0 0 -bcoh 0 0 0 \
+   -b2xr 2.25 0 0 -b2rr 1 \
+   -nb 2 -nfr 100
+
+
+t0=0
+t1=3
+f1x="0.3 0.5 0.5"
+f2x="0.7 0.5 0.5"
+cat > ch/add.conf << EOF
+set string dumpformat default
+set string dumplist
+
+set vect force_mov 0.005 0 0
+set vect force_mov_x0 0.12 0.5 0.5
+set vect force_mov_x1 $f1x
+set double force_mov_t0 0
+set double force_mov_t1 $t1
+set vect force_mov_sig 0.05 0.2 0.2
+
+set vect force_mov2 -0.005 0 0
+set vect force_mov2_x0 0.88 0.5 0.5
+set vect force_mov2_x1 $f2x
+set double force_mov2_t0 0
+set double force_mov2_t1 $t1
+set vect force_mov2_sig 0.05 0.2 0.2
+
+setnext string ev $t1 set vect force_mov_x0 $f1x
+setnext string ev $t1 set double force_mov_t0 $t1
+setnext string ev $t1 set double force_mov_t1 1e10
+
+setnext string ev $t1 set vect force_mov2_x0 $f2x
+setnext string ev $t1 set double force_mov2_t0 $t1
+setnext string ev $t1 set double force_mov2_t1 1e10
+
+
+set string conv exp
+set int max_iter 2
+#set double prelax 1
+#set double vrelax 1
+
+set double cflst 0.5
+
+set string advection_solver vofm
+
+EOF
