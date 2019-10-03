@@ -1,0 +1,9 @@
+#!/bin/sh
+
+for i
+do
+    ./size < "$i"
+done | \
+    awk '{print $4}' | \
+    gsl-histogram -u 0 0.03 30 | \
+    awk '{print ($1 + $2)/2, $3}'
