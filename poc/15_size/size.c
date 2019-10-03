@@ -97,22 +97,6 @@ scalar(FILE *f, int n, char *name, float *c)
 }
 
 static int
-vector(FILE *f, int n, char *name, float *c)
-{
-    char s[N];
-    line(s, f);
-    if (sscanf(s, "VECTORS %s float", name) != 1) {
-	fprintf(stderr, "%s:%d: expect VECTOR, got '%s'\n", __FILE__, __LINE__, s);
-	exit(2);
-    }
-    if ((int)fread(c, sizeof(*c), 3*n, f) != 3*n) {
-	fprintf(stderr, "%s:%d: failt to read, n = %d\n", __FILE__, __LINE__, n);
-	exit(2);
-    }
-    return 0;
-}
-
-static int
 get1(float *r, int i, /**/ float *a)
 {
     enum {X, Y, Z};
@@ -211,7 +195,7 @@ main()
     FILE *f;
     char s[N], name[N];
     int nv, nt, nb, u, v, w;
-    float *r, *nn;
+    float *r;
     double *cx, *cy, *cz, *dot;
     int *t, *t0, *a, *b, *id, *c, *cnt;
     int i, j, k;
@@ -290,11 +274,6 @@ main()
 	fprintf(stderr, "%s:%d: expect POINT_DATA, got '%s'\n", __FILE__, __LINE__, s);
 	exit(2);
     }
-    MALLOC(3*nv, &nn);
-    for (;;) {
-	vector(f, nv, name, nn);
-	if (eq(name, "nn")) break;
-    }
 
     u_ini(nv);
     for (i = 0 ; i < nt; i++) {
@@ -371,24 +350,6 @@ main()
 	if (cl[i] < 0)
 	    c[i] = -1;
 
-    printf("# vtk DataFile Version 2.0\n"
-	   "Interface from marching cubes\n"
-	   "BINARY\n"
-	   "DATASET POLYDATA\n"
-	   "POINTS %d float\n", nv);
-    swap(3*nv, sizeof(*r), r);
-    fwrite(r, sizeof(*r), 3*nv, stdout);
-    printf("POLYGONS %d %d\n", nt, 4*nt);
-    fwrite(t0, sizeof(*t0), 4*nt, stdout);
-    printf("CELL_DATA %d\n"
-	   "SCALARS cl int\n"
-	   "LOOKUP_TABLE default\n", nt);
-    swap(nt, sizeof(*c), c);
-    fwrite(c, sizeof(*c), nt, stdout);
-    printf("POINT_DATA %d\n"
-	   "VECTORS nn float\n", nv);
-    fwrite(nn, sizeof(*nn), 3*nv, stdout);
-
     u_fin();
     free(c);
     free(cl);
@@ -398,7 +359,6 @@ main()
     free(cy);
     free(cz);
     free(dot);
-    free(nn);
     free(r);
     free(t);
     free(t0);
