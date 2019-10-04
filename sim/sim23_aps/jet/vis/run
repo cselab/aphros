@@ -1,0 +1,2 @@
+./contvtk.py ../sm_*.vtk || true
+r.pngmp4
