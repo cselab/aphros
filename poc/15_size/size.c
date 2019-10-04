@@ -291,14 +291,11 @@ main()
     MALLOC(nt, &id);
     u_ini(nv);
     for (i = 0 ; i < nt; i++) {
-	if ((long)cl[i] == -1)
-	    continue;
 	u = t[3*i];
 	v = t[3*i + 1];
 	w = t[3*i + 2];
 	u_union(u, v);
 	u_union(v, w);
-	u_union(u, w);
     }
     for (i = 0; i < nt; i++) {
 	u = t[3*i];

@@ -1,0 +1,34 @@
+#!/usr/bin/awk -f
+
+BEGIN {
+      i = 0
+      me = "sphere"
+}
+
+{
+        if (!(NF >= 4))
+            msg("expecting NF >= 4, got \"%s\"", $0)
+        x[i] = $1; y[i] = $2; z[i] = $3; r[i] = $4
+}
+
+END {
+    if (ERR)
+        exit(ERR)
+
+}
+
+function msg(fmt, a, b, c, d)
+{
+        printf "%s: " fmt "\n", me, a, b, c, d | "cat >&2"
+}
+
+function err(fmt, a, b, c, d)
+{
+        msg(fmt, a, b, c, d)
+        exit(ERR = 2)
+}
+
+function iso(   i)
+{
+
+}
