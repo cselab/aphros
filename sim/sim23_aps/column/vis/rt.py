@@ -145,7 +145,7 @@ C = C2 if cam == 2 else C3 if cam == 3 else C1
 
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
-renderView1.ViewSize = [1000,1000]
+renderView1.ViewSize = [1920,1080]
 renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.OrientationAxesVisibility = 0
 renderView1.StereoType = 0
@@ -158,8 +158,13 @@ if cam == 3:
   renderView1.CameraParallelProjection = 1
 
 renderView1.Background = [0.0]*3
-renderView1.EnableOSPRay = 1
-renderView1.OSPRayRenderer = 'pathtracer'
+ospray = 1
+if hasattr(renderView1, 'EnableOSPray'):
+    renderView1.EnableOSPRay = ospray
+    renderView1.OSPRayRenderer = 'pathtracer'
+if hasattr(renderView1, 'EnableRayTracing'):
+    renderView1.EnableRayTracing = ospray
+    renderView1.BackEnd = 'pathtracer'
 renderView1.UseLight = 0
 renderView1.AdditionalLights = light1
 renderView1.AmbientSamples = 0
@@ -207,9 +212,10 @@ surfDisplay.OSPRayMaterial = 'water'
 
 # create a new 'Plane'
 planecells = Plane()
-planecells.Origin = [-0.02, 0.0, -0.02]
-planecells.Point1 = [0.04, 0.0, -0.02]
-planecells.Point2 = [-0.02, 0.0, 0.04]
+eps = 1e-6
+planecells.Origin = [-0.02, eps, -0.02]
+planecells.Point1 = [0.04, eps, -0.02]
+planecells.Point2 = [-0.02, eps, 0.04]
 planecells.XResolution = 15
 planecells.YResolution = 15
 planecellsDisplay = Show(planecells, renderView1)
