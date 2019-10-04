@@ -91,7 +91,7 @@ paraview.simple._DisableFirstRenderCameraReset()
 # ----------------------------------------------------------------
 
 light1 = CreateLight()
-light1.Intensity = 1.35
+light1.Intensity = 1
 light1.Position = [0.5, 20.0, 5.0]
 light1.FocalPoint = [0.5, 0.0, 0.5]
 light1.Radius = 10.0
@@ -136,6 +136,7 @@ C2 = [
 [0.0, 0.27177120267322913, -0.9623618931553486]
     ]
 
+# front
 C3 = [
 [0.009999999776482582, 0.01, 0.06999441558868025],
 [0.009999999776482582, 0.01, 0.009999999776482582],
@@ -147,6 +148,9 @@ C = C2 if cam == 2 else C3 if cam == 3 else C1
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
 renderView1.ViewSize = [1920,1080]
+if draft:
+    renderView1.ViewSize[0] = renderView1.ViewSize[0] // 2
+    renderView1.ViewSize[1] = renderView1.ViewSize[1] // 2
 renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.OrientationAxesVisibility = 0
 renderView1.StereoType = 0
@@ -159,8 +163,13 @@ if cam == 3:
   renderView1.CameraParallelProjection = 1
 
 renderView1.Background = [0.0]*3
-renderView1.EnableOSPRay = 1
-renderView1.OSPRayRenderer = 'pathtracer'
+ospray = 1
+if hasattr(renderView1, 'EnableOSPray'):
+    renderView1.EnableOSPRay = ospray
+    renderView1.OSPRayRenderer = 'pathtracer'
+if hasattr(renderView1, 'EnableRayTracing'):
+    renderView1.EnableRayTracing = ospray
+    renderView1.BackEnd = 'pathtracer'
 renderView1.UseLight = 0
 renderView1.AdditionalLights = light1
 renderView1.AmbientSamples = 0
@@ -201,6 +210,10 @@ surf.AttributeType = 'Point Data'
 surf.ResultArrayName = 'normals'
 surf.Function = 'nn'
 
+surf = Transform(Input=surf)
+surf.Transform = 'Transform'
+surf.Transform.Scale = [50.0]*3
+
 surfDisplay = Show(surf, renderView1)
 surfDisplay.Representation = 'Surface'
 surfDisplay.OSPRayMaterial = 'water'
@@ -219,7 +232,7 @@ planecellsDisplay.AmbientColor = [0.0, 0.0, 0.0]
 planecellsDisplay.ColorArrayName = [None, '']
 planecellsDisplay.DiffuseColor = [1.]*3
 planecellsDisplay.LineWidth = 0.5
-planecellsDisplay.EdgeColor = [0.6509803921568628, 0.6509803921568628, 0.6509803921568628]
+planecellsDisplay.EdgeColor = [0.65]*3
 
 
 planevert = Plane()
