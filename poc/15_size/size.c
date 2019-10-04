@@ -287,17 +287,12 @@ main()
 	if (eq(name, "cl")) break;
     }
     swap(nt, sizeof(*cl), cl);
-
-    while (line(s, f) == 0 && s[0] == '\0') ;
-    if (sscanf(s, "POINT_DATA %*d") != 0) {
-	fprintf(stderr, "%s:%d: expect POINT_DATA, got '%s'\n", __FILE__, __LINE__, s);
-	exit(2);
-    }
-
     MALLOC(nt, &c);
+    MALLOC(nt, &id);
     u_ini(nv);
     for (i = 0 ; i < nt; i++) {
-	//if (cl[i] < 0) continue;
+	if ((long)cl[i] == -1)
+	    continue;
 	u = t[3*i];
 	v = t[3*i + 1];
 	w = t[3*i + 2];
@@ -305,7 +300,6 @@ main()
 	u_union(v, w);
 	u_union(u, w);
     }
-    MALLOC(nt, &id);
     for (i = 0; i < nt; i++) {
 	u = t[3*i];
 	c[i] = u_find(u);
@@ -367,7 +361,7 @@ main()
     }
 
     for (i = 0; i < nt; i++)
-	if (cl[i] < 0)
+	if ((long)cl[i] == -1)
 	    c[i] = -1;
 
     MALLOC(nb, &volume);
