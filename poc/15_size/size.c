@@ -372,7 +372,7 @@ main()
 	volume[k] += tri_volume(x, y, z);
     }
 
-    //printf("x y z r\n");
+    printf("x y z r\n");
     for (i = 0; i < nb; i++) {
 	if ((V = volume[i]) < 0 || dot[i]>0)
 	    continue;
