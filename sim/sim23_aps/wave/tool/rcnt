@@ -1,0 +1,6 @@
+for f in sm_*.csv ; do
+  echo $f >&2
+  i=${f%.csv}
+  i=${i#sm_}
+  awk -v i=$i 'FNR>1{s+=$4**3 *4/3*3.1415} END {print i+0, s+0}' $f
+done > time.dat
