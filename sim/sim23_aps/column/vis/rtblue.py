@@ -91,10 +91,16 @@ paraview.simple._DisableFirstRenderCameraReset()
 # ----------------------------------------------------------------
 
 light1 = CreateLight()
-light1.Intensity = 1
-light1.Position = [0.5, 20.0, 5.0]
-light1.FocalPoint = [0.5, 0.0, 0.5]
+if cam == 1:
+    light1.Intensity = 1.2
+    light1.Position = [0.75, 5.0, 4.0]
+    light1.FocalPoint = [0.75, 0.5, 0.5]
+else:
+    light1.Intensity = 1
+    light1.Position = [0.75, 20.0, 5.0]
+    light1.FocalPoint = [0.75, 0.0, 0.5]
 light1.Radius = 10.0
+
 
 # get the material library
 mf = "m.json"
@@ -124,9 +130,9 @@ def S(v):
 
 
 C1 = [
-[0.015, 0.027013096538123955, 0.059872780080358526],
-[0.015, 0.00709686779203246, 0.008504584363965673],
-[0.0, 0.9463305128364528, -0.32320049578349425]
+[0.75, 0.4, 3.3],
+[0.75, 0.4, 0.842115796615787],
+[0, 1, 0]
     ]
 
 # top
@@ -173,7 +179,7 @@ if hasattr(renderView1, 'EnableRayTracing'):
 renderView1.UseLight = 0
 renderView1.AdditionalLights = light1
 renderView1.AmbientSamples = 0
-renderView1.SamplesPerPixel = 5 if draft else 50
+renderView1.SamplesPerPixel = 5 if draft else 30
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 
 
@@ -219,35 +225,34 @@ surfDisplay.Representation = 'Surface'
 surfDisplay.OSPRayMaterial = 'water'
 
 
-# create a new 'Plane'
-planecells = Plane()
-planecells.Origin = [-1.25, 0.001, -1.25]
-planecells.Point1 = [2.75, 0.001, -1.25]
-planecells.Point2 = [-1.25, 2.75, -1.25]
-planecells.XResolution = 20
-planecells.YResolution = 20
-planecellsDisplay = Show(planecells, renderView1)
-planecellsDisplay.Representation = 'Surface With Edges'
-planecellsDisplay.AmbientColor = [0.0, 0.0, 0.0]
-planecellsDisplay.ColorArrayName = [None, '']
-planecellsDisplay.DiffuseColor = [1.]*3
-planecellsDisplay.LineWidth = 0.5
-planecellsDisplay.EdgeColor = [0.65]*3
+bottom = Plane()
+bottom.Origin = [-2.25, 0.001, -2.25]
+bottom.Point1 = [3.75, 0.001, -2.25]
+bottom.Point2 = [-2.25, 0.001, 3.75]
+bottom.XResolution = 30
+bottom.YResolution = 30
+bottomDisplay = Show(bottom, renderView1)
+bottomDisplay.Representation = 'Surface With Edges'
+bottomDisplay.AmbientColor = [0.0, 0.0, 0.0]
+bottomDisplay.ColorArrayName = [None, '']
+bottomDisplay.DiffuseColor = [0.8]*3
+bottomDisplay.LineWidth = 0.5
+bottomDisplay.EdgeColor = [0.65]*3
 
 
-planevert = Plane()
-planevert.Origin = [-1.25, 0.001, -1.25]
-planevert.Point1 = [2.75, 0.001, -1.25]
-planevert.Point2 = [-1.25, 0.001, 2.75]
-planevert.XResolution = planecells.XResolution
-planevert.YResolution = planecells.YResolution
-planevertDisplay = Show(planevert, renderView1)
-planevertDisplay.Representation = 'Surface With Edges'
-planevertDisplay.AmbientColor = [0.0, 0.0, 0.0]
-planevertDisplay.ColorArrayName = [None, '']
-planevertDisplay.DiffuseColor = planecellsDisplay.DiffuseColor
-planevertDisplay.LineWidth = planecellsDisplay.LineWidth
-planevertDisplay.EdgeColor = planecellsDisplay.EdgeColor
+back = Plane()
+back.Origin = [-2.25, 0.001, -1.25]
+back.Point1 = [3.75, 0.001, -1.25]
+back.Point2 = [-2.25, 6.0, -1.25]
+back.XResolution = 30
+back.YResolution = 30
+backDisplay = Show(back, renderView1)
+backDisplay.Representation = 'Surface With Edges'
+backDisplay.AmbientColor = [0.0, 0.0, 0.0]
+backDisplay.ColorArrayName = [None, '']
+backDisplay.DiffuseColor = bottomDisplay.DiffuseColor
+backDisplay.LineWidth = bottomDisplay.LineWidth
+backDisplay.EdgeColor = bottomDisplay.EdgeColor
 
 
 #####################################################
