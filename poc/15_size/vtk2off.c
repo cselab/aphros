@@ -1,8 +1,6 @@
-#include <tgmath.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <search.h>
 #include "arg.h"
 
 enum { N = 1024 };

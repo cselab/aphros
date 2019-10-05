@@ -11,7 +11,7 @@ static char me[] = "ch.vtk2off";
 char *argv0;
 static int nv, nt;
 static float *r;
-static int *t;
+static int *t, *c;
 static float *cl;
 
 static void
@@ -260,13 +260,39 @@ write_vtk(void)
     FWRITE(4*nt, t0, f);
     free(t0);
     free(r0);
-    return 0;    
+    return 0;
+}
+
+static int
+color(int *pnc)
+{
+    ENTRY e, *p;
+    char s[42];
+    int i;
+    size_t j;
+    hcreate(nt);
+    MALLOC(nt, &c);
+
+    for (i = j = 0; i < nt; i++) {
+	sprintf(s, "%ld", (size_t)cl[i]);
+	e.key = s;
+	if (hsearch(e, FIND) == NULL) {
+	    e.data = (void*)(j++);
+	    hsearch(e, ENTER);
+	}
+	p = hsearch(e, FIND);
+	c[i] = (size_t)(p->data);
+    }
+    hdestroy();
+    *pnc = j;
+    return 0;
 }
 
 int
 main(int argc, char **argv)
 {
     int (*Write)(void);
+    int nc;
 
     Write = write_off;
     ARGBEGIN {
@@ -279,6 +305,8 @@ main(int argc, char **argv)
 
     read_vtk();
     wall();
+    color(&nc);
+    fprintf(stderr, "nc = %d\n", nc);
     Write();
 
     free(r);
