@@ -1,0 +1,6 @@
+#!/bin/sh
+
+for i
+do
+    ./area < "$i"
+done

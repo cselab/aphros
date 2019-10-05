@@ -6,9 +6,7 @@
 #include "h.h"
 
 enum { N = 1024 };
-static double pi = 3.141592653589793;
-static char me[] = "ch.size";
-static int UseCl, WriteVolume;
+static char me[] = "ch.area";
 
 char *argv0;
 static int nv, nt;
@@ -16,7 +14,7 @@ static float *r;
 static int *t, *t0, *c;
 static float *cl;
 static double *dot;
-static double *cx, *cy, *cz, *volume;
+static double *cx, *cy, *cz;
 static int *cnt;
 
 static void
@@ -48,6 +46,29 @@ struct Mesh {
     float *r;
     int *t;
 };
+
+static float
+sq(float x)
+{
+    return x * x;
+}
+
+static double
+tri_area(float *a, float *b, float *c)
+{
+    enum { X, Y, Z };
+    double bx, by, bz, cx, cy, cz, A;
+
+    bx = b[X] - a[X];
+    by = b[Y] - a[Y];
+    bz = b[Z] - a[Z];
+    cx = c[X] - a[X];
+    cy = c[Y] - a[Y];
+    cz = c[Z] - a[Z];
+    A = sq(by * cz - bz * cy) + sq(bz * cx - bx * cz) + sq(bx * cy -
+                                                           by * cx);
+    return sqrt(A) / 2;
+}
 
 double
 tri_volume_y(float *a, float *b, float *c)
@@ -357,38 +378,19 @@ color(int *pnb)
     MALLOC(nt, &c);
     MALLOC(nt, &id);
 
-    if (UseCl) {
-	int i, j, k;
-	float val;
-	h_ini(nt);
-	j = 0;
-	k = j++;
-	h_enter(0, k);
-	for (i = 1; i < nt; i++) {
-	    val = cl[i];
-	    k = h_find(val);
-	    if (k == -1) {
-		k = j++;
-		h_enter(val, k);
-	    }
-	    c[i] = k;
-	}
-	h_fin();
-    } else {
-	u_ini(nv);
-	for (i = 0; i < nt; i++) {
-	    u = t[3 * i];
-	    v = t[3 * i + 1];
-	    w = t[3 * i + 2];
-	    u_union(u, v);
-	    u_union(v, w);
-	}
-	for (i = 0; i < nt; i++) {
-	    u = t[3 * i];
-	    c[i] = u_find(u);
-	}
-	u_fin();
+    u_ini(nv);
+    for (i = 0; i < nt; i++) {
+	u = t[3 * i];
+	v = t[3 * i + 1];
+	w = t[3 * i + 2];
+	u_union(u, v);
+	u_union(v, w);
     }
+    for (i = 0; i < nt; i++) {
+	u = t[3 * i];
+	c[i] = u_find(u);
+    }
+    u_fin();
 
     for (i = 0; i < nt; i++)
 	id[i] = -1;
@@ -452,57 +454,34 @@ color(int *pnb)
 int
 main(int argc, char **argv)
 {
-    double R, V;
     int i, k, nb;
     struct Mesh mesh;
     float x[3], y[3], z[3];
+    double A;
 
-    UseCl = WriteVolume = 0;
     ARGBEGIN {
-	case 'c':
-	    UseCl = 1;
-	    break;
-	case 'v':
-	    WriteVolume = 1;
-	    break;
 	case 'h':
 	    usg();
     } ARGEND;
 
     read_vtk();
-    wall();
+    //wall();
     color(&nb);
-    MALLOC(nb, &volume);
     mesh.r = r;
     mesh.t = t;
     mesh.nt = nt;
     mesh.nv = nv;
-    for (i = 0; i < nb; i++)
-	volume[i] = 0;
-    for (i = 0; i < nt; i++) {
-	if (c[i] == -1)
-	    continue;
-	k = c[i];
-	get3(&mesh, i, x, y, z);
-	volume[k] += tri_volume_y(x, y, z);
-    }
 
-    if (WriteVolume) {
-	V = 0;
-	for (i = 0; i < nb; i++)
-	    if (volume[i] > 0 && dot[i] < 0)
-		V += fabs(volume[i]);
-	printf("%.16g\n", V);
-    } else {
-	printf("x y z r n\n");
-	for (i = 0; i < nb; i++)
-	    if (volume[i] > 0 && dot[i] < 0) {
-		V = volume[i];
-		R = pow(3 * V / (4 * pi), 1.0 / 3.0);
-		printf("%.16e %.16e %.16e %.16e %d\n",
-		       cx[i], cy[i], cz[i], R, cnt[i]);
-	    }
+    A = 0;
+    for (i = 0; i < nt; i++) {
+	k = c[i];
+	if (k > 0 && dot[k] < 0) {
+	    k = c[i];
+	    get3(&mesh, i, x, y, z);
+	    A += tri_area(x, y, z);
+	}
     }
+    printf("%.16g\n", A);
 
     free(c);
     free(cl);
@@ -514,5 +493,4 @@ main(int argc, char **argv)
     free(r);
     free(t);
     free(t0);
-    free(volume);
 }

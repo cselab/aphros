@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <search.h>
+#include "h.h"
 #include "arg.h"
 
 enum { N = 1024 };
@@ -10,9 +11,10 @@ static char me[] = "ch.vtk2off";
 
 char *argv0;
 static int nv, nt;
-static float *r;
+static float *r, *d, *cl, *vol;
+static double *field;
 static int *t, *c;
-static float *cl;
+static int *c, *v2t;
 
 #define MALLOC(n, p)							\
     do {								\
@@ -39,7 +41,111 @@ static float *cl;
 	}								\
 } while(0)
 #define SWAP(n, p) swap(n, sizeof(*(p)), p)
-#define HASH(x, s) hash(x, sizeof(*(x)), s)
+
+static int
+get1(int i, /**/ float *a)
+{
+    enum { X, Y, Z };
+
+    a[X] = r[3 * i + X];
+    a[Y] = r[3 * i + Y];
+    a[Z] = r[3 * i + Z];
+    return 0;
+}
+
+static int
+get3(int m, /**/ float *a, float *b, float *c)
+{
+    int i, j, k;
+    i = t[3 * m];
+    j = t[3 * m + 1];
+    k = t[3 * m + 2];
+    get1(i, a);
+    get1(j, b);
+    get1(k, c);
+    return 0;
+}
+
+static int
+tri_center(float *a, float *b, float *c, /**/ double *x, double *y,
+	   double *z)
+{
+    enum { X, Y, Z };
+
+    *x += (a[X] + b[X] + c[X]) / 3;
+    *y += (a[Y] + b[Y] + c[Y]) / 3;
+    *z += (a[Z] + b[Z] + c[Z]) / 3;
+    return 0;
+}
+
+static double
+sq(double x)
+{
+    return sq(x);
+}
+static double
+tri_area(float *a, float *b, float *c)
+{
+    enum { X, Y, Z };
+    double bx, by, bz, cx, cy, cz, A;
+
+    bx = b[X] - a[X];
+    by = b[Y] - a[Y];
+    bz = b[Z] - a[Z];
+    cx = c[X] - a[X];
+    cy = c[Y] - a[Y];
+    cz = c[Z] - a[Z];
+    A = sq(by * cz - bz * cy) + sq(bz * cx - bx * cz) + sq(bx * cy -
+                                                           by * cx);
+    return sqrt(A) / 2;
+}
+
+double
+tri_volume_y(float *a, float *b, float *c)
+{
+    enum {X, Y, Z};
+    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
+
+    ax = a[X];
+    ay = a[Y];
+    az = a[Z];
+    bx = b[X];
+    by = b[Y];
+    bz = b[Z];
+    cx = c[X];
+    cy = c[Y];
+    cz = c[Z];
+
+    V = (cy+by+ay)*((bz-az)*(cx-ax)-(bx-ax)*(cz-az));
+    return V/6;
+}
+
+double tri_volume_n(float *a, float *b, float *c)
+{
+    return 1;
+}
+
+static double
+tri_volume(float *a, float *b, float *c)
+{
+    enum { X, Y, Z };
+    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
+
+    ax = a[X];
+    ay = a[Y];
+    az = a[Z];
+    bx = b[X];
+    by = b[Y];
+    bz = b[Z];
+    cx = c[X];
+    cy = c[Y];
+    cz = c[Z];
+
+    V = (ax * by - ay * bx) * cz + (az * bx - ax * bz) * cy + (ay * bz -
+                                                               az * by) *
+        cx;
+    return V / 6;
+}
 
 static void
 usg(void)
@@ -179,6 +285,7 @@ read_vtk(void)
 	    break;
     }
     SWAP(nt, cl);
+    free(t0);
     return 0;
 }
 
@@ -235,12 +342,13 @@ static int
 write_vtk(void)
 {
     FILE *f;
-    int i, j, k, *t0;
+    int i, j, k, *t0, *c0;
     float *r0;
 
     f = stdout;
     MALLOC(4*nt, &t0);
     MALLOC(3*nv, &r0);
+    MALLOC(nt, &c0);
     for (i = 0; i < 3*nv; i++)
 	r0[i] = r[i];
     for (i = j = k = 0; i < nt; i++) {
@@ -249,8 +357,11 @@ write_vtk(void)
 	t0[j++] = t[k++];
 	t0[j++] = t[k++];
     }
+    for (i = 0; i < nt; i++)
+	c0[i] = c[i];
     SWAP(3*nv, r0);
     SWAP(4*nt, t0);
+    SWAP(nt, c0);
     fprintf(f, "# vtk DataFile Version 2.0\n"
 	    "Interface from marching cubes\n"
 	    "BINARY\n"
@@ -260,49 +371,40 @@ write_vtk(void)
     fprintf(f, "POLYGONS %d %d\n", nt, 4*nt);
     FWRITE(4*nt, t0, f);
     fprintf(f, "CELL_DATA %d\n"
-	    "SCALARS c int\n"
+	    "SCALARS cl int\n"
 	    "LOOKUP_TABLE default\n", nt);
-    for (i = 0; i < nt; i++) {
-	t0[i] = c[i];
-    }
-    SWAP(nt, t0);
-    FWRITE(nt, t0, f);
+    FWRITE(nt, c0, f);
+    fprintf(f, "SCALARS area double\n"
+	    "LOOKUP_TABLE default\n");
+    SWAP(nt, field);
+    FWRITE(nt, field, f);
+
     free(t0);
     free(r0);
+    free(c0);
     return 0;
 }
 
-static void
-hash(const void *p0, int n, char *s)
-{
-    const char *p;
-    int i;
-    p = p0;
-    for (i = 0; i < n; i++)
-	s[i] = p[i];
-    s[n] = '\0';
-}
 static int
 color(int *pnc)
 {
-    ENTRY e, *p;
-    char s[42];
-    int i;
-    size_t j;
-    float c0;
+    int i, j, k;
+    float val;
 
-    hcreate(nt);
     MALLOC(nt, &c);
-    for (i = j = 0; i < nt; i++) {
-	c0 = cl[i];
-	HASH(&c0, s);
-	e.key = s;
-	if (hsearch(e, FIND) == NULL) {
-	    e.data = (void*)(j++);
-	    hsearch(e, ENTER);
+    hcreate(nt);
+
+    j = 0;
+    k = j++;
+    h_enter(0, k);
+    for (i = 0; i < nt; i++) {
+	val = cl[i];
+	k = h_find(val);
+	if (k == -1) {
+	    k = j++;
+	    h_enter(val, k);
 	}
-	p = hsearch(e, FIND);
-	c[i] = (size_t)(p->data);
+	c[i] = k;
     }
     hdestroy();
     *pnc = j;
@@ -313,7 +415,11 @@ int
 main(int argc, char **argv)
 {
     int (*Write)(void);
-    int nc;
+    int nc, i, j, k, m;
+    float x[3], y[3], z[3];
+    double *cx, *cy, *cz;
+    double ux, uy, uz, vx, vy, vz;
+    enum {X, Y, Z};
 
     Write = write_off;
     ARGBEGIN {
@@ -327,9 +433,89 @@ main(int argc, char **argv)
     read_vtk();
     wall();
     color(&nc);
-    fprintf(stderr, "nc = %d\n", nc);
-    Write();
+    MALLOC(nc, &vol);
+    MALLOC(nc, &cx);
+    MALLOC(nc, &cy);
+    MALLOC(nc, &cz);
+    MALLOC(nt, &field);
 
+    for (i = 0; i < nc; i++)
+	cx[i] = cy[i] = cz[i] = vol[i] = 0;
+    for (i = 0; i < nt; i++) {
+	k = c[i];
+	get3(i, x, y, z);
+	cx[k] = x[X];
+	cy[k] = x[Y];
+	cz[k] = x[Z];
+    }
+    MALLOC(3*nt, &d);
+    MALLOC(nv, &v2t);
+    for (i = 0; i < nv; i++)
+	v2t[i] = -1;
+    
+    for (m = 0; m < nt; m++) {
+	i = t[3 * m];
+	j = t[3 * m + 1];
+	k = t[3 * m + 2];
+	v2t[i] = v2t[j] = v2t[k] = m;
+    }
+    
+    for (i = 0; i < 3*nt; i++)
+	d[i] = 0;
+
+    double L[3];
+    float *d0;
+    L[X] = 2;
+    L[Z] = 1;
+    for (i = 0; i < nt; i++) {
+	k = c[i];
+	get3(i, x, y, z);
+	ux = uy = uz = 0;
+	vx = cx[k];
+	vy = cy[k];
+	vz = cz[k];
+	tri_center(x, y, z, &ux, &uy, &uz);
+	d0 = &d[3*i];
+	if (fabs(ux + L[X] - vx) < fabs(ux - vx))
+	    d0[X] += L[X];
+	if (fabs(ux - L[X] - vx) < fabs(ux - vx))
+	    d0[X] -= L[X];
+	if (fabs(uz + L[Z] - vz) < fabs(uz - vz))
+	    d0[Z] += L[Z];
+	if (fabs(uz - L[Z] - vz) < fabs(uz - vz))
+	    d0[Z] -= L[Z];
+    }
+
+    for (i = 0; i < nv; i++) {
+	m = v2t[i];
+	if (m != -1 && c[m] > 0) {
+	    r[3*i + X] += d[3*m + X];
+	    r[3*i + Y] += d[3*m + Y];
+	    r[3*i + Z] += d[3*m + Z];
+	}
+    }
+
+    for (i = 0; i < nt; i++) {
+	k = c[i];
+	if (k != 0) {
+	    get3(i, x, y, z);
+	    vol[k] += tri_area(x, y, z);
+	}
+    }
+    
+    for (i = 0; i < nt; i++) {
+	k = c[i];
+	field[i] = vol[k];
+    }
+
+    Write();
+    free(v2t);
+    free(d);
+    free(field);
+    free(vol);
+    free(cx);
+    free(cy);
+    free(cz);
     free(r);
     free(t);
     free(cl);

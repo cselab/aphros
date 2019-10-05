@@ -1,11 +1,12 @@
 .POSIX:
 LINK = $(CC)
 CFLAGS = -g -Og
-M_LDFLAGS = -lm
+M_LDFLAGS = h.o -lm
 
-M = main size vtk2off vtk2off2
+M = area main size vtk2off vtk2off2 hash
 
 all: $M
+$M: h.o
 .o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@
 .c.o:; $(CC) $(CFLAGS) $< -c
 
