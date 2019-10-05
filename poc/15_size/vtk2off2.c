@@ -11,7 +11,7 @@ static char me[] = "ch.vtk2off";
 char *argv0;
 static int nv, nt;
 static float *r;
-static int *t, *t0;
+static int *t;
 static float *cl;
 
 static void
@@ -111,7 +111,7 @@ read_vtk(void)
 {
     FILE *f;
     char s[N], name[N];
-    int i, *a, *b;
+    int i, *a, *b, *t0;
 
     f = stdin;
     if (line(s, f) != 0) {
@@ -216,7 +216,7 @@ write_off()
 static int
 wall(void)
 {
-    int i, j, k;
+    int i, j;
     for (i = j = 0; i < nt; i++)
     {
 	if ((int)cl[i] != -1) {
@@ -227,6 +227,7 @@ wall(void)
 	}
     }
     nt = j;
+    return 0;
 }
 
 static int
@@ -282,6 +283,5 @@ main(int argc, char **argv)
 
     free(r);
     free(t);
-    free(t0);
     free(cl);
 }

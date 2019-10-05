@@ -11,7 +11,7 @@ static char me[] = "ch.vtk2off";
 char *argv0;
 static int nv, nt;
 static float *r;
-static int *t, *t0;
+static int *t;
 
 static void
 usg(void)
@@ -89,7 +89,7 @@ read_vtk(void)
 {
     FILE *f;
     char s[N];
-    int i, *a, *b;
+    int i, *a, *b, *t0;
 
     f = stdin;
     if (line(s, f) != 0) {
@@ -143,6 +143,7 @@ read_vtk(void)
 	*a++ = *b++;
     }
     swap(3 * nt, sizeof(*t), t);
+    free(t0);
     return 0;
 }
 
@@ -186,5 +187,4 @@ main(int argc, char **argv)
     
     free(r);
     free(t);
-    free(t0);
 }
