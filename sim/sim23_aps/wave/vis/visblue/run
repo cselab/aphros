@@ -1,0 +1,2 @@
+./rtblue.py ../sm_*.vtk || true
+r=30 r.pngmp4
