@@ -71,13 +71,6 @@ line(char *s, FILE * f)
 }
 
 static int
-read_vtk(FILE * f)
-{
-    return 0;
-}
-
-
-static int
 tri_center(float *a, float *b, float *c, /**/ double *x, double *y,
            double *z)
 {

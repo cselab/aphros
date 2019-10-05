@@ -249,7 +249,6 @@ main()
     mesh.c = c;
     mesh.nt = nt;
     mesh.nv = nv;
-
     for (i = 0; i < nt; i++) {
         get3(&mesh, i, u, v, w);
         if ((long) c[i] != -1) {
