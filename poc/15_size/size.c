@@ -69,27 +69,6 @@ tri_volume_y(float *a, float *b, float *c)
     return V/6;
 }
 
-static double
-tri_volume(float *a, float *b, float *c)
-{
-    enum { X, Y, Z };
-    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
-
-    ax = a[X];
-    ay = a[Y];
-    az = a[Z];
-    bx = b[X];
-    by = b[Y];
-    bz = b[Z];
-    cx = c[X];
-    cy = c[Y];
-    cz = c[Z];
-
-    V = (ax * by - ay * bx) * cz + (az * bx - ax * bz) * cy + (ay * bz -
-							       az * by) *
-	cx;
-    return V / 6;
-}
 
 static int
 eq(const char *a, const char *b)
