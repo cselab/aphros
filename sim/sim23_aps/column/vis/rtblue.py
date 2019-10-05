@@ -59,6 +59,8 @@ def CheckFlag(name):
 
 
 cam = 1  # view from side perspective
+if CheckFlag('-C1'):  # view from top
+    cam = 1
 if CheckFlag('-C2'):  # view from top
     cam = 2
 if CheckFlag('-C3'):  # view from side parallel
@@ -91,7 +93,7 @@ paraview.simple._DisableFirstRenderCameraReset()
 # ----------------------------------------------------------------
 
 light1 = CreateLight()
-if cam == 1:
+if cam != 2:
     light1.Intensity = 1.2
     light1.Position = [0.75, 5.0, 4.0]
     light1.FocalPoint = [0.75, 0.5, 0.5]
@@ -142,11 +144,11 @@ C2 = [
 [0.0, 0.27177120267322913, -0.9623618931553486]
     ]
 
-# front
+# below
 C3 = [
-[0.009999999776482582, 0.01, 0.06999441558868025],
-[0.009999999776482582, 0.01, 0.009999999776482582],
-[0.0, 1.0, 0.0]
+[0.7500000000000002, 0.05, 4.5],
+[0.7500000000000002, 0.7, 0.4],
+[0.0, 0.9825952104266916, -0.1857596631309544]
     ]
 
 C = C2 if cam == 2 else C3 if cam == 3 else C1
@@ -236,7 +238,7 @@ bottomDisplay.Representation = 'Surface With Edges'
 bottomDisplay.AmbientColor = [0.0, 0.0, 0.0]
 bottomDisplay.ColorArrayName = [None, '']
 bottomDisplay.DiffuseColor = [0.8]*3
-bottomDisplay.LineWidth = 0.5
+bottomDisplay.LineWidth = 0.25
 bottomDisplay.EdgeColor = [0.65]*3
 
 
