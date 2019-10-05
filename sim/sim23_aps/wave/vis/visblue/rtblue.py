@@ -70,6 +70,7 @@ if CheckFlag('-C4'):
 
 draft = CheckFlag('-draft')
 fine = CheckFlag('-fine')
+fine2 = CheckFlag('-fine2')
 
 # vf input
 ff = natsorted(av[1:])
@@ -173,7 +174,7 @@ if hasattr(renderView1, 'EnableRayTracing'):
 renderView1.UseLight = 0
 renderView1.AdditionalLights = light2
 renderView1.AmbientSamples = 1
-renderView1.SamplesPerPixel = 5 if draft else (100 if fine else 50)
+renderView1.SamplesPerPixel = 5 if draft else (400 if fine2 else (100 if fine else 50))
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 
 
