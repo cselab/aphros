@@ -21,6 +21,7 @@ int
 h_fin(void)
 {
     hdestroy();
+    return 0;
 }
 
 int
