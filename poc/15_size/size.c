@@ -49,6 +49,25 @@ struct Mesh {
     int *t;
 };
 
+tri_volume_y(float *a, float *b, float *c)
+{
+    enum {X, Y, Z};
+    double ax, ay, az, bx, by, bz, cx, cy, cz, V;
+
+    ax = a[X];
+    ay = a[Y];
+    az = a[Z];
+    bx = b[X];
+    by = b[Y];
+    bz = b[Z];
+    cx = c[X];
+    cy = c[Y];
+    cz = c[Z];
+
+    V = -(cy+by+ay)*((bz-az)*(cx-ax)-(bx-ax)*(cz-az));
+    return V/6;
+}
+
 static float
 tri_volume(float *a, float *b, float *c)
 {
@@ -468,25 +487,24 @@ main(int argc, char **argv)
 	    continue;
 	k = c[i];
 	get3(&mesh, i, x, y, z);
-	volume[k] += tri_volume(x, y, z);
+	volume[k] += tri_volume_y(x, y, z);
     }
 
     if (WriteVolume) {
 	V = 0;
-	for (i = 0; i < nb; i++) {
-	    if ((volume[i]) > 0 && dot[i] < 0)
-		V += (volume[i]);
+	for (i = 0; i < nb; i++)
+	    if (volume[i] > 0 && dot[i] < 0) {
+	    V += volume[i];
 	}
 	printf("%.16g\n", V);
     } else {
 	printf("x y z r n\n");
-	for (i = 0; i < nb; i++) {
-	    if ((V = volume[i]) < 0 && dot[i] > 0)
-		continue;
-	    R = pow(3 * V / (4 * pi), 1.0 / 3.0);
-	    printf("%.16e %.16e %.16e %.16e %d\n",
-		   cx[i], cy[i], cz[i], R, cnt[i]);
-	}
+	for (i = 0; i < nb; i++)
+	    if (V = volume[i] > 0 && dot[i] < 0) {
+		R = pow(3 * V / (4 * pi), 1.0 / 3.0);
+		printf("%.16e %.16e %.16e %.16e %d\n",
+		       cx[i], cy[i], cz[i], R, cnt[i]);
+	    }
     }
 
     free(c);
