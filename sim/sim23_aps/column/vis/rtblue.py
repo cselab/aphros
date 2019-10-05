@@ -93,8 +93,8 @@ paraview.simple._DisableFirstRenderCameraReset()
 # ----------------------------------------------------------------
 
 light1 = CreateLight()
-if cam != 2:
-    light1.Intensity = 1.2
+if cam == 3:
+    light1.Intensity = 1.6
     light1.Position = [0.75, 5.0, 4.0]
     light1.FocalPoint = [0.75, 0.5, 0.5]
 else:
@@ -146,7 +146,7 @@ C2 = [
 
 # below
 C3 = [
-[0.7500000000000002, 0.05, 4.5],
+[0.7500000000000002, 0.05, 2.5],
 [0.7500000000000002, 0.7, 0.4],
 [0.0, 0.9825952104266916, -0.1857596631309544]
     ]
@@ -166,10 +166,6 @@ renderView1.CameraPosition = S(C[0])
 renderView1.CameraFocalPoint = S(C[1])
 renderView1.CameraViewUp = C[2]
 
-if cam == 3:
-  renderView1.CameraParallelScale = 0.01*ext
-  renderView1.CameraParallelProjection = 1
-
 renderView1.Background = [0.0]*3
 ospray = 1
 if hasattr(renderView1, 'EnableOSPray'):
@@ -178,9 +174,10 @@ if hasattr(renderView1, 'EnableOSPray'):
 if hasattr(renderView1, 'EnableRayTracing'):
     renderView1.EnableRayTracing = ospray
     renderView1.BackEnd = 'pathtracer'
+    renderView1.Denoise = 1
 renderView1.UseLight = 0
 renderView1.AdditionalLights = light1
-renderView1.AmbientSamples = 0
+renderView1.AmbientSamples = 1
 renderView1.SamplesPerPixel = 5 if draft else 30
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 
@@ -235,11 +232,11 @@ bottom.XResolution = 30
 bottom.YResolution = 30
 bottomDisplay = Show(bottom, renderView1)
 bottomDisplay.Representation = 'Surface With Edges'
-bottomDisplay.AmbientColor = [0.0, 0.0, 0.0]
+bottomDisplay.AmbientColor = [0.5]*3
 bottomDisplay.ColorArrayName = [None, '']
-bottomDisplay.DiffuseColor = [0.8]*3
-bottomDisplay.LineWidth = 0.25
-bottomDisplay.EdgeColor = [0.65]*3
+bottomDisplay.DiffuseColor = [0.5]*3
+bottomDisplay.LineWidth = 0.5
+bottomDisplay.EdgeColor = [0.37]*3
 
 
 back = Plane()
@@ -250,11 +247,11 @@ back.XResolution = 30
 back.YResolution = 30
 backDisplay = Show(back, renderView1)
 backDisplay.Representation = 'Surface With Edges'
-backDisplay.AmbientColor = [0.0, 0.0, 0.0]
+backDisplay.AmbientColor = [1.]*3
 backDisplay.ColorArrayName = [None, '']
-backDisplay.DiffuseColor = bottomDisplay.DiffuseColor
+backDisplay.DiffuseColor = [1.]*3
 backDisplay.LineWidth = bottomDisplay.LineWidth
-backDisplay.EdgeColor = bottomDisplay.EdgeColor
+backDisplay.EdgeColor = [0.65]*3
 
 
 #####################################################
