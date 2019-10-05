@@ -3,7 +3,7 @@ LINK = $(CC)
 CFLAGS = -g -Og
 M_LDFLAGS = -lm
 
-M = main size
+M = main size vtk2off
 
 all: $M
 .o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@
