@@ -14,13 +14,6 @@ static float *r;
 static int *t, *c;
 static float *cl;
 
-static void
-usg(void)
-{
-    fprintf(stderr, "usage: %s < VTK > OFF\n", me);
-    exit(0);
-}
-
 #define MALLOC(n, p)							\
     do {								\
 	*(p) = malloc(n*sizeof(**(p)));					\
@@ -45,8 +38,15 @@ usg(void)
 	    exit(2);							\
 	}								\
 } while(0)
-
 #define SWAP(n, p) swap(n, sizeof(*(p)), p)
+#define HASH(x, s) hash(x, sizeof(*(x)), s)
+
+static void
+usg(void)
+{
+    fprintf(stderr, "usage: %s < VTK > OFF\n", me);
+    exit(0);
+}
 
 static int
 eq(const char *a, const char *b)
@@ -259,6 +259,14 @@ write_vtk(void)
     FWRITE(3*nv, r0, f);
     fprintf(f, "POLYGONS %d %d\n", nt, 4*nt);
     FWRITE(4*nt, t0, f);
+    fprintf(f, "CELL_DATA %d\n"
+	    "SCALARS c int\n"
+	    "LOOKUP_TABLE default\n", nt);
+    for (i = 0; i < nt; i++) {
+	t0[i] = c[i];
+    }
+    SWAP(nt, t0);
+    FWRITE(nt, t0, f);
     free(t0);
     free(r0);
     return 0;
@@ -274,8 +282,6 @@ hash(const void *p0, int n, char *s)
 	s[i] = p[i];
     s[n] = '\0';
 }
-#define HASH(x, s) hash(x, sizeof(*(x)), s)
-
 static int
 color(int *pnc)
 {

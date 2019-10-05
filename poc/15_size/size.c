@@ -328,6 +328,24 @@ read_vtk(void)
 }
 
 static int
+wall(void)
+{
+    int i, j;
+    for (i = j = 0; i < nt; i++)
+    {
+	if (cl[i] != -1) {
+	    t[3*j] = t[3*i];
+	    t[3*j+1] = t[3*i+1];
+	    t[3*j+2] = t[3*i+2];
+	    cl[j] = cl[i];
+	    j++;
+	}
+    }
+    nt = j;
+    return 0;
+}
+
+static int
 color(int *pnb)
 {
     int nb, u, v, w;
@@ -425,9 +443,6 @@ color(int *pnb)
 	if (k != 0 && dot[k] > 0)
 	    c[i] = 0;
     }
-    for (i = 0; i < nt; i++)
-	if ((long) cl[i] == -1)
-	    c[i] = -1;
     free(id);
     *pnb = nb;
     return 0;
@@ -454,6 +469,7 @@ main(int argc, char **argv)
     } ARGEND;
 
     read_vtk();
+    wall();
     color(&nb);
     MALLOC(nb, &volume);
     mesh.r = r;
