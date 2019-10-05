@@ -223,6 +223,7 @@ wall(void)
 	    t[3*j] = t[3*i];
 	    t[3*j+1] = t[3*i+1];
 	    t[3*j+2] = t[3*i+2];
+	    cl[j] = cl[i];
 	    j++;
 	}
     }
@@ -263,6 +264,18 @@ write_vtk(void)
     return 0;
 }
 
+static void
+hash(const void *p0, int n, char *s)
+{
+    const char *p;
+    int i;
+    p = p0;
+    for (i = 0; i < n; i++)
+	s[i] = p[i];
+    s[n] = '\0';
+}
+#define HASH(x, s) hash(x, sizeof(*(x)), s)
+
 static int
 color(int *pnc)
 {
@@ -270,11 +283,13 @@ color(int *pnc)
     char s[42];
     int i;
     size_t j;
+    float c0;
+
     hcreate(nt);
     MALLOC(nt, &c);
-
     for (i = j = 0; i < nt; i++) {
-	sprintf(s, "%ld", (size_t)cl[i]);
+	c0 = cl[i];
+	HASH(&c0, s);
 	e.key = s;
 	if (hsearch(e, FIND) == NULL) {
 	    e.data = (void*)(j++);
