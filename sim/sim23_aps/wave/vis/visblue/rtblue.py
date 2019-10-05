@@ -69,6 +69,7 @@ if CheckFlag('-C4'):
     cam = 4
 
 draft = CheckFlag('-draft')
+fine = CheckFlag('-fine')
 
 # vf input
 ff = natsorted(av[1:])
@@ -100,7 +101,7 @@ light2.Type = 'Positional'
 light2.Position = [3.0, 5.0, 3.0]
 light2.FocalPoint = [0.8, 0.5, 0.2]
 light2.ConeAngle = 15.0
-light2.Radius = 0.5
+light2.Radius = 1
 
 
 # get the material library
@@ -172,7 +173,7 @@ if hasattr(renderView1, 'EnableRayTracing'):
 renderView1.UseLight = 0
 renderView1.AdditionalLights = light2
 renderView1.AmbientSamples = 1
-renderView1.SamplesPerPixel = 5 if draft else 50
+renderView1.SamplesPerPixel = 5 if draft else (100 if fine else 50)
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 
 
