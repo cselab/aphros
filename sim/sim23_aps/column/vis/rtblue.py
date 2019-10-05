@@ -92,16 +92,21 @@ paraview.simple._DisableFirstRenderCameraReset()
 # RENDER
 # ----------------------------------------------------------------
 
-light1 = CreateLight()
-if cam == 3:
-    light1.Intensity = 1.6
-    light1.Position = [0.75, 5.0, 4.0]
-    light1.FocalPoint = [0.75, 0.5, 0.5]
-else:
-    light1.Intensity = 1
-    light1.Position = [0.75, 20.0, 5.0]
-    light1.FocalPoint = [0.75, 0.0, 0.5]
-light1.Radius = 10.0
+light2 = CreateLight()
+light2.Intensity = 40.0
+light2.Type = 'Positional'
+light2.Position = [0.75, 5.0, 5.0]
+light2.FocalPoint = [0.75, 2.0, 0.0]
+light2.ConeAngle = 15.0
+light2.Radius = 0.5
+
+light3 = CreateLight()
+light3.Intensity = 30.0
+light3.Type = 'Positional'
+light3.Position = [0.7500000000000003, 5.0, 2.0]
+light3.FocalPoint = [0.7500000000000003, 0.5, 0.75]
+light3.ConeAngle = 14.0
+light3.Radius = 0.2
 
 
 # get the material library
@@ -131,17 +136,18 @@ def S(v):
   return np.array(v) * ext
 
 
+# front
 C1 = [
-[0.75, 0.4, 3.3],
-[0.75, 0.4, 0.842115796615787],
-[0, 1, 0]
+[0.7500000000000001, 0.7516697075897895, 1.9480740875777498],
+[0.7500000000000001, 0.6365911653995612, 0.4524949592373693],
+[0.0, 0.9970527522269202, -0.07671902812681881]
     ]
 
 # top
 C2 = [
-[0.7500000000000001, 2.8113238646327012, 1.2945544554455446],
-[0.7500000000000001, 0.4467885628015819, 0.75],
-[0.0, 0.27177120267322913, -0.9623618931553486]
+[0.7500000000000003, 2.887798073474247, 1.5346513044321786],
+[0.7500000000000003, 0.4997215903702232, 0.7860862126109397],
+[0.0, 0.3085046033011451, -0.951222849674041]
     ]
 
 # below
@@ -176,7 +182,7 @@ if hasattr(renderView1, 'EnableRayTracing'):
     renderView1.BackEnd = 'pathtracer'
     renderView1.Denoise = 1
 renderView1.UseLight = 0
-renderView1.AdditionalLights = light1
+renderView1.AdditionalLights = [light2, light3]
 renderView1.AmbientSamples = 1
 renderView1.SamplesPerPixel = 5 if draft else 30
 renderView1.OSPRayMaterialLibrary = materialLibrary1
@@ -232,11 +238,11 @@ bottom.XResolution = 30
 bottom.YResolution = 30
 bottomDisplay = Show(bottom, renderView1)
 bottomDisplay.Representation = 'Surface With Edges'
-bottomDisplay.AmbientColor = [0.5]*3
+bottomDisplay.AmbientColor = [1.]*3
 bottomDisplay.ColorArrayName = [None, '']
-bottomDisplay.DiffuseColor = [0.5]*3
+bottomDisplay.DiffuseColor = [1.]*3
 bottomDisplay.LineWidth = 0.5
-bottomDisplay.EdgeColor = [0.37]*3
+bottomDisplay.EdgeColor = [0.75]*3
 
 
 back = Plane()
@@ -251,7 +257,7 @@ backDisplay.AmbientColor = [1.]*3
 backDisplay.ColorArrayName = [None, '']
 backDisplay.DiffuseColor = [1.]*3
 backDisplay.LineWidth = bottomDisplay.LineWidth
-backDisplay.EdgeColor = [0.65]*3
+backDisplay.EdgeColor = [0.75]*3
 
 
 #####################################################
