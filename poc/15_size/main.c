@@ -34,7 +34,7 @@ sq(float x)
     return x * x;
 }
 
-static float
+static double
 tri_area(float *a, float *b, float *c)
 {
     enum { X, Y, Z };
@@ -51,7 +51,7 @@ tri_area(float *a, float *b, float *c)
     return sqrt(A) / 2;
 }
 
-static float
+static double
 tri_volume(float *a, float *b, float *c)
 {
     enum { X, Y, Z };

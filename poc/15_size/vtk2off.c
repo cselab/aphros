@@ -49,7 +49,7 @@ struct Mesh {
     int *t;
 };
 
-static float
+static double
 tri_volume(float *a, float *b, float *c)
 {
     enum { X, Y, Z };
@@ -438,7 +438,7 @@ int
 main(int argc, char **argv)
 {
     double R, V;
-    int i, j, k, nb;
+    int i, k, nb;
     struct Mesh mesh;
     float x[3], y[3], z[3];
 

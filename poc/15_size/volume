@@ -2,5 +2,5 @@
 
 for i
 do
-    ./size -v < "$i"
+    ./size -c -v < "$i"
 done
