@@ -65,6 +65,8 @@ if CheckFlag('-C2'):  # view from top
     cam = 2
 if CheckFlag('-C3'):  # view from side parallel
     cam = 3
+if CheckFlag('-C4'):  # view from side parallel
+    cam = 4
 
 draft = CheckFlag('-draft')
 
@@ -100,6 +102,7 @@ light2.FocalPoint = [0.75, 2.0, 0.0]
 light2.ConeAngle = 15.0
 light2.Radius = 0.5
 
+
 light3 = CreateLight()
 light3.Intensity = 30.0
 light3.Type = 'Positional'
@@ -107,6 +110,12 @@ light3.Position = [0.7500000000000003, 5.0, 2.0]
 light3.FocalPoint = [0.7500000000000003, 0.5, 0.75]
 light3.ConeAngle = 14.0
 light3.Radius = 0.2
+
+if cam == 4:
+    light3.Intensity = 25.0
+    light3.Type = 'Positional'
+    light3.ConeAngle = 15.0
+    light3.Radius = 0.3
 
 
 # get the material library
@@ -157,7 +166,15 @@ C3 = [
 [0.0, 0.9825952104266916, -0.1857596631309544]
     ]
 
-C = C2 if cam == 2 else C3 if cam == 3 else C1
+# topsingle
+C4 = [
+    [0.7500000000000006, 2.963107346039059, 2.2607274645150683],
+    [0.7500000000000006, 0.5009592363008704, 0.7179205630248001],
+    [0.0, 0.5309797150079144, -0.8473845303344368]
+        ]
+
+CC = [C1, C2, C3, C4]
+C = CC[cam - 1]
 
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
@@ -182,7 +199,7 @@ if hasattr(renderView1, 'EnableRayTracing'):
     renderView1.BackEnd = 'pathtracer'
     renderView1.Denoise = 1
 renderView1.UseLight = 0
-renderView1.AdditionalLights = [light2, light3]
+renderView1.AdditionalLights = light3 if cam == 4 else [light2, light3]
 renderView1.AmbientSamples = 1
 renderView1.SamplesPerPixel = 5 if draft else 30
 renderView1.OSPRayMaterialLibrary = materialLibrary1
