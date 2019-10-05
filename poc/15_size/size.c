@@ -474,14 +474,14 @@ main(int argc, char **argv)
     if (WriteVolume) {
 	V = 0;
 	for (i = 0; i < nb; i++) {
-	    if ((volume[i]) < 0 || dot[i] > 0)
-		V += (-volume[i]);
+	    if ((volume[i]) > 0 && dot[i] < 0)
+		V += (volume[i]);
 	}
 	printf("%.16g\n", V);
     } else {
 	printf("x y z r n\n");
 	for (i = 0; i < nb; i++) {
-	    if ((V = volume[i]) < 0 || dot[i] > 0)
+	    if ((V = volume[i]) < 0 && dot[i] > 0)
 		continue;
 	    R = pow(3 * V / (4 * pi), 1.0 / 3.0);
 	    printf("%.16e %.16e %.16e %.16e %d\n",
