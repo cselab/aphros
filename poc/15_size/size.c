@@ -2,9 +2,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "arg.h"
 
 enum { N = 1024 };
 static double pi = 3.141592653589793;
+static char me[] = "ch.size";
+
+char *argv0;
+static int nv, nt;
+static float *r;
+static int *t, *t0, *c;
+static float *cl;
+
+static void
+usg(void)
+{
+    fprintf(stderr, "usage: %s [-c]\n", me);
+    exit(0);
+}
 
 #define MALLOC(n, p)							\
     do {								\
@@ -231,19 +246,14 @@ swap(int n, int size, void *p0)
     return 0;
 }
 
-int
-main()
+static int
+read_vtk(void)
 {
     FILE *f;
     char s[N], name[N];
-    int nv, nt, nb, u, v, w;
-    float *r;
-    double *cx, *cy, *cz, *dot, *volume, R, V;
-    int *t, *t0, *a, *b, *id, *c, *cnt;
-    int i, j, k;
-    float x[3], y[3], z[3], *cl;
-    struct Mesh mesh;
-
+    int i;
+    int *a, *b;
+    
     f = stdin;
     if (line(s, f) != 0) {
         fprintf(stderr, "%s:%d: failt to read\n", __FILE__, __LINE__);
@@ -310,6 +320,31 @@ main()
             break;
     }
     swap(nt, sizeof(*cl), cl);
+    return 0;
+}
+
+int
+main(int argc, char **argv)
+{
+    int nb, u, v, w;
+    double *cx, *cy, *cz, *dot, *volume, R, V;
+    int i, j, k;
+    int *id, *cnt;    
+    float x[3], y[3], z[3];
+    struct Mesh mesh;
+    int UseCl;
+
+    UseCl = 0;
+    ARGBEGIN {
+	case 'c':
+	    UseCl = 1;
+	    break;
+	case 'h':
+	    usg();
+    } ARGEND;
+
+    read_vtk();
+
     MALLOC(nt, &c);
     MALLOC(nt, &id);
     u_ini(nv);
