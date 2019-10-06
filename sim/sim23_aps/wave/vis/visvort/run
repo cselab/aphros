@@ -1,2 +1,2 @@
-./rtvort.py ../sm_*.vtk || true
+./visvort.py ../sm_{0000..0655}.vtk || true
 r=30 r.pngmp4
