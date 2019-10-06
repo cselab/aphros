@@ -14,9 +14,16 @@ A=`awk -v i=$i '$1 == i' $a`
 B=`awk -v i=$i '$1 == i' $b`
 
 gnuplot -p <<END
-set term png transparent
+set term png transparent size 800,600 font "Arial,20"
 set output '`printf '%04d.png' $i`'
 set macro
+
+set border lw 3 lc rgb "white"
+set xtics textcolor rgb "white"
+set ytics textcolor rgb "white"
+set xlabel "X" textcolor rgb "white"
+set ylabel "Y" textcolor rgb "white"
+set key textcolor rgb "white"
 
 freq = 0.01
 farea = 0.1

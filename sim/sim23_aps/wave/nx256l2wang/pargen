@@ -17,6 +17,7 @@ def Exp():
     Ga = g * W**3 / nu**2
     Eo = rho * g * W**2 / sig
 
+    time_unit = (W / g) ** 0.5
 
     for key in sorted(locals()):
         print("{:} \t=\t {:}".format(key, locals()[key]))
@@ -37,6 +38,8 @@ def Sim(c):
     tun = (W / g)**0.5  # unit
     tmax = tun * 60.
     dumpdt = tun * 0.025
+
+    dumpdt_phys = c['time_unit'] * dumpdt / tun
 
     # liquid
     rho0 = 1. # density
