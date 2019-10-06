@@ -151,6 +151,9 @@ surfDisplay.Representation = 'Surface'
 surfDisplay.AmbientColor = [0.72]*3
 surfDisplay.ColorArrayName = ['POINTS', '']
 surfDisplay.DiffuseColor = [0.72]*3
+surfDisplay.AmbientColor = [1.0, 0.7686274509803922, 0.4235294117647059]
+surfDisplay.DiffuseColor = [1.0, 0.7686274509803922, 0.4235294117647059]
+
 
 #####################################################
 ### END OF STATE FILE
