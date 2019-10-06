@@ -2,7 +2,7 @@
 
 if test $# = 0
 then
-    seq 1 5 500 | xargs -n1 ./main
+    seq 1 1 250 | xargs -n1 ./main
     exit
 fi
 

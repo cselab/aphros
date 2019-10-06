@@ -63,14 +63,8 @@ if CheckFlag('-C1'):
     cam = 1
 if CheckFlag('-C2'):
     cam = 2
-if CheckFlag('-C3'):
-    cam = 3
-if CheckFlag('-C4'):
-    cam = 4
 
 draft = CheckFlag('-draft')
-fine = CheckFlag('-fine')
-fine2 = CheckFlag('-fine2')
 
 # sm input
 ff = natsorted(av[1:])
@@ -102,14 +96,22 @@ paraview.simple._DisableFirstRenderCameraReset()
 
 materialLibrary1 = GetMaterialLibrary()
 
+
 # view
 C1 = [
+        [1.0, 0.21919698946269434, 2.0664402974005656],
+        [1.0, 1.0409089888243557, -2.5937200255409447],
+        [0.0, 0.9848077530122081, 0.17364817766693033]
+    ]
+
+# front
+C2 = [
         [1.0, 0.5, 3.122550182722647],
         [1.0, 0.5, -1.6095006248462298],
         [0., 1., 0.]
     ]
 
-CC = [C1]
+CC = [C1, C2]
 C = CC[cam - 1]
 
 # Create a new 'Render View'
@@ -135,6 +137,8 @@ if hasattr(renderView1, 'EnableRayTracing'):
     renderView1.BackEnd = 'raycaster'
     renderView1.Denoise = 1
 renderView1.UseLight = 1
+renderView1.KeyLightWarmth = 0.5
+renderView1.FillLightWarmth = 0.5
 renderView1.AmbientSamples = 1
 renderView1.SamplesPerPixel = 1 if draft else 10
 renderView1.OSPRayMaterialLibrary = materialLibrary1
@@ -202,7 +206,7 @@ surface.Invert = 1
 surfaceDisplay = Show(surface, renderView1)
 surfaceDisplay.Representation = 'Surface'
 surfaceDisplay.ColorArrayName = ['POINTS', '']
-surfaceDisplay.Opacity = 0.5
+surfaceDisplay.Opacity = 1
 
 bubbles = Clip(Input=clipedge)
 bubbles.ClipType = 'Scalar'
@@ -222,15 +226,17 @@ ommvf.AttributeType = 'Cell Data'
 ommvf.ResultArrayName = 'ommvf'
 ommvf.Function = 'omm*(1-vf)^3'
 ommvfDisplay = Show(ommvf, renderView1)
+
 ommvfLUT = GetColorTransferFunction('ommvf')
 ommvfLUT.AutomaticRescaleRangeMode = 'Never'
-ommvfLUT.RGBPoints = [5.0, 0.0, 0.0, 0.0, 50.0, 0.4666666666666667, 0.7294117647058823, 1.0]
+ommvfLUT.RGBPoints = [8.0, 0.27058823529411763, 0.4392156862745098, 0.5843137254901961, 70.0, 0.4666666666666667, 0.7294117647058823, 1.0]
 ommvfLUT.ColorSpace = 'RGB'
 ommvfLUT.NanColor = [1.0, 0.0, 0.0]
 ommvfLUT.ScalarRangeInitialized = 1.0
 ommvfPWF = GetOpacityTransferFunction('ommvf')
-ommvfPWF.Points = [5.0, 0.0, 0.5, 0.0, 29.127182006835938, 0.28947368264198303, 0.5, 0.0, 50.0, 1.0, 0.5, 0.0]
+ommvfPWF.Points = [8.0, 0.0, 0.5, 0.0, 70.0, 1.0, 0.5, 0.0]
 ommvfPWF.ScalarRangeInitialized = 1
+
 ommvfDisplay.Representation = 'Volume'
 ommvfDisplay.AmbientColor = [0.0, 0.0, 0.0]
 ommvfDisplay.ColorArrayName = ['CELLS', 'ommvf']
@@ -241,8 +247,9 @@ ommvfDisplay.OpacityArray = [None, '']
 ommvfDisplay.OpacityTransferFunction = 'PiecewiseFunction'
 ommvfDisplay.DataAxesGrid = 'GridAxesRepresentation'
 ommvfDisplay.PolarAxes = 'PolarAxesRepresentation'
-ommvfDisplay.ScalarOpacityUnitDistance = 0.01
+ommvfDisplay.ScalarOpacityUnitDistance = 0.03
 ommvfDisplay.ScalarOpacityFunction = ommvfPWF
+ommvfDisplay.Shade = 1
 
 
 #####################################################
