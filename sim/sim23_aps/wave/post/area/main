@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -eu
+
 if test $# = 0
 then
     seq 1 1 250 | xargs -n1 ./main
@@ -10,39 +12,58 @@ a=coal.dat
 b=nocoal.dat
 i="$1"
 
+echo $i
+
 A=`awk -v i=$i '$1 == i' $a`
 B=`awk -v i=$i '$1 == i' $b`
 
 gnuplot -p <<END
-set term pngcairo size 800,600 font "Arial,25" background rgb 'black'
+set term pngcairo size 800,600 font "Arial,30" background rgb 'black'
 set output '`printf 'a_%04d.png' $i`'
 set macro
 
 set border lw 3 lc rgb "white"
 set xtics textcolor rgb "white"
 set ytics textcolor rgb "white"
-set xlabel "X" textcolor rgb "white"
-set ylabel "Y" textcolor rgb "white"
+set xlabel "X" textcolor rgb "white" offset 0,1
+set ylabel "Y" textcolor rgb "white" offset 0.5
 set key textcolor rgb "white"
 
+
+set lmargin 6.5
+set rmargin 1
+set tmargin 0.5
+set bmargin 2
+
+
+
+set linetype 3 lc rgb "white" lw 4 dt 1
+unset border
+set grid ytics lc rgb "white" lt 3
+set grid xtics lc rgb "white" lt 3
+
+set ytics 0.8
+set xtics 1
+set xrange [0:1]
+
 dumpdt = 0.004149625013793661
-farea = 0.27*0.27*2
+farea = 0.5
 
 c(i) = column(i)
 
 set xlabel "time, s"
-set ylabel "area of bubbles, m^2"
+set ylabel "area fraction of bubbles"
 set key off
 u = 'u (c("i")*dumpdt):(c("s")*farea)'
 
 cgreen="#5ebd3e"
 cred="#e23838"
 
-plot [:dumpdt*250] \
-     "$a" @u w l lw 4 lc rgb cgreen, \
-     "$b" @u w l lw 4 lc rgb cred, \
-     "-" @u w p pt 7 ps 4 lt 4 lc rgb cgreen, \
-     "-" @u w p pt 7 ps 4 lt 4 lc rgb cred
+plot \
+     "$a" @u w l lw 7 lc rgb cgreen, \
+     "$b" @u w l lw 7 lc rgb cred, \
+     "-" @u w p pt 7 ps 8 lt 4 lc rgb cgreen, \
+     "-" @u w p pt 7 ps 8 lt 4 lc rgb cred
 i s
 $A
 e
