@@ -3,6 +3,7 @@
 if test $# = 0
 then
     seq 1 5 500 | xargs -n1 ./main
+    exit
 fi
 
 a=coal.dat
