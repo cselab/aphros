@@ -97,12 +97,20 @@ paraview.simple._DisableFirstRenderCameraReset()
 # ----------------------------------------------------------------
 
 light2 = CreateLight()
-light2.Intensity = 80.0
+light2.Intensity = 60.0
 light2.Type = 'Positional'
-light2.Position = [3.0, 5.0, 3.0]
-light2.FocalPoint = [0.8, 0.5, 0.2]
-light2.ConeAngle = 15.0
-light2.Radius = 1
+light2.Position = [2.0, 8.0, 1.0]
+light2.FocalPoint = [1.0, 1.0, 0.5]
+light2.ConeAngle = 11.0
+light2.Radius = 0.5
+
+light11 = CreateLight()
+light11.Intensity = 100.0
+light11.Type = 'Positional'
+light11.Position = [2.0, 20.0, 2.0]
+light11.FocalPoint = [1.0, 0.0, 0.5]
+light11.ConeAngle = 23.0
+light11.Radius = 5.0
 
 
 # get the material library
@@ -172,8 +180,8 @@ if hasattr(renderView1, 'EnableRayTracing'):
     renderView1.BackEnd = 'pathtracer'
     renderView1.Denoise = 1
 renderView1.UseLight = 0
-renderView1.AdditionalLights = light2
-renderView1.AmbientSamples = 1
+renderView1.AdditionalLights = [light2, light11]
+renderView1.AmbientSamples = 0
 renderView1.SamplesPerPixel = 5 if draft else (400 if fine2 else (100 if fine else 50))
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 
