@@ -54,6 +54,15 @@ Plots isosurface.
 '''.format(av[0]))
     exit(1)
 
+def CheckFlag(name):
+    if name in av:
+        av.remove(name)
+        return True
+    return False
+
+
+draft = CheckFlag('-draft')
+
 # vf input
 ff = natsorted(av[1:])
 # vf basename
@@ -94,10 +103,18 @@ renderView1.CameraParallelScale = 0.3556556576709247
 renderView1.CameraParallelProjection = 0
 renderView1.Background = [0.0]*3
 renderView1.OSPRayMaterialLibrary = materialLibrary1
+renderView1.KeyLightWarmth = 0.5
+renderView1.FillLightWarmth = 0.5
+ospray = 1
 if hasattr(renderView1, 'EnableOSPray'):
     renderView1.EnableOSPRay = ospray
+    renderView1.OSPRayRenderer = 'raycaster'
 if hasattr(renderView1, 'EnableRayTracing'):
     renderView1.EnableRayTracing = ospray
+    renderView1.BackEnd = 'raycaster'
+    renderView1.Denoise = 1
+renderView1.AmbientSamples = 1
+renderView1.SamplesPerPixel = 5 if draft else 20
 
 
 # ----------------------------------------------------------------
@@ -127,16 +144,13 @@ vft = [surf]
 # END READERS
 # ----------------------------------------------------------------
 
-surf = Calculator(Input=surf)
-surf.ResultNormals = 1
-surf.AttributeType = 'Point Data'
-surf.ResultArrayName = 'normals'
-surf.Function = 'nn'
+surf = GenerateSurfaceNormals(Input=surf)
 
-waterDisplay = Show(surf, renderView1)
-waterDisplay.Representation = 'Surface'
-waterDisplay.ColorArrayName = [None, '']
-waterDisplay.Opacity = 1
+surfDisplay = Show(surf, renderView1)
+surfDisplay.Representation = 'Surface'
+surfDisplay.AmbientColor = [0.72]*3
+surfDisplay.ColorArrayName = ['POINTS', '']
+surfDisplay.DiffuseColor = [0.72]*3
 
 #####################################################
 ### END OF STATE FILE
