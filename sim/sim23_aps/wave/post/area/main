@@ -4,7 +4,7 @@ set -eu
 
 if test $# = 0
 then
-    seq 1 1 250 | xargs -n1 ./main
+    seq 0 1 240 | xargs -n1 ./main
     exit
 fi
 
@@ -18,7 +18,7 @@ A=`awk -v i=$i '$1 == i' $a`
 B=`awk -v i=$i '$1 == i' $b`
 
 gnuplot -p <<END
-set term pngcairo size 800,600 font "Arial,30" background rgb 'black'
+set term pngcairo size 800,600 font "Arial,35" background rgb 'black'
 set output '`printf 'a_%04d.png' $i`'
 set macro
 
@@ -30,10 +30,10 @@ set ylabel "Y" textcolor rgb "white" offset 0.5
 set key textcolor rgb "white"
 
 
-set lmargin 6.5
+set lmargin 3.8
 set rmargin 1
 set tmargin 0.5
-set bmargin 2
+set bmargin 1.5
 
 
 
@@ -51,8 +51,8 @@ farea = 0.5
 
 c(i) = column(i)
 
-set xlabel "time, s"
-set ylabel "area fraction of bubbles"
+set xlabel ""
+set ylabel ""
 set key off
 u = 'u (c("i")*dumpdt):(c("s")*farea)'
 
