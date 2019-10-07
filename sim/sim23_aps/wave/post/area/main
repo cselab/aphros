@@ -32,7 +32,7 @@ set key textcolor rgb "white"
 
 set lmargin 3.8
 set rmargin 1
-set tmargin 0.5
+set tmargin 0.7
 set bmargin 1.5
 
 

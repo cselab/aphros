@@ -1,0 +1,7 @@
+cmd="ffmpeg -r 20 \
+  -pattern_type glob -i 'a_*.png' \
+  -c:v libx264 -pix_fmt yuv420p -vb 10M \
+  a.mp4"
+
+echo "$cmd"
+eval "$cmd"
