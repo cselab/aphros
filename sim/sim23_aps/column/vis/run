@@ -1,6 +1,0 @@
-# C2: view from top
-# C3: view from front parallel
-#c=-C2
-#d=-draft
-./rt.py $c $d $@ ../sm_*0.vtk || true
-r.pngmp4

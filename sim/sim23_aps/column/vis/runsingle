@@ -1,0 +1,4 @@
+set -eu
+d=/scratch/snx3000/karnakov/pub/aps/2_column_nocoal/nx128dmprho30sig05
+./rtblue.py -C4 $@ $d/sm_*.vtk || true
+r.pngmp4

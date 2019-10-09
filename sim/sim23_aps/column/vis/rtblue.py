@@ -58,14 +58,14 @@ def CheckFlag(name):
     return False
 
 
-cam = 1  # view from side perspective
-if CheckFlag('-C1'):  # view from top
+cam = 1
+if CheckFlag('-C1'):
     cam = 1
-if CheckFlag('-C2'):  # view from top
+if CheckFlag('-C2'):
     cam = 2
-if CheckFlag('-C3'):  # view from side parallel
+if CheckFlag('-C3'):
     cam = 3
-if CheckFlag('-C4'):  # view from side parallel
+if CheckFlag('-C4'):
     cam = 4
 
 draft = CheckFlag('-draft')
