@@ -92,7 +92,7 @@ renderView1.CameraViewUp =\
 [0.4870134732448256, 0.8444639750302612, -0.22293154050986638]
 renderView1.CameraParallelScale = 1.224744871391589
 renderView1.CameraParallelProjection = 0
-renderView1.Background = [1.0]*3
+renderView1.Background = [0.0]*3
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 
 # ----------------------------------------------------------------
@@ -136,7 +136,7 @@ water.Invert = 1
 waterDisplay = Show(water, renderView1)
 waterDisplay.Representation = 'Surface'
 waterDisplay.ColorArrayName = [None, '']
-waterDisplay.Opacity = 0.5
+waterDisplay.Opacity = 0.85
 
 bubbles = Clip(Input=surf)
 bubbles.ClipType = 'Scalar'
