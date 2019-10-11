@@ -170,17 +170,19 @@ renderView1.CameraPosition = S(C[0])
 renderView1.CameraFocalPoint = S(C[1])
 renderView1.CameraViewUp = C[2]
 
-renderView1.Background = [0.0]*3
+#renderView1.Background = [0.0]*3
+renderView1.Background = [0.2]*3
 ospray = 1
 if hasattr(renderView1, 'EnableOSPray'):
     renderView1.EnableOSPRay = ospray
     renderView1.OSPRayRenderer = 'pathtracer'
 if hasattr(renderView1, 'EnableRayTracing'):
     renderView1.EnableRayTracing = ospray
-    renderView1.BackEnd = 'pathtracer'
+    renderView1.BackEnd = 'OSPRay pathtracer'
     renderView1.Denoise = 1
 renderView1.UseLight = 0
 renderView1.AdditionalLights = [light2, light11]
+renderView1.LightScale=1
 renderView1.AmbientSamples = 0
 renderView1.SamplesPerPixel = 5 if draft else (400 if fine2 else (100 if fine else 50))
 renderView1.OSPRayMaterialLibrary = materialLibrary1
@@ -224,9 +226,9 @@ surfDisplay.Representation = 'Surface'
 surfDisplay.OSPRayMaterial = 'water'
 
 floor = Plane()
-floor.Origin = [-20.0, 0.0001, -35.0]
-floor.Point1 = [-20.0, 0.0001, 5.0]
-floor.Point2 = [20.0, 0.0001, -35.0]
+floor.Origin = [-20.0, -0.01, -35.0]
+floor.Point1 = [-20.0, -0.01, 5.0]
+floor.Point2 = [20.0, -0.01, -35.0]
 floorDisplay = Show(floor, renderView1)
 floorDisplay.Representation = 'Surface'
 floorDisplay.ColorArrayName = ['POINTS', '']
