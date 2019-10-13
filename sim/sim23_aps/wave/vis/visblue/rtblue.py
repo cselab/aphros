@@ -253,6 +253,9 @@ for i in list(range(len(ss))):
         Log("skip existing {:}".format(fn))
         continue
 
+    with open(fn, "w") as f:
+      f.write("")
+
     SetTime(i)
 
     Log("{:}/{:}: {:}".format(i + 1, len(ss), fn))
