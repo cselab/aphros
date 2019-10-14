@@ -21,6 +21,7 @@ class Vars {
     const T* operator()(Key) const;
     T& operator[](Key);
     const T& operator[](Key) const;
+    T Get(Key, T /*default*/) const;
     void Set(Key, const T& val);
     bool Exists(Key) const;
     void Del(Key);

@@ -399,7 +399,9 @@ void DistrMesh<KF>::Run() {
   mt_.Pop("last");
   mtp_.Pop("last");
 
-  Report();
+  if (par.Int["verbose_time"]) {
+    Report();
+  }
 }
 
 template <class KF>
