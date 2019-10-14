@@ -14,6 +14,7 @@ struct State {
   FieldCell<Scal> fcu;
   FieldCell<Scal> fccl;
   solver::UVof<M> uvof;
+  Scal sum;
   MapFace<std::shared_ptr<solver::CondFace>> mfc;
 };
 
@@ -44,6 +45,13 @@ void Run(M& m, State& s, Vars& var) {
       uvof.Recolor(layers, &fcu, &fccl, -1, Vect(0), 1e10, mfc, true, true, m);
     }
     if (sem()) {
+      s.sum = 0;
+      for (auto c : m.Cells()) {
+        s.sum += fcu[c] * m.GetVolume(c);
+      }
+      m.Reduce(&s.sum, "sum");
+    }
+    if (sem()) {
       for (auto c : m.Cells()) {
         auto& cl = fccl[c];
         if (cl != kClNone) {
@@ -53,6 +61,9 @@ void Run(M& m, State& s, Vars& var) {
             cl = 1. + std::sin(1234567 * cl);
           }
         }
+      }
+      if (m.IsRoot()) {
+        std::cout << "sum=" << s.sum << std::endl;
       }
       m.Dump(&fcu, "u");
       m.Dump(&fccl, "cl");
@@ -66,13 +77,13 @@ void Run(M& m, State& s, Vars& var) {
 
 int main(int argc, const char** argv) {
   std::string conf = R"EOF(
-set int bx 4
-set int by 4
-set int bz 2
+set int bx 2
+set int by 2
+set int bz 1
 
-set int bsx 8
-set int bsy 8
-set int bsz 8
+set int bsx 16
+set int bsy 16
+set int bsz 16
 
 set string init_vf list
 set int list_ls 1
