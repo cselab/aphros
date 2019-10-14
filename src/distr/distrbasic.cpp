@@ -18,6 +18,8 @@ set int bsz 16
 set int CHECKNAN 1
 set int dim 3
 
+set string dumpformat default
+
 set int comm_size 8
 
 set int loc 0
