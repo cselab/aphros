@@ -139,9 +139,15 @@ class MeshStructured {
     assert(q < kCellNumNeighbourFaces);
     return IdxCell(size_t(c) + cnc_[q]);
   }
+  IdxCell GetCell(IdxCell c, size_t q) const {
+    return GetNeighbourCell(c, q);
+  }
   IdxFace GetNeighbourFace(IdxCell c, size_t q) const {
     assert(q < kCellNumNeighbourFaces);
     return IdxFace(size_t(c) + cnf_[q]);
+  }
+  IdxFace GetFace(IdxCell c, size_t q) const {
+    return GetNeighbourFace(c, q);
   }
   Scal GetOutwardFactor(IdxCell, size_t q) const {
     assert(q < kCellNumNeighbourFaces);
@@ -163,6 +169,9 @@ class MeshStructured {
     assert(q < qm);
     size_t d(bfr_.GetDir(f));
     return IdxCell(size_t(f) + fnc_[d * qm + q]);
+  }
+  IdxCell GetCell(IdxFace f, size_t q) const {
+    return GetNeighbourCell(f, q);
   }
   Vect GetVectToCell(IdxFace f, size_t n) const {
     assert(n < kFaceNumNeighbourCells);
