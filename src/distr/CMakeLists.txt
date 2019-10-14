@@ -17,4 +17,8 @@ set(T "distr")
 add_library(${T} distrsolver.cpp)
 target_link_libraries(${T} parser suspender vars cubism local dumper git)
 
+set(T "distrbasic")
+add_library(${T} distrbasic.cpp)
+target_link_libraries(${T} distr)
+
 
