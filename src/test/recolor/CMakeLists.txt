@@ -7,6 +7,6 @@ include_directories(${S})
 
 add_executable(${EXE} main.cpp)
 
-target_link_libraries(${EXE} distrbasic overlap)
+target_link_libraries(${EXE} distrbasic overlap utilvof)
 
 add_test(NAME ${p} COMMAND ./${EXE})
