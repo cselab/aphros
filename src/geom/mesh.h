@@ -511,6 +511,18 @@ class MeshStructured {
   void ClearBcast() {
     bcast_.clear();
   }
+  // split to chunks of size ss[rank] on each rank
+  // ss: sizes on root, ignored on others
+  void Scatter(const std::shared_ptr<Op>& o, const std::vector<size_t>* ss) {
+    scatter_.push_back({o, ss});
+  }
+  const std::vector<std::pair<std::shared_ptr<Op>, const std::vector<size_t>*>>& 
+  GetScatter() const {
+    return scatter_;
+  }
+  void ClearScatter() {
+    scatter_.clear();
+  }
   const std::vector<LS>& GetSolve() const {
     return vls_;
   }
@@ -593,6 +605,8 @@ class MeshStructured {
   Rd rd_;
   std::vector<LS> vls_; // solve
   std::vector<std::shared_ptr<Op>> bcast_; // list of broadcast requests
+  std::vector<std::pair<std::shared_ptr<Op>,
+      const std::vector<size_t>*>> scatter_; // list of scatter requests
   // tmp for GetSolveTmp()
   std::vector<Scal> lsa_; // matrix coeffs of size n * st.size()
   std::vector<Scal> lsb_; // rhs of size n
