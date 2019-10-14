@@ -59,6 +59,20 @@ class UVof {
       const FieldCell<Scal>& fca, const FieldCell<bool>& fci,
       std::string fn, Scal t, Scal th, bool bin, bool merge, M& m);
 
+  // Computes unique color for each connected component over all layers.
+  // fcu: volume fraction
+  // fccl: color to update
+  // clfixed: if >=0, override value for color in cell nearest to clfixed_x
+  // coalth: merge two layers i,j if  u_i + u_j > coalth
+  // mfcu: boundary conditions for u
+  // bcc_reflect: apply BcReflect
+  // verb: report color overflow (not enough layers)
+  void Recolor(const GRange<size_t>& layers,
+      const Multi<const FieldCell<Scal>*>& fcu, Multi<FieldCell<Scal>>& fccl,
+      Scal clfixed, Vect clfixed_x, Scal coalth,
+      const MapFace<std::shared_ptr<CondFace>>& mfcu,
+      bool bcc_reflect, bool verb, M& m);
+
  public:
   struct Imp;
   std::unique_ptr<Imp> imp;
