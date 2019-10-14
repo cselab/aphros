@@ -315,121 +315,6 @@ struct Vofm<M_>::Imp {
       psm_->DumpPartInter(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
     }
   }
-  void Recolor() {
-    auto sem = m.GetSem("recolor");
-    if (sem("reduce")) {
-      if (par->clfixed >= 0) {
-        IdxCell c = m.FindNearestCell(par->clfixed_x);
-        cldist_.first = m.GetCenter(c).dist(par->clfixed_x);
-        cldist_.second = m.GetId();
-        m.Reduce(std::make_shared<typename M::OpMinloc>(&cldist_));
-      } else {
-        cldist_.second = -1;
-      }
-    }
-    if (sem("init")) {
-      fcclt_.InitAll(FieldCell<Scal>(m, kClNone));
-      // initial unique color
-      Scal q = m.GetId() * m.GetInBlockCells().size() * layers.size();
-      for (auto i : layers) {
-        for (auto c : m.Cells()) {
-          if (fccl_[i][c] != kClNone) {
-            fcclt_[i][c] = (q += 1);
-          }
-        }
-        if (cldist_.second == m.GetId()) {
-          IdxCell c = m.FindNearestCell(par->clfixed_x);
-          if (fccl_[i][c] != kClNone) {
-            fcclt_[i][c] = par->clfixed;
-          }
-        }
-        m.Comm(&fcclt_[i]);
-      }
-
-      // detect overlap
-      auto mfcu = GetLayer(fcu_, Layers::iter_curr);
-      for (auto i : layers) {
-        for (auto c : m.Cells()) {
-          if (fccl_[i][c] != kClNone) {
-            for (auto j : layers) {
-              if (j != i && fccl_[j][c] != kClNone) {
-                if ((*mfcu[i])[c] + (*mfcu[j])[c] > par->coalth) {
-                  Scal cl = std::min(fcclt_[i][c], fcclt_[j][c]);
-                  fcclt_[i][c] = cl;
-                  fcclt_[j][c] = cl;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    sem.LoopBegin();
-    if (sem("min")) {
-      const int sw = 1; // stencil halfwidth
-      using MIdx = typename M::MIdx;
-      auto& bc = m.GetIndexCells();
-      GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1));
-      size_t tries = 0;
-      size_t cells = 0;
-      while (true) {
-        bool chg = false;
-        for (auto i : layers) {
-          for (auto c : m.Cells()) {
-            if (fccl_[i][c] != kClNone) {
-              MIdx w = bc.GetMIdx(c);
-              // update color with minimum over neighbours
-              for (MIdx wo : bo) {
-                IdxCell cn = bc.GetIdx(w + wo);
-                for (auto j : layers) {
-                  if (fccl_[j][cn] == fccl_[i][c]) {
-                    if (fcclt_[j][cn] < fcclt_[i][c]) {
-                      chg = true;
-                      ++cells;
-                      fcclt_[i][c] = fcclt_[j][cn];
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        if (!chg) {
-          break;
-        }
-        ++tries;
-      }
-      for (auto i : layers) {
-        m.Comm(&fcclt_[i]);
-      }
-      recolor_tries_ = tries;
-      m.Reduce(&recolor_tries_, "max");
-    }
-    if (sem("check")) {
-      if (par->verb && m.IsRoot()) {
-        std::cerr << "recolor:"
-          << " max tries: " << recolor_tries_ 
-          << std::endl;
-      }
-      if (!recolor_tries_) {
-        sem.LoopBreak();
-      }
-    }
-    sem.LoopEnd();
-    if (sem("free")) {
-      for (auto i : layers) {
-        for (auto c : m.AllCells()) {
-          fccl_[i][c] = fcclt_[i][c];
-        }
-        fcclt_[i].Free();
-      }
-    }
-    if (par->bcc_reflect && sem("reflect")) {
-      for (auto i : layers) {
-        BcReflect(fccl_[i], mfc_, kClNone, false, m);
-      }
-    }
-  }
   void Sharpen(const Multi<FieldCell<Scal>*>& mfcu) {
     auto sem = m.GetSem("sharp");
     std::vector<size_t> dd; // sweep directions
@@ -787,8 +672,10 @@ struct Vofm<M_>::Imp {
         BcClear(fcu_[i].iter_curr, mfc_, m);
       }
     }
-    if (sem.Nested("recolor")) {
-      Recolor();
+    if (sem.Nested()) {
+      uvof_.Recolor(layers, GetLayer(fcu_, Layers::iter_curr), fccl_,
+                    par->clfixed, par->clfixed_x,
+                    par->coalth, mfc_, par->bcc_reflect, par->verb, m);
     }
 
     if (sem("sum")) {
@@ -876,13 +763,11 @@ struct Vofm<M_>::Imp {
   Multi<FieldFace<Scal>> ffcl_;  // flux color (from upwind cell)
   Multi<FieldFace<bool>> ffi_;   // interface mask (1: upwind cell contains interface)
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
-  std::pair<typename M::Scal, int> cldist_;
 
   std::unique_ptr<PSM> psm_;
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
   GRange<size_t> layers;
-  Scal recolor_tries_;
   UVof<M> uvof_;
 };
 

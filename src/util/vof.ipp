@@ -310,11 +310,137 @@ struct UVof<M_>::Imp {
     }
   }
 
+  void Recolor(const GRange<size_t>& layers,
+      const Multi<const FieldCell<Scal>*>& fcu, Multi<FieldCell<Scal>>& fccl,
+      Scal clfixed, Vect clfixed_x, Scal coalth,
+      const MapFace<std::shared_ptr<CondFace>>& mfc,
+      bool bcc_reflect, bool verb, M& m) {
+    constexpr Scal kClNone = -1;
+    auto sem = m.GetSem("recolor");
+    if (sem("reduce")) {
+      fcclt_.resize(layers.size());
+      // nearest block nearest to clfixed_x
+      if (clfixed >= 0) {
+        IdxCell c = m.FindNearestCell(clfixed_x);
+        cldist_.first = m.GetCenter(c).dist(clfixed_x);
+        cldist_.second = m.GetId();
+        m.Reduce(std::make_shared<typename M::OpMinloc>(&cldist_));
+      } else {
+        cldist_.second = -1;
+      }
+    }
+    if (sem("init")) {
+      fcclt_.InitAll(FieldCell<Scal>(m, kClNone));
+      // initial unique color
+      Scal q = m.GetId() * m.GetInBlockCells().size() * layers.size();
+      for (auto i : layers) {
+        for (auto c : m.Cells()) {
+          if (fccl[i][c] != kClNone) {
+            fcclt_[i][c] = (q += 1);
+          }
+        }
+        if (cldist_.second == m.GetId()) {
+          IdxCell c = m.FindNearestCell(clfixed_x);
+          if (fccl[i][c] != kClNone) {
+            fcclt_[i][c] = clfixed;
+          }
+        }
+        m.Comm(&fcclt_[i]);
+      }
+
+      // detect overlap
+      for (auto i : layers) {
+        for (auto c : m.Cells()) {
+          if (fccl[i][c] != kClNone) {
+            for (auto j : layers) {
+              if (j != i && fccl[j][c] != kClNone) {
+                if ((*fcu[i])[c] + (*fcu[j])[c] > coalth) {
+                  Scal cl = std::min(fcclt_[i][c], fcclt_[j][c]);
+                  fcclt_[i][c] = cl;
+                  fcclt_[j][c] = cl;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    sem.LoopBegin();
+    if (sem("min")) {
+      const int sw = 1; // stencil halfwidth
+      using MIdx = typename M::MIdx;
+      auto& bc = m.GetIndexCells();
+      GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1));
+      size_t tries = 0;
+      size_t cells = 0;
+      while (true) {
+        bool chg = false;
+        for (auto i : layers) {
+          for (auto c : m.Cells()) {
+            if (fccl[i][c] != kClNone) {
+              MIdx w = bc.GetMIdx(c);
+              // update color with minimum over neighbours
+              for (MIdx wo : bo) {
+                IdxCell cn = bc.GetIdx(w + wo);
+                for (auto j : layers) {
+                  if (fccl[j][cn] == fccl[i][c]) {
+                    if (fcclt_[j][cn] < fcclt_[i][c]) {
+                      chg = true;
+                      ++cells;
+                      fcclt_[i][c] = fcclt_[j][cn];
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        if (!chg) {
+          break;
+        }
+        ++tries;
+      }
+      for (auto i : layers) {
+        m.Comm(&fcclt_[i]);
+      }
+      recolor_tries_ = tries;
+      m.Reduce(&recolor_tries_, "max");
+    }
+    if (sem("check")) {
+      if (verb && m.IsRoot()) {
+        std::cerr << "recolor:"
+          << " max tries: " << recolor_tries_ 
+          << std::endl;
+      }
+      if (!recolor_tries_) {
+        sem.LoopBreak();
+      }
+    }
+    sem.LoopEnd();
+    if (sem("free")) {
+      for (auto i : layers) {
+        for (auto c : m.AllCells()) {
+          fccl[i][c] = fcclt_[i][c];
+        }
+        fcclt_[i].Free();
+      }
+    }
+    if (bcc_reflect && sem("reflect")) {
+      for (auto i : layers) {
+        BcReflect(fccl[i], mfc, kClNone, false, m);
+      }
+    }
+  }
+
   std::vector<std::vector<Vect>> dl_; // dump poly
   std::vector<std::vector<Vect>> dln_; // dump poly normals
   std::vector<Scal> dlc_; // dump poly cell
   std::vector<Scal> dll_; // dump poly layer
   std::vector<Scal> dlcl_; // dump poly color
+
+  Scal recolor_tries_;
+  std::pair<typename M::Scal, int> cldist_; // color,mesh_id
+  Multi<FieldCell<Scal>> fcclt_;  // tmp color
 };
 
 template <class M_>
@@ -359,6 +485,17 @@ void UVof<M_>::DumpPolyMarch(
   imp->DumpPolyMarch(
       layers, fcu, fccl, fcn, fca, fci, fn, t, th, bin, merge, iso, fcus, m);
 }
+
+template <class M_>
+void UVof<M_>::Recolor(const GRange<size_t>& layers,
+    const Multi<const FieldCell<Scal>*>& fcu, Multi<FieldCell<Scal>>& fccl,
+    Scal clfixed, Vect clfixed_x, Scal coalth,
+    const MapFace<std::shared_ptr<CondFace>>& mfcu,
+    bool bcc_reflect, bool verb, M& m) {
+  imp->Recolor(layers, fcu, fccl, clfixed, clfixed_x, coalth, mfcu, 
+               bcc_reflect, verb, m);
+}
+
 
 template <class M>
 constexpr typename M::Scal UVof<M>::Imp::kClNone;
