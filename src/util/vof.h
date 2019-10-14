@@ -68,7 +68,8 @@ class UVof {
   // bcc_reflect: apply BcReflect
   // verb: report color overflow (not enough layers)
   void Recolor(const GRange<size_t>& layers,
-      const Multi<const FieldCell<Scal>*>& fcu, Multi<FieldCell<Scal>>& fccl,
+      const Multi<const FieldCell<Scal>*>& fcu,
+      const Multi<FieldCell<Scal>*>& fccl,
       Scal clfixed, Vect clfixed_x, Scal coalth,
       const MapFace<std::shared_ptr<CondFace>>& mfcu,
       bool bcc_reflect, bool verb, M& m);

@@ -311,7 +311,8 @@ struct UVof<M_>::Imp {
   }
 
   void Recolor(const GRange<size_t>& layers,
-      const Multi<const FieldCell<Scal>*>& fcu, Multi<FieldCell<Scal>>& fccl,
+      const Multi<const FieldCell<Scal>*>& fcu,
+      const Multi<FieldCell<Scal>*>& fccl,
       Scal clfixed, Vect clfixed_x, Scal coalth,
       const MapFace<std::shared_ptr<CondFace>>& mfc,
       bool bcc_reflect, bool verb, M& m) {
@@ -335,13 +336,13 @@ struct UVof<M_>::Imp {
       Scal q = m.GetId() * m.GetInBlockCells().size() * layers.size();
       for (auto i : layers) {
         for (auto c : m.Cells()) {
-          if (fccl[i][c] != kClNone) {
+          if ((*fccl[i])[c] != kClNone) {
             fcclt_[i][c] = (q += 1);
           }
         }
         if (cldist_.second == m.GetId()) {
           IdxCell c = m.FindNearestCell(clfixed_x);
-          if (fccl[i][c] != kClNone) {
+          if ((*fccl[i])[c] != kClNone) {
             fcclt_[i][c] = clfixed;
           }
         }
@@ -351,9 +352,9 @@ struct UVof<M_>::Imp {
       // detect overlap
       for (auto i : layers) {
         for (auto c : m.Cells()) {
-          if (fccl[i][c] != kClNone) {
+          if ((*fccl[i])[c] != kClNone) {
             for (auto j : layers) {
-              if (j != i && fccl[j][c] != kClNone) {
+              if (j != i && (*fccl[j])[c] != kClNone) {
                 if ((*fcu[i])[c] + (*fcu[j])[c] > coalth) {
                   Scal cl = std::min(fcclt_[i][c], fcclt_[j][c]);
                   fcclt_[i][c] = cl;
@@ -377,13 +378,13 @@ struct UVof<M_>::Imp {
         bool chg = false;
         for (auto i : layers) {
           for (auto c : m.Cells()) {
-            if (fccl[i][c] != kClNone) {
+            if ((*fccl[i])[c] != kClNone) {
               MIdx w = bc.GetMIdx(c);
               // update color with minimum over neighbours
               for (MIdx wo : bo) {
                 IdxCell cn = bc.GetIdx(w + wo);
                 for (auto j : layers) {
-                  if (fccl[j][cn] == fccl[i][c]) {
+                  if ((*fccl[j])[cn] == (*fccl[i])[c]) {
                     if (fcclt_[j][cn] < fcclt_[i][c]) {
                       chg = true;
                       ++cells;
@@ -420,14 +421,14 @@ struct UVof<M_>::Imp {
     if (sem("free")) {
       for (auto i : layers) {
         for (auto c : m.AllCells()) {
-          fccl[i][c] = fcclt_[i][c];
+          (*fccl[i])[c] = fcclt_[i][c];
         }
         fcclt_[i].Free();
       }
     }
     if (bcc_reflect && sem("reflect")) {
       for (auto i : layers) {
-        BcReflect(fccl[i], mfc, kClNone, false, m);
+        BcReflect(*fccl[i], mfc, kClNone, false, m);
       }
     }
   }
@@ -488,7 +489,8 @@ void UVof<M_>::DumpPolyMarch(
 
 template <class M_>
 void UVof<M_>::Recolor(const GRange<size_t>& layers,
-    const Multi<const FieldCell<Scal>*>& fcu, Multi<FieldCell<Scal>>& fccl,
+    const Multi<const FieldCell<Scal>*>& fcu,
+    const Multi<FieldCell<Scal>*>& fccl,
     Scal clfixed, Vect clfixed_x, Scal coalth,
     const MapFace<std::shared_ptr<CondFace>>& mfcu,
     bool bcc_reflect, bool verb, M& m) {
