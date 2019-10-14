@@ -368,10 +368,6 @@ struct UVof<M_>::Imp {
     }
     sem.LoopBegin();
     if (sem("min")) {
-      const int sw = 1; // stencil halfwidth
-      using MIdx = typename M::MIdx;
-      auto& bc = m.GetIndexCells();
-      GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1));
       size_t tries = 0;
       size_t cells = 0;
       while (true) {
@@ -379,10 +375,9 @@ struct UVof<M_>::Imp {
         for (auto i : layers) {
           for (auto c : m.Cells()) {
             if ((*fccl[i])[c] != kClNone) {
-              MIdx w = bc.GetMIdx(c);
               // update color with minimum over neighbours
-              for (MIdx wo : bo) {
-                IdxCell cn = bc.GetIdx(w + wo);
+              for (auto q : m.Nci(c)) {
+                IdxCell cn = m.GetCell(c, q);
                 for (auto j : layers) {
                   if ((*fccl[j])[cn] == (*fccl[i])[c]) {
                     if (fcclt_[j][cn] < fcclt_[i][c]) {
