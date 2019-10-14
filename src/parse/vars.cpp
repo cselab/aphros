@@ -141,6 +141,14 @@ const T& Vars::Map<T>::operator[](Key k) const {
 }
 
 template <class T>
+T Vars::Map<T>::Get(Key k, T def) const {
+  if (m_.count(k)) {
+    return m_.at(k);
+  }
+  return def;
+}
+
+template <class T>
 T& Vars::Map<T>::operator[](Key k) {
   if (!m_.count(k)) {
     std::cerr << "variable '" << k
