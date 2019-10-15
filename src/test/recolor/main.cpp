@@ -52,6 +52,7 @@ void Run(M& m, State& s, Vars& var) {
       m.Reduce(&s.sum, "sum");
     }
     if (sem()) {
+      /*
       for (auto c : m.Cells()) {
         auto& cl = fccl[c];
         if (cl != kClNone) {
@@ -62,6 +63,7 @@ void Run(M& m, State& s, Vars& var) {
           }
         }
       }
+      */
       if (m.IsRoot()) {
         std::cout << "sum=" << s.sum << std::endl;
       }
@@ -72,7 +74,7 @@ void Run(M& m, State& s, Vars& var) {
       solver::Smoothen(fcu, mfc, m, 1);
     }
   }
-  if (sem()) {}
+  if (sem()) {} // empty stage for dump
 }
 
 int main(int argc, const char** argv) {
