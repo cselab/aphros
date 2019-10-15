@@ -52,6 +52,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
   void TestComm();
   void TestSolve();
   void TestReduce();
+  void TestScatter();
   void TestPois();
 
   // TODO: revise 1e-10
@@ -78,6 +79,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
   std::vector<Scal> rvs_; // reduction vector<Scal> (concatenation)
   std::vector<int> rvi_; // reduction vector<int> (concatenation)
   std::vector<std::vector<int>> rvvi_; // reduction vector<vector<int>> 
+  std::vector<std::vector<Scal>> rvvs_; // reduction vector<vector<int>> 
   std::shared_ptr<solver::PoisSolver<M>> ps_;
 };
 
@@ -380,6 +382,41 @@ void Simple<M>::TestReduce() {
   }
 }
 
+template <class M>
+void Simple<M>::TestScatter() {
+  auto sem = m.GetSem("scatter");
+  MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
+  MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
+  GBlock<IdxCell, dim> bq(p * b);
+  GIndex<size_t, dim> ndq(p * b); 
+  GBlock<IdxCell, dim> qp(p); 
+  GBlock<IdxCell, dim> qb(b); 
+  auto GetBlockData = [](size_t i) {
+    std::vector<Scal> r;
+    for (size_t j = 0; j < i; ++j) {
+      r.push_back(Scal(j));
+    }
+    return r;
+  };
+  if (sem("vector<Scal>")) {
+    MIdx w(bi_.index);
+    rvvs_.clear();
+    for (auto wp : qp) {
+      for (auto wb : qb) {
+        auto w = b * wp + wb;
+        size_t i = ndq.GetIdx(w);
+        rvvs_.push_back(GetBlockData(i));
+      }
+    }
+    m.Scatter({&rvvs_, &rvs_});
+  }
+  if (sem("check")) {
+    MIdx w(bi_.index);
+    size_t i = ndq.GetIdx(w);
+    std::cerr << "i=" << i << " " << GetBlockData(i) << std::endl;
+    PCMP(rvs_, GetBlockData(i));
+  }
+}
 
 template <class M>
 void Simple<M>::TestSolve() {
@@ -528,17 +565,22 @@ void Simple<M>::TestPois() {
 template <class M>
 void Simple<M>::Run() {
   auto sem = m.GetSem("Run");
-  if (sem.Nested("Comm")) {
+  /*
+  if (sem.Nested()) {
     TestComm();
   }
-  if (sem.Nested("Solve")) {
+  if (sem.Nested()) {
     TestSolve();
   }
-  if (sem.Nested("Reduce")) {
+  if (sem.Nested()) {
     TestReduce();
   }
-  if (sem.Nested("Pois")) {
+  if (sem.Nested()) {
     TestPois();
+  }
+  */
+  if (sem.Nested()) {
+    TestScatter();
   }
 }
 

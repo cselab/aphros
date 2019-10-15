@@ -511,13 +511,18 @@ class MeshStructured {
   void ClearBcast() {
     bcast_.clear();
   }
+  // Scatter request:
+  // first: on root, vector for each block; ignored on others
+  // second: receive buffer
+  using ScatterRequest =
+      std::pair<const std::vector<std::vector<Scal>>*, std::vector<Scal>*>;
   // scatter vo, send from root vo[block] to block vo[0]
   // vo: array of size comm_size on root
   //     array of size 1 on others
-  void Scatter(const std::vector<std::shared_ptr<Op>>& vo) {
-    scatter_.push_back(vo);
+  void Scatter(const ScatterRequest& req) {
+    scatter_.push_back(req);
   }
-  const std::vector<std::vector<std::shared_ptr<Op>>>& GetScatter() const {
+  const std::vector<ScatterRequest>& GetScatter() const {
     return scatter_;
   }
   void ClearScatter() {
@@ -605,8 +610,7 @@ class MeshStructured {
   Rd rd_;
   std::vector<LS> vls_; // solve
   std::vector<std::shared_ptr<Op>> bcast_; // list of broadcast requests
-  // list of scatter requests
-  std::vector<std::vector<std::shared_ptr<Op>>> scatter_;
+  std::vector<ScatterRequest> scatter_;  // list of scatter requests
   // tmp for GetSolveTmp()
   std::vector<Scal> lsa_; // matrix coeffs of size n * st.size()
   std::vector<Scal> lsb_; // rhs of size n
