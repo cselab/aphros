@@ -69,6 +69,7 @@ class Local : public DistrMesh<KF> {
   void ReadBuffer(const std::vector<MIdx>& bb) override;
   void WriteBuffer(const std::vector<MIdx>& bb) override;
   void Reduce(const std::vector<MIdx>& bb) override;
+  void Scatter(const std::vector<MIdx>& bb) override;
   void Bcast(const std::vector<MIdx>& bb) override;
   void DumpWrite(const std::vector<MIdx>& bb) override;
 };
@@ -277,6 +278,11 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
     auto& m = k.GetMesh();
     m.ClearReduce();
   }
+}
+
+template <class KF>
+void Local<KF>::Scatter(const std::vector<MIdx>& bb) {
+  return;
 }
 
 template <class KF>
