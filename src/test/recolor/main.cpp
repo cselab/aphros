@@ -31,18 +31,30 @@ void Run(M& m, State& s, Vars& var) {
     fcu.Reinit(m);
     auto init = CreateInitU<M>(var, m.IsRoot());
     init(fcu, m);
-    fccl.Reinit(m, kClNone);
+    fccl.Reinit(m, 1);
   }
   for (size_t i = 0; i < 10; ++i) {
     if (sem()) {
       for (auto c : m.Cells()) {
-        fccl[c] = (fcu[c] > 0 ? 1. : kClNone);
+        if (fcu[c] == 0) {
+          fccl[c] = kClNone;
+        } else {
+          if (fccl[c] == kClNone) {
+            for (auto q : m.Nci(c)) {
+              auto cn = m.GetCell(c, q);
+              if (fccl[cn] != kClNone) {
+                fccl[c] = fccl[cn];
+                break;
+              }
+            }
+          }
+        }
       }
       m.Comm(&fcu);
       m.Comm(&fccl);
     }
     if (sem.Nested()) {
-      uvof.Recolor(layers, &fcu, &fccl, -1, Vect(0), 1e10, mfc, true, true, m);
+      uvof.Recolor(layers, &fcu, &fccl, -1, Vect(0), 1e10, mfc, true, false, m);
     }
     if (sem()) {
       s.sum = 0;
