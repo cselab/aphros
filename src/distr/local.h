@@ -311,9 +311,6 @@ void Local<KF>::Scatter(const std::vector<MIdx>& bb) {
             v = (*req.first)[i++];
           }
         }
-
-        for (size_t k = 0; k < bb.size(); ++k) {
-        }
       }
     }
   }
