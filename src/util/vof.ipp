@@ -310,15 +310,77 @@ struct UVof<M_>::Imp {
     }
   }
 
+  // Overwrites colors with colors from limited range.
+  // map: suggested map <old,new>
+  //      apply maximum subset of map that produces unique colors,
+  //      replaces others with new colors.
+  void ReduceColor(const GRange<size_t>& layers,
+                   const Multi<FieldCell<Scal>*>& fccl, M& m) {
+    auto sem = m.GetSem("recolor");
+    if (sem("gather")) {
+      std::set<Scal> s;
+      for (auto l : layers) {
+        for (auto c : m.AllCells()) {
+          auto& cl = (*fccl[l])[c];
+          if (cl != kClNone) {
+            s.insert(cl);
+          }
+        }
+      }
+      vcl_ = std::vector<Scal>(s.begin(), s.end());
+      vvcl_ = {vcl_};
+      using T = typename M::template OpCatVT<Scal>;
+      m.Reduce(std::make_shared<T>(&vvcl_));
+    }
+    if (sem("remap")) {
+      if (m.IsRoot()) {
+        std::cerr << "vvcl_.size() = " << vvcl_.size() << std::endl;
+        std::map<Scal, Scal> map;
+        map[kClNone] = kClNone;
+        map[0] = 0;
+        Scal cln = 1;
+        for (auto& v : vvcl_) {
+          std::cerr << "vvcl_[i].size() = " << v.size() << std::endl;
+          for (auto& cl : v) {
+            if (!map.count(cl)) {
+              map[cl] = cln;
+              cln += 1.;
+            }
+            cl = map[cl];
+          }
+        }
+        m.Scatter({&vvcl_, &vcln_});
+      } else {
+        m.Scatter({nullptr, &vcln_});
+      }
+    }
+    if (sem("apply")) {
+      std::cerr << "vcl.size() = " << vcl_.size() << std::endl;
+      std::cerr << "vcln.size() = " << vcln_.size() << std::endl;
+      std::map<Scal, Scal> map;
+      for (size_t i = 0; i < vcl_.size(); ++i) {
+        map[vcl_[i]] = vcln_[i];
+      }
+      for (auto l : layers) {
+        for (auto c : m.AllCells()) {
+          auto& cl = (*fccl[l])[c];
+          if (cl != kClNone) {
+            assert(map.count(cl));
+            cl = map[cl];
+          }
+        }
+      }
+    }
+  }
+
   void Recolor(const GRange<size_t>& layers,
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       Scal clfixed, Vect clfixed_x, Scal coalth,
       const MapFace<std::shared_ptr<CondFace>>& mfc,
       bool bcc_reflect, bool verb, M& m) {
-    constexpr Scal kClNone = -1;
     auto sem = m.GetSem("recolor");
-    if (sem("reduce")) {
+    if (sem("clfixed")) {
       fcclt_.resize(layers.size());
       // nearest block nearest to clfixed_x
       if (clfixed >= 0) {
@@ -426,6 +488,9 @@ struct UVof<M_>::Imp {
         BcReflect(*fccl[i], mfc, kClNone, false, m);
       }
     }
+    if (sem.Nested()) {
+      ReduceColor(layers, fccl, m);
+    }
   }
 
   std::vector<std::vector<Vect>> dl_; // dump poly
@@ -437,6 +502,8 @@ struct UVof<M_>::Imp {
   Scal recolor_tries_;
   std::pair<typename M::Scal, int> cldist_; // color,mesh_id
   Multi<FieldCell<Scal>> fcclt_;  // tmp color
+  std::vector<std::vector<Scal>> vvcl_; // all colors
+  std::vector<Scal> vcl_, vcln_; // all colors
 };
 
 template <class M_>
