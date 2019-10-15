@@ -97,7 +97,7 @@ struct UVof<M_>::Imp {
     std::array<int, ms> vc1;
     std::array<double, ms> vw;
     march_cube_location(vc0.data(), vc1.data(), vw.data());
-    assert(n * 3 * 3 <= tri.size());
+    assert(nt * 3 * 3 <= tri.size());
 
     vv.resize(nt);
     {
