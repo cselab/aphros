@@ -145,10 +145,21 @@ typename M::Scal Mean(
 
 // Print CMP
 #define PCMP(a, b) \
+  { \
+  auto _fmt = std::cerr.flags(); \
   std::cerr \
     << std::scientific << std::setprecision(16) \
-    << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
-  CMP(a, b); 
+    << "CMP " << #a << "=" << a << "\n    " << #b << "=" << b << std::endl; \
+  CMP(a, b); \
+  std::cerr.flags(_fmt); \
+  }
+
+// Print CMP standard flags
+#define PCMPF(a, b) \
+  std::cerr \
+    << "CMP " << std::setw(15) << #a << "=" << a \
+    << "\n    " << std::setw(15) << #b << "=" << b << std::endl; \
+  CMP(a, b);
 
 
 template <class M>
@@ -408,13 +419,38 @@ void Simple<M>::TestScatter() {
         rvvs_.push_back(GetBlockData(i));
       }
     }
-    m.Scatter({&rvvs_, &rvs_});
+    if (m.IsRoot()) {
+      std::cerr << "rvvs=" << rvvs_ << std::endl;
+      m.Scatter({&rvvs_, &rvs_});
+    } else {
+      m.Scatter({nullptr, &rvs_});
+    }
   }
   if (sem("check")) {
     MIdx w(bi_.index);
     size_t i = ndq.GetIdx(w);
-    std::cerr << "i=" << i << " " << GetBlockData(i) << std::endl;
-    PCMP(rvs_, GetBlockData(i));
+    PCMPF(rvs_, GetBlockData(i));
+  }
+  if (sem("gather")) {
+    MIdx w(bi_.index);
+    size_t i = ndq.GetIdx(w);
+    using T = typename M::template OpCatVT<Scal>;
+    rvvs_ = {GetBlockData(i)};
+    m.Reduce(std::make_shared<T>(&rvvs_));
+  }
+  if (sem("scatter")) {
+    MIdx w(bi_.index);
+    if (m.IsRoot()) {
+      std::cerr << "rvvs=" << rvvs_ << std::endl;
+      m.Scatter({&rvvs_, &rvs_});
+    } else {
+      m.Scatter({nullptr, &rvs_});
+    }
+  }
+  if (sem("check")) {
+    MIdx w(bi_.index);
+    size_t i = ndq.GetIdx(w);
+    PCMPF(rvs_, GetBlockData(i));
   }
 }
 
@@ -565,7 +601,6 @@ void Simple<M>::TestPois() {
 template <class M>
 void Simple<M>::Run() {
   auto sem = m.GetSem("Run");
-  /*
   if (sem.Nested()) {
     TestComm();
   }
@@ -576,11 +611,10 @@ void Simple<M>::Run() {
     TestReduce();
   }
   if (sem.Nested()) {
-    TestPois();
-  }
-  */
-  if (sem.Nested()) {
     TestScatter();
+  }
+  if (sem.Nested()) {
+    TestPois();
   }
 }
 
