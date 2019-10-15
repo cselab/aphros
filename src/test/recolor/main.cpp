@@ -54,7 +54,7 @@ void Run(M& m, State& s, Vars& var) {
       m.Comm(&fccl);
     }
     if (sem.Nested()) {
-      uvof.Recolor(layers, &fcu, &fccl, -1, Vect(0), 1e10, mfc, true, false, m);
+      uvof.Recolor(layers, &fcu, &fccl, -1, Vect(0), 1e10, mfc, true, true, m);
     }
     if (sem()) {
       s.sum = 0;

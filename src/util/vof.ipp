@@ -398,13 +398,11 @@ struct UVof<M_>::Imp {
     }
   }
 
-  void Recolor(const GRange<size_t>& layers,
+  void Init(const GRange<size_t>& layers,
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
-      Scal clfixed, Vect clfixed_x, Scal coalth,
-      const MapFace<std::shared_ptr<CondFace>>& mfc,
-      bool bcc_reflect, bool verb, M& m) {
-    auto sem = m.GetSem("recolor");
+      Scal clfixed, Vect clfixed_x, Scal coalth, M& m) {
+    auto sem = m.GetSem("recolor_init");
     if (sem("clfixed")) {
       fcclt_.resize(layers.size());
       // nearest block nearest to clfixed_x
@@ -452,6 +450,18 @@ struct UVof<M_>::Imp {
           }
         }
       }
+    }
+  }
+
+  void RecolorDirect(const GRange<size_t>& layers,
+      const Multi<const FieldCell<Scal>*>& fcu,
+      const Multi<FieldCell<Scal>*>& fccl,
+      Scal clfixed, Vect clfixed_x, Scal coalth,
+      const MapFace<std::shared_ptr<CondFace>>& mfc,
+      bool bcc_reflect, bool verb, M& m) {
+    auto sem = m.GetSem("recolor");
+    if (sem.Nested()) {
+      Init(layers, fcu, fccl, clfixed, clfixed_x, coalth, m);
     }
     sem.LoopBegin();
     if (sem("min")) {
@@ -543,6 +553,116 @@ struct UVof<M_>::Imp {
     }
   }
 
+  void RecolorUnionFind(const GRange<size_t>& layers,
+      const Multi<const FieldCell<Scal>*>& fcu,
+      const Multi<FieldCell<Scal>*>& fccl,
+      Scal clfixed, Vect clfixed_x, Scal coalth,
+      const MapFace<std::shared_ptr<CondFace>>& mfc,
+      bool bcc_reflect, bool verb, M& m) {
+    auto sem = m.GetSem("recolor");
+    if (sem.Nested()) {
+      Init(layers, fcu, fccl, clfixed, clfixed_x, coalth, m);
+    }
+    sem.LoopBegin();
+    if (sem("min")) {
+      size_t tries = 0;
+      size_t cells = 0;
+      while (true) {
+        bool chg = false;
+        for (auto i : layers) {
+          for (auto c : m.Cells()) {
+            if ((*fccl[i])[c] != kClNone) {
+              // update color with minimum over neighbours
+              for (auto q : m.Nci(c)) {
+                IdxCell cn = m.GetCell(c, q);
+                for (auto j : layers) {
+                  if ((*fccl[j])[cn] == (*fccl[i])[c]) {
+                    if (fcclt_[j][cn] < fcclt_[i][c]) {
+                      chg = true;
+                      ++cells;
+                      fcclt_[i][c] = fcclt_[j][cn];
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        if (!chg) {
+          break;
+        }
+        ++tries;
+      }
+      for (auto i : layers) {
+        m.Comm(&fcclt_[i]);
+      }
+      recolor_tries_ = tries;
+      m.Reduce(&recolor_tries_, "max");
+    }
+    if (sem("check")) {
+      if (verb && m.IsRoot()) {
+        std::cerr << "recolor:"
+          << " max tries: " << recolor_tries_ 
+          << std::endl;
+      }
+      if (!recolor_tries_) {
+        sem.LoopBreak();
+      }
+    }
+    sem.LoopEnd();
+    if (bcc_reflect && sem("reflect")) {
+      for (auto i : layers) {
+        BcReflect(fcclt_[i], mfc, kClNone, false, m);
+      }
+    }
+    if (sem("copy")) {
+      usermap_.clear();
+      for (auto i : layers) {
+        for (auto c : m.AllCells()) {
+          Scal& a = (*fccl[i])[c];
+          const Scal& cl = fcclt_[i][c];
+          if (a != kClNone && cl != kClNone) {
+            if (!usermap_.count(cl)) {
+              usermap_[cl] = a;
+            }
+          }
+          a = cl;
+        }
+        fcclt_[i].Free();
+      }
+      vcl_.clear();
+      vcln_.clear();
+      for (auto p : usermap_) {
+        vcl_.push_back(p.first);
+        vcln_.push_back(p.second);
+      }
+      using T = typename M::template OpCatT<Scal>;
+      m.Reduce(std::make_shared<T>(&vcl_));
+      m.Reduce(std::make_shared<T>(&vcln_));
+    }
+    if (sem("usermap")) {
+      usermap_.clear();
+      if (m.IsRoot()) {
+        for (size_t i = 0; i < vcl_.size(); ++i) {
+          usermap_[vcl_[i]] = vcln_[i];
+        }
+      }
+    }
+    if (sem.Nested()) {
+      ReduceColor(layers, fccl, m, usermap_);
+    }
+  }
+
+  void Recolor(const GRange<size_t>& layers,
+      const Multi<const FieldCell<Scal>*>& fcu,
+      const Multi<FieldCell<Scal>*>& fccl,
+      Scal clfixed, Vect clfixed_x, Scal coalth,
+      const MapFace<std::shared_ptr<CondFace>>& mfc,
+      bool bcc_reflect, bool verb, M& m) {
+    return RecolorUnionFind(layers, fcu, fccl, clfixed, clfixed_x,
+                            coalth, mfc, bcc_reflect, verb, m);
+  }
+
   std::vector<std::vector<Vect>> dl_; // dump poly
   std::vector<std::vector<Vect>> dln_; // dump poly normals
   std::vector<Scal> dlc_; // dump poly cell
@@ -555,6 +675,8 @@ struct UVof<M_>::Imp {
   std::vector<std::vector<Scal>> vvcl_; // all colors
   std::vector<Scal> vcl_, vcln_; // all colors
   std::map<Scal, Scal> usermap_;
+  Multi<FieldCell<IdxCell>> fcc_; // root cell
+  Multi<FieldCell<char>> fcl_;  // root layer
 };
 
 template <class M_>
