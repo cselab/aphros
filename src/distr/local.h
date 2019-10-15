@@ -282,7 +282,46 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
 
 template <class KF>
 void Local<KF>::Scatter(const std::vector<MIdx>& bb) {
-  return;
+  auto& vreq0 = mk.at(bb[0])->GetMesh().GetScatter(); // requests on first block
+
+  // Check size is the same for all blocks
+  for (auto& b : bb) {
+    auto& vreq = mk.at(b)->GetMesh().GetScatter();
+    if (vreq.size() != vreq0.size()) {
+      throw std::runtime_error("Scatter: vreq.size() != vreq0.size()");
+    }
+  }
+
+  for (size_t q = 0; q < vreq0.size(); ++q) {
+    // find root block
+    for (auto& b : bb) {
+      auto& m = mk.at(b)->GetMesh();
+      if (m.IsRoot()) {
+        auto& req = m.GetScatter()[q];
+
+        GBlock<size_t, dim> qp(p_);
+        GBlock<size_t, dim> qb(b_);
+
+        // write to blocks on current rank
+        size_t i = 0;
+        for (auto wp : qp) { // same ordering as with Cubism
+          for (auto wb : qb) {
+            auto w = b_ * wp + wb;
+            auto& v = *mk.at(w)->GetMesh().GetScatter()[q].second;
+            v = (*req.first)[i++];
+          }
+        }
+
+        for (size_t k = 0; k < bb.size(); ++k) {
+        }
+      }
+    }
+  }
+
+  // Clear requests
+  for (auto& b : bb) {
+    mk.at(b)->GetMesh().ClearScatter();
+  }
 }
 
 template <class KF>
