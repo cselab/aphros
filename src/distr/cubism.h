@@ -658,50 +658,51 @@ void Cubism<Par, KF>::Bcast(const std::vector<MIdx>& bb) {
 }
 template <class Par, class KF>
 void Cubism<Par, KF>::Scatter(const std::vector<MIdx>& bb) {
-  using OpCat = typename M::OpCat;
-  auto& vf = mk.at(bb[0])->GetMesh().GetScatter();  // array to scatter
+  auto& vreq0 = mk.at(bb[0])->GetMesh().GetScatter(); // requests on first block
 
-  // Check size is the same for all kernels
+  // Check size is the same for all blocks
   for (auto& b : bb) {
-    auto& v = mk.at(b)->GetMesh().GetScatter();
-    if (v.size() != vf.size()) {
-      throw std::runtime_error("Scatter: v.size() != vf.size()");
+    auto& vreq = mk.at(b)->GetMesh().GetScatter();
+    if (vreq.size() != vreq0.size()) {
+      throw std::runtime_error("Scatter: vreq.size() != vreq0.size()");
     }
   }
 
-  for (size_t q = 0; q < vf.size(); ++q) {
+  for (size_t q = 0; q < vreq0.size(); ++q) {
     int recvcount;
     int sizes_recvcount;
-    std::vector<char> rbuf;
+    std::vector<Scal> rbuf;
     std::vector<int> sizes_rbuf;
+
+    MPI_Datatype mscal = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
 
     if (isroot_) {
       int sc; // size of communicator
       MPI_Comm_size(comm_, &sc);
+      std::vector<Scal> buf;
       std::vector<int> dis(sc, 0);
       std::vector<int> cnt(sc, 0);
-      std::vector<int> sizes(sc * bb.size(), 0); // buffer size for each block
-      std::vector<int> sizes_dis(sc, 0); // displ for sizes
-      std::vector<int> sizes_cnt(sc, 0); // counts for sizes
-      std::vector<char> buf;
+      std::vector<int> sizes_buf;
+      std::vector<int> sizes_dis(sc, 0);
+      std::vector<int> sizes_cnt(sc, 0);
       // find root block
       for (auto& b : bb) {
-        if (mk.at(b)->GetMesh().IsRoot()) {
-          auto& o = mk.at(b)->GetMesh().GetScatter()[q];
+        auto& m = mk.at(b)->GetMesh();
+        if (m.IsRoot()) {
+          auto& req = m.GetScatter()[q];
           size_t i = 0;
-          // concatenate data for all blocks
+          // concatenate data for all blocks in buf
           for (int rank = 0; rank < sc; ++rank) {
-            // XXX assuming the same number of blocks on all ranks
             dis[rank] = buf.size();
-            sizes_dis[rank] = sizes.size();
+            sizes_dis[rank] = sizes_buf.size();
+            // XXX assuming the same number of blocks on all ranks
             for (size_t k = 0; k < bb.size(); ++k) {
-              OpCat* ob = dynamic_cast<OpCat*>(o[i].get());
-              const size_t s0 = buf.size();
-              ob->Append(buf);
-              sizes[i] = buf.size() - s0;
+              auto& v = (*req.first)[i];
+              buf.insert(buf.end(), v.begin(), v.end());
+              sizes_buf.push_back(v.size());
               ++i;
             }
-            sizes_cnt[rank] = sizes.size() - sizes_dis[rank];
+            sizes_cnt[rank] = sizes_buf.size() - sizes_dis[rank];
             cnt[rank] = buf.size() - dis[rank];
           }
         }
@@ -711,23 +712,24 @@ void Cubism<Par, KF>::Scatter(const std::vector<MIdx>& bb) {
                   &recvcount, 1, MPI_INT, 0, comm_);
       rbuf.resize(recvcount);
       // data
-      MPI_Scatterv(buf.data(), cnt.data(), dis.data(), MPI_CHAR,
-                   rbuf.data(), recvcount, MPI_CHAR, 0, comm_);
+      MPI_Scatterv(buf.data(), cnt.data(), dis.data(), mscal,
+                   rbuf.data(), recvcount, mscal, 0, comm_);
       // sizes recvcount
       MPI_Scatter(sizes_cnt.data(), 1, MPI_INT,
                   &sizes_recvcount, 1, MPI_INT, 0, comm_);
       sizes_rbuf.resize(sizes_recvcount);
       // sizes
-      MPI_Scatterv(sizes.data(), sizes_cnt.data(), sizes_dis.data(), MPI_INT,
-                   sizes_rbuf.data(), sizes_recvcount, MPI_INT, 0, comm_);
+      MPI_Scatterv(
+          sizes_buf.data(), sizes_cnt.data(), sizes_dis.data(), MPI_INT,
+          sizes_rbuf.data(), sizes_recvcount, MPI_INT, 0, comm_);
     } else {
-      // recvcount
+      // data recvcount
       MPI_Scatter(nullptr, 0, MPI_INT,
                   &recvcount, 1, MPI_INT, 0, comm_);
       rbuf.resize(recvcount);
       // data
-      MPI_Scatterv(nullptr, nullptr, nullptr, MPI_CHAR,
-                   rbuf.data(), recvcount, MPI_CHAR, 0, comm_);
+      MPI_Scatterv(nullptr, nullptr, nullptr, mscal,
+                   rbuf.data(), recvcount, mscal, 0, comm_);
       // sizes recvcount
       MPI_Scatter(nullptr, 0, MPI_INT,
                   &sizes_recvcount, 1, MPI_INT, 0, comm_);
@@ -737,23 +739,17 @@ void Cubism<Par, KF>::Scatter(const std::vector<MIdx>& bb) {
                    sizes_rbuf.data(), sizes_recvcount, MPI_INT, 0, comm_);
     }
 
-    // rbuf contains concatenated arrays for all blocks
-    // from current rank
-
-    // write to all blocks
-    // XXX assuming the same number of blocks on all ranks
+    // write to blocks on current rank
     size_t off = 0;
     for (size_t k = 0; k < bb.size(); ++k) {
-      OpCat* ob = dynamic_cast<OpCat*>(
-          mk.at(bb[k])->GetMesh().GetScatter()[q][0].get());
-      std::vector<char> seg(rbuf.data() + off,
+      auto& v = *mk.at(bb[k])->GetMesh().GetScatter()[q].second;
+      v = std::vector<Scal>(rbuf.data() + off,
                             rbuf.data() + off + sizes_rbuf[k]);
       off += sizes_rbuf[k];
-      ob->Set(seg);
     }
   }
 
-  // Clear bcast requests
+  // Clear requests
   for (auto& b : bb) {
     mk.at(b)->GetMesh().ClearScatter();
   }
