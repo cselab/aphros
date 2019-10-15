@@ -5,6 +5,8 @@
 #include <limits>
 #include <iomanip>
 #include <set>
+#include <map>
+#include <algorithm>
 
 #include <march.h>
 
@@ -15,6 +17,16 @@
 #include "debug/isnan.h"
 
 namespace solver {
+
+template <class T>
+std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
+  std::string p = "";
+  for (auto a : v) {
+    o << p << a;
+    p = " ";
+  }
+  return o;
+}
 
 template <class M_>
 struct UVof<M_>::Imp {
@@ -311,11 +323,12 @@ struct UVof<M_>::Imp {
   }
 
   // Overwrites colors with colors from limited range.
-  // map: suggested map <old,new>
-  //      apply maximum subset of map that produces unique colors,
+  // usermap: suggested map <old,new>
+  //      applies maximum subset of usermap that produces unique colors,
   //      replaces others with new colors.
   void ReduceColor(const GRange<size_t>& layers,
-                   const Multi<FieldCell<Scal>*>& fccl, M& m) {
+                   const Multi<FieldCell<Scal>*>& fccl, M& m,
+                   const std::map<Scal, Scal>& usermap) {
     auto sem = m.GetSem("recolor");
     if (sem("gather")) {
       std::set<Scal> s;
@@ -334,17 +347,31 @@ struct UVof<M_>::Imp {
     }
     if (sem("remap")) {
       if (m.IsRoot()) {
-        std::cerr << "vvcl_.size() = " << vvcl_.size() << std::endl;
         std::map<Scal, Scal> map;
+        std::set<Scal> used;
+        // keep some colors
         map[kClNone] = kClNone;
         map[0] = 0;
-        Scal cln = 1;
+        used.insert(kClNone);
+        used.insert(0);
+        // next unused color
+        Scal an = 1;
+        for (auto p : usermap) {
+          an = std::max(an, p.second);
+        }
+        an += 1;
         for (auto& v : vvcl_) {
-          std::cerr << "vvcl_[i].size() = " << v.size() << std::endl;
           for (auto& cl : v) {
             if (!map.count(cl)) {
-              map[cl] = cln;
-              cln += 1.;
+              if (!usermap.count(cl) || used.count(usermap.at(cl))) {
+                map[cl] = an;
+                used.insert(an);
+                an += 1.;
+              } else { // usermap.count(cl) && !used.count(usermap[cl])
+                Scal au = usermap.at(cl);
+                map[cl] = au;
+                used.insert(au);
+              }
             }
             cl = map[cl];
           }
@@ -355,8 +382,6 @@ struct UVof<M_>::Imp {
       }
     }
     if (sem("apply")) {
-      std::cerr << "vcl.size() = " << vcl_.size() << std::endl;
-      std::cerr << "vcln.size() = " << vcln_.size() << std::endl;
       std::map<Scal, Scal> map;
       for (size_t i = 0; i < vcl_.size(); ++i) {
         map[vcl_[i]] = vcln_[i];
@@ -475,21 +500,46 @@ struct UVof<M_>::Imp {
       }
     }
     sem.LoopEnd();
-    if (sem("free")) {
+    if (bcc_reflect && sem("reflect")) {
+      for (auto i : layers) {
+        BcReflect(fcclt_[i], mfc, kClNone, false, m);
+      }
+    }
+    if (sem("copy")) {
+      usermap_.clear();
       for (auto i : layers) {
         for (auto c : m.AllCells()) {
-          (*fccl[i])[c] = fcclt_[i][c];
+          Scal& a = (*fccl[i])[c];
+          const Scal& cl = fcclt_[i][c];
+          if (a != kClNone && cl != kClNone) {
+            if (!usermap_.count(cl)) {
+              usermap_[cl] = a;
+            }
+          }
+          a = cl;
         }
         fcclt_[i].Free();
       }
+      vcl_.clear();
+      vcln_.clear();
+      for (auto p : usermap_) {
+        vcl_.push_back(p.first);
+        vcln_.push_back(p.second);
+      }
+      using T = typename M::template OpCatT<Scal>;
+      m.Reduce(std::make_shared<T>(&vcl_));
+      m.Reduce(std::make_shared<T>(&vcln_));
     }
-    if (bcc_reflect && sem("reflect")) {
-      for (auto i : layers) {
-        BcReflect(*fccl[i], mfc, kClNone, false, m);
+    if (sem("usermap")) {
+      usermap_.clear();
+      if (m.IsRoot()) {
+        for (size_t i = 0; i < vcl_.size(); ++i) {
+          usermap_[vcl_[i]] = vcln_[i];
+        }
       }
     }
     if (sem.Nested()) {
-      ReduceColor(layers, fccl, m);
+      ReduceColor(layers, fccl, m, usermap_);
     }
   }
 
@@ -504,6 +554,7 @@ struct UVof<M_>::Imp {
   Multi<FieldCell<Scal>> fcclt_;  // tmp color
   std::vector<std::vector<Scal>> vvcl_; // all colors
   std::vector<Scal> vcl_, vcln_; // all colors
+  std::map<Scal, Scal> usermap_;
 };
 
 template <class M_>
