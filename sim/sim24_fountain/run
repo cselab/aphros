@@ -1,3 +1,4 @@
+killall ch.mfer
 make cleanall
 ./pargen
 make run
