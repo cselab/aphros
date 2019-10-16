@@ -365,6 +365,90 @@ struct UVof<M_>::Imp {
     }
   }
 
+  // Applies grid heuristic 
+  void Grid(const GRange<size_t>& layers,
+            const Multi<const FieldCell<Scal>*>& fccl,
+            const Multi<FieldCell<Scal>*>& fcclt, M& m) {
+    auto sem = m.GetSem("grid");
+    if (sem("grid")) {
+      // Collect neighbor colors in corners
+      merge0_.clear();
+      merge1_.clear();
+      for (auto c : m.Cells()) {
+        for (auto l : layers) {
+          if ((*fccl[l])[c] != kClNone) {
+            for (auto q : {0, 1, 2}) {
+              IdxCell cm = m.GetCell(c, q);
+              for (auto lm : layers) {
+                if ((*fccl[l])[c] == (*fccl[lm])[cm] &&
+                    (*fcclt[l])[c] != (*fcclt[lm])[cm]) {
+                  merge0_.push_back((*fcclt[l])[c]);
+                  merge1_.push_back((*fcclt[lm])[cm]);
+                }
+              }
+            }
+          }
+        }
+        break;
+      }
+      using T = typename M::template OpCatT<Scal>;
+      m.Reduce(std::make_shared<T>(&merge0_));
+      m.Reduce(std::make_shared<T>(&merge1_));
+    }
+    if (sem("gridreduce")) {
+      if (m.IsRoot()) {
+        std::map<Scal, Scal> map;
+        for (size_t i = 0; i < merge0_.size(); ++i) {
+          map[merge0_[i]] = merge1_[i];
+          map[merge1_[i]] = merge0_[i];
+        }
+        int iter = 0;
+        // Find minimal color connected through pairs
+        while (true) {
+          bool chg = false;
+          for (auto& p : map) {
+            if (map.count(p.second)) {
+              if (map[p.second] < p.second) {
+                p.second = map[p.second];
+                chg = true;
+              }
+            }
+          }
+          if (!chg) {
+            break;
+          }
+          ++iter;
+        }
+        merge0_.clear();
+        merge1_.clear();
+        for (auto& p : map) {
+          merge0_.push_back(p.first);
+          merge1_.push_back(p.second);
+        }
+      }
+      using T = typename M::template OpCatT<Scal>;
+      m.Bcast(std::make_shared<T>(&merge0_));
+      m.Bcast(std::make_shared<T>(&merge1_));
+    }
+    if (sem("gridapply")) {
+      std::map<Scal, Scal> map;
+      for (size_t i = 0; i < merge0_.size(); ++i) {
+        map[merge0_[i]] = merge1_[i];
+      }
+      for (auto f : m.Faces()) {  // FIXME: inner cells traversed twice
+        for (size_t q : {0, 1}) {
+          auto c = m.GetCell(f, q);
+          for (auto l : layers) {
+            auto& cl = (*fcclt[l])[c];
+            if (map.count(cl)) {
+              cl = map[cl];
+            }
+          }
+        }
+      }
+    }
+  }
+
   // Reduces the color space.
   // usermap: suggested map <old,new>
   //          applies maximum subset of usermap that produces unique colors,
@@ -510,6 +594,9 @@ struct UVof<M_>::Imp {
       Init(layers, fcu, fccl, clfixed, clfixed_x, coalth, m);
     }
     sem.LoopBegin();
+    if (grid && sem.Nested()) {
+      Grid(layers, fccl, fcclt_, m);
+    }
     if (sem("min")) {
       size_t tries = 0;
       size_t cells = 0;
@@ -602,82 +689,8 @@ struct UVof<M_>::Imp {
       }
     }
     sem.LoopBegin();
-    if (grid && sem("grid")) {
-      // Collect neighbor colors in corners
-      merge0_.clear();
-      merge1_.clear();
-      for (auto c : m.Cells()) {
-        for (auto l : layers) {
-          if ((*fccl[l])[c] != kClNone) {
-            for (auto q : {0, 1, 2}) {
-              IdxCell cm = m.GetCell(c, q);
-              for (auto lm : layers) {
-                if ((*fccl[l])[c] == (*fccl[lm])[cm] &&
-                    fcclt_[l][c] != fcclt_[lm][cm]) {
-                  merge0_.push_back(fcclt_[l][c]);
-                  merge1_.push_back(fcclt_[lm][cm]);
-                }
-              }
-            }
-          }
-        }
-        break;
-      }
-      using T = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<T>(&merge0_));
-      m.Reduce(std::make_shared<T>(&merge1_));
-    }
-    if (grid && sem("gridreduce")) {
-      if (m.IsRoot()) {
-        std::map<Scal, Scal> map;
-        for (size_t i = 0; i < merge0_.size(); ++i) {
-          map[merge0_[i]] = merge1_[i];
-          map[merge1_[i]] = merge0_[i];
-        }
-        int iter = 0;
-        // Find minimal color connected through pairs
-        while (true) {
-          bool chg = false;
-          for (auto& p : map) {
-            if (map.count(p.second)) {
-              if (map[p.second] < p.second) {
-                p.second = map[p.second];
-                chg = true;
-              }
-            }
-          }
-          if (!chg) {
-            break;
-          }
-          ++iter;
-        }
-        merge0_.clear();
-        merge1_.clear();
-        for (auto& p : map) {
-          merge0_.push_back(p.first);
-          merge1_.push_back(p.second);
-        }
-      }
-      using T = typename M::template OpCatT<Scal>;
-      m.Bcast(std::make_shared<T>(&merge0_));
-      m.Bcast(std::make_shared<T>(&merge1_));
-    }
-    if (grid && sem("gridapply")) {
-      std::map<Scal, Scal> map;
-      for (size_t i = 0; i < merge0_.size(); ++i) {
-        map[merge0_[i]] = merge1_[i];
-      }
-      for (auto f : m.Faces()) {  // FIXME: inner cells traversed twice
-        for (size_t q : {0, 1}) {
-          auto c = m.GetCell(f, q);
-          for (auto l : layers) {
-            auto& cl = fcclt_[l][c];
-            if (map.count(cl)) {
-              cl = map[cl];
-            }
-          }
-        }
-      }
+    if (grid && sem.Nested()) {
+      Grid(layers, fccl, fcclt_, m);
     }
     if (sem("min")) {
       using Pair = std::pair<IdxCell, char>;
