@@ -7,6 +7,8 @@
 #include <set>
 #include <map>
 #include <algorithm>
+#include <functional>
+#include <stdio.h>
 
 #include <march.h>
 
@@ -404,8 +406,7 @@ struct UVof<M_>::Imp {
       Scal clfixed, Vect clfixed_x, Scal coalth, M& m) {
     auto sem = m.GetSem("recolor_init");
     if (sem("clfixed")) {
-      fcclt_.resize(layers.size());
-      // nearest block nearest to clfixed_x
+      // block nearest to clfixed_x
       if (clfixed >= 0) {
         IdxCell c = m.FindNearestCell(clfixed_x);
         cldist_.first = m.GetCenter(c).dist(clfixed_x);
@@ -416,6 +417,7 @@ struct UVof<M_>::Imp {
       }
     }
     if (sem("init")) {
+      fcclt_.resize(layers.size());
       fcclt_.InitAll(FieldCell<Scal>(m, kClNone));
       // initial unique color
       Scal q = m.GetId() * m.GetInBlockCells().size() * layers.size();
@@ -563,38 +565,105 @@ struct UVof<M_>::Imp {
     if (sem.Nested()) {
       Init(layers, fcu, fccl, clfixed, clfixed_x, coalth, m);
     }
+    if (sem("initroot")) {
+      fcc_.resize(layers.size());
+      fcl_.resize(layers.size());
+      fcc_.InitAll(FieldCell<IdxCell>(m));
+      fcl_.InitAll(FieldCell<char>(m));
+      for (auto c : m.AllCells()) {
+        for (auto l : layers) {
+          fcc_[l][c] = c;
+          fcl_[l][c] = l;
+        }
+      }
+    }
     sem.LoopBegin();
     if (sem("min")) {
+      using Pair = std::pair<IdxCell, char>;
       size_t tries = 0;
-      size_t cells = 0;
-      while (true) {
-        bool chg = false;
-        for (auto i : layers) {
-          for (auto c : m.Cells()) {
-            if ((*fccl[i])[c] != kClNone) {
-              // update color with minimum over neighbours
-              for (auto q : m.Nci(c)) {
-                IdxCell cn = m.GetCell(c, q);
-                for (auto j : layers) {
-                  if ((*fccl[j])[cn] == (*fccl[i])[c]) {
-                    if (fcclt_[j][cn] < fcclt_[i][c]) {
-                      chg = true;
-                      ++cells;
-                      fcclt_[i][c] = fcclt_[j][cn];
-                    }
-                  }
-                }
+      // Returns reference to element
+      auto Clt = [this](Pair p) -> Scal& {
+        return fcclt_[p.second][p.first];
+      };
+      // Returns parent of p.
+      auto Get = [this](Pair p) {
+        IdxCell c = p.first;
+        char l = p.second;
+        return Pair(fcc_[l][c], fcl_[l][c]);
+      };
+      // Sets parent of p to r.
+      auto Set = [this](Pair p, Pair r) {
+        IdxCell c = p.first;
+        char l = p.second;
+        fcc_[l][c] = r.first;
+        fcl_[l][c] = r.second;
+        return r;
+      };
+      // Returns root of p.
+      std::function<Pair(Pair)> Find = [this,&Get,&Set,&Find](Pair p) {
+        if (Get(p) == p) {
+          return p;
+        }
+        return Set(p, Find(Get(p)));
+      };
+      // Merges sets with representatives p0 and p1
+      auto Union = [this,&Find,&Get,&Set,&tries,&Clt](Pair p0, Pair p1) {
+        p0 = Find(p0);
+        p1 = Find(p1);
+        if (p0 != p1) {
+          if (Clt(p0) <= Clt(p1)) {
+            Set(p1, p0);
+          } else {
+            Set(p0, p1);
+          }
+          ++tries;
+        }
+      };
+      for (auto f : m.SuFaces()) {
+        auto cm = m.GetCell(f, 0);
+        auto cp = m.GetCell(f, 1);
+        for (auto lm : layers) {
+          for (auto lp : layers) {
+            if ((*fccl[lm])[cm] != kClNone && 
+                (*fccl[lm])[cm] == (*fccl[lp])[cp]) {
+              Pair pm(cm, lm);
+              Pair pp(cp, lp);
+              if (Clt(pm) < Clt(Get(pm))) { 
+                fprintf(stderr, "pm %g %g\n", Clt(pm), Clt(Get(pm)));
+                Set(pm, pm);
+              }
+              if (Clt(pp) < Clt(Get(pp))) { 
+                fprintf(stderr, "pp %g %g\n", Clt(pp), Clt(Get(pp)));
+                Set(pp, pp);
               }
             }
           }
         }
-        if (!chg) {
-          break;
-        }
-        ++tries;
       }
-      for (auto i : layers) {
-        m.Comm(&fcclt_[i]);
+      // Merge all neighbors with the same color.
+      for (auto f : m.Faces()) {
+        auto cm = m.GetCell(f, 0);
+        auto cp = m.GetCell(f, 1);
+        for (auto lm : layers) {
+          for (auto lp : layers) {
+            if ((*fccl[lm])[cm] != kClNone && 
+                (*fccl[lm])[cm] == (*fccl[lp])[cp]) {
+              Pair pm(cm, lm);
+              Pair pp(cp, lp);
+              Union(pm, pp);
+            }
+          }
+        }
+      }
+      // Propagate color from root
+      for (auto c : m.Cells()) {
+        for (auto l : layers) {
+          Pair p(c, l);
+          Clt(p) = Clt(Get(p));
+        }
+      }
+      for (auto l : layers) {
+        m.Comm(&fcclt_[l]);
       }
       recolor_tries_ = tries;
       m.Reduce(&recolor_tries_, "max");
