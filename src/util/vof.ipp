@@ -368,9 +368,9 @@ struct UVof<M_>::Imp {
   // Applies grid heuristic 
   void Grid(const GRange<size_t>& layers,
             const Multi<const FieldCell<Scal>*>& fccl,
-            const Multi<FieldCell<Scal>*>& fcclt, M& m) {
+            const Multi<FieldCell<Scal>*>& fcclt, bool verb, M& m) {
     auto sem = m.GetSem("grid");
-    if (sem("grid")) {
+    if (sem("local")) {
       // Collect neighbor colors in corners
       merge0_.clear();
       merge1_.clear();
@@ -395,7 +395,7 @@ struct UVof<M_>::Imp {
       m.Reduce(std::make_shared<T>(&merge0_));
       m.Reduce(std::make_shared<T>(&merge1_));
     }
-    if (sem("gridreduce")) {
+    if (sem("reduce")) {
       if (m.IsRoot()) {
         std::map<Scal, Scal> map;
         for (size_t i = 0; i < merge0_.size(); ++i) {
@@ -419,6 +419,11 @@ struct UVof<M_>::Imp {
           }
           ++iter;
         }
+        if (verb) {
+          std::cerr
+              << "grid: map.size=" << map.size()
+              << " iter=" << iter << std::endl;
+        }
         merge0_.clear();
         merge1_.clear();
         for (auto& p : map) {
@@ -430,7 +435,7 @@ struct UVof<M_>::Imp {
       m.Bcast(std::make_shared<T>(&merge0_));
       m.Bcast(std::make_shared<T>(&merge1_));
     }
-    if (sem("gridapply")) {
+    if (sem("apply")) {
       std::map<Scal, Scal> map;
       for (size_t i = 0; i < merge0_.size(); ++i) {
         map[merge0_[i]] = merge1_[i];
@@ -595,7 +600,7 @@ struct UVof<M_>::Imp {
     }
     sem.LoopBegin();
     if (grid && sem.Nested()) {
-      Grid(layers, fccl, fcclt_, m);
+      Grid(layers, fccl, fcclt_, verb, m);
     }
     if (sem("min")) {
       size_t tries = 0;
@@ -690,7 +695,7 @@ struct UVof<M_>::Imp {
     }
     sem.LoopBegin();
     if (grid && sem.Nested()) {
-      Grid(layers, fccl, fcclt_, m);
+      Grid(layers, fccl, fcclt_, verb, m);
     }
     if (sem("min")) {
       using Pair = std::pair<IdxCell, char>;
