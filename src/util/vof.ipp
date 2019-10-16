@@ -324,14 +324,56 @@ struct UVof<M_>::Imp {
     }
   }
 
-  // Overwrites colors with colors from limited range.
+  // Initializes usermap_.
+  // fccl0: known colors
+  // fccl: colors to reduce
+  void UserMap(const GRange<size_t>& layers,
+               const Multi<const FieldCell<Scal>*>& fccl0,
+               const Multi<const FieldCell<Scal>*>& fccl,
+               M& m) {
+    auto sem = m.GetSem("usermap");
+    if (sem("local")) {
+      usermap_.clear();
+      for (auto c : m.AllCells()) {
+        for (auto i : layers) {
+          Scal a = (*fccl0[i])[c];
+          Scal cl = (*fccl[i])[c];
+          if (a != kClNone && cl != kClNone) {
+            if (!usermap_.count(cl)) {
+              usermap_[cl] = a;
+            }
+          }
+        }
+      }
+      vcl_.clear();
+      vcln_.clear();
+      for (auto p : usermap_) {
+        vcl_.push_back(p.first);
+        vcln_.push_back(p.second);
+      }
+      using T = typename M::template OpCatT<Scal>;
+      m.Reduce(std::make_shared<T>(&vcl_));
+      m.Reduce(std::make_shared<T>(&vcln_));
+    }
+    if (sem("gather")) {
+      usermap_.clear();
+      if (m.IsRoot()) {
+        for (size_t i = 0; i < vcl_.size(); ++i) {
+          usermap_[vcl_[i]] = vcln_[i];
+        }
+      }
+    }
+  }
+
+  // Reduces the color space.
   // usermap: suggested map <old,new>
-  //      applies maximum subset of usermap that produces unique colors,
-  //      replaces others with new colors.
+  //          applies maximum subset of usermap that produces unique colors,
+  //          replaces others with new colors.
   void ReduceColor(const GRange<size_t>& layers,
-                   const Multi<FieldCell<Scal>*>& fccl, M& m,
-                   const std::map<Scal, Scal>& usermap) {
+                   const Multi<FieldCell<Scal>*>& fccl,
+                   const std::map<Scal, Scal>& usermap, M& m) {
     auto sem = m.GetSem("recolor");
+    // gather all colors from domain
     if (sem("gather")) {
       std::set<Scal> s;
       for (auto l : layers) {
@@ -347,7 +389,8 @@ struct UVof<M_>::Imp {
       using T = typename M::template OpCatVT<Scal>;
       m.Reduce(std::make_shared<T>(&vvcl_));
     }
-    if (sem("remap")) {
+    // replace with reduced set, applying usermap if possible
+    if (sem("reduce")) {
       if (m.IsRoot()) {
         std::map<Scal, Scal> map;
         std::set<Scal> used;
@@ -383,13 +426,14 @@ struct UVof<M_>::Imp {
         m.Scatter({nullptr, &vcln_});
       }
     }
+    // apply the new set from vcln_
     if (sem("apply")) {
       std::map<Scal, Scal> map;
       for (size_t i = 0; i < vcl_.size(); ++i) {
         map[vcl_[i]] = vcln_[i];
       }
-      for (auto l : layers) {
-        for (auto c : m.AllCells()) {
+      for (auto c : m.AllCells()) {
+        for (auto l : layers) {
           auto& cl = (*fccl[l])[c];
           if (cl != kClNone) {
             assert(map.count(cl));
@@ -517,41 +561,21 @@ struct UVof<M_>::Imp {
         BcReflect(fcclt_[i], mfc, kClNone, false, m);
       }
     }
-    if (sem("copy")) {
-      usermap_.clear();
-      for (auto i : layers) {
-        for (auto c : m.AllCells()) {
-          Scal& a = (*fccl[i])[c];
-          const Scal& cl = fcclt_[i][c];
-          if (a != kClNone && cl != kClNone) {
-            if (!usermap_.count(cl)) {
-              usermap_[cl] = a;
-            }
-          }
-          a = cl;
-        }
-        fcclt_[i].Free();
-      }
-      vcl_.clear();
-      vcln_.clear();
-      for (auto p : usermap_) {
-        vcl_.push_back(p.first);
-        vcln_.push_back(p.second);
-      }
-      using T = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<T>(&vcl_));
-      m.Reduce(std::make_shared<T>(&vcln_));
-    }
-    if (sem("usermap")) {
-      usermap_.clear();
-      if (m.IsRoot()) {
-        for (size_t i = 0; i < vcl_.size(); ++i) {
-          usermap_[vcl_[i]] = vcln_[i];
-        }
-      }
+    if (reduce && sem.Nested()) {
+      UserMap(layers, fccl, fcclt_, m);
     }
     if (reduce && sem.Nested()) {
-      ReduceColor(layers, fccl, m, usermap_);
+      ReduceColor(layers, fcclt_, usermap_, m);
+    }
+    if (sem("copy")) {
+      for (auto c : m.AllCells()) {
+        for (auto l : layers) {
+          (*fccl[l])[c] = fcclt_[l][c];
+        }
+      }
+      for (auto l : layers) {
+        fcclt_[l].Free();
+      }
     }
   }
 
@@ -771,41 +795,11 @@ struct UVof<M_>::Imp {
         BcReflect(fcclt_[i], mfc, kClNone, false, m);
       }
     }
-    if (sem("copy")) {
-      usermap_.clear();
-      for (auto i : layers) {
-        for (auto c : m.AllCells()) {
-          Scal& a = (*fccl[i])[c];
-          const Scal& cl = fcclt_[i][c];
-          if (a != kClNone && cl != kClNone) {
-            if (!usermap_.count(cl)) {
-              usermap_[cl] = a;
-            }
-          }
-          a = cl;
-        }
-        fcclt_[i].Free();
-      }
-      vcl_.clear();
-      vcln_.clear();
-      for (auto p : usermap_) {
-        vcl_.push_back(p.first);
-        vcln_.push_back(p.second);
-      }
-      using T = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<T>(&vcl_));
-      m.Reduce(std::make_shared<T>(&vcln_));
-    }
-    if (sem("usermap")) {
-      usermap_.clear();
-      if (m.IsRoot()) {
-        for (size_t i = 0; i < vcl_.size(); ++i) {
-          usermap_[vcl_[i]] = vcln_[i];
-        }
-      }
+    if (reduce && sem.Nested()) {
+      UserMap(layers, fccl, fcclt_, m);
     }
     if (reduce && sem.Nested()) {
-      ReduceColor(layers, fccl, m, usermap_);
+      ReduceColor(layers, fcclt_, usermap_, m);
     }
   }
 
