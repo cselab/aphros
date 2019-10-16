@@ -10,6 +10,7 @@
 #include <functional>
 #include <stdio.h>
 
+
 #include <march.h>
 
 #include "vof.h"
@@ -17,6 +18,7 @@
 #include "dump/vtk.h"
 #include "solver/reconst.h"
 #include "debug/isnan.h"
+#include "metrics.h"
 
 namespace solver {
 
@@ -371,6 +373,7 @@ struct UVof<M_>::Imp {
             const Multi<FieldCell<Scal>*>& fcclt, bool verb, M& m) {
     auto sem = m.GetSem("grid");
     if (sem("local")) {
+      SingleTimer st;
       // Collect neighbor colors in corners
       merge0_.clear();
       merge1_.clear();
@@ -394,10 +397,14 @@ struct UVof<M_>::Imp {
       using T = typename M::template OpCatT<Scal>;
       m.Reduce(std::make_shared<T>(&merge0_));
       m.Reduce(std::make_shared<T>(&merge1_));
+      if (verb && m.IsRoot()) {
+        std::cerr << "grid:local=" << st.GetSeconds() << std::endl;
+      }
     }
     if (sem("reduce")) {
       if (m.IsRoot()) {
         std::map<Scal, Scal> map;
+
         for (size_t i = 0; i < merge0_.size(); ++i) {
           map[merge0_[i]] = merge1_[i];
           map[merge1_[i]] = merge0_[i];
