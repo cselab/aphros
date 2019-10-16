@@ -576,12 +576,13 @@ struct UVof<M_>::Imp {
           fcl_[l][c] = l;
         }
       }
+      recolor_iter_ = 0;
     }
     sem.LoopBegin();
     if (sem("min")) {
       using Pair = std::pair<IdxCell, char>;
       size_t tries = 0;
-      // Returns reference to element
+      // Returns reference to color
       auto Clt = [this](Pair p) -> Scal& {
         return fcclt_[p.second][p.first];
       };
@@ -619,27 +620,7 @@ struct UVof<M_>::Imp {
           ++tries;
         }
       };
-      for (auto f : m.SuFaces()) {
-        auto cm = m.GetCell(f, 0);
-        auto cp = m.GetCell(f, 1);
-        for (auto lm : layers) {
-          for (auto lp : layers) {
-            if ((*fccl[lm])[cm] != kClNone && 
-                (*fccl[lm])[cm] == (*fccl[lp])[cp]) {
-              Pair pm(cm, lm);
-              Pair pp(cp, lp);
-              if (Clt(pm) < Clt(Get(pm))) { 
-                fprintf(stderr, "pm %g %g\n", Clt(pm), Clt(Get(pm)));
-                Set(pm, pm);
-              }
-              if (Clt(pp) < Clt(Get(pp))) { 
-                fprintf(stderr, "pp %g %g\n", Clt(pp), Clt(Get(pp)));
-                Set(pp, pp);
-              }
-            }
-          }
-        }
-      }
+
       // Merge all neighbors with the same color.
       for (auto f : m.Faces()) {
         auto cm = m.GetCell(f, 0);
@@ -655,11 +636,32 @@ struct UVof<M_>::Imp {
           }
         }
       }
-      // Propagate color from root
-      for (auto c : m.Cells()) {
+      // Set all cells to their root
+      for (auto f : m.Faces()) {
+        auto cm = m.GetCell(f, 0);
+        auto cp = m.GetCell(f, 1);
         for (auto l : layers) {
-          Pair p(c, l);
-          Clt(p) = Clt(Get(p));
+          Pair pm(cm, l);
+          Pair pp(cp, l);
+          Set(pm, Find(pm));
+          Set(pp, Find(pp));
+        }
+      }
+      // Update color from parent
+      for (auto f : m.Faces()) {
+        auto cm = m.GetCell(f, 0);
+        auto cp = m.GetCell(f, 1);
+        for (auto l : layers) {
+          Pair pm(cm, l);
+          Pair pp(cp, l);
+          if (Clt(pm) != Clt(Get(pm))) {
+            Clt(pm) = Clt(Get(pm));
+            ++tries;
+          }
+          if (Clt(pp) != Clt(Get(pp))) {
+            Clt(pp) = Clt(Get(pp));
+            ++tries;
+          }
         }
       }
       for (auto l : layers) {
@@ -677,6 +679,7 @@ struct UVof<M_>::Imp {
       if (!recolor_tries_) {
         sem.LoopBreak();
       }
+      ++recolor_iter_;
     }
     sem.LoopEnd();
     if (bcc_reflect && sem("reflect")) {
@@ -729,6 +732,7 @@ struct UVof<M_>::Imp {
       const MapFace<std::shared_ptr<CondFace>>& mfc,
       bool bcc_reflect, bool verb, M& m) {
     return RecolorUnionFind(layers, fcu, fccl, clfixed, clfixed_x,
+    //return RecolorDirect(layers, fcu, fccl, clfixed, clfixed_x,
                             coalth, mfc, bcc_reflect, verb, m);
   }
 
@@ -739,6 +743,7 @@ struct UVof<M_>::Imp {
   std::vector<Scal> dlcl_; // dump poly color
 
   Scal recolor_tries_;
+  Scal recolor_iter_;
   std::pair<typename M::Scal, int> cldist_; // color,mesh_id
   Multi<FieldCell<Scal>> fcclt_;  // tmp color
   std::vector<std::vector<Scal>> vvcl_; // all colors
