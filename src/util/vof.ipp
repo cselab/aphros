@@ -397,8 +397,9 @@ struct UVof<M_>::Imp {
       using T = typename M::template OpCatT<Scal>;
       m.Reduce(std::make_shared<T>(&merge0_));
       m.Reduce(std::make_shared<T>(&merge1_));
-      if (verb && m.IsRoot()) {
+      if (verb) {
         std::cerr << "grid:local=" << st.GetSeconds() << std::endl;
+        std::cerr << "merge0.size()=" << merge0_.size() << std::endl;
       }
     }
     if (sem("reduce")) {
