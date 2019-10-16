@@ -85,13 +85,13 @@ void Run(M& m, State& s, Vars& var) {
 
 int main(int argc, const char** argv) {
   std::string conf = R"EOF(
-set int bx 2
-set int by 2
-set int bz 2
+set int bx 16
+set int by 16
+set int bz 1
 
-set int bsx 16
-set int bsy 16
-set int bsz 16
+set int bsx 8
+set int bsy 8
+set int bsz 8
 
 set string init_vf list
 set int list_ls 1
