@@ -373,7 +373,6 @@ struct UVof<M_>::Imp {
             const Multi<FieldCell<Scal>*>& fcclt, bool verb, M& m) {
     auto sem = m.GetSem("grid");
     if (sem("local")) {
-      SingleTimer st;
       // Collect neighbor colors in corners
       merge0_.clear();
       merge1_.clear();
@@ -397,13 +396,12 @@ struct UVof<M_>::Imp {
       using T = typename M::template OpCatT<Scal>;
       m.Reduce(std::make_shared<T>(&merge0_));
       m.Reduce(std::make_shared<T>(&merge1_));
-      if (verb) {
-        std::cerr << "grid:local=" << st.GetSeconds() << std::endl;
-        std::cerr << "merge0.size()=" << merge0_.size() << std::endl;
-      }
     }
     if (sem("reduce")) {
       if (m.IsRoot()) {
+        if (verb) {
+          std::cerr << "merge0.size()=" << merge0_.size() << std::endl;
+        }
         std::map<Scal, Scal> map;
 
         for (size_t i = 0; i < merge0_.size(); ++i) {
