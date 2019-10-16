@@ -19,7 +19,7 @@ build:
       (cd hypre ; ./_run)
       cd ../src
       ./conf
-      make -j
+      make -j2
       make test
       EOS
   artifacts:
