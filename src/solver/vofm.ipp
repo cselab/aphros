@@ -675,7 +675,9 @@ struct Vofm<M_>::Imp {
     if (sem.Nested()) {
       uvof_.Recolor(layers, GetLayer(fcu_, Layers::iter_curr), fccl_,
                     par->clfixed, par->clfixed_x,
-                    par->coalth, mfc_, par->bcc_reflect, par->verb, m);
+                    par->coalth, mfc_, par->bcc_reflect, par->verb,
+                    par->recolor_unionfind, par->recolor_reduce,
+                    par->recolor_grid, m);
     }
 
     if (sem("sum")) {

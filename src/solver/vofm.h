@@ -64,6 +64,9 @@ class Vofm : public AdvectionSolver<M_> {
     AF part_attrforce = AF::line;
     AR part_attrreconst = AR::line;
     int verb = 0;
+    bool recolor_unionfind = true;
+    bool recolor_reduce = true;
+    bool recolor_grid = true;
     bool vtkbin = false;
     bool vtkmerge = true;
     Scal vtkiso = 0.5;

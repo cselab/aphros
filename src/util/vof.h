@@ -67,12 +67,15 @@ class UVof {
   // mfcu: boundary conditions for u
   // bcc_reflect: apply BcReflect
   // verb: report color overflow (not enough layers)
+  // unionfind: use union-find algorithm (otherwise iterative stencil updates)
+  // reduce: reduce color space trying to keep the previous color
   void Recolor(const GRange<size_t>& layers,
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       Scal clfixed, Vect clfixed_x, Scal coalth,
       const MapFace<std::shared_ptr<CondFace>>& mfcu,
-      bool bcc_reflect, bool verb, M& m);
+      bool bcc_reflect, bool verb, bool unionfind, bool reduce,
+      bool grid, M& m);
 
  public:
   struct Imp;

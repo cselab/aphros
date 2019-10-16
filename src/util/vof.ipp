@@ -460,7 +460,7 @@ struct UVof<M_>::Imp {
       const Multi<FieldCell<Scal>*>& fccl,
       Scal clfixed, Vect clfixed_x, Scal coalth,
       const MapFace<std::shared_ptr<CondFace>>& mfc,
-      bool bcc_reflect, bool verb, M& m) {
+      bool bcc_reflect, bool verb, bool reduce, bool grid, M& m) {
     auto sem = m.GetSem("recolor");
     if (sem.Nested()) {
       Init(layers, fcu, fccl, clfixed, clfixed_x, coalth, m);
@@ -550,7 +550,7 @@ struct UVof<M_>::Imp {
         }
       }
     }
-    if (sem.Nested()) {
+    if (reduce && sem.Nested()) {
       ReduceColor(layers, fccl, m, usermap_);
     }
   }
@@ -560,7 +560,7 @@ struct UVof<M_>::Imp {
       const Multi<FieldCell<Scal>*>& fccl,
       Scal clfixed, Vect clfixed_x, Scal coalth,
       const MapFace<std::shared_ptr<CondFace>>& mfc,
-      bool bcc_reflect, bool verb, M& m) {
+      bool bcc_reflect, bool verb, bool reduce, bool grid, M& m) {
     auto sem = m.GetSem("recolor");
     if (sem.Nested()) {
       Init(layers, fcu, fccl, clfixed, clfixed_x, coalth, m);
@@ -578,7 +578,7 @@ struct UVof<M_>::Imp {
       }
     }
     sem.LoopBegin();
-    if (sem("grid")) {
+    if (grid && sem("grid")) {
       // Collect neighbor colors in corners
       merge0_.clear();
       merge1_.clear();
@@ -603,7 +603,7 @@ struct UVof<M_>::Imp {
       m.Reduce(std::make_shared<T>(&merge0_));
       m.Reduce(std::make_shared<T>(&merge1_));
     }
-    if (sem("gridreduce")) {
+    if (grid && sem("gridreduce")) {
       if (m.IsRoot()) {
         std::map<Scal, Scal> map;
         for (size_t i = 0; i < merge0_.size(); ++i) {
@@ -638,7 +638,7 @@ struct UVof<M_>::Imp {
       m.Bcast(std::make_shared<T>(&merge0_));
       m.Bcast(std::make_shared<T>(&merge1_));
     }
-    if (sem("gridapply")) {
+    if (grid && sem("gridapply")) {
       std::map<Scal, Scal> map;
       for (size_t i = 0; i < merge0_.size(); ++i) {
         map[merge0_[i]] = merge1_[i];
@@ -804,7 +804,7 @@ struct UVof<M_>::Imp {
         }
       }
     }
-    if (sem.Nested()) {
+    if (reduce && sem.Nested()) {
       ReduceColor(layers, fccl, m, usermap_);
     }
   }
@@ -814,10 +814,14 @@ struct UVof<M_>::Imp {
       const Multi<FieldCell<Scal>*>& fccl,
       Scal clfixed, Vect clfixed_x, Scal coalth,
       const MapFace<std::shared_ptr<CondFace>>& mfc,
-      bool bcc_reflect, bool verb, M& m) {
-    return RecolorUnionFind(layers, fcu, fccl, clfixed, clfixed_x,
-    //return RecolorDirect(layers, fcu, fccl, clfixed, clfixed_x,
-                            coalth, mfc, bcc_reflect, verb, m);
+      bool bcc_reflect, bool verb, bool unionfind, bool reduce, bool grid,
+      M& m) {
+    if (unionfind) {
+      return RecolorUnionFind(layers, fcu, fccl, clfixed, clfixed_x,
+                              coalth, mfc, bcc_reflect, verb, reduce, grid, m);
+    }
+    return RecolorDirect(layers, fcu, fccl, clfixed, clfixed_x,
+                        coalth, mfc, bcc_reflect, verb, reduce, grid, m);
   }
 
   std::vector<std::vector<Vect>> dl_; // dump poly
@@ -874,7 +878,7 @@ void UVof<M_>::DumpPolyMarch(
     const Multi<const FieldCell<Vect>*>& fcn,
     const Multi<const FieldCell<Scal>*>& fca,
     const Multi<const FieldCell<bool>*>& fci,
-    std::string fn, Scal t, Scal th, bool bin, bool merge, Scal iso, 
+    std::string fn, Scal t, Scal th, bool bin, bool merge, Scal iso,
     const FieldCell<Scal>* fcus, M& m) {
   imp->DumpPolyMarch(
       layers, fcu, fccl, fcn, fca, fci, fn, t, th, bin, merge, iso, fcus, m);
@@ -886,9 +890,10 @@ void UVof<M_>::Recolor(const GRange<size_t>& layers,
     const Multi<FieldCell<Scal>*>& fccl,
     Scal clfixed, Vect clfixed_x, Scal coalth,
     const MapFace<std::shared_ptr<CondFace>>& mfcu,
-    bool bcc_reflect, bool verb, M& m) {
+    bool bcc_reflect, bool verb, bool unionfind, bool reduce, bool grid,
+    M& m) {
   imp->Recolor(layers, fcu, fccl, clfixed, clfixed_x, coalth, mfcu, 
-               bcc_reflect, verb, m);
+               bcc_reflect, verb, unionfind, reduce, grid, m);
 }
 
 
