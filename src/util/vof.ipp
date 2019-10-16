@@ -576,7 +576,6 @@ struct UVof<M_>::Imp {
           fcl_[l][c] = l;
         }
       }
-      recolor_iter_ = 0;
     }
     sem.LoopBegin();
     if (sem("min")) {
@@ -637,30 +636,39 @@ struct UVof<M_>::Imp {
         }
       }
       // Set all cells to their root
-      for (auto f : m.Faces()) {
-        auto cm = m.GetCell(f, 0);
-        auto cp = m.GetCell(f, 1);
-        for (auto l : layers) {
-          Pair pm(cm, l);
-          Pair pp(cp, l);
-          Set(pm, Find(pm));
-          Set(pp, Find(pp));
+      for (auto f : m.Faces()) {  // FIXME: inner cells traversed twice
+        for (size_t q : {0, 1}) {
+          auto c = m.GetCell(f, q);
+          for (auto l : layers) {
+            Pair p(c, l);
+            Set(p, Find(p));
+          }
         }
       }
-      // Update color from parent
+      // Update color in root
+      // (smaller color can arrive in halo cells)
       for (auto f : m.Faces()) {
-        auto cm = m.GetCell(f, 0);
-        auto cp = m.GetCell(f, 1);
-        for (auto l : layers) {
-          Pair pm(cm, l);
-          Pair pp(cp, l);
-          if (Clt(pm) != Clt(Get(pm))) {
-            Clt(pm) = Clt(Get(pm));
-            ++tries;
+        for (size_t q : {0, 1}) {
+          auto c = m.GetCell(f, q);
+          for (auto l : layers) {
+            Pair p(c, l);
+            if (Clt(p) < Clt(Get(p))) {
+              Clt(Get(p)) = Clt(p);
+              ++tries;
+            }
           }
-          if (Clt(pp) != Clt(Get(pp))) {
-            Clt(pp) = Clt(Get(pp));
-            ++tries;
+        }
+      }
+      // Update color from root
+      for (auto f : m.Faces()) {
+        for (size_t q : {0, 1}) {
+          auto c = m.GetCell(f, q);
+          for (auto l : layers) {
+            Pair p(c, l);
+            if (Clt(Get(p)) < Clt(p)) {
+              Clt(p) = Clt(Get(p));
+              ++tries;
+            }
           }
         }
       }
@@ -679,7 +687,6 @@ struct UVof<M_>::Imp {
       if (!recolor_tries_) {
         sem.LoopBreak();
       }
-      ++recolor_iter_;
     }
     sem.LoopEnd();
     if (bcc_reflect && sem("reflect")) {
@@ -743,7 +750,6 @@ struct UVof<M_>::Imp {
   std::vector<Scal> dlcl_; // dump poly color
 
   Scal recolor_tries_;
-  Scal recolor_iter_;
   std::pair<typename M::Scal, int> cldist_; // color,mesh_id
   Multi<FieldCell<Scal>> fcclt_;  // tmp color
   std::vector<std::vector<Scal>> vvcl_; // all colors
