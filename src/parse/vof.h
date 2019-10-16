@@ -8,6 +8,9 @@ template <class M, class Vof>
 void Parse(typename Vof::Par* p, const Vars& var) {
   using Vect = typename M::Vect;
   p->verb = var.Int["vof_verb"];
+  p->recolor_unionfind = var.Int["vof_recolor_unionfind"];
+  p->recolor_reduce = var.Int["vof_recolor_reduce"];
+  p->recolor_grid = var.Int["vof_recolor_grid"];
   p->vtkbin = var.Int["vtkbin"];
   p->vtkmerge = var.Int["vtkmerge"];
   p->vtkiso = var.Double["vtkiso"];

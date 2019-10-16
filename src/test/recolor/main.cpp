@@ -35,6 +35,16 @@ void Run(M& m, State& s, Vars& var) {
   auto& mfc = s.mfc;
   constexpr Scal kClNone = -1;
   GRange<size_t> layers{0, 1};
+  auto Recolor = [&]() {
+    if (sem.Nested()) {
+      const bool unionfind = false;
+      const bool reduce = true;
+      const bool grid = true;
+      uvof.Recolor(layers, &fcu, &fccl, -1, Vect(0), 1e10, mfc, true, true,
+          unionfind, reduce, grid, m);
+    }
+  };
+
   if (sem()) {
     fcu.Reinit(m);
     fccl.Reinit(m);
@@ -46,9 +56,7 @@ void Run(M& m, State& s, Vars& var) {
     m.Comm(&fcu);
     m.Comm(&fccl);
   }
-  if (sem.Nested()) {
-    uvof.Recolor(layers, &fcu, &fccl, -1, Vect(0), 1e10, mfc, true, true, m);
-  }
+  Recolor();
   for (size_t i = 0; i < 5; ++i) {
     if (sem()) {
       m.Dump(&fcu, "u");
@@ -76,9 +84,7 @@ void Run(M& m, State& s, Vars& var) {
       }
       m.Comm(&fccl);
     }
-    if (sem.Nested()) {
-      uvof.Recolor(layers, &fcu, &fccl, -1, Vect(0), 1e10, mfc, true, true, m);
-    }
+    Recolor();
   }
   if (sem()) {} // empty stage for dump
 }
