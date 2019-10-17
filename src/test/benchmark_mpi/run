@@ -3,4 +3,7 @@ killall $e
 
 echo 192 > np
 echo 10 > tl
+make
 ch.run ./$e
+
+cat timer.log
