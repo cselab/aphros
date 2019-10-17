@@ -8,18 +8,65 @@ using Scal = typename M::Scal;
 
 struct State {
   std::vector<Scal> v;
+  std::vector<char> r;
+  Scal a;
 };
 
 void Run(M& m, State& s, Vars& var) {
   (void) var;
   auto sem = m.GetSem();
-  auto& v = s.v;
   for (auto i = 0; i < 10; ++i) {
-    if (sem()) {
-      v = {Scal(m.GetId())};
+    if (sem("std")) {
+      s.v = {Scal(m.GetId())};
       using T = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<T>(&v));
+      m.Reduce(std::make_shared<T>(&s.v));
     }
+  }
+
+  for (auto i = 0; i < 10; ++i) {
+    if (sem("mpi")) {
+      auto comm = MPI_COMM_WORLD;
+      if (m.IsLead()) {
+        auto& r = s.r;
+        r = {0};
+        int s = r.size(); // size local
+        if (m.IsRoot()) {
+          int sc; // size of communicator
+          MPI_Comm_size(comm, &sc);
+
+          std::vector<int> ss(sc); // size of r on all ranks
+
+          MPI_Gather(&s, 1, MPI_INT, 
+                     ss.data(), 1, MPI_INT, 
+                     0, comm);
+
+          int sa = 0; // size all
+          std::vector<int> oo = {0}; // offsets
+          for (auto& q : ss) {
+            sa += q;
+            oo.push_back(oo.back() + q);
+          }
+          oo.pop_back();
+          assert(ss.size() == oo.size());
+
+          std::vector<char> ra(sa); // result all
+
+          MPI_Gatherv(r.data(), r.size(), MPI_CHAR,
+                      ra.data(), ss.data(), oo.data(), MPI_CHAR,
+                      0, comm);
+        } else {
+          MPI_Gather(&s, 1, MPI_INT, nullptr, 0, MPI_INT, 0, comm);
+          MPI_Gatherv(r.data(), r.size(), MPI_CHAR,
+                      nullptr, nullptr, nullptr, MPI_CHAR,
+                      0, comm);
+        }
+      }
+    }
+
+
+
+
+
   }
   if (sem()) {
     if (m.IsRoot()) {
