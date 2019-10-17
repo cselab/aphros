@@ -37,7 +37,7 @@ void Run(M& m, State& s, Vars& var) {
   GRange<size_t> layers{0, 1};
   auto Recolor = [&]() {
     if (sem.Nested()) {
-      const bool unionfind = true;
+      const bool unionfind = false;
       const bool reduce = true;
       const bool grid = true;
       uvof.Recolor(layers, &fcu, &fccl, -1, Vect(0), 1e10, mfc, true, true,
@@ -91,9 +91,9 @@ void Run(M& m, State& s, Vars& var) {
 
 int main(int argc, const char** argv) {
   std::string conf = R"EOF(
-set int bx 16
-set int by 16
-set int bz 1
+set int bx 4
+set int by 4
+set int bz 4
 
 set int bsx 8
 set int bsy 8
