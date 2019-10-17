@@ -6,15 +6,41 @@
 
 #include "util/metrics.h"
 
-void Run() {
-  int sc, rank; // size of communicator
-  auto comm = MPI_COMM_WORLD;
-  MPI_Comm_size(comm, &sc);
-  MPI_Comm_rank(comm, &rank);
+auto comm = MPI_COMM_WORLD;
+int sc, rank;
+
+void Gather() {
   std::vector<char> r;
-  MPI_Barrier(comm);
   for (auto i = 0; i < 100; ++i) {
-    r = std::vector<char>(100, i * rank);
+    r = std::vector<char>(100, rank + i);
+    int s = r.size(); // size local
+    int sm = 0; // size max
+
+    MPI_Allreduce(&s, &sm, 1, MPI_INT, MPI_MAX, comm);
+
+    r.resize(sm);
+
+    if (rank == 0) {
+      std::vector<char> ra(sm * sc); // result all
+
+      SingleTimer st;
+      MPI_Gather(r.data(), r.size(), MPI_CHAR,
+                 ra.data(), ra.size(), MPI_CHAR, 0, comm);
+      auto t = st.GetSeconds();
+      if (t > 0.01) {
+        std::cerr << __func__ << ":i=" << i << ", timer=" << t << std::endl;
+      }
+    } else {
+      MPI_Gather(r.data(), r.size(), MPI_CHAR,
+                 nullptr, 0, MPI_CHAR, 0, comm);
+    }
+  }
+}
+
+void Gatherv() {
+  std::vector<char> r;
+  for (auto i = 0; i < 100; ++i) {
+    r = std::vector<char>(100, rank + i);
     int s = r.size(); // size local
     if (rank == 0) {
       std::vector<int> ss(sc); // size of r on all ranks
@@ -40,7 +66,7 @@ void Run() {
                   0, comm);
       auto t = st.GetSeconds();
       if (t > 0.01) {
-        std::cerr << "i=" << i << ", timer=" << t << std::endl;
+        std::cerr << __func__ << ":i=" << i << ", timer=" << t << std::endl;
       }
     } else {
       MPI_Gather(&s, 1, MPI_INT, nullptr, 0, MPI_INT, 0, comm);
@@ -49,13 +75,16 @@ void Run() {
                   0, comm);
     }
   }
-  MPI_Barrier(comm);
 }
 
 int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
 
-  Run();
+  MPI_Comm_size(comm, &sc);
+  MPI_Comm_rank(comm, &rank);
+
+  Gatherv();
+  Gather();
   MPI_Finalize();
 }
 
