@@ -2,6 +2,7 @@
 
 #include <list>
 #include <string>
+#include <memory>
 
 // TODO: Sequence like 
 //   GetSem();
@@ -17,13 +18,6 @@
 // in a separate stage.
 class Suspender {
  public:
-  struct U { // stage co[u]nter
-    int c; // current
-    int t; // target
-    int lb; // loop begin
-    int le; // loop end
-    U(int c, int t) : c(c), t(t), lb(-1), le(-1) {}
-  };
   class Sem { // [sem]aphore
    public:
     // Constructor
@@ -44,6 +38,15 @@ class Suspender {
     void LoopBegin();
     void LoopBreak();
     void LoopEnd();
+    template <class T>
+    T* GetContext() {
+      U& u = *p.lui_;
+      std::unique_ptr<BaseHolder> h = u.context;
+      if (!h) {
+        h = std::unique_ptr<BaseHolder*>(new Holder<T>(new T()));
+      }
+      return dynamic_cast<Holder<T>*>(h.get())->Get();
+    }
    private:
     Suspender& p; // parent
     std::string name_;
@@ -64,7 +67,29 @@ class Suspender {
   bool Pending() const;
 
  private:
+  class BaseHolder {
+   public:
+    virtual ~BaseHolder() {}
+  };
+  // Container for user-defined context object
+  template <class T>
+  class Holder : BaseHolder {
+   public:
+    Holder(T* p) : p_(std::unique_ptr<T>(p)) {}
+    T* Get() { return p_; }
+   private:
+    std::unique_ptr<T> p_;
+  };
+  struct U { // stage co[u]nter
+    int c; // current
+    int t; // target
+    int lb; // loop begin
+    int le; // loop end
+    std::unique_ptr<BaseHolder> context;
+    U(int c, int t) : c(c), t(t), lb(-1), le(-1) {}
+  };
   using LU = std::list<U>;
+
   LU lu_;      // [l]ist of co[u]nters
   LU::iterator lui_; // [l]ist of co[u]nters [i]terator
   bool nest_; // allow nested calls

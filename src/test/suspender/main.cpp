@@ -7,12 +7,12 @@
 #include "simple.h"
 #include "other.h"
 #include "loop.h"
-#include "state.h"
+#include "context.h"
 
 
 int main() {
   simple::Simple();
   other::Test();
   loop::Test();
-  state::Test();
+  context::Test();
 }
