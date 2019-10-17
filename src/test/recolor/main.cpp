@@ -37,7 +37,7 @@ void Run(M& m, State& s, Vars& var) {
   GRange<size_t> layers{0, 1};
   auto Recolor = [&]() {
     if (sem.Nested()) {
-      const bool unionfind = false;
+      const bool unionfind = true;
       const bool reduce = true;
       const bool grid = true;
       uvof.Recolor(layers, &fcu, &fccl, -1, Vect(0), 1e10, mfc, true, true,
