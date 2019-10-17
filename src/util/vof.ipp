@@ -368,12 +368,18 @@ struct UVof<M_>::Imp {
   // Applies grid heuristic 
   void Grid(const GRange<size_t>& layers,
             const Multi<const FieldCell<Scal>*>& fccl,
-            const Multi<FieldCell<Scal>*>& fcclt, bool verb, M& m) {
+            const Multi<FieldCell<Scal>*>& fcclt, M& m) {
+    struct Ctx {
+      std::vector<Scal> merge0, merge1; // colors to merge
+    };
     auto sem = m.GetSem("grid");
+    auto ctx = sem.template GetContext<Ctx>();
+    auto& merge0 = ctx->merge0;
+    auto& merge1 = ctx->merge1;
     if (sem("local")) {
       // Collect neighbor colors in corners
-      merge0_.clear();
-      merge1_.clear();
+      merge0.clear();
+      merge1.clear();
       for (auto c : m.Cells()) {
         for (auto l : layers) {
           if ((*fccl[l])[c] != kClNone) {
@@ -382,8 +388,8 @@ struct UVof<M_>::Imp {
               for (auto lm : layers) {
                 if ((*fccl[l])[c] == (*fccl[lm])[cm] &&
                     (*fcclt[l])[c] != (*fcclt[lm])[cm]) {
-                  merge0_.push_back((*fcclt[l])[c]);
-                  merge1_.push_back((*fcclt[lm])[cm]);
+                  merge0.push_back((*fcclt[l])[c]);
+                  merge1.push_back((*fcclt[lm])[cm]);
                 }
               }
             }
@@ -392,16 +398,16 @@ struct UVof<M_>::Imp {
         break;
       }
       using T = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<T>(&merge0_));
-      m.Reduce(std::make_shared<T>(&merge1_));
+      m.Reduce(std::make_shared<T>(&merge0));
+      m.Reduce(std::make_shared<T>(&merge1));
     }
     if (sem("reduce")) {
       if (m.IsRoot()) {
         std::map<Scal, Scal> map;
 
-        for (size_t i = 0; i < merge0_.size(); ++i) {
-          map[merge0_[i]] = merge1_[i];
-          map[merge1_[i]] = merge0_[i];
+        for (size_t i = 0; i < merge0.size(); ++i) {
+          map[merge0[i]] = merge1[i];
+          map[merge1[i]] = merge0[i];
         }
         int iter = 0;
         // Find minimal color connected through pairs
@@ -420,21 +426,21 @@ struct UVof<M_>::Imp {
           }
           ++iter;
         }
-        merge0_.clear();
-        merge1_.clear();
+        merge0.clear();
+        merge1.clear();
         for (auto& p : map) {
-          merge0_.push_back(p.first);
-          merge1_.push_back(p.second);
+          merge0.push_back(p.first);
+          merge1.push_back(p.second);
         }
       }
       using T = typename M::template OpCatT<Scal>;
-      m.Bcast(std::make_shared<T>(&merge0_));
-      m.Bcast(std::make_shared<T>(&merge1_));
+      m.Bcast(std::make_shared<T>(&merge0));
+      m.Bcast(std::make_shared<T>(&merge1));
     }
     if (sem("apply")) {
       std::map<Scal, Scal> map;
-      for (size_t i = 0; i < merge0_.size(); ++i) {
-        map[merge0_[i]] = merge1_[i];
+      for (size_t i = 0; i < merge0.size(); ++i) {
+        map[merge0[i]] = merge1[i];
       }
       for (auto f : m.Faces()) {  // FIXME: inner cells traversed twice
         for (size_t q : {0, 1}) {
@@ -596,7 +602,7 @@ struct UVof<M_>::Imp {
     }
     sem.LoopBegin();
     if (grid && sem.Nested()) {
-      Grid(layers, fccl, fcclt_, verb, m);
+      Grid(layers, fccl, fcclt_, m);
     }
     if (sem("min")) {
       size_t tries = 0;
@@ -691,7 +697,7 @@ struct UVof<M_>::Imp {
     }
     sem.LoopBegin();
     if (grid && sem.Nested()) {
-      Grid(layers, fccl, fcclt_, verb, m);
+      Grid(layers, fccl, fcclt_, m);
     }
     if (sem("min")) {
       using Pair = std::pair<IdxCell, char>;
@@ -846,7 +852,6 @@ struct UVof<M_>::Imp {
   std::map<Scal, Scal> usermap_;
   Multi<FieldCell<IdxCell>> fcc_; // root cell
   Multi<FieldCell<char>> fcl_;  // root layer
-  std::vector<Scal> merge0_, merge1_; // colors to merge
 };
 
 template <class M_>
