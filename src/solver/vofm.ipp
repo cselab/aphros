@@ -52,7 +52,6 @@ struct Vofm<M_>::Imp {
     fci_.resize(layers.size());
     fck_.resize(layers.size());
     fccl_.resize(layers.size());
-    fcclt_.resize(layers.size());
     ffvu_.resize(layers.size());
     ffcl_.resize(layers.size());
     ffi_.resize(layers.size());
@@ -272,6 +271,12 @@ struct Vofm<M_>::Imp {
   }
   void Dump() {
     auto sem = m.GetSem("iter");
+    struct {
+      // tmp fields
+      Multi<FieldCell<Scal>> fcut;  // volume fraction
+      Multi<FieldCell<Scal>> fcclt;  // color
+      FieldCell<Scal> fcust;        // sum of  volume fraction
+    }* ctx(sem);
     bool dm = par->dmp->Try(owner_->GetTime(),
                             owner_->GetTimeStep());
     if (par->dumppoly && dm && sem.Nested()) {
@@ -282,12 +287,13 @@ struct Vofm<M_>::Imp {
           par->poly_intth, par->vtkbin, par->vtkmerge, m);
     }
     if (par->dumppolymarch && dm) { 
-      auto& fcut = fcclt_; // tmp volume fraction
-      auto& fcust = fcfm_; // tmp total volume
-      auto& fcclt = fcclt2_;  // tmp color;
+      auto& fcut = ctx->fcut; // tmp volume fraction
+      auto& fcclt = ctx->fcclt;  // tmp color;
+      auto& fcust = ctx->fcust; // tmp total volume
       if (sem("copy")) {
         fcust = fcus_.iter_curr;
         fcclt = fccl_;
+        fcut.resize(layers.size());
         for (auto i : layers) {
           fcut[i] = fcu_[i].iter_curr;
           if (par->bcc_reflectpoly) {
@@ -760,7 +766,6 @@ struct Vofm<M_>::Imp {
   Multi<FieldCell<Scal>> fck_; // curvature from height functions
   Multi<FieldCell<bool>> fci_; // interface mask (1: contains interface)
   Multi<FieldCell<Scal>> fccl_;  // color
-  Multi<FieldCell<Scal>> fcclt_, fcclt2_;  // tmp color
   Multi<FieldFace<Scal>> ffvu_;  // flux: volume flux * field
   Multi<FieldFace<Scal>> ffcl_;  // flux color (from upwind cell)
   Multi<FieldFace<bool>> ffi_;   // interface mask (1: upwind cell contains interface)
