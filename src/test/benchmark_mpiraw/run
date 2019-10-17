@@ -1,5 +1,8 @@
+#!/bin/bash
+
+set -eu
+
 e=t.benchmark_mpiraw
-killall $e
 
 echo 192 > np
 echo 10 > tl
