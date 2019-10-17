@@ -39,6 +39,7 @@ class Multi {
  public:
   Multi() = default;
   explicit Multi(size_t n) : d_(n) {}
+  explicit Multi(const GRange<size_t>& layers) : d_(layers.size()) {}
   Multi(T u) : d_({u}) {}
   // cast to pointer
   template <class U>
@@ -79,6 +80,9 @@ class Multi {
   }
   void resize(size_t n) {
     d_.resize(n);
+  }
+  void resize(const GRange<size_t>& layers) {
+    d_.resize(layers.size());
   }
   std::vector<T>& data() {
     return d_;

@@ -45,16 +45,16 @@ struct Vofm<M_>::Imp {
       : owner_(owner), par(par), m(owner_->m)
       , mfc_(mfc), layers(0, par->layers)
   {
-    fcu_.resize(layers.size());
-    fcuu_.resize(layers.size());
-    fcn_.resize(layers.size());
-    fca_.resize(layers.size());
-    fci_.resize(layers.size());
-    fck_.resize(layers.size());
-    fccl_.resize(layers.size());
-    ffvu_.resize(layers.size());
-    ffcl_.resize(layers.size());
-    ffi_.resize(layers.size());
+    fcu_.resize(layers);
+    fcuu_.resize(layers);
+    fcn_.resize(layers);
+    fca_.resize(layers);
+    fci_.resize(layers);
+    fck_.resize(layers);
+    fccl_.resize(layers);
+    ffvu_.resize(layers);
+    ffcl_.resize(layers);
+    ffi_.resize(layers);
 
 
     fcn_.InitAll(FieldCell<Vect>(m, GetNan<Vect>()));
@@ -293,7 +293,7 @@ struct Vofm<M_>::Imp {
       if (sem("copy")) {
         fcust = fcus_.iter_curr;
         fcclt = fccl_;
-        fcut.resize(layers.size());
+        fcut.resize(layers);
         for (auto i : layers) {
           fcut[i] = fcu_[i].iter_curr;
           if (par->bcc_reflectpoly) {
@@ -461,8 +461,8 @@ struct Vofm<M_>::Imp {
     auto& bf = m.GetIndexFaces();
     auto h = m.GetCellSize();
 
-    Multi<FieldFace<Scal>> mffvu(layers.size()); // phase 2 flux
-    Multi<FieldFace<Scal>> mffcl(layers.size()); // face color
+    Multi<FieldFace<Scal>> mffvu(layers); // phase 2 flux
+    Multi<FieldFace<Scal>> mffcl(layers); // face color
 
     if (!(type >= 0 && type <= 3)) {
       throw std::runtime_error(
