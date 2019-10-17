@@ -1,0 +1,7 @@
+e=t.benchmark_mpiraw
+killall $e
+
+echo 192 > np
+echo 10 > tl
+make
+ch.run ./$e
