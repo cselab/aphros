@@ -9,7 +9,7 @@ void B(Suspender& susp) {
     int a = 10;
   };
   Suspender::Sem sem = susp.GetSem();
-  auto ctx = sem.GetContext<Context>();
+  Context* ctx(sem);
   if (sem()) {
     ++ctx->a;
     std::cerr << "B1" << std::endl;
@@ -27,7 +27,8 @@ void A(Suspender& susp) {
     std::vector<double> v;
   };
   Suspender::Sem sem = susp.GetSem();
-  auto ctx = sem.GetContext<Context>();
+  //auto ctx = sem.Get<Context>();
+  auto ctx = sem.Get((Context*)0);
   if (sem()) {
     ctx->v = {1., 2., 3., 4.};
     std::cerr << "A1" << std::endl;

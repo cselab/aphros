@@ -39,13 +39,21 @@ class Suspender {
     void LoopBreak();
     void LoopEnd();
     template <class T>
-    T* GetContext() {
+    T* Get() {
       U& u = *p.lui_;
       std::unique_ptr<BaseHolder>& h = u.context;
       if (!h) {
         h = std::unique_ptr<BaseHolder>(new Holder<T>(new T()));
       }
       return dynamic_cast<Holder<T>*>(h.get())->Get();
+    }
+    template <class T>
+    T* Get(T*) {
+      return Get<T>();
+    }
+    template <class T>
+    explicit operator T*() {
+      return Get<T>();
     }
    private:
     Suspender& p; // parent
