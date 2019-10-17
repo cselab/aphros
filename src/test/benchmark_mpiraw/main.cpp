@@ -3,6 +3,7 @@
 #include <vector>
 #include <mpi.h>
 #include <cassert>
+#include <algorithm>
 
 #include "util/metrics.h"
 
@@ -11,6 +12,7 @@ int sc, rank;
 
 void Gather() {
   std::vector<char> r;
+  std::vector<double> tt;
   for (auto i = 0; i < 100; ++i) {
     r = std::vector<char>(100, rank + i);
     int s = r.size(); // size local
@@ -25,21 +27,26 @@ void Gather() {
 
       SingleTimer st;
       MPI_Gather(r.data(), r.size(), MPI_CHAR,
-                 ra.data(), ra.size(), MPI_CHAR, 0, comm);
+                 ra.data(), r.size(), MPI_CHAR, 0, comm);
       auto t = st.GetSeconds();
-      if (t > 0.01) {
-        std::cerr << __func__ << ":i=" << i << ", timer=" << t << std::endl;
-      }
+      tt.push_back(t);
     } else {
       MPI_Gather(r.data(), r.size(), MPI_CHAR,
                  nullptr, 0, MPI_CHAR, 0, comm);
     }
   }
+
+  std::sort(tt.begin(), tt.end());
+  for (size_t i = tt.size(); i + 10 > tt.size() && i > 0;) {
+    --i;
+    std::cerr << __func__ << ": time=" << tt[i] << std::endl;
+  }
 }
 
 void Gatherv() {
   std::vector<char> r;
-  for (auto i = 0; i < 100; ++i) {
+  std::vector<double> tt;
+  for (auto i = 0; i < 20; ++i) {
     r = std::vector<char>(100, rank + i);
     int s = r.size(); // size local
     if (rank == 0) {
@@ -65,9 +72,7 @@ void Gatherv() {
                   ra.data(), ss.data(), oo.data(), MPI_CHAR,
                   0, comm);
       auto t = st.GetSeconds();
-      if (t > 0.01) {
-        std::cerr << __func__ << ":i=" << i << ", timer=" << t << std::endl;
-      }
+      tt.push_back(t);
     } else {
       MPI_Gather(&s, 1, MPI_INT, nullptr, 0, MPI_INT, 0, comm);
       MPI_Gatherv(r.data(), r.size(), MPI_CHAR,
@@ -75,10 +80,17 @@ void Gatherv() {
                   0, comm);
     }
   }
+  std::sort(tt.begin(), tt.end());
+  for (size_t i = tt.size(); i + 10 > tt.size() && i > 0;) {
+    --i;
+    std::cerr << __func__ << ": time=" << tt[i] << std::endl;
+  }
 }
 
 int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
+
+  std::cerr << std::scientific;
 
   MPI_Comm_size(comm, &sc);
   MPI_Comm_rank(comm, &rank);
