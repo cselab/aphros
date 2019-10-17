@@ -10,7 +10,6 @@
 #include <functional>
 #include <stdio.h>
 
-
 #include <march.h>
 
 #include "vof.h"
@@ -18,7 +17,6 @@
 #include "dump/vtk.h"
 #include "solver/reconst.h"
 #include "debug/isnan.h"
-#include "metrics.h"
 
 namespace solver {
 
@@ -399,9 +397,6 @@ struct UVof<M_>::Imp {
     }
     if (sem("reduce")) {
       if (m.IsRoot()) {
-        if (verb) {
-          std::cerr << "merge0.size()=" << merge0_.size() << std::endl;
-        }
         std::map<Scal, Scal> map;
 
         for (size_t i = 0; i < merge0_.size(); ++i) {
@@ -424,11 +419,6 @@ struct UVof<M_>::Imp {
             break;
           }
           ++iter;
-        }
-        if (verb) {
-          std::cerr
-              << "grid: map.size=" << map.size()
-              << " iter=" << iter << std::endl;
         }
         merge0_.clear();
         merge1_.clear();
