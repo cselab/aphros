@@ -327,11 +327,16 @@ struct UVof<M_>::Imp {
   // Initializes usermap_.
   // fccl0: known colors
   // fccl: colors to reduce
-  void UserMap(const GRange<size_t>& layers,
+  static void UserMap(const GRange<size_t>& layers,
                const Multi<const FieldCell<Scal>*>& fccl0,
                const Multi<const FieldCell<Scal>*>& fccl,
                std::map<Scal, Scal>& usermap, M& m) {
     auto sem = m.GetSem("usermap");
+    struct {
+      std::vector<Scal> vcl, vcln;
+    }* ctx(sem);
+    auto& vcl = ctx->vcl;
+    auto& vcln = ctx->vcln;
     if (sem("local")) {
       usermap.clear();
       for (auto c : m.AllCells()) {
@@ -345,21 +350,21 @@ struct UVof<M_>::Imp {
           }
         }
       }
-      vcl_.clear();
-      vcln_.clear();
+      vcl.clear();
+      vcln.clear();
       for (auto p : usermap) {
-        vcl_.push_back(p.first);
-        vcln_.push_back(p.second);
+        vcl.push_back(p.first);
+        vcln.push_back(p.second);
       }
       using T = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<T>(&vcl_));
-      m.Reduce(std::make_shared<T>(&vcln_));
+      m.Reduce(std::make_shared<T>(&vcl));
+      m.Reduce(std::make_shared<T>(&vcln));
     }
     if (sem("gather")) {
       usermap.clear();
       if (m.IsRoot()) {
-        for (size_t i = 0; i < vcl_.size(); ++i) {
-          usermap[vcl_[i]] = vcln_[i];
+        for (size_t i = 0; i < vcl.size(); ++i) {
+          usermap[vcl[i]] = vcln[i];
         }
       }
     }
@@ -459,10 +464,16 @@ struct UVof<M_>::Imp {
   // usermap: suggested map <old,new>
   //          applies maximum subset of usermap that produces unique colors,
   //          replaces others with new colors.
-  void ReduceColor(const GRange<size_t>& layers,
+  static void ReduceColor(const GRange<size_t>& layers,
                    const Multi<FieldCell<Scal>*>& fccl,
                    const std::map<Scal, Scal>& usermap, M& m) {
     auto sem = m.GetSem("recolor");
+    struct {
+      std::vector<std::vector<Scal>> vvcl; // all colors
+      std::vector<Scal> vcl, vcln;
+    }* ctx(sem);
+    auto& vvcl = ctx->vvcl;
+    auto& vcl = ctx->vcl;
     // gather all colors from domain
     if (sem("gather")) {
       std::set<Scal> s;
@@ -474,12 +485,13 @@ struct UVof<M_>::Imp {
           }
         }
       }
-      vcl_ = std::vector<Scal>(s.begin(), s.end());
-      vvcl_ = {vcl_};
+      vcl = std::vector<Scal>(s.begin(), s.end());
+      vvcl = {vcl};
       using T = typename M::template OpCatVT<Scal>;
-      m.Reduce(std::make_shared<T>(&vvcl_));
+      m.Reduce(std::make_shared<T>(&vvcl));
     }
     // replace with reduced set, applying usermap if possible
+    auto& vcln = ctx->vcln;
     if (sem("reduce")) {
       if (m.IsRoot()) {
         std::map<Scal, Scal> map;
@@ -495,7 +507,7 @@ struct UVof<M_>::Imp {
           an = std::max(an, p.second);
         }
         an += 1;
-        for (auto& v : vvcl_) {
+        for (auto& v : vvcl) {
           for (auto& cl : v) {
             if (!map.count(cl)) {
               if (!usermap.count(cl) || used.count(usermap.at(cl))) {
@@ -511,16 +523,16 @@ struct UVof<M_>::Imp {
             cl = map[cl];
           }
         }
-        m.Scatter({&vvcl_, &vcln_});
+        m.Scatter({&vvcl, &vcln});
       } else {
-        m.Scatter({nullptr, &vcln_});
+        m.Scatter({nullptr, &vcln});
       }
     }
-    // apply the new set from vcln_
+    // apply the new set from vcln
     if (sem("apply")) {
       std::map<Scal, Scal> map;
-      for (size_t i = 0; i < vcl_.size(); ++i) {
-        map[vcl_[i]] = vcln_[i];
+      for (size_t i = 0; i < vcl.size(); ++i) {
+        map[vcl[i]] = vcln[i];
       }
       for (auto c : m.AllCells()) {
         for (auto l : layers) {
@@ -534,9 +546,10 @@ struct UVof<M_>::Imp {
     }
   }
 
-  void Init(const GRange<size_t>& layers,
+  static void Init(const GRange<size_t>& layers,
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
+      Multi<FieldCell<Scal>>& fcclt,
       Scal clfixed, Vect clfixed_x, Scal coalth, M& m) {
     auto sem = m.GetSem("recolor_init");
     struct {
@@ -555,23 +568,23 @@ struct UVof<M_>::Imp {
       }
     }
     if (sem("init")) {
-      fcclt_.resize(layers.size());
-      fcclt_.InitAll(FieldCell<Scal>(m, kClNone));
+      fcclt.resize(layers.size());
+      fcclt.InitAll(FieldCell<Scal>(m, kClNone));
       // initial unique color
       Scal q = m.GetId() * m.GetInBlockCells().size() * layers.size();
       for (auto i : layers) {
         for (auto c : m.Cells()) {
           if ((*fccl[i])[c] != kClNone) {
-            fcclt_[i][c] = (q += 1);
+            fcclt[i][c] = (q += 1);
           }
         }
         if (cldist.second == m.GetId()) {
           IdxCell c = m.FindNearestCell(clfixed_x);
           if ((*fccl[i])[c] != kClNone) {
-            fcclt_[i][c] = clfixed;
+            fcclt[i][c] = clfixed;
           }
         }
-        m.Comm(&fcclt_[i]);
+        m.Comm(&fcclt[i]);
       }
 
       // detect overlap
@@ -581,9 +594,9 @@ struct UVof<M_>::Imp {
             for (auto j : layers) {
               if (j != i && (*fccl[j])[c] != kClNone) {
                 if ((*fcu[i])[c] + (*fcu[j])[c] > coalth) {
-                  Scal cl = std::min(fcclt_[i][c], fcclt_[j][c]);
-                  fcclt_[i][c] = cl;
-                  fcclt_[j][c] = cl;
+                  Scal cl = std::min(fcclt[i][c], fcclt[j][c]);
+                  fcclt[i][c] = cl;
+                  fcclt[j][c] = cl;
                 }
               }
             }
@@ -593,7 +606,7 @@ struct UVof<M_>::Imp {
     }
   }
 
-  void RecolorDirect(const GRange<size_t>& layers,
+  static void RecolorDirect(const GRange<size_t>& layers,
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       Scal clfixed, Vect clfixed_x, Scal coalth,
@@ -602,14 +615,16 @@ struct UVof<M_>::Imp {
     auto sem = m.GetSem("recolor");
     struct {
       std::map<Scal, Scal> usermap;
+      Scal tries;
+      Multi<FieldCell<Scal>> fcclt;  // tmp color
     }* ctx(sem);
-    auto& usermap = ctx->usermap;
+    auto& fcclt = ctx->fcclt;
     if (sem.Nested()) {
-      Init(layers, fcu, fccl, clfixed, clfixed_x, coalth, m);
+      Init(layers, fcu, fccl, fcclt, clfixed, clfixed_x, coalth, m);
     }
     sem.LoopBegin();
     if (grid && sem.Nested()) {
-      Grid(layers, fccl, fcclt_, m);
+      Grid(layers, fccl, fcclt, m);
     }
     if (sem("min")) {
       size_t tries = 0;
@@ -624,10 +639,10 @@ struct UVof<M_>::Imp {
                 IdxCell cn = m.GetCell(c, q);
                 for (auto j : layers) {
                   if ((*fccl[j])[cn] == (*fccl[i])[c]) {
-                    if (fcclt_[j][cn] < fcclt_[i][c]) {
+                    if (fcclt[j][cn] < fcclt[i][c]) {
                       chg = true;
                       ++cells;
-                      fcclt_[i][c] = fcclt_[j][cn];
+                      fcclt[i][c] = fcclt[j][cn];
                     }
                   }
                 }
@@ -641,46 +656,46 @@ struct UVof<M_>::Imp {
         ++tries;
       }
       for (auto i : layers) {
-        m.Comm(&fcclt_[i]);
+        m.Comm(&fcclt[i]);
       }
-      recolor_tries_ = tries;
-      m.Reduce(&recolor_tries_, "max");
+      ctx->tries = tries;
+      m.Reduce(&ctx->tries, "max");
     }
     if (sem("check")) {
       if (verb && m.IsRoot()) {
         std::cerr << "recolor:"
-          << " max tries: " << recolor_tries_ 
+          << " max tries: " << ctx->tries 
           << std::endl;
       }
-      if (!recolor_tries_) {
+      if (!ctx->tries) {
         sem.LoopBreak();
       }
     }
     sem.LoopEnd();
     if (bcc_reflect && sem("reflect")) {
       for (auto i : layers) {
-        BcReflect(fcclt_[i], mfc, kClNone, false, m);
+        BcReflect(fcclt[i], mfc, kClNone, false, m);
       }
     }
     if (reduce && sem.Nested()) {
-      UserMap(layers, fccl, fcclt_, usermap, m);
+      UserMap(layers, fccl, fcclt, ctx->usermap, m);
     }
     if (reduce && sem.Nested()) {
-      ReduceColor(layers, fcclt_, usermap, m);
+      ReduceColor(layers, fcclt, ctx->usermap, m);
     }
     if (sem("copy")) {
       for (auto c : m.AllCells()) {
         for (auto l : layers) {
-          (*fccl[l])[c] = fcclt_[l][c];
+          (*fccl[l])[c] = fcclt[l][c];
         }
       }
       for (auto l : layers) {
-        fcclt_[l].Free();
+        fcclt[l].Free();
       }
     }
   }
 
-  void RecolorUnionFind(const GRange<size_t>& layers,
+  static void RecolorUnionFind(const GRange<size_t>& layers,
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       Scal clfixed, Vect clfixed_x, Scal coalth,
@@ -689,57 +704,63 @@ struct UVof<M_>::Imp {
     auto sem = m.GetSem("recolor");
     struct {
       std::map<Scal, Scal> usermap;
+      Scal tries;
+      Multi<FieldCell<Scal>> fcclt;  // tmp color
+      Multi<FieldCell<IdxCell>> fcc; // root cell
+      Multi<FieldCell<char>> fcl;  // root layer
     }* ctx(sem);
-    auto& usermap = ctx->usermap;
+    auto& fcclt = ctx->fcclt;
+    auto& fcc = ctx->fcc;
+    auto& fcl = ctx->fcl;
     if (sem.Nested()) {
-      Init(layers, fcu, fccl, clfixed, clfixed_x, coalth, m);
+      Init(layers, fcu, fccl, fcclt, clfixed, clfixed_x, coalth, m);
     }
     if (sem("initroot")) {
-      fcc_.resize(layers.size());
-      fcl_.resize(layers.size());
-      fcc_.InitAll(FieldCell<IdxCell>(m));
-      fcl_.InitAll(FieldCell<char>(m));
+      fcc.resize(layers.size());
+      fcl.resize(layers.size());
+      fcc.InitAll(FieldCell<IdxCell>(m));
+      fcl.InitAll(FieldCell<char>(m));
       for (auto c : m.AllCells()) {
         for (auto l : layers) {
-          fcc_[l][c] = c;
-          fcl_[l][c] = l;
+          fcc[l][c] = c;
+          fcl[l][c] = l;
         }
       }
     }
     sem.LoopBegin();
     if (grid && sem.Nested()) {
-      Grid(layers, fccl, fcclt_, m);
+      Grid(layers, fccl, fcclt, m);
     }
     if (sem("min")) {
       using Pair = std::pair<IdxCell, char>;
       size_t tries = 0;
       // Returns reference to color
-      auto Clt = [this](Pair p) -> Scal& {
-        return fcclt_[p.second][p.first];
+      auto Clt = [&](Pair p) -> Scal& {
+        return fcclt[p.second][p.first];
       };
       // Returns parent of p.
-      auto Get = [this](Pair p) {
+      auto Get = [&](Pair p) {
         IdxCell c = p.first;
         char l = p.second;
-        return Pair(fcc_[l][c], fcl_[l][c]);
+        return Pair(fcc[l][c], fcl[l][c]);
       };
       // Sets parent of p to r.
-      auto Set = [this](Pair p, Pair r) {
+      auto Set = [&](Pair p, Pair r) {
         IdxCell c = p.first;
         char l = p.second;
-        fcc_[l][c] = r.first;
-        fcl_[l][c] = r.second;
+        fcc[l][c] = r.first;
+        fcl[l][c] = r.second;
         return r;
       };
       // Returns root of p.
-      std::function<Pair(Pair)> Find = [this,&Get,&Set,&Find](Pair p) {
+      std::function<Pair(Pair)> Find = [&](Pair p) {
         if (Get(p) == p) {
           return p;
         }
         return Set(p, Find(Get(p)));
       };
       // Merges sets with representatives p0 and p1
-      auto Union = [this,&Find,&Get,&Set,&tries,&Clt](Pair p0, Pair p1) {
+      auto Union = [&](Pair p0, Pair p1) {
         p0 = Find(p0);
         p1 = Find(p1);
         if (p0 != p1) {
@@ -805,36 +826,36 @@ struct UVof<M_>::Imp {
         }
       }
       for (auto l : layers) {
-        m.Comm(&fcclt_[l]);
+        m.Comm(&fcclt[l]);
       }
-      recolor_tries_ = tries;
-      m.Reduce(&recolor_tries_, "max");
+      ctx->tries = tries;
+      m.Reduce(&ctx->tries, "max");
     }
     if (sem("check")) {
       if (verb && m.IsRoot()) {
         std::cerr << "recolor:"
-          << " max tries: " << recolor_tries_ 
+          << " max tries: " << ctx->tries 
           << std::endl;
       }
-      if (!recolor_tries_) {
+      if (!ctx->tries) {
         sem.LoopBreak();
       }
     }
     sem.LoopEnd();
     if (bcc_reflect && sem("reflect")) {
       for (auto i : layers) {
-        BcReflect(fcclt_[i], mfc, kClNone, false, m);
+        BcReflect(fcclt[i], mfc, kClNone, false, m);
       }
     }
     if (reduce && sem.Nested()) {
-      UserMap(layers, fccl, fcclt_, usermap, m);
+      UserMap(layers, fccl, fcclt, ctx->usermap, m);
     }
     if (reduce && sem.Nested()) {
-      ReduceColor(layers, fcclt_, usermap, m);
+      ReduceColor(layers, fcclt, ctx->usermap, m);
     }
   }
 
-  void Recolor(const GRange<size_t>& layers,
+  static void Recolor(const GRange<size_t>& layers,
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       Scal clfixed, Vect clfixed_x, Scal coalth,
@@ -854,13 +875,6 @@ struct UVof<M_>::Imp {
   std::vector<Scal> dlc_; // dump poly cell
   std::vector<Scal> dll_; // dump poly layer
   std::vector<Scal> dlcl_; // dump poly color
-
-  Scal recolor_tries_;
-  Multi<FieldCell<Scal>> fcclt_;  // tmp color
-  std::vector<std::vector<Scal>> vvcl_; // all colors
-  std::vector<Scal> vcl_, vcln_; // all colors
-  Multi<FieldCell<IdxCell>> fcc_; // root cell
-  Multi<FieldCell<char>> fcl_;  // root layer
 };
 
 template <class M_>
