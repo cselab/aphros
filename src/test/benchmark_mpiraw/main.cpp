@@ -13,8 +13,8 @@ void Run() {
   MPI_Comm_rank(comm, &rank);
   std::vector<char> r;
   MPI_Barrier(comm);
-  for (auto i = 0; i < 10; ++i) {
-    r = {i * rank};
+  for (auto i = 0; i < 100; ++i) {
+    r = std::vector<char>(100, i * rank);
     int s = r.size(); // size local
     if (rank == 0) {
       std::vector<int> ss(sc); // size of r on all ranks
@@ -38,7 +38,10 @@ void Run() {
       MPI_Gatherv(r.data(), r.size(), MPI_CHAR,
                   ra.data(), ss.data(), oo.data(), MPI_CHAR,
                   0, comm);
-      std::cerr << "i=" << i << ", timer=" << st.GetSeconds() << std::endl;
+      auto t = st.GetSeconds();
+      if (t > 0.01) {
+        std::cerr << "i=" << i << ", timer=" << t << std::endl;
+      }
     } else {
       MPI_Gather(&s, 1, MPI_INT, nullptr, 0, MPI_INT, 0, comm);
       MPI_Gatherv(r.data(), r.size(), MPI_CHAR,

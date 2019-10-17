@@ -89,7 +89,7 @@ set int bsz 16
 set int px 6
 set int py 4
 set int pz 8
-  )EOF";
+)EOF";
 
   return RunMpiBasic<M, State>(argc, argv, Run, conf);
 }
