@@ -369,11 +369,10 @@ struct UVof<M_>::Imp {
   static void Grid(const GRange<size_t>& layers,
             const Multi<const FieldCell<Scal>*>& fccl,
             const Multi<FieldCell<Scal>*>& fcclt, M& m) {
-    struct Ctx {
-      std::vector<Scal> merge0, merge1; // colors to merge
-    };
     auto sem = m.GetSem("grid");
-    Ctx* ctx(sem);
+    struct {
+      std::vector<Scal> merge0, merge1; // colors to merge
+    }* ctx(sem);
     auto& merge0 = ctx->merge0;
     auto& merge1 = ctx->merge1;
     if (sem("local")) {
@@ -540,10 +539,9 @@ struct UVof<M_>::Imp {
       const Multi<FieldCell<Scal>*>& fccl,
       Scal clfixed, Vect clfixed_x, Scal coalth, M& m) {
     auto sem = m.GetSem("recolor_init");
-    struct Ctx {
+    struct {
       std::pair<typename M::Scal, int> cldist; // color,mesh_id
-    };
-    auto ctx = sem.template Get<Ctx>();
+    }* ctx(sem);
     auto& cldist = ctx->cldist;
     if (sem("clfixed")) {
       // block nearest to clfixed_x
@@ -602,11 +600,9 @@ struct UVof<M_>::Imp {
       const MapFace<std::shared_ptr<CondFace>>& mfc,
       bool bcc_reflect, bool verb, bool reduce, bool grid, M& m) {
     auto sem = m.GetSem("recolor");
-    struct Ctx {
+    struct {
       std::map<Scal, Scal> usermap;
-    };
-    Ctx* ctx;
-    ctx = sem.Get(ctx);
+    }* ctx(sem);
     auto& usermap = ctx->usermap;
     if (sem.Nested()) {
       Init(layers, fcu, fccl, clfixed, clfixed_x, coalth, m);
@@ -691,10 +687,9 @@ struct UVof<M_>::Imp {
       const MapFace<std::shared_ptr<CondFace>>& mfc,
       bool bcc_reflect, bool verb, bool reduce, bool grid, M& m) {
     auto sem = m.GetSem("recolor");
-    struct Ctx {
+    struct {
       std::map<Scal, Scal> usermap;
-    };
-    auto ctx = sem.template Get<Ctx>();
+    }* ctx(sem);
     auto& usermap = ctx->usermap;
     if (sem.Nested()) {
       Init(layers, fcu, fccl, clfixed, clfixed_x, coalth, m);
