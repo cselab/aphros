@@ -689,9 +689,6 @@ struct UVof<M_>::Imp {
           (*fccl[l])[c] = fcclt[l][c];
         }
       }
-      for (auto l : layers) {
-        fcclt[l].Free();
-      }
     }
   }
 
@@ -852,6 +849,13 @@ struct UVof<M_>::Imp {
     }
     if (reduce && sem.Nested()) {
       ReduceColor(layers, fcclt, ctx->usermap, m);
+    }
+    if (sem("copy")) {
+      for (auto c : m.AllCells()) {
+        for (auto l : layers) {
+          (*fccl[l])[c] = fcclt[l][c];
+        }
+      }
     }
   }
 
