@@ -83,9 +83,7 @@ bool Suspender::Sem::Nested(std::string suff) {
 }
 
 
-// Each stage has an absolute index 
-// which c takes at every call regardless of t.
-// ++c must be in every stage.
+// The index of each stage is given by c.
 // LoopBegin and LoopEnd are also stages.
 // lb -- index of LoopBegin
 // le -- index of LoopEnd
@@ -103,11 +101,10 @@ void Suspender::Sem::LoopBegin() {
 
 void Suspender::Sem::LoopBreak() {
   U& u = *p.lui_;
-  u.t = u.le;
+  u.t = u.le;   // set target beyond loop end
 }
 
-// Important to initialize le even before 
-// t reaches LoopEnd 
+// Important to initialize le even before t reaches LoopEnd 
 // to be able to break on first iteration
 void Suspender::Sem::LoopEnd() {
   U& u = *p.lui_;
@@ -115,8 +112,8 @@ void Suspender::Sem::LoopEnd() {
       u.lb <= u.t) { // target is within the loop
     u.le = u.c;
   }
-  if (u.c == u.t + 1) {
-    u.t = u.lb; // another ++t in ~Sem
+  if (u.c == u.t + 1) { // passed loop end
+    u.t = u.lb; // reset target to loop begin
   }
   ++u.c;
 }

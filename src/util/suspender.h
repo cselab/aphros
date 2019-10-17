@@ -29,13 +29,11 @@ class Suspender {
     // Constructor
     // Advance list iterator, add new counter if needed, reset counter
     Sem(Suspender& p, std::string name="");
-    // Forbid copy
     Sem(Sem&) = delete;
     Sem& operator=(Sem&) = delete;
-    // Allow move
     Sem(Sem&&) = default;
     // Destructor
-    // If all lower levels done, next stage.
+    // If all nested stages done, next stage.
     // If all stages on current level done, remove current level
     ~Sem();
     // Next() without nested calls
