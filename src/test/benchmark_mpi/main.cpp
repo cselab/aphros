@@ -16,9 +16,17 @@ void Run(M& m, State& s, Vars& var) {
   auto& v = s.v;
   for (auto i = 0; i < 10; ++i) {
     if (sem()) {
-      // nop
+      v = {Scal(m.GetId())};
+      using T = typename M::template OpCatT<Scal>;
+      m.Reduce(std::make_shared<T>(&v));
     }
   }
+  if (sem()) {
+    if (m.IsRoot()) {
+      m.TimerReport("timer.log");
+    }
+  }
+  if (sem()) {}
 }
 
 int main(int argc, const char** argv) {
