@@ -1,9 +1,12 @@
-e=t.benchmark_mpi
-killall $e
+#!/bin/bash
 
+set -eu
+
+e=t.benchmark_mpi
+
+make
 echo 192 > np
 echo 10 > tl
-make
 ch.run ./$e
 
 cat timer.log
