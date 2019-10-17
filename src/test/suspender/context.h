@@ -1,45 +1,55 @@
+#include <vector>
+
 namespace context {
 
-struct Context {
-  Context() {
-    std::cerr << "Context created" << std::endl;
-  }
-  ~Context() {
-    std::cerr << "Context destroyed" << std::endl;
-  }
-};
-
-void B(Suspender& s) {
-  Context ctx;
-  Suspender::Sem sem = s.GetSem();
+void B(Suspender& susp) {
+  struct Context {
+    Context() { std::cerr << "ContextB created" << std::endl; }
+    ~Context() { std::cerr << "ContextB destroyed" << std::endl; }
+    int a = 10;
+  };
+  Suspender::Sem sem = susp.GetSem();
+  auto ctx = sem.GetContext<Context>();
   if (sem()) {
+    ++ctx->a;
     std::cerr << "B1" << std::endl;
   }
   if (sem()) {
-    std::cerr << "B2" << std::endl;
+    ++ctx->a;
+    std::cerr << "B2 " << ctx->a << std::endl;
   }
 }
 
-void A(Suspender& s) {
-  Suspender::Sem sem = s.GetSem();
+void A(Suspender& susp) {
+  struct Context {
+    Context() { std::cerr << "ContextA created" << std::endl; }
+    ~Context() { std::cerr << "ContextA destroyed" << std::endl; }
+    std::vector<double> v;
+  };
+  Suspender::Sem sem = susp.GetSem();
+  auto ctx = sem.GetContext<Context>();
   if (sem()) {
+    ctx->v = {1., 2., 3., 4.};
     std::cerr << "A1" << std::endl;
   }
   if (sem.Nested()) {
-    B(s);
+    B(susp);
+  }
+  if (sem.Nested()) {
+    B(susp);
   }
   if (sem()) {
-    std::cerr << "A2" << std::endl;
+    std::cerr << "A2 " << ctx->v.size() << std::endl;
   }
 }
 
 
 void Test() {
-  Suspender s;
+  Suspender susp;
 
   do {
-    A(s);
-  } while (s.Pending());
+    A(susp);
+  } while (susp.Pending());
 }
 
 } // namespace context

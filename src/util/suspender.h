@@ -41,9 +41,9 @@ class Suspender {
     template <class T>
     T* GetContext() {
       U& u = *p.lui_;
-      std::unique_ptr<BaseHolder> h = u.context;
+      std::unique_ptr<BaseHolder>& h = u.context;
       if (!h) {
-        h = std::unique_ptr<BaseHolder*>(new Holder<T>(new T()));
+        h = std::unique_ptr<BaseHolder>(new Holder<T>(new T()));
       }
       return dynamic_cast<Holder<T>*>(h.get())->Get();
     }
@@ -73,10 +73,10 @@ class Suspender {
   };
   // Container for user-defined context object
   template <class T>
-  class Holder : BaseHolder {
+  class Holder : public BaseHolder {
    public:
     Holder(T* p) : p_(std::unique_ptr<T>(p)) {}
-    T* Get() { return p_; }
+    T* Get() { return p_.get(); }
    private:
     std::unique_ptr<T> p_;
   };
