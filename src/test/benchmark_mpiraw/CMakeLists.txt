@@ -9,4 +9,4 @@ add_executable(${EXE} main.cpp)
 
 target_link_libraries(${EXE})
 
-add_test(NAME ${p} COMMAND ./${EXE})
+#add_test(NAME ${p} COMMAND ./${EXE})
