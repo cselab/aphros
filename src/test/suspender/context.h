@@ -1,6 +1,16 @@
-namespace state {
+namespace context {
+
+struct Context {
+  Context() {
+    std::cerr << "Context created" << std::endl;
+  }
+  ~Context() {
+    std::cerr << "Context destroyed" << std::endl;
+  }
+};
 
 void B(Suspender& s) {
+  Context ctx;
   Suspender::Sem sem = s.GetSem();
   if (sem()) {
     std::cerr << "B1" << std::endl;
@@ -32,4 +42,4 @@ void Test() {
   } while (s.Pending());
 }
 
-} // namespace state
+} // namespace context

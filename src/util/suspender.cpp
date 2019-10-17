@@ -118,10 +118,12 @@ void Suspender::Sem::LoopEnd() {
   ++u.c;
 }
 
-
-Suspender::Suspender() 
-  : lu_(1, U(-1,-1)), lui_(lu_.begin()), nest_(false)
-{}
+Suspender::Suspender()
+  : nest_(false)
+{
+  lu_.emplace_back(-1, -1);
+  lui_ = lu_.begin();
+}
 
 Suspender::Sem Suspender::GetSem(std::string name) {
   return Sem(*this, name);
@@ -133,7 +135,7 @@ std::string Suspender::GetCurName() const {
 
 std::string Suspender::Print() const {
   std::stringstream b;
-  for (auto e : lu_) {
+  for (auto& e : lu_) {
     b << "(" << e.c << " " << e.t << ") ";
   }
   return b.str();
