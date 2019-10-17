@@ -1,0 +1,6 @@
+e=t.benchmark_mpi
+killall $e
+
+echo 192 > np
+echo 10 > tl
+ch.run ./$e
