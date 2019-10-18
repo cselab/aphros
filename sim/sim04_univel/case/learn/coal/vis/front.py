@@ -101,7 +101,7 @@ renderView1.CameraViewUp =\
 [0.0, 1.0, 0.0]
 renderView1.CameraParallelScale = 0.3556556576709247
 renderView1.CameraParallelProjection = 0
-renderView1.Background = [0.0]*3
+renderView1.Background = [1.0]*3
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 renderView1.KeyLightWarmth = 0.5
 renderView1.FillLightWarmth = 0.5

@@ -71,9 +71,6 @@ int main() {
 #ifdef PS_eta
   kPartstr.eta = PS_eta;
 #endif
-#ifdef PS_circ
-  kPartstr.circ = PS_circ;
-#endif
 #endif
 
   run();
