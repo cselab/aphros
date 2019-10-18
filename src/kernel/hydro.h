@@ -279,7 +279,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
   std::unique_ptr<TR> tr_; // color tracker
-  std::unique_ptr<SA> sa_; // spherical averages
   FieldCell<Scal> fc_vf_; // volume fraction used by constructor 
   FieldCell<Scal> fccl_; // color used by constructor  
   FieldCell<Vect> fc_vel_; // velocity used by constructor
@@ -305,9 +304,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Vect> fcvcurl_;  // curl-component of velocity
   FieldCell<Scal> fcdiv_;  // divergence of velocity
   bool vcurl_;  // compute curl
-
-  using Sph = typename SA::Sph;
-  std::vector<Sph> sa_ss_;
 
   Scal nabort_; // number of abort requests, used by Reduce in checknan Run()
 
@@ -767,11 +763,6 @@ void Hydro<M>::Init() {
     // Init color tracker
     if (var.Int["enable_color"] && as_) {
       tr_.reset(new TR(m, fccl_, var.Double["color_th"], var.Int["dim"]));
-    }
-
-    // Init sphavg
-    if (var.Int["enable_shell"] && tr_) {
-      sa_.reset(new SA(m, var.Int["dim"]));
     }
 
     st_.iter = 0;
@@ -1688,10 +1679,15 @@ void Hydro<M>::DumpTraj(bool dm) {
     std::vector<std::string> names; // color reduce: variable name
     std::vector<Scal> colors; // color reduce: cl
     std::vector<std::vector<Scal>> values; // color reduce: vector
+    std::unique_ptr<SA> sphavg; // spherical averages
+    using Sph = typename SA::Sph;
+    std::vector<Sph> vsph;
   }* ctx(sem);
   auto& names = ctx->names;
   auto& colors = ctx->colors;
   auto& values = ctx->values;
+  auto& sphavg = ctx->sphavg;
+  auto& vsph = ctx->vsph;
   if (sem("color-calc")) {
     std::map<Scal, std::vector<Scal>> mp; // map color to vector
     auto kNone = TR::kNone;
@@ -1826,7 +1822,12 @@ void Hydro<M>::DumpTraj(bool dm) {
     m.Bcast(std::make_shared<TS>(&colors));
     m.Bcast(std::make_shared<TVS>(&values));
   }
-  if (sa_ && sem("sphavg-sph")) {
+  if (sem("sphavg-init")) {
+    if (var.Int["enable_shell"] && tr_) {
+      sphavg.reset(new SA(m, var.Int["dim"]));
+    }
+  }
+  if (sphavg && sem("sphavg-sph")) {
     const Scal shrr = var.Double["shell_rr"]; // shell inner radius relative 
                                               // to equivalent radius
     const Scal shr = var.Double["shell_r"]; // shell inner radius absolute
@@ -1834,21 +1835,20 @@ void Hydro<M>::DumpTraj(bool dm) {
     const Scal shh = var.Double["shell_h"]; // shell thickness relative to h
     auto h = m.GetCellSize();
 
-    auto& ss = sa_ss_;
-    ss.clear();
+    vsph.clear();
     for (auto& s : values) {
       // XXX: adhoc, assume vf,r,x,y,z in values
       Vect x(s[2], s[3], s[4]);
       Scal r = s[1] * shrr + shr;
-      ss.emplace_back(x, r, h[0] * shh);
+      vsph.emplace_back(x, r, h[0] * shh);
     }
   }
-  if (sa_ && sem.Nested("sphavg-update")) {
+  if (sphavg && sem.Nested("sphavg-update")) {
     auto& vf = as_->GetField();
     auto& vel = fs_->GetVelocity();
     auto& velm = fcvm_;
     auto& p = fs_->GetPressure();
-    sa_->Update(vf, vel, velm, st_.dt, p, sa_ss_);
+    sphavg->Update(vf, vel, velm, st_.dt, p, vsph);
   }
   if (sem("color-dump") && dm) {
     if (m.IsRoot()) {
@@ -1877,7 +1877,7 @@ void Hydro<M>::DumpTraj(bool dm) {
         o << "\n";
       }
     }
-    if (sa_) {
+    if (sphavg) {
       if (m.IsRoot()) {
         std::string s = GetDumpName("trajsh", ".csv", dmptraj_.GetN());
         std::cout << std::fixed << std::setprecision(8)
@@ -1889,7 +1889,7 @@ void Hydro<M>::DumpTraj(bool dm) {
         o.precision(20);
         // header
         {
-          auto nn = sa_->GetNames();
+          auto nn = sphavg->GetNames();
           o << "cl";
           for (auto n : nn) {
             o << "," << n;
@@ -1898,7 +1898,7 @@ void Hydro<M>::DumpTraj(bool dm) {
         }
         // content
         auto cl = colors;
-        auto av = sa_->GetAvg();
+        auto av = sphavg->GetAvg();
         if (cl.size() != av.size()) {
           throw std::runtime_error(
               "trajsh: cl.size()=" + std::to_string(cl.size()) +
