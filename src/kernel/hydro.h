@@ -1303,9 +1303,9 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
 
     if (auto as = dynamic_cast<ASVM*>(as_.get())) {
       GRange<size_t> layers(as->GetNumLayers());
-      solver::Multi<const FieldCell<Scal>*> fcu(layers.size());
-      solver::Multi<const FieldCell<Scal>*> fccl(layers.size());
-      solver::Multi<const FieldCell<Scal>*> fck(layers.size());
+      solver::Multi<const FieldCell<Scal>*> fcu(layers);
+      solver::Multi<const FieldCell<Scal>*> fccl(layers);
+      solver::Multi<const FieldCell<Scal>*> fck(layers);
       for (auto i : layers) {
         fcu[i] = &as->GetField(i);
         fccl[i] = &as->GetColor(i);
@@ -1660,9 +1660,28 @@ void Hydro<M>::Dump(Sem& sem) {
   if (tr_) {
     if (sem.Nested("trajdump")) {
       if (dmptraj_.Try(st_.t, st_.dt)) {
+        GRange<size_t> layers(1);
+        solver::Multi<const FieldCell<Scal>*> fcu(layers);
+        solver::Multi<const FieldCell<Scal>*> fccl(layers);
+        solver::Multi<const FieldCell<Vect>*> fcim(layers);
+        if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+          layers = GRange<size_t>(as->GetNumLayers());
+          fcu.resize(layers);
+          fccl.resize(layers);
+          fcim.resize(layers);
+          for (auto l : layers) {
+            fcu[l] = &as->GetField(l);
+            fccl[l] = &as->GetColor(l);
+            fcim[l] = &tr_->GetImage(); // FIXME image from tracker
+          }
+        } else {
+          fcu[0] = &as_->GetField();
+          fccl[0] = &tr_->GetColor();
+          fcim[0] = &tr_->GetImage(); // FIXME image from tracker
+        }
+
         DumpTraj(m, true, var, dmptraj_.GetN(), st_.t,
-                 GRange<size_t>(1), &as_->GetField(),
-                 &tr_->GetColor(), &tr_->GetImage(),
+                 layers, fcu, fccl, fcim,
                  fs_->GetPressure(),
                  fs_->GetVelocity(), fcvm_, st_.dt);
       }
