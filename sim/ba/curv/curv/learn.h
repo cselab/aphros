@@ -3,8 +3,6 @@
 
 #include <unistd.h>
 
-#include "learn_eval.h"
-
 
 #define SX (SW*2+1)
 #define SY (SX)
