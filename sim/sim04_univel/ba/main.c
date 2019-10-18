@@ -1,10 +1,10 @@
 #include "par.h"
 
+#include ".u/bashape.h"
+#include ".u/bah5.h"
 #include ".u/curv/select.h"
 #include ".u/io/io.h"
 #include ".u/io/iompi.h"
-#include ".u/bashape.h"
-#include ".u/bah5.h"
 
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
