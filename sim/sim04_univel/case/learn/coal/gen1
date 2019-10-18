@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -eu
+
+np=64
+
+echo $np > np
+echo 1440 > tl
+
+m0=LEARN_N10
+m1=LEARN_N80
+m2=LEARN_N80_SPHCYL
+m=$m2
+
+./gen -nx 128 -np $np -mode osc -dim 3 -pos center \
+  -We 0 -Oh 0.005 -tmax 2 -br 0.15 \
+  -mu 0.01 -rho 0.01 \
+  -symmxy 0 -wallz 0 \
+  -bcod 0 0 0 -bcor 0 0 0 \
+  -b2xr 2 0 0 -b2rr 1 \
+  -nb 2 -nfr 200 -part_ns 3 \
+  -baextra "'-D$m'"

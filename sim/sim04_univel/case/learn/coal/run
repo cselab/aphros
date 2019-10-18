@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -eu
+
+./gen1
+(cd bal ; ./run)
