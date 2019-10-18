@@ -848,6 +848,27 @@ static double partstr(Point point, scalar c, vector nn) {
 }
 
 #ifndef NOBA
+
+static void boundaryvector(vector nn) {
+  scalar nnx[];
+  scalar nny[];
+  scalar nnz[];
+
+  foreach() {
+    nnx[] = nn.x[];
+    nny[] = nn.y[];
+    nnz[] = nn.z[];
+  }
+
+  boundary({nnx, nny, nnz});
+
+  foreach() {
+    nn.x[] = nnx[];
+    nn.y[] = nny[];
+    nn.z[] = nnz[];
+  }
+}
+
 trace
 cstats curvature_partstr(struct Curvature p)
 {
@@ -869,7 +890,7 @@ cstats curvature_partstr(struct Curvature p)
   vector nn[];
   CalcNormal(c, nn);
 
-  boundary({nn});
+  boundaryvector(nn);
 
   foreach(reduction(+:sh) reduction(+:sc)) {
     if (!interfacial (point, c)) {
