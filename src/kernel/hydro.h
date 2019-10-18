@@ -102,6 +102,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using MIdx = typename M::MIdx;
   using Sem = typename M::Sem;
   using Par = GPar;
+  template <class T>
+  using Multi = solver::Multi<T>;
   static constexpr size_t dim = M::dim;
 
   Hydro(Vars&, const MyBlockInfo&, Par&) ;
@@ -125,9 +127,13 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapFace<std::shared_ptr<solver::CondFace>> GetBcSz() const;
   void DumpFields();
   void Dump(Sem& sem);
-  static void DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
-      const FieldCell<Scal>& fccl, const FieldCell<Vect>& fcim,
-      const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fcp,
+  static void DumpTraj(
+      M& m, bool dm, const Vars& var, size_t frame, Scal t,
+      const GRange<size_t>& layers, 
+      const Multi<const FieldCell<Scal>*>& fcvf,
+      const Multi<const FieldCell<Scal>*>& fccl,
+      const Multi<const FieldCell<Vect>*>& fcim,
+      const FieldCell<Scal>& fcp,
       const FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvelm, Scal dt);
   // Calc rho, mu and force based on volume fraction
   void CalcMixture(const FieldCell<Scal>& vf);
@@ -1296,7 +1302,7 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
     ff_sig_ = solver::Interpolate(fc_sig_, GetBcSz(), m);
 
     if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-      GRange<size_t> layers(0, as->GetNumLayers());
+      GRange<size_t> layers(as->GetNumLayers());
       solver::Multi<const FieldCell<Scal>*> fcu(layers.size());
       solver::Multi<const FieldCell<Scal>*> fccl(layers.size());
       solver::Multi<const FieldCell<Scal>*> fck(layers.size());
@@ -1655,8 +1661,9 @@ void Hydro<M>::Dump(Sem& sem) {
     if (sem.Nested("trajdump")) {
       if (dmptraj_.Try(st_.t, st_.dt)) {
         DumpTraj(m, true, var, dmptraj_.GetN(), st_.t,
-                 tr_->GetColor(), tr_->GetImage(),
-                 as_->GetField(), fs_->GetPressure(),
+                 GRange<size_t>(1), &as_->GetField(),
+                 &tr_->GetColor(), &tr_->GetImage(),
+                 fs_->GetPressure(),
                  fs_->GetVelocity(), fcvm_, st_.dt);
       }
     }
@@ -1680,8 +1687,11 @@ void Hydro<M>::Dump(Sem& sem) {
 
 template <class M>
 void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
-    const FieldCell<Scal>& fccl, const FieldCell<Vect>& fcim,
-    const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fcp,
+    const GRange<size_t>& layers, 
+    const Multi<const FieldCell<Scal>*>& fcvf,
+    const Multi<const FieldCell<Scal>*>& fccl, 
+    const Multi<const FieldCell<Vect>*>& fcim,
+    const FieldCell<Scal>& fcp,
     const FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvelm, Scal dt) {
   auto sem = m.GetSem("dumptraj");
   struct {
@@ -1731,41 +1741,44 @@ void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
 
     // traverse cells, append to mp
     for (auto c : m.Cells()) {
-      if (fccl[c] != kNone) {
-        auto& v = mp[fccl[c]]; // vector for data
-        auto x = m.GetCenter(c); // cell center
-        x += fcim[c] * gh;  // translation by image vector
+      for (auto l : layers) {
+        auto cl = (*fccl[l])[c];
+        if (cl != kNone) {
+          auto& v = mp[cl]; // vector for data
+          auto x = m.GetCenter(c); // cell center
+          x += (*fcim[l])[c] * gh;  // translation by image vector
 
-        auto w = fcvf[c] * m.GetVolume(c); // volume
+          auto w = (*fcvf[l])[c] * m.GetVolume(c); // volume
 
-        size_t i = 0;
-        // append scalar value
-        auto add = [&v,&i](Scal a) {
-          if (i >= v.size()) {
-            v.resize(i + 1);
-          }
-          v[i] += a;
-          ++i;
-        };
-        // append vector value 
-        auto addv = [&](Vect a) {
-          add(a[0]);
-          add(a[1]);
-          add(a[2]);
-        };
+          size_t i = 0;
+          // append scalar value
+          auto add = [&v,&i](Scal a) {
+            if (i >= v.size()) {
+              v.resize(i + 1);
+            }
+            v[i] += a;
+            ++i;
+          };
+          // append vector value 
+          auto addv = [&](Vect a) {
+            add(a[0]);
+            add(a[1]);
+            add(a[2]);
+          };
 
-        // list of vars, XXX: keep consistent with names 
-        add(w); // vf,  XXX: adhoc, vf must be first, divided on dump
-        add(0.); // r,  XXX: adhoc, r must be second, computed on dump
-        addv(x * w); // x
-        addv(fcvel[c] * w); // velocity
-        add(fcp[c] * w); // pressure
-        add(x[0] * x[0] * w); // xx
-        add(x[0] * x[1] * w); // xy
-        add(x[0] * x[2] * w); // xz
-        add(x[1] * x[1] * w); // yy
-        add(x[1] * x[2] * w); // yz
-        add(x[2] * x[2] * w); // zz
+          // list of vars, XXX: keep consistent with names 
+          add(w); // vf,  XXX: adhoc, vf must be first, divided on dump
+          add(0.); // r,  XXX: adhoc, r must be second, computed on dump
+          addv(x * w); // x
+          addv(fcvel[c] * w); // velocity
+          add(fcp[c] * w); // pressure
+          add(x[0] * x[0] * w); // xx
+          add(x[0] * x[1] * w); // xy
+          add(x[0] * x[2] * w); // xz
+          add(x[1] * x[1] * w); // yy
+          add(x[1] * x[2] * w); // yz
+          add(x[2] * x[2] * w); // zz
+        }
       }
     }
     // copy to vector
@@ -1848,7 +1861,7 @@ void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
     }
   }
   if (sphavg && sem.Nested("sphavg-update")) {
-    sphavg->Update(fcvf, fcvel, fcvelm, dt, fcp, vsph);
+    sphavg->Update(*fcvf[0], fcvel, fcvelm, dt, fcp, vsph);
   }
   if (sem("color-dump") && dm) {
     if (m.IsRoot()) {
