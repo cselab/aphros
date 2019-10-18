@@ -59,7 +59,7 @@ static int iompi(scalar *list, char* fn) {
 
     // points
     {
-      double* b = bc;
+      double* b = (double*)bc;
 
       int i = 0;
       foreach_vertex() {
@@ -104,7 +104,7 @@ static int iompi(scalar *list, char* fn) {
 
     // cell nodes
     {
-      int* b = bc;
+      int* b = (int*)bc;
 
       const int npc = 8; // points per cell
       const int ic = 9; // offset per cell
@@ -179,7 +179,7 @@ static int iompi(scalar *list, char* fn) {
     ir && fprintf(f, "CELL_DATA %d\n", gnc);
 
     for (scalar s in list) {
-      double* b = bc;
+      double* b = (double*)bc;
 
       int i = 0;
       foreach() {
