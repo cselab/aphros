@@ -291,10 +291,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_sig_; // surface tension sigma
   FieldFace<Scal> ff_sig_; // surface tension sigma
 
-  std::vector<Scal> clr_cl_; // color reduce: cl
-  std::vector<std::vector<Scal>> clr_v_; // color reduce: vector
-  std::vector<std::string> clr_nm_; // color reduce: variable name
-  std::map<Scal, std::vector<Scal>> clmp_; // tmp map color to vector (only root)
   FieldCell<Vect> fcvm_; // velocity field time_prev // TODO: revise
 
   FieldCell<Vect> fcyv_; // Young velocity
@@ -481,7 +477,6 @@ void Hydro<M>::InitVort() {
 template <class M>
 void Hydro<M>::InitFluid() {
   fcvm_ = fc_vel_;
-
 
   // XXX ahoc: young velocity
   if (var.Int["youngbc"]) {
@@ -1665,7 +1660,7 @@ void Hydro<M>::Dump(Sem& sem) {
   if (tr_) {
     if (sem.Nested("trajdump")) {
       if (dmptraj_.Try(st_.t, st_.dt)) {
-        DumpTraj(1);
+        DumpTraj(true);
       }
     }
   }
@@ -1689,6 +1684,14 @@ void Hydro<M>::Dump(Sem& sem) {
 template <class M>
 void Hydro<M>::DumpTraj(bool dm) {
   auto sem = m.GetSem("dumptraj");
+  struct {
+    std::vector<std::string> names; // color reduce: variable name
+    std::vector<Scal> colors; // color reduce: cl
+    std::vector<std::vector<Scal>> values; // color reduce: vector
+  }* ctx(sem);
+  auto& names = ctx->names;
+  auto& colors = ctx->colors;
+  auto& values = ctx->values;
   if (sem("color-calc")) {
     std::map<Scal, std::vector<Scal>> mp; // map color to vector
     auto kNone = TR::kNone;
@@ -1700,20 +1703,20 @@ void Hydro<M>::DumpTraj(bool dm) {
     Vect gh = m.GetGlobalLength(); // global domain length
 
     // add scalar name
-    auto nma = [this](const std::string nm) {
-      clr_nm_.push_back(nm);
+    auto nma = [&](const std::string nm) {
+      names.push_back(nm);
     };
     // add vector name
-    auto nmav = [this](const std::string nm) {
-      clr_nm_.push_back(nm + "x");
-      clr_nm_.push_back(nm + "y");
-      clr_nm_.push_back(nm + "z");
+    auto nmav = [&](const std::string nm) {
+      names.push_back(nm + "x");
+      names.push_back(nm + "y");
+      names.push_back(nm + "z");
     };
 
     // XXX: adhoc, the following order assumed in post: vs,r,x,y,z,...
     
     // list of vars // TODO: revise
-    clr_nm_.clear();
+    names.clear();
     nma("vf");
     nma("r");
     nmav("");
@@ -1751,7 +1754,7 @@ void Hydro<M>::DumpTraj(bool dm) {
           add(a[2]);
         };
 
-        // list of vars, XXX: keep consistent with clr_nm_ 
+        // list of vars, XXX: keep consistent with names 
         add(w); // vf,  XXX: adhoc, vf must be first, divided on dump
         add(0.); // r,  XXX: adhoc, r must be second, computed on dump
         addv(x * w); // x
@@ -1766,32 +1769,31 @@ void Hydro<M>::DumpTraj(bool dm) {
       }
     }
     // copy to vector
-    clr_cl_.clear();
-    clr_v_.clear();
+    colors.clear();
+    values.clear();
     for (auto it : mp) {
-      clr_cl_.push_back(it.first); // color
-      clr_v_.push_back(it.second); // vector
+      colors.push_back(it.first); // color
+      values.push_back(it.second); // vector
     }
     using TS = typename M::template OpCatT<Scal>; 
     using TVS = typename M::template OpCatVT<Scal>; 
-    m.Reduce(std::make_shared<TS>(&clr_cl_));
-    m.Reduce(std::make_shared<TVS>(&clr_v_));
+    m.Reduce(std::make_shared<TS>(&colors));
+    m.Reduce(std::make_shared<TVS>(&values));
   }
   if (sem("color-post")) {
     if (m.IsRoot()) {
-      // root has concatenation of all clr_cl_ and clr_v_
-      if (clr_cl_.size() != clr_v_.size()) {
+      // root has concatenation of all colors and values
+      if (colors.size() != values.size()) {
         throw std::runtime_error(
-            "color-reduce: clr_cl_.size() != clr_v_.size()");
+            "color-reduce: colors.size() != values.size()");
       }
 
-      auto& mp = clmp_; // map color to vector
-      mp.clear();
+      std::map<Scal, std::vector<Scal>> clmp;
       // reduce to map
-      for (size_t k = 0; k < clr_cl_.size(); ++k) {
-        auto cl = clr_cl_[k];
-        auto& v = clr_v_[k];
-        auto& vm = mp[cl];
+      for (size_t k = 0; k < colors.size(); ++k) {
+        auto cl = colors[k];
+        auto& v = values[k];
+        auto& vm = clmp[cl];
         vm.resize(v.size(), 0.);
         for (size_t i = 0; i < v.size(); ++i) {
           vm[i] += v[i];
@@ -1799,7 +1801,7 @@ void Hydro<M>::DumpTraj(bool dm) {
       }
 
       // divide by vf
-      for (auto& it : mp) {
+      for (auto& it : clmp) {
         auto& v = it.second;
         Scal vf = v[0]; // XXX: assume vf is first
         Scal pi = M_PI;
@@ -1811,18 +1813,18 @@ void Hydro<M>::DumpTraj(bool dm) {
         }
       }
 
-      clr_cl_.clear();
-      clr_v_.clear();
-      for (auto& it : mp) {
-        clr_cl_.push_back(it.first);
-        clr_v_.push_back(it.second);
+      colors.clear();
+      values.clear();
+      for (auto& it : clmp) {
+        colors.push_back(it.first);
+        values.push_back(it.second);
       }
     }
 
-    using TS = typename M::template OpCatT<Scal>; 
-    using TVS = typename M::template OpCatVT<Scal>; 
-    m.Bcast(std::make_shared<TS>(&clr_cl_));
-    m.Bcast(std::make_shared<TVS>(&clr_v_));
+    using TS = typename M::template OpCatT<Scal>;
+    using TVS = typename M::template OpCatVT<Scal>;
+    m.Bcast(std::make_shared<TS>(&colors));
+    m.Bcast(std::make_shared<TVS>(&values));
   }
   if (sa_ && sem("sphavg-sph")) {
     const Scal shrr = var.Double["shell_rr"]; // shell inner radius relative 
@@ -1834,9 +1836,8 @@ void Hydro<M>::DumpTraj(bool dm) {
 
     auto& ss = sa_ss_;
     ss.clear();
-    for (size_t i = 0; i < clr_v_.size(); ++i) {
-      auto& s = clr_v_[i];
-      // XXX: adhoc, assume vf,r,x,y,z in clr_v_
+    for (auto& s : values) {
+      // XXX: adhoc, assume vf,r,x,y,z in values
       Vect x(s[2], s[3], s[4]);
       Scal r = s[1] * shrr + shr;
       ss.emplace_back(x, r, h[0] * shh);
@@ -1862,19 +1863,16 @@ void Hydro<M>::DumpTraj(bool dm) {
       // header
       {
         o << "cl";
-        auto& nm = clr_nm_;
-        for (size_t i = 0; i < nm.size(); ++i) {
-          o << "," << nm[i];
+        for (size_t i = 0; i < names.size(); ++i) {
+          o << "," << names[i];
         }
         o << std::endl;
       }
       // content
-      for (size_t i = 0; i < clr_cl_.size(); ++i) {
-        auto cl = clr_cl_[i];
-        auto& v = clr_v_[i];
-        o << cl;
-        for (size_t j = 0; j < v.size(); ++j) {
-          o << "," << v[j];
+      for (size_t i = 0; i < colors.size(); ++i) {
+        o << colors[i];
+        for (auto v : values[i]) {
+          o << "," << v;
         }
         o << "\n";
       }
@@ -1899,7 +1897,7 @@ void Hydro<M>::DumpTraj(bool dm) {
           o << std::endl;
         }
         // content
-        auto cl = clr_cl_;
+        auto cl = colors;
         auto av = sa_->GetAvg();
         if (cl.size() != av.size()) {
           throw std::runtime_error(
