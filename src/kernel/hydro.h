@@ -125,7 +125,10 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapFace<std::shared_ptr<solver::CondFace>> GetBcSz() const;
   void DumpFields();
   void Dump(Sem& sem);
-  void DumpTraj(bool dm);
+  static void DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
+      const FieldCell<Scal>& fccl, const FieldCell<Vect>& fcim,
+      const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fcp,
+      const FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvelm, Scal dt);
   // Calc rho, mu and force based on volume fraction
   void CalcMixture(const FieldCell<Scal>& vf);
   // fcvf: volume fraction on cells [a]
@@ -1651,7 +1654,10 @@ void Hydro<M>::Dump(Sem& sem) {
   if (tr_) {
     if (sem.Nested("trajdump")) {
       if (dmptraj_.Try(st_.t, st_.dt)) {
-        DumpTraj(true);
+        DumpTraj(m, true, var, dmptraj_.GetN(), st_.t,
+                 tr_->GetColor(), tr_->GetImage(),
+                 as_->GetField(), fs_->GetPressure(),
+                 fs_->GetVelocity(), fcvm_, st_.dt);
       }
     }
   }
@@ -1673,7 +1679,10 @@ void Hydro<M>::Dump(Sem& sem) {
 }
 
 template <class M>
-void Hydro<M>::DumpTraj(bool dm) {
+void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
+    const FieldCell<Scal>& fccl, const FieldCell<Vect>& fcim,
+    const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fcp,
+    const FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvelm, Scal dt) {
   auto sem = m.GetSem("dumptraj");
   struct {
     std::vector<std::string> names; // color reduce: variable name
@@ -1691,11 +1700,6 @@ void Hydro<M>::DumpTraj(bool dm) {
   if (sem("color-calc")) {
     std::map<Scal, std::vector<Scal>> mp; // map color to vector
     auto kNone = TR::kNone;
-    auto& cl = tr_->GetColor();
-    auto& im = tr_->GetImage();
-    auto& vf = as_->GetField();
-    auto& vel = fs_->GetVelocity();
-    auto& p = fs_->GetPressure();
     Vect gh = m.GetGlobalLength(); // global domain length
 
     // add scalar name
@@ -1727,12 +1731,12 @@ void Hydro<M>::DumpTraj(bool dm) {
 
     // traverse cells, append to mp
     for (auto c : m.Cells()) {
-      if (cl[c] != kNone) {
-        auto& v = mp[cl[c]]; // vector for data
+      if (fccl[c] != kNone) {
+        auto& v = mp[fccl[c]]; // vector for data
         auto x = m.GetCenter(c); // cell center
-        x += im[c] * gh;  // translation by image vector
+        x += fcim[c] * gh;  // translation by image vector
 
-        auto w = vf[c] * m.GetVolume(c); // volume
+        auto w = fcvf[c] * m.GetVolume(c); // volume
 
         size_t i = 0;
         // append scalar value
@@ -1754,8 +1758,8 @@ void Hydro<M>::DumpTraj(bool dm) {
         add(w); // vf,  XXX: adhoc, vf must be first, divided on dump
         add(0.); // r,  XXX: adhoc, r must be second, computed on dump
         addv(x * w); // x
-        addv(vel[c] * w); // v
-        add(p[c] * w); // p
+        addv(fcvel[c] * w); // velocity
+        add(fcp[c] * w); // pressure
         add(x[0] * x[0] * w); // xx
         add(x[0] * x[1] * w); // xy
         add(x[0] * x[2] * w); // xz
@@ -1823,7 +1827,7 @@ void Hydro<M>::DumpTraj(bool dm) {
     m.Bcast(std::make_shared<TVS>(&values));
   }
   if (sem("sphavg-init")) {
-    if (var.Int["enable_shell"] && tr_) {
+    if (var.Int["enable_shell"]) {
       sphavg.reset(new SA(m, var.Int["dim"]));
     }
   }
@@ -1844,18 +1848,14 @@ void Hydro<M>::DumpTraj(bool dm) {
     }
   }
   if (sphavg && sem.Nested("sphavg-update")) {
-    auto& vf = as_->GetField();
-    auto& vel = fs_->GetVelocity();
-    auto& velm = fcvm_;
-    auto& p = fs_->GetPressure();
-    sphavg->Update(vf, vel, velm, st_.dt, p, vsph);
+    sphavg->Update(fcvf, fcvel, fcvelm, dt, fcp, vsph);
   }
   if (sem("color-dump") && dm) {
     if (m.IsRoot()) {
-      std::string s = GetDumpName("traj", ".csv", dmptraj_.GetN());
+      std::string s = GetDumpName("traj", ".csv", frame);
       std::cout << std::fixed << std::setprecision(8)
           << "dump" 
-          << " t=" << st_.t
+          << " t=" << t
           << " to " << s << std::endl;
       std::ofstream o;
       o.open(s);
@@ -1879,10 +1879,10 @@ void Hydro<M>::DumpTraj(bool dm) {
     }
     if (sphavg) {
       if (m.IsRoot()) {
-        std::string s = GetDumpName("trajsh", ".csv", dmptraj_.GetN());
+        std::string s = GetDumpName("trajsh", ".csv", frame);
         std::cout << std::fixed << std::setprecision(8)
             << "dump" 
-            << " t=" << st_.t
+            << " t=" << t
             << " to " << s << std::endl;
         std::ofstream o;
         o.open(s);
