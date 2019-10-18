@@ -42,11 +42,11 @@ for i in range(np):
 sh("./run0 {dim} {np} '{extra}' |& tee -a {o}".format(**l))
 
 
-sh("./merge &>> {o}".format(**l))
+#sh("./merge &>> {o}".format(**l))
 
-sh("./rename")
+#sh("./rename")
 
-sh("./convert &>> {o}".format(**l))
+#sh("./convert &>> {o}".format(**l))
 
 sh("./expstat")
 
