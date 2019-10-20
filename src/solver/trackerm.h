@@ -18,9 +18,9 @@ class Trackerm {
   static const size_t dim = M::dim;
 
   Trackerm(M& m, const GRange<size_t>& layers)
-      : m(m), layers(layers)
-      , fcclm_(m, kClNone), fcimm_(m, 0), fcim_(m, 0) {}
-  void Update(const FieldCell<Scal>& fccl);
+      : m(m), layers(layers), fcclm_(m, kClNone)
+      , fcimm_(m, Pack(MIdx(0))), fcim_(m, Pack(MIdx(0))) {}
+  void Update(const Multi<FieldCell<Scal>*>& fccl);
   // Returns image vector
   const FieldCell<Vect>& GetImage() const { return fcim_; }
   static constexpr Scal kNone = -1.; // no color
@@ -61,46 +61,65 @@ class Trackerm {
 };
 
 template <class M_>
-void Trackerm<M_>::Update(const FieldCell<Scal>& fcu) {
-  //auto& bc = m.GetIndexCells();
-
-  auto sem = m.GetSem("upd");
-
-  if (sem("")) {
-    /*
-    const int sw = 1; // stencil halfwidth, [-sw,sw]
-    const int sn = sw * 2 + 1; // stencil size
-    GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sn));
-
+void Trackerm<M_>::Update(const Multi<FieldCell<Scal>*>& fccl) {
+  auto sem = m.GetSem("trackerm");
+  if (sem("update")) {
     MIdx gs = m.GetGlobalSize();
+    auto& bc = m.GetIndexCells();
+
     for (auto c : m.Cells()) {
-      Scal& o = fccl_[c];
-      MIdx w = bc.GetMIdx(c);
-      if (fcu[c] > th_) { // liquid in cell
-        // traverse neighbours, pick minimal color
-        for (MIdx wo : bo) {
-          MIdx wn = w + wo;
-          IdxCell cn = bc.GetIdx(w + wo); // neighbour 
-          Scal on = fccl_[cn];
-          if (fcu[cn] > th_ && on != kNone) { // liquid and color in neighbour
-            if (o == kNone || on < o) { // update if empty or smaller
-              o = on;
-              Vect im = fcim_[cn];
-              for (size_t d = 0; d < dim; ++d) { // periodic
-                (wn[d] < 0) && (im[d] += 1.);
-                (wn[d] >= gs[d]) && (im[d] -= 1.);
-              }
-              fcim_[c] = im; // image from neighbour
-            }
+      for (auto l : layers) { // check if new color appeared
+        if ((*fccl[l])[c] == kClNone) continue;
+        bool fndm = false;
+        for (auto lm : layers) {
+          if (fcclm_[lm][c] == (*fccl[l])[c]) {
+            fndm = true;
+            break;
           }
         }
-      } else {  // no liquid in cell
-        o = kNone;
-        fcim_[c] = Vect(0);
+        if (!fndm) { // new color, find same color in neighbors
+          bool fndn = false;
+          for (auto q : m.Nci()) {
+            auto cn = m.GetCell(c, q);
+            for (auto ln : layers) {
+              if (fcclm_[ln][cn] == (*fccl[l])[c]) {
+                MIdx wn = bc.GetMIdx(cn);
+                MIdx im = Unpack(fcimm_[ln][cn]);
+                for (size_t d = 0; d < dim; ++d) { // periodic
+                  (wn[d] < 0) && (im[d] += 1);
+                  (wn[d] >= gs[d]) && (im[d] -= 1);
+                }
+                fcim_[l][c] = Pack(im);
+                fndn = true;
+              }
+              if (fndn) break;
+            }
+            if (fndn) break;
+          }
+          if (!fndn) { // no same color, clear image
+            fcim_[l][c] = Pack(MIdx(0));
+          }
+        }
+      }
+      for (auto lm : layers) { // check if old color disappeared
+        if (fcclm_[lm][c] == kClNone) continue;
+        bool fnd = false;
+        for (auto l : layers) {
+          if (fcclm_[lm][c] == (*fccl[l])[c]) {
+            fnd = true;
+            break;
+          }
+        }
+        if (!fnd) { // color disappeared
+          fcim_[lm][c] = Pack(MIdx(0)); // clear image
+        }
       }
     }
     m.Comm(&fcim_);
-    */
+  }
+  if (sem("rotate")) {
+    fcimm_ = fcim_;
+    fcclm_ = fccl;
   }
 }
 
