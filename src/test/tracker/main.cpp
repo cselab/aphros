@@ -12,6 +12,7 @@
 #include "geom/range.h"
 #include "geom/mesh.h"
 #include "solver/sphavg.h"
+#include "solver/trackerm.h"
 
 // try-catch
 #define TR(...) try { __VA_ARGS__ } \
@@ -60,6 +61,20 @@ void TestAvg() {
   sa.Update(fcu, fcv, fcvm, dt, fcp, ss);
 }
 
+void TestPack() {
+  using R = solver::Trackerm<M>;
+  auto p = [](int w0, int w1, int w2) {
+    MIdx w(w0, w1, w2);
+    std::cout << w << " " << R::Unpack(R::Pack(w)) << std::endl;
+  };
+  std::cout << "sizeof(Bit)=" << sizeof(typename R::Bit) << std::endl;
+  p(1, 2, 3);
+  p(30000, 31000, 32000);
+  p(-30000, -31000, -32000);
+  p(60000, 62000, 64000);
+}
+
 int main() {
   TestAvg();
+  TestPack();
 }
