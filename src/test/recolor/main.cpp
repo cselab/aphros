@@ -1,22 +1,20 @@
 #undef NDEBUG
 #include <iostream>
+#include <memory>
 
 #include "distr/distrbasic.h"
 #include "func/init_u.h"
 #include "solver/solver.h"
 #include "util/vof.h"
 #include "dump/dump.h"
+#include "solver/trackerm.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
+using TR = solver::Trackerm<M>;
 
-struct State {
-  FieldCell<Scal> fcu;
-  FieldCell<Scal> fccl;
-  solver::UVof<M> uvof;
-  MapFace<std::shared_ptr<solver::CondFace>> mfc;
-};
+struct State {};
 
 void Dump(M& m, const FieldCell<Scal>& fc, std::string name, int i) {
   size_t id = m.GetId();
@@ -26,15 +24,23 @@ void Dump(M& m, const FieldCell<Scal>& fc, std::string name, int i) {
   Dump(fc, m.GetIndexCells(), m.GetAllBlockCells(), op);
 }
 
-void Run(M& m, State& s, Vars& var) {
+void Run(M& m, State&, Vars& var) {
   (void) var;
   auto sem = m.GetSem();
-  auto& fcu = s.fcu;
-  auto& fccl = s.fccl;
-  auto& uvof = s.uvof;
-  auto& mfc = s.mfc;
+  struct {
+    FieldCell<Scal> fcu;
+    FieldCell<Scal> fccl;
+    solver::UVof<M> uvof;
+    MapFace<std::shared_ptr<solver::CondFace>> mfc;
+    std::unique_ptr<TR> tr;
+    FieldCell<Scal> fcim;
+  }* ctx(sem);
+  auto& fcu = ctx->fcu;
+  auto& fccl = ctx->fccl;
+  auto& uvof = ctx->uvof;
+  auto& mfc = ctx->mfc;
   constexpr Scal kClNone = -1;
-  GRange<size_t> layers{0, 1};
+  GRange<size_t> layers(1);
   auto Recolor = [&]() {
     if (sem.Nested()) {
       const bool unionfind = true;
@@ -43,11 +49,15 @@ void Run(M& m, State& s, Vars& var) {
       uvof.Recolor(layers, &fcu, &fccl, -1, Vect(0), 1e10, mfc, true, true,
           unionfind, reduce, grid, m);
     }
+    if (sem.Nested()) {
+      ctx->tr->Update(&fccl);
+    }
   };
 
   if (sem()) {
     fcu.Reinit(m);
     fccl.Reinit(m);
+    ctx->fcim.Reinit(m);
     auto init = CreateInitU<M>(var, m.IsRoot());
     init(fcu, m);
     for (auto c : m.Cells()) {
@@ -55,12 +65,18 @@ void Run(M& m, State& s, Vars& var) {
     }
     m.Comm(&fcu);
     m.Comm(&fccl);
+    ctx->tr = std::unique_ptr<TR>(new TR(m, layers));
   }
   Recolor();
   for (size_t i = 0; i < 5; ++i) {
     if (sem()) {
       m.Dump(&fcu, "u");
       m.Dump(&fccl, "cl");
+      auto& im = *ctx->tr->GetImage()[0];
+      for (auto c : m.Cells()) {
+        ctx->fcim[c] = TR::Unpack(im[c])[1];
+      }
+      m.Dump(&ctx->fcim, "im");
     }
     if (sem.Nested()) {
       solver::Smoothen(fcu, mfc, m, 1);

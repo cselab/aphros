@@ -18,11 +18,20 @@ class Trackerm {
   static const size_t dim = M::dim;
 
   Trackerm(M& m, const GRange<size_t>& layers)
-      : m(m), layers(layers), fcclm_(m, kClNone)
-      , fcimm_(m, Pack(MIdx(0))), fcim_(m, Pack(MIdx(0))) {}
-  void Update(const Multi<FieldCell<Scal>*>& fccl);
+      : m(m), layers(layers), fcclm_(layers), fcimm_(layers), fcim_(layers) {
+    fcclm_.InitAll(FieldCell<Scal>(m, kClNone));
+    fcimm_.InitAll(FieldCell<Scal>(m, Pack(MIdx(0))));
+    fcim_.InitAll(FieldCell<Scal>(m, Pack(MIdx(0))));
+  }
+  void Update(const Multi<const FieldCell<Scal>*>& fccl);
   // Returns image vector
-  const FieldCell<Vect>& GetImage() const { return fcim_; }
+  Multi<const FieldCell<Scal>*> GetImage() const {
+    Multi<const FieldCell<Scal>*> r(layers);
+    for (auto l : layers) {
+      r[l] = &fcim_[l];
+    }
+    return r;
+  }
   static constexpr Scal kNone = -1.; // no color
 
   struct Bit {
@@ -55,13 +64,13 @@ class Trackerm {
   static constexpr Scal kClNone = -1;
   const GRange<size_t>& layers;
   Multi<FieldCell<Scal>> fcclm_; // color previous [a]
-  Multi<FieldCell<Vect>> fcimm_; // image previous [a]
-  Multi<FieldCell<Vect>> fcim_;  // image current [a]
+  Multi<FieldCell<Scal>> fcimm_; // image previous [a]
+  Multi<FieldCell<Scal>> fcim_;  // image current [a]
 
 };
 
 template <class M_>
-void Trackerm<M_>::Update(const Multi<FieldCell<Scal>*>& fccl) {
+void Trackerm<M_>::Update(const Multi<const FieldCell<Scal>*>& fccl) {
   auto sem = m.GetSem("trackerm");
   if (sem("update")) {
     MIdx gs = m.GetGlobalSize();
@@ -79,7 +88,7 @@ void Trackerm<M_>::Update(const Multi<FieldCell<Scal>*>& fccl) {
         }
         if (!fndm) { // new color, find same color in neighbors
           bool fndn = false;
-          for (auto q : m.Nci()) {
+          for (auto q : m.Nci(c)) {
             auto cn = m.GetCell(c, q);
             for (auto ln : layers) {
               if (fcclm_[ln][cn] == (*fccl[l])[c]) {
@@ -115,11 +124,15 @@ void Trackerm<M_>::Update(const Multi<FieldCell<Scal>*>& fccl) {
         }
       }
     }
-    m.Comm(&fcim_);
+    for (auto l : layers) {
+      m.Comm(&fcim_[l]);
+    }
   }
   if (sem("rotate")) {
-    fcimm_ = fcim_;
-    fcclm_ = fccl;
+    for (auto l : layers) {
+      fcimm_[l] = fcim_[l];
+      fcclm_[l] = *fccl[l];
+    }
   }
 }
 
