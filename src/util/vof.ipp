@@ -382,18 +382,21 @@ struct UVof<M_>::Imp {
     auto& merge1 = ctx->merge1;
     if (sem("local")) {
       // Collect neighbor colors in corners
-      merge0.clear();
-      merge1.clear();
+      merge0.clear(); // nodes
+      merge1.clear(); // parents
       for (auto c : m.Cells()) {
         for (auto l : layers) {
           if ((*fccl[l])[c] != kClNone) {
             for (auto q : {0, 1, 2}) {
               IdxCell cm = m.GetCell(c, q);
               for (auto lm : layers) {
-                if ((*fccl[l])[c] == (*fccl[lm])[cm] &&
-                    (*fcclt[l])[c] != (*fcclt[lm])[cm]) {
-                  merge0.push_back((*fcclt[l])[c]);
-                  merge1.push_back((*fcclt[lm])[cm]);
+                if ((*fccl[l])[c] == (*fccl[lm])[cm]) {
+                  Scal cl = (*fcclt[l])[c];
+                  Scal clm = (*fcclt[lm])[cm];
+                  if (cl != clm) {
+                    merge0.push_back(std::max(cl, clm));
+                    merge1.push_back(std::min(cl, clm));
+                  }
                 }
               }
             }
@@ -411,7 +414,6 @@ struct UVof<M_>::Imp {
 
         for (size_t i = 0; i < merge0.size(); ++i) {
           map[merge0[i]] = merge1[i];
-          map[merge1[i]] = merge0[i];
         }
         int iter = 0;
         // Find minimal color connected through pairs
@@ -419,10 +421,8 @@ struct UVof<M_>::Imp {
           bool chg = false;
           for (auto& p : map) {
             if (map.count(p.second)) {
-              if (map[p.second] < p.second) {
-                p.second = map[p.second];
-                chg = true;
-              }
+              p.second = map[p.second];
+              chg = true;
             }
           }
           if (!chg) {
