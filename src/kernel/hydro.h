@@ -1562,6 +1562,10 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 template <class M>
 void Hydro<M>::DumpFields() {
   auto sem = m.GetSem("dumpfields");
+  struct {
+    FieldCell<Scal> imx0, imx1, imx2, imx3;
+    FieldCell<Scal> imy0, imy1, imy2, imy3;
+  }* ctx(sem);
   if (vcurl_) {
     if (sem("vcurl-pre")) {
       CalcVort();
@@ -1597,6 +1601,31 @@ void Hydro<M>::DumpFields() {
       if (dl.count("imx")) m.Dump(&im, 0, "imx");
       if (dl.count("imy")) m.Dump(&im, 1, "imy");
       if (dl.count("imz")) m.Dump(&im, 2, "imz");
+    }
+    if (trm_) {
+      auto im = trm_->GetImage();
+      auto conv = [&](size_t d, size_t l, FieldCell<Scal>& fc) { 
+        fc.Reinit(m);
+        for (auto c : m.Cells()) {
+          fc[c] = TRM::Unpack((*im[l])[c])[d];
+        }
+      };
+      if (dl.count("imx0")) {
+        conv(0, 0, ctx->imx0);
+        m.Dump(&ctx->imx0, "imx0");
+      }
+      if (dl.count("imx1")) {
+        conv(0, 1, ctx->imx1);
+        m.Dump(&ctx->imx1, "imx1");
+      }
+      if (dl.count("imx2")) {
+        conv(0, 2, ctx->imx2);
+        m.Dump(&ctx->imx2, "imx2");
+      }
+      if (dl.count("imx3")) {
+        conv(0, 3, ctx->imx3);
+        m.Dump(&ctx->imx3, "imx3");
+      }
     }
     if (var.Int["youngbc"]) {
       if (dl.count("yvx")) m.Dump(&fcyv_, 0, "yvx");
