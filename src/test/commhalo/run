@@ -2,9 +2,5 @@
 
 set -eu
 
-e=t.commhalo
-
 make
-echo 2 > np
-echo 10 > tl
-ch.run ./$e
+mpirun -n 2 ./t.commhalo
