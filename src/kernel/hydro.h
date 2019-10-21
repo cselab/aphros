@@ -289,7 +289,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapCell<std::shared_ptr<solver::CondCellFluid>> mc_velcond_;
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
-  std::unique_ptr<TR> tr_; // color tracker
   FieldCell<Scal> fc_vf_; // volume fraction used by constructor 
   FieldCell<Scal> fccl_; // color used by constructor  
   FieldCell<Vect> fc_vel_; // velocity used by constructor
@@ -532,7 +531,7 @@ void Hydro<M>::InitAdvection() {
     Parse<M, ASV>(p.get(), var);
     p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
     as_.reset(new ASV(
-          m, fc_vf_, mf_cond_,
+          m, fc_vf_, fccl_, mf_cond_,
           &fs_->GetVolumeFlux(solver::Layers::time_curr),
           &fc_src2_, 0., st_.dta, p));
     layers = GRange<size_t>(1);
@@ -773,11 +772,6 @@ void Hydro<M>::Init() {
     InitFluid();
 
     InitAdvection();
-
-    // Init color tracker
-    if (var.Int["enable_color"] && as_) {
-      tr_.reset(new TR(m, fccl_));
-    }
 
     st_.iter = 0;
     var.Int.Set("iter", st_.iter);
@@ -1593,13 +1587,6 @@ void Hydro<M>::DumpFields() {
     if (dl.count("mu")) m.Dump(&fc_mu_, "mu");
     if (dl.count("sig")) m.Dump(&fc_sig_, "sig");
     if (dl.count("bc")) m.Dump(&fcbc_, "bc");
-    if (tr_) {
-      if (dl.count("cl")) m.Dump(&tr_->GetColor(), "cl");
-      //auto& im = tr_->GetImage();
-      //if (dl.count("imx")) m.Dump(&im, 0, "imx");
-      //if (dl.count("imy")) m.Dump(&im, 1, "imy");
-      //if (dl.count("imz")) m.Dump(&im, 2, "imz");
-    }
     if (var.Int["youngbc"]) {
       if (dl.count("yvx")) m.Dump(&fcyv_, 0, "yvx");
       if (dl.count("yvy")) m.Dump(&fcyv_, 1, "yvy");
@@ -1684,40 +1671,38 @@ void Hydro<M>::Dump() {
       DumpFields();
     }
   }
-  if (tr_) {
-    if (dmptraj_.Try(st_.t, st_.dt)) {
-      if (sem("copyimage")) {
-        ctx->fcim.resize(layers);
-        ctx->fcim.InitAll(FieldCell<MIdx>(m));
-        if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-          for (auto c : m.AllCells()) {
-            for (auto l : layers) {
-              ctx->fcim[l][c] = as->GetImage(l, c);
-            }
-          }
-        } else {
-          for (auto c : m.AllCells()) {
-            ctx->fcim[0][c] = tr_->GetImage(c);
-          }
-        }
-      }
-      if (sem.Nested("trajdump")) {
-        solver::Multi<const FieldCell<Scal>*> fcu(layers);
-        solver::Multi<const FieldCell<Scal>*> fccl(layers);
-        if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+  if (dmptraj_.Try(st_.t, st_.dt)) {
+    if (sem("copyimage")) {
+      ctx->fcim.resize(layers);
+      ctx->fcim.InitAll(FieldCell<MIdx>(m));
+      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+        for (auto c : m.AllCells()) {
           for (auto l : layers) {
-            fcu[l] = &as->GetField(l);
-            fccl[l] = &as->GetColor(l);
+            ctx->fcim[l][c] = as->GetImage(l, c);
           }
-        } else {
-          fcu[0] = &as_->GetField();
-          fccl[0] = &tr_->GetColor();
         }
-
-        DumpTraj(m, true, var, dmptraj_.GetN(), st_.t,
-                 layers, fcu, fccl, ctx->fcim,
-                 fs_->GetPressure(), fs_->GetVelocity(), fcvm_, st_.dt);
+      } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
+        for (auto c : m.AllCells()) {
+          ctx->fcim[0][c] = as->GetImage(c);
+        }
       }
+    }
+    if (sem.Nested("trajdump")) {
+      solver::Multi<const FieldCell<Scal>*> fcu(layers);
+      solver::Multi<const FieldCell<Scal>*> fccl(layers);
+      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+        for (auto l : layers) {
+          fcu[l] = &as->GetField(l);
+          fccl[l] = &as->GetColor(l);
+        }
+      } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
+        fcu[0] = &as->GetField();
+        fccl[0] = &as->GetColor();
+      }
+
+      DumpTraj(m, true, var, dmptraj_.GetN(), st_.t,
+               layers, fcu, fccl, ctx->fcim,
+               fs_->GetPressure(), fs_->GetVelocity(), fcvm_, st_.dt);
     }
   }
   if (sem("dmptrep")) {
@@ -2055,14 +2040,6 @@ void Hydro<M>::Run() {
       if (sem.Nested("bubgen")) {
         StepBubgen();
       }
-    }
-  }
-  if (var.Int["enable_color"] && as_ && !dynamic_cast<ASVM*>(as_.get())) {
-    if (sem.Nested("color")) {
-      tr_->Update(as_->GetField(), var.Double["color_th"], 
-          var.Double["clfixed"], Vect(var.Vect["clfixed_x"]),
-          mf_cond_, var.Int["bcc_reflect"], var.Int["vof_recolor_unionfind"], 
-          var.Int["vof_recolor_reduce"], var.Int["vof_recolor_grid"]);
     }
   }
 

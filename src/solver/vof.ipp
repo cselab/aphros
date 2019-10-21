@@ -10,6 +10,7 @@
 #include "geom/block.h"
 #include "reconst.h"
 #include "normal.h"
+#include "trackerm.h"
 #include "debug/isnan.h"
 #include "partstrmeshm.h"
 #include "util/vof.h"
@@ -22,16 +23,17 @@ struct Vof<M_>::Imp {
   using R = Reconst<Scal>;
   using PS = PartStr<Scal>;
   using PSM = PartStrMeshM<M>;
+  using TRM = Trackerm<M>;
   static constexpr size_t dim = M::dim;
   using Vect2 = GVect<Scal, 2>;
   using Sem = typename M::Sem;
 
-  Imp(Owner* owner, const FieldCell<Scal>& fcu,
+  Imp(Owner* owner, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
       std::shared_ptr<Par> par)
-      : owner_(owner), par(par), m(owner_->m)
-      , mfc_(mfc), fca_(m, GetNan<Scal>()), fcn_(m, GetNan<Vect>())
-      , fck_(m, 0), fch_(m, Vect(0))
+      : owner_(owner), par(par), m(owner_->m), layers(1)
+      , mfc_(mfc), fccl_(fccl), fca_(m, GetNan<Scal>())
+      , fcn_(m, GetNan<Vect>()), fck_(m, 0), fch_(m, Vect(0))
   {
     fcu_.time_curr = fcu;
     for (auto it : mfc_) {
@@ -54,7 +56,8 @@ struct Vof<M_>::Imp {
     psm->maxr = par->part_maxr;
     psm->vtkbin = par->vtkbin;
     psm->vtkmerge = par->vtkmerge;
-    psm_ = std::unique_ptr<PSM>(new PSM(m, psm, GRange<size_t>(0, 1)));
+    psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
+    trm_ = std::unique_ptr<TRM>(new TRM(m, layers));
   }
   void Update(typename PS::Par* p) const {
     Scal hc = m.GetCellSize().norminf(); // cell size
@@ -218,7 +221,7 @@ struct Vof<M_>::Imp {
       auto& fcclt = fcfp_;
       if (sem("copy")) {
         fcut = fcu_.iter_curr;
-        fcclt.Reinit(m, 0);
+        fcclt = fccl_;
         if (par->bcc_reflectpoly) {
           BcReflect(fcut, mfc_, par->bcc_fill, true, m);
           BcReflect(fcclt, mfc_, -3., true, m);
@@ -229,7 +232,7 @@ struct Vof<M_>::Imp {
       }
       if (sem.Nested()) {
         uvof_.DumpPolyMarch(
-            GRange<size_t>(0, 1), &fcut, &fcclt, &fcn_, &fca_, &fci_,
+            layers, &fcut, &fcclt, &fcn_, &fca_, &fci_,
             GetDumpName("sm", ".vtk", par->dmp->GetN()),
             owner_->GetTime() + owner_->GetTimeStep(),
             par->poly_intth, par->vtkbin, par->vtkmerge, par->vtkiso, 
@@ -495,6 +498,10 @@ struct Vof<M_>::Imp {
   }
   void MakeIteration() {
     auto sem = m.GetSem("iter");
+    struct {
+      FieldCell<Scal> fcclm;  // previous color
+    }* ctx(sem);
+
     if (sem("init")) {
       auto& uc = fcu_.iter_curr;
       const Scal dt = owner_->GetTimeStep();
@@ -504,6 +511,7 @@ struct Vof<M_>::Imp {
         uc[c] = fcu_.time_prev[c] + dt * fcs[c];
         fcuu_[c] = (uc[c] < 0.5 ? 0 : 1);
       }
+      ctx->fcclm = fccl_;
     }
 
     using Scheme = typename Par::Scheme;
@@ -524,6 +532,16 @@ struct Vof<M_>::Imp {
     }
     if (par->bcc_clear && sem("clear")) {
       BcClear(fcu_.iter_curr, mfc_, m);
+    }
+    if (sem.Nested()) {
+      trm_->Update(&fccl_, &ctx->fcclm);
+    }
+    if (sem.Nested()) {
+      uvof_.Recolor(layers, &fcu_.iter_curr, &fccl_, &fccl_,
+                    par->clfixed, par->clfixed_x,
+                    par->coalth, mfc_, par->bcc_reflect, par->verb,
+                    par->recolor_unionfind, par->recolor_reduce,
+                    par->recolor_grid, m);
     }
     if (sem("stat")) {
       owner_->IncIter();
@@ -587,12 +605,14 @@ struct Vof<M_>::Imp {
   Owner* owner_;
   std::shared_ptr<Par> par;
   M& m;
+  GRange<size_t> layers;
 
   LayersData<FieldCell<Scal>> fcu_;
   FieldCell<Scal> fcuu_;   // volume fraction for Weymouth div term
   MapFace<std::shared_ptr<CondFace>> mfc_;
   MapFace<std::shared_ptr<CondFace>> mfvz_; // zero-derivative bc for Vect
 
+  FieldCell<Scal> fccl_;
   FieldCell<Scal> fca_; // alpha (plane constant)
   FieldCell<Vect> fcn_; // n (normal to plane)
   FieldCell<Scal> fck_; // curvature from height functions
@@ -604,6 +624,7 @@ struct Vof<M_>::Imp {
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
   std::unique_ptr<PartStrMeshM<M>> psm_;
+  std::unique_ptr<TRM> trm_;
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
   UVof<M> uvof_;
@@ -611,12 +632,12 @@ struct Vof<M_>::Imp {
 
 template <class M_>
 Vof<M_>::Vof(
-    M& m, const FieldCell<Scal>& fcu,
+    M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
     const MapFace<std::shared_ptr<CondFace>>& mfc,
     const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
     double t, double dt, std::shared_ptr<Par> par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)
-    , imp(new Imp(this, fcu, mfc, par))
+    , imp(new Imp(this, fcu, fccl, mfc, par))
 {}
 
 template <class M_>
@@ -645,6 +666,16 @@ void Vof<M_>::FinishStep() {
 template <class M_>
 auto Vof<M_>::GetField(Layers l) const -> const FieldCell<Scal>& {
   return imp->fcu_.Get(l);
+}
+
+template <class M_>
+auto Vof<M_>::GetColor() const -> const FieldCell<Scal>& {
+  return imp->fccl_;
+}
+
+template <class M_>
+auto Vof<M_>::GetImage(IdxCell c) const -> MIdx {
+  return imp->trm_->GetImage(0, c);
 }
 
 template <class M_>
