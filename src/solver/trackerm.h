@@ -84,12 +84,15 @@ void Trackerm<M_>::Update(const Multi<const FieldCell<Scal>*>& fccl,
         bool fndm = false;
         for (auto lm : layers) {
           if ((*fcclm[lm])[c] == (*fccl[l])[c]) {
+            fcim_[l][c] = fcimm[lm][c];
             fndm = true;
             break;
           }
         }
         if (!fndm) { // new color, find same color in neighbors
           bool fndn = false;
+
+
           for (auto q : m.Nci(c)) {
             auto cn = m.GetCell(c, q);
             for (auto ln : layers) {
@@ -112,21 +115,6 @@ void Trackerm<M_>::Update(const Multi<const FieldCell<Scal>*>& fccl,
           }
         }
       }
-      /*
-      for (auto lm : layers) { // check if old color disappeared
-        if ((*fcclm[lm])[c] == kClNone) continue;
-        bool fnd = false;
-        for (auto l : layers) {
-          if ((*fcclm[lm])[c] == (*fccl[l])[c]) {
-            fnd = true;
-            break;
-          }
-        }
-        if (!fnd) { // color disappeared
-          fcim_[lm][c] = Pack(MIdx(0)); // clear image
-        }
-      }
-      */
     }
     for (auto l : layers) {
       m.Comm(&fcim_[l]);
