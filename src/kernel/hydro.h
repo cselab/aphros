@@ -173,7 +173,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using ASV = solver::Vof<M>; // advection VOF
   using ASVM = solver::Vofm<M>; // advection VOF
   using TR = solver::Tracker<M>; // color tracker
-  using TRM = solver::Trackerm<M>; // color tracker
   using SA = solver::Sphavg<M>; // spherical averages
 
   void UpdateAdvectionPar() {
@@ -291,7 +290,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
   std::unique_ptr<TR> tr_; // color tracker
-  std::unique_ptr<TRM> trm_; // color tracker multi
   FieldCell<Scal> fc_vf_; // volume fraction used by constructor 
   FieldCell<Scal> fccl_; // color used by constructor  
   FieldCell<Vect> fc_vel_; // velocity used by constructor
@@ -779,7 +777,6 @@ void Hydro<M>::Init() {
     // Init color tracker
     if (var.Int["enable_color"] && as_) {
       tr_.reset(new TR(m, fccl_, var.Double["color_th"], var.Int["dim"]));
-      trm_.reset(new TRM(m, layers));
     }
 
     st_.iter = 0;
@@ -1603,21 +1600,6 @@ void Hydro<M>::DumpFields() {
       if (dl.count("imy")) m.Dump(&im, 1, "imy");
       if (dl.count("imz")) m.Dump(&im, 2, "imz");
     }
-    if (trm_) {
-      auto im = trm_->GetImage();
-      auto conv = [&](size_t d, size_t l, FieldCell<Scal>& fc) { 
-        fc.Reinit(m);
-        for (auto c : m.Cells()) {
-          fc[c] = TRM::Unpack((*im[l])[c])[d];
-        }
-        return &fc;
-      };
-      if (dl.count("imx0")) m.Dump(conv(0, 0, ctx->imx0), "imx0");
-      if (dl.count("imx1")) m.Dump(conv(0, 1, ctx->imx1), "imx1");
-      if (dl.count("imx2")) m.Dump(conv(0, 2, ctx->imx2), "imx2");
-      if (dl.count("imx3")) m.Dump(conv(0, 3, ctx->imx3), "imx3");
-      if (dl.count("imy0")) m.Dump(conv(1, 0, ctx->imy0), "imy0");
-    }
     if (var.Int["youngbc"]) {
       if (dl.count("yvx")) m.Dump(&fcyv_, 0, "yvx");
       if (dl.count("yvy")) m.Dump(&fcyv_, 1, "yvy");
@@ -1673,6 +1655,19 @@ void Hydro<M>::DumpFields() {
       if (dl.count("cl1")) m.Dump(&as->GetColor(1), "cl1");
       if (dl.count("cl2")) m.Dump(&as->GetColor(2), "cl2");
       if (dl.count("cl3")) m.Dump(&as->GetColor(3), "cl3");
+
+      auto conv = [&](size_t d, size_t l, FieldCell<Scal>& fc) { 
+        fc.Reinit(m);
+        for (auto c : m.Cells()) {
+          fc[c] = as->GetImage(l, c)[d];
+        }
+        return &fc;
+      };
+      if (dl.count("imx0")) m.Dump(conv(0, 0, ctx->imx0), "imx0");
+      if (dl.count("imx1")) m.Dump(conv(0, 1, ctx->imx1), "imx1");
+      if (dl.count("imx2")) m.Dump(conv(0, 2, ctx->imx2), "imx2");
+      if (dl.count("imx3")) m.Dump(conv(0, 3, ctx->imx3), "imx3");
+      if (dl.count("imy0")) m.Dump(conv(1, 0, ctx->imy0), "imy0");
     }
   }
   if (sem()) {} // FIXME: empty stage for dump, or ctx is destroyed before dump
@@ -1695,10 +1690,9 @@ void Hydro<M>::Dump() {
         ctx->fcim.resize(layers);
         ctx->fcim.InitAll(FieldCell<MIdx>(m));
         if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-          auto im = trm_->GetImage();
           for (auto c : m.AllCells()) {
             for (auto l : layers) {
-              ctx->fcim[l][c] = TRM::Unpack((*im[l])[c]);
+              ctx->fcim[l][c] = as->GetImage(l, c);
             }
           }
         } else {
@@ -2074,7 +2068,6 @@ void Hydro<M>::Run() {
         for (auto i : layers) {
           fccl[i] = &as->GetColor(i);
         }
-        trm_->Update(fccl);
       }
     } else {
       if (sem.Nested("color")) {

@@ -15,6 +15,7 @@ class Vofm : public AdvectionSolver<M_> {
   using P = AdvectionSolver<M>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using MIdx = typename M::MIdx;
 
   struct Par {
     size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
@@ -117,9 +118,12 @@ class Vofm : public AdvectionSolver<M_> {
   const FieldCell<Vect>& GetNormal(size_t i) const;
   // Number of layers
   size_t GetNumLayers() const;
-  // Color
+  // Color from one layer
   const FieldCell<Scal>& GetColor(size_t i) const;
+  // Color from all layers combined
   const FieldCell<Scal>& GetColor() const;
+  // Image vector, number of passes through periodic boundaries
+  MIdx GetImage(size_t l, IdxCell c) const;
   // Default curvature 
   const FieldCell<Scal>& GetCurv() const override;
   // Default curvature 
