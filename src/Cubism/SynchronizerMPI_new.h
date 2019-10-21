@@ -1,9 +1,9 @@
 /*
- *  SynchronizerMPI.h
- *  Cubism
+ *  SynchronizerMPI_new.h
+ *  Cubism (split sync into parts, add to interface)
  *
- *  Created by Diego Rossinelli on 10/17/11.
- *  Copyright 2011 ETH Zurich. All rights reserved.
+ *  Created by Fabian Wermelinger on 10/28/19.
+ *  Copyright 2019 ETH Zurich. All rights reserved.
  *
  */
 
@@ -160,13 +160,10 @@ class SynchronizerMPI
 						assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
 						const int blockid = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
-            for (field : globalinfos[blockid].fields) {
-              PackInfo info = {(Real *)field, data.faces[d][s] + NFACEBLOCK*(a + n1*b), start[0], start[1], start[2], end[0], end[1], end[2]};
+						PackInfo info = {(Real *)globalinfos[blockid].ptrBlock, data.faces[d][s] + NFACEBLOCK*(a + n1*b), start[0], start[1], start[2], end[0], end[1], end[2]};
 
-              }
-              const bool nonempty = end[0]>start[0] && end[1]>start[1] && end[2]>start[2];
-              if (nonempty) packinfos.push_back(info);
-            }
+						const bool nonempty = end[0]>start[0] && end[1]>start[1] && end[2]>start[2];
+						if (nonempty) packinfos.push_back(info);
 					}
 			}
 		}
@@ -250,7 +247,9 @@ class SynchronizerMPI
 
 					const int NFACEBLOCK = NC * thickness[dface][s] * blocksize[dim_other1face] * blocksize[dim_other2face];
 
-					int face_start[3];
+                    // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23] needs
+                    // adjustment for hard coded values
+                    int face_start[3];
 					face_start[dface] = (1-s)*blockstart[dface] + s*(blockend[dface]-thickness[dface][s]);
 					face_start[dim_other1face] = 0;
 					face_start[dim_other2face] = 0;
@@ -272,7 +271,9 @@ class SynchronizerMPI
 
 							assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
 							const int blockID = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
-							Real * const ptrBlock = (Real*)globalinfos[blockID].ptrBlock;
+                            // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23] need
+                            // adjustment
+                            Real * const ptrBlock = (Real*)globalinfos[blockID].ptrBlock;
 
 							for(int dedge=0; dedge<3; ++dedge) //iterate over edges
 							{
@@ -291,7 +292,10 @@ class SynchronizerMPI
 										if (dedge==dface || asd[dface] != s) continue;
 									}
 
-									int start[3];
+                                    // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23]
+                                    // Hardcoded 0 and blocksize[dedge] does not
+                                    // work for block with halos
+                                    int start[3];
 									start[dedge] = 0;
 									start[dim_other1edge] = blockstart[dim_other1edge]*(1-a) + a*(blockend[dim_other1edge]-thickness[dim_other1edge][1]);
 									start[dim_other2edge] = blockstart[dim_other2edge]*(1-b) + b*(blockend[dim_other2edge]-thickness[dim_other2edge][1]);
@@ -334,20 +338,47 @@ class SynchronizerMPI
 											face_end[2] - face_start[2]
 										};
 
-										//if (isroot)
-//										{
-//											printf("-----EDGE --------------->  index: %d %d %d\n", index[0], index[1], index[2]);
-//											printf("neighbor: %d %d %d\n", neighbor[0], neighbor[1], neighbor[2]);
-//											printf("face: %d %d\n", dface, s);
-//											printf("edge: %d %d %d\n", dedge, a, b);
-//											printf("facestart: %d %d %d\n", face_start[0], face_start[1], face_start[2]);
-//											printf("mystart-end: %d %d %d , %d %d %d\n", start[0], start[1], start[2],  end[0], end[1], end[2]);
-//											printf("s: %d %d %d\n",sregion[0], sregion[1], sregion[2]);
-//											printf("L: %d %d %d\n",L[0], L[1], L[2]);
-//											printf("neighbor p1, p2: %d %d\n", neighbor[dim_other1face], neighbor[dim_other2face]);
-//										}
+                                        if (isroot) {
+                                            printf("-----EDGE ---------------> "
+                                                   " index: %d %d %d\n",
+                                                   index[0],
+                                                   index[1],
+                                                   index[2]);
+                                            printf("neighbor: %d %d %d\n",
+                                                   neighbor[0],
+                                                   neighbor[1],
+                                                   neighbor[2]);
+                                            printf("face: %d %d\n", dface, s);
+                                            printf("edge: %d %d %d\n",
+                                                   dedge,
+                                                   a,
+                                                   b);
+                                            printf("facestart: %d %d %d\n",
+                                                   face_start[0],
+                                                   face_start[1],
+                                                   face_start[2]);
+                                            printf("mystart-end: %d %d %d , %d "
+                                                   "%d %d\n",
+                                                   start[0],
+                                                   start[1],
+                                                   start[2],
+                                                   end[0],
+                                                   end[1],
+                                                   end[2]);
+                                            printf("s: %d %d %d\n",
+                                                   sregion[0],
+                                                   sregion[1],
+                                                   sregion[2]);
+                                            printf("L: %d %d %d\n",
+                                                   L[0],
+                                                   L[1],
+                                                   L[2]);
+                                            printf("neighbor p1, p2: %d %d\n",
+                                                   neighbor[dim_other1face],
+                                                   neighbor[dim_other2face]);
+                                        }
 
-										assert(sregion[0]>= 0);
+                                        assert(sregion[0]>= 0);
 										assert(sregion[1]>= 0);
 										assert(sregion[2]>= 0);
 
@@ -415,19 +446,37 @@ class SynchronizerMPI
 										face_end[2] - face_start[2]
 									};
 
-								//	if (isroot)
-//									{
-//										printf("---CORNER ----------------->  index: %d %d %d\n", index[0], index[1], index[2]);
-//										printf("neighbor: %d %d %d\n", neighbor[0], neighbor[1], neighbor[2]);
-//										printf("face: %d %d\n", dface, s);
-//										printf("corner: %d %d %d\n", x, y, z);
-//										printf("facestart: %d %d %d\n", face_start[0], face_start[1], face_start[2]);
-//										printf("mystart: %d %d %d\n", start[0], start[1], start[2]);
-//										printf("s: %d %d %d\n",sregion[0], sregion[1], sregion[2]);
-//										printf("L: %d %d %d\n",L[0], L[1], L[2]);
-//										printf("neighbor p1, p2: %d %d\n", neighbor[dim_other1face], neighbor[dim_other2face]);
-//									}
-									assert(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))!=c2i.end());
+                                    if (isroot) {
+                                        printf("---CORNER ----------------->  "
+                                               "index: %d %d %d\n",
+                                               index[0],
+                                               index[1],
+                                               index[2]);
+                                        printf("neighbor: %d %d %d\n",
+                                               neighbor[0],
+                                               neighbor[1],
+                                               neighbor[2]);
+                                        printf("face: %d %d\n", dface, s);
+                                        printf("corner: %d %d %d\n", x, y, z);
+                                        printf("facestart: %d %d %d\n",
+                                               face_start[0],
+                                               face_start[1],
+                                               face_start[2]);
+                                        printf("mystart: %d %d %d\n",
+                                               start[0],
+                                               start[1],
+                                               start[2]);
+                                        printf("s: %d %d %d\n",
+                                               sregion[0],
+                                               sregion[1],
+                                               sregion[2]);
+                                        printf(
+                                            "L: %d %d %d\n", L[0], L[1], L[2]);
+                                        printf("neighbor p1, p2: %d %d\n",
+                                               neighbor[dim_other1face],
+                                               neighbor[dim_other2face]);
+                                    }
+                                    assert(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))!=c2i.end());
 									assert(sregion[0]>= 0);
 									assert(sregion[1]>= 0);
 									assert(sregion[2]>= 0);
@@ -469,7 +518,9 @@ class SynchronizerMPI
 						const int n = bpd[d];
 						const int NEDGEBLOCK = NC * blocksize[d] * thickness[dim_other2][b] * thickness[dim_other1][a];
 
-						int edge_start[3];
+                        // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23] needs
+                        // adjustment for hard coded values
+                        int edge_start[3];
 						edge_start[d] = 0;
 						edge_start[dim_other1] = blockstart[dim_other1]*(1-a) + a*(blockend[dim_other1]-thickness[dim_other1][1]);
 						edge_start[dim_other2] = blockstart[dim_other2]*(1-b) + b*(blockend[dim_other2]-thickness[dim_other2][1]);
@@ -490,7 +541,9 @@ class SynchronizerMPI
 
 							assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
 							const int blockID = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
-							Real * const ptrBlock = (Real*)globalinfos[blockID].ptrBlock;
+                            // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23] needs
+                            // adjusment
+                            Real * const ptrBlock = (Real*)globalinfos[blockID].ptrBlock;
 
 							for(int z=0; z<2; ++z) //iterate over corners
 								for(int y=0; y<2; ++y)
@@ -537,19 +590,45 @@ class SynchronizerMPI
 												edge_end[2] - edge_start[2]
 											};
 
-										//	if (isroot)
-//											{
-//												printf("---CORNER (from edge) ----------------->  index: %d %d %d\n", index[0], index[1], index[2]);
-//												printf("neighbor: %d %d %d\n", neighbor[0], neighbor[1], neighbor[2]);
-//												printf("edge: %d %d %d\n", d, a, b);
-//												printf("corner: %d %d %d\n", x, y, z);
-//												printf("edgestart: %d %d %d\n", edge_start[0], edge_start[1], edge_start[2]);
-//												printf("mystart: %d %d %d\n", start[0], start[1], start[2]);
-//												printf("s: %d %d %d\n",sregion[0], sregion[1], sregion[2]);
-//												printf("L: %d %d %d\n",L[0], L[1], L[2]);
-//												printf("neighbor p1: %d\n", neighbor[d]);
-//											}
-											assert(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))!=c2i.end());
+                                            if (isroot) {
+                                                printf("---CORNER (from edge) "
+                                                       "----------------->  "
+                                                       "index: %d %d %d\n",
+                                                       index[0],
+                                                       index[1],
+                                                       index[2]);
+                                                printf("neighbor: %d %d %d\n",
+                                                       neighbor[0],
+                                                       neighbor[1],
+                                                       neighbor[2]);
+                                                printf("edge: %d %d %d\n",
+                                                       d,
+                                                       a,
+                                                       b);
+                                                printf("corner: %d %d %d\n",
+                                                       x,
+                                                       y,
+                                                       z);
+                                                printf("edgestart: %d %d %d\n",
+                                                       edge_start[0],
+                                                       edge_start[1],
+                                                       edge_start[2]);
+                                                printf("mystart: %d %d %d\n",
+                                                       start[0],
+                                                       start[1],
+                                                       start[2]);
+                                                printf("s: %d %d %d\n",
+                                                       sregion[0],
+                                                       sregion[1],
+                                                       sregion[2]);
+                                                printf("L: %d %d %d\n",
+                                                       L[0],
+                                                       L[1],
+                                                       L[2]);
+                                                printf("neighbor p1: %d\n",
+                                                       neighbor[d]);
+                                            }
+                                            assert(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))!=c2i.end());
 											assert(sregion[0]>= 0);
 											assert(sregion[1]>= 0);
 											assert(sregion[2]>= 0);
@@ -614,7 +693,8 @@ class SynchronizerMPI
 					assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
 					const int blockid = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
-					PackInfo info = {(Real *)globalinfos[blockid].ptrBlock, data.corners[z][y][x], start[0], start[1], start[2],  end[0], end[1], end[2]};
+                    // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23] needs adjusment
+                    PackInfo info = {(Real *)globalinfos[blockid].ptrBlock, data.corners[z][y][x], start[0], start[1], start[2],  end[0], end[1], end[2]};
 
 					const bool nonempty = end[0]>start[0] && end[1]>start[1] && end[2]>start[2];
 					if (nonempty) packinfos.push_back(info);
@@ -652,11 +732,11 @@ class SynchronizerMPI
 
 public:
 
-	SynchronizerMPI(const int synchID, StencilInfo stencil, 
-                  vector<BlockInfo> globalinfos, MPI_Comm cartcomm, 
+	SynchronizerMPI(const int synchID, StencilInfo stencil,
+                  vector<BlockInfo> globalinfos, MPI_Comm cartcomm,
                   const int mybpd[3], const int blocksize[3])
-      : synchID(synchID), stencil(stencil), 
-        globalinfos(globalinfos), cube(mybpd[0], mybpd[1], mybpd[2]), 
+      : synchID(synchID), stencil(stencil),
+        globalinfos(globalinfos), cube(mybpd[0], mybpd[1], mybpd[2]),
         cartcomm(cartcomm)
 	{
 		int myrank;
@@ -680,13 +760,13 @@ public:
 		for(int i=0; i<3; ++i) this->blocksize[i]=blocksize[i];
 
 		for(size_t i=0; i< globalinfos.size(); ++i) {
-			I3 coord(globalinfos[i].index[0], 
-               globalinfos[i].index[1], 
+			I3 coord(globalinfos[i].index[0],
+               globalinfos[i].index[1],
                globalinfos[i].index[2]);
 			c2i[coord] = i;
 		}
 
-		const int origin[3] = {
+        const int origin[3] = {
       mypeindex[0]*mybpd[0],
       mypeindex[1]*mybpd[1],
       mypeindex[2]*mybpd[2]
@@ -694,13 +774,13 @@ public:
 
 		const int s[3] = {stencil.sx, stencil.sy, stencil.sz};
 		const int e[3] = {stencil.ex, stencil.ey, stencil.ez};
-		const int z[3] = {0, 0, 0};
+        const int z[3] = {0, 0, 0};
 
 		send_thickness[0][0] = e[0] - 1;  send_thickness[0][1] = -s[0];
 		send_thickness[1][0] = e[1] - 1;  send_thickness[1][1] = -s[1];
 		send_thickness[2][0] = e[2] - 1;  send_thickness[2][1] = -s[2];
 
-		_setup<false>(send, send_thickness, z, blocksize, origin, send_packinfos);
+        _setup<false>(send, send_thickness, z, blocksize, origin, send_packinfos);
 
 		recv_thickness[0][0] = -s[0]; recv_thickness[0][1] = e[0] - 1;
 		recv_thickness[1][0] = -s[1]; recv_thickness[1][1] = e[1] - 1;
@@ -730,20 +810,20 @@ public:
 		assert(send.pending.size() == 0);
 	}
 
-	virtual ~SynchronizerMPI()
-	{
-		for(size_t i=0;i<all_mallocs.size();++i)
+    ~SynchronizerMPI()
+    {
+        for(size_t i=0;i<all_mallocs.size();++i)
 			_myfree(all_mallocs[i]);
-	}
+    }
 
-	virtual void sync(size_t gptfloats, MPI_Datatype MPIREAL, const int timestamp)
-	{
-		//0. wait for pending sends, couple of checks
-		//1. pack all stuff
-		//2. perform send/receive requests
-		//3. setup the dependency
+    void sync(size_t gptfloats, MPI_Datatype MPIREAL, const int timestamp)
+    {
+        // 0. wait for pending sends, couple of checks
+        // 1. pack all stuff
+        // 2. perform send/receive requests
+        // 3. setup the dependency
 
-		//0.
+        //0.
 		{
 			const int NPENDINGSENDS = send.pending.size();
 			if (NPENDINGSENDS > 0)
@@ -780,7 +860,9 @@ public:
 			vector<int> selcomponents = stencil.selcomponents;
 			sort(selcomponents.begin(), selcomponents.end());
 
-			const bool contiguous = false;//selcomponents.back()+1-selcomponents.front() == selcomponents.size();
+            // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23] PUP kernels are not
+            // ready to change this to 'true'
+            const bool contiguous = false;//selcomponents.back()+1-selcomponents.front() == selcomponents.size();
 
 			if (!contiguous)
 			{
@@ -925,12 +1007,13 @@ public:
 
 		//3.
 		cube.make_dependencies(isroot);
-	}
+    }
 
     //peh
-	virtual void sync0(size_t gptfloats, MPI_Datatype MPIREAL, const int timestamp)
-	{
-		//double t0, t1;
+    // FIXME: [fabianw@mavt.ethz.ch; 2019-10-28] Unused
+    void sync0(size_t gptfloats, MPI_Datatype MPIREAL, const int timestamp)
+    {
+        //double t0, t1;
 
 		//0. wait for pending sends, couple of checks
 		//1. pack all stuff
@@ -996,7 +1079,7 @@ public:
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
-					pack_stripes(info.block, info.pack, gptfloats, selstart, selend, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx+halos*2, by+halos*2);
+					pack_stripes(info.block, info.pack, gptfloats, selstart, selend, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
 				}
 			}
 
@@ -1142,9 +1225,9 @@ public:
 
 		//3.
 		cube.make_dependencies(isroot);
-	}
+    }
 
-	vector<BlockInfo> avail_inner()
+    vector<BlockInfo> avail_inner()
 	{
 		vector<BlockInfo> retval;
 
