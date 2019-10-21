@@ -112,6 +112,7 @@ void Trackerm<M_>::Update(const Multi<const FieldCell<Scal>*>& fccl,
           }
         }
       }
+      /*
       for (auto lm : layers) { // check if old color disappeared
         if ((*fcclm[lm])[c] == kClNone) continue;
         bool fnd = false;
@@ -125,6 +126,7 @@ void Trackerm<M_>::Update(const Multi<const FieldCell<Scal>*>& fccl,
           fcim_[lm][c] = Pack(MIdx(0)); // clear image
         }
       }
+      */
     }
     for (auto l : layers) {
       m.Comm(&fcim_[l]);
