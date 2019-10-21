@@ -15,6 +15,7 @@ struct BlockInfo
 {
 	long long blockID;
 	void * ptrBlock;
+  std::vector<Scal*> fields;
     bool special;
 	int index[3];
 

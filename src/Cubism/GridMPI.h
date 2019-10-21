@@ -14,7 +14,8 @@
 
 #include "BlockInfo.h"
 #include "StencilInfo.h"
-#include "SynchronizerMPI.h"
+// #include "SynchronizerMPI.h"
+#include "SynchronizerMPI_new.h"
 
 template < typename TGrid >
 class GridMPI : public TGrid
@@ -252,7 +253,7 @@ public:
   // based on StencilInfo (bounding box and selected components)
   // returns a SynchronizerMPI (new or existing)
   // and performs communication
-  // (e.g. two kernels with identical stencils and 
+  // (e.g. two kernels with identical stencils and
   // same elected components would share a common SynchronizerMPI)
 	template<typename Processing>
 	Synch& sync(Processing& p)
@@ -274,8 +275,8 @@ public:
 
     // perform communication
 		queryresult->sync(
-        sizeof(typename Block::element_type)/sizeof(Real), 
-        sizeof(Real)>4 ? MPI_DOUBLE : MPI_FLOAT,         
+        sizeof(typename Block::element_type)/sizeof(Real),
+        sizeof(Real)>4 ? MPI_DOUBLE : MPI_FLOAT,
         timestamp);
 
 		timestamp = (timestamp + 1) % 32768;

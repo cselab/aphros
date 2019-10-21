@@ -77,9 +77,10 @@ struct GBlk {
   static const int fe = sizeof(Elem) / sizeof(Scal);
   static_assert(fe == es, "Block: fe != es");
 
-  Elem __attribute__((__aligned__(_ALIGNBYTES_))) data[bz][by][bx];
+  //Elem __attribute__((__aligned__(_ALIGNBYTES_))) data[bz][by][bx];
+  std::vector<Scal*> fields;
 
-  Scal __attribute__((__aligned__(_ALIGNBYTES_))) tmp[bz][by][bx][fe];
+  //Scal __attribute__((__aligned__(_ALIGNBYTES_))) tmp[bz][by][bx][fe];
 
   void clear_data() {
     Elem* e = &data[0][0][0];
@@ -584,6 +585,7 @@ void Cubism<Par, KF>::ReadBuffer(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     auto& k = *mk.at(b); // kernel
     auto& m = k.GetMesh();
+    s_.l->write_to_buffer(s_.mb[b]);
     s_.l->load(s_.mb[b]);
     ReadBuffer(m, *s_.l);
   }
