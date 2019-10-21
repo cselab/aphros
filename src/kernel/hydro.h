@@ -28,6 +28,7 @@
 #include "solver/tvd.h"
 #include "parse/tvd.h"
 #include "solver/tracker.h"
+#include "solver/trackerm.h"
 #include "solver/multi.h"
 #include "solver/sphavg.h"
 #include "solver/simple.h"
@@ -126,13 +127,13 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   // zero-gradient bc scal
   MapFace<std::shared_ptr<solver::CondFace>> GetBcSz() const;
   void DumpFields();
-  void Dump(Sem& sem);
+  void Dump();
   static void DumpTraj(
       M& m, bool dm, const Vars& var, size_t frame, Scal t,
       const GRange<size_t>& layers, 
       const Multi<const FieldCell<Scal>*>& fcvf,
       const Multi<const FieldCell<Scal>*>& fccl,
-      const Multi<const FieldCell<Vect>*>& fcim,
+      const Multi<const FieldCell<MIdx>*>& fcim,
       const FieldCell<Scal>& fcp,
       const FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvelm, Scal dt);
   // Calc rho, mu and force based on volume fraction
@@ -172,6 +173,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using ASV = solver::Vof<M>; // advection VOF
   using ASVM = solver::Vofm<M>; // advection VOF
   using TR = solver::Tracker<M>; // color tracker
+  using TRM = solver::Trackerm<M>; // color tracker
   using SA = solver::Sphavg<M>; // spherical averages
 
   void UpdateAdvectionPar() {
@@ -272,6 +274,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     return v;
   }
 
+  GRange<size_t> layers;
   FieldCell<Scal> fc_mu_; // viscosity
   FieldCell<Scal> fc_rho_; // density
   FieldCell<Scal> fc_src_; // source of mixture volume
@@ -288,6 +291,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
   std::unique_ptr<TR> tr_; // color tracker
+  std::unique_ptr<TRM> trm_; // color tracker multi
   FieldCell<Scal> fc_vf_; // volume fraction used by constructor 
   FieldCell<Scal> fccl_; // color used by constructor  
   FieldCell<Vect> fc_vel_; // velocity used by constructor
@@ -533,14 +537,17 @@ void Hydro<M>::InitAdvection() {
           m, fc_vf_, mf_cond_,
           &fs_->GetVolumeFlux(solver::Layers::time_curr),
           &fc_src2_, 0., st_.dta, p));
+    layers = GRange<size_t>(1);
   } else if (as == "vofm") {
     auto p = std::make_shared<typename ASVM::Par>();
     Parse<M, ASVM>(p.get(), var);
     p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
-    as_.reset(new ASVM(
-          m, fc_vf_, fccl_, mf_cond_,
-          &fs_->GetVolumeFlux(solver::Layers::time_curr),
-          &fc_src2_, 0., st_.dta, p));
+    auto as = new ASVM(
+        m, fc_vf_, fccl_, mf_cond_,
+        &fs_->GetVolumeFlux(solver::Layers::time_curr),
+        &fc_src2_, 0., st_.dta, p);
+    as_.reset(as);
+    layers = GRange<size_t>(as->GetNumLayers());
   } else {
     throw std::runtime_error("Unknown advection_solver=" + as);
   }
@@ -772,6 +779,7 @@ void Hydro<M>::Init() {
     // Init color tracker
     if (var.Int["enable_color"] && as_) {
       tr_.reset(new TR(m, fccl_, var.Double["color_th"], var.Int["dim"]));
+      trm_.reset(new TRM(m, layers));
     }
 
     st_.iter = 0;
@@ -1302,7 +1310,6 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
     ff_sig_ = solver::Interpolate(fc_sig_, GetBcSz(), m);
 
     if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-      GRange<size_t> layers(as->GetNumLayers());
       solver::Multi<const FieldCell<Scal>*> fcu(layers);
       solver::Multi<const FieldCell<Scal>*> fccl(layers);
       solver::Multi<const FieldCell<Scal>*> fck(layers);
@@ -1651,37 +1658,49 @@ void Hydro<M>::DumpFields() {
 }
 
 template <class M>
-void Hydro<M>::Dump(Sem& sem) {
+void Hydro<M>::Dump() {
+  auto sem = m.GetSem("dump");
+  struct {
+    Multi<FieldCell<MIdx>> fcim;
+  }* ctx(sem);
   if (sem.Nested("fields")) {
     if (dumper_.Try(st_.t, st_.dt)) {
       DumpFields();
     }
   }
   if (tr_) {
-    if (sem.Nested("trajdump")) {
-      if (dmptraj_.Try(st_.t, st_.dt)) {
-        GRange<size_t> layers(1);
+    if (dmptraj_.Try(st_.t, st_.dt)) {
+      if (sem("copyimage")) {
+        ctx->fcim.resize(layers);
+        ctx->fcim.InitAll(FieldCell<MIdx>(m));
+        if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+          auto im = trm_->GetImage();
+          for (auto c : m.AllCells()) {
+            for (auto l : layers) {
+              ctx->fcim[l][c] = TRM::Unpack((*im[l])[c]);
+            }
+          }
+        } else {
+          for (auto c : m.AllCells()) {
+            ctx->fcim[0][c] = MIdx(tr_->GetImage()[c] + Vect(0.5));
+          }
+        }
+      }
+      if (sem.Nested("trajdump")) {
         solver::Multi<const FieldCell<Scal>*> fcu(layers);
         solver::Multi<const FieldCell<Scal>*> fccl(layers);
-        solver::Multi<const FieldCell<Vect>*> fcim(layers);
         if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-          layers = GRange<size_t>(as->GetNumLayers());
-          fcu.resize(layers);
-          fccl.resize(layers);
-          fcim.resize(layers);
           for (auto l : layers) {
             fcu[l] = &as->GetField(l);
             fccl[l] = &as->GetColor(l);
-            fcim[l] = &tr_->GetImage(); // FIXME image from tracker
           }
         } else {
           fcu[0] = &as_->GetField();
           fccl[0] = &tr_->GetColor();
-          fcim[0] = &tr_->GetImage(); // FIXME image from tracker
         }
 
         DumpTraj(m, true, var, dmptraj_.GetN(), st_.t,
-                 layers, fcu, fccl, fcim,
+                 layers, fcu, fccl, ctx->fcim,
                  fs_->GetPressure(),
                  fs_->GetVelocity(), fcvm_, st_.dt);
       }
@@ -1709,7 +1728,7 @@ void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
     const GRange<size_t>& layers, 
     const Multi<const FieldCell<Scal>*>& fcvf,
     const Multi<const FieldCell<Scal>*>& fccl, 
-    const Multi<const FieldCell<Vect>*>& fcim,
+    const Multi<const FieldCell<MIdx>*>& fcim,
     const FieldCell<Scal>& fcp,
     const FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvelm, Scal dt) {
   auto sem = m.GetSem("dumptraj");
@@ -1765,8 +1784,7 @@ void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
         if (cl != kNone) {
           auto& v = mp[cl]; // vector for data
           auto x = m.GetCenter(c); // cell center
-          x += (*fcim[l])[c] * gh;  // translation by image vector
-
+          x += Vect((*fcim[l])[c]) * gh;  // translation by image vector
           auto w = (*fcvf[l])[c] * m.GetVolume(c); // volume
 
           size_t i = 0;
@@ -1957,7 +1975,9 @@ void Hydro<M>::Run() {
   }
 
   if (var.Int["dumpinit"]) {
-    Dump(sem);
+    if (sem.Nested()) {
+      Dump();
+    }
   }
 
   sem.LoopBegin();
@@ -2024,10 +2044,19 @@ void Hydro<M>::Run() {
     }
   }
   if (var.Int["enable_color"] && as_) {
-    if (sem.Nested("color")) {
-      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+    if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+      if (sem("color")) {
         tr_->SetColor(as->GetColor());
-      } else {
+      }
+      if (sem.Nested("color")) {
+        solver::Multi<const FieldCell<Scal>*> fccl(layers);
+        for (auto i : layers) {
+          fccl[i] = &as->GetColor(i);
+        }
+        trm_->Update(fccl);
+      }
+    } else {
+      if (sem.Nested("color")) {
         tr_->Update(as_->GetField());
       }
     }
@@ -2037,7 +2066,9 @@ void Hydro<M>::Run() {
     CalcDt(); // must be after CalcStat to keep dt for moving mesh velocity 
   }
 
-  Dump(sem);
+  if (sem.Nested()) {
+    Dump();
+  }
 
   if (sem("inc")) {
     ++st_.step;
