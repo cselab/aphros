@@ -15,6 +15,7 @@ class Vof : public AdvectionSolver<M_> {
   using P = AdvectionSolver<M>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using MIdx = typename M::MIdx;
 
   struct Par {
     size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
@@ -83,7 +84,7 @@ class Vof : public AdvectionSolver<M_> {
   };
 
   // Constructor
-  Vof(M& m, const FieldCell<Scal>& fcu,
+  Vof(M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
       const MapFace<std::shared_ptr<CondFace>>& mfc,
       const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
       double t, double dt, std::shared_ptr<Par> par);
@@ -114,6 +115,10 @@ class Vof : public AdvectionSolver<M_> {
   const FieldCell<Scal>& GetCurvH() const;
   // Curvature from particles
   const FieldCell<Scal>& GetCurvP() const;
+  // Color
+  const FieldCell<Scal>& GetColor() const;
+  // Image vector, number of passes through periodic boundaries
+  MIdx GetImage(IdxCell c) const;
 
  private:
   struct Imp; // implementation
