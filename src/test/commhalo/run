@@ -5,6 +5,6 @@ set -eu
 e=t.commhalo
 
 make
-echo 192 > np
+echo 2 > np
 echo 10 > tl
 ch.run ./$e
