@@ -776,7 +776,7 @@ void Hydro<M>::Init() {
 
     // Init color tracker
     if (var.Int["enable_color"] && as_) {
-      tr_.reset(new TR(m, fccl_, var.Double["color_th"], var.Int["dim"]));
+      tr_.reset(new TR(m, fccl_));
     }
 
     st_.iter = 0;
@@ -1247,8 +1247,8 @@ void Hydro<M>::AppendSurfaceTension(FieldFace<Scal>& ffst,
     for (auto i : layers) {
       Scal clm = (*fccl[i])[cm];
       Scal clp = (*fccl[i])[cp];
-      if (clm != TR::kNone) s.insert(clm);
-      if (clp != TR::kNone) s.insert(clp);
+      if (clm != TR::kClNone) s.insert(clm);
+      if (clp != TR::kClNone) s.insert(clp);
     }
     for (auto cl : s) {
       Scal um = 0;
@@ -1595,10 +1595,10 @@ void Hydro<M>::DumpFields() {
     if (dl.count("bc")) m.Dump(&fcbc_, "bc");
     if (tr_) {
       if (dl.count("cl")) m.Dump(&tr_->GetColor(), "cl");
-      auto& im = tr_->GetImage();
-      if (dl.count("imx")) m.Dump(&im, 0, "imx");
-      if (dl.count("imy")) m.Dump(&im, 1, "imy");
-      if (dl.count("imz")) m.Dump(&im, 2, "imz");
+      //auto& im = tr_->GetImage();
+      //if (dl.count("imx")) m.Dump(&im, 0, "imx");
+      //if (dl.count("imy")) m.Dump(&im, 1, "imy");
+      //if (dl.count("imz")) m.Dump(&im, 2, "imz");
     }
     if (var.Int["youngbc"]) {
       if (dl.count("yvx")) m.Dump(&fcyv_, 0, "yvx");
@@ -1697,7 +1697,7 @@ void Hydro<M>::Dump() {
           }
         } else {
           for (auto c : m.AllCells()) {
-            ctx->fcim[0][c] = MIdx(tr_->GetImage()[c] + Vect(0.5));
+            ctx->fcim[0][c] = tr_->GetImage(c);
           }
         }
       }
@@ -1716,8 +1716,7 @@ void Hydro<M>::Dump() {
 
         DumpTraj(m, true, var, dmptraj_.GetN(), st_.t,
                  layers, fcu, fccl, ctx->fcim,
-                 fs_->GetPressure(),
-                 fs_->GetVelocity(), fcvm_, st_.dt);
+                 fs_->GetPressure(), fs_->GetVelocity(), fcvm_, st_.dt);
       }
     }
   }
@@ -1762,7 +1761,7 @@ void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
   auto& vsph = ctx->vsph;
   if (sem("color-calc")) {
     std::map<Scal, std::vector<Scal>> mp; // map color to vector
-    auto kNone = TR::kNone;
+    auto kClNone = TR::kClNone;
     Vect gh = m.GetGlobalLength(); // global domain length
 
     // add scalar name
@@ -1796,7 +1795,7 @@ void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
     for (auto c : m.Cells()) {
       for (auto l : layers) {
         auto cl = (*fccl[l])[c];
-        if (cl != kNone) {
+        if (cl != kClNone) {
           auto& v = mp[cl]; // vector for data
           auto x = m.GetCenter(c); // cell center
           x += Vect((*fcim[l])[c]) * gh;  // translation by image vector
@@ -2058,21 +2057,12 @@ void Hydro<M>::Run() {
       }
     }
   }
-  if (var.Int["enable_color"] && as_) {
-    if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-      if (sem("color")) {
-        tr_->SetColor(as->GetColor());
-      }
-      if (sem.Nested("color")) {
-        solver::Multi<const FieldCell<Scal>*> fccl(layers);
-        for (auto i : layers) {
-          fccl[i] = &as->GetColor(i);
-        }
-      }
-    } else {
-      if (sem.Nested("color")) {
-        tr_->Update(as_->GetField());
-      }
+  if (var.Int["enable_color"] && as_ && !dynamic_cast<ASVM*>(as_.get())) {
+    if (sem.Nested("color")) {
+      tr_->Update(as_->GetField(), var.Double["color_th"], 
+          var.Double["clfixed"], Vect(var.Vect["clfixed_x"]),
+          mf_cond_, var.Int["bcc_reflect"], var.Int["vof_recolor_unionfind"], 
+          var.Int["vof_recolor_reduce"], var.Int["vof_recolor_grid"]);
     }
   }
 

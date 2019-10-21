@@ -3,89 +3,71 @@
 #include <limits>
 
 #include "solver/solver.h"
+#include "util/vof.h"
+#include "solver/trackerm.h"
 
 namespace solver {
 
-// Assign colors to connected sets with u > 0.
 template <class M_>
 class Tracker {
   using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using MIdx = typename M::MIdx;
+  using TRM = Trackerm<M>;
   static constexpr size_t dim = M::dim;
 
  public:
-  // fccl: initial color, [g]roup [a]
-  // th: threshold for detection u > 0
-  // dm: space dimension, 2 or 3
-  Tracker(M& m, const FieldCell<Scal>& fccl, Scal th, size_t dm)
-      : m(m), fccl_(fccl), fcim_(m, Vect(0)), dm_(dm), th_(th) {}
+  // fccl: initial color [a]
+  Tracker(M& m, const FieldCell<Scal>& fccl)
+      : m(m), layers(1), fccl_(fccl) {
+    trm_ = std::unique_ptr<TRM>(new TRM(m, layers));
+  }
   // Propagates color.
   // fcu: volume fraction [a]
-  void Update(const FieldCell<Scal>& fcu);
-  void SetColor(const FieldCell<Scal>& fccl);
+  void Update(
+      const FieldCell<Scal>& fcu, Scal th, Scal clfixed, Vect clfixed_x,
+      const MapFace<std::shared_ptr<CondFace>>& mfc, bool bcc_reflect,
+      bool unionfind, bool reduce, bool grid);
   // Returns color [a]
   const FieldCell<Scal>& GetColor() const { return fccl_; }
-  const FieldCell<Vect>& GetImage() const { return fcim_; }
-  static constexpr Scal kNone = -1.; // no color
+  MIdx GetImage(IdxCell c) const { return trm_->GetImage(0, c); }
+  static constexpr Scal kClNone = -1.; // no color
 
  private:
   M& m;
+  GRange<size_t> layers;
   FieldCell<Scal> fccl_; // color [a]
-  FieldCell<Vect> fcim_; // image  [a]
   size_t dm_;
-  Scal th_;
+  UVof<M> uvof_;
+  std::unique_ptr<TRM> trm_;
 };
 
 template <class M_>
-void Tracker<M_>::Update(const FieldCell<Scal>& fcu) {
-  using MIdx = typename M::MIdx;
-  auto& bc = m.GetIndexCells();
-
+void Tracker<M_>::Update(
+    const FieldCell<Scal>& fcu, Scal th, Scal clfixed, Vect clfixed_x,
+    const MapFace<std::shared_ptr<CondFace>>& mfc, bool bcc_reflect,
+    bool unionfind, bool reduce, bool grid) {
   auto sem = m.GetSem("upd");
 
+  struct {
+    FieldCell<Scal> fccl0;
+  }* ctx(sem);
+  auto& fccl0 = ctx->fccl0;
+
   if (sem("")) {
-    const int sw = 1; // stencil halfwidth, [sw,sw]
-    const int sn = sw * 2 + 1; // stencil size
-    // block of offsets
-    GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, dm_ == 2 ? 0 : -sw), 
-                            MIdx(sn, sn, dm_ == 2 ? 1 : sn)); 
-
-    MIdx gs = m.GetGlobalSize();
-    for (auto c : m.Cells()) {
-      Scal& o = fccl_[c];
-      MIdx w = bc.GetMIdx(c);
-      if (fcu[c] > th_) { // liquid in cell
-        // traverse neighbours, pick minimal color
-        for (MIdx wo : bo) {
-          MIdx wn = w + wo;
-          IdxCell cn = bc.GetIdx(w + wo); // neighbour 
-          Scal on = fccl_[cn];
-          if (fcu[cn] > th_ && on != kNone) { // liquid and color in neighbour
-            if (o == kNone || on < o) { // update if empty or smaller
-              o = on;
-              Vect im = fcim_[cn];
-              for (size_t d = 0; d < dim; ++d) { // periodic
-                (wn[d] < 0) && (im[d] += 1.);
-                (wn[d] >= gs[d]) && (im[d] -= 1.);
-              }
-              fcim_[c] = im; // image from neighbour
-            }
-          }
-        }
-      } else {  // no liquid in cell
-        o = kNone;
-        fcim_[c] = Vect(0);
-      }
+    fccl0 = fccl_;
+    for (auto c : m.AllCells()) {
+      fccl_[c] = (fcu[c] > th ? 0 : kClNone);
     }
-    m.Comm(&fccl_);
-    m.Comm(&fcim_);
   }
-}
-
-template <class M_>
-void Tracker<M_>::SetColor(const FieldCell<Scal>& fccl) {
-  fccl_ = fccl;
+  if (sem.Nested()) {
+    uvof_.Recolor(layers, &fcu, &fccl_, &fccl0, clfixed, clfixed_x,
+                  1e10, mfc, bcc_reflect, false, unionfind, reduce, grid, m);
+  }
+  if (sem.Nested()) {
+    trm_->Update(&fccl_, &fccl0);
+  }
 }
 
 

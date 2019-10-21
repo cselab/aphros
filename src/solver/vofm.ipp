@@ -691,7 +691,7 @@ struct Vofm<M_>::Imp {
       trm_->Update(fccl_, ctx->fcclm);
     }
     if (sem.Nested()) {
-      uvof_.Recolor(layers, GetLayer(fcu_, Layers::iter_curr), fccl_,
+      uvof_.Recolor(layers, GetLayer(fcu_, Layers::iter_curr), fccl_, fccl_,
                     par->clfixed, par->clfixed_x,
                     par->coalth, mfc_, par->bcc_reflect, par->verb,
                     par->recolor_unionfind, par->recolor_reduce,
