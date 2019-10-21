@@ -1565,6 +1565,7 @@ void Hydro<M>::DumpFields() {
   struct {
     FieldCell<Scal> imx0, imx1, imx2, imx3;
     FieldCell<Scal> imy0, imy1, imy2, imy3;
+    FieldCell<Scal> imz0, imz1, imz2, imz3;
   }* ctx(sem);
   if (vcurl_) {
     if (sem("vcurl-pre")) {
@@ -1609,23 +1610,13 @@ void Hydro<M>::DumpFields() {
         for (auto c : m.Cells()) {
           fc[c] = TRM::Unpack((*im[l])[c])[d];
         }
+        return &fc;
       };
-      if (dl.count("imx0")) {
-        conv(0, 0, ctx->imx0);
-        m.Dump(&ctx->imx0, "imx0");
-      }
-      if (dl.count("imx1")) {
-        conv(0, 1, ctx->imx1);
-        m.Dump(&ctx->imx1, "imx1");
-      }
-      if (dl.count("imx2")) {
-        conv(0, 2, ctx->imx2);
-        m.Dump(&ctx->imx2, "imx2");
-      }
-      if (dl.count("imx3")) {
-        conv(0, 3, ctx->imx3);
-        m.Dump(&ctx->imx3, "imx3");
-      }
+      if (dl.count("imx0")) m.Dump(conv(0, 0, ctx->imx0), "imx0");
+      if (dl.count("imx1")) m.Dump(conv(0, 1, ctx->imx1), "imx1");
+      if (dl.count("imx2")) m.Dump(conv(0, 2, ctx->imx2), "imx2");
+      if (dl.count("imx3")) m.Dump(conv(0, 3, ctx->imx3), "imx3");
+      if (dl.count("imy0")) m.Dump(conv(1, 0, ctx->imy0), "imy0");
     }
     if (var.Int["youngbc"]) {
       if (dl.count("yvx")) m.Dump(&fcyv_, 0, "yvx");
@@ -1684,6 +1675,7 @@ void Hydro<M>::DumpFields() {
       if (dl.count("cl3")) m.Dump(&as->GetColor(3), "cl3");
     }
   }
+  if (sem()) {} // FIXME: empty stage for dump, or ctx is destroyed before dump
 }
 
 template <class M>

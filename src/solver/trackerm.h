@@ -66,7 +66,6 @@ class Trackerm {
   Multi<FieldCell<Scal>> fcclm_; // color previous [a]
   Multi<FieldCell<Scal>> fcimm_; // image previous [a]
   Multi<FieldCell<Scal>> fcim_;  // image current [a]
-
 };
 
 template <class M_>
