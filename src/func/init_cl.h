@@ -34,8 +34,7 @@ CreateInitCl(Vars& par, bool verb=true) {
 
     return [edim,pp](FieldCell<Scal>& cl, const FieldCell<Scal>& vf,
                      const M& m) {
-      const Scal kNone = solver::Tracker<M>::kNone;
-      cl.Reinit(m, kNone);
+      cl.Reinit(m, solver::Tracker<M>::kClNone);
       if (pp.empty()) {
         return;
       }
@@ -58,8 +57,7 @@ CreateInitCl(Vars& par, bool verb=true) {
     Vect xc(par.Vect["box_c"]);
     Scal s = par.Double["box_s"];
     return [xc,s](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) {
-      Scal kNone = solver::Tracker<M>::kNone;
-      fc.Reinit(m, kNone);
+      fc.Reinit(m, solver::Tracker<M>::kClNone);
       for (auto c : m.Cells()) {
         if ((xc - m.GetCenter(c)).norminf() < s * 0.5) {
           fc[c] = 1.; 
@@ -68,8 +66,7 @@ CreateInitCl(Vars& par, bool verb=true) {
     };
   } else if (v == "zero") {
     return [](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) { 
-      Scal kNone = solver::Tracker<M>::kNone;
-      fc.Reinit(m, kNone);
+      fc.Reinit(m, solver::Tracker<M>::kClNone);
     };
   }
   if (verb) {

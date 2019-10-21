@@ -609,6 +609,7 @@ struct UVof<M_>::Imp {
   static void RecolorDirect(const GRange<size_t>& layers,
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
+      const Multi<const FieldCell<Scal>*>& fccl0,
       Scal clfixed, Vect clfixed_x, Scal coalth,
       const MapFace<std::shared_ptr<CondFace>>& mfc,
       bool bcc_reflect, bool verb, bool reduce, bool grid, M& m) {
@@ -678,7 +679,7 @@ struct UVof<M_>::Imp {
       }
     }
     if (reduce && sem.Nested()) {
-      UserMap(layers, fccl, fcclt, ctx->usermap, m);
+      UserMap(layers, fccl0, fcclt, ctx->usermap, m);
     }
     if (reduce && sem.Nested()) {
       ReduceColor(layers, fcclt, ctx->usermap, m);
@@ -695,6 +696,7 @@ struct UVof<M_>::Imp {
   static void RecolorUnionFind(const GRange<size_t>& layers,
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
+      const Multi<const FieldCell<Scal>*>& fccl0,
       Scal clfixed, Vect clfixed_x, Scal coalth,
       const MapFace<std::shared_ptr<CondFace>>& mfc,
       bool bcc_reflect, bool verb, bool reduce, bool grid, M& m) {
@@ -845,7 +847,7 @@ struct UVof<M_>::Imp {
       }
     }
     if (reduce && sem.Nested()) {
-      UserMap(layers, fccl, fcclt, ctx->usermap, m);
+      UserMap(layers, fccl0, fcclt, ctx->usermap, m);
     }
     if (reduce && sem.Nested()) {
       ReduceColor(layers, fcclt, ctx->usermap, m);
@@ -862,15 +864,16 @@ struct UVof<M_>::Imp {
   static void Recolor(const GRange<size_t>& layers,
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
+      const Multi<const FieldCell<Scal>*>& fccl0,
       Scal clfixed, Vect clfixed_x, Scal coalth,
       const MapFace<std::shared_ptr<CondFace>>& mfc,
       bool bcc_reflect, bool verb, bool unionfind, bool reduce, bool grid,
       M& m) {
     if (unionfind) {
-      return RecolorUnionFind(layers, fcu, fccl, clfixed, clfixed_x,
+      return RecolorUnionFind(layers, fcu, fccl, fccl0, clfixed, clfixed_x,
                               coalth, mfc, bcc_reflect, verb, reduce, grid, m);
     }
-    return RecolorDirect(layers, fcu, fccl, clfixed, clfixed_x,
+    return RecolorDirect(layers, fcu, fccl, fccl0, clfixed, clfixed_x,
                         coalth, mfc, bcc_reflect, verb, reduce, grid, m);
   }
 
@@ -928,11 +931,12 @@ template <class M_>
 void UVof<M_>::Recolor(const GRange<size_t>& layers,
     const Multi<const FieldCell<Scal>*>& fcu,
     const Multi<FieldCell<Scal>*>& fccl,
+    const Multi<const FieldCell<Scal>*>& fccl0,
     Scal clfixed, Vect clfixed_x, Scal coalth,
     const MapFace<std::shared_ptr<CondFace>>& mfcu,
     bool bcc_reflect, bool verb, bool unionfind, bool reduce, bool grid,
     M& m) {
-  imp->Recolor(layers, fcu, fccl, clfixed, clfixed_x, coalth, mfcu, 
+  imp->Recolor(layers, fcu, fccl, fccl0, clfixed, clfixed_x, coalth, mfcu,
                bcc_reflect, verb, unionfind, reduce, grid, m);
 }
 
