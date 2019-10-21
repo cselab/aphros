@@ -15,6 +15,7 @@
 #include "partstrmeshm.h"
 #include "multi.h"
 #include "util/vof.h"
+#include "trackerm.h"
 
 namespace solver {
 
@@ -34,6 +35,7 @@ struct Vofm<M_>::Imp {
   using R = Reconst<Scal>;
   using PS = PartStr<Scal>;
   using PSM = PartStrMeshM<M>;
+  using TRM = Trackerm<M>;
   static constexpr Scal kClNone = -1;
   static constexpr size_t dim = M::dim;
   using Vect2 = GVect<Scal, 2>;
@@ -99,6 +101,9 @@ struct Vofm<M_>::Imp {
     psm->vtkbin = par->vtkbin;
     psm->vtkmerge = par->vtkmerge;
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
+
+    // image tracker
+    trm_ = std::unique_ptr<TRM>(new TRM(m, layers));
   }
   void Update(typename PS::Par* p) const {
     Scal hc = m.GetCellSize().norminf(); // cell size
@@ -641,6 +646,9 @@ struct Vofm<M_>::Imp {
   }
   void MakeIteration() {
     auto sem = m.GetSem("iter");
+    struct {
+      Multi<FieldCell<Scal>> fcclm;  // previous color
+    }* ctx(sem);
     if (sem("init")) {
       for (auto i : layers) {
         auto& fcu = fcu_[i];
@@ -654,6 +662,7 @@ struct Vofm<M_>::Imp {
           fcuu[c] = (uc[c] < 0.5 ? 0 : 1);
         }
       }
+      ctx->fcclm = fccl_;
     }
 
     using Scheme = typename Par::Scheme;
@@ -677,6 +686,9 @@ struct Vofm<M_>::Imp {
       for (auto i : layers) {
         BcClear(fcu_[i].iter_curr, mfc_, m);
       }
+    }
+    if (sem.Nested()) {
+      trm_->Update(fccl_, ctx->fcclm);
     }
     if (sem.Nested()) {
       uvof_.Recolor(layers, GetLayer(fcu_, Layers::iter_curr), fccl_,
@@ -772,6 +784,7 @@ struct Vofm<M_>::Imp {
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
   std::unique_ptr<PSM> psm_;
+  std::unique_ptr<TRM> trm_;
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
   GRange<size_t> layers;
@@ -834,6 +847,12 @@ auto Vofm<M_>::GetAlpha(size_t i) const -> const FieldCell<Scal>& {
   (void) i;
   return imp->fca_[i];
 }
+
+template <class M_>
+auto Vofm<M_>::GetImage(size_t l, IdxCell c) const -> MIdx {
+  return imp->trm_->GetImage(l, c);
+}
+
 
 template <class M_>
 auto Vofm<M_>::GetColor(size_t i) const -> const FieldCell<Scal>& {
