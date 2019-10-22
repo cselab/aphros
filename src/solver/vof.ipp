@@ -501,6 +501,7 @@ struct Vof<M_>::Imp {
     struct {
       FieldCell<Scal> fcclm;  // previous color
     }* ctx(sem);
+    auto& fcclm = ctx->fcclm;
 
     if (sem("init")) {
       auto& uc = fcu_.iter_curr;
@@ -511,7 +512,6 @@ struct Vof<M_>::Imp {
         uc[c] = fcu_.time_prev[c] + dt * fcs[c];
         fcuu_[c] = (uc[c] < 0.5 ? 0 : 1);
       }
-      ctx->fcclm = fccl_;
     }
 
     using Scheme = typename Par::Scheme;
@@ -533,15 +533,36 @@ struct Vof<M_>::Imp {
     if (par->bcc_clear && sem("clear")) {
       BcClear(fcu_.iter_curr, mfc_, m);
     }
-    if (sem.Nested()) {
-      trm_->Update(&fccl_, &ctx->fcclm);
+    if (sem("resetcolor")) {
+      auto& fcu = fcu_.iter_curr;
+      fcclm = fccl_;
+      for (auto c : m.AllCells()) {
+        fccl_[c] = (fcu[c] > 0.5 ? 0 : kClNone);
+      }
     }
     if (sem.Nested()) {
-      uvof_.Recolor(layers, &fcu_.iter_curr, &fccl_, &fccl_,
+      uvof_.Recolor(layers, &fcu_.iter_curr, &fccl_, &fcclm,
                     par->clfixed, par->clfixed_x,
                     par->coalth, mfc_, par->bcc_reflect, par->verb,
                     par->recolor_unionfind, par->recolor_reduce,
                     par->recolor_grid, m);
+    }
+    if (sem("propagate")) {
+      auto& u = fcu_.iter_curr;
+      auto& cl = fccl_;
+      for (auto f : m.Faces()) {
+        for (size_t q : {0, 1}) {
+          auto c = m.GetCell(f, q);
+          auto cn = m.GetCell(f, 1 - q);
+          if (cl[c] == kClNone && u[c] > 0 &&
+              u[cn] > u[c] && cl[cn] != kClNone) {
+            cl[c] = cl[cn];
+          }
+        }
+      }
+    }
+    if (sem.Nested()) {
+      trm_->Update(&fccl_, &fcclm);
     }
     if (sem("stat")) {
       owner_->IncIter();

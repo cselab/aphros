@@ -117,6 +117,7 @@ class Vof : public AdvectionSolver<M_> {
   const FieldCell<Scal>& GetCurvP() const;
   // Color
   const FieldCell<Scal>& GetColor() const;
+  static constexpr Scal kClNone = -1.; // no color
   // Image vector, number of passes through periodic boundaries
   MIdx GetImage(IdxCell c) const;
 
