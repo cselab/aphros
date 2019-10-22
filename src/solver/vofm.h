@@ -128,6 +128,7 @@ class Vofm : public AdvectionSolver<M_> {
   const FieldCell<Scal>& GetCurv() const override;
   // Default curvature 
   const FieldCell<Scal>& GetCurv(size_t i) const;
+  static constexpr Scal kClNone = -1.; // no color
 
  private:
   struct Imp; // implementation
