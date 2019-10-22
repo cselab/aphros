@@ -560,6 +560,7 @@ struct Vof<M_>::Imp {
           }
         }
       }
+      m.Comm(&cl);
     }
     if (sem.Nested()) {
       trm_->Update(&fccl_, &fcclm);
