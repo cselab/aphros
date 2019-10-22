@@ -74,6 +74,9 @@ void Trackerm<M_>::Update(const Multi<const FieldCell<Scal>*>& fccl,
     fcimm = fcim_; // save previous
     MIdx gs = m.GetGlobalSize();
     auto& bc = m.GetIndexCells();
+    static constexpr size_t sw = 1;  // stencil half-width
+    static constexpr size_t sn = sw * 2 + 1;
+    GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn));
 
     for (auto c : m.Cells()) {
       for (auto l : layers) { // check if new color appeared
@@ -92,9 +95,9 @@ void Trackerm<M_>::Update(const Multi<const FieldCell<Scal>*>& fccl,
         if (!fndm) { // new color, find same color in neighbors
           bool fndn = false;
 
-
-          for (auto q : m.Nci(c)) {
-            auto cn = m.GetCell(c, q);
+          MIdx w = bc.GetMIdx(c);
+          for (MIdx wo : bo) {
+            IdxCell cn = bc.GetIdx(w + wo);
             for (auto ln : layers) {
               if ((*fcclm[ln])[cn] == (*fccl[l])[c]) {
                 MIdx wn = bc.GetMIdx(cn);
