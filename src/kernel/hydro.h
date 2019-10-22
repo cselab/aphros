@@ -27,8 +27,6 @@
 #include "parse/vof.h"
 #include "solver/tvd.h"
 #include "parse/tvd.h"
-#include "solver/tracker.h"
-#include "solver/trackerm.h"
 #include "solver/multi.h"
 #include "solver/sphavg.h"
 #include "solver/simple.h"
@@ -172,7 +170,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using AST = solver::Tvd<M>; // advection TVD
   using ASV = solver::Vof<M>; // advection VOF
   using ASVM = solver::Vofm<M>; // advection VOF
-  using TR = solver::Tracker<M>; // color tracker
+  static constexpr Scal kClNone = ASVM::kClNone;
   using SA = solver::Sphavg<M>; // spherical averages
 
   void UpdateAdvectionPar() {
@@ -1241,8 +1239,8 @@ void Hydro<M>::AppendSurfaceTension(FieldFace<Scal>& ffst,
     for (auto i : layers) {
       Scal clm = (*fccl[i])[cm];
       Scal clp = (*fccl[i])[cp];
-      if (clm != TR::kClNone) s.insert(clm);
-      if (clp != TR::kClNone) s.insert(clp);
+      if (clm != kClNone) s.insert(clm);
+      if (clp != kClNone) s.insert(clp);
     }
     for (auto cl : s) {
       Scal um = 0;
@@ -1626,6 +1624,7 @@ void Hydro<M>::DumpFields() {
       if (dl.count("hx")) m.Dump(&h, 0, "hx");
       if (dl.count("hy")) m.Dump(&h, 1, "hy");
       if (dl.count("hz")) m.Dump(&h, 2, "hz");
+      if (dl.count("cls")) m.Dump(&as->GetColor(), "cls");
     }
     if (auto as = dynamic_cast<ASVM*>(as_.get())) {
       if (dl.count("nx")) m.Dump(&as->GetNormal(0), 0, "nx");
@@ -1746,7 +1745,6 @@ void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
   auto& vsph = ctx->vsph;
   if (sem("color-calc")) {
     std::map<Scal, std::vector<Scal>> mp; // map color to vector
-    auto kClNone = TR::kClNone;
     Vect gh = m.GetGlobalLength(); // global domain length
 
     // add scalar name
