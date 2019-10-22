@@ -366,10 +366,6 @@ struct UVof<M_>::Imp {
         for (size_t i = 0; i < vcl.size(); ++i) {
           usermap[vcl[i]] = vcln[i];
         }
-        for (auto p : usermap) {
-          std::cerr << p.first << ":" << p.second << " ";
-        }
-        std::cerr << std::endl;
       }
     }
   }
@@ -635,14 +631,20 @@ struct UVof<M_>::Imp {
     if (sem("min")) {
       size_t tries = 0;
       size_t cells = 0;
+      using MIdx = typename M::MIdx;
+      auto& bc = m.GetIndexCells();
+      static constexpr size_t sw = 1;  // stencil half-width
+      static constexpr size_t sn = sw * 2 + 1;
+      GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn));
       while (true) {
         bool chg = false;
         for (auto i : layers) {
           for (auto c : m.Cells()) {
             if ((*fccl[i])[c] != kClNone) {
               // update color with minimum over neighbours
-              for (auto q : m.Nci(c)) {
-                IdxCell cn = m.GetCell(c, q);
+              MIdx w = bc.GetMIdx(c);
+              for (MIdx wo : bo) {
+                IdxCell cn = bc.GetIdx(w + wo);
                 for (auto j : layers) {
                   if ((*fccl[j])[cn] == (*fccl[i])[c]) {
                     if (fcclt[j][cn] < fcclt[i][c]) {
@@ -777,55 +779,55 @@ struct UVof<M_>::Imp {
         }
       };
 
+      using MIdx = typename M::MIdx;
+      auto& bc = m.GetIndexCells();
+      static constexpr size_t sw = 1;  // stencil half-width
+      static constexpr size_t sn = sw * 2 + 1;
+      GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn));
+
       // Merge all neighbors with the same color.
-      for (auto f : m.Faces()) {
-        auto cm = m.GetCell(f, 0);
-        auto cp = m.GetCell(f, 1);
-        for (auto lm : layers) {
-          for (auto lp : layers) {
-            if ((*fccl[lm])[cm] != kClNone && 
-                (*fccl[lm])[cm] == (*fccl[lp])[cp]) {
-              Pair pm(cm, lm);
-              Pair pp(cp, lp);
-              Union(pm, pp);
+      for (auto c : m.Cells()) {
+        MIdx w = bc.GetMIdx(c);
+        for (auto l : layers) {
+          if ((*fccl[l])[c] != kClNone) {
+            for (MIdx wo : bo) {
+              IdxCell cn = bc.GetIdx(w + wo);
+              for (auto ln : layers) {
+                if ((*fccl[l])[c] == (*fccl[ln])[cn]) {
+                  Pair p(c, l);
+                  Pair pn(cn, ln);
+                  Union(pn, p);
+                }
+              }
             }
           }
         }
       }
       // Set all cells to their root
-      for (auto f : m.Faces()) {  // FIXME: inner cells traversed twice
-        for (size_t q : {0, 1}) {
-          auto c = m.GetCell(f, q);
-          for (auto l : layers) {
-            Pair p(c, l);
-            Set(p, Find(p));
-          }
+      for (auto c : m.SuCells()) {
+        for (auto l : layers) {
+          Pair p(c, l);
+          Set(p, Find(p));
         }
       }
       // Update color in root
       // (smaller color can arrive in halo cells)
-      for (auto f : m.Faces()) {
-        for (size_t q : {0, 1}) {
-          auto c = m.GetCell(f, q);
-          for (auto l : layers) {
-            Pair p(c, l);
-            if (Clt(p) < Clt(Get(p))) {
-              Clt(Get(p)) = Clt(p);
-              ++tries;
-            }
+      for (auto c : m.SuCells()) {
+        for (auto l : layers) {
+          Pair p(c, l);
+          if (Clt(p) < Clt(Get(p))) {
+            Clt(Get(p)) = Clt(p);
+            ++tries;
           }
         }
       }
       // Update color from root
-      for (auto f : m.Faces()) {
-        for (size_t q : {0, 1}) {
-          auto c = m.GetCell(f, q);
-          for (auto l : layers) {
-            Pair p(c, l);
-            if (Clt(Get(p)) < Clt(p)) {
-              Clt(p) = Clt(Get(p));
-              ++tries;
-            }
+      for (auto c : m.SuCells()) {
+        for (auto l : layers) {
+          Pair p(c, l);
+          if (Clt(Get(p)) < Clt(p)) {
+            Clt(p) = Clt(Get(p));
+            ++tries;
           }
         }
       }
