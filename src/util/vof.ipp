@@ -366,6 +366,10 @@ struct UVof<M_>::Imp {
         for (size_t i = 0; i < vcl.size(); ++i) {
           usermap[vcl[i]] = vcln[i];
         }
+        for (auto p : usermap) {
+          std::cerr << p.first << ":" << p.second << " ";
+        }
+        std::cerr << std::endl;
       }
     }
   }
@@ -466,7 +470,7 @@ struct UVof<M_>::Imp {
   //          replaces others with new colors.
   static void ReduceColor(const GRange<size_t>& layers,
                    const Multi<FieldCell<Scal>*>& fccl,
-                   const std::map<Scal, Scal>& usermap, M& m) {
+                   const std::map<Scal, Scal>& usermap, Scal clfixed, M& m) {
     auto sem = m.GetSem("recolor");
     struct {
       std::vector<std::vector<Scal>> vvcl; // all colors
@@ -497,12 +501,15 @@ struct UVof<M_>::Imp {
         std::map<Scal, Scal> map;
         std::set<Scal> used;
         // keep some colors
-        map[kClNone] = kClNone;
-        map[0] = 0;
-        used.insert(kClNone);
-        used.insert(0);
-        // next unused color
-        Scal an = 1;
+        auto Add = [&](Scal cl, Scal a) {
+          map[cl] = a;
+          used.insert(a);
+        };
+        Add(kClNone, kClNone);
+        if (clfixed >= 0) {
+          Add(clfixed, clfixed);
+        }
+        Scal an = 0; // next unused color
         for (auto p : usermap) {
           an = std::max(an, p.second);
         }
@@ -510,14 +517,12 @@ struct UVof<M_>::Imp {
         for (auto& v : vvcl) {
           for (auto& cl : v) {
             if (!map.count(cl)) {
+              //map[cl] = usermap.count(cl) ? usermap.at(cl) : -2;
               if (!usermap.count(cl) || used.count(usermap.at(cl))) {
-                map[cl] = an;
-                used.insert(an);
-                an += 1.;
+                Add(cl, an);
+                an += 1;
               } else { // usermap.count(cl) && !used.count(usermap[cl])
-                Scal au = usermap.at(cl);
-                map[cl] = au;
-                used.insert(au);
+                Add(cl, usermap.at(cl));
               }
             }
             cl = map[cl];
@@ -682,7 +687,7 @@ struct UVof<M_>::Imp {
       UserMap(layers, fccl0, fcclt, ctx->usermap, m);
     }
     if (reduce && sem.Nested()) {
-      ReduceColor(layers, fcclt, ctx->usermap, m);
+      ReduceColor(layers, fcclt, ctx->usermap, clfixed, m);
     }
     if (sem("copy")) {
       for (auto c : m.AllCells()) {
@@ -850,7 +855,7 @@ struct UVof<M_>::Imp {
       UserMap(layers, fccl0, fcclt, ctx->usermap, m);
     }
     if (reduce && sem.Nested()) {
-      ReduceColor(layers, fcclt, ctx->usermap, m);
+      ReduceColor(layers, fcclt, ctx->usermap, clfixed, m);
     }
     if (sem("copy")) {
       for (auto c : m.AllCells()) {
