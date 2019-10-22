@@ -1687,21 +1687,22 @@ void Hydro<M>::Dump() {
       }
     }
     if (sem.Nested("trajdump")) {
-      solver::Multi<const FieldCell<Scal>*> fcu(layers);
-      solver::Multi<const FieldCell<Scal>*> fccl(layers);
-      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-        for (auto l : layers) {
-          fcu[l] = &as->GetField(l);
-          fccl[l] = &as->GetColor(l);
+      if (var.Int["enable_color"]) {
+        solver::Multi<const FieldCell<Scal>*> fcu(layers);
+        solver::Multi<const FieldCell<Scal>*> fccl(layers);
+        if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+          for (auto l : layers) {
+            fcu[l] = &as->GetField(l);
+            fccl[l] = &as->GetColor(l);
+          }
+        } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
+          fcu[0] = &as->GetField();
+          fccl[0] = &as->GetColor();
         }
-      } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
-        fcu[0] = &as->GetField();
-        fccl[0] = &as->GetColor();
+        DumpTraj(m, true, var, dmptraj_.GetN(), st_.t,
+                 layers, fcu, fccl, ctx->fcim,
+                 fs_->GetPressure(), fs_->GetVelocity(), fcvm_, st_.dt);
       }
-
-      DumpTraj(m, true, var, dmptraj_.GetN(), st_.t,
-               layers, fcu, fccl, ctx->fcim,
-               fs_->GetPressure(), fs_->GetVelocity(), fcvm_, st_.dt);
     }
   }
   if (sem("dmptrep")) {
