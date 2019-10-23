@@ -1552,9 +1552,7 @@ template <class M>
 void Hydro<M>::DumpFields() {
   auto sem = m.GetSem("dumpfields");
   struct {
-    FieldCell<Scal> imx0, imx1, imx2, imx3;
-    FieldCell<Scal> imy0, imy1, imy2, imy3;
-    FieldCell<Scal> imz0, imz1, imz2, imz3;
+    std::array<Multi<FieldCell<Scal>>, dim> im;
   }* ctx(sem);
   if (vcurl_) {
     if (sem("vcurl-pre")) {
@@ -1627,33 +1625,37 @@ void Hydro<M>::DumpFields() {
       if (dl.count("cls")) m.Dump(&as->GetColor(), "cls");
     }
     if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-      if (dl.count("nx")) m.Dump(&as->GetNormal(0), 0, "nx");
-      if (dl.count("ny")) m.Dump(&as->GetNormal(0), 1, "ny");
-      if (dl.count("nz")) m.Dump(&as->GetNormal(0), 2, "nz");
+      for (auto l : layers) {
+        auto sl = std::to_string(l);
+        if (dl.count("vf" + sl)) m.Dump(&as->GetField(l), "vf" + sl);
+        if (dl.count("cl" + sl)) m.Dump(&as->GetColor(l), "cl" + sl);
+        if (dl.count("nx" + sl)) m.Dump(&as->GetNormal(l), 0, "nx" + sl);
+        if (dl.count("ny" + sl)) m.Dump(&as->GetNormal(l), 1, "ny" + sl);
+        if (dl.count("nz" + sl)) m.Dump(&as->GetNormal(l), 2, "nz" + sl);
+      }
 
-      if (dl.count("vf0")) m.Dump(&as->GetField(0), "vf0");
-      if (dl.count("vf1")) m.Dump(&as->GetField(1), "vf1");
-      if (dl.count("vf2")) m.Dump(&as->GetField(2), "vf2");
-      if (dl.count("vf3")) m.Dump(&as->GetField(3), "vf3");
-
+      // combined colors
       if (dl.count("cls")) m.Dump(&as->GetColor(), "cls");
-      if (dl.count("cl0")) m.Dump(&as->GetColor(0), "cl0");
-      if (dl.count("cl1")) m.Dump(&as->GetColor(1), "cl1");
-      if (dl.count("cl2")) m.Dump(&as->GetColor(2), "cl2");
-      if (dl.count("cl3")) m.Dump(&as->GetColor(3), "cl3");
 
-      auto conv = [&](size_t d, size_t l, FieldCell<Scal>& fc) { 
-        fc.Reinit(m);
+      // image
+      auto conv = [&](size_t d, size_t l, Multi<FieldCell<Scal>>& fc) {
+        fc.resize(layers);
+        fc[l].Reinit(m);
         for (auto c : m.Cells()) {
-          fc[c] = as->GetImage(l, c)[d];
+          fc[l][c] = as->GetImage(l, c)[d];
         }
-        return &fc;
+        return &fc[l];
       };
-      if (dl.count("imx0")) m.Dump(conv(0, 0, ctx->imx0), "imx0");
-      if (dl.count("imx1")) m.Dump(conv(0, 1, ctx->imx1), "imx1");
-      if (dl.count("imx2")) m.Dump(conv(0, 2, ctx->imx2), "imx2");
-      if (dl.count("imx3")) m.Dump(conv(0, 3, ctx->imx3), "imx3");
-      if (dl.count("imy0")) m.Dump(conv(1, 0, ctx->imy0), "imy0");
+      for (auto d : {0, 1, 2}) {
+        for (auto l : layers) {
+          std::stringstream st;
+          st << "im" << "xyz"[d] << l;
+          std::string s = st.str();
+          if (dl.count(s)) {
+            m.Dump(conv(d, l, ctx->im[d]), s);
+          }
+        }
+      }
     }
   }
   if (sem()) {} // FIXME: empty stage for dump, or ctx is destroyed before dump
