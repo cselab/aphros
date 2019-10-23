@@ -84,7 +84,7 @@ void Trackerm<M_>::Update(const Multi<const FieldCell<Scal>*>& fccl,
           fcim_[l][c] = Pack(MIdx(0));
           continue;
         }
-        bool fndm = false;
+        bool fndm = false; // found color on previous step
         for (auto lm : layers) {
           if ((*fcclm[lm])[c] == (*fccl[l])[c]) {
             fcim_[l][c] = fcimm[lm][c];
@@ -93,7 +93,7 @@ void Trackerm<M_>::Update(const Multi<const FieldCell<Scal>*>& fccl,
           }
         }
         if (!fndm) { // new color, find same color in neighbors
-          bool fndn = false;
+          bool fndn = false; // found color in neighbors
 
           MIdx w = bc.GetMIdx(c);
           for (MIdx wo : bo) {
