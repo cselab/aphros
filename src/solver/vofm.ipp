@@ -54,6 +54,7 @@ struct Vofm<M_>::Imp {
     fci_.resize(layers);
     fck_.resize(layers);
     fccl_.resize(layers);
+    fcim_.resize(layers);
     ffvu_.resize(layers);
     ffcl_.resize(layers);
     ffi_.resize(layers);
@@ -70,6 +71,7 @@ struct Vofm<M_>::Imp {
     fcu_.InitAll(fcu_[0]);
 
     fccl_.InitAll(FieldCell<Scal>(m, kClNone));
+    fcim_.InitAll(FieldCell<Scal>(m, TRM::Pack(MIdx(0))));
     ffvu_.InitAll(FieldFace<Scal>(m, 0));
     ffcl_.InitAll(FieldFace<Scal>(m, kClNone));
     ffi_.InitAll(FieldFace<bool>(m, false));
@@ -101,9 +103,6 @@ struct Vofm<M_>::Imp {
     psm->vtkbin = par->vtkbin;
     psm->vtkmerge = par->vtkmerge;
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
-
-    // image tracker
-    trm_ = std::unique_ptr<TRM>(new TRM(m, layers));
   }
   void Update(typename PS::Par* p) const {
     Scal hc = m.GetCellSize().norminf(); // cell size
@@ -354,7 +353,7 @@ struct Vofm<M_>::Imp {
           IdxFace f = it.GetIdx();
           ffv[f] = 0;
         }
-        Sweep(mfcu, d, layers, ffv, fccl_, fcn_, fca_, mfc_,
+        Sweep(mfcu, d, layers, ffv, fccl_, fcim_, fcn_, fca_, mfc_,
             3, nullptr, nullptr, fcuu_, 1., par->clipth, m);
         for (auto i : layers) {
           m.Comm(mfcu[i]);
@@ -415,7 +414,7 @@ struct Vofm<M_>::Imp {
     for (size_t id = 0; id < dd.size(); ++id) {
       size_t d = dd[id]; // direction as index
       if (sem("sweep")) {
-        Sweep(mfcu, d, layers, *owner_->ffv_, fccl_, fcn_, fca_, mfc_,
+        Sweep(mfcu, d, layers, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, mfc_,
               type, nullptr, nullptr, fcuu_,
               owner_->GetTimeStep(), par->clipth, m);
         for (auto i : layers) {
@@ -433,11 +432,13 @@ struct Vofm<M_>::Imp {
       }
     }
   }
-  // Makes advection sweep in one direction, updates uc [i] and fccl [s]
+  // Makes advection sweep in one direction, updates uc [i] and fccl [i]
   // uc: volume fraction [s]
   // d: direction
   // ffv: mixture flux [i]
-  // fcn,fca: normal and plane constant [s]
+  // mfccl: color [s]
+  // mfcim: image [s]
+  // mfcn,mfca: normal and plane constant [s]
   // mfc: face conditions
   // type: 0: plain,
   //       1: Euler Explicit,
@@ -452,6 +453,7 @@ struct Vofm<M_>::Imp {
       const GRange<size_t>& layers,
       const FieldFace<Scal>& ffv,
       const Multi<FieldCell<Scal>*>& mfccl,
+      const Multi<FieldCell<Scal>*>& mfcim,
       const Multi<const FieldCell<Vect>*>& mfcn,
       const Multi<const FieldCell<Scal>*>& mfca,
       const MapFace<std::shared_ptr<CondFace>>& mfc, int type,
@@ -464,6 +466,7 @@ struct Vofm<M_>::Imp {
     MIdx wd(md); // offset in direction d
     auto& bc = m.GetIndexCells();
     auto& bf = m.GetIndexFaces();
+    MIdx gs = m.GetGlobalSize();
     auto h = m.GetCellSize();
 
     Multi<FieldFace<Scal>> mffvu(layers); // phase 2 flux
@@ -510,7 +513,7 @@ struct Vofm<M_>::Imp {
 
           // propagate to downwind cell if empty
           IdxCell cd = m.GetNeighbourCell(f, v > 0. ? 1 : 0); // downwind cell
-          bool found = false;
+          bool found = false; // found same color downwind
           for (auto j : layers) {
             if ((*mfccl[j])[cd] == fccl[c]) {
               found = true;
@@ -521,6 +524,11 @@ struct Vofm<M_>::Imp {
             for (auto j : layers) {
               if ((*mfccl[j])[cd] == kClNone) {
                 (*mfccl[j])[cd] = fccl[c];
+                MIdx wd = bc.GetMIdx(cd);
+                MIdx im = TRM::Unpack((*mfcim[i])[c]);
+                if (wd[d] < 0)      im[d] -= 1;
+                if (wd[d] >= gs[d]) im[d] += 1;
+                (*mfcim[j])[cd] = TRM::Pack(im);
                 break;
               }
             }
@@ -584,6 +592,7 @@ struct Vofm<M_>::Imp {
           // clear color
           if (u == 0) {
             fccl[c] = kClNone;
+            (*mfcim[i])[c] = TRM::Pack(MIdx(0));
           }
         }
       }
@@ -626,7 +635,7 @@ struct Vofm<M_>::Imp {
         }
       }
       if (sem("sweep")) {
-        Sweep(mfcu, d, layers, *owner_->ffv_, fccl_, fcn_, fca_, mfc_,
+        Sweep(mfcu, d, layers, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, mfc_,
               id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
               owner_->GetTimeStep() * vsc, par->clipth, m);
         for (auto i : layers) {
@@ -686,9 +695,6 @@ struct Vofm<M_>::Imp {
       for (auto i : layers) {
         BcClear(fcu_[i].iter_curr, mfc_, m);
       }
-    }
-    if (sem.Nested()) {
-      trm_->Update(fccl_, ctx->fcclm);
     }
     if (sem.Nested()) {
       uvof_.Recolor(layers, GetLayer(fcu_, Layers::iter_curr), fccl_, fccl_,
@@ -778,13 +784,13 @@ struct Vofm<M_>::Imp {
   Multi<FieldCell<Scal>> fck_; // curvature from height functions
   Multi<FieldCell<bool>> fci_; // interface mask (1: contains interface)
   Multi<FieldCell<Scal>> fccl_;  // color
+  Multi<FieldCell<Scal>> fcim_;  // image
   Multi<FieldFace<Scal>> ffvu_;  // flux: volume flux * field
   Multi<FieldFace<Scal>> ffcl_;  // flux color (from upwind cell)
   Multi<FieldFace<bool>> ffi_;   // interface mask (1: upwind cell contains interface)
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
   std::unique_ptr<PSM> psm_;
-  std::unique_ptr<TRM> trm_;
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
   GRange<size_t> layers;
@@ -850,7 +856,7 @@ auto Vofm<M_>::GetAlpha(size_t i) const -> const FieldCell<Scal>& {
 
 template <class M_>
 auto Vofm<M_>::GetImage(size_t l, IdxCell c) const -> MIdx {
-  return imp->trm_->GetImage(l, c);
+  return Trackerm<M>::Unpack(imp->fcim_[l][c]);
 }
 
 
