@@ -1,9 +1,9 @@
-# Deploy
+# Setup environment
 
 Requires having `$HOME/bin` in `PATH`.
 Prepare the environment and install dependencies:
 
-*   install all packages except for hypre and eigen
+*   install all packages except for hypre
 
      ```
      P=prefix ./all
@@ -23,10 +23,10 @@ Prepare the environment and install dependencies:
      ./_run
      ```
 
-*   install basilisk from `mfer:/ba/deploy`
-*   install basilisk libraries from `sim/ba` by `cmake . && make install`
+*   (optional) install basilisk from `mfer:/ba/deploy`
+*   (optional) install basilisk libraries from `sim/ba` by `cmake . && make install`
 
-# Other
+# Notes
 
 ## Prefix
 
