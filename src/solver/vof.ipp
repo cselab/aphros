@@ -27,19 +27,27 @@ struct Vof<M_>::Imp {
   static constexpr size_t dim = M::dim;
   using Vect2 = GVect<Scal, 2>;
   using Sem = typename M::Sem;
+  using MIdx = typename M::MIdx;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m), layers(1)
-      , mfc_(mfc), fccl_(fccl), fca_(m, GetNan<Scal>())
-      , fcn_(m, GetNan<Vect>()), fck_(m, 0), fch_(m, Vect(0))
+      , mfc_(mfc), fccl_(fccl), fcim_(m, TRM::Pack(MIdx(0)))
+      , fca_(m, GetNan<Scal>()), fcn_(m, GetNan<Vect>())
+      , fck_(m, 0), fch_(m, Vect(0))
   {
     fcu_.time_curr = fcu;
     for (auto it : mfc_) {
       IdxFace f = it.GetIdx();
       mfvz_[f] = std::make_shared<
           CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
+    }
+
+    for (auto c : m.AllCells()) {
+      if (fcu[c] == 0) {
+        fccl_[c] = kClNone;
+      }
     }
 
     auto ps = std::make_shared<typename PS::Par>();
@@ -57,7 +65,6 @@ struct Vof<M_>::Imp {
     psm->vtkbin = par->vtkbin;
     psm->vtkmerge = par->vtkmerge;
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
-    trm_ = std::unique_ptr<TRM>(new TRM(m, layers));
   }
   void Update(typename PS::Par* p) const {
     Scal hc = m.GetCellSize().norminf(); // cell size
@@ -262,6 +269,7 @@ struct Vof<M_>::Imp {
   // clipth: threshold for clipping, values outside [th,1-th] are clipped
   static void Sweep(
       FieldCell<Scal>& uc, size_t d, const FieldFace<Scal>& ffv,
+      FieldCell<Scal>& fccl, FieldCell<Scal>& fcim,
       const FieldCell<Vect>& fcn, const FieldCell<Scal>& fca,
       const MapFace<std::shared_ptr<CondFace>>* mfc, int type,
       const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
@@ -273,6 +281,7 @@ struct Vof<M_>::Imp {
     MIdx wd(md); // offset in direction d
     auto& bc = m.GetIndexCells();
     auto& bf = m.GetIndexFaces();
+    MIdx gs = m.GetGlobalSize();
     auto h = m.GetCellSize();
 
     FieldFace<Scal> ffvu(m); // phase 2 flux
@@ -282,7 +291,7 @@ struct Vof<M_>::Imp {
           "Sweep(): unknown type '" + std::to_string(type) + "'");
     }
 
-    // compute fluxes [i]
+    // compute fluxes [i] and propagate color to downwind cells
     for (auto f : m.Faces()) {
       auto p = bf.GetMIdxDir(f);
       Dir df = p.second;
@@ -292,16 +301,29 @@ struct Vof<M_>::Imp {
       }
 
       const Scal v = ffv[f]; // mixture flux
-      IdxCell cu = m.GetNeighbourCell(f, v > 0. ? 0 : 1); // upwind cell
-      if (uc[cu] > 0 && uc[cu] < 1) { // interfacial cell
+      IdxCell c = m.GetNeighbourCell(f, v > 0. ? 0 : 1); // upwind cell
+      if (uc[c] > 0 && uc[c] < 1) { // interfacial cell
         if (type == 0 || type == 1 || type == 3) {
-          ffvu[f] = R::GetLineFlux(fcn[cu], fca[cu], h, v, dt, d);
+          ffvu[f] = R::GetLineFlux(fcn[c], fca[c], h, v, dt, d);
         } else if (type == 2) { // Lagrange Explicit
-          Scal vu = (v > 0. ? (*fcfm)[cu] : (*fcfp)[cu]);
-          ffvu[f] = R::GetLineFluxStr(fcn[cu], fca[cu], h, v, vu, dt, d);
+          Scal vu = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
+          ffvu[f] = R::GetLineFluxStr(fcn[c], fca[c], h, v, vu, dt, d);
         }
       } else { // pure cell
-        ffvu[f] = v * uc[cu];
+        ffvu[f] = v * uc[c];
+      }
+
+      // propagate color to downwind cell if empty
+      if (fccl[c] != kClNone) {
+        IdxCell cd = m.GetNeighbourCell(f, v > 0. ? 1 : 0); // downwind cell
+        if (fccl[cd] == kClNone) {
+          fccl[cd] = fccl[c];
+          MIdx w = bc.GetMIdx(c);
+          MIdx im = TRM::Unpack(fcim[c]);
+          if (w[d] < 0)      im[d] += 1;
+          if (w[d] >= gs[d]) im[d] -= 1;
+          fcim[cd] = TRM::Pack(im);
+        }
       }
     }
 
@@ -344,6 +366,11 @@ struct Vof<M_>::Imp {
       } else if (!(u <= 1 - clipth)) {
         u = 1;
       }
+      // clear color
+      if (u == 0) {
+        fccl[c] = kClNone;
+        fcim[c] = TRM::Pack(MIdx(0));
+      }
     }
   }
   void AdvAulisa(Sem& sem) {
@@ -384,10 +411,12 @@ struct Vof<M_>::Imp {
       }
       if (sem("sweep")) {
         auto& uc = fcu_.iter_curr;
-        Sweep(uc, d, *owner_->ffv_, fcn_, fca_, &mfc_,
+        Sweep(uc, d, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_,
               id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
               owner_->GetTimeStep() * vsc, par->clipth, m);
         m.Comm(&uc);
+        m.Comm(&fccl_);
+        m.Comm(&fcim_);
       }
       if (par->bcc_reflect && sem.Nested("reflect")) {
         BcReflect(fcu_.iter_curr, mfc_, par->bcc_fill, false, m);
@@ -442,10 +471,12 @@ struct Vof<M_>::Imp {
       size_t d = dd[id]; // direction as index
       auto& uc = fcu_.iter_curr;
       if (sem("sweep")) {
-        Sweep(uc, d, *owner_->ffv_, fcn_, fca_, &mfc_,
+        Sweep(uc, d, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_,
               type, nullptr, nullptr, &fcuu_,
               owner_->GetTimeStep(), par->clipth, m);
         m.Comm(&uc);
+        m.Comm(&fccl_);
+        m.Comm(&fcim_);
       }
       if (par->bcc_reflect && sem.Nested("reflect")) {
         BcReflect(uc, mfc_, par->bcc_fill, false, m);
@@ -484,9 +515,11 @@ struct Vof<M_>::Imp {
           IdxFace f = it.GetIdx();
           ffv[f] = 0;
         }
-        Sweep(uc, d, ffv, fcn_, fca_, &mfc_,
+        Sweep(uc, d, ffv, fccl_, fcim_, fcn_, fca_, &mfc_,
             3, nullptr, nullptr, &fcuu_, 1., par->clipth, m);
         m.Comm(&uc);
+        m.Comm(&fccl_);
+        m.Comm(&fcim_);
       }
       if (par->bcc_reflect && sem("reflect")) {
         BcReflect(uc, mfc_, par->bcc_fill, false, m);
@@ -502,7 +535,6 @@ struct Vof<M_>::Imp {
       FieldCell<Scal> fcclm;  // previous color
     }* ctx(sem);
     auto& fcclm = ctx->fcclm;
-
     if (sem("init")) {
       auto& uc = fcu_.iter_curr;
       const Scal dt = owner_->GetTimeStep();
@@ -561,9 +593,6 @@ struct Vof<M_>::Imp {
         }
       }
       m.Comm(&cl);
-    }
-    if (sem.Nested()) {
-      trm_->Update(&fccl_, &fcclm);
     }
     if (sem("stat")) {
       owner_->IncIter();
@@ -634,7 +663,8 @@ struct Vof<M_>::Imp {
   MapFace<std::shared_ptr<CondFace>> mfc_;
   MapFace<std::shared_ptr<CondFace>> mfvz_; // zero-derivative bc for Vect
 
-  FieldCell<Scal> fccl_;
+  FieldCell<Scal> fccl_; // color
+  FieldCell<Scal> fcim_; // image
   FieldCell<Scal> fca_; // alpha (plane constant)
   FieldCell<Vect> fcn_; // n (normal to plane)
   FieldCell<Scal> fck_; // curvature from height functions
@@ -646,7 +676,6 @@ struct Vof<M_>::Imp {
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
   std::unique_ptr<PartStrMeshM<M>> psm_;
-  std::unique_ptr<TRM> trm_;
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
   UVof<M> uvof_;
@@ -697,7 +726,7 @@ auto Vof<M_>::GetColor() const -> const FieldCell<Scal>& {
 
 template <class M_>
 auto Vof<M_>::GetImage(IdxCell c) const -> MIdx {
-  return imp->trm_->GetImage(0, c);
+  return Trackerm<M>::Unpack(imp->fcim_[c]);
 }
 
 template <class M_>
