@@ -62,6 +62,8 @@ def CheckFlag(name):
 
 
 draft = CheckFlag('-draft')
+orange = CheckFlag('-orange')
+green = CheckFlag('-green')
 
 # vf input
 ff = natsorted(av[1:])
@@ -91,7 +93,7 @@ materialLibrary1 = GetMaterialLibrary()
 
 # Create a new 'Light'
 light1 = CreateLight()
-light1.Intensity = 0.6
+light1.Intensity = 0.8
 light1.Position = [0.7, 1.0, 1.8819245943648655]
 light1.FocalPoint = [0.500005267560482, 0.4999827891588211, 0.4998413771390915]
 
@@ -162,13 +164,18 @@ surfDisplay = Show(surf, renderView1)
 surfDisplay.Representation = 'Surface'
 surfDisplay.ColorArrayName = ['POINTS', '']
 surfDisplay.DiffuseColor = [1]*3
+#c_green = [0.169, 0.627, 0.169]
+c_green = [0.636, 0.788, 0.604]
+#c_orange = [1., 0.494, 0.055]
+c_orange = [0.997, 0.698, 0.493]
+if green: surfDisplay.DiffuseColor = c_green
+if orange: surfDisplay.DiffuseColor = c_orange
 
 
 #####################################################
 ### END OF STATE FILE
 #####################################################
 
-SetTime(0)
 SetTime(1)
 for i in list(range(len(ss))):
     fn = bo.format("{:04d}".format(ss[i]))
