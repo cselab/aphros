@@ -355,9 +355,12 @@ struct Vofm<M_>::Imp {
         }
         Sweep(mfcu, d, layers, ffv, fccl_, fcim_, fcn_, fca_, mfc_,
             3, nullptr, nullptr, fcuu_, 1., par->clipth, m);
-        for (auto i : layers) {
+      }
+      for (auto i : layers) {
+        if (sem("comm")) {
           m.Comm(mfcu[i]);
           m.Comm(&fccl_[i]);
+          m.Comm(&fcim_[i]);
         }
       }
       if (par->bcc_reflect && sem("reflect")) {
@@ -417,9 +420,12 @@ struct Vofm<M_>::Imp {
         Sweep(mfcu, d, layers, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, mfc_,
               type, nullptr, nullptr, fcuu_,
               owner_->GetTimeStep(), par->clipth, m);
-        for (auto i : layers) {
+      }
+      for (auto i : layers) {
+        if (sem("comm")) {
           m.Comm(mfcu[i]);
           m.Comm(&fccl_[i]);
+          m.Comm(&fcim_[i]);
         }
       }
       if (par->bcc_reflect && sem("reflect")) {
@@ -524,10 +530,10 @@ struct Vofm<M_>::Imp {
             for (auto j : layers) {
               if ((*mfccl[j])[cd] == kClNone) {
                 (*mfccl[j])[cd] = fccl[c];
-                MIdx wd = bc.GetMIdx(cd);
+                MIdx w = bc.GetMIdx(c);
                 MIdx im = TRM::Unpack((*mfcim[i])[c]);
-                if (wd[d] < 0)      im[d] -= 1;
-                if (wd[d] >= gs[d]) im[d] += 1;
+                if (w[d] < 0)      im[d] += 1;
+                if (w[d] >= gs[d]) im[d] -= 1;
                 (*mfcim[j])[cd] = TRM::Pack(im);
                 break;
               }
@@ -638,9 +644,12 @@ struct Vofm<M_>::Imp {
         Sweep(mfcu, d, layers, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, mfc_,
               id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
               owner_->GetTimeStep() * vsc, par->clipth, m);
-        for (auto i : layers) {
+      }
+      for (auto i : layers) {
+        if (sem("comm")) {
           m.Comm(mfcu[i]);
           m.Comm(&fccl_[i]);
+          m.Comm(&fcim_[i]);
         }
       }
       if (par->bcc_reflect && sem("reflect")) {
