@@ -18,7 +18,7 @@ static int
 bah5_write(scalar s, const char *name, const char *path)
 {
   enum {X, Y, Z};
-  enum {I = Z, J = Y, K = X};
+  enum {A = Z, B = Y, C = X};
   int status;
   int e, nbuf, ext[3], siz[3], sta[3];
   double spa, ori[3], *buf;
@@ -35,14 +35,14 @@ bah5_write(scalar s, const char *name, const char *path)
     BAH5_WARN(("MPI is not initialized"));
 
   e = 1 << depth();
-  ext[I] = ext[J] = ext[K] = e;
-  siz[I] = e*mpi_dims[X];
-  siz[J] = e*mpi_dims[Y];
-  siz[K] = e*mpi_dims[Z];
+  ext[A] = ext[B] = ext[C] = e;
+  siz[A] = e*mpi_dims[X];
+  siz[B] = e*mpi_dims[Y];
+  siz[C] = e*mpi_dims[Z];
 
-  sta[I] = e*mpi_coords[X];
-  sta[J] = e*mpi_coords[Y];
-  sta[K] = e*mpi_coords[Z];
+  sta[A] = e*mpi_coords[X];
+  sta[B] = e*mpi_coords[Y];
+  sta[C] = e*mpi_coords[Z];
 
   ori[X] = X0; ori[Y] = Y0; ori[Z] = Z0;
   if (siz[X] == 0) {
