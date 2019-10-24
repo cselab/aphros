@@ -54,7 +54,10 @@ Shape Read(FILE *f) {
   Shape b;
   int n;
   char ss[MAX_SIZE+1], *s = ss;
-  fgets(s, MAX_SIZE, f);
+  if (fgets(s, MAX_SIZE, f) == NULL) {
+      fprintf(stderr, "%s:%d: fgets failed", __FILE__, __LINE__);
+      exit(2);
+  }
   sscanf(s, "%c", &t);
   if (('0' <= t && t <= '9') || t == '.' || t == '-' || t == '+')
     t = 's';
