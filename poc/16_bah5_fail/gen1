@@ -2,7 +2,7 @@
 
 set -eu
 
-echo 64 > np
+echo 1 > np
 echo 1440 > tl
 
 # ./gencase
