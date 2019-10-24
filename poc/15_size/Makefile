@@ -3,7 +3,14 @@ LINK = $(CC)
 CFLAGS = -g -Og
 M_LDFLAGS = h.o -lm
 
-M = area main size vtk2off vtk2off2 hash
+M = \
+area\
+main\
+rad\
+size\
+vtk2off\
+vtk2off2\
+hash\
 
 all: $M
 $M: h.o
