@@ -15,10 +15,18 @@ static int line(char *, FILE *);
 int
 csv_read(FILE * f, struct CSV *q)
 {
-  char s[N];
-
+  char s[N], *name;
+  int nf;
   LINE(s, f);
-  MSG(("%s", s));
+
+  nf = 0;
+  name = strtok(s, ",");
+  while (name != NULL) {
+      nf++;
+      MSG(("%s", name));
+      name = strtok(NULL, ",");
+  }
+  q->nf = nf;
   return 0;
 }
 
