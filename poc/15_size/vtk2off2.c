@@ -122,33 +122,6 @@ tri_volume_y(float *a, float *b, float *c)
   return V / 6;
 }
 
-double
-tri_volume_n(float *a, float *b, float *c)
-{
-  return 1;
-}
-
-static double
-tri_volume(float *a, float *b, float *c)
-{
-  enum { X, Y, Z };
-  double ax, ay, az, bx, by, bz, cx, cy, cz, V;
-
-  ax = a[X];
-  ay = a[Y];
-  az = a[Z];
-  bx = b[X];
-  by = b[Y];
-  bz = b[Z];
-  cx = c[X];
-  cy = c[Y];
-  cz = c[Z];
-
-  V = (ax * by - ay * bx) * cz + (az * bx - ax * bz) * cy + (ay * bz -
-                                                             az * by) * cx;
-  return V / 6;
-}
-
 static void
 usg(void)
 {
@@ -423,7 +396,7 @@ main(int argc, char **argv)
   int nc, i, j, k, m;
   float x[3], y[3], z[3];
   double *cx, *cy, *cz;
-  double ux, uy, uz, vx, vy, vz;
+  double ux, uy, uz, vx, vz;
   enum { X, Y, Z };
 
   Write = write_off;
@@ -479,7 +452,6 @@ case 'h':
     get3(i, x, y, z);
     ux = uy = uz = 0;
     vx = cx[k];
-    vy = cy[k];
     vz = cz[k];
     tri_center(x, y, z, &ux, &uy, &uz);
     d0 = &d[3 * i];

@@ -1,14 +1,19 @@
-#include <tgmath.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <tgmath.h>
 #include "arg.h"
 #include "h.h"
+#include "err.h"
+#include "memory.h"
+
+///
 
 enum { N = 1024 };
 static double pi = 3.141592653589793;
 static char me[] = "ch.radious";
-static int UseCl, WriteVolume;
+static int WriteVolume;
 
 char *argv0;
 static int nv, nt;
@@ -25,6 +30,7 @@ usg(void)
   fprintf(stderr, "usage: %s [-c]\n", me);
   exit(0);
 }
+
 struct Mesh {
   int nt, nv;
   float *r;
@@ -165,7 +171,6 @@ get3(struct Mesh *mesh, int t, /**/ float *a, float *b, float *c)
   return 0;
 }
 
-static int *u_root;
 static int
 max_arg(int n, int *a)
 {
@@ -180,37 +185,6 @@ max_arg(int n, int *a)
     }
   }
   return j;
-}
-
-static void
-u_ini(int n)
-{
-  MALLOC(n, &u_root);
-  while (n--)
-    u_root[n] = n;
-}
-
-static void
-u_fin()
-{
-  free(u_root);
-}
-
-static int
-u_find(int v)
-{
-  if (v == u_root[v])
-    return v;
-  return u_root[v] = u_find(u_root[v]);
-}
-
-static void
-u_union(int a, int b)
-{
-  a = u_find(a);
-  b = u_find(b);
-  if (a != b)
-    u_root[b] = a;
 }
 
 static int
@@ -329,7 +303,7 @@ wall(void)
 static int
 color(int *pnb)
 {
-  int nb, u, v, w;
+  int nb;
   int *id;
   int i, j, k;
   struct Mesh mesh;
@@ -338,19 +312,19 @@ color(int *pnb)
   MALLOC(nt, &c);
   MALLOC(nt, &id);
   float val;
-  
+
   h_ini(nt);
   j = 0;
   k = j++;
   h_enter(0, k);
   for (i = 1; i < nt; i++) {
-      val = cl[i];
-      k = h_find(val);
-      if (k == -1) {
-	  k = j++;
-	  h_enter(val, k);
-      }
-      c[i] = k;
+    val = cl[i];
+    k = h_find(val);
+    if (k == -1) {
+      k = j++;
+      h_enter(val, k);
+    }
+    c[i] = k;
   }
   h_fin();
 
@@ -451,13 +425,13 @@ case 'h':
 
   printf("x y z r V n\n");
   for (i = 0; i < nb; i++)
-      if (volume[i] > 0 && dot[i] < 0) {
-	  V = volume[i];
-	  R = pow(3 * V / (4 * pi), 1.0 / 3.0);
-	  printf("%.16e %.16e %.16e %.16e %.16e %d\n",
-		 cx[i], cy[i], cz[i], R, V, cnt[i]);
-      }
-  
+    if (volume[i] > 0 && dot[i] < 0) {
+      V = volume[i];
+      R = pow(3 * V / (4 * pi), 1.0 / 3.0);
+      printf("%.16e %.16e %.16e %.16e %.16e %d\n",
+             cx[i], cy[i], cz[i], R, V, cnt[i]);
+    }
+
   free(c);
   free(cl);
   free(cnt);

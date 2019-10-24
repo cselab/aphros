@@ -5,12 +5,13 @@ M_LDFLAGS = h.o -lm
 
 M = \
 area\
+hash\
+info\
 main\
 rad\
 size\
 vtk2off\
 vtk2off2\
-hash\
 
 all: $M
 $M: h.o
