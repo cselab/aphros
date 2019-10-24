@@ -7,7 +7,7 @@
 
 enum { N = 1024 };
 static double pi = 3.141592653589793;
-static char me[] = "ch.size";
+static char me[] = "ch.radious";
 static int UseCl, WriteVolume;
 
 char *argv0;
@@ -25,24 +25,6 @@ usg(void)
   fprintf(stderr, "usage: %s [-c]\n", me);
   exit(0);
 }
-
-#define MALLOC(n, p)							\
-    do {								\
-	*(p) = malloc(n*sizeof(**(p)));					\
-	if (*(p) == NULL) {						\
-	    fprintf(stderr, "%s:%d: alloc failed, n = %d\n", __FILE__, __LINE__, n); \
-	    exit(2);							\
-	}								\
-    } while(0)
-
-#define FREAD(n, p, f) \
-    do {								\
-	if ((int)fread(p, sizeof(*(p)), (n), (f)) != (n)) {		\
-	    fprintf(stderr, "%s:%d: failt to read, n = %d\n", __FILE__, __LINE__, n); \
-	    exit(2);							\
-	}								\
-} while(0)
-
 struct Mesh {
   int nt, nv;
   float *r;
@@ -355,40 +337,22 @@ color(int *pnb)
 
   MALLOC(nt, &c);
   MALLOC(nt, &id);
-
-  if (UseCl) {
-    int i, j, k;
-    float val;
-
-    h_ini(nt);
-    j = 0;
-    k = j++;
-    h_enter(0, k);
-    for (i = 1; i < nt; i++) {
+  float val;
+  
+  h_ini(nt);
+  j = 0;
+  k = j++;
+  h_enter(0, k);
+  for (i = 1; i < nt; i++) {
       val = cl[i];
       k = h_find(val);
       if (k == -1) {
-        k = j++;
-        h_enter(val, k);
+	  k = j++;
+	  h_enter(val, k);
       }
       c[i] = k;
-    }
-    h_fin();
-  } else {
-    u_ini(nv);
-    for (i = 0; i < nt; i++) {
-      u = t[3 * i];
-      v = t[3 * i + 1];
-      w = t[3 * i + 2];
-      u_union(u, v);
-      u_union(v, w);
-    }
-    for (i = 0; i < nt; i++) {
-      u = t[3 * i];
-      c[i] = u_find(u);
-    }
-    u_fin();
   }
+  h_fin();
 
   for (i = 0; i < nt; i++)
     id[i] = -1;
@@ -457,11 +421,8 @@ main(int argc, char **argv)
   struct Mesh mesh;
   float x[3], y[3], z[3];
 
-  UseCl = WriteVolume = 0;
+  WriteVolume = 0;
   ARGBEGIN {
-case 'c':
-    UseCl = 1;
-    break;
 case 'v':
     WriteVolume = 1;
     break;
@@ -488,23 +449,15 @@ case 'h':
     volume[k] += tri_volume_y(x, y, z);
   }
 
-  if (WriteVolume) {
-    V = 0;
-    for (i = 0; i < nb; i++)
-      if (volume[i] > 0 && dot[i] < 0)
-        V += fabs(volume[i]);
-    printf("%.16g\n", V);
-  } else {
-    printf("x y z r n\n");
-    for (i = 0; i < nb; i++)
+  printf("x y z r V n\n");
+  for (i = 0; i < nb; i++)
       if (volume[i] > 0 && dot[i] < 0) {
-        V = volume[i];
-        R = pow(3 * V / (4 * pi), 1.0 / 3.0);
-        printf("%.16e %.16e %.16e %.16e %d\n",
-               cx[i], cy[i], cz[i], R, cnt[i]);
+	  V = volume[i];
+	  R = pow(3 * V / (4 * pi), 1.0 / 3.0);
+	  printf("%.16e %.16e %.16e %.16e %.16e %d\n",
+		 cx[i], cy[i], cz[i], R, V, cnt[i]);
       }
-  }
-
+  
   free(c);
   free(cl);
   free(cnt);

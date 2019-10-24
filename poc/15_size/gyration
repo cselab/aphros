@@ -21,10 +21,14 @@ function one(f,   r, i, cl, vf)
     for (i = 1; i <= NF; i++)
         Key[$i] = i
     while (getline < f == 1) {
-        cl = get("cl")
+        xx = get("xx")
+        yy = get("yy")
+        zz = get("zz")
         vf = get("vf")
+        cl = get("cl")
+        rg = sqrt(xx + yy)
         if (cl != 0 && vf < 0.1)
-            print vol2rad(vf), vf
+            print rg
     }
     close(f)
 }
