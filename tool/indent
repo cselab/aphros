@@ -23,4 +23,5 @@ exec indent \
      --no-tabs\
      --pointer-align-right\
      --tab-size 2\
+     --indent-level 2\
      "$@"
