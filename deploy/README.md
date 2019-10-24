@@ -60,7 +60,7 @@ Prepare the environment and install dependencies:
 * Unit can be executed. Shell scripts can also be sourced.
 * _Machine suffix_ is a unique name associated to a particular machine.
 * _System unit_ is a unit located in `PATH`.
-* Name of a system unit has prefix `.ch` (_standard prefix_).
+* Name of a system unit has prefix `ch.` (_standard prefix_).
 * System units can be executed or sourced from any folder.
 * Unit can call other units by their name. Lookup order:
   - its folder with machine suffix,
