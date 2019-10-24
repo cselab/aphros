@@ -9,17 +9,17 @@ Prepare the environment and install dependencies:
      P=prefix ./all
      ```
 
-    to `prefix` and files `ch.prefix` and `ch.setenv` to `$HOME/bin` 
-*   set environment 
+    to `prefix` and files `ch.prefix` and `ch.setenv` to `$HOME/bin`
+*   set environment
 
      ```
      . ch.setenv
      ```
 
-*   install hypre 
+*   install hypre
 
      ```
-     cd hypre 
+     cd hypre
      ./_run
      ```
 
@@ -41,7 +41,7 @@ Prepare the environment and install dependencies:
 ## Run a single package (e.g. hypre)
 
     cd hypre
-    ./_run 
+    ./_run
 
 ## Setenv
 
@@ -83,5 +83,5 @@ Prepare the environment and install dependencies:
   - `B`: default `$HOME/bin`
   - `MS`: machine suffix
   - `PRE`: standard prefix
-  
-TODO some places assume `PRE=ch` 
+
+TODO some places assume `PRE=ch`
