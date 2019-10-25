@@ -42,7 +42,7 @@ csv_read(FILE * f)
     field = strtok(s, ",");
     while (field != NULL) {
       if (ifield == nf)
-        ERR(("ifield == nf=%d, nr = %d", nf, nr));
+        ERR(("ifield == nf=%d, nr=%d", nf, nr));
       if (ifield == 0 && nr == M) {
         M *= 2;
         for (i = 0; i < nf; i++)
@@ -53,6 +53,8 @@ csv_read(FILE * f)
       ifield++;
       field = strtok(NULL, ",");
     }
+    if (ifield != nf)
+	ERR(("ifield=%d != nf=%d, nr=%d", ifield, nf, nr));
     nr++;
   }
 

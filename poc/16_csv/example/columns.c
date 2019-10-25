@@ -17,7 +17,10 @@ main(int argc, char **argv)
   USED(argc);
 
   argv++;
-
+  if (argv[0] == NULL) {
+      fprintf(stderr, "%s: needs an argument\n", me);
+      exit(2);
+  }
   csv = csv_read(stdin);
   nr = csv_nr(csv);
   nf = 0;
@@ -28,7 +31,7 @@ main(int argc, char **argv)
       break;
     f = csv_field(csv, name);
     if (f == NULL) {
-      fprintf(stderr, "%s: unknow filed '%s'\n", me, name);
+      fprintf(stderr, "%s: unknown filed '%s'\n", me, name);
       exit(2);
     }
     field[nf++] = f;
