@@ -85,11 +85,11 @@ vtk_read(FILE * f)
     MSG(("expect 'DATASET POLYDATA', get '%s'", s));
     return NULL;
   }
-  LINE(s, f);
-  if (sscanf(s, "POINTS %d float", &nv) != 1) {
-    MSG(("failt to parse: '%s'", s));
-    return NULL;
-  }
+  if (line(s, f) != 0)
+    goto end_polygons;
+  sscanf(s, "%s %d float", name, &nv);
+  if (!eq(name, "POINTS"))
+    goto end_polygons;
   FILL(3 * nv, f, &r);
   MALLOC(nv, &x);
   MALLOC(nv, &y);
