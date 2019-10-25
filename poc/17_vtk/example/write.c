@@ -7,7 +7,8 @@ int
 main(void)
 {
   struct VTK *vtk;
-  int nv, nt, i;
+  int nv, nt, nf, i;
+  float *cl;
 
   vtk = vtk_read(stdin);
   if (vtk == NULL) {
@@ -17,6 +18,15 @@ main(void)
 
   nv = vtk_nv(vtk);
   nt = vtk_nt(vtk);
+  nf = vtk_nf(vtk);
+  cl = vtk_field(vtk, "cl");
+  if (cl == NULL) {
+    fprintf(stderr, "%s: cl == NULL\n", me);
+    exit(2);
+  }
 
+  for (i = 0; i < nt; i++)
+    if (cl[i] != -1 && cl[i] != 0)
+      printf("%g\n", cl[i]);
   vtk_fin(vtk);
 }

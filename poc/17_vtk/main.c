@@ -10,12 +10,12 @@ enum { N = 9999 };
 
 #define FMT "%.20g"
 #define LINE(s, f)				\
-    do						\
-	if (line(s, f) != 0) {			\
-	    MSG(("fail to read"));		\
-	    return NULL;			\
-	}					\
-    while (s[0] == '\0')
+  do						\
+    if (line(s, f) != 0) {			\
+      MSG(("fail to read"));			\
+      return NULL;				\
+    }						\
+  while(0)
 
 #define SWAP(n, p) swap(n, sizeof(*(p)), p)
 #define FILL(n, f, p)				\
@@ -33,10 +33,14 @@ enum { N = 9999 };
 
 static int swap(int, int, void *);
 static int line(char *, FILE *);
+static int line0(char *, FILE *);
 static int eq(const char *, const char *);
 static int rank2num(const char *, int *);
 static int type2num(const char *, int *num, int *size);
+static int location2num(const char *, int *);
 
+static const char *LocationString[] = { "CELL_DATA", "POINT_DATA" };
+static const int LocationEnum[] = { VTK_CELL, VTK_POINT };
 static const char *TypeString[] = { "int", "float" };
 static const int TypeEnum[] = { VTK_INT, VTK_FLOAT };
 static const int TypeSize[] = { sizeof(int), sizeof(float) };
@@ -47,13 +51,12 @@ struct VTK *
 vtk_read(FILE * f)
 {
   struct VTK *q;
-  char s[N];
-  const char *field;
   double *x, *y, *z;
+  void *p;
   float *r;
-  int nv, nt, nf, m, i, j, nr, ifield, size;
+  int nv, nt, nf, n, m, i, j, nr, ifield, size;
   int *t, *t0, *t1, *t2;
-  char rank[N], name[N], type[N];
+  char s[N], rank[N], name[N], type[N], location[N];
 
   MALLOC(1, &q);
   LINE(s, f);
@@ -95,6 +98,7 @@ vtk_read(FILE * f)
   }
   FILL(4 * nt, f, &t);
   MALLOC(nt, &t0);
+
   MALLOC(nt, &t1);
   MALLOC(nt, &t2);
   for (i = j = 0; i < nt; i++) {
@@ -104,51 +108,52 @@ vtk_read(FILE * f)
     t2[i] = t[j++];
   }
   FREE(t);
-
   nf = 0;
+  if (line(s, f) != 0)
+    goto end_data;
   for (;;) {
-    LINE(s, f);
-    if (sscanf(s, "CELL_DATA %*d") == 0) {
-      for (;;) {
-	MSG(("s: %s", s));
-	LINE(s, f);
-	if (sscanf(s, "%s %s %s", rank, name, type) != 3)
-	  break;
-	MSG(("name: %s", name));
-	q->name[nf] = memory_strndup(name, N);
-	if (eq(rank, "SCALARS")) {
-	  LINE(s, f);
-	  if (!eq(s, "LOOKUP_TABLE default")) {
-	    MSG(("expect 'LOOKUP_TABLE default', get '%s'", s));
-	    return NULL;
-	  }
-	}
-	if (rank2num(rank, &q->rank[nf]) != 0) {
-	  MSG(("unknown rank: '%s' for '%s'", rank, name));
-	  return NULL;
-	}
-	if (type2num(type, &q->type[nf], &size) != 0) {
-	  MSG(("unknown type: '%s' for '%s'", type, name));
-	  return NULL;
-	}
-	m = size * nt * q->rank[nf];
-	FILL(m, f, &q->data[nf]);
-	nf++;
-      }
-    } else if (sscanf(s, "POINT_DATA %*d") == 0) {
-      MSG(("point_data"));
-      break;
-    } else
+    sscanf(s, "%s", location);
+    if (line(s, f) != 0)
       goto end_data;
+    do {
+      if (location2num(location, &q->location[nf]) != 0) {
+        MSG(("unknown location '%s'", location));
+        return NULL;
+      }
+      if (sscanf(s, "%s %s %s", rank, name, type) != 3)
+        break;
+      q->name[nf] = memory_strndup(name, N);
+      if (eq(rank, "SCALARS")) {
+        LINE(s, f);
+        if (!eq(s, "LOOKUP_TABLE default")) {
+          MSG(("expect 'LOOKUP_TABLE default', get '%s'", s));
+          return NULL;
+        }
+      }
+      if (rank2num(rank, &q->rank[nf]) != 0) {
+        MSG(("unknown rank: '%s' for '%s'", rank, name));
+        return NULL;
+      }
+      if (type2num(type, &q->type[nf], &size) != 0) {
+        MSG(("unknown type: '%s' for '%s'", type, name));
+        return NULL;
+      }
+      n = q->location[nf] == VTK_CELL ? nt : nv;
+      m = n * q->rank[nf];
+      MALLOC(m * size, &p);
+      FREAD(m * size, p, f);
+      swap(m, size, p);
+      q->data[nf] = p;
+      nf++;
+    } while (line(s, f) == 0);
   }
 end_data:
-  exit(2);
-
   q->nv = nv;
+  q->nt = nt;
+  q->nf = nf;
   q->x = x;
   q->y = y;
   q->z = z;
-  q->nt = nt;
   q->t0 = t0;
   q->t1 = t1;
   q->t2 = t2;
@@ -160,7 +165,7 @@ vtk_fin(struct VTK *q)
 {
   int i, nf;
 
-  nf = q->nf;
+  nf = vtk_nf(q);
   for (i = 0; i < nf; i++) {
     FREE(q->name[i]);
     FREE(q->data[i]);
@@ -184,6 +189,16 @@ vtk_write(struct VTK *q, FILE * f)
 static int
 line(char *s, FILE * f)
 {
+  do
+    if (line0(s, f) != 0)
+      return 1;
+  while (s[0] == '\0');
+  return 0;
+}
+
+static int
+line0(char *s, FILE * f)
+{
   int n;
 
   if (fgets(s, N, f) == NULL)
@@ -201,9 +216,27 @@ vtk_nv(struct VTK *q)
 }
 
 int
+vtk_nf(struct VTK *q)
+{
+  return q->nf;
+}
+
+int
 vtk_nt(struct VTK *q)
 {
   return q->nt;
+}
+
+void *
+vtk_field(struct VTK *q, const char *name)
+{
+  int i, nf;
+
+  nf = q->nf;
+  for (i = 0; i < nf; i++)
+    if (eq(name, q->name[i]))
+      return q->data[i];
+  return NULL;
 }
 
 static int
@@ -229,6 +262,21 @@ swap(int n, int size, void *p0)
   }
   return 0;
 }
+
+static int
+location2num(const char *s, int *p)
+{
+  int i, n;
+
+  n = SIZE(LocationString);
+  for (i = 0; i < n; i++)
+    if (eq(s, LocationString[i])) {
+      *p = LocationEnum[i];
+      return 0;
+    }
+  return 1;
+}
+
 
 static int
 rank2num(const char *s, int *p)
