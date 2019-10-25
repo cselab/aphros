@@ -10,6 +10,26 @@ import threading
 import sys
 
 
+# Read uniform grid data
+# lines
+# Format:
+# <nx> <ny> <nz>
+# <u[z,y,x]> ...
+# Return:
+# array of shape (nx, ny, nz)
+# None if file not found
+def ReadPlain(ll):
+    # shape x,y,z
+    s = np.array(ll[0].split(), dtype=int)
+    # shape z,y,x
+    ss = tuple(reversed(s))
+    # data flat
+    u = np.array(ll[1].split(), dtype=float)
+    # data z,y,x
+    u = u.reshape(ss)
+    return u
+
+
 def Send(msg):
     try:
         with open('in', 'w') as f:
@@ -21,8 +41,11 @@ def Listen():
     while True:
         try:
             with open('out', 'r') as f:
-                for l in f:
-                    sys.stderr.write(l)
+                line = f.readline()
+                if line.strip() == "field":
+                    print(ReadPlain(f.readlines()))
+                else:
+                    print(f.readlines())
         except IOError:
             print("can't open pipe out")
 
@@ -34,16 +57,11 @@ def Print(msg, msg2=None):
     Send(msg)
 
 def pick_simple():
-    fig, (ax1, ax2) = plt.subplots(2, 1)
-    ax1.text(0.0, 1.1, "exit", picker=True, bbox=dict(facecolor='red'), transform=ax1.transAxes)
-    ax1.text(0.05, 1.1, "step", picker=True, bbox=dict(facecolor='green'), transform=ax1.transAxes)
-    ax1.text(0.1, 1.1, "field", picker=True, bbox=dict(facecolor='yellow'), transform=ax1.transAxes)
-    line, = ax1.plot(rand(100), 'o', picker=5)  # 5 points tolerance
-
-    bars = ax2.bar(range(10), rand(10), picker=True)
-
-    for label in ax2.get_xticklabels():
-        label.set_picker(True)
+    fig, ax = plt.subplots(1, 1)
+    ax.text(0.0, 1.1, "exit", picker=True, bbox=dict(facecolor='red'), transform=ax.transAxes)
+    ax.text(0.05, 1.1, "step", picker=True, bbox=dict(facecolor='green'), transform=ax.transAxes)
+    ax.text(0.1, 1.1, "field", picker=True, bbox=dict(facecolor='yellow'), transform=ax.transAxes)
+    line, = ax.plot(rand(100), 'o', picker=5)  # 5 points tolerance
 
     def onpick1(event):
         if isinstance(event.artist, Line2D):
