@@ -65,7 +65,7 @@ void Send() {
         std::this_thread::yield();
       }
       std::cerr << "send " << queue.front() << std::endl;
-      if (queue.front() == "flagexit") {
+      if (queue.front() == "exit") {
         flagexit = true;
       }
       out << queue.front() << std::endl;
