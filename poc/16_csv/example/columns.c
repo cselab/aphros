@@ -5,6 +5,7 @@
 static const char me[] = "column";
 
 #define FMT "%.20g"
+#define	USED(x)		if(x);else{}
 
 int
 main(int argc, char **argv)
@@ -13,6 +14,7 @@ main(int argc, char **argv)
   char *name;
   double *field[99], *f;
   struct CSV *csv;
+  USED(argc);
 
   argv++;
 
