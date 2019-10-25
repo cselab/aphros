@@ -1,7 +1,9 @@
 enum { VTK_MAX_NF = 999 };
 struct VTK {
   char *name[VTK_MAX_NF];
-  double *data[VTK_MAX_NF];
+  int *type[VTK_MAX_NF];
+  int *rank[VTK_MAX_NF];
+  void *data[VTK_MAX_NF];
   int nf, nr;
 };
 

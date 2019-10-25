@@ -24,6 +24,9 @@ vtk_read(FILE * f)
 
   MALLOC(1, &q);
   LINE(s, f);
+  if (!eq(s, "# vtk DataFile Version 2.0"))
+    ERR(("not a vtk file"));
+
   M = 2;                        /* initial size */
   nf = 0;
   field = strtok(s, ",");
@@ -48,13 +51,11 @@ vtk_read(FILE * f)
         for (i = 0; i < nf; i++)
           REALLOC(M, &q->data[i]);
       }
-      if (sscanf(field, "%lf", &q->data[ifield][nr]) != 1)
-        ERR(("not a number '%s'", field));
       ifield++;
       field = strtok(NULL, ",");
     }
     if (ifield != nf)
-	ERR(("ifield=%d != nf=%d, nr=%d", ifield, nf, nr));
+      ERR(("ifield=%d != nf=%d, nr=%d", ifield, nf, nr));
     nr++;
   }
 
@@ -80,7 +81,7 @@ vtk_fin(struct VTK *q)
 int
 vtk_write_space(struct VTK *q, FILE * f)
 {
-    return 0;
+  return 0;
 }
 
 static int
