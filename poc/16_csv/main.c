@@ -6,7 +6,7 @@
 
 char me[] = "csv";
 enum { N = 9999 };
-
+#define FMT "%.20g"
 #define LINE(s, f)				\
     if (line(s, f) != 0)			\
 	ERR(("fail to read"));
@@ -29,7 +29,6 @@ csv_read(FILE * f)
   while (field != NULL) {
     if (nf == CSV_MAX_NF)
       ERR(("nf == CSV_MAX_NF=%d", nf, CSV_MAX_NF));
-    MSG(("%s", field));
     q->name[nf] = memory_strndup(field, N);
     MALLOC(M, &q->data[nf]);
     nf++;
@@ -72,6 +71,7 @@ csv_fin(struct CSV *q)
     FREE(q->data[i]);
   }
   FREE(q);
+  return 0;
 }
 
 double *
@@ -96,6 +96,45 @@ int
 csv_nr(struct CSV *q)
 {
   return q->nr;
+}
+
+static int
+write(struct CSV *q, char sep, FILE * f)
+{
+  int nf, nr, i, j;
+
+  nf = csv_nf(q);
+  nr = csv_nr(q);
+  for (i = 0; i < nf; i++) {
+    if (i > 0)
+      fputc(sep, f);
+    if (fputs(q->name[i], f) == EOF) {
+      MSG(("fail to write"));
+      return 1;
+    }
+  }
+  fputc('\n', f);
+  for (j = 0; j < nr; j++) {
+    for (i = 0; i < nf; i++) {
+      if (i > 0)
+        fputc(sep, f);
+      fprintf(f, FMT, q->data[i][j]);
+    }
+    fputc('\n', f);
+  }
+  return 0;
+}
+
+int
+csv_write(struct CSV *q, FILE * f)
+{
+    return write(q, ',', f);
+}
+
+int
+csv_write_space(struct CSV *q, FILE * f)
+{
+    return write(q, ' ', f);
 }
 
 static int

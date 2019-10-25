@@ -5,7 +5,8 @@ M_LDFLAGS = -L$(CHPREFIX)/lib -lcsv
 M_CFLAGS = -I$(CHPREFIX)/include
 
 M = \
-main\
+column\
+write\
 
 all: $M
 .o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@

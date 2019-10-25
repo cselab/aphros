@@ -11,4 +11,6 @@ double *csv_field(struct CSV *, const char *);
 int csv_nf(struct CSV *);
 int csv_nr(struct CSV *);
 int csv_delete(struct CSV *, const char *);
+
 int csv_write(struct CSV *, FILE *);
+int csv_write_space(struct CSV *, FILE *);
