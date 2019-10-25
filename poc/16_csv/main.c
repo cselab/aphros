@@ -6,6 +6,7 @@
 
 char me[] = "csv";
 enum { N = 9999 };
+
 #define FMT "%.20g"
 #define LINE(s, f)				\
     if (line(s, f) != 0)			\
@@ -128,13 +129,13 @@ write(struct CSV *q, char sep, FILE * f)
 int
 csv_write(struct CSV *q, FILE * f)
 {
-    return write(q, ',', f);
+  return write(q, ',', f);
 }
 
 int
 csv_write_space(struct CSV *q, FILE * f)
 {
-    return write(q, ' ', f);
+  return write(q, ' ', f);
 }
 
 static int

@@ -6,6 +6,7 @@ M_CFLAGS = -I$(CHPREFIX)/include
 
 M = \
 column\
+columns\
 write\
 
 all: $M
