@@ -65,8 +65,9 @@ vtk_read(FILE * f)
   float *r;
   int nv, nt, nf, n, m, i, j, nr, ifield, size;
   int *t, *t0, *t1, *t2;
-  char s[N], rank[N], name[N], type[N], location[N];
+  char s[N], u[N], rank[N], name[N], type[N], location[N];
 
+  nv = nt = nf = 0;
   MALLOC(1, &q);
   LINE(s, f);
   if (!eq(s, "# vtk DataFile Version 2.0")) {
@@ -99,14 +100,15 @@ vtk_read(FILE * f)
     z[i] = r[j++];
   }
   FREE(r);
-  LINE(s, f);
-  if (sscanf(s, "POLYGONS %d %*d", &nt) != 1) {
-    MSG(("fail to parse: '%s'", s));
-    return NULL;
+  if (line(s, f) != 0)
+    goto end_data;
+  sscanf(s, "%s %d %*d", name, &nt);
+  if (!eq(name, "POLYGONS")) {
+    MSG(("preved: %s", name));
+    goto end_polygons;
   }
   FILL(4 * nt, f, &t);
   MALLOC(nt, &t0);
-
   MALLOC(nt, &t1);
   MALLOC(nt, &t2);
   for (i = j = 0; i < nt; i++) {
@@ -116,9 +118,9 @@ vtk_read(FILE * f)
     t2[i] = t[j++];
   }
   FREE(t);
-  nf = 0;
   if (line(s, f) != 0)
     goto end_data;
+ end_polygons:
   for (;;) {
     sscanf(s, "%s", location);
     if (line(s, f) != 0)
@@ -171,19 +173,25 @@ end_data:
 int
 vtk_fin(struct VTK *q)
 {
-  int i, nf;
+  int i, nv, nt, nf;
 
+  nv = vtk_nv(q);
+  nt = vtk_nt(q);
   nf = vtk_nf(q);
   for (i = 0; i < nf; i++) {
     FREE(q->name[i]);
     FREE(q->data[i]);
   }
-  FREE(q->x);
-  FREE(q->y);
-  FREE(q->z);
-  FREE(q->t0);
-  FREE(q->t1);
-  FREE(q->t2);
+  if (nv > 0) {
+    FREE(q->x);
+    FREE(q->y);
+    FREE(q->z);
+  }
+  if (nt > 0) {
+    FREE(q->t0);
+    FREE(q->t1);
+    FREE(q->t2);
+  }
   FREE(q);
   return 0;
 }
@@ -217,6 +225,7 @@ vtk_write(struct VTK *q, FILE * f)
   }
   SWAP(3 * nv, r);
   FWRITE(3 * nv, r, f);
+  FREE(r);
   return 0;
 }
 

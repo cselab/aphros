@@ -21,6 +21,7 @@ main(void)
 
   printf("nv %d\n", nv);
   printf("nt %d\n", nt);
+  printf("nf %d\n", nf);  
   for (i = 0; i < nf; i++) {
     location = vtk->location[i];
     type = vtk->type[i];
