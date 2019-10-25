@@ -1,11 +1,14 @@
+enum { CSV_MAX_NF = 999 };
 struct CSV {
-  char **name;
-  double **data;
+  char *name[CSV_MAX_NF];
+  double *data[CSV_MAX_NF];
   int nf, nr;
 };
 
-int csv_read(FILE *, struct CSV *);
+struct CSV *csv_read(FILE *);
 int csv_fin(struct CSV *);
-double *csv_get(struct CSV *, const char *);
+double *csv_field(struct CSV *, const char *);
+int csv_nf(struct CSV *);
+int csv_nr(struct CSV *);
 int csv_delete(struct CSV *, const char *);
 int csv_write(struct CSV *, FILE *);
