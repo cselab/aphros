@@ -1,5 +1,6 @@
 #include <thread>
 #include <iostream>
+#include <sstream>
 #include <fstream>
 #include <mutex>
 #include <queue>
@@ -42,7 +43,8 @@ void Abort() {
 void Listen() {
   std::string name = "in";
   while (!flagexit) {
-    std::cerr << "opening pipe '" << name << "'" << std::endl;
+    std::this_thread::yield();
+    //std::cerr << "opening pipe '" << name << "'" << std::endl;
     std::ifstream in(name);
     if (!in.good()) { Abort(); }
     while (!flagexit && in) {
@@ -50,6 +52,7 @@ void Listen() {
       std::getline(in, line);
       if (!in) break;
       queue.push(line);
+      std::this_thread::yield();
     }
   }
 }
@@ -57,18 +60,28 @@ void Listen() {
 void Send() {
   std::string name = "out";
   while (!flagexit) {
-    std::cerr << "opening pipe '" << name << "'" << std::endl;
+    std::this_thread::yield();
+    //std::cerr << "opening pipe '" << name << "'" << std::endl;
     std::ofstream out(name);
     if (!out.good()) { Abort(); }
     while (out && !flagexit) {
+      std::this_thread::yield();
       while (queue.empty()) {
         std::this_thread::yield();
       }
-      std::cerr << "send " << queue.front() << std::endl;
       if (queue.front() == "exit") {
         flagexit = true;
       }
-      out << queue.front() << std::endl;
+      std::stringstream s(queue.front());
+      std::string cmd;
+      s >> cmd;
+      if (cmd == "sum") {
+        double a, b;
+        s >> a >> b;
+        out << a + b << std::endl;
+      } else {
+        out << queue.front() << std::endl;
+      }
       queue.pop();
     }
   }
