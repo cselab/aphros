@@ -6,6 +6,7 @@ from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 import numpy as np
 from numpy.random import rand
+import threading
 
 
 def Send(msg):
@@ -13,18 +14,28 @@ def Send(msg):
         with open('in', 'w') as f:
             f.write("{:}\n".format(msg))
     except IOError:
-        print("can't open pipe")
+        print("can't open pipe in")
+
+def Listen():
+    while True:
+        try:
+            with open('out', 'r') as f:
+                print(f.readline())
+        except IOError:
+            print("can't open pipe out")
+
 
 def Print(msg, msg2=None):
     if msg2 is not None:
         msg = "{:}{:}".format(msg, msg2)
-    print(msg)
+    print("send: " + msg)
     Send(msg)
 
 def pick_simple():
     fig, (ax1, ax2) = plt.subplots(2, 1)
-    ax1.text(0.1, 1.2, "exit", picker=True, bbox=dict(facecolor='red'))
-    ax1.text(10, 1.2, "step", picker=True, bbox=dict(facecolor='green'))
+    ax1.text(0.0, 1.1, "exit", picker=True, bbox=dict(facecolor='red'), transform=ax1.transAxes)
+    ax1.text(0.05, 1.1, "step", picker=True, bbox=dict(facecolor='green'), transform=ax1.transAxes)
+    ax1.text(0.1, 1.1, "field", picker=True, bbox=dict(facecolor='yellow'), transform=ax1.transAxes)
     line, = ax1.plot(rand(100), 'o', picker=5)  # 5 points tolerance
 
     bars = ax2.bar(range(10), rand(10), picker=True)
@@ -51,5 +62,7 @@ def pick_simple():
 
 
 if __name__ == '__main__':
+    t1 = threading.Thread(target=Listen)
+    t1.start()
     pick_simple()
     plt.show()
