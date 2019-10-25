@@ -1,0 +1,31 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <vtk.h>
+
+static char me[] = "vtk/write";
+int
+main(void)
+{
+  struct VTK *vtk;
+  int nv, nt, nf, i, location, type;
+  float *cl;
+
+  vtk = vtk_read(stdin);
+  if (vtk == NULL) {
+    fprintf(stderr, "%s: fail to read\n", me);
+    exit(2);
+  }
+  nv = vtk_nv(vtk);
+  nt = vtk_nt(vtk);
+  nf = vtk_nf(vtk);
+
+  printf("nv %d\n", nv);
+  printf("nt %d\n", nt);
+  for (i = 0; i < nf; i++) {
+    location = vtk->location[i];
+    type = vtk->type[i];
+    printf("%s %s %s %d\n", vtk->name[i], type == VTK_FLOAT ? "float" : "int",
+           location == VTK_CELL ? "cell" : "point", vtk->rank[i]);
+  }
+  vtk_fin(vtk);
+}

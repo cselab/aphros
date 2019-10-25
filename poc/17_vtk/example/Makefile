@@ -5,6 +5,7 @@ M_LDFLAGS = -L$(CHPREFIX)/lib -lvtk
 M_CFLAGS = -I$(CHPREFIX)/include
 
 M = \
+info\
 write\
 
 all: $M

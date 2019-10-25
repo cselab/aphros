@@ -80,7 +80,6 @@ vtk_read(FILE * f)
     MSG(("failt to parse: '%s'", s));
     return NULL;
   }
-  MSG(("nv: %d", nv));
   FILL(3 * nv, f, &r);
   MALLOC(nv, &x);
   MALLOC(nv, &y);
@@ -276,7 +275,6 @@ location2num(const char *s, int *p)
     }
   return 1;
 }
-
 
 static int
 rank2num(const char *s, int *p)
