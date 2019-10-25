@@ -14,12 +14,13 @@ main(int argc, char **argv)
   char *name;
   double *field[99], *f;
   struct CSV *csv;
+
   USED(argc);
 
   argv++;
   if (argv[0] == NULL) {
-      fprintf(stderr, "%s: needs an argument\n", me);
-      exit(2);
+    fprintf(stderr, "%s: needs an argument\n", me);
+    exit(2);
   }
   csv = csv_read(stdin);
   nr = csv_nr(csv);

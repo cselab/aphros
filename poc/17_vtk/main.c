@@ -24,9 +24,11 @@ vtk_read(FILE * f)
 
   MALLOC(1, &q);
   LINE(s, f);
-  if (!eq(s, "# vtk DataFile Version 2.0"))
-    ERR(("not a vtk file"));
-
+  if (!eq(s, "# vtk DataFile Version 2.0")) {
+      MSG(("not a vtk file, got '%s'", s));
+    return NULL;
+  }
+  
   M = 2;                        /* initial size */
   nf = 0;
   field = strtok(s, ",");
@@ -79,7 +81,7 @@ vtk_fin(struct VTK *q)
 }
 
 int
-vtk_write_space(struct VTK *q, FILE * f)
+vtk_write(struct VTK *q, FILE * f)
 {
   return 0;
 }

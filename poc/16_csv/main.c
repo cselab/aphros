@@ -28,8 +28,10 @@ csv_read(FILE * f)
   nf = 0;
   field = strtok(s, ",");
   while (field != NULL) {
-    if (nf == CSV_MAX_NF)
-      ERR(("nf == CSV_MAX_NF=%d", nf, CSV_MAX_NF));
+    if (nf == CSV_MAX_NF) {
+      MSG(("nf == CSV_MAX_NF=%d", nf, CSV_MAX_NF));
+      return NULL;
+    }
     q->name[nf] = memory_strndup(field, N);
     MALLOC(M, &q->data[nf]);
     nf++;
@@ -41,20 +43,26 @@ csv_read(FILE * f)
     ifield = 0;
     field = strtok(s, ",");
     while (field != NULL) {
-      if (ifield == nf)
-        ERR(("ifield == nf=%d, nr=%d", nf, nr));
+      if (ifield == nf) {
+        MSG(("ifield == nf=%d, nr=%d", nf, nr));
+        return NULL;
+      }
       if (ifield == 0 && nr == M) {
         M *= 2;
         for (i = 0; i < nf; i++)
           REALLOC(M, &q->data[i]);
       }
-      if (sscanf(field, "%lf", &q->data[ifield][nr]) != 1)
-        ERR(("not a number '%s'", field));
+      if (sscanf(field, "%lf", &q->data[ifield][nr]) != 1) {
+        MSG(("not a number '%s'", field));
+        return NULL;
+      }
       ifield++;
       field = strtok(NULL, ",");
     }
-    if (ifield != nf)
-	ERR(("ifield=%d != nf=%d, nr=%d", ifield, nf, nr));
+    if (ifield != nf) {
+      MSG(("ifield=%d != nf=%d, nr=%d", ifield, nf, nr));
+      return NULL;
+    }
     nr++;
   }
 
