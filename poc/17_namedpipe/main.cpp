@@ -5,6 +5,7 @@
 #include <queue>
 #include <cassert>
 #include <cstring>
+#include <atomic>
 
 template <class T>
 class Queue {
@@ -29,34 +30,54 @@ class Queue {
   mutable std::mutex m_;
 };
 
+Queue<std::string> queue;
+
+std::atomic<bool> flagexit(false);
+
+void Abort() {
+  std::cerr << "Error code: " << std::strerror(errno) << std::endl;
+  std::terminate();
+}
+
 void Listen() {
-  Queue<std::string> q;
-  std::string name = "chpipe";
-  bool exit = false;
-  while (!exit) {
+  std::string name = "in";
+  while (!flagexit) {
+    std::cerr << "opening pipe '" << name << "'" << std::endl;
     std::ifstream in(name);
-    if (!in.good()) {
-       std::cerr << "Error code: " << std::strerror(errno) << std::endl;
-       std::terminate();
-    }
-    while (!exit && in) {
+    if (!in.good()) { Abort(); }
+    while (!flagexit && in) {
       std::string line;
       std::getline(in, line);
       if (!in) break;
-      q.push(line);
-      while (!q.empty()) {
-        std::cerr << q.front() << std::endl;
-        if (q.front() == "exit") {
-          exit = true;
-        }
-        q.pop();
+      queue.push(line);
+    }
+  }
+}
+
+void Send() {
+  std::string name = "out";
+  while (!flagexit) {
+    std::cerr << "opening pipe '" << name << "'" << std::endl;
+    std::ofstream out(name);
+    if (!out.good()) { Abort(); }
+    while (out && !flagexit) {
+      while (queue.empty()) {
+        std::this_thread::yield();
       }
+      std::cerr << "send " << queue.front() << std::endl;
+      if (queue.front() == "flagexit") {
+        flagexit = true;
+      }
+      out << queue.front() << std::endl;
+      queue.pop();
     }
   }
 }
 
 int main() {
-  std::thread t(Listen);
+  std::thread t1(Listen);
+  std::thread t2(Send);
   //t.detach();
-  t.join();
+  t1.join();
+  t2.join();
 }
