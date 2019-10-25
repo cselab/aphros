@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "err.h"
 #include "memory.h"
@@ -9,8 +10,13 @@ enum { N = 9999 };
 
 #define FMT "%.20g"
 #define LINE(s, f)				\
-    if (line(s, f) != 0)			\
-	ERR(("fail to read"))
+    do						\
+	if (line(s, f) != 0) {			\
+	    MSG(("fail to read"));		\
+	    return NULL;			\
+	}					\
+    while (s[0] == '\0')
+
 #define SWAP(n, p) swap(n, sizeof(*(p)), p)
 #define FILL(n, f, p)				\
     do {					\
@@ -23,10 +29,19 @@ enum { N = 9999 };
 	if ((int)fread(p, sizeof(*(p)), (n), (f)) != (n))		\
 	    ERR(("fread failed, n = %d", n));				\
     } while(0)
+#define SIZE(a) (sizeof(a)/sizeof(*(a)))
 
 static int swap(int, int, void *);
 static int line(char *, FILE *);
 static int eq(const char *, const char *);
+static int rank2num(const char *, int *);
+static int type2num(const char *, int *num, int *size);
+
+static const char *TypeString[] = { "int", "float" };
+static const int TypeEnum[] = { VTK_INT, VTK_FLOAT };
+static const int TypeSize[] = { sizeof(int), sizeof(float) };
+static const char *RankString[] = { "SCALARS", "VECTORS" };
+static const int RankEnum[] = { VTK_SCALAR, VTK_VECTOR };
 
 struct VTK *
 vtk_read(FILE * f)
@@ -36,8 +51,9 @@ vtk_read(FILE * f)
   const char *field;
   double *x, *y, *z;
   float *r;
-  int nv, nt, nf, i, j, nr, ifield, M;
+  int nv, nt, nf, m, i, j, nr, ifield, size;
   int *t, *t0, *t1, *t2;
+  char rank[N], name[N], type[N];
 
   MALLOC(1, &q);
   LINE(s, f);
@@ -46,23 +62,17 @@ vtk_read(FILE * f)
     return NULL;
   }
   LINE(s, f);                   // comments
-  do
-    LINE(s, f);
-  while (s[0] == '\0');
+  LINE(s, f);
   if (!eq(s, "BINARY")) {
     MSG(("expect 'BINARY', get '%s'", s));
     return NULL;
   }
-  do
-    LINE(s, f);
-  while (s[0] == '\0');
+  LINE(s, f);
   if (!eq(s, "DATASET POLYDATA")) {
     MSG(("expect 'DATASET POLYDATA', get '%s'", s));
     return NULL;
   }
-  do
-    LINE(s, f);
-  while (s[0] == '\0');
+  LINE(s, f);
   if (sscanf(s, "POINTS %d float", &nv) != 1) {
     MSG(("failt to parse: '%s'", s));
     return NULL;
@@ -78,36 +88,61 @@ vtk_read(FILE * f)
     z[i] = r[j++];
   }
   FREE(r);
-  do
-      LINE(s, f);
-  while (s[0] == '\0');
+  LINE(s, f);
   if (sscanf(s, "POLYGONS %d %*d", &nt) != 1) {
-	MSG(("fail to parse: '%s'", s));
-	return NULL;
+    MSG(("fail to parse: '%s'", s));
+    return NULL;
   }
-  FILL(4 * nt, stdin, &t);
+  FILL(4 * nt, f, &t);
   MALLOC(nt, &t0);
   MALLOC(nt, &t1);
   MALLOC(nt, &t2);
   for (i = j = 0; i < nt; i++) {
-      j++;
-      t0[i] = t[j++];
-      t1[i] = t[j++];
-      t2[i] = t[j++];
+    j++;
+    t0[i] = t[j++];
+    t1[i] = t[j++];
+    t2[i] = t[j++];
   }
   FREE(t);
-  
-  M = 2;                        /* initial size */
+
   nf = 0;
-  field = strtok(s, ",");
-  while (field != NULL) {
-    if (nf == VTK_MAX_NF)
-      ERR(("nf == VTK_MAX_NF=%d", nf, VTK_MAX_NF));
-    q->name[nf] = memory_strndup(field, N);
-    MALLOC(M, &q->data[nf]);
-    nf++;
-    field = strtok(NULL, ",");
+  for (;;) {
+    LINE(s, f);
+    if (sscanf(s, "CELL_DATA %*d") == 0) {
+      for (;;) {
+	MSG(("s: %s", s));
+	LINE(s, f);
+	if (sscanf(s, "%s %s %s", rank, name, type) != 3)
+	  break;
+	MSG(("name: %s", name));
+	q->name[nf] = memory_strndup(name, N);
+	if (eq(rank, "SCALARS")) {
+	  LINE(s, f);
+	  if (!eq(s, "LOOKUP_TABLE default")) {
+	    MSG(("expect 'LOOKUP_TABLE default', get '%s'", s));
+	    return NULL;
+	  }
+	}
+	if (rank2num(rank, &q->rank[nf]) != 0) {
+	  MSG(("unknown rank: '%s' for '%s'", rank, name));
+	  return NULL;
+	}
+	if (type2num(type, &q->type[nf], &size) != 0) {
+	  MSG(("unknown type: '%s' for '%s'", type, name));
+	  return NULL;
+	}
+	m = size * nt * q->rank[nf];
+	FILL(m, f, &q->data[nf]);
+	nf++;
+      }
+    } else if (sscanf(s, "POINT_DATA %*d") == 0) {
+      MSG(("point_data"));
+      break;
+    } else
+      goto end_data;
   }
+end_data:
+  exit(2);
 
   q->nv = nv;
   q->x = x;
@@ -133,6 +168,9 @@ vtk_fin(struct VTK *q)
   FREE(q->x);
   FREE(q->y);
   FREE(q->z);
+  FREE(q->t0);
+  FREE(q->t1);
+  FREE(q->t2);
   FREE(q);
   return 0;
 }
@@ -190,4 +228,33 @@ swap(int n, int size, void *p0)
     p += size;
   }
   return 0;
+}
+
+static int
+rank2num(const char *s, int *p)
+{
+  int i, n;
+
+  n = SIZE(RankString);
+  for (i = 0; i < n; i++)
+    if (eq(s, RankString[i])) {
+      *p = RankEnum[i];
+      return 0;
+    }
+  return 1;
+}
+
+static int
+type2num(const char *s, int *num, int *size)
+{
+  int i, n;
+
+  n = SIZE(TypeString);
+  for (i = 0; i < n; i++)
+    if (eq(s, TypeString[i])) {
+      *num = TypeEnum[i];
+      *size = TypeSize[i];
+      return 0;
+    }
+  return 1;
 }

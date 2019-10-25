@@ -18,10 +18,5 @@ main(void)
   nv = vtk_nv(vtk);
   nt = vtk_nt(vtk);
 
-  for (i = 0; i < nt; i++)
-      fprintf(stderr, "%d %d %d\n", vtk->t0[i], vtk->t1[i], vtk->t2[i]);
-
-  
-
   vtk_fin(vtk);
 }
