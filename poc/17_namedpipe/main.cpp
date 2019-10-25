@@ -7,6 +7,7 @@
 #include <cassert>
 #include <cstring>
 #include <atomic>
+#include <cmath>
 
 template <class T>
 class Queue {
@@ -64,27 +65,36 @@ void Send() {
     //std::cerr << "opening pipe '" << name << "'" << std::endl;
     std::ofstream out(name);
     if (!out.good()) { Abort(); }
-    while (out && !flagexit) {
+
+    while (queue.empty()) {
       std::this_thread::yield();
-      while (queue.empty()) {
-        std::this_thread::yield();
-      }
-      std::cerr << "send: " << queue.front() << std::endl;
-      if (queue.front() == "exit") {
-        flagexit = true;
-      }
-      std::stringstream s(queue.front());
-      std::string cmd;
-      s >> cmd;
-      if (cmd == "sum") {
-        double a, b;
-        s >> a >> b;
-        out << a + b << std::endl;
-      } else {
-        out << queue.front() << std::endl;
-      }
-      queue.pop();
     }
+    std::cerr << "send: " << queue.front() << std::endl;
+    if (queue.front() == "exit") {
+      flagexit = true;
+    }
+    std::stringstream s(queue.front());
+    std::string cmd;
+    s >> cmd;
+    if (cmd == "sum") {
+      double a, b;
+      s >> a >> b;
+      out << a + b << std::endl;
+    } else if (cmd == "field") {
+      int nx = 10;
+      int ny = 10;
+      out << nx << " " << ny << std::endl;
+      for (int y = 0; y < ny; ++y) {
+        for (int x = 0; x < nx; ++x) {
+          double a = std::sin(x*0.5) * std::sin(y*0.5);
+          out << a << " ";
+        }
+        out << std::endl;
+      }
+    } else {
+      out << queue.front() << std::endl;
+    }
+    queue.pop();
   }
 }
 

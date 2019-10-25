@@ -7,6 +7,7 @@ from matplotlib.text import Text
 import numpy as np
 from numpy.random import rand
 import threading
+import sys
 
 
 def Send(msg):
@@ -20,7 +21,8 @@ def Listen():
     while True:
         try:
             with open('out', 'r') as f:
-                print(f.readline())
+                for l in f:
+                    sys.stderr.write(l)
         except IOError:
             print("can't open pipe out")
 
