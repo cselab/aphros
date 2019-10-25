@@ -10,6 +10,8 @@ import threading
 import sys
 
 
+field = None
+
 # Read uniform grid data
 # lines
 # Format:
@@ -38,14 +40,16 @@ def Send(msg):
         print("can't open pipe in")
 
 def Listen():
+    global field
     while True:
         try:
             with open('out', 'r') as f:
                 line = f.readline()
                 if line.strip() == "field":
-                    print(ReadPlain(f.readlines()))
+                    field = ReadPlain(f.readlines())
+                    print(field.shape)
                 else:
-                    print(f.readlines())
+                    print(f.readline())
         except IOError:
             print("can't open pipe out")
 
@@ -57,11 +61,13 @@ def Print(msg, msg2=None):
     Send(msg)
 
 def pick_simple():
+    global field
     fig, ax = plt.subplots(1, 1)
-    ax.text(0.0, 1.1, "exit", picker=True, bbox=dict(facecolor='red'), transform=ax.transAxes)
-    ax.text(0.05, 1.1, "step", picker=True, bbox=dict(facecolor='green'), transform=ax.transAxes)
-    ax.text(0.1, 1.1, "field", picker=True, bbox=dict(facecolor='yellow'), transform=ax.transAxes)
-    line, = ax.plot(rand(100), 'o', picker=5)  # 5 points tolerance
+    ax.text(0.1, 0.9, "exit", picker=True, bbox=dict(facecolor='red'), transform=fig.transFigure)
+    ax.text(0.15, 0.9, "step", picker=True, bbox=dict(facecolor='green'), transform=fig.transFigure)
+    ax.text(0.2, 0.9, "field", picker=True, bbox=dict(facecolor='yellow'), transform=fig.transFigure)
+    ax.text(0.25, 0.9, "redraw", picker=True, bbox=dict(facecolor='yellow'), transform=fig.transFigure)
+    #line, = ax.plot(rand(100), 'o', picker=5)  # 5 points tolerance
 
     def onpick1(event):
         if isinstance(event.artist, Line2D):
@@ -74,8 +80,11 @@ def pick_simple():
             patch = event.artist
             Print('onpick1 patch:', patch.get_path())
         elif isinstance(event.artist, Text):
-            text = event.artist
-            Print(text.get_text())
+            text = event.artist.get_text()
+            if text == "redraw":
+                ax.imshow(field[0,:,:])
+                event.canvas.draw()
+            Print(text)
 
     fig.canvas.mpl_connect('pick_event', onpick1)
 

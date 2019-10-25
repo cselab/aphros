@@ -59,6 +59,7 @@ void Listen() {
 }
 
 void Send() {
+  static double base = 0;
   std::string name = "out";
   while (!flagexit) {
     while (queue.empty()) {
@@ -76,24 +77,28 @@ void Send() {
     std::string cmd;
     s >> cmd;
     if (cmd == "sum") {
-      out << "sum" << std::endl;
+      out << cmd << std::endl;
       double a, b;
       s >> a >> b;
       out << a + b << std::endl;
     } else if (cmd == "field") {
-      out << "field" << std::endl;
+      out << cmd << std::endl;
       int nx = 10;
       int ny = 10;
       int nz = 1;
       out << nx << " " << ny << " " << nz << std::endl;
       for (int y = 0; y < ny; ++y) {
         for (int x = 0; x < nx; ++x) {
-          double a = std::sin(x*0.5) * std::sin(y*0.5);
+          double a = std::sin(x*0.5+base) * std::sin(y*0.5+base*0.5);
           out << a << " ";
         }
       }
       out << std::endl;
       out << std::endl;
+    } else if (cmd == "step") {
+      base += 0.1;
+      out << cmd << std::endl;
+      out << "base=" << base << std::endl;
     } else {
       out << queue.front() << std::endl;
     }
