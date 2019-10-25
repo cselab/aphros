@@ -24,7 +24,8 @@ main(void)
   for (i = 0; i < nf; i++) {
     location = vtk->location[i];
     type = vtk->type[i];
-    printf("%s %s %s %d\n", vtk->name[i], type == VTK_FLOAT ? "float" : "int",
+    printf("%s %s %s %d\n", vtk->name[i],
+           type == VTK_FLOAT ? "float" : "int",
            location == VTK_CELL ? "cell" : "point", vtk->rank[i]);
   }
   vtk_fin(vtk);

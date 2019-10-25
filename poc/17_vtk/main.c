@@ -29,6 +29,13 @@ enum { N = 9999 };
 	if ((int)fread(p, sizeof(*(p)), (n), (f)) != (n))		\
 	    ERR(("fread failed, n = %d", n));				\
     } while(0)
+#define FWRITE(n, p, f)							\
+  do {									\
+    if ((int)fwrite(p, sizeof(*(p)), (n), (f)) != (n)) {		\
+      MSG(("failt to write, n = %d\n", n));				\
+      return 1;								\
+    }									\
+  } while(0)
 #define SIZE(a) (sizeof(a)/sizeof(*(a)))
 
 static int swap(int, int, void *);
@@ -41,9 +48,11 @@ static int location2num(const char *, int *);
 
 static const char *LocationString[] = { "CELL_DATA", "POINT_DATA" };
 static const int LocationEnum[] = { VTK_CELL, VTK_POINT };
-static const char *TypeString[] = { "int", "float" };
-static const int TypeEnum[] = { VTK_INT, VTK_FLOAT };
-static const int TypeSize[] = { sizeof(int), sizeof(float) };
+static const char *TypeString[] = { "int", "float", "double" };
+static const int TypeEnum[] = { VTK_INT, VTK_FLOAT, VTK_DOUBLE };
+static const int TypeSize[] =
+    { sizeof(int), sizeof(float), sizeof(double) };
+
 static const char *RankString[] = { "SCALARS", "VECTORS" };
 static const int RankEnum[] = { VTK_SCALAR, VTK_VECTOR };
 
@@ -182,6 +191,32 @@ vtk_fin(struct VTK *q)
 int
 vtk_write(struct VTK *q, FILE * f)
 {
+  int nv, nt, i, j;
+  double *x, *y, *z;
+  float *r;
+
+  nv = q->nv;
+  nt = q->nt;
+  x = q->x;
+  y = q->y;
+  z = q->z;
+  if (fputs("# vtk DataFile Version 2.0\n", f) == EOF) {
+    MSG(("fail to write"));
+    return 1;
+  }
+  fprintf(f, "%s\n", me);
+  fputs("BINARY\n", f);
+  fputs("DATASET POLYDATA\n", f);
+  if (nv > 0)
+    fprintf(f, "POINTS %d float\n", nv);
+  MALLOC(3 * nv, &r);
+  for (i = j = 0; i < nv; i++) {
+    r[j++] = x[i];
+    r[j++] = y[i];
+    r[j++] = z[i];
+  }
+  SWAP(3 * nv, r);
+  FWRITE(3 * nv, r, f);
   return 0;
 }
 

@@ -1,8 +1,8 @@
-enum { VTK_MAX_NF = 999 };
-enum { VTK_INT, VTK_FLOAT };
+enum { VTK_INT, VTK_FLOAT, VTK_DOUBLE };
 enum { VTK_SCALAR = 1, VTK_VECTOR = 3 };
 enum { VTK_CELL, VTK_POINT };
 
+enum { VTK_MAX_NF = 99 };
 struct VTK {
   double *x, *y, *z;
   int *t0, *t1, *t2;
