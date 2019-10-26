@@ -11,12 +11,16 @@
 #include "vof.h"
 #include "tension.h"
 
+#ifndef BRZ
+#define BRZ BR
+#endif
+
 
 #define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
 
 double ifr3(double x, double y, double z) {
-  double r = sq(x - BCX) + sq(y - BCY) + sq(z - BCZ);
-  return sq(BR) - r;
+  double r = sq((x - BCX) / BR) + sq((y - BCY) / BR) + sq((z - BCZ) / BRZ);
+  return sq(BR) * (1 - r);
 }
 
 int main() {
@@ -67,11 +71,17 @@ event statout (i += 1) {
   ONROOT fprintf(stderr, "step i=%05d t=%g dt=%g \n", i, t ,dt);
 }
 
-event logfile (i += 1) {
-  double xb = 0., yb = 0., zb = 0., sb = 0.;
-  double vbx = 0., vby = 0., vbz = 0.;
+event logfile (i += 1 ; t <= TMAX) {
+  // center of mass and volume
+  double xb = 0, yb = 0, zb = 0, sb = 0;
+  // gyration tensor
+  double xxb = 0, xyb = 0, xzb = 0, yyb = 0, yzb = 0, zzb = 0;
+  // mean velocity
+  double vbx = 0, vby = 0, vbz = 0;
+  // min and max pressure
   double p0 = 1e10, p1 = -1e10;
-  foreach(reduction(+:xb) reduction(+:yb) reduction(+:zb)
+  foreach(
+   reduction(+:xb) reduction(+:yb) reduction(+:zb)
    reduction(+:vbx) reduction(+:vby) reduction(+:vbz)
    reduction(+:sb) 
    reduction(min:p0) reduction(max:p1)
@@ -80,6 +90,12 @@ event logfile (i += 1) {
     xb += x*dv;
     yb += y*dv;
     zb += z*dv;
+    xxb += x*x*dv;
+    xyb += x*y*dv;
+    xzb += x*z*dv;
+    yyb += y*y*dv;
+    yzb += y*z*dv;
+    zzb += z*z*dv;
     vbx += u.x[]*dv;
     vby += u.y[]*dv;
     vbz += u.z[]*dv;
@@ -87,29 +103,27 @@ event logfile (i += 1) {
     p0 = fmin(p0, p[]);
     p1 = fmax(p1, p[]);
   }
-
-  double vlmx = 0., vlmy = 0., vlmz = 0.;
-  double vl2x = 0., vl2y = 0., vl2z = 0.;
-  foreach(reduction(+:vl2x) reduction(+:vl2y) reduction(+:vl2z)
-   reduction(max:vlmx) reduction(max:vlmy) reduction(max:vlmz)
+  foreach(
+   reduction(+:xxb) reduction(+:xyb) reduction(+:xzb)
+   reduction(+:yyb) reduction(+:yzb) reduction(+:zzb)
    ) {
-    vlmx = fmax(vlmx, fabs(u.x[]) * f[]);
-    vlmy = fmax(vlmy, fabs(u.y[]) * f[]);
-    vlmz = fmax(vlmz, fabs(u.z[]) * f[]);
-
     double dv = f[]*dv();
-    vl2x += sq(u.x[]) * dv;
-    vl2y += sq(u.y[]) * dv;
-    vl2z += sq(u.z[]) * dv;
+    xxb += x*x*dv;
+    xyb += x*y*dv;
+    xzb += x*z*dv;
+    yyb += y*y*dv;
+    yzb += y*z*dv;
+    zzb += z*z*dv;
   }
-  static char* fn = "o/sc";
-  static FILE* f = NULL;
 
   sb = fmax(sb, 1e-10);
 
+  static char* fn = "o/sc";
+  static FILE* f = NULL;
+
   if (!f) {
     f = fopen(fn, "w");
-    fprintf(f, "t m2 c2x c2y c2z v2x v2y v2z p0 p1 pd vlmx vlmy vlmz vl2x vl2y vl2z\n");
+    fprintf(f, "t m2 c2x c2y c2z v2x v2y v2z p0 p1 pd xx xy xz yy yz zz\n");
   } 
 
   fprintf(f,
@@ -117,8 +131,7 @@ event logfile (i += 1) {
     t, sb,
     xb/sb, yb/sb, zb/sb,
     vbx/sb, vby/sb, vbz/sb, p0, p1, p1 - p0,
-    vlmx, vlmy, vlmz, 
-    sqrt(vl2x/sb), sqrt(vl2y/sb), sqrt(vl2z/sb)
+    xxb/sb, xyb/sb, xzb/sb, yyb/sb, yzb/sb, zzb/sb
     );
 
   fflush(f);
