@@ -10,7 +10,7 @@
 #define BCX 2.
 #define BCY 2.
 #define BCZ 2.
-#define BR 0.2
+#define BR 0.1
 
 #ifndef NX
 #define NX 64
