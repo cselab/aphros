@@ -7,7 +7,7 @@ po = "traj.dat"
 
 vv = ['t', 'm2', 'c2x', 'c2y', 'c2z', 'v2x', 'v2y', 'v2z', 
         'vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z', 'pd',
-        'x', 'y', 'z', 'xx', 'xy', 'xz', 'yy', 'yz']
+        'x', 'y', 'z', 'xx', 'xy', 'xz', 'yy', 'yz', 'zz']
 
 d = np.genfromtxt(pi, names=True)
 
