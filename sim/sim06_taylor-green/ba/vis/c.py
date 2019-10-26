@@ -9,6 +9,10 @@ import math
 import os
 import numpy as np
 
+def Error(msg):
+    sys.stderr.write(msg + "\n")
+    exit(1)
+
 def Log(s):
     s += "\n"
     o = sys.stderr
@@ -42,8 +46,6 @@ def GetBox(o):
     return lim0, lim1
 
 
-ospray = 0
-
 av = sys.argv
 if len(av) < 2 or av[1] == '-h':
     sys.stderr.write('''usage: {:} [vf_*.vtk]
@@ -55,6 +57,8 @@ Plots bubbles.
 
 # vf input
 ff = natsorted(av[1:])
+if not len(ff):
+    Error("empty file list")
 # vf basename
 ffb = list(map(os.path.basename, ff))
 # vf dirname
@@ -92,11 +96,9 @@ renderView1.CameraViewUp = [-0.11697777844051055, 0.3213938048432693, 0.93969262
 renderView1.CameraParallelScale = 4.596149164737374
 renderView1.CameraParallelProjection = 1
 renderView1.Background = [0.0, 0.0, 0.0]
-renderView1.EnableOSPRay = ospray
 renderView1.AmbientSamples = 10
 renderView1.SamplesPerPixel = 10
 renderView1.Shadows = 1
-renderView1.OSPRayMaterialLibrary = materialLibrary1
 
 # init the 'GridAxes3DActor' selected for 'AxesGrid'
 renderView1.AxesGrid.XTitleFontFile = ''
@@ -121,7 +123,16 @@ SetActiveView(renderView1)
 # ----------------------------------------------------------------
 
 # create a new 'XDMF Reader'
-vf = LegacyVTKReader(FileNames=ff)
+ext = os.path.splitext(ff[0])[1]
+if ext == ".vtk":
+    vf = LegacyVTKReader(FileNames=ff)
+elif ext == ".xmf":
+    vf = XDMFReader(FileNames=ff)
+    vf.CellArrayStatus = ['vf']
+    vf.GridStatus = ['Grid_0']
+else:
+    Error("unknown extension '{:}'".format(ext))
+
 
 # list of all sources
 vs = [vf]
@@ -153,102 +164,16 @@ contour1.PointMergeMethod = 'Uniform Binning'
 # ----------------------------------------------------------------
 
 # show data from clpnt
-clpntDisplay = Show(clpnt, renderView1)
-
-# trace defaults for the display properties.
-clpntDisplay.Representation = 'Outline'
-clpntDisplay.ColorArrayName = ['POINTS', '']
-clpntDisplay.OSPRayScaleArray = 'f'
-clpntDisplay.OSPRayScaleFunction = 'PiecewiseFunction'
-clpntDisplay.SelectOrientationVectors = 'None'
-clpntDisplay.ScaleFactor = 0.30000000000000004
-clpntDisplay.SelectScaleArray = 'f'
-clpntDisplay.GlyphType = 'Arrow'
-clpntDisplay.GlyphTableIndexArray = 'f'
-clpntDisplay.GaussianRadius = 0.015
-clpntDisplay.SetScaleArray = ['POINTS', 'f']
-clpntDisplay.ScaleTransferFunction = 'PiecewiseFunction'
-clpntDisplay.OpacityArray = ['POINTS', 'f']
-clpntDisplay.OpacityTransferFunction = 'PiecewiseFunction'
-clpntDisplay.DataAxesGrid = 'GridAxesRepresentation'
-clpntDisplay.SelectionCellLabelFontFile = ''
-clpntDisplay.SelectionPointLabelFontFile = ''
-clpntDisplay.PolarAxes = 'PolarAxesRepresentation'
-clpntDisplay.AmbientColor = [1.0, 1.0, 1.0]
-
-# init the 'PiecewiseFunction' selected for 'OSPRayScaleFunction'
-clpntDisplay.OSPRayScaleFunction.Points = [0.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
-
-# init the 'PiecewiseFunction' selected for 'ScaleTransferFunction'
-clpntDisplay.ScaleTransferFunction.Points = [0.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
-
-# init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
-clpntDisplay.OpacityTransferFunction.Points = [0.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
-
-# init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
-clpntDisplay.DataAxesGrid.XTitleFontFile = ''
-clpntDisplay.DataAxesGrid.YTitleFontFile = ''
-clpntDisplay.DataAxesGrid.ZTitleFontFile = ''
-clpntDisplay.DataAxesGrid.XLabelFontFile = ''
-clpntDisplay.DataAxesGrid.YLabelFontFile = ''
-clpntDisplay.DataAxesGrid.ZLabelFontFile = ''
-
-# init the 'PolarAxesRepresentation' selected for 'PolarAxes'
-clpntDisplay.PolarAxes.PolarAxisTitleFontFile = ''
-clpntDisplay.PolarAxes.PolarAxisLabelFontFile = ''
-clpntDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
-clpntDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
+#clpntDisplay = Show(clpnt, renderView1)
+#clpntDisplay.Representation = 'Outline'
+#clpntDisplay.ColorArrayName = ['POINTS', '']
+#clpntDisplay.AmbientColor = [1.0, 1.0, 1.0]
 
 # show data from contour1
 contour1Display = Show(contour1, renderView1)
-
-# trace defaults for the display properties.
 contour1Display.Representation = 'Surface'
 contour1Display.ColorArrayName = [None, '']
-contour1Display.OSPRayScaleArray = 'Normals'
-contour1Display.OSPRayScaleFunction = 'PiecewiseFunction'
-contour1Display.SelectOrientationVectors = 'None'
-contour1Display.ScaleFactor = 0.2969206996262074
-contour1Display.SelectScaleArray = 'None'
-contour1Display.GlyphType = 'Arrow'
-contour1Display.GlyphTableIndexArray = 'None'
-contour1Display.GaussianRadius = 0.014846034981310367
-contour1Display.SetScaleArray = ['POINTS', 'Normals']
-contour1Display.ScaleTransferFunction = 'PiecewiseFunction'
-contour1Display.OpacityArray = ['POINTS', 'Normals']
-contour1Display.OpacityTransferFunction = 'PiecewiseFunction'
-contour1Display.DataAxesGrid = 'GridAxesRepresentation'
-contour1Display.SelectionCellLabelFontFile = ''
-contour1Display.SelectionPointLabelFontFile = ''
-contour1Display.PolarAxes = 'PolarAxesRepresentation'
 
-# init the 'PiecewiseFunction' selected for 'OSPRayScaleFunction'
-contour1Display.OSPRayScaleFunction.Points = [0.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
-
-# init the 'PiecewiseFunction' selected for 'ScaleTransferFunction'
-contour1Display.ScaleTransferFunction.Points = [-0.9999940991401672, 1.0, 0.5, 0.0, 0.9999958872795105, 1.0, 0.5, 0.0]
-
-# init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
-contour1Display.OpacityTransferFunction.Points = [-0.9999940991401672, 1.0, 0.5, 0.0, 0.9999958872795105, 1.0, 0.5, 0.0]
-
-# init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
-contour1Display.DataAxesGrid.XTitleFontFile = ''
-contour1Display.DataAxesGrid.YTitleFontFile = ''
-contour1Display.DataAxesGrid.ZTitleFontFile = ''
-contour1Display.DataAxesGrid.XLabelFontFile = ''
-contour1Display.DataAxesGrid.YLabelFontFile = ''
-contour1Display.DataAxesGrid.ZLabelFontFile = ''
-
-# init the 'PolarAxesRepresentation' selected for 'PolarAxes'
-contour1Display.PolarAxes.PolarAxisTitleFontFile = ''
-contour1Display.PolarAxes.PolarAxisLabelFontFile = ''
-contour1Display.PolarAxes.LastRadialAxisTextFontFile = ''
-contour1Display.PolarAxes.SecondaryRadialAxesTextFontFile = ''
-
-# ----------------------------------------------------------------
-# finally, restore active source
-SetActiveSource(clpnt)
-# ----------------------------------------------------------------
 
 #####################################################
 ### END OF STATE FILE

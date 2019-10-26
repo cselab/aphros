@@ -2,9 +2,9 @@
 
 #include "par.h"
 
-#include ".u/curv/select.h"
-#include ".u/io/iompi.h"
 #include ".u/bashape.h"
+#include ".u/bah5.h"
+#include ".u/curv/select.h"
 
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
@@ -52,13 +52,13 @@ event init (i = 0) {
 
 
 event out (t += DUMPDT ; t <= TMAX) {
+#if !NOIO
   static int frame = 0;
   char name[1000];
-  sprintf(name, "o/%d/u_%04d.vtk", pid(), frame);
-  ++frame;
   scalar * a = {u, p, f};
-#if !NOIO
-  iompi(a, name);
+  sprintf(name, "%%s_%04d", frame);
+  bah5_list(a, name);
+  ++frame;
 #endif
   ONROOT fprintf(stderr, "dump %s step i=%05d t=%g\n", name, i, t);
 }

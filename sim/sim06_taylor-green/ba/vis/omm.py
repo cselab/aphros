@@ -41,12 +41,9 @@ def GetBox(o):
     lim1 = np.array(lim[1::2])
     return lim0, lim1
 
-
-ospray = 0
-
 av = sys.argv
 if len(av) < 2 or av[1] == '-h':
-    sys.stderr.write('''usage: {:} [vf_*.vtk]
+    sys.stderr.write('''usage: {:} [f_*.xmf]
 Plots bubbles.
 # Output:
 # a_*.png in current folder
@@ -55,12 +52,18 @@ Plots bubbles.
 
 # vf input
 ff = natsorted(av[1:])
+if not len(ff):
+    Error("empty file list")
 # vf basename
 ffb = list(map(os.path.basename, ff))
 # vf dirname
 ffd = list(map(os.path.dirname, ff))
 # steps
 ss = [int(re.findall("_([0-9]*)", fb)[0]) for fb in ffb]
+# velocity input
+ffux = [os.path.join(d, "u.x_{:04d}.xmf".format(s)) for d,s in zip(ffd,ss)]
+ffuy = [os.path.join(d, "u.y_{:04d}.xmf".format(s)) for d,s in zip(ffd,ss)]
+ffuz = [os.path.join(d, "u.z_{:04d}.xmf".format(s)) for d,s in zip(ffd,ss)]
 
 # output pattern (:0 substituted by frame number)
 bo = "a_{:}.png"
@@ -92,15 +95,6 @@ renderView1.CameraViewUp = [-0.05939117461388465, 0.33682408883346476, 0.9396926
 renderView1.CameraParallelScale = 4.2537082476917885
 renderView1.CameraParallelProjection = 1
 renderView1.Background = [1., 1., 1.]
-renderView1.OSPRayMaterialLibrary = materialLibrary1
-
-# init the 'GridAxes3DActor' selected for 'AxesGrid'
-renderView1.AxesGrid.XTitleFontFile = ''
-renderView1.AxesGrid.YTitleFontFile = ''
-renderView1.AxesGrid.ZTitleFontFile = ''
-renderView1.AxesGrid.XLabelFontFile = ''
-renderView1.AxesGrid.YLabelFontFile = ''
-renderView1.AxesGrid.ZLabelFontFile = ''
 
 # ----------------------------------------------------------------
 # restore active view
@@ -116,26 +110,50 @@ SetActiveView(renderView1)
 # BEGIN READERS
 # ----------------------------------------------------------------
 
-# create a new 'XDMF Reader'
-vf = LegacyVTKReader(FileNames=ff)
+ext = os.path.splitext(ff[0])[1]
+if ext == ".vtk":
+    vf = LegacyVTKReader(FileNames=ff)
+elif ext == ".xmf":
+    vf = XDMFReader(FileNames=ff)
+    vf.CellArrayStatus = ['f']
+    vf.GridStatus = ['Grid_0']
+    ux = XDMFReader(FileNames=ffux)
+    ux.CellArrayStatus = ['u.x']
+    ux.GridStatus = ['Grid_0']
+    uy = XDMFReader(FileNames=ffuy)
+    uy.CellArrayStatus = ['u.y']
+    uy.GridStatus = ['Grid_0']
+    uz = XDMFReader(FileNames=ffuz)
+    uz.CellArrayStatus = ['u.z']
+    uz.GridStatus = ['Grid_0']
+else:
+    Error("unknown extension '{:}'".format(ext))
 
-# list of all sources
-vs = [vf]
+def FT(s):
+  vs.append(s)
+  vt.append(np.array(s.TimestepValues))
+  s = ForceTime(s)
+  vft.append(s)
+  return s
 
+# sources
+vs = []
 # time steps
-vt = [np.array(s.TimestepValues) for s in vs]
+vt = []
+# force time
+vft = []
 
-# replace with ForceTime
-vf = ForceTime(vf)
-
-# all ForceTime
-vft = [vf]
+vf = FT(vf)
+ux = FT(ux)
+uy = FT(uy)
+uz = FT(uz)
 
 # ----------------------------------------------------------------
 # END READERS
 # ----------------------------------------------------------------
 
-# create a new 'Cell Data to Point Data'
+append = AppendAttributes(Input=[ux, uy, uz])
+
 cellDatatoPointData1 = CellDatatoPointData(Input=vf)
 
 # create a new 'Contour'
@@ -145,7 +163,7 @@ contour1.Isosurfaces = [0.5]
 contour1.PointMergeMethod = 'Uniform Binning'
 
 # create a new 'Calculator'
-calculator1 = Calculator(Input=vf)
+calculator1 = Calculator(Input=append)
 calculator1.AttributeType = 'Cell Data'
 calculator1.ResultArrayName = 'vel'
 calculator1.Function = 'iHat*u.x+jHat*u.y+kHat*u.z'
@@ -190,47 +208,8 @@ ommPWF.ScalarRangeInitialized = 1
 gradDisplay.Representation = 'Volume'
 gradDisplay.ColorArrayName = ['CELLS', 'om']
 gradDisplay.LookupTable = ommLUT
-gradDisplay.LineWidth = 3.0
-gradDisplay.SelectOrientationVectors = 'None'
-gradDisplay.ScaleFactor = 0.628318530717957
-gradDisplay.SelectScaleArray = 'None'
-gradDisplay.GlyphType = 'Arrow'
-gradDisplay.GlyphTableIndexArray = 'None'
-gradDisplay.GaussianRadius = 0.03141592653589785
-gradDisplay.SetScaleArray = ['POINTS', 'omm']
-gradDisplay.ScaleTransferFunction = 'PiecewiseFunction'
-gradDisplay.OpacityArray = ['POINTS', 'omm']
-gradDisplay.OpacityTransferFunction = 'PiecewiseFunction'
-gradDisplay.DataAxesGrid = 'GridAxesRepresentation'
-gradDisplay.SelectionCellLabelFontFile = ''
-gradDisplay.SelectionPointLabelFontFile = ''
-gradDisplay.PolarAxes = 'PolarAxesRepresentation'
 gradDisplay.ScalarOpacityUnitDistance = 0.04251092259923938
 gradDisplay.ScalarOpacityFunction = ommPWF
-gradDisplay.Slice = 128
-
-# init the 'PiecewiseFunction' selected for 'OSPRayScaleFunction'
-gradDisplay.OSPRayScaleFunction.Points = [0.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
-
-# init the 'PiecewiseFunction' selected for 'ScaleTransferFunction'
-gradDisplay.ScaleTransferFunction.Points = [0.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
-
-# init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
-gradDisplay.OpacityTransferFunction.Points = [0.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
-
-# init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
-gradDisplay.DataAxesGrid.XTitleFontFile = ''
-gradDisplay.DataAxesGrid.YTitleFontFile = ''
-gradDisplay.DataAxesGrid.ZTitleFontFile = ''
-gradDisplay.DataAxesGrid.XLabelFontFile = ''
-gradDisplay.DataAxesGrid.YLabelFontFile = ''
-gradDisplay.DataAxesGrid.ZLabelFontFile = ''
-
-# init the 'PolarAxesRepresentation' selected for 'PolarAxes'
-gradDisplay.PolarAxes.PolarAxisTitleFontFile = ''
-gradDisplay.PolarAxes.PolarAxisLabelFontFile = ''
-gradDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
-gradDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
 
 # show data from contour1
 contour1Display = Show(contour1, renderView1)
@@ -238,60 +217,13 @@ contour1Display = Show(contour1, renderView1)
 # trace defaults for the display properties.
 contour1Display.Representation = 'Surface'
 contour1Display.ColorArrayName = [None, '']
-contour1Display.OSPRayScaleArray = 'Normals'
-contour1Display.OSPRayScaleFunction = 'PiecewiseFunction'
-contour1Display.SelectOrientationVectors = 'None'
-contour1Display.ScaleFactor = 0.6283185482025146
-contour1Display.SelectScaleArray = 'None'
-contour1Display.GlyphType = 'Arrow'
-contour1Display.GlyphTableIndexArray = 'None'
-contour1Display.GaussianRadius = 0.031415927410125735
-contour1Display.SetScaleArray = ['POINTS', 'Normals']
-contour1Display.ScaleTransferFunction = 'PiecewiseFunction'
-contour1Display.OpacityArray = ['POINTS', 'Normals']
-contour1Display.OpacityTransferFunction = 'PiecewiseFunction'
-contour1Display.DataAxesGrid = 'GridAxesRepresentation'
-contour1Display.SelectionCellLabelFontFile = ''
-contour1Display.SelectionPointLabelFontFile = ''
-contour1Display.PolarAxes = 'PolarAxesRepresentation'
 
-# init the 'PiecewiseFunction' selected for 'OSPRayScaleFunction'
-contour1Display.OSPRayScaleFunction.Points = [0.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
-
-# init the 'PiecewiseFunction' selected for 'ScaleTransferFunction'
-contour1Display.ScaleTransferFunction.Points = [0.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
-
-# init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
-contour1Display.OpacityTransferFunction.Points = [0.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
-
-# init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
-contour1Display.DataAxesGrid.XTitleFontFile = ''
-contour1Display.DataAxesGrid.YTitleFontFile = ''
-contour1Display.DataAxesGrid.ZTitleFontFile = ''
-contour1Display.DataAxesGrid.XLabelFontFile = ''
-contour1Display.DataAxesGrid.YLabelFontFile = ''
-contour1Display.DataAxesGrid.ZLabelFontFile = ''
-
-# init the 'PolarAxesRepresentation' selected for 'PolarAxes'
-contour1Display.PolarAxes.PolarAxisTitleFontFile = ''
-contour1Display.PolarAxes.PolarAxisLabelFontFile = ''
-contour1Display.PolarAxes.LastRadialAxisTextFontFile = ''
-contour1Display.PolarAxes.SecondaryRadialAxesTextFontFile = ''
-
-# ----------------------------------------------------------------
-# setup color maps and opacity mapes used in the visualization
-# note: the Get..() functions create a new object, if needed
-# ----------------------------------------------------------------
-
-# ----------------------------------------------------------------
-# finally, restore active source
-SetActiveSource(None)
-# ----------------------------------------------------------------
 
 #####################################################
 ### END OF STATE FILE
 #####################################################
 
+SetTime(1)
 for i in list(range(len(ss))):
     fn = bo.format("{:04d}".format(ss[i]))
     if os.path.isfile(fn):

@@ -1,7 +1,4 @@
 set -eu
-./c.py `ls ../u_*.vtk` || true
+./c.py `ls ../vf_*.xmf` || true
 r.pngmp4
-rm -f *.png
-
-
 rm -f core.*
