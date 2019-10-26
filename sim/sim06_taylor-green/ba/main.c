@@ -90,12 +90,6 @@ event logfile (i += 1 ; t <= TMAX) {
     xb += x*dv;
     yb += y*dv;
     zb += z*dv;
-    xxb += x*x*dv;
-    xyb += x*y*dv;
-    xzb += x*z*dv;
-    yyb += y*y*dv;
-    yzb += y*z*dv;
-    zzb += z*z*dv;
     vbx += u.x[]*dv;
     vby += u.y[]*dv;
     vbz += u.z[]*dv;

@@ -29,7 +29,7 @@ if len(d) == 0:
 
 # remove non existing
 vv = [v for v in vv if alias[v] in d[0].dtype.names]
-W(' '.join(vv))
+W(' '.join(['n'] + vv))
 
 for i in range(len(d)):
-    W(' '.join([str(d[i][alias[v]]) for v in vv]))
+    W(' '.join([str(i)] + [str(d[i][alias[v]]) for v in vv]))
