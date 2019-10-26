@@ -6,16 +6,30 @@ pi = "o/sc"
 po = "traj.dat"
 
 vv = ['t', 'm2', 'c2x', 'c2y', 'c2z', 'v2x', 'v2y', 'v2z', 
-        'vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z', 'pd']
+        'vlmx', 'vlmy', 'vlmz', 'vl2x', 'vl2y', 'vl2z', 'pd',
+        'x', 'y', 'z', 'xx', 'xy', 'xz', 'yy', 'yz']
 
 d = np.genfromtxt(pi, names=True)
+
+alias = dict()
+for v in vv:
+    alias[v] = v
+alias['x'] = 'c2x'
+alias['y'] = 'c2y'
+alias['z'] = 'c2z'
 
 fo = open(po, 'w')
 
 def W(s):
     fo.write(s + '\n')
 
+if len(d) == 0:
+    W(' '.join(vv))
+    exit(0)
+
+# remove non existing
+vv = [v for v in vv if alias[v] in d[0].dtype.names]
 W(' '.join(vv))
 
 for i in range(len(d)):
-    W(' '.join([str(d[i][v]) for v in vv]))
+    W(' '.join([str(d[i][alias[v]]) for v in vv]))
