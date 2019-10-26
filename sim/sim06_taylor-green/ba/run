@@ -29,7 +29,7 @@ for i in range(np if dim == 2 else 1):
 
 sh("./run0 {dim} {np} |& tee -a {o}".format(**l))
 
-sh("./merge &>> {o}".format(**l))
+#sh("./merge &>> {o}".format(**l))
 
 sh("./expstat")
 
