@@ -11,24 +11,17 @@ import sys
 
 
 field = None
+fig = None
+ax = None
 
 # Read uniform grid data
-# lines
-# Format:
-# <nx> <ny> <nz>
-# <u[z,y,x]> ...
-# Return:
-# array of shape (nx, ny, nz)
-# None if file not found
+# nx ny nz
+# u[z,y,x] ...
 def ReadPlain(ll):
-    # shape x,y,z
-    s = np.array(ll[0].split(), dtype=int)
-    # shape z,y,x
-    ss = tuple(reversed(s))
-    # data flat
+    shape = np.array(ll[0].split(), dtype=int)
+    shape = tuple(reversed(shape))
     u = np.array(ll[1].split(), dtype=float)
-    # data z,y,x
-    u = u.reshape(ss)
+    u = u.reshape(shape)
     return u
 
 
@@ -39,6 +32,7 @@ def Send(msg):
     except IOError:
         print("can't open pipe in")
 
+
 def Listen():
     global field
     while True:
@@ -47,9 +41,10 @@ def Listen():
                 line = f.readline()
                 if line.strip() == "field":
                     field = ReadPlain(f.readlines())
-                    print(field.shape)
+                    ax.imshow(field[0,:,:])
+                    fig.canvas.draw()
                 else:
-                    print(f.readline())
+                    sys.stdout.write(f.readline())
         except IOError:
             print("can't open pipe out")
 
@@ -62,14 +57,15 @@ def Print(msg, msg2=None):
 
 def pick_simple():
     global field
+    global fig, ax
     fig, ax = plt.subplots(1, 1)
     ax.text(0.1, 0.9, "exit", picker=True, bbox=dict(facecolor='red'), transform=fig.transFigure)
     ax.text(0.15, 0.9, "step", picker=True, bbox=dict(facecolor='green'), transform=fig.transFigure)
     ax.text(0.2, 0.9, "field", picker=True, bbox=dict(facecolor='yellow'), transform=fig.transFigure)
-    ax.text(0.25, 0.9, "redraw", picker=True, bbox=dict(facecolor='yellow'), transform=fig.transFigure)
+    ax.text(0.25, 0.9, "step+field", picker=True, bbox=dict(facecolor='yellow'), transform=fig.transFigure)
     #line, = ax.plot(rand(100), 'o', picker=5)  # 5 points tolerance
 
-    def onpick1(event):
+    def onpick(event):
         if isinstance(event.artist, Line2D):
             thisline = event.artist
             xdata = thisline.get_xdata()
@@ -78,15 +74,16 @@ def pick_simple():
             Print("sum {:} {:}".format(xdata[ind][0], ydata[ind][0]))
         elif isinstance(event.artist, Rectangle):
             patch = event.artist
-            Print('onpick1 patch:', patch.get_path())
+            Print('onpick patch:', patch.get_path())
         elif isinstance(event.artist, Text):
             text = event.artist.get_text()
-            if text == "redraw":
-                ax.imshow(field[0,:,:])
-                event.canvas.draw()
-            Print(text)
+            if text == "step+field":
+                Print("step")
+                Print("field")
+            else:
+                Print(text)
 
-    fig.canvas.mpl_connect('pick_event', onpick1)
+    fig.canvas.mpl_connect('pick_event', onpick)
 
 
 
