@@ -1,0 +1,6 @@
+set -eu
+
+for d in nx* ; do
+  echo $d
+  (cd $d && ./expstat)
+done
