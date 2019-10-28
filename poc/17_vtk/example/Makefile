@@ -1,13 +1,14 @@
 .POSIX:
 LINK = $(CC)
 CFLAGS = -g -Og
-M_LDFLAGS = -L$(CHPREFIX)/lib -lvtk
+M_LDFLAGS = -L$(CHPREFIX)/lib -lvtk -lcsv -ltable -lm
 M_CFLAGS = -I$(CHPREFIX)/include
 
 M = \
 add\
 field\
 info\
+rad\
 write\
 wall\
 

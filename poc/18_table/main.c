@@ -21,20 +21,28 @@ struct Table {
     int value;
   } **buckets;
 };
+
 static int
-cmpatom(const void *x, const void *y)
+cmpint(const void *p, const void *q)
 {
+  int x, y;
+
+  x = *(int *) p;
+  y = *(int *) q;
   return x != y;
 }
 
 static unsigned
-hashatom(const void *key)
+hashint(const void *p)
 {
-  return (unsigned long) key >> 2;
+  int x;
+
+  x = *(int *) p;
+  return x;
 }
 
 struct Table *
-table_new(int hint,
+table_ini(int hint,
           int cmp(const void *x, const void *y),
           unsigned hash(const void *key))
 {
@@ -49,8 +57,8 @@ table_new(int hint,
   q = memory_malloc(sizeof(*q) + primes[i - 1] * sizeof(q->buckets[0]));
   assert(q);
   q->size = primes[i - 1];
-  q->cmp = cmp ? cmp : cmpatom;
-  q->hash = hash ? hash : hashatom;
+  q->cmp = cmp ? cmp : cmpint;
+  q->hash = hash ? hash : hashint;
   q->buckets = (struct binding **) (q + 1);
   for (i = 0; i < q->size; i++)
     q->buckets[i] = NULL;
@@ -71,7 +79,7 @@ table_get(struct Table *q, const void *key)
   for (p = q->buckets[i]; p; p = p->link)
     if ((*q->cmp) (key, p->key) == 0)
       break;
-  return p ? p->value : NONE;
+  return p ? p->value : TABLE_EMPY;
 }
 
 int
@@ -93,7 +101,7 @@ table_put(struct Table *q, const void *key, int value)
     p->link = q->buckets[i];
     q->buckets[i] = p;
     q->length++;
-    prev = NONE;
+    prev = TABLE_EMPY;
   } else
     prev = p->value;
   p->value = value;
@@ -146,11 +154,11 @@ table_remove(struct Table *q, const void *key)
       q->length--;
       return value;
     }
-  return NONE;
+  return TABLE_EMPY;
 }
 
 void
-table_free(struct Table *table)
+table_fin(struct Table *table)
 {
   assert(table);
   if (table->length > 0) {
