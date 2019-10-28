@@ -179,6 +179,7 @@ contour1Display.ColorArrayName = [None, '']
 ### END OF STATE FILE
 #####################################################
 
+SetTime(1)
 for i in list(range(len(ss))):
     fn = bo.format("{:04d}".format(ss[i]))
     if os.path.isfile(fn):
