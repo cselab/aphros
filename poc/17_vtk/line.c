@@ -39,8 +39,8 @@ line_get(char *p, FILE * f)
     if (status != 0)
       goto fail;
     if (n >= LINE_N) {
-	MSG(("n=%d >= LINE_N", n));
-	goto fail;
+      MSG(("n=%d >= LINE_N", n));
+      goto fail;
     }
     buf[n] = memory_strndup(s, N);
     if (buf[n] == NULL) {
@@ -81,7 +81,7 @@ line_fin(void)
 }
 
 int
-line_write(FILE *f)
+line_write(FILE * f)
 {
   int n, i;
   char **buf;
@@ -90,8 +90,8 @@ line_write(FILE *f)
   buf = line_info.buf;
 
   for (i = 0; i < n; i++) {
-      fputs(buf[i], f);
-      putc('\n', f);
+    fputs(buf[i], f);
+    putc('\n', f);
   }
   return 0;
 }
