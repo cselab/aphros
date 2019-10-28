@@ -15,11 +15,14 @@
 #define BRZ BR
 #endif
 
+#ifndef BRY
+#define BRY BR
+#endif
 
 #define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
 
 double ifr3(double x, double y, double z) {
-  double r = sq((x - BCX) / BR) + sq((y - BCY) / BR) + sq((z - BCZ) / BRZ);
+  double r = sq((x - BCX) / BR) + sq((y - BCY) / BRY) + sq((z - BCZ) / BRZ);
   return sq(BR) * (1 - r);
 }
 
@@ -32,7 +35,7 @@ uf.n[top] = 0.;
 uf.n[back] = 0.;
 uf.n[front] = 0.;
 
-#define P(X) fprintf(stderr, #X "=%g\n", X);
+#define P(X) { ONROOT fprintf(stderr, #X "=%g\n", (double)X); }
 
 int main() {
   init_grid(NX);

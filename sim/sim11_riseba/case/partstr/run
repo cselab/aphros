@@ -22,6 +22,8 @@ o = "out"
 
 l = locals()
 
+sh("killall main.s", fatal=False)
+
 sh("./clean")
 
 for i in range(np if dim == 2 else 1):
