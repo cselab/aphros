@@ -52,8 +52,13 @@ static const int RankEnum[] = { VTK_SCALAR, VTK_VECTOR };
 static int swap(int, int, void *);
 static int eq(const char *, const char *);
 static int rank2num(const char *, int *);
-static int type2num(const char *, int *num, int *size);
+static int type2size(const char *, int *num, int *size);
 static int location2num(const char *, int *);
+
+static int num2location(int, const char **);
+static int num2rank(int, const char **);
+static int num2type(int, const char **);
+static int num2size(int, int *);
 
 struct VTK *
 vtk_read(FILE * f)
@@ -62,14 +67,15 @@ vtk_read(FILE * f)
   double *x, *y, *z;
   void *p;
   float *r;
-  int nv, nt, nf, n, m, i, j, nr, ifield, size;
+  int nv, nt, nf, n, m, i, j, size;
   int *t, *t0, *t1, *t2;
-  char s[N], u[N], rank[N], name[N], type[N], location[N];
+  char s[N], rank[N], name[N], type[N], location[N];
 
   nv = nt = nf = 0;
   MALLOC(1, &q);
   line_ini();
-
+  x = y = z = NULL;
+  t0 = t1 = t2 = NULL;
   LINE(s, f);
   if (!eq(s, "# vtk DataFile Version 2.0")) {
     MSG(("not a vtk file, got '%s'", s));
@@ -145,7 +151,7 @@ end_polygons:
         MSG(("unknown rank: '%s' for '%s'", rank, name));
         goto fail;
       }
-      if (type2num(type, &q->type[nf], &size) != 0) {
+      if (type2size(type, &q->type[nf], &size) != 0) {
         MSG(("unknown type: '%s' for '%s'", type, name));
         goto fail;
       }
@@ -205,15 +211,21 @@ vtk_fin(struct VTK *q)
 int
 vtk_write(struct VTK *q, FILE * f)
 {
-  int nv, nt, i, j;
+  int nv, nt, nf, n, m, i, j, current, size, status;
   double *x, *y, *z;
+  int *t0, *t1, *t2, *t;
   float *r;
+  void *p;
+  const char *rank, *type, *location;
 
   nv = q->nv;
   nt = q->nt;
   x = q->x;
   y = q->y;
   z = q->z;
+  t0 = q->t0;
+  t1 = q->t1;
+  t2 = q->t2;
   if (fputs("# vtk DataFile Version 2.0\n", f) == EOF) {
     MSG(("fail to write"));
     return 1;
@@ -221,17 +233,67 @@ vtk_write(struct VTK *q, FILE * f)
   fprintf(f, "%s\n", me);
   fputs("BINARY\n", f);
   fputs("DATASET POLYDATA\n", f);
-  if (nv > 0)
-    fprintf(f, "POINTS %d float\n", nv);
-  MALLOC(3 * nv, &r);
-  for (i = j = 0; i < nv; i++) {
-    r[j++] = x[i];
-    r[j++] = y[i];
-    r[j++] = z[i];
+  fprintf(f, "POINTS %d float\n", nv);
+  if (nv > 0) {
+    MALLOC(3 * nv, &r);
+    for (i = j = 0; i < nv; i++) {
+      r[j++] = x[i];
+      r[j++] = y[i];
+      r[j++] = z[i];
+    }
+    SWAP(3 * nv, r);
+    FWRITE(3 * nv, r, f);
+    FREE(r);
   }
-  SWAP(3 * nv, r);
-  FWRITE(3 * nv, r, f);
-  FREE(r);
+  fprintf(f, "POLYGONS %d %d\n", nt, 4 * nt);
+  if (nt > 0) {
+    MALLOC(4 * nt, &t);
+    for (i = j = 0; i < nt; i++) {
+      t[j++] = 3;
+      t[j++] = t0[i];
+      t[j++] = t1[i];
+      t[j++] = t2[i];
+    }
+    SWAP(4 * nt, t);
+    FWRITE(4 * nt, t, f);
+    FREE(t);
+  }
+
+  size = current = n = -1;
+  type = rank = NULL;
+  nf = vtk_nf(q);
+  for (i = 0; i < nf; i++) {
+    if (q->location[i] != current) {
+      current = q->location[i];
+      if (current == VTK_CELL)
+        n = nt;
+      else if (current == VTK_POINT)
+        n = nv;
+      else {
+        MSG(("unknown location: %d", current));
+        goto end;
+      }
+      num2location(q->location[i], &location);
+      fprintf(f, "%s %d\n", location, n);
+    }
+    num2rank(q->rank[i], &rank);
+    num2type(q->type[i], &type);
+    status = num2size(q->type[i], &size);
+    if (status != 0) {
+      MSG(("unknown type: %d", type));
+      goto end;
+    }
+    fprintf(f, "%s %s %s\n", rank, q->name[i], type);
+    if (q->rank[i] == VTK_SCALAR)
+      fprintf(f, "LOOKUP_TABLE default\n");
+    m = n * q->rank[i];
+    MALLOC(m * size, &p);
+    memory_memcpy(p, q->data[i], m * size);
+    swap(m, size, p);
+    FWRITE(m * size, p, f);
+    FREE(p);
+  }
+end:
   return 0;
 }
 
@@ -318,7 +380,7 @@ rank2num(const char *s, int *p)
 }
 
 static int
-type2num(const char *s, int *num, int *size)
+type2size(const char *s, int *num, int *size)
 {
   int i, n;
 
@@ -327,6 +389,62 @@ type2num(const char *s, int *num, int *size)
     if (eq(s, TypeString[i])) {
       *num = TypeEnum[i];
       *size = TypeSize[i];
+      return 0;
+    }
+  return 1;
+}
+
+static int
+num2type(int p, const char **s)
+{
+  int i, n;
+
+  n = SIZE(TypeString);
+  for (i = 0; i < n; i++)
+    if (p == TypeEnum[i]) {
+      *s = TypeString[i];
+      return 0;
+    }
+  return 1;
+}
+
+static int
+num2rank(int p, const char **s)
+{
+  int i, n;
+
+  n = SIZE(RankString);
+  for (i = 0; i < n; i++)
+    if (p == RankEnum[i]) {
+      *s = RankString[i];
+      return 0;
+    }
+  return 1;
+}
+
+static int
+num2location(int p, const char **s)
+{
+  int i, n;
+
+  n = SIZE(LocationString);
+  for (i = 0; i < n; i++)
+    if (p == LocationEnum[i]) {
+      *s = LocationString[i];
+      return 0;
+    }
+  return 1;
+}
+
+static int
+num2size(int p, int *s)
+{
+  int i, n;
+
+  n = SIZE(TypeEnum);
+  for (i = 0; i < n; i++)
+    if (p == TypeEnum[i]) {
+      *s = TypeSize[i];
       return 0;
     }
   return 1;

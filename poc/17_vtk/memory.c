@@ -33,3 +33,9 @@ memory_strndup(const char *s, size_t n)
   }
   return p;
 }
+
+void *
+memory_memcpy(void *a, const void *b, int n)
+{
+  return memcpy(a, b, n);
+}
