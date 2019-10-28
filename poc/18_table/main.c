@@ -9,7 +9,7 @@
 
 static char me[] = "table";
 
-#define T Table_T
+#define T Table
 
 struct T {
   int size;
@@ -36,7 +36,7 @@ hashatom(const void *key)
 }
 
 T
-Table_new(int hint,
+table_new(int hint,
           int cmp(const void *x, const void *y),
           unsigned hash(const void *key))
 {
@@ -50,6 +50,7 @@ Table_new(int hint,
   for (i = 1; primes[i] < hint; i++);
   table = memory_malloc(sizeof(*table) +
                         primes[i - 1] * sizeof(table->buckets[0]));
+  assert(table);
   table->size = primes[i - 1];
   table->cmp = cmp ? cmp : cmpatom;
   table->hash = hash ? hash : hashatom;
@@ -62,7 +63,7 @@ Table_new(int hint,
 }
 
 void *
-Table_get(T table, const void *key)
+table_get(T table, const void *key)
 {
   int i;
   struct binding *p;
@@ -77,7 +78,7 @@ Table_get(T table, const void *key)
 }
 
 void *
-Table_put(T table, const void *key, void *value)
+table_put(T table, const void *key, void *value)
 {
   int i;
   struct binding *p;
@@ -104,14 +105,14 @@ Table_put(T table, const void *key, void *value)
 }
 
 int
-Table_length(T table)
+table_length(T table)
 {
   assert(table);
   return table->length;
 }
 
 void
-Table_map(T table,
+table_map(T table,
           void apply(const void *key, void **value, void *cl), void *cl)
 {
   int i;
@@ -129,7 +130,7 @@ Table_map(T table,
 }
 
 void *
-Table_remove(T table, const void *key)
+table_remove(T table, const void *key)
 {
   int i;
   struct binding **pp;
@@ -152,7 +153,7 @@ Table_remove(T table, const void *key)
 }
 
 void **
-Table_toArray(T table, void *end)
+table_toArray(T table, void *end)
 {
   int i, j = 0;
   void **array;
@@ -160,6 +161,7 @@ Table_toArray(T table, void *end)
 
   assert(table);
   array = memory_malloc((2 * table->length + 1) * sizeof(*array));
+  assert(array);
   for (i = 0; i < table->size; i++)
     for (p = table->buckets[i]; p; p = p->link) {
       array[j++] = (void *) p->key;
@@ -170,7 +172,7 @@ Table_toArray(T table, void *end)
 }
 
 void
-Table_free(T * table)
+table_free(T * table)
 {
   assert(table && *table);
   if ((*table)->length > 0) {
