@@ -95,7 +95,7 @@ main(int argc, char **argv)
 
   table = table_ini(100, NULL, NULL);
   for (i = 0; i < nr; i++) {
-    key = (int) cl_csv[i];
+    key = (int)cl_csv[i];
     table_put(table, key, i);
   }
 
@@ -103,15 +103,11 @@ main(int argc, char **argv)
   rad = vtk_data(vtk, "rad");
   nt = vtk_nt(vtk);
   for (i = 0; i < nt; i++) {
-    key = (int) cl[i];
+    key = (int)cl[i];
     j = table_get(table, key);
-    if (j != TABLE_EMPY) {
-      if (cl_csv[j] != key) {
-        fprintf(stderr, "%d %d %d\n", (int) cl_csv[j], key, i);
-        assert(key == (int) cl_csv[j]);
-      }
+    if (j != TABLE_EMPY)
       rad[i] = pow(vf[j] / Vcoef, 1.0 / 3.0);
-    } else
+    else
       rad[i] = 0;
   }
 
