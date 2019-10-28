@@ -7,6 +7,7 @@ M_CFLAGS = -I$(CHPREFIX)/include
 M = \
 info\
 write\
+wall\
 
 all: $M
 .o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@

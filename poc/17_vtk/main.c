@@ -59,6 +59,7 @@ static int num2location(int, const char **);
 static int num2rank(int, const char **);
 static int num2type(int, const char **);
 static int num2size(int, int *);
+static int remove0(int n, int size, void *, const int *a, int *new_size);
 
 struct VTK *
 vtk_read(FILE * f)
@@ -298,6 +299,30 @@ end:
 }
 
 int
+vtk_remove_tri(struct VTK *q, const int *a)
+{
+  int nt, nf, m, i, rank, size;
+  void *data;
+
+  nt = vtk_nt(q);
+  nf = vtk_nf(q);
+
+  size = sizeof(*q->t0);
+  remove0(nt, size, q->t0, a, &m);
+  remove0(nt, size, q->t1, a, &m);
+  remove0(nt, size, q->t2, a, &m);
+  for (i = 0; i < nf; i++)
+    if (q->location[i] == VTK_CELL) {
+      rank = q->rank[i];
+      num2size(q->type[i], &size);
+      data = q->data[i];
+      remove0(nt, size * rank, data, a, &m);
+    }
+  q->nt = m;
+  return 0;
+}
+
+int
 vtk_nv(struct VTK *q)
 {
   return q->nv;
@@ -448,4 +473,22 @@ num2size(int p, int *s)
       return 0;
     }
   return 1;
+}
+
+static int
+remove0(int n, int size, void *pv, const int *a, int *pM)
+{
+  int M, i, j, k, l;
+  char *p;
+
+  p = pv;
+  M = 0;
+  for (i = k = l = 0; i < n; i++)
+    if (a[i] == 0) {
+      for (j = 0; j < size; j++)
+        p[k++] = p[size * i + j];
+      M++;
+    }
+  *pM = M;
+  return 0;
 }

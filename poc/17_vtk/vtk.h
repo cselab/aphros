@@ -22,3 +22,4 @@ int vtk_nf(struct VTK *);
 void *vtk_field(struct VTK *, const char *);
 
 int vtk_write(struct VTK *, FILE *);
+int vtk_remove_tri(struct VTK *, const int *flag);
