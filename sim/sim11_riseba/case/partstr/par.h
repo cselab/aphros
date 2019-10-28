@@ -1,5 +1,3 @@
-#define NX 256
-
 #define GA 1000
 #define EO 20
 

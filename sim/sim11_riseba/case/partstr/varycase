@@ -1,0 +1,4 @@
+for ps in 0 1 ; do
+  ./runcase nx=128 np=128 partstr=$ps
+  ./runcase nx=256 np=128 partstr=$ps
+done
