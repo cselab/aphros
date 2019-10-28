@@ -6,19 +6,20 @@
  *  Copyright 2011 ETH Zurich. All rights reserved.
  *
  */
+#ifndef PUPKERNELSMPI_H_XBFRP5V0
+#define PUPKERNELSMPI_H_XBFRP5V0
 
 #include <cstring>
-using namespace std;
 
-#pragma once
-
+namespace PUPkernelsMPI
+{
 inline void pack(const Real * const srcbase, Real * const dst,
 			   const size_t gptfloats,
 			   int * selected_components, const int ncomponents,
 			   const int xstart, const int ystart, const int zstart,
 			   const int xend, const int yend, const int zend,
          const int bx, const int by)
-{	
+{
 	for(int idst=0, iz=zstart; iz<zend; ++iz)
 		for(int iy=ystart; iy<yend; ++iy)
 			for(int ix=xstart; ix<xend; ++ix)
@@ -32,30 +33,30 @@ inline void pack(const Real * const srcbase, Real * const dst,
 }
 
 inline void pack_stripes1(const Real * const srcbase, Real * const dst,
-					   const size_t gptfloats, 
-					   const int selstart, const int selend, 
+					   const size_t gptfloats,
+					   const int selstart, const int selend,
 					   const int xstart, const int ystart, const int zstart,
 					   const int xend, const int yend, const int zend,
              const int bx, const int by)
-{	
+{
 	for(int idst=0, iz=zstart; iz<zend; ++iz)
 		for(int iy=ystart; iy<yend; ++iy)
 			for(int ix=xstart; ix<xend; ++ix)
 			{
 				const Real * src = srcbase + gptfloats*(ix + bx*(iy + by*iz));
-				
+
 				for(int ic=selstart; ic<selend; ic++, idst++)
 					dst[idst] = src[ic];
 			}
 }
 
 inline void pack_stripes_(const Real * const srcbase, Real * const dst,
-					   const size_t gptfloats, 
-					   const int selstart, const int selend, 
+					   const size_t gptfloats,
+					   const int selstart, const int selend,
 					   const int xstart, const int ystart, const int zstart,
 					   const int xend, const int yend, const int zend,
              const int bx, const int by)
-{	
+{
 	const int seldiff = selend - selstart;
 	const int nbytes = seldiff*sizeof(Real);
 	for(int idst=0, iz=zstart; iz<zend; ++iz)
@@ -65,21 +66,21 @@ inline void pack_stripes_(const Real * const srcbase, Real * const dst,
 			for(int ix=xstart; ix<xend; ++ix)
 			{
 				const Real * src = srcbase + gptfloats*(ix + bx*(iy + by*iz));
-				
-				memcpy(&dst[idst], &src[selstart], nbytes);
-				idst += seldiff;
+
+                std::memcpy(&dst[idst], &src[selstart], nbytes);
+                idst += seldiff;
 			}
 		}
 	}
 }
 
 inline void pack_stripes_x(const Real * const srcbase, Real * const dst,
-					   const size_t gptfloats, 
-					   const int selstart, const int selend, 
+					   const size_t gptfloats,
+					   const int selstart, const int selend,
 					   const int xstart, const int ystart, const int zstart,
 					   const int xend, const int yend, const int zend,
              const int bx, const int by)
-{	
+{
 	const int seldiff = selend - selstart;
 	const int nbytes = seldiff*sizeof(Real);
 	const int _BS_XY_ = bx*by;
@@ -93,8 +94,8 @@ inline void pack_stripes_x(const Real * const srcbase, Real * const dst,
 			for(int ix=xstart; ix<xend; ++ix)
 			{
 				const Real * src = srcbase + gptfloats*(ix + iy_off + iz_off);
-				memcpy(&dst[idst], &src[selstart], nbytes);
-				idst += seldiff;
+                std::memcpy(&dst[idst], &src[selstart], nbytes);
+                idst += seldiff;
 			}
 		}
 	}
@@ -105,16 +106,16 @@ inline void pack_stripes_x(const Real * const srcbase, Real * const dst,
 #include <builtins.h>
 #define memcpy2(a,b,c)	__bcopy((b),(a),(c))
 #else
-#define memcpy2(a,b,c)	memcpy((a),(b),(c))
+#define memcpy2(a, b, c) std::memcpy((a), (b), (c))
 #endif
 
 inline void pack_stripes_unroll0(const Real * const srcbase, Real * const dst,
-					   const size_t gptfloats, 
-					   const int selstart, const int selend, 
+					   const size_t gptfloats,
+					   const int selstart, const int selend,
 					   const int xstart, const int ystart, const int zstart,
 					   const int xend, const int yend, const int zend,
              const int bx, const int by)
-{	
+{
 	const int seldiff = selend - selstart;
 	const int nbytes = seldiff*sizeof(Real);
 	for(int idst=0, iz=zstart; iz<zend; ++iz)
@@ -123,7 +124,7 @@ inline void pack_stripes_unroll0(const Real * const srcbase, Real * const dst,
 		{
 			int xentries = xend - xstart;
 			//int unroll = 4;
-			
+
 			int repeat = (xentries / 4);
 			int left = (xentries % 4);
 
@@ -134,7 +135,7 @@ inline void pack_stripes_unroll0(const Real * const srcbase, Real * const dst,
 					const Real * src1 = src0 + gptfloats;
 					const Real * src2 = src1 + gptfloats;
 					const Real * src3 = src2 + gptfloats;
-					
+
 					memcpy2((char *)&dst[idst+0*seldiff], (char *)&src0[selstart], nbytes);
 					memcpy2((char *)&dst[idst+1*seldiff], (char *)&src1[selstart], nbytes);
 					memcpy2((char *)&dst[idst+2*seldiff], (char *)&src2[selstart], nbytes);
@@ -148,7 +149,7 @@ inline void pack_stripes_unroll0(const Real * const srcbase, Real * const dst,
 				const Real * src0 = srcbase + gptfloats*(ix + bx*(iy + by*iz));
 				const Real * src1 = src0 + gptfloats;
 				const Real * src2 = src1 + gptfloats;
-						
+
 				memcpy2((char *)&dst[idst+0*seldiff], (char *)&src0[selstart], nbytes);
 				memcpy2((char *)&dst[idst+1*seldiff], (char *)&src1[selstart], nbytes);
 				memcpy2((char *)&dst[idst+2*seldiff], (char *)&src2[selstart], nbytes);
@@ -159,7 +160,7 @@ inline void pack_stripes_unroll0(const Real * const srcbase, Real * const dst,
 			{
 				const Real * src0 = srcbase + gptfloats*(ix + bx*(iy + by*iz));
 				const Real * src1 = src0 + gptfloats;
-						
+
 				memcpy2((char *)&dst[idst+0*seldiff], (char *)&src0[selstart], nbytes);
 				memcpy2((char *)&dst[idst+1*seldiff], (char *)&src1[selstart], nbytes);
 				idst += 2*seldiff;
@@ -168,7 +169,7 @@ inline void pack_stripes_unroll0(const Real * const srcbase, Real * const dst,
 			else /* left == 1 */
 			{
 				const Real * src0 = srcbase + gptfloats*(ix + bx*(iy + by*iz));
-						
+
 				memcpy2((char *)&dst[idst+0*seldiff], (char *)&src0[selstart], nbytes);
 				idst += 1*seldiff;
 				ix += 1;
@@ -179,12 +180,12 @@ inline void pack_stripes_unroll0(const Real * const srcbase, Real * const dst,
 }
 
 inline void pack_stripesxx(const Real * const srcbase, Real * const dst,
-					   const size_t gptfloats, 
-					   const int selstart, const int selend, 
+					   const size_t gptfloats,
+					   const int selstart, const int selend,
 					   const int xstart, const int ystart, const int zstart,
 					   const int xend, const int yend, const int zend,
              const int bx, const int by)
-{	
+{
 //	printf("xstart/end = (%d, %d)\n", xstart, xend);
 	const int seldiff = selend - selstart;
 	const int nbytes = seldiff*sizeof(Real);
@@ -214,7 +215,7 @@ inline void pack_stripesxx(const Real * const srcbase, Real * const dst,
 					const Real * src5 = src4 + gptfloats;
 					const Real * src6 = src5 + gptfloats;
 					const Real * src7 = src6 + gptfloats;
-					
+
 					memcpy2((char *)&dst[idst+0*seldiff], (char *)&src0[selstart], nbytes);
 					memcpy2((char *)&dst[idst+1*seldiff], (char *)&src1[selstart], nbytes);
 					memcpy2((char *)&dst[idst+2*seldiff], (char *)&src2[selstart], nbytes);
@@ -234,7 +235,7 @@ inline void pack_stripesxx(const Real * const srcbase, Real * const dst,
 					const Real * src1 = src0 + gptfloats;
 					const Real * src2 = src1 + gptfloats;
 					const Real * src3 = src2 + gptfloats;
-					
+
 					memcpy2((char *)&dst[idst+0*seldiff], (char *)&src0[selstart], nbytes);
 					memcpy2((char *)&dst[idst+1*seldiff], (char *)&src1[selstart], nbytes);
 					memcpy2((char *)&dst[idst+2*seldiff], (char *)&src2[selstart], nbytes);
@@ -247,15 +248,15 @@ inline void pack_stripesxx(const Real * const srcbase, Real * const dst,
 }
 
 inline void pack_stripes(const Real * const srcbase, Real * const dst,
-					   const size_t gptfloats, 
-					   const int selstart, const int selend, 
+					   const size_t gptfloats,
+					   const int selstart, const int selend,
 					   const int xstart, const int ystart, const int zstart,
 					   const int xend, const int yend, const int zend,
              const int bx, const int by)
-{	
+{
 	const int seldiff = selend - selstart;
 	const int nbytes = seldiff*sizeof(Real);
-	
+
 	if ((xend - xstart) == bx)
 	{
 		for(int idst=0, iz=zstart; iz<zend; ++iz)
@@ -268,7 +269,7 @@ inline void pack_stripes(const Real * const srcbase, Real * const dst,
 						const Real * src1 = src0 + gptfloats;
 						const Real * src2 = src1 + gptfloats;
 						const Real * src3 = src2 + gptfloats;
-						
+
 						memcpy2((char *)&dst[idst+0*seldiff], (char *)&src0[selstart], nbytes);
 						memcpy2((char *)&dst[idst+1*seldiff], (char *)&src1[selstart], nbytes);
 						memcpy2((char *)&dst[idst+2*seldiff], (char *)&src2[selstart], nbytes);
@@ -290,7 +291,7 @@ inline void pack_stripes(const Real * const srcbase, Real * const dst,
 						const Real * src0 = srcbase + gptfloats*(ix + bx*(iy + by*iz));
 						const Real * src1 = src0 + gptfloats;
 						const Real * src2 = src1 + gptfloats;
-						
+
 						memcpy2((char *)&dst[idst+0*seldiff], (char *)&src0[selstart], nbytes);
 						memcpy2((char *)&dst[idst+1*seldiff], (char *)&src1[selstart], nbytes);
 						memcpy2((char *)&dst[idst+2*seldiff], (char *)&src2[selstart], nbytes);
@@ -355,7 +356,7 @@ inline void unpack2(const Real * const pack, Real * const dstbase,
 		for(int yd=dstystart; yd<dstyend; ++yd)
 		{
 			if ((dstxend - dstxstart) % 4 != 0)
-			{ 
+			{
 				for(int xd=dstxstart; xd<dstxend; ++xd)
 				{
 					Real * const dst = dstbase + gptfloats * (xd + xsize * (yd + ysize * zd));
@@ -400,8 +401,13 @@ inline void unpack_subregion(const Real * const pack, Real * const dstbase,
 			{
 				Real * const dst = dstbase + gptfloats * (xd + xsize * (yd + ysize * zd));
 				const Real * src = pack + ncomponents*(xd - dstxstart + srcxstart + LX * (yd - dstystart + srcystart + LY * (zd - dstzstart + srczstart)));
-				
+
 				for(int c=0; c<ncomponents; ++c)
 					dst[selected_components[c]] = src[c];
 			}
 }
+
+#undef memcpy2
+} // namespace PUPkernelsMPI
+
+#endif /* PUPKERNELSMPI_H_XBFRP5V0 */

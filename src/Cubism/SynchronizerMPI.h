@@ -652,11 +652,11 @@ class SynchronizerMPI
 
 public:
 
-	SynchronizerMPI(const int synchID, StencilInfo stencil, 
-                  vector<BlockInfo> globalinfos, MPI_Comm cartcomm, 
+	SynchronizerMPI(const int synchID, StencilInfo stencil,
+                  vector<BlockInfo> globalinfos, MPI_Comm cartcomm,
                   const int mybpd[3], const int blocksize[3])
-      : synchID(synchID), stencil(stencil), 
-        globalinfos(globalinfos), cube(mybpd[0], mybpd[1], mybpd[2]), 
+      : synchID(synchID), stencil(stencil),
+        globalinfos(globalinfos), cube(mybpd[0], mybpd[1], mybpd[2]),
         cartcomm(cartcomm)
 	{
 		int myrank;
@@ -680,8 +680,8 @@ public:
 		for(int i=0; i<3; ++i) this->blocksize[i]=blocksize[i];
 
 		for(size_t i=0; i< globalinfos.size(); ++i) {
-			I3 coord(globalinfos[i].index[0], 
-               globalinfos[i].index[1], 
+			I3 coord(globalinfos[i].index[0],
+               globalinfos[i].index[1],
                globalinfos[i].index[2]);
 			c2i[coord] = i;
 		}
@@ -787,7 +787,7 @@ public:
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
-					pack(info.block, info.pack, gptfloats, &selcomponents.front(), NC, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
+                    PUPkernelsMPI::pack(info.block, info.pack, gptfloats, &selcomponents.front(), NC, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
 				}
 			}
 			else
@@ -798,7 +798,7 @@ public:
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
-					pack_stripes(info.block, info.pack, gptfloats, selstart, selend, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
+                    PUPkernelsMPI::pack_stripes(info.block, info.pack, gptfloats, selstart, selend, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
 				}
 			}
 		}
@@ -985,7 +985,7 @@ public:
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
-					pack(info.block, info.pack, gptfloats, &selcomponents.front(), NC, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
+                    PUPkernelsMPI::pack(info.block, info.pack, gptfloats, &selcomponents.front(), NC, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
 				}
 			}
 			else
@@ -996,7 +996,7 @@ public:
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
-					pack_stripes(info.block, info.pack, gptfloats, selstart, selend, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx+halos*2, by+halos*2);
+                    PUPkernelsMPI::pack_stripes(info.block, info.pack, gptfloats, selstart, selend, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
 				}
 			}
 
@@ -1461,7 +1461,7 @@ class MyRange
 
 					const int nsrc = (itpack->ex-itpack->sx)*(itpack->ey-itpack->sy)*(itpack->ez-itpack->sz);
 
-					unpack(itpack->pack, ptrLab, gptfloats, &stencil.selcomponents.front(), stencil.selcomponents.size(), nsrc,
+                    PUPkernelsMPI::unpack(itpack->pack, ptrLab, gptfloats, &stencil.selcomponents.front(), stencil.selcomponents.size(), nsrc,
 						   itpack->sx-x0, itpack->sy-y0, itpack->sz-z0,
 						   itpack->ex-x0, itpack->ey-y0, itpack->ez-z0,
 						   xsize, ysize, zsize);
@@ -1488,7 +1488,7 @@ class MyRange
 
 				    if (myrange.outside(packrange)) continue;
 
-					unpack_subregion(itsubpack->pack, ptrLab, gptfloats, &stencil.selcomponents.front(), stencil.selcomponents.size(),
+                    PUPkernelsMPI::unpack_subregion(itsubpack->pack, ptrLab, gptfloats, &stencil.selcomponents.front(), stencil.selcomponents.size(),
 									 itsubpack->x0, itsubpack->y0, itsubpack->z0,
 									 itsubpack->xpacklenght, itsubpack->ypacklenght,
 									 itsubpack->sx-x0, itsubpack->sy-y0, itsubpack->sz-z0,
