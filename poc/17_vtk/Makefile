@@ -4,7 +4,7 @@ CFLAGS = -g -Og
 M_LDFLAGS = -lm
 PREFIX = $(CHPREFIX)
 
-O = main.o err.o memory.o
+O = main.o err.o memory.o line.o
 L = libvtk.a
 H = vtk.h
 
@@ -13,6 +13,7 @@ libvtk.a: $O; ar rv $@ $O && ranlib $@
 main.o: vtk.h err.h memory.h
 err.o: err.h
 memory.o: memory.h
+line.o: line.h
 
 .o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@
 .c:

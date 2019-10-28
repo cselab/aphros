@@ -3,17 +3,18 @@
 #include <string.h>
 #include "err.h"
 #include "memory.h"
+#include "line.h"
 #include "vtk.h"
 
 static char me[] = "vtk";
-enum { N = 9999 };
+enum { N = 999 };
 
 #define FMT "%.20g"
 #define LINE(s, f)				\
   do						\
-    if (line(s, f) != 0) {			\
+    if (line_get(s, f) != 0) {			\
       MSG(("fail to read"));			\
-      return NULL;				\
+      goto fail;				\
     }						\
   while(0)
 
@@ -38,23 +39,21 @@ enum { N = 9999 };
   } while(0)
 #define SIZE(a) (sizeof(a)/sizeof(*(a)))
 
-static int swap(int, int, void *);
-static int line(char *, FILE *);
-static int line0(char *, FILE *);
-static int eq(const char *, const char *);
-static int rank2num(const char *, int *);
-static int type2num(const char *, int *num, int *size);
-static int location2num(const char *, int *);
-
 static const char *LocationString[] = { "CELL_DATA", "POINT_DATA" };
 static const int LocationEnum[] = { VTK_CELL, VTK_POINT };
 static const char *TypeString[] = { "int", "float", "double" };
 static const int TypeEnum[] = { VTK_INT, VTK_FLOAT, VTK_DOUBLE };
 static const int TypeSize[] =
     { sizeof(int), sizeof(float), sizeof(double) };
-
 static const char *RankString[] = { "SCALARS", "VECTORS" };
 static const int RankEnum[] = { VTK_SCALAR, VTK_VECTOR };
+
+/* functions */
+static int swap(int, int, void *);
+static int eq(const char *, const char *);
+static int rank2num(const char *, int *);
+static int type2num(const char *, int *num, int *size);
+static int location2num(const char *, int *);
 
 struct VTK *
 vtk_read(FILE * f)
@@ -69,23 +68,25 @@ vtk_read(FILE * f)
 
   nv = nt = nf = 0;
   MALLOC(1, &q);
+  line_ini();
+
   LINE(s, f);
   if (!eq(s, "# vtk DataFile Version 2.0")) {
     MSG(("not a vtk file, got '%s'", s));
-    return NULL;
+    goto fail;
   }
   LINE(s, f);                   // comments
   LINE(s, f);
   if (!eq(s, "BINARY")) {
     MSG(("expect 'BINARY', get '%s'", s));
-    return NULL;
+    goto fail;
   }
   LINE(s, f);
   if (!eq(s, "DATASET POLYDATA")) {
     MSG(("expect 'DATASET POLYDATA', get '%s'", s));
-    return NULL;
+    goto fail;
   }
-  if (line(s, f) != 0)
+  if (line_get(s, f) != 0)
     goto end_polygons;
   sscanf(s, "%s %d float", name, &nv);
   if (!eq(name, "POINTS"))
@@ -100,7 +101,7 @@ vtk_read(FILE * f)
     z[i] = r[j++];
   }
   FREE(r);
-  if (line(s, f) != 0)
+  if (line_get(s, f) != 0)
     goto end_data;
   sscanf(s, "%s %d %*d", name, &nt);
   if (!eq(name, "POLYGONS")) {
@@ -118,17 +119,17 @@ vtk_read(FILE * f)
     t2[i] = t[j++];
   }
   FREE(t);
-  if (line(s, f) != 0)
+  if (line_get(s, f) != 0)
     goto end_data;
- end_polygons:
+end_polygons:
   for (;;) {
     sscanf(s, "%s", location);
-    if (line(s, f) != 0)
+    if (line_get(s, f) != 0)
       goto end_data;
     do {
       if (location2num(location, &q->location[nf]) != 0) {
         MSG(("unknown location '%s'", location));
-        return NULL;
+        goto fail;
       }
       if (sscanf(s, "%s %s %s", rank, name, type) != 3)
         break;
@@ -137,16 +138,16 @@ vtk_read(FILE * f)
         LINE(s, f);
         if (!eq(s, "LOOKUP_TABLE default")) {
           MSG(("expect 'LOOKUP_TABLE default', get '%s'", s));
-          return NULL;
+          goto fail;
         }
       }
       if (rank2num(rank, &q->rank[nf]) != 0) {
         MSG(("unknown rank: '%s' for '%s'", rank, name));
-        return NULL;
+        goto fail;
       }
       if (type2num(type, &q->type[nf], &size) != 0) {
         MSG(("unknown type: '%s' for '%s'", type, name));
-        return NULL;
+        goto fail;
       }
       n = q->location[nf] == VTK_CELL ? nt : nv;
       m = n * q->rank[nf];
@@ -155,7 +156,7 @@ vtk_read(FILE * f)
       swap(m, size, p);
       q->data[nf] = p;
       nf++;
-    } while (line(s, f) == 0);
+    } while (line_get(s, f) == 0);
   }
 end_data:
   q->nv = nv;
@@ -167,7 +168,12 @@ end_data:
   q->t0 = t0;
   q->t1 = t1;
   q->t2 = t2;
+  //line_write(stderr);
+  line_fin();
   return q;
+fail:
+  line_fin();
+  return NULL;
 }
 
 int
@@ -226,29 +232,6 @@ vtk_write(struct VTK *q, FILE * f)
   SWAP(3 * nv, r);
   FWRITE(3 * nv, r, f);
   FREE(r);
-  return 0;
-}
-
-static int
-line(char *s, FILE * f)
-{
-  do
-    if (line0(s, f) != 0)
-      return 1;
-  while (s[0] == '\0');
-  return 0;
-}
-
-static int
-line0(char *s, FILE * f)
-{
-  int n;
-
-  if (fgets(s, N, f) == NULL)
-    return 1;
-  n = strlen(s);
-  if (n > 0 && s[n - 1] == '\n')
-    s[n - 1] = '\0';
   return 0;
 }
 
