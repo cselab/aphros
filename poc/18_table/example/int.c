@@ -14,14 +14,14 @@ main(void)
   t = table_ini(0, NULL, NULL);
   key = 40;
   val = 1;
-  table_put(t, &key, val);
+  table_put(t, key, val);
 
-  key = 549;
+  key = 549 + 2;
   val = 2;
-  table_put(t, &key, val);
+  table_put(t, key, val);
 
   key = 40;
-  p = table_get(t, &key);
+  p = table_get(t, key);
   if (p != TABLE_EMPY)
     printf("%d\n", p);
   table_fin(t);
