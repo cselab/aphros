@@ -33,7 +33,6 @@ main(int argc, char **argv)
   USED(argc);
 
   argv++;
-
   path = argv++[0];
   if (path == NULL) {
     fprintf(stderr, "%s: needs vtk file\n", me);
@@ -67,7 +66,6 @@ main(int argc, char **argv)
     exit(2);
   }
   fclose(f);
-
   nt = vtk_nt(vtk);
   flag = malloc(nt * sizeof(*flag));
   cl = vtk_data(vtk, "cl");
@@ -75,7 +73,6 @@ main(int argc, char **argv)
     fprintf(stderr, "%s: not field 'cl' in vtk file\n", me);
     exit(2);
   }
-
   cl_csv = csv_field(csv, "cl");
   if (cl_csv == NULL) {
     fprintf(stderr, "%s: not field 'cl' in csv file\n", me);
@@ -88,29 +85,28 @@ main(int argc, char **argv)
   }
   nr = csv_nr(csv);
   j = array_max_arg(nr, vf);
-  for (i = 0; i < nt; i++)
-    flag[i] = (cl[i] == -1 || cl[i] == cl_csv[j]);
+  for (i = 0; i < nt; i++) {
+    key = (int) cl[i];
+    flag[i] = (key == -1 || key == 0 || key == cl_csv[j]);
+  }
   vtk_remove_tri(vtk, flag);
   free(flag);
-
   table = table_ini(100, NULL, NULL);
   for (i = 0; i < nr; i++) {
-    key = (int)cl_csv[i];
+    key = (int) cl_csv[i];
     table_put(table, key, i);
   }
-
   vtk_add(vtk, "rad", VTK_CELL, VTK_DOUBLE);
   rad = vtk_data(vtk, "rad");
   nt = vtk_nt(vtk);
   for (i = 0; i < nt; i++) {
-    key = (int)cl[i];
+    key = (int) cl[i];
     j = table_get(table, key);
     if (j != TABLE_EMPY)
       rad[i] = pow(vf[j] / Vcoef, 1.0 / 3.0);
     else
       rad[i] = 0;
   }
-
   vtk_write(vtk, stdout);
   table_fin(table);
   vtk_fin(vtk);
