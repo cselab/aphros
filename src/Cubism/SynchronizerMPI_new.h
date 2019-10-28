@@ -816,12 +816,11 @@ public:
 			_myfree(all_mallocs[i]);
     }
 
-    void sync(size_t gptfloats, MPI_Datatype MPIREAL, const int timestamp)
+    template <typename T>
+    void pack(size_t gptfloats, MPI_Datatype MPIREAL, const int timestamp)
     {
         // 0. wait for pending sends, couple of checks
         // 1. pack all stuff
-        // 2. perform send/receive requests
-        // 3. setup the dependency
 
         //0.
 		{
@@ -869,8 +868,20 @@ public:
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
-					pack(info.block, info.pack, gptfloats, &selcomponents.front(), NC, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
-				}
+                    PUPkernelsMPI::pack(info.block,
+                                        info.pack,
+                                        gptfloats,
+                                        &selcomponents.front(),
+                                        NC,
+                                        info.sx,
+                                        info.sy,
+                                        info.sz,
+                                        info.ex,
+                                        info.ey,
+                                        info.ez,
+                                        bx,
+                                        by);
+                }
 			}
 			else
 			{
@@ -880,12 +891,30 @@ public:
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
-					pack_stripes(info.block, info.pack, gptfloats, selstart, selend, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
-				}
+                    PUPkernelsMPI::pack_stripes(info.block,
+                                                info.pack,
+                                                gptfloats,
+                                                selstart,
+                                                selend,
+                                                info.sx,
+                                                info.sy,
+                                                info.sz,
+                                                info.ex,
+                                                info.ey,
+                                                info.ez,
+                                                bx,
+                                                by);
+                }
 			}
 		}
+    }
 
-		//2. send requests
+    void sync(size_t gptfloats, MPI_Datatype MPIREAL, const int timestamp)
+    {
+        // 2. perform send/receive requests
+        // 3. setup the dependency
+
+        //2. send requests
 		{
 			//faces
 			for(int d=0; d<3; ++d)
@@ -1068,8 +1097,20 @@ public:
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
-					pack(info.block, info.pack, gptfloats, &selcomponents.front(), NC, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
-				}
+                    PUPkernelsMPI::pack(info.block,
+                                        info.pack,
+                                        gptfloats,
+                                        &selcomponents.front(),
+                                        NC,
+                                        info.sx,
+                                        info.sy,
+                                        info.sz,
+                                        info.ex,
+                                        info.ey,
+                                        info.ez,
+                                        bx,
+                                        by);
+                }
 			}
 			else
 			{
@@ -1079,8 +1120,20 @@ public:
 				for(int i=0; i<N; ++i)
 				{
 					PackInfo info = send_packinfos[i];
-					pack_stripes(info.block, info.pack, gptfloats, selstart, selend, info.sx, info.sy, info.sz, info.ex, info.ey, info.ez, bx, by);
-				}
+                    PUPkernelsMPI::pack_stripes(info.block,
+                                                info.pack,
+                                                gptfloats,
+                                                selstart,
+                                                selend,
+                                                info.sx,
+                                                info.sy,
+                                                info.sz,
+                                                info.ex,
+                                                info.ey,
+                                                info.ez,
+                                                bx,
+                                                by);
+                }
 			}
 
 		}
@@ -1544,11 +1597,22 @@ class MyRange
 
 					const int nsrc = (itpack->ex-itpack->sx)*(itpack->ey-itpack->sy)*(itpack->ez-itpack->sz);
 
-					unpack(itpack->pack, ptrLab, gptfloats, &stencil.selcomponents.front(), stencil.selcomponents.size(), nsrc,
-						   itpack->sx-x0, itpack->sy-y0, itpack->sz-z0,
-						   itpack->ex-x0, itpack->ey-y0, itpack->ez-z0,
-						   xsize, ysize, zsize);
-				}
+                    PUPkernelsMPI::unpack(itpack->pack,
+                                          ptrLab,
+                                          gptfloats,
+                                          &stencil.selcomponents.front(),
+                                          stencil.selcomponents.size(),
+                                          nsrc,
+                                          itpack->sx - x0,
+                                          itpack->sy - y0,
+                                          itpack->sz - z0,
+                                          itpack->ex - x0,
+                                          itpack->ey - y0,
+                                          itpack->ez - z0,
+                                          xsize,
+                                          ysize,
+                                          zsize);
+                }
 			}
 		}
 
@@ -1571,13 +1635,27 @@ class MyRange
 
 				    if (myrange.outside(packrange)) continue;
 
-					unpack_subregion(itsubpack->pack, ptrLab, gptfloats, &stencil.selcomponents.front(), stencil.selcomponents.size(),
-									 itsubpack->x0, itsubpack->y0, itsubpack->z0,
-									 itsubpack->xpacklenght, itsubpack->ypacklenght,
-									 itsubpack->sx-x0, itsubpack->sy-y0, itsubpack->sz-z0,
-									 itsubpack->ex-x0, itsubpack->ey-y0, itsubpack->ez-z0,
-									 xsize, ysize, zsize);
-				  }
+                    PUPkernelsMPI::unpack_subregion(
+                        itsubpack->pack,
+                        ptrLab,
+                        gptfloats,
+                        &stencil.selcomponents.front(),
+                        stencil.selcomponents.size(),
+                        itsubpack->x0,
+                        itsubpack->y0,
+                        itsubpack->z0,
+                        itsubpack->xpacklenght,
+                        itsubpack->ypacklenght,
+                        itsubpack->sx - x0,
+                        itsubpack->sy - y0,
+                        itsubpack->sz - z0,
+                        itsubpack->ex - x0,
+                        itsubpack->ey - y0,
+                        itsubpack->ez - z0,
+                        xsize,
+                        ysize,
+                        zsize);
+                  }
 			}
 		}
 	}

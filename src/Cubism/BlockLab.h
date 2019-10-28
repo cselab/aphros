@@ -19,14 +19,14 @@ typedef double Real;
 #include "Grid.h"
 //#include "Concepts.h"
 // #include <omp.h>
-#include <string.h>
+#include <cstring>
 #include <string>
 
 #ifdef __bgq__
 #include <builtins.h>
 #define memcpy2(a,b,c)	__bcopy((b),(a),(c))
 #else
-#define memcpy2(a,b,c)	memcpy((a),(b),(c))
+#define memcpy2(a,b,c)	std::memcpy((a),(b),(c))
 #endif
 
 /**
@@ -282,11 +282,11 @@ public:
 			const bool yperiodic = is_yperiodic();
 			const bool zperiodic = is_zperiodic();
 
-			const bool xskin = 
+			const bool xskin =
           info.index[0]==0 || info.index[0]==(int)grid.getBlocksPerDimension(0)-1;
-			const bool yskin = 
+			const bool yskin =
           info.index[1]==0 || info.index[1]==(int)grid.getBlocksPerDimension(1)-1;
-			const bool zskin = 
+			const bool zskin =
           info.index[2]==0 || info.index[2]==(int)grid.getBlocksPerDimension(2)-1;
 
 			const int xskip = info.index[0]==0 ? -1 : 1;
