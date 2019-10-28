@@ -298,7 +298,7 @@ end:
 }
 
 int
-vtk_off(struct VTK *q, FILE *f)
+vtk_off(struct VTK *q, FILE * f)
 {
   int nt, nv, cnt[3];
   int *t, *t0, *t1, *t2, i, j;
@@ -314,13 +314,13 @@ vtk_off(struct VTK *q, FILE *f)
   t1 = q->t1;
   t2 = q->t2;
   fputs("OFF BINARY\n", f);
-  
+
   cnt[0] = nv;
   cnt[1] = nt;
   cnt[2] = 0;
   SWAP(3, cnt);
   FWRITE(3, cnt, f);
-  
+
   MALLOC(3 * nv, &r);
   for (i = j = 0; i < nv; i++) {
     r[j++] = x[i];
@@ -339,7 +339,7 @@ vtk_off(struct VTK *q, FILE *f)
     t[j++] = t2[i];
     t[j++] = 0;
   }
-  SWAP(5 * nt , t);
+  SWAP(5 * nt, t);
   FWRITE(5 * nt, t, f);
   FREE(t);
 

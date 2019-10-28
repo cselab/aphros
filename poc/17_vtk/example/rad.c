@@ -9,6 +9,7 @@
 
 #define	USED(x)		if(x);else{}
 static double pi = 3.141592653589793;
+
 #define Vcoef (4.0/3.0*pi)
 static char me[] = "vtk/rad";
 
@@ -28,6 +29,7 @@ main(int argc, char **argv)
   struct Table *table;
   char *path;
   FILE *f;
+
   USED(argc);
 
   argv++;
@@ -105,13 +107,13 @@ main(int argc, char **argv)
     key = (int) cl[i];
     j = table_get(table, key);
     if (j != TABLE_EMPY) {
-	if (cl_csv[j] != key) {
-	    fprintf(stderr, "%d %d %d\n", (int)cl_csv[j], key, i);
-	    assert(key == (int) cl_csv[j]);
-	}
-	rad[i] = pow(vf[j] / Vcoef, 1.0 / 3.0);
+      if (cl_csv[j] != key) {
+        fprintf(stderr, "%d %d %d\n", (int) cl_csv[j], key, i);
+        assert(key == (int) cl_csv[j]);
+      }
+      rad[i] = pow(vf[j] / Vcoef, 1.0 / 3.0);
     } else
-	rad[i] = 0;
+      rad[i] = 0;
   }
 
   vtk_write(vtk, stdout);
