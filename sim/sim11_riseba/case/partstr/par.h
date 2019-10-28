@@ -1,4 +1,4 @@
-#define NX 128
+#define NX 256
 
 #define GA 1000
 #define EO 20
@@ -8,9 +8,7 @@
 
 #define BCY 0.5
 #define BCZ 0.5
-#define BR 0.2
-#define BRY 0.2
-#define BRZ 0.2
+#define BR 0.15
 #define BCX (BR*2)
 
 // Ga = (rho0 * sqrt(g*R) * R / mu0)
