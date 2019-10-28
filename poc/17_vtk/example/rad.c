@@ -7,8 +7,8 @@
 #include <csv.h>
 #include <table.h>
 
+#define	USED(x)		if(x);else{}
 static double pi = 3.141592653589793;
-
 #define Vcoef (4.0/3.0*pi)
 static char me[] = "vtk/rad";
 
@@ -28,6 +28,7 @@ main(int argc, char **argv)
   struct Table *table;
   char *path;
   FILE *f;
+  USED(argc);
 
   argv++;
 
@@ -94,20 +95,15 @@ main(int argc, char **argv)
   table = table_ini(100, NULL, NULL);
   for (i = 0; i < nr; i++) {
     key = (int) cl_csv[i];
-    table_put(table, &key, i);
-    fprintf(stderr, "put: %d %d\n", key, i);
-    key = 40;
-    j = table_get(table, &key);
-    fprintf(stderr, "get: %d %d\n", key, j);
+    table_put(table, key, i);
   }
-  exit(0);
 
   vtk_add(vtk, "rad", VTK_CELL, VTK_DOUBLE);
   rad = vtk_data(vtk, "rad");
   nt = vtk_nt(vtk);
   for (i = 0; i < nt; i++) {
     key = (int) cl[i];
-    j = table_get(table, &key);
+    j = table_get(table, key);
     if (j != TABLE_EMPY) {
 	if (cl_csv[j] != key) {
 	    fprintf(stderr, "%d %d %d\n", (int)cl_csv[j], key, i);

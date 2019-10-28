@@ -33,7 +33,7 @@ enum { N = 999 };
 #define FWRITE(n, p, f)							\
   do {									\
     if ((int)fwrite(p, sizeof(*(p)), (n), (f)) != (n)) {		\
-      MSG(("failt to write, n = %d\n", n));				\
+      MSG(("fail to write, n = %d", n));				\
       return 1;								\
     }									\
   } while(0)
@@ -175,7 +175,6 @@ end_data:
   q->t0 = t0;
   q->t1 = t1;
   q->t2 = t2;
-  //line_write(stderr);
   line_fin();
   return q;
 fail:
@@ -295,6 +294,55 @@ vtk_write(struct VTK *q, FILE * f)
     FREE(p);
   }
 end:
+  return 0;
+}
+
+int
+vtk_off(struct VTK *q, FILE *f)
+{
+  int nt, nv, cnt[3];
+  int *t, *t0, *t1, *t2, i, j;
+  double *x, *y, *z;
+  float *r;
+
+  nt = vtk_nt(q);
+  nv = vtk_nv(q);
+  x = q->x;
+  y = q->y;
+  z = q->z;
+  t0 = q->t0;
+  t1 = q->t1;
+  t2 = q->t2;
+  fputs("OFF BINARY\n", f);
+  
+  cnt[0] = nv;
+  cnt[1] = nt;
+  cnt[2] = 0;
+  SWAP(3, cnt);
+  FWRITE(3, cnt, f);
+  
+  MALLOC(3 * nv, &r);
+  for (i = j = 0; i < nv; i++) {
+    r[j++] = x[i];
+    r[j++] = y[i];
+    r[j++] = z[i];
+  }
+  SWAP(3 * nv, r);
+  FWRITE(3 * nv, r, f);
+  FREE(r);
+
+  MALLOC(5 * nt, &t);
+  for (i = j = 0; i < nt; i++) {
+    t[j++] = 3;
+    t[j++] = t0[i];
+    t[j++] = t1[i];
+    t[j++] = t2[i];
+    t[j++] = 0;
+  }
+  SWAP(5 * nt , t);
+  FWRITE(5 * nt, t, f);
+  FREE(t);
+
   return 0;
 }
 

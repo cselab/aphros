@@ -83,7 +83,6 @@ table_put(struct Table *q, int key, int value)
   int prev;
 
   assert(q);
-  assert(key);
   i = (*q->hash) (key) % q->size;
   for (p = q->buckets[i]; p; p = p->link)
     if ((*q->cmp) (key, p->key) == 0)
@@ -117,7 +116,6 @@ table_remove(struct Table *q, int key)
   struct binding **pp;
 
   assert(q);
-  assert(key);
   q->timestamp++;
   i = (*q->hash) (key) % q->size;
   for (pp = &q->buckets[i]; *pp; pp = &(*pp)->link)

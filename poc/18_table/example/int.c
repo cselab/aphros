@@ -16,7 +16,7 @@ main(void)
   val = 1;
   table_put(t, key, val);
 
-  key = 549 + 2;
+  key = 549;
   val = 2;
   table_put(t, key, val);
 
