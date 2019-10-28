@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <vtk.h>
 
-static char me[] = "vtk/write";
+static char me[] = "vtk/wall";
 int
 main(void)
 {
@@ -22,7 +22,7 @@ main(void)
     fprintf(stderr, "%s: malloc failed\n", me);
     exit(2);
   }
-  cl = vtk_field(vtk, "cl");
+  cl = vtk_data(vtk, "cl");
   for (i = 0; i < n; i++)
     flag[i] = (cl[i] == -1);
   vtk_remove_tri(vtk, flag);

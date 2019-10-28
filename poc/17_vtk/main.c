@@ -340,16 +340,29 @@ vtk_nt(struct VTK *q)
   return q->nt;
 }
 
-void *
-vtk_field(struct VTK *q, const char *name)
+int
+vtk_index(struct VTK *q, const char *name, int *p)
 {
   int i, nf;
 
   nf = q->nf;
   for (i = 0; i < nf; i++)
-    if (eq(name, q->name[i]))
+      if (eq(name, q->name[i])) {
+	*p = i;
+	return 0;
+      }
+  return 1;
+}
+
+void *
+vtk_data(struct VTK *q, const char *name)
+{
+  int i, status;
+  status = vtk_index(q, name, &i);
+  if (status != 0)
+      return NULL;
+  else
       return q->data[i];
-  return NULL;
 }
 
 int
