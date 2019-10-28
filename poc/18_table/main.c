@@ -18,7 +18,7 @@ struct Table {
   struct binding {
     struct binding *link;
     const void *key;
-    void *value;
+    int value;
   } **buckets;
 };
 static int
@@ -59,7 +59,7 @@ table_new(int hint,
   return q;
 }
 
-void *
+int
 table_get(struct Table *q, const void *key)
 {
   int i;
@@ -71,15 +71,15 @@ table_get(struct Table *q, const void *key)
   for (p = q->buckets[i]; p; p = p->link)
     if ((*q->cmp) (key, p->key) == 0)
       break;
-  return p ? p->value : NULL;
+  return p ? p->value : NONE;
 }
 
-void *
-table_put(struct Table *q, const void *key, void *value)
+int
+table_put(struct Table *q, const void *key, int value)
 {
   int i;
   struct binding *p;
-  void *prev;
+  int prev;
 
   assert(q);
   assert(key);
@@ -93,7 +93,7 @@ table_put(struct Table *q, const void *key, void *value)
     p->link = q->buckets[i];
     q->buckets[i] = p;
     q->length++;
-    prev = NULL;
+    prev = NONE;
   } else
     prev = p->value;
   p->value = value;
@@ -110,7 +110,7 @@ table_length(struct Table *q)
 
 void
 table_map(struct Table *q,
-          void apply(const void *key, void **value, void *cl), void *cl)
+          void apply(const void *key, int *value, void *cl), void *cl)
 {
   int i;
   unsigned stamp;
@@ -126,7 +126,7 @@ table_map(struct Table *q,
     }
 }
 
-void *
+int
 table_remove(struct Table *q, const void *key)
 {
   int i;
@@ -139,14 +139,14 @@ table_remove(struct Table *q, const void *key)
   for (pp = &q->buckets[i]; *pp; pp = &(*pp)->link)
     if ((*q->cmp) (key, (*pp)->key) == 0) {
       struct binding *p = *pp;
-      void *value = p->value;
+      int value = p->value;
 
       *pp = p->link;
       FREE(p);
       q->length--;
       return value;
     }
-  return NULL;
+  return NONE;
 }
 
 void

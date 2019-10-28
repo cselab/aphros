@@ -34,24 +34,27 @@ main(void)
 {
   struct Table *t;
   int key, val;
-  int *p;
+  int p;
 
   t = table_new(0, cmp, hash);
   key = 1;
   val = 10;
-  table_put(t, &key, &val);
+  table_put(t, &key, val);
 
   key = 2;
   val = 20;
-  table_put(t, &key, &val);
+  table_put(t, &key, val);
 
   key = 3;
   val = 30;
-  table_put(t, &key, &val);
+  table_put(t, &key, val);
 
-  key = 1;
+  key = 20;
+  table_remove(t, &key);
+
+  key = 2;
   p = table_get(t, &key);
-  if (p)
-    printf("%d\n", *p);
+  if (p != NONE)
+    printf("%d\n", p);
   table_free(t);
 }

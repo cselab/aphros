@@ -5,7 +5,7 @@ M_LDFLAGS = -L$(CHPREFIX)/lib -ltable
 M_CFLAGS = -I$(CHPREFIX)/include
 
 M = \
-info\
+int\
 
 all: $M
 .o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@
