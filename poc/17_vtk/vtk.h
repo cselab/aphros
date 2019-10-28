@@ -19,6 +19,7 @@ int vtk_fin(struct VTK *);
 int vtk_nv(struct VTK *);
 int vtk_nt(struct VTK *);
 int vtk_nf(struct VTK *);
+int vtk_add(const char *name, int localtion, int type, int rank);
 void *vtk_field(struct VTK *, const char *);
 
 int vtk_write(struct VTK *, FILE *);
