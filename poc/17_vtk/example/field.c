@@ -20,14 +20,13 @@ main(int argc, char **argv)
 
   vtk = vtk_read(stdin);
   if (vtk == NULL) {
-      fprintf(stderr, "%s: fail to read\n", me);
+    fprintf(stderr, "%s: fail to read\n", me);
     exit(2);
   }
-
-  ;  
+  ;
   if (vtk_index(vtk, name, &i) != 0) {
-      fprintf(stderr, "%s: no field '%s'\n", me, name);
-      exit(2);
+    fprintf(stderr, "%s: no field '%s'\n", me, name);
+    exit(2);
   }
   nv = vtk_nv(vtk);
   nt = vtk_nt(vtk);
@@ -38,6 +37,6 @@ main(int argc, char **argv)
 
   n = (location == VTK_CELL) ? nt : nv;
   for (i = 0; i < n; i++) {
-      printf("%g\n", data[i]);
+    printf("%g\n", data[i]);
   }
 }

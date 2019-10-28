@@ -347,10 +347,10 @@ vtk_index(struct VTK *q, const char *name, int *p)
 
   nf = q->nf;
   for (i = 0; i < nf; i++)
-      if (eq(name, q->name[i])) {
-	*p = i;
-	return 0;
-      }
+    if (eq(name, q->name[i])) {
+      *p = i;
+      return 0;
+    }
   return 1;
 }
 
@@ -358,42 +358,43 @@ void *
 vtk_data(struct VTK *q, const char *name)
 {
   int i, status;
+
   status = vtk_index(q, name, &i);
   if (status != 0)
-      return NULL;
+    return NULL;
   else
-      return q->data[i];
+    return q->data[i];
 }
 
 int
-vtk_add(struct VTK * q, const char *name, int location, int type)
+vtk_add(struct VTK *q, const char *name, int location, int type)
 {
-    int nt, nv, nf, n, size, rank;
+  int nt, nv, nf, n, size, rank;
 
-    nf = vtk_nf(q);
-    nv = vtk_nv(q);
-    nt = vtk_nt(q);
-    if (nf == VTK_MAX_NF) {
-	MSG(("nf=%d == VTK_MAX_NF", nf));
-	return 1;
-    }
+  nf = vtk_nf(q);
+  nv = vtk_nv(q);
+  nt = vtk_nt(q);
+  if (nf == VTK_MAX_NF) {
+    MSG(("nf=%d == VTK_MAX_NF", nf));
+    return 1;
+  }
 
-    rank = VTK_SCALAR;
-    q->location[nf] = location;
-    q->type[nf] = type;
-    q->rank[nf] = rank;
-    q->name[nf] = memory_strndup(name, N);
-    num2size(type, &size);
-    if (location == VTK_CELL)
-	n = nt;
-    else if (location == VTK_POINT)
-	n = nv;
-    else
-	MSG(("unknown location: %d", location));
-    MALLOC(n * size * rank, &q->data[nf]);
-    nf++;
-    q->nf = nf;
-    return 0;
+  rank = VTK_SCALAR;
+  q->location[nf] = location;
+  q->type[nf] = type;
+  q->rank[nf] = rank;
+  q->name[nf] = memory_strndup(name, N);
+  num2size(type, &size);
+  if (location == VTK_CELL)
+    n = nt;
+  else if (location == VTK_POINT)
+    n = nv;
+  else
+    MSG(("unknown location: %d", location));
+  MALLOC(n * size * rank, &q->data[nf]);
+  nf++;
+  q->nf = nf;
+  return 0;
 }
 
 static int

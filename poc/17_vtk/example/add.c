@@ -21,7 +21,7 @@ main(void)
   vtk_add(vtk, "id", VTK_CELL, VTK_DOUBLE);
   id = vtk_data(vtk, "id");
   for (i = 0; i < n; i++)
-      id[i] = i;
+    id[i] = i;
   vtk_write(vtk, stdout);
   vtk_fin(vtk);
 }
