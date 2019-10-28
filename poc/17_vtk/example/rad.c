@@ -88,7 +88,6 @@ main(int argc, char **argv)
   }
   nr = csv_nr(csv);
   j = array_max_arg(nr, vf);
-  fprintf(stderr, "water: vf[%d] = %g\n", j, vf[j]);
   for (i = 0; i < nt; i++)
     flag[i] = (cl[i] == -1 || cl[i] == cl_csv[j]);
   vtk_remove_tri(vtk, flag);
