@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <vtk.h>
 
-static char me[] = "vtk/write";
+static char me[] = "vtk/info";
 int
 main(void)
 {

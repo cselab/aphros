@@ -5,7 +5,7 @@
 #include "memory.h"
 #include "vtk.h"
 
-char me[] = "vtk";
+static char me[] = "vtk";
 enum { N = 9999 };
 
 #define FMT "%.20g"
