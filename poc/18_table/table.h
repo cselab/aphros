@@ -1,14 +1,13 @@
-#define T Table
-typedef struct T *T;
-extern T table_new(int hint,
-                   int cmp(const void *x, const void *y),
-                   unsigned hash(const void *key));
-extern void table_free(T *);
-extern int table_length(T);
-extern void *table_put(T, const void *key, void *value);
-extern void *table_get(T, const void *key);
-extern void *table_remove(T, const void *key);
-extern void table_map(T,
-                      void apply(const void *key, void **value, void *cl),
-                      void *cl);
-extern void **table_toArray(T, void *end);
+struct Table;
+struct Table *table_new(int hint,
+                        int cmp(const void *x, const void *y),
+                        unsigned hash(const void *key));
+void table_free(struct Table *);
+int table_length(struct Table *);
+void *table_put(struct Table *, const void *key, void *value);
+void *table_get(struct Table *, const void *key);
+void *table_remove(struct Table *, const void *key);
+void table_map(struct Table *,
+               void apply(const void *key, void **value, void *cl),
+               void *cl);
+#undef T
