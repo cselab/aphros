@@ -11,25 +11,18 @@ main(void)
   int key, val;
   int p;
 
-  t = table_new(0, NULL, NULL);
-  key = 1;
-  val = 10;
+  t = table_ini(0, NULL, NULL);
+  key = 40;
+  val = 1;
   table_put(t, &key, val);
 
-  key = 2;
-  val = 20;
+  key = 549;
+  val = 2;
   table_put(t, &key, val);
 
-  key = 3;
-  val = 30;
-  table_put(t, &key, val);
-
-  key = 20;
-  table_remove(t, &key);
-
-  key = 2;
+  key = 40;
   p = table_get(t, &key);
-  if (p != NONE)
+  if (p != TABLE_EMPY)
     printf("%d\n", p);
-  table_free(t);
+  table_fin(t);
 }

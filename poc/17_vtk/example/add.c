@@ -8,7 +8,6 @@ main(void)
 {
   struct VTK *vtk;
   int n, i;
-  float *cl;
   double *id;
 
   vtk = vtk_read(stdin);

@@ -18,6 +18,7 @@ all: $M
 
 .c:
 %: %.c
+%: %.sh
 .SUFFIXES: .o .c
 
 lint:; make CFLAGS='-Wall -Wextra -g -O2'

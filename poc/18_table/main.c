@@ -11,40 +11,33 @@ static char me[] = "table";
 
 struct Table {
   int size;
-  int (*cmp)(const void *x, const void *y);
-  unsigned (*hash)(const void *key);
+  int (*cmp)(int, int);
+  unsigned (*hash)(int);
   int length;
   unsigned timestamp;
   struct binding {
     struct binding *link;
-    const void *key;
+    int key;
     int value;
   } **buckets;
 };
 
 static int
-cmpint(const void *p, const void *q)
+cmpint(int x, int y)
 {
-  int x, y;
-
-  x = *(int *) p;
-  y = *(int *) q;
-  return x != y;
+    return x != y;
 }
 
 static unsigned
-hashint(const void *p)
+hashint(int x)
 {
-  int x;
-
-  x = *(int *) p;
   return x;
 }
 
 struct Table *
 table_ini(int hint,
-          int cmp(const void *x, const void *y),
-          unsigned hash(const void *key))
+          int cmp(int x, int y),
+          unsigned hash(int key))
 {
   struct Table *q;
   int i;
@@ -68,7 +61,7 @@ table_ini(int hint,
 }
 
 int
-table_get(struct Table *q, const void *key)
+table_get(struct Table *q, int key)
 {
   int i;
   struct binding *p;
@@ -83,7 +76,7 @@ table_get(struct Table *q, const void *key)
 }
 
 int
-table_put(struct Table *q, const void *key, int value)
+table_put(struct Table *q, int key, int value)
 {
   int i;
   struct binding *p;
@@ -116,26 +109,9 @@ table_length(struct Table *q)
   return q->length;
 }
 
-void
-table_map(struct Table *q,
-          void apply(const void *key, int *value, void *cl), void *cl)
-{
-  int i;
-  unsigned stamp;
-  struct binding *p;
-
-  assert(q);
-  assert(apply);
-  stamp = q->timestamp;
-  for (i = 0; i < q->size; i++)
-    for (p = q->buckets[i]; p; p = p->link) {
-      apply(p->key, &p->value, cl);
-      assert(q->timestamp == stamp);
-    }
-}
 
 int
-table_remove(struct Table *q, const void *key)
+table_remove(struct Table *q, int key)
 {
   int i;
   struct binding **pp;
@@ -157,7 +133,7 @@ table_remove(struct Table *q, const void *key)
   return TABLE_EMPY;
 }
 
-void
+int
 table_fin(struct Table *table)
 {
   assert(table);
@@ -172,4 +148,5 @@ table_fin(struct Table *table)
       }
   }
   FREE(table);
+  return 0;
 }

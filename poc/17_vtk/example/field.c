@@ -2,12 +2,14 @@
 #include <stdlib.h>
 #include <vtk.h>
 
+#define	USED(x)		if(x);else{}
 static char me[] = "vtk/field";
 int
 main(int argc, char **argv)
 {
+  USED(argc);
   struct VTK *vtk;
-  int nv, nt, n, i, location, type, rank;
+  int nv, nt, n, i, location;
   char *name;
   float *data;
 
@@ -23,7 +25,6 @@ main(int argc, char **argv)
     fprintf(stderr, "%s: fail to read\n", me);
     exit(2);
   }
-  ;
   if (vtk_index(vtk, name, &i) != 0) {
     fprintf(stderr, "%s: no field '%s'\n", me, name);
     exit(2);
@@ -32,8 +33,6 @@ main(int argc, char **argv)
   nt = vtk_nt(vtk);
   data = vtk->data[i];
   location = vtk->location[i];
-  type = vtk->type[i];
-  rank = vtk->rank[i];
 
   n = (location == VTK_CELL) ? nt : nv;
   for (i = 0; i < n; i++) {
