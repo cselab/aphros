@@ -45,11 +45,11 @@ bah5_write(scalar s, const char *name, const char *path)
   sta[C] = e*mpi_coords[Z];
 
   ori[X] = X0; ori[Y] = Y0; ori[Z] = Z0;
-  if (siz[X] == 0) {
-    BAH5_WARN(("siz[X] == 0"));
+  if (siz[A] == 0) {
+    BAH5_WARN(("siz[A] == 0"));
     goto err;
   }
-  spa = L0/siz[X];
+  spa = L0/siz[A];
   nbuf = e*e*e;
   buf = malloc(nbuf*sizeof(*buf));
   if (buf == NULL) {
