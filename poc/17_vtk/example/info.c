@@ -26,7 +26,10 @@ main(void)
     location = vtk->location[i];
     type = vtk->type[i];
     printf("%s %s %s %d\n", vtk->name[i],
-           type == VTK_FLOAT ? "float" : "int",
+           type == VTK_FLOAT ? "float" :
+	   type == VTK_DOUBLE ? "double" :
+	   type == VTK_INT ? "int" :
+	   "unknown",
            location == VTK_CELL ? "cell" : "point", vtk->rank[i]);
   }
   vtk_fin(vtk);
