@@ -11,7 +11,7 @@ main(void)
   int key, val;
   int p;
 
-  t = table_ini(0, NULL, NULL);
+  t = table_ini(0);
   key = 40;
   val = 1;
   table_put(t, key, val);

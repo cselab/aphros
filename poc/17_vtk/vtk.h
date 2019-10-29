@@ -27,3 +27,4 @@ int vtk_write(struct VTK *, FILE *);
 int vtk_off(struct VTK *, FILE *);
 int vtk_remove_tri(struct VTK *, const int *flag);
 int vtk_add(struct VTK *, const char *, int localtion, int type);
+int vtk_remove(struct VTK *, const char *);

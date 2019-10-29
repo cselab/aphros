@@ -11,8 +11,6 @@ static char me[] = "table";
 
 struct Table {
   int size;
-  int (*cmp)(int, int);
-  unsigned (*hash)(int);
   int length;
   unsigned timestamp;
   struct binding {
@@ -23,21 +21,19 @@ struct Table {
 };
 
 static int
-cmpint(int x, int y)
+cmp(int x, int y)
 {
     return x != y;
 }
 
 static unsigned
-hashint(int x)
+hash(int x)
 {
   return x;
 }
 
 struct Table *
-table_ini(int hint,
-          int cmp(int x, int y),
-          unsigned hash(int key))
+table_ini(int hint)
 {
   struct Table *q;
   int i;
@@ -50,8 +46,6 @@ table_ini(int hint,
   q = memory_malloc(sizeof(*q) + primes[i - 1] * sizeof(q->buckets[0]));
   assert(q);
   q->size = primes[i - 1];
-  q->cmp = cmp ? cmp : cmpint;
-  q->hash = hash ? hash : hashint;
   q->buckets = (struct binding **) (q + 1);
   for (i = 0; i < q->size; i++)
     q->buckets[i] = NULL;
@@ -68,9 +62,9 @@ table_get(struct Table *q, int key)
 
   assert(q);
   assert(key);
-  i = (*q->hash) (key) % q->size;
+  i = hash(key) % q->size;
   for (p = q->buckets[i]; p; p = p->link)
-    if ((*q->cmp) (key, p->key) == 0)
+    if (cmp(key, p->key) == 0)
       break;
   return p ? p->value : TABLE_EMPY;
 }
@@ -83,9 +77,9 @@ table_put(struct Table *q, int key, int value)
   int prev;
 
   assert(q);
-  i = (*q->hash) (key) % q->size;
+  i = hash(key) % q->size;
   for (p = q->buckets[i]; p; p = p->link)
-    if ((*q->cmp) (key, p->key) == 0)
+    if (cmp(key, p->key) == 0)
       break;
   if (p == NULL) {
     MALLOC(1, &p);
@@ -117,9 +111,9 @@ table_remove(struct Table *q, int key)
 
   assert(q);
   q->timestamp++;
-  i = (*q->hash) (key) % q->size;
+  i = hash(key) % q->size;
   for (pp = &q->buckets[i]; *pp; pp = &(*pp)->link)
-    if ((*q->cmp) (key, (*pp)->key) == 0) {
+    if (cmp(key, (*pp)->key) == 0) {
       struct binding *p = *pp;
       int value = p->value;
 

@@ -1,8 +1,6 @@
 struct Table;
 enum {TABLE_EMPY = -1};
-struct Table *table_ini(int hint,
-                        int cmp(int x, int y),
-                        unsigned hash(int key));
+struct Table *table_ini(int hint);
 int table_fin(struct Table *);
 int table_length(struct Table *);
 int table_put(struct Table *, int key, int value);

@@ -415,6 +415,29 @@ vtk_data(struct VTK *q, const char *name)
 }
 
 int
+vtk_remove(struct VTK *q, const char *name)
+{
+    int i, j, k, nf, status;
+    nf = vtk_nf(q);
+    status = vtk_index(q, name, &j);
+    if (status != 0)
+	return 1;
+    FREE(q->name[j]);
+    FREE(q->data[j]);
+    for (i = k = 0; i < nf; i++)
+	if (i != j) {
+	    strncpy(q->name[k], q->name[i], N);
+	    q->location[k] = q->location[i];
+	    q->type[k] = q->type[i];
+	    q->rank[k] = q->rank[i];
+	    q->data[k] = q->data[i];
+	    k++;
+	}
+    return 0;
+}
+    
+
+int
 vtk_add(struct VTK *q, const char *name, int location, int type)
 {
   int nt, nv, nf, n, size, rank;

@@ -91,7 +91,7 @@ main(int argc, char **argv)
   }
   vtk_remove_tri(vtk, flag);
   free(flag);
-  table = table_ini(100, NULL, NULL);
+  table = table_ini(100);
   for (i = 0; i < nr; i++) {
     key = (int) cl_csv[i];
     table_put(table, key, i);
