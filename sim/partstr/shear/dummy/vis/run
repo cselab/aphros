@@ -1,0 +1,4 @@
+set -eu
+./c.py `ls ../f_*.xmf` || true
+r.pngmp4 a a.mp4 -y
+rm -f core.*
