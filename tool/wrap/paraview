@@ -1,0 +1,12 @@
+P="/opt/paraview/5.7.0-src"
+LD_LIBRARY_PATH="$P"/lib
+PATH="$P/bin:$PATH"
+export PATH LD_LIBRARY_PATH
+
+exec0() {
+   printf 'cmd: %s\n' "$*" >&2
+   exec "$@"
+}
+
+n=paraview
+exec0 "$P/bin/$n" --enable-streaming "$@"
