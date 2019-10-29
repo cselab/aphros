@@ -91,6 +91,10 @@ main(int argc, char **argv)
   }
   vtk_remove_tri(vtk, flag);
   free(flag);
+  vtk_remove(vtk, "nn");
+  vtk_remove(vtk, "c");
+  vtk_remove(vtk, "l");
+
   table = table_ini(100);
   for (i = 0; i < nr; i++) {
     key = (int) cl_csv[i];
