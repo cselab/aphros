@@ -32,6 +32,22 @@ inline void pack(const Real * const srcbase, Real * const dst,
 			}
 }
 
+inline void pack_soa(const Real * const srcbase, Real * const dstbase,
+                     const int xstart, const int ystart, const int zstart,
+                     const int xend, const int yend, const int zend,
+                     const int bx, const int by)
+{
+    Real *dst = dstbase;
+    for (int iz = zstart; iz < zend; ++iz) {
+        for (int iy = ystart; iy < yend; ++iy) {
+            const Real *src = srcbase + bx * (iy + by * iz);
+            for (int ix = xstart; ix < xend; ++ix) {
+                *dst++ = *src++;
+            }
+        }
+    }
+}
+
 inline void pack_stripes1(const Real * const srcbase, Real * const dst,
 					   const size_t gptfloats,
 					   const int selstart, const int selend,
@@ -100,6 +116,10 @@ inline void pack_stripes_x(const Real * const srcbase, Real * const dst,
 		}
 	}
 }
+
+#ifdef memcpy2
+#undef memcpy2
+#endif /* memcpy2 */
 
 #include "QPXEMU.h"
 #ifdef __bgq__
@@ -320,6 +340,29 @@ inline void unpack(const Real * const pack, Real * const dstbase,
 			}
 }
 
+inline void unpack_soa(const Real *const pack,
+                       Real *const dstbase,
+                       const int dstxstart,
+                       const int dstystart,
+                       const int dstzstart,
+                       const int dstxend,
+                       const int dstyend,
+                       const int dstzend,
+                       const int xsize,
+                       const int ysize)
+{
+    const Real *src = pack;
+    for (int zd = dstzstart; zd < dstzend; ++zd) {
+        for (int yd = dstystart; yd < dstyend; ++yd) {
+            Real *dst = dstbase + xsize * (yd + ysize * zd);
+            for(int xd=dstxstart; xd<dstxend; ++xd)
+            {
+                *dst++ = *src++;
+            }
+        }
+    }
+}
+
 inline void unpack1(const Real * const pack, Real * const dstbase,
 		  const size_t gptfloats,
 		  const int * const selected_components, const int ncomponents,
@@ -405,6 +448,35 @@ inline void unpack_subregion(const Real * const pack, Real * const dstbase,
 				for(int c=0; c<ncomponents; ++c)
 					dst[selected_components[c]] = src[c];
 			}
+}
+
+inline void unpack_subregion_soa(const Real *const pack,
+                                 Real *const dstbase,
+                                 const int srcxstart,
+                                 const int srcystart,
+                                 const int srczstart,
+                                 const int LX,
+                                 const int LY,
+                                 const int dstxstart,
+                                 const int dstystart,
+                                 const int dstzstart,
+                                 const int dstxend,
+                                 const int dstyend,
+                                 const int dstzend,
+                                 const int xsize,
+                                 const int ysize)
+{
+    for (int zd = dstzstart; zd < dstzend; ++zd) {
+        for (int yd = dstystart; yd < dstyend; ++yd) {
+            Real *dst = dstbase + xsize * (yd + ysize * zd);
+            const Real *src = pack - dstxstart + srcxstart +
+                              LX * (yd - dstystart + srcystart +
+                                    LY * (zd - dstzstart + srczstart));
+            for (int xd = dstxstart; xd < dstxend; ++xd) {
+                *dst++ = *src++;
+            }
+        }
+    }
 }
 
 #undef memcpy2

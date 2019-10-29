@@ -20,923 +20,954 @@
 
 using namespace std;
 
-template <int bx_, int by_, int bz_>
+template <int bx_, int by_, int bz_, size_t max_comp=8>
 class SynchronizerMPI
 {
   static const int bx = bx_;
   static const int by = by_;
   static const int bz = bz_;
-	struct I3
-	{
-		int ix, iy, iz;
+    struct I3
+    {
+        int ix, iy, iz;
 
-		I3(int ix, int iy, int iz):ix(ix), iy(iy), iz(iz){}
-		I3(const I3& c): ix(c.ix), iy(c.iy), iz(c.iz){}
+        I3(int ix, int iy, int iz):ix(ix), iy(iy), iz(iz){}
+        I3(const I3& c): ix(c.ix), iy(c.iy), iz(c.iz){}
 
-		bool operator<(const I3& a) const
-		{
-			return ix<a.ix || (ix==a.ix && iy<a.iy) || (ix==a.ix && iy==a.iy && iz<a.iz);
-		}
-	};
+        bool operator<(const I3& a) const
+        {
+            return ix<a.ix || (ix==a.ix && iy<a.iy) || (ix==a.ix && iy==a.iy && iz<a.iz);
+        }
+    };
 
-	struct PackInfo { Real * block, * pack; int sx, sy, sz, ex, ey, ez; };
-	struct SubpackInfo { Real * block, * pack; int sx, sy, sz, ex, ey, ez; int x0, y0, z0, xpacklenght, ypacklenght; };
+public:
+    struct FieldInfo {
+        void* data_inner; // start address of inner block domain
+        void* data_outer; // start address of outer block domain (incl. halo)
+    };
 
-	bool isroot;
-	const int synchID;
-	int send_thickness[3][2], recv_thickness[3][2];
-	int blockinfo_counter;
-	StencilInfo stencil;
-	vector<PackInfo> send_packinfos;
-	map<Real *, vector<PackInfo> > recv_packinfos;
-	map<Real *, vector<SubpackInfo> > recv_subpackinfos;
-	vector<Real *> all_mallocs;
+private:
+    struct PackInfo { Real * block, * pack; int sx, sy, sz, ex, ey, ez; };
+    struct SubpackInfo { Real * block, * pack; int sx, sy, sz, ex, ey, ez; int x0, y0, z0, xpacklenght, ypacklenght; };
 
-	vector<BlockInfo> globalinfos;
-	DependencyCubeMPI<MPI_Request> cube;
+    const int synchID;
+    bool isroot;
+    int send_thickness[3][2], recv_thickness[3][2];
+    int blockinfo_counter;
+    StencilInfo stencil;
+    vector<PackInfo> send_packinfos;
+    map<Real *, vector<PackInfo> > recv_packinfos;
+    map<Real *, vector<SubpackInfo> > recv_subpackinfos;
+    vector<Real *> all_mallocs;
+
+    vector<BlockInfo> globalinfos;
+    DependencyCubeMPI<MPI_Request> cube;
 
   map<Region, vector<BlockInfo> > region2infos;
 
-	//?static?
-	MPI_Comm cartcomm;
-	int blocksize[3];
-	int mypeindex[3], pesize[3], mybpd[3];
-	int periodic[3];
-	int neighborsrank[3][3][3];
+    //?static?
+    MPI_Comm cartcomm;
+    int blocksize[3];
+    int mypeindex[3], pesize[3], mybpd[3];
+    int periodic[3];
+    int neighborsrank[3][3][3];
 
-	map<I3,int> c2i;
+    map<I3,int> c2i;
 
-	struct CommData {
-		Real * faces[3][2], * edges[3][2][2], * corners[2][2][2];
-		set<MPI_Request> pending;
-	} send, recv;
+    struct CommData {
+        Real * faces[3][2], * edges[3][2][2], * corners[2][2][2];
+        set<MPI_Request> pending;
+    } send, recv;
 
-	bool _face_needed(const int d) const
-	{
-		return periodic[d] || (mypeindex[d] > 0 && mypeindex[d] < pesize[d]-1);
-	}
+    bool _face_needed(const int d) const
+    {
+        return periodic[d] || (mypeindex[d] > 0 && mypeindex[d] < pesize[d]-1);
+    }
 
-	bool _myself(const int indx[3])
-	{
-		return (indx[0]+pesize[0]) % pesize[0] == mypeindex[0] &&
-		(indx[1]+pesize[1]) % pesize[1] == mypeindex[1] &&
-		(indx[2]+pesize[2]) % pesize[2] == mypeindex[2];
-	}
+    bool _myself(const int indx[3])
+    {
+        return (indx[0]+pesize[0]) % pesize[0] == mypeindex[0] &&
+        (indx[1]+pesize[1]) % pesize[1] == mypeindex[1] &&
+        (indx[2]+pesize[2]) % pesize[2] == mypeindex[2];
+    }
 
-	int _rank(const int indx[3])
-	{
-		int indx_final[3]={indx[0],indx[1],indx[2]};
+    int _rank(const int indx[3])
+    {
+        int indx_final[3]={indx[0],indx[1],indx[2]};
 
-		for(int i=0; i<3; ++i)
-		{
-			if (pesize[i]==1) continue;
-			const int d=indx[i]- mypeindex[i];
-			indx_final[i]=d-pesize[i]*(int)((double)d/(pesize[i]-1))+mypeindex[i];
-		}
+        for(int i=0; i<3; ++i)
+        {
+            if (pesize[i]==1) continue;
+            const int d=indx[i]- mypeindex[i];
+            indx_final[i]=d-pesize[i]*(int)((double)d/(pesize[i]-1))+mypeindex[i];
+        }
 
 #if !defined(NDEBUG)
-		for(int i=0;i<3;++i)
-			assert(indx_final[i]>=-1+mypeindex[i] && indx_final[i]<2+mypeindex[i]);
+        for(int i=0;i<3;++i)
+            assert(indx_final[i]>=-1+mypeindex[i] && indx_final[i]<2+mypeindex[i]);
 #endif
-		return neighborsrank[indx_final[2]+1-mypeindex[2]][indx_final[1]+1-mypeindex[1]][indx_final[0]+1-mypeindex[0]];
-	}
+        return neighborsrank[indx_final[2]+1-mypeindex[2]][indx_final[1]+1-mypeindex[1]][indx_final[0]+1-mypeindex[0]];
+    }
 
-	template <bool computesubregions>
-	map<Real *, vector<SubpackInfo> > _setup(CommData& data, const int thickness[3][2], const int blockstart[3], const int blockend[3], const int origin[3], vector<PackInfo>& packinfos)
-	{
-		map<Real *, vector<SubpackInfo> > retval;
+    template <bool computesubregions, bool alloc=false>
+    map<Real *, vector<SubpackInfo>> _setup(CommData &data,
+                                            const int thickness[3][2],
+                                            const int blockstart[3],
+                                            const int blockend[3],
+                                            const int origin[3],
+                                            std::vector<std::vector<FieldInfo>>& fields,
+                                            vector<PackInfo> &packinfos)
+    {
+        map<Real *, vector<SubpackInfo> > retval;
 
-		const int NC = stencil.selcomponents.size();
-		const int bpd[3] = {
-			mybpd[0],
-			mybpd[1],
-			mybpd[2]
-		};
+        const int NC = stencil.selcomponents.size();
+        assert(static_cast<size_t>(NC) <= max_comp);
+        assert(fields.size() <= static_cast<size_t>(NC));
 
-		//faces
-		for(int d=0; d<3; ++d)
-		{
-			const int dim_other1 = (d+1)%3;
-			const int dim_other2 = (d+2)%3;
+        // std::vector<FieldInfo>* fields_[max_comp] = {NULL};
+        // for (size_t comp = 0; comp < fields.size(); ++comp) {
+        //     fields_[comp] = &fields[comp];
+        // }
 
-			for(int s=0; s<2; ++s)
-			{
-				const int NFACEBLOCK = NC * thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
-				const int NFACE = NFACEBLOCK * mybpd[dim_other1] * mybpd[dim_other2];
+        const int bpd[3] = {
+            mybpd[0],
+            mybpd[1],
+            mybpd[2]
+        };
 
-				const bool needed = _face_needed(d) || NFACE == 0;
-				data.faces[d][s] = needed ? _myalloc(sizeof(Real)*NFACE, 16) : NULL;
+        //faces
+        for(int d=0; d<3; ++d)
+        {
+            const int dim_other1 = (d+1)%3;
+            const int dim_other2 = (d+2)%3;
 
-				if (!needed) continue;
+            for(int s=0; s<2; ++s)
+            {
+                const int NFACEBLOCK_COMP = thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
+                const int NFACEBLOCK = NC * NFACEBLOCK_COMP;
+                const int NFACE = NFACEBLOCK * mybpd[dim_other1] * mybpd[dim_other2];
 
-				int neighbor_index[3];
-				neighbor_index[d] = (mypeindex[d] + 2*s-1 + pesize[d])%pesize[d];
-				neighbor_index[dim_other1] = mypeindex[dim_other1];
-				neighbor_index[dim_other2] = mypeindex[dim_other2];
+                const bool needed = _face_needed(d) || NFACE == 0;
+                if (alloc) {
+                    data.faces[d][s] =
+                        needed ? _myalloc(sizeof(Real) * NFACE, 16) : NULL;
+                }
 
-				if (_myself(neighbor_index)) continue;
+                if (!needed) continue;
 
-				int start[3];
-				start[d] = (1-s)*blockstart[d] + s*(blockend[d]-thickness[d][s]);
-				start[dim_other1] = 0;
-				start[dim_other2] = 0;
+                int neighbor_index[3];
+                neighbor_index[d] = (mypeindex[d] + 2*s-1 + pesize[d])%pesize[d];
+                neighbor_index[dim_other1] = mypeindex[dim_other1];
+                neighbor_index[dim_other2] = mypeindex[dim_other2];
 
-				int end[3];
-				end[d] = (1-s)*(blockstart[d] + thickness[d][s]) + s*blockend[d];
-				end[dim_other1] = blocksize[dim_other1];
-				end[dim_other2] = blocksize[dim_other2];
+                if (_myself(neighbor_index)) continue;
 
-				const int n1 = bpd[dim_other1];
-				const int n2 = bpd[dim_other2];
+                int start[3];
+                start[d] = (1-s)*blockstart[d] + s*(blockend[d]-thickness[d][s]);
+                start[dim_other1] = 0;
+                start[dim_other2] = 0;
 
-				for(int b=0; b<n2; ++b)
-					for(int a=0; a<n1; ++a)
-					{
-						int index[3];
-						index[d] = s*(bpd[d]-1);
-						index[dim_other1] = a;
-						index[dim_other2] = b;
+                int end[3];
+                end[d] = (1-s)*(blockstart[d] + thickness[d][s]) + s*blockend[d];
+                end[dim_other1] = blocksize[dim_other1];
+                end[dim_other2] = blocksize[dim_other2];
 
-						assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
-						const int blockid = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
+                const int n1 = bpd[dim_other1];
+                const int n2 = bpd[dim_other2];
 
-						PackInfo info = {(Real *)globalinfos[blockid].ptrBlock, data.faces[d][s] + NFACEBLOCK*(a + n1*b), start[0], start[1], start[2], end[0], end[1], end[2]};
+                for(int b=0; b<n2; ++b)
+                    for(int a=0; a<n1; ++a)
+                    {
+                        int index[3];
+                        index[d] = s*(bpd[d]-1);
+                        index[dim_other1] = a;
+                        index[dim_other2] = b;
 
-						const bool nonempty = end[0]>start[0] && end[1]>start[1] && end[2]>start[2];
-						if (nonempty) packinfos.push_back(info);
-					}
-			}
-		}
+                        assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
+                        const int blockid = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
-		if (!stencil.tensorial) return retval;
+                        for (size_t comp = 0; comp < fields.size(); ++comp) {
+                            PackInfo info = {
+                                (Real *)fields[comp][blockid].data_inner,
+                                data.faces[d][s] + NFACEBLOCK * (a + n1 * b) +
+                                    comp * NFACEBLOCK_COMP,
+                                start[0],
+                                start[1],
+                                start[2],
+                                end[0],
+                                end[1],
+                                end[2]};
 
-		//edges
-		for(int d=0; d<3; ++d)
-		{
-			const int dim_other1 = (d+1)%3;
-			const int dim_other2 = (d+2)%3;
+                            // FIXME: [fabianw@mavt.ethz.ch; 2019-10-28] Why is
+                            // this check in here?
+                            const bool nonempty = end[0] > start[0] &&
+                                                  end[1] > start[1] &&
+                                                  end[2] > start[2];
+                            if (nonempty)
+                                packinfos.push_back(info);
+                        }
+                    }
+            }
+        }
 
-			for(int b=0; b<2; ++b)
-				for(int a=0; a<2; ++a)
-				{
-					const int NEDGEBLOCK = NC * blocksize[d] * thickness[dim_other2][b] * thickness[dim_other1][a];
-					const int NEDGE = NEDGEBLOCK * mybpd[d];
+        if (!stencil.tensorial) return retval;
 
-					const bool needed = NEDGE > 0;
-					data.edges[d][b][a] = needed ? _myalloc(sizeof(Real)*NEDGE, 16) : NULL;
+        //edges
+        for(int d=0; d<3; ++d)
+        {
+            const int dim_other1 = (d+1)%3;
+            const int dim_other2 = (d+2)%3;
 
-					if (!needed) continue;
+            for(int b=0; b<2; ++b)
+                for(int a=0; a<2; ++a)
+                {
+                    const int NEDGEBLOCK_COMP = blocksize[d] * thickness[dim_other2][b] * thickness[dim_other1][a];
+                    const int NEDGEBLOCK = NC * NEDGEBLOCK_COMP;
+                    const int NEDGE = NEDGEBLOCK * mybpd[d];
 
-					int neighbor_index[3];
-					neighbor_index[d] = mypeindex[d];
-					neighbor_index[dim_other1] = (mypeindex[dim_other1] + 2*a-1 + pesize[dim_other1])%pesize[dim_other1];
-					neighbor_index[dim_other2] = (mypeindex[dim_other2] + 2*b-1 + pesize[dim_other2])%pesize[dim_other2];
+                    const bool needed = NEDGE > 0;
+                    if (alloc) {
+                        data.edges[d][b][a] =
+                            needed ? _myalloc(sizeof(Real) * NEDGE, 16) : NULL;
+                    }
 
-					if (_myself(neighbor_index)) continue;
+                    if (!needed) continue;
 
-					int start[3];
-					start[d] = 0;
-					start[dim_other1] = blockstart[dim_other1]*(1-a) + a*(blockend[dim_other1]-thickness[dim_other1][1]);
-					start[dim_other2] = blockstart[dim_other2]*(1-b) + b*(blockend[dim_other2]-thickness[dim_other2][1]);
+                    int neighbor_index[3];
+                    neighbor_index[d] = mypeindex[d];
+                    neighbor_index[dim_other1] = (mypeindex[dim_other1] + 2*a-1 + pesize[dim_other1])%pesize[dim_other1];
+                    neighbor_index[dim_other2] = (mypeindex[dim_other2] + 2*b-1 + pesize[dim_other2])%pesize[dim_other2];
 
-					int end[3];
-					end[d] = blocksize[d];
-					end[dim_other1] = a*blockend[dim_other1] + (1-a)*(blockstart[dim_other1] + thickness[dim_other1][0]);
-					end[dim_other2] = b*blockend[dim_other2] + (1-b)*(blockstart[dim_other2] + thickness[dim_other2][0]);
+                    if (_myself(neighbor_index)) continue;
 
-					const int n = bpd[d];
-					for(int c=0; c<n; ++c)
-					{
-						int index[3];
-						index[d] = c;
-						index[dim_other1] = a*(bpd[dim_other1]-1);
-						index[dim_other2] = b*(bpd[dim_other2]-1);
+                    int start[3];
+                    start[d] = 0;
+                    start[dim_other1] = blockstart[dim_other1]*(1-a) + a*(blockend[dim_other1]-thickness[dim_other1][1]);
+                    start[dim_other2] = blockstart[dim_other2]*(1-b) + b*(blockend[dim_other2]-thickness[dim_other2][1]);
 
-						assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
-						const int blockid = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
+                    int end[3];
+                    end[d] = blocksize[d];
+                    end[dim_other1] = a*blockend[dim_other1] + (1-a)*(blockstart[dim_other1] + thickness[dim_other1][0]);
+                    end[dim_other2] = b*blockend[dim_other2] + (1-b)*(blockstart[dim_other2] + thickness[dim_other2][0]);
 
-						PackInfo info = {(Real *)globalinfos[blockid].ptrBlock, data.edges[d][b][a] + NEDGEBLOCK*c, start[0], start[1], start[2],  end[0], end[1], end[2]};
+                    const int n = bpd[d];
+                    for(int c=0; c<n; ++c)
+                    {
+                        int index[3];
+                        index[d] = c;
+                        index[dim_other1] = a*(bpd[dim_other1]-1);
+                        index[dim_other2] = b*(bpd[dim_other2]-1);
 
-						const bool nonempty = end[0]>start[0] && end[1]>start[1] && end[2]>start[2];
-						if (nonempty) packinfos.push_back(info);
-					}
-				}
-		}
+                        assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
+                        const int blockid = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
-		//new part
-		if (computesubregions)
-		{
-			for(int dface=0; dface<3; ++dface)
-			{
-				const int dim_other1face = (dface+1)%3;
-				const int dim_other2face = (dface+2)%3;
+                        for (size_t comp = 0; comp < fields.size(); ++comp) {
+                            PackInfo info = {
+                                (Real *)fields[comp][blockid].data_inner,
+                                data.edges[d][b][a] + NEDGEBLOCK * c +
+                                    comp * NEDGEBLOCK_COMP,
+                                start[0],
+                                start[1],
+                                start[2],
+                                end[0],
+                                end[1],
+                                end[2]};
 
-				for(int s=0; s<2; ++s)
-				{
-					{
-						int neighbor_pe[3];
-						neighbor_pe[dface] = (mypeindex[dface] + 2*s-1 + pesize[dface])%pesize[dface];
-						neighbor_pe[dim_other1face] = mypeindex[dim_other1face];
-						neighbor_pe[dim_other2face] = mypeindex[dim_other2face];
+                            // FIXME: [fabianw@mavt.ethz.ch; 2019-10-28] Why is
+                            // this check in here?
+                            const bool nonempty = end[0] > start[0] &&
+                                                  end[1] > start[1] &&
+                                                  end[2] > start[2];
+                            if (nonempty)
+                                packinfos.push_back(info);
+                        }
+                    }
+                }
+        }
 
-						if (_myself(neighbor_pe)) continue;
-					}
+        //new part
+        if (computesubregions)
+        {
+            for(int dface=0; dface<3; ++dface)
+            {
+                const int dim_other1face = (dface+1)%3;
+                const int dim_other2face = (dface+2)%3;
 
-					const int n1 = mybpd[dim_other1face];
-					const int n2 = mybpd[dim_other2face];
+                for(int s=0; s<2; ++s)
+                {
+                    {
+                        int neighbor_pe[3];
+                        neighbor_pe[dface] = (mypeindex[dface] + 2*s-1 + pesize[dface])%pesize[dface];
+                        neighbor_pe[dim_other1face] = mypeindex[dim_other1face];
+                        neighbor_pe[dim_other2face] = mypeindex[dim_other2face];
 
-					const int NFACEBLOCK = NC * thickness[dface][s] * blocksize[dim_other1face] * blocksize[dim_other2face];
+                        if (_myself(neighbor_pe)) continue;
+                    }
+
+                    const int n1 = mybpd[dim_other1face];
+                    const int n2 = mybpd[dim_other2face];
+
+                    const int NFACEBLOCK_COMP = thickness[dface][s] * blocksize[dim_other1face] * blocksize[dim_other2face];
+                    const int NFACEBLOCK = NC * NFACEBLOCK_COMP;
 
                     // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23] needs
                     // adjustment for hard coded values
                     int face_start[3];
-					face_start[dface] = (1-s)*blockstart[dface] + s*(blockend[dface]-thickness[dface][s]);
-					face_start[dim_other1face] = 0;
-					face_start[dim_other2face] = 0;
+                    face_start[dface] = (1-s)*blockstart[dface] + s*(blockend[dface]-thickness[dface][s]);
+                    face_start[dim_other1face] = 0;
+                    face_start[dim_other2face] = 0;
 
-					int face_end[3];
-					face_end[dface] = (1-s)*(blockstart[dface] + thickness[dface][s]) + s*blockend[dface];
-					face_end[dim_other1face] = blocksize[dim_other1face];
-					face_end[dim_other2face] = blocksize[dim_other2face];
+                    int face_end[3];
+                    face_end[dface] = (1-s)*(blockstart[dface] + thickness[dface][s]) + s*blockend[dface];
+                    face_end[dim_other1face] = blocksize[dim_other1face];
+                    face_end[dim_other2face] = blocksize[dim_other2face];
 
-					assert(NFACEBLOCK == NC*(face_end[0]-face_start[0])*(face_end[1]-face_start[1])*(face_end[2]-face_start[2]));
+                    assert(NFACEBLOCK == NC*(face_end[0]-face_start[0])*(face_end[1]-face_start[1])*(face_end[2]-face_start[2]));
 
-					for(int p2=0; p2<n2; ++p2)
-						for(int p1=0; p1<n1; ++p1) //iterate over inner face blocks
-						{
-							int index[3];
-							index[dface] = s*(mybpd[dface]-1);
-							index[dim_other1face] = p1 ;
-							index[dim_other2face] = p2;
+                    for(int p2=0; p2<n2; ++p2)
+                        for(int p1=0; p1<n1; ++p1) //iterate over inner face blocks
+                        {
+                            int index[3];
+                            index[dface] = s*(mybpd[dface]-1);
+                            index[dim_other1face] = p1 ;
+                            index[dim_other2face] = p2;
 
-							assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
-							const int blockID = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
+                            assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
+                            const int blockID = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
                             // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23] need
                             // adjustment
-                            Real * const ptrBlock = (Real*)globalinfos[blockID].ptrBlock;
+                            for (size_t comp = 0; comp < fields.size(); ++comp) {
 
-							for(int dedge=0; dedge<3; ++dedge) //iterate over edges
-							{
-								const int dim_other1edge = (dedge+1)%3;
-								const int dim_other2edge = (dedge+2)%3;
+                                Real * const ptrBlock = (Real*)fields[comp][blockID].data_inner;
 
-								for(int b=0; b<2; ++b)
-									for(int a=0; a<2; ++a)
-								{
-									{
-										int asd[3];
-										asd[dedge] = 0;
-										asd[dim_other1edge] = a;
-										asd[dim_other2edge] = b;
+                                for(int dedge=0; dedge<3; ++dedge) //iterate over edges
+                                {
+                                    const int dim_other1edge = (dedge+1)%3;
+                                    const int dim_other2edge = (dedge+2)%3;
 
-										if (dedge==dface || asd[dface] != s) continue;
-									}
+                                    for(int b=0; b<2; ++b)
+                                        for(int a=0; a<2; ++a)
+                                        {
+                                            {
+                                                int asd[3];
+                                                asd[dedge] = 0;
+                                                asd[dim_other1edge] = a;
+                                                asd[dim_other2edge] = b;
 
-                                    // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23]
-                                    // Hardcoded 0 and blocksize[dedge] does not
-                                    // work for block with halos
-                                    int start[3];
-									start[dedge] = 0;
-									start[dim_other1edge] = blockstart[dim_other1edge]*(1-a) + a*(blockend[dim_other1edge]-thickness[dim_other1edge][1]);
-									start[dim_other2edge] = blockstart[dim_other2edge]*(1-b) + b*(blockend[dim_other2edge]-thickness[dim_other2edge][1]);
+                                                if (dedge==dface || asd[dface] != s) continue;
+                                            }
 
-									int end[3];
-									end[dedge] = blocksize[dedge];
-									end[dim_other1edge] = a*blockend[dim_other1edge] + (1-a)*(blockstart[dim_other1edge] + thickness[dim_other1edge][0]);
-									end[dim_other2edge] = b*blockend[dim_other2edge] + (1-b)*(blockstart[dim_other2edge] + thickness[dim_other2edge][0]);
+                                            // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23]
+                                            // Hardcoded 0 and blocksize[dedge] does not
+                                            // work for block with halos
+                                            int start[3];
+                                            start[dedge] = 0;
+                                            start[dim_other1edge] = blockstart[dim_other1edge]*(1-a) + a*(blockend[dim_other1edge]-thickness[dim_other1edge][1]);
+                                            start[dim_other2edge] = blockstart[dim_other2edge]*(1-b) + b*(blockend[dim_other2edge]-thickness[dim_other2edge][1]);
 
-									const int vol = max(0, end[2]-start[2])*max(0, end[1]-start[1])*max(0, end[0]-start[0]);
-									if (vol == 0) continue;
+                                            int end[3];
+                                            end[dedge] = blocksize[dedge];
+                                            end[dim_other1edge] = a*blockend[dim_other1edge] + (1-a)*(blockstart[dim_other1edge] + thickness[dim_other1edge][0]);
+                                            end[dim_other2edge] = b*blockend[dim_other2edge] + (1-b)*(blockstart[dim_other2edge] + thickness[dim_other2edge][0]);
 
-									int xxx[3];
-									xxx[dedge] = 0;
-									xxx[dim_other1edge] = 2*a-1;
-									xxx[dim_other2edge] = 2*b-1;
+                                            const int vol = max(0, end[2]-start[2])*max(0, end[1]-start[1])*max(0, end[0]-start[0]);
+                                            if (vol == 0) continue;
 
-									int neighbor[3];
-									neighbor[dface] = index[dface];
-									neighbor[dedge] = index[dedge];
-									neighbor[3-dface-dedge] = index[3-dface-dedge] +  xxx[3-dface-dedge];
+                                            int xxx[3];
+                                            xxx[dedge] = 0;
+                                            xxx[dim_other1edge] = 2*a-1;
+                                            xxx[dim_other2edge] = 2*b-1;
 
-									if(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))==c2i.end()) continue;
+                                            int neighbor[3];
+                                            neighbor[dface] = index[dface];
+                                            neighbor[dedge] = index[dedge];
+                                            neighbor[3-dface-dedge] = index[3-dface-dedge] +  xxx[3-dface-dedge];
 
-									assert(n1 > neighbor[dim_other1face]);
-									assert(n2 > neighbor[dim_other2face]);
-									assert(0 <= neighbor[dim_other1face]);
-									assert(0 <= neighbor[dim_other2face]);
+                                            if(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))==c2i.end()) continue;
 
-									{
-										const int sregion[3] = {
-											start[0]  + (index[0] - neighbor[0])*blocksize[0] - face_start[0],
-											start[1]  + (index[1] - neighbor[1])*blocksize[1] - face_start[1],
-											start[2]  + (index[2] - neighbor[2])*blocksize[2] - face_start[2]
-										};
+                                            assert(n1 > neighbor[dim_other1face]);
+                                            assert(n2 > neighbor[dim_other2face]);
+                                            assert(0 <= neighbor[dim_other1face]);
+                                            assert(0 <= neighbor[dim_other2face]);
 
-										const int L[3] = {
-											face_end[0] - face_start[0],
-											face_end[1] - face_start[1],
-											face_end[2] - face_start[2]
-										};
+                                            {
+                                                const int sregion[3] = {
+                                                    start[0]  + (index[0] - neighbor[0])*blocksize[0] - face_start[0],
+                                                    start[1]  + (index[1] - neighbor[1])*blocksize[1] - face_start[1],
+                                                    start[2]  + (index[2] - neighbor[2])*blocksize[2] - face_start[2]
+                                                };
 
-                                        if (isroot) {
-                                            printf("-----EDGE ---------------> "
-                                                   " index: %d %d %d\n",
-                                                   index[0],
-                                                   index[1],
-                                                   index[2]);
-                                            printf("neighbor: %d %d %d\n",
-                                                   neighbor[0],
-                                                   neighbor[1],
-                                                   neighbor[2]);
-                                            printf("face: %d %d\n", dface, s);
-                                            printf("edge: %d %d %d\n",
-                                                   dedge,
-                                                   a,
-                                                   b);
-                                            printf("facestart: %d %d %d\n",
-                                                   face_start[0],
-                                                   face_start[1],
-                                                   face_start[2]);
-                                            printf("mystart-end: %d %d %d , %d "
-                                                   "%d %d\n",
-                                                   start[0],
-                                                   start[1],
-                                                   start[2],
-                                                   end[0],
-                                                   end[1],
-                                                   end[2]);
-                                            printf("s: %d %d %d\n",
-                                                   sregion[0],
-                                                   sregion[1],
-                                                   sregion[2]);
-                                            printf("L: %d %d %d\n",
-                                                   L[0],
-                                                   L[1],
-                                                   L[2]);
-                                            printf("neighbor p1, p2: %d %d\n",
-                                                   neighbor[dim_other1face],
-                                                   neighbor[dim_other2face]);
+                                                const int L[3] = {
+                                                    face_end[0] - face_start[0],
+                                                    face_end[1] - face_start[1],
+                                                    face_end[2] - face_start[2]
+                                                };
+
+                                                //if (isroot)
+                                                //                                      {
+                                                //                                          printf("-----EDGE --------------->  index: %d %d %d\n", index[0], index[1], index[2]);
+                                                //                                          printf("neighbor: %d %d %d\n", neighbor[0], neighbor[1], neighbor[2]);
+                                                //                                          printf("face: %d %d\n", dface, s);
+                                                //                                          printf("edge: %d %d %d\n", dedge, a, b);
+                                                //                                          printf("facestart: %d %d %d\n", face_start[0], face_start[1], face_start[2]);
+                                                //                                          printf("mystart-end: %d %d %d , %d %d %d\n", start[0], start[1], start[2],  end[0], end[1], end[2]);
+                                                //                                          printf("s: %d %d %d\n",sregion[0], sregion[1], sregion[2]);
+                                                //                                          printf("L: %d %d %d\n",L[0], L[1], L[2]);
+                                                //                                          printf("neighbor p1, p2: %d %d\n", neighbor[dim_other1face], neighbor[dim_other2face]);
+                                                //                                      }
+
+                                                assert(sregion[0]>= 0);
+                                                assert(sregion[1]>= 0);
+                                                assert(sregion[2]>= 0);
+
+                                                assert(sregion[0]< L[0]);
+                                                assert(sregion[1]< L[1]);
+                                                assert(sregion[2]< L[2]);
+
+                                                Real * src_base = data.faces[dface][s] + NFACEBLOCK*(neighbor[dim_other1face] + n1*neighbor[dim_other2face]) + comp * NFACEBLOCK_COMP;
+
+                                                SubpackInfo subinfo = { ptrBlock, src_base,
+                                                    start[0], start[1], start[2], end[0], end[1], end[2],
+                                                    sregion[0], sregion[1], sregion[2], L[0], L[1]};
+
+                                                retval[ptrBlock].push_back(subinfo);
+                                            }
                                         }
+                                }
 
-                                        assert(sregion[0]>= 0);
-										assert(sregion[1]>= 0);
-										assert(sregion[2]>= 0);
+                                //iterate over corners
+                                for(int z=0; z<2; ++z)
+                                    for(int y=0; y<2; ++y)
+                                        for(int x=0; x<2; ++x)
+                                        {
+                                            int xxx[3] = {x,y,z};
+                                            if (xxx[dface] != s) continue;
 
-										assert(sregion[0]< L[0]);
-										assert(sregion[1]< L[1]);
-										assert(sregion[2]< L[2]);
+                                            const int start[3] = {
+                                                x*(blockend[0] - thickness[0][1]) + (1-x)*blockstart[0],
+                                                y*(blockend[1] - thickness[1][1]) + (1-y)*blockstart[1],
+                                                z*(blockend[2] - thickness[2][1]) + (1-z)*blockstart[2]
+                                            };
 
-										Real * src_base = data.faces[dface][s] + NFACEBLOCK*(neighbor[dim_other1face] + n1*neighbor[dim_other2face]);
+                                            const int end[3] = {
+                                                x*blockend[0] + (1-x)*(thickness[0][0] + blockstart[0]),
+                                                y*blockend[1] + (1-y)*(thickness[1][0] + blockstart[1]),
+                                                z*blockend[2] + (1-z)*(thickness[2][0] + blockstart[2])
+                                            };
 
-										SubpackInfo subinfo = { ptrBlock, src_base,
-												start[0], start[1], start[2], end[0], end[1], end[2],
-												sregion[0], sregion[1], sregion[2], L[0], L[1]};
+                                            const int vol = max(0, end[2]-start[2])*max(0, end[1]-start[1])*max(0, end[0]-start[0]);
+                                            if (vol == 0) continue;
 
-										retval[ptrBlock].push_back(subinfo);
-									}
-								}
-							}
+                                            int neighbor[3];
+                                            neighbor[0] = index[0] + 2*x-1;
+                                            neighbor[1] = index[1] + 2*y-1;
+                                            neighbor[2] = index[2] + 2*z-1;
+                                            neighbor[dface] = index[dface];
 
-							//iterate over corners
-							for(int z=0; z<2; ++z)
-							for(int y=0; y<2; ++y)
-							for(int x=0; x<2; ++x)
-							{
-								int xxx[3] = {x,y,z};
-								if (xxx[dface] != s) continue;
+                                            if(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))==c2i.end()) continue;
 
-								const int start[3] = {
-									x*(blockend[0] - thickness[0][1]) + (1-x)*blockstart[0],
-									y*(blockend[1] - thickness[1][1]) + (1-y)*blockstart[1],
-									z*(blockend[2] - thickness[2][1]) + (1-z)*blockstart[2]
-								};
+                                            assert(n1 > neighbor[dim_other1face]);
+                                            assert(n2 > neighbor[dim_other2face]);
+                                            assert(0 <= neighbor[dim_other1face]);
+                                            assert(0 <= neighbor[dim_other2face]);
 
-								const int end[3] = {
-									x*blockend[0] + (1-x)*(thickness[0][0] + blockstart[0]),
-									y*blockend[1] + (1-y)*(thickness[1][0] + blockstart[1]),
-									z*blockend[2] + (1-z)*(thickness[2][0] + blockstart[2])
-								};
+                                            {
+                                                const int sregion[3] = {
+                                                    start[0]  + (index[0] - neighbor[0])*blocksize[0] - face_start[0],
+                                                    start[1]  + (index[1] - neighbor[1])*blocksize[1] - face_start[1],
+                                                    start[2]  + (index[2] - neighbor[2])*blocksize[2] - face_start[2]
+                                                };
 
-								const int vol = max(0, end[2]-start[2])*max(0, end[1]-start[1])*max(0, end[0]-start[0]);
-								if (vol == 0) continue;
+                                                const int L[3] = {
+                                                    face_end[0] - face_start[0],
+                                                    face_end[1] - face_start[1],
+                                                    face_end[2] - face_start[2]
+                                                };
 
-								int neighbor[3];
-								neighbor[0] = index[0] + 2*x-1;
-								neighbor[1] = index[1] + 2*y-1;
-								neighbor[2] = index[2] + 2*z-1;
-								neighbor[dface] = index[dface];
+                                                //  if (isroot)
+                                                //                                  {
+                                                //                                      printf("---CORNER ----------------->  index: %d %d %d\n", index[0], index[1], index[2]);
+                                                //                                      printf("neighbor: %d %d %d\n", neighbor[0], neighbor[1], neighbor[2]);
+                                                //                                      printf("face: %d %d\n", dface, s);
+                                                //                                      printf("corner: %d %d %d\n", x, y, z);
+                                                //                                      printf("facestart: %d %d %d\n", face_start[0], face_start[1], face_start[2]);
+                                                //                                      printf("mystart: %d %d %d\n", start[0], start[1], start[2]);
+                                                //                                      printf("s: %d %d %d\n",sregion[0], sregion[1], sregion[2]);
+                                                //                                      printf("L: %d %d %d\n",L[0], L[1], L[2]);
+                                                //                                      printf("neighbor p1, p2: %d %d\n", neighbor[dim_other1face], neighbor[dim_other2face]);
+                                                //                                  }
+                                                assert(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))!=c2i.end());
+                                                assert(sregion[0]>= 0);
+                                                assert(sregion[1]>= 0);
+                                                assert(sregion[2]>= 0);
 
-								if(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))==c2i.end()) continue;
+                                                assert(sregion[0]< L[0]);
+                                                assert(sregion[1]< L[1]);
+                                                assert(sregion[2]< L[2]);
 
-								assert(n1 > neighbor[dim_other1face]);
-								assert(n2 > neighbor[dim_other2face]);
-								assert(0 <= neighbor[dim_other1face]);
-								assert(0 <= neighbor[dim_other2face]);
+                                                Real * src_base = data.faces[dface][s] + NFACEBLOCK*(neighbor[dim_other1face] + n1*neighbor[dim_other2face]) + comp * NFACEBLOCK_COMP;
 
-								{
-									const int sregion[3] = {
-										start[0]  + (index[0] - neighbor[0])*blocksize[0] - face_start[0],
-										start[1]  + (index[1] - neighbor[1])*blocksize[1] - face_start[1],
-										start[2]  + (index[2] - neighbor[2])*blocksize[2] - face_start[2]
-									};
+                                                SubpackInfo subinfo = { ptrBlock, src_base,
+                                                    start[0], start[1], start[2], end[0], end[1], end[2],
+                                                    sregion[0], sregion[1], sregion[2], L[0], L[1]};
 
-									const int L[3] = {
-										face_end[0] - face_start[0],
-										face_end[1] - face_start[1],
-										face_end[2] - face_start[2]
-									};
+                                                retval[ptrBlock].push_back(subinfo);
+                                            }
+                                        }
+                            }
+                        }
+                }
+            }
 
-                                    if (isroot) {
-                                        printf("---CORNER ----------------->  "
-                                               "index: %d %d %d\n",
-                                               index[0],
-                                               index[1],
-                                               index[2]);
-                                        printf("neighbor: %d %d %d\n",
-                                               neighbor[0],
-                                               neighbor[1],
-                                               neighbor[2]);
-                                        printf("face: %d %d\n", dface, s);
-                                        printf("corner: %d %d %d\n", x, y, z);
-                                        printf("facestart: %d %d %d\n",
-                                               face_start[0],
-                                               face_start[1],
-                                               face_start[2]);
-                                        printf("mystart: %d %d %d\n",
-                                               start[0],
-                                               start[1],
-                                               start[2]);
-                                        printf("s: %d %d %d\n",
-                                               sregion[0],
-                                               sregion[1],
-                                               sregion[2]);
-                                        printf(
-                                            "L: %d %d %d\n", L[0], L[1], L[2]);
-                                        printf("neighbor p1, p2: %d %d\n",
-                                               neighbor[dim_other1face],
-                                               neighbor[dim_other2face]);
-                                    }
-                                    assert(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))!=c2i.end());
-									assert(sregion[0]>= 0);
-									assert(sregion[1]>= 0);
-									assert(sregion[2]>= 0);
+            for(int d=0; d<3; ++d)
+            {
+                const int dim_other1 = (d+1)%3;
+                const int dim_other2 = (d+2)%3;
 
-									assert(sregion[0]< L[0]);
-									assert(sregion[1]< L[1]);
-									assert(sregion[2]< L[2]);
+                for(int b=0; b<2; ++b)
+                    for(int a=0; a<2; ++a)
+                    {
+                        {
+                            int neighbor_pe[3];
+                            neighbor_pe[d] = mypeindex[d];
+                            neighbor_pe[dim_other1] = (mypeindex[dim_other1] + 2*a-1 + pesize[dim_other1])%pesize[dim_other1];
+                            neighbor_pe[dim_other2] = (mypeindex[dim_other2] + 2*b-1 + pesize[dim_other2])%pesize[dim_other2];
 
-									Real * src_base = data.faces[dface][s] + NFACEBLOCK*(neighbor[dim_other1face] + n1*neighbor[dim_other2face]);
+                            if (_myself(neighbor_pe)) continue;
+                        }
 
-									SubpackInfo subinfo = { ptrBlock, src_base,
-										start[0], start[1], start[2], end[0], end[1], end[2],
-										sregion[0], sregion[1], sregion[2], L[0], L[1]};
-
-									retval[ptrBlock].push_back(subinfo);
-								}
-							}
-						}
-				}
-			}
-
-			for(int d=0; d<3; ++d)
-			{
-				const int dim_other1 = (d+1)%3;
-				const int dim_other2 = (d+2)%3;
-
-				for(int b=0; b<2; ++b)
-					for(int a=0; a<2; ++a)
-					{
-						{
-							int neighbor_pe[3];
-							neighbor_pe[d] = mypeindex[d];
-							neighbor_pe[dim_other1] = (mypeindex[dim_other1] + 2*a-1 + pesize[dim_other1])%pesize[dim_other1];
-							neighbor_pe[dim_other2] = (mypeindex[dim_other2] + 2*b-1 + pesize[dim_other2])%pesize[dim_other2];
-
-							if (_myself(neighbor_pe)) continue;
-						}
-
-						const int n = bpd[d];
-						const int NEDGEBLOCK = NC * blocksize[d] * thickness[dim_other2][b] * thickness[dim_other1][a];
+                        const int n = bpd[d];
+                        const int NEDGEBLOCK_COMP = blocksize[d] * thickness[dim_other2][b] * thickness[dim_other1][a];
+                        const int NEDGEBLOCK = NC * NEDGEBLOCK_COMP;
 
                         // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23] needs
                         // adjustment for hard coded values
                         int edge_start[3];
-						edge_start[d] = 0;
-						edge_start[dim_other1] = blockstart[dim_other1]*(1-a) + a*(blockend[dim_other1]-thickness[dim_other1][1]);
-						edge_start[dim_other2] = blockstart[dim_other2]*(1-b) + b*(blockend[dim_other2]-thickness[dim_other2][1]);
+                        edge_start[d] = 0;
+                        edge_start[dim_other1] = blockstart[dim_other1]*(1-a) + a*(blockend[dim_other1]-thickness[dim_other1][1]);
+                        edge_start[dim_other2] = blockstart[dim_other2]*(1-b) + b*(blockend[dim_other2]-thickness[dim_other2][1]);
 
-						int edge_end[3];
-						edge_end[d] = blocksize[d];
-						edge_end[dim_other1] = a*blockend[dim_other1] + (1-a)*(blockstart[dim_other1] + thickness[dim_other1][0]);
-						edge_end[dim_other2] = b*blockend[dim_other2] + (1-b)*(blockstart[dim_other2] + thickness[dim_other2][0]);
+                        int edge_end[3];
+                        edge_end[d] = blocksize[d];
+                        edge_end[dim_other1] = a*blockend[dim_other1] + (1-a)*(blockstart[dim_other1] + thickness[dim_other1][0]);
+                        edge_end[dim_other2] = b*blockend[dim_other2] + (1-b)*(blockstart[dim_other2] + thickness[dim_other2][0]);
 
-						assert(NEDGEBLOCK == NC*(edge_end[0]-edge_start[0])*(edge_end[1]-edge_start[1])*(edge_end[2]-edge_start[2]));
+                        assert(NEDGEBLOCK == NC*(edge_end[0]-edge_start[0])*(edge_end[1]-edge_start[1])*(edge_end[2]-edge_start[2]));
 
-						for(int p1=0; p1<n; ++p1) //iterate over inner edge blocks
-						{
-							int index[3];
-							index[d] = p1;
-							index[dim_other1] = a*(bpd[dim_other1]-1);
-							index[dim_other2] = b*(bpd[dim_other2]-1);
+                        for(int p1=0; p1<n; ++p1) //iterate over inner edge blocks
+                        {
+                            int index[3];
+                            index[d] = p1;
+                            index[dim_other1] = a*(bpd[dim_other1]-1);
+                            index[dim_other2] = b*(bpd[dim_other2]-1);
 
-							assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
-							const int blockID = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
-                            // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23] needs
-                            // adjusment
-                            Real * const ptrBlock = (Real*)globalinfos[blockID].ptrBlock;
+                            assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
+                            const int blockID = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
-							for(int z=0; z<2; ++z) //iterate over corners
-								for(int y=0; y<2; ++y)
-									for(int x=0; x<2; ++x)
-									{
-										int xxx[3] = {x,y,z};
-										if (xxx[dim_other1] != a || xxx[dim_other2] != b) continue;
+                            for (size_t comp = 0; comp < fields.size(); ++comp) {
+                                Real * const ptrBlock = (Real*)fields[comp][blockID].data_inner;
 
-										const int start[3] = {
-											x*(blockend[0] - thickness[0][1]) + (1-x)*blockstart[0],
-											y*(blockend[1] - thickness[1][1]) + (1-y)*blockstart[1],
-											z*(blockend[2] - thickness[2][1]) + (1-z)*blockstart[2]
-										};
+                                for(int z=0; z<2; ++z) //iterate over corners
+                                    for(int y=0; y<2; ++y)
+                                        for(int x=0; x<2; ++x)
+                                        {
+                                            int xxx[3] = {x,y,z};
+                                            if (xxx[dim_other1] != a || xxx[dim_other2] != b) continue;
 
-										const int end[3] = {
-											x*blockend[0] + (1-x)*(thickness[0][0] + blockstart[0]),
-											y*blockend[1] + (1-y)*(thickness[1][0] + blockstart[1]),
-											z*blockend[2] + (1-z)*(thickness[2][0] + blockstart[2])
-										};
+                                            const int start[3] = {
+                                                x*(blockend[0] - thickness[0][1]) + (1-x)*blockstart[0],
+                                                y*(blockend[1] - thickness[1][1]) + (1-y)*blockstart[1],
+                                                z*(blockend[2] - thickness[2][1]) + (1-z)*blockstart[2]
+                                            };
 
-										const int vol = max(0, end[2]-start[2])*max(0, end[1]-start[1])*max(0, end[0]-start[0]);
-										if (vol == 0) continue;
+                                            const int end[3] = {
+                                                x*blockend[0] + (1-x)*(thickness[0][0] + blockstart[0]),
+                                                y*blockend[1] + (1-y)*(thickness[1][0] + blockstart[1]),
+                                                z*blockend[2] + (1-z)*(thickness[2][0] + blockstart[2])
+                                            };
 
-										int neighbor[3];
-										neighbor[0] = index[0];
-										neighbor[1] = index[1];
-										neighbor[2] = index[2];
-										neighbor[d] = index[d] + xxx[d]*2-1;
-										if(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))==c2i.end()) continue;
+                                            const int vol = max(0, end[2]-start[2])*max(0, end[1]-start[1])*max(0, end[0]-start[0]);
+                                            if (vol == 0) continue;
 
-										assert(n > neighbor[d]);
-										assert(0 <= neighbor[d]);
+                                            int neighbor[3];
+                                            neighbor[0] = index[0];
+                                            neighbor[1] = index[1];
+                                            neighbor[2] = index[2];
+                                            neighbor[d] = index[d] + xxx[d]*2-1;
+                                            if(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))==c2i.end()) continue;
 
-										{
-											const int sregion[3] = {
-												start[0]  + (index[0] - neighbor[0])*blocksize[0] - edge_start[0],
-												start[1]  + (index[1] - neighbor[1])*blocksize[1] - edge_start[1],
-												start[2]  + (index[2] - neighbor[2])*blocksize[2] - edge_start[2]
-											};
+                                            assert(n > neighbor[d]);
+                                            assert(0 <= neighbor[d]);
 
-											const int L[3] = {
-												edge_end[0] - edge_start[0],
-												edge_end[1] - edge_start[1],
-												edge_end[2] - edge_start[2]
-											};
+                                            {
+                                                const int sregion[3] = {
+                                                    start[0]  + (index[0] - neighbor[0])*blocksize[0] - edge_start[0],
+                                                    start[1]  + (index[1] - neighbor[1])*blocksize[1] - edge_start[1],
+                                                    start[2]  + (index[2] - neighbor[2])*blocksize[2] - edge_start[2]
+                                                };
 
-                                            if (isroot) {
-                                                printf("---CORNER (from edge) "
-                                                       "----------------->  "
-                                                       "index: %d %d %d\n",
-                                                       index[0],
-                                                       index[1],
-                                                       index[2]);
-                                                printf("neighbor: %d %d %d\n",
-                                                       neighbor[0],
-                                                       neighbor[1],
-                                                       neighbor[2]);
-                                                printf("edge: %d %d %d\n",
-                                                       d,
-                                                       a,
-                                                       b);
-                                                printf("corner: %d %d %d\n",
-                                                       x,
-                                                       y,
-                                                       z);
-                                                printf("edgestart: %d %d %d\n",
-                                                       edge_start[0],
-                                                       edge_start[1],
-                                                       edge_start[2]);
-                                                printf("mystart: %d %d %d\n",
-                                                       start[0],
-                                                       start[1],
-                                                       start[2]);
-                                                printf("s: %d %d %d\n",
-                                                       sregion[0],
-                                                       sregion[1],
-                                                       sregion[2]);
-                                                printf("L: %d %d %d\n",
-                                                       L[0],
-                                                       L[1],
-                                                       L[2]);
-                                                printf("neighbor p1: %d\n",
-                                                       neighbor[d]);
+                                                const int L[3] = {
+                                                    edge_end[0] - edge_start[0],
+                                                    edge_end[1] - edge_start[1],
+                                                    edge_end[2] - edge_start[2]
+                                                };
+
+                                                //  if (isroot)
+                                                //                                          {
+                                                //                                              printf("---CORNER (from edge) ----------------->  index: %d %d %d\n", index[0], index[1], index[2]);
+                                                //                                              printf("neighbor: %d %d %d\n", neighbor[0], neighbor[1], neighbor[2]);
+                                                //                                              printf("edge: %d %d %d\n", d, a, b);
+                                                //                                              printf("corner: %d %d %d\n", x, y, z);
+                                                //                                              printf("edgestart: %d %d %d\n", edge_start[0], edge_start[1], edge_start[2]);
+                                                //                                              printf("mystart: %d %d %d\n", start[0], start[1], start[2]);
+                                                //                                              printf("s: %d %d %d\n",sregion[0], sregion[1], sregion[2]);
+                                                //                                              printf("L: %d %d %d\n",L[0], L[1], L[2]);
+                                                //                                              printf("neighbor p1: %d\n", neighbor[d]);
+                                                //                                          }
+                                                assert(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))!=c2i.end());
+                                                assert(sregion[0]>= 0);
+                                                assert(sregion[1]>= 0);
+                                                assert(sregion[2]>= 0);
+
+                                                assert(sregion[0]< L[0]);
+                                                assert(sregion[1]< L[1]);
+                                                assert(sregion[2]< L[2]);
+                                                assert(vol <NEDGEBLOCK);
+
+                                                //Real * src_base = data.faces[dface][s] + NFACEBLOCK*(neighbor[dim_other1face] + n1*neighbor[dim_other2face]);
+                                                Real * src_base = data.edges[d][b][a] + NEDGEBLOCK*neighbor[d] + comp * NEDGEBLOCK_COMP;
+
+                                                SubpackInfo subinfo = { ptrBlock, src_base,
+                                                    start[0], start[1], start[2], end[0], end[1], end[2],
+                                                    sregion[0], sregion[1], sregion[2], L[0], L[1]};
+
+                                                retval[ptrBlock].push_back(subinfo);
                                             }
-                                            assert(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))!=c2i.end());
-											assert(sregion[0]>= 0);
-											assert(sregion[1]>= 0);
-											assert(sregion[2]>= 0);
+                                        }
+                            }
+                        }
+                    }
+            }
+        }
 
-											assert(sregion[0]< L[0]);
-											assert(sregion[1]< L[1]);
-											assert(sregion[2]< L[2]);
-											assert(vol <NEDGEBLOCK);
+        //corners
+        for(int z=0; z<2; ++z)
+            for(int y=0; y<2; ++y)
+                for(int x=0; x<2; ++x)
+                {
+                    const int NCORNERBLOCK_COMP = thickness[0][x]*thickness[1][y]*thickness[2][z];
+                    const int NCORNERBLOCK = NC * NCORNERBLOCK_COMP;
 
-											//Real * src_base = data.faces[dface][s] + NFACEBLOCK*(neighbor[dim_other1face] + n1*neighbor[dim_other2face]);
-											Real * src_base = data.edges[d][b][a] + NEDGEBLOCK*neighbor[d];
+                    const bool needed = NCORNERBLOCK > 0;
+                    if (alloc) {
+                        data.corners[z][y][x] =
+                            needed ? _myalloc(sizeof(Real) * NCORNERBLOCK, 16)
+                                   : NULL;
+                    }
 
-											SubpackInfo subinfo = { ptrBlock, src_base,
-												start[0], start[1], start[2], end[0], end[1], end[2],
-												sregion[0], sregion[1], sregion[2], L[0], L[1]};
+                    if (!needed) continue;
 
-											retval[ptrBlock].push_back(subinfo);
-										}
-									}
-						}
-					}
-			}
-		}
+                    int neighbor_index[3];
+                    neighbor_index[0] = (mypeindex[0] + 2*x-1 + pesize[0])%pesize[0];
+                    neighbor_index[1] = (mypeindex[1] + 2*y-1 + pesize[1])%pesize[1];
+                    neighbor_index[2] = (mypeindex[2] + 2*z-1 + pesize[2])%pesize[2];
 
-		//corners
-		for(int z=0; z<2; ++z)
-			for(int y=0; y<2; ++y)
-				for(int x=0; x<2; ++x)
-				{
-					const int NCORNERBLOCK = NC * thickness[0][x]*thickness[1][y]*thickness[2][z];
+                    if (_myself(neighbor_index)) continue;
 
-					const bool needed = NCORNERBLOCK > 0;
-					data.corners[z][y][x] = needed ? _myalloc(sizeof(Real)*NCORNERBLOCK, 16) : NULL;
+                    const int start[3] = {
+                        x*(blockend[0] - thickness[0][1]) + (1-x)*blockstart[0],
+                        y*(blockend[1] - thickness[1][1]) + (1-y)*blockstart[1],
+                        z*(blockend[2] - thickness[2][1]) + (1-z)*blockstart[2]
+                    };
 
-					if (!needed) continue;
+                    const int end[3] = {
+                        x*blockend[0] + (1-x)*(thickness[0][0] + blockstart[0]),
+                        y*blockend[1] + (1-y)*(thickness[1][0] + blockstart[1]),
+                        z*blockend[2] + (1-z)*(thickness[2][0] + blockstart[2])
+                    };
 
-					int neighbor_index[3];
-					neighbor_index[0] = (mypeindex[0] + 2*x-1 + pesize[0])%pesize[0];
-					neighbor_index[1] = (mypeindex[1] + 2*y-1 + pesize[1])%pesize[1];
-					neighbor_index[2] = (mypeindex[2] + 2*z-1 + pesize[2])%pesize[2];
+                    const int index[3] = {
+                        x*(bpd[0]-1),
+                        y*(bpd[1]-1),
+                        z*(bpd[2]-1),
+                    };
 
-					if (_myself(neighbor_index)) continue;
+                    assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
+                    const int blockid = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
-					const int start[3] = {
-						x*(blockend[0] - thickness[0][1]) + (1-x)*blockstart[0],
-						y*(blockend[1] - thickness[1][1]) + (1-y)*blockstart[1],
-						z*(blockend[2] - thickness[2][1]) + (1-z)*blockstart[2]
-					};
+                    for (size_t comp = 0; comp < fields.size(); ++comp) {
+                        PackInfo info = {
+                            (Real *)fields[comp][blockid].data_inner,
+                            data.corners[z][y][x] + comp * NCORNERBLOCK_COMP,
+                            start[0],
+                            start[1],
+                            start[2],
+                            end[0],
+                            end[1],
+                            end[2]};
 
-					const int end[3] = {
-						x*blockend[0] + (1-x)*(thickness[0][0] + blockstart[0]),
-						y*blockend[1] + (1-y)*(thickness[1][0] + blockstart[1]),
-						z*blockend[2] + (1-z)*(thickness[2][0] + blockstart[2])
-					};
+                        // FIXME: [fabianw@mavt.ethz.ch; 2019-10-28] Why is this
+                        // check here?
+                        const bool nonempty = end[0] > start[0] &&
+                                              end[1] > start[1] &&
+                                              end[2] > start[2];
+                        if (nonempty)
+                            packinfos.push_back(info);
+                    }
+                }
 
-					const int index[3] = {
-						x*(bpd[0]-1),
-						y*(bpd[1]-1),
-						z*(bpd[2]-1),
-					};
+        return retval;
+    }
 
-					assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
-					const int blockid = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
+    Real * _myalloc(const int NBYTES, const int ALIGN)
+    {
+        if (NBYTES>0)
+        {
+            //Real * ret_val = (Real *)_mm_malloc(NBYTES, ALIGN);
+            Real * ret_val = NULL;
 
-                    // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23] needs adjusment
-                    PackInfo info = {(Real *)globalinfos[blockid].ptrBlock, data.corners[z][y][x], start[0], start[1], start[2],  end[0], end[1], end[2]};
-
-					const bool nonempty = end[0]>start[0] && end[1]>start[1] && end[2]>start[2];
-					if (nonempty) packinfos.push_back(info);
-				}
-
-		return retval;
-	}
-
-	Real * _myalloc(const int NBYTES, const int ALIGN)
-	{
-		if (NBYTES>0)
-		{
-			//Real * ret_val = (Real *)_mm_malloc(NBYTES, ALIGN);
-			Real * ret_val = NULL;
-
-			int error = posix_memalign((void**)&ret_val, std::max(8, ALIGN), NBYTES);
+            int error = posix_memalign((void**)&ret_val, std::max(8, ALIGN), NBYTES);
 
       (void)sizeof(error);
-			assert(error == 0);
+            assert(error == 0);
 
-			all_mallocs.push_back(ret_val);
+            all_mallocs.push_back(ret_val);
 
-			return ret_val;
-		}
+            return ret_val;
+        }
 
-		return NULL;
-	}
+        return NULL;
+    }
 
-	void _myfree(Real *& ptr) {if (ptr!=NULL) { free(ptr); ptr=NULL;} }
+    void _myfree(Real *& ptr) {if (ptr!=NULL) { free(ptr); ptr=NULL;} }
 
-	//forbidden methods
-	SynchronizerMPI(const SynchronizerMPI& c) = delete;
+    //forbidden methods
+    SynchronizerMPI(const SynchronizerMPI& c) = delete;
 
-	void operator=(const SynchronizerMPI& c) = delete;
+    void operator=(const SynchronizerMPI& c) = delete;
 
 public:
 
-	SynchronizerMPI(const int synchID, StencilInfo stencil,
+    SynchronizerMPI(const int synchID, StencilInfo stencil,
                   vector<BlockInfo> globalinfos, MPI_Comm cartcomm,
                   const int mybpd[3], const int blocksize[3])
       : synchID(synchID), stencil(stencil),
         globalinfos(globalinfos), cube(mybpd[0], mybpd[1], mybpd[2]),
         cartcomm(cartcomm)
-	{
-		int myrank;
+    {
+        int myrank;
         MPI_Comm_rank(cartcomm, &myrank);
         isroot = (myrank == 0);
 
         MPI_Cart_get(cartcomm, 3, pesize, periodic, mypeindex);
         MPI_Cart_coords(cartcomm, myrank, 3, mypeindex);
 
-		for(int iz=0; iz<3; iz++)
-			for(int iy=0; iy<3; iy++)
-				for(int ix=0; ix<3; ix++)
-				{
-					int s[3] = { ix-1+mypeindex[0], iy-1+mypeindex[1], iz-1+mypeindex[2]};
+        for(int iz=0; iz<3; iz++)
+            for(int iy=0; iy<3; iy++)
+                for(int ix=0; ix<3; ix++)
+                {
+                    int s[3] = { ix-1+mypeindex[0], iy-1+mypeindex[1], iz-1+mypeindex[2]};
                     int nbrRank;
                     MPI_Cart_rank(cartcomm, s, &nbrRank);
-					neighborsrank[iz][iy][ix] = nbrRank;
-				}
+                    neighborsrank[iz][iy][ix] = nbrRank;
+                }
 
-		for(int i=0; i<3; ++i) this->mybpd[i]=mybpd[i];
-		for(int i=0; i<3; ++i) this->blocksize[i]=blocksize[i];
+        for(int i=0; i<3; ++i) this->mybpd[i]=mybpd[i];
+        for(int i=0; i<3; ++i) this->blocksize[i]=blocksize[i];
 
-		for(size_t i=0; i< globalinfos.size(); ++i) {
-			I3 coord(globalinfos[i].index[0],
+        for(size_t i=0; i< globalinfos.size(); ++i) {
+            I3 coord(globalinfos[i].index[0],
                globalinfos[i].index[1],
                globalinfos[i].index[2]);
-			c2i[coord] = i;
-		}
+            c2i[coord] = i;
+        }
 
         const int origin[3] = {
       mypeindex[0]*mybpd[0],
       mypeindex[1]*mybpd[1],
       mypeindex[2]*mybpd[2]
-		};
+        };
 
-		const int s[3] = {stencil.sx, stencil.sy, stencil.sz};
-		const int e[3] = {stencil.ex, stencil.ey, stencil.ez};
+        const int s[3] = {stencil.sx, stencil.sy, stencil.sz};
+        const int e[3] = {stencil.ex, stencil.ey, stencil.ez};
         const int z[3] = {0, 0, 0};
 
-		send_thickness[0][0] = e[0] - 1;  send_thickness[0][1] = -s[0];
-		send_thickness[1][0] = e[1] - 1;  send_thickness[1][1] = -s[1];
-		send_thickness[2][0] = e[2] - 1;  send_thickness[2][1] = -s[2];
+        send_thickness[0][0] = e[0] - 1;  send_thickness[0][1] = -s[0];
+        send_thickness[1][0] = e[1] - 1;  send_thickness[1][1] = -s[1];
+        send_thickness[2][0] = e[2] - 1;  send_thickness[2][1] = -s[2];
 
-        _setup<false>(send, send_thickness, z, blocksize, origin, send_packinfos);
+        // allocate memory
+        std::vector<std::vector<FieldInfo>> fields_empty(0);
+        _setup<false, true>(send, send_thickness, z, blocksize, origin, fields_empty, send_packinfos);
 
-		recv_thickness[0][0] = -s[0]; recv_thickness[0][1] = e[0] - 1;
-		recv_thickness[1][0] = -s[1]; recv_thickness[1][1] = e[1] - 1;
-		recv_thickness[2][0] = -s[2]; recv_thickness[2][1] = e[2] - 1;
+        recv_thickness[0][0] = -s[0]; recv_thickness[0][1] = e[0] - 1;
+        recv_thickness[1][0] = -s[1]; recv_thickness[1][1] = e[1] - 1;
+        recv_thickness[2][0] = -s[2]; recv_thickness[2][1] = e[2] - 1;
 
-		{
-			const int blockstart[3] = {
-				stencil.sx ,
-				stencil.sy ,
-				stencil.sz
-			};
+        {
+            const int blockstart[3] = {
+                stencil.sx ,
+                stencil.sy ,
+                stencil.sz
+            };
 
-			const int blockend[3] = {
-				stencil.ex + blocksize[0]-1,
-				stencil.ey + blocksize[1]-1,
-				stencil.ez + blocksize[2]-1
-			};
+            const int blockend[3] = {
+                stencil.ex + blocksize[0]-1,
+                stencil.ey + blocksize[1]-1,
+                stencil.ez + blocksize[2]-1
+            };
 
-			vector<PackInfo> packinfos;
-			recv_subpackinfos = _setup<true>(recv, recv_thickness, blockstart, blockend, origin, packinfos);
+            vector<PackInfo> packinfos;
+            recv_subpackinfos = _setup<true, true>(recv, recv_thickness, blockstart, blockend, origin, fields_empty, packinfos);
 
-			for(typename std::vector<PackInfo>::const_iterator it = packinfos.begin(); it<packinfos.end(); ++it)
-				recv_packinfos[it->block].push_back(*it);
-		}
+            for(typename std::vector<PackInfo>::const_iterator it = packinfos.begin(); it<packinfos.end(); ++it)
+                recv_packinfos[it->block].push_back(*it);
+        }
 
-		assert(recv.pending.size() == 0);
-		assert(send.pending.size() == 0);
-	}
+        assert(recv.pending.size() == 0);
+        assert(send.pending.size() == 0);
+    }
 
     ~SynchronizerMPI()
     {
         for(size_t i=0;i<all_mallocs.size();++i)
-			_myfree(all_mallocs[i]);
+            _myfree(all_mallocs[i]);
     }
 
-    template <typename T>
-    void pack(size_t gptfloats, MPI_Datatype MPIREAL, const int timestamp)
+    void sync(std::vector<std::vector<FieldInfo>> &fields,
+              const size_t Nx,
+              const size_t Ny,
+              const size_t Nz,
+              MPI_Datatype MPIREAL,
+              const int timestamp)
     {
         // 0. wait for pending sends, couple of checks
-        // 1. pack all stuff
+        // 1. generate packinfos for SoA fields
+        // 2. pack all stuff
+        // 3. perform send/receive requests
+        // 4. setup the dependency
 
         //0.
-		{
-			const int NPENDINGSENDS = send.pending.size();
-			if (NPENDINGSENDS > 0)
-			{
-				vector<MPI_Request> pending(NPENDINGSENDS);
-				copy(send.pending.begin(), send.pending.end(), pending.begin());
+        {
+            const int NPENDINGSENDS = send.pending.size();
+            if (NPENDINGSENDS > 0)
+            {
+                vector<MPI_Request> pending(NPENDINGSENDS);
+                copy(send.pending.begin(), send.pending.end(), pending.begin());
 #if 1
                 MPI_Waitall(NPENDINGSENDS, &pending.front(), MPI_STATUSES_IGNORE);
 #else
-				int done = false;
-				while (1)
-				{
-					MPI_Testall(NPENDINGSENDS, &pending.front(), &done, MPI_STATUSES_IGNORE);
-					if (done) break;
-					sched_yield();
-				};
+                int done = false;
+                while (1)
+                {
+                    MPI_Testall(NPENDINGSENDS, &pending.front(), &done, MPI_STATUSES_IGNORE);
+                    if (done) break;
+                    sched_yield();
+                };
 #endif
 
-				send.pending.clear();
-			}
-		}
+                send.pending.clear();
+            }
+        }
 
-		assert(recv.pending.size() == 0);
-		assert(send.pending.size() == 0);
+        assert(recv.pending.size() == 0);
+        assert(send.pending.size() == 0);
 
-		cube.prepare();
-		blockinfo_counter = globalinfos.size();
-		const int NC = stencil.selcomponents.size();
+        cube.prepare();
+        blockinfo_counter = globalinfos.size();
+        const int NC = stencil.selcomponents.size();
+        assert(fields.size() ==
+               static_cast<size_t>(NC)); // #SoA fields == #AoS fields
 
-		//1. pack
-		{
-			const int N = send_packinfos.size();
+        // 1. generate packinfos for SoA fields
+        const int origin[3] = {
+            mypeindex[0]*mybpd[0],
+            mypeindex[1]*mybpd[1],
+            mypeindex[2]*mybpd[2]
+        };
 
-			vector<int> selcomponents = stencil.selcomponents;
-			sort(selcomponents.begin(), selcomponents.end());
+        const int s[3] = {stencil.sx, stencil.sy, stencil.sz};
+        const int e[3] = {stencil.ex, stencil.ey, stencil.ez};
+        const int z[3] = {0, 0, 0};
 
-            // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23] PUP kernels are not
-            // ready to change this to 'true'
-            const bool contiguous = false;//selcomponents.back()+1-selcomponents.front() == selcomponents.size();
+        send_thickness[0][0] = e[0] - 1;  send_thickness[0][1] = -s[0];
+        send_thickness[1][0] = e[1] - 1;  send_thickness[1][1] = -s[1];
+        send_thickness[2][0] = e[2] - 1;  send_thickness[2][1] = -s[2];
 
-			if (!contiguous)
-			{
-				for(int i=0; i<N; ++i)
-				{
-					PackInfo info = send_packinfos[i];
-                    PUPkernelsMPI::pack(info.block,
+        send_packinfos.clear();
+        _setup<false>(send, send_thickness, z, blocksize, origin, fields, send_packinfos);
+
+        recv_thickness[0][0] = -s[0]; recv_thickness[0][1] = e[0] - 1;
+        recv_thickness[1][0] = -s[1]; recv_thickness[1][1] = e[1] - 1;
+        recv_thickness[2][0] = -s[2]; recv_thickness[2][1] = e[2] - 1;
+
+        {
+            const int blockstart[3] = {
+                stencil.sx ,
+                stencil.sy ,
+                stencil.sz
+            };
+
+            const int blockend[3] = {
+                stencil.ex + blocksize[0]-1,
+                stencil.ey + blocksize[1]-1,
+                stencil.ez + blocksize[2]-1
+            };
+
+            recv_packinfos.clear();
+            recv_subpackinfos.clear();
+            vector<PackInfo> packinfos;
+            recv_subpackinfos = _setup<true>(recv, recv_thickness, blockstart, blockend, origin, fields, packinfos);
+
+            for(typename std::vector<PackInfo>::const_iterator it = packinfos.begin(); it<packinfos.end(); ++it)
+                recv_packinfos[it->block].push_back(*it);
+        }
+
+        // 2. pack
+        {
+            const int N = send_packinfos.size();
+
+            vector<int> selcomponents = stencil.selcomponents;
+            sort(selcomponents.begin(), selcomponents.end());
+
+            for(int i=0; i<N; ++i)
+            {
+                PackInfo info = send_packinfos[i];
+                PUPkernelsMPI::pack_soa(info.block,
                                         info.pack,
-                                        gptfloats,
-                                        &selcomponents.front(),
-                                        NC,
                                         info.sx,
                                         info.sy,
                                         info.sz,
                                         info.ex,
                                         info.ey,
                                         info.ez,
-                                        bx,
-                                        by);
-                }
-			}
-			else
-			{
-				const int selstart = selcomponents.front();
-				const int selend = selcomponents.back()+1;
+                                        Nx,
+                                        Ny);
+            }
+        }
 
-				for(int i=0; i<N; ++i)
-				{
-					PackInfo info = send_packinfos[i];
-                    PUPkernelsMPI::pack_stripes(info.block,
-                                                info.pack,
-                                                gptfloats,
-                                                selstart,
-                                                selend,
-                                                info.sx,
-                                                info.sy,
-                                                info.sz,
-                                                info.ex,
-                                                info.ey,
-                                                info.ez,
-                                                bx,
-                                                by);
-                }
-			}
-		}
-    }
+        // 3. send requests
+        {
+            //faces
+            for(int d=0; d<3; ++d)
+            {
+                if (!_face_needed(d)) continue;
 
-    void sync(size_t gptfloats, MPI_Datatype MPIREAL, const int timestamp)
-    {
-        // 2. perform send/receive requests
-        // 3. setup the dependency
+                const int dim_other1 = (d+1)%3;
+                const int dim_other2 = (d+2)%3;
 
-        //2. send requests
-		{
-			//faces
-			for(int d=0; d<3; ++d)
-			{
-				if (!_face_needed(d)) continue;
+                for(int s=0; s<2; ++s)
+                {
+                    const int NFACEBLOCK_SEND = NC * send_thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
+                    const int NFACEBLOCK_RECV = NC * recv_thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
+                    const int NFACE_SEND = NFACEBLOCK_SEND * mybpd[dim_other1] * mybpd[dim_other2];
+                    const int NFACE_RECV = NFACEBLOCK_RECV * mybpd[dim_other1] * mybpd[dim_other2];
 
-				const int dim_other1 = (d+1)%3;
-				const int dim_other2 = (d+2)%3;
+                    int neighbor_index[3];
+                    neighbor_index[d] = (mypeindex[d] + 2*s-1 + pesize[d])%pesize[d];
+                    neighbor_index[dim_other1] = mypeindex[dim_other1];
+                    neighbor_index[dim_other2] = mypeindex[dim_other2];
 
-				for(int s=0; s<2; ++s)
-				{
-					const int NFACEBLOCK_SEND = NC * send_thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
-					const int NFACEBLOCK_RECV = NC * recv_thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
-					const int NFACE_SEND = NFACEBLOCK_SEND * mybpd[dim_other1] * mybpd[dim_other2];
-					const int NFACE_RECV = NFACEBLOCK_RECV * mybpd[dim_other1] * mybpd[dim_other2];
-
-					int neighbor_index[3];
-					neighbor_index[d] = (mypeindex[d] + 2*s-1 + pesize[d])%pesize[d];
-					neighbor_index[dim_other1] = mypeindex[dim_other1];
-					neighbor_index[dim_other2] = mypeindex[dim_other2];
-
-					if (_myself(neighbor_index)) continue;
+                    if (_myself(neighbor_index)) continue;
 
                     if (NFACE_SEND > 0)
                     {
@@ -945,48 +976,48 @@ public:
                         send.pending.insert( req );
                     }
 
-					if (NFACE_RECV > 0)
-					{
+                    if (NFACE_RECV > 0)
+                    {
                         MPI_Request rc;
-						MPI_Irecv(recv.faces[d][s], NFACE_RECV, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + s, cartcomm, &rc);
-						recv.pending.insert(rc);
-						cube.face(rc, d, s);
-					}
-				}
-			}
+                        MPI_Irecv(recv.faces[d][s], NFACE_RECV, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + s, cartcomm, &rc);
+                        recv.pending.insert(rc);
+                        cube.face(rc, d, s);
+                    }
+                }
+            }
 
-			if (stencil.tensorial)
-			{
-				//edges
-				for(int d=0; d<3; ++d)
-				{
-					const int dim_other1 = (d+1)%3;
-					const int dim_other2 = (d+2)%3;
+            if (stencil.tensorial)
+            {
+                //edges
+                for(int d=0; d<3; ++d)
+                {
+                    const int dim_other1 = (d+1)%3;
+                    const int dim_other2 = (d+2)%3;
 
-					for(int b=0; b<2; ++b)
-						for(int a=0; a<2; ++a)
-						{
-							const int NEDGEBLOCK_SEND = NC * blocksize[d] * send_thickness[dim_other2][b] * send_thickness[dim_other1][a];
-							const int NEDGEBLOCK_RECV = NC * blocksize[d] * recv_thickness[dim_other2][b] * recv_thickness[dim_other1][a];
-							const int NEDGE_SEND = NEDGEBLOCK_SEND * mybpd[d];
-							const int NEDGE_RECV = NEDGEBLOCK_RECV * mybpd[d];
+                    for(int b=0; b<2; ++b)
+                        for(int a=0; a<2; ++a)
+                        {
+                            const int NEDGEBLOCK_SEND = NC * blocksize[d] * send_thickness[dim_other2][b] * send_thickness[dim_other1][a];
+                            const int NEDGEBLOCK_RECV = NC * blocksize[d] * recv_thickness[dim_other2][b] * recv_thickness[dim_other1][a];
+                            const int NEDGE_SEND = NEDGEBLOCK_SEND * mybpd[d];
+                            const int NEDGE_RECV = NEDGEBLOCK_RECV * mybpd[d];
 
-							int neighbor_index[3];
-							neighbor_index[d] = mypeindex[d];
-							neighbor_index[dim_other1] = (mypeindex[dim_other1] + 2*a-1 + pesize[dim_other1])%pesize[dim_other1];
-							neighbor_index[dim_other2] = (mypeindex[dim_other2] + 2*b-1 + pesize[dim_other2])%pesize[dim_other2];
+                            int neighbor_index[3];
+                            neighbor_index[d] = mypeindex[d];
+                            neighbor_index[dim_other1] = (mypeindex[dim_other1] + 2*a-1 + pesize[dim_other1])%pesize[dim_other1];
+                            neighbor_index[dim_other2] = (mypeindex[dim_other2] + 2*b-1 + pesize[dim_other2])%pesize[dim_other2];
 
-							if (_myself(neighbor_index)) continue;
+                            if (_myself(neighbor_index)) continue;
 
-							if (NEDGE_RECV > 0)
-							{
+                            if (NEDGE_RECV > 0)
+                            {
                                 MPI_Request rc;
-								MPI_Irecv(recv.edges[d][b][a], NEDGE_RECV, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*b + a, cartcomm, &rc);
+                                MPI_Irecv(recv.edges[d][b][a], NEDGE_RECV, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*b + a, cartcomm, &rc);
 
-								recv.pending.insert(rc);
+                                recv.pending.insert(rc);
 
-								cube.edge(rc, d, a, b);
-							}
+                                cube.edge(rc, d, a, b);
+                            }
 
                             if (NEDGE_SEND > 0)
                             {
@@ -994,48 +1025,236 @@ public:
                                 MPI_Isend(send.edges[d][b][a], NEDGE_SEND, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*(1-b) + (1-a), cartcomm, &req);
                                 send.pending.insert(req);
                             }
-						}
-				}
+                        }
+                }
 
-				//corners
-				{
-					for(int z=0; z<2; ++z)
-						for(int y=0; y<2; ++y)
-							for(int x=0; x<2; ++x)
-								{
-									const int NCORNERBLOCK_SEND = NC * send_thickness[0][x]*send_thickness[1][y]*send_thickness[2][z];
-									const int NCORNERBLOCK_RECV = NC * recv_thickness[0][x]*recv_thickness[1][y]*recv_thickness[2][z];
+                //corners
+                {
+                    for(int z=0; z<2; ++z)
+                        for(int y=0; y<2; ++y)
+                            for(int x=0; x<2; ++x)
+                                {
+                                    const int NCORNERBLOCK_SEND = NC * send_thickness[0][x]*send_thickness[1][y]*send_thickness[2][z];
+                                    const int NCORNERBLOCK_RECV = NC * recv_thickness[0][x]*recv_thickness[1][y]*recv_thickness[2][z];
 
-									int neighbor_index[3];
-									neighbor_index[0] = (mypeindex[0] + 2*x-1 + pesize[0])%pesize[0];
-									neighbor_index[1] = (mypeindex[1] + 2*y-1 + pesize[1])%pesize[1];
-									neighbor_index[2] = (mypeindex[2] + 2*z-1 + pesize[2])%pesize[2];
+                                    int neighbor_index[3];
+                                    neighbor_index[0] = (mypeindex[0] + 2*x-1 + pesize[0])%pesize[0];
+                                    neighbor_index[1] = (mypeindex[1] + 2*y-1 + pesize[1])%pesize[1];
+                                    neighbor_index[2] = (mypeindex[2] + 2*z-1 + pesize[2])%pesize[2];
 
-									if (_myself(neighbor_index)) continue;
+                                    if (_myself(neighbor_index)) continue;
 
-									if (NCORNERBLOCK_RECV)
-									{
+                                    if (NCORNERBLOCK_RECV)
+                                    {
                                         MPI_Request rc;
-										MPI_Irecv(recv.corners[z][y][x], NCORNERBLOCK_RECV, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*z + 2*y + x, cartcomm, &rc);
+                                        MPI_Irecv(recv.corners[z][y][x], NCORNERBLOCK_RECV, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*z + 2*y + x, cartcomm, &rc);
 
-										recv.pending.insert(rc);
+                                        recv.pending.insert(rc);
 
-										cube.corner(rc, x, y, z);
-									}
+                                        cube.corner(rc, x, y, z);
+                                    }
 
-									if (NCORNERBLOCK_SEND)
+                                    if (NCORNERBLOCK_SEND)
                                     {
                                         MPI_Request req;
                                         MPI_Isend(send.corners[z][y][x], NCORNERBLOCK_SEND, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*(1-z) + 2*(1-y) + (1-x), cartcomm, &req);
                                         send.pending.insert(req);
                                     }
-								}
-				}
+                                }
+                }
             }
-		}
+        }
 
-		//3.
-		cube.make_dependencies(isroot);
+        // 4.
+        cube.make_dependencies(isroot);
+
+// XXX: [fabianw@mavt.ethz.ch; 2019-10-29] ONLY FOR PERIODIC BLOCK LABS
+
+// XXX: [fabianw@mavt.ethz.ch; 2019-10-29] TESTING
+        const int NPENDINGRECVS = recv.pending.size();
+        vector<MPI_Request> pending(NPENDINGRECVS);
+        copy(recv.pending.begin(), recv.pending.end(), pending.begin());
+        MPI_Waitall(NPENDINGRECVS, &pending.front(), MPI_STATUSES_IGNORE);
+
+        for (auto& f : fields) {
+            for (auto finfo : f) {
+                fetch_soa((Real *)finfo.data_inner,
+                          (Real *)finfo.data_outer,
+                          Nx,
+                          Ny,
+                          Nz);
+            }
+        }
+
+        // void fetch(const Real *const ptrBlock,
+        //            Real *const ptrLab,
+        //            const int x0,
+        //            const int y0,
+        //            const int z0,
+        //            const int xsize,
+        //            const int ysize,
+        //            const int zsize,
+        //            const int gptfloats,
+        //            const int rsx,
+        //            const int rex,
+        //            const int rsy,
+        //            const int rey,
+        //            const int rsz,
+        //            const int rez) const
+
+        // const int rsx = (!xperiodic && info.index[0]==0)? 0 : this->m_stencilStart[0];
+        // const int rex = (!xperiodic && info.index[0]==gLastX) ? BlockType::sizeX : (BlockType::sizeX+this->m_stencilEnd[0]-1);
+        // const int rsy = (!yperiodic && info.index[1]==0)? 0 : this->m_stencilStart[1];
+        // const int rey = (!yperiodic && info.index[1]==gLastY) ? BlockType::sizeY : (BlockType::sizeY+this->m_stencilEnd[1]-1);
+        // const int rsz = (!zperiodic && info.index[2]==0)? 0 : this->m_stencilStart[2];
+        // const int rez = (!zperiodic && info.index[2]==gLastZ) ? BlockType::sizeZ : (BlockType::sizeZ+this->m_stencilEnd[2]-1);
+
+        // refSynchronizerMPI->fetch((const Real *)info.ptrBlock,
+        //                           dst,
+        //                           this->m_stencilStart[0],
+        //                           this->m_stencilStart[1],
+        //                           this->m_stencilStart[2],
+        //                           this->m_cacheBlock->getSize()[0],
+        //                           this->m_cacheBlock->getSize()[1],
+        //                           this->m_cacheBlock->getSize()[2],
+        //                           sizeof(ET) / sizeof(Real),
+        //                           rsx,
+        //                           rex,
+        //                           rsy,
+        //                           rey,
+        //                           rsz,
+        //                           rez);
+    }
+
+    void sync(size_t gptfloats, MPI_Datatype MPIREAL, const int timestamp)
+    {
+
+        // 2. perform send/receive requests
+        // 3. setup the dependency
+        const int NC = stencil.selcomponents.size();
+
+        //2. send requests
+        {
+            //faces
+            for(int d=0; d<3; ++d)
+            {
+                if (!_face_needed(d)) continue;
+
+                const int dim_other1 = (d+1)%3;
+                const int dim_other2 = (d+2)%3;
+
+                for(int s=0; s<2; ++s)
+                {
+                    const int NFACEBLOCK_SEND = NC * send_thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
+                    const int NFACEBLOCK_RECV = NC * recv_thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
+                    const int NFACE_SEND = NFACEBLOCK_SEND * mybpd[dim_other1] * mybpd[dim_other2];
+                    const int NFACE_RECV = NFACEBLOCK_RECV * mybpd[dim_other1] * mybpd[dim_other2];
+
+                    int neighbor_index[3];
+                    neighbor_index[d] = (mypeindex[d] + 2*s-1 + pesize[d])%pesize[d];
+                    neighbor_index[dim_other1] = mypeindex[dim_other1];
+                    neighbor_index[dim_other2] = mypeindex[dim_other2];
+
+                    if (_myself(neighbor_index)) continue;
+
+                    if (NFACE_SEND > 0)
+                    {
+                        MPI_Request req;
+                        MPI_Isend(send.faces[d][s], NFACE_SEND, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + 1-s, cartcomm, &req);
+                        send.pending.insert( req );
+                    }
+
+                    if (NFACE_RECV > 0)
+                    {
+                        MPI_Request rc;
+                        MPI_Irecv(recv.faces[d][s], NFACE_RECV, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + s, cartcomm, &rc);
+                        recv.pending.insert(rc);
+                        cube.face(rc, d, s);
+                    }
+                }
+            }
+
+            if (stencil.tensorial)
+            {
+                //edges
+                for(int d=0; d<3; ++d)
+                {
+                    const int dim_other1 = (d+1)%3;
+                    const int dim_other2 = (d+2)%3;
+
+                    for(int b=0; b<2; ++b)
+                        for(int a=0; a<2; ++a)
+                        {
+                            const int NEDGEBLOCK_SEND = NC * blocksize[d] * send_thickness[dim_other2][b] * send_thickness[dim_other1][a];
+                            const int NEDGEBLOCK_RECV = NC * blocksize[d] * recv_thickness[dim_other2][b] * recv_thickness[dim_other1][a];
+                            const int NEDGE_SEND = NEDGEBLOCK_SEND * mybpd[d];
+                            const int NEDGE_RECV = NEDGEBLOCK_RECV * mybpd[d];
+
+                            int neighbor_index[3];
+                            neighbor_index[d] = mypeindex[d];
+                            neighbor_index[dim_other1] = (mypeindex[dim_other1] + 2*a-1 + pesize[dim_other1])%pesize[dim_other1];
+                            neighbor_index[dim_other2] = (mypeindex[dim_other2] + 2*b-1 + pesize[dim_other2])%pesize[dim_other2];
+
+                            if (_myself(neighbor_index)) continue;
+
+                            if (NEDGE_RECV > 0)
+                            {
+                                MPI_Request rc;
+                                MPI_Irecv(recv.edges[d][b][a], NEDGE_RECV, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*b + a, cartcomm, &rc);
+
+                                recv.pending.insert(rc);
+
+                                cube.edge(rc, d, a, b);
+                            }
+
+                            if (NEDGE_SEND > 0)
+                            {
+                                MPI_Request req;
+                                MPI_Isend(send.edges[d][b][a], NEDGE_SEND, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*(1-b) + (1-a), cartcomm, &req);
+                                send.pending.insert(req);
+                            }
+                        }
+                }
+
+                //corners
+                {
+                    for(int z=0; z<2; ++z)
+                        for(int y=0; y<2; ++y)
+                            for(int x=0; x<2; ++x)
+                                {
+                                    const int NCORNERBLOCK_SEND = NC * send_thickness[0][x]*send_thickness[1][y]*send_thickness[2][z];
+                                    const int NCORNERBLOCK_RECV = NC * recv_thickness[0][x]*recv_thickness[1][y]*recv_thickness[2][z];
+
+                                    int neighbor_index[3];
+                                    neighbor_index[0] = (mypeindex[0] + 2*x-1 + pesize[0])%pesize[0];
+                                    neighbor_index[1] = (mypeindex[1] + 2*y-1 + pesize[1])%pesize[1];
+                                    neighbor_index[2] = (mypeindex[2] + 2*z-1 + pesize[2])%pesize[2];
+
+                                    if (_myself(neighbor_index)) continue;
+
+                                    if (NCORNERBLOCK_RECV)
+                                    {
+                                        MPI_Request rc;
+                                        MPI_Irecv(recv.corners[z][y][x], NCORNERBLOCK_RECV, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*z + 2*y + x, cartcomm, &rc);
+
+                                        recv.pending.insert(rc);
+
+                                        cube.corner(rc, x, y, z);
+                                    }
+
+                                    if (NCORNERBLOCK_SEND)
+                                    {
+                                        MPI_Request req;
+                                        MPI_Isend(send.corners[z][y][x], NCORNERBLOCK_SEND, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*(1-z) + 2*(1-y) + (1-x), cartcomm, &req);
+                                        send.pending.insert(req);
+                                    }
+                                }
+                }
+            }
+        }
+
+        //3.
+        cube.make_dependencies(isroot);
     }
 
     //peh
@@ -1044,59 +1263,59 @@ public:
     {
         //double t0, t1;
 
-		//0. wait for pending sends, couple of checks
-		//1. pack all stuff
-		//2. perform send/receive requests
-		//3. setup the dependency
+        //0. wait for pending sends, couple of checks
+        //1. pack all stuff
+        //2. perform send/receive requests
+        //3. setup the dependency
 
-		//0.
-		{
-			const int NPENDINGSENDS = send.pending.size();
-			if (NPENDINGSENDS > 0)
-			{
-				vector<MPI_Request> pending(NPENDINGSENDS);
-				copy(send.pending.begin(), send.pending.end(), pending.begin());
+        //0.
+        {
+            const int NPENDINGSENDS = send.pending.size();
+            if (NPENDINGSENDS > 0)
+            {
+                vector<MPI_Request> pending(NPENDINGSENDS);
+                copy(send.pending.begin(), send.pending.end(), pending.begin());
 #if 1
                 MPI_Waitall(NPENDINGSENDS, &pending.front(), MPI_STATUSES_IGNORE);
 #else
-				int done = false;
-				while (1)
-				{
-					MPI_Testall(NPENDINGSENDS, &pending.front(), &done, MPI_STATUSES_IGNORE);
-					if (done) break;
-					pthread_yield();
-				};
+                int done = false;
+                while (1)
+                {
+                    MPI_Testall(NPENDINGSENDS, &pending.front(), &done, MPI_STATUSES_IGNORE);
+                    if (done) break;
+                    pthread_yield();
+                };
 #endif
 
-				send.pending.clear();
-			}
-		}
+                send.pending.clear();
+            }
+        }
 
-		assert(recv.pending.size() == 0);
-		assert(send.pending.size() == 0);
+        assert(recv.pending.size() == 0);
+        assert(send.pending.size() == 0);
 
-		cube.prepare();
+        cube.prepare();
 
-		blockinfo_counter = globalinfos.size();
-		const int NC = stencil.selcomponents.size();
+        blockinfo_counter = globalinfos.size();
+        const int NC = stencil.selcomponents.size();
 
-		//1. pack
-		{
-			//double t0, t1;
+        //1. pack
+        {
+            //double t0, t1;
 
 
-			const int N = send_packinfos.size();
+            const int N = send_packinfos.size();
 
-			vector<int> selcomponents = stencil.selcomponents;
-			sort(selcomponents.begin(), selcomponents.end());
+            vector<int> selcomponents = stencil.selcomponents;
+            sort(selcomponents.begin(), selcomponents.end());
 
             const bool contiguous = false;//true; //false; //true;//selcomponents.back()+1-selcomponents.front() == selcomponents.size();
 
-			if (!contiguous)
-			{
-				for(int i=0; i<N; ++i)
-				{
-					PackInfo info = send_packinfos[i];
+            if (!contiguous)
+            {
+                for(int i=0; i<N; ++i)
+                {
+                    PackInfo info = send_packinfos[i];
                     PUPkernelsMPI::pack(info.block,
                                         info.pack,
                                         gptfloats,
@@ -1111,15 +1330,15 @@ public:
                                         bx,
                                         by);
                 }
-			}
-			else
-			{
-				const int selstart = selcomponents.front();
-				const int selend = selcomponents.back()+1;
+            }
+            else
+            {
+                const int selstart = selcomponents.front();
+                const int selend = selcomponents.back()+1;
 
-				for(int i=0; i<N; ++i)
-				{
-					PackInfo info = send_packinfos[i];
+                for(int i=0; i<N; ++i)
+                {
+                    PackInfo info = send_packinfos[i];
                     PUPkernelsMPI::pack_stripes(info.block,
                                                 info.pack,
                                                 gptfloats,
@@ -1134,164 +1353,164 @@ public:
                                                 bx,
                                                 by);
                 }
-			}
+            }
 
-		}
+        }
 
-		// recvs
-		for (int pass = 0; pass <= 1; pass++)
-		//2. send requests
-		{
-			//faces
-			for(int d=0; d<3; ++d)
-			{
-				if (!_face_needed(d)) continue;
+        // recvs
+        for (int pass = 0; pass <= 1; pass++)
+        //2. send requests
+        {
+            //faces
+            for(int d=0; d<3; ++d)
+            {
+                if (!_face_needed(d)) continue;
 
-				const int dim_other1 = (d+1)%3;
-				const int dim_other2 = (d+2)%3;
+                const int dim_other1 = (d+1)%3;
+                const int dim_other2 = (d+2)%3;
 
-				for(int s=0; s<2; ++s)
-				{
-					int neighbor_index[3];
-					neighbor_index[d] = (mypeindex[d] + 2*s-1 + pesize[d])%pesize[d];
-					neighbor_index[dim_other1] = mypeindex[dim_other1];
-					neighbor_index[dim_other2] = mypeindex[dim_other2];
+                for(int s=0; s<2; ++s)
+                {
+                    int neighbor_index[3];
+                    neighbor_index[d] = (mypeindex[d] + 2*s-1 + pesize[d])%pesize[d];
+                    neighbor_index[dim_other1] = mypeindex[dim_other1];
+                    neighbor_index[dim_other2] = mypeindex[dim_other2];
 
-					if (_myself(neighbor_index)) continue;
+                    if (_myself(neighbor_index)) continue;
 
-					if (pass == 0)
-					{
-						const int NFACEBLOCK_RECV = NC * recv_thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
-						const int NFACE_RECV = NFACEBLOCK_RECV * mybpd[dim_other1] * mybpd[dim_other2];
+                    if (pass == 0)
+                    {
+                        const int NFACEBLOCK_RECV = NC * recv_thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
+                        const int NFACE_RECV = NFACEBLOCK_RECV * mybpd[dim_other1] * mybpd[dim_other2];
 
-						if (NFACE_RECV > 0)
-						{
+                        if (NFACE_RECV > 0)
+                        {
                             MPI_Request rc;
-							MPI_Irecv(recv.faces[d][s], NFACE_RECV, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + s, cartcomm, &rc);
-							recv.pending.insert(rc);
-							cube.face(rc, d, s);
-						}
-					}
-					else
-					{
-						const int NFACEBLOCK_SEND = NC * send_thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
-						const int NFACE_SEND = NFACEBLOCK_SEND * mybpd[dim_other1] * mybpd[dim_other2];
+                            MPI_Irecv(recv.faces[d][s], NFACE_RECV, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + s, cartcomm, &rc);
+                            recv.pending.insert(rc);
+                            cube.face(rc, d, s);
+                        }
+                    }
+                    else
+                    {
+                        const int NFACEBLOCK_SEND = NC * send_thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
+                        const int NFACE_SEND = NFACEBLOCK_SEND * mybpd[dim_other1] * mybpd[dim_other2];
 
-						if (NFACE_SEND > 0)
+                        if (NFACE_SEND > 0)
                         {
                             MPI_Request req;
                             MPI_Isend(send.faces[d][s], NFACE_SEND, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + 1-s, cartcomm, &req);
                             send.pending.insert(req);
                         }
-					}
-				}
-			}
+                    }
+                }
+            }
 
-			if (stencil.tensorial)
-			{
-				//edges
-				for(int d=0; d<3; ++d)
-				{
-					const int dim_other1 = (d+1)%3;
-					const int dim_other2 = (d+2)%3;
+            if (stencil.tensorial)
+            {
+                //edges
+                for(int d=0; d<3; ++d)
+                {
+                    const int dim_other1 = (d+1)%3;
+                    const int dim_other2 = (d+2)%3;
 
-					for(int b=0; b<2; ++b)
-						for(int a=0; a<2; ++a)
-						{
-							const int NEDGEBLOCK_SEND = NC * blocksize[d] * send_thickness[dim_other2][b] * send_thickness[dim_other1][a];
-							const int NEDGEBLOCK_RECV = NC * blocksize[d] * recv_thickness[dim_other2][b] * recv_thickness[dim_other1][a];
-							const int NEDGE_SEND = NEDGEBLOCK_SEND * mybpd[d];
-							const int NEDGE_RECV = NEDGEBLOCK_RECV * mybpd[d];
+                    for(int b=0; b<2; ++b)
+                        for(int a=0; a<2; ++a)
+                        {
+                            const int NEDGEBLOCK_SEND = NC * blocksize[d] * send_thickness[dim_other2][b] * send_thickness[dim_other1][a];
+                            const int NEDGEBLOCK_RECV = NC * blocksize[d] * recv_thickness[dim_other2][b] * recv_thickness[dim_other1][a];
+                            const int NEDGE_SEND = NEDGEBLOCK_SEND * mybpd[d];
+                            const int NEDGE_RECV = NEDGEBLOCK_RECV * mybpd[d];
 
-							int neighbor_index[3];
-							neighbor_index[d] = mypeindex[d];
-							neighbor_index[dim_other1] = (mypeindex[dim_other1] + 2*a-1 + pesize[dim_other1])%pesize[dim_other1];
-							neighbor_index[dim_other2] = (mypeindex[dim_other2] + 2*b-1 + pesize[dim_other2])%pesize[dim_other2];
+                            int neighbor_index[3];
+                            neighbor_index[d] = mypeindex[d];
+                            neighbor_index[dim_other1] = (mypeindex[dim_other1] + 2*a-1 + pesize[dim_other1])%pesize[dim_other1];
+                            neighbor_index[dim_other2] = (mypeindex[dim_other2] + 2*b-1 + pesize[dim_other2])%pesize[dim_other2];
 
-							if (_myself(neighbor_index)) continue;
+                            if (_myself(neighbor_index)) continue;
 
-							if (pass == 0)
-							{
-								if (NEDGE_RECV > 0)
-								{
+                            if (pass == 0)
+                            {
+                                if (NEDGE_RECV > 0)
+                                {
                                     MPI_Request rc;
-									MPI_Irecv(recv.edges[d][b][a], NEDGE_RECV, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*b + a, cartcomm, &rc);
+                                    MPI_Irecv(recv.edges[d][b][a], NEDGE_RECV, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*b + a, cartcomm, &rc);
 
-									recv.pending.insert(rc);
+                                    recv.pending.insert(rc);
 
-									cube.edge(rc, d, a, b);
-								}
-							}
-							else
-							{
+                                    cube.edge(rc, d, a, b);
+                                }
+                            }
+                            else
+                            {
                                 if (NEDGE_SEND > 0)
                                 {
                                     MPI_Request req;
                                     MPI_Isend(send.edges[d][b][a], NEDGE_SEND, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*(1-b) + (1-a), cartcomm, &req);
                                     send.pending.insert(req);
                                 }
-							}
-						}
-				}
+                            }
+                        }
+                }
 
-				//corners
-				{
-					for(int z=0; z<2; ++z)
-						for(int y=0; y<2; ++y)
-							for(int x=0; x<2; ++x)
-								{
-									const int NCORNERBLOCK_SEND = NC * send_thickness[0][x]*send_thickness[1][y]*send_thickness[2][z];
-									const int NCORNERBLOCK_RECV = NC * recv_thickness[0][x]*recv_thickness[1][y]*recv_thickness[2][z];
+                //corners
+                {
+                    for(int z=0; z<2; ++z)
+                        for(int y=0; y<2; ++y)
+                            for(int x=0; x<2; ++x)
+                                {
+                                    const int NCORNERBLOCK_SEND = NC * send_thickness[0][x]*send_thickness[1][y]*send_thickness[2][z];
+                                    const int NCORNERBLOCK_RECV = NC * recv_thickness[0][x]*recv_thickness[1][y]*recv_thickness[2][z];
 
-									int neighbor_index[3];
-									neighbor_index[0] = (mypeindex[0] + 2*x-1 + pesize[0])%pesize[0];
-									neighbor_index[1] = (mypeindex[1] + 2*y-1 + pesize[1])%pesize[1];
-									neighbor_index[2] = (mypeindex[2] + 2*z-1 + pesize[2])%pesize[2];
+                                    int neighbor_index[3];
+                                    neighbor_index[0] = (mypeindex[0] + 2*x-1 + pesize[0])%pesize[0];
+                                    neighbor_index[1] = (mypeindex[1] + 2*y-1 + pesize[1])%pesize[1];
+                                    neighbor_index[2] = (mypeindex[2] + 2*z-1 + pesize[2])%pesize[2];
 
-									if (_myself(neighbor_index)) continue;
+                                    if (_myself(neighbor_index)) continue;
 
-									if (pass == 0)
-									{
-										if (NCORNERBLOCK_RECV)
-										{
+                                    if (pass == 0)
+                                    {
+                                        if (NCORNERBLOCK_RECV)
+                                        {
                                             MPI_Request rc;
-											MPI_Irecv(recv.corners[z][y][x], NCORNERBLOCK_RECV, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*z + 2*y + x, cartcomm, &rc);
+                                            MPI_Irecv(recv.corners[z][y][x], NCORNERBLOCK_RECV, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*z + 2*y + x, cartcomm, &rc);
 
-											recv.pending.insert(rc);
+                                            recv.pending.insert(rc);
 
-											cube.corner(rc, x, y, z);
-										}
-									}
-									else
-									{
-										if (NCORNERBLOCK_SEND)
+                                            cube.corner(rc, x, y, z);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (NCORNERBLOCK_SEND)
                                         {
                                             MPI_Request req;
-											MPI_Isend(send.corners[z][y][x], NCORNERBLOCK_SEND, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*(1-z) + 2*(1-y) + (1-x), cartcomm, &req);
-											send.pending.insert(req);
+                                            MPI_Isend(send.corners[z][y][x], NCORNERBLOCK_SEND, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*(1-z) + 2*(1-y) + (1-x), cartcomm, &req);
+                                            send.pending.insert(req);
                                         }
-									}
-								}
-				}
-			}
-		}
+                                    }
+                                }
+                }
+            }
+        }
 
-		//3.
-		cube.make_dependencies(isroot);
+        //3.
+        cube.make_dependencies(isroot);
     }
 
     vector<BlockInfo> avail_inner()
-	{
-		vector<BlockInfo> retval;
+    {
+        vector<BlockInfo> retval;
 
-		const int xorigin = mypeindex[0]*mybpd[0];
-		const int yorigin =	mypeindex[1]*mybpd[1];
-		const int zorigin =	mypeindex[2]*mybpd[2];
+        const int xorigin = mypeindex[0]*mybpd[0];
+        const int yorigin = mypeindex[1]*mybpd[1];
+        const int zorigin = mypeindex[2]*mybpd[2];
 
-		vector<Region> regions = cube.avail();
+        vector<Region> regions = cube.avail();
 
-		for(typename vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
-		{
+        for(typename vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
+        {
             map<Region, vector<BlockInfo> >::const_iterator r2v = region2infos.find(*it);
 
             if(r2v!=region2infos.end())
@@ -1322,52 +1541,52 @@ public:
 
                 region2infos[*it] = entry;
             }
-		}
+        }
 
-		assert(cube.pendingcount() != 0 || blockinfo_counter == cube.pendingcount());
-		assert(blockinfo_counter != 0 || blockinfo_counter == cube.pendingcount());
-		assert(blockinfo_counter != 0 || recv.pending.size() == 0);
+        assert(cube.pendingcount() != 0 || blockinfo_counter == cube.pendingcount());
+        assert(blockinfo_counter != 0 || blockinfo_counter == cube.pendingcount());
+        assert(blockinfo_counter != 0 || recv.pending.size() == 0);
 
-		return retval;
-	}
+        return retval;
+    }
 
-	vector<BlockInfo> avail_halo()
-	{
-		vector<BlockInfo> retval;
+    vector<BlockInfo> avail_halo()
+    {
+        vector<BlockInfo> retval;
 
-		const int NPENDING = recv.pending.size();
+        const int NPENDING = recv.pending.size();
 
-		vector<MPI_Request> pending(NPENDING);
+        vector<MPI_Request> pending(NPENDING);
 
-		copy(recv.pending.begin(), recv.pending.end(), pending.begin());
+        copy(recv.pending.begin(), recv.pending.end(), pending.begin());
 
-		vector<MPI_Request> old = pending;
+        vector<MPI_Request> old = pending;
 
 #if 1
         MPI_Waitall(NPENDING, &pending.front(), MPI_STATUSES_IGNORE);
 #else
-		int done = false;
-		while (1)
-		{
+        int done = false;
+        while (1)
+        {
             MPI_Testall(NPENDING, &pending.front(), &done, MPI_STATUSES_IGNORE);
-			if (done) break;
-			pthread_yield();
-		};
+            if (done) break;
+            pthread_yield();
+        };
 #endif
-		for(int i=0; i<NPENDING; ++i)
-		{
-			cube.received(old[i]);
-			recv.pending.erase(old[i]);
-		}
+        for(int i=0; i<NPENDING; ++i)
+        {
+            cube.received(old[i]);
+            recv.pending.erase(old[i]);
+        }
 
-		const int xorigin = mypeindex[0]*mybpd[0];
-		const int yorigin =	mypeindex[1]*mybpd[1];
-		const int zorigin =	mypeindex[2]*mybpd[2];
+        const int xorigin = mypeindex[0]*mybpd[0];
+        const int yorigin = mypeindex[1]*mybpd[1];
+        const int zorigin = mypeindex[2]*mybpd[2];
 
-		vector<Region> regions = cube.avail();
+        vector<Region> regions = cube.avail();
 
-		for(typename vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
-		{
+        for(typename vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
+        {
             map<Region, vector<BlockInfo> >::const_iterator r2v = region2infos.find(*it);
 
             if(r2v!=region2infos.end())
@@ -1398,85 +1617,85 @@ public:
 
                 region2infos[*it] = entry;
             }
-		}
+        }
 
-		assert(cube.pendingcount() != 0 || blockinfo_counter == cube.pendingcount());
-		assert(blockinfo_counter != 0 || blockinfo_counter == cube.pendingcount());
-		assert(blockinfo_counter != 0 || recv.pending.size() == 0);
+        assert(cube.pendingcount() != 0 || blockinfo_counter == cube.pendingcount());
+        assert(blockinfo_counter != 0 || blockinfo_counter == cube.pendingcount());
+        assert(blockinfo_counter != 0 || recv.pending.size() == 0);
 
-		return retval;
-	}
+        return retval;
+    }
 
 
-	bool test_halo()
-	{
-		vector<BlockInfo> retval;
+    bool test_halo()
+    {
+        vector<BlockInfo> retval;
 
-		const int NPENDING = recv.pending.size();
+        const int NPENDING = recv.pending.size();
 
-		if (NPENDING == 0) return true;
+        if (NPENDING == 0) return true;
 
-		vector<MPI_Request> pending(NPENDING);
+        vector<MPI_Request> pending(NPENDING);
 
-		copy(recv.pending.begin(), recv.pending.end(), pending.begin());
+        copy(recv.pending.begin(), recv.pending.end(), pending.begin());
 
-		int done = false;
+        int done = false;
         MPI_Testall(NPENDING, &pending.front(), &done, MPI_STATUSES_IGNORE);
 
-		return done;
-	}
+        return done;
+    }
 
-	vector<BlockInfo> avail()
-	{
-		vector<BlockInfo> retval;
+    vector<BlockInfo> avail()
+    {
+        vector<BlockInfo> retval;
 
-		const int NPENDING = recv.pending.size();
+        const int NPENDING = recv.pending.size();
 
-		vector<MPI_Request> pending(NPENDING);
+        vector<MPI_Request> pending(NPENDING);
 
-		copy(recv.pending.begin(), recv.pending.end(), pending.begin());
+        copy(recv.pending.begin(), recv.pending.end(), pending.begin());
 
-		vector<MPI_Request> old = pending;
+        vector<MPI_Request> old = pending;
 
-		if(NPENDING > 0)
-		{
-			if(mybpd[0]==1 || mybpd[1]==1 || mybpd[2] == 1) //IS THERE SOMETHING MORE INTELLIGENT?!
-			{
+        if(NPENDING > 0)
+        {
+            if(mybpd[0]==1 || mybpd[1]==1 || mybpd[2] == 1) //IS THERE SOMETHING MORE INTELLIGENT?!
+            {
                 MPI_Waitall(NPENDING, &pending.front(), MPI_STATUSES_IGNORE);
-				for(int i=0; i<NPENDING; ++i)
-				{
-					cube.received(old[i]);
-					recv.pending.erase(old[i]);
-				}
-			}
-			else
-			{
-				vector<int> indices(NPENDING);
-				int NSOLVED = 0;
-				if (blockinfo_counter == int(globalinfos.size()))
+                for(int i=0; i<NPENDING; ++i)
+                {
+                    cube.received(old[i]);
+                    recv.pending.erase(old[i]);
+                }
+            }
+            else
+            {
+                vector<int> indices(NPENDING);
+                int NSOLVED = 0;
+                if (blockinfo_counter == int(globalinfos.size()))
           MPI_Testsome(NPENDING, &pending.front(), &NSOLVED, &indices.front(), MPI_STATUSES_IGNORE);
-				else
-				{
-					MPI_Waitsome(NPENDING, &pending.front(), &NSOLVED, &indices.front(), MPI_STATUSES_IGNORE);
-					assert(NSOLVED > 0);
-				}
+                else
+                {
+                    MPI_Waitsome(NPENDING, &pending.front(), &NSOLVED, &indices.front(), MPI_STATUSES_IGNORE);
+                    assert(NSOLVED > 0);
+                }
 
-				for(int i=0; i<NSOLVED; ++i)
-				{
-					cube.received(old[indices[i]]);
-					recv.pending.erase(old[indices[i]]);
-				}
-			}
-		}
+                for(int i=0; i<NSOLVED; ++i)
+                {
+                    cube.received(old[indices[i]]);
+                    recv.pending.erase(old[indices[i]]);
+                }
+            }
+        }
 
-		const int xorigin = mypeindex[0]*mybpd[0];
-		const int yorigin =	mypeindex[1]*mybpd[1];
-		const int zorigin =	mypeindex[2]*mybpd[2];
+        const int xorigin = mypeindex[0]*mybpd[0];
+        const int yorigin = mypeindex[1]*mybpd[1];
+        const int zorigin = mypeindex[2]*mybpd[2];
 
-		vector<Region> regions = cube.avail();
+        vector<Region> regions = cube.avail();
 
-		for(typename vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
-		{
+        for(typename vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
+        {
             map<Region, vector<BlockInfo> >::const_iterator r2v = region2infos.find(*it);
 
             if(r2v!=region2infos.end())
@@ -1507,47 +1726,47 @@ public:
 
                 region2infos[*it] = entry;
             }
-		}
+        }
 
-		assert(cube.pendingcount() != 0 || blockinfo_counter == cube.pendingcount());
-		assert(blockinfo_counter != 0 || blockinfo_counter == cube.pendingcount());
-		assert(blockinfo_counter != 0 || recv.pending.size() == 0);
+        assert(cube.pendingcount() != 0 || blockinfo_counter == cube.pendingcount());
+        assert(blockinfo_counter != 0 || blockinfo_counter == cube.pendingcount());
+        assert(blockinfo_counter != 0 || recv.pending.size() == 0);
 
-		return retval;
-	}
+        return retval;
+    }
 
-	vector<BlockInfo> avail(const int smallest)
-	{
-		vector<BlockInfo> accumulator;
+    vector<BlockInfo> avail(const int smallest)
+    {
+        vector<BlockInfo> accumulator;
 
-		while(accumulator.size()<size_t(smallest) && !done())
-		{
-			const vector<BlockInfo> r = avail();
+        while(accumulator.size()<size_t(smallest) && !done())
+        {
+            const vector<BlockInfo> r = avail();
 
-			accumulator.insert(accumulator.end(), r.begin(), r.end());
-		}
+            accumulator.insert(accumulator.end(), r.begin(), r.end());
+        }
 
-		return accumulator;
-	}
+        return accumulator;
+    }
 
-	bool done() const
-	{
-		assert(!(blockinfo_counter == 0) || recv.pending.size() == 0);
+    bool done() const
+    {
+        assert(!(blockinfo_counter == 0) || recv.pending.size() == 0);
 
-		return blockinfo_counter == 0;
-	}
+        return blockinfo_counter == 0;
+    }
 
-	StencilInfo getstencil() const
-	{
-		return stencil;
-	}
+    StencilInfo getstencil() const
+    {
+        return stencil;
+    }
 
-	void getpedata(int mypeindex[3], int pesize[3], int mybpd[3]) const
-	{
-		for(int i=0; i<3; ++i) mypeindex[i] = this->mypeindex[i];
-		for(int i=0; i<3; ++i) pesize[i] = this->pesize[i];
-		for(int i=0; i<3; ++i) mybpd[i] = this->mybpd[i];
-	}
+    void getpedata(int mypeindex[3], int pesize[3], int mybpd[3]) const
+    {
+        for(int i=0; i<3; ++i) mypeindex[i] = this->mypeindex[i];
+        for(int i=0; i<3; ++i) pesize[i] = this->pesize[i];
+        for(int i=0; i<3; ++i) mybpd[i] = this->mybpd[i];
+    }
 
 class MyRange
 {
@@ -1572,30 +1791,156 @@ class MyRange
   }
 };
 
-	void fetch(const Real * const ptrBlock, Real * const ptrLab, const int x0, const int y0, const int z0,
-		   const int xsize, const int ysize, const int zsize, const int gptfloats, const int rsx, const int rex, const int rsy, const int rey, const int rsz, const int rez) const
-	{
-	  //build range
-	  MyRange myrange(rsx, rex, rsy, rey, rsz, rez);
+void fetch_soa(const Real *const ptrBlock,
+               Real *const ptrLab,
+               const int Nx,
+               const int Ny,
+               const int Nz) const
+{
+// XXX: [fabianw@mavt.ethz.ch; 2019-10-29] ONLY FOR PERIODIC BLOCK LABS
 
-		//packs
-		{
-			typename map<Real *, vector<PackInfo> >::const_iterator it = recv_packinfos.find(const_cast<Real *>(ptrBlock));
+        // const int rsx = (!xperiodic && info.index[0]==0)? 0 : this->m_stencilStart[0];
+        // const int rex = (!xperiodic && info.index[0]==gLastX) ? BlockType::sizeX : (BlockType::sizeX+this->m_stencilEnd[0]-1);
+        // const int rsy = (!yperiodic && info.index[1]==0)? 0 : this->m_stencilStart[1];
+        // const int rey = (!yperiodic && info.index[1]==gLastY) ? BlockType::sizeY : (BlockType::sizeY+this->m_stencilEnd[1]-1);
+        // const int rsz = (!zperiodic && info.index[2]==0)? 0 : this->m_stencilStart[2];
+        // const int rez = (!zperiodic && info.index[2]==gLastZ) ? BlockType::sizeZ : (BlockType::sizeZ+this->m_stencilEnd[2]-1);
 
-			if( it!=recv_packinfos.end() )
-			{
-				vector<PackInfo> packs = it->second;
+        // refSynchronizerMPI->fetch((const Real *)info.ptrBlock,
+        //                           dst,
+        //                           this->m_stencilStart[0], x0
+        //                           this->m_stencilStart[1], y0
+        //                           this->m_stencilStart[2], z0
+        //                           this->m_cacheBlock->getSize()[0], xsize
+        //                           this->m_cacheBlock->getSize()[1], ysize
+        //                           this->m_cacheBlock->getSize()[2], zsize
+        //                           sizeof(ET) / sizeof(Real),
+        //                           rsx,
+        //                           rex,
+        //                           rsy,
+        //                           rey,
+        //                           rsz,
+        //                           rez);
 
-				//assert(!stencil.tensorial || packs.size() <= 7 || mybpd[0]*mybpd[1]*mybpd[2] == 1);
-				//assert(stencil.tensorial || packs.size()<=3 || mybpd[0]*mybpd[1]*mybpd[2] == 1);
+    const int ss[3] = {stencil.sx, stencil.sy, stencil.sz};
+    const int se[3] = {stencil.ex, stencil.ey, stencil.ez};
+    const int rsx = ss[0];
+    const int rex = blocksize[0] + se[0] - 1;
+    const int rsy = ss[1];
+    const int rey = blocksize[1] + se[1] - 1;
+    const int rsz = ss[2];
+    const int rez = blocksize[2] + se[2] - 1;
+    // build range
+    MyRange myrange(rsx, rex, rsy, rey, rsz, rez);
 
-				for(typename vector<PackInfo>::const_iterator itpack=packs.begin(); itpack!=packs.end(); ++itpack)
-				{
-				  MyRange packrange(itpack->sx, itpack->ex, itpack->sy, itpack->ey, itpack->sz, itpack->ez);
+    // packs
+    {
+        typename map<Real *, vector<PackInfo>>::const_iterator it =
+            recv_packinfos.find(const_cast<Real *>(ptrBlock));
 
-				  if (myrange.outside(packrange)) continue;
+        if (it != recv_packinfos.end()) {
+            vector<PackInfo> packs = it->second;
 
-					const int nsrc = (itpack->ex-itpack->sx)*(itpack->ey-itpack->sy)*(itpack->ez-itpack->sz);
+            for (typename vector<PackInfo>::const_iterator itpack =
+                     packs.begin();
+                 itpack != packs.end();
+                 ++itpack) {
+                MyRange packrange(itpack->sx,
+                                  itpack->ex,
+                                  itpack->sy,
+                                  itpack->ey,
+                                  itpack->sz,
+                                  itpack->ez);
+
+                if (myrange.outside(packrange))
+                    continue;
+
+                const int nsrc = (itpack->ex - itpack->sx) *
+                                 (itpack->ey - itpack->sy) *
+                                 (itpack->ez - itpack->sz);
+
+                PUPkernelsMPI::unpack_soa(itpack->pack,
+                                      ptrLab,
+                                      itpack->sx - ss[0],
+                                      itpack->sy - ss[1],
+                                      itpack->sz - ss[2],
+                                      itpack->ex - ss[0],
+                                      itpack->ey - ss[1],
+                                      itpack->ez - ss[2],
+                                      Nx,
+                                      Ny);
+            }
+        }
+    }
+
+    // subregions inside packs
+    if (stencil.tensorial) {
+        typename map<Real *, vector<SubpackInfo>>::const_iterator it =
+            recv_subpackinfos.find(const_cast<Real *>(ptrBlock));
+
+        assert(stencil.tensorial || it == recv_subpackinfos.end());
+
+        if (it != recv_subpackinfos.end()) {
+            vector<SubpackInfo> subpacks = it->second;
+
+            for (typename vector<SubpackInfo>::const_iterator itsubpack =
+                     subpacks.begin();
+                 itsubpack != subpacks.end();
+                 ++itsubpack) {
+                MyRange packrange(itsubpack->sx,
+                                  itsubpack->ex,
+                                  itsubpack->sy,
+                                  itsubpack->ey,
+                                  itsubpack->sz,
+                                  itsubpack->ez);
+
+                if (myrange.outside(packrange))
+                    continue;
+
+                PUPkernelsMPI::unpack_subregion_soa(itsubpack->pack,
+                                                ptrLab,
+                                                itsubpack->x0,
+                                                itsubpack->y0,
+                                                itsubpack->z0,
+                                                itsubpack->xpacklenght,
+                                                itsubpack->ypacklenght,
+                                                itsubpack->sx - ss[0],
+                                                itsubpack->sy - ss[1],
+                                                itsubpack->sz - ss[2],
+                                                itsubpack->ex - ss[0],
+                                                itsubpack->ey - ss[1],
+                                                itsubpack->ez - ss[2],
+                                                Nx,
+                                                Ny);
+            }
+        }
+    }
+    }
+
+    void fetch(const Real * const ptrBlock, Real * const ptrLab, const int x0, const int y0, const int z0,
+           const int xsize, const int ysize, const int zsize, const int gptfloats, const int rsx, const int rex, const int rsy, const int rey, const int rsz, const int rez) const
+    {
+      //build range
+      MyRange myrange(rsx, rex, rsy, rey, rsz, rez);
+
+        //packs
+        {
+            typename map<Real *, vector<PackInfo> >::const_iterator it = recv_packinfos.find(const_cast<Real *>(ptrBlock));
+
+            if( it!=recv_packinfos.end() )
+            {
+                vector<PackInfo> packs = it->second;
+
+                //assert(!stencil.tensorial || packs.size() <= 7 || mybpd[0]*mybpd[1]*mybpd[2] == 1);
+                //assert(stencil.tensorial || packs.size()<=3 || mybpd[0]*mybpd[1]*mybpd[2] == 1);
+
+                for(typename vector<PackInfo>::const_iterator itpack=packs.begin(); itpack!=packs.end(); ++itpack)
+                {
+                  MyRange packrange(itpack->sx, itpack->ex, itpack->sy, itpack->ey, itpack->sz, itpack->ez);
+
+                  if (myrange.outside(packrange)) continue;
+
+                    const int nsrc = (itpack->ex-itpack->sx)*(itpack->ey-itpack->sy)*(itpack->ez-itpack->sz);
 
                     PUPkernelsMPI::unpack(itpack->pack,
                                           ptrLab,
@@ -1613,27 +1958,27 @@ class MyRange
                                           ysize,
                                           zsize);
                 }
-			}
-		}
+            }
+        }
 
-		//subregions inside packs
-		if (stencil.tensorial)
-		{
-			typename map<Real *, vector<SubpackInfo> >::const_iterator it = recv_subpackinfos.find(const_cast<Real *>(ptrBlock));
+        //subregions inside packs
+        if (stencil.tensorial)
+        {
+            typename map<Real *, vector<SubpackInfo> >::const_iterator it = recv_subpackinfos.find(const_cast<Real *>(ptrBlock));
 
-			assert(stencil.tensorial || it==recv_subpackinfos.end());
+            assert(stencil.tensorial || it==recv_subpackinfos.end());
 
-			if( it!=recv_subpackinfos.end() )
-			{
-				vector<SubpackInfo> subpacks = it->second;
+            if( it!=recv_subpackinfos.end() )
+            {
+                vector<SubpackInfo> subpacks = it->second;
 
-			//	assert(subpacks.size()<=12+8);
+            //  assert(subpacks.size()<=12+8);
 
-				for(typename vector<SubpackInfo>::const_iterator itsubpack=subpacks.begin(); itsubpack!=subpacks.end(); ++itsubpack)
-				  {
-				    MyRange packrange(itsubpack->sx, itsubpack->ex, itsubpack->sy, itsubpack->ey, itsubpack->sz, itsubpack->ez);
+                for(typename vector<SubpackInfo>::const_iterator itsubpack=subpacks.begin(); itsubpack!=subpacks.end(); ++itsubpack)
+                  {
+                    MyRange packrange(itsubpack->sx, itsubpack->ex, itsubpack->sy, itsubpack->ey, itsubpack->sz, itsubpack->ez);
 
-				    if (myrange.outside(packrange)) continue;
+                    if (myrange.outside(packrange)) continue;
 
                     PUPkernelsMPI::unpack_subregion(
                         itsubpack->pack,
@@ -1656,7 +2001,7 @@ class MyRange
                         ysize,
                         zsize);
                   }
-			}
-		}
-	}
+            }
+        }
+    }
 };
