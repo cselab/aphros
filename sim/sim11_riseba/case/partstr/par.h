@@ -1,4 +1,4 @@
-#define GA 1000
+#define GA 200
 #define EO 20
 
 #define RHO1 (1.)

@@ -3,4 +3,5 @@ for ps in 0 1 ; do
   ./runcase nx=256 np=128 partstr=$ps
   ./runcase nx=512 np=128 partstr=$ps
   ./runcase nx=512 np=128 partstr=$ps suff=_tol4
+  ./runcase nx=512 np=128 partstr=$ps suff=_ga200
 done

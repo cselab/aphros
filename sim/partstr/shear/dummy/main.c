@@ -63,11 +63,11 @@ int main() {
 
   size(EXTENT);
 
-  rho1 = RHO2; 
-  rho2 = RHO1; 
+  rho1 = RHO2;
+  rho2 = RHO1;
 
   mu1 = MU2;
-  mu2 = MU1, 
+  mu2 = MU1;
 
   f.sigma = SIGMA;
 
@@ -75,10 +75,10 @@ int main() {
 }
 
 event init (i = 0) {
-  foreach() {
-    u.x[] = VEL;
-
   fraction(f, ifr3(x, y, z));
+  foreach() {
+    u.x[] = (VEL) * (1. - f[]);
+  }
 }
 
 
@@ -86,8 +86,8 @@ event out (t += DUMPDT ; t <= TMAX) {
 #if !NOIO
   static int frame = 0;
   char name[1000];
-  //scalar * a = {u, p, f};
-  scalar * a = {f};
+  scalar * a = {u, f};
+  //scalar * a = {f};
   sprintf(name, "%%s_%04d", frame);
   bah5_list(a, name);
   ++frame;

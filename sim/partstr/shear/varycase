@@ -1,6 +1,6 @@
+#rm -rf nx???_partstr?
+export suff=_r025
 for ps in 0 1 ; do
   ./runcase nx=128 np=128 partstr=$ps
   ./runcase nx=256 np=128 partstr=$ps
-  ./runcase nx=512 np=128 partstr=$ps
-  ./runcase nx=512 np=128 partstr=$ps suff=_tol4
 done
