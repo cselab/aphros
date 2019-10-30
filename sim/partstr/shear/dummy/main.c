@@ -86,7 +86,7 @@ int main() {
 event init (i = 0) {
   fraction(f, ifr3(x, y, z));
   foreach() {
-    //u.x[] = (Vel(y)) * (1. - f[]);
+    u.x[] = (Vel(y)) * (1. - f[]);
   }
 }
 
