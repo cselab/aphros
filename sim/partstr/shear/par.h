@@ -1,10 +1,10 @@
-#define RE 300
+#define RE 1000
 #define WE 1000
 // RHOr = RHO2 / RHO1
-#define RHOr 20
+#define RHOr 100
 // MUr = MU2 / MU1
-#define MUr 20
-#define SHEAR 0.05
+#define MUr 100
+#define SHEAR 1
 
 // gas
 #define RHO1 (1.)
@@ -14,13 +14,13 @@
 #define BCY 0.5
 #define BCZ 0.5
 #define BR 0.15
-#define BCX (BR*1.5)
+#define BCX (1.)
 #define BD (BR*2.)
 
-#define VELC 1.
+#define VELC 0.
 // characteristic velocity
-#define VEL (VELC)
-//#define VEL (BR/SHEAR)
+//#define VEL (VELC)
+#define VEL (BD/SHEAR)
 
 // RE = RHO2 * VEL * BD / MU2
 // MU2 = RHO2 * VEL * BD / RE
@@ -33,8 +33,8 @@
 #define MU2 (RHO2 * VEL * BD / RE)
 #define MU1 (MU2/MUr)
 
-#define TMAX (10)
-#define DUMPDT (0.1)
+#define TMAX (20)
+#define DUMPDT (0.5)
 
 #ifndef NX
 #define NX 64
