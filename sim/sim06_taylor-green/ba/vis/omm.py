@@ -180,15 +180,14 @@ grad.VorticityArrayName = 'om'
 # setup the visualization in view 'renderView1'
 # ----------------------------------------------------------------
 
-# show data from vf
+# outline
+'''
 vfDisplay = Show(vf, renderView1)
-
-# trace defaults for the display properties.
 vfDisplay.Representation = 'Outline'
 vfDisplay.ColorArrayName = ['CELLS', '']
 vfDisplay.LineWidth = 3.0
 vfDisplay.AmbientColor = [0.0, 0.0, 0.0]
-
+'''
 
 # show data from grad
 gradDisplay = Show(grad, renderView1)
