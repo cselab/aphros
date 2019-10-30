@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -eu
+
+for d in nx* ; do
+  if [ ! -f $d/job.id ] ; then
+    echo "skip $d without job.id"
+    continue
+  fi
+  c="(cd $d && ch.kill)"
+  read -r -p "$c , continue? [Y/n] " re
+  if [ "${re,,}" == "y" ] || [ "$re" == "" ] ; then
+    eval "$c"
+  else
+    echo "skip"
+  fi 
+done

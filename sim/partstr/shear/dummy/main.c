@@ -19,6 +19,8 @@
 #define BRY BR
 #endif
 
+#define EXTENTY (EXTENT * 0.5)
+
 #define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
 
 double ifr3(double x, double y, double z) {
@@ -28,20 +30,15 @@ double ifr3(double x, double y, double z) {
 
 double Vel(double y) {
   double dy = (y - BCY) / (2 * BR);
-  return VEL + SHEAR * dy;
+  return VELC + SHEAR * dy;
 }
 
-u.t[back] = dirichlet(Vel(y));
-u.t[front]  = dirichlet(Vel(y));
-u.t[bottom] = dirichlet(Vel(y));
-u.t[top]  = dirichlet(Vel(y));
-
-// inlet
-u.t[left] = dirichlet(0);
-u.n[left] = dirichlet(Vel(y));
-// outlet
-u.t[right] = neumann(0);
-u.n[right] = neumann(0);
+u.r[bottom] = dirichlet(Vel(y));
+u.t[bottom] = dirichlet(0.);
+u.n[bottom] = dirichlet(0.);
+u.r[top] = dirichlet(Vel(y));
+u.t[top]  = dirichlet(0.);
+u.n[top]  = dirichlet(0.);
 
 #define P(X) { ONROOT fprintf(stderr, #X "=%g\n", (double)X); }
 
@@ -56,6 +53,7 @@ int main() {
   P(DUMPDT)
   P(TMAX)
   P(EXTENT)
+  P(EXTENTY)
   P(WE)
   P(RE)
   P(BCX)
@@ -64,6 +62,10 @@ int main() {
   P(BR)
   P(SHEAR)
   P(VEL)
+  P(VELC)
+
+  periodic(right);
+  periodic(front);
 
   origin(0., 0., 0.);
   MPIDIM
@@ -84,7 +86,7 @@ int main() {
 event init (i = 0) {
   fraction(f, ifr3(x, y, z));
   foreach() {
-    u.x[] = (Vel(y)) * (1. - f[]);
+    //u.x[] = (Vel(y)) * (1. - f[]);
   }
 }
 

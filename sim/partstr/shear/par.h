@@ -1,8 +1,8 @@
 #define RE 50
-#define WE 50
-#define RHOr 20
-#define MUr 1
-#define SHEAR 0.625
+#define WE 20
+#define RHOr 40
+#define MUr 0.5
+#define SHEAR 1.
 
 // gas
 #define RHO1 (1.)
@@ -11,11 +11,12 @@
 
 #define BCY 0.5
 #define BCZ 0.5
-#define BR 0.15
-#define BCX (BR*2)
-#define BD (BR*2)
+#define BR 0.2
+#define BCX (1.)
+#define BD (BR*2.)
 
-#define VEL 1.
+#define VELC 0.
+#define VEL (BD/SHEAR)
 
 // RE = RHO1 * VEL * BD / MU1
 // MU1 = RHO1 * VEL * BD / RE
