@@ -2,6 +2,7 @@
 #define WE 50
 #define RHOr 20
 #define MUr 1
+#define SHEAR 0.625
 
 // gas
 #define RHO1 (1.)
@@ -10,7 +11,7 @@
 
 #define BCY 0.5
 #define BCZ 0.5
-#define BR 0.25
+#define BR 0.15
 #define BCX (BR*2)
 #define BD (BR*2)
 

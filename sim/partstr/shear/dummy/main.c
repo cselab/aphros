@@ -26,14 +26,19 @@ double ifr3(double x, double y, double z) {
   return sq(BR) * (1 - r);
 }
 
-u.t[back] = dirichlet(VEL);
-u.t[front]  = dirichlet(VEL);
-u.t[bottom] = dirichlet(VEL);
-u.t[top]  = dirichlet(VEL);
+double Vel(double y) {
+  double dy = (y - BCY) / (2 * BR);
+  return VEL + SHEAR * dy;
+}
+
+u.t[back] = dirichlet(Vel(y));
+u.t[front]  = dirichlet(Vel(y));
+u.t[bottom] = dirichlet(Vel(y));
+u.t[top]  = dirichlet(Vel(y));
 
 // inlet
 u.t[left] = dirichlet(0);
-u.n[left] = dirichlet(VEL);
+u.n[left] = dirichlet(Vel(y));
 // outlet
 u.t[right] = neumann(0);
 u.n[right] = neumann(0);
@@ -57,6 +62,8 @@ int main() {
   P(BCY)
   P(BCZ)
   P(BR)
+  P(SHEAR)
+  P(VEL)
 
   origin(0., 0., 0.);
   MPIDIM
@@ -77,7 +84,7 @@ int main() {
 event init (i = 0) {
   fraction(f, ifr3(x, y, z));
   foreach() {
-    u.x[] = (VEL) * (1. - f[]);
+    u.x[] = (Vel(y)) * (1. - f[]);
   }
 }
 
