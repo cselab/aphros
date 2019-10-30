@@ -103,7 +103,7 @@ def GetConf(a):
         vm = (we * sig / (bd * rho0)) ** 0.5 
     # viscosity
     if la is not None:
-        mu = (sig * rhom * bd / la) ** 0.5
+        mu = (sig * rhom * bd / la) ** 0.5 if la != 0 else 0
     # velocity
     vel = [x * vm / norm(vel0) for x in vel0]
 
