@@ -97,7 +97,7 @@ renderView1.CameraFocalPoint = \
 renderView1.CameraViewUp = \
 [0.08344488614347896, 0.9691082012240411, -0.23209102804030482]
 renderView1.CameraParallelScale = \
-1.0829242555573562
+0.7
 
 renderView1.CameraParallelProjection = 1
 renderView1.Background = [0.0, 0.0, 0.0]
