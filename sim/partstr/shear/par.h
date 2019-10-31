@@ -39,7 +39,7 @@
 #define MU1 (RHO1 * VEL * BD / RE)
 #define MU2 (MU1*MUr)
 
-#define TMAX (10)
+#define TMAX (20)
 #define DUMPDT (0.1)
 
 #ifndef NX
