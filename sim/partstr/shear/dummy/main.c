@@ -19,13 +19,22 @@
 #define BRY BR
 #endif
 
+#ifndef BRX
+#define BRX BR
+#endif
+
 #define EXTENTY (EXTENT * 0.5)
 
 #define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
 
 double ifr3(double x, double y, double z) {
-  double r = sq((x - BCX) / BR) + sq((y - BCY) / BRY) + sq((z - BCZ) / BRZ);
+  double r = sq((x - BCX) / BRX) + sq((y - BCY) / BRY) + sq((z - BCZ) / BRZ);
   return sq(BR) * (1 - r);
+}
+
+double isin(double x, double y, double z) {
+  double f = sin(x * 2. * pi * SINF / EXTENT) * SINA;
+  return BRY - fabs(BCY + f - y);
 }
 
 double Vel(double y) {
@@ -84,9 +93,11 @@ int main() {
 }
 
 event init (i = 0) {
-  fraction(f, ifr3(x, y, z));
+  //fraction(f, ifr3(x, y, z));
+  fraction(f, isin(x, y, z));
   foreach() {
-    u.x[] = (Vel(y)) * (1. - f[]);
+    //u.x[] = (Vel(y)) * (1. - f[]);
+    u.x[] = Vel(y);
   }
 }
 
