@@ -19,7 +19,7 @@
 #define BCX (1.)
 #define BD (BR*2.)
 
-#define SINA 0.05
+#define SINA 0.1
 #define SINF 1
 #define SINFZ 1
 

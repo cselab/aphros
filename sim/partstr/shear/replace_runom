@@ -6,7 +6,7 @@ p=~/mfer/ch/sim/partstr/shear/dummy/vis
 
 for d in nx* ; do
   echo $d
-  rm -vf $d/vis/{run,c,c.py,*.mp4,*.png}
-  ln -sv $p/c.py $d/vis
+  rm -vf $d/vis/{run,c,c.py,*.mp4,view.py}
+  ln -sv $p/view.py $d/vis
   ln -sv $p/run $d/vis
 done
