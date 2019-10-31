@@ -163,8 +163,14 @@ event logfile (i += 1 ; t <= TMAX) {
 
   double vlmx = 0., vlmy = 0., vlmz = 0.;
   double vl2x = 0., vl2y = 0., vl2z = 0.;
+#ifdef CURV_PARTSTR
+  int sh = kPartstr.sh, sc = kPartstr.sc;
+#endif
   foreach(reduction(+:vl2x) reduction(+:vl2y) reduction(+:vl2z)
    reduction(max:vlmx) reduction(max:vlmy) reduction(max:vlmz)
+#ifdef CURV_PARTSTR
+   reduction(+:sh) reduction(+:sc)
+#endif
    ) {
     vlmx = fmax(vlmx, fabs(u.x[] - VELX) * f[]);
     vlmy = fmax(vlmy, fabs(u.y[] - VELY) * f[]);
@@ -180,17 +186,23 @@ event logfile (i += 1 ; t <= TMAX) {
 
   if (!f) {
     f = fopen(fn, "w");
-    fprintf(f, "t m2 c2x c2y c2z v2x v2y v2z p0 p1 pd vlmx vlmy vlmz vl2x vl2y vl2z\n");
+    fprintf(f, "t m2 c2x c2y c2z v2x v2y v2z p0 p1 pd");
+    fprintf(f, " vlmx vlmy vlmz vl2x vl2y vl2z");
+#ifdef CURV_PARTSTR
+    fprintf(f, " sh sc");
+#endif
+    fprintf(f, "\n");
   } 
 
   fprintf(f,
-    "%.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f\n",
-    t, sb,
-    xb/sb, yb/sb, zb/sb,
-    vbx/sb, vby/sb, vbz/sb, p0, p1, p1 - p0,
-    vlmx, vlmy, vlmz, 
-    sqrt(vl2x/sb), sqrt(vl2y/sb), sqrt(vl2z/sb)
-    );
+      "%.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f %.20f",
+      t, sb, xb/sb, yb/sb, zb/sb, vbx/sb, vby/sb, vbz/sb, p0, p1, p1 - p0);
+  fprintf(f, " %.20f %.20f %.20f %.20f %.20f %.20f",
+      vlmx, vlmy, vlmz, sqrt(vl2x/sb), sqrt(vl2y/sb), sqrt(vl2z/sb));
+#ifdef CURV_PARTSTR
+  fprintf(f, " %d %d", sh, sc);
+#endif
+  fprintf(f, "\n");
 
   fflush(f);
 }

@@ -32,6 +32,8 @@ typedef struct {
   double eta;   // relaxation factor
   bool csv;     // dump csv particles and attraction points
   bool dumpit;  // dump the number of iterations and difference
+  int sh;       // number of cells with height functions
+  int sc;       // number of cells with particles
 } Partstr;
 
 const int kMaxSection = 125 * 2; // maximum number of endpoints
@@ -898,6 +900,8 @@ cstats curvature_partstr(struct Curvature p)
   foreach_end
   boundary ({kappa});
 
+  kPartstr.sh = sh;
+  kPartstr.sc = sc;
   return (cstats){sh, sf, sa, sc};
 }
 
