@@ -4,7 +4,7 @@
 #define RHOr 0.01
 // MUr = MU2 / MU1
 #define MUr 0.01
-#define SHEAR 1
+#define SHEAR 0.2
 
 // liquid
 #define RHO1 (1.)
@@ -19,8 +19,9 @@
 #define BCX (1.)
 #define BD (BR*2.)
 
-#define SINA 0.01
+#define SINA 0.05
 #define SINF 1
+#define SINFZ 1
 
 #define VELC 0.
 // characteristic velocity
@@ -34,12 +35,12 @@
 
 #define EXTENT 2
 #define SQR(a) ((a)*(a))
-#define SIGMA (RHO2 * SQR(VEL) * BD / WE)
-#define MU1 (RHO2 * VEL * BD / RE)
-#define MU2 (MU1/MUr)
+#define SIGMA (RHO1 * SQR(VEL) * BD / WE)
+#define MU1 (RHO1 * VEL * BD / RE)
+#define MU2 (MU1*MUr)
 
 #define TMAX (10)
-#define DUMPDT (0.5)
+#define DUMPDT (0.1)
 
 #ifndef NX
 #define NX 64

@@ -34,7 +34,8 @@ double ifr3(double x, double y, double z) {
 
 double isin(double x, double y, double z) {
   double f = sin(x * 2. * pi * SINF / EXTENT) * SINA;
-  return BRY - fabs(BCY + f - y);
+  double fz = sin(z * 2. * pi * SINFZ);
+  return BRY - fabs(BCY + f * fz - y);
 }
 
 double Vel(double y) {

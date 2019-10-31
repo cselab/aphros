@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -eu
+
+for d in nx* ; do
+  fu="$d/f_0000.xmf"
+  if [ ! -f "$fu" ] ; then
+    echo "skip non existing $fu"
+    continue
+  fi
+  f=$d/vis/a.mp4
+  if [ -f "$f" ] ; then
+    echo "skip existing $f"
+    continue
+  fi
+  c="(cd $d/vis && ./run || true)"
+  echo "$c"
+  eval "$c"
+done

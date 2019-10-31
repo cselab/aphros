@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -eu
+
+for d in nx* ; do
+  echo $d
+  c="rm -vf $d/vis/{*.mp4,*.png}"
+  read -r -p "$c , continue? [Y/n] " re
+  if [ "${re,,}" == "y" ] || [ "$re" == "" ] ; then
+    eval "$c"
+  else
+    echo "skip"
+  fi 
+done

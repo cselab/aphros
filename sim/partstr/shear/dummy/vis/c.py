@@ -85,19 +85,20 @@ materialLibrary1 = GetMaterialLibrary()
 
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
-renderView1.ViewSize = [1000, 2000]
+renderView1.ViewSize = [2000, 1000]
 renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.OrientationAxesVisibility = 0
 renderView1.CenterOfRotation = [0.5, 2, 0.5]
 renderView1.StereoType = 0
 renderView1.CameraPosition = \
-[1, 0.5, -4.232050807568878]
+[-0.31911817809612014, 1.4238701728958323, 3.854709241293323]
 renderView1.CameraFocalPoint = \
-[1, 0.5, 0.5]
+[0.9775380203162625, 0.5214498310497533, 0.55279950414658]
 renderView1.CameraViewUp = \
-[1.0, 0.0, 0.0]
+[0.08344488614347896, 0.9691082012240411, -0.23209102804030482]
 renderView1.CameraParallelScale = \
-1
+1.0829242555573562
+
 renderView1.CameraParallelProjection = 1
 renderView1.Background = [0.0, 0.0, 0.0]
 renderView1.AmbientSamples = 10
