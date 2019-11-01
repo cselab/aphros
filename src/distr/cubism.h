@@ -110,6 +110,60 @@ struct GBlk {
   }
 };
 
+template <class Par_, size_t SX_, size_t SY_, size_t SZ_, size_t Halo_>
+struct GFieldViewRaw {
+    using Par = Par_;
+    using Scal = typename Par::Scal;
+    static const size_t bx = Par::bx;
+    static const size_t by = Par::by;
+    static const size_t bz = Par::bz;
+
+    static const size_t stridex = SX_;
+    static const size_t stridey = SY_;
+    static const size_t stridez = SZ_;
+    static const size_t halo =
+        Halo_; // assumes # of halos is the same in all dimensions
+
+    // required by Cubism
+    static const int sizeX = bx;
+    static const int sizeY = by;
+    static const int sizeZ = bz;
+
+    using Elem = Scal;
+    using ElementType = Elem;
+    using element_type = Elem;
+
+    GFieldViewRaw() = delete;
+    GFieldViewRaw(Elem *const base)
+        : data(base + Halo_ + Halo_ * stridex + Halo_ * stridex * stridey),
+          data_halo(base)
+    {
+    }
+
+    // SoA field
+    Elem *const data;      // block data
+    Elem *const data_halo; // block data including halos
+
+    inline Elem &operator()(int x, int y = 0, int z = 0)
+    {
+        assert(data != nullptr);
+        assert(0 <= x && x < (int)bx);
+        assert(0 <= y && y < (int)by);
+        assert(0 <= z && z < (int)bz);
+
+        return data[x + stridex * (y + stridey * z)];
+    }
+
+    inline Elem &LinAccess(int x, int y = 0, int z = 0)
+    {
+        assert(data_halo != nullptr);
+        assert(0 <= x && x < (int)stridex);
+        assert(0 <= y && y < (int)stridey);
+        assert(0 <= z && z < (int)stridez);
+
+        return data_halo[x + stridex * (y + stridey * z)];
+    }
+};
 
 // Par - instance of GPar
 template<class Par, template<typename X> class A=std::allocator>

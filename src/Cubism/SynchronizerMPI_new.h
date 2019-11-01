@@ -39,13 +39,6 @@ class SynchronizerMPI
         }
     };
 
-public:
-    struct FieldInfo {
-        void* data_inner; // start address of inner block domain
-        void* data_outer; // start address of outer block domain (incl. halo)
-    };
-
-private:
     struct PackInfo { Real * block, * pack; int sx, sy, sz, ex, ey, ez; };
     struct SubpackInfo { Real * block, * pack; int sx, sy, sz, ex, ey, ez; int x0, y0, z0, xpacklenght, ypacklenght; };
 
@@ -108,14 +101,15 @@ private:
         return neighborsrank[indx_final[2]+1-mypeindex[2]][indx_final[1]+1-mypeindex[1]][indx_final[0]+1-mypeindex[0]];
     }
 
-    template <bool computesubregions, bool alloc=false>
-    map<Real *, vector<SubpackInfo>> _setup(CommData &data,
-                                            const int thickness[3][2],
-                                            const int blockstart[3],
-                                            const int blockend[3],
-                                            const int origin[3],
-                                            std::vector<std::vector<FieldInfo>>& fields,
-                                            vector<PackInfo> &packinfos)
+    template <bool computesubregions, bool alloc = false, typename TView>
+    map<Real *, vector<SubpackInfo>>
+    _setup(CommData &data,
+           const int thickness[3][2],
+           const int blockstart[3],
+           const int blockend[3],
+           const int origin[3],
+           std::vector<std::vector<TView>> &fields,
+           vector<PackInfo> &packinfos)
     {
         map<Real *, vector<SubpackInfo> > retval;
 
@@ -123,7 +117,7 @@ private:
         assert(static_cast<size_t>(NC) <= max_comp);
         assert(fields.size() <= static_cast<size_t>(NC));
 
-        // std::vector<FieldInfo>* fields_[max_comp] = {NULL};
+        // std::vector<TView>* fields_[max_comp] = {NULL};
         // for (size_t comp = 0; comp < fields.size(); ++comp) {
         //     fields_[comp] = &fields[comp];
         // }
@@ -187,7 +181,7 @@ private:
 
                         for (size_t comp = 0; comp < fields.size(); ++comp) {
                             PackInfo info = {
-                                (Real *)fields[comp][blockid].data_inner,
+                                (Real *)fields[comp][blockid].data,
                                 data.faces[d][s] + NFACEBLOCK * (a + n1 * b) +
                                     comp * NFACEBLOCK_COMP,
                                 start[0],
@@ -262,7 +256,7 @@ private:
 
                         for (size_t comp = 0; comp < fields.size(); ++comp) {
                             PackInfo info = {
-                                (Real *)fields[comp][blockid].data_inner,
+                                (Real *)fields[comp][blockid].data,
                                 data.edges[d][b][a] + NEDGEBLOCK * c +
                                     comp * NEDGEBLOCK_COMP,
                                 start[0],
@@ -337,7 +331,7 @@ private:
                             // adjustment
                             for (size_t comp = 0; comp < fields.size(); ++comp) {
 
-                                Real * const ptrBlock = (Real*)fields[comp][blockID].data_inner;
+                                Real * const ptrBlock = (Real*)fields[comp][blockID].data;
 
                                 for(int dedge=0; dedge<3; ++dedge) //iterate over edges
                                 {
@@ -564,7 +558,7 @@ private:
                             const int blockID = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
                             for (size_t comp = 0; comp < fields.size(); ++comp) {
-                                Real * const ptrBlock = (Real*)fields[comp][blockID].data_inner;
+                                Real * const ptrBlock = (Real*)fields[comp][blockID].data;
 
                                 for(int z=0; z<2; ++z) //iterate over corners
                                     for(int y=0; y<2; ++y)
@@ -696,7 +690,7 @@ private:
 
                     for (size_t comp = 0; comp < fields.size(); ++comp) {
                         PackInfo info = {
-                            (Real *)fields[comp][blockid].data_inner,
+                            (Real *)fields[comp][blockid].data,
                             data.corners[z][y][x] + comp * NCORNERBLOCK_COMP,
                             start[0],
                             start[1],
@@ -796,7 +790,8 @@ public:
         send_thickness[2][0] = e[2] - 1;  send_thickness[2][1] = -s[2];
 
         // allocate memory
-        std::vector<std::vector<FieldInfo>> fields_empty(0);
+        struct Dummy { void *data; };
+        std::vector<std::vector<Dummy>> fields_empty(0);
         _setup<false, true>(send, send_thickness, z, blocksize, origin, fields_empty, send_packinfos);
 
         recv_thickness[0][0] = -s[0]; recv_thickness[0][1] = e[0] - 1;
@@ -833,10 +828,8 @@ public:
             _myfree(all_mallocs[i]);
     }
 
-    void sync(std::vector<std::vector<FieldInfo>> &fields,
-              const size_t Nx,
-              const size_t Ny,
-              const size_t Nz,
+    template <typename TView>
+    void sync(std::vector<std::vector<TView>> &fields,
               MPI_Datatype MPIREAL,
               const int timestamp)
     {
@@ -845,6 +838,10 @@ public:
         // 2. pack all stuff
         // 3. perform send/receive requests
         // 4. setup the dependency
+
+        const size_t Nx = TView::stridex;
+        const size_t Ny = TView::stridey;
+        const size_t Nz = TView::stridez;
 
         //0.
         {
@@ -1077,12 +1074,8 @@ public:
         MPI_Waitall(NPENDINGRECVS, &pending.front(), MPI_STATUSES_IGNORE);
 
         for (auto& f : fields) {
-            for (auto finfo : f) {
-                fetch_soa((Real *)finfo.data_inner,
-                          (Real *)finfo.data_outer,
-                          Nx,
-                          Ny,
-                          Nz);
+            for (auto fview : f) {
+                fetch_soa(fview);
             }
         }
 
@@ -1791,36 +1784,43 @@ class MyRange
   }
 };
 
-void fetch_soa(const Real *const ptrBlock,
-               Real *const ptrLab,
-               const int Nx,
-               const int Ny,
-               const int Nz) const
+template <typename TView>
+void fetch_soa(TView &fv) const
 {
-// XXX: [fabianw@mavt.ethz.ch; 2019-10-29] ONLY FOR PERIODIC BLOCK LABS
+    // XXX: [fabianw@mavt.ethz.ch; 2019-10-29] ONLY FOR PERIODIC BLOCK LABS
 
-        // const int rsx = (!xperiodic && info.index[0]==0)? 0 : this->m_stencilStart[0];
-        // const int rex = (!xperiodic && info.index[0]==gLastX) ? BlockType::sizeX : (BlockType::sizeX+this->m_stencilEnd[0]-1);
-        // const int rsy = (!yperiodic && info.index[1]==0)? 0 : this->m_stencilStart[1];
-        // const int rey = (!yperiodic && info.index[1]==gLastY) ? BlockType::sizeY : (BlockType::sizeY+this->m_stencilEnd[1]-1);
-        // const int rsz = (!zperiodic && info.index[2]==0)? 0 : this->m_stencilStart[2];
-        // const int rez = (!zperiodic && info.index[2]==gLastZ) ? BlockType::sizeZ : (BlockType::sizeZ+this->m_stencilEnd[2]-1);
+    // const int rsx = (!xperiodic && info.index[0]==0)? 0 :
+    // this->m_stencilStart[0]; const int rex = (!xperiodic &&
+    // info.index[0]==gLastX) ? BlockType::sizeX :
+    // (BlockType::sizeX+this->m_stencilEnd[0]-1); const int rsy = (!yperiodic
+    // && info.index[1]==0)? 0 : this->m_stencilStart[1]; const int rey =
+    // (!yperiodic && info.index[1]==gLastY) ? BlockType::sizeY :
+    // (BlockType::sizeY+this->m_stencilEnd[1]-1); const int rsz = (!zperiodic
+    // && info.index[2]==0)? 0 : this->m_stencilStart[2]; const int rez =
+    // (!zperiodic && info.index[2]==gLastZ) ? BlockType::sizeZ :
+    // (BlockType::sizeZ+this->m_stencilEnd[2]-1);
 
-        // refSynchronizerMPI->fetch((const Real *)info.ptrBlock,
-        //                           dst,
-        //                           this->m_stencilStart[0], x0
-        //                           this->m_stencilStart[1], y0
-        //                           this->m_stencilStart[2], z0
-        //                           this->m_cacheBlock->getSize()[0], xsize
-        //                           this->m_cacheBlock->getSize()[1], ysize
-        //                           this->m_cacheBlock->getSize()[2], zsize
-        //                           sizeof(ET) / sizeof(Real),
-        //                           rsx,
-        //                           rex,
-        //                           rsy,
-        //                           rey,
-        //                           rsz,
-        //                           rez);
+    // refSynchronizerMPI->fetch((const Real *)info.ptrBlock,
+    //                           dst,
+    //                           this->m_stencilStart[0], x0
+    //                           this->m_stencilStart[1], y0
+    //                           this->m_stencilStart[2], z0
+    //                           this->m_cacheBlock->getSize()[0], xsize
+    //                           this->m_cacheBlock->getSize()[1], ysize
+    //                           this->m_cacheBlock->getSize()[2], zsize
+    //                           sizeof(ET) / sizeof(Real),
+    //                           rsx,
+    //                           rex,
+    //                           rsy,
+    //                           rey,
+    //                           rsz,
+    //                           rez);
+
+    const Real *const ptrBlock = fv.data;
+    Real *const ptrLab = fv.data_halo;
+    const size_t Nx = TView::stridex;
+    const size_t Ny = TView::stridey;
+    const size_t Nz = TView::stridez;
 
     const int ss[3] = {stencil.sx, stencil.sy, stencil.sz};
     const int se[3] = {stencil.ex, stencil.ey, stencil.ez};
@@ -1915,7 +1915,7 @@ void fetch_soa(const Real *const ptrBlock,
             }
         }
     }
-    }
+}
 
     void fetch(const Real * const ptrBlock, Real * const ptrLab, const int x0, const int y0, const int z0,
            const int xsize, const int ysize, const int zsize, const int gptfloats, const int rsx, const int rex, const int rsy, const int rey, const int rsz, const int rez) const
