@@ -8,7 +8,7 @@
  */
 #pragma once
 
-// #define _SOA_SYNCH_
+#define _SOA_SYNCH_
 
 #include <vector>
 #include <map>
@@ -29,9 +29,6 @@ class GridMPI : public TGrid
   using Block = typename TGrid::Block;
   using Synch = SynchronizerMPI<Block::bx, Block::by, Block::bz>;
 	friend Synch;
-#ifdef _SOA_SYNCH_
-    using FieldInfo = typename Synch::FieldInfo;
-#endif /* _SOA_SYNCH_ */
 
 private:
 	size_t timestamp;
@@ -293,13 +290,9 @@ public:
 		return *queryresult;
 	}
 #else
-	template<typename Processing>
-    Synch &sync(Processing &p,
-                std::vector<std::vector<FieldInfo>> &fields,
-                const size_t Nx,
-                const size_t Ny,
-                const size_t Nz)
-	{
+    template <typename Processing, typename TView>
+    Synch &sync(Processing &p, std::vector<std::vector<TView>> &fields)
+    {
 		const StencilInfo stencil = p.stencil;
 		assert(stencil.isvalid());
 
@@ -317,9 +310,6 @@ public:
 
     // perform communication
         queryresult->sync(fields,
-                          Nx,
-                          Ny,
-                          Nz,
                           sizeof(Real) > 4 ? MPI_DOUBLE : MPI_FLOAT,
                           timestamp);
 
