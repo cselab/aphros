@@ -138,7 +138,7 @@ event statout (i += 10 ; t <= TMAX) {
   ONROOT fprintf(stderr, "step i=%05d t=%g dt=%g \n", i, t ,dt);
 }
 
-event logfile (i += 1 ; t <= TMAX) {
+event logfile (i += 1 ; t <= TMAX * 1.2) {
   double xb = 0., yb = 0., zb = 0., sb = 0.;
   double vbx = 0., vby = 0., vbz = 0.;
   double p0 = 1e10, p1 = -1e10;

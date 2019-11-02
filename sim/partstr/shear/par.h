@@ -1,10 +1,11 @@
-#define RE 100
-#define WE 1
+#define RE 80
+#define WE 0.64
+// velocity difference over layer
+#define SHEAR 0.2
 // RHOr = RHO2 / RHO1
 #define RHOr 0.01
 // MUr = MU2 / MU1
 #define MUr 0.01
-#define SHEAR 0.2
 
 // liquid
 #define RHO1 (1.)
@@ -26,7 +27,7 @@
 #define VELC 0.
 // characteristic velocity
 //#define VEL (VELC)
-#define VEL (BD/SHEAR)
+#define VEL (SHEAR)
 
 // RE = RHO1 * VEL * BD / MU2
 // MU2 = RHO1 * VEL * BD / RE
@@ -38,6 +39,7 @@
 #define SIGMA (RHO1 * SQR(VEL) * BD / WE)
 #define MU1 (RHO1 * VEL * BD / RE)
 #define MU2 (MU1*MUr)
+
 
 #define TMAX (20)
 #define DUMPDT (0.1)
