@@ -3,7 +3,7 @@
 set -eu
 
 rm -f k*.{dat,iter}
-for n in 3 5 7 9 11 13 15 ; do
+for n in `seq 3 2 50` ; do
     o=k`printf %03d "$n"`.dat
     oi=k`printf %03d "$n"`.iter
     np=$n
