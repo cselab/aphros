@@ -175,6 +175,10 @@ static double Norm(coord a) {
   return sqrt(Sqnorm(a));
 }
 
+static double Norm1(coord a) {
+  return fabs(a.x) + fabs(a.y) + abs(a.z);
+}
+
 static double NormMax(coord a) {
   double r = fabs(a.x);
   if (fabs(a.y) > r) { r = fabs(a.y); }
@@ -565,39 +569,44 @@ static void Section3(Point point, scalar c, vector nn, Trans w,
   foreach_neighbor(2)
   {
     if (c[CELLIDX] > 0. && c[CELLIDX] < 1.) {
-      coord m = {nn.x[CELLIDX], nn.y[CELLIDX], nn.z[CELLIDX]};
-      double alpha = plane_alpha(c[CELLIDX], m);
-      coord pp[kMaxFacet];
-      int nf = Facets(m, alpha, pp);
-      coord rn = {x,y,z};
-      assert(nf <= kMaxFacet);
       int q = 0;  // number of intersections found
+      coord rn = {x,y,z};
 
-      for (int i = 0; i < nf && q < 2; ++i) {
-        int ib = (i + 1) % nf;
-        coord p = Add(rn, Mul(pp[i], Delta));
-        coord pb = Add(rn, Mul(pp[ib], Delta));
-        coord l = GlbToLoc(p, w);
-        coord lb = GlbToLoc(pb, w);
+      // skip if cell does not intersect plane
+      // TODO: why 0.7 (or 0.645)
+      if (fabs(Dot(w.n, Sub(w.o, rn))) < Delta*0.7) {
+        coord m = {nn.x[CELLIDX], nn.y[CELLIDX], nn.z[CELLIDX]};
+        double alpha = plane_alpha(c[CELLIDX], m);
+        coord pp[kMaxFacet];
+        int nf = Facets(m, alpha, pp);
+        assert(nf <= kMaxFacet);
 
-        // intersection with l.z=0:
-        //   0 = l.z * s + lb.z * (1 - s)
-        if (l.z * lb.z < 0) { // line crosses the plane
-          double s = lb.z / (lb.z - l.z);
-          ll[*nl + q].x = l.x * s + lb.x * (1 - s);
-          ll[*nl + q].y = l.y * s + lb.y * (1 - s);
-          ll[*nl + q].z = 0.;
-          if (++q == 2) {
-            coord dl = Sub(ll[*nl + 1], ll[*nl]);
-            double mt = Dot(w.t, m);
-            double mn = Dot(w.n, m);
-            double dt = dl.x;
-            double dn = dl.y;
-            if (Cross3(Coord(mt, mn, 0), Coord(dt, dn, 0)) > 0) {
-              Swap(&ll[*nl], &ll[*nl + 1]);
-            }
-            if (Sqnorm(dl) > 0) {
-              *nl += 2;
+        for (int i = 0; i < nf && q < 2; ++i) {
+          int ib = (i + 1) % nf;
+          coord p = Add(rn, Mul(pp[i], Delta));
+          coord pb = Add(rn, Mul(pp[ib], Delta));
+          coord l = GlbToLoc(p, w);
+          coord lb = GlbToLoc(pb, w);
+
+          // intersection with l.z=0:
+          //   0 = l.z * s + lb.z * (1 - s)
+          if (l.z * lb.z < 0) { // line crosses the plane
+            double s = lb.z / (lb.z - l.z);
+            ll[*nl + q].x = l.x * s + lb.x * (1 - s);
+            ll[*nl + q].y = l.y * s + lb.y * (1 - s);
+            ll[*nl + q].z = 0.;
+            if (++q == 2) {
+              coord dl = Sub(ll[*nl + 1], ll[*nl]);
+              double mt = Dot(w.t, m);
+              double mn = Dot(w.n, m);
+              double dt = dl.x;
+              double dn = dl.y;
+              if (Cross3(Coord(mt, mn, 0), Coord(dt, dn, 0)) > 0) {
+                Swap(&ll[*nl], &ll[*nl + 1]);
+              }
+              if (Sqnorm(dl) > 0) {
+                *nl += 2;
+              }
             }
           }
         }
@@ -711,7 +720,7 @@ static Trans GetSectionTrans(int s, int Ns, Trans b) {
   return w;
 }
 
-// Mean curvature over multiple cross sections by planes rotates around b.n
+// Mean curvature over multiple cross sections by planes rotated around b.n
 static double GetMeanCurv(Point point, scalar c, vector nn,
                           Trans b, Partstr conf) {
   double ksum = 0;
