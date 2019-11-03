@@ -258,12 +258,15 @@ static void DxDth(coord p, double ph, double th,
   (void) p;
   int c = np / 2;
   xx[c] = Zero();
+  coord ep = Mul(E(ph + 0.5 * th + PI * 0.5), hp);
+  coord em = Mul(E(ph - 0.5 * th + PI * 0.5), hp);
+  coord de = E(th);
   for (int j = 0; j < c; ++j) {
     double jp = j + 0.5;
-    xx[c + j + 1] = Add(xx[c + j],
-                        Mul(E(ph + jp * th + PI * 0.5), hp * jp));
-    xx[c - j - 1] = Add(xx[c - j],
-                        Mul(E(ph - jp * th + PI * 0.5), hp * jp));
+    xx[c + j + 1] = Add(xx[c + j], Mul(ep, jp));
+    xx[c - j - 1] = Add(xx[c - j], Mul(em, jp));
+    ep = Rotate(ep, de);
+    em = Rotatem(em, de);
   }
 }
 
