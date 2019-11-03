@@ -7,22 +7,6 @@
 #define PI 3.14159265358979323846
 #endif
 
-#ifndef POINTXYZ
-#define POINTXYZ
-#endif
-
-#ifndef foreach_end
-#define foreach_end
-#endif
-
-#ifndef foreach_neighbor_end
-#define foreach_neighbor_end
-#endif
-
-#ifndef CELLIDX
-#define CELLIDX
-#endif
-
 typedef struct {
   int Np;       // number of particles per string
   int Ns;       // number of strings (cross sections) per cell
@@ -479,7 +463,6 @@ static int GetNcInter(scalar c) {
       ++nc;
     }
   }
-  foreach_end
   return nc;
 }
 
@@ -523,9 +506,9 @@ static void Section2(Point point, scalar c, vector nn, Trans w,
                     coord* ll, int* nl) {
   foreach_neighbor(2)
   {
-    if (c[CELLIDX] > 0. && c[CELLIDX] < 1.) {
-      coord m = {nn.x[CELLIDX], nn.y[CELLIDX], nn.z[CELLIDX]};
-      double alpha = plane_alpha(c[CELLIDX], m);
+    if (c[] > 0. && c[] < 1.) {
+      coord m = {nn.x[], nn.y[], nn.z[]};
+      double alpha = plane_alpha(c[], m);
       coord pp[kMaxFacet];
       int nf = Facets(m, alpha, pp);
       coord rn = {x,y,z};
@@ -551,7 +534,6 @@ static void Section2(Point point, scalar c, vector nn, Trans w,
       }
     }
   }
-  foreach_neighbor_end
 }
 
 // Cross-section of 3D interface from neighbor cells in plane coordinates.
@@ -568,15 +550,15 @@ static void Section3(Point point, scalar c, vector nn, Trans w,
                     /**/ coord* ll, int* nl) {
   foreach_neighbor(2)
   {
-    if (c[CELLIDX] > 0. && c[CELLIDX] < 1.) {
+    if (c[] > 0. && c[] < 1.) {
       int q = 0;  // number of intersections found
       coord rn = {x,y,z};
 
       // skip if cell does not intersect plane
       // TODO: why 0.7 (or 0.645)
       if (fabs(Dot(w.n, Sub(w.o, rn))) < Delta*0.7) {
-        coord m = {nn.x[CELLIDX], nn.y[CELLIDX], nn.z[CELLIDX]};
-        double alpha = plane_alpha(c[CELLIDX], m);
+        coord m = {nn.x[], nn.y[], nn.z[]};
+        double alpha = plane_alpha(c[], m);
         coord pp[kMaxFacet];
         int nf = Facets(m, alpha, pp);
         assert(nf <= kMaxFacet);
@@ -613,7 +595,6 @@ static void Section3(Point point, scalar c, vector nn, Trans w,
       }
     }
   }
-  foreach_neighbor_end
 }
 
 
@@ -746,7 +727,7 @@ void DumpFacets(scalar c, const char* fn) {
   foreach() {
     if (interfacial (point, c)) {
       coord m = Mycs(point, c);
-      double alpha = plane_alpha (c[CELLIDX], m);
+      double alpha = plane_alpha (c[], m);
       coord p[kMaxFacet];
       int nf = Facets(m, alpha, p);
 
@@ -761,7 +742,6 @@ void DumpFacets(scalar c, const char* fn) {
       ++np;
     }
   }
-  foreach_end
   WriteVtkPoly(fn, xx, nx, pp, np, ss, "comment", true);
 
   free(ss);
@@ -772,13 +752,12 @@ void DumpFacets(scalar c, const char* fn) {
 // Returns transformation to local coordinates at the interface.
 static Trans GetPointTrans(Point point, scalar c, vector nn) {
   Trans b;
-  coord n = {nn.x[CELLIDX], nn.y[CELLIDX], nn.z[CELLIDX]};
-  double alpha = plane_alpha(c[CELLIDX], n);
+  coord n = {nn.x[], nn.y[], nn.z[]};
+  double alpha = plane_alpha(c[], n);
 
   coord o;
   plane_area_center(n, alpha, &o);
   A2(&o);
-  POINTXYZ
   coord rc = {x, y, z};
   o = Add(rc, Mul(o, Delta));
 
@@ -791,11 +770,10 @@ static Trans GetPointTrans(Point point, scalar c, vector nn) {
 static void CalcNormal(scalar c, vector nn) {
   foreach() {
     coord n = Mycs(point, c);
-    nn.x[CELLIDX] = n.x;
-    nn.y[CELLIDX] = n.y;
-    nn.z[CELLIDX] = n.z;
+    nn.x[] = n.x;
+    nn.y[] = n.y;
+    nn.z[] = n.z;
   }
-  foreach_end
 }
 
 // Dumps cross sections of the inteface fragments to vtk.
@@ -841,7 +819,6 @@ void DumpLines(scalar c, vector nn, Partstr conf, const char* fn) {
       }
     }
   }
-  foreach_end
   WriteVtkPoly(fn, xx, nx, pp, np, ss, "lines", false);
 
   free(ss);
@@ -884,29 +861,27 @@ cstats curvature_partstr(struct Curvature p)
 
   foreach(reduction(+:sh) reduction(+:sc)) {
     if (!interfacial (point, c)) {
-      k[CELLIDX] = nodata;
+      k[] = nodata;
 #ifndef PS_nohf
-    } else if ((k[CELLIDX] = height_curvature (point, c, h)) != nodata) {
+    } else if ((k[] = height_curvature (point, c, h)) != nodata) {
       sh++;
 #endif
     } else  {
-      k[CELLIDX] = partstr(point, c, nn);
+      k[] = partstr(point, c, nn);
       sc++;
     }
   }
-  foreach_end
   boundary ({k});
 
   foreach () {
-    double kf = k[CELLIDX];
+    double kf = k[];
     if (kf == nodata)
-      kappa[CELLIDX] = nodata;
+      kappa[] = nodata;
     else if (p.add)
-      kappa[CELLIDX] += sigma*kf;
+      kappa[] += sigma*kf;
     else
-      kappa[CELLIDX] = sigma*kf;
+      kappa[] = sigma*kf;
   }
-  foreach_end
   boundary ({kappa});
 
   kPartstr.sh = sh;
