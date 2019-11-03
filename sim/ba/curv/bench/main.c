@@ -6,17 +6,41 @@
 #include ".u/io/io.h"
 #include ".u/bashape.h"
 
+#define BDAT "b.dat"
+
 #define myassert(EX) (void)((EX) || (__assert (#EX, __FILE__, __LINE__),0))
 
 int main() {
   Shape b;
   init_grid(16);
+
+  scalar vf[];
+  foreach ()  {
+    vf[] = 0;
+  }
+
+#ifdef BDAT
+  const int MAX_SHAPES = 10000;
+  int nb = MAX_SHAPES;
+  Shape bb[MAX_SHAPES];
+  nb = ReadList(BDAT, bb, nb);
+  fprintf(stderr, "Reading %d shapes from %s\n", nb, BDAT);
+  scalar ft[];
+  for (int i = 0; i < nb; ++i) {
+    Shape b = bb[i];
+    CreateField(b, ft);
+    foreach () {
+      vf[] = max(vf[], ft[]);
+    }
+  }
+#else
   FILE* fb = fopen("b.dat", "r");
   b = Read(fb);
   fclose(fb);
   origin (0.,0.,0.);
-  scalar vf[];
   CreateField(b, vf);
+#endif
+
   scalar k[];
 #ifdef CURV_PARTSTR
 #ifdef PS_Np
