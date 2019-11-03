@@ -1,0 +1,3 @@
+for ps in 0 1 ; do
+  ./runcase nx=256 np=512 partstr=$ps
+done

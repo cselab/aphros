@@ -38,7 +38,7 @@ int main() {
   rho2 = RHO1; 
 
   mu1 = MU2;
-  mu2 = MU1, 
+  mu2 = MU1;
 
   f.sigma = SIGMA;
 
