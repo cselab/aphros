@@ -1,4 +1,4 @@
-#define TMAX (2.0)
+#define TMAX (10.0)
 #define DUMPDT (1.0)
 #define SIGMA (0.1)
 #define RHO1 (1.0)
@@ -19,8 +19,7 @@
 //#define MPIDIM dimensions(nx = 4, ny = 4, nz = 4);
 
 #define MPIDIM DT=0.0015;
-
-
+//#define MPIDIM DT=0.003; kPartstr.Np = 5;  kPartstr.Ns = 2; kPartstr.eps = 1e-4;
 
 #ifndef MPIDIM
 #define MPIDIM 
