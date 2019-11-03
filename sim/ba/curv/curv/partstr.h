@@ -88,6 +88,24 @@ static coord E(double ph) {
   return p;
 }
 
+// rotate planar vector e by planar unit vector de
+static coord Rotate(coord e, coord de) {
+  coord p;
+  p.x = e.x * de.x - e.y * de.y;
+  p.y = e.x * de.y + e.y * de.x;
+  p.z = 0;
+  return p;
+}
+
+// rotate planar vector e by planar unit vector de
+static coord Rotatem(coord e, coord de) {
+  coord p;
+  p.x = e.x * de.x + e.y * de.y;
+  p.y = -e.x * de.y + e.y * de.x;
+  p.z = 0;
+  return p;
+}
+
 
 // Third component of cross product.
 static double Cross3(coord a, coord b) {
@@ -223,12 +241,14 @@ static void DxDph(coord p, double ph, double th,
   (void) p;
   int c = np / 2;
   xx[c] = Zero();
+  coord ep = Mul(E(ph + 0.5 * th + PI * 0.5), hp);
+  coord em = Mul(E(ph - 0.5 * th + PI * 0.5), -hp);
+  coord de = E(th);
   for (int j = 0; j < c; ++j) {
-    double jp = j + 0.5;
-    xx[c + j + 1] = Add(xx[c + j],
-                        Mul(E(ph + jp * th + PI * 0.5), hp));
-    xx[c - j - 1] = Add(xx[c - j],
-                        Mul(E(ph - jp * th + PI * 0.5), -hp));
+    xx[c + j + 1] = Add(xx[c + j], ep);
+    xx[c - j - 1] = Add(xx[c - j], em);
+    ep = Rotate(ep, de);
+    em = Rotatem(em, de);
   }
 }
 
