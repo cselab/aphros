@@ -35,3 +35,22 @@
 
 #include "fractions.h"
 #include "curvature.h"
+
+double kCurvTime = 0;
+
+trace
+cstats curvature_notime(struct Curvature p) {
+  return curvature(p);
+}
+
+trace
+cstats curvature_time(struct Curvature p) {
+  double t0 = clock();
+  cstats s = curvature(p);
+  double t1 = clock();
+  kCurvTime += (t1 - t0) / CLOCKS_PER_SEC;
+  return s;
+}
+
+#undef curvature
+#define curvature curvature_time

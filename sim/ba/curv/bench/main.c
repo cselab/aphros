@@ -45,17 +45,16 @@ int main() {
 #endif
   boundary({vf});
 
-  double t0 = clock();
   const int ni = 100;
   volatile double a = 0;
+  cstats s;
   for (int i = 0; i < ni; ++i) {
-    curvature(vf, k);
+    s = curvature(vf, k);
     foreach () {
       a += k[];
       break;
     }
   }
-  double t1 = clock();
-  double dur = (t1 - t0) / CLOCKS_PER_SEC;
-  printf("time elapsed: %g", dur);
+  printf("cstats: h=%d, f=%d, a=%d, c=%d\n", s.h, s.f, s.a, s.c);
+  printf("time elapsed: %g\n", kCurvTime);
 }
