@@ -237,6 +237,7 @@ cstats curvature_learn(struct Curvature p)
 {
   scalar c = p.c, kappa = p.kappa;
   double sigma = p.sigma ? p.sigma : 1.;
+  int sh = 0;
 
 #if TREE
   kappa.refine = kappa.prolongation = curvature_prolongation;
@@ -246,11 +247,12 @@ cstats curvature_learn(struct Curvature p)
   scalar k[];
   scalar_clone (k, kappa);
 
-  foreach() {
+  foreach(reduction(+:sh)) {
     if (!interfacial (point, c)) {
       k[] = nodata;
     } else  {
       k[] = Curv(point, c);
+      ++sh;
     }
   }
 
@@ -268,7 +270,7 @@ cstats curvature_learn(struct Curvature p)
 
   boundary ({kappa});
 
-  return (cstats){0, 0, 0, 0};
+  return (cstats){sh, 0, 0, 0};
 }
 
 trace
