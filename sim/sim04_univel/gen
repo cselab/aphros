@@ -131,7 +131,7 @@ def GetConf(a):
     else: # bubble
         mu0 = mu
 
-    assert we is None or IsClose(we, rho0 * norm(vel) ** 2 * bd / sig)
+    assert we is None or we == 0 or IsClose(we, rho0 * norm(vel) ** 2 * bd / sig)
     assert la is None or la == 0 or IsClose(la, rhom * sig * bd / mu ** 2)
     assert fr is None or IsClose(fr, norm(vel) / (norm(g) * dom) ** 0.5)
     assert ga is None or IsClose(ga, norm(g) * bd ** 3 * rhom ** 2 / mu ** 2)
