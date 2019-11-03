@@ -69,7 +69,11 @@ int main() {
 #endif
   boundary({vf});
 
-  const int ni = 100;
+#ifndef NI
+  #define NI 100
+#endif
+
+  const int ni = NI;
   volatile double a = 0;
   cstats s;
   for (int i = 0; i < ni; ++i) {
@@ -79,6 +83,7 @@ int main() {
       break;
     }
   }
+  int nc = s.h + s.f + s.a + s.c; // number of interfacial cells
   printf("cstats: h=%d, f=%d, a=%d, c=%d\n", s.h, s.f, s.a, s.c);
-  printf("time elapsed: %g\n", kCurvTime);
+  printf("time elapsed: %.3f\n", kCurvTime / (nc * ni) * 1e6);
 }
