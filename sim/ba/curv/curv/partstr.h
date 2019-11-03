@@ -216,10 +216,14 @@ static double Dotv(int np,
 static void X(coord p, double ph, double th, int np, double hp, coord* xx) {
   int c = np / 2;
   xx[c] = p;
+  coord ep = Mul(E(ph + 0.5 * th), hp);
+  coord em = Mul(E(ph - 0.5 * th), -hp);
+  coord de = E(th);
   for (int j = 0; j < c; ++j) {
-    double jp = j + 0.5;
-    xx[c + j + 1] = Add(xx[c + j], Mul(E(ph + jp * th), hp));
-    xx[c - j - 1] = Add(xx[c - j], Mul(E(ph - jp * th), -hp));
+    xx[c + j + 1] = Add(xx[c + j], ep);
+    xx[c - j - 1] = Add(xx[c - j], em);
+    ep = Rotate(ep, de);
+    em = Rotatem(em, de);
   }
 }
 
