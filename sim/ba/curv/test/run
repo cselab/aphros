@@ -9,7 +9,7 @@ a=0
 r=ref
 for f in $r/* ; do
   echo $f
-  if ! ch.diffnum "${f#$r/}" "$f" "1e-16" sort rel; then
+  if ! ch.diffnum "${f#$r/}" "$f" "1e-14" sort rel; then
     a=1
   fi
 done

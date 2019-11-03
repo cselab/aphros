@@ -298,6 +298,7 @@ static double Iter(coord* p_, double* ph_, double* th_,
 
   X(p, ph, th, np, hp, xx);
 
+  /*
   // correct p
   p = Add(p, ff[c]);
   X(p, ph, th, np, hp, tt);
@@ -306,6 +307,7 @@ static double Iter(coord* p_, double* ph_, double* th_,
     xx[i] = Add(xx[i], dx);
     ff[i] = Sub(ff[i], dx);
   }
+  */
 
   // correct phi
   DxDph(p, ph, th, np, hp, tt);
