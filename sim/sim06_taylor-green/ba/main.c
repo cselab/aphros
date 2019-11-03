@@ -49,9 +49,29 @@ event init (i = 0) {
   foreach() {
     u.x[] =  sin(x) * cos(y) * cos(z);
     u.y[] = -cos(x) * sin(y) * cos(z);
+    f[] = 0;
   }
 
+#ifdef BDAT
+  const int MAX_SHAPES = 10000;
+  int nb = MAX_SHAPES;
+  Shape bb[MAX_SHAPES];
+  nb = ReadList(BDAT, bb, nb);
+
+  ONROOT fprintf(stderr, "Reading %d shapes from %s\n", nb, BDAT);
+
+  scalar ft[];
+  for (int i = 0; i < nb; ++i) {
+    Shape b = bb[i];
+    CreateField(b, ft);
+    foreach () {
+      f[] = max(f[], ft[]);
+    }
+  }
+#else
   fraction(f, ifr3(x, y, z));
+#endif
+  boundary({f});
 }
 
 
