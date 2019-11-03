@@ -27,11 +27,6 @@ const int kMaxFacet = 12;        // maximum number of vertices per facet
 
 const int kMaxNp = 31;           // maximum value of kPartstr.Np
 
-typedef struct {
-  double x;
-  double y;
-} coord2;
-
 
 #if dimension == 2
 #define kNs 1
@@ -85,32 +80,35 @@ void WriteVtkPoly(const char* fn, coord* xx, int nx,
 }
 
 // Unit vector at angle ph.
-static coord2 E(double ph) {
-  coord2 p;
+static coord E(double ph) {
+  coord p;
   p.x = cos(ph);
   p.y = sin(ph);
+  p.z = 0;
   return p;
 }
 
 // rotate planar vector e by planar unit vector de
-static coord2 Rotate(coord2 e, coord2 de) {
-  coord2 p;
+static coord Rotate(coord e, coord de) {
+  coord p;
   p.x = e.x * de.x - e.y * de.y;
   p.y = e.x * de.y + e.y * de.x;
+  p.z = 0;
   return p;
 }
 
 // rotate planar vector e by planar unit vector de
-static coord2 Rotatem(coord2 e, coord2 de) {
-  coord2 p;
+static coord Rotatem(coord e, coord de) {
+  coord p;
   p.x = e.x * de.x + e.y * de.y;
   p.y = -e.x * de.y + e.y * de.x;
+  p.z = 0;
   return p;
 }
 
 
 // Third component of cross product.
-static double Cross3(coord2 a, coord2 b) {
+static double Cross3(coord a, coord b) {
   return a.x * b.y - a.y * b.x;
 }
 
@@ -163,47 +161,6 @@ static coord Zero() {
   return r;
 }
 
-static coord2 Add2(coord2 a, coord2 b) {
-  a.x += b.x;
-  a.y += b.y;
-  return a;
-}
-
-static coord2 Sub2(coord2 a, coord2 b) {
-  a.x -= b.x;
-  a.y -= b.y;
-  return a;
-}
-
-static coord2 Mul2(coord2 a, double k) {
-  a.x *= k;
-  a.y *= k;
-  return a;
-}
-
-static coord2 Div2(coord2 a, double k) {
-  a.x /= k;
-  a.y /= k;
-  return a;
-}
-
-static coord2 Coord2(double x, double y) {
-  coord2 r = {x, y};
-  return r;
-}
-
-static coord2 Zero2() {
-  coord2 r = {0, 0};
-  return r;
-}
-
-static double Dot2(coord2 a, coord2 b) {
-  double s = 0;
-  s += a.x * b.x;
-  s += a.y * b.y;
-  return s;
-}
-
 static double Dot(coord a, coord b) {
   double s = 0;
   s += a.x * b.x;
@@ -214,10 +171,6 @@ static double Dot(coord a, coord b) {
 
 static double Sqnorm(coord a) {
   return Dot(a, a);
-}
-
-static double Sqnorm2(coord2 a) {
-  return Dot2(a, a);
 }
 
 static double Norm(coord a) {
@@ -235,18 +188,8 @@ static double NormMax(coord a) {
   return r;
 }
 
-static double NormMax2(coord2 a) {
-  double r = fabs(a.x);
-  if (fabs(a.y) > r) { r = fabs(a.y); }
-  return r;
-}
-
 static double Sqdist(coord a, coord b) {
   return Sqnorm(Sub(a, b));
-}
-
-static double Sqdist2(coord2 a, coord2 b) {
-  return Sqnorm2(Sub2(a, b));
 }
 
 static double Dist(coord a, coord b) {
@@ -254,10 +197,10 @@ static double Dist(coord a, coord b) {
 }
 
 static double Dotv(int np,
-                   const coord2* aa, const coord2* bb) {
+                   const coord* aa, const coord* bb) {
   double s = 0;
   for (int i = 0; i < np; ++i) {
-    s += Dot2(aa[i], bb[i]);
+    s += Dot(aa[i], bb[i]);
   }
   return s;
 }
@@ -270,61 +213,62 @@ static double Dotv(int np,
 // hp: distance between particles
 // Output:
 // xx: array of length np
-static void X(coord2 p, double ph, double th, int np, double hp, coord2* xx) {
+static void X(coord p, double ph, double th, int np, double hp, coord* xx) {
   int c = np / 2;
   xx[c] = p;
-  coord2 ep = Mul2(E(ph + 0.5 * th), hp);
-  coord2 em = Mul2(E(ph - 0.5 * th), -hp);
-  coord2 de = E(th);
+  coord ep = Mul(E(ph + 0.5 * th), hp);
+  coord em = Mul(E(ph - 0.5 * th), -hp);
+  coord de = E(th);
   for (int j = 0; j < c; ++j) {
-    xx[c + j + 1] = Add2(xx[c + j], ep);
-    xx[c - j - 1] = Add2(xx[c - j], em);
+    xx[c + j + 1] = Add(xx[c + j], ep);
+    xx[c - j - 1] = Add(xx[c - j], em);
     ep = Rotate(ep, de);
     em = Rotatem(em, de);
   }
 }
 
 // Point nearest to line segment [a, b]
-static coord2 Nearest(coord2 a, coord2 b, coord2 x) {
-  b = Sub2(b, a);
-  x = Sub2(x, a);
-  double q = Dot2(b, x) / Dot2(b, b);
+static coord Nearest(coord a, coord b, coord x) {
+  b = Sub(b, a);
+  x = Sub(x, a);
+  double q = Dot(b, x) / Dot(b, b);
   q = clamp(q, 0., 1.);
   a.x += b.x * q;
   a.y += b.y * q;
+  a.z = 0;
   return a;
 }
 
 // Derivative dX/dph
-static void DxDph(coord2 p, double ph, double th,
-                  int np, double hp, coord2* xx) {
+static void DxDph(coord p, double ph, double th, 
+                  int np, double hp, coord* xx) {
   (void) p;
   int c = np / 2;
-  xx[c] = Zero2();
-  coord2 ep = Mul2(E(ph + 0.5 * th + PI * 0.5), hp);
-  coord2 em = Mul2(E(ph - 0.5 * th + PI * 0.5), -hp);
-  coord2 de = E(th);
+  xx[c] = Zero();
+  coord ep = Mul(E(ph + 0.5 * th + PI * 0.5), hp);
+  coord em = Mul(E(ph - 0.5 * th + PI * 0.5), -hp);
+  coord de = E(th);
   for (int j = 0; j < c; ++j) {
-    xx[c + j + 1] = Add2(xx[c + j], ep);
-    xx[c - j - 1] = Add2(xx[c - j], em);
+    xx[c + j + 1] = Add(xx[c + j], ep);
+    xx[c - j - 1] = Add(xx[c - j], em);
     ep = Rotate(ep, de);
     em = Rotatem(em, de);
   }
 }
 
 // Derivative dX/dth
-static void DxDth(coord2 p, double ph, double th,
-                  int np, double hp, coord2* xx) {
+static void DxDth(coord p, double ph, double th, 
+                  int np, double hp, coord* xx) {
   (void) p;
   int c = np / 2;
-  xx[c] = Zero2();
-  coord2 ep = Mul2(E(ph + 0.5 * th + PI * 0.5), hp);
-  coord2 em = Mul2(E(ph - 0.5 * th + PI * 0.5), hp);
-  coord2 de = E(th);
+  xx[c] = Zero();
+  coord ep = Mul(E(ph + 0.5 * th + PI * 0.5), hp);
+  coord em = Mul(E(ph - 0.5 * th + PI * 0.5), hp);
+  coord de = E(th);
   for (int j = 0; j < c; ++j) {
     double jp = j + 0.5;
-    xx[c + j + 1] = Add2(xx[c + j], Mul2(ep, jp));
-    xx[c - j - 1] = Add2(xx[c - j], Mul2(em, jp));
+    xx[c + j + 1] = Add(xx[c + j], Mul(ep, jp));
+    xx[c - j - 1] = Add(xx[c - j], Mul(em, jp));
     ep = Rotate(ep, de);
     em = Rotatem(em, de);
   }
@@ -339,24 +283,24 @@ static void DxDth(coord2 p, double ph, double th,
 // k: curvature
 // Output:
 // ff: forces
-static void F(int np, const coord2* xx, int nl, const coord2* ll,
-              double eta, double k, coord2* ff) {
+static void F(int np, const coord* xx, int nl, const coord* ll, 
+              double eta, double k, coord* ff) {
   if (nl == 0) {
     for (int i = 0; i < np; ++i) {
-      ff[i] = Zero2();
+      ff[i] = Zero();
     }
     return;
   }
   for (int i = 0; i < np; ++i) {
-    coord2 pm = Nearest(ll[0], ll[1], xx[i]);
+    coord pm = Nearest(ll[0], ll[1], xx[i]);
 
     for (int l = 0; l < nl; l += 2) {
-      coord2 p = Nearest(ll[l], ll[l + 1], xx[i]);
-      if (Sqdist2(xx[i], p) < Sqdist2(xx[i], pm)) {
+      coord p = Nearest(ll[l], ll[l + 1], xx[i]);
+      if (Sqdist(xx[i], p) < Sqdist(xx[i], pm)) {
         pm = p;
       }
     }
-    ff[i] = Mul2(Sub2(pm, xx[i]), eta);
+    ff[i] = Mul(Sub(pm, xx[i]), eta);
   }
 }
 
@@ -370,13 +314,13 @@ static void F(int np, const coord2* xx, int nl, const coord2* ll,
 // p_,ph_,th_: new configuration
 // ff, xx: modified
 // Returns maximum absolute difference.
-static double Iter(coord2* p_, double* ph_, double* th_,
-                   int np, double hp, coord2* ff, coord2* xx) {
-  coord2 p = *p_;
+static double Iter(coord* p_, double* ph_, double* th_,
+                 int np, double hp, coord* ff, coord* xx) {
+  coord p = *p_;
   double ph = *ph_;
   double th = *th_;
 
-  coord2 tt[kMaxNp];
+  coord tt[kMaxNp];
   int c = np / 2;
 
   X(p, ph, th, np, hp, xx);
@@ -397,9 +341,9 @@ static double Iter(coord2* p_, double* ph_, double* th_,
   ph += Dotv(np, tt, ff) / Dotv(np, tt, tt);
   X(p, ph, th, np, hp, tt);
   for (int i = 0; i < np; ++i) {
-    coord2 dx = Sub2(tt[i], xx[i]);
-    xx[i] = Add2(xx[i], dx);
-    ff[i] = Sub2(ff[i], dx);
+    coord dx = Sub(tt[i], xx[i]);
+    xx[i] = Add(xx[i], dx);
+    ff[i] = Sub(ff[i], dx);
   }
 
   // correct theta
@@ -409,7 +353,7 @@ static double Iter(coord2* p_, double* ph_, double* th_,
 
   double r = 0;
   for (int i = 0; i < np; ++i) {
-    r = max(r, NormMax2(Sub2(xx[i], tt[i])));
+    r = max(r, NormMax(Sub(xx[i], tt[i])));
   }
 
   *p_ = p;
@@ -420,7 +364,7 @@ static double Iter(coord2* p_, double* ph_, double* th_,
 
 // incid: if true increment id
 // k: attribute
-static void AppendCsv(int it, int np, coord* xx, const char* name, 
+static void AppendCsv(int it, int np, coord * xx, const char* name, 
                       double c, double k) {
   FILE* o;
   char on[255];
@@ -445,13 +389,6 @@ static double Curv(double hp, double th) {
 
 static void Swap(coord* a, coord* b) {
   coord t;
-  t = *a;
-  *a = *b;
-  *b = t;
-}
-
-static void Swap2(coord2* a, coord2* b) {
-  coord2 t;
   t = *a;
   *a = *b;
   *b = t;
@@ -595,7 +532,7 @@ static coord Mycs(Point point, scalar c) {
 //     p = o + t*l.x  + t*l.y ,  [pa,pb] is one line segment
 // *nl: new size of ll
 static void Section2(Point point, scalar c, vector nn, Trans w,
-                    coord2* ll, int* nl) {
+                    coord* ll, int* nl) {
   foreach_neighbor(2)
   {
     if (c[] > 0. && c[] < 1.) {
@@ -615,12 +552,12 @@ static void Section2(Point point, scalar c, vector nn, Trans w,
         double mn = Dot(w.n, m);
         double dt = dl.x;
         double dn = dl.y;
-        if (Cross3(Coord2(mt, mn), Coord2(dt, dn)) < 0) {
+        if (Cross3(Coord(mt, mn, 0), Coord(dt, dn, 0)) < 0) {
           Swap(&l, &lb);
         }
         if (Sqnorm(dl) > 0) {
-          ll[*nl] = Coord2(l.x, l.y);
-          ll[*nl + 1] = Coord2(lb.x, lb.y);
+          ll[*nl] = l;
+          ll[*nl + 1] = lb;
           *nl += 2;
         }
       }
@@ -639,7 +576,7 @@ static void Section2(Point point, scalar c, vector nn, Trans w,
 //     p = o + t*l.x  + t*l.y ,  [pa,pb] is one line segment
 // *nl: new size of ll
 static void Section3(Point point, scalar c, vector nn, Trans w,
-                    /**/ coord2* ll, int* nl) {
+                    /**/ coord* ll, int* nl) {
   foreach_neighbor(2)
   {
     if (c[] > 0. && c[] < 1.) {
@@ -668,16 +605,17 @@ static void Section3(Point point, scalar c, vector nn, Trans w,
             double s = lb.z / (lb.z - l.z);
             ll[*nl + q].x = l.x * s + lb.x * (1 - s);
             ll[*nl + q].y = l.y * s + lb.y * (1 - s);
+            ll[*nl + q].z = 0.;
             if (++q == 2) {
-              coord2 dl = Sub2(ll[*nl + 1], ll[*nl]);
+              coord dl = Sub(ll[*nl + 1], ll[*nl]);
               double mt = Dot(w.t, m);
               double mn = Dot(w.n, m);
               double dt = dl.x;
               double dn = dl.y;
-              if (Cross3(Coord2(mt, mn), Coord2(dt, dn)) > 0) {
-                Swap2(&ll[*nl], &ll[*nl + 1]);
+              if (Cross3(Coord(mt, mn, 0), Coord(dt, dn, 0)) > 0) {
+                Swap(&ll[*nl], &ll[*nl + 1]);
               }
-              if (Sqnorm2(dl) > 0) {
+              if (Sqnorm(dl) > 0) {
                 *nl += 2;
               }
             }
@@ -690,7 +628,7 @@ static void Section3(Point point, scalar c, vector nn, Trans w,
 
 
 static void Section(Point point, scalar c, vector nn,
-                    Trans w, coord2* ll, int* nl) {
+                    Trans w, coord* ll, int* nl) {
 #if dimension == 2
   Section2(point, c, nn, w, ll, nl);
 #else
@@ -706,7 +644,7 @@ static void Section(Point point, scalar c, vector nn,
 // it_: number of iterations
 // Output:
 // appends positions and attraction points to csv if a is not null
-static double GetLinesCurv(coord2* ll, int nl, double delta, const Trans* w,
+static double GetLinesCurv(coord* ll, int nl, double delta, const Trans* w,
                            Partstr conf, double* res_, int* it_, 
                            double hash) {
   if (nl >= 4) { // require at least two segments
@@ -715,9 +653,9 @@ static double GetLinesCurv(coord2* ll, int nl, double delta, const Trans* w,
     const int itermax = conf.itermax;
     const double hp = conf.Hp * delta / (Np - 1);
 
-    coord2 xx[kMaxNp];  // positions
-    coord2 ff[kMaxNp];  // forces
-    coord2 p = Zero2();
+    coord xx[kMaxNp];  // positions
+    coord ff[kMaxNp];  // forces
+    coord p = {0., 0, 0.};
     double ph = 0.;
     double th = 0.;
     double k = 0;
@@ -735,19 +673,17 @@ static double GetLinesCurv(coord2* ll, int nl, double delta, const Trans* w,
     }
 
     if (w) {
-      coord2 tt[kMaxNp];
-      coord tt3[kMaxNp];
-      coord xx3[kMaxNp];
+      coord tt[kMaxNp];
       for (int i = 0; i < Np; ++i) {
-        tt[i] = Add2(xx[i], Mul2(ff[i], 1. / eta));
-        tt3[i] = LocToGlb(Coord(tt[i].x, tt[i].y, 0), *w);
+        tt[i] = Add(xx[i], Mul(ff[i], 1. / eta));
+        tt[i] = LocToGlb(tt[i], *w);
       }
       for (int i = 0; i < Np; ++i) {
-        xx3[i] = LocToGlb(Coord(xx[i].x, xx[i].y, 0), *w);
+        xx[i] = LocToGlb(xx[i], *w);
       }
 
-      AppendCsv(t * 100, Np, xx3, "part", hash, -k);
-      AppendCsv(t * 100, Np, tt3, "attr", hash, -k);
+      AppendCsv(t * 100, Np, xx, "part", hash, -k);
+      AppendCsv(t * 100, Np, tt, "attr", hash, -k);
     }
 
     *res_ = res;
@@ -764,7 +700,7 @@ static double GetLinesCurv(coord2* ll, int nl, double delta, const Trans* w,
 // point: target cell
 static double GetCrossCurv(Point point, scalar c, vector nn,
                            Trans w, Partstr conf) {
-  coord2 ll[kMaxSection];
+  coord ll[kMaxSection];
   int nl = 0;
   Section(point, c, nn, w, ll, &nl);
   double res;
@@ -889,24 +825,23 @@ void DumpLines(scalar c, vector nn, Partstr conf, const char* fn) {
       for (int s = 0; s < Ns; ++ s) {
         Trans w = GetSectionTrans(s, Ns, b);
 
-        coord2 ll[kMaxSection];
-        coord ll3[kMaxSection];
+        coord ll[kMaxSection];
         int nl = 0;
 
         Section(point, c, nn, w, ll, &nl);
         GetCrossCurv(point, c, nn, w, conf);
 
         for (int i = 0; i < nl; ++i) {
-          ll3[i] = LocToGlb(Coord(ll[i].x, ll[i].y, 0), w);
+          ll[i] = LocToGlb(ll[i], w);
         }
 
         for (int i = 0; i < nl; i += 2) {
           ss[np] = 2;
           pp[nx] = nx;
-          xx[nx] = ll3[i];
+          xx[nx] = ll[i];
           ++nx;
           pp[nx] = nx;
-          xx[nx] = ll3[i + 1];
+          xx[nx] = ll[i + 1];
           ++nx;
           ++np;
         }
