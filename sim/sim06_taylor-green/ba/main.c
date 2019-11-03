@@ -15,6 +15,7 @@
 #define BRZ BR
 #endif
 
+double kClock0;
 
 #define ONROOT int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank); if (rank == 0)
 
@@ -24,6 +25,7 @@ double ifr3(double x, double y, double z) {
 }
 
 int main() {
+  kClock0 = clock();
   init_grid(NX);
 
   origin(0., 0., 0.);
@@ -84,11 +86,19 @@ event out (t += DUMPDT ; t <= TMAX) {
   bah5_list(a, name);
   ++frame;
 #endif
-  ONROOT fprintf(stderr, "dump %s step i=%05d t=%g\n", name, i, t);
+  ONROOT { 
+    fprintf(stderr, "dump %s step i=%05d t=%g\n", 
+        name, i, t);
+  }
 }
 
 event statout (i += 1) {
-  ONROOT fprintf(stderr, "step i=%05d t=%g dt=%g \n", i, t ,dt);
+  ONROOT {
+    fprintf(stderr, "step i=%05d t=%g dt=%g wt=%.6g\n", 
+        i, t ,dt, (clock() - kClock0) / CLOCKS_PER_SEC);
+    fprintf(stderr, "cstats wt=%.6g h=%d f=%d a=%d c=%d\n", 
+        kCurvTime, kCurvStat.h, kCurvStat.f, kCurvStat.a, kCurvStat.c);
+  }
 }
 
 event logfile (i += 1 ; t <= TMAX) {

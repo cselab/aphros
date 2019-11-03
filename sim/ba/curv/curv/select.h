@@ -37,6 +37,7 @@
 #include "curvature.h"
 
 double kCurvTime = 0;
+cstats kCurvStat;
 
 trace
 cstats curvature_notime(struct Curvature p) {
@@ -49,6 +50,7 @@ cstats curvature_time(struct Curvature p) {
   cstats s = curvature(p);
   double t1 = clock();
   kCurvTime += (t1 - t0) / CLOCKS_PER_SEC;
+  kCurvStat = s;
   return s;
 }
 
