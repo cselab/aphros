@@ -1,10 +1,9 @@
 #!/bin/bash -l
 
 make -C ../../ install
-ch.conf . -DEXTRA="-grid=multigrid3D"
+ch.conf . -DEXTRA='-grid=multigrid3D -DCURV_PARTSTR'
 make
 ba.env ba.run main.s
-
 
 a=0
 r=ref
