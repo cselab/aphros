@@ -21,14 +21,14 @@ for f,fi in zip(ff,ffi):
     ek2 = np.sqrt((k - kex) ** 2).mean() / kex
     ekm = np.max(np.abs(k - kex)) / kex
     it,it0,it1 = np.loadtxt(fi)
-    eta = n * 0.1
-    e = [n, eta, ek2, ekm, it, it0, it1]
+    nump = n
+    e = [n, nump, ek2, ekm, it, it0, it1]
     ee.append(e)
 
 
 fo = "kerr"
 with open(fo, 'w') as f:
-    f.write('n eta ek2 ekm it it0 it1\n')
+    f.write('n np ek2 ekm it it0 it1\n')
     for e in ee:
         f.write(' '.join(map(str, e)) + '\n')
 
