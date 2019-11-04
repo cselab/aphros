@@ -24,7 +24,7 @@ main(void)
   }
   cl = vtk_data(vtk, "cl");
   for (i = 0; i < n; i++)
-    flag[i] = (cl[i] == -1);
+    flag[i] = (cl[i] == -1 || cl[i] == 0);
   vtk_remove_tri(vtk, flag);
   vtk_write(vtk, stdout);
   free(flag);
