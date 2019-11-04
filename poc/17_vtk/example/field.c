@@ -25,7 +25,7 @@ main(int argc, char **argv)
     fprintf(stderr, "%s: fail to read\n", me);
     exit(2);
   }
-  if (vtk_index(vtk, name, &i) != 0) {
+  if ((i = vtk_index(vtk, name)) != -1) {
     fprintf(stderr, "%s: no field '%s'\n", me, name);
     exit(2);
   }

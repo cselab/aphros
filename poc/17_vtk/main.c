@@ -49,12 +49,14 @@ static const char *RankString[] = { "SCALARS", "VECTORS" };
 static const int RankEnum[] = { VTK_SCALAR, VTK_VECTOR };
 
 /* functions */
+static int colormap(double, double, double, float *);
+static double array_max(int, double *);
+static double array_min(int, double *);
 static int swap(int, int, void *);
 static int eq(const char *, const char *);
 static int rank2num(const char *, int *);
 static int type2size(const char *, int *num, int *size);
 static int location2num(const char *, int *);
-
 static int num2location(int, const char **);
 static int num2rank(int, const char **);
 static int num2type(int, const char **);
@@ -298,6 +300,92 @@ end:
 }
 
 int
+vtk_off_color(struct VTK *q, const char *name, FILE * f)
+{
+  int nt, nv, cnt[3];
+  int *t, *t0, *t1, *t2, i, j, index;
+  double *x, *y, *z, *field, hi, lo;
+  float *data, *r, *color;
+
+  index = vtk_index(q, name);
+  if (index == -1) {
+      MSG(("no field '%s'", name));
+      return 1;
+  }
+  if (q->rank[index]  != 1) {
+      MSG(("wrong rank=%d for '%s'", q->rank[index], name));
+      return 1;
+  }
+  if (q->location[index]  != VTK_CELL) {
+      MSG(("wrong location for '%s'", name));
+      return 1;
+  }
+  if (q->type[index]  != VTK_FLOAT) {
+      MSG(("wrong type for '%s'", name));
+      return 1;
+  }
+  data = q->data[index];
+  if (data == NULL) {
+      MSG(("data is empty '%s'", name));      
+      return 1;
+  }
+  
+  nt = vtk_nt(q);  
+  MALLOC(nt, &field);
+  MALLOC(3*nt, &color);
+  
+  for (i = 0; i < nt; i++)
+      field[i] = data[i];
+  lo = array_min(nt, field);  
+  hi = array_max(nt, field);
+  for (i = 0; i < nt; i++)
+      colormap(field[i], lo, hi, &color[3*i]);
+  
+  MSG(("hl: %g %g", lo, hi));
+  FREE(field);
+  
+  nv = vtk_nv(q);
+  x = q->x;
+  y = q->y;
+  z = q->z;
+  t0 = q->t0;
+  t1 = q->t1;
+  t2 = q->t2;
+  fputs("OFF BINARY\n", f);
+
+  cnt[0] = nv;
+  cnt[1] = nt;
+  cnt[2] = 0;
+  SWAP(3, cnt);
+  FWRITE(3, cnt, f);
+
+  MALLOC(3 * nv, &r);
+  for (i = j = 0; i < nv; i++) {
+    r[j++] = x[i];
+    r[j++] = y[i];
+    r[j++] = z[i];
+  }
+  SWAP(3 * nv, r);
+  FWRITE(3 * nv, r, f);
+  FREE(r);
+
+  MALLOC(5 * nt, &t);
+  for (i = j = 0; i < nt; i++) {
+    t[j++] = 3;
+    t[j++] = t0[i];
+    t[j++] = t1[i];
+    t[j++] = t2[i];
+    t[j++] = 0;
+  }
+  SWAP(5 * nt, t);
+  FWRITE(5 * nt, t, f);
+  FREE(t);
+  FREE(color);
+
+  return 0;
+}
+
+int
 vtk_off(struct VTK *q, FILE * f)
 {
   int nt, nv, cnt[3];
@@ -389,17 +477,16 @@ vtk_nt(struct VTK *q)
 }
 
 int
-vtk_index(struct VTK *q, const char *name, int *p)
+vtk_index(struct VTK *q, const char *name)
 {
   int i, nf;
 
   nf = q->nf;
   for (i = 0; i < nf; i++)
     if (eq(name, q->name[i])) {
-      *p = i;
-      return 0;
+      return i;
     }
-  return 1;
+  return -1;
 }
 
 void *
@@ -407,8 +494,8 @@ vtk_data(struct VTK *q, const char *name)
 {
   int i, status;
 
-  status = vtk_index(q, name, &i);
-  if (status != 0)
+  i = vtk_index(q, name);
+  if (i == -1)
     return NULL;
   else
     return q->data[i];
@@ -420,8 +507,8 @@ vtk_remove(struct VTK *q, const char *name)
   int i, j, nf, status;
 
   nf = vtk_nf(q);
-  status = vtk_index(q, name, &j);
-  if (status != 0)
+  j = vtk_index(q, name);
+  if (j == -1)
     return 1;
   FREE(q->name[j]);
   FREE(q->data[j]);
@@ -608,4 +695,71 @@ remove0(int n, int size, void *pv, const int *a, int *pM)
     }
   *pM = M;
   return 0;
+}
+
+static double
+array_min(int n, double *a)
+{
+  int i;
+  double m;
+
+  if (n == 0)
+      return 0;
+
+  m = a[0];
+  for (i = 1; i < n; i++)
+    if (a[i] < m)
+      m = a[i];
+  return m;
+}
+
+static double
+array_max(int n, double *a)
+{
+  int i;
+  double m;
+
+  if (n == 0)
+      return 0;
+  m = a[0];
+  for (i = 1; i < n; i++)
+    if (a[i] > m)
+      m = a[i];
+  return m;
+}
+
+static int
+colormap(double v, double l, double h, /**/ float *p)
+{
+    float R, G, B;
+
+    if (v < l)
+        v = l;
+    if (v > h)
+        v = h;
+
+    if (l != h)
+        v = 4 * (v - l) / (h - l);
+    else
+        v = 0;
+
+    R = 0;
+    G = B = 1;
+    if (v < 1)
+        G = v;
+    else if (v < 2)
+        B = 2 - v;
+    else if (v < 3) {
+        R = v - 2;
+        B = 0;
+    } else {
+        R = 1;
+        G = 4 - v;
+        B = 0;
+    }
+
+    p[0] = R;
+    p[1] = G;
+    p[2] = B;
+    return 0;
 }

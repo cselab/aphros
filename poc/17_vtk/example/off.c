@@ -14,13 +14,22 @@ int
 main(int argc, char **argv)
 {
   struct VTK *vtk;
+  const char *field;
 
   USED(argc);
+  field = NULL;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
     case 'h':
       usg();
       break;
+    case 'f':
+	argv++;
+	if ((field = *argv++) == NULL) {
+	    fprintf(stderr, "%s: -f needs an argument\n", me);
+	    exit(2);
+	}
+	break;
     default:
       fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
       exit(1);
@@ -31,6 +40,10 @@ main(int argc, char **argv)
     fprintf(stderr, "%s: fail to read\n", me);
     exit(2);
   }
-  vtk_off(vtk, stdout);
+
+  if (field == NULL)
+      vtk_off(vtk, stdout);
+  else
+      vtk_off_color(vtk, field, stdout);
   vtk_fin(vtk);
 }
