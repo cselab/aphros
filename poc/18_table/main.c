@@ -23,7 +23,7 @@ struct Table {
 static int
 cmp(int x, int y)
 {
-    return x != y;
+  return x != y;
 }
 
 static unsigned
@@ -61,16 +61,15 @@ table_get(struct Table *q, int key, int *pvalue)
   struct binding *p;
 
   assert(q);
-  assert(key);
   i = hash(key) % q->size;
   for (p = q->buckets[i]; p; p = p->link)
     if (cmp(key, p->key) == 0)
       break;
   if (p) {
-      *pvalue = p->value;
-      return 0;
+    *pvalue = p->value;
+    return 0;
   } else
-      return TABLE_EMPY;
+    return TABLE_EMPY;
 }
 
 int
