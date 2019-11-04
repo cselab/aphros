@@ -6,6 +6,7 @@
  *  Copyright 2011 ETH Zurich. All rights reserved.
  *
  */
+#pragma once
 
 #include <iostream>
 #include <sstream>

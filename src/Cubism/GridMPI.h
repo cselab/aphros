@@ -8,19 +8,13 @@
  */
 #pragma once
 
-#define _SOA_SYNCH_
-
 #include <vector>
 #include <map>
 #include <mpi.h>
 
 #include "BlockInfo.h"
 #include "StencilInfo.h"
-#ifdef _SOA_SYNCH_
-#include "SynchronizerMPI_new.h"
-#else
 #include "SynchronizerMPI.h"
-#endif /* _SOA_SYNCH_ */
 
 template < typename TGrid >
 class GridMPI : public TGrid
@@ -260,7 +254,6 @@ public:
   // and performs communication
   // (e.g. two kernels with identical stencils and
   // same elected components would share a common SynchronizerMPI)
-#ifndef _SOA_SYNCH_
 	template<typename Processing>
 	Synch& sync(Processing& p)
 	{
@@ -289,35 +282,6 @@ public:
 
 		return *queryresult;
 	}
-#else
-    template <typename Processing, typename TView>
-    Synch &sync(Processing &p, std::vector<std::vector<TView>> &fields)
-    {
-		const StencilInfo stencil = p.stencil;
-		assert(stencil.isvalid());
-
-		Synch * queryresult = NULL;
-
-		typename std::map<StencilInfo, Synch*>::iterator itSynchronizerMPI = SynchronizerMPIs.find(stencil);
-
-		if (itSynchronizerMPI == SynchronizerMPIs.end())
-		{
-			queryresult = new Synch(SynchronizerMPIs.size(), stencil, getBlocksInfo(), cartcomm, mybpd, blocksize);
-
-			SynchronizerMPIs[stencil] = queryresult;
-		}
-		else  queryresult = itSynchronizerMPI->second;
-
-    // perform communication
-        queryresult->sync(fields,
-                          sizeof(Real) > 4 ? MPI_DOUBLE : MPI_FLOAT,
-                          timestamp);
-
-        timestamp = (timestamp + 1) % 32768;
-
-		return *queryresult;
-	}
-#endif /* _SOA_SYNCH_ */
 
 	template<typename Processing>
 	const Synch& get_SynchronizerMPI(Processing& p) const

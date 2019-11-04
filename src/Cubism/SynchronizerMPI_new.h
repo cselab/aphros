@@ -15,17 +15,20 @@
 #include <algorithm>
 #include "mpi.h"
 
-#include "PUPkernelsMPI.h"
+#include <stdio.h>
+
 #include "DependencyCubeMPI.h"
+#include "PUPkernelsMPI.h"
+#include "StencilInfo.h"
 
 using namespace std;
 
-template <int bx_, int by_, int bz_, size_t max_comp=8>
+template <int bx_, int by_, int bz_>
 class SynchronizerMPI
 {
-  static const int bx = bx_;
-  static const int by = by_;
-  static const int bz = bz_;
+    static const int bx = bx_;
+    static const int by = by_;
+    static const int bz = bz_;
     struct I3
     {
         int ix, iy, iz;
@@ -114,13 +117,7 @@ class SynchronizerMPI
         map<Real *, vector<SubpackInfo> > retval;
 
         const int NC = stencil.selcomponents.size();
-        assert(static_cast<size_t>(NC) <= max_comp);
         assert(fields.size() <= static_cast<size_t>(NC));
-
-        // std::vector<TView>* fields_[max_comp] = {NULL};
-        // for (size_t comp = 0; comp < fields.size(); ++comp) {
-        //     fields_[comp] = &fields[comp];
-        // }
 
         const int bpd[3] = {
             mybpd[0],
@@ -303,8 +300,6 @@ class SynchronizerMPI
                     const int NFACEBLOCK_COMP = thickness[dface][s] * blocksize[dim_other1face] * blocksize[dim_other2face];
                     const int NFACEBLOCK = NC * NFACEBLOCK_COMP;
 
-                    // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23] needs
-                    // adjustment for hard coded values
                     int face_start[3];
                     face_start[dface] = (1-s)*blockstart[dface] + s*(blockend[dface]-thickness[dface][s]);
                     face_start[dim_other1face] = 0;
@@ -327,8 +322,6 @@ class SynchronizerMPI
 
                             assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
                             const int blockID = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
-                            // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23] need
-                            // adjustment
                             for (size_t comp = 0; comp < fields.size(); ++comp) {
 
                                 Real * const ptrBlock = (Real*)fields[comp][blockID].data;
@@ -350,9 +343,6 @@ class SynchronizerMPI
                                                 if (dedge==dface || asd[dface] != s) continue;
                                             }
 
-                                            // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23]
-                                            // Hardcoded 0 and blocksize[dedge] does not
-                                            // work for block with halos
                                             int start[3];
                                             start[dedge] = 0;
                                             start[dim_other1edge] = blockstart[dim_other1edge]*(1-a) + a*(blockend[dim_other1edge]-thickness[dim_other1edge][1]);
@@ -533,8 +523,6 @@ class SynchronizerMPI
                         const int NEDGEBLOCK_COMP = blocksize[d] * thickness[dim_other2][b] * thickness[dim_other1][a];
                         const int NEDGEBLOCK = NC * NEDGEBLOCK_COMP;
 
-                        // FIXME: [fabianw@mavt.ethz.ch; 2019-10-23] needs
-                        // adjustment for hard coded values
                         int edge_start[3];
                         edge_start[d] = 0;
                         edge_start[dim_other1] = blockstart[dim_other1]*(1-a) + a*(blockend[dim_other1]-thickness[dim_other1][1]);
@@ -1067,17 +1055,18 @@ public:
 
 // XXX: [fabianw@mavt.ethz.ch; 2019-10-29] ONLY FOR PERIODIC BLOCK LABS
 
-// XXX: [fabianw@mavt.ethz.ch; 2019-10-29] TESTING
-        const int NPENDINGRECVS = recv.pending.size();
-        vector<MPI_Request> pending(NPENDINGRECVS);
-        copy(recv.pending.begin(), recv.pending.end(), pending.begin());
-        MPI_Waitall(NPENDINGRECVS, &pending.front(), MPI_STATUSES_IGNORE);
+        // XXX: [fabianw@mavt.ethz.ch; 2019-10-29] TESTING
 
-        for (auto& f : fields) {
-            for (auto fview : f) {
-                fetch_soa(fview);
-            }
-        }
+        // const int NPENDINGRECVS = recv.pending.size();
+        // vector<MPI_Request> pending(NPENDINGRECVS);
+        // copy(recv.pending.begin(), recv.pending.end(), pending.begin());
+        // MPI_Waitall(NPENDINGRECVS, &pending.front(), MPI_STATUSES_IGNORE);
+
+        // for (auto& f : fields) {
+        //     for (auto fview : f) {
+        //         fetch_soa(fview);
+        //     }
+        // }
 
         // void fetch(const Real *const ptrBlock,
         //            Real *const ptrLab,
@@ -1785,7 +1774,13 @@ class MyRange
 };
 
 template <typename TView>
-void fetch_soa(TView &fv) const
+void fetch_soa(TView &fv,
+               const int rsx,
+               const int rex,
+               const int rsy,
+               const int rey,
+               const int rsz,
+               const int rez) const
 {
     // XXX: [fabianw@mavt.ethz.ch; 2019-10-29] ONLY FOR PERIODIC BLOCK LABS
 
@@ -1824,12 +1819,13 @@ void fetch_soa(TView &fv) const
 
     const int ss[3] = {stencil.sx, stencil.sy, stencil.sz};
     const int se[3] = {stencil.ex, stencil.ey, stencil.ez};
-    const int rsx = ss[0];
-    const int rex = blocksize[0] + se[0] - 1;
-    const int rsy = ss[1];
-    const int rey = blocksize[1] + se[1] - 1;
-    const int rsz = ss[2];
-    const int rez = blocksize[2] + se[2] - 1;
+    // const int rsx = ss[0];
+    // const int rex = blocksize[0] + se[0] - 1;
+    // const int rsy = ss[1];
+    // const int rey = blocksize[1] + se[1] - 1;
+    // const int rsz = ss[2];
+    // const int rez = blocksize[2] + se[2] - 1;
+
     // build range
     MyRange myrange(rsx, rex, rsy, rey, rsz, rez);
 
