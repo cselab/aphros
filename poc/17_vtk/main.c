@@ -303,9 +303,9 @@ int
 vtk_off_color(struct VTK *q, const char *name, FILE * f)
 {
   int nt, nv, cnt[3];
-  int *t, *t0, *t1, *t2, i, j, index;
+  int *t0, *t1, *t2, i, j, index, ibuf[5];
   double *x, *y, *z, *field, hi, lo;
-  float *data, *r, *color;
+  float *data, *r, fbuf[2];
 
   index = vtk_index(q, name);
   if (index == -1) {
@@ -332,18 +332,10 @@ vtk_off_color(struct VTK *q, const char *name, FILE * f)
   
   nt = vtk_nt(q);  
   MALLOC(nt, &field);
-  MALLOC(3*nt, &color);
-  
   for (i = 0; i < nt; i++)
       field[i] = data[i];
   lo = array_min(nt, field);  
   hi = array_max(nt, field);
-  for (i = 0; i < nt; i++)
-      colormap(field[i], lo, hi, &color[3*i]);
-  
-  MSG(("hl: %g %g", lo, hi));
-  FREE(field);
-  
   nv = vtk_nv(q);
   x = q->x;
   y = q->y;
@@ -369,19 +361,20 @@ vtk_off_color(struct VTK *q, const char *name, FILE * f)
   FWRITE(3 * nv, r, f);
   FREE(r);
 
-  MALLOC(5 * nt, &t);
-  for (i = j = 0; i < nt; i++) {
-    t[j++] = 3;
-    t[j++] = t0[i];
-    t[j++] = t1[i];
-    t[j++] = t2[i];
-    t[j++] = 0;
+  for (i = 0; i < nt; i++) {
+      j = 0;
+      ibuf[j++] = 3;
+      ibuf[j++] = t0[i];
+      ibuf[j++] = t1[i];
+      ibuf[j++] = t2[i];
+      ibuf[j++] = 3;
+      SWAP(j, ibuf);
+      FWRITE(j, ibuf, f);
+      colormap(field[i], lo, hi, fbuf);
+      SWAP(3, fbuf);
+      FWRITE(3, fbuf, f);
   }
-  SWAP(5 * nt, t);
-  FWRITE(5 * nt, t, f);
-  FREE(t);
-  FREE(color);
-
+  FREE(field);
   return 0;
 }
 
