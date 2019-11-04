@@ -8,6 +8,7 @@ M = \
 add\
 column\
 columns\
+ini\
 write\
 
 all: $M

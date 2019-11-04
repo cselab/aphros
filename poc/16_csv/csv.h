@@ -5,6 +5,7 @@ struct CSV {
   int nf, nr;
 };
 
+struct CSV *csv_ini(int);
 struct CSV *csv_read(FILE *);
 int csv_fin(struct CSV *);
 double *csv_field(struct CSV *, const char *);

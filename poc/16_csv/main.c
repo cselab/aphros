@@ -15,6 +15,18 @@ static int line(char *, FILE *);
 static int eq(const char *, const char *);
 
 struct CSV *
+csv_ini(int nr)
+{
+  struct CSV *q;
+  MALLOC(1, &q);
+
+  q->nr = nr;
+  q->nf = 0;
+  
+  return q;
+}
+
+struct CSV *
 csv_read(FILE * f)
 {
   struct CSV *q;
