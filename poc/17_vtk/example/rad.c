@@ -21,7 +21,7 @@ static int array_min_arg(int, double *);
 int
 main(int argc, char **argv)
 {
-  int nt, nr, i, j, key, *flag;
+  int status, nt, nr, i, j, key, *flag;
   float *cl;
   double *cl_csv, *vf, *rad;
   struct VTK *vtk;
@@ -105,8 +105,8 @@ main(int argc, char **argv)
   nt = vtk_nt(vtk);
   for (i = 0; i < nt; i++) {
     key = (int) cl[i];
-    j = table_get(table, key);
-    if (j != TABLE_EMPY)
+    status = table_get(table, key, &j);
+    if (status != TABLE_EMPY)
       rad[i] = pow(vf[j] / Vcoef, 1.0 / 3.0);
     else
       rad[i] = 0;

@@ -6,12 +6,13 @@ M_CFLAGS = -I$(CHPREFIX)/include
 
 M = \
 add\
+age\
 field\
 info\
-rad\
 off\
-write\
+rad\
 wall\
+write\
 
 all: $M
 .o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@

@@ -55,7 +55,7 @@ table_ini(int hint)
 }
 
 int
-table_get(struct Table *q, int key)
+table_get(struct Table *q, int key, int *pvalue)
 {
   int i;
   struct binding *p;
@@ -66,7 +66,11 @@ table_get(struct Table *q, int key)
   for (p = q->buckets[i]; p; p = p->link)
     if (cmp(key, p->key) == 0)
       break;
-  return p ? p->value : TABLE_EMPY;
+  if (p) {
+      *pvalue = p->value;
+      return 0;
+  } else
+      return TABLE_EMPY;
 }
 
 int
