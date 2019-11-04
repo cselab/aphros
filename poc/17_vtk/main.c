@@ -339,7 +339,7 @@ vtk_off_color(struct VTK *q, const char *name, FILE * f)
   int nt, nv, cnt[3];
   int *t0, *t1, *t2, i, j, index, ibuf[5], *di;
   double *x, *y, *z, *field, hi, lo, *dd;
-  float *data, *r, fbuf[2], *df;
+  float *r, fbuf[3], *df;
 
   index = vtk_index(q, name);
   if (index == -1) {
@@ -529,7 +529,7 @@ vtk_index(struct VTK *q, const char *name)
 void *
 vtk_data(struct VTK *q, const char *name)
 {
-  int i, status;
+  int i;
 
   i = vtk_index(q, name);
   if (i == -1)
@@ -541,7 +541,7 @@ vtk_data(struct VTK *q, const char *name)
 int
 vtk_remove(struct VTK *q, const char *name)
 {
-  int i, j, nf, status;
+  int i, j, nf;
 
   nf = vtk_nf(q);
   j = vtk_index(q, name);
@@ -766,7 +766,7 @@ array_max(int n, double *a)
 }
 
 static int
-colormap(double v, double l, double h, /**/ float *p)
+colormap(double v, double l, double h, /**/ float p[3])
 {
   float R, G, B;
 

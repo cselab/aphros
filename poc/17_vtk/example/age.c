@@ -10,7 +10,62 @@
 
 static char me[] = "vtk/age";
 
+static int read(const char*, int *, double*);
+static int write(const char*, int, const double *, const double *);
+
 int
+main(int argc, char **argv)
+{
+  double cl[9999], age[9999];
+  struct Table *tbl;
+  int n, i, key, value, status, cnt;
+  char name[999];
+
+  cnt = 0;
+  read(*++argv, &n, cl);
+  tbl = table_ini(100);
+  for (i = 0; i < n; i++) {
+    age[i] = 0;
+    table_put(tbl, cl[i], 0);
+  }
+  sprintf(name, "%05d.csv", cnt++);
+  write(name, n, cl, age);
+
+  while (*++argv != NULL) {
+    read(*argv, &n, cl);
+    for (i = 0; i < n; i++) {
+      key = cl[i];
+      status = table_get(tbl, key, &value);
+      if (status != TABLE_EMPY) {
+        value += 1;
+        value = -value;
+        table_put(tbl, key, value);
+      } else
+        table_put(tbl, key, 0);
+    }
+    for (i = 0; i < n; i++) {
+      key = cl[i];
+      status = table_get(tbl, key, &value);
+      if (status != TABLE_EMPY && value > 0)
+        table_remove(tbl, key);
+    }
+    for (i = 0; i < n; i++) {
+      key = cl[i];
+      status = table_get(tbl, key, &value);
+      assert(status != TABLE_EMPY);
+      value = -value;
+      table_put(tbl, key, value);
+      age[i] = value;
+    }
+    sprintf(name, "%05d.csv", cnt++);
+    write(name, n, cl, age);
+  }
+
+  table_fin(tbl);
+  USED(argc);
+}
+
+static int
 read(const char *name, int *pn, double *a)
 {
   int i, n;
@@ -47,51 +102,38 @@ read(const char *name, int *pn, double *a)
   return 0;
 }
 
-int
-main(int argc, char **argv)
+static int
+write(const char *name, int n, const double *cl, const double *age)
 {
-  double a[9999], b[9999];
-  struct Table *age;
-  int na, nb, i, values, key, value, status;
+  int i;
+  struct CSV *csv;
+  FILE *f;
+  double *cl0, *age0;
+  
+  csv = csv_ini(n);
+  if (csv == NULL) {
+    fprintf(stderr, "%s: allocate\n", me);
+    exit(2);
+  }
+  
+  csv_add(csv, "cl");
+  csv_add(csv, "age");
 
-  read(*++argv, &na, a);
-  age = table_ini(100);
-  for (i = 0; i < na; i++)
-    table_put(age, a[i], 0);
+  cl0 = csv_field(csv, "cl");
+  age0 = csv_field(csv, "age");
 
-  while (*++argv != NULL) {
-    read(*argv, &nb, b);
-    for (i = 0; i < nb; i++) {
-      key = b[i];
-      status = table_get(age, key, &value);
-      if (status != TABLE_EMPY) {
-        value += 1;
-        value = -value;
-        table_put(age, key, value);
-      } else
-        table_put(age, key, 0);
-    }
-    for (i = 0; i < nb; i++) {
-      key = b[i];
-      status = table_get(age, key, &value);
-      if (status != TABLE_EMPY && value > 0)
-        table_remove(age, key);
-    }
-    for (i = 0; i < nb; i++) {
-      key = b[i];
-      status = table_get(age, key, &value);
-      assert(status != TABLE_EMPY);
-      value = -value;
-      table_put(age, key, value);
-    }
+  for (i = 0; i < n; i++) {
+    cl0[i] = cl[i];
+    age0[i] = age[i];
   }
 
-  for (i = 0; i < nb; i++) {
-    key = b[i];
-    status = table_get(age, key, &value);
-    assert(status != TABLE_EMPY);
-    printf("%d %d\n", key, value);
+  f = fopen(name, "w");
+  if (f == NULL) {
+    fprintf(stderr, "%s: fail to open '%s'\n", me, name);
+    exit(2);
   }
-  table_fin(age);
-  USED(argc);
+  csv_write(csv, f);
+  fclose(f);
+  csv_fin(csv);
+  return 0;
 }
