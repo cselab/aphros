@@ -109,6 +109,22 @@ csv_nr(struct CSV *q)
   return q->nr;
 }
 
+int
+csv_add(struct CSV *q, const char *name)
+{
+  int nr, nf;
+  double *data;
+
+  nr = csv_nr(q);
+  nf = csv_nf(q);
+  MALLOC(nr, &data);
+  q->data[nf] = data;
+  q->name[nf] = memory_strndup(name, N);
+  nf++;
+  q->nf = nf;
+  return 0;
+}
+
 static int
 write(struct CSV *q, char sep, FILE * f)
 {

@@ -12,3 +12,4 @@ int csv_nf(struct CSV *);
 int csv_nr(struct CSV *);
 int csv_write(struct CSV *, FILE *);
 int csv_write_space(struct CSV *, FILE *);
+int csv_add(struct CSV *, const char *);

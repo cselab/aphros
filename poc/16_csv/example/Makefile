@@ -5,6 +5,7 @@ M_LDFLAGS = -L$(CHPREFIX)/lib -lcsv
 M_CFLAGS = -I$(CHPREFIX)/include
 
 M = \
+add\
 column\
 columns\
 write\
