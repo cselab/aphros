@@ -64,6 +64,40 @@ static int num2size(int, int *);
 static int remove0(int n, int size, void *, const int *a, int *new_size);
 
 struct VTK *
+vtk_ini(int nv, const double *x, const double *y, const double *z, int nt,
+        const int *t0, const int *t1, const int *t2)
+{
+  int i;
+  struct VTK *q;
+
+  MALLOC(1, &q);
+  MALLOC(nv, &q->x);
+  MALLOC(nv, &q->y);
+  MALLOC(nv, &q->z);
+  MALLOC(nt, &q->t0);
+  MALLOC(nt, &q->t1);
+  MALLOC(nt, &q->t2);
+
+  for (i = 0; i < nv; i++) {
+    q->x[i] = x[i];
+    q->y[i] = y[i];
+    q->z[i] = z[i];
+  }
+
+  for (i = 0; i < nt; i++) {
+    q->t0[i] = t0[i];
+    q->t1[i] = t1[i];
+    q->t2[i] = t2[i];
+  }
+
+  q->nv = nv;
+  q->nt = nt;
+  q->nf = 0;
+
+  return q;
+}
+
+struct VTK *
 vtk_read(FILE * f)
 {
   struct VTK *q;

@@ -14,6 +14,9 @@ struct VTK {
   int nv, nt, nf;
 };
 
+struct VTK *vtk_ini(int nv, const double *x, const double *y,
+                    const double *z, int nt, const int *, const int *,
+                    const int *);
 struct VTK *vtk_read(FILE *);
 int vtk_fin(struct VTK *);
 int vtk_nv(struct VTK *);

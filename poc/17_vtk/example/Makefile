@@ -9,6 +9,7 @@ add\
 age\
 field\
 info\
+ini\
 off\
 rad\
 wall\
