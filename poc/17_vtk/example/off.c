@@ -24,12 +24,12 @@ main(int argc, char **argv)
       usg();
       break;
     case 'f':
-	argv++;
-	if ((field = *argv++) == NULL) {
-	    fprintf(stderr, "%s: -f needs an argument\n", me);
-	    exit(2);
-	}
-	break;
+      argv++;
+      if ((field = *argv++) == NULL) {
+        fprintf(stderr, "%s: -f needs an argument\n", me);
+        exit(2);
+      }
+      break;
     default:
       fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
       exit(1);
@@ -42,8 +42,8 @@ main(int argc, char **argv)
   }
 
   if (field == NULL)
-      vtk_off(vtk, stdout);
+    vtk_off(vtk, stdout);
   else
-      vtk_off_color(vtk, field, stdout);
+    vtk_off_color(vtk, field, stdout);
   vtk_fin(vtk);
 }
