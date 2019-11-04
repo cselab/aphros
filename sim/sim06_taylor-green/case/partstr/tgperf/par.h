@@ -18,7 +18,7 @@
 
 //#define MPIDIM dimensions(nx = 4, ny = 4, nz = 4);
 
-#define MPIDIM DT=0.0015;
+#define MPIDIM DT=0.001;
 //#define MPIDIM DT=0.003; kPartstr.Np = 5;  kPartstr.Ns = 2; kPartstr.eps = 1e-4;
 
 #ifndef MPIDIM

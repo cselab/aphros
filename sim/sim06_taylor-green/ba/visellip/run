@@ -1,0 +1,4 @@
+set -eu
+./omm.py -C2 `ls ../f_00{00..40}.xmf` || true
+r.pngmp4 a a.mp4 -y
+rm -f core.*

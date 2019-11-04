@@ -50,6 +50,19 @@ Plots bubbles.
 '''.format(av[0]))
     exit(1)
 
+def CheckFlag(name):
+    if name in av:
+        av.remove(name)
+        return True
+    return False
+
+
+cam = 1
+if CheckFlag('-C1'):
+    cam = 1
+if CheckFlag('-C2'):
+    cam = 2
+
 # vf input
 ff = natsorted(av[1:])
 if not len(ff):
@@ -79,22 +92,45 @@ paraview.simple._DisableFirstRenderCameraReset()
 # RENDER
 # ----------------------------------------------------------------
 
+# standard view from corner
+C1 = [
+ [6.43080086005585, -15.166333096764594, 9.914876482661194],
+ [3.0001989267510476, 4.2895772779323025, 2.724262644294233],
+ [-0.05939117461388465, 0.33682408883346476, 0.9396926207859086],
+ 4.2537082476917885,
+    ]
+
+C2 = [
+  [-10, -10, 3.141592],
+  [0, 0, 3.141592],
+  [0, 0, 1],
+  3.12
+    ]
+
+# view in direction (1,1,0)
+
+CC = [C1, C2]
+C = CC[cam - 1]
+
+
 # get the material library
 materialLibrary1 = GetMaterialLibrary()
 
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
-renderView1.ViewSize = [1800, 2000]
+renderView1.ViewSize = [2100,1500] if cam == 2 else [1800, 2000]
 renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.OrientationAxesVisibility = 0
 renderView1.CenterOfRotation = [3.1415927410125732, 3.1415927410125732, 3.1415927410125732]
 renderView1.StereoType = 0
-renderView1.CameraPosition = [6.43080086005585, -15.166333096764594, 9.914876482661194]
-renderView1.CameraFocalPoint = [3.0001989267510476, 4.2895772779323025, 2.724262644294233]
-renderView1.CameraViewUp = [-0.05939117461388465, 0.33682408883346476, 0.9396926207859086]
-renderView1.CameraParallelScale = 4.2537082476917885
+renderView1.CameraPosition = C[0]
+renderView1.CameraFocalPoint = C[1]
+renderView1.CameraViewUp = C[2]
+renderView1.CameraParallelScale = C[3]
 renderView1.CameraParallelProjection = 1
 renderView1.Background = [1., 1., 1.]
+renderView1.KeyLightWarmth = 0.5
+renderView1.FillLightWarmth = 0.5
 
 # ----------------------------------------------------------------
 # restore active view
