@@ -2,37 +2,60 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include <csv.h>
 #include <table.h>
 
 #define	USED(x)		if(x);else{}
 
+enum { N = 999, M = 99999 };
 static char me[] = "vtk/age";
 
 static int read(const char*, int *, double*);
 static int write(const char*, int, const double *, const double *);
+static int digits(const char *, char *);
 
 int
 main(int argc, char **argv)
 {
-  double cl[9999], age[9999];
+  double *cl, *age;
   struct Table *tbl;
   int n, i, key, value, status, cnt;
-  char name[999];
+  char dig[N], name[N];
 
+  USED(argc);
+  cl = malloc(M*sizeof(*cl));
+  if (cl == NULL) {
+    fprintf(stderr, "alloc failed\n");
+    exit(2);
+  }
+  age = malloc(M*sizeof(*age));
+  if (age == NULL) {
+    fprintf(stderr, "alloc failed\n");
+    exit(2);
+  }
   cnt = 0;
   read(*++argv, &n, cl);
+  if (n > M) {
+    fprintf(stderr, "n=%d > M=%d\n", n, M);
+    exit(2);
+  }
   tbl = table_ini(100);
   for (i = 0; i < n; i++) {
     age[i] = 0;
     table_put(tbl, cl[i], 0);
   }
-  sprintf(name, "%05d.csv", cnt++);
+  digits(*argv, dig);
+  sprintf(name, "%s.csv", dig);
   write(name, n, cl, age);
 
   while (*++argv != NULL) {
     read(*argv, &n, cl);
+    if (n > M) {
+      fprintf(stderr, "n=%d > M=%d\n", n, M);
+      exit(2);
+    }
     for (i = 0; i < n; i++) {
       key = cl[i];
       status = table_get(tbl, key, &value);
@@ -57,12 +80,15 @@ main(int argc, char **argv)
       table_put(tbl, key, value);
       age[i] = value;
     }
-    sprintf(name, "%05d.csv", cnt++);
+    digits(*argv, dig);
+    sprintf(name, "%s.csv", dig);
     write(name, n, cl, age);
   }
 
   table_fin(tbl);
-  USED(argc);
+  free(cl);
+  free(age);
+  return 0;
 }
 
 static int
@@ -135,5 +161,22 @@ write(const char *name, int n, const double *cl, const double *age)
   csv_write(csv, f);
   fclose(f);
   csv_fin(csv);
+  return 0;
+}
+
+static int
+digits(const char *s, char *ans)
+{
+  int i, j;
+
+  for (i = j = 0; s[i] != '\0'; i++)
+   if (s[i] == '/')
+     j = i + 1;
+  for (; s[j] != '\0'; j++)
+    if (isdigit(s[j])) break;
+  for (i = j; s[i] != '\0'; i++)
+    if (!isdigit(s[i])) break;
+    else *ans++ = s[i];
+  *ans = '\0';
   return 0;
 }
