@@ -384,7 +384,7 @@ static void AppendCsv(int it, int np, coord * xx, const char* name,
 }
 
 static double Curv(double hp, double th) {
-  return sqrt(2.) / hp * sin(th) / sqrt(1. + cos(th));
+  return 2. * sin(th * 0.5) / hp;
 }
 
 static void Swap(coord* a, coord* b) {
