@@ -30,13 +30,20 @@ main(int argc, char **argv)
   struct Table *tbl;
   int n, i, key, value, status;
   char dig[N], name[N];
+  char *pattern;
 
   USED(argc);
-
+  pattern = NULL;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
     case 'h':
       usg();
+      break;
+    case 'p':
+      if ((pattern = *argv++) == NULL) {
+        fprintf(stderr, "%s: -p needs an argument\n", me);
+        exit(2);
+      }
       break;
     default:
       fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
@@ -46,7 +53,10 @@ main(int argc, char **argv)
     fprintf(stderr, "%s: no files given\n", me);
     exit(1);
   }
-
+  if (pattern == NULL) {
+    fprintf(stderr, "%s: pattern (-p) is not given\n", me);
+    exit(1);
+  }
   cl = malloc(M * sizeof(*cl));
   if (cl == NULL) {
     fprintf(stderr, "alloc failed\n");
