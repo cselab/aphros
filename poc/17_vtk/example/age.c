@@ -14,8 +14,8 @@ static char me[] = "vtk/age";
 #include "util.h"
 
 #define	USED(x)		if(x);else{}
-static int read(const char *, int *, double *);
-static int write(const char *, int, const double *, const double *);
+static int read(const char * path, const char *, int *, double *);
+static int write(const char * path, const char * field, int, const double *, const double *);
 
 static void
 usg(void)
@@ -31,14 +31,21 @@ main(int argc, char **argv)
   struct Table *tbl;
   int n, i, key, value, status;
   char name[N];
-  const char *pattern;
+  const char *pattern, *field;
 
   USED(argc);
-  pattern = NULL;
+  pattern = field = NULL;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
     case 'h':
       usg();
+      break;
+    case 'f':
+      argv++;
+      if ((field = *argv) == NULL) {
+        fprintf(stderr, "%s: -p needs an argument\n", me);
+        exit(2);
+      }
       break;
     case 'p':
       argv++;
@@ -59,6 +66,10 @@ main(int argc, char **argv)
     fprintf(stderr, "%s: pattern (-p) is not given\n", me);
     exit(1);
   }
+  if (field == NULL) {
+    fprintf(stderr, "%s: field (-f) is not given\n", me);
+    exit(1);
+  }  
   cl = malloc(M * sizeof(*cl));
   if (cl == NULL) {
     fprintf(stderr, "alloc failed\n");
@@ -69,7 +80,7 @@ main(int argc, char **argv)
     fprintf(stderr, "alloc failed\n");
     exit(2);
   }
-  read(*argv, &n, cl);
+  read(*argv, field, &n, cl);
   if (n > M) {
     fprintf(stderr, "n=%d > M=%d\n", n, M);
     exit(2);
@@ -80,10 +91,10 @@ main(int argc, char **argv)
     table_put(tbl, cl[i], 0);
   }
   util_name(pattern, *argv, name);
-  write(name, n, cl, age);
+  write(name, field, n, cl, age);
 
   while (*++argv != NULL) {
-    read(*argv, &n, cl);
+    read(*argv, field, &n, cl);
     if (n > M) {
       fprintf(stderr, "n=%d > M=%d\n", n, M);
       exit(2);
@@ -114,7 +125,7 @@ main(int argc, char **argv)
     }
 
     util_name(pattern, *argv, name);
-    write(name, n, cl, age);
+    write(name, field, n, cl, age);
   }
 
   table_fin(tbl);
@@ -124,12 +135,12 @@ main(int argc, char **argv)
 }
 
 static int
-read(const char *name, int *pn, double *a)
+read(const char *name, const char *field, int *pn, double *a)
 {
   int i, n;
   FILE *f;
   struct CSV *csv;
-  double *field;
+  double *data;
 
   if (name == NULL) {
     fprintf(stderr, "%s: name is empty\n", me);
@@ -147,21 +158,21 @@ read(const char *name, int *pn, double *a)
     fprintf(stderr, "%s: fail to parse '%s'\n", me, name);
     exit(2);
   }
-  field = csv_field(csv, "cl");
-  if (field == NULL) {
-    fprintf(stderr, "%s: no field '%s'\n", me, "cl");
+  data = csv_field(csv, field);
+  if (data == NULL) {
+    fprintf(stderr, "%s: no field '%s'\n", me, field);
     exit(2);
   }
   n = csv_nr(csv);
   for (i = 0; i < n; i++)
-    a[i] = field[i];
+    a[i] = data[i];
   *pn = n;
   csv_fin(csv);
   return 0;
 }
 
 static int
-write(const char *name, int n, const double *cl, const double *age)
+write(const char *name, const char *field, int n, const double *cl, const double *age)
 {
   int i;
   struct CSV *csv;
@@ -174,10 +185,10 @@ write(const char *name, int n, const double *cl, const double *age)
     exit(2);
   }
 
-  csv_add(csv, "cl");
+  csv_add(csv, field);
   csv_add(csv, "age");
 
-  cl0 = csv_field(csv, "cl");
+  cl0 = csv_field(csv, field);
   age0 = csv_field(csv, "age");
 
   for (i = 0; i < n; i++) {
