@@ -8,15 +8,14 @@
 #include <csv.h>
 #include <table.h>
 
-#define	USED(x)		if(x);else{}
-
 enum { N = 999, M = 99999 };
 static char me[] = "vtk/age";
 
+#include "util.h"
+
+#define	USED(x)		if(x);else{}
 static int read(const char *, int *, double *);
 static int write(const char *, int, const double *, const double *);
-static int digits(const char *, char *);
-static int output_name(const char *patter, const char *, char *);
 
 static void
 usg(void)
@@ -44,8 +43,8 @@ main(int argc, char **argv)
     case 'p':
       argv++;
       if ((pattern = *argv) == NULL) {
-	fprintf(stderr, "%s: -p needs an argument\n", me);
-	exit(2);
+        fprintf(stderr, "%s: -p needs an argument\n", me);
+        exit(2);
       }
       break;
     default:
@@ -80,7 +79,7 @@ main(int argc, char **argv)
     age[i] = 0;
     table_put(tbl, cl[i], 0);
   }
-  output_name(pattern, *argv, name);
+  util_name(pattern, *argv, name);
   write(name, n, cl, age);
 
   while (*++argv != NULL) {
@@ -93,17 +92,17 @@ main(int argc, char **argv)
       key = cl[i];
       status = table_get(tbl, key, &value);
       if (status != TABLE_EMPY) {
-	value += 1;
-	value = -value;
-	table_put(tbl, key, value);
+        value += 1;
+        value = -value;
+        table_put(tbl, key, value);
       } else
-	table_put(tbl, key, 0);
+        table_put(tbl, key, 0);
     }
     for (i = 0; i < n; i++) {
       key = cl[i];
       status = table_get(tbl, key, &value);
       if (status != TABLE_EMPY && value > 0)
-	table_remove(tbl, key);
+        table_remove(tbl, key);
     }
     for (i = 0; i < n; i++) {
       key = cl[i];
@@ -114,7 +113,7 @@ main(int argc, char **argv)
       age[i] = value;
     }
 
-    output_name(pattern, *argv, name);
+    util_name(pattern, *argv, name);
     write(name, n, cl, age);
   }
 
@@ -222,17 +221,18 @@ output_name(const char *p0, const char *name, char *output)
 {
   char dig[N], pattern[N];
   char *c;
+
   strncpy(pattern, p0, N);
   c = strchr(pattern, '%');
   if (c == NULL) {
-      fprintf(stderr, "%s: no %% in pattern '%s'\n", me, pattern);
-      exit(2);
+    fprintf(stderr, "%s: no %% in pattern '%s'\n", me, pattern);
+    exit(2);
   }
   *c = '\0';
   digits(name, dig);
   if (snprintf(output, N, "%s%s%s", pattern, dig, c + 1) < 0) {
-      fprintf(stderr, "%s: snprintf failed\n", me);
-      exit(2);
+    fprintf(stderr, "%s: snprintf failed\n", me);
+    exit(2);
   }
   return 0;
 }

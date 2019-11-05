@@ -19,6 +19,8 @@ all: $M
 .o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@
 .c.o:; $(CC) $(CFLAGS) $(M_CFLAGS) $< -c
 
+age.o: util.h
+
 .c:
 %: %.c
 %: %.sh
