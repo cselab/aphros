@@ -3,6 +3,7 @@
 #include <vtk.h>
 
 enum { nv = 3, nt = 1 };
+
 //static char me[] = "vtk/ini";
 int
 main(void)
