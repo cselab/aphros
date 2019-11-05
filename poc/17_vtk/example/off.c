@@ -25,7 +25,7 @@ main(int argc, char **argv)
       break;
     case 'f':
       argv++;
-      if ((field = *argv++) == NULL) {
+      if ((field = *argv) == NULL) {
         fprintf(stderr, "%s: -f needs an argument\n", me);
         exit(2);
       }

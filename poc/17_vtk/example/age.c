@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 
 #include <csv.h>
@@ -15,6 +16,7 @@ static char me[] = "vtk/age";
 static int read(const char *, int *, double *);
 static int write(const char *, int, const double *, const double *);
 static int digits(const char *, char *);
+static int output_name(const char *patter, const char *, char *);
 
 static void
 usg(void)
@@ -29,7 +31,7 @@ main(int argc, char **argv)
   double *cl, *age;
   struct Table *tbl;
   int n, i, key, value, status;
-  char dig[N], name[N];
+  char name[N];
   const char *pattern;
 
   USED(argc);
@@ -40,9 +42,10 @@ main(int argc, char **argv)
       usg();
       break;
     case 'p':
-      if ((pattern = *argv++) == NULL) {
-        fprintf(stderr, "%s: -p needs an argument\n", me);
-        exit(2);
+      argv++;
+      if ((pattern = *argv) == NULL) {
+	fprintf(stderr, "%s: -p needs an argument\n", me);
+	exit(2);
       }
       break;
     default:
@@ -77,11 +80,7 @@ main(int argc, char **argv)
     age[i] = 0;
     table_put(tbl, cl[i], 0);
   }
-  digits(*argv, dig);
-  if (snprintf(name, N, "%s.csv", dig) < 0) {
-    fprintf(stderr, "snprintf failed\n");
-    exit(2);
-  }
+  output_name(pattern, *argv, name);
   write(name, n, cl, age);
 
   while (*++argv != NULL) {
@@ -94,17 +93,17 @@ main(int argc, char **argv)
       key = cl[i];
       status = table_get(tbl, key, &value);
       if (status != TABLE_EMPY) {
-        value += 1;
-        value = -value;
-        table_put(tbl, key, value);
+	value += 1;
+	value = -value;
+	table_put(tbl, key, value);
       } else
-        table_put(tbl, key, 0);
+	table_put(tbl, key, 0);
     }
     for (i = 0; i < n; i++) {
       key = cl[i];
       status = table_get(tbl, key, &value);
       if (status != TABLE_EMPY && value > 0)
-        table_remove(tbl, key);
+	table_remove(tbl, key);
     }
     for (i = 0; i < n; i++) {
       key = cl[i];
@@ -114,11 +113,8 @@ main(int argc, char **argv)
       table_put(tbl, key, value);
       age[i] = value;
     }
-    digits(*argv, dig);
-    if (snprintf(name, N, "%s.csv", dig) < 0) {
-      fprintf(stderr, "snprintf failed\n");
-      exit(2);
-    }
+
+    output_name(pattern, *argv, name);
     write(name, n, cl, age);
   }
 
@@ -218,5 +214,25 @@ digits(const char *s, char *ans)
     else
       *ans++ = s[i];
   *ans = '\0';
+  return 0;
+}
+
+static int
+output_name(const char *p0, const char *name, char *output)
+{
+  char dig[N], pattern[N];
+  char *c;
+  strncpy(pattern, p0, N);
+  c = strchr(pattern, '%');
+  if (c == NULL) {
+      fprintf(stderr, "%me: no %s in '%s'", me, pattern);
+      exit(2);
+  }
+  *c = '\0';
+  digits(name, dig);
+  if (snprintf(output, N, "%s%s%s", pattern, dig, c + 1) < 0) {
+      fprintf(stderr, "%s: snprintf failed\n", me);
+      exit(2);
+  }
   return 0;
 }
