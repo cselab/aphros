@@ -225,7 +225,7 @@ output_name(const char *p0, const char *name, char *output)
   strncpy(pattern, p0, N);
   c = strchr(pattern, '%');
   if (c == NULL) {
-      fprintf(stderr, "%me: no %s in '%s'", me, pattern);
+      fprintf(stderr, "%s: no %% in pattern '%s'\n", me, pattern);
       exit(2);
   }
   *c = '\0';
