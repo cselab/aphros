@@ -230,16 +230,12 @@ vtk_fin(struct VTK *q)
     FREE(q->name[i]);
     FREE(q->data[i]);
   }
-  if (nv > 0) {
-    FREE(q->x);
-    FREE(q->y);
-    FREE(q->z);
-  }
-  if (nt > 0) {
-    FREE(q->t0);
-    FREE(q->t1);
-    FREE(q->t2);
-  }
+  FREE(q->x);
+  FREE(q->y);
+  FREE(q->z);
+  FREE(q->t0);
+  FREE(q->t1);
+  FREE(q->t2);
   FREE(q);
   return 0;
 }

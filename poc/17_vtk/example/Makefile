@@ -7,6 +7,7 @@ M_CFLAGS = -I$(CHPREFIX)/include
 M = \
 add\
 age\
+color\
 field\
 info\
 ini\

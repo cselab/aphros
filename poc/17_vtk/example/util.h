@@ -38,3 +38,9 @@ util_name(const char *p0, const char *name, char *output)
   }
   return 0;
 }
+
+static int
+util_eq(const char *a, const char *b)
+{
+  return strncmp(a, b, N) == 0;
+}
