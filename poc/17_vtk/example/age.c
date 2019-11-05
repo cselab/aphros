@@ -20,7 +20,7 @@ static int write(const char * path, const char * field, int, const double *, con
 static void
 usg(void)
 {
-  fprintf(stderr, "%s [-o pattern] [file.csv ..]\n", me);
+  fprintf(stderr, "%s [-p pattern] [-f field] [file.csv ..]\n", me);
   exit(1);
 }
 
