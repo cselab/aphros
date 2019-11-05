@@ -14,8 +14,9 @@ static char me[] = "vtk/age";
 #include "util.h"
 
 #define	USED(x)		if(x);else{}
-static int read(const char * path, const char *, int *, double *);
-static int write(const char * path, const char * field, int, const double *, const double *);
+static int read(const char *path, const char *, int *, double *);
+static int write(const char *path, const char *field, int, const double *,
+                 const double *);
 
 static void
 usg(void)
@@ -69,7 +70,7 @@ main(int argc, char **argv)
   if (field == NULL) {
     fprintf(stderr, "%s: field (-f) is not given\n", me);
     exit(1);
-  }  
+  }
   cl = malloc(M * sizeof(*cl));
   if (cl == NULL) {
     fprintf(stderr, "alloc failed\n");
@@ -172,7 +173,8 @@ read(const char *name, const char *field, int *pn, double *a)
 }
 
 static int
-write(const char *name, const char *field, int n, const double *cl, const double *age)
+write(const char *name, const char *field, int n, const double *cl,
+      const double *age)
 {
   int i;
   struct CSV *csv;

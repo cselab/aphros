@@ -2,16 +2,29 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
 
 #include <vtk.h>
 #include <csv.h>
 #include <table.h>
 
+enum { N = 999 };
+static char me[] = "vtk/rad";
+
+#include "util.h"
+
 #define	USED(x)		if(x);else{}
 static double pi = 3.141592653589793;
 
 #define Vcoef (4.0/3.0*pi)
-static char me[] = "vtk/rad";
+
+static void
+usg()
+{
+  fprintf(stderr, "%s -k key -f field [csv ..] [vtk ..]\n", me);
+  exit(1);
+}
 
 static double array_max(int, double *);
 static double array_min(int, double *);
@@ -27,12 +40,43 @@ main(int argc, char **argv)
   struct VTK *vtk;
   struct CSV *csv;
   struct Table *table;
-  char *path;
+  char *path, *Key, *Volume;
   FILE *f;
 
   USED(argc);
+  Key = Volume = NULL;
+  while (*++argv != NULL && argv[0][0] == '-')
+    switch (argv[0][1]) {
+    case 'h':
+      usg();
+      break;
+    case 'k':
+      argv++;
+      if ((Key = *argv) == NULL) {
+        fprintf(stderr, "%s: -k needs an argument\n", me);
+        exit(2);
+      }
+      break;
+    case 'f':
+      argv++;
+      if ((Volume = *argv) == NULL) {
+        fprintf(stderr, "%s: -f needs an argument\n", me);
+        exit(2);
+      }
+      break;
+    default:
+      fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+      exit(1);
+    }
+  if (Key == NULL) {
+    fprintf(stderr, "%s: key (-k) is not given\n", me);
+    exit(1);
+  }
+  if (Volume == NULL) {
+    fprintf(stderr, "%s: field (-f) is not given\n", me);
+    exit(1);
+  }
 
-  argv++;
   path = argv++[0];
   if (path == NULL) {
     fprintf(stderr, "%s: needs vtk file\n", me);
@@ -68,19 +112,19 @@ main(int argc, char **argv)
   fclose(f);
   nt = vtk_nt(vtk);
   flag = malloc(nt * sizeof(*flag));
-  cl = vtk_data(vtk, "cl");
+  cl = vtk_data(vtk, Key);
   if (cl == NULL) {
-    fprintf(stderr, "%s: not field 'cl' in vtk file\n", me);
+    fprintf(stderr, "%s: no field '%s' in vtk file\n", me, Key);
     exit(2);
   }
-  cl_csv = csv_field(csv, "cl");
+  cl_csv = csv_field(csv, Key);
   if (cl_csv == NULL) {
-    fprintf(stderr, "%s: not field 'cl' in csv file\n", me);
+    fprintf(stderr, "%s: no field '%s' in csv file\n", me, Key);
     exit(2);
   }
-  vf = csv_field(csv, "vf");
+  vf = csv_field(csv, Volume);
   if (vf == NULL) {
-    fprintf(stderr, "%s: not field 'vf' in csv file\n", me);
+    fprintf(stderr, "%s: no field '%s' in csv file\n", me, Volume);
     exit(2);
   }
   nr = csv_nr(csv);
