@@ -16,6 +16,13 @@ static int read(const char *, int *, double *);
 static int write(const char *, int, const double *, const double *);
 static int digits(const char *, char *);
 
+static void
+usg(void)
+{
+  fprintf(stderr, "%s [-o pattern] [file.csv ..]\n", me);
+  exit(1);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -25,6 +32,21 @@ main(int argc, char **argv)
   char dig[N], name[N];
 
   USED(argc);
+
+  while (*++argv != NULL && argv[0][0] == '-')
+    switch (argv[0][1]) {
+    case 'h':
+      usg();
+      break;
+    default:
+      fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+      exit(1);
+    }
+  if (*argv == NULL) {
+    fprintf(stderr, "%s: no files given\n", me);
+    exit(1);
+  }
+
   cl = malloc(M * sizeof(*cl));
   if (cl == NULL) {
     fprintf(stderr, "alloc failed\n");
@@ -35,7 +57,7 @@ main(int argc, char **argv)
     fprintf(stderr, "alloc failed\n");
     exit(2);
   }
-  read(*++argv, &n, cl);
+  read(*argv, &n, cl);
   if (n > M) {
     fprintf(stderr, "n=%d > M=%d\n", n, M);
     exit(2);
