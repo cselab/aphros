@@ -30,7 +30,7 @@ main(int argc, char **argv)
   struct Table *tbl;
   int n, i, key, value, status;
   char dig[N], name[N];
-  char *pattern;
+  const char *pattern;
 
   USED(argc);
   pattern = NULL;
