@@ -6,7 +6,7 @@ static char me[] = "vtk/off";
 static void
 usg()
 {
-  fprintf(stderr, "%s < VTK > OFF\n", me);
+  fprintf(stderr, "%s [-f field] < VTK > OFF\n", me);
   exit(1);
 }
 
