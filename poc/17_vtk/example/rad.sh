@@ -1,28 +1,5 @@
 #!/bin/sh
 
-a=/tmp/a.$$
-b=/tmp/b.$$
-trap 'rm $a $b; exit 1' 1 2 3 4 15
-ls /u/fall/*0.vtk > $a
-ls /u/fall/*0.csv > $b
+set -eu
 
-paste $a $b | awk -v Q=\' '
-{
-    o = $1
-    sub(/.*\//, "", o)
-    cmd = sprintf("./rad %s %s > %s", q($1), q($2), q(o))
-    r = system(cmd)
-    print cmd
-    if (r != 0) {
-        printf "failed %s\n", cmd | "cat >&2"
-        exit(1)
-    }
-}
-
-function q(s)
-{
-    return Q s Q
-}
-'
-
-rm $a $b
+./rad -p r.%.vtk -f vf -k cl /u/fall/traj_*0.csv -- /u/fall/sm_*0.vtk
