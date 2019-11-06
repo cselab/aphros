@@ -13,6 +13,7 @@ info\
 ini\
 off\
 rad\
+remove\
 wall\
 write\
 

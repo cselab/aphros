@@ -6,7 +6,7 @@ static char me[] = "vtk/wall";
 static void
 usg()
 {
-  fprintf(stderr, "%s < VTK > OFF\n", me);
+  fprintf(stderr, "%s < VTK > VTK\n", me);
   exit(1);
 }
 
