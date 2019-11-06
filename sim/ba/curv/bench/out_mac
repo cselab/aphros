@@ -1,0 +1,16 @@
+-DCURV_ORIG
+time elapsed: 5.056
+cstats: h=0, f=51, a=445, c=1741
+-DCURV_PARTSTR -DPS_itermax=1 -DPS_eps=0 -DNI=10
+time elapsed: 23.314
+cstats: h=0, f=0, a=0, c=2237
+-DCURV_PARTSTR -DPS_itermax=20 -DPS_eps=0 -DNI=10
+time elapsed: 68.341
+cstats: h=0, f=0, a=0, c=2237
+-DCURV_PARTSTR -DNI=10
+time elapsed: 65.608
+cstats: h=0, f=0, a=0, c=2237
+-DCURV_PARTSTR -DPS_Ns=2 -DPS_Np=5 -DNI=10
+time elapsed: 37.736
+cstats: h=0, f=0, a=0, c=2237
+
