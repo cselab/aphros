@@ -584,8 +584,8 @@ static void Section3(Point point, scalar c, vector nn, Trans w,
       coord rn = {x,y,z};
 
       // skip if cell does not intersect plane
-      // TODO: why 0.7 (or 0.645)
-      if (fabs(Dot(w.n, Sub(w.o, rn))) < Delta*0.7) {
+      // TODO: enable, fix condition (current one changes results)
+      if (1 || fabs(Dot(w.n, Sub(w.o, rn))) < Delta) {
         coord m = {nn.x[], nn.y[], nn.z[]};
         double alpha = plane_alpha(c[], m);
         coord pp[kMaxFacet];
