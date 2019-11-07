@@ -1,0 +1,4 @@
+#!/bin/sh
+#ch.conf . -DCMAKE_BUILD_TYPE=release "$@"
+cmake .
+#HDF5_CC=cc HDF5_CLINKER=cc cmake "$@" -DMPI_C_COMPILER=h5pcc -DCMAKE_BUILD_TYPE=relwithdebinfo
