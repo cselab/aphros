@@ -34,9 +34,7 @@ void DumpHDF5_MPI(const TGrid &grid, int /*iCounter*/, Real absTime,
 
   int rank;
   const std::string fullname = f_name + Streamer::EXT;
-  char filename[256];
-
-  sprintf(filename, "%s/%s.h5", dump_path.c_str(), fullname.c_str());
+  std::string filename = dump_path + "/" + fullname + ".h5";
 
   MPI_Comm comm = grid.getCartComm();
   MPI_Comm_rank(comm, &rank);
@@ -48,56 +46,13 @@ void DumpHDF5_MPI(const TGrid &grid, int /*iCounter*/, Real absTime,
 
   hid_t file_id, dataset_id, fspace_id, fapl_id, mspace_id;
 
-
-  ///////////////////////////////////////////////////////////////////////////
-  // write mesh
-  std::vector<int> mesh_dims;
-  std::vector<std::string> dset_name;
-  dset_name.push_back("/vx");
-  dset_name.push_back("/vy");
-  dset_name.push_back("/vz");
-
-  if (isroot)
-  {
-    //H5open();
-    fapl_id = H5Pcreate(H5P_FILE_ACCESS);
-    file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, fapl_id);
-    H5Pclose(fapl_id);
-
-    for (size_t i = 0; i < 3; ++i)
-    {
-      const MeshMap<B>& m = grid.getMeshMap(i);
-      std::vector<double> vertices(m.ncells()+1, m.start());
-      mesh_dims.push_back(vertices.size());
-
-      for (size_t j = 0; j < m.ncells(); ++j)
-        vertices[j+1] = vertices[j] + m.cell_width(j);
-
-      hsize_t dim[1] = {vertices.size()};
-
-      fspace_id = H5Screate_simple(1, dim, NULL);
-      dataset_id = H5Dcreate(file_id, dset_name[i].c_str(), H5T_NATIVE_DOUBLE, 
-          fspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-      H5Sclose(fspace_id);
-
-      H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, 
-          H5P_DEFAULT, vertices.data());
-
-      H5Dclose(dataset_id);
-    }
-
-    // shutdown h5 file
-    H5Fclose(file_id);
-    //H5close();
-  }
   MPI_Barrier(comm);
 
-  ///////////////////////////////////////////////////////////////////////////
   // startup file
   //H5open();
   fapl_id = H5Pcreate(H5P_FILE_ACCESS);
   H5Pset_fapl_mpio(fapl_id, comm, MPI_INFO_NULL);
-  file_id = H5Fopen(filename, H5F_ACC_RDWR, fapl_id);
+  file_id = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl_id);
   H5Pclose(fapl_id);
 
   ///////////////////////////////////////////////////////////////////////////
@@ -197,16 +152,21 @@ void DumpHDF5_MPI(const TGrid &grid, int /*iCounter*/, Real absTime,
   H5Dclose(dataset_id);
   H5Pclose(fapl_id);
   H5Fclose(file_id);
-  //H5close();
 
   delete [] array_all;
 
   if (bXMF && isroot)
   {
-    char wrapper[256];
-    sprintf(wrapper, "%s/%s.xmf", dump_path.c_str(), fullname.c_str());
+    // write mesh
+    std::vector<int> mesh_dims;
+    for (size_t i = 0; i < 3; ++i) {
+      const MeshMap<B>& m = grid.getMeshMap(i);
+      std::vector<double> vertices(m.ncells()+1, m.start());
+      mesh_dims.push_back(vertices.size());
+    }
+    std::string wrapper = dump_path + "/" + fullname + ".xmf";
     FILE *xmf = 0;
-    xmf = fopen(wrapper, "w");
+    xmf = fopen(wrapper.c_str(), "w");
     fprintf(xmf, "<?xml version=\"1.0\" ?>\n");
     fprintf(xmf, "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n");
     fprintf(xmf, "<Xdmf Version=\"2.0\">\n");
