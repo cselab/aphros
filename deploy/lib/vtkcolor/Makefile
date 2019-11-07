@@ -1,4 +1,5 @@
 .POSIX:
+CC = cc
 LINK = $(CC)
 CFLAGS = -g -Og
 M_LDFLAGS = -lm

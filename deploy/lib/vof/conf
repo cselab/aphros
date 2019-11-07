@@ -1,2 +1,2 @@
-cmake . -DCMAKE_BUILD_TYPE=release $@
-
+#!/bin/sh
+ch.conf . "$@"
