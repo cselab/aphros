@@ -3,9 +3,9 @@ get_filename_component(p ${CSD} NAME)
 
 set(EXE t.${p})
 
-add_executable(${EXE} main.cpp)
+#add_executable(${EXE} main.cpp)
 
-target_link_libraries(${EXE} normal overlap partstrmeshm distr)
+#target_link_libraries(${EXE} normal overlap partstrmeshm distr)
 
 #add_test(NAME ${p} COMMAND ch.run ./${EXE})
 
