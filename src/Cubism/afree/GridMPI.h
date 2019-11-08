@@ -127,53 +127,6 @@ public:
         return TGrid::getBlocksInfo();
     }
 
-    bool avail(int ix, int iy = 0, int iz = 0) const override
-    {
-        return true;
-        const int originX = mypeindex[0] * mybpd[0];
-        const int originY = mypeindex[1] * mybpd[1];
-        const int originZ = mypeindex[2] * mybpd[2];
-
-        const int nX = pesize[0] * mybpd[0];
-        const int nY = pesize[1] * mybpd[1];
-        const int nZ = pesize[2] * mybpd[2];
-
-        ix = (ix + nX) % nX;
-        iy = (iy + nY) % nY;
-        iz = (iz + nZ) % nZ;
-
-        const bool xinside = (ix >= originX && ix < nX);
-        const bool yinside = (iy >= originY && iy < nY);
-        const bool zinside = (iz >= originZ && iz < nZ);
-
-        assert(TGrid::avail(ix - originX, iy - originY, iz - originZ));
-        // return xinside && yinside && zinside;
-    }
-
-    size_t operator()(int ix, int iy = 0, int iz = 0) const override
-    {
-        return TGrid::operator()(ix, iy, iz);
-
-        // assuming ix,iy,iz to be global
-        const int originX = mypeindex[0] * mybpd[0];
-        const int originY = mypeindex[1] * mybpd[1];
-        const int originZ = mypeindex[2] * mybpd[2];
-
-        const int nX = pesize[0] * mybpd[0];
-        const int nY = pesize[1] * mybpd[1];
-        const int nZ = pesize[2] * mybpd[2];
-
-        ix = (ix + nX) % nX;
-        iy = (iy + nY) % nY;
-        iz = (iz + nZ) % nZ;
-
-        // assert(ix >= originX && ix < nX);
-        // assert(iy >= originY && iy < nY);
-        // assert(iz >= originZ && iz < nZ);
-
-        return TGrid::operator()(ix - originX, iy - originY, iz - originZ);
-    }
-
     // for a given kernel p (e.g. Processing=Diffusion)
     // based on StencilInfo (bounding box and selected components)
     // returns a SynchronizerMPI (new or existing)

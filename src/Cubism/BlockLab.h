@@ -314,8 +314,6 @@ public:
 					code[1]<1? (code[1]<0 ? 0:nY ) : nY+m_stencilEnd[1]-1,
 					code[2]<1? (code[2]<0 ? 0:nZ ) : nZ+m_stencilEnd[2]-1};
 
-				if (!grid.avail(info.index[0] + code[0], info.index[1] + code[1], info.index[2] + code[2])) continue;
-
 				BlockType& b = grid(info.index[0] + code[0], info.index[1] + code[1], info.index[2] + code[2]);
 
 #if 1
