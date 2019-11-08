@@ -1,23 +1,23 @@
 /*
- *  SynchronizerMPI_new.h
- *  Cubism (split sync into parts, add to interface)
+ *  SynchronizerMPI.h
+ *  Cubism (allocation free)
  *
  *  Created by Fabian Wermelinger on 10/28/19.
  *  Copyright 2019 ETH Zurich. All rights reserved.
  *
  */
+#ifndef SYNCHRONIZERMPI_H_KWDZTKR0
+#define SYNCHRONIZERMPI_H_KWDZTKR0
 
-#pragma once
-
-#include <map>
-#include <vector>
-#include <cmath>
 #include <algorithm>
-#include "mpi.h"
+#include <cmath>
+#include <map>
+#include <mpi.h>
+#include <vector>
 
-#include "DependencyCubeMPI.h"
-#include "PUPkernelsMPI.h"
-#include "StencilInfo.h"
+#include "Cubism/DependencyCubeMPI.h"
+#include "Cubism/PUPkernelsMPI.h"
+#include "Cubism/StencilInfo.h"
 
 using namespace std;
 
@@ -1565,3 +1565,5 @@ void fetch_soa(TView &fv,
         }
     }
 };
+
+#endif /* SYNCHRONIZERMPI_H_KWDZTKR0 */

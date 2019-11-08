@@ -1,13 +1,13 @@
 /*
  *  BlockLabMPI.h
- *  Cubism (does not own lab data)
+ *  Cubism (allocation free)
  *
  *  Created by Fabian Wermelinger on 04/11/19.
  *  Copyright 2019 CSE Lab, ETH Zurich. All rights reserved.
  *
  */
-// FIXME: [fabianw@mavt.ethz.ch; 2019-11-07] replace once named
-#pragma once
+#ifndef BLOCKLAB_H_PRFDFEI9
+#define BLOCKLAB_H_PRFDFEI9
 
 #ifdef _FLOAT_PRECISION_
 typedef float Real;
@@ -20,7 +20,7 @@ typedef double Real;
 #include <vector>
 
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-04] Get rid of this include!
-#include "Grid_new.h"
+#include "Cubism/afree/Grid.h"
 
 #ifdef __bgq__
 #include <builtins.h>
@@ -324,3 +324,5 @@ public:
 		}
 	}
 };
+
+#endif /* BLOCKLAB_H_PRFDFEI9 */

@@ -167,8 +167,6 @@ public:
 
 	void setup(const size_t nX, const size_t nY, const size_t nZ)
 	{
-        // FIXME: [fabianw@mavt.ethz.ch; Wed May 03 2017 04:30:53 PM (-0700)]
-        // dead code (?)
         std::cout << "Setting up the grid with " << nX << "x" << nY << "x" << nZ << " blocks ...";
 
 		_dealloc();

@@ -1,18 +1,19 @@
 /*
  *  BlockLabMPI.h
- *  Cubism (does not own lab data)
+ *  Cubism (allocation free)
  *
  *  Created by Fabian Wermelinger on 04/11/19.
  *  Copyright 2019 CSE Lab, ETH Zurich. All rights reserved.
  *
  */
-#pragma once
+#ifndef BLOCKLABMPI_H_6UGGRS5A
+#define BLOCKLABMPI_H_6UGGRS5A
 
 #include <stdio.h>
 
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-04] Get rid of this. Careful with down
 // casts (due to inheritance)
-#include "GridMPI_new.h"
+#include "Cubism/afree/GridMPI.h"
 
 template<typename MyBlockLab>
 class BlockLabMPI : public MyBlockLab
@@ -96,3 +97,5 @@ public:
         }
 	}
 };
+
+#endif /* BLOCKLABMPI_H_6UGGRS5A */
