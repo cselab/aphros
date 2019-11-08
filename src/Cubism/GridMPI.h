@@ -205,6 +205,7 @@ public:
 
 	bool avail(int ix, int iy=0, int iz=0) const override
 	{
+        return true;
 		//return true;
 		const int originX = mypeindex[0]*mybpd[0];
 		const int originY = mypeindex[1]*mybpd[1];
@@ -223,11 +224,13 @@ public:
 		const bool zinside = (iz>= originZ && iz<nZ);
 
 		assert(TGrid::avail(ix-originX, iy-originY, iz-originZ));
-		return xinside && yinside && zinside;
+		// return xinside && yinside && zinside;
 	}
 
-	inline Block& operator()(int ix, int iy=0, int iz=0) const
+	Block& operator()(int ix, int iy=0, int iz=0) const override
 	{
+		return TGrid::operator()(ix, iy, iz);
+
 		//assuming ix,iy,iz to be global
 		const int originX = mypeindex[0]*mybpd[0];
 		const int originY = mypeindex[1]*mybpd[1];
@@ -241,9 +244,9 @@ public:
 		iy = (iy + nY) % nY;
 		iz = (iz + nZ) % nZ;
 
-		assert(ix>= originX && ix<nX);
-		assert(iy>= originY && iy<nY);
-		assert(iz>= originZ && iz<nZ);
+		// assert(ix>= originX && ix<nX);
+		// assert(iy>= originY && iy<nY);
+		// assert(iz>= originZ && iz<nZ);
 
 		return TGrid::operator()(ix-originX, iy-originY, iz-originZ);
 	}
