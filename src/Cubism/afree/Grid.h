@@ -77,8 +77,6 @@ public:
         }
     }
 
-    virtual bool avail(int, int, int) const { return true; }
-
     virtual size_t operator()(int ix, int iy = 0, int iz = 0) const
     {
         return _encode((ix + NX) % NX, (iy + NY) % NY, (iz + NZ) % NZ);

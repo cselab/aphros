@@ -209,12 +209,6 @@ public:
 					code[1]<1? (code[1]<0 ? 0:nY ) : nY+m_stencilEnd[1]-1,
 					code[2]<1? (code[2]<0 ? 0:nZ ) : nZ+m_stencilEnd[2]-1};
 
-                // FIXME: [fabianw@mavt.ethz.ch; 2019-11-07] not necessary
-                if (!grid.avail(index[0] + code[0],
-                                index[1] + code[1],
-                                index[2] + code[2]))
-                    continue;
-
                 BlockType &b = vfields[grid(index[0] + code[0],
                                             index[1] + code[1],
                                             index[2] + code[2])];
