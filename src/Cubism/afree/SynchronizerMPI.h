@@ -160,6 +160,12 @@ class SynchronizerMPI
                 end[dim_other1] = blocksize[dim_other1];
                 end[dim_other2] = blocksize[dim_other2];
 
+                const bool isempty =
+                    end[0] < start[0] && end[1] < start[1] && end[2] < start[2];
+                if (isempty) {
+                    continue;
+                }
+
                 const int n1 = bpd[dim_other1];
                 const int n2 = bpd[dim_other2];
 
@@ -186,13 +192,7 @@ class SynchronizerMPI
                                 end[1],
                                 end[2]};
 
-                            // FIXME: [fabianw@mavt.ethz.ch; 2019-10-28] Why is
-                            // this check in here?
-                            const bool nonempty = end[0] > start[0] &&
-                                                  end[1] > start[1] &&
-                                                  end[2] > start[2];
-                            if (nonempty)
-                                packinfos.push_back(info);
+                            packinfos.push_back(info);
                         }
                     }
             }
@@ -238,6 +238,12 @@ class SynchronizerMPI
                     end[dim_other1] = a*blockend[dim_other1] + (1-a)*(blockstart[dim_other1] + thickness[dim_other1][0]);
                     end[dim_other2] = b*blockend[dim_other2] + (1-b)*(blockstart[dim_other2] + thickness[dim_other2][0]);
 
+                    const bool isempty = end[0] < start[0] &&
+                                         end[1] < start[1] && end[2] < start[2];
+                    if (isempty) {
+                        continue;
+                    }
+
                     const int n = bpd[d];
                     for(int c=0; c<n; ++c)
                     {
@@ -261,13 +267,7 @@ class SynchronizerMPI
                                 end[1],
                                 end[2]};
 
-                            // FIXME: [fabianw@mavt.ethz.ch; 2019-10-28] Why is
-                            // this check in here?
-                            const bool nonempty = end[0] > start[0] &&
-                                                  end[1] > start[1] &&
-                                                  end[2] > start[2];
-                            if (nonempty)
-                                packinfos.push_back(info);
+                            packinfos.push_back(info);
                         }
                     }
                 }
@@ -698,6 +698,12 @@ class SynchronizerMPI
                         z*blockend[2] + (1-z)*(thickness[2][0] + blockstart[2])
                     };
 
+                    const bool isempty = end[0] < start[0] &&
+                                         end[1] < start[1] && end[2] < start[2];
+                    if (isempty) {
+                        continue;
+                    }
+
                     const int index[3] = {
                         x*(bpd[0]-1),
                         y*(bpd[1]-1),
@@ -718,13 +724,7 @@ class SynchronizerMPI
                             end[1],
                             end[2]};
 
-                        // FIXME: [fabianw@mavt.ethz.ch; 2019-10-28] Why is this
-                        // check here?
-                        const bool nonempty = end[0] > start[0] &&
-                                              end[1] > start[1] &&
-                                              end[2] > start[2];
-                        if (nonempty)
-                            packinfos.push_back(info);
+                        packinfos.push_back(info);
                     }
                 }
 
