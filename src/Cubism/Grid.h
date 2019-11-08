@@ -27,7 +27,7 @@ class Grid
 {
  public:
   using Block = B_;
- 
+
  private:
 	Block * m_blocks;
   std::vector<BlockInfo> m_vInfo;
@@ -110,7 +110,7 @@ public:
         // cells total
         const size_t nn[3] = {NX * bs[0], NY * bs[1], NZ * bs[2]};
         // cell size (h_gridpoint from BlockInfo)
-        const double hc = 
+        const double hc =
             (maxextent / std::max(nn[0], std::max(nn[1], nn[2])));
         // block extent
         const double h = std::max(bs[0], std::max(bs[1], bs[2])) * hc;
@@ -167,9 +167,9 @@ public:
 
 	void setup(const size_t nX, const size_t nY, const size_t nZ)
 	{
-        // TODO: [fabianw@mavt.ethz.ch; Wed May 03 2017 04:30:53 PM (-0700)]
+        // FIXME: [fabianw@mavt.ethz.ch; Wed May 03 2017 04:30:53 PM (-0700)]
         // dead code (?)
-		std::cout << "Setting up the grid with " << nX << "x" << nY << "x" << nZ << " blocks ...";
+        std::cout << "Setting up the grid with " << nX << "x" << nY << "x" << nZ << " blocks ...";
 
 		_dealloc();
 
@@ -194,7 +194,7 @@ public:
 
 	virtual bool avail(int, int, int) const { return true; }
 
-	virtual Block& operator()(size_t ix, size_t iy=0, size_t iz=0) const
+	virtual Block& operator()(int ix, int iy=0, int iz=0) const
 	{
 		return *_linaccess( _encode((ix+NX) % NX, (iy+NY) % NY, (iz+NZ) % NZ) );
 	}

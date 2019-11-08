@@ -45,9 +45,6 @@ public:
          const double maxextent_ = 1)
         : NX(NX_), NY(NY_), NZ(NZ_), N(NX_ * NY_ * NZ_), maxextent(maxextent_)
     {
-        // FIXME: [fabianw@mavt.ethz.ch; 2019-11-04] Get a const reference to
-        // external vector of block infos.  Requires that _encode() id is
-        // correct in vector
         m_vInfo.reserve(N);
         const double o[3] = {0, 0, 0};
         for (size_t iz = 0; iz < NZ; iz++)
@@ -80,7 +77,7 @@ public:
 
     virtual bool avail(int, int, int) const { return true; }
 
-    virtual size_t operator()(size_t ix, size_t iy = 0, size_t iz = 0) const
+    virtual size_t operator()(int ix, int iy = 0, int iz = 0) const
     {
         return _encode((ix + NX) % NX, (iy + NY) % NY, (iz + NZ) % NZ);
     }
