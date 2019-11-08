@@ -46,8 +46,6 @@ public:
         const int index[3] = {
             target.index[0], target.index[1], target.index[2]};
 
-        printf("Load block %d %d %d\n", index[0], index[1], index[2]);
-
         MyBlockLab::load(target, vfields);
 
         assert(refSynchronizerMPI != NULL);
@@ -69,7 +67,6 @@ public:
 
         //const bool any_periodic = this->is_xperiodic() || this->is_yperiodic() || this->is_zperiodic();
 		//const bool any_boundary = xboundary || yboundary || zboundary;
-
 		if ((xskin || yskin || zskin))// && (!any_boundary || any_boundary && any_periodic))
 		{
 			const bool xperiodic = this->is_xperiodic();
@@ -95,26 +92,7 @@ public:
                     ? BlockType::sizeZ
                     : (BlockType::sizeZ + this->m_stencilEnd[2] - 1);
 
-            // Real * const dst = (Real *)&this->m_cacheBlock->LinAccess(0);
-
-            // typedef typename MyBlockLab::ElementType ET;
-
             refSynchronizerMPI->fetch_soa(target, rsx, rex, rsy, rey, rsz, rez);
-            // refSynchronizerMPI->fetch((const Real *)ptrBlock,
-            //                           dst,
-            //                           this->m_stencilStart[0],
-            //                           this->m_stencilStart[1],
-            //                           this->m_stencilStart[2],
-            //                           this->m_cacheBlock->getSize()[0],
-            //                           this->m_cacheBlock->getSize()[1],
-            //                           this->m_cacheBlock->getSize()[2],
-            //                           sizeof(ET) / sizeof(Real),
-            //                           rsx,
-            //                           rex,
-            //                           rsy,
-            //                           rey,
-            //                           rsz,
-            //                           rez);
         }
 	}
 };
