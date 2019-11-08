@@ -185,7 +185,6 @@ public:
 //		double t0 = omp_get_wtime();
 		const Grid<BlockType,allocator>& grid = *m_refGrid;
 
-
 		//0. couple of checks
 		//1. load the block into the cache
 		//2. put the ghosts into the cache
@@ -410,10 +409,7 @@ public:
 					}
 #endif
 			}
-
-
 			m_state = eMRAGBlockLab_Loaded;
-
 		}
 	}
 

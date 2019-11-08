@@ -15,8 +15,6 @@
 #include <algorithm>
 #include "mpi.h"
 
-#include <stdio.h>
-
 #include "DependencyCubeMPI.h"
 #include "PUPkernelsMPI.h"
 #include "StencilInfo.h"
@@ -386,18 +384,18 @@ class SynchronizerMPI
                                                     face_end[2] - face_start[2]
                                                 };
 
-                                                //if (isroot)
-                                                //                                      {
-                                                //                                          printf("-----EDGE --------------->  index: %d %d %d\n", index[0], index[1], index[2]);
-                                                //                                          printf("neighbor: %d %d %d\n", neighbor[0], neighbor[1], neighbor[2]);
-                                                //                                          printf("face: %d %d\n", dface, s);
-                                                //                                          printf("edge: %d %d %d\n", dedge, a, b);
-                                                //                                          printf("facestart: %d %d %d\n", face_start[0], face_start[1], face_start[2]);
-                                                //                                          printf("mystart-end: %d %d %d , %d %d %d\n", start[0], start[1], start[2],  end[0], end[1], end[2]);
-                                                //                                          printf("s: %d %d %d\n",sregion[0], sregion[1], sregion[2]);
-                                                //                                          printf("L: %d %d %d\n",L[0], L[1], L[2]);
-                                                //                                          printf("neighbor p1, p2: %d %d\n", neighbor[dim_other1face], neighbor[dim_other2face]);
-                                                //                                      }
+                                                // if (isroot)
+                                                // {
+                                                //     printf("-----EDGE --------------->  index: %d %d %d\n", index[0], index[1], index[2]);
+                                                //     printf("neighbor: %d %d %d\n", neighbor[0], neighbor[1], neighbor[2]);
+                                                //     printf("face: %d %d\n", dface, s);
+                                                //     printf("edge: %d %d %d\n", dedge, a, b);
+                                                //     printf("facestart: %d %d %d\n", face_start[0], face_start[1], face_start[2]);
+                                                //     printf("mystart-end: %d %d %d , %d %d %d\n", start[0], start[1], start[2],  end[0], end[1], end[2]);
+                                                //     printf("s: %d %d %d\n",sregion[0], sregion[1], sregion[2]);
+                                                //     printf("L: %d %d %d\n",L[0], L[1], L[2]);
+                                                //     printf("neighbor p1, p2: %d %d\n", neighbor[dim_other1face], neighbor[dim_other2face]);
+                                                // }
 
                                                 assert(sregion[0]>= 0);
                                                 assert(sregion[1]>= 0);
@@ -409,9 +407,20 @@ class SynchronizerMPI
 
                                                 Real * src_base = data.faces[dface][s] + NFACEBLOCK*(neighbor[dim_other1face] + n1*neighbor[dim_other2face]) + comp * NFACEBLOCK_COMP;
 
-                                                SubpackInfo subinfo = { ptrBlock, src_base,
-                                                    start[0], start[1], start[2], end[0], end[1], end[2],
-                                                    sregion[0], sregion[1], sregion[2], L[0], L[1]};
+                                                SubpackInfo subinfo = {
+                                                    ptrBlock,
+                                                    src_base,
+                                                    start[0],
+                                                    start[1],
+                                                    start[2],
+                                                    end[0],
+                                                    end[1],
+                                                    end[2],
+                                                    sregion[0],
+                                                    sregion[1],
+                                                    sregion[2],
+                                                    L[0],
+                                                    L[1]};
 
                                                 retval[ptrBlock].push_back(subinfo);
                                             }
@@ -467,18 +476,18 @@ class SynchronizerMPI
                                                     face_end[2] - face_start[2]
                                                 };
 
-                                                //  if (isroot)
-                                                //                                  {
-                                                //                                      printf("---CORNER ----------------->  index: %d %d %d\n", index[0], index[1], index[2]);
-                                                //                                      printf("neighbor: %d %d %d\n", neighbor[0], neighbor[1], neighbor[2]);
-                                                //                                      printf("face: %d %d\n", dface, s);
-                                                //                                      printf("corner: %d %d %d\n", x, y, z);
-                                                //                                      printf("facestart: %d %d %d\n", face_start[0], face_start[1], face_start[2]);
-                                                //                                      printf("mystart: %d %d %d\n", start[0], start[1], start[2]);
-                                                //                                      printf("s: %d %d %d\n",sregion[0], sregion[1], sregion[2]);
-                                                //                                      printf("L: %d %d %d\n",L[0], L[1], L[2]);
-                                                //                                      printf("neighbor p1, p2: %d %d\n", neighbor[dim_other1face], neighbor[dim_other2face]);
-                                                //                                  }
+                                                // if (isroot)
+                                                // {
+                                                //     printf("---CORNER ----------------->  index: %d %d %d\n", index[0], index[1], index[2]);
+                                                //     printf("neighbor: %d %d %d\n", neighbor[0], neighbor[1], neighbor[2]);
+                                                //     printf("face: %d %d\n", dface, s);
+                                                //     printf("corner: %d %d %d\n", x, y, z);
+                                                //     printf("facestart: %d %d %d\n", face_start[0], face_start[1], face_start[2]);
+                                                //     printf("mystart: %d %d %d\n", start[0], start[1], start[2]);
+                                                //     printf("s: %d %d %d\n",sregion[0], sregion[1], sregion[2]);
+                                                //     printf("L: %d %d %d\n",L[0], L[1], L[2]);
+                                                //     printf("neighbor p1, p2: %d %d\n", neighbor[dim_other1face], neighbor[dim_other2face]);
+                                                // }
                                                 assert(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))!=c2i.end());
                                                 assert(sregion[0]>= 0);
                                                 assert(sregion[1]>= 0);
@@ -490,9 +499,20 @@ class SynchronizerMPI
 
                                                 Real * src_base = data.faces[dface][s] + NFACEBLOCK*(neighbor[dim_other1face] + n1*neighbor[dim_other2face]) + comp * NFACEBLOCK_COMP;
 
-                                                SubpackInfo subinfo = { ptrBlock, src_base,
-                                                    start[0], start[1], start[2], end[0], end[1], end[2],
-                                                    sregion[0], sregion[1], sregion[2], L[0], L[1]};
+                                                SubpackInfo subinfo = {
+                                                    ptrBlock,
+                                                    src_base,
+                                                    start[0],
+                                                    start[1],
+                                                    start[2],
+                                                    end[0],
+                                                    end[1],
+                                                    end[2],
+                                                    sregion[0],
+                                                    sregion[1],
+                                                    sregion[2],
+                                                    L[0],
+                                                    L[1]};
 
                                                 retval[ptrBlock].push_back(subinfo);
                                             }
@@ -593,18 +613,18 @@ class SynchronizerMPI
                                                     edge_end[2] - edge_start[2]
                                                 };
 
-                                                //  if (isroot)
-                                                //                                          {
-                                                //                                              printf("---CORNER (from edge) ----------------->  index: %d %d %d\n", index[0], index[1], index[2]);
-                                                //                                              printf("neighbor: %d %d %d\n", neighbor[0], neighbor[1], neighbor[2]);
-                                                //                                              printf("edge: %d %d %d\n", d, a, b);
-                                                //                                              printf("corner: %d %d %d\n", x, y, z);
-                                                //                                              printf("edgestart: %d %d %d\n", edge_start[0], edge_start[1], edge_start[2]);
-                                                //                                              printf("mystart: %d %d %d\n", start[0], start[1], start[2]);
-                                                //                                              printf("s: %d %d %d\n",sregion[0], sregion[1], sregion[2]);
-                                                //                                              printf("L: %d %d %d\n",L[0], L[1], L[2]);
-                                                //                                              printf("neighbor p1: %d\n", neighbor[d]);
-                                                //                                          }
+                                                // if (isroot)
+                                                // {
+                                                //     printf("---CORNER (from edge) ----------------->  index: %d %d %d\n", index[0], index[1], index[2]);
+                                                //     printf("neighbor: %d %d %d\n", neighbor[0], neighbor[1], neighbor[2]);
+                                                //     printf("edge: %d %d %d\n", d, a, b);
+                                                //     printf("corner: %d %d %d\n", x, y, z);
+                                                //     printf("edgestart: %d %d %d\n", edge_start[0], edge_start[1], edge_start[2]);
+                                                //     printf("mystart: %d %d %d\n", start[0], start[1], start[2]);
+                                                //     printf("s: %d %d %d\n",sregion[0], sregion[1], sregion[2]);
+                                                //     printf("L: %d %d %d\n",L[0], L[1], L[2]);
+                                                //     printf("neighbor p1: %d\n", neighbor[d]);
+                                                // }
                                                 assert(c2i.find(I3(origin[0] + neighbor[0], origin[1] + neighbor[1], origin[2] + neighbor[2]))!=c2i.end());
                                                 assert(sregion[0]>= 0);
                                                 assert(sregion[1]>= 0);
@@ -618,9 +638,20 @@ class SynchronizerMPI
                                                 //Real * src_base = data.faces[dface][s] + NFACEBLOCK*(neighbor[dim_other1face] + n1*neighbor[dim_other2face]);
                                                 Real * src_base = data.edges[d][b][a] + NEDGEBLOCK*neighbor[d] + comp * NEDGEBLOCK_COMP;
 
-                                                SubpackInfo subinfo = { ptrBlock, src_base,
-                                                    start[0], start[1], start[2], end[0], end[1], end[2],
-                                                    sregion[0], sregion[1], sregion[2], L[0], L[1]};
+                                                SubpackInfo subinfo = {
+                                                    ptrBlock,
+                                                    src_base,
+                                                    start[0],
+                                                    start[1],
+                                                    start[2],
+                                                    end[0],
+                                                    end[1],
+                                                    end[2],
+                                                    sregion[0],
+                                                    sregion[1],
+                                                    sregion[2],
+                                                    L[0],
+                                                    L[1]};
 
                                                 retval[ptrBlock].push_back(subinfo);
                                             }
@@ -911,9 +942,6 @@ public:
         {
             const int N = send_packinfos.size();
 
-            vector<int> selcomponents = stencil.selcomponents;
-            sort(selcomponents.begin(), selcomponents.end());
-
             for(int i=0; i<N; ++i)
             {
                 PackInfo info = send_packinfos[i];
@@ -1051,433 +1079,6 @@ public:
         }
 
         // 4.
-        cube.make_dependencies(isroot);
-
-// XXX: [fabianw@mavt.ethz.ch; 2019-10-29] ONLY FOR PERIODIC BLOCK LABS
-
-        // XXX: [fabianw@mavt.ethz.ch; 2019-10-29] TESTING
-
-        // const int NPENDINGRECVS = recv.pending.size();
-        // vector<MPI_Request> pending(NPENDINGRECVS);
-        // copy(recv.pending.begin(), recv.pending.end(), pending.begin());
-        // MPI_Waitall(NPENDINGRECVS, &pending.front(), MPI_STATUSES_IGNORE);
-
-        // for (auto& f : fields) {
-        //     for (auto fview : f) {
-        //         fetch_soa(fview);
-        //     }
-        // }
-
-        // void fetch(const Real *const ptrBlock,
-        //            Real *const ptrLab,
-        //            const int x0,
-        //            const int y0,
-        //            const int z0,
-        //            const int xsize,
-        //            const int ysize,
-        //            const int zsize,
-        //            const int gptfloats,
-        //            const int rsx,
-        //            const int rex,
-        //            const int rsy,
-        //            const int rey,
-        //            const int rsz,
-        //            const int rez) const
-
-        // const int rsx = (!xperiodic && info.index[0]==0)? 0 : this->m_stencilStart[0];
-        // const int rex = (!xperiodic && info.index[0]==gLastX) ? BlockType::sizeX : (BlockType::sizeX+this->m_stencilEnd[0]-1);
-        // const int rsy = (!yperiodic && info.index[1]==0)? 0 : this->m_stencilStart[1];
-        // const int rey = (!yperiodic && info.index[1]==gLastY) ? BlockType::sizeY : (BlockType::sizeY+this->m_stencilEnd[1]-1);
-        // const int rsz = (!zperiodic && info.index[2]==0)? 0 : this->m_stencilStart[2];
-        // const int rez = (!zperiodic && info.index[2]==gLastZ) ? BlockType::sizeZ : (BlockType::sizeZ+this->m_stencilEnd[2]-1);
-
-        // refSynchronizerMPI->fetch((const Real *)info.ptrBlock,
-        //                           dst,
-        //                           this->m_stencilStart[0],
-        //                           this->m_stencilStart[1],
-        //                           this->m_stencilStart[2],
-        //                           this->m_cacheBlock->getSize()[0],
-        //                           this->m_cacheBlock->getSize()[1],
-        //                           this->m_cacheBlock->getSize()[2],
-        //                           sizeof(ET) / sizeof(Real),
-        //                           rsx,
-        //                           rex,
-        //                           rsy,
-        //                           rey,
-        //                           rsz,
-        //                           rez);
-    }
-
-    void sync(size_t gptfloats, MPI_Datatype MPIREAL, const int timestamp)
-    {
-
-        // 2. perform send/receive requests
-        // 3. setup the dependency
-        const int NC = stencil.selcomponents.size();
-
-        //2. send requests
-        {
-            //faces
-            for(int d=0; d<3; ++d)
-            {
-                if (!_face_needed(d)) continue;
-
-                const int dim_other1 = (d+1)%3;
-                const int dim_other2 = (d+2)%3;
-
-                for(int s=0; s<2; ++s)
-                {
-                    const int NFACEBLOCK_SEND = NC * send_thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
-                    const int NFACEBLOCK_RECV = NC * recv_thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
-                    const int NFACE_SEND = NFACEBLOCK_SEND * mybpd[dim_other1] * mybpd[dim_other2];
-                    const int NFACE_RECV = NFACEBLOCK_RECV * mybpd[dim_other1] * mybpd[dim_other2];
-
-                    int neighbor_index[3];
-                    neighbor_index[d] = (mypeindex[d] + 2*s-1 + pesize[d])%pesize[d];
-                    neighbor_index[dim_other1] = mypeindex[dim_other1];
-                    neighbor_index[dim_other2] = mypeindex[dim_other2];
-
-                    if (_myself(neighbor_index)) continue;
-
-                    if (NFACE_SEND > 0)
-                    {
-                        MPI_Request req;
-                        MPI_Isend(send.faces[d][s], NFACE_SEND, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + 1-s, cartcomm, &req);
-                        send.pending.insert( req );
-                    }
-
-                    if (NFACE_RECV > 0)
-                    {
-                        MPI_Request rc;
-                        MPI_Irecv(recv.faces[d][s], NFACE_RECV, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + s, cartcomm, &rc);
-                        recv.pending.insert(rc);
-                        cube.face(rc, d, s);
-                    }
-                }
-            }
-
-            if (stencil.tensorial)
-            {
-                //edges
-                for(int d=0; d<3; ++d)
-                {
-                    const int dim_other1 = (d+1)%3;
-                    const int dim_other2 = (d+2)%3;
-
-                    for(int b=0; b<2; ++b)
-                        for(int a=0; a<2; ++a)
-                        {
-                            const int NEDGEBLOCK_SEND = NC * blocksize[d] * send_thickness[dim_other2][b] * send_thickness[dim_other1][a];
-                            const int NEDGEBLOCK_RECV = NC * blocksize[d] * recv_thickness[dim_other2][b] * recv_thickness[dim_other1][a];
-                            const int NEDGE_SEND = NEDGEBLOCK_SEND * mybpd[d];
-                            const int NEDGE_RECV = NEDGEBLOCK_RECV * mybpd[d];
-
-                            int neighbor_index[3];
-                            neighbor_index[d] = mypeindex[d];
-                            neighbor_index[dim_other1] = (mypeindex[dim_other1] + 2*a-1 + pesize[dim_other1])%pesize[dim_other1];
-                            neighbor_index[dim_other2] = (mypeindex[dim_other2] + 2*b-1 + pesize[dim_other2])%pesize[dim_other2];
-
-                            if (_myself(neighbor_index)) continue;
-
-                            if (NEDGE_RECV > 0)
-                            {
-                                MPI_Request rc;
-                                MPI_Irecv(recv.edges[d][b][a], NEDGE_RECV, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*b + a, cartcomm, &rc);
-
-                                recv.pending.insert(rc);
-
-                                cube.edge(rc, d, a, b);
-                            }
-
-                            if (NEDGE_SEND > 0)
-                            {
-                                MPI_Request req;
-                                MPI_Isend(send.edges[d][b][a], NEDGE_SEND, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*(1-b) + (1-a), cartcomm, &req);
-                                send.pending.insert(req);
-                            }
-                        }
-                }
-
-                //corners
-                {
-                    for(int z=0; z<2; ++z)
-                        for(int y=0; y<2; ++y)
-                            for(int x=0; x<2; ++x)
-                                {
-                                    const int NCORNERBLOCK_SEND = NC * send_thickness[0][x]*send_thickness[1][y]*send_thickness[2][z];
-                                    const int NCORNERBLOCK_RECV = NC * recv_thickness[0][x]*recv_thickness[1][y]*recv_thickness[2][z];
-
-                                    int neighbor_index[3];
-                                    neighbor_index[0] = (mypeindex[0] + 2*x-1 + pesize[0])%pesize[0];
-                                    neighbor_index[1] = (mypeindex[1] + 2*y-1 + pesize[1])%pesize[1];
-                                    neighbor_index[2] = (mypeindex[2] + 2*z-1 + pesize[2])%pesize[2];
-
-                                    if (_myself(neighbor_index)) continue;
-
-                                    if (NCORNERBLOCK_RECV)
-                                    {
-                                        MPI_Request rc;
-                                        MPI_Irecv(recv.corners[z][y][x], NCORNERBLOCK_RECV, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*z + 2*y + x, cartcomm, &rc);
-
-                                        recv.pending.insert(rc);
-
-                                        cube.corner(rc, x, y, z);
-                                    }
-
-                                    if (NCORNERBLOCK_SEND)
-                                    {
-                                        MPI_Request req;
-                                        MPI_Isend(send.corners[z][y][x], NCORNERBLOCK_SEND, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*(1-z) + 2*(1-y) + (1-x), cartcomm, &req);
-                                        send.pending.insert(req);
-                                    }
-                                }
-                }
-            }
-        }
-
-        //3.
-        cube.make_dependencies(isroot);
-    }
-
-    //peh
-    // FIXME: [fabianw@mavt.ethz.ch; 2019-10-28] Unused
-    void sync0(size_t gptfloats, MPI_Datatype MPIREAL, const int timestamp)
-    {
-        //double t0, t1;
-
-        //0. wait for pending sends, couple of checks
-        //1. pack all stuff
-        //2. perform send/receive requests
-        //3. setup the dependency
-
-        //0.
-        {
-            const int NPENDINGSENDS = send.pending.size();
-            if (NPENDINGSENDS > 0)
-            {
-                vector<MPI_Request> pending(NPENDINGSENDS);
-                copy(send.pending.begin(), send.pending.end(), pending.begin());
-#if 1
-                MPI_Waitall(NPENDINGSENDS, &pending.front(), MPI_STATUSES_IGNORE);
-#else
-                int done = false;
-                while (1)
-                {
-                    MPI_Testall(NPENDINGSENDS, &pending.front(), &done, MPI_STATUSES_IGNORE);
-                    if (done) break;
-                    pthread_yield();
-                };
-#endif
-
-                send.pending.clear();
-            }
-        }
-
-        assert(recv.pending.size() == 0);
-        assert(send.pending.size() == 0);
-
-        cube.prepare();
-
-        blockinfo_counter = globalinfos.size();
-        const int NC = stencil.selcomponents.size();
-
-        //1. pack
-        {
-            //double t0, t1;
-
-
-            const int N = send_packinfos.size();
-
-            vector<int> selcomponents = stencil.selcomponents;
-            sort(selcomponents.begin(), selcomponents.end());
-
-            const bool contiguous = false;//true; //false; //true;//selcomponents.back()+1-selcomponents.front() == selcomponents.size();
-
-            if (!contiguous)
-            {
-                for(int i=0; i<N; ++i)
-                {
-                    PackInfo info = send_packinfos[i];
-                    PUPkernelsMPI::pack(info.block,
-                                        info.pack,
-                                        gptfloats,
-                                        &selcomponents.front(),
-                                        NC,
-                                        info.sx,
-                                        info.sy,
-                                        info.sz,
-                                        info.ex,
-                                        info.ey,
-                                        info.ez,
-                                        bx,
-                                        by);
-                }
-            }
-            else
-            {
-                const int selstart = selcomponents.front();
-                const int selend = selcomponents.back()+1;
-
-                for(int i=0; i<N; ++i)
-                {
-                    PackInfo info = send_packinfos[i];
-                    PUPkernelsMPI::pack_stripes(info.block,
-                                                info.pack,
-                                                gptfloats,
-                                                selstart,
-                                                selend,
-                                                info.sx,
-                                                info.sy,
-                                                info.sz,
-                                                info.ex,
-                                                info.ey,
-                                                info.ez,
-                                                bx,
-                                                by);
-                }
-            }
-
-        }
-
-        // recvs
-        for (int pass = 0; pass <= 1; pass++)
-        //2. send requests
-        {
-            //faces
-            for(int d=0; d<3; ++d)
-            {
-                if (!_face_needed(d)) continue;
-
-                const int dim_other1 = (d+1)%3;
-                const int dim_other2 = (d+2)%3;
-
-                for(int s=0; s<2; ++s)
-                {
-                    int neighbor_index[3];
-                    neighbor_index[d] = (mypeindex[d] + 2*s-1 + pesize[d])%pesize[d];
-                    neighbor_index[dim_other1] = mypeindex[dim_other1];
-                    neighbor_index[dim_other2] = mypeindex[dim_other2];
-
-                    if (_myself(neighbor_index)) continue;
-
-                    if (pass == 0)
-                    {
-                        const int NFACEBLOCK_RECV = NC * recv_thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
-                        const int NFACE_RECV = NFACEBLOCK_RECV * mybpd[dim_other1] * mybpd[dim_other2];
-
-                        if (NFACE_RECV > 0)
-                        {
-                            MPI_Request rc;
-                            MPI_Irecv(recv.faces[d][s], NFACE_RECV, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + s, cartcomm, &rc);
-                            recv.pending.insert(rc);
-                            cube.face(rc, d, s);
-                        }
-                    }
-                    else
-                    {
-                        const int NFACEBLOCK_SEND = NC * send_thickness[d][s] * blocksize[dim_other1] * blocksize[dim_other2];
-                        const int NFACE_SEND = NFACEBLOCK_SEND * mybpd[dim_other1] * mybpd[dim_other2];
-
-                        if (NFACE_SEND > 0)
-                        {
-                            MPI_Request req;
-                            MPI_Isend(send.faces[d][s], NFACE_SEND, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + 1-s, cartcomm, &req);
-                            send.pending.insert(req);
-                        }
-                    }
-                }
-            }
-
-            if (stencil.tensorial)
-            {
-                //edges
-                for(int d=0; d<3; ++d)
-                {
-                    const int dim_other1 = (d+1)%3;
-                    const int dim_other2 = (d+2)%3;
-
-                    for(int b=0; b<2; ++b)
-                        for(int a=0; a<2; ++a)
-                        {
-                            const int NEDGEBLOCK_SEND = NC * blocksize[d] * send_thickness[dim_other2][b] * send_thickness[dim_other1][a];
-                            const int NEDGEBLOCK_RECV = NC * blocksize[d] * recv_thickness[dim_other2][b] * recv_thickness[dim_other1][a];
-                            const int NEDGE_SEND = NEDGEBLOCK_SEND * mybpd[d];
-                            const int NEDGE_RECV = NEDGEBLOCK_RECV * mybpd[d];
-
-                            int neighbor_index[3];
-                            neighbor_index[d] = mypeindex[d];
-                            neighbor_index[dim_other1] = (mypeindex[dim_other1] + 2*a-1 + pesize[dim_other1])%pesize[dim_other1];
-                            neighbor_index[dim_other2] = (mypeindex[dim_other2] + 2*b-1 + pesize[dim_other2])%pesize[dim_other2];
-
-                            if (_myself(neighbor_index)) continue;
-
-                            if (pass == 0)
-                            {
-                                if (NEDGE_RECV > 0)
-                                {
-                                    MPI_Request rc;
-                                    MPI_Irecv(recv.edges[d][b][a], NEDGE_RECV, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*b + a, cartcomm, &rc);
-
-                                    recv.pending.insert(rc);
-
-                                    cube.edge(rc, d, a, b);
-                                }
-                            }
-                            else
-                            {
-                                if (NEDGE_SEND > 0)
-                                {
-                                    MPI_Request req;
-                                    MPI_Isend(send.edges[d][b][a], NEDGE_SEND, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*(1-b) + (1-a), cartcomm, &req);
-                                    send.pending.insert(req);
-                                }
-                            }
-                        }
-                }
-
-                //corners
-                {
-                    for(int z=0; z<2; ++z)
-                        for(int y=0; y<2; ++y)
-                            for(int x=0; x<2; ++x)
-                                {
-                                    const int NCORNERBLOCK_SEND = NC * send_thickness[0][x]*send_thickness[1][y]*send_thickness[2][z];
-                                    const int NCORNERBLOCK_RECV = NC * recv_thickness[0][x]*recv_thickness[1][y]*recv_thickness[2][z];
-
-                                    int neighbor_index[3];
-                                    neighbor_index[0] = (mypeindex[0] + 2*x-1 + pesize[0])%pesize[0];
-                                    neighbor_index[1] = (mypeindex[1] + 2*y-1 + pesize[1])%pesize[1];
-                                    neighbor_index[2] = (mypeindex[2] + 2*z-1 + pesize[2])%pesize[2];
-
-                                    if (_myself(neighbor_index)) continue;
-
-                                    if (pass == 0)
-                                    {
-                                        if (NCORNERBLOCK_RECV)
-                                        {
-                                            MPI_Request rc;
-                                            MPI_Irecv(recv.corners[z][y][x], NCORNERBLOCK_RECV, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*z + 2*y + x, cartcomm, &rc);
-
-                                            recv.pending.insert(rc);
-
-                                            cube.corner(rc, x, y, z);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (NCORNERBLOCK_SEND)
-                                        {
-                                            MPI_Request req;
-                                            MPI_Isend(send.corners[z][y][x], NCORNERBLOCK_SEND, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*(1-z) + 2*(1-y) + (1-x), cartcomm, &req);
-                                            send.pending.insert(req);
-                                        }
-                                    }
-                                }
-                }
-            }
-        }
-
-        //3.
         cube.make_dependencies(isroot);
     }
 
@@ -1782,49 +1383,16 @@ void fetch_soa(TView &fv,
                const int rsz,
                const int rez) const
 {
-    // XXX: [fabianw@mavt.ethz.ch; 2019-10-29] ONLY FOR PERIODIC BLOCK LABS
-
-    // const int rsx = (!xperiodic && info.index[0]==0)? 0 :
-    // this->m_stencilStart[0]; const int rex = (!xperiodic &&
-    // info.index[0]==gLastX) ? BlockType::sizeX :
-    // (BlockType::sizeX+this->m_stencilEnd[0]-1); const int rsy = (!yperiodic
-    // && info.index[1]==0)? 0 : this->m_stencilStart[1]; const int rey =
-    // (!yperiodic && info.index[1]==gLastY) ? BlockType::sizeY :
-    // (BlockType::sizeY+this->m_stencilEnd[1]-1); const int rsz = (!zperiodic
-    // && info.index[2]==0)? 0 : this->m_stencilStart[2]; const int rez =
-    // (!zperiodic && info.index[2]==gLastZ) ? BlockType::sizeZ :
-    // (BlockType::sizeZ+this->m_stencilEnd[2]-1);
-
-    // refSynchronizerMPI->fetch((const Real *)info.ptrBlock,
-    //                           dst,
-    //                           this->m_stencilStart[0], x0
-    //                           this->m_stencilStart[1], y0
-    //                           this->m_stencilStart[2], z0
-    //                           this->m_cacheBlock->getSize()[0], xsize
-    //                           this->m_cacheBlock->getSize()[1], ysize
-    //                           this->m_cacheBlock->getSize()[2], zsize
-    //                           sizeof(ET) / sizeof(Real),
-    //                           rsx,
-    //                           rex,
-    //                           rsy,
-    //                           rey,
-    //                           rsz,
-    //                           rez);
-
+// TODO: [fabianw@mavt.ethz.ch; 2019-11-07] __restrict
     const Real *const ptrBlock = fv.data;
     Real *const ptrLab = fv.data_halo;
     const size_t Nx = TView::stridex;
     const size_t Ny = TView::stridey;
     const size_t Nz = TView::stridez;
 
-    const int ss[3] = {stencil.sx, stencil.sy, stencil.sz};
-    const int se[3] = {stencil.ex, stencil.ey, stencil.ez};
-    // const int rsx = ss[0];
-    // const int rex = blocksize[0] + se[0] - 1;
-    // const int rsy = ss[1];
-    // const int rey = blocksize[1] + se[1] - 1;
-    // const int rsz = ss[2];
-    // const int rez = blocksize[2] + se[2] - 1;
+    const int x0 = stencil.sx;
+    const int y0 = stencil.sy;
+    const int z0 = stencil.sz;
 
     // build range
     MyRange myrange(rsx, rex, rsy, rey, rsz, rez);
@@ -1851,20 +1419,16 @@ void fetch_soa(TView &fv,
                 if (myrange.outside(packrange))
                     continue;
 
-                const int nsrc = (itpack->ex - itpack->sx) *
-                                 (itpack->ey - itpack->sy) *
-                                 (itpack->ez - itpack->sz);
-
                 PUPkernelsMPI::unpack_soa(itpack->pack,
-                                      ptrLab,
-                                      itpack->sx - ss[0],
-                                      itpack->sy - ss[1],
-                                      itpack->sz - ss[2],
-                                      itpack->ex - ss[0],
-                                      itpack->ey - ss[1],
-                                      itpack->ez - ss[2],
-                                      Nx,
-                                      Ny);
+                                          ptrLab,
+                                          itpack->sx - x0,
+                                          itpack->sy - y0,
+                                          itpack->sz - z0,
+                                          itpack->ex - x0,
+                                          itpack->ey - y0,
+                                          itpack->ez - z0,
+                                          Nx,
+                                          Ny);
             }
         }
     }
@@ -1894,20 +1458,20 @@ void fetch_soa(TView &fv,
                     continue;
 
                 PUPkernelsMPI::unpack_subregion_soa(itsubpack->pack,
-                                                ptrLab,
-                                                itsubpack->x0,
-                                                itsubpack->y0,
-                                                itsubpack->z0,
-                                                itsubpack->xpacklenght,
-                                                itsubpack->ypacklenght,
-                                                itsubpack->sx - ss[0],
-                                                itsubpack->sy - ss[1],
-                                                itsubpack->sz - ss[2],
-                                                itsubpack->ex - ss[0],
-                                                itsubpack->ey - ss[1],
-                                                itsubpack->ez - ss[2],
-                                                Nx,
-                                                Ny);
+                                                    ptrLab,
+                                                    itsubpack->x0,
+                                                    itsubpack->y0,
+                                                    itsubpack->z0,
+                                                    itsubpack->xpacklenght,
+                                                    itsubpack->ypacklenght,
+                                                    itsubpack->sx - x0,
+                                                    itsubpack->sy - y0,
+                                                    itsubpack->sz - z0,
+                                                    itsubpack->ex - x0,
+                                                    itsubpack->ey - y0,
+                                                    itsubpack->ez - z0,
+                                                    Nx,
+                                                    Ny);
             }
         }
     }

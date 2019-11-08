@@ -6,7 +6,7 @@
  *  Copyright 2019 CSE Lab, ETH Zurich. All rights reserved.
  *
  */
-//
+// FIXME: [fabianw@mavt.ethz.ch; 2019-11-07] replace once named
 #pragma once
 
 #ifdef _FLOAT_PRECISION_
@@ -209,6 +209,7 @@ public:
 					code[1]<1? (code[1]<0 ? 0:nY ) : nY+m_stencilEnd[1]-1,
 					code[2]<1? (code[2]<0 ? 0:nZ ) : nZ+m_stencilEnd[2]-1};
 
+                // FIXME: [fabianw@mavt.ethz.ch; 2019-11-07] not necessary
                 if (!grid.avail(index[0] + code[0],
                                 index[1] + code[1],
                                 index[2] + code[2]))
@@ -217,7 +218,6 @@ public:
                 BlockType &b = vfields[grid(index[0] + code[0],
                                             index[1] + code[1],
                                             index[2] + code[2])];
-
 #if 1
                 const int m_vSize0 = TView::stridex;
                 const int m_nElemsPerSlice = TView::stridex * TView::stridey;
@@ -240,7 +240,7 @@ public:
 						memcpy2((char *)ptrDest, (char *)ptrSrc, bytes);
 						#else
 						for(int ix=s[0]; ix<e[0]; ix++)
-							m_cacheBlock->Access(ix-m_stencilStart[0], iy-m_stencilStart[1], iz-m_stencilStart[2]) =
+							target.LinAccess(ix-m_stencilStart[0], iy-m_stencilStart[1], iz-m_stencilStart[2]) =
 							(ElementType)b(ix - code[0]*BlockType::sizeX, iy - code[1]*BlockType::sizeY, iz - code[2]*BlockType::sizeZ);
 						#endif
 					}
@@ -252,6 +252,7 @@ public:
                             char *ptrDest = (char *)&target.LinAccess(
                                 my_izx + (iy - m_stencilStart[1]) * m_vSize0);
 
+                            assert(b(s[0] - code[0]*BlockType::sizeX, iy - code[1]*BlockType::sizeY, iz - code[2]*BlockType::sizeZ) > 0);
                             const char * ptrSrc = (const char*)&b(s[0] - code[0]*BlockType::sizeX, iy - code[1]*BlockType::sizeY, iz - code[2]*BlockType::sizeZ);
 							const int bytes = (e[0]-s[0])*sizeof(ElementType);
 							memcpy2((char *)ptrDest, (char *)ptrSrc, bytes);
