@@ -354,9 +354,8 @@ inline void unpack_soa(const Real *const pack,
     const Real *src = pack;
     for (int zd = dstzstart; zd < dstzend; ++zd) {
         for (int yd = dstystart; yd < dstyend; ++yd) {
-            Real *dst = dstbase + xsize * (yd + ysize * zd);
-            for(int xd=dstxstart; xd<dstxend; ++xd)
-            {
+            Real *dst = dstbase + dstxstart + xsize * (yd + ysize * zd);
+            for (int xd = dstxstart; xd < dstxend; ++xd) {
                 *dst++ = *src++;
             }
         }
@@ -468,8 +467,8 @@ inline void unpack_subregion_soa(const Real *const pack,
 {
     for (int zd = dstzstart; zd < dstzend; ++zd) {
         for (int yd = dstystart; yd < dstyend; ++yd) {
-            Real *dst = dstbase + xsize * (yd + ysize * zd);
-            const Real *src = pack - dstxstart + srcxstart +
+            Real *dst = dstbase + dstxstart + xsize * (yd + ysize * zd);
+            const Real *src = pack + srcxstart +
                               LX * (yd - dstystart + srcystart +
                                     LY * (zd - dstzstart + srczstart));
             for (int xd = dstxstart; xd < dstxend; ++xd) {
