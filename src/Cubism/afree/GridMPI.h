@@ -1,19 +1,20 @@
 /*
- *  GridMPI_new.h
- *  Cubism (does not own block data)
+ *  GridMPI.h
+ *  Cubism (allocation free)
  *
  *  Created by Fabian Wermelinger on 04/11/19.
  *  Copyright 2019 CSE Lab, ETH Zurich. All rights reserved.
  *
  */
-#pragma once
+#ifndef GRIDMPI_H_J17BPEDT
+#define GRIDMPI_H_J17BPEDT
 
 #include <map>
 #include <mpi.h>
 #include <vector>
 
-#include "StencilInfo.h"
-#include "SynchronizerMPI_new.h"
+#include "Cubism/StencilInfo.h"
+#include "Cubism/afree/SynchronizerMPI.h"
 
 template <typename TGrid>
 class GridMPI : public TGrid
@@ -243,3 +244,5 @@ public:
 
     MPI_Comm getWorldComm() const { return worldcomm; }
 };
+
+#endif /* GRIDMPI_H_J17BPEDT */

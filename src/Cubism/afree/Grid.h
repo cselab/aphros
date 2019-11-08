@@ -1,17 +1,19 @@
 /*
- *  Grid_new.h
- *  Cubism (does not own block data)
+ *  Grid.h
+ *  Cubism (allocation free)
  *
  *  Created by Fabian Wermelinger on 04/11/19.
  *  Copyright 2019 CSE Lab, ETH Zurich. All rights reserved.
  *
  */
-#pragma once
+#ifndef GRID_H_I6LVUQY7
+#define GRID_H_I6LVUQY7
 
 #include <cassert>
 #include <vector>
 
-#include "BlockInfo.h"
+// FIXME: [fabianw@mavt.ethz.ch; 2019-11-08] get rid of this include (template)
+#include "Cubism/BlockInfo.h"
 
 template <typename B_>
 class Grid
@@ -89,3 +91,5 @@ public:
         return m_vInfo;
     }
 };
+
+#endif /* GRID_H_I6LVUQY7 */
