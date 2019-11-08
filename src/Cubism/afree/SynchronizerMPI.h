@@ -1383,7 +1383,6 @@ void fetch_soa(TView &fv,
                const int rsz,
                const int rez) const
 {
-// TODO: [fabianw@mavt.ethz.ch; 2019-11-07] __restrict
     const Real *const ptrBlock = fv.data;
     Real *const ptrLab = fv.data_halo;
     const size_t Nx = TView::stridex;

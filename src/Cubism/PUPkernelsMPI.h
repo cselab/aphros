@@ -32,10 +32,16 @@ inline void pack(const Real * const srcbase, Real * const dst,
 			}
 }
 
-inline void pack_soa(const Real * const srcbase, Real * const dstbase,
-                     const int xstart, const int ystart, const int zstart,
-                     const int xend, const int yend, const int zend,
-                     const int bx, const int by)
+inline void pack_soa(const Real *const __restrict srcbase,
+                     Real *const __restrict dstbase,
+                     const int xstart,
+                     const int ystart,
+                     const int zstart,
+                     const int xend,
+                     const int yend,
+                     const int zend,
+                     const int bx,
+                     const int by)
 {
     Real *dst = dstbase;
     for (int iz = zstart; iz < zend; ++iz) {
@@ -340,8 +346,8 @@ inline void unpack(const Real * const pack, Real * const dstbase,
 			}
 }
 
-inline void unpack_soa(const Real *const pack,
-                       Real *const dstbase,
+inline void unpack_soa(const Real *const __restrict pack,
+                       Real *const __restrict dstbase,
                        const int dstxstart,
                        const int dstystart,
                        const int dstzstart,
@@ -449,8 +455,8 @@ inline void unpack_subregion(const Real * const pack, Real * const dstbase,
 			}
 }
 
-inline void unpack_subregion_soa(const Real *const pack,
-                                 Real *const dstbase,
+inline void unpack_subregion_soa(const Real *const __restrict pack,
+                                 Real *const __restrict dstbase,
                                  const int srcxstart,
                                  const int srcystart,
                                  const int srczstart,
