@@ -6,6 +6,7 @@ Cubism-hydro
    :caption: Contents:
 
    intro
+   comm
    convdiff
    fluid
 
