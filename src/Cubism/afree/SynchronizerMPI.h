@@ -860,7 +860,6 @@ public:
 
         const size_t Nx = TView::stridex;
         const size_t Ny = TView::stridey;
-        const size_t Nz = TView::stridez;
 
         //0.
         {
@@ -1387,7 +1386,6 @@ void fetch_soa(TView &fv,
     Real *const ptrLab = fv.data_halo;
     const size_t Nx = TView::stridex;
     const size_t Ny = TView::stridey;
-    const size_t Nz = TView::stridez;
 
     const int x0 = stencil.sx;
     const int y0 = stencil.sy;
