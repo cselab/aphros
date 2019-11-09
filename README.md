@@ -8,6 +8,12 @@ Distributed version of **hydro** based on **Cubism**.
     cd Cubism-hydro
     git config pull.rebase true
 
+## Documentation
+
+<https://cselab.github.io/hydro/doc/>
+
+generated from `doc/sphinx`
+
 ## Build and install
 
 *   Follow instructions from `deploy/README.md` to
