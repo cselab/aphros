@@ -624,6 +624,11 @@ struct UVof<M_>::Imp {
     if (sem.Nested()) {
       Init(layers, fcu, fccl, fcclt, clfixed, clfixed_x, coalth, m);
     }
+    if (bcc_reflect && sem("reflect")) {
+      for (auto i : layers) {
+        BcReflect(fcclt[i], mfc, kClNone, false, m);
+      }
+    }
     sem.LoopBegin();
     if (grid && sem.Nested()) {
       Grid(layers, fccl, fcclt, m);
@@ -669,6 +674,11 @@ struct UVof<M_>::Imp {
       ctx->tries = tries;
       m.Reduce(&ctx->tries, "max");
     }
+    if (bcc_reflect && sem("reflect")) {
+      for (auto i : layers) {
+        BcReflect(fcclt[i], mfc, kClNone, false, m);
+      }
+    }
     if (sem("check")) {
       if (verb && m.IsRoot()) {
         std::cerr << "recolor:"
@@ -680,11 +690,6 @@ struct UVof<M_>::Imp {
       }
     }
     sem.LoopEnd();
-    if (bcc_reflect && sem("reflect")) {
-      for (auto i : layers) {
-        BcReflect(fcclt[i], mfc, kClNone, false, m);
-      }
-    }
     if (reduce && sem.Nested()) {
       UserMap(layers, fccl0, fcclt, ctx->usermap, m);
     }
