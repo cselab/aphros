@@ -81,6 +81,34 @@ Parameters of the solver are provided by
 
 .. includecode:: src/solver/simple.h
   :struct: Par
+  :dedent: 2
+
+Projection
+----------
+
+Class ``Proj`` implements the solver using Chorin's projection.
+
+In addition to the requirements of the base class,
+the constructor takes mappings describing the boundary
+conditions and the initial fields.
+
+.. includecode:: src/solver/proj.h
+  :func: Proj
+  :dedent: 2
+
+with the initial velocity ``fcw``, 
+face conditions ``mfc``,
+cell conditions ``mcc``, 
+density ``fcr``,
+viscosity ``fcd``,
+force ``fcf``,
+projections of well-balanced force ``fcbp``,
+volume source ``fcsv`` and mass source ``fcsm``.
+Parameters of the solver are provided by
+
+.. includecode:: src/solver/proj.h
+  :struct: Par
+  :dedent: 2
 
 Boundary conditions
 -------------------

@@ -37,10 +37,6 @@ where :math:`c` is a cell index,
 (positive if :math:`\mathbf{n}_f` is an outer normal to :math:`c`)
 and :math:`V_c` is the cell volume.
 
-.. .. literalinclude:: src/solver/convdiffi.ipp
-  :language: cpp
-  :lines: 61-136
-
 The constructor takes pointers to fields
 of density :math:`\rho`,
 viscosity :math:`\mu`,
@@ -120,6 +116,7 @@ Parameters of the solver are provided by
 
 .. includecode:: src/solver/convdiffi.h
   :struct: Par
+  :dedent: 2
 
 where ``sc`` defines the interpolation scheme
 
