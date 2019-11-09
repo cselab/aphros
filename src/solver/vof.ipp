@@ -571,6 +571,9 @@ struct Vof<M_>::Imp {
       for (auto c : m.AllCells()) {
         fccl_[c] = (fcu[c] > 0.5 ? 0 : kClNone);
       }
+      if (par->bcc_reflect) {
+        BcReflect(fccl_, mfc_, kClNone, false, m);
+      }
     }
     if (sem.Nested()) {
       uvof_.Recolor(layers, &fcu_.iter_curr, &fccl_, &fcclm,
