@@ -160,13 +160,10 @@ class SynchronizerMPI
 						assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
 						const int blockid = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
-            for (field : globalinfos[blockid].fields) {
-              PackInfo info = {(Real *)field, data.faces[d][s] + NFACEBLOCK*(a + n1*b), start[0], start[1], start[2], end[0], end[1], end[2]};
-
-              }
-              const bool nonempty = end[0]>start[0] && end[1]>start[1] && end[2]>start[2];
-              if (nonempty) packinfos.push_back(info);
-            }
+						PackInfo info = {(Real *)globalinfos[blockid].ptrBlock, data.faces[d][s] + NFACEBLOCK*(a + n1*b), start[0], start[1], start[2], end[0], end[1], end[2]};
+ 
+						const bool nonempty = end[0]>start[0] && end[1]>start[1] && end[2]>start[2];
+						if (nonempty) packinfos.push_back(info);
 					}
 			}
 		}
