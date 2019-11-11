@@ -80,7 +80,7 @@ struct Vof<M_>::Imp {
       } else {
         if (auto cd = dynamic_cast<CondFaceValFixed<Scal>*>(cb)) {
           mfc_cl_[f] = std::make_shared<
-              CondFaceValFixed<Scal>>(Scal(1), nci);
+              CondFaceValFixed<Scal>>(par->inletcl, nci);
         } else {
           mfc_cl_[f] = std::make_shared<
               CondFaceValFixed<Scal>>(kClNone, nci);
@@ -404,7 +404,7 @@ struct Vof<M_>::Imp {
       m.Comm(&fccl);
       m.Comm(&fcim);
     }
-    if (par->bcc_reflect && sem("bcreflect")) {
+    if (sem("bcreflect")) {
       BcApply(uc, mfc_, m);
       BcApply(fccl, mfc_cl_, m);
       BcApply(fcim, mfc_im_, m);
@@ -586,14 +586,12 @@ struct Vof<M_>::Imp {
       for (auto c : m.AllCells()) {
         fccl_[c] = (fcu[c] > 0.5 ? 0 : kClNone);
       }
-      if (par->bcc_reflect) {
-        BcApply(fccl_, mfc_cl_, m);
-      }
+      BcApply(fccl_, mfc_cl_, m);
     }
     if (sem.Nested()) {
       uvof_.Recolor(layers, &fcu_.iter_curr, &fccl_, &fcclm,
                     par->clfixed, par->clfixed_x,
-                    par->coalth, mfc_, par->bcc_reflect, par->verb,
+                    par->coalth, mfc_cl_, par->verb,
                     par->recolor_unionfind, par->recolor_reduce,
                     par->recolor_grid, m);
     }
@@ -629,7 +627,7 @@ struct Vof<M_>::Imp {
       m.Comm(&fca_);
       m.Comm(&fcn_);
     }
-    if (par->bcc_reflect && sem("reflect")) {
+    if (sem("reflect")) {
       // --> fca [a], fcn [a]
       BcApply(fca_, mfc_a_, m);
       BcApply(fcn_, mfc_n_, m);

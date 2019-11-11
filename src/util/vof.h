@@ -66,7 +66,6 @@ class UVof {
   // clfixed: if >=0, override value for color in cell nearest to clfixed_x
   // coalth: merge two layers i,j if  u_i + u_j > coalth
   // mfcu: boundary conditions for u
-  // bcc_reflect: apply BcReflect
   // verb: report color overflow (not enough layers)
   // unionfind: use union-find algorithm (otherwise iterative stencil updates)
   // reduce: reduce color space trying to keep the previous color
@@ -77,7 +76,7 @@ class UVof {
       const Multi<const FieldCell<Scal>*>& fccl0,
       Scal clfixed, Vect clfixed_x, Scal coalth,
       const MapFace<std::shared_ptr<CondFace>>& mfcu,
-      bool bcc_reflect, bool verb, bool unionfind, bool reduce,
+      bool verb, bool unionfind, bool reduce,
       bool grid, M& m);
 
  public:

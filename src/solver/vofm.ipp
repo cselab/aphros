@@ -117,7 +117,7 @@ struct Vofm<M_>::Imp {
       } else {
         if (auto cd = dynamic_cast<CondFaceValFixed<Scal>*>(cb)) {
           mfc_cl_[f] = std::make_shared<
-              CondFaceValFixed<Scal>>(Scal(0), nci);
+              CondFaceValFixed<Scal>>(par->inletcl, nci);
         } else {
           mfc_cl_[f] = std::make_shared<
               CondFaceValFixed<Scal>>(kClNone, nci);
@@ -614,7 +614,7 @@ struct Vofm<M_>::Imp {
         m.Comm(mfcim[i]);
       }
     }
-    if (par->bcc_reflect && sem("bcreflect")) {
+    if (sem("bcreflect")) {
       for (auto i : layers) {
         BcApply(*mfcu[i], mfc_, m);
         BcApply(*mfccl[i], mfc_cl_, m);
@@ -715,7 +715,7 @@ struct Vofm<M_>::Imp {
     if (sem.Nested()) {
       uvof_.Recolor(layers, GetLayer(fcu_, Layers::iter_curr), fccl_, fccl_,
                     par->clfixed, par->clfixed_x,
-                    par->coalth, mfc_, par->bcc_reflect, par->verb,
+                    par->coalth, mfc_cl_, par->verb,
                     par->recolor_unionfind, par->recolor_reduce,
                     par->recolor_grid, m);
     }
@@ -766,7 +766,7 @@ struct Vofm<M_>::Imp {
         m.Comm(&fca_[i]);
       }
     }
-    if (par->bcc_reflect && sem("reflect")) {
+    if (sem("reflect")) {
       // --> fca [a], fcn [a]
       for (auto i : layers) {
         BcApply(fcn_[i], mfc_n_, m);
