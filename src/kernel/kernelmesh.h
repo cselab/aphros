@@ -19,9 +19,8 @@ M CreateMesh(const MyBlockInfo& bi) {
   MIdx gs(bi.gs);
   MIdx o = w * bs; // origin index
 
-  const int idm = 1024;
-  // TODO: revise with the maximum block index
-  int id = w[2] * idm * idm + w[1] * idm + w[0]; // unique id
+  MIdx wmax = gs / bs; // maximum block index
+  int id = w[0] + w[1] * wmax[0] + w[2] * wmax[0] * wmax[1]; // unique id
 
   return InitUniformMesh<M>(d, o, bs, hl, bi.isroot, bi.islead, gs, id);
 }
