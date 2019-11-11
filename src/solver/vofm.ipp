@@ -81,11 +81,7 @@ struct Vofm<M_>::Imp {
     fccl_[0] = fccl0;
     fccls_ = fccl0;
 
-    for (auto it : mfc_) {
-      IdxFace f = it.GetIdx();
-      mfvz_[f] = std::make_shared<
-          CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
-    }
+    UpdateBc(mfc_);
 
     // particles
     auto ps = std::make_shared<typename PS::Par>();
@@ -103,6 +99,35 @@ struct Vofm<M_>::Imp {
     psm->vtkbin = par->vtkbin;
     psm->vtkmerge = par->vtkmerge;
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
+  }
+  void UpdateBc(const MapFace<std::shared_ptr<CondFace>>& mfc) {
+    mfc_cl_.clear();
+    mfc_im_.clear();
+    mfc_n_.clear();
+    mfc_a_.clear();
+    for (auto it : mfc) {
+      IdxFace f = it.GetIdx();
+      CondFace* cb = it.GetValue().get();
+      size_t nci = cb->GetNci();
+      if (dynamic_cast<CondFaceReflect*>(cb)) {
+        mfc_cl_[f] = std::make_shared<CondFaceReflect>(nci);
+        mfc_im_[f] = std::make_shared<CondFaceReflect>(nci);
+        mfc_n_[f] = std::make_shared<CondFaceReflect>(nci);
+        mfc_a_[f] = std::make_shared<CondFaceReflect>(nci);
+      } else {
+        if (auto cd = dynamic_cast<CondFaceValFixed<Scal>*>(cb)) {
+          mfc_cl_[f] = std::make_shared<
+              CondFaceValFixed<Scal>>(Scal(0), nci);
+        } else {
+          mfc_cl_[f] = std::make_shared<
+              CondFaceValFixed<Scal>>(kClNone, nci);
+        }
+        mfc_im_[f] = std::make_shared<
+            CondFaceValFixed<Scal>>(TRM::Pack(MIdx(0)), nci);
+        mfc_n_[f] = std::make_shared<CondFaceValFixed<Vect>>(Vect(0), nci);
+        mfc_a_[f] = std::make_shared<CondFaceValFixed<Scal>>(Scal(0), nci);
+      }
+    }
   }
   void Update(typename PS::Par* p) const {
     Scal hc = m.GetCellSize().norminf(); // cell size
@@ -301,8 +326,8 @@ struct Vofm<M_>::Imp {
         for (auto i : layers) {
           fcut[i] = fcu_[i].iter_curr;
           if (par->bcc_reflectpoly) {
-            BcReflect(fcut[i], mfc_, par->bcc_fill, true, m);
-            BcReflect(fcclt[i], mfc_, -3., true, m);
+            BcReflectAll(fcut[i], mfc_, m);
+            BcReflectAll(fcclt[i], mfc_, m);
           }
         }
         if (par->dumppolymarch_fill >= 0) {
@@ -590,9 +615,9 @@ struct Vofm<M_>::Imp {
     }
     if (par->bcc_reflect && sem("bcreflect")) {
       for (auto i : layers) {
-        BcReflect(*mfcu[i], mfc_, par->bcc_fill, false, m);
-        BcReflect(*mfccl[i], mfc_, kClNone, false, m);
-        BcReflect(*mfcim[i], mfc_, TRM::Pack(MIdx(0)), false, m);
+        BcApply(*mfcu[i], mfc_, m);
+        BcApply(*mfccl[i], mfc_cl_, m);
+        BcApply(*mfcim[i], mfc_im_, m);
       }
     }
     if (sem.Nested("reconst")) {
@@ -743,8 +768,8 @@ struct Vofm<M_>::Imp {
     if (par->bcc_reflect && sem("reflect")) {
       // --> fca [a], fcn [a]
       for (auto i : layers) {
-        BcReflect(fcn_[i], mfc_, Vect(0), false, m);
-        BcReflect(fca_[i], mfc_, Scal(0), false, m);
+        BcApply(fcn_[i], mfc_n_, m);
+        BcApply(fca_[i], mfc_a_, m);
       }
       // --> reflected fca [a], fcn [a]
     }
@@ -766,8 +791,11 @@ struct Vofm<M_>::Imp {
   Multi<FieldCell<Scal>> fcuu_;
   LayersData<FieldCell<Scal>> fcus_;
   FieldCell<Scal> fccls_;
-  MapFace<std::shared_ptr<CondFace>> mfc_;
-  MapFace<std::shared_ptr<CondFace>> mfvz_; // zero-derivative bc for Vect
+  MapFace<std::shared_ptr<CondFace>> mfc_; // conditions on u
+  MapFace<std::shared_ptr<CondFace>> mfc_cl_; // conditions on cl
+  MapFace<std::shared_ptr<CondFace>> mfc_im_; // conditions on cl
+  MapFace<std::shared_ptr<CondFace>> mfc_n_; // conditions on n
+  MapFace<std::shared_ptr<CondFace>> mfc_a_; // conditions on a
 
   Multi<FieldCell<Scal>> fca_; // alpha (plane constant)
   Multi<FieldCell<Vect>> fcn_; // n (normal to plane)

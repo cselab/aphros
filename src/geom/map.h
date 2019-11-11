@@ -19,6 +19,9 @@ class GMap {
   size_t size() const {
     return d_.size();
   }
+  void clear() {
+    d_.clear();
+  }
   Value& operator[](const Idx& i) {
     return d_[i.GetRaw()];
   }

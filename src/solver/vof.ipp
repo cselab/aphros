@@ -30,7 +30,7 @@ struct Vof<M_>::Imp {
   using MIdx = typename M::MIdx;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-      const MapFace<std::shared_ptr<CondFace>>& mfc, 
+      const MapFace<std::shared_ptr<CondFace>>& mfc,
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m), layers(1)
       , mfc_(mfc), fccl_(fccl), fcim_(m, TRM::Pack(MIdx(0)))
@@ -38,11 +38,8 @@ struct Vof<M_>::Imp {
       , fck_(m, 0), fch_(m, Vect(0))
   {
     fcu_.time_curr = fcu;
-    for (auto it : mfc_) {
-      IdxFace f = it.GetIdx();
-      mfvz_[f] = std::make_shared<
-          CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
-    }
+
+    UpdateBc(mfc_);
 
     for (auto c : m.AllCells()) {
       if (fcu[c] == 0) {
@@ -65,6 +62,35 @@ struct Vof<M_>::Imp {
     psm->vtkbin = par->vtkbin;
     psm->vtkmerge = par->vtkmerge;
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
+  }
+  void UpdateBc(const MapFace<std::shared_ptr<CondFace>>& mfc) {
+    mfc_cl_.clear();
+    mfc_im_.clear();
+    mfc_n_.clear();
+    mfc_a_.clear();
+    for (auto it : mfc) {
+      IdxFace f = it.GetIdx();
+      CondFace* cb = it.GetValue().get();
+      size_t nci = cb->GetNci();
+      if (dynamic_cast<CondFaceReflect*>(cb)) {
+        mfc_cl_[f] = std::make_shared<CondFaceReflect>(nci);
+        mfc_im_[f] = std::make_shared<CondFaceReflect>(nci);
+        mfc_n_[f] = std::make_shared<CondFaceReflect>(nci);
+        mfc_a_[f] = std::make_shared<CondFaceReflect>(nci);
+      } else {
+        if (auto cd = dynamic_cast<CondFaceValFixed<Scal>*>(cb)) {
+          mfc_cl_[f] = std::make_shared<
+              CondFaceValFixed<Scal>>(Scal(1), nci);
+        } else {
+          mfc_cl_[f] = std::make_shared<
+              CondFaceValFixed<Scal>>(kClNone, nci);
+        }
+        mfc_im_[f] = std::make_shared<
+            CondFaceValFixed<Scal>>(TRM::Pack(MIdx(0)), nci);
+        mfc_n_[f] = std::make_shared<CondFaceValFixed<Vect>>(Vect(0), nci);
+        mfc_a_[f] = std::make_shared<CondFaceValFixed<Scal>>(Scal(0), nci);
+      }
+    }
   }
   void Update(typename PS::Par* p) const {
     Scal hc = m.GetCellSize().norminf(); // cell size
@@ -227,8 +253,8 @@ struct Vof<M_>::Imp {
         fcut = fcu_.iter_curr;
         fcclt = fccl_;
         if (par->bcc_reflectpoly) {
-          BcReflect(fcut, mfc_, par->bcc_fill, true, m);
-          BcReflect(fcclt, mfc_, -3., true, m);
+          BcReflectAll(fcut, mfc_, m);
+          BcReflectAll(fcclt, mfc_, m);
         }
         if (par->dumppolymarch_fill >= 0) {
           BcMarchFill(fcut, par->dumppolymarch_fill, m);
@@ -378,9 +404,9 @@ struct Vof<M_>::Imp {
       m.Comm(&fcim);
     }
     if (par->bcc_reflect && sem("bcreflect")) {
-      BcReflect(uc, mfc_, par->bcc_fill, false, m);
-      BcReflect(fccl, mfc_, kClNone, false, m);
-      BcReflect(fcim, mfc_, TRM::Pack(MIdx(0)), false, m);
+      BcApply(uc, mfc_, m);
+      BcApply(fccl, mfc_cl_, m);
+      BcApply(fcim, mfc_im_, m);
     }
     if (sem("reconst")) {
       Rec(uc);
@@ -560,7 +586,7 @@ struct Vof<M_>::Imp {
         fccl_[c] = (fcu[c] > 0.5 ? 0 : kClNone);
       }
       if (par->bcc_reflect) {
-        BcReflect(fccl_, mfc_, kClNone, false, m);
+        BcApply(fccl_, mfc_cl_, m);
       }
     }
     if (sem.Nested()) {
@@ -604,8 +630,8 @@ struct Vof<M_>::Imp {
     }
     if (par->bcc_reflect && sem("reflect")) {
       // --> fca [a], fcn [a]
-      BcReflect(fca_, mfc_, Scal(0), false, m);
-      BcReflect(fcn_, mfc_, Vect(0), false, m);
+      BcApply(fca_, mfc_a_, m);
+      BcApply(fcn_, mfc_n_, m);
       // --> reflected fca [a], fcn [a]
     }
     auto& uc = fcu_.iter_curr;
@@ -651,8 +677,11 @@ struct Vof<M_>::Imp {
 
   LayersData<FieldCell<Scal>> fcu_;
   FieldCell<Scal> fcuu_;   // volume fraction for Weymouth div term
-  MapFace<std::shared_ptr<CondFace>> mfc_;
-  MapFace<std::shared_ptr<CondFace>> mfvz_; // zero-derivative bc for Vect
+  MapFace<std::shared_ptr<CondFace>> mfc_; // conditions on u
+  MapFace<std::shared_ptr<CondFace>> mfc_cl_; // conditions on cl
+  MapFace<std::shared_ptr<CondFace>> mfc_im_; // conditions on cl
+  MapFace<std::shared_ptr<CondFace>> mfc_n_; // conditions on n
+  MapFace<std::shared_ptr<CondFace>> mfc_a_; // conditions on a
 
   FieldCell<Scal> fccl_; // color
   FieldCell<Scal> fcim_; // image

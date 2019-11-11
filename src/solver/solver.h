@@ -434,12 +434,10 @@ void GetCellColumn(const M& m, IdxFace f, size_t nci,
   cmm = m.GetCell(cm, d * 2 + 1 - nci);
 }
 
-// apply reflection to field on Reflect boundaries or other if force=true
-// fill: value for other types that CondFaceReflect
+// Apply boudnary conditions to halo cells
 template <class T, class M>
-void BcReflect(FieldCell<T>& uc,
-               const MapFace<std::shared_ptr<CondFace>>& mfc,
-               T fill, bool force, const M& m) {
+void BcApply(FieldCell<T>& uc, const MapFace<std::shared_ptr<CondFace>>& mfc,
+             const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   for (const auto& it : mfc) {
@@ -448,13 +446,32 @@ void BcReflect(FieldCell<T>& uc,
     Vect n = m.GetNormal(f);
     IdxCell cmm, cm, cp, cpp;
     GetCellColumn(m, f, cb->GetNci(), cmm, cm, cp, cpp);
-    if (dynamic_cast<CondFaceReflect*>(cb) || force) {
+    if (dynamic_cast<CondFaceReflect*>(cb)) {
       uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
       uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
-    } else {
-      uc[cm] = fill;
-      uc[cmm] = fill;
+    } else if (auto cd = dynamic_cast<CondFaceValFixed<T>*>(cb)) {
+      uc[cm] = cd->GetValue();
+      uc[cmm] = cd->GetValue();
     }
+  }
+}
+
+// Apply reflection on all boundaries
+// fill: value for other types that CondFaceReflect
+template <class T, class M>
+void BcReflectAll(FieldCell<T>& uc,
+                  const MapFace<std::shared_ptr<CondFace>>& mfc,
+                  const M& m) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  for (const auto& it : mfc) {
+    IdxFace f = it.GetIdx();
+    CondFace* cb = it.GetValue().get();
+    Vect n = m.GetNormal(f);
+    IdxCell cmm, cm, cp, cpp;
+    GetCellColumn(m, f, cb->GetNci(), cmm, cm, cp, cpp);
+    uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
+    uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
   }
 }
 
