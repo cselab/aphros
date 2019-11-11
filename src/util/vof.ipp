@@ -336,35 +336,45 @@ struct UVof<M_>::Imp {
     return xx;
   }
 
-  void DumpBcFaces(const MapFace<std::shared_ptr<CondFace>>& mfc, 
+  static void DumpBcFaces(const MapFace<std::shared_ptr<CondFace>>& mfc, 
                    std::string fn, M& m) {
     auto sem = m.GetSem("DumpBcFaces");
     struct {
       std::vector<std::vector<Vect>> vxx;
       std::vector<Scal> vcond;
+      std::vector<Scal> vblock;
     }* ctx(sem);
     auto& vxx = ctx->vxx;
     auto& vcond = ctx->vcond;
+    auto& vblock = ctx->vblock;
     if (sem("local")) {
-      vxx.clear();
-      vcond.clear();
-
       for (auto& it : mfc) {
         vxx.push_back(GetPoly(it.GetIdx(), m));
-        vcond.push_back(0);
+        auto* b = it.GetValue().get();
+        Scal cond = -1;
+        if (dynamic_cast<CondFaceReflect*>(b)) {
+          cond = 1;
+        } else if (dynamic_cast<CondFaceGradFixed<Scal>*>(b)) {
+          cond = 1;
+        }
+        vcond.push_back(cond);
+        vblock.push_back(m.GetId());
       }
 
       using TV = typename M::template OpCatVT<Vect>;
       m.Reduce(std::make_shared<TV>(&vxx));
       using TS = typename M::template OpCatT<Scal>;
       m.Reduce(std::make_shared<TS>(&vcond));
+      m.Reduce(std::make_shared<TS>(&vblock));
     }
     if (sem("write")) {
       if (m.IsRoot()) {
         std::cout << std::fixed << std::setprecision(8)
             << "dump" << " to " << fn << std::endl;
-        WriteVtkPoly<Vect>(fn, vxx, nullptr, {&vcond}, {"cond"},
-                     "Boundary conditions", true, true, true);
+        WriteVtkPoly<Vect>(
+            fn, vxx, nullptr, 
+            {&vcond, &vblock}, {"cond", "block"},
+            "Boundary conditions", true, true, true);
       }
     }
   }
@@ -677,6 +687,9 @@ struct UVof<M_>::Imp {
     sem.LoopBegin();
     if (grid && sem.Nested()) {
       Grid(layers, fccl, fcclt, m);
+    }
+    if (sem.Nested()) {
+      DumpBcFaces(mfc, "bc.vtk", m);
     }
     if (sem("min")) {
       size_t tries = 0;
