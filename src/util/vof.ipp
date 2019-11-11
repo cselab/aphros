@@ -612,7 +612,7 @@ struct UVof<M_>::Imp {
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0,
       Scal clfixed, Vect clfixed_x, Scal coalth,
-      const MapFace<std::shared_ptr<CondFace>>& mfc,
+      const MapFace<std::shared_ptr<CondFace>>& mfc_cl,
       bool bcc_reflect, bool verb, bool reduce, bool grid, M& m) {
     auto sem = m.GetSem("recolor");
     struct {
@@ -626,7 +626,7 @@ struct UVof<M_>::Imp {
     }
     if (bcc_reflect && sem("reflect")) {
       for (auto i : layers) {
-        BcReflect(fcclt[i], mfc, kClNone, false, m);
+        BcApply(fcclt[i], mfc_cl, m);
       }
     }
     sem.LoopBegin();
@@ -676,7 +676,7 @@ struct UVof<M_>::Imp {
     }
     if (bcc_reflect && sem("reflect")) {
       for (auto i : layers) {
-        BcReflect(fcclt[i], mfc, kClNone, false, m);
+        BcApply(fcclt[i], mfc_cl, m);
       }
     }
     if (sem("check")) {
@@ -710,7 +710,7 @@ struct UVof<M_>::Imp {
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0,
       Scal clfixed, Vect clfixed_x, Scal coalth,
-      const MapFace<std::shared_ptr<CondFace>>& mfc,
+      const MapFace<std::shared_ptr<CondFace>>& mfc_cl,
       bool bcc_reflect, bool verb, bool reduce, bool grid, M& m) {
     auto sem = m.GetSem("recolor");
     struct {
@@ -728,7 +728,7 @@ struct UVof<M_>::Imp {
     }
     if (bcc_reflect && sem("reflect")) {
       for (auto i : layers) {
-        BcReflect(fcclt[i], mfc, kClNone, false, m);
+        BcApply(fcclt[i], mfc_cl, m);
       }
     }
     if (sem("initroot")) {
@@ -849,7 +849,7 @@ struct UVof<M_>::Imp {
     }
     if (bcc_reflect && sem("reflect")) {
       for (auto i : layers) {
-        BcReflect(fcclt[i], mfc, kClNone, false, m);
+        BcApply(fcclt[i], mfc_cl, m);
       }
     }
     if (sem("check")) {
