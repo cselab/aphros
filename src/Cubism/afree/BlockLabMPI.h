@@ -19,7 +19,7 @@ template<typename MyBlockLab>
 class BlockLabMPI : public MyBlockLab
 {
   using BlockType = typename MyBlockLab::BlockType;
-  using Synch = SynchronizerMPI<BlockType::bx, BlockType::by, BlockType::bz>;
+  using Synch = SynchronizerMPI<BlockType, BlockType::bx, BlockType::by, BlockType::bz>;
 	const Synch * refSynchronizerMPI;
 
 protected:

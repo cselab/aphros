@@ -79,7 +79,7 @@ struct GBlk {
 
   Elem __attribute__((__aligned__(_ALIGNBYTES_))) data[bz][by][bx];
 
-  //Scal __attribute__((__aligned__(_ALIGNBYTES_))) tmp[bz][by][bx][fe];
+  Scal __attribute__((__aligned__(_ALIGNBYTES_))) tmp[bz][by][bx][fe];
 
   void clear_data() {
     Elem* e = &data[0][0][0];

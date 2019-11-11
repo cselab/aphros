@@ -21,7 +21,7 @@
 
 using namespace std;
 
-template <int bx_, int by_, int bz_>
+template <typename TView, int bx_, int by_, int bz_>
 class SynchronizerMPI
 {
     static const int bx = bx_;
@@ -40,11 +40,13 @@ class SynchronizerMPI
         }
     };
 
-    struct PackInfo { Real * block, * pack; int sx, sy, sz, ex, ey, ez; };
-    struct SubpackInfo { Real * block, * pack; int sx, sy, sz, ex, ey, ez; int x0, y0, z0, xpacklenght, ypacklenght; };
+    struct PackInfo { Real * block, * pack; int n_comp; int sx, sy, sz, ex, ey, ez; };
+    struct SubpackInfo { Real * block, * pack; int n_comp; int sx, sy, sz, ex, ey, ez; int x0, y0, z0, xpacklenght, ypacklenght; };
 
-    const int synchID;
+    std::vector<std::vector<TView>> all_fields;
     bool isroot;
+    const size_t stridex; // x-stride of underlying Lab-type
+    const size_t stridey; // y-stride of underlying Lab-type
     int send_thickness[3][2], recv_thickness[3][2];
     int blockinfo_counter;
     StencilInfo stencil;
@@ -102,20 +104,18 @@ class SynchronizerMPI
         return neighborsrank[indx_final[2]+1-mypeindex[2]][indx_final[1]+1-mypeindex[1]][indx_final[0]+1-mypeindex[0]];
     }
 
-    template <bool computesubregions, bool alloc = false, typename TView>
+    template <bool computesubregions>
     map<Real *, vector<SubpackInfo>>
     _setup(CommData &data,
            const int thickness[3][2],
            const int blockstart[3],
            const int blockend[3],
            const int origin[3],
-           std::vector<std::vector<TView>> &fields,
            vector<PackInfo> &packinfos)
     {
         map<Real *, vector<SubpackInfo> > retval;
 
         const int NC = stencil.selcomponents.size();
-        assert(fields.size() <= static_cast<size_t>(NC));
 
         const int bpd[3] = {
             mybpd[0],
@@ -136,10 +136,8 @@ class SynchronizerMPI
                 const int NFACE = NFACEBLOCK * mybpd[dim_other1] * mybpd[dim_other2];
 
                 const bool needed = _face_needed(d) || NFACE == 0;
-                if (alloc) {
-                    data.faces[d][s] =
-                        needed ? _myalloc(sizeof(Real) * NFACE, 16) : NULL;
-                }
+                data.faces[d][s] =
+                    needed ? _myalloc(sizeof(Real) * NFACE, 16) : NULL;
 
                 if (!needed) continue;
 
@@ -180,17 +178,22 @@ class SynchronizerMPI
                         assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
                         const int blockid = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
-                        for (size_t comp = 0; comp < fields.size(); ++comp) {
+                        int comp = 0; // number of field components
+                        for (size_t fID = 0; fID < all_fields.size(); ++fID) {
+                            const int field_comp = all_fields[fID][blockid].n_comp;
+                            assert(field_comp > 0);
                             PackInfo info = {
-                                (Real *)fields[comp][blockid].data,
+                                (Real *)all_fields[fID][blockid].data,
                                 data.faces[d][s] + NFACEBLOCK * (a + n1 * b) +
                                     comp * NFACEBLOCK_COMP,
+                                field_comp,
                                 start[0],
                                 start[1],
                                 start[2],
                                 end[0],
                                 end[1],
                                 end[2]};
+                            comp += field_comp;
 
                             packinfos.push_back(info);
                         }
@@ -214,10 +217,8 @@ class SynchronizerMPI
                     const int NEDGE = NEDGEBLOCK * mybpd[d];
 
                     const bool needed = NEDGE > 0;
-                    if (alloc) {
-                        data.edges[d][b][a] =
-                            needed ? _myalloc(sizeof(Real) * NEDGE, 16) : NULL;
-                    }
+                    data.edges[d][b][a] =
+                        needed ? _myalloc(sizeof(Real) * NEDGE, 16) : NULL;
 
                     if (!needed) continue;
 
@@ -255,17 +256,22 @@ class SynchronizerMPI
                         assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
                         const int blockid = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
-                        for (size_t comp = 0; comp < fields.size(); ++comp) {
+                        int comp = 0; // number of field components
+                        for (size_t fID = 0; fID < all_fields.size(); ++fID) {
+                            const int field_comp = all_fields[fID][blockid].n_comp;
+                            assert(field_comp > 0);
                             PackInfo info = {
-                                (Real *)fields[comp][blockid].data,
+                                (Real *)all_fields[fID][blockid].data,
                                 data.edges[d][b][a] + NEDGEBLOCK * c +
                                     comp * NEDGEBLOCK_COMP,
+                                field_comp,
                                 start[0],
                                 start[1],
                                 start[2],
                                 end[0],
                                 end[1],
                                 end[2]};
+                            comp += field_comp;
 
                             packinfos.push_back(info);
                         }
@@ -320,9 +326,13 @@ class SynchronizerMPI
 
                             assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
                             const int blockID = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
-                            for (size_t comp = 0; comp < fields.size(); ++comp) {
 
-                                Real * const ptrBlock = (Real*)fields[comp][blockID].data;
+                            int comp = 0; // number of field components
+                            for (size_t fID = 0; fID < all_fields.size(); ++fID) {
+
+                                Real * const ptrBlock = (Real*)all_fields[fID][blockID].data;
+                                const int field_comp = all_fields[fID][blockID].n_comp;
+                                assert(field_comp > 0);
 
                                 for(int dedge=0; dedge<3; ++dedge) //iterate over edges
                                 {
@@ -410,6 +420,7 @@ class SynchronizerMPI
                                                 SubpackInfo subinfo = {
                                                     ptrBlock,
                                                     src_base,
+                                                    field_comp,
                                                     start[0],
                                                     start[1],
                                                     start[2],
@@ -502,6 +513,7 @@ class SynchronizerMPI
                                                 SubpackInfo subinfo = {
                                                     ptrBlock,
                                                     src_base,
+                                                    field_comp,
                                                     start[0],
                                                     start[1],
                                                     start[2],
@@ -517,6 +529,8 @@ class SynchronizerMPI
                                                 retval[ptrBlock].push_back(subinfo);
                                             }
                                         }
+
+                                comp += field_comp;
                             }
                         }
                 }
@@ -565,8 +579,11 @@ class SynchronizerMPI
                             assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
                             const int blockID = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
-                            for (size_t comp = 0; comp < fields.size(); ++comp) {
-                                Real * const ptrBlock = (Real*)fields[comp][blockID].data;
+                            int comp = 0; // number of field components
+                            for (size_t fID = 0; fID < all_fields.size(); ++fID) {
+                                Real * const ptrBlock = (Real*)all_fields[fID][blockID].data;
+                                const int field_comp = all_fields[fID][blockID].n_comp;
+                                assert(field_comp > 0);
 
                                 for(int z=0; z<2; ++z) //iterate over corners
                                     for(int y=0; y<2; ++y)
@@ -641,6 +658,7 @@ class SynchronizerMPI
                                                 SubpackInfo subinfo = {
                                                     ptrBlock,
                                                     src_base,
+                                                    field_comp,
                                                     start[0],
                                                     start[1],
                                                     start[2],
@@ -656,6 +674,7 @@ class SynchronizerMPI
                                                 retval[ptrBlock].push_back(subinfo);
                                             }
                                         }
+                                comp += field_comp;
                             }
                         }
                     }
@@ -671,11 +690,9 @@ class SynchronizerMPI
                     const int NCORNERBLOCK = NC * NCORNERBLOCK_COMP;
 
                     const bool needed = NCORNERBLOCK > 0;
-                    if (alloc) {
-                        data.corners[z][y][x] =
-                            needed ? _myalloc(sizeof(Real) * NCORNERBLOCK, 16)
-                                   : NULL;
-                    }
+                    data.corners[z][y][x] =
+                        needed ? _myalloc(sizeof(Real) * NCORNERBLOCK, 16)
+                               : NULL;
 
                     if (!needed) continue;
 
@@ -713,16 +730,21 @@ class SynchronizerMPI
                     assert(c2i.find(I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2]))!=c2i.end());
                     const int blockid = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
-                    for (size_t comp = 0; comp < fields.size(); ++comp) {
+                    int comp = 0; // number of field components
+                    for (size_t fID = 0; fID < all_fields.size(); ++fID) {
+                        const int field_comp = all_fields[fID][blockid].n_comp;
+                        assert(field_comp > 0);
                         PackInfo info = {
-                            (Real *)fields[comp][blockid].data,
+                            (Real *)all_fields[fID][blockid].data,
                             data.corners[z][y][x] + comp * NCORNERBLOCK_COMP,
+                            field_comp,
                             start[0],
                             start[1],
                             start[2],
                             end[0],
                             end[1],
                             end[2]};
+                        comp += field_comp;
 
                         packinfos.push_back(info);
                     }
@@ -753,19 +775,18 @@ class SynchronizerMPI
 
     void _myfree(Real *& ptr) {if (ptr!=NULL) { free(ptr); ptr=NULL;} }
 
-    //forbidden methods
-    SynchronizerMPI(const SynchronizerMPI& c) = delete;
-
-    void operator=(const SynchronizerMPI& c) = delete;
-
 public:
-
-    SynchronizerMPI(const int synchID, StencilInfo stencil,
-                  vector<BlockInfo> globalinfos, MPI_Comm cartcomm,
-                  const int mybpd[3], const int blocksize[3])
-      : synchID(synchID), stencil(stencil),
-        globalinfos(globalinfos), cube(mybpd[0], mybpd[1], mybpd[2]),
-        cartcomm(cartcomm)
+    SynchronizerMPI(std::vector<std::vector<TView>> &fields,
+                    // FIXME: [fabianw@mavt.ethz.ch; 2019-11-11] check if can
+                    // get rid of globalinfos
+                    vector<BlockInfo> globalinfos,
+                    StencilInfo stencil,
+                    MPI_Comm cartcomm,
+                    const int mybpd[3],
+                    const int blocksize[3])
+        : all_fields(fields), stridex(TView::stridex), stridey(TView::stridey),
+          stencil(stencil), globalinfos(globalinfos),
+          cube(mybpd[0], mybpd[1], mybpd[2]), cartcomm(cartcomm)
     {
         int myrank;
         MPI_Comm_rank(cartcomm, &myrank);
@@ -773,6 +794,22 @@ public:
 
         MPI_Cart_get(cartcomm, 3, pesize, periodic, mypeindex);
         MPI_Cart_coords(cartcomm, myrank, 3, mypeindex);
+
+#ifndef NDEBUG
+        {
+            const int NC = stencil.selcomponents.size();
+            int total_components = 0;
+            for (size_t i = 0; i < all_fields.size(); ++i) {
+                const auto& f = all_fields[i];
+                assert(0 < f.size());
+                total_components += f[0].n_comp;
+                for (size_t j = 1; j < f.size(); ++j) {
+                    assert(f[j-1].n_comp == f[j].n_comp);
+                }
+            }
+            assert(total_components == NC);
+        }
+#endif /* NDEBUG */
 
         for(int iz=0; iz<3; iz++)
             for(int iy=0; iy<3; iy++)
@@ -808,10 +845,8 @@ public:
         send_thickness[1][0] = e[1] - 1;  send_thickness[1][1] = -s[1];
         send_thickness[2][0] = e[2] - 1;  send_thickness[2][1] = -s[2];
 
-        // allocate memory
-        struct Dummy { void *data; };
-        std::vector<std::vector<Dummy>> fields_empty(0);
-        _setup<false, true>(send, send_thickness, z, blocksize, origin, fields_empty, send_packinfos);
+        // allocate memory and generate send pack-infos
+        _setup<false>(send, send_thickness, z, blocksize, origin, send_packinfos);
 
         recv_thickness[0][0] = -s[0]; recv_thickness[0][1] = e[0] - 1;
         recv_thickness[1][0] = -s[1]; recv_thickness[1][1] = e[1] - 1;
@@ -830,8 +865,9 @@ public:
                 stencil.ez + blocksize[2]-1
             };
 
+            // generate subpack-infos (no memory allocated here)
             vector<PackInfo> packinfos;
-            recv_subpackinfos = _setup<true, true>(recv, recv_thickness, blockstart, blockend, origin, fields_empty, packinfos);
+            recv_subpackinfos = _setup<true>(recv, recv_thickness, blockstart, blockend, origin, packinfos);
 
             for(typename std::vector<PackInfo>::const_iterator it = packinfos.begin(); it<packinfos.end(); ++it)
                 recv_packinfos[it->block].push_back(*it);
@@ -841,25 +877,22 @@ public:
         assert(send.pending.size() == 0);
     }
 
+    SynchronizerMPI() = delete;
+    SynchronizerMPI(const SynchronizerMPI& c) = delete;
+    void operator=(const SynchronizerMPI& c) = delete;
+
     ~SynchronizerMPI()
     {
         for(size_t i=0;i<all_mallocs.size();++i)
             _myfree(all_mallocs[i]);
     }
 
-    template <typename TView>
-    void sync(std::vector<std::vector<TView>> &fields,
-              MPI_Datatype MPIREAL,
-              const int timestamp)
+    void sync(MPI_Datatype MPIREAL, const int timestamp)
     {
         // 0. wait for pending sends, couple of checks
-        // 1. generate packinfos for SoA fields
-        // 2. pack all stuff
-        // 3. perform send/receive requests
-        // 4. setup the dependency
-
-        const size_t Nx = TView::stridex;
-        const size_t Ny = TView::stridey;
+        // 1. pack all stuff
+        // 2. perform send/receive requests
+        // 3. setup the dependency
 
         //0.
         {
@@ -890,74 +923,42 @@ public:
         cube.prepare();
         blockinfo_counter = globalinfos.size();
         const int NC = stencil.selcomponents.size();
-        assert(fields.size() ==
-               static_cast<size_t>(NC)); // #SoA fields == #AoS fields
 
-        // 1. generate packinfos for SoA fields
-        const int origin[3] = {
-            mypeindex[0]*mybpd[0],
-            mypeindex[1]*mybpd[1],
-            mypeindex[2]*mybpd[2]
-        };
-
-        const int s[3] = {stencil.sx, stencil.sy, stencil.sz};
-        const int e[3] = {stencil.ex, stencil.ey, stencil.ez};
-        const int z[3] = {0, 0, 0};
-
-        send_thickness[0][0] = e[0] - 1;  send_thickness[0][1] = -s[0];
-        send_thickness[1][0] = e[1] - 1;  send_thickness[1][1] = -s[1];
-        send_thickness[2][0] = e[2] - 1;  send_thickness[2][1] = -s[2];
-
-        send_packinfos.clear();
-        _setup<false>(send, send_thickness, z, blocksize, origin, fields, send_packinfos);
-
-        recv_thickness[0][0] = -s[0]; recv_thickness[0][1] = e[0] - 1;
-        recv_thickness[1][0] = -s[1]; recv_thickness[1][1] = e[1] - 1;
-        recv_thickness[2][0] = -s[2]; recv_thickness[2][1] = e[2] - 1;
-
-        {
-            const int blockstart[3] = {
-                stencil.sx ,
-                stencil.sy ,
-                stencil.sz
-            };
-
-            const int blockend[3] = {
-                stencil.ex + blocksize[0]-1,
-                stencil.ey + blocksize[1]-1,
-                stencil.ez + blocksize[2]-1
-            };
-
-            recv_packinfos.clear();
-            recv_subpackinfos.clear();
-            vector<PackInfo> packinfos;
-            recv_subpackinfos = _setup<true>(recv, recv_thickness, blockstart, blockend, origin, fields, packinfos);
-
-            for(typename std::vector<PackInfo>::const_iterator it = packinfos.begin(); it<packinfos.end(); ++it)
-                recv_packinfos[it->block].push_back(*it);
-        }
-
-        // 2. pack
+        // 1. pack
         {
             const int N = send_packinfos.size();
 
             for(int i=0; i<N; ++i)
             {
                 PackInfo info = send_packinfos[i];
-                PUPkernelsMPI::pack_soa(info.block,
-                                        info.pack,
-                                        info.sx,
-                                        info.sy,
-                                        info.sz,
-                                        info.ex,
-                                        info.ey,
-                                        info.ez,
-                                        Nx,
-                                        Ny);
+                if (info.n_comp > 1) {
+                    PUPkernelsMPI::pack_soa_ncomp(info.block,
+                                            info.pack,
+                                            info.n_comp,
+                                            info.sx,
+                                            info.sy,
+                                            info.sz,
+                                            info.ex,
+                                            info.ey,
+                                            info.ez,
+                                            stridex,
+                                            stridey);
+                } else {
+                    PUPkernelsMPI::pack_soa(info.block,
+                                            info.pack,
+                                            info.sx,
+                                            info.sy,
+                                            info.sz,
+                                            info.ex,
+                                            info.ey,
+                                            info.ez,
+                                            stridex,
+                                            stridey);
+                }
             }
         }
 
-        // 3. send requests
+        // 2. send requests
         {
             //faces
             for(int d=0; d<3; ++d)
@@ -1077,8 +1078,13 @@ public:
             }
         }
 
-        // 4.
+        // 3.
         cube.make_dependencies(isroot);
+    }
+
+    inline std::vector<std::vector<TView>> &getFields()
+    {
+        return all_fields;
     }
 
     vector<BlockInfo> avail_inner()
@@ -1373,8 +1379,8 @@ class MyRange
   }
 };
 
-template <typename TView>
 void fetch_soa(TView &fv,
+// FIXME: [fabianw@mavt.ethz.ch; 2019-11-11] move range inside the method
                const int rsx,
                const int rex,
                const int rsy,
@@ -1384,8 +1390,6 @@ void fetch_soa(TView &fv,
 {
     const Real *const ptrBlock = fv.data;
     Real *const ptrLab = fv.data_halo;
-    const size_t Nx = TView::stridex;
-    const size_t Ny = TView::stridey;
 
     const int x0 = stencil.sx;
     const int y0 = stencil.sy;
@@ -1416,16 +1420,30 @@ void fetch_soa(TView &fv,
                 if (myrange.outside(packrange))
                     continue;
 
-                PUPkernelsMPI::unpack_soa(itpack->pack,
-                                          ptrLab,
-                                          itpack->sx - x0,
-                                          itpack->sy - y0,
-                                          itpack->sz - z0,
-                                          itpack->ex - x0,
-                                          itpack->ey - y0,
-                                          itpack->ez - z0,
-                                          Nx,
-                                          Ny);
+                if (itpack->n_comp > 1) {
+                    PUPkernelsMPI::unpack_soa_ncomp(itpack->pack,
+                                                    ptrLab,
+                                                    itpack->n_comp,
+                                                    itpack->sx - x0,
+                                                    itpack->sy - y0,
+                                                    itpack->sz - z0,
+                                                    itpack->ex - x0,
+                                                    itpack->ey - y0,
+                                                    itpack->ez - z0,
+                                                    stridex,
+                                                    stridey);
+                } else {
+                    PUPkernelsMPI::unpack_soa(itpack->pack,
+                                              ptrLab,
+                                              itpack->sx - x0,
+                                              itpack->sy - y0,
+                                              itpack->sz - z0,
+                                              itpack->ex - x0,
+                                              itpack->ey - y0,
+                                              itpack->ez - z0,
+                                              stridex,
+                                              stridey);
+                }
             }
         }
     }
@@ -1454,21 +1472,41 @@ void fetch_soa(TView &fv,
                 if (myrange.outside(packrange))
                     continue;
 
-                PUPkernelsMPI::unpack_subregion_soa(itsubpack->pack,
-                                                    ptrLab,
-                                                    itsubpack->x0,
-                                                    itsubpack->y0,
-                                                    itsubpack->z0,
-                                                    itsubpack->xpacklenght,
-                                                    itsubpack->ypacklenght,
-                                                    itsubpack->sx - x0,
-                                                    itsubpack->sy - y0,
-                                                    itsubpack->sz - z0,
-                                                    itsubpack->ex - x0,
-                                                    itsubpack->ey - y0,
-                                                    itsubpack->ez - z0,
-                                                    Nx,
-                                                    Ny);
+                if (itsubpack->n_comp > 1) {
+                    PUPkernelsMPI::unpack_subregion_soa_ncomp(
+                        itsubpack->pack,
+                        ptrLab,
+                        itsubpack->n_comp,
+                        itsubpack->x0,
+                        itsubpack->y0,
+                        itsubpack->z0,
+                        itsubpack->xpacklenght,
+                        itsubpack->ypacklenght,
+                        itsubpack->sx - x0,
+                        itsubpack->sy - y0,
+                        itsubpack->sz - z0,
+                        itsubpack->ex - x0,
+                        itsubpack->ey - y0,
+                        itsubpack->ez - z0,
+                        stridex,
+                        stridey);
+                } else {
+                    PUPkernelsMPI::unpack_subregion_soa(itsubpack->pack,
+                                                        ptrLab,
+                                                        itsubpack->x0,
+                                                        itsubpack->y0,
+                                                        itsubpack->z0,
+                                                        itsubpack->xpacklenght,
+                                                        itsubpack->ypacklenght,
+                                                        itsubpack->sx - x0,
+                                                        itsubpack->sy - y0,
+                                                        itsubpack->sz - z0,
+                                                        itsubpack->ex - x0,
+                                                        itsubpack->ey - y0,
+                                                        itsubpack->ez - z0,
+                                                        stridex,
+                                                        stridey);
+                }
             }
         }
     }
