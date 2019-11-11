@@ -161,19 +161,16 @@ struct Vof<M_>::Imp {
   // reconstruct interface
   // uc: volume fraction [a]
   void Rec(const FieldCell<Scal>& uc) {
-    auto sem = m.GetSem("rec");
-    if (sem("local")) {
-      DetectInterface(uc);
-      // Compute fcn_ [s]
-      UNormal<M>::CalcNormal(m, uc, fci_, par->dim, fcn_);
-      auto h = m.GetCellSize();
-      // Compute fca_ [s]
-      for (auto c : m.SuCells()) {
-        if (fci_[c]) {
-          fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
-        } else {
-          fca_[c] = GetNan<Scal>();
-        }
+    DetectInterface(uc);
+    // Compute fcn_ [s]
+    UNormal<M>::CalcNormal(m, uc, fci_, par->dim, fcn_);
+    auto h = m.GetCellSize();
+    // Compute fca_ [s]
+    for (auto c : m.SuCells()) {
+      if (fci_[c]) {
+        fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
+      } else {
+        fca_[c] = GetNan<Scal>();
       }
     }
   }
@@ -207,7 +204,7 @@ struct Vof<M_>::Imp {
     }
 
     if (owner_->GetTime() == 0.) {
-      if (sem.Nested("reconst")) {
+      if (sem("reconst")) {
         Rec(fcu_.time_curr);
       }
     }
