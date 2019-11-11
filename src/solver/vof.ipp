@@ -373,6 +373,22 @@ struct Vof<M_>::Imp {
       }
     }
   }
+  void CommRec(Sem& sem, FieldCell<Scal>& uc,
+               FieldCell<Scal>& fccl, FieldCell<Scal>& fcim) {
+    if (sem("comm")) {
+      m.Comm(&uc);
+      m.Comm(&fccl);
+      m.Comm(&fcim);
+    }
+    if (par->bcc_reflect && sem("bcreflect")) {
+      BcReflect(uc, mfc_, par->bcc_fill, false, m);
+      BcReflect(fccl, mfc_, kClNone, false, m);
+      BcReflect(fcim, mfc_, TRM::Pack(MIdx(0)), false, m);
+    }
+    if (sem("reconst")) {
+      Rec(uc);
+    }
+  }
   void AdvAulisa(Sem& sem) {
     // directions, format: {dir EI, dir LE, ...}
     std::vector<size_t> dd;
@@ -409,21 +425,13 @@ struct Vof<M_>::Imp {
           m.Comm(&fcfp_);
         }
       }
+      auto& uc = fcu_.iter_curr;
       if (sem("sweep")) {
-        auto& uc = fcu_.iter_curr;
         Sweep(uc, d, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_,
               id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
               owner_->GetTimeStep() * vsc, par->clipth, m);
-        m.Comm(&uc);
-        m.Comm(&fccl_);
-        m.Comm(&fcim_);
       }
-      if (par->bcc_reflect && sem.Nested("reflect")) {
-        BcReflect(fcu_.iter_curr, mfc_, par->bcc_fill, false, m);
-      }
-      if (sem.Nested("reconst")) {
-        Rec(fcu_.iter_curr);
-      }
+      CommRec(sem, uc, fccl_, fcim_);
     }
   }
   // set volume fraction to 0 or 1 near wall
@@ -468,22 +476,13 @@ struct Vof<M_>::Imp {
       } 
     }
     for (size_t id = 0; id < dd.size(); ++id) {
-      size_t d = dd[id]; // direction as index
       auto& uc = fcu_.iter_curr;
       if (sem("sweep")) {
-        Sweep(uc, d, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_,
+        Sweep(uc, dd[id], *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_,
               type, nullptr, nullptr, &fcuu_,
               owner_->GetTimeStep(), par->clipth, m);
-        m.Comm(&uc);
-        m.Comm(&fccl_);
-        m.Comm(&fcim_);
       }
-      if (par->bcc_reflect && sem.Nested("reflect")) {
-        BcReflect(uc, mfc_, par->bcc_fill, false, m);
-      }
-      if (sem.Nested("reconst")) {
-        Rec(fcu_.iter_curr);
-      }
+      CommRec(sem, uc, fccl_, fcim_);
     }
   }
   void Sharpen() {
@@ -516,17 +515,9 @@ struct Vof<M_>::Imp {
           ffv[f] = 0;
         }
         Sweep(uc, d, ffv, fccl_, fcim_, fcn_, fca_, &mfc_,
-            3, nullptr, nullptr, &fcuu_, 1., par->clipth, m);
-        m.Comm(&uc);
-        m.Comm(&fccl_);
-        m.Comm(&fcim_);
+              3, nullptr, nullptr, &fcuu_, 1., par->clipth, m);
       }
-      if (par->bcc_reflect && sem("reflect")) {
-        BcReflect(uc, mfc_, par->bcc_fill, false, m);
-      }
-      if (sem.Nested("reconst")) {
-        Rec(uc);
-      }
+      CommRec(sem, uc, fccl_, fcim_);
     }
   }
   void MakeIteration() {
