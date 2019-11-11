@@ -27,7 +27,7 @@ class Tracker {
   // fcu: volume fraction [a]
   void Update(
       const FieldCell<Scal>& fcu, Scal th, Scal clfixed, Vect clfixed_x,
-      const MapFace<std::shared_ptr<CondFace>>& mfc, bool bcc_reflect,
+      const MapFace<std::shared_ptr<CondFace>>& mfc,
       bool unionfind, bool reduce, bool grid);
   // Returns color [a]
   const FieldCell<Scal>& GetColor() const { return fccl_; }
@@ -46,7 +46,7 @@ class Tracker {
 template <class M_>
 void Tracker<M_>::Update(
     const FieldCell<Scal>& fcu, Scal th, Scal clfixed, Vect clfixed_x,
-    const MapFace<std::shared_ptr<CondFace>>& mfc, bool bcc_reflect,
+    const MapFace<std::shared_ptr<CondFace>>& mfc,
     bool unionfind, bool reduce, bool grid) {
   auto sem = m.GetSem("upd");
 
@@ -63,7 +63,7 @@ void Tracker<M_>::Update(
   }
   if (sem.Nested()) {
     uvof_.Recolor(layers, &fcu, &fccl_, &fccl0, clfixed, clfixed_x,
-                  1e10, mfc, bcc_reflect, false, unionfind, reduce, grid, m);
+                  1e10, mfc, false, unionfind, reduce, grid, m);
   }
   if (sem.Nested()) {
     trm_->Update(&fccl_, &fccl0);

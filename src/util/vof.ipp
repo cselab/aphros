@@ -613,7 +613,7 @@ struct UVof<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& fccl0,
       Scal clfixed, Vect clfixed_x, Scal coalth,
       const MapFace<std::shared_ptr<CondFace>>& mfc_cl,
-      bool bcc_reflect, bool verb, bool reduce, bool grid, M& m) {
+      bool verb, bool reduce, bool grid, M& m) {
     auto sem = m.GetSem("recolor");
     struct {
       std::map<Scal, Scal> usermap;
@@ -624,7 +624,7 @@ struct UVof<M_>::Imp {
     if (sem.Nested()) {
       Init(layers, fcu, fccl, fcclt, clfixed, clfixed_x, coalth, m);
     }
-    if (bcc_reflect && sem("reflect")) {
+    if (sem("reflect")) {
       for (auto i : layers) {
         BcApply(fcclt[i], mfc_cl, m);
       }
@@ -674,7 +674,7 @@ struct UVof<M_>::Imp {
       ctx->tries = tries;
       m.Reduce(&ctx->tries, "max");
     }
-    if (bcc_reflect && sem("reflect")) {
+    if (sem("reflect")) {
       for (auto i : layers) {
         BcApply(fcclt[i], mfc_cl, m);
       }
@@ -711,7 +711,7 @@ struct UVof<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& fccl0,
       Scal clfixed, Vect clfixed_x, Scal coalth,
       const MapFace<std::shared_ptr<CondFace>>& mfc_cl,
-      bool bcc_reflect, bool verb, bool reduce, bool grid, M& m) {
+      bool verb, bool reduce, bool grid, M& m) {
     auto sem = m.GetSem("recolor");
     struct {
       std::map<Scal, Scal> usermap;
@@ -726,7 +726,7 @@ struct UVof<M_>::Imp {
     if (sem.Nested()) {
       Init(layers, fcu, fccl, fcclt, clfixed, clfixed_x, coalth, m);
     }
-    if (bcc_reflect && sem("reflect")) {
+    if (sem("reflect")) {
       for (auto i : layers) {
         BcApply(fcclt[i], mfc_cl, m);
       }
@@ -847,7 +847,7 @@ struct UVof<M_>::Imp {
       ctx->tries = tries;
       m.Reduce(&ctx->tries, "max");
     }
-    if (bcc_reflect && sem("reflect")) {
+    if (sem("reflect")) {
       for (auto i : layers) {
         BcApply(fcclt[i], mfc_cl, m);
       }
@@ -884,14 +884,14 @@ struct UVof<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& fccl0,
       Scal clfixed, Vect clfixed_x, Scal coalth,
       const MapFace<std::shared_ptr<CondFace>>& mfc,
-      bool bcc_reflect, bool verb, bool unionfind, bool reduce, bool grid,
+      bool verb, bool unionfind, bool reduce, bool grid,
       M& m) {
     if (unionfind) {
       return RecolorUnionFind(layers, fcu, fccl, fccl0, clfixed, clfixed_x,
-                              coalth, mfc, bcc_reflect, verb, reduce, grid, m);
+                              coalth, mfc, verb, reduce, grid, m);
     }
     return RecolorDirect(layers, fcu, fccl, fccl0, clfixed, clfixed_x,
-                        coalth, mfc, bcc_reflect, verb, reduce, grid, m);
+                        coalth, mfc, verb, reduce, grid, m);
   }
 
   std::vector<std::vector<Vect>> dl_; // dump poly
@@ -951,10 +951,10 @@ void UVof<M_>::Recolor(const GRange<size_t>& layers,
     const Multi<const FieldCell<Scal>*>& fccl0,
     Scal clfixed, Vect clfixed_x, Scal coalth,
     const MapFace<std::shared_ptr<CondFace>>& mfcu,
-    bool bcc_reflect, bool verb, bool unionfind, bool reduce, bool grid,
+    bool verb, bool unionfind, bool reduce, bool grid,
     M& m) {
   Imp::Recolor(layers, fcu, fccl, fccl0, clfixed, clfixed_x, coalth, mfcu,
-               bcc_reflect, verb, unionfind, reduce, grid, m);
+               verb, unionfind, reduce, grid, m);
 }
 
 
