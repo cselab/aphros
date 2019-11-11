@@ -296,6 +296,7 @@ struct Vofm<M_>::Imp {
       }
       fcus_.time_prev = fcus_.time_curr;
       fcus_.iter_curr = fcus_.time_prev;
+      UpdateBc(mfc_);
     }
   }
   void Dump() {
