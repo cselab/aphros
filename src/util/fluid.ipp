@@ -7,6 +7,7 @@
 #include "parse/vars.h"
 #include "func/primlist.h"
 #include "func/init_u.h"
+#include "dump/vtk.h"
 
 
 template <class M>
@@ -930,3 +931,64 @@ void GetFluidCellCond(
     }
   }
 }
+
+
+  // Returns face polygon.
+  // x0,x1: points
+  // f0,f1: values
+template <class M>
+std::vector<typename M::Vect> GetPoly(IdxFace f, const M& m) {
+  using Vect = typename M::Vect;
+  std::vector<Vect> xx;
+  for (size_t e = 0; e < m.GetNumNeighbourNodes(f); ++e) {
+    auto n = m.GetNeighbourNode(f, e);
+    xx.push_back(m.GetNode(n));
+  }
+  return xx;
+}
+
+template <class M>
+void DumpBcFaces(const MapFace<std::shared_ptr<solver::CondFace>>& mfc,
+                        std::string fn, M& m) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  auto sem = m.GetSem("DumpBcFaces");
+  struct {
+    std::vector<std::vector<Vect>> vxx;
+    std::vector<Scal> vcond;
+    std::vector<Scal> vblock;
+  }* ctx(sem);
+  auto& vxx = ctx->vxx;
+  auto& vcond = ctx->vcond;
+  auto& vblock = ctx->vblock;
+  if (sem("local")) {
+    for (auto& it : mfc) {
+      vxx.push_back(GetPoly(it.GetIdx(), m));
+      auto* b = it.GetValue().get();
+      Scal cond = -1;
+      if (dynamic_cast<solver::CondFaceReflect*>(b)) {
+        cond = 1;
+      } else if (dynamic_cast<solver::CondFaceGradFixed<Scal>*>(b)) {
+        cond = 1;
+      }
+      vcond.push_back(cond);
+      vblock.push_back(m.GetId());
+    }
+
+    using TV = typename M::template OpCatVT<Vect>;
+    m.Reduce(std::make_shared<TV>(&vxx));
+    using TS = typename M::template OpCatT<Scal>;
+    m.Reduce(std::make_shared<TS>(&vcond));
+    m.Reduce(std::make_shared<TS>(&vblock));
+  }
+  if (sem("write")) {
+    if (m.IsRoot()) {
+      std::cout << "dump" << " to " << fn << std::endl;
+      WriteVtkPoly<Vect>(
+          fn, vxx, nullptr, 
+          {&vcond, &vblock}, {"cond", "block"},
+          "Boundary conditions", true, true, true);
+    }
+  }
+}
+

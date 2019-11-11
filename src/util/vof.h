@@ -59,12 +59,6 @@ class UVof {
       const FieldCell<Scal>& fca, const FieldCell<bool>& fci,
       std::string fn, Scal t, Scal th, bool bin, bool merge, M& m);
 
-  // Dumps faces with boundary conditions.
-  // mfc: boundary conditions
-  // fn: filename
-  static void DumpBcFaces(
-      const MapFace<std::shared_ptr<CondFace>>& mfc, std::string fn, M& m);
-
   // Computes unique color for each connected component over all layers.
   // fcu: volume fraction
   // fccl: color to update

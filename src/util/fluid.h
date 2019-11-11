@@ -54,3 +54,11 @@ void GetFluidCellCond(
     const Vars& var, M& m,
     MapCell<std::shared_ptr<solver::CondCellFluid>>& mcvel,
     std::pair<typename M::Scal, int>& pdist);
+
+// Dumps faces with boundary conditions.
+// mfc: boundary conditions
+// fn: filename
+template <class M>
+void DumpBcFaces(const MapFace<std::shared_ptr<solver::CondFace>>& mfc, 
+                 std::string fn, M& m);
+
