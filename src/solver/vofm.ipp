@@ -588,9 +588,11 @@ struct Vofm<M_>::Imp {
         m.Comm(mfcim[i]);
       }
     }
-    if (par->bcc_reflect && sem("reflect")) {
+    if (par->bcc_reflect && sem("bcreflect")) {
       for (auto i : layers) {
         BcReflect(*mfcu[i], mfc_, par->bcc_fill, false, m);
+        BcReflect(*mfccl[i], mfc_, kClNone, false, m);
+        BcReflect(*mfcim[i], mfc_, TRM::Pack(MIdx(0)), false, m);
       }
     }
     if (sem.Nested("reconst")) {
