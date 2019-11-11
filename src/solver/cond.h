@@ -19,7 +19,7 @@ class CondFaceExtrap : public CondFace {
   CondFaceExtrap(size_t nci) : CondFace(nci) {}
 };
 
-// Reflection: 
+// Reflection:
 // zero value for normal component and zero gradient for tangential
 class CondFaceReflect : public CondFace {
  public:

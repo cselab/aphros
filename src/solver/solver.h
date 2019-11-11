@@ -422,6 +422,18 @@ std::vector<Scal> GetGradCoeffs(
   return k;
 }
 
+// Returns column of cells cmm,cm,cp,cpp.
+// nci: 0 or 1 such that m.GetCell(f, nci) == cp
+template <class M>
+void GetCellColumn(const M& m, IdxFace f, size_t nci,
+                   IdxCell& cmm, IdxCell& cm, IdxCell& cp, IdxCell& cpp) {
+  const size_t d{m.GetIndexFaces().GetDir(f)};
+  cp = m.GetCell(f, nci);
+  cm = m.GetCell(f, 1 - nci);
+  cpp = m.GetCell(cp, d * 2 + nci);
+  cmm = m.GetCell(cm, d * 2 + 1 - nci);
+}
+
 // apply reflection to field on Reflect boundaries or other if force=true
 // fill: value for other types that CondFaceReflect
 template <class T, class M>
@@ -430,28 +442,12 @@ void BcReflect(FieldCell<T>& uc,
                T fill, bool force, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  using MIdx = typename M::MIdx;
-  using Dir = typename M::Dir;
-  auto& bf = m.GetIndexFaces();
-  auto& bc = m.GetIndexCells();
   for (const auto& it : mfc) {
-    CondFace* cb = it.GetValue().get();
-    size_t nci = cb->GetNci();
     IdxFace f = it.GetIdx();
-    Dir df = bf.GetDir(f);
+    CondFace* cb = it.GetValue().get();
     Vect n = m.GetNormal(f);
-    // offset from face towards cell (inner normal to boundary)
-    MIdx wo(0);
-    wo[size_t(df)] = (nci == 0 ? -1 : 1);
-    IdxCell cp = m.GetNeighbourCell(f, nci);
-    MIdx wp = bc.GetMIdx(cp);
-    MIdx wpp = wp + wo;
-    MIdx wm = wp - wo;
-    MIdx wmm = wm - wo;
-    IdxCell cm = bc.GetIdx(wm);
-    IdxCell cmm = bc.GetIdx(wmm);
-    IdxCell cpp = bc.GetIdx(wpp);
-    // apply
+    IdxCell cmm, cm, cp, cpp;
+    GetCellColumn(m, f, cb->GetNci(), cmm, cm, cp, cpp);
     if (dynamic_cast<CondFaceReflect*>(cb) || force) {
       uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
       uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);

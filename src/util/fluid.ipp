@@ -969,7 +969,9 @@ void DumpBcFaces(const MapFace<std::shared_ptr<solver::CondFace>>& mfc,
       if (dynamic_cast<solver::CondFaceReflect*>(b)) {
         cond = 1;
       } else if (dynamic_cast<solver::CondFaceGradFixed<Scal>*>(b)) {
-        cond = 1;
+        cond = 2;
+      } else if (dynamic_cast<solver::CondFaceValFixed<Scal>*>(b)) {
+        cond = 3;
       }
       vcond.push_back(cond);
       vblock.push_back(m.GetId());
