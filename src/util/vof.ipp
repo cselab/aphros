@@ -324,61 +324,6 @@ struct UVof<M_>::Imp {
     }
   }
 
-  // Returns face polygon.
-  // x0,x1: points
-  // f0,f1: values
-  static std::vector<Vect> GetPoly(IdxFace f, const M& m) {
-    std::vector<Vect> xx;
-    for (size_t e = 0; e < m.GetNumNeighbourNodes(f); ++e) {
-      auto n = m.GetNeighbourNode(f, e);
-      xx.push_back(m.GetNode(n));
-    }
-    return xx;
-  }
-
-  static void DumpBcFaces(const MapFace<std::shared_ptr<CondFace>>& mfc, 
-                   std::string fn, M& m) {
-    auto sem = m.GetSem("DumpBcFaces");
-    struct {
-      std::vector<std::vector<Vect>> vxx;
-      std::vector<Scal> vcond;
-      std::vector<Scal> vblock;
-    }* ctx(sem);
-    auto& vxx = ctx->vxx;
-    auto& vcond = ctx->vcond;
-    auto& vblock = ctx->vblock;
-    if (sem("local")) {
-      for (auto& it : mfc) {
-        vxx.push_back(GetPoly(it.GetIdx(), m));
-        auto* b = it.GetValue().get();
-        Scal cond = -1;
-        if (dynamic_cast<CondFaceReflect*>(b)) {
-          cond = 1;
-        } else if (dynamic_cast<CondFaceGradFixed<Scal>*>(b)) {
-          cond = 1;
-        }
-        vcond.push_back(cond);
-        vblock.push_back(m.GetId());
-      }
-
-      using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&vxx));
-      using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&vcond));
-      m.Reduce(std::make_shared<TS>(&vblock));
-    }
-    if (sem("write")) {
-      if (m.IsRoot()) {
-        std::cout << std::fixed << std::setprecision(8)
-            << "dump" << " to " << fn << std::endl;
-        WriteVtkPoly<Vect>(
-            fn, vxx, nullptr, 
-            {&vcond, &vblock}, {"cond", "block"},
-            "Boundary conditions", true, true, true);
-      }
-    }
-  }
-
   // Initializes usermap_.
   // fccl0: known colors
   // fccl: colors to reduce
@@ -687,9 +632,6 @@ struct UVof<M_>::Imp {
     sem.LoopBegin();
     if (grid && sem.Nested()) {
       Grid(layers, fccl, fcclt, m);
-    }
-    if (sem.Nested()) {
-      DumpBcFaces(mfc, "bc.vtk", m);
     }
     if (sem("min")) {
       size_t tries = 0;
@@ -1000,12 +942,6 @@ void UVof<M_>::DumpPolyMarch(
     const FieldCell<Scal>* fcus, M& m) {
   imp->DumpPolyMarch(
       layers, fcu, fccl, fcn, fca, fci, fn, t, th, bin, merge, iso, fcus, m);
-}
-
-template <class M_>
-void UVof<M_>::DumpBcFaces(
-    const MapFace<std::shared_ptr<CondFace>>& mfc, std::string fn, M& m) {
-  Imp::DumpBcFaces(mfc, fn, m);
 }
 
 template <class M_>

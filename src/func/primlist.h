@@ -190,6 +190,7 @@ struct UPrimList {
   static std::vector<Primitive> ParseVel(
       std::string fn, bool verb, size_t edim) {
     (void) dim;
+    (void) edim;
     std::vector<Primitive> pp;
     std::ifstream f(fn);
     if (!f.good() && verb) {
