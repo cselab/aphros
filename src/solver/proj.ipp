@@ -372,6 +372,7 @@ struct Proj<M_>::Imp {
   // fcpb: base pressure [i]
   // fcs: linear system for pressure [i]
   void ApplyPcCond(const FieldCell<Scal>& fcpb, FieldCell<Expr>& fcs) {
+    (void) fcpb;
     for (auto it : mccp_) {
       IdxCell c(it.GetIdx()); // target cell
       CondCell* cb = it.GetValue().get(); // cond base
