@@ -1005,7 +1005,7 @@ void UVof<M_>::DumpPolyMarch(
 template <class M_>
 void UVof<M_>::DumpBcFaces(
     const MapFace<std::shared_ptr<CondFace>>& mfc, std::string fn, M& m) {
-  imp->DumpBcFaces(mfc, fn, m);
+  Imp::DumpBcFaces(mfc, fn, m);
 }
 
 template <class M_>
@@ -1017,7 +1017,7 @@ void UVof<M_>::Recolor(const GRange<size_t>& layers,
     const MapFace<std::shared_ptr<CondFace>>& mfcu,
     bool bcc_reflect, bool verb, bool unionfind, bool reduce, bool grid,
     M& m) {
-  imp->Recolor(layers, fcu, fccl, fccl0, clfixed, clfixed_x, coalth, mfcu,
+  Imp::Recolor(layers, fcu, fccl, fccl0, clfixed, clfixed_x, coalth, mfcu,
                bcc_reflect, verb, unionfind, reduce, grid, m);
 }
 

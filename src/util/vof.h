@@ -62,8 +62,8 @@ class UVof {
   // Dumps faces with boundary conditions.
   // mfc: boundary conditions
   // fn: filename
-  void DumpBcFaces(const MapFace<std::shared_ptr<CondFace>>& mfc,
-                   std::string fn, M& m);
+  static void DumpBcFaces(
+      const MapFace<std::shared_ptr<CondFace>>& mfc, std::string fn, M& m);
 
   // Computes unique color for each connected component over all layers.
   // fcu: volume fraction
@@ -76,7 +76,8 @@ class UVof {
   // verb: report color overflow (not enough layers)
   // unionfind: use union-find algorithm (otherwise iterative stencil updates)
   // reduce: reduce color space trying to keep the previous color
-  void Recolor(const GRange<size_t>& layers,
+  static void Recolor(
+      const GRange<size_t>& layers,
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0,
