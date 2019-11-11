@@ -53,7 +53,7 @@ void Run(M& m, State&, Vars& var) {
       const bool unionfind = true;
       const bool reduce = true;
       const bool grid = true;
-      uvof.Recolor(layers, &fcu, &fccl, &fccl, -1, Vect(0), 1e10, mfc, true, 
+      uvof.Recolor(layers, &fcu, &fccl, &fccl, -1, Vect(0), 1e10, mfc,
           true, unionfind, reduce, grid, m);
       fcclm = fccl;
     }
