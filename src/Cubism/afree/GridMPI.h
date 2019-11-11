@@ -11,6 +11,7 @@
 
 #include <map>
 #include <mpi.h>
+#include <string>
 #include <vector>
 
 #include "Cubism/StencilInfo.h"
@@ -22,7 +23,7 @@ class GridMPI : public TGrid
 public:
     using Block = typename TGrid::Block;
     using BlockType = typename TGrid::BlockType;
-    using Synch = SynchronizerMPI<Block::bx, Block::by, Block::bz>;
+    using Synch = SynchronizerMPI<Block, Block::bx, Block::by, Block::bz>;
     friend Synch;
 
 private:
@@ -36,7 +37,7 @@ protected:
     std::vector<BlockInfo> cached_blockinfo;
 
     // acts like cache
-    std::map<StencilInfo, Synch *> SynchronizerMPIs;
+    std::map<std::string, Synch *> SynchronizerMPIs;
 
     MPI_Comm worldcomm;
     MPI_Comm cartcomm;
@@ -97,7 +98,7 @@ public:
 
     ~GridMPI()
     {
-        for (typename std::map<StencilInfo, Synch *>::const_iterator it =
+        for (typename std::map<std::string, Synch *>::const_iterator it =
                  SynchronizerMPIs.begin();
              it != SynchronizerMPIs.end();
              ++it)
@@ -134,43 +135,48 @@ public:
     // (e.g. two kernels with identical stencils and
     // same elected components would share a common SynchronizerMPI)
     template <typename Processing, typename TView>
-    Synch &sync(Processing &p, std::vector<std::vector<TView>> &fields)
+    Synch &sync(const std::string &name,
+                Processing &p,
+                std::vector<std::vector<TView>> &fields)
     {
         const StencilInfo stencil = p.stencil;
         assert(stencil.isvalid());
 
         Synch *queryresult = NULL;
 
-        typename std::map<StencilInfo, Synch *>::iterator itSynchronizerMPI =
-            SynchronizerMPIs.find(stencil);
+        typename std::map<std::string, Synch *>::iterator itSynchronizerMPI =
+            SynchronizerMPIs.find(name);
 
         if (itSynchronizerMPI == SynchronizerMPIs.end()) {
-            queryresult = new Synch(SynchronizerMPIs.size(),
-                                    stencil,
+            queryresult = new Synch(fields,
                                     getBlocksInfo(),
+                                    stencil,
                                     cartcomm,
                                     mybpd,
                                     blocksize);
 
-            SynchronizerMPIs[stencil] = queryresult;
+            SynchronizerMPIs[name] = queryresult;
         } else
             queryresult = itSynchronizerMPI->second;
 
         // perform communication
-        queryresult->sync(
-            fields, sizeof(Real) > 4 ? MPI_DOUBLE : MPI_FLOAT, timestamp);
+        queryresult->sync(sizeof(Real) > 4 ? MPI_DOUBLE : MPI_FLOAT, timestamp);
 
         timestamp = (timestamp + 1) % 32768;
 
         return *queryresult;
     }
 
-    template <typename Processing>
-    const Synch &get_SynchronizerMPI(Processing &p) const
+    inline bool isRegistered(const std::string &name) const
     {
-        assert((SynchronizerMPIs.find(p.stencil) != SynchronizerMPIs.end()));
+        return SynchronizerMPIs.find(name) != SynchronizerMPIs.end();
+    }
 
-        return *SynchronizerMPIs.find(p.stencil)->second;
+    Synch &getSynchronizerMPI(const std::string &name)
+    {
+        assert((SynchronizerMPIs.find(name) != SynchronizerMPIs.end()));
+
+        return *SynchronizerMPIs.find(name)->second;
     }
 
     size_t getResidentBlocksPerDimension(int idim) const

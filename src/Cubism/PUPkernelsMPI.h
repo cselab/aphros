@@ -46,9 +46,34 @@ inline void pack_soa(const Real *const __restrict srcbase,
     Real *dst = dstbase;
     for (int iz = zstart; iz < zend; ++iz) {
         for (int iy = ystart; iy < yend; ++iy) {
-            const Real *src = srcbase + bx * (iy + by * iz);
+            const Real *src = srcbase + xstart + bx * (iy + by * iz);
             for (int ix = xstart; ix < xend; ++ix) {
                 *dst++ = *src++;
+            }
+        }
+    }
+}
+
+inline void pack_soa_ncomp(const Real *const __restrict srcbase,
+                     Real *const __restrict dstbase,
+                     const int ncomp,
+                     const int xstart,
+                     const int ystart,
+                     const int zstart,
+                     const int xend,
+                     const int yend,
+                     const int zend,
+                     const int bx,
+                     const int by)
+{
+    Real *dst = dstbase;
+    for (int iz = zstart; iz < zend; ++iz) {
+        for (int iy = ystart; iy < yend; ++iy) {
+            for (int ix = xstart; ix < xend; ++ix) {
+                const Real *src = srcbase + ncomp * (ix + bx * (iy + by * iz));
+                for (int c = 0; c < ncomp; ++c) {
+                    *dst++ = *src++;
+                }
             }
         }
     }
@@ -368,6 +393,31 @@ inline void unpack_soa(const Real *const __restrict pack,
     }
 }
 
+inline void unpack_soa_ncomp(const Real *const __restrict pack,
+                             Real *const __restrict dstbase,
+                             const int ncomp,
+                             const int dstxstart,
+                             const int dstystart,
+                             const int dstzstart,
+                             const int dstxend,
+                             const int dstyend,
+                             const int dstzend,
+                             const int xsize,
+                             const int ysize)
+{
+    const Real *src = pack;
+    for (int zd = dstzstart; zd < dstzend; ++zd) {
+        for (int yd = dstystart; yd < dstyend; ++yd) {
+            for (int xd = dstxstart; xd < dstxend; ++xd) {
+                Real *dst = dstbase + ncomp * (xd + xsize * (yd + ysize * zd));
+                for (int c = 0; c < ncomp; ++c) {
+                    *dst++ = *src++;
+                }
+            }
+        }
+    }
+}
+
 inline void unpack1(const Real * const pack, Real * const dstbase,
 		  const size_t gptfloats,
 		  const int * const selected_components, const int ncomponents,
@@ -479,6 +529,39 @@ inline void unpack_subregion_soa(const Real *const __restrict pack,
                                     LY * (zd - dstzstart + srczstart));
             for (int xd = dstxstart; xd < dstxend; ++xd) {
                 *dst++ = *src++;
+            }
+        }
+    }
+}
+
+inline void unpack_subregion_soa_ncomp(const Real *const __restrict pack,
+                                       Real *const __restrict dstbase,
+                                       const int ncomp,
+                                       const int srcxstart,
+                                       const int srcystart,
+                                       const int srczstart,
+                                       const int LX,
+                                       const int LY,
+                                       const int dstxstart,
+                                       const int dstystart,
+                                       const int dstzstart,
+                                       const int dstxend,
+                                       const int dstyend,
+                                       const int dstzend,
+                                       const int xsize,
+                                       const int ysize)
+{
+    for (int zd = dstzstart; zd < dstzend; ++zd) {
+        for (int yd = dstystart; yd < dstyend; ++yd) {
+            Real *dst = dstbase + ncomp * (dstxstart + xsize * (yd + ysize * zd));
+            for (int xd = dstxstart; xd < dstxend; ++xd) {
+                const Real *src =
+                    pack + ncomp * (xd - dstxstart + srcxstart +
+                                    LX * (yd - dstystart + srcystart +
+                                          LY * (zd - dstzstart + srczstart)));
+                for (int c = 0; c < ncomp; ++c) {
+                    *dst++ = *src++;
+                }
             }
         }
     }

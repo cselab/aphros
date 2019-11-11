@@ -219,7 +219,7 @@ public:
                 const int my_ix = s[0]-m_stencilStart[0];
 
 				//printf("iy : %d %d\n", s[1], e[1]);
-				const int bytes = (e[0]-s[0])*sizeof(ElementType);
+				const int bytes = (e[0]-s[0]) * target.n_comp * sizeof(ElementType);
 				for(int iz=s[2]; iz<e[2]; iz++)
 				{
 					const int my_izx = (iz-m_stencilStart[2])*m_nElemsPerSlice + my_ix;
@@ -246,9 +246,12 @@ public:
                             char *ptrDest = (char *)&target.LinAccess(
                                 my_izx + (iy - m_stencilStart[1]) * m_vSize0);
 
-                            assert(b(s[0] - code[0]*BlockType::sizeX, iy - code[1]*BlockType::sizeY, iz - code[2]*BlockType::sizeZ) > 0);
+                            // assert(b(s[0] - code[0]*BlockType::sizeX, iy - code[1]*BlockType::sizeY, iz - code[2]*BlockType::sizeZ) > 0);
+
+                            // XXX: [fabianw@mavt.ethz.ch; 2019-11-11] This is
+                            // dangerous if b() returns something complex that
+                            // is not POD!
                             const char * ptrSrc = (const char*)&b(s[0] - code[0]*BlockType::sizeX, iy - code[1]*BlockType::sizeY, iz - code[2]*BlockType::sizeZ);
-							const int bytes = (e[0]-s[0])*sizeof(ElementType);
 							memcpy2((char *)ptrDest, (char *)ptrSrc, bytes);
 						}
 					}
@@ -269,6 +272,9 @@ public:
                                 my_izx +
                                 (iy + 3 - m_stencilStart[1]) * m_vSize0);
 
+                            // XXX: [fabianw@mavt.ethz.ch; 2019-11-11] This is
+                            // dangerous if b() returns something complex that
+                            // is not POD!
                             const char * ptrSrc0 = (const char*)&b(s[0] - code[0]*BlockType::sizeX, iy + 0 - code[1]*BlockType::sizeY, iz - code[2]*BlockType::sizeZ);
 							const char * ptrSrc1 = (const char*)&b(s[0] - code[0]*BlockType::sizeX, iy + 1 - code[1]*BlockType::sizeY, iz - code[2]*BlockType::sizeZ);
 							const char * ptrSrc2 = (const char*)&b(s[0] - code[0]*BlockType::sizeX, iy + 2 - code[1]*BlockType::sizeY, iz - code[2]*BlockType::sizeZ);
@@ -287,7 +293,7 @@ public:
 				const int off_y = - code[1]*nY + m_stencilStart[1];
 				const int off_z = - code[2]*nZ + m_stencilStart[2];
 
-				const int nbytes = (e[0]-s[0])*sizeof(ElementType);
+				const int nbytes = (e[0]-s[0])* target.n_comp * sizeof(ElementType);
 #if 1
 				const int _iz0 = s[2] -m_stencilStart[2];
 				const int _iz1 = e[2] -m_stencilStart[2];
