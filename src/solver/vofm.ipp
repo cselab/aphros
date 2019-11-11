@@ -356,21 +356,7 @@ struct Vofm<M_>::Imp {
         Sweep(mfcu, d, layers, ffv, fccl_, fcim_, fcn_, fca_, mfc_,
             3, nullptr, nullptr, fcuu_, 1., par->clipth, m);
       }
-      for (auto i : layers) {
-        if (sem("comm")) {
-          m.Comm(mfcu[i]);
-          m.Comm(&fccl_[i]);
-          m.Comm(&fcim_[i]);
-        }
-      }
-      if (par->bcc_reflect && sem("reflect")) {
-        for (auto i : layers) {
-          BcReflect(*mfcu[i], mfc_, par->bcc_fill, false, m);
-        }
-      }
-      if (sem.Nested("reconst")) {
-        Rec(mfcu);
-      }
+      CommRec(sem, mfcu, fccl_, fcim_);
     }
   }
   // set volume fraction to 0 or 1 near wall
@@ -421,21 +407,7 @@ struct Vofm<M_>::Imp {
               type, nullptr, nullptr, fcuu_,
               owner_->GetTimeStep(), par->clipth, m);
       }
-      for (auto i : layers) {
-        if (sem("comm")) {
-          m.Comm(mfcu[i]);
-          m.Comm(&fccl_[i]);
-          m.Comm(&fcim_[i]);
-        }
-      }
-      if (par->bcc_reflect && sem("reflect")) {
-        for (auto i : layers) {
-          BcReflect(*mfcu[i], mfc_, par->bcc_fill, false, m);
-        }
-      }
-      if (sem.Nested("reconst")) {
-        Rec(mfcu);
-      }
+      CommRec(sem, mfcu, fccl_, fcim_);
     }
   }
   // Makes advection sweep in one direction, updates uc [i] and fccl [i]
@@ -604,6 +576,27 @@ struct Vofm<M_>::Imp {
       }
     }
   }
+  void CommRec(
+      Sem& sem,
+      const Multi<FieldCell<Scal>*>& mfcu,
+      const Multi<FieldCell<Scal>*>& mfccl,
+      const Multi<FieldCell<Scal>*>& mfcim) {
+    for (auto i : layers) {
+      if (sem("comm")) {
+        m.Comm(mfcu[i]);
+        m.Comm(mfccl[i]);
+        m.Comm(mfcim[i]);
+      }
+    }
+    if (par->bcc_reflect && sem("reflect")) {
+      for (auto i : layers) {
+        BcReflect(*mfcu[i], mfc_, par->bcc_fill, false, m);
+      }
+    }
+    if (sem.Nested("reconst")) {
+      Rec(mfcu);
+    }
+  }
   void AdvAulisa(Sem& sem, const Multi<FieldCell<Scal>*>& mfcu) {
     // directions, format: {dir EI, dir LE, ...}
     std::vector<size_t> dd;
@@ -645,21 +638,7 @@ struct Vofm<M_>::Imp {
               id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
               owner_->GetTimeStep() * vsc, par->clipth, m);
       }
-      for (auto i : layers) {
-        if (sem("comm")) {
-          m.Comm(mfcu[i]);
-          m.Comm(&fccl_[i]);
-          m.Comm(&fcim_[i]);
-        }
-      }
-      if (par->bcc_reflect && sem("reflect")) {
-        for (auto i : layers) {
-          BcReflect(*mfcu[i], mfc_, par->bcc_fill, false, m);
-        }
-      }
-      if (sem.Nested("reconst")) {
-        Rec(mfcu);
-      }
+      CommRec(sem, mfcu, fccl_, fcim_);
     }
   }
   void MakeIteration() {
