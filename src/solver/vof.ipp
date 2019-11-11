@@ -227,6 +227,7 @@ struct Vof<M_>::Imp {
       owner_->ClearIter();
       fcu_.time_prev = fcu_.time_curr;
       fcu_.iter_curr = fcu_.time_prev;
+      UpdateBc(mfc_);
     }
 
     if (owner_->GetTime() == 0.) {
