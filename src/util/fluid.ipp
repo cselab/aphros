@@ -636,16 +636,17 @@ void GetFluidFaceCond(
   };
 
   // Boundary conditions for fluid 
-  auto ff = m.AllFaces();
-  std::vector<std::pair<std::string, std::function<bool(IdxFace)>>> pp = 
+  std::vector<std::pair<std::string, std::function<bool(IdxFace)>>> pp =
       {{"bc_xm", gxm}, {"bc_xp", gxp},
        {"bc_ym", gym}, {"bc_yp", gyp},
        {"bc_zm", gzm}, {"bc_zp", gzp}};
 
   for (auto p : pp) {
     if (auto bc = var.String(p.first)) {
-      for (auto i : ff) {
-        p.second(i) && set_bc(i, *bc);
+      for (auto f : m.AllFaces()) {
+        if (p.second(f)) {
+          set_bc(f, *bc);
+        }
       }
     }
   }
