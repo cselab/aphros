@@ -122,8 +122,10 @@ struct Vofm<M_>::Imp {
           mfc_cl_[f] = std::make_shared<
               CondFaceValFixed<Scal>>(kClNone, nci);
         }
+        MIdx wim(0);
+        wim[size_t(m.GetDir(f))] = (nci == 1 ? -1 : 1);
         mfc_im_[f] = std::make_shared<
-            CondFaceValFixed<Scal>>(TRM::Pack(MIdx(0)), nci);
+            CondFaceValFixed<Scal>>(TRM::Pack(wim), nci);
         mfc_n_[f] = std::make_shared<CondFaceValFixed<Vect>>(Vect(0), nci);
         mfc_a_[f] = std::make_shared<CondFaceValFixed<Scal>>(Scal(0), nci);
       }
