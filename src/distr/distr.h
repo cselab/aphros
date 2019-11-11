@@ -421,19 +421,6 @@ void DistrMesh<KF>::Report() {
           << "mem=" << (sysinfo::GetMem() / double(1 << 20)) << " MB" 
           << std::endl;
       ParseReport(mp, std::cout);
-      for (auto e : mp) {
-        auto n = e.first; // name
-        if (n == "") {
-          n = "other";
-        }
-        auto t = e.second; // time
-
-        std::cout 
-            << n << "\n" 
-            << std::setprecision(5) << t << " s = "
-            << std::setprecision(3) << 100. * t / a << "%\n";
-      }
-      std::cout << std::endl;
     }
 
     MIdx gs;
