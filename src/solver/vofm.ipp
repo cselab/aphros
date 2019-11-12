@@ -204,6 +204,7 @@ struct Vofm<M_>::Imp {
       }
 
       // Compute fca_ [s]
+      const Scal th = par->clipth;
       for (auto i : layers) {
         auto& fcn = fcn_[i];
         auto& fci = fci_[i];
@@ -213,7 +214,11 @@ struct Vofm<M_>::Imp {
         auto h = m.GetCellSize();
         for (auto c : m.SuCells()) {
           if (fci[c]) {
-            fca[c] = R::GetLineA(fcn[c], fcu[c], h);
+            Scal u = fcu[c];
+            // snap to closest intermediate value
+            // TODO: needed for polygons near wall, revise GetCutPoly instead
+            u = (u < th ? th : u > 1 - th ? 1 - th : u);
+            fca[c] = R::GetLineA(fcn[c], u, h);
           } else {
             fca[c] = GetNan<Scal>();
           }
