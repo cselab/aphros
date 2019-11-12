@@ -6,6 +6,7 @@ M_CFLAGS = -I$(CHPREFIX)/include
 
 M = \
 int\
+stream\
 
 all: $M
 .o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@

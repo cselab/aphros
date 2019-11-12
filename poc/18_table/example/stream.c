@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <table.h>
 
-static char me[] = "table/int";
+static char me[] = "table/stream";
 
 int
 main(void)
