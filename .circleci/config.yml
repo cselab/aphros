@@ -12,8 +12,8 @@ jobs:
             apt update
             apt install -y --no-install-recommends apt-utils
             apt install -y make cmake libhdf5-openmpi-dev python-numpy sudo rsync
-            useradd -M -d `dirname ${CIRCLE_WORKING_DIRECTORY}` -g users -N mpiuser
-            chown -R mpiuser:users `dirname ${CIRCLE_WORKING_DIRECTORY}`
+            useradd -M -d $(realpath $(dirname ${CIRCLE_WORKING_DIRECTORY})) -g users -N mpiuser
+            chown -R mpiuser:users $(realpath $(dirname ${CIRCLE_WORKING_DIRECTORY}))
             sudo -i -H -u mpiuser sh -e -x << EOS
             mkdir -p \$HOME/bin
             export PATH=\$HOME/bin:\$PATH
