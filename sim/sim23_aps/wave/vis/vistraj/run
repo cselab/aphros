@@ -1,2 +1,2 @@
-./traj.py traj_*.csv || true
+./traj.py ../traj_*.csv || true
 r=30 r.pngmp4
