@@ -191,80 +191,6 @@ class Cubism : public DistrMesh<KF> {
   static std::vector<MyBlockInfo> GetBlocks(
       const std::vector<BlockInfo>&, MIdx bs, size_t hl);
 
-  // Reads from buffer to scalar field [a]
-  // fc: field
-  // l: lab
-  // e: offset in buffer, 0 <= e < Elem::es
-  // Returns:
-  // number of scalar fields read
-  size_t ReadBuffer(FieldCell<Scal>& fc, Lab& l, size_t e,  M& m) {
-    if (e >= Elem::es) {
-      throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
-    }
-    auto& bc = m.GetIndexCells();
-    for (auto c : m.AllCells()) {
-      auto w = bc.GetMIdx(c) - MIdx(hl_) - bc.GetBegin();
-      fc[c] = l(w[0], w[1], w[2]).a[e];
-    }
-    return 1;
-  }
-  // Reads from buffer to component of vector field [a]
-  // fc: field
-  // d: component (0,1,2)
-  // l: lab
-  // e: offset in buffer, 0 <= e < Elem::es
-  // Returns:
-  // number of scalar fields read
-  size_t ReadBuffer(FieldCell<Vect>& fc, size_t d, Lab& l, size_t e,  M& m) {
-    if (e >= Elem::es) {
-      throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
-    }
-    if (d >= Vect::dim) {
-      throw std::runtime_error("ReadBuffer: d >= Vect::dim");
-    }
-    auto& bc = m.GetIndexCells();
-    for (auto c : m.AllCells()) {
-      auto w = bc.GetMIdx(c) - MIdx(hl_) - bc.GetBegin();
-      fc[c][d] = l(w[0], w[1], w[2]).a[e];
-    }
-    return 1;
-  }
-  // Reads from buffer to all components of vector field [a]
-  // fc: field
-  // l: lab
-  // e: offset in buffer, 0 <= e < Elem::es
-  // Returns:
-  // number of scalar fields read
-  size_t ReadBuffer(FieldCell<Vect>& fc, Lab& l, size_t e,  M& m) {
-    for (size_t d = 0; d < Vect::dim; ++d) {
-      e += ReadBuffer(fc, d, l, e, m);
-    }
-    return Vect::dim;
-  }
-  // Reads from buffer to Co
-  // o: instance of Co
-  // l: lab
-  // e: offset in buffer, 0 <= e < Elem::es
-  // Returns:
-  // number of scalar fields written
-  size_t ReadBuffer(typename M::Co* o, Lab& l, size_t e, M& m) {
-    if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
-      return ReadBuffer(*od->f, l, e, m);
-    } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
-      if (od->d == -1) {
-        return ReadBuffer(*od->f, l, e, m);
-      }
-      return ReadBuffer(*od->f, od->d, l, e, m);
-    }
-    throw std::runtime_error("ReadBuffer: Unknown Co instance");
-    return 0;
-  }
-  void ReadBuffer(M& m, Lab& l) {
-    size_t e = 0;
-    for (auto& o : m.GetComm()) {
-      e += ReadBuffer(o.get(), l, e, m);
-    }
-  }
   // Writes scalar field to buffer [i].
   // fc: scalar field
   // b: block
@@ -595,14 +521,7 @@ auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
 }
 
 template <class Par, class KF>
-void Cubism<Par, KF>::ReadBuffer(const std::vector<MIdx>& bb) {
-  for (auto& b : bb) {
-    auto& k = *mk.at(b); // kernel
-    auto& m = k.GetMesh();
-    s_.l->load(s_.mb[b]);
-    ReadBuffer(m, *s_.l);
-  }
-}
+void Cubism<Par, KF>::ReadBuffer(const std::vector<MIdx>& bb) {}
 
 template <class Par, class KF>
 void Cubism<Par, KF>::WriteBuffer(const std::vector<MIdx>& bb) {
@@ -1001,10 +920,6 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       auto& mbc = m.GetIndexCells();
       // resize field for block mesh
       fc.Reinit(m);
-      // load from grid to lab
-      s_.l->load(s_.mb[b]);
-      // read from lab to fc
-      ReadBuffer(fc, *s_.l, e, m);
       // get corner of inner cells block
       MIdx wb = m.GetInBlockCells().GetBegin();
       // copy from inner cells to global field
@@ -1038,10 +953,6 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       auto& mbc = m.GetIndexCells();
       // resize field for block mesh
       fc.Reinit(m);
-      // load from grid to lab
-      s_.l->load(s_.mb[b]);
-      // read from lab to fc
-      ReadBuffer(fc, *s_.l, e, m);
       // get corner of inner cells block
       MIdx wb = m.GetInBlockCells().GetBegin();
       // copy from inner cells to v
