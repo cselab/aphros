@@ -24,9 +24,15 @@ function one(f,   r, i, cl, vf)
         xx = get("xx")
         yy = get("yy")
         zz = get("zz")
+        x = get("x")
+        y = get("y")
+        z = get("z")
         vf = get("vf")
         cl = get("cl")
-        rg = sqrt(xx + yy)
+        rg = xx + yy + zz - (x^2 + y^2 + z^2)
+        if (rg < 0)
+           rg = 0
+        rg = sqrt(5*rg/3)
         if (cl != 0 && vf < 0.1)
             print rg
     }
