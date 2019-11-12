@@ -12,12 +12,13 @@ jobs:
             apt update
             apt install -y --no-install-recommends apt-utils
             apt install -y make cmake libhdf5-openmpi-dev python-numpy sudo rsync
-            useradd -M -d $(realpath $(dirname ${CIRCLE_WORKING_DIRECTORY})) -g users -N mpiuser
-            chown -R mpiuser:users $(realpath $(dirname ${CIRCLE_WORKING_DIRECTORY}))
+            ls -al '/root/project/'
+            useradd -M -d '/root/project/' -g users -N mpiuser
+            chown -R mpiuser:users '/root/project/' 
             sudo -i -H -u mpiuser sh -e -x << EOS
             mkdir -p \$HOME/bin
             export PATH=\$HOME/bin:\$PATH
-            cd ${CIRCLE_WORKING_DIRECTORY}
+            cd "${CIRCLE_WORKING_DIRECTORY}"
             cd deploy
             ./all
             . ch.setenv
