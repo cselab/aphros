@@ -1,3 +1,4 @@
+// vim: expandtab:smarttab:sw=2:ts=2
 #include <mpi.h>
 
 #include "cubism.ipp"
@@ -10,7 +11,10 @@ template <size_t bx, size_t by, size_t bz, class KF>
 Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& par) {
   using M = typename KF::M;
   using Scal = typename M::Scal;
-  using Par = GPar<Scal, bx, by, bz, 8>;
+  using Par0 = GPar<Scal, bx, by, bz, 0>; // 0 halos on either side
+  using Par1 = GPar<Scal, bx, by, bz, 1>; // 1 halos on either side
+  using Par2 = GPar<Scal, bx, by, bz, 2>; // 2 halos on either side
+  using Par3 = GPar<Scal, bx, by, bz, 3>; // 3 halos on either side
 
   // Check block size
   if (par.Int["bsx"] == bx && 
@@ -18,7 +22,18 @@ Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& par) {
       (par.Int["bsz"] == bz || (bz == 2 && par.Int["bsz"] == 1))) {
     // Check kernel
     if (KF* kfd = dynamic_cast<KF*>(&kf)) {
-      return new Cubism<Par, KF>(comm, *kfd, par);
+      switch (par.Int["hl"]) {
+        case 0:
+          return new Cubism<Par0, KF>(comm, *kfd, par);
+        case 1:
+          return new Cubism<Par1, KF>(comm, *kfd, par);
+        case 2:
+          return new Cubism<Par2, KF>(comm, *kfd, par);
+        case 3:
+          return new Cubism<Par3, KF>(comm, *kfd, par);
+        default:
+          break;
+      }
     }
   }
 
@@ -41,7 +56,7 @@ Distr* CreateCubism(MPI_Comm comm, KernelFactory& kf, Vars& par) {
       << "bs=(" 
       << par.Int["bsx"] << ","
       << par.Int["bsy"] << ","
-      << par.Int["bsz"] << ")"
+      << par.Int["bsz"] << "); hl=" << par.Int["hl"]
       << std::endl;
     assert(false);
   }
