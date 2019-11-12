@@ -47,7 +47,7 @@ vort = 1
 
 av = sys.argv
 if len(av) < 2 or av[1] == '-h':
-    sys.stderr.write('''usage: {:} [sm_*.vtk]
+    sys.stderr.write('''usage: {:} [traj_*.csv]
 Plots isosurface.
 # Output:
 # a_*.png in current folder
@@ -79,8 +79,6 @@ paraview.simple._DisableFirstRenderCameraReset()
 
 # get the material library
 materialLibrary1 = GetMaterialLibrary()
-
-# Create a new 'Render View'
 renderView1 = CreateView('RenderView')
 renderView1.ViewSize = [1920, 1080]
 renderView1.OrientationAxesVisibility = 0
@@ -90,10 +88,10 @@ renderView1.CameraFocalPoint =\
 [0.49676167169496643, -0.25002651930486053, -1.3449860440897603]
 renderView1.CameraViewUp =\
 [-0.0893981734829278, 0.9547941520217919, -0.2835067791833273]
-renderView1.CameraParallelScale = 1.224744871391589
-renderView1.CameraParallelProjection = 0
-renderView1.Background = [0.0]*3
+renderView1.Background = [1.0]*3
 renderView1.OSPRayMaterialLibrary = materialLibrary1
+renderView1.KeyLightWarmth = 0.5
+renderView1.FillLightWarmth = 0.5
 
 # ----------------------------------------------------------------
 # END RENDER
@@ -104,49 +102,76 @@ renderView1.OSPRayMaterialLibrary = materialLibrary1
 # ----------------------------------------------------------------
 
 # create a new 'XDMF Reader'
-surf = LegacyVTKReader(FileNames=ff)
+traj = CSVReader(FileName=ff)
 
 # list of all sources
-vs = [surf]
+vs = [traj]
 
 # time steps
 vt = [np.array(s.TimestepValues) for s in vs]
 
 # replace with ForceTime
-surf = ForceTime(surf)
+traj = ForceTime(traj)
 
 # all ForceTime
-vft = [surf]
+vft = [traj]
 
 # ----------------------------------------------------------------
 # END READERS
 # ----------------------------------------------------------------
 
-surf = Calculator(Input=surf)
-surf.ResultNormals = 1
-surf.AttributeType = 'Point Data'
-surf.ResultArrayName = 'normals'
-surf.Function = 'nn'
+# create a new 'Box'
+box1 = Box()
+box1.XLength = 2.0
+box1.Center = [1.0, 0.5, 0.5]
 
-water = Clip(Input=surf)
-water.ClipType = 'Scalar'
-water.Scalars = ['CELLS', 'cl']
-water.Value = 1.0
-water.Invert = 1
-waterDisplay = Show(water, renderView1)
-waterDisplay.Representation = 'Surface'
-waterDisplay.ColorArrayName = [None, '']
-waterDisplay.Opacity = 0.85
+table = TableToPoints(Input=traj)
+table.XColumn = 'x'
+table.YColumn = 'y'
+table.ZColumn = 'z'
 
-bubbles = Clip(Input=surf)
-bubbles.ClipType = 'Scalar'
-bubbles.Scalars = ['CELLS', 'cl']
-bubbles.Value = 1.0
-bubbles.Invert = 0
-bubblesDisplay = Show(bubbles, renderView1)
-bubblesDisplay.Representation = 'Surface'
-bubblesDisplay.ColorArrayName = [None, '']
-bubblesDisplay.DiffuseColor = [1.0, 0.0, 0.0]
+calc = Calculator(Input=table)
+calc.AttributeType = 'Point Data'
+calc.ResultArrayName = 'dz'
+calc.Function = 'floor(coordsZ)'
+
+warp = WarpByScalar(Input=calc)
+warp.Scalars = ['POINTS', 'dz']
+warp.Normal = [0.0, 0.0, -1.0]
+
+glyph = Glyph(Input=warp, GlyphType='Sphere')
+glyph.OrientationArray = ['POINTS', 'No orientation array']
+glyph.ScaleArray = ['POINTS', 'r']
+glyph.GlyphTransform = 'Transform2'
+glyph.GlyphMode = 'All Points'
+glyph.ScaleFactor = 1
+glyph.GlyphType.Radius = 1.0
+glyph.GlyphType.ThetaResolution = 9
+glyph.GlyphType.PhiResolution = 9
+
+thres = Threshold(Input=glyph)
+thres.Scalars = ['POINTS', 'r']
+thres.ThresholdRange = [0.0, 0.2]
+
+box1Display = Show(box1, renderView1)
+box1Display.Representation = 'Wireframe'
+box1Display.AmbientColor = [0.0, 0.0, 0.0]
+box1Display.ColorArrayName = [None, '']
+
+thresDisplay = Show(thres, renderView1)
+rLUT = GetColorTransferFunction('r')
+rLUT.AutomaticRescaleRangeMode = 'Never'
+rLUT.RGBPoints = [0.0, 0.231373, 0.298039, 0.752941, 0.030000000000000006, 0.865003, 0.865003, 0.865003, 0.06, 0.705882, 0.0156863, 0.14902]
+rLUT.ScalarRangeInitialized = 1.0
+rPWF = GetOpacityTransferFunction('r')
+rPWF.Points = [0.0, 1.0, 0.5, 0.0, 0.06, 1.0, 0.5, 0.0]
+rPWF.ScalarRangeInitialized = 1
+
+thresDisplay.Representation = 'Surface'
+thresDisplay.ColorArrayName = ['POINTS', 'r']
+thresDisplay.LookupTable = rLUT
+thresDisplay.ScalarOpacityFunction = rPWF
+
 
 #####################################################
 ### END OF STATE FILE

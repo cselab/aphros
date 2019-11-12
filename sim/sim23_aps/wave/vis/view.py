@@ -85,13 +85,11 @@ renderView1 = CreateView('RenderView')
 renderView1.ViewSize = [1920, 1080]
 renderView1.OrientationAxesVisibility = 0
 renderView1.CameraPosition =\
-[2.18498889205859, 1.6310649466385199, 2.5118462518730618]
+[1.673947199541654, 1.155534385955274, 3.017460244409912]
 renderView1.CameraFocalPoint =\
-[0.11174881869864335, -0.5360846098832542, -1.1484055486585474]
+[0.49676167169496643, -0.25002651930486053, -1.3449860440897603]
 renderView1.CameraViewUp =\
-[-0.27081993085019135, 0.8877545682912452, -0.3722208907790139]
-renderView1.CameraParallelScale = 1.224744871391589
-renderView1.CameraParallelProjection = 0
+[-0.0893981734829278, 0.9547941520217919, -0.2835067791833273]
 renderView1.Background = [1.0]*3
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 
