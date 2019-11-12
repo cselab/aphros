@@ -153,6 +153,13 @@ class SlipWall : public CondFaceFluid {
 };
 
 template <class M>
+class Symm : public CondFaceFluid {
+ public:
+  using Vect = typename M::Vect;
+  Symm(size_t nci) : CondFaceFluid(nci) {}
+};
+
+template <class M>
 class GivenVelocityAndPressure : public CondCellFluid {
  public:
   using Vect = typename M::Vect;
@@ -213,21 +220,23 @@ std::shared_ptr<CondFaceFluid> Parse(std::string argstr, IdxFace /*f*/,
   arg >> name;
 
   if (name == "wall") {
-    // No-slip wall.
     // wall <velocity>
+    // No-slip wall.
+    // zero derivative for pressure, fixed for velocity, 
+    // fill-conditions for volume fraction.
     Vect vel;
     arg >> vel;
     return std::make_shared<NoSlipWallFixed<M>>(vel, nc);
   } else if (name == "inlet") {
-    // Fixed velocity inlet.
     // inlet <velocity>
+    // Fixed velocity inlet.
     Vect vel;
     arg >> vel;
     return std::make_shared<InletFixed<M>>(vel, nc);
   } else if (name == "inletflux") {
+    // inletflux <velocity> <id>
     // Fixed flux inlet. Flux defined by given velocity is redistributed
     // over all faces with same id.
-    // inletflux <velocity> <id>
     Vect vel;
     int id;
     arg >> vel >> id;
@@ -237,9 +246,15 @@ std::shared_ptr<CondFaceFluid> Parse(std::string argstr, IdxFace /*f*/,
     // to yield zero total flux over outlet and inlet faces.
     return std::make_shared<OutletAuto<M>>(nc);
   } else if (name == "slipwall") {
-    // Zero derivative for both pressure and velocity.
-    // TODO: revise, should be inpenetration for velocity
+    // Free-slip wall:
+    // zero derivative for both pressure, velocity,
+    // fill-conditions for volume fraction.
+    // TODO: revise, should be non-penetration for velocity
     return std::make_shared<SlipWall<M>>(nc);
+  } else if (name == "symm") {
+    // Zero derivative for pressure, velocity and volume fraction
+    // TODO: revise, should be non-penetration for velocity
+    return std::make_shared<Symm<M>>(nc);
   } else {
     throw std::runtime_error("Parse: unknown cond");
   }
@@ -268,6 +283,9 @@ MapFace<std::shared_ptr<solver::CondFace>> GetVelCond(
       mf[i] = std::make_shared<
           CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
     } else if (auto cd = dynamic_cast<SlipWall<M>*>(cb)) {
+      mf[i] = std::make_shared<
+          CondFaceReflect>(nci);
+    } else if (auto cd = dynamic_cast<Symm<M>*>(cb)) {
       mf[i] = std::make_shared<
           CondFaceReflect>(nci);
     } else {

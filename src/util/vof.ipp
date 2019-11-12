@@ -986,6 +986,7 @@ void UVof<M_>::GetAdvectionFaceCond(
       mfc_n[f] = std::make_shared<CondFaceReflect>(nci);
       mfc_a[f] = std::make_shared<CondFaceReflect>(nci);
     } else {
+      // TODO: reflect cl on walls
       if (auto cd = dynamic_cast<CondFaceValFixed<Scal>*>(cb)) {
         mfc_cl[f] = std::make_shared<
             CondFaceValFixed<Scal>>(inletcl, nci);

@@ -281,6 +281,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldFace<Scal> ffbp_;  // balanced force projections
   FieldFace<Scal> ffk_;  // curvature on faces
   MapFace<std::shared_ptr<solver::CondFace>> mf_cond_;
+  MapFace<std::shared_ptr<solver::CondFace>> mf_cond_vfsm_;
   MapFace<std::shared_ptr<solver::CondFaceFluid>> mf_velcond_; // fluid cond
   MapFace<std::shared_ptr<solver::CondFace>> mfcw_; // velocity cond
   MapCell<std::shared_ptr<solver::CondCell>> mc_cond_;
@@ -663,6 +664,19 @@ void Hydro<M>::Init() {
 
     // boundary conditions
     GetFluidFaceCond(var, m, mf_velcond_, mf_cond_);
+
+    // boundary conditions for smoothing of volume fraction
+    for (auto it : mf_velcond_) {
+      IdxFace i = it.GetIdx();
+      solver::CondFaceFluid* cb = it.GetValue().get();
+      if (dynamic_cast<solver::fluid_condition::Symm<M>*>(cb)) {
+        mf_cond_vfsm_[i] = std::make_shared<solver::
+            CondFaceReflect>(it.GetValue()->GetNci());
+      } else {
+        mf_cond_vfsm_[i] = std::make_shared<solver::
+            CondFaceGradFixed<Scal>>(Scal(0), it.GetValue()->GetNci());
+      }
+    }
   }
 
   if (var.Int["bc_wall_init_vel"] && sem("bc_wall_init_vel")) {
@@ -736,7 +750,7 @@ void Hydro<M>::Init() {
   }
 
   if (sem.Nested("smooth")) {
-    solver::Smoothen(fc_vf_, mf_cond_, m, var.Int["vf_init_sm"]);
+    solver::Smoothen(fc_vf_, mf_cond_vfsm_, m, var.Int["vf_init_sm"]);
   }
 
   if (sem.Nested("mixture")) {
@@ -1418,7 +1432,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
   }
 
   if (sem.Nested("smooth")) {
-    solver::Smoothen(fc_smvf_, mf_cond_, m, var.Int["vfsmooth"]);
+    solver::Smoothen(fc_smvf_, mf_cond_vfsm_, m, var.Int["vfsmooth"]);
   }
 
   if (sem.Nested("smoothnode")) {
@@ -1428,7 +1442,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
   if (sem("calc")) {
     FieldCell<Scal>& a = fc_smvf_;
     FieldFace<Scal>& af = ff_smvf_;
-    af = solver::Interpolate(a, mf_cond_, m);
+    af = solver::Interpolate(a, mf_cond_vfsm_, m);
 
     const Vect force(var.Vect["force"]);
     const Vect grav(var.Vect["gravity"]);

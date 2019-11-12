@@ -44,7 +44,6 @@ class Vof : public AdvectionSolver<M_> {
     Scal inletcl = 1; // inlet color
     bool bcc_reflectpoly = true; // reflection for DumpPolyMarch
     Scal dumppolymarch_fill = -1; // fill cells outside
-    Scal bcc_fill = 0;        // fill value for halo cells
     bool bcc_clear = false;   // set to 0 or 1 near CondFaceReflect
 
     int part_constr = 0; // 0: no constraints
