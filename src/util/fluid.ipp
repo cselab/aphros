@@ -653,12 +653,17 @@ void GetFluidFaceCond(
   }
 
   // boundary conditions for advection
+  Scal bcc_fill = var.Double["bcc_fill"];
   for (auto it : mfvel) {
     IdxFace i = it.GetIdx();
     solver::CondFaceFluid* cb = it.GetValue().get();
-    if (dynamic_cast<solver::fluid_condition::SlipWall<M>*>(cb)) {
+    if (dynamic_cast<solver::fluid_condition::Symm<M>*>(cb)) {
       mfvf[i] = std::make_shared<solver::
           CondFaceReflect>(it.GetValue()->GetNci());
+    } else if (dynamic_cast<solver::fluid_condition::NoSlipWall<M>*>(cb) ||
+               dynamic_cast<solver::fluid_condition::SlipWall<M>*>(cb)) {
+      mfvf[i] = std::make_shared<solver::
+          CondFaceValFixed<Scal>>(bcc_fill, it.GetValue()->GetNci());
     } else {
       mfvf[i] = std::make_shared<solver::
           CondFaceGradFixed<Scal>>(Scal(0), it.GetValue()->GetNci());

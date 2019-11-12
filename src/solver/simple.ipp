@@ -71,13 +71,14 @@ struct Simple<M_>::Imp {
       mfcpc_[i] = std::make_shared<CondFaceExtrap>(nci);
       mfcd_[i]  = std::make_shared<CondFaceGradFixed<Scal>>(0., nci);
 
-      if (auto cd = dynamic_cast<NoSlipWall<M>*>(cb)) {
+      if (dynamic_cast<NoSlipWall<M>*>(cb)) {
         // nop
-      } else if (auto cd = dynamic_cast<Inlet<M>*>(cb)) {
+      } else if (dynamic_cast<Inlet<M>*>(cb)) {
         // nop
-      } else if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
+      } else if (dynamic_cast<Outlet<M>*>(cb)) {
         // nop
-      } else if (auto cd = dynamic_cast<SlipWall<M>*>(cb)) {
+      } else if (dynamic_cast<SlipWall<M>*>(cb) ||
+                 dynamic_cast<Symm<M>*>(cb)) {
         mfcf_[i]  = std::make_shared<CondFaceReflect>(nci);
         mfcp_[i]  = std::make_shared<CondFaceGradFixed<Scal>>(0., nci);
         mfcpc_[i] = std::make_shared<CondFaceGradFixed<Scal>>(0, nci);
@@ -165,7 +166,8 @@ struct Simple<M_>::Imp {
       } else if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
         auto pd = dynamic_cast<CondFaceValFixed<Vect>*>(p);
         pd->Set(cd->GetVelocity());
-      } else if (auto cd = dynamic_cast<SlipWall<M>*>(cb)) {
+      } else if (dynamic_cast<SlipWall<M>*>(cb) ||
+                 dynamic_cast<Symm<M>*>(cb)) {
         // nop
       } else {
         throw std::runtime_error("simple: Unknown fluid condition");
