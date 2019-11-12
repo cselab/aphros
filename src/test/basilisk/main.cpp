@@ -169,8 +169,7 @@ void Simple<M>::Run() {
 
   if (sem.Nested()) {
     const FieldCell<Scal>* fccl(nullptr);
-    psm_->Part(&fcu_, &fca_, &fcn_, &fci_, fccl, &fck_,
-               MapFace<std::shared_ptr<solver::CondFace>>());
+    psm_->Part(&fcu_, &fca_, &fcn_, &fci_, fccl, &fck_);
   }
 
   if (sem.Nested()) {
