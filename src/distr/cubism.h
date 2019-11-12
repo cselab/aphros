@@ -1,5 +1,7 @@
+// vim: expandtab:smarttab:sw=2:ts=2
 #pragma once
 
+#include <cassert>
 #include <memory>
 #include <limits>
 #include <map>
@@ -10,13 +12,13 @@
 #include "cubism.h"
 #include "dump/dumper.h"
 
+#include "Cubism/afree/BlockLab.h"
+#include "Cubism/afree/BlockLabMPI.h"
+#include "Cubism/afree/Grid.h"
+#include "Cubism/afree/GridMPI.h"
 #include "Cubism/BlockInfo.h"
-#include "Cubism/Grid.h"
-#include "Cubism/GridMPI.h"
-#include "Cubism/BlockLab.h"
-#include "Cubism/BlockLabMPI.h"
-#include "Cubism/StencilInfo.h"
 #include "Cubism/HDF5Dumper_MPI.h"
+#include "Cubism/StencilInfo.h"
 
 // Hide implementation and avoid collision with GBlk
 // TODO: rename cubism_impl::GBlk
@@ -24,171 +26,107 @@ namespace cubism_impl {
 
 // Static parameters for Cubism
 // bx, by, bz - block size
-// es - Elem size
-template <class Scal_, size_t bx_, size_t by_, size_t bz_, size_t es_>
+// halo - number of ghost cells uniform in all directions
+template <class Scal_, size_t bx_, size_t by_, size_t bz_, int halo_>
 struct GPar {
   using Scal = Scal_;
   static const size_t bx = bx_;
   static const size_t by = by_;
   static const size_t bz = bz_;
-  static const size_t es = es_;
+  static const int halo = halo_;
 };
 
-template <class Scal_, int es_>
-struct GElem {
-  using Scal = Scal_;
-
-  static const size_t es = es_;
-
-  Scal a[es];
-
-  void init(Scal val) {
-    for (size_t i = 0; i < es; ++i) {
-      a[i] = val;
-    }
-  }
-  void clear() {
-    init(0);
-  }
-  GElem& operator=(const GElem&) = default;
-};
-
+// Field wrapper to emulate Cubism block behavior
+// Par_ - instance of GPar
 template <class Par_>
-struct GBlk {
-  using Par = Par_;
-  using Scal = typename Par::Scal;
-  static const size_t bx = Par::bx;
-  static const size_t by = Par::by;
-  static const size_t bz = Par::bz;
-  static const size_t es = Par::es;
-
-  static const int n = bx * by * bz;
-
-  // required by Cubism
-  static const int sizeX = bx;
-  static const int sizeY = by;
-  static const int sizeZ = bz;
-
-  using Elem = GElem<Scal, es>;
-  using ElementType = Elem;
-  using element_type = Elem;
-
-  // floats per element
-  static const int fe = sizeof(Elem) / sizeof(Scal);
-  static_assert(fe == es, "Block: fe != es");
-
-  Elem __attribute__((__aligned__(_ALIGNBYTES_))) data[bz][by][bx];
-
-  Scal __attribute__((__aligned__(_ALIGNBYTES_))) tmp[bz][by][bx][fe];
-
-  void clear_data() {
-    Elem* e = &data[0][0][0];
-    for(int i = 0; i < n; ++i) {
-      e[i].clear();
-    }
-  }
-
-  void clear_tmp() {
-    Scal* t = &tmp[0][0][0][0];
-    for(int i = 0; i < n * fe; ++i) {
-      t[i] = 0;
-    }
-  }
-
-  void clear() {
-    clear_data();
-    clear_tmp();
-  }
-
-  inline Elem& operator()(int x, int y=0, int z=0) {
-    assert(0 <= x && x < (int)bx);
-    assert(0 <= y && y < (int)by);
-    assert(0 <= z && z < (int)bz);
-
-    return data[z][y][x];
-  }
-};
-
-template <class Par_, size_t SX_, size_t SY_, size_t SZ_, size_t Halo_>
 struct GFieldViewRaw {
     using Par = Par_;
     using Scal = typename Par::Scal;
+
+    // inner block strides (w/o halos)
     static const size_t bx = Par::bx;
     static const size_t by = Par::by;
     static const size_t bz = Par::bz;
-
-    static const size_t stridex = SX_;
-    static const size_t stridey = SY_;
-    static const size_t stridez = SZ_;
-    static const size_t halo =
-        Halo_; // assumes # of halos is the same in all dimensions
 
     // required by Cubism
     static const int sizeX = bx;
     static const int sizeY = by;
     static const int sizeZ = bz;
 
+    // strides including halos
+    static const size_t stridex = Par::bx + 2 * Par::halo;
+    static const size_t stridey = Par::by + 2 * Par::halo;
+    static const size_t stridez = Par::bz + 2 * Par::halo;
+    static const int halo =
+        Par::halo; // assumes # of halos is the same in all dimensions
+
+    // carried element type must be Scal, do not change this
     using Elem = Scal;
     using ElementType = Elem;
     using element_type = Elem;
 
     GFieldViewRaw() = delete;
-    GFieldViewRaw(Elem *const base)
-        : data(base + Halo_ + Halo_ * stridex + Halo_ * stridex * stridey),
-          data_halo(base)
+    GFieldViewRaw(Elem *const base, const int idx[3], const int n_components=1)
+        : data(base + n_components * (halo + halo * stridex + halo * stridex
+                                      * stridey)),
+          data_halo(base), index{idx[0], idx[1], idx[2]}, n_comp(n_components)
     {
+      assert(data_halo != data); // halo = 0 will not work in this model
     }
 
     // SoA field
     Elem *const data;      // block data
     Elem *const data_halo; // block data including halos
 
-    inline Elem &operator()(int x, int y = 0, int z = 0)
+    const int index[3]; // corresponding block index
+
+    // Number of components carried by field.  Parameter is not passed as
+    // template parameter such that scalar and vector (field) views can be
+    // combined in the same field compound (to maximize MPI communication buffer
+    // size).
+    const int n_comp;
+
+    // block access emulator
+    inline Elem &operator()(unsigned int x, unsigned int y = 0, unsigned int z = 0)
     {
         assert(data != nullptr);
         assert(0 <= x && x < (int)bx);
         assert(0 <= y && y < (int)by);
         assert(0 <= z && z < (int)bz);
 
-        return data[x + stridex * (y + stridey * z)];
+        return data[n_comp * (x + stridex * (y + stridey * z))];
     }
 
-    inline Elem &LinAccess(int x, int y = 0, int z = 0)
+    inline Elem &LinAccess(unsigned int x)
     {
         assert(data_halo != nullptr);
-        assert(0 <= x && x < (int)stridex);
-        assert(0 <= y && y < (int)stridey);
-        assert(0 <= z && z < (int)stridez);
+        assert(x < stridex * stridey * stridez);
 
-        return data_halo[x + stridex * (y + stridey * z)];
+        return data_halo[n_comp * x];
     }
 };
 
-// Par - instance of GPar
-template<class Par, template<typename X> class A=std::allocator>
-class LabPer : public BlockLab<GBlk<Par>, A>
+// TView - instance of GFieldViewRaw
+template <class TView>
+class LabPer : public BlockLab<TView>
 {
-  using Block = GBlk<Par>;
-  using ElementTypeBlock = typename Block::Elem;
+    using FieldView = TView;
+    using ElementTypeBlock = typename FieldView::Elem;
 
- public:
-  virtual inline std::string name() const { return "LabPer"; }
-  bool is_xperiodic() {return true;}
-  bool is_yperiodic() {return true;}
-  bool is_zperiodic() {return true;}
-
-  // TODO: remove
-  LabPer() : BlockLab<Block,A>() {}
+public:
+    virtual inline std::string name() const { return "LabPer"; }
+    bool is_xperiodic() { return true; }
+    bool is_yperiodic() { return true; }
+    bool is_zperiodic() { return true; }
 };
 
+// TView - instance of GFieldViewRaw
+template <class TView>
+using GLab = BlockLabMPI<LabPer<TView>>;
 
-// Par - instance of GPar
-template <class Par>
-using GLab = BlockLabMPI<LabPer<Par, std::allocator>>;
-
-// B - block type
-template <class B>
-using GGrid = GridMPI<Grid<B, std::allocator>>;
+// TView - instance of GFieldViewRaw
+template <class TView>
+using GGrid = GridMPI<Grid<TView>>;
 
 // Par - instance of GPar
 // KF - instance of KernelMeshFactory
@@ -206,10 +144,10 @@ class Cubism : public DistrMesh<KF> {
   FieldCell<Scal> GetGlobalField(size_t i) override;
 
  private:
-  using Lab = GLab<Par>;
-  using Block = GBlk<Par>;
-  using Grid = GGrid<Block>;
-  using Elem = typename Block::Elem;
+  using FieldView = GFieldViewRaw<Par>;
+  using Lab = GLab<FieldView>;
+  using Grid = GGrid<FieldView>;
+  using Elem = typename FieldView::Elem;
   using Synch = typename Grid::Synch;
 
   using P = DistrMesh<KF>; // parent
@@ -220,7 +158,7 @@ class Cubism : public DistrMesh<KF> {
   using P::kf_;
   using P::par;
   using P::bs_;
-  using P::es_;
+  using P::es_; // [fabianw@mavt.ethz.ch; 2019-11-11] not limited anymore (nor power of two)
   using P::hl_;
   using P::p_;
   using P::b_;
