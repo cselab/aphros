@@ -88,6 +88,24 @@ class UVof {
       MapFace<std::shared_ptr<CondFace>>& mfc_n,
       MapFace<std::shared_ptr<CondFace>>& mfc_a);
 
+  // set volume fraction to 0 or 1 near wall
+  static void BcClear(FieldCell<Scal>& uc,
+                      const MapFace<std::shared_ptr<CondFace>>& mfc, 
+                      const M& m, Scal u0, Scal u1) {
+    for (const auto& it : mfc) {
+      CondFace* cb = it.GetValue().get();
+      if (dynamic_cast<CondFaceVal<Scal>*>(cb)) {
+        IdxCell c = m.GetNeighbourCell(it.GetIdx(), cb->GetNci());
+        auto& u = uc[c];
+        if (u < u0) {
+          u = 0;
+        } else if (u > u1) {
+          u = 1;
+        }
+      }
+    }
+  }
+
  public:
   struct Imp;
   std::unique_ptr<Imp> imp;
