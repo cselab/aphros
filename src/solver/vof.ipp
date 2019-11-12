@@ -433,23 +433,6 @@ struct Vof<M_>::Imp {
       CommRec(sem, uc, fccl_, fcim_);
     }
   }
-  // set volume fraction to 0 or 1 near wall
-  static void BcClear(FieldCell<Scal>& uc,
-                      const MapFace<std::shared_ptr<CondFace>>& mfc, 
-                      const M& m, Scal th) {
-    for (const auto& it : mfc) {
-      CondFace* cb = it.GetValue().get();
-      if (dynamic_cast<CondFaceVal<Scal>*>(cb)) {
-        IdxCell c = m.GetNeighbourCell(it.GetIdx(), cb->GetNci());
-        auto& u = uc[c];
-        if (u < th) {
-          u = 0;
-        } else if (u > 1 - th) {
-          u = 1;
-        }
-      }
-    }
-  }
   static void BcMarchFill(
       FieldCell<Scal>& fcu, Scal fill, const M& m) {
     for (auto c : m.AllCells()) {
@@ -554,8 +537,9 @@ struct Vof<M_>::Imp {
     if (par->sharpen && sem.Nested("sharpen")) {
       Sharpen();
     }
-    if (par->bcc_clearth > 0 && sem("clear")) {
-      BcClear(fcu_.iter_curr, mfc_vf_, m, par->bcc_clearth);
+    if (sem("bcc_clear")) {
+      UVof<M>::BcClear(fcu_.iter_curr, mfc_vf_, m, 
+                       par->bcc_clear0, par->bcc_clear1);
     }
     if (sem("resetcolor")) {
       auto& fcu = fcu_.iter_curr;
