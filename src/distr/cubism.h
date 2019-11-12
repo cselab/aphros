@@ -170,8 +170,6 @@ class Cubism : public DistrMesh<KF> {
 
   Grid g_;
   struct S { // cubism [s]tate
-    Synch* s;
-    std::unique_ptr<Lab> l;
     std::map<MIdx, BlockInfo, typename MIdx::LexLess> mb;
   };
   S s_;
@@ -181,29 +179,13 @@ class Cubism : public DistrMesh<KF> {
   static StencilInfo GetStencil(size_t hl, size_t cs) {
     const int a = -int(hl);
     const int b = int(hl) + 1;
-    assert(cs <= Elem::es);
-    if (cs == 0) {
-      return StencilInfo(a,a,a,b,b,b, true, cs);
-    } else if (cs == 1) {
-      return StencilInfo(a,a,a,b,b,b, true, cs, 0);
-    } else if (cs == 2) {
-      return StencilInfo(a,a,a,b,b,b, true, cs, 0,1);
-    } else if (cs == 3) {
-      return StencilInfo(a,a,a,b,b,b, true, cs, 0,1,2);
-    } else if (cs == 4) {
-      return StencilInfo(a,a,a,b,b,b, true, cs, 0,1,2,3);
-    } else if (cs == 5) {
-      return StencilInfo(a,a,a,b,b,b, true, cs, 0,1,2,3,4);
-    } else if (cs == 6) {
-      return StencilInfo(a,a,a,b,b,b, true, cs, 0,1,2,3,4,5);
-    } else if (cs == 7) {
-      return StencilInfo(a,a,a,b,b,b, true, cs, 0,1,2,3,4,5,6);
-    } else if (cs == 8) {
-      return StencilInfo(a,a,a,b,b,b, true, cs, 0,1,2,3,4,5,6,7);
-    } else {
-      throw std::runtime_error("GetStencil(): Unknown cs=" + std::to_string(cs));
+
+    StencilInfo stencil(a,a,a,b,b,b, true, 1, 0);
+    stencil.selcomponents.clear();
+    for (size_t i = 0; i < cs; ++i) {
+      stencil.selcomponents.push_back(i);
     }
-    return StencilInfo();
+    return stencil;
   }
   // Convert Cubism BlockInfo to MyBlockInfo
   static std::vector<MyBlockInfo> GetBlocks(
@@ -522,30 +504,71 @@ template <class Par, class KF>
 auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
   MPI_Barrier(comm_);
 
-  // Get all blocks
+  // Get all blocks and construct FieldView's
   std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
   auto& m = mk.at(MIdx(cc[0].index))->GetMesh();
 
-  size_t cs = 0; // comm size
-  for (auto& o : m.GetComm()) {
-    cs += o->GetSize();
-  }
+// FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] the comm_id is kernel/comm specific
+// and should come from outside
+  const std::string comm_id = "test_comm";
 
+// FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] the fields to be communicated by
+// comm_id.  The number and order of fields in this vector should not be changed
+// during simulation.  If this vector changes, a new comm_id must be created for
+// it.  Ideally, they are created in a std::map outside of GetBlocks()
+  const size_t n_fields = m.GetComm().size();
+  std::vector<std::vector<FieldView>> fviews;
+
+  const bool need_comm = n_fields;
   std::vector<BlockInfo> aa;
-  // Perform communication if necessary or s_.l not initialized
-  if (cs > 0 || !s_.l) {
+  // Perform communication if necessary
+  if (need_comm) {
+    // 0. Construct vector of fields to communicate for all blocks on this rank
+    if (g_.isRegistered(comm_id)) {
+      fviews = g_.getSynchronizerMPI(comm_id).getFields();
+    } else {
+      fviews.resize(n_fields);
+      for (const auto &b : cc) {
+        auto &bm = mk.at(MIdx(b.index))->GetMesh();
+        auto &bf = bm.GetComm();
+        assert(n_fields == bf.size());
+        for (size_t fi = 0; fi < n_fields; ++fi) {
+          auto &o = bf[fi];
+          fviews[fi].push_back(
+            FieldView(o->GetBasePtr(), b.index, o->GetSize()));
+        }
+      }
+    }
+
+    size_t cs = 0;
+    for (auto& o : m.GetComm()) {
+      cs += o->GetSize();
+    }
+
     // 1. Exchange halos in buffer mesh.
     // max(cs, 1) to prevent forbidden call with zero components
     FakeProc fp(GetStencil(hl_, std::max<size_t>(cs, 1)));
-    Synch& s = g_.sync(fp);
+    assert(cs == fp.selcomponents.size());
 
-    s_.l.reset(new Lab);
-    s_.l->prepare(g_, s);   // allocate memory for lab cache
+    // Perform communication and register new synchronizer if not already
+    // present under label 'comm_id'.  After this point, registered synchronizer
+    // objects can be queried with g_.getSynchronizerMPI(comm_id).
+    Synch& s = g_.sync(comm_id, fp, fviews);
 
+    // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] not needed
     MPI_Barrier(comm_);
 
-    // Do communication and get all blocks
+    // Get all blocks synchronized
     aa = s.avail(cc.size());
+
+    // 2. Load exchanged halos into the fields
+    Lab l;
+    l.prepare(g_, s);
+    for (auto& field : fviews) {
+      for (auto& block : field) {
+        l.load(block, field);
+      }
+    }
   } else {
     aa = cc;
   }
