@@ -191,101 +191,10 @@ class Cubism : public DistrMesh<KF> {
   static std::vector<MyBlockInfo> GetBlocks(
       const std::vector<BlockInfo>&, MIdx bs, size_t hl);
 
-  // Writes scalar field to buffer [i].
-  // fc: scalar field
-  // b: block
-  // e: offset in buffer, 0 <= e < Elem::es
-  // Returns:
-  // number of scalar fields written
-  size_t WriteBuffer(const FieldCell<Scal>& fc, Block& b, size_t e, M& m) {
-    if (e >= Elem::es) {
-      throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
-    }
-    auto& bc = m.GetIndexCells();
-    auto& bci = m.GetInBlockCells();
-    for (auto c : m.Cells()) {
-      auto w = bc.GetMIdx(c) - bci.GetBegin();
-      b.data[w[2]][w[1]][w[0]].a[e] = fc[c];
-    }
-    if (bci.GetSize()[2] == 1 && b.bz == 2) {
-      for (auto c : m.Cells()) {
-        auto w = bc.GetMIdx(c) - bci.GetBegin();
-        b.data[w[2] + 1][w[1]][w[0]].a[e] = fc[c];
-      }
-    }
-    return 1;
-  }
-  // Writes component of vector field to buffer [i].
-  // fc: vector field
-  // d: component (0,1,2)
-  // b: block
-  // e: offset in buffer, 0 <= e < Elem::es
-  // Returns:
-  // number of scalar fields written
-  size_t WriteBuffer(const FieldCell<Vect>& fc,
-                     size_t d, Block& b, size_t e, M& m) {
-    if (e >= Elem::es) {
-      throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
-    }
-    if (d >= Vect::dim) {
-      throw std::runtime_error("ReadBuffer: d >= Vect::dim");
-    }
-    auto& bc = m.GetIndexCells();
-    auto& bci = m.GetInBlockCells();
-    for (auto c : m.Cells()) {
-      auto w = bc.GetMIdx(c) - bci.GetBegin();
-      b.data[w[2]][w[1]][w[0]].a[e] = fc[c][d];
-    }
-    if (bci.GetSize()[2] == 1 && b.bz == 2) {
-      for (auto c : m.Cells()) {
-        auto w = bc.GetMIdx(c) - bci.GetBegin();
-        b.data[w[2] + 1][w[1]][w[0]].a[e] = fc[c][d];
-      }
-    }
-    return 1;
-  }
-  // Writes all components of vector field to buffer [i].
-  // fc: vector field
-  // b: block
-  // e: offset in buffer, 0 <= e < Elem::es
-  // Returns:
-  // number of scalar fields written
-  size_t WriteBuffer(const FieldCell<Vect>& fc, Block& b, size_t e, M& m) {
-    for (size_t d = 0; d < Vect::dim; ++d) {
-      e += WriteBuffer(fc, d, b, e, m);
-    }
-    return Vect::dim;
-  }
-  // Writes Co to buffer.
-  // o: instance of Co
-  // b: block
-  // e: offset in buffer, 0 <= e < Elem::es
-  // Returns:
-  // number of scalar fields written
-  size_t WriteBuffer(typename M::Co* o, Block& b, size_t e, M& m) {
-    if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
-      return WriteBuffer(*od->f, b, e, m);
-    } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
-      if (od->d == -1) {
-        return WriteBuffer(*od->f, b, e, m);
-      }
-      return WriteBuffer(*od->f, od->d, b, e, m);
-    }
-    throw std::runtime_error("WriteBuffer: Unknown Co instance");
-    return 0;
-  }
-  void WriteBuffer(M& m, Block& b) {
-    size_t e = 0;
-    for (auto& o : m.GetComm()) {
-      e += WriteBuffer(o.get(), b, e, m);
-    }
-    for (auto& on : m.GetDump()) {
-      e += WriteBuffer(on.first.get(), b, e, m);
-    }
-  }
-
   std::vector<MIdx> GetBlocks() override;
+// FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
   void ReadBuffer(const std::vector<MIdx>& bb) override;
+// FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
   void WriteBuffer(const std::vector<MIdx>& bb) override;
   void Reduce(const std::vector<MIdx>& bb) override;
   void Bcast(const std::vector<MIdx>& bb) override;
@@ -520,17 +429,13 @@ auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
   return bb;
 }
 
+// FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
 template <class Par, class KF>
 void Cubism<Par, KF>::ReadBuffer(const std::vector<MIdx>& bb) {}
 
+// FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
 template <class Par, class KF>
-void Cubism<Par, KF>::WriteBuffer(const std::vector<MIdx>& bb) {
-  for (auto& b : bb) {
-    auto& k = *mk.at(b); // kernel
-    auto& m = k.GetMesh();
-    WriteBuffer(m, *(typename Grid::BlockType*)s_.mb[b].ptrBlock);
-  }
-}
+void Cubism<Par, KF>::WriteBuffer(const std::vector<MIdx>& bb) {}
 
 template <class Par, class KF>
 void Cubism<Par, KF>::Bcast(const std::vector<MIdx>& bb) {
