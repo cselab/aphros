@@ -1,5 +1,5 @@
 image:
-  name: gcc:latest
+  name: gcc:8.3.0
 
 build:
   stage: build
