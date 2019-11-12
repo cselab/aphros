@@ -3,6 +3,7 @@ set int b 1
 set double c 1
 set vect d 1 
 set string c a b   s c    
+set string s 
 set int b 123
 set double a 2.9
 set double e 3.1
