@@ -363,15 +363,17 @@ struct Vofm<M_>::Imp {
   // set volume fraction to 0 or 1 near wall
   static void BcClear(FieldCell<Scal>& uc,
                       const MapFace<std::shared_ptr<CondFace>>& mfc, 
-                      const M& m) {
+                      const M& m, Scal th) {
     for (const auto& it : mfc) {
       CondFace* cb = it.GetValue().get();
-      if (dynamic_cast<CondFaceReflect*>(cb)) {
-        IdxFace f = it.GetIdx();
-        CondFace* cb = it.GetValue().get(); 
-        size_t nci = cb->GetNci();
-        IdxCell c = m.GetNeighbourCell(f, nci);
-        uc[c] = (uc[c] > 0.5 ? 1. : 0.);
+      if (dynamic_cast<CondFaceVal<Scal>*>(cb)) {
+        IdxCell c = m.GetNeighbourCell(it.GetIdx(), cb->GetNci());
+        auto& u = uc[c];
+        if (u < th) {
+          u = 0;
+        } else if (u > 1 - th) {
+          u = 1;
+        }
       }
     }
   }
@@ -682,9 +684,9 @@ struct Vofm<M_>::Imp {
     if (par->sharpen && sem.Nested("sharpen")) {
       Sharpen(mfcu);
     }
-    if (par->bcc_clear && sem("clear")) {
+    if (par->bcc_clearth > 0 && sem("clear")) {
       for (auto i : layers) {
-        BcClear(fcu_[i].iter_curr, mfc_vf_, m);
+        BcClear(fcu_[i].iter_curr, mfc_vf_, m, par->bcc_clearth);
       }
     }
     if (sem.Nested()) {
