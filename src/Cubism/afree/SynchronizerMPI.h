@@ -1082,7 +1082,7 @@ public:
         cube.make_dependencies(isroot);
     }
 
-    inline std::vector<std::vector<TView>> &getFields()
+    inline std::vector<std::vector<TView>> getFields() const
     {
         return all_fields;
     }

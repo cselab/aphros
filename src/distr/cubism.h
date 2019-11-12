@@ -16,8 +16,8 @@
 #include "Cubism/afree/BlockLabMPI.h"
 #include "Cubism/afree/Grid.h"
 #include "Cubism/afree/GridMPI.h"
+#include "Cubism/afree/HDF5Dumper_MPI.h"
 #include "Cubism/BlockInfo.h"
-#include "Cubism/HDF5Dumper_MPI.h"
 #include "Cubism/StencilInfo.h"
 
 // Hide implementation and avoid collision with GBlk
@@ -202,76 +202,72 @@ class Cubism : public DistrMesh<KF> {
   void DumpWrite(const std::vector<MIdx>& bb) override;
 };
 
-
-// B_ - instance of GBlk
-template <class B_, int ID>
-struct StreamHdf {
+// B_ - instance of GFieldViewRaw
+template <class B_>
+struct StreamHdfScal {
   using B = B_;
   using Scal = typename B::Scal;
-  using T = typename B::Elem;
 
   // Required by Cubism
-  static const std::string NAME;
-  static const std::string EXT;
+  static std::string NAME;
+  static std::string EXT;
   static const int NCHANNELS = 1;
   static const int CLASS = 0;
 
   B& b;
 
-  StreamHdf(B& b): b(b) {}
+  StreamHdfScal(B& b): b(b) { assert(1 == b.n_comp); }
 
   // write
   void operate(const int ix, const int iy, const int iz, Scal* out) const
   {
-    const T& in = *((T*)&b.data[iz][iy][ix].a[0]);
-    out[0] = in.a[ID];
+    out[0] = b(ix, iy, iz);
   }
 
   // read
-  void operate(const Scal* out, const int ix, const int iy, const int iz) const
+  void operate(const Scal* out, const int ix, const int iy, const int iz)
   {
-    T& in = *((T*)&b.data[iz][iy][ix].a[0]);
-    in.a[ID] = out[0];
+    b(ix, iy, iz) = out[0];
   }
 
   static const char * getAttributeName() { return "Scalar"; }
 };
 
-// TODO: somehow remove global parameter ID
+// B_ - instance of GFieldViewRaw
 template <class B_>
-struct StreamHdfDyn {
+struct StreamHdfVect {
   using B = B_;
   using Scal = typename B::Scal;
-  using T = typename B::Elem;
 
   // Required by Cubism
   static std::string NAME;
-  static const std::string EXT;
-  static const int NCHANNELS = 1;
+  static std::string EXT;
+  static const int NCHANNELS = 3;
   static const int CLASS = 0;
-
-  // Used as global variable
-  static int ID;
 
   B& b;
 
-  StreamHdfDyn(B& b): b(b) {}
+  StreamHdfVect(B& b): b(b) { assert(3 == b.n_comp); }
 
   // write
   void operate(const int ix, const int iy, const int iz, Scal* out) const
   {
-    const T& in = *((T*)&b.data[iz][iy][ix].a[0]);
-    out[0] = in.a[ID];
+    const Scal *v = &b(ix, iy, iz);
+    out[0] = v[0];
+    out[1] = v[1];
+    out[2] = v[2];
   }
 
   // read
-  void operate(const Scal* out, const int ix, const int iy, const int iz) const
+  void operate(const Scal* out, const int ix, const int iy, const int iz)
   {
-    T& in = *((T*)&b.data[iz][iy][ix].a[0]);
-    in.a[ID] = out[0];
+    Scal *v = &b(ix, iy, iz);
+    v[0] = out[0];
+    v[1] = out[1];
+    v[2] = out[2];
   }
 
-  static const char * getAttributeName() { return "Scalar"; }
+  static const char * getAttributeName() { return "Vector"; }
 };
 
 // Class with field 'stencil' needed for SynchronizerMPI::sync(Processing)
@@ -339,7 +335,7 @@ template <class Par, class KF>
 auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
   MPI_Barrier(comm_);
 
-  // Get all blocks and construct FieldView's
+  // Get all blocks
   std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
   auto& m = mk.at(MIdx(cc[0].index))->GetMesh();
 
@@ -347,21 +343,19 @@ auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
 // and should come from outside
   const std::string comm_id = "test_comm";
 
+  std::vector<BlockInfo> aa;
+  // Perform communication if necessary
+  if (m.GetComm().size() > 0) {
+    // 0. Construct vector of fields to communicate for all blocks on this rank
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] the fields to be communicated by
 // comm_id.  The number and order of fields in this vector should not be changed
 // during simulation.  If this vector changes, a new comm_id must be created for
 // it.  Ideally, they are created in a std::map outside of GetBlocks()
-  const size_t n_fields = m.GetComm().size();
-  std::vector<std::vector<FieldView>> fviews;
-
-  const bool need_comm = n_fields;
-  std::vector<BlockInfo> aa;
-  // Perform communication if necessary
-  if (need_comm) {
-    // 0. Construct vector of fields to communicate for all blocks on this rank
+    std::vector<std::vector<FieldView>> fviews;
     if (g_.isRegistered(comm_id)) {
       fviews = g_.getSynchronizerMPI(comm_id).getFields();
     } else {
+      const size_t n_fields = m.GetComm().size();
       fviews.resize(n_fields);
       for (const auto &b : cc) {
         auto &bm = mk.at(MIdx(b.index))->GetMesh();
@@ -396,7 +390,7 @@ auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
     // Get all blocks synchronized
     aa = s.avail(cc.size());
 
-    // 2. Load exchanged halos into the fields
+    // 2. Load exchanged halos into the local fields
     Lab l;
     l.prepare(g_, s);
     for (auto& field : fviews) {
@@ -761,21 +755,37 @@ void Cubism<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
     }
 
     if (df == "hdf") {
-      size_t k = 0; // offset in buffer
-      // Skip comm
-      for (auto& o : m.GetComm()) {
-        k += o->GetSize();
+      // Create FieldView's for dump
+      const size_t n_fields = m.GetDump().size();
+      std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
+      std::vector<std::vector<FieldView>> fviews(n_fields);
+      for (const auto &b : cc) {
+        auto &bm = mk.at(MIdx(b.index))->GetMesh();
+        auto &bf = bm.GetDump();
+        assert(n_fields == bf.size());
+        for (size_t fi = 0; fi < n_fields; ++fi) {
+          auto &o = bf[fi].first;
+          fviews[fi].push_back(
+            FieldView(o->GetBasePtr(), b.index, o->GetSize()));
+        }
       }
+
       // Write dump
-      for (auto& on : m.GetDump()) {
-        StreamHdfDyn<Block>::ID = k;
-        StreamHdfDyn<Block>::NAME = on.second;
-        auto fn = GetDumpName(on.second, "", frame_);
-        DumpHDF5_MPI<Grid, StreamHdfDyn<Block>>(g_, frame_, frame_, fn, ".",
-            Vect(0), m.GetCellSize(), true);
-        k += on.first->GetSize();
-        if (on.first->GetSize() != 1) {
-          throw std::runtime_error("DumpWrite(): Support only size 1");
+      auto &bf = m.GetDump();
+      assert(bf.size() == fviews.size());
+      for (size_t fi = 0; fi < fviews.size(); ++fi) {
+        auto fn = GetDumpName(bf[fi].second, "", frame_);
+        auto &blocks = fviews[fi];
+        if (1 == blocks[0].n_comp) {
+          StreamHdfScal<FieldView>::NAME = bf[fi].second;
+          DumpHDF5_MPI<StreamHdfScal<FieldView>>(blocks, g_, frame_, frame_, fn,
+            ".", Vect(0), m.GetCellSize(), true);
+        } else if (3 == blocks[0].n_comp) {
+          StreamHdfVect<FieldView>::NAME = bf[fi].second;
+          DumpHDF5_MPI<StreamHdfVect<FieldView>>(blocks, g_, frame_, frame_, fn,
+            ".", Vect(0), m.GetCellSize(), true);
+        } else {
+          throw std::runtime_error("DumpWrite(): Support only size 1 and 3");
         }
       }
       if (isroot_) {
@@ -874,18 +884,15 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
   }
 }
 
-template <class B, int i>
-const std::string StreamHdf<B, i>::NAME = "alpha";
-template <class B, int i>
-const std::string StreamHdf<B, i>::EXT = "00";
+template <class B>
+std::string StreamHdfScal<B>::NAME = "alpha";
+template <class B>
+std::string StreamHdfScal<B>::EXT = "";
 
 template <class B>
-std::string StreamHdfDyn<B>::NAME = "alpha";
+std::string StreamHdfVect<B>::NAME = "alpha";
 template <class B>
-const std::string StreamHdfDyn<B>::EXT = "";
-template <class B>
-int StreamHdfDyn<B>::ID = 0;
-
+std::string StreamHdfVect<B>::EXT = "";
 } // namespace cubism_impl
 
 template <class Scal_, size_t bx_, size_t by_, size_t bz_, size_t es_>

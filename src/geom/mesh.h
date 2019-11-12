@@ -438,7 +438,7 @@ class MeshStructured {
   struct CoFcs : public Co {
     CoFcs(FieldCell<Scal>* f) : f(f) {}
     size_t GetSize() const override { return 1; }
-    Scal *GetBasePtr() override { return &f[IdxCell(0)]; }
+    Scal *GetBasePtr() override { return &(*f)[IdxCell(0)]; }
     FieldCell<Scal>* f;
   };
   // FieldCell<Vect>
@@ -447,7 +447,7 @@ class MeshStructured {
     // i: component (0,1,2), or -1 for all
     CoFcv(FieldCell<Vect>* f, int d) : f(f), d(d) {}
     size_t GetSize() const override { return d == -1 ? Vect::dim : 1; }
-    Scal *GetBasePtr() override { return &f[IdxCell(0)][0]; }
+    Scal *GetBasePtr() override { return &(*f)[IdxCell(0)][0]; }
     FieldCell<Vect>* f;
     int d;
   };
