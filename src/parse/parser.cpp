@@ -38,11 +38,13 @@ void Parser::CmdSet(std::string s) {
   b >> std::skipws;
   b >> cmd >> type >> key;
   char c;
-  // Read first non-ws character 
+  // Read first non-ws character
   b >> c;
-  // Read remaining line
-  std::getline(b, val);
-  val = c + val;
+  if (b.good()) {
+    // Read remaining line
+    std::getline(b, val);
+    val = c + val;
+  }
 
   v_.SetStr(type, key, val);
 }
