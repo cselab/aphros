@@ -167,9 +167,14 @@ struct Vof<M_>::Imp {
     UNormal<M>::CalcNormal(m, uc, fci_, par->dim, fcn_);
     auto h = m.GetCellSize();
     // Compute fca_ [s]
+    const Scal th = par->clipth;
     for (auto c : m.SuCells()) {
       if (fci_[c]) {
-        fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
+        Scal u = uc[c];
+        // snap to closest intermediate value
+        // TODO: needed for polygons near wall, revise GetCutPoly instead
+        u = (u < th ? th : u > 1 - th ? 1 - th : u);
+        fca_[c] = R::GetLineA(fcn_[c], u, h);
       } else {
         fca_[c] = GetNan<Scal>();
       }
