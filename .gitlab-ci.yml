@@ -1,5 +1,5 @@
 image:
-  name: gcc:8.3.0
+  name: gcc:7.4.0
 
 build:
   stage: build
@@ -19,7 +19,7 @@ build:
       (cd hypre ; ./_run)
       cd ../src
       ./conf
-      make -j2
+      make -j1
       make test
       EOS
   artifacts:
