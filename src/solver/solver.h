@@ -449,7 +449,7 @@ void BcApply(FieldCell<T>& uc, const MapFace<std::shared_ptr<CondFace>>& mfc,
     if (dynamic_cast<CondFaceReflect*>(cb)) {
       uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
       uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
-    } else if (auto cd = dynamic_cast<CondFaceValFixed<T>*>(cb)) {
+    } else if (auto cd = dynamic_cast<CondFaceVal<T>*>(cb)) {
       uc[cm] = cd->GetValue();
       uc[cmm] = cd->GetValue();
     }

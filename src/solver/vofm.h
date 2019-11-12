@@ -45,7 +45,7 @@ class Vofm : public AdvectionSolver<M_> {
     bool bcc_reflectpoly = true; // reflection for DumpPolyMarch
     Scal dumppolymarch_fill = -1; // fill cells outside
     Scal bcc_fill = 0;        // fill value for halo cells
-    bool bcc_clear = false; // set to 0 or 1 near CondFaceReflect
+    Scal bcc_clearth = 0.;   // threshold for clipping vf near CondFaceVal
 
     int part_constr = 0; // 0: no constraints
                          // 1: fixed distance, constant angle
