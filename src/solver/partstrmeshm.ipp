@@ -270,10 +270,8 @@ struct PartStrMeshM<M_>::Imp {
             const Multi<const FieldCell<Vect>*>& vfcn,
             const Multi<const FieldCell<bool>*>& vfci,
             const Multi<const FieldCell<Scal>*>& vfccl,
-            const FieldCell<Scal>* fck,
-            const MapFace<std::shared_ptr<CondFace>>& mfc) {
+            const FieldCell<Scal>* fck) {
     auto sem = m.GetSem("part");
-    (void) mfc;
 
     if (sem("part-run")) {
       Seed(vfcu, vfca, vfcn, vfci, vfccl, fck);
@@ -462,9 +460,8 @@ void PartStrMeshM<M_>::Part(
     const Multi<const FieldCell<Vect>*>& vfcn,
     const Multi<const FieldCell<bool>*>& vfci,
     const Multi<const FieldCell<Scal>*>& vfccl,
-    const FieldCell<Scal>* fck,
-    const MapFace<std::shared_ptr<CondFace>>& mfc) {
-  imp->Part(vfcu, vfca, vfcn, vfci, vfccl, fck, mfc);
+    const FieldCell<Scal>* fck) {
+  imp->Part(vfcu, vfca, vfcn, vfci, vfccl, fck);
 }
 
 template <class M_>

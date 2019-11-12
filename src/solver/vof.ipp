@@ -64,35 +64,8 @@ struct Vof<M_>::Imp {
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
   }
   void UpdateBc(const MapFace<std::shared_ptr<CondFace>>& mfc) {
-    mfc_cl_.clear();
-    mfc_im_.clear();
-    mfc_n_.clear();
-    mfc_a_.clear();
-    for (auto it : mfc) {
-      IdxFace f = it.GetIdx();
-      CondFace* cb = it.GetValue().get();
-      size_t nci = cb->GetNci();
-      if (dynamic_cast<CondFaceReflect*>(cb)) {
-        mfc_cl_[f] = std::make_shared<CondFaceReflect>(nci);
-        mfc_im_[f] = std::make_shared<CondFaceReflect>(nci);
-        mfc_n_[f] = std::make_shared<CondFaceReflect>(nci);
-        mfc_a_[f] = std::make_shared<CondFaceReflect>(nci);
-      } else {
-        if (auto cd = dynamic_cast<CondFaceValFixed<Scal>*>(cb)) {
-          mfc_cl_[f] = std::make_shared<
-              CondFaceValFixed<Scal>>(par->inletcl, nci);
-        } else {
-          mfc_cl_[f] = std::make_shared<
-              CondFaceValFixed<Scal>>(kClNone, nci);
-        }
-        MIdx wim(0);
-        wim[size_t(m.GetDir(f))] = (nci == 1 ? -1 : 1);
-        mfc_im_[f] = std::make_shared<
-            CondFaceValFixed<Scal>>(TRM::Pack(wim), nci);
-        mfc_n_[f] = std::make_shared<CondFaceValFixed<Vect>>(Vect(0), nci);
-        mfc_a_[f] = std::make_shared<CondFaceValFixed<Scal>>(Scal(0), nci);
-      }
-    }
+    UVof<M>::GetAdvectionFaceCond(
+        m, mfc, par->inletcl, mfc_vf_, mfc_cl_, mfc_im_, mfc_n_, mfc_a_);
   }
   void Update(typename PS::Par* p) const {
     Scal hc = m.GetCellSize().norminf(); // cell size
@@ -407,7 +380,7 @@ struct Vof<M_>::Imp {
       m.Comm(&fcim);
     }
     if (sem("bcreflect")) {
-      BcApply(uc, mfc_, m);
+      BcApply(uc, mfc_vf_, m);
       BcApply(fccl, mfc_cl_, m);
       BcApply(fcim, mfc_im_, m);
     }
@@ -453,7 +426,7 @@ struct Vof<M_>::Imp {
       }
       auto& uc = fcu_.iter_curr;
       if (sem("sweep")) {
-        Sweep(uc, d, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_,
+        Sweep(uc, d, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_,
               id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
               owner_->GetTimeStep() * vsc, par->clipth, m);
       }
@@ -504,7 +477,7 @@ struct Vof<M_>::Imp {
     for (size_t id = 0; id < dd.size(); ++id) {
       auto& uc = fcu_.iter_curr;
       if (sem("sweep")) {
-        Sweep(uc, dd[id], *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_,
+        Sweep(uc, dd[id], *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_,
               type, nullptr, nullptr, &fcuu_,
               owner_->GetTimeStep(), par->clipth, m);
       }
@@ -536,11 +509,11 @@ struct Vof<M_>::Imp {
         const Scal sgn = (id % 2 == count_ / par->dim % 2 ? -1 : 1);
         FieldFace<Scal> ffv(m, m.GetCellSize().prod() * sgn * par->sharpen_cfl);
         // zero flux on boundaries
-        for (const auto& it : mfc_) {
+        for (const auto& it : mfc_vf_) {
           IdxFace f = it.GetIdx();
           ffv[f] = 0;
         }
-        Sweep(uc, d, ffv, fccl_, fcim_, fcn_, fca_, &mfc_,
+        Sweep(uc, d, ffv, fccl_, fcim_, fcn_, fca_, &mfc_vf_,
               3, nullptr, nullptr, &fcuu_, 1., par->clipth, m);
       }
       CommRec(sem, uc, fccl_, fcim_);
@@ -580,7 +553,7 @@ struct Vof<M_>::Imp {
       Sharpen();
     }
     if (par->bcc_clear && sem("clear")) {
-      BcClear(fcu_.iter_curr, mfc_, m);
+      BcClear(fcu_.iter_curr, mfc_vf_, m);
     }
     if (sem("resetcolor")) {
       auto& fcu = fcu_.iter_curr;
@@ -663,7 +636,7 @@ struct Vof<M_>::Imp {
     }
     if (par->part && sem.Nested("part")) {
       const FieldCell<Scal>* fccl(nullptr);
-      psm_->Part(&fcu_.iter_curr, &fca_, &fcn_, &fci_, fccl, &fck_, mfc_);
+      psm_->Part(&fcu_.iter_curr, &fca_, &fcn_, &fci_, fccl, &fck_);
     }
     if (sem.Nested("dump")) {
       Dump();
@@ -678,7 +651,8 @@ struct Vof<M_>::Imp {
 
   LayersData<FieldCell<Scal>> fcu_;
   FieldCell<Scal> fcuu_;   // volume fraction for Weymouth div term
-  MapFace<std::shared_ptr<CondFace>> mfc_; // conditions on u
+  MapFace<std::shared_ptr<CondFace>> mfc_; // conditions on advection
+  MapFace<std::shared_ptr<CondFace>> mfc_vf_; // conditions on vf
   MapFace<std::shared_ptr<CondFace>> mfc_cl_; // conditions on cl
   MapFace<std::shared_ptr<CondFace>> mfc_im_; // conditions on cl
   MapFace<std::shared_ptr<CondFace>> mfc_n_; // conditions on n

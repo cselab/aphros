@@ -63,8 +63,7 @@ class PartStrMeshM {
       const Multi<const FieldCell<Vect>*>& vfcn,
       const Multi<const FieldCell<bool>*>& vfci,
       const Multi<const FieldCell<Scal>*>& vfccl,
-      const FieldCell<Scal>* fck,
-      const MapFace<std::shared_ptr<CondFace>>& mfc);
+      const FieldCell<Scal>* fck);
   // Dump particles to csv.
   // vfca: plane constant
   // vfcn: normal

@@ -79,6 +79,15 @@ class UVof {
       bool verb, bool unionfind, bool reduce,
       bool grid, M& m);
 
+  static void GetAdvectionFaceCond(
+      const M& m, const MapFace<std::shared_ptr<CondFace>>& mfc,
+      Scal inletcl,
+      MapFace<std::shared_ptr<CondFace>>& mfc_vf,
+      MapFace<std::shared_ptr<CondFace>>& mfc_cl,
+      MapFace<std::shared_ptr<CondFace>>& mfc_im,
+      MapFace<std::shared_ptr<CondFace>>& mfc_n,
+      MapFace<std::shared_ptr<CondFace>>& mfc_a);
+
  public:
   struct Imp;
   std::unique_ptr<Imp> imp;

@@ -17,6 +17,7 @@
 #include "dump/vtk.h"
 #include "solver/reconst.h"
 #include "debug/isnan.h"
+#include "solver/trackerm.h"
 
 namespace solver {
 
@@ -957,6 +958,50 @@ void UVof<M_>::Recolor(const GRange<size_t>& layers,
                verb, unionfind, reduce, grid, m);
 }
 
+template <class M_>
+void UVof<M_>::GetAdvectionFaceCond(
+    const M& m, const MapFace<std::shared_ptr<CondFace>>& mfc,
+    Scal inletcl,
+    MapFace<std::shared_ptr<CondFace>>& mfc_vf,
+    MapFace<std::shared_ptr<CondFace>>& mfc_cl,
+    MapFace<std::shared_ptr<CondFace>>& mfc_im,
+    MapFace<std::shared_ptr<CondFace>>& mfc_n,
+    MapFace<std::shared_ptr<CondFace>>& mfc_a) {
+  auto kClNone = Imp::kClNone;
+  using MIdx = typename M::MIdx;
+  using TRM = Trackerm<M>;
+  mfc_vf.clear();
+  mfc_cl.clear();
+  mfc_im.clear();
+  mfc_n.clear();
+  mfc_a.clear();
+  for (auto it : mfc) {
+    IdxFace f = it.GetIdx();
+    CondFace* cb = it.GetValue().get();
+    size_t nci = cb->GetNci();
+    mfc_vf[f] = it.GetValue();
+    if (dynamic_cast<CondFaceReflect*>(cb)) {
+      mfc_cl[f] = std::make_shared<CondFaceReflect>(nci);
+      mfc_im[f] = std::make_shared<CondFaceReflect>(nci);
+      mfc_n[f] = std::make_shared<CondFaceReflect>(nci);
+      mfc_a[f] = std::make_shared<CondFaceReflect>(nci);
+    } else {
+      if (auto cd = dynamic_cast<CondFaceValFixed<Scal>*>(cb)) {
+        mfc_cl[f] = std::make_shared<
+            CondFaceValFixed<Scal>>(inletcl, nci);
+      } else {
+        mfc_cl[f] = std::make_shared<
+            CondFaceValFixed<Scal>>(kClNone, nci);
+      }
+      MIdx wim(0);
+      wim[size_t(m.GetDir(f))] = (nci == 1 ? -1 : 1);
+      mfc_im[f] = std::make_shared<
+          CondFaceValFixed<Scal>>(TRM::Pack(wim), nci);
+      mfc_n[f] = std::make_shared<CondFaceValFixed<Vect>>(Vect(0), nci);
+      mfc_a[f] = std::make_shared<CondFaceValFixed<Scal>>(Scal(0), nci);
+    }
+  }
+}
 
 template <class M>
 constexpr typename M::Scal UVof<M>::Imp::kClNone;
