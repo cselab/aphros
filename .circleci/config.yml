@@ -1,0 +1,26 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: gcc:latest
+
+    steps:
+      - checkout
+      - run: update-alternatives --install /usr/bin/gfortran gfortran /usr/local/bin/gfortran 999
+      - run: apt update && apt -y install make cmake libhdf5-openmpi-dev python-numpy sudo rsync
+      - run: useradd -M -d `dirname ${CI_PROJECT_DIR}` -g users -N mpiuser
+      - run: chown -R mpiuser:users `dirname ${CI_PROJECT_DIR}`
+      - run: >
+        sudo -i -H -u mpiuser sh -e -x << EOS
+        mkdir -p \$HOME/bin
+        export PATH=\$HOME/bin:\$PATH
+        cd ${CI_PROJECT_DIR}
+        cd deploy
+        ./all
+        . ch.setenv
+        (cd hypre ; ./_run)
+        cd ../src
+        ./conf
+        make -j1
+        make test
+        EOS
