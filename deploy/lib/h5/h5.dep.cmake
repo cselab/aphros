@@ -1,4 +1,4 @@
-#find_package(MPI REQUIRED)
+find_package(MPI REQUIRED)
 
 set(HDF5_PREFER_PARALLEL on)
 find_package(HDF5 REQUIRED COMPONENTS C HL)
