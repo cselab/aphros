@@ -1,0 +1,1126 @@
+hydro 46ebc15b-dirty
+msg: vof,vofm: move BcClear to util/vof, revise with bcc_clear0,1
+diff: src/solver/vof.ipp src/solver/vofm.ipp 
+Loading config from 'a.conf'
+
+=== config begin ===
+set string advection_solver vofm
+set string bc_xm slipwall
+set string bc_xp slipwall
+set string bc_ym slipwall
+set string bc_yp slipwall
+set string box1 outlet
+set string bubgen_path bg.dat
+set string conv imp
+set string convsc quick
+set string dumpformat default
+set string dumplist vf omm
+set string fluid_solver simple
+set string hypre_gen_solver gmres
+set string hypre_symm_solver pcg
+set string hypre_vort_solver smg
+set string init_sig uniform
+set string init_vf list
+set string list_path b.dat
+set string part_attrforce line
+set string part_attrreconst line
+set string surftens kn
+set string vel_init zero
+set string vellist_path vel.dat
+set string vof_scheme weymouth
+set int CHECKNAN 0
+set int bc_wall_init_vel 0
+set int bcc_clear 1
+set int bcc_reflect 1
+set int bcc_reflectpoly 1
+set int bsx 16
+set int bsy 16
+set int bsz 16
+set int bx 4
+set int by 2
+set int bz 2
+set int clip_vf 0
+set int comm_size 8
+set int dim 3
+set int dump_field_max 10000
+set int dump_part_max 10000
+set int dump_stat_max 1000000
+set int dump_traj_max 10000
+set int dump_trep_max 10000
+set int dumpbc 0
+set int dumpinit 0
+set int dumppart 0
+set int dumppartinter 0
+set int dumppoly 1
+set int dumppolymarch 1
+set int enable_advection 1
+set int enable_bubgen 0
+set int enable_color 1
+set int enable_fluid 1
+set int enable_shell 0
+set int enable_surftens 1
+set int enstrophy 0
+set int hl 2
+set int hypre_gen_maxiter 30
+set int hypre_periodic_x 0
+set int hypre_periodic_y 0
+set int hypre_periodic_z 1
+set int hypre_print 0
+set int hypre_symm_maxiter 100
+set int hypre_vort_maxiter 1000
+set int initvort 0
+set int inletflux_numid 1
+set int linreport 0
+set int list_ls 1
+set int loc 0
+set int loc_periodic_x 1
+set int loc_periodic_y 1
+set int loc_periodic_z 1
+set int marangoni 0
+set int max_iter 3
+set int max_step 1000000
+set int min_iter 3
+set int output 0
+set int part 1
+set int part_bendmean 1
+set int part_constr 1
+set int part_dn 0
+set int part_dump_fr 1
+set int part_itermax 20
+set int part_k 1
+set int part_np 7
+set int part_ns 3
+set int part_report_fr 1
+set int part_verb 0
+set int poiswym 1
+set int poiswyp 1
+set int poiswzm 1
+set int poiswzp 1
+set int px 1
+set int py 1
+set int pz 1
+set int report_knan 0
+set int report_stat 0
+set int second_order 1
+set int sharpen 1
+set int simpler 0
+set int split 0
+set int stat_area 0
+set int stat_dissip 0
+set int statbox 0
+set int statvel 0
+set int vel_init_noise 0
+set int vel_init_random 0
+set int verbose 0
+set int verbose_stages 1
+set int verbose_time 1
+set int vf_init_sm 0
+set int vfsmooth 2
+set int vfsmoothnode 0
+set int vof_recolor_grid 1
+set int vof_recolor_reduce 1
+set int vof_recolor_unionfind 1
+set int vof_verb 0
+set int vofm_layers 4
+set int vort_report 1
+set int vtkbin 1
+set int vtkmerge 1
+set int wavelamb_vort 0
+set int youngbc 0
+set double abortvel 1e+10
+set double avgnorm0 1
+set double avgnorm1 1
+set double bcc_clear0 0
+set double bcc_clear1 1
+set double bcc_fill 0
+set double box1_vf 0
+set double bubgen_per 1
+set double bubgen_t0 0
+set double cfl 1e+10
+set double cfla 1e+10
+set double cflst 1e+10
+set double clfixed 0
+set double clipth 1e-10
+set double color_maxr 1e+10
+set double color_th 0.5
+set double convdf 1
+set double dt0 0.01
+set double dtmax 0.01
+set double dump_field_dt 0.05
+set double dump_field_t0 0
+set double dump_part_dt 0.05
+set double dump_part_t0 0
+set double dump_stat_dt 0
+set double dump_traj_dt 0.05
+set double dump_traj_t0 0
+set double dump_trep_dt 1
+set double dump_trep_t0 0
+set double dumppolymarch_fill 1
+set double extent 2
+set double force_mag 0
+set double force_vel_k 0
+set double force_vort_g 0
+set double force_vort_r 0
+set double guessextra 0
+set double hypre_gen_tol 0
+set double hypre_symm_tol 0
+set double hypre_vort_tol 1e-06
+set double inlet_sph0_vf 0
+set double inletcl -1
+set double kslip 0
+set double mu1 6.01802e-06
+set double mu2 6.01802e-08
+set double part_anglim 120
+set double part_dtmax 10
+set double part_h 4
+set double part_intth 0
+set double part_kattr 1
+set double part_kbend 1
+set double part_kstr 1
+set double part_maxr -1
+set double part_relax 0.5
+set double part_segcirc 0
+set double part_tmax 180
+set double part_tol 1e-05
+set double penalslip 0
+set double poly_intth 0
+set double prelax 0.8
+set double random_amp 1
+set double rhie 1
+set double rho1 1
+set double rho2 0.01
+set double ring_om 0.01
+set double ring_r0 0.2
+set double ring_r1 0.4
+set double sharp 0
+set double sharpen_cfl 0.1
+set double sharpo 0
+set double shell_h 3
+set double shell_r 0
+set double shell_rr 2
+set double sig_k 1.25
+set double sigma 0.000292877
+set double slipnormal 0
+set double source_mag 0
+set double source_mag0 0
+set double source_mexp 0
+set double source_mexp0 0
+set double stdiag 1
+set double tmax 0.1
+set double tol 0.01
+set double vofm_coalth 1e+10
+set double vrelax 0.8
+set double vtkiso 0.5
+set double zerostx0 1e+10
+set double zerostx1 1e+10
+set vect box1_a -1e+10 0.2 0.0001 
+set vect box1_b 1e+10 0.3 0.9999 
+set vect clfixed_x 1e+10 1e+10 1e+10 
+set vect force 0 0 0 
+set vect force_mov 0 0 0 
+set vect force_mov2 0 0 0 
+set vect force_vel 0 0 0 
+set vect force_vort_c 0 
+set vect gravity 0 -0.482501 0 
+set vect inlet_sph0_c 0 0.90973 0.5 
+set vect inlet_sph0_r 0.0225676 0.0225676 100000 
+set vect inlet_sph0_vel 1 0 0 
+set vect noise_per0 0 0 1 
+set vect noise_per1 0 0 1 
+set vect noise_per2 0 0 1 
+set vect noise_vel0 1 0 0 
+set vect noise_vel1 1 0 0 
+set vect noise_vel2 1 0 0 
+set vect random_vel 1 0 0 
+set vect ring_c 0.5 0.5 0.5 
+set vect ring_n 1 0 0 
+set vect slipvel 1 0 0 
+set vect statbox2a 0 0 0.5 
+set vect statbox2b 1 1 0.5 
+set vect statboxa 0 0 0.5 
+set vect statboxb 1 1 0.5 
+=== config end ===
+
+Read 1 particles from 'b.dat'
+global mesh=(64,32,32)
+surface tension dt=9.15141e+08
+Read 1 particles from 'b.dat'
+Found events: 
+=====
+=====
+STEP=0 t=0.00000000 dt=0.01000000 ta=0.00000000 dta=0.01000000
+.....iter=1, diff=6.5729690136300298e-02
+.....iter=2, diff=1.6958391960762750e-02
+.....iter=3, diff=5.3465390684977066e-03
+.....adv: t=0.01000000 dt=0.01000000
+STEP=1 t=0.01000000 dt=0.01000000 ta=0.01000000 dta=0.01000000
+.....iter=1, diff=1.6621834857413506e-01
+.....iter=2, diff=3.3664609710725504e-02
+.....iter=3, diff=7.9681442243341484e-03
+.....adv: t=0.02000000 dt=0.01000000
+STEP=2 t=0.02000000 dt=0.01000000 ta=0.02000000 dta=0.01000000
+.....iter=1, diff=5.3022939130022498e-02
+.....iter=2, diff=1.0956221895912086e-02
+.....iter=3, diff=3.3183528889376163e-03
+.....adv: t=0.03000000 dt=0.01000000
+STEP=3 t=0.03000000 dt=0.01000000 ta=0.03000000 dta=0.01000000
+.....iter=1, diff=7.4544810841995712e-02
+.....iter=2, diff=1.4140765141994992e-02
+.....iter=3, diff=2.9291649742149038e-03
+.....adv: t=0.04000000 dt=0.01000000
+STEP=4 t=0.04000000 dt=0.01000000 ta=0.04000000 dta=0.01000000
+.....iter=1, diff=8.3712279209941426e-02
+.....iter=2, diff=1.6229379996465398e-02
+.....iter=3, diff=3.3523040204669671e-03
+.....adv: t=0.05000000 dt=0.01000000
+STEP=5 t=0.05000000 dt=0.01000000 ta=0.05000000 dta=0.01000000
+.....iter=1, diff=7.1832744864115283e-02
+.....iter=2, diff=1.3862377527389674e-02
+.....iter=3, diff=2.8533513395542116e-03
+.....adv: t=0.06000000 dt=0.01000000
+STEP=6 t=0.06000000 dt=0.01000000 ta=0.06000000 dta=0.01000000
+.....iter=1, diff=7.9181419761087973e-02
+.....iter=2, diff=1.5326901611948983e-02
+.....iter=3, diff=3.0665843365221598e-03
+.....adv: t=0.07000000 dt=0.01000000
+STEP=7 t=0.07000000 dt=0.01000000 ta=0.07000000 dta=0.01000000
+.....iter=1, diff=5.3386335528059922e-02
+.....iter=2, diff=1.0334106819417795e-02
+.....iter=3, diff=2.0707907811915558e-03
+.....adv: t=0.08000000 dt=0.01000000
+STEP=8 t=0.08000000 dt=0.01000000 ta=0.08000000 dta=0.01000000
+.....iter=1, diff=5.8870368023957030e-02
+.....iter=2, diff=1.1400568554836189e-02
+.....iter=3, diff=2.2715903144231980e-03
+.....adv: t=0.09000000 dt=0.01000000
+STEP=9 t=0.09000000 dt=0.01000000 ta=0.09000000 dta=0.01000000
+.....iter=1, diff=2.5941644717180100e-02
+.....iter=2, diff=5.0545685864297396e-03
+.....iter=3, diff=1.0282796673214232e-03
+.....adv: t=0.10000000 dt=0.01000000
+mem=331.80078125 MB
+all [33.94940 s, 100.000%]
+|     other [0.00470 s, 0.014%]
+|     last [0.00003 s, 0.000%]
+|     run:00:init [1.08279 s, 3.189%]
+|     |     init:00:fields [0.11833 s, 0.349%]
+|     |     init:01:initvort [0.00080 s, 0.002%]
+|     |     init:02:smooth [0.00076 s, 0.002%]
+|     |     init:03:mixture [0.08696 s, 0.256%]
+|     |     |     mixture:00:init [0.02861 s, 0.084%]
+|     |     |     mixture:01:smooth [0.01672 s, 0.049%]
+|     |     |     |     smoothen:00: [0.00921 s, 0.027%]
+|     |     |     |     smoothen:01: [0.00751 s, 0.022%]
+|     |     |     mixture:02:smoothnode [0.00079 s, 0.002%]
+|     |     |     mixture:03:calc [0.04084 s, 0.120%]
+|     |     init:04:color-ini [0.01704 s, 0.050%]
+|     |     init:05:cellcond [0.00167 s, 0.005%]
+|     |     |     GetFluidCellCond:00:reduce [0.00077 s, 0.002%]
+|     |     |     GetFluidCellCond:01:set [0.00091 s, 0.003%]
+|     |     init:06:solv [0.85724 s, 2.525%]
+|     run:02:events [0.00803 s, 0.024%]
+|     run:03:loop-check [0.01047 s, 0.031%]
+|     run:04:abort-local [0.08217 s, 0.242%]
+|     run:05:abort-reduce [0.01586 s, 0.047%]
+|     run:06:updatepar [0.01932 s, 0.057%]
+|     run:07:mixture [0.47289 s, 1.393%]
+|     |     mixture:00:init [0.01763 s, 0.052%]
+|     |     mixture:01:smooth [0.15819 s, 0.466%]
+|     |     |     smoothen:00: [0.08199 s, 0.242%]
+|     |     |     smoothen:01: [0.07620 s, 0.224%]
+|     |     mixture:02:smoothnode [0.00806 s, 0.024%]
+|     |     mixture:03:calc [0.28901 s, 0.851%]
+|     run:08:stat [0.09265 s, 0.273%]
+|     |     stat:00:stat-add [0.02303 s, 0.068%]
+|     |     stat:01:stat-print [0.00789 s, 0.023%]
+|     |     stat:02:local [0.03778 s, 0.111%]
+|     |     stat:03:reduce [0.00800 s, 0.024%]
+|     |     stat:04:vfslip [0.00824 s, 0.024%]
+|     |     stat:05:young [0.00772 s, 0.023%]
+|     run:09:fs-start [0.10210 s, 0.301%]
+|     |     fluid-start:00:convdiff-init [0.00745 s, 0.022%]
+|     |     fluid-start:01:convdiff-start [0.05875 s, 0.173%]
+|     |     |     convdiffmulti-start:00:dir-init [0.00774 s, 0.023%]
+|     |     |     convdiffmulti-start:01:dir-start [0.00948 s, 0.028%]
+|     |     |     convdiffmulti-start:02:dir-init [0.00777 s, 0.023%]
+|     |     |     convdiffmulti-start:03:dir-start [0.00923 s, 0.027%]
+|     |     |     convdiffmulti-start:04:dir-init [0.00750 s, 0.022%]
+|     |     |     convdiffmulti-start:05:dir-start [0.00930 s, 0.027%]
+|     |     |     convdiffmulti-start:06:tovect [0.00773 s, 0.023%]
+|     |     fluid-start:02:convdiff-start [0.03591 s, 0.106%]
+|     run:10:fs-iters [18.11015 s, 53.345%]
+|     |     iter:01:iter [18.01773 s, 53.072%]
+|     |     |     fluid-iter:00:init [0.21577 s, 0.636%]
+|     |     |     fluid-iter:01:bc-inletflux [0.12697 s, 0.374%]
+|     |     |     |     inletflux:00:local [0.07945 s, 0.234%]
+|     |     |     |     inletflux:01:corr [0.04751 s, 0.140%]
+|     |     |     fluid-iter:02:bc-outlet [0.10249 s, 0.302%]
+|     |     |     |     outlet:00:local [0.05774 s, 0.170%]
+|     |     |     |     outlet:01:corr [0.04476 s, 0.132%]
+|     |     |     fluid-iter:03:bc-derived [0.07250 s, 0.214%]
+|     |     |     fluid-iter:04:forceinit [0.51300 s, 1.511%]
+|     |     |     |     extforce:00:loc [0.51300 s, 1.511%]
+|     |     |     fluid-iter:05:forceinit [0.06285 s, 0.185%]
+|     |     |     fluid-iter:06:explvisc [0.67846 s, 1.998%]
+|     |     |     fluid-iter:07:pgrad [0.12988 s, 0.383%]
+|     |     |     fluid-iter:08:convdiff-iter [11.58436 s, 34.122%]
+|     |     |     |     convdiffmulti-iter:00:source [0.04337 s, 0.128%]
+|     |     |     |     convdiffmulti-iter:01:dir-iter [3.92988 s, 11.576%]
+|     |     |     |     |     convdiff-iter:00:init [0.02604 s, 0.077%]
+|     |     |     |     |     convdiff-iter:01:assemble [1.99355 s, 5.872%]
+|     |     |     |     |     |     assemble:00:assemble [1.99355 s, 5.872%]
+|     |     |     |     |     convdiff-iter:02:solve [1.73436 s, 5.109%]
+|     |     |     |     |     |     solve:00:convert [1.69981 s, 5.007%]
+|     |     |     |     |     |     solve:01:copy [0.03455 s, 0.102%]
+|     |     |     |     |     convdiff-iter:03:apply [0.17593 s, 0.518%]
+|     |     |     |     convdiffmulti-iter:02:dir-linreport [0.02547 s, 0.075%]
+|     |     |     |     convdiffmulti-iter:03:dir-iter [3.67335 s, 10.820%]
+|     |     |     |     |     convdiff-iter:00:init [0.02564 s, 0.076%]
+|     |     |     |     |     convdiff-iter:01:assemble [1.91911 s, 5.653%]
+|     |     |     |     |     |     assemble:00:assemble [1.91911 s, 5.653%]
+|     |     |     |     |     convdiff-iter:02:solve [1.55589 s, 4.583%]
+|     |     |     |     |     |     solve:00:convert [1.52288 s, 4.486%]
+|     |     |     |     |     |     solve:01:copy [0.03301 s, 0.097%]
+|     |     |     |     |     convdiff-iter:03:apply [0.17271 s, 0.509%]
+|     |     |     |     convdiffmulti-iter:04:dir-linreport [0.02570 s, 0.076%]
+|     |     |     |     convdiffmulti-iter:05:dir-iter [3.81302 s, 11.231%]
+|     |     |     |     |     convdiff-iter:00:init [0.02499 s, 0.074%]
+|     |     |     |     |     convdiff-iter:01:assemble [2.01468 s, 5.934%]
+|     |     |     |     |     |     assemble:00:assemble [2.01468 s, 5.934%]
+|     |     |     |     |     convdiff-iter:02:solve [1.59870 s, 4.709%]
+|     |     |     |     |     |     solve:00:convert [1.56324 s, 4.605%]
+|     |     |     |     |     |     solve:01:copy [0.03546 s, 0.104%]
+|     |     |     |     |     convdiff-iter:03:apply [0.17464 s, 0.514%]
+|     |     |     |     convdiffmulti-iter:06:dir-linreport [0.02949 s, 0.087%]
+|     |     |     |     convdiffmulti-iter:07:tovect [0.04408 s, 0.130%]
+|     |     |     fluid-iter:09:diag [0.32125 s, 0.946%]
+|     |     |     |     diag:00:local [0.27258 s, 0.803%]
+|     |     |     |     diag:01:interp [0.04867 s, 0.143%]
+|     |     |     fluid-iter:10:pcorr-assemble [0.54592 s, 1.608%]
+|     |     |     fluid-iter:11:pcorr-solve [2.86391 s, 8.436%]
+|     |     |     |     solve:00:solve [2.69787 s, 7.947%]
+|     |     |     |     solve:01:copy [0.16604 s, 0.489%]
+|     |     |     fluid-iter:12:pcorr-apply [0.20598 s, 0.607%]
+|     |     |     fluid-iter:13:convdiff-corr [0.56957 s, 1.678%]
+|     |     |     |     corr:00:dir-corr [0.17722 s, 0.522%]
+|     |     |     |     |     corr:00:apply [0.17722 s, 0.522%]
+|     |     |     |     corr:01:dir-corr [0.17258 s, 0.508%]
+|     |     |     |     |     corr:00:apply [0.17258 s, 0.508%]
+|     |     |     |     corr:02:dir-corr [0.17536 s, 0.517%]
+|     |     |     |     |     corr:00:apply [0.17536 s, 0.517%]
+|     |     |     |     corr:03:tovect [0.04440 s, 0.131%]
+|     |     |     fluid-iter:14:inc-iter [0.02481 s, 0.073%]
+|     |     iter:02:reduce [0.02451 s, 0.072%]
+|     |     iter:03:report [0.03316 s, 0.098%]
+|     |     iter:04:convcheck [0.03475 s, 0.102%]
+|     run:11:fs-finish [0.10521 s, 0.310%]
+|     |     fluid-finish:00:inctime [0.04338 s, 0.128%]
+|     |     fluid-finish:01:convdiff-finish [0.06183 s, 0.182%]
+|     |     |     convdiffmulti-finish:00:dir-finish [0.01500 s, 0.044%]
+|     |     |     convdiffmulti-finish:01:dir-finish [0.01730 s, 0.051%]
+|     |     |     convdiffmulti-finish:02:dir-finish [0.01973 s, 0.058%]
+|     |     |     convdiffmulti-finish:03:tovect [0.00979 s, 0.029%]
+|     run:12:as-steps [11.24625 s, 33.127%]
+|     |     steps:01:start [0.13336 s, 0.393%]
+|     |     |     start:00:reconst [0.01272 s, 0.037%]
+|     |     |     |     rec:00:detect [0.00322 s, 0.009%]
+|     |     |     |     rec:01:local [0.00950 s, 0.028%]
+|     |     |     start:00:rotate [0.09628 s, 0.284%]
+|     |     |     start:01:rotate [0.02436 s, 0.072%]
+|     |     steps:02:iter [11.07678 s, 32.627%]
+|     |     |     iter:00:init [0.07827 s, 0.231%]
+|     |     |     iter:01:sweep [0.09445 s, 0.278%]
+|     |     |     iter:02:comm [0.13797 s, 0.406%]
+|     |     |     iter:03:comm [0.14083 s, 0.415%]
+|     |     |     iter:04:comm [0.13887 s, 0.409%]
+|     |     |     iter:05:comm [0.13999 s, 0.412%]
+|     |     |     iter:06:bcreflect [0.08993 s, 0.265%]
+|     |     |     iter:07:reconst [0.11702 s, 0.345%]
+|     |     |     |     rec:00:detect [0.03294 s, 0.097%]
+|     |     |     |     rec:01:local [0.08407 s, 0.248%]
+|     |     |     iter:08:sweep [0.08596 s, 0.253%]
+|     |     |     iter:09:comm [0.13974 s, 0.412%]
+|     |     |     iter:10:comm [0.14076 s, 0.415%]
+|     |     |     iter:11:comm [0.14071 s, 0.414%]
+|     |     |     iter:12:comm [0.13792 s, 0.406%]
+|     |     |     iter:13:bcreflect [0.09444 s, 0.278%]
+|     |     |     iter:14:reconst [0.11069 s, 0.326%]
+|     |     |     |     rec:00:detect [0.03213 s, 0.095%]
+|     |     |     |     rec:01:local [0.07856 s, 0.231%]
+|     |     |     iter:15:sweep [0.08305 s, 0.245%]
+|     |     |     iter:16:comm [0.13754 s, 0.405%]
+|     |     |     iter:17:comm [0.13958 s, 0.411%]
+|     |     |     iter:18:comm [0.13654 s, 0.402%]
+|     |     |     iter:19:comm [0.13895 s, 0.409%]
+|     |     |     iter:20:bcreflect [0.09306 s, 0.274%]
+|     |     |     iter:21:reconst [0.11080 s, 0.326%]
+|     |     |     |     rec:00:detect [0.03217 s, 0.095%]
+|     |     |     |     rec:01:local [0.07863 s, 0.232%]
+|     |     |     iter:22:sharpen [5.14196 s, 15.146%]
+|     |     |     |     sharp:00:sweep [0.08846 s, 0.261%]
+|     |     |     |     sharp:01:comm [0.14215 s, 0.419%]
+|     |     |     |     sharp:02:comm [0.13764 s, 0.405%]
+|     |     |     |     sharp:03:comm [0.13887 s, 0.409%]
+|     |     |     |     sharp:04:comm [0.14997 s, 0.442%]
+|     |     |     |     sharp:05:bcreflect [0.10215 s, 0.301%]
+|     |     |     |     sharp:06:reconst [0.12296 s, 0.362%]
+|     |     |     |     |     rec:00:detect [0.03505 s, 0.103%]
+|     |     |     |     |     rec:01:local [0.08791 s, 0.259%]
+|     |     |     |     sharp:07:sweep [0.10806 s, 0.318%]
+|     |     |     |     sharp:08:comm [0.14557 s, 0.429%]
+|     |     |     |     sharp:09:comm [0.14220 s, 0.419%]
+|     |     |     |     sharp:10:comm [0.13971 s, 0.412%]
+|     |     |     |     sharp:11:comm [0.13840 s, 0.408%]
+|     |     |     |     sharp:12:bcreflect [0.09298 s, 0.274%]
+|     |     |     |     sharp:13:reconst [0.11100 s, 0.327%]
+|     |     |     |     |     rec:00:detect [0.03270 s, 0.096%]
+|     |     |     |     |     rec:01:local [0.07830 s, 0.231%]
+|     |     |     |     sharp:14:sweep [0.08599 s, 0.253%]
+|     |     |     |     sharp:15:comm [0.13806 s, 0.407%]
+|     |     |     |     sharp:16:comm [0.13966 s, 0.411%]
+|     |     |     |     sharp:17:comm [0.14013 s, 0.413%]
+|     |     |     |     sharp:18:comm [0.13779 s, 0.406%]
+|     |     |     |     sharp:19:bcreflect [0.09087 s, 0.268%]
+|     |     |     |     sharp:20:reconst [0.11047 s, 0.325%]
+|     |     |     |     |     rec:00:detect [0.03162 s, 0.093%]
+|     |     |     |     |     rec:01:local [0.07886 s, 0.232%]
+|     |     |     |     sharp:21:sweep [0.08891 s, 0.262%]
+|     |     |     |     sharp:22:comm [0.13911 s, 0.410%]
+|     |     |     |     sharp:23:comm [0.13774 s, 0.406%]
+|     |     |     |     sharp:24:comm [0.13842 s, 0.408%]
+|     |     |     |     sharp:25:comm [0.13676 s, 0.403%]
+|     |     |     |     sharp:26:bcreflect [0.08979 s, 0.264%]
+|     |     |     |     sharp:27:reconst [0.11139 s, 0.328%]
+|     |     |     |     |     rec:00:detect [0.03172 s, 0.093%]
+|     |     |     |     |     rec:01:local [0.07967 s, 0.235%]
+|     |     |     |     sharp:28:sweep [0.08827 s, 0.260%]
+|     |     |     |     sharp:29:comm [0.13957 s, 0.411%]
+|     |     |     |     sharp:30:comm [0.14461 s, 0.426%]
+|     |     |     |     sharp:31:comm [0.13882 s, 0.409%]
+|     |     |     |     sharp:32:comm [0.13962 s, 0.411%]
+|     |     |     |     sharp:33:bcreflect [0.09213 s, 0.271%]
+|     |     |     |     sharp:34:reconst [0.10969 s, 0.323%]
+|     |     |     |     |     rec:00:detect [0.03170 s, 0.093%]
+|     |     |     |     |     rec:01:local [0.07799 s, 0.230%]
+|     |     |     |     sharp:35:sweep [0.08725 s, 0.257%]
+|     |     |     |     sharp:36:comm [0.13954 s, 0.411%]
+|     |     |     |     sharp:37:comm [0.13913 s, 0.410%]
+|     |     |     |     sharp:38:comm [0.13767 s, 0.406%]
+|     |     |     |     sharp:39:comm [0.13648 s, 0.402%]
+|     |     |     |     sharp:40:bcreflect [0.09023 s, 0.266%]
+|     |     |     |     sharp:41:reconst [0.11373 s, 0.335%]
+|     |     |     |     |     rec:00:detect [0.03199 s, 0.094%]
+|     |     |     |     |     rec:01:local [0.08174 s, 0.241%]
+|     |     |     iter:23:bcc_clear [0.02713 s, 0.080%]
+|     |     |     iter:24: [3.25049 s, 9.575%]
+|     |     |     |     recolor:00: [0.25897 s, 0.763%]
+|     |     |     |     |     recolor_init:00:clfixed [0.03079 s, 0.091%]
+|     |     |     |     |     recolor_init:01:init [0.22818 s, 0.672%]
+|     |     |     |     recolor:01:reflect [0.03852 s, 0.113%]
+|     |     |     |     recolor:02:initroot [0.10729 s, 0.316%]
+|     |     |     |     recolor:04: [0.29904 s, 0.881%]
+|     |     |     |     |     grid:00:local [0.03690 s, 0.109%]
+|     |     |     |     |     grid:01:reduce [0.03340 s, 0.098%]
+|     |     |     |     |     grid:02:apply [0.22873 s, 0.674%]
+|     |     |     |     recolor:05:min [2.24891 s, 6.624%]
+|     |     |     |     recolor:06:reflect [0.16682 s, 0.491%]
+|     |     |     |     recolor:07:check [0.03484 s, 0.103%]
+|     |     |     |     recolor:09: [0.03108 s, 0.092%]
+|     |     |     |     |     usermap:00:local [0.02302 s, 0.068%]
+|     |     |     |     |     usermap:01:gather [0.00806 s, 0.024%]
+|     |     |     |     recolor:10: [0.04585 s, 0.135%]
+|     |     |     |     |     recolor:00:gather [0.01993 s, 0.059%]
+|     |     |     |     |     recolor:01:reduce [0.00835 s, 0.025%]
+|     |     |     |     |     recolor:02:apply [0.01757 s, 0.052%]
+|     |     |     |     recolor:11:copy [0.01917 s, 0.056%]
+|     |     |     iter:25:sum [0.02175 s, 0.064%]
+|     |     |     iter:26:stat [0.00839 s, 0.025%]
+|     |     steps:03:finish [0.01439 s, 0.042%]
+|     |     steps:04:report [0.01057 s, 0.031%]
+|     |     steps:05:convcheck [0.01115 s, 0.033%]
+|     run:13:as-post [2.54246 s, 7.489%]
+|     |     iter:00:comm [0.20231 s, 0.596%]
+|     |     iter:01:comm [0.18724 s, 0.552%]
+|     |     iter:02:comm [0.18445 s, 0.543%]
+|     |     iter:03:comm [0.18805 s, 0.554%]
+|     |     iter:04:reflect [0.07174 s, 0.211%]
+|     |     iter:05:part [1.70051 s, 5.009%]
+|     |     |     part:00:part-run [1.70051 s, 5.009%]
+|     |     iter:06:dump [0.00816 s, 0.024%]
+|     run:14:dt [0.02239 s, 0.066%]
+|     |     dt:00:local [0.01453 s, 0.043%]
+|     |     dt:01:reduce [0.00785 s, 0.023%]
+|     run:15: [0.02436 s, 0.072%]
+|     |     dump:00:fields [0.00788 s, 0.023%]
+|     |     dump:01:dmptrep [0.00770 s, 0.023%]
+|     |     dump:02:dumpstat [0.00878 s, 0.026%]
+|     run:16:inc [0.00756 s, 0.022%]
+cells = 65536
+steps = 1000000
+iters = 30
+total = 33 s = 00:00:33.949
+time/cell/iter = 1.72676e-05 s
+renamed 'out_2019-11-13_1218' -> 'history1/out_2019-11-13_1218'
+hydro 46ebc15b-dirty
+msg: vof,vofm: move BcClear to util/vof, revise with bcc_clear0,1
+diff: src/solver/vof.ipp src/solver/vofm.ipp 
+Loading config from 'a.conf'
+
+=== config begin ===
+set string advection_solver vofm
+set string bc_xm slipwall
+set string bc_xp slipwall
+set string bc_ym slipwall
+set string bc_yp slipwall
+set string box1 outlet
+set string bubgen_path bg.dat
+set string conv imp
+set string convsc quick
+set string dumpformat default
+set string dumplist vf omm
+set string fluid_solver simple
+set string hypre_gen_solver gmres
+set string hypre_symm_solver pcg
+set string hypre_vort_solver smg
+set string init_sig uniform
+set string init_vf list
+set string list_path b.dat
+set string part_attrforce line
+set string part_attrreconst line
+set string surftens kn
+set string vel_init zero
+set string vellist_path vel.dat
+set string vof_scheme weymouth
+set int CHECKNAN 0
+set int bc_wall_init_vel 0
+set int bcc_clear 1
+set int bcc_reflect 1
+set int bcc_reflectpoly 1
+set int bsx 16
+set int bsy 16
+set int bsz 16
+set int bx 4
+set int by 2
+set int bz 2
+set int clip_vf 0
+set int comm_size 8
+set int dim 3
+set int dump_field_max 10000
+set int dump_part_max 10000
+set int dump_stat_max 1000000
+set int dump_traj_max 10000
+set int dump_trep_max 10000
+set int dumpbc 0
+set int dumpinit 0
+set int dumppart 0
+set int dumppartinter 0
+set int dumppoly 1
+set int dumppolymarch 1
+set int enable_advection 1
+set int enable_bubgen 0
+set int enable_color 1
+set int enable_fluid 1
+set int enable_shell 0
+set int enable_surftens 1
+set int enstrophy 0
+set int hl 2
+set int hypre_gen_maxiter 30
+set int hypre_periodic_x 0
+set int hypre_periodic_y 0
+set int hypre_periodic_z 1
+set int hypre_print 0
+set int hypre_symm_maxiter 100
+set int hypre_vort_maxiter 1000
+set int initvort 0
+set int inletflux_numid 1
+set int linreport 0
+set int list_ls 1
+set int loc 0
+set int loc_periodic_x 1
+set int loc_periodic_y 1
+set int loc_periodic_z 1
+set int marangoni 0
+set int max_iter 3
+set int max_step 1000000
+set int min_iter 3
+set int output 0
+set int part 1
+set int part_bendmean 1
+set int part_constr 1
+set int part_dn 0
+set int part_dump_fr 1
+set int part_itermax 20
+set int part_k 1
+set int part_np 7
+set int part_ns 3
+set int part_report_fr 1
+set int part_verb 0
+set int poiswym 1
+set int poiswyp 1
+set int poiswzm 1
+set int poiswzp 1
+set int px 1
+set int py 1
+set int pz 1
+set int report_knan 0
+set int report_stat 0
+set int second_order 1
+set int sharpen 1
+set int simpler 0
+set int split 0
+set int stat_area 0
+set int stat_dissip 0
+set int statbox 0
+set int statvel 0
+set int vel_init_noise 0
+set int vel_init_random 0
+set int verbose 0
+set int verbose_stages 1
+set int verbose_time 1
+set int vf_init_sm 0
+set int vfsmooth 2
+set int vfsmoothnode 0
+set int vof_recolor_grid 1
+set int vof_recolor_reduce 1
+set int vof_recolor_unionfind 1
+set int vof_verb 0
+set int vofm_layers 4
+set int vort_report 1
+set int vtkbin 1
+set int vtkmerge 1
+set int wavelamb_vort 0
+set int youngbc 0
+set double abortvel 1e+10
+set double avgnorm0 1
+set double avgnorm1 1
+set double bcc_clear0 0
+set double bcc_clear1 1
+set double bcc_fill 0
+set double box1_vf 0
+set double bubgen_per 1
+set double bubgen_t0 0
+set double cfl 1e+10
+set double cfla 1e+10
+set double cflst 1e+10
+set double clfixed 0
+set double clipth 1e-10
+set double color_maxr 1e+10
+set double color_th 0.5
+set double convdf 1
+set double dt0 0.01
+set double dtmax 0.01
+set double dump_field_dt 0.05
+set double dump_field_t0 0
+set double dump_part_dt 0.05
+set double dump_part_t0 0
+set double dump_stat_dt 0
+set double dump_traj_dt 0.05
+set double dump_traj_t0 0
+set double dump_trep_dt 1
+set double dump_trep_t0 0
+set double dumppolymarch_fill 1
+set double extent 2
+set double force_mag 0
+set double force_vel_k 0
+set double force_vort_g 0
+set double force_vort_r 0
+set double guessextra 0
+set double hypre_gen_tol 0
+set double hypre_symm_tol 0
+set double hypre_vort_tol 1e-06
+set double inlet_sph0_vf 0
+set double inletcl -1
+set double kslip 0
+set double mu1 6.01802e-06
+set double mu2 6.01802e-08
+set double part_anglim 120
+set double part_dtmax 10
+set double part_h 4
+set double part_intth 0
+set double part_kattr 1
+set double part_kbend 1
+set double part_kstr 1
+set double part_maxr -1
+set double part_relax 0.5
+set double part_segcirc 0
+set double part_tmax 180
+set double part_tol 1e-05
+set double penalslip 0
+set double poly_intth 0
+set double prelax 0.8
+set double random_amp 1
+set double rhie 1
+set double rho1 1
+set double rho2 0.01
+set double ring_om 0.01
+set double ring_r0 0.2
+set double ring_r1 0.4
+set double sharp 0
+set double sharpen_cfl 0.1
+set double sharpo 0
+set double shell_h 3
+set double shell_r 0
+set double shell_rr 2
+set double sig_k 1.25
+set double sigma 0.000292877
+set double slipnormal 0
+set double source_mag 0
+set double source_mag0 0
+set double source_mexp 0
+set double source_mexp0 0
+set double stdiag 1
+set double tmax 0.1
+set double tol 0.01
+set double vofm_coalth 1e+10
+set double vrelax 0.8
+set double vtkiso 0.5
+set double zerostx0 1e+10
+set double zerostx1 1e+10
+set vect box1_a -1e+10 0.2 0.0001 
+set vect box1_b 1e+10 0.3 0.9999 
+set vect clfixed_x 1e+10 1e+10 1e+10 
+set vect force 0 0 0 
+set vect force_mov 0 0 0 
+set vect force_mov2 0 0 0 
+set vect force_vel 0 0 0 
+set vect force_vort_c 0 
+set vect gravity 0 -0.482501 0 
+set vect inlet_sph0_c 0 0.90973 0.5 
+set vect inlet_sph0_r 0.0225676 0.0225676 100000 
+set vect inlet_sph0_vel 1 0 0 
+set vect noise_per0 0 0 1 
+set vect noise_per1 0 0 1 
+set vect noise_per2 0 0 1 
+set vect noise_vel0 1 0 0 
+set vect noise_vel1 1 0 0 
+set vect noise_vel2 1 0 0 
+set vect random_vel 1 0 0 
+set vect ring_c 0.5 0.5 0.5 
+set vect ring_n 1 0 0 
+set vect slipvel 1 0 0 
+set vect statbox2a 0 0 0.5 
+set vect statbox2b 1 1 0.5 
+set vect statboxa 0 0 0.5 
+set vect statboxb 1 1 0.5 
+=== config end ===
+
+Read 1 particles from 'b.dat'
+global mesh=(64,32,32)
+surface tension dt=9.15141e+08
+Read 1 particles from 'b.dat'
+Found events: 
+=====
+=====
+STEP=0 t=0.00000000 dt=0.01000000 ta=0.00000000 dta=0.01000000
+.....iter=1, diff=6.5729690136300298e-02
+.....iter=2, diff=1.6958391960762750e-02
+.....iter=3, diff=5.3465390684977066e-03
+.....adv: t=0.01000000 dt=0.01000000
+STEP=1 t=0.01000000 dt=0.01000000 ta=0.01000000 dta=0.01000000
+.....iter=1, diff=1.6621834857413506e-01
+.....iter=2, diff=3.3664609710725504e-02
+.....iter=3, diff=7.9681442243341484e-03
+.....adv: t=0.02000000 dt=0.01000000
+STEP=2 t=0.02000000 dt=0.01000000 ta=0.02000000 dta=0.01000000
+.....iter=1, diff=5.3022939130022498e-02
+.....iter=2, diff=1.0956221895912086e-02
+.....iter=3, diff=3.3183528889376163e-03
+.....adv: t=0.03000000 dt=0.01000000
+STEP=3 t=0.03000000 dt=0.01000000 ta=0.03000000 dta=0.01000000
+.....iter=1, diff=7.4544810841995712e-02
+.....iter=2, diff=1.4140765141994992e-02
+.....iter=3, diff=2.9291649742149038e-03
+.....adv: t=0.04000000 dt=0.01000000
+STEP=4 t=0.04000000 dt=0.01000000 ta=0.04000000 dta=0.01000000
+.....iter=1, diff=8.3712279209941426e-02
+.....iter=2, diff=1.6229379996465398e-02
+.....iter=3, diff=3.3523040204669671e-03
+.....adv: t=0.05000000 dt=0.01000000
+STEP=5 t=0.05000000 dt=0.01000000 ta=0.05000000 dta=0.01000000
+.....iter=1, diff=7.1832744864115283e-02
+.....iter=2, diff=1.3862377527389674e-02
+.....iter=3, diff=2.8533513395542116e-03
+.....adv: t=0.06000000 dt=0.01000000
+STEP=6 t=0.06000000 dt=0.01000000 ta=0.06000000 dta=0.01000000
+.....iter=1, diff=7.9181419761087973e-02
+.....iter=2, diff=1.5326901611948983e-02
+.....iter=3, diff=3.0665843365221598e-03
+.....adv: t=0.07000000 dt=0.01000000
+STEP=7 t=0.07000000 dt=0.01000000 ta=0.07000000 dta=0.01000000
+.....iter=1, diff=5.3386335528059922e-02
+.....iter=2, diff=1.0334106819417795e-02
+.....iter=3, diff=2.0707907811915558e-03
+.....adv: t=0.08000000 dt=0.01000000
+STEP=8 t=0.08000000 dt=0.01000000 ta=0.08000000 dta=0.01000000
+.....iter=1, diff=5.8870368023957030e-02
+.....iter=2, diff=1.1400568554836189e-02
+.....iter=3, diff=2.2715903144231980e-03
+.....adv: t=0.09000000 dt=0.01000000
+STEP=9 t=0.09000000 dt=0.01000000 ta=0.09000000 dta=0.01000000
+.....iter=1, diff=2.5941644717180100e-02
+.....iter=2, diff=5.0545685864297396e-03
+.....iter=3, diff=1.0282796673214232e-03
+.....adv: t=0.10000000 dt=0.01000000
+mem=331.73437500 MB
+all [30.86984 s, 100.000%]
+|     other [0.00241 s, 0.008%]
+|     last [0.00004 s, 0.000%]
+|     run:00:init [0.24155 s, 0.782%]
+|     |     init:00:fields [0.11597 s, 0.376%]
+|     |     init:01:initvort [0.00085 s, 0.003%]
+|     |     init:02:smooth [0.00083 s, 0.003%]
+|     |     init:03:mixture [0.02704 s, 0.088%]
+|     |     |     mixture:00:init [0.00432 s, 0.014%]
+|     |     |     mixture:01:smooth [0.01446 s, 0.047%]
+|     |     |     |     smoothen:00: [0.00742 s, 0.024%]
+|     |     |     |     smoothen:01: [0.00704 s, 0.023%]
+|     |     |     mixture:02:smoothnode [0.00078 s, 0.003%]
+|     |     |     mixture:03:calc [0.00748 s, 0.024%]
+|     |     init:04:color-ini [0.01111 s, 0.036%]
+|     |     init:05:cellcond [0.00178 s, 0.006%]
+|     |     |     GetFluidCellCond:00:reduce [0.00082 s, 0.003%]
+|     |     |     GetFluidCellCond:01:set [0.00096 s, 0.003%]
+|     |     init:06:solv [0.08396 s, 0.272%]
+|     run:02:events [0.00830 s, 0.027%]
+|     run:03:loop-check [0.01103 s, 0.036%]
+|     run:04:abort-local [0.08415 s, 0.273%]
+|     run:05:abort-reduce [0.00926 s, 0.030%]
+|     run:06:updatepar [0.01595 s, 0.052%]
+|     run:07:mixture [0.43402 s, 1.406%]
+|     |     mixture:00:init [0.01924 s, 0.062%]
+|     |     mixture:01:smooth [0.14888 s, 0.482%]
+|     |     |     smoothen:00: [0.07612 s, 0.247%]
+|     |     |     smoothen:01: [0.07276 s, 0.236%]
+|     |     mixture:02:smoothnode [0.00817 s, 0.026%]
+|     |     mixture:03:calc [0.25774 s, 0.835%]
+|     run:08:stat [0.09471 s, 0.307%]
+|     |     stat:00:stat-add [0.02398 s, 0.078%]
+|     |     stat:01:stat-print [0.00822 s, 0.027%]
+|     |     stat:02:local [0.03812 s, 0.123%]
+|     |     stat:03:reduce [0.00858 s, 0.028%]
+|     |     stat:04:vfslip [0.00791 s, 0.026%]
+|     |     stat:05:young [0.00790 s, 0.026%]
+|     run:09:fs-start [0.08361 s, 0.271%]
+|     |     fluid-start:00:convdiff-init [0.00787 s, 0.026%]
+|     |     fluid-start:01:convdiff-start [0.06061 s, 0.196%]
+|     |     |     convdiffmulti-start:00:dir-init [0.00798 s, 0.026%]
+|     |     |     convdiffmulti-start:01:dir-start [0.00960 s, 0.031%]
+|     |     |     convdiffmulti-start:02:dir-init [0.00772 s, 0.025%]
+|     |     |     convdiffmulti-start:03:dir-start [0.00991 s, 0.032%]
+|     |     |     convdiffmulti-start:04:dir-init [0.00809 s, 0.026%]
+|     |     |     convdiffmulti-start:05:dir-start [0.00958 s, 0.031%]
+|     |     |     convdiffmulti-start:06:tovect [0.00772 s, 0.025%]
+|     |     fluid-start:02:convdiff-start [0.01513 s, 0.049%]
+|     run:10:fs-iters [16.43537 s, 53.241%]
+|     |     iter:01:iter [16.33472 s, 52.915%]
+|     |     |     fluid-iter:00:init [0.17008 s, 0.551%]
+|     |     |     fluid-iter:01:bc-inletflux [0.09673 s, 0.313%]
+|     |     |     |     inletflux:00:local [0.05793 s, 0.188%]
+|     |     |     |     inletflux:01:corr [0.03880 s, 0.126%]
+|     |     |     fluid-iter:02:bc-outlet [0.09298 s, 0.301%]
+|     |     |     |     outlet:00:local [0.05466 s, 0.177%]
+|     |     |     |     outlet:01:corr [0.03832 s, 0.124%]
+|     |     |     fluid-iter:03:bc-derived [0.06930 s, 0.224%]
+|     |     |     fluid-iter:04:forceinit [0.47341 s, 1.534%]
+|     |     |     |     extforce:00:loc [0.47341 s, 1.534%]
+|     |     |     fluid-iter:05:forceinit [0.05789 s, 0.188%]
+|     |     |     fluid-iter:06:explvisc [0.63972 s, 2.072%]
+|     |     |     fluid-iter:07:pgrad [0.12277 s, 0.398%]
+|     |     |     fluid-iter:08:convdiff-iter [10.50269 s, 34.022%]
+|     |     |     |     convdiffmulti-iter:00:source [0.04211 s, 0.136%]
+|     |     |     |     convdiffmulti-iter:01:dir-iter [3.47905 s, 11.270%]
+|     |     |     |     |     convdiff-iter:00:init [0.02547 s, 0.082%]
+|     |     |     |     |     convdiff-iter:01:assemble [1.76107 s, 5.705%]
+|     |     |     |     |     |     assemble:00:assemble [1.76107 s, 5.705%]
+|     |     |     |     |     convdiff-iter:02:solve [1.52461 s, 4.939%]
+|     |     |     |     |     |     solve:00:convert [1.49117 s, 4.830%]
+|     |     |     |     |     |     solve:01:copy [0.03345 s, 0.108%]
+|     |     |     |     |     convdiff-iter:03:apply [0.16790 s, 0.544%]
+|     |     |     |     convdiffmulti-iter:02:dir-linreport [0.02476 s, 0.080%]
+|     |     |     |     convdiffmulti-iter:03:dir-iter [3.43644 s, 11.132%]
+|     |     |     |     |     convdiff-iter:00:init [0.02520 s, 0.082%]
+|     |     |     |     |     convdiff-iter:01:assemble [1.74141 s, 5.641%]
+|     |     |     |     |     |     assemble:00:assemble [1.74141 s, 5.641%]
+|     |     |     |     |     convdiff-iter:02:solve [1.50385 s, 4.872%]
+|     |     |     |     |     |     solve:00:convert [1.47111 s, 4.766%]
+|     |     |     |     |     |     solve:01:copy [0.03275 s, 0.106%]
+|     |     |     |     |     convdiff-iter:03:apply [0.16598 s, 0.538%]
+|     |     |     |     convdiffmulti-iter:04:dir-linreport [0.02466 s, 0.080%]
+|     |     |     |     convdiffmulti-iter:05:dir-iter [3.42588 s, 11.098%]
+|     |     |     |     |     convdiff-iter:00:init [0.02537 s, 0.082%]
+|     |     |     |     |     convdiff-iter:01:assemble [1.75819 s, 5.696%]
+|     |     |     |     |     |     assemble:00:assemble [1.75819 s, 5.696%]
+|     |     |     |     |     convdiff-iter:02:solve [1.47243 s, 4.770%]
+|     |     |     |     |     |     solve:00:convert [1.43748 s, 4.657%]
+|     |     |     |     |     |     solve:01:copy [0.03495 s, 0.113%]
+|     |     |     |     |     convdiff-iter:03:apply [0.16989 s, 0.550%]
+|     |     |     |     convdiffmulti-iter:06:dir-linreport [0.02504 s, 0.081%]
+|     |     |     |     convdiffmulti-iter:07:tovect [0.04474 s, 0.145%]
+|     |     |     fluid-iter:09:diag [0.29789 s, 0.965%]
+|     |     |     |     diag:00:local [0.25697 s, 0.832%]
+|     |     |     |     diag:01:interp [0.04092 s, 0.133%]
+|     |     |     fluid-iter:10:pcorr-assemble [0.40376 s, 1.308%]
+|     |     |     fluid-iter:11:pcorr-solve [2.66432 s, 8.631%]
+|     |     |     |     solve:00:solve [2.49745 s, 8.090%]
+|     |     |     |     solve:01:copy [0.16687 s, 0.541%]
+|     |     |     fluid-iter:12:pcorr-apply [0.16961 s, 0.549%]
+|     |     |     fluid-iter:13:convdiff-corr [0.54819 s, 1.776%]
+|     |     |     |     corr:00:dir-corr [0.17067 s, 0.553%]
+|     |     |     |     |     corr:00:apply [0.17067 s, 0.553%]
+|     |     |     |     corr:01:dir-corr [0.16763 s, 0.543%]
+|     |     |     |     |     corr:00:apply [0.16763 s, 0.543%]
+|     |     |     |     corr:02:dir-corr [0.16710 s, 0.541%]
+|     |     |     |     |     corr:00:apply [0.16710 s, 0.541%]
+|     |     |     |     corr:03:tovect [0.04279 s, 0.139%]
+|     |     |     fluid-iter:14:inc-iter [0.02538 s, 0.082%]
+|     |     iter:02:reduce [0.02457 s, 0.080%]
+|     |     iter:03:report [0.03503 s, 0.113%]
+|     |     iter:04:convcheck [0.04105 s, 0.133%]
+|     run:11:fs-finish [0.10636 s, 0.345%]
+|     |     fluid-finish:00:inctime [0.05156 s, 0.167%]
+|     |     fluid-finish:01:convdiff-finish [0.05480 s, 0.178%]
+|     |     |     convdiffmulti-finish:00:dir-finish [0.01988 s, 0.064%]
+|     |     |     convdiffmulti-finish:01:dir-finish [0.01593 s, 0.052%]
+|     |     |     convdiffmulti-finish:02:dir-finish [0.01070 s, 0.035%]
+|     |     |     convdiffmulti-finish:03:tovect [0.00828 s, 0.027%]
+|     run:12:as-steps [10.84846 s, 35.143%]
+|     |     steps:01:start [0.12101 s, 0.392%]
+|     |     |     start:00:reconst [0.01276 s, 0.041%]
+|     |     |     |     rec:00:detect [0.00427 s, 0.014%]
+|     |     |     |     rec:01:local [0.00849 s, 0.027%]
+|     |     |     start:00:rotate [0.09837 s, 0.319%]
+|     |     |     start:01:rotate [0.00988 s, 0.032%]
+|     |     steps:02:iter [10.68916 s, 34.627%]
+|     |     |     iter:00:init [0.02969 s, 0.096%]
+|     |     |     iter:01:sweep [0.08794 s, 0.285%]
+|     |     |     iter:02:comm [0.14236 s, 0.461%]
+|     |     |     iter:03:comm [0.14123 s, 0.458%]
+|     |     |     iter:04:comm [0.13803 s, 0.447%]
+|     |     |     iter:05:comm [0.14013 s, 0.454%]
+|     |     |     iter:06:bcreflect [0.08948 s, 0.290%]
+|     |     |     iter:07:reconst [0.11118 s, 0.360%]
+|     |     |     |     rec:00:detect [0.03163 s, 0.102%]
+|     |     |     |     rec:01:local [0.07955 s, 0.258%]
+|     |     |     iter:08:sweep [0.08137 s, 0.264%]
+|     |     |     iter:09:comm [0.14132 s, 0.458%]
+|     |     |     iter:10:comm [0.13999 s, 0.453%]
+|     |     |     iter:11:comm [0.13798 s, 0.447%]
+|     |     |     iter:12:comm [0.13792 s, 0.447%]
+|     |     |     iter:13:bcreflect [0.08851 s, 0.287%]
+|     |     |     iter:14:reconst [0.11160 s, 0.362%]
+|     |     |     |     rec:00:detect [0.03242 s, 0.105%]
+|     |     |     |     rec:01:local [0.07918 s, 0.257%]
+|     |     |     iter:15:sweep [0.08187 s, 0.265%]
+|     |     |     iter:16:comm [0.13903 s, 0.450%]
+|     |     |     iter:17:comm [0.13872 s, 0.449%]
+|     |     |     iter:18:comm [0.13781 s, 0.446%]
+|     |     |     iter:19:comm [0.13746 s, 0.445%]
+|     |     |     iter:20:bcreflect [0.08828 s, 0.286%]
+|     |     |     iter:21:reconst [0.10915 s, 0.354%]
+|     |     |     |     rec:00:detect [0.03170 s, 0.103%]
+|     |     |     |     rec:01:local [0.07745 s, 0.251%]
+|     |     |     iter:22:sharpen [5.04615 s, 16.347%]
+|     |     |     |     sharp:00:sweep [0.08503 s, 0.275%]
+|     |     |     |     sharp:01:comm [0.13869 s, 0.449%]
+|     |     |     |     sharp:02:comm [0.13731 s, 0.445%]
+|     |     |     |     sharp:03:comm [0.13905 s, 0.450%]
+|     |     |     |     sharp:04:comm [0.13812 s, 0.447%]
+|     |     |     |     sharp:05:bcreflect [0.08849 s, 0.287%]
+|     |     |     |     sharp:06:reconst [0.10921 s, 0.354%]
+|     |     |     |     |     rec:00:detect [0.03145 s, 0.102%]
+|     |     |     |     |     rec:01:local [0.07777 s, 0.252%]
+|     |     |     |     sharp:07:sweep [0.08351 s, 0.271%]
+|     |     |     |     sharp:08:comm [0.13659 s, 0.442%]
+|     |     |     |     sharp:09:comm [0.13772 s, 0.446%]
+|     |     |     |     sharp:10:comm [0.13785 s, 0.447%]
+|     |     |     |     sharp:11:comm [0.13825 s, 0.448%]
+|     |     |     |     sharp:12:bcreflect [0.08810 s, 0.285%]
+|     |     |     |     sharp:13:reconst [0.11095 s, 0.359%]
+|     |     |     |     |     rec:00:detect [0.03152 s, 0.102%]
+|     |     |     |     |     rec:01:local [0.07943 s, 0.257%]
+|     |     |     |     sharp:14:sweep [0.08395 s, 0.272%]
+|     |     |     |     sharp:15:comm [0.13780 s, 0.446%]
+|     |     |     |     sharp:16:comm [0.13959 s, 0.452%]
+|     |     |     |     sharp:17:comm [0.13931 s, 0.451%]
+|     |     |     |     sharp:18:comm [0.13699 s, 0.444%]
+|     |     |     |     sharp:19:bcreflect [0.08917 s, 0.289%]
+|     |     |     |     sharp:20:reconst [0.11111 s, 0.360%]
+|     |     |     |     |     rec:00:detect [0.03159 s, 0.102%]
+|     |     |     |     |     rec:01:local [0.07952 s, 0.258%]
+|     |     |     |     sharp:21:sweep [0.08811 s, 0.285%]
+|     |     |     |     sharp:22:comm [0.13823 s, 0.448%]
+|     |     |     |     sharp:23:comm [0.13886 s, 0.450%]
+|     |     |     |     sharp:24:comm [0.14025 s, 0.454%]
+|     |     |     |     sharp:25:comm [0.13878 s, 0.450%]
+|     |     |     |     sharp:26:bcreflect [0.08971 s, 0.291%]
+|     |     |     |     sharp:27:reconst [0.11445 s, 0.371%]
+|     |     |     |     |     rec:00:detect [0.03431 s, 0.111%]
+|     |     |     |     |     rec:01:local [0.08013 s, 0.260%]
+|     |     |     |     sharp:28:sweep [0.08515 s, 0.276%]
+|     |     |     |     sharp:29:comm [0.13791 s, 0.447%]
+|     |     |     |     sharp:30:comm [0.14052 s, 0.455%]
+|     |     |     |     sharp:31:comm [0.13836 s, 0.448%]
+|     |     |     |     sharp:32:comm [0.13751 s, 0.445%]
+|     |     |     |     sharp:33:bcreflect [0.08872 s, 0.287%]
+|     |     |     |     sharp:34:reconst [0.10965 s, 0.355%]
+|     |     |     |     |     rec:00:detect [0.03122 s, 0.101%]
+|     |     |     |     |     rec:01:local [0.07843 s, 0.254%]
+|     |     |     |     sharp:35:sweep [0.08781 s, 0.284%]
+|     |     |     |     sharp:36:comm [0.14302 s, 0.463%]
+|     |     |     |     sharp:37:comm [0.13777 s, 0.446%]
+|     |     |     |     sharp:38:comm [0.13749 s, 0.445%]
+|     |     |     |     sharp:39:comm [0.13800 s, 0.447%]
+|     |     |     |     sharp:40:bcreflect [0.09686 s, 0.314%]
+|     |     |     |     sharp:41:reconst [0.11222 s, 0.364%]
+|     |     |     |     |     rec:00:detect [0.03242 s, 0.105%]
+|     |     |     |     |     rec:01:local [0.07980 s, 0.258%]
+|     |     |     iter:23:bcc_clear [0.02840 s, 0.092%]
+|     |     |     iter:24: [3.03325 s, 9.826%]
+|     |     |     |     recolor:00: [0.23557 s, 0.763%]
+|     |     |     |     |     recolor_init:00:clfixed [0.03142 s, 0.102%]
+|     |     |     |     |     recolor_init:01:init [0.20415 s, 0.661%]
+|     |     |     |     recolor:01:reflect [0.04278 s, 0.139%]
+|     |     |     |     recolor:02:initroot [0.04085 s, 0.132%]
+|     |     |     |     recolor:04: [0.28812 s, 0.933%]
+|     |     |     |     |     grid:00:local [0.03492 s, 0.113%]
+|     |     |     |     |     grid:01:reduce [0.03421 s, 0.111%]
+|     |     |     |     |     grid:02:apply [0.21900 s, 0.709%]
+|     |     |     |     recolor:05:min [2.13203 s, 6.907%]
+|     |     |     |     recolor:06:reflect [0.16233 s, 0.526%]
+|     |     |     |     recolor:07:check [0.03469 s, 0.112%]
+|     |     |     |     recolor:09: [0.03088 s, 0.100%]
+|     |     |     |     |     usermap:00:local [0.02211 s, 0.072%]
+|     |     |     |     |     usermap:01:gather [0.00876 s, 0.028%]
+|     |     |     |     recolor:10: [0.04741 s, 0.154%]
+|     |     |     |     |     recolor:00:gather [0.02107 s, 0.068%]
+|     |     |     |     |     recolor:01:reduce [0.00825 s, 0.027%]
+|     |     |     |     |     recolor:02:apply [0.01809 s, 0.059%]
+|     |     |     |     recolor:11:copy [0.01860 s, 0.060%]
+|     |     |     iter:25:sum [0.02203 s, 0.071%]
+|     |     |     iter:26:stat [0.00827 s, 0.027%]
+|     |     steps:03:finish [0.01549 s, 0.050%]
+|     |     steps:04:report [0.01028 s, 0.033%]
+|     |     steps:05:convcheck [0.01253 s, 0.041%]
+|     run:13:as-post [2.43942 s, 7.902%]
+|     |     iter:00:comm [0.21054 s, 0.682%]
+|     |     iter:01:comm [0.18573 s, 0.602%]
+|     |     iter:02:comm [0.18422 s, 0.597%]
+|     |     iter:03:comm [0.18202 s, 0.590%]
+|     |     iter:04:reflect [0.07305 s, 0.237%]
+|     |     iter:05:part [1.59546 s, 5.168%]
+|     |     |     part:00:part-run [1.59546 s, 5.168%]
+|     |     iter:06:dump [0.00839 s, 0.027%]
+|     run:14:dt [0.02210 s, 0.072%]
+|     |     dt:00:local [0.01381 s, 0.045%]
+|     |     dt:01:reduce [0.00829 s, 0.027%]
+|     run:15: [0.02539 s, 0.082%]
+|     |     dump:00:fields [0.00823 s, 0.027%]
+|     |     dump:01:dmptrep [0.00809 s, 0.026%]
+|     |     dump:02:dumpstat [0.00906 s, 0.029%]
+|     run:16:inc [0.00772 s, 0.025%]
+cells = 65536
+steps = 1000000
+iters = 30
+total = 30 s = 00:00:30.869
+time/cell/iter = 1.57012e-05 s
+renamed 'out_2019-11-13_1226_kpetr' -> 'history1/out_2019-11-13_1226_kpetr'
