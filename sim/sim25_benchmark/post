@@ -5,7 +5,7 @@ suff () {
     daint*|nid*) echo _daint ;;
     eu-*) echo _euler ;; 
     falcon*) echo _falcon ;; 
-    *) echo ;;
+    *) echo _$(hostname) ;;
   esac
 }
 

@@ -5,11 +5,16 @@ set -eu
 if [ "$#" -lt "1" ] || [ "$1" == "-h" ] ; then
     cat << EOF
 usage: `basename $0` [-h] ARGS
-Reads the number of cores NP from file 'np' and executes 
+Reads the number of cores NP from file 'np' and executes
 mpirun -n NP ARGS
+If file 'np' does not exist, executes
+mpirun ARGS
 EOF
     exit 1
 fi
 
-np=`cat np`
-mpirun -n "$np" "$@"
+if [ -f 'np' ] ; then
+  mpirun -n "$(cat np)" "$@"
+else
+  mpirun "$@"
+fi
