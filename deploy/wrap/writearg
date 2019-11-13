@@ -14,6 +14,6 @@ fi
 if [ "$#" -lt "1" ] || [ "$1" == "-" ] ; then
   cat - > arg
 else
-  echo "$@" >> arg
+  echo "$@" > arg
 fi
 
