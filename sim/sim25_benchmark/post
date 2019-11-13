@@ -1,0 +1,3 @@
+o=out_`date +%h%d_%H%M`
+mv -v out "$o"
+
