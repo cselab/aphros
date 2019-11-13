@@ -1,8 +1,21 @@
 #!/bin/bash
 
+m () { 
+  echo
+  echo "$@"
+}
+
+m "Compute nodes:"
 ch.mpirun hostname | sort | uniq
+
+m "CPU models:"
 ch.mpirun sh -c 'grep "model name" /proc/cpuinfo | head -n 1' | sort | uniq
+
+m "Compiler version:"
 g++ --version | head -n 1
+
+m "MPI version:"
 mpirun --version | head -n 1
-echo "Module list:"
+
+m "Modules:"
 module -t list 2>&1
