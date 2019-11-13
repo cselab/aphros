@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -eu
+
+if [ "$#" -lt "1" ] || [ "$1" == "-h" ] ; then
+    cat << EOF
+usage: `basename $0` [-h] ARGS
+Reads the number of cores NP from file 'np' and executes 
+srun -n NP ARGS
+EOF
+    exit 1
+fi
+
+np=`cat np`
+srun -n "$np" "$@"

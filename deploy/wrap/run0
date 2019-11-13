@@ -5,4 +5,4 @@ set -eu
 ch.writearg "$@"
 
 echo "foreground" > job.id
-. ch.job
+. ch.job0

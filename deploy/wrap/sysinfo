@@ -1,0 +1,6 @@
+#!/bin/bash
+
+ch.mpirun hostname | sort | unique
+ch.mpirun 'grep "model name" /proc/cpuinfo | head -n 1' | sort | unique
+g++ --version | head -n 1
+mpirun --version | head -n 1

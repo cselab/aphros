@@ -1,11 +1,10 @@
 #!/bin/bash -l
 
 # Run in background
-# $1: config file
 
 set -eu
 
-echo "$@" > arg
+ch.writearg "$@"
 echo "background" > job.id
 echo starting > job.status
 

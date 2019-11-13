@@ -8,12 +8,16 @@ set -eu
 instfnd conf
 instfnd confdeb
 
+instfnd mpirun
 instfnd job
+instfnd writearg
 instfnd run 
+instfnd run0
 instfnd submit
 instfnd job0
 instfnd submit0
 instfnd kill 
+instfnd sysinfo
 
 mp="$BB/ch.base.makefile"
 cp -vf ../../sim/base.makefile "$mp"
