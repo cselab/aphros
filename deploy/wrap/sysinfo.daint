@@ -2,6 +2,5 @@
 
 ch.mpirun hostname | sort | uniq
 ch.mpirun sh -c 'grep "model name" /proc/cpuinfo | head -n 1' | sort | uniq
-g++ --version | head -n 1
-mpirun --version | head -n 1
+CC --version | head -n 1
 module -t list
