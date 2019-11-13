@@ -16,8 +16,8 @@ a () {
   eval "$@" >> "$o"
 }
 
-a 'cat out'
 a 'ch.sysinfo'
+a 'cat out'
 
 d=history
 mkdir -p "$d"
