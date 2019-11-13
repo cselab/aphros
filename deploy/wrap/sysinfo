@@ -16,13 +16,13 @@ m "CPU models:"
 ch.mpirun sh -c 'grep "model name" /proc/cpuinfo | head -n 1' | sort | uniq
 
 m "Compiler version:"
-if command -v CC ; then
+if command -v CC > /dev/null ; then
   CC --version | head -n 1
 else
   g++ --version | head -n 1
 fi
 
-if command -v mpirun ; then
+if command -v mpirun > /dev/null ; then
   m "MPI version:"
   mpirun --version | head -n 1
 fi
