@@ -954,21 +954,25 @@ std::vector<typename M::Vect> GetPoly(IdxFace f, const M& m) {
 
 template <class M>
 void DumpBcFaces(const MapFace<std::shared_ptr<solver::CondFace>>& mfc,
-                        std::string fn, M& m) {
+                 const MapFace<std::shared_ptr<solver::CondFaceFluid>>& mfcf,
+                 std::string fn, M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   auto sem = m.GetSem("DumpBcFaces");
   struct {
     std::vector<std::vector<Vect>> vxx;
     std::vector<Scal> vcond;
+    std::vector<Scal> vcondf;
     std::vector<Scal> vblock;
   }* ctx(sem);
   auto& vxx = ctx->vxx;
   auto& vcond = ctx->vcond;
+  auto& vcondf = ctx->vcondf;
   auto& vblock = ctx->vblock;
   if (sem("local")) {
     for (auto& it : mfc) {
-      vxx.push_back(GetPoly(it.GetIdx(), m));
+      IdxFace f = it.GetIdx();
+      vxx.push_back(GetPoly(f, m));
       auto* b = it.GetValue().get();
       Scal cond = -1;
       if (dynamic_cast<solver::CondFaceReflect*>(b)) {
@@ -978,7 +982,23 @@ void DumpBcFaces(const MapFace<std::shared_ptr<solver::CondFace>>& mfc,
       } else if (dynamic_cast<solver::CondFaceValFixed<Scal>*>(b)) {
         cond = 3;
       }
+      Scal condf = -1;
+      if (auto bs = mfcf.find(f)) {
+        auto b = bs->get();
+        if (dynamic_cast<solver::fluid_condition::NoSlipWall<M>*>(b)) {
+          condf = 1;
+        } else if (dynamic_cast<solver::fluid_condition::SlipWall<M>*>(b)) {
+          condf = 2;
+        } else if (dynamic_cast<solver::fluid_condition::Inlet<M>*>(b)) {
+          condf = 3;
+        } else if (dynamic_cast<solver::fluid_condition::Outlet<M>*>(b)) {
+          condf = 4;
+        } else if (dynamic_cast<solver::fluid_condition::Symm<M>*>(b)) {
+          condf = 5;
+        }
+      }
       vcond.push_back(cond);
+      vcondf.push_back(condf);
       vblock.push_back(m.GetId());
     }
 
@@ -986,6 +1006,7 @@ void DumpBcFaces(const MapFace<std::shared_ptr<solver::CondFace>>& mfc,
     m.Reduce(std::make_shared<TV>(&vxx));
     using TS = typename M::template OpCatT<Scal>;
     m.Reduce(std::make_shared<TS>(&vcond));
+    m.Reduce(std::make_shared<TS>(&vcondf));
     m.Reduce(std::make_shared<TS>(&vblock));
   }
   if (sem("write")) {
@@ -993,7 +1014,7 @@ void DumpBcFaces(const MapFace<std::shared_ptr<solver::CondFace>>& mfc,
       std::cout << "dump" << " to " << fn << std::endl;
       WriteVtkPoly<Vect>(
           fn, vxx, nullptr, 
-          {&vcond, &vblock}, {"cond", "block"},
+          {&vcond, &vblock, &vcondf}, {"cond", "block", "condfluid"},
           "Boundary conditions", true, true, true);
     }
   }

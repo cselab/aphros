@@ -59,6 +59,7 @@ void GetFluidCellCond(
 // mfc: boundary conditions
 // fn: filename
 template <class M>
-void DumpBcFaces(const MapFace<std::shared_ptr<solver::CondFace>>& mfc, 
+void DumpBcFaces(const MapFace<std::shared_ptr<solver::CondFace>>& mfc,
+                 const MapFace<std::shared_ptr<solver::CondFaceFluid>>& mfcf,
                  std::string fn, M& m);
 
