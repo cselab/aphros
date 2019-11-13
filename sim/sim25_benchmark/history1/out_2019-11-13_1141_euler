@@ -6,7 +6,6 @@ model name	: Intel(R) Xeon(R) Gold 6150 CPU @ 2.70GHz
 
 Compiler version:
 g++ (GCC) 6.3.0
-/cluster/apps/openmpi/3.0.0/x86_64/gcc_6.3.0/bin/mpirun
 
 MPI version:
 mpirun (Open MPI) 3.0.0
