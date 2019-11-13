@@ -1,3 +1,17 @@
-o=out_`date +%h%d_%H%M`
-mv -v out "$o"
+#!/bin/bash
 
+set -eu
+
+o=out_`date +%Y-%m-%d_%H%M`
+> "$o"
+
+a () {
+  eval "$@" >> "$o"
+}
+
+a 'hostname'
+a 'grep "model name" /proc/cpuinfo | head -n 1'
+a 'g++ --version | head -n 1'
+a 'mpirun --version | head -n 1'
+a ''
+a 'cat out'
