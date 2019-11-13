@@ -37,3 +37,6 @@ error.gfs
 
 # gerris
 u_*.vtk
+
+# euler
+lsf.*
