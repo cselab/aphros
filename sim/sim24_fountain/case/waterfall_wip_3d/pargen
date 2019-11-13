@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-# Belden 2012: Three-dimensional bubble field resolution ...
-
-# Reh: Reynolds number by channel height and average velocity
 def Exp():
     # SI units
 
@@ -13,14 +10,13 @@ def Exp():
     mu = 1e-3  # dynamic viscosity
     nu = mu / rho # kinematic viscosity
 
-    # Case h = 43 mm
-    Ui = 1.5
-    Di =  0.01
+    U = 0.5   # waterfall velocity
+    W =  0.01  # waterfall thickness
 
     ###
-    Re = Ui * Di / nu
-    Fr = (Ui ** 2 / (g * Di)) ** 0.5
-    We = rho * Ui ** 2 * Di / sig
+    Re = U * W / nu
+    Fr = (U ** 2 / (g * W)) ** 0.5
+    We = rho * U ** 2 * W / sig
 
     for key in sorted(locals()):
         print("{:} \t=\t {:}".format(key, locals()[key]))
@@ -33,46 +29,42 @@ def Sim(c):
     pi = 3.141592
 
     # domain 
-    W = 1. # width
-    L = 2. # length
-    assert L >= W
+    lx = 2.
+    ly = 2.
+    lz = 1.
+    lmax = max([lx, ly, lz])
 
-    # square nozzle
     U = 1. # velocity
-    DS = 0.07 * W # width
-    AS = DS ** 2 # area
-    # circular nozzle with same area
-    DC = 2. * (AS / pi) ** 0.5
-    
-    # time
-    tun = W / U  # unit
-    tmax = tun * 500.
-    dumpdt = tun * 0.1
+    W = 0.07 # waterfall thickness
 
-    # air gap
-    airgap = W
+    # time
+    tun = 1 / U  # unit
+    tmax = tun * 500.
+    dumpdt = tun * 0.01
 
     # oulet 
-    outy1 = L - airgap - W * 0.2
-    outy0 = outy1 - W * 0.1
+    outy0 = -1e-5
+    outy1 = 1e-5
 
     # liquid
     rho0 = 1. # density
     # nu0 == mu0
-    mu0 = U * DC / Re  # viscosity
+    mu0 = U * W / Re  # viscosity
 
-    sig = (rho0 * U ** 2 * DC) / We
-    g = U ** 2 / Fr ** 2 / DC
+    sig = (rho0 * U ** 2 * W) / We
+    g = U ** 2 / Fr ** 2 / W
 
     # gas, ratio to liquid
     mu = 0.01
     rho = 0.01
 
+    def rnd(a): return int(a + 0.5)
+
     # mesh
     nn = 96
-    nx = nn * 2
-    ny = int(nn * L / W + 0.5)
-    nz = nn
+    nx = rnd(nn * lx)
+    ny = rnd(nn * ly)
+    nz = rnd(nn * lz)
 
     # block size
     bs = 16
@@ -89,14 +81,16 @@ def Sim(c):
     return locals()
 
 def Gen(c):
+    lx = c['lx']
+    ly = c['ly']
+    lz = c['lz']
     W = c['W']
-    L = c['L']
     # bubble 
-    bx = W * 0.5
-    by = L 
-    bz = W * 0.5
+    bx = lx * 0.5
+    by = ly
+    bz = lz * 0.5
     brx = 1e10
-    bry = c['airgap']
+    bry = ly * 0.5
     brz = brx
 
     tmax = c['tmax']
@@ -107,20 +101,15 @@ def Gen(c):
     rho2 = rho1 * c['rho']
     mu2 = mu1 * c['mu']
     sig = c['sig']
-    
+
     g = -c['g']
 
-    inr = c['DS'] * 0.5
     inv = -c['U']
-    inx0 = W * 0.5 - inr
-    inx1 = W * 0.5 + inr
-    iny0 = L - W * 1e-5
-    iny1 = L + W * 1e-5
 
-    inrc = c['DC'] * 0.5
-    isph_cx = L * 0.5
-    isph_cy = L
-    isph_cz = W * 0.5
+    inrc = W * 0.5
+    isph_cx = lx * 0.5
+    isph_cy = ly
+    isph_cz = lz * 0.5
 
     outy0 = c['outy0']
     outy1 = c['outy1']
@@ -151,8 +140,8 @@ set vect inlet_sph0_vel 0 {inv} 0
 set double inlet_sph0_vf 0
 
 set string box1 outlet
-set vect box1_a -1e10 {outy0} 0.0001
-set vect box1_b 1e10 {outy1} 0.9999
+set vect box1_a -1e10 {outy0} -1e10
+set vect box1_b 1e10 {outy1} 1e10
 set double box1_vf 0.
 
         '''.format(**locals()))
