@@ -1,10 +1,8 @@
 #!/bin/bash
 
-set -eu
-
 suff () {
   case $(hostname) in
-    daint*) echo _daint ;;
+    daint*|nid*) echo _daint ;;
     eu-*) echo _euler ;; 
     falcon*) echo _falcon ;; 
     *) echo ;;
