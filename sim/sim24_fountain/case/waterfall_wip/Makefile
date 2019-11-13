@@ -1,0 +1,13 @@
+include par.make
+
+all:
+	make cleanall
+	make run
+
+include $(shell ch.makesim)
+
+par.make par.conf: pargen
+	./pargen
+
+clean::
+	rm -f _m _bs _np _tl par.conf b.dat par.make

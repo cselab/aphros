@@ -1,0 +1,175 @@
+#!/usr/bin/env python
+
+# Belden 2012: Three-dimensional bubble field resolution ...
+
+# Reh: Reynolds number by channel height and average velocity
+def Exp():
+    # SI units
+
+    sig = 73e-3 # surface tension
+    g = 9.8
+    # water
+    rho = 1000 # density
+    mu = 1e-3  # dynamic viscosity
+    nu = mu / rho # kinematic viscosity
+
+    # Case h = 43 mm
+    Ui = 1.5
+    Di =  0.005
+
+    ###
+    Re = Ui * Di / nu
+    Fr = (Ui ** 2 / (g * Di)) ** 0.5
+    We = rho * Ui ** 2 * Di / sig
+
+    for key in sorted(locals()):
+        print("{:} \t=\t {:}".format(key, locals()[key]))
+    print("\n")
+
+    return locals()
+
+def Sim(c):
+    Re,We,Fr = (c['Re'], c['We'], c['Fr'])
+    pi = 3.141592
+
+    # domain 
+    W = 1. # width
+    L = 2. # length
+    assert L >= W
+
+    # square nozzle
+    U = 1. # velocity
+    DS = 0.04 * W # width
+    AS = DS ** 2 # area
+    # circular nozzle with same area
+    DC = 2. * (AS / pi) ** 0.5
+    
+    # time
+    tun = W / U  # unit
+    tmax = tun * 500.
+    dumpdt = tun * 0.1
+
+    # air gap
+    airgap = W
+
+    # oulet 
+    outy1 = L - airgap - W * 0.2
+    outy0 = outy1 - W * 0.1
+
+    # liquid
+    rho0 = 1. # density
+    # nu0 == mu0
+    mu0 = U * DC / Re  # viscosity
+
+    sig = (rho0 * U ** 2 * DC) / We
+    g = U ** 2 / Fr ** 2 / DC
+
+    # gas, ratio to liquid
+    mu = 0.01
+    rho = 0.01
+
+    # mesh
+    nn = 48
+    nx = nn * 2
+    ny = int(nn * L / W + 0.5)
+    nz = 1
+
+    # block size
+    bs = 16
+    bsz = 1
+    # cores
+    np = 6
+    # time limit (minutes)
+    tl = 1440
+
+    for key in sorted(locals()):
+        print("{:} \t=\t {:}".format(key, locals()[key]))
+    print("\n")
+
+    return locals()
+
+def Gen(c):
+    W = c['W']
+    L = c['L']
+    # bubble 
+    bx = W * 0.5
+    by = L 
+    bz = W * 0.5
+    brx = 1e10
+    bry = c['airgap']
+    brz = brx
+
+    tmax = c['tmax']
+    dumpdt = c['dumpdt']
+
+    rho1 = c['rho0']
+    mu1 = c['mu0']
+    rho2 = rho1 * c['rho']
+    mu2 = mu1 * c['mu']
+    sig = c['sig']
+    
+    g = -c['g']
+
+    inr = c['DS'] * 0.5
+    inv = c['U']
+    inx0 = W * 0.5 - inr
+    inx1 = W * 0.5 + inr
+    iny0 = L - W * 1e-5
+    iny1 = L + W * 1e-5
+
+    inrc = c['DC'] * 0.5
+    isph_cx = 0
+    isph_cy = by - bry + 0.2 * L
+    isph_cz = W * 0.5
+
+    outy0 = c['outy0']
+    outy1 = c['outy1']
+
+    with open("par.conf", 'w') as f:
+        f.write('''\
+# domain
+set double extent 2
+
+# time
+set double tmax {tmax}
+set double dump_field_dt {dumpdt}
+set double dump_part_dt {dumpdt}
+set double dump_traj_dt {dumpdt}
+
+# physical 
+set double rho1 {rho1}
+set double rho2 {rho2}
+set double mu1 {mu1}
+set double mu2 {mu2}
+set double sigma {sig}
+set vect gravity 0 {g} 0
+
+# bc boxes
+set vect inlet_sph0_c {isph_cx} {isph_cy} {isph_cz}
+set vect inlet_sph0_r {inrc} {inrc} 1e5
+set vect inlet_sph0_vel {inv} 0 0
+set double inlet_sph0_vf 0
+
+set string box1 outlet
+set vect box1_a -1e10 {outy0} 0.0001
+set vect box1_b 1e10 {outy1} 0.9999
+set double box1_vf 0.
+
+        '''.format(**locals()))
+
+
+    with open("b.dat", 'w') as f:
+        f.write("{bx} {by} {bz} {brx} {bry} {brz}\n".format(**locals()))
+
+    with open("par.make", 'w') as f:
+        f.write(
+'''m = {nx} {ny} {nz}
+bs = {bs} {bs} {bsz}
+np = {np}
+tl = {tl}
+'''.format(**c))
+
+
+c = Exp()
+c = Sim(c)
+Gen(c)
