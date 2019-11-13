@@ -169,6 +169,7 @@ class Cubism : public DistrMesh<KF> {
   using P::frame_;
 
   Grid g_;
+// FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] The map is not really needed
   struct S { // cubism [s]tate
     std::map<MIdx, BlockInfo, typename MIdx::LexLess> mb;
   };
@@ -304,13 +305,14 @@ Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par)
   : DistrMesh<KF>(comm, kf, par)
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm)
 {
-  assert(bs_[0] == Block::bx && bs_[1] == Block::by &&
-      (bs_[2] == Block::bz || (bs_[2] == 1 && Block::bz == 2)));
+  assert(bs_[0] == FieldView::bx && bs_[1] == FieldView::by &&
+      (bs_[2] == FieldView::bz || (bs_[2] == 1 && FieldView::bz == 2)));
 
   int r;
   MPI_Comm_rank(comm, &r);
   isroot_ = (0 == r);  // XXX: overwrite isroot_
 
+// FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Get rid of BlockInfo type
   std::vector<BlockInfo> cc = g_.getBlocksInfo(); // [c]ubism block info
   std::vector<MyBlockInfo> ee = GetBlocks(cc, bs_, hl_);
 
@@ -819,7 +821,6 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
   auto gbc = GetGlobalIndex();
   // collective, does actual communication
   auto bb = GetBlocks();
-  FieldCell<Scal> fc; // tmp
   std::vector<Scal> v(bs_.prod()); // tmp
   MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
   BC bc(bs_); // cells of one block
@@ -833,10 +834,17 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       auto& m = mk.at(b)->GetMesh();
       // index cells
       auto& mbc = m.GetIndexCells();
-      // resize field for block mesh
-      fc.Reinit(m);
       // get corner of inner cells block
       MIdx wb = m.GetInBlockCells().GetBegin();
+      // get field fc associated to index e
+      auto bf = m.GetComm(); // returns vector of shared_ptr
+      for (auto& co : m.GetDump()) {
+        bf.push_back(co.first);
+      }
+      assert(e < bf.size());
+      const typename M::CoFcs *fcptr = dynamic_cast<typename M::CoFcs*>(bf[e].get());
+      assert(fcptr != nullptr);
+      const FieldCell<Scal> &fc = *(fcptr->f);
       // copy from inner cells to global field
       for (auto w : bc) {
         gfc[gbc.GetIdx(wb + w)] = fc[mbc.GetIdx(wb + w)];
@@ -866,10 +874,17 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       auto& m = mk.at(b)->GetMesh();
       // block cells
       auto& mbc = m.GetIndexCells();
-      // resize field for block mesh
-      fc.Reinit(m);
       // get corner of inner cells block
       MIdx wb = m.GetInBlockCells().GetBegin();
+      // get field fc associated to index e
+      auto bf = m.GetComm(); // returns vector of shared_ptr
+      for (auto& co : m.GetDump()) {
+        bf.push_back(co.first);
+      }
+      assert(e < bf.size());
+      const typename M::CoFcs *fcptr = dynamic_cast<typename M::CoFcs*>(bf[e].get());
+      assert(fcptr != nullptr);
+      const FieldCell<Scal> &fc = *(fcptr->f);
       // copy from inner cells to v
       size_t i = 0;
       // copy from inner cells to global field
