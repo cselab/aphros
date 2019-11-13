@@ -195,6 +195,22 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     }
     return std::numeric_limits<Scal>::max();
   }
+  // Viscosity time step
+  Scal GetVisDt() {
+    Scal rho1 = var.Double["rho1"];
+    Scal rho2 = var.Double["rho2"];
+    Scal mu1 = var.Double["mu1"];
+    Scal mu2 = var.Double["mu2"];
+    Scal nu1 = mu1 / rho1;
+    Scal nu2 = mu2 / rho2;
+    Scal num = std::max(nu1, nu2);
+    Scal* cflvis = var.Double("cflvis");
+    if (cflvis &&  num != 0.) {
+      Scal h2 = sqr(m.GetCellSize()[0]); // XXX adhoc cubic cell
+      return (*cflvis) * h2 / num;
+    }
+    return std::numeric_limits<Scal>::max();
+  }
   YoungParam GetYoungPar() const {
     YoungParam q;
     q.rhov = var.Double["rho1"];
@@ -660,6 +676,7 @@ void Hydro<M>::Init() {
     if (m.IsRoot()) {
       std::cout << "global mesh=" << gs << std::endl;
       std::cout << "surface tension dt=" << GetStDt() << std::endl;
+      std::cout << "viscosity dt=" << GetVisDt() << std::endl;
     }
 
     // boundary conditions
@@ -1196,6 +1213,9 @@ void Hydro<M>::CalcDt() {
 
     // constraint from surface tension
     st_.dt = std::min<Scal>(st_.dt, GetStDt());
+
+    // constraint from viscosity
+    st_.dt = std::min<Scal>(st_.dt, GetVisDt());
 
     fs_->SetTimeStep(st_.dt);
     var.Double["dt"] = st_.dt;
