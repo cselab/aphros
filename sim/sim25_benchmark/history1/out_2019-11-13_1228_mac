@@ -1,3 +1,15 @@
+Compute nodes:
+kpetr
+
+CPU models:
+model name	: Intel(R) Core(TM) i7-7660U CPU @ 2.50GHz
+
+Compiler version:
+g++ (GCC) 9.2.0
+
+MPI version:
+mpirun (Open MPI) 4.0.1
+
 hydro 46ebc15b-dirty
 msg: vof,vofm: move BcClear to util/vof, revise with bcc_clear0,1
 diff: src/solver/vof.ipp src/solver/vofm.ipp 
