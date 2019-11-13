@@ -21,4 +21,4 @@ submit72:
 	make m="192 96 96" np=72 submit
 
 
-.PHONY: run1 run72
+.PHONY: run1 run72 submit1 submit72
