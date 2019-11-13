@@ -10,7 +10,7 @@ if [ -f "$o" ] ; then
 fi
 b="// $(git describe --always --dirty) $(git diff --name-only | tr '\n' ' ')"
 
-if [ "$a" != "$b" ] ; then 
+if [ "$a" != "$b" ] ; then
   echo "revision updated"
   cat > $o << EOF
 $b
