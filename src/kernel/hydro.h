@@ -806,7 +806,7 @@ void Hydro<M>::Init() {
     events_.Parse();
   }
   if (var.Int["dumpbc"] && sem.Nested()) {
-    DumpBcFaces(mf_cond_, "bc.vtk", m);
+    DumpBcFaces(mf_cond_, mf_velcond_, "bc.vtk", m);
   }
 }
 

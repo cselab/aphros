@@ -24,5 +24,6 @@ template void GetFluidCellCond(
     std::pair<typename M::Scal, int>& pdist);
 
 template void DumpBcFaces(
-    const MapFace<std::shared_ptr<solver::CondFace>>& mfc, 
+    const MapFace<std::shared_ptr<solver::CondFace>>& mfc,
+    const MapFace<std::shared_ptr<solver::CondFaceFluid>>& mfcf,
     std::string fn, M& m);
