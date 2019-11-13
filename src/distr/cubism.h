@@ -38,7 +38,7 @@ struct GPar {
 
 // Field wrapper to emulate Cubism block behavior
 // Par_ - instance of GPar
-template <class Par_>
+template <class Par_, size_t Pad_ = 1>
 struct GFieldViewRaw {
     using Par = Par_;
     using Scal = typename Par::Scal;
@@ -54,9 +54,11 @@ struct GFieldViewRaw {
     static const int sizeZ = bz;
 
     // strides including halos
-    static const size_t stridex = Par::bx + 2 * Par::halo;
-    static const size_t stridey = Par::by + 2 * Par::halo;
-    static const size_t stridez = Par::bz + 2 * Par::halo;
+    // XXX: [fabianw@mavt.ethz.ch; 2019-11-13] The +Pad_ is needed for efficient
+    // transformation between indexing types (cell, face, node).
+    static const size_t stridex = Par::bx + 2 * Par::halo + Pad_;
+    static const size_t stridey = Par::by + 2 * Par::halo + Pad_;
+    static const size_t stridez = Par::bz + 2 * Par::halo + Pad_;
     static const int halo =
         Par::halo; // assumes # of halos is the same in all dimensions
 
