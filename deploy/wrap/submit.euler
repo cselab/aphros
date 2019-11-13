@@ -11,7 +11,7 @@ if [ -f job.id ]; then
   exit 1
 fi
 
-echo "$@" > arg
+ch.writearg "$@"
 
 : ${JOB=ch.job}
 job="`type -p $JOB`"

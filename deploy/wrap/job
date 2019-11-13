@@ -6,48 +6,20 @@ set -eu
 
 # run command with time and append to out
 rt () {
-  echo
   set -o pipefail 
-  c="( time $@ ) |& tee -a out"
-  echo $c
-  eval "$c"
-}
-
-argfirst () {
-  echo "$1"
-}
-
-argrest () {
-  shift
   echo "$@"
+  time eval "$@" 2>&1 | tee -a out
 }
-
-set -eu
-
-# read arg
-if [ -f arg ] ; then
-  a="`cat arg`"
-else
-  a=
-fi
-# executable
-e=`argfirst $a`
-# args
-a=`argrest $a`
-# num tasks
-np=`cat np`
 
 js="job.status"
 
 echo running > $js
 
-rm -rf out
+[[ -f pre ]] && rt ./pre
 
-[[ -f pre ]] && rt "./pre"
+rt "ch.mpirun $(cat arg)"
 
-rt "mpirun -n $np $e $a"
-
-[[ -f post ]] && rt "./post"
+[[ -f post ]] && rt ./post
 
 mv -vf job.id{,.last}
 

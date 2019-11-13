@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -eu
+
+if [ "${1:-}" == "-h" ] ; then
+  cat << EOF
+usage: `basename $0` [-h] ARGS
+Writes arguments to file 'arg'.
+If ARGS is empty or ARGS is -, reads arguments from standard input.
+EOF
+  exit 1
+fi
+
+if [ "$#" -lt "1" ] || [ "$1" == "-" ] ; then
+  cat - > arg
+else
+  echo "$@" >> arg
+fi
+
