@@ -292,7 +292,6 @@ std::vector<MyBlockInfo> Cubism<Par, KF>::GetBlocks(
       b.bs[j] = bs[j];
     }
     b.h_gridpoint = c.h_gridpoint;
-    b.ptrBlock = c.ptrBlock;
     b.hl = hl;
     bb.push_back(b);
   }
