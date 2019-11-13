@@ -67,7 +67,7 @@ def Sim(c):
     rho = 0.01
 
     # mesh
-    nn = 128
+    nn = 96
     nx = nn * 2
     ny = int(nn * L / W + 0.5)
     nz = nn
@@ -75,7 +75,7 @@ def Sim(c):
     # block size
     bs = 16 # XXX
     # cores
-    np = 128
+    np = 72
     # time limit (minutes)
     tl = 10
 

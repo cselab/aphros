@@ -2,7 +2,16 @@
 
 set -eu
 
-o=out_`date +%Y-%m-%d_%H%M`
+suff () {
+  case $(hostname) in
+    daint*) echo _daint ;;
+    eu-*) echo _euler ;; 
+    falcon*) echo _falcon ;; 
+    *) echo ;;
+  esac
+}
+
+o=out_$(date +%Y-%m-%d_%H%M)$(suff)
 > "$o"
 
 a () {
@@ -15,3 +24,7 @@ a 'g++ --version | head -n 1'
 a 'mpirun --version | head -n 1'
 a ''
 a 'cat out'
+
+d=history
+mkdir -p "$d"
+mv -v "$o" "$d"
