@@ -379,7 +379,7 @@ auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
     // 1. Exchange halos in buffer mesh.
     // max(cs, 1) to prevent forbidden call with zero components
     FakeProc fp(GetStencil(hl_, std::max<size_t>(cs, 1)));
-    assert(cs == fp.selcomponents.size());
+    assert(cs == fp.stencil.selcomponents.size());
 
     // Perform communication and register new synchronizer if not already
     // present under label 'comm_id'.  After this point, registered synchronizer
