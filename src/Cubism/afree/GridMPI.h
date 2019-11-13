@@ -80,18 +80,24 @@ public:
 
         const std::vector<BlockInfo> vInfo = TGrid::getBlocksInfo();
 
-        // XXX: [fabianw@mavt.ethz.ch; 2019-11-04] Update only field information
-        // that is required for MPI communication
+        // cells total
+        const int nn[3] = {mybpd[0] * blocksize[0] * pesize[0],
+                           mybpd[1] * blocksize[1] * pesize[1],
+                           mybpd[2] * blocksize[2] * pesize[2]};
+        // cell size (h_gridpoint from BlockInfo)
+        const double hc = (maxextent / std::max(nn[0], std::max(nn[1], nn[2])));
+        // block extent
+        const double h =
+            std::max(blocksize[0], std::max(blocksize[1], blocksize[2])) * hc;
+
         for (size_t i = 0; i < vInfo.size(); ++i) {
             BlockInfo info = vInfo[i];
-
+            info.h = h;
+            info.h_gridpoint = hc;
             for (int j = 0; j < 3; ++j) {
                 info.index[j] += mypeindex[j] * mybpd[j];
+                info.origin[j] = info.index[j] * h;
             }
-
-            // printf("%d %d %d\n", mybpd[0], mybpd[1], mybpd[2]);
-            // printf("%d %d %d\n", info.index[0], info.index[1],
-            // info.index[2]);
             cached_blockinfo.push_back(info);
         }
     }

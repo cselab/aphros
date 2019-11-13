@@ -47,14 +47,22 @@ public:
          const double maxextent_ = 1)
         : NX(NX_), NY(NY_), NZ(NZ_), N(NX_ * NY_ * NZ_), maxextent(maxextent_)
     {
-        m_vInfo.reserve(N);
-        const double o[3] = {0, 0, 0};
+        // cells per block
+        const size_t bs[3] = {Block::bx, Block::by, Block::bz};
+        // cells total
+        const size_t nn[3] = {NX * bs[0], NY * bs[1], NZ * bs[2]};
+        // cell size (h_gridpoint from BlockInfo)
+        const double hc = (maxextent / std::max(nn[0], std::max(nn[1], nn[2])));
+        // block extent
+        const double h = std::max(bs[0], std::max(bs[1], bs[2])) * hc;
+
         for (size_t iz = 0; iz < NZ; iz++)
             for (size_t iy = 0; iy < NY; iy++)
                 for (size_t ix = 0; ix < NX; ix++) {
                     const long long blockID = _encode(ix, iy, iz);
                     const int idx[3] = {(int)ix, (int)iy, (int)iz};
-                    m_vInfo.push_back(BlockInfo(blockID, idx, o, 0, 0));
+                    const double origin[3] = {ix * h, iy * h, iz * h};
+                    m_vInfo.push_back(BlockInfo(blockID, idx, origin, h, hc));
                 }
     }
 
