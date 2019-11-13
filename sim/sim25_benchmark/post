@@ -19,6 +19,6 @@ a () {
 a 'ch.sysinfo'
 a 'cat out'
 
-d=history
+d=history$(cat np)
 mkdir -p "$d"
 mv -v "$o" "$d"
