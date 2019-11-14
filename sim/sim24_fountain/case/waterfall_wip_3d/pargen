@@ -28,7 +28,6 @@ def Exp():
 
 def Sim(c):
     Re,We,Fr,HW = (c['Re'], c['We'], c['Fr'], c['HW'])
-    pi = 3.141592
 
     # domain 
     lx = 2
@@ -46,7 +45,6 @@ def Sim(c):
     tun = 1 / U  # unit
     tmax = tun * 500.
     dumpdt = tun * 0.05
-    dumpdt = tun * 0.5  # XXX
 
     # liquid
     rho0 = 1. # density
@@ -62,13 +60,13 @@ def Sim(c):
     def rnd(a): return int(a + 0.5)
 
     # mesh
-    nn = 48
+    nn = 96
     nx = rnd(nn * lx)
     ny = rnd(nn * ly)
     nz = rnd(nn * lz)
 
     # block size
-    bs = 8
+    bs = 16
     bsz = bs
     # cores
     np = 216
@@ -119,8 +117,10 @@ def Gen(c):
     inz0 = lz * 0.5 - lz * 0.45
     inz1 = lz * 0.5 + lz * 0.45
 
-    outy0 = -eps
-    outy1 = eps
+    outx0 = -eps
+    outx1 = eps
+    outy0 = ly * 0.
+    outy1 = ly * 0.4
 
 
     with open("par.conf", 'w') as f:
@@ -148,8 +148,8 @@ set vect box0_b {inx1} {iny1} {inz1}
 set double box0_vf 0.
 
 set string box1 outlet
-set vect box1_a -1e10 {outy0} -1e10
-set vect box1_b 1e10 {outy1} 1e10
+set vect box1_a {outx0} {outy0} -1e10
+set vect box1_b {outx1} {outy1} 1e10
 set double box1_vf 0.
 
         '''.format(**locals()))
