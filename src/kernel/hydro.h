@@ -1448,14 +1448,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         fc_force_[c][0] += s * sy * force_mag * fc_vf0[c];
       }
     }
-
-    // Kolmogorov forcing
-    if (var.Int["force_kolm"]) {
-      for (auto c : m.Cells()) {
-        Vect x = m.GetCenter(c);
-        fc_force_[c][0] += std::sin(x[1]);
-      }
-    }
   }
 
   if (sem.Nested("smooth")) {
@@ -1554,6 +1546,12 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     fmov("force_mov");
     fmov("force_mov2");
 
+    // Kolmogorov forcing
+    for (auto f : m.AllFaces()) {
+      Vect n = m.GetNormal(f);
+      Vect x = m.GetCenter(f);
+      ffbp_[f] += Vect(std::sin(x[1]), 0., 0.).dot(n);
+    }
 
     // normal velocity penalization
     Scal force_vel_k = var.Double["force_vel_k"];
