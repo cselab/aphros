@@ -1442,11 +1442,18 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       Scal force_wly = var.Double["force_wly"];
       Scal pi = M_PI;
       Scal s = std::sin(st_.t * force_freq * 2. * pi);
-      fc_src_.Reinit(m, 0);
       for (auto c : m.Cells()) {
         Vect x = m.GetCenter(c);
         Scal sy = std::cos(2. * pi * x[1] / force_wly);
         fc_force_[c][0] += s * sy * force_mag * fc_vf0[c];
+      }
+    }
+
+    // Kolmogorov forcing
+    if (var.Int["force_kolm"]) {
+      for (auto c : m.Cells()) {
+        Vect x = m.GetCenter(c);
+        fc_force_[c][0] += std::sin(x[1]);
       }
     }
   }
