@@ -11,7 +11,7 @@ def Exp():
     nu = mu / rho # kinematic viscosity
 
     U = 1   # waterfall velocity
-    W =  0.005  # waterfall thickness
+    W = 0.01  # waterfall thickness
 
     ###
     Re = U * W / nu
@@ -29,8 +29,8 @@ def Sim(c):
     pi = 3.141592
 
     # domain 
-    lx = 2.
-    ly = 2.
+    lx = 2
+    ly = 1
     lz = 1.
     lmax = max([lx, ly, lz])
 
@@ -84,6 +84,7 @@ def Gen(c):
     lx = c['lx']
     ly = c['ly']
     lz = c['lz']
+    lmax = c['lmax']
     W = c['W']
     # bubble 
     bx = lx * 0.5
@@ -104,12 +105,22 @@ def Gen(c):
 
     g = -c['g']
 
-    inv = -c['U']
+    inv = 0
+    invx = c['U']
+
+    eps = 1e-3
 
     inrc = W * 0.5
     isph_cx = lx * 0.5
     isph_cy = ly
     isph_cz = lz * 0.5
+
+    inx0 = -eps
+    inx1 = eps
+    iny0 = ly * 0.5 + 0.3
+    iny1 = iny0 + W
+    inz0 = isph_cz - lz * 0.3
+    inz1 = isph_cz + lz * 0.3
 
     outy0 = c['outy0']
     outy1 = c['outy1']
@@ -117,7 +128,7 @@ def Gen(c):
     with open("par.conf", 'w') as f:
         f.write('''\
 # domain
-set double extent 2
+set double extent {lmax}
 
 # time
 set double tmax {tmax}
@@ -134,10 +145,15 @@ set double sigma {sig}
 set vect gravity 0 {g} 0
 
 # bc boxes
-set vect inlet_sph0_c {isph_cx} {isph_cy} {isph_cz}
-set vect inlet_sph0_r {inrc} {inrc} 1e5
-set vect inlet_sph0_vel 0 {inv} 0
-set double inlet_sph0_vf 0
+#set vect inlet_sph0_c {isph_cx} {isph_cy} {isph_cz}
+#set vect inlet_sph0_r {inrc} {inrc} 1e5
+#set vect inlet_sph0_vel 0 {inv} 0
+#set double inlet_sph0_vf 0
+
+set string box0 inlet {invx} {inv} 0
+set vect box0_a {inx0} {iny0} {inz0}
+set vect box0_b {inx1} {iny1} {inz1}
+set double box0_vf 0.
 
 set string box1 outlet
 set vect box1_a -1e10 {outy0} -1e10
