@@ -10,8 +10,8 @@ def Exp():
     mu = 1e-3  # dynamic viscosity
     nu = mu / rho # kinematic viscosity
 
-    U = 0.5   # waterfall velocity
-    W =  0.01  # waterfall thickness
+    U = 0.25   # waterfall velocity
+    W =  0.005  # waterfall thickness
 
     ###
     Re = U * W / nu
@@ -35,12 +35,12 @@ def Sim(c):
     lmax = max([lx, ly, lz])
 
     U = 1. # velocity
-    W = 0.07 # waterfall thickness
+    W = 0.1 # waterfall thickness
 
     # time
     tun = 1 / U  # unit
     tmax = tun * 500.
-    dumpdt = tun * 0.01
+    dumpdt = tun * 0.05
 
     # oulet 
     outy0 = -1e-5
