@@ -644,6 +644,16 @@ struct Proj<M_>::Imp {
       cd_->CorrectVelocity(Layers::iter_curr, fcwc_); 
     }
 
+    if (sem("diff")) {
+      Scal a = 0;
+      auto& vm = GetVelocity(Layers::iter_prev);
+      auto& v = GetVelocity(Layers::iter_curr);
+      for (auto c : m.Cells()) {
+        a = std::max(a, (v[c] - vm[c]).norminf());
+      }
+      diff_ = a;
+    }
+
     if (sem("inc-iter")) {
       owner_->IncIter();
       fcwc_.Free();
@@ -714,6 +724,7 @@ struct Proj<M_>::Imp {
   Scal olfi_; // inlet flux
   Scal olfo_; // outlet flux
   Scal olao_; // outlet area
+  Scal diff_ = 0; // max-norm difference of velocity
   // used by UpdateInletFlux():
   std::vector<Scal> ilft_; // target flux
   std::vector<Scal> ilfe_; // extrapolated flux
@@ -796,7 +807,7 @@ double Proj<M_>::GetAutoTimeStep() const {
 
 template <class M_>
 double Proj<M_>::GetError() const {
-  return imp->cd_->GetError();
+  return imp->diff_;
 }
 
 template <class M_>
