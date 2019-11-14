@@ -158,12 +158,7 @@ struct ConvDiffScalExp<M_>::Imp {
       Solve(fcla_, fclb_, curr); // solve for correction, store in curr
     }
     if (sem("apply")) {
-      // calc error (norm of correction)
-      Scal er = 0;
-      for (auto c : m.Cells()) {
-        er = std::max<Scal>(er, curr[c]);
-      }
-      er_ = er;
+      CalcError();
 
       // apply, store result in curr
       for (auto c : m.Cells()) {
@@ -180,6 +175,16 @@ struct ConvDiffScalExp<M_>::Imp {
     owner_->IncTime();
     dtp_ = owner_->GetTimeStep();
   }
+  void CalcError() {
+    // max difference between iter_curr and iter_prev
+    auto& prev = fcu_.iter_prev;
+    auto& curr = fcu_.iter_curr;
+    Scal a = 0;
+    for (auto c : m.Cells()) {
+      a = std::max<Scal>(a, std::abs(curr[c] - prev[c]));
+    }
+    er_ = a;
+  }
   double GetError() const {
     return er_;
   }
@@ -194,6 +199,7 @@ struct ConvDiffScalExp<M_>::Imp {
       for (auto c : m.Cells()) {
         u[c] += uc[c];
       }
+      CalcError();
       m.Comm(&u);
     }
   }
