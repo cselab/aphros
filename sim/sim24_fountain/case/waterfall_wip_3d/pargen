@@ -10,8 +10,8 @@ def Exp():
     mu = 1e-3  # dynamic viscosity
     nu = mu / rho # kinematic viscosity
 
-    U = 1   # waterfall velocity
-    W = 0.01  # waterfall thickness
+    U = 1.5   # waterfall velocity
+    W = 0.005  # waterfall thickness
 
     ###
     Re = U * W / nu
@@ -35,7 +35,7 @@ def Sim(c):
     lmax = max([lx, ly, lz])
 
     U = 1. # velocity
-    W = 0.1 # waterfall thickness
+    W = 0.05 # waterfall thickness
 
     # time
     tun = 1 / U  # unit
@@ -117,10 +117,10 @@ def Gen(c):
 
     inx0 = -eps
     inx1 = eps
-    iny0 = ly * 0.5 + 0.3
+    iny0 = ly * 0.5 + 0.35
     iny1 = iny0 + W
-    inz0 = isph_cz - lz * 0.3
-    inz1 = isph_cz + lz * 0.3
+    inz0 = isph_cz - lz * 0.4
+    inz1 = isph_cz + lz * 0.4
 
     outy0 = c['outy0']
     outy1 = c['outy1']
