@@ -169,12 +169,13 @@ surfaceDisplay.Representation = 'Surface'
 surfaceDisplay.ColorArrayName = ['CELLS', '']
 surfaceDisplay.Opacity = 1
 
+k=3.
 ommLUT = GetColorTransferFunction('omm')
 ommLUT.AutomaticRescaleRangeMode = 'Never'
-ommLUT.RGBPoints = [1.0, 0.231373, 0.298039, 0.752941, 3.0000000000000004, 0.865003, 0.865003, 0.865003, 5.0, 0.705882, 0.0156863, 0.14902]
+ommLUT.RGBPoints = [1.*k, 0.231373, 0.298039, 0.752941, 3.*k, 0.865003, 0.865003, 0.865003, 5.*k, 0.705882, 0.0156863, 0.14902]
 ommLUT.ScalarRangeInitialized = 1.0
 ommPWF = GetOpacityTransferFunction('omm')
-ommPWF.Points = [1.0, 0.0, 0.5, 0.0, 3.1808218955993652, 0.07236842066049576, 0.5, 0.0, 5.0, 0.2565789520740509, 0.5, 0.0]
+ommPWF.Points = [1.0*k, 0.0, 0.5, 0.0, 3.*k, 0.07236842066049576, 0.5, 0.0, 5.*k, 0.2565789520740509, 0.5, 0.0]
 ommPWF.ScalarRangeInitialized = 1
 
 gradDisplay = Show(omm, renderView1)
