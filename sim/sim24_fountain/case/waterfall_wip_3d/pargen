@@ -3,7 +3,7 @@
 def Exp():
     # SI units
 
-    sig = 73e-3 # surface tension
+    sig = 72e-3 # surface tension
     g = 9.8
     # water
     rho = 1000 # density
@@ -11,12 +11,14 @@ def Exp():
     nu = mu / rho # kinematic viscosity
 
     U = 1.5   # waterfall velocity
-    W = 0.005  # waterfall thickness
+    W = 0.01   # waterfall thickness
+    H = 0.07   # waterfall height, distance from inlet to surface
 
     ###
     Re = U * W / nu
-    Fr = (U ** 2 / (g * W)) ** 0.5
+    Fr = (U ** 2 / (g * H)) ** 0.5
     We = rho * U ** 2 * W / sig
+    HW = H / W  # height to thickness ratio
 
     for key in sorted(locals()):
         print("{:} \t=\t {:}".format(key, locals()[key]))
@@ -25,7 +27,7 @@ def Exp():
     return locals()
 
 def Sim(c):
-    Re,We,Fr = (c['Re'], c['We'], c['Fr'])
+    Re,We,Fr,HW = (c['Re'], c['We'], c['Fr'], c['HW'])
     pi = 3.141592
 
     # domain 
@@ -36,23 +38,22 @@ def Sim(c):
 
     U = 1. # velocity
     W = 0.05 # waterfall thickness
+    H = HW * W
+
+    assert H < ly * 0.5 - W
 
     # time
     tun = 1 / U  # unit
     tmax = tun * 500.
     dumpdt = tun * 0.05
-
-    # oulet 
-    outy0 = -1e-5
-    outy1 = 1e-5
+    dumpdt = tun * 0.5  # XXX
 
     # liquid
     rho0 = 1. # density
-    # nu0 == mu0
     mu0 = U * W / Re  # viscosity
 
     sig = (rho0 * U ** 2 * W) / We
-    g = U ** 2 / Fr ** 2 / W
+    g = U ** 2 / Fr ** 2 / H
 
     # gas, ratio to liquid
     mu = 0.01
@@ -61,17 +62,17 @@ def Sim(c):
     def rnd(a): return int(a + 0.5)
 
     # mesh
-    nn = 96
+    nn = 48
     nx = rnd(nn * lx)
     ny = rnd(nn * ly)
     nz = rnd(nn * lz)
 
     # block size
-    bs = 16
+    bs = 8
     bsz = bs
     # cores
     np = 216
-    # time limit (minutes)
+    # time limit in minutes
     tl = 1440
 
     for key in sorted(locals()):
@@ -86,6 +87,7 @@ def Gen(c):
     lz = c['lz']
     lmax = c['lmax']
     W = c['W']
+    H = c['H']
     # bubble 
     bx = lx * 0.5
     by = ly
@@ -108,22 +110,18 @@ def Gen(c):
     inv = 0
     invx = c['U']
 
-    eps = 1e-3
-
-    inrc = W * 0.5
-    isph_cx = lx * 0.5
-    isph_cy = ly
-    isph_cz = lz * 0.5
+    eps = 1e-4
 
     inx0 = -eps
     inx1 = eps
-    iny0 = ly * 0.5 + 0.35
+    iny0 = ly * 0.5 + H
     iny1 = iny0 + W
-    inz0 = isph_cz - lz * 0.4
-    inz1 = isph_cz + lz * 0.4
+    inz0 = lz * 0.5 - lz * 0.45
+    inz1 = lz * 0.5 + lz * 0.45
 
-    outy0 = c['outy0']
-    outy1 = c['outy1']
+    outy0 = -eps
+    outy1 = eps
+
 
     with open("par.conf", 'w') as f:
         f.write('''\
@@ -143,12 +141,6 @@ set double mu1 {mu1}
 set double mu2 {mu2}
 set double sigma {sig}
 set vect gravity 0 {g} 0
-
-# bc boxes
-#set vect inlet_sph0_c {isph_cx} {isph_cy} {isph_cz}
-#set vect inlet_sph0_r {inrc} {inrc} 1e5
-#set vect inlet_sph0_vel 0 {inv} 0
-#set double inlet_sph0_vf 0
 
 set string box0 inlet {invx} {inv} 0
 set vect box0_a {inx0} {iny0} {inz0}
