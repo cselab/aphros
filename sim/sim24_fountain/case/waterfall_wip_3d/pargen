@@ -117,10 +117,10 @@ def Gen(c):
     inz0 = lz * 0.5 - lz * 0.45
     inz1 = lz * 0.5 + lz * 0.45
 
-    outx0 = -eps
-    outx1 = eps
+    outx0 = -1e10
+    outx1 = 1e10
     outy0 = ly * 0.
-    outy1 = ly * 0.4
+    outy1 = ly * 0.2
 
 
     with open("par.conf", 'w') as f:
