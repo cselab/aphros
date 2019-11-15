@@ -1,2 +1,2 @@
 ./omm.py ../sm_*.vtk || true
-r=30 r.pngmp4 a a.mp4 -y
+high=0 r=30 r.pngmp4 a a.mp4 -y
