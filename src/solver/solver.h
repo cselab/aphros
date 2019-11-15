@@ -422,18 +422,6 @@ std::vector<Scal> GetGradCoeffs(
   return k;
 }
 
-// Returns column of cells cmm,cm,cp,cpp.
-// nci: 0 or 1 such that m.GetCell(f, nci) == cp
-template <class M>
-void GetCellColumn(const M& m, IdxFace f, size_t nci,
-                   IdxCell& cmm, IdxCell& cm, IdxCell& cp, IdxCell& cpp) {
-  const size_t d{m.GetIndexFaces().GetDir(f)};
-  cp = m.GetCell(f, nci);
-  cm = m.GetCell(f, 1 - nci);
-  cpp = m.GetCell(cp, d * 2 + nci);
-  cmm = m.GetCell(cm, d * 2 + 1 - nci);
-}
-
 // Apply boudnary conditions to halo cells
 template <class T, class M>
 void BcApply(FieldCell<T>& uc, const MapFace<std::shared_ptr<CondFace>>& mfc,

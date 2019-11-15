@@ -18,6 +18,17 @@
 #include "rangein.h"
 #include "distr/reduce.h"
 
+// Returns column of cells cmm,cm,cp,cpp.
+// nci: 0 or 1 such that m.GetCell(f, nci) == cp
+template <class M>
+void GetCellColumn(const M& m, IdxFace f, size_t nci,
+                   IdxCell& cmm, IdxCell& cm, IdxCell& cp, IdxCell& cpp) {
+  const size_t d{m.GetIndexFaces().GetDir(f)};
+  cp = m.GetCell(f, nci);
+  cm = m.GetCell(f, 1 - nci);
+  cpp = m.GetCell(cp, d * 2 + nci);
+  cmm = m.GetCell(cm, d * 2 + 1 - nci);
+}
 
 // TODO: Neighbour faces iterator introducing (cell, face) pairs
 // TODO: consider computing some on-the-fly to reduce memory access
@@ -358,6 +369,25 @@ class MeshStructured {
   // CheckNan flag
   bool CN() const { return checknan_; }
   void SetCN(bool c) { checknan_ = c; }
+  // Pairs face,nci for which the halos cells
+  // are set to nan after each communication
+  void SetNanFaces(const std::vector<IdxFace, size_t>& vfnan) {
+    vfnan_ = vfnan;
+  }
+  const std::vector<std::pair<IdxFace, size_t>>& GetNanFaces() const {
+    return vfnan_;
+  }
+  template <class T>
+  void ApplyNanFaces(FieldCell<T>& fc) {
+    for (auto p : vfnan_) {
+      IdxFace f = p.first;
+      size_t nci = p.second;
+      IdxCell cmm, cm, cp, cpp;
+      GetCellColumn(*this, f, nci, cmm, cm, cp, cpp);
+      fc[cm] = GetNan<T>();
+      fc[cmm] = GetNan<T>();
+    }
+  }
 
   // Effective dimension
   size_t GetEdim() const { return edim_; }
@@ -587,6 +617,9 @@ class MeshStructured {
   const int id_;   // unique id
   const Vect gl_;  // global domain length
   bool checknan_; // CheckNan flag
+  // pairs face,nci for which the halos cells
+  // are set to nan after each communication
+  std::vector<std::pair<IdxFace, size_t>> vfnan_;
   size_t edim_; // effective dimension
   std::array<Vect, dim> vs_; // surface vectors
   Vect va_; // surface area
