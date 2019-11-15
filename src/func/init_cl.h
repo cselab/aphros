@@ -9,7 +9,6 @@
 #include "geom/field.h"
 #include "geom/block.h"
 #include "geom/vect.h"
-#include "solver/tracker.h"
 
 // Init of color function.
 // par: parameters
@@ -24,6 +23,7 @@ std::function<void(FieldCell<typename M::Scal>&,
 CreateInitCl(Vars& par, bool verb=true) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  static constexpr Scal kClNone = -1.; // no color
 
   std::string v = par.String["init_vf"];
   if (v == "list") {
@@ -34,7 +34,7 @@ CreateInitCl(Vars& par, bool verb=true) {
 
     return [edim,pp](FieldCell<Scal>& cl, const FieldCell<Scal>& vf,
                      const M& m) {
-      cl.Reinit(m, solver::Tracker<M>::kClNone);
+      cl.Reinit(m, kClNone);
       if (pp.empty()) {
         return;
       }
@@ -57,7 +57,7 @@ CreateInitCl(Vars& par, bool verb=true) {
     Vect xc(par.Vect["box_c"]);
     Scal s = par.Double["box_s"];
     return [xc,s](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) {
-      fc.Reinit(m, solver::Tracker<M>::kClNone);
+      fc.Reinit(m, kClNone);
       for (auto c : m.Cells()) {
         if ((xc - m.GetCenter(c)).norminf() < s * 0.5) {
           fc[c] = 1.; 
@@ -66,7 +66,7 @@ CreateInitCl(Vars& par, bool verb=true) {
     };
   } else if (v == "zero") {
     return [](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) { 
-      fc.Reinit(m, solver::Tracker<M>::kClNone);
+      fc.Reinit(m, kClNone);
     };
   }
   if (verb) {
