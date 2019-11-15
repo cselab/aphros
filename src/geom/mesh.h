@@ -384,8 +384,8 @@ class MeshStructured {
       size_t nci = p.second;
       IdxCell cmm, cm, cp, cpp;
       GetCellColumn(*this, f, nci, cmm, cm, cp, cpp);
-      fc[cm] = GetNan<T>();
-      fc[cmm] = GetNan<T>();
+      fc[cm] = T(1e10);
+      fc[cmm] = T(1e10);
     }
   }
 
