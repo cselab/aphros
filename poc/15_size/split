@@ -1,0 +1,92 @@
+#!/bin/sh
+me="$0"
+${AWK=awk} -v me="$me" '
+BEGIN {
+    FS = " *, *"
+    pi = 3.141592653589793
+    L = 2*pi
+    if (ARGC < 2)
+        err("not enough arguments")
+
+    print "x y z x0 y0 z0 cl r rm n"
+    for (i = 1; i in ARGV; i++) {
+        f = ARGV[i]
+        idx = f
+        sub(/.*_/, "", idx)
+        sub(/\..*/, "", idx)
+        idx += 0
+        one(f)
+    }
+}
+
+function one(f,   r, i, cl, vf)
+{
+    r = getline < f
+    if (r != 1)
+        err("fail to read \"%s\"", f)
+    for (i = 1; i <= NF; i++)
+        Key[$i] = i
+    while (getline < f == 1) {
+        cl = get("cl")
+        r = get("r")
+        r0 = R[cl]
+        eps = 0.1
+        if (r0 > 0) {
+            del = abs(r0 - r)/r0
+            x = get("x")
+            y = get("y")
+            z = get("z")
+
+            x0 = wrap(x)
+            y0 = wrap(y)
+            z0 = wrap(z)
+            
+            if (del > eps)
+                print x, y, z, x0, y0, z0, cl, r, r0, idx
+        }
+        #if (r0 > 0 && abs(r0 - r)/r0 > eps)
+        R[cl] = r
+    }
+    close(f)
+}
+
+function msg(fmt, a, b, c, d, e)
+{
+    printf "%s: " fmt "\n", me, a, b, c, d, e | "cat >&2"
+}
+
+function err(fmt, a, b, c, d, e)
+{
+    msg(fmt, a, b, c, d, e)
+    exit(2)
+}
+
+function get(key,   i)
+{
+    i = Key[key]
+    return $i
+}
+
+function vol2rad(V,   pi, k)
+{
+    k = 4/3*3.141592653589793
+    V /= k
+    return V^(1/3)
+}
+
+function abs(x)
+{
+    return (x > 0) ? x : -x
+}
+
+function wrap(x) {
+    if (x > L)
+        return wrap(x - L)
+    else if (x < 0)
+        return wrap(x + L)
+    else
+        return x
+}
+
+' "$@"
+
