@@ -820,6 +820,14 @@ void Hydro<M>::Init() {
       }
     }
 
+    if (var.Int["fill_halo_nan"]) {
+      std::vector<std::pair<IdxFace, size_t>> vf;
+      for (auto& p : mf_cond_) {
+        vf.emplace_back(p.GetIdx(), p.GetValue()->GetNci());
+      }
+      m.SetNanFaces(vf);
+    }
+
     events_.Parse();
   }
   if (var.Int["dumpbc"] && sem.Nested()) {

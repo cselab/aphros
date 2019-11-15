@@ -34,7 +34,7 @@ void TestCellColumn() {
   auto t = [&](MIdx fw, size_t fd, size_t nci) {
     IdxFace f = bf.GetIdx(fw, Dir(fd));
     IdxCell cmm, cm, cp, cpp;
-    solver::GetCellColumn(m, f, nci, cmm, cm, cp, cpp);
+    GetCellColumn(m, f, nci, cmm, cm, cp, cpp);
     std::cout
         << "fw=" << fw
         << " fd=" << fd

@@ -371,7 +371,7 @@ class MeshStructured {
   void SetCN(bool c) { checknan_ = c; }
   // Pairs face,nci for which the halos cells
   // are set to nan after each communication
-  void SetNanFaces(const std::vector<IdxFace, size_t>& vfnan) {
+  void SetNanFaces(const std::vector<std::pair<IdxFace, size_t>>& vfnan) {
     vfnan_ = vfnan;
   }
   const std::vector<std::pair<IdxFace, size_t>>& GetNanFaces() const {
