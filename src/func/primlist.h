@@ -5,7 +5,7 @@
 #include <functional>
 #include <limits>
 #include <sstream>
-#include <ostream>
+#include <iostream>
 #include <vector>
 #include <map>
 #include <fstream>
