@@ -169,7 +169,7 @@ surfaceDisplay.Representation = 'Surface'
 surfaceDisplay.ColorArrayName = ['CELLS', '']
 surfaceDisplay.Opacity = 1
 
-k=6.
+k=10
 ommLUT = GetColorTransferFunction('omm')
 ommLUT.AutomaticRescaleRangeMode = 'Never'
 ommLUT.RGBPoints = [1.*k, 0.231373, 0.298039, 0.752941, 3.*k, 0.865003, 0.865003, 0.865003, 5.*k, 0.705882, 0.0156863, 0.14902]
