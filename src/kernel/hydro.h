@@ -1564,6 +1564,15 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       }
     }
 
+    // Kolmogorov forcing as acceleration
+    if (var.Int["force_kolm_accel"]) {
+      for (auto f : m.AllFaces()) {
+        Vect n = m.GetNormal(f);
+        Vect x = m.GetCenter(f);
+        ffbp_[f] += Vect(std::sin(x[1]), 0., 0.).dot(n) * ff_rho[f];
+      }
+    }
+
     // normal velocity penalization
     Scal force_vel_k = var.Double["force_vel_k"];
     if (force_vel_k != 0 && as_) {
