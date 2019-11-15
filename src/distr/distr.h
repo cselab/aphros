@@ -351,7 +351,7 @@ void DistrMesh<KF>::Run() {
   mtp_.Push();
   do {
     auto bb = GetBlocks();
-    
+
     assert(!bb.empty());
 
     ReadBuffer(bb);
@@ -403,7 +403,6 @@ void DistrMesh<KF>::Run() {
           << " " << m.GetCurName() 
           << " ***" << std::endl;
     }
-    
 
     // Break if no pending stages
     if (!Pending(bb)) {

@@ -7,6 +7,7 @@
 #include <vector>
 #include <iomanip>
 #include <fstream>
+#include <iostream>
 
 #include "geom/vect.h"
 #include "reconst.h"

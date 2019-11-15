@@ -199,20 +199,20 @@ FieldFace<typename M::Scal> InterpolateSuperbee(
   FieldFace<Scal> ff(m);
 
   for (IdxFace f : m.SuFaces()) {
-		 IdxCell cm = m.GetNeighbourCell(f, 0);
-		 IdxCell cp = m.GetNeighbourCell(f, 1);
-		 Vect rm = m.GetVectToCell(f, 0); 
-		 Vect rp = m.GetVectToCell(f, 1); 
-		 const auto& u = fc;
-		 const auto& g = fcg;
-     Scal du = u[cp] - u[cm];
-		 if (ffw[f] > th) {
-			 ff[f] = u[cm] + 0.5 * Superbee(du, -4. * g[cm].dot(rm) - du);
-		 } else if (ffw[f] < -th) {
-			 ff[f] = u[cp] - 0.5 * Superbee(du, 4. * g[cp].dot(rp) - du);
-		 } else {
-			 ff[f] = 0.5 * (u[cm] + u[cp]);
-		 }
+    IdxCell cm = m.GetNeighbourCell(f, 0);
+    IdxCell cp = m.GetNeighbourCell(f, 1);
+    Vect rm = m.GetVectToCell(f, 0); 
+    Vect rp = m.GetVectToCell(f, 1); 
+    const auto& u = fc;
+    const auto& g = fcg;
+    Scal du = u[cp] - u[cm];
+    if (ffw[f] > th) {
+      ff[f] = u[cm] + 0.5 * Superbee(du, -4. * g[cm].dot(rm) - du);
+    } else if (ffw[f] < -th) {
+      ff[f] = u[cp] - 0.5 * Superbee(du, 4. * g[cp].dot(rp) - du);
+    } else {
+      ff[f] = 0.5 * (u[cm] + u[cp]);
+    }
   }
 
   InterpolateB(fc, mfc, ff, m);

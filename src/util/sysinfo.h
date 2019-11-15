@@ -2,7 +2,7 @@
 
 namespace sysinfo {
 
-// Retunrs resident memory [bytes]
+// Returns resident memory [bytes]
 size_t GetMem();
 
-} // namespace sysinfo 
+} // namespace sysinfo

@@ -1,10 +1,8 @@
 #pragma once
 
 #include <array>
-#include <initializer_list>
 #include <iostream>
 #include <cmath>
-#include <cassert>
 #include <vector>
 #include <limits>
 
@@ -46,7 +44,9 @@ class GVect {
     return comp_.size();
   }
   explicit GVect(Scal value) {
-    std::fill(comp_.begin(), comp_.end(), value);
+    for (auto& a : comp_) {
+      a = value;
+    }
   }
   template <class... Args>
   explicit GVect(Scal first, Args... args)
