@@ -121,8 +121,7 @@ DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& par)
 template <class KF>
 void DistrMesh<KF>::Run(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
-    auto& k = *mk.at(b);
-    k.Run();
+    mk.at(b)->Run();
   }
 }
 
@@ -356,6 +355,19 @@ void DistrMesh<KF>::Run() {
     assert(!bb.empty());
 
     ReadBuffer(bb);
+
+    for (auto& b : bb) {
+      auto& m = mk.at(b)->GetMesh();
+      for (auto& o : m.GetComm()) {
+        if (auto od = dynamic_cast<typename M::CoFcs*>(o.get())) {
+          m.ApplyNanFaces(*od->f);
+        } else if (auto od = dynamic_cast<typename M::CoFcv*>(o.get())) {
+          m.ApplyNanFaces(*od->f);
+        } else {
+          throw std::runtime_error("Distr::Run(): unknown field type for nan");
+        }
+      }
+    }
 
     DumpWrite(bb);
     ClearDump(bb);
