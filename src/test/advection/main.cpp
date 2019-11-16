@@ -215,21 +215,6 @@ void Advection<M>::Dump(Sem& sem) {
     // Empty stage for DumpWrite
     // TODO: revise
   }
-  // Dump reconstructed interface
-  if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
-    if (sem("dumpsurf")) {
-      if (dmf_.Try(var.Double["t"], var.Double["dt"])) {
-        if (IsLead()) {
-          auto u = par_.ds->GetField(0);
-          auto k = par_.ds->GetField(1);
-          auto a = par_.ds->GetField(2);
-          auto nx = par_.ds->GetField(3);
-          auto ny = par_.ds->GetField(4);
-          auto nz = par_.ds->GetField(5);
-        }
-      }
-    }
-  }
 }
 
 template <class M>
