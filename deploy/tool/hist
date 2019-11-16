@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+
+import numpy as np
+import sys
+import os
+
+
+v = sys.argv
+
+if len(v) > 1 and v[1] == '-h':
+  print("usage: {:}".format(os.path.basename(v[0])))
+  print('''
+print histogram of STDIN as columns [center,density,left,right]
+''')
+  exit(1)
+
+d = np.loadtxt(sys.stdin)
+density,edge = np.histogram(d, bins='auto', density=True)
+left = edge[:-1]
+right = edge[1:]
+center = (left + right) * 0.5
+np.savetxt(sys.stdout, np.transpose([center, density, left, right]))
