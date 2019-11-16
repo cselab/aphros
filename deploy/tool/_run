@@ -8,6 +8,7 @@ set -eu
 instfnd getcol
 instfnd gettraj
 instfnd gettrajcol
+instfnd hist
 instfnd gettrajsh
 instfnd gettrajm
 instfnd deriv
