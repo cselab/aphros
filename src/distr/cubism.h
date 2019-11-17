@@ -821,6 +821,7 @@ auto Cubism<Par, KF>::GetGlobalIndex() const -> typename M::IndexCells {
 template <class Par, class KF>
 auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
   using BC = typename M::BlockCells;
+  using PF = const typename M::Co*;
   auto gbc = GetGlobalIndex();
   // collective, does actual communication
   auto bb = GetBlocks();
@@ -829,6 +830,33 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
   BC bc(bs_); // cells of one block
   GBlock<size_t, dim> bq(p_ * b_);  // indices of block
   GIndex<size_t, dim> ndq(p_ * b_);  // flat
+  PF bf = nullptr;
+  auto GetField = [e](PF& p, const M& m) {
+    p = nullptr;
+    bool cont = true;
+    int k = static_cast<int>(e);
+    for (auto& c : m.GetComm()) { // must be first
+      const int sz = static_cast<int>(c->GetSize());
+      if (k - sz < 0) {
+        p = c.get();
+        cont = false;
+        break;
+      }
+      k -= sz;
+    }
+    if (cont) {
+      for (auto& co : m.GetDump()) { // followed by this
+        const int sz = static_cast<int>(co.first->GetSize());
+        if (k - sz < 0) {
+          p = co.first.get();
+          break;
+        }
+        k -= sz;
+      }
+    }
+    assert(k >= 0);
+    return static_cast<size_t>(k);
+  };
   if (isroot_) {
     FieldCell<Scal> gfc(gbc); // result
     // Copy from blocks on root
@@ -839,18 +867,23 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       auto& mbc = m.GetIndexCells();
       // get corner of inner cells block
       MIdx wb = m.GetInBlockCells().GetBegin();
-      // get field fc associated to index e
-      auto bf = m.GetComm(); // returns vector of shared_ptr
-      for (auto& co : m.GetDump()) {
-        bf.push_back(co.first);
-      }
-      assert(e < bf.size());
-      const typename M::CoFcs *fcptr = dynamic_cast<typename M::CoFcs*>(bf[e].get());
-      assert(fcptr != nullptr);
-      const FieldCell<Scal> &fc = *(fcptr->f);
-      // copy from inner cells to global field
-      for (auto w : bc) {
-        gfc[gbc.GetIdx(wb + w)] = fc[mbc.GetIdx(wb + w)];
+      // get field fc associated to index e 
+      const size_t k = GetField(bf, m);
+      if (const auto fcptr = dynamic_cast<const typename M::CoFcs*>(bf)) {
+        const FieldCell<Scal> &fc = *(fcptr->f);
+        // copy from inner cells to global field
+        for (auto w : bc) {
+          gfc[gbc.GetIdx(wb + w)] = fc[mbc.GetIdx(wb + w)];
+        }
+      } else if (const auto fcptr = dynamic_cast<const typename M::CoFcv*>(bf)) {
+        const FieldCell<Vect> &fc = *(fcptr->f);
+        // copy from inner cells to global field
+        assert(k < fcptr->GetSize());
+        for (auto w : bc) {
+          gfc[gbc.GetIdx(wb + w)] = fc[mbc.GetIdx(wb + w)][k];
+        }
+      } else {
+        throw std::runtime_error("GetGlobalField: resolving field pointer failed");
       }
     }
     // recv from other ranks
@@ -879,20 +912,27 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       auto& mbc = m.GetIndexCells();
       // get corner of inner cells block
       MIdx wb = m.GetInBlockCells().GetBegin();
-      // get field fc associated to index e
-      auto bf = m.GetComm(); // returns vector of shared_ptr
-      for (auto& co : m.GetDump()) {
-        bf.push_back(co.first);
-      }
-      assert(e < bf.size());
-      const typename M::CoFcs *fcptr = dynamic_cast<typename M::CoFcs*>(bf[e].get());
-      assert(fcptr != nullptr);
-      const FieldCell<Scal> &fc = *(fcptr->f);
-      // copy from inner cells to v
-      size_t i = 0;
-      // copy from inner cells to global field
-      for (auto w : bc) {
-        v[i++] = fc[mbc.GetIdx(wb + w)];
+      // get field fc associated to index e 
+      const size_t k = GetField(bf, m);
+      if (const auto fcptr = dynamic_cast<const typename M::CoFcs*>(bf)) {
+        const FieldCell<Scal> &fc = *(fcptr->f);
+        // copy from inner cells to v
+        size_t i = 0;
+        // copy from inner cells to global field
+        for (auto w : bc) {
+          v[i++] = fc[mbc.GetIdx(wb + w)];
+        }
+      } else if (const auto fcptr = dynamic_cast<const typename M::CoFcv*>(bf)) {
+        const FieldCell<Vect> &fc = *(fcptr->f);
+        // copy from inner cells to v
+        size_t i = 0;
+        // copy from inner cells to global field
+        assert(k < fcptr->GetSize());
+        for (auto w : bc) {
+          v[i++] = fc[mbc.GetIdx(wb + w)][k];
+        }
+      } else {
+        throw std::runtime_error("GetGlobalField: failed dynamic cast");
       }
       // XXX: assume same order of Recv on root
       MPI_Send(v.data(), v.size(), mt, 0, ndq.GetIdx(b), comm_);
