@@ -39,9 +39,11 @@ class GField {
   }
   // Assignment
   GField& operator=(const GField& o) {
-    Reinit(o.r_);
-    for (auto i : r_) {
-      (*this)[i] = o[i];
+    if (this != &o) {
+      Reinit(o.r_);
+      for (auto i : r_) {
+        (*this)[i] = o[i];
+      }
     }
     return *this;
   }
