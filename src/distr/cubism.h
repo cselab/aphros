@@ -355,9 +355,11 @@ auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
 // during simulation.  If this vector changes, a new comm_id must be created for
 // it.  Ideally, they are created in a std::map outside of GetBlocks()
     std::vector<std::vector<FieldView>> fviews;
-    if (g_.isRegistered(comm_id)) {
-      fviews = g_.getSynchronizerMPI(comm_id).getFields();
-    } else {
+// FIXME: [fabianw@mavt.ethz.ch; 2019-11-17] Registered synchronizer objects can
+// only be used with unique comm_id's.  Recompute every time otherwise.
+    // if (g_.isRegistered(comm_id)) {
+    //   fviews = g_.getSynchronizerMPI(comm_id).getFields();
+    // } else {
       const size_t n_fields = m.GetComm().size();
       fviews.resize(n_fields);
       for (const auto &b : cc) {
@@ -370,7 +372,7 @@ auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
             FieldView(o->GetBasePtr(), b.index, o->GetSize()));
         }
       }
-    }
+    // }
 
     size_t cs = 0;
     for (auto& o : m.GetComm()) {
