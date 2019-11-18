@@ -3,20 +3,18 @@
 #include <assert.h>
 #include <limits.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
 #include "err.h"
 #include "memory.h"
+#include "hash.h"
 #include "he.h"
 
 static char me[] = "he";
 
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-
-#include "memory.h"
-
 #define T HeRead
-#define SIZE (MAX_STRING_SIZE)
+enum {SIZE = 999};
 enum {MAGIC = 42};
 enum {HE_OK = 0};
 
@@ -28,6 +26,8 @@ struct T {
     int magic;
 };
 
+static char *util_fgets(char *, FILE *);
+static int util_eq(const char *, const char *);
 
 enum { OK, FAIL };
 static int
@@ -221,20 +221,20 @@ he_read_ini(const char *path, T ** pq)
     int nv, nt, ne, nh;
 
 #define NXT() if (util_fgets(line, f) == NULL)  \
-	ERR(CO_IO, "unexpected EOF in '%s'", path)
+	ERR(("unexpected EOF in '%s'", path))
     MALLOC(1, &q);
     f = fopen(path, "r");
     if (f == NULL)
-        ERR(CO_IO, "fail to open '%s'", path);
+        ERR(("fail to open '%s'", path));
     NXT();
     if (!util_eq(line, "HE"))
-        ERR(CO_IO, "'%s' is not a he file", path);
+        ERR(("'%s' is not a he file", path));
     NXT();
     cnt = sscanf(line, "%d %d %d %d", &nv, &ne, &nt, &nh);
     if (cnt != 4)
-        ERR(CO_IO, "'%s' != [nv nt ne nh] in '%s'", line, path);
+        ERR(("'%s' != [nv nt ne nh] in '%s'", line, path));
     if (nv <= 0 || nt <= 0 || ne <= 0 || nh <= 0)
-        ERR(CO_IO, "wrong sizes '%s' in '%s'", line, path);
+        ERR(("wrong sizes '%s' in '%s'", line, path));
 
     alloc(nv, ne, nt, nh, /**/ q);
 
@@ -244,28 +244,28 @@ he_read_ini(const char *path, T ** pq)
                      &q->nxt[i], &q->flp[i], &q->ver[i], &q->edg[i],
                      &q->tri[i]);
         if (cnt != 5)
-            ERR(CO_IO, "wrong half-edg line '%s' in '%s'", line, path);
+            ERR(("wrong half-edg line '%s' in '%s'", line, path));
     }
     for (i = 0; i < nv; i++) {
         NXT();
         cnt = sscanf(line, "%d", &q->hdg_ver[i]);
         if (cnt != 1)
-            ERR(CO_IO, "wrong ver line '%s' in '%s'", line, path);
+            ERR(("wrong ver line '%s' in '%s'", line, path));
     }
     for (i = 0; i < ne; i++) {
         NXT();
         cnt = sscanf(line, "%d", &q->hdg_edg[i]);
         if (cnt != 1)
-            ERR(CO_IO, "wrong edg line '%s' in '%s'", line, path);
+            ERR(("wrong edg line '%s' in '%s'", line, path));
     }
     for (i = 0; i < nt; i++) {
         NXT();
         cnt = sscanf(line, "%d", &q->hdg_tri[i]);
         if (cnt != 1)
-            ERR(CO_IO, "wrong tri line '%s' in '%s'", line, path);
+            ERR(("wrong tri line '%s' in '%s'", line, path));
     }
     if (fclose(f) != 0)
-        ERR(CO_IO, "fail to close file '%s'", path);
+        ERR(("fail to close file '%s'", path));
 
     q->nv = nv;
     q->nt = nt;
@@ -274,11 +274,11 @@ he_read_ini(const char *path, T ** pq)
     q->magic = MAGIC;
 
     if (valid(nv, q->hdg_ver, q->ver) != OK)
-        ERR(CO_IO, "invalid ver references");
+        ERR(("invalid ver references"));
     if (valid(ne, q->hdg_edg, q->edg) != OK)
-        ERR(CO_IO, "invalid edg references");
+        ERR(("invalid edg references"));
     if (valid(nt, q->hdg_tri, q->tri) != OK)
-        ERR(CO_IO, "invalid tri references");
+        ERR(("invalid tri references"));
 
     *pq = q;
     return HE_OK;
@@ -288,7 +288,7 @@ int
 he_read_fin(T * q)
 {
     if (q->magic != MAGIC)
-        ERR(CO_MEMORY, "wrong fin() call");
+        ERR(("wrong fin() call"));
     afree(q);
     FREE(q);
     return HE_OK;
@@ -317,7 +317,7 @@ he_read_info(T * q, FILE * f)
 
     r = fprintf(f, "%d %d %d %d\n", nv, ne, nt, nh);
     if (r <= 0)
-        ERR(CO_IO, "fprintf() failed");
+        ERR(("fprintf() failed"));
 
     fprintf(f, "[nh=%d lines]\n", nh);
     fprintf(f, "%d %d %d %d %d\n", nxt[0], flp[0], ver[0], tri[0], edg[0]);
@@ -421,4 +421,22 @@ he_read_hdg_tri(T * q, int **p)
 {
     *p = q->hdg_tri;
     return HE_OK;
+}
+
+static char *
+util_fgets(char *s, FILE * stream)
+{
+    char *c;
+
+    if (fgets(s, SIZE, stream) == NULL)
+        return NULL;
+    if ((c = strchr(s, '\n')) != NULL)
+        *c = '\0';
+    return s;
+}
+
+int
+util_eq(const char *a, const char *b)
+{
+    return strncmp(a, b, SIZE) == 0;
 }

@@ -10,9 +10,14 @@ H = he.h
 
 libhe.a: $O; ar rv $@ $O && ranlib $@
 
-main.o: he.h err.h memory.h
 err.o: err.h
-memory.o: memory.h
+hash.o: err.h
+hash.o: hash.h
+hash.o: memory.h
+main.o: err.h
+main.o: hash.h
+main.o: he.h
+main.o: memory.h
 
 .o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@
 .c:

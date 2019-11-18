@@ -1,7 +1,9 @@
 #include <stdio.h>
-#include "co/memory.h"
-#include "co/err.h"
-#include "co/hash.h"
+#include "err.h"
+#include "memory.h"
+#include "hash.h"
+static char me[] = "he";
+enum {HASH_OK = 0};
 
 #define T HeHash
 
@@ -27,7 +29,7 @@ he_hash_ini(int n, T ** pq)
     for (i = 0; i < n; i++)
         q->node[i] = NULL;
     *pq = q;
-    return CO_OK;
+    return HASH_OK;
 }
 
 static void
@@ -52,7 +54,7 @@ he_hash_fin(T * q)
         free_node(q->node[i]);
     FREE(q->node);
     FREE(q);
-    return CO_OK;
+    return HASH_OK;
 }
 
 int
@@ -63,13 +65,13 @@ he_hash_set(T * q, int i, int j, int v)
 
     n = q->n;
     if (0 > i || i >= n || 0 > j || j >= n)
-        ERR(CO_INDEX, "[%d %d], n = %d", i, j, n);
+        ERR(("[%d %d], n = %d", i, j, n));
 
     prv = q->node[i];
     while (prv != NULL) {
         if (prv->j == j) {
             prv->v = v;
-            return CO_OK;
+            return HASH_OK;
         }
         nxt = prv->nxt;
         if (nxt == NULL)
@@ -85,7 +87,7 @@ he_hash_set(T * q, int i, int j, int v)
         q->node[i] = new;
     else
         prv->nxt = new;
-    return CO_OK;
+    return HASH_OK;
 }
 
 int
@@ -96,7 +98,7 @@ he_hash_get(T * q, int i, int j)
 
     n = q->n;
     if (0 > i || i >= n || 0 > j || j >= n)
-        ERR(CO_INDEX, "[%d %d], n = %d", i, j, n);
+        ERR(("[%d %d], n = %d", i, j, n));
     node = q->node[i];
     while (node != NULL) {
         if (node->j == j)
