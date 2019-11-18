@@ -4,7 +4,7 @@ CFLAGS = -g -Og
 M_LDFLAGS = -lm
 PREFIX = $(CHPREFIX)
 
-O = main.o err.o memory.o
+O = main.o err.o hash.o memory.o
 L = libhe.a
 H = he.h
 
