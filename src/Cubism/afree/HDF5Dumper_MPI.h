@@ -32,6 +32,8 @@ void DumpHDF5_MPI(std::vector<typename Streamer::B> &blocks,
                   std::vector<Real> spacing, bool bXMF) {
   using B = typename TGrid::BlockType;
 
+  const bool is_2D = (1 == B::sizeZ);
+
   int rank;
   const std::string fullname = f_name + Streamer::EXT;
   std::string filename = dump_path + "/" + fullname + ".h5";
@@ -138,14 +140,23 @@ void DumpHDF5_MPI(std::vector<typename Streamer::B> &blocks,
   fapl_id = H5Pcreate(H5P_DATASET_XFER);
   H5Pset_dxpl_mpio(fapl_id, H5FD_MPIO_COLLECTIVE);
 
-  fspace_id = H5Screate_simple(4, dims, NULL);
+  if (is_2D) {
+      fspace_id = H5Screate_simple(3, &dims[1], NULL);
+  } else {
+      fspace_id = H5Screate_simple(4, dims, NULL);
+  }
   dataset_id = H5Dcreate(file_id, "data", HDF_REAL, fspace_id, 
       H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   H5Sclose(fspace_id);
 
   fspace_id = H5Dget_space(dataset_id);
-  H5Sselect_hyperslab(fspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-  mspace_id = H5Screate_simple(4, count, NULL);
+  if (is_2D) {
+      H5Sselect_hyperslab(fspace_id, H5S_SELECT_SET, &offset[1], NULL, &count[1], NULL);
+      mspace_id = H5Screate_simple(4, count, NULL);
+  } else {
+      H5Sselect_hyperslab(fspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
+      mspace_id = H5Screate_simple(4, count, NULL);
+  }
   H5Dwrite(dataset_id, HDF_REAL, mspace_id, fspace_id, fapl_id, array_all);
   H5Sclose(fspace_id);
 
@@ -172,21 +183,37 @@ void DumpHDF5_MPI(std::vector<typename Streamer::B> &blocks,
     fprintf(xmf, " <Domain>\n");
     fprintf(xmf, "   <Grid GridType=\"Uniform\">\n");
     fprintf(xmf, "     <Time Value=\"%e\"/>\n\n", absTime);
-    fprintf(xmf, "     <Topology TopologyType=\"3DCORECTMesh\" Dimensions=\"%lu %lu %lu\"/>\n\n",
-        mesh_dims[2], mesh_dims[1], mesh_dims[0]);
+    if (is_2D) {
+        fprintf(xmf, "     <Topology TopologyType=\"2DCORECTMesh\" Dimensions=\"%lu %lu\"/>\n\n",
+                mesh_dims[1], mesh_dims[0]);
+        fprintf(xmf, "     <Geometry GeometryType=\"ORIGIN_DXDY\">\n");
+        fprintf(xmf, "       <DataItem Name=\"Origin\" Dimensions=\"2\" NumberType=\"Float\" Precision=\"8\" Format=\"XML\">\n");
+        fprintf(xmf, "         %.16g %.16g\n", origin[1], origin[0]);
+        fprintf(xmf, "       </DataItem>\n");
+        fprintf(xmf, "       <DataItem Name=\"Spacing\" Dimensions=\"2\" NumberType=\"Float\" Precision=\"4\" Format=\"XML\">\n");
+        fprintf(xmf, "        %.16g %.16g\n", spacing[1], spacing[0]);
+        fprintf(xmf, "       </DataItem>\n");
+        fprintf(xmf, "     </Geometry>\n\n");
 
-    fprintf(xmf, "     <Geometry GeometryType=\"ORIGIN_DXDYDZ\">\n");
-    fprintf(xmf, "       <DataItem Name=\"Origin\" Dimensions=\"3\" NumberType=\"Float\" Precision=\"8\" Format=\"XML\">\n");
-    fprintf(xmf, "         %.16g %.16g %.16g\n", origin[2], origin[1], origin[0]);
-    fprintf(xmf, "       </DataItem>\n");
-    fprintf(xmf, "       <DataItem Name=\"Spacing\" Dimensions=\"3\" NumberType=\"Float\" Precision=\"4\" Format=\"XML\">\n");
-    fprintf(xmf, "        %.16g %.16g %.16g\n", spacing[2], spacing[1], spacing[0]);
-    fprintf(xmf, "       </DataItem>\n");
-    fprintf(xmf, "     </Geometry>\n\n");
+        fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Cell\">\n", 
+            Streamer::NAME.c_str(), Streamer::getAttributeName());
+        fprintf(xmf, "       <DataItem Dimensions=\"%d %d %d\" NumberType=\"Float\" Precision=\"%lu\" Format=\"HDF\">\n",(int)dims[1], (int)dims[2], (int)dims[3], sizeof(Real));
+    } else {
+        fprintf(xmf, "     <Topology TopologyType=\"3DCORECTMesh\" Dimensions=\"%lu %lu %lu\"/>\n\n",
+                mesh_dims[2], mesh_dims[1], mesh_dims[0]);
+        fprintf(xmf, "     <Geometry GeometryType=\"ORIGIN_DXDYDZ\">\n");
+        fprintf(xmf, "       <DataItem Name=\"Origin\" Dimensions=\"3\" NumberType=\"Float\" Precision=\"8\" Format=\"XML\">\n");
+        fprintf(xmf, "         %.16g %.16g %.16g\n", origin[2], origin[1], origin[0]);
+        fprintf(xmf, "       </DataItem>\n");
+        fprintf(xmf, "       <DataItem Name=\"Spacing\" Dimensions=\"3\" NumberType=\"Float\" Precision=\"4\" Format=\"XML\">\n");
+        fprintf(xmf, "        %.16g %.16g %.16g\n", spacing[2], spacing[1], spacing[0]);
+        fprintf(xmf, "       </DataItem>\n");
+        fprintf(xmf, "     </Geometry>\n\n");
 
-    fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Cell\">\n", 
-        Streamer::NAME.c_str(), Streamer::getAttributeName());
-    fprintf(xmf, "       <DataItem Dimensions=\"%d %d %d %d\" NumberType=\"Float\" Precision=\"%lu\" Format=\"HDF\">\n",(int)dims[0], (int)dims[1], (int)dims[2], (int)dims[3], sizeof(Real));
+        fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Cell\">\n", 
+            Streamer::NAME.c_str(), Streamer::getAttributeName());
+        fprintf(xmf, "       <DataItem Dimensions=\"%d %d %d %d\" NumberType=\"Float\" Precision=\"%lu\" Format=\"HDF\">\n",(int)dims[0], (int)dims[1], (int)dims[2], (int)dims[3], sizeof(Real));
+    }
     fprintf(xmf, "        %s:/data\n",(fullname+".h5").c_str());
     fprintf(xmf, "       </DataItem>\n");
     fprintf(xmf, "     </Attribute>\n");

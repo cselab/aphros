@@ -19,7 +19,7 @@ template<typename MyBlockLab>
 class BlockLabMPI : public MyBlockLab
 {
   using BlockType = typename MyBlockLab::BlockType;
-  using Synch = SynchronizerMPI<BlockType, BlockType::bx, BlockType::by, BlockType::bz>;
+  using Synch = SynchronizerMPI<BlockType>;
 	const Synch * refSynchronizerMPI;
 
 protected:
@@ -40,8 +40,8 @@ public:
 		gLastZ = grid.getBlocksPerDimension(2)-1;
 	}
 
-    template <typename TView>
-    void load(TView &target, std::vector<TView> &vfields)
+    template <typename BlockType>
+    void load(BlockType &target, std::vector<BlockType> &vfields)
     {
         // global block index
         const int index[3] = {
@@ -94,6 +94,11 @@ public:
                     : (BlockType::sizeZ + this->m_stencilEnd[2] - 1);
 
             refSynchronizerMPI->fetch_soa(target, rsx, rex, rsy, rey, rsz, rez);
+        }
+
+        // duplicate slices for 2D case
+        if (1 == BlockType::sizeZ) {
+            this->fix2D(target);
         }
 	}
 };

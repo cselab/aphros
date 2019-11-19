@@ -17,9 +17,9 @@ Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& par) {
   using Par3 = GPar<Scal, bx, by, bz, 3>; // 3 halos on either side
 
   // Check block size
-  if (par.Int["bsx"] == bx && 
-      par.Int["bsy"] == by && 
-      (par.Int["bsz"] == bz || (bz == 2 && par.Int["bsz"] == 1))) {
+  if (par.Int["bsx"] == bx &&
+      par.Int["bsy"] == by &&
+      par.Int["bsz"] == bz) {
     // Check kernel
     if (KF* kfd = dynamic_cast<KF*>(&kf)) {
       switch (par.Int["hl"]) {
@@ -48,12 +48,12 @@ Distr* CreateCubism(MPI_Comm comm, KernelFactory& kf, Vars& par) {
   if (!r) r = Try<16, 16, 16, KF>(comm, kf, par);
   if (!r) r = Try<8, 8, 8, KF>(comm, kf, par);
   // 2D
-  if (!r) r = Try<32, 32, 2, KF>(comm, kf, par);
-  if (!r) r = Try<16, 16, 2, KF>(comm, kf, par);
-  if (!r) r = Try<8, 8, 2, KF>(comm, kf, par);
+  if (!r) r = Try<32, 32, 1, KF>(comm, kf, par);
+  if (!r) r = Try<16, 16, 1, KF>(comm, kf, par);
+  if (!r) r = Try<8, 8, 1, KF>(comm, kf, par);
   if (!r) {
     std::cerr << "CreateCubism(): no instance with "
-      << "bs=(" 
+      << "bs=("
       << par.Int["bsx"] << ","
       << par.Int["bsy"] << ","
       << par.Int["bsz"] << "); hl=" << par.Int["hl"]
