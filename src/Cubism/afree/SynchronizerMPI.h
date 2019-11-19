@@ -21,14 +21,11 @@
 
 using namespace std;
 
-template <typename TView, int bx_, int by_, int bz_>
+template <typename TView>
 class SynchronizerMPI
 {
     using FieldContainer = std::vector<std::vector<TView>>;
 
-    static const int bx = bx_;
-    static const int by = by_;
-    static const int bz = bz_;
     struct I3
     {
         int ix, iy, iz;

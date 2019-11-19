@@ -61,6 +61,20 @@ protected:
 
     const Grid<BlockType> *m_refGrid;
 
+    void fix2D(TBlock &target)
+    {
+        using TReal = typename TBlock::ElementType;
+        const int zslice = target.n_comp * TBlock::stridex * TBlock::stridey;
+        const size_t bytes = zslice * sizeof(TReal);
+        const char *src = (const char *)(target.data_halo + TBlock::halo * zslice);
+        TReal *const dst_lo = target.data_halo;
+        TReal *const dst_hi = target.data_halo + (TBlock::halo + 1) * zslice;
+        for (int i = 0; i < TBlock::halo; ++i) {
+            memcpy2((char *)(dst_lo + i * zslice), src, bytes);
+            memcpy2((char *)(dst_hi + i * zslice), src, bytes);
+        }
+    }
+
 public:
 
 	BlockLab():
@@ -120,10 +134,10 @@ public:
 
 		assert(stencil_start[0]>= -BlockType::sizeX);
 		assert(stencil_start[1]>= -BlockType::sizeY);
-		assert(stencil_start[2]>= -BlockType::sizeZ);
+        assert(stencil_start[2]>= -BlockType::sizeZ);
 		assert(stencil_end[0] < BlockType::sizeX*2);
 		assert(stencil_end[1] < BlockType::sizeY*2);
-		assert(stencil_end[2] < BlockType::sizeZ*2);
+        assert(stencil_end[2] < BlockType::sizeZ*2);
 
 		m_stencilStart[0] = stencil_start[0];
 		m_stencilStart[1] = stencil_start[1];
@@ -148,8 +162,7 @@ public:
 	 * @param info  Reference to info of block to be loaded.
 	 */
 
-    template <typename TView>
-    void load(TView &target, std::vector<TView> &vfields)
+    void load(TBlock &target, std::vector<TBlock> &vfields)
     {
         // global block index
         const int index[3] = {
@@ -158,7 +171,8 @@ public:
         const Grid<BlockType> &grid = *m_refGrid; // holds neighbor information only
 
         //0. couple of checks
-		//2. put the ghosts into the cache
+		//1. put the ghosts into the cache
+        //2. check if 2D block
 
 		//0.
 		assert(m_state == eMRAGBlockLab_Prepared || m_state==eMRAGBlockLab_Loaded);
@@ -167,7 +181,7 @@ public:
 		const int nY = BlockType::sizeY;
 		const int nZ = BlockType::sizeZ;
 
-		//2.
+		//1.
 		{
 			const bool xperiodic = is_xperiodic();
 			const bool yperiodic = is_yperiodic();
@@ -213,8 +227,8 @@ public:
                                             index[1] + code[1],
                                             index[2] + code[2])];
 #if 1
-                const int m_vSize0 = TView::stridex;
-                const int m_nElemsPerSlice = TView::stridex * TView::stridey;
+                const int m_vSize0 = TBlock::stridex;
+                const int m_nElemsPerSlice = TBlock::stridex * TBlock::stridey;
 
                 const int my_ix = s[0]-m_stencilStart[0];
 
@@ -322,7 +336,12 @@ public:
 
 			m_state = eMRAGBlockLab_Loaded;
 		}
-	}
+
+        // 2.
+        if (1 == TBlock::sizeZ) {
+            fix2D(target);
+        }
+    }
 };
 
 #endif /* BLOCKLAB_H_PRFDFEI9 */

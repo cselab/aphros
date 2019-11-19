@@ -128,7 +128,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void Dump();
   static void DumpTraj(
       M& m, bool dm, const Vars& var, size_t frame, Scal t,
-      const GRange<size_t>& layers, 
+      const GRange<size_t>& layers,
       const Multi<const FieldCell<Scal>*>& fcvf,
       const Multi<const FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<MIdx>*>& fcim,
@@ -293,7 +293,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_src_; // source of mixture volume
   FieldCell<Scal> fc_src2_; // source of second phase volume
   FieldCell<Scal> fc_srcm_; // mass source
-  FieldCell<Vect> fc_force_;  // force 
+  FieldCell<Vect> fc_force_;  // force
   FieldFace<Scal> ffbp_;  // balanced force projections
   FieldFace<Scal> ffk_;  // curvature on faces
   MapCondFaceAdvection<Scal> mf_adv_;
@@ -303,8 +303,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapCell<std::shared_ptr<solver::CondCellFluid>> mc_velcond_;
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
-  FieldCell<Scal> fc_vf_; // volume fraction used by constructor 
-  FieldCell<Scal> fccl_; // color used by constructor  
+  FieldCell<Scal> fc_vf_; // volume fraction used by constructor
+  FieldCell<Scal> fccl_; // color used by constructor
   FieldCell<Vect> fc_vel_; // velocity used by constructor
   FieldCell<Scal> fc_smvf_; // smoothed volume fraction used by CalcMixture()
   FieldFace<Scal> ff_smvf_; // interpolated fc_smvf_
@@ -332,17 +332,17 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Scal nabort_; // number of abort requests, used by Reduce in checknan Run()
 
   std::function<void(FieldCell<typename M::Scal>&,const M&)> bgf_; // bubgen
-  Scal bgt_ = -1.; // bubgen last time 
+  Scal bgt_ = -1.; // bubgen last time
 
   struct Stat {
     Scal m1, m2;            // volume
     Scal m20;               // initial volume
     Scal m2d;               // relative volume difference
-    Vect c1, c2;            // center of mass 
+    Vect c1, c2;            // center of mass
     Vect vc1, vc2;          // center of mass velocity
     Vect v1, v2;            // average velocity
     Scal dtt;               // temporary to reduce
-    Scal dt;                // dt fluid 
+    Scal dt;                // dt fluid
     Scal dta;               // dt advection
     size_t iter;            // iter of fluid solver
     Scal dumpt = -1e10;     // last dump time (rounded to nearest dtdump)
@@ -480,8 +480,8 @@ void Hydro<M>::InitVort() {
     if (sem("post-" + dn)) {
       SetComponent(fctv, d, ps_->GetField());
       if (m.IsRoot() && var.Int["vort_report"]) {
-        std::cout 
-            << "om" << ("xyz"[d]) << ":" 
+        std::cout
+            << "om" << ("xyz"[d]) << ":"
             << " res=" << m.GetResidual()
             << " iter=" << m.GetIter()
             << std::endl;
@@ -515,14 +515,14 @@ void Hydro<M>::InitFluid() {
     auto p = std::make_shared<typename FSS::Par>();
     Parse<M>(p.get(), var);
     fs_.reset(new FSS(
-          m, fc_vel_, mf_fluid_, mc_velcond_, 
+          m, fc_vel_, mf_fluid_, mc_velcond_,
           &fc_rho_, &fc_mu_, &fc_force_, &ffbp_,
           &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else if (fs == "proj") {
     auto p = std::make_shared<typename FSP::Par>();
     Parse<M>(p.get(), var);
     fs_.reset(new FSP(
-          m, fc_vel_, mf_fluid_, mc_velcond_, 
+          m, fc_vel_, mf_fluid_, mc_velcond_,
           &fc_rho_, &fc_mu_, &fc_force_, &ffbp_,
           &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else {
@@ -811,10 +811,10 @@ void Hydro<M>::Init() {
 
     InitStat();
 
-    // enable curl component of velocity 
+    // enable curl component of velocity
     {
       auto dl = GetWords(var.String["dumplist"]);
-      if (dl.count("vcurlx") || dl.count("vcurly") || dl.count("vcurlz")) { 
+      if (dl.count("vcurlx") || dl.count("vcurly") || dl.count("vcurlz")) {
         vcurl_ = true;
       } else {
         vcurl_ = false;
@@ -838,7 +838,7 @@ void Hydro<M>::Init() {
 
 
 template <class M>
-Hydro<M>::Hydro(Vars& var, const MyBlockInfo& bi, Par& par) 
+Hydro<M>::Hydro(Vars& var, const MyBlockInfo& bi, Par& par)
     : KernelMeshPar<M,Par>(var, bi, par)
     , st_{}
     , dumper_(var, "dump_field_")
@@ -1142,7 +1142,7 @@ void Hydro<M>::CalcStat() {
           size_t nci = cd->GetNci();
           IdxCell c = m.GetNeighbourCell(f, nci);
           cd->SetVelocity(slipvel*kslip*fa[c]);
-        } 
+        }
       }
     }
 
@@ -1163,10 +1163,10 @@ void Hydro<M>::CalcStat() {
           IdxCell c = m.GetNeighbourCell(f, nci);
           Scal sgn = (slipvel - fv[c]).dot(slipvel);
           if (sgn > 0) {
-            fc_force_[c] += (slipvel - fv[c]) * 
+            fc_force_[c] += (slipvel - fv[c]) *
                 (fc_rho_[c] * penalslip * fa[c] / dt);
           }
-        } 
+        }
       }
     }
     const Scal slipnormal = var.Double["slipnormal"];
@@ -1181,7 +1181,7 @@ void Hydro<M>::CalcStat() {
           IdxCell c = m.GetNeighbourCell(f, nci);
           fc_force_[c] += m.GetNormal(f) * (
               (nci == 1 ? 1 : -1) * fc_rho_[c] * slipnormal * fa[c]);
-        } 
+        }
       }
     }
   }
@@ -1196,7 +1196,7 @@ void Hydro<M>::CalcStat() {
         if (auto cd = dynamic_cast<solver::fluid_condition::
             NoSlipWallFixed<M>*>(cb)) {
           cd->SetVelocity(GetYoungVel(x));
-        } 
+        }
       }
     }
   }
@@ -1231,7 +1231,7 @@ void Hydro<M>::CalcDt() {
 
     // set from cfla if defined
     if (auto* cfla = var.Double("cfla")) {
-      st_.dta = st_.dtt * (*cfla); 
+      st_.dta = st_.dtt * (*cfla);
       st_.dta = std::min<Scal>(st_.dta, var.Double["dtmax"]);
     }
 
@@ -1364,7 +1364,7 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
       ff_st[f] = 0.;
     }
 
-    // Surface tension decay between x0 and x1 
+    // Surface tension decay between x0 and x1
     // XXX: adhoc TODO: revise
     const Scal x0 = var.Double["zerostx0"];
     const Scal x1 = var.Double["zerostx1"];
@@ -1393,7 +1393,7 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
           if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {
             Vect g = fc_gsig[c]; // sigma gradient
             Vect n = fcn[c] / fcn[c].norm(); // unit normal to interface
-            Vect gt = g - n * g.dot(n); 
+            Vect gt = g - n * g.dot(n);
             auto xx = R::GetCutPoly2(fcn[c], fca[c], h);
             Scal ar = std::abs(R::GetArea(xx, fcn[c]));
             Scal vol = h.prod();
@@ -1651,8 +1651,8 @@ void Hydro<M>::DumpFields() {
       if (dl.count("yvy")) m.Dump(&fcyv_, 1, "yvy");
       if (dl.count("yvz")) m.Dump(&fcyv_, 2, "yvz");
     }
-    if (dl.count("omx") || dl.count("omy") || dl.count("omz") || 
-        dl.count("omm") || dl.count("omcalc")) { 
+    if (dl.count("omx") || dl.count("omy") || dl.count("omz") ||
+        dl.count("omm") || dl.count("omcalc")) {
       CalcVort();
       if (dl.count("omx")) m.Dump(&fcom_, 0, "omx");
       if (dl.count("omy")) m.Dump(&fcom_, 1, "omy");
@@ -1775,7 +1775,7 @@ void Hydro<M>::Dump() {
       std::string s = GetDumpName("trep", ".log", dmptrep_.GetN());
       m.TimerReport(s);
       std::cout << std::fixed << std::setprecision(8)
-          << "timer report" 
+          << "timer report"
           << " t=" << st_.t
           << " to " << s << std::endl;
     }
@@ -1789,9 +1789,9 @@ void Hydro<M>::Dump() {
 
 template <class M>
 void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
-    const GRange<size_t>& layers, 
+    const GRange<size_t>& layers,
     const Multi<const FieldCell<Scal>*>& fcvf,
-    const Multi<const FieldCell<Scal>*>& fccl, 
+    const Multi<const FieldCell<Scal>*>& fccl,
     const Multi<const FieldCell<MIdx>*>& fcim,
     const FieldCell<Scal>& fcp,
     const FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvelm, Scal dt) {
@@ -1825,7 +1825,7 @@ void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
     };
 
     // XXX: adhoc, the following order assumed in post: vs,r,x,y,z,...
-    
+
     // list of vars // TODO: revise
     names.clear();
     nma("vf");
@@ -1859,14 +1859,14 @@ void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
             v[i] += a;
             ++i;
           };
-          // append vector value 
+          // append vector value
           auto addv = [&](Vect a) {
             add(a[0]);
             add(a[1]);
             add(a[2]);
           };
 
-          // list of vars, XXX: keep consistent with names 
+          // list of vars, XXX: keep consistent with names
           add(w); // vf,  XXX: adhoc, vf must be first, divided on dump
           add(0.); // r,  XXX: adhoc, r must be second, computed on dump
           addv(x * w); // x
@@ -1888,8 +1888,8 @@ void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
       colors.push_back(it.first); // color
       values.push_back(it.second); // vector
     }
-    using TS = typename M::template OpCatT<Scal>; 
-    using TVS = typename M::template OpCatVT<Scal>; 
+    using TS = typename M::template OpCatT<Scal>;
+    using TVS = typename M::template OpCatVT<Scal>;
     m.Reduce(std::make_shared<TS>(&colors));
     m.Reduce(std::make_shared<TVS>(&values));
   }
@@ -1919,7 +1919,7 @@ void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
         Scal vf = v[0]; // XXX: assume vf is first
         Scal pi = M_PI;
         // XXX: assume r is second
-        v[1] = std::pow(3. / (4. * pi) * vf, 1. / 3.) ; 
+        v[1] = std::pow(3. / (4. * pi) * vf, 1. / 3.) ;
         // divide remaining by vf
         for (size_t i = 2; i < v.size(); ++i) {
           v[i] /= vf;
@@ -1945,7 +1945,7 @@ void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
     }
   }
   if (sphavg && sem("sphavg-sph")) {
-    const Scal shrr = var.Double["shell_rr"]; // shell inner radius relative 
+    const Scal shrr = var.Double["shell_rr"]; // shell inner radius relative
                                               // to equivalent radius
     const Scal shr = var.Double["shell_r"]; // shell inner radius absolute
     // shell total radius: rr * req + r
@@ -1967,7 +1967,7 @@ void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
     if (m.IsRoot()) {
       std::string s = GetDumpName("traj", ".csv", frame);
       std::cout << std::fixed << std::setprecision(8)
-          << "dump" 
+          << "dump"
           << " t=" << t
           << " to " << s << std::endl;
       std::ofstream o;
@@ -1994,7 +1994,7 @@ void Hydro<M>::DumpTraj(M& m, bool dm, const Vars& var, size_t frame, Scal t,
       if (m.IsRoot()) {
         std::string s = GetDumpName("trajsh", ".csv", frame);
         std::cout << std::fixed << std::setprecision(8)
-            << "dump" 
+            << "dump"
             << " t=" << t
             << " to " << s << std::endl;
         std::ofstream o;
@@ -2049,7 +2049,7 @@ void Hydro<M>::Run() {
     events_.Exec(st_.t);
   }
   if (sem("loop-check")) {
-    if (st_.t + st_.dt * 0.25 > var.Double["tmax"] || 
+    if (st_.t + st_.dt * 0.25 > var.Double["tmax"] ||
         int(st_.step) >= var.Int["max_step"]) {
       sem.LoopBreak();
     } else {
@@ -2108,7 +2108,7 @@ void Hydro<M>::Run() {
   }
 
   if (sem.Nested("dt")) {
-    CalcDt(); // must be after CalcStat to keep dt for moving mesh velocity 
+    CalcDt(); // must be after CalcStat to keep dt for moving mesh velocity
   }
 
   if (sem.Nested()) {
@@ -2125,7 +2125,7 @@ void Hydro<M>::Run() {
 template <class M>
 void Hydro<M>::ReportStep() {
   std::cout << std::fixed << std::setprecision(8)
-      << "STEP=" << st_.step 
+      << "STEP=" << st_.step
       << " t=" << st_.t
       << " dt=" << st_.dt
       << " ta=" << as_->GetTime()
@@ -2215,7 +2215,7 @@ void Hydro<M>::StepAdvection() {
   if (sem("report")) {
     if (m.IsRoot()) {
       std::cout << std::fixed << std::setprecision(8)
-          << ".....adv: t=" << as_->GetTime() 
+          << ".....adv: t=" << as_->GetTime()
           << " dt=" << as_->GetTimeStep()
           << std::endl;
     }
@@ -2271,3 +2271,36 @@ void Hydro<M>::StepBubgen() {
     }
   }
 }
+
+
+// XXX: [fabianw@mavt.ethz.ch; 2019-11-17] debug
+template bool IsNan<double, GIdx<0>>(const FieldCell<double>&);
+template bool IsNan<GVect<double,3>, GIdx<0>>(const FieldCell<GVect<double,3>>&);
+template bool IsNan<double>(double);
+template bool IsNan<double, 3>(const GVect<double,3>&);
+
+template <class T, class Idx>
+T MySum(const GField<T, Idx> &u)
+{
+    T sum = T(0);
+    for (auto i : u.GetRange()) {
+        sum += u[i];
+    }
+    return sum;
+}
+
+template double MySum<double, GIdx<0>>(const FieldCell<double> &);
+template GVect<double,3> MySum<GVect<double, 3>, GIdx<0>>(const FieldCell<GVect<double, 3>> &);
+
+template <class T, class Idx>
+void dumpField(const GField<T, Idx> &u)
+{
+    std::ofstream out("data.bin", std::ios::binary);
+    const T* src = (T*)u.data();
+    for (size_t i = 0; i < u.size(); ++i) {
+        out.write((const char*)src++, sizeof(T));
+    }
+    out.close();
+}
+template void dumpField<double, GIdx<0>>(const FieldCell<double> &);
+template void dumpField<GVect<double, 3>, GIdx<0>>(const FieldCell<GVect<double, 3>> &);

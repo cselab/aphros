@@ -48,7 +48,7 @@ public:
         : NX(NX_), NY(NY_), NZ(NZ_), N(NX_ * NY_ * NZ_), maxextent(maxextent_)
     {
         // cells per block
-        const size_t bs[3] = {Block::bx, Block::by, Block::bz};
+        const size_t bs[3] = {Block::sizeX, Block::sizeY, Block::sizeZ};
         // cells total
         const size_t nn[3] = {NX * bs[0], NY * bs[1], NZ * bs[2]};
         // cell size (h_gridpoint from BlockInfo)

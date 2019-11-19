@@ -95,14 +95,13 @@ struct GFieldViewRaw {
         assert(0 <= x && x < (int)bx);
         assert(0 <= y && y < (int)by);
         assert(0 <= z && z < (int)bz);
-
         return data[n_comp * (x + stridex * (y + stridey * z))];
     }
 
     inline Elem &LinAccess(unsigned int x)
     {
         assert(data_halo != nullptr);
-        assert(x < stridex * stridey * stridez);
+        assert(x < n_comp * stridex * stridey * stridez);
 
         return data_halo[n_comp * x];
     }
@@ -285,8 +284,9 @@ Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par)
   : DistrMesh<KF>(comm, kf, par)
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm)
 {
-  assert(bs_[0] == FieldView::bx && bs_[1] == FieldView::by &&
-      (bs_[2] == FieldView::bz || (bs_[2] == 1 && FieldView::bz == 2)));
+  assert(bs_[0] == FieldView::bx &&
+         bs_[1] == FieldView::by &&
+         bs_[2] == FieldView::bz);
 
   int r;
   MPI_Comm_rank(comm, &r);
@@ -825,7 +825,7 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       auto& mbc = m.GetIndexCells();
       // get corner of inner cells block
       MIdx wb = m.GetInBlockCells().GetBegin();
-      // get field fc associated to index e 
+      // get field fc associated to index e
       const size_t k = GetField(bf, m);
       if (const auto fcptr = dynamic_cast<const typename M::CoFcs*>(bf)) {
         const FieldCell<Scal> &fc = *(fcptr->f);
@@ -870,7 +870,7 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       auto& mbc = m.GetIndexCells();
       // get corner of inner cells block
       MIdx wb = m.GetInBlockCells().GetBegin();
-      // get field fc associated to index e 
+      // get field fc associated to index e
       const size_t k = GetField(bf, m);
       if (const auto fcptr = dynamic_cast<const typename M::CoFcs*>(bf)) {
         const FieldCell<Scal> &fc = *(fcptr->f);

@@ -23,7 +23,7 @@ class GridMPI : public TGrid
 public:
     using Block = typename TGrid::Block;
     using BlockType = typename TGrid::BlockType;
-    using Synch = SynchronizerMPI<Block, Block::bx, Block::by, Block::bz>;
+    using Synch = SynchronizerMPI<Block>;
     friend Synch;
 
 private:
@@ -146,12 +146,19 @@ public:
                 const int nhalo_end[3],
                 const bool is_tensorial = true)
     {
+        int nhalo_sz = nhalo_start[2];
+        int nhalo_ez = nhalo_end[2];
+        if (1 == TView::sizeZ) {
+            // communication needed for tensorial
+            nhalo_sz = 1;
+            nhalo_ez = 1;
+        }
         StencilInfo stencil(-nhalo_start[0],
                             -nhalo_start[1],
-                            -nhalo_start[2],
+                            -nhalo_sz,
                             nhalo_end[0] + 1,
                             nhalo_end[1] + 1,
-                            nhalo_end[2] + 1,
+                            nhalo_ez + 1,
                             is_tensorial,
                             1,
                             0);
