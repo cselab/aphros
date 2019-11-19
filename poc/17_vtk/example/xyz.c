@@ -44,16 +44,16 @@ main(int argc, char **argv)
   nv = vtk_nv(vtk);
 
   if (Box) {
-      xh = array_max(nv, vtk->x);
-      xl = array_min(nv, vtk->x);
-      yh = array_max(nv, vtk->y);
-      yl = array_min(nv, vtk->y);
-      zh = array_max(nv, vtk->z);
-      zl = array_min(nv, vtk->z);
-      printf("%g %g %g %g %g %g\n", xl, xh, yl, yh, zl, zh);
+    xh = array_max(nv, vtk->x);
+    xl = array_min(nv, vtk->x);
+    yh = array_max(nv, vtk->y);
+    yl = array_min(nv, vtk->y);
+    zh = array_max(nv, vtk->z);
+    zl = array_min(nv, vtk->z);
+    printf("%g %g %g %g %g %g\n", xl, xh, yl, yh, zl, zh);
   } else {
-      for (i = 0; i < nv; i++)
-	  printf("%.16g %.16g %.16g\n", vtk->x[i], vtk->y[i], vtk->z[i]);
+    for (i = 0; i < nv; i++)
+      printf("%.16g %.16g %.16g\n", vtk->x[i], vtk->y[i], vtk->z[i]);
   }
 
   vtk_fin(vtk);
@@ -62,25 +62,27 @@ main(int argc, char **argv)
 static double
 array_max(int n, double a[])
 {
-    int i;
-    double m;
-    m = a[0];
-    for (i = 0; i < n; i++) {
-	if (a[i] > m)
-	    m = a[i];
-    }
-    return m;
+  int i;
+  double m;
+
+  m = a[0];
+  for (i = 0; i < n; i++) {
+    if (a[i] > m)
+      m = a[i];
+  }
+  return m;
 }
 
 static double
 array_min(int n, double a[])
 {
-    int i;
-    double m;
-    m = a[0];
-    for (i = 0; i < n; i++) {
-	if (a[i] < m)
-	    m = a[i];
-    }
-    return m;
+  int i;
+  double m;
+
+  m = a[0];
+  for (i = 0; i < n; i++) {
+    if (a[i] < m)
+      m = a[i];
+  }
+  return m;
 }
