@@ -44,9 +44,9 @@ function one(f,   r, i, cl, vf, t, rc)
         if (cl == cl0 && vf < 0.1) {
             if (!(cl in Seen)) {
                 Seen[cl]
-                print "x", "y", "z", "r", "rg", "t"
+                print "x", "y", "z", "r", "rg", "vf", "t"
             }
-            print x, y, z, r, rg, t
+            print x, y, z, r, rg, vf, t
         }
     }
     close(f)

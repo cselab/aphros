@@ -39,28 +39,28 @@ main(int argc, char **argv)
     case 'f':
       argv++;
       if ((name = argv[0]) == NULL) {
-	fprintf(stderr, "%s: -f needs an argument\n", me);
-	exit(2);
+        fprintf(stderr, "%s: -f needs an argument\n", me);
+        exit(2);
       }
       if ((i = vtk_index(vtk, name)) == -1) {
-	fprintf(stderr, "%s: no field '%s'\n", me, name);
-	exit(2);
+        fprintf(stderr, "%s: no field '%s'\n", me, name);
+        exit(2);
       }
       if (vtk->location[i] != VTK_CELL) {
-	  fprintf(stderr, "%s: %s is not a cell data\n", me, name);
-	  exit(1);
+        fprintf(stderr, "%s: %s is not a cell data\n", me, name);
+        exit(1);
       }
       if (vtk->rank[i] != VTK_SCALAR) {
-	  fprintf(stderr, "%s: %s is not a scalar\n", me, name);
-	  exit(1);
-      }      
+        fprintf(stderr, "%s: %s is not a scalar\n", me, name);
+        exit(1);
+      }
       Field = 1;
       break;
     case 'k':
       argv++;
       if ((name = argv[0]) == NULL) {
-	fprintf(stderr, "%s: -f needs an argument\n", me);
-	exit(2);
+        fprintf(stderr, "%s: -f needs an argument\n", me);
+        exit(2);
       }
       k = atoi(name);
       Key = 1;

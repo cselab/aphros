@@ -3,12 +3,11 @@
 #include <vtk.h>
 
 #define	USED(x)		if(x);else{}
-static char me[] = "vtk/remove";
-
+static char me[] = "vtk/xyz";
 static void
 usg()
 {
-  fprintf(stderr, "%s [field ..] < VTK > VTK\n", me);
+  fprintf(stderr, "%s < vtk\n", me);
   exit(1);
 }
 
@@ -17,9 +16,14 @@ main(int argc, char **argv)
 {
   USED(argc);
   struct VTK *vtk;
-  int status;
+  int nv, nt, n, i, location, type;
+  char *name;
+  float *df;
+  double *dd;
+  int *di;
+  void *data;
 
-  while (*++argv != NULL && *argv[0] == '-')
+  while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
     case 'h':
       usg();
@@ -33,14 +37,9 @@ main(int argc, char **argv)
     fprintf(stderr, "%s: fail to read\n", me);
     exit(2);
   }
+  nv = vtk_nv(vtk);
+  for (i = 0; i < nv; i++)
+    printf("%.16g %.16g %.16g\n", vtk->x[i], vtk->y[i], vtk->z[i]);
 
-  while (*argv != NULL) {
-    status = vtk_remove(vtk, *argv);
-    if (status != 0)
-      fprintf(stderr, "%s: no field '%s'\n", me, *argv);
-    argv++;
-  }
-
-  vtk_write(vtk, stdout);
   vtk_fin(vtk);
 }

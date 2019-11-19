@@ -17,6 +17,7 @@ rad\
 remove\
 wall\
 write\
+xyz\
 
 all: $M
 .o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@
