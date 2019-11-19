@@ -9,7 +9,6 @@ BEGIN {
     for (i = 1; i in ARGV; i++) {
         f = ARGV[i]
         one(f)
-        msg("%s", f)
     }
 }
 
@@ -56,10 +55,4 @@ function get(key,   i)
     return $i
 }
 
-function vol2rad(V,   pi, k)
-{
-    k = 4/3*3.141592653589793
-    V /= k
-    return V^(1/3)
-}
 ' "$@"
