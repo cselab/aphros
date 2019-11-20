@@ -18,9 +18,12 @@ add_test(NAME adv-cub32 COMMAND runshort tcub 32 1)
 add_test(NAME adv-cubm8 COMMAND runshort tcubm 8)
 add_test(NAME adv-cubm16 COMMAND runshort tcubm 16)
 add_test(NAME adv-cubm32 COMMAND runshort tcubm 32 1)
+add_test(NAME adv3d-loc COMMAND run3d tloc3d)
+add_test(NAME adv3d-cub COMMAND run3d tcub3d)
 
 set_tests_properties(
   adv-loc8 adv-loc16 adv-loc32 
   adv-cub8 adv-cub16 adv-cub32 
   adv-cubm8 adv-cubm16 adv-cubm32 
+  adv3d-loc adv3d-cub
   PROPERTIES RESOURCE_LOCK ${EXE})
