@@ -290,7 +290,7 @@ MapFace<std::shared_ptr<solver::CondFace>> GetVelCond(
       mf[i] = std::make_shared<
           CondFaceReflect>(nci);
     } else {
-      throw std::runtime_error("GetVelocityCond: unknown condition");
+      throw std::runtime_error("GetVelCond: unknown condition");
     }
   }
   return mf;
