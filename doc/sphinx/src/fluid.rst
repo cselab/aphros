@@ -117,19 +117,22 @@ The boundary conditions are specified by a map
 from ``IdxFace`` to ``CondFaceFluid``,
 instances of which can be generated with function ``solver::Parse()``
 from a string.
+Value of ``id`` is written to field ``fluidcond`` in ``bc.vtk``
+(see :ref:`s:output`).
 
+.. _t:fluidcond:
 .. table:: Fluid boundary conditions.
 
-   +---------------------+--------------------------+-----------------------------------+
-   | class               | Parse() format           | description                       |
-   +=====================+==========================+===================================+
-   | ``NoSlipWallFixed`` | ``wall <x y z>``         | no-slip wall with fixed velocity  |
-   +---------------------+--------------------------+-----------------------------------+
-   | ``InletFixed``      | ``inlet <x y z>``        | inlet with given velocity         |
-   +---------------------+--------------------------+-----------------------------------+
-   | ``InletFlux``       | ``inletflux <x y z id>`` | inlet with given total flux       |
-   +---------------------+--------------------------+-----------------------------------+
-   | ``OutletAuto``      | ``outlet``               | outlet                            |
-   +---------------------+--------------------------+-----------------------------------+
-   | ``SlipWall``        | ``slipwall``             | free-slip wall                    |
-   +---------------------+--------------------------+-----------------------------------+
+   +---------------------+--------------------------+-----------------------------------+----+
+   | class               | Parse() format           | description                       | id |
+   +=====================+==========================+===================================+====+
+   | ``NoSlipWallFixed`` | ``wall <x y z>``         | no-slip wall with fixed velocity  |  1 |
+   +---------------------+--------------------------+-----------------------------------+----+
+   | ``InletFixed``      | ``inlet <x y z>``        | inlet with given velocity         |  3 |
+   +---------------------+--------------------------+-----------------------------------+----+
+   | ``InletFlux``       | ``inletflux <x y z id>`` | inlet with given total flux       |  3 |
+   +---------------------+--------------------------+-----------------------------------+----+
+   | ``OutletAuto``      | ``outlet``               | outlet                            |  4 |
+   +---------------------+--------------------------+-----------------------------------+----+
+   | ``SlipWall``        | ``slipwall``             | free-slip wall                    |  2 |
+   +---------------------+--------------------------+-----------------------------------+----+
