@@ -4,14 +4,15 @@
 #include <sstream>
 #include <stdexcept>
 
+#include "convdiffvg.h"
 #include "util/metrics.h"
 #include "util/convdiff.h"
 
 namespace solver {
 
 template <class M_, class CD_>
-struct ConvDiffVectImp<M_, CD_>::Imp {
-  using Owner = ConvDiffVectImp<M_, CD_>;
+struct ConvDiffVectGeneric<M_, CD_>::Imp {
+  using Owner = ConvDiffVectGeneric<M_, CD_>;
 
   Imp(
       Owner* owner, const FieldCell<Vect>& fcvel, 
@@ -173,19 +174,19 @@ struct ConvDiffVectImp<M_, CD_>::Imp {
   GRange<size_t> dr_;  // effective dimension range
 
   template <class T>
-  using VectGeneric = std::array<T, dim>;
+  using Array = std::array<T, dim>;
 
   // Scalar components
-  VectGeneric<MapFace<std::shared_ptr<CondFace>>> vmfc_; // face cond
-  VectGeneric<MapCell<std::shared_ptr<CondCell>>> vmcc_; // cell cond
-  VectGeneric<std::shared_ptr<CD>> vs_; // solver
-  VectGeneric<FieldCell<Scal>> vfcs_; // force
-  VectGeneric<FieldCell<Scal>> vfct_; // tmp
+  Array<MapFace<std::shared_ptr<CondFace>>> vmfc_; // face cond
+  Array<MapCell<std::shared_ptr<CondCell>>> vmcc_; // cell cond
+  Array<std::shared_ptr<CD>> vs_; // solver
+  Array<FieldCell<Scal>> vfcs_; // force
+  Array<FieldCell<Scal>> vfct_; // tmp
 };
 
 
 template <class M_, class CD_>
-ConvDiffVectImp<M_, CD_>::ConvDiffVectImp(
+ConvDiffVectGeneric<M_, CD_>::ConvDiffVectGeneric(
     M& m, const FieldCell<Vect>& fcvel, 
     const MapFace<std::shared_ptr<CondFace>>& mfc, 
     const MapCell<std::shared_ptr<CondCell>>& mcc, 
@@ -197,63 +198,63 @@ ConvDiffVectImp<M_, CD_>::ConvDiffVectImp(
 {}
 
 template <class M_, class CD_>
-ConvDiffVectImp<M_, CD_>::~ConvDiffVectImp() = default;
+ConvDiffVectGeneric<M_, CD_>::~ConvDiffVectGeneric() = default;
 
 template <class M_, class CD_>
-auto ConvDiffVectImp<M_, CD_>::GetPar() -> Par* {
+auto ConvDiffVectGeneric<M_, CD_>::GetPar() -> Par* {
   return imp->par.get();
 }
 
 template <class M_, class CD_>
-void ConvDiffVectImp<M_, CD_>::Assemble(const FieldCell<Vect>& fcw, 
+void ConvDiffVectGeneric<M_, CD_>::Assemble(const FieldCell<Vect>& fcw, 
                                         const FieldFace<Scal>& ffv) {
   imp->Assemble(fcw, ffv);
 }
 
 template <class M_, class CD_>
-void ConvDiffVectImp<M_, CD_>::CorrectVelocity(
+void ConvDiffVectGeneric<M_, CD_>::CorrectVelocity(
     Layers l, const FieldCell<Vect>& u) {
   imp->CorrectVelocity(l, u);
 }
 
 template <class M_, class CD_>
-auto ConvDiffVectImp<M_, CD_>::GetDiag(size_t d) const -> FieldCell<Scal> {
+auto ConvDiffVectGeneric<M_, CD_>::GetDiag(size_t d) const -> FieldCell<Scal> {
   return imp->vs_[d]->GetDiag();
 }
 
 template <class M_, class CD_>
-auto ConvDiffVectImp<M_, CD_>::GetConst(size_t d) const -> FieldCell<Scal> {
+auto ConvDiffVectGeneric<M_, CD_>::GetConst(size_t d) const -> FieldCell<Scal> {
   return imp->vs_[d]->GetConst();
 }
 
 template <class M_, class CD_>
-auto ConvDiffVectImp<M_, CD_>::GetVelocityCond(size_t d) 
+auto ConvDiffVectGeneric<M_, CD_>::GetVelocityCond(size_t d) 
     -> MapFace<std::shared_ptr<CondFace>>& {
   return imp->vmfc_[d];
 }
 
 template <class M_, class CD_>
-void ConvDiffVectImp<M_, CD_>::StartStep() {
+void ConvDiffVectGeneric<M_, CD_>::StartStep() {
   imp->StartStep();
 }
 
 template <class M_, class CD_>
-void ConvDiffVectImp<M_, CD_>::MakeIteration() {
+void ConvDiffVectGeneric<M_, CD_>::MakeIteration() {
   imp->MakeIteration();
 }
 
 template <class M_, class CD_>
-void ConvDiffVectImp<M_, CD_>::FinishStep() {
+void ConvDiffVectGeneric<M_, CD_>::FinishStep() {
   imp->FinishStep();
 }
 
 template <class M_, class CD_>
-double ConvDiffVectImp<M_, CD_>::GetError() const {
+double ConvDiffVectGeneric<M_, CD_>::GetError() const {
   return imp->GetError();
 }
 
 template <class M_, class CD_>
-auto ConvDiffVectImp<M_, CD_>::GetVelocity(Layers l) const 
+auto ConvDiffVectGeneric<M_, CD_>::GetVelocity(Layers l) const 
     -> const FieldCell<Vect>& {
   return imp->GetVelocity(l);
 }

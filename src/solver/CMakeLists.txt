@@ -27,17 +27,17 @@ set(T "convdiffe")
 add_library(${T} convdiffe.cpp)
 target_link_libraries(${T} solver)
 
-set(T "convdiffvi")
-add_library(${T} convdiffvi.cpp)
+set(T "convdiffvg")
+add_library(${T} convdiffvg.cpp)
 target_link_libraries(${T} convdiffi convdiffe)
 
 set(T "simple")
 add_library(${T} simple.cpp)
-target_link_libraries(${T} convdiffvi)
+target_link_libraries(${T} convdiffvg)
 
 set(T "proj")
 add_library(${T} proj.cpp)
-target_link_libraries(${T} convdiffvi)
+target_link_libraries(${T} convdiffvg)
 
 set(T "multi")
 add_library(${T} multi.cpp)

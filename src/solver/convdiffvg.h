@@ -8,7 +8,7 @@
 namespace solver {
 
 template <class M_, class CD_>
-class ConvDiffVectImp : public ConvDiffVect<M_> {
+class ConvDiffVectGeneric : public ConvDiffVect<M_> {
  public:
   using M = M_;
   using P = ConvDiffVect<M>; // parent
@@ -30,14 +30,14 @@ class ConvDiffVectImp : public ConvDiffVect<M_> {
   // t: initial time
   // dt: time step
   // par: parameters
-  ConvDiffVectImp(
+  ConvDiffVectGeneric(
       M& m, const FieldCell<Vect>& fcvel,
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
       const MapCell<std::shared_ptr<CondCell>>& mcc,
       const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd, 
       const FieldCell<Vect>* fcs, const FieldFace<Scal>* ffv, 
       double t, double dt, std::shared_ptr<Par> par);
-  ~ConvDiffVectImp();
+  ~ConvDiffVectGeneric();
   // Parameters
   Par* GetPar();
   // ...
