@@ -1,4 +1,3 @@
-#include "partstrmeshm.h"
 #include "partstrmeshm.ipp"
 
 namespace solver {

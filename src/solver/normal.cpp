@@ -1,4 +1,3 @@
-#include "normal.h"
 #include "normal.ipp"
 
 namespace solver {

@@ -1,6 +1,7 @@
 #include <memory>
 #include <cmath>
 
+#include "normal.h"
 #include "geom/mesh.h"
 #include "solver.h"
 #include "util/height.h"

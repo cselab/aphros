@@ -1,4 +1,3 @@
-#include "convdiffi.h"
 #include "convdiffi.ipp"
 
 namespace solver {

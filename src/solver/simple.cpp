@@ -1,4 +1,3 @@
-#include "simple.h"
 #include "simple.ipp"
 
 namespace solver {
