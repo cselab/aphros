@@ -9,7 +9,7 @@
 namespace solver {
 
 template <class M_>
-class Simple : public FluidSolver<M_> {
+class Simple final : public FluidSolver<M_> {
  public:
   using M = M_;
   using P = FluidSolver<M>; // parent

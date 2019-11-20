@@ -7,7 +7,7 @@
 namespace solver {
 
 template <class M_>
-class ConvDiffScalExp : public ConvDiffScal<M_> {
+class ConvDiffScalExp final : public ConvDiffScal<M_> {
  public:
   using M = M_;
   using P = ConvDiffScal<M>;
