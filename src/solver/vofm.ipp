@@ -16,6 +16,7 @@
 #include "multi.h"
 #include "util/vof.h"
 #include "trackerm.h"
+#include "approx.h"
 
 namespace solver {
 

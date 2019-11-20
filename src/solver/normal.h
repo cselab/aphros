@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "geom/mesh.h"
+#include "solver/cond.h"
 
 namespace solver {
 

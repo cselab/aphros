@@ -7,6 +7,7 @@
 #include <limits>
 
 #include "tvd.h"
+#include "approx.h"
 
 namespace solver {
 

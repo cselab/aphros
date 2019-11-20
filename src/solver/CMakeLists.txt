@@ -33,11 +33,11 @@ target_link_libraries(${T} convdiffi convdiffe)
 
 set(T "simple")
 add_library(${T} simple.cpp)
-target_link_libraries(${T} convdiffvg)
+target_link_libraries(${T} convdiffvg utilconvdiff)
 
 set(T "proj")
 add_library(${T} proj.cpp)
-target_link_libraries(${T} convdiffvg)
+target_link_libraries(${T} convdiffvg utilconvdiff)
 
 set(T "multi")
 add_library(${T} multi.cpp)

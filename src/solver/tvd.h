@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "advection.h"
+#include "solver/cond.h"
 
 namespace solver {
 

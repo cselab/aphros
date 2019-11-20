@@ -17,9 +17,8 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   Imp(
       Owner* owner, const FieldCell<Vect>& fcvel, 
       const MapFace<std::shared_ptr<CondFace>>& mfc, 
-      const MapCell<std::shared_ptr<CondCell>>& mcc, 
-      std::shared_ptr<Par> par)
-      : owner_(owner), par(par), m(owner_->m)
+      const MapCell<std::shared_ptr<CondCell>>& mcc)
+      : owner_(owner), par(&owner_->GetPar()), m(owner_->m)
       , mfc_(mfc), mcc_(mcc), dr_(0, m.GetEdim())
   {
     for (auto d : dr_) {
@@ -49,7 +48,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       vs_[d] = std::make_shared<CD>(
           m, GetComponent(fcvel, d), vmfc_[d], vmcc_[d],
           owner_->fcr_, owner_->ffd_, &(vfcs_[d]), owner_->ffv_, 
-          owner_->GetTime(), owner_->GetTimeStep(), par);
+          owner_->GetTime(), owner_->GetTimeStep(), *par);
     }
     CopyToVect(Layers::time_curr, fcvel_);
     lvel_ = Layers::time_curr;
@@ -164,7 +163,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   }
 
   Owner* owner_;
-  std::shared_ptr<Par> par;
+  const Par* par;
   M& m; // mesh
 
   FieldCell<Vect> fcvel_;
@@ -192,18 +191,13 @@ ConvDiffVectGeneric<M_, CD_>::ConvDiffVectGeneric(
     const MapCell<std::shared_ptr<CondCell>>& mcc, 
     const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
     const FieldCell<Vect>* fcs, const FieldFace<Scal>* ffv,
-    double t, double dt, std::shared_ptr<Par> par)
-    : ConvDiffVect<M>(t, dt, m, fcr, ffd, fcs, ffv)
-    , imp(new Imp(this, fcvel, mfc, mcc, par))
+    double t, double dt, const Par& par)
+    : ConvDiffVect<M>(t, dt, m, par, fcr, ffd, fcs, ffv)
+    , imp(new Imp(this, fcvel, mfc, mcc))
 {}
 
 template <class M_, class CD_>
 ConvDiffVectGeneric<M_, CD_>::~ConvDiffVectGeneric() = default;
-
-template <class M_, class CD_>
-auto ConvDiffVectGeneric<M_, CD_>::GetPar() -> Par* {
-  return imp->par.get();
-}
 
 template <class M_, class CD_>
 void ConvDiffVectGeneric<M_, CD_>::Assemble(const FieldCell<Vect>& fcw, 

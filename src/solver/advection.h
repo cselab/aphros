@@ -1,6 +1,7 @@
 #pragma once
 
 #include "solver/solver.h"
+#include "geom/mesh.h"
 
 namespace solver {
 

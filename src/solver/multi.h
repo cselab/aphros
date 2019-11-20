@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "solver/solver.h"
-#include "geom/range.h"
+#include "geom/mesh.h"
 
 namespace solver {
 

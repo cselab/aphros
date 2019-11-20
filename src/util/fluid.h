@@ -2,6 +2,10 @@
 
 #include "solver/fluid.h"
 #include "parse/vars.h"
+#include "solver/convdiff.h"
+#include "solver/convdiffv.h"
+
+using namespace solver;
 
 // Returns field with the type (index)
 // of boundary conditions in an adjacent face:

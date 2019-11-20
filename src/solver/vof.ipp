@@ -7,6 +7,7 @@
 #include <limits>
 
 #include "vof.h"
+#include "approx.h"
 #include "geom/block.h"
 #include "reconst.h"
 #include "normal.h"

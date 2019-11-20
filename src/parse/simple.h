@@ -19,7 +19,6 @@ void Parse(typename solver::Simple<M>::Par* p, const Vars& var) {
   p->convsc = solver::GetConvSc(var.String["convsc"]);
   p->convdf = var.Double["convdf"];
   p->linreport = var.Int["linreport"];
-  using Conv = typename solver::Simple<M>::Conv;
   std::string conv = var.String["conv"];
   if (conv == "imp") {
     p->conv = Conv::imp;

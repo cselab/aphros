@@ -7,6 +7,8 @@
 #include <string>
 
 #include "solver.h"
+#include "cond.h"
+#include "geom/mesh.h"
 
 namespace solver {
 
@@ -17,7 +19,6 @@ class FluidSolver : public UnsteadyIterativeSolver {
   static constexpr size_t dim = M::dim;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  enum class Conv {exp, imp};
 
  protected:
   M& m;

@@ -10,20 +10,10 @@ template <class M_>
 class ConvDiffScalExp : public ConvDiffScal<M_> {
  public:
   using M = M_;
-  using P = ConvDiffScal<M>; // parent
+  using P = ConvDiffScal<M>;
   using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  static constexpr size_t dim = M::dim;
+  using Par = typename P::Par;
 
-  struct Par {
-    Scal relax = 1.;      // relaxation factor [0,1] (1 -- no relaxation)
-    Scal guessextra = 0.; // next iteration guess extrapolation weight [0,1]
-    bool second = true; // second order in time
-    ConvSc sc = ConvSc::quick; // scheme for convective flux (see convdiffi.h)
-    Scal df = 1.; // deferred correction factor
-    Scal th = 1e-10; // threshold for flow direction
-    bool linreport = false; // report linear solvers
-  };
   // Constructor.
   // fcu: initial field
   // mfc: face conditions
@@ -41,36 +31,17 @@ class ConvDiffScalExp : public ConvDiffScal<M_> {
       const MapCell<std::shared_ptr<CondCell>>& mcc, 
       const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
       const FieldCell<Scal>* fcs, const FieldFace<Scal>* ffv,
-      double t, double dt, std::shared_ptr<Par> par);
+      double t, double dt, const Par& par);
   ~ConvDiffScalExp();
-  // Parameters
-  Par* GetPar();
-  // Assembles linear system
-  // fcu: field from previous iteration [a]
-  // ffv: volume flux
-  // Output:
-  // fcucs_: linear system, overwritten, returned by GetDiag and GetConst
-  void Assemble(const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv);
-  // Corrects field and comm.
-  // uc: correction [i]
-  // Output:
-  // u(l) += uc [a]
-  void CorrectField(Layers l, const FieldCell<Scal>& uc) override;
-  // ...
-  FieldCell<Scal> GetDiag() const override;
-  // ...
-  FieldCell<Scal> GetConst() const override;
-  // ...
-  void StartStep() override;
-  // ...
-  void MakeIteration() override;
-  // ...
-  void FinishStep() override;
-  // ...
   const FieldCell<Scal>& GetField(Layers) const override;
-  // ...
   using P::GetField;
-  // ...
+  void Assemble(const FieldCell<Scal>&, const FieldFace<Scal>&) override;
+  void CorrectField(Layers l, const FieldCell<Scal>& uc) override;
+  FieldCell<Scal> GetDiag() const override;
+  FieldCell<Scal> GetConst() const override;
+  void StartStep() override;
+  void MakeIteration() override;
+  void FinishStep() override;
   double GetError() const override;
 
  private:
