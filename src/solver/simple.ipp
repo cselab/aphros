@@ -6,7 +6,7 @@
 #include <memory>
 
 #include "util/metrics.h"
-#include "convdiffvi.h"
+#include "convdiffvg.h"
 #include "convdiffi.h"
 #include "convdiffe.h"
 #include "fluid.h"
@@ -39,9 +39,9 @@ struct Simple<M_>::Imp {
   using Owner = Simple<M_>;
   using CD = ConvDiffVect<M>; // convdiff solver
   // convdiff solver implicit
-  using CDI = ConvDiffVectImp<M, ConvDiffScalImp<M>>; 
+  using CDI = ConvDiffVectGeneric<M, ConvDiffScalImp<M>>;
   // convdiff solver explicit
-  using CDE = ConvDiffVectImp<M, ConvDiffScalExp<M>>; 
+  using CDE = ConvDiffVectGeneric<M, ConvDiffScalExp<M>>;
   // Expression on face: v[0] * cm + v[1] * cp + v[2]
   using ExprFace = GVect<Scal, 3>;
   // Expression on cell: v[0] * c + v[1] * cxm + ... + v[6] * czp + v[7]
