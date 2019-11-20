@@ -47,7 +47,7 @@
 #include "solver/reconst.h"
 #include "young/young.h"
 #include "solver/pois.h"
-#include "util/fluid.h"
+#include "util/hydro.h"
 #include "util/events.h"
 #include "util/convdiff.h"
 #include "solver/normal.h"
