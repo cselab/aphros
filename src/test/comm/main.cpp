@@ -7,6 +7,7 @@
 #include <fstream>
 #include <limits>
 #include <cmath>
+#include <algorithm>
 
 #include "geom/mesh.h"
 #include "kernel/kernelmeshpar.h"
@@ -140,7 +141,8 @@ typename M::Scal Mean(
 
 #define CMP(a, b) \
   if (!Cmp(a,b)) { \
-    throw std::runtime_error(std::string(__FILE__) + std::to_string(__LINE__)); \
+    throw std::runtime_error(std::string(__FILE__) + \
+        ":" + std::to_string(__LINE__)); \
   }
 
 // Print CMP
@@ -222,7 +224,7 @@ void Simple<M>::TestReduce() {
   GBlock<IdxCell, dim> qp(p); 
   GBlock<IdxCell, dim> qb(b); 
   auto f = [](MIdx w) {
-    return std::sin(w[0]+1.7) * std::cos(w[1]) * std::exp(w[2]); 
+    return std::sin(w[0]+1.7) * std::cos(w[1]) * std::exp(w[2] * 0.1); 
   };
   if (sem("sum")) {
     r_ = f(MIdx(bi_.index));
@@ -318,7 +320,9 @@ void Simple<M>::TestReduce() {
       }
     }
     if (m.IsRoot()) {
-      PCMP(rvs_, rvs);
+      std::sort(rvs_.begin(), rvs_.end());
+      std::sort(rvs.begin(), rvs.end());
+      PCMPF(rvs_, rvs);
     }
   }
   const size_t q = 10;
@@ -344,6 +348,8 @@ void Simple<M>::TestReduce() {
       }
     }
     if (m.IsRoot()) {
+      std::sort(rvi_.begin(), rvi_.end());
+      std::sort(rvi.begin(), rvi.end());
       PCMP(rvi_, rvi);
     }
   }
@@ -369,6 +375,8 @@ void Simple<M>::TestReduce() {
       }
     }
     if (m.IsRoot()) {
+      std::sort(rvvi_.begin(), rvvi_.end());
+      std::sort(rvvi.begin(), rvvi.end());
       PCMP(rvvi_, rvvi);
     }
   }
@@ -404,6 +412,7 @@ void Simple<M>::TestScatter() {
   GBlock<IdxCell, dim> qb(b); 
   auto GetBlockData = [](size_t i) {
     std::vector<Scal> r;
+    r.push_back(Scal(i));
     for (size_t j = 0; j < i; ++j) {
       r.push_back(Scal(j));
     }
@@ -428,8 +437,8 @@ void Simple<M>::TestScatter() {
   }
   if (sem("check")) {
     MIdx w(bi_.index);
-    size_t i = ndq.GetIdx(w);
-    PCMPF(rvs_, GetBlockData(i));
+    assert(rvs_.size() > 0);
+    PCMPF(rvs_, GetBlockData(std::lround(rvs_[0])));
   }
   if (sem("gather")) {
     MIdx w(bi_.index);
