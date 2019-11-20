@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "convdiffe.h"
+#include "approx.h"
 #include "debug/isnan.h"
 
 namespace solver {
@@ -10,12 +11,12 @@ namespace solver {
 template <class M_>
 struct ConvDiffScalExp<M_>::Imp {
   using Owner = ConvDiffScalExp<M_>;
+  using Vect = typename M::Vect;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu,
-      const MapFace<std::shared_ptr<CondFace>>& mfc, 
-      const MapCell<std::shared_ptr<CondCell>>& mcc,
-      std::shared_ptr<Par> par)
-      : owner_(owner), par(par), m(owner_->m)
+      const MapFace<std::shared_ptr<CondFace>>& mfc,
+      const MapCell<std::shared_ptr<CondCell>>& mcc)
+      : owner_(owner), par(&owner_->GetPar()), m(owner_->m)
       , mfc_(mfc), mcc_(mcc), dtp_(-1.), er_(0)
   {
     fcu_.time_curr = fcu;
@@ -211,7 +212,7 @@ struct ConvDiffScalExp<M_>::Imp {
   }
 
   Owner* owner_;
-  std::shared_ptr<Par> par;
+  const Par* par;
   M& m; // mesh
 
   LayersData<FieldCell<Scal>> fcu_; // field
@@ -223,28 +224,23 @@ struct ConvDiffScalExp<M_>::Imp {
   FieldCell<Scal> fclb_;
 
   Scal dtp_; // dt prev
-  Scal er_; // error 
+  Scal er_; // error
 };
 
 template <class M_>
 ConvDiffScalExp<M_>::ConvDiffScalExp(
-    M& m, const FieldCell<Scal>& fcu, 
-    const MapFace<std::shared_ptr<CondFace>>& mfc, 
-    const MapCell<std::shared_ptr<CondCell>>& mcc, 
+    M& m, const FieldCell<Scal>& fcu,
+    const MapFace<std::shared_ptr<CondFace>>& mfc,
+    const MapCell<std::shared_ptr<CondCell>>& mcc,
     const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
     const FieldCell<Scal>* fcs, const FieldFace<Scal>* ffv,
-    double t, double dt, std::shared_ptr<Par> par)
-    : ConvDiffScal<M>(t, dt, m, fcr, ffd, fcs, ffv)
-    , imp(new Imp(this, fcu, mfc, mcc, par))
+    double t, double dt, const Par& par)
+    : ConvDiffScal<M>(t, dt, m, par, fcr, ffd, fcs, ffv)
+    , imp(new Imp(this, fcu, mfc, mcc))
 {}
 
 template <class M_>
 ConvDiffScalExp<M_>::~ConvDiffScalExp() = default;
-
-template <class M_>
-auto ConvDiffScalExp<M_>::GetPar() -> Par* {
-  return imp->par.get();
-}
 
 template <class M_>
 void ConvDiffScalExp<M_>::Assemble(const FieldCell<Scal>& fcu, 

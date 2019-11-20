@@ -1,8 +1,9 @@
 #pragma once
 
 #include <memory>
-#include "geom/range.h"
+
 #include "solver/multi.h"
+#include "solver/cond.h"
 
 namespace solver {
 

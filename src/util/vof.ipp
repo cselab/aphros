@@ -14,6 +14,7 @@
 #include <march.h>
 
 #include "vof.h"
+#include "solver/approx.h"
 #include "geom/mesh.h"
 #include "dump/vtk.h"
 #include "solver/reconst.h"

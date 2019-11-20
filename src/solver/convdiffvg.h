@@ -32,14 +32,12 @@ class ConvDiffVectGeneric : public ConvDiffVect<M_> {
   // par: parameters
   ConvDiffVectGeneric(
       M& m, const FieldCell<Vect>& fcvel,
-      const MapFace<std::shared_ptr<CondFace>>& mfc, 
+      const MapFace<std::shared_ptr<CondFace>>& mfc,
       const MapCell<std::shared_ptr<CondCell>>& mcc,
-      const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd, 
-      const FieldCell<Vect>* fcs, const FieldFace<Scal>* ffv, 
-      double t, double dt, std::shared_ptr<Par> par);
+      const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
+      const FieldCell<Vect>* fcs, const FieldFace<Scal>* ffv,
+      double t, double dt, const Par& par);
   ~ConvDiffVectGeneric();
-  // Parameters
-  Par* GetPar();
   // ...
   void Assemble(
       const FieldCell<Vect>& fcw, const FieldFace<Scal>& ffv) override;

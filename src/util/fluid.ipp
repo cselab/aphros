@@ -2,14 +2,17 @@
 
 #include <functional>
 #include <stdexcept>
+#include <memory>
 
 #include "fluid.h"
+#include "solver/approx.h"
 #include "solver/fluid.h"
 #include "parse/vars.h"
 #include "func/primlist.h"
 #include "func/init_u.h"
 #include "dump/vtk.h"
 
+using namespace solver;
 
 template <class M>
 FieldCell<typename M::Scal> GetBcField(

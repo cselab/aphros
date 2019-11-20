@@ -322,15 +322,13 @@ void Convdiff<M>::TestSolve(
     // scaling for as_
     fc_sc_.Reinit(m, 1.); 
 
-    auto p = std::make_shared<typename AS::Par>();
-    p->relax = var.Double["relax"];
-    p->guessextra = 0.;
-    p->second = 0;
+    typename AS::Par p;
+    p.relax = var.Double["relax"];
+    p.guessextra = 0.;
+    p.second = 0;
 
-    as_.reset(new AS(
-          m, fc_u, mf_cond, mc_cond, 
-          &fc_sc_, &ff_d_, &fc_src_, &ff_flux_,
-          0., var.Double["dt"], p));
+    as_.reset(new AS(m, fc_u, mf_cond, mc_cond,
+          &fc_sc_, &ff_d_, &fc_src_, &ff_flux_, 0., var.Double["dt"], p));
 
     // exact solution
     fc_exact_.Reinit(m);

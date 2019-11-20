@@ -5,6 +5,10 @@ set(T "utilfluid")
 add_library(${T} fluid.cpp)
 target_link_libraries(${T} vars)
 
+set(T "utilconvdiff")
+add_library(${T} convdiff.cpp)
+target_link_libraries(${T} convdiffvg)
+
 set(T "utilvof")
 add_library(${T} vof.cpp)
 target_link_libraries(${T} march)

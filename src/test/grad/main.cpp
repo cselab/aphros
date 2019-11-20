@@ -7,6 +7,8 @@
 
 #include "geom/mesh.h"
 #include "solver/solver.h"
+#include "solver/cond.h"
+#include "solver/approx.h"
 
 const int dim = 3;
 using MIdx = GMIdx<dim>;

@@ -10,6 +10,8 @@
 
 #include "geom/mesh.h"
 #include "solver/solver.h"
+#include "solver/cond.h"
+#include "solver/approx.h"
 #include "util/timer.h"
 #include "util/sysinfo.h"
 

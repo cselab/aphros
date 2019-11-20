@@ -5,6 +5,7 @@
 #include "distr/distrbasic.h"
 #include "func/init_u.h"
 #include "solver/solver.h"
+#include "solver/approx.h"
 #include "util/vof.h"
 #include "dump/dump.h"
 #include "solver/trackerm.h"

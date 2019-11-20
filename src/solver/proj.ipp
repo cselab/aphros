@@ -7,11 +7,11 @@
 
 #include "proj.h"
 #include "util/metrics.h"
-#include "convdiffvg.h"
-#include "convdiffi.h"
-#include "convdiffe.h"
+#include "convdiffv.h"
+#include "util/convdiff.h"
 #include "fluid.h"
 #include "debug/isnan.h"
+#include "approx.h"
 
 // Rules:
 // - Each function assumes that all fields on layers
@@ -39,10 +39,6 @@ template <class M_>
 struct Proj<M_>::Imp {
   using Owner = Proj<M_>;
   using CD = ConvDiffVect<M>; // convdiff solver
-  // convdiff solver implicit
-  using CDI = ConvDiffVectGeneric<M, ConvDiffScalImp<M>>; 
-  // convdiff solver explicit
-  using CDE = ConvDiffVectGeneric<M, ConvDiffScalExp<M>>; 
   // Expression on face: v[0] * cm + v[1] * cp + v[2]
   using ExprFace = GVect<Scal, 3>;
   // Expression on cell: v[0] * c + v[1] * cxm + ... + v[6] * czp + v[7]
@@ -105,7 +101,12 @@ struct Proj<M_>::Imp {
       }
     }
 
-    InitConvDiff(fcw);
+    fcfcd_.Reinit(m, Vect(0));
+    typename CD::Par p;
+    SetConvDiffPar(p, *par);
+    cd_ = GetConvDiff<M>()(
+          par->conv, m, fcw, mfcw_, mccw_, owner_->fcr_, &ffd_, &fcfcd_,
+          &ffv_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
 
     fcp_.time_curr.Reinit(m, 0.);
     fcp_.time_prev = fcp_.time_curr;
@@ -123,26 +124,6 @@ struct Proj<M_>::Imp {
     }
 
     ffv_.time_prev = ffv_.time_curr;
-  }
-
-  void InitConvDiff(const FieldCell<Vect>& fcw) {
-    fcfcd_.Reinit(m, Vect(0));
-
-    if (par->conv == Conv::imp) {
-      auto p = std::make_shared<typename CDI::Par>();
-      Update(*p, *par);
-
-      cd_ = std::make_shared<CDI>(
-          m, fcw, mfcw_, mccw_, owner_->fcr_, &ffd_, &fcfcd_, 
-          &ffv_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
-    } else if (par->conv == Conv::exp) {
-      auto p = std::make_shared<typename CDE::Par>();
-      Update(*p, *par);
-
-      cd_ = std::make_shared<CDE>(
-          m, fcw, mfcw_, mccw_, owner_->fcr_, &ffd_, &fcfcd_, 
-          &ffv_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
-    }
   }
 
   // TODO: somehow track dependencies to define execution order
@@ -328,30 +309,6 @@ struct Proj<M_>::Imp {
         }
       }
     }
-  }
-  void Update(typename CDI::Par& d, const Par& p) {
-    // Update convdiff parameters
-    d.relax = p.vrelax;
-    d.guessextra = p.guessextra;
-    d.second = p.second;
-    d.sc = p.convsc;
-    d.df = p.convdf;
-    d.linreport = p.linreport;
-  }
-  void Update(CDI* cd, const Par& p) {
-    Update(*cd->GetPar(), p);
-  }
-  void Update(typename CDE::Par& d, const Par& p) {
-    // Update convdiff parameters
-    d.relax = p.vrelax;
-    d.guessextra = p.guessextra;
-    d.second = p.second;
-    d.sc = p.convsc;
-    d.df = p.convdf;
-    d.linreport = p.linreport;
-  }
-  void Update(CDE* cd, const Par& p) {
-    Update(*cd->GetPar(), p);
   }
   void StartStep() {
     auto sem = m.GetSem("fluid-start");
@@ -550,14 +507,8 @@ struct Proj<M_>::Imp {
     auto& fcp_prev = fcp_.iter_prev;
     auto& fcp_curr = fcp_.iter_curr;
     if (sem("init")) {
-      // update convdiff par
-      if (auto p = dynamic_cast<CDI*>(cd_.get())) {
-        Update(p, *par);
-      } else if (auto p = dynamic_cast<CDE*>(cd_.get())) {
-        Update(p, *par);
-      } else {
-        throw std::runtime_error(sem.GetName() + ": unknown cd_");
-      }
+      cd_->SetPar(UpdateConvDiffPar(cd_->GetPar(), *par));
+
       // interpolate visosity 
       ffd_ = Interpolate(*owner_->fcd_, mfcd_, m);
 

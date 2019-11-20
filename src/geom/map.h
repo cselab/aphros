@@ -2,6 +2,8 @@
 
 #include <map>
 
+#include "field.h"
+
 // Idx_: instance of GIdx
 template <class Value_, class Idx_>
 class GMap {
