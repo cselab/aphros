@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <memory>
 
-#include "fluid.h"
+#include "hydro.h"
 #include "solver/approx.h"
 #include "solver/fluid.h"
 #include "parse/vars.h"
