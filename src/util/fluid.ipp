@@ -3,6 +3,7 @@
 #include <functional>
 #include <stdexcept>
 
+#include "fluid.h"
 #include "solver/fluid.h"
 #include "parse/vars.h"
 #include "func/primlist.h"
