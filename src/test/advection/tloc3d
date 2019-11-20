@@ -1,0 +1,16 @@
+include std.conf
+
+set double extent 1
+set double tmax 1
+set double dump_field_dt 0.5
+set double dump_part_dt 0.5
+
+set string init_vel uni
+set vect vel 0.6 0.5 0.3
+
+set vect circle_c 0.2 0.16 0.13
+set double circle_r 0.13
+
+set int dim 3
+
+set string vof_scheme weymouth

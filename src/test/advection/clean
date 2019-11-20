@@ -1,4 +1,4 @@
 #!/bin/bash
 
 make -f `ch.makesim` cleanall
-rm -vf *.dat
+rm -vf *.dat u_*.vtk
