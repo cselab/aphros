@@ -2,6 +2,7 @@
 #include <cmath>
 #include <sstream>
 
+#include "partstrmeshm.h"
 #include "geom/mesh.h"
 #include "solver.h"
 #include "reconst.h"

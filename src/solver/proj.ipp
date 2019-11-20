@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <memory>
 
+#include "proj.h"
 #include "util/metrics.h"
 #include "convdiffvg.h"
 #include "convdiffi.h"

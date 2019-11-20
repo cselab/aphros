@@ -1,4 +1,3 @@
-#include "multi.h"
 #include "multi.ipp"
 
 namespace solver {

@@ -1,4 +1,3 @@
-#include "vofm.h"
 #include "vofm.ipp"
 
 namespace solver {

@@ -1,4 +1,3 @@
-#include "proj.h"
 #include "proj.ipp"
 
 namespace solver {
