@@ -9,7 +9,7 @@
 namespace solver {
 
 template <class M_>
-class Vofm : public AdvectionSolver<M_> {
+class Vofm final : public AdvectionSolver<M_> {
  public:
   using M = M_;
   using P = AdvectionSolver<M>;

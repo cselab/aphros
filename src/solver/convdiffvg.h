@@ -8,7 +8,7 @@
 namespace solver {
 
 template <class M_, class CD_>
-class ConvDiffVectGeneric : public ConvDiffVect<M_> {
+class ConvDiffVectGeneric final : public ConvDiffVect<M_> {
  public:
   using M = M_;
   using P = ConvDiffVect<M>; // parent
