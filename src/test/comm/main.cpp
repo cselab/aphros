@@ -579,7 +579,7 @@ void Simple<M>::TestPois() {
       std::cout << "\n\n*** TestPois() ***" << std::endl;
     }
     // solver
-    MapFace<std::shared_ptr<solver::CondFace>> mf;
+    MapCondFace mf;
     ps_ = std::make_shared<solver::PoisSolver<M>>(mf, m);
     // exact solution
     fc_exsol_.Reinit(m);

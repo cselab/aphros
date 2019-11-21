@@ -16,7 +16,7 @@ struct ConvDiffScalImp<M_>::Imp {
   using Vect = typename M::Vect;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu,
-      const MapFace<std::shared_ptr<CondFace>>& mfc, 
+      const MapCondFace& mfc, 
       const MapCell<std::shared_ptr<CondCell>>& mcc)
       : owner_(owner), par(&owner_->GetPar()), m(owner_->m)
       , mfc_(mfc), mcc_(mcc), dtp_(-1.), er_(0)
@@ -268,7 +268,7 @@ struct ConvDiffScalImp<M_>::Imp {
   M& m; // mesh
 
   LayersData<FieldCell<Scal>> fcu_; // field
-  MapFace<std::shared_ptr<CondFace>> mfc_; // face cond
+  MapCondFace mfc_; // face cond
   MapCell<std::shared_ptr<CondCell>> mcc_; // cell cond
 
   FieldCell<Expr> fcucs_;  // linear system for correction
@@ -280,7 +280,7 @@ struct ConvDiffScalImp<M_>::Imp {
 template <class M_>
 ConvDiffScalImp<M_>::ConvDiffScalImp(
     M& m, const FieldCell<Scal>& fcu, 
-    const MapFace<std::shared_ptr<CondFace>>& mfc, 
+    const MapCondFace& mfc, 
     const MapCell<std::shared_ptr<CondCell>>& mcc, 
     const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
     const FieldCell<Scal>* fcs, const FieldFace<Scal>* ffv,

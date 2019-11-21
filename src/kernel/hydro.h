@@ -121,9 +121,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void InitStat();
   void InitVort();
   // zero-gradient bc vect
-  MapFace<std::shared_ptr<solver::CondFace>> GetBcVz() const;
+  MapCondFace GetBcVz() const;
   // zero-gradient bc scal
-  MapFace<std::shared_ptr<solver::CondFace>> GetBcSz() const;
+  MapCondFace GetBcSz() const;
   void DumpFields();
   void Dump();
   static void DumpTraj(
@@ -296,10 +296,10 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Vect> fc_force_;  // force 
   FieldFace<Scal> ffbp_;  // balanced force projections
   FieldFace<Scal> ffk_;  // curvature on faces
-  MapFace<std::shared_ptr<solver::CondFace>> mf_cond_;
-  MapFace<std::shared_ptr<solver::CondFace>> mf_cond_vfsm_;
-  MapFace<std::shared_ptr<solver::CondFaceFluid>> mf_velcond_; // fluid cond
-  MapFace<std::shared_ptr<solver::CondFace>> mfcw_; // velocity cond
+  MapCondFace mf_cond_;
+  MapCondFace mf_cond_vfsm_;
+  MapCondFaceFluid mf_velcond_; // fluid cond
+  MapCondFace mfcw_; // velocity cond
   MapCell<std::shared_ptr<solver::CondCell>> mc_cond_;
   MapCell<std::shared_ptr<solver::CondCellFluid>> mc_velcond_;
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
@@ -429,9 +429,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 };
 
 template <class M>
-auto Hydro<M>::GetBcVz() const -> MapFace<std::shared_ptr<solver::CondFace>> {
+auto Hydro<M>::GetBcVz() const -> MapCondFace {
   // zero-derivative bc for Vect
-  MapFace<std::shared_ptr<solver::CondFace>> r;
+  MapCondFace r;
   for (auto it : mf_velcond_) {
     IdxFace f = it.GetIdx();
     r[f] = std::make_shared<solver::
@@ -441,9 +441,9 @@ auto Hydro<M>::GetBcVz() const -> MapFace<std::shared_ptr<solver::CondFace>> {
 }
 
 template <class M>
-auto Hydro<M>::GetBcSz() const -> MapFace<std::shared_ptr<solver::CondFace>> {
+auto Hydro<M>::GetBcSz() const -> MapCondFace {
   // zero-derivative bc for Vect
-  MapFace<std::shared_ptr<solver::CondFace>> r;
+  MapCondFace r;
   for (auto it : mf_velcond_) {
     IdxFace f = it.GetIdx();
     r[f] = std::make_shared<solver::

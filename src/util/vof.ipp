@@ -614,8 +614,7 @@ struct UVof<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0,
-      Scal clfixed, Vect clfixed_x, Scal coalth,
-      const MapFace<std::shared_ptr<CondFace>>& mfc_cl,
+      Scal clfixed, Vect clfixed_x, Scal coalth, const MapCondFace& mfc_cl,
       bool verb, bool reduce, bool grid, M& m) {
     auto sem = m.GetSem("recolor");
     struct {
@@ -712,8 +711,7 @@ struct UVof<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0,
-      Scal clfixed, Vect clfixed_x, Scal coalth,
-      const MapFace<std::shared_ptr<CondFace>>& mfc_cl,
+      Scal clfixed, Vect clfixed_x, Scal coalth, const MapCondFace& mfc_cl,
       bool verb, bool reduce, bool grid, M& m) {
     auto sem = m.GetSem("recolor");
     struct {
@@ -885,10 +883,8 @@ struct UVof<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0,
-      Scal clfixed, Vect clfixed_x, Scal coalth,
-      const MapFace<std::shared_ptr<CondFace>>& mfc,
-      bool verb, bool unionfind, bool reduce, bool grid,
-      M& m) {
+      Scal clfixed, Vect clfixed_x, Scal coalth, const MapCondFace& mfc,
+      bool verb, bool unionfind, bool reduce, bool grid, M& m) {
     if (unionfind) {
       return RecolorUnionFind(layers, fcu, fccl, fccl0, clfixed, clfixed_x,
                               coalth, mfc, verb, reduce, grid, m);
@@ -953,7 +949,7 @@ void UVof<M_>::Recolor(const GRange<size_t>& layers,
     const Multi<FieldCell<Scal>*>& fccl,
     const Multi<const FieldCell<Scal>*>& fccl0,
     Scal clfixed, Vect clfixed_x, Scal coalth,
-    const MapFace<std::shared_ptr<CondFace>>& mfcu,
+    const MapCondFace& mfcu,
     bool verb, bool unionfind, bool reduce, bool grid,
     M& m) {
   Imp::Recolor(layers, fcu, fccl, fccl0, clfixed, clfixed_x, coalth, mfcu,
@@ -962,13 +958,9 @@ void UVof<M_>::Recolor(const GRange<size_t>& layers,
 
 template <class M_>
 void UVof<M_>::GetAdvectionFaceCond(
-    const M& m, const MapFace<std::shared_ptr<CondFace>>& mfc,
-    Scal inletcl,
-    MapFace<std::shared_ptr<CondFace>>& mfc_vf,
-    MapFace<std::shared_ptr<CondFace>>& mfc_cl,
-    MapFace<std::shared_ptr<CondFace>>& mfc_im,
-    MapFace<std::shared_ptr<CondFace>>& mfc_n,
-    MapFace<std::shared_ptr<CondFace>>& mfc_a) {
+    const M& m, const MapCondFace& mfc, Scal inletcl,
+    MapCondFace& mfc_vf, MapCondFace& mfc_cl, MapCondFace& mfc_im,
+    MapCondFace& mfc_n, MapCondFace& mfc_a) {
   auto kClNone = Imp::kClNone;
   using MIdx = typename M::MIdx;
   using TRM = Trackerm<M>;

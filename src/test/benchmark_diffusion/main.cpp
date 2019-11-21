@@ -105,7 +105,7 @@ class Interp : public TimerMesh {
 
  private:
   FieldCell<Scal> fc;
-  MapFace<std::shared_ptr<solver::CondFace>> mfc;
+  MapCondFace mfc;
   FieldFace<Scal> ff;
 };
 

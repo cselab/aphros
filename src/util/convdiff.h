@@ -14,13 +14,11 @@ using namespace solver;
 // mfv: vector velocity conditions
 // d: direction, 0..2
 template <class M>
-MapFace<std::shared_ptr<solver::CondFace>> 
-GetScalarCond(const MapFace<std::shared_ptr<solver::CondFace>>& mfv, 
-              size_t d, const M& m) {
+MapCondFace GetScalarCond(const MapCondFace& mfv, size_t d, const M& m) {
   using namespace solver;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  MapFace<std::shared_ptr<CondFace>> mfs;
+  MapCondFace mfs;
   // Face conditions for each velocity component
   for (auto it : mfv) {
     IdxFace f = it.GetIdx();
@@ -56,8 +54,7 @@ struct GetConvDiff {
 
   std::unique_ptr<ConvDiffVect<M>> operator()(
       Conv conv, M& m, const FieldCell<Vect>& fcvel,
-      const MapFace<std::shared_ptr<CondFace>>& mfc,
-      const MapCell<std::shared_ptr<CondCell>>& mcc,
+      const MapCondFace& mfc, const MapCell<std::shared_ptr<CondCell>>& mcc,
       const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
       const FieldCell<Vect>* fcs, const FieldFace<Scal>* ffv,
       double t, double dt, const Par& par);

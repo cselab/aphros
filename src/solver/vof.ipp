@@ -31,8 +31,7 @@ struct Vof<M_>::Imp {
   using MIdx = typename M::MIdx;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-      const MapFace<std::shared_ptr<CondFace>>& mfc,
-      std::shared_ptr<Par> par)
+      const MapCondFace& mfc, std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m), layers(1)
       , mfc_(mfc), fccl_(fccl), fcim_(m, TRM::Pack(MIdx(0)))
       , fca_(m, GetNan<Scal>()), fcn_(m, GetNan<Vect>())
@@ -64,7 +63,7 @@ struct Vof<M_>::Imp {
     psm->vtkmerge = par->vtkmerge;
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
   }
-  void UpdateBc(const MapFace<std::shared_ptr<CondFace>>& mfc) {
+  void UpdateBc(const MapCondFace& mfc) {
     UVof<M>::GetAdvectionFaceCond(
         m, mfc, par->inletcl, mfc_vf_, mfc_cl_, mfc_im_, mfc_n_, mfc_a_);
   }
@@ -271,7 +270,7 @@ struct Vof<M_>::Imp {
       FieldCell<Scal>& uc, size_t d, const FieldFace<Scal>& ffv,
       FieldCell<Scal>& fccl, FieldCell<Scal>& fcim,
       const FieldCell<Vect>& fcn, const FieldCell<Scal>& fca,
-      const MapFace<std::shared_ptr<CondFace>>* mfc, int type,
+      const MapCondFace* mfc, int type,
       const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
       const FieldCell<Scal>* fcuu,
       Scal dt, Scal clipth, const M& m) {
@@ -638,12 +637,12 @@ struct Vof<M_>::Imp {
 
   LayersData<FieldCell<Scal>> fcu_;
   FieldCell<Scal> fcuu_;   // volume fraction for Weymouth div term
-  MapFace<std::shared_ptr<CondFace>> mfc_; // conditions on advection
-  MapFace<std::shared_ptr<CondFace>> mfc_vf_; // conditions on vf
-  MapFace<std::shared_ptr<CondFace>> mfc_cl_; // conditions on cl
-  MapFace<std::shared_ptr<CondFace>> mfc_im_; // conditions on cl
-  MapFace<std::shared_ptr<CondFace>> mfc_n_; // conditions on n
-  MapFace<std::shared_ptr<CondFace>> mfc_a_; // conditions on a
+  MapCondFace mfc_; // conditions on advection
+  MapCondFace mfc_vf_; // conditions on vf
+  MapCondFace mfc_cl_; // conditions on cl
+  MapCondFace mfc_im_; // conditions on cl
+  MapCondFace mfc_n_; // conditions on n
+  MapCondFace mfc_a_; // conditions on a
 
   FieldCell<Scal> fccl_; // color
   FieldCell<Scal> fcim_; // image
@@ -666,7 +665,7 @@ struct Vof<M_>::Imp {
 template <class M_>
 Vof<M_>::Vof(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-    const MapFace<std::shared_ptr<CondFace>>& mfc,
+    const MapCondFace& mfc,
     const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
     double t, double dt, std::shared_ptr<Par> par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)

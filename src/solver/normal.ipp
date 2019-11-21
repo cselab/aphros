@@ -25,8 +25,8 @@ struct UNormal<M_>::Imp {
   // Output: modified in cells with msk=1
   // fcn: normal [s] 
   static void CalcNormalGrad(M& m, const FieldCell<Scal>& uc,
-                             const MapFace<std::shared_ptr<CondFace>>& mfc,
-                              FieldCell<Vect>& fcn) {
+                             const MapCondFace& mfc,
+                             FieldCell<Vect>& fcn) {
     auto uf = Interpolate(uc, mfc, m);
     auto gc = Gradient(uf, m);
     for (auto c : m.AllCells()) {

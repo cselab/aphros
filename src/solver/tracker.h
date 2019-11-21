@@ -27,8 +27,7 @@ class Tracker {
   // fcu: volume fraction [a]
   void Update(
       const FieldCell<Scal>& fcu, Scal th, Scal clfixed, Vect clfixed_x,
-      const MapFace<std::shared_ptr<CondFace>>& mfc,
-      bool unionfind, bool reduce, bool grid);
+      const MapCondFace& mfc, bool unionfind, bool reduce, bool grid);
   // Returns color [a]
   const FieldCell<Scal>& GetColor() const { return fccl_; }
   MIdx GetImage(IdxCell c) const { return trm_->GetImage(0, c); }
@@ -46,8 +45,7 @@ class Tracker {
 template <class M_>
 void Tracker<M_>::Update(
     const FieldCell<Scal>& fcu, Scal th, Scal clfixed, Vect clfixed_x,
-    const MapFace<std::shared_ptr<CondFace>>& mfc,
-    bool unionfind, bool reduce, bool grid) {
+    const MapCondFace& mfc, bool unionfind, bool reduce, bool grid) {
   auto sem = m.GetSem("upd");
 
   struct {
