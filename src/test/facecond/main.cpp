@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iostream>
 #include <cassert>
+#include <typeinfo>
 
 #include "solver/cond.h"
 
@@ -9,37 +10,137 @@ const int dim = 3;
 using Scal = double;
 using Vect = GVect<Scal, dim>;
 
+using namespace solver;
+
+std::string P(const void*) {
+  return std::string();
+}
+
+std::string P(const CondFace* b) {
+  std::stringstream ss;
+  ss << " " << b->GetNci();
+  return ss.str();
+}
+
+template <class T>
+std::string P(const CondFaceVal<T>* d) {
+  std::stringstream ss;
+  ss << " " << d->GetNci() << " " << d->GetValue();
+  return ss.str();
+}
+
+template <class T>
+std::string P(const CondFaceGrad<T>* d) {
+  std::stringstream ss;
+  ss << " " << d->GetNci() << " " << d->GetGrad();
+  return ss.str();
+}
+
+
+template <class D>
+void Try(const UniquePtr<CondFace>& b, std::string& s) {
+  if (auto d = b.Get<D>()) {
+    s = typeid(d).name() + P(d);
+  }
+}
+
+template <class V>
+class CondFaceValCustom : public CondFaceVal<V> {
+ public:
+  CondFaceValCustom(const V& v, size_t nci) : CondFaceVal<V>(nci), v_(v) {}
+  V GetValue() const override { return v_; }
+
+ private:
+  V v_;
+};
+
+template <class V>
+class CondFaceGradCustom : public CondFaceGrad<V> {
+ public:
+  CondFaceGradCustom(const V& v, size_t nci) : CondFaceGrad<V>(nci), v_(v) {}
+  V GetGrad() const override { return v_; }
+
+ private:
+  V v_;
+};
+
+class CondFaceReflectCustom : public CondFaceReflect {
+ public:
+  CondFaceReflectCustom(size_t nci) : CondFaceReflect(nci) {}
+};
+
+class CondFaceExtrapCustom : public CondFaceExtrap {
+ public:
+  CondFaceExtrapCustom(size_t nci) : CondFaceExtrap(nci) {}
+};
+
+
+void Print(const UniquePtr<CondFace>& b) {
+  std::string s{"none"};
+  Try<CondFace>(b, s);
+  Try<CondFaceVal<Scal>>(b, s);
+  Try<CondFaceVal<Vect>>(b, s);
+  Try<CondFaceValFixed<Scal>>(b, s);
+  Try<CondFaceValFixed<Vect>>(b, s);
+  Try<CondFaceValCustom<Scal>>(b, s);
+  Try<CondFaceValCustom<Vect>>(b, s);
+
+  Try<CondFaceGrad<Scal>>(b, s);
+  Try<CondFaceGrad<Vect>>(b, s);
+  Try<CondFaceGradFixed<Scal>>(b, s);
+  Try<CondFaceGradFixed<Vect>>(b, s);
+  Try<CondFaceGradCustom<Scal>>(b, s);
+  Try<CondFaceGradCustom<Vect>>(b, s);
+
+  Try<CondFaceReflect>(b, s);
+  Try<CondFaceExtrap>(b, s);
+
+  std::cout << s << std::endl;
+}
+
+#define EPrint(x) { std::cout << "-> " << #x << std::endl; \
+    try { Print(x); } catch(const std::runtime_error& e) { \
+    std::cout << e.what() << std::endl; } }
+
+#define ECHO(x) std::cout << #x << std::endl; x;
+
 void Test() {
-  Rect<Vect> dom{Vect(0), Vect(1)};
-  using M = MeshStructured<Scal, dim>;
-  MIdx b(0); // lower index
-  MIdx s(2);    // size in cells
-  int hl = 2;         // halos
-  M m = InitUniformMesh<M>(dom, b, s, hl, true, true, s, 0);
+  UniquePtr<CondFace> b;
+  ECHO()
+  ECHO(b.Set<CondFaceValCustom<Scal>>(3.14, 1);)
+  EPrint(b);
+  EPrint(Eval<Scal>(b));
+  EPrint(Eval<Vect>(b));
 
-  auto bc = m.GetIndexCells();
-  auto bf = m.GetIndexFaces();
+  ECHO()
+  ECHO(b.Set<CondFaceGradCustom<Scal>>(3.14, 1);)
+  EPrint(b);
+  EPrint(Eval<Scal>(b));
+  EPrint(Eval<Vect>(b));
 
-  auto t = [&](MIdx fw, size_t fd, size_t nci) {
-    IdxFace f = bf.GetIdx(fw, Dir(fd));
-    IdxCell cmm, cm, cp, cpp;
-    GetCellColumn(m, f, nci, cmm, cm, cp, cpp);
-    std::cout
-        << "fw=" << fw
-        << " fd=" << fd
-        << " nci=" << nci
-        << " cmm=" << bc.GetMIdx(cmm) << " cm=" << bc.GetMIdx(cm)
-        << " cp=" << bc.GetMIdx(cp) << " cpp=" << bc.GetMIdx(cpp)
-        << std::endl;
-  };
-  t(MIdx(0), 0, 1);
-  t(MIdx(0), 0, 0);
-  t(MIdx(0), 1, 1);
-  t(MIdx(0), 1, 0);
-  t(MIdx(0), 2, 1);
-  t(MIdx(0), 2, 0);
-  t(MIdx(1), 0, 1);
-  t(MIdx(1), 0, 0);
+  ECHO()
+  ECHO(b.Set<CondFaceValCustom<Vect>>(Vect(1., 2., 3.), 1);)
+  EPrint(b);
+  EPrint(Eval<Scal>(b));
+  EPrint(Eval<Vect>(b));
+
+  ECHO()
+  ECHO(b.Set<CondFaceGradCustom<Vect>>(Vect(1., 2., 3.), 1);)
+  EPrint(b);
+  EPrint(Eval<Scal>(b));
+  EPrint(Eval<Vect>(b));
+
+  ECHO()
+  ECHO(b.Set<CondFaceReflectCustom>(0);)
+  EPrint(b);
+  EPrint(Eval<Scal>(b));
+  EPrint(Eval<Vect>(b));
+
+  ECHO()
+  ECHO(b.Set<CondFaceExtrapCustom>(0);)
+  EPrint(b);
+  EPrint(Eval<Scal>(b));
+  EPrint(Eval<Vect>(b));
 }
 
 int main() {

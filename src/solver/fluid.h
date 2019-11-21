@@ -298,3 +298,4 @@ MapCondFace GetVelCond(const M& m, const MapCondFaceFluid& mff) {
 
 } // namespace solver
 
+using MapCondFaceFluid = MapFace<UniquePtr<solver::CondFaceFluid>>;
