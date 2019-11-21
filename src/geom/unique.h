@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <type_traits>
+
 template <class T>
 class UniquePtr {
  public:
@@ -29,10 +32,12 @@ class UniquePtr {
 
   template <class U=T>
   U* Get() {
+    static_assert(std::is_base_of<T, U>::value, "Not a derived class");
     return dynamic_cast<U*>(p_.get());
   }
   template <class U=T>
   const U* Get() const {
+    static_assert(std::is_base_of<T, U>::value, "Not a derived class");
     return dynamic_cast<const U*>(p_.get());
   }
   T* operator->() {
