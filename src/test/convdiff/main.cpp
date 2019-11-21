@@ -65,6 +65,7 @@ class Convdiff : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_; // buffer
   FieldCell<Scal> fc_sc_; // scaling
   FieldFace<Scal> ff_d_; // diffusion rate
+  MapCondFace mf_cond_;
 };
 
 template <class T>
@@ -225,8 +226,6 @@ void Convdiff<M>::TestSolve(
 
     using Dir = typename M::Dir;
 
-    MapCondFace mf_cond;
-
     // boundary xm of global mesh
     auto gxm = [this](IdxFace i) -> bool {
       return m.GetDir(i) == Dir::i &&
@@ -253,7 +252,7 @@ void Convdiff<M>::TestSolve(
           m.GetIndexFaces().GetMIdx(i)[2] == gs[2];
     };
     auto parse = [](std::string s, IdxFace, size_t nci, M&) 
-       -> std::shared_ptr<solver::CondFace> {
+       -> UniquePtr<solver::CondFace> {
       std::stringstream arg(s);
 
       std::string name;
@@ -262,12 +261,11 @@ void Convdiff<M>::TestSolve(
       if (name == "value") {
         Scal a;
         arg >> a;
-        return std::make_shared <solver::
-            CondFaceValFixed<Scal>>(a, nci);
+        return UniquePtr<solver::CondFaceValFixed<Scal>>(a, nci);
       } else if (name == "derivative") {
         Scal a;
         arg >> a;
-        return std::make_shared <solver::
+        return UniquePtr<solver::
             CondFaceGradFixed<Scal>>(a, nci);
       } else {
         assert(false);
@@ -278,10 +276,10 @@ void Convdiff<M>::TestSolve(
     // Return true if on global boundary
     auto set_bc = [&](IdxFace i, std::string bc) -> bool {
       if (gxm(i) || gym(i) || gzm(i)) {
-        mf_cond[i] = parse(bc, i, 1, m);
+        mf_cond_[i] = parse(bc, i, 1, m);
         return true;
       } else if (gxp(i) || gyp(i) || gzp(i)) {
-        mf_cond[i] = parse(bc, i, 0, m);
+        mf_cond_[i] = parse(bc, i, 0, m);
         return true;
       } 
       return false;
@@ -327,7 +325,7 @@ void Convdiff<M>::TestSolve(
     p.guessextra = 0.;
     p.second = 0;
 
-    as_.reset(new AS(m, fc_u, mf_cond, mc_cond,
+    as_.reset(new AS(m, fc_u, mf_cond_, mc_cond,
           &fc_sc_, &ff_d_, &fc_src_, &ff_flux_, 0., var.Double["dt"], p));
 
     // exact solution
