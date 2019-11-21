@@ -111,33 +111,41 @@ void Test() {
   EPrint(b);
   EPrint(Eval<Scal>(b));
   EPrint(Eval<Vect>(b));
+  EPrint(EvalComp<Vect>(b, 0));
 
   ECHO()
   ECHO(b.Set<CondFaceGradCustom<Scal>>(3.14, 1);)
   EPrint(b);
   EPrint(Eval<Scal>(b));
   EPrint(Eval<Vect>(b));
+  EPrint(EvalComp<Vect>(b, 0));
 
   ECHO()
-  ECHO(b.Set<CondFaceValCustom<Vect>>(Vect(1., 2., 3.), 1);)
+  ECHO(b.Set<CondFaceValCustom<Vect>>(Vect(1.1, 2.2, 3.3), 1);)
+  EPrint(b);
+  EPrint(Eval<Scal>(b));
+  EPrint(Eval<Vect>(b));
+  EPrint(EvalComp<Vect>(b, 0));
+  EPrint(EvalComp<Vect>(b, 1));
+  EPrint(EvalComp<Vect>(b, 2));
+
+  ECHO()
+  ECHO(b.Set<CondFaceGradCustom<Vect>>(Vect(1.1, 2.2, 3.3), 1);)
+  EPrint(b);
+  EPrint(Eval<Scal>(b));
+  EPrint(Eval<Vect>(b));
+  EPrint(EvalComp<Vect>(b, 0));
+  EPrint(EvalComp<Vect>(b, 1));
+  EPrint(EvalComp<Vect>(b, 2));
+
+  ECHO()
+  ECHO(b.Set<CondFaceReflectCustom>(1);)
   EPrint(b);
   EPrint(Eval<Scal>(b));
   EPrint(Eval<Vect>(b));
 
   ECHO()
-  ECHO(b.Set<CondFaceGradCustom<Vect>>(Vect(1., 2., 3.), 1);)
-  EPrint(b);
-  EPrint(Eval<Scal>(b));
-  EPrint(Eval<Vect>(b));
-
-  ECHO()
-  ECHO(b.Set<CondFaceReflectCustom>(0);)
-  EPrint(b);
-  EPrint(Eval<Scal>(b));
-  EPrint(Eval<Vect>(b));
-
-  ECHO()
-  ECHO(b.Set<CondFaceExtrapCustom>(0);)
+  ECHO(b.Set<CondFaceExtrapCustom>(1);)
   EPrint(b);
   EPrint(Eval<Scal>(b));
   EPrint(Eval<Vect>(b));
