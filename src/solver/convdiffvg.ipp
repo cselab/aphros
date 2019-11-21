@@ -22,22 +22,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       , mfc_(mfc), mcc_(mcc), dr_(0, m.GetEdim())
   {
     for (auto d : dr_) {
-      // Face conditions for each velocity component
-      vmfc_[d] = GetScalarCond(mfc_, d, m);
-
-      // Cell conditions for each velocity component
-      for (auto it : mcc) {
-        IdxCell c = it.GetIdx();
-        CondCell* cb = it.GetValue().get(); // cond base
-
-        if (auto cd = dynamic_cast<CondCellVal<Vect>*>(cb)) {
-          // TODO: revise with CondCellValComp
-          vmcc_[d][c] = std::make_shared<
-              CondCellValFixed<Scal>>(cd->GetValue()[d]);
-        } else {
-          throw std::runtime_error("convdiffvi: unknown cell condition");
-        }
-      }
+      UpdateDerivedCond(d);
 
       // Components of source
       for (auto d : dr_) {
@@ -52,6 +37,24 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
     }
     CopyToVect(Layers::time_curr, fcvel_);
     lvel_ = Layers::time_curr;
+  }
+  void UpdateDerivedCond(size_t d) {
+    // Face conditions for each velocity component
+    vmfc_[d] = GetScalarCond(mfc_, d, m);
+
+    // Cell conditions for each velocity component
+    for (auto it : mcc_) {
+      IdxCell c = it.GetIdx();
+      CondCell* cb = it.GetValue().get(); // cond base
+
+      if (auto cd = dynamic_cast<CondCellVal<Vect>*>(cb)) {
+        // TODO: revise with CondCellValComp
+        vmcc_[d][c] = std::make_shared<
+            CondCellValFixed<Scal>>(cd->GetValue()[d]);
+      } else {
+        throw std::runtime_error("convdiffvg: unknown cell condition");
+      }
+    }
   }
   // Copy from solvers to vector field.
   // l: layer in component solvers
@@ -93,8 +96,9 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   }
   void MakeIteration() {
     auto sem = m.GetSem("convdiffmulti-iter");
-    if (sem("source")) {
+    if (sem("bc-source")) {
       for (auto d : dr_) {
+        UpdateDerivedCond(d);
         vfcs_[d] = GetComponent(*owner_->fcs_, d);
       }
     }
