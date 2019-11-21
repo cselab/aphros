@@ -163,7 +163,7 @@ struct Tvd<M_>::Imp {
 
   // TODO: revise tmp fields
   LayersData<FieldCell<Scal>> fcu_;
-  MapCondFace mfc_;
+  const MapCondFace& mfc_;
   MapCondFace mfvz_; // zero-derivative bc for Vect
 
   FieldFace<Scal> ffvu_; // flux: volume flux * field
