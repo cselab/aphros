@@ -28,7 +28,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       // Cell conditions for each velocity component
       for (auto it : mcc) {
         IdxCell c = it.GetIdx();
-        CondCell* cb = it.GetValue().get(); // cond base
+        CondCell* cb = it.GetValue().,et(); // cond base
 
         if (auto cd = dynamic_cast<CondCellVal<Vect>*>(cb)) {
           // TODO: revise with CondCellValComp

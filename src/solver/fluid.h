@@ -211,8 +211,8 @@ class GivenPressureFixed : public GivenPressure<M> {
 // f: target face 
 // nc: target neighbour cell id
 template <class M>
-std::shared_ptr<CondFaceFluid> Parse(std::string argstr, IdxFace /*f*/,
-                                     size_t nc, const M& /*m*/) {
+UniquePtr<CondFace> Parse(std::string argstr, IdxFace /*f*/,
+                          size_t nc, const M& /*m*/) {
   using namespace fluid_condition;
   using Vect=  typename M::Vect;
   std::stringstream arg(argstr);
@@ -227,7 +227,7 @@ std::shared_ptr<CondFaceFluid> Parse(std::string argstr, IdxFace /*f*/,
     // fill-conditions for volume fraction.
     Vect vel;
     arg >> vel;
-    return std::make_shared<NoSlipWallFixed<M>>(vel, nc);
+    return UniquePtr<NoSlipWallFixed<M>>(vel, nc);
   } else if (name == "inlet") {
     // inlet <velocity>
     // Fixed velocity inlet.
@@ -268,7 +268,7 @@ MapCondFace GetVelCond(const M& m, const MapCondFaceFluid& mff) {
   MapCondFace mf;
   for (auto it : mff) {
     IdxFace i = it.GetIdx();
-    solver::CondFaceFluid* cb = it.GetValue().get();
+    solver::CondFaceFluid* cb = it.GetValue().Get();
     size_t nci = cb->GetNci();
 
     using namespace solver;

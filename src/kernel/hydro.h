@@ -685,7 +685,7 @@ void Hydro<M>::Init() {
     // boundary conditions for smoothing of volume fraction
     for (auto it : mf_velcond_) {
       IdxFace i = it.GetIdx();
-      solver::CondFaceFluid* cb = it.GetValue().get();
+      solver::CondFaceFluid* cb = it.GetValue().Get();
       if (dynamic_cast<solver::fluid_condition::Symm<M>*>(cb)) {
         mf_cond_vfsm_[i] = std::make_shared<solver::
             CondFaceReflect>(it.GetValue()->GetNci());
@@ -701,7 +701,7 @@ void Hydro<M>::Init() {
     // velocity on walls from neighbour cells
     for (auto it : mf_velcond_) {
       IdxFace f = it.GetIdx();
-      solver::CondFaceFluid* cb = it.GetValue().get();
+      solver::CondFaceFluid* cb = it.GetValue().Get();
       if (auto cd = dynamic_cast<NoSlipWallFixed<M>*>(cb)) {
         IdxCell c = m.GetNeighbourCell(f, cd->GetNci());
         cd->SetVelocity(fc_vel_[c]);
@@ -1015,7 +1015,7 @@ void Hydro<M>::CalcStat() {
     // surface area
     if (var.Int["stat_area"]) {
       s.area = 0;
-      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+      if (auto as = dynamic_cast<ASVM*>(as_.,et())) {
         using R = Reconst<Scal>;
         auto &fcn = as->GetNormal(0);
         auto &fca = as->GetAlpha(0);
@@ -1135,7 +1135,7 @@ void Hydro<M>::CalcStat() {
       auto& fa = as_->GetField();
       for (auto it : mf_velcond_) {
         IdxFace f = it.GetIdx();
-        solver::CondFaceFluid* cb = it.GetValue().get();
+        solver::CondFaceFluid* cb = it.GetValue().Get();
         if (auto cd = dynamic_cast<solver::fluid_condition::
             NoSlipWallFixed<M>*>(cb)) {
           size_t nci = cd->GetNci();
@@ -1155,7 +1155,7 @@ void Hydro<M>::CalcStat() {
       const auto& fv = fs_->GetVelocity();
       for (auto it : mf_velcond_) {
         IdxFace f = it.GetIdx();
-        solver::CondFaceFluid* cb = it.GetValue().get();
+        solver::CondFaceFluid* cb = it.GetValue().Get();
         if (auto cd = dynamic_cast<solver::fluid_condition::
             NoSlipWallFixed<M>*>(cb)) {
           size_t nci = cd->GetNci();
@@ -1173,7 +1173,7 @@ void Hydro<M>::CalcStat() {
       const auto& fa = fc_smvf_;
       for (auto it : mf_velcond_) {
         IdxFace f = it.GetIdx();
-        solver::CondFaceFluid* cb = it.GetValue().get();
+        solver::CondFaceFluid* cb = it.GetValue().Get();
         if (auto cd = dynamic_cast<solver::fluid_condition::
             NoSlipWallFixed<M>*>(cb)) {
           size_t nci = cd->GetNci();
@@ -1191,7 +1191,7 @@ void Hydro<M>::CalcStat() {
       for (auto it : mf_velcond_) {
         IdxFace f = it.GetIdx();
         Vect x = m.GetCenter(f);
-        solver::CondFaceFluid* cb = it.GetValue().get();
+        solver::CondFaceFluid* cb = it.GetValue().Get();
         if (auto cd = dynamic_cast<solver::fluid_condition::
             NoSlipWallFixed<M>*>(cb)) {
           cd->SetVelocity(GetYoungVel(x));

@@ -139,9 +139,9 @@ struct ConvDiffScalImp<M_>::Imp {
       }
 
       // Overwrite with cell conditions 
-      for (auto it = mcc_.cbegin(); it != mcc_.cend(); ++it) {
-        IdxCell c(it->GetIdx());
-        CondCell* cb = it->GetValue().get(); // cond base
+      for (auto p : mcc_) {
+        IdxCell c(p.GetIdx());
+        CondCell* cb = p.GetValue().get(); // cond base
         auto& e = fcl[c];
         if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
           Scal v = cd->GetValue() - fcu[c];

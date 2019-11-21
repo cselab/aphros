@@ -22,7 +22,7 @@ MapCondFace GetScalarCond(const MapCondFace& mfv, size_t d, const M& m) {
   // Face conditions for each velocity component
   for (auto it : mfv) {
     IdxFace f = it.GetIdx();
-    CondFace* cb = it.GetValue().get();
+    CondFace* cb = it.GetValue().Get();
     if (auto p = dynamic_cast<CondFaceVal<Vect>*>(cb)) {
       mfs[f] = std::make_shared<CondFaceValComp<Vect>>(p, d);
     } else if (auto p = dynamic_cast<CondFaceGrad<Vect>*>(cb)) {
