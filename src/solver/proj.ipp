@@ -6,9 +6,10 @@
 #include <memory>
 
 #include "proj.h"
-#include "util/metrics.h"
 #include "convdiffv.h"
+#include "util/metrics.h"
 #include "util/convdiff.h"
+#include "util/fluid.h"
 #include "fluid.h"
 #include "debug/isnan.h"
 #include "approx.h"
@@ -202,74 +203,6 @@ struct Proj<M_>::Imp {
       }
     }
   }
-  // TODO: Consider seperate channels in one domain
-  void UpdateOutletBaseConditions() {
-    using namespace fluid_condition;
-
-    Scal& fi = olfi_; // total inlet volume flux
-    Scal& fo = olfo_; // total outlet volume flux
-    Scal& ao = olao_; // total outlet area
-
-    auto sem = m.GetSem("outlet");
-
-    if (sem("local")) { 
-      fi = 0.;
-      fo = 0.;
-      ao = 0.;
-
-      // Extrapolate velocity to outlet from neighbour cells,
-      // and compute total fluxes
-      for (auto p : mfc_) {
-        IdxFace i = p.GetIdx();
-        auto& cb = p.GetValue(); // cond base
-
-        size_t id = cb->GetNci();
-        IdxCell c = m.GetNeighbourCell(i, id);
-        if (m.IsInner(c)) {
-          if (auto cd = cb.Get<Outlet<M>>()) {
-            Scal w = (id == 0 ? 1. : -1.);
-            Vect vc = GetVelocity(Layers::iter_curr)[c];
-            Vect s = m.GetSurface(i);
-            // clip normal component, let only positive
-            vc -= s * (w * std::min(0., vc.dot(s) * w)  / s.dot(s));
-            cd->SetVelocity(vc);
-            fo += cd->GetVelocity().dot(s) * w;
-            ao += m.GetArea(i);
-          } else if (auto cd = cb.Get<Inlet<M>>()) {
-            Scal w = (id == 0 ? -1. : 1.);
-            fi += cd->GetVelocity().dot(m.GetSurface(i)) * w;
-          }
-        }
-      }
-
-      // Append volume source to inlet flux
-      auto& fcsv = *owner_->fcsv_;
-      for (auto i : m.Cells()) {
-        fi += fcsv[i] * m.GetVolume(i);
-      }
-
-      m.Reduce(&fi, "sum");
-      m.Reduce(&fo, "sum");
-      m.Reduce(&ao, "sum");
-    }
-
-    if (sem("corr")) {
-      Scal velcor = (fi - fo) / ao; // Additive correction for velocity
-
-      // Apply correction on outlet faces
-      for (auto p : mfc_) {
-        IdxFace i = p.GetIdx();
-        CondFaceFluid* cb = p.GetValue().Get(); // cond base
-
-        if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
-          size_t id = cd->GetNci();
-          Scal w = (id == 0 ? 1. : -1.);
-          Vect n = m.GetNormal(i);
-          cd->SetVelocity(cd->GetVelocity() + n * (velcor * w));
-        }
-      }
-    }
-  }
   void StartStep() {
     auto sem = m.GetSem("fluid-start");
     if (sem("convdiff-init")) {
@@ -455,7 +388,8 @@ struct Proj<M_>::Imp {
       UpdateInletFlux();
     }
     if (sem.Nested("bc-outlet")) {
-      UpdateOutletBaseConditions();
+      UFluid<M>::UpdateOutletBaseConditions(
+          m, GetVelocity(Layers::iter_curr), mfc_, *owner_->fcsv_);
     }
     if (sem("bc-derived")) {
       UpdateDerivedConditions();
