@@ -24,6 +24,8 @@ using namespace std;
 template <typename TView, int bx_, int by_, int bz_>
 class SynchronizerMPI
 {
+    using FieldContainer = std::vector<std::vector<TView>>;
+
     static const int bx = bx_;
     static const int by = by_;
     static const int bz = bz_;
@@ -43,7 +45,6 @@ class SynchronizerMPI
     struct PackInfo { Real * block, * pack; int n_comp; int sx, sy, sz, ex, ey, ez; };
     struct SubpackInfo { Real * block, * pack; int n_comp; int sx, sy, sz, ex, ey, ez; int x0, y0, z0, xpacklenght, ypacklenght; };
 
-    std::vector<std::vector<TView>> all_fields;
     bool isroot;
     const size_t stridex; // x-stride of underlying Lab-type
     const size_t stridey; // y-stride of underlying Lab-type
@@ -63,6 +64,7 @@ class SynchronizerMPI
     //?static?
     MPI_Comm cartcomm;
     int blocksize[3];
+    int origin[3];
     int mypeindex[3], pesize[3], mybpd[3];
     int periodic[3];
     int neighborsrank[3][3][3];
@@ -104,14 +106,15 @@ class SynchronizerMPI
         return neighborsrank[indx_final[2]+1-mypeindex[2]][indx_final[1]+1-mypeindex[1]][indx_final[0]+1-mypeindex[0]];
     }
 
-    template <bool computesubregions>
+    template <bool computesubregions, bool alloc_buf=false>
     map<Real *, vector<SubpackInfo>>
     _setup(CommData &data,
            const int thickness[3][2],
            const int blockstart[3],
            const int blockend[3],
            const int origin[3],
-           vector<PackInfo> &packinfos)
+           vector<PackInfo> &packinfos,
+           FieldContainer &fields)
     {
         map<Real *, vector<SubpackInfo> > retval;
 
@@ -136,8 +139,10 @@ class SynchronizerMPI
                 const int NFACE = NFACEBLOCK * mybpd[dim_other1] * mybpd[dim_other2];
 
                 const bool needed = _face_needed(d) || NFACE == 0;
-                data.faces[d][s] =
-                    needed ? _myalloc(sizeof(Real) * NFACE, 16) : NULL;
+                if (alloc_buf) {
+                    data.faces[d][s] =
+                        needed ? _myalloc(sizeof(Real) * NFACE, 16) : NULL;
+                }
 
                 if (!needed) continue;
 
@@ -179,11 +184,11 @@ class SynchronizerMPI
                         const int blockid = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
                         int comp = 0; // number of field components
-                        for (size_t fID = 0; fID < all_fields.size(); ++fID) {
-                            const int field_comp = all_fields[fID][blockid].n_comp;
+                        for (size_t fID = 0; fID < fields.size(); ++fID) {
+                            const int field_comp = fields[fID][blockid].n_comp;
                             assert(field_comp > 0);
                             PackInfo info = {
-                                (Real *)all_fields[fID][blockid].data,
+                                (Real *)fields[fID][blockid].data,
                                 data.faces[d][s] + NFACEBLOCK * (a + n1 * b) +
                                     comp * NFACEBLOCK_COMP,
                                 field_comp,
@@ -217,8 +222,10 @@ class SynchronizerMPI
                     const int NEDGE = NEDGEBLOCK * mybpd[d];
 
                     const bool needed = NEDGE > 0;
-                    data.edges[d][b][a] =
-                        needed ? _myalloc(sizeof(Real) * NEDGE, 16) : NULL;
+                    if (alloc_buf) {
+                        data.edges[d][b][a] =
+                            needed ? _myalloc(sizeof(Real) * NEDGE, 16) : NULL;
+                    }
 
                     if (!needed) continue;
 
@@ -257,11 +264,11 @@ class SynchronizerMPI
                         const int blockid = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
                         int comp = 0; // number of field components
-                        for (size_t fID = 0; fID < all_fields.size(); ++fID) {
-                            const int field_comp = all_fields[fID][blockid].n_comp;
+                        for (size_t fID = 0; fID < fields.size(); ++fID) {
+                            const int field_comp = fields[fID][blockid].n_comp;
                             assert(field_comp > 0);
                             PackInfo info = {
-                                (Real *)all_fields[fID][blockid].data,
+                                (Real *)fields[fID][blockid].data,
                                 data.edges[d][b][a] + NEDGEBLOCK * c +
                                     comp * NEDGEBLOCK_COMP,
                                 field_comp,
@@ -328,10 +335,10 @@ class SynchronizerMPI
                             const int blockID = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
                             int comp = 0; // number of field components
-                            for (size_t fID = 0; fID < all_fields.size(); ++fID) {
+                            for (size_t fID = 0; fID < fields.size(); ++fID) {
 
-                                Real * const ptrBlock = (Real*)all_fields[fID][blockID].data;
-                                const int field_comp = all_fields[fID][blockID].n_comp;
+                                Real * const ptrBlock = (Real*)fields[fID][blockID].data;
+                                const int field_comp = fields[fID][blockID].n_comp;
                                 assert(field_comp > 0);
 
                                 for(int dedge=0; dedge<3; ++dedge) //iterate over edges
@@ -580,9 +587,9 @@ class SynchronizerMPI
                             const int blockID = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
                             int comp = 0; // number of field components
-                            for (size_t fID = 0; fID < all_fields.size(); ++fID) {
-                                Real * const ptrBlock = (Real*)all_fields[fID][blockID].data;
-                                const int field_comp = all_fields[fID][blockID].n_comp;
+                            for (size_t fID = 0; fID < fields.size(); ++fID) {
+                                Real * const ptrBlock = (Real*)fields[fID][blockID].data;
+                                const int field_comp = fields[fID][blockID].n_comp;
                                 assert(field_comp > 0);
 
                                 for(int z=0; z<2; ++z) //iterate over corners
@@ -690,9 +697,11 @@ class SynchronizerMPI
                     const int NCORNERBLOCK = NC * NCORNERBLOCK_COMP;
 
                     const bool needed = NCORNERBLOCK > 0;
-                    data.corners[z][y][x] =
-                        needed ? _myalloc(sizeof(Real) * NCORNERBLOCK, 16)
-                               : NULL;
+                    if (alloc_buf) {
+                        data.corners[z][y][x] =
+                            needed ? _myalloc(sizeof(Real) * NCORNERBLOCK, 16)
+                                   : NULL;
+                    }
 
                     if (!needed) continue;
 
@@ -731,11 +740,11 @@ class SynchronizerMPI
                     const int blockid = c2i[I3(origin[0] + index[0], origin[1] + index[1], origin[2] + index[2])];
 
                     int comp = 0; // number of field components
-                    for (size_t fID = 0; fID < all_fields.size(); ++fID) {
-                        const int field_comp = all_fields[fID][blockid].n_comp;
+                    for (size_t fID = 0; fID < fields.size(); ++fID) {
+                        const int field_comp = fields[fID][blockid].n_comp;
                         assert(field_comp > 0);
                         PackInfo info = {
-                            (Real *)all_fields[fID][blockid].data,
+                            (Real *)fields[fID][blockid].data,
                             data.corners[z][y][x] + comp * NCORNERBLOCK_COMP,
                             field_comp,
                             start[0],
@@ -775,8 +784,34 @@ class SynchronizerMPI
 
     void _myfree(Real *& ptr) {if (ptr!=NULL) { free(ptr); ptr=NULL;} }
 
+    template <bool alloc_buf=false>
+    void _init_maps(FieldContainer &fields)
+    {
+        send_packinfos.clear();
+        recv_packinfos.clear();
+        recv_subpackinfos.clear();
+
+        // allocate memory (if alloc_buf == true) and generate send pack-infos
+        const int z[3] = {0, 0, 0};
+        _setup<false, alloc_buf>(send, send_thickness, z, blocksize, origin, send_packinfos, fields);
+        {
+            const int blockstart[3] = {stencil.sx, stencil.sy, stencil.sz};
+
+            const int blockend[3] = {stencil.ex + blocksize[0] - 1,
+                                     stencil.ey + blocksize[1] - 1,
+                                     stencil.ez + blocksize[2] - 1};
+
+            // generate subpack-infos (no memory allocated here)
+            vector<PackInfo> packinfos;
+            recv_subpackinfos = _setup<true, alloc_buf>(recv, recv_thickness, blockstart, blockend, origin, packinfos, fields);
+
+            for(typename std::vector<PackInfo>::const_iterator it = packinfos.begin(); it<packinfos.end(); ++it)
+                recv_packinfos[it->block].push_back(*it);
+        }
+    }
+
 public:
-    SynchronizerMPI(std::vector<std::vector<TView>> &fields,
+    SynchronizerMPI(FieldContainer &fields,
                     // FIXME: [fabianw@mavt.ethz.ch; 2019-11-11] check if can
                     // get rid of globalinfos
                     vector<BlockInfo> globalinfos,
@@ -784,7 +819,7 @@ public:
                     MPI_Comm cartcomm,
                     const int mybpd[3],
                     const int blocksize[3])
-        : all_fields(fields), stridex(TView::stridex), stridey(TView::stridey),
+        : stridex(TView::stridex), stridey(TView::stridey),
           stencil(stencil), globalinfos(globalinfos),
           cube(mybpd[0], mybpd[1], mybpd[2]), cartcomm(cartcomm)
     {
@@ -794,22 +829,6 @@ public:
 
         MPI_Cart_get(cartcomm, 3, pesize, periodic, mypeindex);
         MPI_Cart_coords(cartcomm, myrank, 3, mypeindex);
-
-#ifndef NDEBUG
-        {
-            const int NC = stencil.selcomponents.size();
-            int total_components = 0;
-            for (size_t i = 0; i < all_fields.size(); ++i) {
-                const auto& f = all_fields[i];
-                assert(0 < f.size());
-                total_components += f[0].n_comp;
-                for (size_t j = 1; j < f.size(); ++j) {
-                    assert(f[j-1].n_comp == f[j].n_comp);
-                }
-            }
-            assert(total_components == NC);
-        }
-#endif /* NDEBUG */
 
         for(int iz=0; iz<3; iz++)
             for(int iy=0; iy<3; iy++)
@@ -823,6 +842,7 @@ public:
 
         for(int i=0; i<3; ++i) this->mybpd[i]=mybpd[i];
         for(int i=0; i<3; ++i) this->blocksize[i]=blocksize[i];
+        for(int i=0; i<3; ++i) origin[i] = mypeindex[i] * mybpd[i];
 
         for(size_t i=0; i< globalinfos.size(); ++i) {
             I3 coord(globalinfos[i].index[0],
@@ -831,47 +851,19 @@ public:
             c2i[coord] = i;
         }
 
-        const int origin[3] = {
-      mypeindex[0]*mybpd[0],
-      mypeindex[1]*mybpd[1],
-      mypeindex[2]*mybpd[2]
-        };
-
         const int s[3] = {stencil.sx, stencil.sy, stencil.sz};
         const int e[3] = {stencil.ex, stencil.ey, stencil.ez};
-        const int z[3] = {0, 0, 0};
 
         send_thickness[0][0] = e[0] - 1;  send_thickness[0][1] = -s[0];
         send_thickness[1][0] = e[1] - 1;  send_thickness[1][1] = -s[1];
         send_thickness[2][0] = e[2] - 1;  send_thickness[2][1] = -s[2];
 
-        // allocate memory and generate send pack-infos
-        _setup<false>(send, send_thickness, z, blocksize, origin, send_packinfos);
-
         recv_thickness[0][0] = -s[0]; recv_thickness[0][1] = e[0] - 1;
         recv_thickness[1][0] = -s[1]; recv_thickness[1][1] = e[1] - 1;
         recv_thickness[2][0] = -s[2]; recv_thickness[2][1] = e[2] - 1;
 
-        {
-            const int blockstart[3] = {
-                stencil.sx ,
-                stencil.sy ,
-                stencil.sz
-            };
-
-            const int blockend[3] = {
-                stencil.ex + blocksize[0]-1,
-                stencil.ey + blocksize[1]-1,
-                stencil.ez + blocksize[2]-1
-            };
-
-            // generate subpack-infos (no memory allocated here)
-            vector<PackInfo> packinfos;
-            recv_subpackinfos = _setup<true>(recv, recv_thickness, blockstart, blockend, origin, packinfos);
-
-            for(typename std::vector<PackInfo>::const_iterator it = packinfos.begin(); it<packinfos.end(); ++it)
-                recv_packinfos[it->block].push_back(*it);
-        }
+        // allocate communication buffers
+        _init_maps<true>(fields);
 
         assert(recv.pending.size() == 0);
         assert(send.pending.size() == 0);
@@ -887,7 +879,7 @@ public:
             _myfree(all_mallocs[i]);
     }
 
-    void sync(MPI_Datatype MPIREAL, const int timestamp)
+    void sync(FieldContainer &fields, MPI_Datatype MPIREAL, const int timestamp)
     {
         // 0. wait for pending sends, couple of checks
         // 1. pack all stuff
@@ -917,8 +909,18 @@ public:
             }
         }
 
-        assert(recv.pending.size() == 0);
-        assert(send.pending.size() == 0);
+// XXX: [fabianw@mavt.ethz.ch; 2019-11-21] This is dangerous as in general there
+// might be pending sends from above which still require the old mappings later
+// when ghosts are loaded via the blocklab (if the same synchronizer is used in
+// different stages).  As long as stages execute one after another this is not
+// problematic, if stages can execute asynchronously then an additional stage
+// identifier is needed to guarantee a unique synchronizer for that stage.  This
+// is at the cost of additional communication buffers managed by each
+// synchronizer separately.
+        _init_maps(fields); // recompute field maps that correspond to memory
+                            // locations in fields
+// FIXME: [fabianw@mavt.ethz.ch; 2019-11-21] // only for synchronous stage execution!
+        recv.pending.clear(); 
 
         cube.prepare();
         blockinfo_counter = globalinfos.size();
@@ -1080,11 +1082,6 @@ public:
 
         // 3.
         cube.make_dependencies(isroot);
-    }
-
-    inline std::vector<std::vector<TView>> getFields() const
-    {
-        return all_fields;
     }
 
     vector<BlockInfo> avail_inner()
