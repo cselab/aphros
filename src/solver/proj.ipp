@@ -45,7 +45,7 @@ struct Proj<M_>::Imp {
   using Expr = GVect<Scal, M::dim * 2 + 2>;
 
   Imp(Owner* owner, const FieldCell<Vect>& fcw,
-      const MapFace<std::shared_ptr<CondFaceFluid>>& mfc, 
+      MapCondFaceFluid& mfc,
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m), dr_(0, m.GetEdim())
@@ -56,50 +56,7 @@ struct Proj<M_>::Imp {
 
     ffbd_.Reinit(m, false);
 
-    mfcw_ = GetVelCond(m, mfc_);
-    for (auto it : mfc_) {
-      IdxFace i = it.GetIdx();
-      ffbd_[i] = true;
-      CondFaceFluid* cb = it.GetValue().get();
-      size_t nci = cb->GetNci();
-
-      mfcf_[i]  = std::make_shared<CondFaceGradFixed<Vect>>(Vect(0), nci);
-      mfcp_[i]  = std::make_shared<CondFaceExtrap>(nci);
-      mfcpc_[i] = std::make_shared<CondFaceExtrap>(nci);
-      mfcd_[i]  = std::make_shared<CondFaceGradFixed<Scal>>(0., nci);
-
-      if (dynamic_cast<NoSlipWall<M>*>(cb)) {
-        // nop
-      } else if (dynamic_cast<Inlet<M>*>(cb)) {
-        // nop
-      } else if (dynamic_cast<Outlet<M>*>(cb)) {
-        // nop
-      } else if (dynamic_cast<SlipWall<M>*>(cb) ||
-                 dynamic_cast<Symm<M>*>(cb)) {
-        mfcf_[i]  = std::make_shared<CondFaceReflect>(nci);
-        mfcp_[i]  = std::make_shared<CondFaceGradFixed<Scal>>(0., nci);
-        mfcpc_[i] = std::make_shared<CondFaceGradFixed<Scal>>(0, nci);
-      } else {
-        throw std::runtime_error("simple: unknown condition");
-      }
-    }
-
-    for (auto it : mcc_) {
-      IdxCell c = it.GetIdx();
-      CondCellFluid* cb = it.GetValue().get(); // cond base
-
-      if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
-        mccp_[c] = std::make_shared<
-            CondCellValFixed<Scal>>(cd->GetPressure());
-      } else if (auto cd = dynamic_cast<GivenVelocityAndPressure<M>*>(cb)) {
-        mccp_[c] = std::make_shared<
-            CondCellValFixed<Scal>>(cd->GetPressure());
-        mccw_[c] = std::make_shared<
-            CondCellValFixed<Vect>>(cd->GetVelocity());
-      } else {
-        throw std::runtime_error("simple: unknown cell condition");
-      }
-    }
+    UpdateDerivedConditions();
 
     fcfcd_.Reinit(m, Vect(0));
     typename CD::Par p;
@@ -126,51 +83,54 @@ struct Proj<M_>::Imp {
     ffv_.time_prev = ffv_.time_curr;
   }
 
-  // TODO: somehow track dependencies to define execution order
   void UpdateDerivedConditions() {
     using namespace fluid_condition;
 
-    // Face conditions
+    mfcw_ = GetVelCond(m, mfc_);
+    mfcf_.clear();
+    mfcp_.clear();
+    mfcpc_.clear();
+    mfcd_.clear();
     for (auto it : mfc_) {
-      IdxFace i = it.GetIdx();
-      CondFaceFluid* cb = it.GetValue().get();
-      auto p = mfcw_[i].get();
+      IdxFace f = it.GetIdx();
+      ffbd_[f] = true;
+      auto& cb = it.GetValue();
+      size_t nci = cb->GetNci();
 
-      if (auto cd = dynamic_cast<NoSlipWall<M>*>(cb)) {
-        auto pd = dynamic_cast<CondFaceValFixed<Vect>*>(p);
-        pd->Set(cd->GetVelocity());
-      } else if (auto cd = dynamic_cast<Inlet<M>*>(cb)) {
-        auto pd = dynamic_cast<CondFaceValFixed<Vect>*>(p);
-        pd->Set(cd->GetVelocity());
-      } else if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
-        auto pd = dynamic_cast<CondFaceValFixed<Vect>*>(p);
-        pd->Set(cd->GetVelocity());
-      } else if (dynamic_cast<SlipWall<M>*>(cb) ||
-                 dynamic_cast<Symm<M>*>(cb)) {
+      mfcf_[f].Set<CondFaceGradFixed<Vect>>(Vect(0), nci);
+      mfcp_[f].Set<CondFaceExtrap>(nci);
+      mfcpc_[f].Set<CondFaceExtrap>(nci);
+      mfcd_[f].Set<CondFaceGradFixed<Scal>>(0., nci);
+
+      if (cb.Get<NoSlipWall<M>>()) {
         // nop
+      } else if (cb.Get<Inlet<M>>()) {
+        // nop
+      } else if (cb.Get<Outlet<M>>()) {
+        // nop
+      } else if (cb.Get<SlipWall<M>>() || cb.Get<Symm<M>>()) {
+        mfcf_[f].Set<CondFaceReflect>(nci);
+        mfcp_[f].Set<CondFaceGradFixed<Scal>>(0., nci);
+        mfcpc_[f].Set<CondFaceGradFixed<Scal>>(0, nci);
       } else {
-        throw std::runtime_error("simple: Unknown fluid condition");
+        throw std::runtime_error("proj: unknown condition");
       }
     }
 
-    // Cell conditions
+    mccp_.clear();
+    mccp_.clear();
+    mccw_.clear();
     for (auto it : mcc_) {
-      IdxCell i = it.GetIdx();
-      CondCellFluid* cb = it.GetValue().get();
+      IdxCell c = it.GetIdx();
+      CondCellFluid* cb = it.GetValue().get(); // cond base
 
       if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
-        auto pb = mccp_[i].get();
-        auto pd = dynamic_cast<CondCellValFixed<Scal>*>(pb);
-        pd->Set(cd->GetPressure());
+        mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
       } else if (auto cd = dynamic_cast<GivenVelocityAndPressure<M>*>(cb)) {
-        auto pb = mccp_[i].get();
-        auto pd = dynamic_cast<CondCellValFixed<Scal>*>(pb);
-        pd->Set(cd->GetPressure());
-        auto wb = mccw_[i].get();
-        auto wd = dynamic_cast<CondCellValFixed<Vect>*>(wb);
-        wd->Set(cd->GetVelocity());
+        mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
+        mccw_[c] = std::make_shared<CondCellValFixed<Vect>>(cd->GetVelocity());
       } else {
-        throw std::runtime_error("simple: Unknown fluid cell condition");
+        throw std::runtime_error("proj: unknown cell condition");
       }
     }
   }
@@ -196,7 +156,7 @@ struct Proj<M_>::Imp {
       auto& vel = GetVelocity(Layers::iter_curr);
       for (auto it : mfc_) {
         IdxFace i = it.GetIdx();
-        CondFaceFluid* cb = it.GetValue().get(); // cond base
+        CondFaceFluid* cb = it.GetValue().Get(); // cond base
 
         size_t nci = cb->GetNci();
         IdxCell c = m.GetNeighbourCell(i, nci);
@@ -230,7 +190,7 @@ struct Proj<M_>::Imp {
         Scal dv = (ilft_[id] - ilfe_[id]) / ila_[id];  // velocity
         for (auto it : mfc_) {
           IdxFace i = it.GetIdx();
-          CondFaceFluid* cb = it.GetValue().get(); // cond base
+          CondFaceFluid* cb = it.GetValue().Get(); // cond base
 
           if (auto cd = dynamic_cast<InletFlux<M>*>(cb)) {
             size_t nci = cd->GetNci();
@@ -259,14 +219,14 @@ struct Proj<M_>::Imp {
 
       // Extrapolate velocity to outlet from neighbour cells,
       // and compute total fluxes
-      for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
-        IdxFace i = it->GetIdx();
-        CondFaceFluid* cb = it->GetValue().get(); // cond base
+      for (auto p : mfc_) {
+        IdxFace i = p.GetIdx();
+        auto& cb = p.GetValue(); // cond base
 
         size_t id = cb->GetNci();
         IdxCell c = m.GetNeighbourCell(i, id);
         if (m.IsInner(c)) {
-          if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
+          if (auto cd = cb.Get<Outlet<M>>()) {
             Scal w = (id == 0 ? 1. : -1.);
             Vect vc = GetVelocity(Layers::iter_curr)[c];
             Vect s = m.GetSurface(i);
@@ -275,13 +235,13 @@ struct Proj<M_>::Imp {
             cd->SetVelocity(vc);
             fo += cd->GetVelocity().dot(s) * w;
             ao += m.GetArea(i);
-          } else if (auto cd = dynamic_cast<Inlet<M>*>(cb)) {
+          } else if (auto cd = cb.Get<Inlet<M>>()) {
             Scal w = (id == 0 ? -1. : 1.);
             fi += cd->GetVelocity().dot(m.GetSurface(i)) * w;
           }
         }
       }
-      
+
       // Append volume source to inlet flux
       auto& fcsv = *owner_->fcsv_;
       for (auto i : m.Cells()) {
@@ -297,9 +257,9 @@ struct Proj<M_>::Imp {
       Scal velcor = (fi - fo) / ao; // Additive correction for velocity
 
       // Apply correction on outlet faces
-      for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
-        IdxFace i = it->GetIdx();
-        CondFaceFluid* cb = it->GetValue().get(); // cond base
+      for (auto p : mfc_) {
+        IdxFace i = p.GetIdx();
+        CondFaceFluid* cb = p.GetValue().Get(); // cond base
 
         if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
           size_t id = cd->GetNci();
@@ -641,12 +601,12 @@ struct Proj<M_>::Imp {
   GRange<size_t> drr_;  // remaining dimensions
 
   // Face conditions
-  MapFace<std::shared_ptr<CondFaceFluid>> mfc_; // fluid cond
-  MapFace<std::shared_ptr<CondFace>> mfcw_; // velocity cond
-  MapFace<std::shared_ptr<CondFace>> mfcp_; // pressure cond
-  MapFace<std::shared_ptr<CondFace>> mfcf_; // force cond
-  MapFace<std::shared_ptr<CondFace>> mfcpc_; // pressure corr cond
-  MapFace<std::shared_ptr<CondFace>> mfcd_; // dynamic viscosity cond
+  MapCondFaceFluid& mfc_; // fluid cond
+  MapCondFace mfcw_; // velocity cond
+  MapCondFace mfcp_; // pressure cond
+  MapCondFace mfcf_; // force cond
+  MapCondFace mfcpc_; // pressure corr cond
+  MapCondFace mfcd_; // dynamic viscosity cond
 
   // Cell conditions
   MapCell<std::shared_ptr<CondCellFluid>> mcc_; // fluid cell cond
@@ -693,7 +653,7 @@ struct Proj<M_>::Imp {
 template <class M_>
 Proj<M_>::Proj(
     M& m, const FieldCell<Vect>& fcw,
-    const MapFace<std::shared_ptr<CondFaceFluid>>& mfc,
+    MapCondFaceFluid& mfc,
     const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
     FieldCell<Scal>* fcr, FieldCell<Scal>* fcd, 
     FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
@@ -753,7 +713,7 @@ double Proj<M_>::GetError() const {
 
 template <class M_>
 auto Proj<M_>::GetVelocityCond() const -> 
-    const MapFace<std::shared_ptr<CondFace>>& {
+    const MapCondFace& {
   return imp->mfcw_;
 }
 

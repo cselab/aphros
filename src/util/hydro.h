@@ -17,8 +17,7 @@ using namespace solver;
 //   -1: unknown
 // mf: boundary conditions
 template <class M>
-FieldCell<typename M::Scal> GetBcField(
-    MapFace<std::shared_ptr<solver::CondFaceFluid>>& mf, const M& m);
+FieldCell<typename M::Scal> GetBcField(MapCondFaceFluid& mf, const M& m);
 
 // Computes vorticity of vector field.
 // fcv: vector field [s]
@@ -26,9 +25,8 @@ FieldCell<typename M::Scal> GetBcField(
 // Returns:
 // fco: vorticity [i]
 template <class M>
-FieldCell<typename M::Vect> GetVort(const FieldCell<typename M::Vect>& fcv,
-                       const MapFace<std::shared_ptr<solver::CondFace>>& mf,
-                       M& m);
+FieldCell<typename M::Vect> GetVort(
+    const FieldCell<typename M::Vect>& fcv, const MapCondFace& mf, M& m);
 
 // Initializes velocity from parameters.
 // fcv: vector field [s]
@@ -44,9 +42,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m);
 // mfvf: conditions for volume fraction
 template <class M>
 void GetFluidFaceCond(
-    const Vars& var, const M& m,
-    MapFace<std::shared_ptr<solver::CondFaceFluid>>& mfvel,
-    MapFace<std::shared_ptr<solver::CondFace>>& mfvf);
+    const Vars& var, const M& m, MapCondFaceFluid& mfvel, MapCondFace& mfvf);
 
 // Returns fluid cell conditions.
 // Output:
@@ -63,7 +59,6 @@ void GetFluidCellCond(
 // mfc: boundary conditions
 // fn: filename
 template <class M>
-void DumpBcFaces(const MapFace<std::shared_ptr<solver::CondFace>>& mfc,
-                 const MapFace<std::shared_ptr<solver::CondFaceFluid>>& mfcf,
-                 std::string fn, M& m);
+void DumpBcFaces(
+    const MapCondFace& mfc, const MapCondFaceFluid& mfcf, std::string fn, M& m);
 

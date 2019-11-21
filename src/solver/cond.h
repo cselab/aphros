@@ -1,13 +1,22 @@
 #pragma once
 
+#include <memory>
+#include <utility>
+#include <string>
+
+#include "geom/map.h"
+#include "geom/unique.h"
+
 namespace solver {
 
 class CondFace {
  public:
-  // nci: neighbour cell id
-  CondFace(size_t nci) : nci_(nci) {}
   virtual ~CondFace() {}
   virtual size_t GetNci() const { return nci_; }
+
+ protected:
+  // nci: neighbour cell id
+  CondFace(size_t nci) : nci_(nci) {}
 
  private:
   size_t nci_;
@@ -25,7 +34,6 @@ class CondFaceReflect : public CondFace {
  public:
   CondFaceReflect(size_t nci) : CondFace(nci) {}
 };
-
 
 // Condition for value
 template <class V>
@@ -85,7 +93,6 @@ class CondFaceGradComp : public CondFaceGrad<typename Vect::value_type> {
   size_t d_;
 };
 
-
 // Given gradient
 template <class V>
 class CondFaceGradFixed : public CondFaceGrad<V> {
@@ -98,6 +105,43 @@ class CondFaceGradFixed : public CondFaceGrad<V> {
  private:
   V v_;
 };
+
+// Evaluates face condition of given type.
+template <class T>
+UniquePtr<CondFace> Eval(const UniquePtr<CondFace>& b) {
+  if (auto d = b.Get<CondFaceVal<T>>()) {
+    return UniquePtr<CondFaceValFixed<T>>(d->GetValue(), d->GetNci());
+  }
+  if (auto d = b.Get<CondFaceGrad<T>>()) {
+    return UniquePtr<CondFaceGradFixed<T>>(d->GetGrad(), d->GetNci());
+  }
+  if (auto d = b.Get<CondFaceExtrap>()) {
+    return UniquePtr<CondFaceExtrap>(d->GetNci());
+  }
+  if (auto d = b.Get<CondFaceReflect>()) {
+    return UniquePtr<CondFaceReflect>(d->GetNci());
+  }
+  throw std::runtime_error(std::string(__func__) + ": Unknown face condition");
+}
+
+// Evaluates component i of vector face condition.
+template <class Vect>
+UniquePtr<CondFace> EvalComp(const UniquePtr<CondFace>& b, size_t i) {
+  using Scal = typename Vect::value_type;
+  if (auto d = b.Get<CondFaceVal<Vect>>()) {
+    return UniquePtr<CondFaceValFixed<Scal>>(d->GetValue()[i], d->GetNci());
+  }
+  if (auto d = b.Get<CondFaceGrad<Vect>>()) {
+    return UniquePtr<CondFaceGradFixed<Scal>>(d->GetGrad()[i], d->GetNci());
+  }
+  if (auto d = b.Get<CondFaceExtrap>()) {
+    return UniquePtr<CondFaceExtrap>(d->GetNci());
+  }
+  if (auto d = b.Get<CondFaceReflect>()) {
+    return UniquePtr<CondFaceReflect>(d->GetNci());
+  }
+  throw std::runtime_error(std::string(__func__) + ": Unknown face condition");
+}
 
 class CondCell {
  public:
@@ -124,3 +168,5 @@ class CondCellValFixed : public CondCellVal<V> {
 };
 
 } // namespace solver
+
+using MapCondFace = MapFace<UniquePtr<solver::CondFace>>;

@@ -29,8 +29,7 @@ class PoisSolver {
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
 
-  PoisSolver(const MapFace<std::shared_ptr<solver::CondFace>>& mf, M& m) 
-      : m(m), mf_(mf) {}
+  PoisSolver(const MapCondFace& mf, M& m) : m(m), mf_(mf) {}
   // Solve linear system fce = 0
   // fce: expressions [i]
   // Output:
@@ -121,7 +120,7 @@ class PoisSolver {
   M& m;
   FieldCell<Expr> fce_;
   FieldCell<Scal> fcu_;
-  MapFace<std::shared_ptr<solver::CondFace>> mf_;
+  const MapCondFace& mf_;
   Scal sumr_; // sum of rhs * volume
   Scal sumv_; // sum of volume
 };

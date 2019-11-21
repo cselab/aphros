@@ -32,7 +32,7 @@ class ConvDiffVectGeneric final : public ConvDiffVect<M_> {
   // par: parameters
   ConvDiffVectGeneric(
       M& m, const FieldCell<Vect>& fcvel,
-      const MapFace<std::shared_ptr<CondFace>>& mfc,
+      const MapCondFace& mfc,
       const MapCell<std::shared_ptr<CondCell>>& mcc,
       const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
       const FieldCell<Vect>* fcs, const FieldFace<Scal>* ffv,
@@ -52,7 +52,7 @@ class ConvDiffVectGeneric final : public ConvDiffVect<M_> {
   FieldCell<Scal> GetConst(size_t d) const override;
   // Velocity conditions.
   // d: component
-  MapFace<std::shared_ptr<CondFace>>& GetVelocityCond(size_t d);
+  MapCondFace& GetVelocityCond(size_t d);
   // ...
   void StartStep() override;
   // ...

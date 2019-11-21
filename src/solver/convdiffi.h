@@ -28,8 +28,7 @@ class ConvDiffScalImp final : public ConvDiffScal<M_> {
   // par: parameters
   ConvDiffScalImp(
       M& m, const FieldCell<Scal>& fcu,
-      const MapFace<std::shared_ptr<CondFace>>& mfc,
-      const MapCell<std::shared_ptr<CondCell>>& mcc,
+      const MapCondFace& mfc, const MapCell<std::shared_ptr<CondCell>>& mcc,
       const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
       const FieldCell<Scal>* fcs, const FieldFace<Scal>* ffv,
       double t, double dt, const Par& par);

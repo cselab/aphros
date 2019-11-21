@@ -23,8 +23,7 @@ class Tvd final : public AdvectionSolver<M_> {
     bool split = false;
   };
   // Constructor
-  Tvd(M& m, const FieldCell<Scal>& fcu,
-      const MapFace<std::shared_ptr<CondFace>>& mfc,
+  Tvd(M& m, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
       const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
       double t, double dt, std::shared_ptr<Par> par);
   ~Tvd();

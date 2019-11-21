@@ -92,7 +92,7 @@ class Interp : public TimerMesh {
     auto& bf = m.GetIndexFaces();
     for (auto i : m.Faces()) {
       if (bf.GetMIdx(i)[0] == 0 && bf.GetDir(i) == Dir::i) {
-        mfc[i] = std::make_shared<solver::CondFaceGradFixed<Scal>>(0, 1);
+        mfc[i].Set<solver::CondFaceGradFixed<Scal>>(0, 1);
       }
     }
     assert(mfc.size() > 0);
@@ -105,7 +105,7 @@ class Interp : public TimerMesh {
 
  private:
   FieldCell<Scal> fc;
-  MapFace<std::shared_ptr<solver::CondFace>> mfc;
+  MapCondFace mfc;
   FieldFace<Scal> ff;
 };
 

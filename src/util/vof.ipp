@@ -114,7 +114,7 @@ struct UVof<M_>::Imp {
     std::array<int, ms> vc1;
     std::array<double, ms> vw;
     march_cube_location(vc0.data(), vc1.data(), vw.data());
-    assert(nt * 3 * 3 <= tri.size());
+    assert(size_t(nt) * 3 * 3 <= tri.size());
 
     vv.resize(nt);
     {
@@ -614,8 +614,7 @@ struct UVof<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0,
-      Scal clfixed, Vect clfixed_x, Scal coalth,
-      const MapFace<std::shared_ptr<CondFace>>& mfc_cl,
+      Scal clfixed, Vect clfixed_x, Scal coalth, const MapCondFace& mfc_cl,
       bool verb, bool reduce, bool grid, M& m) {
     auto sem = m.GetSem("recolor");
     struct {
@@ -712,8 +711,7 @@ struct UVof<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0,
-      Scal clfixed, Vect clfixed_x, Scal coalth,
-      const MapFace<std::shared_ptr<CondFace>>& mfc_cl,
+      Scal clfixed, Vect clfixed_x, Scal coalth, const MapCondFace& mfc_cl,
       bool verb, bool reduce, bool grid, M& m) {
     auto sem = m.GetSem("recolor");
     struct {
@@ -885,10 +883,8 @@ struct UVof<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0,
-      Scal clfixed, Vect clfixed_x, Scal coalth,
-      const MapFace<std::shared_ptr<CondFace>>& mfc,
-      bool verb, bool unionfind, bool reduce, bool grid,
-      M& m) {
+      Scal clfixed, Vect clfixed_x, Scal coalth, const MapCondFace& mfc,
+      bool verb, bool unionfind, bool reduce, bool grid, M& m) {
     if (unionfind) {
       return RecolorUnionFind(layers, fcu, fccl, fccl0, clfixed, clfixed_x,
                               coalth, mfc, verb, reduce, grid, m);
@@ -953,7 +949,7 @@ void UVof<M_>::Recolor(const GRange<size_t>& layers,
     const Multi<FieldCell<Scal>*>& fccl,
     const Multi<const FieldCell<Scal>*>& fccl0,
     Scal clfixed, Vect clfixed_x, Scal coalth,
-    const MapFace<std::shared_ptr<CondFace>>& mfcu,
+    const MapCondFace& mfcu,
     bool verb, bool unionfind, bool reduce, bool grid,
     M& m) {
   Imp::Recolor(layers, fcu, fccl, fccl0, clfixed, clfixed_x, coalth, mfcu,
@@ -962,13 +958,9 @@ void UVof<M_>::Recolor(const GRange<size_t>& layers,
 
 template <class M_>
 void UVof<M_>::GetAdvectionFaceCond(
-    const M& m, const MapFace<std::shared_ptr<CondFace>>& mfc,
-    Scal inletcl,
-    MapFace<std::shared_ptr<CondFace>>& mfc_vf,
-    MapFace<std::shared_ptr<CondFace>>& mfc_cl,
-    MapFace<std::shared_ptr<CondFace>>& mfc_im,
-    MapFace<std::shared_ptr<CondFace>>& mfc_n,
-    MapFace<std::shared_ptr<CondFace>>& mfc_a) {
+    const M& m, const MapCondFace& mfc, Scal inletcl,
+    MapCondFace& mfc_vf, MapCondFace& mfc_cl, MapCondFace& mfc_im,
+    MapCondFace& mfc_n, MapCondFace& mfc_a) {
   auto kClNone = Imp::kClNone;
   using MIdx = typename M::MIdx;
   using TRM = Trackerm<M>;
@@ -978,30 +970,28 @@ void UVof<M_>::GetAdvectionFaceCond(
   mfc_n.clear();
   mfc_a.clear();
   for (auto it : mfc) {
+    CondFaceValFixed<Scal> a(0, 0);
     IdxFace f = it.GetIdx();
-    CondFace* cb = it.GetValue().get();
+    auto& cb = it.GetValue();
     size_t nci = cb->GetNci();
-    mfc_vf[f] = it.GetValue();
-    if (dynamic_cast<CondFaceReflect*>(cb)) {
-      mfc_cl[f] = std::make_shared<CondFaceReflect>(nci);
-      mfc_im[f] = std::make_shared<CondFaceReflect>(nci);
-      mfc_n[f] = std::make_shared<CondFaceReflect>(nci);
-      mfc_a[f] = std::make_shared<CondFaceReflect>(nci);
+    mfc_vf[f] = Eval<Scal>(it.GetValue());
+    if (cb.Get<CondFaceReflect>()) {
+      mfc_cl[f].Set<CondFaceReflect>(nci);
+      mfc_im[f].Set<CondFaceReflect>(nci);
+      mfc_n[f].Set<CondFaceReflect>(nci);
+      mfc_a[f].Set<CondFaceReflect>(nci);
     } else {
       // TODO: reflect cl on walls
-      if (auto cd = dynamic_cast<CondFaceValFixed<Scal>*>(cb)) {
-        mfc_cl[f] = std::make_shared<
-            CondFaceValFixed<Scal>>(inletcl, nci);
+      if (auto cd = cb.Get<CondFaceValFixed<Scal>>()) {
+        mfc_cl[f].Set<CondFaceValFixed<Scal>>(inletcl, nci);
       } else {
-        mfc_cl[f] = std::make_shared<
-            CondFaceValFixed<Scal>>(kClNone, nci);
+        mfc_cl[f].Set<CondFaceValFixed<Scal>>(kClNone, nci);
       }
       MIdx wim(0);
       wim[size_t(m.GetDir(f))] = (nci == 1 ? -1 : 1);
-      mfc_im[f] = std::make_shared<
-          CondFaceValFixed<Scal>>(TRM::Pack(wim), nci);
-      mfc_n[f] = std::make_shared<CondFaceValFixed<Vect>>(Vect(0), nci);
-      mfc_a[f] = std::make_shared<CondFaceValFixed<Scal>>(Scal(0), nci);
+      mfc_im[f].Set<CondFaceValFixed<Scal>>(TRM::Pack(wim), nci);
+      mfc_n[f].Set<CondFaceValFixed<Vect>>(Vect(0), nci);
+      mfc_a[f].Set<CondFaceValFixed<Scal>>(Scal(0), nci);
     }
   }
 }

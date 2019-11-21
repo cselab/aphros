@@ -101,6 +101,9 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
                                              // used for Vof dump
   Dumper dmf_; // fields
   Dumper dms_; // statistics
+
+  // boundary conditions for advection (empty)
+  MapCondFace bc_;
 };
 
 template <class M>
@@ -129,9 +132,6 @@ void Advection<M>::Init(Sem& sem) {
       ff_flux_[f] = par_.fv(x, 0.).dot(m.GetSurface(f));
     }
 
-    // boundary conditions for advection (empty)
-    MapFace<std::shared_ptr<solver::CondFace>> bc;
-
     // cell conditions for advection (empty)
     MapCell<std::shared_ptr<solver::CondCell>> mc_cond;
 
@@ -142,21 +142,21 @@ void Advection<M>::Init(Sem& sem) {
     if (as == "tvd") {
       auto p = std::make_shared<typename AST::Par>();
       Parse<M>(p.get(), var);
-      as_.reset(new AST(m, fcu_, bc, &ff_flux_, 
+      as_.reset(new AST(m, fcu_, bc_, &ff_flux_, 
                        &fc_src_, 0., var.Double["dt"], p));
     } else if (as == "vof") {
       auto p = std::make_shared<typename ASV::Par>();
       Parse<M, ASV>(p.get(), var);
       p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
       auto fccl = FieldCell<Scal>(m, 0);
-      as_.reset(new ASV(m, fcu_, fccl, bc, &ff_flux_,
+      as_.reset(new ASV(m, fcu_, fccl, bc_, &ff_flux_,
                        &fc_src_, 0., var.Double["dt"], p));
     } else if (as == "vofm") {
       auto p = std::make_shared<typename ASVM::Par>();
       Parse<M, ASVM>(p.get(), var);
       p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
       auto fccl = FieldCell<Scal>(m, 0);
-      as_.reset(new ASVM(m, fcu_, fccl, bc, &ff_flux_, 
+      as_.reset(new ASVM(m, fcu_, fccl, bc_, &ff_flux_, 
                          &fc_src_, 0., var.Double["dt"], p));
     } else {
       throw std::runtime_error("Unknown advection_solver=" + as);
