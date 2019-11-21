@@ -45,7 +45,7 @@ struct Proj<M_>::Imp {
   using Expr = GVect<Scal, M::dim * 2 + 2>;
 
   Imp(Owner* owner, const FieldCell<Vect>& fcw,
-      const MapCondFaceFluid& mfc, 
+      const MapCondFaceFluid& mfc,
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m), dr_(0, m.GetEdim())
@@ -60,7 +60,7 @@ struct Proj<M_>::Imp {
     for (auto it : mfc_) {
       IdxFace i = it.GetIdx();
       ffbd_[i] = true;
-      CondFaceFluid* cb = it.GetValue().get();
+      CondFaceFluid* cb = it.GetValue().Get();
       size_t nci = cb->GetNci();
 
       mfcf_[i]  = std::make_shared<CondFaceGradFixed<Vect>>(Vect(0), nci);
@@ -86,7 +86,7 @@ struct Proj<M_>::Imp {
 
     for (auto it : mcc_) {
       IdxCell c = it.GetIdx();
-      CondCellFluid* cb = it.GetValue().get(); // cond base
+      CondCellFluid* cb = it.GetValue().Get(); // cond base
 
       if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
         mccp_[c] = std::make_shared<
@@ -133,8 +133,8 @@ struct Proj<M_>::Imp {
     // Face conditions
     for (auto it : mfc_) {
       IdxFace i = it.GetIdx();
-      CondFaceFluid* cb = it.GetValue().get();
-      auto p = mfcw_[i].get();
+      CondFaceFluid* cb = it.GetValue().Get();
+      auto p = mfcw_[i].Get();
 
       if (auto cd = dynamic_cast<NoSlipWall<M>*>(cb)) {
         auto pd = dynamic_cast<CondFaceValFixed<Vect>*>(p);
@@ -196,7 +196,7 @@ struct Proj<M_>::Imp {
       auto& vel = GetVelocity(Layers::iter_curr);
       for (auto it : mfc_) {
         IdxFace i = it.GetIdx();
-        CondFaceFluid* cb = it.GetValue().get(); // cond base
+        CondFaceFluid* cb = it.GetValue().Get(); // cond base
 
         size_t nci = cb->GetNci();
         IdxCell c = m.GetNeighbourCell(i, nci);
@@ -230,7 +230,7 @@ struct Proj<M_>::Imp {
         Scal dv = (ilft_[id] - ilfe_[id]) / ila_[id];  // velocity
         for (auto it : mfc_) {
           IdxFace i = it.GetIdx();
-          CondFaceFluid* cb = it.GetValue().get(); // cond base
+          CondFaceFluid* cb = it.GetValue().Get(); // cond base
 
           if (auto cd = dynamic_cast<InletFlux<M>*>(cb)) {
             size_t nci = cd->GetNci();
@@ -259,9 +259,9 @@ struct Proj<M_>::Imp {
 
       // Extrapolate velocity to outlet from neighbour cells,
       // and compute total fluxes
-      for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
-        IdxFace i = it->GetIdx();
-        CondFaceFluid* cb = it->GetValue().get(); // cond base
+      for (auto p : mfc_) {
+        IdxFace i = p.GetIdx();
+        CondFaceFluid* cb = p.GetValue().get(); // cond base
 
         size_t id = cb->GetNci();
         IdxCell c = m.GetNeighbourCell(i, id);
@@ -297,9 +297,9 @@ struct Proj<M_>::Imp {
       Scal velcor = (fi - fo) / ao; // Additive correction for velocity
 
       // Apply correction on outlet faces
-      for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
-        IdxFace i = it->GetIdx();
-        CondFaceFluid* cb = it->GetValue().get(); // cond base
+      for (auto p : mfc_) {
+        IdxFace i = p.GetIdx();
+        CondFaceFluid* cb = p.GetValue().Get(); // cond base
 
         if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
           size_t id = cd->GetNci();

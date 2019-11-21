@@ -971,17 +971,17 @@ void UVof<M_>::GetAdvectionFaceCond(
   mfc_a.clear();
   for (auto it : mfc) {
     IdxFace f = it.GetIdx();
-    CondFace* cb = it.GetValue().get();
+    const CondFace* cb = it.GetValue().Get();
     size_t nci = cb->GetNci();
-    mfc_vf[f] = it.GetValue();
-    if (dynamic_cast<CondFaceReflect*>(cb)) {
+    mfc_vf[f].Set<CondFace*>(it.GetValue());
+    if (dynamic_cast<const CondFaceReflect*>(cb)) {
       mfc_cl[f] = std::make_shared<CondFaceReflect>(nci);
       mfc_im[f] = std::make_shared<CondFaceReflect>(nci);
       mfc_n[f] = std::make_shared<CondFaceReflect>(nci);
       mfc_a[f] = std::make_shared<CondFaceReflect>(nci);
     } else {
       // TODO: reflect cl on walls
-      if (auto cd = dynamic_cast<CondFaceValFixed<Scal>*>(cb)) {
+      if (auto cd = dynamic_cast<const CondFaceValFixed<Scal>*>(cb)) {
         mfc_cl[f] = std::make_shared<
             CondFaceValFixed<Scal>>(inletcl, nci);
       } else {

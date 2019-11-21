@@ -136,8 +136,8 @@ struct Simple<M_>::Imp {
     // Face conditions
     for (auto it : mfc_) {
       IdxFace i = it.GetIdx();
-      CondFaceFluid* cb = it.GetValue().get();
-      auto p = mfcw_[i].get();
+      CondFaceFluid* cb = it.GetValue().Get();
+      auto p = mfcw_[i].Get();
 
       if (auto cd = dynamic_cast<NoSlipWall<M>*>(cb)) {
         auto pd = dynamic_cast<CondFaceValFixed<Vect>*>(p);
@@ -199,7 +199,7 @@ struct Simple<M_>::Imp {
       auto& vel = GetVelocity(Layers::iter_curr);
       for (auto it : mfc_) {
         IdxFace i = it.GetIdx();
-        CondFaceFluid* cb = it.GetValue().get(); // cond base
+        CondFaceFluid* cb = it.GetValue().Get(); // cond base
 
         size_t nci = cb->GetNci();
         IdxCell c = m.GetNeighbourCell(i, nci);
@@ -233,7 +233,7 @@ struct Simple<M_>::Imp {
         Scal dv = (ilft_[id] - ilfe_[id]) / ila_[id];  // velocity
         for (auto it : mfc_) {
           IdxFace i = it.GetIdx();
-          CondFaceFluid* cb = it.GetValue().get(); // cond base
+          CondFaceFluid* cb = it.GetValue().Get(); // cond base
 
           if (auto cd = dynamic_cast<InletFlux<M>*>(cb)) {
             size_t nci = cd->GetNci();
@@ -262,9 +262,9 @@ struct Simple<M_>::Imp {
 
       // Extrapolate velocity to outlet from neighbour cells,
       // and compute total fluxes
-      for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
-        IdxFace i = it->GetIdx();
-        CondFaceFluid* cb = it->GetValue().get(); // cond base
+      for (auto p : mfc_) {
+        IdxFace i = p.GetIdx();
+        CondFaceFluid* cb = p.GetValue().get(); // cond base
 
         size_t id = cb->GetNci();
         IdxCell c = m.GetNeighbourCell(i, id);
@@ -300,9 +300,9 @@ struct Simple<M_>::Imp {
       Scal velcor = (fi - fo) / ao; // Additive correction for velocity
 
       // Apply correction on outlet faces
-      for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
-        IdxFace i = it->GetIdx();
-        CondFaceFluid* cb = it->GetValue().get(); // cond base
+      for (auto it : mfc_) {
+        IdxFace i = it.GetIdx();
+        CondFaceFluid* cb = it.GetValue().Get(); // cond base
 
         if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
           size_t id = cd->GetNci();

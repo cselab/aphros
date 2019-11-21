@@ -19,7 +19,7 @@ FieldCell<typename M::Scal> GetBcField(MapCondFaceFluid& mf, const M& m) {
   FieldCell<typename M::Scal> fc(m, 0);
   for (auto it : mf) {
     IdxFace f = it.GetIdx();
-    auto* b = it.GetValue().get();
+    auto* b = it.GetValue().Get();
     size_t nci = b->GetNci();
     IdxCell c = m.GetNeighbourCell(f, nci);
     if (dynamic_cast<solver::fluid_condition::NoSlipWall<M>*>(b)) {
@@ -654,19 +654,17 @@ void GetFluidFaceCond(
 
   // boundary conditions for advection
   Scal bcc_fill = var.Double["bcc_fill"];
+  using namespace solver::fluid_condition;
   for (auto it : mfvel) {
     IdxFace i = it.GetIdx();
-    solver::CondFaceFluid* cb = it.GetValue().get();
-    if (dynamic_cast<solver::fluid_condition::Symm<M>*>(cb)) {
-      mfvf[i] = std::make_shared<solver::
-          CondFaceReflect>(it.GetValue()->GetNci());
-    } else if (dynamic_cast<solver::fluid_condition::NoSlipWall<M>*>(cb) ||
-               dynamic_cast<solver::fluid_condition::SlipWall<M>*>(cb)) {
-      mfvf[i] = std::make_shared<solver::
-          CondFaceValFixed<Scal>>(bcc_fill, it.GetValue()->GetNci());
+    const solver::CondFace* cb = it.GetValue().Get();
+    if (dynamic_cast<const Symm<M>*>(cb)) {
+      mfvf[i].Set<CondFaceReflect>(it.GetValue()->GetNci());
+    } else if (dynamic_cast<const NoSlipWall<M>*>(cb) ||
+               dynamic_cast<const SlipWall<M>*>(cb)) {
+      mfvf[i].Set<CondFaceValFixed<Scal>>(bcc_fill, it.GetValue()->GetNci());
     } else {
-      mfvf[i] = std::make_shared<solver::
-          CondFaceGradFixed<Scal>>(Scal(0), it.GetValue()->GetNci());
+      mfvf[i].Set<CondFaceGradFixed<Scal>>(Scal(0), it.GetValue()->GetNci());
     }
   }
   // selection boxes
@@ -690,9 +688,7 @@ void GetFluidFaceCond(
           Vect x = m.GetCenter(i);
           if (r.IsInside(x)) {
             if (set_bc(i, *p)) {
-              auto b = mfvel[i];
-              mfvf[i] = std::make_shared
-                  <solver::CondFaceValFixed<Scal>>(vf, b->GetNci());
+              mfvf[i].Set<CondFaceValFixed<Scal>>(vf, mfvel[i]->GetNci());
             }
           }
         }
@@ -731,7 +727,7 @@ void GetFluidFaceCond(
 
         for (auto it : mfvel) {
           IdxFace f = it.GetIdx();
-          solver::CondFaceFluid* cb = it.GetValue().get();
+          solver::CondFaceFluid* cb = it.GetValue().Get();
           auto nci = cb->GetNci();
           IdxCell c = m.GetNeighbourCell(f, nci);
           Scal v = V(c);
@@ -972,7 +968,7 @@ void DumpBcFaces(const MapCondFace& mfc, const MapCondFaceFluid& mfcf,
     for (auto& it : mfc) {
       IdxFace f = it.GetIdx();
       vxx.push_back(GetPoly(f, m));
-      auto* b = it.GetValue().get();
+      auto* b = it.GetValue().Get();
       Scal cond = -1;
       if (dynamic_cast<solver::CondFaceReflect*>(b)) {
         cond = 1;
@@ -983,7 +979,7 @@ void DumpBcFaces(const MapCondFace& mfc, const MapCondFaceFluid& mfcf,
       }
       Scal condf = -1;
       if (auto bs = mfcf.find(f)) {
-        auto b = bs->get();
+        auto b = bs->Get();
         if (dynamic_cast<solver::fluid_condition::NoSlipWall<M>*>(b)) {
           condf = 1;
         } else if (dynamic_cast<solver::fluid_condition::SlipWall<M>*>(b)) {

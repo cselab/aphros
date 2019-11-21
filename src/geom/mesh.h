@@ -527,7 +527,7 @@ class MeshStructured {
     rd_.Add(u, o);
   }
   const std::vector<std::shared_ptr<Op>>& GetReduce() const {
-    return rd_.Get();
+    return rd_.get();
   }
   void ClearReduce() {
     rd_.Clear();
