@@ -47,7 +47,7 @@ class Simple final : public FluidSolver<M_> {
   // par: parameters
   Simple(M& m,
          const FieldCell<Vect>& fcw,
-         const MapCondFaceFluid& mfc,
+         MapCondFaceFluid& mfc,
          const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
          FieldCell<Scal>* fcr, FieldCell<Scal>* fcd, 
          FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
