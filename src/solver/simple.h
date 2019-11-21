@@ -47,7 +47,7 @@ class Simple final : public FluidSolver<M_> {
   // par: parameters
   Simple(M& m,
          const FieldCell<Vect>& fcw,
-         const MapFace<std::shared_ptr<CondFaceFluid>>& mfc,
+         MapCondFaceFluid& mfc,
          const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
          FieldCell<Scal>* fcr, FieldCell<Scal>* fcd, 
          FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
@@ -79,7 +79,7 @@ class Simple final : public FluidSolver<M_> {
   // ...
   double GetError() const override;
   // Returns velocity boundary conditions
-  const MapFace<std::shared_ptr<CondFace>>& GetVelocityCond() const override;
+  const MapCondFace& GetVelocityCond() const override;
 
  private:
   struct Imp;

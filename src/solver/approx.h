@@ -92,7 +92,7 @@ void InterpolateI(
 template <class T, class M>
 void Interpolate(
     const FieldCell<T>& fc, const FieldCell<typename M::Vect>& fcgp,
-    const MapFace<std::shared_ptr<CondFace>>& mfc, 
+    const MapCondFace& mfc, 
     const FieldFace<T>& ffw,  const M& m, ConvSc sc, typename M::Scal th,
     FieldFace<T>& ff) {
   InterpolateI(fc, fcgp, ffw, m, sc, th, ff);
@@ -152,7 +152,7 @@ class FaceValB : public Approx<IdxFace, Expr> {
  public:
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  FaceValB(const M& m, const MapFace<std::shared_ptr<CondFace>>& mfc)
+  FaceValB(const M& m, const MapCondFace& mfc)
       : m(m), mfc_(mfc) {}
   Expr GetExpr(IdxFace f) const override {
     Expr e;
@@ -161,9 +161,9 @@ class FaceValB : public Approx<IdxFace, Expr> {
       IdxCell cp = m.GetNeighbourCell(f, 1);
       e.InsertTerm(0, cm);
       e.InsertTerm(0, cp);
-      if (auto cd = dynamic_cast<CondFaceVal<Scal>*>(cb->get())) {
+      if (auto cd = cb->Get<CondFaceVal<Scal>>()) {
         e.SetConstant(cd->GetValue());
-      } else if (auto cd = dynamic_cast<CondFaceGrad<Scal>*>(cb->get())) {
+      } else if (auto cd = cb->Get<CondFaceGrad<Scal>>()) {
         size_t id = cd->GetNci();
         IdxCell c = m.GetNeighbourCell(f, id);
         Scal g = (id == 0 ? 1. : -1.);
@@ -181,7 +181,7 @@ class FaceValB : public Approx<IdxFace, Expr> {
 
  private:
   const M& m;
-  const MapFace<std::shared_ptr<CondFace>>& mfc_;
+  const MapCondFace& mfc_;
 };
 
 template <class M, class Expr>
@@ -228,16 +228,16 @@ void GradientI(const FieldCell<T>& fc, const M& m, FieldFace<T>& ff) {
 // ff: normal gradient [i]
 template <class M, class T>
 void GradientB(const FieldCell<T>& fc,
-    const MapFace<std::shared_ptr<CondFace>>& mfc,
+    const MapCondFace& mfc,
     const M& m, FieldFace<T>& ff) {
   using Scal = typename M::Scal;
 
   for (const auto& it : mfc) {
     IdxFace f = it.GetIdx();
-    CondFace* cb = it.GetValue().get(); // cond base
-    if (auto cd = dynamic_cast<CondFaceGrad<T>*>(cb)) {
+    const CondFace* cb = it.GetValue().Get(); // cond base
+    if (auto cd = dynamic_cast<const CondFaceGrad<T>*>(cb)) {
       ff[f] = cd->GetGrad();
-    } else if (auto cd = dynamic_cast<CondFaceVal<T>*>(cb)) {
+    } else if (auto cd = dynamic_cast<const CondFaceVal<T>*>(cb)) {
       size_t id = cd->GetNci();
       IdxCell c = m.GetNeighbourCell(f, id);
       Scal g = (id == 0 ? 1. : -1.);
@@ -255,9 +255,8 @@ void GradientB(const FieldCell<T>& fc,
 // Output:
 // ff: normal gradient [i]
 template <class M, class T>
-void Gradient(
-    const FieldCell<T>& fc, const MapFace<std::shared_ptr<CondFace>>& mfc,
-    const M& m, FieldFace<T>& ff) {
+void Gradient(const FieldCell<T>& fc, const MapCondFace& mfc,
+              const M& m, FieldFace<T>& ff) {
   GradientI(fc, m, ff);
   GradientB(fc, mfc, m, ff);
 }
@@ -289,8 +288,7 @@ class FaceGradB : public Approx<IdxFace, Expr> {
  public:
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  explicit FaceGradB(
-      const M& m, const MapFace<std::shared_ptr<CondFace>>& mfc)
+  explicit FaceGradB(const M& m, const MapCondFace& mfc)
       : m(m), mfc_(mfc) {}
   Expr GetExpr(IdxFace f) const override {
     Expr e;
@@ -299,9 +297,9 @@ class FaceGradB : public Approx<IdxFace, Expr> {
       IdxCell cp = m.GetNeighbourCell(f, 1);
       e.InsertTerm(0, cm);
       e.InsertTerm(0, cp);
-      if (auto cd = dynamic_cast<CondFaceGrad<Scal>*>(cb->get())) {
+      if (auto cd = cb->Get<CondFaceGrad<Scal>>()) {
         e.SetConstant(cd->GetGrad());
-      } else if (auto cd = dynamic_cast<CondFaceVal<Scal>*>(cb->get())) {
+      } else if (auto cd = cb->Get<CondFaceVal<Scal>>()) {
         size_t id = cd->GetNci();
         IdxCell c = m.GetNeighbourCell(f, id);
         Scal g = (id == 0 ? 1. : -1.);
@@ -320,7 +318,7 @@ class FaceGradB : public Approx<IdxFace, Expr> {
 
  private:
   const M& m;
-  const MapFace<std::shared_ptr<CondFace>>& mfc_;
+  const MapCondFace& mfc_;
 };
 
 // Interpolates from nodes to faces
@@ -413,25 +411,23 @@ T UExtrap(Scal xt, Scal x0, const T& v0, Scal x1, const T& v1) {
 // Output:
 // ff: values updated on faces defined in mfc
 template <class T, class M>
-void InterpolateB(
-    const FieldCell<T>& fc,
-    const MapFace<std::shared_ptr<CondFace>>& mfc, 
-    FieldFace<T>& ff, const M& m) {
+void InterpolateB(const FieldCell<T>& fc, const MapCondFace& mfc, 
+                  FieldFace<T>& ff, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
   for (const auto& it : mfc) {
     IdxFace f = it.GetIdx();
-    CondFace* cb = it.GetValue().get(); // cond base
+    const CondFace* cb = it.GetValue().Get(); // cond base
     size_t nci = cb->GetNci();
-    if (auto cd = dynamic_cast<CondFaceVal<T>*>(cb)) {
+    if (auto cd = dynamic_cast<const CondFaceVal<T>*>(cb)) {
       ff[f] = cd->GetValue();
-    } else if (auto cd = dynamic_cast<CondFaceGrad<T>*>(cb)) {
+    } else if (auto cd = dynamic_cast<const CondFaceGrad<T>*>(cb)) {
       IdxCell c = m.GetNeighbourCell(f, nci);
       Scal w = (nci == 0 ? 1. : -1.);
       Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * w;
       ff[f] = fc[c] + cd->GetGrad() * a;
-    } else if (dynamic_cast<CondFaceExtrap*>(cb)) {
+    } else if (dynamic_cast<const CondFaceExtrap*>(cb)) {
       // TODO test
       IdxCell c = m.GetNeighbourCell(f, nci);
       size_t q = m.GetNci(c, f);
@@ -448,7 +444,7 @@ void InterpolateB(
       Scal xt = n.dot(m.GetCenter(f) - m.GetCenter(c));
       
       ff[f] = UExtrap(xt, x0, v0, x1, v1);
-    } else if (dynamic_cast<CondFaceReflect*>(cb)) {
+    } else if (dynamic_cast<const CondFaceReflect*>(cb)) {
       // TODO test
       IdxCell c = m.GetNeighbourCell(f, nci);
       Vect n = m.GetNormal(f);
@@ -468,10 +464,8 @@ void InterpolateB(
 // Output:
 // field face [s]
 template <class T, class M>
-FieldFace<T> Interpolate(
-    const FieldCell<T>& fc,
-    const MapFace<std::shared_ptr<CondFace>>& mfc, 
-    const M& m) {
+FieldFace<T> Interpolate(const FieldCell<T>& fc, const MapCondFace& mfc,
+                         const M& m) {
   FieldFace<T> ff(m); // Valid 0 needed for CondFaceExtrap
 
   InterpolateS(fc, ff, m);
@@ -501,7 +495,7 @@ template <class M>
 FieldFace<typename M::Scal> InterpolateSuperbee(
     const FieldCell<typename M::Scal>& fc,
     const FieldCell<typename M::Vect>& fcg,
-    const MapFace<std::shared_ptr<CondFace>>& mfc,
+    const MapCondFace& mfc,
     const FieldFace<typename M::Scal>& ffw,
     const M& m, typename M::Scal th = 1e-8) {
   using Scal = typename M::Scal;
@@ -556,9 +550,7 @@ FieldCell<T> Average(const FieldFace<T>& ff, const M& m) {
 // Output:
 // fc: smooth field [s]
 template <class T, class M>
-void Smoothen(FieldCell<T>& fc,
-              const MapFace<std::shared_ptr<CondFace>>& mfc,
-              M& m, size_t rep) {
+void Smoothen(FieldCell<T>& fc, const MapCondFace& mfc, M& m, size_t rep) {
   auto sem = m.GetSem("smoothen");
   for (size_t i = 0; i < rep; ++i) {
     if (sem()) {
@@ -667,20 +659,19 @@ std::vector<Scal> GetGradCoeffs(
 
 // Apply boudnary conditions to halo cells
 template <class T, class M>
-void BcApply(FieldCell<T>& uc, const MapFace<std::shared_ptr<CondFace>>& mfc,
-             const M& m) {
+void BcApply(FieldCell<T>& uc, const MapCondFace& mfc, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   for (const auto& it : mfc) {
     IdxFace f = it.GetIdx();
-    CondFace* cb = it.GetValue().get();
+    auto& cb = it.GetValue();
     Vect n = m.GetNormal(f);
     IdxCell cmm, cm, cp, cpp;
     GetCellColumn(m, f, cb->GetNci(), cmm, cm, cp, cpp);
-    if (dynamic_cast<CondFaceReflect*>(cb)) {
+    if (cb.Get<CondFaceReflect>()) {
       uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
       uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
-    } else if (auto cd = dynamic_cast<CondFaceVal<T>*>(cb)) {
+    } else if (auto cd = cb.Get<CondFaceVal<T>>()) {
       uc[cm] = cd->GetValue();
       uc[cmm] = cd->GetValue();
     }
@@ -690,14 +681,12 @@ void BcApply(FieldCell<T>& uc, const MapFace<std::shared_ptr<CondFace>>& mfc,
 // Apply reflection on all boundaries
 // fill: value for other types that CondFaceReflect
 template <class T, class M>
-void BcReflectAll(FieldCell<T>& uc,
-                  const MapFace<std::shared_ptr<CondFace>>& mfc,
-                  const M& m) {
+void BcReflectAll(FieldCell<T>& uc, const MapCondFace& mfc, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   for (const auto& it : mfc) {
     IdxFace f = it.GetIdx();
-    CondFace* cb = it.GetValue().get();
+    auto& cb = it.GetValue();
     Vect n = m.GetNormal(f);
     IdxCell cmm, cm, cp, cpp;
     GetCellColumn(m, f, cb->GetNci(), cmm, cm, cp, cpp);

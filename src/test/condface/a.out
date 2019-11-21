@@ -1,0 +1,64 @@
+
+b.Set<CondFaceValCustom<Scal>>(3.14, 1);
+-> b
+PK17CondFaceValCustomIdE 1 3.14
+-> Eval<Scal>(b)
+PKN6solver16CondFaceValFixedIdEE 1 3.14
+-> Eval<Vect>(b)
+Eval: Unknown face condition
+-> EvalComp<Vect>(b, 0)
+EvalComp: Unknown face condition
+
+b.Set<CondFaceGradCustom<Scal>>(3.14, 1);
+-> b
+PK18CondFaceGradCustomIdE 1 3.14
+-> Eval<Scal>(b)
+PKN6solver17CondFaceGradFixedIdEE 1 3.14
+-> Eval<Vect>(b)
+Eval: Unknown face condition
+-> EvalComp<Vect>(b, 0)
+EvalComp: Unknown face condition
+
+b.Set<CondFaceValCustom<Vect>>(Vect(1.1, 2.2, 3.3), 1);
+-> b
+PK17CondFaceValCustomI5GVectIdLm3EEE 1 (1.1,2.2,3.3)
+-> Eval<Scal>(b)
+Eval: Unknown face condition
+-> Eval<Vect>(b)
+PKN6solver16CondFaceValFixedI5GVectIdLm3EEEE 1 (1.1,2.2,3.3)
+-> EvalComp<Vect>(b, 0)
+PKN6solver16CondFaceValFixedIdEE 1 1.1
+-> EvalComp<Vect>(b, 1)
+PKN6solver16CondFaceValFixedIdEE 1 2.2
+-> EvalComp<Vect>(b, 2)
+PKN6solver16CondFaceValFixedIdEE 1 3.3
+
+b.Set<CondFaceGradCustom<Vect>>(Vect(1.1, 2.2, 3.3), 1);
+-> b
+PK18CondFaceGradCustomI5GVectIdLm3EEE 1 (1.1,2.2,3.3)
+-> Eval<Scal>(b)
+Eval: Unknown face condition
+-> Eval<Vect>(b)
+PKN6solver17CondFaceGradFixedI5GVectIdLm3EEEE 1 (1.1,2.2,3.3)
+-> EvalComp<Vect>(b, 0)
+PKN6solver17CondFaceGradFixedIdEE 1 1.1
+-> EvalComp<Vect>(b, 1)
+PKN6solver17CondFaceGradFixedIdEE 1 2.2
+-> EvalComp<Vect>(b, 2)
+PKN6solver17CondFaceGradFixedIdEE 1 3.3
+
+b.Set<CondFaceReflectCustom>(1);
+-> b
+PKN6solver15CondFaceReflectE 1
+-> Eval<Scal>(b)
+PKN6solver15CondFaceReflectE 1
+-> Eval<Vect>(b)
+PKN6solver15CondFaceReflectE 1
+
+b.Set<CondFaceExtrapCustom>(1);
+-> b
+PKN6solver14CondFaceExtrapE 1
+-> Eval<Scal>(b)
+PKN6solver14CondFaceExtrapE 1
+-> Eval<Vect>(b)
+PKN6solver14CondFaceExtrapE 1

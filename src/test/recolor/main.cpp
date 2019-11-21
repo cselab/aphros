@@ -33,7 +33,7 @@ void Run(M& m, State&, Vars& var) {
     FieldCell<Scal> fccl;
     FieldCell<Scal> fcclm;
     solver::UVof<M> uvof;
-    MapFace<std::shared_ptr<solver::CondFace>> mfc;
+    MapCondFace mfc;
     std::unique_ptr<TRM> trm;
     FieldCell<Scal> fcim;
   }* ctx(sem);

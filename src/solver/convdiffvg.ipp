@@ -15,29 +15,14 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   using Owner = ConvDiffVectGeneric<M_, CD_>;
 
   Imp(
-      Owner* owner, const FieldCell<Vect>& fcvel, 
-      const MapFace<std::shared_ptr<CondFace>>& mfc, 
+      Owner* owner, const FieldCell<Vect>& fcvel,
+      const MapCondFace& mfc,
       const MapCell<std::shared_ptr<CondCell>>& mcc)
       : owner_(owner), par(&owner_->GetPar()), m(owner_->m)
       , mfc_(mfc), mcc_(mcc), dr_(0, m.GetEdim())
   {
     for (auto d : dr_) {
-      // Face conditions for each velocity component
-      vmfc_[d] = GetScalarCond(mfc_, d, m);
-
-      // Cell conditions for each velocity component
-      for (auto it : mcc) {
-        IdxCell c = it.GetIdx();
-        CondCell* cb = it.GetValue().get(); // cond base
-
-        if (auto cd = dynamic_cast<CondCellVal<Vect>*>(cb)) {
-          // TODO: revise with CondCellValComp
-          vmcc_[d][c] = std::make_shared<
-              CondCellValFixed<Scal>>(cd->GetValue()[d]);
-        } else {
-          throw std::runtime_error("convdiffvi: unknown cell condition");
-        }
-      }
+      UpdateDerivedCond(d);
 
       // Components of source
       for (auto d : dr_) {
@@ -52,6 +37,24 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
     }
     CopyToVect(Layers::time_curr, fcvel_);
     lvel_ = Layers::time_curr;
+  }
+  void UpdateDerivedCond(size_t d) {
+    // Face conditions for each velocity component
+    vmfc_[d] = GetScalarCond(mfc_, d, m);
+
+    // Cell conditions for each velocity component
+    for (auto it : mcc_) {
+      IdxCell c = it.GetIdx();
+      CondCell* cb = it.GetValue().get(); // cond base
+
+      if (auto cd = dynamic_cast<CondCellVal<Vect>*>(cb)) {
+        // TODO: revise with CondCellValComp
+        vmcc_[d][c] = std::make_shared<
+            CondCellValFixed<Scal>>(cd->GetValue()[d]);
+      } else {
+        throw std::runtime_error("convdiffvg: unknown cell condition");
+      }
+    }
   }
   // Copy from solvers to vector field.
   // l: layer in component solvers
@@ -93,8 +96,9 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   }
   void MakeIteration() {
     auto sem = m.GetSem("convdiffmulti-iter");
-    if (sem("source")) {
+    if (sem("bc-source")) {
       for (auto d : dr_) {
+        UpdateDerivedCond(d);
         vfcs_[d] = GetComponent(*owner_->fcs_, d);
       }
     }
@@ -168,7 +172,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
   FieldCell<Vect> fcvel_;
   Layers lvel_; // current level loaded in fcvel_
-  MapFace<std::shared_ptr<CondFace>> mfc_; // vect face cond
+  const MapCondFace& mfc_; // vect face cond
   MapCell<std::shared_ptr<CondCell>> mcc_; // vect cell cond
   GRange<size_t> dr_;  // effective dimension range
 
@@ -176,7 +180,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   using Array = std::array<T, dim>;
 
   // Scalar components
-  Array<MapFace<std::shared_ptr<CondFace>>> vmfc_; // face cond
+  Array<MapCondFace> vmfc_; // face cond
   Array<MapCell<std::shared_ptr<CondCell>>> vmcc_; // cell cond
   Array<std::shared_ptr<CD>> vs_; // solver
   Array<FieldCell<Scal>> vfcs_; // force
@@ -186,9 +190,9 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
 template <class M_, class CD_>
 ConvDiffVectGeneric<M_, CD_>::ConvDiffVectGeneric(
-    M& m, const FieldCell<Vect>& fcvel, 
-    const MapFace<std::shared_ptr<CondFace>>& mfc, 
-    const MapCell<std::shared_ptr<CondCell>>& mcc, 
+    M& m, const FieldCell<Vect>& fcvel,
+    const MapCondFace& mfc,
+    const MapCell<std::shared_ptr<CondCell>>& mcc,
     const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
     const FieldCell<Vect>* fcs, const FieldFace<Scal>* ffv,
     double t, double dt, const Par& par)
@@ -222,8 +226,7 @@ auto ConvDiffVectGeneric<M_, CD_>::GetConst(size_t d) const -> FieldCell<Scal> {
 }
 
 template <class M_, class CD_>
-auto ConvDiffVectGeneric<M_, CD_>::GetVelocityCond(size_t d) 
-    -> MapFace<std::shared_ptr<CondFace>>& {
+auto ConvDiffVectGeneric<M_, CD_>::GetVelocityCond(size_t d) -> MapCondFace& {
   return imp->vmfc_[d];
 }
 

@@ -16,16 +16,14 @@ struct Tvd<M_>::Imp {
   static constexpr size_t dim = M::dim;
 
   Imp(Tvd* owner, const FieldCell<Scal>& fcu,
-      const MapFace<std::shared_ptr<CondFace>>& mfc, 
-      std::shared_ptr<Par> par)
+      const MapCondFace& mfc, std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m)
       , mfc_(mfc), fck_(m, 0)
   {
     fcu_.time_curr = fcu;
     for (auto it : mfc_) {
       IdxFace f = it.GetIdx();
-      mfvz_[f] = std::make_shared<
-          CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
+      mfvz_[f].Set<CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
     }
   }
   void StartStep() {
@@ -165,8 +163,8 @@ struct Tvd<M_>::Imp {
 
   // TODO: revise tmp fields
   LayersData<FieldCell<Scal>> fcu_;
-  MapFace<std::shared_ptr<CondFace>> mfc_;
-  MapFace<std::shared_ptr<CondFace>> mfvz_; // zero-derivative bc for Vect
+  const MapCondFace& mfc_;
+  MapCondFace mfvz_; // zero-derivative bc for Vect
 
   FieldFace<Scal> ffvu_; // flux: volume flux * field
   FieldFace<Scal> ffu_; // field on faces
@@ -180,7 +178,7 @@ struct Tvd<M_>::Imp {
 
 template <class M_>
 Tvd<M_>::Tvd(M& m, const FieldCell<Scal>& fcu,
-    const MapFace<std::shared_ptr<CondFace>>& mfc,
+    const MapCondFace& mfc,
     const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
     double t, double dt, std::shared_ptr<Par> par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)

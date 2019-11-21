@@ -76,26 +76,20 @@ class UVof {
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0,
       Scal clfixed, Vect clfixed_x, Scal coalth,
-      const MapFace<std::shared_ptr<CondFace>>& mfcu,
-      bool verb, bool unionfind, bool reduce,
+      const MapCondFace& mfcu, bool verb, bool unionfind, bool reduce,
       bool grid, M& m);
 
   static void GetAdvectionFaceCond(
-      const M& m, const MapFace<std::shared_ptr<CondFace>>& mfc,
-      Scal inletcl,
-      MapFace<std::shared_ptr<CondFace>>& mfc_vf,
-      MapFace<std::shared_ptr<CondFace>>& mfc_cl,
-      MapFace<std::shared_ptr<CondFace>>& mfc_im,
-      MapFace<std::shared_ptr<CondFace>>& mfc_n,
-      MapFace<std::shared_ptr<CondFace>>& mfc_a);
+      const M& m, const MapCondFace& mfc, Scal inletcl,
+      MapCondFace& mfc_vf, MapCondFace& mfc_cl, MapCondFace& mfc_im,
+      MapCondFace& mfc_n, MapCondFace& mfc_a);
 
   // set volume fraction to 0 or 1 near wall
   static void BcClear(FieldCell<Scal>& uc,
-                      const MapFace<std::shared_ptr<CondFace>>& mfc, 
-                      const M& m, Scal u0, Scal u1) {
+                      const MapCondFace& mfc, const M& m, Scal u0, Scal u1) {
     for (const auto& it : mfc) {
-      CondFace* cb = it.GetValue().get();
-      if (dynamic_cast<CondFaceVal<Scal>*>(cb)) {
+      auto& cb = it.GetValue();
+      if (cb.Get<CondFaceVal<Scal>>()) {
         IdxCell c = m.GetNeighbourCell(it.GetIdx(), cb->GetNci());
         auto& u = uc[c];
         if (u < u0) {

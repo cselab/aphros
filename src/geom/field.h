@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iosfwd>
+#include <cassert>
 
 #include "idx.h"
 #include "range.h"

@@ -556,6 +556,9 @@ void Simple<M>::TestSolve() {
 template <class M>
 void Simple<M>::TestPois() {
   auto sem = m.GetSem("pois");
+  struct {
+    MapCondFace mf;
+  }* ctx(sem);
   // exact solution
   auto fe = [](Vect x) { 
     Scal pi = M_PI;
@@ -579,8 +582,7 @@ void Simple<M>::TestPois() {
       std::cout << "\n\n*** TestPois() ***" << std::endl;
     }
     // solver
-    MapFace<std::shared_ptr<solver::CondFace>> mf;
-    ps_ = std::make_shared<solver::PoisSolver<M>>(mf, m);
+    ps_ = std::make_shared<solver::PoisSolver<M>>(ctx->mf, m);
     // exact solution
     fc_exsol_.Reinit(m);
     for (auto i : m.AllCells()) {

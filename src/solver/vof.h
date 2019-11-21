@@ -85,7 +85,7 @@ class Vof final : public AdvectionSolver<M_> {
 
   // Constructor
   Vof(M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-      const MapFace<std::shared_ptr<CondFace>>& mfc,
+      const MapCondFace& mfc,
       const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
       double t, double dt, std::shared_ptr<Par> par);
   ~Vof();

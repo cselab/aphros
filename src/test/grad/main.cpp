@@ -104,7 +104,7 @@ Scal RunInterp(std::function<Scal(Vect)> uf, const M& m) {
   Eval(uf, cf, m);
 
   // Empty bc
-  MapFace<std::shared_ptr<solver::CondFace>> bc; 
+  MapCondFace bc;
 
   // Interpolate to faces
   FieldFace<Scal> ff = solver::Interpolate(cf, bc, m);
@@ -124,7 +124,7 @@ Scal RunGrad(std::function<Scal(Vect)> uf,
   Eval(uf, f, m);
 
   // Empty bc
-  MapFace<std::shared_ptr<solver::CondFace>> bc; 
+  MapCondFace bc; 
 
   // Interpolate to faces
   FieldFace<Scal> ff = solver::Interpolate(f, bc, m);

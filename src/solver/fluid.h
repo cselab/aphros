@@ -58,13 +58,15 @@ class FluidSolver : public UnsteadyIterativeSolver {
     return GetVolumeFlux(Layers::time_curr);
   }
   virtual double GetAutoTimeStep() const { return GetTimeStep(); }
-  virtual const MapFace<std::shared_ptr<CondFace>>& GetVelocityCond() const = 0;
+  virtual const MapCondFace& GetVelocityCond() const = 0;
 };
 
 class CondFaceFluid : public CondFace {
  public:
   CondFaceFluid(size_t nci) : CondFace(nci) {}
 };
+
+using MapCondFaceFluid = MapFace<UniquePtr<solver::CondFaceFluid>>;
 
 class CondCellFluid : public CondCell {};
 
@@ -211,8 +213,8 @@ class GivenPressureFixed : public GivenPressure<M> {
 // f: target face 
 // nc: target neighbour cell id
 template <class M>
-std::shared_ptr<CondFaceFluid> Parse(std::string argstr, IdxFace /*f*/,
-                                     size_t nc, const M& /*m*/) {
+UniquePtr<CondFaceFluid> Parse(std::string argstr, IdxFace /*f*/,
+                               size_t nc, const M& /*m*/) {
   using namespace fluid_condition;
   using Vect=  typename M::Vect;
   std::stringstream arg(argstr);
@@ -227,13 +229,13 @@ std::shared_ptr<CondFaceFluid> Parse(std::string argstr, IdxFace /*f*/,
     // fill-conditions for volume fraction.
     Vect vel;
     arg >> vel;
-    return std::make_shared<NoSlipWallFixed<M>>(vel, nc);
+    return UniquePtr<NoSlipWallFixed<M>>(vel, nc);
   } else if (name == "inlet") {
     // inlet <velocity>
     // Fixed velocity inlet.
     Vect vel;
     arg >> vel;
-    return std::make_shared<InletFixed<M>>(vel, nc);
+    return UniquePtr<InletFixed<M>>(vel, nc);
   } else if (name == "inletflux") {
     // inletflux <velocity> <id>
     // Fixed flux inlet. Flux defined by given velocity is redistributed
@@ -241,54 +243,48 @@ std::shared_ptr<CondFaceFluid> Parse(std::string argstr, IdxFace /*f*/,
     Vect vel;
     int id;
     arg >> vel >> id;
-    return std::make_shared<InletFlux<M>>(vel, id, nc);
+    return UniquePtr<InletFlux<M>>(vel, id, nc);
   } else if (name == "outlet") {
     // Outlet. Velocity is extrapolated from neighbour cells and corrected
     // to yield zero total flux over outlet and inlet faces.
-    return std::make_shared<OutletAuto<M>>(nc);
+    return UniquePtr<OutletAuto<M>>(nc);
   } else if (name == "slipwall") {
     // Free-slip wall:
     // zero derivative for both pressure, velocity,
     // fill-conditions for volume fraction.
     // TODO: revise, should be non-penetration for velocity
-    return std::make_shared<SlipWall<M>>(nc);
+    return UniquePtr<SlipWall<M>>(nc);
   } else if (name == "symm") {
     // Zero derivative for pressure, velocity and volume fraction
     // TODO: revise, should be non-penetration for velocity
-    return std::make_shared<Symm<M>>(nc);
+    return UniquePtr<Symm<M>>(nc);
   } else {
     throw std::runtime_error("Parse: unknown cond");
   }
 }
 
 template <class M>
-MapFace<std::shared_ptr<solver::CondFace>> GetVelCond(
-    const M& m, const MapFace<std::shared_ptr<solver::CondFaceFluid>>& mff) {
+MapCondFace GetVelCond(const M& m, const MapCondFaceFluid& mff) {
   using Vect = typename M::Vect;
   (void) m;
-  MapFace<std::shared_ptr<solver::CondFace>> mf;
+  MapCondFace mf;
   for (auto it : mff) {
-    IdxFace i = it.GetIdx();
-    solver::CondFaceFluid* cb = it.GetValue().get();
+    IdxFace f = it.GetIdx();
+    auto& cb = it.GetValue();
     size_t nci = cb->GetNci();
 
     using namespace solver;
     using namespace solver::fluid_condition;
-    if (auto cd = dynamic_cast<NoSlipWall<M>*>(cb)) {
-      mf[i] = std::make_shared<
-          CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
-    } else if (auto cd = dynamic_cast<Inlet<M>*>(cb)) {
-      mf[i] = std::make_shared<
-          CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
-    } else if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
-      mf[i] = std::make_shared<
-          CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
-    } else if (auto cd = dynamic_cast<SlipWall<M>*>(cb)) {
-      mf[i] = std::make_shared<
-          CondFaceReflect>(nci);
-    } else if (auto cd = dynamic_cast<Symm<M>*>(cb)) {
-      mf[i] = std::make_shared<
-          CondFaceReflect>(nci);
+    if (auto cd = cb.Get<NoSlipWall<M>>()) {
+      mf[f].Set<CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
+    } else if (auto cd = cb.Get<Inlet<M>>()) {
+      mf[f].Set<CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
+    } else if (auto cd = cb.Get<Outlet<M>>()) {
+      mf[f].Set<CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
+    } else if (auto cd = cb.Get<SlipWall<M>>()) {
+      mf[f].Set<CondFaceReflect>(nci);
+    } else if (auto cd = cb.Get<Symm<M>>()) {
+      mf[f].Set<CondFaceReflect>(nci);
     } else {
       throw std::runtime_error("GetVelCond: unknown condition");
     }
@@ -299,3 +295,4 @@ MapFace<std::shared_ptr<solver::CondFace>> GetVelCond(
 
 } // namespace solver
 
+using MapCondFaceFluid = solver::MapCondFaceFluid;
