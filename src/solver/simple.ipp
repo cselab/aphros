@@ -45,7 +45,7 @@ struct Simple<M_>::Imp {
   using Expr = GVect<Scal, M::dim * 2 + 2>;
 
   Imp(Owner* owner, const FieldCell<Vect>& fcw,
-      const MapCondFaceFluid& mfc, 
+      MapCondFaceFluid& mfc,
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m), dr_(0, m.GetEdim())
@@ -58,27 +58,26 @@ struct Simple<M_>::Imp {
 
     mfcw_ = GetVelCond(m, mfc_);
     for (auto it : mfc_) {
-      IdxFace i = it.GetIdx();
-      ffbd_[i] = true;
-      CondFaceFluid* cb = it.GetValue().get();
+      IdxFace f = it.GetIdx();
+      ffbd_[f] = true;
+      auto& cb = it.GetValue();
       size_t nci = cb->GetNci();
 
-      mfcf_[i]  = std::make_shared<CondFaceGradFixed<Vect>>(Vect(0), nci);
-      mfcp_[i]  = std::make_shared<CondFaceExtrap>(nci);
-      mfcpc_[i] = std::make_shared<CondFaceExtrap>(nci);
-      mfcd_[i]  = std::make_shared<CondFaceGradFixed<Scal>>(0., nci);
+      mfcf_[f]  = UniquePtr<CondFaceGradFixed<Vect>>(Vect(0), nci);
+      mfcp_[f]  = UniquePtr<CondFaceExtrap>(nci);
+      mfcpc_[f] = UniquePtr<CondFaceExtrap>(nci);
+      mfcd_[f]  = UniquePtr<CondFaceGradFixed<Scal>>(0., nci);
 
-      if (dynamic_cast<NoSlipWall<M>*>(cb)) {
+      if (cb.Get<NoSlipWall<M>>()) {
         // nop
-      } else if (dynamic_cast<Inlet<M>*>(cb)) {
+      } else if (cb.Get<Inlet<M>>()) {
         // nop
-      } else if (dynamic_cast<Outlet<M>*>(cb)) {
+      } else if (cb.Get<Outlet<M>>()) {
         // nop
-      } else if (dynamic_cast<SlipWall<M>*>(cb) ||
-                 dynamic_cast<Symm<M>*>(cb)) {
-        mfcf_[i]  = std::make_shared<CondFaceReflect>(nci);
-        mfcp_[i]  = std::make_shared<CondFaceGradFixed<Scal>>(0., nci);
-        mfcpc_[i] = std::make_shared<CondFaceGradFixed<Scal>>(0, nci);
+      } else if (cb.Get<SlipWall<M>>() || cb.Get<Symm<M>>()) {
+        mfcf_[f]  = UniquePtr<CondFaceReflect>(nci);
+        mfcp_[f]  = UniquePtr<CondFaceGradFixed<Scal>>(0., nci);
+        mfcpc_[f] = UniquePtr<CondFaceGradFixed<Scal>>(0, nci);
       } else {
         throw std::runtime_error("simple: unknown condition");
       }
@@ -89,13 +88,10 @@ struct Simple<M_>::Imp {
       CondCellFluid* cb = it.GetValue().get(); // cond base
 
       if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
-        mccp_[c] = std::make_shared<
-            CondCellValFixed<Scal>>(cd->GetPressure());
+        mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
       } else if (auto cd = dynamic_cast<GivenVelocityAndPressure<M>*>(cb)) {
-        mccp_[c] = std::make_shared<
-            CondCellValFixed<Scal>>(cd->GetPressure());
-        mccw_[c] = std::make_shared<
-            CondCellValFixed<Vect>>(cd->GetVelocity());
+        mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
+        mccw_[c] = std::make_shared<CondCellValFixed<Vect>>(cd->GetVelocity());
       } else {
         throw std::runtime_error("simple: unknown cell condition");
       }
@@ -202,7 +198,7 @@ struct Simple<M_>::Imp {
         CondFaceFluid* cb = it.GetValue().Get(); // cond base
 
         size_t nci = cb->GetNci();
-        IdxCell c = m.GetNeighbourCell(i, nci);
+        IdxCell c = m.GetCell(i, nci);
         if (m.IsInner(c)) {
           if (auto cd = dynamic_cast<InletFlux<M>*>(cb)) {
             size_t id = cd->GetId();
@@ -264,12 +260,12 @@ struct Simple<M_>::Imp {
       // and compute total fluxes
       for (auto p : mfc_) {
         IdxFace i = p.GetIdx();
-        CondFaceFluid* cb = p.GetValue().get(); // cond base
+        auto& cb = p.GetValue(); // cond base
 
         size_t id = cb->GetNci();
-        IdxCell c = m.GetNeighbourCell(i, id);
+        IdxCell c = m.GetCell(i, id);
         if (m.IsInner(c)) {
-          if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
+          if (auto cd = cb.Get<Outlet<M>>()) {
             Scal w = (id == 0 ? 1. : -1.);
             Vect vc = GetVelocity(Layers::iter_curr)[c];
             Vect s = m.GetSurface(i);
@@ -278,13 +274,13 @@ struct Simple<M_>::Imp {
             cd->SetVelocity(vc);
             fo += cd->GetVelocity().dot(s) * w;
             ao += m.GetArea(i);
-          } else if (auto cd = dynamic_cast<Inlet<M>*>(cb)) {
+          } else if (auto cd = cb.Get<Inlet<M>>()) {
             Scal w = (id == 0 ? -1. : 1.);
             fi += cd->GetVelocity().dot(m.GetSurface(i)) * w;
           }
         }
       }
-      
+
       // Append volume source to inlet flux
       auto& fcsv = *owner_->fcsv_;
       for (auto i : m.Cells()) {
@@ -331,7 +327,7 @@ struct Simple<M_>::Imp {
         Vect s(0);
         for (auto q : m.Nci(c)) {
           // TODO: revise for non-rectangular cell
-          IdxFace f = m.GetNeighbourFace(c, q);
+          IdxFace f = m.GetFace(c, q);
           s += m.GetSurface(f) *
               (ffbp[f] * m.GetVolume(c) / m.GetArea(f) * 0.5);
         }
@@ -393,8 +389,8 @@ struct Simple<M_>::Imp {
       // Init with mean flux
       ffv[f] = fftv[f].dot(m.GetSurface(f));
       if (!ffbd_[f]) { // if not boundary
-        IdxCell cm = m.GetNeighbourCell(f, 0);
-        IdxCell cp = m.GetNeighbourCell(f, 1);
+        IdxCell cm = m.GetCell(f, 0);
+        IdxCell cp = m.GetCell(f, 1);
 
         // compact pressure gradient
         Scal hr = m.GetArea(f) / m.GetVolume(cp);
@@ -436,7 +432,7 @@ struct Simple<M_>::Imp {
         e[Expr::dim - 1] = pc;
         // override neighbours
         for (size_t q : m.Nci(c)) {
-          IdxCell cn = m.GetNeighbourCell(c, q);
+          IdxCell cn = m.GetCell(c, q);
           auto& en = fcs[cn];
           size_t qn = (q % 2 == 0 ? q + 1 : q - 1); // id of c from cn
           en[Expr::dim - 1] += en[1 + qn] * pc;
@@ -458,8 +454,8 @@ struct Simple<M_>::Imp {
     ffe.Reinit(m);
     for (auto f : m.Faces()) {
       auto& e = ffe[f];
-      IdxCell cm = m.GetNeighbourCell(f, 0);
-      IdxCell cp = m.GetNeighbourCell(f, 1);
+      IdxCell cm = m.GetCell(f, 0);
+      IdxCell cp = m.GetCell(f, 1);
       Scal hr = m.GetArea(f) / m.GetVolume(cp);
       if (!ffbd_[f]) {  // inner
         Scal a = -m.GetArea(f) * hr / ffk[f];
@@ -485,7 +481,7 @@ struct Simple<M_>::Imp {
     ffe.Reinit(m);
     for (auto f : m.Faces()) {
       auto& e = ffe[f];
-      IdxCell cp = m.GetNeighbourCell(f, 1);
+      IdxCell cp = m.GetCell(f, 1);
       Scal hr = m.GetArea(f) / m.GetVolume(cp);
       if (!ffbd_[f]) {  // inner
         Scal a = -m.GetArea(f) * hr / ffk[f];
@@ -510,7 +506,7 @@ struct Simple<M_>::Imp {
     for (auto c : m.Cells()) {
       auto& e = fce[c];
       for (auto q : m.Nci(c)) {
-        IdxFace f = m.GetNeighbourFace(c, q);
+        IdxFace f = m.GetFace(c, q);
         ExprFace v = ffv[f] * m.GetOutwardFactor(c, q);
         e[0] += v[1 - q % 2];
         e[1 + q] += v[q % 2];
@@ -529,7 +525,7 @@ struct Simple<M_>::Imp {
     for (auto c : m.Cells()) {
       auto& e = fce[c];
       for (auto q : m.Nci(c)) {
-        IdxFace f = m.GetNeighbourFace(c, q);
+        IdxFace f = m.GetFace(c, q);
         ExprFace v = ffv[f] * m.GetOutwardFactor(c, q);
         e[0] += v[1 - q % 2];
         e[1 + q] += v[q % 2];
@@ -619,7 +615,7 @@ struct Simple<M_>::Imp {
       for (auto c : m.Cells()) {
         Vect s(0);
         for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
+          IdxFace f = m.GetFace(c, q);
           s += gf[f] * (ffd_[f] * m.GetOutwardSurface(c, q)[d]);
         }
         fcf[c] += s / m.GetVolume(c);
@@ -661,8 +657,8 @@ struct Simple<M_>::Imp {
       FieldFace<Scal> ffa(m); // addition to flux TODO revise comment
       auto& ffbp = *owner_->ffbp_;
       for (auto f : m.Faces()) {
-        IdxCell cm = m.GetNeighbourCell(f, 0);
-        IdxCell cp = m.GetNeighbourCell(f, 1);
+        IdxCell cm = m.GetCell(f, 0);
+        IdxCell cp = m.GetCell(f, 1);
 
         if (!ffbd_[f]) { // if not boundary
           auto s = m.GetSurface(f);
@@ -816,8 +812,8 @@ struct Simple<M_>::Imp {
 
       // Calc divergence-free volume fluxes
       for (auto f : m.Faces()) {
-        IdxCell cm = m.GetNeighbourCell(f, 0);
-        IdxCell cp = m.GetNeighbourCell(f, 1);
+        IdxCell cm = m.GetCell(f, 0);
+        IdxCell cp = m.GetCell(f, 1);
         auto& e = ffvc_[f];
         ffv_.iter_curr[f] = e[0] * fcpc_[cm] + e[1] * fcpc_[cp] + e[2];
       }
@@ -866,7 +862,7 @@ struct Simple<M_>::Imp {
     auto& flux = ffv_.time_curr;
     for (auto c : m.Cells()) {
       for (size_t i = 0; i < m.GetNumNeighbourFaces(c); ++i) {
-        IdxFace f = m.GetNeighbourFace(c, i);
+        IdxFace f = m.GetFace(c, i);
         if (flux[f] != 0.) {
           dt = std::min<Scal>(
               dt, std::abs(m.GetVolume(c) / flux[f]));
@@ -886,7 +882,7 @@ struct Simple<M_>::Imp {
   GRange<size_t> drr_;  // remaining dimensions
 
   // Face conditions
-  MapCondFaceFluid mfc_; // fluid cond
+  MapCondFaceFluid& mfc_; // fluid cond
   MapCondFace mfcw_; // velocity cond
   MapCondFace mfcp_; // pressure cond
   MapCondFace mfcf_; // force cond
@@ -941,7 +937,7 @@ struct Simple<M_>::Imp {
 template <class M_>
 Simple<M_>::Simple(
     M& m, const FieldCell<Vect>& fcw,
-    const MapCondFaceFluid& mfc,
+    MapCondFaceFluid& mfc,
     const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
     FieldCell<Scal>* fcr, FieldCell<Scal>* fcd, 
     FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,

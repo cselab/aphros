@@ -299,7 +299,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapCondFace mf_cond_;
   MapCondFace mf_cond_vfsm_;
   MapCondFaceFluid mf_velcond_; // fluid cond
-  MapCondFace mfcw_; // velocity cond
   MapCell<std::shared_ptr<solver::CondCell>> mc_cond_;
   MapCell<std::shared_ptr<solver::CondCellFluid>> mc_velcond_;
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
@@ -445,7 +444,7 @@ auto Hydro<M>::GetBcSz() const -> MapCondFace {
   MapCondFace r;
   for (auto it : mf_velcond_) {
     IdxFace f = it.GetIdx();
-    r[f]<CondFaceGradFixed<Scal>>(0., it.GetValue()->GetNci());
+    r[f].Set<CondFaceGradFixed<Scal>>(0., it.GetValue()->GetNci());
   }
   return r;
 }
@@ -454,18 +453,22 @@ auto Hydro<M>::GetBcSz() const -> MapCondFace {
 template <class M>
 void Hydro<M>::InitVort() {
   auto sem = m.GetSem("initvort");
+  struct {
+    MapCondFace mfcw; // velocity cond
+    MapCondFace mfcwd; // velocity cond in one diretion
+  }* ctx(sem);
   auto& fct = fctmp_;  // temporary fields
   auto& fctv = fctmpv_;
   if (sem("initpois")) {
     m.Comm(&fc_vel_);
     fctv.Reinit(m);
-    mfcw_ = GetVelCond(m, mf_velcond_);
+    ctx->mfcw = GetVelCond(m, mf_velcond_);
   }
   for (size_t d = 0; d < M::dim; ++d) {
     std::string dn = std::to_string(d);
     if (sem("init-" + dn)) {
-      ps_ = std::make_shared<solver::PoisSolver<M>>(
-          GetScalarCond(mfcw_, d, m), m);
+      ctx->mfcwd = GetScalarCond(ctx->mfcw, d, m);
+      ps_ = std::make_shared<solver::PoisSolver<M>>(ctx->mfcwd, m);
       fct = GetComponent(fc_vel_, d);
       for (auto c : m.Cells()) {
         fct[c] *= -1;
@@ -486,7 +489,7 @@ void Hydro<M>::InitVort() {
     }
   }
   if (sem("vel")) {
-    fc_vel_ = GetVort(fctv, mfcw_, m);
+    fc_vel_ = GetVort(fctv, ctx->mfcw, m);
     m.Comm(&fc_vel_);
     fctv.Free();
     fct.Free();
@@ -1013,7 +1016,7 @@ void Hydro<M>::CalcStat() {
     // surface area
     if (var.Int["stat_area"]) {
       s.area = 0;
-      if (auto as = dynamic_cast<ASVM*>(as_.,et())) {
+      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
         using R = Reconst<Scal>;
         auto &fcn = as->GetNormal(0);
         auto &fca = as->GetAlpha(0);

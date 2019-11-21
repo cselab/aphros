@@ -120,7 +120,7 @@ class PoisSolver {
   M& m;
   FieldCell<Expr> fce_;
   FieldCell<Scal> fcu_;
-  MapCondFace mf_;
+  const MapCondFace& mf_;
   Scal sumr_; // sum of rhs * volume
   Scal sumv_; // sum of volume
 };

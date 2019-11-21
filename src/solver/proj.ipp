@@ -45,7 +45,7 @@ struct Proj<M_>::Imp {
   using Expr = GVect<Scal, M::dim * 2 + 2>;
 
   Imp(Owner* owner, const FieldCell<Vect>& fcw,
-      const MapCondFaceFluid& mfc,
+      MapCondFaceFluid& mfc,
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m), dr_(0, m.GetEdim())
@@ -60,25 +60,24 @@ struct Proj<M_>::Imp {
     for (auto it : mfc_) {
       IdxFace i = it.GetIdx();
       ffbd_[i] = true;
-      CondFaceFluid* cb = it.GetValue().Get();
+      auto& cb = it.GetValue();
       size_t nci = cb->GetNci();
 
-      mfcf_[i]  = std::make_shared<CondFaceGradFixed<Vect>>(Vect(0), nci);
-      mfcp_[i]  = std::make_shared<CondFaceExtrap>(nci);
-      mfcpc_[i] = std::make_shared<CondFaceExtrap>(nci);
-      mfcd_[i]  = std::make_shared<CondFaceGradFixed<Scal>>(0., nci);
+      mfcf_[i].Set<CondFaceGradFixed<Vect>>(Vect(0), nci);
+      mfcp_[i].Set<CondFaceExtrap>(nci);
+      mfcpc_[i].Set<CondFaceExtrap>(nci);
+      mfcd_[i].Set<CondFaceGradFixed<Scal>>(0., nci);
 
-      if (dynamic_cast<NoSlipWall<M>*>(cb)) {
+      if (cb.Get<NoSlipWall<M>>()) {
         // nop
-      } else if (dynamic_cast<Inlet<M>*>(cb)) {
+      } else if (cb.Get<Inlet<M>>()) {
         // nop
-      } else if (dynamic_cast<Outlet<M>*>(cb)) {
+      } else if (cb.Get<Outlet<M>>()) {
         // nop
-      } else if (dynamic_cast<SlipWall<M>*>(cb) ||
-                 dynamic_cast<Symm<M>*>(cb)) {
-        mfcf_[i]  = std::make_shared<CondFaceReflect>(nci);
-        mfcp_[i]  = std::make_shared<CondFaceGradFixed<Scal>>(0., nci);
-        mfcpc_[i] = std::make_shared<CondFaceGradFixed<Scal>>(0, nci);
+      } else if (cb.Get<SlipWall<M>>() || cb.Get<Symm<M>>()) {
+        mfcf_[i].Set<CondFaceReflect>(nci);
+        mfcp_[i].Set<CondFaceGradFixed<Scal>>(0., nci);
+        mfcpc_[i].Set<CondFaceGradFixed<Scal>>(0, nci);
       } else {
         throw std::runtime_error("simple: unknown condition");
       }
@@ -86,7 +85,7 @@ struct Proj<M_>::Imp {
 
     for (auto it : mcc_) {
       IdxCell c = it.GetIdx();
-      CondCellFluid* cb = it.GetValue().Get(); // cond base
+      CondCellFluid* cb = it.GetValue().get(); // cond base
 
       if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
         mccp_[c] = std::make_shared<
@@ -261,12 +260,12 @@ struct Proj<M_>::Imp {
       // and compute total fluxes
       for (auto p : mfc_) {
         IdxFace i = p.GetIdx();
-        CondFaceFluid* cb = p.GetValue().get(); // cond base
+        auto& cb = p.GetValue(); // cond base
 
         size_t id = cb->GetNci();
         IdxCell c = m.GetNeighbourCell(i, id);
         if (m.IsInner(c)) {
-          if (auto cd = dynamic_cast<Outlet<M>*>(cb)) {
+          if (auto cd = cb.Get<Outlet<M>>()) {
             Scal w = (id == 0 ? 1. : -1.);
             Vect vc = GetVelocity(Layers::iter_curr)[c];
             Vect s = m.GetSurface(i);
@@ -275,13 +274,13 @@ struct Proj<M_>::Imp {
             cd->SetVelocity(vc);
             fo += cd->GetVelocity().dot(s) * w;
             ao += m.GetArea(i);
-          } else if (auto cd = dynamic_cast<Inlet<M>*>(cb)) {
+          } else if (auto cd = cb.Get<Inlet<M>>()) {
             Scal w = (id == 0 ? -1. : 1.);
             fi += cd->GetVelocity().dot(m.GetSurface(i)) * w;
           }
         }
       }
-      
+
       // Append volume source to inlet flux
       auto& fcsv = *owner_->fcsv_;
       for (auto i : m.Cells()) {
@@ -641,7 +640,7 @@ struct Proj<M_>::Imp {
   GRange<size_t> drr_;  // remaining dimensions
 
   // Face conditions
-  MapCondFaceFluid mfc_; // fluid cond
+  MapCondFaceFluid& mfc_; // fluid cond
   MapCondFace mfcw_; // velocity cond
   MapCondFace mfcp_; // pressure cond
   MapCondFace mfcf_; // force cond
@@ -693,7 +692,7 @@ struct Proj<M_>::Imp {
 template <class M_>
 Proj<M_>::Proj(
     M& m, const FieldCell<Vect>& fcw,
-    const MapCondFaceFluid& mfc,
+    MapCondFaceFluid& mfc,
     const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
     FieldCell<Scal>* fcr, FieldCell<Scal>* fcd, 
     FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
