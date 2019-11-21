@@ -2,8 +2,10 @@
 
 #include <memory>
 #include <utility>
+#include <string>
 
 #include "geom/map.h"
+#include "geom/unique.h"
 
 namespace solver {
 
@@ -32,7 +34,6 @@ class CondFaceReflect : public CondFace {
  public:
   CondFaceReflect(size_t nci) : CondFace(nci) {}
 };
-
 
 // Condition for value
 template <class V>
@@ -92,7 +93,6 @@ class CondFaceGradComp : public CondFaceGrad<typename Vect::value_type> {
   size_t d_;
 };
 
-
 // Given gradient
 template <class V>
 class CondFaceGradFixed : public CondFaceGrad<V> {
@@ -105,6 +105,43 @@ class CondFaceGradFixed : public CondFaceGrad<V> {
  private:
   V v_;
 };
+
+// Evaluates face condition of given type.
+template <class T>
+UniquePtr<CondFace> Eval(const UniquePtr<CondFace>& b) {
+  if (auto d = b.Get<CondFaceVal<T>>()) {
+    return UniquePtr<CondFaceValFixed<T>>(d->GetValue(), d->GetNci());
+  }
+  if (auto d = b.Get<CondFaceGrad<T>>()) {
+    return UniquePtr<CondFaceGradFixed<T>>(d->GetGrad(), d->GetNci());
+  }
+  if (auto d = b.Get<CondFaceExtrap>()) {
+    return UniquePtr<CondFaceExtrap>(d->GetNci());
+  }
+  if (auto d = b.Get<CondFaceReflect>()) {
+    return UniquePtr<CondFaceReflect>(d->GetNci());
+  }
+  throw std::runtime_error(std::string(__func__) + ": Unknown face condition");
+}
+
+// Evaluates component i of vector face condition.
+template <class Vect>
+UniquePtr<CondFace> EvalComp(const UniquePtr<CondFace>& b, size_t i) {
+  using Scal = typename Vect::value_type;
+  if (auto d = b.Get<CondFaceVal<Vect>>()) {
+    return UniquePtr<CondFaceValFixed<Scal>>(d->GetValue()[i], d->GetNci());
+  }
+  if (auto d = b.Get<CondFaceGrad<Vect>>()) {
+    return UniquePtr<CondFaceGradFixed<Scal>>(d->GetGrad()[i], d->GetNci());
+  }
+  if (auto d = b.Get<CondFaceExtrap>()) {
+    return UniquePtr<CondFaceExtrap>(d->GetNci());
+  }
+  if (auto d = b.Get<CondFaceReflect>()) {
+    return UniquePtr<CondFaceReflect>(d->GetNci());
+  }
+  throw std::runtime_error(std::string(__func__) + ": Unknown face condition");
+}
 
 class CondCell {
  public:
@@ -132,46 +169,4 @@ class CondCellValFixed : public CondCellVal<V> {
 
 } // namespace solver
 
-template <class T>
-class UniquePtr {
- public:
-  UniquePtr() = default;
-  UniquePtr(const UniquePtr&) = delete;
-  UniquePtr(UniquePtr&&) = default;
-  template <class U>
-  UniquePtr(const UniquePtr<U>&& o) 
-      : p_(o.p_) {}
-  UniquePtr(std::nullptr_t) {}
-  UniquePtr& operator=(const UniquePtr&) = delete;
-  UniquePtr& operator=(UniquePtr&&) = default;
-  template <class U, class ... Args>
-  UniquePtr(Args ... args) 
-      : p_(new  U(std::forward<Args>(args)...)) {}
-  template <class U, class ... Args>
-  void Set(Args ... args) {
-    p_ = std::unique_ptr<T>(new U(std::forward<Args>(args)...));
-  }
-  void Set(std::nullptr_t) {
-    p_.reset(nullptr);
-  }
-  void Set(int) = delete;
-  template <class U=T>
-  U* Get() {
-    return dynamic_cast<U*>(p_.get());
-  }
-  template <class U=T>
-  const U* Get() const {
-    return dynamic_cast<const U*>(p_.get());
-  }
-  T* operator->() {
-    return p_.get();
-  }
-  const T* operator->() const {
-    return p_.get();
-  }
- private:
-  std::unique_ptr<T> p_;
-};
-
 using MapCondFace = MapFace<UniquePtr<solver::CondFace>>;
-using MapCondFaceFluid = MapFace<UniquePtr<solver::CondFace>>;
