@@ -37,7 +37,7 @@ protected:
     std::vector<BlockInfo> cached_blockinfo;
 
     // acts like cache
-    std::map<std::string, Synch *> SynchronizerMPIs;
+    std::map<StencilInfo, Synch *> SynchronizerMPIs;
 
     MPI_Comm worldcomm;
     MPI_Comm cartcomm;
@@ -104,7 +104,7 @@ public:
 
     ~GridMPI()
     {
-        for (typename std::map<std::string, Synch *>::const_iterator it =
+        for (typename std::map<StencilInfo, Synch *>::const_iterator it =
                  SynchronizerMPIs.begin();
              it != SynchronizerMPIs.end();
              ++it)
@@ -140,20 +140,56 @@ public:
     // and performs communication
     // (e.g. two kernels with identical stencils and
     // same elected components would share a common SynchronizerMPI)
-    template <typename Processing, typename TView>
-    Synch &sync(const std::string &name,
-                Processing &p,
-                std::vector<std::vector<TView>> &fields)
+    template <typename TView>
+    Synch &sync(std::vector<std::vector<TView>> &fields,
+                const int nhalo_start[3],
+                const int nhalo_end[3],
+                const bool is_tensorial = true)
     {
-        const StencilInfo stencil = p.stencil;
+        StencilInfo stencil(-nhalo_start[0],
+                            -nhalo_start[1],
+                            -nhalo_start[2],
+                            nhalo_end[0] + 1,
+                            nhalo_end[1] + 1,
+                            nhalo_end[2] + 1,
+                            is_tensorial,
+                            1,
+                            0);
+        int total_components = 0;
+        for (size_t i = 0; i < fields.size(); ++i) {
+            const auto& f = fields[i];
+            total_components += f[0].n_comp;
+#if !defined(NDEBUG)
+                for (size_t j = 1; j < f.size(); ++j) {
+                    assert(f[j-1].n_comp == f[j].n_comp);
+                }
+#endif
+        }
+        stencil.selcomponents.clear();
+        for (int i = 0; i < total_components; ++i) {
+            stencil.selcomponents.push_back(i);
+        }
         assert(stencil.isvalid());
 
         Synch *queryresult = NULL;
 
-        typename std::map<std::string, Synch *>::iterator itSynchronizerMPI =
-            SynchronizerMPIs.find(name);
+        typename std::map<StencilInfo, Synch *>::iterator itSynchronizerMPI =
+            SynchronizerMPIs.find(stencil);
 
         if (itSynchronizerMPI == SynchronizerMPIs.end()) {
+#if !defined(NDEBUG)
+            printf("Alloc sync: rank=%d; nfields=%lu; s=(%d,%d,%d); "
+                   "e=(%d,%d,%d); tensorial=%d\n",
+                   myrank,
+                   fields.size(),
+                   nhalo_start[0],
+                   nhalo_start[1],
+                   nhalo_start[2],
+                   nhalo_end[0],
+                   nhalo_end[1],
+                   nhalo_end[2],
+                   is_tensorial);
+#endif
             queryresult = new Synch(fields,
                                     getBlocksInfo(),
                                     stencil,
@@ -161,28 +197,25 @@ public:
                                     mybpd,
                                     blocksize);
 
-            SynchronizerMPIs[name] = queryresult;
-        } else
+            SynchronizerMPIs[stencil] = queryresult;
+        } else {
             queryresult = itSynchronizerMPI->second;
+        }
 
         // perform communication
-        queryresult->sync(sizeof(Real) > 4 ? MPI_DOUBLE : MPI_FLOAT, timestamp);
+        queryresult->sync(
+            fields, sizeof(Real) > 4 ? MPI_DOUBLE : MPI_FLOAT, timestamp);
 
         timestamp = (timestamp + 1) % 32768;
 
         return *queryresult;
     }
 
-    inline bool isRegistered(const std::string &name) const
+    Synch &getSynchronizerMPI(const StencilInfo stencil)
     {
-        return SynchronizerMPIs.find(name) != SynchronizerMPIs.end();
-    }
+        assert((SynchronizerMPIs.find(stencil) != SynchronizerMPIs.end()));
 
-    Synch &getSynchronizerMPI(const std::string &name)
-    {
-        assert((SynchronizerMPIs.find(name) != SynchronizerMPIs.end()));
-
-        return *SynchronizerMPIs.find(name)->second;
+        return *SynchronizerMPIs.find(stencil)->second;
     }
 
     size_t getResidentBlocksPerDimension(int idim) const

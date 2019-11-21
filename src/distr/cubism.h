@@ -177,19 +177,6 @@ class Cubism : public DistrMesh<KF> {
   };
   S s_;
 
-  // hl: number of halo cells from each side
-  // cs: number of fields for communication
-  static StencilInfo GetStencil(size_t hl, size_t cs) {
-    const int a = -int(hl);
-    const int b = int(hl) + 1;
-
-    StencilInfo stencil(a,a,a,b,b,b, true, 1, 0);
-    stencil.selcomponents.clear();
-    for (size_t i = 0; i < cs; ++i) {
-      stencil.selcomponents.push_back(i);
-    }
-    return stencil;
-  }
   // Convert Cubism BlockInfo to MyBlockInfo
   static std::vector<MyBlockInfo> GetBlocks(
       const std::vector<BlockInfo>&, MIdx bs, size_t hl);
@@ -273,14 +260,6 @@ struct StreamHdfVect {
   static const char * getAttributeName() { return "Vector"; }
 };
 
-// Class with field 'stencil' needed for SynchronizerMPI::sync(Processing)
-struct FakeProc {
-  StencilInfo stencil;
-  explicit FakeProc(StencilInfo si)
-    : stencil(si)
-  {}
-};
-
 template <class Par, class KF>
 std::vector<MyBlockInfo> Cubism<Par, KF>::GetBlocks(
     const std::vector<BlockInfo>& cc, MIdx bs, size_t hl) {
@@ -336,58 +315,37 @@ Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par)
 
 template <class Par, class KF>
 auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
+  // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] not needed
   MPI_Barrier(comm_);
 
   // Get all blocks
   std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
   auto& m = mk.at(MIdx(cc[0].index))->GetMesh();
-
-// FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] the comm_id is kernel/comm specific
-// and should come from outside
-  const std::string comm_id = "test_comm";
-
   std::vector<BlockInfo> aa;
   // Perform communication if necessary
   if (m.GetComm().size() > 0) {
     // 0. Construct vector of fields to communicate for all blocks on this rank
-// FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] the fields to be communicated by
-// comm_id.  The number and order of fields in this vector should not be changed
-// during simulation.  If this vector changes, a new comm_id must be created for
-// it.  Ideally, they are created in a std::map outside of GetBlocks()
     std::vector<std::vector<FieldView>> fviews;
-// FIXME: [fabianw@mavt.ethz.ch; 2019-11-17] Registered synchronizer objects can
-// only be used with unique comm_id's.  Recompute every time otherwise.
-    // if (g_.isRegistered(comm_id)) {
-    //   fviews = g_.getSynchronizerMPI(comm_id).getFields();
-    // } else {
-      const size_t n_fields = m.GetComm().size();
-      fviews.resize(n_fields);
-      for (const auto &b : cc) {
-        auto &bm = mk.at(MIdx(b.index))->GetMesh();
-        auto &bf = bm.GetComm();
-        assert(n_fields == bf.size());
-        for (size_t fi = 0; fi < n_fields; ++fi) {
-          auto &o = bf[fi];
-          fviews[fi].push_back(
-            FieldView(o->GetBasePtr(), b.index, o->GetSize()));
-        }
+    const size_t n_fields = m.GetComm().size();
+    fviews.resize(n_fields);
+    for (const auto &b : cc) {
+      auto &bm = mk.at(MIdx(b.index))->GetMesh();
+      auto &bf = bm.GetComm();
+      assert(n_fields == bf.size());
+      for (size_t fi = 0; fi < n_fields; ++fi) {
+        auto &o = bf[fi];
+        fviews[fi].push_back(FieldView(o->GetBasePtr(), b.index, o->GetSize()));
       }
-    // }
-
-    size_t cs = 0;
-    for (auto& o : m.GetComm()) {
-      cs += o->GetSize();
     }
 
     // 1. Exchange halos in buffer mesh.
-    // max(cs, 1) to prevent forbidden call with zero components
-    FakeProc fp(GetStencil(hl_, std::max<size_t>(cs, 1)));
-    assert(cs == fp.stencil.selcomponents.size());
+    // stencil type
+    const bool is_tensorial = true;
+    const int nhalo_start[3] = {hl_, hl_, hl_};
+    const int nhalo_end[3] = {hl_, hl_, hl_};
 
-    // Perform communication and register new synchronizer if not already
-    // present under label 'comm_id'.  After this point, registered synchronizer
-    // objects can be queried with g_.getSynchronizerMPI(comm_id).
-    Synch& s = g_.sync(comm_id, fp, fviews);
+    // schedule asynchronous communication
+    Synch& s = g_.sync(fviews, nhalo_start, nhalo_end, is_tensorial);
 
     // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] not needed
     MPI_Barrier(comm_);
