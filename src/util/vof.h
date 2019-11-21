@@ -88,8 +88,8 @@ class UVof {
   static void BcClear(FieldCell<Scal>& uc,
                       const MapCondFace& mfc, const M& m, Scal u0, Scal u1) {
     for (const auto& it : mfc) {
-      CondFace* cb = it.GetValue().Get();
-      if (dynamic_cast<CondFaceVal<Scal>*>(cb)) {
+      auto& cb = it.GetValue();
+      if (cb.Get<CondFaceVal<Scal>>()) {
         IdxCell c = m.GetNeighbourCell(it.GetIdx(), cb->GetNci());
         auto& u = uc[c];
         if (u < u0) {

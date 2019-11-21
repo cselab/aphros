@@ -114,7 +114,7 @@ struct UVof<M_>::Imp {
     std::array<int, ms> vc1;
     std::array<double, ms> vw;
     march_cube_location(vc0.data(), vc1.data(), vw.data());
-    assert(nt * 3 * 3 <= tri.size());
+    assert(size_t(nt) * 3 * 3 <= tri.size());
 
     vv.resize(nt);
     {
@@ -970,30 +970,28 @@ void UVof<M_>::GetAdvectionFaceCond(
   mfc_n.clear();
   mfc_a.clear();
   for (auto it : mfc) {
+    CondFaceValFixed<Scal> a(0, 0);
     IdxFace f = it.GetIdx();
-    const CondFace* cb = it.GetValue().Get();
+    auto& cb = it.GetValue();
     size_t nci = cb->GetNci();
-    mfc_vf[f].Set<CondFace*>(it.GetValue());
-    if (dynamic_cast<const CondFaceReflect*>(cb)) {
-      mfc_cl[f] = std::make_shared<CondFaceReflect>(nci);
-      mfc_im[f] = std::make_shared<CondFaceReflect>(nci);
-      mfc_n[f] = std::make_shared<CondFaceReflect>(nci);
-      mfc_a[f] = std::make_shared<CondFaceReflect>(nci);
+    mfc_vf[f] = Eval<Scal>(it.GetValue());
+    if (cb.Get<CondFaceReflect>()) {
+      mfc_cl[f].Set<CondFaceReflect>(nci);
+      mfc_im[f].Set<CondFaceReflect>(nci);
+      mfc_n[f].Set<CondFaceReflect>(nci);
+      mfc_a[f].Set<CondFaceReflect>(nci);
     } else {
       // TODO: reflect cl on walls
-      if (auto cd = dynamic_cast<const CondFaceValFixed<Scal>*>(cb)) {
-        mfc_cl[f] = std::make_shared<
-            CondFaceValFixed<Scal>>(inletcl, nci);
+      if (auto cd = cb.Get<CondFaceValFixed<Scal>>()) {
+        mfc_cl[f].Set<CondFaceValFixed<Scal>>(inletcl, nci);
       } else {
-        mfc_cl[f] = std::make_shared<
-            CondFaceValFixed<Scal>>(kClNone, nci);
+        mfc_cl[f].Set<CondFaceValFixed<Scal>>(kClNone, nci);
       }
       MIdx wim(0);
       wim[size_t(m.GetDir(f))] = (nci == 1 ? -1 : 1);
-      mfc_im[f] = std::make_shared<
-          CondFaceValFixed<Scal>>(TRM::Pack(wim), nci);
-      mfc_n[f] = std::make_shared<CondFaceValFixed<Vect>>(Vect(0), nci);
-      mfc_a[f] = std::make_shared<CondFaceValFixed<Scal>>(Scal(0), nci);
+      mfc_im[f].Set<CondFaceValFixed<Scal>>(TRM::Pack(wim), nci);
+      mfc_n[f].Set<CondFaceValFixed<Vect>>(Vect(0), nci);
+      mfc_a[f].Set<CondFaceValFixed<Scal>>(Scal(0), nci);
     }
   }
 }

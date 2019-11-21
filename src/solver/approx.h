@@ -664,14 +664,14 @@ void BcApply(FieldCell<T>& uc, const MapCondFace& mfc, const M& m) {
   using Vect = typename M::Vect;
   for (const auto& it : mfc) {
     IdxFace f = it.GetIdx();
-    CondFace* cb = it.GetValue().Get();
+    auto& cb = it.GetValue();
     Vect n = m.GetNormal(f);
     IdxCell cmm, cm, cp, cpp;
     GetCellColumn(m, f, cb->GetNci(), cmm, cm, cp, cpp);
-    if (dynamic_cast<CondFaceReflect*>(cb)) {
+    if (cb.Get<CondFaceReflect>()) {
       uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
       uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
-    } else if (auto cd = dynamic_cast<CondFaceVal<T>*>(cb)) {
+    } else if (auto cd = cb.Get<CondFaceVal<T>>()) {
       uc[cm] = cd->GetValue();
       uc[cmm] = cd->GetValue();
     }
@@ -686,7 +686,7 @@ void BcReflectAll(FieldCell<T>& uc, const MapCondFace& mfc, const M& m) {
   using Vect = typename M::Vect;
   for (const auto& it : mfc) {
     IdxFace f = it.GetIdx();
-    CondFace* cb = it.GetValue().Get();
+    auto& cb = it.GetValue();
     Vect n = m.GetNormal(f);
     IdxCell cmm, cm, cp, cpp;
     GetCellColumn(m, f, cb->GetNci(), cmm, cm, cp, cpp);

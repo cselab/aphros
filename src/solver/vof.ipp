@@ -637,7 +637,7 @@ struct Vof<M_>::Imp {
 
   LayersData<FieldCell<Scal>> fcu_;
   FieldCell<Scal> fcuu_;   // volume fraction for Weymouth div term
-  MapCondFace mfc_; // conditions on advection
+  const MapCondFace& mfc_; // conditions on advection
   MapCondFace mfc_vf_; // conditions on vf
   MapCondFace mfc_cl_; // conditions on cl
   MapCondFace mfc_im_; // conditions on cl

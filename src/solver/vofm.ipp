@@ -753,7 +753,7 @@ struct Vofm<M_>::Imp {
   Multi<FieldCell<Scal>> fcuu_;
   LayersData<FieldCell<Scal>> fcus_;
   FieldCell<Scal> fccls_;
-  MapCondFace mfc_; // conditions on advection
+  const MapCondFace& mfc_; // conditions on advection
   MapCondFace mfc_vf_; // conditions on vf
   MapCondFace mfc_cl_; // conditions on cl
   MapCondFace mfc_im_; // conditions on cl
