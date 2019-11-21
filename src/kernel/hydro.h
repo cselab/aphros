@@ -434,8 +434,7 @@ auto Hydro<M>::GetBcVz() const -> MapCondFace {
   MapCondFace r;
   for (auto it : mf_velcond_) {
     IdxFace f = it.GetIdx();
-    r[f] = std::make_shared<solver::
-      CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
+    r[f].Set<CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
   }
   return r;
 }
@@ -446,8 +445,7 @@ auto Hydro<M>::GetBcSz() const -> MapCondFace {
   MapCondFace r;
   for (auto it : mf_velcond_) {
     IdxFace f = it.GetIdx();
-    r[f] = std::make_shared<solver::
-      CondFaceGradFixed<Scal>>(0., it.GetValue()->GetNci());
+    r[f]<CondFaceGradFixed<Scal>>(0., it.GetValue()->GetNci());
   }
   return r;
 }
@@ -687,10 +685,10 @@ void Hydro<M>::Init() {
       IdxFace i = it.GetIdx();
       solver::CondFaceFluid* cb = it.GetValue().Get();
       if (dynamic_cast<solver::fluid_condition::Symm<M>*>(cb)) {
-        mf_cond_vfsm_[i] = std::make_shared<solver::
+        mf_cond_vfsm_[i].Set<
             CondFaceReflect>(it.GetValue()->GetNci());
       } else {
-        mf_cond_vfsm_[i] = std::make_shared<solver::
+        mf_cond_vfsm_[i].Set<
             CondFaceGradFixed<Scal>>(Scal(0), it.GetValue()->GetNci());
       }
     }
