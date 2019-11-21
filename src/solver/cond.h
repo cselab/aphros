@@ -1,13 +1,20 @@
 #pragma once
 
+#include <memory>
+#include <utility>
+
+#include "geom/map.h"
+
 namespace solver {
 
 class CondFace {
  public:
-  // nci: neighbour cell id
-  CondFace(size_t nci) : nci_(nci) {}
   virtual ~CondFace() {}
   virtual size_t GetNci() const { return nci_; }
+
+ protected:
+  // nci: neighbour cell id
+  CondFace(size_t nci) : nci_(nci) {}
 
  private:
   size_t nci_;
@@ -124,3 +131,36 @@ class CondCellValFixed : public CondCellVal<V> {
 };
 
 } // namespace solver
+
+template <class T>
+class UniquePtr {
+ public:
+  UniquePtr() = default;
+  UniquePtr(const UniquePtr&) = delete;
+  UniquePtr(UniquePtr&&) = default;
+  UniquePtr(std::nullptr_t) {}
+  UniquePtr& operator=(const UniquePtr&) = delete;
+  UniquePtr& operator=(UniquePtr&&) = default;
+  template <class U, class ... Args>
+  void Set(Args ... args) {
+    p_ = std::unique_ptr<T>(new U(std::forward<Args>(args)...));
+  }
+  void Set(std::nullptr_t) {
+    p_.reset(nullptr);
+  }
+  void Set(int) = delete;
+  template <class U=T>
+  U* Get() {
+    return dynamic_cast<U*>(p_.get());
+  }
+  template <class U=T>
+  const U* Get() const {
+    return dynamic_cast<const U*>(p_.get());
+  }
+ private:
+  std::unique_ptr<T> p_;
+};
+
+class MapCondFace : public MapFace<UniquePtr<solver::CondFace>> {
+ public:
+};
