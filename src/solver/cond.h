@@ -161,6 +161,5 @@ class UniquePtr {
   std::unique_ptr<T> p_;
 };
 
-class MapCondFace : public MapFace<UniquePtr<solver::CondFace>> {
- public:
-};
+using MapCondFace = MapFace<UniquePtr<solver::CondFace>>;
+using MapCondFaceFluid = MapFace<UniquePtr<solver::CondFace>>;

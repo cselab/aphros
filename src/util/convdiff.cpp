@@ -7,8 +7,7 @@
 template <class M>
 std::unique_ptr<ConvDiffVect<M>> GetConvDiff<M>::operator()(
     Conv conv, M& m, const FieldCell<Vect>& fcw,
-    const MapFace<std::shared_ptr<CondFace>>& mfc,
-    const MapCell<std::shared_ptr<CondCell>>& mcc,
+    const MapCondFace& mfc, const MapCell<std::shared_ptr<CondCell>>& mcc,
     const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
     const FieldCell<Vect>* fcs, const FieldFace<Scal>* ffv,
     double t, double dt, const Par& par) {
@@ -30,8 +29,7 @@ using M = MeshStructured<double, 3>;
 
 template std::unique_ptr<ConvDiffVect<M>> GetConvDiff<M>::operator()(
     Conv conv, M& m, const FieldCell<Vect>& fcw,
-    const MapFace<std::shared_ptr<CondFace>>& mfc,
-    const MapCell<std::shared_ptr<CondCell>>& mcc,
+    const MapCondFace& mfc, const MapCell<std::shared_ptr<CondCell>>& mcc,
     const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
     const FieldCell<Vect>* fcs, const FieldFace<Scal>* ffv,
     double t, double dt, const Par& par);

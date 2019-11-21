@@ -225,7 +225,7 @@ void Convdiff<M>::TestSolve(
 
     using Dir = typename M::Dir;
 
-    MapFace<std::shared_ptr<solver::CondFace>> mf_cond;
+    MapCondFace mf_cond;
 
     // boundary xm of global mesh
     auto gxm = [this](IdxFace i) -> bool {

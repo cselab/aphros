@@ -15,8 +15,8 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   using Owner = ConvDiffVectGeneric<M_, CD_>;
 
   Imp(
-      Owner* owner, const FieldCell<Vect>& fcvel, 
-      const MapFace<std::shared_ptr<CondFace>>& mfc, 
+      Owner* owner, const FieldCell<Vect>& fcvel,
+      const MapCondFace& mfc,
       const MapCell<std::shared_ptr<CondCell>>& mcc)
       : owner_(owner), par(&owner_->GetPar()), m(owner_->m)
       , mfc_(mfc), mcc_(mcc), dr_(0, m.GetEdim())
@@ -168,7 +168,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
   FieldCell<Vect> fcvel_;
   Layers lvel_; // current level loaded in fcvel_
-  MapFace<std::shared_ptr<CondFace>> mfc_; // vect face cond
+  MapCondFace mfc_; // vect face cond
   MapCell<std::shared_ptr<CondCell>> mcc_; // vect cell cond
   GRange<size_t> dr_;  // effective dimension range
 
@@ -176,7 +176,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   using Array = std::array<T, dim>;
 
   // Scalar components
-  Array<MapFace<std::shared_ptr<CondFace>>> vmfc_; // face cond
+  Array<MapCondFace> vmfc_; // face cond
   Array<MapCell<std::shared_ptr<CondCell>>> vmcc_; // cell cond
   Array<std::shared_ptr<CD>> vs_; // solver
   Array<FieldCell<Scal>> vfcs_; // force
@@ -186,9 +186,9 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
 template <class M_, class CD_>
 ConvDiffVectGeneric<M_, CD_>::ConvDiffVectGeneric(
-    M& m, const FieldCell<Vect>& fcvel, 
-    const MapFace<std::shared_ptr<CondFace>>& mfc, 
-    const MapCell<std::shared_ptr<CondCell>>& mcc, 
+    M& m, const FieldCell<Vect>& fcvel,
+    const MapCondFace& mfc,
+    const MapCell<std::shared_ptr<CondCell>>& mcc,
     const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
     const FieldCell<Vect>* fcs, const FieldFace<Scal>* ffv,
     double t, double dt, const Par& par)
@@ -222,8 +222,7 @@ auto ConvDiffVectGeneric<M_, CD_>::GetConst(size_t d) const -> FieldCell<Scal> {
 }
 
 template <class M_, class CD_>
-auto ConvDiffVectGeneric<M_, CD_>::GetVelocityCond(size_t d) 
-    -> MapFace<std::shared_ptr<CondFace>>& {
+auto ConvDiffVectGeneric<M_, CD_>::GetVelocityCond(size_t d) -> MapCondFace& {
   return imp->vmfc_[d];
 }
 

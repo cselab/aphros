@@ -43,8 +43,7 @@ struct Vofm<M_>::Imp {
   using Sem = typename M::Sem;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu0, const FieldCell<Scal>& fccl0,
-      const MapFace<std::shared_ptr<CondFace>>& mfc, 
-      std::shared_ptr<Par> par)
+      const MapCondFace& mfc, std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m)
       , mfc_(mfc), layers(0, par->layers)
   {
@@ -101,7 +100,7 @@ struct Vofm<M_>::Imp {
     psm->vtkmerge = par->vtkmerge;
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
   }
-  void UpdateBc(const MapFace<std::shared_ptr<CondFace>>& mfc) {
+  void UpdateBc(const MapCondFace& mfc) {
     UVof<M>::GetAdvectionFaceCond(
         m, mfc, par->inletcl, mfc_vf_, mfc_cl_, mfc_im_, mfc_n_, mfc_a_);
   }
@@ -421,7 +420,7 @@ struct Vofm<M_>::Imp {
       const Multi<FieldCell<Scal>*>& mfcim,
       const Multi<const FieldCell<Vect>*>& mfcn,
       const Multi<const FieldCell<Scal>*>& mfca,
-      const MapFace<std::shared_ptr<CondFace>>& mfc, int type,
+      const MapCondFace& mfc, int type,
       const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
       const Multi<const FieldCell<Scal>*>& mfcuu,
       Scal dt, Scal clipth, const M& m) {
@@ -754,12 +753,12 @@ struct Vofm<M_>::Imp {
   Multi<FieldCell<Scal>> fcuu_;
   LayersData<FieldCell<Scal>> fcus_;
   FieldCell<Scal> fccls_;
-  MapFace<std::shared_ptr<CondFace>> mfc_; // conditions on advection
-  MapFace<std::shared_ptr<CondFace>> mfc_vf_; // conditions on vf
-  MapFace<std::shared_ptr<CondFace>> mfc_cl_; // conditions on cl
-  MapFace<std::shared_ptr<CondFace>> mfc_im_; // conditions on cl
-  MapFace<std::shared_ptr<CondFace>> mfc_n_; // conditions on n
-  MapFace<std::shared_ptr<CondFace>> mfc_a_; // conditions on a
+  MapCondFace mfc_; // conditions on advection
+  MapCondFace mfc_vf_; // conditions on vf
+  MapCondFace mfc_cl_; // conditions on cl
+  MapCondFace mfc_im_; // conditions on cl
+  MapCondFace mfc_n_; // conditions on n
+  MapCondFace mfc_a_; // conditions on a
 
   Multi<FieldCell<Scal>> fca_; // alpha (plane constant)
   Multi<FieldCell<Vect>> fcn_; // n (normal to plane)
@@ -785,7 +784,7 @@ constexpr typename M::Scal Vofm<M>::Imp::kClNone;
 template <class M_>
 Vofm<M_>::Vofm(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-    const MapFace<std::shared_ptr<CondFace>>& mfc,
+    const MapCondFace& mfc,
     const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
     double t, double dt, std::shared_ptr<Par> par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)

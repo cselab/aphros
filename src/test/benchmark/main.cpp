@@ -335,7 +335,7 @@ class Interp : public TimerMesh {
 
  private:
   FieldCell<Scal> fc;
-  MapFace<std::shared_ptr<solver::CondFace>> mfc;
+  MapCondFace mfc;
   FieldFace<Scal> ff;
 };
 
@@ -396,8 +396,8 @@ class ExplVisc : public TimerMesh {
   FieldCell<Vect> fcv;
   FieldCell<Vect> fcf;
   FieldFace<Scal> ffmu;
-  MapFace<std::shared_ptr<solver::CondFace>> mfc;
-  MapFace<std::shared_ptr<solver::CondFace>> mfcf;
+  MapCondFace mfc;
+  MapCondFace mfcf;
 };
 
 // i: target index

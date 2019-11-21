@@ -130,7 +130,7 @@ void Advection<M>::Init(Sem& sem) {
     }
 
     // boundary conditions for advection (empty)
-    MapFace<std::shared_ptr<solver::CondFace>> bc;
+    MapCondFace bc;
 
     // cell conditions for advection (empty)
     MapCell<std::shared_ptr<solver::CondCell>> mc_cond;

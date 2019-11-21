@@ -15,8 +15,7 @@
 using namespace solver;
 
 template <class M>
-FieldCell<typename M::Scal> GetBcField(
-    MapFace<std::shared_ptr<solver::CondFaceFluid>>& mf, const M& m) {
+FieldCell<typename M::Scal> GetBcField(MapCondFaceFluid& mf, const M& m) {
   FieldCell<typename M::Scal> fc(m, 0);
   for (auto it : mf) {
     IdxFace f = it.GetIdx();
@@ -39,9 +38,8 @@ FieldCell<typename M::Scal> GetBcField(
 }
 
 template <class M>
-FieldCell<typename M::Vect> GetVort(const FieldCell<typename M::Vect>& fcv,
-                       const MapFace<std::shared_ptr<solver::CondFace>>& mf,
-                       M& m) {
+FieldCell<typename M::Vect> GetVort(
+    const FieldCell<typename M::Vect>& fcv, const MapCondFace& mf, M& m) {
   auto ffv = solver::Interpolate(fcv, mf, m);
 
   auto d0 = solver::Gradient(GetComponent(ffv, 0), m);
@@ -595,9 +593,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
 
 template <class M>
 void GetFluidFaceCond(
-    const Vars& var, const M& m,
-    MapFace<std::shared_ptr<solver::CondFaceFluid>>& mfvel,
-    MapFace<std::shared_ptr<solver::CondFace>>& mfvf) {
+    const Vars& var, const M& m, MapCondFaceFluid& mfvel, MapCondFace& mfvf) {
   using Dir = typename M::Dir;
   using MIdx = typename M::MIdx;
   using Scal = typename M::Scal;
@@ -957,8 +953,7 @@ std::vector<typename M::Vect> GetPoly(IdxFace f, const M& m) {
 }
 
 template <class M>
-void DumpBcFaces(const MapFace<std::shared_ptr<solver::CondFace>>& mfc,
-                 const MapFace<std::shared_ptr<solver::CondFaceFluid>>& mfcf,
+void DumpBcFaces(const MapCondFace& mfc, const MapCondFaceFluid& mfcf,
                  std::string fn, M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;

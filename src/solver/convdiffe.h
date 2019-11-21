@@ -26,8 +26,7 @@ class ConvDiffScalExp final : public ConvDiffScal<M_> {
   // dt: time step
   // par: parameters
   ConvDiffScalExp(
-      M& m, const FieldCell<Scal>& fcu, 
-      const MapFace<std::shared_ptr<CondFace>>& mfc, 
+      M& m, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
       const MapCell<std::shared_ptr<CondCell>>& mcc, 
       const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
       const FieldCell<Scal>* fcs, const FieldFace<Scal>* ffv,

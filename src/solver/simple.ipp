@@ -45,7 +45,7 @@ struct Simple<M_>::Imp {
   using Expr = GVect<Scal, M::dim * 2 + 2>;
 
   Imp(Owner* owner, const FieldCell<Vect>& fcw,
-      const MapFace<std::shared_ptr<CondFaceFluid>>& mfc, 
+      const MapCondFaceFluid& mfc, 
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
       std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m), dr_(0, m.GetEdim())
@@ -886,12 +886,12 @@ struct Simple<M_>::Imp {
   GRange<size_t> drr_;  // remaining dimensions
 
   // Face conditions
-  MapFace<std::shared_ptr<CondFaceFluid>> mfc_; // fluid cond
-  MapFace<std::shared_ptr<CondFace>> mfcw_; // velocity cond
-  MapFace<std::shared_ptr<CondFace>> mfcp_; // pressure cond
-  MapFace<std::shared_ptr<CondFace>> mfcf_; // force cond
-  MapFace<std::shared_ptr<CondFace>> mfcpc_; // pressure corr cond
-  MapFace<std::shared_ptr<CondFace>> mfcd_; // dynamic viscosity cond
+  MapCondFaceFluid mfc_; // fluid cond
+  MapCondFace mfcw_; // velocity cond
+  MapCondFace mfcp_; // pressure cond
+  MapCondFace mfcf_; // force cond
+  MapCondFace mfcpc_; // pressure corr cond
+  MapCondFace mfcd_; // dynamic viscosity cond
 
   // Cell conditions
   MapCell<std::shared_ptr<CondCellFluid>> mcc_; // fluid cell cond
@@ -941,7 +941,7 @@ struct Simple<M_>::Imp {
 template <class M_>
 Simple<M_>::Simple(
     M& m, const FieldCell<Vect>& fcw,
-    const MapFace<std::shared_ptr<CondFaceFluid>>& mfc,
+    const MapCondFaceFluid& mfc,
     const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
     FieldCell<Scal>* fcr, FieldCell<Scal>* fcd, 
     FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
@@ -1000,8 +1000,7 @@ double Simple<M_>::GetError() const {
 }
 
 template <class M_>
-auto Simple<M_>::GetVelocityCond() const -> 
-    const MapFace<std::shared_ptr<CondFace>>& {
+auto Simple<M_>::GetVelocityCond() const -> const MapCondFace& {
   return imp->mfcw_;
 }
 

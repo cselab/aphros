@@ -58,7 +58,7 @@ class FluidSolver : public UnsteadyIterativeSolver {
     return GetVolumeFlux(Layers::time_curr);
   }
   virtual double GetAutoTimeStep() const { return GetTimeStep(); }
-  virtual const MapFace<std::shared_ptr<CondFace>>& GetVelocityCond() const = 0;
+  virtual const MapCondFace& GetVelocityCond() const = 0;
 };
 
 class CondFaceFluid : public CondFace {
@@ -262,11 +262,10 @@ std::shared_ptr<CondFaceFluid> Parse(std::string argstr, IdxFace /*f*/,
 }
 
 template <class M>
-MapFace<std::shared_ptr<solver::CondFace>> GetVelCond(
-    const M& m, const MapFace<std::shared_ptr<solver::CondFaceFluid>>& mff) {
+MapCondFace GetVelCond(const M& m, const MapCondFaceFluid& mff) {
   using Vect = typename M::Vect;
   (void) m;
-  MapFace<std::shared_ptr<solver::CondFace>> mf;
+  MapCondFace mf;
   for (auto it : mff) {
     IdxFace i = it.GetIdx();
     solver::CondFaceFluid* cb = it.GetValue().get();
