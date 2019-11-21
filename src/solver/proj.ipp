@@ -83,7 +83,6 @@ struct Proj<M_>::Imp {
     ffv_.time_prev = ffv_.time_curr;
   }
 
-  // TODO: somehow track dependencies to define execution order
   void UpdateDerivedConditions() {
     using namespace fluid_condition;
 
@@ -126,13 +125,10 @@ struct Proj<M_>::Imp {
       CondCellFluid* cb = it.GetValue().get(); // cond base
 
       if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
-        mccp_[c] = std::make_shared<
-            CondCellValFixed<Scal>>(cd->GetPressure());
+        mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
       } else if (auto cd = dynamic_cast<GivenVelocityAndPressure<M>*>(cb)) {
-        mccp_[c] = std::make_shared<
-            CondCellValFixed<Scal>>(cd->GetPressure());
-        mccw_[c] = std::make_shared<
-            CondCellValFixed<Vect>>(cd->GetVelocity());
+        mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
+        mccw_[c] = std::make_shared<CondCellValFixed<Vect>>(cd->GetVelocity());
       } else {
         throw std::runtime_error("proj: unknown cell condition");
       }
