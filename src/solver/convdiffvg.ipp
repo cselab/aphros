@@ -168,7 +168,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
   FieldCell<Vect> fcvel_;
   Layers lvel_; // current level loaded in fcvel_
-  MapCondFace mfc_; // vect face cond
+  const MapCondFace& mfc_; // vect face cond
   MapCell<std::shared_ptr<CondCell>> mcc_; // vect cell cond
   GRange<size_t> dr_;  // effective dimension range
 

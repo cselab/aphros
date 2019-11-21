@@ -216,7 +216,7 @@ struct ConvDiffScalExp<M_>::Imp {
   M& m; // mesh
 
   LayersData<FieldCell<Scal>> fcu_; // field
-  MapCondFace mfc_; // face cond
+  const MapCondFace& mfc_; // face cond
   MapCell<std::shared_ptr<CondCell>> mcc_; // cell cond
 
   // diagonal linear system: fcla * (fcup - fcu) + fclb = 0
