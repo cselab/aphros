@@ -11,13 +11,13 @@ class UFluid {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  // TODO: Consider seperate channels in one domain
   // fcw: velocity
   // mfc: fluid face conditions
   // fcsv: volume source
   static void UpdateOutletBaseConditions(
       M& m, const FieldCell<Vect>& fcw,
       MapCondFaceFluid& mfc, const FieldCell<Scal>& fcsv) {
+    // TODO: Consider seperate channels in one domain
     using namespace solver;
     using namespace solver::fluid_condition;
 
@@ -43,21 +43,21 @@ class UFluid {
         IdxFace f = p.GetIdx();
         auto& cb = p.GetValue(); // cond base
 
-        size_t id = cb->GetNci();
-        IdxCell c = m.GetCell(f, id);
+        size_t nci = cb->GetNci();
+        IdxCell c = m.GetCell(f, nci);
         if (m.IsInner(c)) {
           if (auto cd = cb.Get<Outlet<M>>()) {
-            Scal w = (id == 0 ? 1. : -1.);
+            Scal q = (nci == 0 ? 1. : -1.);
             Vect vc = fcw[c];
             Vect s = m.GetSurface(f);
             // clip normal component, let only positive
-            vc -= s * (w * std::min(0., vc.dot(s) * w)  / s.dot(s));
+            vc -= s * (q * std::min(0., vc.dot(s) * q)  / s.dot(s));
             cd->SetVelocity(vc);
-            fo += cd->GetVelocity().dot(s) * w;
+            fo += cd->GetVelocity().dot(s) * q;
             ao += m.GetArea(f);
           } else if (auto cd = cb.Get<Inlet<M>>()) {
-            Scal w = (id == 0 ? -1. : 1.);
-            fi += cd->GetVelocity().dot(m.GetSurface(f)) * w;
+            Scal q = (nci == 0 ? -1. : 1.);
+            fi += cd->GetVelocity().dot(m.GetSurface(f)) * q;
           }
         }
       }
@@ -81,10 +81,90 @@ class UFluid {
         auto& cb = it.GetValue(); // cond base
 
         if (auto cd = cb.Get<Outlet<M>>()) {
-          size_t id = cd->GetNci();
-          Scal w = (id == 0 ? 1. : -1.);
+          size_t nci = cd->GetNci();
+          Scal q = (nci == 0 ? 1. : -1.);
           Vect n = m.GetNormal(f);
-          cd->SetVelocity(cd->GetVelocity() + n * (velcor * w));
+          cd->SetVelocity(cd->GetVelocity() + n * (velcor * q));
+        }
+      }
+    }
+  }
+
+  // fcw: velocity
+  // mfc: fluid face conditions
+  // nid: maximum id of inlet flux for reduction
+  static void UpdateInletFlux(
+      M& m, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc, size_t nid) {
+    // TODO: consider updating from predictor velocity
+    using namespace fluid_condition;
+    auto sem = m.GetSem("inletflux");
+
+    struct {
+      std::vector<Scal> ft; // target flux
+      std::vector<Scal> fe; // extrapolated flux
+      std::vector<Scal> ai; // inlet area
+    }* ctx(sem);
+    auto& ft = ctx->ft;
+    auto& fe = ctx->fe;
+    auto& ai = ctx->ai;
+
+    if (sem("local")) { 
+      ft.resize(nid);
+      fe.resize(nid);
+      ai.resize(nid);
+
+      for (size_t id = 0; id < nid; ++id) {
+        ft[id] = 0;
+        fe[id] = 0;
+        ai[id] = 0;
+      }
+
+      // Extrapolate velocity to inlet from neighbour cells
+      // and compute total fluxes
+      for (auto it : mfc) {
+        IdxFace f = it.GetIdx();
+        auto& cb = it.GetValue();
+
+        size_t nci = cb->GetNci();
+        IdxCell c = m.GetCell(f, nci);
+        if (m.IsInner(c)) {
+          if (auto cd = cb.Get<InletFlux<M>>()) {
+            size_t id = cd->GetId();
+            assert(id < ft.size());
+            Scal q = (nci == 0 ? -1. : 1.);
+            // target flux
+            ft[id] += cd->GetVelocity().dot(m.GetSurface(f)) * q;
+            // extrapolate velocity
+            cd->SetVelocity(fcw[c]);
+            // extrapolated flux
+            fe[id] += cd->GetVelocity().dot(m.GetSurface(f)) * q;
+            // area
+            ai[id] += m.GetArea(f);
+          }
+        }
+      }
+
+      for (size_t id = 0; id < nid; ++id) {
+        m.Reduce(&ft[id], "sum");
+        m.Reduce(&fe[id], "sum");
+        m.Reduce(&ai[id], "sum");
+      }
+    }
+
+    if (sem("corr")) {
+      for (size_t id = 0; id < nid; ++id) {
+        // additive correction of velocity
+        Scal dv = (ft[id] - fe[id]) / ai[id];
+        for (auto it : mfc) {
+          IdxFace f = it.GetIdx();
+          auto& cb = it.GetValue();
+
+          if (auto cd = cb.Get<InletFlux<M>>()) {
+            size_t nci = cd->GetNci();
+            Scal q = (nci == 0 ? -1. : 1.);
+            Vect n = m.GetNormal(f);
+            cd->SetVelocity(cd->GetVelocity() + n * (dv * q));
+          }
         }
       }
     }

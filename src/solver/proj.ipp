@@ -135,74 +135,6 @@ struct Proj<M_>::Imp {
       }
     }
   }
-  // TODO: consider updating from predictor velocity
-  void UpdateInletFlux() {
-    using namespace fluid_condition;
-    size_t& nid = par->inletflux_numid;
-
-    auto sem = m.GetSem("inletflux");
-    if (sem("local")) { 
-      ilft_.resize(nid);
-      ilfe_.resize(nid);
-      ila_.resize(nid);
-
-      for (size_t id = 0; id < nid; ++id) {
-        ilft_[id] = 0.;
-        ilfe_[id] = 0.;
-        ila_[id] = 0.;
-      }
-
-      // Extrapolate velocity to inlet from neighbour cells
-      // and compute total fluxes
-      auto& vel = GetVelocity(Layers::iter_curr);
-      for (auto it : mfc_) {
-        IdxFace i = it.GetIdx();
-        CondFaceFluid* cb = it.GetValue().Get(); // cond base
-
-        size_t nci = cb->GetNci();
-        IdxCell c = m.GetNeighbourCell(i, nci);
-        if (m.IsInner(c)) {
-          if (auto cd = dynamic_cast<InletFlux<M>*>(cb)) {
-            size_t id = cd->GetId();
-            assert(id < ilft_.size());
-            Scal w = (nci == 0 ? -1. : 1.);
-            // target flux 
-            ilft_[id] += cd->GetVelocity().dot(m.GetSurface(i)) * w;
-            // extrapolate velocity
-            cd->SetVelocity(vel[c]);
-            // extrapolated flux
-            ilfe_[id] += cd->GetVelocity().dot(m.GetSurface(i)) * w;
-            // area
-            ila_[id] += m.GetArea(i);
-          }
-        }
-      }
-      
-      for (size_t id = 0; id < nid; ++id) {
-        m.Reduce(&ilft_[id], "sum");
-        m.Reduce(&ilfe_[id], "sum");
-        m.Reduce(&ila_[id], "sum");
-      }
-    }
-
-    if (sem("corr")) {
-      for (size_t id = 0; id < nid; ++id) {
-        // Apply additive correction
-        Scal dv = (ilft_[id] - ilfe_[id]) / ila_[id];  // velocity
-        for (auto it : mfc_) {
-          IdxFace i = it.GetIdx();
-          CondFaceFluid* cb = it.GetValue().Get(); // cond base
-
-          if (auto cd = dynamic_cast<InletFlux<M>*>(cb)) {
-            size_t nci = cd->GetNci();
-            Scal w = (nci == 0 ? -1. : 1.);
-            Vect n = m.GetNormal(i);
-            cd->SetVelocity(cd->GetVelocity() + n * (dv * w));
-          }
-        }
-      }
-    }
-  }
   void StartStep() {
     auto sem = m.GetSem("fluid-start");
     if (sem("convdiff-init")) {
@@ -385,7 +317,8 @@ struct Proj<M_>::Imp {
   }
   void UpdateBc(typename M::Sem& sem) {
     if (sem.Nested("bc-inletflux")) {
-      UpdateInletFlux();
+      UFluid<M>::UpdateInletFlux(
+          m, GetVelocity(Layers::iter_curr), mfc_, par->inletflux_numid);
     }
     if (sem.Nested("bc-outlet")) {
       UFluid<M>::UpdateOutletBaseConditions(
@@ -555,15 +488,6 @@ struct Proj<M_>::Imp {
   // TODO: Const specifier for CondFace*
   
   FieldFace<bool> ffbd_; // is boundary
-
-  // used by UpdateOutletBaseConditions():
-  Scal olfi_; // inlet flux
-  Scal olfo_; // outlet flux
-  Scal olao_; // outlet area
-  // used by UpdateInletFlux():
-  std::vector<Scal> ilft_; // target flux
-  std::vector<Scal> ilfe_; // extrapolated flux
-  std::vector<Scal> ila_; // area
 
   // Cell fields:
   FieldCell<Scal> fck_;    // diag coeff of velocity equation 
