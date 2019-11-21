@@ -151,15 +151,19 @@ class OutletAuto : public Outlet<M> {
 template <class M>
 class SlipWall : public CondFaceFluid {
  public:
-  using Vect = typename M::Vect;
   SlipWall(size_t nci) : CondFaceFluid(nci) {}
 };
 
 template <class M>
 class Symm : public CondFaceFluid {
  public:
-  using Vect = typename M::Vect;
   Symm(size_t nci) : CondFaceFluid(nci) {}
+};
+
+template <class M>
+class ClearBc : public CondFaceFluid {
+ public:
+  ClearBc(size_t nci) : CondFaceFluid(nci) {}
 };
 
 template <class M>
@@ -216,7 +220,7 @@ template <class M>
 UniquePtr<CondFaceFluid> Parse(std::string argstr, IdxFace /*f*/,
                                size_t nc, const M& /*m*/) {
   using namespace fluid_condition;
-  using Vect=  typename M::Vect;
+  using Vect = typename M::Vect;
   std::stringstream arg(argstr);
 
   std::string name;
