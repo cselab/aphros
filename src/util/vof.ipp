@@ -958,7 +958,7 @@ void UVof<M_>::Recolor(const GRange<size_t>& layers,
 
 template <class M_>
 void UVof<M_>::GetAdvectionFaceCond(
-    const M& m, const MapCondFace& mfc, Scal inletcl,
+    const M& m, const MapCondFaceAdvection<Scal>& mfc,
     MapCondFace& mfc_vf, MapCondFace& mfc_cl, MapCondFace& mfc_im,
     MapCondFace& mfc_n, MapCondFace& mfc_a) {
   auto kClNone = Imp::kClNone;
@@ -969,29 +969,28 @@ void UVof<M_>::GetAdvectionFaceCond(
   mfc_im.clear();
   mfc_n.clear();
   mfc_a.clear();
+  using Halo = typename CondFaceAdvection<Scal>::Halo;
   for (auto it : mfc) {
-    CondFaceValFixed<Scal> a(0, 0);
     IdxFace f = it.GetIdx();
-    auto& cb = it.GetValue();
-    size_t nci = cb->GetNci();
-    mfc_vf[f] = Eval<Scal>(it.GetValue());
-    if (cb.Get<CondFaceReflect>()) {
-      mfc_cl[f].Set<CondFaceReflect>(nci);
-      mfc_im[f].Set<CondFaceReflect>(nci);
-      mfc_n[f].Set<CondFaceReflect>(nci);
-      mfc_a[f].Set<CondFaceReflect>(nci);
-    } else {
-      // TODO: reflect cl on walls
-      if (auto cd = cb.Get<CondFaceValFixed<Scal>>()) {
-        mfc_cl[f].Set<CondFaceValFixed<Scal>>(inletcl, nci);
-      } else {
-        mfc_cl[f].Set<CondFaceValFixed<Scal>>(kClNone, nci);
-      }
-      MIdx wim(0);
-      wim[size_t(m.GetDir(f))] = (nci == 1 ? -1 : 1);
-      mfc_im[f].Set<CondFaceValFixed<Scal>>(TRM::Pack(wim), nci);
-      mfc_n[f].Set<CondFaceValFixed<Vect>>(Vect(0), nci);
-      mfc_a[f].Set<CondFaceValFixed<Scal>>(Scal(0), nci);
+    const auto& cb = it.GetValue();
+    size_t nci = cb.GetNci();
+    switch (cb.halo) {
+      case Halo::reflect:
+        mfc_vf[f].Set<CondFaceReflect>(nci);
+        mfc_cl[f].Set<CondFaceReflect>(nci);
+        mfc_im[f].Set<CondFaceReflect>(nci);
+        mfc_n[f].Set<CondFaceReflect>(nci);
+        mfc_a[f].Set<CondFaceReflect>(nci);
+        break;
+      case Halo::fill:
+        mfc_vf[f].Set<CondFaceValFixed<Scal>>(cb.fill_vf, nci);
+        mfc_cl[f].Set<CondFaceValFixed<Scal>>(cb.fill_cl, nci);
+        MIdx wim(0);
+        wim[size_t(m.GetDir(f))] = (nci == 1 ? -1 : 1);
+        mfc_im[f].Set<CondFaceValFixed<Scal>>(TRM::Pack(wim), nci);
+        mfc_n[f].Set<CondFaceValFixed<Vect>>(Vect(0), nci);
+        mfc_a[f].Set<CondFaceValFixed<Scal>>(Scal(0), nci);
+        break;
     }
   }
 }

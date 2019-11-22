@@ -2,22 +2,26 @@
 
 
 using M = MeshStructured<double, 3>;
+using Scal = typename M::Scal;
+using Vect = typename M::Vect;
 
-template FieldCell<typename M::Scal> GetBcField(
+template FieldCell<Scal> GetBcField(
     MapCondFaceFluid& mf, const M& m);
 
-template FieldCell<typename M::Vect> GetVort(
-    const FieldCell<typename M::Vect>& fcv, const MapCondFace& mf, M& m);
+template FieldCell<Vect> GetVort(
+    const FieldCell<Vect>& fcv, const MapCondFace& mf, M& m);
 
-template void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m);
+template void InitVel(FieldCell<Vect>& fcv, const Vars& var, const M& m);
 
 template void GetFluidFaceCond(
-    const Vars& var, const M& m, MapCondFaceFluid& mfvel, MapCondFace& mfvf);
+    const Vars& var, const M& m, MapCondFaceFluid& mff,
+    MapCondFaceAdvection<Scal>& mfa);
 
 template void GetFluidCellCond(
     const Vars& var, M& m,
     MapCell<std::shared_ptr<solver::CondCellFluid>>& mcvel,
-    std::pair<typename M::Scal, int>& pdist);
+    std::pair<Scal, int>& pdist);
 
 template void DumpBcFaces(
-    const MapCondFace& mfc, const MapCondFaceFluid& mfcf, std::string fn, M& m);
+    const MapCondFaceAdvection<Scal>& mfa,
+    const MapCondFaceFluid& mff, std::string fn, M& m);

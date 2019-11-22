@@ -34,6 +34,8 @@
 
 #include "cmp.h"
 
+using namespace solver;
+
 template <class T>
 std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
   std::string p = "";
@@ -103,7 +105,7 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   Dumper dms_; // statistics
 
   // boundary conditions for advection (empty)
-  MapCondFace bc_;
+  MapCondFaceAdvection<Scal> bc_;
 };
 
 template <class M>

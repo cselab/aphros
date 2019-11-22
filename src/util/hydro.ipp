@@ -595,11 +595,13 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
 
 template <class M>
 void GetFluidFaceCond(
-    const Vars& var, const M& m, MapCondFaceFluid& mfvel, MapCondFace& mfvf) {
+    const Vars& var, const M& m, MapCondFaceFluid& mff,
+    MapCondFaceAdvection<typename M::Scal>& mfa) {
   using Dir = typename M::Dir;
   using MIdx = typename M::MIdx;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using Halo = typename CondFaceAdvection<Scal>::Halo;
   size_t edim = var.Int["dim"];
   auto& fi = m.GetIndexFaces();
   MIdx gs = m.GetGlobalSize();
@@ -629,10 +631,10 @@ void GetFluidFaceCond(
   // Return true if on global boundary
   auto set_bc = [&](IdxFace i, std::string bc) -> bool {
     if (gxm(i) || gym(i) || gzm(i)) {
-      mfvel[i] = solver::Parse(bc, i, 1, m);
+      mff[i] = solver::Parse(bc, i, 1, m);
       return true;
     } else if (gxp(i) || gyp(i) || gzp(i)) {
-      mfvel[i] = solver::Parse(bc, i, 0, m);
+      mff[i] = solver::Parse(bc, i, 0, m);
       return true;
     }
     return false;
@@ -655,19 +657,36 @@ void GetFluidFaceCond(
   }
 
   // boundary conditions for advection
-  Scal bcc_fill = var.Double["bcc_fill"];
   using namespace solver::fluid_condition;
   using namespace solver;
-  for (auto it : mfvel) {
-    IdxFace i = it.GetIdx();
-    const solver::CondFace* cb = it.GetValue().Get();
-    if (dynamic_cast<const Symm<M>*>(cb)) {
-      mfvf[i].Set<CondFaceReflect>(it.GetValue()->GetNci());
-    } else if (dynamic_cast<const NoSlipWall<M>*>(cb) ||
-               dynamic_cast<const SlipWall<M>*>(cb)) {
-      mfvf[i].Set<CondFaceValFixed<Scal>>(bcc_fill, it.GetValue()->GetNci());
+  Scal fill_vf = var.Double["bcc_fill"];
+  Scal inlet_cl = var.Double["inletcl"];
+  Scal clear0 = var.Double["bcc_clear0"];
+  Scal clear1 = var.Double["bcc_clear1"];
+  static constexpr Scal kClNone = -1; // no color // TODO define kClNone once
+  for (auto it : mff) {
+    IdxFace f = it.GetIdx();
+    auto& cb = it.GetValue();
+    auto& cfa = mfa[f];
+    cfa.nci = it.GetValue()->GetNci();
+    if (cb.Get<Symm<M>>()) {
+      cfa.halo = Halo::reflect;
+    } else if (cb.Get<NoSlipWall<M>>() || cb.Get<SlipWall<M>>()) {
+      cfa.halo = Halo::fill;
+      cfa.clear0 = clear0;
+      cfa.clear1 = clear1;
+      cfa.fill_vf = fill_vf;
+      cfa.fill_cl = kClNone;
+    } else if (cb.Get<Inlet<M>>()) {
+      cfa.halo = Halo::fill;
+      cfa.clear0 = 0;
+      cfa.clear1 = 1;
+      cfa.fill_vf = 0;
+      cfa.fill_cl = kClNone;
+    } else if (cb.Get<Outlet<M>>()) {
+      cfa.halo = Halo::reflect;
     } else {
-      mfvf[i].Set<CondFaceGradFixed<Scal>>(Scal(0), it.GetValue()->GetNci());
+      throw std::runtime_error(std::string(__func__) + ": Unknown fluid bc");
     }
   }
   // selection boxes
@@ -687,11 +706,33 @@ void GetFluidFaceCond(
         Vect b(var.Vect[k + "_b"]);
         Scal vf = var.Double[k + "_vf"];
         Rect<Vect> r(a, b);
-        for (auto f : m.AllFaces()) {
-          Vect x = m.GetCenter(f);
-          if (r.IsInside(x)) {
+        for (IdxFace f : m.AllFaces()) {
+          if (r.IsInside(m.GetCenter(f))) {
             if (set_bc(f, *p)) {
-              mfvf[f] = UniquePtr<CondFaceValFixed<Scal>>(vf, mfvel[f]->GetNci());
+              auto& cb = mff[f];
+              auto& cfa = mfa[f];
+              using Halo = typename CondFaceAdvection<Scal>::Halo;
+              cfa.nci = cb->GetNci();
+              if (cb.Get<Symm<M>>()) {
+                cfa.halo = Halo::reflect;
+              } else if (cb.Get<NoSlipWall<M>>() || cb.Get<SlipWall<M>>()) {
+                cfa.halo = Halo::fill;
+                cfa.clear0 = clear0;
+                cfa.clear1 = clear1;
+                cfa.fill_vf = fill_vf;
+                cfa.fill_cl = kClNone;
+              } else if (cb.Get<Inlet<M>>()) {
+                cfa.halo = Halo::fill;
+                cfa.clear0 = 0;
+                cfa.clear1 = 1;
+                cfa.fill_vf = vf;
+                cfa.fill_cl = kClNone;
+              } else if (cb.Get<Outlet<M>>()) {
+                cfa.halo = Halo::reflect;
+              } else {
+                throw std::runtime_error(
+                    std::string(__func__) + ",box: Unknown fluid bc");
+              }
             }
           }
         }
@@ -719,8 +760,8 @@ void GetFluidFaceCond(
         Vect vel(var.Vect[k + "vel"]);
         Scal vf = var.Double[k + "vf"];
 
-
-        auto V = [xc,r,&m](IdxCell c) { 
+        // Returns intersection fraction of cell c and sphere
+        auto V = [xc,r,&m](IdxCell c) {
           auto ls = [xc,r](const Vect& x) -> Scal {
             Vect xd = (x - xc) / r;
             return (1. - xd.sqrnorm()) * sqr(r.min());
@@ -728,17 +769,20 @@ void GetFluidFaceCond(
           return GetLevelSetVolume<Scal>(ls, m.GetCenter(c), m.GetCellSize());
         };
 
-        for (auto it : mfvel) {
+        for (auto it : mff) {
           IdxFace f = it.GetIdx();
           solver::CondFaceFluid* cb = it.GetValue().Get();
           auto nci = cb->GetNci();
           IdxCell c = m.GetNeighbourCell(f, nci);
-          Scal v = V(c);
-          if (v > 0) {
-            mfvel[f].Set<solver::fluid_condition::
-                InletFixed<M>>(vel * v, nci);
-            mfvf[f].Set<solver::
-                CondFaceValFixed<Scal>>(vf == 0 ? 1. - v : v * vf, nci);
+          Scal inter = V(c);
+          auto& cfa = mfa[f];
+          if (inter > 0) {
+            mff[f].Set<InletFixed<M>>(vel * inter, nci);
+            cfa.halo = Halo::fill;
+            cfa.clear0 = 0;
+            cfa.clear1 = 1;
+            cfa.fill_vf = vf;
+            cfa.fill_cl = inlet_cl;
           }
         }
       } else if (n > nmax) {
@@ -800,7 +844,7 @@ void GetFluidFaceCond(
         typename M::BlockCells bb(wa, ws);
         for (auto w : bb) {
           IdxFace f = fi.GetIdx(w, Dir(d));
-          mfvel[f] = solver::Parse(*p, f, nci, m);
+          mff[f] = solver::Parse(*p, f, nci, m);
         }
         (void) vf;
       } else if (n > nmax) { 
@@ -817,6 +861,7 @@ void GetFluidFaceCond(
   // double sphN_vf -- inlet volume fraction
   // vect sphN_vel -- velocity
   // Check at least first nmax indices and all contiguous
+  /*
   {
     int n = 0;
     const int nmax = 100;
@@ -839,8 +884,8 @@ void GetFluidFaceCond(
               a += " " + std::to_string(v[1]);
               a += " " + std::to_string(v[2]);
               if (set_bc(i, a)) {
-                auto& b = mfvel[i];
-                mfvf[i] = UniquePtr<CondFaceValFixed<Scal>>(vf, b->GetNci());
+                auto& b = mff[i];
+                mfa[i] = UniquePtr<CondFaceValFixed<Scal>>(vf, b->GetNci());
               }
             }
           }
@@ -853,6 +898,7 @@ void GetFluidFaceCond(
       ++n;
     }
   }
+  */
 }
 
 template <class M>
@@ -951,8 +997,8 @@ std::vector<typename M::Vect> GetPoly(IdxFace f, const M& m) {
 }
 
 template <class M>
-void DumpBcFaces(const MapCondFace& mfc, const MapCondFaceFluid& mfcf,
-                 std::string fn, M& m) {
+void DumpBcFaces(const MapCondFaceAdvection<typename M::Scal>& mfa,
+                 const MapCondFaceFluid& mff, std::string fn, M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   auto sem = m.GetSem("DumpBcFaces");
@@ -967,20 +1013,29 @@ void DumpBcFaces(const MapCondFace& mfc, const MapCondFaceFluid& mfcf,
   auto& vcondf = ctx->vcondf;
   auto& vblock = ctx->vblock;
   if (sem("local")) {
-    for (auto& it : mfc) {
+    for (auto& it : mfa) {
       IdxFace f = it.GetIdx();
       vxx.push_back(GetPoly(f, m));
-      auto& b = it.GetValue();
-      Scal cond = -1;
-      if (b.Get<CondFaceReflect>()) {
-        cond = 1;
-      } else if (b.Get<CondFaceGradFixed<Scal>>()) {
-        cond = 2;
-      } else if (b.Get<CondFaceValFixed<Scal>>()) {
-        cond = 3;
+      const CondFaceAdvection<Scal>& b = it.GetValue();
+      int cond = 0;
+      int h = 0;
+      using Halo = typename CondFaceAdvection<Scal>::Halo;
+      switch (b.halo) {
+        case Halo::reflect: h = 1; break;
+        case Halo::fill: h = 2; break;
       }
+      auto append = [&cond](int a) {
+        a = std::min(99, std::max(0, a));
+        cond = cond * 100 + a;
+      };
+      append(h);
+      append(b.fill_vf * 10);
+      append(b.fill_cl);
+      append(b.clear0 * 10);
+      append(b.clear1 * 10);
+
       Scal condf = -1;
-      if (auto bs = mfcf.find(f)) {
+      if (auto bs = mff.find(f)) {
         auto& b = *bs;
         if (b.Get<NoSlipWall<M>>()) {
           condf = 1;
@@ -988,10 +1043,12 @@ void DumpBcFaces(const MapCondFace& mfc, const MapCondFaceFluid& mfcf,
           condf = 2;
         } else if (b.Get<Inlet<M>>()) {
           condf = 3;
-        } else if (b.Get<Outlet<M>>()) {
+        } else if (b.Get<InletFlux<M>>()) {
           condf = 4;
-        } else if (b.Get<Symm<M>>()) {
+        } else if (b.Get<Outlet<M>>()) {
           condf = 5;
+        } else if (b.Get<Symm<M>>()) {
+          condf = 6;
         }
       }
       vcond.push_back(cond);
@@ -1011,7 +1068,7 @@ void DumpBcFaces(const MapCondFace& mfc, const MapCondFaceFluid& mfcf,
       std::cout << "dump" << " to " << fn << std::endl;
       WriteVtkPoly<Vect>(
           fn, vxx, nullptr, 
-          {&vcond, &vblock, &vcondf}, {"cond", "block", "condfluid"},
+          {&vcond, &vblock, &vcondf}, {"advection", "block", "fluid"},
           "Boundary conditions", true, true, true);
     }
   }

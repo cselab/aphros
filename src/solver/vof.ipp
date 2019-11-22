@@ -31,7 +31,7 @@ struct Vof<M_>::Imp {
   using MIdx = typename M::MIdx;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-      const MapCondFace& mfc, std::shared_ptr<Par> par)
+      const MapCondFaceAdvection<Scal>& mfc, std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m), layers(1)
       , mfc_(mfc), fccl_(fccl), fcim_(m, TRM::Pack(MIdx(0)))
       , fca_(m, GetNan<Scal>()), fcn_(m, GetNan<Vect>())
@@ -63,9 +63,9 @@ struct Vof<M_>::Imp {
     psm->vtkmerge = par->vtkmerge;
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
   }
-  void UpdateBc(const MapCondFace& mfc) {
+  void UpdateBc(const MapCondFaceAdvection<Scal>& mfc) {
     UVof<M>::GetAdvectionFaceCond(
-        m, mfc, par->inletcl, mfc_vf_, mfc_cl_, mfc_im_, mfc_n_, mfc_a_);
+        m, mfc, mfc_vf_, mfc_cl_, mfc_im_, mfc_n_, mfc_a_);
   }
   void Update(typename PS::Par* p) const {
     Scal hc = m.GetCellSize().norminf(); // cell size
@@ -229,8 +229,8 @@ struct Vof<M_>::Imp {
         fcut = fcu_.iter_curr;
         fcclt = fccl_;
         if (par->bcc_reflectpoly) {
-          BcReflectAll(fcut, mfc_, m);
-          BcReflectAll(fcclt, mfc_, m);
+          BcReflectAll(fcut, mfc_vf_, m);
+          BcReflectAll(fcclt, mfc_cl_, m);
         }
         if (par->dumppolymarch_fill >= 0) {
           BcMarchFill(fcut, par->dumppolymarch_fill, m);
@@ -637,7 +637,7 @@ struct Vof<M_>::Imp {
 
   LayersData<FieldCell<Scal>> fcu_;
   FieldCell<Scal> fcuu_;   // volume fraction for Weymouth div term
-  const MapCondFace& mfc_; // conditions on advection
+  const MapCondFaceAdvection<Scal>& mfc_; // conditions on advection
   MapCondFace mfc_vf_; // conditions on vf
   MapCondFace mfc_cl_; // conditions on cl
   MapCondFace mfc_im_; // conditions on cl
@@ -665,7 +665,7 @@ struct Vof<M_>::Imp {
 template <class M_>
 Vof<M_>::Vof(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-    const MapCondFace& mfc,
+    const MapCondFaceAdvection<Scal>& mfc,
     const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
     double t, double dt, std::shared_ptr<Par> par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)

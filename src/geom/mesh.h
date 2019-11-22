@@ -377,6 +377,8 @@ class MeshStructured {
   const std::vector<std::pair<IdxFace, size_t>>& GetNanFaces() const {
     return vfnan_;
   }
+  // Fills halo cell with garbage.
+  // Using actual NaNs not allowed since some code relies on u*0 == 0
   template <class T>
   void ApplyNanFaces(FieldCell<T>& fc) {
     for (auto p : vfnan_) {

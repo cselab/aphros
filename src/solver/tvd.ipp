@@ -8,6 +8,7 @@
 
 #include "tvd.h"
 #include "approx.h"
+#include "util/vof.h"
 
 namespace solver {
 
@@ -16,20 +17,22 @@ struct Tvd<M_>::Imp {
   static constexpr size_t dim = M::dim;
 
   Imp(Tvd* owner, const FieldCell<Scal>& fcu,
-      const MapCondFace& mfc, std::shared_ptr<Par> par)
+      const MapCondFaceAdvection<Scal>& mfc, std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m)
       , mfc_(mfc), fck_(m, 0)
   {
     fcu_.time_curr = fcu;
     for (auto it : mfc_) {
       IdxFace f = it.GetIdx();
-      mfvz_[f].Set<CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
+      mfvz_[f].Set<CondFaceGradFixed<Vect>>(Vect(0), it.GetValue().GetNci());
     }
   }
   void StartStep() {
     owner_->ClearIter();
     fcu_.time_prev = fcu_.time_curr;
     fcu_.iter_curr = fcu_.time_prev;
+    UVof<M>::GetAdvectionFaceCond(
+        m, mfc_, mfc_vf_, mfc_cl_, mfc_im_, mfc_n_, mfc_a_);
   }
   void MakeIteration() {
     auto sem = m.GetSem("iter");
@@ -45,9 +48,9 @@ struct Tvd<M_>::Imp {
     }
     for (size_t d = 0; d < (par->split ? dim : 1); ++d) {
       if (sem("adv")) {
-        ffu_ = Interpolate(curr, mfc_, m);
+        ffu_ = Interpolate(curr, mfc_vf_, m);
         fcg_ = Gradient(ffu_, m);
-        ffvu_ = InterpolateSuperbee(curr, fcg_, mfc_, *(owner_->ffv_), m);
+        ffvu_ = InterpolateSuperbee(curr, fcg_, mfc_vf_, *(owner_->ffv_), m);
 
         for (auto f : m.Faces()) {
           ffvu_[f] *= (*owner_->ffv_)[f];
@@ -85,7 +88,7 @@ struct Tvd<M_>::Imp {
       auto& af = sharp_af_;
       auto& gc = sharp_gc_;
       auto& gf = sharp_gf_;
-      af = Interpolate(ac, mfc_, m);
+      af = Interpolate(ac, mfc_vf_, m);
       gc = Gradient(af, m);
       gf = Interpolate(gc, mfvz_, m);
       const Scal kc = par->sharp;
@@ -123,7 +126,7 @@ struct Tvd<M_>::Imp {
     }
 
     if (sem("curv")) {
-      ffu_ = Interpolate(curr, mfc_, m); // [s]
+      ffu_ = Interpolate(curr, mfc_vf_, m); // [s]
       fcg_ = Gradient(ffu_, m); // [s]
       ffg_ = Interpolate(fcg_, mfvz_, m); // [i]
 
@@ -163,8 +166,13 @@ struct Tvd<M_>::Imp {
 
   // TODO: revise tmp fields
   LayersData<FieldCell<Scal>> fcu_;
-  const MapCondFace& mfc_;
+  const MapCondFaceAdvection<Scal>& mfc_;
   MapCondFace mfvz_; // zero-derivative bc for Vect
+  MapCondFace mfc_vf_; // conditions on vf
+  MapCondFace mfc_cl_; // conditions on cl
+  MapCondFace mfc_im_; // conditions on cl
+  MapCondFace mfc_n_; // conditions on n
+  MapCondFace mfc_a_; // conditions on a
 
   FieldFace<Scal> ffvu_; // flux: volume flux * field
   FieldFace<Scal> ffu_; // field on faces
@@ -178,7 +186,7 @@ struct Tvd<M_>::Imp {
 
 template <class M_>
 Tvd<M_>::Tvd(M& m, const FieldCell<Scal>& fcu,
-    const MapCondFace& mfc,
+    const MapCondFaceAdvection<Scal>& mfc,
     const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
     double t, double dt, std::shared_ptr<Par> par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)
