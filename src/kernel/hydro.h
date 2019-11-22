@@ -296,9 +296,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Vect> fc_force_;  // force 
   FieldFace<Scal> ffbp_;  // balanced force projections
   FieldFace<Scal> ffk_;  // curvature on faces
-  MapCondFace mf_cond_;
+  MapCondFaceAdvection<Scal> mf_adv_;
   MapCondFace mf_cond_vfsm_;
-  MapCondFaceFluid mf_velcond_; // fluid cond
+  MapCondFaceFluid mf_fluid_; // fluid cond
   MapCell<std::shared_ptr<solver::CondCell>> mc_cond_;
   MapCell<std::shared_ptr<solver::CondCellFluid>> mc_velcond_;
   std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
@@ -431,7 +431,7 @@ template <class M>
 auto Hydro<M>::GetBcVz() const -> MapCondFace {
   // zero-derivative bc for Vect
   MapCondFace r;
-  for (auto it : mf_velcond_) {
+  for (auto it : mf_fluid_) {
     IdxFace f = it.GetIdx();
     r[f].Set<CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
   }
@@ -442,7 +442,7 @@ template <class M>
 auto Hydro<M>::GetBcSz() const -> MapCondFace {
   // zero-derivative bc for Vect
   MapCondFace r;
-  for (auto it : mf_velcond_) {
+  for (auto it : mf_fluid_) {
     IdxFace f = it.GetIdx();
     r[f].Set<CondFaceGradFixed<Scal>>(0., it.GetValue()->GetNci());
   }
@@ -462,7 +462,7 @@ void Hydro<M>::InitVort() {
   if (sem("initpois")) {
     m.Comm(&fc_vel_);
     fctv.Reinit(m);
-    ctx->mfcw = GetVelCond(m, mf_velcond_);
+    ctx->mfcw = GetVelCond(m, mf_fluid_);
   }
   for (size_t d = 0; d < M::dim; ++d) {
     std::string dn = std::to_string(d);
@@ -515,21 +515,21 @@ void Hydro<M>::InitFluid() {
     auto p = std::make_shared<typename FSS::Par>();
     Parse<M>(p.get(), var);
     fs_.reset(new FSS(
-          m, fc_vel_, mf_velcond_, mc_velcond_, 
+          m, fc_vel_, mf_fluid_, mc_velcond_, 
           &fc_rho_, &fc_mu_, &fc_force_, &ffbp_,
           &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else if (fs == "proj") {
     auto p = std::make_shared<typename FSP::Par>();
     Parse<M>(p.get(), var);
     fs_.reset(new FSP(
-          m, fc_vel_, mf_velcond_, mc_velcond_, 
+          m, fc_vel_, mf_fluid_, mc_velcond_, 
           &fc_rho_, &fc_mu_, &fc_force_, &ffbp_,
           &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else {
     throw std::runtime_error("Unknown fluid_solver=" + fs);
   }
 
-  fcbc_ = GetBcField(mf_velcond_, m);
+  fcbc_ = GetBcField(mf_fluid_, m);
 }
 
 template <class M>
@@ -539,7 +539,7 @@ void Hydro<M>::InitAdvection() {
     auto p = std::make_shared<typename AST::Par>();
     Parse<M>(p.get(), var);
     as_.reset(new AST(
-          m, fc_vf_, mf_cond_,
+          m, fc_vf_, mf_adv_,
           &fs_->GetVolumeFlux(solver::Layers::time_curr),
           &fc_src2_, 0., st_.dta, p));
   } else if (as == "vof") {
@@ -547,7 +547,7 @@ void Hydro<M>::InitAdvection() {
     Parse<M, ASV>(p.get(), var);
     p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
     as_.reset(new ASV(
-          m, fc_vf_, fccl_, mf_cond_,
+          m, fc_vf_, fccl_, mf_adv_,
           &fs_->GetVolumeFlux(solver::Layers::time_curr),
           &fc_src2_, 0., st_.dta, p));
     layers = GRange<size_t>(1);
@@ -556,7 +556,7 @@ void Hydro<M>::InitAdvection() {
     Parse<M, ASVM>(p.get(), var);
     p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
     auto as = new ASVM(
-        m, fc_vf_, fccl_, mf_cond_,
+        m, fc_vf_, fccl_, mf_adv_,
         &fs_->GetVolumeFlux(solver::Layers::time_curr),
         &fc_src2_, 0., st_.dta, p);
     as_.reset(as);
@@ -647,6 +647,8 @@ void Hydro<M>::InitStat() {
 
 template <class M>
 void Hydro<M>::Init() {
+  using namespace solver;
+  using namespace solver::fluid_condition;
   auto sem = m.GetSem("init");
 
   if (sem("fields")) {
@@ -681,29 +683,27 @@ void Hydro<M>::Init() {
     }
 
     // boundary conditions
-    GetFluidFaceCond(var, m, mf_velcond_, mf_cond_);
+    GetFluidFaceCond(var, m, mf_fluid_, mf_adv_);
 
     // boundary conditions for smoothing of volume fraction
-    for (auto it : mf_velcond_) {
+    for (auto it : mf_fluid_) {
       IdxFace i = it.GetIdx();
-      solver::CondFaceFluid* cb = it.GetValue().Get();
-      if (dynamic_cast<solver::fluid_condition::Symm<M>*>(cb)) {
-        mf_cond_vfsm_[i].Set<
-            CondFaceReflect>(it.GetValue()->GetNci());
+      auto& cb = it.GetValue();
+      size_t nci = cb->GetNci();
+      if (cb.Get<Symm<M>>()) {
+        mf_cond_vfsm_[i].Set<CondFaceReflect>(nci);
       } else {
-        mf_cond_vfsm_[i].Set<
-            CondFaceGradFixed<Scal>>(Scal(0), it.GetValue()->GetNci());
+        mf_cond_vfsm_[i].Set<CondFaceGradFixed<Scal>>(Scal(0), nci);
       }
     }
   }
 
   if (var.Int["bc_wall_init_vel"] && sem("bc_wall_init_vel")) {
-    using solver::fluid_condition::NoSlipWallFixed;
     // velocity on walls from neighbour cells
-    for (auto it : mf_velcond_) {
+    for (auto it : mf_fluid_) {
       IdxFace f = it.GetIdx();
-      solver::CondFaceFluid* cb = it.GetValue().Get();
-      if (auto cd = dynamic_cast<NoSlipWallFixed<M>*>(cb)) {
+      auto& cb = it.GetValue();
+      if (auto cd = cb.Get<NoSlipWallFixed<M>>()) {
         IdxCell c = m.GetNeighbourCell(f, cd->GetNci());
         cd->SetVelocity(fc_vel_[c]);
       }
@@ -823,8 +823,8 @@ void Hydro<M>::Init() {
 
     if (var.Int["fill_halo_nan"]) {
       std::vector<std::pair<IdxFace, size_t>> vf;
-      for (auto& p : mf_cond_) {
-        vf.emplace_back(p.GetIdx(), p.GetValue()->GetNci());
+      for (auto& p : mf_adv_) {
+        vf.emplace_back(p.GetIdx(), p.GetValue().GetNci());
       }
       m.SetNanFaces(vf);
     }
@@ -832,7 +832,7 @@ void Hydro<M>::Init() {
     events_.Parse();
   }
   if (var.Int["dumpbc"] && sem.Nested()) {
-    DumpBcFaces(mf_cond_, mf_velcond_, "bc.vtk", m);
+    DumpBcFaces(mf_adv_, mf_fluid_, "bc.vtk", m);
   }
 }
 
@@ -1134,7 +1134,7 @@ void Hydro<M>::CalcStat() {
       Vect slipvel(var.Vect["slipvel"]);
       // XXX: adhoc, overwrite wall conditions
       auto& fa = as_->GetField();
-      for (auto it : mf_velcond_) {
+      for (auto it : mf_fluid_) {
         IdxFace f = it.GetIdx();
         solver::CondFaceFluid* cb = it.GetValue().Get();
         if (auto cd = dynamic_cast<solver::fluid_condition::
@@ -1154,7 +1154,7 @@ void Hydro<M>::CalcStat() {
       //const auto& fa = as_->GetField();
       const auto& fa = fc_smvf_;
       const auto& fv = fs_->GetVelocity();
-      for (auto it : mf_velcond_) {
+      for (auto it : mf_fluid_) {
         IdxFace f = it.GetIdx();
         solver::CondFaceFluid* cb = it.GetValue().Get();
         if (auto cd = dynamic_cast<solver::fluid_condition::
@@ -1172,7 +1172,7 @@ void Hydro<M>::CalcStat() {
     const Scal slipnormal = var.Double["slipnormal"];
     if (slipnormal != 0) {
       const auto& fa = fc_smvf_;
-      for (auto it : mf_velcond_) {
+      for (auto it : mf_fluid_) {
         IdxFace f = it.GetIdx();
         solver::CondFaceFluid* cb = it.GetValue().Get();
         if (auto cd = dynamic_cast<solver::fluid_condition::
@@ -1189,7 +1189,7 @@ void Hydro<M>::CalcStat() {
   if (sem("young")) {
     if (var.Int["youngbc"]) {
       InitYoung();
-      for (auto it : mf_velcond_) {
+      for (auto it : mf_fluid_) {
         IdxFace f = it.GetIdx();
         Vect x = m.GetCenter(f);
         solver::CondFaceFluid* cb = it.GetValue().Get();
@@ -1359,7 +1359,7 @@ void Hydro<M>::CalcSurfaceTension(const FieldCell<Scal>& fcvf,
     }
 
     // zero on boundaries
-    for (auto it : mf_velcond_) {
+    for (auto it : mf_fluid_) {
       IdxFace f = it.GetIdx();
       ff_st[f] = 0.;
     }

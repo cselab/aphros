@@ -4,6 +4,7 @@
 
 #include "solver/multi.h"
 #include "solver/cond.h"
+#include "solver/advection.h"
 
 namespace solver {
 
@@ -80,7 +81,7 @@ class UVof {
       bool grid, M& m);
 
   static void GetAdvectionFaceCond(
-      const M& m, const MapCondFace& mfc, Scal inletcl,
+      const M& m, const MapCondFaceAdvection<Scal>& mfc,
       MapCondFace& mfc_vf, MapCondFace& mfc_cl, MapCondFace& mfc_im,
       MapCondFace& mfc_n, MapCondFace& mfc_a);
 

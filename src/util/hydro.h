@@ -2,6 +2,7 @@
 
 #include "solver/fluid.h"
 #include "parse/vars.h"
+#include "solver/advection.h"
 #include "solver/convdiff.h"
 #include "solver/convdiffv.h"
 
@@ -42,7 +43,8 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m);
 // mfvf: conditions for volume fraction
 template <class M>
 void GetFluidFaceCond(
-    const Vars& var, const M& m, MapCondFaceFluid& mfvel, MapCondFace& mfvf);
+    const Vars& var, const M& m, MapCondFaceFluid& mff,
+    MapCondFaceAdvection<typename M::Scal>& mfa);
 
 // Returns fluid cell conditions.
 // Output:
@@ -60,5 +62,6 @@ void GetFluidCellCond(
 // fn: filename
 template <class M>
 void DumpBcFaces(
-    const MapCondFace& mfc, const MapCondFaceFluid& mfcf, std::string fn, M& m);
+    const MapCondFaceAdvection<typename M::Scal>& mfa,
+    const MapCondFaceFluid& mff, std::string fn, M& m);
 

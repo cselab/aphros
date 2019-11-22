@@ -41,7 +41,6 @@ class Vofm final : public AdvectionSolver<M_> {
     bool dumppolymarch = false; // dump reconstructed interface (marching cube)
     bool dumppart = false; // dump particles
     bool dumppartinter = false; // dump interface for particles
-    Scal inletcl = 1; // inlet color
     bool bcc_reflectpoly = true; // reflection for DumpPolyMarch
     Scal dumppolymarch_fill = -1; // fill cells outside
     Scal bcc_fill = 0;        // fill value for halo cells
@@ -93,7 +92,7 @@ class Vofm final : public AdvectionSolver<M_> {
   // t,dt: initial time and timestep
   // par: parameters
   Vofm(M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-      const MapCondFace& mfc,
+      const MapCondFaceAdvection<Scal>& mfc,
       const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
       double t, double dt, std::shared_ptr<Par> par);
   ~Vofm();

@@ -43,7 +43,7 @@ struct Vofm<M_>::Imp {
   using Sem = typename M::Sem;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu0, const FieldCell<Scal>& fccl0,
-      const MapCondFace& mfc, std::shared_ptr<Par> par)
+      const MapCondFaceAdvection<Scal>& mfc, std::shared_ptr<Par> par)
       : owner_(owner), par(par), m(owner_->m)
       , mfc_(mfc), layers(0, par->layers)
   {
@@ -100,9 +100,9 @@ struct Vofm<M_>::Imp {
     psm->vtkmerge = par->vtkmerge;
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
   }
-  void UpdateBc(const MapCondFace& mfc) {
+  void UpdateBc(const MapCondFaceAdvection<Scal>& mfc) {
     UVof<M>::GetAdvectionFaceCond(
-        m, mfc, par->inletcl, mfc_vf_, mfc_cl_, mfc_im_, mfc_n_, mfc_a_);
+        m, mfc, mfc_vf_, mfc_cl_, mfc_im_, mfc_n_, mfc_a_);
   }
   void Update(typename PS::Par* p) const {
     Scal hc = m.GetCellSize().norminf(); // cell size
@@ -302,8 +302,8 @@ struct Vofm<M_>::Imp {
         for (auto i : layers) {
           fcut[i] = fcu_[i].iter_curr;
           if (par->bcc_reflectpoly) {
-            BcReflectAll(fcut[i], mfc_, m);
-            BcReflectAll(fcclt[i], mfc_, m);
+            BcReflectAll(fcut[i], mfc_vf_, m);
+            BcReflectAll(fcclt[i], mfc_cl_, m);
           }
         }
         if (par->dumppolymarch_fill >= 0) {
@@ -753,7 +753,7 @@ struct Vofm<M_>::Imp {
   Multi<FieldCell<Scal>> fcuu_;
   LayersData<FieldCell<Scal>> fcus_;
   FieldCell<Scal> fccls_;
-  const MapCondFace& mfc_; // conditions on advection
+  const MapCondFaceAdvection<Scal>& mfc_; // conditions on advection
   MapCondFace mfc_vf_; // conditions on vf
   MapCondFace mfc_cl_; // conditions on cl
   MapCondFace mfc_im_; // conditions on cl
@@ -784,7 +784,7 @@ constexpr typename M::Scal Vofm<M>::Imp::kClNone;
 template <class M_>
 Vofm<M_>::Vofm(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-    const MapCondFace& mfc,
+    const MapCondFaceAdvection<Scal>& mfc,
     const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
     double t, double dt, std::shared_ptr<Par> par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)
