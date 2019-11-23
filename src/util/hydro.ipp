@@ -593,6 +593,60 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
   }
 }
 
+// argstr: argument string
+// f: target face 
+// nc: target neighbour cell id
+template <class M>
+UniquePtr<CondFaceFluid> ParseFluidFaceCond(
+    std::string argstr, IdxFace /*f*/, size_t nc, const M& /*m*/) {
+  using namespace fluid_condition;
+  using Vect = typename M::Vect;
+  std::stringstream arg(argstr);
+
+  std::string name;
+  arg >> name;
+
+  if (name == "wall") {
+    // wall <velocity>
+    // No-slip wall.
+    // zero derivative for pressure, fixed for velocity, 
+    // fill-conditions for volume fraction.
+    Vect vel;
+    arg >> vel;
+    return UniquePtr<NoSlipWallFixed<M>>(vel, nc);
+  } else if (name == "inlet") {
+    // inlet <velocity>
+    // Fixed velocity inlet.
+    Vect vel;
+    arg >> vel;
+    return UniquePtr<InletFixed<M>>(vel, nc);
+  } else if (name == "inletflux") {
+    // inletflux <velocity> <id>
+    // Fixed flux inlet. Flux defined by given velocity is redistributed
+    // over all faces with same id.
+    Vect vel;
+    int id;
+    arg >> vel >> id;
+    return UniquePtr<InletFlux<M>>(vel, id, nc);
+  } else if (name == "outlet") {
+    // Outlet. Velocity is extrapolated from neighbour cells and corrected
+    // to yield zero total flux over outlet and inlet faces.
+    return UniquePtr<OutletAuto<M>>(nc);
+  } else if (name == "slipwall") {
+    // Free-slip wall:
+    // zero derivative for both pressure, velocity,
+    // fill-conditions for volume fraction.
+    // TODO: revise, should be non-penetration for velocity
+    return UniquePtr<SlipWall<M>>(nc);
+  } else if (name == "symm") {
+    // Zero derivative for pressure, velocity and volume fraction
+    // TODO: revise, should be non-penetration for velocity
+    return UniquePtr<Symm<M>>(nc);
+  } else {
+    throw std::runtime_error("ParseFluidFaceCond: unknown cond");
+  }
+}
+
 template <class M>
 void GetFluidFaceCond(
     const Vars& var, const M& m, MapCondFaceFluid& mff,
@@ -631,10 +685,10 @@ void GetFluidFaceCond(
   // Return true if on global boundary
   auto set_bc = [&](IdxFace i, std::string bc) -> bool {
     if (gxm(i) || gym(i) || gzm(i)) {
-      mff[i] = solver::Parse(bc, i, 1, m);
+      mff[i] = ParseFluidFaceCond(bc, i, 1, m);
       return true;
     } else if (gxp(i) || gyp(i) || gzp(i)) {
-      mff[i] = solver::Parse(bc, i, 0, m);
+      mff[i] = ParseFluidFaceCond(bc, i, 0, m);
       return true;
     }
     return false;
@@ -844,7 +898,7 @@ void GetFluidFaceCond(
         typename M::BlockCells bb(wa, ws);
         for (auto w : bb) {
           IdxFace f = fi.GetIdx(w, Dir(d));
-          mff[f] = solver::Parse(*p, f, nci, m);
+          mff[f] = ParseFluidFaceCond(*p, f, nci, m);
         }
         (void) vf;
       } else if (n > nmax) { 
