@@ -5,6 +5,7 @@
 #include <typeinfo>
 
 #include "solver/cond.h"
+#include "util/hydro.ipp"
 
 const int dim = 3;
 using Scal = double;
@@ -105,6 +106,7 @@ void Print(const UniquePtr<CondFace>& b) {
 #define ECHO(x) std::cout << #x << std::endl; x;
 
 void Test() {
+  std::cout << "\nTest Eval" << std::endl;
   UniquePtr<CondFace> b;
   ECHO()
   ECHO(b.Set<CondFaceValCustom<Scal>>(3.14, 1);)
@@ -151,6 +153,21 @@ void Test() {
   EPrint(Eval<Vect>(b));
 }
 
+void TestParse() {
+  std::cout << "\nTest Parse" << std::endl;
+  CondFaceAdvection<Scal> fca;
+  fca.nci = 1;
+  ParseAdvectionFaceCond("clear0 0", fca);
+  ParseAdvectionFaceCond("clear1 0", fca);
+  ParseAdvectionFaceCond("halo fill", fca);
+  ParseAdvectionFaceCond("fill_vf 0.4", fca);
+  ParseAdvectionFaceCond("fill_cl 0.6", fca);
+  std::cout << fca << std::endl;
+  ParseAdvectionFaceCond("halo reflect", fca);
+  std::cout << fca << std::endl;
+}
+
 int main() {
   Test();
+  TestParse();
 }
