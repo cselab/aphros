@@ -155,20 +155,20 @@ void Test() {
 
 void TestParse() {
   std::cout << "\nTest Parse" << std::endl;
-  CondFaceAdvection<Scal> fca;
-  fca.nci = 1;
-  ParseAdvectionFaceCond("clear0 1", fca);
-  ParseAdvectionFaceCond("clear1 2", fca);
-  ParseAdvectionFaceCond("halo fill", fca);
-  ParseAdvectionFaceCond("fill_vf 0.4", fca);
-  ParseAdvectionFaceCond("fill_cl 0.6", fca);
-  std::cout << fca << std::endl;
-  ParseAdvectionFaceCond("halo reflect", fca);
-  std::cout << fca << std::endl;
+  CondFaceAdvection<Scal> cfa;
+  cfa.nci = 1;
+  ParseAdvectionFaceCond("clear0 1", cfa);
+  ParseAdvectionFaceCond("clear1 2", cfa);
+  ParseAdvectionFaceCond("halo fill", cfa);
+  ParseAdvectionFaceCond("fill_vf 0.4", cfa);
+  ParseAdvectionFaceCond("fill_cl 0.6", cfa);
+  std::cout << cfa << std::endl;
+  ParseAdvectionFaceCond("halo reflect", cfa);
+  std::cout << cfa << std::endl;
   for (auto s : Split("clear0 2, clear1 3, fill_vf 0.3, fill_cl 0.7", ',')) {
-    ParseAdvectionFaceCond(s, fca);
+    ParseAdvectionFaceCond(s, cfa);
   }
-  std::cout << fca << std::endl;
+  std::cout << cfa << std::endl;
 }
 
 int main() {
