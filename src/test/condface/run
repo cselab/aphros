@@ -2,8 +2,8 @@
 
 set -eu
 
-a=a.out
-b=b.out
+a=ref
+b=out
 ./t.* > "$b"
 
 if ! diff -u "$a" "$b" ; then

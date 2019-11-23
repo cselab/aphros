@@ -3,11 +3,13 @@
 #include <functional>
 #include <stdexcept>
 #include <memory>
+#include <sstream>
 
 #include "hydro.h"
 #include "solver/approx.h"
 #include "solver/cond.h"
 #include "solver/fluid.h"
+#include "solver/advection.h"
 #include "parse/vars.h"
 #include "func/primlist.h"
 #include "func/init_u.h"
@@ -594,7 +596,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
 }
 
 // argstr: argument string
-// f: target face 
+// f: target face
 // nc: target neighbour cell id
 template <class M>
 UniquePtr<CondFaceFluid> ParseFluidFaceCond(
@@ -642,9 +644,62 @@ UniquePtr<CondFaceFluid> ParseFluidFaceCond(
     // Zero derivative for pressure, velocity and volume fraction
     // TODO: revise, should be non-penetration for velocity
     return UniquePtr<Symm<M>>(nc);
-  } else {
-    throw std::runtime_error("ParseFluidFaceCond: unknown cond");
   }
+  return nullptr;
+}
+
+template <class Scal>
+std::ostream& operator<<(
+    std::ostream& out, const CondFaceAdvection<Scal>& fca) {
+  using Halo = typename CondFaceAdvection<Scal>::Halo;
+  out
+      << "nci=" << fca.nci
+      << " clear0=" << fca.clear0
+      << " clear1=" << fca.clear1
+      << " halo=" << (fca.halo == Halo::fill ? "fill" : "reflect")
+      << " fill_vf=" << fca.fill_vf
+      << " fill_cl=" << fca.fill_cl;
+  return out;
+}
+
+// Sets fields in cfa from arguments.
+// Returns true if condition name is recognized.
+// str: argument string
+template <class Scal>
+bool ParseAdvectionFaceCond(std::string str, CondFaceAdvection<Scal>& cfa) {
+  using Halo = typename CondFaceAdvection<Scal>::Halo;
+  std::stringstream arg(str);
+  std::string name;
+  arg >> name;
+
+  if (name == "clear0") {
+    Scal a;
+    arg >> a;
+    cfa.clear0 = a;
+    return true;
+  } else if (name == "clear1") {
+    Scal a;
+    arg >> a;
+    cfa.clear1 = a;
+    return true;
+  } else if (name == "fill_vf") {
+    Scal a;
+    arg >> a;
+    cfa.fill_vf = a;
+    return true;
+  } else if (name == "fill_cl") {
+    Scal a;
+    arg >> a;
+    cfa.fill_cl = a;
+    return true;
+  } else if (name == "halo") {
+    std::string halo;
+    arg >> halo;
+    if (halo == "fill") cfa.halo = Halo::fill;
+    if (halo == "reflect") cfa.halo = Halo::reflect;
+    return true;
+  }
+  return false;
 }
 
 template <class M>
