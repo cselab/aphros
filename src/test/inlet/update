@@ -2,7 +2,7 @@
 
 set -eu
 
-n=${1:-periodic}
+n=${1:-inlet}
 
 r=ref$n
 
