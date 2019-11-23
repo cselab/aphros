@@ -11,6 +11,7 @@
 #include "solver/fluid.h"
 #include "solver/advection.h"
 #include "parse/vars.h"
+#include "parse/util.h"
 #include "func/primlist.h"
 #include "func/init_u.h"
 #include "dump/vtk.h"
