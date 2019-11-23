@@ -716,7 +716,7 @@ void GetFluidFaceCond(
   auto& fi = m.GetIndexFaces();
   MIdx gs = m.GetGlobalSize();
 
-  // boundary xm of global mesh
+  // Returns true if face belongs to domain boundary
   auto gxm = [&fi](IdxFace i) -> bool {
     return fi.GetDir(i) == Dir::i && fi.GetMIdx(i)[0] == 0;
   };
@@ -736,49 +736,19 @@ void GetFluidFaceCond(
     return edim >= 3 && fi.GetDir(i) == Dir::k && fi.GetMIdx(i)[2] == gs[2];
   };
 
-  // Set condition bc for face i on global box boundary
-  // choosing proper neighbour cell id (nci)
-  // Return true if on global boundary
-  auto set_bc = [&](IdxFace i, std::string bc) -> bool {
-    if (gxm(i) || gym(i) || gzm(i)) {
-      mff[i] = ParseFluidFaceCond(bc, i, 1, m);
-      return true;
-    } else if (gxp(i) || gyp(i) || gzp(i)) {
-      mff[i] = ParseFluidFaceCond(bc, i, 0, m);
-      return true;
-    }
-    return false;
-  };
-
-  // Boundary conditions for fluid 
-  std::vector<std::pair<std::string, std::function<bool(IdxFace)>>> pp =
-      {{"bc_xm", gxm}, {"bc_xp", gxp},
-       {"bc_ym", gym}, {"bc_yp", gyp},
-       {"bc_zm", gzm}, {"bc_zp", gzp}};
-
-  for (auto p : pp) {
-    if (auto bc = var.String(p.first)) {
-      for (auto f : m.AllFaces()) {
-        if (p.second(f)) {
-          set_bc(f, *bc);
-        }
-      }
-    }
-  }
-
-  // boundary conditions for advection
   using namespace solver::fluid_condition;
   using namespace solver;
-  Scal fill_vf = var.Double["bcc_fill"];
-  Scal inlet_cl = var.Double["inletcl"];
+  // default
   Scal clear0 = var.Double["bcc_clear0"];
   Scal clear1 = var.Double["bcc_clear1"];
-  static constexpr Scal kClNone = -1; // no color // TODO define kClNone once
-  for (auto it : mff) {
-    IdxFace f = it.GetIdx();
-    auto& cb = it.GetValue();
+  Scal inletcl = var.Double["inletcl"];
+  Scal fill_vf = var.Double["bcc_fill"];
+
+  auto set_adv = [&](IdxFace f, const std::vector<std::string>& ss) {
+    static constexpr Scal kClNone = -1;  // TODO define kClNone once
+    auto& cb = mff[f];
     auto& cfa = mfa[f];
-    cfa.nci = it.GetValue()->GetNci();
+    cfa.nci = cb->GetNci();
     if (cb.Get<Symm<M>>()) {
       cfa.halo = Halo::reflect;
     } else if (cb.Get<NoSlipWall<M>>() || cb.Get<SlipWall<M>>()) {
@@ -792,61 +762,84 @@ void GetFluidFaceCond(
       cfa.clear0 = 0;
       cfa.clear1 = 1;
       cfa.fill_vf = 0;
-      cfa.fill_cl = kClNone;
+      cfa.fill_cl = inletcl;
     } else if (cb.Get<Outlet<M>>()) {
       cfa.halo = Halo::reflect;
     } else {
       throw std::runtime_error(std::string(__func__) + ": Unknown fluid bc");
     }
+
+    for (auto s : ss) {
+      if (!ParseAdvectionFaceCond(s, cfa)) {
+        throw std::runtime_error(
+            "No advection condition found in '" + s + "'");
+      }
+    }
+  };
+
+  auto set_bc = [&](IdxFace f, size_t nci, std::string str) {
+    auto& cff = mff[f];
+    std::vector<std::string> ss; // strings not recognized as fluid cond
+    for (auto s : Split(str, ',')) {
+      if (!cff.Get<CondFaceFluid>()) {
+        cff = ParseFluidFaceCond(s, f, nci, m);
+        if (!cff.Get<CondFaceFluid>()) {
+          ss.push_back(s);
+        }
+      } else {
+        ss.push_back(s);
+      }
+    }
+    if (!cff.Get<CondFaceFluid>()) {
+      throw std::runtime_error("No fluid condition found in '" + str + "'");
+    }
+    set_adv(f, ss);
+  };
+
+  // List of domain boundaries: <name, func, nci>
+  std::vector<std::tuple<
+      std::string, std::function<bool(IdxFace)>, size_t>> bb =
+      {{"bc_xm", gxm, 1}, {"bc_xp", gxp, 0},
+       {"bc_ym", gym, 1}, {"bc_yp", gyp, 0},
+       {"bc_zm", gzm, 1}, {"bc_zp", gzp, 0}};
+
+
+  // Set face conditions on domain boundaries
+  for (auto& b : bb) {
+    if (auto str = var.String(std::get<0>(b))) {
+      for (auto f : m.AllFaces()) {
+        if (std::get<1>(b)(f)) {
+          set_bc(f, std::get<2>(b), *str);
+        }
+      }
+    }
   }
+
   // selection boxes
   // Parameters (N>=0):
   // string boxN -- bc description
   // vect boxN_a -- lower corner
   // vect boxN_b -- upper corner
-  // double boxN_vf -- inlet volume fraction
   // Check at least first nmax indices and all contiguous
   {
     int n = 0;
     const int nmax = 100;
     while (true) {
       std::string k = "box" + std::to_string(n);
-      if (auto p = var.String(k)) {
+      if (auto str = var.String(k)) {
         Vect a(var.Vect[k + "_a"]);
         Vect b(var.Vect[k + "_b"]);
-        Scal vf = var.Double[k + "_vf"];
         Rect<Vect> r(a, b);
-        for (IdxFace f : m.AllFaces()) {
+        for (auto it : mff) {
+          IdxFace f = it.GetIdx();
           if (r.IsInside(m.GetCenter(f))) {
-            if (set_bc(f, *p)) {
-              auto& cb = mff[f];
-              auto& cfa = mfa[f];
-              using Halo = typename CondFaceAdvection<Scal>::Halo;
-              cfa.nci = cb->GetNci();
-              if (cb.Get<Symm<M>>()) {
-                cfa.halo = Halo::reflect;
-              } else if (cb.Get<NoSlipWall<M>>() || cb.Get<SlipWall<M>>()) {
-                cfa.halo = Halo::fill;
-                cfa.clear0 = clear0;
-                cfa.clear1 = clear1;
-                cfa.fill_vf = fill_vf;
-                cfa.fill_cl = kClNone;
-              } else if (cb.Get<Inlet<M>>()) {
-                cfa.halo = Halo::fill;
-                cfa.clear0 = 0;
-                cfa.clear1 = 1;
-                cfa.fill_vf = vf;
-                cfa.fill_cl = kClNone;
-              } else if (cb.Get<Outlet<M>>()) {
-                cfa.halo = Halo::reflect;
-              } else {
-                throw std::runtime_error(
-                    std::string(__func__) + ",box: Unknown fluid bc");
-              }
-            }
+            auto& cff = it.GetValue();
+            auto nci = cff->GetNci();
+            cff.Set(nullptr);
+            set_bc(f, nci, *str);
           }
         }
-      } else if (n > nmax) { 
+      } else if (n > nmax) {
         break;
       }
       ++n;
@@ -892,7 +885,7 @@ void GetFluidFaceCond(
             cfa.clear0 = 0;
             cfa.clear1 = 1;
             cfa.fill_vf = vf;
-            cfa.fill_cl = inlet_cl;
+            cfa.fill_cl = inletcl;
           }
         }
       } else if (n > nmax) {
@@ -901,6 +894,7 @@ void GetFluidFaceCond(
       ++n;
     }
   }
+  /*
   // selection faces
   // Parameters (N>=0):
   // string faceN -- bc description
@@ -962,6 +956,7 @@ void GetFluidFaceCond(
       }
     }
   }
+  */
   // selection spheres
   // Parameters (N>=0):
   // string sphN -- bc description ("inlet")
