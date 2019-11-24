@@ -54,6 +54,18 @@ Plots isosurface.
 '''.format(av[0]))
     exit(1)
 
+def CheckFlag(name):
+    if name in av:
+        av.remove(name)
+        return True
+    return False
+
+cam = 1  # view from side perspective
+if CheckFlag('-C1'):
+    cam = 1
+if CheckFlag('-C2'):
+    cam = 2
+
 # vf input
 ff = natsorted(av[1:])
 # vf basename
@@ -80,16 +92,30 @@ paraview.simple._DisableFirstRenderCameraReset()
 # get the material library
 materialLibrary1 = GetMaterialLibrary()
 
+
+# view
+C1 = [
+[1.673947199541654, 1.155534385955274, 3.017460244409912],
+[0.49676167169496643, -0.25002651930486053, -1.3449860440897603],
+[-0.0893981734829278, 0.9547941520217919, -0.2835067791833273]
+    ]
+
+C2 = [
+[2.1915305271955976, 2.3226888513602653, 4.915606378976366],
+[1.0, 0.9, 0.5],
+[-0.09878153704372385, 0.9445146013953416, -0.31326406702697107],
+    ]
+
+CC = [C1, C2]
+C = CC[cam - 1]
+
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
 renderView1.ViewSize = [1920, 1080]
 renderView1.OrientationAxesVisibility = 0
-renderView1.CameraPosition =\
-[1.673947199541654, 1.155534385955274, 3.017460244409912]
-renderView1.CameraFocalPoint =\
-[0.49676167169496643, -0.25002651930486053, -1.3449860440897603]
-renderView1.CameraViewUp =\
-[-0.0893981734829278, 0.9547941520217919, -0.2835067791833273]
+renderView1.CameraPosition = C[0]
+renderView1.CameraFocalPoint = C[1]
+renderView1.CameraViewUp = C[2]
 renderView1.Background = [1.0]*3
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 
