@@ -1,6 +1,6 @@
 #include <mpi.h>
 
-#include "cubism.h"
+#include "cubism.ipp"
 #include "geom/mesh.h"
 #include "kernel/kernel.h"
 #include "kernel/kernelmesh.h"

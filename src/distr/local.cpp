@@ -1,4 +1,4 @@
-#include "local.h"
+#include "local.ipp"
 
 #include "geom/mesh.h"
 #include "kernel/kernel.h"
