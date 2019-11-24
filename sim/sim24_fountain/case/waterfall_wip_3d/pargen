@@ -31,7 +31,7 @@ def Sim(c):
 
     # domain 
     lx = 2
-    ly = 1
+    ly = 2
     lz = 1.
     lmax = max([lx, ly, lz])
 
@@ -60,7 +60,7 @@ def Sim(c):
     def rnd(a): return int(a + 0.5)
 
     # mesh
-    nn = 96
+    nn = 192
     nx = rnd(nn * lx)
     ny = rnd(nn * ly)
     nz = rnd(nn * lz)
@@ -69,7 +69,7 @@ def Sim(c):
     bs = 16
     bsz = bs
     # cores
-    np = 216
+    np = 864
     # time limit in minutes
     tl = 1440
 
@@ -119,7 +119,7 @@ def Gen(c):
 
     outx0 = -1e10
     outx1 = 1e10
-    outy0 = ly * 0.
+    outy0 = ly * 0. + eps
     outy1 = ly * 0.2
 
 
