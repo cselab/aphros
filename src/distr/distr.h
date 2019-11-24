@@ -72,7 +72,7 @@ class DistrMesh : public Distr {
   // Copy data from buffer halos to fields collected by Comm()
   virtual void ReadBuffer(const std::vector<MIdx>& bb) = 0;
   // Call kernels for current stage
-  virtual void Run(const std::vector<MIdx>& bb);
+  virtual void RunKernels(const std::vector<MIdx>& bb);
   // Copy data to buffer mesh from fields collected by Comm()
   virtual void WriteBuffer(const std::vector<MIdx>& bb) = 0;
   // Reduce TODO: extend doc
@@ -119,7 +119,8 @@ DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& par)
 {}
 
 template <class KF>
-void DistrMesh<KF>::Run(const std::vector<MIdx>& bb) {
+void DistrMesh<KF>::RunKernels(const std::vector<MIdx>& bb) {
+  #pragma omp parallel for schedule(dynamic, 1)
   for (auto& b : bb) {
     mk.at(b)->Run();
   }
@@ -387,7 +388,7 @@ void DistrMesh<KF>::Run() {
     TimerReport(bb);
     mtp_.Push();
 
-    Run(bb);
+    RunKernels(bb);
 
     // Write comm and dump
     WriteBuffer(bb);
