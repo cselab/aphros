@@ -31,3 +31,14 @@ set(HYPRE_DIR ${CHPREFIX})
 add_library(${T} INTERFACE IMPORTED)
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${HYPRE_DIR}/include)
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_LINK_LIBRARIES -L${HYPRE_DIR}/lib -lHYPRE -lm)
+
+# OpenMP
+set(T "openmp")
+find_package(OpenMP REQUIRED)
+find_package(Threads REQUIRED)
+add_library(${T} INTERFACE IMPORTED)
+set_property(TARGET ${T} PROPERTY 
+    INTERFACE_COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
+set_property(TARGET ${T} PROPERTY 
+    INTERFACE_LINK_LIBRARIES ${OpenMP_CXX_FLAGS} Threads::Threads)
+
