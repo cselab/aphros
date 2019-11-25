@@ -11,7 +11,7 @@
     print t[x]
 }
 
-/^[\t ]*remove/ {
+/^[\t ]*remove[\ t]*$/ {
     x = $2
     delete t[x]
 }
@@ -21,4 +21,10 @@
     for (i in t)
         n++
     print n
+}
+
+/^[\t ]*array/ {
+    for (i in t)
+        printf "[%s %s]", i, t[i]
+    printf "\n"
 }
