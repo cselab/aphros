@@ -24,7 +24,7 @@ main(void)
   char s[N], p[N], sep[] = " \t\n";
   char *c;
   static struct Table *t;
-  int i, x, y;
+  int i, j, x, y, n, *a;
 
   t = table_ini(0);
   while (get(s, stdin)) {
@@ -43,8 +43,21 @@ main(void)
       } else if (eq(c, "remove")) {
         ARG(x);
         table_remove(t, x);
-      } else if (eq(c, "length"))
+      } else if (eq(c, "length")) {
         printf("%d\n", table_length(t));
+      } else if (eq(c, "array")) {
+	a = table_array(t);
+	n = table_length(t);
+	for (i = j = 0; i < n; i++) {
+	    printf("[%d %d]", a[j++], a[j++]);
+	}
+	if (n > 0)
+	    putc('\n', stdout);
+	free(a);
+      } else {
+	fprintf(stderr, "%s: unknown command '%s'\n", me, c);
+	exit(2);
+      }
     }
   }
   table_fin(t);

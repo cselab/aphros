@@ -146,8 +146,8 @@ table_fin(struct Table *table)
   return 0;
 }
 
-int *
-table_array(struct Table *q, int *pn)
+int*
+table_array(struct Table *q)
 {
   int i, j = 0;
   int *array;
@@ -160,6 +160,5 @@ table_array(struct Table *q, int *pn)
       array[j++] = p->key;
       array[j++] = p->value;
     }
-  *pn = j;
   return array;
 }
