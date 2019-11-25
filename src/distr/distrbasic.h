@@ -8,7 +8,7 @@
 #include "parse/vars.h"
 #include "kernel/kernelmeshpar.h"
 #include "distr.h"
-#include "cubism.h"
+#include "cubismnc.h"
 #include "local.h"
 #include "parse/parser.h"
 #include "geom/vect.h"

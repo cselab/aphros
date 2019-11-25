@@ -7,7 +7,7 @@ c=${1:-aloc.conf}
 # block size
 b=${2:-8}
 # number of cores
-n=${3:-2}
+n=${3:-1}
 
 # mesh size
 m="32 32 1"

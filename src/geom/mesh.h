@@ -1,3 +1,4 @@
+// vim: expandtab:smarttab:sw=2:ts=2
 #pragma once
 
 #include <vector>
@@ -427,13 +428,23 @@ class MeshStructured {
   // Comm request
   struct Co {
     virtual ~Co() {}
-    // Number of scalar cell fields  (used in Dump)
+    // Number of scalar cell fields  (used in Dump and ghost communication)
     virtual size_t GetSize() const = 0;
+    // Currently active index and element stride required for dumping individual
+    // AoS components in vector fields
+    virtual int GetIndex() const = 0;
+    virtual int GetStride() const = 0;
+    // Pointer to the start of data.  Retain type-safety of data type, requires
+    // that Vect::value_type is Scal and must not be changed
+    virtual Scal *GetBasePtr() = 0;
   };
   // FieldCell<Scal>
   struct CoFcs : public Co {
     CoFcs(FieldCell<Scal>* f) : f(f) {}
-    size_t GetSize() const { return 1; }
+    size_t GetSize() const override { return 1; }
+    int GetIndex() const override { return 0; }
+    int GetStride() const override { return 1; }
+    Scal *GetBasePtr() override { return &(*f)[IdxCell(0)]; }
     FieldCell<Scal>* f;
   };
   // FieldCell<Vect>
@@ -441,7 +452,10 @@ class MeshStructured {
     // f: vector field
     // i: component (0,1,2), or -1 for all
     CoFcv(FieldCell<Vect>* f, int d) : f(f), d(d) {}
-    size_t GetSize() const { return d == -1 ? Vect::dim : 1; }
+    size_t GetSize() const override { return d == -1 ? Vect::dim : 1; }
+    int GetIndex() const override { return d; }
+    int GetStride() const override { return Vect::dim; }
+    Scal *GetBasePtr() override { return &(*f)[IdxCell(0)][0]; }
     FieldCell<Vect>* f;
     int d;
   };

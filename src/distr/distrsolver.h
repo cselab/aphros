@@ -8,7 +8,7 @@
 #include "parse/vars.h"
 #include "kernel/kernelmeshpar.h"
 #include "distr.h"
-#include "cubism.h"
+#include "cubismnc.h"
 #include "local.h"
 #include "parse/parser.h"
 #include "geom/vect.h"
@@ -43,7 +43,7 @@ class DistrSolver {
     if (var.Int["loc"]) {
       b = CreateLocal(comm, kf, var);
     } else {
-      b = CreateCubism(comm, kf, var);
+      b = CreateCubismnc(comm, kf, var);
     }
 
     d_.reset(dynamic_cast<D*>(b));

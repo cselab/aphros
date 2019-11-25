@@ -1,3 +1,4 @@
+// vim: expandtab:smarttab:sw=2:ts=2
 #pragma once
 
 #include <vector>
@@ -128,7 +129,6 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par)
       b.bs[q] = bs_[q];
     }
     b.h_gridpoint = h;
-    b.ptrBlock = nullptr;
     b.hl = hl_;
     MIdx gs = p_ * b_ * bs_; // global size
     for (int j = 0; j < 3; ++j) {
