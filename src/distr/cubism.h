@@ -204,19 +204,24 @@ struct StreamHdfScal {
   static const int CLASS = 0;
 
   B& b;
+  const int aos;
 
-  StreamHdfScal(B& b): b(b) { assert(1 == b.n_comp); }
+  StreamHdfScal(B &b, const int idx) : b(b), aos(idx)
+  {
+      assert(1 == b.n_comp);
+      assert(0 >= aos);
+  }
 
   // write
   void operate(const int ix, const int iy, const int iz, Scal* out) const
   {
-    out[0] = b(ix, iy, iz);
+    out[0] = (&b(ix, iy, iz))[aos];
   }
 
   // read
   void operate(const Scal* out, const int ix, const int iy, const int iz)
   {
-    b(ix, iy, iz) = out[0];
+    (&b(ix, iy, iz))[aos] = out[0];
   }
 
   static const char * getAttributeName() { return "Scalar"; }
@@ -235,13 +240,18 @@ struct StreamHdfVect {
   static const int CLASS = 0;
 
   B& b;
+  const int aos;
 
-  StreamHdfVect(B& b): b(b) { assert(3 == b.n_comp); }
+  StreamHdfVect(B &b, const int idx) : b(b), aos(idx)
+  {
+      assert(3 == b.n_comp);
+      assert(0 == aos);
+  }
 
   // write
   void operate(const int ix, const int iy, const int iz, Scal* out) const
   {
-    const Scal *v = &b(ix, iy, iz);
+    const Scal *v = &((const Scal *)&b(ix, iy, iz))[aos];
     out[0] = v[0];
     out[1] = v[1];
     out[2] = v[2];
@@ -250,7 +260,7 @@ struct StreamHdfVect {
   // read
   void operate(const Scal* out, const int ix, const int iy, const int iz)
   {
-    Scal *v = &b(ix, iy, iz);
+    Scal *v = &((Scal *)&b(ix, iy, iz))[aos];
     v[0] = out[0];
     v[1] = out[1];
     v[2] = out[2];
@@ -729,7 +739,7 @@ void Cubism<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
         for (size_t fi = 0; fi < n_fields; ++fi) {
           auto &o = bf[fi].first;
           fviews[fi].push_back(
-            FieldView(o->GetBasePtr(), b.index, o->GetSize()));
+            FieldView(o->GetBasePtr(), b.index, o->GetStride()));
         }
       }
 
@@ -738,15 +748,16 @@ void Cubism<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
       assert(bf.size() == fviews.size());
       for (size_t fi = 0; fi < fviews.size(); ++fi) {
         auto fn = GetDumpName(bf[fi].second, "", frame_);
+        const int aos_idx = (bf[fi].first)->GetIndex();
         auto &blocks = fviews[fi];
-        if (1 == blocks[0].n_comp) {
+        if (0 <= aos_idx) {
           StreamHdfScal<FieldView>::NAME = bf[fi].second;
-          DumpHDF5_MPI<StreamHdfScal<FieldView>>(blocks, g_, frame_, frame_, fn,
-            ".", Vect(0), m.GetCellSize(), true);
+          DumpHDF5_MPI<StreamHdfScal<FieldView>>(blocks, aos_idx, g_, frame_,
+            frame_, fn, ".", Vect(0), m.GetCellSize(), true);
         } else if (3 == blocks[0].n_comp) {
           StreamHdfVect<FieldView>::NAME = bf[fi].second;
-          DumpHDF5_MPI<StreamHdfVect<FieldView>>(blocks, g_, frame_, frame_, fn,
-            ".", Vect(0), m.GetCellSize(), true);
+          DumpHDF5_MPI<StreamHdfVect<FieldView>>(blocks, aos_idx, g_, frame_,
+            frame_, fn, ".", Vect(0), m.GetCellSize(), true);
         } else {
           throw std::runtime_error("DumpWrite(): Support only size 1 and 3");
         }
@@ -794,7 +805,7 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
     bool cont = true;
     int k = static_cast<int>(e);
     for (auto& c : m.GetComm()) { // must be first
-      const int sz = static_cast<int>(c->GetSize());
+      const int sz = static_cast<int>(c->GetStride());
       if (k - sz < 0) {
         p = c.get();
         cont = false;
@@ -804,7 +815,7 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
     }
     if (cont) {
       for (auto& co : m.GetDump()) { // followed by this
-        const int sz = static_cast<int>(co.first->GetSize());
+        const int sz = static_cast<int>(co.first->GetStride());
         if (k - sz < 0) {
           p = co.first.get();
           break;
@@ -830,13 +841,14 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       if (const auto fcptr = dynamic_cast<const typename M::CoFcs*>(bf)) {
         const FieldCell<Scal> &fc = *(fcptr->f);
         // copy from inner cells to global field
+        assert(0 == k);
         for (auto w : bc) {
           gfc[gbc.GetIdx(wb + w)] = fc[mbc.GetIdx(wb + w)];
         }
       } else if (const auto fcptr = dynamic_cast<const typename M::CoFcv*>(bf)) {
         const FieldCell<Vect> &fc = *(fcptr->f);
         // copy from inner cells to global field
-        assert(k < fcptr->GetSize());
+        assert(k < fcptr->GetStride());
         for (auto w : bc) {
           gfc[gbc.GetIdx(wb + w)] = fc[mbc.GetIdx(wb + w)][k];
         }
@@ -877,6 +889,7 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
         // copy from inner cells to v
         size_t i = 0;
         // copy from inner cells to global field
+        assert(0 == k);
         for (auto w : bc) {
           v[i++] = fc[mbc.GetIdx(wb + w)];
         }
@@ -885,7 +898,7 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
         // copy from inner cells to v
         size_t i = 0;
         // copy from inner cells to global field
-        assert(k < fcptr->GetSize());
+        assert(k < fcptr->GetStride());
         for (auto w : bc) {
           v[i++] = fc[mbc.GetIdx(wb + w)][k];
         }
