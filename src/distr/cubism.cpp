@@ -11,10 +11,10 @@ template <size_t bx, size_t by, size_t bz, class KF>
 Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& par) {
   using M = typename KF::M;
   using Scal = typename M::Scal;
-  using Par0 = GPar<Scal, bx, by, bz, 0>; // 0 halos on either side
-  using Par1 = GPar<Scal, bx, by, bz, 1>; // 1 halos on either side
+  //using Par0 = GPar<Scal, bx, by, bz, 0>; // 0 halos on either side
+  //using Par1 = GPar<Scal, bx, by, bz, 1>; // 1 halos on either side
   using Par2 = GPar<Scal, bx, by, bz, 2>; // 2 halos on either side
-  using Par3 = GPar<Scal, bx, by, bz, 3>; // 3 halos on either side
+  //using Par3 = GPar<Scal, bx, by, bz, 3>; // 3 halos on either side
 
   // Check block size
   if (par.Int["bsx"] == bx &&
@@ -23,14 +23,14 @@ Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& par) {
     // Check kernel
     if (KF* kfd = dynamic_cast<KF*>(&kf)) {
       switch (par.Int["hl"]) {
-        case 0:
-          return new Cubism<Par0, KF>(comm, *kfd, par);
-        case 1:
-          return new Cubism<Par1, KF>(comm, *kfd, par);
+        //case 0:
+        //  return new Cubism<Par0, KF>(comm, *kfd, par);
+        //case 1:
+        //  return new Cubism<Par1, KF>(comm, *kfd, par);
         case 2:
           return new Cubism<Par2, KF>(comm, *kfd, par);
-        case 3:
-          return new Cubism<Par3, KF>(comm, *kfd, par);
+        //case 3:
+        //  return new Cubism<Par3, KF>(comm, *kfd, par);
         default:
           break;
       }
