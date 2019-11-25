@@ -398,11 +398,11 @@ auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
 
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
 template <class Par, class KF>
-void Cubism<Par, KF>::ReadBuffer(const std::vector<MIdx>& bb) {}
+void Cubism<Par, KF>::ReadBuffer(const std::vector<MIdx>&) {}
 
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
 template <class Par, class KF>
-void Cubism<Par, KF>::WriteBuffer(const std::vector<MIdx>& bb) {}
+void Cubism<Par, KF>::WriteBuffer(const std::vector<MIdx>&) {}
 
 template <class Par, class KF>
 void Cubism<Par, KF>::Bcast(const std::vector<MIdx>& bb) {
@@ -799,32 +799,21 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
   BC bc(bs_); // cells of one block
   GBlock<size_t, dim> bq(p_ * b_);  // indices of block
   GIndex<size_t, dim> ndq(p_ * b_);  // flat
-  PF bf = nullptr;
-  auto GetField = [e](PF& p, const M& m) {
-    p = nullptr;
-    bool cont = true;
+  auto GetField = [e](const M& m) -> PF {
     int k = static_cast<int>(e);
     for (auto& c : m.GetComm()) { // must be first
-      const int sz = static_cast<int>(c->GetStride());
-      if (k - sz < 0) {
-        p = c.get();
-        cont = false;
-        break;
-      }
-      k -= sz;
-    }
-    if (cont) {
-      for (auto& co : m.GetDump()) { // followed by this
-        const int sz = static_cast<int>(co.first->GetStride());
-        if (k - sz < 0) {
-          p = co.first.get();
-          break;
-        }
-        k -= sz;
+      k -= c->GetSize();
+      if (k < 0) {
+        return c.get();
       }
     }
-    assert(k >= 0);
-    return static_cast<size_t>(k);
+    for (auto& co : m.GetDump()) { // followed by this
+      k -= co.first->GetSize();
+      if (k < 0) {
+        return co.first.get();
+      }
+    }
+    return nullptr;
   };
   if (isroot_) {
     FieldCell<Scal> gfc(gbc); // result
@@ -837,20 +826,18 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       // get corner of inner cells block
       MIdx wb = m.GetInBlockCells().GetBegin();
       // get field fc associated to index e
-      const size_t k = GetField(bf, m);
+      const PF bf = GetField(m);
       if (const auto fcptr = dynamic_cast<const typename M::CoFcs*>(bf)) {
         const FieldCell<Scal> &fc = *(fcptr->f);
         // copy from inner cells to global field
-        assert(0 == k);
         for (auto w : bc) {
           gfc[gbc.GetIdx(wb + w)] = fc[mbc.GetIdx(wb + w)];
         }
       } else if (const auto fcptr = dynamic_cast<const typename M::CoFcv*>(bf)) {
         const FieldCell<Vect> &fc = *(fcptr->f);
         // copy from inner cells to global field
-        assert(k < fcptr->GetStride());
         for (auto w : bc) {
-          gfc[gbc.GetIdx(wb + w)] = fc[mbc.GetIdx(wb + w)][k];
+          gfc[gbc.GetIdx(wb + w)] = fc[mbc.GetIdx(wb + w)][fcptr->d];
         }
       } else {
         throw std::runtime_error("GetGlobalField: resolving field pointer failed");
@@ -883,24 +870,20 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       // get corner of inner cells block
       MIdx wb = m.GetInBlockCells().GetBegin();
       // get field fc associated to index e
-      const size_t k = GetField(bf, m);
+      const PF bf = GetField(m);
       if (const auto fcptr = dynamic_cast<const typename M::CoFcs*>(bf)) {
         const FieldCell<Scal> &fc = *(fcptr->f);
-        // copy from inner cells to v
         size_t i = 0;
         // copy from inner cells to global field
-        assert(0 == k);
         for (auto w : bc) {
           v[i++] = fc[mbc.GetIdx(wb + w)];
         }
       } else if (const auto fcptr = dynamic_cast<const typename M::CoFcv*>(bf)) {
         const FieldCell<Vect> &fc = *(fcptr->f);
-        // copy from inner cells to v
         size_t i = 0;
         // copy from inner cells to global field
-        assert(k < fcptr->GetStride());
         for (auto w : bc) {
-          v[i++] = fc[mbc.GetIdx(wb + w)][k];
+          v[i++] = fc[mbc.GetIdx(wb + w)][fcptr->d];
         }
       } else {
         throw std::runtime_error("GetGlobalField: failed dynamic cast");
