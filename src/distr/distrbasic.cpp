@@ -46,6 +46,7 @@ set int verbose 0
 set int output 0
 set int verbose_stages 0
 set int verbose_time 0
+set int verbose_openmp 0
 
 set int iter 1
 
