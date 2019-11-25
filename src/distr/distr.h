@@ -9,6 +9,7 @@
 #include <string>
 #include <sstream>
 #include <omp.h>
+#include <sched.h>
 
 #include "geom/mesh.h"
 #include "util/suspender.h"
@@ -42,6 +43,7 @@ class DistrMesh : public Distr {
 
   virtual void Run();
   virtual void Report();
+  virtual void ReportOpenmp();
   virtual ~DistrMesh() {}
   virtual typename M::BlockCells GetGlobalBlock() const;
   virtual typename M::IndexCells GetGlobalIndex() const;
@@ -349,6 +351,9 @@ auto DistrMesh<KF>::GetGlobalField(size_t) -> FieldCell<Scal> {
 
 template <class KF>
 void DistrMesh<KF>::Run() {
+  if (par.Int["verbose_openmp"]) {
+    ReportOpenmp();
+  }
   mt_.Push();
   mtp_.Push();
   do {
@@ -472,5 +477,22 @@ void DistrMesh<KF>::Report() {
         << std::setw(3) << h[3] << "\n"
         << "time/cell/iter = " << a / (nc * ni) << " s"
         << std::endl;
+  }
+}
+
+template <class KF>
+void DistrMesh<KF>::ReportOpenmp() {
+  if (isroot_) {
+    #pragma omp parallel
+    {
+      #pragma omp critical
+      {
+        std::cout
+          << "OpenMP threads" << std::endl
+          << "thread=" << omp_get_thread_num()
+          << " cpu=" << sched_getcpu()
+          << std::endl;
+      }
+    }
   }
 }
