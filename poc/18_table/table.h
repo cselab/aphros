@@ -6,5 +6,6 @@ int table_length(struct Table *);
 int table_put(struct Table *, int key, int value);
 int table_get(struct Table *, int key, int *value);
 int table_remove(struct Table *, int key);
+int *table_array(struct Table *, int *n);
 
 #undef T

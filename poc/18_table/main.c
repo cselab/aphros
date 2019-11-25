@@ -145,3 +145,21 @@ table_fin(struct Table *table)
   FREE(table);
   return 0;
 }
+
+int *
+table_array(struct Table *q, int *pn)
+{
+  int i, j = 0;
+  int *array;
+  struct binding *p;
+
+  assert(q);
+  MALLOC(2 * q->length, &array);
+  for (i = 0; i < q->size; i++)
+    for (p = q->buckets[i]; p; p = p->link) {
+      array[j++] = p->key;
+      array[j++] = p->value;
+    }
+  *pn = j;
+  return array;
+}
