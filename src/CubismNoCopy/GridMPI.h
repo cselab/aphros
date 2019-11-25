@@ -14,8 +14,8 @@
 #include <string>
 #include <vector>
 
-#include "Cubism/StencilInfo.h"
-#include "Cubism/afree/SynchronizerMPI.h"
+#include "StencilInfo.h"
+#include "SynchronizerMPI.h"
 
 template <typename TGrid>
 class GridMPI : public TGrid

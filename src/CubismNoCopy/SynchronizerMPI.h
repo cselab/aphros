@@ -15,9 +15,9 @@
 #include <mpi.h>
 #include <vector>
 
-#include "Cubism/DependencyCubeMPI.h"
-#include "Cubism/PUPkernelsMPI.h"
-#include "Cubism/StencilInfo.h"
+#include "DependencyCubeMPI.h"
+#include "PUPkernelsMPI.h"
+#include "StencilInfo.h"
 
 using namespace std;
 

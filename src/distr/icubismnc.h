@@ -6,4 +6,4 @@
 #include "parse/vars.h"
 #include "distr.h"
 
-Distr* CreateCubism(MPI_Comm comm, KernelFactory& kf, Vars& par);
+Distr* CreateCubismnc(MPI_Comm comm, KernelFactory& kf, Vars& par);

@@ -1,7 +1,7 @@
 // vim: expandtab:smarttab:sw=2:ts=2
 #include <mpi.h>
 
-#include "cubism.ipp"
+#include "cubismnc.h"
 #include "geom/mesh.h"
 #include "kernel/kernel.h"
 #include "kernel/kernelmesh.h"
@@ -24,13 +24,13 @@ Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& par) {
     if (KF* kfd = dynamic_cast<KF*>(&kf)) {
       switch (par.Int["hl"]) {
         //case 0:
-        //  return new Cubism<Par0, KF>(comm, *kfd, par);
+        //  return new Cubismnc<Par0, KF>(comm, *kfd, par);
         //case 1:
-        //  return new Cubism<Par1, KF>(comm, *kfd, par);
+        //  return new Cubismnc<Par1, KF>(comm, *kfd, par);
         case 2:
-          return new Cubism<Par2, KF>(comm, *kfd, par);
+          return new Cubismnc<Par2, KF>(comm, *kfd, par);
         //case 3:
-        //  return new Cubism<Par3, KF>(comm, *kfd, par);
+        //  return new Cubismnc<Par3, KF>(comm, *kfd, par);
         default:
           break;
       }
@@ -40,7 +40,7 @@ Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& par) {
   return nullptr;
 }
 
-Distr* CreateCubism(MPI_Comm comm, KernelFactory& kf, Vars& par) {
+Distr* CreateCubismnc(MPI_Comm comm, KernelFactory& kf, Vars& par) {
   Distr* r = nullptr;
   using KF = KernelMeshFactory<MeshStructured<double, 3>>;
   // 3D
@@ -52,7 +52,7 @@ Distr* CreateCubism(MPI_Comm comm, KernelFactory& kf, Vars& par) {
   if (!r) r = Try<16, 16, 1, KF>(comm, kf, par);
   if (!r) r = Try<8, 8, 1, KF>(comm, kf, par);
   if (!r) {
-    std::cerr << "CreateCubism(): no instance with "
+    std::cerr << "CreateCubismnc(): no instance with "
       << "bs=("
       << par.Int["bsx"] << ","
       << par.Int["bsy"] << ","
