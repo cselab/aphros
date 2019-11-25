@@ -11,4 +11,8 @@ kc = 0.5 if dim == 3 else 1.
 ukk = np.loadtxt("k_0000.dat", skiprows=1).flatten()
 ukk = [k * kc for k in ukk if np.isfinite(k)]
 
-np.savetxt(sys.stdout.buffer, ukk)
+stdout = sys.stdout
+if hasattr(stdout, 'buffer'):
+    stdout = stdout.buffer
+
+np.savetxt(stdout, ukk)
