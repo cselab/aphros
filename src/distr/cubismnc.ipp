@@ -9,7 +9,7 @@
 #include <mpi.h>
 
 #include "distr.h"
-#include "icubismnc.h"
+#include "cubismnc.h"
 #include "dump/dumper.h"
 
 #include "CubismNoCopy/BlockLab.h"
