@@ -1,7 +1,7 @@
 // vim: expandtab:smarttab:sw=2:ts=2
 #include <mpi.h>
 
-#include "cubismnc.h"
+#include "cubismnc.ipp"
 #include "geom/mesh.h"
 #include "kernel/kernel.h"
 #include "kernel/kernelmesh.h"
