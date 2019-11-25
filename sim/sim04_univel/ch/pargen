@@ -7,7 +7,7 @@ o="par.conf"
 
 c['vels'] = "{:} {:} {:}".format(*(c['vel']))
 
-c['loc'] = 1 if c["np"] == 1 else 0
+c['backend'] = "local" if c["np"] == 1 else "cubismnc"
 
 c['mu2'] = c['mu0'] * c['mu']
 c['rho2'] = c['rho0'] * c['rho']
@@ -27,7 +27,7 @@ set double rho1 {rho0}
 set double rho2 {rho2}
 set int vfsmooth {chsm}
 set vect vel {vels}
-set int loc {loc}
+set string backend {backend}
 set int dim {dim}
 set vect gravity {g[0]} {g[1]} {g[2]}
 set int part_np {part_np}

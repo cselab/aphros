@@ -1,2 +1,2 @@
-include tloc
+include tloc3d
 set string backend cubism

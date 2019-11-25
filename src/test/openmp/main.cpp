@@ -42,7 +42,7 @@ set int px 1
 set int py 1
 set int pz 1
 
-set int loc 0
+set string backend cubismnc
 )EOF";
 
   return RunMpiBasic<M, State>(argc, argv, Run, conf);
