@@ -122,8 +122,8 @@ DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& par)
 template <class KF>
 void DistrMesh<KF>::RunKernels(const std::vector<MIdx>& bb) {
   #pragma omp parallel for schedule(dynamic, 1)
-  for (auto& b : bb) {
-    mk.at(b)->Run();
+  for (size_t i = 0; i < bb.size(); ++i) {
+    mk.at(bb[i])->Run();
   }
 }
 
