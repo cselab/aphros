@@ -26,7 +26,8 @@
 
 template<typename Streamer, typename TGrid>
 void DumpHDF5_MPI(std::vector<typename Streamer::B> &blocks,
-                  const TGrid &grid, int /*iCounter*/, Real absTime, 
+                  const int aos_idx,
+                  const TGrid &grid, int /*iCounter*/, Real absTime,
                   std::string f_name, std::string dump_path,
                   std::vector<Real> origin,
                   std::vector<Real> spacing, bool bXMF) {
@@ -87,16 +88,16 @@ void DumpHDF5_MPI(std::vector<typename Streamer::B> &blocks,
     grid.getBlocksPerDimension(0)*B::sizeX, NCHANNELS};
 
   if (isroot) {
-    std::cout 
+    std::cout
         << "HDF5 dump '"
-        << fullname << "': " 
-        << "one rank " 
-        << double(NX * NY * NZ * NCHANNELS * sizeof(Real)) 
-            / (1 << 20) 
+        << fullname << "': "
+        << "one rank "
+        << double(NX * NY * NZ * NCHANNELS * sizeof(Real))
+            / (1 << 20)
         << " MB"
         << ", total "
-        << double(dims[0] * dims[1] * dims[2] * dims[3] * sizeof(Real)) 
-            / (1 << 20) 
+        << double(dims[0] * dims[1] * dims[2] * dims[3] * sizeof(Real))
+            / (1 << 20)
         << " MB" << std::endl;
   }
 
@@ -109,10 +110,10 @@ void DumpHDF5_MPI(std::vector<typename Streamer::B> &blocks,
   for(size_t i=0; i<vInfo_local.size(); i++)
   {
     BlockInfo& info = vInfo_local[i];
-    const size_t idx[3] = 
+    const size_t idx[3] =
         {(size_t)info.index[0], (size_t)info.index[1], (size_t)info.index[2]};
     B & b = blocks[i];;
-    Streamer streamer(b);
+    Streamer streamer(b, aos_idx);
 
     for(size_t iz=sZ; iz<eZ; iz++)
     {
@@ -145,7 +146,7 @@ void DumpHDF5_MPI(std::vector<typename Streamer::B> &blocks,
   } else {
       fspace_id = H5Screate_simple(4, dims, NULL);
   }
-  dataset_id = H5Dcreate(file_id, "data", HDF_REAL, fspace_id, 
+  dataset_id = H5Dcreate(file_id, "data", HDF_REAL, fspace_id,
       H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   H5Sclose(fspace_id);
 
@@ -195,7 +196,7 @@ void DumpHDF5_MPI(std::vector<typename Streamer::B> &blocks,
         fprintf(xmf, "       </DataItem>\n");
         fprintf(xmf, "     </Geometry>\n\n");
 
-        fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Cell\">\n", 
+        fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Cell\">\n",
             Streamer::NAME.c_str(), Streamer::getAttributeName());
         fprintf(xmf, "       <DataItem Dimensions=\"%d %d %d\" NumberType=\"Float\" Precision=\"%lu\" Format=\"HDF\">\n",(int)dims[1], (int)dims[2], (int)dims[3], sizeof(Real));
     } else {
@@ -210,7 +211,7 @@ void DumpHDF5_MPI(std::vector<typename Streamer::B> &blocks,
         fprintf(xmf, "       </DataItem>\n");
         fprintf(xmf, "     </Geometry>\n\n");
 
-        fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Cell\">\n", 
+        fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Cell\">\n",
             Streamer::NAME.c_str(), Streamer::getAttributeName());
         fprintf(xmf, "       <DataItem Dimensions=\"%d %d %d %d\" NumberType=\"Float\" Precision=\"%lu\" Format=\"HDF\">\n",(int)dims[0], (int)dims[1], (int)dims[2], (int)dims[3], sizeof(Real));
     }
@@ -226,6 +227,7 @@ void DumpHDF5_MPI(std::vector<typename Streamer::B> &blocks,
 
 template <typename Streamer, typename TGrid>
 void ReadHDF5_MPI(std::vector<typename Streamer::B> &blocks,
+                  const int aos_idx,
                   const TGrid &grid,
                   const std::string f_name,
                   const std::string dump_path = ".")
@@ -301,7 +303,7 @@ void ReadHDF5_MPI(std::vector<typename Streamer::B> &blocks,
         BlockInfo& info = vInfo_local[i];
         const int idx[3] = {info.index[0], info.index[1], info.index[2]};
         B & b = blocks[i];
-        Streamer streamer(b);
+        Streamer streamer(b, aos_idx);
 
         for(int iz=sZ; iz<eZ; iz++)
             for(int iy=sY; iy<eY; iy++)
