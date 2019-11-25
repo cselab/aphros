@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <sstream>
+#include <omp.h>
 
 #include "geom/mesh.h"
 #include "util/suspender.h"
