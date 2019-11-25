@@ -22,7 +22,7 @@ set string dumpformat default
 
 set int comm_size 8
 
-set int loc 0
+set string backend cubismnc
 
 set int max_step 1
 set int num_frames 1
@@ -72,10 +72,10 @@ int RunMpi0(int argc, const char ** argv,
 
   ip.RunAll(conf);
 
-  bool loc = var.Int["loc"];
+  std::string be = var.String["backend"];
 
   MPI_Comm comm;
-  if (loc) {
+  if (be == "local") {
     MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
     if (rank == 0) {
       r(comm, var);

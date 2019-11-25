@@ -43,10 +43,10 @@ int RunMpi(int argc, const char ** argv,
     std::cerr << "=== config end ===\n" << std::endl;
   }
 
-  bool loc = var.Int["loc"];
+  std::string be = var.String["backend"];
 
   MPI_Comm comm;
-  if (loc) {
+  if (be == "local") {
     MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
     if (rank == 0) {
       r(comm, var);

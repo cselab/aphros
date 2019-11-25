@@ -1,2 +1,2 @@
 include tloc3d
-set int loc 0
+set string backend cubismnc
