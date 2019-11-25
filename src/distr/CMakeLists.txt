@@ -1,8 +1,7 @@
 set(T "local")
 add_library(${T} local.cpp)
-target_link_libraries(${T} PRIVATE 
+target_link_libraries(${T} PUBLIC
     hypre suspender vars parser report sysinfo openmp)
-
 
 set(T "cubism")
 add_library(${T} cubism.cpp)
