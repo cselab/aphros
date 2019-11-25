@@ -9,6 +9,7 @@
 struct MyBlockInfo {
   using Idx = std::array<int, 3>;
   Idx index;
+  void* ptrBlock;
   double h_gridpoint;
   double origin[3];
   Idx bs;
