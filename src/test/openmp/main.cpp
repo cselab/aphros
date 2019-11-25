@@ -1,6 +1,7 @@
 #undef NDEBUG
 #include <iostream>
 #include <omp.h>
+#include <sched.h>
 
 #include "distr/distrbasic.h"
 
@@ -21,7 +22,9 @@ void Run(M& m, State& s, Vars& var) {
     for (size_t i = 0; i < (1 << 28); ++i) {
       a = std::sqrt(a);
     }
-    std::cout << "thread=" << omp_get_thread_num() << std::endl;
+    std::cerr << "thread=" << omp_get_thread_num()
+        << " cpu=" << sched_getcpu()
+        << std::endl;
   }
 }
 
