@@ -51,6 +51,7 @@ int
 main(int argc, char **argv)
 {
   struct Table *a, *b;
+  int x, *y, n, i;
 
   USED(argc);
   name = NULL;
@@ -76,7 +77,6 @@ main(int argc, char **argv)
     exit(1);
   }
 
-  int x, *y, n, i;
   a = file2table(*argv);
   while (*++argv != NULL) {
       b = file2table(*argv);
