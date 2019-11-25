@@ -1,0 +1,78 @@
+#!/bin/sh
+me="$0"
+${AWK=awk} -v me="$me" '
+BEGIN {
+    FS = " *, *"
+    if (ARGC < 2)
+        err("not enough arguments")
+
+    i = 1
+    for (; i in ARGV; i++) {
+        f = ARGV[i]
+        one(f)
+    }
+}
+
+function one(f,   r, i, cl, vf, t, rc)
+{
+    t = f2time(f)
+    if (empty(t))
+        err("fail to extract time from \"%s\"", f)
+    if (getline < f != 1)
+        err("fail to read \"%s\"", f)
+    for (i = 1; i <= NF; i++)
+        Key[$i] = i
+    while (getline < f == 1) {
+        xx = get("xx")
+        yy = get("yy")
+        zz = get("zz")
+        x = get("x")
+        y = get("y")
+        z = get("z")
+        r = get("r")
+        vf = get("vf")
+        cl = get("cl")
+        if (!(cl in Seen)) {
+            Seen[cl]
+            print t, r, cl
+        }
+    }
+    close(f)
+}
+
+function msg(fmt, a, b, c, d, e)
+{
+    printf "%s: " fmt "\n", me, a, b, c, d, e | "cat >&2"
+}
+
+function err(fmt, a, b, c, d, e)
+{
+    msg(fmt, a, b, c, d, e)
+    exit(2)
+}
+
+function get(key,   i)
+{
+    i = Key[key]
+    return $i
+}
+
+function f2time(f,   time)
+{
+    time = f
+    sub(/.*_/, "", time)
+    sub(/\..*/, "", time)
+    return time + 0
+}
+
+function empty(s)
+{
+    return length(s) == 0
+}
+
+function intp(s)
+{
+    return s ~ /^[0-9][0-9]*$/
+}
+
+' "$@"
