@@ -13,18 +13,18 @@ BEGIN {
     }
 }
 
-function one(f,   r, i, cl, vf)
+function one(f,   rc, r, i, cl)
 {
-    r = getline < f
-    if (r != 1)
+    rc = getline < f
+    if (rc != 1)
         err("fail to read \"%s\"", f)
     for (i = 1; i <= NF; i++)
         Key[$i] = i
     while (getline < f == 1) {
         cl = get("cl")
-        vf = get("vf")
-        if (cl != 0 && vf < 0.1)
-            print vol2rad(vf), vf
+        r = get("r")
+        if (cl != 0 && r < 0.1)
+            print r
     }
     close(f)
 }
