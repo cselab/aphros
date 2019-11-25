@@ -13,7 +13,7 @@
 #include <vector>
 
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-08] get rid of this include (template)
-#include "Cubism/BlockInfo.h"
+#include "BlockInfo.h"
 
 template <typename B_>
 class Grid

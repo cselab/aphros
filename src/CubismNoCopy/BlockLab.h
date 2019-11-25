@@ -20,7 +20,7 @@ typedef double Real;
 #include <vector>
 
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-04] Get rid of this include!
-#include "Cubism/afree/Grid.h"
+#include "Grid.h"
 
 #ifdef __bgq__
 #include <builtins.h>

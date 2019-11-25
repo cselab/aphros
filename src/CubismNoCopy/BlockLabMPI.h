@@ -13,7 +13,7 @@
 
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-04] Get rid of this. Careful with down
 // casts (due to inheritance)
-#include "Cubism/afree/GridMPI.h"
+#include "GridMPI.h"
 
 template<typename MyBlockLab>
 class BlockLabMPI : public MyBlockLab

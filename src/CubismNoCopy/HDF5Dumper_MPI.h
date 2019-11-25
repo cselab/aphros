@@ -22,7 +22,7 @@
 #define HDF_REAL H5T_NATIVE_DOUBLE
 #endif
 
-#include "Cubism/BlockInfo.h"
+#include "BlockInfo.h"
 
 template<typename Streamer, typename TGrid>
 void DumpHDF5_MPI(std::vector<typename Streamer::B> &blocks,
