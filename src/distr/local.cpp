@@ -6,19 +6,26 @@
 #include "parse/vars.h"
 
 template <class KF>
-Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& par) {
+Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& var) {
 
   if (KF* kfd = dynamic_cast<KF*>(&kf)) {
-    return new Local<KF>(comm, *kfd, par);
+    return new Local<KF>(comm, *kfd, var);
   }
   return nullptr;
 }
 
 Distr* CreateLocal(
-    MPI_Comm comm, KernelFactory& kf, Vars& par) {
+    MPI_Comm comm, KernelFactory& kf, Vars& var) {
   Distr* r = nullptr;
-  if (!r) r = Try<KernelMeshFactory<MeshStructured<double, 3>>>(
-      comm, kf, par);
-  assert(r && "CreateLocal(): KernelFactory not found");
+  using KF = KernelMeshFactory<MeshStructured<double, 3>>;
+  if (!r) r = Try<KF>(comm, kf, var);
+  if (!r) {
+    std::stringstream ss;
+    ss << __func__ << ": no instance with "
+      << "bs="
+      << var.Int["bsx"] << " " << var.Int["bsy"] << " " << var.Int["bsz"]
+      << " hl=" << var.Int["hl"];
+    throw std::runtime_error(ss.str());
+  }
   return r;
 }

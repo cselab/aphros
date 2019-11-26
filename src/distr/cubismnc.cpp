@@ -1,5 +1,6 @@
 // vim: expandtab:smarttab:sw=2:ts=2
 #include <mpi.h>
+#include <sstream>
 
 #include "cubismnc.ipp"
 #include "geom/mesh.h"
@@ -52,13 +53,12 @@ Distr* CreateCubismnc(MPI_Comm comm, KernelFactory& kf, Vars& var) {
   if (!r) r = Try<16, 16, 1, KF>(comm, kf, var);
   if (!r) r = Try<8, 8, 1, KF>(comm, kf, var);
   if (!r) {
-    std::cerr << "CreateCubismnc(): no instance with "
-      << "bs=("
-      << var.Int["bsx"] << ","
-      << var.Int["bsy"] << ","
-      << var.Int["bsz"] << "); hl=" << var.Int["hl"]
-      << std::endl;
-    assert(false);
+    std::stringstream ss;
+    ss << __func__ << ": no instance with "
+      << "bs="
+      << var.Int["bsx"] << " " << var.Int["bsy"] << " " << var.Int["bsz"]
+      << " hl=" << var.Int["hl"];
+    throw std::runtime_error(ss.str());
   }
   return r;
 }
