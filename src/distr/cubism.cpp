@@ -1,4 +1,5 @@
 #include <mpi.h>
+#include <sstream>
 
 #include "cubism.ipp"
 #include "geom/mesh.h"
@@ -13,8 +14,8 @@ Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& var) {
   using Par = GPar<Scal, bx, by, bz, 8>;
 
   // Check block size
-  if (var.Int["bsx"] == bx && 
-      var.Int["bsy"] == by && 
+  if (var.Int["bsx"] == bx &&
+      var.Int["bsy"] == by &&
       (var.Int["bsz"] == bz || (bz == 2 && var.Int["bsz"] == 1))) {
     // Check kernel
     if (KF* kfd = dynamic_cast<KF*>(&kf)) {
@@ -37,13 +38,12 @@ Distr* CreateCubism(MPI_Comm comm, KernelFactory& kf, Vars& var) {
   if (!r) r = Try<16, 16, 2, KF>(comm, kf, var);
   if (!r) r = Try<8, 8, 2, KF>(comm, kf, var);
   if (!r) {
-    std::cerr << "CreateCubism(): no instance with "
-      << "bs=(" 
-      << var.Int["bsx"] << ","
-      << var.Int["bsy"] << ","
-      << var.Int["bsz"] << ")"
-      << std::endl;
-    assert(false);
+    std::stringstream ss;
+    ss << __func__ << ": no instance with "
+      << "bs="
+      << var.Int["bsx"] << " " << var.Int["bsy"] << " " << var.Int["bsz"]
+      << " hl=" << var.Int["hl"];
+    throw std::runtime_error(ss.str());
   }
   return r;
 }
