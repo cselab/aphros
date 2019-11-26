@@ -68,7 +68,7 @@ class Local : public DistrMesh<KF> {
   // ext: extent
   static M CreateGlobalMesh(MIdx bs, MIdx b, MIdx p, Scal ext);
 
-  std::vector<MIdx> GetBlocks() override;
+  std::vector<MIdx> GetBlocks(bool inner) override;
   void ReadBuffer(const std::vector<MIdx>& bb) override;
   void WriteBuffer(const std::vector<MIdx>& bb) override;
   void Reduce(const std::vector<MIdx>& bb) override;
@@ -146,14 +146,13 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& var)
 }
 
 template <class KF>
-auto Local<KF>::GetBlocks() -> std::vector<MIdx> {
-  // Put blocks to map by index 
+auto Local<KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
   std::vector<MIdx> bb;
-  for (auto e : bb_) {
-    MIdx b(e.index);
-    bb.push_back(b);
+  if (inner) {
+    for (auto e : bb_) {
+      bb.emplace_back(e.index);
+    }
   }
-
   return bb;
 }
 

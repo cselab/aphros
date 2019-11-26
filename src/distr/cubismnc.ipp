@@ -189,12 +189,16 @@ class Cubismnc : public DistrMesh<KF> {
     std::map<MIdx, BlockInfo, typename MIdx::LexLess> mb;
   };
   S s_;
+  std::vector<std::vector<FieldView>> fviews_; // fields from last communication
+  Synch* sync_;
+  size_t n_fields_;
 
   // Convert Cubism BlockInfo to MyBlockInfo
   static std::vector<MyBlockInfo> Convert(
       const std::vector<BlockInfo>&, MIdx bs, size_t hl);
 
   std::vector<MIdx> GetBlocks() override;
+  std::vector<MIdx> GetBlocks(bool inner) override;
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
   void ReadBuffer(const std::vector<MIdx>& bb) override;
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
@@ -427,6 +431,95 @@ auto Cubismnc<Par, KF>::GetBlocks() -> std::vector<MIdx> {
   }
 
   return bb;
+}
+
+template <class Par, class KF>
+auto Cubismnc<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
+  if (inner) {
+    std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
+    n_fields_ = mk.at(MIdx(cc[0].index))->GetMesh().GetComm().size();
+    std::vector<MIdx> bb;
+    // Perform communication if necessary
+    if (n_fields_ > 0) {
+      // 0. Construct vector of fields to communicate for all blocks on this rank
+      fviews_.clear();
+      fviews_.resize(n_fields_);
+      for (const auto &b : cc) {
+        auto &bm = mk.at(MIdx(b.index))->GetMesh();
+        auto &bf = bm.GetComm();
+        assert(n_fields_ == bf.size());
+        for (size_t fi = 0; fi < n_fields_; ++fi) {
+          auto &o = bf[fi];
+          fviews_[fi].push_back(FieldView(o->GetBasePtr(), b.index, o->GetSize()));
+        }
+      }
+
+      // 1. Exchange halos in buffer mesh.
+      // stencil type
+      const bool is_tensorial = true;
+      const int nhalo_start[3] = {hl_, hl_, hl_};
+      const int nhalo_end[3] = {hl_, hl_, hl_};
+
+      // schedule asynchronous communication
+      sync_ = &g_.sync(fviews_, nhalo_start, nhalo_end, is_tensorial);
+      std::vector<BlockInfo> aa = sync_->avail_inner();
+
+      // Create vector of indices and save block info to map
+      s_.mb.clear();
+      for (auto a : aa) {
+        MIdx b(a.index);
+        s_.mb.emplace(b, a);
+        bb.push_back(b);
+      }
+
+      std::set<MIdx> set(bb.begin(), bb.end());
+
+      // 2. Load exchanged halos into the local fields
+      Lab l;
+      l.prepare(g_, *sync_);
+      for (auto& field : fviews_) {
+        for (auto& block : field) {
+          if (set.count(MIdx(block.index))) {
+            l.load(block, field);
+          }
+        }
+      }
+    } else {
+      s_.mb.clear();
+      for (auto a : cc) {
+        MIdx b(a.index);
+        s_.mb.emplace(b, a);
+        bb.push_back(b);
+      }
+    }
+    return bb;
+  } else {
+    std::vector<MIdx> bb;
+    // Perform communication if necessary
+    if (n_fields_ > 0) {
+      std::vector<BlockInfo> aa = sync_->avail_halo();
+
+      for (auto a : aa) {
+        MIdx b(a.index);
+        s_.mb.emplace(b, a);
+        bb.push_back(b);
+      }
+
+      std::set<MIdx> set(bb.begin(), bb.end());
+
+      // Load exchanged halos into the local fields
+      Lab l;
+      l.prepare(g_, *sync_);
+      for (auto& field : fviews_) {
+        for (auto& block : field) {
+          if (set.count(MIdx(block.index))) {
+            l.load(block, field);
+          }
+        }
+      }
+    }
+    return bb;
+  }
 }
 
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
