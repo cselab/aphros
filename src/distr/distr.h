@@ -52,7 +52,8 @@ class DistrMesh : public Distr {
 
  protected:
   // TODO: remove comm, needed only by Hypre
-  MPI_Comm comm_; // XXX: overwritten by Cubism<KF>
+  MPI_Comm comm_;       // identical to comm_hypre_, overwritten if OpenMP enabled
+  MPI_Comm comm_hypre_; // main HYPRE communicator
   Vars& var;
   const KF& kf_; // kernel factory
 
@@ -68,6 +69,13 @@ class DistrMesh : public Distr {
   bool isroot_; // XXX: overwritten by Local<KF> and Cubism<KF>
 
   std::map<MIdx, std::unique_ptr<K>, typename MIdx::LexLess> mk;
+
+#ifdef _OPENMP
+  MPI_Group omp_master_group_; // sub-group of comm_hypre_ used for GridMPI
+  MPI_Comm comm_omp_; // for communication with sub-group of comm_hypre_
+  MIdx p_omp_; // number of ranks in comm_
+  MIdx b_omp_; // number of blocks managed by a rank in p_omp_
+#endif /* _OPENMP */
 
   DistrMesh(MPI_Comm comm, KF& kf, Vars& var);
   // Performs communication and returns indices of blocks with updated halos.
@@ -112,7 +120,7 @@ void DistrMesh<KF>::MakeKernels(const std::vector<MyBlockInfo>& ee) {
 
 template <class KF>
 DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& var)
-    : comm_(comm), var(var), kf_(kf)
+    : comm_(MPI_COMM_NULL), comm_hypre_(comm), var(var), kf_(kf)
     , hl_(var.Int["hl"])
     , bs_{var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]}
     , p_{var.Int["px"], var.Int["py"], var.Int["pz"]}
@@ -256,7 +264,7 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
         gs[i] = bs_[i] * b_[i] * p_[i];
       }
 
-      Hypre* hp = new Hypre(comm_, lbb, gs, per);
+      Hypre* hp = new Hypre(comm_hypre_, lbb, gs, per);
       mhp_.emplace(k, std::unique_ptr<Hypre>(hp));
     } else { // update current instance
       mhp_.at(k)->Update();
