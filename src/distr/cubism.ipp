@@ -383,7 +383,8 @@ class Cubism : public DistrMesh<KF> {
     }
   }
 
-  std::vector<MIdx> GetBlocks() override;
+  std::vector<MIdx> GetBlocks(bool inner) override;
+  using P::GetBlocks;
   void ReadBuffer(const std::vector<MIdx>& bb) override;
   void WriteBuffer(const std::vector<MIdx>& bb) override;
   void Reduce(const std::vector<MIdx>& bb) override;
@@ -526,7 +527,11 @@ Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& var)
 }
 
 template <class Par, class KF>
-auto Cubism<Par, KF>::GetBlocks() -> std::vector<MIdx> {
+auto Cubism<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
+  if (!inner) {
+    return std::vector<MIdx>();
+  }
+
   MPI_Barrier(comm_);
 
   // Get all blocks

@@ -79,12 +79,20 @@ class DistrMesh : public Distr {
 
   DistrMesh(MPI_Comm comm, KF& kf, Vars& var);
   // Performs communication and returns indices of blocks with updated halos.
-  virtual std::vector<MIdx> GetBlocks() = 0;
-  // Copy data from buffer halos to fields collected by Comm()
+  virtual std::vector<MIdx> GetBlocks(bool inner) = 0;
+  virtual std::vector<MIdx> GetBlocks() {
+    auto bbi = GetBlocks(true);
+    auto bbh = GetBlocks(false);
+    bbi.insert(bbi.end(), bbh.begin(), bbh.end());
+    return bbi;
+  }
+  // Fill selected halo cells with garbage
+  void ApplyNanFaces(const std::vector<MIdx>& bb);
+  // Copy from communication buffer to fields
   virtual void ReadBuffer(const std::vector<MIdx>& bb) = 0;
   // Call kernels for current stage
   virtual void RunKernels(const std::vector<MIdx>& bb);
-  // Copy data to buffer mesh from fields collected by Comm()
+  // Copy from fields to communication buffer
   virtual void WriteBuffer(const std::vector<MIdx>& bb) = 0;
   // Reduce TODO: extend doc
   virtual void Reduce(const std::vector<MIdx>& bb) = 0;
@@ -356,6 +364,25 @@ auto DistrMesh<KF>::GetGlobalField(size_t) -> FieldCell<Scal> {
   return FieldCell<Scal>();
 }
 
+#define EC(x) std::cerr << (#x) << std::endl; x;
+#define EV(x) std::cerr << (#x) << " = " << x << std::endl;
+
+template <class KF>
+void DistrMesh<KF>::ApplyNanFaces(const std::vector<MIdx>& bb) {
+  for (auto& b : bb) {
+    auto& m = mk.at(b)->GetMesh();
+    for (auto& o : m.GetComm()) {
+      if (auto od = dynamic_cast<typename M::CoFcs*>(o.get())) {
+        m.ApplyNanFaces(*od->f);
+      } else if (auto od = dynamic_cast<typename M::CoFcv*>(o.get())) {
+        m.ApplyNanFaces(*od->f);
+      } else {
+        throw std::runtime_error("Distr::Run(): unknown field type for nan");
+      }
+    }
+  }
+}
+
 template <class KF>
 void DistrMesh<KF>::Run() {
   if (var.Int["verbose_openmp"]) {
@@ -364,29 +391,50 @@ void DistrMesh<KF>::Run() {
   mt_.Push();
   mtp_.Push();
   do {
-    auto bb = GetBlocks();
+    std::vector<MIdx> bb;
+    if (mk.begin()->second->GetMesh().GetDump().size() > 0) {
+      bb = GetBlocks(); // all blocks, sync communication
+      ReadBuffer(bb);
+      ApplyNanFaces(bb);
+      DumpWrite(bb);
+      ClearDump(bb);
+      ClearComm(bb);
+      RunKernels(bb);
+    } else {
+      auto bbi = GetBlocks(true); // inner blocks, async communication
+      ReadBuffer(bbi);
+      ApplyNanFaces(bbi);
+      ClearComm(bbi);
+      RunKernels(bbi);
 
-    assert(!bb.empty());
+      auto bbh = GetBlocks(false); // halo blocks, wait for communication
+      ReadBuffer(bbh);
+      ApplyNanFaces(bbh);
+      ClearComm(bbh);
+      RunKernels(bbh);
 
-    ReadBuffer(bb);
-
-    for (auto& b : bb) {
-      auto& m = mk.at(b)->GetMesh();
-      for (auto& o : m.GetComm()) {
-        if (auto od = dynamic_cast<typename M::CoFcs*>(o.get())) {
-          m.ApplyNanFaces(*od->f);
-        } else if (auto od = dynamic_cast<typename M::CoFcv*>(o.get())) {
-          m.ApplyNanFaces(*od->f);
-        } else {
-          throw std::runtime_error("Distr::Run(): unknown field type for nan");
-        }
-      }
+      bb = bbi;
+      bb.insert(bb.end(), bbh.begin(), bbh.end());
     }
 
-    DumpWrite(bb);
-    ClearDump(bb);
+    WriteBuffer(bb);
 
-    ClearComm(bb);
+    stage_ += 1;
+
+    // Print current stage name
+    if (isroot_ && var.Int["verbose"]) {
+      auto& m = mk.begin()->second->GetMesh();
+      std::cerr << "*** STAGE"
+          << " #" << stage_ 
+          << " depth=" << m.GetDepth() 
+          << " " << m.GetCurName() 
+          << " ***" << std::endl;
+    }
+
+    // Break if no pending stages
+    if (!Pending(bb)) {
+      break;
+    }
 
     Reduce(bb);
     Scatter(bb);
@@ -400,28 +448,6 @@ void DistrMesh<KF>::Run() {
     mtp_.Pop(mk.at(bb[0])->GetMesh().GetCurName());
     TimerReport(bb);
     mtp_.Push();
-
-    RunKernels(bb);
-
-    // Write comm and dump
-    WriteBuffer(bb);
-
-    stage_ += 1;
-
-    // Print current stage name
-    if (isroot_ && var.Int["verbose"]) {
-      auto& m = mk.at(bb[0])->GetMesh();
-      std::cerr << "*** STAGE"
-          << " #" << stage_ 
-          << " depth=" << m.GetDepth() 
-          << " " << m.GetCurName() 
-          << " ***" << std::endl;
-    }
-
-    // Break if no pending stages
-    if (!Pending(bb)) {
-      break;
-    }
   } while (true);
   mt_.Pop("last");
   mtp_.Pop("last");

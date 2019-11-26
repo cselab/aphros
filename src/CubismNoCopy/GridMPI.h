@@ -134,6 +134,29 @@ public:
         return TGrid::getBlocksInfo();
     }
 
+    template <typename TView>
+    StencilInfo getStencil(const int nhalo_start[3],
+                           const int nhalo_end[3],
+                           const bool is_tensorial = true)
+    {
+        int nhalo_sz = nhalo_start[2];
+        int nhalo_ez = nhalo_end[2];
+        if (1 == TView::sizeZ) {
+            // communication needed for tensorial
+            nhalo_sz = 1;
+            nhalo_ez = 1;
+        }
+        return StencilInfo(-nhalo_start[0],
+                            -nhalo_start[1],
+                            -nhalo_sz,
+                            nhalo_end[0] + 1,
+                            nhalo_end[1] + 1,
+                            nhalo_ez + 1,
+                            is_tensorial,
+                            1,
+                            0);
+    }
+
     // for a given kernel p (e.g. Processing=Diffusion)
     // based on StencilInfo (bounding box and selected components)
     // returns a SynchronizerMPI (new or existing)
