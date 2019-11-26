@@ -40,19 +40,24 @@ class DistrSolver {
     var.Double.Set("t", 0.);
 
     // Initialize blocks
-    Distr* b;
-    std::string be = var.String["backend"];
+    std::unique_ptr<Distr> b;
+
+    const std::string be = var.String["backend"];
+    std::cerr << "backend=" << be << std::endl;
     if (be == "local") {
+      std::cerr << "CreateLocal" << std::endl;
       b = CreateLocal(comm, kf, var);
     } else if (be == "cubism") {
+      std::cerr << "CreateCubism" << std::endl;
       b = CreateCubism(comm, kf, var);
     } else if (be == "cubismnc") {
+      std::cerr << "CreateCubismnc" << std::endl;
       b = CreateCubismnc(comm, kf, var);
     } else {
       throw std::runtime_error("DistrSolver: unknown backend='" + be + "'");
     }
 
-    d_.reset(dynamic_cast<D*>(b));
+    d_ = std::unique_ptr<D>(static_cast<D*>(b.release()));
     if (!d_) {
       throw std::runtime_error("DistrSolver: no compatible backend found");
     }

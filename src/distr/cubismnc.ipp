@@ -3,7 +3,6 @@
 
 #include <cassert>
 #include <memory>
-#include <limits>
 #include <map>
 #include <stdexcept>
 #include <mpi.h>
@@ -22,7 +21,7 @@
 
 // Hide implementation and avoid collision with GBlk
 // TODO: rename cubism_impl::GBlk
-namespace cubism_impl {
+namespace cubismnc_impl {
 
 // Static parameters for Cubism
 // bx, by, bz - block size
@@ -282,7 +281,7 @@ std::vector<MyBlockInfo> Cubismnc<Par, KF>::Convert(
     }
     b.h_gridpoint = c.h_gridpoint;
     b.hl = hl;
-    b.maxcomm = std::numeric_limits<size_t>::max();
+    b.maxcomm = 1024;
     bb.push_back(b);
   }
   return bb;
@@ -905,10 +904,11 @@ template <class B>
 std::string StreamHdfVect<B>::NAME = "alpha";
 template <class B>
 std::string StreamHdfVect<B>::EXT = "";
-} // namespace cubism_impl
+
+} // namespace cubismnc_impl
 
 template <class Scal, size_t bx, size_t by, size_t bz, size_t hl>
-using GPar = cubism_impl::GPar<Scal, bx, by, bz, hl>;
+using GPar = cubismnc_impl::GPar<Scal, bx, by, bz, hl>;
 
 template <class Par, class KF>
-using Cubismnc = cubism_impl::Cubismnc<Par, KF>;
+using Cubismnc = cubismnc_impl::Cubismnc<Par, KF>;
