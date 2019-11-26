@@ -567,10 +567,6 @@ struct Vofm<M_>::Imp {
       const Multi<FieldCell<Scal>*>& mfcu,
       const Multi<FieldCell<Scal>*>& mfccl,
       const Multi<FieldCell<Scal>*>& mfcim) {
-    if(sem()) { 
-      std::cerr << "layers=" << layers.size() 
-      << " maxcomm=" << m.GetMaxComm() 
-        << std::endl; }
     if (layers.size() * 3 <= m.GetMaxComm()) { // cubismnc or local
       if (sem("comm")) {
         for (auto i : layers) {

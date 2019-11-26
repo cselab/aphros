@@ -9,8 +9,9 @@
 
 using U = std::unique_ptr<Distr>;
 
+// XXX: removing 'static' leads to symbol collision with cubismnc.cpp
 template <size_t bx, size_t by, size_t bz, class KF>
-U Try(MPI_Comm comm, KernelFactory& kf, Vars& var) {
+static U Try(MPI_Comm comm, KernelFactory& kf, Vars& var) {
   using M = typename KF::M;
   using Scal = typename M::Scal;
   using Par = GPar<Scal, bx, by, bz, 8>;
@@ -29,6 +30,7 @@ U Try(MPI_Comm comm, KernelFactory& kf, Vars& var) {
 }
 
 U CreateCubism(MPI_Comm comm, KernelFactory& kf, Vars& var) {
+  std::cerr << "call " <<  __func__ << std::endl;
   U r;
   using KF = KernelMeshFactory<MeshStructured<double, 3>>;
   // 3D
