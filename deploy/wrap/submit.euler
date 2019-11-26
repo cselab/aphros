@@ -22,6 +22,7 @@ nth=${OMP_NUM_THREADS:-1}
 
 if (( $np % $nth != 0 )) ; then
   echo "Abort, np=$np must be divisible by OMP_NUM_THREADS=$nth"
+  exit 1
 fi
 
 name="$(basename $(pwd))"
