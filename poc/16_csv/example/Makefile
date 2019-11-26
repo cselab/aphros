@@ -9,6 +9,7 @@ add\
 column\
 columns\
 ini\
+new\
 split\
 write\
 
