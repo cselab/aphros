@@ -1,4 +1,3 @@
-// vim: expandtab:smarttab:sw=2:ts=2
 #include <mpi.h>
 #include <sstream>
 
@@ -8,8 +7,10 @@
 #include "kernel/kernelmesh.h"
 #include "parse/vars.h"
 
+using U = std::unique_ptr<Distr>;
+
 template <size_t bx, size_t by, size_t bz, class KF>
-Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& var) {
+U Try(MPI_Comm comm, KernelFactory& kf, Vars& var) {
   using M = typename KF::M;
   using Scal = typename M::Scal;
   //using Par0 = GPar<Scal, bx, by, bz, 0>; // 0 halos on either side
@@ -25,13 +26,13 @@ Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& var) {
     if (KF* kfd = dynamic_cast<KF*>(&kf)) {
       switch (var.Int["hl"]) {
         //case 0:
-        //  return new Cubismnc<Par0, KF>(comm, *kfd, var);
+        //  return U(new Cubismnc<Par0, KF>(comm, *kfd, var));
         //case 1:
-        //  return new Cubismnc<Par1, KF>(comm, *kfd, var);
+        //  return U(new Cubismnc<Par1, KF>(comm, *kfd, var));
         case 2:
-          return new Cubismnc<Par2, KF>(comm, *kfd, var);
+          return U(new Cubismnc<Par2, KF>(comm, *kfd, var));
         //case 3:
-        //  return new Cubismnc<Par3, KF>(comm, *kfd, var);
+        //  return U(new Cubismnc<Par3, KF>(comm, *kfd, var));
         default:
           break;
       }
@@ -41,8 +42,8 @@ Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& var) {
   return nullptr;
 }
 
-Distr* CreateCubismnc(MPI_Comm comm, KernelFactory& kf, Vars& var) {
-  Distr* r = nullptr;
+U CreateCubismnc(MPI_Comm comm, KernelFactory& kf, Vars& var) {
+  U r;
   using KF = KernelMeshFactory<MeshStructured<double, 3>>;
   // 3D
   if (!r) r = Try<32, 32, 32, KF>(comm, kf, var);
@@ -55,11 +56,12 @@ Distr* CreateCubismnc(MPI_Comm comm, KernelFactory& kf, Vars& var) {
   if (!r) {
     std::stringstream ss;
     ss << __func__ << ": no instance with "
-      << "bs="
-      << var.Int["bsx"] << " " << var.Int["bsy"] << " " << var.Int["bsz"]
-      << " hl=" << var.Int["hl"];
+        << "bs="
+        << var.Int["bsx"] << " " << var.Int["bsy"] << " " << var.Int["bsz"]
+        << " hl=" << var.Int["hl"];
     throw std::runtime_error(ss.str());
   }
   return r;
 }
 
+// vim: expandtab:smarttab:sw=2:ts=2
