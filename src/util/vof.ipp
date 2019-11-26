@@ -961,7 +961,6 @@ void UVof<M_>::GetAdvectionFaceCond(
     const M& m, const MapCondFaceAdvection<Scal>& mfc,
     MapCondFace& mfc_vf, MapCondFace& mfc_cl, MapCondFace& mfc_im,
     MapCondFace& mfc_n, MapCondFace& mfc_a) {
-  auto kClNone = Imp::kClNone;
   using MIdx = typename M::MIdx;
   using TRM = Trackerm<M>;
   mfc_vf.clear();
