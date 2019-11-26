@@ -54,7 +54,7 @@ class DistrMesh : public Distr {
   // TODO: remove comm, needed only by Hypre
   MPI_Comm comm_; // XXX: overwritten by Cubism<KF>
   Vars& var;
-  KF& kf_; // kernel factory
+  const KF& kf_; // kernel factory
 
   int hl_; // number of halo cells (same in all directions)
   MIdx bs_; // block size

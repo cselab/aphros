@@ -34,7 +34,7 @@ class KernelMeshParFactory : public KernelMeshFactory<M_> {
   using K = K_;
   using Par = typename K::Par;
   KernelMeshParFactory(Par& par) : par_(par) {}
-  K* Make(Vars& var, const MyBlockInfo& bi) override {
+  K* Make(Vars& var, const MyBlockInfo& bi) const override {
     return new K(var, bi, par_);
   }
 

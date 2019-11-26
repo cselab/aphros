@@ -32,11 +32,8 @@ class DistrSolver {
   using Par = typename K::Par;
 
   DistrSolver(MPI_Comm comm, Vars& var, Par& par)
-      : var(var), par_(par)
+      : var(var), par_(par), kf_(par_)
   {
-    // Create kernel factory
-    KF kf(par_);
-
     var.Double.Set("t", 0.);
 
     // Initialize blocks
@@ -46,13 +43,13 @@ class DistrSolver {
     std::cerr << "backend=" << be << std::endl;
     if (be == "local") {
       std::cerr << "CreateLocal" << std::endl;
-      b = CreateLocal(comm, kf, var);
+      b = CreateLocal(comm, kf_, var);
     } else if (be == "cubism") {
       std::cerr << "CreateCubism" << std::endl;
-      b = CreateCubism(comm, kf, var);
+      b = CreateCubism(comm, kf_, var);
     } else if (be == "cubismnc") {
       std::cerr << "CreateCubismnc" << std::endl;
-      b = CreateCubismnc(comm, kf, var);
+      b = CreateCubismnc(comm, kf_, var);
     } else {
       throw std::runtime_error("DistrSolver: unknown backend='" + be + "'");
     }
@@ -91,6 +88,7 @@ class DistrSolver {
   Vars& var;
   std::unique_ptr<D> d_;
   Par& par_;
+  KF kf_;
 };
 
 int RunMpi(int argc, const char ** argv,
