@@ -44,7 +44,6 @@ static U Try(MPI_Comm comm, KernelFactory& kf, Vars& var) {
 }
 
 U CreateCubismnc(MPI_Comm comm, KernelFactory& kf, Vars& var) {
-  std::cerr << "call " <<  __func__ << std::endl;
   U r;
   using KF = KernelMeshFactory<MeshStructured<double, 3>>;
   // 3D
