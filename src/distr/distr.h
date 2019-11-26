@@ -53,10 +53,9 @@ class DistrMesh : public Distr {
  protected:
   // TODO: remove comm, needed only by Hypre
   MPI_Comm comm_; // XXX: overwritten by Cubism<KF>
-  Vars& par;
+  Vars& var;
   KF& kf_; // kernel factory
 
-  int es_; // element size in Scal
   int hl_; // number of halo cells (same in all directions)
   MIdx bs_; // block size
   MIdx p_; // number of ranks
@@ -70,7 +69,8 @@ class DistrMesh : public Distr {
 
   std::map<MIdx, std::unique_ptr<K>, typename MIdx::LexLess> mk;
 
-  DistrMesh(MPI_Comm comm, KF& kf, Vars& par);
+  DistrMesh(MPI_Comm comm, KF& kf, Vars& var);
+  // Performs communication and returns indices of blocks with updated halos.
   virtual std::vector<MIdx> GetBlocks() = 0;
   // Copy data from buffer halos to fields collected by Comm()
   virtual void ReadBuffer(const std::vector<MIdx>& bb) = 0;
@@ -106,19 +106,18 @@ template <class KF>
 void DistrMesh<KF>::MakeKernels(const std::vector<MyBlockInfo>& ee) {
   for (auto e : ee) {
     MIdx d(e.index);
-    mk.emplace(d, std::unique_ptr<K>(kf_.Make(par, e)));
+    mk.emplace(d, std::unique_ptr<K>(kf_.Make(var, e)));
   }
 }
 
 template <class KF>
-DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& par) 
-    : comm_(comm), par(par), kf_(kf)
-    , es_(par.Int["comm_size"])
-    , hl_(par.Int["hl"])
-    , bs_{par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]}
-    , p_{par.Int["px"], par.Int["py"], par.Int["pz"]}
-    , b_{par.Int["bx"], par.Int["by"], par.Int["bz"]}
-    , ext_(par.Double["extent"])
+DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& var)
+    : comm_(comm), var(var), kf_(kf)
+    , hl_(var.Int["hl"])
+    , bs_{var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]}
+    , p_{var.Int["px"], var.Int["py"], var.Int["pz"]}
+    , b_{var.Int["bx"], var.Int["by"], var.Int["bz"]}
+    , ext_(var.Double["extent"])
 {}
 
 template <class KF>
@@ -169,7 +168,7 @@ template <class KF>
 void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
   auto& m = mk.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
-    std::string df = par.String["dumpformat"];
+    std::string df = var.String["dumpformat"];
     if (df == "plain") {
       size_t k = 0; // offset in buffer
       // Skip comm 
@@ -248,9 +247,9 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
       }
 
       std::vector<bool> per(dim, false);
-      per[0] = par.Int["hypre_periodic_x"];
-      per[1] = par.Int["hypre_periodic_y"];
-      per[2] = par.Int["hypre_periodic_z"];
+      per[0] = var.Int["hypre_periodic_x"];
+      per[1] = var.Int["hypre_periodic_y"];
+      per[2] = var.Int["hypre_periodic_z"];
 
       LI gs(dim);
       for (size_t i = 0; i < dim; ++i) {
@@ -270,23 +269,23 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
     Scal tol;
 
     {
-      std::string srs = par.String["hypre_symm_solver"]; // solver symm
+      std::string srs = var.String["hypre_symm_solver"]; // solver symm
       assert(srs == "pcg+smg" || srs == "smg" || srs == "pcg" || srs == "zero");
 
-      std::string srg = par.String["hypre_gen_solver"]; // solver gen
+      std::string srg = var.String["hypre_gen_solver"]; // solver gen
       assert(srg == "gmres" || srg == "zero");
 
       using T = typename M::LS::T; // system type
       switch (sf.t) {
         case T::gen:
           sr = srg;
-          maxiter = par.Int["hypre_gen_maxiter"];
-          tol = par.Double["hypre_gen_tol"];
+          maxiter = var.Int["hypre_gen_maxiter"];
+          tol = var.Double["hypre_gen_tol"];
           break;
         case T::symm:
           sr = srs;
-          maxiter = par.Int["hypre_symm_maxiter"];
-          tol = par.Double["hypre_symm_tol"];
+          maxiter = var.Int["hypre_symm_maxiter"];
+          tol = var.Double["hypre_symm_tol"];
           break;
         default:
           throw std::runtime_error(
@@ -296,12 +295,12 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
     }
 
     if (sf.prefix != "") {
-      sr = par.String["hypre_" + sf.prefix + "_solver"];
-      maxiter = par.Int["hypre_" + sf.prefix + "_maxiter"];
-      tol = par.Double["hypre_" + sf.prefix + "_tol"];
+      sr = var.String["hypre_" + sf.prefix + "_solver"];
+      maxiter = var.Int["hypre_" + sf.prefix + "_maxiter"];
+      tol = var.Double["hypre_" + sf.prefix + "_tol"];
     }
 
-    s->Solve(tol, par.Int["hypre_print"], sr, maxiter);
+    s->Solve(tol, var.Int["hypre_print"], sr, maxiter);
 
     for (auto& b : bb) {
       auto& m = mk.at(b)->GetMesh();
@@ -351,7 +350,7 @@ auto DistrMesh<KF>::GetGlobalField(size_t) -> FieldCell<Scal> {
 
 template <class KF>
 void DistrMesh<KF>::Run() {
-  if (par.Int["verbose_openmp"]) {
+  if (var.Int["verbose_openmp"]) {
     ReportOpenmp();
   }
   mt_.Push();
@@ -402,7 +401,7 @@ void DistrMesh<KF>::Run() {
     stage_ += 1;
 
     // Print current stage name
-    if (isroot_ && par.Int["verbose"]) {
+    if (isroot_ && var.Int["verbose"]) {
       auto& m = mk.at(bb[0])->GetMesh();
       std::cerr << "*** STAGE"
           << " #" << stage_ 
@@ -419,7 +418,7 @@ void DistrMesh<KF>::Run() {
   mt_.Pop("last");
   mtp_.Pop("last");
 
-  if (par.Int["verbose_time"]) {
+  if (var.Int["verbose_time"]) {
     Report();
   }
 }
@@ -432,7 +431,7 @@ void DistrMesh<KF>::Report() {
       a += e.second;
     }
 
-    if (par.Int["verbose_stages"]) {
+    if (var.Int["verbose_stages"]) {
       std::cout << std::fixed;
       auto& mp = mt_.GetMap();
       std::cout 
@@ -443,14 +442,14 @@ void DistrMesh<KF>::Report() {
 
     MIdx gs;
     {
-      MIdx p(par.Int["px"], par.Int["py"], par.Int["pz"]);
-      MIdx b(par.Int["bx"], par.Int["by"], par.Int["bz"]);
-      MIdx bs(par.Int["bsx"], par.Int["bsy"], par.Int["bsz"]);
+      MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
+      MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
+      MIdx bs(var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]);
       gs = p * b * bs;
     }
     size_t nc = gs.prod(); // total cells
-    size_t nt = par.Int["max_step"];
-    size_t ni = par.Int["iter"];
+    size_t nt = var.Int["max_step"];
+    size_t ni = var.Int["iter"];
 
     // Returns: hour, minute, second, millisecond
     auto get_hmsm = [](double t) {

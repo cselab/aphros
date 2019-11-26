@@ -7,41 +7,41 @@
 #include "parse/vars.h"
 
 template <size_t bx, size_t by, size_t bz, class KF>
-Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& par) {
+Distr* Try(MPI_Comm comm, KernelFactory& kf, Vars& var) {
   using M = typename KF::M;
   using Scal = typename M::Scal;
   using Par = GPar<Scal, bx, by, bz, 8>;
 
   // Check block size
-  if (par.Int["bsx"] == bx && 
-      par.Int["bsy"] == by && 
-      (par.Int["bsz"] == bz || (bz == 2 && par.Int["bsz"] == 1))) {
+  if (var.Int["bsx"] == bx && 
+      var.Int["bsy"] == by && 
+      (var.Int["bsz"] == bz || (bz == 2 && var.Int["bsz"] == 1))) {
     // Check kernel
     if (KF* kfd = dynamic_cast<KF*>(&kf)) {
-      return new Cubism<Par, KF>(comm, *kfd, par);
+      return new Cubism<Par, KF>(comm, *kfd, var);
     }
   }
 
   return nullptr;
 }
 
-Distr* CreateCubism(MPI_Comm comm, KernelFactory& kf, Vars& par) {
+Distr* CreateCubism(MPI_Comm comm, KernelFactory& kf, Vars& var) {
   Distr* r = nullptr;
   using KF = KernelMeshFactory<MeshStructured<double, 3>>;
   // 3D
-  if (!r) r = Try<32, 32, 32, KF>(comm, kf, par);
-  if (!r) r = Try<16, 16, 16, KF>(comm, kf, par);
-  if (!r) r = Try<8, 8, 8, KF>(comm, kf, par);
+  if (!r) r = Try<32, 32, 32, KF>(comm, kf, var);
+  if (!r) r = Try<16, 16, 16, KF>(comm, kf, var);
+  if (!r) r = Try<8, 8, 8, KF>(comm, kf, var);
   // 2D
-  if (!r) r = Try<32, 32, 2, KF>(comm, kf, par);
-  if (!r) r = Try<16, 16, 2, KF>(comm, kf, par);
-  if (!r) r = Try<8, 8, 2, KF>(comm, kf, par);
+  if (!r) r = Try<32, 32, 2, KF>(comm, kf, var);
+  if (!r) r = Try<16, 16, 2, KF>(comm, kf, var);
+  if (!r) r = Try<8, 8, 2, KF>(comm, kf, var);
   if (!r) {
     std::cerr << "CreateCubism(): no instance with "
       << "bs=(" 
-      << par.Int["bsx"] << ","
-      << par.Int["bsy"] << ","
-      << par.Int["bsz"] << ")"
+      << var.Int["bsx"] << ","
+      << var.Int["bsy"] << ","
+      << var.Int["bsz"] << ")"
       << std::endl;
     assert(false);
   }

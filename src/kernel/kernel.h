@@ -17,6 +17,7 @@ struct MyBlockInfo {
   bool isroot; // root block (one among blocks on all PEs)
   bool islead; // lead block (one per each PE)
   Idx gs; // global size
+  size_t maxcomm; // maximum number of communication requests
 };
 
 class Kernel {

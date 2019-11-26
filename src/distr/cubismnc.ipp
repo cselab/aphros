@@ -139,7 +139,7 @@ class Cubismnc : public DistrMesh<KF> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  Cubismnc(MPI_Comm comm, KF& kf, Vars& par);
+  Cubismnc(MPI_Comm comm, KF& kf, Vars& var);
   typename M::BlockCells GetGlobalBlock() const override;
   typename M::IndexCells GetGlobalIndex() const override;
   FieldCell<Scal> GetGlobalField(size_t i) override;
@@ -157,9 +157,8 @@ class Cubismnc : public DistrMesh<KF> {
   using P::dim;
   using P::mk;
   using P::kf_;
-  using P::par;
+  using P::var;
   using P::bs_;
-  using P::es_; // [fabianw@mavt.ethz.ch; 2019-11-11] not limited anymore (nor power of two)
   using P::hl_;
   using P::p_;
   using P::b_;
@@ -177,7 +176,7 @@ class Cubismnc : public DistrMesh<KF> {
   S s_;
 
   // Convert Cubism BlockInfo to MyBlockInfo
-  static std::vector<MyBlockInfo> GetBlocks(
+  static std::vector<MyBlockInfo> Convert(
       const std::vector<BlockInfo>&, MIdx bs, size_t hl);
 
   std::vector<MIdx> GetBlocks() override;
@@ -270,7 +269,7 @@ struct StreamHdfVect {
 };
 
 template <class Par, class KF>
-std::vector<MyBlockInfo> Cubismnc<Par, KF>::GetBlocks(
+std::vector<MyBlockInfo> Cubismnc<Par, KF>::Convert(
     const std::vector<BlockInfo>& cc, MIdx bs, size_t hl) {
   std::vector<MyBlockInfo> bb;
   for(size_t i = 0; i < cc.size(); i++) {
@@ -283,6 +282,7 @@ std::vector<MyBlockInfo> Cubismnc<Par, KF>::GetBlocks(
     }
     b.h_gridpoint = c.h_gridpoint;
     b.hl = hl;
+    b.maxcomm = std::numeric_limits<size_t>::max();
     bb.push_back(b);
   }
   return bb;
@@ -290,8 +290,8 @@ std::vector<MyBlockInfo> Cubismnc<Par, KF>::GetBlocks(
 
 
 template <class Par, class KF>
-Cubismnc<Par, KF>::Cubismnc(MPI_Comm comm, KF& kf, Vars& par)
-  : DistrMesh<KF>(comm, kf, par)
+Cubismnc<Par, KF>::Cubismnc(MPI_Comm comm, KF& kf, Vars& var)
+  : DistrMesh<KF>(comm, kf, var)
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm)
 {
   assert(bs_[0] == FieldView::bx &&
@@ -303,8 +303,8 @@ Cubismnc<Par, KF>::Cubismnc(MPI_Comm comm, KF& kf, Vars& par)
   isroot_ = (0 == r);  // XXX: overwrite isroot_
 
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Get rid of BlockInfo type
-  std::vector<BlockInfo> cc = g_.getBlocksInfo(); // [c]ubism block info
-  std::vector<MyBlockInfo> ee = GetBlocks(cc, bs_, hl_);
+  std::vector<BlockInfo> cc = g_.getBlocksInfo();
+  std::vector<MyBlockInfo> ee = Convert(cc, bs_, hl_);
 
   bool islead = true;
   for (auto& e : ee) {
@@ -722,7 +722,7 @@ template <class Par, class KF>
 void Cubismnc<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
   auto& m = mk.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
-    std::string df = par.String["dumpformat"];
+    std::string df = var.String["dumpformat"];
     if (df == "default") {
       df = "hdf";
     }
@@ -907,8 +907,8 @@ template <class B>
 std::string StreamHdfVect<B>::EXT = "";
 } // namespace cubism_impl
 
-template <class Scal_, size_t bx_, size_t by_, size_t bz_, size_t es_>
-using GPar = cubism_impl::GPar<Scal_, bx_, by_, bz_, es_>;
+template <class Scal, size_t bx, size_t by, size_t bz, size_t hl>
+using GPar = cubism_impl::GPar<Scal, bx, by, bz, hl>;
 
 template <class Par, class KF>
 using Cubismnc = cubism_impl::Cubismnc<Par, KF>;
