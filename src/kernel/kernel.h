@@ -29,6 +29,6 @@ class Kernel {
 class KernelFactory {
  public:
   virtual ~KernelFactory() {}
-  virtual Kernel* Make(Vars&, const MyBlockInfo&) = 0;
+  virtual Kernel* Make(Vars&, const MyBlockInfo&) const = 0;
 };
 

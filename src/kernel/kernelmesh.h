@@ -59,6 +59,6 @@ class KernelMeshFactory : public KernelFactory {
  public:
   using M = M_;
   using K = KernelMesh<M>;
-  KernelMesh<M>* Make(Vars&, const MyBlockInfo&) override = 0;
+  K* Make(Vars&, const MyBlockInfo&) const override = 0;
 };
 
