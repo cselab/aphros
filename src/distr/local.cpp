@@ -10,7 +10,7 @@
 using U = std::unique_ptr<Distr>;
 
 template <class KF>
-U Try(MPI_Comm comm, KernelFactory& kf, Vars& var) {
+static U Try(MPI_Comm comm, KernelFactory& kf, Vars& var) {
   if (KF* kfd = dynamic_cast<KF*>(&kf)) {
     return U(new Local<KF>(comm, *kfd, var));
   }

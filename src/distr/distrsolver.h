@@ -34,21 +34,16 @@ class DistrSolver {
   DistrSolver(MPI_Comm comm, Vars& var, Par& par)
       : var(var), par_(par), kf_(par_)
   {
-    var.Double.Set("t", 0.);
+    var.Double.Set("t", 0);
 
-    // Initialize blocks
     std::unique_ptr<Distr> b;
 
     const std::string be = var.String["backend"];
-    std::cerr << "backend=" << be << std::endl;
     if (be == "local") {
-      std::cerr << "CreateLocal" << std::endl;
       b = CreateLocal(comm, kf_, var);
     } else if (be == "cubism") {
-      std::cerr << "CreateCubism" << std::endl;
       b = CreateCubism(comm, kf_, var);
     } else if (be == "cubismnc") {
-      std::cerr << "CreateCubismnc" << std::endl;
       b = CreateCubismnc(comm, kf_, var);
     } else {
       throw std::runtime_error("DistrSolver: unknown backend='" + be + "'");
