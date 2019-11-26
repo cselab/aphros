@@ -22,7 +22,9 @@ M CreateMesh(const MyBlockInfo& bi) {
   MIdx wmax = gs / bs; // maximum block index
   int id = w[0] + w[1] * wmax[0] + w[2] * wmax[0] * wmax[1]; // unique id
 
-  return InitUniformMesh<M>(d, o, bs, hl, bi.isroot, bi.islead, gs, id);
+  M m = InitUniformMesh<M>(d, o, bs, hl, bi.isroot, bi.islead, gs, id);
+  m.SetMaxComm(bi.maxcomm);
+  return m;
 }
 
 // Abstract Kernel aware of Mesh. Dependency of DistrMesh.
@@ -35,7 +37,7 @@ class KernelMesh : public Kernel {
   using MIdx = typename M::MIdx;
   static constexpr size_t dim = M::dim;
 
-  KernelMesh(Vars& var, const MyBlockInfo& bi) 
+  KernelMesh(Vars& var, const MyBlockInfo& bi)
     : var(var), bi_(bi), m(CreateMesh<M>(bi)) {
     m.SetCN(var.Int["CHECKNAN"]); // TODO: revise, avoid optional setters
     m.SetEdim(var.Int["dim"]);

@@ -42,7 +42,7 @@ struct GElem {
 
   Scal a[es];
 
-  void init(Scal val) { 
+  void init(Scal val) {
     for (size_t i = 0; i < es; ++i) {
       a[i] = val;
     }
@@ -75,7 +75,7 @@ struct GBlk {
 
   // floats per element
   static const int fe = sizeof(Elem) / sizeof(Scal);
-  static_assert(fe == es, "Block: fe != es");
+  static_assert(sizeof(Scal) * fe == sizeof(Elem), "GBlk: fe != es");
 
   Elem __attribute__((__aligned__(_ALIGNBYTES_))) data[bz][by][bx];
 
@@ -146,7 +146,7 @@ class Cubism : public DistrMesh<KF> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  Cubism(MPI_Comm comm, KF& kf, Vars& par);
+  Cubism(MPI_Comm comm, KF& kf, Vars& var);
   typename M::BlockCells GetGlobalBlock() const override;
   typename M::IndexCells GetGlobalIndex() const override;
   FieldCell<Scal> GetGlobalField(size_t i) override; 
@@ -164,9 +164,8 @@ class Cubism : public DistrMesh<KF> {
   using P::dim;
   using P::mk;
   using P::kf_;
-  using P::par;
+  using P::var;
   using P::bs_;
-  using P::es_;
   using P::hl_;
   using P::p_;
   using P::b_; 
@@ -189,7 +188,6 @@ class Cubism : public DistrMesh<KF> {
   static StencilInfo GetStencil(size_t hl, size_t cs) {
     const int a = -int(hl);
     const int b = int(hl) + 1;
-    assert(cs <= Elem::es);
     if (cs == 0) {
       return StencilInfo(a,a,a,b,b,b, true, cs);
     } else if (cs == 1) {
@@ -209,12 +207,13 @@ class Cubism : public DistrMesh<KF> {
     } else if (cs == 8) {
       return StencilInfo(a,a,a,b,b,b, true, cs, 0,1,2,3,4,5,6,7);
     } else {
-      throw std::runtime_error("GetStencil(): Unknown cs=" + std::to_string(cs));
+      throw std::runtime_error(
+          "GetStencil(): Unknown cs=" + std::to_string(cs));
     }
     return StencilInfo();
   }
   // Convert Cubism BlockInfo to MyBlockInfo
-  static std::vector<MyBlockInfo> GetBlocks(
+  static std::vector<MyBlockInfo> Convert(
       const std::vector<BlockInfo>&, MIdx bs, size_t hl);
 
   // Reads from buffer to scalar field [a]
@@ -474,7 +473,7 @@ struct FakeProc {
 };
 
 template <class Par, class KF>
-std::vector<MyBlockInfo> Cubism<Par, KF>::GetBlocks(
+std::vector<MyBlockInfo> Cubism<Par, KF>::Convert(
     const std::vector<BlockInfo>& cc, MIdx bs, size_t hl) {
   std::vector<MyBlockInfo> bb;
   for(size_t i = 0; i < cc.size(); i++) {
@@ -488,6 +487,7 @@ std::vector<MyBlockInfo> Cubism<Par, KF>::GetBlocks(
     b.h_gridpoint = c.h_gridpoint;
     b.ptrBlock = c.ptrBlock;
     b.hl = hl;
+    b.maxcomm = Par::es;
     bb.push_back(b);
   }
   return bb;
@@ -495,8 +495,8 @@ std::vector<MyBlockInfo> Cubism<Par, KF>::GetBlocks(
 
 
 template <class Par, class KF>
-Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par) 
-  : DistrMesh<KF>(comm, kf, par)
+Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& var)
+  : DistrMesh<KF>(comm, kf, var)
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm)
 {
   assert(bs_[0] == Block::bx && bs_[1] == Block::by && 
@@ -506,8 +506,8 @@ Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& par)
   MPI_Comm_rank(comm, &r);
   isroot_ = (0 == r);  // XXX: overwrite isroot_
 
-  std::vector<BlockInfo> cc = g_.getBlocksInfo(); // [c]ubism block info
-  std::vector<MyBlockInfo> ee = GetBlocks(cc, bs_, hl_);
+  std::vector<BlockInfo> cc = g_.getBlocksInfo();
+  std::vector<MyBlockInfo> ee = Convert(cc, bs_, hl_);
 
   bool islead = true;
   for (auto& e : ee) {
@@ -916,7 +916,7 @@ template <class Par, class KF>
 void Cubism<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
   auto& m = mk.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
-    std::string df = par.String["dumpformat"];
+    std::string df = var.String["dumpformat"];
     if (df == "default") {
       df = "hdf";
     }

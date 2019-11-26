@@ -20,7 +20,7 @@ class Local : public DistrMesh<KF> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  Local(MPI_Comm comm, KF& kf, Vars& par);
+  Local(MPI_Comm comm, KF& kf, Vars& var);
   typename M::BlockCells GetGlobalBlock() const override;
   typename M::IndexCells GetGlobalIndex() const override;
   // Returns data field i from buffer defined on global mesh
@@ -32,9 +32,8 @@ class Local : public DistrMesh<KF> {
 
   using P::mk;
   using P::kf_;
-  using P::par;
+  using P::var;
   using P::bs_;
-  using P::es_;
   using P::hl_;
   using P::p_;
   using P::b_; 
@@ -89,9 +88,9 @@ auto Local<KF>::CreateGlobalMesh(MIdx bs, MIdx b, MIdx p, Scal ext) -> M {
 }
 
 template <class KF>
-Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par) 
-  : DistrMesh<KF>(comm, kf, par)
-  , buf_(es_)
+Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& var)
+  : DistrMesh<KF>(comm, kf, var)
+  , buf_(var.Int["loc_maxcomm"])
   , gm(CreateGlobalMesh(bs_, b_, p_, ext_))
 {
 
@@ -120,6 +119,7 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par)
     }
     b.h_gridpoint = h;
     b.hl = hl_;
+    b.maxcomm = buf_.size();
     MIdx gs = p_ * b_ * bs_; // global size
     for (int j = 0; j < 3; ++j) {
       b.gs[j] = gs[j];
@@ -130,9 +130,9 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par)
   isroot_ = true; // XXX: overwrite isroot_
 
   // periodic
-  per_[0] = par.Int["loc_periodic_x"];
-  per_[1] = par.Int["loc_periodic_y"];
-  per_[2] = par.Int["loc_periodic_z"];
+  per_[0] = var.Int["loc_periodic_x"];
+  per_[1] = var.Int["loc_periodic_y"];
+  per_[2] = var.Int["loc_periodic_z"];
 
   bool islead = true;
   for (auto& b : bb_) {
@@ -362,7 +362,7 @@ template <class KF>
 void Local<KF>::DumpWrite(const std::vector<MIdx>& bb) {
   auto& m = mk.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
-    std::string df = par.String["dumpformat"];
+    std::string df = var.String["dumpformat"];
     if (df == "default") {
       df = "vtk";
     }
