@@ -567,11 +567,21 @@ struct Vofm<M_>::Imp {
       const Multi<FieldCell<Scal>*>& mfcu,
       const Multi<FieldCell<Scal>*>& mfccl,
       const Multi<FieldCell<Scal>*>& mfcim) {
-    for (auto i : layers) {
+    if (layers.size() * 3 <= m.GetMaxComm()) { // cubismnc or local
       if (sem("comm")) {
-        m.Comm(mfcu[i]);
-        m.Comm(mfccl[i]);
-        m.Comm(mfcim[i]);
+        for (auto i : layers) {
+          m.Comm(mfcu[i]);
+          m.Comm(mfccl[i]);
+          m.Comm(mfcim[i]);
+        }
+      }
+    } else { // legacy cubism
+      for (auto i : layers) {
+        if (sem("comm")) {
+          m.Comm(mfcu[i]);
+          m.Comm(mfccl[i]);
+          m.Comm(mfcim[i]);
+        }
       }
     }
     if (sem("bcreflect")) {
@@ -719,12 +729,20 @@ struct Vofm<M_>::Imp {
   }
   void PostStep() {
     auto sem = m.GetSem("iter");
-    for (auto i : layers) {
+    // --> fcu [a], fca [s], fcn [s]
+    if (layers.size() * 4 <= m.GetMaxComm()) { // cubismnc or local
       if (sem("comm")) {
-        // --> fcu [a]
-        // --> fca [s], fcn [s]
-        m.Comm(&fcn_[i]);
-        m.Comm(&fca_[i]);
+        for (auto i : layers) {
+          m.Comm(&fcn_[i]);
+          m.Comm(&fca_[i]);
+        }
+      }
+    } else { // legacy cubism
+      for (auto i : layers) {
+        if (sem("comm")) {
+          m.Comm(&fcn_[i]);
+          m.Comm(&fca_[i]);
+        }
       }
     }
     if (sem("reflect")) {
