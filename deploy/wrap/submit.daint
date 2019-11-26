@@ -18,7 +18,7 @@ job="`type -p $JOB`"
 
 np=`cat np`
 tl=`cat tl`
-nth = ${OMP_NUM_THREADS:-1}
+nth=${OMP_NUM_THREADS:-1}
 
 if (( $np % $nth != 0 )) ; then
   echo "Abort, np=$np must be divisible by OMP_NUM_THREADS=$nth"
