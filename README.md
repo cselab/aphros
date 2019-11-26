@@ -36,6 +36,23 @@ prepare environment and install dependencies.
      make test
      ```
 
+## Submitting jobs
+
+    ```
+    echo NP > np
+    echo TL > tl
+    ch.submit ARGS  # submit job with NP tasks and time limit TL minutes
+    OMP_NUM_THREADS=N ch.submit ARGS  # submit job with NP tasks total and N tasks per node
+    ```
+
+Simulation setups in `sim` provide a makefile to submit jobs that run `ch.mfer`
+
+    ```
+    echo NP > np
+    echo TL > tl
+    make submit  # submit job with NP tasks and time limit TL minutes
+    ```
+
 ## Other repos
 
 ### hydro
