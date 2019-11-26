@@ -281,7 +281,7 @@ std::vector<MyBlockInfo> Cubismnc<Par, KF>::Convert(
     }
     b.h_gridpoint = c.h_gridpoint;
     b.hl = hl;
-    b.maxcomm = 1024;
+    b.maxcomm = 65536;
     bb.push_back(b);
   }
   return bb;
