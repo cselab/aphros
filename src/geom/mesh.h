@@ -61,6 +61,8 @@ class MeshStructured {
   // id: unique id
   MeshStructured(MIdx b, MIdx cs, Rect<Vect> dom, int hl, 
                  bool isroot, bool islead, MIdx gs, int id);
+  MeshStructured(const MeshStructured&) = delete;
+  MeshStructured(MeshStructured&&) = default;
   MIdx GetGlobalSize() const {
     return gs_;
   }
@@ -372,11 +374,18 @@ class MeshStructured {
   void SetCN(bool c) { checknan_ = c; }
   // Pairs face,nci for which the halos cells
   // are set to nan after each communication
+  const std::vector<std::pair<IdxFace, size_t>>& GetNanFaces() const {
+    return vfnan_;
+  }
   void SetNanFaces(const std::vector<std::pair<IdxFace, size_t>>& vfnan) {
     vfnan_ = vfnan;
   }
-  const std::vector<std::pair<IdxFace, size_t>>& GetNanFaces() const {
-    return vfnan_;
+  // Maximum number of communication requests (limited in legacy Cubism)
+  size_t GetMaxComm() const {
+    return maxcomm_;
+  }
+  void SetMaxComm(size_t maxcomm) {
+    maxcomm_ = maxcomm;
   }
   // Fills halo cell with garbage.
   // Using actual NaNs not allowed since some code relies on u*0 == 0
@@ -636,6 +645,7 @@ class MeshStructured {
   // pairs face,nci for which the halos cells
   // are set to nan after each communication
   std::vector<std::pair<IdxFace, size_t>> vfnan_;
+  size_t maxcomm_ = 0; // maximum number of communication requests
   size_t edim_; // effective dimension
   std::array<Vect, dim> vs_; // surface vectors
   Vect va_; // surface area

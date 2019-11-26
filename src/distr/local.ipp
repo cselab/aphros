@@ -63,8 +63,11 @@ class Local : public DistrMesh<KF> {
   size_t ReadBuffer(typename M::Co* o, size_t e, M& m);
   void ReadBuffer(M& m);
 
-
-  static M CreateMesh(MIdx bs, MIdx b, MIdx p, int es, Scal ext_);
+  // bs: inner block size
+  // b: blocks per rank
+  // p: ranks
+  // ext: extent
+  static M CreateGlobalMesh(MIdx bs, MIdx b, MIdx p, Scal ext);
 
   std::vector<MIdx> GetBlocks() override;
   void ReadBuffer(const std::vector<MIdx>& bb) override;
@@ -76,33 +79,20 @@ class Local : public DistrMesh<KF> {
 };
 
 template <class KF>
-auto Local<KF>::CreateMesh(MIdx bs, MIdx b, MIdx p, int /*es*/, Scal ext) -> M {
-  // Init global mesh
-  MIdx ms(bs); // block size 
-  MIdx mb(b); // number of blocks
-  MIdx mp(p); // number of PEs
-  MIdx mm = mp * mb * ms; // total size in cells (without halos)
-
-  Scal h = ext / std::max(std::max(mm[0], mm[1]), mm[2]);
-  Vect d0(0); // origin coord
-  Vect d1 = d0 + Vect(mm) * h;      // end coord
-  Rect<Vect> d(d0, d1);
-
+auto Local<KF>::CreateGlobalMesh(MIdx bs, MIdx b, MIdx p, Scal ext) -> M {
+  MIdx gs = bs * b * p; // global size in cells (without halos)
+  Scal h = ext / gs.max(); // cell size
+  Rect<Vect> d(Vect(0), Vect(gs) * h); // bounding box
   MIdx o(0); // origin index
-  std::cout 
-    << "o=" << o 
-    << " dom=" << d0 << "," << d1 
-    << " h=" << h
-    << std::endl;
 
-  return InitUniformMesh<M>(d, o, mm, 0, true, true, mm, 0);
+  return InitUniformMesh<M>(d, o, gs, 0, true, true, gs, 0);
 }
 
 template <class KF>
 Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& par) 
   : DistrMesh<KF>(comm, kf, par)
   , buf_(es_)
-  , gm(CreateMesh(bs_, b_, p_, es_, ext_))
+  , gm(CreateGlobalMesh(bs_, b_, p_, ext_))
 {
 
   // Resize buffer for mesh
