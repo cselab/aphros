@@ -14,6 +14,13 @@ usg()
   exit(1);
 }
 
+#define GET(f, r)							\
+  if ((*r = csv_field(csv, f)) == NULL) {				\
+    fprintf(stderr, "%s: not field '%s' in '%s'\n",			\
+	    me, (f), name);						\
+    exit(2);								\
+  }
+
 static const char *name;
 struct Data {
   struct CSV *csv;
@@ -31,7 +38,7 @@ main(int argc, char **argv)
 {
   struct Data a;
   struct Data b;
-  int x, *y, n, i;
+  int *array, n, i, j;
 
   USED(argc);
   name = NULL;
@@ -59,16 +66,16 @@ main(int argc, char **argv)
 
   a = data_ini(*argv);
   while (*++argv != NULL) {
-      b = data_ini(*argv);
-      y = table_array(b.table);
-      n = table_length(b.table);
-      for (i = 0; i < 2*n; i += 2) {
-	  if (table_get(a.table, y[i], &x) == TABLE_EMPY)
-	      printf("%s %d\n", *argv, y[i]);
-      }
-      free(y);
-      data_fin(&a);
-      a = b;
+    b = data_ini(*argv);
+    array = table_array(b.table);
+    n = table_length(b.table);
+    for (i = 0; i < 2 * n; i += 2)
+      if (table_get(a.table, array[i], &j) == TABLE_EMPY)
+        printf("%s %d %g %g %g\n",
+               *argv, array[i], a.x[j], a.y[j], a.z[j]);
+    free(array);
+    data_fin(&a);
+    a = b;
   }
   data_fin(&a);
 }
@@ -102,13 +109,13 @@ data_ini(const char *fname)
     table_put(t, field[i], i);
   }
 
-  q.x = csv_field(csv, "x");
-  q.y = csv_field(csv, "y");
-  q.z = csv_field(csv, "z");
-  q.r = csv_field(csv, "r");
+  GET("x", &q.x);
+  GET("y", &q.y);
+  GET("z", &q.z);
+  GET("r", &q.r);
   q.table = t;
   q.csv = csv;
-  
+
   return q;
 }
 
