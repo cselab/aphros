@@ -30,7 +30,7 @@ bool Cmp(Scal a, Scal b) {
 int main (int argc, char ** argv) {
   MPI_Init(&argc, &argv);
 
-  size_t dim = 3;
+  constexpr size_t dim = 3;
 
   std::vector<MIdx> st = {{0, 0, 0}, {1, 0, 0}};
 
@@ -94,7 +94,7 @@ int main (int argc, char ** argv) {
   bb.push_back(b);
 
   MPI_Comm comm = MPI_COMM_WORLD;
-  std::vector<bool> per = {1, 0, 0};
+  std::array<bool, dim> per = {1, 0, 0};
   Scal tol = 1e-12;
   int print = 2;
   int maxiter = 80;
@@ -109,10 +109,7 @@ int main (int argc, char ** argv) {
   MPI_Comm_rank(comm, &rank);
 
   if (rank == 0) {
-    HypreSub::Send("construct", 1);
-    HypreSub::Send(bb, 1);
-    HypreSub::Send("exit", 1);
-    HypreSub::Send("exit", 2);
+    HypreSub d(comm, bb, gs, per);
   } else {
     HypreSub::RunServer();
   }

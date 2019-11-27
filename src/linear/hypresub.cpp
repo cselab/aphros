@@ -90,9 +90,6 @@ struct HypreSub::Imp {
     GETSTR(exit);
     throw std::runtime_error("GetString: unknown cmd");
   }
-  static void Execute(Cmd cmd) {
-    std::cout << GetString(cmd) + " received" << std::endl;
-  }
   static void InitServer(MPI_Comm comm, MPI_Comm commsub) {
     state.comm = comm;
     state.commsub = commsub;
@@ -101,64 +98,92 @@ struct HypreSub::Imp {
   }
   static void RunServer() {
     while (true) {
-      int a;
-      MPI_Recv(&a, 1, MPI_INT, 0, 1, state.comm, MPI_STATUS_IGNORE);
-      auto cmd = static_cast<Cmd>(a);
-      std::cout 
+      Cmd cmd;
+      int root = 0;
+      Recv(cmd, root);
+      auto comm = state.comm;
+      std::cout
         << "recv"
         << " rank=" << state.rank
         << " ranksub=" << state.ranksub
         << " " << GetString(cmd) << std::endl;
       if (cmd == Cmd::construct) {
-        auto inst = RecvBlocks(0, state.comm);
+        auto inst = RecvBlocks(root, comm);
+        MIdx gs;
+        std::array<bool, dim> per;
+        Recv(gs, root, comm);
+        Recv(per, root, comm);
+        std::cout
+          << "recv construct"
+          << " rank=" << state.rank
+          << " ranksub=" << state.ranksub
+          << " " << gs << " " << std::endl;
       } else if (cmd == Cmd::exit) {
         break;
       }
     }
   }
-  static void SendVector(const std::vector<Scal>& v,
-                         int rank, MPI_Comm comm) {
+  static void Send(const MIdx& w, int rank, MPI_Comm comm) {
+    MPI_Send(w.data(), dim, MPI_INT, rank, tag, comm);
+  }
+  static void Recv(MIdx& w, int rank, MPI_Comm comm) {
+    MPI_Recv(w.data(), dim, MPI_INT, rank, tag, comm, MSI);
+  }
+  static void Send(const std::array<bool, dim>& d, int rank, MPI_Comm comm) {
+    MIdx w;
+    for (size_t i = 0; i < dim; ++i) {
+      w[i] = d[i];
+    }
+    Send(w, rank, comm);
+  }
+  static void Recv(std::array<bool, dim>& d, int rank, MPI_Comm comm) {
+    MIdx w;
+    Recv(w, rank, comm);
+    for (size_t i = 0; i < dim; ++i) {
+      d[i] = w[i];
+    }
+  }
+  static void Send(const std::vector<Scal>& v, int rank, MPI_Comm comm) {
     int size = v.size();
     MPI_Send(&size, 1, MPI_INT, rank, tag, comm);
     MPI_Send(v.data(), size, MPI_SCAL, rank, tag, comm);
   }
-  static void RecvVector(std::vector<Scal>& v,
-                         int rank, MPI_Comm comm) {
+  static void Recv(std::vector<Scal>& v, int rank, MPI_Comm comm) {
     int size;
     MPI_Recv(&size, 1, MPI_INT, rank, tag, comm, MSI);
     v.resize(size);
     MPI_Recv(v.data(), size, MPI_SCAL, rank, tag, comm, MSI);
   }
-  static void SendBlock(const Block& b, int rank, MPI_Comm comm) {
+  static void Send(const Block& b, int rank, MPI_Comm comm) {
     // bounding box
-    MPI_Send(b.l.data(), dim, MPI_INT, rank, tag, comm);
-    MPI_Send(b.u.data(), dim, MPI_INT, rank, tag, comm);
+    Send(b.l, rank, comm);
+    Send(b.u, rank, comm);
     // stencil
     int stsize = b.st.size();
     MPI_Send(&stsize, 1, MPI_INT, rank, tag, comm);
     if (stsize > 0) {
       MPI_Send(b.st[0].data(), stsize * dim, MPI_INT, rank, tag, comm);
     }
-    SendVector(*b.a, rank, comm);
-    SendVector(*b.r, rank, comm);
-    SendVector(*b.x, rank, comm);
+    Send(*b.a, rank, comm);
+    Send(*b.r, rank, comm);
+    Send(*b.x, rank, comm);
   }
   static void SendBlocks(const std::vector<Block>& bb,
                          int rank, MPI_Comm comm) {
     int nb = bb.size();
     MPI_Send(&nb, 1, MPI_INT, rank, tag, comm);
     for (int i = 0; i < nb; ++i) {
-      SendBlock(bb[i], rank, comm);
+      Send(bb[i], rank, comm);
       std::cout
           << "send i=" << i
           << " block=" << bb[i]
           << std::endl;
     }
   }
-  static void RecvBlock(Block& b, int rank, MPI_Comm comm) {
+  static void Recv(Block& b, int rank, MPI_Comm comm) {
     // bounding box
-    MPI_Recv(b.l.data(), dim, MPI_INT, rank, tag, comm, MSI);
-    MPI_Recv(b.u.data(), dim, MPI_INT, rank, tag, comm, MSI);
+    Recv(b.l, rank, comm);
+    Recv(b.u, rank, comm);
     // stencil
     int stsize;
     MPI_Recv(&stsize, 1, MPI_INT, rank, tag, comm, MSI);
@@ -166,10 +191,9 @@ struct HypreSub::Imp {
       b.st.resize(stsize);
       MPI_Recv(b.st[0].data(), stsize * dim, MPI_INT, rank, tag, comm, MSI);
     }
-    // matrix
-    RecvVector(*b.a, rank, comm);
-    RecvVector(*b.r, rank, comm);
-    RecvVector(*b.x, rank, comm);
+    Recv(*b.a, rank, comm);
+    Recv(*b.r, rank, comm);
+    Recv(*b.x, rank, comm);
   }
   static Instance RecvBlocks(int rank, MPI_Comm comm) {
     auto MSI = MPI_STATUS_IGNORE;
@@ -181,7 +205,7 @@ struct HypreSub::Imp {
       buf.b.a = &buf.a;
       buf.b.r = &buf.r;
       buf.b.x = &buf.x;
-      RecvBlock(buf.b, rank, comm);
+      Recv(buf.b, rank, comm);
       std::cout
           << "recv i=" << i
           << " block=" << buf.b
@@ -189,9 +213,27 @@ struct HypreSub::Imp {
     }
     return inst;
   }
-  static void Send(std::string s, int rank) {
-    int a = static_cast<int>(GetCmd(s));
+  static void Send(Cmd cmd, int rank) {
+    int a = static_cast<int>(cmd);
     MPI_Send(&a, 1, MPI_INT, rank, 1, state.comm);
+  }
+  static void Send(std::string s, int rank) {
+    Send(GetCmd(s), rank);
+  }
+  static void Recv(Cmd& cmd, int rank) {
+    int a;
+    MPI_Recv(&a, 1, MPI_INT, rank, 1, state.comm, MSI);
+    cmd = static_cast<Cmd>(a);
+  }
+
+  Imp(const std::vector<Block>& bb, MIdx gs, std::array<bool, dim> per) {
+    for (auto rank : {1, 2}) {
+      std::vector<Block> bbl = {bb[rank - 1], bb[0]};
+      Send(Cmd::construct, rank);
+      SendBlocks(bbl, rank, state.comm);
+      Send(gs, rank, state.comm);
+      Send(per, rank, state.comm);
+    }
   }
 };
 
@@ -211,9 +253,16 @@ void HypreSub::Send(std::string s, int rank) {
 }
 
 void HypreSub::Send(const Block& b, int rank) {
-  Imp::SendBlock(b, rank, Imp::state.comm);
+  Imp::Send(b, rank, Imp::state.comm);
 }
 
 void HypreSub::Send(const std::vector<Block>& bb, int rank) {
   Imp::SendBlocks(bb, rank, Imp::state.comm);
 }
+
+HypreSub::HypreSub(MPI_Comm, const std::vector<Block>& bb,
+                   MIdx gs, std::array<bool, dim> per)
+    : imp(new Imp(bb, gs, per))
+{}
+
+HypreSub::~HypreSub() {}
