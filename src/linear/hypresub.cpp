@@ -57,8 +57,11 @@ struct HypreSub::Imp {
     std::vector<Scal> x;
   };
   struct Instance {
-    Instance(int nb) : vbuf(nb) {}
+    Instance(std::vector<BlockBuffer>&& vbuf, MIdx gs, MIdx per)
+        : vbuf(std::move(vbuf))
+        , hypre(state.comm, GetBlocks(vbuf), gs, per) {}
     std::vector<BlockBuffer> vbuf;
+    Hypre hypre;
   };
 
   static ServerState state;
@@ -68,6 +71,13 @@ struct HypreSub::Imp {
   static constexpr int tag = 1;
   static constexpr auto MSI = MPI_STATUS_IGNORE;
 
+  static std::vector<Block> GetBlocks(const std::vector<BlockBuffer>& vbuf) {
+    std::vector<Block> bb;
+    for (auto& buf : vbuf) {
+      bb.push_back(buf.b);
+    }
+    return bb;
+  }
   static Cmd GetCmd(std::string s) {
     #define GETCMD(x) if (s == #x) return Cmd::x;
     GETCMD(construct);
@@ -108,11 +118,12 @@ struct HypreSub::Imp {
         << " ranksub=" << state.ranksub
         << " " << GetString(cmd) << std::endl;
       if (cmd == Cmd::construct) {
-        auto inst = RecvBlocks(root, comm);
+        auto vbuf = RecvBlocks(root, comm);
         MIdx gs;
-        std::array<bool, dim> per;
+        MIdx per;
         Recv(gs, root, comm);
         Recv(per, root, comm);
+        Instance inst(std::move(vbuf), gs, per);
         std::cout
           << "recv construct"
           << " rank=" << state.rank
@@ -195,13 +206,12 @@ struct HypreSub::Imp {
     Recv(*b.r, rank, comm);
     Recv(*b.x, rank, comm);
   }
-  static Instance RecvBlocks(int rank, MPI_Comm comm) {
-    auto MSI = MPI_STATUS_IGNORE;
+  static std::vector<BlockBuffer> RecvBlocks(int rank, MPI_Comm comm) {
     int nb;
     MPI_Recv(&nb, 1, MPI_INT, rank, tag, comm, MSI);
-    Instance inst(nb);
+    std::vector<BlockBuffer> vbuf(nb);
     for (int i = 0; i < nb; ++i) {
-      BlockBuffer& buf = inst.vbuf[i];
+      BlockBuffer& buf = vbuf[i];
       buf.b.a = &buf.a;
       buf.b.r = &buf.r;
       buf.b.x = &buf.x;
@@ -211,7 +221,7 @@ struct HypreSub::Imp {
           << " block=" << buf.b
           << std::endl;
     }
-    return inst;
+    return vbuf;
   }
   static void Send(Cmd cmd, int rank) {
     int a = static_cast<int>(cmd);
@@ -226,7 +236,7 @@ struct HypreSub::Imp {
     cmd = static_cast<Cmd>(a);
   }
 
-  Imp(const std::vector<Block>& bb, MIdx gs, std::array<bool, dim> per) {
+  Imp(const std::vector<Block>& bb, MIdx gs, MIdx per) {
     for (auto rank : {1, 2}) {
       std::vector<Block> bbl = {bb[rank - 1], bb[0]};
       Send(Cmd::construct, rank);
@@ -260,8 +270,7 @@ void HypreSub::Send(const std::vector<Block>& bb, int rank) {
   Imp::SendBlocks(bb, rank, Imp::state.comm);
 }
 
-HypreSub::HypreSub(MPI_Comm, const std::vector<Block>& bb,
-                   MIdx gs, std::array<bool, dim> per)
+HypreSub::HypreSub(MPI_Comm, const std::vector<Block>& bb, MIdx gs, MIdx per)
     : imp(new Imp(bb, gs, per))
 {}
 

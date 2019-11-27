@@ -18,7 +18,7 @@ struct Hypre::Imp {
   };
 
   Imp(MPI_Comm comm, const std::vector<Block>& bb,
-      MIdx gs, std::vector<bool> per);
+      MIdx gs, MIdx per);
   ~Imp();
   void SolverSetup(Scal tol, int print, int maxiter);
   void SolverDestroy();
@@ -33,7 +33,7 @@ struct Hypre::Imp {
 };
 
 Hypre::Imp::Imp(MPI_Comm comm, const std::vector<Block>& bb0,
-                MIdx gs, std::vector<bool> per)
+                MIdx gs, MIdx per)
     : bb(bb0)
 {
   assert(bb.size() > 0);
@@ -255,8 +255,7 @@ void Hypre::Imp::Solve(Scal tol, int print, std::string solver, int maxiter) {
   SolverDestroy();
 }
 
-Hypre::Hypre(MPI_Comm comm, const std::vector<Block>& bb,
-             MIdx gs, std::vector<bool> per)
+Hypre::Hypre(MPI_Comm comm, const std::vector<Block>& bb, MIdx gs, MIdx per)
     : imp(new Imp(comm, bb, gs, per))
 {}
 
