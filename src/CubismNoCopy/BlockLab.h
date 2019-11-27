@@ -137,7 +137,7 @@ public:
         assert(stencil_start[2]>= -BlockType::sizeZ);
 		assert(stencil_end[0] < BlockType::sizeX*2);
 		assert(stencil_end[1] < BlockType::sizeY*2);
-        assert(stencil_end[2] < BlockType::sizeZ*2);
+        //assert(stencil_end[2] < BlockType::sizeZ*2);
 
 		m_stencilStart[0] = stencil_start[0];
 		m_stencilStart[1] = stencil_start[1];
