@@ -1,13 +1,28 @@
 #include <iostream>
 #include <stdexcept>
+#include <utility>
+#include <map>
 
 #include "hypresub.h"
 
 static std::ostream& operator<<(
     std::ostream& out, const HypreSub::MIdx& v) {
+  out << "(";
+  for (auto& a : v) {
+    out << a << ",";
+  }
+  out << ")";
+  return out;
+}
+
+template <class T>
+static std::ostream& operator<<(
+    std::ostream& out, const std::vector<T>& v) {
+  out << "[";
   for (auto& a : v) {
     out << a << " ";
   }
+  out << "]";
   return out;
 }
 
@@ -16,9 +31,9 @@ static std::ostream& operator<<(std::ostream& out, const HypreSub::Block& b) {
   out
     << "b.l=" << b.l
     << " b.u=" << b.u
-    << " b.st.size()=" << b.st.size()
+    << " b.st=" << b.st
     << " b.a.size()=" << b.a->size()
-    << std::endl;
+    ;
   return out;
 }
 
@@ -31,11 +46,27 @@ struct HypreSub::Imp {
     int ranksub;
   };
   enum class Cmd {
-    construct, destruct, update, solve, get_residual, get_iter, exit};
+      construct, destruct, update, solve, get_residual, get_iter, exit};
+  struct BlockBuffer {
+    BlockBuffer() = default;
+    // disable copy to keep pointers a,r,x in b valid
+    BlockBuffer(const BlockBuffer&) = delete;
+    Block b;
+    std::vector<Scal> a;
+    std::vector<Scal> r;
+    std::vector<Scal> x;
+  };
+  struct Instance {
+    Instance(int nb) : vbuf(nb) {}
+    std::vector<BlockBuffer> vbuf;
+  };
 
   static ServerState state;
+  static std::map<int, Instance> minst;
   static constexpr MPI_Datatype MPI_SCAL =
       (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
+  static constexpr int tag = 1;
+  static constexpr auto MSI = MPI_STATUS_IGNORE;
 
   static Cmd GetCmd(std::string s) {
     #define GETCMD(x) if (s == #x) return Cmd::x;
@@ -79,23 +110,26 @@ struct HypreSub::Imp {
         << " ranksub=" << state.ranksub
         << " " << GetString(cmd) << std::endl;
       if (cmd == Cmd::construct) {
-        std::vector<Scal> a;
-        std::vector<Scal> r;
-        std::vector<Scal> x;
-        Block b;
-        b.a = &a;
-        b.r = &r;
-        b.x = &x;
-
-        RecvBlock(b, 0, state.comm);
-        std::cout << b << std::endl;
+        auto inst = RecvBlocks(0, state.comm);
       } else if (cmd == Cmd::exit) {
         break;
       }
     }
   }
+  static void SendVector(const std::vector<Scal>& v,
+                         int rank, MPI_Comm comm) {
+    int size = v.size();
+    MPI_Send(&size, 1, MPI_INT, rank, tag, comm);
+    MPI_Send(v.data(), size, MPI_SCAL, rank, tag, comm);
+  }
+  static void RecvVector(std::vector<Scal>& v,
+                         int rank, MPI_Comm comm) {
+    int size;
+    MPI_Recv(&size, 1, MPI_INT, rank, tag, comm, MSI);
+    v.resize(size);
+    MPI_Recv(v.data(), size, MPI_SCAL, rank, tag, comm, MSI);
+  }
   static void SendBlock(const Block& b, int rank, MPI_Comm comm) {
-    const int tag = 1;
     // bounding box
     MPI_Send(b.l.data(), dim, MPI_INT, rank, tag, comm);
     MPI_Send(b.u.data(), dim, MPI_INT, rank, tag, comm);
@@ -105,29 +139,55 @@ struct HypreSub::Imp {
     if (stsize > 0) {
       MPI_Send(b.st[0].data(), stsize * dim, MPI_INT, rank, tag, comm);
     }
-    // matrix
-    int asize = b.a->size();
-    MPI_Send(&asize, 1, MPI_INT, rank, tag, comm);
-    MPI_Send(b.a->data(), asize, MPI_SCAL, rank, tag, comm);
+    SendVector(*b.a, rank, comm);
+    SendVector(*b.r, rank, comm);
+    SendVector(*b.x, rank, comm);
+  }
+  static void SendBlocks(const std::vector<Block>& bb,
+                         int rank, MPI_Comm comm) {
+    int nb = bb.size();
+    MPI_Send(&nb, 1, MPI_INT, rank, tag, comm);
+    for (int i = 0; i < nb; ++i) {
+      SendBlock(bb[i], rank, comm);
+      std::cout
+          << "send i=" << i
+          << " block=" << bb[i]
+          << std::endl;
+    }
   }
   static void RecvBlock(Block& b, int rank, MPI_Comm comm) {
-    auto MSI = MPI_STATUS_IGNORE;
-    const int tag = 1;
     // bounding box
     MPI_Recv(b.l.data(), dim, MPI_INT, rank, tag, comm, MSI);
     MPI_Recv(b.u.data(), dim, MPI_INT, rank, tag, comm, MSI);
     // stencil
-    int stsize = b.st.size();
+    int stsize;
     MPI_Recv(&stsize, 1, MPI_INT, rank, tag, comm, MSI);
     if (stsize > 0) {
       b.st.resize(stsize);
       MPI_Recv(b.st[0].data(), stsize * dim, MPI_INT, rank, tag, comm, MSI);
     }
     // matrix
-    int asize = b.a->size();
-    MPI_Recv(&asize, 1, MPI_INT, rank, tag, comm, MSI);
-    b.a->resize(asize);
-    MPI_Recv(b.a->data(), asize, MPI_SCAL, rank, tag, comm, MSI);
+    RecvVector(*b.a, rank, comm);
+    RecvVector(*b.r, rank, comm);
+    RecvVector(*b.x, rank, comm);
+  }
+  static Instance RecvBlocks(int rank, MPI_Comm comm) {
+    auto MSI = MPI_STATUS_IGNORE;
+    int nb;
+    MPI_Recv(&nb, 1, MPI_INT, rank, tag, comm, MSI);
+    Instance inst(nb);
+    for (int i = 0; i < nb; ++i) {
+      BlockBuffer& buf = inst.vbuf[i];
+      buf.b.a = &buf.a;
+      buf.b.r = &buf.r;
+      buf.b.x = &buf.x;
+      RecvBlock(buf.b, rank, comm);
+      std::cout
+          << "recv i=" << i
+          << " block=" << buf.b
+          << std::endl;
+    }
+    return inst;
   }
   static void Send(std::string s, int rank) {
     int a = static_cast<int>(GetCmd(s));
@@ -136,6 +196,7 @@ struct HypreSub::Imp {
 };
 
 HypreSub::Imp::ServerState HypreSub::Imp::state;
+std::map<int, HypreSub::Imp::Instance> HypreSub::Imp::minst;
 
 void HypreSub::InitServer(MPI_Comm comm, MPI_Comm commsub) {
   Imp::InitServer(comm, commsub);
@@ -153,3 +214,6 @@ void HypreSub::Send(const Block& b, int rank) {
   Imp::SendBlock(b, rank, Imp::state.comm);
 }
 
+void HypreSub::Send(const std::vector<Block>& bb, int rank) {
+  Imp::SendBlocks(bb, rank, Imp::state.comm);
+}
