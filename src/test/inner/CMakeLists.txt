@@ -9,4 +9,4 @@ add_executable(${EXE} main.cpp)
 
 target_link_libraries(${EXE} distrbasic)
 
-#add_test(NAME ${p} COMMAND ./run)
+add_test(NAME ${p} COMMAND ./run)

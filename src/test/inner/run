@@ -4,7 +4,6 @@ set -eu
 
 e=t.inner
 
-make
 echo 4 > np
 ch.mpirun ./$e
 
