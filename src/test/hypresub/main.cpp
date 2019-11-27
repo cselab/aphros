@@ -104,7 +104,16 @@ int main (int argc, char ** argv) {
 
   HypreSub::InitServer(comm, comm);
 
-  HypreSub::RunServer();
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+
+  if (rank == 0) {
+    HypreSub::Send("exit");
+    HypreSub::Send("construct");
+    HypreSub::Send("update");
+  } else {
+    HypreSub::RunServer();
+  }
 
   /*
   Hypre h(comm, bb, gs, per);
