@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include <cassert>
 #include <mpi.h>
 #include <memory>
 #include <string>
@@ -10,7 +9,7 @@
 
 class Hypre {
  public:
-  using MIdx = std::vector<int>; 
+  using MIdx = std::vector<int>;
   using Scal = double;
   struct Block { // linear system ax=r
     MIdx l; // lower corner
@@ -28,7 +27,8 @@ class Hypre {
   // print: print level
   // solver: solver name
   // maxiter: maximum number of iterations
-  Hypre(MPI_Comm comm, std::vector<Block> bb, MIdx gs, std::vector<bool> per);
+  Hypre(MPI_Comm comm, const std::vector<Block>& bb,
+        MIdx gs, std::vector<bool> per);
   Hypre() = delete;
   Hypre(const Hypre&) = delete;
 
@@ -43,13 +43,6 @@ class Hypre {
   ~Hypre();
 
  private:
-  void SolverSetup(Scal tol, int print, int maxiter);
-  void SolverDestroy();
-  size_t dim;
-  std::vector<Block> bb;
-  struct HypreData;
-  std::unique_ptr<HypreData> hd;
-  std::string solver_;
-  Scal res_;
-  int iter_;
+  struct Imp;
+  std::unique_ptr<Imp> imp;
 };
