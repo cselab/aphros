@@ -364,9 +364,6 @@ auto DistrMesh<KF>::GetGlobalField(size_t) -> FieldCell<Scal> {
   return FieldCell<Scal>();
 }
 
-#define EC(x) std::cerr << (#x) << std::endl; x;
-#define EV(x) std::cerr << (#x) << " = " << x << std::endl;
-
 template <class KF>
 void DistrMesh<KF>::ApplyNanFaces(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
