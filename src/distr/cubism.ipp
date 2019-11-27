@@ -504,8 +504,7 @@ Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& var)
       (bs_[2] == Block::bz || (bs_[2] == 1 && Block::bz == 2)));
 
   int r;
-  comm_ = g_.getCartComm(); // XXX: overwrite comm_
-  MPI_Comm_rank(comm_, &r);
+  MPI_Comm_rank(comm, &r);
   isroot_ = (0 == r);  // XXX: overwrite isroot_
 
   std::vector<BlockInfo> cc = g_.getBlocksInfo();
@@ -524,6 +523,8 @@ Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& var)
   }
 
   this->MakeKernels(ee);
+
+  comm_ = g_.getCartComm(); // XXX: overwrite comm_
 }
 
 template <class Par, class KF>
