@@ -402,7 +402,7 @@ auto Cubismnc<Par, KF>::GetBlocks() -> std::vector<MIdx> {
 template <class Par, class KF>
 auto Cubismnc<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
   if (inner) {
-    std::vector<BlockInfo> cc = g_->getBlocksInfo(); // all blocks
+    std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
     n_fields_ = mk.at(MIdx(cc[0].index))->GetMesh().GetComm().size();
     std::vector<MIdx> bb;
     // Perform communication if necessary
@@ -427,7 +427,7 @@ auto Cubismnc<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
       const int nhalo_end[3] = {hl_, hl_, hl_};
 
       // schedule asynchronous communication
-      sync_ = &g_->sync(fviews_, nhalo_start, nhalo_end, is_tensorial);
+      sync_ = &g_.sync(fviews_, nhalo_start, nhalo_end, is_tensorial);
       std::vector<BlockInfo> aa = sync_->avail_inner();
 
       // Create vector of indices and save block info to map
@@ -442,7 +442,7 @@ auto Cubismnc<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
 
       // 2. Load exchanged halos into the local fields
       Lab l;
-      l.prepare(*g_, *sync_);
+      l.prepare(g_, *sync_);
       for (auto& field : fviews_) {
         for (auto& block : field) {
           if (set.count(MIdx(block.index))) {
@@ -475,7 +475,7 @@ auto Cubismnc<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
 
       // Load exchanged halos into the local fields
       Lab l;
-      l.prepare(*g_, *sync_);
+      l.prepare(g_, *sync_);
       for (auto& field : fviews_) {
         for (auto& block : field) {
           if (set.count(MIdx(block.index))) {
