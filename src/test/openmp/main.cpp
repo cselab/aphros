@@ -22,9 +22,11 @@ void Run(M& m, State& s, Vars& var) {
     for (size_t i = 0; i < (1 << 28); ++i) {
       a = std::sqrt(a);
     }
+    #ifdef _OPENMP
     std::cerr << "thread=" << omp_get_thread_num()
         << " cpu=" << sched_getcpu()
         << std::endl;
+    #endif
   }
 }
 

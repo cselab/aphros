@@ -489,6 +489,7 @@ void DistrMesh<KF>::Report() {
 
 template <class KF>
 void DistrMesh<KF>::ReportOpenmp() {
+  #ifdef _OPENMP
   if (isroot_) {
     #pragma omp parallel
     {
@@ -502,4 +503,5 @@ void DistrMesh<KF>::ReportOpenmp() {
       }
     }
   }
+  #endif
 }
