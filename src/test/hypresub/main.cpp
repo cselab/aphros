@@ -109,7 +109,7 @@ int main (int argc, char ** argv) {
 
   if (rank == 0) {
     HypreSub::Send("construct", 1);
-    HypreSub::Send("update", 1);
+    HypreSub::Send(b, 1);
     HypreSub::Send("exit", 1);
     HypreSub::Send("exit", 2);
   } else {
