@@ -2,6 +2,7 @@
 #include <cassert>
 #include <map>
 #include <mpi.h>
+#include <omp.h>
 #include <set>
 #include <stdio.h>
 #include <string>
@@ -114,16 +115,27 @@ int main(int argc, char *argv[])
             comm_size,
             node_ID,
             core_ID);
+        fflush(stdout);
+    }
+    int is_root;
+    MPI_Comm_rank(comm_hypre_, &is_root);
+    if (is_root) {
+        fflush(stdout);
     }
 
     ////////////////////////////////////////////////////////////////////////////
     // do some work
+    MPI_Barrier(comm_hypre_);
+    is_root = (0 == is_root);
+    if (is_root) {
+        printf("OMP master switch:\n");
+    }
     if (omp_master_) { // only subcomm ranks must do this
         int subrank, subsize, omp_size;
         MPI_Comm_rank(comm_, &subrank);
         MPI_Comm_size(comm_, &subsize);
         MPI_Comm_size(comm_omp_, &omp_size);
-        printf("Root on subcomm 'comm_': comm_hypre_:%d/%d; comm_omp_:%d/%d; "
+        printf("Root on comm_omp_: comm_hypre_:%d/%d; comm_omp_:%d/%d; "
                "comm_:%d/%d\n",
                hypre_rank,
                hypre_size,
@@ -131,6 +143,40 @@ int main(int argc, char *argv[])
                omp_size,
                subrank,
                subsize);
+    }
+    if (is_root) {
+        fflush(stdout);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // hybrid
+    MPI_Barrier(comm_hypre_);
+    if (is_root) {
+        printf("OMP/MPI test:\n");
+    }
+    int command;
+    if (omp_master_) { // omp root rank enters hybrid region
+        int omp_size;
+        MPI_Comm_size(comm_omp_, &omp_size);
+#pragma omp parallel num_threads(omp_size)
+        {
+            const int nthreads = omp_get_num_threads();
+            const int tid = omp_get_thread_num();
+            unsigned long a, d, c;
+            __asm__ volatile("rdtscp" : "=a"(a), "=d"(d), "=c"(c));
+            const size_t node_ID = (c & 0xFFF000) >> 12;
+            const size_t core_ID = c & 0xFFF;
+#pragma omp critical
+            printf("Thread %d/%d: node_ID:%d; core_ID:%d\n",
+                   tid,
+                   nthreads,
+                   node_ID,
+                   core_ID);
+        }
+        command = 0;
+        MPI_Bcast(&command, 1, MPI_INT, 0, comm_omp_);
+    } else { // others wait for command
+        MPI_Bcast(&command, 1, MPI_INT, 0, comm_omp_);
     }
 
     MPI_Finalize();
