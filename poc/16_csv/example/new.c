@@ -79,16 +79,16 @@ main(int argc, char **argv)
 
   a = file2table(*argv);
   while (*++argv != NULL) {
-      b = file2table(*argv);
-      y = table_array(b);
-      n = table_length(b);
-      for (i = 0; i < 2*n; i += 2) {
-	  if (table_get(a, y[i], &x) == TABLE_EMPY)
-	      printf("%s %d\n", *argv, y[i]);
-      }
-      free(y);
-      table_fin(a);
-      a = b;
+    b = file2table(*argv);
+    y = table_array(b);
+    n = table_length(b);
+    for (i = 0; i < 2 * n; i += 2) {
+      if (table_get(a, y[i], &x) == TABLE_EMPY)
+        printf("%s %d\n", *argv, y[i]);
+    }
+    free(y);
+    table_fin(a);
+    a = b;
   }
   table_fin(a);
 }
