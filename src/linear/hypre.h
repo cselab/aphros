@@ -6,7 +6,7 @@
 #include <memory>
 #include <string>
 
-// TODO: Convention of *_ for private variables ignored
+// FIXME: Convention *_ for private variables ignored
 
 class Hypre {
  public:
@@ -32,14 +32,16 @@ class Hypre {
   Hypre() = delete;
   Hypre(const Hypre&) = delete;
 
+  // Assembles matrix and vectors from bb
   void Update();
+  // Solves system and puts result to x
   void Solve(Scal tol, int print, std::string solver, int maxiter);
   // Returns relative residual norm from last Solve()
   Scal GetResidual();
-  // Returns the number of iteration from last Solve()
+  // Returns the number of iterations from last Solve()
   int GetIter();
   ~Hypre();
- 
+
  private:
   void SolverSetup(Scal tol, int print, int maxiter);
   void SolverDestroy();
