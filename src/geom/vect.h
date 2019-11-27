@@ -326,6 +326,14 @@ class GVect {
   operator std::vector<T>() const {
     return std::vector<T>(comp_.begin(), comp_.end());
   }
+  template <class T=Scal>
+  operator std::array<T, dim>() const {
+    std::array<T, dim> r;
+    for (size_t i = 0; i < dim; ++i) {
+      r[i] = static_cast<T>(comp_[i]);
+    }
+    return r;
+  }
   class LexLess {
    public:
     bool operator()(GVect a, GVect b) const {

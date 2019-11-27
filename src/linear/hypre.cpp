@@ -25,7 +25,6 @@ struct Hypre::Imp {
   void Update();
   void Solve(Scal tol, int print, std::string solver, int maxiter);
 
-  size_t dim;
   std::vector<Block> bb;
   HypreData hd;
   std::string solver_;
@@ -35,7 +34,7 @@ struct Hypre::Imp {
 
 Hypre::Imp::Imp(MPI_Comm comm, const std::vector<Block>& bb0,
                 MIdx gs, std::vector<bool> per)
-    : dim(gs.size()), bb(bb0)
+    : bb(bb0)
 {
   assert(bb.size() > 0);
   assert(dim > 0);

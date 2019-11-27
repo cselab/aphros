@@ -242,7 +242,7 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
         auto& m = mk.at(b)->GetMesh();
         auto& v = m.GetSolve();
         auto& bc = m.GetInBlockCells();
-        auto& s = v[j];  
+        auto& s = v[j];
         lb.l = bc.GetBegin();
         lb.u = bc.GetEnd() - MIdx(1);
         for (MIdx& e : st) {
@@ -259,10 +259,7 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
       per[1] = var.Int["hypre_periodic_y"];
       per[2] = var.Int["hypre_periodic_z"];
 
-      LI gs(dim);
-      for (size_t i = 0; i < dim; ++i) {
-        gs[i] = bs_[i] * b_[i] * p_[i];
-      }
+      LI gs(bs_ * b_ * p_);
 
       Hypre* hp = new Hypre(comm_, lbb, gs, per);
       mhp_.emplace(k, std::unique_ptr<Hypre>(hp));
