@@ -23,7 +23,7 @@ class HypreSub {
   // solver: solver name
   // maxiter: maximum number of iterations
   HypreSub(MPI_Comm comm, const std::vector<Block>& bb,
-           MIdx gs, std::vector<bool> per);
+           MIdx gs, std::array<bool, dim> per);
   HypreSub() = delete;
   HypreSub(const HypreSub&) = delete;
   ~HypreSub();
