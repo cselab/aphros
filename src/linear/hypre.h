@@ -6,8 +6,6 @@
 #include <memory>
 #include <string>
 
-// FIXME: Convention *_ for private variables ignored
-
 class Hypre {
  public:
   static constexpr size_t dim = 3;
@@ -33,6 +31,7 @@ class Hypre {
         MIdx gs, std::vector<bool> per);
   Hypre() = delete;
   Hypre(const Hypre&) = delete;
+  ~Hypre();
 
   // Assembles matrix and vectors from bb
   void Update();
@@ -42,7 +41,6 @@ class Hypre {
   Scal GetResidual();
   // Returns the number of iterations from last Solve()
   int GetIter();
-  ~Hypre();
 
  private:
   struct Imp;
