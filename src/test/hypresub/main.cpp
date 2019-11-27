@@ -108,9 +108,10 @@ int main (int argc, char ** argv) {
   MPI_Comm_rank(comm, &rank);
 
   if (rank == 0) {
-    HypreSub::Send("exit");
-    HypreSub::Send("construct");
-    HypreSub::Send("update");
+    HypreSub::Send("construct", 1);
+    HypreSub::Send("update", 1);
+    HypreSub::Send("exit", 1);
+    HypreSub::Send("exit", 2);
   } else {
     HypreSub::RunServer();
   }
