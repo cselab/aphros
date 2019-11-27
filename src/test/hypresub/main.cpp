@@ -94,7 +94,7 @@ int main (int argc, char ** argv) {
   bb.push_back(b);
 
   MPI_Comm comm = MPI_COMM_WORLD;
-  std::array<bool, dim> per = {1, 0, 0};
+  MIdx per = {1, 0, 0};
   Scal tol = 1e-12;
   int print = 2;
   int maxiter = 80;
@@ -110,6 +110,8 @@ int main (int argc, char ** argv) {
 
   if (rank == 0) {
     HypreSub d(comm, bb, gs, per);
+    HypreSub::Send("exit", 1);
+    HypreSub::Send("exit", 2);
   } else {
     HypreSub::RunServer();
   }

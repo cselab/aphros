@@ -27,8 +27,7 @@ class Hypre {
   // print: print level
   // solver: solver name
   // maxiter: maximum number of iterations
-  Hypre(MPI_Comm comm, const std::vector<Block>& bb,
-        MIdx gs, std::vector<bool> per);
+  Hypre(MPI_Comm comm, const std::vector<Block>& bb, MIdx gs, MIdx per);
   Hypre() = delete;
   Hypre(const Hypre&) = delete;
   ~Hypre();
