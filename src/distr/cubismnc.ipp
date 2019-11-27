@@ -1,31 +1,23 @@
 // vim: expandtab:smarttab:sw=2:ts=2
 #pragma once
 
-
-#include <algorithm>
 #include <cassert>
-#include <map>
 #include <memory>
-#include <mpi.h>
-#include <set>
+#include <map>
 #include <stdexcept>
-#include <unistd.h>
-#include <utility>
+#include <mpi.h>
 
-#ifndef NDEBUG
-#include <stdio.h>
-#endif /* NDEBUG */
-
-#include "cubismnc.h"
 #include "distr.h"
+#include "cubismnc.h"
 #include "dump/dumper.h"
 
-#include "CubismNoCopy/BlockInfo.h"
 #include "CubismNoCopy/BlockLab.h"
 #include "CubismNoCopy/BlockLabMPI.h"
 #include "CubismNoCopy/Grid.h"
 #include "CubismNoCopy/GridMPI.h"
 #include "CubismNoCopy/HDF5Dumper_MPI.h"
+#include "CubismNoCopy/BlockInfo.h"
+#include "CubismNoCopy/StencilInfo.h"
 
 // Hide implementation and avoid collision with GBlk
 // TODO: rename cubism_impl::GBlk
@@ -147,13 +139,6 @@ class Cubismnc : public DistrMesh<KF> {
   using Vect = typename M::Vect;
 
   Cubismnc(MPI_Comm comm, KF& kf, Vars& var);
-  ~Cubismnc() {
-    delete g_;
-#ifdef _OPENMP
-    MPI_Group_free(&this->omp_master_group_);
-    MPI_Comm_free(&this->comm_omp_);
-#endif /* _OPENMP */
-  }
   typename M::BlockCells GetGlobalBlock() const override;
   typename M::IndexCells GetGlobalIndex() const override;
   FieldCell<Scal> GetGlobalField(size_t i) override;
@@ -179,11 +164,10 @@ class Cubismnc : public DistrMesh<KF> {
   using P::stage_;
   using P::isroot_;
   using P::comm_;
-  using P::comm_hypre_;
   using P::ext_;
   using P::frame_;
 
-  Grid *g_;
+  Grid g_;
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] The map is not really needed
   struct S { // cubism [s]tate
     std::map<MIdx, BlockInfo, typename MIdx::LexLess> mb;
@@ -207,14 +191,6 @@ class Cubismnc : public DistrMesh<KF> {
   void Bcast(const std::vector<MIdx>& bb) override;
   void Scatter(const std::vector<MIdx>& bb) override;
   void DumpWrite(const std::vector<MIdx>& bb) override;
-
-#ifdef _OPENMP
-  using P::omp_master_group_;
-  using P::comm_omp_;
-  using P::p_omp_;
-  using P::b_omp_;
-  void SetCommOMP();
-#endif /* _OPENMP */
 };
 
 // B_ - instance of GFieldViewRaw
@@ -319,30 +295,18 @@ std::vector<MyBlockInfo> Cubismnc<Par, KF>::Convert(
 template <class Par, class KF>
 Cubismnc<Par, KF>::Cubismnc(MPI_Comm comm, KF& kf, Vars& var)
   : DistrMesh<KF>(comm, kf, var)
+  , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm)
 {
   assert(bs_[0] == FieldView::bx &&
          bs_[1] == FieldView::by &&
          bs_[2] == FieldView::bz);
 
-#ifdef _OPENMP
-  // Hybrid: MPI + OpenMP
-  SetCommOMP();
-  g_ = new Grid(p_omp_[0], p_omp_[1], p_omp_[2],
-                b_omp_[0], b_omp_[1], b_omp_[2], ext_, comm_);
-  MPI_Comm_free(&comm_); // temporary communicator no longer needed;
-                         // re-assigned below by GridMPI
-#else
-  // Non-hybrid: MPI mapped to cores (same communicator as used in HYPRE)
-  g_ = new Grid(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm_hypre_);
-#endif /* _OPENMP */
-
   int r;
-  comm_ = g_->getCartComm(); // XXX: overwrite comm_
-  MPI_Comm_rank(comm_, &r);
+  MPI_Comm_rank(comm, &r);
   isroot_ = (0 == r);  // XXX: overwrite isroot_
 
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Get rid of BlockInfo type
-  std::vector<BlockInfo> cc = g_->getBlocksInfo();
+  std::vector<BlockInfo> cc = g_.getBlocksInfo();
   std::vector<MyBlockInfo> ee = Convert(cc, bs_, hl_);
 
   bool islead = true;
@@ -358,6 +322,8 @@ Cubismnc<Par, KF>::Cubismnc(MPI_Comm comm, KF& kf, Vars& var)
   }
 
   this->MakeKernels(ee);
+
+  comm_ = g_.getCartComm(); // XXX: overwrite comm_
 }
 
 template <class Par, class KF>
@@ -366,7 +332,7 @@ auto Cubismnc<Par, KF>::GetBlocks() -> std::vector<MIdx> {
   MPI_Barrier(comm_);
 
   // Get all blocks
-  std::vector<BlockInfo> cc = g_->getBlocksInfo(); // all blocks
+  std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
   auto& m = mk.at(MIdx(cc[0].index))->GetMesh();
   std::vector<BlockInfo> aa;
   // Perform communication if necessary
@@ -392,7 +358,7 @@ auto Cubismnc<Par, KF>::GetBlocks() -> std::vector<MIdx> {
     const int nhalo_end[3] = {hl_, hl_, hl_};
 
     // schedule asynchronous communication
-    Synch& s = g_->sync(fviews, nhalo_start, nhalo_end, is_tensorial);
+    Synch& s = g_.sync(fviews, nhalo_start, nhalo_end, is_tensorial);
 
     // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] not needed
     MPI_Barrier(comm_);
@@ -402,7 +368,7 @@ auto Cubismnc<Par, KF>::GetBlocks() -> std::vector<MIdx> {
 
     // 2. Load exchanged halos into the local fields
     Lab l;
-    l.prepare(*g_, s);
+    l.prepare(g_, s);
     for (auto& field : fviews) {
       for (auto& block : field) {
         l.load(block, field);
@@ -856,7 +822,7 @@ void Cubismnc<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
     if (df == "hdf") {
       // Create FieldView's for dump
       const size_t n_fields = m.GetDump().size();
-      std::vector<BlockInfo> cc = g_->getBlocksInfo(); // all blocks
+      std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
       std::vector<std::vector<FieldView>> fviews(n_fields);
       for (const auto &b : cc) {
         auto &bm = mk.at(MIdx(b.index))->GetMesh();
@@ -878,11 +844,11 @@ void Cubismnc<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
         auto &blocks = fviews[fi];
         if (0 <= aos_idx) {
           StreamHdfScal<FieldView>::NAME = bf[fi].second;
-          DumpHDF5_MPI<StreamHdfScal<FieldView>>(blocks, aos_idx, *g_, frame_,
+          DumpHDF5_MPI<StreamHdfScal<FieldView>>(blocks, aos_idx, g_, frame_,
             frame_, fn, ".", Vect(0), m.GetCellSize(), true);
         } else if (3 == blocks[0].n_comp) {
           StreamHdfVect<FieldView>::NAME = bf[fi].second;
-          DumpHDF5_MPI<StreamHdfVect<FieldView>>(blocks, aos_idx, *g_, frame_,
+          DumpHDF5_MPI<StreamHdfVect<FieldView>>(blocks, aos_idx, g_, frame_,
             frame_, fn, ".", Vect(0), m.GetCellSize(), true);
         } else {
           throw std::runtime_error("DumpWrite(): Support only size 1 and 3");
@@ -1021,118 +987,6 @@ auto Cubismnc<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
     return FieldCell<Scal>();
   }
 }
-
-#ifdef _OPENMP
-template <class Par, class KF>
-void Cubismnc<Par, KF>::SetCommOMP() {
-  // 1. Find color of ranks in comm_hypre_ that belong to same socket and create
-  //    split communicator stored in comm_omp_
-  // 2. Create new communicator with only root ranks in comm_omp_, store in
-  //    temporarily in comm_ (for GridMPI)
-  // 3. Find new rank topology p_omp_ and number of blocks per rank b_omp_ that
-  //    corresponds to comm_
-
-  // 1.
-  unsigned long a,d,c;
-  __asm__ volatile("rdtscp" : "=a" (a), "=d" (d), "=c" (c));
-  const size_t node_ID = (c & 0xFFF000)>>12;
-
-  std::string hostname(1024, '\0'); // max. hostname length (Linux unistd.h)
-  gethostname(&hostname.front(), hostname.size());
-  const size_t host_ID = std::hash<std::string>{}(hostname);
-  const size_t c_hash = host_ID ^ (node_ID << 1);
-
-  // construct color and split communicator
-  int hypre_size, hypre_rank;
-  MPI_Comm_size(comm_hypre_, &hypre_size);
-  MPI_Comm_rank(comm_hypre_, &hypre_rank);
-  std::vector<size_t> all_hashes(hypre_size);
-  MPI_Allgather(&c_hash, 1, MPI_UINT64_T, all_hashes.data(), 1, MPI_UINT64_T,
-                comm_hypre_);
-  std::set<size_t> unique_nodes(all_hashes.begin(), all_hashes.end());
-  std::map<size_t, int> cmap;
-  int color = 0;
-  for (auto ID : unique_nodes) {
-    cmap[ID] = color++;
-  }
-  color = cmap[c_hash];
-  MPI_Comm_split(comm_hypre_, color, hypre_rank, &comm_omp_);
-
-  // 2.
-  int omp_rank;
-  MPI_Comm_rank(comm_omp_, &omp_rank);
-  if (0 != omp_rank) {
-    omp_rank = -1; // if I am not root in comm_omp_
-  }
-  std::vector<int> omp2hypre(hypre_size);
-  MPI_Allgather(&omp_rank, 1, MPI_INT, omp2hypre.data(), 1, MPI_INT,
-                comm_hypre_);
-  std::set<int> m2h(omp2hypre.begin(), omp2hypre.end());
-  omp2hypre.clear();
-  for (auto r : m2h) {
-    if (r >= 0) {
-      omp2hypre.push_back(r);
-    }
-  }
-  std::sort(omp2hypre.begin(), omp2hypre.end());
-
-  MPI_Group hypre_group;
-  MPI_Comm_group(comm_hypre_, &hypre_group);
-
-  MPI_Group_incl(hypre_group, static_cast<int>(omp2hypre.size()),
-                 omp2hypre.data(), &omp_master_group_);
-  MPI_Comm_create(comm_hypre_, omp_master_group_, &comm_);
-  MPI_Group_free(&hypre_group);
-
-  // 3.
-  MPI_Comm comm_hypre_cart;
-  int periodic[3] = {true, true, true};
-  const int topo[3] = {static_cast<int>(this->p_[0]),
-                       static_cast<int>(this->p_[1]),
-                       static_cast<int>(this->p_[2])};
-  int cart_idx[3], rank_cart;
-  MPI_Cart_create(comm_hypre_, 3, topo, periodic, true, &comm_hypre_cart);
-  MPI_Comm_rank(comm_hypre_cart, &rank_cart);
-  MPI_Cart_coords(comm_hypre_cart, rank_cart, 3, cart_idx);
-  MPI_Comm_free(&comm_hypre_cart);
-  p_omp_[0] = var.Int["px_hybrid"];
-  p_omp_[1] = var.Int["py_hybrid"];
-  p_omp_[2] = var.Int["pz_hybrid"];
-  b_omp_[0] = p_[0] / p_omp_[0] * b_[0];
-  b_omp_[1] = p_[1] / p_omp_[1] * b_[1];
-  b_omp_[2] = p_[2] / p_omp_[2] * b_[2];
-
-// FIXME: [fabianw@mavt.ethz.ch; 2019-11-26] throw an exception here if user
-// miss-configured hybrid settings
-
-#ifndef NDEBUG
-  {
-    const size_t core_ID = c & 0xFFF;
-    int omp_size, comm_rank, comm_size;
-    MPI_Comm_size(comm_omp_, &omp_size);
-    MPI_Comm_size(comm_, &comm_size);
-    MPI_Comm_rank(comm_, &comm_rank);
-    assert(p_[0] % p_omp_[0] == 0);
-    assert(p_[1] % p_omp_[1] == 0);
-    assert(p_[2] % p_omp_[2] == 0);
-    assert((p_[0] / p_omp_[0]) * (p_[1] / p_omp_[1]) * (p_[2] / p_omp_[2]) ==
-           omp_size);
-    assert(comm_size == p_omp_.prod());
-    printf("HYBRID: host:%s; comm_hypre_:%d/%d; comm_omp_:%d/%d; comm_:%d/%d; "
-           "node_ID=%lu; core_ID=%lu\n",
-           hostname.c_str(),
-           hypre_rank,
-           hypre_size,
-           omp_rank,
-           omp_size,
-           comm_rank,
-           comm_size,
-           node_ID,
-           core_ID);
-  }
-#endif /* NDEBUG */
-}
-#endif /* _OPENMP */
 
 template <class B>
 std::string StreamHdfScal<B>::NAME = "alpha";
