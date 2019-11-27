@@ -47,6 +47,4 @@ class HypreSub {
  private:
   struct Imp;
   std::unique_ptr<Imp> imp;
-  struct ServerState;
-  static ServerState server;
 };
