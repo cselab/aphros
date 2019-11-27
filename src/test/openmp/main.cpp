@@ -14,7 +14,7 @@ struct State {
   Scal a;
 };
 
-void Run(M& m, State& s, Vars& var) {
+void Run(M& m, State&, Vars& var) {
   (void) var;
   auto sem = m.GetSem();
   if (sem()) {
