@@ -7,6 +7,7 @@
 #include <iomanip>
 
 #include "linear/hypre.h"
+#include "linear/hypresub.h"
 
 using MIdx = typename Hypre::MIdx;
 using Scal = typename Hypre::Scal;
@@ -97,6 +98,15 @@ int main (int argc, char ** argv) {
   int print = 2;
   int maxiter = 80;
 
+  (void) tol;
+  (void) print;
+  (void) maxiter;
+
+  HypreSub::InitServer(comm, comm);
+
+  HypreSub::RunServer();
+
+  /*
   Hypre h(comm, bb, gs, per);
   h.Solve(tol, print, "gmres", maxiter);
 
@@ -113,6 +123,7 @@ int main (int argc, char ** argv) {
       }
     }
   }
+  */
 
-  MPI_Finalize();	
+  MPI_Finalize();
 }

@@ -27,6 +27,13 @@ class HypreSub {
   HypreSub() = delete;
   HypreSub(const HypreSub&) = delete;
   ~HypreSub();
+  // Initializes server
+  // comm: full communicator
+  // subcomm: sub-communicator (one rank in each node)
+  static void InitServer(MPI_Comm comm, MPI_Comm commsub);
+  // Runs server loop.
+  // Needs to be called by all ranks in comm which are not in commsub.
+  static void RunServer();
 
   // Assembles matrix and vectors from bb
   void Update();
@@ -40,4 +47,6 @@ class HypreSub {
  private:
   struct Imp;
   std::unique_ptr<Imp> imp;
+  struct ServerState;
+  static ServerState serverstate;
 };
