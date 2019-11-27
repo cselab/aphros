@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <utility>
+#include <cassert>
 #include <map>
 
 #include "hypresub.h"
@@ -26,32 +27,61 @@ static std::ostream& operator<<(
   return out;
 }
 
-
 static std::ostream& operator<<(std::ostream& out, const HypreSub::Block& b) {
   out
     << "b.l=" << b.l
     << " b.u=" << b.u
-    << " b.st=" << b.st
+    << " b.st.size()=" << b.st.size()
     << " b.a.size()=" << b.a->size()
+    << " b.r.size()=" << b.r->size()
+    << " b.x.size()=" << b.x->size()
     ;
   return out;
 }
 
-#define EV(x) " " << (#x) << "=" << (x)
+#define EV(x) (#x) << "=" << (x) << " "
 
 struct HypreSub::Imp {
   enum class Cmd {
       construct, destruct, update, solve, get_residual, get_iter, exit};
   struct BlockBuffer {
-    BlockBuffer() = default;
+    BlockBuffer() {
+      b.a = &a;
+      b.r = &r;
+      b.x = &x;
+    }
     BlockBuffer(Block b0)
         : b(b0), a(*b0.a), r(*b0.r), x(*b0.x) {
       b.a = &a;
       b.r = &r;
       b.x = &x;
     }
-    // disable copy to keep pointers a,r,x in b valid
     BlockBuffer(const BlockBuffer&) = delete;
+    BlockBuffer(BlockBuffer&& o)
+        : b(o.b), a(o.a), r(o.r), x(o.x) {
+      b.a = &a;
+      b.r = &r;
+      b.x = &x;
+    }
+    BlockBuffer& operator=(BlockBuffer&& o) {
+      b = o.b;
+      a = o.a;
+      r = o.r;
+      x = o.x;
+      return *this;
+    }
+    // Copy data from
+    void Update(const Block& b) {
+      a = *b.a;
+      r = *b.r;
+      x = *b.x;
+    }
+    // Copy data from
+    void Update(const BlockBuffer& buf) {
+      a = buf.a;
+      r = buf.r;
+      x = buf.x;
+    }
     Block b;
     std::vector<Scal> a;
     std::vector<Scal> r;
@@ -80,6 +110,18 @@ struct HypreSub::Imp {
           << EV(vbuf.size())
           << std::endl;
     }
+    void Update(const std::vector<Block>& src) {
+      assert(src.size() == vbuf.size());
+      for (size_t i = 0; i < vbuf.size(); ++i) {
+        vbuf[i].Update(src[i]);
+      }
+    }
+    void Update(const std::vector<BlockBuffer>& src) {
+      assert(src.size() == vbuf.size());
+      for (size_t i = 0; i < vbuf.size(); ++i) {
+        vbuf[i].Update(src[i]);
+      }
+    }
     std::vector<BlockBuffer> vbuf;
     Hypre hypre;
   };
@@ -104,6 +146,18 @@ struct HypreSub::Imp {
       bb.push_back(buf.b);
     }
     return bb;
+  }
+  static std::vector<BlockBuffer> GetBlockBuffers(
+      const std::vector<Block>& bb) {
+    std::vector<BlockBuffer> vbuf(bb.size());
+    for (size_t i = 0; i < bb.size(); ++i) {
+      vbuf[i] = BlockBuffer(bb[i]);
+    }
+    return vbuf;
+  }
+  // Returns partition of blocks for one rank
+  static std::vector<Block> GetPart(const std::vector<Block>& bb, int rank) {
+    return {bb[rank]};
   }
   static Cmd GetCmd(std::string s) {
     #define GETCMD(x) if (s == #x) return Cmd::x;
@@ -135,29 +189,37 @@ struct HypreSub::Imp {
   }
   static void RunServer() {
     while (true) {
+      auto comm = state.comm;
       Cmd cmd;
+      int id;
       int root = 0;
       Recv(cmd, root);
-      auto comm = state.comm;
+      Recv(id, root, comm);
       if (cmd == Cmd::construct) {
-        auto vbuf = RecvBlocks(root, comm);
         MIdx gs;
         MIdx per;
-        int id;
+        auto vbuf = RecvBlocks(root, comm);
         Recv(gs, root, comm);
         Recv(per, root, comm);
-        Recv(id, root, comm);
-        std::cout << "recv construct" << EV(id) << std::endl;
+        std::cout << "recv construct "
+            << EV(id) << EV(state.rank) << GetBlocks(vbuf) << std::endl;
         state.minst.emplace(
             std::piecewise_construct,
             std::forward_as_tuple(id),
             std::forward_as_tuple(std::move(vbuf), gs, per));
+      } else if (cmd == Cmd::update) {
+        std::cout << "recv update " << EV(id) << std::endl;
+        auto vbuf = RecvBlocks(root, comm);
+        auto& inst = state.minst.at(id);
+        inst.Update(vbuf);
+        inst.hypre.Update();
       } else if (cmd == Cmd::destruct) {
-        int id;
-        Recv(id, root, comm);
-        std::cout << "recv destruct" << EV(id) << std::endl;
+        std::cout << "recv destruct "
+            << EV(id) << EV(state.rank) << std::endl;
         state.minst.erase(id);
       } else if (cmd == Cmd::exit) {
+        std::cout << "recv exit "
+            << EV(id) << EV(state.rank) << std::endl;
         break;
       }
     }
@@ -248,34 +310,52 @@ struct HypreSub::Imp {
     cmd = static_cast<Cmd>(a);
   }
 
-  Imp(const std::vector<Block>& bb, MIdx gs, MIdx per) {
+  Imp(const std::vector<Block>& bb, MIdx gs, MIdx per)
+      : bbarg_(bb)
+  {
     static int next_id = 0; // instance id
     id_ = next_id;
     ++next_id;
     for (auto rank : {1, 2}) {
-      std::vector<Block> bbl = {bb[rank]};
       Send(Cmd::construct, rank);
-      SendBlocks(bbl, rank, state.comm);
+      Send(id_, rank, state.comm);
+      std::cout << "send construct " 
+          << EV(id_) << EV(rank) << GetPart(bbarg_, rank) << std::endl;
+      SendBlocks(GetPart(bbarg_, rank), rank, state.comm);
       Send(gs, rank, state.comm);
       Send(per, rank, state.comm);
-      Send(id_, rank, state.comm);
     }
-    std::vector<BlockBuffer> vbuf(1);
-    vbuf[0] = BlockBuffer(bb[0]);
+    std::cout << "self construct " 
+        << EV(id_) << GetPart(bbarg_, 0) << std::endl;
+    auto vbuf = GetBlockBuffers(GetPart(bbarg_, 0));
+    std::cout << "self construct2 " 
+        << EV(id_) << GetBlocks(vbuf) << std::endl;
     state.minst.emplace(
         std::piecewise_construct,
         std::forward_as_tuple(id_),
-        std::forward_as_tuple(std::move(vbuf), gs, per));
+        std::forward_as_tuple(GetBlockBuffers(GetPart(bbarg_, 0)), gs, per));
   }
   ~Imp() {
     for (auto rank : {1, 2}) {
       Send(Cmd::destruct, rank);
       Send(id_, rank, state.comm);
-      state.minst.erase(id_);
     }
+    state.minst.erase(id_);
+    std::cout << "self destruct" << std::endl;
+  }
+  void Update() {
+    for (auto rank : {1, 2}) {
+      Send(Cmd::update, rank);
+      Send(id_, rank, state.comm);
+      SendBlocks(GetPart(bbarg_, rank), rank, state.comm);
+    }
+    auto& inst = state.minst.at(id_);
+    inst.Update(GetPart(bbarg_, 0));
+    inst.hypre.Update();
   }
 
-  int id_;
+  int id_; // instance id
+  std::vector<Block> bbarg_; // bb passed to constructor
 };
 
 HypreSub::Imp::ServerState HypreSub::Imp::state;
@@ -303,5 +383,9 @@ void HypreSub::Send(const std::vector<Block>& bb, int rank) {
 HypreSub::HypreSub(MPI_Comm, const std::vector<Block>& bb, MIdx gs, MIdx per)
     : imp(new Imp(bb, gs, per))
 {}
+
+void HypreSub::Update() {
+  imp->Update();
+}
 
 HypreSub::~HypreSub() {}
