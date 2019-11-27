@@ -2,11 +2,16 @@
 
 set -eu
 
-e=t.benchmark_mpi
+e=t.inner
 
 make
-echo 192 > np
-echo 10 > tl
-ch.run ./$e
+echo 4 > np
+ch.mpirun ./$e
 
-cat timer.log
+for i in 0 1 2 3 ; do
+  a=$i.ref
+  b=$i.out
+  if ! diff -u "$a" "$b" ; then
+    exit 1
+  fi
+done
