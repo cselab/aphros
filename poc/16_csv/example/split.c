@@ -16,7 +16,7 @@ usg()
 
 #define GET(f, r)							\
   if ((*r = csv_field(csv, f)) == NULL) {				\
-    fprintf(stderr, "%s: not field '%s' in '%s'\n",			\
+    fprintf(stderr, "%s: no field '%s' in '%s'\n",			\
 	    me, (f), name);						\
     exit(2);								\
   }
@@ -29,6 +29,7 @@ struct Data {
   double *y;
   double *z;
   double *r;
+  double *field;
 };
 static int data_fin(struct Data *);
 static struct Data data_ini(const char *);
@@ -38,7 +39,7 @@ main(int argc, char **argv)
 {
   struct Data a;
   struct Data b;
-  int *array, n, i, j;
+  int *array, *new, n, i, j, k;
 
   USED(argc);
   name = NULL;
@@ -69,10 +70,18 @@ main(int argc, char **argv)
     b = data_ini(*argv);
     array = table_array(b.table);
     n = table_length(b.table);
-    for (i = 0; i < 2 * n; i += 2)
+    new = malloc(n * sizeof(*new));
+    for (i = k = 0; i < 2 * n; i += 2)
       if (table_get(a.table, array[i], &j) == TABLE_EMPY)
-        printf("%s %d %g %g %g\n",
-               *argv, array[i], a.x[j], a.y[j], a.z[j]);
+        new[k++] = array[i + 1];
+
+    for (i = 0; i < k; i++) {
+      j = new[i];
+      printf("%s %d %g %g %g\n",
+             *argv, (int) b.field[j], b.x[j], b.y[j], b.z[j]);
+    }
+
+    free(new);
     free(array);
     data_fin(&a);
     a = b;
@@ -113,6 +122,7 @@ data_ini(const char *fname)
   GET("y", &q.y);
   GET("z", &q.z);
   GET("r", &q.r);
+  q.field = field;
   q.table = t;
   q.csv = csv;
 
