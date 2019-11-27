@@ -1,5 +1,6 @@
 #include <string>
 #include <fstream>
+#include <sstream>
 
 #include "sysinfo.h"
 
@@ -26,4 +27,29 @@ size_t GetMem() {
   return GetProcStat("VmRSS") << 10;
 }
 
-} // namespace sysinfo 
+bool HasHyperthreads() {
+  bool has_ht = false;
+  std::ifstream f("/proc/cpuinfo");
+  f >> std::skipws;
+  while (f) {
+    std::string s;
+    f >> s;
+    if (s == "flags") {
+        break;
+    }
+  }
+  std::string line;
+  std::getline(f, line);
+  std::istringstream is(line);
+  while (!is.eof()) {
+      std::string s;
+      is >> s;
+      if (s == "ht") {
+          has_ht = true;
+          break;
+      }
+  }
+  return has_ht;
+}
+
+} // namespace sysinfo
