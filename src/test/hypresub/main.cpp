@@ -92,6 +92,7 @@ int main (int argc, char ** argv) {
   std::vector<Block> bb;
   bb.push_back(b);
   bb.push_back(b);
+  bb.push_back(b);
 
   MPI_Comm comm = MPI_COMM_WORLD;
   MIdx per = {1, 0, 0};
@@ -110,11 +111,12 @@ int main (int argc, char ** argv) {
 
   if (rank == 0) {
     HypreSub d(comm, bb, gs, per);
-    HypreSub::Send("exit", 1);
-    HypreSub::Send("exit", 2);
+    HypreSub d2(comm, bb, gs, per);
   } else {
     HypreSub::RunServer();
   }
+  HypreSub::Send("exit", 1);
+  HypreSub::Send("exit", 2);
 
   MPI_Barrier(comm);
 
