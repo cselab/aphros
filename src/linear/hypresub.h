@@ -35,6 +35,7 @@ class HypreSub {
   // Needs to be called by all ranks in comm which are not in commsub.
   static void RunServer();
   static void Send(std::string cmd, int rank);
+  static void Send(const Block& b, int rank);
 
   // Assembles matrix and vectors from bb
   void Update();
