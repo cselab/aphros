@@ -62,6 +62,7 @@ int main(int argc, char *argv[])
         omp_rank = -omp_rank; // if I am not root in comm_omp_
         omp_master_ = false;
     } else {
+        omp_rank = hypre_rank;
         omp_master_ = true;
     }
     std::vector<int> omp2hypre(hypre_size);
@@ -71,7 +72,7 @@ int main(int argc, char *argv[])
     omp2hypre.clear();
     for (auto r : m2h) {
         if (r >= 0) {
-            omp2hypre.push_back(hypre_rank);
+            omp2hypre.push_back(r);
         }
     }
     std::sort(omp2hypre.begin(), omp2hypre.end());
@@ -85,6 +86,11 @@ int main(int argc, char *argv[])
                    &omp_master_group_);
     MPI_Comm_create(comm_hypre_, omp_master_group_, &comm_);
     MPI_Group_free(&hypre_group);
+    if (omp_master_) {
+        omp_rank = 0;
+    } else {
+        omp_rank = -omp_rank;
+    }
 
     {
         const size_t core_ID = c & 0xFFF;
@@ -112,11 +118,20 @@ int main(int argc, char *argv[])
 
     ////////////////////////////////////////////////////////////////////////////
     // do some work
-    int rank = -1;
     if (omp_master_) { // only subcomm ranks must do this
-        MPI_Comm_rank(comm_, &rank);
+        int subrank, subsize, omp_size;
+        MPI_Comm_rank(comm_, &subrank);
+        MPI_Comm_size(comm_, &subsize);
+        MPI_Comm_size(comm_omp_, &omp_size);
+        printf("Root on subcomm 'comm_': comm_hypre_:%d/%d; comm_omp_:%d/%d; "
+               "comm_:%d/%d\n",
+               hypre_rank,
+               hypre_size,
+               omp_rank,
+               omp_size,
+               subrank,
+               subsize);
     }
-    printf("My comm_ rank: %d\n", rank);
 
     MPI_Finalize();
     return 0;
