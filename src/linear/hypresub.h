@@ -36,6 +36,7 @@ class HypreSub {
   static void RunServer();
   static void Send(std::string cmd, int rank);
   static void Send(const Block& b, int rank);
+  static void Send(const std::vector<Block>& bb, int rank);
 
   // Assembles matrix and vectors from bb
   void Update();
