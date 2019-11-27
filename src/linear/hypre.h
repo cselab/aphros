@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include <mpi.h>
 #include <memory>
 #include <string>
@@ -9,7 +10,8 @@
 
 class Hypre {
  public:
-  using MIdx = std::vector<int>;
+  static constexpr size_t dim = 3;
+  using MIdx = std::array<int, dim>;
   using Scal = double;
   struct Block { // linear system ax=r
     MIdx l; // lower corner
