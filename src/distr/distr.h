@@ -17,6 +17,7 @@
 #include "parse/vars.h"
 #include "kernel/kernel.h"
 #include "linear/hypre.h"
+#include "linear/hypresub.h"
 #include "dump/dump.h"
 #include "dump/dumper.h"
 #include "report.h"
@@ -109,7 +110,7 @@ class DistrMesh : public Distr {
   MultiTimer<std::string> mt_; // timer all
   MultiTimer<std::string> mtp_; // timer partial
   using LS = typename M::LS;
-  std::map<typename LS::T, std::unique_ptr<Hypre>> mhp_; // hypre instances
+  std::map<typename LS::T, std::unique_ptr<HypreSub>> mhp_; // hypre instances
 };
 
 template <class KF>
@@ -263,8 +264,7 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
 
       LI gs(bs_ * b_ * p_);
 
-      Hypre* hp = new Hypre(comm_, lbb, gs, per);
-      mhp_.emplace(k, std::unique_ptr<Hypre>(hp));
+      mhp_.emplace(k, new HypreSub(comm_, lbb, gs, per));
     } else { // update current instance
       mhp_.at(k)->Update();
     }
