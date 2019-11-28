@@ -69,11 +69,6 @@ Hypre::Imp::Imp(MPI_Comm comm, const std::vector<Block>& bb0,
     for (size_t i = 0; i < dim; ++i) {
       n *= b.u[i] - b.l[i] + 1;
     }
-    std::cerr
-        << EV(b.a->size())
-        << EV(n)
-        << EV(st.size())
-        << std::endl;
     assert(b.a->size() == n * st.size());
     assert(b.r->size() == n);
     assert(b.x->size() == n);
