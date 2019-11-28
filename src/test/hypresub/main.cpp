@@ -50,8 +50,8 @@ int main (int argc, char ** argv) {
   }
 
   // exact solution
-  auto f = [](Scal x, Scal, Scal) {
-    return std::sin(x);
+  auto f = [](Scal x, Scal y, Scal z) {
+    return std::sin(x) * std::cos(y) * std::exp(z / 100.);
   };
 
   std::vector<Scal> da(n * b.st.size());
@@ -94,12 +94,6 @@ int main (int argc, char ** argv) {
   bb.push_back(b);
   bb.push_back(b);
   bb.push_back(b);
-  bb[0].l[0] += 0;
-  bb[1].l[0] += 1;
-  bb[2].l[0] += 2;
-  bb[0].u[0] += 0;
-  bb[1].u[0] += 1;
-  bb[2].u[0] += 2;
 
   MPI_Comm comm = MPI_COMM_WORLD;
   MIdx per = {1, 0, 0};
@@ -120,34 +114,24 @@ int main (int argc, char ** argv) {
     {
       HypreSub d(comm, bb, gs, per);
       d.Solve(tol, print, "gmres", maxiter);
-      std::cout << EV(d.GetResidual()) << std::endl;
-      std::cout << EV(d.GetIter()) << std::endl;
+      // Check solution
+      {
+        size_t j = 0;
+        for (int z = b.l[2]; z <= b.u[2]; ++z) {
+          for (int y = b.l[1]; y <= b.u[1]; ++y) {
+            for (int x = b.l[0]; x <= b.u[0]; ++x) {
+              Scal e = f(x, y, z);
+              PFCMP((*b.x)[j], e);
+              ++j;
+            }
+          }
+        }
+      }
     }
     HypreSub::StopServer();
   } else {
     HypreSub::RunServer();
   }
-
-  MPI_Barrier(comm);
-
-  /*
-  Hypre h(comm, bb, gs, per);
-  h.Solve(tol, print, "gmres", maxiter);
-
-  // Check solution
-  {
-    size_t j = 0;
-    for (int z = b.l[2]; z <= b.u[2]; ++z) {
-      for (int y = b.l[1]; y <= b.u[1]; ++y) {
-        for (int x = b.l[0]; x <= b.u[0]; ++x) {
-          Scal e = f(x, y, z);
-          PFCMP((*b.x)[j], e);
-          ++j;
-        }
-      }
-    }
-  }
-  */
 
   MPI_Finalize();
 }
