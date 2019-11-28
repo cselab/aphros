@@ -156,8 +156,8 @@ main(int argc, char **argv)
         }
       }
       if (table_get(b.table, b.field[lmin], &m) != TABLE_EMPY) {
-        split[m] = split[lmin] = 1;
-        prev[m] = prev[lmin] = (int) b.field[lmin];
+        split[j] = split[m] = 1;
+        prev[j] = prev[m] = (int) b.field[lmin];
       } else {
         fprintf(stderr, "%s: prev disapeared: %s\n", me, *argv);
         fprintf(stderr, "%s: prev disapeared: lmin = %d, m = %d\n", me,
