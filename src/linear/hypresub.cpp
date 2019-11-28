@@ -149,6 +149,8 @@ struct HypreSub::Imp {
     MPI_Comm commsub;
     int rank;
     int ranksub;
+    int size;
+    int sizesub;
     std::map<int, Instance> minst;
   };
 
@@ -189,10 +191,12 @@ struct HypreSub::Imp {
     state.commsub = commsub;
     MPI_Comm_rank(comm, &state.rank);
     MPI_Comm_rank(commsub, &state.ranksub);
+    MPI_Comm_size(comm, &state.size);
+    MPI_Comm_size(commsub, &state.sizesub);
   }
   static void RunServer() {
     while (true) {
-      auto comm = state.comm;
+      auto comm = state.commsub;
       Cmd cmd;
       int id;
       int root = 0;
@@ -249,9 +253,9 @@ struct HypreSub::Imp {
     }
   }
   static void StopServer() {
-    for (auto rank : {1, 2}) {
+    for (int rank = 1; rank < state.sizesub; ++rank) {
       Send(Cmd::exit, rank);
-      Send(-1, rank, state.comm); // dummy id, expected by RunServer
+      Send(-1, rank, state.commsub); // dummy id, expected by RunServer
     }
   }
   static void Send(const MIdx& w, int rank, MPI_Comm comm) {
@@ -345,14 +349,14 @@ struct HypreSub::Imp {
   }
   static void Send(Cmd cmd, int rank) {
     int a = static_cast<int>(cmd);
-    MPI_Send(&a, 1, MPI_INT, rank, 1, state.comm);
+    MPI_Send(&a, 1, MPI_INT, rank, 1, state.commsub);
   }
   static void Send(std::string s, int rank) {
     Send(GetCmd(s), rank);
   }
   static void Recv(Cmd& cmd, int rank) {
     int a;
-    MPI_Recv(&a, 1, MPI_INT, rank, 1, state.comm, MSI);
+    MPI_Recv(&a, 1, MPI_INT, rank, 1, state.commsub, MSI);
     cmd = static_cast<Cmd>(a);
   }
 
@@ -362,14 +366,14 @@ struct HypreSub::Imp {
     static int next_id = 0; // instance id
     id_ = next_id;
     ++next_id;
-    for (auto rank : {1, 2}) {
+    for (int rank = 1; rank < state.sizesub; ++rank) {
       Send(Cmd::construct, rank);
-      Send(id_, rank, state.comm);
+      Send(id_, rank, state.commsub);
       DEB(std::cout << "send construct "
           << EV(id_) << EV(rank) << GetPart(bbarg_, rank) << std::endl;)
-      SendBlocks(GetPart(bbarg_, rank), rank, state.comm);
-      Send(gs, rank, state.comm);
-      Send(per, rank, state.comm);
+      SendBlocks(GetPart(bbarg_, rank), rank, state.commsub);
+      Send(gs, rank, state.commsub);
+      Send(per, rank, state.commsub);
     }
     DEB(std::cout << "self construct "
         << EV(id_) << GetPart(bbarg_, 0) << std::endl;)
@@ -379,18 +383,18 @@ struct HypreSub::Imp {
         std::forward_as_tuple(GetBlockBuffers(GetPart(bbarg_, 0)), gs, per));
   }
   ~Imp() {
-    for (auto rank : {1, 2}) {
+    for (int rank = 1; rank < state.sizesub; ++rank) {
       Send(Cmd::destruct, rank);
-      Send(id_, rank, state.comm);
+      Send(id_, rank, state.commsub);
     }
     state.minst.erase(id_);
     DEB(std::cout << "self destruct" << std::endl;)
   }
   void Update() {
-    for (auto rank : {1, 2}) {
+    for (int rank = 1; rank < state.sizesub; ++rank) {
       Send(Cmd::update, rank);
-      Send(id_, rank, state.comm);
-      SendBlocks(GetPart(bbarg_, rank), rank, state.comm);
+      Send(id_, rank, state.commsub);
+      SendBlocks(GetPart(bbarg_, rank), rank, state.commsub);
     }
     auto& inst = state.minst.at(id_);
     inst.Update(GetPart(bbarg_, 0));
@@ -406,8 +410,8 @@ struct HypreSub::Imp {
     return inst.GetHypre().GetIter();
   }
   void Solve(Scal tol, int print, std::string solver, int maxiter) {
-    auto comm = state.comm;
-    for (auto rank : {1, 2}) {
+    auto comm = state.commsub;
+    for (int rank = 1; rank < state.sizesub; ++rank) {
       Send(Cmd::solve, rank);
       Send(id_, rank, comm);
       Send(tol, rank, comm);
@@ -418,7 +422,7 @@ struct HypreSub::Imp {
     auto& inst = state.minst.at(id_);
     DEB(std::cout << "self solve" << EV(solver) << std::endl;)
     inst.GetHypre().Solve(tol, print, solver, maxiter);
-    for (auto rank : {1, 2}) {
+    for (int rank = 1; rank < state.sizesub; ++rank) {
       auto bb = GetPart(bbarg_, rank);
       auto vbuf = RecvBlocks(rank, comm);
       assert(bb.size() == vbuf.size());
@@ -461,11 +465,11 @@ void HypreSub::Send(std::string s, int rank) {
 }
 
 void HypreSub::Send(const Block& b, int rank) {
-  Imp::Send(b, rank, Imp::state.comm);
+  Imp::Send(b, rank, Imp::state.commsub);
 }
 
 void HypreSub::Send(const std::vector<Block>& bb, int rank) {
-  Imp::SendBlocks(bb, rank, Imp::state.comm);
+  Imp::SendBlocks(bb, rank, Imp::state.commsub);
 }
 
 HypreSub::HypreSub(MPI_Comm, const std::vector<Block>& bb, MIdx gs, MIdx per)

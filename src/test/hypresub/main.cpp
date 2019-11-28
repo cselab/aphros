@@ -105,12 +105,19 @@ int main (int argc, char ** argv) {
   (void) print;
   (void) maxiter;
 
-  HypreSub::InitServer(comm, comm);
-
   int rank;
   MPI_Comm_rank(comm, &rank);
 
-  if (rank == 0) {
+  MPI_Comm commsub;
+  MPI_Comm_split(comm, rank / 3, rank, &commsub);
+
+  int ranksub;
+  MPI_Comm_rank(commsub, &ranksub);
+  std::cout << EV(rank) <<  EV(ranksub) << std::endl;
+
+  HypreSub::InitServer(comm, commsub);
+
+  if (ranksub == 0) {
     {
       HypreSub d(comm, bb, gs, per);
       d.Solve(tol, print, "gmres", maxiter);
