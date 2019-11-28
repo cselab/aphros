@@ -125,15 +125,26 @@ int main(int argc, char *argv[])
     MPI_Comm_size(comm_omp_, &omp_size);
     std::vector<int> thread_affinity(omp_size);
     std::iota(thread_affinity.begin(), thread_affinity.end(), 0);
+    std::vector<int> mpi_affinity(omp_size);
+    MPI_Allgather(
+        &a.core_ID, 1, MPI_INT, mpi_affinity.data(), 1, MPI_INT, comm_omp_);
     if (HasHyperthreads()) {
-        std::vector<int> mpi_affinity(omp_size);
-        MPI_Allgather(
-            &a.core_ID, 1, MPI_INT, mpi_affinity.data(), 1, MPI_INT, comm_omp_);
+#if 0
+        // XXX: [fabianw@mavt.ethz.ch; 2019-11-28] does yield better results
+        // but less consistent and overhead for spawning parallel region become
+        // suddenly much larger, don't know why.  Only OK if idle ranks are
+        // moved from their cores.
+        thread_affinity.resize(2 * omp_size);
+        std::iota(thread_affinity.begin(), thread_affinity.end(), 0);
+#else
+        // XXX: [fabianw@mavt.ethz.ch; 2019-11-28] more consistent and less
+        // overhead when spawning parallel region
         for (size_t i = 0; i < thread_affinity.size(); ++i) {
             const int mpi_core = mpi_affinity[i];
             thread_affinity[i] = (mpi_core < omp_size) ? omp_size + mpi_core
                                                        : mpi_core - omp_size;
         }
+#endif /* 0 */
     }
 
     // 2.
@@ -232,7 +243,7 @@ int main(int argc, char *argv[])
         int omp_size;
         MPI_Comm_size(comm_omp_, &omp_size);
 #if 1 == _USE_OMP_
-#pragma omp parallel num_threads(omp_size)
+#pragma omp parallel num_threads(thread_affinity.size())
         {
             // each thread configures its own affinity
             const int tid = omp_get_thread_num();
@@ -249,7 +260,7 @@ int main(int argc, char *argv[])
                    a.core_ID);
         }
 #else
-        std::vector<std::thread> threads(omp_size);
+        std::vector<std::thread> threads(thread_affinity.size());
         for (int i = 0; i < static_cast<int>(threads.size()); ++i) {
             threads[i] = std::thread([i, omp_size] {
                 // each thread configures its own affinity
@@ -280,7 +291,9 @@ int main(int argc, char *argv[])
         command = 0;
         MPI_Bcast(&command, 1, MPI_INT, 0, comm_omp_);
     } else { // others wait for command
-        MPI_Bcast(&command, 1, MPI_INT, 0, comm_omp_);
+        _SETAFFINITY(0, mpi_affinity); // move all idle ranks to root location
+        MPI_Bcast(&command, 1, MPI_INT, 0, comm_omp_); // wait
+        _SETAFFINITY(omp_rank, mpi_affinity); // go back to my old place
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -294,7 +307,7 @@ int main(int argc, char *argv[])
         std::vector<double> result;
         std::vector<std::pair<double, double>> avg_time; // inner, outer
         for (auto threads : nthreads) {
-            const size_t nsteps = 10000000;
+            const size_t nsteps = 500000000;
             const double step = 1.0 / static_cast<double>(nsteps);
             double sum = 0.0;
             double t_inner = 0.0;
@@ -340,7 +353,11 @@ int main(int argc, char *argv[])
         command = 0;
         MPI_Bcast(&command, 1, MPI_INT, 0, comm_omp_);
     } else { // others wait for command
-        MPI_Bcast(&command, 1, MPI_INT, 0, comm_omp_);
+        // nice(50); // no gain with this
+        _SETAFFINITY(0, mpi_affinity); // move all idle ranks to root location
+        MPI_Bcast(&command, 1, MPI_INT, 0, comm_omp_); // wait
+        _SETAFFINITY(omp_rank, mpi_affinity); // go back to my old place
+        // nice(-50); // no gain with this
     }
 
     MPI_Finalize();
