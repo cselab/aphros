@@ -30,3 +30,7 @@ add_dependencies(gitgen gitrev)
 set(T "git")
 add_library(${T} git.cpp)
 target_link_libraries(${T} gitgen)
+
+set(T "subcomm")
+add_library(${T} subcomm.cpp)
+target_link_libraries(${T})
