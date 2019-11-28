@@ -119,8 +119,7 @@ int main (int argc, char ** argv) {
   if (rank == 0) {
     {
       HypreSub d(comm, bb, gs, per);
-      HypreSub d2(comm, bb, gs, per);
-      d.Update();
+      d.Solve(tol, print, "gmres", maxiter);
       std::cout << EV(d.GetResidual()) << std::endl;
       std::cout << EV(d.GetIter()) << std::endl;
     }

@@ -222,6 +222,18 @@ struct HypreSub::Imp {
         auto& inst = state.minst.at(id);
         inst.Update(vbuf);
         inst.GetHypre().Update();
+      } else if (cmd == Cmd::solve) {
+        Scal tol;
+        int print;
+        std::string solver;
+        int maxiter;
+        Recv(tol, root, comm);
+        Recv(print, root, comm);
+        Recv(solver, root, comm);
+        Recv(maxiter, root, comm);
+        auto& inst = state.minst.at(id);
+        std::cout << "recv solve " << EV(id) << EV(solver) << std::endl;
+        inst.GetHypre().Solve(tol, print, solver, maxiter);
       } else if (cmd == Cmd::destruct) {
         std::cout << "recv destruct "
             << EV(id) << EV(state.rank) << std::endl;
@@ -258,6 +270,24 @@ struct HypreSub::Imp {
   }
   static void Recv(int& a, int rank, MPI_Comm comm) {
     MPI_Recv(&a, 1, MPI_INT, rank, tag, comm, MSI);
+  }
+  static void Send(const Scal& a, int rank, MPI_Comm comm) {
+    MPI_Send(&a, 1, MPI_SCAL, rank, tag, comm);
+  }
+  static void Recv(Scal& a, int rank, MPI_Comm comm) {
+    MPI_Recv(&a, 1, MPI_SCAL, rank, tag, comm, MSI);
+  }
+  static void Send(const std::string& s, int rank, MPI_Comm comm) {
+    int size = s.size();
+    MPI_Send(&size, 1, MPI_INT, rank, tag, comm);
+    MPI_Send(s.data(), size, MPI_CHAR, rank, tag, comm);
+  }
+  static void Recv(std::string& s, int rank, MPI_Comm comm) {
+    int size;
+    MPI_Recv(&size, 1, MPI_INT, rank, tag, comm, MSI);
+    std::vector<char> v(size);
+    MPI_Recv(v.data(), size, MPI_CHAR, rank, tag, comm, MSI);
+    s = std::string(v.begin(), v.end());
   }
   static void Send(const std::vector<Scal>& v, int rank, MPI_Comm comm) {
     int size = v.size();
@@ -380,6 +410,19 @@ struct HypreSub::Imp {
     auto& inst = state.minst.at(id_);
     return inst.GetHypre().GetIter();
   }
+  void Solve(Scal tol, int print, std::string solver, int maxiter) {
+    for (auto rank : {1, 2}) {
+      Send(Cmd::solve, rank);
+      Send(id_, rank, state.comm);
+      Send(tol, rank, state.comm);
+      Send(print, rank, state.comm);
+      Send(solver, rank, state.comm);
+      Send(maxiter, rank, state.comm);
+    }
+    auto& inst = state.minst.at(id_);
+    std::cout << "self solve" << EV(solver) << std::endl;
+    inst.GetHypre().Solve(tol, print, solver, maxiter);
+  }
 
   int id_; // instance id
   std::vector<Block> bbarg_; // bb passed to constructor
@@ -417,6 +460,10 @@ HypreSub::HypreSub(MPI_Comm, const std::vector<Block>& bb, MIdx gs, MIdx per)
 
 void HypreSub::Update() {
   imp->Update();
+}
+
+void HypreSub::Solve(Scal tol, int print, std::string solver, int maxiter) {
+  imp->Solve(tol, print, solver, maxiter);
 }
 
 auto HypreSub::GetResidual() const -> Scal {
