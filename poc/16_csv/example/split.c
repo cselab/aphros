@@ -1,3 +1,5 @@
+#include <float.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <csv.h>
@@ -6,6 +8,15 @@
 static const char me[] = "split";
 
 #define	USED(x)		if(x);else{}
+
+#define MALLOC(n, p)							\
+    do {								\
+	*(p) = malloc((n)*sizeof(**(p)));				\
+	if (*(p) == NULL)  {						\
+	    fprintf(stderr, "%s: alloc failed, n = %d", me, n);		\
+	    exit(2);							\
+	}								\
+    } while(0)
 
 static void
 usg()
@@ -33,13 +44,22 @@ struct Data {
 };
 static int data_fin(struct Data *);
 static struct Data data_ini(const char *);
+static int dist(int, struct Data *, int, struct Data *, /**/ double *);
 
 int
 main(int argc, char **argv)
 {
   struct Data a;
   struct Data b;
-  int *array, *new, n, i, j, k;
+  int *array;
+  int *new;
+  int *split;
+  int *prev;
+  int nb, na, nn, i, j, l;
+  double d;
+  double dmin;
+  int lmin;
+  int m;
 
   USED(argc);
   name = NULL;
@@ -69,26 +89,50 @@ main(int argc, char **argv)
   while (*++argv != NULL) {
     b = data_ini(*argv);
     array = table_array(b.table);
-    n = table_length(b.table);
-
-    if ((new = malloc(n * sizeof(*new))) == NULL) {
-      fprintf(stderr, "%s: malloc failed (n = %d)\n", me, n);
+    if (array == NULL) {
+      fprintf(stderr, "%s: table_array failed\n", me);
       exit(2);
     }
-
-    for (i = k = 0; i < 2 * n; i += 2)
+    nb = table_length(b.table);
+    na = table_length(a.table);
+    MALLOC(nb, &new);
+    MALLOC(nb, &prev);
+    MALLOC(nb, &split);
+    /* nn: number of new */
+    for (i = nn = 0; i < 2 * nb; i += 2)
       if (table_get(a.table, array[i], &j) == TABLE_EMPY)
-        new[k++] = array[i + 1];
+        new[nn++] = array[i + 1];
 
-    for (i = 0; i < k; i++) {
+    /* for (i = 0; i < k; i++) {
+       j = new[i];
+       printf("%s %d %g %g %g\n",
+       *argv, (int) b.field[j], b.x[j], b.y[j], b.z[j]);
+       } */
+    for (i = 0; i < nn; i++) {
       j = new[i];
-      printf("%s %d %g %g %g\n",
-             *argv, (int) b.field[j], b.x[j], b.y[j], b.z[j]);
+      dmin = DBL_MAX;
+      for (l = 0; l < na; l++) {
+        if (dist(j, &b, l, &a, &d) != 0) {
+          fprintf(stderr, "%s: dist failed\n", me);
+          exit(2);
+        }
+        if (d < dmin) {
+          dmin = d;
+          lmin = l;
+        }
+      }
+      if (table_get(b.table, b.field[lmin], &m) != TABLE_EMPY) {
+        split[m] = split[lmin] = 1;
+        prev[m] = prev[lmin] = (int) b.field[lmin];
+      } else {
+        fprintf(stderr, "%s: prev disapeared: %s\n", me, *argv);
+        fprintf(stderr, "%s: prev disapeared: lmin = %d, m = %d\n", me,
+                lmin, m);
+      }
     }
-
-
-
     free(new);
+    free(prev);
+    free(split);
     free(array);
     data_fin(&a);
     a = b;
@@ -141,4 +185,34 @@ data_fin(struct Data *q)
 {
   csv_fin(q->csv);
   return table_fin(q->table);
+}
+
+static int
+dist(int i, struct Data *a, int j, struct Data *b, /**/ double *p)
+{
+  double x;
+  double y;
+  double z;
+  double r;
+  double d;
+  int na, nb;
+
+  na = csv_nr(a->csv);
+  nb = csv_nr(b->csv);
+  if (i < 0 || i >= na) {
+    fprintf(stderr, "%s: i=%d is not in [0, %d)\n", me, i, na);
+    return 1;
+  }
+  if (j < 0 || j >= nb) {
+    fprintf(stderr, "%s: j=%d is not in [0, %d)\n", me, j, nb);
+    return 1;
+  }
+  x = a->x[i] - b->x[j];
+  y = a->y[i] - b->y[j];
+  z = a->z[i] - b->z[j];
+  r = a->r[i] + b->r[j];
+  d = sqrt(x * x + y * y + z * z);
+  d -= r;
+  *p = d;
+  return 0;
 }
