@@ -161,8 +161,12 @@ struct HypreSub::Imp {
   static constexpr auto MSI = MPI_STATUS_IGNORE;
 
   // Returns partition of blocks for one rank
-  static std::vector<Block> GetPart(const std::vector<Block>& bb, int rank) {
-    return {bb[rank]};
+  std::vector<Block> GetPart(int ranksub) {
+    std::vector<Block> bb;
+    for (auto i : partidx_[ranksub]) {
+      bb.push_back(bbarg_[i]);
+    }
+    return bb;
   }
   static Cmd GetCmd(std::string s) {
     #define GETCMD(x) if (s == #x) return Cmd::x;
@@ -360,27 +364,46 @@ struct HypreSub::Imp {
     cmd = static_cast<Cmd>(a);
   }
 
+  // Returns partitioning.
+  // partidx[ranksub] contains indices in bb assigned to ranksub
+  static std::vector<std::vector<int>> GetPartIdx(
+      const std::vector<Block>& bb, int sizesub) {
+    std::vector<std::vector<int>> partidx;
+    const int nb = bb.size();
+    assert(nb % sizesub == 0);
+    int i = 0;
+    for (int ranksub = 0; ranksub < sizesub; ++ranksub) {
+      std::vector<int> p;
+      for (int j = 0; j < nb / sizesub; ++j) {
+        p.push_back(i++);
+      }
+      partidx.push_back(p);
+    }
+    return partidx;
+  }
+
   Imp(const std::vector<Block>& bb, MIdx gs, MIdx per)
-      : bbarg_(bb)
+      : bbarg_(bb), partidx_(GetPartIdx(bbarg_, state.sizesub))
   {
     static int next_id = 0; // instance id
     id_ = next_id;
     ++next_id;
+
     for (int rank = 1; rank < state.sizesub; ++rank) {
       Send(Cmd::construct, rank);
       Send(id_, rank, state.commsub);
       DEB(std::cout << "send construct "
-          << EV(id_) << EV(rank) << GetPart(bbarg_, rank) << std::endl;)
-      SendBlocks(GetPart(bbarg_, rank), rank, state.commsub);
+          << EV(id_) << EV(rank) << GetPart(rank) << std::endl;)
+      SendBlocks(GetPart(rank), rank, state.commsub);
       Send(gs, rank, state.commsub);
       Send(per, rank, state.commsub);
     }
     DEB(std::cout << "self construct "
-        << EV(id_) << GetPart(bbarg_, 0) << std::endl;)
+        << EV(id_) << GetPart(0) << std::endl;)
     state.minst.emplace(
         std::piecewise_construct,
         std::forward_as_tuple(id_),
-        std::forward_as_tuple(GetBlockBuffers(GetPart(bbarg_, 0)), gs, per));
+        std::forward_as_tuple(GetBlockBuffers(GetPart(0)), gs, per));
   }
   ~Imp() {
     for (int rank = 1; rank < state.sizesub; ++rank) {
@@ -394,10 +417,10 @@ struct HypreSub::Imp {
     for (int rank = 1; rank < state.sizesub; ++rank) {
       Send(Cmd::update, rank);
       Send(id_, rank, state.commsub);
-      SendBlocks(GetPart(bbarg_, rank), rank, state.commsub);
+      SendBlocks(GetPart(rank), rank, state.commsub);
     }
     auto& inst = state.minst.at(id_);
-    inst.Update(GetPart(bbarg_, 0));
+    inst.Update(GetPart(0));
     DEB(std::cout << "self update" << std::endl;)
     inst.GetHypre().Update();
   }
@@ -423,7 +446,7 @@ struct HypreSub::Imp {
     DEB(std::cout << "self solve" << EV(solver) << std::endl;)
     inst.GetHypre().Solve(tol, print, solver, maxiter);
     for (int rank = 1; rank < state.sizesub; ++rank) {
-      auto bb = GetPart(bbarg_, rank);
+      auto bb = GetPart(rank);
       auto vbuf = RecvBlocks(rank, comm);
       assert(bb.size() == vbuf.size());
       for (size_t i = 0; i < bb.size(); ++i) {
@@ -432,7 +455,7 @@ struct HypreSub::Imp {
         (*b.x) = (*s.x);
       }
     }
-    auto bb = GetPart(bbarg_, 0);
+    auto bb = GetPart(0);
     auto ss = inst.GetBlocks(); // source
     assert(bb.size() == ss.size());
     for (size_t i = 0; i < bb.size(); ++i) {
@@ -443,7 +466,10 @@ struct HypreSub::Imp {
   }
 
   int id_; // instance id
-  std::vector<Block> bbarg_; // bb passed to constructor
+  std::vector<Block> bbarg_; // blocks passed to constructor
+  // partitioning
+  // partidx_[ranksub] contains indices in bbarg_ assigned to ranksub
+  std::vector<std::vector<int>> partidx_;
 };
 
 HypreSub::Imp::ServerState HypreSub::Imp::state;
