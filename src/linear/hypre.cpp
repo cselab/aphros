@@ -272,11 +272,11 @@ void Hypre::Solve(Scal tol, int print, std::string solver, int maxiter) {
   imp->Solve(tol, print, solver, maxiter);
 }
 
-Hypre::Scal Hypre::GetResidual() {
+Hypre::Scal Hypre::GetResidual() const {
   return imp->res_;
 }
 
-int Hypre::GetIter() {
+int Hypre::GetIter() const {
   return imp->iter_;
 }
 

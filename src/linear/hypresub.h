@@ -46,9 +46,9 @@ class HypreSub {
   // Solves system and puts result to x
   void Solve(Scal tol, int print, std::string solver, int maxiter);
   // Returns relative residual norm from last Solve()
-  Scal GetResidual();
+  Scal GetResidual() const;
   // Returns the number of iterations from last Solve()
-  int GetIter();
+  int GetIter() const;
 
  private:
   struct Imp;
