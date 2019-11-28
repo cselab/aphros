@@ -70,7 +70,12 @@ main(int argc, char **argv)
     b = data_ini(*argv);
     array = table_array(b.table);
     n = table_length(b.table);
-    new = malloc(n * sizeof(*new));
+
+    if ((new = malloc(n * sizeof(*new))) == NULL) {
+      fprintf(stderr, "%s: malloc failed (n = %d)\n", me, n);
+      exit(2);
+    }
+
     for (i = k = 0; i < 2 * n; i += 2)
       if (table_get(a.table, array[i], &j) == TABLE_EMPY)
         new[k++] = array[i + 1];
@@ -80,6 +85,8 @@ main(int argc, char **argv)
       printf("%s %d %g %g %g\n",
              *argv, (int) b.field[j], b.x[j], b.y[j], b.z[j]);
     }
+
+
 
     free(new);
     free(array);
