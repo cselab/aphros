@@ -93,14 +93,12 @@ int main (int argc, char ** argv) {
   bb.push_back(b);
   bb.push_back(b);
   bb.push_back(b);
-  /*
   bb[0].l[0] += 0;
   bb[1].l[0] += 1;
   bb[2].l[0] += 2;
   bb[0].u[0] += 0;
   bb[1].u[0] += 1;
   bb[2].u[0] += 2;
-  */
 
   MPI_Comm comm = MPI_COMM_WORLD;
   MIdx per = {1, 0, 0};
@@ -118,13 +116,14 @@ int main (int argc, char ** argv) {
   MPI_Comm_rank(comm, &rank);
 
   if (rank == 0) {
-    HypreSub d(comm, bb, gs, per);
-    //HypreSub d2(comm, bb, gs, per);
+    {
+      HypreSub d(comm, bb, gs, per);
+      HypreSub d2(comm, bb, gs, per);
+    }
+    HypreSub::StopServer();
   } else {
     HypreSub::RunServer();
   }
-  HypreSub::Send("exit", 1);
-  HypreSub::Send("exit", 2);
 
   MPI_Barrier(comm);
 

@@ -92,6 +92,7 @@ struct HypreSub::Imp {
     Instance(std::vector<BlockBuffer>&& vbuf0, MIdx gs, MIdx per)
         : vbuf(std::move(vbuf0))
         , hypre(state.comm, GetBlocks(vbuf), gs, per) {
+          /*
       std::cout
           << "Instance()"
           << EV(state.rank)
@@ -100,14 +101,17 @@ struct HypreSub::Imp {
           << EV(gs)
           << EV(per)
           << std::endl;
+          */
     }
     ~Instance() {
+      /*
       std::cout
           << "~Instance()"
           << EV(state.rank)
           << EV(state.ranksub)
           << EV(vbuf.size())
           << std::endl;
+          */
     }
     void Update(const std::vector<Block>& src) {
       assert(src.size() == vbuf.size());
@@ -222,6 +226,20 @@ struct HypreSub::Imp {
         break;
       }
     }
+
+    if (state.minst.size() > 0) {
+      throw std::runtime_error(
+          "RunServer: Cmd::exit received on rank "+
+          std::to_string(state.rank) +
+          ", but state.minst still containts " +
+          std::to_string(state.minst.size()) + " instances");
+    }
+  }
+  static void StopServer() {
+    for (auto rank : {1, 2}) {
+      Send(Cmd::exit, rank);
+      Send(-1, rank, state.comm); // dummy id, expected by RunServer
+    }
   }
   static void Send(const MIdx& w, int rank, MPI_Comm comm) {
     MPI_Send(w.data(), dim, MPI_INT, rank, tag, comm);
@@ -316,17 +334,14 @@ struct HypreSub::Imp {
     for (auto rank : {1, 2}) {
       Send(Cmd::construct, rank);
       Send(id_, rank, state.comm);
-      std::cout << "send construct " 
+      std::cout << "send construct "
           << EV(id_) << EV(rank) << GetPart(bbarg_, rank) << std::endl;
       SendBlocks(GetPart(bbarg_, rank), rank, state.comm);
       Send(gs, rank, state.comm);
       Send(per, rank, state.comm);
     }
-    std::cout << "self construct " 
+    std::cout << "self construct "
         << EV(id_) << GetPart(bbarg_, 0) << std::endl;
-    auto vbuf = GetBlockBuffers(GetPart(bbarg_, 0));
-    std::cout << "self construct2 " 
-        << EV(id_) << GetBlocks(vbuf) << std::endl;
     state.minst.emplace(
         std::piecewise_construct,
         std::forward_as_tuple(id_),
@@ -363,6 +378,10 @@ void HypreSub::InitServer(MPI_Comm comm, MPI_Comm commsub) {
 
 void HypreSub::RunServer() {
   Imp::RunServer();
+}
+
+void HypreSub::StopServer() {
+  Imp::StopServer();
 }
 
 void HypreSub::Send(std::string s, int rank) {
