@@ -3,7 +3,7 @@
 #include "util/subcomm.h"
 #include "linear/hypresub.h"
 
-static void RunKernel(
+static void RunKernelOpenMP(
     MPI_Comm comm_world, MPI_Comm comm_omp, MPI_Comm comm_master,
     std::function<void(MPI_Comm, Vars&)> kernel, Vars& var) {
   int rank_omp;
@@ -16,6 +16,11 @@ static void RunKernel(
   } else {
     HypreSub::RunServer();
   }
+}
+
+static void RunKernel(
+    MPI_Comm comm, std::function<void(MPI_Comm, Vars&)> kernel, Vars& var) {
+  kernel(comm, var);
 }
 
 int RunMpi(int argc, const char ** argv,
@@ -65,15 +70,22 @@ int RunMpi(int argc, const char ** argv,
     MPI_Comm comm;
     MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
     if (rank == 0) {
-      RunKernel(comm, comm, comm, kernel, var);
+      RunKernel(comm, kernel, var);
     }
   } else {
-    MPI_Comm comm_world;
-    MPI_Comm comm_omp;
-    MPI_Comm comm_master;
-    SubComm(comm_world, comm_omp, comm_master);
-    PrintStats(comm_world, comm_omp, comm_master);
-    RunKernel(comm_world, comm_omp, comm_master, kernel, var);
+    bool openmp = var.Int["openmp"];
+    if (openmp) {
+      MPI_Comm comm_world;
+      MPI_Comm comm_omp;
+      MPI_Comm comm_master;
+      SubComm(comm_world, comm_omp, comm_master);
+      if (var.Int["verbose_openmp"]) {
+        PrintStats(comm_world, comm_omp, comm_master);
+      }
+      RunKernelOpenMP(comm_world, comm_omp, comm_master, kernel, var);
+    } else {
+      RunKernel(MPI_COMM_WORLD, kernel, var);
+    }
   }
 
   MPI_Finalize();
