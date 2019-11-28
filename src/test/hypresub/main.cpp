@@ -7,11 +7,13 @@
 #include <iomanip>
 
 #include "linear/hypre.h"
+#include "linear/hypresub.h"
 
 using MIdx = typename Hypre::MIdx;
 using Scal = typename Hypre::Scal;
 using Block = typename Hypre::Block;
 
+#define EV(x) (#x) << "=" << (x) << " "
 
 bool Cmp(Scal a, Scal b) {
   return std::abs(a - b) < 1e-10;
@@ -29,7 +31,7 @@ bool Cmp(Scal a, Scal b) {
 int main (int argc, char ** argv) {
   MPI_Init(&argc, &argv);
 
-  size_t dim = 3;
+  constexpr size_t dim = 3;
 
   std::vector<MIdx> st = {{0, 0, 0}, {1, 0, 0}};
 
@@ -48,8 +50,8 @@ int main (int argc, char ** argv) {
   }
 
   // exact solution
-  auto f = [](Scal x, Scal, Scal) {
-    return std::sin(x);
+  auto f = [](Scal x, Scal y, Scal z) {
+    return std::sin(x) * std::cos(y) * std::exp(z / 100.);
   };
 
   std::vector<Scal> da(n * b.st.size());
@@ -90,6 +92,8 @@ int main (int argc, char ** argv) {
 
   std::vector<Block> bb;
   bb.push_back(b);
+  bb.push_back(b);
+  bb.push_back(b);
 
   MPI_Comm comm = MPI_COMM_WORLD;
   MIdx per = {1, 0, 0};
@@ -97,22 +101,44 @@ int main (int argc, char ** argv) {
   int print = 2;
   int maxiter = 80;
 
-  Hypre h(comm, bb, gs, per);
-  h.Solve(tol, print, "gmres", maxiter);
+  (void) tol;
+  (void) print;
+  (void) maxiter;
 
-  // Check solution
-  {
-    size_t j = 0;
-    for (int z = b.l[2]; z <= b.u[2]; ++z) {
-      for (int y = b.l[1]; y <= b.u[1]; ++y) {
-        for (int x = b.l[0]; x <= b.u[0]; ++x) {
-          Scal e = f(x, y, z);
-          PFCMP((*b.x)[j], e);
-          ++j;
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+
+  MPI_Comm commsub;
+  MPI_Comm_split(comm, rank / 3, rank, &commsub);
+
+  int ranksub;
+  MPI_Comm_rank(commsub, &ranksub);
+  std::cout << EV(rank) <<  EV(ranksub) << std::endl;
+
+  HypreSub::InitServer(comm, commsub);
+
+  if (ranksub == 0) {
+    {
+      HypreSub d(comm, bb, gs, per);
+      d.Solve(tol, print, "gmres", maxiter);
+      // Check solution
+      {
+        size_t j = 0;
+        for (int z = b.l[2]; z <= b.u[2]; ++z) {
+          for (int y = b.l[1]; y <= b.u[1]; ++y) {
+            for (int x = b.l[0]; x <= b.u[0]; ++x) {
+              Scal e = f(x, y, z);
+              PFCMP((*b.x)[j], e);
+              ++j;
+            }
+          }
         }
       }
     }
+    HypreSub::StopServer();
+  } else {
+    HypreSub::RunServer();
   }
 
-  MPI_Finalize();	
+  MPI_Finalize();
 }
