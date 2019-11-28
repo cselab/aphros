@@ -372,6 +372,14 @@ struct HypreSub::Imp {
     std::cout << "self update" << std::endl;
     inst.GetHypre().Update();
   }
+  Scal GetResidual() const {
+    auto& inst = state.minst.at(id_);
+    return inst.GetHypre().GetResidual();
+  }
+  int GetIter() const {
+    auto& inst = state.minst.at(id_);
+    return inst.GetHypre().GetIter();
+  }
 
   int id_; // instance id
   std::vector<Block> bbarg_; // bb passed to constructor
@@ -410,5 +418,14 @@ HypreSub::HypreSub(MPI_Comm, const std::vector<Block>& bb, MIdx gs, MIdx per)
 void HypreSub::Update() {
   imp->Update();
 }
+
+auto HypreSub::GetResidual() const -> Scal {
+  return imp->GetResidual();
+}
+
+int HypreSub::GetIter() const {
+  return imp->GetIter();
+}
+
 
 HypreSub::~HypreSub() {}

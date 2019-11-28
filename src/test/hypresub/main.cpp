@@ -13,6 +13,7 @@ using MIdx = typename Hypre::MIdx;
 using Scal = typename Hypre::Scal;
 using Block = typename Hypre::Block;
 
+#define EV(x) (#x) << "=" << (x) << " "
 
 bool Cmp(Scal a, Scal b) {
   return std::abs(a - b) < 1e-10;
@@ -120,6 +121,8 @@ int main (int argc, char ** argv) {
       HypreSub d(comm, bb, gs, per);
       HypreSub d2(comm, bb, gs, per);
       d.Update();
+      std::cout << EV(d.GetResidual()) << std::endl;
+      std::cout << EV(d.GetIter()) << std::endl;
     }
     HypreSub::StopServer();
   } else {
