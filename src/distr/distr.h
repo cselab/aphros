@@ -210,7 +210,6 @@ void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
 // TODO: move
 template <class KF>
 void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
-  const size_t dim = 3;
   auto& vf = mk.at(bb[0])->GetMesh().GetSolve();  // systems to solve on bb[0]
 
   // Check size is the same for all blocks
@@ -254,7 +253,7 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
         lbb.push_back(lb);
       }
 
-      std::vector<bool> per(dim, false);
+      LI per{false, false, false};
       per[0] = var.Int["hypre_periodic_x"];
       per[1] = var.Int["hypre_periodic_y"];
       per[2] = var.Int["hypre_periodic_z"];

@@ -6,8 +6,6 @@
 #include <memory>
 #include <string>
 
-// FIXME: Convention *_ for private variables ignored
-
 class Hypre {
  public:
   static constexpr size_t dim = 3;
@@ -29,20 +27,19 @@ class Hypre {
   // print: print level
   // solver: solver name
   // maxiter: maximum number of iterations
-  Hypre(MPI_Comm comm, const std::vector<Block>& bb,
-        MIdx gs, std::vector<bool> per);
+  Hypre(MPI_Comm comm, const std::vector<Block>& bb, MIdx gs, MIdx per);
   Hypre() = delete;
   Hypre(const Hypre&) = delete;
+  ~Hypre();
 
   // Assembles matrix and vectors from bb
   void Update();
   // Solves system and puts result to x
   void Solve(Scal tol, int print, std::string solver, int maxiter);
   // Returns relative residual norm from last Solve()
-  Scal GetResidual();
+  Scal GetResidual() const;
   // Returns the number of iterations from last Solve()
-  int GetIter();
-  ~Hypre();
+  int GetIter() const;
 
  private:
   struct Imp;
