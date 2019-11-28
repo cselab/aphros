@@ -34,3 +34,6 @@ target_link_libraries(${T} gitgen)
 set(T "subcomm")
 add_library(${T} subcomm.cpp)
 target_link_libraries(${T})
+
+set(T "histogram")
+add_library(${T} histogram.cpp)
