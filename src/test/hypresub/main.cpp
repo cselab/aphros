@@ -119,6 +119,7 @@ int main (int argc, char ** argv) {
     {
       HypreSub d(comm, bb, gs, per);
       HypreSub d2(comm, bb, gs, per);
+      d.Update();
     }
     HypreSub::StopServer();
   } else {

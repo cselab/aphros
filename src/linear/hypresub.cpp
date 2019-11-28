@@ -83,7 +83,8 @@ struct HypreSub::Imp {
     std::vector<Scal> r;
     std::vector<Scal> x;
   };
-  struct Instance {
+  class Instance {
+   public:
     Instance() = delete;
     Instance(const Instance&) = delete;
     Instance(Instance&&) = default;
@@ -125,6 +126,11 @@ struct HypreSub::Imp {
         vbuf[i].Update(src[i]);
       }
     }
+    Hypre& GetHypre() {
+      return hypre;
+    }
+
+   private:
     std::vector<BlockBuffer> vbuf;
     Hypre hypre;
   };
@@ -215,7 +221,7 @@ struct HypreSub::Imp {
         auto vbuf = RecvBlocks(root, comm);
         auto& inst = state.minst.at(id);
         inst.Update(vbuf);
-        inst.hypre.Update();
+        inst.GetHypre().Update();
       } else if (cmd == Cmd::destruct) {
         std::cout << "recv destruct "
             << EV(id) << EV(state.rank) << std::endl;
@@ -363,7 +369,8 @@ struct HypreSub::Imp {
     }
     auto& inst = state.minst.at(id_);
     inst.Update(GetPart(bbarg_, 0));
-    inst.hypre.Update();
+    std::cout << "self update" << std::endl;
+    inst.GetHypre().Update();
   }
 
   int id_; // instance id
