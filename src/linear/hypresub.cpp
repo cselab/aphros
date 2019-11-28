@@ -6,8 +6,8 @@
 
 #include "hypresub.h"
 
-#define DEB(x) x
-//#define DEB(x)
+//#define DEB(x) x
+#define DEB(x)
 
 DEB(
 static std::ostream& operator<<(
@@ -92,6 +92,23 @@ struct HypreSub::Imp {
     std::vector<Scal> r;
     std::vector<Scal> x;
   };
+
+  static std::vector<Block> GetBlocks(const std::vector<BlockBuffer>& vbuf) {
+    std::vector<Block> bb;
+    for (auto& buf : vbuf) {
+      bb.push_back(buf.Get());
+    }
+    return bb;
+  }
+  static std::vector<BlockBuffer> GetBlockBuffers(
+      const std::vector<Block>& bb) {
+    std::vector<BlockBuffer> vbuf(bb.size());
+    for (size_t i = 0; i < bb.size(); ++i) {
+      vbuf[i].Update(bb[i]);
+    }
+    return vbuf;
+  }
+
   class Instance {
    public:
     Instance() = delete;
@@ -101,7 +118,7 @@ struct HypreSub::Imp {
     Instance& operator=(Instance&&) = delete;
     Instance(std::vector<BlockBuffer>&& vbuf0, MIdx gs, MIdx per)
         : vbuf(std::move(vbuf0))
-        , hypre(state.comm, GetBlocks(vbuf), gs, per) {}
+        , hypre(state.comm, Imp::GetBlocks(vbuf), gs, per) {}
     ~Instance() {}
     void Update(const std::vector<Block>& src) {
       assert(src.size() == vbuf.size());
@@ -117,6 +134,9 @@ struct HypreSub::Imp {
     }
     Hypre& GetHypre() {
       return hypre;
+    }
+    std::vector<Block> GetBlocks() const {
+      return Imp::GetBlocks(vbuf);
     }
 
    private:
@@ -138,21 +158,6 @@ struct HypreSub::Imp {
   static constexpr int tag = 1;
   static constexpr auto MSI = MPI_STATUS_IGNORE;
 
-  static std::vector<Block> GetBlocks(const std::vector<BlockBuffer>& vbuf) {
-    std::vector<Block> bb;
-    for (auto& buf : vbuf) {
-      bb.push_back(buf.Get());
-    }
-    return bb;
-  }
-  static std::vector<BlockBuffer> GetBlockBuffers(
-      const std::vector<Block>& bb) {
-    std::vector<BlockBuffer> vbuf(bb.size());
-    for (size_t i = 0; i < bb.size(); ++i) {
-      vbuf[i].Update(bb[i]);
-    }
-    return vbuf;
-  }
   // Returns partition of blocks for one rank
   static std::vector<Block> GetPart(const std::vector<Block>& bb, int rank) {
     return {bb[rank]};
@@ -223,6 +228,7 @@ struct HypreSub::Imp {
         auto& inst = state.minst.at(id);
         DEB(std::cout << "recv solve " << EV(id) << EV(solver) << std::endl;)
         inst.GetHypre().Solve(tol, print, solver, maxiter);
+        SendBlocks(inst.GetBlocks(), root, comm);
       } else if (cmd == Cmd::destruct) {
         DEB(std::cout << "recv destruct "
             << EV(id) << EV(state.rank) << std::endl;)
@@ -400,17 +406,36 @@ struct HypreSub::Imp {
     return inst.GetHypre().GetIter();
   }
   void Solve(Scal tol, int print, std::string solver, int maxiter) {
+    auto comm = state.comm;
     for (auto rank : {1, 2}) {
       Send(Cmd::solve, rank);
-      Send(id_, rank, state.comm);
-      Send(tol, rank, state.comm);
-      Send(print, rank, state.comm);
-      Send(solver, rank, state.comm);
-      Send(maxiter, rank, state.comm);
+      Send(id_, rank, comm);
+      Send(tol, rank, comm);
+      Send(print, rank, comm);
+      Send(solver, rank, comm);
+      Send(maxiter, rank, comm);
     }
     auto& inst = state.minst.at(id_);
     DEB(std::cout << "self solve" << EV(solver) << std::endl;)
     inst.GetHypre().Solve(tol, print, solver, maxiter);
+    for (auto rank : {1, 2}) {
+      auto bb = GetPart(bbarg_, rank);
+      auto vbuf = RecvBlocks(rank, comm);
+      assert(bb.size() == vbuf.size());
+      for (size_t i = 0; i < bb.size(); ++i) {
+        auto& b = bb[i];
+        auto& s = vbuf[i].Get();
+        (*b.x) = (*s.x);
+      }
+    }
+    auto bb = GetPart(bbarg_, 0);
+    auto ss = inst.GetBlocks(); // source
+    assert(bb.size() == ss.size());
+    for (size_t i = 0; i < bb.size(); ++i) {
+      auto& b = bb[i];
+      auto& s = ss[i];
+      (*b.x) = (*s.x);
+    }
   }
 
   int id_; // instance id
