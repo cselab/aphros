@@ -44,37 +44,28 @@ static std::ostream& operator<<(std::ostream& out, const HypreSub::Block& b) {
 struct HypreSub::Imp {
   enum class Cmd {
       construct, destruct, update, solve, get_residual, get_iter, exit};
-  struct BlockBuffer {
+
+  // Block with data, only default-constructable once
+  class BlockBuffer {
+   public:
     BlockBuffer() {
       b.a = &a;
       b.r = &r;
       b.x = &x;
     }
-    BlockBuffer(Block b0)
-        : b(b0), a(*b0.a), r(*b0.r), x(*b0.x) {
-      b.a = &a;
-      b.r = &r;
-      b.x = &x;
-    }
     BlockBuffer(const BlockBuffer&) = delete;
-    BlockBuffer(BlockBuffer&& o)
-        : b(o.b), a(o.a), r(o.r), x(o.x) {
+    BlockBuffer(BlockBuffer&&) = delete;
+    BlockBuffer& operator=(const BlockBuffer&) = delete;
+    BlockBuffer& operator=(BlockBuffer&&) = delete;
+    // Copy data from
+    void Update(const Block& b0) {
+      b = b0;
+      a = *b0.a;
+      r = *b0.r;
+      x = *b0.x;
       b.a = &a;
       b.r = &r;
       b.x = &x;
-    }
-    BlockBuffer& operator=(BlockBuffer&& o) {
-      b = o.b;
-      a = o.a;
-      r = o.r;
-      x = o.x;
-      return *this;
-    }
-    // Copy data from
-    void Update(const Block& b) {
-      a = *b.a;
-      r = *b.r;
-      x = *b.x;
     }
     // Copy data from
     void Update(const BlockBuffer& buf) {
@@ -82,7 +73,12 @@ struct HypreSub::Imp {
       r = buf.r;
       x = buf.x;
     }
-    Block b;
+    const Block& Get() const {
+      return b;
+    }
+
+   private:
+    Block b; // b.a,b.r,b.x always point to a,r,x
     std::vector<Scal> a;
     std::vector<Scal> r;
     std::vector<Scal> x;
@@ -90,6 +86,9 @@ struct HypreSub::Imp {
   struct Instance {
     Instance() = delete;
     Instance(const Instance&) = delete;
+    Instance(Instance&&) = default;
+    Instance& operator=(const Instance&) = delete;
+    Instance& operator=(Instance&&) = default;
     Instance(std::vector<BlockBuffer>&& vbuf0, MIdx gs, MIdx per)
         : vbuf(std::move(vbuf0))
         , hypre(state.comm, GetBlocks(vbuf), gs, per) {
@@ -143,7 +142,7 @@ struct HypreSub::Imp {
   static std::vector<Block> GetBlocks(const std::vector<BlockBuffer>& vbuf) {
     std::vector<Block> bb;
     for (auto& buf : vbuf) {
-      bb.push_back(buf.b);
+      bb.push_back(buf.Get());
     }
     return bb;
   }
@@ -151,7 +150,7 @@ struct HypreSub::Imp {
       const std::vector<Block>& bb) {
     std::vector<BlockBuffer> vbuf(bb.size());
     for (size_t i = 0; i < bb.size(); ++i) {
-      vbuf[i] = BlockBuffer(bb[i]);
+      vbuf[i].Update(bb[i]);
     }
     return vbuf;
   }
@@ -269,7 +268,8 @@ struct HypreSub::Imp {
       Send(bb[i], rank, comm);
     }
   }
-  static void Recv(Block& b, int rank, MPI_Comm comm) {
+  static void Recv(BlockBuffer& buf, int rank, MPI_Comm comm) {
+    Block b = buf.Get();
     // bounding box
     Recv(b.l, rank, comm);
     Recv(b.u, rank, comm);
@@ -283,17 +283,14 @@ struct HypreSub::Imp {
     Recv(*b.a, rank, comm);
     Recv(*b.r, rank, comm);
     Recv(*b.x, rank, comm);
+    buf.Update(b);
   }
   static std::vector<BlockBuffer> RecvBlocks(int rank, MPI_Comm comm) {
     int nb;
     MPI_Recv(&nb, 1, MPI_INT, rank, tag, comm, MSI);
     std::vector<BlockBuffer> vbuf(nb);
-    for (int i = 0; i < nb; ++i) {
-      BlockBuffer& buf = vbuf[i];
-      buf.b.a = &buf.a;
-      buf.b.r = &buf.r;
-      buf.b.x = &buf.x;
-      Recv(buf.b, rank, comm);
+    for (auto& buf : vbuf) {
+      Recv(buf, rank, comm);
     }
     return vbuf;
   }
