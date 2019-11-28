@@ -175,6 +175,8 @@ class Cubism : public DistrMesh<KF> {
   using P::ext_;
   using P::frame_;
 
+  Histogram hist_;
+
   Grid g_;
   struct S { // cubism [s]tate
     Synch* s;
@@ -498,6 +500,7 @@ std::vector<MyBlockInfo> Cubism<Par, KF>::Convert(
 template <class Par, class KF>
 Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& var)
   : DistrMesh<KF>(comm, kf, var)
+  , hist_(comm, "cubism", var.Int["histogram"])
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm)
 {
   assert(bs_[0] == Block::bx && bs_[1] == Block::by && 
@@ -533,7 +536,9 @@ auto Cubism<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
     return std::vector<MIdx>();
   }
 
+  hist_.SeedSample();
   MPI_Barrier(comm_);
+  hist_.CollectSample("MPI_Barrier");
 
   // Get all blocks
   std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
@@ -555,7 +560,9 @@ auto Cubism<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
     s_.l.reset(new Lab);
     s_.l->prepare(g_, s);   // allocate memory for lab cache
 
+    hist_.SeedSample();
     MPI_Barrier(comm_);
+    hist_.CollectSample("MPI_Barrier");
 
     // Do communication and get all blocks
     aa = s.avail(cc.size());
@@ -641,7 +648,9 @@ void Cubism<Par, KF>::Bcast(const std::vector<MIdx>& bb) {
       r.resize(s);
 
       // broadcast data
+      hist_.SeedSample();
       MPI_Bcast(r.data(), r.size(), MPI_CHAR, 0, comm_);
+      hist_.CollectSample("MPI_Bcast");
        
       // write to all blocks
       for (auto& b : bb) {
@@ -718,8 +727,10 @@ void Cubism<Par, KF>::Scatter(const std::vector<MIdx>& bb) {
                   &recvcount, 1, MPI_INT, 0, comm_);
       rbuf.resize(recvcount);
       // data
+      hist_.SeedSample();
       MPI_Scatterv(buf.data(), cnt.data(), dis.data(), mscal,
                    rbuf.data(), recvcount, mscal, 0, comm_);
+      hist_.CollectSample("MPI_Scatterv");
       // sizes recvcount
       MPI_Scatter(sizes_cnt.data(), 1, MPI_INT,
                   &sizes_recvcount, 1, MPI_INT, 0, comm_);
@@ -734,8 +745,10 @@ void Cubism<Par, KF>::Scatter(const std::vector<MIdx>& bb) {
                   &recvcount, 1, MPI_INT, 0, comm_);
       rbuf.resize(recvcount);
       // data
+      hist_.SeedSample();
       MPI_Scatterv(nullptr, nullptr, nullptr, mscal,
                    rbuf.data(), recvcount, mscal, 0, comm_);
+      hist_.CollectSample("MPI_Scatterv");
       // sizes recvcount
       MPI_Scatter(nullptr, 0, MPI_INT,
                   &sizes_recvcount, 1, MPI_INT, 0, comm_);
@@ -804,7 +817,9 @@ void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
       MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
 
       // Reduce over all ranks
+      hist_.SeedSample();
       MPI_Allreduce(MPI_IN_PLACE, &r, 1, mt, mo, comm_); 
+      hist_.CollectSample("MPI_Allreduce");
 
       // Write results to all blocks on current rank
       for (auto& b : bb) {
@@ -834,7 +849,9 @@ void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
       MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE_INT : MPI_FLOAT_INT);
 
       // Reduce over all ranks
+      hist_.SeedSample();
       MPI_Allreduce(MPI_IN_PLACE, &r, 1, mt, mo, comm_); 
+      hist_.CollectSample("MPI_Allreduce");
 
       // Write results to all blocks on current rank
       for (auto& b : bb) {
@@ -878,9 +895,11 @@ void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
         std::vector<char> ra(sa); // result all
 
         // Gather ra
+        hist_.SeedSample();
         MPI_Gatherv(r.data(), r.size(), MPI_CHAR,
                     ra.data(), ss.data(), oo.data(), MPI_CHAR,
                     0, comm_);
+        hist_.CollectSample("MPI_Gatherv");
        
         // Write results to root block 
         size_t cnt = 0;
@@ -899,9 +918,11 @@ void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
         MPI_Gather(&s, 1, MPI_INT, nullptr, 0, MPI_INT, 0, comm_);
 
         // Send r to root
+        hist_.SeedSample();
         MPI_Gatherv(r.data(), r.size(), MPI_CHAR,
                     nullptr, nullptr, nullptr, MPI_CHAR,
                     0, comm_);
+        hist_.CollectSample("MPI_Gatherv");
       }
 
     } else {
@@ -1017,7 +1038,9 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       }
     }
 
+    hist_.SeedSample();
     MPI_Barrier(comm_);
+    hist_.CollectSample("MPI_Barrier");
     return gfc;
   } else {
     // send to root
@@ -1043,7 +1066,9 @@ auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       // XXX: assume same order of Recv on root
       MPI_Send(v.data(), v.size(), mt, 0, ndq.GetIdx(b), comm_);
     }
+    hist_.SeedSample();
     MPI_Barrier(comm_);
+    hist_.CollectSample("MPI_Barrier");
     return FieldCell<Scal>();
   }
 }
