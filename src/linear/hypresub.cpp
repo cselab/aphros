@@ -87,9 +87,9 @@ struct HypreSub::Imp {
    public:
     Instance() = delete;
     Instance(const Instance&) = delete;
-    Instance(Instance&&) = default;
+    Instance(Instance&&) = delete;
     Instance& operator=(const Instance&) = delete;
-    Instance& operator=(Instance&&) = default;
+    Instance& operator=(Instance&&) = delete;
     Instance(std::vector<BlockBuffer>&& vbuf0, MIdx gs, MIdx per)
         : vbuf(std::move(vbuf0))
         , hypre(state.comm, GetBlocks(vbuf), gs, per) {
