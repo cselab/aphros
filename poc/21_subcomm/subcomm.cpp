@@ -291,11 +291,12 @@ int main(int argc, char *argv[])
         MPI_Comm_size(comm_omp_, &omp_size);
 #if 1 == _USE_OMP_
         std::vector<int> nthreads = {1, 2, 4, 8, 12};
+        std::vector<double> result;
         std::vector<std::pair<double, double>> avg_time; // inner, outer
         for (auto threads : nthreads) {
-            const size_t nsteps = 1000000;
+            const size_t nsteps = 10000000;
             const double step = 1.0 / static_cast<double>(nsteps);
-            volatile double sum = 0.0;
+            double sum = 0.0;
             double t_inner = 0.0;
             const double t0_outer = omp_get_wtime();
 #pragma omp parallel num_threads(threads) reduction(+ : sum, t_inner)
@@ -306,6 +307,7 @@ int main(int argc, char *argv[])
                 const int nthreads = omp_get_num_threads();
 
                 const double t0_inner = omp_get_wtime();
+#pragma omp for
                 for (size_t i = 0; i < nsteps; ++i) {
                     const double x = (i + 0.5) * step;
                     sum += 4.0 / (1.0 + x * x);
@@ -313,6 +315,7 @@ int main(int argc, char *argv[])
                 t_inner = omp_get_wtime() - t0_inner;
             }
             const double t_outer = omp_get_wtime() - t0_outer;
+            result.push_back(sum * step);
             avg_time.push_back(std::make_pair(t_inner / threads, t_outer));
         }
         int comm_rank, comm_size;
@@ -324,13 +327,14 @@ int main(int argc, char *argv[])
             const double ti = avg_time[i].first;
             const double to = avg_time[i].second;
             printf("omp_master %d/%d:\tnthreads:%d;\tspeedup:%4.2f;\t"
-                   "efficiency:%5.1f%%;\toverhead:%5.1f%%\n",
+                   "efficiency:%5.1f%%;\toverhead:%5.1f%%;\tresult=%.4e\n",
                    comm_rank,
                    comm_size,
                    num_threads,
                    t0i / ti,
                    (t0i / ti) / num_threads * 100.0,
-                   (to - ti) / to * 100.0);
+                   (to - ti) / to * 100.0,
+                   result[i]);
         }
 #endif /* _USE_OMP_ */
         command = 0;
