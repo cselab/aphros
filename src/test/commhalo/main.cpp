@@ -60,7 +60,7 @@ set int bsx 8
 set int bsy 8
 set int bsz 1
 
-set int hl 1
+set int hl 2
 
 set int verbose_time 1
 set int verbose_stages 1
