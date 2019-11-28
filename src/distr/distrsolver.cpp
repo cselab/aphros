@@ -70,7 +70,7 @@ int RunMpi(int argc, const char ** argv,
     MPI_Comm comm;
     MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
     if (rank == 0) {
-      RunKernel(comm, kernel, var);
+      RunKernelOpenMP(comm, comm, comm, kernel, var);
     }
   } else {
     bool openmp = var.Int["openmp"];
@@ -84,7 +84,8 @@ int RunMpi(int argc, const char ** argv,
       }
       RunKernelOpenMP(comm_world, comm_omp, comm_master, kernel, var);
     } else {
-      RunKernel(MPI_COMM_WORLD, kernel, var);
+      MPI_Comm comm = MPI_COMM_WORLD;
+      RunKernelOpenMP(comm, comm, comm, kernel, var);
     }
   }
 
