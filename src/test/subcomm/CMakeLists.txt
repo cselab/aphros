@@ -7,4 +7,4 @@ include_directories(${S})
 
 add_executable(${EXE} main.cpp)
 
-target_link_libraries(${EXE} subcomm)
+target_link_libraries(${EXE} subcomm sysinfo)
