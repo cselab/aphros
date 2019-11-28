@@ -1,3 +1,7 @@
 include a.conf
 
 set string backend cubismnc
+set int px 1
+set int bx 2
+set int openmp 1
+
