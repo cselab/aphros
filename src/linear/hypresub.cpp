@@ -6,6 +6,10 @@
 
 #include "hypresub.h"
 
+#define DEB(x) x
+//#define DEB(x)
+
+DEB(
 static std::ostream& operator<<(
     std::ostream& out, const HypreSub::MIdx& v) {
   out << "(";
@@ -15,7 +19,9 @@ static std::ostream& operator<<(
   out << ")";
   return out;
 }
+)
 
+DEB(
 template <class T>
 static std::ostream& operator<<(
     std::ostream& out, const std::vector<T>& v) {
@@ -26,7 +32,9 @@ static std::ostream& operator<<(
   out << "]";
   return out;
 }
+)
 
+DEB(
 static std::ostream& operator<<(std::ostream& out, const HypreSub::Block& b) {
   out
     << "b.l=" << b.l
@@ -38,6 +46,7 @@ static std::ostream& operator<<(std::ostream& out, const HypreSub::Block& b) {
     ;
   return out;
 }
+)
 
 #define EV(x) (#x) << "=" << (x) << " "
 
@@ -92,28 +101,8 @@ struct HypreSub::Imp {
     Instance& operator=(Instance&&) = delete;
     Instance(std::vector<BlockBuffer>&& vbuf0, MIdx gs, MIdx per)
         : vbuf(std::move(vbuf0))
-        , hypre(state.comm, GetBlocks(vbuf), gs, per) {
-          /*
-      std::cout
-          << "Instance()"
-          << EV(state.rank)
-          << EV(state.ranksub)
-          << EV(vbuf.size())
-          << EV(gs)
-          << EV(per)
-          << std::endl;
-          */
-    }
-    ~Instance() {
-      /*
-      std::cout
-          << "~Instance()"
-          << EV(state.rank)
-          << EV(state.ranksub)
-          << EV(vbuf.size())
-          << std::endl;
-          */
-    }
+        , hypre(state.comm, GetBlocks(vbuf), gs, per) {}
+    ~Instance() {}
     void Update(const std::vector<Block>& src) {
       assert(src.size() == vbuf.size());
       for (size_t i = 0; i < vbuf.size(); ++i) {
@@ -210,14 +199,14 @@ struct HypreSub::Imp {
         auto vbuf = RecvBlocks(root, comm);
         Recv(gs, root, comm);
         Recv(per, root, comm);
-        std::cout << "recv construct "
-            << EV(id) << EV(state.rank) << GetBlocks(vbuf) << std::endl;
+        DEB(std::cout << "recv construct "
+            << EV(id) << EV(state.rank) << GetBlocks(vbuf) << std::endl;)
         state.minst.emplace(
             std::piecewise_construct,
             std::forward_as_tuple(id),
             std::forward_as_tuple(std::move(vbuf), gs, per));
       } else if (cmd == Cmd::update) {
-        std::cout << "recv update " << EV(id) << std::endl;
+        DEB(std::cout << "recv update " << EV(id) << std::endl;)
         auto vbuf = RecvBlocks(root, comm);
         auto& inst = state.minst.at(id);
         inst.Update(vbuf);
@@ -232,15 +221,15 @@ struct HypreSub::Imp {
         Recv(solver, root, comm);
         Recv(maxiter, root, comm);
         auto& inst = state.minst.at(id);
-        std::cout << "recv solve " << EV(id) << EV(solver) << std::endl;
+        DEB(std::cout << "recv solve " << EV(id) << EV(solver) << std::endl;)
         inst.GetHypre().Solve(tol, print, solver, maxiter);
       } else if (cmd == Cmd::destruct) {
-        std::cout << "recv destruct "
-            << EV(id) << EV(state.rank) << std::endl;
+        DEB(std::cout << "recv destruct "
+            << EV(id) << EV(state.rank) << std::endl;)
         state.minst.erase(id);
       } else if (cmd == Cmd::exit) {
-        std::cout << "recv exit "
-            << EV(id) << EV(state.rank) << std::endl;
+        DEB(std::cout << "recv exit "
+            << EV(id) << EV(state.rank) << std::endl;)
         break;
       }
     }
@@ -370,14 +359,14 @@ struct HypreSub::Imp {
     for (auto rank : {1, 2}) {
       Send(Cmd::construct, rank);
       Send(id_, rank, state.comm);
-      std::cout << "send construct "
-          << EV(id_) << EV(rank) << GetPart(bbarg_, rank) << std::endl;
+      DEB(std::cout << "send construct "
+          << EV(id_) << EV(rank) << GetPart(bbarg_, rank) << std::endl;)
       SendBlocks(GetPart(bbarg_, rank), rank, state.comm);
       Send(gs, rank, state.comm);
       Send(per, rank, state.comm);
     }
-    std::cout << "self construct "
-        << EV(id_) << GetPart(bbarg_, 0) << std::endl;
+    DEB(std::cout << "self construct "
+        << EV(id_) << GetPart(bbarg_, 0) << std::endl;)
     state.minst.emplace(
         std::piecewise_construct,
         std::forward_as_tuple(id_),
@@ -389,7 +378,7 @@ struct HypreSub::Imp {
       Send(id_, rank, state.comm);
     }
     state.minst.erase(id_);
-    std::cout << "self destruct" << std::endl;
+    DEB(std::cout << "self destruct" << std::endl;)
   }
   void Update() {
     for (auto rank : {1, 2}) {
@@ -399,7 +388,7 @@ struct HypreSub::Imp {
     }
     auto& inst = state.minst.at(id_);
     inst.Update(GetPart(bbarg_, 0));
-    std::cout << "self update" << std::endl;
+    DEB(std::cout << "self update" << std::endl;)
     inst.GetHypre().Update();
   }
   Scal GetResidual() const {
@@ -420,7 +409,7 @@ struct HypreSub::Imp {
       Send(maxiter, rank, state.comm);
     }
     auto& inst = state.minst.at(id_);
-    std::cout << "self solve" << EV(solver) << std::endl;
+    DEB(std::cout << "self solve" << EV(solver) << std::endl;)
     inst.GetHypre().Solve(tol, print, solver, maxiter);
   }
 
