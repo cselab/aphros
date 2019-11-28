@@ -23,6 +23,17 @@
 #warning "USING C++ THREAD MODEL"
 #endif /* _USE_OMP_ */
 
+#define _SETAFFINITY(tid, cpu_map)                                             \
+    do {                                                                       \
+        cpu_set_t cpuset;                                                      \
+        CPU_ZERO(&cpuset);                                                     \
+        CPU_SET((cpu_map)[(tid)], &cpuset);                                    \
+        if (0 != sched_setaffinity(                                            \
+                     0 /* = calling thread */, sizeof(cpu_set_t), &cpuset)) {  \
+            fprintf(stderr, "Can not set affinity for thread %d\n", (tid));    \
+        }                                                                      \
+    } while (0)
+
 #define NCHAR_HOST 512
 struct Affinity {
     int node_ID;
@@ -225,14 +236,7 @@ int main(int argc, char *argv[])
         {
             // each thread configures its own affinity
             const int tid = omp_get_thread_num();
-            cpu_set_t cpuset;
-            CPU_ZERO(&cpuset);
-            CPU_SET(thread_affinity[tid], &cpuset);
-            if (0 != sched_setaffinity(0 /* = calling thread */,
-                                       sizeof(cpu_set_t),
-                                       &cpuset)) {
-                fprintf(stderr, "Can not set affinity for thread %d\n", tid);
-            }
+            _SETAFFINITY(tid, thread_affinity);
 
             const int nthreads = omp_get_num_threads();
             Affinity a = GetAffinity();
@@ -249,14 +253,7 @@ int main(int argc, char *argv[])
         for (int i = 0; i < static_cast<int>(threads.size()); ++i) {
             threads[i] = std::thread([i, omp_size] {
                 // each thread configures its own affinity
-                cpu_set_t cpuset;
-                CPU_ZERO(&cpuset);
-                CPU_SET(thread_affinity[i], &cpuset);
-                if (0 != sched_setaffinity(0 /* = calling thread */,
-                                           sizeof(cpu_set_t),
-                                           &cpuset)) {
-                    fprintf(stderr, "Can not set affinity for thread %d\n", i);
-                }
+                _SETAFFINITY(i, thread_affinity);
 
                 Affinity a = GetAffinity();
                 printf("Thread %d/%d: host:%s; node_ID:%d; core_ID:%d\n",
@@ -278,6 +275,62 @@ int main(int argc, char *argv[])
         }
         for (auto &t : threads) {
             t.join();
+        }
+#endif /* _USE_OMP_ */
+        command = 0;
+        MPI_Bcast(&command, 1, MPI_INT, 0, comm_omp_);
+    } else { // others wait for command
+        MPI_Bcast(&command, 1, MPI_INT, 0, comm_omp_);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // OpenMP strong scaling
+    command = -1;
+    if (omp_master_) { // omp root rank enters hybrid region
+        int omp_size;
+        MPI_Comm_size(comm_omp_, &omp_size);
+#if 1 == _USE_OMP_
+        std::vector<int> nthreads = {1, 2, 4, 8, 12};
+        std::vector<std::pair<double, double>> avg_time; // inner, outer
+        for (auto threads : nthreads) {
+            const size_t nsteps = 1000000;
+            const double step = 1.0 / static_cast<double>(nsteps);
+            volatile double sum = 0.0;
+            double t_inner = 0.0;
+            const double t0_outer = omp_get_wtime();
+#pragma omp parallel num_threads(threads) reduction(+ : sum, t_inner)
+            {
+                // each thread configures its own affinity
+                const int tid = omp_get_thread_num();
+                _SETAFFINITY(tid, thread_affinity);
+                const int nthreads = omp_get_num_threads();
+
+                const double t0_inner = omp_get_wtime();
+                for (size_t i = 0; i < nsteps; ++i) {
+                    const double x = (i + 0.5) * step;
+                    sum += 4.0 / (1.0 + x * x);
+                }
+                t_inner = omp_get_wtime() - t0_inner;
+            }
+            const double t_outer = omp_get_wtime() - t0_outer;
+            avg_time.push_back(std::make_pair(t_inner / threads, t_outer));
+        }
+        int comm_rank, comm_size;
+        MPI_Comm_rank(comm_, &comm_rank);
+        MPI_Comm_size(comm_, &comm_size);
+        for (size_t i = 0; i < nthreads.size(); ++i) {
+            const int num_threads = nthreads[i];
+            const double t0i = avg_time[0].first;
+            const double ti = avg_time[i].first;
+            const double to = avg_time[i].second;
+            printf("omp_master %d/%d:\tnthreads:%d;\tspeedup:%4.2f;\t"
+                   "efficiency:%5.1f%%;\toverhead:%5.1f%%\n",
+                   comm_rank,
+                   comm_size,
+                   num_threads,
+                   t0i / ti,
+                   (t0i / ti) / num_threads * 100.0,
+                   (to - ti) / to * 100.0);
         }
 #endif /* _USE_OMP_ */
         command = 0;

@@ -1,6 +1,6 @@
 .PHONY: all build run clean
 
-CC ?= mpic++
+CC = mpic++
 
 all: build run
 
