@@ -1,3 +1,4 @@
 include a.conf
 
-set string backend cubism
+set string backend cubismnc
+set int px 1

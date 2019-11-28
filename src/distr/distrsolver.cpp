@@ -3,7 +3,7 @@
 #include "util/subcomm.h"
 #include "linear/hypresub.h"
 
-static int RunKernel(
+static void RunKernel(
     MPI_Comm comm_world, MPI_Comm comm_omp, MPI_Comm comm_master,
     std::function<void(MPI_Comm, Vars&)> kernel, Vars& var) {
   int rank_omp;
@@ -61,15 +61,19 @@ int RunMpi(int argc, const char ** argv,
 
   std::string be = var.String["backend"];
 
-  MPI_Comm comm;
   if (be == "local") {
+    MPI_Comm comm;
     MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
     if (rank == 0) {
-      kernel(comm, var);
+      RunKernel(comm, comm, comm, kernel, var);
     }
   } else {
-    comm = MPI_COMM_WORLD;
-    kernel(comm, var);
+    MPI_Comm comm_world;
+    MPI_Comm comm_omp;
+    MPI_Comm comm_master;
+    SubComm(comm_world, comm_omp, comm_master);
+    PrintStats(comm_world, comm_omp, comm_master);
+    RunKernel(comm_world, comm_omp, comm_master, kernel, var);
   }
 
   MPI_Finalize();

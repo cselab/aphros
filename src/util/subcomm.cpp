@@ -8,11 +8,11 @@
 #include <sched.h>
 #include <set>
 #include <sstream>
-#include <stdio.h>
 #include <string>
 #include <unistd.h>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include "subcomm.h"
 #include "sysinfo.h"
@@ -122,4 +122,32 @@ void SubComm(
       &omp_master_group_);
   MPI_Comm_create(comm_world, omp_master_group_, &comm_master);
   MPI_Group_free(&hypre_group);
+}
+
+#define EV(x) (#x) << "=" << (x) << " "
+
+void PrintStats(MPI_Comm comm_world, MPI_Comm comm_omp, MPI_Comm comm_master) {
+  int size_world, rank_world;
+  int size_omp, rank_omp;
+
+  MPI_Comm_size(comm_world, &size_world);
+  MPI_Comm_rank(comm_world, &rank_world);
+  MPI_Comm_size(comm_omp, &size_omp);
+  MPI_Comm_rank(comm_omp, &rank_omp);
+
+  if (rank_omp == 0) {
+    int size_master, rank_master;
+    MPI_Comm_size(comm_master, &size_master);
+    MPI_Comm_rank(comm_master, &rank_master);
+    std::cout
+        << EV(size_world) << EV(rank_world) << std::endl
+        << EV(size_omp) << EV(rank_omp) << std::endl
+        << EV(size_master) << EV(rank_master) << std::endl
+        << std::endl;
+  } else {
+    std::cout
+        << EV(size_world) << EV(rank_world) << std::endl
+        << EV(size_omp) << EV(rank_omp) << std::endl
+        << std::endl;
+  }
 }

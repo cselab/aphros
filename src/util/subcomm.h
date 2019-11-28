@@ -8,3 +8,4 @@
 // comm_master: communicator with one master rank from each node
 // (see example in subcomm.cpp)
 void SubComm(MPI_Comm& comm_world, MPI_Comm& comm_omp, MPI_Comm& comm_master);
+void PrintStats(MPI_Comm comm_world, MPI_Comm comm_omp, MPI_Comm comm_master);
