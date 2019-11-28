@@ -6,9 +6,7 @@
 #include <table.h>
 
 static const char me[] = "split";
-
 #define	USED(x)		if(x);else{}
-
 #define MALLOC(n, p)							\
     do {								\
 	*(p) = malloc((n)*sizeof(**(p)));				\
@@ -60,9 +58,10 @@ main(int argc, char **argv)
   double dmin;
   int lmin;
   int m;
+  char *Prefix;
 
   USED(argc);
-  name = NULL;
+  name = Prefix = NULL;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
     case 'h':
@@ -71,6 +70,13 @@ main(int argc, char **argv)
     case 'f':
       argv++;
       name = argv[0];
+      break;
+    case 'p':
+      argv++;
+      if ((Prefix = *argv) == NULL) {
+        fprintf(stderr, "%s: -p needs an argument\n", me);
+        exit(2);
+      }
       break;
     default:
       fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
