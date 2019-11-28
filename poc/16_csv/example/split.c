@@ -1,11 +1,17 @@
+#include <ctype.h>
 #include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <csv.h>
 #include <table.h>
 
+enum { N = 999 };
 static const char me[] = "split";
+
+#include "util.h"
+
 #define	USED(x)		if(x);else{}
 #define MALLOC(n, p)							\
     do {								\
@@ -19,7 +25,7 @@ static const char me[] = "split";
 static void
 usg()
 {
-  fprintf(stderr, "%s -f field [csv..]\n", me);
+  fprintf(stderr, "%s -p prefix -f field [csv..] -p \n", me);
   exit(1);
 }
 
@@ -47,18 +53,20 @@ static int dist(int, struct Data *, int, struct Data *, /**/ double *);
 int
 main(int argc, char **argv)
 {
-  struct Data a;
-  struct Data b;
-  int *array;
-  int *new;
-  int *split;
-  int *prev;
-  int nb, na, nn, i, j, l;
+  char *Prefix;
+  char output[N];
   double d;
   double dmin;
+  FILE *file;
+  int *array;
   int lmin;
   int m;
-  char *Prefix;
+  int nb, na, nn, i, j, l;
+  int *new;
+  int *prev;
+  int *split;
+  struct Data a;
+  struct Data b;
 
   USED(argc);
   name = Prefix = NULL;
@@ -82,8 +90,12 @@ main(int argc, char **argv)
       fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
       exit(1);
     }
+  if (Prefix == NULL) {
+    fprintf(stderr, "%s: prefix (-p) is not given\n", me);
+    exit(1);
+  }
   if (name == NULL) {
-    fprintf(stderr, "%s: -f is not set\n", me);
+    fprintf(stderr, "%s: field (-f) is not given\n", me);
     exit(1);
   }
   if (*argv == NULL) {
@@ -94,6 +106,10 @@ main(int argc, char **argv)
   a = data_ini(*argv);
   while (*++argv != NULL) {
     b = data_ini(*argv);
+    if (util_name(Prefix, *argv, output) != 0) {
+      fprintf(stderr, "%s: util_name failed\n", me);
+      exit(2);
+    }
     array = table_array(b.table);
     if (array == NULL) {
       fprintf(stderr, "%s: table_array failed\n", me);
@@ -135,6 +151,15 @@ main(int argc, char **argv)
         fprintf(stderr, "%s: prev disapeared: lmin = %d, m = %d\n", me,
                 lmin, m);
       }
+      if ((file = fopen(output, "w")) == NULL) {
+        fprintf(stderr, "%s: fail to write to '%s'\n", me, output);
+        exit(2);
+      }
+      if (csv_write(b.csv, file) != 0) {
+        fprintf(stderr, "%s: csv_write failed\n", me);
+        exit(2);
+      }
+      fclose(file);
     }
     free(new);
     free(prev);
