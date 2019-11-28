@@ -9,6 +9,8 @@
 //#define DEB(x) x
 #define DEB(x)
 
+#define MSI MPI_STATUS_IGNORE
+
 DEB(
 static std::ostream& operator<<(
     std::ostream& out, const HypreSub::MIdx& v) {
@@ -158,7 +160,6 @@ struct HypreSub::Imp {
   static constexpr MPI_Datatype MPI_SCAL =
       (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
   static constexpr int tag = 1;
-  static constexpr auto MSI = MPI_STATUS_IGNORE;
 
   // Returns partition of blocks for one rank
   std::vector<Block> GetPart(int ranksub) {
