@@ -46,8 +46,10 @@ struct Data {
   double *r;
   double *field;
 };
-static int data_fin(struct Data *);
 static struct Data data_ini(const char *);
+static int data_fin(struct Data *);
+static int data_add(struct Data *, const char *, const int *);
+
 static int dist(int, struct Data *, int, struct Data *, /**/ double *);
 
 int
@@ -61,7 +63,12 @@ main(int argc, char **argv)
   int *array;
   int lmin;
   int m;
-  int nb, na, nn, i, j, l;
+  int nb;
+  int na;
+  int nn;
+  int i;
+  int j;
+  int l;
   int *new;
   int *prev;
   int *split;
@@ -120,6 +127,11 @@ main(int argc, char **argv)
     MALLOC(nb, &new);
     MALLOC(nb, &prev);
     MALLOC(nb, &split);
+    for (i = 0; i < nb; i++) {
+      split[i] = 0;
+      prev[i] = -1;
+    }
+
     /* nn: number of new */
     for (i = nn = 0; i < 2 * nb; i += 2)
       if (table_get(a.table, array[i], &j) == TABLE_EMPY)
@@ -151,16 +163,18 @@ main(int argc, char **argv)
         fprintf(stderr, "%s: prev disapeared: lmin = %d, m = %d\n", me,
                 lmin, m);
       }
-      if ((file = fopen(output, "w")) == NULL) {
+    }
+    data_add(&b, "prev", prev);
+    data_add(&b, "split", split);
+    if ((file = fopen(output, "w")) == NULL) {
         fprintf(stderr, "%s: fail to write to '%s'\n", me, output);
         exit(2);
-      }
-      if (csv_write(b.csv, file) != 0) {
+    }
+    if (csv_write(b.csv, file) != 0) {
         fprintf(stderr, "%s: csv_write failed\n", me);
         exit(2);
-      }
-      fclose(file);
     }
+    fclose(file);
     free(new);
     free(prev);
     free(split);
@@ -219,14 +233,37 @@ data_fin(struct Data *q)
 }
 
 static int
+data_add(struct Data *q, const char *name, const int *a)
+{
+  int n, i;
+  double *f;
+  struct CSV *csv;
+
+  csv = q->csv;
+  n = csv_nr(csv);
+  if (csv_add(csv, name) != 0) {
+    fprintf(stderr, "%s: csv_add failed\n", me);
+    return 1;
+  }
+  if ((f = csv_field(csv, name)) == NULL) {
+    fprintf(stderr, "%s: csv_field failed\n", me);
+    return 1;
+  }
+  for (i = 0; i < n; i++)
+    f[i] = a[i];
+  return 0;
+}
+
+static int
 dist(int i, struct Data *a, int j, struct Data *b, /**/ double *p)
 {
+  double d;
+  double r;
   double x;
   double y;
   double z;
-  double r;
-  double d;
-  int na, nb;
+  int na;
+  int nb;
 
   na = csv_nr(a->csv);
   nb = csv_nr(b->csv);
