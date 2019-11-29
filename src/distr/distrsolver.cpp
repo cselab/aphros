@@ -85,7 +85,9 @@ int RunMpi(int argc, const char ** argv,
       RunKernelOpenMP(comm_world, comm_omp, comm_master, kernel, var);
     } else {
       MPI_Comm comm = MPI_COMM_WORLD;
-      RunKernelOpenMP(comm, comm, comm, kernel, var);
+      MPI_Comm comm_omp;
+      MPI_Comm_split(comm, rank, rank, &comm_omp);
+      RunKernelOpenMP(comm, comm_omp, comm, kernel, var);
     }
   }
 
