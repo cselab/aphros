@@ -43,8 +43,6 @@ class Vof final : public AdvectionSolver<M_> {
     bool dumppartinter = false; // dump interface for particles
     bool bcc_reflectpoly = true; // reflection for DumpPolyMarch
     Scal dumppolymarch_fill = -1; // fill cells outside
-    Scal bcc_clear0 = 0.;   // range for clipping vf near CondFaceVal
-    Scal bcc_clear1 = 1.;
 
     int part_constr = 0; // 0: no constraints
                          // 1: fixed distance, constant angle

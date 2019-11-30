@@ -538,8 +538,7 @@ struct Vof<M_>::Imp {
       Sharpen();
     }
     if (sem("bcc_clear")) {
-      UVof<M>::BcClear(fcu_.iter_curr, mfc_vf_, m, 
-                       par->bcc_clear0, par->bcc_clear1);
+      UVof<M>::BcClear(fcu_.iter_curr, mfc_, m);
     }
     if (sem("resetcolor")) {
       auto& fcu = fcu_.iter_curr;

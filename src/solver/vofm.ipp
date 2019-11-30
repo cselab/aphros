@@ -679,8 +679,7 @@ struct Vofm<M_>::Imp {
     }
     if (sem("bcc_clear")) {
       for (auto i : layers) {
-        UVof<M>::BcClear(fcu_[i].iter_curr, mfc_vf_, m,
-                         par->bcc_clear0, par->bcc_clear1);
+        UVof<M>::BcClear(fcu_[i].iter_curr, mfc_, m);
       }
     }
     if (sem.Nested()) {

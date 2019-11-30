@@ -35,8 +35,6 @@ void Parse(typename Vof::Par* p, const Vars& var) {
   p->dumppartinter = var.Int["dumppartinter"];
   p->bcc_reflectpoly = var.Int["bcc_reflectpoly"];
   p->dumppolymarch_fill = var.Double["dumppolymarch_fill"];
-  p->bcc_clear0 = var.Double["bcc_clear0"];
-  p->bcc_clear1 = var.Double["bcc_clear1"];
   p->part_constr = var.Int["part_constr"];
   p->part_segcirc = var.Double["part_segcirc"];
   p->part_itermax = var.Int["part_itermax"];
