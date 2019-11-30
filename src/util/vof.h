@@ -87,17 +87,15 @@ class UVof {
 
   // set volume fraction to 0 or 1 near wall
   static void BcClear(FieldCell<Scal>& uc,
-                      const MapCondFace& mfc, const M& m, Scal u0, Scal u1) {
+                      const MapCondFaceAdvection<Scal>& mfc, const M& m) {
     for (const auto& it : mfc) {
-      auto& cb = it.GetValue();
-      if (cb.Get<CondFaceVal<Scal>>()) {
-        IdxCell c = m.GetNeighbourCell(it.GetIdx(), cb->GetNci());
-        auto& u = uc[c];
-        if (u < u0) {
-          u = 0;
-        } else if (u > u1) {
-          u = 1;
-        }
+      auto& cfa = it.GetValue();
+      IdxCell c = m.GetCell(it.GetIdx(), cfa.GetNci());
+      auto& u = uc[c];
+      if (u < cfa.clear0) {
+        u = 0;
+      } else if (u > cfa.clear1) {
+        u = 1;
       }
     }
   }
