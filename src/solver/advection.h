@@ -14,9 +14,9 @@ struct CondFaceAdvection {
   size_t GetNci() const { return nci; }
 
   size_t nci;
-  Scal clear0; // snap to 0 if vf<clear0
-  Scal clear1; // snap to 1 if vf>clear1
-  Halo halo;
+  Scal clear0 = 0; // snap to 0 if vf<clear0
+  Scal clear1 = 1; // snap to 1 if vf>clear1
+  Halo halo = Halo::reflect;
   // values for halo cells if halo=fill:
   Scal fill_vf; // volume fraction
   Scal fill_cl; // color
