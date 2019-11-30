@@ -58,7 +58,7 @@ def anno(ax, patches, values):
             xytext=(0, 3),  # 3 points vertical offset
             textcoords="offset points",
             ha='center',
-            va='bottom', fontsize=6, rotation=90)
+            va='bottom', fontsize=4, rotation=90)
 
 def process(args):
     for f in args.files:
