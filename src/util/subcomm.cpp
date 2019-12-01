@@ -17,6 +17,18 @@
 #include "subcomm.h"
 #include "sysinfo.h"
 
+#define _SETAFFINITY(tid, cpu_map)                                             \
+    do {                                                                       \
+        cpu_set_t cpuset;                                                      \
+        CPU_ZERO(&cpuset);                                                     \
+        CPU_SET((cpu_map)[(tid)], &cpuset);                                    \
+        if (0 != sched_setaffinity(                                            \
+                     0 /* = calling thread */, sizeof(cpu_set_t), &cpuset)) {  \
+            fprintf(stderr, "Can not set affinity for thread %d\n", (tid));    \
+        }                                                                      \
+    } while (0)
+
+
 #define NCHAR_HOST 512
 struct Affinity {
     int node_ID;
@@ -82,10 +94,10 @@ void SubComm(
   MPI_Comm_size(comm_omp, &omp_size);
   std::vector<int> thread_affinity(omp_size);
   std::iota(thread_affinity.begin(), thread_affinity.end(), 0);
+  std::vector<int> mpi_affinity(omp_size);
+  MPI_Allgather(
+      &a.core_ID, 1, MPI_INT, mpi_affinity.data(), 1, MPI_INT, comm_omp);
   if (sysinfo::HasHyperthreads()) {
-    std::vector<int> mpi_affinity(omp_size);
-    MPI_Allgather(
-        &a.core_ID, 1, MPI_INT, mpi_affinity.data(), 1, MPI_INT, comm_omp);
     for (size_t i = 0; i < thread_affinity.size(); ++i) {
       const int mpi_core = mpi_affinity[i];
       thread_affinity[i] = (mpi_core < omp_size) ? omp_size + mpi_core
@@ -97,9 +109,9 @@ void SubComm(
   int omp_rank;
   MPI_Comm_rank(comm_omp, &omp_rank);
   if (0 != omp_rank) {
-    omp_rank = -omp_rank; // if I am not root in comm_omp
+      omp_rank = -omp_rank; // if I am not root in comm_omp
   } else {
-    omp_rank = hypre_rank;
+      omp_rank = hypre_rank;
   }
   std::vector<int> omp2hypre(hypre_size);
   MPI_Allgather(
@@ -107,9 +119,9 @@ void SubComm(
   std::set<int> m2h(omp2hypre.begin(), omp2hypre.end());
   omp2hypre.clear();
   for (auto r : m2h) {
-    if (r >= 0) {
-      omp2hypre.push_back(r);
-    }
+      if (r >= 0) {
+          omp2hypre.push_back(r);
+      }
   }
   std::sort(omp2hypre.begin(), omp2hypre.end());
 
@@ -117,11 +129,17 @@ void SubComm(
   MPI_Comm_group(comm_world, &hypre_group);
 
   MPI_Group_incl(hypre_group,
-      static_cast<int>(omp2hypre.size()),
-      omp2hypre.data(),
-      &omp_master_group_);
+                 static_cast<int>(omp2hypre.size()),
+                 omp2hypre.data(),
+                 &omp_master_group_);
   MPI_Comm_create(comm_world, omp_master_group_, &comm_master);
   MPI_Group_free(&hypre_group);
+
+#pragma omp parallel
+  {
+    const int tid = omp_get_thread_num();
+    _SETAFFINITY(tid, thread_affinity);
+  }
 }
 
 #define EV(x) (#x) << "=" << (x) << " "
