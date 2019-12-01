@@ -21,6 +21,7 @@
 #include "dump/dumper.h"
 #include "report.h"
 #include "util/sysinfo.h"
+#include "util/histogram.h"
 
 // Abstract block processor.
 class Distr {
@@ -104,6 +105,7 @@ class DistrMesh : public Distr {
   virtual void ClearTimerReport(const std::vector<MIdx>& bb);
 
  private:
+  Histogram hist_; // histogram sample collector
   MultiTimer<std::string> mt_; // timer all
   MultiTimer<std::string> mtp_; // timer partial
   using LS = typename M::LS;
@@ -126,6 +128,7 @@ DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& var)
     , p_{var.Int["px"], var.Int["py"], var.Int["pz"]}
     , b_{var.Int["bx"], var.Int["by"], var.Int["bz"]}
     , ext_(var.Double["extent"])
+    , hist_(comm, "distrmesh", var.Int["histogram"])
 {}
 
 template <class KF>
@@ -304,7 +307,9 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
       tol = var.Double["hypre_" + sf.prefix + "_tol"];
     }
 
+    hist_.SeedSample();
     s->Solve(tol, var.Int["hypre_print"], sr, maxiter);
+    hist_.CollectSample("Hypre::Solve");
 
     for (auto& b : bb) {
       auto& m = mk.at(b)->GetMesh();
@@ -378,25 +383,37 @@ void DistrMesh<KF>::Run() {
   do {
     std::vector<MIdx> bb;
     if (mk.begin()->second->GetMesh().GetDump().size() > 0) {
+      hist_.SeedSample();
       bb = GetBlocks(); // all blocks, sync communication
+      hist_.CollectSample("GetBlocks(sync)");
       ReadBuffer(bb);
       ApplyNanFaces(bb);
       DumpWrite(bb);
       ClearDump(bb);
       ClearComm(bb);
+      hist_.SeedSample();
       RunKernels(bb);
+      hist_.CollectSample("RunKernels(sync)");
     } else {
+      hist_.SeedSample();
       auto bbi = GetBlocks(true); // inner blocks, async communication
+      hist_.CollectSample("GetBlocks(inner)");
       ReadBuffer(bbi);
       ApplyNanFaces(bbi);
       ClearComm(bbi);
+      hist_.SeedSample();
       RunKernels(bbi);
+      hist_.CollectSample("RunKernels(inner)");
 
+      hist_.SeedSample();
       auto bbh = GetBlocks(false); // halo blocks, wait for communication
+      hist_.CollectSample("GetBlocks(halo)");
       ReadBuffer(bbh);
       ApplyNanFaces(bbh);
       ClearComm(bbh);
+      hist_.SeedSample();
       RunKernels(bbh);
+      hist_.CollectSample("RunKernels(halo)");
 
       bb = bbi;
       bb.insert(bb.end(), bbh.begin(), bbh.end());
@@ -421,9 +438,17 @@ void DistrMesh<KF>::Run() {
       break;
     }
 
+    hist_.SeedSample();
     Reduce(bb);
+    hist_.CollectSample("Reduce");
+
+    hist_.SeedSample();
     Scatter(bb);
+    hist_.CollectSample("Scatter");
+
+    hist_.SeedSample();
     Bcast(bb);
+    hist_.CollectSample("Bcast");
 
     Solve(bb);
 

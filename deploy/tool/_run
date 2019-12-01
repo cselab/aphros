@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 
 set -eu
 
@@ -9,6 +9,7 @@ instfnd getcol
 instfnd gettraj
 instfnd gettrajcol
 instfnd hist
+instfnd histbin
 instfnd gettrajsh
 instfnd gettrajm
 instfnd deriv
