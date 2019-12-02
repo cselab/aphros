@@ -124,7 +124,7 @@ class PartStr {
     Vect* xx = &(xx_[sx_[s]]);
     size_t sx = sx_[s + 1] - sx_[s];
 
-    static std::vector<Vect> ff;
+    thread_local std::vector<Vect> ff;
     ff.resize(sx);
     
     // compute interface forces
@@ -594,7 +594,7 @@ class PartStr {
     }
 
     // new positions
-    static std::vector<Vect> xxn; // dx/dtheta
+    thread_local std::vector<Vect> xxn; // dx/dtheta
     xxn.resize(sx);
     // initialize
     for (size_t i = 0; i < sx; ++i) {
@@ -643,7 +643,7 @@ class PartStr {
     // alpha: angle between x-axis and normal
     {
       // derivative of positions by alpha
-      static std::vector<Vect> xa; // dx/dalpha
+      thread_local std::vector<Vect> xa; // dx/dalpha
       xa.resize(sx);
       // central 
       const size_t ic = (sx - 1) / 2; 
@@ -676,7 +676,7 @@ class PartStr {
       Vect ea = ra(da);
 
       // segment vectors 
-      static std::vector<Vect> dd;
+      thread_local std::vector<Vect> dd;
       dd.resize(sx);
       dd[ic] = Vect(0);
       // initialize from xxn
@@ -721,7 +721,7 @@ class PartStr {
     // theta: angle between segments
     {
       // derivative of positions by theta
-      static std::vector<Vect> xt; // dx/dtheta
+      thread_local std::vector<Vect> xt; // dx/dtheta
       xt.resize(sx);
       // central 
       const size_t ic = (sx - 1) / 2; 
@@ -768,7 +768,7 @@ class PartStr {
       Vect et = re(eth, eth);
 
       // segment vectors 
-      static std::vector<Vect> dd;
+      thread_local std::vector<Vect> dd;
       dd.resize(sx);
       dd[ic] = Vect(0);
       // initialize from xxn
