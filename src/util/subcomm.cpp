@@ -120,10 +120,10 @@ void SubComm(
   MPI_Comm_size(comm_omp, &omp_size);
   std::vector<int> thread_affinity(omp_size);
   std::iota(thread_affinity.begin(), thread_affinity.end(), 0);
+  /*
   std::vector<int> mpi_affinity(omp_size);
   MPI_Allgather(
       &a.core_ID, 1, MPI_INT, mpi_affinity.data(), 1, MPI_INT, comm_omp);
-  /*
   EVV(mpi_affinity);
   if (sysinfo::HasHyperthreads()) {
     for (size_t i = 0; i < thread_affinity.size(); ++i) {
@@ -135,6 +135,7 @@ void SubComm(
     thread_affinity = mpi_affinity;
   }
   */
+  //thread_affinity = mpi_affinity;
 
   /*
   {
@@ -168,7 +169,7 @@ void SubComm(
       SetAffinity(thread_affinity[tid]);
     }
   } else {
-    SetAffinity(omp_rank);
+    SetAffinity(thread_affinity[omp_rank]);
   }
 
 
