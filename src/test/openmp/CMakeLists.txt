@@ -8,3 +8,5 @@ include_directories(${S})
 add_executable(${EXE} main.cpp)
 
 target_link_libraries(${EXE} distrbasic subcomm)
+
+add_test(NAME openmp COMMAND run)

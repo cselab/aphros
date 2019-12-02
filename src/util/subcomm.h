@@ -9,3 +9,5 @@
 // (see example in subcomm.cpp)
 void SubComm(MPI_Comm& comm_world, MPI_Comm& comm_omp, MPI_Comm& comm_master);
 void PrintStats(MPI_Comm comm_world, MPI_Comm comm_omp, MPI_Comm comm_master);
+// Moves caller thread to given cpu
+void SetAffinity(int cpu);

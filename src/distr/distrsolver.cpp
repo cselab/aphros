@@ -1,3 +1,7 @@
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "distrsolver.h"
 #include "util/git.h"
 #include "util/subcomm.h"
@@ -25,6 +29,9 @@ static void RunKernel(
 
 int RunMpi(int argc, const char ** argv,
            std::function<void(MPI_Comm, Vars&)> kernel) {
+#ifdef _OPENMP
+  omp_set_dynamic(0);
+#endif
   int prov;
   MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
   int rank;
