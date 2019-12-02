@@ -13,18 +13,33 @@
 #include <utility>
 #include <vector>
 #include <iostream>
+#include <errno.h>
 
 #include "subcomm.h"
 #include "sysinfo.h"
+
+#define EV(x) (#x) << "=" << (x) << " "
+#define EVV(x) std::cerr << (#x) << "=" << (x) << std::endl;
+
+template <class T>
+static std::ostream& operator<<(
+    std::ostream& out, const std::vector<T>& v) {
+  out << "[";
+  for (auto& a : v) {
+    out << a << " ";
+  }
+  out << "]";
+  return out;
+}
 
 #define _SETAFFINITY(tid, cpu_map)                                             \
     do {                                                                       \
         cpu_set_t cpuset;                                                      \
         CPU_ZERO(&cpuset);                                                     \
         CPU_SET((cpu_map)[(tid)], &cpuset);                                    \
-        if (0 != sched_setaffinity(                                            \
-                     0 /* = calling thread */, sizeof(cpu_set_t), &cpuset)) {  \
-            fprintf(stderr, "Can not set affinity for thread %d\n", (tid));    \
+        if (0 != sched_setaffinity(0, sizeof(cpu_set_t), &cpuset)) {           \
+            fprintf(stderr, "Can not set affinity for thread %d errno=%d\n",   \
+                (tid));                                                        \
         }                                                                      \
     } while (0)
 
@@ -35,6 +50,16 @@ struct Affinity {
     int core_ID;
     char hostname[NCHAR_HOST];
 };
+
+// Moves current thread to given cpu
+void SetAffinity(int cpu) {
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  CPU_SET(cpu, &cpuset);
+  if (0 != sched_setaffinity(0, sizeof(cpu_set_t), &cpuset)) {
+      fprintf(stderr, "Can not move to cpu=%d errno=%d\n", cpu, errno);
+  }
+}
 
 Affinity GetAffinity()
 {
@@ -138,11 +163,9 @@ void SubComm(
 #pragma omp parallel
   {
     const int tid = omp_get_thread_num();
-    _SETAFFINITY(tid, thread_affinity);
+    SetAffinity(thread_affinity[tid]);
   }
 }
-
-#define EV(x) (#x) << "=" << (x) << " "
 
 void PrintStats(MPI_Comm comm_world, MPI_Comm comm_omp, MPI_Comm comm_master) {
   int size_world, rank_world;
