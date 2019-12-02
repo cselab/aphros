@@ -15,25 +15,36 @@ struct State {
 };
 
 void Run(M& m, State&, Vars& var) {
+  const static double wtime0 = omp_get_wtime();
   (void) var;
   auto sem = m.GetSem();
+  if (sem()) {
+    if (m.IsRoot()) {
+      std::cerr << "\nRun()" << std::endl;
+    }
+  }
   if (sem()) {
     volatile double a = 10.;
     for (size_t i = 0; i < (1 << 28); ++i) {
       a = std::sqrt(a);
     }
     #ifdef _OPENMP
-    std::cerr << "thread=" << omp_get_thread_num()
-        << " cpu=" << sched_getcpu()
-        << std::endl;
+    #pragma omp critical
+    {
+      std::cerr << "block="   << std::setw(3) << m.GetId();
+      std::cerr << std::setw(10)  << " thread=" << std::setw(2) << omp_get_thread_num();
+      std::cerr << std::setw(8)  << " cpu="    << std::setw(2) << sched_getcpu();
+      std::cerr << std::setw(8)  << " t="      << std::setw(8) << omp_get_wtime() - wtime0;
+      std::cerr << std::endl;
+    }
     #endif
   }
 }
 
 int main(int argc, const char** argv) {
   std::string conf = R"EOF(
-set int bx 2
-set int by 2
+set int bx 4
+set int by 6
 set int bz 1
 
 set int bsx 16
@@ -44,7 +55,9 @@ set int px 1
 set int py 1
 set int pz 1
 
-set string backend cubismnc
+set string backend local
+set int loc_maxcomm 16
+set int verbose_openmp 1
 )EOF";
 
   return RunMpiBasic<M, State>(argc, argv, Run, conf);
