@@ -62,7 +62,7 @@ Scal GetLevelSetVolume(std::function<Scal(const GVect<Scal, 3>&)> f,
 // m: mesh
 template <class M>
 std::function<void(FieldCell<typename M::Scal>&,const M&)> 
-CreateInitUList(Vars& par, bool verb) {
+CreateInitUList(const Vars& par, bool verb) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
@@ -115,7 +115,7 @@ CreateInitUList(Vars& par, bool verb) {
 // m: mesh
 template <class M>
 std::function<void(FieldCell<typename M::Scal>&,const M&)> 
-CreateInitU(Vars& par, bool verb=true) {
+CreateInitU(const Vars& par, bool verb=true) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 

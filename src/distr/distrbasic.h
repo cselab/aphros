@@ -27,14 +27,13 @@ int RunMpiBasic(int argc, const char** argv, Func func, std::string addconf) {
   class Basic : public KernelMeshPar<M, Par> {
    public:
     using P = KernelMeshPar<M, Par>;
-    using P::var;
     using P::par_;
     using P::m;
     using P::P;
 
     State s;
     void Run() {
-      par_.func(m, s, var);
+      par_.func(m, s, this->var_mutable);
     }
   };
 

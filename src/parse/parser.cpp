@@ -15,7 +15,7 @@ std::string Parser::RemoveComment(std::string s) {
 void Parser::Cmd(std::string s) {
   s = RemoveComment(s);
   std::stringstream b(s);
-  std::string cmd; 
+  std::string cmd;
   b >> cmd;
   if (cmd == "set") {
     CmdSet(s);
@@ -55,7 +55,7 @@ void Parser::CmdSetNext(std::string s) {
   b >> std::skipws;
   b >> cmd >> type >> key;
   char c;
-  // Read first non-ws character 
+  // Read first non-ws character
   b >> c;
   // Read remaining string
   std::getline(b, val);
@@ -113,24 +113,21 @@ void Parser::RunAll(std::istream& in) {
 }
 
 template <class T>
-void Parser::Print(Vars::Map<T>& m, std::ostream& out) {
-  for (auto& a : m) {
-    out 
-        << "set "
-        << m.GetTypeName() << " " 
-        << a.first << " "
-        << m.GetStr(a.first) << std::endl;
+void Parser::Print(const Vars::Map<T>& m, std::ostream& out) {
+  for (auto it=m.cbegin(); it != m.cend(); ++it) {
+    out << "set " << m.GetTypeName() << " " << it->first << " "
+        << m.GetStr(it->first) << std::endl;
   }
 }
 
-void Parser::PrintAll(std::ostream& out) {
+void Parser::PrintAll(std::ostream& out) const {
   Print(v_.String, out);
   Print(v_.Int, out);
   Print(v_.Double, out);
   Print(v_.Vect, out);
 }
 
-void Parser::PrintAll() {
+void Parser::PrintAll() const {
   PrintAll(std::cout);
 }
 

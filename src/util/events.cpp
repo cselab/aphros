@@ -5,9 +5,8 @@
 #include "events.h"
 #include "parse/parser.h"
 
-
-Events::Events(Vars& var, bool isroot, bool islead) 
-  : var_(var), isroot_(isroot), islead_(islead)
+Events::Events(Vars& var, bool isroot, bool islead)
+    : var_(var), isroot_(isroot), islead_(islead)
 {}
 
 void Events::Parse() {

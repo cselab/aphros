@@ -60,8 +60,6 @@ class Convdiff : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_src_;
   using AS = solver::ConvDiffScalImp<M>;
   std::unique_ptr<AS> as_;
-  MIdx gs_; // global mesh size
-  Vect ge_; // global extent
   FieldCell<Scal> fc_; // buffer
   FieldCell<Scal> fc_sc_; // scaling
   FieldFace<Scal> ff_d_; // diffusion rate
@@ -347,7 +345,8 @@ void Convdiff<M>::TestSolve(
     }
   }
   if (sem("check")) {
-    GBlockCells<dim> cbc(MIdx(cg), gs_ - MIdx(2 * cg)); // check block
+    GBlockCells<dim> cbc(MIdx(cg),
+                         m.GetGlobalSize() - MIdx(2 * cg)); // check block
     FieldCell<bool> mask(m, false);
     for (auto i : m.AllCells()) {
       if (cbc.IsInside(bc.GetMIdx(i))) {
@@ -369,29 +368,18 @@ void Convdiff<M>::TestSolve(
 
 template <class M>
 void Convdiff<M>::Run() {
-  var.Double["extent"] = 1.; // TODO don't overwrite extent
-  Scal extent = var.Double["extent"];
-  {
-    MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
-    MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
-    MIdx bs(var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]);
-    gs_ = p * b * bs;
-  }
-  Scal dx = extent / gs_.norminf(); 
-  assert(dx > 0. && dx < extent);
-  ge_ = Vect(gs_) * dx;
+  Scal dx = m.GetCellSize()[0];
   Vect vel(var.Vect["vel"]);
   Scal ns = var.Int["num_steps"];
   if (auto pcfl = var.Double("cfl")) {
     Scal cfl = *pcfl;
     Scal dt = dx * cfl / vel.norminf();
-    var.Double.Set("dt", dt);
-    //Scal nc = cfl * ns; // distance in cells passed
+    this->var_mutable.Double.Set("dt", dt);
   }
   Scal t = var.Double["dt"] * ns;
 
   auto sem = m.GetSem("Run");
-  auto f = [](Vect x) { 
+  auto f = [](Vect x) {
       return std::sin(x[0]) * std::cos(x[1]) * std::exp(x[2]); 
     };
   //auto f0 = [](Vect { return 0.; };

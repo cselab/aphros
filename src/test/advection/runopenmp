@@ -9,16 +9,17 @@ set -eu
 # block size
 : ${bs="8 8 1"}
 # number of processors
-: ${np=16}
+: ${np=1}
 # mesh
 : ${m="64 64 1"}
 
-echo $np > np
+nth=1
+echo $nth > np
 
 ch.base
 ch.part $m $bs $np > mesh.conf
 
-OMP_NUM_THREADS=24 ch.run ./t.advection "$c"
+OMP_NUM_THREADS=$nth ch.run ./t.advection "$c"
 
 a=0
 : ${r=ref}

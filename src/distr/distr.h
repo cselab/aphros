@@ -55,7 +55,8 @@ class DistrMesh : public Distr {
  protected:
   // TODO: remove comm, needed only by Hypre
   MPI_Comm comm_; // XXX: overwritten by Cubism<KF>
-  Vars& var;
+  const Vars& var;
+  Vars& var_mutable;
   const KF& kf_; // kernel factory
 
   int hl_; // number of halo cells (same in all directions)
@@ -117,13 +118,13 @@ template <class KF>
 void DistrMesh<KF>::MakeKernels(const std::vector<MyBlockInfo>& ee) {
   for (auto e : ee) {
     MIdx d(e.index);
-    mk.emplace(d, std::unique_ptr<K>(kf_.Make(var, e)));
+    mk.emplace(d, std::unique_ptr<K>(kf_.Make(var_mutable, e)));
   }
 }
 
 template <class KF>
-DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& var)
-    : comm_(comm), var(var), kf_(kf)
+DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& var0)
+    : comm_(comm), var(var0), var_mutable(var0), kf_(kf)
     , hl_(var.Int["hl"])
     , bs_{var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]}
     , p_{var.Int["px"], var.Int["py"], var.Int["pz"]}

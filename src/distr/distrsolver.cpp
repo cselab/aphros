@@ -31,9 +31,6 @@ int RunMpi(int argc, const char ** argv,
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   bool isroot = (!rank);
 
-  Vars var;   // parameter storage
-  Parser ip(var); // parser
-
   std::string fn = "a.conf";
   if (argc == 1) {
     // nop
@@ -53,9 +50,14 @@ int RunMpi(int argc, const char ** argv,
     std::cerr << "Loading config from '" << fn << "'" << std::endl;
   }
 
-  std::ifstream f(fn);  // config file
-  // Read file and run all commands
-  ip.RunAll(f);
+  Vars var;   // parameter storage
+  Parser ip(var); // parser
+
+  {
+    // Read file and run all commands
+    std::ifstream f(fn);
+    ip.RunAll(f);
+  }
 
   // Print vars on root
   if (isroot) {
