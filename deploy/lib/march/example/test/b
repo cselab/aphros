@@ -1,0 +1,2 @@
+# TEST: tetrahedron
+./sphere -t > obj.out.obj
