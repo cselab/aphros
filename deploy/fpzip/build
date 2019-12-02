@@ -1,0 +1,1 @@
+make CC=${CC} CXX=${CXX} FC=${FC} -C "$src" -j4

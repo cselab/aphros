@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -eu
+
+. ch.setenv
+. ../util
+
+url='https://computing.llnl.gov/projects/floating-point-compression/download/fpzip-1.2.0.tar.gz'
+f="fpzip.tar.gz"
+
+# download
+#wget -nv "$url" -O $f
+
+# directory name
+d="`tar -tzf \"$f\" | head -1`"
+d="`basename \"$d\"`"
+
+# source folder
+src="$d/src"
+
+export P src d
+
+# clean before extraction
+rm -rf "$d"
+
+# extract
+tar -xzf "$f"
+
+run conf
+run build
+run install
+
+# clean after install
+rm -rf "$d"

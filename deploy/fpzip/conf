@@ -1,0 +1,11 @@
+CC=${CC}
+if [[ -z ${CC} ]]; then
+    CC=gcc
+fi
+CXX=${CXX}
+if [[ -z ${CXX} ]]; then
+    CC=g++
+fi
+FC=gfortran
+
+export CC CXX FC
