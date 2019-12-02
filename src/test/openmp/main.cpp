@@ -7,6 +7,7 @@
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
+using MIdx = typename M::MIdx;
 
 struct State {
   std::vector<Scal> v;
@@ -18,6 +19,10 @@ void Run(M& m, State&, Vars& var) {
   const static double wtime0 = omp_get_wtime();
   (void) var;
   auto sem = m.GetSem();
+  auto blockid = [&m]() -> MIdx {
+    auto& bc = m.GetInBlockCells();
+    return bc.GetBegin() / bc.GetSize();
+  };
   if (sem()) {
     if (m.IsRoot()) {
       std::cerr << "\nRun()" << std::endl;
@@ -31,10 +36,13 @@ void Run(M& m, State&, Vars& var) {
     #ifdef _OPENMP
     #pragma omp critical
     {
-      std::cerr << "block="   << std::setw(3) << m.GetId();
-      std::cerr << std::setw(10)  << " thread=" << std::setw(2) << omp_get_thread_num();
-      std::cerr << std::setw(8)  << " cpu="    << std::setw(2) << sched_getcpu();
-      std::cerr << std::setw(8)  << " t="      << std::setw(8) << omp_get_wtime() - wtime0;
+      std::cerr << "block=" << std::setw(3) << blockid();
+      std::cerr << std::setw(10) << " thread="
+                << std::setw(2) << omp_get_thread_num();
+      std::cerr << std::setw(8) << " cpu="
+                << std::setw(2) << sched_getcpu();
+      std::cerr << std::setw(8) << " t="
+                << std::setw(8) << omp_get_wtime() - wtime0;
       std::cerr << std::endl;
     }
     #endif
@@ -44,18 +52,18 @@ void Run(M& m, State&, Vars& var) {
 int main(int argc, const char** argv) {
   std::string conf = R"EOF(
 set int bx 4
-set int by 6
+set int by 1
 set int bz 1
 
 set int bsx 16
 set int bsy 16
 set int bsz 16
 
-set int px 1
+set int px 2
 set int py 1
 set int pz 1
 
-set string backend local
+set string backend cubismnc
 set int loc_maxcomm 16
 set int verbose_openmp 1
 )EOF";
