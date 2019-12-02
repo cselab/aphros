@@ -31,15 +31,16 @@ def Sim(c):
 
     # domain 
     lx = 2
-    ly = 1.3333333
+    ly = 1.5
     lz = 1.
+    lys = 0.5 # position of free surface
     lmax = max([lx, ly, lz])
 
     U = 1. # velocity
     W = 0.05 # waterfall thickness
     H = HW * W
 
-    assert H < ly * 0.5 - W*2
+    assert H > W*2 and H + W*2 < ly
 
     # time
     tun = 1 / U  # unit
@@ -69,7 +70,7 @@ def Sim(c):
     bs = 16
     bsz = bs
     # cores
-    np = 144
+    np = 216
     # time limit in minutes
     tl = 1440
 
@@ -83,6 +84,7 @@ def Gen(c):
     lx = c['lx']
     ly = c['ly']
     lz = c['lz']
+    lys = c['lys']
     lmax = c['lmax']
     W = c['W']
     H = c['H']
@@ -91,7 +93,7 @@ def Gen(c):
     by = ly
     bz = lz * 0.5
     brx = 1e10
-    bry = ly * 0.5
+    bry = ly - lys
     brz = brx
 
     tmax = c['tmax']
@@ -112,7 +114,7 @@ def Gen(c):
 
     inx0 = -eps
     inx1 = eps
-    iny0 = ly * 0.5 + H
+    iny0 = lys + H
     iny1 = iny0 + W
     inz0 = lz * 0.5 - lz * 1
     inz1 = lz * 0.5 + lz * 1
@@ -121,7 +123,7 @@ def Gen(c):
     outx1 = "1e10"
     outy0 = eps
     outy1 = ly * 0.25
-    assert outy1 < 0.5 * ly
+    assert outy1 < lys
 
 
     with open("par.conf", 'w') as f:
