@@ -10,7 +10,7 @@ struct Ver {
 struct March {
   struct Ver cube_ver[3 * MARCH_NTRI];
   int cube_n;
-} Q;
+};
 
 static double offset(double, double);
 static int map(int);
@@ -108,7 +108,8 @@ march(struct March *q, double u[8], int *pn, double *tri)
 int
 march_cube(double u[8], int *n, double *tri)
 {
-  return march(&Q, u, n, tri);
+  struct March q;
+  return march(&q, u, n, tri);
 }
 
 static int
@@ -125,13 +126,7 @@ cube_location(struct March *q, int *x, int *y, double *a)
 }
 
 int
-march_cube_location(int *x, int *y, double *a)
-{
-  return cube_location(&Q, x, y, a);
-}
-
-int
-march_cube_location2(double u[8], /**/ int *ntri, double *tri, int *x,
+march_cube_location(double u[8], /**/ int *ntri, double *tri, int *x,
                      int *y, double *a)
 {
   int status;

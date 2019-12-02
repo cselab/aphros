@@ -110,7 +110,7 @@ main(int argc, char **argv)
         }
         /* march_cube(cube, &n, tri);
            march_cube_location(p, q, offset); */
-        march_cube_location2(cube, &n, tri, p, q, offset);
+        march_cube_location(cube, &n, tri, p, q, offset);
         for (u = 0; u < n; u++) {
           pos = av(O[p[u]][X], O[q[u]][X], offset[u]);
           assert(fabs(pos - tri[3 * u + X] < 1e-12));
