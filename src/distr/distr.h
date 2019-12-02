@@ -529,13 +529,18 @@ void DistrMesh<KF>::ReportOpenmp() {
   if (isroot_) {
     #pragma omp parallel
     {
-      #pragma omp critical
-      {
-        std::cout
-          << "OpenMP threads" << std::endl
-          << "thread=" << omp_get_thread_num()
-          << " cpu=" << sched_getcpu()
-          << std::endl;
+      #pragma omp single
+      std::cout << "OpenMP threads" << std::endl;
+      #pragma omp for ordered
+      for (int i = 0; i < omp_get_num_threads(); ++i) {
+        #pragma omp ordered
+        {
+          std::cout << "thread="
+                    << std::setw(2) << omp_get_thread_num();
+          std::cout << std::setw(8) << " cpu="
+                    << std::setw(2) << sched_getcpu();
+          std::cout << std::endl;
+        }
       }
     }
   }
