@@ -12,7 +12,7 @@ def Exp():
 
     U = 1.5   # waterfall velocity
     W = 0.005   # waterfall thickness
-    H = 8 * W   # waterfall height, distance from inlet to surface
+    H = 6 * W   # waterfall height, distance from inlet to surface
 
     ###
     Re = U * W / nu
@@ -31,7 +31,7 @@ def Sim(c):
 
     # domain 
     lx = 2
-    ly = 1.5
+    ly = 1
     lz = 1.
     lys = 0.5 # position of free surface
     lmax = max([lx, ly, lz])
@@ -122,7 +122,7 @@ def Gen(c):
     outx0 = "-1e10"
     outx1 = "1e10"
     outy0 = eps
-    outy1 = ly * 0.25
+    outy1 = lys * 0.5
     assert outy1 < lys
 
 
