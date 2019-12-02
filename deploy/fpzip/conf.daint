@@ -1,0 +1,5 @@
+CC=cc
+CXX=CC
+FC=ftn
+
+export CC CXX FC

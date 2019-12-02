@@ -1,0 +1,9 @@
+SRC="${d}/inc"
+DST="${P}/include"
+mkdir -p ${DST}
+rsync -av "${SRC}/" "${DST}"
+
+SRC="${d}/lib"
+DST="${P}/lib"
+mkdir -p ${DST}
+rsync -av "${SRC}/" "${DST}"
