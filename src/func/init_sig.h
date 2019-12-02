@@ -21,7 +21,7 @@
 // m: mesh
 template <class M>
 std::function<void(FieldCell<typename M::Scal>&,const M&)> 
-CreateInitSig(Vars& par) {
+CreateInitSig(const Vars& par) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   std::function<void(FieldCell<Scal>&,const M&)> g; // result

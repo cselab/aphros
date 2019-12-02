@@ -253,7 +253,9 @@ void Advection<M>::Run() {
     Scal dt = var.Double["cfl"] / maxvel_;
     dt = std::min(dt, var.Double["dtmax"]);
     as_->SetTimeStep(dt);
-    var.Double.Set("dt", as_->GetTimeStep());
+    if (m.IsLead()) {
+      this->var_mutable.Double.Set("dt", as_->GetTimeStep());
+    }
   }
   if (sem.Nested("start")) {
     as_->StartStep();
@@ -276,9 +278,9 @@ void Advection<M>::Run() {
     m.Reduce(&sumu_, "sum");
   }
   if (sem("stat")) {
-    if (IsLead()) {
-      ++var.Int["iter"];
-      var.Double["t"] = as_->GetTime();
+    if (m.IsLead()) {
+      ++(this->var_mutable.Int["iter"]);
+      this->var_mutable.Double.Set("t", as_->GetTime());
     }
     if (IsRoot()) {
       Scal t = var.Double["t"];
