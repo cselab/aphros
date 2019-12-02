@@ -1,4 +1,4 @@
-#include <tgmath.h>
+#include <stdio.h>
 #include "march.h"
 #include "table.h"
 
@@ -8,16 +8,15 @@ struct Ver {
   int x, y;
 };
 struct March {
-    struct Ver cube_ver[3 * MARCH_NTRI];
-    int cube_n;
-} q;
+  struct Ver cube_ver[3 * MARCH_NTRI];
+  int cube_n;
+} Q;
 
-static int cube_n;
 static double offset(double, double);
 static int map(int);
 
 static int
-cube(double cube[8], int *pn, double *tri)
+cube(struct March *q, double cube[8], int *pn, double *tri)
 {
   double a;
   int c, i, j, idx, flag, x, y;
@@ -35,7 +34,7 @@ cube(double cube[8], int *pn, double *tri)
       idx |= 1 << i;
   }
   if ((flag = CubeEdgeFlags[idx]) == 0) {
-    *pn = 0;
+    *pn = q->cube_n = 0;
     return 0;
   }
   for (i = 0; i < 12; i++) {
@@ -61,93 +60,16 @@ cube(double cube[8], int *pn, double *tri)
       tri[k++] = v[X];
       tri[k++] = v[Y];
       tri[k++] = v[Z];
-      q.cube_ver[m].x = ve[j].x;
-      q.cube_ver[m].y = ve[j].y;
-      q.cube_ver[m].a = ve[j].a;
+      q->cube_ver[m].x = ve[j].x;
+      q->cube_ver[m].y = ve[j].y;
+      q->cube_ver[m].a = ve[j].a;
       m++;
     }
     n++;
   }
-  *pn = cube_n = n;
+  *pn = q->cube_n = n;
   return 0;
 }
-
-static int
-tetrahedron0(double *tetr, double *val, int *pn, double *tri)
-{
-  int e, v0, v1, flag, j, c, i, idx = 0;
-  double a, b;
-  double *te0, *te1, *v;
-  double vert[3 * 6];
-  int n;
-
-  n = *pn;
-  for (i = 0; i < 4; i++) {
-    if (val[i] <= 0)
-      idx |= 1 << i;
-  }
-  if ((flag = TetrahedronEdgeFlags[idx]) == 0)
-    goto end;
-  for (e = 0; e < 6; e++) {
-    if (flag & (1 << e)) {
-      v0 = TetrahedronConnection[e][0];
-      v1 = TetrahedronConnection[e][1];
-      a = offset(val[v0], val[v1]);
-      b = 1 - a;
-      v = &vert[3 * e];
-      te0 = &tetr[3 * v0];
-      te1 = &tetr[3 * v1];
-      v[X] = b * te0[X] + a * te1[X];
-      v[Y] = b * te0[Y] + a * te1[Y];
-      v[Z] = b * te0[Z] + a * te1[Z];
-    }
-  }
-
-  for (j = 0; j < 2; j++) {
-    if (TetrahedronTriangles[idx][3 * j] < 0)
-      break;
-    for (c = 0; c < 3; c++) {
-      i = TetrahedronTriangles[idx][3 * j + c];
-      v = &vert[3 * i];
-      *tri++ = v[X];
-      *tri++ = v[Y];
-      *tri++ = v[Z];
-    }
-    n++;
-  }
-end:
-  *pn = n;
-  return 0;
-}
-
-
-static int
-tetrahedron(double cube[8], int *pn, double *tri)
-{
-  double val[4];
-  int i, t, j;
-  double *te, *o;
-  double tetr[3 * 4];
-  int n;
-
-  n = 0;
-  for (t = 0; t < 6; t++) {
-    for (i = 0; i < 4; i++) {
-      j = TetrahedronsInACube[t][i];
-      o = Offset[j];
-      te = &tetr[3 * i];
-      te[X] = o[X];
-      te[Y] = o[Y];
-      te[Z] = o[Z];
-      val[i] = cube[j];
-    }
-    tetrahedron0(tetr, val, &n, &tri[9 * n]);
-  }
-
-  *pn = n;
-  return 0;
-}
-
 
 static double
 offset(double a, double b)
@@ -171,14 +93,13 @@ swap(double *u, int i, int j)
 }
 
 static int
-march(int (*algorithm)(double *, int *, double *), double u[8],
-      int *pn, double *tri)
+march(struct March *q, double u[8], int *pn, double *tri)
 {
   int s;
 
   swap(u, 2, 3);
   swap(u, 6, 7);
-  s = algorithm(u, pn, tri);
+  s = cube(q, u, pn, tri);
   swap(u, 2, 3);
   swap(u, 6, 7);
   return s;
@@ -187,26 +108,40 @@ march(int (*algorithm)(double *, int *, double *), double u[8],
 int
 march_cube(double u[8], int *n, double *tri)
 {
-  return march(cube, u, n, tri);
+  return march(&Q, u, n, tri);
 }
 
-int
-march_tetrahedron(double u[8], int *n, double *tri)
+static int
+cube_location(struct March *q, int *x, int *y, double *a)
 {
-  return march(tetrahedron, u, n, tri);
+  int i;
+
+  for (i = 0; i < 3 * q->cube_n; i++) {
+    x[i] = map(q->cube_ver[i].x);
+    y[i] = map(q->cube_ver[i].y);
+    a[i] = q->cube_ver[i].a;
+  }
+  return 0;
 }
 
 int
 march_cube_location(int *x, int *y, double *a)
 {
-  int i;
+  return cube_location(&Q, x, y, a);
+}
 
-  for (i = 0; i < 3 * cube_n; i++) {
-    x[i] = map(q.cube_ver[i].x);
-    y[i] = map(q.cube_ver[i].y);
-    a[i] = q.cube_ver[i].a;
-  }
-  return 0;
+int
+march_cube_location2(double u[8], /**/ int *ntri, double *tri, int *x,
+                     int *y, double *a)
+{
+  int status;
+  struct March q;
+
+  status = march(&q, u, ntri, tri);
+  if (status != 0)
+    return status;
+  status = cube_location(&q, x, y, a);
+  return status;
 }
 
 static int

@@ -71,7 +71,6 @@ main(int argc, char **argv)
   double tri[3 * 3 * MARCH_NTRI];
   double offset[3 * MARCH_NTRI];
   int p[3 * MARCH_NTRI], q[3 * MARCH_NTRI];
-  int (*algorithm)(double *, int *, double *);
   int n, i, j, k, l, u;
   int a, b, w;
   double x, y, z, d, pos;
@@ -79,20 +78,8 @@ main(int argc, char **argv)
   double *o;
   int stat[MARCH_NTRI] = { 0 };
 
-  if (argv[1] == NULL || argv[1][0] != '-') {
-    fprintf(stderr, "%s: needs -c (cube) or -t (tetrahedron)\n", argv[0]);
-    exit(2);
-  }
-
-  algorithm = march_cube;
   while (argv[1] != NULL && argv++[1][0] == '-')
     switch (argv[0][1]) {
-    case 'c':
-      algorithm = march_cube;
-      break;
-    case 't':
-      algorithm = march_tetrahedron;
-      break;
     case 'n':
       if (argv[1] == NULL) {
         fprintf(stderr, "%s: -n needs an argument\n", argv[0]);
@@ -121,10 +108,10 @@ main(int argc, char **argv)
           zz[l] = z + d * o[Z];
           cube[l] = f(xx[l], yy[l], zz[l]);
         }
-        algorithm(cube, &n, tri);
-        march_cube_location(p, q, offset);
+        /* march_cube(cube, &n, tri);
+           march_cube_location(p, q, offset); */
+        march_cube_location2(cube, &n, tri, p, q, offset);
         for (u = 0; u < n; u++) {
-          //fprintf(stderr, "%d %d %g\n", p[u], q[u], offset[u]);
           pos = av(O[p[u]][X], O[q[u]][X], offset[u]);
           assert(fabs(pos - tri[3 * u + X] < 1e-12));
 
