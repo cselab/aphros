@@ -11,6 +11,7 @@ static int cube_n;
 static double offset(double, double);
 static int map(int);
 
+
 static int
 cube(double cube[8], int *pn, double *tri)
 {
