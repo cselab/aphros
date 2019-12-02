@@ -107,13 +107,13 @@ struct UVof<M_>::Imp {
       u -= iso;
     }
     int nt;
-    const int ms = MARCH_NTRI;
-    std::array<double, ms> tri;
-    march_cube(uuz.data(), &nt, tri.data());
-    std::array<int, ms> vc0;
-    std::array<int, ms> vc1;
-    std::array<double, ms> vw;
-    march_cube_location(vc0.data(), vc1.data(), vw.data());
+    constexpr int kMaxNt = MARCH_NTRI;
+    std::array<double, kMaxNt> tri;
+    std::array<int, kMaxNt> vc0;
+    std::array<int, kMaxNt> vc1;
+    std::array<double, kMaxNt> vw;
+    march_cube_location(
+        uuz.data(), &nt, tri.data(), vc0.data(), vc1.data(), vw.data());
     assert(size_t(nt) * 3 * 3 <= tri.size());
 
     vv.resize(nt);
