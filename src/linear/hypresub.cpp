@@ -1,10 +1,13 @@
 #include <iostream>
 #include <stdexcept>
+#include <thread>
+#include <chrono>
 #include <utility>
 #include <cassert>
 #include <map>
 
 #include "hypresub.h"
+#include "util/subcomm.h"
 
 //#define DEB(x) x
 #define DEB(x)
@@ -205,7 +208,13 @@ struct HypreSub::Imp {
       Cmd cmd;
       int id;
       int root = 0;
-      Recv(cmd, root);
+
+      //SetAffinity(12);
+      //SetAffinity(state.ranksub);
+      RecvYield(cmd, root, comm);
+      //SetAffinity(state.ranksub);
+      //Recv(cmd, root, comm);
+
       Recv(id, root, comm);
       if (cmd == Cmd::construct) {
         MIdx gs;
@@ -359,9 +368,30 @@ struct HypreSub::Imp {
   static void Send(std::string s, int rank) {
     Send(GetCmd(s), rank);
   }
-  static void Recv(Cmd& cmd, int rank) {
+  static void Recv(Cmd& cmd, int rank, MPI_Comm comm) {
     int a;
-    MPI_Recv(&a, 1, MPI_INT, rank, 1, state.commsub, MSI);
+    Recv(a, rank, comm);
+    cmd = static_cast<Cmd>(a);
+  }
+  static void RecvYield(int& a, int rank, MPI_Comm comm) {
+    MPI_Request req;
+    MPI_Irecv(&a, 1, MPI_INT, rank, tag, comm, &req);
+    if(1){
+      while (true) {
+        int flag = 0;
+        MPI_Test(&req, &flag, MSI);
+        if (flag) {
+          break;
+        }
+        sched_yield();
+      }
+    } else {
+      MPI_Wait(&req, MSI);
+    }
+  }
+  static void RecvYield(Cmd& cmd, int rank, MPI_Comm comm) {
+    int a;
+    RecvYield(a, rank, comm);
     cmd = static_cast<Cmd>(a);
   }
 

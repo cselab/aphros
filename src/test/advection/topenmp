@@ -6,4 +6,8 @@ set double dump_part_dt 0.3
 set int openmp 1
 set int verbose_openmp 1
 set string backend cubismnc
-#set int verbose 1
+set int verbose 0
+
+set double tmax 0.05
+
+set double dump_stat_dt 0
