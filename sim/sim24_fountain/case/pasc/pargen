@@ -114,8 +114,8 @@ def Gen(c):
     inx1 = eps
     iny0 = ly * 0.5 + H
     iny1 = iny0 + W
-    inz0 = lz * 0.5 - lz * 0.5
-    inz1 = lz * 0.5 + lz * 0.5
+    inz0 = lz * 0.5 - lz * 1
+    inz1 = lz * 0.5 + lz * 1
 
     outx0 = "-1e10"
     outx1 = "1e10"
