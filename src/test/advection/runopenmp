@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -eu
+
+./clean
+
+# config file
+: ${c=topenmp}
+# block size
+: ${bs="8 8 1"}
+# number of processors
+: ${np=16}
+# mesh
+: ${m="64 64 1"}
+
+echo $np > np
+
+ch.base
+ch.part $m $bs $np > mesh.conf
+
+OMP_NUM_THREADS=24 ch.run ./t.advection "$c"
+
+a=0
+: ${r=ref}
+for f in $r/*.dat ; do
+  echo $f
+  if ! ch.diffnum "${f#$r/}" "$f" 1e-11; then
+    a=1
+  fi
+done
+
+exit $a
