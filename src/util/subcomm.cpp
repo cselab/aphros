@@ -59,7 +59,6 @@ void SetAffinity(int cpu) {
   if (0 != sched_setaffinity(0, sizeof(cpu_set_t), &cpuset)) {
       fprintf(stderr, "Can not move to cpu=%d errno=%d\n", cpu, errno);
   }
-  else{fprintf(stderr, "Moved to cpu=%d\n", cpu);}
 }
 
 Affinity GetAffinity()
