@@ -3,14 +3,18 @@
 #include "table.h"
 
 enum { X, Y, Z };
-static struct Ver {
+struct Ver {
   double a;
   int x, y;
-} cube_ver[3 * MARCH_NTRI];
+};
+struct March {
+    struct Ver cube_ver[3 * MARCH_NTRI];
+    int cube_n;
+} q;
+
 static int cube_n;
 static double offset(double, double);
 static int map(int);
-
 
 static int
 cube(double cube[8], int *pn, double *tri)
@@ -57,9 +61,9 @@ cube(double cube[8], int *pn, double *tri)
       tri[k++] = v[X];
       tri[k++] = v[Y];
       tri[k++] = v[Z];
-      cube_ver[m].x = ve[j].x;
-      cube_ver[m].y = ve[j].y;
-      cube_ver[m].a = ve[j].a;
+      q.cube_ver[m].x = ve[j].x;
+      q.cube_ver[m].y = ve[j].y;
+      q.cube_ver[m].a = ve[j].a;
       m++;
     }
     n++;
@@ -198,9 +202,9 @@ march_cube_location(int *x, int *y, double *a)
   int i;
 
   for (i = 0; i < 3 * cube_n; i++) {
-    x[i] = map(cube_ver[i].x);
-    y[i] = map(cube_ver[i].y);
-    a[i] = cube_ver[i].a;
+    x[i] = map(q.cube_ver[i].x);
+    y[i] = map(q.cube_ver[i].y);
+    a[i] = q.cube_ver[i].a;
   }
   return 0;
 }
