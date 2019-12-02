@@ -100,6 +100,29 @@ class UVof {
     }
   }
 
+  // set volume fraction to 0 or 1 near wall
+  static void BcClearOverrideColor(
+      FieldCell<Scal>& uc, FieldCell<Scal>& clc, Scal cl0,
+      const MapCondFaceAdvection<Scal>& mfc, const M& m) {
+    static constexpr Scal kClNone = -1;
+    for (const auto& it : mfc) {
+      auto& cfa = it.GetValue();
+      IdxCell c = m.GetCell(it.GetIdx(), cfa.GetNci());
+      auto& u = uc[c];
+      if (u < cfa.clear0) {
+        u = 0;
+      } else if (u > cfa.clear1) {
+        u = 1;
+      }
+      auto& cl = clc[c];
+      if (cfa.clear1 < 1 && cl != cl0) {
+        cl = kClNone;
+        u = 0;
+      }
+    }
+  }
+
+
  public:
   struct Imp;
   std::unique_ptr<Imp> imp;

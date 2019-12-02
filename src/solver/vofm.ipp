@@ -678,8 +678,15 @@ struct Vofm<M_>::Imp {
       Sharpen(mfcu);
     }
     if (sem("bcc_clear")) {
-      for (auto i : layers) {
-        UVof<M>::BcClear(fcu_[i].iter_curr, mfc_, m);
+      if (par->cloverride) {
+        for (auto i : layers) {
+          UVof<M>::BcClearOverrideColor(
+              fcu_[i].iter_curr, fccl_[i], 0., mfc_, m);
+        }
+      } else {
+        for (auto i : layers) {
+          UVof<M>::BcClear(fcu_[i].iter_curr, mfc_, m);
+        }
       }
     }
     if (sem.Nested()) {

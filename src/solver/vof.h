@@ -76,6 +76,7 @@ class Vof final : public AdvectionSolver<M_> {
     Scal avgnorm1 = 1; // overriden normal with sum(u)>=acgnorm1
     Scal clfixed = -1; // if >= 0, value for color at point clfixed_x
     Vect clfixed_x = Vect(1e10);
+    bool cloverride = false; // XXX adhoc if clear1<1, override color with 0
     size_t layers = 4;
     Scal coalth = 1.5;
   };
