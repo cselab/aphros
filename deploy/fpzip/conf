@@ -1,11 +1,11 @@
-CC=${CC}
 if [[ -z ${CC} ]]; then
     CC=gcc
 fi
-CXX=${CXX}
 if [[ -z ${CXX} ]]; then
-    CC=g++
+    CXX=g++
 fi
-FC=gfortran
+if [[ -z ${FC} ]]; then
+    FC=gfortran
+fi
 
-export CC CXX FC
+make CC=${CC} CXX=${CXX} FC=${FC} -C "$src" -j4
