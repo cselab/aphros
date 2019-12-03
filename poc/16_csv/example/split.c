@@ -46,6 +46,18 @@ struct Data {
   double *r;
   double *field;
 };
+struct {
+  int n;
+  int nmax;
+  double *x;
+  double *y;
+  double *z;
+} connect;
+static int connect_ini(void);
+static int connect_write(FILE *f);
+static int connect_add(double x, double y, double z);
+static int connect_fin(void);
+
 static struct Data data_ini(const char *);
 static int data_fin(struct Data *);
 static int data_add(struct Data *, const char *, const int *);
