@@ -213,8 +213,7 @@ struct StreamHdfScal {
 
   StreamHdfScal(B &b, const int idx) : b(b), aos(idx)
   {
-      assert(1 == b.n_comp);
-      assert(0 >= aos);
+      assert(aos >= 0);
   }
 
   // write
