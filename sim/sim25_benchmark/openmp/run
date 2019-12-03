@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -eu
+
+make runmpi
+mv out out_mpi
+make runomp
+mv out out_omp
