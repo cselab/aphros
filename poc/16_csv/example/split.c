@@ -25,7 +25,7 @@ static const char me[] = "split";
 static void
 usg()
 {
-  fprintf(stderr, "%s -p prefix -f field [csv..] -p \n", me);
+  fprintf(stderr, "%s -p prefix -f field [csv..]\n", me);
   exit(1);
 }
 
@@ -155,6 +155,7 @@ main(int argc, char **argv)
           lmin = l;
         }
       }
+      fprintf(stderr, "dmin: %g\n", dmin);
       if (table_get(b.table, b.field[lmin], &m) != TABLE_EMPY) {
 	split[m] = 1;
 	split[j] = 2;
