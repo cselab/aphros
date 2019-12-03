@@ -27,7 +27,6 @@ rm -rf "$d"
 tar -xzf "$f"
 
 run conf
-run build
 run install
 
 # clean after install

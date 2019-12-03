@@ -2,4 +2,4 @@ CC=cc
 CXX=CC
 FC=ftn
 
-export CC CXX FC
+make CC=${CC} CXX=${CXX} FC=${FC} -C "$src" -j4
