@@ -1,18 +1,24 @@
+# openmp threads per node
 omp = 1
-bx = 6
-px = 1
+# multiplier for number of blocks
+kb = 1
+# multiplier for number of cores
+kp = 1
+# block size
+bs = 16
 cubismnc = 1
 compress = 0
 
 simmake = sim.makefile
 
-par.make: Makefile pargen
-	./pargen $(bx) $(px) $(cubismnc) $(compress)
+conf: Makefile pargen
+	./pargen $(kb) $(kp) $(bs) $(cubismnc) $(compress)
+	OMP_NUM_THREADS=$(omp) make -f $(simmake) conf
 
-submit: par.make
+submit: conf
 	OMP_NUM_THREADS=$(omp) make -f $(simmake) submit
 
-run: par.make
+run: conf
 	OMP_NUM_THREADS=$(omp) make -f $(simmake) run
 
 cleanall:
@@ -22,3 +28,5 @@ cleanall:
 
 clean:
 	rm -f _m _bs _np _tl par.conf par.make
+
+.PHONY: conf

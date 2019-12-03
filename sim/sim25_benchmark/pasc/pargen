@@ -4,26 +4,48 @@ import sys
 
 av = sys.argv
 
-bs = 16
-bbx = [1, 3, 6, 9, 16]
-ppx = [1, 2, 3, 4, 6, 12]
+# multiplier for number of blocks in one direction
+kb = int(av[1])
+assert kb >= 1
 
-bx = int(av[1])
-px = int(av[2])
+# multiplier for number of cores in one direction
+kp = int(av[2])
+assert kp >= 1
+
+# block size
+bs = int(av[3])
+assert bs in [8, 16, 32]
+
 cubismnc = int(av[3])
+backend = "cubismnc" if cubismnc else "cubism"
+
+# message size for compression
 compress = int(av[4])
 
-assert bx in bbx
-assert px in ppx
+# blocks per core
+bx = 2 * kb
+by = 3 * kb
+bz = 3 * kb
+
+# cores
+px = 3 * kp
+py = 2 * kp
+pz = 2 * kp
 
 # 1 cubism vs cubismnc; mpi, no compression
 # 2 openmp vs mpi; without compression, only cubismnc
 # 3 compression vs no compression; only openmp, only cubismnc
 
 nx = bs * bx * px
-np = px ** 3
+ny = bs * by * py
+nz = bs * bz * pz
+
+print("mesh: {:}x{:}x{:}".format(nx, ny, nz))
+
+assert nx == ny and nx == nz
+
+np = px * py * pz
 tl = 10
-backend = "cubismnc" if cubismnc else "cubism"
 
 with open("par.conf", 'w') as f:
     f.write('''\
