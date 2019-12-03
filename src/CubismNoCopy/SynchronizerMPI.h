@@ -18,8 +18,21 @@
 #include "DependencyCubeMPI.h"
 #include "PUPkernelsMPI.h"
 #include "StencilInfo.h"
+#include "util/compressor.h"
 
 using namespace std;
+
+using Compressor = compression::FPZIP<Real>;
+using Envelope = compression::Envelope;
+
+struct CompressorHandle {
+  Compressor* comp;
+  MPI_Request req;
+};
+
+bool operator<(const CompressorHandle& lhs, const CompressorHandle& rhs) {
+  return lhs.req < rhs.req;
+}
 
 template <typename TView>
 class SynchronizerMPI
@@ -52,6 +65,7 @@ class SynchronizerMPI
     map<Real *, vector<PackInfo> > recv_packinfos;
     map<Real *, vector<SubpackInfo> > recv_subpackinfos;
     vector<Real *> all_mallocs;
+    vector<Compressor*> all_compressors;
 
     vector<BlockInfo> globalinfos;
     DependencyCubeMPI<MPI_Request> cube;
@@ -70,7 +84,8 @@ class SynchronizerMPI
 
     struct CommData {
         Real * faces[3][2], * edges[3][2][2], * corners[2][2][2];
-        set<MPI_Request> pending;
+        Compressor *cfaces[3][2], *cedges[3][2][2], *ccorners[2][2][2];
+        set<CompressorHandle> pending;
     } send, recv;
 
     bool _face_needed(const int d) const
@@ -137,8 +152,10 @@ class SynchronizerMPI
 
                 const bool needed = _face_needed(d) || NFACE == 0;
                 if (alloc_buf) {
-                    data.faces[d][s] =
-                        needed ? _myalloc(sizeof(Real) * NFACE, 16) : NULL;
+                  data.faces[d][s] =
+                      needed ? _myalloc(sizeof(Real) * NFACE, 16) : NULL;
+                  data.cfaces[d][s] = // compressor
+                      needed ? _newcompressor(data.faces[d][s], NFACE) : NULL;
                 }
 
                 if (!needed) continue;
@@ -222,6 +239,9 @@ class SynchronizerMPI
                     if (alloc_buf) {
                         data.edges[d][b][a] =
                             needed ? _myalloc(sizeof(Real) * NEDGE, 16) : NULL;
+                        data.cedges[d][b][a] =
+                            needed ? _newcompressor(data.edges[d][b][a], NEDGE)
+                                   : NULL;
                     }
 
                     if (!needed) continue;
@@ -695,9 +715,13 @@ class SynchronizerMPI
 
                     const bool needed = NCORNERBLOCK > 0;
                     if (alloc_buf) {
-                        data.corners[z][y][x] =
-                            needed ? _myalloc(sizeof(Real) * NCORNERBLOCK, 16)
-                                   : NULL;
+                      data.corners[z][y][x] =
+                          needed ? _myalloc(sizeof(Real) * NCORNERBLOCK, 16)
+                                 : NULL;
+                      data.ccorners[z][y][x] =
+                          needed ? _newcompressor(
+                                       data.corners[z][y][x], NCORNERBLOCK)
+                                 : NULL;
                     }
 
                     if (!needed) continue;
@@ -759,24 +783,32 @@ class SynchronizerMPI
         return retval;
     }
 
-    Real * _myalloc(const int NBYTES, const int ALIGN)
-    {
-        if (NBYTES>0)
-        {
-            //Real * ret_val = (Real *)_mm_malloc(NBYTES, ALIGN);
-            Real * ret_val = NULL;
+    Real* _myalloc(const int NBYTES, const int ALIGN) {
+      if (NBYTES > 0) {
+        // Real * ret_val = (Real *)_mm_malloc(NBYTES, ALIGN);
+        Real* ret_val = NULL;
 
-            int error = posix_memalign((void**)&ret_val, std::max(8, ALIGN), NBYTES);
+        int error =
+            posix_memalign((void**)&ret_val, std::max(8, ALIGN), NBYTES);
 
-      (void)sizeof(error);
-            assert(error == 0);
+        (void)sizeof(error);
+        assert(error == 0);
 
-            all_mallocs.push_back(ret_val);
+        all_mallocs.push_back(ret_val);
 
-            return ret_val;
-        }
+        return ret_val;
+      }
 
-        return NULL;
+      return NULL;
+    }
+
+    Compressor* _newcompressor(Real* base, const size_t N) {
+      if (N > 0) {
+        Compressor* c = new Compressor(base, N);
+        all_compressors.push_back(c);
+        return c;
+      }
+      return nullptr;
     }
 
     void _myfree(Real *& ptr) {if (ptr!=NULL) { free(ptr); ptr=NULL;} }
@@ -874,22 +906,26 @@ public:
     {
         for(size_t i=0;i<all_mallocs.size();++i)
             _myfree(all_mallocs[i]);
+        for (size_t i = 0; i < all_compressors.size(); ++i)
+          delete all_compressors[i];
     }
 
-    void sync(FieldContainer &fields, MPI_Datatype MPIREAL, const int timestamp)
-    {
-        // 0. wait for pending sends, couple of checks
-        // 1. pack all stuff
-        // 2. perform send/receive requests
-        // 3. setup the dependency
+    void sync(FieldContainer& fields, const int timestamp) {
+      // 0. wait for pending sends, couple of checks
+      // 1. pack all stuff
+      // 2. perform send/receive requests
+      // 3. setup the dependency
 
-        //0.
-        {
-            const int NPENDINGSENDS = send.pending.size();
-            if (NPENDINGSENDS > 0)
-            {
-                vector<MPI_Request> pending(NPENDINGSENDS);
-                copy(send.pending.begin(), send.pending.end(), pending.begin());
+      // 0.
+      {
+        const int NPENDINGSENDS = send.pending.size();
+        if (NPENDINGSENDS > 0) {
+          vector<MPI_Request> pending;
+          for (const auto& p : send.pending) {
+            pending.push_back(p.req);
+          }
+          // copy(send.pending.begin(), send.pending.end(),
+          // pending.begin());
 #if 1
                 MPI_Waitall(NPENDINGSENDS, &pending.front(), MPI_STATUSES_IGNORE);
 #else
@@ -917,7 +953,7 @@ public:
         _init_maps(fields); // recompute field maps that correspond to memory
                             // locations in fields
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-21] // only for synchronous stage execution!
-        recv.pending.clear(); 
+        recv.pending.clear();
 
         cube.prepare();
         blockinfo_counter = globalinfos.size();
@@ -981,19 +1017,38 @@ public:
 
                     if (_myself(neighbor_index)) continue;
 
-                    if (NFACE_SEND > 0)
-                    {
-                        MPI_Request req;
-                        MPI_Isend(send.faces[d][s], NFACE_SEND, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + 1-s, cartcomm, &req);
-                        send.pending.insert( req );
+                    if (NFACE_RECV > 0) {
+                      MPI_Request rc;
+                      CompressorHandle hc;
+                      hc.comp = recv.cfaces[d][s];
+                      Envelope env = hc.comp->GetEnvelope();
+                      MPI_Irecv(
+                          env.buf, env.ubytes, MPI_BYTE, _rank(neighbor_index),
+                          6 * timestamp + 2 * d + s, cartcomm, &rc);
+                      hc.req = rc;
+                      recv.pending.insert(hc);
+                      cube.face(rc, d, s);
                     }
 
-                    if (NFACE_RECV > 0)
-                    {
-                        MPI_Request rc;
-                        MPI_Irecv(recv.faces[d][s], NFACE_RECV, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + s, cartcomm, &rc);
-                        recv.pending.insert(rc);
-                        cube.face(rc, d, s);
+                    if (NFACE_SEND > 0) {
+                      MPI_Request req;
+                      CompressorHandle hc;
+                      hc.comp = send.cfaces[d][s];
+                      Envelope env = hc.comp->Compress();
+                      MPI_Isend(
+                          env.buf, env.cbytes, MPI_BYTE, _rank(neighbor_index),
+                          6 * timestamp + 2 * d + 1 - s, cartcomm, &req);
+                      hc.req = req;
+                      send.pending.insert(hc);
+#ifndef NDEBUG
+                      if (isroot) {
+                        printf(
+                            "send.faces[%d][%d]:      "
+                            "bytes=%-8lu compressed=%-8lu ratio=%.3e\n",
+                            d, s, env.ubytes, env.cbytes,
+                            static_cast<double>(env.ubytes) / env.cbytes);
+                      }
+#endif /* NDEBUG */
                     }
                 }
             }
@@ -1021,21 +1076,44 @@ public:
 
                             if (_myself(neighbor_index)) continue;
 
-                            if (NEDGE_RECV > 0)
-                            {
-                                MPI_Request rc;
-                                MPI_Irecv(recv.edges[d][b][a], NEDGE_RECV, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*b + a, cartcomm, &rc);
-
-                                recv.pending.insert(rc);
-
-                                cube.edge(rc, d, a, b);
+                            if (NEDGE_RECV > 0) {
+                              MPI_Request rc;
+                              CompressorHandle hc;
+                              hc.comp = recv.cedges[d][b][a];
+                              Envelope env = hc.comp->GetEnvelope();
+                              MPI_Irecv(
+                                  env.buf, env.ubytes, MPI_BYTE,
+                                  _rank(neighbor_index),
+                                  12 * timestamp + 4 * d + 2 * b + a, cartcomm,
+                                  &rc);
+                              hc.req = rc;
+                              recv.pending.insert(hc);
+                              cube.edge(rc, d, a, b);
                             }
 
-                            if (NEDGE_SEND > 0)
-                            {
-                                MPI_Request req;
-                                MPI_Isend(send.edges[d][b][a], NEDGE_SEND, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*(1-b) + (1-a), cartcomm, &req);
-                                send.pending.insert(req);
+                            if (NEDGE_SEND > 0) {
+                              MPI_Request req;
+                              CompressorHandle hc;
+                              hc.comp = send.cedges[d][b][a];
+                              Envelope env = hc.comp->Compress();
+                              MPI_Isend(
+                                  env.buf, env.cbytes, MPI_BYTE,
+                                  _rank(neighbor_index),
+                                  12 * timestamp + 4 * d + 2 * (1 - b) +
+                                      (1 - a),
+                                  cartcomm, &req);
+                              hc.req = req;
+                              send.pending.insert(hc);
+#ifndef NDEBUG
+                              if (isroot) {
+                                printf(
+                                    "send.edges[%d][%d][%d]:   "
+                                    "bytes=%-8lu compressed=%-8lu ratio=%.3e\n",
+                                    d, b, a, env.ubytes, env.cbytes,
+                                    static_cast<double>(env.ubytes) /
+                                        env.cbytes);
+                              }
+#endif /* NDEBUG */
                             }
                         }
                 }
@@ -1056,21 +1134,46 @@ public:
 
                                     if (_myself(neighbor_index)) continue;
 
-                                    if (NCORNERBLOCK_RECV)
-                                    {
-                                        MPI_Request rc;
-                                        MPI_Irecv(recv.corners[z][y][x], NCORNERBLOCK_RECV, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*z + 2*y + x, cartcomm, &rc);
-
-                                        recv.pending.insert(rc);
-
-                                        cube.corner(rc, x, y, z);
+                                    if (NCORNERBLOCK_RECV) {
+                                      MPI_Request rc;
+                                      CompressorHandle hc;
+                                      hc.comp = recv.ccorners[z][y][x];
+                                      Envelope env = hc.comp->GetEnvelope();
+                                      MPI_Irecv(
+                                          env.buf, env.ubytes, MPI_BYTE,
+                                          _rank(neighbor_index),
+                                          8 * timestamp + 4 * z + 2 * y + x,
+                                          cartcomm, &rc);
+                                      hc.req = rc;
+                                      recv.pending.insert(hc);
+                                      cube.corner(rc, x, y, z);
                                     }
 
-                                    if (NCORNERBLOCK_SEND)
-                                    {
-                                        MPI_Request req;
-                                        MPI_Isend(send.corners[z][y][x], NCORNERBLOCK_SEND, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*(1-z) + 2*(1-y) + (1-x), cartcomm, &req);
-                                        send.pending.insert(req);
+                                    if (NCORNERBLOCK_SEND) {
+                                      MPI_Request req;
+                                      CompressorHandle hc;
+                                      hc.comp = send.ccorners[z][y][x];
+                                      Envelope env = hc.comp->Compress();
+                                      MPI_Isend(
+                                          env.buf, env.cbytes, MPI_BYTE,
+                                          _rank(neighbor_index),
+                                          8 * timestamp + 4 * (1 - z) +
+                                              2 * (1 - y) + (1 - x),
+                                          cartcomm, &req);
+                                      hc.req = req;
+                                      send.pending.insert(hc);
+#ifndef NDEBUG
+                                      if (isroot) {
+                                        printf(
+                                            "send.corners[%d][%d][%d]: "
+                                            "bytes=%-8lu compressed=%-8lu "
+                                            "ratio=%"
+                                            ".3e\n",
+                                            z, y, x, env.ubytes, env.cbytes,
+                                            static_cast<double>(env.ubytes) /
+                                                env.cbytes);
+                                      }
+#endif /* NDEBUG */
                                     }
                                 }
                 }
@@ -1138,11 +1241,17 @@ public:
 
         const int NPENDING = recv.pending.size();
 
-        vector<MPI_Request> pending(NPENDING);
+        // FIXME: [fabianw@mavt.ethz.ch; 2019-12-03] can be used for a sanity
+        // vector<MPI_Status> pstatus(NPENDING);
+        vector<MPI_Request> pending;
 
-        copy(recv.pending.begin(), recv.pending.end(), pending.begin());
+        for (const auto& hc : recv.pending) {
+          pending.push_back(hc.req);
+        }
 
         vector<MPI_Request> old = pending;
+        vector<CompressorHandle> hcold(NPENDING);
+        copy(recv.pending.begin(), recv.pending.end(), hcold.begin());
 
 #if 1
         MPI_Waitall(NPENDING, &pending.front(), MPI_STATUSES_IGNORE);
@@ -1157,178 +1266,184 @@ public:
 #endif
         for(int i=0; i<NPENDING; ++i)
         {
+          hcold[i].comp->Decompress();
+          cube.received(old[i]);
+          recv.pending.erase(hcold[i]);
+        }
+
+        const int xorigin = mypeindex[0]*mybpd[0];
+        const int yorigin = mypeindex[1]*mybpd[1];
+        const int zorigin = mypeindex[2]*mybpd[2];
+
+        vector<Region> regions = cube.avail();
+
+        for(typename vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
+        {
+            map<Region, vector<BlockInfo> >::const_iterator r2v = region2infos.find(*it);
+
+            if(r2v!=region2infos.end())
+            {
+                retval.insert(retval.end(), r2v->second.begin(), r2v->second.end());
+                blockinfo_counter -=  r2v->second.size();
+            }
+            else
+            {
+                vector<BlockInfo> entry;
+
+                const int sx = it->s[0];
+                const int sy = it->s[1];
+                const int sz = it->s[2];
+                const int ex = it->e[0];
+                const int ey = it->e[1];
+                const int ez = it->e[2];
+
+                for(int iz=sz; iz<ez; ++iz)
+                    for(int iy=sy; iy<ey; ++iy)
+                        for(int ix=sx; ix<ex; ++ix, blockinfo_counter--)
+                        {
+                            assert(c2i.find(I3(ix + xorigin, iy + yorigin, iz + zorigin)) != c2i.end());
+                            entry.push_back(globalinfos[ c2i[I3(ix + xorigin, iy + yorigin, iz + zorigin)] ]);
+                        }
+
+                retval.insert(retval.end(), entry.begin(), entry.end());
+
+                region2infos[*it] = entry;
+            }
+        }
+
+        assert(cube.pendingcount() != 0 || blockinfo_counter == cube.pendingcount());
+        assert(blockinfo_counter != 0 || blockinfo_counter == cube.pendingcount());
+        assert(blockinfo_counter != 0 || recv.pending.size() == 0);
+
+        return retval;
+    }
+
+    bool test_halo() {
+      vector<BlockInfo> retval;
+
+      const int NPENDING = recv.pending.size();
+
+      if (NPENDING == 0) return true;
+
+      vector<MPI_Request> pending;
+      for (const auto& hc : recv.pending) {
+        pending.push_back(hc.req);
+      }
+
+      int done = false;
+      MPI_Testall(NPENDING, &pending.front(), &done, MPI_STATUSES_IGNORE);
+
+      return done;
+    }
+
+    vector<BlockInfo> avail() {
+      vector<BlockInfo> retval;
+
+      const int NPENDING = recv.pending.size();
+
+      // FIXME: [fabianw@mavt.ethz.ch; 2019-12-03] can be used for a sanity
+      // check after decompression vector<MPI_Status> pstatus(NPENDING);
+      vector<MPI_Request> pending;
+
+      for (const auto& hc : recv.pending) {
+        pending.push_back(hc.req);
+      }
+
+      vector<MPI_Request> old = pending;
+      vector<CompressorHandle> hcold(NPENDING);
+      copy(recv.pending.begin(), recv.pending.end(), hcold.begin());
+
+      if (NPENDING > 0) {
+        if (mybpd[0] == 1 || mybpd[1] == 1 ||
+            mybpd[2] == 1) // IS THERE SOMETHING MORE INTELLIGENT?!
+        {
+          MPI_Waitall(NPENDING, &pending.front(), MPI_STATUSES_IGNORE);
+          for (int i = 0; i < NPENDING; ++i) {
+            hcold[i].comp->Decompress();
             cube.received(old[i]);
-            recv.pending.erase(old[i]);
+            recv.pending.erase(hcold[i]);
+          }
+        } else {
+          vector<int> indices(NPENDING);
+          int NSOLVED = 0;
+          if (blockinfo_counter == int(globalinfos.size()))
+            MPI_Testsome(
+                NPENDING, &pending.front(), &NSOLVED, &indices.front(),
+                MPI_STATUSES_IGNORE);
+          else {
+            MPI_Waitsome(
+                NPENDING, &pending.front(), &NSOLVED, &indices.front(),
+                MPI_STATUSES_IGNORE);
+            assert(NSOLVED > 0);
+          }
+
+          for (int i = 0; i < NSOLVED; ++i) {
+            hcold[indices[i]].comp->Decompress();
+            cube.received(old[indices[i]]);
+            recv.pending.erase(hcold[indices[i]]);
+          }
         }
+      }
 
-        const int xorigin = mypeindex[0]*mybpd[0];
-        const int yorigin = mypeindex[1]*mybpd[1];
-        const int zorigin = mypeindex[2]*mybpd[2];
+      const int xorigin = mypeindex[0] * mybpd[0];
+      const int yorigin = mypeindex[1] * mybpd[1];
+      const int zorigin = mypeindex[2] * mybpd[2];
 
-        vector<Region> regions = cube.avail();
+      vector<Region> regions = cube.avail();
 
-        for(typename vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
-        {
-            map<Region, vector<BlockInfo> >::const_iterator r2v = region2infos.find(*it);
+      for (typename vector<Region>::const_iterator it = regions.begin();
+           it != regions.end(); ++it) {
+        map<Region, vector<BlockInfo>>::const_iterator r2v =
+            region2infos.find(*it);
 
-            if(r2v!=region2infos.end())
-            {
-                retval.insert(retval.end(), r2v->second.begin(), r2v->second.end());
-                blockinfo_counter -=  r2v->second.size();
-            }
-            else
-            {
-                vector<BlockInfo> entry;
+        if (r2v != region2infos.end()) {
+          retval.insert(retval.end(), r2v->second.begin(), r2v->second.end());
+          blockinfo_counter -= r2v->second.size();
+        } else {
+          vector<BlockInfo> entry;
 
-                const int sx = it->s[0];
-                const int sy = it->s[1];
-                const int sz = it->s[2];
-                const int ex = it->e[0];
-                const int ey = it->e[1];
-                const int ez = it->e[2];
+          const int sx = it->s[0];
+          const int sy = it->s[1];
+          const int sz = it->s[2];
+          const int ex = it->e[0];
+          const int ey = it->e[1];
+          const int ez = it->e[2];
 
-                for(int iz=sz; iz<ez; ++iz)
-                    for(int iy=sy; iy<ey; ++iy)
-                        for(int ix=sx; ix<ex; ++ix, blockinfo_counter--)
-                        {
-                            assert(c2i.find(I3(ix + xorigin, iy + yorigin, iz + zorigin)) != c2i.end());
-                            entry.push_back(globalinfos[ c2i[I3(ix + xorigin, iy + yorigin, iz + zorigin)] ]);
-                        }
+          for (int iz = sz; iz < ez; ++iz)
+            for (int iy = sy; iy < ey; ++iy)
+              for (int ix = sx; ix < ex; ++ix, blockinfo_counter--) {
+                assert(
+                    c2i.find(I3(ix + xorigin, iy + yorigin, iz + zorigin)) !=
+                    c2i.end());
+                entry.push_back(globalinfos[c2i[I3(
+                    ix + xorigin, iy + yorigin, iz + zorigin)]]);
+              }
 
-                retval.insert(retval.end(), entry.begin(), entry.end());
+          retval.insert(retval.end(), entry.begin(), entry.end());
 
-                region2infos[*it] = entry;
-            }
+          region2infos[*it] = entry;
         }
+      }
 
-        assert(cube.pendingcount() != 0 || blockinfo_counter == cube.pendingcount());
-        assert(blockinfo_counter != 0 || blockinfo_counter == cube.pendingcount());
-        assert(blockinfo_counter != 0 || recv.pending.size() == 0);
+      assert(
+          cube.pendingcount() != 0 || blockinfo_counter == cube.pendingcount());
+      assert(
+          blockinfo_counter != 0 || blockinfo_counter == cube.pendingcount());
+      assert(blockinfo_counter != 0 || recv.pending.size() == 0);
 
-        return retval;
+      return retval;
     }
 
+    vector<BlockInfo> avail(const int smallest) {
+      vector<BlockInfo> accumulator;
 
-    bool test_halo()
-    {
-        vector<BlockInfo> retval;
+      while (accumulator.size() < size_t(smallest) && !done()) {
+        const vector<BlockInfo> r = avail();
 
-        const int NPENDING = recv.pending.size();
+        accumulator.insert(accumulator.end(), r.begin(), r.end());
+      }
 
-        if (NPENDING == 0) return true;
-
-        vector<MPI_Request> pending(NPENDING);
-
-        copy(recv.pending.begin(), recv.pending.end(), pending.begin());
-
-        int done = false;
-        MPI_Testall(NPENDING, &pending.front(), &done, MPI_STATUSES_IGNORE);
-
-        return done;
-    }
-
-    vector<BlockInfo> avail()
-    {
-        vector<BlockInfo> retval;
-
-        const int NPENDING = recv.pending.size();
-
-        vector<MPI_Request> pending(NPENDING);
-
-        copy(recv.pending.begin(), recv.pending.end(), pending.begin());
-
-        vector<MPI_Request> old = pending;
-
-        if(NPENDING > 0)
-        {
-            if(mybpd[0]==1 || mybpd[1]==1 || mybpd[2] == 1) //IS THERE SOMETHING MORE INTELLIGENT?!
-            {
-                MPI_Waitall(NPENDING, &pending.front(), MPI_STATUSES_IGNORE);
-                for(int i=0; i<NPENDING; ++i)
-                {
-                    cube.received(old[i]);
-                    recv.pending.erase(old[i]);
-                }
-            }
-            else
-            {
-                vector<int> indices(NPENDING);
-                int NSOLVED = 0;
-                if (blockinfo_counter == int(globalinfos.size()))
-          MPI_Testsome(NPENDING, &pending.front(), &NSOLVED, &indices.front(), MPI_STATUSES_IGNORE);
-                else
-                {
-                    MPI_Waitsome(NPENDING, &pending.front(), &NSOLVED, &indices.front(), MPI_STATUSES_IGNORE);
-                    assert(NSOLVED > 0);
-                }
-
-                for(int i=0; i<NSOLVED; ++i)
-                {
-                    cube.received(old[indices[i]]);
-                    recv.pending.erase(old[indices[i]]);
-                }
-            }
-        }
-
-        const int xorigin = mypeindex[0]*mybpd[0];
-        const int yorigin = mypeindex[1]*mybpd[1];
-        const int zorigin = mypeindex[2]*mybpd[2];
-
-        vector<Region> regions = cube.avail();
-
-        for(typename vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
-        {
-            map<Region, vector<BlockInfo> >::const_iterator r2v = region2infos.find(*it);
-
-            if(r2v!=region2infos.end())
-            {
-                retval.insert(retval.end(), r2v->second.begin(), r2v->second.end());
-                blockinfo_counter -=  r2v->second.size();
-            }
-            else
-            {
-                vector<BlockInfo> entry;
-
-                const int sx = it->s[0];
-                const int sy = it->s[1];
-                const int sz = it->s[2];
-                const int ex = it->e[0];
-                const int ey = it->e[1];
-                const int ez = it->e[2];
-
-                for(int iz=sz; iz<ez; ++iz)
-                    for(int iy=sy; iy<ey; ++iy)
-                        for(int ix=sx; ix<ex; ++ix, blockinfo_counter--)
-                        {
-                            assert(c2i.find(I3(ix + xorigin, iy + yorigin, iz + zorigin)) != c2i.end());
-                            entry.push_back(globalinfos[ c2i[I3(ix + xorigin, iy + yorigin, iz + zorigin)] ]);
-                        }
-
-                retval.insert(retval.end(), entry.begin(), entry.end());
-
-                region2infos[*it] = entry;
-            }
-        }
-
-        assert(cube.pendingcount() != 0 || blockinfo_counter == cube.pendingcount());
-        assert(blockinfo_counter != 0 || blockinfo_counter == cube.pendingcount());
-        assert(blockinfo_counter != 0 || recv.pending.size() == 0);
-
-        return retval;
-    }
-
-    vector<BlockInfo> avail(const int smallest)
-    {
-        vector<BlockInfo> accumulator;
-
-        while(accumulator.size()<size_t(smallest) && !done())
-        {
-            const vector<BlockInfo> r = avail();
-
-            accumulator.insert(accumulator.end(), r.begin(), r.end());
-        }
-
-        return accumulator;
+      return accumulator;
     }
 
     bool done() const

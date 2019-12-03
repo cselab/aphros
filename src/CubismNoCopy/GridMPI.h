@@ -210,8 +210,7 @@ public:
         }
 
         // perform communication
-        queryresult->sync(
-            fields, sizeof(Real) > 4 ? MPI_DOUBLE : MPI_FLOAT, timestamp);
+        queryresult->sync(fields, timestamp);
 
         timestamp = (timestamp + 1) % 32768;
 
