@@ -557,6 +557,10 @@ void Smoothen(FieldCell<T>& fc, const MapCondFace& mfc, M& m, size_t rep) {
       fc = Average(Interpolate(fc, mfc, m), m);
       m.Comm(&fc);
     }
+    // FIXME empty stage, without it cubismnc fails
+    // on sim25 with m="128 16 16" np=2 OMP_NUM_THREADS=1 on two nodes
+    // which is a minimal case with inner/halo blocks and MPI communication
+    if (sem()) {}
   }
 }
 
