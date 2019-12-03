@@ -25,6 +25,28 @@ Vars::Map<std::vector<double>>& Vars::Get<std::vector<double>>() {
   return Vect;
 }
 
+
+template <>
+const Vars::Map<int>& Vars::Get<int>() const {
+  return Int;
+}
+
+template <>
+const Vars::Map<double>& Vars::Get<double>() const {
+  return Double;
+}
+
+template <>
+const Vars::Map<std::string>& Vars::Get<std::string>() const {
+  return String;
+}
+
+
+template <>
+const Vars::Map<std::vector<double>>& Vars::Get<std::vector<double>>() const {
+  return Vect;
+}
+
 template <>
 std::string Vars::Map<std::string>::GetTypeName() const {
   return "string";

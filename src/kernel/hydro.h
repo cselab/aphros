@@ -184,8 +184,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   }
   // Surface tension time step
   Scal GetStDt() {
-    Scal sig = var.Double["sigma"];
-    Scal* cflst = var.Double("cflst");
+    const Scal sig = var.Double["sigma"];
+    const Scal* cflst = var.Double("cflst");
     if (cflst && sig != 0.) {
       Scal pi = M_PI;
       Scal h3 = m.GetVolume(IdxCell(0));
@@ -197,16 +197,16 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   }
   // Viscosity time step
   Scal GetVisDt() {
-    Scal rho1 = var.Double["rho1"];
-    Scal rho2 = var.Double["rho2"];
-    Scal mu1 = var.Double["mu1"];
-    Scal mu2 = var.Double["mu2"];
-    Scal nu1 = mu1 / rho1;
-    Scal nu2 = mu2 / rho2;
-    Scal num = std::max(nu1, nu2);
-    Scal* cflvis = var.Double("cflvis");
+    const Scal rho1 = var.Double["rho1"];
+    const Scal rho2 = var.Double["rho2"];
+    const Scal mu1 = var.Double["mu1"];
+    const Scal mu2 = var.Double["mu2"];
+    const Scal nu1 = mu1 / rho1;
+    const Scal nu2 = mu2 / rho2;
+    const Scal num = std::max(nu1, nu2);
+    const Scal* cflvis = var.Double("cflvis");
     if (cflvis &&  num != 0.) {
-      Scal h2 = sqr(m.GetCellSize()[0]); // XXX adhoc cubic cell
+      const Scal h2 = sqr(m.GetCellSize()[0]); // XXX adhoc cubic cell
       return (*cflvis) * h2 / num;
     }
     return std::numeric_limits<Scal>::max();
@@ -790,24 +790,28 @@ void Hydro<M>::Init() {
     GetFluidCellCond(var, m, mc_velcond_, pdist_);
   }
 
-  if (sem("solv")) {
-    // time step
+  if (sem("dt")) {
     const Scal dt = var.Double["dt0"];
     st_.dt = dt;
     st_.dta = dt;
-    var.Double.Set("dt", st_.dt);
-    var.Double.Set("dta", st_.dta);
+    if (m.IsLead()) {
+      this->var_mutable.Double.Set("dt", st_.dt);
+      this->var_mutable.Double.Set("dta", st_.dta);
+    }
+  }
 
-
+  if (sem("solv")) {
     InitFluid();
 
     InitAdvection();
 
     st_.iter = 0;
-    var.Int.Set("iter", st_.iter);
-
     st_.t = fs_->GetTime();
-    var.Double.Set("t", st_.t);
+
+    if (m.IsLead()) {
+      this->var_mutable.Int.Set("iter", st_.iter);
+      this->var_mutable.Double.Set("t", st_.t);
+    }
 
     InitStat();
 
@@ -1091,7 +1095,7 @@ void Hydro<M>::CalcStat() {
     s.edis1 += s.dissip1 * dt;
     s.edis2 += s.dissip2 * dt;
 
-    if (std::string* s = var.String("meshvel_auto")) {
+    if (const std::string* s = var.String("meshvel_auto")) {
       Vect v(0);
       if (*s == "v") {
         v = st_.v2;
@@ -1208,7 +1212,9 @@ void Hydro<M>::CalcDt() {
 
   if (sem("local")) {
     st_.t = fs_->GetTime();
-    var.Double["t"] = st_.t;
+    if (m.IsLead()) {
+      this->var_mutable.Double["t"] = st_.t;
+    }
 
     st_.dtt = fs_->GetAutoTimeStep();
     m.Reduce(&st_.dtt, "min");
@@ -1227,7 +1233,9 @@ void Hydro<M>::CalcDt() {
     st_.dt = std::min<Scal>(st_.dt, GetVisDt());
 
     fs_->SetTimeStep(st_.dt);
-    var.Double["dt"] = st_.dt;
+    if (m.IsLead()) {
+      this->var_mutable.Double["dt"] = st_.dt;
+    }
 
     // set from cfla if defined
     if (auto* cfla = var.Double("cfla")) {
@@ -1240,7 +1248,9 @@ void Hydro<M>::CalcDt() {
     st_.dta = dt / std::max(1, int(dt / st_.dta + 0.5));
 
     as_->SetTimeStep(st_.dta);
-    var.Double["dta"] = st_.dta;
+    if (m.IsLead()) {
+      this->var_mutable.Double["dta"] = st_.dta;
+    }
   }
 }
 
@@ -2180,7 +2190,9 @@ void Hydro<M>::StepFluid() {
   }
   if (sem("report")) {
     ++st_.iter;
-    var.Int["iter"] = st_.iter;
+    if (m.IsLead()) {
+      this->var_mutable.Int["iter"] = st_.iter;
+    }
     if (m.IsRoot()) {
       std::cout << std::scientific << std::setprecision(16)
           << ".....iter=" << fs_->GetIter()

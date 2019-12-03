@@ -1,17 +1,42 @@
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "distrsolver.h"
 #include "util/git.h"
+#include "util/subcomm.h"
+#include "linear/hypresub.h"
 
+static void RunKernelOpenMP(
+    MPI_Comm comm_world, MPI_Comm comm_omp, MPI_Comm comm_master,
+    std::function<void(MPI_Comm, Vars&)> kernel, Vars& var) {
+  int rank_omp;
+  MPI_Comm_rank(comm_omp, &rank_omp);
+
+  HypreSub::InitServer(comm_world, comm_omp);
+  if (rank_omp == 0) {
+    kernel(comm_master, var);
+    HypreSub::StopServer();
+  } else {
+    HypreSub::RunServer();
+  }
+}
+
+static void RunKernel(
+    MPI_Comm comm, std::function<void(MPI_Comm, Vars&)> kernel, Vars& var) {
+  kernel(comm, var);
+}
 
 int RunMpi(int argc, const char ** argv,
-           std::function<void(MPI_Comm, Vars&)> r) {
+           std::function<void(MPI_Comm, Vars&)> kernel) {
+#ifdef _OPENMP
+  omp_set_dynamic(0);
+#endif
   int prov;
   MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   bool isroot = (!rank);
-
-  Vars var;   // parameter storage
-  Parser ip(var); // parser
 
   std::string fn = "a.conf";
   if (argc == 1) {
@@ -32,12 +57,17 @@ int RunMpi(int argc, const char ** argv,
     std::cerr << "Loading config from '" << fn << "'" << std::endl;
   }
 
-  std::ifstream f(fn);  // config file
-  // Read file and run all commands
-  ip.RunAll(f);   
+  Vars var;   // parameter storage
+  Parser ip(var); // parser
+
+  {
+    // Read file and run all commands
+    std::ifstream f(fn);
+    ip.RunAll(f);
+  }
 
   // Print vars on root
-  if (isroot) {            
+  if (isroot) {
     std::cerr << "\n=== config begin ===" << std::endl;
     ip.PrintAll(std::cerr);
     std::cerr << "=== config end ===\n" << std::endl;
@@ -45,17 +75,31 @@ int RunMpi(int argc, const char ** argv,
 
   std::string be = var.String["backend"];
 
-  MPI_Comm comm;
   if (be == "local") {
+    MPI_Comm comm;
     MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
     if (rank == 0) {
-      r(comm, var);
+      RunKernelOpenMP(comm, comm, comm, kernel, var);
     }
   } else {
-    comm = MPI_COMM_WORLD;
-    r(comm, var);
+    bool openmp = var.Int["openmp"];
+    if (openmp) {
+      MPI_Comm comm_world;
+      MPI_Comm comm_omp;
+      MPI_Comm comm_master;
+      SubComm(comm_world, comm_omp, comm_master);
+      if (var.Int["verbose_openmp"]) {
+        PrintStats(comm_world, comm_omp, comm_master);
+      }
+      RunKernelOpenMP(comm_world, comm_omp, comm_master, kernel, var);
+    } else {
+      MPI_Comm comm = MPI_COMM_WORLD;
+      MPI_Comm comm_omp;
+      MPI_Comm_split(comm, rank, rank, &comm_omp);
+      RunKernelOpenMP(comm, comm_omp, comm, kernel, var);
+    }
   }
 
-  MPI_Finalize();	
+  MPI_Finalize();
   return 0;
 }

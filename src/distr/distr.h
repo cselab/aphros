@@ -17,6 +17,7 @@
 #include "parse/vars.h"
 #include "kernel/kernel.h"
 #include "linear/hypre.h"
+#include "linear/hypresub.h"
 #include "dump/dump.h"
 #include "dump/dumper.h"
 #include "report.h"
@@ -54,7 +55,8 @@ class DistrMesh : public Distr {
  protected:
   // TODO: remove comm, needed only by Hypre
   MPI_Comm comm_; // XXX: overwritten by Cubism<KF>
-  Vars& var;
+  const Vars& var;
+  Vars& var_mutable;
   const KF& kf_; // kernel factory
 
   int hl_; // number of halo cells (same in all directions)
@@ -109,20 +111,20 @@ class DistrMesh : public Distr {
   MultiTimer<std::string> mt_; // timer all
   MultiTimer<std::string> mtp_; // timer partial
   using LS = typename M::LS;
-  std::map<typename LS::T, std::unique_ptr<Hypre>> mhp_; // hypre instances
+  std::map<typename LS::T, std::unique_ptr<HypreSub>> mhp_; // hypre instances
 };
 
 template <class KF>
 void DistrMesh<KF>::MakeKernels(const std::vector<MyBlockInfo>& ee) {
   for (auto e : ee) {
     MIdx d(e.index);
-    mk.emplace(d, std::unique_ptr<K>(kf_.Make(var, e)));
+    mk.emplace(d, std::unique_ptr<K>(kf_.Make(var_mutable, e)));
   }
 }
 
 template <class KF>
-DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& var)
-    : comm_(comm), var(var), kf_(kf)
+DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& var0)
+    : comm_(comm), var(var0), var_mutable(var0), kf_(kf)
     , hl_(var.Int["hl"])
     , bs_{var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]}
     , p_{var.Int["px"], var.Int["py"], var.Int["pz"]}
@@ -263,8 +265,7 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
 
       LI gs(bs_ * b_ * p_);
 
-      Hypre* hp = new Hypre(comm_, lbb, gs, per);
-      mhp_.emplace(k, std::unique_ptr<Hypre>(hp));
+      mhp_.emplace(k, new HypreSub(comm_, lbb, gs, per));
     } else { // update current instance
       mhp_.at(k)->Update();
     }
@@ -529,13 +530,18 @@ void DistrMesh<KF>::ReportOpenmp() {
   if (isroot_) {
     #pragma omp parallel
     {
-      #pragma omp critical
-      {
-        std::cout
-          << "OpenMP threads" << std::endl
-          << "thread=" << omp_get_thread_num()
-          << " cpu=" << sched_getcpu()
-          << std::endl;
+      #pragma omp single
+      std::cout << "OpenMP threads" << std::endl;
+      #pragma omp for ordered
+      for (int i = 0; i < omp_get_num_threads(); ++i) {
+        #pragma omp ordered
+        {
+          std::cout << "thread="
+                    << std::setw(2) << omp_get_thread_num();
+          std::cout << std::setw(8) << " cpu="
+                    << std::setw(2) << sched_getcpu();
+          std::cout << std::endl;
+        }
       }
     }
   }

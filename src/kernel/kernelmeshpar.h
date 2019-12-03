@@ -18,6 +18,7 @@ class KernelMeshPar : public KernelMesh<M_> {
 
  protected:
   using P::var;
+  using P::var_mutable;
   using P::m;
   using P::IsRoot;
   using P::IsLead;

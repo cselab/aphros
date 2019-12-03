@@ -11,7 +11,8 @@ target_link_libraries(${EXE} distr)
 
 add_test(NAME ${p}-loc COMMAND ch.run ./${EXE} tloc)
 add_test(NAME ${p}-cub COMMAND ch.run ./${EXE} tcub)
+add_test(NAME ${p}-cubnc COMMAND ch.run ./${EXE} tcubnc)
 
 set_tests_properties(
-  ${p}-loc ${p}-cub
+  ${p}-loc ${p}-cub ${p}-cubnc
   PROPERTIES RESOURCE_LOCK ${p})

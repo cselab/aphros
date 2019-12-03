@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -eu
+
+./clean
+
+# config file
+: ${c=topenmp}
+# block size
+: ${bs="32 32 1"}
+# number of processors
+: ${np=1}
+# mesh
+: ${m="384 256 1"}
+
+echo 12 > np
+
+ch.base
+ch.part $m $bs $np > mesh.conf
+
+#OMP_NUM_THREADS=16 ch.run ./t.advection "$c"
+#OMP_NUM_THREADS=16 ./t.advection "$c"
+#OMP_NUM_THREADS=12 OMP_WAIT_POLICY=active mpirun --bind-to core -n 12 ./t.advection "$c"
+#OMP_NUM_THREADS=12 OMP_WAIT_POLICY=active mpirun  --bind-to core -mca mpi_yield_when_idle 1 -n 12 ./t.advection "$c"
+#OMP_NUM_THREADS=12 OMP_WAIT_POLICY=active mpirun --bind-to core -mca mpi_yield_when_idle 0 -n 12 ./t.advection "$c"
+#OMP_NUM_THREADS=12 OMP_WAIT_POLICY=active mpirun --bind-to core -n 12 ./t.advection "$c"
+OMP_NUM_THREADS=12 OMP_WAIT_POLICY=passive mpirun --bind-to core -n 12 ./t.advection "$c"
+
+a=0
+: ${r=ref}
+for f in $r/*.dat ; do
+  echo $f
+  if ! ch.diffnum "${f#$r/}" "$f" 1e-11; then
+    a=1
+  fi
+done
+
+exit $a

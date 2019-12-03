@@ -1,7 +1,13 @@
-m ?= 32 32 32   # mesh size
-bs ?= 16 16 16  # block size
-np ?= 1         # number of tasks
-tl ?= 60        # time limit in minutes
+# mesh size
+m ?= 32 32 32
+# block size
+bs ?= 16 16 16
+# number of tasks
+np ?= 1
+# time limit in minutes
+tl ?= 60
+# number of threads for openmp
+OMP_NUM_THREADS ?= 1
 
 error:
 	@echo Error: no target specified. Available targets:
@@ -32,14 +38,14 @@ conf: mesh.conf tl
 	ch.base
 	ch.aconf
 
-np: 
+np:
 	echo $(np) > np
 
-tl: 
+tl:
 	echo $(tl) > tl
 
 mesh.conf: np
-	ch.part $(m) $(bs) `cat np` > mesh.conf
+	ch.part $(m) $(bs) `cat np` $(OMP_NUM_THREADS) > mesh.conf
 
 clean::
 	rm -vf *.{png}

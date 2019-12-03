@@ -38,7 +38,7 @@ class KernelMesh : public Kernel {
   static constexpr size_t dim = M::dim;
 
   KernelMesh(Vars& var, const MyBlockInfo& bi)
-    : var(var), bi_(bi), m(CreateMesh<M>(bi)) {
+      : var(var), var_mutable(var), bi_(bi), m(CreateMesh<M>(bi)) {
     m.SetCN(var.Int["CHECKNAN"]); // TODO: revise, avoid optional setters
     m.SetEdim(var.Int["dim"]);
   }
@@ -48,7 +48,8 @@ class KernelMesh : public Kernel {
   bool IsLead() { return bi_.islead; }
 
  protected:
-  Vars& var; // Shared among all blocks on each PEs
+  const Vars& var;    // shared among all blocks on each PEs
+  Vars& var_mutable; // shared among all blocks on each PEs
   MyBlockInfo bi_;
   M m;
 };
