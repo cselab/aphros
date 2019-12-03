@@ -144,7 +144,7 @@ public:
     Synch& sync(
         std::vector<std::vector<TView>>& fields, const int nhalo_start[3],
         const int nhalo_end[3], const bool is_tensorial = true,
-        const bool compress = true) {
+        const bool compress = true, const bool hist = true) {
       int nhalo_sz = nhalo_start[2];
       int nhalo_ez = nhalo_end[2];
       if (1 == TView::sizeZ) {
@@ -192,7 +192,7 @@ public:
 #endif
             queryresult = new Synch(
                 fields, getBlocksInfo(), stencil, cartcomm, mybpd, blocksize,
-                compress);
+                compress, hist);
 
             SynchronizerMPIs[stencil] = queryresult;
         } else {
