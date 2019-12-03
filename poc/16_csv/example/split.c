@@ -156,7 +156,8 @@ main(int argc, char **argv)
         }
       }
       if (table_get(b.table, b.field[lmin], &m) != TABLE_EMPY) {
-        split[j] = split[m] = 1;
+	split[m] = 1;
+	split[j] = 2;
         prev[j] = prev[m] = (int) b.field[lmin];
       } else {
         fprintf(stderr, "%s: prev disapeared: %s\n", me, *argv);
@@ -280,7 +281,7 @@ dist(int i, struct Data *a, int j, struct Data *b, /**/ double *p)
   z = a->z[i] - b->z[j];
   r = a->r[i] + b->r[j];
   d = sqrt(x * x + y * y + z * z);
-  d -= r;
+  //d -= r;
   *p = d;
   return 0;
 }
