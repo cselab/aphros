@@ -13,7 +13,7 @@
 // std::function<Scal(Vect x)>
 // for pointwise evaluation
 template <class Vect, class Scal=typename Vect::value_type>
-std::function<Vect(Vect, Scal)> CreateInitVel(Vars& par) {
+std::function<Vect(Vect, Scal)> CreateInitVel(const Vars& par) {
   std::function<Vect(Vect, Scal)> f; // result
 
   std::string v = par.String["init_vel"];

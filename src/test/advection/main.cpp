@@ -144,7 +144,7 @@ void Advection<M>::Init(Sem& sem) {
     if (as == "tvd") {
       auto p = std::make_shared<typename AST::Par>();
       Parse<M>(p.get(), var);
-      as_.reset(new AST(m, fcu_, bc_, &ff_flux_, 
+      as_.reset(new AST(m, fcu_, bc_, &ff_flux_,
                        &fc_src_, 0., var.Double["dt"], p));
     } else if (as == "vof") {
       auto p = std::make_shared<typename ASV::Par>();
@@ -158,7 +158,7 @@ void Advection<M>::Init(Sem& sem) {
       Parse<M, ASVM>(p.get(), var);
       p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
       auto fccl = FieldCell<Scal>(m, 0);
-      as_.reset(new ASVM(m, fcu_, fccl, bc_, &ff_flux_, 
+      as_.reset(new ASVM(m, fcu_, fccl, bc_, &ff_flux_,
                          &fc_src_, 0., var.Double["dt"], p));
     } else {
       throw std::runtime_error("Unknown advection_solver=" + as);
@@ -171,7 +171,7 @@ template <class M, class Vect=typename M::Vect>
 Vect GetCellSize(const M& m) {
   Vect h; // result
   IdxCell c0(0);
-  h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
+  h = m.GetNode(m.GetNeighbourNode(c0, 7)) -
       m.GetNode(m.GetNeighbourNode(c0, 0));
   assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
   return h;
@@ -253,7 +253,9 @@ void Advection<M>::Run() {
     Scal dt = var.Double["cfl"] / maxvel_;
     dt = std::min(dt, var.Double["dtmax"]);
     as_->SetTimeStep(dt);
-    var.Double.Set("dt", as_->GetTimeStep());
+    if (m.IsLead()) {
+      this->var_mutable.Double.Set("dt", as_->GetTimeStep());
+    }
   }
   if (sem.Nested("start")) {
     as_->StartStep();
@@ -276,17 +278,17 @@ void Advection<M>::Run() {
     m.Reduce(&sumu_, "sum");
   }
   if (sem("stat")) {
-    if (IsLead()) {
-      ++var.Int["iter"];
-      var.Double["t"] = as_->GetTime();
+    if (m.IsLead()) {
+      ++(this->var_mutable.Int["iter"]);
+      this->var_mutable.Double.Set("t", as_->GetTime());
     }
     if (IsRoot()) {
       Scal t = var.Double["t"];
       Scal dt = var.Double["dt"];
       if (dms_.Try(t, dt)) {
-        std::cout 
-            << "t=" << t 
-            << " dt=" << dt 
+        std::cout
+            << "t=" << t
+            << " dt=" << dt
             << std::setprecision(16) << " sumu=" << sumu_
             << std::endl;
       }

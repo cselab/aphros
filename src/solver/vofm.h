@@ -61,9 +61,9 @@ class Vofm final : public AdvectionSolver<M_> {
   const FieldCell<Scal>& GetColor() const;
   // Image vector, number of passes through periodic boundaries
   MIdx GetImage(size_t l, IdxCell c) const;
-  // Default curvature 
+  // Default curvature
   const FieldCell<Scal>& GetCurv() const override;
-  // Default curvature 
+  // Default curvature
   const FieldCell<Scal>& GetCurv(size_t i) const;
   static constexpr Scal kClNone = -1.; // no color
 

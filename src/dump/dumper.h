@@ -11,7 +11,7 @@ class Dumper {
  public:
   // var: config
   // pre: prefix for variables
-  Dumper(Vars& var, std::string pre) : var(var), pre_(pre) {}
+  Dumper(const Vars& var, std::string pre) : var(var), pre_(pre) {}
   bool Try(double t /*current time*/, 
            double dt /*simulation time step*/);
   // Prints stats to cout
@@ -20,7 +20,7 @@ class Dumper {
   size_t GetN() { return pn_; }
 
  private:
-  Vars& var;
+  const Vars& var;
   std::string pre_;
   int pn_ = -1; // dum[p] index
   double pt_ = -std::numeric_limits<double>::max(); // last dum[p] time

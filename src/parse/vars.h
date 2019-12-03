@@ -13,7 +13,8 @@ class Vars {
    public:
     using ValueType = T;
     using M = std::map<Key, T>;
-    using It = typename M::iterator;
+    using Iterator = typename M::iterator;
+    using ConstIterator = typename M::const_iterator;
     std::string GetTypeName() const;
     std::string GetStr(Key) const;
     void SetStr(Key, std::string val);
@@ -26,8 +27,10 @@ class Vars {
     bool Exists(Key) const;
     void Del(Key);
     bool DelIfExists(Key);
-    It begin() { return m_.begin(); }
-    It end() { return m_.end(); }
+    Iterator begin() { return m_.begin(); }
+    Iterator end() { return m_.end(); }
+    ConstIterator cbegin() const { return m_.cbegin(); }
+    ConstIterator cend() const { return m_.cend(); }
 
    private:
     M m_;
@@ -36,6 +39,8 @@ class Vars {
   // Returns map by type
   template <class T>
   Map<T>& Get();
+  template <class T>
+  const Map<T>& Get() const;
 
   std::string GetStr(std::string type, Key) const;
   void SetStr(std::string type, Key, std::string val);

@@ -44,8 +44,8 @@ struct UNormal<M_>::Imp {
   static void CalcNormalYoung(M& m, const FieldCell<Scal>& fcu, 
                               const FieldCell<bool>& fci,
                               FieldCell<Vect>& fcn) {
-    static FieldNode<Vect> g;  // gradient
-    static FieldNode<Vect> l;  // step from cell to node
+    thread_local FieldNode<Vect> g;  // gradient
+    thread_local FieldNode<Vect> l;  // step from cell to node
     g.Reinit(m, Vect(0));
     l.Reinit(m, Vect(0));
     // values from cells to neighbour nodes

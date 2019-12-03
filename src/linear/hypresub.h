@@ -28,17 +28,17 @@ class HypreSub {
   ~HypreSub();
   // Initializes server
   // comm: full communicator
-  // commsub: sub-communicator (one rank in each node)
-  // Needs to be called by ranks in commsub.
+  // commsub: communicator over ranks on the same node
+  // Needs to be called by all ranks
   static void InitServer(MPI_Comm comm, MPI_Comm commsub);
   // Runs server loop.
-  // Needs to be called by all ranks in comm which are not in commsub.
+  // Needs to be called by non-zero ranks in commsub
   static void RunServer();
   static void Send(std::string cmd, int rank);
   static void Send(const Block& b, int rank);
   static void Send(const std::vector<Block>& bb, int rank);
-  // Stops server on all ranks which are not in commsub
-  // Needs to be called by ranks in commsub.
+  // Stops server on non-zero ranks in commsub
+  // Needs to be called by zero ranks in commsub
   static void StopServer();
 
   // Assembles matrix and vectors from bb
