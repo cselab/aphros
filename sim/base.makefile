@@ -6,8 +6,8 @@ bs ?= 16 16 16
 np ?= 1
 # time limit in minutes
 tl ?= 60
-# enable OpenMP
-openmp ?= 0
+# number of threads for openmp
+OMP_NUM_THREADS ?= 1
 
 error:
 	@echo Error: no target specified. Available targets:
@@ -45,8 +45,7 @@ tl:
 	echo $(tl) > tl
 
 mesh.conf: np
-	if [ "$(openmp)" == "0" ] ; then ch.part $(m) $(bs) `cat np` > mesh.conf ; fi
-	if [ "$(openmp)" == "1" ] ; then ch.part $(m) $(bs) 1 > mesh.conf ; "set int openmp 1 >> mesh.conf" ; fi
+	ch.part $(m) $(bs) `cat np` $(OMP_NUM_THREADS) > mesh.conf
 
 clean::
 	rm -vf *.{png}
