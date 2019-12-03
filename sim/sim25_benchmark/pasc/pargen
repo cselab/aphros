@@ -23,14 +23,13 @@ assert px in ppx
 nx = bs * bx * px
 np = px ** 3
 tl = 10
+backend = "cubismnc" if cubismnc else "cubism"
 
 with open("par.conf", 'w') as f:
     f.write('''\
-# domain
 set string backend {backend}
 set int mpi_compress_msg {compress}
-
-    '''.format(**locals()))
+'''.format(**locals()))
 
 with open("par.make", 'w') as f:
     f.write(

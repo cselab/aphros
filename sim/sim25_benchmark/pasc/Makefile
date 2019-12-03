@@ -6,17 +6,16 @@ compress = 0
 
 simmake = sim.makefile
 
-include $(shell ch.makesim)
-
-par.conf:
+par.make:
 	./pargen $(bx) $(px) $(cubismnc) $(compress)
 
-submit: par.conf
-	OMP_NUM_THREADS=$(omp) make -C $(simmake) submit
+submit: par.make
+	OMP_NUM_THREADS=$(omp) make -f $(simmake) submit
 
-run: conf
-	OMP_NUM_THREADS=$(omp) make -C $(simmake) run
+run: par.make
+	OMP_NUM_THREADS=$(omp) make -f $(simmake) run
 
 clean:
-	make -C $(simmake) cleanall
+	touch par.make
+	make -f $(simmake) cleanall
 	rm -f _m _bs _np _tl par.conf b.dat par.make
