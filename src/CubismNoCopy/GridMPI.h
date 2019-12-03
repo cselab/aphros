@@ -141,31 +141,24 @@ public:
     // (e.g. two kernels with identical stencils and
     // same elected components would share a common SynchronizerMPI)
     template <typename TView>
-    Synch &sync(std::vector<std::vector<TView>> &fields,
-                const int nhalo_start[3],
-                const int nhalo_end[3],
-                const bool is_tensorial = true)
-    {
-        int nhalo_sz = nhalo_start[2];
-        int nhalo_ez = nhalo_end[2];
-        if (1 == TView::sizeZ) {
-            // communication needed for tensorial
-            nhalo_sz = 1;
-            nhalo_ez = 1;
-        }
-        StencilInfo stencil(-nhalo_start[0],
-                            -nhalo_start[1],
-                            -nhalo_sz,
-                            nhalo_end[0] + 1,
-                            nhalo_end[1] + 1,
-                            nhalo_ez + 1,
-                            is_tensorial,
-                            1,
-                            0);
-        int total_components = 0;
-        for (size_t i = 0; i < fields.size(); ++i) {
-            const auto& f = fields[i];
-            total_components += f[0].n_comp;
+    Synch& sync(
+        std::vector<std::vector<TView>>& fields, const int nhalo_start[3],
+        const int nhalo_end[3], const bool is_tensorial = true,
+        const bool compress = true) {
+      int nhalo_sz = nhalo_start[2];
+      int nhalo_ez = nhalo_end[2];
+      if (1 == TView::sizeZ) {
+        // communication needed for tensorial
+        nhalo_sz = 1;
+        nhalo_ez = 1;
+      }
+      StencilInfo stencil(
+          -nhalo_start[0], -nhalo_start[1], -nhalo_sz, nhalo_end[0] + 1,
+          nhalo_end[1] + 1, nhalo_ez + 1, is_tensorial, 1, 0);
+      int total_components = 0;
+      for (size_t i = 0; i < fields.size(); ++i) {
+        const auto& f = fields[i];
+        total_components += f[0].n_comp;
 #if !defined(NDEBUG)
                 for (size_t j = 1; j < f.size(); ++j) {
                     assert(f[j-1].n_comp == f[j].n_comp);
@@ -197,12 +190,9 @@ public:
                    nhalo_end[2],
                    is_tensorial);
 #endif
-            queryresult = new Synch(fields,
-                                    getBlocksInfo(),
-                                    stencil,
-                                    cartcomm,
-                                    mybpd,
-                                    blocksize);
+            queryresult = new Synch(
+                fields, getBlocksInfo(), stencil, cartcomm, mybpd, blocksize,
+                compress);
 
             SynchronizerMPIs[stencil] = queryresult;
         } else {
