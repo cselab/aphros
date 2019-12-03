@@ -8,19 +8,29 @@ bs = 16
 bbx = [1, 3, 6, 9, 16]
 ppx = [1, 2, 3, 4, 6, 12]
 
-bx = int(av[2])
-px = int(av[1])
+bx = int(av[1])
+px = int(av[2])
+cubismnc = bool(av[3])
+compress = bool(av[4])
 
 assert bx in bbx
 assert px in ppx
 
 # 1 cubism vs cubismnc; mpi, no compression
 # 2 openmp vs mpi; without compression, only cubismnc
-# 3 compression vs no compression; only openm, only cubismnc
+# 3 compression vs no compression; only openmp, only cubismnc
 
 nx = bs * bx * px
 np = px ** 3
 tl = 10
+
+with open("par.conf", 'w') as f:
+    f.write('''\
+# domain
+set string backend {backend}
+set int mpi_compress_msg {compress}
+
+    '''.format(**locals()))
 
 with open("par.make", 'w') as f:
     f.write(
