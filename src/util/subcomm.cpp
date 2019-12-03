@@ -119,11 +119,10 @@ void SubComm(
   MPI_Comm_size(comm_omp, &omp_size);
   std::vector<int> thread_affinity(omp_size);
   std::iota(thread_affinity.begin(), thread_affinity.end(), 0);
-  /*
   std::vector<int> mpi_affinity(omp_size);
   MPI_Allgather(
       &a.core_ID, 1, MPI_INT, mpi_affinity.data(), 1, MPI_INT, comm_omp);
-  EVV(mpi_affinity);
+  /*
   if (sysinfo::HasHyperthreads()) {
     for (size_t i = 0; i < thread_affinity.size(); ++i) {
       const int mpi_core = mpi_affinity[i];
@@ -134,20 +133,7 @@ void SubComm(
     thread_affinity = mpi_affinity;
   }
   */
-  //thread_affinity = mpi_affinity;
-
-  /*
-  {
-    EVV(sched_getcpu());
-    std::vector<int> canon(omp_size);
-    for (size_t i = 0; i < mpi_affinity.size(); ++i) {
-      auto& core = mpi_affinity[i];
-      canon[i] = (core < omp_size ? core : core - omp_size);
-    }
-    std::sort(canon.begin(), canon.end());
-    EVV(canon);
-  }
-  */
+  thread_affinity = mpi_affinity;
 
   if (omp_size < omp_get_max_threads()) {
     std::stringstream s;
@@ -170,7 +156,6 @@ void SubComm(
   } else {
     SetAffinity(thread_affinity[omp_rank]);
   }
-
 
   // create comm_master
   if (0 != omp_rank) {
@@ -197,6 +182,58 @@ void SubComm(
                  &omp_master_group_);
   MPI_Comm_create(comm_world, omp_master_group_, &comm_master);
   MPI_Group_free(&hypre_group);
+
+  if (omp_rank == 0) {
+    int rank_master, size_master;
+    MPI_Comm_rank(comm_master, &rank_master);
+    MPI_Comm_size(comm_master, &size_master);
+    for (int i = 0; i < size_master; ++i) {
+      //MPI_Barrier(comm_master);
+      if (i == rank_master) {
+        EVV(rank_master);
+        EVV(mpi_affinity);
+        std::vector<int> canon(omp_size);
+        for (size_t i = 0; i < mpi_affinity.size(); ++i) {
+          auto& core = mpi_affinity[i];
+          canon[i] = (core < omp_size ? core : core - omp_size);
+        }
+        std::sort(canon.begin(), canon.end());
+        EVV(canon);
+      }
+    }
+  }
+}
+
+void PrintFromRoot(const std::string& str, MPI_Comm comm) {
+  int rank, commsize;
+  MPI_Comm_rank(comm, &rank);
+  MPI_Comm_size(comm, &commsize);
+  int cnt = str.size();
+
+  if (rank == 0) {
+    std::vector<int> cnts(commsize);
+    MPI_Gather(&cnt, 1, MPI_INT,
+               cnts.data(), 1, MPI_INT, 0, comm);
+
+    std::vector<int> displs(commsize + 1);
+    displs[0] = 0;
+    for (int i = 0; i < commsize; ++i) {
+      displs[i + 1] = displs[i] + cnts[i];
+    }
+
+    std::vector<char> buf(displs[commsize]);
+    MPI_Gatherv(str.data(), cnt, MPI_CHAR,
+                buf.data(), cnts.data(), displs.data(), MPI_CHAR, 0, comm);
+
+    for (auto c : buf) {
+      std::cout << c;
+    }
+  } else {
+    MPI_Gather(&cnt, 1, MPI_INT,
+               nullptr, 0, MPI_INT, 0, comm);
+    MPI_Gatherv(str.data(), cnt, MPI_CHAR,
+                nullptr, nullptr, nullptr, MPI_CHAR, 0, comm);
+  }
 }
 
 void PrintStats(MPI_Comm comm_world, MPI_Comm comm_omp, MPI_Comm comm_master) {
@@ -208,19 +245,19 @@ void PrintStats(MPI_Comm comm_world, MPI_Comm comm_omp, MPI_Comm comm_master) {
   MPI_Comm_size(comm_omp, &size_omp);
   MPI_Comm_rank(comm_omp, &rank_omp);
 
+  std::stringstream s;
   if (rank_omp == 0) {
     int size_master, rank_master;
     MPI_Comm_size(comm_master, &size_master);
     MPI_Comm_rank(comm_master, &rank_master);
-    std::cout
-        << EV(size_world) << EV(rank_world) << std::endl
-        << EV(size_omp) << EV(rank_omp) << std::endl
-        << EV(size_master) << EV(rank_master) << std::endl
-        << std::endl;
+    s << EV(size_world) << EV(rank_world) << std::endl
+      << EV(size_omp) << EV(rank_omp) << std::endl
+      << EV(size_master) << EV(rank_master) << std::endl
+      << std::endl;
   } else {
-    std::cout
-        << EV(size_world) << EV(rank_world) << std::endl
-        << EV(size_omp) << EV(rank_omp) << std::endl
-        << std::endl;
+    s << EV(size_world) << EV(rank_world) << std::endl
+      << EV(size_omp) << EV(rank_omp) << std::endl
+      << std::endl;
   }
+  PrintFromRoot(s.str(), comm_world);
 }
