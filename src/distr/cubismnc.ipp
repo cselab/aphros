@@ -363,7 +363,9 @@ auto Cubismnc<Par, KF>::GetBlocks() -> std::vector<MIdx> {
     const int nhalo_end[3] = {hl_, hl_, hl_};
 
     // schedule asynchronous communication
-    Synch& s = g_.sync(fviews, nhalo_start, nhalo_end, is_tensorial);
+    Synch& s = g_.sync(
+        fviews, nhalo_start, nhalo_end, is_tensorial,
+        var.Int["mpi_compress_msg"]);
 
     // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] not needed
     hist_.SeedSample();
@@ -434,7 +436,9 @@ auto Cubismnc<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
       const int nhalo_end[3] = {hl_, hl_, hl_};
 
       // schedule asynchronous communication
-      sync_ = &g_.sync(fviews_, nhalo_start, nhalo_end, is_tensorial);
+      sync_ = &g_.sync(
+          fviews_, nhalo_start, nhalo_end, is_tensorial,
+          var.Int["mpi_compress_msg"]);
       std::vector<BlockInfo> aa = sync_->avail_inner();
 
       // Create vector of indices and save block info to map

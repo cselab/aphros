@@ -37,13 +37,18 @@ class FPCompressor {
 template <typename Scal>
 class FPZIP : public FPCompressor {
  public:
-  FPZIP(Scal* data, const size_t N, const size_t thresh = 1024 /* byte */)
+  FPZIP(
+      Scal* data, const size_t N, const bool active = true,
+      const size_t thresh = 1024 /* byte */)
       : FPCompressor(N * sizeof(Scal) > thresh), data_(data), N_(N) {
     type_ = (4 == sizeof(Scal)) ? FPZIP_TYPE_FLOAT : FPZIP_TYPE_DOUBLE;
     const size_t dsize =
         (type_ == FPZIP_TYPE_FLOAT ? sizeof(float) : sizeof(double));
     prec_ = CHAR_BIT * dsize; // lossless compression
     const size_t dbytes = N_ * dsize; // data bytes
+    if (!active) {
+      this->compress_ = false;
+    }
     if (this->compress_) {
       env_.buf = new unsigned char[dbytes];
       env_.cbytes = 0;
