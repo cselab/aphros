@@ -6,7 +6,7 @@ compress = 0
 
 simmake = sim.makefile
 
-par.make:
+par.make: Makefile pargen
 	./pargen $(bx) $(px) $(cubismnc) $(compress)
 
 submit: par.make
@@ -18,4 +18,4 @@ run: par.make
 clean:
 	touch par.make
 	make -f $(simmake) cleanall
-	rm -f _m _bs _np _tl par.conf b.dat par.make
+	rm -f _m _bs _np _tl par.conf par.make

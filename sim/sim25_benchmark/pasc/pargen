@@ -10,8 +10,8 @@ ppx = [1, 2, 3, 4, 6, 12]
 
 bx = int(av[1])
 px = int(av[2])
-cubismnc = bool(av[3])
-compress = bool(av[4])
+cubismnc = int(av[3])
+compress = int(av[4])
 
 assert bx in bbx
 assert px in ppx
