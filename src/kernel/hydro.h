@@ -424,7 +424,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Dumper dumper_;
   Dumper dmptraj_; // dumper for traj
   Dumper dmptrep_; // dumper for timer report
-  Events events_;  // events from var
+  std::unique_ptr<Events> events_;  // events from var
 };
 
 template <class M>
@@ -833,7 +833,11 @@ void Hydro<M>::Init() {
       m.SetNanFaces(vf);
     }
 
-    events_.Parse();
+    if (m.IsLead()) {
+      events_ = std::unique_ptr<Events>(
+          new Events(this->var_mutable, m.IsRoot(), m.IsLead()));
+      events_->Parse();
+    }
   }
   if (var.Int["dumpbc"] && sem.Nested()) {
     DumpBcFaces(mf_adv_, mf_fluid_, "bc.vtk", m);
@@ -842,13 +846,12 @@ void Hydro<M>::Init() {
 
 
 template <class M>
-Hydro<M>::Hydro(Vars& var, const MyBlockInfo& bi, Par& par)
-    : KernelMeshPar<M,Par>(var, bi, par)
+Hydro<M>::Hydro(Vars& var0, const MyBlockInfo& bi, Par& par)
+    : KernelMeshPar<M,Par>(var0, bi, par)
     , st_{}
     , dumper_(var, "dump_field_")
     , dmptraj_(var, "dump_traj_")
     , dmptrep_(var, "dump_trep_")
-    , events_(var, m.IsRoot(), m.IsLead())
 {}
 
 template <class M>
@@ -2056,7 +2059,9 @@ void Hydro<M>::Run() {
   sem.LoopBegin();
 
   if (sem("events")) {
-    events_.Exec(st_.t);
+    if (events_) {
+      events_->Exec(st_.t);
+    }
   }
   if (sem("loop-check")) {
     if (st_.t + st_.dt * 0.25 > var.Double["tmax"] ||
