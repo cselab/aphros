@@ -24,7 +24,7 @@ util_name(const char *p0, const char *name, char *output)
   char dig[N], pattern[N];
   char *c;
 
-  strncpy(pattern, p0, N);
+  strncpy(pattern, p0, N - 1);
   c = strchr(pattern, '%');
   if (c == NULL) {
     fprintf(stderr, "%s: no %% in pattern '%s'\n", me, pattern);

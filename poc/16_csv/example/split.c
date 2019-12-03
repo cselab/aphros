@@ -21,6 +21,14 @@ static const char me[] = "split";
 	    exit(2);							\
 	}								\
     } while(0)
+#define REALLOC(n, p)							\
+    do {								\
+        p = realloc(p, (n)*sizeof(*(p)));					\
+	if (p == NULL)  {						\
+	    fprintf(stderr, "%s: realloc failed, n = %d", me, n);		\
+	    exit(2);							\
+	}								\
+    } while(0)
 
 static void
 usg()
@@ -52,10 +60,10 @@ struct {
   double *x;
   double *y;
   double *z;
-} connect;
+} Connect;
 static int connect_ini(void);
-static int connect_write(FILE *f);
-static int connect_add(double x, double y, double z);
+static int connect_write(FILE *);
+static int connect_add(double, double, double);
 static int connect_fin(void);
 
 static struct Data data_ini(const char *);
@@ -157,6 +165,7 @@ main(int argc, char **argv)
     for (i = 0; i < nn; i++) {
       j = new[i];
       dmin = DBL_MAX;
+      lmin = 0;
       for (l = 0; l < na; l++) {
         if (dist(j, &b, l, &a, &d) != 0) {
           fprintf(stderr, "%s: dist failed\n", me);
@@ -168,8 +177,8 @@ main(int argc, char **argv)
         }
       }
       if (table_get(b.table, (int) a.field[lmin], &m) != TABLE_EMPY) {
-	split[m] = 1;
-	split[j] = 2;
+        split[m] = 1;
+        split[j] = 2;
         prev[j] = prev[m] = (int) a.field[lmin];
       } else {
         fprintf(stderr, "%s: prev disapeared: %s\n", me, *argv);
@@ -180,12 +189,12 @@ main(int argc, char **argv)
     data_add(&b, "prev", prev);
     data_add(&b, "split", split);
     if ((file = fopen(output, "w")) == NULL) {
-        fprintf(stderr, "%s: fail to write to '%s'\n", me, output);
-        exit(2);
+      fprintf(stderr, "%s: fail to write to '%s'\n", me, output);
+      exit(2);
     }
     if (csv_write(b.csv, file) != 0) {
-        fprintf(stderr, "%s: csv_write failed\n", me);
-        exit(2);
+      fprintf(stderr, "%s: csv_write failed\n", me);
+      exit(2);
     }
     fclose(file);
     free(new);
@@ -271,7 +280,6 @@ static int
 dist(int i, struct Data *a, int j, struct Data *b, /**/ double *p)
 {
   double d;
-  double r;
   double x;
   double y;
   double z;
@@ -291,9 +299,49 @@ dist(int i, struct Data *a, int j, struct Data *b, /**/ double *p)
   x = a->x[i] - b->x[j];
   y = a->y[i] - b->y[j];
   z = a->z[i] - b->z[j];
-  r = a->r[i] + b->r[j];
+  //r = a->r[i] + b->r[j];
   d = sqrt(x * x + y * y + z * z);
   //d -= r;
   *p = d;
   return 0;
 }
+
+static int
+connect_ini(void)
+{
+  Connect.nmax = 10;
+  Connect.n = 0;
+  MALLOC(Connect.n, &Connect.x);
+  MALLOC(Connect.n, &Connect.y);
+  MALLOC(Connect.n, &Connect.z);
+  return 0;
+}
+
+static int
+connect_write(FILE * f)
+{
+  return 0;
+}
+
+static int
+connect_add(double x, double y, double z)
+{
+  Connect.n++;
+
+  if (Connect.n > Connect.nmax) {
+    Connect.nmax *= 2;
+    REALLOC(Connect.nmax, Connect.x);
+    REALLOC(Connect.nmax, Connect.y);
+    REALLOC(Connect.nmax, Connect.z);
+  }
+  return 0;
+}
+
+static int
+connect_fin(void)
+{
+  free(Connect.x);
+  free(Connect.y);
+  free(Connect.z);
+  return 0;
+};
