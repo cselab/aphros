@@ -23,9 +23,9 @@ static const char me[] = "split";
     } while(0)
 #define REALLOC(n, p)							\
     do {								\
-	p = realloc(p, (n)*sizeof(*(p)));					\
-	if (p == NULL)  {						\
-	    fprintf(stderr, "%s: realloc failed, n = %d", me, n);		\
+      *(p) = realloc(*(p), (n)*sizeof(**(p)));				\
+      if (*(p) == NULL)  {						\
+	fprintf(stderr, "%s: realloc failed, n = %d", me, n);		\
 	    exit(2);							\
 	}								\
     } while(0)
@@ -63,13 +63,12 @@ struct {
 } Connect;
 static int connect_ini(void);
 static int connect_write(FILE *);
-static int connect_add(double, double, double);
+static int connect_add(int, struct Data *);
 static int connect_fin(void);
 
 static struct Data data_ini(const char *);
 static int data_fin(struct Data *);
 static int data_add(struct Data *, const char *, const int *);
-
 static int dist(int, struct Data *, int, struct Data *, /**/ double *);
 
 int
@@ -109,8 +108,8 @@ main(int argc, char **argv)
     case 'p':
       argv++;
       if ((Prefix = *argv) == NULL) {
-	fprintf(stderr, "%s: -p needs an argument\n", me);
-	exit(2);
+        fprintf(stderr, "%s: -p needs an argument\n", me);
+        exit(2);
       }
       break;
     default:
@@ -132,6 +131,7 @@ main(int argc, char **argv)
 
   a = data_ini(*argv);
   while (*++argv != NULL) {
+    connect_ini();
     b = data_ini(*argv);
     if (util_name(Prefix, *argv, output) != 0) {
       fprintf(stderr, "%s: util_name failed\n", me);
@@ -151,39 +151,34 @@ main(int argc, char **argv)
       split[i] = 0;
       prev[i] = -1;
     }
-
     /* nn: number of new */
     for (i = nn = 0; i < 2 * nb; i += 2)
       if (table_get(a.table, array[i], &j) == TABLE_EMPY)
-	new[nn++] = array[i + 1];
-
-    /* for (i = 0; i < k; i++) {
-       j = new[i];
-       printf("%s %d %g %g %g\n",
-       *argv, (int) b.field[j], b.x[j], b.y[j], b.z[j]);
-       } */
+        new[nn++] = array[i + 1];
     for (i = 0; i < nn; i++) {
       j = new[i];
       dmin = DBL_MAX;
       lmin = 0;
       for (l = 0; l < na; l++) {
-	if (dist(j, &b, l, &a, &d) != 0) {
-	  fprintf(stderr, "%s: dist failed\n", me);
-	  exit(2);
-	}
-	if (d < dmin) {
-	  dmin = d;
-	  lmin = l;
-	}
+        if (dist(j, &b, l, &a, &d) != 0) {
+          fprintf(stderr, "%s: dist failed\n", me);
+          exit(2);
+        }
+        if (d < dmin) {
+          dmin = d;
+          lmin = l;
+        }
       }
       if (table_get(b.table, (int) a.field[lmin], &m) != TABLE_EMPY) {
-	split[m] = 1;
-	split[j] = 2;
-	prev[j] = prev[m] = (int) a.field[lmin];
+        split[m] = 1;
+        split[j] = 2;
+        prev[j] = prev[m] = (int) a.field[lmin];
+        connect_add(j, &b);
+        connect_add(m, &b);
       } else {
-	fprintf(stderr, "%s: prev disapeared: %s\n", me, *argv);
-	fprintf(stderr, "%s: prev disapeared: lmin = %d, j = %d\n", me,
-		lmin, j);
+        fprintf(stderr, "%s: prev disapeared: %s\n", me, *argv);
+        fprintf(stderr, "%s: prev disapeared: lmin = %d, j = %d\n", me,
+                lmin, j);
       }
     }
     data_add(&b, "prev", prev);
@@ -202,6 +197,15 @@ main(int argc, char **argv)
     free(split);
     free(array);
     data_fin(&a);
+
+    util_name("connect.%.vtk", *argv, output);
+    if ((file = fopen(output, "w")) == NULL) {
+      fprintf(stderr, "%s: fail to write to '%s'\n", me, output);
+      exit(2);
+    }
+    connect_write(file);
+    fclose(file);
+    connect_fin();
     a = b;
   }
   data_fin(&a);
@@ -309,11 +313,11 @@ dist(int i, struct Data *a, int j, struct Data *b, /**/ double *p)
 static int
 connect_ini(void)
 {
-  Connect.nmax = 10;
+  Connect.nmax = 10000;
   Connect.n = 0;
-  MALLOC(Connect.n, &Connect.x);
-  MALLOC(Connect.n, &Connect.y);
-  MALLOC(Connect.n, &Connect.z);
+  MALLOC(Connect.nmax, &Connect.x);
+  MALLOC(Connect.nmax, &Connect.y);
+  MALLOC(Connect.nmax, &Connect.z);
   return 0;
 }
 
@@ -338,10 +342,10 @@ connect_write(FILE * f)
   fprintf(f, "POINTS %d float\n", Connect.n);
   for (i = 0; i < Connect.n; i++) {
     fprintf(f, "%.16g %.16g %.16g\n",
-	    Connect.x[i], Connect.y[i], Connect.z[i]);
+            Connect.x[i], Connect.y[i], Connect.z[i]);
   }
   ne = Connect.n / 2;
-  fprintf(f, "POLYGONS %d %d\n", ne, 3*ne);
+  fprintf(f, "POLYGONS %d %d\n", ne, 3 * ne);
   for (i = j = 0; i < ne; i++) {
     fprintf(f, "2 %d %d\n", j, j + 1);
     j += 2;
@@ -350,18 +354,22 @@ connect_write(FILE * f)
 }
 
 static int
-connect_add(double x, double y, double z)
+connect_add(int i, struct Data *a)
 {
-  Connect.n++;
+  double x;
+  double y;
+  double z;
+
   if (Connect.n >= Connect.nmax) {
     Connect.nmax *= 2;
-    REALLOC(Connect.nmax, Connect.x);
-    REALLOC(Connect.nmax, Connect.y);
-    REALLOC(Connect.nmax, Connect.z);
+    REALLOC(Connect.nmax, &Connect.x);
+    REALLOC(Connect.nmax, &Connect.y);
+    REALLOC(Connect.nmax, &Connect.z);
   }
-  Connect.x[Connect.n] = x;
-  Connect.y[Connect.n] = y;
-  Connect.z[Connect.n] = z;
+  Connect.x[Connect.n] = a->x[i];
+  Connect.y[Connect.n] = a->y[i];
+  Connect.z[Connect.n] = a->z[i];
+  Connect.n++;
   return 0;
 }
 
