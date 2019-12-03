@@ -1,0 +1,31 @@
+#!/usr/bin/env python
+
+import sys
+
+av = sys.argv
+
+bs = 16
+bbx = [1, 3, 6, 9, 16]
+ppx = [1, 2, 3, 4, 6, 12]
+
+bx = int(av[2])
+px = int(av[1])
+
+assert bx in bbx
+assert px in ppx
+
+# 1 cubism vs cubismnc; mpi, no compression
+# 2 openmp vs mpi; without compression, only cubismnc
+# 3 compression vs no compression; only openm, only cubismnc
+
+nx = bs * bx * px
+np = px ** 3
+tl = 10
+
+with open("par.make", 'w') as f:
+    f.write(
+'''m = {nx} {nx} {nx}
+bs = {bs} {bs} {bs}
+np = {np}
+tl = {tl}
+'''.format(**locals()))
