@@ -131,7 +131,8 @@ void SubComm(
   // 1.
   Affinity a = GetAffinity();
   const size_t host_ID = std::hash<std::string>{}(std::string(a.hostname));
-  const size_t c_hash = host_ID ^ (static_cast<size_t>(a.node_ID) << 1);
+  //const size_t c_hash = host_ID ^ (static_cast<size_t>(a.node_ID) << 1);
+  const size_t c_hash = host_ID;
 
   // construct color and split communicator
   int hypre_size, hypre_rank;
