@@ -356,10 +356,6 @@ connect_write(FILE * f)
 static int
 connect_add(int i, struct Data *a)
 {
-  double x;
-  double y;
-  double z;
-
   if (Connect.n >= Connect.nmax) {
     Connect.nmax *= 2;
     REALLOC(Connect.nmax, &Connect.x);
