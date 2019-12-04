@@ -8,7 +8,7 @@
 #include "err.h"
 #include "math.h"
 
-char *me = "math";
+static char *me = "math";
 
 static double
 get(const gsl_matrix * m, int i, int j)

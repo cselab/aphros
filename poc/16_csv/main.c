@@ -4,7 +4,7 @@
 #include "memory.h"
 #include "csv.h"
 
-char me[] = "csv";
+static char me[] = "csv";
 enum { N = 9999 };
 
 #define FMT "%.20g"

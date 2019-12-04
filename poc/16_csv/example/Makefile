@@ -1,8 +1,8 @@
 .POSIX:
 LINK = $(CC)
 CFLAGS = -g -Og
-M_LDFLAGS = -L$(CHPREFIX)/lib -lcsv -ltable -lm
-M_CFLAGS = -I$(CHPREFIX)/include
+M_LDFLAGS = -L$(CHPREFIX)/lib -lcsv -ltable -lmath `gsl-config --libs` -lm
+M_CFLAGS = -I$(CHPREFIX)/include `gsl-config --cflags`
 
 M = \
 add\

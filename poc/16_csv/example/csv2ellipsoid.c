@@ -6,9 +6,11 @@
 #include <string.h>
 #include <csv.h>
 #include <table.h>
+#include <poc/math.h>
 
 enum { N = 999 };
 static const char me[] = "csv2ellipsoid";
+
 #include "util.h"
 #include "ico.inc"
 
@@ -17,7 +19,9 @@ struct Transform {
   double m[6];
 };
 
-static int transform_ini(double x, double y, double z, double xx, double, double, double, double, double, struct Transform *);
+static int transform_ini(double x, double y, double z, double xx, double,
+                         double, double, double, double,
+                         struct Transform *);
 
 #define GET(f, r)							\
   if ((*r = csv_field(csv, f)) == NULL) {				\
@@ -89,8 +93,8 @@ main(int argc, char **argv)
     case 'p':
       argv++;
       if ((Prefix = *argv) == NULL) {
-	fprintf(stderr, "%s: -p needs an argument\n", me);
-	exit(2);
+        fprintf(stderr, "%s: -p needs an argument\n", me);
+        exit(2);
       }
       break;
     default:
@@ -147,28 +151,30 @@ main(int argc, char **argv)
     fputs("DATASET POLYDATA\n", file);
     fprintf(file, "POINTS %d double\n", nr * ico_nv);
     for (i = 0; i < nr; i++) {
-      transform_ini(x[i], y[i], z[i], xx[i], xy[i], xz[i], yy[i], yz[i], zz[i], &transform);
-	for (j = 0; j < ico_nv; j++) {
-	    dx = r[i] * ico_x[j];
-	    dy = r[i] * ico_y[j];
-	    dz = r[i] * ico_z[j];
-	    fprintf(file, "%.16g %.16g %.16g\n", x[i] + dx, y[i] + dy, z[i] + dz);
-	}
+      transform_ini(x[i], y[i], z[i], xx[i], xy[i], xz[i], yy[i], yz[i],
+                    zz[i], &transform);
+      for (j = 0; j < ico_nv; j++) {
+        dx = r[i] * ico_x[j];
+        dy = r[i] * ico_y[j];
+        dz = r[i] * ico_z[j];
+        fprintf(file, "%.16g %.16g %.16g\n", x[i] + dx, y[i] + dy,
+                z[i] + dz);
+      }
     }
     fprintf(file, "POLYGONS %d %d\n", nr * ico_nt, 4 * nr * ico_nt);
     for (i = 0; i < nr; i++)
       for (j = 0; j < ico_nt; j++)
-	fprintf(file, "3 %d %d %d\n",
-		ico_nv * i + ico_t0[j],
-		ico_nv * i + ico_t1[j], ico_nv * i + ico_t2[j]);
+        fprintf(file, "3 %d %d %d\n",
+                ico_nv * i + ico_t0[j],
+                ico_nv * i + ico_t1[j], ico_nv * i + ico_t2[j]);
 
     fprintf(file, "CELL_DATA %d\n", nr * ico_nt);
     for (i = 0; i < nf; i++) {
       fprintf(file, "SCALARS %s double 1\n", csv->name[i]);
       fprintf(file, "LOOKUP_TABLE default\n");
       for (j = 0; j < nr; j++)
-	for (k = 0; k < ico_nt; k++)
-	  fprintf(file, "%.16g\n", csv->data[i][j]);
+        for (k = 0; k < ico_nt; k++)
+          fprintf(file, "%.16g\n", csv->data[i][j]);
     }
     fclose(file);
     csv_fin(csv);
@@ -176,20 +182,30 @@ main(int argc, char **argv)
 }
 
 int
-transform_ini(double x, double y, double z, double xx, double xy, double xz, double yy, double yz, double zz, struct Transform * t)
+transform_ini(double x, double y, double z, double xx, double xy,
+              double xz, double yy, double yz, double zz,
+              struct Transform *t)
 {
-  enum {X, Y, Z};
-  enum {XX, XY, XZ, YY, YZ, ZZ};
+  enum { X, Y, Z };
+  enum { XX, XY, XZ, YY, YZ, ZZ };
+  double i[9];
+
   t->r[X] = x;
   t->r[Y] = y;
   t->r[Z] = z;
 
-  xx -= x*x;
-  xy -= x*y;
-  xz -= x*z;
-  yy -= y*y;
-  yz -= y*z;
-  zz -= z*z;
+  i[XX] = xx - x * x;
+  i[XY] = xy - x * y;
+  i[XZ] = xz - x * z;
+  i[YY] = yy - y * y;
+  i[YZ] = yz - y * z;
+  i[ZZ] = zz - z * z;
+
+  if (math_eig_vectors(i, t->m) != 0) {
+    fprintf(stderr, "%s: math_eig_values failed\n", me);
+    exit(2);
+  }
+  fprintf(stderr, "%g\n", t->m[8]);
 
   return 0;
 }
