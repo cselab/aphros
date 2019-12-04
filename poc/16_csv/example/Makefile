@@ -8,6 +8,7 @@ M = \
 add\
 column\
 columns\
+csv2sph\
 ini\
 new\
 split\

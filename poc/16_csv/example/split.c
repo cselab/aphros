@@ -133,10 +133,6 @@ main(int argc, char **argv)
   while (*++argv != NULL) {
     connect_ini();
     b = data_ini(*argv);
-    if (util_name(Prefix, *argv, output) != 0) {
-      fprintf(stderr, "%s: util_name failed\n", me);
-      exit(2);
-    }
     array = table_array(b.table);
     if (array == NULL) {
       fprintf(stderr, "%s: table_array failed\n", me);
@@ -183,6 +179,10 @@ main(int argc, char **argv)
     }
     data_add(&b, "prev", prev);
     data_add(&b, "split", split);
+    if (util_name(Prefix, *argv, output) != 0) {
+      fprintf(stderr, "%s: util_name failed\n", me);
+      exit(2);
+    }
     if ((file = fopen(output, "w")) == NULL) {
       fprintf(stderr, "%s: fail to write to '%s'\n", me, output);
       exit(2);
