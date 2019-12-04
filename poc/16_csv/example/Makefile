@@ -9,6 +9,7 @@ add\
 column\
 columns\
 csv2sph\
+csv2ellipsoid\
 ini\
 new\
 split\
