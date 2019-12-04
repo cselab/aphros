@@ -4,7 +4,7 @@ CFLAGS = -g -Og
 M_CFLAGS = `gsl-config --cflags`
 PREFIX = $(CHPREFIX)
 
-O = main.o
+O = main.o err.o
 L = libmath.a
 H = math.h
 
@@ -19,9 +19,9 @@ err.o: err.h
 
 lint:; make CFLAGS='-Wall -Wextra -g -O2'
 install: $L $H
-	mkdir -p -- "$(PREFIX)/lib" "$(PREFIX)/include"
-	cp -- $L "$(PREFIX)/lib"
-	cp -- $H "$(PREFIX)/include"
+	mkdir -p -- "$(PREFIX)/lib" "$(PREFIX)/include/poc"
+	cp -- $L "$(PREFIX)/lib/"
+	cp -- $H "$(PREFIX)/include/poc/"
 
 .PHONY: clean lint install
 clean:; rm -f -- $O $L
