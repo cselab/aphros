@@ -53,6 +53,10 @@ set int bsz 8
 set int px 2
 set int py 1
 set int pz 2
+
+set int openmp 0
+set int histogram 0
+set int mpi_compress_msg 0
 )EOF";
 
   return RunMpiBasic<M, State>(argc, argv, Run, conf);
