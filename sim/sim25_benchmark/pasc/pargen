@@ -16,11 +16,14 @@ assert kp >= 1
 bs = int(av[3])
 assert bs in [8, 16, 32]
 
-cubismnc = int(av[3])
+cubismnc = int(av[4])
 backend = "cubismnc" if cubismnc else "cubism"
 
 # message size for compression
-compress = int(av[4])
+compress = int(av[5])
+
+# number of layers for advection
+layers = int(av[6])
 
 # blocks per core
 bx = 2 * kb
@@ -51,6 +54,7 @@ with open("par.conf", 'w') as f:
     f.write('''\
 set string backend {backend}
 set int mpi_compress_msg {compress}
+set int vofm_layers {layers}
 '''.format(**locals()))
 
 with open("par.make", 'w') as f:
