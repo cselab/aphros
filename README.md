@@ -6,7 +6,7 @@ Distributed version of **hydro** based on **Cubism**.
 
     git clone git@gitlab.ethz.ch:mavt-cse/Cubism-hydro.git
     cd Cubism-hydro
-    git config pull.rebase true
+    git config pull.rebase merges
 
 ## Documentation
 
