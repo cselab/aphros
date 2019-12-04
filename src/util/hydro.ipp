@@ -77,6 +77,16 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       v[1] = -std::cos(x[0]) * std::sin(x[1]) * std::cos(x[2]);
       v[2] = 0.;
     }
+  } else if (vi == "grid_sin") {
+    auto dx = var.Double["initvel_grid_sin_wavelength"];
+    const Vect h = m.GetCellSize();
+    for (auto c : m.AllCells()) {
+      auto& v = fcv[c];
+      auto x = m.GetCenter(c);
+      v[0] = 0;
+      v[1] = std::sin(x[0] / (dx * h[0]));
+      v[2] = 0;
+    }
   } else if (vi == "hill") {
     auto a = var.Double["hill_a"];
     auto b = var.Double["hill_b"];
