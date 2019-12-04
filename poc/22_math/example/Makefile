@@ -1,5 +1,6 @@
 .POSIX:
 M = \
+eig\
 orto\
 vectors\
 values\

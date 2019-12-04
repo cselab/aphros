@@ -1,2 +1,2 @@
-int math_eig_values(const double A[6], /**/ double VAL[3]);
-int math_eig_vectors(const double A[6], /**/ double V[9]);
+int math_eig_values(const double[6], /**/ double[3]);
+int math_eig_vectors(const double[6], /**/ double[3], double[3], double[3]);

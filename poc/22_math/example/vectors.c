@@ -27,7 +27,7 @@ main(int argc, const char **argv0)
   enum { X, Y, Z };
   enum { XX, XY, XZ, YY, YZ, ZZ };
   int i;
-  double v[3 * 3], m[6];
+  double a[3], b[3], c[3], m[6];
 
   argv = argv0;
   argv++;
@@ -39,14 +39,10 @@ main(int argc, const char **argv0)
   scl(&m[YZ]);
   scl(&m[ZZ]);
 
-  math_eig_vectors(m, v);
+  math_eig_vectors(m, a, b, c);
 
-  i = 0;
-  printf("%g %g %g\n", v[i + X], v[i + Y], v[i + Z]);
-  i += 3;
-  printf("%g %g %g\n", v[i + X], v[i + Y], v[i + Z]);
-  i += 3;
-  printf("%g %g %g\n", v[i + X], v[i + Y], v[i + Z]);
-  i += 3;
+  printf("%g %g %g\n", a[X], a[Y], a[Z]);
+  printf("%g %g %g\n", b[X], b[Y], b[Z]);
+  printf("%g %g %g\n", c[X], c[Y], c[Z]);
   return 0;
 }

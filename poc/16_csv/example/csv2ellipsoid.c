@@ -16,12 +16,16 @@ static const char me[] = "csv2ellipsoid";
 
 struct Transform {
   double r[3];
-  double m[6];
+  double a[3];
+  double b[3];
+  double c[3];
+  double scale[3];
 };
 
 static int transform_ini(double x, double y, double z, double xx, double,
                          double, double, double, double,
                          struct Transform *);
+static int transform_apply(struct Transform *t, double x, double, double, double[3]);
 
 #define GET(f, r)							\
   if ((*r = csv_field(csv, f)) == NULL) {				\
@@ -47,7 +51,7 @@ static int transform_ini(double x, double y, double z, double xx, double,
 	fprintf(stderr, "%s: realloc failed, n = %d", me, n);		\
 	    exit(2);							\
 	}								\
-    } while(0)
+    } while(0)								\
 
 static void
 usg()
@@ -59,6 +63,7 @@ usg()
 int
 main(int argc, char **argv)
 {
+  enum {X, Y, Z};
   char output[N];
   char *Prefix;
   double dx;
@@ -74,6 +79,7 @@ main(int argc, char **argv)
   double *yy;
   double *yz;
   double *zz;
+  double u[3];
   struct Transform transform;
   FILE *file;
   int i;
@@ -154,11 +160,8 @@ main(int argc, char **argv)
       transform_ini(x[i], y[i], z[i], xx[i], xy[i], xz[i], yy[i], yz[i],
                     zz[i], &transform);
       for (j = 0; j < ico_nv; j++) {
-        dx = r[i] * ico_x[j];
-        dy = r[i] * ico_y[j];
-        dz = r[i] * ico_z[j];
-        fprintf(file, "%.16g %.16g %.16g\n", x[i] + dx, y[i] + dy,
-                z[i] + dz);
+	transform_apply(&transform, ico_x[j], ico_y[j], ico_z[j], u);
+        fprintf(file, "%.16g %.16g %.16g\n", u[X], u[Y], u[Z]);
       }
     }
     fprintf(file, "POLYGONS %d %d\n", nr * ico_nt, 4 * nr * ico_nt);
@@ -188,24 +191,57 @@ transform_ini(double x, double y, double z, double xx, double xy,
 {
   enum { X, Y, Z };
   enum { XX, XY, XZ, YY, YZ, ZZ };
-  double i[9];
+  double i[6];
 
   t->r[X] = x;
   t->r[Y] = y;
   t->r[Z] = z;
-
   i[XX] = xx - x * x;
   i[XY] = xy - x * y;
   i[XZ] = xz - x * z;
   i[YY] = yy - y * y;
   i[YZ] = yz - y * z;
   i[ZZ] = zz - z * z;
-
-  if (math_eig_vectors(i, t->m) != 0) {
+  if (math_eig_vectors(i, t->a, t->b, t->c) != 0) {
+    fprintf(stderr, "%s: math_eig_vectors failed\n", me);
+    exit(2);
+  }
+  if (math_eig_values(i, t->scale) != 0) {
     fprintf(stderr, "%s: math_eig_values failed\n", me);
     exit(2);
   }
-  fprintf(stderr, "%g\n", t->m[8]);
-
+  t->scale[X] = sqrt(5*t->scale[X]);
+  t->scale[Y] = sqrt(5*t->scale[Y]);
+  t->scale[Z] = sqrt(5*t->scale[Z]);
   return 0;
 }
+
+int
+transform_apply(struct Transform *t, double x, double y, double z, double v[3])
+{
+  enum { X, Y, Z };
+  const double *a;
+  const double *b;
+  const double *c;
+  const double *r;
+  const double *scale;
+
+  a = t->a;
+  b = t->b;
+  c = t->c;
+  r = t->r;
+  scale = t->scale;
+  x *= scale[X];
+  y *= scale[Y];
+  z *= scale[Z];
+  v[X] = x*a[X] + y*b[X] + z*c[X];
+  v[Y] = x*a[Y] + y*b[Y] + z*c[Y];
+  v[Z] = x*a[Z] + y*b[Z] + z*c[Z];
+
+  v[X] += r[X];
+  v[Y] += r[Y];
+  v[Z] += r[Z];
+    
+  return 0;
+}
+

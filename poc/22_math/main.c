@@ -65,7 +65,7 @@ math_eig_values(const double A[6], /**/ double VAL[3])
 }
 
 int
-math_eig_vectors(const double A[6], /**/ double V[9])
+math_eig_vectors(const double A[6], /**/ double a[3], double b[3], double c[3])
 {
   enum { XX, XY, XZ, YY, YZ, ZZ };
   enum { YX = XY, ZX = XZ, ZY = YZ };
@@ -100,15 +100,15 @@ math_eig_vectors(const double A[6], /**/ double V[9])
   gsl_eigen_symmv_sort(val, vec, GSL_EIGEN_SORT_ABS_ASC);
 
   i = 0;
-  V[i++] = get(vec, X, X);
-  V[i++] = get(vec, X, Y);
-  V[i++] = get(vec, X, Z);
-  V[i++] = get(vec, Y, X);
-  V[i++] = get(vec, Y, Y);
-  V[i++] = get(vec, Y, Z);
-  V[i++] = get(vec, Z, X);
-  V[i++] = get(vec, Z, Y);
-  V[i++] = get(vec, Z, Z);
+  a[X] = get(vec, X, X);
+  a[Y] = get(vec, Y, X);
+  a[Z] = get(vec, Z, X);
+  b[X] = get(vec, X, Y);
+  b[Y] = get(vec, Y, Y);
+  b[Z] = get(vec, Z, Y);
+  c[X] = get(vec, X, Z);
+  c[Y] = get(vec, Y, Z);
+  c[Z] = get(vec, Z, Z);
   gsl_vector_free(val);
   gsl_matrix_free(vec);
   gsl_eigen_symmv_free(w);
