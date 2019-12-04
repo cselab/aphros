@@ -56,8 +56,7 @@ struct GPar {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  std::function<void(FieldCell<Scal>&, const M&)> fu0; // init vf
-  std::function<Vect(Vect /*x*/,Scal /*t*/)> fv; // velocity
+  std::function<Vect(Vect, Scal)> fv; // velocity
 
   using K = Advection<M>;
   DistrSolver<M, K>* ds;
@@ -115,11 +114,8 @@ Advection<M>::Advection(Vars& v, const MyBlockInfo& b, Par& p)
 
 template <class M>
 void Advection<M>::Init(Sem& sem) {
-  if (sem("init-local")) {
-    // initial field for advection
-    fcu_.Reinit(m);
-    par_.fu0(fcu_, m);
-    m.Comm(&fcu_);
+  if (sem.Nested("init-field")) {
+    InitVf(fcu_, var, m);
   }
 
   if (sem("init-create")) {
@@ -305,7 +301,6 @@ void Main(MPI_Comm comm, Vars& var) {
   using K = Advection<M>;
   using Par = typename K::Par;
   Par par;
-  par.fu0 = CreateInitU<M>(var);
   par.fv = CreateInitVel<Vect>(var);
 
   DistrSolver<M, K> ds(comm, var, par);

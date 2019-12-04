@@ -100,12 +100,8 @@ struct UPrimList {
   }
 
   static std::vector<Primitive> Parse(
-      std::string fn, bool verb, size_t edim) {
+      std::istream& f, bool verb, size_t edim) {
     std::vector<Primitive> pp;
-    std::ifstream f(fn);
-    if (!f.good() && verb) {
-      throw std::runtime_error("Can't open particle list '" + fn + "'");
-    }
 
     f >> std::skipws;
 
@@ -182,8 +178,7 @@ struct UPrimList {
     }
 
     if (verb) {
-      std::cout << "Read " << pp.size() << " particles from " 
-          << "'" << fn << "'" << std::endl;
+      std::cout << "Read " << pp.size() << " primitives." << std::endl;
     }
     return pp;
   }

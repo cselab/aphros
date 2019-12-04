@@ -60,12 +60,12 @@ void Run(M& m, State&, Vars& var) {
     }
   };
 
+  if (sem.Nested()) {
+    InitVf(fcu, var, m);
+  }
   if (sem()) {
-    fcu.Reinit(m);
     fccl.Reinit(m);
     ctx->fcim.Reinit(m);
-    auto init = CreateInitU<M>(var, m.IsRoot());
-    init(fcu, m);
     for (auto c : m.Cells()) {
       fccl[c] = (fcu[c] == 0 ? kClNone : 1);
     }
