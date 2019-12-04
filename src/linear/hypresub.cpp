@@ -209,13 +209,10 @@ struct HypreSub::Imp {
       int id;
       int root = 0;
 
-      //SetAffinity(12);
-      //SetAffinity(state.ranksub);
-      RecvYield(cmd, root, comm);
-      //SetAffinity(state.ranksub);
-      //Recv(cmd, root, comm);
-
+      Notify(comm);
+      Recv(cmd, root, comm);
       Recv(id, root, comm);
+
       if (cmd == Cmd::construct) {
         MIdx gs;
         MIdx per;
@@ -266,7 +263,25 @@ struct HypreSub::Imp {
           std::to_string(state.minst.size()) + " instances");
     }
   }
+  static void Notify(MPI_Comm comm) {
+    MPI_Request req;
+    MPI_Ibarrier(comm, &req);
+    if (1) {
+      while (true) {
+        int flag = 0;
+        MPI_Test(&req, &flag, MSI);
+        if (flag) {
+          break;
+        }
+        //sched_yield();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      }
+    } else {
+      MPI_Wait(&req, MSI);
+    }
+  }
   static void StopServer() {
+    Notify(state.commsub);
     for (int rank = 1; rank < state.sizesub; ++rank) {
       Send(Cmd::exit, rank);
       Send(-1, rank, state.commsub); // dummy id, expected by RunServer
@@ -376,7 +391,7 @@ struct HypreSub::Imp {
   static void RecvYield(int& a, int rank, MPI_Comm comm) {
     MPI_Request req;
     MPI_Irecv(&a, 1, MPI_INT, rank, tag, comm, &req);
-    if(1){
+    if (1) {
       while (true) {
         int flag = 0;
         MPI_Test(&req, &flag, MSI);
@@ -421,6 +436,7 @@ struct HypreSub::Imp {
     id_ = next_id;
     ++next_id;
 
+    Notify(state.commsub);
     for (int rank = 1; rank < state.sizesub; ++rank) {
       Send(Cmd::construct, rank);
       Send(id_, rank, state.commsub);
@@ -438,6 +454,7 @@ struct HypreSub::Imp {
         std::forward_as_tuple(GetBlockBuffers(GetPart(0)), gs, per));
   }
   ~Imp() {
+    Notify(state.commsub);
     for (int rank = 1; rank < state.sizesub; ++rank) {
       Send(Cmd::destruct, rank);
       Send(id_, rank, state.commsub);
@@ -446,6 +463,7 @@ struct HypreSub::Imp {
     DEB(std::cout << "self destruct" << std::endl;)
   }
   void Update() {
+    Notify(state.commsub);
     for (int rank = 1; rank < state.sizesub; ++rank) {
       Send(Cmd::update, rank);
       Send(id_, rank, state.commsub);
@@ -465,6 +483,7 @@ struct HypreSub::Imp {
     return inst.GetHypre().GetIter();
   }
   void Solve(Scal tol, int print, std::string solver, int maxiter) {
+    Notify(state.commsub);
     auto comm = state.commsub;
     for (int rank = 1; rank < state.sizesub; ++rank) {
       Send(Cmd::solve, rank);
