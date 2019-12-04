@@ -328,7 +328,7 @@ connect_write(FILE * f)
   int ne;
 
   if (Connect.n % 2 == 1) {
-    fprintf(stderr, "%s: Connect.n % 2 = %d == 1\n", me, Connect.n);
+    fprintf(stderr, "%s: Connect.n %% 2 = %d == 1\n", me, Connect.n);
     return 1;
   }
 
