@@ -51,10 +51,20 @@ main(int argc, char **argv)
 {
   char output[N];
   char *Prefix;
+  double dx;
+  double dy;
+  double dz;
   double *r;
   double *x;
   double *y;
   double *z;
+  double *xx;
+  double *xy;
+  double *xz;
+  double *yy;
+  double *yz;
+  double *zz;
+  double Matrix[6];
   FILE *file;
   int i;
   int j;
@@ -104,6 +114,12 @@ main(int argc, char **argv)
     GET("x", &x);
     GET("y", &y);
     GET("z", &z);
+    GET("xx", &xx);
+    GET("xy", &xy);
+    GET("xz", &xz);
+    GET("yy", &yy);
+    GET("yz", &yz);
+    GET("zz", &zz);
     GET("r", &r);
     nf = csv_nf(csv);
     nr = csv_nr(csv);
@@ -124,17 +140,21 @@ main(int argc, char **argv)
     fputs("ASCII\n", file);
     fputs("DATASET POLYDATA\n", file);
     fprintf(file, "POINTS %d double\n", nr * ico_nv);
-    for (i = 0; i < nr; i++)
-      for (j = 0; j < ico_nv; j++)
-        fprintf(file, "%.16g %.16g %.16g\n", x[i] + r[i] * ico_x[j],
-                y[i] + r[i] * ico_y[j], z[i] + r[i] * ico_z[j]);
+    for (i = 0; i < nr; i++) {
+	inertia2transform(xx[i], xy[i], xz[i], yy[i], yz[i], zz[i], M);
+	for (j = 0; j < ico_nv; j++) {
+	    dx = r[i] * ico_x[j];
+	    dy = r[i] * ico_y[j];
+	    dz = r[i] * ico_z[j];
+	    fprintf(file, "%.16g %.16g %.16g\n", x[i] + dx, y[i] + dy, z[i] + dz);
+	}
+    }
     fprintf(file, "POLYGONS %d %d\n", nr * ico_nt, 4 * nr * ico_nt);
     for (i = 0; i < nr; i++)
       for (j = 0; j < ico_nt; j++)
         fprintf(file, "3 %d %d %d\n",
                 ico_nv * i + ico_t0[j],
                 ico_nv * i + ico_t1[j], ico_nv * i + ico_t2[j]);
-
 
     fprintf(file, "CELL_DATA %d\n", nr * ico_nt);
     for (i = 0; i < nf; i++) {
