@@ -25,7 +25,8 @@ struct Transform {
 static int transform_ini(double x, double y, double z, double xx, double,
                          double, double, double, double,
                          struct Transform *);
-static int transform_apply(struct Transform *t, double x, double, double, double[3]);
+static int transform_apply(struct Transform *t, double x, double, double,
+                           double[3]);
 
 #define GET(f, r)							\
   if ((*r = csv_field(csv, f)) == NULL) {				\
@@ -63,7 +64,7 @@ usg()
 int
 main(int argc, char **argv)
 {
-  enum {X, Y, Z};
+  enum { X, Y, Z };
   char output[N];
   char *Prefix;
   double dx;
@@ -160,7 +161,7 @@ main(int argc, char **argv)
       transform_ini(x[i], y[i], z[i], xx[i], xy[i], xz[i], yy[i], yz[i],
                     zz[i], &transform);
       for (j = 0; j < ico_nv; j++) {
-	transform_apply(&transform, ico_x[j], ico_y[j], ico_z[j], u);
+        transform_apply(&transform, ico_x[j], ico_y[j], ico_z[j], u);
         fprintf(file, "%.16g %.16g %.16g\n", u[X], u[Y], u[Z]);
       }
     }
@@ -192,7 +193,9 @@ transform_ini(double x, double y, double z, double xx, double xy,
   enum { X, Y, Z };
   enum { XX, XY, XZ, YY, YZ, ZZ };
   double i[6];
+  double *scale;
 
+  scale = t->scale;
   t->r[X] = x;
   t->r[Y] = y;
   t->r[Z] = z;
@@ -210,14 +213,16 @@ transform_ini(double x, double y, double z, double xx, double xy,
     fprintf(stderr, "%s: math_eig_values failed\n", me);
     exit(2);
   }
-  t->scale[X] = sqrt(5*t->scale[X]);
-  t->scale[Y] = sqrt(5*t->scale[Y]);
-  t->scale[Z] = sqrt(5*t->scale[Z]);
+  scale[X] = sqrt(fabs(5 * scale[X]));
+  scale[Y] = sqrt(fabs(5 * scale[Y]));
+  scale[Z] = sqrt(fabs(5 * scale[Z]));
+  fprintf(stderr, "%g %g %g\n", scale[X], scale[Y], scale[Z]);
   return 0;
 }
 
 int
-transform_apply(struct Transform *t, double x, double y, double z, double v[3])
+transform_apply(struct Transform *t, double x, double y, double z,
+                double v[3])
 {
   enum { X, Y, Z };
   const double *a;
@@ -234,14 +239,13 @@ transform_apply(struct Transform *t, double x, double y, double z, double v[3])
   x *= scale[X];
   y *= scale[Y];
   z *= scale[Z];
-  v[X] = x*a[X] + y*b[X] + z*c[X];
-  v[Y] = x*a[Y] + y*b[Y] + z*c[Y];
-  v[Z] = x*a[Z] + y*b[Z] + z*c[Z];
+  v[X] = x * a[X] + y * b[X] + z * c[X];
+  v[Y] = x * a[Y] + y * b[Y] + z * c[Y];
+  v[Z] = x * a[Z] + y * b[Z] + z * c[Z];
 
   v[X] += r[X];
   v[Y] += r[Y];
   v[Z] += r[Z];
-    
+
   return 0;
 }
-
