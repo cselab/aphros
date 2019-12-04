@@ -1,7 +1,6 @@
 .POSIX:
 .SUFFIXES: .o .c
 CFLAGS = -g -Og
-M_LDFLAGS = -lm
 PREFIX = $(CHPREFIX)
 
 O = main.o err.o memory.o
@@ -10,11 +9,12 @@ H = table.h
 
 libtable.a: $O; ar rv $@ $O && ranlib $@
 
+.c.o:; $(CC) -c $(CFLAGS) $<
+
 main.o: table.h err.h memory.h
 err.o: err.h
 memory.o: memory.h
 
-.o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@
 .c:
 %: %.c
 

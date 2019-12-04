@@ -14,7 +14,7 @@ err.o: err.h
 memory.o: memory.h
 line.o: line.h
 
-.o:; $(LINK) $< $(LDFLAGS) -o $@
+.c.o:; $(CC) -c $(CFLAGS) $<
 .c:
 %: %.c
 

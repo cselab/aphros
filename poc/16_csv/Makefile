@@ -13,7 +13,7 @@ main.o: csv.h err.h memory.h
 err.o: err.h
 memory.o: memory.h
 
-.o:; $(LINK) $< $(LDFLAGS) -o $@
+.c.o:; $(CC) -c $(CFLAGS) $<
 .c:
 %: %.c
 

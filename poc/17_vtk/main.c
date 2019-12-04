@@ -221,10 +221,8 @@ fail:
 int
 vtk_fin(struct VTK *q)
 {
-  int i, nv, nt, nf;
+  int i, nf;
 
-  nv = vtk_nv(q);
-  nt = vtk_nt(q);
   nf = vtk_nf(q);
   for (i = 0; i < nf; i++) {
     FREE(q->name[i]);
