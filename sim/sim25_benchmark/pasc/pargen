@@ -59,7 +59,7 @@ set int vofm_layers {layers}
 
 with open("par.make", 'w') as f:
     f.write(
-'''m = {nx} {nx} {nx}
+'''m = {nx} {ny} {nz}
 bs = {bs} {bs} {bs}
 np = {np}
 tl = {tl}
