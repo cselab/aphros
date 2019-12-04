@@ -27,10 +27,19 @@ CreateInitCl(const Vars& par, bool verb=true) {
 
   std::string v = par.String["init_vf"];
   if (v == "list") {
-    std::string fn = par.String["list_path"];
-    size_t edim = par.Int["dim"];
+    const std::string fn = par.String["list_path"];
+    const size_t edim = par.Int["dim"];
 
-    auto pp = UPrimList<Scal>::Parse(par.String["list_path"], verb, edim);
+    // TODO revise with bcast
+    std::ifstream fin(fn);
+    if (verb) {
+      std::cout << "Open list of primitives '" << fn << "' for colors"
+        << std::endl;
+    }
+    if (!fin.good()) {
+      throw std::runtime_error("Can't open list of primitives");
+    }
+    auto pp = UPrimList<Scal>::Parse(fin, verb, edim);
 
     return [edim,pp](FieldCell<Scal>& cl, const FieldCell<Scal>& vf,
                      const M& m) {

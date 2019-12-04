@@ -5,6 +5,7 @@
 #include <cmath>
 #include <limits>
 #include <sstream>
+#include <iterator>
 
 #include "parse/vars.h"
 #include "geom/field.h"
@@ -53,57 +54,51 @@ Scal GetLevelSetVolume(std::function<Scal(const GVect<Scal, 3>&)> f,
 }
 
 
-// Volume fraction field.
-// par: parameters
-// M: mesh
-// Returns:
-// std::function<void(GField<Cell>& fc,const M& m)>
-// fc: field to fill [i]
-// m: mesh
+// Fills volume fraction field from list of primitives.
+// fc: field to fill
+// list: list of primitives
+// edim: effective dimension
+// approx: 0: stepwise, 1: level-set, 2: overlap
 template <class M>
-std::function<void(FieldCell<typename M::Scal>&,const M&)> 
-CreateInitUList(const Vars& par, bool verb) {
+void InitVfList(
+    FieldCell<typename M::Scal>& fc, std::istream& list,
+    int approx, size_t edim, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  auto pp = UPrimList<Scal>::Parse(list, m.IsRoot(), edim);
 
-  int ls = par.Int["list_ls"]; // 0: stepwise, 1: level-set, 2: overlap
-
-  size_t edim = par.Int["dim"];
-
-  auto pp = UPrimList<Scal>::Parse(
-      par.String["list_path"], verb, edim);
-
-  return [edim,ls,pp](FieldCell<Scal>& fc, const M& m) { 
-    if (pp.empty()) {
-      fc.Reinit(m, 0.);
-    } else {
-      for (auto c : m.Cells()) {
-        auto x = m.GetCenter(c);
-        Scal fm = -std::numeric_limits<Scal>::max(); // maximum level-set
-        size_t im; // index of maximum
-        for (size_t i = 0; i < pp.size(); ++i) {
-          auto& p = pp[i];
-          Scal fi = p.ls(x);
-          if (fi > fm) { fm = fi; im = i; }
+  if (pp.empty()) {
+    fc.Reinit(m, 0.);
+  } else {
+    for (auto c : m.Cells()) {
+      auto x = m.GetCenter(c);
+      Scal fm = -std::numeric_limits<Scal>::max(); // maximum level-set
+      size_t im; // index of maximum
+      for (size_t i = 0; i < pp.size(); ++i) {
+        auto& p = pp[i];
+        Scal fi = p.ls(x);
+        if (fi > fm) { fm = fi; im = i; }
+      }
+      Vect h = m.GetCellSize();
+      auto& p = pp[im];
+      if (approx == 0) { // stepwise
+        fc[c] = (fm >= 0. ? 1. : 0.);
+      } else if (approx == 1) { // level set
+        fc[c] = GetLevelSetVolume<Scal>(p.ls, x, h);
+      } else if (approx == 2) { // overlap
+        Vect qx = (x - p.c) / p.r;
+        Vect qh = h / p.r;
+        if (edim == 2) {
+          qh[2] *= 1e-3; // XXX: adhoc, thin cell in 2d
+          qx[2] = 0.;
         }
-        Vect h = m.GetCellSize();
-        auto& p = pp[im];
-        if (ls == 1) {
-          fc[c] = GetLevelSetVolume<Scal>(p.ls, x, h);
-        } else if (ls == 2) {
-          Vect qx = (x - p.c) / p.r;
-          Vect qh = h / p.r;
-          if (edim == 2) {
-            qh[2] *= 1e-3; // XXX: adhoc, thin cell in 2d
-            qx[2] = 0.;
-          }
-          fc[c] = GetSphereOverlap(qx, qh, Vect(0), 1.);
-        } else {
-          fc[c] = (fm >= 0. ? 1. : 0.);
-        }
+        fc[c] = GetSphereOverlap(qx, qh, Vect(0), 1.);
+      } else {
+        throw std::runtime_error(std::string(__func__) +
+            " unknown approx=" + std::to_string(approx));
       }
     }
-  };
+  }
 }
 
 // Volume fraction field.
@@ -115,9 +110,10 @@ CreateInitUList(const Vars& par, bool verb) {
 // m: mesh
 template <class M>
 std::function<void(FieldCell<typename M::Scal>&,const M&)> 
-CreateInitU(const Vars& par, bool verb=true) {
+CreateInitU(const Vars& par, bool verb) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  (void) verb;
 
   std::string v = par.String["init_vf"];
   if (v == "circle") {
@@ -282,8 +278,6 @@ CreateInitU(const Vars& par, bool verb=true) {
         fc[c] = GetLevelSetVolume<Scal>(f, x, h);
       }
     };
-  } else if (v == "list") {
-    return CreateInitUList<M>(par, verb);
   } else if (v == "box") {
     Vect xc(par.Vect["box_c"]);
     Scal s = par.Double["box_s"];
@@ -341,4 +335,49 @@ CreateInitU(const Vars& par, bool verb=true) {
     throw std::runtime_error("Unknown init_vf=" + v);
   }
   return std::function<void(FieldCell<Scal>&,const M&)>();
+}
+
+
+template <class M>
+void InitVf(FieldCell<typename M::Scal>& fcu, const Vars& var, M& m) {
+  auto sem = m.GetSem("initvf");
+  struct {
+    std::vector<char> buf;
+  }* ctx(sem);
+
+  if (sem("zero")) {
+    fcu.Reinit(m, 0);
+  }
+  std::string v = var.String["init_vf"];
+  if (v == "list") {
+    if (sem("list-bcast")) {
+      if (m.IsRoot()) {
+        auto fn = var.String["list_path"];
+        std::ifstream fin(fn);
+        std::cout << "Open list of primitives '" << fn << "'" << std::endl;
+        if (!fin.good()) {
+          throw std::runtime_error("Can't open list of primitives");
+        }
+        ctx->buf = std::vector<char>(
+            std::istreambuf_iterator<char>(fin),
+            std::istreambuf_iterator<char>());
+      }
+      using T = typename M::template OpCatT<char>;
+      m.Bcast(std::make_shared<T>(&ctx->buf));
+    }
+    if (sem("list-local")) {
+      std::stringstream list;
+      std::copy(
+          ctx->buf.begin(), ctx->buf.end(), std::ostream_iterator<char>(list));
+      InitVfList(fcu, list, var.Int["list_ls"], var.Int["dim"], m);
+    }
+  } else {
+    if (sem("local")) {
+      auto func = CreateInitU<M>(var, m.IsRoot());
+      func(fcu, m);
+    }
+  }
+  if (sem("comm")) {
+    m.Comm(&fcu);
+  }
 }

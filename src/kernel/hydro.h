@@ -650,17 +650,13 @@ void Hydro<M>::Init() {
   using namespace solver;
   using namespace solver::fluid_condition;
   auto sem = m.GetSem("init");
-
+  if (sem.Nested()) {
+    InitVf(fc_vf_, var, m);
+  }
   if (sem("fields")) {
     fc_src_.Reinit(m, 0.);
     fc_src2_.Reinit(m, 0.);
     fc_srcm_.Reinit(m, 0.);
-
-    // initial volume fraction
-    fc_vf_.Reinit(m, 0);
-    auto ivf = CreateInitU<M>(var, m.IsRoot());
-    ivf(fc_vf_, m);
-    m.Comm(&fc_vf_);
 
     // initial surface tension sigma
     fc_sig_.Reinit(m, 0);
@@ -778,6 +774,7 @@ void Hydro<M>::Init() {
   if (sem("color-ini")) {
     if (var.Int["enable_color"]) {
       // initial color
+      // TODO revise with bcast
       auto icl = CreateInitCl<M>(var, m.IsRoot());
       icl(fccl_, fc_vf_, m);
       m.Comm(&fccl_);
