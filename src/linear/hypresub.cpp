@@ -383,7 +383,8 @@ struct HypreSub::Imp {
         if (flag) {
           break;
         }
-        sched_yield();
+        //sched_yield();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
       }
     } else {
       MPI_Wait(&req, MSI);
