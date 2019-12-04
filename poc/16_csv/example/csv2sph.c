@@ -58,6 +58,8 @@ main(int argc, char **argv)
   FILE *file;
   int i;
   int j;
+  int k;
+  int nf;
   int nr;
   struct CSV *csv;
 
@@ -103,6 +105,7 @@ main(int argc, char **argv)
     GET("y", &y);
     GET("z", &z);
     GET("r", &r);
+    nf = csv_nf(csv);
     nr = csv_nr(csv);
 
     if (util_name(Prefix, *argv, output) != 0) {
@@ -120,7 +123,7 @@ main(int argc, char **argv)
     fprintf(file, "%s\n", me);
     fputs("ASCII\n", file);
     fputs("DATASET POLYDATA\n", file);
-    fprintf(file, "POINTS %d float\n", nr * ico_nv);
+    fprintf(file, "POINTS %d double\n", nr * ico_nv);
     for (i = 0; i < nr; i++)
       for (j = 0; j < ico_nv; j++)
         fprintf(file, "%.16g %.16g %.16g\n", x[i] + r[i] * ico_x[j],
@@ -131,6 +134,17 @@ main(int argc, char **argv)
         fprintf(file, "3 %d %d %d\n",
                 ico_nv * i + ico_t0[j],
                 ico_nv * i + ico_t1[j], ico_nv * i + ico_t2[j]);
+
+
+    fprintf(file, "CELL_DATA %d\n", nr * ico_nt);
+    for (i = 0; i < nf; i++) {
+      fprintf(file, "SCALARS %s double 1\n", csv->name[i]);
+      fprintf(file, "LOOKUP_TABLE default\n");
+      for (j = 0; j < nr; j++)
+        for (k = 0; k < ico_nt; k++)
+          fprintf(file, "%.16g\n", csv->data[i][j]);
+    }
     fclose(file);
+    csv_fin(csv);
   }
 }
