@@ -338,10 +338,16 @@ CreateInitU(const Vars& par, bool verb) {
         fc[c] = std::max(0., std::min(1., u));
       }
     };
+  } else if (v == "grid") { // see init_cl.h for grid of different colors
+    return [](FieldCell<Scal>& fc, const M& m) { 
+      for (auto c : m.Cells()) {
+        fc[c] = 1;
+      }
+    };
   } else if (v == "zero") {
     return [](FieldCell<Scal>& fc, const M& m) { 
       for (auto c : m.Cells()) {
-        fc[c] = 0.;
+        fc[c] = 0;
       }
     };
   } else {

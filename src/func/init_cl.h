@@ -73,6 +73,23 @@ CreateInitCl(const Vars& par, bool verb=true) {
         }
       }
     };
+  } else if (v == "grid") {
+    using MIdx = typename M::MIdx;
+    const int dx = par.Int["initvf_grid_dx"];
+    const int dy = par.Int["initvf_grid_dy"];
+    const int dz = par.Int["initvf_grid_dz"];
+    const MIdx dw(dx, dy, dz);
+    return [dw](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) { 
+      fc.Reinit(m, kClNone);
+      const auto& bc = m.GetIndexCells();
+      const MIdx gs = m.GetGlobalSize();
+      const MIdx ds = (gs + dw - MIdx(1)) / dw;
+      for (auto c : m.Cells()) {
+        const MIdx w = bc.GetMIdx(c);
+        const MIdx rw = w / dw;
+        fc[c] = rw[0] + rw[1] * ds[0] + rw[2] * ds[0] * ds[1];
+      }
+    };
   } else if (v == "zero") {
     return [](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) { 
       fc.Reinit(m, kClNone);
