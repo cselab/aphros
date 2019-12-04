@@ -121,6 +121,10 @@ set int bsx 8
 set int bsy 8
 set int bsz 8
 
+set int openmp 0
+set int histogram 0
+set int mpi_compress_msg 0
+
 set string init_vf list
 set int list_ls 1
 set string list_path b.dat
