@@ -89,8 +89,8 @@ main(int argc, char **argv)
     case 'p':
       argv++;
       if ((Prefix = *argv) == NULL) {
-        fprintf(stderr, "%s: -p needs an argument\n", me);
-        exit(2);
+	fprintf(stderr, "%s: -p needs an argument\n", me);
+	exit(2);
       }
       break;
     default:
@@ -158,17 +158,17 @@ main(int argc, char **argv)
     fprintf(file, "POLYGONS %d %d\n", nr * ico_nt, 4 * nr * ico_nt);
     for (i = 0; i < nr; i++)
       for (j = 0; j < ico_nt; j++)
-        fprintf(file, "3 %d %d %d\n",
-                ico_nv * i + ico_t0[j],
-                ico_nv * i + ico_t1[j], ico_nv * i + ico_t2[j]);
+	fprintf(file, "3 %d %d %d\n",
+		ico_nv * i + ico_t0[j],
+		ico_nv * i + ico_t1[j], ico_nv * i + ico_t2[j]);
 
     fprintf(file, "CELL_DATA %d\n", nr * ico_nt);
     for (i = 0; i < nf; i++) {
       fprintf(file, "SCALARS %s double 1\n", csv->name[i]);
       fprintf(file, "LOOKUP_TABLE default\n");
       for (j = 0; j < nr; j++)
-        for (k = 0; k < ico_nt; k++)
-          fprintf(file, "%.16g\n", csv->data[i][j]);
+	for (k = 0; k < ico_nt; k++)
+	  fprintf(file, "%.16g\n", csv->data[i][j]);
     }
     fclose(file);
     csv_fin(csv);
@@ -183,5 +183,13 @@ transform_ini(double x, double y, double z, double xx, double xy, double xz, dou
   t->r[X] = x;
   t->r[Y] = y;
   t->r[Z] = z;
+
+  xx -= x*x;
+  xy -= x*y;
+  xz -= x*z;
+  yy -= y*y;
+  yz -= y*z;
+  zz -= z*z;
+
   return 0;
 }

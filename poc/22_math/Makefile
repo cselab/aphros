@@ -1,20 +1,19 @@
 .POSIX:
 .SUFFIXES: .o .c
 CFLAGS = -g -Og
+M_LDFLAGS = -lm
 PREFIX = $(CHPREFIX)
 
-O = main.o err.o memory.o line.o
-L = libvtk.a
-H = vtk.h
+O = main.o
+L = libmath.a
+H = math.h
 
-libvtk.a: $O; ar rv $@ $O && ranlib $@
-
-main.o: vtk.h err.h memory.h
+libmath.a: $O; ar rv $@ $O && ranlib $@
+main.o: math.h
+main.o: err.h
 err.o: err.h
-memory.o: memory.h
-line.o: line.h
 
-.o:; $(LINK) $< $(LDFLAGS) -o $@
+.o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@
 .c:
 %: %.c
 
