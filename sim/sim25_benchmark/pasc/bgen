@@ -109,14 +109,33 @@ def GetCluster(w, r, beta, rnd):
   print("beta={:}".format(GetVF(b, vd)))
   return b
 
+# w: domain width (cube domain)
+# r: bubble radius
+# nx: bubbles in each direction
+def GetCluster2(w, r, nx):
+  vd = w ** 3  # domain volume
+  b = None # cluster
+  cx,cy,cz = (w * 0.5, w * 0.5, w * 0.5)
+  nx,ny,nz = (nx, nx, nx)
+  b = GetRegularCluster(cx, cy, cz, nx, ny, nz, r, gap__r=0)
+  print("nx={:},ny={:},nz={:}".format(nx, ny, nz))
+
+  print("nb={:}".format(len(b[0])))
+  print("beta={:}".format(GetVF(b, vd)))
+  return b
+
 
 w = 2. * np.pi  # domain width
-r = w / 96   # bubble radius
-beta = 0.01 # volume fraction
-#beta = 0. 
-rnd = True # random cluster
 
-b = GetCluster(w, r, beta, rnd)
+#r = w / 96   # bubble radius
+#beta = 0.01 # volume fraction
+#rnd = True # random cluster
+#b = GetCluster(w, r, beta, rnd)
+
+# overlapping bubbles
+nx = 25
+r = w / (2 * nx)
+b = GetCluster2(w, r * 10, nx)
 
 fn = "b.dat"
 np.savetxt(fn, np.vstack(b).T)
