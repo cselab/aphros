@@ -9,9 +9,15 @@
 
 enum { N = 999 };
 static const char me[] = "csv2ellipsoid";
-
 #include "util.h"
 #include "ico.inc"
+
+struct Transform {
+  double r[3];
+  double m[6];
+};
+
+static int transform_ini(double x, double y, double z, double xx, double, double, double, double, double, struct Transform *);
 
 #define GET(f, r)							\
   if ((*r = csv_field(csv, f)) == NULL) {				\
@@ -64,7 +70,7 @@ main(int argc, char **argv)
   double *yy;
   double *yz;
   double *zz;
-  double Matrix[6];
+  struct Transform transform;
   FILE *file;
   int i;
   int j;
@@ -141,7 +147,7 @@ main(int argc, char **argv)
     fputs("DATASET POLYDATA\n", file);
     fprintf(file, "POINTS %d double\n", nr * ico_nv);
     for (i = 0; i < nr; i++) {
-	inertia2transform(xx[i], xy[i], xz[i], yy[i], yz[i], zz[i], M);
+      transform_ini(x[i], y[i], z[i], xx[i], xy[i], xz[i], yy[i], yz[i], zz[i], &transform);
 	for (j = 0; j < ico_nv; j++) {
 	    dx = r[i] * ico_x[j];
 	    dy = r[i] * ico_y[j];
@@ -167,4 +173,15 @@ main(int argc, char **argv)
     fclose(file);
     csv_fin(csv);
   }
+}
+
+int
+transform_ini(double x, double y, double z, double xx, double xy, double xz, double yy, double yz, double zz, struct Transform * t)
+{
+  enum {X, Y, Z};
+  enum {XX, XY, XZ, YY, YZ, ZZ};
+  t->r[X] = x;
+  t->r[Y] = y;
+  t->r[Z] = z;
+  return 0;
 }
