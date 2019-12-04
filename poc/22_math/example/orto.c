@@ -3,7 +3,10 @@
 #include <math.h>
 #include <poc/math.h>
 
-static const char *me = "vectors";
+static const char *me = "orto";
+enum { X, Y, Z };
+enum { XX, XY, XZ, YY, YZ, ZZ };
+static double dot(double a[3], double b[3]);
 
 static const char **argv;
 static int
@@ -24,10 +27,9 @@ scl( /**/ double *p)
 int
 main(int argc, const char **argv0)
 {
-  enum { X, Y, Z };
-  enum { XX, XY, XZ, YY, YZ, ZZ };
   int i;
   double v[3 * 3], m[6];
+  double a[3], b[3], c[3];
 
   argv = argv0;
   argv++;
@@ -42,11 +44,25 @@ main(int argc, const char **argv0)
   math_eig_vectors(m, v);
 
   i = 0;
-  printf("%g %g %g\n", v[i + X], v[i + Y], v[i + Z]);
-  i += 3;
-  printf("%g %g %g\n", v[i + X], v[i + Y], v[i + Z]);
-  i += 3;
-  printf("%g %g %g\n", v[i + X], v[i + Y], v[i + Z]);
-  i += 3;
+  a[X] = v[X];
+  a[Y] = v[Y];
+  a[Z] = v[Z];
+  b[X] = v[3 + X];
+  b[Y] = v[3 + Y];
+  b[Z] = v[3 + Z];
+  c[X] = v[6 + X];
+  c[Y] = v[6 + Y];
+  c[Z] = v[6 + Z];
+
+  printf("%.3f %.3f %.3f\n", dot(a, a), dot(a, b), dot(a, c));
+  printf("%.3f %.3f %.3f\n", dot(b, a), dot(b, b), dot(b, c));
+  printf("%.3f %.3f %.3f\n", dot(c, a), dot(c, b), dot(c, c));
+
   return 0;
+}
+
+static double
+dot(double a[3], double b[3])
+{
+  return a[X] * b[X] + a[Y] * b[Y] + a[Z] * b[Z];
 }

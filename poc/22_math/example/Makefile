@@ -1,5 +1,9 @@
 .POSIX:
-M = vectors values
+M = \
+orto\
+vectors\
+values\
+
 M_CFLAGS = -I$(CHPREFIX)/include `gsl-config --cflags`
 M_LDFLAGS = -L$(CHPREFIX)/lib -lmath `gsl-config --libs`
 
