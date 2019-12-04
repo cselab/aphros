@@ -25,6 +25,7 @@ struct GPrimitive {
   Scal th; // ring thickness
   Scal magn; // magnitude
   std::function<Scal(const GVect<Scal, 3>&)> ls; // level-set
+  std::function<Scal(const Rect<GVect<Scal, 3>>&)> inter; // true if intersects
   std::function<Vect(const GVect<Scal, 3>&)> vel; // velocity
 };
 
@@ -145,6 +146,11 @@ struct UPrimList {
           return (1. - xd.sqrnorm()) * sqr(p.r.min());
         };
 
+        p.inter = [edim,p](const Rect<Vect>& rect) -> bool {
+          const Rect<Vect> rectbig(rect.lb - p.r, rect.rt + p.r);
+          return rectbig.IsInside(p.c);
+        };
+
         pp.push_back(p);
       }
 
@@ -171,6 +177,10 @@ struct UPrimList {
           Scal xt = (d - p.n * xn).norm();
           Scal r = p.r[0];
           return sqr(p.th) - (sqr(xn) + sqr(xt - r));
+        };
+
+        p.inter = [edim,p](const Rect<Vect>&) -> bool {
+          return true;
         };
 
         pp.push_back(p);

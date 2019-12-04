@@ -65,7 +65,21 @@ void InitVfList(
     int approx, size_t edim, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  auto pp = UPrimList<Scal>::Parse(list, m.IsRoot(), edim);
+  using Primitive = typename UPrimList<Scal>::Primitive;
+  const std::vector<Primitive> ppa =
+      UPrimList<Scal>::Parse(list, m.IsRoot(), edim);
+
+  const Vect h = m.GetCellSize();
+  // filter to bounding box
+  auto& bc = m.GetSuBlockCells();
+  Rect<Vect> rect(Vect(bc.GetBegin()) * h, Vect(bc.GetEnd()) * h);
+
+  std::vector<Primitive> pp;
+  for (auto& p : ppa) {
+    if (p.inter(rect)) {
+      pp.push_back(p);
+    }
+  }
 
   if (pp.empty()) {
     fc.Reinit(m, 0.);
@@ -79,7 +93,6 @@ void InitVfList(
         Scal fi = p.ls(x);
         if (fi > fm) { fm = fi; im = i; }
       }
-      Vect h = m.GetCellSize();
       auto& p = pp[im];
       if (approx == 0) { // stepwise
         fc[c] = (fm >= 0. ? 1. : 0.);
