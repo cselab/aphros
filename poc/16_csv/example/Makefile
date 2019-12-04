@@ -22,6 +22,9 @@ all: $M
 %: %.c
 .SUFFIXES: .o .c
 
+csv2sph.o: ico.inc
+csv2sph.o: util.h
+
 lint:; make CFLAGS='-Wall -Wextra -g -O2'
 .PHONY: clean lint
 clean:; rm -f -- $M $O

@@ -9,7 +9,9 @@
 
 enum { N = 999 };
 static const char me[] = "csv2sph";
+
 #include "util.h"
+#include "ico.inc"
 
 #define GET(f, r)							\
   if ((*r = csv_field(csv, f)) == NULL) {				\
@@ -47,14 +49,17 @@ usg()
 int
 main(int argc, char **argv)
 {
-  char *Prefix;
   char output[N];
-  FILE *file;
-  struct CSV *csv;
+  char *Prefix;
+  double *r;
   double *x;
   double *y;
   double *z;
-  double *r;
+  FILE *file;
+  int i;
+  int j;
+  int nr;
+  struct CSV *csv;
 
   USED(argc);
   Prefix = NULL;
@@ -83,7 +88,7 @@ main(int argc, char **argv)
     exit(1);
   }
 
-  for ( ; *argv != NULL; argv++) {
+  for (; *argv != NULL; argv++) {
     if ((file = fopen(*argv, "r")) == NULL) {
       fprintf(stderr, "%s: fail to open '%s'\n", me, *argv);
       exit(1);
@@ -98,6 +103,8 @@ main(int argc, char **argv)
     GET("y", &y);
     GET("z", &z);
     GET("r", &r);
+    nr = csv_nr(csv);
+
     if (util_name(Prefix, *argv, output) != 0) {
       fprintf(stderr, "%s: util_name failed\n", me);
       exit(2);
@@ -106,6 +113,24 @@ main(int argc, char **argv)
       fprintf(stderr, "%s: fail to write to '%s'\n", me, output);
       exit(2);
     }
+    if (fputs("# vtk DataFile Version 2.0\n", file) == EOF) {
+      fprintf(stderr, "%s: fail to write\n", me);
+      return 1;
+    }
+    fprintf(file, "%s\n", me);
+    fputs("ASCII\n", file);
+    fputs("DATASET POLYDATA\n", file);
+    fprintf(file, "POINTS %d float\n", nr * ico_nv);
+    for (i = 0; i < nr; i++)
+      for (j = 0; j < ico_nv; j++)
+        fprintf(file, "%.16g %.16g %.16g\n", x[i] + r[i] * ico_x[j],
+                y[i] + r[i] * ico_y[j], z[i] + r[i] * ico_z[j]);
+    fprintf(file, "POLYGONS %d %d\n", nr * ico_nt, 4 * nr * ico_nt);
+    for (i = 0; i < nr; i++)
+      for (j = 0; j < ico_nt; j++)
+        fprintf(file, "3 %d %d %d\n",
+                ico_nv * i + ico_t0[j],
+                ico_nv * i + ico_t1[j], ico_nv * i + ico_t2[j]);
     fclose(file);
   }
 }
