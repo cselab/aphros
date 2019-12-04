@@ -128,10 +128,17 @@ def show(args):
     for f in args.files:
         data, nranks = readData(f)
         ndata = len(data)
+        if args.stats:
+            sidx = np.array(args.stats, dtype=np.int)
+        else:
+            sidx = np.arange(ndata, dtype=np.int)
+        ndata = len(sidx)
         info = "File: {:s}\n".format(f)
         info += "\tRanks: {:d}\n".format(nranks)
         info += "\tStats: {:d}\n".format(ndata)
-        for i,(k,v) in enumerate(data.items()):
+        dl = list(data.items())
+        items = [dl[i] for i in sidx]
+        for i,(k,v) in zip(sidx, items):
             info += "\t\t[{:d}]: {:s}\n".format(i, k)
             if args.numbers:
                 for kv, vv in v.items():
