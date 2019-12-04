@@ -10,17 +10,17 @@ import matplotlib.pyplot as plt
 def parseArgs():
     parser = argparse.ArgumentParser(description='Convert Histogram.h binary output to histogram plot')
     parser.add_argument('-f', '--files', nargs='+', type=str, help='Histogram data file', required=True)
-    parser.add_argument('--format', default='pdf', type=str, help='Output file format')
-    parser.add_argument('--ranks', nargs='+', type=int, help='Include only specified ranks')
-    parser.add_argument('--stats', nargs='+', type=int, help='Include only specified stats (see --avail for IDs)')
-    parser.add_argument('--sdev', action='store_true', help='Indicate standard deviation')
-    parser.add_argument('--minmax', action='store_true', help='Indicate min/max values')
-    parser.add_argument('--avail', action='store_true', help='Display available data and exit')
-    parser.add_argument('--numbers', action='store_true', help='Same as --avail with data')
-    parser.add_argument('--rankstat', action='store_true', help='Same as --avail with statistics over all ranks')
-    parser.add_argument('--nosamples', action='store_true', help='Hide number of samples in statistic')
-    parser.add_argument('--nolog', action='store_true', help='Do not use logarithmic y-scale')
-    parser.add_argument('--item_width', default=10, type=int, help='Number of characters in field names for --avail/--numbers')
+    parser.add_argument('-r', '--ranks', nargs='+', type=int, help='Include only specified ranks')
+    parser.add_argument('-s', '--stats', nargs='+', type=int, help='Include only specified stats (see --avail for IDs)')
+    parser.add_argument('-n', '--numbers', action='store_true', help='Print all data for available statistics')
+    parser.add_argument('-rs', '--rankstats', action='store_true', help='Compute the statistics over ranks for the data collected on each rank')
+    parser.add_argument('-p', '--plot', action='store_true', help='Plot the histogram to file and exit')
+    parser.add_argument('--format', default='pdf', type=str, help='Output file format (only with --plot)')
+    parser.add_argument('--sdev', action='store_true', help='Indicate standard deviation (only with --plot)')
+    parser.add_argument('--minmax', action='store_true', help='Indicate min/max values (only with --plot)')
+    parser.add_argument('--nosamples', action='store_true', help='Hide number of samples in statistic (only with --plot)')
+    parser.add_argument('--nolog', action='store_true', help='Do not use logarithmic y-scale (only with --plot)')
+    parser.add_argument('--item_width', default=10, type=int, help='Number of characters in field names for stdout')
     return parser.parse_known_args()
 
 def readData(name):
@@ -50,6 +50,19 @@ def readData(name):
                     v[ks].append(stats[j])
     return data, nranks
 
+def getSubspace(data, nranks, args):
+    ndata = len(data)
+    if args.ranks:
+        ridx = np.array(args.ranks, dtype=np.int)
+    else:
+        ridx = np.arange(nranks, dtype=np.int)
+    if args.stats:
+        sidx = np.array(args.stats, dtype=np.int)
+    else:
+        sidx = np.arange(ndata, dtype=np.int)
+    ndata = len(sidx)
+    return ndata, ridx, sidx
+
 def anno(ax, patches, values):
     for h,v in zip(patches, values):
         ax.annotate(
@@ -60,19 +73,10 @@ def anno(ax, patches, values):
             ha='center',
             va='bottom', fontsize=4, rotation=90)
 
-def process(args):
+def plot(args):
     for f in args.files:
         data, nranks = readData(f)
-        ndata = len(data)
-        if args.ranks:
-            ridx = np.array(args.ranks, dtype=np.int)
-        else:
-            ridx = np.arange(nranks, dtype=np.int)
-        if args.stats:
-            sidx = np.array(args.stats, dtype=np.int)
-        else:
-            sidx = np.arange(ndata, dtype=np.int)
-        ndata = len(sidx)
+        ndata, ridx, sidx = getSubspace(data, nranks, args)
         ranks = ['rank{:d}'.format(r) for r in ridx]
         x = np.arange(len(ranks))
         width = 1 / (ndata + 1)
@@ -127,43 +131,40 @@ def process(args):
 def show(args):
     for f in args.files:
         data, nranks = readData(f)
-        ndata = len(data)
-        if args.stats:
-            sidx = np.array(args.stats, dtype=np.int)
-        else:
-            sidx = np.arange(ndata, dtype=np.int)
-        ndata = len(sidx)
+        ndata, ridx, sidx = getSubspace(data, nranks, args)
         info = "File: {:s}\n".format(f)
-        info += "\tRanks: {:d}\n".format(nranks)
-        info += "\tStats: {:d}\n".format(ndata)
+        info += "\tRanks: {:d}\n".format(len(ridx))
+        info += "\tAvailable Statistics: {:d} (select a subset using --stats)\n".format(ndata)
         dl = list(data.items())
         items = [dl[i] for i in sidx]
         for i,(k,v) in zip(sidx, items):
             info += "\t\t[{:d}]: {:s}\n".format(i, k)
             if args.numbers:
                 for kv, vv in v.items():
+                    va = np.array(vv)
                     info += "\t\t{:<{width}s}:".format(kv, width=args.item_width)
-                    info += "".join([' {:.2e}'.format(x) for x in vv]) + "\n"
-            if args.rankstat:
+                    info += "".join([' {:.4e}'.format(x) for x in va[ridx]]) + "\n"
+            if args.rankstats:
+                info += "\t\t{:<{width}s}   Rank-mean   Rank-sdev    Rank-min             Rank-max\n".format("", width=args.item_width)
                 for kv, vv in v.items():
                     info += "\t\t{:<{width}s}:".format(kv, width=args.item_width)
-                    vv = np.array(vv)
-                    mean = vv.mean()
-                    sdev = vv.std()
-                    vmin = vv.min()
-                    rmin = np.argmin(vv)
-                    vmax = vv.max()
-                    rmax = np.argmax(vv)
-                    info += "mean: {:.4e} sdev: {:.4e} min: {:.4e} [rank {:d}] max: {:.4e} [rank {:d}]\n".format(
+                    va = np.array(vv)
+                    mean = va.mean()
+                    sdev = va.std()
+                    vmin = va.min()
+                    rmin = np.argmin(va)
+                    vmax = va.max()
+                    rmax = np.argmax(va)
+                    info += " {:.4e}  {:.4e}  {:.4e} [rank {:d}]  {:.4e} [rank {:d}]\n".format(
                             mean, sdev, vmin, rmin, vmax, rmax)
         print(info)
 
 def main():
     args, _ = parseArgs()
-    if args.avail or args.numbers or args.rankstat:
-        show(args)
+    if args.plot:
+        plot(args)
         return
-    process(args)
+    show(args)
 
 if __name__ == "__main__":
     main()
