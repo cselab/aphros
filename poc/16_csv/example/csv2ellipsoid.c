@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <csv.h>
-#include <table.h>
 #include <poc/math.h>
+#include <table.h>
 
 enum { N = 999 };
 static const char me[] = "csv2ellipsoid";
@@ -20,13 +20,15 @@ struct Transform {
   double b[3];
   double c[3];
   double scale[3];
+  double rg;
 };
 
-static int transform_ini(double x, double y, double z, double xx, double,
+static int transform_ini(double x, double, double, double xx, double,
                          double, double, double, double,
                          struct Transform *);
-static int transform_apply(struct Transform *t, double x, double, double,
+static int transform_apply(struct Transform *, double x, double, double,
                            double[3]);
+static int transform_rg(struct Transform *, double *);
 
 #define GET(f, r)							\
   if ((*r = csv_field(csv, f)) == NULL) {				\
@@ -67,9 +69,6 @@ main(int argc, char **argv)
   enum { X, Y, Z };
   char output[N];
   char *Prefix;
-  double dx;
-  double dy;
-  double dz;
   double *r;
   double *x;
   double *y;
@@ -193,6 +192,7 @@ transform_ini(double x, double y, double z, double xx, double xy,
   enum { X, Y, Z };
   enum { XX, XY, XZ, YY, YZ, ZZ };
   double i[6];
+  double rg;
   double *scale;
 
   scale = t->scale;
@@ -205,6 +205,8 @@ transform_ini(double x, double y, double z, double xx, double xy,
   i[YY] = yy - y * y;
   i[YZ] = yz - y * z;
   i[ZZ] = zz - z * z;
+  rg = i[XX] + i[YY] + i[ZZ];
+  rg = sqrt(5*rg/3);
   if (math_eig_vectors(i, t->a, t->b, t->c) != 0) {
     fprintf(stderr, "%s: math_eig_vectors failed\n", me);
     exit(2);
@@ -213,6 +215,7 @@ transform_ini(double x, double y, double z, double xx, double xy,
     fprintf(stderr, "%s: math_eig_values failed\n", me);
     exit(2);
   }
+  t->rg = rg;
   scale[X] = sqrt(fabs(5 * scale[X]));
   scale[Y] = sqrt(fabs(5 * scale[Y]));
   scale[Z] = sqrt(fabs(5 * scale[Z]));
@@ -248,3 +251,11 @@ transform_apply(struct Transform *t, double x, double y, double z,
 
   return 0;
 }
+
+static int
+transform_rg(struct Transform *t, double *p)
+{
+  *p = t->rg;
+  return 0;
+}
+
