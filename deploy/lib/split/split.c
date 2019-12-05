@@ -204,7 +204,7 @@ main(int argc, char **argv)
       fprintf(stderr, "%s: fail to write to '%s'\n", me, output);
       exit(2);
     }
-    connect_write(file);
+    //connect_write(file);
     fclose(file);
     connect_fin();
     a = b;
