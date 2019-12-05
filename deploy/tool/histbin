@@ -14,6 +14,7 @@ def parseArgs():
     parser.add_argument('-s', '--stats', nargs='+', type=int, help='Include only specified stats (see --avail for IDs)')
     parser.add_argument('-n', '--numbers', action='store_true', help='Print all data for available statistics')
     parser.add_argument('-rs', '--rankstats', action='store_true', help='Compute the statistics over ranks for the data collected on each rank')
+    parser.add_argument('-a', '--ascii', action='store_true', help='Dump data to ASCII and exit')
     parser.add_argument('-p', '--plot', action='store_true', help='Plot the histogram to file and exit')
     parser.add_argument('--format', default='pdf', type=str, help='Output file format (only with --plot)')
     parser.add_argument('--sdev', action='store_true', help='Indicate standard deviation (only with --plot)')
@@ -159,10 +160,70 @@ def show(args):
                             mean, sdev, vmin, rmin, vmax, rmax)
         print(info)
 
+def ascii(args):
+    assert args.ascii is not None
+    if not args.numbers and not args.rankstats:
+        args.numbers = True # default if none given
+    if args.numbers and args.rankstats:
+        args.rankstats = False # only either per file for column consistency
+    for f in args.files:
+        fname = os.path.splitext(f)[0]
+        if args.numbers:
+            fname += '_numbers'
+        elif args.rankstats:
+            fname += '_rankstats'
+        fname += '.dat'
+        with open(fname, 'w') as out:
+            data, nranks = readData(f)
+            ndata, ridx, sidx = getSubspace(data, nranks, args)
+            out.write("# File: {:s}\n".format(f))
+            out.write("#\tRanks: {:d}\n".format(len(ridx)))
+            out.write("#\tAvailable Statistics: {:d}\n".format(ndata))
+            line = 4 # at line 4 now
+            dl = list(data.items())
+            items = [dl[i] for i in sidx]
+            line += len(items)
+            line += len(items) * len(items[0][1].items())
+            line += 2 # column declaration + 1 empty '#'
+            # header
+            for i,(k,v) in zip(sidx, items):
+                out.write("#\t\t[{:d}]: {:s}\n".format(i, k))
+                for kv,vv in v.items():
+                    out.write("#\t\t{:<{width}s}: line {:d}\n".format(kv, line, width=args.item_width))
+                    line += 1
+            out.write("# Columns:\n")
+            out.write("#")
+            if args.numbers:
+                for r in ridx:
+                    out.write("\tRank{:d}".format(r))
+            elif args.rankstats:
+                out.write("\tRank-mean\tRank-sdev\tRank-min\tRank-min-val\tRank-max\tRank-max-val")
+            out.write("\n")
+            # data
+            for i,(k,v) in zip(sidx, items):
+                if args.numbers:
+                    for kv, vv in v.items():
+                        va = np.array(vv)
+                        out.write("".join(['{:.6e}\t'.format(x) for x in va[ridx]]).strip() + '\n')
+                if args.rankstats:
+                    for kv, vv in v.items():
+                        va = np.array(vv)
+                        mean = va.mean()
+                        sdev = va.std()
+                        vmin = va.min()
+                        rmin = np.argmin(va)
+                        vmax = va.max()
+                        rmax = np.argmax(va)
+                        out.write("{:.6e}\t{:.6e}\t{:d}\t{:.6e}\t{:d}\t{:.6e}\n".format(
+                                mean, sdev, rmin, vmin, rmax, vmax))
+
 def main():
     args, _ = parseArgs()
     if args.plot:
         plot(args)
+        return
+    if args.ascii:
+        ascii(args)
         return
     show(args)
 
