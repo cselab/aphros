@@ -216,7 +216,6 @@ transform_ini(double x, double y, double z, double xx, double xy,
   scale[X] = sqrt(fabs(5 * scale[X]));
   scale[Y] = sqrt(fabs(5 * scale[Y]));
   scale[Z] = sqrt(fabs(5 * scale[Z]));
-  fprintf(stderr, "%g %g %g\n", scale[X], scale[Y], scale[Z]);
   return 0;
 }
 
