@@ -28,6 +28,12 @@ class Sampler {
     }
   }
 
+  void PopLast(const std::string& name) {
+    if (active_ && !samples_[name].empty()) {
+      samples_[name].pop_back();
+    }
+  }
+
   const SampleMap& GetSamples() const {
     return samples_;
   }

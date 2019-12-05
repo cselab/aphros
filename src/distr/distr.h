@@ -382,6 +382,7 @@ void DistrMesh<KF>::Run() {
   mt_.Push();
   mtp_.Push();
   do {
+    hist_.SeedSample();
     std::vector<MIdx> bb;
     if (mk.begin()->second->GetMesh().GetDump().size() > 0) {
       hist_.SeedSample();
@@ -428,14 +429,16 @@ void DistrMesh<KF>::Run() {
     if (isroot_ && var.Int["verbose"]) {
       auto& m = mk.begin()->second->GetMesh();
       std::cerr << "*** STAGE"
-          << " #" << stage_ 
-          << " depth=" << m.GetDepth() 
-          << " " << m.GetCurName() 
+          << " #" << stage_
+          << " depth=" << m.GetDepth()
+          << " " << m.GetCurName()
           << " ***" << std::endl;
     }
 
     // Break if no pending stages
     if (!Pending(bb)) {
+      hist_.CollectSample("Run");
+      hist_.PopLast("Run"); // last sample is invalid
       break;
     }
 
@@ -452,6 +455,8 @@ void DistrMesh<KF>::Run() {
     hist_.CollectSample("Bcast");
 
     Solve(bb);
+
+    hist_.CollectSample("Run");
 
     mt_.Pop(mk.at(bb[0])->GetMesh().GetCurName());
     mt_.Push();
