@@ -199,6 +199,7 @@ main(int argc, char **argv)
     free(array);
     data_fin(&a);
 
+    /*
     util_name("connect.%.vtk", *argv, output);
     if ((file = fopen(output, "w")) == NULL) {
       fprintf(stderr, "%s: fail to write to '%s'\n", me, output);
@@ -206,6 +207,7 @@ main(int argc, char **argv)
     }
     //connect_write(file);
     fclose(file);
+    */
     connect_fin();
     a = b;
   }
