@@ -10,10 +10,16 @@ e () {
   eval "$@"
 }
 
-l="vofi overlap vof h5 march"
+l="h5 march overlap vof vofi"
 for d in $l ; do
   echo Entering $d
   e "(cd $d && ./conf && make install)"
 done
 
-(cd vtkcolor && make install PRE=$PRE)
+l="table vtkcolor"
+for d in $l
+do (
+    e cd $d
+    echo Entering `pwd`
+    e make install PRE=$PRE
+) done
