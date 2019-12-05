@@ -1,5 +1,6 @@
 .POSIX:
 .SUFFIXES: .o .c
+CC = cc
 CFLAGS = -g -Og
 PREFIX = $(CHPREFIX)
 
