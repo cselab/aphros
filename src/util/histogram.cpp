@@ -19,7 +19,7 @@ struct Stats {
 };
 
 static std::map<std::string, Stats> ComputeStats(
-    const std::map<std::string, std::vector<double>> &samples) {
+    const typename Sampler::SampleMap& samples) {
   std::map<std::string, Stats> stats;
   for (auto &key : samples) {
     Stats stat = {};
