@@ -162,6 +162,5 @@ main(int argc, char **argv)
     table_fin(table);
     vtk_fin(vtk);
     csv_fin(csv);
-    fprintf(stderr, "%s: %s\n", me, output);
   }
 }
