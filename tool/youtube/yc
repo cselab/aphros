@@ -1,0 +1,31 @@
+#!/bin/sh
+
+me=yc
+t=/tmp/yc.$$
+if ! wget --version 2>/dev/null 1>/dev/null
+then echo >&2 "$me: wget is not found"
+     exit 2
+fi
+
+trap 'rm $t; exit 2' 1 2 3 4 15
+if ! wget "$@" -qO "$t"
+then echo >&2 "$me: wget failed"
+     exit 2
+fi
+s='<div class="watch-view-count">'
+${AWK=awk} -v s="$s" '
+i = index($0, s) {
+    n = length($0)
+    i += length(s)
+    for (j = i; j <= n && ch(j) != " "; j++) ;
+    print substr($0, i, j - i)
+    exit
+}
+
+function ch(i)
+{
+    return substr($0, i, 1)
+}
+' $t
+
+rm -f $t
