@@ -1,7 +1,7 @@
 .POSIX:
 .SUFFIXES: .o .c
 CFLAGS = -g -Og
-M_CFLAGS = `gsl-config --cflags`
+GSL_CFLAGS = `gsl-config --cflags`
 PREFIX = $(CHPREFIX)
 
 O = main.o err.o
@@ -13,7 +13,7 @@ main.o: math.h
 main.o: err.h
 err.o: err.h
 
-.c.o:; $(CC) -c $(CFLAGS) $<
+.c.o:; $(CC) -c $(CFLAGS) $(GSL_CFLAGS) $<
 .c:
 %: %.c
 
