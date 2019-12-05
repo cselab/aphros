@@ -1,8 +1,9 @@
 .POSIX:
 LINK = $(CC)
 CFLAGS = -g -Og
-M_LDFLAGS = -L$(CHPREFIX)/lib -lcsv -ltable -lmath `gsl-config --libs` -lm
-M_CFLAGS = -I$(CHPREFIX)/include `gsl-config --cflags`
+GSL_LDFLAGS = `gsl-config --libs`
+M_LDFLAGS = -L$(CHPREFIX)/lib -lcsv -ltable -lmath  -lm
+M_CFLAGS = -I$(CHPREFIX)/include
 
 M = \
 add\
@@ -16,7 +17,7 @@ split\
 write\
 
 all: $M
-.o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@
+.o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) $(GSL_LDFLAGS) -o $@
 .c.o:; $(CC) $(CFLAGS) $(M_CFLAGS) $< -c
 
 .c:
