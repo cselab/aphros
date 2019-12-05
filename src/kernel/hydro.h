@@ -2094,9 +2094,7 @@ void Hydro<M>::Run() {
   }
   if (var.Int["enable_fluid"]) {
     if (sem.Nested("fs-iters")) {
-      m.SeedSample();
       StepFluid();
-      m.CollectSample("Hydro::StepFluid");
     }
   }
   if (sem.Nested("fs-finish")) {
@@ -2105,9 +2103,7 @@ void Hydro<M>::Run() {
 
   if (var.Int["enable_advection"]) {
     if (sem.Nested("as-steps")) {
-      m.SeedSample();
       StepAdvection();
-      m.CollectSample("Hydro::StepAdvection");
     }
     if (sem.Nested("as-post")) {
       as_->PostStep();
