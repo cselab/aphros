@@ -16,7 +16,7 @@ for d in $l ; do
   e "(cd $d && ./conf && make install)"
 done
 
-l="table vtkcolor"
+l="csv table vtkcolor"
 for d in $l
 do (
     e cd $d
