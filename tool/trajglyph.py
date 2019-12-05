@@ -1,6 +1,6 @@
 # trace generated using paraview version 5.7.0
 #
-# To ensure correct image size when batch processing, please search 
+# To ensure correct image size when batch processing, please search
 # for and uncomment the line `# renderView*.ViewSize = [*,*]`
 
 #### import the simple module from the paraview
@@ -21,6 +21,7 @@ tableToPoints1Display = Show(tableToPoints1, view)
 
 glyph1 = Glyph(Input=tableToPoints1, GlyphType='Sphere')
 glyph1.GlyphType = 'Sphere'
+glyph1.GlyphType.Radius = 1.0
 glyph1.ScaleArray = ['POINTS', 'r']
 glyph1.ScaleFactor = 1.0
 glyph1.GlyphMode = 'All Points'
