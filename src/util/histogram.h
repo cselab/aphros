@@ -8,19 +8,12 @@
 
 #include "metrics.h"
 
-class Histogram {
+class Sampler {
  public:
-  Histogram(
-      const MPI_Comm comm, const std::string &name, const bool active = true)
-      : comm_(comm), name_(name), active_(active) {}
-  ~Histogram() {
-    if (active_) {
-      Consolidate();
-    }
-  }
+  Sampler(const bool active = true) : active_(active) {}
+  virtual ~Sampler() {}
 
-  Histogram(const Histogram &c) = delete;
-  Histogram &operator=(const Histogram &c) = delete;
+  using SampleMap = std::map<std::string, std::vector<double>>;
 
   void SeedSample() {
     if (active_) {
@@ -35,12 +28,43 @@ class Histogram {
     }
   }
 
+  const SampleMap& GetSamples() const {
+    return samples_;
+  }
+
+ protected:
+  const bool active_;
+  SampleMap samples_;
+  std::stack<SingleTimer> timers_;
+};
+
+class Histogram : public Sampler {
+ public:
+  Histogram(
+      const MPI_Comm comm, const std::string& name, const bool active = true)
+      : Sampler(active), comm_(comm), name_(name) {}
+  ~Histogram() {
+    if (active_) {
+      Consolidate();
+    }
+  }
+
+  Histogram(const Histogram& c) = delete;
+  Histogram& operator=(const Histogram& c) = delete;
+
+  void Append(const Sampler& s) {
+    if (active_) {
+      for (const auto& x : s.GetSamples()) {
+        auto& my_s = samples_[x.first];
+        const auto& their_s = x.second;
+        my_s.insert(my_s.end(), their_s.begin(), their_s.end());
+      }
+    }
+  }
+
  private:
   const MPI_Comm comm_;
   const std::string name_;
-  const bool active_;
-  std::map<std::string, std::vector<double>> samples_;
-  std::stack<SingleTimer> timers_;
 
   void Consolidate();
 };

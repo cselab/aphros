@@ -463,6 +463,12 @@ void DistrMesh<KF>::Run() {
   mt_.Pop("last");
   mtp_.Pop("last");
 
+  std::vector<MIdx> bb = GetBlocks();
+  for (const auto& b : bb) {
+    const auto& samp = mk.at(b)->GetMesh().GetSampler();
+    hist_.Append(samp);
+  }
+
   if (var.Int["verbose_time"]) {
     Report();
   }

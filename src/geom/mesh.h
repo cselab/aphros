@@ -9,15 +9,16 @@
 #include <memory>
 #include <stdexcept>
 
-#include "util/suspender.h"
-#include "idx.h"
-#include "vect.h"
-#include "range.h"
-#include "field.h"
-#include "map.h"
 #include "blockface.h"
-#include "rangein.h"
 #include "distr/reduce.h"
+#include "field.h"
+#include "idx.h"
+#include "map.h"
+#include "range.h"
+#include "rangein.h"
+#include "util/histogram.h"
+#include "util/suspender.h"
+#include "vect.h"
 
 // Returns column of cells cmm,cm,cp,cpp.
 // nci: 0 or 1 such that m.GetCell(f, nci) == cp
@@ -387,6 +388,19 @@ class MeshStructured {
   void SetMaxComm(size_t maxcomm) {
     maxcomm_ = maxcomm;
   }
+  // time sampler
+  Sampler& GetSampler() {
+    return samp_;
+  }
+  const Sampler& GetSampler() const {
+    return samp_;
+  }
+  void SeedSample() {
+    samp_.SeedSample();
+  }
+  void CollectSample(const std::string& name) {
+    samp_.CollectSample(name);
+  }
   // Fills halo cell with garbage.
   // Using actual NaNs not allowed since some code relies on u*0 == 0
   template <class T>
@@ -676,6 +690,8 @@ class MeshStructured {
   std::vector<Scal> lsx_; // solution and initial guess of size n
   Scal lin_res_;
   int lin_iter_;
+
+  Sampler samp_; // sample collector for histogram usage, always active
 };
 
 
