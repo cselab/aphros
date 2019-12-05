@@ -6,14 +6,14 @@ BEGIN {
     if (ARGC < 2)
         err("not enough arguments")
 
-    print "t x y z v v0 v1 f"
+    print "t x y z v v0 v1 f r0 r1"
     for (i = 1; i in ARGV; i++) {
         f = ARGV[i]
         one(f)
     }
 }
 
-function one(f,   r, i, cl, vf, cnt, V, t, sx, sy, sz, v0, v1)
+function one(f,   r, i, cl, vf, cnt, V, t, sx, sy, sz, v0, v1, sr, r0, r1)
 {
     t = f2time(f)
     if (empty(t))
@@ -34,9 +34,11 @@ function one(f,   r, i, cl, vf, cnt, V, t, sx, sy, sz, v0, v1)
         cl = get("cl")
         sp = get("split")
         prev = get("prev")
+        r = get("r")
         if (cl != 0 && vf < 0.1 && (sp == 2 || sp == 1)) {
             i = cnt[prev]++
             V[i, prev] = vf
+            sr[i, prev] = r
             sx[prev] = x
             sy[prev] = y
             sz[prev] = z
@@ -44,11 +46,19 @@ function one(f,   r, i, cl, vf, cnt, V, t, sx, sy, sz, v0, v1)
     }
     for (cl in cnt)
         if (cnt[cl] == 2) {
-            if (v0 = V[0, cl] > v1 = V[1, cl]) {
-                v0 = V[1, cl]
-                v1 = V[0, cl]
+            v0 = V[0, cl]
+            v1 = V[1, cl]
+            r0 = sr[0, cl]
+            r1 = sr[1, cl]
+            if (v0 > v1) {
+                tmp = v0 ; v0 = v1 ; v1 = tmp
+                tmp = r0 ; r0 = r1 ; r1 = tmp
             }
-            print t, sx[cl], sy[cl], sz[cl], v0 + v1, v0, v1, v0/v1
+            h = 1. / 96
+            vh = h * h * h
+            if (v0 > vh) {
+              print t, sx[cl], sy[cl], sz[cl], v0 + v1, v0, v1, v0/v1, r0, r1
+            }
         }
     close(f)
 }
