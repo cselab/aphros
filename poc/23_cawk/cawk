@@ -19,8 +19,8 @@ BEGIN {
       prog = "FNR == 1 { next }\n" prog
       print prog > tmp
       cmd = sprintf("%s -F %s -f %s %s", quote(awk), quote(sep), tmp, quote(file))
-      msg(cmd)
-      system(cmd)
+      rc = system(cmd)
+      exit(rc)
 }
 
 function msg(a, b, c, d, e)
