@@ -57,7 +57,7 @@ function one(f,   r, i, cl, vf, cnt, V, t, sx, sy, sz, v0, v1, sr, r0, r1)
             h = 1. / 96
             vh = h * h * h
             if (v0 > vh) {
-              print t, sx[cl], sy[cl], sz[cl], v0 + v1, v0, v1, v0/v1, r0, r1
+                print t, sx[cl], sy[cl], sz[cl], v0 + v1, v0, v1, v0/v1, r0, r1
             }
         }
     close(f)
