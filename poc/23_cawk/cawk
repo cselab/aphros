@@ -1,8 +1,15 @@
 #!/bin/sh
 
 : ${AWK=awk}
-me=$0
+me=cawk
 sep=,
+
+usg () {
+cat <<!
+cawk [-v var=value] 'prog' file
+!
+exit 1
+}
 
 err () {
     echo >&2 "$me: $@"
@@ -22,6 +29,8 @@ isclvar () {
 arg=
 while :
 do case "$1" in
+       -h) usg
+           ;;
        -v) shift
            if test $# -eq 0; then err 'no variable name'; fi
            a=$1
@@ -117,5 +126,5 @@ function quote(s)
 ' "$@"
 
 status=$?
-#rm -f $tmp
+rm -f $tmp
 exit $status
