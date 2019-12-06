@@ -5,36 +5,36 @@ set -eu
 . ch.prefix
 . ../util
 
-instfnd getcol
-instfnd gettraj
-instfnd gettrajcol
-instfnd hist
-instfnd histbin
-instfnd gettrajsh
-instfnd gettrajm
+instfnd argmax
+instfnd argmaxall
+instfnd cawk
 instfnd deriv
-instfnd scale
-instfnd kedr
-instfnd statcopy
-instfnd part0
-instfnd part
 instfnd diff
 instfnd diffnum
-instfnd makearg
-instfnd spawn
-instfnd task
-instfnd intcol
-instfnd getval
 instfnd downsample
 instfnd downsampleall
 instfnd genxmf
 instfnd genxmfall
-instfnd trajaxes
+instfnd getcol
+instfnd gettraj
+instfnd gettrajcol
+instfnd gettrajm
+instfnd gettrajsh
+instfnd getval
+instfnd hist
+instfnd histbin
+instfnd intcol
+instfnd kedr
+instfnd makearg
+instfnd part
+instfnd part0
 instfnd plain2vtk
-instfnd argmax
-instfnd argmaxall
+instfnd scale
+instfnd spawn
+instfnd statcopy
+instfnd task
+instfnd trajaxes
 instfnd vtkcolorall
-instfnd cawk
 
 cp -rvf ch "$BB/" || true
 
