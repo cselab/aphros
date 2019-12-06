@@ -4,11 +4,20 @@ set macro
 
 set terminal pdf noenhanced
 
-ll="\
+ll1="\
 pasc_nn096 \
 pasc_nn192 \
 pasc_nn384 \
+pasc_nn096_vof \
+pasc_nn192_vof \
 "
+
+ll2="\
+pasc_nn096_vof \
+pasc_nn192_vof \
+"
+
+ll=ll1
 
 nn="160 160 160 200"
 
@@ -30,12 +39,12 @@ set arrow from hx0,graph 0 to hx0,graph 1 nohead
 set arrow from hx1,graph 0 to hx1,graph 1 nohead
 set arrow from hx2,graph 0 to hx2,graph 1 nohead
 
-hist=sprintf("ch.hist --range %g %g --bins 100", hx2*0.25, hx2*32)
+hist=sprintf("ch.hist --range %g %g --bins 50", hx2*0.25, hx2*32)
 p for [i=1:words(ll)] \
-  "<o=hist_".word(ll,i)." ; ( test -f $o && cat $o ) || (cd ".d." && ch.gettrajcol r ".word(ll,i)."/traj_0".word(nn,i).".csv | ".hist." ) | tee $o"  \
-  u ($1/hx2):2 \
+  "<o=hist_".word(ll,i)." ; ( test -f $o && cat $o ) || (./trajcol ".d.word(ll,i)."/traj_01{4,5,6}?.csv | ".hist." ) | tee $o"  \
+  u ($1/hx2):($2/30) \
   w l lw 2 t word(ll,i) ,\
-  (x/30)**(-10/3) lc "black"
+  (x/32)**(-10/3) lc "black"
 
 
 exit
