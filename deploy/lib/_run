@@ -10,7 +10,9 @@ e () {
   eval "$@"
 }
 
-l="h5 march overlap vof vofi"
+# XXX order 'l' to satisfy dependencies
+
+l="h5 march overlap vofi vof"
 for d in $l ; do
   echo Entering $d
   e "(cd $d && ./conf && make install)"
