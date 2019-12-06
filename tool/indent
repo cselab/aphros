@@ -4,13 +4,13 @@ VERSION_CONTROL=none
 export VERSION_CONTROL
 me=tool/indent
 
-if ! echo | indent --pointer-align-right 2>/dev/null
+if ! </dev/null indent 2>/dev/null
 then
    echo >&2 "$me: indent command is not available"
    exit 2
 fi
 
-if ! echo | indent --pointer-align-right 2>/dev/null
+if ! </dev/null indent --pointer-align-right 2>/dev/null
 then
    echo >&2 "$me: no --pointer-align-right option"
    exit 2
