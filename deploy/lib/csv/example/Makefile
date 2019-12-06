@@ -29,4 +29,4 @@ csv2sph.o: util.h
 
 lint:; make CFLAGS='-Wall -Wextra -g -O2'
 .PHONY: clean lint
-clean:; rm -f -- $M $O
+clean:; rm -f -- $M $(M:=.o)
