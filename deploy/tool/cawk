@@ -64,7 +64,7 @@ BEGIN {
       file = ARGV[1]
       rc = getline < file
       if (rc != 1)
-          err("fail to read %s", quote(f))
+          err("fail to read %s", quote(file))
       close(file)
       rsplit($0, key, sep)
       s = prog
@@ -78,7 +78,7 @@ BEGIN {
                   msg("unknown field: %s", quote(t))
                   t = "$" t
               }
-          } else if (match(s, /^[^$]+/))
+          } else if (match(s, /^\$/) || match(s, /^[^$]+/))
               t = substr(s, RSTART, RLENGTH)
           else
               break
@@ -87,9 +87,8 @@ BEGIN {
       }
       for (i = 1; i in key; i++)
           gsub("\\$" key[i], "$" i, prog)
-      prog = "FNR == 1 { next }\n" prog
+      prog = "FNR == 1 { HEADER = $0; next }\n" prog
       print prog > tmp
-
       cmd = sprintf("%s %s -F %s -f %s %s", quote(awk), arg, quote(sep), tmp, Quote(ARGV))
       rc = system(cmd)
       exit(rc)
