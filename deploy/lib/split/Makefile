@@ -7,6 +7,7 @@ M_CFLAGS = -I$(CHPREFIX)/include
 
 M = \
 color\
+column\
 split\
 
 all: $M
