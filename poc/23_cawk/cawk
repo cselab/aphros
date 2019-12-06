@@ -48,12 +48,7 @@ done
 if test $# -eq 0; then err 'needs prog'; fi
 prog=$1
 shift
-
 if test $# -eq 0; then err 'needs file'; fi
-file=$1
-shift
-
-if test $# -ne 0; then err 'extra arguments "$@"'; fi
 
 tmp=/tmp/cawk.$$.awk
 trap 'rm $tmp; exit 2' 1 2 3 4 15
@@ -64,9 +59,9 @@ trap 'rm $tmp; exit 2' 1 2 3 4 15
 -v awk="$AWK" \
 -v arg="$arg" \
 -v prog="$prog" \
--v file="$file" \
 -v Q=\' '
 BEGIN {
+      file = ARGV[1]
       rc = getline < file
       if (rc != 1)
           err("fail to read %s", quote(f))
@@ -94,7 +89,8 @@ BEGIN {
           gsub("\\$" key[i], "$" i, prog)
       prog = "FNR == 1 { next }\n" prog
       print prog > tmp
-      cmd = sprintf("%s %s -F %s -f %s %s", quote(awk), arg, quote(sep), tmp, quote(file))
+
+      cmd = sprintf("%s %s -F %s -f %s %s", quote(awk), arg, quote(sep), tmp, Quote(ARGV))
       rc = system(cmd)
       exit(rc)
 }
@@ -121,6 +117,16 @@ function err(a, b, c, d, e)
 function quote(s)
 {
     return Q s Q
+}
+
+function Quote(a,   i, ans)
+{
+    for (i = 1; i in a; i++) {
+        if (i > 1)
+            ans = ans " "
+        ans = ans quote(a[i])
+    }
+    return ans
 }
 
 ' "$@"
