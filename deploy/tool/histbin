@@ -11,7 +11,8 @@ def parseArgs():
     parser = argparse.ArgumentParser(description='Convert Histogram.h binary output to histogram plot')
     parser.add_argument('-f', '--files', nargs='+', type=str, help='Histogram data file', required=True)
     parser.add_argument('-r', '--ranks', nargs='+', type=int, help='Include only specified ranks')
-    parser.add_argument('-s', '--stats', nargs='+', type=int, help='Include only specified stats (see --avail for IDs)')
+    parser.add_argument('-s', '--stats', nargs='+', type=int, help='Include only specified stats IDs')
+    parser.add_argument('-sn', '--stats_name', nargs='+', type=str, help='Same as -s but use stats name instead')
     parser.add_argument('-n', '--numbers', action='store_true', help='Print all data for available statistics')
     parser.add_argument('-rs', '--rankstats', action='store_true', help='Compute the statistics over ranks for the data collected on each rank')
     parser.add_argument('-a', '--ascii', action='store_true', help='Dump data to ASCII and exit')
@@ -57,7 +58,14 @@ def getSubspace(data, nranks, args):
         ridx = np.array(args.ranks, dtype=np.int)
     else:
         ridx = np.arange(nranks, dtype=np.int)
-    if args.stats:
+    if args.stats_name and not args.stats:
+        keys = list(data.keys())
+        sidx = []
+        for key in args.stats_name:
+            if key in keys:
+                sidx.append(keys.index(key))
+        sidx = np.array(sidx, dtype=np.int)
+    elif args.stats:
         sidx = np.array(args.stats, dtype=np.int)
     else:
         sidx = np.arange(ndata, dtype=np.int)
