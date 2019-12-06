@@ -574,6 +574,8 @@ void Hydro<M>::InitAdvection() {
   } else {
     throw std::runtime_error("Unknown advection_solver=" + as);
   }
+
+  st_.vofm.resize(layers.size());
 }
 
 template <class M>
@@ -658,7 +660,7 @@ void Hydro<M>::InitStat() {
         con.push_back(op("vofm_cells_vf" + sl, &s.vofm[l].cells_vf));
         con.push_back(op("vofm_cells_cl" + sl, &s.vofm[l].cells_cl));
         con.push_back(op("vofm_sum_vf" + sl, &s.vofm[l].sum_vf));
-        con.push_back(op("vofm_count" + std::to_string(l + 1), &s.vofm[l].hist));
+        con.push_back(op("vofm_hist" + std::to_string(l + 1), &s.vofm[l].hist));
       }
     }
     ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
