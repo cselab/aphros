@@ -62,7 +62,25 @@ BEGIN {
       if (rc != 1)
           err("fail to read %s", quote(f))
       close(file)
-      split($0, key, sep)
+      rsplit($0, key, sep)
+      s = prog
+      prog = ""
+      for (;;) {
+          if (match(s, /^\$[a-zA-Z_][0-9a-zA-Z_]*/)) {
+              t = substr(s, RSTART + 1, RLENGTH - 1)
+              if (t in key)
+                  t = "$" key[t]
+              else {
+                  msg("unknown field: %s", quote(t))
+                  t = "$" t
+              }
+          } else if (match(s, /^[^$]+/))
+              t = substr(s, RSTART, RLENGTH)
+          else
+              break
+          s = substr(s, RSTART + RLENGTH)
+          prog = prog t
+      }
       for (i = 1; i in key; i++)
           gsub("\\$" key[i], "$" i, prog)
       prog = "FNR == 1 { next }\n" prog
@@ -70,6 +88,14 @@ BEGIN {
       cmd = sprintf("%s %s -F %s -f %s %s", quote(awk), arg, quote(sep), tmp, quote(file))
       rc = system(cmd)
       exit(rc)
+}
+
+function rsplit(s, b, sep,   a, i)
+{
+    delete b
+    split(s, a, sep)
+    for (i in a)
+        b[a[i]] = i
 }
 
 function msg(a, b, c, d, e)
