@@ -65,7 +65,7 @@ static int remove0(int n, int size, void *, const int *a, int *new_size);
 
 struct VTK *
 vtk_ini(int nv, const double *x, const double *y, const double *z, int nt,
-        const int *t0, const int *t1, const int *t2)
+	const int *t0, const int *t1, const int *t2)
 {
   int i;
   struct VTK *q;
@@ -171,26 +171,26 @@ end_polygons:
       goto end_data;
     do {
       if (location2num(location, &q->location[nf]) != 0) {
-        MSG(("unknown location '%s'", location));
-        goto fail;
+	MSG(("unknown location '%s'", location));
+	goto fail;
       }
       if (sscanf(s, "%s %s %s", rank, name, type) != 3)
-        break;
+	break;
       q->name[nf] = memory_strndup(name, N);
       if (eq(rank, "SCALARS")) {
-        LINE(s, f);
-        if (!eq(s, "LOOKUP_TABLE default")) {
-          MSG(("expect 'LOOKUP_TABLE default', get '%s'", s));
-          goto fail;
-        }
+	LINE(s, f);
+	if (!eq(s, "LOOKUP_TABLE default")) {
+	  MSG(("expect 'LOOKUP_TABLE default', get '%s'", s));
+	  goto fail;
+	}
       }
       if (rank2num(rank, &q->rank[nf]) != 0) {
-        MSG(("unknown rank: '%s' for '%s'", rank, name));
-        goto fail;
+	MSG(("unknown rank: '%s' for '%s'", rank, name));
+	goto fail;
       }
       if (type2size(type, &q->type[nf], &size) != 0) {
-        MSG(("unknown type: '%s' for '%s'", type, name));
-        goto fail;
+	MSG(("unknown type: '%s' for '%s'", type, name));
+	goto fail;
       }
       n = q->location[nf] == VTK_CELL ? nt : nv;
       m = n * q->rank[nf];
@@ -296,12 +296,12 @@ vtk_write(struct VTK *q, FILE * f)
     if (q->location[i] != current) {
       current = q->location[i];
       if (current == VTK_CELL)
-        n = nt;
+	n = nt;
       else if (current == VTK_POINT)
-        n = nv;
+	n = nv;
       else {
-        MSG(("unknown location: %d", current));
-        goto end;
+	MSG(("unknown location: %d", current));
+	goto end;
       }
       num2location(q->location[i], &location);
       fprintf(f, "%s %d\n", location, n);
@@ -486,6 +486,62 @@ vtk_remove_tri(struct VTK *q, const int *a)
       remove0(nt, size * rank, data, a, &m);
     }
   q->nt = m;
+  return 0;
+}
+
+int
+vtk_remove_orphan(struct VTK *q)
+{
+  int *a;
+  int *b;
+  int i;
+  int m;
+  int nf;
+  int nt;
+  int nv;
+  int rank;
+  int size;
+  int *t0;
+  int *t1;
+  int *t2;
+  void *data;
+
+  nv = vtk_nv(q);
+  nt = vtk_nt(q);
+  nf = vtk_nf(q);
+  t0 = q->t0;
+  t1 = q->t1;
+  t2 = q->t2;
+  MALLOC(nv, &a);
+  MALLOC(nv, &b);
+  for (i = 0; i < nv; i++)
+    a[i] = 1;
+  for (i = 0; i < nt; i++) {
+    a[t0[i]] = 0;
+    a[t1[i]] = 0;
+    a[t2[i]] = 0;
+  }
+  for (m = i = 0; i < nv; i++)
+    if (a[i] == 0)
+      b[i] = m++;
+  for (i = 0; i < nt; i++) {
+    t0[i] = b[t0[i]];
+    t1[i] = b[t1[i]];
+    t2[i] = b[t2[i]];
+  }
+  remove0(nv, sizeof(*q->x), q->x, a, &m);
+  remove0(nv, sizeof(*q->y), q->y, a, &m);
+  remove0(nv, sizeof(*q->z), q->z, a, &m);
+  for (i = 0; i < nf; i++)
+    if (q->location[i] == VTK_POINT) {
+      rank = q->rank[i];
+      num2size(q->type[i], &size);
+      data = q->data[i];
+      remove0(nv, size * rank, data, a, &m);
+    }
+  q->nv = m;
+  FREE(a);
+  FREE(b);
   return 0;
 }
 
@@ -721,7 +777,7 @@ remove0(int n, int size, void *pv, const int *a, int *pM)
   for (i = k = l = 0; i < n; i++)
     if (a[i] == 0) {
       for (j = 0; j < size; j++)
-        p[k++] = p[size * i + j];
+	p[k++] = p[size * i + j];
       M++;
     }
   *pM = M;

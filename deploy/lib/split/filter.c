@@ -50,15 +50,15 @@ main(int argc, char **argv)
     case 'f':
       argv++;
       if ((Field = *argv) == NULL) {
-        fprintf(stderr, "%s: -f needs an argument\n", me);
-        exit(2);
+	fprintf(stderr, "%s: -f needs an argument\n", me);
+	exit(2);
       }
       break;
     case 'p':
       argv++;
       if ((Prefix = *argv) == NULL) {
-        fprintf(stderr, "%s: -p needs an argument\n", me);
-        exit(2);
+	fprintf(stderr, "%s: -p needs an argument\n", me);
+	exit(2);
       }
       break;
     case '-':
@@ -111,6 +111,12 @@ end:
       fprintf(stderr, "%s: no field '%s' in vtk file\n", me, Field);
       exit(2);
     }
+    i = vtk_index(vtk, Field);
+    if (vtk->type[i] != VTK_FLOAT) {
+      fprintf(stderr, "%s: field '%s' is not float\n", me, Field);
+      exit(2);
+    }
+
     flag = malloc(nt * sizeof(*flag));
     if (flag == NULL) {
       fprintf(stderr, "%s: malloc failed (nt = %d)\n", me, nt);
@@ -120,6 +126,7 @@ end:
       flag[i] = (table_get(table, (int) field[i], &tmp) == TABLE_EMPY);
     }
     vtk_remove_tri(vtk, flag);
+    vtk_remove_orphan(vtk);
 
     util_name(Prefix, path, output);
     if ((file = fopen(output, "w")) == NULL) {
