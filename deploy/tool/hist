@@ -5,18 +5,19 @@ import sys
 import os
 
 
-v = sys.argv
+av = sys.argv
 
-if len(v) > 1 and v[1] == '-h':
-  print("usage: {:}".format(os.path.basename(v[0])))
+if len(av) > 1 and av[1] == '-h':
+  print("usage: {:} [--density]".format(os.path.basename(av[0])))
   print('''
 print histogram of STDIN as columns [center,density,left,right]
 ''')
   exit(1)
 
 d = np.loadtxt(sys.stdin)
-density,edge = np.histogram(d, bins='auto', density=True)
+density = "--density" in av
+val,edge = np.histogram(d, bins='auto', density=density)
 left = edge[:-1]
 right = edge[1:]
 center = (left + right) * 0.5
-np.savetxt(sys.stdout, np.transpose([center, density, left, right]))
+np.savetxt(sys.stdout, np.transpose([center, val, left, right]))
