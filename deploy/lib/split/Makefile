@@ -30,4 +30,4 @@ install: all
 
 lint:; make CFLAGS='-Wall -Wextra -g -O2'
 .PHONY: clean lint install
-clean:; rm -f -- $M $O
+clean:; rm -f -- $M $(M:=.o)
