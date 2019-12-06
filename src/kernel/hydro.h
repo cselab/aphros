@@ -335,6 +335,14 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Scal bgt_ = -1.; // bubgen last time
 
   struct Stat {
+    struct Vofm {
+      Scal cells_vf = 0;  // number of cells with vf>0
+      Scal cells_cl = 0;  // number of cells wih cl != kClNone
+      Scal sum_vf = 0;    // sum of vf
+      Scal hist = 0;      // vofm[l].hist is number of cells containing l+1
+                          // cells with vf>0
+    };
+
     Scal m1, m2;            // volume
     Scal m20;               // initial volume
     Scal m2d;               // relative volume difference
@@ -364,6 +372,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     Scal area;              // interface area
     Scal dissip, dissip1, dissip2;   // energy dissipation rate
     Scal edis, edis1, edis2;   // dissipated energy
+    std::vector<Vofm> vofm;
+
     std::map<std::string, Scal> mst; // map stat
     // Add scalar field for stat.
     void Add(const FieldCell<Scal>& fc, std::string name, M& m) {
@@ -640,6 +650,16 @@ void Hydro<M>::InitStat() {
       con.push_back(op("edis", &s.edis));
       con.push_back(op("edis1", &s.edis1));
       con.push_back(op("edis2", &s.edis2));
+    }
+    if (var.Int["stat_vofm"]) {
+      s.vofm.resize(layers.size());
+      for (auto l : layers) {
+        auto sl = std::to_string(l);
+        con.push_back(op("vofm_cells_vf" + sl, &s.vofm[l].cells_vf));
+        con.push_back(op("vofm_cells_cl" + sl, &s.vofm[l].cells_cl));
+        con.push_back(op("vofm_sum_vf" + sl, &s.vofm[l].sum_vf));
+        con.push_back(op("vofm_count" + std::to_string(l + 1), &s.vofm[l].hist));
+      }
     }
     ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
   }
@@ -1059,6 +1079,41 @@ void Hydro<M>::CalcStat() {
       m.Reduce(&s.dissip, "sum");
       m.Reduce(&s.dissip1, "sum");
       m.Reduce(&s.dissip2, "sum");
+    }
+    if (var.Int["stat_vofm"]) {
+      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+        for (auto l : layers) {
+          auto v = s.vofm[l];
+          v.cells_vf = 0;
+          v.cells_cl = 0;
+          v.sum_vf = 0;
+          auto& vf = as->GetField(l);
+          auto& cl = as->GetColor(l);
+          for (auto c : m.Cells()) {
+            v.cells_vf += (vf[c] > 0 ? 1 : 0);
+            v.cells_cl += (cl[c] != kClNone ? 1 : 0);
+            v.sum_vf += vf[c];
+          }
+          m.Reduce(&v.cells_vf, "sum");
+          m.Reduce(&v.cells_cl, "sum");
+          m.Reduce(&v.sum_vf, "sum");
+        }
+        for (auto c : m.Cells()) {
+          size_t cnt = 0;
+          for (auto l : layers) {
+            if (as->GetField(l)[c] > 0) {
+              ++cnt;
+            }
+          }
+          if (cnt > 0) {
+            assert(cnt - 1 >= 0 && cnt - 1 < layers.size());
+            s.vofm[cnt - 1].hist += 1;
+          }
+        }
+        for (auto l : layers) {
+          m.Reduce(&s.vofm[l].hist, "sum");
+        }
+      }
     }
   }
 
