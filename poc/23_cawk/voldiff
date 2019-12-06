@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -eu
+
+echo "t,"`head -n 1 $1`
+
+ch.cawk '
+  $cl in rm {
+    r0 = rm[$cl]
+    r = $r
+    eps = 1/192
+    if (r > eps && (r0 - r) > r0 * 0.1) {
+      t = FILENAME
+      sub(/.*_/, "", t)
+      sub(/\.csv/, "", t)
+      print t+0 "," $none
+    }
+  }
+  {
+    rm[$cl] = $r
+  }
+  ' "$@"
