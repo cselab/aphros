@@ -8,15 +8,22 @@ import os
 av = sys.argv
 
 if len(av) > 1 and av[1] == '-h':
-  print("usage: {:} [--density]".format(os.path.basename(av[0])))
+  print("usage: {:} [--density] [--bins BINS] [--range L R]".format(os.path.basename(av[0])))
   print('''
 print histogram of STDIN as columns [center,density,left,right]
 ''')
   exit(1)
 
+bins = int(av[av.index("--bins") + 1]) if "--bins" in av else "auto"
+if "--range" in av:
+    i = av.index("--range")
+    rng = (float(av[i + 1]), float(av[i + 2]))
+else:
+    rng = None
+
 d = np.loadtxt(sys.stdin)
 density = "--density" in av
-val,edge = np.histogram(d, bins='auto', density=density)
+val,edge = np.histogram(d, bins=bins, density=density, range=rng)
 left = edge[:-1]
 right = edge[1:]
 center = (left + right) * 0.5
