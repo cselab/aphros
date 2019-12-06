@@ -6,7 +6,7 @@ BEGIN {
     if (ARGC < 2)
         err("not enough arguments")
 
-    print "t x y z v v0 v1 f r0 r1"
+    print "t cl x y z v v0 v1 f r0 r1"
     for (i = 1; i in ARGV; i++) {
         f = ARGV[i]
         one(f)
@@ -57,7 +57,7 @@ function one(f,   r, i, cl, vf, cnt, V, t, sx, sy, sz, v0, v1, sr, r0, r1)
             h = 1. / 96
             vh = h * h * h
             if (v0 > vh) {
-                print t, sx[cl], sy[cl], sz[cl], v0 + v1, v0, v1, v0/v1, r0, r1
+                print t, cl, sx[cl], sy[cl], sz[cl], v0 + v1, v0, v1, v0/v1, r0, r1
             }
         }
     close(f)
