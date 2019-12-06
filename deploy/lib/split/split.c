@@ -54,18 +54,6 @@ struct Data {
   double *r;
   double *field;
 };
-struct {
-  int n;
-  int nmax;
-  double *x;
-  double *y;
-  double *z;
-} Connect;
-static int connect_ini(void);
-static int connect_write(FILE *);
-static int connect_add(int, struct Data *);
-static int connect_fin(void);
-
 static struct Data data_ini(const char *);
 static int data_fin(struct Data *);
 static int data_add(struct Data *, const char *, const int *);
@@ -131,7 +119,6 @@ main(int argc, char **argv)
 
   a = data_ini(*argv);
   while (*++argv != NULL) {
-    connect_ini();
     b = data_ini(*argv);
     array = table_array(b.table);
     if (array == NULL) {
@@ -169,8 +156,8 @@ main(int argc, char **argv)
         split[m] = 1;
         split[j] = 2;
         prev[j] = prev[m] = (int) a.field[lmin];
-        connect_add(j, &b);
-        connect_add(m, &b);
+        /*connect_add(j, &b);
+	  connect_add(m, &b); */
       } else {
 	  /*
         fprintf(stderr, "%s: prev disapeared: %s\n", me, *argv);
@@ -198,17 +185,6 @@ main(int argc, char **argv)
     free(split);
     free(array);
     data_fin(&a);
-
-    /*
-    util_name("connect.%.vtk", *argv, output);
-    if ((file = fopen(output, "w")) == NULL) {
-      fprintf(stderr, "%s: fail to write to '%s'\n", me, output);
-      exit(2);
-    }
-    //connect_write(file);
-    fclose(file);
-    */
-    connect_fin();
     a = b;
   }
   data_fin(&a);
@@ -312,71 +288,3 @@ dist(int i, struct Data *a, int j, struct Data *b, /**/ double *p)
   *p = d;
   return 0;
 }
-
-static int
-connect_ini(void)
-{
-  Connect.nmax = 10000;
-  Connect.n = 0;
-  MALLOC(Connect.nmax, &Connect.x);
-  MALLOC(Connect.nmax, &Connect.y);
-  MALLOC(Connect.nmax, &Connect.z);
-  return 0;
-}
-
-static int
-connect_write(FILE * f)
-{
-  int i, j;
-  int ne;
-
-  if (Connect.n % 2 == 1) {
-    fprintf(stderr, "%s: Connect.n %% 2 = %d == 1\n", me, Connect.n);
-    return 1;
-  }
-
-  if (fputs("# vtk DataFile Version 2.0\n", f) == EOF) {
-    fprintf(stderr, "%s: fail to write\n", me);
-    return 1;
-  }
-  fprintf(f, "%s\n", me);
-  fputs("ASCII\n", f);
-  fputs("DATASET POLYDATA\n", f);
-  fprintf(f, "POINTS %d float\n", Connect.n);
-  for (i = 0; i < Connect.n; i++) {
-    fprintf(f, "%.16g %.16g %.16g\n",
-            Connect.x[i], Connect.y[i], Connect.z[i]);
-  }
-  ne = Connect.n / 2;
-  fprintf(f, "POLYGONS %d %d\n", ne, 3 * ne);
-  for (i = j = 0; i < ne; i++) {
-    fprintf(f, "2 %d %d\n", j, j + 1);
-    j += 2;
-  }
-  return 0;
-}
-
-static int
-connect_add(int i, struct Data *a)
-{
-  if (Connect.n >= Connect.nmax) {
-    Connect.nmax *= 2;
-    REALLOC(Connect.nmax, &Connect.x);
-    REALLOC(Connect.nmax, &Connect.y);
-    REALLOC(Connect.nmax, &Connect.z);
-  }
-  Connect.x[Connect.n] = a->x[i];
-  Connect.y[Connect.n] = a->y[i];
-  Connect.z[Connect.n] = a->z[i];
-  Connect.n++;
-  return 0;
-}
-
-static int
-connect_fin(void)
-{
-  free(Connect.x);
-  free(Connect.y);
-  free(Connect.z);
-  return 0;
-};
