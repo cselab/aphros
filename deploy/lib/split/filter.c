@@ -111,8 +111,6 @@ end:
       fprintf(stderr, "%s: no field '%s' in vtk file\n", me, Field);
       exit(2);
     }
-    fprintf(stderr, "nt = %d\n", nt);
-
     flag = malloc(nt * sizeof(*flag));
     if (flag == NULL) {
       fprintf(stderr, "%s: malloc failed (nt = %d)\n", me, nt);
