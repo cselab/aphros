@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <csv.h>
 
-static const char me[] = "column";
+static const char me[] = "columns";
 
 #define FMT "%.20g"
 #define	USED(x)		if(x);else{}

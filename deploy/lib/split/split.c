@@ -157,12 +157,12 @@ main(int argc, char **argv)
         split[j] = 2;
         prev[j] = prev[m] = (int) a.field[lmin];
         /*connect_add(j, &b);
-	  connect_add(m, &b); */
+           connect_add(m, &b); */
       } else {
-	  /*
-        fprintf(stderr, "%s: prev disapeared: %s\n", me, *argv);
-        fprintf(stderr, "%s: prev disapeared: lmin = %d, j = %d\n", me,
-	lmin, j); */
+        /*
+           fprintf(stderr, "%s: prev disapeared: %s\n", me, *argv);
+           fprintf(stderr, "%s: prev disapeared: lmin = %d, j = %d\n", me,
+           lmin, j); */
       }
     }
     data_add(&b, "prev", prev);

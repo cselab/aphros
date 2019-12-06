@@ -20,7 +20,8 @@ static double pi = 3.141592653589793;
 static void
 usg()
 {
-  fprintf(stderr, "%s -p prefix -k key -f field [csv ..] -- [vtk ..]\n", me);
+  fprintf(stderr, "%s -p prefix -k key -f field [csv ..] -- [vtk ..]\n",
+          me);
   exit(1);
 }
 
