@@ -122,7 +122,7 @@ main(int argc, char **argv)
     }
     vtk = vtk_read(f);
     if (vtk == NULL) {
-      fprintf(stderr, "%s: fail to parse csv file '%s'\n", me, path);
+      fprintf(stderr, "%s: fail to parse vtk file '%s'\n", me, path);
       exit(2);
     }
     fclose(f);
