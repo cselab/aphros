@@ -13,9 +13,11 @@
     ./split a_0*.csv  > stat
 
 
-    ./split ~/tmp/qh/a_0{0..2}??.csv > stathvof
+    ./split ~/tmp/qh/a_0{0..2}??.csv > stath
     ./split ~/tmp/qhvof/a_0{0..2}??.csv > stathvof
     ./split ~/tmp/qhvof/a_0{0..2}??.csv > stathvof
+
+    ch.filter -f cl -p sf_%.vtk 3598 12874 -- sm_0{158..163}.vtk
 
 # awk
 

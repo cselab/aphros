@@ -9,7 +9,7 @@ ch.cawk '
     r0 = rm[$cl]
     r = $r
     eps = 1/192
-    if (r > eps && (r0 - r) > r0 * 0.1) {
+    if (r > eps) {
       t = FILENAME
       sub(/.*_/, "", t)
       sub(/\.csv/, "", t)
