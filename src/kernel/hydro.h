@@ -336,11 +336,11 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   struct Stat {
     struct Vofm {
-      Scal cells_vf = 0;  // number of cells with vf>0
-      Scal cells_cl = 0;  // number of cells wih cl != kClNone
-      Scal sum_vf = 0;    // sum of vf
-      Scal hist = 0;      // vofm[l].hist is number of cells containing l+1
-                          // cells with vf>0
+      Scal cells_vf;  // number of cells with vf>0
+      Scal cells_cl;  // number of cells wih cl != kClNone
+      Scal sum_vf;    // sum of vf
+      Scal hist;      // vofm[l].hist is number of cells containing l+1
+                      // cells with vf>0
     };
 
     Scal m1, m2;            // volume
@@ -1084,11 +1084,16 @@ void Hydro<M>::CalcStat() {
     }
     if (var.Int["stat_vofm"]) {
       if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+        // clear
         for (auto l : layers) {
-          auto v = s.vofm[l];
+          auto& v = s.vofm[l];
           v.cells_vf = 0;
           v.cells_cl = 0;
           v.sum_vf = 0;
+          v.hist = 0;
+        }
+        for (auto l : layers) {
+          auto& v = s.vofm[l];
           auto& vf = as->GetField(l);
           auto& cl = as->GetColor(l);
           for (auto c : m.Cells()) {
