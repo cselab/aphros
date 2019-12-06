@@ -1099,7 +1099,7 @@ void Hydro<M>::CalcStat() {
           for (auto c : m.Cells()) {
             v.cells_vf += (vf[c] > 0 ? 1 : 0);
             v.cells_cl += (cl[c] != kClNone ? 1 : 0);
-            v.sum_vf += vf[c];
+            v.sum_vf += vf[c] * m.GetVolume(c);
           }
           m.Reduce(&v.cells_vf, "sum");
           m.Reduce(&v.cells_cl, "sum");
