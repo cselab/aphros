@@ -16,3 +16,7 @@
     ./split ~/tmp/qh/a_0{0..2}??.csv > stathvof
     ./split ~/tmp/qhvof/a_0{0..2}??.csv > stathvof
     ./split ~/tmp/qhvof/a_0{0..2}??.csv > stathvof
+
+# awk
+
+    cawk 'prog' [file ..]

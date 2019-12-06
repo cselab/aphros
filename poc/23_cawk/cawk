@@ -1,0 +1,46 @@
+#!/bin/sh
+
+me=$0
+sep=,
+
+tmp=/tmp/cawk.$$.awk
+trap 'rm $tmp; exit 2' 1 2 3 4 15
+${AWK-awk} -v me="$me" -v sep="$sep" -v tmp=$tmp -v awk=${AWK-awk} -v Q=\' '
+BEGIN {
+      prog = ARGV[1]
+      file = ARGV[2]
+      rc = getline < file
+      if (rc != 1)
+          err("fail to read %s", quote(f))
+      close(file)
+      split($0, key, sep)
+      for (i = 1; i in key; i++)
+          gsub("\\$" key[i], "$" i, prog)
+      prog = "FNR == 1 { next }\n" prog
+      print prog > tmp
+      cmd = sprintf("%s -F %s -f %s %s", quote(awk), quote(sep), tmp, quote(file))
+      msg(cmd)
+      system(cmd)
+}
+
+function msg(a, b, c, d, e)
+{
+    printf me ": "  a "\n", b, c, d, e | "cat >&2"
+}
+
+function err(a, b, c, d, e)
+{
+    msg(a, b, c, d, e)
+    exit(2)
+}
+
+function quote(s)
+{
+    return Q s Q
+}
+
+' "$@"
+
+status=$?
+#rm -f $tmp
+exit $status
