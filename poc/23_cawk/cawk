@@ -1,14 +1,63 @@
 #!/bin/sh
 
+: ${AWK=awk}
 me=$0
 sep=,
 
+err () {
+    echo >&2 "$me: $@"
+    exit 2
+}
+
+isclvar () {
+    "$AWK" -v v="$1" '
+     BEGIN {
+         sub(/=.*/, "", v)
+         r = (v ~ /^[a-zA-Z_][0-9a-zA-Z_]*$/) ? 0 : 1
+         exit(r)
+     }
+     ' "$1"
+}
+
+arg=
+while :
+do case "$1" in
+       -v) shift
+           if test $# -eq 0; then err 'no variable name'; fi
+           a=$1
+           if ! isclvar "$a"; then err "invald -v argument '$a'"; fi
+           shift
+           arg="$arg -v $a"
+           ;;
+       -*) err "unknown option: $1"
+           ;;
+       *) break
+          ;;
+   esac
+done
+
+if test $# -eq 0; then err 'needs prog'; fi
+prog=$1
+shift
+
+if test $# -eq 0; then err 'needs file'; fi
+file=$1
+shift
+
+if test $# -ne 0; then err 'extra arguments "$@"'; fi
+
 tmp=/tmp/cawk.$$.awk
 trap 'rm $tmp; exit 2' 1 2 3 4 15
-${AWK-awk} -v me="$me" -v sep="$sep" -v tmp=$tmp -v awk=${AWK-awk} -v Q=\' '
+"$AWK" \
+-v me="$me" \
+-v sep="$sep" \
+-v tmp=$tmp \
+-v awk="$AWK" \
+-v arg="$arg" \
+-v prog="$prog" \
+-v file="$file" \
+-v Q=\' '
 BEGIN {
-      prog = ARGV[1]
-      file = ARGV[2]
       rc = getline < file
       if (rc != 1)
           err("fail to read %s", quote(f))
@@ -18,7 +67,7 @@ BEGIN {
           gsub("\\$" key[i], "$" i, prog)
       prog = "FNR == 1 { next }\n" prog
       print prog > tmp
-      cmd = sprintf("%s -F %s -f %s %s", quote(awk), quote(sep), tmp, quote(file))
+      cmd = sprintf("%s %s -F %s -f %s %s", quote(awk), arg, quote(sep), tmp, quote(file))
       rc = system(cmd)
       exit(rc)
 }
