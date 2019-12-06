@@ -127,17 +127,9 @@ end:
       exit(2);
     }
     vtk_write(vtk, file);
+    vtk_fin(vtk);
     fclose(file);
     free(flag);
   }
-
-  /*
-     Csv = argv;
-     for (;;) {
-     if (util_eq(*argv++, "--"))
-     break;
-     } */
-
   table_fin(table);
-
 }
