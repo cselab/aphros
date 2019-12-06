@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -eu
+
+echo `head -n 1 $1`
+
+ch.cawk '
+  $r < 2/192 {
+    next
+  }
+  NR==FNR {
+    rr0[$cl] = $r
+  }
+  NR!=FNR {
+    if ($cl in rr0) {
+      r0 = rr0[$cl]
+      r1 = $r
+      if ( abs(r1 - r0) > 0.5 * (r1 + r0) * 1e-1) {
+        print
+      }
+    } else {
+      #print
+    }
+  }
+  function abs(a) {
+    return a > 0 ? a : -a
+  }
+  function min(a,b) {
+    return a > b ? b : a
+  }
+  ' $1 $2
