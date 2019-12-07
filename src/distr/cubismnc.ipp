@@ -376,11 +376,18 @@ auto Cubismnc<Par, KF>::GetBlocks() -> std::vector<MIdx> {
     aa = s.avail(cc.size());
 
     // 2. Load exchanged halos into the local fields
-    Lab l;
-    l.prepare(g_, s);
-    for (auto& field : fviews) {
-      for (auto& block : field) {
-        l.load(block, field);
+    // FIXME: [fabianw@mavt.ethz.ch; 2019-12-07] This parallel structure is
+    // likely less efficient for single threaded execution
+#pragma omp parallel
+    {
+      Lab l;
+      l.prepare(g_, s);
+#pragma omp for schedule(dynamic, 1)
+      for (size_t i = 0; i < cc.size(); ++i) {
+        for (auto& field : fviews_) {
+          FieldView& block = field[i];
+          l.load(block, field);
+        }
       }
     }
   } else {
@@ -410,8 +417,8 @@ auto Cubismnc<Par, KF>::GetBlocks() -> std::vector<MIdx> {
 
 template <class Par, class KF>
 auto Cubismnc<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
+  const std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
   if (inner) {
-    std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
     n_fields_ = mk.at(MIdx(cc[0].index))->GetMesh().GetComm().size();
     std::vector<MIdx> bb;
     // Perform communication if necessary
@@ -452,12 +459,22 @@ auto Cubismnc<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
       std::set<MIdx> set(bb.begin(), bb.end());
 
       // 2. Load exchanged halos into the local fields
-      Lab l;
-      l.prepare(g_, *sync_);
-      for (auto& field : fviews_) {
-        for (auto& block : field) {
-          if (set.count(MIdx(block.index))) {
-            l.load(block, field);
+      // FIXME: [fabianw@mavt.ethz.ch; 2019-12-07] This parallel structure is
+      // likely less efficient for single threaded execution. Imbalanced loop
+      // due to inner-most if statement.  Unless the number of blocks per field
+      // is not small, parallelizing over the field container is not a good
+      // strategy as it contains only few fields
+#pragma omp parallel
+      {
+        Lab l;
+        l.prepare(g_, *sync_);
+#pragma omp for schedule(dynamic, 1)
+        for (size_t i = 0; i < cc.size(); ++i) {
+          for (auto& field : fviews_) {
+            FieldView& block = field[i];
+            if (set.count(MIdx(block.index))) {
+              l.load(block, field);
+            }
           }
         }
       }
@@ -485,12 +502,22 @@ auto Cubismnc<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
       std::set<MIdx> set(bb.begin(), bb.end());
 
       // Load exchanged halos into the local fields
-      Lab l;
-      l.prepare(g_, *sync_);
-      for (auto& field : fviews_) {
-        for (auto& block : field) {
-          if (set.count(MIdx(block.index))) {
-            l.load(block, field);
+      // FIXME: [fabianw@mavt.ethz.ch; 2019-12-07] This parallel structure is
+      // likely less efficient for single threaded execution. Imbalanced loop
+      // due to inner-most if statement.  Unless the number of blocks per field
+      // is not small, parallelizing over the field container is not a good
+      // strategy as it contains only few fields
+#pragma omp parallel
+      {
+        Lab l;
+        l.prepare(g_, *sync_);
+#pragma omp for schedule(dynamic, 1)
+        for (size_t i = 0; i < cc.size(); ++i) {
+          for (auto& field : fviews_) {
+            FieldView& block = field[i];
+            if (set.count(MIdx(block.index))) {
+              l.load(block, field);
+            }
           }
         }
       }
