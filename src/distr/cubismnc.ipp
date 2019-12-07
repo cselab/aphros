@@ -373,7 +373,7 @@ auto Cubismnc<Par, KF>::GetBlocks() -> std::vector<MIdx> {
     hist_.CollectSample("MPI_Barrier");
 
     // Get all blocks synchronized
-    aa = s.avail(cc.size());
+    aa = s.avail_halo();
 
     // 2. Load exchanged halos into the local fields
     // FIXME: [fabianw@mavt.ethz.ch; 2019-12-07] This parallel structure is
