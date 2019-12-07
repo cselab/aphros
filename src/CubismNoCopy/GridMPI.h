@@ -214,6 +214,10 @@ public:
         return *SynchronizerMPIs.find(stencil)->second;
     }
 
+    const std::map<StencilInfo, Synch*>& getSynchronizerMPI() const {
+      return SynchronizerMPIs;
+    }
+
     size_t getResidentBlocksPerDimension(int idim) const
     {
         assert(idim >= 0 && idim < 3);

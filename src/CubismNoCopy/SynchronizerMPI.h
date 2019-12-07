@@ -72,9 +72,7 @@ class SynchronizerMPI
     int mypeindex[3], pesize[3], mybpd[3];
     int periodic[3];
     int neighborsrank[3][3][3];
-    Histogram hist_;
-
-    static int instance_count;
+    Sampler samp_;
 
     map<I3,int> c2i;
 
@@ -960,14 +958,14 @@ public:
      // get rid of globalinfos
      vector<BlockInfo> globalinfos, StencilInfo stencil, MPI_Comm cartcomm,
      const int mybpd[3], const int blocksize[3], const bool compress = true,
-     const bool hist = true)
+     const bool samp_active = true)
      : stridex(TView::stridex)
      , stridey(TView::stridey)
      , stencil(stencil)
      , globalinfos(globalinfos)
      , cube(mybpd[0], mybpd[1], mybpd[2])
      , cartcomm(cartcomm)
-     , hist_(cartcomm, "synch" + std::to_string(++instance_count), hist) {
+     , samp_(samp_active) {
    int myrank;
    MPI_Comm_rank(cartcomm, &myrank);
    isroot = (myrank == 0);
@@ -1064,7 +1062,7 @@ public:
                 send.pending.clear();
             }
         }
-        hist_.CollectSample("send_pending");
+        samp_.CollectSample("send_pending");
 
         // XXX: [fabianw@mavt.ethz.ch; 2019-11-21] This is dangerous as in
         // general there might be pending sends from above which still require
@@ -1075,17 +1073,17 @@ public:
         // needed to guarantee a unique synchronizer for that stage.  This is at
         // the cost of additional communication buffers managed by each
         // synchronizer separately.
-        hist_.SeedSample();
+        samp_.SeedSample();
         _init_maps(fields); // recompute field maps that correspond to memory
                             // locations in fields
-        hist_.CollectSample("init_maps");
+        samp_.CollectSample("init_maps");
 
         cube.prepare();
         blockinfo_counter = globalinfos.size();
         const int NC = stencil.selcomponents.size();
 
         // 1. pack
-        hist_.SeedSample();
+        samp_.SeedSample();
         {
           const int N = send_packinfos.size();
 
@@ -1103,18 +1101,18 @@ public:
             }
           }
         }
-        hist_.CollectSample("pack");
+        samp_.CollectSample("pack");
 
         // 2. compress all messages
-        hist_.SeedSample();
+        samp_.SeedSample();
 #pragma omp parallel for schedule(dynamic, 1)
         for (size_t i = 0; i < send.c_handle.size(); ++i) {
             send.c_handle[i]->Compress();
         }
-        hist_.CollectSample("compress");
+        samp_.CollectSample("compress");
 
         // 3. send requests
-        hist_.SeedSample();
+        samp_.SeedSample();
         {
           // faces
           for (int d = 0; d < 3; ++d) {
@@ -1289,7 +1287,7 @@ public:
                 }
             }
         }
-        hist_.CollectSample("send_req");
+        samp_.CollectSample("send_req");
 
         // 3.
         cube.make_dependencies(isroot);
@@ -1297,7 +1295,7 @@ public:
 
     vector<BlockInfo> avail_inner()
     {
-      hist_.SeedSample();
+      samp_.SeedSample();
       vector<BlockInfo> retval;
 
       const int xorigin = mypeindex[0] * mybpd[0];
@@ -1343,14 +1341,18 @@ public:
         assert(cube.pendingcount() != 0 || blockinfo_counter == cube.pendingcount());
         assert(blockinfo_counter != 0 || blockinfo_counter == cube.pendingcount());
         assert(blockinfo_counter != 0 || recv.pending.size() == 0);
-        hist_.CollectSample("avail_inner");
+        samp_.CollectSample("avail_inner");
 
         return retval;
     }
 
+    const Sampler& getSampler() const {
+      return samp_;
+    }
+
     vector<BlockInfo> avail_halo()
     {
-      hist_.SeedSample();
+      samp_.SeedSample();
       vector<BlockInfo> retval;
 
       const int NPENDING = recv.pending.size();
@@ -1363,9 +1365,9 @@ public:
         vector<MPI_Request> old = pending;
 
 #if 1
-        hist_.SeedSample();
+        samp_.SeedSample();
         MPI_Waitall(NPENDING, &pending.front(), MPI_STATUSES_IGNORE);
-        hist_.CollectSample("waitall_avail_halo");
+        samp_.CollectSample("waitall_avail_halo");
 #else
         int done = false;
         while (1)
@@ -1377,13 +1379,13 @@ public:
 #endif
 
         assert(recv.pending.size() == recv.c_handle.size());
-        hist_.SeedSample();
+        samp_.SeedSample();
 #pragma omp parallel for schedule(dynamic, 1)
         for(size_t i=0; i<recv.c_handle.size(); ++i)
         {
             recv.c_handle[i]->Decompress();
         }
-        hist_.CollectSample("decompress_avail_halo");
+        samp_.CollectSample("decompress_avail_halo");
 
         for(int i=0; i<NPENDING; ++i)
         {
@@ -1434,7 +1436,7 @@ public:
         assert(cube.pendingcount() != 0 || blockinfo_counter == cube.pendingcount());
         assert(blockinfo_counter != 0 || blockinfo_counter == cube.pendingcount());
         assert(blockinfo_counter != 0 || recv.pending.size() == 0);
-        hist_.CollectSample("avail_halo");
+        samp_.CollectSample("avail_halo");
 
         return retval;
     }
@@ -1456,7 +1458,7 @@ public:
     }
 
     vector<BlockInfo> avail() {
-      hist_.SeedSample();
+      samp_.SeedSample();
       vector<BlockInfo> retval;
 
       const int NPENDING = recv.pending.size();
@@ -1472,17 +1474,17 @@ public:
         if (mybpd[0] == 1 || mybpd[1] == 1 ||
             mybpd[2] == 1) // IS THERE SOMETHING MORE INTELLIGENT?!
         {
-          hist_.SeedSample();
+          samp_.SeedSample();
           MPI_Waitall(NPENDING, &pending.front(), MPI_STATUSES_IGNORE);
-          hist_.CollectSample("waitall_avail");
+          samp_.CollectSample("waitall_avail");
 
           assert(old.size() == recv.c_handle.size());
-          hist_.SeedSample();
+          samp_.SeedSample();
 #pragma omp parallel for schedule(dynamic, 1)
           for (size_t i = 0; i < recv.c_handle.size(); ++i) {
               recv.c_handle[i]->Decompress();
           }
-          hist_.CollectSample("decompress_avail");
+          samp_.CollectSample("decompress_avail");
 
           for (int i = 0; i < NPENDING; ++i) {
             cube.received(old[i]);
@@ -1492,27 +1494,27 @@ public:
           vector<int> indices(NPENDING);
           int NSOLVED = 0;
           if (blockinfo_counter == int(globalinfos.size())) {
-            hist_.SeedSample();
+            samp_.SeedSample();
             MPI_Testsome(
                 NPENDING, &pending.front(), &NSOLVED, &indices.front(),
                 MPI_STATUSES_IGNORE);
-            hist_.CollectSample("testsome_avail");
+            samp_.CollectSample("testsome_avail");
           } else {
-            hist_.SeedSample();
+            samp_.SeedSample();
             MPI_Waitsome(
                 NPENDING, &pending.front(), &NSOLVED, &indices.front(),
                 MPI_STATUSES_IGNORE);
-            hist_.CollectSample("waitsome_avail");
+            samp_.CollectSample("waitsome_avail");
             assert(NSOLVED > 0);
           }
 
           assert(old.size() == recv.c_handle.size());
-          hist_.SeedSample();
+          samp_.SeedSample();
 #pragma omp parallel for schedule(dynamic, 1)
           for (size_t i = 0; i < indices.size(); ++i) {
               recv.c_handle[indices[i]]->Decompress();
           }
-          hist_.CollectSample("decompress_avail");
+          samp_.CollectSample("decompress_avail");
 
           for (int i = 0; i < NSOLVED; ++i) {
             cube.received(old[indices[i]]);
@@ -1566,7 +1568,7 @@ public:
       assert(
           blockinfo_counter != 0 || blockinfo_counter == cube.pendingcount());
       assert(blockinfo_counter != 0 || recv.pending.size() == 0);
-      hist_.CollectSample("avail");
+      samp_.CollectSample("avail");
 
       return retval;
     }
@@ -1846,8 +1848,5 @@ void fetch_soa(TView &fv,
         }
     }
 };
-
-template <typename TView>
-int SynchronizerMPI<TView>::instance_count = 0;
 
 #endif /* SYNCHRONIZERMPI_H_KWDZTKR0 */
