@@ -27,15 +27,6 @@ using namespace std;
 using Compressor = compression::FPZIP<Real>;
 using Envelope = compression::Envelope;
 
-struct CompressorHandle {
-  Compressor* comp;
-  MPI_Request req;
-};
-
-bool operator<(const CompressorHandle& lhs, const CompressorHandle& rhs) {
-  return lhs.req < rhs.req;
-}
-
 template <typename TView>
 class SynchronizerMPI
 {
@@ -89,8 +80,9 @@ class SynchronizerMPI
 
     struct CommData {
         Real * faces[3][2], * edges[3][2][2], * corners[2][2][2];
-        Compressor *cfaces[3][2], *cedges[3][2][2], *ccorners[2][2][2];
-        set<CompressorHandle> pending;
+        Compressor *c_faces[3][2], *c_edges[3][2][2], *c_corners[2][2][2];
+        set<MPI_Request> pending;
+        std::vector<Compressor*> c_handle;
     } send, recv;
 
     bool _face_needed(const int d) const
@@ -149,7 +141,7 @@ class SynchronizerMPI
           if (alloc_buf) {
             data.faces[d][s] =
                 needed ? _myalloc(sizeof(Real) * NFACE, 16) : NULL;
-            data.cfaces[d][s] = // compressor
+            data.c_faces[d][s] = // compressor
                 needed ? _newcompressor(data.faces[d][s], NFACE, compress)
                        : NULL;
           }
@@ -182,6 +174,8 @@ class SynchronizerMPI
             continue;
           }
 
+          // we need this compressor; keep a handle
+          data.c_handle.push_back(data.c_faces[d][s]);
           const int n1 = bpd[dim_other1];
           const int n2 = bpd[dim_other2];
 
@@ -241,7 +235,7 @@ class SynchronizerMPI
             if (alloc_buf) {
               data.edges[d][b][a] =
                   needed ? _myalloc(sizeof(Real) * NEDGE, 16) : NULL;
-              data.cedges[d][b][a] =
+              data.c_edges[d][b][a] =
                   needed ? _newcompressor(data.edges[d][b][a], NEDGE, compress)
                          : NULL;
             }
@@ -283,6 +277,8 @@ class SynchronizerMPI
               continue;
             }
 
+            // we need this compressor; keep a handle
+            data.c_handle.push_back(data.c_edges[d][b][a]);
             const int n = bpd[d];
             for (int c = 0; c < n; ++c) {
               int index[3];
@@ -815,7 +811,7 @@ class SynchronizerMPI
             if (alloc_buf) {
               data.corners[z][y][x] =
                   needed ? _myalloc(sizeof(Real) * NCORNERBLOCK, 16) : NULL;
-              data.ccorners[z][y][x] =
+              data.c_corners[z][y][x] =
                   needed ? _newcompressor(
                                data.corners[z][y][x], NCORNERBLOCK, compress)
                          : NULL;
@@ -848,6 +844,9 @@ class SynchronizerMPI
             if (isempty) {
               continue;
             }
+
+            // we need this compressor; keep a handle
+            data.c_handle.push_back(data.c_corners[z][y][x]);
 
             const int index[3] = {
                 x * (bpd[0] - 1),
@@ -918,6 +917,13 @@ class SynchronizerMPI
 
     template <bool alloc_buf = false>
     void _init_maps(FieldContainer& fields, const bool compress = true) {
+      // FIXME: [fabianw@mavt.ethz.ch; 2019-11-21] // only for synchronous
+      // stage execution!
+      send.pending.clear();
+      send.c_handle.clear();
+      recv.pending.clear();
+      recv.c_handle.clear();
+
       send_packinfos.clear();
       recv_packinfos.clear();
       recv_subpackinfos.clear();
@@ -1032,20 +1038,17 @@ public:
     void sync(FieldContainer& fields, const int timestamp) {
       // 0. wait for pending sends, couple of checks
       // 1. pack all stuff
-      // 2. perform send/receive requests
-      // 3. setup the dependency
+      // 2. compress all stuff
+      // 3. perform send/receive requests
+      // 4. setup the dependency
 
-      // 0.
-      hist_.SeedSample();
-      {
-        const int NPENDINGSENDS = send.pending.size();
-        if (NPENDINGSENDS > 0) {
-          vector<MPI_Request> pending;
-          for (const auto& p : send.pending) {
-            pending.push_back(p.req);
-          }
-          // copy(send.pending.begin(), send.pending.end(),
-          // pending.begin());
+        //0.
+        {
+            const int NPENDINGSENDS = send.pending.size();
+            if (NPENDINGSENDS > 0)
+            {
+                vector<MPI_Request> pending(NPENDINGSENDS);
+                copy(send.pending.begin(), send.pending.end(), pending.begin());
 #if 1
                 MPI_Waitall(NPENDINGSENDS, &pending.front(), MPI_STATUSES_IGNORE);
 #else
@@ -1076,9 +1079,6 @@ public:
         _init_maps(fields); // recompute field maps that correspond to memory
                             // locations in fields
         hist_.CollectSample("init_maps");
-        // FIXME: [fabianw@mavt.ethz.ch; 2019-11-21] // only for synchronous
-        // stage execution!
-        recv.pending.clear();
 
         cube.prepare();
         blockinfo_counter = globalinfos.size();
@@ -1089,7 +1089,7 @@ public:
         {
           const int N = send_packinfos.size();
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic, 1)
           for (int i = 0; i < N; ++i) {
             PackInfo info = send_packinfos[i];
             if (info.n_comp > 1) {
@@ -1105,7 +1105,15 @@ public:
         }
         hist_.CollectSample("pack");
 
-        // 2. send requests
+        // 2. compress all messages
+        hist_.SeedSample();
+#pragma omp parallel for schedule(dynamic, 1)
+        for (size_t i = 0; i < send.c_handle.size(); ++i) {
+            send.c_handle[i]->Compress();
+        }
+        hist_.CollectSample("compress");
+
+        // 3. send requests
         hist_.SeedSample();
         {
           // faces
@@ -1137,29 +1145,21 @@ public:
 
               if (NFACE_RECV > 0) {
                 MPI_Request rc;
-                CompressorHandle hc;
-                hc.comp = recv.cfaces[d][s];
-                Envelope env = hc.comp->GetEnvelope();
+                Envelope env = recv.c_faces[d][s]->GetEnvelope();
                 MPI_Irecv(
                     env.buf, env.ubytes, MPI_BYTE, _rank(neighbor_index),
                     6 * timestamp + 2 * d + s, cartcomm, &rc);
-                hc.req = rc;
-                recv.pending.insert(hc);
+                recv.pending.insert(rc);
                 cube.face(rc, d, s);
               }
 
               if (NFACE_SEND > 0) {
                 MPI_Request req;
-                CompressorHandle hc;
-                hc.comp = send.cfaces[d][s];
-                hist_.SeedSample();
-                Envelope env = hc.comp->Compress();
-                hist_.CollectSample("compress_face");
+                Envelope env = send.c_faces[d][s]->GetEnvelope();
                 MPI_Isend(
                     env.buf, env.cbytes, MPI_BYTE, _rank(neighbor_index),
                     6 * timestamp + 2 * d + 1 - s, cartcomm, &req);
-                hc.req = req;
-                send.pending.insert(hc);
+                send.pending.insert(req);
 #ifndef NDEBUG
                       if (isroot) {
                         printf(
@@ -1198,34 +1198,27 @@ public:
 
                             if (NEDGE_RECV > 0) {
                               MPI_Request rc;
-                              CompressorHandle hc;
-                              hc.comp = recv.cedges[d][b][a];
-                              Envelope env = hc.comp->GetEnvelope();
+                              Envelope env =
+                                  recv.c_edges[d][b][a]->GetEnvelope();
                               MPI_Irecv(
                                   env.buf, env.ubytes, MPI_BYTE,
                                   _rank(neighbor_index),
                                   12 * timestamp + 4 * d + 2 * b + a, cartcomm,
                                   &rc);
-                              hc.req = rc;
-                              recv.pending.insert(hc);
+                              recv.pending.insert(rc);
                               cube.edge(rc, d, a, b);
                             }
 
                             if (NEDGE_SEND > 0) {
                               MPI_Request req;
-                              CompressorHandle hc;
-                              hc.comp = send.cedges[d][b][a];
-                              hist_.SeedSample();
-                              Envelope env = hc.comp->Compress();
-                              hist_.CollectSample("compress_edge");
+                              Envelope env = send.c_edges[d][b][a]->GetEnvelope();
                               MPI_Isend(
                                   env.buf, env.cbytes, MPI_BYTE,
                                   _rank(neighbor_index),
                                   12 * timestamp + 4 * d + 2 * (1 - b) +
                                       (1 - a),
                                   cartcomm, &req);
-                              hc.req = req;
-                              send.pending.insert(hc);
+                              send.pending.insert(req);
 #ifndef NDEBUG
                               if (isroot) {
                                 printf(
@@ -1258,34 +1251,27 @@ public:
 
                                     if (NCORNERBLOCK_RECV) {
                                       MPI_Request rc;
-                                      CompressorHandle hc;
-                                      hc.comp = recv.ccorners[z][y][x];
-                                      Envelope env = hc.comp->GetEnvelope();
+                                      Envelope env = recv.c_corners[z][y][x]
+                                                         ->GetEnvelope();
                                       MPI_Irecv(
                                           env.buf, env.ubytes, MPI_BYTE,
                                           _rank(neighbor_index),
                                           8 * timestamp + 4 * z + 2 * y + x,
                                           cartcomm, &rc);
-                                      hc.req = rc;
-                                      recv.pending.insert(hc);
+                                      recv.pending.insert(rc);
                                       cube.corner(rc, x, y, z);
                                     }
 
                                     if (NCORNERBLOCK_SEND) {
                                       MPI_Request req;
-                                      CompressorHandle hc;
-                                      hc.comp = send.ccorners[z][y][x];
-                                      hist_.SeedSample();
-                                      Envelope env = hc.comp->Compress();
-                                      hist_.CollectSample("compress_corner");
+                                      Envelope env = send.c_corners[z][y][x]->GetEnvelope();
                                       MPI_Isend(
                                           env.buf, env.cbytes, MPI_BYTE,
                                           _rank(neighbor_index),
                                           8 * timestamp + 4 * (1 - z) +
                                               2 * (1 - y) + (1 - x),
                                           cartcomm, &req);
-                                      hc.req = req;
-                                      send.pending.insert(hc);
+                                      send.pending.insert(req);
 #ifndef NDEBUG
                                       if (isroot) {
                                         printf(
@@ -1371,20 +1357,15 @@ public:
 
       // FIXME: [fabianw@mavt.ethz.ch; 2019-12-03] can be used for a sanity
       // vector<MPI_Status> pstatus(NPENDING);
-      vector<MPI_Request> pending;
-
-      for (const auto& hc : recv.pending) {
-        pending.push_back(hc.req);
-        }
+      vector<MPI_Request> pending(NPENDING);
+      copy(recv.pending.begin(), recv.pending.end(), pending.begin());
 
         vector<MPI_Request> old = pending;
-        vector<CompressorHandle> hcold(NPENDING);
-        copy(recv.pending.begin(), recv.pending.end(), hcold.begin());
 
 #if 1
         hist_.SeedSample();
         MPI_Waitall(NPENDING, &pending.front(), MPI_STATUSES_IGNORE);
-        hist_.CollectSample("halo_waitall");
+        hist_.CollectSample("waitall_avail_halo");
 #else
         int done = false;
         while (1)
@@ -1394,13 +1375,20 @@ public:
             pthread_yield();
         };
 #endif
+
+        assert(recv.pending.size() == recv.c_handle.size());
+        hist_.SeedSample();
+#pragma omp parallel for schedule(dynamic, 1)
+        for(size_t i=0; i<recv.c_handle.size(); ++i)
+        {
+            recv.c_handle[i]->Decompress();
+        }
+        hist_.CollectSample("decompress_avail_halo");
+
         for(int i=0; i<NPENDING; ++i)
         {
-          hist_.SeedSample();
-          hcold[i].comp->Decompress();
-          hist_.CollectSample("halo_decompress");
           cube.received(old[i]);
-          recv.pending.erase(hcold[i]);
+          recv.pending.erase(old[i]);
         }
 
         const int xorigin = mypeindex[0]*mybpd[0];
@@ -1458,10 +1446,8 @@ public:
 
       if (NPENDING == 0) return true;
 
-      vector<MPI_Request> pending;
-      for (const auto& hc : recv.pending) {
-        pending.push_back(hc.req);
-      }
+      vector<MPI_Request> pending(NPENDING);
+      copy(recv.pending.begin(), recv.pending.end(), pending.begin());
 
       int done = false;
       MPI_Testall(NPENDING, &pending.front(), &done, MPI_STATUSES_IGNORE);
@@ -1477,15 +1463,10 @@ public:
 
       // FIXME: [fabianw@mavt.ethz.ch; 2019-12-03] can be used for a sanity
       // check after decompression vector<MPI_Status> pstatus(NPENDING);
-      vector<MPI_Request> pending;
-
-      for (const auto& hc : recv.pending) {
-        pending.push_back(hc.req);
-      }
+      vector<MPI_Request> pending(NPENDING);
+      copy(recv.pending.begin(), recv.pending.end(), pending.begin());
 
       vector<MPI_Request> old = pending;
-      vector<CompressorHandle> hcold(NPENDING);
-      copy(recv.pending.begin(), recv.pending.end(), hcold.begin());
 
       if (NPENDING > 0) {
         if (mybpd[0] == 1 || mybpd[1] == 1 ||
@@ -1493,13 +1474,19 @@ public:
         {
           hist_.SeedSample();
           MPI_Waitall(NPENDING, &pending.front(), MPI_STATUSES_IGNORE);
-          hist_.CollectSample("avail_waitall");
+          hist_.CollectSample("waitall_avail");
+
+          assert(old.size() == recv.c_handle.size());
+          hist_.SeedSample();
+#pragma omp parallel for schedule(dynamic, 1)
+          for (size_t i = 0; i < recv.c_handle.size(); ++i) {
+              recv.c_handle[i]->Decompress();
+          }
+          hist_.CollectSample("decompress_avail");
+
           for (int i = 0; i < NPENDING; ++i) {
-            hist_.SeedSample();
-            hcold[i].comp->Decompress();
-            hist_.CollectSample("avail_decompress");
             cube.received(old[i]);
-            recv.pending.erase(hcold[i]);
+            recv.pending.erase(old[i]);
           }
         } else {
           vector<int> indices(NPENDING);
@@ -1509,22 +1496,27 @@ public:
             MPI_Testsome(
                 NPENDING, &pending.front(), &NSOLVED, &indices.front(),
                 MPI_STATUSES_IGNORE);
-            hist_.CollectSample("avail_testsome");
+            hist_.CollectSample("testsome_avail");
           } else {
             hist_.SeedSample();
             MPI_Waitsome(
                 NPENDING, &pending.front(), &NSOLVED, &indices.front(),
                 MPI_STATUSES_IGNORE);
-            hist_.CollectSample("avail_waitsome");
+            hist_.CollectSample("waitsome_avail");
             assert(NSOLVED > 0);
           }
 
+          assert(old.size() == recv.c_handle.size());
+          hist_.SeedSample();
+#pragma omp parallel for schedule(dynamic, 1)
+          for (size_t i = 0; i < indices.size(); ++i) {
+              recv.c_handle[indices[i]]->Decompress();
+          }
+          hist_.CollectSample("decompress_avail");
+
           for (int i = 0; i < NSOLVED; ++i) {
-            hist_.SeedSample();
-            hcold[indices[i]].comp->Decompress();
-            hist_.CollectSample("avail_decompress");
             cube.received(old[indices[i]]);
-            recv.pending.erase(hcold[indices[i]]);
+            recv.pending.erase(old[indices[i]]);
           }
         }
       }
