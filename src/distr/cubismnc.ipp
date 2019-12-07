@@ -140,6 +140,7 @@ class Cubismnc : public DistrMesh<KF> {
   using Vect = typename M::Vect;
 
   Cubismnc(MPI_Comm comm, KF& kf, Vars& var);
+  ~Cubismnc();
   typename M::BlockCells GetGlobalBlock() const override;
   typename M::IndexCells GetGlobalIndex() const override;
   FieldCell<Scal> GetGlobalField(size_t i) override;
@@ -169,6 +170,7 @@ class Cubismnc : public DistrMesh<KF> {
   using P::frame_;
 
   Histogram hist_;
+  Histogram hist_synch_;
 
   Grid g_;
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] The map is not really needed
@@ -298,6 +300,7 @@ template <class Par, class KF>
 Cubismnc<Par, KF>::Cubismnc(MPI_Comm comm, KF& kf, Vars& var)
   : DistrMesh<KF>(comm, kf, var)
   , hist_(comm, "cubismnc", var.Int["histogram"])
+  , hist_synch_(comm, "synch", var.Int["histogram"])
   , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm)
 {
   assert(bs_[0] == FieldView::bx &&
@@ -327,6 +330,14 @@ Cubismnc<Par, KF>::Cubismnc(MPI_Comm comm, KF& kf, Vars& var)
   this->MakeKernels(ee);
 
   comm_ = g_.getCartComm(); // XXX: overwrite comm_
+}
+
+template <class Par, class KF>
+Cubismnc<Par, KF>::~Cubismnc()
+{
+  for (const auto& sm : g_.getSynchronizerMPI()) {
+    hist_synch_.Append(sm.second->getSampler());
+  }
 }
 
 template <class Par, class KF>
