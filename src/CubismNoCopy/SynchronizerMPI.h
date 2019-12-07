@@ -1089,6 +1089,7 @@ public:
         {
           const int N = send_packinfos.size();
 
+#pragma omp parallel for
           for (int i = 0; i < N; ++i) {
             PackInfo info = send_packinfos[i];
             if (info.n_comp > 1) {
