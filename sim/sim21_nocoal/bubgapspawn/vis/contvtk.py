@@ -42,7 +42,6 @@ def GetBox(o):
     return lim0, lim1
 
 
-ospray = 1
 vort = 1
 
 av = sys.argv
@@ -99,7 +98,6 @@ renderView1.CameraParallelScale = 1.6583123951777
 
 
 renderView1.Background = [0.0, 0.0, 0.0]
-renderView1.EnableOSPRay = ospray
 renderView1.Shadows = 1
 renderView1.AmbientSamples = 5
 renderView1.SamplesPerPixel = 10
