@@ -1104,12 +1104,28 @@ public:
         samp_.CollectSample("pack");
 
         // 2. compress all messages
+        std::vector<double> ratios;
+        // std::vector<double> msgsizes;
         samp_.SeedSample();
-#pragma omp parallel for schedule(dynamic, 1)
-        for (size_t i = 0; i < send.c_handle.size(); ++i) {
-            send.c_handle[i]->Compress();
+#pragma omp parallel
+        {
+          std::vector<double> myratios;
+          // std::vector<double> mysizes;
+#pragma omp for schedule(dynamic, 1)
+          for (size_t i = 0; i < send.c_handle.size(); ++i) {
+            Envelope e = send.c_handle[i]->Compress();
+            myratios.push_back(static_cast<double>(e.ubytes) / e.cbytes);
+            // mysizes.push_back(static_cast<double>(e.cbytes));
+          }
+#pragma omp critical
+          {
+            ratios.insert(ratios.end(), myratios.begin(), myratios.end());
+            // msgsizes.insert(msgsizes.end(), mysizes.begin(), mysizes.end());
+          }
         }
         samp_.CollectSample("compress");
+        samp_.Insert("CompressionRatios", ratios);
+        // samp_.Insert("MsgSizes", msgsizes);
 
         // 3. send requests
         samp_.SeedSample();
