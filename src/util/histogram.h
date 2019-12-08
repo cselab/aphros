@@ -34,6 +34,52 @@ class Sampler {
     }
   }
 
+  void Append(const Sampler& s) {
+    if (active_) {
+      for (const auto& x : s.samples_) {
+        auto& my_s = samples_[x.first];
+        const auto& their_s = x.second;
+        my_s.insert(my_s.end(), their_s.begin(), their_s.end());
+      }
+    }
+  }
+
+  void AddTo(const std::string& addto, const std::vector<double>& yours) {
+    if (active_) {
+      auto& mine = samples_.at(addto);
+      if (mine.size() != yours.size()) {
+        throw std::runtime_error("Add: vectors are of unequal length");
+      }
+      for (size_t i = 0; i < mine.size(); ++i) {
+        mine[i] += yours[i];
+      }
+    }
+  }
+
+  void SubtractFrom(const std::string& from, const std::vector<double>& yours) {
+    if (active_) {
+      auto& mine = samples_.at(from);
+      if (mine.size() != yours.size()) {
+        throw std::runtime_error("Add: vectors are of unequal length");
+      }
+      for (size_t i = 0; i < mine.size(); ++i) {
+        mine[i] -= yours[i];
+      }
+    }
+  }
+
+  void Insert(const std::string& name, const std::vector<double>& data) {
+    if (active_) {
+      auto it = samples_.find(name);
+      if (it == samples_.end()) {
+        samples_[name] = data;
+      } else {
+        auto& my_s = it->second;
+        my_s.insert(my_s.end(), data.begin(), data.end());
+      }
+    }
+  }
+
   const SampleMap& GetSamples() const {
     return samples_;
   }
@@ -57,16 +103,6 @@ class Histogram : public Sampler {
 
   Histogram(const Histogram& c) = delete;
   Histogram& operator=(const Histogram& c) = delete;
-
-  void Append(const Sampler& s) {
-    if (active_) {
-      for (const auto& x : s.GetSamples()) {
-        auto& my_s = samples_[x.first];
-        const auto& their_s = x.second;
-        my_s.insert(my_s.end(), their_s.begin(), their_s.end());
-      }
-    }
-  }
 
  private:
   const MPI_Comm comm_;
