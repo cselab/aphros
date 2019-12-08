@@ -3,17 +3,20 @@ cores_per_node=12
 
 # Histogram metrics
 stats=(
-    "hist_distrmesh.bin Run"
-    "hist_distrmesh.bin RunKernels(inner)"
-    "hist_distrmesh.bin RunKernels(halo)"
-    "hist_synch.bin avail_halo"
-    "hist_synch.bin avail_inner"
-    "hist_synch.bin waitall_avail_halo"
-    "hist_synch.bin init_maps"
-    "hist_synch.bin pack"
-    "hist_synch.bin compress"
-    "hist_synch.bin decompress_avail_halo"
-    "hist_synch.bin send_req"
+    "hist_distrmesh.bin Run sum"
+    "hist_distrmesh.bin RunKernels(inner) sum"
+    "hist_distrmesh.bin RunKernels(halo) sum"
+    "hist_distrmesh.bin avail_halo sum"
+    "hist_distrmesh.bin avail_inner sum"
+    "hist_distrmesh.bin waitall_avail_halo sum"
+    "hist_distrmesh.bin init_maps sum"
+    "hist_distrmesh.bin pack sum"
+    "hist_distrmesh.bin compress sum"
+    "hist_distrmesh.bin decompress_avail_halo sum"
+    "hist_distrmesh.bin send_req sum"
+    "hist_distrmesh.bin ComputeTime sum"
+    "hist_distrmesh.bin TransferTime sum"
+    "hist_distrmesh.bin CompressionRatios mean"
 )
 
 get_fname()
@@ -24,28 +27,28 @@ get_fname()
     echo "${fname%.*}.dat"
 }
 
-fheaders()
-{
-    local header="# kp\tnodes\tcores\tmean\tsdev\tsum"
-    local cwd="$1"
-    for s in "${stats[@]}"; do
-        IFS=' ' read -r -a file_stat <<< "${s}"
-        local fname=$(get_fname "${file_stat[@]}")
-        echo -e ${header} > "${cwd}/$fname"
-    done
-}
-
 stats()
 {
-    local cwd="$1"
+    local cwd="$1"; shift
+    force=0
+    if [[ $# -gt 0 ]]; then
+        force=1
+    fi
     local root="$(pwd -P)"
+    local header="# kp\tnodes\tcores\tmean\tsdev\tsum"
     for s in "${stats[@]}"; do
         IFS=' ' read -r -a file_stat <<< "${s}"
         local fhist="${file_stat[0]}"
         local stat="${file_stat[1]}"
         local fname="$(get_fname "${file_stat[@]}")"
         cd "${cwd}"
-        for n in $(ls -d kp* | sort -t '=' -k2n); do
+        if [[ ! $force && -f "${fname}" ]]; then
+            echo "Skipping: ${fname} -> Exists"
+            cd "${root}"
+            continue
+        fi
+        echo -e ${header} > "$fname"
+        for n in $(ls -d kp\=* | sort -t '=' -k2n); do
             local kp=${n##*=}
             local nodes=$((kp * kp * kp))
             local cores=$((nodes * cores_per_node))
@@ -65,14 +68,13 @@ stats()
 
 root="$(pwd -P)"
 cwd='weak_scaling'
-if [[ $# -eq 1 ]]; then
-    cwd="${1}"
-fi
+# if [[ $# -eq 1 ]]; then
+#     cwd="${1}"
+# fi
 
-for c in ${cwd}/omp*; do
+for c in ${cwd}/omp\=*; do
     echo "Generating data: ${c}"
-    fheaders ${c}
-    stats ${c}
+    stats ${c} "${@}"
 done
 
 # gnuplot scripts
@@ -84,6 +86,11 @@ for s in "${stats[@]}"; do
     echo "Generating gp script: $(pwd -P)/${fgp}"
     fhist="${file_stat[0]}"
     stat="${file_stat[1]}"
+    qoi="1:6" # sum
+    if [[ "${file_stat[2]}" == "mean" ]]; then
+        # qoi="1:4:5 w yerr" # mean:sdev
+        qoi="1:4" # mean:sdev
+    fi
     cat <<EOF > ${fgp}
 #!/usr/bin/env gnuplot
 set term x11 noenhanced
@@ -96,8 +103,8 @@ set xtics 0, 1, 11
 set ylabel 'seconds'
 EOF
     chmod 755 "${fgp}"
-    for c in omp*; do
-        echo "replot '${c}/${fname}' using 1:6 w p ps 1 t '${c}'" >> "${fgp}"
+    for c in omp\=*; do
+        echo "replot '${c}/${fname}' using ${qoi} t '${c}'" >> "${fgp}"
     done
     sed -i 's/\(^replot.*$\)/\1, \\/' "${fgp}"
     sed -i '0,/replot/s/replot/plot/' "${fgp}"
