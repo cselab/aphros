@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -eu
+
+. ch.setenv > /dev/null
+
+b=/scratch/snx3000/karnakov/fountain
+
+for f in `eval "echo $@"` ; do
+  p=$b/$f
+  echo "$p" >&2
+  ch.gettrajcol r "$p"
+done

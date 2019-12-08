@@ -8,18 +8,17 @@ ll1="\
 pasc_nn096 \
 pasc_nn192 \
 pasc_nn384 \
-pasc_nn096_vof \
-pasc_nn192_vof \
 "
 
 ll2="\
 pasc_nn096_vof \
 pasc_nn192_vof \
+pasc_nn384_vof \
 "
 
-ll=ll1
+ll=ll2
 
-nn="160 160 160 200"
+nn="200 200 200"
 
 hx0=1./96
 hx1=1./192
@@ -39,32 +38,10 @@ set arrow from hx0,graph 0 to hx0,graph 1 nohead
 set arrow from hx1,graph 0 to hx1,graph 1 nohead
 set arrow from hx2,graph 0 to hx2,graph 1 nohead
 
-hist=sprintf("ch.hist --range %g %g --bins 50", hx2*0.25, hx2*32)
+hist=sprintf("ch.hist --range %g %g --bins 100", hx2*0.25, hx2*128)
 p for [i=1:words(ll)] \
-  "<o=hist_".word(ll,i)." ; ( test -f $o && cat $o ) || (./trajcol ".d.word(ll,i)."/traj_01{4,5,6}?.csv | ".hist." ) | tee $o"  \
+  "<o=hist_".word(ll,i)." ; ( test -f $o && cat $o ) || (./trajcol ".word(ll,i)."/traj_0{170..199}.csv | ".hist." ) | tee $o"  \
   u ($1/hx2):($2/30) \
   w l lw 2 t word(ll,i) ,\
   (x/32)**(-10/3) lc "black"
-
-
-exit
-
-#!  ./radius daintthickvof/traj_01??.csv  > qvof
-
-#! ./radius @d/waterfall_vofm_Nov24_wip_thick/traj_020?.csv  > q
-! ./radius @d/waterfall_vofm_Nov25_wip_u1/traj_011?.csv  > q
-
-
-reset
-set log
-set output "h2.pdf"
-set xrange [0.01:0.1]
-set yrange [0.1:1000]
-p \
-  "< <q ch.hist"  w l ,\
-  "< <qvof ch.hist"  w l ,\
-  (x/0.045)**(-10./3) lc "black" 
-exit
-
-
 

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+e () {
+  echo "$@" >&2
+  eval "$@"
+}
+
+#e "ssh daint '. ch.setenv > /dev/null ; for f in $@ ; do echo $f >&2 ; ch.gettrajcol r \"s/scratch/fountain/$f\" ; done'"
+e "ssh daint s/scratch/fountain/gettrajcolall $@"
