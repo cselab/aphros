@@ -2,12 +2,15 @@
 
 set -eu
 
-for f in ../vf_*.h5 ; do
+for f in ../vf_*0.h5 ; do
   echo "$f"
   h=`basename "$f"`
   h=vfz_${h#vf_}
   x=${h%.h5}.xmf
+  if [ -f "$x" ] ; then
+    echo "skip existing $x"
+    continue
+  fi
   ./meanhdfz $f $h
-  rm -f $x
   ch.genxmf $h 2
 done
