@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -eu
+
+for f in ../vf_*.h5 ; do
+  echo "$f"
+  h=`basename "$f"`
+  h=vfz_${h#vf_}
+  x=${h%.h5}.xmf
+  ./meanhdfz $f $h
+  rm -f $x
+  ch.genxmf $h 2
+done
