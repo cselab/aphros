@@ -1,0 +1,2 @@
+./vismean.py ../vfz_*.xmf || true
+#r=30 r.pngmp4

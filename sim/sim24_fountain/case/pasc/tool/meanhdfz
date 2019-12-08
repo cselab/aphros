@@ -24,7 +24,9 @@ u = h['data']
 u = np.array(u)
 h.close()
 
-u = np.mean(u, axis=2)[:,:,np.newaxis,:]
+print(u.shape)
+u = np.mean(u, axis=0)[np.newaxis,:,:,:]
+print(u.shape)
 
 print(fo)
 o = h5py.File(fo, 'w')
