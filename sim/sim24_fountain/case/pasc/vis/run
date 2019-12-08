@@ -1,2 +1,2 @@
-./vismean.py ./vfz_*.xmf || true
-#r=30 r.pngmp4
+./vismean.py ./vfz_*.xmf
+r=30 r.pngmp4

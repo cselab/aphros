@@ -65,6 +65,7 @@ ffb = list(map(os.path.basename, ff))
 ffd = list(map(os.path.dirname, ff))
 # steps
 ss = [int(re.findall("_([0-9]*)", fb)[0]) for fb in ffb]
+print("ss=", ss)
 
 # output pattern (:0 substituted by frame number)
 bo = "a_{:}.png"
@@ -122,16 +123,16 @@ vft = [vf]
 # ----------------------------------------------------------------
 
 celltopnt = CellDatatoPointData(Input=vf)
-celltopnt.CellDataArraytoprocess = ['data']
+celltopnt.CellDataArraytoprocess = ['vfz']
 celltopntDisplay = Show(celltopnt, renderView1)
-dataLUT = GetColorTransferFunction('data')
+dataLUT = GetColorTransferFunction('vfz')
 dataLUT.RGBPoints = [0.0, 0.031373, 0.188235, 0.419608, 0.062745, 0.031373, 0.253195, 0.516063, 0.12549, 0.031757, 0.318139, 0.612149, 0.1882355, 0.080969, 0.38113, 0.661361, 0.2509805, 0.130427, 0.444152, 0.710327, 0.3137255, 0.195386, 0.509112, 0.743791, 0.3764705, 0.260715, 0.573841, 0.777209, 0.4392155, 0.341423, 0.628958, 0.808704, 0.501960785, 0.422745, 0.684075, 0.839892, 0.564706, 0.523137, 0.739193, 0.861546, 0.627451, 0.622684, 0.793464, 0.883429, 0.690196, 0.701423, 0.826928, 0.910988, 0.7529410000000001, 0.778685, 0.8603, 0.937993, 0.8156865, 0.825928, 0.891795, 0.953741, 0.8784315, 0.87328, 0.923291, 0.969489, 0.9411765000000001, 0.922491, 0.954787, 0.985236, 1.0, 0.968627, 0.984314, 1.0]
 dataLUT.ColorSpace = 'Lab'
 dataLUT.ScalarRangeInitialized = 1.0
-dataPWF = GetOpacityTransferFunction('data')
+dataPWF = GetOpacityTransferFunction('vfz')
 dataPWF.ScalarRangeInitialized = 1
 celltopntDisplay.Representation = 'Surface'
-celltopntDisplay.ColorArrayName = ['POINTS', 'data']
+celltopntDisplay.ColorArrayName = ['POINTS', 'vfz']
 celltopntDisplay.LookupTable = dataLUT
 
 
