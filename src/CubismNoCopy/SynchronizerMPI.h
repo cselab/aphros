@@ -72,7 +72,7 @@ class SynchronizerMPI
     int mypeindex[3], pesize[3], mybpd[3];
     int periodic[3];
     int neighborsrank[3][3][3];
-    Sampler samp_;
+    Sampler samp_; // each synchronizer has own sampler
 
     map<I3,int> c2i;
 

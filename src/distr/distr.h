@@ -46,11 +46,18 @@ class DistrMesh : public Distr {
   virtual void Run();
   virtual void Report();
   virtual void ReportOpenmp();
-  virtual ~DistrMesh() {}
+  virtual ~DistrMesh() {
+    hist_.Append(this->samp_); // collect samples from derived classes
+    const auto it = hist_.GetSamples().find("RunKernels(inner)");
+    if (it != hist_.GetSamples().end()) {
+      hist_.Insert("ComputeTime", it->second);
+      hist_.Insert("TransferTime", hist_.GetSamples().at("waitall_avail_halo"));
+    }
+  }
   virtual typename M::BlockCells GetGlobalBlock() const;
   virtual typename M::IndexCells GetGlobalIndex() const;
   // Returns data field i from buffer defined on global mesh
-  virtual FieldCell<Scal> GetGlobalField(size_t i); 
+  virtual FieldCell<Scal> GetGlobalField(size_t i);
 
  protected:
   // TODO: remove comm, needed only by Hypre
@@ -58,6 +65,7 @@ class DistrMesh : public Distr {
   const Vars& var;
   Vars& var_mutable;
   const KF& kf_; // kernel factory
+  Sampler samp_; // sampler accessible to derived classes
 
   int hl_; // number of halo cells (same in all directions)
   MIdx bs_; // block size
@@ -124,14 +132,17 @@ void DistrMesh<KF>::MakeKernels(const std::vector<MyBlockInfo>& ee) {
 
 template <class KF>
 DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& var0)
-    : comm_(comm), var(var0), var_mutable(var0), kf_(kf)
+    : comm_(comm)
+    , var(var0)
+    , var_mutable(var0)
+    , kf_(kf)
+    , samp_(var.Int["histogram"])
     , hl_(var.Int["hl"])
     , bs_{var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]}
     , p_{var.Int["px"], var.Int["py"], var.Int["pz"]}
     , b_{var.Int["bx"], var.Int["by"], var.Int["bz"]}
     , ext_(var.Double["extent"])
-    , hist_(comm, "distrmesh", var.Int["histogram"])
-{}
+    , hist_(comm, "distrmesh", var.Int["histogram"]) {}
 
 template <class KF>
 void DistrMesh<KF>::RunKernels(const std::vector<MIdx>& bb) {
@@ -162,7 +173,7 @@ void DistrMesh<KF>::TimerReport(const std::vector<MIdx>& bb) {
   if (fn.length()) {
     std::ofstream out;
     out.open(fn);
-    out << "mem=" << (sysinfo::GetMem() / double(1 << 20)) << " MB" 
+    out << "mem=" << (sysinfo::GetMem() / double(1 << 20)) << " MB"
         << std::endl;
     ParseReport(mtp_.GetMap(), out);
     mtp_.Reset();
@@ -184,7 +195,7 @@ void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
     std::string df = var.String["dumpformat"];
     if (df == "plain") {
       size_t k = 0; // offset in buffer
-      // Skip comm 
+      // Skip comm
       for (auto& o : m.GetComm()) {
         k += o->GetSize();
       }
@@ -272,7 +283,7 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
 
     auto& s = mhp_.at(k);
 
-    std::string sr; // solver 
+    std::string sr; // solver
     int maxiter;
     Scal tol;
 
@@ -471,7 +482,7 @@ void DistrMesh<KF>::Run() {
   std::vector<MIdx> bb = GetBlocks();
   for (const auto& b : bb) {
     const auto& samp = mk.at(b)->GetMesh().GetSampler();
-    hist_.Append(samp);
+    hist_.Append(samp); // collect samples from meshes
   }
 
   if (var.Int["verbose_time"]) {
@@ -490,8 +501,8 @@ void DistrMesh<KF>::Report() {
     if (var.Int["verbose_stages"]) {
       std::cout << std::fixed;
       auto& mp = mt_.GetMap();
-      std::cout 
-          << "mem=" << (sysinfo::GetMem() / double(1 << 20)) << " MB" 
+      std::cout
+          << "mem=" << (sysinfo::GetMem() / double(1 << 20)) << " MB"
           << std::endl;
       ParseReport(mp, std::cout);
     }
@@ -526,9 +537,9 @@ void DistrMesh<KF>::Report() {
         << "iters = " << ni << "\n"
         << "total = " << int(a) << " s"
         << " = " << std::setfill('0')
-        << std::setw(2) << h[0] << ":" 
-        << std::setw(2) << h[1] << ":" 
-        << std::setw(2) << h[2] << "." 
+        << std::setw(2) << h[0] << ":"
+        << std::setw(2) << h[1] << ":"
+        << std::setw(2) << h[2] << "."
         << std::setw(3) << h[3] << "\n"
         << "time/cell/iter = " << a / (nc * ni) << " s"
         << std::endl;
