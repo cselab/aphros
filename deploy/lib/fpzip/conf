@@ -1,0 +1,38 @@
+#!/bin/bash
+set -eu
+
+url='https://computing.llnl.gov/projects/floating-point-compression/download/fpzip-1.2.0.tar.gz'
+f="$(pwd -P)/fpzip.tar.gz"
+
+# directory name
+d="$(pwd -P)/fpzip"
+
+# source folder
+src="$d/src"
+
+# clean before extraction
+rm -rf "$d"
+
+# extract
+mkdir -p "$d"
+tar -xzf "$f" -C "$d" --strip-components=1
+
+cat <<EOF> Makefile
+.POSIX:
+CXXFLAGS = -Wall -Wextra -g -O3
+PREFIX = ${CHPREFIX}
+
+L = ${d}/lib/libfpzip.a
+H = ${d}/inc/fpzip.h
+
+build:
+	\$(MAKE) CXX=\${CXX} -C "${src}" -j4
+
+install: build
+	mkdir -p -- "\$(PREFIX)/lib" "\$(PREFIX)/include"
+	cp -- \$(L) "\$(PREFIX)/lib"
+	cp -- \$(H) "\$(PREFIX)/include"
+
+.PHONY: build clean install
+clean:; rm -rf -- \$(L)
+EOF

@@ -1,5 +1,0 @@
-CC=cc
-CXX=CC
-FC=ftn
-
-make CC=${CC} CXX=${CXX} FC=${FC} -C "$src" -j4
