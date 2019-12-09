@@ -26,15 +26,27 @@ usg()
 int
 main(int argc, char **argv)
 {
-  int status, nt, nr, i, j, key;
+  char **Csv;
+  char *Key;
+  char output[N];
+  char *path;
+  char *Prefix;
+  char *Volume;
+  char **Vtk;
+  double *cl_csv;
+  double *rad;
+  double *vf;
+  FILE *f;
   float *cl;
-  double *cl_csv, *vf, *rad;
-  struct VTK *vtk;
+  int i;
+  int j;
+  int key;
+  int nr;
+  int nt;
+  int status;
   struct CSV *csv;
   struct Table *table;
-  char *path, *Prefix, *Key, *Volume, **Vtk, **Csv;
-  char output[N];
-  FILE *f;
+  struct VTK *vtk;
 
   USED(argc);
   Prefix = Key = Volume = NULL;
