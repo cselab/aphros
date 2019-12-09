@@ -111,8 +111,8 @@ def GetCluster(w, r, beta, rnd, ky=1.):
 
 
 w = 1.  # domain width
-r = w / 32   # bubble radius
-beta = 0.2 # volume fraction
+r = w / 20   # bubble radius
+beta = 1 # volume fraction
 rnd = True # random cluster
 
 gap = 0.2
