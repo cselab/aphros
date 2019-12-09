@@ -10,11 +10,25 @@ cl=${cl%.csv}
 : ${vtkout=smcl_${cl}_%.vtk}
 
 ch.cawk -v vtkin="$vtkin" -v vtkout="$vtkout" '
-  {
-    s = sprintf("ch.filter -f cl -p %%s %%d -- %s", vtkin)
-    s = sprintf(s, vtkout, $cl, $n)
+  { 
+    R($n, $cl)
+    mn = max(mn, $n)
+    nn[$n]
+  }
+  END {
+    for (n = 0; n < mn; ++n) {
+      if (n in nn) continue
+      R(n, -2)
+    }
+  }
+  function max(a, b) {
+    return a > b ? a : b
+  }
+  function R(n, cl,   s, err) {
+    s = sprintf("ch.filter -f cl -p %%s -- %%d -- %s", vtkin)
+    s = sprintf(s, vtkout, cl, n)
     print s | "cat >&2"
-    #err=system(s) 
+    err=system(s) 
     if (err) {
       print "error: " , s | "cat >&2"
       exit 2
