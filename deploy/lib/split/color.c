@@ -31,7 +31,7 @@ main(int argc, char **argv)
   char output[N];
   char *path;
   char *Prefix;
-  char *Volume[N];
+  char **Volume;
   char **Vtk;
   double *cl_csv;
   double *rad;
@@ -66,11 +66,13 @@ main(int argc, char **argv)
       }
       break;
     case 'f':
-	while (*++argv != NULL && argv[0][0] != '-' && argv[0][1] != '-') {
-	    fprintf(stderr, "%s: %s\n", me, *argv);
-	    Volume[nVolume++] = *argv;
-	}
-	break;
+      argv++;
+      Volume = argv;
+      while (*argv != NULL && argv[0][0] != '-' && argv[0][1] != '-') {
+        argv++;
+        nVolume++;
+      }
+      break;
     case 'p':
       argv++;
       if ((Prefix = *argv) == NULL) {
@@ -111,7 +113,7 @@ main(int argc, char **argv)
     util_name(Prefix, path, output);
     f = fopen(path, "r");
     if (f == NULL) {
-      fprintf(stderr, "%s: cannot read '%s'\n", me, path);
+      fprintf(stderr, "%s: cannot read csv file '%s'\n", me, path);
       exit(2);
     }
     csv = csv_read(f);
@@ -152,23 +154,27 @@ main(int argc, char **argv)
       table_put(table, key, i);
     }
 
-    for (iVolume = 0; i < iVolume; iVolume++) {
-	vf = csv_field(csv, Volume[iVolume]);
-	if (vf == NULL) {
-	    fprintf(stderr, "%s: no field '%s' in csv file\n", me, Volume[iVolume]);
-	    exit(2);
-	}
-	vtk_add(vtk, Volume[iVolume], VTK_CELL, VTK_DOUBLE);
-	rad = vtk_data(vtk, Volume[iVolume]);
-	nt = vtk_nt(vtk);
-	for (i = 0; i < nt; i++) {
-	    key = (int) cl[i];
-	    status = table_get(table, key, &j);
-	    if (status != TABLE_EMPY)
-		rad[i] = vf[j];
-	    else
-		rad[i] = 0;
-	}
+    nt = vtk_nt(vtk);
+    for (iVolume = 0; iVolume < nVolume; iVolume++) {
+      vf = csv_field(csv, Volume[iVolume]);
+      if (vf == NULL) {
+        fprintf(stderr, "%s: no field '%s' in csv file\n", me,
+                Volume[iVolume]);
+        exit(2);
+      }
+      if (vtk_add(vtk, Volume[iVolume], VTK_CELL, VTK_DOUBLE) != 0) {
+        fprintf(stderr, "%s: fail to add '%s'\n", me, Volume[iVolume]);
+        exit(2);
+      }
+      rad = vtk_data(vtk, Volume[iVolume]);
+      for (i = 0; i < nt; i++) {
+        key = (int) cl[i];
+        status = table_get(table, key, &j);
+        if (status != TABLE_EMPY)
+          rad[i] = vf[j];
+        else
+          rad[i] = 0;
+      }
     }
     if ((f = fopen(output, "w")) == NULL) {
       fprintf(stderr, "%s: fail to write to '%s'\n", me, output);
