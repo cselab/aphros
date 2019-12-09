@@ -6,19 +6,24 @@ import os
 import re
 import sys
 
+me = "volume"
 eps = 1e-2
 av = sys.argv
 if '-h' in av:
-  print("{:} [hdf ..]".format(os.path.basename(av[0])))
+  sys.stderr.write("%s [hdf ..]\n" % me)
   exit(1)
 
-for f in av[1:]:
-  time = os.path.basename(f)
+for file in av[1:]:
+  time = os.path.basename(file)
   time = os.path.splitext(time)[0]
   time = re.sub(".*_", "", time)
-  time = int(time)
+  try:
+    time = int(time)
+  except ValueError:
+    sys.stderr.write("%s: no time in filename '%s'\n" % (me, file))
+    sys.exit(2)
 
-  h = h5py.File(f, 'r')
+  h = h5py.File(file, 'r')
   u = h['data']
   u = np.array(u)
   h.close()
