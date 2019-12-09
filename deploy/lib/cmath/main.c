@@ -65,7 +65,8 @@ cmath_eig_values(const double A[6], /**/ double VAL[3])
 }
 
 int
-cmath_eig_vectors(const double A[6], /**/ double a[3], double b[3], double c[3])
+cmath_eig_vectors(const double A[6], /**/ double a[3], double b[3],
+                  double c[3])
 {
   enum { XX, XY, XZ, YY, YZ, ZZ };
   enum { YX = XY, ZX = XZ, ZY = YZ };
