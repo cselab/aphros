@@ -4,7 +4,7 @@ me=line
 : ${SEP=,}
 
 usg () {
-    cat >&2 s<<!
+    cat >&2 <<!
 $me csv > vtk
 !
 exit 2
