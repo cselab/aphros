@@ -22,5 +22,5 @@ for d in $l
 do (
     e cd $d
     echo Entering `pwd`
-    e make install PRE=$PRE
+    e make install PRE=$PRE CC=cc
 ) done
