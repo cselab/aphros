@@ -25,6 +25,7 @@ instfnd hist
 instfnd histbin
 instfnd intcol
 instfnd kedr
+instfnd line
 instfnd makearg
 instfnd part
 instfnd part0
