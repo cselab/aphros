@@ -140,7 +140,7 @@ main(int argc, char **argv)
 	lx[i] = a;
 	ly[i] = b;
 	lz[i] = c;
-	rg[i] = a + b + c;
+	rg[i] = sqrt(a + b + c);
 	asphericity[i] = c - (a + b)/2;
     }
     if (util_name(Prefix, *argv, output) != 0) {
