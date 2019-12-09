@@ -11,8 +11,7 @@ e () {
 }
 
 # XXX order 'l' to satisfy dependencies
-
-l="fpzip h5 march overlap vofi vof"
+l="chmath fpzip h5 march overlap vofi vof"
 for d in $l ; do
   echo Entering $d
   e "(cd $d && ./conf && make install)"

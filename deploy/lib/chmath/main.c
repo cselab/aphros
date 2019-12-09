@@ -6,9 +6,9 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
 #include "err.h"
-#include "cmath.h"
+#include "chmath.h"
 
-static char *me = "cmath";
+static char *me = "chmath";
 
 static double
 get(const gsl_matrix * m, int i, int j)
@@ -17,7 +17,7 @@ get(const gsl_matrix * m, int i, int j)
 }
 
 int
-cmath_eig_values(const double A[6], /**/ double VAL[3])
+chmath_eig_values(const double A[6], /**/ double VAL[3])
 {
   enum { XX, XY, XZ, YY, YZ, ZZ };
   enum { YX = XY, ZX = XZ, ZY = YZ };
@@ -65,7 +65,7 @@ cmath_eig_values(const double A[6], /**/ double VAL[3])
 }
 
 int
-cmath_eig_vectors(const double A[6], /**/ double a[3], double b[3],
+chmath_eig_vectors(const double A[6], /**/ double a[3], double b[3],
                   double c[3])
 {
   enum { XX, XY, XZ, YY, YZ, ZZ };

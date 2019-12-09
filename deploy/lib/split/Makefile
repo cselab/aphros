@@ -8,6 +8,7 @@ M_CFLAGS = -I$(CHPREFIX)/include
 M = \
 color\
 column\
+gyration\
 filter\
 split\
 
