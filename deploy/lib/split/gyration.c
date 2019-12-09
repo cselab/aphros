@@ -10,6 +10,7 @@
 
 enum { N = 999 };
 static const char me[] = "gyration";
+
 #include "util.h"
 
 #define GET(f, r)							\
@@ -54,7 +55,8 @@ usg()
   exit(1);
 }
 
-static int gyration(double x, double, double, double xx, double, double, double, double, double, double *, double *, double *);
+static int gyration(double x, double, double, double xx, double, double,
+                    double, double, double, double *, double *, double *);
 
 int
 main(int argc, char **argv)
@@ -135,13 +137,15 @@ main(int argc, char **argv)
     ADD("rg", &rg);
     nr = csv_nr(csv);
     double a, b, c;
-    for (i = 0; i < nr; i++){
-	gyration(x[i], y[i], z[i], xx[i], xy[i], xz[i], yy[i], yz[i], zz[i], &a, &b, &c);
-	lx[i] = a;
-	ly[i] = b;
-	lz[i] = c;
-	rg[i] = sqrt(a + b + c);
-	asphericity[i] = c - (a + b)/2;
+
+    for (i = 0; i < nr; i++) {
+      gyration(x[i], y[i], z[i], xx[i], xy[i], xz[i], yy[i], yz[i], zz[i],
+               &a, &b, &c);
+      lx[i] = a;
+      ly[i] = b;
+      lz[i] = c;
+      rg[i] = sqrt(a + b + c);
+      asphericity[i] = c - (a + b) / 2;
     }
     if (util_name(Prefix, *argv, output) != 0) {
       fprintf(stderr, "%s: util_name failed\n", me);
@@ -153,7 +157,7 @@ main(int argc, char **argv)
     }
     if (csv_write(csv, file) != 0) {
       fprintf(stderr, "%s: fail to wrote to '%s'\n", me, *argv);
-      exit(2);	
+      exit(2);
     }
     fclose(file);
   }
@@ -161,8 +165,8 @@ main(int argc, char **argv)
 
 static int
 gyration(double x, double y, double z, double xx, double xy,
-	 double xz, double yy, double yz, double zz,
-	 double *a, double *b, double *c)
+         double xz, double yy, double yz, double zz,
+         double *a, double *b, double *c)
 {
   enum { X, Y, Z };
   enum { XX, XY, XZ, YY, YZ, ZZ };
@@ -184,4 +188,3 @@ gyration(double x, double y, double z, double xx, double xy,
   *c = val[Z];
   return 0;
 }
-

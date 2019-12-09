@@ -50,15 +50,15 @@ main(int argc, char **argv)
     case 'f':
       argv++;
       if ((Field = *argv) == NULL) {
-	fprintf(stderr, "%s: -f needs an argument\n", me);
-	exit(2);
+        fprintf(stderr, "%s: -f needs an argument\n", me);
+        exit(2);
       }
       break;
     case 'p':
       argv++;
       if ((Prefix = *argv) == NULL) {
-	fprintf(stderr, "%s: -p needs an argument\n", me);
-	exit(2);
+        fprintf(stderr, "%s: -p needs an argument\n", me);
+        exit(2);
       }
       break;
     case '-':
