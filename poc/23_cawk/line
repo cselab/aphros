@@ -1,7 +1,7 @@
 #!/bin/sh
 
 me=line
-sep=,
+: ${SEP=,}
 
 usg () {
     cat >&2 s<<!
@@ -20,7 +20,7 @@ do case "$i" in
    esac
 done
 
-"${AWK-awk}" -v FS="$sep" -v me="$me" '
+"${AWK-awk}" -v FS="$SEP" -v me="$me" '
 NR == 1 {
     split($0, key)
     for (i = 1; i in key; i++)
@@ -79,4 +79,4 @@ function err(a, b, c, d)
     exit 2
 }
 
-'
+' "$@"
