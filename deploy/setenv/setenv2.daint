@@ -5,6 +5,7 @@ module load daint-gpu
 module swap PrgEnv-cray PrgEnv-gnu
 module load cray-hdf5-parallel
 module load cray-python
+module load GSL
 
 export CC=cc
 export CXX=CC
