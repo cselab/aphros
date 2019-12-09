@@ -16,6 +16,7 @@ do case "$i" in
        -h) usg
            ;;
        -*) echo >&2 "$me: unknonw option '$i'"
+           exit 2
            ;;
    esac
 done
