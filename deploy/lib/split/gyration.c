@@ -65,6 +65,7 @@ main(int argc, char **argv)
   char output[N];
   char *Prefix;
   double *asphericity;
+  double *acylindricity;
   double *lx;
   double *ly;
   double *lz;
@@ -135,6 +136,7 @@ main(int argc, char **argv)
     ADD("lz", &lz);
     ADD("asphericity", &asphericity);
     ADD("rg", &rg);
+    ADD("acylindricity", &acylindricity);
     nr = csv_nr(csv);
     double a, b, c;
 
@@ -146,6 +148,7 @@ main(int argc, char **argv)
       lz[i] = c;
       rg[i] = sqrt(a + b + c);
       asphericity[i] = c - (a + b) / 2;
+      acylindricity[i] = b - a;
     }
     if (util_name(Prefix, *argv, output) != 0) {
       fprintf(stderr, "%s: util_name failed\n", me);

@@ -19,6 +19,10 @@
 
     ch.filter -f cl -p sf_%.vtk 3598 12874 -- sm_0{158..163}.vtk
 
+    co.gyration -p a_%.csv /u/pasc_nn096/traj_*.csv
+    ch.color -p a_%.vtk -k cl -f r rg asphericity -- a_*0.csv -- /u/pasc_nn096/sm_*0.vtk
+
+
 # awk
 
     cawk 'prog' [file ..]
