@@ -48,10 +48,13 @@ class DistrMesh : public Distr {
   virtual void ReportOpenmp();
   virtual ~DistrMesh() {
     hist_.Append(this->samp_); // collect samples from derived classes
-    const auto it = hist_.GetSamples().find("RunKernels(inner)");
-    if (it != hist_.GetSamples().end()) {
-      hist_.Insert("ComputeTime", it->second);
-      hist_.Insert("TransferTime", hist_.GetSamples().at("waitall_avail_halo"));
+    const auto it_comp = hist_.GetSamples().find("RunKernels(inner)");
+    if (it_comp != hist_.GetSamples().end()) {
+      hist_.Insert("ComputeTime", it_comp->second);
+    }
+    const auto it_wait = hist_.GetSamples().find("waitall_avail_halo");
+    if (it_wait != hist_.GetSamples().end()) {
+      hist_.Insert("TransferTime", it_wait->second);
     }
   }
   virtual typename M::BlockCells GetGlobalBlock() const;
