@@ -36,6 +36,10 @@ def GetMap(d):
 def DiffRel(r0, r1):
     return (r0 - r1) / max(r0, r1) > 0.1
 
+# True if reduction of volume is less 50%
+def VolHalf(v0, v1):
+    return (v0 - v1) / max(v0, v1) < 0.5
+
 def Write(d, ccl, i, p="a_%.csv"):
     m = GetMap(d)
     dc =  np.array([m[cl] for cl in ccl], dtype=d.dtype)
@@ -111,21 +115,42 @@ def Plot(m0, m1, diff):
 def GetIndex(path):
     return int(re.findall(".*_(\d*)", path)[0])
 
-#cl0 = float(sys.argv[1])
-#pp = sys.argv[2:]
-clinit = 4654
-pp = sorted(glob.glob("traj_00??.csv"))
+cl0 = float(sys.argv[1])
+pp = sys.argv[2:]
 
 out = sys.stdout
 
-cl = clinit
+cl = float(clinit)
 m1 = None
 m0 = None
 
 WriteLine('n,' + StrHeader(Read(pp[0])), out)
 
 for i in range(0, len(pp)):
+    print(i)
     m0 = m1
     m1 = GetMap(Read(pp[i]))
-    if cl in m1:
+    if cl in m1 and (m0 is None or cl not in m0
+            or VolHalf(m0[cl]['vf'], m1[cl]['vf'])):
         WriteLine(str(i) + ',' + StrRow(m1[cl]), out)
+    else:
+        if m0 is None or cl not in m0:
+            continue
+        def Cost(cln):
+            dist = ((m0[cl]['x'] - m1[cln]['x'])**2 +
+                  (m0[cl]['y'] - m1[cln]['y'])**2 +
+                  (m0[cl]['z'] - m1[cln]['z'])**2) ** 0.5
+            r0 = m0[cl]['r']
+            r1 = m1[cln]['r']
+            return dist + min(0, r0 - r1)
+        new = set(m1) - set(m0)
+        if not len(new):
+            continue
+        clbest = list(new)[0]
+        for cln in new:
+            if Cost(cln) < Cost(clbest):
+                clbest = cln
+        cl = clbest
+        print('cl=', cl)
+        WriteLine(str(i) + ',' + StrRow(m1[cl]), out)
+
