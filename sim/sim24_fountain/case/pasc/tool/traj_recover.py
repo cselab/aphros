@@ -67,7 +67,7 @@ m0 = None
 WriteLine('n,' + StrHeader(Read(pp[0])), out)
 
 for i in range(0, len(pp)):
-    std.stderr.write("{:}".format(i) + '\n')
+    sys.stderr.write("{:}".format(i) + '\n')
     m0 = m1
     m1 = GetMap(Read(pp[i]))
     if cl in m1 and (m0 is None or cl not in m0
