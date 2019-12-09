@@ -11,13 +11,13 @@ e () {
 }
 
 # XXX order 'l' to satisfy dependencies
-l="chmath fpzip h5 march overlap vofi vof"
+l="fpzip h5 march overlap vofi vof"
 for d in $l ; do
   echo Entering $d
   e "(cd $d && ./conf && make install)"
 done
 
-l="csv table vtk vtkcolor split"
+l="chmath csv table vtk vtkcolor split"
 for d in $l
 do (
     e cd $d
