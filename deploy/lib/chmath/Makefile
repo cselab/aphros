@@ -19,9 +19,9 @@ err.o: err.h
 
 lint:; make CFLAGS='-Wall -Wextra -g -O2'
 install: $L $H
-	mkdir -p -- "$(PREFIX)/lib" "$(PREFIX)/include/poc"
+	mkdir -p -- "$(PREFIX)/lib" "$(PREFIX)/include/"
 	cp -- $L "$(PREFIX)/lib/"
-	cp -- $H "$(PREFIX)/include/poc/"
+	cp -- $H "$(PREFIX)/include/"
 
 .PHONY: clean lint install
 clean:; rm -f -- $O $L
