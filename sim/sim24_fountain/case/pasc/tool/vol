@@ -1,0 +1,10 @@
+#!/bin/bash
+
+ch.cawk '
+  $r < 0.1 {vol += $vf ; cnt++}
+  FNR==2 {
+    print vol , cnt
+    vol = 0
+    cnt = 0
+  }
+' traj_*.csv > vol.dat
