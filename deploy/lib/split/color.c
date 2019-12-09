@@ -15,8 +15,6 @@ static char me[] = "color";
 #include "util.h"
 
 #define	USED(x)		if(x);else{}
-static double pi = 3.141592653589793;
-
 static void
 usg()
 {

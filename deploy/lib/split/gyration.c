@@ -5,30 +5,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <csv.h>
-#include <cmath.h>
+#include <chmath.h>
 #include <table.h>
 
 enum { N = 999 };
-static const char me[] = "csv2ellipsoid";
-
+static const char me[] = "gyration";
 #include "util.h"
-#include "ico.inc"
-
-struct Transform {
-  double r[3];
-  double a[3];
-  double b[3];
-  double c[3];
-  double scale[3];
-  double rg;
-};
-
-static int transform_ini(double x, double, double, double xx, double,
-                         double, double, double, double,
-                         struct Transform *);
-static int transform_apply(struct Transform *, double x, double, double,
-                           double[3]);
-static int transform_rg(struct Transform *, double *);
 
 #define GET(f, r)							\
   if ((*r = csv_field(csv, f)) == NULL) {				\
@@ -37,6 +19,15 @@ static int transform_rg(struct Transform *, double *);
     exit(2);								\
   }
 
+#define ADD(f, r)							\
+    do {								\
+	if (csv_add(csv, f) != 0) {					\
+	    fprintf(stderr, "%s: fail to add '%s' to '%s'\n",		\
+		    me, (f), *argv);					\
+	    exit(2);							\
+	}								\
+	GET(f, r);							\
+    } while (0)								\
 
 #define	USED(x)		if(x);else{}
 #define MALLOC(n, p)							\
@@ -63,29 +54,30 @@ usg()
   exit(1);
 }
 
+static int gyration(double x, double, double, double xx, double, double, double, double, double, double *, double *, double *);
+
 int
 main(int argc, char **argv)
 {
   enum { X, Y, Z };
   char output[N];
   char *Prefix;
-  double *r;
+  double *asphericity;
+  double *lx;
+  double *ly;
+  double *lz;
+  double *rg;
   double *x;
-  double *y;
-  double *z;
   double *xx;
   double *xy;
   double *xz;
+  double *y;
   double *yy;
   double *yz;
+  double *z;
   double *zz;
-  double u[3];
-  struct Transform transform;
   FILE *file;
   int i;
-  int j;
-  int k;
-  int nf;
   int nr;
   struct CSV *csv;
 
@@ -136,10 +128,21 @@ main(int argc, char **argv)
     GET("yy", &yy);
     GET("yz", &yz);
     GET("zz", &zz);
-    GET("r", &r);
-    nf = csv_nf(csv);
+    ADD("lx", &lx);
+    ADD("ly", &ly);
+    ADD("lz", &lz);
+    ADD("asphericity", &asphericity);
+    ADD("rg", &rg);
     nr = csv_nr(csv);
-
+    double a, b, c;
+    for (i = 0; i < nr; i++){
+	gyration(x[i], y[i], z[i], xx[i], xy[i], xz[i], yy[i], yz[i], zz[i], &a, &b, &c);
+	lx[i] = a;
+	ly[i] = b;
+	lz[i] = c;
+	rg[i] = a + b + c;
+	asphericity[i] = c - (a + b)/2;
+    }
     if (util_name(Prefix, *argv, output) != 0) {
       fprintf(stderr, "%s: util_name failed\n", me);
       exit(2);
@@ -148,114 +151,37 @@ main(int argc, char **argv)
       fprintf(stderr, "%s: fail to write to '%s'\n", me, output);
       exit(2);
     }
-    if (fputs("# vtk DataFile Version 2.0\n", file) == EOF) {
-      fprintf(stderr, "%s: fail to write\n", me);
-      return 1;
-    }
-    fprintf(file, "%s\n", me);
-    fputs("ASCII\n", file);
-    fputs("DATASET POLYDATA\n", file);
-    fprintf(file, "POINTS %d double\n", nr * ico_nv);
-    for (i = 0; i < nr; i++) {
-      transform_ini(x[i], y[i], z[i], xx[i], xy[i], xz[i], yy[i], yz[i],
-                    zz[i], &transform);
-      for (j = 0; j < ico_nv; j++) {
-        transform_apply(&transform, ico_x[j], ico_y[j], ico_z[j], u);
-        fprintf(file, "%.16g %.16g %.16g\n", u[X], u[Y], u[Z]);
-      }
-    }
-    fprintf(file, "POLYGONS %d %d\n", nr * ico_nt, 4 * nr * ico_nt);
-    for (i = 0; i < nr; i++)
-      for (j = 0; j < ico_nt; j++)
-        fprintf(file, "3 %d %d %d\n",
-                ico_nv * i + ico_t0[j],
-                ico_nv * i + ico_t1[j], ico_nv * i + ico_t2[j]);
-
-    fprintf(file, "CELL_DATA %d\n", nr * ico_nt);
-    for (i = 0; i < nf; i++) {
-      fprintf(file, "SCALARS %s double 1\n", csv->name[i]);
-      fprintf(file, "LOOKUP_TABLE default\n");
-      for (j = 0; j < nr; j++)
-        for (k = 0; k < ico_nt; k++)
-          fprintf(file, "%.16g\n", csv->data[i][j]);
+    if (csv_write(csv, file) != 0) {
+      fprintf(stderr, "%s: fail to wrote to '%s'\n", me, *argv);
+      exit(2);	
     }
     fclose(file);
-    csv_fin(csv);
   }
 }
 
-int
-transform_ini(double x, double y, double z, double xx, double xy,
-              double xz, double yy, double yz, double zz,
-              struct Transform *t)
+static int
+gyration(double x, double y, double z, double xx, double xy,
+	 double xz, double yy, double yz, double zz,
+	 double *a, double *b, double *c)
 {
   enum { X, Y, Z };
   enum { XX, XY, XZ, YY, YZ, ZZ };
   double i[6];
-  double rg;
-  double *scale;
+  double val[3];
 
-  scale = t->scale;
-  t->r[X] = x;
-  t->r[Y] = y;
-  t->r[Z] = z;
   i[XX] = xx - x * x;
   i[XY] = xy - x * y;
   i[XZ] = xz - x * z;
   i[YY] = yy - y * y;
   i[YZ] = yz - y * z;
   i[ZZ] = zz - z * z;
-  rg = i[XX] + i[YY] + i[ZZ];
-  rg = sqrt(5*rg/3);
-  if (math_eig_vectors(i, t->a, t->b, t->c) != 0) {
-    fprintf(stderr, "%s: math_eig_vectors failed\n", me);
-    exit(2);
-  }
-  if (math_eig_values(i, t->scale) != 0) {
+  if (chmath_eig_values(i, val) != 0) {
     fprintf(stderr, "%s: math_eig_values failed\n", me);
     exit(2);
   }
-  t->rg = rg;
-  scale[X] = sqrt(fabs(5 * scale[X]));
-  scale[Y] = sqrt(fabs(5 * scale[Y]));
-  scale[Z] = sqrt(fabs(5 * scale[Z]));
-  return 0;
-}
-
-int
-transform_apply(struct Transform *t, double x, double y, double z,
-                double v[3])
-{
-  enum { X, Y, Z };
-  const double *a;
-  const double *b;
-  const double *c;
-  const double *r;
-  const double *scale;
-
-  a = t->a;
-  b = t->b;
-  c = t->c;
-  r = t->r;
-  scale = t->scale;
-  x *= scale[X];
-  y *= scale[Y];
-  z *= scale[Z];
-  v[X] = x * a[X] + y * b[X] + z * c[X];
-  v[Y] = x * a[Y] + y * b[Y] + z * c[Y];
-  v[Z] = x * a[Z] + y * b[Z] + z * c[Z];
-
-  v[X] += r[X];
-  v[Y] += r[Y];
-  v[Z] += r[Z];
-
-  return 0;
-}
-
-static int
-transform_rg(struct Transform *t, double *p)
-{
-  *p = t->rg;
+  *a = val[X];
+  *b = val[Y];
+  *c = val[Z];
   return 0;
 }
 

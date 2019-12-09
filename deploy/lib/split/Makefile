@@ -2,7 +2,8 @@
 PRE = ch.
 LINK = $(CC)
 CFLAGS = -g -Og
-M_LDFLAGS = -L$(CHPREFIX)/lib -lvtk -lcsv -ltable -lm
+GSL_LDFLAGS = `gsl-config --libs`
+M_LDFLAGS = -L$(CHPREFIX)/lib -lvtk -lcsv -ltable -lchmath
 M_CFLAGS = -I$(CHPREFIX)/include
 
 M = \
@@ -13,7 +14,7 @@ filter\
 split\
 
 all: $M
-.o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@
+.o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) $(GSL_LDFLAGS) -o $@
 .c.o:; $(CC) $(CFLAGS) $(M_CFLAGS) $< -c
 
 color.o: util.h
