@@ -35,6 +35,7 @@ instfnd statcopy
 instfnd task
 instfnd trajaxes
 instfnd vtkcolorall
+instfnd vtkcutcl
 
 cp -rvf ch "$BB/" || true
 
