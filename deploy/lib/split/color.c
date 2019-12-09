@@ -31,7 +31,7 @@ main(int argc, char **argv)
   char output[N];
   char *path;
   char *Prefix;
-  char *Volume;
+  char *Volume[N];
   char **Vtk;
   double *cl_csv;
   double *rad;
@@ -39,17 +39,20 @@ main(int argc, char **argv)
   FILE *f;
   float *cl;
   int i;
+  int iVolume;
   int j;
   int key;
   int nr;
   int nt;
+  int nVolume;
   int status;
   struct CSV *csv;
   struct Table *table;
   struct VTK *vtk;
 
   USED(argc);
-  Prefix = Key = Volume = NULL;
+  Prefix = Key = NULL;
+  nVolume = 0;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
     case 'h':
@@ -63,12 +66,11 @@ main(int argc, char **argv)
       }
       break;
     case 'f':
-      argv++;
-      if ((Volume = *argv) == NULL) {
-        fprintf(stderr, "%s: -f needs an argument\n", me);
-        exit(2);
-      }
-      break;
+	while (*++argv != NULL && argv[0][0] != '-' && argv[0][1] != '-') {
+	    fprintf(stderr, "%s: %s\n", me, *argv);
+	    Volume[nVolume++] = *argv;
+	}
+	break;
     case 'p':
       argv++;
       if ((Prefix = *argv) == NULL) {
@@ -84,8 +86,8 @@ main(int argc, char **argv)
     fprintf(stderr, "%s: key (-k) is not given\n", me);
     exit(1);
   }
-  if (Volume == NULL) {
-    fprintf(stderr, "%s: field (-f) is not given\n", me);
+  if (nVolume == 0) {
+    fprintf(stderr, "%s: field (-f) is not set\n", me);
     exit(1);
   }
   if (Prefix == NULL) {
@@ -137,14 +139,10 @@ main(int argc, char **argv)
       fprintf(stderr, "%s: no field '%s' in vtk file\n", me, Key);
       exit(2);
     }
+
     cl_csv = csv_field(csv, Key);
     if (cl_csv == NULL) {
       fprintf(stderr, "%s: no field '%s' in csv file\n", me, Key);
-      exit(2);
-    }
-    vf = csv_field(csv, Volume);
-    if (vf == NULL) {
-      fprintf(stderr, "%s: no field '%s' in csv file\n", me, Volume);
       exit(2);
     }
     nr = csv_nr(csv);
@@ -153,16 +151,24 @@ main(int argc, char **argv)
       key = (int) cl_csv[i];
       table_put(table, key, i);
     }
-    vtk_add(vtk, Volume, VTK_CELL, VTK_DOUBLE);
-    rad = vtk_data(vtk, Volume);
-    nt = vtk_nt(vtk);
-    for (i = 0; i < nt; i++) {
-      key = (int) cl[i];
-      status = table_get(table, key, &j);
-      if (status != TABLE_EMPY)
-        rad[i] = vf[j];
-      else
-        rad[i] = 0;
+
+    for (iVolume = 0; i < iVolume; iVolume++) {
+	vf = csv_field(csv, Volume[iVolume]);
+	if (vf == NULL) {
+	    fprintf(stderr, "%s: no field '%s' in csv file\n", me, Volume[iVolume]);
+	    exit(2);
+	}
+	vtk_add(vtk, Volume[iVolume], VTK_CELL, VTK_DOUBLE);
+	rad = vtk_data(vtk, Volume[iVolume]);
+	nt = vtk_nt(vtk);
+	for (i = 0; i < nt; i++) {
+	    key = (int) cl[i];
+	    status = table_get(table, key, &j);
+	    if (status != TABLE_EMPY)
+		rad[i] = vf[j];
+	    else
+		rad[i] = 0;
+	}
     }
     if ((f = fopen(output, "w")) == NULL) {
       fprintf(stderr, "%s: fail to write to '%s'\n", me, output);
