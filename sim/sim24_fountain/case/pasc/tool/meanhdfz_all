@@ -2,7 +2,7 @@
 
 set -eu
 
-for f in ../vf_*0.h5 ; do
+for f in ../vf_*.h5 ; do
   echo "$f"
   h=`basename "$f"`
   h=vfz_${h#vf_}
