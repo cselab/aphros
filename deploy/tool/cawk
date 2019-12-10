@@ -87,8 +87,8 @@ BEGIN {
       }
       for (i = 1; i in key; i++)
           gsub("\\$" key[i], "$" i, prog)
-      prog = "FNR == 1 { HEADER = $0; next }\n" prog
-      print prog > tmp
+      pre  = "FNR == 1 { TIME = FILENAME; sub(/.*_/, \"\", TIME); sub(/\\..*/, \"\", TIME); HEADER = $0; next }"
+      print pre "\n" prog > tmp
       cmd = sprintf("%s %s -F %s -f %s %s", quote(awk), arg, quote(sep), tmp, Quote(ARGV))
       rc = system(cmd)
       exit(rc)
