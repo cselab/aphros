@@ -22,7 +22,7 @@
     co.gyration -p a_%.csv /u/pasc_nn096/traj_*.csv
     ch.color -p a_%.vtk -k cl -f r rg asphericity -- a_*0.csv -- /u/pasc_nn096/sm_*0.vtk
 
-    ch.cawk '$r < 0.2 {print $r, $vf}' /u/pasc_nn192/traj_0[2]*.csv  | ch.hist --density --range 0 0.2 --bins 50 > b
+    ch.cawk '$r < 0.2 {print $r, $vf/(ARGC - 1)}' /u/pasc_nn192/traj_0[2]*.csv  | ch.hist --range 0 0.2 --bins 50 > b
 
 # awk
 
