@@ -1,0 +1,3 @@
+echo 12 > np
+echo 300 > tl
+ch.submit0 ./run
