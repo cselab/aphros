@@ -86,30 +86,23 @@ renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.OrientationAxesVisibility = 0
 renderView1.CenterOfRotation = [0.5, 1.5, 0.5]
 renderView1.StereoType = 0
+renderView1.UseLight = 1
+renderView1.KeyLightWarmth = 0.5
+renderView1.FillLightWarmth = 0.5
 renderView1.CameraPosition =\
-[1.326166076499316, 1.581412512627694, 3.5052432288262967]
+[2.0641204031229305, 1.3469838800348422, 3.208017847685781]
 renderView1.CameraFocalPoint =\
-[0.45722849374168073, 0.4442839115593683, 0.4806707888589165]
+[0.44809499933849006, 0.48095847625040666, 0.40897974200911913]
 renderView1.CameraViewUp =\
-[-0.08433283755119116, 0.9404371241304461, -0.3293417496580418]
-renderView1.CameraParallelScale = 1.6583123951777
+[-0.12940952255125976, 0.9659258262890686, -0.22414386804201236]
+renderView1.CameraParallelScale = 0.6869798893272092
+renderView1.CameraParallelProjection = 1
 
 
 
 
-renderView1.Background = [0.0, 0.0, 0.0]
-renderView1.Shadows = 1
-renderView1.AmbientSamples = 5
-renderView1.SamplesPerPixel = 10
-renderView1.OSPRayMaterialLibrary = materialLibrary1
 
-# init the 'GridAxes3DActor' selected for 'AxesGrid'
-renderView1.AxesGrid.XTitleFontFile = ''
-renderView1.AxesGrid.YTitleFontFile = ''
-renderView1.AxesGrid.ZTitleFontFile = ''
-renderView1.AxesGrid.XLabelFontFile = ''
-renderView1.AxesGrid.YLabelFontFile = ''
-renderView1.AxesGrid.ZLabelFontFile = ''
+renderView1.Background = [1.]*3
 
 # ----------------------------------------------------------------
 # restore active view
@@ -145,6 +138,12 @@ vft = [surf]
 # ----------------------------------------------------------------
 
 surf = GenerateSurfaceNormals(Input=surf)
+
+surf = Calculator(Input=surf)
+surf.ResultNormals = 1
+surf.AttributeType = 'Point Data'
+surf.ResultArrayName = 'normals'
+surf.Function = 'nn'
 
 clip1 = Clip(Input=surf)
 clip1.ClipType = 'Plane'
