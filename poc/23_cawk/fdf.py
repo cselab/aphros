@@ -30,10 +30,10 @@ for f in sys.argv[1:]:
         dr = np.array([dx, dy, dz])**2
         dr = np.mean(dr, axis = 0)**0.5
         dv = dr / (r[i] + r)
-        idx = np.where(dr > rmin)
+        idx = np.where( (dr > rmin) & (2*np.abs(r[i] - r)/(r[i] + r) < 0.5) )
         dr = dr[idx]
         dv = dv[idx]
-        val, edge = np.histogram(dv, bins=bins, weights = None, range=rng)
+        val, edge = np.histogram(dv, bins=bins, weights = 1/dr**2, range=rng)
         sval += val
 
 sval /= sval.mean()
