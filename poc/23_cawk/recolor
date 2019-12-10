@@ -1,22 +1,17 @@
 #/bin/sh
 
-eps=0.0052
-frq=0.1
+me=recolor
+eps=0.01041666666666667
+frq=0.01
+rmax=0.5
 
-ch.cawk -v eps=$eps -v frq=$frq '
-function same0(dx, dr,   s) {
-    s = dx < 5*eps && dr < frq
+ch.cawk -v me="$me" -v eps=$eps -v frq=$frq -v rmax=$rmax '
+function same0(dx, dv,   s) {
+    s = (dv > -eps) && dv < frq && dx < 0.05
     return s
 }
-
-FNR == 2 { file ++ }
-$r < eps { next }
-file == 1 {
-    one[$cl]
-}
-
-file == 2 {
-    two[$cl]
+FNR == 2 {
+    file ++
 }
 
 {
@@ -24,6 +19,23 @@ file == 2 {
     y[file, $cl] = $y
     z[file, $cl] = $z
     r[file, $cl] = $r
+    vf[file, $cl] = $vf
+}
+
+$r < eps  || $r > rmax {
+    if (file == 1)
+        skip1[$cl]
+    else
+        skip2[$cl]
+    next
+}
+
+file == 1 {
+    one[$cl]
+}
+
+file == 2 {
+    two[$cl]
 }
 
 END {
@@ -42,23 +54,42 @@ END {
     for (i in old) {
         nold++
         if (!same(i, i)) {
+            Nwrong++
             delete old[i]
             dead[i]
             new[i]
         }
     }
 
-    for (i in new)
-        for (j in dead) {
-            if (same(i, j))
-                print i, j
-        }
+    for (i in dead)
+        for (j in new)
+            if (same(i, j)) {
+                map[j] = i
+                delete dead[i]
+                delete new[j]
+                break
+            }
+
+    #msg("old : %d", nelem(old))
+    #msg("map : %d", nelem(map))    
+    msg("new : %d", nelem(new))
+    msg("dead : %d", nelem(dead))
+    msg("wrong: %d", Nwrong)
+    msg("nelem(map): %d", nelem(map))
+    vdead = volume(dead, 1)
+    vnew = volume(new, 2)
+    msg("volume(old): %g %g", volume(old, 1), volume(old, 2))
+    msg("volume(new, dead): %g %g", vnew, vdead)
+    msg("%.2f%%", 100*rdiff(vnew, vdead))
+
+    msg("skip: %d %d", nelem(skip1), nelem(skip2))
+    msg("skip: %g", volume(skip1, 1) - volume(skip2, 2))
 }
 
-function same(i, j,   dx, dr) {
+function same(i, j,   dx, dv) {
     dx  = vabs(x[1, i],y[1, i],z[1, i],x[2, j],y[2, j],z[2, j])
-    dr = rdiff(r[1, i], r[2, j])
-    return same0(dx, dr)
+    dv = rdiff(vf[1, i], vf[2, j])
+    return same0(dx, dv)
 }
 
 function vabs(x, y, z, u, v, w) {
@@ -68,11 +99,9 @@ function vabs(x, y, z, u, v, w) {
     return sqrt(x^2 + y^2 + z^2)
 }
 
-function rdiff(a, b,   c, d) {
-    c = abs(a)
-    d = abs(b)
-    d = max(c, d)
-    return d == 0 ? 0 : abs(a - b)/d;
+function rdiff(a, b,   d) {
+    d = max(a, b)
+    return d == 0 ? 0 : (a - b)/d;
 }
 
 function abs(a) {
@@ -81,6 +110,25 @@ function abs(a) {
 
 function max(a, b) {
     return a > b ? a : b
+}
+
+function msg(a, b, c, d, e) {
+    printf "%s: " a "\\n", me, b, c, d, e, f | "cat >&2"
+}
+
+function nelem(a, i, cnt)
+{
+    for (i in a)
+        cnt++
+    return cnt + 0
+}
+
+function volume(a, file,   i, v)
+{
+    for (i in a) {
+        v += vf[file, i]
+    }
+    return v + 0
 }
 
 ' "$@"
