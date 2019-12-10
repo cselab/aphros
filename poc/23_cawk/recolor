@@ -1,0 +1,86 @@
+#/bin/sh
+
+eps=0.0052
+frq=0.1
+
+ch.cawk -v eps=$eps -v frq=$frq '
+function same0(dx, dr,   s) {
+    s = dx < 5*eps && dr < frq
+    return s
+}
+
+FNR == 2 { file ++ }
+$r < eps { next }
+file == 1 {
+    one[$cl]
+}
+
+file == 2 {
+    two[$cl]
+}
+
+{
+    x[file, $cl] = $x
+    y[file, $cl] = $y
+    z[file, $cl] = $z
+    r[file, $cl] = $r
+}
+
+END {
+    for (i in two)
+        if (!(i in one))
+            new[i]
+
+    for (i in one)
+        if (!(i in two))
+            dead[i]
+
+    for (i in one)
+        if (i in two)
+            old[i]
+
+    for (i in old) {
+        nold++
+        if (!same(i, i)) {
+            delete old[i]
+            dead[i]
+            new[i]
+        }
+    }
+
+    for (i in new)
+        for (j in dead) {
+            if (same(i, j))
+                print i, j
+        }
+}
+
+function same(i, j,   dx, dr) {
+    dx  = vabs(x[1, i],y[1, i],z[1, i],x[2, j],y[2, j],z[2, j])
+    dr = rdiff(r[1, i], r[2, j])
+    return same0(dx, dr)
+}
+
+function vabs(x, y, z, u, v, w) {
+    x -= u
+    y -= v
+    z -= w
+    return sqrt(x^2 + y^2 + z^2)
+}
+
+function rdiff(a, b,   c, d) {
+    c = abs(a)
+    d = abs(b)
+    d = max(c, d)
+    return d == 0 ? 0 : abs(a - b)/d;
+}
+
+function abs(a) {
+    return a > 0 ? a : -a
+}
+
+function max(a, b) {
+    return a > b ? a : b
+}
+
+' "$@"
