@@ -92,6 +92,9 @@ renderView1.CameraViewUp =\
 [0.09132419340667113, 0.9432155648200823, -0.31938110460663494]
 renderView1.CameraParallelScale = 0.0155989162954
 renderView1.CameraParallelProjection = 1
+renderView1.UseLight = 1
+renderView1.KeyLightWarmth = 0.5
+renderView1.FillLightWarmth = 0.5
 
 
 renderView1.Background = [1.0]*3

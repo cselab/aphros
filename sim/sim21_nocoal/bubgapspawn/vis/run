@@ -1,2 +1,2 @@
 ./contvtk.py ../sm_*0.vtk
-r=30 r.pngmp4
+r=30 r.pngmp4 a a.mp4 -y
