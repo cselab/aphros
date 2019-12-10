@@ -55,7 +55,7 @@ END {
     printf "POINTS %d double\n", n
     for (i = 1; i <= n; i++)
         printf "%.16g %.16g %.16g\n", x[i], y[i], z[i]
-    printf "POLYGONS %d %d\n", n - 1, 3 * (n - 1)
+    printf "LINES %d %d\n", n - 1, 3 * (n - 1)
     for (i = 1; i <= n - 1; i++)
         printf "2 %d %d\n", i - 1, i
     printf "POINT_DATA %d\n", n
