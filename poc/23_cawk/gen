@@ -1,0 +1,15 @@
+awk '
+BEGIN {
+    OFS = ","
+    n = 20000
+    r = 0.05
+    print "x", "y", "z", "r"
+    for (i = 0; i < n; i++) {
+        print rnd(), rnd(), rnd(), r
+    }
+}
+
+function rnd() {
+    return 2*(rand() - 0.5)
+}
+'
