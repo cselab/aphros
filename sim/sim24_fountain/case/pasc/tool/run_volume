@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -eu
+
+./volume vfz_*.h5 > volume.dat
