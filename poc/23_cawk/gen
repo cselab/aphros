@@ -1,11 +1,12 @@
 awk '
 BEGIN {
     OFS = ","
-    n = 20000
+    n = 20
     r = 0.05
-    print "x", "y", "z", "r"
+    print "x", "y", "z", "r", "vx", "vy", "vz"
+    vx = vy = vz = 1
     for (i = 0; i < n; i++) {
-        print rnd(), rnd(), rnd(), r
+        print rnd(), rnd(), rnd(), r, vx, vy, vz
     }
 }
 
