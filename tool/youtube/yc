@@ -18,7 +18,9 @@ i = index($0, s) {
     n = length($0)
     i += length(s)
     for (j = i; j <= n && ch(j) != " "; j++) ;
-    print substr($0, i, j - i)
+    count = substr($0, i, j - i)
+    sub(/,/, "", count)
+    print count
     exit
 }
 
