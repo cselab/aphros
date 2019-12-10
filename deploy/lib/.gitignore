@@ -1,1 +1,4 @@
 install_manifest.txt
+
+*.o
+*.a
