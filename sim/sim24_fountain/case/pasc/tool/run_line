@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -eu
+
+
+for f in trajr_*.csv ; do
+  echo $f
+  cl=$(basename "$f")
+  cl=${cl#*_}
+  cl=${cl%.csv}
+  o=trajr_${cl}.vtk
+  if [ -f "$o" ] ; then
+    echo "skip existing '$o'" >&2
+    continue
+  fi
+  ch.line < $f > $o
+done

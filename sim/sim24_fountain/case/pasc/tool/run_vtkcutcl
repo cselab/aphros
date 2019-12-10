@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -eu
+
+
+for f in trajr_*.csv ; do
+  echo $f
+  cl=$(basename "$f")
+  cl=${cl#*_}
+  cl=${cl%.csv}
+  d=smcl_${cl}
+  if [ -d "$d" ] ; then
+    echo "skip existing '$d'" >&2
+    continue
+  fi
+  mkdir -p $d
+  vtkin=../sm_%04d.vtk vtkout=${d}/smcl_${cl}_%.vtk ./vtkcutcl $f
+done

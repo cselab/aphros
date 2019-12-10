@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -eu
+
+# tried: 5313 4530 8194
+for cl in 7377 8706 5228 ; do
+  echo $cl
+  o=trajr_$cl.csv
+  if [ -f "$o" ] ; then
+    echo "skip existing '$o'" >&2
+    continue
+  fi
+  ./traj_recover.py $cl ../traj_*.csv > $o 2>/dev/null
+done
+
