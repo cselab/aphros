@@ -8,7 +8,7 @@ import os
 av = sys.argv
 
 if len(av) > 1 and av[1] == '-h':
-  print("usage: {:} [--density] [--bins BINS] [--range L R]".format(os.path.basename(av[0])))
+  print("usage: {:} [--density|--cumulative] [--bins BINS] [--range L R]".format(os.path.basename(av[0])))
   print('''
 print histogram of STDIN as columns [center,density,left,right]
 ''')
@@ -19,19 +19,24 @@ def msg(s):
 
 bins = int(av[av.index("--bins") + 1]) if "--bins" in av else "auto"
 if "--range" in av:
-    i = av.index("--range")
-    rng = (float(av[i + 1]), float(av[i + 2]))
+  i = av.index("--range")
+  rng = (float(av[i + 1]), float(av[i + 2]))
 else:
-    rng = None
+  rng = None
 
 d = np.loadtxt(sys.stdin)
 assert d.ndim == 1 or (d.ndim == 2 and d.shape[1] == 2)
 
+cumulative = "--cumulative" in av
 density = "--density" in av
+assert not (density and cumulative)
+
 if d.ndim == 1:
   val, edge = np.histogram(d, bins=bins, density=density, range=rng)
 elif d.ndim == 2 and d.shape[1] == 2:
   val, edge = np.histogram(d[:,0], weights=d[:, 1], bins=bins, density=density, range=rng)
+if cumulative:
+  val = np.cumsum(val)
 
 left = edge[:-1]
 right = edge[1:]
