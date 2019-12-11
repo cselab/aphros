@@ -1,10 +1,12 @@
 #!/bin/bash
 
 ch.cawk '
-  $r < 0.1 {vol += $vf ; cnt++}
-  FNR==2 {
-    print vol , cnt
+  NR==2{
     vol = 0
     cnt = 0
   }
-' traj_*.csv > vol.dat
+  $r < 0.1 {vol += $vf ; cnt++}
+  FNR==2 {
+    print vol , cnt
+  }
+' ../traj_*.csv > vol.dat
