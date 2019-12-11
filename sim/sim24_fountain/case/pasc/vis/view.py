@@ -118,7 +118,7 @@ renderView1.Background = [1.0]*3
 renderView1.OSPRayMaterialLibrary = materialLibrary1
 renderView1.KeyLightWarmth = 0.5
 renderView1.FillLightWarmth = 0.5
-renderView1.KeyLightIntensity = 0.85
+#renderView1.KeyLightIntensity = 0.85
 
 # ----------------------------------------------------------------
 # END RENDER
