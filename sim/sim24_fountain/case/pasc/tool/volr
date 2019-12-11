@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -eu
+
+ch.cawk '$r < 0.1 {print $r, $vf/(ARGC - 1)}' ../traj_0{000..240}.csv | ch.hist --range 0 0.2 --bins 100 > volr.dat
+
