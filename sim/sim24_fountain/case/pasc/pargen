@@ -44,6 +44,9 @@ def Sim(c):
 
     # time
     tun = 1 / U  # unit
+    # time unit in Exp() SI units
+    tun_phys = ((c['W'] / W) / c['g']) ** 0.5
+
     tmax = tun * 500.
     dumpdt = tun * 0.05
 
