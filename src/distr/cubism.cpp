@@ -2,7 +2,6 @@
 #include <sstream>
 
 #include "geom/mesh.h"
-#include "kernel/kernel.h"
 #include "kernel/kernelmesh.h"
 #include "parse/vars.h"
 

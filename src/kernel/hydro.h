@@ -33,7 +33,6 @@
 #include "parse/simple.h"
 #include "solver/proj.h"
 #include "parse/proj.h"
-#include "kernel.h"
 #include "kernelmesh.h"
 #include "parse/vars.h"
 #include "parse/parser.h"

@@ -4,7 +4,6 @@
 #include <memory>
 
 #include "distr.h"
-#include "kernel/kernel.h"
 #include "parse/vars.h"
 
 template <class KF>
