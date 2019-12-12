@@ -38,7 +38,10 @@ set arrow from hx0,graph 0 to hx0,graph 1 nohead
 set arrow from hx1,graph 0 to hx1,graph 1 nohead
 set arrow from hx2,graph 0 to hx2,graph 1 nohead
 
+
 hist=sprintf("ch.hist --range %g %g --bins 100", hx2*0.25, hx2*128)
+print('bin width(mm)='.sprintf('%g', (128-0.25)*hx2 / 100*100))
+
 p for [i=1:words(ll)] \
   "<o=hist_".word(ll,i)." ; ( test -f $o && cat $o ) || (./trajcol ".word(ll,i)."/traj_0{170..199}.csv | ".hist." ) | tee $o"  \
   u ($1/hx2):($2/30) \
