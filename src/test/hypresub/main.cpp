@@ -8,6 +8,7 @@
 
 #include "linear/hypre.h"
 #include "linear/hypresub.h"
+#include "util/histogram.h"
 
 using MIdx = typename Hypre::MIdx;
 using Scal = typename Hypre::Scal;
@@ -117,27 +118,30 @@ int main (int argc, char ** argv) {
 
   HypreSub::InitServer(comm, commsub);
 
-  if (ranksub == 0) {
-    {
-      HypreSub d(comm, bb, gs, per);
-      d.Solve(tol, print, "gmres", maxiter);
-      // Check solution
+  {
+    Histogram hist(comm, "hypresub", true);
+    if (ranksub == 0) {
       {
-        size_t j = 0;
-        for (int z = b.l[2]; z <= b.u[2]; ++z) {
-          for (int y = b.l[1]; y <= b.u[1]; ++y) {
-            for (int x = b.l[0]; x <= b.u[0]; ++x) {
-              Scal e = f(x, y, z);
-              PFCMP((*b.x)[j], e);
-              ++j;
+        HypreSub d(comm, bb, gs, per);
+        d.Solve(tol, print, "gmres", maxiter);
+        // Check solution
+        {
+          size_t j = 0;
+          for (int z = b.l[2]; z <= b.u[2]; ++z) {
+            for (int y = b.l[1]; y <= b.u[1]; ++y) {
+              for (int x = b.l[0]; x <= b.u[0]; ++x) {
+                Scal e = f(x, y, z);
+                PFCMP((*b.x)[j], e);
+                ++j;
+              }
             }
           }
         }
       }
+      HypreSub::StopServer();
+    } else {
+      HypreSub::RunServer(hist);
     }
-    HypreSub::StopServer();
-  } else {
-    HypreSub::RunServer();
   }
 
   MPI_Finalize();
