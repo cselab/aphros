@@ -14,7 +14,6 @@
 #include "dump/dump.h"
 #include "dump/dumper.h"
 #include "geom/mesh.h"
-#include "kernel/kernel.h"
 #include "linear/hypre.h"
 #include "linear/hypresub.h"
 #include "parse/vars.h"

@@ -1,7 +1,22 @@
 #pragma once
 
 #include "geom/mesh.h"
-#include "kernel.h"
+#include "parse/vars.h"
+
+// TODO: remove h_gridpoint from MyBlockInfo
+struct MyBlockInfo {
+  using Idx = std::array<int, 3>;
+  Idx index;
+  void* ptrBlock;
+  double h_gridpoint;
+  double origin[3];
+  Idx bs;
+  int hl; // number of halo cells
+  bool isroot; // root block (one among blocks on all PEs)
+  bool islead; // lead block (one per each PE)
+  Idx gs; // global size
+  size_t maxcomm; // maximum number of communication requests
+};
 
 template <class M>
 M CreateMesh(const MyBlockInfo& bi) {
@@ -29,7 +44,7 @@ M CreateMesh(const MyBlockInfo& bi) {
 
 // Abstract Kernel aware of Mesh. Dependency of DistrMesh.
 template <class M_>
-class KernelMesh : public Kernel {
+class KernelMesh {
  public:
   using M = M_;
   using Scal = typename M::Scal;
@@ -42,7 +57,7 @@ class KernelMesh : public Kernel {
     m.SetCN(var.Int["CHECKNAN"]); // TODO: revise, avoid optional setters
     m.SetEdim(var.Int["dim"]);
   }
-  void Run() override = 0;
+  virtual void Run() = 0;
   M& GetMesh() { return m; }
   bool IsRoot() { return bi_.isroot; }
   bool IsLead() { return bi_.islead; }
@@ -56,10 +71,10 @@ class KernelMesh : public Kernel {
 
 // Abstract KernelFactory aware of Mesh. Dependency of DistrMesh.
 template <class M_>
-class KernelMeshFactory : public KernelFactory {
+class KernelMeshFactory {
  public:
   using M = M_;
   using K = KernelMesh<M>;
-  K* Make(Vars&, const MyBlockInfo&) const override = 0;
+  virtual K* Make(Vars&, const MyBlockInfo&) const = 0;
 };
 

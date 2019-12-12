@@ -22,11 +22,6 @@ static void RunKernelOpenMP(
   }
 }
 
-static void RunKernel(
-    MPI_Comm comm, std::function<void(MPI_Comm, Vars&)> kernel, Vars& var) {
-  kernel(comm, var);
-}
-
 int RunMpi(int argc, const char ** argv,
            std::function<void(MPI_Comm, Vars&)> kernel) {
 #ifdef _OPENMP

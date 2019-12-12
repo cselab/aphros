@@ -3,7 +3,6 @@
 #include <mpi.h>
 #include <memory>
 
-#include "kernel/kernel.h"
 #include "parse/vars.h"
 #include "distr.h"
 
