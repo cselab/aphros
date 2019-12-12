@@ -27,31 +27,25 @@ class DistrSolver {
   using Vect = typename M::Vect;
 
   using K = K_;
+  using KFB = KernelMeshFactory<M>;
   using KF = KernelMeshParFactory<M, K>;
   using D = DistrMesh<KernelMeshFactory<M>>;
   using Par = typename K::Par;
 
   DistrSolver(MPI_Comm comm, Vars& var0, Par& par)
-      : var(var0), var_mutable(var0), par_(par), kf_(par_)
+      : var(var0), var_mutable(var0), kf_(par)
   {
     var_mutable.Double.Set("t", 0);
 
-    std::unique_ptr<Distr> b;
-
     const std::string be = var.String["backend"];
     if (be == "local") {
-      b = CreateLocal(comm, kf_, var_mutable);
+      d_ = CreateLocal<KFB>(comm, kf_, var_mutable);
     } else if (be == "cubism") {
-      b = CreateCubism(comm, kf_, var_mutable);
+      d_ = CreateCubism<KFB>(comm, kf_, var_mutable);
     } else if (be == "cubismnc") {
-      b = CreateCubismnc(comm, kf_, var_mutable);
+      d_ = CreateCubismnc<KFB>(comm, kf_, var_mutable);
     } else {
       throw std::runtime_error("DistrSolver: unknown backend='" + be + "'");
-    }
-
-    d_ = std::unique_ptr<D>(static_cast<D*>(b.release()));
-    if (!d_) {
-      throw std::runtime_error("DistrSolver: no compatible backend found");
     }
   }
   void Run() {
@@ -83,7 +77,6 @@ class DistrSolver {
   const Vars& var;
   Vars& var_mutable;
   std::unique_ptr<D> d_;
-  Par& par_;
   KF kf_;
 };
 

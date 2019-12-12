@@ -7,5 +7,6 @@
 #include "parse/vars.h"
 #include "distr.h"
 
-std::unique_ptr<Distr> CreateCubismnc(
-    MPI_Comm comm, KernelFactory& kf, Vars& par);
+template <class KF>
+std::unique_ptr<DistrMesh<KF>> CreateCubismnc(
+    MPI_Comm comm, KF& kf, Vars& par);

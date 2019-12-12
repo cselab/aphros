@@ -1,40 +1,33 @@
 #pragma once
 
-#include <map>
-#include <array>
-#include <memory>
 #include <mpi.h>
-#include <iomanip>
-#include <stdexcept>
-#include <string>
-#include <sstream>
 #include <omp.h>
 #include <sched.h>
+#include <array>
+#include <iomanip>
+#include <map>
+#include <memory>
+#include <sstream>
+#include <stdexcept>
+#include <string>
 
+#include "dump/dump.h"
+#include "dump/dumper.h"
 #include "geom/mesh.h"
-#include "util/suspender.h"
-#include "util/metrics.h"
-#include "parse/vars.h"
 #include "kernel/kernel.h"
 #include "linear/hypre.h"
 #include "linear/hypresub.h"
-#include "dump/dump.h"
-#include "dump/dumper.h"
+#include "parse/vars.h"
 #include "report.h"
-#include "util/sysinfo.h"
 #include "util/histogram.h"
-
-// Abstract block processor.
-class Distr {
- public:
-  virtual void Run() = 0;
-  virtual ~Distr() {}
-};
+#include "util/metrics.h"
+#include "util/suspender.h"
+#include "util/sysinfo.h"
 
 // Abstract block processor aware of Mesh.
 // KF: kernel factory derived from KernelMeshFactory
 template <class KF>
-class DistrMesh : public Distr {
+class DistrMesh {
  public:
   using K = typename KF::K;
   using M = typename KF::M;

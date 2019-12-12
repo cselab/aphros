@@ -3,9 +3,9 @@
 #include <mpi.h>
 #include <memory>
 
+#include "distr.h"
 #include "kernel/kernel.h"
 #include "parse/vars.h"
-#include "distr.h"
 
-std::unique_ptr<Distr> CreateLocal(
-    MPI_Comm comm, KernelFactory& kf, Vars& par);
+template <class KF>
+std::unique_ptr<DistrMesh<KF>> CreateLocal(MPI_Comm, KF&, Vars&);
