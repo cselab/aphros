@@ -44,6 +44,24 @@ class Sampler {
     }
   }
 
+  void AppendSample(const std::string& name, const double samp) {
+    if (active_) {
+      samples_[name].push_back(samp);
+    }
+  }
+
+  void Insert(const std::string& name, const std::vector<double>& data) {
+    if (active_) {
+      auto it = samples_.find(name);
+      if (it == samples_.end()) {
+        samples_[name] = data;
+      } else {
+        auto& my_s = it->second;
+        my_s.insert(my_s.end(), data.begin(), data.end());
+      }
+    }
+  }
+
   void AddTo(const std::string& addto, const std::vector<double>& yours) {
     if (active_) {
       auto& mine = samples_.at(addto);
@@ -68,18 +86,6 @@ class Sampler {
     }
   }
 
-  void Insert(const std::string& name, const std::vector<double>& data) {
-    if (active_) {
-      auto it = samples_.find(name);
-      if (it == samples_.end()) {
-        samples_[name] = data;
-      } else {
-        auto& my_s = it->second;
-        my_s.insert(my_s.end(), data.begin(), data.end());
-      }
-    }
-  }
-
   const SampleMap& GetSamples() const {
     return samples_;
   }
@@ -97,7 +103,7 @@ class Histogram : public Sampler {
       : Sampler(active), comm_(comm), name_(name) {}
   ~Histogram() {
     if (active_) {
-      Consolidate();
+      Consolidate_();
     }
   }
 
@@ -108,5 +114,6 @@ class Histogram : public Sampler {
   const MPI_Comm comm_;
   const std::string name_;
 
-  void Consolidate();
+  void Consolidate_();
+  void HomogenizeCollection_();
 };

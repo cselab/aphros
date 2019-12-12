@@ -56,10 +56,12 @@ static std::map<std::string, Stats> ComputeStats(
   return stats;
 }
 
-void Histogram::Consolidate() {
+void Histogram::Consolidate_() {
   int rank, size;
   MPI_Comm_rank(comm_, &rank);
   MPI_Comm_size(comm_, &size);
+
+  HomogenizeCollection_();
 
   std::vector<size_t> char_bytes;
   std::vector<std::string> keys;
@@ -111,4 +113,48 @@ void Histogram::Consolidate() {
     MPI_File_write(fh, &s.second, sizeof(Stats), MPI_BYTE, &st);
   }
   MPI_File_close(&fh);
+}
+
+void Histogram::HomogenizeCollection_() {
+  // if sample collection differs among participating ranks, homogenize missing
+  // samples in current collection
+  int rank, size;
+  MPI_Comm_rank(comm_, &rank);
+  MPI_Comm_size(comm_, &size);
+
+  std::vector<char> cstream;
+  int nchar = 0;
+  for (auto& k : samples_) {
+    for (const char* c = k.first.c_str(); *c; ++c, ++nchar) {
+      cstream.push_back(*c);
+    }
+    cstream.push_back('\0');
+    ++nchar;
+    }
+
+    std::vector<int> all_sizes(size);
+    MPI_Allgather(&nchar, 1, MPI_INT, all_sizes.data(), 1, MPI_INT, comm_);
+
+    int sum_sizes = 0;
+    std::vector<int> all_offsets = all_sizes;
+    const int s0 = all_offsets[0];
+    for (size_t i = 0; i < all_sizes.size(); ++i) {
+      sum_sizes += all_sizes[i];
+      all_offsets[i] -= s0;
+    }
+    std::vector<char> all_char(sum_sizes);
+    MPI_Allgatherv(
+        cstream.data(), nchar, MPI_CHAR, all_char.data(), all_sizes.data(),
+        all_offsets.data(), MPI_CHAR, comm_);
+
+    const char* c = all_char.data();
+    const std::vector<double> empty(0);
+    while (sum_sizes > 0) {
+      const std::string n(c);
+      if (n != "") {
+        Insert(n, empty);
+      }
+      c += (n.length() + 1);
+      sum_sizes -= (n.length() + 1);
+    }
 }
