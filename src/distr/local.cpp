@@ -1,33 +1,21 @@
 #include <mpi.h>
 #include <sstream>
 
-#include "local.ipp"
 #include "geom/mesh.h"
 #include "kernel/kernel.h"
 #include "kernel/kernelmesh.h"
 #include "parse/vars.h"
 
-using U = std::unique_ptr<Distr>;
+#include "local.ipp"
 
 template <class KF>
-static U Try(MPI_Comm comm, KernelFactory& kf, Vars& var) {
-  if (KF* kfd = dynamic_cast<KF*>(&kf)) {
-    return U(new Local<KF>(comm, *kfd, var));
-  }
-  return nullptr;
+std::unique_ptr<DistrMesh<KF>> CreateLocal(
+    MPI_Comm comm, KF& kf, Vars& var) {
+  return std::unique_ptr<DistrMesh<KF>>(new Local<KF>(comm, kf, var));
 }
 
-U CreateLocal(MPI_Comm comm, KernelFactory& kf, Vars& var) {
-  U r;
-  using KF = KernelMeshFactory<MeshStructured<double, 3>>;
-  if (!r) r = Try<KF>(comm, kf, var);
-  if (!r) {
-    std::stringstream ss;
-    ss << __func__ << ": no instance with "
-        << "bs="
-        << var.Int["bsx"] << " " << var.Int["bsy"] << " " << var.Int["bsz"]
-        << " hl=" << var.Int["hl"];
-    throw std::runtime_error(ss.str());
-  }
-  return r;
-}
+using M = MeshStructured<double, 3>;
+using KF = KernelMeshFactory<M>;
+
+template std::unique_ptr<DistrMesh<KF>> CreateLocal<KF>(
+    MPI_Comm comm, KF& kf, Vars& var);
