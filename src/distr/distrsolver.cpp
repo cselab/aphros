@@ -13,12 +13,13 @@ static void RunKernelOpenMP(
   int rank_omp;
   MPI_Comm_rank(comm_omp, &rank_omp);
 
+  Histogram hist(comm_world, "runkernelOMP", var.Int["histogram"]);
   HypreSub::InitServer(comm_world, comm_omp);
   if (rank_omp == 0) {
     kernel(comm_master, var);
     HypreSub::StopServer();
   } else {
-    HypreSub::RunServer();
+    HypreSub::RunServer(hist);
   }
 }
 

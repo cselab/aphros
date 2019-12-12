@@ -7,6 +7,7 @@
 #include <string>
 
 #include "hypre.h"
+#include "util/histogram.h"
 
 class HypreSub {
  public:
@@ -33,7 +34,7 @@ class HypreSub {
   static void InitServer(MPI_Comm comm, MPI_Comm commsub);
   // Runs server loop.
   // Needs to be called by non-zero ranks in commsub
-  static void RunServer();
+  static void RunServer(Sampler& samp);
   static void Send(std::string cmd, int rank);
   static void Send(const Block& b, int rank);
   static void Send(const std::vector<Block>& bb, int rank);

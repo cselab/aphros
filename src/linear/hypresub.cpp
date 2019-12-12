@@ -7,6 +7,7 @@
 #include <map>
 
 #include "hypresub.h"
+#include "util/histogram.h"
 #include "util/subcomm.h"
 
 //#define DEB(x) x
@@ -202,7 +203,8 @@ struct HypreSub::Imp {
     MPI_Comm_size(comm, &state.size);
     MPI_Comm_size(commsub, &state.sizesub);
   }
-  static void RunServer() {
+  static void RunServer(Sampler& samp) {
+    samp.SeedSample();
     while (true) {
       auto comm = state.commsub;
       Cmd cmd;
@@ -214,6 +216,7 @@ struct HypreSub::Imp {
       Recv(id, root, comm);
 
       if (cmd == Cmd::construct) {
+        samp.SeedSample();
         MIdx gs;
         MIdx per;
         auto vbuf = RecvBlocks(root, comm);
@@ -225,13 +228,17 @@ struct HypreSub::Imp {
             std::piecewise_construct,
             std::forward_as_tuple(id),
             std::forward_as_tuple(std::move(vbuf), gs, per));
+        samp.CollectSample("RunServer::Construct");
       } else if (cmd == Cmd::update) {
+        samp.SeedSample();
         DEB(std::cout << "recv update " << EV(id) << std::endl;)
         auto vbuf = RecvBlocks(root, comm);
         auto& inst = state.minst.at(id);
         inst.Update(vbuf);
         inst.GetHypre().Update();
+        samp.CollectSample("RunServer::Update");
       } else if (cmd == Cmd::solve) {
+        samp.SeedSample();
         Scal tol;
         int print;
         std::string solver;
@@ -244,16 +251,20 @@ struct HypreSub::Imp {
         DEB(std::cout << "recv solve " << EV(id) << EV(solver) << std::endl;)
         inst.GetHypre().Solve(tol, print, solver, maxiter);
         SendBlocks(inst.GetBlocks(), root, comm);
+        samp.CollectSample("RunServer::Solve");
       } else if (cmd == Cmd::destruct) {
+        samp.SeedSample();
         DEB(std::cout << "recv destruct "
             << EV(id) << EV(state.rank) << std::endl;)
         state.minst.erase(id);
+        samp.CollectSample("RunServer::Destruct");
       } else if (cmd == Cmd::exit) {
         DEB(std::cout << "recv exit "
             << EV(id) << EV(state.rank) << std::endl;)
         break;
       }
     }
+    samp.CollectSample("RunServer::Loop");
 
     if (state.minst.size() > 0) {
       throw std::runtime_error(
@@ -529,8 +540,8 @@ void HypreSub::InitServer(MPI_Comm comm, MPI_Comm commsub) {
   Imp::InitServer(comm, commsub);
 }
 
-void HypreSub::RunServer() {
-  Imp::RunServer();
+void HypreSub::RunServer(Sampler& samp) {
+  Imp::RunServer(samp);
 }
 
 void HypreSub::StopServer() {
