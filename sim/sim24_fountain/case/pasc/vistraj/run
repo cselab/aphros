@@ -1,0 +1,2 @@
+./vistraj.py ../sm_0{110,240}.vtk ../traj/
+r=30 r.pngmp4
