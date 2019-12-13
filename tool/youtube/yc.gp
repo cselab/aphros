@@ -1,7 +1,7 @@
 #!/bin/sh
 
 awk '
-/./ {
+NF == 7 {
     month = $2
     day = $3
     split($4, tmp, ":")
