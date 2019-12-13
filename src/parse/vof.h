@@ -71,17 +71,6 @@ void Parse(typename Vof::Par* p, const Vars& var) {
     }
   }
   {
-    using AR = typename Par::AR;
-    std::string s = var.String["part_attrreconst"];
-    if (s == "line") {
-      p->part_attrreconst = AR::line;
-    } else if (s == "volume") {
-      p->part_attrreconst = AR::volume;
-    } else {
-      throw std::runtime_error("Update: unknown part_attrreconst=" + s);
-    }
-  }
-  {
     using Scheme = typename Par::Scheme;
     std::string s = var.String["vof_scheme"];
     if (s == "plain") {

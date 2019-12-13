@@ -109,34 +109,19 @@ struct Vofm<M_>::Imp {
 
     p->leq = par->part_h;
     p->relax = par->part_relax;
-    p->constr = par->part_constr;
     p->npmax = par->part_np;
     p->segcirc = par->part_segcirc;
     p->hc = hc;
-
-    p->kstr = par->part_kstr;
-    p->kbend = par->part_kbend;
-    p->kattr = par->part_kattr;
-    p->bendmean = par->part_bendmean;
-    p->ka = par->part_kattr;
-    p->kt = par->part_kbend;
-    p->kx = par->part_kstr;
-    p->tmax = par->part_tmax;
-    p->dtmax = par->part_dtmax;
-    p->anglim = par->part_anglim;
     p->dn = par->part_dn;
 
     {
       using FT = typename PS::FT;
-      switch (par->part_attrforce) { 
+      switch (par->part_attrforce) {
         case Par::AF::line:
           p->forcetype = FT::line;
           break;
         case Par::AF::center:
           p->forcetype = FT::center;
-          break;
-        case Par::AF::volume:
-          p->forcetype = FT::volume;
           break;
         default:
           throw std::runtime_error("Update(): Unknown part_attrforce");
