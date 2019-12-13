@@ -20,8 +20,8 @@ class Vof final : public AdvectionSolver<M_> {
   struct Par {
     size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
     bool part = false; // particles
-    Scal part_relax = 0.5; 
-    Scal part_h = 4.;  // particle string equilibrium length
+    Scal part_relax = 0.5;
+    Scal part_h = 4.; // particle string equilibrium length
     int part_verb = 0; // debug output
     Scal part_kstr = 1.; // stretching
     Scal part_kattr = 1.; // attraction to reconstructed interface
@@ -52,9 +52,9 @@ class Vof final : public AdvectionSolver<M_> {
     size_t part_ns = 2; // number of strings per cell
     size_t part_itermax = 100; // particles itermax
     Scal part_tol = 0.01; // tolerance
-    Scal part_tmax = 180.; 
-    Scal part_dtmax = 10.; 
-    Scal part_anglim = 90.; 
+    Scal part_tmax = 180.;
+    Scal part_dtmax = 10.;
+    Scal part_anglim = 90.;
     bool part_dn = false;
     Scal part_maxr = 0;
     using AF = typename solver::PartStrMeshM<M>::AF;
@@ -69,9 +69,9 @@ class Vof final : public AdvectionSolver<M_> {
     Scal vtkiso = 0.5;
     bool sharpen = false;
     Scal sharpen_cfl = 0.5;
-    enum class Scheme {plain, aulisa, weymouth};
+    enum class Scheme { plain, aulisa, weymouth };
     Scheme scheme;
-    Scal avgnorm0 = 1; // original normal with sum(u)<avgnorm0 
+    Scal avgnorm0 = 1; // original normal with sum(u)<avgnorm0
     Scal avgnorm1 = 1; // overriden normal with sum(u)>=acgnorm1
     Scal clfixed = -1; // if >= 0, value for color at point clfixed_x
     Vect clfixed_x = Vect(1e10);
@@ -82,9 +82,9 @@ class Vof final : public AdvectionSolver<M_> {
 
   // Constructor
   Vof(M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-      const MapCondFaceAdvection<Scal>& mfc,
-      const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
-      double t, double dt, std::shared_ptr<Par> par);
+      const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
+      const FieldCell<Scal>* fcs, double t, double dt,
+      std::shared_ptr<Par> par);
   ~Vof();
   // Parameters
   Par* GetPar();
@@ -106,7 +106,7 @@ class Vof final : public AdvectionSolver<M_> {
   const FieldCell<Vect>& GetNormal() const;
   // Height function
   const FieldCell<Vect>& GetHeight() const;
-  // Default curvature 
+  // Default curvature
   const FieldCell<Scal>& GetCurv() const override;
   // Curvature from height functions
   const FieldCell<Scal>& GetCurvH() const;
