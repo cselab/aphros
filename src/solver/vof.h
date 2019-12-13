@@ -60,7 +60,6 @@ class Vof final : public AdvectionSolver<M_> {
     using AF = typename solver::PartStrMeshM<M>::AF;
     using AR = typename solver::PartStrMeshM<M>::AR;
     AF part_attrforce = AF::line;
-    AR part_attrreconst = AR::line;
     int verb = 0;
     bool recolor_unionfind = true;
     bool recolor_reduce = true;

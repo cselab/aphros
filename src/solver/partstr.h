@@ -35,28 +35,14 @@ class PartStr {
   enum class FT { // attraction force type
       line   // interface line
     , center // interface center
-    , volume // fluid volume
   };
   struct Par {
-    Scal leq = 4.; // equilibrium length of string relative to cell size
+    Scal leq = 4; // length of partricle string relative to cell size
     Scal relax = 0.5; // relaxation factor
-    int constr = 1;  // constraint type
     size_t npmax = 11; // maximum number particles in string
-    Scal segcirc = 1.; // factor for shift to circular segment
+    Scal segcirc = 1; // factor for shift to circular segment
     Scal hc; // cell size [length]
     FT forcetype = FT::line; // attraction force type
-    // specific for Constr0
-    Scal kstr = 1.;  // factor for stretching 
-    Scal kbend = 1.;  // factor for bending 
-    Scal kattr = 1.;  // factor for attraction 
-    bool bendmean = true; // 1: bending to mean angle, 0: to straight angle
-    // specific for Constr1
-    Scal ka = 1.;  // factor for angle between normal and x-axis 
-    Scal kt = 1.;  // factor for angle between segments
-    Scal kx = 1.;  // factor for position
-    Scal tmax = 180.; // limit for total theta of string [deg]
-    Scal dtmax = 10.; // limit for dt [deg]
-    Scal anglim = 90.; // limit for dt [deg]
     bool dn = false; // normal displacement
   };
 
@@ -84,13 +70,13 @@ class PartStr {
     sl_.push_back(0);
   }
   // Adds particle string with attached interface.
-  // xc: center 
+  // xc: center
   // t: tangent
   // lx: nodes of all lines
   // ls: ls[l]: size of line l
   // Returns:
   // index of new string, equals GetNumStr()-1
-  size_t Add(const Vect& xc, const Vect& t, 
+  size_t Add(const Vect& xc, const Vect& t,
              const std::vector<Vect>& lx, const std::vector<size_t>& ls) {
     size_t np = par->npmax;
     // seed particles
@@ -126,26 +112,13 @@ class PartStr {
 
     thread_local std::vector<Vect> ff;
     ff.resize(sx);
-    
-    // compute interface forces
-    InterfaceForce(xx, sx, 
-                   &(lx_[lo_[sl_[s]]]), &(ls_[sl_[s]]), sl_[s + 1] - sl_[s],
-                   par->segcirc, par->anglim * M_PI / 180., ff.data(),
-                   par->forcetype);
 
-    // apply constraints
-    int cs = par->constr;
-    if (cs == 0) {
-      Constr0(xx, sx, par->kstr, par->leq * par->hc / par->npmax,
-              par->kbend, par->bendmean, par->relax, ff.data());
-    } else if (cs == 1) {
-      Constr1(xx, sx, par->kattr, 
-              par->kbend, par->kstr, par->relax, 
-              par->tmax * M_PI / 180., par->dtmax * M_PI / 180., par->dn,
-              ff.data());
-    } else {
-      throw std::runtime_error("Unknown constr=" + std::to_string(cs));
-    }
+    // compute interface forces
+    InterfaceForce(xx, sx,
+                   &(lx_[lo_[sl_[s]]]), &(ls_[sl_[s]]), sl_[s + 1] - sl_[s],
+                   par->segcirc, ff.data(), par->forcetype);
+
+    ApplyConstraints(xx, sx, par->relax, par->dn, ff.data());
 
     // advance particles
     for (size_t i = 0; i < sx; ++i) {
@@ -197,10 +170,10 @@ class PartStr {
       if (verb && s % std::max<size_t>(1, GetNumStr() / 10) == 0) {
         auto fl = std::cout.flags();
         std::cout.precision(16);
-        std::cout 
-            << "s=" << std::setw(10) << s 
-            << " r=" << std::setw(20) << r 
-            << " it=" << std::setw(5) << it 
+        std::cout
+            << "s=" << std::setw(10) << s
+            << " r=" << std::setw(20) << r
+            << " it=" << std::setw(5) << it
             << std::endl;
         std::cout.flags(fl);
       }
@@ -254,14 +227,14 @@ class PartStr {
     return std::make_pair(&(xx_[sx_[s]]), sx_[s + 1] - sx_[s]);
   }
   struct Inter {
-    const Vect* x; // nodes 
-    const size_t* s; // sizes 
+    const Vect* x; // nodes
+    const size_t* s; // sizes
     size_t n; // number of lines
   };
   // Returns interface for single string.
   // s: string index
   // Output:
-  // Inter 
+  // Inter
   Inter GetInter(size_t s) {
     return {&(lx_[lo_[sl_[s]]]), &(ls_[sl_[s]]), sl_[s + 1] - sl_[s]};
   }
@@ -274,12 +247,12 @@ class PartStr {
   // lines attached to string i start from ll_[sl_[i]]
 
   std::vector<Vect> xx_; // particle positions
-  std::vector<size_t> sx_; // xx index, ending with sx.size() 
-  std::vector<Vect> lx_; // nodes of all lines 
+  std::vector<size_t> sx_; // xx index, ending with sx.size()
+  std::vector<Vect> lx_; // nodes of all lines
   std::vector<size_t> ls_; // ls_[l]: size of line l
   std::vector<size_t> lo_; // lo_[l]: first node of line l, index in lx_
                            // lo_[-1]: lx_.size()
-  std::vector<size_t> sl_; // sl_[s]: first line of string s, index in ls_,lo_ 
+  std::vector<size_t> sl_; // sl_[s]: first line of string s, index in ls_,lo_
                            // sl_[-1]: ls_.size()
 
   using R = Reconst<Scal>;
@@ -307,7 +280,7 @@ class PartStr {
     return k;
   }
   // Circular profile along segment.
-  // k: curvature 
+  // k: curvature
   // l: segment half-length
   // d: distance from segment center to target point (d<l)
   static Scal SegCirc(Scal k, Scal l, Scal d) {
@@ -325,15 +298,14 @@ class PartStr {
   // lx: nodes of lines
   // ls: sizes of lines
   // sl: size of ls
-  // segcirc: factor for shift to circular segment 
+  // segcirc: factor for shift to circular segment
   // anglim: limit for angle between string and interface
   // ft: force type
   // Output:
   // ff: forces
-  static void InterfaceForce(const Vect* xx, size_t sx, 
-                             const Vect* lx, const size_t* ls, size_t sl, 
-                             Scal segcirc, Scal anglim, Vect* ff,
-                             FT ft) {
+  static void InterfaceForce(const Vect* xx, size_t sx,
+                             const Vect* lx, const size_t* ls, size_t sl,
+                             Scal segcirc, Vect* ff, FT ft) {
     if (sx == 0) {
       return;
     }
@@ -357,7 +329,7 @@ class PartStr {
     // e: segment ends
     auto findnear = [&lx,&ls,&sl](const Vect& x) -> std::array<Vect, 2> {
       std::array<Vect, 2> en = {Vect(0), Vect(0)}; // result
-      Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest 
+      Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
 
       // loop over interface lines
       size_t b = 0; // index in lx
@@ -388,8 +360,8 @@ class PartStr {
         Vect n = e[1] - e[0];
         n = Vect(n[1], -n[0]);
         Scal nn = n.norm();
-        if (nn < 1e-10) { // XXX: adhoc 
-          return; 
+        if (nn < 1e-10) { // XXX: adhoc
+          return;
         }
         n /= nn;
         // center
@@ -399,7 +371,7 @@ class PartStr {
         // max distance from center
         Scal mdc = e[0].dist(xc);
         // shift from line to circle
-        Scal s = SegCirc(crv, mdc, dc);  
+        Scal s = SegCirc(crv, mdc, dc);
         s *= segcirc;
         x += n * s;
       }
@@ -424,7 +396,7 @@ class PartStr {
             }
           }
           // nearest line to particle
-          if (px[in][0] == kNone || 
+          if (px[in][0] == kNone ||
               xx[in].sqrdist(xc) < xx[in].sqrdist(px[in])) {
             px[in] = xc;
           }
@@ -445,35 +417,9 @@ class PartStr {
         shsegcirc(e, xn);
         ff[i] += xn - x;
       }
-    } else if (ft == FT::volume) { // atraction to fluid volume
-      for (size_t i = 0; i < sx; ++i) {
-        size_t ip = (i + 1 == sx ? sx - 1 : i + 1);
-        size_t im = (i == 0 ? 0 : i - 1);
-        Vect n = xx[ip] - xx[im];
-        n = Vect(-n[1], n[0]);
-        n *= (sx - 1) * segcirc / (ip - im); // rescale to length of string
-        Scal sp = 0.; // length of intersection on side +n
-        Scal sm = 0.; // length of intersection on side -n
-
-        // loop over interface lines
-        size_t j = 0;
-        for (size_t l = 0; l < sl; ++l) {
-          std::array<Scal, 2> aa;
-          if (R::GetInter(&(lx[j]), ls[l], xx[i], n, aa)) {
-            sp += std::abs(R::GetClip(aa[1]) - R::GetClip(aa[0]));
-            sm += std::abs(R::GetClip(-aa[0]) - R::GetClip(-aa[1]));
-          }
-          j += ls[l];
-        }
-
-        ff[i] += n * (sm - 1. + sp);
-      }
     } else {
-      throw std::runtime_error("InterfaceForce: unknown ft");
+      throw std::runtime_error("InterfaceForce: unknown force type");
     }
-
-    (void)anglim;
-    (void)crv;
   }
   // Oriented angle from (x1-x0) to (x2-x1)
   static Scal GetAn(Vect x0, Vect x1, Vect x2) {
@@ -488,82 +434,13 @@ class PartStr {
   static Scal GetAn(const Vect* x, size_t i) {
     return GetAn(x[i-1], x[i], x[i+1]);
   };
-  // Apply soft constaints: stretching and bending forces.
+  // Apply constraints on force.
   // xx: array of positions
   // sx: size of xx
-  // kstr: factor for stretching
-  // leq: equilibrium length
-  // kbend: factor for bending
-  // bendmean: 1: bending to mean angle, 0: bending to straight angle
-  // relax: relaxation factor
-  // Output:
-  // ff: appended with forces
-  static void Constr0(const Vect* xx, size_t sx, 
-                      Scal kstr, Scal leq, Scal kbend, 
-                      bool bendmean, Scal relax, Vect* ff) {
-    // stretching 
-    for (size_t i = 0; i < sx - 1; ++i) {
-      Vect dx = xx[i + 1] - xx[i];
-      Vect f = dx * (kstr * (1. - leq / dx.norm()));
-      ff[i] += f;
-      ff[i + 1] -= f;
-    }
-
-    // mean angle
-    Scal anm = (GetAn(xx,1) + GetAn(xx,2) + GetAn(xx,3)) / 3.; 
-
-    // bending 
-    for (size_t i = 1; i < sx - 1; ++i) {
-      size_t im = i - 1;
-      size_t ip = i + 1;
-      Vect x = xx[i];
-      Vect xm = xx[im];
-      Vect xp = xx[ip];
-      Vect dm = x - xm;
-      Vect dp = xp - x;
-      Scal lm = dm.norm();
-      Scal lp = dp.norm();
-
-      // normals to segments, <nm,dm> positively oriented
-      Vect nm = Vect(dm[1], -dm[0]) / lm; 
-      Vect np = Vect(dp[1], -dp[0]) / lp;
-      // torque
-      Scal t = kbend * lm * lp * (GetAn(xx,i) - anm * (bendmean ? 1. : 0.));
-      // forces
-      Vect fm = nm * (t / (2. * lm));
-      Vect fp = np * (t / (2. * lp));
-      // apply
-      ff[im] += fm;
-      ff[ip] += fp;
-      ff[i] -= (fm + fp);
-    }
-
-    // relaxation
-    for (size_t i = 0; i < sx; ++i) {
-      ff[i] *= relax;
-    }
-
-    // freeze central particle
-    Vect fc = ff[(sx - 1) / 2];
-    for (size_t i = 0; i < sx; ++i) {
-      ff[i] -= fc;
-    }
-  }
-  // Apply exact constraints on force.
-  // xx: array of positions
-  // sx: size of xx
-  // ka: relaxation factor for angle between normal and x-axis
-  // kt: relaxation factor for angle between segments
-  // kx: relaxation factor for position 
   // relax: relaxation factor for force
-  // tmax: ignored // TODO: revise
-  // dtmax: ignored // TODO: revise
   // dn: 1: enable normal displacement, 0: fix central particle
-  // XXX: uses static variables
-  static void Constr1(const Vect* xx, size_t sx, 
-                      Scal ka, Scal kt, Scal kx, Scal relax, 
-                      Scal tmax, Scal dtmax, bool dn,
-                      Vect* ff) {
+  static void ApplyConstraints(
+      const Vect* xx, size_t sx, Scal relax, bool dn, Vect* ff) {
     // Rotates vector by pi/2
     // x: vector of plane coordinates
     auto rr = [](const Vect& x) {
@@ -602,7 +479,7 @@ class PartStr {
     }
 
     // Note:
-    // New positions without contraints would be xxn=xx+ff.
+    // New positions without constraints would be xxn=xx+ff.
     // ff acts as correction of positions.
     // Constraints are applied separately:
     // 1) displacement of center:
@@ -621,7 +498,7 @@ class PartStr {
       for (size_t i = 0; i < sx; ++i) {
         dx += ff[i];
       }
-      dx *= kx / sx;
+      dx /= sx;
       dx[0] = 0.;
 
       // apply
@@ -645,13 +522,13 @@ class PartStr {
       // derivative of positions by alpha
       thread_local std::vector<Vect> xa; // dx/dalpha
       xa.resize(sx);
-      // central 
-      const size_t ic = (sx - 1) / 2; 
+      // central
+      const size_t ic = (sx - 1) / 2;
       xa[ic] = Vect(0);
       for (size_t q = 1; q <= ic; ++q) {
         size_t i;
         Vect d;
-        // forward 
+        // forward
         i = ic + q;
         d = xxn[i] - xxn[i - 1];
         xa[i] = xa[i - 1] + rr(d);
@@ -665,17 +542,17 @@ class PartStr {
       Scal fa = 0.;  // f dot xa
       Scal na = 0.; // xa dot xa
       for (size_t i = 0; i < sx; ++i) {
-        fa += ff[i].dot(xa[i]); 
+        fa += ff[i].dot(xa[i]);
         na += xa[i].dot(xa[i]);
       }
 
       // correction of alpha
-      Scal da = fa / na * ka;
+      Scal da = fa / na;
 
       // vector at angle da
       Vect ea = ra(da);
 
-      // segment vectors 
+      // segment vectors
       thread_local std::vector<Vect> dd;
       dd.resize(sx);
       dd[ic] = Vect(0);
@@ -723,13 +600,13 @@ class PartStr {
       // derivative of positions by theta
       thread_local std::vector<Vect> xt; // dx/dtheta
       xt.resize(sx);
-      // central 
-      const size_t ic = (sx - 1) / 2; 
+      // central
+      const size_t ic = (sx - 1) / 2;
       xt[ic] = Vect(0);
       for (size_t q = 1; q <= ic; ++q) {
         size_t i;
         Vect d;
-        // forward 
+        // forward
         i = ic + q;
         d = xxn[i] - xxn[i - 1];
         xt[i] = xt[i - 1] + rr(d) * (q - 0.5);
@@ -743,31 +620,18 @@ class PartStr {
       Scal ft = 0.;  // f dot xt
       Scal nt = 0.; // xt dot xt
       for (size_t i = 0; i < sx; ++i) {
-        ft += ff[i].dot(xt[i]); 
+        ft += ff[i].dot(xt[i]);
         nt += xt[i].dot(xt[i]);
       }
 
       // correction of theta
-      Scal dt = ft / nt * kt;
-      // limabs
-      // la > 0.
-      /*
-      auto limabs = [](Scal a, Scal la) {
-        return std::min(std::abs(a), la) * (a > 0. ? 1. : -1);
-      };
-      dt = limabs(dt, dtmax / (sx - 1));
-      Scal t = GetAn(xx, (sx - 1) / 2);
-      dt = limabs(t + dt, tmax / (sx - 1)) - t;
-      */
-      (void) tmax;
-      (void) dtmax;
-
+      Scal dt = ft / nt;
       // vector at angle dt/2
       Vect eth = ra(dt);
       // vector at angle dt
       Vect et = re(eth, eth);
 
-      // segment vectors 
+      // segment vectors
       thread_local std::vector<Vect> dd;
       dd.resize(sx);
       dd[ic] = Vect(0);
