@@ -18,10 +18,6 @@ void Parse(typename Vof::Par* p, const Vars& var) {
   p->part_verb = var.Int["part_verb"];
   p->part_relax = var.Double["part_relax"];
   p->part_h = var.Double["part_h"];
-  p->part_kstr = var.Double["part_kstr"];
-  p->part_kattr = var.Double["part_kattr"];
-  p->part_kbend = var.Double["part_kbend"];
-  p->part_bendmean = var.Int["part_bendmean"];
   p->part_dump_fr = var.Int["part_dump_fr"];
   p->part_report_fr = var.Int["part_report_fr"];
   p->part_k = var.Int["part_k"];
@@ -35,15 +31,11 @@ void Parse(typename Vof::Par* p, const Vars& var) {
   p->dumppartinter = var.Int["dumppartinter"];
   p->bcc_reflectpoly = var.Int["bcc_reflectpoly"];
   p->dumppolymarch_fill = var.Double["dumppolymarch_fill"];
-  p->part_constr = var.Int["part_constr"];
   p->part_segcirc = var.Double["part_segcirc"];
   p->part_itermax = var.Int["part_itermax"];
   p->part_tol = var.Double["part_tol"];
   p->part_np = var.Int["part_np"];
   p->part_ns = var.Int["part_ns"];
-  p->part_tmax = var.Double["part_tmax"];
-  p->part_dtmax = var.Double["part_dtmax"];
-  p->part_anglim = var.Double["part_anglim"];
   p->part_dn = var.Int["part_dn"];
   p->part_maxr = var.Double["part_maxr"];
   p->sharpen = var.Int["sharpen"];

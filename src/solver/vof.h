@@ -23,10 +23,6 @@ class Vof final : public AdvectionSolver<M_> {
     Scal part_relax = 0.5;
     Scal part_h = 4.; // particle string equilibrium length
     int part_verb = 0; // debug output
-    Scal part_kstr = 1.; // stretching
-    Scal part_kattr = 1.; // attraction to reconstructed interface
-    Scal part_kbend = 1.; // bending
-    bool part_bendmean = true; // bending to mean angle (fit circle)
     bool part_n = false; // normal from particles
     // curvature from particles
     // if true, GetCurv returns fckp_
@@ -44,17 +40,11 @@ class Vof final : public AdvectionSolver<M_> {
     bool bcc_reflectpoly = true; // reflection for DumpPolyMarch
     Scal dumppolymarch_fill = -1; // fill cells outside
 
-    int part_constr = 0; // 0: no constraints
-                         // 1: fixed distance, constant angle
-                         // 2: fixed distance, linear angle
     Scal part_segcirc = 1.; // factor for circular segment
     size_t part_np = 11; // number of particles per string
     size_t part_ns = 2; // number of strings per cell
     size_t part_itermax = 100; // particles itermax
     Scal part_tol = 0.01; // tolerance
-    Scal part_tmax = 180.;
-    Scal part_dtmax = 10.;
-    Scal part_anglim = 90.;
     bool part_dn = false;
     Scal part_maxr = 0;
     using AF = typename solver::PartStrMeshM<M>::AF;
