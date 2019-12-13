@@ -2,9 +2,9 @@
 
 #include <memory>
 
-#include "solver/multi.h"
-#include "solver/cond.h"
 #include "solver/advection.h"
+#include "solver/cond.h"
+#include "solver/multi.h"
 
 namespace solver {
 
@@ -25,13 +25,12 @@ class UVof {
   // bin: binary vtk
   // merge: merge close points
   void DumpPoly(
-      const GRange<size_t>& layers,
-      const Multi<const FieldCell<Scal>*>& fcu,
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<const FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Vect>*>& fcn,
       const Multi<const FieldCell<Scal>*>& fca,
-      const Multi<const FieldCell<bool>*>& fci,
-      std::string fn, Scal t, Scal th, bool bin, bool merge, M& m);
+      const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t, Scal th,
+      bool bin, bool merge, M& m);
 
   // Dumps marching cube triangles from multiple layers.
   // fn: filename
@@ -41,14 +40,12 @@ class UVof {
   // merge: merge close points
   // iso: isovalue for surface fcu=iso
   void DumpPolyMarch(
-      const GRange<size_t>& layers,
-      const Multi<const FieldCell<Scal>*>& fcu,
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<const FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Vect>*>& fcn,
       const Multi<const FieldCell<Scal>*>& fca,
-      const Multi<const FieldCell<bool>*>& fci,
-      std::string fn, Scal t, Scal th, bool bin, bool merge, Scal iso, 
-      const FieldCell<Scal>*, M& m);
+      const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t, Scal th,
+      bool bin, bool merge, Scal iso, const FieldCell<Scal>*, M& m);
 
   // Dumps PLIC polygons from single layer.
   // fn: filename
@@ -58,8 +55,8 @@ class UVof {
   // merge: merge close points
   void DumpPoly(
       const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcn,
-      const FieldCell<Scal>& fca, const FieldCell<bool>& fci,
-      std::string fn, Scal t, Scal th, bool bin, bool merge, M& m);
+      const FieldCell<Scal>& fca, const FieldCell<bool>& fci, std::string fn,
+      Scal t, Scal th, bool bin, bool merge, M& m);
 
   // Computes unique color for each connected component over all layers.
   // fcu: volume fraction
@@ -72,22 +69,20 @@ class UVof {
   // unionfind: use union-find algorithm (otherwise iterative stencil updates)
   // reduce: reduce color space trying to keep the previous color
   static void Recolor(
-      const GRange<size_t>& layers,
-      const Multi<const FieldCell<Scal>*>& fcu,
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
-      const Multi<const FieldCell<Scal>*>& fccl0,
-      Scal clfixed, Vect clfixed_x, Scal coalth,
-      const MapCondFace& mfcu, bool verb, bool unionfind, bool reduce,
-      bool grid, M& m);
+      const Multi<const FieldCell<Scal>*>& fccl0, Scal clfixed, Vect clfixed_x,
+      Scal coalth, const MapCondFace& mfcu, bool verb, bool unionfind,
+      bool reduce, bool grid, M& m);
 
   static void GetAdvectionFaceCond(
-      const M& m, const MapCondFaceAdvection<Scal>& mfc,
-      MapCondFace& mfc_vf, MapCondFace& mfc_cl, MapCondFace& mfc_im,
-      MapCondFace& mfc_n, MapCondFace& mfc_a);
+      const M& m, const MapCondFaceAdvection<Scal>& mfc, MapCondFace& mfc_vf,
+      MapCondFace& mfc_cl, MapCondFace& mfc_im, MapCondFace& mfc_n,
+      MapCondFace& mfc_a);
 
   // set volume fraction to 0 or 1 near wall
-  static void BcClear(FieldCell<Scal>& uc,
-                      const MapCondFaceAdvection<Scal>& mfc, const M& m) {
+  static void BcClear(
+      FieldCell<Scal>& uc, const MapCondFaceAdvection<Scal>& mfc, const M& m) {
     for (const auto& it : mfc) {
       auto& cfa = it.GetValue();
       IdxCell c = m.GetCell(it.GetIdx(), cfa.GetNci());
@@ -121,7 +116,6 @@ class UVof {
       }
     }
   }
-
 
  public:
   struct Imp;

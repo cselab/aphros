@@ -28,10 +28,11 @@ class Vofm final : public AdvectionSolver<M_> {
   // fcs: poitner to volume sources
   // t,dt: initial time and timestep
   // par: parameters
-  Vofm(M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-      const MapCondFaceAdvection<Scal>& mfc,
-      const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
-      double t, double dt, std::shared_ptr<Par> par);
+  Vofm(
+      M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
+      const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
+      const FieldCell<Scal>* fcs, double t, double dt,
+      std::shared_ptr<Par> par);
   ~Vofm();
   // Parameters
   Par* GetPar();
