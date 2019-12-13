@@ -8,23 +8,23 @@
 #include "cubism.ipp"
 
 // XXX: removing 'static' leads to symbol collision with cubismnc.cpp
-template <size_t bx, size_t by, size_t bz, class KF>
+template <size_t bx, size_t by, size_t bz, class M>
 static void Try(
-    MPI_Comm comm, KF& kf, Vars& var, std::unique_ptr<DistrMesh<KF>>& r) {
+    MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var,
+    std::unique_ptr<DistrMesh<M>>& r) {
   if (r) return;
   if (var.Int["bsx"] == bx && var.Int["bsy"] == by &&
       (var.Int["bsz"] == bz || (bz == 2 && var.Int["bsz"] == 1))) {
-    using M = typename KF::M;
     using Scal = typename M::Scal;
     using Par = GPar<Scal, bx, by, bz, 8>;
-    r.reset(new Cubism<Par, KF>(comm, kf, var));
+    r.reset(new Cubism<Par, M>(comm, kf, var));
   }
 }
 
-template <class KF>
-std::unique_ptr<DistrMesh<KF>> CreateCubism(
-    MPI_Comm comm, KF& kf, Vars& var) {
-  std::unique_ptr<DistrMesh<KF>> r;
+template <class M>
+std::unique_ptr<DistrMesh<M>> CreateCubism(
+    MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var) {
+  std::unique_ptr<DistrMesh<M>> r;
   // 3D
   Try<32, 32, 32>(comm, kf, var, r);
   Try<16, 16, 16>(comm, kf, var, r);
@@ -44,7 +44,6 @@ std::unique_ptr<DistrMesh<KF>> CreateCubism(
 }
 
 using M = MeshStructured<double, 3>;
-using KF = KernelMeshFactory<M>;
 
-template std::unique_ptr<DistrMesh<KF>> CreateCubism<KF>(
-    MPI_Comm, KF&, Vars&);
+template std::unique_ptr<DistrMesh<M>> CreateCubism<M>(
+    MPI_Comm, const KernelMeshFactory<M>&, Vars&);

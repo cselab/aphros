@@ -24,12 +24,10 @@
 #include "util/sysinfo.h"
 
 // Abstract block processor aware of Mesh.
-// KF: kernel factory derived from KernelMeshFactory
-template <class KF>
+template <class M_>
 class DistrMesh {
  public:
-  using K = typename KF::K;
-  using M = typename KF::M;
+  using M = M_;
   static constexpr size_t dim = M::dim;
   using MIdx = typename M::MIdx;
   using Scal = typename M::Scal;
@@ -56,10 +54,10 @@ class DistrMesh {
 
  protected:
   // TODO: remove comm, needed only by Hypre
-  MPI_Comm comm_; // XXX: overwritten by Cubism<KF>
+  MPI_Comm comm_; // XXX: overwritten by Cubism<M>
   const Vars& var;
   Vars& var_mutable;
-  const KF& kf_; // kernel factory
+  const KernelMeshFactory<M>& kf_; // kernel factory
   Sampler samp_; // sampler accessible to derived classes
 
   int hl_; // number of halo cells (same in all directions)
@@ -71,11 +69,11 @@ class DistrMesh {
   int stage_ = 0;
   size_t frame_ = 0; // current dump frame
 
-  bool isroot_; // XXX: overwritten by Local<KF> and Cubism<KF>
+  bool isroot_; // XXX: overwritten by Local<M> and Cubism<M>
 
-  std::map<MIdx, std::unique_ptr<K>, typename MIdx::LexLess> mk;
+  std::map<MIdx, std::unique_ptr<KernelMesh<M>>, typename MIdx::LexLess> mk;
 
-  DistrMesh(MPI_Comm comm, KF& kf, Vars& var);
+  DistrMesh(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var);
   // Performs communication and returns indices of blocks with updated halos.
   virtual std::vector<MIdx> GetBlocks(bool inner) = 0;
   virtual std::vector<MIdx> GetBlocks() {
@@ -117,16 +115,17 @@ class DistrMesh {
   std::map<typename LS::T, std::unique_ptr<HypreSub>> mhp_; // hypre instances
 };
 
-template <class KF>
-void DistrMesh<KF>::MakeKernels(const std::vector<MyBlockInfo>& ee) {
+template <class M>
+void DistrMesh<M>::MakeKernels(const std::vector<MyBlockInfo>& ee) {
   for (auto e : ee) {
     MIdx d(e.index);
-    mk.emplace(d, std::unique_ptr<K>(kf_.Make(var_mutable, e)));
+    mk.emplace(d, std::unique_ptr<KernelMesh<M>>(kf_.Make(var_mutable, e)));
   }
 }
 
-template <class KF>
-DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& var0)
+template <class M>
+DistrMesh<M>::DistrMesh(
+    MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var0)
     : comm_(comm)
     , var(var0)
     , var_mutable(var0)
@@ -139,30 +138,30 @@ DistrMesh<KF>::DistrMesh(MPI_Comm comm, KF& kf, Vars& var0)
     , ext_(var.Double["extent"])
     , hist_(comm, "distrmesh", var.Int["histogram"]) {}
 
-template <class KF>
-void DistrMesh<KF>::RunKernels(const std::vector<MIdx>& bb) {
-  #pragma omp parallel for schedule(dynamic, 1)
+template <class M>
+void DistrMesh<M>::RunKernels(const std::vector<MIdx>& bb) {
+#pragma omp parallel for schedule(dynamic, 1)
   for (size_t i = 0; i < bb.size(); ++i) {
     mk.at(bb[i])->Run();
   }
 }
 
-template <class KF>
-void DistrMesh<KF>::ClearComm(const std::vector<MIdx>& bb) {
+template <class M>
+void DistrMesh<M>::ClearComm(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     mk.at(b)->GetMesh().ClearComm();
   }
 }
 
-template <class KF>
-void DistrMesh<KF>::ClearDump(const std::vector<MIdx>& bb) {
+template <class M>
+void DistrMesh<M>::ClearDump(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     mk.at(b)->GetMesh().ClearDump();
   }
 }
 
-template <class KF>
-void DistrMesh<KF>::TimerReport(const std::vector<MIdx>& bb) {
+template <class M>
+void DistrMesh<M>::TimerReport(const std::vector<MIdx>& bb) {
   auto& m = mk.at(bb[0])->GetMesh(); // assume same on all blocks
   std::string fn = m.GetTimerReport();
   if (fn.length()) {
@@ -176,15 +175,15 @@ void DistrMesh<KF>::TimerReport(const std::vector<MIdx>& bb) {
   ClearTimerReport(bb);
 }
 
-template <class KF>
-void DistrMesh<KF>::ClearTimerReport(const std::vector<MIdx>& bb) {
+template <class M>
+void DistrMesh<M>::ClearTimerReport(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     mk.at(b)->GetMesh().ClearTimerReport();
   }
 }
 
-template <class KF>
-void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
+template <class M>
+void DistrMesh<M>::DumpWrite(const std::vector<MIdx>& bb) {
   auto& m = mk.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
     std::string df = var.String["dumpformat"];
@@ -219,24 +218,23 @@ void DistrMesh<KF>::DumpWrite(const std::vector<MIdx>& bb) {
 }
 
 // TODO: move
-template <class KF>
-void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
-  auto& vf = mk.at(bb[0])->GetMesh().GetSolve();  // systems to solve on bb[0]
+template <class M>
+void DistrMesh<M>::Solve(const std::vector<MIdx>& bb) {
+  auto& vf = mk.at(bb[0])->GetMesh().GetSolve(); // systems to solve on bb[0]
 
   // Check size is the same for all blocks
   for (auto& b : bb) {
-    auto& v = mk.at(b)->GetMesh().GetSolve();  // systems to solve
+    auto& v = mk.at(b)->GetMesh().GetSolve(); // systems to solve
     if (v.size() != vf.size()) {
       std::stringstream s;
-      s << "v.size()=" << v.size() << ",b=" << b
-          << " != "
-          << "vf.size()=" << vf.size() << ",bf=" << bb[0];
+      s << "v.size()=" << v.size() << ",b=" << b << " != "
+        << "vf.size()=" << vf.size() << ",bf=" << bb[0];
       throw std::runtime_error(s.str());
     }
   }
 
   for (size_t j = 0; j < vf.size(); ++j) {
-    auto& sf = vf[j];  // system to solve on bb[0]
+    auto& sf = vf[j]; // system to solve on bb[0]
     auto k = sf.t; // key
 
     if (!mhp_.count(k)) { // create new instance of hypre // XXX
@@ -244,7 +242,7 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
       std::vector<LB> lbb;
       using LI = typename Hypre::MIdx;
 
-      using MIdx = typename K::MIdx;
+      using MIdx = typename M::MIdx;
       std::vector<MIdx> st = sf.st; // stencil
 
       for (auto& b : bb) {
@@ -305,7 +303,6 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
           throw std::runtime_error(
               "Solve(): Unknown system type = " + std::to_string((size_t)sf.t));
       }
-
     }
 
     if (sf.prefix != "") {
@@ -331,8 +328,8 @@ void DistrMesh<KF>::Solve(const std::vector<MIdx>& bb) {
   }
 }
 
-template <class KF>
-bool DistrMesh<KF>::Pending(const std::vector<MIdx>& bb) {
+template <class M>
+bool DistrMesh<M>::Pending(const std::vector<MIdx>& bb) {
   size_t np = 0;
   for (auto& b : bb) {
     auto& k = *mk.at(b);
@@ -346,26 +343,26 @@ bool DistrMesh<KF>::Pending(const std::vector<MIdx>& bb) {
   return np;
 }
 
-template <class KF>
-auto DistrMesh<KF>::GetGlobalBlock() const -> typename M::BlockCells {
+template <class M>
+auto DistrMesh<M>::GetGlobalBlock() const -> typename M::BlockCells {
   throw std::runtime_error("Not implemented");
   return typename M::BlockCells();
 }
 
-template <class KF>
-auto DistrMesh<KF>::GetGlobalIndex() const -> typename M::IndexCells {
+template <class M>
+auto DistrMesh<M>::GetGlobalIndex() const -> typename M::IndexCells {
   throw std::runtime_error("Not implemented");
   return typename M::IndexCells();
 }
 
-template <class KF>
-auto DistrMesh<KF>::GetGlobalField(size_t) -> FieldCell<Scal> {
+template <class M>
+auto DistrMesh<M>::GetGlobalField(size_t) -> FieldCell<Scal> {
   throw std::runtime_error("Not implemented");
   return FieldCell<Scal>();
 }
 
-template <class KF>
-void DistrMesh<KF>::ApplyNanFaces(const std::vector<MIdx>& bb) {
+template <class M>
+void DistrMesh<M>::ApplyNanFaces(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     auto& m = mk.at(b)->GetMesh();
     for (auto& o : m.GetComm()) {
@@ -380,8 +377,8 @@ void DistrMesh<KF>::ApplyNanFaces(const std::vector<MIdx>& bb) {
   }
 }
 
-template <class KF>
-void DistrMesh<KF>::Run() {
+template <class M>
+void DistrMesh<M>::Run() {
   if (var.Int["verbose_openmp"]) {
     ReportOpenmp();
   }
@@ -435,10 +432,8 @@ void DistrMesh<KF>::Run() {
     if (isroot_ && var.Int["verbose"]) {
       auto& m = mk.begin()->second->GetMesh();
       std::cerr << "*** STAGE"
-          << " #" << stage_
-          << " depth=" << m.GetDepth()
-          << " " << m.GetCurName()
-          << " ***" << std::endl;
+                << " #" << stage_ << " depth=" << m.GetDepth() << " "
+                << m.GetCurName() << " ***" << std::endl;
     }
 
     // Break if no pending stages
@@ -485,8 +480,8 @@ void DistrMesh<KF>::Run() {
   }
 }
 
-template <class KF>
-void DistrMesh<KF>::Report() {
+template <class M>
+void DistrMesh<M>::Report() {
   if (isroot_) {
     double a = 0.; // total
     for (auto e : mt_.GetMap()) {
@@ -496,9 +491,8 @@ void DistrMesh<KF>::Report() {
     if (var.Int["verbose_stages"]) {
       std::cout << std::fixed;
       auto& mp = mt_.GetMap();
-      std::cout
-          << "mem=" << (sysinfo::GetMem() / double(1 << 20)) << " MB"
-          << std::endl;
+      std::cout << "mem=" << (sysinfo::GetMem() / double(1 << 20)) << " MB"
+                << std::endl;
       ParseReport(mp, std::cout);
     }
 
@@ -526,41 +520,37 @@ void DistrMesh<KF>::Report() {
     };
 
     auto h = get_hmsm(a);
-    std::cout << std::setprecision(5) << std::scientific
-        << "cells = " << nc << "\n"
-        << "steps = " << nt << "\n"
-        << "iters = " << ni << "\n"
-        << "total = " << int(a) << " s"
-        << " = " << std::setfill('0')
-        << std::setw(2) << h[0] << ":"
-        << std::setw(2) << h[1] << ":"
-        << std::setw(2) << h[2] << "."
-        << std::setw(3) << h[3] << "\n"
-        << "time/cell/iter = " << a / (nc * ni) << " s"
-        << std::endl;
+    std::cout << std::setprecision(5) << std::scientific << "cells = " << nc
+              << "\n"
+              << "steps = " << nt << "\n"
+              << "iters = " << ni << "\n"
+              << "total = " << int(a) << " s"
+              << " = " << std::setfill('0') << std::setw(2) << h[0] << ":"
+              << std::setw(2) << h[1] << ":" << std::setw(2) << h[2] << "."
+              << std::setw(3) << h[3] << "\n"
+              << "time/cell/iter = " << a / (nc * ni) << " s" << std::endl;
   }
 }
 
-template <class KF>
-void DistrMesh<KF>::ReportOpenmp() {
-  #ifdef _OPENMP
+template <class M>
+void DistrMesh<M>::ReportOpenmp() {
+#ifdef _OPENMP
   if (isroot_) {
-    #pragma omp parallel
+#pragma omp parallel
     {
-      #pragma omp single
+#pragma omp single
       std::cout << "OpenMP threads" << std::endl;
-      #pragma omp for ordered
+#pragma omp for ordered
       for (int i = 0; i < omp_get_num_threads(); ++i) {
-        #pragma omp ordered
+#pragma omp ordered
         {
-          std::cout << "thread="
-                    << std::setw(2) << omp_get_thread_num();
-          std::cout << std::setw(8) << " cpu="
-                    << std::setw(2) << sched_getcpu();
+          std::cout << "thread=" << std::setw(2) << omp_get_thread_num();
+          std::cout << std::setw(8) << " cpu=" << std::setw(2)
+                    << sched_getcpu();
           std::cout << std::endl;
         }
       }
     }
   }
-  #endif
+#endif
 }

@@ -1,23 +1,22 @@
-// vim: expandtab:smarttab:sw=2:ts=2
 #pragma once
 
-#include <cassert>
-#include <memory>
-#include <map>
-#include <stdexcept>
 #include <mpi.h>
+#include <cassert>
+#include <map>
+#include <memory>
+#include <stdexcept>
 
-#include "distr.h"
 #include "cubismnc.h"
+#include "distr.h"
 #include "dump/dumper.h"
 #include "util/histogram.h"
 
+#include "CubismNoCopy/BlockInfo.h"
 #include "CubismNoCopy/BlockLab.h"
 #include "CubismNoCopy/BlockLabMPI.h"
 #include "CubismNoCopy/Grid.h"
 #include "CubismNoCopy/GridMPI.h"
 #include "CubismNoCopy/HDF5Dumper_MPI.h"
-#include "CubismNoCopy/BlockInfo.h"
 #include "CubismNoCopy/StencilInfo.h"
 
 // Hide implementation and avoid collision with GBlk
@@ -130,16 +129,14 @@ template <class TView>
 using GGrid = GridMPI<Grid<TView>>;
 
 // Par - instance of GPar
-// KF - instance of KernelMeshFactory
-template <class Par, class KF>
-class Cubismnc : public DistrMesh<KF> {
+template <class Par, class M_>
+class Cubismnc : public DistrMesh<M_> {
  public:
-  using K = typename KF::K;
-  using M = typename KF::M;
+  using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  Cubismnc(MPI_Comm comm, KF& kf, Vars& var);
+  Cubismnc(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var);
   ~Cubismnc();
   typename M::BlockCells GetGlobalBlock() const override;
   typename M::IndexCells GetGlobalIndex() const override;
@@ -152,7 +149,7 @@ class Cubismnc : public DistrMesh<KF> {
   using Elem = typename FieldView::Elem;
   using Synch = typename Grid::Synch;
 
-  using P = DistrMesh<KF>; // parent
+  using P = DistrMesh<M>; // parent
   using MIdx = typename M::MIdx;
 
   using P::dim;
@@ -273,8 +270,8 @@ struct StreamHdfVect {
   static const char * getAttributeName() { return "Vector"; }
 };
 
-template <class Par, class KF>
-std::vector<MyBlockInfo> Cubismnc<Par, KF>::Convert(
+template <class Par, class M>
+std::vector<MyBlockInfo> Cubismnc<Par, M>::Convert(
     const std::vector<BlockInfo>& cc, MIdx bs, size_t hl) {
   std::vector<MyBlockInfo> bb;
   for(size_t i = 0; i < cc.size(); i++) {
@@ -293,15 +290,14 @@ std::vector<MyBlockInfo> Cubismnc<Par, KF>::Convert(
   return bb;
 }
 
-
-template <class Par, class KF>
-Cubismnc<Par, KF>::Cubismnc(MPI_Comm comm, KF& kf, Vars& var)
-  : DistrMesh<KF>(comm, kf, var)
-  , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm)
-{
-  assert(bs_[0] == FieldView::bx &&
-         bs_[1] == FieldView::by &&
-         bs_[2] == FieldView::bz);
+template <class Par, class M>
+Cubismnc<Par, M>::Cubismnc(
+    MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var)
+    : DistrMesh<M>(comm, kf, var)
+    , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm) {
+  assert(
+      bs_[0] == FieldView::bx && bs_[1] == FieldView::by &&
+      bs_[2] == FieldView::bz);
 
   int r;
   MPI_Comm_rank(comm, &r);
@@ -328,16 +324,16 @@ Cubismnc<Par, KF>::Cubismnc(MPI_Comm comm, KF& kf, Vars& var)
   comm_ = g_.getCartComm(); // XXX: overwrite comm_
 }
 
-template <class Par, class KF>
-Cubismnc<Par, KF>::~Cubismnc()
+template <class Par, class M>
+Cubismnc<Par, M>::~Cubismnc()
 {
   for (const auto& sm : g_.getSynchronizerMPI()) {
     samp_.Append(sm.second->getSampler());
   }
 }
 
-template <class Par, class KF>
-auto Cubismnc<Par, KF>::GetBlocks() -> std::vector<MIdx> {
+template <class Par, class M>
+auto Cubismnc<Par, M>::GetBlocks() -> std::vector<MIdx> {
   // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] not needed
   samp_.SeedSample();
   MPI_Barrier(comm_);
@@ -422,8 +418,8 @@ auto Cubismnc<Par, KF>::GetBlocks() -> std::vector<MIdx> {
   return bb;
 }
 
-template <class Par, class KF>
-auto Cubismnc<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
+template <class Par, class M>
+auto Cubismnc<Par, M>::GetBlocks(bool inner) -> std::vector<MIdx> {
   const std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
   if (inner) {
     n_fields_ = mk.at(MIdx(cc[0].index))->GetMesh().GetComm().size();
@@ -534,15 +530,15 @@ auto Cubismnc<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
 }
 
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
-template <class Par, class KF>
-void Cubismnc<Par, KF>::ReadBuffer(const std::vector<MIdx>&) {}
+template <class Par, class M>
+void Cubismnc<Par, M>::ReadBuffer(const std::vector<MIdx>&) {}
 
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
-template <class Par, class KF>
-void Cubismnc<Par, KF>::WriteBuffer(const std::vector<MIdx>&) {}
+template <class Par, class M>
+void Cubismnc<Par, M>::WriteBuffer(const std::vector<MIdx>&) {}
 
-template <class Par, class KF>
-void Cubismnc<Par, KF>::Bcast(const std::vector<MIdx>& bb) {
+template <class Par, class M>
+void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
   using OpCat = typename M::OpCat;
   auto& vf = mk.at(bb[0])->GetMesh().GetBcast();  // pointers to broadcast
 
@@ -602,8 +598,8 @@ void Cubismnc<Par, KF>::Bcast(const std::vector<MIdx>& bb) {
     m.ClearBcast();
   }
 }
-template <class Par, class KF>
-void Cubismnc<Par, KF>::Scatter(const std::vector<MIdx>& bb) {
+template <class Par, class M>
+void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
   auto& vreq0 = mk.at(bb[0])->GetMesh().GetScatter(); // requests on first block
 
   // Check size is the same for all blocks
@@ -704,8 +700,8 @@ void Cubismnc<Par, KF>::Scatter(const std::vector<MIdx>& bb) {
     mk.at(b)->GetMesh().ClearScatter();
   }
 }
-template <class Par, class KF>
-void Cubismnc<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
+template <class Par, class M>
+void Cubismnc<Par, M>::Reduce(const std::vector<MIdx>& bb) {
   using OpS = typename M::OpS;
   using OpSI = typename M::OpSI;
   using OpCat = typename M::OpCat;
@@ -869,8 +865,8 @@ void Cubismnc<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
   }
 }
 
-template <class Par, class KF>
-void Cubismnc<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
+template <class Par, class M>
+void Cubismnc<Par, M>::DumpWrite(const std::vector<MIdx>& bb) {
   auto& m = mk.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
     std::string df = var.String["dumpformat"];
@@ -923,13 +919,13 @@ void Cubismnc<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
   }
 }
 
-template <class Par, class KF>
-auto Cubismnc<Par, KF>::GetGlobalBlock() const -> typename M::BlockCells {
+template <class Par, class M>
+auto Cubismnc<Par, M>::GetGlobalBlock() const -> typename M::BlockCells {
   return typename M::BlockCells(p_ * b_ * bs_);
 }
 
-template <class Par, class KF>
-auto Cubismnc<Par, KF>::GetGlobalIndex() const -> typename M::IndexCells {
+template <class Par, class M>
+auto Cubismnc<Par, M>::GetGlobalIndex() const -> typename M::IndexCells {
   // TODO: revise, relies on lightweight mesh,
   //       may cause allocation of data fields otherwise
   Rect<Vect> dom(Vect(0), Vect(1));
@@ -938,8 +934,8 @@ auto Cubismnc<Par, KF>::GetGlobalIndex() const -> typename M::IndexCells {
   return m.GetIndexCells();
 }
 
-template <class Par, class KF>
-auto Cubismnc<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
+template <class Par, class M>
+auto Cubismnc<Par, M>::GetGlobalField(size_t e) -> FieldCell<Scal> {
   using BC = typename M::BlockCells;
   using PF = const typename M::Co*;
   auto gbc = GetGlobalIndex();
@@ -1066,5 +1062,5 @@ std::string StreamHdfVect<B>::EXT = "";
 template <class Scal, size_t bx, size_t by, size_t bz, size_t hl>
 using GPar = cubismnc_impl::GPar<Scal, bx, by, bz, hl>;
 
-template <class Par, class KF>
-using Cubismnc = cubismnc_impl::Cubismnc<Par, KF>;
+template <class Par, class M>
+using Cubismnc = cubismnc_impl::Cubismnc<Par, M>;
