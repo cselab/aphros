@@ -1,6 +1,8 @@
-m ?= 128 64 64
-bs ?= 8 8 8
-np ?= 256
+m ?= 64 16 1
+bs ?= 16 16 1
+np ?= 1
+
+all: cleanrun
 
 include $(shell ch.makesim)
 
