@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -eu
+
+n=${1:-inlet}
+
+r=ref$n
+
+mkdir -p $r
+
+ff=`ls $r`
+
+for f in $ff ; do
+  echo $f
+  cp -v $f $r/$f
+done
+
