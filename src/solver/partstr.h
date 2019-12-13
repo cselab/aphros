@@ -1,13 +1,13 @@
 #pragma once
 
-#include <exception>
 #include <array>
-#include <memory>
-#include <limits>
-#include <vector>
-#include <iomanip>
+#include <exception>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <limits>
+#include <memory>
+#include <vector>
 
 #include "geom/vect.h"
 #include "reconst.h"
@@ -33,8 +33,8 @@ template <class Scal>
 class PartStr {
  public:
   enum class FT { // attraction force type
-      line   // interface line
-    , center // interface center
+    line, // interface line
+    center, // interface center
   };
   struct Par {
     Scal leq = 4; // length of partricle string relative to cell size
@@ -52,7 +52,9 @@ class PartStr {
   PartStr(std::shared_ptr<Par> par) : par(par) {
     Clear();
   }
-  Par* GetPar() { return par.get(); }
+  Par* GetPar() {
+    return par.get();
+  }
   // Number of strings
   size_t GetNumStr() const {
     return sx_.size() - 1;
@@ -76,8 +78,9 @@ class PartStr {
   // ls: ls[l]: size of line l
   // Returns:
   // index of new string, equals GetNumStr()-1
-  size_t Add(const Vect& xc, const Vect& t,
-             const std::vector<Vect>& lx, const std::vector<size_t>& ls) {
+  size_t Add(
+      const Vect& xc, const Vect& t, const std::vector<Vect>& lx,
+      const std::vector<size_t>& ls) {
     size_t np = par->npmax;
     // seed particles
     Scal leq = par->leq * par->hc / (np - 1); // length of segment
@@ -114,9 +117,9 @@ class PartStr {
     ff.resize(sx);
 
     // compute interface forces
-    InterfaceForce(xx, sx,
-                   &(lx_[lo_[sl_[s]]]), &(ls_[sl_[s]]), sl_[s + 1] - sl_[s],
-                   par->segcirc, ff.data(), par->forcetype);
+    InterfaceForce(
+        xx, sx, &(lx_[lo_[sl_[s]]]), &(ls_[sl_[s]]), sl_[s + 1] - sl_[s],
+        par->segcirc, ff.data(), par->forcetype);
 
     ApplyConstraints(xx, sx, par->relax, par->dn, ff.data());
 
@@ -170,11 +173,8 @@ class PartStr {
       if (verb && s % std::max<size_t>(1, GetNumStr() / 10) == 0) {
         auto fl = std::cout.flags();
         std::cout.precision(16);
-        std::cout
-            << "s=" << std::setw(10) << s
-            << " r=" << std::setw(20) << r
-            << " it=" << std::setw(5) << it
-            << std::endl;
+        std::cout << "s=" << std::setw(10) << s << " r=" << std::setw(20) << r
+                  << " it=" << std::setw(5) << it << std::endl;
         std::cout.flags(fl);
       }
       rm = std::max(rm, r);
@@ -258,7 +258,6 @@ class PartStr {
   using R = Reconst<Scal>;
 
  public:
-
   // Curvature of particle string.
   // xx: array of positions
   // sx: size of xx
@@ -284,7 +283,7 @@ class PartStr {
   // l: segment half-length
   // d: distance from segment center to target point (d<l)
   static Scal SegCirc(Scal k, Scal l, Scal d) {
-    d = std::min(d, l);   // XXX: adhoc
+    d = std::min(d, l); // XXX: adhoc
     k = std::min(k, 1. / l);
     Scal a1 = 1. - sqr(k * l);
     Scal a2 = 1. - sqr(k * d);
@@ -303,9 +302,9 @@ class PartStr {
   // ft: force type
   // Output:
   // ff: forces
-  static void InterfaceForce(const Vect* xx, size_t sx,
-                             const Vect* lx, const size_t* ls, size_t sl,
-                             Scal segcirc, Vect* ff, FT ft) {
+  static void InterfaceForce(
+      const Vect* xx, size_t sx, const Vect* lx, const size_t* ls, size_t sl,
+      Scal segcirc, Vect* ff, FT ft) {
     if (sx == 0) {
       return;
     }
@@ -327,9 +326,9 @@ class PartStr {
     // x: target point
     // Returns:
     // e: segment ends
-    auto findnear = [&lx,&ls,&sl](const Vect& x) -> std::array<Vect, 2> {
+    auto findnear = [&lx, &ls, &sl](const Vect& x) -> std::array<Vect, 2> {
       std::array<Vect, 2> en = {Vect(0), Vect(0)}; // result
-      Scal dn = std::numeric_limits<Scal>::max();  // sqrdist to nearest
+      Scal dn = std::numeric_limits<Scal>::max(); // sqrdist to nearest
 
       // loop over interface lines
       size_t b = 0; // index in lx
@@ -343,7 +342,8 @@ class PartStr {
             en = {lx[b + k], lx[b + kp]};
           }
           if (ls[l] == 2) {
-            break;;
+            break;
+            ;
           }
         }
         b += ls[l];
@@ -354,7 +354,7 @@ class PartStr {
     // Apply shift from segment to circle
     // e: segment ends
     // x: curent point on segment
-    auto shsegcirc = [crv,segcirc](const std::array<Vect, 2>& e, Vect& x) {
+    auto shsegcirc = [crv, segcirc](const std::array<Vect, 2>& e, Vect& x) {
       if (segcirc != 0.) {
         // outer normal
         Vect n = e[1] - e[0];
@@ -432,7 +432,7 @@ class PartStr {
   };
   // Oriented angle from (x[i]-x[i-1]) to (x[i+1]-x[i])
   static Scal GetAn(const Vect* x, size_t i) {
-    return GetAn(x[i-1], x[i], x[i+1]);
+    return GetAn(x[i - 1], x[i], x[i + 1]);
   };
   // Apply constraints on force.
   // xx: array of positions
@@ -443,9 +443,7 @@ class PartStr {
       const Vect* xx, size_t sx, Scal relax, bool dn, Vect* ff) {
     // Rotates vector by pi/2
     // x: vector of plane coordinates
-    auto rr = [](const Vect& x) {
-      return Vect(-x[1], x[0]);
-    };
+    auto rr = [](const Vect& x) { return Vect(-x[1], x[0]); };
     // Rotates vector to angle 'a' given by unit vector
     // x: vector of plane coordinates
     // e: Vect(cos(a), sin(a), 0)
@@ -461,9 +459,7 @@ class PartStr {
     // Returns vector at angle a
     // x: vector of plane coordinates
     // e: Vect(cos(a), sin(a), 0)
-    auto ra = [](Scal a) {
-      return Vect(std::cos(a), std::sin(a));
-    };
+    auto ra = [](Scal a) { return Vect(std::cos(a), std::sin(a)); };
 
     // relaxation of force
     for (size_t i = 0; i < sx; ++i) {
@@ -539,7 +535,7 @@ class PartStr {
       }
 
       // projection of f
-      Scal fa = 0.;  // f dot xa
+      Scal fa = 0.; // f dot xa
       Scal na = 0.; // xa dot xa
       for (size_t i = 0; i < sx; ++i) {
         fa += ff[i].dot(xa[i]);
@@ -617,7 +613,7 @@ class PartStr {
       }
 
       // projection of f
-      Scal ft = 0.;  // f dot xt
+      Scal ft = 0.; // f dot xt
       Scal nt = 0.; // xt dot xt
       for (size_t i = 0; i < sx; ++i) {
         ft += ff[i].dot(xt[i]);
