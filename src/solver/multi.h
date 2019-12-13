@@ -3,8 +3,8 @@
 #include <limits>
 #include <memory>
 
-#include "solver/solver.h"
 #include "geom/mesh.h"
+#include "solver/solver.h"
 
 namespace solver {
 
@@ -31,7 +31,6 @@ class MultiMask {
  private:
   struct Imp;
   std::unique_ptr<Imp> imp;
-
 };
 
 template <class T>
@@ -114,7 +113,6 @@ class Multi {
   std::vector<T> d_;
 };
 
-
 // Returns values over stencil centered at cell c with color cl.
 // Values for neighbors without color cl are filled with 0.
 // sw: stencil half-width
@@ -123,16 +121,16 @@ struct GetStencil {
   static constexpr size_t sn = sw * 2 + 1;
   using Scal = typename M::Scal;
 
-  std::array<typename M::Scal, sn*sn*sn> operator()(
+  std::array<typename M::Scal, sn * sn * sn> operator()(
       const GRange<size_t>& layers,
       const Multi<const FieldCell<typename M::Scal>*>& fc,
-      const Multi<const FieldCell<typename M::Scal>*>& fccl,
-      IdxCell c, typename M::Scal cl, const M& m) {
+      const Multi<const FieldCell<typename M::Scal>*>& fccl, IdxCell c,
+      typename M::Scal cl, const M& m) {
     using MIdx = typename M::MIdx;
     auto& bc = m.GetIndexCells();
     GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn));
     MIdx w = bc.GetMIdx(c);
-    std::array<typename M::Scal, sn*sn*sn> uu;
+    std::array<typename M::Scal, sn * sn * sn> uu;
     size_t k = 0;
     for (MIdx wo : bo) {
       IdxCell cn = bc.GetIdx(w + wo);
@@ -148,6 +146,5 @@ struct GetStencil {
     return uu;
   }
 };
-
 
 } // namespace solver

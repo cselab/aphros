@@ -21,7 +21,7 @@ class Sampler {
     }
   }
 
-  void CollectSample(const std::string &name) {
+  void CollectSample(const std::string& name) {
     if (active_ && !timers_.empty()) {
       samples_[name].push_back(timers_.top().GetSeconds());
       timers_.pop();

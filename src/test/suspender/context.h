@@ -4,8 +4,12 @@ namespace context {
 
 void B(Suspender& susp) {
   struct Context {
-    Context() { std::cerr << "ContextB created" << std::endl; }
-    ~Context() { std::cerr << "ContextB destroyed" << std::endl; }
+    Context() {
+      std::cerr << "ContextB created" << std::endl;
+    }
+    ~Context() {
+      std::cerr << "ContextB destroyed" << std::endl;
+    }
     int a = 10;
   };
   Suspender::Sem sem = susp.GetSem();
@@ -22,12 +26,16 @@ void B(Suspender& susp) {
 
 void A(Suspender& susp) {
   struct Context {
-    Context() { std::cerr << "ContextA created" << std::endl; }
-    ~Context() { std::cerr << "ContextA destroyed" << std::endl; }
+    Context() {
+      std::cerr << "ContextA created" << std::endl;
+    }
+    ~Context() {
+      std::cerr << "ContextA destroyed" << std::endl;
+    }
     std::vector<double> v;
   };
   Suspender::Sem sem = susp.GetSem();
-  //auto ctx = sem.Get<Context>();
+  // auto ctx = sem.Get<Context>();
   auto ctx = sem.Get((Context*)0);
   if (sem()) {
     ctx->v = {1., 2., 3., 4.};
@@ -43,7 +51,6 @@ void A(Suspender& susp) {
     std::cerr << "A2 " << ctx->v.size() << std::endl;
   }
 }
-
 
 void Test() {
   Suspender susp;

@@ -26,15 +26,25 @@ struct UHeight {
         i = si - i;
       }
     }
-    if (i >= si) { return nan; }
+    if (i >= si) {
+      return nan;
+    }
 
     size_t im = i; // closest pure cell below
-    while (im < si && I(uu[im])) { --im; }
-    if (im >= si) { return nan; }
+    while (im < si && I(uu[im])) {
+      --im;
+    }
+    if (im >= si) {
+      return nan;
+    }
 
     size_t ip = i; // closest pure cell above
-    while (ip < si && I(uu[ip])) { ++ip; }
-    if (ip >= si) { return nan; }
+    while (ip < si && I(uu[ip])) {
+      ++ip;
+    }
+    if (ip >= si) {
+      return nan;
+    }
 
     if ((uu[ip] - uu[im]) * n < 0) {
       Scal u = 0;
@@ -66,12 +76,20 @@ struct UHeight {
     }
 
     size_t im = i; // closest pure cell below
-    while (im < si && I(uu[im])) { --im; }
-    if (im >= si) { return nan; }
+    while (im < si && I(uu[im])) {
+      --im;
+    }
+    if (im >= si) {
+      return nan;
+    }
 
     size_t ip = i; // closest pure cell above
-    while (ip < si && I(uu[ip])) { ++ip; }
-    if (ip >= si) { return nan; }
+    while (ip < si && I(uu[ip])) {
+      ++ip;
+    }
+    if (ip >= si) {
+      return nan;
+    }
 
     if (uu[ip] != uu[im]) {
       Scal u = 0.; // sum over column

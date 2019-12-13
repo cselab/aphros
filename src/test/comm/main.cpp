@@ -1,21 +1,21 @@
 #undef NDEBUG
-#include <iostream>
-#include <string>
 #include <mpi.h>
-#include <cassert>
-#include <iomanip>
-#include <fstream>
-#include <limits>
-#include <cmath>
 #include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <string>
 
+#include "distr/distrsolver.h"
 #include "geom/mesh.h"
 #include "kernel/kernelmeshpar.h"
-#include "distr/distrsolver.h"
-#include "util/suspender.h"
-#include "solver/solver.h"
 #include "linear/linear.h"
 #include "solver/pois.h"
+#include "solver/solver.h"
+#include "util/suspender.h"
 
 template <class T>
 std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
@@ -26,7 +26,6 @@ std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
   }
   return o;
 }
-
 
 struct GPar {};
 
@@ -45,9 +44,9 @@ class Simple : public KernelMeshPar<M_, GPar> {
   void Run() override;
 
  protected:
-  using P::var;
   using P::bi_;
   using P::m;
+  using P::var;
 
  private:
   void TestComm();
@@ -57,12 +56,19 @@ class Simple : public KernelMeshPar<M_, GPar> {
   void TestPois();
 
   // TODO: revise 1e-10
-  bool Cmp(Scal a, Scal b) { return std::abs(a - b) < 1e-10; }
-  bool Cmp(Vect a, Vect b) { return a.dist(b) < 1e-10; }
-  bool Cmp(MIdx a, MIdx b) { return a == b; }
+  bool Cmp(Scal a, Scal b) {
+    return std::abs(a - b) < 1e-10;
+  }
+  bool Cmp(Vect a, Vect b) {
+    return a.dist(b) < 1e-10;
+  }
+  bool Cmp(MIdx a, MIdx b) {
+    return a == b;
+  }
   template <class T>
-  bool Cmp(const std::vector<T>& a, 
-           const std::vector<T>& b) { return a == b; }
+  bool Cmp(const std::vector<T>& a, const std::vector<T>& b) {
+    return a == b;
+  }
 
   FieldCell<Scal> fc_;
   FieldCell<Vect> fcv_;
@@ -79,16 +85,15 @@ class Simple : public KernelMeshPar<M_, GPar> {
   std::pair<Scal, int> rsi_; // test Reduce minloc
   std::vector<Scal> rvs_; // reduction vector<Scal> (concatenation)
   std::vector<int> rvi_; // reduction vector<int> (concatenation)
-  std::vector<std::vector<int>> rvvi_; // reduction vector<vector<int>> 
-  std::vector<std::vector<Scal>> rvvs_; // reduction vector<vector<int>> 
+  std::vector<std::vector<int>> rvvi_; // reduction vector<vector<int>>
+  std::vector<std::vector<Scal>> rvvs_; // reduction vector<vector<int>>
   std::shared_ptr<solver::PoisSolver<M>> ps_;
 };
 
 template <class Idx, class M>
 typename M::Scal DiffMax(
     const GField<typename M::Scal, Idx>& u,
-    const GField<typename M::Scal, Idx>& v,
-    const M& m) {
+    const GField<typename M::Scal, Idx>& v, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
   for (auto i : m.template GetIn<Idx>()) {
@@ -100,8 +105,7 @@ typename M::Scal DiffMax(
 template <class Idx, class M>
 typename M::Scal DiffMean(
     const GField<typename M::Scal, Idx>& u,
-    const GField<typename M::Scal, Idx>& v,
-    const M& m) {
+    const GField<typename M::Scal, Idx>& v, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
   Scal w = 0;
@@ -113,9 +117,7 @@ typename M::Scal DiffMean(
 }
 
 template <class Idx, class M>
-typename M::Scal Max(
-    const GField<typename M::Scal, Idx>& u,
-    const M& m) {
+typename M::Scal Max(const GField<typename M::Scal, Idx>& u, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
   for (auto i : m.template GetIn<Idx>()) {
@@ -125,9 +127,7 @@ typename M::Scal Max(
 }
 
 template <class Idx, class M>
-typename M::Scal Mean(
-    const GField<typename M::Scal, Idx>& u,
-    const M& m) {
+typename M::Scal Mean(const GField<typename M::Scal, Idx>& u, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
   Scal w = 0.;
@@ -138,36 +138,32 @@ typename M::Scal Mean(
   return r / w;
 }
 
-
-#define CMP(a, b) \
-  if (!Cmp(a,b)) { \
-    throw std::runtime_error(std::string(__FILE__) + \
-        ":" + std::to_string(__LINE__)); \
+#define CMP(a, b)                                                \
+  if (!Cmp(a, b)) {                                              \
+    throw std::runtime_error(                                    \
+        std::string(__FILE__) + ":" + std::to_string(__LINE__)); \
   }
 
 // Print CMP
-#define PCMP(a, b) \
-  { \
-  auto _fmt = std::cerr.flags(); \
-  std::cerr \
-    << std::scientific << std::setprecision(16) \
-    << "CMP " << #a << "=" << a << "\n    " << #b << "=" << b << std::endl; \
-  CMP(a, b); \
-  std::cerr.flags(_fmt); \
+#define PCMP(a, b)                                                        \
+  {                                                                       \
+    auto _fmt = std::cerr.flags();                                        \
+    std::cerr << std::scientific << std::setprecision(16) << "CMP " << #a \
+              << "=" << a << "\n    " << #b << "=" << b << std::endl;     \
+    CMP(a, b);                                                            \
+    std::cerr.flags(_fmt);                                                \
   }
 
 // Print CMP standard flags
-#define PCMPF(a, b) \
-  std::cerr \
-    << "CMP " << std::setw(15) << #a << "=" << a \
-    << "\n    " << std::setw(15) << #b << "=" << b << std::endl; \
+#define PCMPF(a, b)                                                  \
+  std::cerr << "CMP " << std::setw(15) << #a << "=" << a << "\n    " \
+            << std::setw(15) << #b << "=" << b << std::endl;         \
   CMP(a, b);
-
 
 template <class M>
 void Simple<M>::TestComm() {
   auto sem = m.GetSem("Comm");
-  auto f = [](Vect v) { 
+  auto f = [](Vect v) {
     for (size_t i = 0; i < dim; ++i) {
       while (v[i] < 0.) {
         v[i] += 1.;
@@ -176,11 +172,9 @@ void Simple<M>::TestComm() {
         v[i] -= 1.;
       }
     }
-    return std::sin(v[0]) * std::cos(v[1]) * std::exp(v[2]); 
+    return std::sin(v[0]) * std::cos(v[1]) * std::exp(v[2]);
   };
-  auto fv = [=](Vect v) { 
-    return Vect(f(v), f(v * 2.), f(v * 3.));
-  };
+  auto fv = [=](Vect v) { return Vect(f(v), f(v * 2.), f(v * 3.)); };
   auto& bc = m.GetIndexCells();
   if (sem("init")) {
     fc_.Reinit(m);
@@ -197,17 +191,13 @@ void Simple<M>::TestComm() {
     for (auto c : m.AllCells()) {
       auto x = m.GetCenter(c);
       if (!Cmp(fc_[c], f(x))) {
-        std::cerr 
-          << bc.GetMIdx(c) << " " 
-          << fc_[c] << " != " << f(x) << " "
-          << std::endl;
+        std::cerr << bc.GetMIdx(c) << " " << fc_[c] << " != " << f(x) << " "
+                  << std::endl;
         throw std::runtime_error("");
       }
       if (!Cmp(fcv_[c], fv(x))) {
-        std::cerr 
-          << bc.GetMIdx(c) << " " 
-          << fcv_[c] << " != " << fv(x) << " "
-          << std::endl;
+        std::cerr << bc.GetMIdx(c) << " " << fcv_[c] << " != " << fv(x) << " "
+                  << std::endl;
         throw std::runtime_error("");
       }
     }
@@ -219,12 +209,12 @@ void Simple<M>::TestReduce() {
   auto sem = m.GetSem("Reduce");
   MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
   MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
-  GBlock<IdxCell, dim> bq(p * b); 
-  GIndex<size_t, dim> ndq(p * b); 
-  GBlock<IdxCell, dim> qp(p); 
-  GBlock<IdxCell, dim> qb(b); 
+  GBlock<IdxCell, dim> bq(p * b);
+  GIndex<size_t, dim> ndq(p * b);
+  GBlock<IdxCell, dim> qp(p);
+  GBlock<IdxCell, dim> qb(b);
   auto f = [](MIdx w) {
-    return std::sin(w[0]+1.7) * std::cos(w[1]) * std::exp(w[2] * 0.1); 
+    return std::sin(w[0] + 1.7) * std::cos(w[1]) * std::exp(w[2] * 0.1);
   };
   if (sem("sum")) {
     r_ = f(MIdx(bi_.index));
@@ -407,9 +397,9 @@ void Simple<M>::TestScatter() {
   MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
   MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
   GBlock<IdxCell, dim> bq(p * b);
-  GIndex<size_t, dim> ndq(p * b); 
-  GBlock<IdxCell, dim> qp(p); 
-  GBlock<IdxCell, dim> qb(b); 
+  GIndex<size_t, dim> ndq(p * b);
+  GBlock<IdxCell, dim> qp(p);
+  GBlock<IdxCell, dim> qb(b);
   auto GetBlockData = [](size_t i) {
     std::vector<Scal> r;
     r.push_back(Scal(i));
@@ -467,7 +457,7 @@ template <class M>
 void Simple<M>::TestSolve() {
   auto sem = m.GetSem("Solve");
   auto& bc = m.GetIndexCells();
-  auto f = [](Vect v) { 
+  auto f = [](Vect v) {
     for (size_t i = 0; i < dim; ++i) {
       while (v[i] < 0.) {
         v[i] += 1.;
@@ -476,9 +466,8 @@ void Simple<M>::TestSolve() {
         v[i] -= 1.;
       }
     }
-    return std::sin(v[0]* v[1]) * 
-        std::cos(v[1] * v[2]) * 
-        std::exp(v[2] + v[0]); 
+    return std::sin(v[0] * v[1]) * std::cos(v[1] * v[2]) *
+           std::exp(v[2] + v[0]);
   };
 
   // global mesh size
@@ -523,11 +512,11 @@ void Simple<M>::TestSolve() {
 
       bool per = var.Int["periodic"];
 
-      e.InsertTerm(mpx < gs || per       ? -0.0 : 0., ipx);
+      e.InsertTerm(mpx < gs || per ? -0.0 : 0., ipx);
       e.InsertTerm(MIdx(0) <= mmx || per ? -0.0 : 0., imx);
-      e.InsertTerm(mpy < gs || per       ? -1.0 : 0., ipy);
+      e.InsertTerm(mpy < gs || per ? -1.0 : 0., ipy);
       e.InsertTerm(MIdx(0) <= mmy || per ? -1.0 : 0., imy);
-      e.InsertTerm(mpz < gs || per       ? -1.0 : 0., ipz);
+      e.InsertTerm(mpz < gs || per ? -1.0 : 0., ipz);
       e.InsertTerm(MIdx(0) <= mmz || per ? -1.0 : 0., imz);
 
       e.InsertTerm(6., i);
@@ -558,15 +547,15 @@ void Simple<M>::TestPois() {
   auto sem = m.GetSem("pois");
   struct {
     MapCondFace mf;
-  }* ctx(sem);
+  } * ctx(sem);
   // exact solution
-  auto fe = [](Vect x) { 
+  auto fe = [](Vect x) {
     Scal pi = M_PI;
     Scal k = 2 * pi;
     return std::sin(x[0] * k) * std::sin(x[1] * k) * std::sin(x[2] * k);
   };
   // rhs
-  auto fr = [=](Vect x, Vect h) { 
+  auto fr = [=](Vect x, Vect h) {
     auto f = fe;
     Vect h0(h[0], 0., 0.);
     Vect h1(0., h[1], 0.);
@@ -608,7 +597,6 @@ void Simple<M>::TestPois() {
   }
 }
 
-
 template <class M>
 void Simple<M>::Run() {
   auto sem = m.GetSem("Run");
@@ -629,7 +617,6 @@ void Simple<M>::Run() {
   }
 }
 
-
 void Main(MPI_Comm comm, Vars& var) {
   using M = MeshStructured<double, 3>;
   using K = Simple<M>;
@@ -639,7 +626,6 @@ void Main(MPI_Comm comm, Vars& var) {
   DistrSolver<M, K> ds(comm, var, par);
   ds.Run();
 }
-
 
 int main(int argc, const char** argv) {
   return RunMpi(argc, argv, Main);

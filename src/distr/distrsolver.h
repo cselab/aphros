@@ -1,19 +1,19 @@
 #pragma once
 
-#include <memory>
 #include <mpi.h>
-#include <stdexcept>
 #include <functional>
+#include <memory>
+#include <stdexcept>
 
-#include "parse/vars.h"
-#include "kernel/kernelmeshpar.h"
-#include "distr.h"
 #include "cubism.h"
 #include "cubismnc.h"
+#include "distr.h"
+#include "geom/block.h"
+#include "geom/vect.h"
+#include "kernel/kernelmeshpar.h"
 #include "local.h"
 #include "parse/parser.h"
-#include "geom/vect.h"
-#include "geom/block.h"
+#include "parse/vars.h"
 
 // Client for DistrMesh
 // M_: mesh
@@ -31,8 +31,7 @@ class DistrSolver {
   using Par = typename K::Par;
 
   DistrSolver(MPI_Comm comm, Vars& var0, Par& par)
-      : var(var0), var_mutable(var0), kf_(par)
-  {
+      : var(var0), var_mutable(var0), kf_(par) {
     var_mutable.Double.Set("t", 0);
 
     const std::string be = var.String["backend"];
@@ -64,11 +63,11 @@ class DistrSolver {
   FieldCell<Scal> GetField(size_t i) const {
     return d_->GetGlobalField(i);
   }
-  double GetTime() const { 
-    return var.Double["t"]; 
+  double GetTime() const {
+    return var.Double["t"];
   }
-  double GetTimeStep() const { 
-    return var.Double["dt"]; 
+  double GetTimeStep() const {
+    return var.Double["dt"];
   }
 
  private:
@@ -78,5 +77,4 @@ class DistrSolver {
   KF kf_;
 };
 
-int RunMpi(int argc, const char ** argv,
-           std::function<void(MPI_Comm, Vars&)> r);
+int RunMpi(int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> r);

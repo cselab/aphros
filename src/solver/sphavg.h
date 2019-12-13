@@ -1,7 +1,7 @@
 #pragma once
 
-#include <limits>
 #include <cmath>
+#include <limits>
 
 #include "solver/solver.h"
 
@@ -18,34 +18,32 @@ class Sphavg {
 
  public:
   struct Sph {
-    Vect x = Vect(0);  // center
-    Scal r = 1.;  // radius
-    Scal h = 1.;  // kernel width
+    Vect x = Vect(0); // center
+    Scal r = 1.; // radius
+    Scal h = 1.; // kernel width
     Sph() = default;
-    Sph(const Vect& x, Scal r, Scal h) : x(x), r(r), h(h) {} 
+    Sph(const Vect& x, Scal r, Scal h) : x(x), r(r), h(h) {}
   };
   struct Avg {
-    Scal b = 0.;  // total weight
-    Vect x = Vect(0);  // average of position
-    Vect v = Vect(0);  // velocity
-    Vect dvt = Vect(0);  // dv/dt
-    Vect dvx = Vect(0);  // dv/dx * v
-    Vect dvmat = Vect(0);  // dv/dt + dv/dx * v 
-    Vect gp = Vect(0);  // gp/dx
+    Scal b = 0.; // total weight
+    Vect x = Vect(0); // average of position
+    Vect v = Vect(0); // velocity
+    Vect dvt = Vect(0); // dv/dt
+    Vect dvx = Vect(0); // dv/dx * v
+    Vect dvmat = Vect(0); // dv/dt + dv/dx * v
+    Vect gp = Vect(0); // gp/dx
     Scal vm = 0.; // velocity magnitude
-    Scal p = 0.;  // pressure
-    Scal r = 1.;  // equivalent radius
+    Scal p = 0.; // pressure
+    Scal r = 1.; // equivalent radius
     Scal rhm = 1.; // shell inner
     Scal rhp = 1.; // shell outer
-    Vect gvx = Vect(0);  // dv/dx
-    Vect gvy = Vect(0);  // dv/dy
-    Vect gvz = Vect(0);  // dv/dz
+    Vect gvx = Vect(0); // dv/dx
+    Vect gvy = Vect(0); // dv/dy
+    Vect gvz = Vect(0); // dv/dz
     Avg() = default;
     static std::vector<std::string> GetNames() {
       std::vector<std::string> r;
-      auto as = [&r](std::string n) {
-        r.push_back(n);
-      };
+      auto as = [&r](std::string n) { r.push_back(n); };
       auto av = [&as](std::string n) {
         as(n + "x");
         as(n + "y");
@@ -144,10 +142,10 @@ class Sphavg {
   // fcvm: velocity from previous time step [a]
   // fcp: pressure [a]
   // dt: time between time steps
-  void Update(const FieldCell<Scal>& fcu,
-              const FieldCell<Vect>& fcv, const FieldCell<Vect>& fcvm, Scal dt,
-              const FieldCell<Scal>& fcp,
-              const std::vector<Sph>& ss);
+  void Update(
+      const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcv,
+      const FieldCell<Vect>& fcvm, Scal dt, const FieldCell<Scal>& fcp,
+      const std::vector<Sph>& ss);
   // Returns spheres from last Update()
   const std::vector<Sph>& GetSph() const {
     return ss_;
@@ -172,7 +170,7 @@ class Sphavg {
     return std::max(0., 1. - std::abs(r));
   }
   // Returns kernel value.
-  // x: target 
+  // x: target
   // s: sphere
   static Scal Kernel(const Vect& x, const Sph& s) {
     return Kernel0((x.dist(s.x) - s.r) / s.h);
@@ -249,15 +247,14 @@ class Sphavg {
 
 template <class M_>
 void Sphavg<M_>::Update(
-    const FieldCell<Scal>& fcu,
-    const FieldCell<Vect>& fcv, const FieldCell<Vect>& fcvm, Scal dt,
-    const FieldCell<Scal>& fcp,
+    const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcv,
+    const FieldCell<Vect>& fcvm, Scal dt, const FieldCell<Scal>& fcp,
     const std::vector<Sph>& ss) {
   auto sem = m.GetSem("upd");
 
   auto& bd = m.GetIndexCells();
   auto& bc = m.GetInBlockCells();
-  (void) fcu;
+  (void)fcu;
 
   if (sem("calc")) {
     ss_ = ss;
@@ -267,7 +264,7 @@ void Sphavg<M_>::Update(
     auto rm = GetBox();
 
     // derivative in direction d at point w
-    auto sd = [&h,&bd](const FieldCell<Scal>& f, MIdx w, size_t d) {
+    auto sd = [&h, &bd](const FieldCell<Scal>& f, MIdx w, size_t d) {
       MIdx wp = w;
       ++wp[d];
       MIdx wm = w;
@@ -277,7 +274,7 @@ void Sphavg<M_>::Update(
       return (f[cp] - f[cm]) / (2. * h[d]);
     };
     // derivative in direction d at point w
-    auto sdv = [&h,&bd](const FieldCell<Vect>& f, MIdx w, size_t d) {
+    auto sdv = [&h, &bd](const FieldCell<Vect>& f, MIdx w, size_t d) {
       MIdx wp = w;
       ++wp[d];
       MIdx wm = w;
@@ -350,7 +347,7 @@ void Sphavg<M_>::Update(
       vv_.push_back(aa_[i].Ser());
     }
 
-    using TVS = typename M::template OpCatVT<Scal>; 
+    using TVS = typename M::template OpCatVT<Scal>;
     m.Reduce(std::make_shared<TVS>(&vv_));
   }
   if (sem("reduce")) {
@@ -377,7 +374,7 @@ void Sphavg<M_>::Update(
         }
       }
     }
-    using TVS = typename M::template OpCatVT<Scal>; 
+    using TVS = typename M::template OpCatVT<Scal>;
     m.Bcast(std::make_shared<TVS>(&vv_));
   }
   if (sem("bcast")) {

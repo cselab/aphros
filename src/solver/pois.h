@@ -1,16 +1,15 @@
 #pragma once
 
+#include <cmath>
 #include <exception>
 #include <memory>
-#include <cmath>
 #include <sstream>
 #include <string>
 
+#include "cond.h"
 #include "geom/mesh.h"
 #include "linear/linear.h"
-#include "cond.h"
 #include "solver/approx.h"
-
 
 namespace solver {
 
@@ -28,7 +27,6 @@ class PoisSolver {
   static constexpr size_t dim = M::dim;
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
-
   PoisSolver(const MapCondFace& mf, M& m) : m(m), mf_(mf) {}
   // Solve linear system fce = 0
   // fce: expressions [i]
@@ -43,7 +41,7 @@ class PoisSolver {
       std::vector<Scal>* lsx;
       m.GetSolveTmp(lsa, lsb, lsx);
       auto l = ConvertLs(fce, *lsa, *lsb, *lsx, m);
-      using T = typename M::LS::T; 
+      using T = typename M::LS::T;
       l.t = T::symm; // solver type
       l.prefix = "vort"; // XXX: adhoc for vorticity
       m.Solve(l);
@@ -65,9 +63,9 @@ class PoisSolver {
   }
   void Solve(const FieldCell<Scal>& fcr) {
     auto sem = m.GetSem("pois");
-    auto& fcrt = fcu_;      // temporary rhs
+    auto& fcrt = fcu_; // temporary rhs
     if (sem("reduce")) {
-      fcrt = fcr;             
+      fcrt = fcr;
       sumr_ = 0.;
       sumv_ = 0.;
       for (auto c : m.Cells()) {
@@ -93,7 +91,7 @@ class PoisSolver {
         e.SortTerms();
       }
 
-      fce_.Reinit(m);    // equations in cells
+      fce_.Reinit(m); // equations in cells
       for (auto c : m.Cells()) {
         auto& e = fce_[c];
         e.Clear();
@@ -125,6 +123,4 @@ class PoisSolver {
   Scal sumv_; // sum of volume
 };
 
-
 } // namespace solver
-

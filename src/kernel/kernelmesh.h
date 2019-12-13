@@ -27,9 +27,9 @@ M CreateMesh(const MyBlockInfo& bi) {
 
   MIdx bs(bi.bs); // block size inner
   Scal h = bi.h_gridpoint;
-  MIdx w(bi.index);   // block index
+  MIdx w(bi.index); // block index
   Vect d0(bi.origin); // origin coord
-  Vect d1 = d0 + Vect(bs) * h;      // end coord
+  Vect d1 = d0 + Vect(bs) * h; // end coord
   Rect<Vect> d(d0, d1);
   MIdx gs(bi.gs);
   MIdx o = w * bs; // origin index
@@ -58,12 +58,18 @@ class KernelMesh {
     m.SetEdim(var.Int["dim"]);
   }
   virtual void Run() = 0;
-  M& GetMesh() { return m; }
-  bool IsRoot() { return bi_.isroot; }
-  bool IsLead() { return bi_.islead; }
+  M& GetMesh() {
+    return m;
+  }
+  bool IsRoot() {
+    return bi_.isroot;
+  }
+  bool IsLead() {
+    return bi_.islead;
+  }
 
  protected:
-  const Vars& var;    // shared among all blocks on each PEs
+  const Vars& var; // shared among all blocks on each PEs
   Vars& var_mutable; // shared among all blocks on each PEs
   MyBlockInfo bi_;
   M m;
@@ -77,4 +83,3 @@ class KernelMeshFactory {
   using K = KernelMesh<M>;
   virtual K* Make(Vars&, const MyBlockInfo&) const = 0;
 };
-

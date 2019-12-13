@@ -1,11 +1,12 @@
 #pragma once
 
-#include <string>
+#include <algorithm>
+#include <cassert>
 #include <fstream>
-#include <vector>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
-#include <algorithm>
+#include <vector>
 
 // Returns true if machine is little endian
 static inline bool IsLittleEnd() {
@@ -24,7 +25,7 @@ T SwapEnd(T a) {
   return a;
 }
 
-// Writes legacy vtk polydata 
+// Writes legacy vtk polydata
 // xx: points
 // nn: normals
 // pp: polygons as lists of indices
@@ -34,14 +35,13 @@ T SwapEnd(T a) {
 // cm: comment
 // poly: true: polygons, false: lines
 // bin: true: binary, false: ascii
-template <class Vect, class Scal=typename Vect::value_type>
-void WriteVtkPoly(const std::string& fn,
-                  const std::vector<Vect>& xx,
-                  const std::vector<Vect>& nn,
-                  const std::vector<std::vector<size_t>>& pp,
-                  const std::vector<const std::vector<Scal>*>& dd,
-                  const std::vector<std::string>& dn,
-                  const std::string& cm, bool poly, bool bin) {
+template <class Vect, class Scal = typename Vect::value_type>
+void WriteVtkPoly(
+    const std::string& fn, const std::vector<Vect>& xx,
+    const std::vector<Vect>& nn, const std::vector<std::vector<size_t>>& pp,
+    const std::vector<const std::vector<Scal>*>& dd,
+    const std::vector<std::string>& dn, const std::string& cm, bool poly,
+    bool bin) {
   std::ofstream f(fn.c_str(), std::ios::binary);
 
   auto WInt = [&f](int a) {
@@ -63,7 +63,7 @@ void WriteVtkPoly(const std::string& fn,
   f << (bin ? "BINARY" : "ASCII") << "\n";
   f << "DATASET POLYDATA\n";
 
-  f << "POINTS " <<  xx.size() << " float\n";
+  f << "POINTS " << xx.size() << " float\n";
   if (bin) {
     for (auto& x : xx) {
       WFloat(x[0]);
@@ -103,7 +103,7 @@ void WriteVtkPoly(const std::string& fn,
 
   // check data size
   for (auto& d : dd) {
-    (void) d;
+    (void)d;
     assert(d->size() == pp.size());
   }
 
@@ -115,7 +115,7 @@ void WriteVtkPoly(const std::string& fn,
       f << "CELL_DATA " << d.size() << "\n";
     }
     f << "SCALARS " << n << " float\n"
-        << "LOOKUP_TABLE default\n";
+      << "LOOKUP_TABLE default\n";
     if (bin) {
       for (auto& a : d) {
         WFloat(a);
@@ -130,7 +130,9 @@ void WriteVtkPoly(const std::string& fn,
   // normals
   if (!nn.empty()) {
     f << "POINT_DATA " << nn.size() << "\n";
-    f << "VECTORS " << "nn" << " float\n";
+    f << "VECTORS "
+      << "nn"
+      << " float\n";
     if (bin) {
       for (auto& n : nn) {
         WFloat(n[0]);
@@ -151,11 +153,10 @@ void WriteVtkPoly(const std::string& fn,
 // xx: points
 // pp: polygons as lists of indices
 template <class Vect>
-void Convert(const std::vector<std::vector<Vect>>& vv, 
-             const std::vector<std::vector<Vect>>* vvn, 
-             std::vector<Vect>& xx, 
-             std::vector<Vect>& nn, 
-             std::vector<std::vector<size_t>>& pp) {
+void Convert(
+    const std::vector<std::vector<Vect>>& vv,
+    const std::vector<std::vector<Vect>>* vvn, std::vector<Vect>& xx,
+    std::vector<Vect>& nn, std::vector<std::vector<size_t>>& pp) {
   xx.resize(0);
   nn.resize(0);
   pp.resize(0);
@@ -175,7 +176,7 @@ void Convert(const std::vector<std::vector<Vect>>& vv,
   }
 }
 
-template <class V, class T=typename V::value_type>
+template <class V, class T = typename V::value_type>
 void RemoveDuplicatesUnordered(std::vector<V>& pp) {
   // returns hash up to permutation of elements in V
   struct HashPoly {
@@ -204,11 +205,9 @@ void RemoveDuplicatesUnordered(std::vector<V>& pp) {
 // pp: polygons as lists of indices
 template <class Vect>
 void ConvertMerge(
-             const std::vector<std::vector<Vect>>& vv, 
-             const std::vector<std::vector<Vect>>* vvn, 
-             std::vector<Vect>& xx, 
-             std::vector<Vect>& nn, 
-             std::vector<std::vector<size_t>>& pp) {
+    const std::vector<std::vector<Vect>>& vv,
+    const std::vector<std::vector<Vect>>* vvn, std::vector<Vect>& xx,
+    std::vector<Vect>& nn, std::vector<std::vector<size_t>>& pp) {
   struct HashPoint {
     size_t operator()(const Vect& x) const noexcept {
       const int m = 1000000;
@@ -240,7 +239,6 @@ void ConvertMerge(
   }
 }
 
-
 // Writes legacy vtk polydata with cell-based dataset.
 // vv: polygons as lists of points
 // vvn: normals, same shape as vv
@@ -251,14 +249,13 @@ void ConvertMerge(
 // poly: true: polygons, false: lines
 // binary: use binary format
 // merge: combine close points
-template <class Vect, class Scal=typename Vect::value_type>
-void WriteVtkPoly(const std::string& fn,
-                  const std::vector<std::vector<Vect>>& vv,
-                  const std::vector<std::vector<Vect>>* vvn,
-                  const std::vector<const std::vector<Scal>*>& dd,
-                  const std::vector<std::string>& dn,
-                  const std::string& cm, bool poly, bool binary,
-                  bool merge) {
+template <class Vect, class Scal = typename Vect::value_type>
+void WriteVtkPoly(
+    const std::string& fn, const std::vector<std::vector<Vect>>& vv,
+    const std::vector<std::vector<Vect>>* vvn,
+    const std::vector<const std::vector<Scal>*>& dd,
+    const std::vector<std::string>& dn, const std::string& cm, bool poly,
+    bool binary, bool merge) {
   std::vector<Vect> xx;
   std::vector<Vect> nn;
   std::vector<std::vector<size_t>> pp;

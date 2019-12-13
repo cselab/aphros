@@ -1,10 +1,10 @@
 #undef NDEBUG
-#include <cassert>
-#include <vector>
-#include <iostream>
 #include <mpi.h>
+#include <cassert>
 #include <cmath>
 #include <iomanip>
+#include <iostream>
+#include <vector>
 
 #include "linear/hypre.h"
 #include "linear/hypresub.h"
@@ -21,15 +21,14 @@ bool Cmp(Scal a, Scal b) {
 }
 
 // Print CMP if false
-#define PFCMP(a, b) \
-  if (!Cmp(a, b)) { \
-    std::cerr \
-      << std::scientific << std::setprecision(16) \
-      << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
-    assert(false);\
+#define PFCMP(a, b)                                                         \
+  if (!Cmp(a, b)) {                                                         \
+    std::cerr << std::scientific << std::setprecision(16) << #a << "=" << a \
+              << ", " << #b << "=" << b << std::endl;                       \
+    assert(false);                                                          \
   }
 
-int main (int argc, char ** argv) {
+int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
 
   constexpr size_t dim = 3;
@@ -42,7 +41,7 @@ int main (int argc, char ** argv) {
 
   Block b;
   b.l = {0, 0, 0};
-  b.u = {bs-1, bs-1, bs-1};
+  b.u = {bs - 1, bs - 1, bs - 1};
   b.st = st;
 
   size_t n = 1;
@@ -78,7 +77,7 @@ int main (int argc, char ** argv) {
       for (int y = b.l[1]; y <= b.u[1]; ++y) {
         for (int x = b.l[0]; x <= b.u[0]; ++x) {
           int xp = (x + 1 + gs[0]) % gs[0];
-          dr[j] = da[2*j] * f(x, y, z) + da[2*j + 1] * f(xp, y, z);
+          dr[j] = da[2 * j] * f(x, y, z) + da[2 * j + 1] * f(xp, y, z);
           dx[j] = 0.;
           ++j;
         }
@@ -102,9 +101,9 @@ int main (int argc, char ** argv) {
   int print = 2;
   int maxiter = 80;
 
-  (void) tol;
-  (void) print;
-  (void) maxiter;
+  (void)tol;
+  (void)print;
+  (void)maxiter;
 
   int rank;
   MPI_Comm_rank(comm, &rank);
@@ -114,7 +113,7 @@ int main (int argc, char ** argv) {
 
   int ranksub;
   MPI_Comm_rank(commsub, &ranksub);
-  std::cout << EV(rank) <<  EV(ranksub) << std::endl;
+  std::cout << EV(rank) << EV(ranksub) << std::endl;
 
   HypreSub::InitServer(comm, commsub);
 

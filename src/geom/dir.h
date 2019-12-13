@@ -9,8 +9,7 @@ class GDir {
   static constexpr size_t dim = dim_;
 
   GDir() {}
-  explicit GDir(size_t d)
-    : d_(d) {}
+  explicit GDir(size_t d) : d_(d) {}
   char GetLetter() const {
     return "xyz"[d_];
   }
@@ -35,9 +34,9 @@ class GDir {
   static const GDir j;
   static const GDir k;
   // TODO: switch to x,y,z
-  //static const GDir x;
-  //static const GDir y;
-  //static const GDir z;
+  // static const GDir x;
+  // static const GDir y;
+  // static const GDir z;
 
  private:
   size_t d_;
@@ -49,5 +48,3 @@ template <size_t dim>
 const GDir<dim> GDir<dim>::j(1);
 template <size_t dim>
 const GDir<dim> GDir<dim>::k(2);
-
-

@@ -2,8 +2,8 @@
 
 #include <limits>
 
-#include "solver/solver.h"
 #include "solver/multi.h"
+#include "solver/solver.h"
 
 namespace solver {
 
@@ -23,8 +23,9 @@ class Trackerm {
   }
   // fccl: current color
   // fcclm: previous color
-  void Update(const Multi<const FieldCell<Scal>*>& fccl,
-              const Multi<const FieldCell<Scal>*>& fcclm);
+  void Update(
+      const Multi<const FieldCell<Scal>*>& fccl,
+      const Multi<const FieldCell<Scal>*>& fcclm);
   // Returns image vector, number of passes through periodic boundaries
   MIdx GetImage(size_t l, IdxCell c) const {
     return Unpack(fcim_[l][c]);
@@ -59,22 +60,23 @@ class Trackerm {
   M& m;
   static constexpr Scal kClNone = -1;
   const GRange<size_t>& layers;
-  Multi<FieldCell<Scal>> fcim_;  // image current [a]
+  Multi<FieldCell<Scal>> fcim_; // image current [a]
 };
 
 template <class M_>
-void Trackerm<M_>::Update(const Multi<const FieldCell<Scal>*>& fccl,
-                          const Multi<const FieldCell<Scal>*>& fcclm) {
+void Trackerm<M_>::Update(
+    const Multi<const FieldCell<Scal>*>& fccl,
+    const Multi<const FieldCell<Scal>*>& fcclm) {
   auto sem = m.GetSem("trackerm");
   struct {
     Multi<FieldCell<Scal>> fcimm; // image previous [a]
-  }* ctx(sem);
+  } * ctx(sem);
   auto& fcimm = ctx->fcimm;
   if (sem("update")) {
     fcimm = fcim_; // save previous
     MIdx gs = m.GetGlobalSize();
     auto& bc = m.GetIndexCells();
-    static constexpr size_t sw = 1;  // stencil half-width
+    static constexpr size_t sw = 1; // stencil half-width
     static constexpr size_t sn = sw * 2 + 1;
     GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn));
 

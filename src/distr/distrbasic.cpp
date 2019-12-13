@@ -61,14 +61,15 @@ set int hypre_gen_maxiter 30
 )foo";
 }
 
-int RunMpi0(int argc, const char ** argv,
-            std::function<void(MPI_Comm, Vars&)> r, std::istream& conf) {
+int RunMpi0(
+    int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> r,
+    std::istream& conf) {
   int prov;
-  MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
+  MPI_Init_thread(&argc, (char***)&argv, MPI_THREAD_MULTIPLE, &prov);
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  Vars var;   // parameter storage
+  Vars var; // parameter storage
   Parser ip(var); // parser
 
   ip.RunAll(conf);
@@ -89,6 +90,3 @@ int RunMpi0(int argc, const char ** argv,
   MPI_Finalize();
   return 0;
 }
-
-
-

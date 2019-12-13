@@ -1,8 +1,8 @@
 #pragma once
 
 #include "geom/mesh.h"
-#include "solver/fluid.h"
 #include "solver/cond.h"
+#include "solver/fluid.h"
 
 template <class M_>
 class UFluid {
@@ -15,8 +15,8 @@ class UFluid {
   // mfc: fluid face conditions
   // fcsv: volume source
   static void UpdateOutletBaseConditions(
-      M& m, const FieldCell<Vect>& fcw,
-      MapCondFaceFluid& mfc, const FieldCell<Scal>& fcsv) {
+      M& m, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
+      const FieldCell<Scal>& fcsv) {
     // TODO: Consider seperate channels in one domain
     using namespace solver;
     using namespace solver::fluid_condition;
@@ -27,7 +27,7 @@ class UFluid {
       Scal fi; // total inlet volume flux
       Scal fo; // total outlet volume flux
       Scal ao; // total outlet area
-    }* ctx(sem);
+    } * ctx(sem);
     auto& fi = ctx->fi;
     auto& fo = ctx->fo;
     auto& ao = ctx->ao;
@@ -51,7 +51,7 @@ class UFluid {
             Vect vc = fcw[c];
             Vect s = m.GetSurface(f);
             // clip normal component, let only positive
-            vc -= s * (q * std::min(0., vc.dot(s) * q)  / s.dot(s));
+            vc -= s * (q * std::min(0., vc.dot(s) * q) / s.dot(s));
             cd->SetVelocity(vc);
             fo += cd->GetVelocity().dot(s) * q;
             ao += m.GetArea(f);
@@ -103,12 +103,12 @@ class UFluid {
       std::vector<Scal> ft; // target flux
       std::vector<Scal> fe; // extrapolated flux
       std::vector<Scal> ai; // inlet area
-    }* ctx(sem);
+    } * ctx(sem);
     auto& ft = ctx->ft;
     auto& fe = ctx->fe;
     auto& ai = ctx->ai;
 
-    if (sem("local")) { 
+    if (sem("local")) {
       ft.resize(nid);
       fe.resize(nid);
       ai.resize(nid);

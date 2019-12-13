@@ -1,12 +1,12 @@
 #pragma once
 
 #include <hdf5.h>
+#include <array>
 #include <cassert>
 #include <cstdio>
 #include <fstream>
 #include <string>
 #include <vector>
-#include <array>
 
 #ifdef _FLOAT_PRECISION_
 #define HDF_REAL H5T_NATIVE_FLOAT

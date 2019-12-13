@@ -51,10 +51,9 @@ class GMap {
   class iterator {
     class Proxy {
       typename Cont::iterator it_;
+
      public:
-      explicit Proxy(const typename Cont::iterator& it)
-          : it_(it)
-      {}
+      explicit Proxy(const typename Cont::iterator& it) : it_(it) {}
       Idx GetIdx() const {
         return Idx(it_->first);
       }
@@ -70,10 +69,7 @@ class GMap {
     Proxy p_;
 
    public:
-    explicit iterator(const typename Cont::iterator& it)
-        : it_(it)
-        , p_(it_)
-    {}
+    explicit iterator(const typename Cont::iterator& it) : it_(it), p_(it_) {}
     iterator& operator++() {
       ++it_;
       p_ = Proxy(it_);
@@ -93,7 +89,7 @@ class GMap {
     const Proxy& operator*() {
       return p_;
     }
-    Proxy const * operator->() {
+    Proxy const* operator->() {
       return &p_;
     }
   };
@@ -106,10 +102,9 @@ class GMap {
   class const_iterator {
     class Proxy {
       typename Cont::const_iterator it_;
+
      public:
-      explicit Proxy(const typename Cont::const_iterator& it)
-          : it_(it)
-      {}
+      explicit Proxy(const typename Cont::const_iterator& it) : it_(it) {}
       Idx GetIdx() const {
         return Idx(it_->first);
       }
@@ -123,9 +118,7 @@ class GMap {
 
    public:
     explicit const_iterator(const typename Cont::const_iterator& it)
-        : it_(it)
-        , p_(it_)
-    {}
+        : it_(it), p_(it_) {}
     const_iterator& operator++() {
       ++it_;
       p_ = Proxy(it_);
@@ -145,7 +138,7 @@ class GMap {
     const Proxy& operator*() {
       return p_;
     }
-    Proxy const * operator->() {
+    Proxy const* operator->() {
       return &p_;
     }
   };
@@ -161,7 +154,7 @@ class GMap {
   const_iterator cend() const {
     return const_iterator(d_.cend());
   }
- 
+
  private:
   Cont d_;
 };
@@ -174,6 +167,3 @@ using MapFace = GMap<T, IdxFace>;
 
 template <class T>
 using MapNode = GMap<T, IdxNode>;
-
-
-

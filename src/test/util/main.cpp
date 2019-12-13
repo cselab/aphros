@@ -1,17 +1,17 @@
 #undef NDEBUG
-#include <iostream>
-#include <string>
 #include <cassert>
-#include <iomanip>
 #include <fstream>
 #include <functional>
-#include <utility>
-#include <tuple>
-#include <stdexcept>
+#include <iomanip>
+#include <iostream>
 #include <random>
+#include <stdexcept>
+#include <string>
+#include <tuple>
+#include <utility>
 
-#include "util/height.h"
 #include "debug/isnan.h"
+#include "util/height.h"
 
 using Scal = double;
 using U = UHeight<Scal>;
@@ -50,7 +50,7 @@ void TestGood() {
   t({0, 0, 0, 0.5, 1, 0.5, 0}, 1, false);
   t({0, 0, 0, 0.5, 1, 0.5, 0}, -1, true);
   t({1, 1, 1, 0.5, 0.8, 0, 0}, 1, true);
-  t({1,1,0.42,0,0,0,0}, 1, true);
+  t({1, 1, 0.42, 0, 0, 0, 0}, 1, true);
 }
 
 void TestGood2() {
@@ -79,10 +79,8 @@ void TestGood2() {
   t({0, 0.5, 0, 0.1, 1, 1, 1}, 0.4);
   t({0, 0, 0, 0.5, 1, 0.5, 0}, 0);
   t({1, 1, 1, 0.5, 0.8, 0, 0}, 0.8);
-  t({1,1,0.42,0.1,0,0,0}, -0.98);
-   
+  t({1, 1, 0.42, 0.1, 0, 0, 0}, -0.98);
 }
-
 
 int main() {
   TestGood();

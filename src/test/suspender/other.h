@@ -27,21 +27,21 @@ void C(S&) { // no sem
 }
 
 void BB(S& s) {
-  auto e = s.GetSem("BB");  // dummy sem 
+  auto e = s.GetSem("BB"); // dummy sem
   e();
 }
 
 void B(S& s) {
-  //s.GetSem();  // dummy sem 
+  // s.GetSem();  // dummy sem
   auto e = s.GetSem("B");
-  //s.GetSem();  // dummy sem
+  // s.GetSem();  // dummy sem
   if (e("1")) {
     b += "B1";
   }
   if (e.Nested("C")) {
     C(s);
   }
-  //s.GetSem();  // dummy sem in the middle
+  // s.GetSem();  // dummy sem in the middle
   if (e("2")) {
     b += "B2";
   }
@@ -80,8 +80,7 @@ void Test() {
     std::cerr << s.Print() << " " << s.GetCurName() << std::endl;
   } while (s.Pending());
 
-  std::cerr
-      << "'" << b << "' == '" << p << "'" << std::endl;
+  std::cerr << "'" << b << "' == '" << p << "'" << std::endl;
   assert(b == p);
 }
 

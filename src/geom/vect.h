@@ -1,10 +1,10 @@
 #pragma once
 
 #include <array>
-#include <iostream>
 #include <cmath>
-#include <vector>
+#include <iostream>
 #include <limits>
+#include <vector>
 
 template <class T>
 T sqr(T a) {
@@ -21,7 +21,6 @@ inline double GetNan<double>() {
   return std::numeric_limits<double>::quiet_NaN();
 }
 
-
 template <class Scal, size_t dim_>
 class GVect {
  public:
@@ -37,9 +36,7 @@ class GVect {
     swap(first.comp_, second.comp_);
   }
   GVect() {}
-  GVect(const GVect& vect)
-      : comp_(vect.comp_)
-  {}
+  GVect(const GVect& vect) : comp_(vect.comp_) {}
   size_t size() const {
     return comp_.size();
   }
@@ -49,9 +46,7 @@ class GVect {
     }
   }
   template <class... Args>
-  explicit GVect(Scal first, Args... args)
-      : comp_{{first, args...}}
-  {
+  explicit GVect(Scal first, Args... args) : comp_{{first, args...}} {
     constexpr size_t num_args = 1 + sizeof...(args);
     static_assert(
         num_args == dim,
@@ -227,9 +222,9 @@ class GVect {
   GVect cross(const GVect& other) const {
     const GVect& a = *this;
     const GVect& b = other;
-    return GVect(a[1]*b[2]-a[2]*b[1],
-                a[2]*b[0]-a[0]*b[2],
-                a[0]*b[1]-a[1]*b[0]);
+    return GVect(
+        a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0]);
   }
   Scal dist(GVect other) const {
     other -= *this;
@@ -322,11 +317,11 @@ class GVect {
     return (*this).max(v0).min(v1);
   }
   // TODO: revise, may lead to undesired conversion
-  template <class T=Scal>
+  template <class T = Scal>
   operator std::vector<T>() const {
     return std::vector<T>(comp_.begin(), comp_.end());
   }
-  template <class T=Scal>
+  template <class T = Scal>
   operator std::array<T, dim>() const {
     std::array<T, dim> r;
     for (size_t i = 0; i < dim; ++i) {
@@ -374,9 +369,7 @@ struct Rect {
 
   Vect lb, rt;
   Rect() {}
-  Rect(const Vect& lb, const Vect& rt)
-      : lb(lb), rt(rt)
-  {}
+  Rect(const Vect& lb, const Vect& rt) : lb(lb), rt(rt) {}
   bool IsInside(Vect x) const {
     for (size_t i = 0; i < dim; ++i) {
       if (x[i] < lb[i] || rt[i] < x[i]) {

@@ -1,13 +1,13 @@
-#include <memory>
 #include <cmath>
+#include <memory>
 #include <sstream>
 
-#include "partstrmeshm.h"
-#include "geom/mesh.h"
-#include "solver.h"
-#include "reconst.h"
 #include "debug/isnan.h"
 #include "dump/vtk.h"
+#include "geom/mesh.h"
+#include "partstrmeshm.h"
+#include "reconst.h"
+#include "solver.h"
 
 namespace solver {
 
@@ -18,9 +18,8 @@ struct PartStrMeshM<M_>::Imp {
   using R = Reconst<Scal>;
   static constexpr Scal kClNone = -1;
 
-  Imp(M& m, std::shared_ptr<Par> par, const GRange<size_t>& layers) 
-      : m(m), par(par), layers(layers), vfckp_(layers.size())
-  {
+  Imp(M& m, std::shared_ptr<Par> par, const GRange<size_t>& layers)
+      : m(m), par(par), layers(layers), vfckp_(layers.size()) {
     // particle strings
     partstr_ = std::unique_ptr<PS>(new PS(par->ps));
     vfckp_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
@@ -32,31 +31,31 @@ struct PartStrMeshM<M_>::Imp {
   // a: plane constant
   // an: angle
   // Returns:
-  // {mc,mx,my,mn}: 
+  // {mc,mx,my,mn}:
   // mc: coordinate center
   // mx: unit in x, tangent to interface
   // my: unit in y, normal to interface
-  // mn: unit vector to form orthonormal positively oriented basis <mx,my,mn> 
-  std::array<Vect, 3> GetPlaneBasis(const Vect& xc, const Vect& n, 
-                                    Scal a, Scal an) {
+  // mn: unit vector to form orthonormal positively oriented basis <mx,my,mn>
+  std::array<Vect, 3> GetPlaneBasis(
+      const Vect& xc, const Vect& n, Scal a, Scal an) {
     Vect h = m.GetCellSize();
     // direction in which normal has minimal component
-    size_t d = n.abs().argmin(); 
-    Vect xd(0); 
+    size_t d = n.abs().argmin();
+    Vect xd(0);
     xd[d] = 1.;
     // t0 orthogonal to n and d, <n,d,t0> positively oriented
-    Vect t0 = n.cross(xd); 
+    Vect t0 = n.cross(xd);
     t0 /= t0.norm();
     // t1 orthogonal to n and t0, <t0,t1,n> positively oriented
     Vect t1 = n.cross(t0);
     t1 /= t1.norm();
     // tangent at angle an
-    Vect t = t0 * std::cos(an) + t1 * std::sin(an); 
+    Vect t = t0 * std::cos(an) + t1 * std::sin(an);
     t /= t.norm();
 
     Vect mc = xc + R::GetCenter(n, a, h); // center of interface
-    Vect mx = t;  // unit in x, tangent
-    Vect my = n / n.norm();  // unit in y, normal 
+    Vect mx = t; // unit in x, tangent
+    Vect my = n / n.norm(); // unit in y, normal
     return {mc, mx, my};
   }
   // Convert from space to plane coordinates.
@@ -83,21 +82,21 @@ struct PartStrMeshM<M_>::Imp {
   }
 
   // Appends interface line
-  bool AppendInterfaceLine(const std::array<Vect, 3>& v,
-                           Vect xc, Scal u, Scal a, const Vect& n, bool in,
-                           std::vector<Vect2>& lx, std::vector<size_t>& ls) { 
+  bool AppendInterfaceLine(
+      const std::array<Vect, 3>& v, Vect xc, Scal u, Scal a, const Vect& n,
+      bool in, std::vector<Vect2>& lx, std::vector<size_t>& ls) {
     Vect h = m.GetCellSize(); // cell size
     const Scal th = par->intth;
 
     if (in && u >= th && u <= 1. - th) {
       auto xx = R::GetCutPoly(xc, n, a, h); // interface polygon
-      std::array<Vect, 2> e; // ends of intersection 
-      Vect mc = v[0];  // plane center
-      Vect mx = v[1];  // unit in x
-      Vect my = v[2];  // unit in y
+      std::array<Vect, 2> e; // ends of intersection
+      Vect mc = v[0]; // plane center
+      Vect mx = v[1]; // unit in x
+      Vect my = v[2]; // unit in y
       Vect mn = mx.cross(my); // normal to plane
       if (R::GetInterPoly(xx, mc, mn, e)) { // intersection non-empty
-        // interface normal 
+        // interface normal
         auto pn = GetPlaneCoords(mc + n, v);
         // line ends
         auto pe0 = GetPlaneCoords(e[0], v);
@@ -116,9 +115,9 @@ struct PartStrMeshM<M_>::Imp {
     return false;
   }
   // Appends interface volume
-  bool AppendInterfaceVolume(const std::array<Vect, 3>& v,
-                             Vect xc, Scal u, Scal a, const Vect& n, bool in,
-                             std::vector<Vect2>& lx, std::vector<size_t>& ls) { 
+  bool AppendInterfaceVolume(
+      const std::array<Vect, 3>& v, Vect xc, Scal u, Scal a, const Vect& n,
+      bool in, std::vector<Vect2>& lx, std::vector<size_t>& ls) {
     Vect h = m.GetCellSize(); // cell size
 
     // XXX: adhoc 2d
@@ -133,13 +132,13 @@ struct PartStrMeshM<M_>::Imp {
 
     if (in && u >= th && u <= 1. - th) {
       auto xx = R::GetCutPoly(xc, n, a, h); // interface polygon
-      std::array<Vect, 2> e; // ends of intersection 
-      Vect mc = v[0];  // plane center
-      Vect mx = v[1];  // unit in x
-      Vect my = v[2];  // unit in y
+      std::array<Vect, 2> e; // ends of intersection
+      Vect mc = v[0]; // plane center
+      Vect mx = v[1]; // unit in x
+      Vect my = v[2]; // unit in y
       Vect mn = mx.cross(my); // normal to plane
       if (R::GetInterPoly(xx, mc, mn, e)) { // intersection non-empty
-        // interface normal 
+        // interface normal
         auto pn = GetPlaneCoords(mc + n, v);
         // line ends
         auto pe0 = GetPlaneCoords(e[0], v);
@@ -161,8 +160,8 @@ struct PartStrMeshM<M_>::Imp {
     } else if (u > 1. - th) {
       lx.insert(lx.end(), pc.begin(), pc.end());
       ls.push_back(pc.size());
-        return true;
-    } 
+      return true;
+    }
     return false;
   }
   // Appends interface element (line or volume) of one cell.
@@ -176,10 +175,10 @@ struct PartStrMeshM<M_>::Imp {
   // ls: sizes
   // Output:
   // lx, ls: appended with interface element
-  bool AppendInterface(const std::array<Vect, 3>& v,
-                       Vect xc, Scal u, Scal a, const Vect& n, bool in,
-                       std::vector<Vect2>& lx, std::vector<size_t>& ls) { 
-    switch (par->attrreconst) { 
+  bool AppendInterface(
+      const std::array<Vect, 3>& v, Vect xc, Scal u, Scal a, const Vect& n,
+      bool in, std::vector<Vect2>& lx, std::vector<size_t>& ls) {
+    switch (par->attrreconst) {
       case AR::line:
         return AppendInterfaceLine(v, xc, u, a, n, in, lx, ls);
       case AR::volume:
@@ -189,12 +188,12 @@ struct PartStrMeshM<M_>::Imp {
     }
   }
 
-  void Seed(const Multi<const FieldCell<Scal>*>& vfcu,
-            const Multi<const FieldCell<Scal>*>& vfca,
-            const Multi<const FieldCell<Vect>*>& vfcn,
-            const Multi<const FieldCell<bool>*>& vfci,
-            const Multi<const FieldCell<Scal>*>& vfccl,
-            const FieldCell<Scal>* fck) {
+  void Seed(
+      const Multi<const FieldCell<Scal>*>& vfcu,
+      const Multi<const FieldCell<Scal>*>& vfca,
+      const Multi<const FieldCell<Vect>*>& vfcn,
+      const Multi<const FieldCell<bool>*>& vfci,
+      const Multi<const FieldCell<Scal>*>& vfccl, const FieldCell<Scal>* fck) {
     using MIdx = typename M::MIdx;
     auto& bc = m.GetIndexCells();
 
@@ -216,11 +215,10 @@ struct PartStrMeshM<M_>::Imp {
       for (auto c : m.Cells()) {
         Vect xc = m.GetCenter(c);
         const Scal th = par->intth;
-        if (fci[c] && fcu[c] >= th && fcu[c] <= 1. - th && 
+        if (fci[c] && fcu[c] >= th && fcu[c] <= 1. - th &&
             (nocl || fccl[c] != kClNone) &&
             (!fck || IsNan((*fck)[c]) ||
              std::abs((*fck)[c]) > 1. / (par->maxr * h[0]))) {
-
           // number of strings
           size_t ns = (par->dim == 2 ? 1 : par->ns);
           for (size_t s = 0; s < ns; ++s) {
@@ -230,8 +228,9 @@ struct PartStrMeshM<M_>::Imp {
             // block of offsets to neighbours in stencil [-sw,sw]
             const int sw = 2; // stencil halfwidth
             const int sn = sw * 2 + 1; // stencil size
-            GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw), 
-                                    MIdx(sn, sn, par->dim == 2 ? 1 : sn)); 
+            GBlock<IdxCell, dim> bo(
+                MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw),
+                MIdx(sn, sn, par->dim == 2 ? 1 : sn));
 
             auto w = bc.GetMIdx(c);
             // buffer for interface lines
@@ -247,13 +246,14 @@ struct PartStrMeshM<M_>::Imp {
                 auto& fci2 = *vfci[j];
                 auto& fccl2 = *vfccl[j];
                 if (fci2[cc] && (nocl || fccl2[cc] == fccl[c])) { // XXX
-                  AppendInterface(v, m.GetCenter(cc), fcu2[cc],
-                                  fca2[cc], fcn2[cc], fci2[cc], lx, ls);
+                  AppendInterface(
+                      v, m.GetCenter(cc), fcu2[cc], fca2[cc], fcn2[cc],
+                      fci2[cc], lx, ls);
                 }
               }
             }
 
-            // add string 
+            // add string
             partstr_->Add(Vect2(0.), Vect2(1., 0.), lx, ls);
             vsc_.push_back(c);
             vsl_.push_back(l);
@@ -266,12 +266,12 @@ struct PartStrMeshM<M_>::Imp {
       }
     }
   }
-  void Part(const Multi<const FieldCell<Scal>*>& vfcu,
-            const Multi<const FieldCell<Scal>*>& vfca,
-            const Multi<const FieldCell<Vect>*>& vfcn,
-            const Multi<const FieldCell<bool>*>& vfci,
-            const Multi<const FieldCell<Scal>*>& vfccl,
-            const FieldCell<Scal>* fck) {
+  void Part(
+      const Multi<const FieldCell<Scal>*>& vfcu,
+      const Multi<const FieldCell<Scal>*>& vfca,
+      const Multi<const FieldCell<Vect>*>& vfcn,
+      const Multi<const FieldCell<bool>*>& vfci,
+      const Multi<const FieldCell<Scal>*>& vfccl, const FieldCell<Scal>* fck) {
     auto sem = m.GetSem("part");
 
     if (sem("part-run")) {
@@ -316,9 +316,9 @@ struct PartStrMeshM<M_>::Imp {
   // fcn: normal
   // n: frame index
   // t: time
-  void DumpParticles(const Multi<const FieldCell<Scal>*>& vfca,
-                     const Multi<const FieldCell<Vect>*>& vfcn,
-                     size_t id, Scal t) {
+  void DumpParticles(
+      const Multi<const FieldCell<Scal>*>& vfca,
+      const Multi<const FieldCell<Vect>*>& vfcn, size_t id, Scal t) {
     auto sem = m.GetSem("partdump");
     size_t it = 1;
     if (1) { // TODO: revise frames
@@ -332,8 +332,8 @@ struct PartStrMeshM<M_>::Imp {
           // cell
           IdxCell c = vsc_[s];
           size_t l = vsl_[s];
-          auto v = GetPlaneBasis(m.GetCenter(c),
-                                 (*vfcn[l])[c], (*vfca[l])[c], vsan_[s]);
+          auto v = GetPlaneBasis(
+              m.GetCenter(c), (*vfcn[l])[c], (*vfca[l])[c], vsan_[s]);
 
           auto p = partstr_->GetStr(s);
           const Vect2* xx = p.first;
@@ -358,10 +358,10 @@ struct PartStrMeshM<M_>::Imp {
       }
       if (sem("write")) {
         if (m.IsRoot()) {
-          std::string s = GetDumpName("partit", ".csv", id,
-                                      par->dump_fr > 1 ? it : -1);
-          std::cout << std::fixed << std::setprecision(8)
-              << "dump" << " t=" << t << " to " << s << std::endl;
+          std::string s =
+              GetDumpName("partit", ".csv", id, par->dump_fr > 1 ? it : -1);
+          std::cout << std::fixed << std::setprecision(8) << "dump"
+                    << " t=" << t << " to " << s << std::endl;
           std::ofstream o;
           o.open(s);
           o.precision(20);
@@ -369,19 +369,17 @@ struct PartStrMeshM<M_>::Imp {
 
           for (size_t i = 0; i < dpx_.size(); ++i) {
             Vect x = dpx_[i];
-            o << x[0] << "," << x[1] << "," << x[2] 
-                << "," << dpc_[i] 
-                << "," << dpk_[i] 
-                << "\n";
+            o << x[0] << "," << x[1] << "," << x[2] << "," << dpc_[i] << ","
+              << dpk_[i] << "\n";
           }
         }
       }
     }
   }
   // Dumps interface around particle strings
-  void DumpPartInter(const Multi<const FieldCell<Scal>*>& vfca,
-                     const Multi<const FieldCell<Vect>*>& vfcn,
-                     size_t id, Scal t) {
+  void DumpPartInter(
+      const Multi<const FieldCell<Scal>*>& vfca,
+      const Multi<const FieldCell<Vect>*>& vfcn, size_t id, Scal t) {
     auto sem = m.GetSem("dumppartinter");
     if (sem("local")) {
       dl_.clear();
@@ -391,8 +389,8 @@ struct PartStrMeshM<M_>::Imp {
         // cell containing string
         IdxCell c = vsc_[s];
         size_t l = vsl_[s];
-        auto v = GetPlaneBasis(m.GetCenter(c),
-                               (*vfcn[l])[c], (*vfca[l])[c], vsan_[s]);
+        auto v = GetPlaneBasis(
+            m.GetCenter(c), (*vfcn[l])[c], (*vfca[l])[c], vsan_[s]);
         auto in = partstr_->GetInter(s);
         size_t i = 0;
         size_t hc = m.GetHash(c);
@@ -414,11 +412,12 @@ struct PartStrMeshM<M_>::Imp {
     if (sem("write")) {
       if (m.IsRoot()) {
         std::string fn = GetDumpName("sp", ".vtk", id);
-        std::cout << std::fixed << std::setprecision(8)
-            << "dump" << " t=" << t << " to " << fn << std::endl;
-        WriteVtkPoly<Vect>(fn, dl_, nullptr, {&dlc_}, {"c"}, 
-            "Lines of interface around particles", false, 
-            par->vtkbin, par->vtkmerge);
+        std::cout << std::fixed << std::setprecision(8) << "dump"
+                  << " t=" << t << " to " << fn << std::endl;
+        WriteVtkPoly<Vect>(
+            fn, dl_, nullptr, {&dlc_}, {"c"},
+            "Lines of interface around particles", false, par->vtkbin,
+            par->vtkmerge);
       }
     }
   }
@@ -447,8 +446,8 @@ struct PartStrMeshM<M_>::Imp {
 };
 
 template <class M_>
-PartStrMeshM<M_>::PartStrMeshM(M& m, std::shared_ptr<Par> par, 
-                               const GRange<size_t>& layers) 
+PartStrMeshM<M_>::PartStrMeshM(
+    M& m, std::shared_ptr<Par> par, const GRange<size_t>& layers)
     : imp(new Imp(m, par, layers)) {}
 
 template <class M_>
@@ -460,24 +459,21 @@ void PartStrMeshM<M_>::Part(
     const Multi<const FieldCell<Scal>*>& vfca,
     const Multi<const FieldCell<Vect>*>& vfcn,
     const Multi<const FieldCell<bool>*>& vfci,
-    const Multi<const FieldCell<Scal>*>& vfccl,
-    const FieldCell<Scal>* fck) {
+    const Multi<const FieldCell<Scal>*>& vfccl, const FieldCell<Scal>* fck) {
   imp->Part(vfcu, vfca, vfcn, vfci, vfccl, fck);
 }
 
 template <class M_>
 void PartStrMeshM<M_>::DumpPartInter(
     const Multi<const FieldCell<Scal>*>& vfca,
-    const Multi<const FieldCell<Vect>*>& vfcn,
-    size_t id, Scal t) {
+    const Multi<const FieldCell<Vect>*>& vfcn, size_t id, Scal t) {
   imp->DumpPartInter(vfca, vfcn, id, t);
 }
 
 template <class M_>
 void PartStrMeshM<M_>::DumpParticles(
     const Multi<const FieldCell<Scal>*>& vfca,
-    const Multi<const FieldCell<Vect>*>& vfcn,
-    size_t id, Scal t) {
+    const Multi<const FieldCell<Vect>*>& vfcn, size_t id, Scal t) {
   imp->DumpParticles(vfca, vfcn, id, t);
 }
 

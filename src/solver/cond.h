@@ -1,8 +1,8 @@
 #pragma once
 
 #include <memory>
-#include <utility>
 #include <string>
+#include <utility>
 
 #include "geom/map.h"
 #include "geom/unique.h"
@@ -12,7 +12,9 @@ namespace solver {
 class CondFace {
  public:
   virtual ~CondFace() {}
-  virtual size_t GetNci() const { return nci_; }
+  virtual size_t GetNci() const {
+    return nci_;
+  }
 
  protected:
   // nci: neighbour cell id
@@ -51,7 +53,9 @@ class CondFaceValComp : public CondFaceVal<typename Vect::value_type> {
   using P = CondFaceVal<Scal>; // parent
   CondFaceValComp(CondFaceVal<Vect>* o, size_t d)
       : P(o->GetNci()), o_(o), d_(d) {}
-  Scal GetValue() const override { return o_->GetValue()[d_]; }
+  Scal GetValue() const override {
+    return o_->GetValue()[d_];
+  }
 
  private:
   CondFaceVal<Vect>* o_;
@@ -63,8 +67,12 @@ template <class V>
 class CondFaceValFixed : public CondFaceVal<V> {
  public:
   CondFaceValFixed(const V& v, size_t nci) : CondFaceVal<V>(nci), v_(v) {}
-  V GetValue() const override { return v_; }
-  void Set(const V& v) { v_ = v; }
+  V GetValue() const override {
+    return v_;
+  }
+  void Set(const V& v) {
+    v_ = v;
+  }
 
  private:
   V v_;
@@ -86,7 +94,9 @@ class CondFaceGradComp : public CondFaceGrad<typename Vect::value_type> {
   using P = CondFaceGrad<Scal>; // parent
   CondFaceGradComp(CondFaceGrad<Vect>* o, size_t d)
       : P(o->GetNci()), o_(o), d_(d) {}
-  Scal GetGrad() const override { return o_->GetGrad()[d_]; }
+  Scal GetGrad() const override {
+    return o_->GetGrad()[d_];
+  }
 
  private:
   CondFaceGrad<Vect>* o_;
@@ -99,8 +109,12 @@ class CondFaceGradFixed : public CondFaceGrad<V> {
  public:
   explicit CondFaceGradFixed(const V& v, size_t nci)
       : CondFaceGrad<V>(nci), v_(v) {}
-  V GetGrad() const override { return v_; }
-  void Set(const V& v) { v_ = v; }
+  V GetGrad() const override {
+    return v_;
+  }
+  void Set(const V& v) {
+    v_ = v;
+  }
 
  private:
   V v_;
@@ -160,8 +174,12 @@ template <class V>
 class CondCellValFixed : public CondCellVal<V> {
  public:
   explicit CondCellValFixed(const V& v) : v_(v) {}
-  V GetValue() const override { return v_; }
-  void Set(const V& v) { v_ = v; }
+  V GetValue() const override {
+    return v_;
+  }
+  void Set(const V& v) {
+    v_ = v;
+  }
 
  private:
   V v_;

@@ -1,7 +1,7 @@
 #undef NDEBUG
-#include <iostream>
-#include <fstream>
 #include <cassert>
+#include <fstream>
+#include <iostream>
 #include <vector>
 
 #include "util/sysinfo.h"

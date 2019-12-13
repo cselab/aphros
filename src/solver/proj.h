@@ -19,16 +19,16 @@ class Proj final : public FluidSolver<M_> {
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
   struct Par {
-    Scal vrelax = 1;   // velocity relaxation factor [0,1]
-    Scal prelax = 1.;   // pressure relaxation factor [0,1]
+    Scal vrelax = 1; // velocity relaxation factor [0,1]
+    Scal prelax = 1.; // pressure relaxation factor [0,1]
     bool second = true; // second order in time
-    Scal guessextra = 0;  // next iteration extrapolation weight [0,1]
-    Vect meshvel = Vect(0);  // relative mesh velocity
+    Scal guessextra = 0; // next iteration extrapolation weight [0,1]
+    Vect meshvel = Vect(0); // relative mesh velocity
     size_t inletflux_numid = 0; // reduction for id from 0 to numid-1
     ConvSc convsc = ConvSc::quick; // convection scheme
     Scal convdf = 1.; // deferred correction factor
     bool linreport = false; // report linear solvers
-    Conv conv = Conv::imp;  // convection-diffusion solver
+    Conv conv = Conv::imp; // convection-diffusion solver
   };
   // Constructor.
   // fcw: initial velocity
@@ -43,14 +43,12 @@ class Proj final : public FluidSolver<M_> {
   // t: initial time
   // dt: time step
   // par: parameters
-  Proj(M& m,
-         const FieldCell<Vect>& fcw,
-         MapCondFaceFluid& mfc,
-         const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
-         FieldCell<Scal>* fcr, FieldCell<Scal>* fcd, 
-         FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
-         FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm,
-         double t, double dt, std::shared_ptr<Par> par);
+  Proj(
+      M& m, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
+      const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
+      FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
+      FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt,
+      std::shared_ptr<Par> par);
   ~Proj();
   // Parameters
   Par* GetPar();
@@ -85,4 +83,3 @@ class Proj final : public FluidSolver<M_> {
 };
 
 } // namespace solver
-

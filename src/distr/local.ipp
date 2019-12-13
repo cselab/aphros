@@ -22,31 +22,31 @@ class Local : public DistrMesh<M_> {
   typename M::BlockCells GetGlobalBlock() const override;
   typename M::IndexCells GetGlobalIndex() const override;
   // Returns data field i from buffer defined on global mesh
-  FieldCell<Scal> GetGlobalField(size_t i) override; 
+  FieldCell<Scal> GetGlobalField(size_t i) override;
 
  private:
   using MIdx = typename M::MIdx;
   using P = DistrMesh<M>;
 
-  using P::mk;
-  using P::kf_;
-  using P::var;
+  using P::b_;
   using P::bs_;
-  using P::hl_;
-  using P::p_;
-  using P::b_; 
-  using P::stage_;
-  using P::isroot_;
   using P::comm_;
+  using P::dim;
   using P::ext_;
   using P::frame_;
-  using P::dim;
+  using P::hl_;
+  using P::isroot_;
+  using P::kf_;
+  using P::mk;
+  using P::p_;
+  using P::stage_;
+  using P::var;
 
   std::vector<FieldCell<Scal>> buf_; // buffer on mesh
   M gm; // global mesh
   std::unique_ptr<output::Ser> oser_; // output series
   std::vector<MyBlockInfo> bb_;
-  GVect<bool ,3> per_; // periodic in direction
+  GVect<bool, 3> per_; // periodic in direction
 
   size_t WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m);
   size_t WriteBuffer(const FieldCell<Vect>& f, size_t d, size_t e, M& m);
@@ -54,9 +54,9 @@ class Local : public DistrMesh<M_> {
   size_t WriteBuffer(typename M::Co* o, size_t e, M& m);
   void WriteBuffer(M& m);
 
-  size_t ReadBuffer(FieldCell<Scal>& fc, size_t e,  M& m);
-  size_t ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e,  M& m);
-  size_t ReadBuffer(FieldCell<Vect>& fc, size_t e,  M& m);
+  size_t ReadBuffer(FieldCell<Scal>& fc, size_t e, M& m);
+  size_t ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e, M& m);
+  size_t ReadBuffer(FieldCell<Vect>& fc, size_t e, M& m);
   size_t ReadBuffer(typename M::Co* o, size_t e, M& m);
   void ReadBuffer(M& m);
 
@@ -87,18 +87,16 @@ auto Local<M>::CreateGlobalMesh(MIdx bs, MIdx b, MIdx p, Scal ext) -> M {
 
 template <class M>
 Local<M>::Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var)
-  : DistrMesh<M>(comm, kf, var)
-  , buf_(var.Int["loc_maxcomm"])
-  , gm(CreateGlobalMesh(bs_, b_, p_, ext_))
-{
-
+    : DistrMesh<M>(comm, kf, var)
+    , buf_(var.Int["loc_maxcomm"])
+    , gm(CreateGlobalMesh(bs_, b_, p_, ext_)) {
   // Resize buffer for mesh
   for (auto& u : buf_) {
     u.Reinit(gm);
   }
 
   // Fill block info
-  MIdx ms(bs_); // block size 
+  MIdx ms(bs_); // block size
   MIdx mb(b_[0], b_[1], b_[2]); // number of blocks
   MIdx mp(p_[0], p_[1], p_[2]); // number of PEs
   GBlockCells<3> bc(mb * mp);
@@ -109,7 +107,7 @@ Local<M>::Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var)
     MyBlockInfo b;
     IdxNode n = gm.GetIndexNodes().GetIdx(i * ms);
     Vect o = gm.GetNode(n);
-    std::cerr << "o=" << o << " n=" << n.GetRaw() <<  " i=" << i << std::endl;
+    std::cerr << "o=" << o << " n=" << n.GetRaw() << " i=" << i << std::endl;
     for (int q = 0; q < 3; ++q) {
       b.index[q] = i[q];
       b.origin[q] = o[q];
@@ -177,11 +175,11 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
   using OpCat = typename M::OpCat;
   auto& f = *mk.at(bb[0]); // first kernel
   auto& mf = f.GetMesh();
-  auto& vf = mf.GetReduce();  // reduce requests
+  auto& vf = mf.GetReduce(); // reduce requests
 
   // Check size is the same for all kernels
   for (auto& b : bb) {
-    auto& v = mk.at(b)->GetMesh().GetReduce();  // reduce requests
+    auto& v = mk.at(b)->GetMesh().GetReduce(); // reduce requests
     if (v.size() != vf.size()) {
       throw std::runtime_error("Reduce: v.size() != vf.size()");
     }
@@ -193,65 +191,65 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
   for (size_t i = 0; i < vf.size(); ++i) {
     if (OpS* o = dynamic_cast<OpS*>(vf[i].get())) {
       // Reduction on Scal
-      
+
       auto r = o->Neut(); // result
 
-      // Reduce over all blocks 
+      // Reduce over all blocks
       for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        auto& v = mk.at(b)->GetMesh().GetReduce();
         OpS* ob = dynamic_cast<OpS*>(v[i].get());
         ob->Append(r);
       }
 
-      // Write results to all blocks 
+      // Write results to all blocks
       for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        auto& v = mk.at(b)->GetMesh().GetReduce();
         OpS* ob = dynamic_cast<OpS*>(v[i].get());
         ob->Set(r);
       }
     } else if (OpSI* o = dynamic_cast<OpSI*>(vf[i].get())) {
       // Reduction on std::pair<Scal, int>
-      
+
       auto r = o->Neut(); // result
 
-      // Reduce over all blocks 
+      // Reduce over all blocks
       for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        auto& v = mk.at(b)->GetMesh().GetReduce();
         OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
         ob->Append(r);
       }
 
-      // Write results to all blocks 
+      // Write results to all blocks
       for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce(); 
+        auto& v = mk.at(b)->GetMesh().GetReduce();
         OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
         ob->Set(r);
       }
     } else if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
       // Concatenation of std::vector<T>
-      
+
       auto r = o->Neut(); // result
 
-      GBlock<size_t, dim> qp(p_); 
-      GBlock<size_t, dim> qb(b_); 
+      GBlock<size_t, dim> qp(p_);
+      GBlock<size_t, dim> qb(b_);
 
-      // Reduce over all blocks 
+      // Reduce over all blocks
       for (auto wp : qp) { // same ordering as with Cubism
         for (auto wb : qb) {
           auto w = b_ * wp + wb;
-          auto& v = mk.at(w)->GetMesh().GetReduce(); 
+          auto& v = mk.at(w)->GetMesh().GetReduce();
           OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
           ob->Append(r);
         }
       }
 
-      // Write results to root block 
+      // Write results to root block
       for (auto& b : bb) {
         auto& m = mk.at(b)->GetMesh();
         if (m.IsRoot()) {
-          auto& v = m.GetReduce(); 
+          auto& v = m.GetReduce();
           OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
-          ob->Set(r); 
+          ob->Set(r);
         }
       }
     } else {
@@ -261,7 +259,7 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
 
   // Clear reduce requests
   for (auto& b : bb) {
-    auto& k = *mk.at(b); 
+    auto& k = *mk.at(b);
     auto& m = k.GetMesh();
     m.ClearReduce();
   }
@@ -311,25 +309,25 @@ void Local<M>::Scatter(const std::vector<MIdx>& bb) {
 template <class M>
 void Local<M>::Bcast(const std::vector<MIdx>& bb) {
   using OpCat = typename M::OpCat;
-  auto& vf = mk.at(bb[0])->GetMesh().GetBcast();  // pointers to broadcast
+  auto& vf = mk.at(bb[0])->GetMesh().GetBcast(); // pointers to broadcast
 
   // Check size is the same for all kernels
   for (auto& b : bb) {
-    auto& v = mk.at(b)->GetMesh().GetBcast();  // pointers to broadcast
+    auto& v = mk.at(b)->GetMesh().GetBcast(); // pointers to broadcast
     if (v.size() != vf.size()) {
       throw std::runtime_error("Bcast: v.size() != vf.size()");
     }
   }
 
   for (size_t i = 0; i < vf.size(); ++i) {
-      if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
+    if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
       std::vector<char> r = o->Neut(); // buffer
 
       // read from root block
       for (auto& b : bb) {
         auto& m = mk.at(b)->GetMesh();
         if (m.IsRoot()) {
-          auto& v = m.GetBcast(); 
+          auto& v = m.GetBcast();
           OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
           ob->Append(r);
         }
@@ -338,7 +336,7 @@ void Local<M>::Bcast(const std::vector<MIdx>& bb) {
       // write to all blocks
       for (auto& b : bb) {
         auto& m = mk.at(b)->GetMesh();
-        auto& v = m.GetBcast(); 
+        auto& v = m.GetBcast();
         OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
         ob->Set(r);
       }
@@ -349,7 +347,7 @@ void Local<M>::Bcast(const std::vector<MIdx>& bb) {
 
   // Clear bcast requests
   for (auto& b : bb) {
-    auto& k = *mk.at(b); 
+    auto& k = *mk.at(b);
     auto& m = k.GetMesh();
     m.ClearBcast();
   }
@@ -370,15 +368,14 @@ void Local<M>::DumpWrite(const std::vector<MIdx>& bb) {
         // TODO: check all blocks are same as first
         output::VOut v;
         size_t k = 0; // offset in buffer
-        // Skip comm 
+        // Skip comm
         for (auto& o : m.GetComm()) {
           k += o->GetSize();
         }
         // Write dump
         for (auto& on : m.GetDump()) {
-          v.emplace_back(
-              new output::OutFldFunc<Scal, IdxCell, M>(
-                  on.second, gm, [this,k](IdxCell i) { return buf_[k][i]; }));
+          v.emplace_back(new output::OutFldFunc<Scal, IdxCell, M>(
+              on.second, gm, [this, k](IdxCell i) { return buf_[k][i]; }));
           k += on.first->GetSize();
           if (on.first->GetSize() != 1) {
             throw std::runtime_error("DumpWrite(): Support only size 1");
@@ -400,7 +397,6 @@ void Local<M>::DumpWrite(const std::vector<MIdx>& bb) {
   }
 }
 
-
 // Reads from buffer to scalar field [a]
 // fc: field
 // l: lab
@@ -408,7 +404,7 @@ void Local<M>::DumpWrite(const std::vector<MIdx>& bb) {
 // Returns:
 // number of scalar fields read
 template <class M>
-size_t Local<M>::ReadBuffer(FieldCell<Scal>& fc, size_t e,  M& m) {
+size_t Local<M>::ReadBuffer(FieldCell<Scal>& fc, size_t e, M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
   }
@@ -441,7 +437,7 @@ size_t Local<M>::ReadBuffer(FieldCell<Scal>& fc, size_t e,  M& m) {
 // Returns:
 // number of scalar fields read
 template <class M>
-size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e,  M& m) {
+size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e, M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
   }
@@ -473,7 +469,7 @@ size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e,  M& m) {
 // Returns:
 // number of scalar fields read
 template <class M>
-size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t e,  M& m) {
+size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t e, M& m) {
   for (size_t d = 0; d < Vect::dim; ++d) {
     e += ReadBuffer(fc, d, e, m);
   }
@@ -491,9 +487,9 @@ size_t Local<M>::ReadBuffer(typename M::Co* o, size_t e, M& m) {
   } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
     if (od->d == -1) {
       return ReadBuffer(*od->f, e, m);
-    } 
+    }
     return ReadBuffer(*od->f, od->d, e, m);
-  } 
+  }
   throw std::runtime_error("ReadBuffer: Unknown Co instance");
   return 0;
 }
@@ -518,8 +514,8 @@ size_t Local<M>::WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m) {
   auto& bc = m.GetIndexCells();
   auto& gbc = gm.GetIndexCells();
   for (auto c : m.Cells()) {
-    auto w = bc.GetMIdx(c); 
-    auto gc = gbc.GetIdx(w); 
+    auto w = bc.GetMIdx(c);
+    auto gc = gbc.GetIdx(w);
     buf_[e][gc] = fc[c];
   }
   return 1;
@@ -531,16 +527,16 @@ size_t Local<M>::WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m) {
 // Returns:
 // number of scalar fields written
 template <class M>
-size_t Local<M>::WriteBuffer(const FieldCell<Vect>& fc, 
-                              size_t d, size_t e, M& m) {
+size_t Local<M>::WriteBuffer(
+    const FieldCell<Vect>& fc, size_t d, size_t e, M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
   }
   auto& bc = m.GetIndexCells();
   auto& gbc = gm.GetIndexCells();
   for (auto c : m.Cells()) {
-    auto w = bc.GetMIdx(c); 
-    auto gc = gbc.GetIdx(w); 
+    auto w = bc.GetMIdx(c);
+    auto gc = gbc.GetIdx(w);
     buf_[e][gc] = fc[c][d];
   }
   return 1;
@@ -569,7 +565,7 @@ size_t Local<M>::WriteBuffer(typename M::Co* o, size_t e, M& m) {
   } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
     if (od->d == -1) {
       return WriteBuffer(*od->f, e, m);
-    } 
+    }
     return WriteBuffer(*od->f, od->d, e, m);
   }
   throw std::runtime_error("WriteBuffer: Unknown Co instance");

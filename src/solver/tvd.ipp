@@ -1,13 +1,13 @@
 #pragma once
 
+#include <array>
 #include <exception>
 #include <fstream>
-#include <array>
-#include <memory>
 #include <limits>
+#include <memory>
 
-#include "tvd.h"
 #include "approx.h"
+#include "tvd.h"
 #include "util/vof.h"
 
 namespace solver {
@@ -18,9 +18,7 @@ struct Tvd<M_>::Imp {
 
   Imp(Tvd* owner, const FieldCell<Scal>& fcu,
       const MapCondFaceAdvection<Scal>& mfc, std::shared_ptr<Par> par)
-      : owner_(owner), par(par), m(owner_->m)
-      , mfc_(mfc), fck_(m, 0)
-  {
+      : owner_(owner), par(par), m(owner_->m), mfc_(mfc), fck_(m, 0) {
     fcu_.time_curr = fcu;
     for (auto it : mfc_) {
       IdxFace f = it.GetIdx();
@@ -41,9 +39,8 @@ struct Tvd<M_>::Imp {
       const Scal dt = owner_->GetTimeStep();
       auto& fcs = *owner_->fcs_;
       for (auto c : m.Cells()) {
-        curr[c] = 
-            fcu_.time_prev[c] +  // previous time step
-            dt * fcs[c]; // source
+        curr[c] = fcu_.time_prev[c] + // previous time step
+                  dt * fcs[c]; // source
       }
     }
     for (size_t d = 0; d < (par->split ? dim : 1); ++d) {
@@ -95,8 +92,8 @@ struct Tvd<M_>::Imp {
       const Scal kd = par->sharp * par->sharpo;
 
       for (auto f : m.Faces()) {
-        const Vect g = gf[f];  // gradient on face
-        const Vect n = g / (g.norm() + 1e-6);  // normal to interface
+        const Vect g = gf[f]; // gradient on face
+        const Vect n = g / (g.norm() + 1e-6); // normal to interface
         const Vect s = m.GetSurface(f); // surface vector on face
         IdxCell cm = m.GetNeighbourCell(f, 0);
         IdxCell cp = m.GetNeighbourCell(f, 1);
@@ -104,11 +101,9 @@ struct Tvd<M_>::Imp {
         Scal ap = ac[cp];
         ap = std::max(0., std::min(1., ap));
         am = std::max(0., std::min(1., am));
-        ffvu_[f] = 
-          kc * (ap > am 
-             ?  (1. - (ap - am)) * (1. - ap) * am
-             :  -(1. - (am - ap)) * (1. - am) * ap)
-          -kd * (ap - am);
+        ffvu_[f] = kc * (ap > am ? (1. - (ap - am)) * (1. - ap) * am
+                                 : -(1. - (am - ap)) * (1. - am) * ap) -
+                   kd * (ap - am);
         ffvu_[f] *= std::abs(n.dot(s));
       }
 
@@ -137,7 +132,7 @@ struct Tvd<M_>::Imp {
           IdxFace f = m.GetNeighbourFace(c, q);
           auto& g = ffg_[f];
           // TODO: revise 1e-6
-          auto n = g / (g.norm() + 1e-6);  // inner normal
+          auto n = g / (g.norm() + 1e-6); // inner normal
           s += -n.dot(m.GetOutwardSurface(c, q));
         }
         fck_[c] = s / m.GetVolume(c);
@@ -185,20 +180,19 @@ struct Tvd<M_>::Imp {
 };
 
 template <class M_>
-Tvd<M_>::Tvd(M& m, const FieldCell<Scal>& fcu,
-    const MapCondFaceAdvection<Scal>& mfc,
-    const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
-    double t, double dt, std::shared_ptr<Par> par)
+Tvd<M_>::Tvd(
+    M& m, const FieldCell<Scal>& fcu, const MapCondFaceAdvection<Scal>& mfc,
+    const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs, double t, double dt,
+    std::shared_ptr<Par> par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)
-    , imp(new Imp(this, fcu, mfc, par))
-{}
+    , imp(new Imp(this, fcu, mfc, par)) {}
 
 template <class M_>
 Tvd<M_>::~Tvd() = default;
 
 template <class M_>
-auto Tvd<M_>::GetPar() -> Par* { 
-  return imp->par.get(); 
+auto Tvd<M_>::GetPar() -> Par* {
+  return imp->par.get();
 }
 
 template <class M_>

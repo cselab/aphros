@@ -3,9 +3,9 @@
 #endif
 
 #include "distrsolver.h"
+#include "linear/hypresub.h"
 #include "util/git.h"
 #include "util/subcomm.h"
-#include "linear/hypresub.h"
 
 static void RunKernelOpenMP(
     MPI_Comm comm_world, MPI_Comm comm_omp, MPI_Comm comm_master,
@@ -23,13 +23,13 @@ static void RunKernelOpenMP(
   }
 }
 
-int RunMpi(int argc, const char ** argv,
-           std::function<void(MPI_Comm, Vars&)> kernel) {
+int RunMpi(
+    int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> kernel) {
 #ifdef _OPENMP
   omp_set_dynamic(0);
 #endif
   int prov;
-  MPI_Init_thread(&argc, (char ***)&argv, MPI_THREAD_MULTIPLE, &prov);
+  MPI_Init_thread(&argc, (char***)&argv, MPI_THREAD_MULTIPLE, &prov);
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   bool isroot = (!rank);
@@ -53,7 +53,7 @@ int RunMpi(int argc, const char ** argv,
     std::cerr << "Loading config from '" << fn << "'" << std::endl;
   }
 
-  Vars var;   // parameter storage
+  Vars var; // parameter storage
   Parser ip(var); // parser
 
   {

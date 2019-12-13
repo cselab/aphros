@@ -1,10 +1,10 @@
 #pragma once
 
-#include "solver/fluid.h"
 #include "parse/vars.h"
 #include "solver/advection.h"
 #include "solver/convdiff.h"
 #include "solver/convdiffv.h"
+#include "solver/fluid.h"
 
 using namespace solver;
 
@@ -49,7 +49,7 @@ void GetFluidFaceCond(
 // Returns fluid cell conditions.
 // Output:
 // mcvel: output
-// pdist, pdistmin: temporary buffer for reduction, 
+// pdist, pdistmin: temporary buffer for reduction,
 // TODO: revise, allow temporary buffers in functions (attached to m)
 template <class M>
 void GetFluidCellCond(
@@ -64,4 +64,3 @@ template <class M>
 void DumpBcFaces(
     const MapCondFaceAdvection<typename M::Scal>& mfa,
     const MapCondFaceFluid& mff, std::string fn, M& m);
-

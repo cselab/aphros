@@ -1,20 +1,20 @@
 #pragma once
 
 #include <functional>
-#include <stdexcept>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 
+#include "dump/vtk.h"
+#include "func/init_u.h"
+#include "func/primlist.h"
 #include "hydro.h"
+#include "parse/util.h"
+#include "parse/vars.h"
+#include "solver/advection.h"
 #include "solver/approx.h"
 #include "solver/cond.h"
 #include "solver/fluid.h"
-#include "solver/advection.h"
-#include "parse/vars.h"
-#include "parse/util.h"
-#include "func/primlist.h"
-#include "func/init_u.h"
-#include "dump/vtk.h"
 
 using namespace solver;
 using namespace solver::fluid_condition;
@@ -98,14 +98,16 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       auto x = xx[0];
       auto y = xx[1];
       auto z = xx[2];
-      Scal vrr;   // vr / r
+      Scal vrr; // vr / r
       Scal vz;
-      if (x*x + y*y + z*z < 1.) { // inside sphere
+      if (x * x + y * y + z * z < 1.) { // inside sphere
         vrr = z;
-        vz = -2*pow(x, 2) - 2*pow(y, 2) - pow(z, 2) + 1;
+        vz = -2 * pow(x, 2) - 2 * pow(y, 2) - pow(z, 2) + 1;
       } else { // outside
-        vrr = z/pow(pow(x, 2) + pow(y, 2) + pow(z, 2), 5.0/2.0);
-        vz = (1.0/3.0)*(-pow(x, 2) - pow(y, 2) + 2*pow(z, 2))/pow(pow(x, 2) + pow(y, 2) + pow(z, 2), 5.0/2.0) - 2.0/3.0;
+        vrr = z / pow(pow(x, 2) + pow(y, 2) + pow(z, 2), 5.0 / 2.0);
+        vz = (1.0 / 3.0) * (-pow(x, 2) - pow(y, 2) + 2 * pow(z, 2)) /
+                 pow(pow(x, 2) + pow(y, 2) + pow(z, 2), 5.0 / 2.0) -
+             2.0 / 3.0;
       }
 
       v[0] = vrr * x;
@@ -113,8 +115,8 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       v[2] = vz;
 
       // add swirl around z-axis
-      v[0] += -2*c*y / (x*x + y*y + b);
-      v[1] += +2*c*x / (x*x + y*y + b);
+      v[0] += -2 * c * y / (x * x + y * y + b);
+      v[1] += +2 * c * x / (x * x + y * y + b);
 
       v *= a;
     }
@@ -133,12 +135,17 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       auto z = xx[2];
       Scal vrr; // vr / r
       Scal vz;
-      if (x*x + y*y + z*z < a*a) {
-        vrr = (3.0/2.0)*V*z/pow(a, 2);
-        vz = (1.0/2.0)*V*(5*pow(a, 2) - 6*pow(x, 2) - 6*pow(y, 2) - 3*pow(z, 2))/pow(a, 2);
+      if (x * x + y * y + z * z < a * a) {
+        vrr = (3.0 / 2.0) * V * z / pow(a, 2);
+        vz = (1.0 / 2.0) * V *
+             (5 * pow(a, 2) - 6 * pow(x, 2) - 6 * pow(y, 2) - 3 * pow(z, 2)) /
+             pow(a, 2);
       } else {
-        vrr = (3.0/2.0)*V*pow(a, 3)*z/pow(pow(x, 2) + pow(y, 2) + pow(z, 2), 5.0/2.0);
-        vz = (1.0/2.0)*V*pow(a, 3)*(-pow(x, 2) - pow(y, 2) + 2*pow(z, 2))/pow(pow(x, 2) + pow(y, 2) + pow(z, 2), 5.0/2.0);
+        vrr = (3.0 / 2.0) * V * pow(a, 3) * z /
+              pow(pow(x, 2) + pow(y, 2) + pow(z, 2), 5.0 / 2.0);
+        vz = (1.0 / 2.0) * V * pow(a, 3) *
+             (-pow(x, 2) - pow(y, 2) + 2 * pow(z, 2)) /
+             pow(pow(x, 2) + pow(y, 2) + pow(z, 2), 5.0 / 2.0);
       }
       vz -= V;
       v[0] = vrr * x;
@@ -173,13 +180,13 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     }
   } else if (vi == "vortexring") { // XXX: use with initvort=1
     Vect xc(var.Vect["ring_c"]); // center of ring
-    Vect n(var.Vect["ring_n"]);  // normal
+    Vect n(var.Vect["ring_n"]); // normal
     n /= n.norm();
-    Scal om = var.Double["ring_om"];  // vorticity in crosssection
-    Scal r0 = var.Double["ring_r0"];  // inner radius
-    Scal r1 = var.Double["ring_r1"];  // outer radius
-    Scal qr = (r1 - r0) * 0.5;   // radius
-    Vect qc((r1 + r0) * 0.5, 0., 0.);   // center
+    Scal om = var.Double["ring_om"]; // vorticity in crosssection
+    Scal r0 = var.Double["ring_r0"]; // inner radius
+    Scal r1 = var.Double["ring_r1"]; // outer radius
+    Scal qr = (r1 - r0) * 0.5; // radius
+    Vect qc((r1 + r0) * 0.5, 0., 0.); // center
     const Scal eps = 1e-10;
     for (auto c : m.AllCells()) {
       Vect x = m.GetCenter(c) - xc;
@@ -189,7 +196,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       Scal xt = (x - n * xn).norm();
       // unit along plane
       Vect t = (x - n * xn) / std::max(eps, xt);
-      // unit along circle 
+      // unit along circle
       Vect s = n.cross(t);
       Vect q(xt, xn, 0.);
       fcv[c] = ((q - qc).sqrnorm() <= sqr(qr) ? s * om : Vect(0));
@@ -205,14 +212,14 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     Scal nfr2(var.Double["ring_noise2_freq"]); // noise angular frequency
     Scal namp2(var.Double["ring_noise2_amp"]); // noise amp relative to r
     Vect xc(var.Vect["ring_c"]); // center
-    Vect n(var.Vect["ring_n"]);  // normal
+    Vect n(var.Vect["ring_n"]); // normal
     n /= n.norm();
     const Scal eps = 1e-10;
     for (auto c : m.AllCells()) {
       Vect x = m.GetCenter(c) - xc;
       // along axis
       Scal xn = n.dot(x);
-      // select direction 
+      // select direction
       Vect v(0);
       v[n.abs().argmin()] = 1.;
       // unit vectors in plane
@@ -228,7 +235,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       xt += rad * namp2 * std::sin(a * nfr2);
       // unit radial along plane
       Vect et = (x - n * xn) / std::max(eps, xt);
-      // unit along circle 
+      // unit along circle
       Vect es = n.cross(et);
       Scal s2 = sqr(xn) + sqr(xt - rad);
       Scal sig2 = sqr(sig);
@@ -309,7 +316,6 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       lz *= 2;
     }
 
-
     Scal p = sqr(ly) * pg / mu;
     Scal b = lz / ly;
     Scal k = 16. * sqr(b) / std::pow(pi, 4);
@@ -323,8 +329,8 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       Scal s = 0.;
       for (int iy = 1; iy < im * 2; iy += 2) {
         for (int iz = 1; iz < im * 2; iz += 2) {
-          s += std::sin(iy * pi * y) *  std::sin(iz * pi * z) / 
-              (iy * iz * (sqr(b) * sqr(iy) + sqr(iz)));
+          s += std::sin(iy * pi * y) * std::sin(iz * pi * z) /
+               (iy * iz * (sqr(b) * sqr(iy) + sqr(iz)));
         }
       }
       fcv[i][0] = p * s * k;
@@ -350,8 +356,8 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     Scal yh(var.Double["soliton_yh"]);
     Scal xw(var.Double["soliton_xw"]);
     Scal e(var.Double["soliton_eps"]);
-    using std::exp;
     using std::cos;
+    using std::exp;
     using std::sin;
     using std::sqrt;
     Scal g(Vect(var.Vect["gravity"]).norm());
@@ -364,8 +370,9 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       Scal y = xx[1];
       Scal kx = k * x;
       Scal ky = k * (y - yc);
-      Scal h = yc + a / la * 
-          (cos(kx) + 0.5*e*cos(2*kx)+ 3./8*sqr(e)*cos(3.*kx));
+      Scal h = yc + a / la *
+                        (cos(kx) + 0.5 * e * cos(2 * kx) +
+                         3. / 8 * sqr(e) * cos(3. * kx));
       Scal om = sqrt(g * k * (1 + sqr(e)));
       Scal u = om * a * exp(ky) * cos(kx);
       Scal v = om * a * exp(ky) * sin(kx);
@@ -392,10 +399,10 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       Vect xx = m.GetCenter(c);
       Scal x = xx[0] - xc;
       Scal y = xx[1];
-      Scal Ux = H * p2 / T * cosh((p2 / L) * y) * 
-          cos(p2 * x / L) / sinh(p2 * D / L);
-      Scal Uy = H * p2 / T * sinh((p2 / L) * y) * 
-          sin(p2 * x / L) / sinh(p2 * D / L);
+      Scal Ux =
+          H * p2 / T * cosh((p2 / L) * y) * cos(p2 * x / L) / sinh(p2 * D / L);
+      Scal Uy =
+          H * p2 / T * sinh((p2 / L) * y) * sin(p2 * x / L) / sinh(p2 * D / L);
       fcv[c] = Vect(Ux, Uy, 0.);
     }
   } else if (vi == "soliton") {
@@ -403,8 +410,8 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     Scal yc(var.Double["soliton_yc"]);
     Scal yh(var.Double["soliton_yh"]);
 
-    using std::sinh;
     using std::cosh;
+    using std::sinh;
     using std::tanh;
     auto sech = [](Scal t) { return 1. / std::cosh(t); };
     using std::cos;
@@ -423,16 +430,19 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
 
       X /= D;
       y /= D;
-      Scal z = X * sqrt(3*H/4)*(1 - 5*H/8);
-      Scal s = sech(z)*sech(z);
+      Scal z = X * sqrt(3 * H / 4) * (1 - 5 * H / 8);
+      Scal s = sech(z) * sech(z);
       Scal t = tanh(z);
 
-      Scal u = H*(1 + H/4 - 3*H*y*y/2)*s + H*H*(-1+9*y*y/4)*s*s;
-      Scal v = sqrt(3)*pow(H, 3.0/2)*y*s*t*(1 - 3*H/8 - H*y*y/2 + H*(-2+3*y*y/2)*s*s);
-      Scal h = 1 + H*s - 4*H*H*s*(1 - s)/3;
+      Scal u = H * (1 + H / 4 - 3 * H * y * y / 2) * s +
+               H * H * (-1 + 9 * y * y / 4) * s * s;
+      Scal v =
+          sqrt(3) * pow(H, 3.0 / 2) * y * s * t *
+          (1 - 3 * H / 8 - H * y * y / 2 + H * (-2 + 3 * y * y / 2) * s * s);
+      Scal h = 1 + H * s - 4 * H * H * s * (1 - s) / 3;
 
-      u *= sqrt(g*D);
-      v *= sqrt(g*D);
+      u *= sqrt(g * D);
+      v *= sqrt(g * D);
       h *= D;
       y *= D;
 
@@ -450,13 +460,13 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     Vect air(var.Vect["wavelamb_air"]);
     Scal kvel(var.Double["wavelamb_kvel"]);
 
-    using std::sinh;
-    using std::cosh;
-    using std::tanh;
     using std::cos;
-    using std::sin;
-    using std::sqrt;
+    using std::cosh;
     using std::pow;
+    using std::sin;
+    using std::sinh;
+    using std::sqrt;
+    using std::tanh;
 
     for (auto c : m.AllCells()) {
       auto xx = m.GetCenter(c);
@@ -464,29 +474,40 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       Scal y = xx[1] - h;
       Scal a = a0;
 
-      Scal eps = a*k;
-      Scal chi = 1.0/tanh(h*k);
-      Scal eta = (1.0/4.0)*a*chi*eps*(3*pow(chi, 2) - 1)*cos(2*k*x) +
-          a*pow(eps, 2)*((1.0/64.0)*(24*pow(chi, 6) + 3*pow(pow(chi,
-          2) - 1, 2))*cos(3*k*x) + (1.0/8.0)*(-3*pow(chi, 4) +
-          9*pow(chi, 2) - 9)*cos(k*x)) + a*cos(k*x);
+      Scal eps = a * k;
+      Scal chi = 1.0 / tanh(h * k);
+      Scal eta =
+          (1.0 / 4.0) * a * chi * eps * (3 * pow(chi, 2) - 1) * cos(2 * k * x) +
+          a * pow(eps, 2) *
+              ((1.0 / 64.0) * (24 * pow(chi, 6) + 3 * pow(pow(chi, 2) - 1, 2)) *
+                   cos(3 * k * x) +
+               (1.0 / 8.0) * (-3 * pow(chi, 4) + 9 * pow(chi, 2) - 9) *
+                   cos(k * x)) +
+          a * cos(k * x);
 
-      Scal omega = sqrt(g*k*(pow(eps, 2)*(pow(chi, 2) +
-          (9.0/8.0)*pow(pow(chi, 2) - 1, 2)) + 1)*tanh(h*k));
+      Scal omega = sqrt(
+          g * k *
+          (pow(eps, 2) * (pow(chi, 2) + (9.0 / 8.0) * pow(pow(chi, 2) - 1, 2)) +
+           1) *
+          tanh(h * k));
 
-      Scal vx = (3.0/64.0)*a*pow(eps, 2)*g*k*(pow(chi, 2) -
-          1)*(pow(chi, 2) + 3)*(9*pow(chi, 2) -
-          13)*cos(3*k*x)*cosh(3*k*(h + y))/(omega*cosh(3*h*k)) +
-          a*g*k*cos(k*x)*cosh(k*(h + y))/(omega*cosh(h*k)) +
-          (3.0/4.0)*a*eps*g*k*pow(pow(chi, 2) - 1,
-          2)*cos(2*k*x)*cosh(2*k*(h + y))/(chi*omega*cosh(2*h*k));
+      Scal vx =
+          (3.0 / 64.0) * a * pow(eps, 2) * g * k * (pow(chi, 2) - 1) *
+              (pow(chi, 2) + 3) * (9 * pow(chi, 2) - 13) * cos(3 * k * x) *
+              cosh(3 * k * (h + y)) / (omega * cosh(3 * h * k)) +
+          a * g * k * cos(k * x) * cosh(k * (h + y)) / (omega * cosh(h * k)) +
+          (3.0 / 4.0) * a * eps * g * k * pow(pow(chi, 2) - 1, 2) *
+              cos(2 * k * x) * cosh(2 * k * (h + y)) /
+              (chi * omega * cosh(2 * h * k));
 
-      Scal vy = (3.0/64.0)*a*pow(eps, 2)*g*k*(pow(chi, 2) -
-          1)*(pow(chi, 2) + 3)*(9*pow(chi, 2) -
-          13)*sin(3*k*x)*sinh(3*k*(h + y))/(omega*cosh(3*h*k)) +
-          a*g*k*sin(k*x)*sinh(k*(h + y))/(omega*cosh(h*k)) +
-          (3.0/4.0)*a*eps*g*k*pow(pow(chi, 2) - 1,
-          2)*sin(2*k*x)*sinh(2*k*(h + y))/(chi*omega*cosh(2*h*k));
+      Scal vy =
+          (3.0 / 64.0) * a * pow(eps, 2) * g * k * (pow(chi, 2) - 1) *
+              (pow(chi, 2) + 3) * (9 * pow(chi, 2) - 13) * sin(3 * k * x) *
+              sinh(3 * k * (h + y)) / (omega * cosh(3 * h * k)) +
+          a * g * k * sin(k * x) * sinh(k * (h + y)) / (omega * cosh(h * k)) +
+          (3.0 / 4.0) * a * eps * g * k * pow(pow(chi, 2) - 1, 2) *
+              sin(2 * k * x) * sinh(2 * k * (h + y)) /
+              (chi * omega * cosh(2 * h * k));
 
       fcv[c] = Vect(vx, vy, 0.) * kvel;
       if (y > eta) {
@@ -503,13 +524,13 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     Scal g = -Vect(var.Vect["gravity"])[1];
     Scal pi = M_PI;
 
-    using std::sinh;
-    using std::cosh;
-    using std::tanh;
     using std::cos;
-    using std::sin;
-    using std::sqrt;
+    using std::cosh;
     using std::pow;
+    using std::sin;
+    using std::sinh;
+    using std::sqrt;
+    using std::tanh;
 
     for (auto c : m.AllCells()) {
       auto xx = m.GetCenter(c);
@@ -517,28 +538,37 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       Scal y = xx[1] - h;
       Scal a = a0;
 
-      Scal eps = a*k;
-      Scal chi = 1.0/tanh(h*k);
-      Scal eta = (1.0/4.0)*a*chi*eps*(3*pow(chi, 2) - 1)*cos(2*k*x) +
-          a*pow(eps, 2)*((1.0/64.0)*(24*pow(chi, 6) + 3*pow(pow(chi,
-          2) - 1, 2))*cos(3*k*x) + (1.0/8.0)*(-3*pow(chi, 4) +
-          9*pow(chi, 2) - 9)*cos(k*x)) + a*cos(k*x);
+      Scal eps = a * k;
+      Scal chi = 1.0 / tanh(h * k);
+      Scal eta =
+          (1.0 / 4.0) * a * chi * eps * (3 * pow(chi, 2) - 1) * cos(2 * k * x) +
+          a * pow(eps, 2) *
+              ((1.0 / 64.0) * (24 * pow(chi, 6) + 3 * pow(pow(chi, 2) - 1, 2)) *
+                   cos(3 * k * x) +
+               (1.0 / 8.0) * (-3 * pow(chi, 4) + 9 * pow(chi, 2) - 9) *
+                   cos(k * x)) +
+          a * cos(k * x);
 
-      Scal omega = sqrt(g*k*(pow(eps, 2)*(pow(chi, 2) +
-          (9.0/8.0)*pow(pow(chi, 2) - 1, 2)) + 1)*tanh(h*k));
+      Scal omega = sqrt(
+          g * k *
+          (pow(eps, 2) * (pow(chi, 2) + (9.0 / 8.0) * pow(pow(chi, 2) - 1, 2)) +
+           1) *
+          tanh(h * k));
 
-      Scal vx = (3.0/64.0)*a*pow(eps, 2)*g*k*(pow(chi, 2) -
-          1)*(pow(chi, 2) + 3)*(9*pow(chi, 2) -
-          13)*cos(3*k*x)*cosh(3*k*(h + y))/(omega*cosh(3*h*k)) +
-          a*g*k*cos(k*x)*cosh(k*(h + y))/(omega*cosh(h*k)) +
-          (3.0/4.0)*a*eps*g*k*pow(pow(chi, 2) - 1,
-          2)*cos(2*k*x)*cosh(2*k*(h + y))/(chi*omega*cosh(2*h*k));
+      Scal vx =
+          (3.0 / 64.0) * a * pow(eps, 2) * g * k * (pow(chi, 2) - 1) *
+              (pow(chi, 2) + 3) * (9 * pow(chi, 2) - 13) * cos(3 * k * x) *
+              cosh(3 * k * (h + y)) / (omega * cosh(3 * h * k)) +
+          a * g * k * cos(k * x) * cosh(k * (h + y)) / (omega * cosh(h * k)) +
+          (3.0 / 4.0) * a * eps * g * k * pow(pow(chi, 2) - 1, 2) *
+              cos(2 * k * x) * cosh(2 * k * (h + y)) /
+              (chi * omega * cosh(2 * h * k));
 
       Scal s = y - eta;
 
-      Scal D = 1 / (sqrt(2*pi*d*d)) * exp(-s*s/(2*d*d));
+      Scal D = 1 / (sqrt(2 * pi * d * d)) * exp(-s * s / (2 * d * d));
 
-      Scal omz = 2* vx * D;
+      Scal omz = 2 * vx * D;
 
       fcv[c] = Vect(0., 0., omz) * omk;
     }
@@ -549,8 +579,8 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     Scal N(var.Double["soliton_n"]);
     Scal MM(var.Double["soliton_m"]);
 
-    using std::sinh;
     using std::cosh;
+    using std::sinh;
     using std::tanh;
     auto sech = [](Scal t) { return 1. / std::cosh(t); };
     using std::cos;
@@ -569,18 +599,18 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
 
       x /= D;
       y /= D;
-      Scal z = x * sqrt(3*H/4)*(1 - 5*H/8);
-      Scal s = sech(z)*sech(z);
+      Scal z = x * sqrt(3 * H / 4) * (1 - 5 * H / 8);
+      Scal s = sech(z) * sech(z);
       Scal mx = MM * x;
       Scal my = MM * y;
 
-      Scal C = 1. + 0.5 * H - 3./20. * sqr(H);
-      Scal u = C * N * (1. + cos(my)*cosh(mx)) / sqr(cos(my) + cosh(mx));
-      Scal v = C * N * (sin(my)*sinh(mx)) / sqr(cos(my) + cosh(mx));
-      Scal h = 1 + H*s - 4*H*H*s*(1 - s)/3;
+      Scal C = 1. + 0.5 * H - 3. / 20. * sqr(H);
+      Scal u = C * N * (1. + cos(my) * cosh(mx)) / sqr(cos(my) + cosh(mx));
+      Scal v = C * N * (sin(my) * sinh(mx)) / sqr(cos(my) + cosh(mx));
+      Scal h = 1 + H * s - 4 * H * H * s * (1 - s) / 3;
 
-      u *= sqrt(g*D);
-      v *= sqrt(g*D);
+      u *= sqrt(g * D);
+      v *= sqrt(g * D);
       h *= D;
       y *= D;
 
@@ -601,7 +631,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     }
   } else if (vi == "zero") {
     // nop
-  } else  {
+  } else {
     throw std::runtime_error("Init(): unknown vel_init=" + vi);
   }
 }
@@ -622,7 +652,7 @@ UniquePtr<CondFaceFluid> ParseFluidFaceCond(
   if (name == "wall") {
     // wall <velocity>
     // No-slip wall.
-    // zero derivative for pressure, fixed for velocity, 
+    // zero derivative for pressure, fixed for velocity,
     // fill-conditions for volume fraction.
     Vect vel;
     arg >> vel;
@@ -663,13 +693,10 @@ template <class Scal>
 std::ostream& operator<<(
     std::ostream& out, const CondFaceAdvection<Scal>& fca) {
   using Halo = typename CondFaceAdvection<Scal>::Halo;
-  out
-      << "nci=" << fca.nci
-      << " clear0=" << fca.clear0
+  out << "nci=" << fca.nci << " clear0=" << fca.clear0
       << " clear1=" << fca.clear1
       << " halo=" << (fca.halo == Halo::fill ? "fill" : "reflect")
-      << " fill_vf=" << fca.fill_vf
-      << " fill_cl=" << fca.fill_cl;
+      << " fill_vf=" << fca.fill_vf << " fill_cl=" << fca.fill_cl;
   return out;
 }
 
@@ -730,19 +757,19 @@ void GetFluidFaceCond(
   auto gxm = [&fi](IdxFace i) -> bool {
     return fi.GetDir(i) == Dir::i && fi.GetMIdx(i)[0] == 0;
   };
-  auto gxp = [&fi,gs](IdxFace i) -> bool {
+  auto gxp = [&fi, gs](IdxFace i) -> bool {
     return fi.GetDir(i) == Dir::i && fi.GetMIdx(i)[0] == gs[0];
   };
   auto gym = [&fi](IdxFace i) -> bool {
     return fi.GetDir(i) == Dir::j && fi.GetMIdx(i)[1] == 0;
   };
-  auto gyp = [&fi,gs](IdxFace i) -> bool {
+  auto gyp = [&fi, gs](IdxFace i) -> bool {
     return fi.GetDir(i) == Dir::j && fi.GetMIdx(i)[1] == gs[1];
   };
-  auto gzm = [&fi,edim](IdxFace i) -> bool {
+  auto gzm = [&fi, edim](IdxFace i) -> bool {
     return edim >= 3 && fi.GetDir(i) == Dir::k && fi.GetMIdx(i)[2] == 0;
   };
-  auto gzp = [&fi,gs,edim](IdxFace i) -> bool {
+  auto gzp = [&fi, gs, edim](IdxFace i) -> bool {
     return edim >= 3 && fi.GetDir(i) == Dir::k && fi.GetMIdx(i)[2] == gs[2];
   };
 
@@ -755,7 +782,7 @@ void GetFluidFaceCond(
   Scal fill_vf = var.Double["bcc_fill"];
 
   auto set_adv = [&](IdxFace f, const std::vector<std::string>& ss) {
-    static constexpr Scal kClNone = -1;  // TODO define kClNone once
+    static constexpr Scal kClNone = -1; // TODO define kClNone once
     auto& cb = mff[f];
     auto& cfa = mfa[f];
     cfa.nci = cb->GetNci();
@@ -781,8 +808,7 @@ void GetFluidFaceCond(
 
     for (auto s : ss) {
       if (!ParseAdvectionFaceCond(s, cfa)) {
-        throw std::runtime_error(
-            "No advection condition found in '" + s + "'");
+        throw std::runtime_error("No advection condition found in '" + s + "'");
       }
     }
   };
@@ -807,12 +833,9 @@ void GetFluidFaceCond(
   };
 
   // List of domain boundaries: <name, func, nci>
-  std::vector<std::tuple<
-      std::string, std::function<bool(IdxFace)>, size_t>> bb =
-      {{"bc_xm", gxm, 1}, {"bc_xp", gxp, 0},
-       {"bc_ym", gym, 1}, {"bc_yp", gyp, 0},
-       {"bc_zm", gzm, 1}, {"bc_zp", gzp, 0}};
-
+  std::vector<std::tuple<std::string, std::function<bool(IdxFace)>, size_t>>
+      bb = {{"bc_xm", gxm, 1}, {"bc_xp", gxp, 0}, {"bc_ym", gym, 1},
+            {"bc_yp", gyp, 0}, {"bc_zm", gzm, 1}, {"bc_zp", gzp, 0}};
 
   // Set face conditions on domain boundaries
   for (auto& b : bb) {
@@ -874,8 +897,8 @@ void GetFluidFaceCond(
         Scal vf = var.Double[k + "vf"];
 
         // Returns intersection fraction of cell c and sphere
-        auto V = [xc,r,&m](IdxCell c) {
-          auto ls = [xc,r](const Vect& x) -> Scal {
+        auto V = [xc, r, &m](IdxCell c) {
+          auto ls = [xc, r](const Vect& x) -> Scal {
             Vect xd = (x - xc) / r;
             return (1. - xd.sqrnorm()) * sqr(r.min());
           };
@@ -919,9 +942,9 @@ void GetFluidFaceCond(
       ++n;
       std::string k = "face" + std::to_string(n);
       if (auto p = var.String(k)) {
-        // set boundary conditions on faces of box (a,b) 
+        // set boundary conditions on faces of box (a,b)
         // normal to d with outer normal towards (b-a)[d]
-        Vect a(var.Vect[k + "_a"]); 
+        Vect a(var.Vect[k + "_a"]);
         Vect b(var.Vect[k + "_b"]);
         int d(var.Int[k + "_dir"]); // direction: 0:x, 1:y, 2:z
         Scal vf = var.Double[k + "_vf"];
@@ -961,7 +984,7 @@ void GetFluidFaceCond(
           mff[f] = ParseFluidFaceCond(*p, f, nci, m);
         }
         (void) vf;
-      } else if (n > nmax) { 
+      } else if (n > nmax) {
         break;
       }
     }
@@ -1007,7 +1030,7 @@ void GetFluidFaceCond(
         } else {
           throw std::runtime_error("unknown selection sphere cond: " + *p);
         }
-      } else if (n > nmax) { 
+      } else if (n > nmax) {
         break;
       }
       ++n;
@@ -1042,11 +1065,11 @@ void GetFluidCellCond(
       if (pdist.second == m.GetId()) {
         Vect x(var.Vect["pfixed_x"]);
         IdxCell c = m.FindNearestCell(x);
-        mcvel[c] = std::make_shared
-            <solver::fluid_condition::GivenPressureFixed<M>>(*p);
-        std::cout 
-            << "pfixed id=" << pdist.second 
-            << " dist=" << pdist.first << std::endl;
+        mcvel[c] =
+            std::make_shared<solver::fluid_condition::GivenPressureFixed<M>>(
+                *p);
+        std::cout << "pfixed id=" << pdist.second << " dist=" << pdist.first
+                  << std::endl;
       }
     }
 
@@ -1057,9 +1080,9 @@ void GetFluidCellCond(
       ++n;
       std::string k = "cellbox" + std::to_string(n);
       if (auto p = var.String(k)) {
-        // set boundary conditions on faces of box (a,b) 
+        // set boundary conditions on faces of box (a,b)
         // normal to d with outer normal towards (b-a)[d]
-        Vect a(var.Vect[k + "_a"]); 
+        Vect a(var.Vect[k + "_a"]);
         Vect b(var.Vect[k + "_b"]);
         Rect<Vect> r(a, b);
         Vect h = m.GetCellSize();
@@ -1085,21 +1108,20 @@ void GetFluidCellCond(
         typename M::BlockCells bb(wa, ws);
         for (auto w : bb) {
           IdxCell c = ci.GetIdx(w);
-          mcvel[c] = std::make_shared
-              <solver::fluid_condition::
-              GivenVelocityAndPressureFixed<M>>(Vect(0), 0.);
+          mcvel[c] = std::make_shared<
+              solver::fluid_condition::GivenVelocityAndPressureFixed<M>>(
+              Vect(0), 0.);
         }
-      } else if (n > nmax) { 
+      } else if (n > nmax) {
         break;
       }
     }
   }
 }
 
-
-  // Returns face polygon.
-  // x0,x1: points
-  // f0,f1: values
+// Returns face polygon.
+// x0,x1: points
+// f0,f1: values
 template <class M>
 std::vector<typename M::Vect> GetPoly(IdxFace f, const M& m) {
   using Vect = typename M::Vect;
@@ -1112,8 +1134,9 @@ std::vector<typename M::Vect> GetPoly(IdxFace f, const M& m) {
 }
 
 template <class M>
-void DumpBcFaces(const MapCondFaceAdvection<typename M::Scal>& mfa,
-                 const MapCondFaceFluid& mff, std::string fn, M& m) {
+void DumpBcFaces(
+    const MapCondFaceAdvection<typename M::Scal>& mfa,
+    const MapCondFaceFluid& mff, std::string fn, M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   auto sem = m.GetSem("DumpBcFaces");
@@ -1122,7 +1145,7 @@ void DumpBcFaces(const MapCondFaceAdvection<typename M::Scal>& mfa,
     std::vector<Scal> vcond;
     std::vector<Scal> vcondf;
     std::vector<Scal> vblock;
-  }* ctx(sem);
+  } * ctx(sem);
   auto& vxx = ctx->vxx;
   auto& vcond = ctx->vcond;
   auto& vcondf = ctx->vcondf;
@@ -1136,8 +1159,12 @@ void DumpBcFaces(const MapCondFaceAdvection<typename M::Scal>& mfa,
       int h = 0;
       using Halo = typename CondFaceAdvection<Scal>::Halo;
       switch (b.halo) {
-        case Halo::reflect: h = 1; break;
-        case Halo::fill: h = 2; break;
+        case Halo::reflect:
+          h = 1;
+          break;
+        case Halo::fill:
+          h = 2;
+          break;
       }
       auto append = [&cond](int a) {
         a = std::min(99, std::max(0, a));
@@ -1180,12 +1207,12 @@ void DumpBcFaces(const MapCondFaceAdvection<typename M::Scal>& mfa,
   }
   if (sem("write")) {
     if (m.IsRoot()) {
-      std::cout << "dump" << " to " << fn << std::endl;
+      std::cout << "dump"
+                << " to " << fn << std::endl;
       WriteVtkPoly<Vect>(
-          fn, vxx, nullptr, 
-          {&vcond, &vblock, &vcondf}, {"advection", "block", "fluid"},
-          "Boundary conditions", true, true, true);
+          fn, vxx, nullptr, {&vcond, &vblock, &vcondf},
+          {"advection", "block", "fluid"}, "Boundary conditions", true, true,
+          true);
     }
   }
 }
-

@@ -7,10 +7,18 @@ namespace solver {
 
 std::string GetName(Layers l) {
   switch (l) {
-    case Layers::time_curr: { return "time_curr"; }
-    case Layers::time_prev: { return "time_prev"; }
-    case Layers::iter_curr: { return "iter_curr"; }
-    case Layers::iter_prev: { return "iter_prev"; }
+    case Layers::time_curr: {
+      return "time_curr";
+    }
+    case Layers::time_prev: {
+      return "time_prev";
+    }
+    case Layers::iter_curr: {
+      return "iter_curr";
+    }
+    case Layers::iter_prev: {
+      return "iter_prev";
+    }
     default: {
       throw std::runtime_error("GetName: Unknown layer");
     }
@@ -29,14 +37,18 @@ ConvSc GetConvSc(std::string s) {
 
 std::string GetName(ConvSc sc) {
   switch (sc) {
-    case ConvSc::fou: return "fou";
-    case ConvSc::cd: return "cd";
-    case ConvSc::sou: return "sou";
-    case ConvSc::quick: return "quick";
-    default: throw std::runtime_error("GetName: invalid ConvSc");
+    case ConvSc::fou:
+      return "fou";
+    case ConvSc::cd:
+      return "cd";
+    case ConvSc::sou:
+      return "sou";
+    case ConvSc::quick:
+      return "quick";
+    default:
+      throw std::runtime_error("GetName: invalid ConvSc");
   }
   return "";
 }
-
 
 } // namespace solver

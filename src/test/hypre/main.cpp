@@ -1,10 +1,10 @@
 #undef NDEBUG
-#include <cassert>
-#include <vector>
-#include <iostream>
 #include <mpi.h>
+#include <cassert>
 #include <cmath>
 #include <iomanip>
+#include <iostream>
+#include <vector>
 
 #include "linear/hypre.h"
 
@@ -12,21 +12,19 @@ using MIdx = typename Hypre::MIdx;
 using Scal = typename Hypre::Scal;
 using Block = typename Hypre::Block;
 
-
 bool Cmp(Scal a, Scal b) {
   return std::abs(a - b) < 1e-10;
 }
 
 // Print CMP if false
-#define PFCMP(a, b) \
-  if (!Cmp(a, b)) { \
-    std::cerr \
-      << std::scientific << std::setprecision(16) \
-      << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
-    assert(false);\
+#define PFCMP(a, b)                                                         \
+  if (!Cmp(a, b)) {                                                         \
+    std::cerr << std::scientific << std::setprecision(16) << #a << "=" << a \
+              << ", " << #b << "=" << b << std::endl;                       \
+    assert(false);                                                          \
   }
 
-int main (int argc, char ** argv) {
+int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
 
   size_t dim = 3;
@@ -39,7 +37,7 @@ int main (int argc, char ** argv) {
 
   Block b;
   b.l = {0, 0, 0};
-  b.u = {bs-1, bs-1, bs-1};
+  b.u = {bs - 1, bs - 1, bs - 1};
   b.st = st;
 
   size_t n = 1;
@@ -48,9 +46,7 @@ int main (int argc, char ** argv) {
   }
 
   // exact solution
-  auto f = [](Scal x, Scal, Scal) {
-    return std::sin(x);
-  };
+  auto f = [](Scal x, Scal, Scal) { return std::sin(x); };
 
   std::vector<Scal> da(n * b.st.size());
   {
@@ -75,7 +71,7 @@ int main (int argc, char ** argv) {
       for (int y = b.l[1]; y <= b.u[1]; ++y) {
         for (int x = b.l[0]; x <= b.u[0]; ++x) {
           int xp = (x + 1 + gs[0]) % gs[0];
-          dr[j] = da[2*j] * f(x, y, z) + da[2*j + 1] * f(xp, y, z);
+          dr[j] = da[2 * j] * f(x, y, z) + da[2 * j + 1] * f(xp, y, z);
           dx[j] = 0.;
           ++j;
         }
@@ -114,5 +110,5 @@ int main (int argc, char ** argv) {
     }
   }
 
-  MPI_Finalize();	
+  MPI_Finalize();
 }

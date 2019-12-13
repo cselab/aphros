@@ -1,12 +1,10 @@
 #include "hydro.ipp"
 
-
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 
-template FieldCell<Scal> GetBcField(
-    MapCondFaceFluid& mf, const M& m);
+template FieldCell<Scal> GetBcField(MapCondFaceFluid& mf, const M& m);
 
 template FieldCell<Vect> GetVort(
     const FieldCell<Vect>& fcv, const MapCondFace& mf, M& m);
@@ -23,5 +21,5 @@ template void GetFluidCellCond(
     std::pair<Scal, int>& pdist);
 
 template void DumpBcFaces(
-    const MapCondFaceAdvection<Scal>& mfa,
-    const MapCondFaceFluid& mff, std::string fn, M& m);
+    const MapCondFaceAdvection<Scal>& mfa, const MapCondFaceFluid& mff,
+    std::string fn, M& m);

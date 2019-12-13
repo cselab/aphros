@@ -1,7 +1,7 @@
 #pragma once
 
-#include <iosfwd>
 #include <cassert>
+#include <iosfwd>
 
 #include "idx.h"
 #include "range.h"
@@ -16,7 +16,7 @@ class GField {
   // Constructs field for empty range
   GField() : d_(nullptr) {}
   // Constructs field for range r
-  explicit GField(const Range& r) : r_(r), d_(new Value[r_.size()]) { }
+  explicit GField(const Range& r) : r_(r), d_(new Value[r_.size()]) {}
   // Copy constructor
   GField(const GField& o) : GField(o.r_) {
     for (auto i : r_) {
@@ -27,7 +27,7 @@ class GField {
   GField(GField&& o) : r_(o.r_), d_(o.d_) {
     o.r_.clear();
     o.d_ = nullptr;
-  } 
+  }
   // Constructs field for range r and initializes with v
   GField(const Range& r, const Value& v) : GField(r) {
     for (auto i : r_) {
@@ -56,8 +56,8 @@ class GField {
     o.d_ = nullptr;
     return *this;
   }
-  size_t size() const { 
-    return r_.size(); 
+  size_t size() const {
+    return r_.size();
   }
   bool empty() const {
     return size() == 0;
@@ -117,12 +117,12 @@ using FieldFace = GField<T, IdxFace>;
 template <class T>
 using FieldNode = GField<T, IdxNode>;
 
-// Write component of vector field 
+// Write component of vector field
 // to given scalar field (resize if needed).
 // Requires: defined Vect::value_type.
 template <class Vect, class Idx>
 void GetComponent(
-    const GField<Vect, Idx>& fv, size_t n, 
+    const GField<Vect, Idx>& fv, size_t n,
     GField<typename Vect::value_type, Idx>& fs) {
   fs.Reinit(fv.GetRange());
   for (auto i : fv.GetRange()) {
@@ -145,7 +145,7 @@ GField<typename Vect::value_type, Idx> GetComponent(
 // Requires: defined Vect::value_type.
 template <class Vect, class Idx>
 void SetComponent(
-    GField<Vect, Idx>& fv, size_t n, 
+    GField<Vect, Idx>& fv, size_t n,
     const GField<typename Vect::value_type, Idx>& fs) {
   for (auto i : fv.GetRange()) {
     fv[i][n] = fs[i];
@@ -176,4 +176,3 @@ void PrintIn(const GField<T, Idx>& u, const M& m, std::ostream& out) {
     out << u[i] << " ";
   }
 }
-

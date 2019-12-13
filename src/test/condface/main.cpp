@@ -1,7 +1,7 @@
 #undef NDEBUG
-#include <sstream>
-#include <iostream>
 #include <cassert>
+#include <iostream>
+#include <sstream>
 #include <typeinfo>
 
 #include "solver/cond.h"
@@ -37,7 +37,6 @@ std::string P(const CondFaceGrad<T>* d) {
   return ss.str();
 }
 
-
 template <class D>
 void Try(const UniquePtr<CondFace>& b, std::string& s) {
   if (auto d = b.Get<D>()) {
@@ -49,7 +48,9 @@ template <class V>
 class CondFaceValCustom : public CondFaceVal<V> {
  public:
   CondFaceValCustom(const V& v, size_t nci) : CondFaceVal<V>(nci), v_(v) {}
-  V GetValue() const override { return v_; }
+  V GetValue() const override {
+    return v_;
+  }
 
  private:
   V v_;
@@ -59,7 +60,9 @@ template <class V>
 class CondFaceGradCustom : public CondFaceGrad<V> {
  public:
   CondFaceGradCustom(const V& v, size_t nci) : CondFaceGrad<V>(nci), v_(v) {}
-  V GetGrad() const override { return v_; }
+  V GetGrad() const override {
+    return v_;
+  }
 
  private:
   V v_;
@@ -74,7 +77,6 @@ class CondFaceExtrapCustom : public CondFaceExtrap {
  public:
   CondFaceExtrapCustom(size_t nci) : CondFaceExtrap(nci) {}
 };
-
 
 void Print(const UniquePtr<CondFace>& b) {
   std::string s{"none"};
@@ -99,11 +101,19 @@ void Print(const UniquePtr<CondFace>& b) {
   std::cout << s << std::endl;
 }
 
-#define EPrint(x) { std::cout << "-> " << #x << std::endl; \
-    try { Print(x); } catch(const std::runtime_error& e) { \
-    std::cout << e.what() << std::endl; } }
+#define EPrint(x)                           \
+  {                                         \
+    std::cout << "-> " << #x << std::endl;  \
+    try {                                   \
+      Print(x);                             \
+    } catch (const std::runtime_error& e) { \
+      std::cout << e.what() << std::endl;   \
+    }                                       \
+  }
 
-#define ECHO(x) std::cout << #x << std::endl; x;
+#define ECHO(x)                 \
+  std::cout << #x << std::endl; \
+  x;
 
 void Test() {
   std::cout << "\nTest Eval" << std::endl;

@@ -2,18 +2,13 @@
 
 #include "overlap.h"
 
-double GetSphereOverlap(const GVect<double, 3>& x, const GVect<double, 3>& h, 
-                        const GVect<double, 3>& c, double r) {
-  std::array<vector_t, 8> vv{
-    vector_t{-1, -1, -1},
-    vector_t{ 1, -1, -1},
-    vector_t{ 1,  1, -1},
-    vector_t{-1,  1, -1},
-    vector_t{-1, -1,  1},
-    vector_t{ 1, -1,  1},
-    vector_t{ 1,  1,  1},
-    vector_t{-1,  1,  1}
-  };
+double GetSphereOverlap(
+    const GVect<double, 3>& x, const GVect<double, 3>& h,
+    const GVect<double, 3>& c, double r) {
+  std::array<vector_t, 8> vv{vector_t{-1, -1, -1}, vector_t{1, -1, -1},
+                             vector_t{1, 1, -1},   vector_t{-1, 1, -1},
+                             vector_t{-1, -1, 1},  vector_t{1, -1, 1},
+                             vector_t{1, 1, 1},    vector_t{-1, 1, 1}};
 
   bool ai = true; // all inside sphere
   bool ao = true; // all outside sphere

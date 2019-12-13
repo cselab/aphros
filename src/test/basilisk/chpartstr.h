@@ -1,5 +1,5 @@
-#include "solver/reconst.h"
 #include "solver/normal.h"
+#include "solver/reconst.h"
 
 Mesh* _mesh;
 double Delta;
@@ -25,37 +25,42 @@ bool interfacial(IdxCell point, scalar c) {
   return c[point] > 0 && c[point] < 1;
 }
 
-#define static 
+#define static
 #define dimension 3
 #define Point IdxCell
 #define CELLIDX point
 #define NOBA
 
-#define POINTXYZ \
+#define POINTXYZ                           \
   double x = (*_mesh).GetCenter(point)[0]; \
   double y = (*_mesh).GetCenter(point)[1]; \
   double z = (*_mesh).GetCenter(point)[2]; \
-  (void) x; (void) y; (void) z; (void) Delta;
+  (void)x;                                 \
+  (void)y;                                 \
+  (void)z;                                 \
+  (void)Delta;
 
-
-#define foreach() for (auto point : (*_mesh).Cells()) { \
-  POINTXYZ
+#define foreach()                       \
+  for (auto point : (*_mesh).Cells()) { \
+    POINTXYZ
 
 #define foreach_end }
 
+#define foreach_neighbor(W)                              \
+  {                                                      \
+    GBlock<IdxCell, dim> _bo(MIdx(-W), MIdx(W * 2 + 1)); \
+    auto _bc = (*_mesh).GetIndexCells();                 \
+    MIdx _w = _bc.GetMIdx(point);                        \
+    for (MIdx _wo : _bo) {                               \
+      IdxCell point = _bc.GetIdx(_w + _wo);              \
+      POINTXYZ
 
-#define foreach_neighbor(W) { \
-  GBlock<IdxCell, dim> _bo(MIdx(-W), MIdx(W * 2 + 1)); \
-  auto _bc = (*_mesh).GetIndexCells(); \
-  MIdx _w = _bc.GetMIdx(point); \
-  for (MIdx _wo : _bo) { \
-    IdxCell point = _bc.GetIdx(_w + _wo); \
-    POINTXYZ
+#define foreach_neighbor_end \
+  }                          \
+  }
 
-#define foreach_neighbor_end }}
-
-using std::min;
 using std::max;
+using std::min;
 
 double t;
 
@@ -81,7 +86,9 @@ void plane_area_center(coord n, double a, coord* o) {
 FieldCell<bool> DetectInterface(const FieldCell<Scal>& fcu) {
   FieldCell<bool> fci((*_mesh), false);
   for (auto c : (*_mesh).AllCells()) {
-    if (fcu[c] > 0. && fcu[c] < 1.) { fci[c] = true; }
+    if (fcu[c] > 0. && fcu[c] < 1.) {
+      fci[c] = true;
+    }
   }
   return fci;
 }
@@ -97,8 +104,8 @@ static coord mycs(Point point, scalar fcu) {
   return r;
 }
 
-static int facets(coord n, double a, coord* pp, double h_=1) {
-  (void) h_;
+static int facets(coord n, double a, coord* pp, double h_ = 1) {
+  (void)h_;
   std::vector<Vect> vv =
       Reconst<Scal>::GetCutPoly(Vect(0), Vect(n.x, n.y, n.z), a, Vect(1));
   int i = 0;

@@ -2,12 +2,11 @@
 
 #include "block.h"
 
-
 // TODO: Rename RangeIn
 template <class Idx_, int dim_>
 class GRangeIn {
   using Idx = Idx_;
-  using B = GBlock<Idx, dim_>; // block 
+  using B = GBlock<Idx, dim_>; // block
   using IND = GIndex<Idx, dim_>; // index
   using I = typename B::iterator; // block iterator
   const IND& ba_; // block all
@@ -17,13 +16,12 @@ class GRangeIn {
   class iterator {
     const IND& ba_; // block all
     const B& bi_; // block inner
-    I i_;  // block iterator over bi
+    I i_; // block iterator over bi
     size_t nlite_; // number of simple inc operations
     Idx xlite_; // last idx lite
    public:
     explicit iterator(const IND& ba, const B& bi, const I& i)
-        : ba_(ba), bi_(bi), i_(i), nlite_(0), xlite_(ba_.GetIdx(*i_))
-    {}
+        : ba_(ba), bi_(bi), i_(i), nlite_(0), xlite_(ba_.GetIdx(*i_)) {}
     iterator& operator++() {
       if (nlite_ == 0) {
         ++i_;
@@ -47,8 +45,8 @@ class GRangeIn {
     }
   };
 
-  // ba: index 
-  // bi: block 
+  // ba: index
+  // bi: block
   // TODO: rename ba,bi
   GRangeIn(const IND& ba, const B& bi) : ba_(ba), bi_(bi) {}
   iterator begin() const {
@@ -58,7 +56,3 @@ class GRangeIn {
     return iterator(ba_, bi_, bi_.end());
   }
 };
-
-
-
-

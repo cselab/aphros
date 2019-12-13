@@ -1,13 +1,14 @@
 #pragma once
 
+#include <chrono>
 #include <map>
 #include <stack>
-#include <chrono>
 
 class SingleTimer {
-  using Clock =  std::chrono::steady_clock;
+  using Clock = std::chrono::steady_clock;
   Clock clock_;
   Clock::time_point start_;
+
  public:
   SingleTimer() : start_(clock_.now()) {}
   double GetSeconds() const {
@@ -23,27 +24,31 @@ class MultiTimer {
 
   // Marks start of timer with given key
   void Push(const Key& k);
-  void Push() { Push(""); }
+  void Push() {
+    Push("");
+  }
   // Marks stop of timer with last key.
   // Overwrites the key if k != "".
   // Appends to accumulated time for new key.
   void Pop(const Key& k);
-  void Pop() { Pop(""); }
+  void Pop() {
+    Pop("");
+  }
   // Returns map of accumulated time
   const std::map<Key, Value>& GetMap() const;
-  // Resets all accumulated time to zero 
+  // Resets all accumulated time to zero
   void Reset();
 
  private:
   using Clock = std::chrono::steady_clock;
   Clock c_;
-  struct S { // start 
+  struct S { // start
     Key k;
     Clock::time_point t;
     S(const Key& k, Clock::time_point t) : k(k), t(t) {}
   };
   std::map<Key, Value> a_; // accumulated time
-  std::stack<S> ss_;        // stack of starts
+  std::stack<S> ss_; // stack of starts
 };
 
 template <class K>
@@ -55,7 +60,7 @@ template <class K>
 void MultiTimer<K>::Pop(const Key& k) {
   S& s = ss_.top();
   if (k != "") {
-    s.k = k;   
+    s.k = k;
   }
   if (!a_.count(s.k)) {
     a_[s.k] = 0.;
@@ -65,7 +70,7 @@ void MultiTimer<K>::Pop(const Key& k) {
 }
 
 template <class K>
-auto MultiTimer<K>::GetMap() const -> const std::map<Key, Value>&  {
+auto MultiTimer<K>::GetMap() const -> const std::map<Key, Value>& {
   return a_;
 }
 

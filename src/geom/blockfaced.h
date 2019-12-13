@@ -14,7 +14,7 @@ class GBlock<IdxFace, dim_> { // [s]andbox
   using Idx = IdxFace;
   using MIdx = GMIdx<dim>;
   using Dir = GDir<dim>;
-  
+
   static_assert(dim == 3, "GBlock<IdxFace,...> implemented only for dim=3");
 
   class iterator {
@@ -23,9 +23,7 @@ class GBlock<IdxFace, dim_> { // [s]andbox
     Dir d_;
 
    public:
-    explicit iterator(const GBlock* o, MIdx x, Dir d)
-        : o_(o), x_(x), d_(d)
-    {}
+    explicit iterator(const GBlock* o, MIdx x, Dir d) : o_(o), x_(x), d_(d) {}
     iterator& operator++() {
       auto& s = o_->cs_;
       auto& x = x_;
@@ -37,7 +35,7 @@ class GBlock<IdxFace, dim_> { // [s]andbox
         ++x[0];
         if (x[0] == e[0]) {
           x[0] = b[0];
-          ++x[1];  // end would be: (b[0], e[1], e[2])
+          ++x[1]; // end would be: (b[0], e[1], e[2])
         }
       } else if (x[1] == e[1]) { // y-edge
         ++x[0];
@@ -48,14 +46,14 @@ class GBlock<IdxFace, dim_> { // [s]andbox
           d = Dir(0);
           if (x[2] == e[2]) { // next z-edge
             d = Dir(2);
-          } 
-        } 
-      } else if (x[0] == e[0]) { // x-edge
-          x[0] = b[0];
-          ++x[1];
-          if (x[1] == e[1]) { // next y-edge
-            d = Dir(1);
           }
+        }
+      } else if (x[0] == e[0]) { // x-edge
+        x[0] = b[0];
+        ++x[1];
+        if (x[1] == e[1]) { // next y-edge
+          d = Dir(1);
+        }
       } else if (d == Dir(2)) { // dirz
         ++x[0];
         d = Dir(0);
@@ -76,15 +74,9 @@ class GBlock<IdxFace, dim_> { // [s]andbox
     }
   };
 
-  GBlock(MIdx begin, MIdx cells)
-      : b_(begin), cs_(cells), e_(b_ + cs_)
-  {}
-  GBlock(MIdx cells)
-      : GBlock(MIdx(0), cells)
-  {}
-  GBlock()
-      : GBlock(MIdx(0), MIdx(0))
-  {}
+  GBlock(MIdx begin, MIdx cells) : b_(begin), cs_(cells), e_(b_ + cs_) {}
+  GBlock(MIdx cells) : GBlock(MIdx(0), cells) {}
+  GBlock() : GBlock(MIdx(0), MIdx(0)) {}
   size_t size() const {
     size_t res = 0;
     for (size_t i = 0; i < dim; ++i) {
@@ -99,9 +91,9 @@ class GBlock<IdxFace, dim_> { // [s]andbox
     x -= b_;
     size_t r = 0;
     auto& s = cs_;
-    r += (s[1] * s[0] + (s[1] + 1) * s[0] + (s[0] + 1) * s[1]) * x[2]; 
+    r += (s[1] * s[0] + (s[1] + 1) * s[0] + (s[0] + 1) * s[1]) * x[2];
     if (x[2] == s[2]) {
-      r += s[0] * x[1] + x[0];   // z-boundary
+      r += s[0] * x[1] + x[0]; // z-boundary
     } else {
       r += (3 * s[0] + 1) * x[1];
       if (x[1] == s[1]) {
@@ -136,7 +128,7 @@ class GBlock<IdxFace, dim_> { // [s]andbox
     Dir d;
     auto& s = cs_;
     const size_t n = size();
-    if (r >= n - s[0] * s[1]) {  // z-boundary
+    if (r >= n - s[0] * s[1]) { // z-boundary
       r -= n - s[0] * s[1];
       x[2] = s[2];
       x[1] = r / s[0];
@@ -163,9 +155,9 @@ class GBlock<IdxFace, dim_> { // [s]andbox
   }
 
  private:
-  MIdx b_;  // begin
+  MIdx b_; // begin
   MIdx cs_; // cells size
-  MIdx e_;  // end
+  MIdx e_; // end
   size_t GetNumFaces(Dir dir) const {
     MIdx bcs = cs_;
     ++bcs[size_t(dir)];

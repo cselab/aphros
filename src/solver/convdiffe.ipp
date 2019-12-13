@@ -2,8 +2,8 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "convdiffe.h"
 #include "approx.h"
+#include "convdiffe.h"
 #include "debug/isnan.h"
 
 namespace solver {
@@ -13,12 +13,15 @@ struct ConvDiffScalExp<M_>::Imp {
   using Owner = ConvDiffScalExp<M_>;
   using Vect = typename M::Vect;
 
-  Imp(Owner* owner, const FieldCell<Scal>& fcu,
-      const MapCondFace& mfc,
+  Imp(Owner* owner, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
       const MapCell<std::shared_ptr<CondCell>>& mcc)
-      : owner_(owner), par(&owner_->GetPar()), m(owner_->m)
-      , mfc_(mfc), mcc_(mcc), dtp_(-1.), er_(0)
-  {
+      : owner_(owner)
+      , par(&owner_->GetPar())
+      , m(owner_->m)
+      , mfc_(mfc)
+      , mcc_(mcc)
+      , dtp_(-1.)
+      , er_(0) {
     fcu_.time_curr = fcu;
     fcu_.time_prev = fcu;
     fcu_.iter_curr = fcu;
@@ -32,7 +35,7 @@ struct ConvDiffScalExp<M_>::Imp {
     Scal ge = par->guessextra;
     if (ge != 0.) {
       for (auto c : m.AllCells()) {
-        fcu_.iter_curr[c] = 
+        fcu_.iter_curr[c] =
             fcu_.time_curr[c] * (1. + ge) - fcu_.time_prev[c] * ge;
       }
     } else {
@@ -51,8 +54,9 @@ struct ConvDiffScalExp<M_>::Imp {
   // Output:
   // diagonal linear system: fcla * (fcup - fcu) + fclb = 0
   // where fcup at new iteration
-  void Assemble(const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv,
-                FieldCell<Scal>& fcla, FieldCell<Scal>& fclb) {
+  void Assemble(
+      const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv,
+      FieldCell<Scal>& fcla, FieldCell<Scal>& fclb) {
     auto sem = m.GetSem("assemble");
 
     if (sem("assemble")) {
@@ -61,7 +65,7 @@ struct ConvDiffScalExp<M_>::Imp {
       fcla.Reinit(m);
       fclb.Reinit(m, 0.);
 
-      FieldFace<Scal> ffq;  // flux tmp
+      FieldFace<Scal> ffq; // flux tmp
 
       // Calc convective fluxes
       Interpolate(fcu, fcg, mfc_, ffv, m, par->sc, par->th, ffq);
@@ -97,8 +101,8 @@ struct ConvDiffScalExp<M_>::Imp {
 
       // time derivative coeffs
       Scal dt = owner_->GetTimeStep();
-      std::vector<Scal> ac = GetGradCoeffs(
-          0., {-(dt + dtp_), -dt, 0.}, par->second ? 0 : 1);
+      std::vector<Scal> ac =
+          GetGradCoeffs(0., {-(dt + dtp_), -dt, 0.}, par->second ? 0 : 1);
 
       for (IdxCell c : m.Cells()) {
         // time derivative
@@ -113,7 +117,7 @@ struct ConvDiffScalExp<M_>::Imp {
         fcla[c] /= par->relax;
       }
 
-      // Overwrite with cell conditions 
+      // Overwrite with cell conditions
       for (auto p : mcc_) {
         IdxCell c(p.GetIdx());
         CondCell* cb = p.GetValue().get(); // cond base
@@ -136,8 +140,9 @@ struct ConvDiffScalExp<M_>::Imp {
   // fcla * u + fclb = 0: system to solve
   // Output:
   // fcu: result
-  void Solve(const FieldCell<Scal>& fcla, const FieldCell<Scal>& fclb,
-             FieldCell<Scal>& fcu) {
+  void Solve(
+      const FieldCell<Scal>& fcla, const FieldCell<Scal>& fclb,
+      FieldCell<Scal>& fcu) {
     fcu.Reinit(m);
     for (auto c : m.Cells()) {
       fcu[c] = -fclb[c] / fcla[c];
@@ -229,22 +234,19 @@ struct ConvDiffScalExp<M_>::Imp {
 
 template <class M_>
 ConvDiffScalExp<M_>::ConvDiffScalExp(
-    M& m, const FieldCell<Scal>& fcu,
-    const MapCondFace& mfc,
-    const MapCell<std::shared_ptr<CondCell>>& mcc,
-    const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
-    const FieldCell<Scal>* fcs, const FieldFace<Scal>* ffv,
-    double t, double dt, const Par& par)
+    M& m, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
+    const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
+    const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
+    const FieldFace<Scal>* ffv, double t, double dt, const Par& par)
     : ConvDiffScal<M>(t, dt, m, par, fcr, ffd, fcs, ffv)
-    , imp(new Imp(this, fcu, mfc, mcc))
-{}
+    , imp(new Imp(this, fcu, mfc, mcc)) {}
 
 template <class M_>
 ConvDiffScalExp<M_>::~ConvDiffScalExp() = default;
 
 template <class M_>
-void ConvDiffScalExp<M_>::Assemble(const FieldCell<Scal>& fcu, 
-                                   const FieldFace<Scal>& ffv) {
+void ConvDiffScalExp<M_>::Assemble(
+    const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv) {
   imp->Assemble(fcu, ffv);
 }
 
@@ -262,7 +264,6 @@ template <class M_>
 auto ConvDiffScalExp<M_>::GetConst() const -> FieldCell<Scal> {
   return imp->GetConst();
 }
-
 
 template <class M_>
 void ConvDiffScalExp<M_>::StartStep() {
@@ -288,6 +289,5 @@ template <class M_>
 auto ConvDiffScalExp<M_>::GetField(Layers l) const -> const FieldCell<Scal>& {
   return imp->fcu_.Get(l);
 }
-
 
 } // namespace solver

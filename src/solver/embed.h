@@ -2,9 +2,9 @@
 
 #include <limits>
 
-#include "solver.h"
-#include "reconst.h"
 #include "dump/vtk.h"
+#include "reconst.h"
+#include "solver.h"
 
 namespace solver {
 
@@ -18,20 +18,33 @@ class Embed {
   static constexpr size_t dim = M::dim;
 
  public:
-  enum class Type {regular, cut, excluded};
+  enum class Type { regular, cut, excluded };
   // fnf: level-set function on nodes, interface at fnf=0
-  Embed(M& m, const FieldNode<Scal>& fnf)
-      : m(m), fnf_(fnf) {
+  Embed(M& m, const FieldNode<Scal>& fnf) : m(m), fnf_(fnf) {
     InitFaces(fnf_, fft_, ffpoly_, ffs_, m);
     InitCells(fnf_, ffs_, fct_, fcn_, fca_, fcs_, fcd_, fcv_, m);
   }
-  const FieldCell<Type>& GetCellType() const { return fct_; }
-  const FieldCell<Vect>& GetNormal() const { return fcn_; }
-  const FieldCell<Scal>& GetPlane() const { return fca_; }
-  const FieldFace<Scal>& GetFaceArea() const { return ffs_; }
-  const FieldCell<Scal>& GetCellArea() const { return fcs_; }
-  const FieldCell<Scal>& GetCellOffset() const { return fcd_; }
-  const FieldCell<Scal>& GetCellVolume() const { return fcv_; }
+  const FieldCell<Type>& GetCellType() const {
+    return fct_;
+  }
+  const FieldCell<Vect>& GetNormal() const {
+    return fcn_;
+  }
+  const FieldCell<Scal>& GetPlane() const {
+    return fca_;
+  }
+  const FieldFace<Scal>& GetFaceArea() const {
+    return ffs_;
+  }
+  const FieldCell<Scal>& GetCellArea() const {
+    return fcs_;
+  }
+  const FieldCell<Scal>& GetCellOffset() const {
+    return fcd_;
+  }
+  const FieldCell<Scal>& GetCellVolume() const {
+    return fcv_;
+  }
 
   // Dump cut polygons
   void DumpPoly() {
@@ -59,8 +72,8 @@ class Embed {
 
       for (auto c : m.Cells()) {
         if (fct_[c] == Type::cut) {
-          auto xx = R::GetCutPoly(
-              m.GetCenter(c), fcn_[c], fca_[c], m.GetCellSize());
+          auto xx =
+              R::GetCutPoly(m.GetCenter(c), fcn_[c], fca_[c], m.GetCellSize());
           dl_.push_back(xx);
           dld_.push_back(3);
           dls_.push_back(fcs_[c]);
@@ -75,11 +88,11 @@ class Embed {
     if (sem("write")) {
       if (m.IsRoot()) {
         std::string fn = GetDumpName("eb", ".vtk", 0);
-        std::cout << std::fixed << std::setprecision(8)
-            << "dump" 
-            << " to " << fn << std::endl;
-        WriteVtkPoly<Vect>(fn, dl_, nullptr, {&dld_, &dls_}, {"dir", "area"}, 
-                     "Embedded boundary", true, true, true);
+        std::cout << std::fixed << std::setprecision(8) << "dump"
+                  << " to " << fn << std::endl;
+        WriteVtkPoly<Vect>(
+            fn, dl_, nullptr, {&dld_, &dls_}, {"dir", "area"},
+            "Embedded boundary", true, true, true);
       }
     }
   }
@@ -107,11 +120,9 @@ class Embed {
   // fft: type of faces
   // ffpoly: if fft=1, polygon representing f < 0; otherwise empty
   // ffs: face area for which f > 0
-  static void InitFaces(const FieldNode<Scal>& fnf, 
-                        FieldFace<Type>& fft,
-                        FieldFace<std::vector<Vect>>& ffpoly,
-                        FieldFace<Scal>& ffs,
-                        const M& m) {
+  static void InitFaces(
+      const FieldNode<Scal>& fnf, FieldFace<Type>& fft,
+      FieldFace<std::vector<Vect>>& ffpoly, FieldFace<Scal>& ffs, const M& m) {
     fft.Reinit(m);
     ffpoly.Reinit(m);
     ffs.Reinit(m);
@@ -159,11 +170,11 @@ class Embed {
   // fcn: normals
   // fca: plane constants
   // fcs: polygon area
-  static void InitCells(const FieldNode<Scal>& fnf, const FieldFace<Scal>& ffs,
-                        FieldCell<Type>& fct, FieldCell<Vect>& fcn,
-                        FieldCell<Scal>& fca, FieldCell<Scal>& fcs, 
-                        FieldCell<Scal>& fcd, FieldCell<Scal>& fcv, 
-                        const M& m) {
+  static void InitCells(
+      const FieldNode<Scal>& fnf, const FieldFace<Scal>& ffs,
+      FieldCell<Type>& fct, FieldCell<Vect>& fcn, FieldCell<Scal>& fca,
+      FieldCell<Scal>& fcs, FieldCell<Scal>& fcd, FieldCell<Scal>& fcv,
+      const M& m) {
     fct.Reinit(m);
     fcn.Reinit(m);
     fca.Reinit(m);
@@ -220,8 +231,7 @@ class Embed {
 
         const auto h = m.GetCellSize();
 
-        auto xx = R::GetCutPoly(
-            m.GetCenter(c), fcn[c], fca[c], h);
+        auto xx = R::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
         fcs[c] = std::abs(R::GetArea(xx, fcn[c]));
 
         // normal distance from center to face
@@ -235,23 +245,22 @@ class Embed {
 
   M& m;
   // nodes
-  FieldNode<Scal> fnf_;  // level-set
+  FieldNode<Scal> fnf_; // level-set
   // faces
-  FieldFace<Type> fft_;  // face type (0: regular, 1: cut, 2: excluded)
-  FieldFace<std::vector<Vect>> ffpoly_;  // polygon representing f < 0
-  FieldFace<Scal> ffs_;  // area for which f > 0
+  FieldFace<Type> fft_; // face type (0: regular, 1: cut, 2: excluded)
+  FieldFace<std::vector<Vect>> ffpoly_; // polygon representing f < 0
+  FieldFace<Scal> ffs_; // area for which f > 0
   // cells
-  FieldCell<Type> fct_;  // cell type (0: regular, 1: cut, 2: excluded)
-  FieldCell<Vect> fcn_;  // unit outer normal
-  FieldCell<Scal> fca_;  // plane constant
-  FieldCell<Scal> fcs_;  // area of polygon
-  FieldCell<Scal> fcd_;  // normal component of displacement from cell center
-  FieldCell<Scal> fcv_;  // volume of cut cell
+  FieldCell<Type> fct_; // cell type (0: regular, 1: cut, 2: excluded)
+  FieldCell<Vect> fcn_; // unit outer normal
+  FieldCell<Scal> fca_; // plane constant
+  FieldCell<Scal> fcs_; // area of polygon
+  FieldCell<Scal> fcd_; // normal component of displacement from cell center
+  FieldCell<Scal> fcv_; // volume of cut cell
   // tmp
-  std::vector<std::vector<Vect>> dl_;  // dump poly, polygon
-  std::vector<Scal> dld_;              // dump poly, direction
-  std::vector<Scal> dls_;              // dump poly, area
+  std::vector<std::vector<Vect>> dl_; // dump poly, polygon
+  std::vector<Scal> dld_; // dump poly, direction
+  std::vector<Scal> dls_; // dump poly, area
 };
-
 
 } // namespace solver

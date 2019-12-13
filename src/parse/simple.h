@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <stdexcept>
+#include <string>
 
 #include "parse/vars.h"
 #include "solver/simple.h"

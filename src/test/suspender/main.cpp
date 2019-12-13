@@ -4,11 +4,10 @@
 
 #include "util/suspender.h"
 
-#include "simple.h"
-#include "other.h"
-#include "loop.h"
 #include "context.h"
-
+#include "loop.h"
+#include "other.h"
+#include "simple.h"
 
 int main() {
   simple::Simple();

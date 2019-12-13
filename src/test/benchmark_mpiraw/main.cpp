@@ -1,9 +1,9 @@
 #undef NDEBUG
+#include <mpi.h>
+#include <algorithm>
+#include <cassert>
 #include <iostream>
 #include <vector>
-#include <mpi.h>
-#include <cassert>
-#include <algorithm>
 
 #include "util/metrics.h"
 
@@ -26,13 +26,12 @@ void Gather() {
       std::vector<char> ra(sm * sc); // result all
 
       SingleTimer st;
-      MPI_Gather(r.data(), r.size(), MPI_CHAR,
-                 ra.data(), r.size(), MPI_CHAR, 0, comm);
+      MPI_Gather(
+          r.data(), r.size(), MPI_CHAR, ra.data(), r.size(), MPI_CHAR, 0, comm);
       auto t = st.GetSeconds();
       tt.push_back(t);
     } else {
-      MPI_Gather(r.data(), r.size(), MPI_CHAR,
-                 nullptr, 0, MPI_CHAR, 0, comm);
+      MPI_Gather(r.data(), r.size(), MPI_CHAR, nullptr, 0, MPI_CHAR, 0, comm);
     }
   }
 
@@ -52,9 +51,7 @@ void Gatherv() {
     if (rank == 0) {
       std::vector<int> ss(sc); // size of r on all ranks
 
-      MPI_Gather(&s, 1, MPI_INT, 
-                 ss.data(), 1, MPI_INT, 
-                 0, comm);
+      MPI_Gather(&s, 1, MPI_INT, ss.data(), 1, MPI_INT, 0, comm);
 
       int sa = 0; // size all
       std::vector<int> oo = {0}; // offsets
@@ -68,16 +65,16 @@ void Gatherv() {
       std::vector<char> ra(sa); // result all
 
       SingleTimer st;
-      MPI_Gatherv(r.data(), r.size(), MPI_CHAR,
-                  ra.data(), ss.data(), oo.data(), MPI_CHAR,
-                  0, comm);
+      MPI_Gatherv(
+          r.data(), r.size(), MPI_CHAR, ra.data(), ss.data(), oo.data(),
+          MPI_CHAR, 0, comm);
       auto t = st.GetSeconds();
       tt.push_back(t);
     } else {
       MPI_Gather(&s, 1, MPI_INT, nullptr, 0, MPI_INT, 0, comm);
-      MPI_Gatherv(r.data(), r.size(), MPI_CHAR,
-                  nullptr, nullptr, nullptr, MPI_CHAR,
-                  0, comm);
+      MPI_Gatherv(
+          r.data(), r.size(), MPI_CHAR, nullptr, nullptr, nullptr, MPI_CHAR, 0,
+          comm);
     }
   }
   std::sort(tt.begin(), tt.end());
@@ -99,4 +96,3 @@ int main(int argc, char** argv) {
   Gather();
   MPI_Finalize();
 }
-

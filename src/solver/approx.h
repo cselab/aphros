@@ -1,14 +1,14 @@
 #pragma once
 
+#include <array>
 #include <exception>
 #include <memory>
-#include <array>
 #include <stdexcept>
 #include <string>
 
-#include "solver.h"
 #include "cond.h"
 #include "geom/mesh.h"
+#include "solver.h"
 
 namespace solver {
 
@@ -28,17 +28,17 @@ template <class Scal>
 std::array<Scal, 3> GetCoeff(ConvSc sc) {
   std::array<Scal, 3> a;
   switch (sc) {
-    case ConvSc::fou: 
-      a = {0., 1., 0.}; 
-      break; 
-    case ConvSc::cd: 
-      a = {0., 0.5, 0.5}; 
-      break; 
-    case ConvSc::sou: 
-      a = {-0.5, 1.5, 0.}; 
+    case ConvSc::fou:
+      a = {0., 1., 0.};
       break;
-    case ConvSc::quick: 
-      a = {-1./8., 6./8., 3./8.}; 
+    case ConvSc::cd:
+      a = {0., 0.5, 0.5};
+      break;
+    case ConvSc::sou:
+      a = {-0.5, 1.5, 0.};
+      break;
+    case ConvSc::quick:
+      a = {-1. / 8., 6. / 8., 3. / 8.};
       break;
     default:
       throw std::runtime_error("GetCoeff: invalid ConvSc");
@@ -57,7 +57,7 @@ std::array<Scal, 3> GetCoeff(ConvSc sc) {
 template <class T, class M>
 void InterpolateI(
     const FieldCell<T>& fc, const FieldCell<typename M::Vect>& fcgp,
-    const FieldFace<T>& ffw,  const M& m, ConvSc sc, typename M::Scal th,
+    const FieldFace<T>& ffw, const M& m, ConvSc sc, typename M::Scal th,
     FieldFace<T>& ff) {
   using Scal = typename M::Scal;
 
@@ -69,11 +69,11 @@ void InterpolateI(
     IdxCell cm = m.GetNeighbourCell(f, 0);
     IdxCell cp = m.GetNeighbourCell(f, 1);
     if (ffw[f] > th) {
-      ff[f] = 4. * a[0] * fcgp[cm].dot(m.GetVectToCell(f, 0)) +
-          a[1] * fc[cm] + (a[2] + a[0]) * fc[cp];
+      ff[f] = 4. * a[0] * fcgp[cm].dot(m.GetVectToCell(f, 0)) + a[1] * fc[cm] +
+              (a[2] + a[0]) * fc[cp];
     } else if (ffw[f] < -th) {
-      ff[f] = 4. * a[0] * fcgp[cp].dot(m.GetVectToCell(f, 1)) +
-          a[1] * fc[cp] + (a[2] + a[0]) * fc[cm];
+      ff[f] = 4. * a[0] * fcgp[cp].dot(m.GetVectToCell(f, 1)) + a[1] * fc[cp] +
+              (a[2] + a[0]) * fc[cm];
     } else {
       ff[f] = (fc[cm] + fc[cp]) * 0.5;
     }
@@ -92,9 +92,8 @@ void InterpolateI(
 template <class T, class M>
 void Interpolate(
     const FieldCell<T>& fc, const FieldCell<typename M::Vect>& fcgp,
-    const MapCondFace& mfc, 
-    const FieldFace<T>& ffw,  const M& m, ConvSc sc, typename M::Scal th,
-    FieldFace<T>& ff) {
+    const MapCondFace& mfc, const FieldFace<T>& ffw, const M& m, ConvSc sc,
+    typename M::Scal th, FieldFace<T>& ff) {
   InterpolateI(fc, fcgp, ffw, m, sc, th, ff);
   InterpolateB(fc, mfc, ff, m);
 }
@@ -113,11 +112,10 @@ void Interpolate(
 // Output:
 // ff: face cell [i], resize if needed
 template <class T, class M, class Expr>
-void InterpolateI(const FieldCell<T>& fc,
-                  const FieldCell<typename M::Vect>& fcgp,
-                  const FieldFace<T>& ffw, FieldFace<Expr>& ff, 
-                  const M& m, ConvSc sc, typename M::Scal df,
-                  typename M::Scal th) {
+void InterpolateI(
+    const FieldCell<T>& fc, const FieldCell<typename M::Vect>& fcgp,
+    const FieldFace<T>& ffw, FieldFace<Expr>& ff, const M& m, ConvSc sc,
+    typename M::Scal df, typename M::Scal th) {
   using Scal = typename M::Scal;
 
   // f = fmm*a[0] + fm*a[1] + fp*a[2]
@@ -133,12 +131,14 @@ void InterpolateI(const FieldCell<T>& fc,
     if (ffw[f] > th) {
       e.InsertTerm(a[1] * dfm + df, cm);
       e.InsertTerm((a[2] + a[0]) * dfm, cp);
-      e.SetConstant(4. * a[0] * fcgp[cm].dot(m.GetVectToCell(f, 0)) +
+      e.SetConstant(
+          4. * a[0] * fcgp[cm].dot(m.GetVectToCell(f, 0)) +
           (a[1] - 1.) * df * fc[cm] + (a[2] + a[0]) * df * fc[cp]);
     } else if (ffw[f] < -th) {
       e.InsertTerm((a[2] + a[0]) * dfm, cm);
       e.InsertTerm(a[1] * dfm + df, cp);
-      e.SetConstant(4. * a[0] * fcgp[cp].dot(m.GetVectToCell(f, 1)) +
+      e.SetConstant(
+          4. * a[0] * fcgp[cp].dot(m.GetVectToCell(f, 1)) +
           (a[1] - 1.) * df * fc[cp] + (a[2] + a[0]) * df * fc[cm]);
     } else {
       e.InsertTerm(0.5, cm);
@@ -152,8 +152,7 @@ class FaceValB : public Approx<IdxFace, Expr> {
  public:
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  FaceValB(const M& m, const MapCondFace& mfc)
-      : m(m), mfc_(mfc) {}
+  FaceValB(const M& m, const MapCondFace& mfc) : m(m), mfc_(mfc) {}
   Expr GetExpr(IdxFace f) const override {
     Expr e;
     if (auto cb = mfc_.find(f)) {
@@ -227,9 +226,9 @@ void GradientI(const FieldCell<T>& fc, const M& m, FieldFace<T>& ff) {
 // Output:
 // ff: normal gradient [i]
 template <class M, class T>
-void GradientB(const FieldCell<T>& fc,
-    const MapCondFace& mfc,
-    const M& m, FieldFace<T>& ff) {
+void GradientB(
+    const FieldCell<T>& fc, const MapCondFace& mfc, const M& m,
+    FieldFace<T>& ff) {
   using Scal = typename M::Scal;
 
   for (const auto& it : mfc) {
@@ -255,8 +254,9 @@ void GradientB(const FieldCell<T>& fc,
 // Output:
 // ff: normal gradient [i]
 template <class M, class T>
-void Gradient(const FieldCell<T>& fc, const MapCondFace& mfc,
-              const M& m, FieldFace<T>& ff) {
+void Gradient(
+    const FieldCell<T>& fc, const MapCondFace& mfc, const M& m,
+    FieldFace<T>& ff) {
   GradientI(fc, m, ff);
   GradientB(fc, mfc, m, ff);
 }
@@ -282,14 +282,12 @@ void GradientI(FieldFace<Expr>& ff, const M& m) {
   }
 }
 
-
 template <class M, class Expr>
 class FaceGradB : public Approx<IdxFace, Expr> {
  public:
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  explicit FaceGradB(const M& m, const MapCondFace& mfc)
-      : m(m), mfc_(mfc) {}
+  explicit FaceGradB(const M& m, const MapCondFace& mfc) : m(m), mfc_(mfc) {}
   Expr GetExpr(IdxFace f) const override {
     Expr e;
     if (auto cb = mfc_.find(f)) {
@@ -395,7 +393,6 @@ class UReflectCell {
   }
 };
 
-
 // Linear extrapolation.
 // xt: target
 // x0,x1: points
@@ -411,8 +408,9 @@ T UExtrap(Scal xt, Scal x0, const T& v0, Scal x1, const T& v1) {
 // Output:
 // ff: values updated on faces defined in mfc
 template <class T, class M>
-void InterpolateB(const FieldCell<T>& fc, const MapCondFace& mfc, 
-                  FieldFace<T>& ff, const M& m) {
+void InterpolateB(
+    const FieldCell<T>& fc, const MapCondFace& mfc, FieldFace<T>& ff,
+    const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
@@ -434,15 +432,15 @@ void InterpolateB(const FieldCell<T>& fc, const MapCondFace& mfc,
       size_t qo = m.GetOpposite(q);
       IdxFace fo = m.GetNeighbourFace(c, qo);
       Vect n = m.GetNormal(f);
-      // cell 
+      // cell
       const T& v0 = fc[c];
       Scal x0 = 0.;
       // opposite face
       const T& v1 = ff[fo];
       Scal x1 = n.dot(m.GetCenter(fo) - m.GetCenter(c));
-      // target 
+      // target
       Scal xt = n.dot(m.GetCenter(f) - m.GetCenter(c));
-      
+
       ff[f] = UExtrap(xt, x0, v0, x1, v1);
     } else if (dynamic_cast<const CondFaceReflect*>(cb)) {
       // TODO test
@@ -464,8 +462,8 @@ void InterpolateB(const FieldCell<T>& fc, const MapCondFace& mfc,
 // Output:
 // field face [s]
 template <class T, class M>
-FieldFace<T> Interpolate(const FieldCell<T>& fc, const MapCondFace& mfc,
-                         const M& m) {
+FieldFace<T> Interpolate(
+    const FieldCell<T>& fc, const MapCondFace& mfc, const M& m) {
   FieldFace<T> ff(m); // Valid 0 needed for CondFaceExtrap
 
   InterpolateS(fc, ff, m);
@@ -476,10 +474,10 @@ FieldFace<T> Interpolate(const FieldCell<T>& fc, const MapCondFace& mfc,
 
 template <class Scal>
 Scal Superbee(Scal p, Scal q) {
-  if(p > 0. && q > 0.) {
-    return std::max(std::min(2*p, q), std::min(p, 2*q));
-  } else if(p < 0. && q < 0.) {
-    return -std::max(std::min(-2*p, -q), std::min(-p, -2*q));
+  if (p > 0. && q > 0.) {
+    return std::max(std::min(2 * p, q), std::min(p, 2 * q));
+  } else if (p < 0. && q < 0.) {
+    return -std::max(std::min(-2 * p, -q), std::min(-p, -2 * q));
   }
   return 0.;
 }
@@ -494,10 +492,9 @@ Scal Superbee(Scal p, Scal q) {
 template <class M>
 FieldFace<typename M::Scal> InterpolateSuperbee(
     const FieldCell<typename M::Scal>& fc,
-    const FieldCell<typename M::Vect>& fcg,
-    const MapCondFace& mfc,
-    const FieldFace<typename M::Scal>& ffw,
-    const M& m, typename M::Scal th = 1e-8) {
+    const FieldCell<typename M::Vect>& fcg, const MapCondFace& mfc,
+    const FieldFace<typename M::Scal>& ffw, const M& m,
+    typename M::Scal th = 1e-8) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
@@ -506,8 +503,8 @@ FieldFace<typename M::Scal> InterpolateSuperbee(
   for (IdxFace f : m.SuFaces()) {
     IdxCell cm = m.GetNeighbourCell(f, 0);
     IdxCell cp = m.GetNeighbourCell(f, 1);
-    Vect rm = m.GetVectToCell(f, 0); 
-    Vect rp = m.GetVectToCell(f, 1); 
+    Vect rm = m.GetVectToCell(f, 0);
+    Vect rp = m.GetVectToCell(f, 1);
     const auto& u = fc;
     const auto& g = fcg;
     Scal du = u[cp] - u[cm];
@@ -560,7 +557,8 @@ void Smoothen(FieldCell<T>& fc, const MapCondFace& mfc, M& m, size_t rep) {
     // FIXME empty stage, without it cubismnc fails
     // on sim25 with m="128 16 16" np=2 OMP_NUM_THREADS=1 on two nodes
     // which is a minimal case with inner/halo blocks and MPI communication
-    if (sem()) {}
+    if (sem()) {
+    }
   }
 }
 
@@ -584,8 +582,8 @@ FieldCell<typename M::Vect> Gradient(
   return fc;
 }
 
-// Convention: Use Get/Set for fast procedures and Calc for those requiring computation:
-// GetValue(field, idx) vs GetNorm(field)
+// Convention: Use Get/Set for fast procedures and Calc for those requiring
+// computation: GetValue(field, idx) vs GetNorm(field)
 
 template <class Field, class M, class Scal = typename M::Scal>
 Scal CalcDiff(const Field& fa, const Field& fb, const M& m) {
@@ -598,9 +596,9 @@ Scal CalcDiff(const Field& fa, const Field& fb, const M& m) {
 }
 
 template <class Idx, class M, class Scal = typename M::Scal>
-Scal CalcDiff(const GField<typename M::Vect, Idx>& fa,
-                const GField<typename M::Vect, Idx>& fb,
-                const M& m) {
+Scal CalcDiff(
+    const GField<typename M::Vect, Idx>& fa,
+    const GField<typename M::Vect, Idx>& fb, const M& m) {
   Scal r = 0.;
   for (Idx i : m.template GetIn<Idx>()) {
     r = std::max<Scal>(r, (fa[i] - fb[i]).norminf());
@@ -639,11 +637,9 @@ std::vector<Scal> GetGradCoeffs(Scal x, const std::vector<Scal>& z) {
   return k;
 }
 
-
 // Returns GetGradCoeffs(x,z[b:]) preceeded by b zeros.
 template <class Scal>
-std::vector<Scal> GetGradCoeffs(
-    Scal x, const std::vector<Scal>& z, size_t b) {
+std::vector<Scal> GetGradCoeffs(Scal x, const std::vector<Scal>& z, size_t b) {
   size_t s = z.size();
   size_t ss = s - b;
   std::vector<Scal> zz(ss);
@@ -700,4 +696,3 @@ void BcReflectAll(FieldCell<T>& uc, const MapCondFace& mfc, const M& m) {
 }
 
 } // namespace solver
-

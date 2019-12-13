@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <map>
+#include <string>
 
 #include "parse/vars.h"
 
@@ -26,4 +26,3 @@ class Events {
   const bool isroot_, islead_;
   std::map<std::string, Event> ev_;
 };
-

@@ -139,7 +139,7 @@ class GIndex {
   Idx GetIdx(MIdx w) const {
     w -= b_;
     size_t r = 0;
-    for (size_t d = dim; d != 0; ) {
+    for (size_t d = dim; d != 0;) {
       --d;
       r *= s_[d];
       r += w[d];

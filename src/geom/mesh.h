@@ -1,13 +1,13 @@
 // vim: expandtab:smarttab:sw=2:ts=2
 #pragma once
 
-#include <vector>
 #include <array>
 #include <cassert>
-#include <utility>
 #include <limits>
 #include <memory>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
 #include "blockface.h"
 #include "distr/reduce.h"
@@ -23,8 +23,9 @@
 // Returns column of cells cmm,cm,cp,cpp.
 // nci: 0 or 1 such that m.GetCell(f, nci) == cp
 template <class M>
-void GetCellColumn(const M& m, IdxFace f, size_t nci,
-                   IdxCell& cmm, IdxCell& cm, IdxCell& cp, IdxCell& cpp) {
+void GetCellColumn(
+    const M& m, IdxFace f, size_t nci, IdxCell& cmm, IdxCell& cm, IdxCell& cp,
+    IdxCell& cpp) {
   const size_t d{m.GetIndexFaces().GetDir(f)};
   cp = m.GetCell(f, nci);
   cm = m.GetCell(f, 1 - nci);
@@ -45,9 +46,9 @@ class MeshStructured {
   using BlockCells = GBlockCells<dim>;
   using BlockFaces = GBlockFaces<dim>;
   using BlockNodes = GBlockNodes<dim>;
-  using IndexCells = GIndex<IdxCell,dim>;
-  using IndexFaces = GIndex<IdxFace,dim>;
-  using IndexNodes = GIndex<IdxNode,dim>;
+  using IndexCells = GIndex<IdxCell, dim>;
+  using IndexFaces = GIndex<IdxFace, dim>;
+  using IndexNodes = GIndex<IdxNode, dim>;
   static constexpr size_t kCellNumNeighbourFaces = 6;
   static constexpr size_t kCellNumNeighbourNodes = 8;
   static constexpr size_t kFaceNumNeighbourNodes = 4;
@@ -60,8 +61,9 @@ class MeshStructured {
   // isroot: root block
   // gs: global mesh size
   // id: unique id
-  MeshStructured(MIdx b, MIdx cs, Rect<Vect> dom, int hl, 
-                 bool isroot, bool islead, MIdx gs, int id);
+  MeshStructured(
+      MIdx b, MIdx cs, Rect<Vect> dom, int hl, bool isroot, bool islead,
+      MIdx gs, int id);
   MeshStructured(const MeshStructured&) = delete;
   MeshStructured(MeshStructured&&) = default;
   MIdx GetGlobalSize() const {
@@ -78,8 +80,8 @@ class MeshStructured {
   }
   IntIdx GetHash(MIdx w) {
     // XXX: adhoc, hash for cell index, assume mesh size <= mn
-    const size_t mn = 1000; 
-    return (w[2] * mn + w[1]) * mn + w[0]; 
+    const size_t mn = 1000;
+    return (w[2] * mn + w[1]) * mn + w[0];
   }
   IntIdx GetHash(IdxCell c) {
     return GetHash(GetIndexCells().GetMIdx(c));
@@ -224,7 +226,7 @@ class MeshStructured {
 
     if (q % 2 == 0) {
       return ++q;
-    } 
+    }
     return --q;
   }
   size_t GetNumNeighbourNodes(IdxCell) const {
@@ -244,16 +246,16 @@ class MeshStructured {
 
   // Returns range of raw indices
   template <class Idx>
-  GRange<Idx> GetRaw() const { 
+  GRange<Idx> GetRaw() const {
     return GetRaw((Idx*)0);
   }
-  GRange<IdxCell> GetRaw(IdxCell*) const { 
+  GRange<IdxCell> GetRaw(IdxCell*) const {
     return GRange<IdxCell>(0, bcr_.size());
   }
-  GRange<IdxFace> GetRaw(IdxFace*) const { 
+  GRange<IdxFace> GetRaw(IdxFace*) const {
     return GRange<IdxFace>(0, bfr_.size());
   }
-  GRange<IdxNode> GetRaw(IdxNode*) const { 
+  GRange<IdxNode> GetRaw(IdxNode*) const {
     return GRange<IdxNode>(0, bnr_.size());
   }
   GRange<IdxCell> RawCells() const {
@@ -268,12 +270,12 @@ class MeshStructured {
   // Type-cast to GRange required for GField initialization
   template <class Idx>
   operator GRange<Idx>() const {
-    return GetRaw<Idx>(); 
+    return GetRaw<Idx>();
   }
 
   // Returns range of inner indices
   template <class Idx>
-  GRangeIn<Idx, dim> GetIn() const { 
+  GRangeIn<Idx, dim> GetIn() const {
     return GetIn((Idx*)0);
   }
   GRangeIn<IdxCell, dim> GetIn(IdxCell*) const {
@@ -297,7 +299,7 @@ class MeshStructured {
 
   // Returns range of support indices
   template <class Idx>
-  GRangeIn<Idx, dim> GetSu() const { 
+  GRangeIn<Idx, dim> GetSu() const {
     return GetSu((Idx*)0);
   }
   GRangeIn<IdxCell, dim> GetSu(IdxCell*) const {
@@ -321,7 +323,7 @@ class MeshStructured {
 
   // Returns range of all indices
   template <class Idx>
-  GRangeIn<Idx, dim> GetAll() const { 
+  GRangeIn<Idx, dim> GetAll() const {
     return GetAll((Idx*)0);
   }
   GRangeIn<IdxCell, dim> GetAll(IdxCell*) const {
@@ -367,12 +369,20 @@ class MeshStructured {
   Vect GetNormal(IdxFace f) const {
     return GetSurface(f) / GetArea(f);
   }
-  bool IsRoot() const { return isroot_; }
-  bool IsLead() const { return islead_; }
+  bool IsRoot() const {
+    return isroot_;
+  }
+  bool IsLead() const {
+    return islead_;
+  }
 
   // CheckNan flag
-  bool CN() const { return checknan_; }
-  void SetCN(bool c) { checknan_ = c; }
+  bool CN() const {
+    return checknan_;
+  }
+  void SetCN(bool c) {
+    checknan_ = c;
+  }
   // Pairs face,nci for which the halos cells
   // are set to nan after each communication
   const std::vector<std::pair<IdxFace, size_t>>& GetNanFaces() const {
@@ -416,8 +426,12 @@ class MeshStructured {
   }
 
   // Effective dimension
-  size_t GetEdim() const { return edim_; }
-  void SetEdim(size_t edim) { edim_ = edim; }
+  size_t GetEdim() const {
+    return edim_;
+  }
+  void SetEdim(size_t edim) {
+    edim_ = edim;
+  }
 
   // TODO: move to separate class: Sem, LS, Comm, Reduce, Solve
   // BEGIN DISTR
@@ -432,7 +446,7 @@ class MeshStructured {
     T t = T::gen;
     std::string prefix = ""; // custom prefix for config (tol, solver, maxiter)
   };
-  Sem GetSem(std::string name="") {
+  Sem GetSem(std::string name = "") {
     return susp_.GetSem(name);
   }
   bool Pending() const {
@@ -440,7 +454,7 @@ class MeshStructured {
   }
   const Suspender& GetSusp() const {
     return susp_;
-  } 
+  }
   std::string GetCurName() const {
     return susp_.GetCurName();
   }
@@ -459,15 +473,23 @@ class MeshStructured {
     virtual int GetStride() const = 0;
     // Pointer to the start of data.  Retain type-safety of data type, requires
     // that Vect::value_type is Scal and must not be changed
-    virtual Scal *GetBasePtr() = 0;
+    virtual Scal* GetBasePtr() = 0;
   };
   // FieldCell<Scal>
   struct CoFcs : public Co {
     CoFcs(FieldCell<Scal>* f) : f(f) {}
-    size_t GetSize() const override { return 1; }
-    int GetIndex() const override { return 0; }
-    int GetStride() const override { return 1; }
-    Scal *GetBasePtr() override { return &(*f)[IdxCell(0)]; }
+    size_t GetSize() const override {
+      return 1;
+    }
+    int GetIndex() const override {
+      return 0;
+    }
+    int GetStride() const override {
+      return 1;
+    }
+    Scal* GetBasePtr() override {
+      return &(*f)[IdxCell(0)];
+    }
     FieldCell<Scal>* f;
   };
   // FieldCell<Vect>
@@ -475,10 +497,18 @@ class MeshStructured {
     // f: vector field
     // i: component (0,1,2), or -1 for all
     CoFcv(FieldCell<Vect>* f, int d) : f(f), d(d) {}
-    size_t GetSize() const override { return d == -1 ? Vect::dim : 1; }
-    int GetIndex() const override { return d; }
-    int GetStride() const override { return Vect::dim; }
-    Scal *GetBasePtr() override { return &(*f)[IdxCell(0)][0]; }
+    size_t GetSize() const override {
+      return d == -1 ? Vect::dim : 1;
+    }
+    int GetIndex() const override {
+      return d;
+    }
+    int GetStride() const override {
+      return Vect::dim;
+    }
+    Scal* GetBasePtr() override {
+      return &(*f)[IdxCell(0)][0];
+    }
     FieldCell<Vect>* f;
     int d;
   };
@@ -514,8 +544,8 @@ class MeshStructured {
     vd_.push_back(std::make_pair(o, name));
   }
   // Returns buffers for linear system
-  void GetSolveTmp(std::vector<Scal>*& a, std::vector<Scal>*& b, 
-                   std::vector<Scal>*& x) {
+  void GetSolveTmp(
+      std::vector<Scal>*& a, std::vector<Scal>*& b, std::vector<Scal>*& x) {
     a = &lsa_;
     b = &lsb_;
     x = &lsx_;
@@ -526,8 +556,8 @@ class MeshStructured {
   const std::vector<std::shared_ptr<Co>>& GetComm() const {
     return vcm_;
   }
-  const std::vector<std::pair<
-      std::shared_ptr<Co>, std::string>>& GetDump() const {
+  const std::vector<std::pair<std::shared_ptr<Co>, std::string>>& GetDump()
+      const {
     return vd_;
   }
   void ClearComm() {
@@ -561,7 +591,7 @@ class MeshStructured {
     rd_.Add(o);
   }
   // u: src and dst buffer
-  // o: operation 
+  // o: operation
   void Reduce(Scal* u, std::string o) {
     rd_.Add(u, o);
   }
@@ -628,7 +658,7 @@ class MeshStructured {
 
  private:
   // b:Block, fc:FieldCell, ff:FieldFace, fn:FieldNode
-  // inner 
+  // inner
   const BlockCells bci_;
   const BlockFaces bfi_;
   const BlockNodes bni_;
@@ -652,9 +682,9 @@ class MeshStructured {
   const Vect h_;
   const Vect hh_; // h_/2
   const Scal vol_;
-  const MIdx gs_;  // global mesh size
-  const int id_;   // unique id
-  const Vect gl_;  // global domain length
+  const MIdx gs_; // global mesh size
+  const int id_; // unique id
+  const Vect gl_; // global domain length
   bool checknan_; // CheckNan flag
   // pairs face,nci for which the halos cells
   // are set to nan after each communication
@@ -663,27 +693,27 @@ class MeshStructured {
   size_t edim_; // effective dimension
   std::array<Vect, dim> vs_; // surface vectors
   Vect va_; // surface area
-  // cell neighbour cell 
-  std::array<size_t, kCellNumNeighbourFaces> cnc_; 
-  // cell neighbour face 
-  std::array<size_t, kCellNumNeighbourFaces> cnf_; 
+  // cell neighbour cell
+  std::array<size_t, kCellNumNeighbourFaces> cnc_;
+  // cell neighbour face
+  std::array<size_t, kCellNumNeighbourFaces> cnf_;
   // cell outward factor
-  std::array<Scal, kCellNumNeighbourFaces> co_; 
+  std::array<Scal, kCellNumNeighbourFaces> co_;
   // cell neighbour node
-  std::array<size_t, kCellNumNeighbourNodes> cnn_; 
+  std::array<size_t, kCellNumNeighbourNodes> cnn_;
   // face neighbour cell
-  std::array<size_t, kFaceNumNeighbourCells * dim> fnc_; 
+  std::array<size_t, kFaceNumNeighbourCells * dim> fnc_;
   // face neighbour node
-  std::array<size_t, kFaceNumNeighbourNodes * dim> fnn_; 
+  std::array<size_t, kFaceNumNeighbourNodes * dim> fnn_;
 
   Suspender susp_;
   std::vector<std::shared_ptr<Co>> vcm_; // comm
-  std::vector<std::pair<std::shared_ptr<Co>, std::string>> vd_;  // dump
+  std::vector<std::pair<std::shared_ptr<Co>, std::string>> vd_; // dump
   std::string trep_; // timer report filename
   Rd rd_;
   std::vector<LS> vls_; // solve
   std::vector<std::shared_ptr<Op>> bcast_; // list of broadcast requests
-  std::vector<ScatterRequest> scatter_;  // list of scatter requests
+  std::vector<ScatterRequest> scatter_; // list of scatter requests
   // tmp for GetSolveTmp()
   std::vector<Scal> lsa_; // matrix coeffs of size n * st.size()
   std::vector<Scal> lsb_; // rhs of size n
@@ -694,24 +724,23 @@ class MeshStructured {
   Sampler samp_; // sample collector for histogram usage, always active
 };
 
-
 template <class _Scal, size_t _dim>
 MeshStructured<_Scal, _dim>::MeshStructured(
-    MIdx b, MIdx cs, Rect<Vect> dom, int hl, bool isroot, bool islead,
-    MIdx gs, int id)
-      // inner
+    MIdx b, MIdx cs, Rect<Vect> dom, int hl, bool isroot, bool islead, MIdx gs,
+    int id)
+    // inner
     : bci_(b, cs)
     , bfi_(bci_.GetBegin(), bci_.GetSize())
     , bni_(bci_.GetBegin(), bci_.GetSize() + MIdx(1))
-      // all
+    // all
     , bca_(b - MIdx(hl), cs + MIdx(2 * hl))
     , bfa_(bca_.GetBegin(), bca_.GetSize())
     , bna_(bca_.GetBegin(), bca_.GetSize() + MIdx(1))
-      // support
+    // support
     , bcs_(bca_.GetBegin() + MIdx(1), bca_.GetSize() - MIdx(2))
     , bfs_(bcs_.GetBegin(), bcs_.GetSize())
     , bns_(bcs_.GetBegin(), bcs_.GetSize() + MIdx(1))
-      // raw
+    // raw
     , bcr_(bca_.GetBegin(), bca_.GetSize() + MIdx(1))
     , bfr_(bcr_.GetBegin(), bcr_.GetSize())
     , bnr_(bcr_.GetBegin(), bcr_.GetSize())
@@ -727,8 +756,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     , id_(id)
     , gl_(Vect(gs) * h_)
     , checknan_(false)
-    , edim_(dim)
-{
+    , edim_(dim) {
   static_assert(dim == 3, "Not implemented for dim != 3");
 
   // mesh step
@@ -750,13 +778,25 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     for (auto q : Nci(c)) {
       MIdx wo;
       switch (q) {
-        case 0: wo = MIdx(-1, 0, 0); break;
-        case 1: wo = MIdx(1, 0, 0); break;
-        case 2: wo = MIdx(0, -1, 0); break;
-        case 3: wo = MIdx(0, 1, 0); break;
-        case 4: wo = MIdx(0, 0, -1); break;
-        default: 
-        case 5: wo = MIdx(0, 0, 1); break;
+        case 0:
+          wo = MIdx(-1, 0, 0);
+          break;
+        case 1:
+          wo = MIdx(1, 0, 0);
+          break;
+        case 2:
+          wo = MIdx(0, -1, 0);
+          break;
+        case 3:
+          wo = MIdx(0, 1, 0);
+          break;
+        case 4:
+          wo = MIdx(0, 0, -1);
+          break;
+        default:
+        case 5:
+          wo = MIdx(0, 0, 1);
+          break;
       };
       IdxCell cn = bcr_.GetIdx(w + wo);
       cnc_[q] = cn.GetRaw() - c.GetRaw();
@@ -771,13 +811,31 @@ MeshStructured<_Scal, _dim>::MeshStructured(
       MIdx wo;
       Dir d;
       switch (q) {
-        case 0: wo = MIdx(0, 0, 0); d = Dir::i; break;
-        case 1: wo = MIdx(1, 0, 0); d = Dir::i; break;
-        case 2: wo = MIdx(0, 0, 0); d = Dir::j; break;
-        case 3: wo = MIdx(0, 1, 0); d = Dir::j; break;
-        case 4: wo = MIdx(0, 0, 0); d = Dir::k; break;
-        default: 
-        case 5: wo = MIdx(0, 0, 1); d = Dir::k; break;
+        case 0:
+          wo = MIdx(0, 0, 0);
+          d = Dir::i;
+          break;
+        case 1:
+          wo = MIdx(1, 0, 0);
+          d = Dir::i;
+          break;
+        case 2:
+          wo = MIdx(0, 0, 0);
+          d = Dir::j;
+          break;
+        case 3:
+          wo = MIdx(0, 1, 0);
+          d = Dir::j;
+          break;
+        case 4:
+          wo = MIdx(0, 0, 0);
+          d = Dir::k;
+          break;
+        default:
+        case 5:
+          wo = MIdx(0, 0, 1);
+          d = Dir::k;
+          break;
       };
       IdxFace fn = bfr_.GetIdx(std::make_pair(w + wo, d));
       cnf_[q] = fn.GetRaw() - c.GetRaw();
@@ -799,15 +857,31 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     for (size_t q = 0; q < qm; ++q) {
       MIdx wo;
       switch (q) {
-        case 0: wo = MIdx(0, 0, 0); break;
-        case 1: wo = MIdx(1, 0, 0); break;
-        case 2: wo = MIdx(0, 1, 0); break;
-        case 3: wo = MIdx(1, 1, 0); break;
-        case 4: wo = MIdx(0, 0, 1); break;
-        case 5: wo = MIdx(1, 0, 1); break;
-        case 6: wo = MIdx(0, 1, 1); break;
-        default: 
-        case 7: wo = MIdx(1, 1, 1); break;
+        case 0:
+          wo = MIdx(0, 0, 0);
+          break;
+        case 1:
+          wo = MIdx(1, 0, 0);
+          break;
+        case 2:
+          wo = MIdx(0, 1, 0);
+          break;
+        case 3:
+          wo = MIdx(1, 1, 0);
+          break;
+        case 4:
+          wo = MIdx(0, 0, 1);
+          break;
+        case 5:
+          wo = MIdx(1, 0, 1);
+          break;
+        case 6:
+          wo = MIdx(0, 1, 1);
+          break;
+        default:
+        case 7:
+          wo = MIdx(1, 1, 1);
+          break;
       };
       IdxNode nn = bnr_.GetIdx(w + wo);
       cnn_[q] = nn.GetRaw() - c.GetRaw();
@@ -823,9 +897,13 @@ MeshStructured<_Scal, _dim>::MeshStructured(
       for (size_t q = 0; q < qm; ++q) {
         MIdx wo(0);
         switch (q) {
-          case 0: wo[d] = -1;  break;
-          default: 
-          case 1: wo[d] = 0;  break;
+          case 0:
+            wo[d] = -1;
+            break;
+          default:
+          case 1:
+            wo[d] = 0;
+            break;
         };
         IdxCell cn = bcr_.GetIdx(w + wo);
         fnc_[d * qm + q] = cn.GetRaw() - f.GetRaw();
@@ -843,27 +921,51 @@ MeshStructured<_Scal, _dim>::MeshStructured(
         MIdx wo;
         if (d == 0) {
           switch (q) {
-            case 0: wo = MIdx(0,0,0); break;
-            case 1: wo = MIdx(0,1,0); break;
-            case 2: wo = MIdx(0,1,1); break;
+            case 0:
+              wo = MIdx(0, 0, 0);
+              break;
+            case 1:
+              wo = MIdx(0, 1, 0);
+              break;
+            case 2:
+              wo = MIdx(0, 1, 1);
+              break;
             default:
-            case 3: wo = MIdx(0,0,1); break;
+            case 3:
+              wo = MIdx(0, 0, 1);
+              break;
           }
         } else if (d == 1) {
           switch (q) {
-            case 0: wo = MIdx(0,0,0); break;
-            case 1: wo = MIdx(0,0,1); break;
-            case 2: wo = MIdx(1,0,1); break;
+            case 0:
+              wo = MIdx(0, 0, 0);
+              break;
+            case 1:
+              wo = MIdx(0, 0, 1);
+              break;
+            case 2:
+              wo = MIdx(1, 0, 1);
+              break;
             default:
-            case 3: wo = MIdx(1,0,0); break;
+            case 3:
+              wo = MIdx(1, 0, 0);
+              break;
           }
         } else {
           switch (q) {
-            case 0: wo = MIdx(0,0,0); break;
-            case 1: wo = MIdx(1,0,0); break;
-            case 2: wo = MIdx(1,1,0); break;
+            case 0:
+              wo = MIdx(0, 0, 0);
+              break;
+            case 1:
+              wo = MIdx(1, 0, 0);
+              break;
+            case 2:
+              wo = MIdx(1, 1, 0);
+              break;
             default:
-            case 3: wo = MIdx(0,1,0); break;
+            case 3:
+              wo = MIdx(0, 1, 0);
+              break;
           }
         }
         IdxNode nn = bnr_.GetIdx(w + wo);
@@ -872,7 +974,6 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     }
   }
 }
-
 
 // Create uniform mesh
 // domain: rectangle covering inner cells
@@ -884,19 +985,16 @@ MeshStructured<_Scal, _dim>::MeshStructured(
 // gs: global mesh size
 // id: unique id
 template <class M>
-M InitUniformMesh(Rect<typename M::Vect> domain,
-                     typename M::MIdx begin,
-                     typename M::MIdx s, int hl, bool isroot, bool islead,
-                     typename M::MIdx gs, int id) {
+M InitUniformMesh(
+    Rect<typename M::Vect> domain, typename M::MIdx begin, typename M::MIdx s,
+    int hl, bool isroot, bool islead, typename M::MIdx gs, int id) {
   return M(begin, s, domain, hl, isroot, islead, gs, id);
 }
 
 template <class M>
-M InitUniformMesh(const Rect<typename M::Vect>& domain,
-                  typename M::MIdx s, typename M::MIdx gs, int id) {
+M InitUniformMesh(
+    const Rect<typename M::Vect>& domain, typename M::MIdx s,
+    typename M::MIdx gs, int id) {
   using MIdx = typename M::MIdx;
   return InitUniformMesh<M>(domain, MIdx(0), s, true, true, gs, id);
 }
-
-
-

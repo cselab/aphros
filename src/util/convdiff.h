@@ -2,13 +2,12 @@
 
 #include <memory>
 
-#include "solver/cond.h"
 #include "geom/map.h"
+#include "solver/cond.h"
 #include "solver/convdiff.h"
 #include "solver/convdiffv.h"
 
 using namespace solver;
-
 
 // Converts vector conditions to scalar.
 // mfv: vector velocity conditions
@@ -33,7 +32,7 @@ MapCondFace GetScalarCond(const MapCondFace& mfv, size_t d, const M& m) {
       if (d == m.GetNormal(f).abs().argmax()) {
         // normal, zero value
         mfs[f] = UniquePtr<CondFaceValFixed<Scal>>(0., nci);
-      } else { 
+      } else {
         // tangential, zero gradient
         mfs[f] = UniquePtr<CondFaceGradFixed<Scal>>(0., nci);
       }
@@ -44,7 +43,7 @@ MapCondFace GetScalarCond(const MapCondFace& mfv, size_t d, const M& m) {
   return mfs;
 }
 
-enum class Conv {exp, imp};
+enum class Conv { exp, imp };
 
 template <class M>
 struct GetConvDiff {
@@ -53,11 +52,10 @@ struct GetConvDiff {
   using Par = typename ConvDiffScal<M>::Par;
 
   std::unique_ptr<ConvDiffVect<M>> operator()(
-      Conv conv, M& m, const FieldCell<Vect>& fcvel,
-      const MapCondFace& mfc, const MapCell<std::shared_ptr<CondCell>>& mcc,
-      const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
-      const FieldCell<Vect>* fcs, const FieldFace<Scal>* ffv,
-      double t, double dt, const Par& par);
+      Conv conv, M& m, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
+      const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
+      const FieldFace<Scal>* ffd, const FieldCell<Vect>* fcs,
+      const FieldFace<Scal>* ffv, double t, double dt, const Par& par);
 };
 
 template <class ConvDiffPar, class FluidPar>

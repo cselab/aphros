@@ -1,13 +1,11 @@
 #include <cassert>
-#include <stdexcept>
-#include <sstream>
 #include <iomanip>
+#include <sstream>
+#include <stdexcept>
 
 #include "suspender.h"
 
-Suspender::Sem::Sem(Suspender& p, std::string name) 
-  : p(p), name_(name)
-{
+Suspender::Sem::Sem(Suspender& p, std::string name) : p(p), name_(name) {
   auto& l = p.lu_;
   auto& i = p.lui_;
 
@@ -32,7 +30,6 @@ Suspender::Sem::Sem(Suspender& p, std::string name)
   ++i;
 
   i->c = 0;
-
 }
 
 Suspender::Sem::~Sem() {
@@ -49,11 +46,11 @@ Suspender::Sem::~Sem() {
     // all lower levels done, next stage
     ++i->t;
     // i->c keeps total number of stages
-    if (i->c == i->t || i->c == 0) { 
+    if (i->c == i->t || i->c == 0) {
       // all stages done or no stages, remove current level
       l.pop_back();
     }
-  } 
+  }
   i = ip;
 }
 
@@ -82,7 +79,6 @@ bool Suspender::Sem::Nested(std::string suff) {
   return Next(suff);
 }
 
-
 // The index of each stage is given by c.
 // LoopBegin and LoopEnd are also stages.
 // lb -- index of LoopBegin
@@ -94,17 +90,17 @@ void Suspender::Sem::LoopBegin() {
     if (u.lb < u.c) {
       u.lb = u.c;
     }
-    ++u.t; 
+    ++u.t;
   }
   ++u.c;
 }
 
 void Suspender::Sem::LoopBreak() {
   U& u = *p.lui_;
-  u.t = u.le;   // set target beyond loop end
+  u.t = u.le; // set target beyond loop end
 }
 
-// Important to initialize le even before t reaches LoopEnd 
+// Important to initialize le even before t reaches LoopEnd
 // to be able to break on first iteration
 void Suspender::Sem::LoopEnd() {
   U& u = *p.lui_;
@@ -118,9 +114,7 @@ void Suspender::Sem::LoopEnd() {
   ++u.c;
 }
 
-Suspender::Suspender()
-  : nest_(false)
-{
+Suspender::Suspender() : nest_(false) {
   lu_.emplace_back(-1, -1);
   lui_ = lu_.begin();
 }
@@ -144,4 +138,3 @@ std::string Suspender::Print() const {
 bool Suspender::Pending() const {
   return lu_.size() != 1;
 }
-

@@ -1,19 +1,19 @@
 #undef NDEBUG
-#include <sstream>
-#include <iostream>
 #include <cassert>
-#include <functional>
 #include <cmath>
+#include <functional>
+#include <iostream>
+#include <sstream>
 
-#include "geom/mesh.h"
-#include "solver/solver.h"
+#include "debug/isnan.h"
+#include "distr/distrsolver.h"
+#include "dump/vtk.h"
 #include "func/init_u.h"
+#include "geom/mesh.h"
+#include "kernel/kernelmeshpar.h"
 #include "parse/vars.h"
 #include "solver/partstrmeshm.h"
-#include "kernel/kernelmeshpar.h"
-#include "distr/distrsolver.h"
-#include "debug/isnan.h"
-#include "dump/vtk.h"
+#include "solver/solver.h"
 
 using namespace solver;
 
@@ -27,11 +27,10 @@ using Mesh = MeshStructured<Scal, dim>;
 Mesh GetMesh(MIdx s) {
   Rect<Vect> dom(Vect(0), Vect(1));
   MIdx b(0, 0, 0); // lower index
-  int hl = 2;         // halos 
+  int hl = 2;         // halos
   return InitUniformMesh<Mesh>(dom, b, s, hl, true, true, s, 0);
 }
 */
-
 
 struct GPar {};
 
@@ -51,9 +50,9 @@ class Simple : public KernelMeshPar<M_, GPar> {
   void Run() override;
 
  protected:
-  using P::var;
   using P::bi_;
   using P::m;
+  using P::var;
 
  private:
   FieldCell<Scal> fcu_;
@@ -91,18 +90,17 @@ class Simple : public KernelMeshPar<M_, GPar> {
     if (sem("write")) {
       if (m.IsRoot()) {
         std::string fn = "s.vtk";
-        std::cout << std::fixed << std::setprecision(8)
-            << "dump" << " to " << fn << std::endl;
-        WriteVtkPoly<Vect>(fn, dl_, nullptr, {&dlc_}, {"c"}, 
-            "Reconstructed linear interface", true, false, false);
+        std::cout << std::fixed << std::setprecision(8) << "dump"
+                  << " to " << fn << std::endl;
+        WriteVtkPoly<Vect>(
+            fn, dl_, nullptr, {&dlc_}, {"c"}, "Reconstructed linear interface",
+            true, false, false);
       }
     }
   }
 };
 
-
 #include "chpartstr.h"
-
 
 template <class M>
 void Simple<M>::Run() {
@@ -190,7 +188,6 @@ void Main(MPI_Comm comm, Vars& var) {
   DistrSolver<M, K> ds(comm, var, par);
   ds.Run();
 }
-
 
 int main(int argc, const char** argv) {
   return RunMpi(argc, argv, Main);

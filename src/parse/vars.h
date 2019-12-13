@@ -1,8 +1,8 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
 
 class Vars {
  public:
@@ -27,10 +27,18 @@ class Vars {
     bool Exists(Key) const;
     void Del(Key);
     bool DelIfExists(Key);
-    Iterator begin() { return m_.begin(); }
-    Iterator end() { return m_.end(); }
-    ConstIterator cbegin() const { return m_.cbegin(); }
-    ConstIterator cend() const { return m_.cend(); }
+    Iterator begin() {
+      return m_.begin();
+    }
+    Iterator end() {
+      return m_.end();
+    }
+    ConstIterator cbegin() const {
+      return m_.cbegin();
+    }
+    ConstIterator cend() const {
+      return m_.cend();
+    }
 
    private:
     M m_;
@@ -48,11 +56,10 @@ class Vars {
   // (if multiple found, returns one; if none, returns "")
   std::string GetTypeName(Key) const;
   // Deletes entry by key for all types, returns true if found
-  bool Del(Key); 
+  bool Del(Key);
 
   Map<std::string> String;
   Map<int> Int;
   Map<double> Double;
   Map<std::vector<double>> Vect;
 };
-

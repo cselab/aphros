@@ -1,18 +1,18 @@
 #pragma once
 
+#include <array>
 #include <exception>
 #include <fstream>
-#include <array>
-#include <memory>
 #include <limits>
+#include <memory>
 
-#include "multi.h"
-#include "geom/block.h"
-#include "dump/vtk.h"
-#include "reconst.h"
-#include "normal.h"
 #include "debug/isnan.h"
+#include "dump/vtk.h"
+#include "geom/block.h"
+#include "multi.h"
+#include "normal.h"
 #include "partstr.h"
+#include "reconst.h"
 
 namespace solver {
 
@@ -23,8 +23,11 @@ struct MultiMask<M_>::Imp {
 
   Imp(Owner* owner, M& m, const FieldCell<Scal>* fccl, size_t edim)
       : owner_(owner)
-      , m(m), fccl_(fccl), fcmask_(m, 0), fcmask2_(m, 0), edim_(edim)
-  {}
+      , m(m)
+      , fccl_(fccl)
+      , fcmask_(m, 0)
+      , fcmask2_(m, 0)
+      , edim_(edim) {}
   void Update(const FieldCell<Scal>& fcu) {
     using MIdx = typename M::MIdx;
     auto& bc = m.GetIndexCells();
@@ -35,21 +38,20 @@ struct MultiMask<M_>::Imp {
       const int sw = 2; // stencil halfwidth, [sw,sw]
       const int sn = sw * 2 + 1; // stencil size
       // block of offsets
-      GBlock<IdxCell, dim> bo(MIdx(-sw, -sw, edim_ == 2 ? 0 : -sw), 
-                              MIdx(sn, sn, edim_ == 2 ? 1 : sn)); 
-      (void) bo;
+      GBlock<IdxCell, dim> bo(
+          MIdx(-sw, -sw, edim_ == 2 ? 0 : -sw),
+          MIdx(sn, sn, edim_ == 2 ? 1 : sn));
+      (void)bo;
       auto& cl = *fccl_;
       fcmask_.Reinit(m, kNone);
       fcmask2_.Reinit(m, kNone);
-      auto I = [&fcu](IdxCell c) {
-        return fcu[c] > 0 and fcu[c] < 1;
-      };
+      auto I = [&fcu](IdxCell c) { return fcu[c] > 0 and fcu[c] < 1; };
       for (auto c : m.Cells()) {
         MIdx w = bc.GetMIdx(c);
         Scal max = kNone;
         Scal min = kNone;
         for (MIdx wo : bo) {
-          IdxCell cn = bc.GetIdx(w + wo); 
+          IdxCell cn = bc.GetIdx(w + wo);
           if (cl[cn] != kNone && I(cn)) {
             if (max == kNone || cl[cn] > max) {
               max = cl[cn];
@@ -71,7 +73,7 @@ struct MultiMask<M_>::Imp {
             fcmask_[c] != cl[c]) {
           MIdx w = bc.GetMIdx(c);
           for (MIdx wo : bo) {
-            IdxCell cn = bc.GetIdx(w + wo); 
+            IdxCell cn = bc.GetIdx(w + wo);
             fcmask2_[cn] = fcmask2_[c];
           }
         }
@@ -92,8 +94,7 @@ constexpr typename M::Scal MultiMask<M>::kNone;
 
 template <class M_>
 MultiMask<M_>::MultiMask(M& m, const FieldCell<Scal>* fccl, size_t edim)
-    : imp(new Imp(this, m, fccl, edim))
-{}
+    : imp(new Imp(this, m, fccl, edim)) {}
 
 template <class M_>
 MultiMask<M_>::~MultiMask() = default;
@@ -104,13 +105,13 @@ void MultiMask<M_>::Update(const FieldCell<Scal>& fcu) {
 }
 
 template <class M_>
-auto MultiMask<M_>::GetMask() const -> const FieldCell<Scal>& { 
-  return imp->fcmask_; 
+auto MultiMask<M_>::GetMask() const -> const FieldCell<Scal>& {
+  return imp->fcmask_;
 }
 
 template <class M_>
-auto MultiMask<M_>::GetMask2() const -> const FieldCell<Scal>& { 
-  return imp->fcmask2_; 
+auto MultiMask<M_>::GetMask2() const -> const FieldCell<Scal>& {
+  return imp->fcmask2_;
 }
 
 } // namespace solver

@@ -1,11 +1,11 @@
 #undef NDEBUG
 #include <cassert>
+#include <fstream>
 #include <iostream>
 #include <sstream>
-#include <fstream>
 
-#include "parse/vars.h"
 #include "parse/parser.h"
+#include "parse/vars.h"
 
 namespace simple {
 
@@ -29,7 +29,6 @@ void Simple() {
 }
 
 } // namespace simple
-
 
 void TestFile() {
   // open script

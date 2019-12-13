@@ -1,6 +1,6 @@
-#include <string>
 #include <fstream>
 #include <sstream>
+#include <string>
 
 #include "sysinfo.h"
 
@@ -35,19 +35,19 @@ bool HasHyperthreads() {
     std::string s;
     f >> s;
     if (s == "flags") {
-        break;
+      break;
     }
   }
   std::string line;
   std::getline(f, line);
   std::istringstream is(line);
   while (!is.eof()) {
-      std::string s;
-      is >> s;
-      if (s == "ht") {
-          has_ht = true;
-          break;
-      }
+    std::string s;
+    is >> s;
+    if (s == "ht") {
+      has_ht = true;
+      break;
+    }
   }
   return has_ht;
 }

@@ -1,13 +1,13 @@
 #pragma once
 
-#include <limits>
 #include <exception>
+#include <limits>
 #include <sstream>
 #include <string>
 
-#include "geom/vect.h"
 #include "geom/field.h"
 #include "geom/range.h"
+#include "geom/vect.h"
 
 template <class Scal>
 bool IsFinite(Scal a) {
@@ -55,8 +55,9 @@ bool IsNan(const GField<T, Idx>& u) {
 // r: range
 // w: where, name of location (e.g. __FILE__)
 template <class T, class Idx>
-bool CheckNan(const GField<T, Idx>& u, std::string n, 
-              const GRange<Idx>& r, std::string w="") {
+bool CheckNan(
+    const GField<T, Idx>& u, std::string n, const GRange<Idx>& r,
+    std::string w = "") {
   if (w != "") {
     w += ": ";
   }
@@ -76,8 +77,8 @@ bool CheckNan(const GField<T, Idx>& u, std::string n,
 // m: mesh
 // w: where, name of location (e.g. __FILE__)
 template <class T, class Idx, class M>
-bool CheckNan(const GField<T, Idx>& u, std::string n, 
-              const M& m, std::string w="") {
+bool CheckNan(
+    const GField<T, Idx>& u, std::string n, const M& m, std::string w = "") {
   if (w != "") {
     w += ": ";
   }
@@ -106,10 +107,10 @@ inline std::string SrcPath(const std::string& s) {
 // C: condition
 // Requires in scope:
 // m: mesh or GRange
-#define CHECKNAN(F,C) \
-  if (C) {\
-    CheckNan(F, #F, m, SrcPath(__FILE__) \
-        + ":" + std::to_string(__LINE__) \
-        + " in " + std::string(__func__) \
-        );\
+#define CHECKNAN(F, C)                                                \
+  if (C) {                                                            \
+    CheckNan(                                                         \
+        F, #F, m,                                                     \
+        SrcPath(__FILE__) + ":" + std::to_string(__LINE__) + " in " + \
+            std::string(__func__));                                   \
   }

@@ -1,14 +1,14 @@
 #pragma once
 
 #include <cmath>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
-#include <memory>
 #include <string>
 
-#include "solver.h"
 #include "cond.h"
 #include "geom/mesh.h"
+#include "solver.h"
 
 namespace solver {
 
@@ -22,29 +22,32 @@ class FluidSolver : public UnsteadyIterativeSolver {
 
  protected:
   M& m;
-  FieldCell<Scal>* fcr_;   // density
-  FieldCell<Scal>* fcd_;   // dynamic viscosity
-  FieldCell<Vect>* fcf_;   // force
+  FieldCell<Scal>* fcr_; // density
+  FieldCell<Scal>* fcd_; // dynamic viscosity
+  FieldCell<Vect>* fcf_; // force
   FieldFace<Scal>* ffbp_; //  balanced force projections
-  FieldCell<Scal>* fcsv_;  // volume source
-  FieldCell<Scal>* fcsm_;  // mass source
+  FieldCell<Scal>* fcsv_; // volume source
+  FieldCell<Scal>* fcsm_; // mass source
 
  public:
-
   // fcr: density
   // fcd: dynamic viscosity
   // fcf: force
   // ffbp: projections of balanced force
   // fcsv: volume source
   // fcsm: mass source
-  FluidSolver(double t, double dt, M& m,
-              FieldCell<Scal>* fcr, FieldCell<Scal>* fcd, 
-              FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
-              FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm)
+  FluidSolver(
+      double t, double dt, M& m, FieldCell<Scal>* fcr, FieldCell<Scal>* fcd,
+      FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp, FieldCell<Scal>* fcsv,
+      FieldCell<Scal>* fcsm)
       : UnsteadyIterativeSolver(t, dt)
-      , m(m), fcr_(fcr), fcd_(fcd), fcf_(fcf), ffbp_(ffbp)
-      , fcsv_(fcsv), fcsm_(fcsm)
-  {}
+      , m(m)
+      , fcr_(fcr)
+      , fcd_(fcd)
+      , fcf_(fcf)
+      , ffbp_(ffbp)
+      , fcsv_(fcsv)
+      , fcsm_(fcsm) {}
   virtual const FieldCell<Vect>& GetVelocity(Layers) const = 0;
   virtual const FieldCell<Vect>& GetVelocity() const {
     return GetVelocity(Layers::time_curr);
@@ -57,7 +60,9 @@ class FluidSolver : public UnsteadyIterativeSolver {
   virtual const FieldFace<Scal>& GetVolumeFlux() const {
     return GetVolumeFlux(Layers::time_curr);
   }
-  virtual double GetAutoTimeStep() const { return GetTimeStep(); }
+  virtual double GetAutoTimeStep() const {
+    return GetTimeStep();
+  }
   virtual const MapCondFace& GetVelocityCond() const = 0;
 };
 
@@ -85,8 +90,12 @@ class NoSlipWallFixed : public NoSlipWall<M> {
  public:
   using Vect = typename M::Vect;
   NoSlipWallFixed(Vect v, size_t nci) : NoSlipWall<M>(nci), v_(v) {}
-  Vect GetVelocity() const override { return v_; }
-  void SetVelocity(const Vect& v) { v_ = v; }
+  Vect GetVelocity() const override {
+    return v_;
+  }
+  void SetVelocity(const Vect& v) {
+    v_ = v;
+  }
 
  private:
   Vect v_;
@@ -105,9 +114,13 @@ template <class M>
 class InletFixed : public Inlet<M> {
  public:
   using Vect = typename M::Vect;
-  InletFixed(Vect v, size_t nci) : Inlet<M>(nci) , v_(v) {}
-  Vect GetVelocity() const override { return v_; }
-  void SetVelocity(Vect v) override { v_ = v; }
+  InletFixed(Vect v, size_t nci) : Inlet<M>(nci), v_(v) {}
+  Vect GetVelocity() const override {
+    return v_;
+  }
+  void SetVelocity(Vect v) override {
+    v_ = v;
+  }
 
  private:
   Vect v_;
@@ -118,9 +131,15 @@ class InletFlux : public Inlet<M> {
  public:
   using Vect = typename M::Vect;
   InletFlux(Vect v, size_t id, size_t nci) : Inlet<M>(nci), v_(v), id_(id) {}
-  Vect GetVelocity() const override { return v_; }
-  void SetVelocity(Vect v) override { v_ = v; }
-  size_t GetId() { return id_; }
+  Vect GetVelocity() const override {
+    return v_;
+  }
+  void SetVelocity(Vect v) override {
+    v_ = v;
+  }
+  size_t GetId() {
+    return id_;
+  }
 
  private:
   Vect v_;
@@ -140,9 +159,13 @@ template <class M>
 class OutletAuto : public Outlet<M> {
  public:
   using Vect = typename M::Vect;
-  OutletAuto(size_t nci) : Outlet<M>(nci) , v_(Vect::kZero) {}
-  Vect GetVelocity() const override { return v_; }
-  void SetVelocity(Vect v) override { v_ = v; }
+  OutletAuto(size_t nci) : Outlet<M>(nci), v_(Vect::kZero) {}
+  Vect GetVelocity() const override {
+    return v_;
+  }
+  void SetVelocity(Vect v) override {
+    v_ = v;
+  }
 
  private:
   Vect v_;
@@ -180,11 +203,19 @@ class GivenVelocityAndPressureFixed : public GivenVelocityAndPressure<M> {
  public:
   using Vect = typename M::Vect;
   using Scal = typename M::Scal;
-  GivenVelocityAndPressureFixed(Vect v, Scal p) : v_(v) , p_(p) {}
-  Vect GetVelocity() const override { return v_; }
-  Scal GetPressure() const override { return p_; }
-  void SetVelocity(Vect v) { v_ = v; }
-  void SetPressure(Scal p) { p_ = p; }
+  GivenVelocityAndPressureFixed(Vect v, Scal p) : v_(v), p_(p) {}
+  Vect GetVelocity() const override {
+    return v_;
+  }
+  Scal GetPressure() const override {
+    return p_;
+  }
+  void SetVelocity(Vect v) {
+    v_ = v;
+  }
+  void SetPressure(Scal p) {
+    p_ = p;
+  }
 
  private:
   Vect v_;
@@ -203,8 +234,12 @@ class GivenPressureFixed : public GivenPressure<M> {
  public:
   using Scal = typename M::Scal;
   GivenPressureFixed(Scal p) : p_(p) {}
-  Scal GetPressure() const override { return p_; }
-  void SetPressure(Scal p) { p_ = p; }
+  Scal GetPressure() const override {
+    return p_;
+  }
+  void SetPressure(Scal p) {
+    p_ = p;
+  }
 
  private:
   Scal p_;
@@ -215,7 +250,7 @@ class GivenPressureFixed : public GivenPressure<M> {
 template <class M>
 MapCondFace GetVelCond(const M& m, const MapCondFaceFluid& mff) {
   using Vect = typename M::Vect;
-  (void) m;
+  (void)m;
   MapCondFace mf;
   for (auto it : mff) {
     IdxFace f = it.GetIdx();
@@ -240,7 +275,6 @@ MapCondFace GetVelCond(const M& m, const MapCondFaceFluid& mff) {
   }
   return mf;
 }
-
 
 } // namespace solver
 
