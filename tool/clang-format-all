@@ -1,0 +1,45 @@
+#!/bin/bash
+
+set -eu
+
+e () {
+  echo "$@"
+  eval "$@"
+}
+
+list=clang-format-list
+
+e "find . -regextype posix-extended -regex '.*\.(cpp|c|ipp|h|hpp)' > $list"
+
+# 'clang-format -i' replaces symlinks with regular files
+echo "Excluded symlinks:"
+tmp=tmp.$$
+rm -f "$tmp"
+while read line ; do
+  if [ -L "$line" ] ; then
+    echo "$line"
+  else
+    echo "$line" >> "$tmp"
+  fi
+done < "$list"
+mv "$tmp" "$list"
+
+echo "Remaining files:"
+cat $list
+
+cmd="clang-format -i"
+echo "Running '$cmd' for these files."
+read -r -p "Proceed? [y/N] " re
+if [[ "$re" == "y" ]]
+then
+    cat "$list" | xargs $cmd
+    rm -v "$list"
+    echo Done
+    exit 0
+else
+    rm -v "$list"
+    echo Abort
+    exit -1
+fi
+
+
