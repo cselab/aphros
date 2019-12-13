@@ -71,6 +71,7 @@ if CheckFlag('-C4'):
 draft = CheckFlag('-draft')
 fine = CheckFlag('-fine')
 fine2 = CheckFlag('-fine2')
+light = CheckFlag('-light')
 
 # vf input
 ff = natsorted(av[1:])
@@ -116,6 +117,7 @@ light11.Radius = 5.0
 # get the material library
 mf = "m.json"
 tp = "checker_grey10x10.png"
+attencolor = [0.22, 0.34, 0.47]
 open(mf, 'w').write('''
 {
   "family" : "OSPRay",
@@ -124,7 +126,7 @@ open(mf, 'w').write('''
     "water" : {
       "type": "Glass",
       "doubles" : {
-          "attenuationColor" : [0.22, 0.34, 0.47],
+          "attenuationColor" : COLOR,
           "attenuationDistance" : [1.5],
           "eta" : [1.33]
       }
@@ -137,7 +139,10 @@ open(mf, 'w').write('''
     }
   }
 }
-'''.replace("CHECKERGRAY", os.path.abspath(tp)))
+'''.
+replace("CHECKERGRAY", os.path.abspath(tp)).
+replace("COLOR", str([c*1.5 for c in attencolor] if light else attencolor))
+)
 materialLibrary1 = GetMaterialLibrary()
 materialLibrary1.LoadMaterials = mf
 
