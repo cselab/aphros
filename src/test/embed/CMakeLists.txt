@@ -5,6 +5,6 @@ set(EXE t.${p})
 
 add_executable(${EXE} main.cpp)
 
-target_link_libraries(${EXE} distr solver convdiffi)
+target_link_libraries(${EXE} distrsolver solver convdiffi)
      
 add_test(NAME ${p}-loc COMMAND ch.run ./${EXE} a.conf) 

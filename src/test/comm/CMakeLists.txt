@@ -7,7 +7,7 @@ include_directories(${S})
 
 add_executable(${EXE} main.cpp)
 
-target_link_libraries(${EXE} distr)
+target_link_libraries(${EXE} distrsolver)
 
 add_test(NAME ${p}-loc COMMAND ch.run ./${EXE} tloc)
 add_test(NAME ${p}-cub COMMAND ch.run ./${EXE} tcub)
