@@ -19,14 +19,14 @@ tar -xzf "$f" -C "$d" --strip-components=1
 
 cat <<EOF> Makefile
 .POSIX:
-CXXFLAGS = -Wall -Wextra -g -O3
+CXXFLAGS = -Wall -Wextra -g -O3 -fPIC
 PREFIX = ${CHPREFIX}
 
 L = ${d}/lib/libfpzip.a
 H = ${d}/inc/fpzip.h
 
 build:
-	\$(MAKE) CXX=\${CXX} -C "${src}" -j4
+	\$(MAKE) CXX=\${CXX} CXXFLAGS='\${CXXFLAGS}' -C "${src}" -j4
 
 install: build
 	mkdir -p -- "\$(PREFIX)/lib" "\$(PREFIX)/include"
