@@ -418,15 +418,16 @@ void DistrMesh<M>::Report() {
     };
 
     auto h = get_hmsm(a);
-    std::cout << std::setprecision(5) << std::scientific << "cells = " << nc
-              << "\n"
+    std::cout << std::setprecision(5) << std::scientific;
+    std::cout << "cells = " << nc << "\n"
               << "steps = " << nt << "\n"
               << "iters = " << ni << "\n"
               << "total = " << int(a) << " s"
-              << " = " << std::setfill('0') << std::setw(2) << h[0] << ":"
-              << std::setw(2) << h[1] << ":" << std::setw(2) << h[2] << "."
-              << std::setw(3) << h[3] << "\n"
-              << "time/cell/iter = " << a / (nc * ni) << " s" << std::endl;
+              << " = ";
+    std::cout << std::setfill('0');
+    std::cout << std::setw(2) << h[0] << ":" << std::setw(2) << h[1] << ":"
+              << std::setw(2) << h[2] << "." << std::setw(3) << h[3] << "\n";
+    std::cout << "time/cell/iter = " << a / (nc * ni) << " s" << std::endl;
   }
 }
 
