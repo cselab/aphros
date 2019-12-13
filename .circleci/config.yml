@@ -11,7 +11,7 @@ jobs:
             update-alternatives --install /usr/bin/gfortran gfortran /usr/local/bin/gfortran 999
             apt update
             apt install -y --no-install-recommends apt-utils
-            apt install -y make cmake libhdf5-openmpi-dev python-numpy sudo rsync
+            apt install -y make cmake libhdf5-openmpi-dev python-numpy sudo rsync libgsl-dev
             ls -al '/root'
             echo "${CIRCLE_WORKING_DIRECTORY}"
             useradd -M -d '/root' -g users -N mpiuser
