@@ -137,16 +137,14 @@ template <class B>
 using GGrid = GridMPI<Grid<B, std::allocator>>;
 
 // Par - instance of GPar
-// KF - instance of KernelMeshFactory
-template <class Par, class KF>
-class Cubism : public DistrMesh<KF> {
+template <class Par, class M_>
+class Cubism : public DistrMesh<M_> {
  public:
-  using K = typename KF::K;
-  using M = typename KF::M;
+  using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  Cubism(MPI_Comm comm, KF& kf, Vars& var);
+  Cubism(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var);
   typename M::BlockCells GetGlobalBlock() const override;
   typename M::IndexCells GetGlobalIndex() const override;
   FieldCell<Scal> GetGlobalField(size_t i) override; 
@@ -158,7 +156,7 @@ class Cubism : public DistrMesh<KF> {
   using Elem = typename Block::Elem;
   using Synch = typename Grid::Synch;
 
-  using P = DistrMesh<KF>; // parent
+  using P = DistrMesh<M>; // parent
   using MIdx = typename M::MIdx;
 
   using P::dim;
@@ -475,8 +473,8 @@ struct FakeProc {
   {}
 };
 
-template <class Par, class KF>
-std::vector<MyBlockInfo> Cubism<Par, KF>::Convert(
+template <class Par, class M>
+std::vector<MyBlockInfo> Cubism<Par, M>::Convert(
     const std::vector<BlockInfo>& cc, MIdx bs, size_t hl) {
   std::vector<MyBlockInfo> bb;
   for(size_t i = 0; i < cc.size(); i++) {
@@ -496,13 +494,11 @@ std::vector<MyBlockInfo> Cubism<Par, KF>::Convert(
   return bb;
 }
 
-
-template <class Par, class KF>
-Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& var)
-  : DistrMesh<KF>(comm, kf, var)
-  , hist_(comm, "cubism", var.Int["histogram"])
-  , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm)
-{
+template <class Par, class M>
+Cubism<Par, M>::Cubism(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var)
+    : DistrMesh<M>(comm, kf, var)
+    , hist_(comm, "cubism", var.Int["histogram"])
+    , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm) {
   assert(bs_[0] == Block::bx && bs_[1] == Block::by && 
       (bs_[2] == Block::bz || (bs_[2] == 1 && Block::bz == 2)));
 
@@ -530,8 +526,8 @@ Cubism<Par, KF>::Cubism(MPI_Comm comm, KF& kf, Vars& var)
   comm_ = g_.getCartComm(); // XXX: overwrite comm_
 }
 
-template <class Par, class KF>
-auto Cubism<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
+template <class Par, class M>
+auto Cubism<Par, M>::GetBlocks(bool inner) -> std::vector<MIdx> {
   if (!inner) {
     return std::vector<MIdx>();
   }
@@ -591,8 +587,8 @@ auto Cubism<Par, KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
   return bb;
 }
 
-template <class Par, class KF>
-void Cubism<Par, KF>::ReadBuffer(const std::vector<MIdx>& bb) {
+template <class Par, class M>
+void Cubism<Par, M>::ReadBuffer(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     auto& k = *mk.at(b); // kernel
     auto& m = k.GetMesh();
@@ -601,8 +597,8 @@ void Cubism<Par, KF>::ReadBuffer(const std::vector<MIdx>& bb) {
   }
 }
 
-template <class Par, class KF>
-void Cubism<Par, KF>::WriteBuffer(const std::vector<MIdx>& bb) {
+template <class Par, class M>
+void Cubism<Par, M>::WriteBuffer(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     auto& k = *mk.at(b); // kernel
     auto& m = k.GetMesh();
@@ -610,8 +606,8 @@ void Cubism<Par, KF>::WriteBuffer(const std::vector<MIdx>& bb) {
   }
 }
 
-template <class Par, class KF>
-void Cubism<Par, KF>::Bcast(const std::vector<MIdx>& bb) {
+template <class Par, class M>
+void Cubism<Par, M>::Bcast(const std::vector<MIdx>& bb) {
   using OpCat = typename M::OpCat;
   auto& vf = mk.at(bb[0])->GetMesh().GetBcast();  // pointers to broadcast
 
@@ -671,8 +667,8 @@ void Cubism<Par, KF>::Bcast(const std::vector<MIdx>& bb) {
     m.ClearBcast();
   }
 }
-template <class Par, class KF>
-void Cubism<Par, KF>::Scatter(const std::vector<MIdx>& bb) {
+template <class Par, class M>
+void Cubism<Par, M>::Scatter(const std::vector<MIdx>& bb) {
   auto& vreq0 = mk.at(bb[0])->GetMesh().GetScatter(); // requests on first block
 
   // Check size is the same for all blocks
@@ -773,8 +769,8 @@ void Cubism<Par, KF>::Scatter(const std::vector<MIdx>& bb) {
     mk.at(b)->GetMesh().ClearScatter();
   }
 }
-template <class Par, class KF>
-void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
+template <class Par, class M>
+void Cubism<Par, M>::Reduce(const std::vector<MIdx>& bb) {
   using OpS = typename M::OpS;
   using OpSI = typename M::OpSI;
   using OpCat = typename M::OpCat;
@@ -938,8 +934,8 @@ void Cubism<Par, KF>::Reduce(const std::vector<MIdx>& bb) {
   }
 }
 
-template <class Par, class KF>
-void Cubism<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
+template <class Par, class M>
+void Cubism<Par, M>::DumpWrite(const std::vector<MIdx>& bb) {
   auto& m = mk.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
     std::string df = var.String["dumpformat"];
@@ -975,13 +971,13 @@ void Cubism<Par, KF>::DumpWrite(const std::vector<MIdx>& bb) {
   }
 }
 
-template <class Par, class KF>
-auto Cubism<Par, KF>::GetGlobalBlock() const -> typename M::BlockCells {
+template <class Par, class M>
+auto Cubism<Par, M>::GetGlobalBlock() const -> typename M::BlockCells {
   return typename M::BlockCells(p_ * b_ * bs_);
 }
 
-template <class Par, class KF>
-auto Cubism<Par, KF>::GetGlobalIndex() const -> typename M::IndexCells {
+template <class Par, class M>
+auto Cubism<Par, M>::GetGlobalIndex() const -> typename M::IndexCells {
   // TODO: revise, relies on lightweight mesh,
   //       may cause allocation of data fields otherwise
   Rect<Vect> dom(Vect(0), Vect(1));
@@ -990,8 +986,8 @@ auto Cubism<Par, KF>::GetGlobalIndex() const -> typename M::IndexCells {
   return m.GetIndexCells();
 }
 
-template <class Par, class KF>
-auto Cubism<Par, KF>::GetGlobalField(size_t e) -> FieldCell<Scal> {
+template <class Par, class M>
+auto Cubism<Par, M>::GetGlobalField(size_t e) -> FieldCell<Scal> {
   using BC = typename M::BlockCells;
   auto gbc = GetGlobalIndex();
   // collective, does actual communication
@@ -1090,5 +1086,5 @@ int StreamHdfDyn<B>::ID = 0;
 template <class Scal_, size_t bx_, size_t by_, size_t bz_, size_t es_>
 using GPar = cubism_impl::GPar<Scal_, bx_, by_, bz_, es_>;
 
-template <class Par, class KF>
-using Cubism = cubism_impl::Cubism<Par, KF>;
+template <class Par, class M>
+using Cubism = cubism_impl::Cubism<Par, M>;

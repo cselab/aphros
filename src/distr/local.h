@@ -6,5 +6,6 @@
 #include "distr.h"
 #include "parse/vars.h"
 
-template <class KF>
-std::unique_ptr<DistrMesh<KF>> CreateLocal(MPI_Comm, KF&, Vars&);
+template <class M>
+std::unique_ptr<DistrMesh<M>> CreateLocal(
+    MPI_Comm, const KernelMeshFactory<M>&, Vars&);

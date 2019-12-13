@@ -1,26 +1,24 @@
-// vim: expandtab:smarttab:sw=2:ts=2
 #pragma once
 
-#include <vector>
+#include <mpi.h>
 #include <limits>
 #include <map>
-#include <mpi.h>
 #include <stdexcept>
+#include <vector>
 
+#include "distr.h"
 #include "dump/output.h"
 #include "dump/output_paraview.h"
-#include "distr.h"
 #include "local.h"
 
-template <class KF>
-class Local : public DistrMesh<KF> {
+template <class M_>
+class Local : public DistrMesh<M_> {
  public:
-  using K = typename KF::K;
-  using M = typename KF::M;
+  using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  Local(MPI_Comm comm, KF& kf, Vars& var);
+  Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var);
   typename M::BlockCells GetGlobalBlock() const override;
   typename M::IndexCells GetGlobalIndex() const override;
   // Returns data field i from buffer defined on global mesh
@@ -28,7 +26,7 @@ class Local : public DistrMesh<KF> {
 
  private:
   using MIdx = typename M::MIdx;
-  using P = DistrMesh<KF>;
+  using P = DistrMesh<M>;
 
   using P::mk;
   using P::kf_;
@@ -77,8 +75,8 @@ class Local : public DistrMesh<KF> {
   void DumpWrite(const std::vector<MIdx>& bb) override;
 };
 
-template <class KF>
-auto Local<KF>::CreateGlobalMesh(MIdx bs, MIdx b, MIdx p, Scal ext) -> M {
+template <class M>
+auto Local<M>::CreateGlobalMesh(MIdx bs, MIdx b, MIdx p, Scal ext) -> M {
   MIdx gs = bs * b * p; // global size in cells (without halos)
   Scal h = ext / gs.max(); // cell size
   Rect<Vect> d(Vect(0), Vect(gs) * h); // bounding box
@@ -87,9 +85,9 @@ auto Local<KF>::CreateGlobalMesh(MIdx bs, MIdx b, MIdx p, Scal ext) -> M {
   return InitUniformMesh<M>(d, o, gs, 0, true, true, gs, 0);
 }
 
-template <class KF>
-Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& var)
-  : DistrMesh<KF>(comm, kf, var)
+template <class M>
+Local<M>::Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var)
+  : DistrMesh<M>(comm, kf, var)
   , buf_(var.Int["loc_maxcomm"])
   , gm(CreateGlobalMesh(bs_, b_, p_, ext_))
 {
@@ -145,8 +143,8 @@ Local<KF>::Local(MPI_Comm comm, KF& kf, Vars& var)
   this->MakeKernels(bb_);
 }
 
-template <class KF>
-auto Local<KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
+template <class M>
+auto Local<M>::GetBlocks(bool inner) -> std::vector<MIdx> {
   std::vector<MIdx> bb;
   if (inner) {
     for (auto e : bb_) {
@@ -156,24 +154,24 @@ auto Local<KF>::GetBlocks(bool inner) -> std::vector<MIdx> {
   return bb;
 }
 
-template <class KF>
-void Local<KF>::ReadBuffer(const std::vector<MIdx>& bb) {
+template <class M>
+void Local<M>::ReadBuffer(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     auto& m = mk.at(b)->GetMesh();
     ReadBuffer(m);
   }
 }
 
-template <class KF>
-void Local<KF>::WriteBuffer(const std::vector<MIdx>& bb) {
+template <class M>
+void Local<M>::WriteBuffer(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     auto& m = mk.at(b)->GetMesh();
     WriteBuffer(m);
   }
 }
 
-template <class KF>
-void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
+template <class M>
+void Local<M>::Reduce(const std::vector<MIdx>& bb) {
   using OpS = typename M::OpS;
   using OpSI = typename M::OpSI;
   using OpCat = typename M::OpCat;
@@ -269,8 +267,8 @@ void Local<KF>::Reduce(const std::vector<MIdx>& bb) {
   }
 }
 
-template <class KF>
-void Local<KF>::Scatter(const std::vector<MIdx>& bb) {
+template <class M>
+void Local<M>::Scatter(const std::vector<MIdx>& bb) {
   auto& vreq0 = mk.at(bb[0])->GetMesh().GetScatter(); // requests on first block
 
   // Check size is the same for all blocks
@@ -310,8 +308,8 @@ void Local<KF>::Scatter(const std::vector<MIdx>& bb) {
   }
 }
 
-template <class KF>
-void Local<KF>::Bcast(const std::vector<MIdx>& bb) {
+template <class M>
+void Local<M>::Bcast(const std::vector<MIdx>& bb) {
   using OpCat = typename M::OpCat;
   auto& vf = mk.at(bb[0])->GetMesh().GetBcast();  // pointers to broadcast
 
@@ -357,8 +355,8 @@ void Local<KF>::Bcast(const std::vector<MIdx>& bb) {
   }
 }
 
-template <class KF>
-void Local<KF>::DumpWrite(const std::vector<MIdx>& bb) {
+template <class M>
+void Local<M>::DumpWrite(const std::vector<MIdx>& bb) {
   auto& m = mk.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
     std::string df = var.String["dumpformat"];
@@ -409,8 +407,8 @@ void Local<KF>::DumpWrite(const std::vector<MIdx>& bb) {
 // e: offset in buffer
 // Returns:
 // number of scalar fields read
-template <class KF>
-size_t Local<KF>::ReadBuffer(FieldCell<Scal>& fc, size_t e,  M& m) {
+template <class M>
+size_t Local<M>::ReadBuffer(FieldCell<Scal>& fc, size_t e,  M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
   }
@@ -442,8 +440,8 @@ size_t Local<KF>::ReadBuffer(FieldCell<Scal>& fc, size_t e,  M& m) {
 // e: offset in buffer
 // Returns:
 // number of scalar fields read
-template <class KF>
-size_t Local<KF>::ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e,  M& m) {
+template <class M>
+size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e,  M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
   }
@@ -474,8 +472,8 @@ size_t Local<KF>::ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e,  M& m) {
 // e: offset in buffer
 // Returns:
 // number of scalar fields read
-template <class KF>
-size_t Local<KF>::ReadBuffer(FieldCell<Vect>& fc, size_t e,  M& m) {
+template <class M>
+size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t e,  M& m) {
   for (size_t d = 0; d < Vect::dim; ++d) {
     e += ReadBuffer(fc, d, e, m);
   }
@@ -486,8 +484,8 @@ size_t Local<KF>::ReadBuffer(FieldCell<Vect>& fc, size_t e,  M& m) {
 // e: offset in buffer
 // Returns:
 // number of scalar fields written
-template <class KF>
-size_t Local<KF>::ReadBuffer(typename M::Co* o, size_t e, M& m) {
+template <class M>
+size_t Local<M>::ReadBuffer(typename M::Co* o, size_t e, M& m) {
   if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
     return ReadBuffer(*od->f, e, m);
   } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
@@ -499,8 +497,8 @@ size_t Local<KF>::ReadBuffer(typename M::Co* o, size_t e, M& m) {
   throw std::runtime_error("ReadBuffer: Unknown Co instance");
   return 0;
 }
-template <class KF>
-void Local<KF>::ReadBuffer(M& m) {
+template <class M>
+void Local<M>::ReadBuffer(M& m) {
   size_t e = 0;
   for (auto& o : m.GetComm()) {
     e += ReadBuffer(o.get(), e, m);
@@ -512,8 +510,8 @@ void Local<KF>::ReadBuffer(M& m) {
 // e: offset in buffer
 // Returns:
 // number of scalar fields written
-template <class KF>
-size_t Local<KF>::WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m) {
+template <class M>
+size_t Local<M>::WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
   }
@@ -532,8 +530,8 @@ size_t Local<KF>::WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m) {
 // e: offset in buffer
 // Returns:
 // number of scalar fields written
-template <class KF>
-size_t Local<KF>::WriteBuffer(const FieldCell<Vect>& fc, 
+template <class M>
+size_t Local<M>::WriteBuffer(const FieldCell<Vect>& fc, 
                               size_t d, size_t e, M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
@@ -552,8 +550,8 @@ size_t Local<KF>::WriteBuffer(const FieldCell<Vect>& fc,
 // e: offset in buffer
 // Returns:
 // number of scalar fields written
-template <class KF>
-size_t Local<KF>::WriteBuffer(const FieldCell<Vect>& fc, size_t e, M& m) {
+template <class M>
+size_t Local<M>::WriteBuffer(const FieldCell<Vect>& fc, size_t e, M& m) {
   for (size_t d = 0; d < Vect::dim; ++d) {
     e += WriteBuffer(fc, d, e, m);
   }
@@ -564,8 +562,8 @@ size_t Local<KF>::WriteBuffer(const FieldCell<Vect>& fc, size_t e, M& m) {
 // e: offset in buffer
 // Returns:
 // number of scalar fields written
-template <class KF>
-size_t Local<KF>::WriteBuffer(typename M::Co* o, size_t e, M& m) {
+template <class M>
+size_t Local<M>::WriteBuffer(typename M::Co* o, size_t e, M& m) {
   if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
     return WriteBuffer(*od->f, e, m);
   } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
@@ -577,8 +575,8 @@ size_t Local<KF>::WriteBuffer(typename M::Co* o, size_t e, M& m) {
   throw std::runtime_error("WriteBuffer: Unknown Co instance");
   return 0;
 }
-template <class KF>
-void Local<KF>::WriteBuffer(M& m) {
+template <class M>
+void Local<M>::WriteBuffer(M& m) {
   size_t e = 0;
   for (auto& o : m.GetComm()) {
     e += WriteBuffer(o.get(), e, m);
@@ -588,18 +586,17 @@ void Local<KF>::WriteBuffer(M& m) {
   }
 }
 
-template <class KF>
-auto Local<KF>::GetGlobalBlock() const -> typename M::BlockCells {
+template <class M>
+auto Local<M>::GetGlobalBlock() const -> typename M::BlockCells {
   return gm.GetInBlockCells();
 }
 
-template <class KF>
-auto Local<KF>::GetGlobalIndex() const -> typename M::IndexCells {
+template <class M>
+auto Local<M>::GetGlobalIndex() const -> typename M::IndexCells {
   return gm.GetIndexCells();
 }
 
-template <class KF>
-auto Local<KF>::GetGlobalField(size_t i) -> FieldCell<Scal> {
+template <class M>
+auto Local<M>::GetGlobalField(size_t i) -> FieldCell<Scal> {
   return buf_[i];
 }
-

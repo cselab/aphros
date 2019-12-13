@@ -3,9 +3,9 @@
 #include <mpi.h>
 #include <memory>
 
-#include "parse/vars.h"
 #include "distr.h"
+#include "parse/vars.h"
 
-template <class KF>
-std::unique_ptr<DistrMesh<KF>> CreateCubismnc(
-    MPI_Comm comm, KF& kf, Vars& par);
+template <class M>
+std::unique_ptr<DistrMesh<M>> CreateCubismnc(
+    MPI_Comm, const KernelMeshFactory<M>&, Vars&);

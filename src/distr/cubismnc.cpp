@@ -8,10 +8,10 @@
 #include "cubismnc.ipp"
 
 // XXX: removing 'static' leads to symbol collision with cubism.cpp
-template <size_t bx, size_t by, size_t bz, class KF>
+template <size_t bx, size_t by, size_t bz, class M>
 static void Try(
-    MPI_Comm comm, KF& kf, Vars& var, std::unique_ptr<DistrMesh<KF>>& r) {
-  using M = typename KF::M;
+    MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var,
+    std::unique_ptr<DistrMesh<M>>& r) {
   using Scal = typename M::Scal;
   if (r) return;
   // using Par0 = GPar<Scal, bx, by, bz, 0>; // 0 halos on either side
@@ -22,23 +22,23 @@ static void Try(
   if (var.Int["bsx"] == bx && var.Int["bsy"] == by && var.Int["bsz"] == bz) {
     switch (var.Int["hl"]) {
       // case 0:
-      //  r.reset(new Cubismnc<Par0, KF>(comm, kf, var));
+      //  r.reset(new Cubismnc<Par0, M>(comm, kf, var));
       // case 1:
-      //  r.reset(new Cubismnc<Par1, KF>(comm, kf, var));
+      //  r.reset(new Cubismnc<Par1, M>(comm, kf, var));
       case 2:
-        r.reset(new Cubismnc<Par2, KF>(comm, kf, var));
+        r.reset(new Cubismnc<Par2, M>(comm, kf, var));
       // case 3:
-      //  r.reset(new Cubismnc<Par3, KF>(comm, kf, var));
+      //  r.reset(new Cubismnc<Par3, M>(comm, kf, var));
       default:
         break;
     }
   }
 }
 
-template <class KF>
-std::unique_ptr<DistrMesh<KF>> CreateCubismnc(
-    MPI_Comm comm, KF& kf, Vars& var) {
-  std::unique_ptr<DistrMesh<KF>> r;
+template <class M>
+std::unique_ptr<DistrMesh<M>> CreateCubismnc(
+    MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var) {
+  std::unique_ptr<DistrMesh<M>> r;
   // 3D
   Try<32, 32, 32>(comm, kf, var, r);
   Try<16, 16, 16>(comm, kf, var, r);
@@ -58,9 +58,6 @@ std::unique_ptr<DistrMesh<KF>> CreateCubismnc(
 }
 
 using M = MeshStructured<double, 3>;
-using KF = KernelMeshFactory<M>;
 
-template std::unique_ptr<DistrMesh<KF>> CreateCubismnc<KF>(
-    MPI_Comm, KF&, Vars&);
-
-// vim: expandtab:smarttab:sw=2:ts=2
+template std::unique_ptr<DistrMesh<M>> CreateCubismnc<M>(
+    MPI_Comm, const KernelMeshFactory<M>&, Vars&);

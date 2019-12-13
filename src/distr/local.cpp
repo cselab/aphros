@@ -7,14 +7,13 @@
 
 #include "local.ipp"
 
-template <class KF>
-std::unique_ptr<DistrMesh<KF>> CreateLocal(
-    MPI_Comm comm, KF& kf, Vars& var) {
-  return std::unique_ptr<DistrMesh<KF>>(new Local<KF>(comm, kf, var));
+template <class M>
+std::unique_ptr<DistrMesh<M>> CreateLocal(
+    MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var) {
+  return std::unique_ptr<DistrMesh<M>>(new Local<M>(comm, kf, var));
 }
 
 using M = MeshStructured<double, 3>;
-using KF = KernelMeshFactory<M>;
 
-template std::unique_ptr<DistrMesh<KF>> CreateLocal<KF>(
-    MPI_Comm comm, KF& kf, Vars& var);
+template std::unique_ptr<DistrMesh<M>> CreateLocal<M>(
+    MPI_Comm, const KernelMeshFactory<M>&, Vars&);
