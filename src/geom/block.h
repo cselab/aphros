@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm> // max, min
+#include <cassert>
 
 #include "idx.h"
 #include "range.h"
