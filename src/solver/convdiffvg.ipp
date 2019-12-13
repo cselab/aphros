@@ -5,8 +5,8 @@
 #include <stdexcept>
 
 #include "convdiffvg.h"
-#include "util/metrics.h"
 #include "util/convdiff.h"
+#include "util/metrics.h"
 
 namespace solver {
 
@@ -14,13 +14,14 @@ template <class M_, class CD_>
 struct ConvDiffVectGeneric<M_, CD_>::Imp {
   using Owner = ConvDiffVectGeneric<M_, CD_>;
 
-  Imp(
-      Owner* owner, const FieldCell<Vect>& fcvel,
-      const MapCondFace& mfc,
+  Imp(Owner* owner, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
       const MapCell<std::shared_ptr<CondCell>>& mcc)
-      : owner_(owner), par(&owner_->GetPar()), m(owner_->m)
-      , mfc_(mfc), mcc_(mcc), dr_(0, m.GetEdim())
-  {
+      : owner_(owner)
+      , par(&owner_->GetPar())
+      , m(owner_->m)
+      , mfc_(mfc)
+      , mcc_(mcc)
+      , dr_(0, m.GetEdim()) {
     for (auto d : dr_) {
       UpdateDerivedCond(d);
 
@@ -31,9 +32,9 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
       // Initialize solver
       vs_[d] = std::make_shared<CD>(
-          m, GetComponent(fcvel, d), vmfc_[d], vmcc_[d],
-          owner_->fcr_, owner_->ffd_, &(vfcs_[d]), owner_->ffv_, 
-          owner_->GetTime(), owner_->GetTimeStep(), *par);
+          m, GetComponent(fcvel, d), vmfc_[d], vmcc_[d], owner_->fcr_,
+          owner_->ffd_, &(vfcs_[d]), owner_->ffv_, owner_->GetTime(),
+          owner_->GetTimeStep(), *par);
     }
     CopyToVect(Layers::time_curr, fcvel_);
     lvel_ = Layers::time_curr;
@@ -49,8 +50,8 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
       if (auto cd = dynamic_cast<CondCellVal<Vect>*>(cb)) {
         // TODO: revise with CondCellValComp
-        vmcc_[d][c] = std::make_shared<
-            CondCellValFixed<Scal>>(cd->GetValue()[d]);
+        vmcc_[d][c] =
+            std::make_shared<CondCellValFixed<Scal>>(cd->GetValue()[d]);
       } else {
         throw std::runtime_error("convdiffvg: unknown cell condition");
       }
@@ -109,11 +110,9 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       }
       if (sem("dir-linreport")) {
         if (m.IsRoot() && par->linreport) {
-          std::cout 
-              << "v" << ("xyz"[d]) << ":" 
-              << " res=" << m.GetResidual()
-              << " iter=" << m.GetIter()
-              << std::endl;
+          std::cout << "v" << ("xyz"[d]) << ":"
+                    << " res=" << m.GetResidual() << " iter=" << m.GetIter()
+                    << std::endl;
         }
       }
     }
@@ -149,8 +148,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       return fcvel_;
     }
     throw std::runtime_error(
-        "GetVelocity: requested layer '" + 
-        GetName(l) + "' but '" + 
+        "GetVelocity: requested layer '" + GetName(l) + "' but '" +
         GetName(lvel_) + "' is loaded");
   }
   void CorrectVelocity(Layers l, const FieldCell<Vect>& fc) {
@@ -174,7 +172,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   Layers lvel_; // current level loaded in fcvel_
   const MapCondFace& mfc_; // vect face cond
   MapCell<std::shared_ptr<CondCell>> mcc_; // vect cell cond
-  GRange<size_t> dr_;  // effective dimension range
+  GRange<size_t> dr_; // effective dimension range
 
   template <class T>
   using Array = std::array<T, dim>;
@@ -187,25 +185,21 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   Array<FieldCell<Scal>> vfct_; // tmp
 };
 
-
 template <class M_, class CD_>
 ConvDiffVectGeneric<M_, CD_>::ConvDiffVectGeneric(
-    M& m, const FieldCell<Vect>& fcvel,
-    const MapCondFace& mfc,
-    const MapCell<std::shared_ptr<CondCell>>& mcc,
-    const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
-    const FieldCell<Vect>* fcs, const FieldFace<Scal>* ffv,
-    double t, double dt, const Par& par)
+    M& m, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
+    const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
+    const FieldFace<Scal>* ffd, const FieldCell<Vect>* fcs,
+    const FieldFace<Scal>* ffv, double t, double dt, const Par& par)
     : ConvDiffVect<M>(t, dt, m, par, fcr, ffd, fcs, ffv)
-    , imp(new Imp(this, fcvel, mfc, mcc))
-{}
+    , imp(new Imp(this, fcvel, mfc, mcc)) {}
 
 template <class M_, class CD_>
 ConvDiffVectGeneric<M_, CD_>::~ConvDiffVectGeneric() = default;
 
 template <class M_, class CD_>
-void ConvDiffVectGeneric<M_, CD_>::Assemble(const FieldCell<Vect>& fcw, 
-                                        const FieldFace<Scal>& ffv) {
+void ConvDiffVectGeneric<M_, CD_>::Assemble(
+    const FieldCell<Vect>& fcw, const FieldFace<Scal>& ffv) {
   imp->Assemble(fcw, ffv);
 }
 
@@ -251,10 +245,9 @@ double ConvDiffVectGeneric<M_, CD_>::GetError() const {
 }
 
 template <class M_, class CD_>
-auto ConvDiffVectGeneric<M_, CD_>::GetVelocity(Layers l) const 
+auto ConvDiffVectGeneric<M_, CD_>::GetVelocity(Layers l) const
     -> const FieldCell<Vect>& {
   return imp->GetVelocity(l);
 }
 
 } // namespace solver
-

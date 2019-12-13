@@ -1,7 +1,7 @@
 #undef NDEBUG
-#include <sstream>
-#include <iostream>
 #include <cassert>
+#include <iostream>
+#include <sstream>
 
 #include "geom/mesh.h"
 
@@ -27,7 +27,7 @@ void TestBlock() {
   const size_t hl = 1;
   MIdx oi(0); // origin inner
   MIdx si(2); // size inner
-  MIdx oa= oi - MIdx(hl); // origin all
+  MIdx oa = oi - MIdx(hl); // origin all
   MIdx sa = si + MIdx(2 * hl); // size all
 
   GBlockFaces<dim> bi(oi, si);
@@ -71,20 +71,19 @@ bool Cmp(size_t a, size_t b) {
   return a == b;
 }
 
-#define CMP(a, b) \
-  assert(Cmp(a, b)); 
+#define CMP(a, b) assert(Cmp(a, b));
 
 // Print CMP
-#define PCMP(a, b) \
+#define PCMP(a, b)                                                    \
   std::cerr << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
-  CMP(a, b); 
+  CMP(a, b);
 
 void TestMesh() {
   Rect<Vect> dom(Vect(0., 1.5, 2.7), Vect(5.3, 4.1, 3.));
   using M = MeshStructured<Scal, dim>;
   MIdx b(-2, -3, -4); // lower index
-  MIdx s(5, 4, 3);    // size in cells
-  int hl = 2;         // halos 
+  MIdx s(5, 4, 3); // size in cells
+  int hl = 2; // halos
   Vect doms = dom.GetDimensions();
   Vect h = dom.GetDimensions() / Vect(s);
   M m = InitUniformMesh<M>(dom, b, s, hl, true, true, s, 0);
@@ -140,11 +139,11 @@ void TestMesh() {
   for (auto i : m.Cells()) {
     Vect xi = m.GetCenter(i);
     for (auto n : m.Nci(i)) {
-      Dir d(n / 2); 
+      Dir d(n / 2);
       Scal k = (n % 2 == 0 ? -1. : 1.);
       auto j = m.GetNeighbourCell(i, n);
       Vect xj = m.GetCenter(j);
-      CMP((xj-xi)[size_t(d)], h[size_t(d)] * k);
+      CMP((xj - xi)[size_t(d)], h[size_t(d)] * k);
     }
   }
 
@@ -156,7 +155,7 @@ void TestMesh() {
   PCMP(m.GetOpposite(4), 5);
   PCMP(m.GetOpposite(5), 4);
   PCMP(m.GetOpposite(-1), -1);
-  
+
   // Index of neighbour face
   {
     IdxCell c(0);
@@ -182,8 +181,8 @@ int main() {
     Rect<Vect> dom(Vect(0.), Vect(1.));
     using M = MeshStructured<Scal, dim>;
     MIdx b(1, 1, 1); // lower index
-    MIdx s(2, 2, 2);    // size in cells
-    int hl = 0;         // halos 
+    MIdx s(2, 2, 2); // size in cells
+    int hl = 0; // halos
     M m = InitUniformMesh<M>(dom, b, s, hl, true, true, s, 0);
 
     std::cout << "m.GetAllBlockCells()" << std::endl;
@@ -198,10 +197,8 @@ int main() {
     auto bfa = m.GetAllBlockFaces();
     auto bf = m.GetIndexFaces();
     for (auto p : bfa) {
-      std::cout 
-          << p.first << " " << p.second.GetLetter() << ","
-          << bf.GetIdx(p).GetRaw()
-          << std::endl;
+      std::cout << p.first << " " << p.second.GetLetter() << ","
+                << bf.GetIdx(p).GetRaw() << std::endl;
     }
     std::cout << std::endl;
 
@@ -212,11 +209,9 @@ int main() {
       auto j = ind.GetIdx(p);
       auto pp = ind.GetMIdxDir(j);
       auto jj = ind.GetIdx(pp);
-      std::cout 
-          << p.first << "," << p.second.GetLetter() << " " << j.GetRaw() 
-          << " | "
-          << pp.first << "," << pp.second.GetLetter() << " " << jj.GetRaw()
-          << std::endl;
+      std::cout << p.first << "," << p.second.GetLetter() << " " << j.GetRaw()
+                << " | " << pp.first << "," << pp.second.GetLetter() << " "
+                << jj.GetRaw() << std::endl;
       assert(j == jj);
       assert(p == pp);
     }
@@ -226,15 +221,15 @@ int main() {
       using I = typename GBlock<IdxFace, 3>::iterator;
       I i(&sb, MIdx(0, 0, 0), Dir::i);
       auto l = [&]() {
-          std::cout << (*i).first << " " << (*i).second.GetLetter() << std::endl;
-        };
+        std::cout << (*i).first << " " << (*i).second.GetLetter() << std::endl;
+      };
 
       int c = 0;
       for (i = sb.begin(); i != sb.end(); ++i) {
         l();
         ++c;
       }
-      assert(c == 3 * s.prod() + s[0] * s[1] + s[1] * s[2] + s[2] * s[0]); 
+      assert(c == 3 * s.prod() + s[0] * s[1] + s[1] * s[2] + s[2] * s[0]);
     }
   }
 }

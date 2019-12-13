@@ -16,7 +16,7 @@ void Run(M& m, State&, Vars&) {
   auto sem = m.GetSem();
   struct {
     FieldCell<Scal> fc;
-  }* ctx(sem);
+  } * ctx(sem);
   auto& fc = ctx->fc;
   auto& bc = m.GetInBlockCells();
   MIdx w = bc.GetBegin() / bc.GetSize();
@@ -37,7 +37,8 @@ void Run(M& m, State&, Vars&) {
   }
   // FIXME: without empty stage:
   // aborted _ZNK15SynchronizerMPIIN13cubismnc_impl13GFieldViewRawINS0_
-  if (sem()) {}
+  if (sem()) {
+  }
 }
 
 int main(int argc, const char** argv) {
@@ -61,4 +62,3 @@ set int mpi_compress_msg 0
 
   return RunMpiBasic<M, State>(argc, argv, Run, conf);
 }
-

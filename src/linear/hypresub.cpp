@@ -1,10 +1,10 @@
+#include <cassert>
+#include <chrono>
 #include <iostream>
+#include <map>
 #include <stdexcept>
 #include <thread>
-#include <chrono>
 #include <utility>
-#include <cassert>
-#include <map>
 
 #include "hypresub.h"
 #include "util/histogram.h"
@@ -15,8 +15,7 @@
 
 #define MSI MPI_STATUS_IGNORE
 
-DEB(
-static std::ostream& operator<<(
+DEB(static std::ostream& operator<<(
     std::ostream& out, const HypreSub::MIdx& v) {
   out << "(";
   for (auto& a : v) {
@@ -24,12 +23,9 @@ static std::ostream& operator<<(
   }
   out << ")";
   return out;
-}
-)
+})
 
-DEB(
-template <class T>
-static std::ostream& operator<<(
+DEB(template <class T> static std::ostream& operator<<(
     std::ostream& out, const std::vector<T>& v) {
   out << "[";
   for (auto& a : v) {
@@ -37,28 +33,28 @@ static std::ostream& operator<<(
   }
   out << "]";
   return out;
-}
-)
+})
 
-DEB(
-static std::ostream& operator<<(std::ostream& out, const HypreSub::Block& b) {
-  out
-    << "b.l=" << b.l
-    << " b.u=" << b.u
-    << " b.st.size()=" << b.st.size()
-    << " b.a.size()=" << b.a->size()
-    << " b.r.size()=" << b.r->size()
-    << " b.x.size()=" << b.x->size()
-    ;
+DEB(static std::ostream& operator<<(
+    std::ostream& out, const HypreSub::Block& b) {
+  out << "b.l=" << b.l << " b.u=" << b.u << " b.st.size()=" << b.st.size()
+      << " b.a.size()=" << b.a->size() << " b.r.size()=" << b.r->size()
+      << " b.x.size()=" << b.x->size();
   return out;
-}
-)
+})
 
 #define EV(x) (#x) << "=" << (x) << " "
 
 struct HypreSub::Imp {
   enum class Cmd {
-      construct, destruct, update, solve, get_residual, get_iter, exit};
+    construct,
+    destruct,
+    update,
+    solve,
+    get_residual,
+    get_iter,
+    exit
+  };
 
   // Block with data, only default-constructable once
   class BlockBuffer {
@@ -174,7 +170,8 @@ struct HypreSub::Imp {
     return bb;
   }
   static Cmd GetCmd(std::string s) {
-    #define GETCMD(x) if (s == #x) return Cmd::x;
+#define GETCMD(x) \
+  if (s == #x) return Cmd::x;
     GETCMD(construct);
     GETCMD(destruct);
     GETCMD(update);
@@ -185,7 +182,8 @@ struct HypreSub::Imp {
     throw std::runtime_error("GetCmd: unknown name '" + s + "'");
   }
   static std::string GetString(Cmd cmd) {
-    #define GETSTR(x) if (cmd == Cmd::x) return #x;
+#define GETSTR(x) \
+  if (cmd == Cmd::x) return #x;
     GETSTR(construct);
     GETSTR(destruct);
     GETSTR(update);
@@ -222,11 +220,10 @@ struct HypreSub::Imp {
         auto vbuf = RecvBlocks(root, comm);
         Recv(gs, root, comm);
         Recv(per, root, comm);
-        DEB(std::cout << "recv construct "
-            << EV(id) << EV(state.rank) << GetBlocks(vbuf) << std::endl;)
+        DEB(std::cout << "recv construct " << EV(id) << EV(state.rank)
+                      << GetBlocks(vbuf) << std::endl;)
         state.minst.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(id),
+            std::piecewise_construct, std::forward_as_tuple(id),
             std::forward_as_tuple(std::move(vbuf), gs, per));
         samp.CollectSample("RunServer::Construct");
       } else if (cmd == Cmd::update) {
@@ -254,13 +251,12 @@ struct HypreSub::Imp {
         samp.CollectSample("RunServer::Solve");
       } else if (cmd == Cmd::destruct) {
         samp.SeedSample();
-        DEB(std::cout << "recv destruct "
-            << EV(id) << EV(state.rank) << std::endl;)
+        DEB(std::cout << "recv destruct " << EV(id) << EV(state.rank)
+                      << std::endl;)
         state.minst.erase(id);
         samp.CollectSample("RunServer::Destruct");
       } else if (cmd == Cmd::exit) {
-        DEB(std::cout << "recv exit "
-            << EV(id) << EV(state.rank) << std::endl;)
+        DEB(std::cout << "recv exit " << EV(id) << EV(state.rank) << std::endl;)
         break;
       }
     }
@@ -268,9 +264,8 @@ struct HypreSub::Imp {
 
     if (state.minst.size() > 0) {
       throw std::runtime_error(
-          "RunServer: Cmd::exit received on rank "+
-          std::to_string(state.rank) +
-          ", but state.minst still containts " +
+          "RunServer: Cmd::exit received on rank " +
+          std::to_string(state.rank) + ", but state.minst still containts " +
           std::to_string(state.minst.size()) + " instances");
     }
   }
@@ -284,7 +279,7 @@ struct HypreSub::Imp {
         if (flag) {
           break;
         }
-        //sched_yield();
+        // sched_yield();
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
       }
     } else {
@@ -353,8 +348,8 @@ struct HypreSub::Imp {
     Send(*b.r, rank, comm);
     Send(*b.x, rank, comm);
   }
-  static void SendBlocks(const std::vector<Block>& bb,
-                         int rank, MPI_Comm comm) {
+  static void SendBlocks(
+      const std::vector<Block>& bb, int rank, MPI_Comm comm) {
     int nb = bb.size();
     MPI_Send(&nb, 1, MPI_INT, rank, tag, comm);
     for (int i = 0; i < nb; ++i) {
@@ -409,7 +404,7 @@ struct HypreSub::Imp {
         if (flag) {
           break;
         }
-        //sched_yield();
+        // sched_yield();
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
       }
     } else {
@@ -441,8 +436,7 @@ struct HypreSub::Imp {
   }
 
   Imp(const std::vector<Block>& bb, MIdx gs, MIdx per)
-      : bbarg_(bb), partidx_(GetPartIdx(bbarg_, state.sizesub))
-  {
+      : bbarg_(bb), partidx_(GetPartIdx(bbarg_, state.sizesub)) {
     static int next_id = 0; // instance id
     id_ = next_id;
     ++next_id;
@@ -451,17 +445,15 @@ struct HypreSub::Imp {
     for (int rank = 1; rank < state.sizesub; ++rank) {
       Send(Cmd::construct, rank);
       Send(id_, rank, state.commsub);
-      DEB(std::cout << "send construct "
-          << EV(id_) << EV(rank) << GetPart(rank) << std::endl;)
+      DEB(std::cout << "send construct " << EV(id_) << EV(rank) << GetPart(rank)
+                    << std::endl;)
       SendBlocks(GetPart(rank), rank, state.commsub);
       Send(gs, rank, state.commsub);
       Send(per, rank, state.commsub);
     }
-    DEB(std::cout << "self construct "
-        << EV(id_) << GetPart(0) << std::endl;)
+    DEB(std::cout << "self construct " << EV(id_) << GetPart(0) << std::endl;)
     state.minst.emplace(
-        std::piecewise_construct,
-        std::forward_as_tuple(id_),
+        std::piecewise_construct, std::forward_as_tuple(id_),
         std::forward_as_tuple(GetBlockBuffers(GetPart(0)), gs, per));
   }
   ~Imp() {
@@ -561,8 +553,7 @@ void HypreSub::Send(const std::vector<Block>& bb, int rank) {
 }
 
 HypreSub::HypreSub(MPI_Comm, const std::vector<Block>& bb, MIdx gs, MIdx per)
-    : imp(new Imp(bb, gs, per))
-{}
+    : imp(new Imp(bb, gs, per)) {}
 
 void HypreSub::Update() {
   imp->Update();
@@ -579,6 +570,5 @@ auto HypreSub::GetResidual() const -> Scal {
 int HypreSub::GetIter() const {
   return imp->GetIter();
 }
-
 
 HypreSub::~HypreSub() {}

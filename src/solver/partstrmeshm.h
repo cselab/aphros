@@ -2,12 +2,12 @@
 
 #include <memory>
 
-#include "geom/mesh.h"
-#include "partstr.h"
-#include "dump/dumper.h"
 #include "cond.h"
-#include "multi.h"
+#include "dump/dumper.h"
+#include "geom/mesh.h"
 #include "geom/range.h"
+#include "multi.h"
+#include "partstr.h"
 
 namespace solver {
 
@@ -20,14 +20,17 @@ class PartStrMeshM {
   using PS = PartStr<Scal>;
 
   enum class AF { // attraction force type
-      line   // nearest line
-    , center // nearest line center
-    , volume // fluid volume
+    line // nearest line
+    ,
+    center // nearest line center
+    ,
+    volume // fluid volume
   };
 
   enum class AR { // attraction reconstruction type
-      line   // interface line
-    , volume // fluid volume
+    line // interface line
+    ,
+    volume // fluid volume
   };
 
   struct Par {
@@ -40,12 +43,12 @@ class PartStrMeshM {
     int verb = 0; // debug output
     size_t dim = 3;
     AR attrreconst = AR::line;
-    Scal maxr = 0; // if input radius of curvature 
+    Scal maxr = 0; // if input radius of curvature
                    // (e.g. from height functions)
                    // is below than maxr*h,
                    // overwrite with estimate from particles
-    bool vtkbin = true;  // write binary vtk in DumpPartInter
-    bool vtkmerge = true;  // merge close points in DumpPartInter
+    bool vtkbin = true; // write binary vtk in DumpPartInter
+    bool vtkmerge = true; // merge close points in DumpPartInter
   };
 
   PartStrMeshM(M& m, std::shared_ptr<Par> par, const GRange<size_t>& layers);
@@ -62,25 +65,24 @@ class PartStrMeshM {
       const Multi<const FieldCell<Scal>*>& vfca,
       const Multi<const FieldCell<Vect>*>& vfcn,
       const Multi<const FieldCell<bool>*>& vfci,
-      const Multi<const FieldCell<Scal>*>& vfccl,
-      const FieldCell<Scal>* fck);
+      const Multi<const FieldCell<Scal>*>& vfccl, const FieldCell<Scal>* fck);
   // Dump particles to csv.
   // vfca: plane constant
   // vfcn: normal
   // n: frame index
   // t: time
-  void DumpParticles(const Multi<const FieldCell<Scal>*>& vfca,
-                     const Multi<const FieldCell<Vect>*>& vfcn,
-                     size_t id, Scal t);
-  void DumpPartInter(const Multi<const FieldCell<Scal>*>& vfca,
-                     const Multi<const FieldCell<Vect>*>& vfcn,
-                     size_t id, Scal t);
+  void DumpParticles(
+      const Multi<const FieldCell<Scal>*>& vfca,
+      const Multi<const FieldCell<Vect>*>& vfcn, size_t id, Scal t);
+  void DumpPartInter(
+      const Multi<const FieldCell<Scal>*>& vfca,
+      const Multi<const FieldCell<Vect>*>& vfcn, size_t id, Scal t);
   // Returns curvature field from last call of Part()
   const FieldCell<Scal>& GetCurv(size_t l);
 
  private:
   struct Imp; // implementation
-  //std::unique_ptr<Imp> imp;
+  // std::unique_ptr<Imp> imp;
   std::unique_ptr<Imp> imp;
 };
 

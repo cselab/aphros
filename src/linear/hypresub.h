@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vector>
-#include <array>
 #include <mpi.h>
+#include <array>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "hypre.h"
 #include "util/histogram.h"

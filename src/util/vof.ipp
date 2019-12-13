@@ -1,25 +1,25 @@
 #pragma once
 
-#include <vector>
-#include <memory>
-#include <limits>
-#include <iomanip>
-#include <set>
-#include <map>
+#include <stdio.h>
 #include <algorithm>
 #include <functional>
+#include <iomanip>
 #include <iostream>
-#include <stdio.h>
+#include <limits>
+#include <map>
+#include <memory>
+#include <set>
+#include <vector>
 
 #include <march.h>
 
-#include "vof.h"
-#include "solver/approx.h"
-#include "geom/mesh.h"
-#include "dump/vtk.h"
-#include "solver/reconst.h"
 #include "debug/isnan.h"
+#include "dump/vtk.h"
+#include "geom/mesh.h"
+#include "solver/approx.h"
+#include "solver/reconst.h"
 #include "solver/trackerm.h"
+#include "vof.h"
 
 namespace solver {
 
@@ -43,14 +43,13 @@ struct UVof<M_>::Imp {
   ~Imp() = default;
 
   void DumpPoly(
-      const GRange<size_t>& layers,
-      const Multi<const FieldCell<Scal>*>& fcu,
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<const FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Vect>*>& fcn,
       const Multi<const FieldCell<Scal>*>& fca,
-      const Multi<const FieldCell<bool>*>& fci,
-      std::string fn, Scal t, Scal th, bool bin, bool merge, M& m) {
-    (void) th;
+      const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t, Scal th,
+      bool bin, bool merge, M& m) {
+    (void)th;
     auto sem = m.GetSem("dumppoly");
     if (sem("local")) {
       dl_.clear();
@@ -65,8 +64,8 @@ struct UVof<M_>::Imp {
             continue;
           }
           if ((*fci[i])[c]) {
-            dl_.push_back(R::GetCutPoly(
-                  m.GetCenter(c), (*fcn[i])[c], (*fca[i])[c], h));
+            dl_.push_back(
+                R::GetCutPoly(m.GetCenter(c), (*fcn[i])[c], (*fca[i])[c], h));
             dlc_.push_back(m.GetHash(c));
             dll_.push_back(i);
             dlcl_.push_back(fccl[i] ? (*fccl[i])[c] : 0);
@@ -82,12 +81,11 @@ struct UVof<M_>::Imp {
     }
     if (sem("write")) {
       if (m.IsRoot()) {
-        std::cout << std::fixed << std::setprecision(8)
-            << "dump" << " t=" << t << " to " << fn << std::endl;
-        WriteVtkPoly<Vect>(fn, dl_, nullptr, 
-            {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"},
-            "Interface from PLIC", true,
-            bin, merge);
+        std::cout << std::fixed << std::setprecision(8) << "dump"
+                  << " t=" << t << " to " << fn << std::endl;
+        WriteVtkPoly<Vect>(
+            fn, dl_, nullptr, {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"},
+            "Interface from PLIC", true, bin, merge);
       }
     }
   }
@@ -98,10 +96,8 @@ struct UVof<M_>::Imp {
   // iso: isovalue for surface uu=iso
   void GetMarchTriangles(
       const std::array<Scal, 8>& uu, const std::array<Vect, 8>& nn,
-      const Vect& xc, 
-      const Vect& h, Scal iso,
-      std::vector<std::vector<Vect>>& vv,
-      std::vector<std::vector<Vect>>& vvn) {
+      const Vect& xc, const Vect& h, Scal iso,
+      std::vector<std::vector<Vect>>& vv, std::vector<std::vector<Vect>>& vvn) {
     std::array<double, 8> uuz = uu;
     for (auto& u : uuz) {
       u -= iso;
@@ -146,19 +142,20 @@ struct UVof<M_>::Imp {
   }
   // Interpolates from cells to nodes.
   // stencil half-width
-  template <int sw, int sn=sw*2+1, int snn=sw*2>
-  std::array<Scal, snn*snn*snn> ToNodes(const std::array<Scal, sn*sn*sn>& uu) {
-    std::array<Scal, snn*snn*snn> uun;
+  template <int sw, int sn = sw * 2 + 1, int snn = sw * 2>
+  std::array<Scal, snn * snn * snn> ToNodes(
+      const std::array<Scal, sn * sn * sn>& uu) {
+    std::array<Scal, snn * snn * snn> uun;
     size_t i = 0;
     for (int z = 0; z < snn; ++z) {
       for (int y = 0; y < snn; ++y) {
         for (int x = 0; x < snn; ++x) {
-          auto u = [&uu,x,y,z](int dx, int dy, int dz) {
-            return uu[(z+dz)*sn*sn + (y+dy)*sn + (x+dx)];
+          auto u = [&uu, x, y, z](int dx, int dy, int dz) {
+            return uu[(z + dz) * sn * sn + (y + dy) * sn + (x + dx)];
           };
-          uun[i++] = (1. / 8.) * (
-              u(0,0,0) + u(1,0,0) + u(0,1,0) + u(1,1,0) +
-              u(0,0,1) + u(1,0,1) + u(0,1,1) + u(1,1,1));
+          uun[i++] =
+              (1. / 8.) * (u(0, 0, 0) + u(1, 0, 0) + u(0, 1, 0) + u(1, 1, 0) +
+                           u(0, 0, 1) + u(1, 0, 1) + u(0, 1, 1) + u(1, 1, 1));
         }
       }
     }
@@ -166,64 +163,66 @@ struct UVof<M_>::Imp {
   }
   // Interpolates from cells to nodes.
   // stencil half-width
-  template <int sw, int sn=sw*2+1, int snn=sw*2>
-  std::array<Vect, snn*snn*snn> GradientNodes(const std::array<Scal, sn*sn*sn>& uu) {
-    std::array<Vect, snn*snn*snn> gg;
+  template <int sw, int sn = sw * 2 + 1, int snn = sw * 2>
+  std::array<Vect, snn * snn * snn> GradientNodes(
+      const std::array<Scal, sn * sn * sn>& uu) {
+    std::array<Vect, snn * snn * snn> gg;
     size_t i = 0;
     for (int z = 0; z < snn; ++z) {
       for (int y = 0; y < snn; ++y) {
         for (int x = 0; x < snn; ++x) {
-          auto u = [&uu,x,y,z](int dx, int dy, int dz) {
-            return uu[(z+dz)*sn*sn + (y+dy)*sn + (x+dx)];
+          auto u = [&uu, x, y, z](int dx, int dy, int dz) {
+            return uu[(z + dz) * sn * sn + (y + dy) * sn + (x + dx)];
           };
           auto& g = gg[i++];
-          g[0] = ((u(1,0,0)+ u(1,1,0)+ u(1,0,1)+ u(1,1,1)) -
-                   (u(0,0,0)+ u(0,1,0)+ u(0,0,1)+ u(0,1,1))) * 0.25;
-          g[1] = ((u(0,1,0)+ u(1,1,0)+ u(0,1,1)+ u(1,1,1)) -
-                   (u(0,0,0)+ u(1,0,0)+ u(0,0,1)+ u(1,0,1))) * 0.25;
-          g[2] = ((u(0,0,1)+ u(1,0,1)+ u(0,1,1)+ u(1,1,1)) -
-                   (u(0,0,0)+ u(1,0,0)+ u(0,1,0)+ u(1,1,0))) * 0.25;
+          g[0] = ((u(1, 0, 0) + u(1, 1, 0) + u(1, 0, 1) + u(1, 1, 1)) -
+                  (u(0, 0, 0) + u(0, 1, 0) + u(0, 0, 1) + u(0, 1, 1))) *
+                 0.25;
+          g[1] = ((u(0, 1, 0) + u(1, 1, 0) + u(0, 1, 1) + u(1, 1, 1)) -
+                  (u(0, 0, 0) + u(1, 0, 0) + u(0, 0, 1) + u(1, 0, 1))) *
+                 0.25;
+          g[2] = ((u(0, 0, 1) + u(1, 0, 1) + u(0, 1, 1) + u(1, 1, 1)) -
+                  (u(0, 0, 0) + u(1, 0, 0) + u(0, 1, 0) + u(1, 1, 0))) *
+                 0.25;
         }
       }
     }
     return gg;
   }
-    // Returns values over stencil centered at cell c with color cl.
-    // Values for neighbors without color cl are filled with 0.
-    // sw: stencil half-width
-    template <size_t sw>
-    struct GetStencilPure {
-      static constexpr size_t sn = sw * 2 + 1;
-      std::array<Scal, sn*sn*sn> operator()(
-          const FieldCell<Scal>& fc, IdxCell c, const M& m) {
-        using MIdx = typename M::MIdx;
-        auto& bc = m.GetIndexCells();
-        GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn));
-        MIdx w = bc.GetMIdx(c);
-        std::array<typename M::Scal, sn*sn*sn> uu;
-        size_t k = 0;
-        for (MIdx wo : bo) {
-          IdxCell cn = bc.GetIdx(w + wo);
-          uu[k++] = fc[cn];
-        }
-        return uu;
+  // Returns values over stencil centered at cell c with color cl.
+  // Values for neighbors without color cl are filled with 0.
+  // sw: stencil half-width
+  template <size_t sw>
+  struct GetStencilPure {
+    static constexpr size_t sn = sw * 2 + 1;
+    std::array<Scal, sn * sn * sn> operator()(
+        const FieldCell<Scal>& fc, IdxCell c, const M& m) {
+      using MIdx = typename M::MIdx;
+      auto& bc = m.GetIndexCells();
+      GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn));
+      MIdx w = bc.GetMIdx(c);
+      std::array<typename M::Scal, sn * sn * sn> uu;
+      size_t k = 0;
+      for (MIdx wo : bo) {
+        IdxCell cn = bc.GetIdx(w + wo);
+        uu[k++] = fc[cn];
       }
-    };
-  // bcfill: if >=0. add triangles from 
+      return uu;
+    }
+  };
+  // bcfill: if >=0. add triangles from
   // fcus [a]: sum of volume fractions, add triangles from SuCells if not null
   void DumpPolyMarch(
-      const GRange<size_t>& layers,
-      const Multi<const FieldCell<Scal>*>& fcu,
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<const FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Vect>*>& fcn,
       const Multi<const FieldCell<Scal>*>& fca,
-      const Multi<const FieldCell<bool>*>& fci,
-      std::string fn, Scal t, Scal th, bool bin, bool merge, Scal iso, 
-      const FieldCell<Scal>* fcus, M& m) {
-    (void) fcn;
-    (void) fca;
-    (void) fci;
-    (void) th;
+      const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t, Scal th,
+      bool bin, bool merge, Scal iso, const FieldCell<Scal>* fcus, M& m) {
+    (void)fcn;
+    (void)fca;
+    (void)fci;
+    (void)th;
     auto sem = m.GetSem("dumppolymarch");
     if (sem("local")) {
       dl_.clear();
@@ -295,7 +294,9 @@ struct UVof<M_>::Imp {
             auto uu = GetStencilPure<1>{}(*fcus, c, m);
             auto uun = ToNodes<1>(uu);
             auto nn = GradientNodes<1>(uu);
-            for (auto& n : nn) { n = -n; }
+            for (auto& n : nn) {
+              n = -n;
+            }
             std::vector<std::vector<Vect>> vv, vvn;
             GetMarchTriangles(uun, nn, m.GetCenter(c), h, iso, vv, vvn);
             for (size_t j = 0; j < vv.size(); ++j) {
@@ -318,10 +319,10 @@ struct UVof<M_>::Imp {
     }
     if (sem("write")) {
       if (m.IsRoot()) {
-        std::cout << std::fixed << std::setprecision(8)
-            << "dump" << " t=" << t << " to " << fn << std::endl;
-        WriteVtkPoly<Vect>(fn, dl_, &dln_,
-            {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"}, 
+        std::cout << std::fixed << std::setprecision(8) << "dump"
+                  << " t=" << t << " to " << fn << std::endl;
+        WriteVtkPoly<Vect>(
+            fn, dl_, &dln_, {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"},
             "Interface from marching cubes", true, bin, merge);
       }
     }
@@ -330,14 +331,14 @@ struct UVof<M_>::Imp {
   // Initializes usermap_.
   // fccl0: known colors
   // fccl: colors to reduce
-  static void UserMap(const GRange<size_t>& layers,
-               const Multi<const FieldCell<Scal>*>& fccl0,
-               const Multi<const FieldCell<Scal>*>& fccl,
-               std::map<Scal, Scal>& usermap, M& m) {
+  static void UserMap(
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fccl0,
+      const Multi<const FieldCell<Scal>*>& fccl, std::map<Scal, Scal>& usermap,
+      M& m) {
     auto sem = m.GetSem("usermap");
     struct {
       std::vector<Scal> vcl, vcln;
-    }* ctx(sem);
+    } * ctx(sem);
     auto& vcl = ctx->vcl;
     auto& vcln = ctx->vcln;
     if (sem("local")) {
@@ -373,14 +374,14 @@ struct UVof<M_>::Imp {
     }
   }
 
-  // Applies grid heuristic 
-  static void Grid(const GRange<size_t>& layers,
-            const Multi<const FieldCell<Scal>*>& fccl,
-            const Multi<FieldCell<Scal>*>& fcclt, M& m) {
+  // Applies grid heuristic
+  static void Grid(
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fccl,
+      const Multi<FieldCell<Scal>*>& fcclt, M& m) {
     auto sem = m.GetSem("grid");
     struct {
       std::vector<Scal> merge0, merge1; // colors to merge
-    }* ctx(sem);
+    } * ctx(sem);
     auto& merge0 = ctx->merge0;
     auto& merge1 = ctx->merge1;
     if (sem("local")) {
@@ -449,7 +450,7 @@ struct UVof<M_>::Imp {
       for (size_t i = 0; i < merge0.size(); ++i) {
         map[merge0[i]] = merge1[i];
       }
-      for (auto f : m.Faces()) {  // FIXME: inner cells traversed twice
+      for (auto f : m.Faces()) { // FIXME: inner cells traversed twice
         for (size_t q : {0, 1}) {
           auto c = m.GetCell(f, q);
           for (auto l : layers) {
@@ -467,14 +468,14 @@ struct UVof<M_>::Imp {
   // usermap: suggested map <old,new>
   //          applies maximum subset of usermap that produces unique colors,
   //          replaces others with new colors.
-  static void ReduceColor(const GRange<size_t>& layers,
-                   const Multi<FieldCell<Scal>*>& fccl,
-                   const std::map<Scal, Scal>& usermap, Scal clfixed, M& m) {
+  static void ReduceColor(
+      const GRange<size_t>& layers, const Multi<FieldCell<Scal>*>& fccl,
+      const std::map<Scal, Scal>& usermap, Scal clfixed, M& m) {
     auto sem = m.GetSem("recolor");
     struct {
       std::vector<std::vector<Scal>> vvcl; // all colors
       std::vector<Scal> vcl, vcln;
-    }* ctx(sem);
+    } * ctx(sem);
     auto& vvcl = ctx->vvcl;
     auto& vcl = ctx->vcl;
     // gather all colors from domain
@@ -516,7 +517,7 @@ struct UVof<M_>::Imp {
         for (auto& v : vvcl) {
           for (auto& cl : v) {
             if (!map.count(cl)) {
-              //map[cl] = usermap.count(cl) ? usermap.at(cl) : -2;
+              // map[cl] = usermap.count(cl) ? usermap.at(cl) : -2;
               if (!usermap.count(cl) || used.count(usermap.at(cl))) {
                 Add(cl, an);
                 an += 1;
@@ -550,15 +551,14 @@ struct UVof<M_>::Imp {
     }
   }
 
-  static void Init(const GRange<size_t>& layers,
-      const Multi<const FieldCell<Scal>*>& fcu,
-      const Multi<FieldCell<Scal>*>& fccl,
-      Multi<FieldCell<Scal>>& fcclt,
+  static void Init(
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
+      const Multi<FieldCell<Scal>*>& fccl, Multi<FieldCell<Scal>>& fcclt,
       Scal clfixed, Vect clfixed_x, Scal coalth, M& m) {
     auto sem = m.GetSem("recolor_init");
     struct {
       std::pair<typename M::Scal, int> cldist; // color,mesh_id
-    }* ctx(sem);
+    } * ctx(sem);
     auto& cldist = ctx->cldist;
     if (sem("clfixed")) {
       // block nearest to clfixed_x
@@ -610,18 +610,18 @@ struct UVof<M_>::Imp {
     }
   }
 
-  static void RecolorDirect(const GRange<size_t>& layers,
-      const Multi<const FieldCell<Scal>*>& fcu,
+  static void RecolorDirect(
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
-      const Multi<const FieldCell<Scal>*>& fccl0,
-      Scal clfixed, Vect clfixed_x, Scal coalth, const MapCondFace& mfc_cl,
-      bool verb, bool reduce, bool grid, M& m) {
+      const Multi<const FieldCell<Scal>*>& fccl0, Scal clfixed, Vect clfixed_x,
+      Scal coalth, const MapCondFace& mfc_cl, bool verb, bool reduce, bool grid,
+      M& m) {
     auto sem = m.GetSem("recolor");
     struct {
       std::map<Scal, Scal> usermap;
       Scal tries;
-      Multi<FieldCell<Scal>> fcclt;  // tmp color
-    }* ctx(sem);
+      Multi<FieldCell<Scal>> fcclt; // tmp color
+    } * ctx(sem);
     auto& fcclt = ctx->fcclt;
     if (sem.Nested()) {
       Init(layers, fcu, fccl, fcclt, clfixed, clfixed_x, coalth, m);
@@ -640,7 +640,7 @@ struct UVof<M_>::Imp {
       size_t cells = 0;
       using MIdx = typename M::MIdx;
       auto& bc = m.GetIndexCells();
-      static constexpr size_t sw = 1;  // stencil half-width
+      static constexpr size_t sw = 1; // stencil half-width
       static constexpr size_t sn = sw * 2 + 1;
       GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn));
       while (true) {
@@ -684,8 +684,7 @@ struct UVof<M_>::Imp {
     if (sem("check")) {
       if (verb && m.IsRoot()) {
         std::cerr << "recolor:"
-          << " max tries: " << ctx->tries 
-          << std::endl;
+                  << " max tries: " << ctx->tries << std::endl;
       }
       if (!ctx->tries) {
         sem.LoopBreak();
@@ -707,20 +706,20 @@ struct UVof<M_>::Imp {
     }
   }
 
-  static void RecolorUnionFind(const GRange<size_t>& layers,
-      const Multi<const FieldCell<Scal>*>& fcu,
+  static void RecolorUnionFind(
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
-      const Multi<const FieldCell<Scal>*>& fccl0,
-      Scal clfixed, Vect clfixed_x, Scal coalth, const MapCondFace& mfc_cl,
-      bool verb, bool reduce, bool grid, M& m) {
+      const Multi<const FieldCell<Scal>*>& fccl0, Scal clfixed, Vect clfixed_x,
+      Scal coalth, const MapCondFace& mfc_cl, bool verb, bool reduce, bool grid,
+      M& m) {
     auto sem = m.GetSem("recolor");
     struct {
       std::map<Scal, Scal> usermap;
       Scal tries;
-      Multi<FieldCell<Scal>> fcclt;  // tmp color
+      Multi<FieldCell<Scal>> fcclt; // tmp color
       Multi<FieldCell<IdxCell>> fcc; // root cell
-      Multi<FieldCell<char>> fcl;  // root layer
-    }* ctx(sem);
+      Multi<FieldCell<char>> fcl; // root layer
+    } * ctx(sem);
     auto& fcclt = ctx->fcclt;
     auto& fcc = ctx->fcc;
     auto& fcl = ctx->fcl;
@@ -752,9 +751,7 @@ struct UVof<M_>::Imp {
       using Pair = std::pair<IdxCell, char>;
       size_t tries = 0;
       // Returns reference to color
-      auto Clt = [&](Pair p) -> Scal& {
-        return fcclt[p.second][p.first];
-      };
+      auto Clt = [&](Pair p) -> Scal& { return fcclt[p.second][p.first]; };
       // Returns parent of p.
       auto Get = [&](Pair p) {
         IdxCell c = p.first;
@@ -792,7 +789,7 @@ struct UVof<M_>::Imp {
 
       using MIdx = typename M::MIdx;
       auto& bc = m.GetIndexCells();
-      static constexpr size_t sw = 1;  // stencil half-width
+      static constexpr size_t sw = 1; // stencil half-width
       static constexpr size_t sn = sw * 2 + 1;
       GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn));
 
@@ -856,8 +853,7 @@ struct UVof<M_>::Imp {
     if (sem("check")) {
       if (verb && m.IsRoot()) {
         std::cerr << "recolor:"
-          << " max tries: " << ctx->tries 
-          << std::endl;
+                  << " max tries: " << ctx->tries << std::endl;
       }
       if (!ctx->tries) {
         sem.LoopBreak();
@@ -879,18 +875,20 @@ struct UVof<M_>::Imp {
     }
   }
 
-  static void Recolor(const GRange<size_t>& layers,
-      const Multi<const FieldCell<Scal>*>& fcu,
+  static void Recolor(
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
-      const Multi<const FieldCell<Scal>*>& fccl0,
-      Scal clfixed, Vect clfixed_x, Scal coalth, const MapCondFace& mfc,
-      bool verb, bool unionfind, bool reduce, bool grid, M& m) {
+      const Multi<const FieldCell<Scal>*>& fccl0, Scal clfixed, Vect clfixed_x,
+      Scal coalth, const MapCondFace& mfc, bool verb, bool unionfind,
+      bool reduce, bool grid, M& m) {
     if (unionfind) {
-      return RecolorUnionFind(layers, fcu, fccl, fccl0, clfixed, clfixed_x,
-                              coalth, mfc, verb, reduce, grid, m);
+      return RecolorUnionFind(
+          layers, fcu, fccl, fccl0, clfixed, clfixed_x, coalth, mfc, verb,
+          reduce, grid, m);
     }
-    return RecolorDirect(layers, fcu, fccl, fccl0, clfixed, clfixed_x,
-                        coalth, mfc, verb, reduce, grid, m);
+    return RecolorDirect(
+        layers, fcu, fccl, fccl0, clfixed, clfixed_x, coalth, mfc, verb, reduce,
+        grid, m);
   }
 
   std::vector<std::vector<Vect>> dl_; // dump poly
@@ -908,59 +906,54 @@ UVof<M_>::~UVof() = default;
 
 template <class M_>
 void UVof<M_>::DumpPoly(
-    const GRange<size_t>& layers,
-    const Multi<const FieldCell<Scal>*>& fcu,
+    const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
     const Multi<const FieldCell<Scal>*>& fccl,
     const Multi<const FieldCell<Vect>*>& fcn,
     const Multi<const FieldCell<Scal>*>& fca,
-    const Multi<const FieldCell<bool>*>& fci,
-    std::string fn, Scal t, Scal th, bool bin, bool merge, M& m) {
+    const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t, Scal th,
+    bool bin, bool merge, M& m) {
   imp->DumpPoly(layers, fcu, fccl, fcn, fca, fci, fn, t, th, bin, merge, m);
 }
 
 template <class M_>
 void UVof<M_>::DumpPoly(
     const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcn,
-    const FieldCell<Scal>& fca, const FieldCell<bool>& fci,
-    std::string fn, Scal t, Scal th, bool bin, bool merge, M& m) {
+    const FieldCell<Scal>& fca, const FieldCell<bool>& fci, std::string fn,
+    Scal t, Scal th, bool bin, bool merge, M& m) {
   GRange<size_t> layers(0, 1);
   const FieldCell<Scal>* fccl(nullptr);
-  imp->DumpPoly(layers, &fcu, fccl, &fcn, &fca, &fci,
-                fn, t, th, bin, merge, m);
+  imp->DumpPoly(layers, &fcu, fccl, &fcn, &fca, &fci, fn, t, th, bin, merge, m);
 }
 
 template <class M_>
 void UVof<M_>::DumpPolyMarch(
-    const GRange<size_t>& layers,
-    const Multi<const FieldCell<Scal>*>& fcu,
+    const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
     const Multi<const FieldCell<Scal>*>& fccl,
     const Multi<const FieldCell<Vect>*>& fcn,
     const Multi<const FieldCell<Scal>*>& fca,
-    const Multi<const FieldCell<bool>*>& fci,
-    std::string fn, Scal t, Scal th, bool bin, bool merge, Scal iso,
-    const FieldCell<Scal>* fcus, M& m) {
+    const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t, Scal th,
+    bool bin, bool merge, Scal iso, const FieldCell<Scal>* fcus, M& m) {
   imp->DumpPolyMarch(
       layers, fcu, fccl, fcn, fca, fci, fn, t, th, bin, merge, iso, fcus, m);
 }
 
 template <class M_>
-void UVof<M_>::Recolor(const GRange<size_t>& layers,
-    const Multi<const FieldCell<Scal>*>& fcu,
+void UVof<M_>::Recolor(
+    const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
     const Multi<FieldCell<Scal>*>& fccl,
-    const Multi<const FieldCell<Scal>*>& fccl0,
-    Scal clfixed, Vect clfixed_x, Scal coalth,
-    const MapCondFace& mfcu,
-    bool verb, bool unionfind, bool reduce, bool grid,
-    M& m) {
-  Imp::Recolor(layers, fcu, fccl, fccl0, clfixed, clfixed_x, coalth, mfcu,
-               verb, unionfind, reduce, grid, m);
+    const Multi<const FieldCell<Scal>*>& fccl0, Scal clfixed, Vect clfixed_x,
+    Scal coalth, const MapCondFace& mfcu, bool verb, bool unionfind,
+    bool reduce, bool grid, M& m) {
+  Imp::Recolor(
+      layers, fcu, fccl, fccl0, clfixed, clfixed_x, coalth, mfcu, verb,
+      unionfind, reduce, grid, m);
 }
 
 template <class M_>
 void UVof<M_>::GetAdvectionFaceCond(
-    const M& m, const MapCondFaceAdvection<Scal>& mfc,
-    MapCondFace& mfc_vf, MapCondFace& mfc_cl, MapCondFace& mfc_im,
-    MapCondFace& mfc_n, MapCondFace& mfc_a) {
+    const M& m, const MapCondFaceAdvection<Scal>& mfc, MapCondFace& mfc_vf,
+    MapCondFace& mfc_cl, MapCondFace& mfc_im, MapCondFace& mfc_n,
+    MapCondFace& mfc_a) {
   using MIdx = typename M::MIdx;
   using TRM = Trackerm<M>;
   mfc_vf.clear();

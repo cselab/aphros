@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <sstream>
+#include <string>
 #include <typeinfo>
 
 #include "solver/cond.h"
@@ -64,7 +64,6 @@ std::string GetName(const CondFace* b) {
 }
 
 } // namespace debugimpl
-
 
 std::string GetCondName(const solver::CondFace* b) {
   return debugimpl::GetName(b);

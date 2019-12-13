@@ -1,7 +1,7 @@
+#include <stdio.h>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <stdio.h>
 
 #include "geom/vect.h"
 #include "solver/reconst.h"

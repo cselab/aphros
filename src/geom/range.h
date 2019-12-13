@@ -29,9 +29,9 @@ class GRange {
     size_t i_;
   };
 
-  GRange() : b_(0) , e_(0) {}
-  explicit GRange(size_t e) : b_(0) , e_(e) {}
-  GRange(size_t b, size_t e) : b_(b) , e_(e) {}
+  GRange() : b_(0), e_(0) {}
+  explicit GRange(size_t e) : b_(0), e_(e) {}
+  GRange(size_t b, size_t e) : b_(b), e_(e) {}
 
   iterator begin() const {
     return iterator(b_);
@@ -59,5 +59,3 @@ class GRange {
  private:
   size_t b_, e_;
 };
-
-

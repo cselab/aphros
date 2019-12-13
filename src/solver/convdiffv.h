@@ -21,8 +21,12 @@ class ConvDiffVect : public UnsteadyIterativeSolver {
       const FieldCell<Vect>* fcs /*force*/,
       const FieldFace<Scal>* ffv /*volume flux*/)
       : UnsteadyIterativeSolver(t, dt)
-      , m(m), par_(par), fcr_(fcr), ffd_(ffd), fcs_(fcs), ffv_(ffv)
-  {}
+      , m(m)
+      , par_(par)
+      , fcr_(fcr)
+      , ffd_(ffd)
+      , fcs_(fcs)
+      , ffv_(ffv) {}
   virtual const FieldCell<Vect>& GetVelocity(Layers) const = 0;
   virtual const FieldCell<Vect>& GetVelocity() const {
     return GetVelocity(Layers::time_curr);
@@ -39,18 +43,20 @@ class ConvDiffVect : public UnsteadyIterativeSolver {
   virtual FieldCell<Scal> GetDiag(size_t d) const = 0;
   // Returns the constant term of the equation in direction d
   virtual FieldCell<Scal> GetConst(size_t d) const = 0;
-  virtual const Par& GetPar() const { return par_; }
-  virtual void SetPar(const Par& par) { par_ = par; }
+  virtual const Par& GetPar() const {
+    return par_;
+  }
+  virtual void SetPar(const Par& par) {
+    par_ = par;
+  }
 
  protected:
   M& m;
-  Par par_;  // parameters
-  const FieldCell<Scal>* fcr_;  // density
-  const FieldFace<Scal>* ffd_;  // dynamic viscosity
-  const FieldCell<Vect>* fcs_;  // force
-  const FieldFace<Scal>* ffv_;  // volume flux
-
+  Par par_; // parameters
+  const FieldCell<Scal>* fcr_; // density
+  const FieldFace<Scal>* ffd_; // dynamic viscosity
+  const FieldCell<Vect>* fcs_; // force
+  const FieldFace<Scal>* ffv_; // volume flux
 };
-
 
 } // namespace solver

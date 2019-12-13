@@ -3,12 +3,12 @@
 #include <memory>
 
 #include "distr/distrbasic.h"
-#include "func/init_u.h"
-#include "solver/solver.h"
-#include "solver/approx.h"
-#include "util/vof.h"
 #include "dump/dump.h"
+#include "func/init_u.h"
+#include "solver/approx.h"
+#include "solver/solver.h"
 #include "solver/trackerm.h"
+#include "util/vof.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -26,7 +26,7 @@ void Dump(M& m, const FieldCell<Scal>& fc, std::string name, int i) {
 }
 
 void Run(M& m, State&, Vars& var) {
-  (void) var;
+  (void)var;
   auto sem = m.GetSem();
   struct {
     FieldCell<Scal> fcu;
@@ -36,7 +36,7 @@ void Run(M& m, State&, Vars& var) {
     MapCondFace mfc;
     std::unique_ptr<TRM> trm;
     FieldCell<Scal> fcim;
-  }* ctx(sem);
+  } * ctx(sem);
 
   auto& fcu = ctx->fcu;
   auto& fccl = ctx->fccl;
@@ -54,8 +54,9 @@ void Run(M& m, State&, Vars& var) {
       const bool unionfind = true;
       const bool reduce = true;
       const bool grid = true;
-      uvof.Recolor(layers, &fcu, &fccl, &fccl, -1, Vect(0), 1e10, mfc,
-          true, unionfind, reduce, grid, m);
+      uvof.Recolor(
+          layers, &fcu, &fccl, &fccl, -1, Vect(0), 1e10, mfc, true, unionfind,
+          reduce, grid, m);
       fcclm = fccl;
     }
   };
@@ -108,7 +109,8 @@ void Run(M& m, State&, Vars& var) {
     }
     Recolor();
   }
-  if (sem()) {} // empty stage for dump
+  if (sem()) {
+  } // empty stage for dump
 }
 
 int main(int argc, const char** argv) {
@@ -132,4 +134,3 @@ set string list_path b.dat
 
   return RunMpiBasic<M, State>(argc, argv, Run, conf);
 }
-

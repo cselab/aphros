@@ -1,7 +1,7 @@
 #undef NDEBUG
-#include <sstream>
-#include <iostream>
 #include <cassert>
+#include <iostream>
+#include <sstream>
 
 #include "parse/vars.h"
 
@@ -30,9 +30,8 @@ void TestParse(std::string s) {
   auto& m = vars.Get<T>();
   m.SetStr(k, s);
   auto p = m.GetStr(k);
-  std::cerr
-      << m.GetTypeName() << ": "
-      << "'" << s << "' == '" << p << "'" << std::endl;
+  std::cerr << m.GetTypeName() << ": "
+            << "'" << s << "' == '" << p << "'" << std::endl;
   assert(s == p);
 }
 
@@ -41,9 +40,8 @@ void TestTypeName(std::string s, std::string type) {
   std::string k = "key";
   vars.SetStr(type, k, s);
   std::string p = vars.GetStr(type, k);
-  std::cerr
-      << type << ": "
-      << "'" << s << "' == '" << p << "'" << std::endl;
+  std::cerr << type << ": "
+            << "'" << s << "' == '" << p << "'" << std::endl;
   assert(s == p);
 }
 
@@ -106,7 +104,6 @@ void Test() {
 
   std::cerr << "test_vars::Test() done\n" << std::endl;
 }
-
 
 int main() {
   simple::Simple();

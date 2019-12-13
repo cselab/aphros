@@ -1,14 +1,14 @@
 #undef NDEBUG
-#include <sstream>
-#include <iostream>
 #include <cassert>
-#include <functional>
 #include <cmath>
+#include <functional>
+#include <iostream>
+#include <sstream>
 
 #include "geom/mesh.h"
-#include "solver/solver.h"
-#include "solver/cond.h"
 #include "solver/approx.h"
+#include "solver/cond.h"
+#include "solver/solver.h"
 
 const int dim = 3;
 using MIdx = GMIdx<dim>;
@@ -44,8 +44,7 @@ typename V::value_type Prod(const V& v) {
 template <class Idx, class M>
 typename Mesh::Scal DiffMax(
     const GField<typename Mesh::Scal, Idx>& u,
-    const GField<typename Mesh::Scal, Idx>& v,
-    const M& m) {
+    const GField<typename Mesh::Scal, Idx>& v, const M& m) {
   using Scal = typename Mesh::Scal;
   Scal r = 0;
   for (auto i : m.template GetIn<Idx>()) {
@@ -57,8 +56,7 @@ typename Mesh::Scal DiffMax(
 template <class Idx, class M>
 typename Mesh::Scal DiffMax(
     const GField<typename M::Vect, Idx>& u,
-    const GField<typename M::Vect, Idx>& v,
-    const M& m) {
+    const GField<typename M::Vect, Idx>& v, const M& m) {
   using Scal = typename Mesh::Scal;
   Scal r = 0;
   for (auto i : m.template GetIn<Idx>()) {
@@ -67,30 +65,28 @@ typename Mesh::Scal DiffMax(
   return r;
 }
 
-
-#define CMP(a, b) \
-  assert(Cmp(a, b)); 
+#define CMP(a, b) assert(Cmp(a, b));
 
 // Print CMP
-#define PCMP(a, b) \
+#define PCMP(a, b)                                                    \
   std::cerr << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
-  CMP(a, b); 
+  CMP(a, b);
 
 // Echo Execute
-#define EE(...); std::cerr << "\n" << #__VA_ARGS__ << std::endl; __VA_ARGS__;
-
+#define EE(...)                                   \
+  ;                                               \
+  std::cerr << "\n" << #__VA_ARGS__ << std::endl; \
+  __VA_ARGS__;
 
 Mesh GetMesh(MIdx s /*size in cells*/) {
   Rect<Vect> dom(Vect(0.1, 0.2, 0.1), Vect(1.1, 1.2, 1.3));
   MIdx b(-2, -3, -4); // lower index
-  int hl = 1;         // halos 
+  int hl = 1; // halos
   return InitUniformMesh<Mesh>(dom, b, s, hl, true, true, s, 0);
 }
 
 template <class T, class Idx, class M>
-void Eval(std::function<T(Vect)> f,   
-          GField<T, Idx>& r,
-          const M& m) {
+void Eval(std::function<T(Vect)> f, GField<T, Idx>& r, const M& m) {
   r.Reinit(m);
   for (auto i : m.template GetAll<Idx>()) {
     r[i] = f(m.GetCenter(i));
@@ -110,21 +106,22 @@ Scal RunInterp(std::function<Scal(Vect)> uf, const M& m) {
   FieldFace<Scal> ff = solver::Interpolate(cf, bc, m);
 
   // Init reference on faces
-  FieldFace<Scal> fr;  
+  FieldFace<Scal> fr;
   Eval(uf, fr, m);
 
   return DiffMax(ff, fr, m);
 }
 
-Scal RunGrad(std::function<Scal(Vect)> uf, 
-             std::function<Vect(Vect)> ugr,  // reference
-             const Mesh& m) {
+Scal RunGrad(
+    std::function<Scal(Vect)> uf,
+    std::function<Vect(Vect)> ugr, // reference
+    const Mesh& m) {
   // Init field on all cells (including halos)
   FieldCell<Scal> f;
   Eval(uf, f, m);
 
   // Empty bc
-  MapCondFace bc; 
+  MapCondFace bc;
 
   // Interpolate to faces
   FieldFace<Scal> ff = solver::Interpolate(f, bc, m);
@@ -133,7 +130,7 @@ Scal RunGrad(std::function<Scal(Vect)> uf,
   FieldCell<Vect> g = solver::Gradient(ff, m);
 
   // Init reference on cells
-  FieldCell<Vect> gr;  
+  FieldCell<Vect> gr;
   Eval(ugr, gr, m);
 
   return DiffMax(g, gr, m);
@@ -142,18 +139,14 @@ Scal RunGrad(std::function<Scal(Vect)> uf,
 void Single(std::function<Scal(Vect)> f) {
   auto m = GetMesh(MIdx(5, 4, 3));
   auto e = RunInterp(f, m);
-  std::cerr << std::scientific
-      << "err: " << e
-      << std::endl;
+  std::cerr << std::scientific << "err: " << e << std::endl;
   CMP(e, 0.);
 }
 
 void SingleG(std::function<Scal(Vect)> f, std::function<Vect(Vect)> gr) {
   auto m = GetMesh(MIdx(5, 4, 3));
   auto e = RunGrad(f, gr, m);
-  std::cerr << std::scientific
-      << "err: " << e
-      << std::endl;
+  std::cerr << std::scientific << "err: " << e << std::endl;
   CMP(e, 0.);
 }
 
@@ -166,17 +159,13 @@ void Conv(std::function<Scal(Vect)> f) {
   size_t n = 0;
   while (s.prod() < 1e4) {
     auto m = GetMesh(s);
-    Scal e = RunInterp(f, m); 
+    Scal e = RunInterp(f, m);
     // e = C * h ^ ord
     // ep / e = rh ^ ord
     if (ep > 0) {
       ord = std::log(ep / e) / std::log(rh);
     }
-    std::cerr 
-        << "s=" << s 
-        << "\terr=" << e 
-        << "\tord=" << ord
-        << std::endl;
+    std::cerr << "s=" << s << "\terr=" << e << "\tord=" << ord << std::endl;
     s = MIdx(Vect(s) * rh);
     ep = e;
     ++n;
@@ -194,17 +183,13 @@ void ConvG(std::function<Scal(Vect)> f, std::function<Vect(Vect)> r) {
   size_t n = 0;
   while (s.prod() < 1e4) {
     auto m = GetMesh(s);
-    Scal e = RunGrad(f, r, m); 
+    Scal e = RunGrad(f, r, m);
     // e = C * h ^ ord
     // ep / e = rh ^ ord
     if (ep > 0) {
       ord = std::log(ep / e) / std::log(rh);
     }
-    std::cerr 
-        << "s=" << s 
-        << "\terr=" << e 
-        << "\tord=" << ord
-        << std::endl;
+    std::cerr << "s=" << s << "\terr=" << e << "\tord=" << ord << std::endl;
     s = MIdx(Vect(s) * rh);
     ep = e;
     ++n;
@@ -239,45 +224,44 @@ void TestGrad() {
   EE(Single([](Vect x) { return x[0] * x[1] * x[2]; }));
   EE(Conv([](Vect x) { return std::sin(x[0] + sqr(x[1]) + cube(x[2])); }));
 
-  EE(SingleG([](Vect) { return 1.; },
-             [](Vect) { return Vect(0., 0., 0.); }));
-  EE(SingleG([](Vect x) { return x[0]; },
-             [](Vect) { return Vect(1., 0., 0.); }));
-  EE(SingleG([](Vect x) { return sqr(x[0]); },
-             [](Vect x) { return Vect(2 * x[0], 0., 0.); }));
-  EE(SingleG([](Vect x) { return sqr(x[0]); },
-             [](Vect x) { return Vect(2 * x[0], 0., 0.); }));
-  EE(SingleG([](Vect x) { return sqr(x[0]) * sqr(x[1]) * sqr(x[2]); },
-             [](Vect x) { return Vect(
-                 2 * sqr(x[1]) * sqr(x[2]) * x[0], 
-                 2 * sqr(x[2]) * sqr(x[0]) * x[1], 
-                 2 * sqr(x[0]) * sqr(x[1]) * x[2]
-                 ); }));
+  EE(SingleG([](Vect) { return 1.; }, [](Vect) { return Vect(0., 0., 0.); }));
+  EE(SingleG(
+      [](Vect x) { return x[0]; }, [](Vect) { return Vect(1., 0., 0.); }));
+  EE(SingleG(
+      [](Vect x) { return sqr(x[0]); },
+      [](Vect x) { return Vect(2 * x[0], 0., 0.); }));
+  EE(SingleG(
+      [](Vect x) { return sqr(x[0]); },
+      [](Vect x) { return Vect(2 * x[0], 0., 0.); }));
+  EE(SingleG(
+      [](Vect x) { return sqr(x[0]) * sqr(x[1]) * sqr(x[2]); },
+      [](Vect x) {
+        return Vect(
+            2 * sqr(x[1]) * sqr(x[2]) * x[0], 2 * sqr(x[2]) * sqr(x[0]) * x[1],
+            2 * sqr(x[0]) * sqr(x[1]) * x[2]);
+      }));
 
-  EE(ConvG([](Vect x) { return std::sin(x[0] + sqr(x[1]) + cube(x[2])); },
-             [](Vect x) { return Vect(
-                 std::cos(x[0] + sqr(x[1]) + cube(x[2])),
-                 std::cos(x[0] + sqr(x[1]) + cube(x[2])) * 2. * x[1],
-                 std::cos(x[0] + sqr(x[1]) + cube(x[2])) * 3. * sqr(x[2])
-                 ); }));
+  EE(ConvG(
+      [](Vect x) { return std::sin(x[0] + sqr(x[1]) + cube(x[2])); },
+      [](Vect x) {
+        return Vect(
+            std::cos(x[0] + sqr(x[1]) + cube(x[2])),
+            std::cos(x[0] + sqr(x[1]) + cube(x[2])) * 2. * x[1],
+            std::cos(x[0] + sqr(x[1]) + cube(x[2])) * 3. * sqr(x[2]));
+      }));
 }
 
 void TestCoeff() {
-  auto p = [](Scal x, const std::vector<Scal>& z, 
-              const std::vector<Scal>& ke, size_t b) {
+  auto p = [](Scal x, const std::vector<Scal>& z, const std::vector<Scal>& ke,
+              size_t b) {
     std::vector<Scal> k;
     if (b == 0) {
       k = solver::GetGradCoeffs(x, z);
     } else {
       k = solver::GetGradCoeffs(x, z, b);
     }
-    std::cerr
-        << "x=" << x
-        << " z=" << z
-        << " k=" << k
-        << " b=" << b
-        << " ke=" << ke 
-        << std::endl;
+    std::cerr << "x=" << x << " z=" << z << " k=" << k << " b=" << b
+              << " ke=" << ke << std::endl;
     for (size_t i = 0; i < k.size(); ++i) {
       assert(std::abs(k[i] - ke[i]) < 1e-12);
     }
@@ -292,7 +276,6 @@ void TestCoeff() {
 void TestApprox() {
   PCMP(solver::UExtrap(5., 0., 2., 1., 3.), 7.);
 }
-
 
 int main() {
   TestApprox();

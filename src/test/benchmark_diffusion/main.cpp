@@ -1,18 +1,18 @@
-#include <sstream>
-#include <iostream>
 #include <cassert>
-#include <functional>
 #include <cmath>
-#include <string>
-#include <memory>
+#include <functional>
 #include <iomanip>
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <string>
 
 #include "geom/mesh.h"
-#include "solver/solver.h"
-#include "solver/cond.h"
 #include "solver/approx.h"
-#include "util/timer.h"
+#include "solver/cond.h"
+#include "solver/solver.h"
 #include "util/sysinfo.h"
+#include "util/timer.h"
 
 const int dim = 3;
 using MIdx = GMIdx<dim>;
@@ -23,11 +23,10 @@ using Scal = double;
 using Vect = GVect<Scal, dim>;
 using Mesh = MeshStructured<Scal, dim>;
 
-
 Mesh GetMesh(MIdx s /*size in cells*/) {
   Rect<Vect> dom(Vect(0), Vect(1));
   MIdx b(0, 0, 0); // lower index
-  int hl = 2;         // halos 
+  int hl = 2; // halos
   return InitUniformMesh<Mesh>(dom, b, s, hl, true, true, s, 0);
 }
 
@@ -38,7 +37,6 @@ class TimerMesh : public Timer {
  protected:
   Mesh& m;
 };
-
 
 class LoopPlain : public TimerMesh {
  public:
@@ -111,10 +109,7 @@ class Interp : public TimerMesh {
 
 class Diffusion : public TimerMesh {
  public:
-  Diffusion(Mesh& m) 
-      : TimerMesh("diff-face-idx", m)
-      , fc(m), ff(m)
-  {
+  Diffusion(Mesh& m) : TimerMesh("diff-face-idx", m), fc(m), ff(m) {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
@@ -149,10 +144,7 @@ class Diffusion : public TimerMesh {
 
 class DiffusionNeighb : public TimerMesh {
  public:
-  DiffusionNeighb(Mesh& m) 
-      : TimerMesh("diff-cell-idx", m)
-      , fc(m), fct(m)
-  {
+  DiffusionNeighb(Mesh& m) : TimerMesh("diff-cell-idx", m), fc(m), fct(m) {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
@@ -182,10 +174,7 @@ class DiffusionNeighb : public TimerMesh {
 
 class DiffusionPlain : public TimerMesh {
  public:
-  DiffusionPlain(Mesh& m) 
-      : TimerMesh("diff-cell-plain", m)
-      , fc(m), fct(m) 
-  {
+  DiffusionPlain(Mesh& m) : TimerMesh("diff-cell-plain", m), fc(m), fct(m) {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
@@ -194,14 +183,13 @@ class DiffusionPlain : public TimerMesh {
   void F() override {
     volatile size_t ii = 0;
 
-
     auto& bc = m.GetIndexCells();
     MIdx wb = bc.GetBegin();
     MIdx ws = bc.GetSize();
-    const size_t hl = -wb[0];  // halo cells
-    const size_t nx = ws[0];   // block size n^3
-    const size_t ny = ws[1];   // block size n^3
-    const size_t nz = ws[2];   // block size n^3
+    const size_t hl = -wb[0]; // halo cells
+    const size_t nx = ws[0]; // block size n^3
+    const size_t ny = ws[1]; // block size n^3
+    const size_t nz = ws[2]; // block size n^3
 
     fc.swap(fct);
     Scal* d = fc.data();
@@ -236,10 +224,8 @@ class DiffusionPlain : public TimerMesh {
 
 class DiffusionPlainFace : public TimerMesh {
  public:
-  DiffusionPlainFace(Mesh& m) 
-      : TimerMesh("diff-face-plain", m)
-      , fc(m), fcx(m), fcy(m), fcz(m)
-  {
+  DiffusionPlainFace(Mesh& m)
+      : TimerMesh("diff-face-plain", m), fc(m), fcx(m), fcy(m), fcz(m) {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
@@ -250,10 +236,10 @@ class DiffusionPlainFace : public TimerMesh {
     auto& bc = m.GetIndexCells();
     MIdx wb = bc.GetBegin();
     MIdx ws = bc.GetSize();
-    const size_t hl = -wb[0];  // halo cells
-    const size_t nx = ws[0];   // block size n^3
-    const size_t ny = ws[1];   // block size n^3
-    const size_t nz = ws[2];   // block size n^3
+    const size_t hl = -wb[0]; // halo cells
+    const size_t nx = ws[0]; // block size n^3
+    const size_t ny = ws[1]; // block size n^3
+    const size_t nz = ws[2]; // block size n^3
 
     Scal* d = fc.data();
     Scal* tx = fcx.data();
@@ -317,26 +303,27 @@ template <class T>
 void Try(Mesh& m, size_t i, size_t& k, Timer*& p) {
   if (k++ == i) {
     p = new T(m);
-  } 
+  }
 }
 
 // i: test index
 // m: mesh
 // Output:
-// t: total per one call [sec] 
-// n: number of calls 
+// t: total per one call [sec]
+// n: number of calls
 // mem: memory usage in bytes
 // name: test name
 // Returns 1 if test with index i found
-bool Run(const size_t i, Mesh& m,
-         double& t, size_t& n, size_t& mem, std::string& name) {
+bool Run(
+    const size_t i, Mesh& m, double& t, size_t& n, size_t& mem,
+    std::string& name) {
   size_t k = 0;
   Timer* p = nullptr;
 
-  //Try<LoopPlain>(m, i, k, p);
-  //Try<LoopInCells>(m, i, k, p);
-  //Try<LoopFldInCells>(m, i, k, p);
-  //Try<Interp>(m, i, k, p);
+  // Try<LoopPlain>(m, i, k, p);
+  // Try<LoopInCells>(m, i, k, p);
+  // Try<LoopFldInCells>(m, i, k, p);
+  // Try<Interp>(m, i, k, p);
   Try<Diffusion>(m, i, k, p);
   Try<DiffusionPlainFace>(m, i, k, p);
   Try<DiffusionNeighb>(m, i, k, p);
@@ -370,16 +357,13 @@ int main() {
   for (auto s : ss) {
     auto m = GetMesh(s);
     const size_t nci = m.GetInBlockCells().size();
-    std::cout 
-        << "Mesh" 
-        << " size=" << s
-        << " incells=" << nci 
-        << std::endl;
+    std::cout << "Mesh"
+              << " size=" << s << " incells=" << nci << std::endl;
 
     /*
-    std::cout 
+    std::cout
         << setw(ww) << "name"
-        << setw(ww) << "t/incells [ns]" 
+        << setw(ww) << "t/incells [ns]"
         << setw(ww) << "iters"
         << std::endl;
     for (size_t q = 0; q < ww * 3; ++q) {
@@ -394,14 +378,10 @@ int main() {
     size_t mem;
     std::string name;
     while (Run(i++, m, t, n, mem, name)) {
-      std::cout 
-          << setw(ww) << name 
-          << setw(ww) << t * 1e9 / nci
-          << setw(ww) << n
-          << std::endl;
+      std::cout << setw(ww) << name << setw(ww) << t * 1e9 / nci << setw(ww)
+                << n << std::endl;
     }
     std::cout << std::endl;
     std::cout << std::endl;
   }
-
 }

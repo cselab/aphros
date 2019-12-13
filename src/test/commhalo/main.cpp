@@ -1,6 +1,6 @@
 #undef NDEBUG
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 #include "distr/distrbasic.h"
 
@@ -20,7 +20,7 @@ void Run(M& m, State& s, Vars&) {
   auto& bc = m.GetAllBlockCells();
   if (sem("local")) {
     out.open("o_" + std::to_string(m.GetId()) + ".log");
-    fc.Reinit(m, -1);  // allocate memory for field fc
+    fc.Reinit(m, -1); // allocate memory for field fc
     out << "before id=" << m.GetId() << std::endl;
     for (auto c : m.Cells()) { // traverse internal cells
       fc[c] = m.GetId();
@@ -30,7 +30,7 @@ void Run(M& m, State& s, Vars&) {
       out << w << " " << fc[c] << std::endl;
     }
     out << std::endl;
-    m.Comm(&fc);      // exchange halo cells
+    m.Comm(&fc); // exchange halo cells
   }
   if (sem("comm")) {
     out << "after id=" << m.GetId() << std::endl;
@@ -40,7 +40,8 @@ void Run(M& m, State& s, Vars&) {
     }
     out << std::endl;
   }
-  if (sem()) {}
+  if (sem()) {
+  }
 }
 
 int main(int argc, const char** argv) {
@@ -68,4 +69,3 @@ set int verbose_stages 1
 
   return RunMpiBasic<M, State>(argc, argv, Run, conf);
 }
-

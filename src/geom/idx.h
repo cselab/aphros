@@ -18,8 +18,8 @@ class GIdx {
 
   explicit GIdx(size_t i) : i_(i) {}
 
-  explicit operator size_t() const { 
-    return i_; 
+  explicit operator size_t() const {
+    return i_;
   }
   size_t GetRaw() const {
     return i_;
@@ -35,12 +35,10 @@ class GIdx {
   }
 
  public:
-  static constexpr int id = id_; 
+  static constexpr int id = id_;
   size_t i_;
 };
 
 using IdxCell = GIdx<0>;
 using IdxFace = GIdx<1>;
 using IdxNode = GIdx<2>;
-
-

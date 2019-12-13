@@ -1,11 +1,11 @@
 #pragma once
 
-#include <string>
-#include <iostream>
-#include <memory>
 #include <cassert>
 #include <fstream>
 #include <functional>
+#include <iostream>
+#include <memory>
+#include <string>
 
 #include "geom/mesh.h"
 
@@ -16,7 +16,9 @@ class Out {
   // n: name
   Out(std::string n) : n_(n) {}
 
-  virtual std::string GetName() { return n_; }
+  virtual std::string GetName() {
+    return n_;
+  }
 
   virtual void Prepare() = 0;
 
@@ -84,7 +86,9 @@ class OutScalFunc : public OutScal<V> {
 
   void Prepare() override {}
 
-  V GetValue() override { return u_(); }
+  V GetValue() override {
+    return u_();
+  }
 
  private:
   std::function<V()> u_; // function for single value
@@ -106,9 +110,7 @@ class SerScalPlain : public Ser {
  public:
   // vo: instances of Out
   // fn: output filename
-  SerScalPlain(const VOut& vo, std::string fn)
-      : vo_(vo)
-  {
+  SerScalPlain(const VOut& vo, std::string fn) : vo_(vo) {
     out_.open(fn);
     out_.precision(16);
     for (auto& o : vo_) {
@@ -119,7 +121,7 @@ class SerScalPlain : public Ser {
   void Write(double /*time*/, std::string /*title*/) override {
     for (auto& og : vo_) { // out generic
       og->Prepare();
-      if (auto o = dynamic_cast<OutScal<Scal>*>(og.get())) { 
+      if (auto o = dynamic_cast<OutScal<Scal>*>(og.get())) {
         out_ << o->GetValue() << " ";
       } else if (auto o = dynamic_cast<OutScal<int>*>(og.get())) {
         out_ << o->GetValue() << " ";
@@ -135,7 +137,6 @@ class SerScalPlain : public Ser {
   VOut vo_;
   std::ofstream out_;
 };
-
 
 } // namespace plain
 

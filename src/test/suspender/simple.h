@@ -1,6 +1,6 @@
 namespace simple {
 
-void B (Suspender& s) {
+void B(Suspender& s) {
   Suspender::Sem sem = s.GetSem();
   if (sem()) {
     std::cerr << "B1" << std::endl;
@@ -10,7 +10,7 @@ void B (Suspender& s) {
   }
 }
 
-void A (Suspender& s) {
+void A(Suspender& s) {
   Suspender::Sem sem = s.GetSem();
   if (sem()) {
     std::cerr << "A1" << std::endl;
@@ -23,7 +23,6 @@ void A (Suspender& s) {
   }
 }
 
-
 void Simple() {
   Suspender s;
 
@@ -33,4 +32,3 @@ void Simple() {
 }
 
 } // namespace simple
-

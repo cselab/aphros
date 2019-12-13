@@ -27,11 +27,10 @@ class ConvDiffScalImp final : public ConvDiffScal<M_> {
   // dt: time step
   // par: parameters
   ConvDiffScalImp(
-      M& m, const FieldCell<Scal>& fcu,
-      const MapCondFace& mfc, const MapCell<std::shared_ptr<CondCell>>& mcc,
-      const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
-      const FieldCell<Scal>* fcs, const FieldFace<Scal>* ffv,
-      double t, double dt, const Par& par);
+      M& m, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
+      const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
+      const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
+      const FieldFace<Scal>* ffv, double t, double dt, const Par& par);
   ~ConvDiffScalImp();
   const FieldCell<Scal>& GetField(Layers) const override;
   using P::GetField;

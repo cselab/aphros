@@ -1,26 +1,26 @@
 #undef NDEBUG
-#include <iostream>
-#include <string>
 #include <mpi.h>
 #include <cassert>
-#include <iomanip>
 #include <fstream>
 #include <functional>
-#include <utility>
-#include <tuple>
-#include <sstream>
+#include <iomanip>
+#include <iostream>
 #include <memory>
+#include <sstream>
+#include <string>
+#include <tuple>
+#include <utility>
 
-#include "parse/vars.h"
-#include "kernel/kernelmeshpar.h"
 #include "distr/distrsolver.h"
-#include "util/suspender.h"
-#include "geom/vect.h"
-#include "geom/mesh.h"
-#include "solver/solver.h"
-#include "solver/convdiffi.h"
 #include "dump/output.h"
 #include "dump/output_paraview.h"
+#include "geom/mesh.h"
+#include "geom/vect.h"
+#include "kernel/kernelmeshpar.h"
+#include "parse/vars.h"
+#include "solver/convdiffi.h"
+#include "solver/solver.h"
+#include "util/suspender.h"
 
 struct GPar {};
 
@@ -39,16 +39,16 @@ class Convdiff : public KernelMeshPar<M_, GPar> {
   void Run() override;
 
  protected:
-  using P::var;
-  using P::m;
   using P::IsRoot;
+  using P::m;
+  using P::var;
 
  private:
-  void TestSolve(std::function<Scal(Vect)> fi /*initial*/,
-                 std::function<Scal(Vect)> fe /*exact*/,
-                 size_t cg /*check gap (separate from boundary)*/,
-                 std::string name,
-                 bool check /*abort if differs from exact*/);
+  void TestSolve(
+      std::function<Scal(Vect)> fi /*initial*/,
+      std::function<Scal(Vect)> fe /*exact*/,
+      size_t cg /*check gap (separate from boundary)*/, std::string name,
+      bool check /*abort if differs from exact*/);
 
   template <class T>
   using FieldCell = FieldCell<T>;
@@ -76,14 +76,10 @@ bool Cmp<double>(double a, double b) {
   return std::abs(a - b) < 1e-6;
 }
 
-
 template <class Idx, class B, class I, class Scal>
 Scal DiffMax(
-    const B& b,
-    const I& nd,
-    const GField<Scal, Idx>& u,
-    const GField<Scal, Idx>& v,
-    const GField<bool, Idx>& mask) {
+    const B& b, const I& nd, const GField<Scal, Idx>& u,
+    const GField<Scal, Idx>& v, const GField<bool, Idx>& mask) {
   Scal r = 0;
   for (auto i : GRangeIn<Idx, B::dim>(nd, b)) {
     if (mask[i]) {
@@ -95,9 +91,7 @@ Scal DiffMax(
 
 template <class Idx, class B, class I, class Scal>
 Scal Max(
-    const B& b,
-    const I& nd,
-    const GField<Scal, Idx>& u,
+    const B& b, const I& nd, const GField<Scal, Idx>& u,
     const GField<bool, Idx>& mask) {
   Scal r = 0;
   for (auto i : GRangeIn<Idx, B::dim>(nd, b)) {
@@ -110,9 +104,7 @@ Scal Max(
 
 template <class Idx, class B, class I, class Scal>
 Scal Mean(
-    const B& b,
-    const I& nd,
-    const GField<Scal, Idx>& u,
+    const B& b, const I& nd, const GField<Scal, Idx>& u,
     const GField<bool, Idx>& mask) {
   Scal r = 0;
   Scal w = 0.;
@@ -125,12 +117,10 @@ Scal Mean(
   return r / w;
 }
 
-
 template <class Idx, class M>
 typename M::Scal DiffMax(
     const GField<typename M::Scal, Idx>& u,
-    const GField<typename M::Scal, Idx>& v,
-    const M& m,
+    const GField<typename M::Scal, Idx>& v, const M& m,
     const GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
@@ -144,8 +134,7 @@ typename M::Scal DiffMax(
 
 template <class Idx, class M>
 typename M::Scal Max(
-    const GField<typename M::Scal, Idx>& u,
-    const M& m,
+    const GField<typename M::Scal, Idx>& u, const M& m,
     const GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
@@ -157,11 +146,9 @@ typename M::Scal Max(
   return r;
 }
 
-
 template <class Idx, class M>
 typename M::Scal Mean(
-    const GField<typename M::Scal, Idx>& u,
-    const M& m,
+    const GField<typename M::Scal, Idx>& u, const M& m,
     const GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
@@ -175,36 +162,30 @@ typename M::Scal Mean(
   return r / w;
 }
 
-#define CMP(a, b) \
-  assert(Cmp(a, b)); 
+#define CMP(a, b) assert(Cmp(a, b));
 
-// Print CMP 
-#define PCMP(a, b, fatal) \
-  std::cerr \
-    << std::scientific << std::setprecision(16) \
-    << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
-  if (!Cmp(a, b)) { \
-    assert(!fatal);\
+// Print CMP
+#define PCMP(a, b, fatal)                                                 \
+  std::cerr << std::scientific << std::setprecision(16) << #a << "=" << a \
+            << ", " << #b << "=" << b << std::endl;                       \
+  if (!Cmp(a, b)) {                                                       \
+    assert(!fatal);                                                       \
   }
-
 
 // Print CMP if false
-#define PFCMP(a, b, fatal) \
-  if (!Cmp(a, b)) { \
-    std::cerr \
-      << std::scientific << std::setprecision(16) \
-      << "Failed cmp: " << std::endl \
-      << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
-    assert(!fatal);\
+#define PFCMP(a, b, fatal)                                              \
+  if (!Cmp(a, b)) {                                                     \
+    std::cerr << std::scientific << std::setprecision(16)               \
+              << "Failed cmp: " << std::endl                            \
+              << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
+    assert(!fatal);                                                     \
   }
-
 
 template <class M>
 void Convdiff<M>::TestSolve(
     std::function<Scal(Vect)> fi /*initial*/,
     std::function<Scal(Vect)> fe /*exact*/,
-    size_t cg /*check gap (separate from boundary)*/,
-    std::string name,
+    size_t cg /*check gap (separate from boundary)*/, std::string name,
     bool check /*abort if different from exact*/) {
   auto sem = m.GetSem("TestSolve");
   auto& bc = m.GetIndexCells();
@@ -212,7 +193,7 @@ void Convdiff<M>::TestSolve(
     if (IsRoot()) {
       std::cerr << name << std::endl;
     }
-    // initial field 
+    // initial field
     FieldCell<Scal> fc_u(m);
     for (auto i : m.AllCells()) {
       Vect x = m.GetCenter(i);
@@ -226,31 +207,27 @@ void Convdiff<M>::TestSolve(
 
     // boundary xm of global mesh
     auto gxm = [this](IdxFace i) -> bool {
-      return m.GetDir(i) == Dir::i &&
-          m.GetIndexFaces().GetMIdx(i)[0] == 0;
+      return m.GetDir(i) == Dir::i && m.GetIndexFaces().GetMIdx(i)[0] == 0;
     };
-    auto gxp = [this,gs](IdxFace i) -> bool {
-      return m.GetDir(i) == Dir::i &&
-          m.GetIndexFaces().GetMIdx(i)[0] == gs[0];
+    auto gxp = [this, gs](IdxFace i) -> bool {
+      return m.GetDir(i) == Dir::i && m.GetIndexFaces().GetMIdx(i)[0] == gs[0];
     };
     auto gym = [this](IdxFace i) -> bool {
-      return m.GetDir(i) == Dir::j &&
-          m.GetIndexFaces().GetMIdx(i)[1] == 0;
+      return m.GetDir(i) == Dir::j && m.GetIndexFaces().GetMIdx(i)[1] == 0;
     };
-    auto gyp = [this,gs](IdxFace i) -> bool {
-      return m.GetDir(i) == Dir::j &&
-          m.GetIndexFaces().GetMIdx(i)[1] == gs[1];
+    auto gyp = [this, gs](IdxFace i) -> bool {
+      return m.GetDir(i) == Dir::j && m.GetIndexFaces().GetMIdx(i)[1] == gs[1];
     };
     auto gzm = [this](IdxFace i) -> bool {
       return dim >= 3 && m.GetDir(i) == Dir::k &&
-          m.GetIndexFaces().GetMIdx(i)[2] == 0;
+             m.GetIndexFaces().GetMIdx(i)[2] == 0;
     };
-    auto gzp = [this,gs](IdxFace i) -> bool {
+    auto gzp = [this, gs](IdxFace i) -> bool {
       return dim >= 3 && m.GetDir(i) == Dir::k &&
-          m.GetIndexFaces().GetMIdx(i)[2] == gs[2];
+             m.GetIndexFaces().GetMIdx(i)[2] == gs[2];
     };
-    auto parse = [](std::string s, IdxFace, size_t nci, M&) 
-       -> UniquePtr<solver::CondFace> {
+    auto parse = [](std::string s, IdxFace, size_t nci,
+                    M&) -> UniquePtr<solver::CondFace> {
       std::stringstream arg(s);
 
       std::string name;
@@ -263,8 +240,7 @@ void Convdiff<M>::TestSolve(
       } else if (name == "derivative") {
         Scal a;
         arg >> a;
-        return UniquePtr<solver::
-            CondFaceGradFixed<Scal>>(a, nci);
+        return UniquePtr<solver::CondFaceGradFixed<Scal>>(a, nci);
       } else {
         assert(false);
       }
@@ -279,23 +255,22 @@ void Convdiff<M>::TestSolve(
       } else if (gxp(i) || gyp(i) || gzp(i)) {
         mf_cond_[i] = parse(bc, i, 0, m);
         return true;
-      } 
+      }
       return false;
     };
 
-    // Boundary conditions for fluid 
+    // Boundary conditions for fluid
     auto ff = m.AllFaces();
-    std::vector<std::pair<std::string, std::function<bool(IdxFace)>>> pp = 
-        {{"bc_xm", gxm}, {"bc_xp", gxp},
-         {"bc_ym", gym}, {"bc_yp", gyp},
-         {"bc_zm", gzm}, {"bc_zp", gzp}};
+    std::vector<std::pair<std::string, std::function<bool(IdxFace)>>> pp = {
+        {"bc_xm", gxm}, {"bc_xp", gxp}, {"bc_ym", gym},
+        {"bc_yp", gyp}, {"bc_zm", gzm}, {"bc_zp", gzp}};
 
     for (auto p : pp) {
       if (auto bc = var.String(p.first)) {
         for (auto i : ff) {
           p.second(i) && set_bc(i, *bc);
         }
-      } 
+      }
     }
 
     // velocity and flux
@@ -305,10 +280,10 @@ void Convdiff<M>::TestSolve(
       ff_flux_[idxface] = vel.dot(m.GetSurface(idxface));
     }
 
-    // cell conditions 
+    // cell conditions
     // (empty)
     MapCell<std::shared_ptr<solver::CondCell>> mc_cond;
-    
+
     // source
     fc_src_.Reinit(m, 0.);
 
@@ -316,15 +291,16 @@ void Convdiff<M>::TestSolve(
     ff_d_.Reinit(m, var.Double["mu"]);
 
     // scaling for as_
-    fc_sc_.Reinit(m, 1.); 
+    fc_sc_.Reinit(m, 1.);
 
     typename AS::Par p;
     p.relax = var.Double["relax"];
     p.guessextra = 0.;
     p.second = 0;
 
-    as_.reset(new AS(m, fc_u, mf_cond_, mc_cond,
-          &fc_sc_, &ff_d_, &fc_src_, &ff_flux_, 0., var.Double["dt"], p));
+    as_.reset(new AS(
+        m, fc_u, mf_cond_, mc_cond, &fc_sc_, &ff_d_, &fc_src_, &ff_flux_, 0.,
+        var.Double["dt"], p));
 
     // exact solution
     fc_exact_.Reinit(m);
@@ -345,8 +321,9 @@ void Convdiff<M>::TestSolve(
     }
   }
   if (sem("check")) {
-    GBlockCells<dim> cbc(MIdx(cg),
-                         m.GetGlobalSize() - MIdx(2 * cg)); // check block
+    GBlockCells<dim> cbc(
+        MIdx(cg),
+        m.GetGlobalSize() - MIdx(2 * cg)); // check block
     FieldCell<bool> mask(m, false);
     for (auto i : m.AllCells()) {
       if (cbc.IsInside(bc.GetMIdx(i))) {
@@ -380,12 +357,15 @@ void Convdiff<M>::Run() {
 
   auto sem = m.GetSem("Run");
   auto f = [](Vect x) {
-      return std::sin(x[0]) * std::cos(x[1]) * std::exp(x[2]); 
-    };
-  //auto f0 = [](Vect { return 0.; };
-  //auto f1 = [](Vect) { return 1.; };
+    return std::sin(x[0]) * std::cos(x[1]) * std::exp(x[2]);
+  };
+  // auto f0 = [](Vect { return 0.; };
+  // auto f1 = [](Vect) { return 1.; };
   auto fx = [](Vect x) { return Vect(1., -1., 1.).dot(x); };
-  auto fex = [=](Vect x) { x -= vel * t; return fx(x); };
+  auto fex = [=](Vect x) {
+    x -= vel * t;
+    return fx(x);
+  };
 
   if (sem.Nested()) {
     TestSolve(fx, fex, 6, "fx", false);
@@ -416,15 +396,14 @@ std::tuple<BC, IC, FC, FC> Solve(MPI_Comm comm, Vars& var) {
 }
 
 // fn: filename
-void Dump(std::vector<const FC*> u, 
-          std::vector<std::string> un, 
-          M& m, std::string fn) {
+void Dump(
+    std::vector<const FC*> u, std::vector<std::string> un, M& m,
+    std::string fn) {
   output::VOut con;
   for (size_t k = 0; k < u.size(); ++k) {
     auto p = u[k];
-    con.emplace_back(
-        new output::OutFldFunc<Scal, IdxCell, M>(
-            un[k], m, [p](IdxCell i) { return (*p)[i]; }));
+    con.emplace_back(new output::OutFldFunc<Scal, IdxCell, M>(
+        un[k], m, [p](IdxCell i) { return (*p)[i]; }));
   }
 
   output::SerVtkStruct<M> s(con, "", fn, m);
@@ -437,13 +416,13 @@ void Main(MPI_Comm comm, Vars& var0) {
   bool isroot = (!rank);
 
   Vars var = var0;
-  
+
   if (isroot) {
     std::cerr << "solve ref" << std::endl;
   }
 
   // solve on user-defined mesh
-  auto tp1 = Solve(comm, var); 
+  auto tp1 = Solve(comm, var);
   BC& b1 = std::get<0>(tp1);
   IC& nd1 = std::get<1>(tp1);
   FC& f1 = std::get<2>(tp1);
@@ -464,11 +443,11 @@ void Main(MPI_Comm comm, Vars& var0) {
   var.Int["bx"] *= 2;
   var.Int["by"] *= 2;
   var.Int["bz"] *= 2;
-  auto tp2 = Solve(comm, var); 
+  auto tp2 = Solve(comm, var);
   BC& b2 = std::get<0>(tp2);
-  //IC& nd2 = std::get<1>(tp2);
+  // IC& nd2 = std::get<1>(tp2);
   FC& f2 = std::get<2>(tp2);
-  //FC& fe2 = std::get<3>(tp2);
+  // FC& fe2 = std::get<3>(tp2);
 
   if (isroot) {
     PCMP(b1.GetEnd(), b2.GetEnd(), true);
@@ -482,7 +461,6 @@ void Main(MPI_Comm comm, Vars& var0) {
   }
 }
 
-
-int main (int argc, const char ** argv) {
+int main(int argc, const char** argv) {
   return RunMpi(argc, argv, Main);
 }

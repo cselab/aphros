@@ -1,13 +1,12 @@
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 
 #include "events.h"
 #include "parse/parser.h"
 
 Events::Events(Vars& var, bool isroot, bool islead)
-    : var_(var), isroot_(isroot), islead_(islead)
-{}
+    : var_(var), isroot_(isroot), islead_(islead) {}
 
 void Events::Parse() {
   // Check at least first nmax indices and all contiguous
@@ -33,7 +32,7 @@ void Events::Parse() {
       e.arg = c + s;
 
       ev_.emplace(k, e);
-    } else if (n > nmax) { 
+    } else if (n > nmax) {
       break;
     }
     ++n;
@@ -43,9 +42,8 @@ void Events::Parse() {
     std::cout << "Found events: \n=====" << std::endl;
     for (auto p : ev_) {
       Event& e = p.second;
-      std::cout << p.first << " " 
-          << e.t << " " << e.cmd << " " 
-          << e.arg << std::endl;
+      std::cout << p.first << " " << e.t << " " << e.cmd << " " << e.arg
+                << std::endl;
     }
     std::cout << "=====" << std::endl;
   }
@@ -66,9 +64,8 @@ void Events::Exec(double t) {
 
     if (t >= e.t) {
       if (isroot_) {
-        std::cout << std::fixed << std::setprecision(8)
-            << "Event at t=" << e.t << ": " 
-            << c << " " << a << std::endl;
+        std::cout << std::fixed << std::setprecision(8) << "Event at t=" << e.t
+                  << ": " << c << " " << a << std::endl;
       }
       if (c == "echo") {
         if (isroot_) {
@@ -88,5 +85,3 @@ void Events::Exec(double t) {
     }
   }
 }
-
-

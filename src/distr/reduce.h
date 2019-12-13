@@ -1,6 +1,6 @@
-#include <vector>
 #include <memory>
 #include <utility>
+#include <vector>
 
 // U: utility class
 
@@ -8,7 +8,7 @@ template <class Scal>
 class UReduce {
  public:
   // Reduction operation.
-  class Op { 
+  class Op {
    public:
     virtual ~Op() {}
   };
@@ -19,10 +19,14 @@ class UReduce {
     // v: buffer containing current value and used for result
     OpT(T* v) : v_(v) {}
     // Appends internal value to a
-    virtual void Append(T& a) { Append(a, *v_); }
+    virtual void Append(T& a) {
+      Append(a, *v_);
+    }
     // Returns neutral value a such that Append(a, v) would set a=v
     virtual T Neut() const = 0;
-    virtual void Set(const T& v) { *v_ = v; }
+    virtual void Set(const T& v) {
+      *v_ = v;
+    }
 
    protected:
     // Appends v to a
@@ -36,34 +40,50 @@ class UReduce {
   class OpSum : public OpS {
    public:
     using OpS::OpS;
-    Scal Neut() const override { return 0.; }
+    Scal Neut() const override {
+      return 0.;
+    }
 
    protected:
-    void Append(Scal& a, const Scal& v) const override { a += v; }
+    void Append(Scal& a, const Scal& v) const override {
+      a += v;
+    }
   };
   class OpProd : public OpS {
    public:
     using OpS::OpS;
-    Scal Neut() const override { return 1.; }
-   
+    Scal Neut() const override {
+      return 1.;
+    }
+
    protected:
-    void Append(Scal& a, const Scal& v) const override { a *= v; }
+    void Append(Scal& a, const Scal& v) const override {
+      a *= v;
+    }
   };
   class OpMax : public OpS {
    public:
     using OpS::OpS;
-    Scal Neut() const override { return -std::numeric_limits<Scal>::max(); }
+    Scal Neut() const override {
+      return -std::numeric_limits<Scal>::max();
+    }
 
    protected:
-    void Append(Scal& a, const Scal& v) const override { a = std::max(a, v); }
+    void Append(Scal& a, const Scal& v) const override {
+      a = std::max(a, v);
+    }
   };
   class OpMin : public OpS {
    public:
     using OpS::OpS;
-    Scal Neut() const override { return std::numeric_limits<Scal>::max(); }
+    Scal Neut() const override {
+      return std::numeric_limits<Scal>::max();
+    }
 
    protected:
-    void Append(Scal& a, const Scal& v) const override { a = std::min(a, v); }
+    void Append(Scal& a, const Scal& v) const override {
+      a = std::min(a, v);
+    }
   };
 
   // Reduction on std::pair<Scal, int>
@@ -72,12 +92,12 @@ class UReduce {
    public:
     using T = std::pair<Scal, int>;
     using OpSI::OpSI;
-    T Neut() const override { 
-      return std::make_pair(std::numeric_limits<Scal>::max(), int()); 
+    T Neut() const override {
+      return std::make_pair(std::numeric_limits<Scal>::max(), int());
     }
 
    protected:
-    void Append(T& a, const T& v) const override { 
+    void Append(T& a, const T& v) const override {
       if (v.first < a.first) {
         a = v;
       }
@@ -87,19 +107,19 @@ class UReduce {
    public:
     using T = std::pair<Scal, int>;
     using OpSI::OpSI;
-    T Neut() const override { 
-      return std::make_pair(-std::numeric_limits<Scal>::max(), int()); 
+    T Neut() const override {
+      return std::make_pair(-std::numeric_limits<Scal>::max(), int());
     }
 
    protected:
-    void Append(T& a, const T& v) const override { 
+    void Append(T& a, const T& v) const override {
       if (v.first > a.first) {
         a = v;
       }
     }
   };
 
-  // Reduction on std::vector<T> 
+  // Reduction on std::vector<T>
   template <class T>
   using OpVT = OpT<std::vector<T>>;
 
@@ -112,13 +132,14 @@ class UReduce {
 
     using OpVT<char>::OpVT;
     using P::Append;
-    using P::v_;
     using P::Set;
-    V Neut() const override { return V(); }
-
+    using P::v_;
+    V Neut() const override {
+      return V();
+    }
 
    protected:
-    void Append(V& a, const V& v) const override { 
+    void Append(V& a, const V& v) const override {
       a.insert(a.end(), v.begin(), v.end());
     }
   };
@@ -135,13 +156,13 @@ class UReduce {
     // OpCat::v_ initialized with nullptr // TODO: revise
     OpCatT(VT* vt) : OpCat(nullptr), vt_(vt) {}
     // Serializes vt_ and appends to a
-    void Append(V& a) override { 
+    void Append(V& a) override {
       V v = Ser(*vt_);
       a.insert(a.end(), v.begin(), v.end());
     }
     // Deserializes v to vt_
-    void Set(const V& v) override { 
-      *vt_ = Des(v); 
+    void Set(const V& v) override {
+      *vt_ = Des(v);
     }
 
    protected:
@@ -149,7 +170,7 @@ class UReduce {
     VT* vt_;
 
    private:
-    // Serialize vt 
+    // Serialize vt
     static V Ser(const VT& vt) {
       V r; // result
       for (const T& x : vt) {
@@ -189,13 +210,13 @@ class UReduce {
     // OpCat::v_ initialized with nullptr // TODO: revise
     OpCatVT(VT* vt) : OpCat(nullptr), vt_(vt) {}
     // Serializes vt_ and appends to a
-    void Append(V& a) override { 
+    void Append(V& a) override {
       V v = Ser(*vt_);
       a.insert(a.end(), v.begin(), v.end());
     }
     // Deserializes v to vt_
-    void Set(const V& v) override { 
-      *vt_ = Des(v); 
+    void Set(const V& v) override {
+      *vt_ = Des(v);
     }
 
    protected:
@@ -203,7 +224,7 @@ class UReduce {
     VT* vt_;
 
    private:
-    // Serialize vt 
+    // Serialize vt
     static V Ser(const VT& vt) {
       V r; // result
       for (auto& xx : vt) {
@@ -229,7 +250,7 @@ class UReduce {
     // Deserialize v
     static VT Des(const V& v) {
       VT r; // result
-      //assert(v.size() % sizeof(T) == 0); // TODO: add assert
+      // assert(v.size() % sizeof(T) == 0); // TODO: add assert
       size_t k = 0;
       while (k < v.size()) {
         r.emplace_back();
@@ -256,12 +277,11 @@ class UReduce {
     }
   };
 
-
   void Add(const std::shared_ptr<Op>& o) {
     vrd_.push_back(o);
   }
   // u: src and dst buffer
-  // o: operation 
+  // o: operation
   void Add(Scal* u, std::string o) {
     if (o == "sum") {
       vrd_.push_back(std::make_shared<OpSum>(u));
@@ -272,7 +292,7 @@ class UReduce {
     } else if (o == "min") {
       vrd_.push_back(std::make_shared<OpMin>(u));
     } else {
-      throw std::runtime_error("Reduce: unknown operation: '" + o); 
+      throw std::runtime_error("Reduce: unknown operation: '" + o);
     }
   }
 
@@ -286,4 +306,3 @@ class UReduce {
  private:
   std::vector<std::shared_ptr<Op>> vrd_; // list of requests
 };
-

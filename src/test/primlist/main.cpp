@@ -1,8 +1,8 @@
 #undef NDEBUG
+#include <stdlib.h>
 #include <cassert>
 #include <iostream>
 #include <map>
-#include <stdlib.h>
 
 #include "func/primlist.h"
 
@@ -10,8 +10,8 @@ using Scal = double;
 
 int main(int an, char* av[]) {
   if (an < 5) {
-    std::cerr << "usage: " << av[0]
-        << " name values keys nrequired" << std::endl;
+    std::cerr << "usage: " << av[0] << " name values keys nrequired"
+              << std::endl;
     return 1;
   }
   try {
@@ -21,8 +21,7 @@ int main(int an, char* av[]) {
       std::cout << k.first << ":" << k.second << " ";
     }
     std::cout << std::endl;
-  }
-  catch (std::exception& e) {
+  } catch (std::exception& e) {
     std::cout << e.what() << std::endl;
   }
 }

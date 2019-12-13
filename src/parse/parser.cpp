@@ -1,6 +1,6 @@
-#include <sstream>
 #include <cassert>
 #include <fstream>
+#include <sstream>
 #include <stdexcept>
 
 #include "parser.h"
@@ -69,7 +69,6 @@ void Parser::CmdSetNext(std::string s) {
   ++id;
 }
 
-
 void Parser::CmdDel(std::string s) {
   std::string cmd, key;
   std::stringstream b(s);
@@ -114,7 +113,7 @@ void Parser::RunAll(std::istream& in) {
 
 template <class T>
 void Parser::Print(const Vars::Map<T>& m, std::ostream& out) {
-  for (auto it=m.cbegin(); it != m.cend(); ++it) {
+  for (auto it = m.cbegin(); it != m.cend(); ++it) {
     out << "set " << m.GetTypeName() << " " << it->first << " "
         << m.GetStr(it->first) << std::endl;
   }
@@ -130,4 +129,3 @@ void Parser::PrintAll(std::ostream& out) const {
 void Parser::PrintAll() const {
   PrintAll(std::cout);
 }
-

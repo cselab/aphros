@@ -1,6 +1,5 @@
+#include <iostream>
 #include <sstream>
-#include <iostream>
-#include <iostream>
 #include <stdexcept>
 
 #include "vars.h"
@@ -25,7 +24,6 @@ Vars::Map<std::vector<double>>& Vars::Get<std::vector<double>>() {
   return Vect;
 }
 
-
 template <>
 const Vars::Map<int>& Vars::Get<int>() const {
   return Int;
@@ -40,7 +38,6 @@ template <>
 const Vars::Map<std::string>& Vars::Get<std::string>() const {
   return String;
 }
-
 
 template <>
 const Vars::Map<std::vector<double>>& Vars::Get<std::vector<double>>() const {
@@ -83,7 +80,6 @@ std::string Vars::GetTypeName(Key k) const {
   return "";
 }
 
-
 template <class T>
 std::string Vars::Map<T>::GetStr(Key k) const {
   std::stringstream b;
@@ -98,9 +94,9 @@ void Vars::Map<T>::SetStr(Key k, std::string v) {
   b >> m_[k];
 
   if (b.fail()) {
-    std::cerr 
-        << "Unable to parse '" << v 
-        << "' as " << GetTypeName() << std::endl;;
+    std::cerr << "Unable to parse '" << v << "' as " << GetTypeName()
+              << std::endl;
+    ;
     throw std::runtime_error("Vars::SetStr(): Unable to parse");
   }
 
@@ -110,9 +106,9 @@ void Vars::Map<T>::SetStr(Key k, std::string v) {
   b >> c;
   if (b.good()) {
     // If good, the string contained invalid characters
-    std::cerr 
-        << "Trailing characters when parsing '" << v
-        << "' as " << GetTypeName() << std::endl;;
+    std::cerr << "Trailing characters when parsing '" << v << "' as "
+              << GetTypeName() << std::endl;
+    ;
     throw std::runtime_error("Vars::GetStr(): Trailing characters");
   }
 }
@@ -137,9 +133,9 @@ void Vars::Map<std::vector<double>>::SetStr(Key k, std::string s) {
       r.push_back(a);
     } else if (!b.eof()) {
       // String contained invalid characters
-      std::cerr 
-          << "Unable to parse '" << s 
-          << "' as " << GetTypeName() << std::endl;;
+      std::cerr << "Unable to parse '" << s << "' as " << GetTypeName()
+                << std::endl;
+      ;
       throw std::runtime_error("Vars::GetStr(): Unable to parse");
     }
   }
@@ -154,9 +150,8 @@ void Vars::Map<std::string>::SetStr(Key k, std::string s) {
 template <class T>
 const T& Vars::Map<T>::operator[](Key k) const {
   if (!m_.count(k)) {
-    std::cerr << "variable '" << k
-        << "' of type '" << GetTypeName()
-        << "' not found" << std::endl;
+    std::cerr << "variable '" << k << "' of type '" << GetTypeName()
+              << "' not found" << std::endl;
     throw std::runtime_error("Vars::GetStr(): Variable not found");
   }
   return m_.at(k);
@@ -173,9 +168,8 @@ T Vars::Map<T>::Get(Key k, T def) const {
 template <class T>
 T& Vars::Map<T>::operator[](Key k) {
   if (!m_.count(k)) {
-    std::cerr << "variable '" << k
-        << "' of type '" << GetTypeName()
-        << "' not found" << std::endl;
+    std::cerr << "variable '" << k << "' of type '" << GetTypeName()
+              << "' not found" << std::endl;
     throw std::runtime_error("Vars::GetStr(): Variable not found");
   }
   return m_.at(k);
@@ -250,9 +244,8 @@ std::string Vars::GetStr(std::string t, Key k) const {
 void Vars::SetStr(std::string t, Key k, std::string v) {
   std::string e = GetTypeName(k); // existing type
   if (e != "" && e != t) {
-    std::cerr 
-        << "Vars::SetStr(): Attempt to change type of variable '" 
-        << k << "' from '" << e << "' to '" << t << "'" << std::endl;
+    std::cerr << "Vars::SetStr(): Attempt to change type of variable '" << k
+              << "' from '" << e << "' to '" << t << "'" << std::endl;
     throw std::runtime_error("Vars::SetStr(): Attempt to change type");
   }
   // TODO: Map::Set() still allows same name for two variables

@@ -1,6 +1,6 @@
+#include <iomanip>
 #include <sstream>
 #include <vector>
-#include <iomanip>
 
 #include "report.h"
 
@@ -13,13 +13,13 @@ std::vector<std::string> Split(const std::string& str) {
     std::string s;
     st >> s;
     ss.push_back(s);
-    st >> s;  // skip 
+    st >> s; // skip
   }
   return ss;
 }
 
 // Node
-struct N { 
+struct N {
   const double kNone = -1.; // empty time
   std::vector<N> nn; // children
   std::string s; // stage name
@@ -40,8 +40,7 @@ struct N {
   }
   void Print(std::ostream& out, std::string pre, double ta) const {
     auto fl = out.flags();
-    out << pre << s << " [" 
-        << std::setprecision(5) << t << " s, "
+    out << pre << s << " [" << std::setprecision(5) << t << " s, "
         << std::setprecision(3) << 100. * t / ta << "%]" << std::endl;
     for (auto& n : nn) {
       n.Print(out, pre + "|     ", ta);
@@ -54,7 +53,7 @@ struct N {
       for (auto& n : nn) {
         if (n.t == kNone) {
           n.FillTime();
-        } 
+        }
         ts += n.t;
       }
       t = ts;

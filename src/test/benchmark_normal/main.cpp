@@ -1,18 +1,18 @@
-#include <sstream>
-#include <iostream>
 #include <cassert>
-#include <functional>
 #include <cmath>
-#include <string>
-#include <memory>
+#include <functional>
 #include <iomanip>
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <string>
 
 #include "geom/mesh.h"
-#include "solver/solver.h"
-#include "util/timer.h"
-#include "util/sysinfo.h"
 #include "solver/normal.h"
 #include "solver/normal.ipp"
+#include "solver/solver.h"
+#include "util/sysinfo.h"
+#include "util/timer.h"
 
 const int dim = 3;
 using MIdx = GMIdx<dim>;
@@ -34,16 +34,14 @@ Scal Rndn(Scal& q) {
   return std::sin(std::sin(q * 123.456) * 654.321);
 }
 
-
 template <class Idx, class M>
 typename M::Scal DiffMax(
     const GField<typename M::Vect, Idx>& u,
-    const GField<typename M::Vect, Idx>& v,
-    const M& m) {
+    const GField<typename M::Vect, Idx>& v, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
   for (auto i : m.template GetIn<Idx>()) {
-     r = std::max(r, (u[i] - v[i]).norminf());
+    r = std::max(r, (u[i] - v[i]).norminf());
   }
   return r;
 }
@@ -51,7 +49,7 @@ typename M::Scal DiffMax(
 Mesh GetMesh(MIdx s /*size in cells*/) {
   Rect<Vect> dom(Vect(0), Vect(1));
   MIdx b(0, 0, 0); // lower index
-  int hl = 2;         // halos 
+  int hl = 2; // halos
   return InitUniformMesh<Mesh>(dom, b, s, hl, true, true, s, 0);
 }
 
@@ -66,10 +64,8 @@ class TimerMesh : public Timer {
 template <int id>
 class Young : public TimerMesh {
  public:
-  Young(Mesh& m) 
-      : TimerMesh("young" + std::to_string(id), m)
-      , fc(m), fci(m, true)
-  {
+  Young(Mesh& m)
+      : TimerMesh("young" + std::to_string(id), m), fc(m), fci(m, true) {
     for (auto i : m.AllCells()) {
       fc[i] = Rnd(i.GetRaw());
     }
@@ -95,10 +91,8 @@ class Young : public TimerMesh {
 template <int id>
 class Height : public TimerMesh {
  public:
-  Height(Mesh& m) 
-      : TimerMesh("height" + std::to_string(id), m)
-      , fc(m), fci(m, true)
-  {
+  Height(Mesh& m)
+      : TimerMesh("height" + std::to_string(id), m), fc(m), fci(m, true) {
     for (auto i : m.AllCells()) {
       fc[i] = Rnd(i.GetRaw());
     }
@@ -125,10 +119,8 @@ class Height : public TimerMesh {
 
 class Partstr : public TimerMesh {
  public:
-  Partstr(Mesh& m) 
-      : TimerMesh("partstr", m)
-      , fc(m), fci(m, true), fcn(m), fca(m)
-  {
+  Partstr(Mesh& m)
+      : TimerMesh("partstr", m), fc(m), fci(m, true), fcn(m), fca(m) {
     for (auto c : m.AllCells()) {
       Scal q = c.GetRaw();
       fc[c] = Rndn(q);
@@ -149,7 +141,6 @@ class Partstr : public TimerMesh {
   FieldCell<Scal> fca;
   FieldCell<Scal> fck;
 };
-
 
 // f=0: youngs
 // f=1: height edim=3
@@ -179,16 +170,14 @@ void Cmp(int f) {
   Scal r = DiffMax(fcn, fcn2, m);
   Scal eps = 1e-15;
   if (r > eps) {
-    std::vector<std::string> nn = 
-        {"NormalYoung", "NormalHeight,edim=3", "NormalHeight,edim=2"};
-    std::cerr
-      << "Cmp " + nn[f] + ": max difference excceded "
-      << std::scientific << std::setprecision(16)
-      << r << " > " << eps << std::endl;
+    std::vector<std::string> nn = {"NormalYoung", "NormalHeight,edim=3",
+                                   "NormalHeight,edim=2"};
+    std::cerr << "Cmp " + nn[f] + ": max difference excceded "
+              << std::scientific << std::setprecision(16) << r << " > " << eps
+              << std::endl;
     std::terminate();
   }
 }
-
 
 // i: target index
 // k: current index
@@ -200,19 +189,20 @@ template <class T>
 void Try(Mesh& m, size_t i, size_t& k, Timer*& p) {
   if (k++ == i) {
     p = new T(m);
-  } 
+  }
 }
 
 // i: test index
 // m: mesh
 // Output:
-// t: total per one call [sec] 
-// n: number of calls 
+// t: total per one call [sec]
+// n: number of calls
 // mem: memory usage in bytes
 // name: test name
 // Returns 1 if test with index i found
-bool Run(const size_t i, Mesh& m,
-         double& t, size_t& n, size_t& mem, std::string& name) {
+bool Run(
+    const size_t i, Mesh& m, double& t, size_t& n, size_t& mem,
+    std::string& name) {
   size_t k = 0;
   Timer* p = nullptr;
 
@@ -254,11 +244,8 @@ int main() {
   for (auto s : ss) {
     auto m = GetMesh(s);
     const size_t nci = m.GetInBlockCells().size();
-    std::cout 
-        << "Mesh" 
-        << " size=" << s
-        << " incells=" << nci 
-        << std::endl;
+    std::cout << "Mesh"
+              << " size=" << s << " incells=" << nci << std::endl;
 
     int i = 0;
     double t;
@@ -266,14 +253,10 @@ int main() {
     size_t mem;
     std::string name;
     while (Run(i++, m, t, n, mem, name)) {
-      std::cout 
-          << setw(ww) << name 
-          << setw(ww) << t * 1e9 / nci
-          << setw(ww) << n
-          << std::endl;
+      std::cout << setw(ww) << name << setw(ww) << t * 1e9 / nci << setw(ww)
+                << n << std::endl;
     }
     std::cout << std::endl;
     std::cout << std::endl;
   }
-
 }

@@ -1,15 +1,15 @@
 #pragma once
 
-#include <cmath>
-#include <stdexcept>
-#include <functional>
-#include <limits>
-#include <sstream>
-#include <iostream>
-#include <vector>
-#include <map>
-#include <fstream>
 #include <algorithm>
+#include <cmath>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <sstream>
+#include <stdexcept>
+#include <vector>
 
 #include "geom/vect.h"
 
@@ -19,16 +19,15 @@ struct GPrimitive {
   static constexpr size_t dim = 3;
   using Vect = GVect<Scal, dim>;
   Type type;
-  Vect c;  // center
-  Vect r;  // axes in coordinate directions
-  Vect n;  // normal
+  Vect c; // center
+  Vect r; // axes in coordinate directions
+  Vect n; // normal
   Scal th; // ring thickness
   Scal magn; // magnitude
   std::function<Scal(const GVect<Scal, 3>&)> ls; // level-set
   std::function<Scal(const Rect<GVect<Scal, 3>>&)> inter; // true if intersects
   std::function<Vect(const GVect<Scal, 3>&)> vel; // velocity
 };
-
 
 template <class Scal>
 struct UPrimList {
@@ -48,8 +47,8 @@ struct UPrimList {
     // remove comments
     sv = sv.substr(0, sv.find('#', 0));
     // check empty string
-    if (std::all_of(sv.cbegin(), sv.cend(),
-                    [](char c){ return std::isspace(c); })) {
+    if (std::all_of(
+            sv.cbegin(), sv.cend(), [](char c) { return std::isspace(c); })) {
       return std::map<std::string, Scal>();
     }
     std::string pre; // name
@@ -89,7 +88,7 @@ struct UPrimList {
     }
     if (r.size() < n && !kk) {
       throw std::runtime_error(
-          "PrimList: no keys for " +std::to_string(n) + 
+          "PrimList: no keys for " + std::to_string(n) +
           " required fields in '" + sk + "'");
     }
     if (vv && !kk) {
@@ -100,15 +99,16 @@ struct UPrimList {
     return r;
   }
 
-  static std::vector<Primitive> Parse(
-      std::istream& f, bool verb, size_t edim) {
+  static std::vector<Primitive> Parse(std::istream& f, bool verb, size_t edim) {
     std::vector<Primitive> pp;
 
     f >> std::skipws;
 
     // default
     auto def = [](std::map<std::string, Scal>& r, std::string k, Scal d) {
-      if (!r.count(k)) { r[k] = d; }
+      if (!r.count(k)) {
+        r[k] = d;
+      }
     };
 
     // Read until eof
@@ -118,7 +118,7 @@ struct UPrimList {
       std::map<std::string, Scal> r;
 
       // sphere
-      r  = Parse("s", s, "x y z rx ry rz", 4);
+      r = Parse("s", s, "x y z rx ry rz", 4);
       if (r.empty()) {
         r = Parse("", s, "x y z rx ry rz", 4);
       }
@@ -138,7 +138,7 @@ struct UPrimList {
         using Type = typename Primitive::Type;
         p.type = Type::sphere;
 
-        p.ls = [edim,p](const Vect& x) -> Scal {
+        p.ls = [edim, p](const Vect& x) -> Scal {
           Vect xd = (x - p.c) / p.r;
           if (edim == 2) {
             xd[2] = 0.;
@@ -146,7 +146,7 @@ struct UPrimList {
           return (1. - xd.sqrnorm()) * sqr(p.r.min());
         };
 
-        p.inter = [edim,p](const Rect<Vect>& rect) -> bool {
+        p.inter = [edim, p](const Rect<Vect>& rect) -> bool {
           const Rect<Vect> rectbig(rect.lb - p.r, rect.rt + p.r);
           return rectbig.IsInside(p.c);
         };
@@ -155,7 +155,7 @@ struct UPrimList {
       }
 
       // ring
-      r  = Parse("ring", s, "x y z nx ny nz r th", 8);
+      r = Parse("ring", s, "x y z nx ny nz r th", 8);
       if (!r.empty()) {
         Primitive p;
         p.c[0] = r["x"];
@@ -179,9 +179,7 @@ struct UPrimList {
           return sqr(p.th) - (sqr(xn) + sqr(xt - r));
         };
 
-        p.inter = [edim,p](const Rect<Vect>&) -> bool {
-          return true;
-        };
+        p.inter = [edim, p](const Rect<Vect>&) -> bool { return true; };
 
         pp.push_back(p);
       }
@@ -194,8 +192,8 @@ struct UPrimList {
   }
   static std::vector<Primitive> ParseVel(
       std::string fn, bool verb, size_t edim) {
-    (void) dim;
-    (void) edim;
+    (void)dim;
+    (void)edim;
     std::vector<Primitive> pp;
     std::ifstream f(fn);
     if (!f.good() && verb) {
@@ -206,9 +204,11 @@ struct UPrimList {
 
     // default
     auto def = [](std::map<std::string, Scal>& r, std::string k, Scal d) {
-      if (!r.count(k)) { r[k] = d; }
+      if (!r.count(k)) {
+        r[k] = d;
+      }
     };
-    (void) def;
+    (void)def;
 
     // Read until eof
     while (f) {
@@ -217,7 +217,7 @@ struct UPrimList {
       std::map<std::string, Scal> r;
 
       // ring
-      r  = Parse("ring", s, "x y z nx ny nz r th magn", 9);
+      r = Parse("ring", s, "x y z nx ny nz r th magn", 9);
       if (!r.empty()) {
         Primitive p;
         p.c[0] = r["x"];
@@ -254,21 +254,16 @@ struct UPrimList {
     }
 
     if (verb) {
-      std::cout << "Read " << pp.size() << " primitives from " 
-          << "'" << fn << "'" << std::endl;
+      std::cout << "Read " << pp.size() << " primitives from "
+                << "'" << fn << "'" << std::endl;
     }
     return pp;
   }
 };
 
 template <class Scal>
-std::ostream& operator<<(std::ostream& o,
-                         const GPrimitive<Scal>& p) {
-  o << "c=" << p.c
-    << " r=" << p.r
-    << " n=" << p.n
-    << " th=" << p.r
+std::ostream& operator<<(std::ostream& o, const GPrimitive<Scal>& p) {
+  o << "c=" << p.c << " r=" << p.r << " n=" << p.n << " th=" << p.r
     << " inv=" << p.inv;
   return o;
 }
-

@@ -1,19 +1,19 @@
 #undef NDEBUG
-#include <sstream>
-#include <iostream>
 #include <cassert>
-#include <functional>
 #include <cmath>
-#include <string>
-#include <memory>
+#include <functional>
 #include <iomanip>
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <string>
 
 #include "geom/mesh.h"
-#include "solver/solver.h"
-#include "solver/cond.h"
 #include "solver/approx.h"
-#include "util/timer.h"
+#include "solver/cond.h"
+#include "solver/solver.h"
 #include "util/sysinfo.h"
+#include "util/timer.h"
 
 const int dim = 3;
 using MIdx = GMIdx<dim>;
@@ -25,12 +25,15 @@ using Vect = GVect<Scal, dim>;
 using Mesh = MeshStructured<Scal, dim>;
 
 // Echo Execute
-#define EE(...); std::cerr << "\n" << #__VA_ARGS__ << std::endl; __VA_ARGS__;
+#define EE(...)                                   \
+  ;                                               \
+  std::cerr << "\n" << #__VA_ARGS__ << std::endl; \
+  __VA_ARGS__;
 
 Mesh GetMesh(MIdx s /*size in cells*/) {
   Rect<Vect> dom(Vect(0.1, 0.2, 0.1), Vect(1.1, 1.2, 1.3));
   MIdx b(-2, -3, -4); // lower index
-  int hl = 2;         // halos 
+  int hl = 2; // halos
   return InitUniformMesh<Mesh>(dom, b, s, hl, true, true, s, 0);
 }
 
@@ -59,9 +62,8 @@ class FactoryTimerMesh : IFactoryTimerMesh {
 };
 */
 
-
 class Empty : public TimerMesh {
- public: 
+ public:
   Empty(Mesh& m) : TimerMesh("empty", m) {}
   void F() override {}
 };
@@ -121,11 +123,11 @@ class LoopInFaces : public TimerMesh {
   }
 };
 
-
 // Loop access to field
 class LoopFldPlain : public TimerMesh {
  public:
-  LoopFldPlain(Mesh& m) : TimerMesh("loop-fld-plain", m), v(GRange<IdxCell>(m).size()) {}
+  LoopFldPlain(Mesh& m)
+      : TimerMesh("loop-fld-plain", m), v(GRange<IdxCell>(m).size()) {}
   void F() override {
     volatile Scal a = 0;
     for (size_t i = 0; i < v.size(); ++i) {
@@ -152,7 +154,6 @@ class LoopFldAllCells : public TimerMesh {
  private:
   FieldCell<Scal> v;
 };
-
 
 class LoopMIdxAllCells : public TimerMesh {
  public:
@@ -239,7 +240,6 @@ class CellOutward : public TimerMesh {
     }
   }
 };
-
 
 class CellNNode : public TimerMesh {
  public:
@@ -357,13 +357,12 @@ class Grad : public TimerMesh {
   FieldFace<Scal> ff;
 };
 
-
 class ExplVisc : public TimerMesh {
  public:
   ExplVisc(Mesh& m) : TimerMesh("explvisc", m), fcv(m), fcf(m), ffmu(m) {
     for (auto i : m.AllCells()) {
       auto a = i.GetRaw();
-      fcv[i] = Vect(std::sin(a), std::sin(a+1), std::sin(a+2));
+      fcv[i] = Vect(std::sin(a), std::sin(a + 1), std::sin(a + 2));
     }
     for (auto i : m.AllFaces()) {
       auto a = i.GetRaw();
@@ -383,8 +382,8 @@ class ExplVisc : public TimerMesh {
         Vect sum = Vect::kZero;
         for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
           IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
-          sum += gf[idxface] * (ffmu[idxface] * 
-              mesh.GetOutwardSurface(idxcell, i)[n]);
+          sum += gf[idxface] *
+                 (ffmu[idxface] * mesh.GetOutwardSurface(idxcell, i)[n]);
         }
         fcf[idxcell] += sum / mesh.GetVolume(idxcell);
       }
@@ -410,19 +409,20 @@ template <class T>
 void Try(Mesh& m, size_t i, size_t& k, Timer*& p) {
   if (k++ == i) {
     p = new T(m);
-  } 
+  }
 }
 
 // i: test index
 // m: mesh
 // Output:
-// t: total per one call [sec] 
-// n: number of calls 
+// t: total per one call [sec]
+// n: number of calls
 // mem: memory usage in bytes
 // name: test name
 // Returns 1 if test with index i found
-bool Run(const size_t i, Mesh& m,
-         double& t, size_t& n, size_t& mem, std::string& name) {
+bool Run(
+    const size_t i, Mesh& m, double& t, size_t& n, size_t& mem,
+    std::string& name) {
   size_t k = 0;
   Timer* p = nullptr;
 
@@ -468,38 +468,24 @@ bool Run(const size_t i, Mesh& m,
 
 int main() {
   // mesh size
-  std::vector<MIdx> ss = {
-        MIdx(4)
-      , MIdx(8)
-      , MIdx(16)
-      , MIdx(32)
-      , MIdx(64) 
-      , MIdx(128) 
-  };
+  std::vector<MIdx> ss = {MIdx(4),  MIdx(8),  MIdx(16),
+                          MIdx(32), MIdx(64), MIdx(128)};
 
   using std::setw;
-  std::cout 
-      << setw(20) << "name"
-      << setw(20) << "t/allcells [ns]" 
-      << setw(20) << "t/incells [ns]" 
-      << setw(20) << "t [ns]" 
-      << setw(20) << "iters"
-      << setw(20) << "mem [MB]"
-      << setw(20) << "mem/allcells [B]"
-      << std::endl
-      << std::endl;
+  std::cout << setw(20) << "name" << setw(20) << "t/allcells [ns]" << setw(20)
+            << "t/incells [ns]" << setw(20) << "t [ns]" << setw(20) << "iters"
+            << setw(20) << "mem [MB]" << setw(20) << "mem/allcells [B]"
+            << std::endl
+            << std::endl;
 
   for (auto s : ss) {
     size_t mem0 = sysinfo::GetMem();
     auto m = GetMesh(s);
     const size_t nca = m.GetAllBlockCells().size();
     const size_t nci = m.GetInBlockCells().size();
-    std::cout 
-        << "Mesh" 
-        << " size=" << s
-        << " allcells=" << nca 
-        << " incells=" << nci 
-        << std::endl;
+    std::cout << "Mesh"
+              << " size=" << s << " allcells=" << nca << " incells=" << nci
+              << std::endl;
 
     int i = 0;
     double t;
@@ -508,17 +494,11 @@ int main() {
     std::string name;
     while (Run(i++, m, t, n, mem, name)) {
       size_t dmem = mem - mem0;
-      std::cout 
-          << setw(20) << name 
-          << setw(20) << t * 1e9 / nca
-          << setw(20) << t * 1e9 / nci
-          << setw(20) << t * 1e9 * n
-          << setw(20) << n
-          << setw(20) << (dmem / double(1 << 20))
-          << setw(20) << (dmem / nca)
-          << std::endl;
+      std::cout << setw(20) << name << setw(20) << t * 1e9 / nca << setw(20)
+                << t * 1e9 / nci << setw(20) << t * 1e9 * n << setw(20) << n
+                << setw(20) << (dmem / double(1 << 20)) << setw(20)
+                << (dmem / nca) << std::endl;
     }
     std::cout << std::endl;
   }
-
 }

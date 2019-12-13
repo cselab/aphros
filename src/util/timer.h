@@ -6,7 +6,7 @@
 class Timer {
  public:
   // name: returned by GetName()
-  // timeout: time in seconds for which to repeat F() 
+  // timeout: time in seconds for which to repeat F()
   // batch: number of calls F() at every iteration
   Timer(std::string name, double timeout, size_t batch);
   // batch=1
@@ -26,6 +26,6 @@ class Timer {
   void B();
 
   std::string n_; // name
-  double to_;     // timeout
-  size_t b_;      // batch size
+  double to_; // timeout
+  size_t b_; // batch size
 };

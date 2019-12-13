@@ -1,20 +1,14 @@
-#include <chrono>
 #include <cassert>
+#include <chrono>
 
 #include "timer.h"
 
+Timer::Timer(std::string name, double timeout /*sec*/, size_t batch)
+    : n_(name), to_(timeout), b_(batch) {}
 
-Timer::Timer(std::string name, double timeout /*sec*/, size_t batch) 
-  : n_(name), to_(timeout), b_(batch)
-{}
+Timer::Timer(std::string name, double timeout) : Timer(name, timeout, 1) {}
 
-Timer::Timer(std::string name, double timeout) 
-  : Timer(name, timeout, 1)
-{}
-
-Timer::Timer(std::string name) 
-  : Timer(name, 0.01, 1)
-{}
+Timer::Timer(std::string name) : Timer(name, 0.01, 1) {}
 
 std::string Timer::GetName() const {
   return n_;

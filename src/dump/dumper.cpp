@@ -1,14 +1,14 @@
-#include <iostream>
 #include <cassert>
-#include <string>
+#include <iomanip>
+#include <iostream>
 #include <limits>
 #include <sstream>
-#include <iomanip>
+#include <string>
 
 #include "dumper.h"
 
 bool Dumper::Try(double t, double dt) {
-  if (pt_ == t) { 
+  if (pt_ == t) {
     return true;
   }
   if (const double* t0 = var.Double(pre_ + "t0")) {
@@ -17,7 +17,7 @@ bool Dumper::Try(double t, double dt) {
     }
   }
 
-  // requirements: 
+  // requirements:
   // * interval between dumps is at least dumpdt + dt
   // * dumpt % dtumpdt <= dt * 0.5
   auto pdt = var.Double[pre_ + "dt"]; // dum[p] [d]t
@@ -29,8 +29,7 @@ bool Dumper::Try(double t, double dt) {
     ptt_ = t;
   }
 
-  if (var.Int["output"] && 
-      t >= ptt_ - dt * 0.5 &&
+  if (var.Int["output"] && t >= ptt_ - dt * 0.5 &&
       pn_ < var.Int[pre_ + "max"]) {
     pt_ = t;
     ++pn_;
@@ -40,11 +39,8 @@ bool Dumper::Try(double t, double dt) {
 }
 
 void Dumper::Report() {
-  std::cerr << "Dump " 
-      << "n=" << pn_
-      << " t=" << pt_
-      << " target=" << ptt_
-      << std::endl;
+  std::cerr << "Dump "
+            << "n=" << pn_ << " t=" << pt_ << " target=" << ptt_ << std::endl;
 }
 
 std::string GetDumpName(std::string fld, std::string ext, int t, int it) {

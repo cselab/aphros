@@ -1,20 +1,20 @@
 #pragma once
 
+#include <array>
 #include <exception>
 #include <fstream>
-#include <array>
-#include <memory>
 #include <limits>
+#include <memory>
 
-#include "vof.h"
 #include "approx.h"
-#include "geom/block.h"
-#include "reconst.h"
-#include "normal.h"
-#include "trackerm.h"
 #include "debug/isnan.h"
+#include "geom/block.h"
+#include "normal.h"
 #include "partstrmeshm.h"
+#include "reconst.h"
+#include "trackerm.h"
 #include "util/vof.h"
+#include "vof.h"
 
 namespace solver {
 
@@ -32,11 +32,17 @@ struct Vof<M_>::Imp {
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
       const MapCondFaceAdvection<Scal>& mfc, std::shared_ptr<Par> par)
-      : owner_(owner), par(par), m(owner_->m), layers(1)
-      , mfc_(mfc), fccl_(fccl), fcim_(m, TRM::Pack(MIdx(0)))
-      , fca_(m, GetNan<Scal>()), fcn_(m, GetNan<Vect>())
-      , fck_(m, 0), fch_(m, Vect(0))
-  {
+      : owner_(owner)
+      , par(par)
+      , m(owner_->m)
+      , layers(1)
+      , mfc_(mfc)
+      , fccl_(fccl)
+      , fcim_(m, TRM::Pack(MIdx(0)))
+      , fca_(m, GetNan<Scal>())
+      , fcn_(m, GetNan<Vect>())
+      , fck_(m, 0)
+      , fch_(m, Vect(0)) {
     fcu_.time_curr = fcu;
 
     UpdateBc(mfc_);
@@ -79,7 +85,7 @@ struct Vof<M_>::Imp {
 
     {
       using FT = typename PS::FT;
-      switch (par->part_attrforce) { 
+      switch (par->part_attrforce) {
         case Par::AF::line:
           p->forcetype = FT::line;
           break;
@@ -110,8 +116,9 @@ struct Vof<M_>::Imp {
   // fcud2: volume fraction difference double (xpp-xmm, ...) [a]
   // Output:
   // fcud4: volume fraction difference quad (xp4-xm4, ...) [i]
-  void CalcDiff4(const FieldCell<Scal>& fcu, 
-      const FieldCell<Vect>& fcud2, FieldCell<Vect>& fcud4) {
+  void CalcDiff4(
+      const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcud2,
+      FieldCell<Vect>& fcud4) {
     fcud4.Reinit(m);
     for (auto c : m.Cells()) {
       for (size_t d = 0; d < dim; ++d) {
@@ -129,8 +136,9 @@ struct Vof<M_>::Imp {
   // fcud4: volume fraction difference double (xp4-xm4, ...) [a]
   // Output:
   // fcud6: volume fraction difference quad (xp6-xm6, ...) [i]
-  void CalcDiff6(const FieldCell<Scal>& fcu, 
-      const FieldCell<Vect>& fcud4, FieldCell<Vect>& fcud6) {
+  void CalcDiff6(
+      const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcud4,
+      FieldCell<Vect>& fcud6) {
     fcud6.Reinit(m);
     for (auto c : m.Cells()) {
       for (size_t d = 0; d < dim; ++d) {
@@ -198,14 +206,13 @@ struct Vof<M_>::Imp {
   }
   void Dump() {
     auto sem = m.GetSem("iter");
-    bool dm = par->dmp->Try(owner_->GetTime(),
-                            owner_->GetTimeStep());
+    bool dm = par->dmp->Try(owner_->GetTime(), owner_->GetTimeStep());
     if (par->dumppoly && dm && sem.Nested("dumppoly")) {
       uvof_.DumpPoly(
           fcu_.iter_curr, fcn_, fca_, fci_,
           GetDumpName("s", ".vtk", par->dmp->GetN()),
-          owner_->GetTime() + owner_->GetTimeStep(),
-          par->poly_intth, par->vtkbin, par->vtkmerge, m);
+          owner_->GetTime() + owner_->GetTimeStep(), par->poly_intth,
+          par->vtkbin, par->vtkmerge, m);
     }
     if (par->dumppolymarch && dm) {
       auto& fcut = fcfm_;
@@ -225,8 +232,8 @@ struct Vof<M_>::Imp {
         uvof_.DumpPolyMarch(
             layers, &fcut, &fcclt, &fcn_, &fca_, &fci_,
             GetDumpName("sm", ".vtk", par->dmp->GetN()),
-            owner_->GetTime() + owner_->GetTimeStep(),
-            par->poly_intth, par->vtkbin, par->vtkmerge, par->vtkiso, 
+            owner_->GetTime() + owner_->GetTimeStep(), par->poly_intth,
+            par->vtkbin, par->vtkmerge, par->vtkiso,
             par->dumppolymarch_fill >= 0 ? &fcut : nullptr, m);
       }
     }
@@ -253,12 +260,10 @@ struct Vof<M_>::Imp {
   // clipth: threshold for clipping, values outside [th,1-th] are clipped
   static void Sweep(
       FieldCell<Scal>& uc, size_t d, const FieldFace<Scal>& ffv,
-      FieldCell<Scal>& fccl, FieldCell<Scal>& fcim,
-      const FieldCell<Vect>& fcn, const FieldCell<Scal>& fca,
-      const MapCondFace* mfc, int type,
+      FieldCell<Scal>& fccl, FieldCell<Scal>& fcim, const FieldCell<Vect>& fcn,
+      const FieldCell<Scal>& fca, const MapCondFace* mfc, int type,
       const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
-      const FieldCell<Scal>* fcuu,
-      Scal dt, Scal clipth, const M& m) {
+      const FieldCell<Scal>* fcuu, Scal dt, Scal clipth, const M& m) {
     using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
     Dir md(d); // direction as Dir
@@ -304,7 +309,7 @@ struct Vof<M_>::Imp {
           fccl[cd] = fccl[c];
           MIdx w = bc.GetMIdx(c);
           MIdx im = TRM::Unpack(fcim[c]);
-          if (w[d] < 0)      im[d] += 1;
+          if (w[d] < 0) im[d] += 1;
           if (w[d] >= gs[d]) im[d] -= 1;
           fcim[cd] = TRM::Pack(im);
         }
@@ -335,7 +340,7 @@ struct Vof<M_>::Imp {
       // phase 2 cfl
       const Scal dl = (ffvu[fp] - ffvu[fm]) * dt / lc;
       auto& u = uc[c];
-      if (type == 0) {        // plain
+      if (type == 0) { // plain
         u += -dl;
       } else if (type == 1) { // Euler Implicit
         u = (u - dl) / (1. - ds);
@@ -357,8 +362,9 @@ struct Vof<M_>::Imp {
       }
     }
   }
-  void CommRec(Sem& sem, FieldCell<Scal>& uc,
-               FieldCell<Scal>& fccl, FieldCell<Scal>& fcim) {
+  void CommRec(
+      Sem& sem, FieldCell<Scal>& uc, FieldCell<Scal>& fccl,
+      FieldCell<Scal>& fcim) {
     if (sem("comm")) {
       m.Comm(&uc);
       m.Comm(&fccl);
@@ -391,7 +397,7 @@ struct Vof<M_>::Imp {
         dd = {0, 1};
       } else {
         dd = {1, 0};
-      } 
+      }
       vsc = 1.0;
     }
     for (size_t id = 0; id < dd.size(); ++id) {
@@ -411,15 +417,15 @@ struct Vof<M_>::Imp {
       }
       auto& uc = fcu_.iter_curr;
       if (sem("sweep")) {
-        Sweep(uc, d, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_,
-              id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
-              owner_->GetTimeStep() * vsc, par->clipth, m);
+        Sweep(
+            uc, d, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_,
+            id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
+            owner_->GetTimeStep() * vsc, par->clipth, m);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
   }
-  static void BcMarchFill(
-      FieldCell<Scal>& fcu, Scal fill, const M& m) {
+  static void BcMarchFill(FieldCell<Scal>& fcu, Scal fill, const M& m) {
     for (auto c : m.AllCells()) {
       auto x = m.GetCenter(c);
       if (!(Vect(0) <= x && x <= m.GetGlobalLength())) {
@@ -442,14 +448,14 @@ struct Vof<M_>::Imp {
         dd = {0, 1};
       } else {
         dd = {1, 0};
-      } 
+      }
     }
     for (size_t id = 0; id < dd.size(); ++id) {
       auto& uc = fcu_.iter_curr;
       if (sem("sweep")) {
-        Sweep(uc, dd[id], *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_,
-              type, nullptr, nullptr, &fcuu_,
-              owner_->GetTimeStep(), par->clipth, m);
+        Sweep(
+            uc, dd[id], *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_, type,
+            nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), par->clipth, m);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
@@ -483,8 +489,9 @@ struct Vof<M_>::Imp {
           IdxFace f = it.GetIdx();
           ffv[f] = 0;
         }
-        Sweep(uc, d, ffv, fccl_, fcim_, fcn_, fca_, &mfc_vf_,
-              3, nullptr, nullptr, &fcuu_, 1., par->clipth, m);
+        Sweep(
+            uc, d, ffv, fccl_, fcim_, fcn_, fca_, &mfc_vf_, 3, nullptr, nullptr,
+            &fcuu_, 1., par->clipth, m);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
@@ -492,8 +499,8 @@ struct Vof<M_>::Imp {
   void MakeIteration() {
     auto sem = m.GetSem("iter");
     struct {
-      FieldCell<Scal> fcclm;  // previous color
-    }* ctx(sem);
+      FieldCell<Scal> fcclm; // previous color
+    } * ctx(sem);
     auto& fcclm = ctx->fcclm;
     if (sem("init")) {
       auto& uc = fcu_.iter_curr;
@@ -534,11 +541,10 @@ struct Vof<M_>::Imp {
       BcApply(fccl_, mfc_cl_, m);
     }
     if (sem.Nested()) {
-      uvof_.Recolor(layers, &fcu_.iter_curr, &fccl_, &fcclm,
-                    par->clfixed, par->clfixed_x,
-                    par->coalth, mfc_cl_, par->verb,
-                    par->recolor_unionfind, par->recolor_reduce,
-                    par->recolor_grid, m);
+      uvof_.Recolor(
+          layers, &fcu_.iter_curr, &fccl_, &fcclm, par->clfixed, par->clfixed_x,
+          par->coalth, mfc_cl_, par->verb, par->recolor_unionfind,
+          par->recolor_reduce, par->recolor_grid, m);
     }
     if (sem("propagate")) {
       auto& u = fcu_.iter_curr;
@@ -547,8 +553,8 @@ struct Vof<M_>::Imp {
         for (size_t q : {0, 1}) {
           auto c = m.GetCell(f, q);
           auto cn = m.GetCell(f, 1 - q);
-          if (cl[c] == kClNone && u[c] > 0 &&
-              u[cn] > u[c] && cl[cn] != kClNone) {
+          if (cl[c] == kClNone && u[c] > 0 && u[cn] > u[c] &&
+              cl[cn] != kClNone) {
             cl[c] = cl[cn];
           }
         }
@@ -594,10 +600,10 @@ struct Vof<M_>::Imp {
     }
     */
     if (sem("height")) {
-      //UNormal<M>::CalcHeight(
+      // UNormal<M>::CalcHeight(
       //    m, uc, fcud2_, fcud4_, fcud6_, par->dim, fch_);
       UNormal<M>::CalcHeight(m, uc, fcud2_, fcud4_, par->dim, fch_);
-      //UNormal<M>::CalcHeight(m, uc, fcud2_, par->dim, fch_);
+      // UNormal<M>::CalcHeight(m, uc, fcud2_, par->dim, fch_);
       m.Comm(&fch_);
     }
     if (sem("curvcomm")) {
@@ -613,14 +619,13 @@ struct Vof<M_>::Imp {
     }
   }
 
-
   Owner* owner_;
   std::shared_ptr<Par> par;
   M& m;
   GRange<size_t> layers;
 
   LayersData<FieldCell<Scal>> fcu_;
-  FieldCell<Scal> fcuu_;   // volume fraction for Weymouth div term
+  FieldCell<Scal> fcuu_; // volume fraction for Weymouth div term
   const MapCondFaceAdvection<Scal>& mfc_; // conditions on advection
   MapCondFace mfc_vf_; // conditions on vf
   MapCondFace mfc_cl_; // conditions on cl
@@ -649,12 +654,10 @@ struct Vof<M_>::Imp {
 template <class M_>
 Vof<M_>::Vof(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-    const MapCondFaceAdvection<Scal>& mfc,
-    const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
-    double t, double dt, std::shared_ptr<Par> par)
+    const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
+    const FieldCell<Scal>* fcs, double t, double dt, std::shared_ptr<Par> par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)
-    , imp(new Imp(this, fcu, fccl, mfc, par))
-{}
+    , imp(new Imp(this, fcu, fccl, mfc, par)) {}
 
 template <class M_>
 Vof<M_>::~Vof() = default;
@@ -719,7 +722,6 @@ void Vof<M_>::PostStep() {
   return imp->PostStep();
 }
 
-
 // curvature from height function
 template <class M_>
 auto Vof<M_>::GetCurvH() const -> const FieldCell<Scal>& {
@@ -734,22 +736,22 @@ auto Vof<M_>::GetCurvP() const -> const FieldCell<Scal>& {
 
 } // namespace solver
 
-
 // XXX: [fabianw@mavt.ethz.ch; 2019-11-17] debug
 template bool IsNan<double, GIdx<0>>(const FieldCell<double>&);
-template bool IsNan<GVect<double,3>, GIdx<0>>(const FieldCell<GVect<double,3>>&);
+template bool IsNan<GVect<double, 3>, GIdx<0>>(
+    const FieldCell<GVect<double, 3>>&);
 template bool IsNan<double>(double);
-template bool IsNan<double, 3>(const GVect<double,3>&);
+template bool IsNan<double, 3>(const GVect<double, 3>&);
 
 template <class T, class Idx>
-T MySum(const GField<T, Idx> &u)
-{
-    T sum = T(0);
-    for (auto i : u.GetRange()) {
-        sum += u[i];
-    }
-    return sum;
+T MySum(const GField<T, Idx>& u) {
+  T sum = T(0);
+  for (auto i : u.GetRange()) {
+    sum += u[i];
+  }
+  return sum;
 }
 
-template double MySum<double, GIdx<0>>(const FieldCell<double> &);
-template GVect<double,3> MySum<GVect<double, 3>, GIdx<0>>(const FieldCell<GVect<double, 3>> &);
+template double MySum<double, GIdx<0>>(const FieldCell<double>&);
+template GVect<double, 3> MySum<GVect<double, 3>, GIdx<0>>(
+    const FieldCell<GVect<double, 3>>&);

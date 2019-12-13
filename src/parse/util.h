@@ -1,8 +1,8 @@
 #pragma once
 
+#include <set>
 #include <string>
 #include <vector>
-#include <set>
 
 // Returns set of words from space separated string.
 inline std::set<std::string> GetWords(std::string s) {
@@ -31,4 +31,3 @@ inline std::vector<std::string> Split(std::string str, char sep) {
   }
   return ss;
 }
-

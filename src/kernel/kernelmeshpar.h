@@ -12,16 +12,15 @@ class KernelMeshPar : public KernelMesh<M_> {
   static constexpr size_t dim = M::dim;
 
   KernelMeshPar(Vars& var, const MyBlockInfo& bi, Par& par)
-      : KernelMesh<M>(var, bi)
-      , par_(par) {}
+      : KernelMesh<M>(var, bi), par_(par) {}
   void Run() override = 0;
 
  protected:
+  using P::IsLead;
+  using P::IsRoot;
+  using P::m;
   using P::var;
   using P::var_mutable;
-  using P::m;
-  using P::IsRoot;
-  using P::IsLead;
   Par& par_;
 };
 
@@ -42,4 +41,3 @@ class KernelMeshParFactory : public KernelMeshFactory<M_> {
  protected:
   Par& par_;
 };
-

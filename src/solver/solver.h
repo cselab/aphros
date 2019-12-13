@@ -10,14 +10,26 @@ class UnsteadySolver {
   UnsteadySolver(double t, double dt) : t_(t), dt_(dt) {}
   virtual ~UnsteadySolver() {}
   virtual void StartStep() {}
-  virtual void FinishStep() { IncTime(); }
-  virtual double GetTime() const { return t_; }
-  virtual void SetTime(double t) { t_  = t; }
-  virtual double GetTimeStep() const { return dt_; }
-  virtual void SetTimeStep(double dt) { dt_ = dt; }
+  virtual void FinishStep() {
+    IncTime();
+  }
+  virtual double GetTime() const {
+    return t_;
+  }
+  virtual void SetTime(double t) {
+    t_ = t;
+  }
+  virtual double GetTimeStep() const {
+    return dt_;
+  }
+  virtual void SetTimeStep(double dt) {
+    dt_ = dt;
+  }
 
  protected:
-  virtual void IncTime() { t_ += dt_; }
+  virtual void IncTime() {
+    t_ += dt_;
+  }
 
  private:
   double t_;
@@ -26,16 +38,25 @@ class UnsteadySolver {
 
 class UnsteadyIterativeSolver : public UnsteadySolver {
  public:
-  UnsteadyIterativeSolver(double t, double dt)
-      : UnsteadySolver(t, dt) , i_(0) {}
+  UnsteadyIterativeSolver(double t, double dt) : UnsteadySolver(t, dt), i_(0) {}
   virtual void MakeIteration() = 0;
-  virtual double GetError() const { return 0.; }
-  virtual size_t GetIter() const { return i_; }
-  virtual void StartStep() override { ClearIter(); }
+  virtual double GetError() const {
+    return 0.;
+  }
+  virtual size_t GetIter() const {
+    return i_;
+  }
+  virtual void StartStep() override {
+    ClearIter();
+  }
 
  protected:
-  void IncIter() { ++i_; }
-  void ClearIter() { i_ = 0; }
+  void IncIter() {
+    ++i_;
+  }
+  void ClearIter() {
+    i_ = 0;
+  }
 
  private:
   size_t i_;
@@ -57,10 +78,18 @@ struct LayersData {
   T time_curr, time_prev, iter_curr, iter_prev;
   const T& Get(Layers l) const {
     switch (l) {
-      case Layers::time_curr: { return time_curr; }
-      case Layers::time_prev: { return time_prev; }
-      case Layers::iter_curr: { return iter_curr; }
-      case Layers::iter_prev: { return iter_prev; }
+      case Layers::time_curr: {
+        return time_curr;
+      }
+      case Layers::time_prev: {
+        return time_prev;
+      }
+      case Layers::iter_curr: {
+        return iter_curr;
+      }
+      case Layers::iter_prev: {
+        return iter_prev;
+      }
       default: {
         throw std::runtime_error("LayersData::Get(): Unknown layer");
       }
@@ -80,6 +109,4 @@ std::string GetName(ConvSc sc);
 // Convection scheme by name.
 ConvSc GetConvSc(std::string s);
 
-
 } // namespace solver
-

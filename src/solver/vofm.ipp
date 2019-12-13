@@ -1,22 +1,22 @@
 #pragma once
 
+#include <array>
 #include <exception>
 #include <fstream>
-#include <array>
-#include <memory>
 #include <limits>
+#include <memory>
 #include <set>
 
-#include "vofm.h"
-#include "geom/block.h"
-#include "reconst.h"
-#include "normal.h"
-#include "debug/isnan.h"
-#include "partstrmeshm.h"
-#include "multi.h"
-#include "util/vof.h"
-#include "trackerm.h"
 #include "approx.h"
+#include "debug/isnan.h"
+#include "geom/block.h"
+#include "multi.h"
+#include "normal.h"
+#include "partstrmeshm.h"
+#include "reconst.h"
+#include "trackerm.h"
+#include "util/vof.h"
+#include "vofm.h"
 
 namespace solver {
 
@@ -28,7 +28,6 @@ Multi<FieldCell<T>*> GetLayer(Multi<LayersData<FieldCell<T>>>& u, Layers l) {
   }
   return r;
 }
-
 
 template <class M_>
 struct Vofm<M_>::Imp {
@@ -44,9 +43,11 @@ struct Vofm<M_>::Imp {
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu0, const FieldCell<Scal>& fccl0,
       const MapCondFaceAdvection<Scal>& mfc, std::shared_ptr<Par> par)
-      : owner_(owner), par(par), m(owner_->m)
-      , mfc_(mfc), layers(0, par->layers)
-  {
+      : owner_(owner)
+      , par(par)
+      , m(owner_->m)
+      , mfc_(mfc)
+      , layers(0, par->layers) {
     fcu_.resize(layers);
     fcuu_.resize(layers);
     fcn_.resize(layers);
@@ -58,7 +59,6 @@ struct Vofm<M_>::Imp {
     ffvu_.resize(layers);
     ffcl_.resize(layers);
     ffi_.resize(layers);
-
 
     fcn_.InitAll(FieldCell<Vect>(m, GetNan<Vect>()));
     fca_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
@@ -75,7 +75,6 @@ struct Vofm<M_>::Imp {
     ffvu_.InitAll(FieldFace<Scal>(m, 0));
     ffcl_.InitAll(FieldFace<Scal>(m, kClNone));
     ffi_.InitAll(FieldFace<bool>(m, false));
-
 
     fcu_[0].time_curr = fcu0;
     fccl_[0] = fccl0;
@@ -178,7 +177,7 @@ struct Vofm<M_>::Imp {
               Scal u0 = par->avgnorm0;
               Scal u1 = par->avgnorm1;
               if (u0 < u1) {
-                Scal a = std::min(1., std::max(0., (us - u0) / (u1 - u0))); 
+                Scal a = std::min(1., std::max(0., (us - u0) / (u1 - u0)));
                 n = nal * a + n * (1 - a);
               } else {
                 n = nal;
@@ -263,22 +262,21 @@ struct Vofm<M_>::Imp {
     auto sem = m.GetSem("iter");
     struct {
       // tmp fields
-      Multi<FieldCell<Scal>> fcut;  // volume fraction
-      Multi<FieldCell<Scal>> fcclt;  // color
-      FieldCell<Scal> fcust;        // sum of  volume fraction
-    }* ctx(sem);
-    bool dm = par->dmp->Try(owner_->GetTime(),
-                            owner_->GetTimeStep());
+      Multi<FieldCell<Scal>> fcut; // volume fraction
+      Multi<FieldCell<Scal>> fcclt; // color
+      FieldCell<Scal> fcust; // sum of  volume fraction
+    } * ctx(sem);
+    bool dm = par->dmp->Try(owner_->GetTime(), owner_->GetTimeStep());
     if (par->dumppoly && dm && sem.Nested()) {
       uvof_.DumpPoly(
           layers, GetLayer(fcu_, Layers::iter_curr), fccl_, fcn_, fca_, fci_,
           GetDumpName("s", ".vtk", par->dmp->GetN()),
-          owner_->GetTime() + owner_->GetTimeStep(),
-          par->poly_intth, par->vtkbin, par->vtkmerge, m);
+          owner_->GetTime() + owner_->GetTimeStep(), par->poly_intth,
+          par->vtkbin, par->vtkmerge, m);
     }
-    if (par->dumppolymarch && dm) { 
+    if (par->dumppolymarch && dm) {
       auto& fcut = ctx->fcut; // tmp volume fraction
-      auto& fcclt = ctx->fcclt;  // tmp color;
+      auto& fcclt = ctx->fcclt; // tmp color;
       auto& fcust = ctx->fcust; // tmp total volume
       if (sem("copy")) {
         fcust = fcus_.iter_curr;
@@ -299,8 +297,8 @@ struct Vofm<M_>::Imp {
         uvof_.DumpPolyMarch(
             layers, fcut, fcclt, fcn_, fca_, fci_,
             GetDumpName("sm", ".vtk", par->dmp->GetN()),
-            owner_->GetTime() + owner_->GetTimeStep(),
-            par->poly_intth, par->vtkbin, par->vtkmerge, par->vtkiso, 
+            owner_->GetTime() + owner_->GetTimeStep(), par->poly_intth,
+            par->vtkbin, par->vtkmerge, par->vtkiso,
             par->dumppolymarch_fill >= 0 ? &fcust : nullptr, m);
       }
     }
@@ -339,14 +337,14 @@ struct Vofm<M_>::Imp {
           IdxFace f = it.GetIdx();
           ffv[f] = 0;
         }
-        Sweep(mfcu, d, layers, ffv, fccl_, fcim_, fcn_, fca_, mfc_vf_,
-            3, nullptr, nullptr, fcuu_, 1., par->clipth, m);
+        Sweep(
+            mfcu, d, layers, ffv, fccl_, fcim_, fcn_, fca_, mfc_vf_, 3, nullptr,
+            nullptr, fcuu_, 1., par->clipth, m);
       }
       CommRec(sem, mfcu, fccl_, fcim_);
     }
   }
-  static void BcMarchFill(
-      FieldCell<Scal>& fcu, Scal fill, const M& m) {
+  static void BcMarchFill(FieldCell<Scal>& fcu, Scal fill, const M& m) {
     for (auto c : m.AllCells()) {
       auto x = m.GetCenter(c);
       if (!(Vect(0) <= x && x <= m.GetGlobalLength())) {
@@ -369,14 +367,15 @@ struct Vofm<M_>::Imp {
         dd = {0, 1};
       } else {
         dd = {1, 0};
-      } 
+      }
     }
     for (size_t id = 0; id < dd.size(); ++id) {
       size_t d = dd[id]; // direction as index
       if (sem("sweep")) {
-        Sweep(mfcu, d, layers, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, 
-              mfc_vf_, type, nullptr, nullptr, fcuu_,
-              owner_->GetTimeStep(), par->clipth, m);
+        Sweep(
+            mfcu, d, layers, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, mfc_vf_,
+            type, nullptr, nullptr, fcuu_, owner_->GetTimeStep(), par->clipth,
+            m);
       }
       CommRec(sem, mfcu, fccl_, fcim_);
     }
@@ -399,16 +398,14 @@ struct Vofm<M_>::Imp {
   // clipth: threshold for clipping, values outside [th,1-th] are clipped
   static void Sweep(
       const Multi<FieldCell<Scal>*>& mfcu, size_t d,
-      const GRange<size_t>& layers,
-      const FieldFace<Scal>& ffv,
+      const GRange<size_t>& layers, const FieldFace<Scal>& ffv,
       const Multi<FieldCell<Scal>*>& mfccl,
       const Multi<FieldCell<Scal>*>& mfcim,
       const Multi<const FieldCell<Vect>*>& mfcn,
-      const Multi<const FieldCell<Scal>*>& mfca,
-      const MapCondFace& mfc, int type,
-      const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
-      const Multi<const FieldCell<Scal>*>& mfcuu,
-      Scal dt, Scal clipth, const M& m) {
+      const Multi<const FieldCell<Scal>*>& mfca, const MapCondFace& mfc,
+      int type, const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
+      const Multi<const FieldCell<Scal>*>& mfcuu, Scal dt, Scal clipth,
+      const M& m) {
     using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
     Dir md(d); // direction as Dir
@@ -475,7 +472,7 @@ struct Vofm<M_>::Imp {
                 (*mfccl[j])[cd] = fccl[c];
                 MIdx w = bc.GetMIdx(c);
                 MIdx im = TRM::Unpack((*mfcim[i])[c]);
-                if (w[d] < 0)      im[d] += 1;
+                if (w[d] < 0) im[d] += 1;
                 if (w[d] >= gs[d]) im[d] -= 1;
                 (*mfcim[j])[cd] = TRM::Pack(im);
                 break;
@@ -516,14 +513,20 @@ struct Vofm<M_>::Imp {
           Scal vm = 0;
           Scal vp = 0;
           for (auto j : layers) {
-            if (mffcl[j][fm] == fccl[c]) { vm = mffvu[j][fm]; break; }
+            if (mffcl[j][fm] == fccl[c]) {
+              vm = mffvu[j][fm];
+              break;
+            }
           }
           for (auto j : layers) {
-            if (mffcl[j][fp] == fccl[c]) { vp = mffvu[j][fp]; break; }
+            if (mffcl[j][fp] == fccl[c]) {
+              vp = mffvu[j][fp];
+              break;
+            }
           }
           const Scal dl = (vp - vm) * dt / lc;
           auto& u = fcu[c];
-          if (type == 0) {        // plain
+          if (type == 0) { // plain
             u += -dl;
           } else if (type == 1) { // Euler Implicit
             u = (u - dl) / (1. - ds);
@@ -548,8 +551,7 @@ struct Vofm<M_>::Imp {
     }
   }
   void CommRec(
-      Sem& sem,
-      const Multi<FieldCell<Scal>*>& mfcu,
+      Sem& sem, const Multi<FieldCell<Scal>*>& mfcu,
       const Multi<FieldCell<Scal>*>& mfccl,
       const Multi<FieldCell<Scal>*>& mfcim) {
     if (layers.size() * 3 <= m.GetMaxComm()) { // cubismnc or local
@@ -598,7 +600,7 @@ struct Vofm<M_>::Imp {
         dd = {0, 1};
       } else {
         dd = {1, 0};
-      } 
+      }
       vsc = 1.0;
     }
     for (size_t id = 0; id < dd.size(); ++id) {
@@ -617,9 +619,10 @@ struct Vofm<M_>::Imp {
         }
       }
       if (sem("sweep")) {
-        Sweep(mfcu, d, layers, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, 
-              mfc_vf_, id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
-              owner_->GetTimeStep() * vsc, par->clipth, m);
+        Sweep(
+            mfcu, d, layers, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, mfc_vf_,
+            id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
+            owner_->GetTimeStep() * vsc, par->clipth, m);
       }
       CommRec(sem, mfcu, fccl_, fcim_);
     }
@@ -627,8 +630,8 @@ struct Vofm<M_>::Imp {
   void MakeIteration() {
     auto sem = m.GetSem("iter");
     struct {
-      Multi<FieldCell<Scal>> fcclm;  // previous color
-    }* ctx(sem);
+      Multi<FieldCell<Scal>> fcclm; // previous color
+    } * ctx(sem);
     if (sem("init")) {
       for (auto i : layers) {
         auto& fcu = fcu_[i];
@@ -675,11 +678,10 @@ struct Vofm<M_>::Imp {
       }
     }
     if (sem.Nested()) {
-      uvof_.Recolor(layers, GetLayer(fcu_, Layers::iter_curr), fccl_, fccl_,
-                    par->clfixed, par->clfixed_x,
-                    par->coalth, mfc_cl_, par->verb,
-                    par->recolor_unionfind, par->recolor_reduce,
-                    par->recolor_grid, m);
+      uvof_.Recolor(
+          layers, GetLayer(fcu_, Layers::iter_curr), fccl_, fccl_, par->clfixed,
+          par->clfixed_x, par->coalth, mfc_cl_, par->verb,
+          par->recolor_unionfind, par->recolor_reduce, par->recolor_grid, m);
     }
 
     if (sem("sum")) {
@@ -745,14 +747,13 @@ struct Vofm<M_>::Imp {
       // --> reflected fca [a], fcn [a]
     }
     if (par->part && sem.Nested("part")) {
-      psm_->Part(GetLayer(fcu_, Layers::iter_curr),
-                 fca_, fcn_, fci_, fccl_, nullptr);
+      psm_->Part(
+          GetLayer(fcu_, Layers::iter_curr), fca_, fcn_, fci_, fccl_, nullptr);
     }
     if (sem.Nested("dump")) {
       Dump();
     }
   }
-
 
   Owner* owner_;
   std::shared_ptr<Par> par;
@@ -773,11 +774,12 @@ struct Vofm<M_>::Imp {
   Multi<FieldCell<Vect>> fcn_; // n (normal to plane)
   Multi<FieldCell<Scal>> fck_; // curvature from height functions
   Multi<FieldCell<bool>> fci_; // interface mask (1: contains interface)
-  Multi<FieldCell<Scal>> fccl_;  // color
-  Multi<FieldCell<Scal>> fcim_;  // image
-  Multi<FieldFace<Scal>> ffvu_;  // flux: volume flux * field
-  Multi<FieldFace<Scal>> ffcl_;  // flux color (from upwind cell)
-  Multi<FieldFace<bool>> ffi_;   // interface mask (1: upwind cell contains interface)
+  Multi<FieldCell<Scal>> fccl_; // color
+  Multi<FieldCell<Scal>> fcim_; // image
+  Multi<FieldFace<Scal>> ffvu_; // flux: volume flux * field
+  Multi<FieldFace<Scal>> ffcl_; // flux color (from upwind cell)
+  Multi<FieldFace<bool>>
+      ffi_; // interface mask (1: upwind cell contains interface)
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
   std::unique_ptr<PSM> psm_;
@@ -793,12 +795,10 @@ constexpr typename M::Scal Vofm<M>::Imp::kClNone;
 template <class M_>
 Vofm<M_>::Vofm(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-    const MapCondFaceAdvection<Scal>& mfc,
-    const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs,
-    double t, double dt, std::shared_ptr<Par> par)
+    const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
+    const FieldCell<Scal>* fcs, double t, double dt, std::shared_ptr<Par> par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)
-    , imp(new Imp(this, fcu, fccl, mfc, par))
-{}
+    , imp(new Imp(this, fcu, fccl, mfc, par)) {}
 
 template <class M_>
 Vofm<M_>::~Vofm() = default;
@@ -840,7 +840,7 @@ auto Vofm<M_>::GetField(size_t i) const -> const FieldCell<Scal>& {
 
 template <class M_>
 auto Vofm<M_>::GetAlpha(size_t i) const -> const FieldCell<Scal>& {
-  (void) i;
+  (void)i;
   return imp->fca_[i];
 }
 
@@ -848,7 +848,6 @@ template <class M_>
 auto Vofm<M_>::GetImage(size_t l, IdxCell c) const -> MIdx {
   return Trackerm<M>::Unpack(imp->fcim_[l][c]);
 }
-
 
 template <class M_>
 auto Vofm<M_>::GetColor(size_t i) const -> const FieldCell<Scal>& {
@@ -877,7 +876,7 @@ auto Vofm<M_>::GetCurv() const -> const FieldCell<Scal>& {
 
 template <class M_>
 auto Vofm<M_>::GetCurv(size_t i) const -> const FieldCell<Scal>& {
-  (void) i;
+  (void)i;
   return imp->psm_->GetCurv(i);
 }
 

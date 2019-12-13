@@ -21,9 +21,9 @@ struct Stats {
 static std::map<std::string, Stats> ComputeStats(
     const typename Sampler::SampleMap& samples) {
   std::map<std::string, Stats> stats;
-  for (auto &key : samples) {
+  for (auto& key : samples) {
     Stats stat = {};
-    const std::vector<double> &data = key.second;
+    const std::vector<double>& data = key.second;
     stat.nsamples = data.size();
     if (data.size() < 2) {
       stats[key.first] = stat;
@@ -66,7 +66,7 @@ void Histogram::Consolidate_() {
   std::vector<size_t> char_bytes;
   std::vector<std::string> keys;
   size_t sum_char = 0;
-  for (auto &key : samples_) {
+  for (auto& key : samples_) {
     const size_t s = key.first.length();
     sum_char += s;
     char_bytes.push_back(s);
@@ -108,7 +108,7 @@ void Histogram::Consolidate_() {
   } else {
     MPI_File_seek(fh, my_offset, MPI_SEEK_SET);
   }
-  for (const auto &s : stats) {
+  for (const auto& s : stats) {
     // data
     MPI_File_write(fh, &s.second, sizeof(Stats), MPI_BYTE, &st);
   }
@@ -130,31 +130,31 @@ void Histogram::HomogenizeCollection_() {
     }
     cstream.push_back('\0');
     ++nchar;
-    }
+  }
 
-    std::vector<int> all_sizes(size);
-    MPI_Allgather(&nchar, 1, MPI_INT, all_sizes.data(), 1, MPI_INT, comm_);
+  std::vector<int> all_sizes(size);
+  MPI_Allgather(&nchar, 1, MPI_INT, all_sizes.data(), 1, MPI_INT, comm_);
 
-    int sum_sizes = 0;
-    std::vector<int> all_offsets = all_sizes;
-    const int s0 = all_offsets[0];
-    for (size_t i = 0; i < all_sizes.size(); ++i) {
-      sum_sizes += all_sizes[i];
-      all_offsets[i] -= s0;
-    }
-    std::vector<char> all_char(sum_sizes);
-    MPI_Allgatherv(
-        cstream.data(), nchar, MPI_CHAR, all_char.data(), all_sizes.data(),
-        all_offsets.data(), MPI_CHAR, comm_);
+  int sum_sizes = 0;
+  std::vector<int> all_offsets = all_sizes;
+  const int s0 = all_offsets[0];
+  for (size_t i = 0; i < all_sizes.size(); ++i) {
+    sum_sizes += all_sizes[i];
+    all_offsets[i] -= s0;
+  }
+  std::vector<char> all_char(sum_sizes);
+  MPI_Allgatherv(
+      cstream.data(), nchar, MPI_CHAR, all_char.data(), all_sizes.data(),
+      all_offsets.data(), MPI_CHAR, comm_);
 
-    const char* c = all_char.data();
-    const std::vector<double> empty(0);
-    while (sum_sizes > 0) {
-      const std::string n(c);
-      if (n != "") {
-        Insert(n, empty);
-      }
-      c += (n.length() + 1);
-      sum_sizes -= (n.length() + 1);
+  const char* c = all_char.data();
+  const std::vector<double> empty(0);
+  while (sum_sizes > 0) {
+    const std::string n(c);
+    if (n != "") {
+      Insert(n, empty);
     }
+    c += (n.length() + 1);
+    sum_sizes -= (n.length() + 1);
+  }
 }

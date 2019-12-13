@@ -1,17 +1,19 @@
 #pragma once
 
-#include "solver/solver.h"
 #include "geom/mesh.h"
+#include "solver/solver.h"
 
 namespace solver {
 
 template <class Scal>
 struct CondFaceAdvection {
-  enum class Halo {fill, reflect};
+  enum class Halo { fill, reflect };
 
   CondFaceAdvection() = default;
   CondFaceAdvection(size_t nci) : nci(nci) {}
-  size_t GetNci() const { return nci; }
+  size_t GetNci() const {
+    return nci;
+  }
 
   size_t nci;
   Scal clear0 = 0; // snap to 0 if vf<clear0
@@ -38,10 +40,10 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
  public:
   // ffv: volume flux
   // fcs: source
-  AdvectionSolver(double t, double dt, M& m,
-                  const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs)
-      : UnsteadyIterativeSolver(t, dt)
-      , m(m), ffv_(ffv), fcs_(fcs) {}
+  AdvectionSolver(
+      double t, double dt, M& m, const FieldFace<Scal>* ffv,
+      const FieldCell<Scal>* fcs)
+      : UnsteadyIterativeSolver(t, dt), m(m), ffv_(ffv), fcs_(fcs) {}
   // Postprocessing after time step (curvature, dumps)
   virtual void PostStep() {}
   // Volume fraction
@@ -53,6 +55,5 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
   // Curvature
   virtual const FieldCell<Scal>& GetCurv() const = 0;
 };
-
 
 } // namespace solver

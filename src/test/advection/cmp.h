@@ -1,8 +1,8 @@
 #pragma once
 
 #include <algorithm> // min, max
-#include <cmath>      // abs
-#include <iostream>  // cerr, scientific, setprecision
+#include <cmath> // abs
+#include <iostream> // cerr, scientific, setprecision
 
 template <class T>
 bool Cmp(T a, T b) {
@@ -14,12 +14,9 @@ bool Cmp<double>(double a, double b) {
   return std::abs(a - b) < 1e-10;
 }
 
-
 template <class Idx, class B, class Scal>
 Scal DiffMax(
-    const B& b,
-    const GField<Scal, Idx>& u,
-    const GField<Scal, Idx>& v,
+    const B& b, const GField<Scal, Idx>& u, const GField<Scal, Idx>& v,
     const GField<bool, Idx>& mask) {
   Scal r = 0;
   for (auto i : GRange<Idx>(b)) {
@@ -32,9 +29,7 @@ Scal DiffMax(
 
 template <class Idx, class B, class Scal>
 Scal Max(
-    const B& b,
-    const GField<Scal, Idx>& u,
-    const GField<bool, Idx>& mask) {
+    const B& b, const GField<Scal, Idx>& u, const GField<bool, Idx>& mask) {
   Scal r = 0;
   for (auto i : GRange<Idx>(b)) {
     if (mask[i]) {
@@ -46,9 +41,7 @@ Scal Max(
 
 template <class Idx, class B, class Scal>
 Scal Mean(
-    const B& b,
-    const GField<Scal, Idx>& u,
-    const GField<bool, Idx>& mask) {
+    const B& b, const GField<Scal, Idx>& u, const GField<bool, Idx>& mask) {
   Scal r = 0;
   Scal w = 0.;
   for (auto i : GRange<Idx>(b)) {
@@ -60,12 +53,10 @@ Scal Mean(
   return r / w;
 }
 
-
 template <class Idx, class M>
 typename M::Scal DiffMax(
     const GField<typename M::Scal, Idx>& u,
-    const GField<typename M::Scal, Idx>& v,
-    const M& m,
+    const GField<typename M::Scal, Idx>& v, const M& m,
     const GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
@@ -79,8 +70,7 @@ typename M::Scal DiffMax(
 
 template <class Idx, class M>
 typename M::Scal Max(
-    const GField<typename M::Scal, Idx>& u,
-    const M& m,
+    const GField<typename M::Scal, Idx>& u, const M& m,
     const GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
@@ -92,11 +82,9 @@ typename M::Scal Max(
   return r;
 }
 
-
 template <class Idx, class M>
 typename M::Scal Mean(
-    const GField<typename M::Scal, Idx>& u,
-    const M& m,
+    const GField<typename M::Scal, Idx>& u, const M& m,
     const GField<bool, Idx>& mask) {
   using Scal = typename M::Scal;
   Scal r = 0;
@@ -110,25 +98,19 @@ typename M::Scal Mean(
   return r / w;
 }
 
-#define CMP(a, b) \
-  assert(Cmp(a, b)); 
+#define CMP(a, b) assert(Cmp(a, b));
 
-// Print CMP 
-#define PCMP(a, b) \
-  std::cerr \
-    << std::scientific << std::setprecision(16) \
-    << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
-  CMP(a, b); 
-
+// Print CMP
+#define PCMP(a, b)                                                        \
+  std::cerr << std::scientific << std::setprecision(16) << #a << "=" << a \
+            << ", " << #b << "=" << b << std::endl;                       \
+  CMP(a, b);
 
 // Print CMP if false
-#define PFCMP(a, b, ftl) \
-  if (!Cmp(a, b)) { \
-    std::cerr \
-      << std::scientific << std::setprecision(16) \
-      << "Failed cmp: " << std::endl \
-      << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
-    assert(!ftl);\
+#define PFCMP(a, b, ftl)                                                \
+  if (!Cmp(a, b)) {                                                     \
+    std::cerr << std::scientific << std::setprecision(16)               \
+              << "Failed cmp: " << std::endl                            \
+              << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
+    assert(!ftl);                                                       \
   }
-
-

@@ -21,17 +21,15 @@ class GBlock<IdxFace, dim_> {
     Dir d_;
 
    public:
-    explicit iterator(const GBlock* o, MIdx w, Dir d)
-        : o_(o), w_(w), d_(d)
-    {}
+    explicit iterator(const GBlock* o, MIdx w, Dir d) : o_(o), w_(w), d_(d) {}
     iterator& operator++() {
       MIdx wd(d_);
       for (size_t n = 0; n < dim; ++n) {
         ++w_[n]; // increment current
         if (w_[n] == o_->b_[n] + o_->cs_[n] + wd[n]) { // if end reached
-          if (n < dim - 1) {  
-            w_[n] = o_->b_[n];  // reset to begin
-          } else {  // if end reached for last dim
+          if (n < dim - 1) {
+            w_[n] = o_->b_[n]; // reset to begin
+          } else { // if end reached for last dim
             if (size_t(d_) < dim - 1) {
               d_ = Dir(size_t(d_) + 1);
               w_ = o_->b_;
@@ -40,7 +38,7 @@ class GBlock<IdxFace, dim_> {
         } else {
           break;
         }
-      }  
+      }
       return *this;
     }
     bool operator==(const iterator& o) const {
@@ -67,9 +65,7 @@ class GBlock<IdxFace, dim_> {
 
   // b: begin, lower corner cell index
   // cs: cells size
-  GBlock(MIdx b, MIdx cs) 
-      : b_(b), cs_(cs)
-  {
+  GBlock(MIdx b, MIdx cs) : b_(b), cs_(cs) {
     // number of faces
     nfa_ = 0;
     for (size_t d = 0; d < dim; ++d) {
@@ -116,7 +112,7 @@ class GBlock<IdxFace, dim_> {
     MIdx bcs = cs_;
     ++bcs[d];
     size_t r = 0;
-    for (size_t i = dim; i != 0; ) {
+    for (size_t i = dim; i != 0;) {
       --i;
       r *= bcs[i];
       r += w[i];
@@ -149,9 +145,7 @@ class GIndex<IdxFace, dim_> {
 
   // b: begin, lower corner
   // rs: raw size (underlying block that fits all faces_)
-  GIndex(MIdx b, MIdx rs) 
-      : b_(b), rs_(rs), br_(b_, rs_)
-  {
+  GIndex(MIdx b, MIdx rs) : b_(b), rs_(rs), br_(b_, rs_) {
     // number of faces in each direction
     nfa_ = 0;
     for (size_t d = 0; d < dim; ++d) {

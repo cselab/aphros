@@ -13,7 +13,7 @@ struct State {
 };
 
 void Run(M& m, State& s, Vars& var) {
-  (void) var;
+  (void)var;
   auto sem = m.GetSem();
   for (auto i = 0; i < 10; ++i) {
     if (sem("std")) {
@@ -36,9 +36,7 @@ void Run(M& m, State& s, Vars& var) {
 
           std::vector<int> ss(sc); // size of r on all ranks
 
-          MPI_Gather(&s, 1, MPI_INT, 
-                     ss.data(), 1, MPI_INT, 
-                     0, comm);
+          MPI_Gather(&s, 1, MPI_INT, ss.data(), 1, MPI_INT, 0, comm);
 
           int sa = 0; // size all
           std::vector<int> oo = {0}; // offsets
@@ -51,29 +49,25 @@ void Run(M& m, State& s, Vars& var) {
 
           std::vector<char> ra(sa); // result all
 
-          MPI_Gatherv(r.data(), r.size(), MPI_CHAR,
-                      ra.data(), ss.data(), oo.data(), MPI_CHAR,
-                      0, comm);
+          MPI_Gatherv(
+              r.data(), r.size(), MPI_CHAR, ra.data(), ss.data(), oo.data(),
+              MPI_CHAR, 0, comm);
         } else {
           MPI_Gather(&s, 1, MPI_INT, nullptr, 0, MPI_INT, 0, comm);
-          MPI_Gatherv(r.data(), r.size(), MPI_CHAR,
-                      nullptr, nullptr, nullptr, MPI_CHAR,
-                      0, comm);
+          MPI_Gatherv(
+              r.data(), r.size(), MPI_CHAR, nullptr, nullptr, nullptr, MPI_CHAR,
+              0, comm);
         }
       }
     }
-
-
-
-
-
   }
   if (sem()) {
     if (m.IsRoot()) {
       m.TimerReport("timer.log");
     }
   }
-  if (sem()) {}
+  if (sem()) {
+  }
 }
 
 int main(int argc, const char** argv) {
@@ -93,4 +87,3 @@ set int pz 8
 
   return RunMpiBasic<M, State>(argc, argv, Run, conf);
 }
-

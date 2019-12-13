@@ -1,15 +1,15 @@
 #pragma once
 
-#include <string>
+#include <cassert>
+#include <cmath>
+#include <fstream>
 #include <iostream>
 #include <memory>
-#include <cassert>
-#include <fstream>
-#include <cmath>
+#include <string>
 
-#include "output.h"
-#include "geom/mesh.h"
 #include "dump/dumper.h"
+#include "geom/mesh.h"
+#include "output.h"
 
 namespace output {
 
@@ -91,14 +91,12 @@ class SerVtkStruct : public SerVtk {
 
     MIdx s = m.GetInBlockCells().GetSize();
     out << "  <StructuredGrid WholeExtent=\""
-        << "0 " << s[0]
-        << " 0 " << s[1]
-        << " 0 " << (M::dim == 3 ? s[2] : 0) << "\">\n";
+        << "0 " << s[0] << " 0 " << s[1] << " 0 " << (M::dim == 3 ? s[2] : 0)
+        << "\">\n";
 
     out << "    <Piece Extent=\""
-        << "0 " << s[0]
-        << " 0 " << s[1]
-        << " 0 " << (M::dim == 3 ? s[2] : 0) << "\">\n";
+        << "0 " << s[0] << " 0 " << s[1] << " 0 " << (M::dim == 3 ? s[2] : 0)
+        << "\">\n";
   }
   void FileFoot(std::ostream& out) {
     out << "    </Piece>\n";
@@ -157,9 +155,9 @@ class SerVtkStruct : public SerVtk {
     out << "</VTKFile>\n";
   }
   void ColEntry(std::ostream& out, double t, std::string fn) {
-     out << "    <DataSet tstep=\"" << t << "\" "
-         << "group=\"\" part=\"0\" "
-         << "file=\"" << fn << "\"/>\n";
+    out << "    <DataSet tstep=\"" << t << "\" "
+        << "group=\"\" part=\"0\" "
+        << "file=\"" << fn << "\"/>\n";
   }
 
   const M& m;

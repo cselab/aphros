@@ -23,17 +23,16 @@ void Iter(S& s) {
 
 // Loop suspender:
 // * syntax of loop must be preserved
-// * additional calls in either condition check 
+// * additional calls in either condition check
 // or begin/end of loop body
 // * allow multi-stage loop body
 // * start with specific form
 //   while (diff > tol) {
-//     
+//
 //   }
 //   - both diff and tol are global variables
 //   - diff is modified within the loop body
 //
-
 
 void Run(S& s) {
   auto e = s.GetSem("L");
@@ -71,8 +70,7 @@ void Test() {
     std::cerr << s.Print() << " " << s.GetCurName() << std::endl;
   } while (s.Pending());
 
-  std::cerr
-      << "'" << b << "' == '" << p << "'" << std::endl;
+  std::cerr << "'" << b << "' == '" << p << "'" << std::endl;
   assert(b == p);
 }
 

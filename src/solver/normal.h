@@ -22,8 +22,8 @@ class UNormal {
   // Output: set to NaN if fci=0
   // fcn: normal with norm1()=1, antigradient of fcu [s]
   static void CalcNormal(
-      M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
-      size_t edim, FieldCell<Vect>& fcn);
+      M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci, size_t edim,
+      FieldCell<Vect>& fcn);
 
   // Computes normal by combined Youngs scheme and height-functions
   // m: mesh
@@ -34,22 +34,17 @@ class UNormal {
   // Output: set to NaN if fci=0
   // fch: curvature [i]
   static void CalcHeight(
-      M& m, const FieldCell<Scal>& fcu,
-      const FieldCell<Vect>& fcdu2,
-      const FieldCell<Vect>& fcdu4,
+      M& m, const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcdu2,
+      const FieldCell<Vect>& fcdu4, size_t edim, FieldCell<Vect>& fch);
+
+  static void CalcHeight(
+      M& m, const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcdu2,
       size_t edim, FieldCell<Vect>& fch);
 
   static void CalcHeight(
-      M& m, const FieldCell<Scal>& fcu,
-      const FieldCell<Vect>& fcdu2,
-      size_t edim, FieldCell<Vect>& fch);
-
-  static void CalcHeight(
-      M& m, const FieldCell<Scal>& fcu,
-      const FieldCell<Vect>& fcdu2,
-      const FieldCell<Vect>& fcdu4,
-      const FieldCell<Vect>& fcdu6,
-      size_t edim, FieldCell<Vect>& fch);
+      M& m, const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcdu2,
+      const FieldCell<Vect>& fcdu4, const FieldCell<Vect>& fcdu6, size_t edim,
+      FieldCell<Vect>& fch);
 
   // Computes normal by combined Youngs scheme and height-functions
   // m: mesh

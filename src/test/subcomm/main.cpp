@@ -1,8 +1,8 @@
 #undef NDEBUG
-#include <iostream>
-#include <vector>
 #include <mpi.h>
 #include <cassert>
+#include <iostream>
+#include <vector>
 
 #include "util/subcomm.h"
 
@@ -21,4 +21,3 @@ int main(int argc, char** argv) {
 
   MPI_Finalize();
 }
-

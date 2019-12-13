@@ -1,18 +1,18 @@
 #undef NDEBUG
-#include <iostream>
-#include <string>
 #include <cassert>
-#include <iomanip>
 #include <fstream>
 #include <functional>
-#include <utility>
-#include <tuple>
-#include <stdexcept>
+#include <iomanip>
+#include <iostream>
 #include <random>
+#include <stdexcept>
+#include <string>
+#include <tuple>
+#include <utility>
 
-#include "solver/vofm.h"
 #include "func/init_u.h"
 #include "overlap/overlap.h"
+#include "solver/vofm.h"
 #include "young/young.h"
 
 using Scal = double;

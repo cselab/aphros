@@ -1,16 +1,16 @@
 #pragma once
 
-#include <cassert>
 #include <algorithm>
-#include <vector>
 #include <array>
-#include <iostream>
+#include <cassert>
 #include <cstdint>
-#include <memory>
+#include <iostream>
 #include <map>
+#include <memory>
+#include <vector>
 
-#include "geom/mesh.h"
 #include "debug/isnan.h"
+#include "geom/mesh.h"
 
 namespace solver {
 
@@ -18,7 +18,7 @@ template <class Scal, class Idx>
 struct GTerm {
   GTerm() = default;
 
-  GTerm(Scal a, Idx idx) : a(a) , idx(idx) {}
+  GTerm(Scal a, Idx idx) : a(a), idx(idx) {}
 
   bool operator<(const GTerm& o) const {
     return idx.GetRaw() < o.idx.GetRaw();
@@ -41,7 +41,7 @@ class Expression {
   using Idx = Idx_;
   using Term = GTerm<Scal, Idx>;
 
-  Expression() : b_(0) , srt_(true) , s_(0) {}
+  Expression() : b_(0), srt_(true), s_(0) {}
 
   Expression(const Expression& o) = default;
   Expression& operator=(const Expression& o) = default;
@@ -233,8 +233,8 @@ class Expression {
 };
 
 template <class Scal, class Idx, size_t Size>
-std::ostream& operator<<(std::ostream& out,
-                         const Expression<Scal, Idx, Size>& e) {
+std::ostream& operator<<(
+    std::ostream& out, const Expression<Scal, Idx, Size>& e) {
   for (size_t i = 0; i < e.size(); ++i) {
     out << e[i].a << "*[" << e[i].idx.GetRaw() << "] + ";
   }
@@ -246,19 +246,19 @@ template <class M, class S>
 void PrintSystem(S& s, M& m, std::ostream& o) {
   auto bc = m.GetIndexCells();
   for (auto i : m.Cells()) {
-    o << bc.GetMIdx(i) << " "; 
+    o << bc.GetMIdx(i) << " ";
     auto& e = s[i];
-    for (size_t j = 0; j < e.size(); ++j) { 
+    for (size_t j = 0; j < e.size(); ++j) {
       o << e[j].a << "*[" << bc.GetMIdx(e[j].idx) << "] + ";
     }
     o << "\n";
   }
 }
 
-template <class M, class Expr, class Scal=typename M::Scal>
-typename M::LS ConvertLs(const FieldCell<Expr>& fce, std::vector<Scal>& la, 
-                         std::vector<Scal>& lb, std::vector<Scal>& lx, 
-                         const M& m) {
+template <class M, class Expr, class Scal = typename M::Scal>
+typename M::LS ConvertLs(
+    const FieldCell<Expr>& fce, std::vector<Scal>& la, std::vector<Scal>& lb,
+    std::vector<Scal>& lx, const M& m) {
   using LS = typename M::LS;
   using MIdx = typename M::MIdx;
   using IdxCell = IdxCell;
@@ -266,7 +266,7 @@ typename M::LS ConvertLs(const FieldCell<Expr>& fce, std::vector<Scal>& la,
   LS l;
   // Get stencil from first inner cell
   {
-    IdxCell c = *m.Cells().begin(); 
+    IdxCell c = *m.Cells().begin();
     auto& e = fce[c];
     for (size_t j = 0; j < e.size(); ++j) {
       MIdx dm = bc.GetMIdx(e[j].idx) - bc.GetMIdx(c);
@@ -288,10 +288,9 @@ typename M::LS ConvertLs(const FieldCell<Expr>& fce, std::vector<Scal>& la,
         // Check stencil
         if (e[j].idx != bc.GetIdx(bc.GetMIdx(c) + MIdx(l.st[j]))) {
           std::cerr << "***"
-              << " MIdx(c)=" << bc.GetMIdx(c)
-              << " MIdx(e[j].idx)=" << bc.GetMIdx(e[j].idx)
-              << " l.st[j]=" << MIdx(l.st[j]) 
-              << std::endl;
+                    << " MIdx(c)=" << bc.GetMIdx(c)
+                    << " MIdx(e[j].idx)=" << bc.GetMIdx(e[j].idx)
+                    << " l.st[j]=" << MIdx(l.st[j]) << std::endl;
 
           throw std::runtime_error("ConvertLs: nonmatching stencils");
         }
@@ -322,13 +321,12 @@ typename M::LS ConvertLs(const FieldCell<Expr>& fce, std::vector<Scal>& la,
 
 // V is expression: v[0] * c + v[1] * cxm + ... v[6] * czp + v[7]
 // lx: initial guess
-template <class M,
-          class Scal=typename M::Scal,
-          class V=GVect<Scal, M::dim * 2 + 2>>
+template <
+    class M, class Scal = typename M::Scal,
+    class V = GVect<Scal, M::dim * 2 + 2>>
 typename M::LS ConvertLsCompact(
-    const FieldCell<V>& fce,
-    std::vector<Scal>& la, std::vector<Scal>& lb, std::vector<Scal>& lx,
-    const M& m) {
+    const FieldCell<V>& fce, std::vector<Scal>& la, std::vector<Scal>& lb,
+    std::vector<Scal>& lx, const M& m) {
   using LS = typename M::LS;
   LS l;
 
@@ -344,13 +342,13 @@ typename M::LS ConvertLsCompact(
   l.st.emplace_back(0, 0, 1);   // 6
   */
 
-  l.st.emplace_back(0, 0, -1);  // 5
-  l.st.emplace_back(0, -1, 0);  // 3
-  l.st.emplace_back(-1, 0, 0);  // 1
-  l.st.emplace_back(0, 0, 0);   // 0
-  l.st.emplace_back(1, 0, 0);   // 2
-  l.st.emplace_back(0, 1, 0);   // 4
-  l.st.emplace_back(0, 0, 1);   // 6
+  l.st.emplace_back(0, 0, -1); // 5
+  l.st.emplace_back(0, -1, 0); // 3
+  l.st.emplace_back(-1, 0, 0); // 1
+  l.st.emplace_back(0, 0, 0); // 0
+  l.st.emplace_back(1, 0, 0); // 2
+  l.st.emplace_back(0, 1, 0); // 4
+  l.st.emplace_back(0, 0, 1); // 6
   assert(l.st.size() == V::dim - 1);
 
   size_t n = m.GetInBlockCells().size(); // number of equations
@@ -405,4 +403,3 @@ bool IsNan(const solver::Expression<Scal, Idx, Size>& e) {
   }
   return false;
 }
-
