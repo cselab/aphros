@@ -169,7 +169,9 @@ void DistrMesh<M>::Solve(const std::vector<MIdx>& bb) {
 
       mhp_.emplace(k, new HypreSub(comm_, lbb, gs, per));
     } else { // update current instance
+      hist_.SeedSample();
       mhp_.at(k)->Update();
+      hist_.CollectSample("Hypre::Update");
     }
 
     auto& s = mhp_.at(k);
@@ -353,7 +355,9 @@ void DistrMesh<M>::Run() {
     Bcast(bb);
     hist_.CollectSample("Bcast");
 
+    hist_.SeedSample();
     Solve(bb);
+    hist_.CollectSample("Solve");
 
     hist_.CollectSample("Run");
 
