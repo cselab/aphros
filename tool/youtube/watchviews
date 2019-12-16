@@ -1,0 +1,1 @@
+watch -t -n 3600 'echo `date +%s` `./views` | tee -a views.log'
