@@ -10,7 +10,7 @@ def Exp():
     mu = 1e-3  # dynamic viscosity
     nu = mu / rho # kinematic viscosity
 
-    U = 1   # characteristic velocity
+    U = 0.5   # characteristic velocity
     H = 0.1   # domain height
 
     ###
@@ -43,7 +43,7 @@ def Sim(c):
     tun_phys = c['H'] / c['U']
 
     tmax = tun * 500.
-    dumpdt = tun * 1
+    dumpdt = tun * 0.1
 
     # liquid
     rho0 = 1. # density
@@ -65,7 +65,7 @@ def Sim(c):
     nz = rnd(nn * lz)
 
     # block size
-    bs = 8
+    bs = 16
     bsz = bs
     # cores
     np = 128
@@ -102,8 +102,23 @@ def Gen(c):
     sig = c['sig']
 
     g = -c['g']
-    gx = g * 0.1
+    gx = 0
 
+    vel = c['U']
+
+    eps = 1e-5
+
+    inx0 = -eps
+    inx1 = +eps
+    iny0 = 0
+    iny1 = lys
+    iny2 = ly
+
+    outx0 = lx - eps
+    outx1 = lx + eps
+    outy0 = 0
+    outy1 = lys
+    outy2 = ly
 
     with open("par.conf", 'w') as f:
         f.write('''\
@@ -116,14 +131,33 @@ set double dump_field_dt {dumpdt}
 set double dump_part_dt {dumpdt}
 set double dump_traj_dt {dumpdt}
 
-# physical 
+set vect vel {vel} 0 0
+
+# physical
 set double rho1 {rho1}
 set double rho2 {rho2}
 set double mu1 {mu1}
 set double mu2 {mu2}
 set double sigma {sig}
 set vect gravity {gx} {g} 0
-        '''.format(**locals()))
+
+set string box0 inlet {vel} 0 0
+set vect box0_a {inx0} {iny0} -1e5
+set vect box0_b {inx1} {iny1} 1e5
+
+set string box1 outlet
+set vect box1_a {outx0} {outy0} -1e5
+set vect box1_b {outx1} {outy1} 1e5
+
+set string box2 inlet {vel} 0 0 , halo fill , fill_vf 1
+set vect box2_a {inx0} {iny1} -1e5
+set vect box2_b {inx1} {iny2} 1e5
+
+set string box3 outlet
+set vect box3_a {outx0} {outy1} -1e5
+set vect box3_b {outx1} {outy2} 1e5
+
+'''.format(**locals()))
 
 
     with open("b.dat", 'w') as f:

@@ -36,8 +36,10 @@ set vect cellbox{i}_b {b[0]} {b[1]} {b[2]}
 
 
 out = ""
-box = [P([0.75, 0.35, 0.35]), P([1.25, 0.65, 0.65])]
-bcstr = "slipwall 0 0 0  , fill_vf 0"
+h = 0.15
+xc = 0.7
+box = [P([xc-h, 0.1, 0.5-h]), P([xc+h, 0.9, 0.5+h])]
+bcstr = "wall 0 0 0  , fill_vf 0"
 i = 0
 for f in range(6):
     out += Face(f, i, box, bcstr)
