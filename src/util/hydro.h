@@ -57,6 +57,18 @@ void GetFluidCellCond(
     MapCell<std::shared_ptr<solver::CondCellFluid>>& mcvel,
     std::pair<typename M::Scal, int>& pdist);
 
+// Appends step-wise approximation of body to cell and face conditions.
+// Output:
+// mcf: fluid cell conditions
+// mff,mfa: fluid and advection face conditions
+// pdist, pdistmin: temporary buffer for reduction,
+// TODO: revise, allow temporary buffers in functions (attached to m)
+template <class M>
+void AppendBodyCond(
+    const Vars& var, M& m,
+    MapCell<std::shared_ptr<solver::CondCellFluid>>& mcvel,
+    MapCondFaceFluid& mff, MapCondFaceAdvection<typename M::Scal>& mfa);
+
 // Dumps faces with boundary conditions.
 // mfc: boundary conditions
 // fn: filename
