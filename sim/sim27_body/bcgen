@@ -28,18 +28,20 @@ def CellBox(i, box):
     a = box[0]
     b = box[1]
     return '''
-set string cellbox{i}
+#set string cellbox{i}
 set vect cellbox{i}_a {a[0]} {a[1]} {a[2]}
 set vect cellbox{i}_b {b[0]} {b[1]} {b[2]}
 '''.format(**locals())
 
 
 
+nx = 96
+hx = 1. / nx
 out = ""
-h = 0.15
-xc = 0.7
-box = [P([xc-h, 0.1, 0.5-h]), P([xc+h, 0.9, 0.5+h])]
-bcstr = "wall 0 0 0  , fill_vf 0"
+h = hx * 16
+xc = 1
+box = [P([xc-h, 32*hx, 0.5-h]), P([xc+h, 1-32*hx, 0.5+h])]
+bcstr = "slipwall 0 0 0  , fill_vf 0"
 i = 0
 for f in range(6):
     out += Face(f, i, box, bcstr)

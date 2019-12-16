@@ -59,7 +59,7 @@ def Sim(c):
     def rnd(a): return int(a + 0.5)
 
     # mesh
-    nn = 32
+    nn = 96
     nx = rnd(nn * lx)
     ny = rnd(nn * ly)
     nz = rnd(nn * lz)
@@ -68,7 +68,7 @@ def Sim(c):
     bs = 16
     bsz = bs
     # cores
-    np = 128
+    np = 216
     # time limit in minutes
     tl = 1440
 
