@@ -927,7 +927,6 @@ void GetFluidFaceCond(
       ++n;
     }
   }
-  /*
   // selection faces
   // Parameters (N>=0):
   // string faceN -- bc description
@@ -941,24 +940,22 @@ void GetFluidFaceCond(
     while (true) {
       ++n;
       std::string k = "face" + std::to_string(n);
-      if (auto p = var.String(k)) {
+      if (auto str = var.String(k)) {
         // set boundary conditions on faces of box (a,b)
         // normal to d with outer normal towards (b-a)[d]
         Vect a(var.Vect[k + "_a"]);
         Vect b(var.Vect[k + "_b"]);
         int d(var.Int[k + "_dir"]); // direction: 0:x, 1:y, 2:z
-        Scal vf = var.Double[k + "_vf"];
         Rect<Vect> r(a, b);
         Vect h = m.GetCellSize();
-        auto& cb = m.GetInBlockCells();
+        auto& cb = m.GetAllBlockCells();
         auto& fi = m.GetIndexFaces();
-        // indices of [a,b), [begin,end)
         Vect xd(0);
         xd[d] = 1.;
         // round to faces
         a = Vect(MIdx((a + h * 0.5) / h)) * h;
         b = Vect(MIdx((b + h * 0.5) / h)) * h;
-        // indices
+        // indices of [a,b), [begin,end)
         MIdx wa(a / h + xd * 0.5);
         MIdx wb(b / h + xd * 0.5);
         wb[d] = wa[d] + 1; // size 1 in direction d
@@ -973,23 +970,19 @@ void GetFluidFaceCond(
         // clip (a,b) to valid indices
         wa = wa.clip(w0, w1);
         wb = wb.clip(w0, w1);
-        // size of local block
-        MIdx ws = wb - wa;
-        if (ws.prod() == 0) {
+        if ((wb - wa).prod() == 0) {
           continue;
         }
-        typename M::BlockCells bb(wa, ws);
+        typename M::BlockCells bb(wa, wb - wa);
         for (auto w : bb) {
           IdxFace f = fi.GetIdx(w, Dir(d));
-          mff[f] = ParseFluidFaceCond(*p, f, nci, m);
+          set_bc(f, nci, *str);
         }
-        (void) vf;
       } else if (n > nmax) {
         break;
       }
     }
   }
-  */
   // selection spheres
   // Parameters (N>=0):
   // string sphN -- bc description ("inlet")
