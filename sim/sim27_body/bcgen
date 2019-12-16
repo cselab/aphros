@@ -1,33 +1,52 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-with open("bc.conf", 'w') as fout:
-    fout.write('''
-set string face0 wall 0 -1 0
-set vect   face0_a 0.75 0.35 -1
-set vect   face0_b 1.   0.65 2
-set int    face0_dir 0
+import numpy as np
 
-set string face1 wall 0 1 0
-set vect   face1_a 1.25 0.35 -1
-set vect   face1_b 1.   0.65 2
-set int    face1_dir 0
+def P(v):
+    return np.array(v)
 
-set string face2 wall 1 0 0
-set vect   face2_a 0.75 0.35 -1
-set vect   face2_b 1.25 0.5 2
-set int    face2_dir 1
+# f: face index, 0..5
+# i: bc index, >=0
+def Face(f, i, box, bcstr):
+    box = np.copy(box)
+    assert f in range(6)
+    d = f // 2   # direction
+    q = f % 2    # face in given direction 0,1
+    c = 0.5 * (box[0] + box[1])   # box center
+    a = box[0]
+    b = box[1]
+    a[d] = box[q][d]
+    b[d] = c[d]
+    return '''
+set string face{i} {bcstr}
+set vect   face{i}_a {a[0]} {a[1]} {a[2]}
+set vect   face{i}_b {b[0]} {b[1]} {b[2]}
+set int    face{i}_dir {d}
+'''.format(**locals())
 
-set string face3 wall -1 0 0
-set vect   face3_a 0.75 0.65 -1
-set vect   face3_b 1.25 0.5 2
-set int    face3_dir 1
+def CellBox(i, box):
+    a = box[0]
+    b = box[1]
+    return '''
+set string cellbox{i}
+set vect cellbox{i}_a {a[0]} {a[1]} {a[2]}
+set vect cellbox{i}_b {b[0]} {b[1]} {b[2]}
+'''.format(**locals())
 
-set string cellbox0
-set vect cellbox0_a 0.75 0.35 -1
-set vect cellbox0_b 1.25 0.65 2
 
-set string face0 slipwall 0 0 0  , fill_vf 0
-set string face1 slipwall 0 0 0  , fill_vf 0
-set string face2 slipwall 0 0 0  , fill_vf 0
-set string face3 slipwall 0 0 0  , fill_vf 0
-    ''')
+
+out = ""
+box = [P([0.75, 0.35, 0.35]), P([1.25, 0.65, 0.65])]
+bcstr = "slipwall 0 0 0  , fill_vf 0"
+i = 0
+for f in range(6):
+    out += Face(f, i, box, bcstr)
+    i += 1
+
+out += CellBox(0, box)
+
+fn = "bc.conf"
+print(fn)
+print(out)
+with open(fn, 'w') as fout:
+    fout.write(out)
