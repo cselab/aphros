@@ -1209,3 +1209,10 @@ void DumpBcFaces(
     }
   }
 }
+
+template <class M>
+void AppendBody(
+    const Vars& var, M& m,
+    MapCell<std::shared_ptr<solver::CondCellFluid>>& mcvel,
+    MapCondFaceFluid& mff, MapCondFaceAdvection<typename M::Scal>& mfa) {
+}
