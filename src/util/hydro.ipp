@@ -1079,7 +1079,7 @@ void GetFluidCellCond(
         Vect b(var.Vect[k + "_b"]);
         Rect<Vect> r(a, b);
         Vect h = m.GetCellSize();
-        auto& cb = m.GetInBlockCells();
+        auto& cb = m.GetAllBlockCells();
         auto& ci = m.GetIndexCells();
         // round to faces
         a = Vect(MIdx((a + h * 0.5) / h)) * h;

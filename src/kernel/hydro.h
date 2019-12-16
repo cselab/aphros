@@ -1693,6 +1693,7 @@ void Hydro<M>::DumpFields() {
   auto sem = m.GetSem("dumpfields");
   struct {
     std::array<Multi<FieldCell<Scal>>, dim> im;
+    FieldCell<Scal> fc_cellcond;
   } * ctx(sem);
   if (vcurl_) {
     if (sem("vcurl-pre")) {
@@ -1723,6 +1724,14 @@ void Hydro<M>::DumpFields() {
     if (dl.count("mu")) m.Dump(&fc_mu_, "mu");
     if (dl.count("sig")) m.Dump(&fc_sig_, "sig");
     if (dl.count("bc")) m.Dump(&fcbc_, "bc");
+    if (dl.count("cellcond")) {
+      auto& fc = ctx->fc_cellcond;
+      fc.Reinit(m, 0);
+      for (auto it : mc_velcond_) {
+        fc[it.GetIdx()] = 1;
+      }
+      m.Dump(&fc, "cellcond");
+    }
     if (var.Int["youngbc"]) {
       if (dl.count("yvx")) m.Dump(&fcyv_, 0, "yvx");
       if (dl.count("yvy")) m.Dump(&fcyv_, 1, "yvy");
