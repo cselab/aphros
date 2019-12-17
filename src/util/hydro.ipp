@@ -834,10 +834,10 @@ void GetFluidFaceCond(
   using namespace solver::fluid_condition;
   using namespace solver;
   // default
-  Scal clear0 = var.Double["bcc_clear0"];
-  Scal clear1 = var.Double["bcc_clear1"];
-  Scal inletcl = var.Double["inletcl"];
-  Scal fill_vf = var.Double["bcc_fill"];
+  const Scal clear0 = var.Double["bcc_clear0"];
+  const Scal clear1 = var.Double["bcc_clear1"];
+  const Scal inletcl = var.Double["inletcl"];
+  const Scal fill_vf = var.Double["bcc_fill"];
 
   auto set_bc = [&](IdxFace f, size_t nci, std::string str) {
     ParseFaceCond(
@@ -1176,12 +1176,12 @@ void DumpBcFaces(
 }
 
 // FIXME: only fills SuFaces, more halo faces AllFaces may be needed
-template <class M>
+template <class M, class Scal = typename M::Scal>
 void AppendBodyCond(
     const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
     Scal clear1, Scal inletcl, Scal fill_vf,
     MapCell<std::shared_ptr<solver::CondCellFluid>>& mcf, MapCondFaceFluid& mff,
-    MapCondFaceAdvection<typename M::Scal>& mfa) {
+    MapCondFaceAdvection<Scal>& mfa) {
   for (auto f : m.SuFaces()) {
     const IdxCell cm = m.GetCell(f, 0);
     const IdxCell cp = m.GetCell(f, 1);
@@ -1189,7 +1189,8 @@ void AppendBodyCond(
       size_t nci = (fc[cm] ? 1 : 0);
       auto& condf = mff[f];
       auto& conda = mfa[f];
-      ParseFaceCond(f, nci, str, m, clear0, clear1, inletcl, fill_vf);
+      ParseFaceCond(
+          f, nci, str, m, clear0, clear1, inletcl, fill_vf, condf, conda);
     }
   }
 }

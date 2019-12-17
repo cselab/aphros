@@ -814,6 +814,18 @@ void Hydro<M>::Init() {
     GetFluidCellCond(var, m, mc_velcond_, pdist_);
   }
 
+  if (sem("body")) {
+    // Step-wise approximation of bodies
+    const Scal clear0 = var.Double["bcc_clear0"];
+    const Scal clear1 = var.Double["bcc_clear1"];
+    const Scal inletcl = var.Double["inletcl"];
+    const Scal fill_vf = var.Double["bcc_fill"];
+    const FieldCell<bool> fc(m, false);
+    AppendBodyCond<M>(
+        fc, var.String["body_bc"], m, clear0, clear1, inletcl, fill_vf,
+        mc_velcond_, mf_fluid_, mf_adv_);
+  }
+
   if (sem("dt")) {
     const Scal dt = var.Double["dt0"];
     st_.dt = dt;

@@ -68,11 +68,12 @@ void GetFluidCellCond(
 // mff,mfa: fluid and advection face conditions
 // pdist, pdistmin: temporary buffer for reduction,
 // TODO: revise, allow temporary buffers in functions (attached to m)
-template <class M>
+template <class M, class Scal = typename M::Scal>
 void AppendBodyCond(
-    const FieldCell<bool>& fc, std::string, M& m,
-    MapCell<std::shared_ptr<solver::CondCellFluid>>& mcf,
-    MapCondFaceFluid& mff, MapCondFaceAdvection<typename M::Scal>& mfa);
+    const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
+    Scal clear1, Scal inletcl, Scal fill_vf,
+    MapCell<std::shared_ptr<solver::CondCellFluid>>& mcf, MapCondFaceFluid& mff,
+    MapCondFaceAdvection<Scal>& mfa);
 
 // Dumps faces with boundary conditions.
 // mfc: boundary conditions
