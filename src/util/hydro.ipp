@@ -1175,18 +1175,21 @@ void DumpBcFaces(
   }
 }
 
-// FIXME: only fill SuFaces, more halo faces may be needed
+// FIXME: only fills SuFaces, more halo faces AllFaces may be needed
 template <class M>
 void AppendBodyCond(
-    const FieldCell<bool>& fc, std::string bc, M& m,
+    const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
+    Scal clear1, Scal inletcl, Scal fill_vf,
     MapCell<std::shared_ptr<solver::CondCellFluid>>& mcf, MapCondFaceFluid& mff,
     MapCondFaceAdvection<typename M::Scal>& mfa) {
   for (auto f : m.SuFaces()) {
     const IdxCell cm = m.GetCell(f, 0);
     const IdxCell cp = m.GetCell(f, 1);
     if (fc[cm] != fc[cp]) {
+      size_t nci = (fc[cm] ? 1 : 0);
       auto& condf = mff[f];
       auto& conda = mfa[f];
+      ParseFaceCond(f, nci, str, m, clear0, clear1, inletcl, fill_vf);
     }
   }
 }
