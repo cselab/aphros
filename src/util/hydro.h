@@ -58,15 +58,20 @@ void GetFluidCellCond(
     std::pair<typename M::Scal, int>& pdist);
 
 // Appends step-wise approximation of body to cell and face conditions.
+// Shape is defined as fc=1.
+// Boundary conditions added on faces separating fc=0 and fc=1.
+// Neighbor cell index (Nci) is chosen from cell fc=0.
+// fc: boolean mask, fc=1 is inside the body
 // Output:
 // mcf: fluid cell conditions
+// bc: boundary condition
 // mff,mfa: fluid and advection face conditions
 // pdist, pdistmin: temporary buffer for reduction,
 // TODO: revise, allow temporary buffers in functions (attached to m)
 template <class M>
 void AppendBodyCond(
-    const Vars& var, M& m,
-    MapCell<std::shared_ptr<solver::CondCellFluid>>& mcvel,
+    const FieldCell<bool>& fc, std::string, M& m,
+    MapCell<std::shared_ptr<solver::CondCellFluid>>& mcf,
     MapCondFaceFluid& mff, MapCondFaceAdvection<typename M::Scal>& mfa);
 
 // Dumps faces with boundary conditions.
