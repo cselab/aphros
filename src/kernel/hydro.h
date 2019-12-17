@@ -677,6 +677,11 @@ void Hydro<M>::Init() {
   using namespace solver;
   using namespace solver::fluid_condition;
   auto sem = m.GetSem("init");
+  struct {
+    FieldCell<Scal> fcbody;
+    FieldCell<bool> fcbodymask;
+    Vars varbody;
+  } * ctx(sem);
   if (sem.Nested()) {
     InitVf(fc_vf_, var, m);
   }
@@ -814,13 +819,27 @@ void Hydro<M>::Init() {
     GetFluidCellCond(var, m, mc_velcond_, pdist_);
   }
 
-  if (sem("body")) {
+  if (sem("body-mask")) {
+    auto& varbody = ctx->varbody;
+    varbody.String.Set("init_vf", var.String["body_init"]);
+    varbody.String.Set("list_path", var.String["body_list_path"]);
+    varbody.Int.Set("dim", var.Int["dim"]);
+    varbody.Int.Set("list_ls", var.Int["list_ls"]);
+  }
+  if (sem.Nested("body-mask")) {
+    InitVf(ctx->fcbody, ctx->varbody, m);
+  }
+  if (sem("body-bc")) {
     // Step-wise approximation of bodies
     const Scal clear0 = var.Double["bcc_clear0"];
     const Scal clear1 = var.Double["bcc_clear1"];
     const Scal inletcl = var.Double["inletcl"];
     const Scal fill_vf = var.Double["bcc_fill"];
-    const FieldCell<bool> fc(m, false);
+    auto& fc = ctx->fcbodymask;
+    fc.Reinit(m, false);
+    for (auto c : m.AllCells()) {
+      fc[c] = (ctx->fcbody[c] > 0.5);
+    }
     AppendBodyCond<M>(
         fc, var.String["body_bc"], m, clear0, clear1, inletcl, fill_vf,
         mc_velcond_, mf_fluid_, mf_adv_);
