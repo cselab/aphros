@@ -1182,15 +1182,19 @@ void AppendBodyCond(
     Scal clear1, Scal inletcl, Scal fill_vf,
     MapCell<std::shared_ptr<solver::CondCellFluid>>& mcf, MapCondFaceFluid& mff,
     MapCondFaceAdvection<Scal>& mfa) {
+  using Vect = typename M::Vect;
   for (auto f : m.SuFaces()) {
     const IdxCell cm = m.GetCell(f, 0);
     const IdxCell cp = m.GetCell(f, 1);
     if (fc[cm] != fc[cp]) {
-      size_t nci = (fc[cm] ? 1 : 0);
+      size_t nci = (fc[cm] ? 1 : 0); // inner cell
       auto& condf = mff[f];
       auto& conda = mfa[f];
       ParseFaceCond(
           f, nci, str, m, clear0, clear1, inletcl, fill_vf, condf, conda);
+      mcf[m.GetCell(f, 1 - nci)] = std::make_shared<
+          solver::fluid_condition::GivenVelocityAndPressureFixed<M>>(
+          Vect(0), 0.);
     }
   }
 }
