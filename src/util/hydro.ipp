@@ -740,6 +740,64 @@ bool ParseAdvectionFaceCond(std::string str, CondFaceAdvection<Scal>& cfa) {
   return false;
 }
 
+// Initializes advection condition
+// with default values given a fluid condition.
+template <class M, class Scal = typename M::Scal>
+void SetDefaultAdvectionFaceCond(
+    CondFaceAdvection<Scal>& ca, const UniquePtr<solver::CondFaceFluid>& cf,
+    Scal clear0, Scal clear1, Scal inletcl, Scal fill_vf) {
+  using Halo = typename CondFaceAdvection<Scal>::Halo;
+  static constexpr Scal kClNone = -1; // TODO define kClNone once
+  ca.nci = cf->GetNci();
+  if (cf.Get<Symm<M>>()) {
+    ca.halo = Halo::reflect;
+  } else if (cf.Get<NoSlipWall<M>>() || cf.Get<SlipWall<M>>()) {
+    ca.halo = Halo::fill;
+    ca.clear0 = clear0;
+    ca.clear1 = clear1;
+    ca.fill_vf = fill_vf;
+    ca.fill_cl = kClNone;
+  } else if (cf.Get<Inlet<M>>()) {
+    ca.halo = Halo::fill;
+    ca.clear0 = 0;
+    ca.clear1 = 1;
+    ca.fill_vf = 0;
+    ca.fill_cl = inletcl;
+  } else if (cf.Get<Outlet<M>>()) {
+    ca.halo = Halo::reflect;
+  } else {
+    throw std::runtime_error(std::string(__func__) + ": Unknown fluid bc");
+  }
+}
+
+template <class M, class Scal = typename M::Scal>
+void ParseFaceCond(
+    IdxFace f, size_t nci, std::string str, const M& m, Scal clear0,
+    Scal clear1, Scal inletcl, Scal fill_vf,
+    UniquePtr<solver::CondFaceFluid>& cf,
+    CondFaceAdvection<typename M::Scal>& ca) {
+  std::vector<std::string> ss; // strings not recognized as fluid cond
+  for (auto s : Split(str, ',')) {
+    if (!cf.Get<CondFaceFluid>()) { // if condition not yet set
+      cf = ParseFluidFaceCond(s, f, nci, m); // try to parse as fluid
+      if (!cf.Get<CondFaceFluid>()) { // otherwise try as advection later
+        ss.push_back(s);
+      }
+    } else {
+      ss.push_back(s);
+    }
+  }
+  if (!cf.Get<CondFaceFluid>()) {
+    throw std::runtime_error("No fluid condition found in '" + str + "'");
+  }
+  SetDefaultAdvectionFaceCond<M>(ca, cf, clear0, clear1, inletcl, fill_vf);
+  for (auto s : ss) {
+    if (!ParseAdvectionFaceCond(s, ca)) {
+      throw std::runtime_error("No advection condition found in '" + s + "'");
+    }
+  }
+}
+
 template <class M>
 void GetFluidFaceCond(
     const Vars& var, const M& m, MapCondFaceFluid& mff,
@@ -781,55 +839,9 @@ void GetFluidFaceCond(
   Scal inletcl = var.Double["inletcl"];
   Scal fill_vf = var.Double["bcc_fill"];
 
-  auto set_adv = [&](IdxFace f, const std::vector<std::string>& ss) {
-    static constexpr Scal kClNone = -1; // TODO define kClNone once
-    auto& cb = mff[f];
-    auto& cfa = mfa[f];
-    cfa.nci = cb->GetNci();
-    if (cb.Get<Symm<M>>()) {
-      cfa.halo = Halo::reflect;
-    } else if (cb.Get<NoSlipWall<M>>() || cb.Get<SlipWall<M>>()) {
-      cfa.halo = Halo::fill;
-      cfa.clear0 = clear0;
-      cfa.clear1 = clear1;
-      cfa.fill_vf = fill_vf;
-      cfa.fill_cl = kClNone;
-    } else if (cb.Get<Inlet<M>>()) {
-      cfa.halo = Halo::fill;
-      cfa.clear0 = 0;
-      cfa.clear1 = 1;
-      cfa.fill_vf = 0;
-      cfa.fill_cl = inletcl;
-    } else if (cb.Get<Outlet<M>>()) {
-      cfa.halo = Halo::reflect;
-    } else {
-      throw std::runtime_error(std::string(__func__) + ": Unknown fluid bc");
-    }
-
-    for (auto s : ss) {
-      if (!ParseAdvectionFaceCond(s, cfa)) {
-        throw std::runtime_error("No advection condition found in '" + s + "'");
-      }
-    }
-  };
-
   auto set_bc = [&](IdxFace f, size_t nci, std::string str) {
-    auto& cff = mff[f];
-    std::vector<std::string> ss; // strings not recognized as fluid cond
-    for (auto s : Split(str, ',')) {
-      if (!cff.Get<CondFaceFluid>()) {
-        cff = ParseFluidFaceCond(s, f, nci, m);
-        if (!cff.Get<CondFaceFluid>()) {
-          ss.push_back(s);
-        }
-      } else {
-        ss.push_back(s);
-      }
-    }
-    if (!cff.Get<CondFaceFluid>()) {
-      throw std::runtime_error("No fluid condition found in '" + str + "'");
-    }
-    set_adv(f, ss);
+    ParseFaceCond(
+        f, nci, str, m, clear0, clear1, inletcl, fill_vf, mff[f], mfa[f]);
   };
 
   // List of domain boundaries: <name, func, nci>
@@ -1210,9 +1222,18 @@ void DumpBcFaces(
   }
 }
 
+// FIXME: only fill SuFaces, more halo faces may be needed
 template <class M>
-void AppendBody(
-    const Vars& var, M& m,
-    MapCell<std::shared_ptr<solver::CondCellFluid>>& mcvel,
-    MapCondFaceFluid& mff, MapCondFaceAdvection<typename M::Scal>& mfa) {
+void AppendBodyCond(
+    const FieldCell<bool>& fc, std::string bc, M& m,
+    MapCell<std::shared_ptr<solver::CondCellFluid>>& mcf, MapCondFaceFluid& mff,
+    MapCondFaceAdvection<typename M::Scal>& mfa) {
+  for (auto f : m.SuFaces()) {
+    const IdxCell cm = m.GetCell(f, 0);
+    const IdxCell cp = m.GetCell(f, 1);
+    if (fc[cm] != fc[cp]) {
+      auto& condf = mff[f];
+      auto& conda = mfa[f];
+    }
+  }
 }
