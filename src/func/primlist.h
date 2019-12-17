@@ -69,24 +69,24 @@ struct UPrimList {
       return std::map<std::string, Scal>();
     }
     std::stringstream kk(sk);
-    std::map<std::string, Scal> r;
+    std::map<std::string, Scal> d;
     std::string k;
     Scal v;
     while (true) {
       vv >> v;
       kk >> k;
       if (vv && kk) {
-        r[k] = v;
+        d[k] = v;
       } else {
         break;
       }
     }
-    if (r.size() < n && kk) {
+    if (d.size() < n && kk) {
       throw std::runtime_error(
           "PrimList: missing field '" + k + "' in '" + sv +
           "' while parsing keys '" + sk + "'");
     }
-    if (r.size() < n && !kk) {
+    if (d.size() < n && !kk) {
       throw std::runtime_error(
           "PrimList: no keys for " + std::to_string(n) +
           " required fields in '" + sk + "'");
@@ -96,7 +96,7 @@ struct UPrimList {
           "PrimList: no key for '" + std::to_string(v) + "' in '" + sv +
           "' while parsing keys '" + sk + "'");
     }
-    return r;
+    return d;
   }
 
   static std::vector<Primitive> Parse(std::istream& f, bool verb, size_t edim) {
@@ -105,9 +105,9 @@ struct UPrimList {
     f >> std::skipws;
 
     // default
-    auto def = [](std::map<std::string, Scal>& r, std::string k, Scal d) {
-      if (!r.count(k)) {
-        r[k] = d;
+    auto def = [](std::map<std::string, Scal>& d, std::string k, Scal a) {
+      if (!d.count(k)) {
+        d[k] = a;
       }
     };
 
@@ -115,25 +115,25 @@ struct UPrimList {
     while (f) {
       std::string s;
       std::getline(f, s);
-      std::map<std::string, Scal> r;
+      std::map<std::string, Scal> d;
 
       // sphere
-      r = Parse("s", s, "x y z rx ry rz", 4);
-      if (r.empty()) {
-        r = Parse("", s, "x y z rx ry rz", 4);
+      d = Parse("s", s, "x y z rx ry rz", 4);
+      if (d.empty()) {
+        d = Parse("", s, "x y z rx ry rz", 4);
       }
 
-      if (!r.empty()) {
-        def(r, "ry", r["rx"]);
-        def(r, "rz", r["ry"]);
+      if (!d.empty()) {
+        def(d, "ry", d["rx"]);
+        def(d, "rz", d["ry"]);
 
         Primitive p;
-        p.c[0] = r["x"];
-        p.c[1] = r["y"];
-        p.c[2] = r["z"];
-        p.r[0] = r["rx"];
-        p.r[1] = r["ry"];
-        p.r[2] = r["rz"];
+        p.c[0] = d["x"];
+        p.c[1] = d["y"];
+        p.c[2] = d["z"];
+        p.r[0] = d["rx"];
+        p.r[1] = d["ry"];
+        p.r[2] = d["rz"];
 
         using Type = typename Primitive::Type;
         p.type = Type::sphere;
@@ -155,17 +155,17 @@ struct UPrimList {
       }
 
       // ring
-      r = Parse("ring", s, "x y z nx ny nz r th", 8);
-      if (!r.empty()) {
+      d = Parse("ring", s, "x y z nx ny nz r th", 8);
+      if (!d.empty()) {
         Primitive p;
-        p.c[0] = r["x"];
-        p.c[1] = r["y"];
-        p.c[2] = r["z"];
-        p.r[0] = r["r"];
-        p.n[0] = r["nx"];
-        p.n[1] = r["ny"];
-        p.n[2] = r["nz"];
-        p.th = r["th"];
+        p.c[0] = d["x"];
+        p.c[1] = d["y"];
+        p.c[2] = d["z"];
+        p.r[0] = d["r"];
+        p.n[0] = d["nx"];
+        p.n[1] = d["ny"];
+        p.n[2] = d["nz"];
+        p.th = d["th"];
         p.n /= p.n.norm();
 
         using Type = typename Primitive::Type;
@@ -203,9 +203,9 @@ struct UPrimList {
     f >> std::skipws;
 
     // default
-    auto def = [](std::map<std::string, Scal>& r, std::string k, Scal d) {
-      if (!r.count(k)) {
-        r[k] = d;
+    auto def = [](std::map<std::string, Scal>& d, std::string k, Scal a) {
+      if (!d.count(k)) {
+        d[k] = a;
       }
     };
     (void)def;
@@ -214,21 +214,21 @@ struct UPrimList {
     while (f) {
       std::string s;
       std::getline(f, s);
-      std::map<std::string, Scal> r;
+      std::map<std::string, Scal> d;
 
       // ring
-      r = Parse("ring", s, "x y z nx ny nz r th magn", 9);
-      if (!r.empty()) {
+      d = Parse("ring", s, "x y z nx ny nz r th magn", 9);
+      if (!d.empty()) {
         Primitive p;
-        p.c[0] = r["x"];
-        p.c[1] = r["y"];
-        p.c[2] = r["z"];
-        p.r[0] = r["r"];
-        p.n[0] = r["nx"];
-        p.n[1] = r["ny"];
-        p.n[2] = r["nz"];
-        p.th = r["th"];
-        p.magn = r["magn"];
+        p.c[0] = d["x"];
+        p.c[1] = d["y"];
+        p.c[2] = d["z"];
+        p.r[0] = d["r"];
+        p.n[0] = d["nx"];
+        p.n[1] = d["ny"];
+        p.n[2] = d["nz"];
+        p.th = d["th"];
+        p.magn = d["magn"];
         p.n /= p.n.norm();
 
         using Type = typename Primitive::Type;
