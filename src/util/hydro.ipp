@@ -1178,7 +1178,7 @@ template <class M, class Scal = typename M::Scal>
 void AppendBodyCond(
     const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
     Scal clear1, Scal inletcl, Scal fill_vf,
-    MapCell<std::shared_ptr<solver::CondCellFluid>>& mcf, MapCondFaceFluid& mff,
+    MapCell<std::shared_ptr<solver::CondCellFluid>>* mcf, MapCondFaceFluid& mff,
     MapCondFaceAdvection<Scal>& mfa) {
   using Vect = typename M::Vect;
   for (auto f : m.SuFaces()) {
@@ -1190,9 +1190,11 @@ void AppendBodyCond(
       auto& conda = mfa[f];
       ParseFaceCond(
           f, nci, str, m, clear0, clear1, inletcl, fill_vf, condf, conda);
-      mcf[m.GetCell(f, 1 - nci)] = std::make_shared<
-          solver::fluid_condition::GivenVelocityAndPressureFixed<M>>(
-          Vect(0), 0.);
+      if (mcf) {
+        (*mcf)[m.GetCell(f, 1 - nci)] = std::make_shared<
+            solver::fluid_condition::GivenVelocityAndPressureFixed<M>>(
+            Vect(0), 0.);
+      }
     }
   }
 }

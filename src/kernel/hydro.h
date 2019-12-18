@@ -842,7 +842,7 @@ void Hydro<M>::Init() {
     }
     AppendBodyCond<M>(
         fc, var.String["body_bc"], m, clear0, clear1, inletcl, fill_vf,
-        mc_velcond_, mf_fluid_, mf_adv_);
+        nullptr, mf_fluid_, mf_adv_);
   }
 
   if (sem("dt")) {
