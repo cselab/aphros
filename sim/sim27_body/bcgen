@@ -40,7 +40,7 @@ hx = 1. / nx
 out = ""
 h = hx * 16
 xc = 1
-box = [P([xc-h, 32*hx, 0.5-h]), P([xc+h, 1-32*hx, 0.5+h])]
+box = [P([xc-h, 16*hx, 0.5-h]), P([xc+h, 1-16*hx, 0.5+h])]
 bcstr = "slipwall 0 0 0  , fill_vf 0"
 i = 0
 for f in range(6):
