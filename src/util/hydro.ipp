@@ -778,13 +778,11 @@ void ParseFaceCond(
     CondFaceAdvection<typename M::Scal>& ca) {
   std::vector<std::string> ss; // strings not recognized as fluid cond
   for (auto s : Split(str, ',')) {
-    if (!cf.Get<CondFaceFluid>()) { // if condition not yet set
-      cf = ParseFluidFaceCond(s, f, nci, m); // try to parse as fluid
-      if (!cf.Get<CondFaceFluid>()) { // otherwise try as advection later
-        ss.push_back(s);
-      }
-    } else {
+    auto cft = ParseFluidFaceCond(s, f, nci, m); // try to parse as fluid
+    if (!cft.Get()) { // otherwise try as advection later
       ss.push_back(s);
+    } else {
+      cf = std::move(cft);
     }
   }
   if (!cf.Get<CondFaceFluid>()) {
