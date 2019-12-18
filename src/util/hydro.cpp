@@ -18,7 +18,7 @@ template void GetFluidFaceCond(
 template void AppendBodyCond(
     const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
     Scal clear1, Scal inletcl, Scal fill_vf,
-    MapCell<std::shared_ptr<solver::CondCellFluid>>& mcf, MapCondFaceFluid& mff,
+    MapCell<std::shared_ptr<solver::CondCellFluid>>* mcf, MapCondFaceFluid& mff,
     MapCondFaceAdvection<Scal>& mfa);
 
 template void GetFluidCellCond(
