@@ -824,7 +824,7 @@ void Hydro<M>::Init() {
     varbody.String.Set("init_vf", var.String["body_init"]);
     varbody.String.Set("list_path", var.String["body_list_path"]);
     varbody.Int.Set("dim", var.Int["dim"]);
-    varbody.Int.Set("list_ls", var.Int["list_ls"]);
+    varbody.Int.Set("list_ls", 0);
   }
   if (sem.Nested("body-mask")) {
     InitVf(ctx->fcbody, ctx->varbody, m);
