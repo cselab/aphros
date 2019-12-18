@@ -195,7 +195,7 @@ struct UPrimList {
           if (edim == 2) {
             xd[2] = 0.;
           }
-          return (1. - xd.max());
+          return (1. - xd.abs().max());
         };
 
         p.inter = [edim, p](const Rect<Vect>&) -> bool { return true; };
