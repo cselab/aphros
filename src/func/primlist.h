@@ -15,10 +15,8 @@
 
 template <class Scal>
 struct GPrimitive {
-  enum class Type { sphere, ring };
   static constexpr size_t dim = 3;
   using Vect = GVect<Scal, dim>;
-  Type type;
   Vect c; // center
   Vect r; // axes in coordinate directions
   Vect n; // normal
@@ -135,9 +133,6 @@ struct UPrimList {
         p.r[1] = d["ry"];
         p.r[2] = d["rz"];
 
-        using Type = typename Primitive::Type;
-        p.type = Type::sphere;
-
         p.ls = [edim, p](const Vect& x) -> Scal {
           Vect xd = (x - p.c) / p.r;
           if (edim == 2) {
@@ -168,15 +163,39 @@ struct UPrimList {
         p.th = d["th"];
         p.n /= p.n.norm();
 
-        using Type = typename Primitive::Type;
-        p.type = Type::ring;
-
         p.ls = [p](const Vect& x) -> Scal {
           Vect d = x - p.c;
           Scal xn = d.dot(p.n);
           Scal xt = (d - p.n * xn).norm();
           Scal r = p.r[0];
           return sqr(p.th) - (sqr(xn) + sqr(xt - r));
+        };
+
+        p.inter = [edim, p](const Rect<Vect>&) -> bool { return true; };
+
+        pp.push_back(p);
+      }
+
+      // box
+      d = Parse("box", s, "x y z rx ry rz", 4);
+      if (!d.empty()) {
+        def(d, "ry", d["rx"]);
+        def(d, "rz", d["ry"]);
+
+        Primitive p;
+        p.c[0] = d["x"];
+        p.c[1] = d["y"];
+        p.c[2] = d["z"];
+        p.r[0] = d["rx"];
+        p.r[1] = d["ry"];
+        p.r[2] = d["rz"];
+
+        p.ls = [edim, p](const Vect& x) -> Scal {
+          Vect xd = (x - p.c) / p.r;
+          if (edim == 2) {
+            xd[2] = 0.;
+          }
+          return (1. - xd.max());
         };
 
         p.inter = [edim, p](const Rect<Vect>&) -> bool { return true; };
@@ -230,9 +249,6 @@ struct UPrimList {
         p.th = d["th"];
         p.magn = d["magn"];
         p.n /= p.n.norm();
-
-        using Type = typename Primitive::Type;
-        p.type = Type::ring;
 
         p.vel = [p](const Vect& x) -> Vect {
           const Scal eps = 1e-10;
