@@ -12,11 +12,11 @@ def Lin(x0, x1, n, i):
     return x0 + (x1 - x0) * i / n
 
 xc = P([1., 0.5, 0.5])
-xh = P([0.8, 0.4, 0.1])
+xh = P([0.98, 0.48, 0.1])
 box = [xc - xh, xc + xh]
 # number of cells
-nx = 6
-ny = 3
+nx = 8
+ny = 4
 
 # boundary thickness relative to cell thickness
 bthx = 0.5

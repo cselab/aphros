@@ -55,6 +55,7 @@ def GetVF(b, vd):
 
 w = 1.  # domain width
 r = w / 20   # bubble radius
+r *= 2
 
 gap = 1
 b1 = GetRandomCluster([0, 2*w], [0,w], [w*0.65,w], r, gap)
@@ -67,5 +68,6 @@ print("beta={:}".format(GetVF(b, w*w*w*2)))
 
 b =  np.array(b).T
 
-fn = "b.dat"
+#fn = "br1.dat"
+fn = "br2.dat"
 np.savetxt(fn, b)
