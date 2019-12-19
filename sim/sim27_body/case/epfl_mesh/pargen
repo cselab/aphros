@@ -66,7 +66,7 @@ def Sim(c):
     bs = 16
     bsz = bs
     # cores
-    np = 216
+    np = 216 * 2
     # time limit in minutes
     tl = 1440
 
