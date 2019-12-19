@@ -11,11 +11,10 @@ def Exp():
     nu = mu / rho # kinematic viscosity
 
     U = 0.5   # characteristic velocity
-    H = 0.25   # domain height
+    H = 0.01   # domain height
 
     ###
     Re = U * H / nu
-    Fr = (U ** 2 / (g * H)) ** 0.5
     We = rho * U ** 2 * H / sig
 
     for key in sorted(locals()):
@@ -25,7 +24,7 @@ def Exp():
     return locals()
 
 def Sim(c):
-    Re,We,Fr = (c['Re'], c['We'], c['Fr'])
+    Re,We = (c['Re'], c['We'])
 
     # domain 
     lx = 2
@@ -42,15 +41,14 @@ def Sim(c):
     # time unit in Exp() SI units
     tun_phys = c['H'] / c['U']
 
-    tmax = tun * 500.
-    dumpdt = tun * 0.1
+    tmax = tun * 100.
+    dumpdt = tun * 0.025
 
     # liquid
     rho0 = 1. # density
     mu0 = U * H / Re  # viscosity
 
     sig = (rho0 * U ** 2 * H) / We
-    g = U ** 2 / Fr ** 2 / H
 
     # gas, ratio to liquid
     mu = 0.01
@@ -68,7 +66,7 @@ def Sim(c):
     bs = 16
     bsz = bs
     # cores
-    np = 216 * 4
+    np = 216
     # time limit in minutes
     tl = 1440
 
@@ -101,24 +99,10 @@ def Gen(c):
     mu2 = mu1 * c['mu']
     sig = c['sig']
 
-    g = -c['g']
     gx = 0
+    gz = -0.25
 
     vel = c['U']
-
-    eps = 1e-5
-
-    inx0 = -eps
-    inx1 = +eps
-    iny0 = 0
-    iny1 = lys
-    iny2 = ly
-
-    outx0 = lx - eps
-    outx1 = lx + eps
-    outy0 = 0
-    outy1 = lys
-    outy2 = ly
 
     with open("par.conf", 'w') as f:
         f.write('''\
@@ -131,7 +115,7 @@ set double dump_field_dt {dumpdt}
 set double dump_part_dt {dumpdt}
 set double dump_traj_dt {dumpdt}
 
-set vect vel {vel} 0 0
+set vect vel 0 0 0
 
 # physical
 set double rho1 {rho1}
@@ -139,29 +123,8 @@ set double rho2 {rho2}
 set double mu1 {mu1}
 set double mu2 {mu2}
 set double sigma {sig}
-set vect gravity {gx} {g} 0
-
-set string box0 inlet {vel} 0 0
-set vect box0_a {inx0} {iny0} -1e5
-set vect box0_b {inx1} {iny1} 1e5
-
-set string box1 outlet
-set vect box1_a {outx0} {outy0} -1e5
-set vect box1_b {outx1} {outy1} 1e5
-
-set string box2 inlet {vel} 0 0 , halo fill , fill_vf 1
-set vect box2_a {inx0} {iny1} -1e5
-set vect box2_b {inx1} {iny2} 1e5
-
-set string box3 outlet
-set vect box3_a {outx0} {outy1} -1e5
-set vect box3_b {outx1} {outy2} 1e5
-
+set vect gravity {gx} 0 {gz}
 '''.format(**locals()))
-
-
-    with open("b.dat", 'w') as f:
-        f.write("{bx} {by} {bz} {brx} {bry} {brz}\n".format(**locals()))
 
     with open("par.make", 'w') as f:
         f.write(
