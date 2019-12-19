@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+
+import numpy as np
+
+def IsClose(a, b):
+    return abs(a - b) < 1e-10
+
+def P(v):
+    return np.array(v)
+
+def Lin(x0, x1, n, i):
+    return x0 + (x1 - x0) * i / n
+
+xc = P([1., 0.5, 0.5])
+xh = P([0.8, 0.4, 0.1])
+box = [xc - xh, xc + xh]
+# number of cells
+nx = 6
+ny = 3
+
+# boundary thickness relative to cell thickness
+bthx = 0.5
+bthy = 0.5
+
+lx = box[1][0] - box[0][0]
+ly = box[1][1] - box[0][1]
+lz = box[1][2] - box[0][2]
+hxc = lx / (nx * (1 + bthx) + bthx)
+hxb = bthx * hxc
+hyc = ly / (ny * (1 + bthy) + bthy)
+hyb = bthy * hyc
+assert IsClose(hxc * nx + hxb * (nx + 1), lx)
+assert IsClose(hyc * ny + hyb * (ny + 1), ly)
+
+out = ""
+for i in range(nx + 1):
+    rx = hxb * 0.5
+    ry = ly * 0.5
+    rz = lz * 0.5
+    bx = box[0][0] + Lin(rx, lx - rx, nx, i)
+    by = xc[1]
+    bz = xc[2]
+    out += "box {bx} {by} {bz} {rx} {ry} {rz}\n".format(**locals())
+
+for j in range(ny + 1):
+    rx = lx * 0.5
+    ry = hyb * 0.5
+    rz = lz * 0.5
+    bx = xc[0]
+    by = box[0][1] + Lin(ry, ly - ry, ny, j)
+    bz = xc[2]
+    out += "box {bx} {by} {bz} {rx} {ry} {rz}\n".format(**locals())
+
+
+fn = "body.dat"
+print(fn)
+print(out)
+with open(fn, 'w') as fout:
+    fout.write(out)
