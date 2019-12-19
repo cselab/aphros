@@ -42,7 +42,7 @@ def Sim(c):
     tun_phys = c['H'] / c['U']
 
     tmax = tun * 100.
-    dumpdt = tun * 0.025
+    dumpdt = tun * 0.05
 
     # liquid
     rho0 = 1. # density
@@ -123,7 +123,7 @@ set double rho2 {rho2}
 set double mu1 {mu1}
 set double mu2 {mu2}
 set double sigma {sig}
-set vect gravity {gx} 0 {gz}
+set vect force {gx} 0 {gz}
 '''.format(**locals()))
 
     with open("par.make", 'w') as f:
