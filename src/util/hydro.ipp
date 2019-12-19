@@ -1109,8 +1109,11 @@ void DumpBcFaces(
   if (sem("local")) {
     for (auto& it : mfa) {
       IdxFace f = it.GetIdx();
-      vxx.push_back(GetPoly(f, m));
       const CondFaceAdvection<Scal>& b = it.GetValue();
+      if (!m.IsInner(m.GetCell(f, b.GetNci()))) {
+        continue;
+      }
+      vxx.push_back(GetPoly(f, m));
       int cond = 0;
       int h = 0;
       using Halo = typename CondFaceAdvection<Scal>::Halo;
