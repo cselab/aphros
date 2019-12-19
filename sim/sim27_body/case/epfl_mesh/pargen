@@ -10,7 +10,7 @@ def Exp():
     mu = 1e-3  # dynamic viscosity
     nu = mu / rho # kinematic viscosity
 
-    U = 0.5   # characteristic velocity
+    U = 1   # characteristic velocity
     H = 0.01   # domain height
 
     ###
@@ -57,16 +57,16 @@ def Sim(c):
     def rnd(a): return int(a + 0.5)
 
     # mesh
-    nn = 96
+    nn = 48
     nx = rnd(nn * lx)
     ny = rnd(nn * ly)
     nz = rnd(nn * lz)
 
     # block size
-    bs = 16
+    bs = 8
     bsz = bs
     # cores
-    np = 216 * 2
+    np = 216
     # time limit in minutes
     tl = 1440
 

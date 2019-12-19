@@ -11,9 +11,8 @@ def P(v):
 def Lin(x0, x1, n, i):
     return x0 + (x1 - x0) * i / n
 
-hc = 1 / 48.
 xc = P([1., 0.5, 0.5])
-xh = P([1 - hc, 0.5 - hc, 0.1])
+xh = P([1, 0.5, 0.1])
 box = [xc - xh, xc + xh]
 # number of cells
 nx = 8
