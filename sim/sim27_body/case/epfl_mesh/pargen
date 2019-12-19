@@ -10,7 +10,7 @@ def Exp():
     mu = 1e-3  # dynamic viscosity
     nu = mu / rho # kinematic viscosity
 
-    U = 1   # characteristic velocity
+    U = 0.5   # characteristic velocity
     H = 0.01   # domain height
 
     ###

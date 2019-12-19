@@ -54,12 +54,8 @@ def GetVF(b, vd):
   return GetVolumeSum(b) / vd
 
 w = 1.  # domain width
-r = w / 20   # bubble radius
+r = w / 16   # bubble radius
 gap = 1
-
-if 1:
-    gap = 0
-    r *= 2
 
 b1 = GetRandomCluster([0, 2*w], [0,w], [w*0.65,w], r, gap)
 b2 = GetRandomCluster([0, 2*w], [0,w], [0,w*0.36], r, gap)
@@ -71,6 +67,5 @@ print("beta={:}".format(GetVF(b, w*w*w*2)))
 
 b =  np.array(b).T
 
-#fn = "br1.dat"
-fn = "br2.dat"
+fn = "b.dat"
 np.savetxt(fn, b)
