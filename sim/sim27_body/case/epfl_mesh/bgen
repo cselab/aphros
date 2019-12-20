@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import numpy as np
 
@@ -54,8 +54,13 @@ def GetVF(b, vd):
   return GetVolumeSum(b) / vd
 
 w = 1.  # domain width
-r = w / 16   # bubble radius
+r = w / 32   # bubble radius
 gap = 1
+
+if 0:
+    r *= 2
+    gap = 0
+
 
 b1 = GetRandomCluster([0, 2*w], [0,w], [w*0.65,w], r, gap)
 b2 = GetRandomCluster([0, 2*w], [0,w], [0,w*0.36], r, gap)

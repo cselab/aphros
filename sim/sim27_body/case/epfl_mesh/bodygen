@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import numpy as np
 
@@ -12,11 +12,11 @@ def Lin(x0, x1, n, i):
     return x0 + (x1 - x0) * i / n
 
 xc = P([1., 0.5, 0.5])
-xh = P([1, 0.5, 0.1])
+xh = P([1, 0.5, 0.05])
 box = [xc - xh, xc + xh]
 # number of cells
-nx = 8
-ny = 4
+nx = 16
+ny = 8
 
 # boundary thickness relative to cell thickness
 bthx = 0.5

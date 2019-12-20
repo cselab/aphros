@@ -57,16 +57,16 @@ def Sim(c):
     def rnd(a): return int(a + 0.5)
 
     # mesh
-    nn = 48
+    nn = 48*4
     nx = rnd(nn * lx)
     ny = rnd(nn * ly)
     nz = rnd(nn * lz)
 
     # block size
-    bs = 8
+    bs = 16
     bsz = bs
     # cores
-    np = 216
+    np = 216*8
     # time limit in minutes
     tl = 1440
 
