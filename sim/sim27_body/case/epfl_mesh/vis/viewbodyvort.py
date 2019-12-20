@@ -64,7 +64,7 @@ if CheckFlag('-C1'):
 if CheckFlag('-C2'):
     cam = 2
 
-# vf input
+# sm input
 ff = natsorted(av[1:])
 # vf basename
 ffb = list(map(os.path.basename, ff))
@@ -72,6 +72,8 @@ ffb = list(map(os.path.basename, ff))
 ffd = list(map(os.path.dirname, ff))
 # steps
 ss = [int(re.findall("_([0-9]*)", fb)[0]) for fb in ffb]
+# vf input
+ffvf = [os.path.join(d, "vf_{:04d}.xmf".format(s)) for d,s in zip(ffd,ss)]
 # omm input
 ffomm = [os.path.join(d, "omm_{:04d}.xmf".format(s)) for d,s in zip(ffd,ss)]
 
@@ -136,22 +138,27 @@ renderView1.CameraParallelProjection = 1
 # create a new 'XDMF Reader'
 surf = LegacyVTKReader(FileNames=ff)
 
+vf = XDMFReader(FileNames=ffvf)
+vf.CellArrayStatus = ['vf']
+vf.GridStatus = ['Grid_0']
+
 omm = XDMFReader(FileNames=ffomm)
 omm.CellArrayStatus = ['omm']
 omm.GridStatus = ['Grid_1']
 
 # list of all sources
-vs = [surf, omm]
+vs = [surf, vf, omm]
 
 # time steps
 vt = [np.array(s.TimestepValues) for s in vs]
 
 # replace with ForceTime
 surf = ForceTime(surf)
+vf = ForceTime(vf)
 omm = ForceTime(omm)
 
 # all ForceTime
-vft = [surf, omm]
+vft = [surf, vf, omm]
 
 # ----------------------------------------------------------------
 # END READERS
@@ -188,20 +195,28 @@ clip1Display.Representation = 'Surface'
 clip1Display.ColorArrayName = ['POINTS', '']
 clip1Display.DiffuseColor = [1.0, 1.0, 1.0]
 
+
+appendAttributes1 = AppendAttributes(Input=[omm, vf])
+ommvf = Calculator(Input=appendAttributes1)
+ommvf.AttributeType = 'Cell Data'
+ommvf.ResultArrayName = 'ommvf'
+ommvf.Function = 'omm*(1-vf)^3'
+ommvfDisplay = Show(ommvf, renderView1)
+
 om0=1
 k=0.85
-ommLUT = GetColorTransferFunction('omm')
+ommLUT = GetColorTransferFunction('ommvf')
 ommLUT.AutomaticRescaleRangeMode = 'Never'
 ommLUT.RGBPoints = [om0, 0.231373, 0.298039, 0.752941, 25.0*k, 0.865003, 0.865003, 0.865003, 50.0*k, 0.705882, 0.0156863, 0.14902]
 ommLUT.ScalarRangeInitialized = 1.0
-ommPWF = GetOpacityTransferFunction('omm')
+ommPWF = GetOpacityTransferFunction('ommvf')
 ommPWF.Points = [om0, 0.0, 0.5, 0.0, 50.0*k, 1.0, 0.5, 0.0]
 ommPWF.ScalarRangeInitialized = 1
 
-ommvfDisplay = Show(omm, renderView1)
+ommvfDisplay = Show(ommvf, renderView1)
 ommvfDisplay.Representation = 'Volume'
 ommvfDisplay.AmbientColor = [0.0, 0.0, 0.0]
-ommvfDisplay.ColorArrayName = ['CELLS', 'omm']
+ommvfDisplay.ColorArrayName = ['CELLS', 'ommvf']
 ommvfDisplay.LookupTable = ommLUT
 ommvfDisplay.OSPRayScaleFunction = 'PiecewiseFunction'
 ommvfDisplay.SelectOrientationVectors = 'None'
