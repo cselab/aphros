@@ -19,5 +19,5 @@ gnuplot -p <<'!'
 set yrange [0:]
 set key off
 plot "/tmp/t" u 1:2 w l, \
-     "<awk '!(NR % 100)' /tmp/t"       u 1:2:xticlabels(3) w p
+     "<awk '!(NR % 250)' /tmp/t" u 1:2:xticlabels(3) w p
 !
