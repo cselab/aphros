@@ -695,7 +695,7 @@ struct Simple<M_>::Imp {
     double dt = 1e10;
     auto& flux = ffv_.time_curr;
     for (auto c : m.Cells()) {
-      for (size_t i = 0; i < m.GetNumNeighbourFaces(c); ++i) {
+      for (size_t i = 0; i < m.GetNumFaces(c); ++i) {
         IdxFace f = m.GetFace(c, i);
         if (flux[f] != 0.) {
           dt = std::min<Scal>(dt, std::abs(m.GetVolume(c) / flux[f]));

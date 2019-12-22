@@ -152,19 +152,13 @@ class MeshStructured {
   Scal GetArea(IdxFace f) const {
     return va_[size_t(bfr_.GetDir(f))];
   }
-  IdxCell GetNeighbourCell(IdxCell c, size_t q) const {
+  IdxCell GetCell(IdxCell c, size_t q) const {
     assert(q < kCellNumNeighbourFaces);
     return IdxCell(size_t(c) + cnc_[q]);
   }
-  IdxCell GetCell(IdxCell c, size_t q) const {
-    return GetNeighbourCell(c, q);
-  }
-  IdxFace GetNeighbourFace(IdxCell c, size_t q) const {
+  IdxFace GetFace(IdxCell c, size_t q) const {
     assert(q < kCellNumNeighbourFaces);
     return IdxFace(size_t(c) + cnf_[q]);
-  }
-  IdxFace GetFace(IdxCell c, size_t q) const {
-    return GetNeighbourFace(c, q);
   }
   Scal GetOutwardFactor(IdxCell, size_t q) const {
     assert(q < kCellNumNeighbourFaces);
@@ -172,46 +166,43 @@ class MeshStructured {
   }
   Vect GetOutwardSurface(IdxCell c, size_t n) const {
     assert(n < kCellNumNeighbourFaces);
-    return GetSurface(GetNeighbourFace(c, n)) * GetOutwardFactor(c, n);
+    return GetSurface(GetFace(c, n)) * GetOutwardFactor(c, n);
   }
-  IdxNode GetNeighbourNode(IdxCell c, size_t q) const {
+  IdxNode GetNode(IdxCell c, size_t q) const {
     assert(q < kCellNumNeighbourNodes);
     return IdxNode(size_t(c) + cnn_[q]);
   }
   Dir GetDir(IdxFace f) const {
     return bfr_.GetDir(f);
   }
-  IdxCell GetNeighbourCell(IdxFace f, size_t q) const {
+  IdxCell GetCell(IdxFace f, size_t q) const {
     auto qm = kFaceNumNeighbourCells;
     assert(q < qm);
     size_t d(bfr_.GetDir(f));
     return IdxCell(size_t(f) + fnc_[d * qm + q]);
   }
-  IdxCell GetCell(IdxFace f, size_t q) const {
-    return GetNeighbourCell(f, q);
-  }
   Vect GetVectToCell(IdxFace f, size_t n) const {
     assert(n < kFaceNumNeighbourCells);
-    return GetCenter(GetNeighbourCell(f, n)) - GetCenter(f);
+    return GetCenter(GetCell(f, n)) - GetCenter(f);
   }
-  IdxNode GetNeighbourNode(IdxFace f, size_t q) const {
+  IdxNode GetNode(IdxFace f, size_t q) const {
     auto qm = kFaceNumNeighbourNodes;
     assert(q < qm);
     size_t d(bfr_.GetDir(f));
     return IdxNode(size_t(f) + fnn_[d * qm + q]);
   }
-  size_t GetNumNeighbourFaces(IdxCell) const {
+  size_t GetNumFaces(IdxCell) const {
     return kCellNumNeighbourFaces;
   }
   // Neighbour cell indices
   GRange<size_t> Nci(IdxCell c) const {
-    return GRange<size_t>(0, GetNumNeighbourFaces(c));
+    return GRange<size_t>(0, GetNumFaces(c));
   }
   // Returns id of cell adjacent to c by face f.
   // -1 if f and c are not neighbours
   size_t GetNci(IdxCell c, IdxFace f) const {
     for (size_t q : Nci(c)) {
-      if (GetNeighbourFace(c, q) == f) {
+      if (GetFace(c, q) == f) {
         return q;
       }
     }
@@ -229,13 +220,13 @@ class MeshStructured {
     }
     return --q;
   }
-  size_t GetNumNeighbourNodes(IdxCell) const {
+  size_t GetNumNodes(IdxCell) const {
     return kCellNumNeighbourNodes;
   }
-  size_t GetNumNeighbourCells(IdxFace) const {
+  size_t GetNumCells(IdxFace) const {
     return kFaceNumNeighbourCells;
   }
-  size_t GetNumNeighbourNodes(IdxFace) const {
+  size_t GetNumNodes(IdxFace) const {
     return kFaceNumNeighbourNodes;
   }
   // inner means not halo
@@ -347,7 +338,7 @@ class MeshStructured {
 
   bool IsInside(IdxCell c, Vect vect) const {
     for (auto q : Nci()) {
-      IdxFace f = GetNeighbourFace(c, q);
+      IdxFace f = GetFace(c, q);
       if (GetOutwardSurface(c, q).dot(vect - GetCenter(f)) > 0) {
         return false;
       }

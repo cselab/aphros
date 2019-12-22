@@ -66,8 +66,8 @@ void InterpolateI(
 
   ff.Reinit(m);
   for (auto f : m.Faces()) {
-    IdxCell cm = m.GetNeighbourCell(f, 0);
-    IdxCell cp = m.GetNeighbourCell(f, 1);
+    IdxCell cm = m.GetCell(f, 0);
+    IdxCell cp = m.GetCell(f, 1);
     if (ffw[f] > th) {
       ff[f] = 4. * a[0] * fcgp[cm].dot(m.GetVectToCell(f, 0)) + a[1] * fc[cm] +
               (a[2] + a[0]) * fc[cp];
@@ -126,8 +126,8 @@ void InterpolateI(
   for (auto f : m.Faces()) {
     Expr& e = ff[f];
     e.Clear();
-    IdxCell cm = m.GetNeighbourCell(f, 0);
-    IdxCell cp = m.GetNeighbourCell(f, 1);
+    IdxCell cm = m.GetCell(f, 0);
+    IdxCell cp = m.GetCell(f, 1);
     if (ffw[f] > th) {
       e.InsertTerm(a[1] * dfm + df, cm);
       e.InsertTerm((a[2] + a[0]) * dfm, cp);
@@ -156,15 +156,15 @@ class FaceValB : public Approx<IdxFace, Expr> {
   Expr GetExpr(IdxFace f) const override {
     Expr e;
     if (auto cb = mfc_.find(f)) {
-      IdxCell cm = m.GetNeighbourCell(f, 0);
-      IdxCell cp = m.GetNeighbourCell(f, 1);
+      IdxCell cm = m.GetCell(f, 0);
+      IdxCell cp = m.GetCell(f, 1);
       e.InsertTerm(0, cm);
       e.InsertTerm(0, cp);
       if (auto cd = cb->Get<CondFaceVal<Scal>>()) {
         e.SetConstant(cd->GetValue());
       } else if (auto cd = cb->Get<CondFaceGrad<Scal>>()) {
         size_t id = cd->GetNci();
-        IdxCell c = m.GetNeighbourCell(f, id);
+        IdxCell c = m.GetCell(f, id);
         Scal g = (id == 0 ? 1. : -1.);
         Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * g;
         e.SetConstant(a * cd->GetGrad());
@@ -190,8 +190,8 @@ class FaceGrad : public Approx<IdxFace, Expr> {
   explicit FaceGrad(const M& m) : m(m) {}
   Expr GetExpr(IdxFace f) const override {
     Expr e;
-    IdxCell cm = m.GetNeighbourCell(f, 0);
-    IdxCell cp = m.GetNeighbourCell(f, 1);
+    IdxCell cm = m.GetCell(f, 0);
+    IdxCell cp = m.GetCell(f, 1);
     // XXX: adhoc uniform
     Scal a = m.GetArea(f) / m.GetVolume(cp);
     e.InsertTerm(-a, cm);
@@ -213,8 +213,8 @@ void GradientI(const FieldCell<T>& fc, const M& m, FieldFace<T>& ff) {
 
   ff.Reinit(m);
   for (auto f : m.Faces()) {
-    IdxCell cm = m.GetNeighbourCell(f, 0);
-    IdxCell cp = m.GetNeighbourCell(f, 1);
+    IdxCell cm = m.GetCell(f, 0);
+    IdxCell cp = m.GetCell(f, 1);
     Scal a = m.GetArea(f) / m.GetVolume(cp);
     ff[f] = (fc[cp] - fc[cm]) * a;
   }
@@ -238,7 +238,7 @@ void GradientB(
       ff[f] = cd->GetGrad();
     } else if (auto cd = dynamic_cast<const CondFaceVal<T>*>(cb)) {
       size_t id = cd->GetNci();
-      IdxCell c = m.GetNeighbourCell(f, id);
+      IdxCell c = m.GetCell(f, id);
       Scal g = (id == 0 ? 1. : -1.);
       Scal hr = m.GetArea(f) / m.GetVolume(c);
       Scal a = hr * 2 * g;
@@ -273,8 +273,8 @@ void GradientI(FieldFace<Expr>& ff, const M& m) {
     Expr& e = ff[f];
     e.Clear();
 
-    IdxCell cm = m.GetNeighbourCell(f, 0);
-    IdxCell cp = m.GetNeighbourCell(f, 1);
+    IdxCell cm = m.GetCell(f, 0);
+    IdxCell cp = m.GetCell(f, 1);
     // XXX: adhoc uniform
     Scal a = m.GetArea(f) / m.GetVolume(cp);
     e.InsertTerm(-a, cm);
@@ -291,15 +291,15 @@ class FaceGradB : public Approx<IdxFace, Expr> {
   Expr GetExpr(IdxFace f) const override {
     Expr e;
     if (auto cb = mfc_.find(f)) {
-      IdxCell cm = m.GetNeighbourCell(f, 0);
-      IdxCell cp = m.GetNeighbourCell(f, 1);
+      IdxCell cm = m.GetCell(f, 0);
+      IdxCell cp = m.GetCell(f, 1);
       e.InsertTerm(0, cm);
       e.InsertTerm(0, cp);
       if (auto cd = cb->Get<CondFaceGrad<Scal>>()) {
         e.SetConstant(cd->GetGrad());
       } else if (auto cd = cb->Get<CondFaceVal<Scal>>()) {
         size_t id = cd->GetNci();
-        IdxCell c = m.GetNeighbourCell(f, id);
+        IdxCell c = m.GetCell(f, id);
         Scal g = (id == 0 ? 1. : -1.);
         Scal hr = m.GetArea(f) / m.GetVolume(c);
         Scal a = hr * 2 * g;
@@ -325,10 +325,10 @@ FieldFace<T> Interpolate(const FieldNode<T>& fn, const M& m) {
   FieldFace<T> ff(m);
   for (auto f : m.SuFaces()) {
     T s(0);
-    for (size_t i = 0; i < m.GetNumNeighbourNodes(f); ++i) {
-      s += fn[m.GetNeighbourNode(f, i)];
+    for (size_t i = 0; i < m.GetNumNodes(f); ++i) {
+      s += fn[m.GetNode(f, i)];
     }
-    ff[f] = s / m.GetNumNeighbourNodes(f);
+    ff[f] = s / m.GetNumNodes(f);
   }
   return ff;
 }
@@ -342,8 +342,8 @@ void InterpolateI(const FieldCell<T>& fc, FieldFace<T>& ff, const M& m) {
   using Scal = typename M::Scal;
 
   for (auto f : m.Faces()) {
-    IdxCell cm = m.GetNeighbourCell(f, 0);
-    IdxCell cp = m.GetNeighbourCell(f, 1);
+    IdxCell cm = m.GetCell(f, 0);
+    IdxCell cp = m.GetCell(f, 1);
     Scal a = 0.5;
     ff[f] = fc[cm] * (1. - a) + fc[cp] * a;
   }
@@ -358,8 +358,8 @@ void InterpolateS(const FieldCell<T>& fc, FieldFace<T>& ff, const M& m) {
   using Scal = typename M::Scal;
 
   for (auto f : m.SuFaces()) {
-    IdxCell cm = m.GetNeighbourCell(f, 0);
-    IdxCell cp = m.GetNeighbourCell(f, 1);
+    IdxCell cm = m.GetCell(f, 0);
+    IdxCell cp = m.GetCell(f, 1);
     Scal a = 0.5;
     ff[f] = fc[cm] * (1. - a) + fc[cp] * a;
   }
@@ -421,16 +421,16 @@ void InterpolateB(
     if (auto cd = dynamic_cast<const CondFaceVal<T>*>(cb)) {
       ff[f] = cd->GetValue();
     } else if (auto cd = dynamic_cast<const CondFaceGrad<T>*>(cb)) {
-      IdxCell c = m.GetNeighbourCell(f, nci);
+      IdxCell c = m.GetCell(f, nci);
       Scal w = (nci == 0 ? 1. : -1.);
       Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * w;
       ff[f] = fc[c] + cd->GetGrad() * a;
     } else if (dynamic_cast<const CondFaceExtrap*>(cb)) {
       // TODO test
-      IdxCell c = m.GetNeighbourCell(f, nci);
+      IdxCell c = m.GetCell(f, nci);
       size_t q = m.GetNci(c, f);
       size_t qo = m.GetOpposite(q);
-      IdxFace fo = m.GetNeighbourFace(c, qo);
+      IdxFace fo = m.GetFace(c, qo);
       Vect n = m.GetNormal(f);
       // cell
       const T& v0 = fc[c];
@@ -444,7 +444,7 @@ void InterpolateB(
       ff[f] = UExtrap(xt, x0, v0, x1, v1);
     } else if (dynamic_cast<const CondFaceReflect*>(cb)) {
       // TODO test
-      IdxCell c = m.GetNeighbourCell(f, nci);
+      IdxCell c = m.GetCell(f, nci);
       Vect n = m.GetNormal(f);
       auto v = fc[c];
       ff[f] = UReflectFace<Scal>::Get(v, n);
@@ -501,8 +501,8 @@ FieldFace<typename M::Scal> InterpolateSuperbee(
   FieldFace<Scal> ff(m);
 
   for (IdxFace f : m.SuFaces()) {
-    IdxCell cm = m.GetNeighbourCell(f, 0);
-    IdxCell cp = m.GetNeighbourCell(f, 1);
+    IdxCell cm = m.GetCell(f, 0);
+    IdxCell cp = m.GetCell(f, 1);
     Vect rm = m.GetVectToCell(f, 0);
     Vect rp = m.GetVectToCell(f, 1);
     const auto& u = fc;
@@ -532,10 +532,10 @@ FieldCell<T> Average(const FieldFace<T>& ff, const M& m) {
   for (IdxCell c : m.AllCells()) {
     T s(0);
     for (auto q : m.Nci(c)) {
-      IdxFace f = m.GetNeighbourFace(c, q);
+      IdxFace f = m.GetFace(c, q);
       s += ff[f];
     }
-    fc[c] = s / Scal(m.GetNumNeighbourFaces(c));
+    fc[c] = s / Scal(m.GetNumFaces(c));
   }
   return fc;
 }
@@ -574,7 +574,7 @@ FieldCell<typename M::Vect> Gradient(
   for (auto c : m.SuCells()) {
     Vect s(0);
     for (auto q : m.Nci(c)) {
-      IdxFace f = m.GetNeighbourFace(c, q);
+      IdxFace f = m.GetFace(c, q);
       s += m.GetOutwardSurface(c, q) * ff[f];
     }
     fc[c] = s / m.GetVolume(c);

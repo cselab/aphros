@@ -223,7 +223,7 @@ struct Vofm<M_>::Imp {
           for (auto q : m.Nci(c)) {
             bool b = false;
             for (auto j : layers) {
-              IdxCell cn = m.GetNeighbourCell(c, q);
+              IdxCell cn = m.GetCell(c, q);
               if (fccl_[j][cn] == fccl_[i][c]) {
                 if ((*uc[j])[cn] == 0) {
                   fci[c] = true;
@@ -443,7 +443,7 @@ struct Vofm<M_>::Imp {
         }
 
         const Scal v = ffv[f]; // mixture flux
-        IdxCell c = m.GetNeighbourCell(f, v > 0. ? 0 : 1); // upwind cell
+        IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
         if (fccl[c] != kClNone) {
           ffcl[f] = fccl[c];
           if (fcu[c] > 0 && fcu[c] < 1) {
@@ -458,7 +458,7 @@ struct Vofm<M_>::Imp {
           }
 
           // propagate to downwind cell if empty
-          IdxCell cd = m.GetNeighbourCell(f, v > 0. ? 1 : 0); // downwind cell
+          IdxCell cd = m.GetCell(f, v > 0. ? 1 : 0); // downwind cell
           bool found = false; // found same color downwind
           for (auto j : layers) {
             if ((*mfccl[j])[cd] == fccl[c]) {
@@ -611,8 +611,8 @@ struct Vofm<M_>::Imp {
           fcfm_.Reinit(m);
           fcfp_.Reinit(m);
           for (auto c : m.Cells()) {
-            fcfm_[c] = ffv[m.GetNeighbourFace(c, 2 * d)];
-            fcfp_[c] = ffv[m.GetNeighbourFace(c, 2 * d + 1)];
+            fcfm_[c] = ffv[m.GetFace(c, 2 * d)];
+            fcfp_[c] = ffv[m.GetFace(c, 2 * d + 1)];
           }
           m.Comm(&fcfm_);
           m.Comm(&fcfp_);

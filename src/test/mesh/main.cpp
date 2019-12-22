@@ -141,7 +141,7 @@ void TestMesh() {
     for (auto n : m.Nci(i)) {
       Dir d(n / 2);
       Scal k = (n % 2 == 0 ? -1. : 1.);
-      auto j = m.GetNeighbourCell(i, n);
+      auto j = m.GetCell(i, n);
       Vect xj = m.GetCenter(j);
       CMP((xj - xi)[size_t(d)], h[size_t(d)] * k);
     }
@@ -160,7 +160,7 @@ void TestMesh() {
   {
     IdxCell c(0);
     for (auto q : m.Nci(c)) {
-      IdxFace f = m.GetNeighbourFace(c, q);
+      IdxFace f = m.GetFace(c, q);
       PCMP(m.GetNci(c, f), q);
       PCMP(m.GetNci(IdxCell(2), f), -1);
     }
