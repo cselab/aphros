@@ -55,8 +55,8 @@ class Embed {
       dls_.clear();
 
       for (auto f : m.Faces()) {
-        if (fct_[m.GetNeighbourCell(f, 0)] == Type::cut ||
-            fct_[m.GetNeighbourCell(f, 1)] == Type::cut) {
+        if (fct_[m.GetCell(f, 0)] == Type::cut ||
+            fct_[m.GetCell(f, 1)] == Type::cut) {
           size_t d(m.GetIndexFaces().GetDir(f));
           if (fft_[f] == Type::cut || fft_[f] == Type::regular) {
             if (fft_[f] == Type::cut) {
@@ -109,8 +109,8 @@ class Embed {
   // f0,f1: values
   static std::vector<Vect> GetPoly(IdxFace f, const M& m) {
     std::vector<Vect> xx;
-    for (size_t e = 0; e < m.GetNumNeighbourNodes(f); ++e) {
-      auto n = m.GetNeighbourNode(f, e);
+    for (size_t e = 0; e < m.GetNumNodes(f); ++e) {
+      auto n = m.GetNode(f, e);
       xx.push_back(m.GetNode(n));
     }
     return xx;
@@ -127,13 +127,13 @@ class Embed {
     ffpoly.Reinit(m);
     ffs.Reinit(m);
     for (auto f : m.Faces()) {
-      const size_t em = m.GetNumNeighbourNodes(f);
+      const size_t em = m.GetNumNodes(f);
       std::vector<Vect> xx;
       bool cut = false;
       for (size_t e = 0; e < em; ++e) {
         size_t ep = (e + 1) % em;
-        IdxNode n = m.GetNeighbourNode(f, e);
-        IdxNode np = m.GetNeighbourNode(f, ep);
+        IdxNode n = m.GetNode(f, e);
+        IdxNode np = m.GetNode(f, ep);
         Scal f = fnf[n];
         Scal fp = fnf[np];
         Vect x = m.GetNode(n);
@@ -183,9 +183,9 @@ class Embed {
     fcv.Reinit(m);
     for (auto c : m.Cells()) {
       size_t q = 0; // number of nodes with f > 0
-      const size_t mi = m.GetNumNeighbourNodes(c);
+      const size_t mi = m.GetNumNodes(c);
       for (size_t i = 0; i < mi; ++i) {
-        IdxNode n = m.GetNeighbourNode(c, i);
+        IdxNode n = m.GetNode(c, i);
         if (fnf[n] > 0) {
           ++q;
         }
@@ -197,7 +197,7 @@ class Embed {
         {
           Vect n(0);
           for (auto q : m.Nci(c)) {
-            IdxFace f = m.GetNeighbourFace(c, q);
+            IdxFace f = m.GetFace(c, q);
             n += m.GetNormal(f) * ffs[f] * m.GetOutwardFactor(c, q);
           }
           fcn[c] = -n / n.norm();
@@ -209,12 +209,12 @@ class Embed {
           Scal aw = 0;
           for (auto q : m.Nci(c)) {
             // FIXME: edges traversed twice
-            IdxFace f = m.GetNeighbourFace(c, q);
-            const size_t em = m.GetNumNeighbourNodes(f);
+            IdxFace f = m.GetFace(c, q);
+            const size_t em = m.GetNumNodes(f);
             for (size_t e = 0; e < em; ++e) {
               size_t ep = (e + 1) % em;
-              IdxNode n = m.GetNeighbourNode(f, e);
-              IdxNode np = m.GetNeighbourNode(f, ep);
+              IdxNode n = m.GetNode(f, e);
+              IdxNode np = m.GetNode(f, ep);
               Scal f = fnf[n];
               Scal fp = fnf[np];
               Vect x = m.GetNode(n);

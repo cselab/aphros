@@ -104,10 +104,10 @@ struct Vof<M_>::Imp {
     fcud2.Reinit(m);
     for (auto c : m.Cells()) {
       for (size_t d = 0; d < dim; ++d) {
-        auto cm = m.GetNeighbourCell(c, 2 * d);
-        auto cmm = m.GetNeighbourCell(cm, 2 * d);
-        auto cp = m.GetNeighbourCell(c, 2 * d + 1);
-        auto cpp = m.GetNeighbourCell(cp, 2 * d + 1);
+        auto cm = m.GetCell(c, 2 * d);
+        auto cmm = m.GetCell(cm, 2 * d);
+        auto cp = m.GetCell(c, 2 * d + 1);
+        auto cpp = m.GetCell(cp, 2 * d + 1);
         fcud2[c][d] = fcu[cpp] - fcu[cmm];
       }
     }
@@ -122,10 +122,10 @@ struct Vof<M_>::Imp {
     fcud4.Reinit(m);
     for (auto c : m.Cells()) {
       for (size_t d = 0; d < dim; ++d) {
-        auto cm = m.GetNeighbourCell(c, 2 * d);
-        auto cmm = m.GetNeighbourCell(cm, 2 * d);
-        auto cp = m.GetNeighbourCell(c, 2 * d + 1);
-        auto cpp = m.GetNeighbourCell(cp, 2 * d + 1);
+        auto cm = m.GetCell(c, 2 * d);
+        auto cmm = m.GetCell(cm, 2 * d);
+        auto cp = m.GetCell(c, 2 * d + 1);
+        auto cpp = m.GetCell(cp, 2 * d + 1);
         Scal um4 = fcu[c] - fcud2[cmm][d];
         Scal up4 = fcud2[cpp][d] + fcu[c];
         fcud4[c][d] = up4 - um4;
@@ -142,10 +142,10 @@ struct Vof<M_>::Imp {
     fcud6.Reinit(m);
     for (auto c : m.Cells()) {
       for (size_t d = 0; d < dim; ++d) {
-        auto cm = m.GetNeighbourCell(c, 2 * d);
-        auto cmm = m.GetNeighbourCell(cm, 2 * d);
-        auto cp = m.GetNeighbourCell(c, 2 * d + 1);
-        auto cpp = m.GetNeighbourCell(cp, 2 * d + 1);
+        auto cm = m.GetCell(c, 2 * d);
+        auto cmm = m.GetCell(cm, 2 * d);
+        auto cp = m.GetCell(c, 2 * d + 1);
+        auto cpp = m.GetCell(cp, 2 * d + 1);
         Scal um6 = fcu[cpp] - fcud4[cmm][d];
         Scal up6 = fcud4[cpp][d] + fcu[cmm];
         fcud6[c][d] = up6 - um6;
@@ -181,7 +181,7 @@ struct Vof<M_>::Imp {
     for (auto c : m.SuCells()) {
       if (uc[c] == 1) {
         for (auto q : m.Nci(c)) {
-          IdxCell cn = m.GetNeighbourCell(c, q);
+          IdxCell cn = m.GetCell(c, q);
           if (uc[cn] == 0) {
             fci_[c] = true;
           }
@@ -290,7 +290,7 @@ struct Vof<M_>::Imp {
       }
 
       const Scal v = ffv[f]; // mixture flux
-      IdxCell c = m.GetNeighbourCell(f, v > 0. ? 0 : 1); // upwind cell
+      IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
       if (uc[c] > 0 && uc[c] < 1) { // interfacial cell
         if (type == 0 || type == 1 || type == 3) {
           ffvu[f] = R::GetLineFlux(fcn[c], fca[c], h, v, dt, d);
@@ -304,7 +304,7 @@ struct Vof<M_>::Imp {
 
       // propagate color to downwind cell if empty
       if (fccl[c] != kClNone) {
-        IdxCell cd = m.GetNeighbourCell(f, v > 0. ? 1 : 0); // downwind cell
+        IdxCell cd = m.GetCell(f, v > 0. ? 1 : 0); // downwind cell
         if (fccl[cd] == kClNone) {
           fccl[cd] = fccl[c];
           MIdx w = bc.GetMIdx(c);
@@ -408,8 +408,8 @@ struct Vof<M_>::Imp {
           fcfm_.Reinit(m);
           fcfp_.Reinit(m);
           for (auto c : m.Cells()) {
-            fcfm_[c] = ffv[m.GetNeighbourFace(c, 2 * d)];
-            fcfp_[c] = ffv[m.GetNeighbourFace(c, 2 * d + 1)];
+            fcfm_[c] = ffv[m.GetFace(c, 2 * d)];
+            fcfp_[c] = ffv[m.GetFace(c, 2 * d + 1)];
           }
           m.Comm(&fcfm_);
           m.Comm(&fcfp_);

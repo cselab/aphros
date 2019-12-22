@@ -26,7 +26,7 @@ FieldCell<typename M::Scal> GetBcField(MapCondFaceFluid& mf, const M& m) {
     IdxFace f = it.GetIdx();
     auto* b = it.GetValue().Get();
     size_t nci = b->GetNci();
-    IdxCell c = m.GetNeighbourCell(f, nci);
+    IdxCell c = m.GetCell(f, nci);
     if (dynamic_cast<solver::fluid_condition::NoSlipWall<M>*>(b)) {
       fc[c] = 1.;
     } else if (dynamic_cast<solver::fluid_condition::SlipWall<M>*>(b)) {
@@ -919,7 +919,7 @@ void GetFluidFaceCond(
           IdxFace f = it.GetIdx();
           solver::CondFaceFluid* cb = it.GetValue().Get();
           auto nci = cb->GetNci();
-          IdxCell c = m.GetNeighbourCell(f, nci);
+          IdxCell c = m.GetCell(f, nci);
           Scal inter = V(c);
           auto& cfa = mfa[f];
           if (inter > 0) {
@@ -1082,8 +1082,8 @@ template <class M>
 std::vector<typename M::Vect> GetPoly(IdxFace f, const M& m) {
   using Vect = typename M::Vect;
   std::vector<Vect> xx;
-  for (size_t e = 0; e < m.GetNumNeighbourNodes(f); ++e) {
-    auto n = m.GetNeighbourNode(f, e);
+  for (size_t e = 0; e < m.GetNumNodes(f); ++e) {
+    auto n = m.GetNode(f, e);
     xx.push_back(m.GetNode(n));
   }
   return xx;

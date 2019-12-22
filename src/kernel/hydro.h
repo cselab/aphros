@@ -264,7 +264,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
     for (auto c : m.Cells()) {
       for (auto q : m.Nci(c)) {
-        IdxFace f = m.GetNeighbourFace(c, q);
+        IdxFace f = m.GetFace(c, q);
         fc[c] += ffv[f] * m.GetOutwardFactor(c, q);
       }
       fc[c] /= m.GetVolume(c);
@@ -732,7 +732,7 @@ void Hydro<M>::Init() {
       IdxFace f = it.GetIdx();
       auto& cb = it.GetValue();
       if (auto cd = cb.Get<NoSlipWallFixed<M>>()) {
-        IdxCell c = m.GetNeighbourCell(f, cd->GetNci());
+        IdxCell c = m.GetCell(f, cd->GetNci());
         cd->SetVelocity(fc_vel_[c]);
       }
     }
@@ -787,7 +787,7 @@ void Hydro<M>::Init() {
     for (auto c : m.Cells()) {
       Vect v = vel * u(g) / 7;
       for (auto q : m.Nci(c)) {
-        IdxCell cn = m.GetNeighbourCell(c, q);
+        IdxCell cn = m.GetCell(c, q);
         fc_vel_[cn] += v;
       }
       fc_vel_[c] += v;
@@ -841,8 +841,8 @@ void Hydro<M>::Init() {
       fc[c] = (ctx->fcbody[c] > 0.5);
     }
     AppendBodyCond<M>(
-        fc, var.String["body_bc"], m, clear0, clear1, inletcl, fill_vf,
-        nullptr, mf_fluid_, mf_adv_);
+        fc, var.String["body_bc"], m, clear0, clear1, inletcl, fill_vf, nullptr,
+        mf_fluid_, mf_adv_);
   }
 
   if (sem("dt")) {
@@ -1241,7 +1241,7 @@ void Hydro<M>::CalcStat() {
                 dynamic_cast<solver::fluid_condition::NoSlipWallFixed<M>*>(
                     cb)) {
           size_t nci = cd->GetNci();
-          IdxCell c = m.GetNeighbourCell(f, nci);
+          IdxCell c = m.GetCell(f, nci);
           cd->SetVelocity(slipvel * kslip * fa[c]);
         }
       }
@@ -1262,7 +1262,7 @@ void Hydro<M>::CalcStat() {
                 dynamic_cast<solver::fluid_condition::NoSlipWallFixed<M>*>(
                     cb)) {
           size_t nci = cd->GetNci();
-          IdxCell c = m.GetNeighbourCell(f, nci);
+          IdxCell c = m.GetCell(f, nci);
           Scal sgn = (slipvel - fv[c]).dot(slipvel);
           if (sgn > 0) {
             fc_force_[c] +=
@@ -1281,7 +1281,7 @@ void Hydro<M>::CalcStat() {
                 dynamic_cast<solver::fluid_condition::NoSlipWallFixed<M>*>(
                     cb)) {
           size_t nci = cd->GetNci();
-          IdxCell c = m.GetNeighbourCell(f, nci);
+          IdxCell c = m.GetCell(f, nci);
           fc_force_[c] += m.GetNormal(f) * ((nci == 1 ? 1 : -1) * fc_rho_[c] *
                                             slipnormal * fa[c]);
         }
@@ -1367,8 +1367,8 @@ void Hydro<M>::AppendSurfaceTension(
     FieldFace<Scal>& ffst, const FieldCell<Scal>& fcu,
     const FieldCell<Scal>& fck, const FieldFace<Scal>& ffsig) {
   for (auto f : m.Faces()) {
-    IdxCell cm = m.GetNeighbourCell(f, 0);
-    IdxCell cp = m.GetNeighbourCell(f, 1);
+    IdxCell cm = m.GetCell(f, 0);
+    IdxCell cp = m.GetCell(f, 1);
     Scal um = fcu[cm];
     Scal up = fcu[cp];
     Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? fck[cm] : fck[cp]);
@@ -1389,8 +1389,8 @@ void Hydro<M>::AppendSurfaceTension(
     const solver::Multi<const FieldCell<Scal>*> fck,
     const FieldFace<Scal>& ffsig) {
   for (auto f : m.Faces()) {
-    IdxCell cm = m.GetNeighbourCell(f, 0);
-    IdxCell cp = m.GetNeighbourCell(f, 1);
+    IdxCell cm = m.GetCell(f, 0);
+    IdxCell cp = m.GetCell(f, 1);
     std::set<Scal> s;
     for (auto i : layers) {
       Scal clm = (*fccl[i])[cm];
@@ -1438,7 +1438,7 @@ void Hydro<M>::CalcSurfaceTension(
     for (auto c : m.Cells()) {
       Vect r(0);
       for (auto q : m.Nci(c)) {
-        IdxFace f = m.GetNeighbourFace(c, q);
+        IdxFace f = m.GetFace(c, q);
         const auto& g = gf[f];
         // TODO: revise 1e-6
         auto n = g / (g.norm() + 1e-6); // inner normal

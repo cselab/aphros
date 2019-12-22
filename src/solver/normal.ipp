@@ -50,8 +50,8 @@ struct UNormal<M_>::Imp {
     // values from cells to neighbour nodes
     for (auto c : m.AllCells()) {
       Vect xc = m.GetCenter(c);
-      for (size_t q = 0; q < m.GetNumNeighbourNodes(c); ++q) {
-        IdxNode n = m.GetNeighbourNode(c, q);
+      for (size_t q = 0; q < m.GetNumNodes(c); ++q) {
+        IdxNode n = m.GetNode(c, q);
         Vect xn = m.GetNode(n);
         for (size_t d = 0; d < dim; ++d) {
           g[n][d] += (xc[d] - xn[d] > 0. ? 1. : -1.) * fcu[c];
@@ -71,8 +71,8 @@ struct UNormal<M_>::Imp {
         // sum over neighbour nodes
         auto& v = fcn[c];
         v = Vect(0);
-        for (size_t q = 0; q < m.GetNumNeighbourNodes(c); ++q) {
-          IdxNode n = m.GetNeighbourNode(c, q);
+        for (size_t q = 0; q < m.GetNumNodes(c); ++q) {
+          IdxNode n = m.GetNode(c, q);
           v += g[n];
         }
         // normalize
@@ -263,10 +263,10 @@ struct UNormal<M_>::Imp {
         continue;
       }
       for (size_t d = 0; d < edim; ++d) {
-        IdxCell cm = m.GetNeighbourCell(c, 2 * d);
-        IdxCell cmm = m.GetNeighbourCell(cm, 2 * d);
-        IdxCell cp = m.GetNeighbourCell(c, 2 * d + 1);
-        IdxCell cpp = m.GetNeighbourCell(cp, 2 * d + 1);
+        IdxCell cm = m.GetCell(c, 2 * d);
+        IdxCell cmm = m.GetCell(cm, 2 * d);
+        IdxCell cp = m.GetCell(c, 2 * d + 1);
+        IdxCell cpp = m.GetCell(cp, 2 * d + 1);
 
         const size_t si = (S + 1) * 4 + 1;
         const size_t sih = (S + 1) * 2;

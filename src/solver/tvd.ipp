@@ -69,7 +69,7 @@ struct Tvd<M_>::Imp {
         for (auto c : m.Cells()) {
           Scal s = 0.; // sum of fluxes
           for (auto q : m.Nci(c)) {
-            IdxFace f = m.GetNeighbourFace(c, q);
+            IdxFace f = m.GetFace(c, q);
             s += ffvu_[f] * m.GetOutwardFactor(c, q);
           }
           curr[c] += dt / m.GetVolume(c) * (-s); // fluxes
@@ -95,8 +95,8 @@ struct Tvd<M_>::Imp {
         const Vect g = gf[f]; // gradient on face
         const Vect n = g / (g.norm() + 1e-6); // normal to interface
         const Vect s = m.GetSurface(f); // surface vector on face
-        IdxCell cm = m.GetNeighbourCell(f, 0);
-        IdxCell cp = m.GetNeighbourCell(f, 1);
+        IdxCell cm = m.GetCell(f, 0);
+        IdxCell cp = m.GetCell(f, 1);
         Scal am = ac[cm];
         Scal ap = ac[cp];
         ap = std::max(0., std::min(1., ap));
@@ -110,7 +110,7 @@ struct Tvd<M_>::Imp {
       for (auto c : m.Cells()) {
         Scal s = 0.; // sum of fluxes
         for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
+          IdxFace f = m.GetFace(c, q);
           s += ffvu_[f] * m.GetOutwardFactor(c, q);
         }
 
@@ -129,7 +129,7 @@ struct Tvd<M_>::Imp {
       for (auto c : m.Cells()) {
         Scal s = 0.;
         for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
+          IdxFace f = m.GetFace(c, q);
           auto& g = ffg_[f];
           // TODO: revise 1e-6
           auto n = g / (g.norm() + 1e-6); // inner normal

@@ -76,7 +76,7 @@ struct ConvDiffScalExp<M_>::Imp {
       for (IdxCell c : m.Cells()) {
         Scal s = 0.; // sum
         for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
+          IdxFace f = m.GetFace(c, q);
           s += ffq[f] * m.GetOutwardFactor(c, q);
         }
         fclb[c] += s / m.GetVolume(c) * (*owner_->fcr_)[c];
@@ -92,7 +92,7 @@ struct ConvDiffScalExp<M_>::Imp {
         for (IdxCell c : m.Cells()) {
           Scal s = 0.; // sum
           for (auto q : m.Nci(c)) {
-            IdxFace f = m.GetNeighbourFace(c, q);
+            IdxFace f = m.GetFace(c, q);
             s += ffq[f] * m.GetOutwardFactor(c, q);
           }
           fclb[c] += s / m.GetVolume(c);

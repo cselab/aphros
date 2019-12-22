@@ -119,8 +119,8 @@ class Diffusion : public TimerMesh {
 
     // normal gradient
     for (auto f : m.Faces()) {
-      auto cm = m.GetNeighbourCell(f, 0);
-      auto cp = m.GetNeighbourCell(f, 1);
+      auto cm = m.GetCell(f, 0);
+      auto cp = m.GetCell(f, 1);
       ff[f] = (fc[cp] - fc[cm]);
     }
 
@@ -128,7 +128,7 @@ class Diffusion : public TimerMesh {
     for (auto c : m.Cells()) {
       Scal s = 0;
       for (auto q : m.Nci(c)) {
-        IdxFace f = m.GetNeighbourFace(c, q);
+        IdxFace f = m.GetFace(c, q);
         s += ff[f] * m.GetOutwardFactor(c, q);
       }
       fc[c] += s;
@@ -157,7 +157,7 @@ class DiffusionNeighb : public TimerMesh {
     for (auto c : m.Cells()) {
       Scal s = 0;
       for (auto q : m.Nci(c)) {
-        IdxCell cc = m.GetNeighbourCell(c, q);
+        IdxCell cc = m.GetCell(c, q);
         s += fct[cc];
       }
       s += -6 * fct[c];

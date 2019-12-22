@@ -331,7 +331,7 @@ typename M::LS ConvertLsCompact(
   LS l;
 
   // stencil
-  // XXX: adhoc, assumed order in m.GetNeighbourCell()
+  // XXX: adhoc, assumed order in m.GetCell(c)
   /*
   l.st.emplace_back(0, 0, 0);   // 0
   l.st.emplace_back(-1, 0, 0);  // 1

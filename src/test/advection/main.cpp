@@ -167,8 +167,7 @@ template <class M, class Vect = typename M::Vect>
 Vect GetCellSize(const M& m) {
   Vect h; // result
   IdxCell c0(0);
-  h = m.GetNode(m.GetNeighbourNode(c0, 7)) -
-      m.GetNode(m.GetNeighbourNode(c0, 0));
+  h = m.GetNode(m.GetNode(c0, 7)) - m.GetNode(m.GetNode(c0, 0));
   assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
   return h;
 }
@@ -239,7 +238,7 @@ void Advection<M>::Run() {
     maxvel_ = 0.;
     for (auto c : m.Cells()) {
       for (auto q : m.Nci(c)) {
-        auto f = m.GetNeighbourFace(c, q);
+        auto f = m.GetFace(c, q);
         maxvel_ = std::max(maxvel_, std::abs(ff_flux_[f]) / m.GetVolume(c));
       }
     }

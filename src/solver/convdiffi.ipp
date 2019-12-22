@@ -91,7 +91,7 @@ struct ConvDiffScalImp<M_>::Imp {
 
         Expr sc; // sum convective
         for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
+          IdxFace f = m.GetFace(c, q);
           sc += ffq[f] * m.GetOutwardFactor(c, q);
         }
 
@@ -128,7 +128,7 @@ struct ConvDiffScalImp<M_>::Imp {
 
         Expr sd; // sum diffusive
         for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
+          IdxFace f = m.GetFace(c, q);
           sd += ffq[f] * m.GetOutwardFactor(c, q);
         }
 

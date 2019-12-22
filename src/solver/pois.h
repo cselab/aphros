@@ -96,7 +96,7 @@ class PoisSolver {
         auto& e = fce_[c];
         e.Clear();
         for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
+          IdxFace f = m.GetFace(c, q);
           e += ffe[f] * (m.GetOutwardFactor(c, q) * m.GetArea(f));
         }
         e += Expr(-(fcr[c] - sumr_) * m.GetVolume(c));

@@ -209,7 +209,7 @@ class CellNCell : public TimerMesh {
     volatile size_t a = 1;
     for (auto c : m.Cells()) {
       for (auto q : m.Nci(c)) {
-        a += m.GetNeighbourCell(c, q).GetRaw();
+        a += m.GetCell(c, q).GetRaw();
       }
     }
   }
@@ -222,7 +222,7 @@ class CellNFace : public TimerMesh {
     volatile size_t a = 1;
     for (auto c : m.Cells()) {
       for (auto q : m.Nci(c)) {
-        a += m.GetNeighbourFace(c, q).GetRaw();
+        a += m.GetFace(c, q).GetRaw();
       }
     }
   }
@@ -247,8 +247,8 @@ class CellNNode : public TimerMesh {
   void F() override {
     volatile size_t a = 1;
     for (auto c : m.Cells()) {
-      for (size_t q = 0; q < m.GetNumNeighbourNodes(c); ++q) {
-        a += m.GetNeighbourNode(c, q).GetRaw();
+      for (size_t q = 0; q < m.GetNumNodes(c); ++q) {
+        a += m.GetNode(c, q).GetRaw();
       }
     }
   }
@@ -293,8 +293,8 @@ class FaceNCell : public TimerMesh {
   void F() override {
     volatile size_t a = 1;
     for (auto f : m.Faces()) {
-      for (size_t q = 0; q < m.GetNumNeighbourCells(f); ++q) {
-        a += m.GetNeighbourCell(f, q).GetRaw();
+      for (size_t q = 0; q < m.GetNumCells(f); ++q) {
+        a += m.GetCell(f, q).GetRaw();
       }
     }
   }
@@ -306,8 +306,8 @@ class FaceNNode : public TimerMesh {
   void F() override {
     volatile size_t a = 1;
     for (auto f : m.Faces()) {
-      for (size_t q = 0; q < m.GetNumNeighbourNodes(f); ++q) {
-        a += m.GetNeighbourNode(f, q).GetRaw();
+      for (size_t q = 0; q < m.GetNumNodes(f); ++q) {
+        a += m.GetNode(f, q).GetRaw();
       }
     }
   }
@@ -380,8 +380,8 @@ class ExplVisc : public TimerMesh {
       auto gf = Interpolate(gc, mfcf, mesh); // adhoc: zero-der cond
       for (auto idxcell : mesh.SuCells()) {
         Vect sum = Vect::kZero;
-        for (size_t i = 0; i < mesh.GetNumNeighbourFaces(idxcell); ++i) {
-          IdxFace idxface = mesh.GetNeighbourFace(idxcell, i);
+        for (size_t i = 0; i < mesh.GetNumFaces(idxcell); ++i) {
+          IdxFace idxface = mesh.GetFace(idxcell, i);
           sum += gf[idxface] *
                  (ffmu[idxface] * mesh.GetOutwardSurface(idxcell, i)[n]);
         }

@@ -174,7 +174,7 @@ struct Proj<M_>::Imp {
         e[Expr::dim - 1] = pc;
         // override neighbours
         for (size_t q : m.Nci(c)) {
-          IdxCell cn = m.GetNeighbourCell(c, q);
+          IdxCell cn = m.GetCell(c, q);
           auto& en = fcs[cn];
           size_t qn = (q % 2 == 0 ? q + 1 : q - 1); // id of c from cn
           en[Expr::dim - 1] += en[1 + qn] * pc;
@@ -196,7 +196,7 @@ struct Proj<M_>::Imp {
     ffe.Reinit(m);
     for (auto f : m.Faces()) {
       auto& e = ffe[f];
-      IdxCell cp = m.GetNeighbourCell(f, 1);
+      IdxCell cp = m.GetCell(f, 1);
       Scal hr = m.GetArea(f) / m.GetVolume(cp);
       if (!ffbd_[f]) { // inner
         Scal a = -m.GetArea(f) * hr / ffk[f];
@@ -222,7 +222,7 @@ struct Proj<M_>::Imp {
     for (auto c : m.Cells()) {
       auto& e = fce[c];
       for (auto q : m.Nci(c)) {
-        IdxFace f = m.GetNeighbourFace(c, q);
+        IdxFace f = m.GetFace(c, q);
         ExprFace v = ffv[f] * m.GetOutwardFactor(c, q);
         e[0] += v[1 - q % 2];
         e[1 + q] += v[q % 2];
@@ -313,7 +313,7 @@ struct Proj<M_>::Imp {
       for (auto c : m.Cells()) {
         Vect s(0);
         for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
+          IdxFace f = m.GetFace(c, q);
           s += gf[f] * (ffd_[f] * m.GetOutwardSurface(c, q)[d]);
         }
         fcf[c] += s / m.GetVolume(c);
@@ -396,8 +396,8 @@ struct Proj<M_>::Imp {
       fcp_curr = fcpc_;
 
       for (auto f : m.Faces()) {
-        IdxCell cm = m.GetNeighbourCell(f, 0);
-        IdxCell cp = m.GetNeighbourCell(f, 1);
+        IdxCell cm = m.GetCell(f, 0);
+        IdxCell cp = m.GetCell(f, 1);
         auto& e = ffvc_[f];
         ffv_.iter_curr[f] = e[0] * fcpc_[cm] + e[1] * fcpc_[cp] + e[2];
       }
@@ -408,10 +408,10 @@ struct Proj<M_>::Imp {
       for (auto c : m.Cells()) {
         Vect s(0);
         for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetNeighbourFace(c, q);
+          IdxFace f = m.GetFace(c, q);
           if (!ffbd_[f]) { // inner
-            IdxCell cm = m.GetNeighbourCell(f, 0);
-            IdxCell cp = m.GetNeighbourCell(f, 1);
+            IdxCell cm = m.GetCell(f, 0);
+            IdxCell cp = m.GetCell(f, 1);
             Scal hr = m.GetArea(f) / m.GetVolume(cp);
             Scal gp = (fcp_curr[cp] - fcp_curr[cm]) * hr;
             Scal a = (ffbp[f] - gp) / ffk_[f];
@@ -452,8 +452,8 @@ struct Proj<M_>::Imp {
     double dt = 1e10;
     auto& flux = ffv_.time_curr;
     for (auto c : m.Cells()) {
-      for (size_t i = 0; i < m.GetNumNeighbourFaces(c); ++i) {
-        IdxFace f = m.GetNeighbourFace(c, i);
+      for (size_t i = 0; i < m.GetNumFaces(c); ++i) {
+        IdxFace f = m.GetFace(c, i);
         if (flux[f] != 0.) {
           dt = std::min<Scal>(dt, std::abs(m.GetVolume(c) / flux[f]));
         }
