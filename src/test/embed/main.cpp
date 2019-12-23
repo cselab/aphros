@@ -47,8 +47,9 @@ class KernelEmbed : public KernelMeshPar<M_, GPar> {
  private:
   using EB = solver::Embed<M>;
   std::unique_ptr<EB> eb_;
-  FieldCell<Scal> fct_; // cell type
   FieldCell<Scal> fcu_; // field
+  FieldCell<Scal> fcum_; // field
+  FieldCell<Scal> fct_; // field
 };
 
 template <class M>
@@ -58,15 +59,14 @@ void KernelEmbed<M>::Run() {
     FieldNode<Scal> fnf(m, 0);
     for (auto n : m.Nodes()) {
       auto x = m.GetNode(n);
-      fnf[n] = Vect(x[0], x[1], 0.).dot(Vect(1)) - 0.5;
+      fnf[n] = 1.01 - Vect(x[0], x[1], x[2]).dot(Vect(1., 1., 0.));
     }
     eb_ = std::unique_ptr<EB>(new EB(m, fnf));
-    fct_.Reinit(m);
+    fcu_.Reinit(m, 0);
+    fct_.Reinit(m, 0);
     for (auto c : m.Cells()) {
       fct_[c] = size_t(eb_->GetCellType()[c]);
     }
-    // m.Dump(&fct_, "type");
-    fcu_.Reinit(m, 0.);
   }
   if (sem.Nested("dumppoly")) {
     auto& e = *eb_;
@@ -74,29 +74,44 @@ void KernelEmbed<M>::Run() {
         e.GetFaceArea(), e.GetFaceType(), e.GetCellArea(), e.GetCellType(),
         e.GetNormal(), e.GetPlane(), e.GetPoly(), m);
   }
-  for (size_t t = 0; t < 10; ++t)
+  for (size_t t = 0; t < 50; ++t) {
     if (sem("step")) {
-      // using Type = typename EB::Type;
-      // auto& ffs = eb_->GetFaceArea();
-      // auto& fcs = eb_->GetCellArea();
-      // auto& fct = eb_->GetCellType();
-      Scal a = 1.; // value on boundary
-      Vect vel(1., 0., 0.); // advection velocity
-      // sum of fluxes
-      FieldCell<Scal> fcq(m, 0); // flux on faces
-      Scal dt = 1;
-      (void)dt;
-      (void)a;
-      (void)vel;
-      (void)fcq;
+      using Type = typename EB::Type;
+      const auto& fct = eb_->GetCellType();
+      const Scal a = 1.; // value on boundary
+      const Vect vel(1., 0., 0.); // advection velocity
+      const Scal dt = 0.1 * m.GetCellSize()[0] / vel.norm();
+      fcum_ = fcu_;
       for (auto c : m.Cells()) {
-        fcu_[c] = eb_->GetCellVolume()[c];
+        if (fct[c] == Type::cut) {
+          Scal s = 0;
+          for (auto q : m.Nci(c)) {
+            const IdxFace f = m.GetFace(c, q);
+            const Scal u = fcum_[m.GetCell(f, 0)];
+            s += u * vel.dot(
+                         m.GetNormal(f) * eb_->GetFaceArea()[f] *
+                         m.GetOutwardFactor(c, q));
+          }
+          s += a * (eb_->GetNormal()[c] * eb_->GetCellArea()[c]).dot(vel);
+          fcu_[c] = fcum_[c] - s / eb_->GetCellVolume()[c] * dt;
+        } else if (fct[c] == Type::regular) {
+          Scal s = 0;
+          for (auto q : m.Nci(c)) {
+            const IdxFace f = m.GetFace(c, q);
+            Scal u = fcum_[m.GetCell(f, 0)];
+            s += u * vel.dot(m.GetOutwardSurface(c, q));
+          }
+          fcu_[c] = fcum_[c] - s / m.GetVolume(c) * dt;
+        }
       }
       m.Dump(&fcu_, "u");
+      m.Dump(&fct_, "type");
+      m.Dump(&eb_->GetNormal(), 0, "nx");
+      m.Dump(&eb_->GetNormal(), 1, "ny");
+      m.Dump(&eb_->GetNormal(), 2, "nz");
     }
-  if (sem("dumpwrite")) {
-    // FIXME
   }
+  if (sem()) {}
 }
 
 using Scal = double;

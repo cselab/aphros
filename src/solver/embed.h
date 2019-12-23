@@ -146,7 +146,7 @@ class Embed {
       FieldFace<std::vector<Vect>>& ffpoly, FieldFace<Scal>& ffs, const M& m) {
     fft.Reinit(m);
     ffpoly.Reinit(m);
-    ffs.Reinit(m);
+    ffs.Reinit(m, 0);
     for (auto f : m.Faces()) {
       const size_t em = m.GetNumNodes(f);
       std::vector<Vect> xx;
@@ -198,9 +198,9 @@ class Embed {
     fct.Reinit(m);
     fcn.Reinit(m);
     fca.Reinit(m);
-    fcs.Reinit(m);
+    fcs.Reinit(m, 0);
     fcd.Reinit(m);
-    fcv.Reinit(m);
+    fcv.Reinit(m, 0);
     for (auto c : m.Cells()) {
       size_t q = 0; // number of nodes with f > 0
       const size_t mi = m.GetNumNodes(c);
@@ -259,6 +259,8 @@ class Embed {
         fcd[c] = (xc - m.GetCenter(c)).dot(fcn[c]);
         // cut cell volume
         fcv[c] = R::GetLineU(fcn[c], fca[c], h) * m.GetVolume(c);
+      } else if (fct[c] == Type::regular) {
+        fcv[c] = m.GetVolume(c);
       }
     }
   }
