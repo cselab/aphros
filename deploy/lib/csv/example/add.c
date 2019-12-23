@@ -2,11 +2,9 @@
 
 #include <csv.h>
 
-int
-main(void)
-{
-  struct CSV *csv;
-  double *age;
+int main(void) {
+  struct CSV* csv;
+  double* age;
   int i, n;
 
   csv = csv_read(stdin);

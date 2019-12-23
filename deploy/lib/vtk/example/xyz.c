@@ -3,11 +3,13 @@
 
 #include <vtk.h>
 
-#define	USED(x)		if(x);else{}
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
 static char me[] = "vtk/xyz";
-static void
-usg()
-{
+static void usg() {
   fprintf(stderr, "%s [-b] < vtk\n", me);
   exit(1);
 }
@@ -15,27 +17,25 @@ usg()
 static double array_min(int, double[]);
 static double array_max(int, double[]);
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
   USED(argc);
-  struct VTK *vtk;
+  struct VTK* vtk;
   int nv, i, Box;
   double xl, xh, yl, yh, zl, zh;
 
   Box = 0;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
-    case 'h':
-      usg();
-      break;
-    case 'b':
-      argv++;
-      Box = 1;
-      break;
-    default:
-      fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
-      exit(1);
+      case 'h':
+        usg();
+        break;
+      case 'b':
+        argv++;
+        Box = 1;
+        break;
+      default:
+        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+        exit(1);
     }
   vtk = vtk_read(stdin);
   if (vtk == NULL) {
@@ -60,30 +60,24 @@ main(int argc, char **argv)
   vtk_fin(vtk);
 }
 
-static double
-array_max(int n, double a[])
-{
+static double array_max(int n, double a[]) {
   int i;
   double m;
 
   m = a[0];
   for (i = 0; i < n; i++) {
-    if (a[i] > m)
-      m = a[i];
+    if (a[i] > m) m = a[i];
   }
   return m;
 }
 
-static double
-array_min(int n, double a[])
-{
+static double array_min(int n, double a[]) {
   int i;
   double m;
 
   m = a[0];
   for (i = 0; i < n; i++) {
-    if (a[i] < m)
-      m = a[i];
+    if (a[i] < m) m = a[i];
   }
   return m;
 }

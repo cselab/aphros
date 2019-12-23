@@ -6,25 +6,25 @@
 
 static const char me[] = "new";
 
-#define	USED(x)		if(x);else{}
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
 
-static void
-usg()
-{
+static void usg() {
   fprintf(stderr, "%s -f field [csv..]\n", me);
   exit(1);
 }
 
-static const char *name;
+static const char* name;
 
-static struct Table *
-file2table(const char *fname)
-{
+static struct Table* file2table(const char* fname) {
   int nr, i;
-  double *field;
-  FILE *file;
-  struct CSV *csv;
-  struct Table *t;
+  double* field;
+  FILE* file;
+  struct CSV* csv;
+  struct Table* t;
 
   if ((file = fopen(fname, "r")) == NULL) {
     fprintf(stderr, "%s: fail to open '%s'\n", me, fname);
@@ -48,9 +48,7 @@ file2table(const char *fname)
   return t;
 }
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
   struct Table *a, *b;
   int x, *y, n, i;
 
@@ -58,16 +56,16 @@ main(int argc, char **argv)
   name = NULL;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
-    case 'h':
-      usg();
-      break;
-    case 'f':
-      argv++;
-      name = argv[0];
-      break;
-    default:
-      fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
-      exit(1);
+      case 'h':
+        usg();
+        break;
+      case 'f':
+        argv++;
+        name = argv[0];
+        break;
+      default:
+        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+        exit(1);
     }
   if (name == NULL) {
     fprintf(stderr, "%s: -f is not set\n", me);
@@ -84,8 +82,7 @@ main(int argc, char **argv)
     y = table_array(b);
     n = table_length(b);
     for (i = 0; i < 2 * n; i += 2) {
-      if (table_get(a, y[i], &x) == TABLE_EMPY)
-        printf("%s %d\n", *argv, y[i]);
+      if (table_get(a, y[i], &x) == TABLE_EMPY) printf("%s %d\n", *argv, y[i]);
     }
     free(y);
     table_fin(a);

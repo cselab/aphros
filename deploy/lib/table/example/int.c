@@ -5,10 +5,8 @@
 
 static char me[] = "table/int";
 
-int
-main(void)
-{
-  struct Table *t;
+int main(void) {
+  struct Table* t;
   int key, val, status;
   int p;
 
@@ -23,7 +21,6 @@ main(void)
 
   key = 40;
   status = table_get(t, key, &p);
-  if (status != TABLE_EMPY)
-    printf("%d\n", p);
+  if (status != TABLE_EMPY) printf("%d\n", p);
   table_fin(t);
 }

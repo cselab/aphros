@@ -4,10 +4,8 @@
 #include <vtk.h>
 
 static char me[] = "vtk/write";
-int
-main(void)
-{
-  struct VTK *vtk;
+int main(void) {
+  struct VTK* vtk;
 
   vtk = vtk_read(stdin);
   if (vtk == NULL) {

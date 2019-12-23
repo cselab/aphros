@@ -3,73 +3,71 @@
 #include <string.h>
 
 #include "err.h"
-#include "memory.h"
 #include "line.h"
+#include "memory.h"
 #include "vtk.h"
 
 static char me[] = "vtk";
 enum { N = 999 };
 
 #define FMT "%.20g"
-#define LINE(s, f)				\
-  do						\
-    if (line_get(s, f) != 0) {			\
-      MSG(("fail to read"));			\
-      goto fail;				\
-    }						\
-  while(0)
+#define LINE(s, f)             \
+  do                           \
+    if (line_get(s, f) != 0) { \
+      MSG(("fail to read"));   \
+      goto fail;               \
+    }                          \
+  while (0)
 
 #define SWAP(n, p) swap(n, sizeof(*(p)), p)
-#define FILL(n, f, p)				\
-    do {					\
-	MALLOC(n, p);				\
-	FREAD(n, (*(p)), f);			\
-	SWAP(n, (*(p)));			\
-    } while(0)
-#define FREAD(n, p, f)							\
-    do {								\
-	if ((int)fread(p, sizeof(*(p)), (n), (f)) != (n))		\
-	    ERR(("fread failed, n = %d", n));				\
-    } while(0)
-#define FWRITE(n, p, f)							\
-  do {									\
-    if ((int)fwrite(p, sizeof(*(p)), (n), (f)) != (n)) {		\
-      MSG(("fail to write, n = %d", n));				\
-      return 1;								\
-    }									\
-  } while(0)
-#define SIZE(a) (sizeof(a)/sizeof(*(a)))
+#define FILL(n, f, p)    \
+  do {                   \
+    MALLOC(n, p);        \
+    FREAD(n, (*(p)), f); \
+    SWAP(n, (*(p)));     \
+  } while (0)
+#define FREAD(n, p, f)                                \
+  do {                                                \
+    if ((int)fread(p, sizeof(*(p)), (n), (f)) != (n)) \
+      ERR(("fread failed, n = %d", n));               \
+  } while (0)
+#define FWRITE(n, p, f)                                  \
+  do {                                                   \
+    if ((int)fwrite(p, sizeof(*(p)), (n), (f)) != (n)) { \
+      MSG(("fail to write, n = %d", n));                 \
+      return 1;                                          \
+    }                                                    \
+  } while (0)
+#define SIZE(a) (sizeof(a) / sizeof(*(a)))
 
-static const char *LocationString[] = { "CELL_DATA", "POINT_DATA" };
-static const int LocationEnum[] = { VTK_CELL, VTK_POINT };
-static const char *TypeString[] = { "int", "float", "double" };
-static const int TypeEnum[] = { VTK_INT, VTK_FLOAT, VTK_DOUBLE };
-static const int TypeSize[] =
-    { sizeof(int), sizeof(float), sizeof(double) };
-static const char *RankString[] = { "SCALARS", "VECTORS" };
-static const int RankEnum[] = { VTK_SCALAR, VTK_VECTOR };
+static const char* LocationString[] = {"CELL_DATA", "POINT_DATA"};
+static const int LocationEnum[] = {VTK_CELL, VTK_POINT};
+static const char* TypeString[] = {"int", "float", "double"};
+static const int TypeEnum[] = {VTK_INT, VTK_FLOAT, VTK_DOUBLE};
+static const int TypeSize[] = {sizeof(int), sizeof(float), sizeof(double)};
+static const char* RankString[] = {"SCALARS", "VECTORS"};
+static const int RankEnum[] = {VTK_SCALAR, VTK_VECTOR};
 
 /* functions */
-static int colormap(double, double, double, float *);
-static double array_max(int, double *);
-static double array_min(int, double *);
-static int swap(int, int, void *);
-static int eq(const char *, const char *);
-static int rank2num(const char *, int *);
-static int type2size(const char *, int *num, int *size);
-static int location2num(const char *, int *);
-static int num2location(int, const char **);
-static int num2rank(int, const char **);
-static int num2type(int, const char **);
-static int num2size(int, int *);
-static int remove0(int n, int size, void *, const int *a, int *new_size);
+static int colormap(double, double, double, float*);
+static double array_max(int, double*);
+static double array_min(int, double*);
+static int swap(int, int, void*);
+static int eq(const char*, const char*);
+static int rank2num(const char*, int*);
+static int type2size(const char*, int* num, int* size);
+static int location2num(const char*, int*);
+static int num2location(int, const char**);
+static int num2rank(int, const char**);
+static int num2type(int, const char**);
+static int num2size(int, int*);
+static int remove0(int n, int size, void*, const int* a, int* new_size);
 
-struct VTK *
-vtk_ini(int nv, const double *x, const double *y, const double *z, int nt,
-	const int *t0, const int *t1, const int *t2)
-{
+struct VTK* vtk_ini(
+    int nv, const double* x, const double* y, const double* z, int nt,
+    const int* t0, const int* t1, const int* t2) {
   int i;
-  struct VTK *q;
+  struct VTK* q;
 
   MALLOC(1, &q);
   MALLOC(nv, &q->x);
@@ -98,13 +96,11 @@ vtk_ini(int nv, const double *x, const double *y, const double *z, int nt,
   return q;
 }
 
-struct VTK *
-vtk_read(FILE * f)
-{
-  struct VTK *q;
+struct VTK* vtk_read(FILE* f) {
+  struct VTK* q;
   double *x, *y, *z;
-  void *p;
-  float *r;
+  void* p;
+  float* r;
   int nv, nt, nf, n, m, i, j, size;
   int *t, *t0, *t1, *t2;
   char s[N], rank[N], name[N], type[N], location[N];
@@ -119,7 +115,7 @@ vtk_read(FILE * f)
     MSG(("not a vtk file, got '%s'", s));
     goto fail;
   }
-  LINE(s, f);                   // comments
+  LINE(s, f); // comments
   LINE(s, f);
   if (!eq(s, "BINARY")) {
     MSG(("expect 'BINARY', get '%s'", s));
@@ -130,11 +126,9 @@ vtk_read(FILE * f)
     MSG(("expect 'DATASET POLYDATA', get '%s'", s));
     goto fail;
   }
-  if (line_get(s, f) != 0)
-    goto end_polygons;
+  if (line_get(s, f) != 0) goto end_polygons;
   sscanf(s, "%s %d float", name, &nv);
-  if (!eq(name, "POINTS"))
-    goto end_polygons;
+  if (!eq(name, "POINTS")) goto end_polygons;
   FILL(3 * nv, f, &r);
   MALLOC(nv, &x);
   MALLOC(nv, &y);
@@ -145,8 +139,7 @@ vtk_read(FILE * f)
     z[i] = r[j++];
   }
   FREE(r);
-  if (line_get(s, f) != 0)
-    goto end_data;
+  if (line_get(s, f) != 0) goto end_data;
   sscanf(s, "%s %d %*d", name, &nt);
   if (!eq(name, "POLYGONS")) {
     MSG(("preved: %s", name));
@@ -163,35 +156,32 @@ vtk_read(FILE * f)
     t2[i] = t[j++];
   }
   FREE(t);
-  if (line_get(s, f) != 0)
-    goto end_data;
+  if (line_get(s, f) != 0) goto end_data;
 end_polygons:
   for (;;) {
     sscanf(s, "%s", location);
-    if (line_get(s, f) != 0)
-      goto end_data;
+    if (line_get(s, f) != 0) goto end_data;
     do {
       if (location2num(location, &q->location[nf]) != 0) {
-	MSG(("unknown location '%s'", location));
-	goto fail;
+        MSG(("unknown location '%s'", location));
+        goto fail;
       }
-      if (sscanf(s, "%s %s %s", rank, name, type) != 3)
-	break;
+      if (sscanf(s, "%s %s %s", rank, name, type) != 3) break;
       q->name[nf] = memory_strndup(name, N);
       if (eq(rank, "SCALARS")) {
-	LINE(s, f);
-	if (!eq(s, "LOOKUP_TABLE default")) {
-	  MSG(("expect 'LOOKUP_TABLE default', get '%s'", s));
-	  goto fail;
-	}
+        LINE(s, f);
+        if (!eq(s, "LOOKUP_TABLE default")) {
+          MSG(("expect 'LOOKUP_TABLE default', get '%s'", s));
+          goto fail;
+        }
       }
       if (rank2num(rank, &q->rank[nf]) != 0) {
-	MSG(("unknown rank: '%s' for '%s'", rank, name));
-	goto fail;
+        MSG(("unknown rank: '%s' for '%s'", rank, name));
+        goto fail;
       }
       if (type2size(type, &q->type[nf], &size) != 0) {
-	MSG(("unknown type: '%s' for '%s'", type, name));
-	goto fail;
+        MSG(("unknown type: '%s' for '%s'", type, name));
+        goto fail;
       }
       n = q->location[nf] == VTK_CELL ? nt : nv;
       m = n * q->rank[nf];
@@ -219,9 +209,7 @@ fail:
   return NULL;
 }
 
-int
-vtk_fin(struct VTK *q)
-{
+int vtk_fin(struct VTK* q) {
   int i, nf;
 
   nf = vtk_nf(q);
@@ -239,14 +227,12 @@ vtk_fin(struct VTK *q)
   return 0;
 }
 
-int
-vtk_write(struct VTK *q, FILE * f)
-{
+int vtk_write(struct VTK* q, FILE* f) {
   int nv, nt, nf, n, m, i, j, current, size, status;
   double *x, *y, *z;
   int *t0, *t1, *t2, *t;
-  float *r;
-  void *p;
+  float* r;
+  void* p;
   const char *rank, *type, *location;
 
   nv = q->nv;
@@ -297,12 +283,12 @@ vtk_write(struct VTK *q, FILE * f)
     if (q->location[i] != current) {
       current = q->location[i];
       if (current == VTK_CELL)
-	n = nt;
+        n = nt;
       else if (current == VTK_POINT)
-	n = nv;
+        n = nv;
       else {
-	MSG(("unknown location: %d", current));
-	goto end;
+        MSG(("unknown location: %d", current));
+        goto end;
       }
       num2location(q->location[i], &location);
       fprintf(f, "%s %d\n", location, n);
@@ -315,8 +301,7 @@ vtk_write(struct VTK *q, FILE * f)
       goto end;
     }
     fprintf(f, "%s %s %s\n", rank, q->name[i], type);
-    if (q->rank[i] == VTK_SCALAR)
-      fprintf(f, "LOOKUP_TABLE default\n");
+    if (q->rank[i] == VTK_SCALAR) fprintf(f, "LOOKUP_TABLE default\n");
     m = n * q->rank[i];
     MALLOC(m * size, &p);
     memory_memcpy(p, q->data[i], m * size);
@@ -328,9 +313,7 @@ end:
   return 0;
 }
 
-int
-vtk_off_color(struct VTK *q, const char *name, FILE * f)
-{
+int vtk_off_color(struct VTK* q, const char* name, FILE* f) {
   int nt, nv, cnt[3];
   int *t0, *t1, *t2, i, j, index, ibuf[5], *di;
   double *x, *y, *z, *field, hi, lo, *dd;
@@ -353,24 +336,24 @@ vtk_off_color(struct VTK *q, const char *name, FILE * f)
   nt = vtk_nt(q);
   MALLOC(nt, &field);
   switch (q->type[index]) {
-  case VTK_FLOAT:
-    df = q->data[index];
-    for (i = 0; i < nt; i++)
-      field[i] = df[i];
-    break;
-  case VTK_DOUBLE:
-    dd = q->data[index];
-    for (i = 0; i < nt; i++)
-      field[i] = dd[i];
-    break;
-  case VTK_INT:
-    di = q->data[index];
-    for (i = 0; i < nt; i++)
-      field[i] = di[i];
-    break;
-  default:
-    MSG(("wrong type for '%s'", name));
-    return 1;
+    case VTK_FLOAT:
+      df = q->data[index];
+      for (i = 0; i < nt; i++)
+        field[i] = df[i];
+      break;
+    case VTK_DOUBLE:
+      dd = q->data[index];
+      for (i = 0; i < nt; i++)
+        field[i] = dd[i];
+      break;
+    case VTK_INT:
+      di = q->data[index];
+      for (i = 0; i < nt; i++)
+        field[i] = di[i];
+      break;
+    default:
+      MSG(("wrong type for '%s'", name));
+      return 1;
   }
 
   lo = array_min(nt, field);
@@ -417,13 +400,11 @@ vtk_off_color(struct VTK *q, const char *name, FILE * f)
   return 0;
 }
 
-int
-vtk_off(struct VTK *q, FILE * f)
-{
+int vtk_off(struct VTK* q, FILE* f) {
   int nt, nv, cnt[3];
   int *t, *t0, *t1, *t2, i, j;
   double *x, *y, *z;
-  float *r;
+  float* r;
 
   nt = vtk_nt(q);
   nv = vtk_nv(q);
@@ -466,11 +447,9 @@ vtk_off(struct VTK *q, FILE * f)
   return 0;
 }
 
-int
-vtk_remove_tri(struct VTK *q, const int *a)
-{
+int vtk_remove_tri(struct VTK* q, const int* a) {
   int nt, nf, m, i, rank, size;
-  void *data;
+  void* data;
 
   nt = vtk_nt(q);
   nf = vtk_nf(q);
@@ -490,11 +469,9 @@ vtk_remove_tri(struct VTK *q, const int *a)
   return 0;
 }
 
-int
-vtk_remove_orphan(struct VTK *q)
-{
-  int *a;
-  int *b;
+int vtk_remove_orphan(struct VTK* q) {
+  int* a;
+  int* b;
   int i;
   int m;
   int nf;
@@ -502,10 +479,10 @@ vtk_remove_orphan(struct VTK *q)
   int nv;
   int rank;
   int size;
-  int *t0;
-  int *t1;
-  int *t2;
-  void *data;
+  int* t0;
+  int* t1;
+  int* t2;
+  void* data;
 
   nv = vtk_nv(q);
   nt = vtk_nt(q);
@@ -523,8 +500,7 @@ vtk_remove_orphan(struct VTK *q)
     a[t2[i]] = 0;
   }
   for (m = i = 0; i < nv; i++)
-    if (a[i] == 0)
-      b[i] = m++;
+    if (a[i] == 0) b[i] = m++;
   for (i = 0; i < nt; i++) {
     t0[i] = b[t0[i]];
     t1[i] = b[t1[i]];
@@ -546,27 +522,19 @@ vtk_remove_orphan(struct VTK *q)
   return 0;
 }
 
-int
-vtk_nv(struct VTK *q)
-{
+int vtk_nv(struct VTK* q) {
   return q->nv;
 }
 
-int
-vtk_nf(struct VTK *q)
-{
+int vtk_nf(struct VTK* q) {
   return q->nf;
 }
 
-int
-vtk_nt(struct VTK *q)
-{
+int vtk_nt(struct VTK* q) {
   return q->nt;
 }
 
-int
-vtk_index(struct VTK *q, const char *name)
-{
+int vtk_index(struct VTK* q, const char* name) {
   int i, nf;
 
   nf = q->nf;
@@ -577,9 +545,7 @@ vtk_index(struct VTK *q, const char *name)
   return -1;
 }
 
-void *
-vtk_data(struct VTK *q, const char *name)
-{
+void* vtk_data(struct VTK* q, const char* name) {
   int i;
 
   i = vtk_index(q, name);
@@ -589,20 +555,16 @@ vtk_data(struct VTK *q, const char *name)
     return q->data[i];
 }
 
-int
-vtk_remove(struct VTK *q, const char *name)
-{
+int vtk_remove(struct VTK* q, const char* name) {
   int i, j, nf;
 
   nf = vtk_nf(q);
   j = vtk_index(q, name);
-  if (j == -1)
-    return 1;
+  if (j == -1) return 1;
   FREE(q->name[j]);
   FREE(q->data[j]);
   for (i = j; i < nf - 1; i++) {
-    if (i > j)
-      FREE(q->name[i]);
+    if (i > j) FREE(q->name[i]);
     q->name[i] = memory_strndup(q->name[i + 1], N);
     q->location[i] = q->location[i + 1];
     q->type[i] = q->type[i + 1];
@@ -613,9 +575,7 @@ vtk_remove(struct VTK *q, const char *name)
   return 0;
 }
 
-int
-vtk_add(struct VTK *q, const char *name, int location, int type)
-{
+int vtk_add(struct VTK* q, const char* name, int location, int type) {
   int nt, nv, nf, n, size, rank;
 
   nf = vtk_nf(q);
@@ -644,15 +604,11 @@ vtk_add(struct VTK *q, const char *name, int location, int type)
   return 0;
 }
 
-static int
-eq(const char *a, const char *b)
-{
+static int eq(const char* a, const char* b) {
   return strncmp(a, b, N) == 0;
 }
 
-static int
-swap(int n, int size, void *p0)
-{
+static int swap(int n, int size, void* p0) {
   int i;
   char *p, t;
 
@@ -668,9 +624,7 @@ swap(int n, int size, void *p0)
   return 0;
 }
 
-static int
-location2num(const char *s, int *p)
-{
+static int location2num(const char* s, int* p) {
   int i, n;
 
   n = SIZE(LocationString);
@@ -682,9 +636,7 @@ location2num(const char *s, int *p)
   return 1;
 }
 
-static int
-rank2num(const char *s, int *p)
-{
+static int rank2num(const char* s, int* p) {
   int i, n;
 
   n = SIZE(RankString);
@@ -696,9 +648,7 @@ rank2num(const char *s, int *p)
   return 1;
 }
 
-static int
-type2size(const char *s, int *num, int *size)
-{
+static int type2size(const char* s, int* num, int* size) {
   int i, n;
 
   n = SIZE(TypeString);
@@ -711,9 +661,7 @@ type2size(const char *s, int *num, int *size)
   return 1;
 }
 
-static int
-num2type(int p, const char **s)
-{
+static int num2type(int p, const char** s) {
   int i, n;
 
   n = SIZE(TypeString);
@@ -725,9 +673,7 @@ num2type(int p, const char **s)
   return 1;
 }
 
-static int
-num2rank(int p, const char **s)
-{
+static int num2rank(int p, const char** s) {
   int i, n;
 
   n = SIZE(RankString);
@@ -739,9 +685,7 @@ num2rank(int p, const char **s)
   return 1;
 }
 
-static int
-num2location(int p, const char **s)
-{
+static int num2location(int p, const char** s) {
   int i, n;
 
   n = SIZE(LocationString);
@@ -753,9 +697,7 @@ num2location(int p, const char **s)
   return 1;
 }
 
-static int
-num2size(int p, int *s)
-{
+static int num2size(int p, int* s) {
   int i, n;
 
   n = SIZE(TypeEnum);
@@ -767,64 +709,50 @@ num2size(int p, int *s)
   return 1;
 }
 
-static int
-remove0(int n, int size, void *pv, const int *a, int *pM)
-{
+static int remove0(int n, int size, void* pv, const int* a, int* pM) {
   int M, i, j, k, l;
-  char *p;
+  char* p;
 
   p = pv;
   M = 0;
   for (i = k = l = 0; i < n; i++)
     if (a[i] == 0) {
       for (j = 0; j < size; j++)
-	p[k++] = p[size * i + j];
+        p[k++] = p[size * i + j];
       M++;
     }
   *pM = M;
   return 0;
 }
 
-static double
-array_min(int n, double *a)
-{
+static double array_min(int n, double* a) {
   int i;
   double m;
 
-  if (n == 0)
-    return 0;
+  if (n == 0) return 0;
 
   m = a[0];
   for (i = 1; i < n; i++)
-    if (a[i] < m)
-      m = a[i];
+    if (a[i] < m) m = a[i];
   return m;
 }
 
-static double
-array_max(int n, double *a)
-{
+static double array_max(int n, double* a) {
   int i;
   double m;
 
-  if (n == 0)
-    return 0;
+  if (n == 0) return 0;
   m = a[0];
   for (i = 1; i < n; i++)
-    if (a[i] > m)
-      m = a[i];
+    if (a[i] > m) m = a[i];
   return m;
 }
 
-static int
-colormap(double v, double l, double h, /**/ float p[3])
-{
+static int colormap(double v, double l, double h, /**/ float p[3]) {
   float R, G, B;
 
-  if (v < l)
-    v = l;
-  if (v > h)
-    v = h;
+  if (v < l) v = l;
+  if (v > h) v = h;
 
   if (l != h)
     v = 4 * (v - l) / (h - l);

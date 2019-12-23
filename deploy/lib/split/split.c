@@ -13,62 +13,61 @@ static const char me[] = "split";
 
 #include "util.h"
 
-#define	USED(x)		if(x);else{}
-#define MALLOC(n, p)							\
-    do {								\
-	*(p) = malloc((n)*sizeof(**(p)));				\
-	if (*(p) == NULL)  {						\
-	    fprintf(stderr, "%s: alloc failed, n = %d", me, n);		\
-	    exit(2);							\
-	}								\
-    } while(0)
-#define REALLOC(n, p)							\
-    do {								\
-      *(p) = realloc(*(p), (n)*sizeof(**(p)));				\
-      if (*(p) == NULL)  {						\
-	fprintf(stderr, "%s: realloc failed, n = %d", me, n);		\
-	    exit(2);							\
-	}								\
-    } while(0)
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
+#define MALLOC(n, p)                                      \
+  do {                                                    \
+    *(p) = malloc((n) * sizeof(**(p)));                   \
+    if (*(p) == NULL) {                                   \
+      fprintf(stderr, "%s: alloc failed, n = %d", me, n); \
+      exit(2);                                            \
+    }                                                     \
+  } while (0)
+#define REALLOC(n, p)                                       \
+  do {                                                      \
+    *(p) = realloc(*(p), (n) * sizeof(**(p)));              \
+    if (*(p) == NULL) {                                     \
+      fprintf(stderr, "%s: realloc failed, n = %d", me, n); \
+      exit(2);                                              \
+    }                                                       \
+  } while (0)
 
-static void
-usg()
-{
+static void usg() {
   fprintf(stderr, "%s -p prefix -f field [csv..]\n", me);
   exit(1);
 }
 
-#define GET(f, r)							\
-  if ((*r = csv_field(csv, f)) == NULL) {				\
-    fprintf(stderr, "%s: no field '%s' in '%s'\n",			\
-	    me, (f), name);						\
-    exit(2);								\
+#define GET(f, r)                                                  \
+  if ((*r = csv_field(csv, f)) == NULL) {                          \
+    fprintf(stderr, "%s: no field '%s' in '%s'\n", me, (f), name); \
+    exit(2);                                                       \
   }
 
-static const char *name;
+static const char* name;
 struct Data {
-  struct CSV *csv;
-  struct Table *table;
-  double *x;
-  double *y;
-  double *z;
-  double *r;
-  double *field;
+  struct CSV* csv;
+  struct Table* table;
+  double* x;
+  double* y;
+  double* z;
+  double* r;
+  double* field;
 };
-static struct Data data_ini(const char *);
-static int data_fin(struct Data *);
-static int data_add(struct Data *, const char *, const int *);
-static int dist(int, struct Data *, int, struct Data *, /**/ double *);
+static struct Data data_ini(const char*);
+static int data_fin(struct Data*);
+static int data_add(struct Data*, const char*, const int*);
+static int dist(int, struct Data*, int, struct Data*, /**/ double*);
 
-int
-main(int argc, char **argv)
-{
-  char *Prefix;
+int main(int argc, char** argv) {
+  char* Prefix;
   char output[N];
   double d;
   double dmin;
-  FILE *file;
-  int *array;
+  FILE* file;
+  int* array;
   int lmin;
   int m;
   int nb;
@@ -77,9 +76,9 @@ main(int argc, char **argv)
   int i;
   int j;
   int l;
-  int *new;
-  int *prev;
-  int *split;
+  int* new;
+  int* prev;
+  int* split;
   struct Data a;
   struct Data b;
 
@@ -87,23 +86,23 @@ main(int argc, char **argv)
   name = Prefix = NULL;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
-    case 'h':
-      usg();
-      break;
-    case 'f':
-      argv++;
-      name = argv[0];
-      break;
-    case 'p':
-      argv++;
-      if ((Prefix = *argv) == NULL) {
-        fprintf(stderr, "%s: -p needs an argument\n", me);
-        exit(2);
-      }
-      break;
-    default:
-      fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
-      exit(1);
+      case 'h':
+        usg();
+        break;
+      case 'f':
+        argv++;
+        name = argv[0];
+        break;
+      case 'p':
+        argv++;
+        if ((Prefix = *argv) == NULL) {
+          fprintf(stderr, "%s: -p needs an argument\n", me);
+          exit(2);
+        }
+        break;
+      default:
+        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+        exit(1);
     }
   if (Prefix == NULL) {
     fprintf(stderr, "%s: prefix (-p) is not given\n", me);
@@ -153,10 +152,10 @@ main(int argc, char **argv)
           lmin = l;
         }
       }
-      if (table_get(b.table, (int) a.field[lmin], &m) != TABLE_EMPY) {
+      if (table_get(b.table, (int)a.field[lmin], &m) != TABLE_EMPY) {
         split[m] = 1;
         split[j] = 2;
-        prev[j] = prev[m] = (int) a.field[lmin];
+        prev[j] = prev[m] = (int)a.field[lmin];
         /*connect_add(j, &b);
            connect_add(m, &b); */
       } else {
@@ -191,14 +190,12 @@ main(int argc, char **argv)
   data_fin(&a);
 }
 
-static struct Data
-data_ini(const char *fname)
-{
+static struct Data data_ini(const char* fname) {
   int nr, i;
-  double *field;
-  FILE *file;
-  struct CSV *csv;
-  struct Table *t;
+  double* field;
+  FILE* file;
+  struct CSV* csv;
+  struct Table* t;
   struct Data q;
 
   if ((file = fopen(fname, "r")) == NULL) {
@@ -231,19 +228,15 @@ data_ini(const char *fname)
   return q;
 }
 
-static int
-data_fin(struct Data *q)
-{
+static int data_fin(struct Data* q) {
   csv_fin(q->csv);
   return table_fin(q->table);
 }
 
-static int
-data_add(struct Data *q, const char *name, const int *a)
-{
+static int data_add(struct Data* q, const char* name, const int* a) {
   int n, i;
-  double *f;
-  struct CSV *csv;
+  double* f;
+  struct CSV* csv;
 
   csv = q->csv;
   n = csv_nr(csv);
@@ -260,9 +253,7 @@ data_add(struct Data *q, const char *name, const int *a)
   return 0;
 }
 
-static int
-dist(int i, struct Data *a, int j, struct Data *b, /**/ double *p)
-{
+static int dist(int i, struct Data* a, int j, struct Data* b, /**/ double* p) {
   double d;
   double x;
   double y;
@@ -283,9 +274,9 @@ dist(int i, struct Data *a, int j, struct Data *b, /**/ double *p)
   x = a->x[i] - b->x[j];
   y = a->y[i] - b->y[j];
   z = a->z[i] - b->z[j];
-  //r = a->r[i] + b->r[j];
+  // r = a->r[i] + b->r[j];
   d = sqrt(x * x + y * y + z * z);
-  //d -= r;
+  // d -= r;
   *p = d;
   return 0;
 }

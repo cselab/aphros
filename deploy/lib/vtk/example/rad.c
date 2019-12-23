@@ -1,80 +1,80 @@
 #include <assert.h>
+#include <ctype.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 #include <string.h>
 
-#include <vtk.h>
 #include <csv.h>
 #include <table.h>
+#include <vtk.h>
 
 enum { N = 999 };
 static char me[] = "vtk/rad";
 
 #include "util.h"
 
-#define	USED(x)		if(x);else{}
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
 static double pi = 3.141592653589793;
 
-#define Vcoef (4.0/3.0*pi)
+#define Vcoef (4.0 / 3.0 * pi)
 
-static void
-usg()
-{
+static void usg() {
   fprintf(stderr, "%s -k key -f field [csv ..] [vtk ..]\n", me);
   exit(1);
 }
 
-static double array_max(int, double *);
-static double array_min(int, double *);
-static int array_max_arg(int, double *);
-static int array_min_arg(int, double *);
+static double array_max(int, double*);
+static double array_min(int, double*);
+static int array_max_arg(int, double*);
+static int array_min_arg(int, double*);
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
   int status, nt, nr, i, j, key, *flag;
-  float *cl;
+  float* cl;
   double *cl_csv, *vf, *rad;
-  struct VTK *vtk;
-  struct CSV *csv;
-  struct Table *table;
+  struct VTK* vtk;
+  struct CSV* csv;
+  struct Table* table;
   char *path, *Prefix, *Key, *Volume, **Vtk, **Csv;
   char output[N];
-  FILE *f;
+  FILE* f;
 
   USED(argc);
   Prefix = Key = Volume = NULL;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
-    case 'h':
-      usg();
-      break;
-    case 'k':
-      argv++;
-      if ((Key = *argv) == NULL) {
-        fprintf(stderr, "%s: -k needs an argument\n", me);
-        exit(2);
-      }
-      break;
-    case 'f':
-      argv++;
-      if ((Volume = *argv) == NULL) {
-        fprintf(stderr, "%s: -f needs an argument\n", me);
-        exit(2);
-      }
-      break;
-    case 'p':
-      argv++;
-      if ((Prefix = *argv) == NULL) {
-        fprintf(stderr, "%s: -p needs an argument\n", me);
-        exit(2);
-      }
-      break;
-    default:
-      fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
-      exit(1);
+      case 'h':
+        usg();
+        break;
+      case 'k':
+        argv++;
+        if ((Key = *argv) == NULL) {
+          fprintf(stderr, "%s: -k needs an argument\n", me);
+          exit(2);
+        }
+        break;
+      case 'f':
+        argv++;
+        if ((Volume = *argv) == NULL) {
+          fprintf(stderr, "%s: -f needs an argument\n", me);
+          exit(2);
+        }
+        break;
+      case 'p':
+        argv++;
+        if ((Prefix = *argv) == NULL) {
+          fprintf(stderr, "%s: -p needs an argument\n", me);
+          exit(2);
+        }
+        break;
+      default:
+        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+        exit(1);
     }
   if (Key == NULL) {
     fprintf(stderr, "%s: key (-k) is not given\n", me);
@@ -94,13 +94,11 @@ main(int argc, char **argv)
       fprintf(stderr, "%s: missing '--' in arguments\n", me);
       exit(2);
     }
-    if (util_eq(*argv++, "--"))
-      break;
+    if (util_eq(*argv++, "--")) break;
   }
   Vtk = argv;
   for (;;) {
-    if (*Vtk == NULL || *Csv == NULL)
-      break;
+    if (*Vtk == NULL || *Csv == NULL) break;
     path = *Csv++;
     util_name(Prefix, path, output);
     f = fopen(path, "r");
@@ -147,25 +145,25 @@ main(int argc, char **argv)
     nr = csv_nr(csv);
     j = array_max_arg(nr, vf);
     for (i = 0; i < nt; i++) {
-      key = (int) cl[i];
+      key = (int)cl[i];
       flag[i] = (key == -1 || key == 0 || key == cl_csv[j]);
     }
     vtk_remove_tri(vtk, flag);
     free(flag);
-    //vtk_remove(vtk, "nn");
-    //vtk_remove(vtk, "c");
-    //vtk_remove(vtk, "l");
+    // vtk_remove(vtk, "nn");
+    // vtk_remove(vtk, "c");
+    // vtk_remove(vtk, "l");
 
     table = table_ini(100);
     for (i = 0; i < nr; i++) {
-      key = (int) cl_csv[i];
+      key = (int)cl_csv[i];
       table_put(table, key, i);
     }
     vtk_add(vtk, "rad", VTK_CELL, VTK_DOUBLE);
     rad = vtk_data(vtk, "rad");
     nt = vtk_nt(vtk);
     for (i = 0; i < nt; i++) {
-      key = (int) cl[i];
+      key = (int)cl[i];
       status = table_get(table, key, &j);
       if (status != TABLE_EMPY)
         rad[i] = pow(vf[j] / Vcoef, 1.0 / 3.0);
@@ -186,35 +184,27 @@ main(int argc, char **argv)
   }
 }
 
-static double
-array_min(int n, double *a)
-{
+static double array_min(int n, double* a) {
   int i;
   double m;
 
   m = a[0];
   for (i = 1; i < n; i++)
-    if (a[i] < m)
-      m = a[i];
+    if (a[i] < m) m = a[i];
   return m;
 }
 
-static double
-array_max(int n, double *a)
-{
+static double array_max(int n, double* a) {
   int i;
   double m;
 
   m = a[0];
   for (i = 1; i < n; i++)
-    if (a[i] > m)
-      m = a[i];
+    if (a[i] > m) m = a[i];
   return m;
 }
 
-static int
-array_min_arg(int n, double *a)
-{
+static int array_min_arg(int n, double* a) {
   int i, j;
   double m;
 
@@ -228,9 +218,7 @@ array_min_arg(int n, double *a)
   return j;
 }
 
-static int
-array_max_arg(int n, double *a)
-{
+static int array_max_arg(int n, double* a) {
   int i, j;
   double m;
 

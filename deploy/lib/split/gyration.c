@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <csv.h>
 #include <chmath.h>
+#include <csv.h>
 #include <table.h>
 
 enum { N = 999 };
@@ -14,94 +14,93 @@ static const char me[] = "gyration";
 
 #include "util.h"
 
-#define GET(f, r)							\
-  if ((*r = csv_field(csv, f)) == NULL) {				\
-    fprintf(stderr, "%s: no field '%s' in '%s'\n",			\
-	    me, (f), *argv);						\
-    exit(2);								\
+#define GET(f, r)                                                   \
+  if ((*r = csv_field(csv, f)) == NULL) {                           \
+    fprintf(stderr, "%s: no field '%s' in '%s'\n", me, (f), *argv); \
+    exit(2);                                                        \
   }
 
-#define ADD(f, r)							\
-    do {								\
-	if (csv_add(csv, f) != 0) {					\
-	    fprintf(stderr, "%s: fail to add '%s' to '%s'\n",		\
-		    me, (f), *argv);					\
-	    exit(2);							\
-	}								\
-	GET(f, r);							\
-    } while (0)								\
+#define ADD(f, r)                                                        \
+  do {                                                                   \
+    if (csv_add(csv, f) != 0) {                                          \
+      fprintf(stderr, "%s: fail to add '%s' to '%s'\n", me, (f), *argv); \
+      exit(2);                                                           \
+    }                                                                    \
+    GET(f, r);                                                           \
+  } while (0)
 
-#define	USED(x)		if(x);else{}
-#define MALLOC(n, p)							\
-    do {								\
-	*(p) = malloc((n)*sizeof(**(p)));				\
-	if (*(p) == NULL)  {						\
-	    fprintf(stderr, "%s: alloc failed, n = %d", me, n);		\
-	    exit(2);							\
-	}								\
-    } while(0)
-#define REALLOC(n, p)							\
-    do {								\
-      *(p) = realloc(*(p), (n)*sizeof(**(p)));				\
-      if (*(p) == NULL)  {						\
-	fprintf(stderr, "%s: realloc failed, n = %d", me, n);		\
-	    exit(2);							\
-	}								\
-    } while(0)								\
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
+#define MALLOC(n, p)                                      \
+  do {                                                    \
+    *(p) = malloc((n) * sizeof(**(p)));                   \
+    if (*(p) == NULL) {                                   \
+      fprintf(stderr, "%s: alloc failed, n = %d", me, n); \
+      exit(2);                                            \
+    }                                                     \
+  } while (0)
+#define REALLOC(n, p)                                       \
+  do {                                                      \
+    *(p) = realloc(*(p), (n) * sizeof(**(p)));              \
+    if (*(p) == NULL) {                                     \
+      fprintf(stderr, "%s: realloc failed, n = %d", me, n); \
+      exit(2);                                              \
+    }                                                       \
+  } while (0)
 
-static void
-usg()
-{
+static void usg() {
   fprintf(stderr, "%s -p prefix [csv..]\n", me);
   exit(1);
 }
 
-static int gyration(double x, double, double, double xx, double, double,
-                    double, double, double, double *, double *, double *);
+static int gyration(
+    double x, double, double, double xx, double, double, double, double, double,
+    double*, double*, double*);
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
   enum { X, Y, Z };
   char output[N];
-  char *Prefix;
-  double *asphericity;
-  double *acylindricity;
-  double *lx;
-  double *ly;
-  double *lz;
-  double *rg;
-  double *x;
-  double *xx;
-  double *xy;
-  double *xz;
-  double *y;
-  double *yy;
-  double *yz;
-  double *z;
-  double *zz;
-  FILE *file;
+  char* Prefix;
+  double* asphericity;
+  double* acylindricity;
+  double* lx;
+  double* ly;
+  double* lz;
+  double* rg;
+  double* x;
+  double* xx;
+  double* xy;
+  double* xz;
+  double* y;
+  double* yy;
+  double* yz;
+  double* z;
+  double* zz;
+  FILE* file;
   int i;
   int nr;
-  struct CSV *csv;
+  struct CSV* csv;
 
   USED(argc);
   Prefix = NULL;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
-    case 'h':
-      usg();
-      break;
-    case 'p':
-      argv++;
-      if ((Prefix = *argv) == NULL) {
-        fprintf(stderr, "%s: -p needs an argument\n", me);
-        exit(2);
-      }
-      break;
-    default:
-      fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
-      exit(1);
+      case 'h':
+        usg();
+        break;
+      case 'p':
+        argv++;
+        if ((Prefix = *argv) == NULL) {
+          fprintf(stderr, "%s: -p needs an argument\n", me);
+          exit(2);
+        }
+        break;
+      default:
+        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+        exit(1);
     }
   if (Prefix == NULL) {
     fprintf(stderr, "%s: prefix (-p) is not given\n", me);
@@ -142,8 +141,9 @@ main(int argc, char **argv)
     double a, b, c;
 
     for (i = 0; i < nr; i++) {
-      gyration(x[i], y[i], z[i], xx[i], xy[i], xz[i], yy[i], yz[i], zz[i],
-               &a, &b, &c);
+      gyration(
+          x[i], y[i], z[i], xx[i], xy[i], xz[i], yy[i], yz[i], zz[i], &a, &b,
+          &c);
       lx[i] = a;
       ly[i] = b;
       lz[i] = c;
@@ -167,11 +167,9 @@ main(int argc, char **argv)
   }
 }
 
-static int
-gyration(double x, double y, double z, double xx, double xy,
-         double xz, double yy, double yz, double zz,
-         double *a, double *b, double *c)
-{
+static int gyration(
+    double x, double y, double z, double xx, double xy, double xz, double yy,
+    double yz, double zz, double* a, double* b, double* c) {
   enum { X, Y, Z };
   enum { XX, XY, XZ, YY, YZ, ZZ };
   double i[6];

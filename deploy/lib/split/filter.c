@@ -1,72 +1,72 @@
 #include <assert.h>
+#include <ctype.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 #include <string.h>
 
-#include <vtk.h>
 #include <table.h>
+#include <vtk.h>
 
 enum { N = 999 };
 static char me[] = "filter";
 
 #include "util.h"
 
-#define	USED(x)		if(x);else{}
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
 
-static void
-usg()
-{
+static void usg() {
   fprintf(stderr, "%s -f field -p prefix [key ..] -- [vtk ..]\n", me);
   exit(1);
 }
 
-int
-main(int argc, char **argv)
-{
-  char *Field;
+int main(int argc, char** argv) {
+  char* Field;
   char output[N];
-  char *path;
-  char *Prefix;
-  char *Volume;
-  FILE *file;
-  float *field;
+  char* path;
+  char* Prefix;
+  char* Volume;
+  FILE* file;
+  float* field;
   int cl;
-  int *flag;
+  int* flag;
   int i;
   int nt;
   int tmp;
-  struct Table *table;
-  struct VTK *vtk;
+  struct Table* table;
+  struct VTK* vtk;
 
   USED(argc);
   Prefix = Field = Volume = NULL;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
-    case 'h':
-      usg();
-      break;
-    case 'f':
-      argv++;
-      if ((Field = *argv) == NULL) {
-        fprintf(stderr, "%s: -f needs an argument\n", me);
-        exit(2);
-      }
-      break;
-    case 'p':
-      argv++;
-      if ((Prefix = *argv) == NULL) {
-        fprintf(stderr, "%s: -p needs an argument\n", me);
-        exit(2);
-      }
-      break;
-    case '-':
-      argv++;
-      goto end;
-    default:
-      fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
-      exit(1);
+      case 'h':
+        usg();
+        break;
+      case 'f':
+        argv++;
+        if ((Field = *argv) == NULL) {
+          fprintf(stderr, "%s: -f needs an argument\n", me);
+          exit(2);
+        }
+        break;
+      case 'p':
+        argv++;
+        if ((Prefix = *argv) == NULL) {
+          fprintf(stderr, "%s: -p needs an argument\n", me);
+          exit(2);
+        }
+        break;
+      case '-':
+        argv++;
+        goto end;
+      default:
+        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+        exit(1);
     }
 end:
   if (Field == NULL) {
@@ -83,8 +83,7 @@ end:
       fprintf(stderr, "%s: missing '--' in arguments\n", me);
       exit(2);
     }
-    if (util_eq(*argv, "--"))
-      break;
+    if (util_eq(*argv, "--")) break;
     if (sscanf(*argv, "%d", &cl) != 1) {
       fprintf(stderr, "%s: not a number '%s'\n", me, *argv);
       exit(2);
@@ -123,7 +122,7 @@ end:
       exit(2);
     }
     for (i = 0; i < nt; i++) {
-      flag[i] = (table_get(table, (int) field[i], &tmp) == TABLE_EMPY);
+      flag[i] = (table_get(table, (int)field[i], &tmp) == TABLE_EMPY);
     }
     vtk_remove_tri(vtk, flag);
     vtk_remove_orphan(vtk);

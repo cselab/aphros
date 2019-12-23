@@ -2,19 +2,16 @@
 
 #include <march.h>
 
-int
-main()
-{
-  double cube[8] = { -1, 0, 0, 0, 0, 0, 0, 1 };
+int main() {
+  double cube[8] = {-1, 0, 0, 0, 0, 0, 0, 1};
   double tri[3 * 3 * MARCH_NTRI];
   int n, i, j;
   int u, v, w;
   double a, b, c;
 
-  //double cube[8] = {-1, -1, -1, -1, 1, 1, 1, 1};
+  // double cube[8] = {-1, -1, -1, -1, 1, 1, 1, 1};
   march_cube(cube, &n, tri);
-  if (n == 0)
-    return 0;
+  if (n == 0) return 0;
 
   printf("# File type: ASCII OBJ\n");
   for (i = j = 0; i < 3 * n; i++) {

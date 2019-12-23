@@ -4,12 +4,10 @@
 #include <vtk.h>
 
 static char me[] = "vtk/add";
-int
-main(void)
-{
-  struct VTK *vtk;
+int main(void) {
+  struct VTK* vtk;
   int n, i;
-  double *id;
+  double* id;
 
   vtk = vtk_read(stdin);
   if (vtk == NULL) {

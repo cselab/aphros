@@ -4,10 +4,8 @@
 #include <vtk.h>
 
 static char me[] = "vtk/info";
-int
-main(void)
-{
-  struct VTK *vtk;
+int main(void) {
+  struct VTK* vtk;
   int nv, nt, nf, i, location, type;
 
   vtk = vtk_read(stdin);
@@ -25,12 +23,13 @@ main(void)
   for (i = 0; i < nf; i++) {
     location = vtk->location[i];
     type = vtk->type[i];
-    printf("%s %s %s %d\n", vtk->name[i],
-           type == VTK_FLOAT ? "float" :
-           type == VTK_DOUBLE ? "double" :
-           type == VTK_INT ? "int" :
-           "unknown",
-           location == VTK_CELL ? "cell" : "point", vtk->rank[i]);
+    printf(
+        "%s %s %s %d\n", vtk->name[i],
+        type == VTK_FLOAT
+            ? "float"
+            : type == VTK_DOUBLE ? "double"
+                                 : type == VTK_INT ? "int" : "unknown",
+        location == VTK_CELL ? "cell" : "point", vtk->rank[i]);
   }
   vtk_fin(vtk);
 }

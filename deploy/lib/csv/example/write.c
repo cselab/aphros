@@ -2,10 +2,8 @@
 
 #include <csv.h>
 
-int
-main(void)
-{
-  struct CSV *csv;
+int main(void) {
+  struct CSV* csv;
 
   csv = csv_read(stdin);
   csv_write_space(csv, stdout);

@@ -1,73 +1,73 @@
 #include <assert.h>
+#include <ctype.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 #include <string.h>
 
-#include <vtk.h>
 #include <csv.h>
 #include <table.h>
+#include <vtk.h>
 
 enum { N = 999 };
 static char me[] = "vtk/color";
 
 #include "util.h"
 
-#define	USED(x)		if(x);else{}
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
 static double pi = 3.141592653589793;
 
-static void
-usg()
-{
+static void usg() {
   fprintf(stderr, "%s -p prefix -k key -f field [csv ..] -- [vtk ..]\n", me);
   exit(1);
 }
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
   int status, nt, nr, i, j, key;
-  float *cl;
+  float* cl;
   double *cl_csv, *vf, *rad;
-  struct VTK *vtk;
-  struct CSV *csv;
-  struct Table *table;
+  struct VTK* vtk;
+  struct CSV* csv;
+  struct Table* table;
   char *path, *Prefix, *Key, *Volume, **Vtk, **Csv;
   char output[N];
-  FILE *f;
+  FILE* f;
 
   USED(argc);
   Prefix = Key = Volume = NULL;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
-    case 'h':
-      usg();
-      break;
-    case 'k':
-      argv++;
-      if ((Key = *argv) == NULL) {
-        fprintf(stderr, "%s: -k needs an argument\n", me);
-        exit(2);
-      }
-      break;
-    case 'f':
-      argv++;
-      if ((Volume = *argv) == NULL) {
-        fprintf(stderr, "%s: -f needs an argument\n", me);
-        exit(2);
-      }
-      break;
-    case 'p':
-      argv++;
-      if ((Prefix = *argv) == NULL) {
-        fprintf(stderr, "%s: -p needs an argument\n", me);
-        exit(2);
-      }
-      break;
-    default:
-      fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
-      exit(1);
+      case 'h':
+        usg();
+        break;
+      case 'k':
+        argv++;
+        if ((Key = *argv) == NULL) {
+          fprintf(stderr, "%s: -k needs an argument\n", me);
+          exit(2);
+        }
+        break;
+      case 'f':
+        argv++;
+        if ((Volume = *argv) == NULL) {
+          fprintf(stderr, "%s: -f needs an argument\n", me);
+          exit(2);
+        }
+        break;
+      case 'p':
+        argv++;
+        if ((Prefix = *argv) == NULL) {
+          fprintf(stderr, "%s: -p needs an argument\n", me);
+          exit(2);
+        }
+        break;
+      default:
+        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+        exit(1);
     }
   if (Key == NULL) {
     fprintf(stderr, "%s: key (-k) is not given\n", me);
@@ -87,13 +87,11 @@ main(int argc, char **argv)
       fprintf(stderr, "%s: missing '--' in arguments\n", me);
       exit(2);
     }
-    if (util_eq(*argv++, "--"))
-      break;
+    if (util_eq(*argv++, "--")) break;
   }
   Vtk = argv;
   for (;;) {
-    if (*Vtk == NULL || *Csv == NULL)
-      break;
+    if (*Vtk == NULL || *Csv == NULL) break;
     path = *Csv++;
     util_name(Prefix, path, output);
     f = fopen(path, "r");
@@ -139,14 +137,14 @@ main(int argc, char **argv)
     nr = csv_nr(csv);
     table = table_ini(100);
     for (i = 0; i < nr; i++) {
-      key = (int) cl_csv[i];
+      key = (int)cl_csv[i];
       table_put(table, key, i);
     }
     vtk_add(vtk, Volume, VTK_CELL, VTK_DOUBLE);
     rad = vtk_data(vtk, Volume);
     nt = vtk_nt(vtk);
     for (i = 0; i < nt; i++) {
-      key = (int) cl[i];
+      key = (int)cl[i];
       status = table_get(table, key, &j);
       if (status != TABLE_EMPY)
         rad[i] = vf[j];

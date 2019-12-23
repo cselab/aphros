@@ -16,9 +16,7 @@ struct March {
 static double offset(double, double);
 static int map(int);
 
-static int
-cube(struct March *q, double cube[8], int *pn, double *tri)
-{
+static int cube(struct March* q, double cube[8], int* pn, double* tri) {
   double a;
   int c, i, j, idx, flag, x, y;
   double *v, *o, *dir;
@@ -31,8 +29,7 @@ cube(struct March *q, double cube[8], int *pn, double *tri)
 
   idx = 0;
   for (i = 0; i < 8; i++) {
-    if (cube[i] <= 0)
-      idx |= 1 << i;
+    if (cube[i] <= 0) idx |= 1 << i;
   }
   if ((flag = CubeEdgeFlags[idx]) == 0) {
     *pn = q->cube_n = 0;
@@ -53,8 +50,7 @@ cube(struct March *q, double cube[8], int *pn, double *tri)
 
   n = k = m = 0;
   for (i = 0; i < 5; i++) {
-    if (TriangleConnectionTable[idx][3 * i] < 0)
-      break;
+    if (TriangleConnectionTable[idx][3 * i] < 0) break;
     for (c = 0; c < 3; c++) {
       j = TriangleConnectionTable[idx][3 * i + c];
       v = ve[j].v;
@@ -72,20 +68,15 @@ cube(struct March *q, double cube[8], int *pn, double *tri)
   return 0;
 }
 
-static double
-offset(double a, double b)
-{
+static double offset(double a, double b) {
   double d;
 
   d = a - b;
-  if (d == 0.0)
-    return 0.5;
+  if (d == 0.0) return 0.5;
   return a / d;
 }
 
-static void
-swap(double *u, int i, int j)
-{
+static void swap(double* u, int i, int j) {
   double t;
 
   t = u[i];
@@ -93,9 +84,7 @@ swap(double *u, int i, int j)
   u[j] = t;
 }
 
-static int
-march(struct March *q, double u[8], int *pn, double *tri)
-{
+static int march(struct March* q, double u[8], int* pn, double* tri) {
   int s;
 
   swap(u, 2, 3);
@@ -106,16 +95,12 @@ march(struct March *q, double u[8], int *pn, double *tri)
   return s;
 }
 
-int
-march_cube(double u[8], int *n, double *tri)
-{
+int march_cube(double u[8], int* n, double* tri) {
   struct March q;
   return march(&q, u, n, tri);
 }
 
-static int
-cube_location(struct March *q, int *x, int *y, double *a)
-{
+static int cube_location(struct March* q, int* x, int* y, double* a) {
   int i;
 
   for (i = 0; i < 3 * q->cube_n; i++) {
@@ -126,23 +111,18 @@ cube_location(struct March *q, int *x, int *y, double *a)
   return 0;
 }
 
-int
-march_cube_location(double u[8], /**/ int *ntri, double *tri, int *x,
-                     int *y, double *a)
-{
+int march_cube_location(
+    double u[8], /**/ int* ntri, double* tri, int* x, int* y, double* a) {
   int status;
   struct March q;
 
   status = march(&q, u, ntri, tri);
-  if (status != 0)
-    return status;
+  if (status != 0) return status;
   status = cube_location(&q, x, y, a);
   return status;
 }
 
-static int
-map(int i)
-{
-  int m[8] = { 0, 1, 3, 2, 4, 5, 7, 6 };
+static int map(int i) {
+  int m[8] = {0, 1, 3, 2, 4, 5, 7, 6};
   return m[i];
 }
