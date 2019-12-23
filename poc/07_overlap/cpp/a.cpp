@@ -12,14 +12,16 @@ int main() {
       break;
     }
 
-    
     scalar_t a = h * 0.5;
 
     scalar_t x0, x1, y0, y1, z0, z1;
 
-    x0 = cx - a; x1 = cx + a;
-    y0 = cy - a; y1 = cy + a;
-    z0 = cz - a; z1 = cz + a;
+    x0 = cx - a;
+    x1 = cx + a;
+    y0 = cy - a;
+    y1 = cy + a;
+    z0 = cz - a;
+    z1 = cz + a;
 
     vector_t v0{x0, y0, z0};
     vector_t v1{x1, y0, z0};

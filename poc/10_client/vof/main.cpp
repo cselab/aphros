@@ -1,17 +1,16 @@
 #undef NDEBUG
-#include <sstream>
-#include <iostream>
 #include <cassert>
-#include <functional>
 #include <cmath>
+#include <functional>
+#include <iostream>
+#include <sstream>
 
-#include "geom/mesh.h"
-#include "solver/solver.h"
-#include "parse/vars.h"
-#include "kernel/kernelmeshpar.h"
 #include "distr/distrsolver.h"
+#include "geom/mesh.h"
+#include "kernel/kernelmeshpar.h"
+#include "parse/vars.h"
+#include "solver/solver.h"
 using namespace solver;
-
 
 const int dim = 3;
 using MIdx = GMIdx<dim>;
@@ -43,15 +42,13 @@ class Simple : public KernelMeshPar<M_, GPar> {
   void Run() override;
 
  protected:
-  using P::var;
   using P::bi_;
   using P::m;
+  using P::var;
 
  private:
   FieldCell<Scal> fcu_;
 };
-
-
 
 template <class M>
 void Simple<M>::Run() {
@@ -65,7 +62,8 @@ void Simple<M>::Run() {
     kFunc(ws[0], ws[1], ws[2], fcu_.data());
     m.Dump(&fcu_, "u");
   }
-  if (sem()) {}
+  if (sem()) {
+  }
 }
 
 void Main(MPI_Comm comm, Vars& var) {
@@ -78,9 +76,7 @@ void Main(MPI_Comm comm, Vars& var) {
   ds.Run();
 }
 
-
 int CMain(int argc, const char** argv, TFunc f) {
   kFunc = f;
   return RunMpi(argc, argv, Main);
 }
-

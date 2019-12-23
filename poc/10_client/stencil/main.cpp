@@ -9,7 +9,7 @@ using M = MeshStructured<Scal, dim>;
 using std::cout;
 
 int main() {
-  enum {X, Y, Z};
+  enum { X, Y, Z };
   Rect<Vect> dom(Vect(0), Vect(1));
 
   MIdx b(0); // mesh origin
@@ -21,15 +21,15 @@ int main() {
   MIdx w;
 
   for (auto c : m.Cells()) {
-      x = m.GetCenter(c);
-      fcu[c] = x[X]*x[Y];
+    x = m.GetCenter(c);
+    fcu[c] = x[X] * x[Y];
   }
 
   auto& bc = m.GetIndexCells();
 
-  const int sw = 1;   // stencil halfwidth
+  const int sw = 1; // stencil halfwidth
   // block of offsets
-  GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1)); 
+  GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1));
 
   MIdx wc = s / 2;
   std::cout << "neighbors of cell wc=" << wc << std::endl;

@@ -1,13 +1,11 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <poc/math.h>
 
-static const char *me = "vectors";
-static const char **argv;
-static int
-scl( /**/ double *p)
-{
+static const char* me = "vectors";
+static const char** argv;
+static int scl(/**/ double* p) {
   if (*argv == NULL) {
     fprintf(stderr, "%s: not enough args\n", me);
     exit(2);
@@ -20,9 +18,7 @@ scl( /**/ double *p)
   return 0;
 }
 
-int
-main(int argc, const char **argv0)
-{
+int main(int argc, const char** argv0) {
   enum { X, Y, Z };
   enum { XX, XY, XZ, YY, YZ, ZZ };
   double m[6];

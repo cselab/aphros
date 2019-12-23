@@ -1,13 +1,13 @@
-#include <thread>
-#include <iostream>
-#include <sstream>
+#include <atomic>
+#include <cassert>
+#include <cmath>
+#include <cstring>
 #include <fstream>
+#include <iostream>
 #include <mutex>
 #include <queue>
-#include <cassert>
-#include <cstring>
-#include <atomic>
-#include <cmath>
+#include <sstream>
+#include <thread>
 
 template <class T>
 class Queue {
@@ -23,9 +23,15 @@ class Queue {
     std::lock_guard<std::mutex> lock(m_);
     return q_.pop();
   }
-  bool empty() const { return q_.empty(); }
-  T front() const { return q_.front(); }
-  T back() const { return q_.back(); }
+  bool empty() const {
+    return q_.empty();
+  }
+  T front() const {
+    return q_.front();
+  }
+  T back() const {
+    return q_.back();
+  }
 
  private:
   std::queue<T> q_;
@@ -45,9 +51,11 @@ void Listen() {
   std::string name = "in";
   while (!flagexit) {
     std::this_thread::yield();
-    //std::cerr << "opening pipe '" << name << "'" << std::endl;
+    // std::cerr << "opening pipe '" << name << "'" << std::endl;
     std::ifstream in(name);
-    if (!in.good()) { Abort(); }
+    if (!in.good()) {
+      Abort();
+    }
     while (!flagexit && in) {
       std::string line;
       std::getline(in, line);
@@ -70,7 +78,9 @@ void Send() {
     }
 
     std::ofstream out(name);
-    if (!out.good()) { Abort(); }
+    if (!out.good()) {
+      Abort();
+    }
 
     std::cerr << "send: " << queue.front() << std::endl;
     std::stringstream s(queue.front());
@@ -89,7 +99,7 @@ void Send() {
       out << nx << " " << ny << " " << nz << std::endl;
       for (int y = 0; y < ny; ++y) {
         for (int x = 0; x < nx; ++x) {
-          double a = std::sin(x*0.5+base) * std::sin(y*0.5+base*0.5);
+          double a = std::sin(x * 0.5 + base) * std::sin(y * 0.5 + base * 0.5);
           out << a << " ";
         }
       }
@@ -109,7 +119,7 @@ void Send() {
 int main() {
   std::thread t1(Listen);
   std::thread t2(Send);
-  //t.detach();
+  // t.detach();
   t1.join();
   t2.join();
 }

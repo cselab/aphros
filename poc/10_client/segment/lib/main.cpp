@@ -1,5 +1,5 @@
-#include <solver/normal.h>
 #include <geom/mesh.h>
+#include <solver/normal.h>
 
 #include "segment.h"
 
@@ -11,7 +11,7 @@ using M = MeshStructured<Scal, dim>;
 using U = solver::UNormal<M>;
 
 struct Segment {
-    Scal n[2*D*D], a[D*D], s[4*D*D];
+  Scal n[2 * D * D], a[D * D], s[4 * D * D];
 } segment;
 
 inline void Clip(Scal& a, Scal l, Scal u) {
@@ -23,12 +23,12 @@ inline void Clip(Scal& a) {
 }
 
 static Scal GetLineA0(Scal nx, Scal ny, Scal u) {
-    Scal u1 = 0.5 * nx / ny;
-    if (u <= u1) {
-      return -0.5 * (nx + ny) + std::sqrt(2. * nx * ny * u);
-    } else {
-      return ny * (u - 0.5);
-    }
+  Scal u1 = 0.5 * nx / ny;
+  if (u <= u1) {
+    return -0.5 * (nx + ny) + std::sqrt(2. * nx * ny * u);
+  } else {
+    return ny * (u - 0.5);
+  }
 }
 
 static Scal GetLineA1(const GVect<Scal, 3>& n, Scal u) {
@@ -39,142 +39,152 @@ static Scal GetLineA1(const GVect<Scal, 3>& n, Scal u) {
   }
   Clip(u);
   if (u < 0.5) {
-      return GetLineA0(nx, ny, u);
+    return GetLineA0(nx, ny, u);
   } else {
-      return -GetLineA0(nx, ny, 1. - u);
+    return -GetLineA0(nx, ny, 1. - u);
   }
 }
 
-  // Line ends by line constant
-  // n: normal
-  // a: line constant
-  // h: cell size
-  // Returns:
-  // two ends of segment inside cell (0,0 if no intersection)
-  // XXX: 2d specific
-  static std::array<Vect, 2> GetLineEnds(
-      const Vect& n, Scal a, const Vect& h) {
-    // equation x.dot(n) = a;
-    // (cell center is 0)
-    Vect hh = h * 0.5;
+// Line ends by line constant
+// n: normal
+// a: line constant
+// h: cell size
+// Returns:
+// two ends of segment inside cell (0,0 if no intersection)
+// XXX: 2d specific
+static std::array<Vect, 2> GetLineEnds(const Vect& n, Scal a, const Vect& h) {
+  // equation x.dot(n) = a;
+  // (cell center is 0)
+  Vect hh = h * 0.5;
 
-    // intersection with -hh
-    Vect xl((a + hh[1] * n[1]) / n[0], (a + hh[0] * n[0]) / n[1], 0.);
-    // intersection with +hh
-    Vect xr((a - hh[1] * n[1]) / n[0], (a - hh[0] * n[0]) / n[1], 0.);
+  // intersection with -hh
+  Vect xl((a + hh[1] * n[1]) / n[0], (a + hh[0] * n[0]) / n[1], 0.);
+  // intersection with +hh
+  Vect xr((a - hh[1] * n[1]) / n[0], (a - hh[0] * n[0]) / n[1], 0.);
 
-    std::array<Vect, 2> e{Vect(0), Vect(0)}; // default to center
-    size_t i = 0;
+  std::array<Vect, 2> e{Vect(0), Vect(0)}; // default to center
+  size_t i = 0;
 
-    if (-hh[0] <= xl[0] && xl[0] <= hh[0]) {
-      e[i++] = Vect(xl[0], -hh[1], 0.);
-    }
-    if (-hh[0] <= xr[0] && xr[0] <= hh[0]) {
-      e[i++] = Vect(xr[0], hh[1], 0.);
-    }
-    if (i < 2 && -hh[1] <= xl[1] && xl[1] <= hh[1]) {
-      e[i++] = Vect(-hh[0], xl[1], 0.);
-    }
-    if (i < 2 && -hh[1] <= xr[1] && xr[1] <= hh[1]) {
-      e[i++] = Vect(hh[0], xr[1], 0.);
-    }
-    if (i == 1) { // if only one point found, set second to the same
-      e[i++] = e[0];
-    } // if no points found, return default (cell center)
-    return e;
+  if (-hh[0] <= xl[0] && xl[0] <= hh[0]) {
+    e[i++] = Vect(xl[0], -hh[1], 0.);
+  }
+  if (-hh[0] <= xr[0] && xr[0] <= hh[0]) {
+    e[i++] = Vect(xr[0], hh[1], 0.);
+  }
+  if (i < 2 && -hh[1] <= xl[1] && xl[1] <= hh[1]) {
+    e[i++] = Vect(-hh[0], xl[1], 0.);
+  }
+  if (i < 2 && -hh[1] <= xr[1] && xr[1] <= hh[1]) {
+    e[i++] = Vect(hh[0], xr[1], 0.);
+  }
+  if (i == 1) { // if only one point found, set second to the same
+    e[i++] = e[0];
+  } // if no points found, return default (cell center)
+  return e;
+}
+
+int segment_get(const Scal alpha[D * D], /**/ Scal** pn, Scal** pa, Scal** ps) {
+  enum { X, Y, Z };
+  Rect<Vect> dom(Vect(0), Vect(D));
+  MIdx b(0);
+  MIdx size(D, D, 1);
+  int hl;
+  FieldCell<Vect> fcn;
+  FieldCell<Scal> fck;
+  Vect u;
+  MIdx w;
+  Scal *n, *a, al, *s;
+  int i, j;
+
+  hl = 2;
+  M m = InitUniformMesh<M>(dom, b, size, hl, true, size);
+  FieldCell<Scal> fcu(m, 0);
+  FieldCell<bool> fci(m, true);
+
+  n = segment.n;
+  a = segment.a;
+  s = segment.s;
+
+  i = 0;
+  for (auto c : m.Cells()) {
+    fcu[c] = alpha[i++];
   }
 
-int segment_get(const Scal alpha[D*D], /**/ Scal **pn, Scal **pa, Scal **ps) {
-    enum {X, Y, Z};
-    Rect<Vect> dom(Vect(0), Vect(D));
-    MIdx b(0);
-    MIdx size(D, D, 1);
-    int hl;
-    FieldCell<Vect> fcn;
-    FieldCell<Scal> fck;
-    Vect u;
-    MIdx w;
-    Scal *n, *a, al, *s;
-    int i, j;
+  U::CalcNormalYoung(m, fcu, fci, /**/ fcn);
 
-    hl = 2;
-    M m = InitUniformMesh<M>(dom, b, size, hl, true, size);
-    FieldCell<Scal> fcu(m, 0);
-    FieldCell<bool> fci(m, true);
+  i = 0;
+  for (auto c : m.Cells()) {
+    u = fcn[c];
+    n[i++] = u[X];
+    n[i++] = u[Y];
+  }
 
-    n = segment.n;
-    a = segment.a;
-    s = segment.s;
+  i = 0;
+  for (auto c : m.Cells()) {
+    u = fcn[c];
+    al = alpha[i];
+    a[i] = GetLineA1(u, al);
+    i++;
+  }
 
-    i = 0;
-    for (auto c : m.Cells()) {
-      fcu[c] = alpha[i++];
-    }
-
-    U::CalcNormalYoung(m, fcu, fci, /**/ fcn);
-
-    i = 0;
-    for (auto c : m.Cells()) {
-      u = fcn[c];
-      n[i++] = u[X];
-      n[i++] = u[Y];
-    }
-
-    i = 0;
-    for (auto c : m.Cells()) {
-        u = fcn[c];
-        al = alpha[i];
-        a[i] = GetLineA1(u, al);
-        i++;
-    }
-
-    i = j = 0;
-    for (auto c : m.Cells()) {
-        u = fcn[c];
-        al = alpha[j++];
-        auto seg = GetLineEnds(u, al, Vect(1));
-        auto x = m.GetCenter(c);
-        seg[0] += x;
-        seg[1] += x;
-        s[i++] = seg[0][X];
-        s[i++] = seg[0][Y];
-        s[i++] = seg[1][X];
-        s[i++] = seg[1][Y];
-    }
-
-    *pn = n; *pa = a; *ps = s;
-    return 0;
-}
-
-int segment_norm(int i, int j, const Scal *a, /**/ Scal *px, Scal *py) {
-#define b(i, j) (a[(D)*(j) + (i)])
-    double nx, ny, n;
-    nx = (b(i+1,j+1)+2*b(i+1,j)+b(i+1,j-1)-b(i-1,j+1)-2*b(i-1,j)-b(i-1,j-1))/8;
-    ny = (b(i+1,j+1)-b(i+1,j-1)+2*b(i,j+1)-2*b(i,j-1)+b(i-1,j+1)-b(i-1,j-1))/8;
-    n =  -(fabs(nx) + fabs(ny));
-    nx /= n;
-    ny /= n;
-    *px = nx; *py = ny;
-    return 0;
-#undef b
-}
-
-int segment_ends(Scal nx, Scal ny, Scal a, Scal *s) {
-    enum {X, Y, Z};
-    int i;
-    Vect u;
-    u[X] = nx; u[Y] = ny; u[Z] = 0;
-    auto seg = GetLineEnds(u, a, Vect(1));
+  i = j = 0;
+  for (auto c : m.Cells()) {
+    u = fcn[c];
+    al = alpha[j++];
+    auto seg = GetLineEnds(u, al, Vect(1));
+    auto x = m.GetCenter(c);
+    seg[0] += x;
+    seg[1] += x;
     s[i++] = seg[0][X];
     s[i++] = seg[0][Y];
     s[i++] = seg[1][X];
     s[i++] = seg[1][Y];
-    return 0;
+  }
+
+  *pn = n;
+  *pa = a;
+  *ps = s;
+  return 0;
+}
+
+int segment_norm(int i, int j, const Scal* a, /**/ Scal* px, Scal* py) {
+#define b(i, j) (a[(D) * (j) + (i)])
+  double nx, ny, n;
+  nx = (b(i + 1, j + 1) + 2 * b(i + 1, j) + b(i + 1, j - 1) - b(i - 1, j + 1) -
+        2 * b(i - 1, j) - b(i - 1, j - 1)) /
+       8;
+  ny = (b(i + 1, j + 1) - b(i + 1, j - 1) + 2 * b(i, j + 1) - 2 * b(i, j - 1) +
+        b(i - 1, j + 1) - b(i - 1, j - 1)) /
+       8;
+  n = -(fabs(nx) + fabs(ny));
+  nx /= n;
+  ny /= n;
+  *px = nx;
+  *py = ny;
+  return 0;
+#undef b
+}
+
+int segment_ends(Scal nx, Scal ny, Scal a, Scal* s) {
+  enum { X, Y, Z };
+  int i;
+  Vect u;
+  u[X] = nx;
+  u[Y] = ny;
+  u[Z] = 0;
+  auto seg = GetLineEnds(u, a, Vect(1));
+  s[i++] = seg[0][X];
+  s[i++] = seg[0][Y];
+  s[i++] = seg[1][X];
+  s[i++] = seg[1][Y];
+  return 0;
 }
 
 Scal segment_line(Scal nx, Scal ny, Scal u) {
-    enum {X, Y, Z};
-    Vect n;
-    n[X] = nx; n[Y] = ny; n[Z] = 0;
-    return GetLineA1(n, u);
+  enum { X, Y, Z };
+  Vect n;
+  n[X] = nx;
+  n[Y] = ny;
+  n[Z] = 0;
+  return GetLineA1(n, u);
 }

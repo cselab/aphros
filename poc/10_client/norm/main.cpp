@@ -1,6 +1,6 @@
 #undef NDEBUG
-#include "solver/normal.h"
 #include "geom/mesh.h"
+#include "solver/normal.h"
 
 const int dim = 3, edim = 2;
 using MIdx = GMIdx<dim>;
@@ -11,7 +11,7 @@ using M = MeshStructured<Scal, dim>;
 using std::cout;
 
 int main() {
-  enum {X, Y, Z};
+  enum { X, Y, Z };
   Rect<Vect> dom(Vect(0), Vect(1));
 
   MIdx b(0);
@@ -26,21 +26,19 @@ int main() {
   MIdx w;
 
   for (auto c : m.Cells()) {
-      x = m.GetCenter(c);
-      fcu[c] = x[X]*x[Y];
+    x = m.GetCenter(c);
+    fcu[c] = x[X] * x[Y];
   }
   solver::UNormal<M>::CalcNormal(m, fcu, fci, edim, fcn);
 
   auto& bc = m.GetIndexCells();
   for (auto c : m.Cells()) {
-      w = bc.GetMIdx(c);
-      if (w == s/2) {
-          cout << w << '\n';
-          cout << fcn[c] << '\n';
-      }
+    w = bc.GetMIdx(c);
+    if (w == s / 2) {
+      cout << w << '\n';
+      cout << fcn[c] << '\n';
+    }
   }
 
   //  cout << fcu;
-
-
 }

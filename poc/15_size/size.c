@@ -1,7 +1,7 @@
-#include <tgmath.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <tgmath.h>
 #include "arg.h"
 #include "h.h"
 
@@ -10,48 +10,45 @@ static double pi = 3.141592653589793;
 static char me[] = "ch.size";
 static int UseCl, WriteVolume;
 
-char *argv0;
+char* argv0;
 static int nv, nt;
-static float *r;
+static float* r;
 static int *t, *t0, *c;
-static float *cl;
-static double *dot;
+static float* cl;
+static double* dot;
 static double *cx, *cy, *cz, *volume;
-static int *cnt;
+static int* cnt;
 
-static void
-usg(void)
-{
+static void usg(void) {
   fprintf(stderr, "usage: %s [-c]\n", me);
   exit(0);
 }
 
-#define MALLOC(n, p)							\
-    do {								\
-	*(p) = malloc(n*sizeof(**(p)));					\
-	if (*(p) == NULL) {						\
-	    fprintf(stderr, "%s:%d: alloc failed, n = %d\n", __FILE__, __LINE__, n); \
-	    exit(2);							\
-	}								\
-    } while(0)
+#define MALLOC(n, p)                                                           \
+  do {                                                                         \
+    *(p) = malloc(n * sizeof(**(p)));                                          \
+    if (*(p) == NULL) {                                                        \
+      fprintf(stderr, "%s:%d: alloc failed, n = %d\n", __FILE__, __LINE__, n); \
+      exit(2);                                                                 \
+    }                                                                          \
+  } while (0)
 
-#define FREAD(n, p, f) \
-    do {								\
-	if ((int)fread(p, sizeof(*(p)), (n), (f)) != (n)) {		\
-	    fprintf(stderr, "%s:%d: failt to read, n = %d\n", __FILE__, __LINE__, n); \
-	    exit(2);							\
-	}								\
-} while(0)
+#define FREAD(n, p, f)                                                      \
+  do {                                                                      \
+    if ((int)fread(p, sizeof(*(p)), (n), (f)) != (n)) {                     \
+      fprintf(                                                              \
+          stderr, "%s:%d: failt to read, n = %d\n", __FILE__, __LINE__, n); \
+      exit(2);                                                              \
+    }                                                                       \
+  } while (0)
 
 struct Mesh {
   int nt, nv;
-  float *r;
-  int *t;
+  float* r;
+  int* t;
 };
 
-double
-tri_volume_y(float *a, float *b, float *c)
-{
+double tri_volume_y(float* a, float* b, float* c) {
   enum { X, Y, Z };
   double ax, ay, az, bx, by, bz, cx, cy, cz, V;
 
@@ -69,30 +66,21 @@ tri_volume_y(float *a, float *b, float *c)
   return V / 6;
 }
 
-
-static int
-eq(const char *a, const char *b)
-{
+static int eq(const char* a, const char* b) {
   return strncmp(a, b, N) == 0;
 }
 
-static int
-line(char *s, FILE * f)
-{
+static int line(char* s, FILE* f) {
   int n;
 
-  if (fgets(s, N, f) == NULL)
-    return 1;
+  if (fgets(s, N, f) == NULL) return 1;
   n = strlen(s);
-  if (n > 0 && s[n - 1] == '\n')
-    s[n - 1] = '\0';
+  if (n > 0 && s[n - 1] == '\n') s[n - 1] = '\0';
   return 0;
 }
 
-static int
-tri_center(float *a, float *b, float *c, /**/ double *x, double *y,
-           double *z)
-{
+static int tri_center(
+    float* a, float* b, float* c, /**/ double* x, double* y, double* z) {
   enum { X, Y, Z };
 
   *x += (a[X] + b[X] + c[X]) / 3;
@@ -101,9 +89,8 @@ tri_center(float *a, float *b, float *c, /**/ double *x, double *y,
   return 0;
 }
 
-static double
-tri_dot(float *a, float *b, float *c, double x, double y, double z)
-{
+static double tri_dot(
+    float* a, float* b, float* c, double x, double y, double z) {
   enum { X, Y, Z };
   double bx, by, bz, cx, cy, cz, nx, ny, nz;
 
@@ -128,30 +115,26 @@ tri_dot(float *a, float *b, float *c, double x, double y, double z)
   return nx * x + ny * y + nz * z;
 }
 
-static int
-scalar(FILE * f, int n, char *name, float *c)
-{
+static int scalar(FILE* f, int n, char* name, float* c) {
   char s[N];
 
   line(s, f);
   if (sscanf(s, "SCALARS %s float", name) != 1) {
-    fprintf(stderr, "%s:%d: expect SCALARS, got '%s'\n", __FILE__,
-            __LINE__, s);
+    fprintf(stderr, "%s:%d: expect SCALARS, got '%s'\n", __FILE__, __LINE__, s);
     exit(2);
   }
   line(s, f);
   if (!eq(s, "LOOKUP_TABLE default")) {
-    fprintf(stderr, "%s:%d: expect LOOKUP_TABLE, got '%s'\n", __FILE__,
-            __LINE__, s);
+    fprintf(
+        stderr, "%s:%d: expect LOOKUP_TABLE, got '%s'\n", __FILE__, __LINE__,
+        s);
     exit(2);
   }
   FREAD(n, c, f);
   return 0;
 }
 
-static int
-get1(float *r, int i, /**/ float *a)
-{
+static int get1(float* r, int i, /**/ float* a) {
   enum { X, Y, Z };
 
   a[X] = r[3 * i + X];
@@ -160,11 +143,9 @@ get1(float *r, int i, /**/ float *a)
   return 0;
 }
 
-static int
-get3(struct Mesh *mesh, int t, /**/ float *a, float *b, float *c)
-{
+static int get3(struct Mesh* mesh, int t, /**/ float* a, float* b, float* c) {
   int nt, *tri, i, j, k;
-  float *r;
+  float* r;
 
   nt = mesh->nt;
   tri = mesh->t;
@@ -183,10 +164,8 @@ get3(struct Mesh *mesh, int t, /**/ float *a, float *b, float *c)
   return 0;
 }
 
-static int *u_root;
-static int
-max_arg(int n, int *a)
-{
+static int* u_root;
+static int max_arg(int n, int* a) {
   int i, j, m;
 
   j = 0;
@@ -200,40 +179,28 @@ max_arg(int n, int *a)
   return j;
 }
 
-static void
-u_ini(int n)
-{
+static void u_ini(int n) {
   MALLOC(n, &u_root);
   while (n--)
     u_root[n] = n;
 }
 
-static void
-u_fin()
-{
+static void u_fin() {
   free(u_root);
 }
 
-static int
-u_find(int v)
-{
-  if (v == u_root[v])
-    return v;
+static int u_find(int v) {
+  if (v == u_root[v]) return v;
   return u_root[v] = u_find(u_root[v]);
 }
 
-static void
-u_union(int a, int b)
-{
+static void u_union(int a, int b) {
   a = u_find(a);
   b = u_find(b);
-  if (a != b)
-    u_root[b] = a;
+  if (a != b) u_root[b] = a;
 }
 
-static int
-swap(int n, int size, void *p0)
-{
+static int swap(int n, int size, void* p0) {
   int i;
   char *p, t;
 
@@ -249,10 +216,8 @@ swap(int n, int size, void *p0)
   return 0;
 }
 
-static int
-read_vtk(void)
-{
-  FILE *f;
+static int read_vtk(void) {
+  FILE* f;
   char s[N], name[N];
   int i;
   int *a, *b;
@@ -264,40 +229,39 @@ read_vtk(void)
   }
 
   if (!eq(s, "# vtk DataFile Version 2.0")) {
-    fprintf(stderr, "%s:%d: not a vtk file: '%s'\n", __FILE__,
-            __LINE__, s);
+    fprintf(stderr, "%s:%d: not a vtk file: '%s'\n", __FILE__, __LINE__, s);
     exit(2);
   }
 
   line(s, f);
   line(s, f);
   if (!eq(s, "BINARY")) {
-    fprintf(stderr, "%s:%d: expect BINARY, got '%s'\n", __FILE__,
-            __LINE__, s);
+    fprintf(stderr, "%s:%d: expect BINARY, got '%s'\n", __FILE__, __LINE__, s);
     exit(2);
   }
 
   line(s, f);
   if (!eq(s, "DATASET POLYDATA")) {
-    fprintf(stderr, "%s:%d: expect DATASET POLYDATA, got '%s'\n",
-            __FILE__, __LINE__, s);
+    fprintf(
+        stderr, "%s:%d: expect DATASET POLYDATA, got '%s'\n", __FILE__,
+        __LINE__, s);
     exit(2);
   }
 
   line(s, f);
   if (sscanf(s, "POINTS %d float", &nv) != 1) {
-    fprintf(stderr, "%s:%d: expect POINTS, got '%s'\n", __FILE__,
-            __LINE__, s);
+    fprintf(stderr, "%s:%d: expect POINTS, got '%s'\n", __FILE__, __LINE__, s);
     exit(2);
   }
   MALLOC(3 * nv, &r);
   FREAD(3 * nv, r, f);
   swap(3 * nv, sizeof(*r), r);
 
-  while (line(s, f) == 0 && s[0] == '\0');
+  while (line(s, f) == 0 && s[0] == '\0')
+    ;
   if (sscanf(s, "POLYGONS %d %*d", &nt) != 1) {
-    fprintf(stderr, "%s:%d: expect POLYGONS, got '%s'\n", __FILE__,
-            __LINE__, s);
+    fprintf(
+        stderr, "%s:%d: expect POLYGONS, got '%s'\n", __FILE__, __LINE__, s);
     exit(2);
   }
   MALLOC(4 * nt, &t0);
@@ -310,25 +274,23 @@ read_vtk(void)
     *a++ = *b++;
   }
   swap(3 * nt, sizeof(*t), t);
-  while (line(s, f) == 0 && s[0] == '\0');
+  while (line(s, f) == 0 && s[0] == '\0')
+    ;
   if (sscanf(s, "CELL_DATA %*d") != 0) {
-    fprintf(stderr, "%s:%d: expect CELL_DATA, got '%s'\n", __FILE__,
-            __LINE__, s);
+    fprintf(
+        stderr, "%s:%d: expect CELL_DATA, got '%s'\n", __FILE__, __LINE__, s);
     exit(2);
   }
   MALLOC(nt, &cl);
   for (;;) {
     scalar(f, nt, name, cl);
-    if (eq(name, "cl"))
-      break;
+    if (eq(name, "cl")) break;
   }
   swap(nt, sizeof(*cl), cl);
   return 0;
 }
 
-static int
-wall(void)
-{
+static int wall(void) {
   int i, j;
 
   for (i = j = 0; i < nt; i++) {
@@ -344,11 +306,9 @@ wall(void)
   return 0;
 }
 
-static int
-color(int *pnb)
-{
+static int color(int* pnb) {
   int nb, u, v, w;
-  int *id;
+  int* id;
   int i, j, k;
   struct Mesh mesh;
   float x[3], y[3], z[3];
@@ -406,7 +366,7 @@ color(int *pnb)
   for (i = 0; i < nt; i++)
     cnt[c[i]]++;
 
-  k = max_arg(nb, cnt);         /* water = 0 */
+  k = max_arg(nb, cnt); /* water = 0 */
   for (i = 0; i < nt; i++) {
     if (c[i] == k)
       c[i] = 0;
@@ -441,17 +401,14 @@ color(int *pnb)
   }
   for (i = 0; i < nt; i++) {
     k = c[i];
-    if (k != 0 && dot[k] > 0)
-      c[i] = 0;
+    if (k != 0 && dot[k] > 0) c[i] = 0;
   }
   free(id);
   *pnb = nb;
   return 0;
 }
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
   double R, V;
   int i, k, nb;
   struct Mesh mesh;
@@ -459,14 +416,14 @@ main(int argc, char **argv)
 
   UseCl = WriteVolume = 0;
   ARGBEGIN {
-case 'c':
-    UseCl = 1;
-    break;
-case 'v':
-    WriteVolume = 1;
-    break;
-case 'h':
-    usg();
+    case 'c':
+      UseCl = 1;
+      break;
+    case 'v':
+      WriteVolume = 1;
+      break;
+    case 'h':
+      usg();
   }
   ARGEND;
 
@@ -481,8 +438,7 @@ case 'h':
   for (i = 0; i < nb; i++)
     volume[i] = 0;
   for (i = 0; i < nt; i++) {
-    if (c[i] == -1)
-      continue;
+    if (c[i] == -1) continue;
     k = c[i];
     get3(&mesh, i, x, y, z);
     volume[k] += tri_volume_y(x, y, z);
@@ -491,8 +447,7 @@ case 'h':
   if (WriteVolume) {
     V = 0;
     for (i = 0; i < nb; i++)
-      if (volume[i] > 0 && dot[i] < 0)
-        V += fabs(volume[i]);
+      if (volume[i] > 0 && dot[i] < 0) V += fabs(volume[i]);
     printf("%.16g\n", V);
   } else {
     printf("x y z r n\n");
@@ -500,8 +455,7 @@ case 'h':
       if (volume[i] > 0 && dot[i] < 0) {
         V = volume[i];
         R = pow(3 * V / (4 * pi), 1.0 / 3.0);
-        printf("%.16e %.16e %.16e %.16e %d\n",
-               cx[i], cy[i], cz[i], R, cnt[i]);
+        printf("%.16e %.16e %.16e %.16e %d\n", cx[i], cy[i], cz[i], R, cnt[i]);
       }
   }
 

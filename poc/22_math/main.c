@@ -3,31 +3,27 @@
 #include <gsl/gsl_eigen.h>
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_math.h>
-#include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
+#include <gsl/gsl_vector.h>
 #include "err.h"
 #include "math.h"
 
-static char *me = "math";
+static char* me = "math";
 
-static double
-get(const gsl_matrix * m, int i, int j)
-{
+static double get(const gsl_matrix* m, int i, int j) {
   return gsl_matrix_get(m, i, j);
 }
 
-int
-math_eig_values(const double A[6], /**/ double VAL[3])
-{
+int math_eig_values(const double A[6], /**/ double VAL[3]) {
   enum { XX, XY, XZ, YY, YZ, ZZ };
   enum { YX = XY, ZX = XZ, ZY = YZ };
   enum { X, Y, Z };
 
   double B[3 * 3];
   gsl_matrix_view m;
-  gsl_vector *val;
-  gsl_matrix *vec;
-  gsl_eigen_symmv_workspace *w;
+  gsl_vector* val;
+  gsl_matrix* vec;
+  gsl_eigen_symmv_workspace* w;
   int i, status;
 
   val = gsl_vector_alloc(3);
@@ -47,8 +43,7 @@ math_eig_values(const double A[6], /**/ double VAL[3])
 
   m = gsl_matrix_view_array(B, 3, 3);
   status = gsl_eigen_symmv(&m.matrix, val, vec, w);
-  if (status != GSL_SUCCESS)
-    ERR(("gsl_eigen_symmv failed"));
+  if (status != GSL_SUCCESS) ERR(("gsl_eigen_symmv failed"));
   gsl_eigen_symmv_sort(val, vec, GSL_EIGEN_SORT_ABS_ASC);
 
   i = 0;
@@ -64,18 +59,17 @@ math_eig_values(const double A[6], /**/ double VAL[3])
   return 0;
 }
 
-int
-math_eig_vectors(const double A[6], /**/ double a[3], double b[3], double c[3])
-{
+int math_eig_vectors(
+    const double A[6], /**/ double a[3], double b[3], double c[3]) {
   enum { XX, XY, XZ, YY, YZ, ZZ };
   enum { YX = XY, ZX = XZ, ZY = YZ };
   enum { X, Y, Z };
 
   double B[3 * 3];
   gsl_matrix_view m;
-  gsl_vector *val;
-  gsl_matrix *vec;
-  gsl_eigen_symmv_workspace *w;
+  gsl_vector* val;
+  gsl_matrix* vec;
+  gsl_eigen_symmv_workspace* w;
   int i, status;
 
   val = gsl_vector_alloc(3);
@@ -95,8 +89,7 @@ math_eig_vectors(const double A[6], /**/ double a[3], double b[3], double c[3])
 
   m = gsl_matrix_view_array(B, 3, 3);
   status = gsl_eigen_symmv(&m.matrix, val, vec, w);
-  if (status != GSL_SUCCESS)
-    ERR(("gsl_eigen_symmv failed"));
+  if (status != GSL_SUCCESS) ERR(("gsl_eigen_symmv failed"));
   gsl_eigen_symmv_sort(val, vec, GSL_EIGEN_SORT_ABS_ASC);
 
   i = 0;

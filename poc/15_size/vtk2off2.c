@@ -1,50 +1,50 @@
-#include <tgmath.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <tgmath.h>
 #include <search.h>
-#include "h.h"
 #include "arg.h"
+#include "h.h"
 
 enum { N = 1024 };
 static char me[] = "ch.vtk2off";
 
-char *argv0;
+char* argv0;
 static int nv, nt;
 static float *r, *d, *cl, *vol;
-static double *field;
+static double* field;
 static int *t, *c;
 static int *c, *v2t;
 
-#define MALLOC(n, p)							\
-    do {								\
-	*(p) = malloc(n*sizeof(**(p)));					\
-	if (*(p) == NULL) {						\
-	    fprintf(stderr, "%s:%d: alloc failed, n = %d\n", __FILE__, __LINE__, n); \
-	    exit(2);							\
-	}								\
-    } while(0)
+#define MALLOC(n, p)                                                           \
+  do {                                                                         \
+    *(p) = malloc(n * sizeof(**(p)));                                          \
+    if (*(p) == NULL) {                                                        \
+      fprintf(stderr, "%s:%d: alloc failed, n = %d\n", __FILE__, __LINE__, n); \
+      exit(2);                                                                 \
+    }                                                                          \
+  } while (0)
 
-#define FREAD(n, p, f) \
-    do {								\
-	if ((int)fread(p, sizeof(*(p)), (n), (f)) != (n)) {		\
-	    fprintf(stderr, "%s:%d: failt to read, n = %d\n", __FILE__, __LINE__, n); \
-	    exit(2);							\
-	}								\
-} while(0)
+#define FREAD(n, p, f)                                                      \
+  do {                                                                      \
+    if ((int)fread(p, sizeof(*(p)), (n), (f)) != (n)) {                     \
+      fprintf(                                                              \
+          stderr, "%s:%d: failt to read, n = %d\n", __FILE__, __LINE__, n); \
+      exit(2);                                                              \
+    }                                                                       \
+  } while (0)
 
-#define FWRITE(n, p, f) \
-    do {								\
-	if ((int)fwrite(p, sizeof(*(p)), (n), (f)) != (n)) {		\
-	    fprintf(stderr, "%s:%d: failt to write, n = %d\n", __FILE__, __LINE__, n); \
-	    exit(2);							\
-	}								\
-} while(0)
+#define FWRITE(n, p, f)                                                      \
+  do {                                                                       \
+    if ((int)fwrite(p, sizeof(*(p)), (n), (f)) != (n)) {                     \
+      fprintf(                                                               \
+          stderr, "%s:%d: failt to write, n = %d\n", __FILE__, __LINE__, n); \
+      exit(2);                                                               \
+    }                                                                        \
+  } while (0)
 #define SWAP(n, p) swap(n, sizeof(*(p)), p)
 
-static int
-get1(int i, /**/ float *a)
-{
+static int get1(int i, /**/ float* a) {
   enum { X, Y, Z };
 
   a[X] = r[3 * i + X];
@@ -53,9 +53,7 @@ get1(int i, /**/ float *a)
   return 0;
 }
 
-static int
-get3(int m, /**/ float *a, float *b, float *c)
-{
+static int get3(int m, /**/ float* a, float* b, float* c) {
   int i, j, k;
 
   i = t[3 * m];
@@ -67,10 +65,8 @@ get3(int m, /**/ float *a, float *b, float *c)
   return 0;
 }
 
-static int
-tri_center(float *a, float *b, float *c, /**/ double *x, double *y,
-           double *z)
-{
+static int tri_center(
+    float* a, float* b, float* c, /**/ double* x, double* y, double* z) {
   enum { X, Y, Z };
 
   *x += (a[X] + b[X] + c[X]) / 3;
@@ -79,15 +75,11 @@ tri_center(float *a, float *b, float *c, /**/ double *x, double *y,
   return 0;
 }
 
-static double
-sq(double x)
-{
+static double sq(double x) {
   return sq(x);
 }
 
-static double
-tri_area(float *a, float *b, float *c)
-{
+static double tri_area(float* a, float* b, float* c) {
   enum { X, Y, Z };
   double bx, by, bz, cx, cy, cz, A;
 
@@ -97,14 +89,11 @@ tri_area(float *a, float *b, float *c)
   cx = c[X] - a[X];
   cy = c[Y] - a[Y];
   cz = c[Z] - a[Z];
-  A = sq(by * cz - bz * cy) + sq(bz * cx - bx * cz) + sq(bx * cy -
-                                                         by * cx);
+  A = sq(by * cz - bz * cy) + sq(bz * cx - bx * cz) + sq(bx * cy - by * cx);
   return sqrt(A) / 2;
 }
 
-double
-tri_volume_y(float *a, float *b, float *c)
-{
+double tri_volume_y(float* a, float* b, float* c) {
   enum { X, Y, Z };
   double ax, ay, az, bx, by, bz, cx, cy, cz, V;
 
@@ -122,35 +111,25 @@ tri_volume_y(float *a, float *b, float *c)
   return V / 6;
 }
 
-static void
-usg(void)
-{
+static void usg(void) {
   fprintf(stderr, "usage: %s < VTK > OFF\n", me);
   exit(0);
 }
 
-static int
-eq(const char *a, const char *b)
-{
+static int eq(const char* a, const char* b) {
   return strncmp(a, b, N) == 0;
 }
 
-static int
-line(char *s, FILE * f)
-{
+static int line(char* s, FILE* f) {
   int n;
 
-  if (fgets(s, N, f) == NULL)
-    return 1;
+  if (fgets(s, N, f) == NULL) return 1;
   n = strlen(s);
-  if (n > 0 && s[n - 1] == '\n')
-    s[n - 1] = '\0';
+  if (n > 0 && s[n - 1] == '\n') s[n - 1] = '\0';
   return 0;
 }
 
-static int
-swap(int n, int size, void *p0)
-{
+static int swap(int n, int size, void* p0) {
   int i;
   char *p, t;
 
@@ -166,31 +145,27 @@ swap(int n, int size, void *p0)
   return 0;
 }
 
-static int
-scalar(FILE * f, int n, char *name, float *c)
-{
+static int scalar(FILE* f, int n, char* name, float* c) {
   char s[N];
 
   line(s, f);
   if (sscanf(s, "SCALARS %s float", name) != 1) {
-    fprintf(stderr, "%s:%d: expect SCALARS, got '%s'\n", __FILE__,
-            __LINE__, s);
+    fprintf(stderr, "%s:%d: expect SCALARS, got '%s'\n", __FILE__, __LINE__, s);
     exit(2);
   }
   line(s, f);
   if (!eq(s, "LOOKUP_TABLE default")) {
-    fprintf(stderr, "%s:%d: expect LOOKUP_TABLE, got '%s'\n", __FILE__,
-            __LINE__, s);
+    fprintf(
+        stderr, "%s:%d: expect LOOKUP_TABLE, got '%s'\n", __FILE__, __LINE__,
+        s);
     exit(2);
   }
   FREAD(n, c, f);
   return 0;
 }
 
-static int
-read_vtk(void)
-{
-  FILE *f;
+static int read_vtk(void) {
+  FILE* f;
   char s[N], name[N];
   int i, *a, *b, *t0;
 
@@ -201,40 +176,39 @@ read_vtk(void)
   }
 
   if (!eq(s, "# vtk DataFile Version 2.0")) {
-    fprintf(stderr, "%s:%d: not a vtk file: '%s'\n", __FILE__,
-            __LINE__, s);
+    fprintf(stderr, "%s:%d: not a vtk file: '%s'\n", __FILE__, __LINE__, s);
     exit(2);
   }
 
   line(s, f);
   line(s, f);
   if (!eq(s, "BINARY")) {
-    fprintf(stderr, "%s:%d: expect BINARY, got '%s'\n", __FILE__,
-            __LINE__, s);
+    fprintf(stderr, "%s:%d: expect BINARY, got '%s'\n", __FILE__, __LINE__, s);
     exit(2);
   }
 
   line(s, f);
   if (!eq(s, "DATASET POLYDATA")) {
-    fprintf(stderr, "%s:%d: expect DATASET POLYDATA, got '%s'\n",
-            __FILE__, __LINE__, s);
+    fprintf(
+        stderr, "%s:%d: expect DATASET POLYDATA, got '%s'\n", __FILE__,
+        __LINE__, s);
     exit(2);
   }
 
   line(s, f);
   if (sscanf(s, "POINTS %d float", &nv) != 1) {
-    fprintf(stderr, "%s:%d: expect POINTS, got '%s'\n", __FILE__,
-            __LINE__, s);
+    fprintf(stderr, "%s:%d: expect POINTS, got '%s'\n", __FILE__, __LINE__, s);
     exit(2);
   }
   MALLOC(3 * nv, &r);
   FREAD(3 * nv, r, f);
   SWAP(3 * nv, r);
 
-  while (line(s, f) == 0 && s[0] == '\0');
+  while (line(s, f) == 0 && s[0] == '\0')
+    ;
   if (sscanf(s, "POLYGONS %d %*d", &nt) != 1) {
-    fprintf(stderr, "%s:%d: expect POLYGONS, got '%s'\n", __FILE__,
-            __LINE__, s);
+    fprintf(
+        stderr, "%s:%d: expect POLYGONS, got '%s'\n", __FILE__, __LINE__, s);
     exit(2);
   }
   MALLOC(4 * nt, &t0);
@@ -247,29 +221,27 @@ read_vtk(void)
     *a++ = *b++;
   }
   SWAP(3 * nt, t);
-  while (line(s, f) == 0 && s[0] == '\0');
+  while (line(s, f) == 0 && s[0] == '\0')
+    ;
   if (sscanf(s, "CELL_DATA %*d") != 0) {
-    fprintf(stderr, "%s:%d: expect CELL_DATA, got '%s'\n", __FILE__,
-            __LINE__, s);
+    fprintf(
+        stderr, "%s:%d: expect CELL_DATA, got '%s'\n", __FILE__, __LINE__, s);
     exit(2);
   }
   MALLOC(nt, &cl);
   for (;;) {
     scalar(f, nt, name, cl);
-    if (eq(name, "cl"))
-      break;
+    if (eq(name, "cl")) break;
   }
   SWAP(nt, cl);
   free(t0);
   return 0;
 }
 
-static int
-write_off()
-{
-  FILE *f;
+static int write_off() {
+  FILE* f;
   int i, j, k, *t0;
-  float *r0;
+  float* r0;
 
   f = stdout;
   fputs("OFF BINARY\n", f);
@@ -302,13 +274,11 @@ write_off()
   return 0;
 }
 
-static int
-wall(void)
-{
+static int wall(void) {
   int i, j;
 
   for (i = j = 0; i < nt; i++) {
-    if ((int) cl[i] != -1) {
+    if ((int)cl[i] != -1) {
       t[3 * j] = t[3 * i];
       t[3 * j + 1] = t[3 * i + 1];
       t[3 * j + 2] = t[3 * i + 2];
@@ -320,12 +290,10 @@ wall(void)
   return 0;
 }
 
-static int
-write_vtk(void)
-{
-  FILE *f;
+static int write_vtk(void) {
+  FILE* f;
   int i, j, k, *t0, *c0;
-  float *r0;
+  float* r0;
 
   f = stdout;
   MALLOC(4 * nt, &t0);
@@ -344,16 +312,28 @@ write_vtk(void)
   SWAP(3 * nv, r0);
   SWAP(4 * nt, t0);
   SWAP(nt, c0);
-  fprintf(f, "# vtk DataFile Version 2.0\n"
-          "Interface from marching cubes\n"
-          "BINARY\n" "DATASET POLYDATA\n" "POINTS %d float\n", nv);
+  fprintf(
+      f,
+      "# vtk DataFile Version 2.0\n"
+      "Interface from marching cubes\n"
+      "BINARY\n"
+      "DATASET POLYDATA\n"
+      "POINTS %d float\n",
+      nv);
   FWRITE(3 * nv, r0, f);
   fprintf(f, "POLYGONS %d %d\n", nt, 4 * nt);
   FWRITE(4 * nt, t0, f);
-  fprintf(f, "CELL_DATA %d\n"
-          "SCALARS cl int\n" "LOOKUP_TABLE default\n", nt);
+  fprintf(
+      f,
+      "CELL_DATA %d\n"
+      "SCALARS cl int\n"
+      "LOOKUP_TABLE default\n",
+      nt);
   FWRITE(nt, c0, f);
-  fprintf(f, "SCALARS area double\n" "LOOKUP_TABLE default\n");
+  fprintf(
+      f,
+      "SCALARS area double\n"
+      "LOOKUP_TABLE default\n");
   SWAP(nt, field);
   FWRITE(nt, field, f);
 
@@ -363,9 +343,7 @@ write_vtk(void)
   return 0;
 }
 
-static int
-color(int *pnc)
-{
+static int color(int* pnc) {
   int i, j, k;
   float val;
 
@@ -389,9 +367,7 @@ color(int *pnc)
   return 0;
 }
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
   int (*Write)(void);
   int nc, i, j, k, m;
   float x[3], y[3], z[3];
@@ -401,11 +377,11 @@ main(int argc, char **argv)
 
   Write = write_off;
   ARGBEGIN {
-case 'v':
-    Write = write_vtk;
-    break;
-case 'h':
-    usg();
+    case 'v':
+      Write = write_vtk;
+      break;
+    case 'h':
+      usg();
   }
   ARGEND;
 
@@ -443,7 +419,7 @@ case 'h':
     d[i] = 0;
 
   double L[3];
-  float *d0;
+  float* d0;
 
   L[X] = 2;
   L[Z] = 1;
@@ -455,14 +431,10 @@ case 'h':
     vz = cz[k];
     tri_center(x, y, z, &ux, &uy, &uz);
     d0 = &d[3 * i];
-    if (fabs(ux + L[X] - vx) < fabs(ux - vx))
-      d0[X] += L[X];
-    if (fabs(ux - L[X] - vx) < fabs(ux - vx))
-      d0[X] -= L[X];
-    if (fabs(uz + L[Z] - vz) < fabs(uz - vz))
-      d0[Z] += L[Z];
-    if (fabs(uz - L[Z] - vz) < fabs(uz - vz))
-      d0[Z] -= L[Z];
+    if (fabs(ux + L[X] - vx) < fabs(ux - vx)) d0[X] += L[X];
+    if (fabs(ux - L[X] - vx) < fabs(ux - vx)) d0[X] -= L[X];
+    if (fabs(uz + L[Z] - vz) < fabs(uz - vz)) d0[Z] += L[Z];
+    if (fabs(uz - L[Z] - vz) < fabs(uz - vz)) d0[Z] -= L[Z];
   }
 
   for (i = 0; i < nv; i++) {

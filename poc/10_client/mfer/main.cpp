@@ -1,6 +1,6 @@
-#include "kernel/kernelmeshpar.h"
 #include "distr/distrsolver.h"
 #include "kernel/hydro.h"
+#include "kernel/kernelmeshpar.h"
 
 void Main(MPI_Comm comm, Vars& var) {
   using M = MeshStructured<double, 3>;
@@ -12,7 +12,6 @@ void Main(MPI_Comm comm, Vars& var) {
   ds.Run();
 }
 
-
-int main (int argc, const char ** argv) {
+int main(int argc, const char** argv) {
   return RunMpi(argc, argv, Main);
 }

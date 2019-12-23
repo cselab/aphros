@@ -1,17 +1,15 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <poc/math.h>
 
-static const char *me = "orto";
+static const char* me = "orto";
 enum { X, Y, Z };
 enum { XX, XY, XZ, YY, YZ, ZZ };
 static double dot(double a[3], double b[3]);
 
-static const char **argv;
-static int
-scl( /**/ double *p)
-{
+static const char** argv;
+static int scl(/**/ double* p) {
   if (*argv == NULL) {
     fprintf(stderr, "%s: not enough args\n", me);
     exit(2);
@@ -24,9 +22,7 @@ scl( /**/ double *p)
   return 0;
 }
 
-int
-main(int argc, const char **argv0)
-{
+int main(int argc, const char** argv0) {
   int i, j;
   double v[3 * 3], m[6];
   double a[3], b[3], c[3];
@@ -49,8 +45,6 @@ main(int argc, const char **argv0)
   return 0;
 }
 
-static double
-dot(double a[3], double b[3])
-{
+static double dot(double a[3], double b[3]) {
   return a[X] * b[X] + a[Y] * b[Y] + a[Z] * b[Z];
 }

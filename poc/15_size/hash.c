@@ -3,9 +3,7 @@
 
 #define N (1024)
 
-int
-main()
-{
+int main() {
   int k;
 
   h_ini(10);

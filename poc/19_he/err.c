@@ -1,11 +1,9 @@
 #include <stdarg.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "err.h"
 
-int
-err_print(const char *fmt, ...)
-{
+int err_print(const char* fmt, ...) {
   va_list ap;
 
   va_start(ap, fmt);
@@ -14,8 +12,6 @@ err_print(const char *fmt, ...)
   return 0;
 }
 
-void
-err_exit(int status)
-{
+void err_exit(int status) {
   exit(status);
 }

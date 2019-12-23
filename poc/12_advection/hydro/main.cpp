@@ -1,32 +1,32 @@
 #undef NDEBUG
-#include <iostream>
-#include <string>
 #include <mpi.h>
 #include <cassert>
-#include <iomanip>
 #include <fstream>
 #include <functional>
-#include <utility>
-#include <tuple>
+#include <iomanip>
+#include <iostream>
 #include <stdexcept>
+#include <string>
+#include <tuple>
+#include <utility>
 
-#include "parse/vars.h"
-#include "kernel/kernelmeshpar.h"
 #include "distr/distrsolver.h"
+#include "kernel/kernelmeshpar.h"
+#include "parse/vars.h"
 
-#include "util/suspender.h"
-#include "geom/vect.h"
-#include "geom/mesh.h"
-#include "solver/solver.h"
-#include "solver/advection.h"
-#include "solver/vof.h"
-#include "parse/vof.h"
-#include "solver/tvd.h"
-#include "parse/tvd.h"
-#include "func/init_vel.h"
-#include "func/init_u.h"
 #include "dump/dumper.h"
 #include "dump/output.h"
+#include "func/init_u.h"
+#include "func/init_vel.h"
+#include "geom/mesh.h"
+#include "geom/vect.h"
+#include "parse/tvd.h"
+#include "parse/vof.h"
+#include "solver/advection.h"
+#include "solver/solver.h"
+#include "solver/tvd.h"
+#include "solver/vof.h"
+#include "util/suspender.h"
 
 #include "dump/dump.h"
 #include "dump/vtk.h"
@@ -52,7 +52,7 @@ struct GPar {
   using Vect = typename M::Vect;
 
   std::function<void(FieldCell<Scal>&, const M&)> fu0; // init vf
-  std::function<Vect(Vect /*x*/,Scal /*t*/)> fv; // velocity
+  std::function<Vect(Vect /*x*/, Scal /*t*/)> fv; // velocity
 
   using K = Advection<M>;
   DistrSolver<M, K>* ds;
@@ -72,18 +72,18 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   using AST = solver::Tvd<M>; // advection TVD
   using ASV = solver::Vof<M>; // advection VOF
 
-  //using P::P; // inherit constructor
+  // using P::P; // inherit constructor
   Advection(Vars& var, const MyBlockInfo& bi, Par& par);
   void Run() override;
   void Init(Sem& sem);
   void Dump(Sem& sem);
 
  protected:
-  using P::var;
-  using P::par_;
-  using P::m;
-  using P::IsRoot;
   using P::IsLead;
+  using P::IsRoot;
+  using P::m;
+  using P::par_;
+  using P::var;
 
  private:
   FieldFace<Scal> ff_flux_;
@@ -94,7 +94,7 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
                 // cfl = dt * maxvel
   Scal sumu_; // sum of fluid volume
   FieldCell<Scal> fcnx_, fcny_, fcnz_; // normal to interface (tmp)
-                                             // used for Vof dump
+                                       // used for Vof dump
   Dumper dmf_; // fields
   Dumper dms_; // statistics
 };
@@ -102,7 +102,8 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
 template <class M>
 Advection<M>::Advection(Vars& v, const MyBlockInfo& b, Par& p)
     : KernelMeshPar<M, Par>(v, b, p)
-    , dmf_(v, "dump_field_"), dms_(v, "dump_stat_") {}
+    , dmf_(v, "dump_field_")
+    , dms_(v, "dump_stat_") {}
 
 template <class M>
 void Advection<M>::Init(Sem& sem) {
@@ -138,26 +139,25 @@ void Advection<M>::Init(Sem& sem) {
     if (as == "tvd") {
       auto p = std::make_shared<typename AST::Par>();
       Parse<M>(p.get(), var);
-      as_.reset(new AST(m, fcu_, bc, &ff_flux_, 
-                       &fc_src_, 0., var.Double["dt"], p));
+      as_.reset(
+          new AST(m, fcu_, bc, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
     } else if (as == "vof") {
       auto p = std::make_shared<typename ASV::Par>();
       Parse<M>(p.get(), var);
       p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
-      as_.reset(new ASV(m, fcu_, bc, &ff_flux_, 
-                       &fc_src_, 0., var.Double["dt"], p));
+      as_.reset(
+          new ASV(m, fcu_, bc, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
     } else {
       throw std::runtime_error("Unknown advection_solver=" + as);
     }
   }
 }
 
-
-template <class M, class Vect=typename M::Vect>
+template <class M, class Vect = typename M::Vect>
 Vect GetCellSize(const M& m) {
   Vect h; // result
   IdxCell c0(0);
-  h = m.GetNode(m.GetNeighbourNode(c0, 7)) - 
+  h = m.GetNode(m.GetNeighbourNode(c0, 7)) -
       m.GetNode(m.GetNeighbourNode(c0, 0));
   assert(std::abs(h.prod() - m.GetVolume(c0)) < 1e-10);
   return h;
@@ -175,7 +175,7 @@ void Advection<M>::Dump(Sem& sem) {
       if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
         auto& a = const_cast<FieldCell<Scal>&>(as->GetAlpha());
         m.Dump(&a, "a");
-        auto &n = as->GetNormal();
+        auto& n = as->GetNormal();
         m.Dump(&n, 0, "nx");
         m.Dump(&n, 1, "ny");
         m.Dump(&n, 2, "nz");
@@ -219,7 +219,7 @@ void Advection<M>::Run() {
   Dump(sem);
   sem.LoopBegin();
   if (sem("empty")) {
-    //nop // TODO: bugfix loop, empty stage needed
+    // nop // TODO: bugfix loop, empty stage needed
   }
   if (sem("checkloop")) {
     if (as_->GetTime() >= var.Double["tmax"]) {
@@ -277,11 +277,8 @@ void Advection<M>::Run() {
       Scal t = var.Double["t"];
       Scal dt = var.Double["dt"];
       if (dms_.Try(t, dt)) {
-        std::cout 
-            << "t=" << t 
-            << " dt=" << dt 
-            << std::setprecision(16) << " sumu=" << sumu_
-            << std::endl;
+        std::cout << "t=" << t << " dt=" << dt << std::setprecision(16)
+                  << " sumu=" << sumu_ << std::endl;
       }
     }
   }
