@@ -58,10 +58,7 @@ void KernelEmbed<M>::Run() {
     FieldNode<Scal> fnf(m, 0);
     for (auto n : m.Nodes()) {
       auto x = m.GetNode(n);
-      fnf[n] = x.norm() *
-                   (1 + std::sin(x[0] * 5) * 0.1 + std::sin(x[1] * 7) * 0.15) -
-               1.;
-      // fnf[n] *= -1;
+      fnf[n] = Vect(x[0], x[1], 0.).dot(Vect(1)) - 0.5;
     }
     eb_ = std::unique_ptr<EB>(new EB(m, fnf));
     fct_.Reinit(m);
@@ -72,7 +69,10 @@ void KernelEmbed<M>::Run() {
     fcu_.Reinit(m, 0.);
   }
   if (sem.Nested("dumppoly")) {
-    eb_->DumpPoly();
+    auto& e = *eb_;
+    e.DumpPoly(
+        e.GetFaceArea(), e.GetFaceType(), e.GetCellArea(), e.GetCellType(),
+        e.GetNormal(), e.GetPlane(), e.GetPoly(), m);
   }
   for (size_t t = 0; t < 10; ++t)
     if (sem("step")) {
