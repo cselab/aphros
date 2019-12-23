@@ -63,18 +63,21 @@ latex_documents = [
 man_pages = [
     (master_doc, 'hydro', u'Aphros documentation', '', 1)
 ]
-lib = "lib/"
-for p in glob.glob(lib + "*.rst"):
-    if p in [lib + "index.rst"]:
-        continue
-    path = os.path.splitext(p)[0]
-    name = os.path.basename(path)
-    desc = ''
-    with open(p) as f:
-        line = f.readline()
-        if line.startswith('..'):
-            desc = line[3:]
-    man_pages.append((path, name, desc, '', 1))
+
+
+for lib in glob.glob("lib?"):
+    sec = int(lib[3])
+    for p in glob.glob(lib + "/*.rst"):
+        if p in [lib + "/index.rst"]:
+            continue
+        path = os.path.splitext(p)[0]
+        name = os.path.basename(path)
+        desc = ''
+        with open(p) as f:
+            line = f.readline()
+            if line.startswith('..'):
+                desc = line[3:]
+        man_pages.append((path, name, desc, '', sec))
 
 # texinfo
 texinfo_documents = [

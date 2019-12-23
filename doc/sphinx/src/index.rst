@@ -10,4 +10,5 @@ Aphros
    convdiff
    fluid
    output
-   lib/index.rst
+   lib1/index.rst
+   lib3/index.rst
