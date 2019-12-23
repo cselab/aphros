@@ -64,7 +64,11 @@ The interface also exposes functions
   :dedent: 2
 
 .. includecode:: src/solver/convdiffv.h
-  :func: GetVelocityEquations 
+  :func: GetDiag
+  :dedent: 2
+
+.. includecode:: src/solver/convdiffv.h
+  :func: GetConst
   :dedent: 2
 
 to assemble the linear system for a given velocity field
@@ -114,7 +118,7 @@ force ``fcs``,
 and volume flux ``ffv``.
 Parameters of the solver are provided by
 
-.. includecode:: src/solver/convdiffi.h
+.. includecode:: src/solver/convdiff.h
   :struct: Par
   :dedent: 2
 
