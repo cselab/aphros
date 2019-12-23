@@ -7,7 +7,8 @@ e () {
   eval "$@"
 }
 
-list=clang-format-list
+list=/tmp/clang-format-list.$$
+trap 'rm -f $list; exit 2' 1 2 3 4 15
 
 e "find . -type f \
 -name '*.h' -or \
@@ -47,4 +48,6 @@ else
     exit -1
 fi
 
-
+status=$?
+rm -f $list
+exit $status
