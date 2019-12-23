@@ -8,13 +8,20 @@ SPHINXPROJ    = hydro
 SOURCEDIR     = src
 BUILDDIR      = build
 
-default: singlehtml
+all: install
+
+web: singlehtml
+
+install: man
+	mkdir -p "$(CHPREFIX)/man/man1"
+	cp -v build/man/* $(CHPREFIX)/man/man1
+
 
 # Put it first so that "make" without argument is like "make help".
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile default
+.PHONY: help Makefile all install web
 
 clean:
 	rm -rf build

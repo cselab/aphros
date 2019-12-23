@@ -1,12 +1,13 @@
-Cubism-hydro
-============
+Aphros
+======
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Contents:
+   :numbered:
+   :maxdepth: 2
 
    intro
    comm
    convdiff
    fluid
    output
+   lib/index.rst
