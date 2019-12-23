@@ -33,6 +33,9 @@ class Embed {
   const FieldCell<Scal>& GetPlane() const {
     return fca_;
   }
+  const FieldFace<Type>& GetFaceType() const {
+    return fft_;
+  }
   const FieldFace<Scal>& GetFaceArea() const {
     return ffs_;
   }
@@ -45,45 +48,63 @@ class Embed {
   const FieldCell<Scal>& GetCellVolume() const {
     return fcv_;
   }
+  const FieldFace<std::vector<Vect>>& GetPoly() const {
+    return ffpoly_;
+  }
 
   // Dump cut polygons
-  void DumpPoly() {
+  // ffs: face area for which f > 0
+  // fft: type of faces
+  // fcs: polygon area
+  // fct: cell types
+  // fcn: normals
+  // fca: plane constants
+  // ffpoly: polygon representing f < 0
+  static void DumpPoly(
+      const FieldFace<Scal>& ffs, const FieldFace<Type>& fft,
+      const FieldCell<Scal>& fcs, const FieldCell<Type>& fct,
+      const FieldCell<Vect>& fcn, const FieldCell<Scal>& fca,
+      const FieldFace<std::vector<Vect>>& ffpoly, M& m) {
     auto sem = m.GetSem("dumppoly");
+    struct {
+      std::vector<std::vector<Vect>> dl; // polygon
+      std::vector<Scal> dld; // direction
+      std::vector<Scal> dls; // area
+    } * ctx(sem);
+    auto& dl = ctx->dl;
+    auto& dld = ctx->dld;
+    auto& dls = ctx->dls;
     if (sem("local")) {
-      dl_.clear();
-      dld_.clear();
-      dls_.clear();
-
       for (auto f : m.Faces()) {
-        if (fct_[m.GetCell(f, 0)] == Type::cut ||
-            fct_[m.GetCell(f, 1)] == Type::cut) {
+        if (fct[m.GetCell(f, 0)] == Type::cut ||
+            fct[m.GetCell(f, 1)] == Type::cut) {
           size_t d(m.GetIndexFaces().GetDir(f));
-          if (fft_[f] == Type::cut || fft_[f] == Type::regular) {
-            if (fft_[f] == Type::cut) {
-              dl_.push_back(ffpoly_[f]);
+          if (fft[f] == Type::cut || fft[f] == Type::regular) {
+            if (fft[f] == Type::cut) {
+              dl.push_back(ffpoly[f]);
             } else {
-              dl_.push_back(GetPoly(f, m));
+              dl.push_back(GetPoly(f, m));
             }
-            dld_.push_back(d);
-            dls_.push_back(ffs_[f]);
+            dld.push_back(d);
+            dls.push_back(ffs[f]);
           }
         }
       }
 
       for (auto c : m.Cells()) {
-        if (fct_[c] == Type::cut) {
+        if (fct[c] == Type::cut) {
           auto xx =
-              R::GetCutPoly(m.GetCenter(c), fcn_[c], fca_[c], m.GetCellSize());
-          dl_.push_back(xx);
-          dld_.push_back(3);
-          dls_.push_back(fcs_[c]);
+              R::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], m.GetCellSize());
+          dl.push_back(xx);
+          dld.push_back(3);
+          dls.push_back(fcs[c]);
         }
       }
 
       using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&dl_));
+      m.Reduce(std::make_shared<TV>(&dl));
       using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dld_));
+      m.Reduce(std::make_shared<TS>(&dld));
     }
     if (sem("write")) {
       if (m.IsRoot()) {
@@ -91,8 +112,8 @@ class Embed {
         std::cout << std::fixed << std::setprecision(8) << "dump"
                   << " to " << fn << std::endl;
         WriteVtkPoly<Vect>(
-            fn, dl_, nullptr, {&dld_, &dls_}, {"dir", "area"},
-            "Embedded boundary", true, true, true);
+            fn, dl, nullptr, {&dld, &dls}, {"dir", "area"}, "Embedded boundary",
+            true, true, true);
       }
     }
   }
@@ -135,8 +156,7 @@ class Embed {
         IdxNode n = m.GetNode(f, e);
         IdxNode np = m.GetNode(f, ep);
         Scal f = fnf[n];
-        Scal fp = fnf[np];
-        Vect x = m.GetNode(n);
+        Scal fp = fnf[np]; Vect x = m.GetNode(n);
         Vect xp = m.GetNode(np);
         if (f < 0) {
           xx.push_back(x);
@@ -257,10 +277,6 @@ class Embed {
   FieldCell<Scal> fcs_; // area of polygon
   FieldCell<Scal> fcd_; // normal component of displacement from cell center
   FieldCell<Scal> fcv_; // volume of cut cell
-  // tmp
-  std::vector<std::vector<Vect>> dl_; // dump poly, polygon
-  std::vector<Scal> dld_; // dump poly, direction
-  std::vector<Scal> dls_; // dump poly, area
 };
 
 } // namespace solver
