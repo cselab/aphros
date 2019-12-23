@@ -1,6 +1,7 @@
+#include <stdio.h>
+
 #include "vof.h"
 #include "overlap.h"
-#include <stdio.h>
 
 int main() {
     //double (*sphere) (double []);

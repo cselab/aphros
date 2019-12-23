@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <stddef.h>
+
 #include "err.h"
 #include "memory.h"
 #include "table.h"
