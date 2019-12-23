@@ -5,8 +5,7 @@ CC        = mpicc
 F77       = mpif77
 CXX       = mpicxx
 F90       = mpif90
-include ~/bin/hypre.prefix
-HYPRE_DIR = $(P)
+HYPRE_DIR = $(CHPREFIX)
 
 ########################################################################
 # Compiling and linking options
