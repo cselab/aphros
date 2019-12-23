@@ -8,7 +8,8 @@ e () {
 }
 
 list=/tmp/clang-format-list.$$
-trap 'rm -f $list; exit 2' 1 2 3 4 15
+tmp=/tmp/tmp.$$
+trap 'rm -f $list $tmp; exit 2' 1 2 3 4 15
 
 e "find . -type f \
 -name '*.h' -or \
@@ -19,7 +20,6 @@ e "find . -type f \
 
 # 'clang-format -i' replaces symlinks with regular files
 echo "Excluded symlinks:"
-tmp=tmp.$$
 rm -f "$tmp"
 while read line ; do
   if [ -L "$line" ] ; then
