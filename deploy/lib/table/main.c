@@ -1,8 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <assert.h>
 #include <limits.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "err.h"
 #include "memory.h"
@@ -15,39 +15,33 @@ struct Table {
   int length;
   unsigned timestamp;
   struct binding {
-    struct binding *link;
+    struct binding* link;
     int key;
     int value;
-  } **buckets;
+  } * *buckets;
 };
 
-static int
-cmp(int x, int y)
-{
+static int cmp(int x, int y) {
   return x != y;
 }
 
-static unsigned
-hash(int x)
-{
+static unsigned hash(int x) {
   return x;
 }
 
-struct Table *
-table_ini(int hint)
-{
-  struct Table *q;
+struct Table* table_ini(int hint) {
+  struct Table* q;
   int i;
 
-  static int primes[] = { 509, 509, 1021, 2053, 4093,
-    8191, 16381, 32771, 65521, INT_MAX
-  };
+  static int primes[] = {509,  509,   1021,  2053,  4093,
+                         8191, 16381, 32771, 65521, INT_MAX};
   assert(hint >= 0);
-  for (i = 1; primes[i] < hint; i++);
+  for (i = 1; primes[i] < hint; i++)
+    ;
   q = memory_malloc(sizeof(*q) + primes[i - 1] * sizeof(q->buckets[0]));
   assert(q);
   q->size = primes[i - 1];
-  q->buckets = (struct binding **) (q + 1);
+  q->buckets = (struct binding**)(q + 1);
   for (i = 0; i < q->size; i++)
     q->buckets[i] = NULL;
   q->length = 0;
@@ -55,17 +49,14 @@ table_ini(int hint)
   return q;
 }
 
-int
-table_get(struct Table *q, int key, int *pvalue)
-{
+int table_get(struct Table* q, int key, int* pvalue) {
   int i;
-  struct binding *p;
+  struct binding* p;
 
   assert(q);
   i = hash(key) % q->size;
   for (p = q->buckets[i]; p; p = p->link)
-    if (cmp(key, p->key) == 0)
-      break;
+    if (cmp(key, p->key) == 0) break;
   if (p) {
     *pvalue = p->value;
     return 0;
@@ -73,18 +64,15 @@ table_get(struct Table *q, int key, int *pvalue)
     return TABLE_EMPY;
 }
 
-int
-table_put(struct Table *q, int key, int value)
-{
+int table_put(struct Table* q, int key, int value) {
   int i;
-  struct binding *p;
+  struct binding* p;
   int prev;
 
   assert(q);
   i = hash(key) % q->size;
   for (p = q->buckets[i]; p; p = p->link)
-    if (cmp(key, p->key) == 0)
-      break;
+    if (cmp(key, p->key) == 0) break;
   if (p == NULL) {
     MALLOC(1, &p);
     p->key = key;
@@ -99,26 +87,21 @@ table_put(struct Table *q, int key, int value)
   return prev;
 }
 
-int
-table_length(struct Table *q)
-{
+int table_length(struct Table* q) {
   assert(q);
   return q->length;
 }
 
-
-int
-table_remove(struct Table *q, int key)
-{
+int table_remove(struct Table* q, int key) {
   int i;
-  struct binding **pp;
+  struct binding** pp;
 
   assert(q);
   q->timestamp++;
   i = hash(key) % q->size;
   for (pp = &q->buckets[i]; *pp; pp = &(*pp)->link)
     if (cmp(key, (*pp)->key) == 0) {
-      struct binding *p = *pp;
+      struct binding* p = *pp;
       int value = p->value;
 
       *pp = p->link;
@@ -129,9 +112,7 @@ table_remove(struct Table *q, int key)
   return TABLE_EMPY;
 }
 
-int
-table_fin(struct Table *table)
-{
+int table_fin(struct Table* table) {
   assert(table);
   if (table->length > 0) {
     int i;
@@ -147,12 +128,10 @@ table_fin(struct Table *table)
   return 0;
 }
 
-int*
-table_array(struct Table *q)
-{
+int* table_array(struct Table* q) {
   int i, j = 0;
-  int *array;
-  struct binding *p;
+  int* array;
+  struct binding* p;
 
   assert(q);
   MALLOC(2 * q->length, &array);

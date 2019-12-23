@@ -12,8 +12,8 @@
 enum { N = 999 };
 static const char me[] = "csv2ellipsoid";
 
-#include "util.h"
 #include "ico.inc"
+#include "util.h"
 
 struct Transform {
   double r[3];
@@ -24,89 +24,87 @@ struct Transform {
   double rg;
 };
 
-static int transform_ini(double x, double, double, double xx, double,
-                         double, double, double, double,
-                         struct Transform *);
-static int transform_apply(struct Transform *, double x, double, double,
-                           double[3]);
-static int transform_rg(struct Transform *, double *);
+static int transform_ini(
+    double x, double, double, double xx, double, double, double, double, double,
+    struct Transform*);
+static int transform_apply(
+    struct Transform*, double x, double, double, double[3]);
+static int transform_rg(struct Transform*, double*);
 
-#define GET(f, r)							\
-  if ((*r = csv_field(csv, f)) == NULL) {				\
-    fprintf(stderr, "%s: no field '%s' in '%s'\n",			\
-	    me, (f), *argv);						\
-    exit(2);								\
+#define GET(f, r)                                                   \
+  if ((*r = csv_field(csv, f)) == NULL) {                           \
+    fprintf(stderr, "%s: no field '%s' in '%s'\n", me, (f), *argv); \
+    exit(2);                                                        \
   }
 
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
+#define MALLOC(n, p)                                      \
+  do {                                                    \
+    *(p) = malloc((n) * sizeof(**(p)));                   \
+    if (*(p) == NULL) {                                   \
+      fprintf(stderr, "%s: alloc failed, n = %d", me, n); \
+      exit(2);                                            \
+    }                                                     \
+  } while (0)
+#define REALLOC(n, p)                                       \
+  do {                                                      \
+    *(p) = realloc(*(p), (n) * sizeof(**(p)));              \
+    if (*(p) == NULL) {                                     \
+      fprintf(stderr, "%s: realloc failed, n = %d", me, n); \
+      exit(2);                                              \
+    }                                                       \
+  } while (0)
 
-#define	USED(x)		if(x);else{}
-#define MALLOC(n, p)							\
-    do {								\
-	*(p) = malloc((n)*sizeof(**(p)));				\
-	if (*(p) == NULL)  {						\
-	    fprintf(stderr, "%s: alloc failed, n = %d", me, n);		\
-	    exit(2);							\
-	}								\
-    } while(0)
-#define REALLOC(n, p)							\
-    do {								\
-      *(p) = realloc(*(p), (n)*sizeof(**(p)));				\
-      if (*(p) == NULL)  {						\
-	fprintf(stderr, "%s: realloc failed, n = %d", me, n);		\
-	    exit(2);							\
-	}								\
-    } while(0)								\
-
-static void
-usg()
-{
+static void usg() {
   fprintf(stderr, "%s -p prefix [csv..]\n", me);
   exit(1);
 }
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
   enum { X, Y, Z };
   char output[N];
-  char *Prefix;
-  double *r;
-  double *x;
-  double *y;
-  double *z;
-  double *xx;
-  double *xy;
-  double *xz;
-  double *yy;
-  double *yz;
-  double *zz;
+  char* Prefix;
+  double* r;
+  double* x;
+  double* y;
+  double* z;
+  double* xx;
+  double* xy;
+  double* xz;
+  double* yy;
+  double* yz;
+  double* zz;
   double u[3];
   struct Transform transform;
-  FILE *file;
+  FILE* file;
   int i;
   int j;
   int k;
   int nf;
   int nr;
-  struct CSV *csv;
+  struct CSV* csv;
 
   USED(argc);
   Prefix = NULL;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
-    case 'h':
-      usg();
-      break;
-    case 'p':
-      argv++;
-      if ((Prefix = *argv) == NULL) {
-        fprintf(stderr, "%s: -p needs an argument\n", me);
-        exit(2);
-      }
-      break;
-    default:
-      fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
-      exit(1);
+      case 'h':
+        usg();
+        break;
+      case 'p':
+        argv++;
+        if ((Prefix = *argv) == NULL) {
+          fprintf(stderr, "%s: -p needs an argument\n", me);
+          exit(2);
+        }
+        break;
+      default:
+        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+        exit(1);
     }
   if (Prefix == NULL) {
     fprintf(stderr, "%s: prefix (-p) is not given\n", me);
@@ -158,8 +156,9 @@ main(int argc, char **argv)
     fputs("DATASET POLYDATA\n", file);
     fprintf(file, "POINTS %d double\n", nr * ico_nv);
     for (i = 0; i < nr; i++) {
-      transform_ini(x[i], y[i], z[i], xx[i], xy[i], xz[i], yy[i], yz[i],
-                    zz[i], &transform);
+      transform_ini(
+          x[i], y[i], z[i], xx[i], xy[i], xz[i], yy[i], yz[i], zz[i],
+          &transform);
       for (j = 0; j < ico_nv; j++) {
         transform_apply(&transform, ico_x[j], ico_y[j], ico_z[j], u);
         fprintf(file, "%.16g %.16g %.16g\n", u[X], u[Y], u[Z]);
@@ -168,9 +167,9 @@ main(int argc, char **argv)
     fprintf(file, "POLYGONS %d %d\n", nr * ico_nt, 4 * nr * ico_nt);
     for (i = 0; i < nr; i++)
       for (j = 0; j < ico_nt; j++)
-        fprintf(file, "3 %d %d %d\n",
-                ico_nv * i + ico_t0[j],
-                ico_nv * i + ico_t1[j], ico_nv * i + ico_t2[j]);
+        fprintf(
+            file, "3 %d %d %d\n", ico_nv * i + ico_t0[j],
+            ico_nv * i + ico_t1[j], ico_nv * i + ico_t2[j]);
 
     fprintf(file, "CELL_DATA %d\n", nr * ico_nt);
     for (i = 0; i < nf; i++) {
@@ -185,16 +184,14 @@ main(int argc, char **argv)
   }
 }
 
-int
-transform_ini(double x, double y, double z, double xx, double xy,
-              double xz, double yy, double yz, double zz,
-              struct Transform *t)
-{
+int transform_ini(
+    double x, double y, double z, double xx, double xy, double xz, double yy,
+    double yz, double zz, struct Transform* t) {
   enum { X, Y, Z };
   enum { XX, XY, XZ, YY, YZ, ZZ };
   double i[6];
   double rg;
-  double *scale;
+  double* scale;
 
   scale = t->scale;
   t->r[X] = x;
@@ -207,7 +204,7 @@ transform_ini(double x, double y, double z, double xx, double xy,
   i[YZ] = yz - y * z;
   i[ZZ] = zz - z * z;
   rg = i[XX] + i[YY] + i[ZZ];
-  rg = sqrt(5*rg/3);
+  rg = sqrt(5 * rg / 3);
   if (math_eig_vectors(i, t->a, t->b, t->c) != 0) {
     fprintf(stderr, "%s: math_eig_vectors failed\n", me);
     exit(2);
@@ -223,16 +220,14 @@ transform_ini(double x, double y, double z, double xx, double xy,
   return 0;
 }
 
-int
-transform_apply(struct Transform *t, double x, double y, double z,
-                double v[3])
-{
+int transform_apply(
+    struct Transform* t, double x, double y, double z, double v[3]) {
   enum { X, Y, Z };
-  const double *a;
-  const double *b;
-  const double *c;
-  const double *r;
-  const double *scale;
+  const double* a;
+  const double* b;
+  const double* c;
+  const double* r;
+  const double* scale;
 
   a = t->a;
   b = t->b;
@@ -253,10 +248,7 @@ transform_apply(struct Transform *t, double x, double y, double z,
   return 0;
 }
 
-static int
-transform_rg(struct Transform *t, double *p)
-{
+static int transform_rg(struct Transform* t, double* p) {
   *p = t->rg;
   return 0;
 }
-

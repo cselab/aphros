@@ -1,14 +1,10 @@
-static int
-util_digits(const char *s, char *ans)
-{
+static int util_digits(const char* s, char* ans) {
   int i, j;
 
   for (i = j = 0; s[i] != '\0'; i++)
-    if (s[i] == '/')
-      j = i + 1;
+    if (s[i] == '/') j = i + 1;
   for (; s[j] != '\0'; j++)
-    if (isdigit(s[j]))
-      break;
+    if (isdigit(s[j])) break;
   for (i = j; s[i] != '\0'; i++)
     if (!isdigit(s[i]))
       break;
@@ -18,11 +14,9 @@ util_digits(const char *s, char *ans)
   return 0;
 }
 
-static int
-util_name(const char *p0, const char *name, char *output)
-{
+static int util_name(const char* p0, const char* name, char* output) {
   char dig[N], pattern[N];
-  char *c;
+  char* c;
 
   strncpy(pattern, p0, N);
   c = strchr(pattern, '%');
@@ -39,8 +33,6 @@ util_name(const char *p0, const char *name, char *output)
   return 0;
 }
 
-static int
-util_eq(const char *a, const char *b)
-{
+static int util_eq(const char* a, const char* b) {
   return strncmp(a, b, N) == 0;
 }

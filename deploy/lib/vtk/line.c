@@ -2,33 +2,29 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "memory.h"
-#include "line.h"
 #include "err.h"
+#include "line.h"
+#include "memory.h"
 
 enum { N = 999 };
 enum { LINE_N = 999 };
 static struct {
-  char *buf[LINE_N];
+  char* buf[LINE_N];
   int i;
   int n;
 } line_info;
-static int line(char *, FILE *);
-static int line0(char *, FILE *);
+static int line(char*, FILE*);
+static int line0(char*, FILE*);
 
-int
-line_ini(void)
-{
+int line_ini(void) {
   line_info.n = 0;
   line_info.i = 0;
   return 0;
 }
 
-int
-line_get(char *p, FILE * f)
-{
+int line_get(char* p, FILE* f) {
   int n, i, status;
-  char **buf;
+  char** buf;
   char s[N];
 
   n = line_info.n;
@@ -37,8 +33,7 @@ line_get(char *p, FILE * f)
 
   if (i >= n) {
     status = line(s, f);
-    if (status != 0)
-      goto fail;
+    if (status != 0) goto fail;
     if (n >= LINE_N) {
       MSG(("n=%d >= LINE_N", n));
       goto fail;
@@ -59,20 +54,15 @@ fail:
   return 1;
 }
 
-int
-line_unget(void)
-{
+int line_unget(void) {
   line_info.i--;
-  if (line_info.i < 0)
-    return 1;
+  if (line_info.i < 0) return 1;
   return 0;
 }
 
-int
-line_fin(void)
-{
+int line_fin(void) {
   int n, i;
-  char **buf;
+  char** buf;
 
   n = line_info.n;
   buf = line_info.buf;
@@ -81,11 +71,9 @@ line_fin(void)
   return 0;
 }
 
-int
-line_write(FILE * f)
-{
+int line_write(FILE* f) {
   int n, i;
-  char **buf;
+  char** buf;
 
   n = line_info.n;
   buf = line_info.buf;
@@ -97,25 +85,18 @@ line_write(FILE * f)
   return 0;
 }
 
-static int
-line(char *s, FILE * f)
-{
+static int line(char* s, FILE* f) {
   do
-    if (line0(s, f) != 0)
-      return 1;
+    if (line0(s, f) != 0) return 1;
   while (s[0] == '\0');
   return 0;
 }
 
-static int
-line0(char *s, FILE * f)
-{
+static int line0(char* s, FILE* f) {
   int n;
 
-  if (fgets(s, N, f) == NULL)
-    return 1;
+  if (fgets(s, N, f) == NULL) return 1;
   n = strlen(s);
-  if (n > 0 && s[n - 1] == '\n')
-    s[n - 1] = '\0';
+  if (n > 0 && s[n - 1] == '\n') s[n - 1] = '\0';
   return 0;
 }

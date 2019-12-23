@@ -2,10 +2,8 @@
 
 #include <csv.h>
 
-int
-main(void)
-{
-  struct CSV *csv;
+int main(void) {
+  struct CSV* csv;
   double *age, *x;
   int i, n;
 

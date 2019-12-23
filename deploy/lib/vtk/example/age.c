@@ -1,9 +1,9 @@
 #include <assert.h>
+#include <ctype.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 #include <csv.h>
 #include <table.h>
@@ -13,23 +13,23 @@ static char me[] = "vtk/age";
 
 #include "util.h"
 
-#define	USED(x)		if(x);else{}
-static int read(const char *path, const char *, int *, double *);
-static int write(const char *path, const char *field, int, const double *,
-                 const double *);
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
+static int read(const char* path, const char*, int*, double*);
+static int write(
+    const char* path, const char* field, int, const double*, const double*);
 
-static void
-usg(void)
-{
+static void usg(void) {
   fprintf(stderr, "%s [-p pattern] [-f field] [file.csv ..]\n", me);
   exit(1);
 }
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
   double *cl, *age;
-  struct Table *tbl;
+  struct Table* tbl;
   int n, i, key, value, status;
   char name[N];
   const char *pattern, *field;
@@ -38,26 +38,26 @@ main(int argc, char **argv)
   pattern = field = NULL;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
-    case 'h':
-      usg();
-      break;
-    case 'f':
-      argv++;
-      if ((field = *argv) == NULL) {
-        fprintf(stderr, "%s: -p needs an argument\n", me);
-        exit(2);
-      }
-      break;
-    case 'p':
-      argv++;
-      if ((pattern = *argv) == NULL) {
-        fprintf(stderr, "%s: -p needs an argument\n", me);
-        exit(2);
-      }
-      break;
-    default:
-      fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
-      exit(1);
+      case 'h':
+        usg();
+        break;
+      case 'f':
+        argv++;
+        if ((field = *argv) == NULL) {
+          fprintf(stderr, "%s: -p needs an argument\n", me);
+          exit(2);
+        }
+        break;
+      case 'p':
+        argv++;
+        if ((pattern = *argv) == NULL) {
+          fprintf(stderr, "%s: -p needs an argument\n", me);
+          exit(2);
+        }
+        break;
+      default:
+        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+        exit(1);
     }
   if (*argv == NULL) {
     fprintf(stderr, "%s: no files given\n", me);
@@ -113,8 +113,7 @@ main(int argc, char **argv)
     for (i = 0; i < n; i++) {
       key = cl[i];
       status = table_get(tbl, key, &value);
-      if (status != TABLE_EMPY && value > 0)
-        table_remove(tbl, key);
+      if (status != TABLE_EMPY && value > 0) table_remove(tbl, key);
     }
     for (i = 0; i < n; i++) {
       key = cl[i];
@@ -135,13 +134,11 @@ main(int argc, char **argv)
   return 0;
 }
 
-static int
-read(const char *name, const char *field, int *pn, double *a)
-{
+static int read(const char* name, const char* field, int* pn, double* a) {
   int i, n;
-  FILE *f;
-  struct CSV *csv;
-  double *data;
+  FILE* f;
+  struct CSV* csv;
+  double* data;
 
   if (name == NULL) {
     fprintf(stderr, "%s: name is empty\n", me);
@@ -172,13 +169,12 @@ read(const char *name, const char *field, int *pn, double *a)
   return 0;
 }
 
-static int
-write(const char *name, const char *field, int n, const double *cl,
-      const double *age)
-{
+static int write(
+    const char* name, const char* field, int n, const double* cl,
+    const double* age) {
   int i;
-  struct CSV *csv;
-  FILE *f;
+  struct CSV* csv;
+  FILE* f;
   double *cl0, *age0;
 
   csv = csv_ini(n);
@@ -209,17 +205,13 @@ write(const char *name, const char *field, int n, const double *cl,
   return 0;
 }
 
-static int
-digits(const char *s, char *ans)
-{
+static int digits(const char* s, char* ans) {
   int i, j;
 
   for (i = j = 0; s[i] != '\0'; i++)
-    if (s[i] == '/')
-      j = i + 1;
+    if (s[i] == '/') j = i + 1;
   for (; s[j] != '\0'; j++)
-    if (isdigit(s[j]))
-      break;
+    if (isdigit(s[j])) break;
   for (i = j; s[i] != '\0'; i++)
     if (!isdigit(s[i]))
       break;
@@ -229,11 +221,9 @@ digits(const char *s, char *ans)
   return 0;
 }
 
-static int
-output_name(const char *p0, const char *name, char *output)
-{
+static int output_name(const char* p0, const char* name, char* output) {
   char dig[N], pattern[N];
-  char *c;
+  char* c;
 
   strncpy(pattern, p0, N);
   c = strchr(pattern, '%');

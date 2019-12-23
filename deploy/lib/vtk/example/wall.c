@@ -2,33 +2,32 @@
 #include <stdlib.h>
 
 #include <vtk.h>
-#define	USED(x)		if(x);else{}
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
 static char me[] = "vtk/wall";
-static void
-usg()
-{
+static void usg() {
   fprintf(stderr, "%s < VTK > VTK\n", me);
   exit(1);
 }
 
-int
-main(int argc, char **argv)
-{
-  struct VTK *vtk;
+int main(int argc, char** argv) {
+  struct VTK* vtk;
   int n, i, *flag;
-  float *cl;
+  float* cl;
 
   USED(argc);
   while (*++argv != NULL && *argv[0] == '-')
     switch (argv[0][1]) {
-    case 'h':
-      usg();
-      break;
-    default:
-      fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
-      exit(1);
+      case 'h':
+        usg();
+        break;
+      default:
+        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+        exit(1);
     }
-
 
   vtk = vtk_read(stdin);
   if (vtk == NULL) {

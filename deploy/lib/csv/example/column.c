@@ -5,14 +5,16 @@
 
 static const char me[] = "column";
 
-#define	USED(x)		if(x);else{}
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
   int i, nr;
-  double *field;
-  struct CSV *csv;
+  double* field;
+  struct CSV* csv;
 
   USED(argc);
   argv++;
