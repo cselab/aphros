@@ -1,5 +1,5 @@
-Library
-=======
+Tools
+=====
 
 .. toctree::
    :glob:
