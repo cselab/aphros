@@ -8,7 +8,9 @@ SPHINXPROJ    = hydro
 SOURCEDIR     = src
 BUILDDIR      = build
 
-all: install
+default: install
+
+all: install web
 
 web: singlehtml
 
