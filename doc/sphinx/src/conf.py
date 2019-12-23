@@ -1,3 +1,7 @@
+import glob
+import re
+import os
+
 extensions = [
               'sphinx.ext.githubpages',
               'sphinx.ext.imgmath',
@@ -12,18 +16,17 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 
-project = 'hydro'
-copyright = '2019, ETH Zurich'
-author = 'ETH Zurich'
+project = 'Aphros'
+#copyright = '2019, ETH Zurich'
+#author = 'ETH Zurich'
+author = ''
 
 # short X.Y version
-version = "0.1"
+#version = "0.1"
 # full version
-release = "0.1"
+#release = "0.1"
 
 language = None
-
-exclude_patterns = []
 
 pygments_style = 'sphinx'
 
@@ -53,20 +56,29 @@ html_math_renderer = 'imgmath'
 # latex
 latex_elements = {}
 latex_documents = [
-    (master_doc, 'hydro.tex', u'cubism-hydro Documentation',
-     u'ETH Zurich', 'manual'),
+    (master_doc, 'hydro.tex', u'Aphros documentation', author, 'manual'),
 ]
-
 
 # man
 man_pages = [
-    (master_doc, 'hydro', u'hydro Documentation',
-     [author], 1)
+    (master_doc, 'hydro', u'Aphros documentation', '', 1)
 ]
+lib = "lib/"
+for p in glob.glob(lib + "*.rst"):
+    if p in [lib + "index.rst"]:
+        continue
+    path = os.path.splitext(p)[0]
+    name = os.path.basename(path)
+    desc = ''
+    with open(p) as f:
+        line = f.readline()
+        if line.startswith('..'):
+            desc = line[3:]
+    man_pages.append((path, name, desc, '', 1))
 
 # texinfo
 texinfo_documents = [
-    (master_doc, 'hydro', u'hydro Documentation',
+    (master_doc, 'hydro', u'Aphros documentation',
      author, 'hydro', 'One line description of project.',
      'Miscellaneous'),
 ]

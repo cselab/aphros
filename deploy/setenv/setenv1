@@ -13,3 +13,4 @@ export EIGEN3_INCLUDE_DIR
 
 export OMP_NUM_THREADS=1
 
+export MANPATH=$(MANPATH= manpath -g):$P/man
