@@ -27,7 +27,7 @@ man3: man
 	cp -v build/man/*.$$s "$$d/"
 
 install: man1 man3
-	mandb
+	mandb --user-db
 
 # Put it first so that "make" without argument is like "make help".
 help:
