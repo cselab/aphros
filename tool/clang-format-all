@@ -9,7 +9,12 @@ e () {
 
 list=clang-format-list
 
-e "find . -regextype posix-extended -regex '.*\.(cpp|c|ipp|h|hpp)' > $list"
+e "find . -type f \
+-name '*.h' -or \
+-name '*.hpp' -or \
+-name '*.ipp' -or \
+-name '*.cpp' -or \
+-name '*.c'  > $list"
 
 # 'clang-format -i' replaces symlinks with regular files
 echo "Excluded symlinks:"
