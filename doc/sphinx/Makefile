@@ -17,6 +17,7 @@ web: singlehtml
 install: man
 	mkdir -p "$(CHPREFIX)/man/man1"
 	cp -v build/man/* $(CHPREFIX)/man/man1
+	mandb
 
 
 # Put it first so that "make" without argument is like "make help".
