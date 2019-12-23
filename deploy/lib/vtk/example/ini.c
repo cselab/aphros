@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #include <vtk.h>
 
 enum { nv = 3, nt = 1 };

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+
 #include "err.h"
 #include "memory.h"
 #include "csv.h"

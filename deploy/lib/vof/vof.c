@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stddef.h>
 #include <stdio.h>
+
 #include <vofi.h>
 
 const static double EPS = 1e-6;
