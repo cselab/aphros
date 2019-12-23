@@ -14,17 +14,26 @@ all: install web
 
 web: singlehtml
 
-install: man
-	mkdir -p "$(CHPREFIX)/man/man1"
-	cp -v build/man/* $(CHPREFIX)/man/man1
-	mandb
+man1: man
+	s=1 ; \
+	d="$(CHPREFIX)/man/man$$s" ; \
+	mkdir -p "$$d" ; \
+	cp -v build/man/*.$$s "$$d/"
 
+man3: man
+	s=3 ; \
+	d="$(CHPREFIX)/man/man$$s" ; \
+	mkdir -p "$$d" ; \
+	cp -v build/man/*.$$s "$$d/"
+
+install: man1 man3
+	mandb
 
 # Put it first so that "make" without argument is like "make help".
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile all install web
+.PHONY: help Makefile all install web default man1 man3
 
 clean:
 	rm -rf build

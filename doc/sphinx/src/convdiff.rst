@@ -101,8 +101,8 @@ In addition to the requirements of the base class,
 the constructor takes mappings describing the boundary
 conditions and the initial fields:
 
-.. includecode:: src/solver/convdiffvi.h
-  :func: ConvDiffVectImp
+.. includecode:: src/solver/convdiffv.h
+  :func: ConvDiffVect
   :dedent: 2
 
 with the initial velocity ``fcvel``, 
