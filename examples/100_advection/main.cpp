@@ -1,14 +1,8 @@
 #undef NDEBUG
-#include <mpi.h>
 #include <cassert>
-#include <fstream>
-#include <functional>
-#include <iomanip>
 #include <iostream>
-#include <stdexcept>
 #include <string>
-#include <tuple>
-#include <utility>
+#include <memory>
 
 #include "distr/distrbasic.h"
 #include "solver/vof.h"
