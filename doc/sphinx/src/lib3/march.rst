@@ -46,7 +46,7 @@ returns location of the vertex i relative the nodes.
 first[i], second[i] are indexes of the nodes. offset[i] is a
 relative distance from the node first[i].
 
-.. includecode:: ../examples/000_march/main.c
+.. includecode:: examples/000_march/main.c
 
 Source
 ------
