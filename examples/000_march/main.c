@@ -4,14 +4,14 @@
 #include <march.h>
 
 enum { X, Y, Z };
-enum {N = MARCH_NTRI};
+enum {N = 3 * 3 * MARCH_NTRI};
 static double av(double a, double b, double o) {
   return a + (b - a) * o;
 }
 
 int main() {
-  double u[] = {-1, 0, 0, 0, 0, 0, 0, 1}, tri[3 * 3 * N], offset[3 * N], x;
-  int first[3 * N], second[3 * N], i, n;
+  double u[] = {-1, 0, 0, 0, 0, 0, 0, 1}, tri[N], offset[N], x;
+  int first[N], second[N], i, n;
 
   i = 0;
   march_cube_location(u, &n, tri, first, second, offset);
