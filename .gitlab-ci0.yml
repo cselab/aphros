@@ -15,7 +15,7 @@ build:
       cd ${CI_PROJECT_DIR}
       cd deploy
       ./all
-      . ch.setenv
+      . ap-setenv
       (cd hypre ; ./_run)
       cd ../src
       ./conf
