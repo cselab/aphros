@@ -10,7 +10,7 @@ Marching cubes.
 
 ::
 
-   #include <marh.h>
+   #include <march.h>
 
    static double MARCH_O[][3] = {
      {0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0},
