@@ -10,6 +10,7 @@ extensions = [
               ]
 
 templates_path = []
+today_fmt = ' '
 
 source_suffix = '.rst'
 
