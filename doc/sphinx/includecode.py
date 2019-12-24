@@ -57,7 +57,6 @@ def GetFunc(text, f, comment=True):
 # f: struct name
 def GetStruct(text, f):
     p = "(^.*struct " + f + " {[\w\W]*?};.*?$)"
-    print(p)
     m = re.search(p, text, re.MULTILINE)
     if not f or not m:
         text = "// Error: struct '{:}' not found in '{:}'".format(
