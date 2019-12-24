@@ -30,7 +30,7 @@ h5_serial_hdf write scalar field of dimension size[3] to file path.h5.
 
 h5_read_hdf reads scalar field from file path.xmf.
 
-h5_reads_xmf reads information about field file path.xmf.
+h5_read_xmf reads information about field file path.xmf.
 
 h5_hdf write a part of a scalar field.
 
