@@ -1,12 +1,21 @@
+from sphinx.util import logging
 import os
 
-def FindPath(relpath):
+def Error(msg, location):
+    logger = logging.getLogger(__name__)
+    logger.error(msg, location=location)
+
+def Assert(flag, msg, location=None):
+    if not flag:
+        Error(msg, location=location)
+
+def FindPath(relpath, location):
     def Try(abspath, *path):
         s = os.path.abspath(os.path.join(*path))
         if os.path.exists(s):
-            assert not abspath, \
+            Assert(not abspath,
                 "Ambiguous path: target found in '{:}' and '{:}'".format(
-                        abspath, s)
+                abspath, s), location)
             return s
         return abspath
 

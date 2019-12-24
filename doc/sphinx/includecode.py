@@ -179,7 +179,7 @@ class IncludeCode(SphinxDirective):
         try:
             location = self.state_machine.get_source_and_line(self.lineno)
             relpath = self.arguments[0]
-            abspath = FindPath(relpath)
+            abspath = FindPath(relpath, (self.env.docname, self.lineno))
             self.env.note_dependency(abspath)
 
             reader = LiteralIncludeReader(abspath, self.options, self.config)
