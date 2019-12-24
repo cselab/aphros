@@ -70,3 +70,9 @@ SOURCE
 ------
 
 .. linkpath:: deploy/lib/march
+
+EXAMPLES
+--------
+
+.. linkpath:: deploy/lib/march/example/sphere.c
+.. linkpath:: deploy/lib/march/example/main.c
