@@ -1,12 +1,16 @@
 import glob
 import re
 import os
+import sys
+
+sys.path.append(os.path.abspath("./"))
 
 extensions = [
               'sphinx.ext.githubpages',
               'sphinx.ext.imgmath',
               'sphinx.ext.viewcode',
               'includecode',
+              'linkpath',
               ]
 
 templates_path = []
@@ -86,3 +90,6 @@ texinfo_documents = [
      author, 'hydro', 'One line description of project.',
      'Miscellaneous'),
 ]
+
+
+todo_include_todos = True
