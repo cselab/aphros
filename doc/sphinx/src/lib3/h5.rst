@@ -53,4 +53,4 @@ Write a filed in serial:
 
 Write a filed using mpi:
 
-.. linkpath:: examples/003_h5_mpi_write/main.c
+.. linkpath:: examples/004_h5_mpi_write/main.c
