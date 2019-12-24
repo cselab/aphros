@@ -25,4 +25,6 @@ Source
 Example
 -------
 
+:linkpath:`examples/100_advection/main.cpp`
+
 .. includecode:: examples/100_advection/main.cpp
