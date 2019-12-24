@@ -17,3 +17,6 @@ Examples
 
    seq 10 | ch.hist --density
    seq 10 | ch.hist --cumulative
+
+.. linkpath:: tool/hist
+
