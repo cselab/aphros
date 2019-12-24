@@ -32,6 +32,8 @@ h5_read_hdf reads scalar field from file path.xmf.
 
 h5_read_xmf reads information about field file path.xmf.
 
+.. includecode:: examples/005_h5_read_xmf/main.c
+
 h5_hdf write a part of a scalar field.
 
 h5_xmf writes xmf file.

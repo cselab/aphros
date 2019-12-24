@@ -4,16 +4,11 @@
 
 int main(int argc, char** argv) {
   enum { X, Y, Z };
-  const char *path;
   char name[999];
   double ori[3], spa;
   int siz[3];
-  if ((path = argv[1]) == NULL) {
-    fprintf(stderr, "missing xmf path\n");
-    exit(2);
-  }
-  if (h5_read_xmf(path, name, ori, &spa, siz) != 0) {
-    fprintf(stderr, "fail to read '%s'\n", path);
+  if (h5_read_xmf(argv[1], name, ori, &spa, siz) != 0) {
+    fprintf(stderr, "fail to read '%s'\n", argv[1]);
     exit(2);
   }
   printf("name: %s\n", name);
