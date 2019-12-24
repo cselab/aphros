@@ -1,6 +1,5 @@
 SPHINXOPTS    =
-SPHINXBUILD   = python -msphinx
-SPHINXPROJ    = hydro
+SPHINXBUILD   = sphinx-build
 SOURCEDIR     = src
 BUILDDIR      = build
 
@@ -34,4 +33,4 @@ clean:
 	rm -rf build
 
 %: Makefile
-	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	$(SPHINXBUILD) $(SPHINXOPTS) -b $@ "$(SOURCEDIR)" "$(BUILDDIR)/$@"
