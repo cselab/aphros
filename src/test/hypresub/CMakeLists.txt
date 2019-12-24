@@ -7,5 +7,5 @@ add_executable(${EXE} main.cpp)
 
 target_link_libraries(${EXE} hypresub)
 
-add_test(NAME ${p} COMMAND ch.run ./${EXE})
+add_test(NAME ${p} COMMAND ap-run ./${EXE})
 

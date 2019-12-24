@@ -4,10 +4,10 @@
 
 set -eu
 
-ch.writearg "$@"
+ap-writearg "$@"
 echo "background" > job.id
 echo starting > job.status
 
-nohup bash ch.job &> /dev/null &
+nohup bash ap-job &> /dev/null &
 echo $! > pid
 

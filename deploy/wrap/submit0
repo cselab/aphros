@@ -1,1 +1,1 @@
-JOB=ch.job0 ch.submit $@
+JOB=ap-job0 ap-submit $@

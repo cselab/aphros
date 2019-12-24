@@ -3,12 +3,12 @@
 # Returns args for sim/base.makefile from par.conf
 # $1: directory containing par.conf (defaults to '.')
 
-import ch
+import aphros
 import sys
 
 v = sys.argv
 
 b = '.' if len(v) < 2 else v[1]
-c = ch.ReadPar(b)
+c = aphros.ReadPar(b)
 
-print(ch.GetMakeArg(c))
+print(aphros.GetMakeArg(c))

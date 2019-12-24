@@ -3,4 +3,4 @@
 set -eu
 
 make
-ch.run ./t.embed
+ap-run ./t.embed

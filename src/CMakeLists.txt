@@ -34,7 +34,7 @@ function(add_library name)
     _add_library(${name} ${ARGN})
   else()
     _add_library(${name} SHARED ${ARGN})
-    set_target_properties(${name} PROPERTIES PREFIX "hydro_")
+    set_target_properties(${name} PROPERTIES PREFIX "aphros_")
   endif()
   install(TARGETS ${name} EXPORT export DESTINATION ${CHPREFIX}/lib)
   target_include_directories(${name} INTERFACE "${CHPREFIX}/include/hydro")
@@ -61,7 +61,7 @@ set_property(TARGET ${T} APPEND PROPERTY INTERFACE_LINK_LIBRARIES
 # binary
 add_executable(${EXE} main.cpp)
 install(TARGETS ${EXE} DESTINATION "${CHPREFIX}/bin")
-set_target_properties(${EXE} PROPERTIES PREFIX "ch.")
+set_target_properties(${EXE} PROPERTIES PREFIX "ap-")
 target_link_libraries(${EXE} hydro)
 
 # test

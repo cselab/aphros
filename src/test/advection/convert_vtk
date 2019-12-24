@@ -3,5 +3,5 @@
 set -eu
 
 for f in u_*.dat ; do
-  ch.plain2vtk "$f"
+  ap-plain2vtk "$f"
 done

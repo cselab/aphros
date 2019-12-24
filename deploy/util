@@ -84,5 +84,5 @@ instin () {
 # Default 
 : ${MS=`suff`}
 : ${B="$HOME/bin"}
-: ${PRE="ch."}
+: ${PRE="ap-"}
 : ${BB=${P+$P/bin}}

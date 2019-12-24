@@ -17,7 +17,7 @@ while read f ; do
     echo "skip existing $fo"
     continue
   fi
-  c="ch.downsample $f $d $fo"
+  c="ap-downsample $f $d $fo"
   echo "$c"
   eval "$c"
 done

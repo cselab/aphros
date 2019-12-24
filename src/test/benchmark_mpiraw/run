@@ -7,4 +7,4 @@ e=t.benchmark_mpiraw
 echo 192 > np
 echo 10 > tl
 make
-ch.run ./$e
+ap-run ./$e

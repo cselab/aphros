@@ -2,7 +2,7 @@
 
 set -eu
 
-. ch.setenv
+. ap-prefix
 . ../util
 
 e () {

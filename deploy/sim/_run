@@ -2,7 +2,7 @@
 
 set -eu
 
-. ch.prefix
+. ap-prefix
 . ../util
 
 rsync -aPR --update ../.././sim/partstr/randc "$P"

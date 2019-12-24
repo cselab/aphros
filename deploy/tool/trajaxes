@@ -10,7 +10,7 @@ if len(av) == 2 and av[1] == '-h':
   sys.stderr.write(
 """usage: ./{:}
 Compute semi-axes of fitted ellipsoid.
-STDIN: output of ch.gettraj
+STDIN: output of ap-gettraj
 STDOUT: columns <n r0 r1 r2> with semi-axes in ascending order
 """.format(os.path.basename(av[0])))
   exit(1)

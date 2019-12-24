@@ -2,7 +2,7 @@
 
 set -eu
 
-. ch.prefix
+. ap-prefix
 . ../util
 
 instfnd argmax
@@ -37,5 +37,5 @@ instfnd task
 instfnd trajaxes
 instfnd vtkcolorall
 
-cp -rvf ch "$BB/" || true
+cp -rvf aphros "$BB/" || true
 

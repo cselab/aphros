@@ -7,6 +7,6 @@ e=t.benchmark_mpi
 make
 echo 192 > np
 echo 10 > tl
-ch.run ./$e
+ap-run ./$e
 
 cat timer.log
