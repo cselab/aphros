@@ -20,8 +20,7 @@ class LinkPath(SphinxDirective):
         abspath = FindPath(relpath, location)
         Assert(abspath, "Target not found '{:}'".format(relpath), location)
         text = abspath
-        p = nodes.paragraph(text=text)
-        #p = sphinx.addnodes.compact_paragraph(text=text)
+        p = nodes.problematic(text=text)
         return [p]
 
 
