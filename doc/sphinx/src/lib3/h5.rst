@@ -42,15 +42,15 @@ h5_read_xmf reads information about a field from path.xmf.
 Source
 ------
 
-.. linkpath:: deploy/lib/h5
+:linkpath:`deploy/lib/h5`
 
 Examples
 --------
 
-Write a filed in serial:
+Write a field in serial:
 
-.. linkpath:: examples/003_h5_serial_write/main.c
+| :linkpath:`examples/003_h5_serial_write/main.c`
 
-Write a filed using mpi:
+Write a field using mpi:
 
-.. linkpath:: examples/004_h5_mpi_write/main.c
+| :linkpath:`examples/004_h5_mpi_write/main.c`
