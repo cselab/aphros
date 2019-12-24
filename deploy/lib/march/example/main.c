@@ -9,7 +9,6 @@ int main() {
   int u, v, w;
   double a, b, c;
 
-  // double cube[8] = {-1, -1, -1, -1, 1, 1, 1, 1};
   march_cube(cube, &n, tri);
   if (n == 0) return 0;
 
