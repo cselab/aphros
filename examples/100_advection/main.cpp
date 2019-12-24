@@ -27,26 +27,26 @@ void Run(M& m, State&, Vars&) {
   } * ctx(sem);
 
   auto& as = ctx->as;
-  auto& mf_cond = ctx->mf_cond;
-  auto& fc_src = ctx->fc_src;
-  auto& ff_flux = ctx->ff_flux;
-
   const Scal tmax = 1.;
   const Vect vel(0.5, 0.3, 0.1);
-  const double cfl = 0.5;
+  const Scal cfl = 0.5;
 
   if (sem("init")) {
+    auto& fc_src = ctx->fc_src;
+    auto& ff_flux = ctx->ff_flux;
+    auto& mf_cond = ctx->mf_cond;
+
     fc_src.Reinit(m, 0);
     ff_flux.Reinit(m, 0);
     for (auto f : m.Faces()) {
       ff_flux[f] = vel.dot(m.GetSurface(f));
     }
-    FieldCell<Scal> fccl(m, 0); // color
+    FieldCell<Scal> fccl(m, 0); // initial color
     FieldCell<Scal> fcu(m, 0); // initial volume fraction
     for (auto c : m.Cells()) {
       fcu[c] = (m.GetCenter(c).dist(Vect(0.5, 0.5, 0.5)) < 0.2);
     }
-    const double dt = cfl * m.GetCellSize()[0] / vel.norm();
+    const Scal dt = cfl * m.GetCellSize()[0] / vel.norm();
     auto p = std::make_shared<typename Vof<M>::Par>();
     {
       Vars vr;
