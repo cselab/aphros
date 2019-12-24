@@ -65,3 +65,8 @@ relative distance from the corner first[i].
    march_cube_location(cube, &n, tri, p, q, offset);
    pos = av(MARCH_O[p[u]][X], MARCH_O[q[u]][X], offset[u]);
    assert(fabs(pos - tri[3 * u + X] < 1e-12));
+
+SOURCE
+------
+
+.. linkpath:: deploy/lib/march
