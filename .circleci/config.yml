@@ -22,7 +22,7 @@ jobs:
             cd /root/project
             cd deploy
             ./all
-            . ch.setenv
+            . ap-setenv
             (cd hypre ; ./_run)
             cd ../src
             ./conf
