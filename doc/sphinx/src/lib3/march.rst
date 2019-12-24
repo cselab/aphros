@@ -46,24 +46,7 @@ returns location of the vertex i relative the nodes.
 first[i], second[i] are indexes of the nodes. offset[i] is a
 relative distance from the node first[i].
 
-::
-
-   enum {X, Y, Z};
-   static double av(double a, double b, double o) {
-     return a + (b - a) * o;
-   }
-
-   double u[8] = {-1, 0, 0, 0, 0, 0, 0, 1};
-   double tri[3 * 3 * MARCH_NTRI];
-   int first[3 * MARCH_NTRI], second[3 * MARCH_NTRI];
-   double offset[3 * MARCH_NTRI];
-   double x;
-   int i;
-
-   i = 0;
-   march_cube_location(cube, &n, tri, first, second, offset);
-   x = av(MARCH_O[first[i]][X], MARCH_O[second[i]][X], offset[i]);
-   assert(fabs(pos - tri[3 * i + X] < 1e-12));
+.. includecode:: ../examples/000_march/main.c
 
 SOURCE
 ------
