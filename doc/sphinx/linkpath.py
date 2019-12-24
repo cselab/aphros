@@ -2,20 +2,28 @@ import os
 
 from docutils import nodes
 from docutils.parsers.rst import Directive
+from docutils.parsers.rst import directives
 
-from findpath import FindPath
+from sphinx.util.docutils import SphinxDirective
 
+from findpath import FindPath, Assert
 
-class LinkPath(Directive):
-    has_content = True
+class LinkPath(SphinxDirective):
+    has_content = False
+    required_arguments = 1
 
     def run(self):
-        assert len(self.content) == 1, \
-            "Expected relative path, got '{:}'".format(self.content)
-        relpath = self.content[0]
-        abspath = FindPath(relpath)
-        assert abspath, "Target not found '{:}'".format(relpath)
-        return [nodes.line(text=abspath)]
+        location = (self.env.docname, self.lineno)
+        args = self.arguments
+        relpath = args[0]
+        abspath = FindPath(relpath, location)
+        Assert(abspath, "Target not found '{:}'".format(relpath), location)
+        text = abspath
+        #p = nodes.line(text=text)
+        #p = nodes.Text(text="| asdf | asd | asdf \n\n\n")
+        p = nodes.raw("| asdf | asd | asdf \n\n\n")
+        #p = sphinx.addnodes.compact_paragraph(text=text)
+        return [p]
 
 
 def setup(app):
