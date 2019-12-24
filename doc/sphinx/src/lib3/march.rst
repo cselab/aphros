@@ -53,17 +53,17 @@ relative distance from the node first[i].
      return a + (b - a) * o;
    }
 
-   double cube[8] = {-1, 0, 0, 0, 0, 0, 0, 1};
+   double u[8] = {-1, 0, 0, 0, 0, 0, 0, 1};
    double tri[3 * 3 * MARCH_NTRI];
    int first[3 * MARCH_NTRI], second[3 * MARCH_NTRI];
    double offset[3 * MARCH_NTRI];
    double x;
-   int u;
+   int i;
 
-   u = 0;
+   i = 0;
    march_cube_location(cube, &n, tri, first, second, offset);
-   x = av(MARCH_O[first[u]][X], MARCH_O[second[u]][X], offset[u]);
-   assert(fabs(pos - tri[3 * u + X] < 1e-12));
+   x = av(MARCH_O[first[i]][X], MARCH_O[second[i]][X], offset[i]);
+   assert(fabs(pos - tri[3 * i + X] < 1e-12));
 
 SOURCE
 ------
