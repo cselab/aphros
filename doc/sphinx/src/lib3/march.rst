@@ -56,7 +56,10 @@ Source
 Examples
 --------
 
-Generate triangles for cube configurations given as arguments. Outputs
-obj file:
+Generate triangles for cube configurations given as arguments:
 
 .. linkpath:: examples/001_march_cell/main.c
+
+Generate a triangulated sphere:
+
+.. linkpath:: examples/002_march_sphere/main.c
