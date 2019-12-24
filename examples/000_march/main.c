@@ -10,13 +10,8 @@ static double av(double a, double b, double o) {
 }
 
 int main() {
-  double u[] = {-1, 0, 0, 0, 0, 0, 0, 1};
-  double tri[3 * 3 * N];
-  int first[3 * N], second[3 * N];
-  double offset[3 * N];
-  double x;
-  int i;
-  int n;
+  double u[] = {-1, 0, 0, 0, 0, 0, 0, 1}, tri[3 * 3 * N], offset[3 * N], x;
+  int first[3 * N], second[3 * N], i, n;
 
   i = 0;
   march_cube_location(u, &n, tri, first, second, offset);
