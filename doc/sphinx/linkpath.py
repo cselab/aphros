@@ -30,8 +30,7 @@ class LinkPath(Directive):
         a = Try(a, repo, "src", r)
 
         assert a, "Target not found '{:}'".format(r)
-        paragraph_node = nodes.paragraph(text=a)
-        return [paragraph_node]
+        return [nodes.line(text=a)]
 
 
 def setup(app):
