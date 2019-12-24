@@ -4,28 +4,16 @@
 
 int main(int argc, char** argv) {
   enum { X, Y, Z };
-  const char *path, *me;
+  const char *path;
   char name[999];
   double ori[3], spa;
   int siz[3];
-
-  me = argv[0];
-  while (*++argv != NULL && argv[0][0] == '-')
-    switch (argv[0][1]) {
-      case 'h':
-        fprintf(stderr, "%s PREFIX\n", me);
-        exit(2);
-        break;
-      default:
-        fprintf(stderr, "%s: unknow option\n", me);
-        exit(2);
-    }
-  if ((path = argv++ [0]) == NULL) {
-    fprintf(stderr, "%s: missing xmf path\n", me);
+  if ((path = argv[1]) == NULL) {
+    fprintf(stderr, "missing xmf path\n");
     exit(2);
   }
   if (h5_read_xmf(path, name, ori, &spa, siz) != 0) {
-    fprintf(stderr, "%s: fail to read '%s'\n", me, path);
+    fprintf(stderr, "fail to read '%s'\n", path);
     exit(2);
   }
   printf("name: %s\n", name);
