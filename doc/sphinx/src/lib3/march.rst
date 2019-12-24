@@ -3,7 +3,7 @@
 Marching cubes
 ==============
 
-SYNOPSIS
+Synopsis
 --------
 
 Marching cubes.
@@ -20,7 +20,7 @@ Marching cubes.
    int march_cube(double u[8], int* ntri, double* tri);
    int march_cube_location(double u[8], int* ntri, double* tri, int* first, int* second, double* offset);
 
-DESCRIPTION
+Description
 -----------
 
 Generates triangles of the isosurface for three-dimensional discrete
@@ -48,12 +48,12 @@ relative distance from the node first[i].
 
 .. includecode:: ../examples/000_march/main.c
 
-SOURCE
+Source
 ------
 
 .. linkpath:: deploy/lib/march
 
-EXAMPLES
+Examples
 --------
 
 Generate triangles for cube configurations given as arguments. Outputs
