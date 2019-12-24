@@ -48,3 +48,7 @@ Examples
 Write a filed in serial:
 
 .. linkpath:: examples/003_h5_serial_write/main.c
+
+Write a filed using mpi:
+
+.. linkpath:: examples/003_h5_mpi_write/main.c
