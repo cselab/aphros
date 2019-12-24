@@ -28,15 +28,15 @@ contains information.
 
 h5_serial_hdf write scalar field of dimension size[3] to file path.h5.
 
-h5_read_hdf reads scalar field from file path.xmf.
-
-h5_read_xmf reads information about field file path.xmf.
-
-.. includecode:: examples/005_h5_read_xmf/main.c
-
-h5_hdf write a part of a scalar field.
+h5_hdf write path.h5 using MPI.
 
 h5_xmf writes xmf file.
+
+h5_read_hdf reads scalar field from path.h5.
+
+h5_read_xmf reads information about a field from path.xmf.
+
+.. includecode:: examples/005_h5_read_xmf/main.c
 
 
 Source
