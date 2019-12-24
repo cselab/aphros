@@ -24,20 +24,26 @@ struct State {};
 
 void Run(M& m, State&, Vars&) {
   auto sem = m.GetSem();
+
   struct {
     std::unique_ptr<Vof<M>> as; // advection solver
     FieldCell<Scal> fc_src; // volume source
     FieldFace<Scal> ff_flux; // volume flux
     MapCondFaceAdvection<Scal> mf_cond; // face conditions
   } * ctx(sem);
+
   auto& as = ctx->as;
   auto& mf_cond = ctx->mf_cond;
   auto& fc_src = ctx->fc_src;
   auto& ff_flux = ctx->ff_flux;
+
+  const Scal tmax = 1.;
+  const Vect vel(0.5, 0.3, 0.1);
+  const double cfl = 0.5;
+
   if (sem("init")) {
     fc_src.Reinit(m, 0);
     ff_flux.Reinit(m, 0);
-    const Vect vel(0.5, 0.3, 0.1);
     for (auto f : m.Faces()) {
       ff_flux[f] = vel.dot(m.GetSurface(f));
     }
@@ -46,7 +52,7 @@ void Run(M& m, State&, Vars&) {
     for (auto c : m.Cells()) {
       fcu[c] = (m.GetCenter(c).dist(Vect(0.5, 0.5, 0.5)) < 0.2);
     }
-    const double dt = 1. / (vel.norm() * m.GetCellSize()[0]);
+    const double dt = cfl * m.GetCellSize()[0] / vel.norm();
     auto p = std::make_shared<typename Vof<M>::Par>();
     {
       Vars vr;
@@ -55,8 +61,7 @@ void Run(M& m, State&, Vars&) {
       vr.Int.Set("max", 10000);
       p->dmp = std::unique_ptr<Dumper>(new Dumper(vr, ""));
     }
-    as.reset(new Vof<M>(
-        m, fcu, fccl, mf_cond, &ff_flux, &fc_src, 0., dt, p));
+    as.reset(new Vof<M>(m, fcu, fccl, mf_cond, &ff_flux, &fc_src, 0., dt, p));
   }
   sem.LoopBegin();
   if (sem.Nested("start")) {
@@ -69,12 +74,14 @@ void Run(M& m, State&, Vars&) {
     as->FinishStep();
   }
   if (sem("checkloop")) {
-    if (as->GetTime() >= 1.) {
+    if (as->GetTime() >= tmax) {
       sem.LoopBreak();
     }
   }
   if (sem("dump")) {
     m.Dump(&as->GetField(), "u");
+  }
+  if (sem()) {
   }
   sem.LoopEnd();
 }
