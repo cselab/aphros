@@ -49,8 +49,7 @@ int main(int argc, char** argv) {
 
   int siz[] = {n, n, n};
   spa = -2*ori[X]/siz[X];
-  n = siz[X] * siz[Y] * siz[Z];
-  if ((buf = malloc(n * sizeof(*buf))) == NULL) {
+  if ((buf = malloc(n * n * n * sizeof(*buf))) == NULL) {
       fprintf(stderr, "%s: fail to malloc (n = %d)\n", me, n);
       exit(2);
   }
@@ -71,4 +70,5 @@ int main(int argc, char** argv) {
       fprintf(stderr, "%s can't wrtie to '%s'\n", me, path);
       exit(2);
   }
+  free(buf);
 }
