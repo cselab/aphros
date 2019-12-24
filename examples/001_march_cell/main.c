@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <march.h>
 
 int main(int argc, char** argv) {
@@ -8,8 +7,12 @@ int main(int argc, char** argv) {
   double tri[3 * 3 * MARCH_NTRI], x, y, z;
   int n, i, j, a, b, c;
 
+  if (argv[1] && argv[1][0] == '-' && argv[1][1] == 'h') {
+    fprintf(stderr, "./main -1 -1 1 1 1 1 1 -1 > OBJ\n");
+    exit(2);
+  }
   if (argc != 9) {
-    fprintf(stderr, "needs eith arguments (%d given)\n", argc - 1);
+    fprintf(stderr, "needs 8 arguments (%d given)\n", argc - 1);
     exit(2);
   }
   for (i = 0; i < 8; i++)

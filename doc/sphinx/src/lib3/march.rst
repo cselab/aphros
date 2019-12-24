@@ -56,5 +56,7 @@ SOURCE
 EXAMPLES
 --------
 
-.. linkpath:: deploy/lib/march/example/sphere.c
-.. linkpath:: deploy/lib/march/example/main.c
+Generate triangles for cube configurations given as arguments. Outputs
+obj file:
+
+.. linkpath:: examples/001_march_cell/main.c

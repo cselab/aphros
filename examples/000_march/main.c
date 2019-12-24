@@ -10,7 +10,7 @@ static double av(double a, double b, double o) {
 }
 
 int main() {
-  double u[] = {-1, 0, 0, 0, 0, 0, 0, 1}, tri[N], offset[N], x;
+  double u[] = {-1, 1, 1, 1, 1, 1, 1, -1}, tri[N], offset[N], x;
   int first[N], second[N], i, n;
 
   i = 0;
