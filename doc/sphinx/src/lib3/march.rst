@@ -51,15 +51,15 @@ relative distance from the node first[i].
 Source
 ------
 
-.. linkpath:: deploy/lib/march
+:linkpath:`deploy/lib/march`
 
 Examples
 --------
 
 Generate triangles for cube configurations given as arguments:
 
-.. linkpath:: examples/001_march_cell/main.c
+| :linkpath:`examples/001_march_cell/main.c`
 
 Generate a triangulated sphere:
 
-.. linkpath:: examples/002_march_sphere/main.c
+| :linkpath:`examples/002_march_sphere/main.c`
