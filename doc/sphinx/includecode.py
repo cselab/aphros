@@ -1,5 +1,6 @@
 import sys
 import warnings
+import re
 
 from docutils import nodes
 from docutils.parsers.rst import directives
@@ -17,7 +18,7 @@ from sphinx.util import logging
 from sphinx.util import parselinenos
 from sphinx.util.docutils import SphinxDirective
 
-import re
+from findpath import FindPath
 
 if False:
     # For type annotation
@@ -177,13 +178,14 @@ class IncludeCode(SphinxDirective):
 
         try:
             location = self.state_machine.get_source_and_line(self.lineno)
-            rel_filename, filename = self.env.relfn2path(self.arguments[0])
-            self.env.note_dependency(rel_filename)
+            relpath = self.arguments[0]
+            abspath = FindPath(relpath)
+            self.env.note_dependency(abspath)
 
-            reader = LiteralIncludeReader(filename, self.options, self.config)
+            reader = LiteralIncludeReader(abspath, self.options, self.config)
             text, lines = reader.read(location=location)
 
-            retnode = nodes.literal_block(text, text, source=filename)  # type: nodes.Element
+            retnode = nodes.literal_block(text, text, source=abspath)  # type: nodes.Element
             #self.set_source_info(retnode)
             if 'language' not in self.options:
                 self.options['language'] = 'cpp'
