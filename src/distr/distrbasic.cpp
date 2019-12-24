@@ -24,6 +24,8 @@ set int comm_size 8
 
 set string backend cubismnc
 set int histogram 0
+set int openmp 0
+set int mpi_compress_msg 0
 
 set int max_step 1
 set int num_frames 1
