@@ -26,11 +26,11 @@ Description
 A field is stored as two files: hdf5 file contains data and xmf file
 contains information.
 
-h5_serial_hdf write scalar field of dimension size[3] to file path.
+h5_serial_hdf write scalar field of dimension size[3] to file path.h5.
 
-h5_read_hdf reads scalar field from file path.
+h5_read_hdf reads scalar field from file path.xmf.
 
-h5_reads_xmf reads information about field from xmf file.
+h5_reads_xmf reads information about field file path.xmf.
 
 h5_hdf write a part of a scalar field.
 
@@ -44,3 +44,7 @@ Source
 
 Examples
 --------
+
+Write a filed in serial:
+
+.. linkpath:: examples/003_h5_serial_write/main.c
