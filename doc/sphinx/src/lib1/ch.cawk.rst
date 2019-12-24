@@ -19,7 +19,6 @@ Examples
    1,10
    2,20
    3,30
-
    $ ch.cawk '{print $x + $y}' example.csv
    11
    22
