@@ -22,7 +22,7 @@ man3: man
 	cp -v build/man/*.$$s "$$d/"
 
 install: man1 man3
-	mandb --user-db
+	mandb -q --user-db
 
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
