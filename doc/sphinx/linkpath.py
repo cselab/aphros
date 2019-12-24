@@ -4,6 +4,7 @@ from docutils import nodes
 from docutils.parsers.rst import Directive
 from docutils.parsers.rst import directives
 
+import sphinx
 from sphinx.util.docutils import SphinxDirective
 
 from findpath import FindPath, Assert
@@ -19,9 +20,7 @@ class LinkPath(SphinxDirective):
         abspath = FindPath(relpath, location)
         Assert(abspath, "Target not found '{:}'".format(relpath), location)
         text = abspath
-        #p = nodes.line(text=text)
-        #p = nodes.Text(text="| asdf | asd | asdf \n\n\n")
-        p = nodes.raw("| asdf | asd | asdf \n\n\n")
+        p = nodes.paragraph(text=text)
         #p = sphinx.addnodes.compact_paragraph(text=text)
         return [p]
 
