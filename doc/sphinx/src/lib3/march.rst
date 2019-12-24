@@ -9,8 +9,8 @@ SYNOPSIS
 Marching cubes.
 
 ::
-   #include <marh.h>
 
+   #include <marh.h>
 
    static double MARCH_O[][3] = {
      {0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0},
