@@ -2,7 +2,7 @@
 
 set -eu
 
-. ap-prefix
+. ap-setenv
 . ../util
 
 instfnd argmax
@@ -13,6 +13,7 @@ instfnd diff
 instfnd diffnum
 instfnd downsample
 instfnd downsampleall
+instfnd format
 instfnd genxmf
 instfnd genxmfall
 instfnd getcol
