@@ -1,4 +1,4 @@
-.. hdf5 IO wrapper
+.. hdf5 read/write scalar field in hdf5
 
 HDF5 IO wrapper
 ===============
@@ -6,7 +6,7 @@ HDF5 IO wrapper
 Synopsis
 --------
 
-A wrapper to read/write data on uniform grid as hdf5 files.
+A library to read/write scalar field on uniform grid.
 
 ::
 
@@ -21,8 +21,8 @@ A wrapper to read/write data on uniform grid as hdf5 files.
 Description
 -----------
 
-A scalar field is stored into two files hdf5 contains data and xmf
-file contains meta information.
+A field is stored as two files: hdf5 file contains data and xmf file
+contains information.
 
 h5_serial_hdf write scalar field of dimension size[3] to file path.
 
@@ -32,7 +32,7 @@ h5_reads_xmf reads information about field from xmf file.
 
 h5_hdf write a part of a scalar field.
 
-h5_xmf writes xmf file with field information.
+h5_xmf writes xmf file.
 
 
 Source
