@@ -2,5 +2,5 @@
 
 set -eu
 
-ch.cawk '$r < 0.1 {print $r, $vf/(ARGC - 1)}' ../traj_0{200..240}.csv | ch.hist --range 0 0.1 --bins 50 > volr.dat
+ap-cawk '$r < 0.1 {print $r, $vf/(ARGC - 1)}' ../traj_0{200..240}.csv | ap-hist --range 0 0.1 --bins 50 > volr.dat
 

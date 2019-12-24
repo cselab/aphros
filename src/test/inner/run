@@ -5,7 +5,7 @@ set -eu
 e=t.inner
 
 echo 4 > np
-ch.mpirun ./$e
+ap-mpirun ./$e
 
 for i in 0 1 2 3 ; do
   a=$i.ref

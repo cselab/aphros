@@ -6,11 +6,11 @@ import numpy
 import sys
 from glob import glob
 
-import ch
+import aphros
 
-sh = ch.sh
+sh = aphros.sh
 
-a = ch.GetStdPar('out', 'We', 'La', 'tmax', 'dim', 'dumpdefault', 
+a = aphros.GetStdPar('out', 'We', 'La', 'tmax', 'dim', 'dumpdefault', 
         'nfr', 'np', 'nx', 'chsm', 'pos', 'dom')
 a['La'][0] = 1200.
 a['We'][0] = 0.01
@@ -23,13 +23,13 @@ a['np'][0] = 1
 a['nfr'][0] = 5
 a['nx'][0] = 128
 a['dummy'] = ["", "dummy directory"]
-a['ch'] = [1, "enable ch"]
+a['aphros'] = [1, "enable ch"]
 a['bap'] = [1, "enable bap"]
 a['bal'] = [1, "enable bal"]
 a['ba'] = [1, "enable ba"]
 a['vis'] = [1, "enable vis"]
 a['extra'] = ["", "extra arguments to ./gen"]
-c = ch.GetArgs(a)
+c = aphros.GetArgs(a)
 assert c.out is not None
 o = os.path.realpath(c.out)
 sh("mkdir -p '{:}'".format(o))
@@ -42,11 +42,11 @@ args += ' ' + ' '.join(sys.argv[1:])
 dummy = c.dummy if c.dummy else __file__
 
 for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
-    nxm = ch.GetBs(dim)
+    nxm = aphros.GetBs(dim)
     La = c.La
     We = c.We
     tmax = c.tmax
-    #nx = max(nxm, ch.Upper2(2 * cpr * (1. + tmax)))
+    #nx = max(nxm, aphros.Upper2(2 * cpr * (1. + tmax)))
     nx = c.nx
     np = c.np
     nfr = c.nfr
@@ -89,5 +89,5 @@ set int min_iter 3
 " > ch/add.conf
 '''.format(**locals())
 
-    sh("ch.task {:} {:} > {:} << 'EOF'\n {:}\nEOF".format(dummy, od, ot, cf))
+    sh("ap-task {:} {:} > {:} << 'EOF'\n {:}\nEOF".format(dummy, od, ot, cf))
     sh("chmod +x {:}".format(ot))

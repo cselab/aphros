@@ -6,7 +6,7 @@ AWK for CSV files
 Synopsis
 --------
 
-ch.cawk [-v var=value] ['prog'] [file ..]
+ap-cawk [-v var=value] ['prog'] [file ..]
 
 
 Examples
@@ -19,7 +19,7 @@ Examples
    1,10
    2,20
    3,30
-   $ ch.cawk '{print $x + $y}' example.csv
+   $ ap-cawk '{print $x + $y}' example.csv
    11
    22
    33

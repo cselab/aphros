@@ -36,7 +36,7 @@ binR = 0.1
 tt = "traj_0{201..240}.csv"
 bins = 50
 files = int(system("echo ".tt." | wc -w"))
-hist=sprintf("ch.hist --range %g %g --bins %d | awk '{print $1 , $2/%d}'", binL, binR, bins, files)
+hist=sprintf("ap-hist --range %g %g --bins %d | awk '{print $1 , $2/%d}'", binL, binR, bins, files)
 info = sprintf('bin width(mm)=%g, bins=%d, files=%d', (binR - binL)/bins*physx, bins, files)
 system("echo '".info."' > bins")
 

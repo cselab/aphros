@@ -1,3 +1,3 @@
 echo 12 > np
 echo "30' --partition 'debug"  > tl
-ch.submit0 ./run
+ap-submit0 ./run

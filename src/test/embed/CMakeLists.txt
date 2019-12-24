@@ -7,4 +7,4 @@ add_executable(${EXE} main.cpp)
 
 target_link_libraries(${EXE} distrsolver solver convdiffi)
      
-add_test(NAME ${p}-loc COMMAND ch.run ./${EXE} a.conf) 
+add_test(NAME ${p}-loc COMMAND ap-run ./${EXE} a.conf) 

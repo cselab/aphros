@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-import ch
+import aphros
 
-a = ch.GetStdPar('nx', 'dim', 'cpr', 'bcoh', 'bryk')
+a = aphros.GetStdPar('nx', 'dim', 'cpr', 'bcoh', 'bryk')
 a['nx'] = [0, 'mesh size, 0: auto based on cpr']
 a['bcoh'][0] = [0.2, 0.4, 0.6]
 
-c = vars(ch.GetArgs(a))
+c = vars(aphros.GetArgs(a))
 
 c['np'] = 1
 
@@ -18,8 +18,8 @@ dim = c['dim']
 cpr = c['cpr']
 
 if nx == 0: # auto nx
-    nxm = ch.GetBs(dim)
-    nx = max(nxm, ch.Upper2(2 * cpr + 1 + max(c['bcoh'])))
+    nxm = aphros.GetBs(dim)
+    nx = max(nxm, aphros.Upper2(2 * cpr + 1 + max(c['bcoh'])))
     c['nx'] = nx
 
 hx = dom / nx
@@ -32,8 +32,8 @@ if dim == 2:
 br = cpr / nx
 br = [br, br * c['bryk'], br]
 
-ch.par.WriteBub([bc], [br])
+aphros.par.WriteBub([bc], [br])
 
-ch.par.WriteDim(dim)
+aphros.par.WriteDim(dim)
 
-ch.WritePar(c)
+aphros.WritePar(c)

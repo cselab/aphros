@@ -3,4 +3,4 @@
 # Compute kinetic energy dissipation rate 
 # from stat.dat
 
-paste <(ch.getcol ekin) <(ch.getcol t) | ch.deriv | ch.scale -1.
+paste <(ap-getcol ekin) <(ap-getcol t) | ap-deriv | ap-scale -1.

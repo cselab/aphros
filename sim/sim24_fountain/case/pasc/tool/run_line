@@ -13,5 +13,5 @@ for f in trajr_*.csv ; do
     echo "skip existing '$o'" >&2
     continue
   fi
-  ch.line < $f > $o
+  ap-line < $f > $o
 done

@@ -13,7 +13,7 @@ fi
 
 extra="-DCURV_PARTSTR ${extra}"
 
-ch.conf . -DEXTRA="-grid=$g $extra"
+ap-conf . -DEXTRA="-grid=$g $extra"
 make
 
 ba.env ba.run -n "$np" main.s

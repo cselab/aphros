@@ -6,7 +6,7 @@ tl = 1440
 #m = 64 64 64
 #bs = 8 8 8
 
-include $(shell ch.makesim)
+include $(shell ap-makesim)
 
 clean::
 	rm -vrf sc

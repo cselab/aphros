@@ -1,6 +1,6 @@
 include par.make
 
-include $(shell ch.makesim)
+include $(shell ap-makesim)
 
 par.make par.conf: pargen
 	./pargen

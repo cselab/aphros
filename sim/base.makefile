@@ -23,20 +23,20 @@ error:
 cleanrun: cleanall run
 
 run: conf
-	ch.run ch.mfer
+	ap-run ap-mfer
 
 submit: conf
-	ch.submit ch.mfer
+	ap-submit ap-mfer
 
 submit2: conf
-	ch.submit2 ch.mfer
+	ap-submit2 ap-mfer
 
 kill:
-	ch.kill
+	ap-kill
 
 conf: mesh.conf tl
-	ch.base
-	ch.aconf
+	ap-base
+	ap-aconf
 
 np:
 	echo $(np) > np
@@ -45,7 +45,7 @@ tl:
 	echo $(tl) > tl
 
 mesh.conf: np
-	ch.part $(m) $(bs) `cat np` $(OMP_NUM_THREADS) > mesh.conf
+	ap-part $(m) $(bs) `cat np` $(OMP_NUM_THREADS) > mesh.conf
 
 clean::
 	rm -vf *.{png}

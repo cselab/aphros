@@ -2,5 +2,5 @@ m = 64 64 2
 bs = 32 32 2
 np = 2
 
-include $(shell ch.makesim)
+include $(shell ap-makesim)
 

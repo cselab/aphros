@@ -7,8 +7,8 @@ add_executable(${EXE} main.cpp)
 
 target_link_libraries(${EXE} distrsolver solver convdiffi)
      
-add_test(NAME ${p}-loc COMMAND ch.run ./${EXE} tloc) 
-add_test(NAME ${p}-cub COMMAND ch.run ./${EXE} tcub)
+add_test(NAME ${p}-loc COMMAND ap-run ./${EXE} tloc) 
+add_test(NAME ${p}-cub COMMAND ap-run ./${EXE} tcub)
 
 set_tests_properties(
   ${p}-loc ${p}-cub

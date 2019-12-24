@@ -7,7 +7,7 @@ r () {
   t=tmp
   sh -c "
     make -C ../../ install
-    ch.conf . -DEXTRA='-grid=multigrid3D $1'
+    ap-conf . -DEXTRA='-grid=multigrid3D $1'
     make clean
     make
     ba.env ba.run main.s

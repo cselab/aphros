@@ -2,7 +2,7 @@
 
 set -eu
 
-ch.writearg "$@"
+ap-writearg "$@"
 
 echo "foreground" > job.id
-. ch.job0
+. ap-job0

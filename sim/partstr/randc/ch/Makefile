@@ -1,6 +1,6 @@
 np = 1
 
-include $(shell ch.makesim)
+include $(shell ap-makesim)
 
 clean::
 	rm -vf ok ovf

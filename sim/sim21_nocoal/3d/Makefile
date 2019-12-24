@@ -5,4 +5,4 @@ tl = 10
 
 all: cleanrun
 
-include $(shell ch.makesim)
+include $(shell ap-makesim)

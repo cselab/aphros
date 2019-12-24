@@ -8,5 +8,5 @@ for f in $d/sm_*.vtk ; do
   b=`basename $f`
   o=${b%.vtk}.csv
   echo "$f $o"
-  ch.size < $f > $o
+  ap-size < $f > $o
 done

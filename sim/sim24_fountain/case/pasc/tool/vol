@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ch.cawk '
+ap-cawk '
   BEGIN {
     vol = 0
     cnt = 0

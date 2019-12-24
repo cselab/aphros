@@ -5,6 +5,6 @@ set -eu
 ./clean
 echo 1 > np
 echo > mesh.conf
-ch.base
-ch.aconf
-ch.run ../advection/t.advection
+ap-base
+ap-aconf
+ap-run ../advection/t.advection

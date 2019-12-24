@@ -55,7 +55,7 @@ stats()
             if [[ ! -f "${n}/${fhist}" ]]; then
                 continue
             fi
-            ch.histbin -f "${n}/${fhist}" -rs -sn ${stat} > 000_tmp.dat
+            ap-histbin -f "${n}/${fhist}" -rs -sn ${stat} > 000_tmp.dat
             local mean="$(cat 000_tmp.dat | awk '/^\s*mean/{ print $3; exit }')"
             local sdev="$(cat 000_tmp.dat | awk '/^\s*sdev/{ print $3; exit }')"
             local sum="$(cat 000_tmp.dat | awk '/^\s*sum/{ print $3; exit }')"

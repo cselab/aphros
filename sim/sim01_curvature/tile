@@ -5,7 +5,7 @@ import itertools as it
 import numpy as np
 from glob import glob
 
-import ch.plot as chp
+import aphros.plot as chp
 
 force=False
 
@@ -35,7 +35,7 @@ for dim in ddim:
     o='sdim{:}.pdf'.format(dim)
     if not os.path.isfile(o) or force:
         sh("pdfjoin {:} --outfile {:}".format(
-            ' '.join([os.path.join(f, 'pdf/ch/s.pdf') for f in fd]), o))
+            ' '.join([os.path.join(f, 'pdf/aphros/s.pdf') for f in fd]), o))
 
     # gather error
     ee = {}
@@ -59,7 +59,7 @@ for dim in ddim:
     cc = ['rx', 'ry', 'max', 'l1', 'l2']
     for n in ee:
         e = ee[n]
-        an = {'gerris':'ge', 'mfer':'ch'} # alias
+        an = {'gerris':'ge', 'mfer':'aphros'} # alias
         o = "er_d{:}_{:}.dat".format(dim, an[n])
         if os.path.isfile(o) and not force:
             continue

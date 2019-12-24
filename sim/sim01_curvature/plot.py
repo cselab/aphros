@@ -1,5 +1,5 @@
 #!/usr/bin/env python
 
-from ch.plot import *
+from aphros.plot import *
 
 Curv()

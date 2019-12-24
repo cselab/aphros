@@ -1,4 +1,4 @@
 echo 1440 > tl
 echo "24' -R 'fullnode" > np
 export OMP_NUM_THREADS=24
-ch.submit0 ./run
+ap-submit0 ./run

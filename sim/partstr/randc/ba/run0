@@ -18,7 +18,7 @@ if [ ! -f main.s ] ; then
   if [ "$dim" == "3" ] ; then
     g="multigrid3D"
   fi
-  ch.conf . -DEXTRA="-grid=$g $extra"
+  ap-conf . -DEXTRA="-grid=$g $extra"
   make
 fi
 

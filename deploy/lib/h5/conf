@@ -1,2 +1,2 @@
 #!/bin/sh
-ch.conf . "$@"
+ap-conf . "$@"

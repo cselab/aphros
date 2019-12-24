@@ -16,7 +16,7 @@ while read f ; do
     echo "skip existing $fo"
     continue
   fi
-  c="ch.genxmf $f $e"
+  c="ap-genxmf $f $e"
   echo "$c"
   eval "$c"
 done

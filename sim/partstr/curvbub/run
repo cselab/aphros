@@ -3,6 +3,6 @@
 set -eu
 
 ./clean
-ch.base
+ap-base
 ./t.advection
 ./partit.filt

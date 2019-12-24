@@ -4,7 +4,7 @@ all:
 	make cleanall
 	make run
 
-include $(shell ch.makesim)
+include $(shell ap-makesim)
 
 par.make par.conf: pargen
 	./pargen

@@ -5,11 +5,11 @@ import itertools as it
 import numpy as np
 from glob import glob
 
-import ch
+import aphros
 
-sh = ch.sh
+sh = aphros.sh
 
-a = ch.GetStdPar('out', 'La', 'tmax', 'dim', 'dumpdefault', 'nfr', 'np', 'nx')
+a = aphros.GetStdPar('out', 'La', 'tmax', 'dim', 'dumpdefault', 'nfr', 'np', 'nx')
 a['La'][0] = 1200.
 a['tmax'][0] = 1.
 a['cpr0'] = [0, "cpr range left"]
@@ -19,7 +19,7 @@ a['dim'][0] = 2
 a['np'][0] = 1
 a['nfr'][0] = 5
 a['nx'][0] = 64
-c = ch.GetArgs(a)
+c = aphros.GetArgs(a)
 assert c.out is not None
 o = os.path.realpath(c.out)
 sh("mkdir -p '{:}'".format(o))
@@ -27,10 +27,10 @@ sh("mkdir -p '{:}'".format(o))
 r0,r1,rs = (c.cpr0, c.cpr1, c.cprs)
 
 for dim,cpr in it.product([c.dim], 1. * 2 ** np.arange(r0,r1,rs)): 
-    nxm = ch.GetBs(dim)
+    nxm = aphros.GetBs(dim)
     La = c.La
     tmax = c.tmax
-    #nx = max(nxm, ch.Upper2(2 * cpr * (1. + tmax)))
+    #nx = max(nxm, aphros.Upper2(2 * cpr * (1. + tmax)))
     nx = c.nx
     dumpdefault = c.dumpdefault
     np = c.np
@@ -42,14 +42,14 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** np.arange(r0,r1,rs)):
     od = os.path.join(o, "dat_{:}".format(sf))
 
     cf = '''
-rm -f ch/done ge/done ba/done
+rm -f aphros/done ge/done ba/done
 
 ./gen -nx {nx} -cpr {cpr} -We 0 -La {La} -np {np} -nfr {nfr}  \
 -dim {dim} -tmax {tmax} -mode osc -pos center -chsm {chsm} \
 -nb 2 -b2xr 2 0 0 -b2rr 1
 
-echo "set int statvel 1" > ch/add.conf
+echo "set int statvel 1" > aphros/add.conf
 '''.format(**locals())
 
-    sh("ch.task {:} {:} > {:} <<< '{:}'".format(__file__, od, ot, cf))
+    sh("ap-task {:} {:} > {:} <<< '{:}'".format(__file__, od, ot, cf))
     sh("chmod +x {:}".format(ot))

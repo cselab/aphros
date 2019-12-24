@@ -6,11 +6,11 @@ import numpy
 import sys
 from glob import glob
 
-import ch
+import aphros
 
-sh = ch.sh
+sh = aphros.sh
 
-a = ch.GetStdPar('out', 'La', 'tmax', 'symmcorn', 'dumpdefault', 'bcoh', 'dim',
+a = aphros.GetStdPar('out', 'La', 'tmax', 'symmcorn', 'dumpdefault', 'bcoh', 'dim',
         'nfr', 'np', 'nx', 'chsm', 'dom')
 a['La'][0] = 1200.
 a['tmax'][0] = 1.
@@ -23,13 +23,13 @@ a['np'][0] = 1
 a['nfr'][0] = 5
 a['nx'][0] = 128
 a['dummy'] = ["", "dummy directory"]
-a['ch'] = [1, "enable ch"]
+a['aphros'] = [1, "enable aphros"]
 a['bap'] = [1, "enable bap"]
 a['bal'] = [1, "enable bal"]
 a['ba'] = [1, "enable ba"]
 a['vis'] = [1, "enable vis"]
 a['extra'] = ["", "extra arguments to ./gen"]
-c = ch.GetArgs(a)
+c = aphros.GetArgs(a)
 assert c.out is not None
 o = os.path.realpath(c.out)
 sh("mkdir -p '{:}'".format(o))
@@ -42,13 +42,13 @@ args += ' ' + ' '.join(sys.argv[1:])
 dummy = c.dummy if c.dummy else __file__
 
 for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
-    nxm = ch.GetBs(dim)
+    nxm = aphros.GetBs(dim)
     La = c.La
     tmax = c.tmax
     symmcorn = c.symmcorn
     bcoh = " ".join(map(str, c.bcoh))
     cprk = 1.2 if c.symmcorn else 2.4;
-    #nx = max(nxm, ch.Upper2(cpr * cprk)) 
+    #nx = max(nxm, aphros.Upper2(cpr * cprk)) 
     nx = c.nx
     np = c.np
     nfr = c.nfr
@@ -57,7 +57,7 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
     dom = c.dom
     extra = c.extra
 
-    chrun = "" if c.ch else "echo > r_ch"
+    chrun = "" if c.aphros else "echo > r_ch"
     barun = "" if c.ba else "echo > r_ba"
     baprun = "" if c.bap else "echo > r_bap"
     balrun = "" if c.bal else "echo > r_bal"
@@ -74,7 +74,7 @@ for dim,cpr in it.product([c.dim], 1. * 2 ** numpy.arange(r0,r1,rs)):
 
 # {args}
 
-rm -f ch/done ge/done
+rm -f aphros/done ge/done
 
 {chrun}
 {barun}
@@ -91,8 +91,8 @@ echo "set int statvel 1
 set int list_ls 2
 set string dumplist vf
 set int min_iter 3
-" > ch/add.conf
+" > aphros/add.conf
 '''.format(**locals())
 
-    sh("ch.task {:} {:} > {:} <<< '{:}'".format(dummy, od, ot, cf))
+    sh("ap-task {:} {:} > {:} <<< '{:}'".format(dummy, od, ot, cf))
     sh("chmod +x {:}".format(ot))

@@ -1,5 +1,5 @@
 make cleanrun
-#ch.mfer a.conf
+#ap-mfer a.conf
 #for f in *.h5 ; do
 #	echo $f
 #	./genxmf $f 2.

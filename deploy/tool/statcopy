@@ -3,7 +3,7 @@
 d=sc
 mkdir -p $d
 
-ch.getcol t > $d/t
-ch.getcol ekin > $d/k
-ch.kedr > $d/dk
+ap-getcol t > $d/t
+ap-getcol ekin > $d/k
+ap-kedr > $d/dk
 
