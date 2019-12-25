@@ -9,11 +9,11 @@ Prepare the environment and install dependencies:
      P=prefix ./all
      ```
 
-    to `prefix` and files `ch.prefix` and `ch.setenv` to `$HOME/bin`
+    to `prefix` and files `ap-prefix` and `ap-setenv` to `$HOME/bin`
 *   set environment
 
      ```
-     . ch.setenv
+     . ap-setenv
      ```
 
 *   install hypre
@@ -31,7 +31,7 @@ Prepare the environment and install dependencies:
 ## Prefix
 
 * Read from `$P` if set
-* Else from ch.prefix if found in `PATH`
+* Else from ap-prefix if found in `PATH`
 * Else defaults to `prefix`
 
 ## Run all packages
@@ -45,10 +45,10 @@ Prepare the environment and install dependencies:
 
 ## Setenv
 
-* `ch.setenv` is written to `$B` (`B=$HOME/bin` in `util`)
-  along with `ch.prefix`
+* `ap-setenv` is written to `$B` (`B=$HOME/bin` in `util`)
+  along with `ap-prefix`
 * All other units are installed to `$BB` (`BB=$P/bin` in `util`)
-* `ch.setenv` adds `$BB` to `PATH` and makes installed units available.
+* `ap-setenv` adds `$BB` to `PATH` and makes installed units available.
   This prevents the user from running units in an incomplete environment
   (e.g. modules loaded).
 
@@ -60,7 +60,7 @@ Prepare the environment and install dependencies:
 * Unit can be executed. Shell scripts can also be sourced.
 * _Machine suffix_ is a unique name associated to a particular machine.
 * _System unit_ is a unit located in `PATH`.
-* Name of a system unit has prefix `ch.` (_standard prefix_).
+* Name of a system unit has prefix `ap-` (_standard prefix_).
 * System units can be executed or sourced from any folder.
 * Unit can call other units by their name. Lookup order:
   - its folder with machine suffix,
@@ -77,11 +77,11 @@ Prepare the environment and install dependencies:
 * Unit `_run` should source `util`.
 * Restrictions apply to system units:
   - can execute or source only system units,
-  - need to source `ch.util` to make functions from `util` available.
+  - need to source `ap-util` to make functions from `util` available.
 * Reserved variables:
   - `P`: install path prefix
   - `B`: default `$HOME/bin`
   - `MS`: machine suffix
   - `PRE`: standard prefix
 
-TODO some places assume `PRE=ch`
+TODO some places assume `PRE=ap-`
