@@ -90,10 +90,6 @@ class Vof final : public AdvectionSolver<M_> {
   const FieldCell<Vect>& GetNormal() const;
   // Default curvature
   const FieldCell<Scal>& GetCurv() const override;
-  // Curvature from height functions
-  const FieldCell<Scal>& GetCurvH() const;
-  // Curvature from particles
-  const FieldCell<Scal>& GetCurvP() const;
   // Color
   const FieldCell<Scal>& GetColor() const;
   static constexpr Scal kClNone = -1; // no color

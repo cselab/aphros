@@ -12,6 +12,7 @@
 #include "geom/block.h"
 #include "normal.h"
 #include "partstrmeshm.h"
+#include "curv.h"
 #include "reconst.h"
 #include "trackerm.h"
 #include "util/vof.h"
@@ -56,7 +57,8 @@ struct Vof<M_>::Imp {
 
     auto ps = std::make_shared<typename PS::Par>();
     Update(ps.get());
-    auto psm = std::make_shared<typename PSM::Par>();
+    psm_par_ = std::make_shared<typename PSM::Par>();
+    auto& psm = psm_par_;
     psm->ps = ps;
     psm->ns = par->part_ns;
     psm->tol = par->part_tol;
@@ -66,7 +68,6 @@ struct Vof<M_>::Imp {
     psm->dump_fr = par->part_dump_fr;
     psm->vtkbin = par->vtkbin;
     psm->vtkmerge = par->vtkmerge;
-    psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
   }
   void UpdateBc(const MapCondFaceAdvection<Scal>& mfc) {
     UVof<M>::GetAdvectionFaceCond(
@@ -515,11 +516,9 @@ struct Vof<M_>::Imp {
       BcApply(fcn_, mfc_n_, m);
       // --> reflected fca [a], fcn [a]
     }
-    if (sem.Nested("curv-height")) {
-      UCurv<M>::CalcCurvHeight(fcu_.iter_curr, fcn_, par->dim, fck_, m);
-    }
     if (par->part && sem.Nested("part")) {
-      psm_->Part(&fca_, &fcn_, &fci_, nullptr);
+      psm_ = UCurv<M>::CalcCurvPart(
+          layers, &fca_, &fcn_, &fci_, nullptr, *psm_par_, &fck_, m);
     }
     if (sem.Nested("dump")) {
       Dump();
@@ -544,10 +543,11 @@ struct Vof<M_>::Imp {
   FieldCell<Scal> fcim_; // image
   FieldCell<Scal> fca_; // alpha (plane constant)
   FieldCell<Vect> fcn_; // n (normal to plane)
-  FieldCell<Scal> fck_; // curvature from height functions
+  FieldCell<Scal> fck_; // curvature
   FieldCell<bool> fci_; // interface mask (1: contains interface)
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
+  std::shared_ptr<typename PSM::Par> psm_par_;
   std::unique_ptr<PartStrMeshM<M>> psm_;
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
@@ -612,24 +612,12 @@ auto Vof<M_>::GetNormal() const -> const FieldCell<Vect>& {
 
 template <class M_>
 auto Vof<M_>::GetCurv() const -> const FieldCell<Scal>& {
-  return imp->par->part_k ? imp->psm_->GetCurv(0) : imp->fck_;
+  return imp->fck_;
 }
 
 template <class M_>
 void Vof<M_>::PostStep() {
   return imp->PostStep();
-}
-
-// curvature from height function
-template <class M_>
-auto Vof<M_>::GetCurvH() const -> const FieldCell<Scal>& {
-  return imp->fck_;
-}
-
-// curvature from particles
-template <class M_>
-auto Vof<M_>::GetCurvP() const -> const FieldCell<Scal>& {
-  return imp->psm_->GetCurv(0);
 }
 
 } // namespace solver
