@@ -125,7 +125,7 @@ struct PartStrMeshM<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& vfca,
       const Multi<const FieldCell<Vect>*>& vfcn,
       const Multi<const FieldCell<bool>*>& vfci,
-      const Multi<const FieldCell<Scal>*>& vfccl, const FieldCell<Scal>* fck) {
+      const Multi<const FieldCell<Scal>*>& vfccl) {
     using MIdx = typename M::MIdx;
     auto& bc = m.GetIndexCells();
 
@@ -145,9 +145,7 @@ struct PartStrMeshM<M_>::Imp {
       auto& fccl = *vfccl[l];
       for (auto c : m.Cells()) {
         Vect xc = m.GetCenter(c);
-        if (fci[c] && (nocl || fccl[c] != kClNone) &&
-            (!fck || IsNan((*fck)[c]) ||
-             std::abs((*fck)[c]) > 1. / (par->maxr * h[0]))) {
+        if (fci[c] && (nocl || fccl[c] != kClNone)) {
           // number of strings
           size_t ns = (par->dim == 2 ? 1 : par->ns);
           for (size_t s = 0; s < ns; ++s) {
@@ -197,19 +195,16 @@ struct PartStrMeshM<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& vfca,
       const Multi<const FieldCell<Vect>*>& vfcn,
       const Multi<const FieldCell<bool>*>& vfci,
-      const Multi<const FieldCell<Scal>*>& vfccl, const FieldCell<Scal>* fck) {
+      const Multi<const FieldCell<Scal>*>& vfccl) {
     auto sem = m.GetSem("part");
 
     if (sem("part-run")) {
-      Seed(vfca, vfcn, vfci, vfccl, fck);
+      Seed(vfca, vfcn, vfci, vfccl);
       partstr_->Run(par->tol, par->itermax, m.IsRoot() ? par->verb : 0);
       // compute curvature
       vfckp_.resize(layers);
       for (auto& fckp : vfckp_.data()) {
         fckp.Reinit(m, GetNan<Scal>());
-      }
-      if (fck) {
-        vfckp_[0] = *fck;
       }
       // XXX: assume strings from same cell contiguous
       auto ns = partstr_->GetNumStr();
@@ -393,8 +388,8 @@ void PartStrMeshM<M_>::Part(
     const Multi<const FieldCell<Scal>*>& vfca,
     const Multi<const FieldCell<Vect>*>& vfcn,
     const Multi<const FieldCell<bool>*>& vfci,
-    const Multi<const FieldCell<Scal>*>& vfccl, const FieldCell<Scal>* fck) {
-  imp->Part(vfca, vfcn, vfci, vfccl, fck);
+    const Multi<const FieldCell<Scal>*>& vfccl) {
+  imp->Part(vfca, vfcn, vfci, vfccl);
 }
 
 template <class M_>

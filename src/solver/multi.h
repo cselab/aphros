@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <memory>
+#include <stdexcept>
 
 #include "geom/mesh.h"
 #include "solver/solver.h"
@@ -82,6 +83,14 @@ class Multi {
   }
   void resize(const GRange<size_t>& layers) {
     d_.resize(layers.size());
+  }
+  void assert_size(const GRange<size_t>& layers) const {
+    if (layers.size() != size()) {
+      throw std::runtime_error(
+          std::string(__func__) +
+          ": sizes differ, layers.size()=" + std::to_string(layers.size()) +
+          " != size()=" + std::to_string(size()));
+    }
   }
   std::vector<T>& data() {
     return d_;
