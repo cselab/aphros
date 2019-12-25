@@ -21,7 +21,7 @@ struct PartStrMeshM<M_>::Imp {
 
   Imp(M& m, std::shared_ptr<const Par> par, const GRange<size_t>& layers)
       : m(m), par(par), layers(layers), vfckp_(layers.size()) {
-    // particle strings
+    par->ps->hc = m.GetCellSize().norminf();
     partstr_ = std::unique_ptr<PS>(new PS(par->ps));
     vfckp_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
   }
@@ -135,7 +135,6 @@ struct PartStrMeshM<M_>::Imp {
     vsl_.clear();
     vsan_.clear();
     bool nocl = (layers.size() == 1 && !vfccl[0]); // no color provided
-    Vect h = m.GetCellSize();
 
     // Seed strings in cells with interface.
     for (auto l : layers) {
