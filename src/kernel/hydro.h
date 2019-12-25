@@ -1127,7 +1127,7 @@ void Hydro<M>::CalcStat() {
         }
         for (auto l : layers) {
           auto& v = s.vofm[l];
-          auto& vf = as->GetField(l);
+          auto& vf = *as->GetFieldM()[l];
           auto& cl = *as->GetColor()[l];
           for (auto c : m.Cells()) {
             v.cells_vf += (vf[c] > 0 ? 1 : 0);
@@ -1141,7 +1141,7 @@ void Hydro<M>::CalcStat() {
         for (auto c : m.Cells()) {
           size_t cnt = 0;
           for (auto l : layers) {
-            if (as->GetField(l)[c] > 0) {
+            if ((*as->GetFieldM()[l])[c] > 0) {
               ++cnt;
             }
           }
@@ -1454,15 +1454,9 @@ void Hydro<M>::CalcSurfaceTension(
     ff_sig_ = solver::Interpolate(fc_sig_, GetBcSz(), m);
 
     if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-      solver::Multi<const FieldCell<Scal>*> fcu(layers);
-      solver::Multi<const FieldCell<Scal>*> fccl(layers);
-      solver::Multi<const FieldCell<Scal>*> fck(layers);
-      for (auto i : layers) {
-        fcu[i] = &as->GetField(i);
-      }
-      fccl = as->GetColor();
-      fck = as->GetCurv();
-      AppendSurfaceTension(ff_st, layers, fcu, fccl, fck, ff_sig_);
+      AppendSurfaceTension(
+          ff_st, layers, as->GetFieldM(), as->GetColor(), as->GetCurv(),
+          ff_sig_);
     } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
       AppendSurfaceTension(ff_st, as_->GetField(), as->GetCurv(), ff_sig_);
     }
@@ -1802,7 +1796,7 @@ void Hydro<M>::DumpFields() {
     if (auto as = dynamic_cast<ASVM*>(as_.get())) {
       for (auto l : layers) {
         auto sl = std::to_string(l);
-        if (dl.count("vf" + sl)) m.Dump(&as->GetField(l), "vf" + sl);
+        if (dl.count("vf" + sl)) m.Dump(as->GetFieldM()[l], "vf" + sl);
         if (dl.count("cl" + sl)) m.Dump(as->GetColor()[l], "cl" + sl);
         if (dl.count("nx" + sl)) m.Dump(as->GetNormal()[l], 0, "nx" + sl);
         if (dl.count("ny" + sl)) m.Dump(as->GetNormal()[l], 1, "ny" + sl);
@@ -1871,9 +1865,7 @@ void Hydro<M>::Dump() {
         solver::Multi<const FieldCell<Scal>*> fcu(layers);
         solver::Multi<const FieldCell<Scal>*> fccl(layers);
         if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-          for (auto l : layers) {
-            fcu[l] = &as->GetField(l);
-          }
+          fcu = as->GetFieldM();
           fccl = as->GetColor();
         } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
           fcu[0] = &as->GetField();
@@ -2357,7 +2349,7 @@ void Hydro<M>::StepBubgen() {
     if (sem("as-bubgen-apply")) {
       bgt_ = st_.t;
       if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-        auto& u = const_cast<FieldCell<Scal>&>(as->GetField(0));
+        auto& u = const_cast<FieldCell<Scal>&>(*as->GetFieldM()[0]);
         auto& cl = const_cast<FieldCell<Scal>&>(*as->GetColor()[0]);
         for (auto c : m.AllCells()) {
           if (fc_vf_[c] > 0) {
