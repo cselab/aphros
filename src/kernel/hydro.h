@@ -1354,14 +1354,6 @@ void Hydro<M>::CalcDt() {
 }
 
 template <class M>
-void Hydro<M>::Clip(const FieldCell<Scal>& f, Scal a, Scal b) {
-  auto& g = const_cast<FieldCell<Scal>&>(f);
-  for (auto i : m.Cells()) {
-    g[i] = std::max(a, std::min(b, g[i]));
-  }
-}
-
-template <class M>
 void Hydro<M>::AppendSurfaceTension(
     FieldFace<Scal>& ffst, const FieldCell<Scal>& fcu,
     const FieldCell<Scal>& fck, const FieldFace<Scal>& ffsig) {
@@ -2195,11 +2187,6 @@ void Hydro<M>::Run() {
     }
     if (sem.Nested("as-post")) {
       as_->PostStep();
-    }
-    if (var.Int["clip_vf"]) {
-      if (sem("as-clip")) {
-        Clip(as_->GetField(), 0., 1.);
-      }
     }
     if (var.Int["enable_bubgen"]) {
       if (sem.Nested("bubgen")) {
