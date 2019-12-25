@@ -20,9 +20,12 @@
 #include "func/init_vel.h"
 #include "geom/mesh.h"
 #include "geom/vect.h"
+#include "parse/curv.h"
 #include "parse/tvd.h"
 #include "parse/vof.h"
 #include "solver/advection.h"
+#include "solver/curv.h"
+#include "solver/multi.h"
 #include "solver/solver.h"
 #include "solver/tvd.h"
 #include "solver/vof.h"
@@ -100,6 +103,10 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   Scal sumu_; // sum of fluid volume
   FieldCell<Scal> fcnx_, fcny_, fcnz_; // normal to interface (tmp)
                                        // used for Vof dump
+  Multi<FieldCell<Scal>> fck_; // curvature
+  typename PartStrMeshM<M>::Par psm_par_;
+  std::unique_ptr<PartStrMeshM<M>> psm_;
+  GRange<size_t> layers;
   Dumper dmf_; // fields
   Dumper dms_; // statistics
 
@@ -110,6 +117,7 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
 template <class M>
 Advection<M>::Advection(Vars& v, const MyBlockInfo& b, Par& p)
     : KernelMeshPar<M, Par>(v, b, p)
+    , layers(1)
     , dmf_(v, "dump_field_")
     , dms_(v, "dump_stat_") {}
 
@@ -160,6 +168,13 @@ void Advection<M>::Init(Sem& sem) {
     } else {
       throw std::runtime_error("Unknown advection_solver=" + as);
     }
+    fck_.resize(layers);
+    fck_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
+    {
+      typename PartStr<Scal>::Par ps;
+      Parse(ps, m.GetCellSize().norminf(), var);
+      Parse<M>(psm_par_, ps, var);
+    }
   }
 }
 
@@ -178,13 +193,13 @@ void Advection<M>::Dump(Sem& sem) {
   if (sem("dump")) {
     if (dmf_.Try(var.Double["t"], var.Double["dt"])) {
       m.Dump(&as_->GetField(), "u");
+      m.Dump(&fck_[0], "k");
       if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
         m.Dump(&as->GetAlpha(), "a");
         auto& n = as->GetNormal();
         m.Dump(&n, 0, "nx");
         m.Dump(&n, 1, "ny");
         m.Dump(&n, 2, "nz");
-        m.Dump(&as->GetCurv(), "k");
       }
       if (auto as = dynamic_cast<solver::Vofm<M>*>(as_.get())) {
         m.Dump(as->GetAlpha()[0], "a");
@@ -192,7 +207,6 @@ void Advection<M>::Dump(Sem& sem) {
         m.Dump(n, 0, "nx");
         m.Dump(n, 1, "ny");
         m.Dump(n, 2, "nz");
-        m.Dump(&as->GetCurvSum(), "k");
       }
 
       if (IsRoot()) {
@@ -255,6 +269,9 @@ void Advection<M>::Run() {
   }
   if (sem.Nested("post")) {
     as_->PostStep();
+  }
+  if (sem.Nested("curv")) {
+    psm_ = UCurv<M>::CalcCurvPart(layers, as_.get(), psm_par_, fck_, m);
   }
   if (sem("stat-loc")) {
     sumu_ = 0.;
