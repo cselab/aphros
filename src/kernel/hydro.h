@@ -918,7 +918,6 @@ void Hydro<M>::CalcStat() {
 
   if (sem("stat-add")) {
     s.Add(fa, "vf", m);
-    s.Add(as_->GetCurv(), "k", m);
     s.Add(fv, 0, "vx", m);
     s.Add(fv, 1, "vy", m);
     s.Add(fv, 2, "vz", m);
@@ -1460,12 +1459,12 @@ void Hydro<M>::CalcSurfaceTension(
       solver::Multi<const FieldCell<Scal>*> fck(layers);
       for (auto i : layers) {
         fcu[i] = &as->GetField(i);
-        fck[i] = &as->GetCurv(i);
       }
       fccl = as->GetColor();
+      fck = as->GetCurv();
       AppendSurfaceTension(ff_st, layers, fcu, fccl, fck, ff_sig_);
-    } else {
-      AppendSurfaceTension(ff_st, as_->GetField(), as_->GetCurv(), ff_sig_);
+    } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
+      AppendSurfaceTension(ff_st, as_->GetField(), as->GetCurv(), ff_sig_);
     }
 
     // zero on boundaries
@@ -1750,7 +1749,6 @@ void Hydro<M>::DumpFields() {
     if (dl.count("vz")) m.Dump(&fcv, 2, "vz");
     if (dl.count("p")) m.Dump(&fs_->GetPressure(), "p");
     if (dl.count("vf")) m.Dump(&as_->GetField(), "vf");
-    if (dl.count("k")) m.Dump(&as_->GetCurv(), "k");
     if (dl.count("rho")) m.Dump(&fc_rho_, "rho");
     if (dl.count("mu")) m.Dump(&fc_mu_, "mu");
     if (dl.count("sig")) m.Dump(&fc_sig_, "sig");
@@ -1799,6 +1797,7 @@ void Hydro<M>::DumpFields() {
       if (dl.count("ny")) m.Dump(&as->GetNormal(), 1, "ny");
       if (dl.count("nz")) m.Dump(&as->GetNormal(), 2, "nz");
       if (dl.count("cls")) m.Dump(&as->GetColor(), "cls");
+      if (dl.count("k")) m.Dump(&as->GetCurv(), "k");
     }
     if (auto as = dynamic_cast<ASVM*>(as_.get())) {
       for (auto l : layers) {
@@ -1808,6 +1807,7 @@ void Hydro<M>::DumpFields() {
         if (dl.count("nx" + sl)) m.Dump(as->GetNormal()[l], 0, "nx" + sl);
         if (dl.count("ny" + sl)) m.Dump(as->GetNormal()[l], 1, "ny" + sl);
         if (dl.count("nz" + sl)) m.Dump(as->GetNormal()[l], 2, "nz" + sl);
+        if (dl.count("k" + sl)) m.Dump(as->GetCurv()[l], "k" + sl);
       }
 
       // combined colors

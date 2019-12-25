@@ -151,9 +151,6 @@ struct Tvd<M_>::Imp {
   const FieldCell<Scal>& GetField(Layers l) const {
     return fcu_.Get(l);
   }
-  const FieldCell<Scal>& GetCurv() const {
-    return fck_;
-  }
 
   Tvd* owner_;
   std::shared_ptr<Par> par;
@@ -213,11 +210,6 @@ void Tvd<M_>::FinishStep() {
 template <class M_>
 auto Tvd<M_>::GetField(Layers l) const -> const FieldCell<Scal>& {
   return imp->fcu_.Get(l);
-}
-
-template <class M_>
-auto Tvd<M_>::GetCurv() const -> const FieldCell<Scal>& {
-  return imp->fck_;
 }
 
 } // namespace solver

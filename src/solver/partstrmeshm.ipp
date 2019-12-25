@@ -358,8 +358,8 @@ struct PartStrMeshM<M_>::Imp {
     }
   }
 
-  const FieldCell<Scal>& GetCurv(size_t l) {
-    return vfckp_[l];
+  Multi<const FieldCell<Scal>*> GetCurv() {
+    return vfckp_;
   }
 
  private:
@@ -406,8 +406,8 @@ void PartStrMeshM<M_>::DumpParticles(
 }
 
 template <class M_>
-auto PartStrMeshM<M_>::GetCurv(size_t l) -> const FieldCell<Scal>& {
-  return imp->GetCurv(l);
+auto PartStrMeshM<M_>::GetCurv() -> Multi<const FieldCell<Scal>*> {
+  return imp->GetCurv();
 }
 
 } // namespace solver

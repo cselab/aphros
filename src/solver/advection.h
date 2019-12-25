@@ -52,8 +52,6 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
   virtual const FieldCell<Scal>& GetField() const {
     return GetField(Layers::time_curr);
   }
-  // Curvature
-  virtual const FieldCell<Scal>& GetCurv() const = 0;
 };
 
 } // namespace solver

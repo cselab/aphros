@@ -177,17 +177,14 @@ void Advection<M>::Dump(Sem& sem) {
   // TODO: Suspender: allow change stages between time steps
   if (sem("dump")) {
     if (dmf_.Try(var.Double["t"], var.Double["dt"])) {
-      auto& u = const_cast<FieldCell<Scal>&>(as_->GetField());
-      m.Dump(&u, "u");
-      auto& k = const_cast<FieldCell<Scal>&>(as_->GetCurv());
-      m.Dump(&k, "k");
+      m.Dump(&as_->GetField(), "u");
       if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
-        auto& a = const_cast<FieldCell<Scal>&>(as->GetAlpha());
-        m.Dump(&a, "a");
+        m.Dump(&as->GetAlpha(), "a");
         auto& n = as->GetNormal();
         m.Dump(&n, 0, "nx");
         m.Dump(&n, 1, "ny");
         m.Dump(&n, 2, "nz");
+        m.Dump(&as->GetCurv(), "k");
       }
       if (auto as = dynamic_cast<solver::Vofm<M>*>(as_.get())) {
         m.Dump(as->GetAlpha()[0], "a");
@@ -195,6 +192,7 @@ void Advection<M>::Dump(Sem& sem) {
         m.Dump(n, 0, "nx");
         m.Dump(n, 1, "ny");
         m.Dump(n, 2, "nz");
+        m.Dump(&as->GetCurvSum(), "k");
       }
 
       if (IsRoot()) {

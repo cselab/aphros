@@ -136,7 +136,7 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
   if (sem("copy")) {
     fck.assert_size(layers);
     for (auto l : layers) {
-      (*fck[l]) = psm->GetCurv(l);
+      (*fck[l]) = *psm->GetCurv()[l];
     }
     return std::move(psm);
   }

@@ -57,7 +57,7 @@ class PartStrMeshM {
       const Multi<const FieldCell<Scal>*>& vfca,
       const Multi<const FieldCell<Vect>*>& vfcn, size_t id, Scal t);
   // Returns curvature field from last call of Part()
-  const FieldCell<Scal>& GetCurv(size_t l);
+  Multi<const FieldCell<Scal>*> GetCurv();
 
  private:
   struct Imp; // implementation

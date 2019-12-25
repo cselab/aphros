@@ -39,8 +39,6 @@ class Tvd final : public AdvectionSolver<M_> {
   const FieldCell<Scal>& GetField(Layers l) const override;
   // ...
   using P::GetField;
-  // ...
-  const FieldCell<Scal>& GetCurv() const override;
 
  private:
   struct Imp; // implementation
