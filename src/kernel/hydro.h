@@ -1078,8 +1078,8 @@ void Hydro<M>::CalcStat() {
       s.area = 0;
       if (auto as = dynamic_cast<ASVM*>(as_.get())) {
         using R = Reconst<Scal>;
-        auto& fcn = as->GetNormal(0);
-        auto& fca = as->GetAlpha(0);
+        auto& fcn = *as->GetNormal()[0];
+        auto& fca = *as->GetAlpha()[0];
         auto& fcvf = as->GetField(solver::Layers::time_curr, 0);
         Vect h = m.GetCellSize();
         for (auto c : m.Cells()) {
@@ -1129,7 +1129,7 @@ void Hydro<M>::CalcStat() {
         for (auto l : layers) {
           auto& v = s.vofm[l];
           auto& vf = as->GetField(l);
-          auto& cl = as->GetColor(l);
+          auto& cl = *as->GetColor()[l];
           for (auto c : m.Cells()) {
             v.cells_vf += (vf[c] > 0 ? 1 : 0);
             v.cells_cl += (cl[c] != kClNone ? 1 : 0);
@@ -1460,9 +1460,9 @@ void Hydro<M>::CalcSurfaceTension(
       solver::Multi<const FieldCell<Scal>*> fck(layers);
       for (auto i : layers) {
         fcu[i] = &as->GetField(i);
-        fccl[i] = &as->GetColor(i);
         fck[i] = &as->GetCurv(i);
       }
+      fccl = as->GetColor();
       AppendSurfaceTension(ff_st, layers, fcu, fccl, fck, ff_sig_);
     } else {
       AppendSurfaceTension(ff_st, as_->GetField(), as_->GetCurv(), ff_sig_);
@@ -1496,8 +1496,8 @@ void Hydro<M>::CalcSurfaceTension(
       if (auto as = dynamic_cast<ASVM*>(as_.get())) {
         using R = Reconst<Scal>;
         auto fc_gsig = solver::Gradient(ff_sig_, m);
-        auto& fcn = as->GetNormal(0);
-        auto& fca = as->GetAlpha(0);
+        auto& fcn = *as->GetNormal()[0];
+        auto& fca = *as->GetAlpha()[0];
         Vect h = m.GetCellSize();
         for (auto c : m.Cells()) {
           if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {
@@ -1804,14 +1804,14 @@ void Hydro<M>::DumpFields() {
       for (auto l : layers) {
         auto sl = std::to_string(l);
         if (dl.count("vf" + sl)) m.Dump(&as->GetField(l), "vf" + sl);
-        if (dl.count("cl" + sl)) m.Dump(&as->GetColor(l), "cl" + sl);
-        if (dl.count("nx" + sl)) m.Dump(&as->GetNormal(l), 0, "nx" + sl);
-        if (dl.count("ny" + sl)) m.Dump(&as->GetNormal(l), 1, "ny" + sl);
-        if (dl.count("nz" + sl)) m.Dump(&as->GetNormal(l), 2, "nz" + sl);
+        if (dl.count("cl" + sl)) m.Dump(as->GetColor()[l], "cl" + sl);
+        if (dl.count("nx" + sl)) m.Dump(as->GetNormal()[l], 0, "nx" + sl);
+        if (dl.count("ny" + sl)) m.Dump(as->GetNormal()[l], 1, "ny" + sl);
+        if (dl.count("nz" + sl)) m.Dump(as->GetNormal()[l], 2, "nz" + sl);
       }
 
       // combined colors
-      if (dl.count("cls")) m.Dump(&as->GetColor(), "cls");
+      if (dl.count("cls")) m.Dump(&as->GetColorSum(), "cls");
 
       // image
       auto conv = [&](size_t d, size_t l, Multi<FieldCell<Scal>>& fc) {
@@ -1873,8 +1873,8 @@ void Hydro<M>::Dump() {
         if (auto as = dynamic_cast<ASVM*>(as_.get())) {
           for (auto l : layers) {
             fcu[l] = &as->GetField(l);
-            fccl[l] = &as->GetColor(l);
           }
+          fccl = as->GetColor();
         } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
           fcu[0] = &as->GetField();
           fccl[0] = &as->GetColor();
@@ -2358,7 +2358,7 @@ void Hydro<M>::StepBubgen() {
       bgt_ = st_.t;
       if (auto as = dynamic_cast<ASVM*>(as_.get())) {
         auto& u = const_cast<FieldCell<Scal>&>(as->GetField(0));
-        auto& cl = const_cast<FieldCell<Scal>&>(as->GetColor(0));
+        auto& cl = const_cast<FieldCell<Scal>&>(*as->GetColor()[0]);
         for (auto c : m.AllCells()) {
           if (fc_vf_[c] > 0) {
             u[c] = std::max(u[c], fc_vf_[c]);

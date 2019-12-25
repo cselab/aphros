@@ -190,12 +190,11 @@ void Advection<M>::Dump(Sem& sem) {
         m.Dump(&n, 2, "nz");
       }
       if (auto as = dynamic_cast<solver::Vofm<M>*>(as_.get())) {
-        auto& a = const_cast<FieldCell<Scal>&>(as->GetAlpha(0));
-        m.Dump(&a, "a");
-        auto& n = as->GetNormal(0);
-        m.Dump(&n, 0, "nx");
-        m.Dump(&n, 1, "ny");
-        m.Dump(&n, 2, "nz");
+        m.Dump(as->GetAlpha()[0], "a");
+        auto* n = as->GetNormal()[0];
+        m.Dump(n, 0, "nx");
+        m.Dump(n, 1, "ny");
+        m.Dump(n, 2, "nz");
       }
 
       if (IsRoot()) {
