@@ -112,20 +112,6 @@ struct Vofm<M_>::Imp {
     p->segcirc = par->part_segcirc;
     p->hc = hc;
     p->dn = par->part_dn;
-
-    {
-      using FT = typename PS::FT;
-      switch (par->part_attrforce) {
-        case Par::AF::line:
-          p->forcetype = FT::line;
-          break;
-        case Par::AF::center:
-          p->forcetype = FT::center;
-          break;
-        default:
-          throw std::runtime_error("Update(): Unknown part_attrforce");
-      }
-    }
   }
   // reconstruct interface
   void Rec(const Multi<FieldCell<Scal>*>& uc) {

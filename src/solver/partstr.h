@@ -32,17 +32,12 @@
 template <class Scal>
 class PartStr {
  public:
-  enum class FT { // attraction force type
-    line, // interface line
-    center, // interface center
-  };
   struct Par {
     Scal leq = 4; // length of partricle string relative to cell size
     Scal relax = 0.5; // relaxation factor
     size_t npmax = 11; // maximum number particles in string
     Scal segcirc = 1; // factor for shift to circular segment
     Scal hc; // cell size [length]
-    FT forcetype = FT::line; // attraction force type
     bool dn = false; // normal displacement
   };
 
@@ -119,7 +114,7 @@ class PartStr {
     // compute interface forces
     InterfaceForce(
         xx, sx, &(lx_[lo_[sl_[s]]]), &(ls_[sl_[s]]), sl_[s + 1] - sl_[s],
-        par->segcirc, ff.data(), par->forcetype);
+        par->segcirc, ff.data());
 
     ApplyConstraints(xx, sx, par->relax, par->dn, ff.data());
 
@@ -304,7 +299,7 @@ class PartStr {
   // ff: forces
   static void InterfaceForce(
       const Vect* xx, size_t sx, const Vect* lx, const size_t* ls, size_t sl,
-      Scal segcirc, Vect* ff, FT ft) {
+      Scal segcirc, Vect* ff) {
     if (sx == 0) {
       return;
     }
@@ -377,48 +372,12 @@ class PartStr {
       }
     };
 
-    if (ft == FT::center) { // attraction to nearest center
-      const Scal kNone = std::numeric_limits<Scal>::max();
-      std::vector<Vect> px(sx, Vect(kNone)); // nearest point to particle
-
-      // loop over interface lines
-      size_t b = 0;
-      for (size_t l = 0; l < sl; ++l) {
-        // loop over segments of line l
-        for (size_t k = 0; k < ls[l]; ++k) {
-          size_t kp = (k + 1 == ls[l] ? 0 : k + 1);
-          // segment enter
-          Vect xc = (lx[b + k] + lx[b + kp]) * 0.5;
-          size_t in = 0; // particle nearest to line k
-          for (size_t i = 1; i < sx; ++i) {
-            if (xx[i].sqrdist(xc) < xx[in].sqrdist(xc)) {
-              in = i;
-            }
-          }
-          // nearest line to particle
-          if (px[in][0] == kNone ||
-              xx[in].sqrdist(xc) < xx[in].sqrdist(px[in])) {
-            px[in] = xc;
-          }
-        }
-        b += ls[l];
-      }
-      // apply force
-      for (size_t i = 0; i < sx; ++i) {
-        if (px[i][0] != kNone) {
-          ff[i] += px[i] - xx[i];
-        }
-      }
-    } else if (ft == FT::line) { // attraction to nearest line
-      for (size_t i = 0; i < sx; ++i) {
-        const Vect& x = xx[i];
-        auto e = findnear(x);
-        Vect xn = R::GetNearest(x, e[0], e[1]);
-        shsegcirc(e, xn);
-        ff[i] += xn - x;
-      }
-    } else {
-      throw std::runtime_error("InterfaceForce: unknown force type");
+    for (size_t i = 0; i < sx; ++i) {
+      const Vect& x = xx[i];
+      auto e = findnear(x);
+      Vect xn = R::GetNearest(x, e[0], e[1]);
+      shsegcirc(e, xn);
+      ff[i] += xn - x;
     }
   }
   // Oriented angle from (x1-x0) to (x2-x1)
