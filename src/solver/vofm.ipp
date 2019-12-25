@@ -818,6 +818,11 @@ auto Vofm<M_>::GetImage(size_t l, IdxCell c) const -> MIdx {
 }
 
 template <class M_>
+auto Vofm<M_>::GetMask() const -> Multi<const FieldCell<bool>*> {
+  return imp->fci_;
+}
+
+template <class M_>
 auto Vofm<M_>::GetColor() const -> Multi<const FieldCell<Scal>*> {
   return imp->fccl_;
 }

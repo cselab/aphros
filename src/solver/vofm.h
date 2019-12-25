@@ -56,6 +56,8 @@ class Vofm final : public AdvectionSolver<M_> {
   Multi<const FieldCell<Vect>*> GetNormal() const;
   // Number of layers
   size_t GetNumLayers() const;
+  // Interface mask
+  Multi<const FieldCell<bool>*> GetMask() const;
   // Colors
   Multi<const FieldCell<Scal>*> GetColor() const;
   // Colors combined
