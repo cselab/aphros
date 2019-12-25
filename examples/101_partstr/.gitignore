@@ -2,3 +2,4 @@ Makefile
 main
 *.h5
 *.xmf
+*.csv

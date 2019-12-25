@@ -519,8 +519,7 @@ struct Vof<M_>::Imp {
       UCurv<M>::CalcCurvHeight(fcu_.iter_curr, fcn_, par->dim, fck_, m);
     }
     if (par->part && sem.Nested("part")) {
-      const FieldCell<Scal>* fccl(nullptr);
-      psm_->Part(&fca_, &fcn_, &fci_, fccl);
+      psm_->Part(&fca_, &fcn_, &fci_, nullptr);
     }
     if (sem.Nested("dump")) {
       Dump();

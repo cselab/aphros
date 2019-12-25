@@ -23,27 +23,36 @@ void Run(M& m, State&, Vars&) {
   struct {
     FieldCell<Scal> fca; // plane constant
     FieldCell<Vect> fcn; // normal
-    FieldCell<Scal> fccl; // color
     FieldCell<bool> fci; // interface mask
     FieldCell<Scal> fck; // curvature
     typename PSM::Par par;
+    std::unique_ptr<PSM> psm;
   } * ctx(sem);
   auto& fca = ctx->fca;
   auto& fcn = ctx->fcn;
-  auto& fccl = ctx->fccl;
   auto& fci = ctx->fci;
   auto& fck = ctx->fck;
   auto& par = ctx->par;
+  auto& psm = ctx->psm;
 
+  if (sem("init")) {
+    auto ps = std::make_shared<typename PartStr<Scal>::Par>();
+    par.ps = ps;
+    fca.Reinit(m, 0);
+    fcn.Reinit(m, Vect(0.5));
+    fci.Reinit(m, true);
+  }
   if (sem.Nested()) {
-    GRange<size_t> layers(1);
-    UCurv<M>::CalcCurvPart(layers, &fca, &fcn, &fci, &fccl, par, &fck, m);
+    psm = UCurv<M>::CalcCurvPart(
+        GRange<size_t>(1), &fca, &fcn, &fci, nullptr, par, &fck, m);
+  }
+  if (sem.Nested()) {
+    psm->DumpParticles(&fca, &fcn, 0, 0);
   }
   if (sem("dump")) {
     m.Dump(&fck, "k");
   }
-  if (sem()) {
-  }
+  if (sem()) {}
 }
 
 int main(int argc, const char** argv) {
