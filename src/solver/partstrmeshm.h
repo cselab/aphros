@@ -39,13 +39,11 @@ class PartStrMeshM {
   ~PartStrMeshM();
 
   // Computes curvature with particles.
-  // vfcu: volume fraction
   // vfca: plane constant
   // vfcn: normal
   // vfci: interface mask (1: contains interface)
   // vfccl: color
   void Part(
-      const Multi<const FieldCell<Scal>*>& vfcu,
       const Multi<const FieldCell<Scal>*>& vfca,
       const Multi<const FieldCell<Vect>*>& vfcn,
       const Multi<const FieldCell<bool>*>& vfci,

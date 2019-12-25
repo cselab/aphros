@@ -521,7 +521,7 @@ struct Vof<M_>::Imp {
     }
     if (par->part && sem.Nested("part")) {
       const FieldCell<Scal>* fccl(nullptr);
-      psm_->Part(&fcu_.iter_curr, &fca_, &fcn_, &fci_, fccl, &fck_);
+      psm_->Part(&fca_, &fcn_, &fci_, fccl, &fck_);
     }
     if (sem.Nested("dump")) {
       Dump();

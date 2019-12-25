@@ -122,7 +122,6 @@ struct PartStrMeshM<M_>::Imp {
   }
 
   void Seed(
-      const Multi<const FieldCell<Scal>*>& vfcu,
       const Multi<const FieldCell<Scal>*>& vfca,
       const Multi<const FieldCell<Vect>*>& vfcn,
       const Multi<const FieldCell<bool>*>& vfci,
@@ -135,11 +134,11 @@ struct PartStrMeshM<M_>::Imp {
     vsc_.clear();
     vsl_.clear();
     vsan_.clear();
-    bool nocl = (vfcu.size() == 1 && !vfccl[0]); // no color provided
+    bool nocl = (layers.size() == 1 && !vfccl[0]); // no color provided
     Vect h = m.GetCellSize();
 
     // Seed strings in cells with interface.
-    for (size_t l = 0; l < vfcu.size(); ++l) {
+    for (auto l : layers) {
       auto& fca = *vfca[l];
       auto& fcn = *vfcn[l];
       auto& fci = *vfci[l];
@@ -169,7 +168,7 @@ struct PartStrMeshM<M_>::Imp {
             // Extract interface from neighbour cells.
             for (auto wo : bo) {
               IdxCell cc = bc.GetIdx(w + wo); // neighbour cell
-              for (size_t j = 0; j < vfcu.size(); ++j) {
+              for (auto j : layers) {
                 auto& fca2 = *vfca[j];
                 auto& fcn2 = *vfcn[j];
                 auto& fci2 = *vfci[j];
@@ -195,7 +194,6 @@ struct PartStrMeshM<M_>::Imp {
     }
   }
   void Part(
-      const Multi<const FieldCell<Scal>*>& vfcu,
       const Multi<const FieldCell<Scal>*>& vfca,
       const Multi<const FieldCell<Vect>*>& vfcn,
       const Multi<const FieldCell<bool>*>& vfci,
@@ -203,10 +201,10 @@ struct PartStrMeshM<M_>::Imp {
     auto sem = m.GetSem("part");
 
     if (sem("part-run")) {
-      Seed(vfcu, vfca, vfcn, vfci, vfccl, fck);
+      Seed(vfca, vfcn, vfci, vfccl, fck);
       partstr_->Run(par->tol, par->itermax, m.IsRoot() ? par->verb : 0);
       // compute curvature
-      vfckp_.resize(vfcu.size());
+      vfckp_.resize(layers);
       for (auto& fckp : vfckp_.data()) {
         fckp.Reinit(m, GetNan<Scal>());
       }
@@ -383,12 +381,11 @@ PartStrMeshM<M_>::~PartStrMeshM() = default;
 
 template <class M_>
 void PartStrMeshM<M_>::Part(
-    const Multi<const FieldCell<Scal>*>& vfcu,
     const Multi<const FieldCell<Scal>*>& vfca,
     const Multi<const FieldCell<Vect>*>& vfcn,
     const Multi<const FieldCell<bool>*>& vfci,
     const Multi<const FieldCell<Scal>*>& vfccl, const FieldCell<Scal>* fck) {
-  imp->Part(vfcu, vfca, vfcn, vfci, vfccl, fck);
+  imp->Part(vfca, vfcn, vfci, vfccl, fck);
 }
 
 template <class M_>
