@@ -20,15 +20,6 @@ class Vof final : public AdvectionSolver<M_> {
   struct Par {
     size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
     bool part = false; // particles
-    Scal part_relax = 0.5;
-    Scal part_h = 4.; // particle string equilibrium length
-    int part_verb = 0; // debug output
-    bool part_n = false; // normal from particles
-    // curvature from particles
-    // if true, GetCurv returns fckp_
-    bool part_k = false; // curvature from particles
-    size_t part_dump_fr = 100; // num frames dump
-    size_t part_report_fr = 100; // num frames report
     Scal clipth = 1e-6; // vf clipping threshold
     std::unique_ptr<Dumper> dmp; // dumper for particles
     bool dumppoly = false; // dump reconstructed interface (cut polygons)
@@ -37,13 +28,6 @@ class Vof final : public AdvectionSolver<M_> {
     bool dumppartinter = false; // dump interface for particles
     bool bcc_reflectpoly = true; // reflection for DumpPolyMarch
     Scal dumppolymarch_fill = -1; // fill cells outside
-
-    Scal part_segcirc = 1.; // factor for circular segment
-    size_t part_np = 11; // number of particles per string
-    size_t part_ns = 2; // number of strings per cell
-    size_t part_itermax = 100; // particles itermax
-    Scal part_tol = 0.01; // tolerance
-    bool part_dn = false;
     int verb = 0;
     bool recolor_unionfind = true;
     bool recolor_reduce = true;

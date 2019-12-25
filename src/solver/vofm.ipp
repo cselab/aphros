@@ -244,14 +244,6 @@ struct Vofm<M_>::Imp {
             par->dumppolymarch_fill >= 0 ? &fcust : nullptr, m);
       }
     }
-    /*
-    if (par->dumppart && dm && sem.Nested("part-dump")) {
-      psm_->DumpParticles(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
-    }
-    if (par->dumppartinter && dm && sem.Nested("partinter-dump")) {
-      psm_->DumpPartInter(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
-    }
-    */
   }
   void Sharpen(const Multi<FieldCell<Scal>*>& mfcu) {
     auto sem = m.GetSem("sharp");

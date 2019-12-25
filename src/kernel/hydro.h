@@ -438,6 +438,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Dumper dumper_;
   Dumper dmptraj_; // dumper for traj
   Dumper dmptrep_; // dumper for timer report
+  Dumper* dmppart_ = nullptr; // dumper for vof and partstr
   std::unique_ptr<Events> events_; // events from var
 };
 
@@ -545,6 +546,8 @@ void Hydro<M>::InitFluid() {
 template <class M>
 void Hydro<M>::InitAdvection() {
   std::string as = var.String["advection_solver"];
+  // FIXME memory leak with tvd, move ownership out of Vof::Par
+  dmppart_ = new Dumper(var, "dump_part_");
   if (as == "tvd") {
     auto p = std::make_shared<typename AST::Par>();
     Parse<M>(p.get(), var);
@@ -554,7 +557,7 @@ void Hydro<M>::InitAdvection() {
   } else if (as == "vof") {
     auto p = std::make_shared<typename ASV::Par>();
     Parse<M, ASV>(p.get(), var);
-    p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
+    p->dmp = std::unique_ptr<Dumper>(dmppart_);
     as_.reset(new ASV(
         m, fc_vf_, fccl_, mf_adv_,
         &fs_->GetVolumeFlux(solver::Layers::time_curr), &fc_src2_, 0., st_.dta,
@@ -563,7 +566,7 @@ void Hydro<M>::InitAdvection() {
   } else if (as == "vofm") {
     auto p = std::make_shared<typename ASVM::Par>();
     Parse<M, ASVM>(p.get(), var);
-    p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
+    p->dmp = std::unique_ptr<Dumper>(dmppart_);
     auto as = new ASVM(
         m, fc_vf_, fccl_, mf_adv_,
         &fs_->GetVolumeFlux(solver::Layers::time_curr), &fc_src2_, 0., st_.dta,
@@ -1459,8 +1462,7 @@ void Hydro<M>::CalcSurfaceTension(
 
     if (auto as = dynamic_cast<ASVM*>(as_.get())) {
       AppendSurfaceTension(
-          ff_st, layers, as->GetFieldM(), as->GetColor(), fck_,
-          ff_sig_);
+          ff_st, layers, as->GetFieldM(), as->GetColor(), fck_, ff_sig_);
     } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
       AppendSurfaceTension(ff_st, as_->GetField(), fck_[0], ff_sig_);
     }
@@ -1867,6 +1869,30 @@ void Hydro<M>::Dump() {
   if (sem("dumpstat")) {
     if (m.IsRoot()) {
       ost_->Write(0., "");
+    }
+  }
+  if (auto as = dynamic_cast<ASV*>(as_.get())) {
+    if (psm_ && dmppart_->Try(st_.t, st_.dt)) {
+      if (var.Int["dumppart"] && sem.Nested("part-dump")) {
+        psm_->DumpParticles(
+            &as->GetAlpha(), &as->GetNormal(), dmppart_->GetN(), st_.t);
+      }
+      if (var.Int["dumppartinter"] && sem.Nested("partinter-dump")) {
+        psm_->DumpPartInter(
+            &as->GetAlpha(), &as->GetNormal(), dmppart_->GetN(), st_.t);
+      }
+    }
+  }
+  if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+    if (psm_ && dmppart_->Try(st_.t, st_.dt)) {
+      if (var.Int["dumppart"] && sem.Nested("part-dump")) {
+        psm_->DumpParticles(
+            as->GetAlpha(), as->GetNormal(), dmppart_->GetN(), st_.t);
+      }
+      if (var.Int["dumppartinter"] && sem.Nested("partinter-dump")) {
+        psm_->DumpPartInter(
+            as->GetAlpha(), as->GetNormal(), dmppart_->GetN(), st_.t);
+      }
     }
   }
 }
