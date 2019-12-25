@@ -20,15 +20,6 @@
 
 namespace solver {
 
-template <class T>
-Multi<FieldCell<T>*> GetLayer(Multi<LayersData<FieldCell<T>>>& u, Layers l) {
-  Multi<FieldCell<T>*> r(u.size());
-  for (size_t i = 0; i < u.size(); ++i) {
-    r[i] = &u[i].Get(l);
-  }
-  return r;
-}
-
 template <class M_>
 struct Vofm<M_>::Imp {
   using Owner = Vofm<M_>;
