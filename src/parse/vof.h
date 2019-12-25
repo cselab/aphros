@@ -35,7 +35,6 @@ void Parse(typename Vof::Par* p, const Vars& var) {
   p->part_np = var.Int["part_np"];
   p->part_ns = var.Int["part_ns"];
   p->part_dn = var.Int["part_dn"];
-  p->part_maxr = var.Double["part_maxr"];
   p->sharpen = var.Int["sharpen"];
   p->sharpen_cfl = var.Double["sharpen_cfl"];
   p->avgnorm0 = var.Double["avgnorm0"];

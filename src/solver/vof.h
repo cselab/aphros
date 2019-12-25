@@ -44,7 +44,6 @@ class Vof final : public AdvectionSolver<M_> {
     size_t part_itermax = 100; // particles itermax
     Scal part_tol = 0.01; // tolerance
     bool part_dn = false;
-    Scal part_maxr = 0;
     int verb = 0;
     bool recolor_unionfind = true;
     bool recolor_reduce = true;
