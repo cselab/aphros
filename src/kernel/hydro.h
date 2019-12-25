@@ -1770,7 +1770,7 @@ void Hydro<M>::DumpFields() {
       if (dl.count("ny")) m.Dump(&as->GetNormal(), 1, "ny");
       if (dl.count("nz")) m.Dump(&as->GetNormal(), 2, "nz");
       if (dl.count("cls")) m.Dump(&as->GetColor(), "cls");
-      if (dl.count("k")) m.Dump(&as->GetCurv(), "k");
+      if (dl.count("k")) m.Dump(&fck_[0], "k");
     }
     if (auto as = dynamic_cast<ASVM*>(as_.get())) {
       for (auto l : layers) {
@@ -1780,7 +1780,7 @@ void Hydro<M>::DumpFields() {
         if (dl.count("nx" + sl)) m.Dump(as->GetNormal()[l], 0, "nx" + sl);
         if (dl.count("ny" + sl)) m.Dump(as->GetNormal()[l], 1, "ny" + sl);
         if (dl.count("nz" + sl)) m.Dump(as->GetNormal()[l], 2, "nz" + sl);
-        if (dl.count("k" + sl)) m.Dump(as->GetCurv()[l], "k" + sl);
+        if (dl.count("k" + sl)) m.Dump(&fck_[l], "k" + sl);
       }
 
       // combined colors

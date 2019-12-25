@@ -12,7 +12,6 @@
 #include "geom/block.h"
 #include "multi.h"
 #include "normal.h"
-#include "partstrmeshm.h"
 #include "reconst.h"
 #include "trackerm.h"
 #include "util/vof.h"
@@ -24,8 +23,6 @@ template <class M_>
 struct Vofm<M_>::Imp {
   using Owner = Vofm<M_>;
   using R = Reconst<Scal>;
-  using PS = PartStr<Scal>;
-  using PSM = PartStrMeshM<M>;
   using TRM = Trackerm<M>;
   static constexpr Scal kClNone = -1;
   static constexpr size_t dim = M::dim;
@@ -44,7 +41,6 @@ struct Vofm<M_>::Imp {
     fcn_.resize(layers);
     fca_.resize(layers);
     fci_.resize(layers);
-    fck_.resize(layers);
     fccl_.resize(layers);
     fcim_.resize(layers);
     ffvu_.resize(layers);
@@ -53,7 +49,6 @@ struct Vofm<M_>::Imp {
 
     fcn_.InitAll(FieldCell<Vect>(m, GetNan<Vect>()));
     fca_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
-    fck_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
     fci_.InitAll(FieldCell<bool>(m, false));
 
     fcus_.time_curr = fcu0;
@@ -72,35 +67,10 @@ struct Vofm<M_>::Imp {
     fccls_ = fccl0;
 
     UpdateBc(mfc_);
-
-    // particles
-    auto ps = std::make_shared<typename PS::Par>();
-    Update(ps.get());
-    auto psm = std::make_shared<typename PSM::Par>();
-    psm->ps = ps;
-    psm->ns = par->part_ns;
-    psm->tol = par->part_tol;
-    psm->itermax = par->part_itermax;
-    psm->verb = par->part_verb;
-    psm->dim = par->dim;
-    psm->dump_fr = par->part_dump_fr;
-    psm->vtkbin = par->vtkbin;
-    psm->vtkmerge = par->vtkmerge;
-    psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
   }
   void UpdateBc(const MapCondFaceAdvection<Scal>& mfc) {
     UVof<M>::GetAdvectionFaceCond(
         m, mfc, mfc_vf_, mfc_cl_, mfc_im_, mfc_n_, mfc_a_);
-  }
-  void Update(typename PS::Par* p) const {
-    Scal hc = m.GetCellSize().norminf(); // cell size
-
-    p->leq = par->part_h;
-    p->relax = par->part_relax;
-    p->npmax = par->part_np;
-    p->segcirc = par->part_segcirc;
-    p->hc = hc;
-    p->dn = par->part_dn;
   }
   // reconstruct interface
   void Rec(const Multi<FieldCell<Scal>*>& uc) {
@@ -244,8 +214,8 @@ struct Vofm<M_>::Imp {
       uvof_.DumpPoly(
           layers, fcu_.iter_curr, fccl_, fcn_, fca_, fci_,
           GetDumpName("s", ".vtk", par->dmp->GetN()),
-          owner_->GetTime() + owner_->GetTimeStep(),
-          par->vtkbin, par->vtkmerge, m);
+          owner_->GetTime() + owner_->GetTimeStep(), par->vtkbin, par->vtkmerge,
+          m);
     }
     if (par->dumppolymarch && dm) {
       auto& fcut = ctx->fcut; // tmp volume fraction
@@ -269,17 +239,19 @@ struct Vofm<M_>::Imp {
         uvof_.DumpPolyMarch(
             layers, fcut, fcclt, fcn_, fca_, fci_,
             GetDumpName("sm", ".vtk", par->dmp->GetN()),
-            owner_->GetTime() + owner_->GetTimeStep(),
-            par->vtkbin, par->vtkmerge, par->vtkiso,
+            owner_->GetTime() + owner_->GetTimeStep(), par->vtkbin,
+            par->vtkmerge, par->vtkiso,
             par->dumppolymarch_fill >= 0 ? &fcust : nullptr, m);
       }
     }
+    /*
     if (par->dumppart && dm && sem.Nested("part-dump")) {
       psm_->DumpParticles(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
     }
     if (par->dumppartinter && dm && sem.Nested("partinter-dump")) {
       psm_->DumpPartInter(fca_, fcn_, par->dmp->GetN(), owner_->GetTime());
     }
+    */
   }
   void Sharpen(const Multi<FieldCell<Scal>*>& mfcu) {
     auto sem = m.GetSem("sharp");
@@ -651,9 +623,9 @@ struct Vofm<M_>::Imp {
     }
     if (sem.Nested()) {
       uvof_.Recolor(
-          layers, fcu_.iter_curr, fccl_, fccl_, par->clfixed,
-          par->clfixed_x, par->coalth, mfc_cl_, par->verb,
-          par->recolor_unionfind, par->recolor_reduce, par->recolor_grid, m);
+          layers, fcu_.iter_curr, fccl_, fccl_, par->clfixed, par->clfixed_x,
+          par->coalth, mfc_cl_, par->verb, par->recolor_unionfind,
+          par->recolor_reduce, par->recolor_grid, m);
     }
 
     if (sem("sum")) {
@@ -716,9 +688,6 @@ struct Vofm<M_>::Imp {
       }
       // --> reflected fca [a], fcn [a]
     }
-    if (par->part && sem.Nested("part")) {
-      psm_->Part(fca_, fcn_, fci_, fccl_);
-    }
     if (sem.Nested("dump")) {
       Dump();
     }
@@ -741,7 +710,6 @@ struct Vofm<M_>::Imp {
 
   Multi<FieldCell<Scal>> fca_; // alpha (plane constant)
   Multi<FieldCell<Vect>> fcn_; // n (normal to plane)
-  Multi<FieldCell<Scal>> fck_; // curvature from height functions
   Multi<FieldCell<bool>> fci_; // interface mask (1: contains interface)
   Multi<FieldCell<Scal>> fccl_; // color
   Multi<FieldCell<Scal>> fcim_; // image
@@ -751,7 +719,6 @@ struct Vofm<M_>::Imp {
       ffi_; // interface mask (1: upwind cell contains interface)
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
-  std::unique_ptr<PSM> psm_;
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
   GRange<size_t> layers;
@@ -840,16 +807,6 @@ size_t Vofm<M_>::GetNumLayers() const {
 template <class M_>
 auto Vofm<M_>::GetNormal() const -> Multi<const FieldCell<Vect>*> {
   return imp->fcn_;
-}
-
-template <class M_>
-auto Vofm<M_>::GetCurv() const -> Multi<const FieldCell<Scal>*> {
-  return imp->psm_->GetCurv();
-}
-
-template <class M_>
-auto Vofm<M_>::GetCurvSum() const -> const FieldCell<Scal>& {
-  return *imp->psm_->GetCurv()[0];
 }
 
 template <class M_>

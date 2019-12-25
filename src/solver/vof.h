@@ -90,8 +90,6 @@ class Vof final : public AdvectionSolver<M_> {
   const FieldCell<Scal>& GetAlpha() const;
   // Normal to interface
   const FieldCell<Vect>& GetNormal() const;
-  // Default curvature
-  const FieldCell<Scal>& GetCurv() const;
   // Color
   const FieldCell<Scal>& GetColor() const;
   static constexpr Scal kClNone = -1; // no color

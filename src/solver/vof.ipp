@@ -7,12 +7,9 @@
 #include <memory>
 
 #include "approx.h"
-#include "curv.h"
 #include "debug/isnan.h"
 #include "geom/block.h"
 #include "normal.h"
-#include "partstrmeshm.h"
-#include "curv.h"
 #include "reconst.h"
 #include "trackerm.h"
 #include "util/vof.h"
@@ -25,8 +22,6 @@ template <class M_>
 struct Vof<M_>::Imp {
   using Owner = Vof<M_>;
   using R = Reconst<Scal>;
-  using PS = PartStr<Scal>;
-  using PSM = PartStrMeshM<M>;
   using TRM = Trackerm<M>;
   static constexpr size_t dim = M::dim;
   using Vect2 = GVect<Scal, 2>;
@@ -43,8 +38,7 @@ struct Vof<M_>::Imp {
       , fccl_(fccl)
       , fcim_(m, TRM::Pack(MIdx(0)))
       , fca_(m, GetNan<Scal>())
-      , fcn_(m, GetNan<Vect>())
-      , fck_(m, 0) {
+      , fcn_(m, GetNan<Vect>()) {
     fcu_.time_curr = fcu;
 
     UpdateBc(mfc_);
@@ -54,36 +48,11 @@ struct Vof<M_>::Imp {
         fccl_[c] = kClNone;
       }
     }
-
-    auto ps = std::make_shared<typename PS::Par>();
-    Update(ps.get());
-    psm_par_ = std::make_shared<typename PSM::Par>();
-    auto& psm = psm_par_;
-    psm->ps = ps;
-    psm->ns = par->part_ns;
-    psm->tol = par->part_tol;
-    psm->itermax = par->part_itermax;
-    psm->verb = par->part_verb;
-    psm->dim = par->dim;
-    psm->dump_fr = par->part_dump_fr;
-    psm->vtkbin = par->vtkbin;
-    psm->vtkmerge = par->vtkmerge;
   }
   void UpdateBc(const MapCondFaceAdvection<Scal>& mfc) {
     UVof<M>::GetAdvectionFaceCond(
         m, mfc, mfc_vf_, mfc_cl_, mfc_im_, mfc_n_, mfc_a_);
   }
-  void Update(typename PS::Par* p) const {
-    Scal hc = m.GetCellSize().norminf(); // cell size
-
-    p->leq = par->part_h;
-    p->relax = par->part_relax;
-    p->npmax = par->part_np;
-    p->segcirc = par->part_segcirc;
-    p->hc = hc;
-    p->dn = par->part_dn;
-  }
-
   // reconstruct interface
   // uc: volume fraction [a]
   void Rec(const FieldCell<Scal>& uc) {
@@ -143,8 +112,8 @@ struct Vof<M_>::Imp {
       uvof_.DumpPoly(
           fcu_.iter_curr, fcn_, fca_, fci_,
           GetDumpName("s", ".vtk", par->dmp->GetN()),
-          owner_->GetTime() + owner_->GetTimeStep(),
-          par->vtkbin, par->vtkmerge, m);
+          owner_->GetTime() + owner_->GetTimeStep(), par->vtkbin, par->vtkmerge,
+          m);
     }
     if (par->dumppolymarch && dm) {
       auto& fcut = fcfm_;
@@ -164,17 +133,19 @@ struct Vof<M_>::Imp {
         uvof_.DumpPolyMarch(
             layers, &fcut, &fcclt, &fcn_, &fca_, &fci_,
             GetDumpName("sm", ".vtk", par->dmp->GetN()),
-            owner_->GetTime() + owner_->GetTimeStep(),
-            par->vtkbin, par->vtkmerge, par->vtkiso,
+            owner_->GetTime() + owner_->GetTimeStep(), par->vtkbin,
+            par->vtkmerge, par->vtkiso,
             par->dumppolymarch_fill >= 0 ? &fcut : nullptr, m);
       }
     }
+    /*
     if (par->dumppart && dm && sem.Nested("part-dump")) {
       psm_->DumpParticles(&fca_, &fcn_, par->dmp->GetN(), owner_->GetTime());
     }
     if (par->dumppartinter && dm && sem.Nested("partinter-dump")) {
       psm_->DumpPartInter(&fca_, &fcn_, par->dmp->GetN(), owner_->GetTime());
     }
+    */
   }
   // Makes advection sweep in one direction, updates uc [i]
   // uc: volume fraction [s]
@@ -516,10 +487,6 @@ struct Vof<M_>::Imp {
       BcApply(fcn_, mfc_n_, m);
       // --> reflected fca [a], fcn [a]
     }
-    if (par->part && sem.Nested("part")) {
-      psm_ = UCurv<M>::CalcCurvPart(
-          layers, &fca_, &fcn_, &fci_, nullptr, *psm_par_, &fck_, m);
-    }
     if (sem.Nested("dump")) {
       Dump();
     }
@@ -543,12 +510,9 @@ struct Vof<M_>::Imp {
   FieldCell<Scal> fcim_; // image
   FieldCell<Scal> fca_; // alpha (plane constant)
   FieldCell<Vect> fcn_; // n (normal to plane)
-  FieldCell<Scal> fck_; // curvature
   FieldCell<bool> fci_; // interface mask (1: contains interface)
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
-  std::shared_ptr<typename PSM::Par> psm_par_;
-  std::unique_ptr<PartStrMeshM<M>> psm_;
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
   UVof<M> uvof_;
@@ -613,11 +577,6 @@ auto Vof<M_>::GetAlpha() const -> const FieldCell<Scal>& {
 template <class M_>
 auto Vof<M_>::GetNormal() const -> const FieldCell<Vect>& {
   return imp->fcn_;
-}
-
-template <class M_>
-auto Vof<M_>::GetCurv() const -> const FieldCell<Scal>& {
-  return imp->fck_;
 }
 
 template <class M_>
