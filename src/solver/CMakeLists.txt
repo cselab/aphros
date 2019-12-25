@@ -15,6 +15,9 @@ target_link_libraries(${T} solver)
 set(T "normal")
 add_library(${T} normal.cpp)
 
+set(T "curv")
+add_library(${T} curv.cpp)
+
 set(T "partstrmeshm")
 add_library(${T} partstrmeshm.cpp)
 target_link_libraries(${T} dumper)
