@@ -42,6 +42,3 @@ target_link_libraries(${T} convdiffvg utilconvdiff)
 set(T "proj")
 add_library(${T} proj.cpp)
 target_link_libraries(${T} convdiffvg utilconvdiff)
-
-set(T "multi")
-add_library(${T} multi.cpp)
