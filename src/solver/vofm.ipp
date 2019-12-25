@@ -93,7 +93,6 @@ struct Vofm<M_>::Imp {
     psm->verb = par->part_verb;
     psm->dim = par->dim;
     psm->dump_fr = par->part_dump_fr;
-    psm->maxr = par->part_maxr;
     psm->vtkbin = par->vtkbin;
     psm->vtkmerge = par->vtkmerge;
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
@@ -732,7 +731,7 @@ struct Vofm<M_>::Imp {
       // --> reflected fca [a], fcn [a]
     }
     if (par->part && sem.Nested("part")) {
-      psm_->Part(fca_, fcn_, fci_, fccl_, nullptr);
+      psm_->Part(fca_, fcn_, fci_, fccl_);
     }
     if (sem.Nested("dump")) {
       Dump();

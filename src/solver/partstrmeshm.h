@@ -27,10 +27,6 @@ class PartStrMeshM {
     size_t itermax = 20;
     int verb = 0; // debug output
     size_t dim = 3;
-    Scal maxr = 0; // if input radius of curvature
-                   // (e.g. from height functions)
-                   // is below than maxr*h,
-                   // overwrite with estimate from particles
     bool vtkbin = true; // write binary vtk in DumpPartInter
     bool vtkmerge = true; // merge close points in DumpPartInter
   };
@@ -48,7 +44,7 @@ class PartStrMeshM {
       const Multi<const FieldCell<Scal>*>& vfca,
       const Multi<const FieldCell<Vect>*>& vfcn,
       const Multi<const FieldCell<bool>*>& vfci,
-      const Multi<const FieldCell<Scal>*>& vfccl, const FieldCell<Scal>* fck);
+      const Multi<const FieldCell<Scal>*>& vfccl);
   // Dump particles to csv.
   // vfca: plane constant
   // vfcn: normal

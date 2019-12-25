@@ -17,6 +17,7 @@ add_library(${T} normal.cpp)
 
 set(T "curv")
 add_library(${T} curv.cpp)
+target_link_libraries(${T} partstrmeshm normal)
 
 set(T "partstrmeshm")
 add_library(${T} partstrmeshm.cpp)

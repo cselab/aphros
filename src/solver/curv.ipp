@@ -8,7 +8,6 @@
 #include "debug/isnan.h"
 #include "geom/block.h"
 #include "normal.h"
-#include "partstrmeshm.h"
 #include "reconst.h"
 #include "trackerm.h"
 #include "util/vof.h"
@@ -21,8 +20,6 @@ using namespace solver;
 template <class M_>
 struct UCurv<M_>::Imp {
   using R = Reconst<Scal>;
-  //using PS = PartStr<Scal>;
-  //using PSM = PartStrMeshM<M>;
   static constexpr size_t dim = M::dim;
   using Vect2 = GVect<Scal, 2>;
 
@@ -111,6 +108,38 @@ struct UCurv<M_>::Imp {
       m.Comm(&fck);
     }
   }
+
+  static std::unique_ptr<PartStrMeshM<M>> CalcCurvPart(
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fca,
+      const Multi<const FieldCell<Vect>*>& fcn,
+      const Multi<const FieldCell<bool>*>& fci,
+      const Multi<const FieldCell<Scal>*>& fccl,
+      const typename PartStrMeshM<M>::Par& par,
+      const Multi<FieldCell<Scal>*>& fck, M& m) {
+    using PSM = PartStrMeshM<M>;
+
+    auto sem = m.GetSem();
+    struct {
+      std::unique_ptr<PSM> psm;
+    } * ctx(sem);
+    auto& psm = ctx->psm;
+
+    if (sem("init")) {
+      psm.reset(new PSM(
+          m, std::make_shared<typename PSM::Par>(par), layers));
+    }
+    if (sem.Nested("part")) {
+      psm->Part(fca, fcn, fci, fccl);
+    }
+    if (sem("copy")) {
+      fck.assert_size(layers);
+      for (auto l : layers) {
+        (*fck[l]) = psm->GetCurv(l);
+      }
+      return std::move(psm);
+    }
+    return nullptr;
+  }
 };
 
 template <class M>
@@ -118,4 +147,15 @@ void UCurv<M>::CalcCurvHeight(
     const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcn, size_t edim,
     FieldCell<Scal>& fck, M& m) {
   Imp::CalcCurvHeight(fcu, fcn, edim, fck, m);
+}
+
+template <class M>
+std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
+    const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fca,
+    const Multi<const FieldCell<Vect>*>& fcn,
+    const Multi<const FieldCell<bool>*>& fci,
+    const Multi<const FieldCell<Scal>*>& fccl,
+    const typename PartStrMeshM<M>::Par& par,
+    const Multi<FieldCell<Scal>*>& fck, M& m) {
+  return Imp::CalcCurvPart(layers, fca, fcn, fci, fccl, par, fck, m);
 }

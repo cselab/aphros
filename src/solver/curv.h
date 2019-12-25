@@ -3,6 +3,9 @@
 #include <memory>
 
 #include "geom/mesh.h"
+#include "partstrmeshm.h"
+
+using namespace solver;
 
 template <class M_>
 struct UCurv {
@@ -19,6 +22,14 @@ struct UCurv {
   static void CalcCurvHeight(
       const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcn, size_t edim,
       FieldCell<Scal>& fck, M& m);
+
+  static std::unique_ptr<PartStrMeshM<M>> CalcCurvPart(
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fca,
+      const Multi<const FieldCell<Vect>*>& fcn,
+      const Multi<const FieldCell<bool>*>& fci,
+      const Multi<const FieldCell<Scal>*>& fccl,
+      const typename PartStrMeshM<M>::Par& par,
+      const Multi<FieldCell<Scal>*>& fck, M& m);
 
  private:
   struct Imp;

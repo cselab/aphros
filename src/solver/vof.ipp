@@ -64,7 +64,6 @@ struct Vof<M_>::Imp {
     psm->verb = par->part_verb;
     psm->dim = par->dim;
     psm->dump_fr = par->part_dump_fr;
-    psm->maxr = par->part_maxr;
     psm->vtkbin = par->vtkbin;
     psm->vtkmerge = par->vtkmerge;
     psm_ = std::unique_ptr<PSM>(new PSM(m, psm, layers));
@@ -521,7 +520,7 @@ struct Vof<M_>::Imp {
     }
     if (par->part && sem.Nested("part")) {
       const FieldCell<Scal>* fccl(nullptr);
-      psm_->Part(&fca_, &fcn_, &fci_, fccl, &fck_);
+      psm_->Part(&fca_, &fcn_, &fci_, fccl);
     }
     if (sem.Nested("dump")) {
       Dump();

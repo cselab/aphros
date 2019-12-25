@@ -17,25 +17,27 @@ using namespace solver;
 struct State {};
 
 void Run(M& m, State&, Vars&) {
+  using PSM = PartStrMeshM<M>;
   auto sem = m.GetSem();
 
   struct {
-    FieldFace<Scal> fca; // plane constant
-    FieldFace<Vect> fcn; // normal
-    FieldFace<Scal> fccl; // color
-    FieldFace<bool> fci; // interface mask
-    FieldFace<Scal> fck; // curvature
-    typename PartstrMeshM<M>::Par par;
-    GRange<size_t> layers(1);
+    FieldCell<Scal> fca; // plane constant
+    FieldCell<Vect> fcn; // normal
+    FieldCell<Scal> fccl; // color
+    FieldCell<bool> fci; // interface mask
+    FieldCell<Scal> fck; // curvature
+    typename PSM::Par par;
   } * ctx(sem);
   auto& fca = ctx->fca;
   auto& fcn = ctx->fcn;
   auto& fccl = ctx->fccl;
   auto& fci = ctx->fci;
+  auto& fck = ctx->fck;
   auto& par = ctx->par;
 
   if (sem.Nested()) {
-    UCurv<M>::CalcCurvPart(layers, &fca, &fcn, &fci, &fccl, par, fck, m);
+    GRange<size_t> layers(1);
+    UCurv<M>::CalcCurvPart(layers, &fca, &fcn, &fci, &fccl, par, &fck, m);
   }
   if (sem("dump")) {
     m.Dump(&fck, "k");
