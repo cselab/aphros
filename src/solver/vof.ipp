@@ -58,7 +58,6 @@ struct Vof<M_>::Imp {
     Update(ps.get());
     auto psm = std::make_shared<typename PSM::Par>();
     psm->ps = ps;
-    psm->intth = par->part_intth;
     psm->ns = par->part_ns;
     psm->tol = par->part_tol;
     psm->itermax = par->part_itermax;
@@ -144,7 +143,7 @@ struct Vof<M_>::Imp {
       uvof_.DumpPoly(
           fcu_.iter_curr, fcn_, fca_, fci_,
           GetDumpName("s", ".vtk", par->dmp->GetN()),
-          owner_->GetTime() + owner_->GetTimeStep(), par->poly_intth,
+          owner_->GetTime() + owner_->GetTimeStep(),
           par->vtkbin, par->vtkmerge, m);
     }
     if (par->dumppolymarch && dm) {
@@ -165,7 +164,7 @@ struct Vof<M_>::Imp {
         uvof_.DumpPolyMarch(
             layers, &fcut, &fcclt, &fcn_, &fca_, &fci_,
             GetDumpName("sm", ".vtk", par->dmp->GetN()),
-            owner_->GetTime() + owner_->GetTimeStep(), par->poly_intth,
+            owner_->GetTime() + owner_->GetTimeStep(),
             par->vtkbin, par->vtkmerge, par->vtkiso,
             par->dumppolymarch_fill >= 0 ? &fcut : nullptr, m);
       }

@@ -29,8 +29,6 @@ class Vof final : public AdvectionSolver<M_> {
     bool part_k = false; // curvature from particles
     size_t part_dump_fr = 100; // num frames dump
     size_t part_report_fr = 100; // num frames report
-    Scal part_intth = 1e-5; // interface threshold for particle seed
-    Scal poly_intth = 0.; // interface threshold for DumpPoly
     Scal clipth = 1e-6; // vf clipping threshold
     std::unique_ptr<Dumper> dmp; // dumper for particles
     bool dumppoly = false; // dump reconstructed interface (cut polygons)

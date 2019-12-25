@@ -47,9 +47,8 @@ struct UVof<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Vect>*>& fcn,
       const Multi<const FieldCell<Scal>*>& fca,
-      const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t, Scal th,
+      const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t,
       bool bin, bool merge, M& m) {
-    (void)th;
     auto sem = m.GetSem("dumppoly");
     if (sem("local")) {
       dl_.clear();
@@ -217,12 +216,11 @@ struct UVof<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Vect>*>& fcn,
       const Multi<const FieldCell<Scal>*>& fca,
-      const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t, Scal th,
+      const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t,
       bool bin, bool merge, Scal iso, const FieldCell<Scal>* fcus, M& m) {
     (void)fcn;
     (void)fca;
     (void)fci;
-    (void)th;
     auto sem = m.GetSem("dumppolymarch");
     if (sem("local")) {
       dl_.clear();
@@ -910,19 +908,19 @@ void UVof<M_>::DumpPoly(
     const Multi<const FieldCell<Scal>*>& fccl,
     const Multi<const FieldCell<Vect>*>& fcn,
     const Multi<const FieldCell<Scal>*>& fca,
-    const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t, Scal th,
-    bool bin, bool merge, M& m) {
-  imp->DumpPoly(layers, fcu, fccl, fcn, fca, fci, fn, t, th, bin, merge, m);
+    const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t, bool bin,
+    bool merge, M& m) {
+  imp->DumpPoly(layers, fcu, fccl, fcn, fca, fci, fn, t, bin, merge, m);
 }
 
 template <class M_>
 void UVof<M_>::DumpPoly(
     const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcn,
     const FieldCell<Scal>& fca, const FieldCell<bool>& fci, std::string fn,
-    Scal t, Scal th, bool bin, bool merge, M& m) {
+    Scal t, bool bin, bool merge, M& m) {
   GRange<size_t> layers(0, 1);
   const FieldCell<Scal>* fccl(nullptr);
-  imp->DumpPoly(layers, &fcu, fccl, &fcn, &fca, &fci, fn, t, th, bin, merge, m);
+  imp->DumpPoly(layers, &fcu, fccl, &fcn, &fca, &fci, fn, t, bin, merge, m);
 }
 
 template <class M_>
@@ -931,10 +929,10 @@ void UVof<M_>::DumpPolyMarch(
     const Multi<const FieldCell<Scal>*>& fccl,
     const Multi<const FieldCell<Vect>*>& fcn,
     const Multi<const FieldCell<Scal>*>& fca,
-    const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t, Scal th,
-    bool bin, bool merge, Scal iso, const FieldCell<Scal>* fcus, M& m) {
+    const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t, bool bin,
+    bool merge, Scal iso, const FieldCell<Scal>* fcus, M& m) {
   imp->DumpPolyMarch(
-      layers, fcu, fccl, fcn, fca, fci, fn, t, th, bin, merge, iso, fcus, m);
+      layers, fcu, fccl, fcn, fca, fci, fn, t, bin, merge, iso, fcus, m);
 }
 
 template <class M_>
