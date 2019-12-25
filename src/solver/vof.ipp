@@ -535,7 +535,7 @@ struct Vof<M_>::Imp {
   const MapCondFaceAdvection<Scal>& mfc_; // conditions on advection
   MapCondFace mfc_vf_; // conditions on vf
   MapCondFace mfc_cl_; // conditions on cl
-  MapCondFace mfc_im_; // conditions on cl
+  MapCondFace mfc_im_; // conditions on im
   MapCondFace mfc_n_; // conditions on n
   MapCondFace mfc_a_; // conditions on a
 
