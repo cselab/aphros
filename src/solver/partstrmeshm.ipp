@@ -82,43 +82,9 @@ struct PartStrMeshM<M_>::Imp {
     return mc + mx * xl[0] + my * xl[1];
   }
 
-  // Appends interface line
-  bool AppendInterfaceLine(
-      const std::array<Vect, 3>& v, Vect xc, Scal u, Scal a, const Vect& n,
-      bool in, std::vector<Vect2>& lx, std::vector<size_t>& ls) {
-    Vect h = m.GetCellSize(); // cell size
-    const Scal th = par->intth;
-
-    if (in && u >= th && u <= 1. - th) {
-      auto xx = R::GetCutPoly(xc, n, a, h); // interface polygon
-      std::array<Vect, 2> e; // ends of intersection
-      Vect mc = v[0]; // plane center
-      Vect mx = v[1]; // unit in x
-      Vect my = v[2]; // unit in y
-      Vect mn = mx.cross(my); // normal to plane
-      if (R::GetInterPoly(xx, mc, mn, e)) { // intersection non-empty
-        // interface normal
-        auto pn = GetPlaneCoords(mc + n, v);
-        // line ends
-        auto pe0 = GetPlaneCoords(e[0], v);
-        auto pe1 = GetPlaneCoords(e[1], v);
-        // make <pn,pe1-pe0> positively oriented
-        if (pn.cross_third(pe1 - pe0) < 0.) {
-          std::swap(pe0, pe1);
-        }
-        // polygon of fluid volume
-        lx.push_back(pe0);
-        lx.push_back(pe1);
-        ls.push_back(2);
-        return true;
-      }
-    }
-    return false;
-  }
-  // Appends interface element (line or volume) of one cell.
+  // Appends interface line of one cell.
   // v: output of GetPlaneBasis()
   // xc: cell center
-  // u: volume fraction
   // a: plane constant
   // n: interface normal
   // in: interface flag
@@ -127,9 +93,32 @@ struct PartStrMeshM<M_>::Imp {
   // Output:
   // lx, ls: appended with interface element
   bool AppendInterface(
-      const std::array<Vect, 3>& v, Vect xc, Scal u, Scal a, const Vect& n,
-      bool in, std::vector<Vect2>& lx, std::vector<size_t>& ls) {
-    return AppendInterfaceLine(v, xc, u, a, n, in, lx, ls);
+      const std::array<Vect, 3>& v, Vect xc, Scal a, const Vect& n,
+      std::vector<Vect2>& lx, std::vector<size_t>& ls) {
+    Vect h = m.GetCellSize(); // cell size
+    auto xx = R::GetCutPoly(xc, n, a, h); // interface polygon
+    std::array<Vect, 2> e; // ends of intersection
+    Vect mc = v[0]; // plane center
+    Vect mx = v[1]; // unit in x
+    Vect my = v[2]; // unit in y
+    Vect mn = mx.cross(my); // normal to plane
+    if (R::GetInterPoly(xx, mc, mn, e)) { // intersection non-empty
+      // interface normal
+      auto pn = GetPlaneCoords(mc + n, v);
+      // line ends
+      auto pe0 = GetPlaneCoords(e[0], v);
+      auto pe1 = GetPlaneCoords(e[1], v);
+      // make <pn,pe1-pe0> positively oriented
+      if (pn.cross_third(pe1 - pe0) < 0.) {
+        std::swap(pe0, pe1);
+      }
+      // polygon of fluid volume
+      lx.push_back(pe0);
+      lx.push_back(pe1);
+      ls.push_back(2);
+      return true;
+    }
+    return false;
   }
 
   void Seed(
@@ -151,16 +140,13 @@ struct PartStrMeshM<M_>::Imp {
 
     // Seed strings in cells with interface.
     for (size_t l = 0; l < vfcu.size(); ++l) {
-      auto& fcu = *vfcu[l];
       auto& fca = *vfca[l];
       auto& fcn = *vfcn[l];
       auto& fci = *vfci[l];
       auto& fccl = *vfccl[l];
       for (auto c : m.Cells()) {
         Vect xc = m.GetCenter(c);
-        const Scal th = par->intth;
-        if (fci[c] && fcu[c] >= th && fcu[c] <= 1. - th &&
-            (nocl || fccl[c] != kClNone) &&
+        if (fci[c] && (nocl || fccl[c] != kClNone) &&
             (!fck || IsNan((*fck)[c]) ||
              std::abs((*fck)[c]) > 1. / (par->maxr * h[0]))) {
           // number of strings
@@ -184,15 +170,13 @@ struct PartStrMeshM<M_>::Imp {
             for (auto wo : bo) {
               IdxCell cc = bc.GetIdx(w + wo); // neighbour cell
               for (size_t j = 0; j < vfcu.size(); ++j) {
-                auto& fcu2 = *vfcu[j];
                 auto& fca2 = *vfca[j];
                 auto& fcn2 = *vfcn[j];
                 auto& fci2 = *vfci[j];
                 auto& fccl2 = *vfccl[j];
-                if (fci2[cc] && (nocl || fccl2[cc] == fccl[c])) { // XXX
+                if (fci2[cc] && (nocl || fccl2[cc] == fccl[c])) {
                   AppendInterface(
-                      v, m.GetCenter(cc), fcu2[cc], fca2[cc], fcn2[cc],
-                      fci2[cc], lx, ls);
+                      v, m.GetCenter(cc), fca2[cc], fcn2[cc], lx, ls);
                 }
               }
             }

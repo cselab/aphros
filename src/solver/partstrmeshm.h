@@ -21,7 +21,6 @@ class PartStrMeshM {
 
   struct Par {
     std::shared_ptr<typename PS::Par> ps;
-    Scal intth = 0; // interface threshold for particle seed
     size_t dump_fr = -1; // num frames dump
     size_t ns = 2; // number of strings per cell
     Scal tol = 0.01; // tolerance

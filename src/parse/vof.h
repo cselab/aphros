@@ -21,8 +21,6 @@ void Parse(typename Vof::Par* p, const Vars& var) {
   p->part_dump_fr = var.Int["part_dump_fr"];
   p->part_report_fr = var.Int["part_report_fr"];
   p->part_k = var.Int["part_k"];
-  p->part_intth = var.Double["part_intth"];
-  p->poly_intth = var.Double["poly_intth"];
   p->clipth = var.Double["clipth"];
   p->dim = var.Int["dim"];
   p->dumppoly = var.Int["dumppoly"];
