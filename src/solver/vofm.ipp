@@ -822,9 +822,8 @@ auto Vofm<M_>::GetField(size_t i) const -> const FieldCell<Scal>& {
 }
 
 template <class M_>
-auto Vofm<M_>::GetAlpha(size_t i) const -> const FieldCell<Scal>& {
-  (void)i;
-  return imp->fca_[i];
+auto Vofm<M_>::GetAlpha() const -> Multi<const FieldCell<Scal>*> {
+  return imp->fca_;
 }
 
 template <class M_>
@@ -833,12 +832,12 @@ auto Vofm<M_>::GetImage(size_t l, IdxCell c) const -> MIdx {
 }
 
 template <class M_>
-auto Vofm<M_>::GetColor(size_t i) const -> const FieldCell<Scal>& {
-  return imp->fccl_[i];
+auto Vofm<M_>::GetColor() const -> Multi<const FieldCell<Scal>*> {
+  return imp->fccl_;
 }
 
 template <class M_>
-auto Vofm<M_>::GetColor() const -> const FieldCell<Scal>& {
+auto Vofm<M_>::GetColorSum() const -> const FieldCell<Scal>& {
   return imp->fccls_;
 }
 
@@ -848,8 +847,8 @@ size_t Vofm<M_>::GetNumLayers() const {
 }
 
 template <class M_>
-auto Vofm<M_>::GetNormal(size_t i) const -> const FieldCell<Vect>& {
-  return imp->fcn_[i];
+auto Vofm<M_>::GetNormal() const -> Multi<const FieldCell<Vect>*> {
+  return imp->fcn_;
 }
 
 template <class M_>

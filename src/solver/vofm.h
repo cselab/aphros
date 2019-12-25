@@ -51,15 +51,15 @@ class Vofm final : public AdvectionSolver<M_> {
   // ...
   using P::GetField;
   // Plane constant
-  const FieldCell<Scal>& GetAlpha(size_t i) const;
+  Multi<const FieldCell<Scal>*> GetAlpha() const;
   // Normal to interface
-  const FieldCell<Vect>& GetNormal(size_t i) const;
+  Multi<const FieldCell<Vect>*> GetNormal() const;
   // Number of layers
   size_t GetNumLayers() const;
-  // Color from one layer
-  const FieldCell<Scal>& GetColor(size_t i) const;
-  // Color from all layers combined
-  const FieldCell<Scal>& GetColor() const;
+  // Colors
+  Multi<const FieldCell<Scal>*> GetColor() const;
+  // Colors combined
+  const FieldCell<Scal>& GetColorSum() const;
   // Image vector, number of passes through periodic boundaries
   MIdx GetImage(size_t l, IdxCell c) const;
   // Default curvature
