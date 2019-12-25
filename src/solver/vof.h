@@ -47,9 +47,6 @@ class Vof final : public AdvectionSolver<M_> {
     Scal part_tol = 0.01; // tolerance
     bool part_dn = false;
     Scal part_maxr = 0;
-    using AF = typename solver::PartStrMeshM<M>::AF;
-    using AR = typename solver::PartStrMeshM<M>::AR;
-    AF part_attrforce = AF::line;
     int verb = 0;
     bool recolor_unionfind = true;
     bool recolor_reduce = true;

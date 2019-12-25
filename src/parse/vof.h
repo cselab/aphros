@@ -50,19 +50,6 @@ void Parse(typename Vof::Par* p, const Vars& var) {
 
   using Par = typename Vof::Par;
   {
-    using AF = typename Par::AF;
-    std::string s = var.String["part_attrforce"];
-    if (s == "line") {
-      p->part_attrforce = AF::line;
-    } else if (s == "center") {
-      p->part_attrforce = AF::center;
-    } else if (s == "volume") {
-      p->part_attrforce = AF::volume;
-    } else {
-      throw std::runtime_error("Update: unknown part_attrforce=" + s);
-    }
-  }
-  {
     using Scheme = typename Par::Scheme;
     std::string s = var.String["vof_scheme"];
     if (s == "plain") {

@@ -19,20 +19,6 @@ class PartStrMeshM {
   using Vect = typename M::Vect;
   using PS = PartStr<Scal>;
 
-  enum class AF { // attraction force type
-    line // nearest line
-    ,
-    center // nearest line center
-    ,
-    volume // fluid volume
-  };
-
-  enum class AR { // attraction reconstruction type
-    line // interface line
-    ,
-    volume // fluid volume
-  };
-
   struct Par {
     std::shared_ptr<typename PS::Par> ps;
     Scal intth = 0; // interface threshold for particle seed
@@ -42,7 +28,6 @@ class PartStrMeshM {
     size_t itermax = 20;
     int verb = 0; // debug output
     size_t dim = 3;
-    AR attrreconst = AR::line;
     Scal maxr = 0; // if input radius of curvature
                    // (e.g. from height functions)
                    // is below than maxr*h,

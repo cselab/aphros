@@ -5,9 +5,10 @@
 #include "debug/isnan.h"
 #include "dump/vtk.h"
 #include "geom/mesh.h"
-#include "partstrmeshm.h"
 #include "reconst.h"
 #include "solver.h"
+
+#include "partstrmeshm.h"
 
 namespace solver {
 
@@ -114,56 +115,6 @@ struct PartStrMeshM<M_>::Imp {
     }
     return false;
   }
-  // Appends interface volume
-  bool AppendInterfaceVolume(
-      const std::array<Vect, 3>& v, Vect xc, Scal u, Scal a, const Vect& n,
-      bool in, std::vector<Vect2>& lx, std::vector<size_t>& ls) {
-    Vect h = m.GetCellSize(); // cell size
-
-    // XXX: adhoc 2d
-    // cell contour polygon // TODO: general for 3d cell
-    std::vector<Vect2> pc;
-    pc.push_back(GetPlaneCoords(xc + Vect(-h[0], -h[1], 0.) * 0.5, v));
-    pc.push_back(GetPlaneCoords(xc + Vect(h[0], -h[1], 0.) * 0.5, v));
-    pc.push_back(GetPlaneCoords(xc + Vect(h[0], h[1], 0.) * 0.5, v));
-    pc.push_back(GetPlaneCoords(xc + Vect(-h[0], h[1], 0.) * 0.5, v));
-
-    const Scal th = par->intth;
-
-    if (in && u >= th && u <= 1. - th) {
-      auto xx = R::GetCutPoly(xc, n, a, h); // interface polygon
-      std::array<Vect, 2> e; // ends of intersection
-      Vect mc = v[0]; // plane center
-      Vect mx = v[1]; // unit in x
-      Vect my = v[2]; // unit in y
-      Vect mn = mx.cross(my); // normal to plane
-      if (R::GetInterPoly(xx, mc, mn, e)) { // intersection non-empty
-        // interface normal
-        auto pn = GetPlaneCoords(mc + n, v);
-        // line ends
-        auto pe0 = GetPlaneCoords(e[0], v);
-        auto pe1 = GetPlaneCoords(e[1], v);
-        // make <pn,pe1-pe0> positively oriented
-        if (pn.cross_third(pe1 - pe0) < 0.) {
-          std::swap(pe0, pe1);
-        }
-        // polygon of fluid volume
-        auto pv = R::GetCutPoly(pc, {pe0, pe1});
-        lx.insert(lx.end(), pv.begin(), pv.end());
-        ls.push_back(pv.size());
-        return true;
-      } else {
-        lx.insert(lx.end(), pc.begin(), pc.end());
-        ls.push_back(pc.size());
-        return true;
-      }
-    } else if (u > 1. - th) {
-      lx.insert(lx.end(), pc.begin(), pc.end());
-      ls.push_back(pc.size());
-      return true;
-    }
-    return false;
-  }
   // Appends interface element (line or volume) of one cell.
   // v: output of GetPlaneBasis()
   // xc: cell center
@@ -178,14 +129,7 @@ struct PartStrMeshM<M_>::Imp {
   bool AppendInterface(
       const std::array<Vect, 3>& v, Vect xc, Scal u, Scal a, const Vect& n,
       bool in, std::vector<Vect2>& lx, std::vector<size_t>& ls) {
-    switch (par->attrreconst) {
-      case AR::line:
-        return AppendInterfaceLine(v, xc, u, a, n, in, lx, ls);
-      case AR::volume:
-        return AppendInterfaceVolume(v, xc, u, a, n, in, lx, ls);
-      default:
-        throw std::runtime_error("AppendInterface(): Unknown attrreconst");
-    }
+    return AppendInterfaceLine(v, xc, u, a, n, in, lx, ls);
   }
 
   void Seed(
