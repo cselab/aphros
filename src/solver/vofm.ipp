@@ -852,14 +852,13 @@ auto Vofm<M_>::GetNormal() const -> Multi<const FieldCell<Vect>*> {
 }
 
 template <class M_>
-auto Vofm<M_>::GetCurv() const -> const FieldCell<Scal>& {
-  return imp->psm_->GetCurv(0);
+auto Vofm<M_>::GetCurv() const -> Multi<const FieldCell<Scal>*> {
+  return imp->psm_->GetCurv();
 }
 
 template <class M_>
-auto Vofm<M_>::GetCurv(size_t i) const -> const FieldCell<Scal>& {
-  (void)i;
-  return imp->psm_->GetCurv(i);
+auto Vofm<M_>::GetCurvSum() const -> const FieldCell<Scal>& {
+  return *imp->psm_->GetCurv()[0];
 }
 
 template <class M_>
