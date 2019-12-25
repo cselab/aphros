@@ -6,7 +6,7 @@ target_link_libraries(${T} solver normal partstrmeshm march utilvof)
 
 set(T "vof")
 add_library(${T} vof.cpp)
-target_link_libraries(${T} solver normal partstrmeshm utilvof)
+target_link_libraries(${T} solver normal partstrmeshm utilvof curv)
 
 set(T "tvd")
 add_library(${T} tvd.cpp)
