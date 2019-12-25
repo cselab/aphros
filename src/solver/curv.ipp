@@ -19,9 +19,7 @@ using namespace solver;
 
 template <class M_>
 struct UCurv<M_>::Imp {
-  using R = Reconst<Scal>;
   static constexpr size_t dim = M::dim;
-  using Vect2 = GVect<Scal, 2>;
 
   // fcu: volume fraction [a]
   // fcud2: volume fraction difference double (xpp-xmm, ypp-ymm, zpp-zmm) [i]
@@ -78,75 +76,38 @@ struct UCurv<M_>::Imp {
       }
     }
   }
-  static void CalcCurvHeight(
-      const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcn, size_t edim,
-      FieldCell<Scal>& fck, M& m) {
-    auto sem = m.GetSem();
-    struct {
-      FieldCell<Vect> fcud2; // volume fraction difference double
-      FieldCell<Vect> fcud4; // volume fraction difference quad
-      FieldCell<Vect> fch; // height functions
-    } * ctx(sem);
-    auto& fcud2 = ctx->fcud2;
-    auto& fcud4 = ctx->fcud4;
-    auto& fch = ctx->fch;
-
-    if (sem("diff2")) {
-      CalcDiff2(fcu, fcud2, m);
-      m.Comm(&fcud2);
-    }
-    if (sem("diff4")) {
-      CalcDiff4(fcu, fcud2, fcud4, m);
-      m.Comm(&fcud4);
-    }
-    if (sem("height")) {
-      UNormal<M>::CalcHeight(m, fcu, fcud2, fcud4, edim, fch);
-      m.Comm(&fch);
-    }
-    if (sem("curvcomm")) {
-      UNormal<M>::CalcCurvHeight(m, fcu, fch, fcn, edim, fck);
-      m.Comm(&fck);
-    }
-  }
-
-  static std::unique_ptr<PartStrMeshM<M>> CalcCurvPart(
-      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fca,
-      const Multi<const FieldCell<Vect>*>& fcn,
-      const Multi<const FieldCell<bool>*>& fci,
-      const Multi<const FieldCell<Scal>*>& fccl,
-      const typename PartStrMeshM<M>::Par& par,
-      const Multi<FieldCell<Scal>*>& fck, M& m) {
-    using PSM = PartStrMeshM<M>;
-
-    auto sem = m.GetSem();
-    struct {
-      std::unique_ptr<PSM> psm;
-    } * ctx(sem);
-    auto& psm = ctx->psm;
-
-    if (sem("init")) {
-      psm.reset(new PSM(
-          m, std::make_shared<typename PSM::Par>(par), layers));
-    }
-    if (sem.Nested("part")) {
-      psm->Part(fca, fcn, fci, fccl);
-    }
-    if (sem("copy")) {
-      fck.assert_size(layers);
-      for (auto l : layers) {
-        (*fck[l]) = psm->GetCurv(l);
-      }
-      return std::move(psm);
-    }
-    return nullptr;
-  }
 };
 
 template <class M>
 void UCurv<M>::CalcCurvHeight(
     const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcn, size_t edim,
     FieldCell<Scal>& fck, M& m) {
-  Imp::CalcCurvHeight(fcu, fcn, edim, fck, m);
+  auto sem = m.GetSem();
+  struct {
+    FieldCell<Vect> fcud2; // volume fraction difference double
+    FieldCell<Vect> fcud4; // volume fraction difference quad
+    FieldCell<Vect> fch; // height functions
+  } * ctx(sem);
+  auto& fcud2 = ctx->fcud2;
+  auto& fcud4 = ctx->fcud4;
+  auto& fch = ctx->fch;
+
+  if (sem("diff2")) {
+    Imp::CalcDiff2(fcu, fcud2, m);
+    m.Comm(&fcud2);
+  }
+  if (sem("diff4")) {
+    Imp::CalcDiff4(fcu, fcud2, fcud4, m);
+    m.Comm(&fcud4);
+  }
+  if (sem("height")) {
+    UNormal<M>::CalcHeight(m, fcu, fcud2, fcud4, edim, fch);
+    m.Comm(&fch);
+  }
+  if (sem("curvcomm")) {
+    UNormal<M>::CalcCurvHeight(m, fcu, fch, fcn, edim, fck);
+    m.Comm(&fck);
+  }
 }
 
 template <class M>
@@ -157,5 +118,27 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
     const Multi<const FieldCell<Scal>*>& fccl,
     const typename PartStrMeshM<M>::Par& par,
     const Multi<FieldCell<Scal>*>& fck, M& m) {
-  return Imp::CalcCurvPart(layers, fca, fcn, fci, fccl, par, fck, m);
+  using PSM = PartStrMeshM<M>;
+
+  auto sem = m.GetSem();
+  struct {
+    std::unique_ptr<PSM> psm;
+  } * ctx(sem);
+  auto& psm = ctx->psm;
+
+  if (sem("init")) {
+    psm.reset(new PSM(
+        m, std::make_shared<typename PSM::Par>(par), layers));
+  }
+  if (sem.Nested("part")) {
+    psm->Part(fca, fcn, fci, fccl);
+  }
+  if (sem("copy")) {
+    fck.assert_size(layers);
+    for (auto l : layers) {
+      (*fck[l]) = psm->GetCurv(l);
+    }
+    return std::move(psm);
+  }
+  return nullptr;
 }
