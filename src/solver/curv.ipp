@@ -10,8 +10,10 @@
 #include "normal.h"
 #include "reconst.h"
 #include "trackerm.h"
+#include "tvd.h"
 #include "util/vof.h"
 #include "vof.h"
+#include "vofm.h"
 
 #include "curv.h"
 
@@ -127,8 +129,7 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
   auto& psm = ctx->psm;
 
   if (sem("init")) {
-    psm.reset(new PSM(
-        m, std::make_shared<typename PSM::Par>(par), layers));
+    psm.reset(new PSM(m, std::make_shared<typename PSM::Par>(par), layers));
   }
   if (sem.Nested("part")) {
     psm->Part(fca, fcn, fci, fccl);
@@ -141,4 +142,25 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
     return std::move(psm);
   }
   return nullptr;
+}
+
+template <class M>
+std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
+    const GRange<size_t>& layers, const AdvectionSolver<M>* asbase,
+    const typename PartStrMeshM<M>::Par& par,
+    const Multi<FieldCell<Scal>*>& fck, M& m) {
+  if (auto as = dynamic_cast<const Vof<M>*>(asbase)) {
+    return CalcCurvPart(
+        layers, &as->GetAlpha(), &as->GetNormal(), &as->GetMask(), nullptr, par,
+        fck, m);
+  } else if (auto as = dynamic_cast<const Vofm<M>*>(asbase)) {
+    return CalcCurvPart(
+        layers, as->GetAlpha(), as->GetNormal(), as->GetMask(), as->GetColor(),
+        par, fck, m);
+  } else {
+    for (auto l : layers) {
+      fck[l]->Reinit(m, GetNan<Scal>());
+    }
+    return nullptr;
+  }
 }

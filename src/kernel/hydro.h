@@ -27,6 +27,7 @@
 #include "func/init_u.h"
 #include "geom/mesh.h"
 #include "kernelmesh.h"
+#include "parse/curv.h"
 #include "parse/parser.h"
 #include "parse/proj.h"
 #include "parse/simple.h"
@@ -35,6 +36,7 @@
 #include "parse/vars.h"
 #include "parse/vof.h"
 #include "solver/advection.h"
+#include "solver/curv.h"
 #include "solver/multi.h"
 #include "solver/normal.h"
 #include "solver/pois.h"
@@ -326,6 +328,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Vect> fctmpv_; // temporary vector field
   FieldCell<Vect> fcvcurl_; // curl-component of velocity
   FieldCell<Scal> fcdiv_; // divergence of velocity
+  Multi<FieldCell<Scal>> fck_; // curvature
+  typename PartStrMeshM<M>::Par psm_par_;
+  std::unique_ptr<PartStrMeshM<M>> psm_;
   bool vcurl_; // compute curl
 
   Scal nabort_; // number of abort requests, used by Reduce in checknan Run()
@@ -570,6 +575,13 @@ void Hydro<M>::InitAdvection() {
   }
 
   st_.vofm.resize(layers.size());
+  fck_.resize(layers);
+  fck_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
+  {
+    typename PartStr<Scal>::Par ps;
+    Parse(ps, m.GetCellSize().norminf(), var);
+    Parse<M>(psm_par_, ps, var);
+  }
 }
 
 template <class M>
@@ -1447,10 +1459,10 @@ void Hydro<M>::CalcSurfaceTension(
 
     if (auto as = dynamic_cast<ASVM*>(as_.get())) {
       AppendSurfaceTension(
-          ff_st, layers, as->GetFieldM(), as->GetColor(), as->GetCurv(),
+          ff_st, layers, as->GetFieldM(), as->GetColor(), fck_,
           ff_sig_);
     } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
-      AppendSurfaceTension(ff_st, as_->GetField(), as->GetCurv(), ff_sig_);
+      AppendSurfaceTension(ff_st, as_->GetField(), fck_[0], ff_sig_);
     }
 
     // zero on boundaries
@@ -2162,6 +2174,9 @@ void Hydro<M>::Run() {
     }
     if (sem.Nested("as-post")) {
       as_->PostStep();
+    }
+    if (sem.Nested("curv")) {
+      psm_ = UCurv<M>::CalcCurvPart(layers, as_.get(), psm_par_, fck_, m);
     }
     if (var.Int["enable_bubgen"]) {
       if (sem.Nested("bubgen")) {

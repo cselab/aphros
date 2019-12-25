@@ -84,6 +84,8 @@ class Vof final : public AdvectionSolver<M_> {
   const FieldCell<Scal>& GetField(Layers l) const override;
   // ...
   using P::GetField;
+  // Interface mask
+  const FieldCell<bool>& GetMask() const;
   // Plane constant
   const FieldCell<Scal>& GetAlpha() const;
   // Normal to interface

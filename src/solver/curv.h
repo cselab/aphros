@@ -4,6 +4,7 @@
 
 #include "geom/mesh.h"
 #include "partstrmeshm.h"
+#include "advection.h"
 
 using namespace solver;
 
@@ -28,6 +29,11 @@ struct UCurv {
       const Multi<const FieldCell<Vect>*>& fcn,
       const Multi<const FieldCell<bool>*>& fci,
       const Multi<const FieldCell<Scal>*>& fccl,
+      const typename PartStrMeshM<M>::Par& par,
+      const Multi<FieldCell<Scal>*>& fck, M& m);
+
+  static std::unique_ptr<PartStrMeshM<M>> CalcCurvPart(
+      const GRange<size_t>& layers, const AdvectionSolver<M>* asbase,
       const typename PartStrMeshM<M>::Par& par,
       const Multi<FieldCell<Scal>*>& fck, M& m);
 

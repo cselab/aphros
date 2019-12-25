@@ -601,6 +601,11 @@ auto Vof<M_>::GetImage(IdxCell c) const -> MIdx {
 }
 
 template <class M_>
+auto Vof<M_>::GetMask() const -> const FieldCell<bool>& {
+  return imp->fci_;
+}
+
+template <class M_>
 auto Vof<M_>::GetAlpha() const -> const FieldCell<Scal>& {
   return imp->fca_;
 }
