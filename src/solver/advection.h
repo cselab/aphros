@@ -44,7 +44,7 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
       double t, double dt, M& m, const FieldFace<Scal>* ffv,
       const FieldCell<Scal>* fcs)
       : UnsteadyIterativeSolver(t, dt), m(m), ffv_(ffv), fcs_(fcs) {}
-  // Postprocessing after time step (curvature, dumps)
+  // Postprocessing after time step (dumps)
   virtual void PostStep() {}
   // Volume fraction
   virtual const FieldCell<Scal>& GetField(Layers) const = 0;
