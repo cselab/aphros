@@ -732,8 +732,7 @@ struct Vofm<M_>::Imp {
       // --> reflected fca [a], fcn [a]
     }
     if (par->part && sem.Nested("part")) {
-      psm_->Part(
-          GetLayer(fcu_, Layers::iter_curr), fca_, fcn_, fci_, fccl_, nullptr);
+      psm_->Part(fca_, fcn_, fci_, fccl_, nullptr);
     }
     if (sem.Nested("dump")) {
       Dump();
