@@ -19,7 +19,7 @@ struct PartStrMeshM<M_>::Imp {
   using R = Reconst<Scal>;
   static constexpr Scal kClNone = -1;
 
-  Imp(M& m, std::shared_ptr<Par> par, const GRange<size_t>& layers)
+  Imp(M& m, std::shared_ptr<const Par> par, const GRange<size_t>& layers)
       : m(m), par(par), layers(layers), vfckp_(layers.size()) {
     // particle strings
     partstr_ = std::unique_ptr<PS>(new PS(par->ps));
@@ -246,12 +246,21 @@ struct PartStrMeshM<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& vfca,
       const Multi<const FieldCell<Vect>*>& vfcn, size_t id, Scal t) {
     auto sem = m.GetSem("partdump");
+    struct {
+      std::vector<Vect> dpx; // dump particles x
+      std::vector<size_t> dpc; // dump particles cell
+      std::vector<Scal> dpk; // dump particles curvature
+    } * ctx(sem);
+    auto& dpx = ctx->dpx;
+    auto& dpc = ctx->dpc;
+    auto& dpk = ctx->dpk;
+
     size_t it = 1;
     if (1) { // TODO: revise frames
       if (sem("local")) {
-        dpx_.clear();
-        dpc_.clear();
-        dpk_.clear();
+        dpx.clear();
+        dpc.clear();
+        dpk.clear();
 
         // loop over strings
         for (size_t s = 0; s < partstr_->GetNumStr(); ++s) {
@@ -268,9 +277,9 @@ struct PartStrMeshM<M_>::Imp {
           size_t ic = m.GetHash(c);
           for (size_t i = 0; i < sx; ++i) {
             auto x = GetSpaceCoords(xx[i], v);
-            dpx_.push_back(x);
-            dpc_.push_back(ic);
-            dpk_.push_back(partstr_->GetCurv(s));
+            dpx.push_back(x);
+            dpc.push_back(ic);
+            dpk.push_back(partstr_->GetCurv(s));
           }
         }
 
@@ -278,9 +287,9 @@ struct PartStrMeshM<M_>::Imp {
         using TV = typename M::template OpCatT<Vect>;
         using TI = typename M::template OpCatT<size_t>;
         using TS = typename M::template OpCatT<Scal>;
-        m.Reduce(std::make_shared<TV>(&dpx_));
-        m.Reduce(std::make_shared<TI>(&dpc_));
-        m.Reduce(std::make_shared<TS>(&dpk_));
+        m.Reduce(std::make_shared<TV>(&dpx));
+        m.Reduce(std::make_shared<TI>(&dpc));
+        m.Reduce(std::make_shared<TS>(&dpk));
       }
       if (sem("write")) {
         if (m.IsRoot()) {
@@ -293,10 +302,10 @@ struct PartStrMeshM<M_>::Imp {
           o.precision(20);
           o << "x,y,z,c,k\n";
 
-          for (size_t i = 0; i < dpx_.size(); ++i) {
-            Vect x = dpx_[i];
-            o << x[0] << "," << x[1] << "," << x[2] << "," << dpc_[i] << ","
-              << dpk_[i] << "\n";
+          for (size_t i = 0; i < dpx.size(); ++i) {
+            Vect x = dpx[i];
+            o << x[0] << "," << x[1] << "," << x[2] << "," << dpc[i] << ","
+              << dpk[i] << "\n";
           }
         }
       }
@@ -307,9 +316,16 @@ struct PartStrMeshM<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& vfca,
       const Multi<const FieldCell<Vect>*>& vfcn, size_t id, Scal t) {
     auto sem = m.GetSem("dumppartinter");
+    struct {
+      std::vector<std::vector<Vect>> dl; // lines
+      std::vector<Scal> dlc; // cell indices
+    } * ctx(sem);
+    auto& dl = ctx->dl;
+    auto& dlc = ctx->dlc;
+
     if (sem("local")) {
-      dl_.clear();
-      dlc_.clear();
+      dl.clear();
+      dlc.clear();
 
       for (size_t s = 0; s < partstr_->GetNumStr(); ++s) {
         // cell containing string
@@ -326,14 +342,14 @@ struct PartStrMeshM<M_>::Imp {
             xx.push_back(GetSpaceCoords(in.x[i], v));
             ++i;
           }
-          dl_.push_back(xx);
-          dlc_.push_back(hc);
+          dl.push_back(xx);
+          dlc.push_back(hc);
         }
       }
       using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&dl_));
+      m.Reduce(std::make_shared<TV>(&dl));
       using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dlc_));
+      m.Reduce(std::make_shared<TS>(&dlc));
     }
     if (sem("write")) {
       if (m.IsRoot()) {
@@ -341,7 +357,7 @@ struct PartStrMeshM<M_>::Imp {
         std::cout << std::fixed << std::setprecision(8) << "dump"
                   << " t=" << t << " to " << fn << std::endl;
         WriteVtkPoly<Vect>(
-            fn, dl_, nullptr, {&dlc_}, {"c"},
+            fn, dl, nullptr, {&dlc}, {"c"},
             "Lines of interface around particles", false, par->vtkbin,
             par->vtkmerge);
       }
@@ -354,7 +370,7 @@ struct PartStrMeshM<M_>::Imp {
 
  private:
   M& m;
-  std::shared_ptr<Par> par;
+  std::shared_ptr<const Par> par;
   const GRange<size_t> layers;
   Multi<FieldCell<Scal>> vfckp_; // curvature from particles
 
@@ -362,18 +378,11 @@ struct PartStrMeshM<M_>::Imp {
   std::vector<IdxCell> vsc_; // vsc_[s] is cell of string s
   std::vector<size_t> vsl_; // vsl_[s] is layer of string s
   std::vector<Scal> vsan_; // vsan_[s] is angle of tangent (see GetPlaneBasis)
-
-  std::vector<Vect> dpx_; // dump particles x
-  std::vector<size_t> dpc_; // dump particles cell
-  std::vector<Scal> dpk_; // dump particles curvature
-
-  std::vector<std::vector<Vect>> dl_; // dump poly
-  std::vector<Scal> dlc_; // dump poly
 };
 
 template <class M_>
 PartStrMeshM<M_>::PartStrMeshM(
-    M& m, std::shared_ptr<Par> par, const GRange<size_t>& layers)
+    M& m, std::shared_ptr<const Par> par, const GRange<size_t>& layers)
     : imp(new Imp(m, par, layers)) {}
 
 template <class M_>

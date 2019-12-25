@@ -22,8 +22,8 @@ class PartStrMeshM {
   struct Par {
     std::shared_ptr<typename PS::Par> ps;
     size_t dump_fr = -1; // num frames dump
-    size_t ns = 2; // number of strings per cell
-    Scal tol = 0.01; // tolerance
+    size_t ns = 3; // number of strings per cell
+    Scal tol = 1e-5; // tolerance
     size_t itermax = 20;
     int verb = 0; // debug output
     size_t dim = 3;
@@ -35,7 +35,8 @@ class PartStrMeshM {
     bool vtkmerge = true; // merge close points in DumpPartInter
   };
 
-  PartStrMeshM(M& m, std::shared_ptr<Par> par, const GRange<size_t>& layers);
+  PartStrMeshM(
+      M& m, std::shared_ptr<const Par> par, const GRange<size_t>& layers);
   ~PartStrMeshM();
 
   // Computes curvature with particles.
