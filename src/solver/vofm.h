@@ -47,7 +47,7 @@ class Vofm final : public AdvectionSolver<M_> {
   // Volume fraction
   const FieldCell<Scal>& GetField(Layers l) const override;
   const FieldCell<Scal>& GetField(Layers l, size_t i) const;
-  const FieldCell<Scal>& GetField(size_t i) const;
+  Multi<const FieldCell<Scal>*> GetFieldM() const;
   // ...
   using P::GetField;
   // Plane constant

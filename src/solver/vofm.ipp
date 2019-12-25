@@ -48,7 +48,7 @@ struct Vofm<M_>::Imp {
       , m(owner_->m)
       , mfc_(mfc)
       , layers(0, par->layers) {
-    fcu_.resize(layers);
+    fcu_.time_curr.resize(layers);
     fcuu_.resize(layers);
     fcn_.resize(layers);
     fca_.resize(layers);
@@ -67,8 +67,8 @@ struct Vofm<M_>::Imp {
 
     fcus_.time_curr = fcu0;
 
-    fcu_[0].time_curr.Reinit(m, 0);
-    fcu_.InitAll(fcu_[0]);
+    fcu_.time_curr[0].Reinit(m, 0);
+    fcu_.time_curr.InitAll(fcu_.time_curr[0]);
 
     fccl_.InitAll(FieldCell<Scal>(m, kClNone));
     fcim_.InitAll(FieldCell<Scal>(m, TRM::Pack(MIdx(0))));
@@ -76,7 +76,7 @@ struct Vofm<M_>::Imp {
     ffcl_.InitAll(FieldFace<Scal>(m, kClNone));
     ffi_.InitAll(FieldFace<bool>(m, false));
 
-    fcu_[0].time_curr = fcu0;
+    fcu_.time_curr[0] = fcu0;
     fccl_[0] = fccl0;
     fccls_ = fccl0;
 
@@ -228,15 +228,13 @@ struct Vofm<M_>::Imp {
     auto sem = m.GetSem("start");
     if (owner_->GetTime() == 0.) {
       if (sem.Nested("reconst")) {
-        Rec(GetLayer(fcu_, Layers::time_curr));
+        Rec(fcu_.time_curr);
       }
     }
     if (sem("rotate")) {
       owner_->ClearIter();
-      for (auto& u : fcu_.data()) {
-        u.time_prev = u.time_curr;
-        u.iter_curr = u.time_prev;
-      }
+      fcu_.time_prev = fcu_.time_curr;
+      fcu_.iter_curr = fcu_.time_prev;
       fcus_.time_prev = fcus_.time_curr;
       fcus_.iter_curr = fcus_.time_prev;
       UpdateBc(mfc_);
@@ -253,7 +251,7 @@ struct Vofm<M_>::Imp {
     bool dm = par->dmp->Try(owner_->GetTime(), owner_->GetTimeStep());
     if (par->dumppoly && dm && sem.Nested()) {
       uvof_.DumpPoly(
-          layers, GetLayer(fcu_, Layers::iter_curr), fccl_, fcn_, fca_, fci_,
+          layers, fcu_.iter_curr, fccl_, fcn_, fca_, fci_,
           GetDumpName("s", ".vtk", par->dmp->GetN()),
           owner_->GetTime() + owner_->GetTimeStep(),
           par->vtkbin, par->vtkmerge, m);
@@ -265,9 +263,8 @@ struct Vofm<M_>::Imp {
       if (sem("copy")) {
         fcust = fcus_.iter_curr;
         fcclt = fccl_;
-        fcut.resize(layers);
+        fcut = fcu_.iter_curr;
         for (auto i : layers) {
-          fcut[i] = fcu_[i].iter_curr;
           if (par->bcc_reflectpoly) {
             BcReflectAll(fcut[i], mfc_vf_, m);
             BcReflectAll(fcclt[i], mfc_cl_, m);
@@ -617,15 +614,15 @@ struct Vofm<M_>::Imp {
       Multi<FieldCell<Scal>> fcclm; // previous color
     } * ctx(sem);
     if (sem("init")) {
-      for (auto i : layers) {
-        auto& fcu = fcu_[i];
-        auto& uc = fcu.iter_curr;
-        auto& fcuu = fcuu_[i];
+      for (auto l : layers) {
+        auto& uc = fcu_.iter_curr[l];
+        auto& ucm = fcu_.time_prev[l];
+        auto& fcuu = fcuu_[l];
         fcuu.Reinit(m);
         const Scal dt = owner_->GetTimeStep();
         auto& fcs = *owner_->fcs_;
         for (auto c : m.Cells()) {
-          uc[c] = fcu.time_prev[c] + dt * fcs[c];
+          uc[c] = ucm[c] + dt * fcs[c];
           fcuu[c] = (uc[c] < 0.5 ? 0 : 1);
         }
       }
@@ -633,7 +630,7 @@ struct Vofm<M_>::Imp {
     }
 
     using Scheme = typename Par::Scheme;
-    auto mfcu = GetLayer(fcu_, Layers::iter_curr);
+    Multi<FieldCell<Scal>*> mfcu = fcu_.iter_curr;
     switch (par->scheme) {
       case Scheme::plain:
         AdvPlain(sem, mfcu, 0);
@@ -653,17 +650,17 @@ struct Vofm<M_>::Imp {
       if (par->cloverride) {
         for (auto i : layers) {
           UVof<M>::BcClearOverrideColor(
-              fcu_[i].iter_curr, fccl_[i], 0., mfc_, m);
+              fcu_.iter_curr[i], fccl_[i], 0., mfc_, m);
         }
       } else {
         for (auto i : layers) {
-          UVof<M>::BcClear(fcu_[i].iter_curr, mfc_, m);
+          UVof<M>::BcClear(fcu_.iter_curr[i], mfc_, m);
         }
       }
     }
     if (sem.Nested()) {
       uvof_.Recolor(
-          layers, GetLayer(fcu_, Layers::iter_curr), fccl_, fccl_, par->clfixed,
+          layers, fcu_.iter_curr, fccl_, fccl_, par->clfixed,
           par->clfixed_x, par->coalth, mfc_cl_, par->verb,
           par->recolor_unionfind, par->recolor_reduce, par->recolor_grid, m);
     }
@@ -675,7 +672,7 @@ struct Vofm<M_>::Imp {
       fccls_.Reinit(m, kClNone);
       for (auto i : layers) {
         auto& fccl = fccl_[i];
-        auto& fcu = fcu_[i].Get(l);
+        auto& fcu = fcu_.Get(l)[i];
         for (auto c : m.AllCells()) {
           if (fccl[c] != kClNone) {
             fcus[c] += fcu[c];
@@ -698,9 +695,7 @@ struct Vofm<M_>::Imp {
     }
   }
   void FinishStep() {
-    for (auto& u : fcu_.data()) {
-      u.time_curr = u.iter_curr;
-    }
+    fcu_.time_curr = fcu_.iter_curr;
     fcus_.time_curr = fcus_.iter_curr;
     owner_->IncTime();
   }
@@ -742,7 +737,7 @@ struct Vofm<M_>::Imp {
   std::shared_ptr<Par> par;
   M& m;
 
-  Multi<LayersData<FieldCell<Scal>>> fcu_;
+  LayersData<Multi<FieldCell<Scal>>> fcu_;
   Multi<FieldCell<Scal>> fcuu_;
   LayersData<FieldCell<Scal>> fcus_;
   FieldCell<Scal> fccls_;
@@ -813,12 +808,12 @@ auto Vofm<M_>::GetField(Layers l) const -> const FieldCell<Scal>& {
 
 template <class M_>
 auto Vofm<M_>::GetField(Layers l, size_t i) const -> const FieldCell<Scal>& {
-  return imp->fcu_[i].Get(l);
+  return imp->fcu_.Get(l)[i];
 }
 
 template <class M_>
-auto Vofm<M_>::GetField(size_t i) const -> const FieldCell<Scal>& {
-  return imp->fcu_[i].Get(Layers::time_curr);
+auto Vofm<M_>::GetFieldM() const -> Multi<const FieldCell<Scal>*> {
+  return imp->fcu_.Get(Layers::time_curr);
 }
 
 template <class M_>
