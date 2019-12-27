@@ -7,12 +7,9 @@
 #include "distr/distrbasic.h"
 #include "solver/vof.h"
 
-using namespace solver;
-
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
-using namespace solver;
 
 struct State {};
 
@@ -48,13 +45,6 @@ void Run(M& m, State&, Vars&) {
     }
     const Scal dt = cfl * m.GetCellSize()[0] / vel.norm();
     auto p = std::make_shared<typename Vof<M>::Par>();
-    {
-      Vars vr;
-      vr.Double.Set("t0", 0);
-      vr.Double.Set("dt", dt);
-      vr.Int.Set("max", 10000);
-      p->dmp = std::unique_ptr<Dumper>(new Dumper(vr, ""));
-    }
     as.reset(new Vof<M>(m, fcu, fccl, mf_cond, &ff_flux, &fc_src, 0., dt, p));
   }
   sem.LoopBegin();
