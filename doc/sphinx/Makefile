@@ -7,7 +7,7 @@ default: install
 
 all: install web
 
-web: singlehtml
+web: singlehtml singlehtml_data
 
 man1 man3 man7: man
 	s=$(subst man,,$@) ; \
@@ -15,13 +15,16 @@ man1 man3 man7: man
 	mkdir -p "$$d" ; \
 	cp -v build/man/*.$$s "$$d/"
 
+singlehtml_data:
+	cp -r src/log/log??_* build/singlehtml/
+
 install: man1 man3 man7
 	mandb -q --user-db
 
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile all install web default man1 man3 man7
+.PHONY: help Makefile all install web default man1 man3 man7 singlehtml_data
 
 clean:
 	rm -rf build
