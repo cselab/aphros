@@ -12,15 +12,18 @@ class ConvDiffVect : public UnsteadyIterativeSolver {
   using Par = typename ConvDiffScal<M>::Par;
   static constexpr size_t dim = M::dim;
 
+  // par: parameters
+  // fcr: density
+  // ffd: diffusion coefficient
+  // fcs: source
+  // ffv: volume flux
   ConvDiffVect(
-      double t, double dt, M& m, const Par& par,
-      const FieldCell<Scal>* fcr /*density*/,
-      const FieldFace<Scal>* ffd /*dynamic viscosity*/,
-      const FieldCell<Vect>* fcs /*force*/,
-      const FieldFace<Scal>* ffv /*volume flux*/)
+      double t, double dt, M& m, Par par, const FieldCell<Scal>* fcr,
+      const FieldFace<Scal>* ffd, const FieldCell<Vect>* fcs,
+      const FieldFace<Scal>* ffv)
       : UnsteadyIterativeSolver(t, dt)
       , m(m)
-      , par_(par)
+      , par(par)
       , fcr_(fcr)
       , ffd_(ffd)
       , fcs_(fcs)
@@ -42,15 +45,15 @@ class ConvDiffVect : public UnsteadyIterativeSolver {
   // Returns the constant term of the equation in direction d
   virtual FieldCell<Scal> GetConst(size_t d) const = 0;
   virtual const Par& GetPar() const {
-    return par_;
+    return par;
   }
-  virtual void SetPar(const Par& par) {
-    par_ = par;
+  virtual void SetPar(Par par0) {
+    par = par0;
   }
 
  protected:
   M& m;
-  Par par_; // parameters
+  Par par; // parameters
   const FieldCell<Scal>* fcr_; // density
   const FieldFace<Scal>* ffd_; // dynamic viscosity
   const FieldCell<Vect>* fcs_; // force

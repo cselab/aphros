@@ -44,8 +44,7 @@ struct Simple<M_>::Imp {
   using Expr = GVect<Scal, M::dim * 2 + 2>;
 
   Imp(Owner* owner, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
-      const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
-      std::shared_ptr<Par> par)
+      const MapCell<std::shared_ptr<CondCellFluid>>& mcc, Par par)
       : owner_(owner)
       , par(par)
       , m(owner_->m)
@@ -63,9 +62,9 @@ struct Simple<M_>::Imp {
 
     fcfcd_.Reinit(m, Vect(0));
     typename CD::Par p;
-    SetConvDiffPar(p, *par);
+    SetConvDiffPar(p, par);
     cd_ = GetConvDiff<M>()(
-        par->conv, m, fcw, mfcw_, mccw_, owner_->fcr_, &ffd_, &fcfcd_,
+        par.conv, m, fcw, mfcw_, mccw_, owner_->fcr_, &ffd_, &fcfcd_,
         &ffv_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
 
     fcp_.time_curr.Reinit(m, 0.);
@@ -78,7 +77,7 @@ struct Simple<M_>::Imp {
       ffv_.time_curr[f] = ffwe[f].dot(m.GetSurface(f));
     }
     // Apply meshvel
-    const Vect& meshvel = par->meshvel;
+    const Vect& meshvel = par.meshvel;
     for (auto f : m.Faces()) {
       ffv_.time_curr[f] -= meshvel.dot(m.GetSurface(f));
     }
@@ -185,7 +184,7 @@ struct Simple<M_>::Imp {
       fcp_.iter_curr = fcp_.time_curr;
       ffv_.iter_curr = ffv_.time_curr;
       // initial guess from extrapolation
-      const Scal ge = par->guessextra;
+      const Scal ge = par.guessextra;
       if (ge != 0.) {
         for (auto c : m.SuCells()) {
           fcp_.iter_curr[c] += (fcp_.time_curr[c] - fcp_.time_prev[c]) * ge;
@@ -210,7 +209,7 @@ struct Simple<M_>::Imp {
       const FieldFace<Scal>& ffk, FieldFace<Scal>& ffv) {
     auto fftv = Interpolate(fcw, mfcw_, m);
 
-    const Scal rh = par->rhie; // rhie factor
+    const Scal rh = par.rhie; // rhie factor
     ffv.Reinit(m);
     auto& ffbp = *owner_->ffbp_;
     for (auto f : m.Faces()) {
@@ -241,7 +240,7 @@ struct Simple<M_>::Imp {
 
     // Apply meshvel
     for (auto f : m.Faces()) {
-      ffv[f] -= par->meshvel.dot(m.GetSurface(f));
+      ffv[f] -= par.meshvel.dot(m.GetSurface(f));
     }
   }
   // Apply cell conditions for pressure.
@@ -400,7 +399,7 @@ struct Simple<M_>::Imp {
       }
       CHECKNAN(fc, m.CN());
       m.Comm(&fc);
-      if (par->linreport && m.IsRoot()) {
+      if (par.linreport && m.IsRoot()) {
         std::cout << "pcorr:"
                   << " res=" << m.GetResidual() << " iter=" << m.GetIter()
                   << std::endl;
@@ -481,7 +480,7 @@ struct Simple<M_>::Imp {
       m.Comm(&fcl);
     }
     if (sem("assemble")) {
-      const Scal rh = par->rhie; // rhie factor
+      const Scal rh = par.rhie; // rhie factor
       FieldFace<Scal> ffa(m); // addition to flux TODO revise comment
       auto& ffbp = *owner_->ffbp_;
       for (auto f : m.Faces()) {
@@ -516,7 +515,7 @@ struct Simple<M_>::Imp {
       fcgpc_ = Gradient(Interpolate(fcpc_, mfcpc_, m), m);
 
       // Correct pressure
-      Scal pr = par->prelax; // pressure relaxation
+      Scal pr = par.prelax; // pressure relaxation
       for (auto c : m.Cells()) {
         fcp[c] = fcpp[c] + fcpc_[c] * pr;
       }
@@ -526,7 +525,7 @@ struct Simple<M_>::Imp {
   void UpdateBc(typename M::Sem& sem) {
     if (sem.Nested("bc-inletflux")) {
       UFluid<M>::UpdateInletFlux(
-          m, GetVelocity(Step::iter_curr), mfc_, par->inletflux_numid);
+          m, GetVelocity(Step::iter_curr), mfc_, par.inletflux_numid);
     }
     if (sem.Nested("bc-outlet")) {
       UFluid<M>::UpdateOutletBaseConditions(
@@ -561,7 +560,7 @@ struct Simple<M_>::Imp {
     auto& fcp_prev = fcp_.iter_prev;
     auto& fcp_curr = fcp_.iter_curr;
     if (sem("init")) {
-      cd_->SetPar(UpdateConvDiffPar(cd_->GetPar(), *par));
+      cd_->SetPar(UpdateConvDiffPar(cd_->GetPar(), par));
 
       // interpolate visosity
       ffd_ = Interpolate(*owner_->fcd_, mfcd_, m);
@@ -585,7 +584,7 @@ struct Simple<M_>::Imp {
       }
     }
 
-    if (par->simpler) {
+    if (par.simpler) {
       if (sem.Nested("simpler")) {
         CalcPressure(
             cd_->GetVelocity(Step::iter_curr), ffv_.iter_curr, fcp_curr,
@@ -634,9 +633,9 @@ struct Simple<M_>::Imp {
     if (sem("pcorr-apply")) {
       CHECKNAN(fcpc_, m.CN())
 
-      if (!par->simpler) {
+      if (!par.simpler) {
         // Correct pressure
-        Scal pr = par->prelax; // pressure relaxation
+        Scal pr = par.prelax; // pressure relaxation
         for (auto c : m.AllCells()) {
           fcp_curr[c] += pr * fcpc_[c];
         }
@@ -707,7 +706,7 @@ struct Simple<M_>::Imp {
   }
 
   Owner* owner_;
-  std::shared_ptr<Par> par;
+  Par par;
   M& m; // mesh
   GRange<size_t> dr_; // effective dimension range
   GRange<size_t> drr_; // remaining dimensions
@@ -760,8 +759,7 @@ Simple<M_>::Simple(
     M& m, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
     const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
     FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
-    FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt,
-    std::shared_ptr<Par> par)
+    FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt, Par par)
     : FluidSolver<M>(t, dt, m, fcr, fcd, fcf, ffbp, fcsv, fcsm)
     , imp(new Imp(this, fcw, mfc, mcc, par)) {}
 
@@ -769,8 +767,13 @@ template <class M_>
 Simple<M_>::~Simple() = default;
 
 template <class M_>
-auto Simple<M_>::GetPar() -> Par* {
-  return imp->par.get();
+auto Simple<M_>::GetPar() const -> const Par& {
+  return imp->par;
+}
+
+template <class M_>
+void Simple<M_>::SetPar(Par par) {
+  imp->par = par;
 }
 
 template <class M_>

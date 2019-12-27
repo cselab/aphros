@@ -16,7 +16,7 @@ struct ConvDiffScalImp<M_>::Imp {
   Imp(Owner* owner, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
       const MapCell<std::shared_ptr<CondCell>>& mcc)
       : owner_(owner)
-      , par(&owner_->GetPar())
+      , par(owner_->GetPar())
       , m(owner_->m)
       , mfc_(mfc)
       , mcc_(mcc)
@@ -32,7 +32,7 @@ struct ConvDiffScalImp<M_>::Imp {
     CHECKNAN(fcu_.time_curr, m.CN())
 
     // initial guess by extrapolation
-    Scal ge = par->guessextra;
+    Scal ge = par.guessextra;
     if (ge != 0.) {
       for (auto c : m.AllCells()) {
         fcu_.iter_curr[c] =
@@ -65,7 +65,7 @@ struct ConvDiffScalImp<M_>::Imp {
 
       // Calc convective fluxes:
       // all inner
-      InterpolateI(fcu, fcg, ffv, ffq, m, par->sc, par->df, par->th);
+      InterpolateI(fcu, fcg, ffv, ffq, m, par.sc, par.df, par.th);
       for (auto f : m.Faces()) {
         ffq[f] *= (*owner_->ffv_)[f];
       }
@@ -83,7 +83,7 @@ struct ConvDiffScalImp<M_>::Imp {
       fcl.Reinit(m);
       Scal dt = owner_->GetTimeStep();
       std::vector<Scal> ac =
-          GetGradCoeffs(0., {-(dt + dtp_), -dt, 0.}, par->second ? 0 : 1);
+          GetGradCoeffs(0., {-(dt + dtp_), -dt, 0.}, par.second ? 0 : 1);
       for (IdxCell c : m.Cells()) {
         Expr& e = fcl[c];
 
@@ -137,7 +137,7 @@ struct ConvDiffScalImp<M_>::Imp {
         e.SetConstant(e.Evaluate(fcu));
 
         // Apply under-relaxation
-        e[e.Find(c)].a /= par->relax;
+        e[e.Find(c)].a /= par.relax;
       }
 
       // Overwrite with cell conditions
@@ -266,7 +266,7 @@ struct ConvDiffScalImp<M_>::Imp {
   }
 
   Owner* owner_;
-  const Par* par;
+  Par par;
   M& m; // mesh
 
   StepData<FieldCell<Scal>> fcu_; // field
@@ -284,7 +284,7 @@ ConvDiffScalImp<M_>::ConvDiffScalImp(
     M& m, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
     const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
     const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
-    const FieldFace<Scal>* ffv, double t, double dt, const Par& par)
+    const FieldFace<Scal>* ffv, double t, double dt, Par par)
     : ConvDiffScal<M>(t, dt, m, par, fcr, ffd, fcs, ffv)
     , imp(new Imp(this, fcu, mfc, mcc)) {}
 

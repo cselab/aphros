@@ -15,7 +15,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   Imp(Owner* owner, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
       const MapCell<std::shared_ptr<CondCell>>& mcc)
       : owner_(owner)
-      , par(&owner_->GetPar())
+      , par(owner_->GetPar())
       , m(owner_->m)
       , mfc_(mfc)
       , mcc_(mcc)
@@ -32,7 +32,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       vs_[d] = std::make_shared<CD>(
           m, GetComponent(fcvel, d), vmfc_[d], vmcc_[d], owner_->fcr_,
           owner_->ffd_, &(vfcs_[d]), owner_->ffv_, owner_->GetTime(),
-          owner_->GetTimeStep(), *par);
+          owner_->GetTimeStep(), par);
     }
     CopyToVect(Step::time_curr, fcvel_);
     lvel_ = Step::time_curr;
@@ -65,12 +65,13 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
     }
   }
   void StartStep() {
-    auto sem = m.GetSem("convdiffmulti-start");
+    auto sem = m.GetSem("convdiffv-start");
     for (auto d : dr_) {
-      if (sem("dir-init")) {
+      if (sem("scal-init")) {
         vs_[d]->SetTimeStep(owner_->GetTimeStep());
+        vs_[d]->SetPar(par);
       }
-      if (sem.Nested("dir-start")) {
+      if (sem.Nested("scal-start")) {
         vs_[d]->StartStep();
       }
     }
@@ -94,7 +95,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
     }
   }
   void MakeIteration() {
-    auto sem = m.GetSem("convdiffmulti-iter");
+    auto sem = m.GetSem("convdiffv-iter");
     if (sem("bc-source")) {
       for (auto d : dr_) {
         UpdateDerivedCond(d);
@@ -103,11 +104,11 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
     }
 
     for (auto d : dr_) {
-      if (sem.Nested("dir-iter")) {
+      if (sem.Nested("scal-iter")) {
         vs_[d]->MakeIteration();
       }
-      if (sem("dir-linreport")) {
-        if (m.IsRoot() && par->linreport) {
+      if (sem("scal-linreport")) {
+        if (m.IsRoot() && par.linreport) {
           std::cout << "v" << ("xyz"[d]) << ":"
                     << " res=" << m.GetResidual() << " iter=" << m.GetIter()
                     << std::endl;
@@ -122,10 +123,10 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
     }
   }
   void FinishStep() {
-    auto sem = m.GetSem("convdiffmulti-finish");
+    auto sem = m.GetSem("convdiffv-finish");
 
     for (auto d : dr_) {
-      if (sem.Nested("dir-finish")) {
+      if (sem.Nested("scal-finish")) {
         vs_[d]->FinishStep();
       }
     }
@@ -152,7 +153,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   void CorrectVelocity(Step l, const FieldCell<Vect>& fc) {
     auto sem = m.GetSem("corr");
     for (auto d : dr_) {
-      if (sem.Nested("dir-corr")) {
+      if (sem.Nested("scal-corr")) {
         vs_[d]->CorrectField(l, GetComponent(fc, d));
       }
     }
@@ -163,7 +164,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   }
 
   Owner* owner_;
-  const Par* par;
+  const Par& par;
   M& m; // mesh
 
   FieldCell<Vect> fcvel_;
@@ -188,7 +189,7 @@ ConvDiffVectGeneric<M_, CD_>::ConvDiffVectGeneric(
     M& m, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
     const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
     const FieldFace<Scal>* ffd, const FieldCell<Vect>* fcs,
-    const FieldFace<Scal>* ffv, double t, double dt, const Par& par)
+    const FieldFace<Scal>* ffv, double t, double dt, Par par)
     : ConvDiffVect<M>(t, dt, m, par, fcr, ffd, fcs, ffv)
     , imp(new Imp(this, fcvel, mfc, mcc)) {}
 

@@ -127,7 +127,7 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
   auto& psm = ctx->psm;
 
   if (sem("init")) {
-    psm.reset(new PSM(m, std::make_shared<typename PSM::Par>(par), layers));
+    psm.reset(new PSM(m, par, layers));
   }
   if (sem.Nested("part")) {
     psm->Part(fca, fcn, fci, fccl);

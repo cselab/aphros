@@ -17,10 +17,10 @@ struct PartStrMeshM<M_>::Imp {
   using R = Reconst<Scal>;
   static constexpr Scal kClNone = -1;
 
-  Imp(M& m, std::shared_ptr<const Par> par, const GRange<size_t>& layers)
+  Imp(M& m, Par par, const GRange<size_t>& layers)
       : m(m), par(par), layers(layers), vfckp_(layers.size()) {
-    par->ps->hc = m.GetCellSize().norminf();
-    partstr_ = std::unique_ptr<PS>(new PS(par->ps));
+    par.ps.hc = m.GetCellSize().norminf();
+    partstr_.reset(new PartStr<Scal>(par.ps));
     vfckp_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
   }
 
@@ -144,7 +144,7 @@ struct PartStrMeshM<M_>::Imp {
         Vect xc = m.GetCenter(c);
         if (fci[c] && (nocl || fccl[c] != kClNone)) {
           // number of strings
-          size_t ns = (par->dim == 2 ? 1 : par->ns);
+          size_t ns = (par.dim == 2 ? 1 : par.ns);
           for (size_t s = 0; s < ns; ++s) {
             Scal an = s * M_PI / ns; // angle
             auto v = GetPlaneBasis(xc, fcn[c], fca[c], an);
@@ -153,8 +153,8 @@ struct PartStrMeshM<M_>::Imp {
             const int sw = 2; // stencil halfwidth
             const int sn = sw * 2 + 1; // stencil size
             GBlock<IdxCell, dim> bo(
-                MIdx(-sw, -sw, par->dim == 2 ? 0 : -sw),
-                MIdx(sn, sn, par->dim == 2 ? 1 : sn));
+                MIdx(-sw, -sw, par.dim == 2 ? 0 : -sw),
+                MIdx(sn, sn, par.dim == 2 ? 1 : sn));
 
             auto w = bc.GetMIdx(c);
             // buffer for interface lines
@@ -197,7 +197,7 @@ struct PartStrMeshM<M_>::Imp {
 
     if (sem("part-run")) {
       Seed(vfca, vfcn, vfci, vfccl);
-      partstr_->Run(par->tol, par->itermax, m.IsRoot() ? par->verb : 0);
+      partstr_->Run(par.tol, par.itermax, m.IsRoot() ? par.verb : 0);
       // compute curvature
       vfckp_.resize(layers);
       for (auto& fckp : vfckp_.data()) {
@@ -219,7 +219,7 @@ struct PartStrMeshM<M_>::Imp {
           ++s;
         }
         k /= nsc;
-        if (par->dim == 3) {
+        if (par.dim == 3) {
           k *= 2.;
         }
       }
@@ -286,7 +286,7 @@ struct PartStrMeshM<M_>::Imp {
       if (sem("write")) {
         if (m.IsRoot()) {
           std::string s =
-              GetDumpName("partit", ".csv", id, par->dump_fr > 1 ? it : -1);
+              GetDumpName("partit", ".csv", id, par.dump_fr > 1 ? it : -1);
           std::cout << std::fixed << std::setprecision(8) << "dump"
                     << " t=" << t << " to " << s << std::endl;
           std::ofstream o;
@@ -350,8 +350,8 @@ struct PartStrMeshM<M_>::Imp {
                   << " t=" << t << " to " << fn << std::endl;
         WriteVtkPoly<Vect>(
             fn, dl, nullptr, {&dlc}, {"c"},
-            "Lines of interface around particles", false, par->vtkbin,
-            par->vtkmerge);
+            "Lines of interface around particles", false, par.vtkbin,
+            par.vtkmerge);
       }
     }
   }
@@ -362,11 +362,11 @@ struct PartStrMeshM<M_>::Imp {
 
  private:
   M& m;
-  std::shared_ptr<const Par> par;
+  Par par;
   const GRange<size_t> layers;
   Multi<FieldCell<Scal>> vfckp_; // curvature from particles
 
-  std::unique_ptr<PS> partstr_; // particle strings
+  std::unique_ptr<PartStr<Scal>> partstr_; // particle strings
   std::vector<IdxCell> vsc_; // vsc_[s] is cell of string s
   std::vector<size_t> vsl_; // vsl_[s] is layer of string s
   std::vector<Scal> vsan_; // vsan_[s] is angle of tangent (see GetPlaneBasis)
@@ -374,7 +374,7 @@ struct PartStrMeshM<M_>::Imp {
 
 template <class M_>
 PartStrMeshM<M_>::PartStrMeshM(
-    M& m, std::shared_ptr<const Par> par, const GRange<size_t>& layers)
+    M& m, Par par, const GRange<size_t>& layers)
     : imp(new Imp(m, par, layers)) {}
 
 template <class M_>
