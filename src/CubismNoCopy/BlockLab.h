@@ -238,7 +238,8 @@ class BlockLab {
 					for(int iy=s[1]; iy<e[1]; iy++)
 					{
 #if 1 // ...
-						//char * ptrDest = (char*)&m_cacheBlock->Access(s[0]-m_stencilStart[0], iy-m_stencilStart[1], iz-m_stencilStart[2]);
+      // char * ptrDest = (char*)&m_cacheBlock->Access(s[0]-m_stencilStart[0],
+      // iy-m_stencilStart[1], iz-m_stencilStart[2]);
 						char * ptrDest = (char*)&m_cacheBlock->LinAccess(my_izx + (iy-m_stencilStart[1])*m_vSize0);
 
 						const char * ptrSrc = (const char*)&b(s[0] - code[0]*BlockType::sizeX, iy - code[1]*BlockType::sizeY, iz - code[2]*BlockType::sizeZ);

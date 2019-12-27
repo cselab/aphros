@@ -154,7 +154,8 @@ class Embed {
         IdxNode n = m.GetNode(f, e);
         IdxNode np = m.GetNode(f, ep);
         Scal f = fnf[n];
-        Scal fp = fnf[np]; Vect x = m.GetNode(n);
+        Scal fp = fnf[np];
+        Vect x = m.GetNode(n);
         Vect xp = m.GetNode(np);
         if (f < 0) {
           xx.push_back(x);

@@ -402,17 +402,20 @@ class SynchronizerMPI {
                       //										{
                       //											printf("-----EDGE
                       //--------------->  index: %d %d %d\n", index[0],
-                      //index[1], index[2]); 											printf("neighbor: %d %d %d\n",
-                      //neighbor[0], neighbor[1], neighbor[2]); 											printf("face: %d
-                      //%d\n", dface, s); 											printf("edge: %d %d %d\n", dedge, a,
-                      //b); 											printf("facestart: %d %d %d\n", face_start[0],
-                      //face_start[1], face_start[2]); 											printf("mystart-end: %d
-                      //%d %d , %d %d %d\n", start[0], start[1], start[2],
-                      //end[0], end[1], end[2]); 											printf("s: %d %d
-                      //%d\n",sregion[0], sregion[1], sregion[2]); 											printf("L: %d
-                      //%d %d\n",L[0], L[1], L[2]); 											printf("neighbor p1, p2: %d
-                      //%d\n", neighbor[dim_other1face],
-                      //neighbor[dim_other2face]);
+                      // index[1], index[2]);
+                      // printf("neighbor: %d %d %d\n", neighbor[0], neighbor[1],
+                      // neighbor[2]);
+                      // printf("face: %d %d\n", dface, s);
+                      //printf("edge: %d %d %d\n", dedge, a, b);
+                      // printf("facestart: %d %d %d\n", face_start[0],
+                      // face_start[1], face_start[2]);
+                      // printf("mystart-end: %d %d %d , %d %d %d\n", start[0],
+                      //start[1], start[2], end[0], end[1], end[2]);
+                      // printf("s: %d %d %d\n",sregion[0], sregion[1],
+                      //sregion[2]);
+                      //printf("L: %d %d %d\n",L[0], L[1], L[2]);
+                      //printf("neighbor p1, p2: %d %d\n",
+                      //neighbor[dim_other1face], neighbor[dim_other2face]);
                       //										}
 
                       assert(sregion[0] >= 0);
@@ -499,16 +502,21 @@ class SynchronizerMPI {
                       //									{
                       //										printf("---CORNER
                       //----------------->  index: %d %d %d\n", index[0],
-                      //index[1], index[2]); 										printf("neighbor: %d %d %d\n",
-                      //neighbor[0], neighbor[1], neighbor[2]); 										printf("face: %d
-                      //%d\n", dface, s); 										printf("corner: %d %d %d\n", x, y, z);
+                      // index[1], index[2]);
+                      // printf("neighbor: %d %d %d\n", neighbor[0], neighbor[1],
+                      // neighbor[2]);
+                      // printf("face: %d %d\n", dface, s);
+                      //printf("corner: %d %d %d\n", x, y, z);
                       //										printf("facestart:
                       //%d %d %d\n", face_start[0], face_start[1],
-                      //face_start[2]); 										printf("mystart: %d %d %d\n", start[0],
-                      //start[1], start[2]); 										printf("s: %d %d %d\n",sregion[0],
-                      //sregion[1], sregion[2]); 										printf("L: %d %d %d\n",L[0],
-                      //L[1], L[2]); 										printf("neighbor p1, p2: %d %d\n",
-                      //neighbor[dim_other1face], neighbor[dim_other2face]);
+                      // face_start[2]);
+                      // printf("mystart: %d %d %d\n", start[0], start[1],
+                      // start[2]);
+                      // printf("s: %d %d %d\n",sregion[0], sregion[1],
+                      // sregion[2]);
+                      // printf("L: %d %d %d\n",L[0], L[1], L[2]);
+                      // printf("neighbor p1, p2: %d %d\n",
+                      // neighbor[dim_other1face], neighbor[dim_other2face]);
                       //									}
                       assert(
                           c2i.find(I3(
@@ -659,16 +667,18 @@ class SynchronizerMPI {
                       //											{
                       //												printf("---CORNER
                       //(from edge) ----------------->  index: %d %d %d\n",
-                      //index[0], index[1], index[2]); 												printf("neighbor: %d %d
-                      //%d\n", neighbor[0], neighbor[1], neighbor[2]);
-                      //												printf("edge:
-                      //%d %d %d\n", d, a, b); 												printf("corner: %d %d %d\n", x,
-                      //y, z); 												printf("edgestart: %d %d %d\n", edge_start[0],
-                      //edge_start[1], edge_start[2]); 												printf("mystart: %d %d
-                      //%d\n", start[0], start[1], start[2]); 												printf("s: %d %d
-                      //%d\n",sregion[0], sregion[1], sregion[2]); 												printf("L: %d
-                      //%d %d\n",L[0], L[1], L[2]); 												printf("neighbor p1: %d\n",
-                      //neighbor[d]);
+                      // index[0], index[1], index[2]);
+                      // printf("neighbor: %d %d %d\n", neighbor[0], neighbor[1],
+                      //neighbor[2]); 												printf("edge: %d %d %d\n", d, a, b);
+                      //printf("corner: %d %d %d\n", x, y, z);
+                      // printf("edgestart: %d %d %d\n", edge_start[0],
+                      // edge_start[1], edge_start[2]);
+                      // printf("mystart: %d %d %d\n", start[0], start[1],
+                      //start[2]);
+                      //printf("s: %d %d %d\n",sregion[0], sregion[1],
+                      //sregion[2]);
+                      //printf("L: %d %d %d\n",L[0], L[1], L[2]);
+                      //printf("neighbor p1: %d\n", neighbor[d]);
                       //											}
                       assert(
                           c2i.find(I3(
@@ -927,8 +937,9 @@ class SynchronizerMPI {
       vector<int> selcomponents = stencil.selcomponents;
       sort(selcomponents.begin(), selcomponents.end());
 
-      const bool contiguous = false; // selcomponents.back()+1-selcomponents.front()
-                                     // == selcomponents.size();
+      const bool contiguous =
+          false; // selcomponents.back()+1-selcomponents.front()
+                 // == selcomponents.size();
 
       if (!contiguous) {
         for (int i = 0; i < N; ++i) {
@@ -1151,9 +1162,10 @@ class SynchronizerMPI {
       vector<int> selcomponents = stencil.selcomponents;
       sort(selcomponents.begin(), selcomponents.end());
 
-      const bool contiguous = false; // true; //false;
-                                     // //true;//selcomponents.back()+1-selcomponents.front()
-                                     // == selcomponents.size();
+      const bool contiguous =
+          false; // true; //false;
+                 // //true;//selcomponents.back()+1-selcomponents.front()
+                 // == selcomponents.size();
 
       if (!contiguous) {
         for (int i = 0; i < N; ++i) {

@@ -15,8 +15,8 @@
 #include <vector>
 
 #ifdef _USE_NUMA_
-#include <numa.h>
 #include <omp.h>
+#include <numa.h>
 #endif
 #include "BlockInfo.h"
 #include "MeshMap.h"

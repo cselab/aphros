@@ -51,8 +51,7 @@ void GetFluidFaceCond(
 // TODO: revise, allow temporary buffers in functions (attached to m)
 template <class M>
 void GetFluidCellCond(
-    const Vars& var, M& m,
-    MapCell<std::shared_ptr<CondCellFluid>>& mcvel,
+    const Vars& var, M& m, MapCell<std::shared_ptr<CondCellFluid>>& mcvel,
     std::pair<typename M::Scal, int>& pdist);
 
 // Appends step-wise approximation of body to cell and face conditions.

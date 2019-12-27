@@ -230,9 +230,9 @@ struct Vofm<M_>::Imp {
     }
     if (sem.Nested()) {
       uvof_.DumpPolyMarch(
-          layers, fcut, fcclt, fcn_, fca_, fci_, filename,
-          owner_->GetTime(), par->vtkbin, par->vtkmerge,
-          par->vtkiso, par->dumppolymarch_fill >= 0 ? &fcust : nullptr, m);
+          layers, fcut, fcclt, fcn_, fca_, fci_, filename, owner_->GetTime(),
+          par->vtkbin, par->vtkmerge, par->vtkiso,
+          par->dumppolymarch_fill >= 0 ? &fcust : nullptr, m);
     }
   }
   void Sharpen(const Multi<FieldCell<Scal>*>& mfcu) {
