@@ -183,16 +183,6 @@ struct Simple<M_>::Imp {
       // rotate layers
       fcp_.iter_curr = fcp_.time_curr;
       ffv_.iter_curr = ffv_.time_curr;
-      // initial guess from extrapolation
-      const Scal ge = par.guessextra;
-      if (ge != 0.) {
-        for (auto c : m.SuCells()) {
-          fcp_.iter_curr[c] += (fcp_.time_curr[c] - fcp_.time_prev[c]) * ge;
-        }
-        for (auto f : m.Faces()) {
-          ffv_.iter_curr[f] += (ffv_.time_curr[f] - ffv_.time_prev[f]) * ge;
-        }
-      }
     }
   }
   // Rhie-Chow interpolation of predicted volume flux

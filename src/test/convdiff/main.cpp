@@ -295,7 +295,6 @@ void Convdiff<M>::TestSolve(
 
     typename AS::Par p;
     p.relax = var.Double["relax"];
-    p.guessextra = 0.;
     p.second = 0;
 
     as_.reset(new AS(

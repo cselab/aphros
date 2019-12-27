@@ -14,7 +14,6 @@ struct ParsePar<Proj<M>> {
     p.prelax = var.Double["prelax"];
     p.vrelax = var.Double["vrelax"];
     p.second = var.Int["second_order"];
-    p.guessextra = var.Double["guessextra"];
     // TODO: add check for inletflux_numid
     p.inletflux_numid = var.Int["inletflux_numid"];
     p.convsc = GetConvSc(var.String["convsc"]);
