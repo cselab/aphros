@@ -33,8 +33,6 @@ void Run(M& m, State&, Vars&) {
   auto& psm = ctx->psm;
 
   if (sem("init")) {
-    auto ps = std::make_shared<typename PartStr<Scal>::Par>();
-    par.ps = ps;
     fca.Reinit(m, 0);
     fcn.Reinit(m, Vect(0.5));
     fci.Reinit(m, true);
