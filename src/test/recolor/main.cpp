@@ -15,8 +15,6 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using TRM = Trackerm<M>;
 
-struct State {};
-
 void Dump(M& m, const FieldCell<Scal>& fc, std::string name, int i) {
   size_t id = m.GetId();
   id = id % 1024 + (id / 1024) * 2;
@@ -25,8 +23,7 @@ void Dump(M& m, const FieldCell<Scal>& fc, std::string name, int i) {
   Dump(fc, m.GetIndexCells(), m.GetAllBlockCells(), op);
 }
 
-void Run(M& m, State&, Vars& var) {
-  (void)var;
+void Run(M& m, Vars& var) {
   auto sem = m.GetSem();
   struct {
     FieldCell<Scal> fcu;
@@ -132,5 +129,5 @@ set int list_ls 1
 set string list_path b.dat
   )EOF";
 
-  return RunMpiBasic<M, State>(argc, argv, Run, conf);
+  return RunMpiBasic<M>(argc, argv, Run, conf);
 }

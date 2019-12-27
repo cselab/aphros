@@ -21,7 +21,7 @@ int RunMpi0(
     int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> r,
     std::istream& conf);
 
-template <class M, class State, class Func>
+template <class M, class Func>
 int RunMpiBasic(int argc, const char** argv, Func func, std::string addconf) {
   struct Par {
     Func func;
@@ -33,9 +33,8 @@ int RunMpiBasic(int argc, const char** argv, Func func, std::string addconf) {
     using P::P;
     using P::par_;
 
-    State s;
     void Run() {
-      par_.func(m, s, this->var_mutable);
+      par_.func(m, this->var_mutable);
     }
   };
 

@@ -7,15 +7,14 @@
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 
-struct State {
-  FieldCell<Scal> fc;
-  std::ofstream out;
-};
-
-void Run(M& m, State& s, Vars&) {
+void Run(M& m, Vars&) {
   auto sem = m.GetSem();
-  auto& fc = s.fc;
-  auto& out = s.out;
+  struct {
+    FieldCell<Scal> fc;
+    std::ofstream out;
+  } * ctx(sem);
+  auto& fc = ctx->fc;
+  auto& out = ctx->out;
   auto& ic = m.GetIndexCells();
   auto& bc = m.GetAllBlockCells();
   if (sem("local")) {
@@ -67,5 +66,5 @@ set int verbose_time 1
 set int verbose_stages 1
 )EOF";
 
-  return RunMpiBasic<M, State>(argc, argv, Run, conf);
+  return RunMpiBasic<M>(argc, argv, Run, conf);
 }

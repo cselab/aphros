@@ -9,15 +9,8 @@ using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using MIdx = typename M::MIdx;
 
-struct State {
-  std::vector<Scal> v;
-  std::vector<char> r;
-  Scal a;
-};
-
-void Run(M& m, State&, Vars& var) {
+void Run(M& m, Vars&) {
   const static double wtime0 = omp_get_wtime();
-  (void)var;
   auto sem = m.GetSem();
   auto blockid = [&m]() -> MIdx {
     auto& bc = m.GetInBlockCells();
@@ -67,5 +60,5 @@ set int loc_maxcomm 16
 set int verbose_openmp 1
 )EOF";
 
-  return RunMpiBasic<M, State>(argc, argv, Run, conf);
+  return RunMpiBasic<M>(argc, argv, Run, conf);
 }
