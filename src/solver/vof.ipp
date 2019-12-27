@@ -583,22 +583,3 @@ void Vof<M_>::DumpInterfaceMarch(std::string fn) const {
   return imp->DumpInterfaceMarch(fn);
 }
 
-// XXX: [fabianw@mavt.ethz.ch; 2019-11-17] debug
-template bool IsNan<double, GIdx<0>>(const FieldCell<double>&);
-template bool IsNan<GVect<double, 3>, GIdx<0>>(
-    const FieldCell<GVect<double, 3>>&);
-template bool IsNan<double>(double);
-template bool IsNan<double, 3>(const GVect<double, 3>&);
-
-template <class T, class Idx>
-T MySum(const GField<T, Idx>& u) {
-  T sum = T(0);
-  for (auto i : u.GetRange()) {
-    sum += u[i];
-  }
-  return sum;
-}
-
-template double MySum<double, GIdx<0>>(const FieldCell<double>&);
-template GVect<double, 3> MySum<GVect<double, 3>, GIdx<0>>(
-    const FieldCell<GVect<double, 3>>&);
