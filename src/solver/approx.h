@@ -10,8 +10,6 @@
 #include "geom/mesh.h"
 #include "solver.h"
 
-namespace solver {
-
 template <class Idx, class Expr>
 class Approx {
  public:
@@ -694,5 +692,3 @@ void BcReflectAll(FieldCell<T>& uc, const MapCondFace& mfc, const M& m) {
     uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
   }
 }
-
-} // namespace solver

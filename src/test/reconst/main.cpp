@@ -43,7 +43,6 @@ void TestRandom() {
       n *= msk;
       n /= n.norm();
       Scal u = f(g);
-      using namespace solver;
 
       Scal a = R::GetLineA1(n, u);
       Scal uu = R::GetLineU1(n, a);
@@ -411,7 +410,6 @@ void TestLineNearest() {
 }
 
 void Plot() {
-  using namespace solver;
   Vect n(0.1, 0.2, 0.29);
   {
     std::string fn = "vof_a.dat";
@@ -433,7 +431,6 @@ void Plot() {
 
 void TestFit() {
   std::cerr << "check plane fitting" << std::endl;
-  using namespace solver;
 
   using V = Vect;
   using VV = GVect<V, 3>;
@@ -459,7 +456,6 @@ void TestFit() {
 
 void TestNearest() {
   std::cerr << "check nearest to polygon" << std::endl;
-  using namespace solver;
   using V = Vect;
 
   auto f1 = [](V x, V x0, V x1, V n, V xne) {
@@ -572,7 +568,6 @@ void TestOverlap() {
 
 void TestArea() {
   std::cerr << "check area of polygon" << std::endl;
-  using namespace solver;
   using V = Vect;
 
   // xx: polygon

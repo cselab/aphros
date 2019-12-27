@@ -11,8 +11,6 @@ const int dim = 3;
 using Scal = double;
 using Vect = GVect<Scal, dim>;
 
-using namespace solver;
-
 std::string P(const void*) {
   return std::string();
 }

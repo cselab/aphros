@@ -9,8 +9,6 @@
 #include "multi.h"
 #include "partstr.h"
 
-namespace solver {
-
 template <class M_>
 class PartStrMeshM {
  public:
@@ -64,5 +62,3 @@ class PartStrMeshM {
   // std::unique_ptr<Imp> imp;
   std::unique_ptr<Imp> imp;
 };
-
-} // namespace solver

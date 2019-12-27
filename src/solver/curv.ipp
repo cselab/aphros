@@ -17,8 +17,6 @@
 
 #include "curv.h"
 
-using namespace solver;
-
 template <class M_>
 struct UCurv<M_>::Imp {
   static constexpr size_t dim = M::dim;

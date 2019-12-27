@@ -10,8 +10,6 @@
 
 #include "partstrmeshm.h"
 
-namespace solver {
-
 template <class M_>
 struct PartStrMeshM<M_>::Imp {
   static constexpr size_t dim = M::dim;
@@ -409,5 +407,3 @@ template <class M_>
 auto PartStrMeshM<M_>::GetCurv() -> Multi<const FieldCell<Scal>*> {
   return imp->GetCurv();
 }
-
-} // namespace solver

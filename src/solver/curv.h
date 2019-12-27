@@ -6,8 +6,6 @@
 #include "partstrmeshm.h"
 #include "advection.h"
 
-using namespace solver;
-
 template <class M_>
 struct UCurv {
   using M = M_;

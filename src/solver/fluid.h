@@ -10,8 +10,6 @@
 #include "geom/mesh.h"
 #include "solver.h"
 
-namespace solver {
-
 template <class M_>
 class FluidSolver : public UnsteadyIterativeSolver {
  public:
@@ -71,7 +69,7 @@ class CondFaceFluid : public CondFace {
   CondFaceFluid(size_t nci) : CondFace(nci) {}
 };
 
-using MapCondFaceFluid = MapFace<UniquePtr<solver::CondFaceFluid>>;
+using MapCondFaceFluid = MapFace<UniquePtr<CondFaceFluid>>;
 
 class CondCellFluid : public CondCell {};
 
@@ -257,8 +255,7 @@ MapCondFace GetVelCond(const M& m, const MapCondFaceFluid& mff) {
     auto& cb = it.GetValue();
     size_t nci = cb->GetNci();
 
-    using namespace solver;
-    using namespace solver::fluid_condition;
+    using namespace fluid_condition;
     if (auto cd = cb.Get<NoSlipWall<M>>()) {
       mf[f].Set<CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
     } else if (auto cd = cb.Get<Inlet<M>>()) {
@@ -276,6 +273,4 @@ MapCondFace GetVelCond(const M& m, const MapCondFaceFluid& mff) {
   return mf;
 }
 
-} // namespace solver
-
-using MapCondFaceFluid = solver::MapCondFaceFluid;
+using MapCondFaceFluid = MapCondFaceFluid;

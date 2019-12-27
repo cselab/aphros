@@ -37,8 +37,6 @@
 
 #include "cmp.h"
 
-using namespace solver;
-
 template <class T>
 std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
   std::string p = "";
@@ -76,9 +74,9 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using Sem = typename Mesh::Sem;
-  using AST = solver::Tvd<M>; // advection TVD
-  using ASV = solver::Vof<M>; // advection VOF
-  using ASVM = solver::Vofm<M>; // advection VOF
+  using AST = Tvd<M>; // advection TVD
+  using ASV = Vof<M>; // advection VOF
+  using ASVM = Vofm<M>; // advection VOF
 
   // using P::P; // inherit constructor
   Advection(Vars& var, const MyBlockInfo& bi, Par& par);
@@ -97,7 +95,7 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   FieldFace<Scal> ff_flux_;
   FieldCell<Scal> fc_src_;
   FieldCell<Scal> fcu_; // volume fraction (used for initial)
-  std::unique_ptr<solver::AdvectionSolver<M>> as_; // advection solver
+  std::unique_ptr<AdvectionSolver<M>> as_; // advection solver
   Scal maxvel_; // maximum velocity relative to cell length [1/time]
                 // cfl = dt * maxvel
   Scal sumu_; // sum of fluid volume
@@ -140,7 +138,7 @@ void Advection<M>::Init(Sem& sem) {
     }
 
     // cell conditions for advection (empty)
-    MapCell<std::shared_ptr<solver::CondCell>> mc_cond;
+    MapCell<std::shared_ptr<CondCell>> mc_cond;
 
     // source
     fc_src_.Reinit(m, 0.);
@@ -192,14 +190,14 @@ void Advection<M>::Dump(Sem& sem) {
     if (dmf_.Try(var.Double["t"], var.Double["dt"])) {
       m.Dump(&as_->GetField(), "u");
       m.Dump(&fck_[0], "k");
-      if (auto as = dynamic_cast<solver::Vof<M>*>(as_.get())) {
+      if (auto as = dynamic_cast<Vof<M>*>(as_.get())) {
         m.Dump(&as->GetAlpha(), "a");
         auto& n = as->GetNormal();
         m.Dump(&n, 0, "nx");
         m.Dump(&n, 1, "ny");
         m.Dump(&n, 2, "nz");
       }
-      if (auto as = dynamic_cast<solver::Vofm<M>*>(as_.get())) {
+      if (auto as = dynamic_cast<Vofm<M>*>(as_.get())) {
         m.Dump(as->GetAlpha()[0], "a");
         auto* n = as->GetNormal()[0];
         m.Dump(n, 0, "nx");

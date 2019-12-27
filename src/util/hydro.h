@@ -6,8 +6,6 @@
 #include "solver/convdiffv.h"
 #include "solver/fluid.h"
 
-using namespace solver;
-
 // Returns field with the type (index)
 // of boundary conditions in an adjacent face:
 //   0: empty
@@ -54,7 +52,7 @@ void GetFluidFaceCond(
 template <class M>
 void GetFluidCellCond(
     const Vars& var, M& m,
-    MapCell<std::shared_ptr<solver::CondCellFluid>>& mcvel,
+    MapCell<std::shared_ptr<CondCellFluid>>& mcvel,
     std::pair<typename M::Scal, int>& pdist);
 
 // Appends step-wise approximation of body to cell and face conditions.
@@ -72,7 +70,7 @@ template <class M, class Scal = typename M::Scal>
 void AppendBodyCond(
     const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
     Scal clear1, Scal inletcl, Scal fill_vf,
-    MapCell<std::shared_ptr<solver::CondCellFluid>>* mcf, MapCondFaceFluid& mff,
+    MapCell<std::shared_ptr<CondCellFluid>>* mcf, MapCondFaceFluid& mff,
     MapCondFaceAdvection<Scal>& mfa);
 
 // Dumps faces with boundary conditions.

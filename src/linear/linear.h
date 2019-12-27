@@ -12,8 +12,6 @@
 #include "debug/isnan.h"
 #include "geom/mesh.h"
 
-namespace solver {
-
 template <class Scal, class Idx>
 struct GTerm {
   GTerm() = default;
@@ -389,10 +387,8 @@ typename M::LS ConvertLsCompact(
   return l;
 }
 
-} // namespace solver
-
 template <class Scal, class Idx, size_t Size>
-bool IsNan(const solver::Expression<Scal, Idx, Size>& e) {
+bool IsNan(const Expression<Scal, Idx, Size>& e) {
   if (IsNan(e.GetConstant())) {
     return true;
   }

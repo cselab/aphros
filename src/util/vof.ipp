@@ -21,8 +21,6 @@
 #include "solver/trackerm.h"
 #include "vof.h"
 
-namespace solver {
-
 template <class T>
 std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
   std::string p = "";
@@ -987,5 +985,3 @@ void UVof<M_>::GetAdvectionFaceCond(
 
 template <class M>
 constexpr typename M::Scal UVof<M>::Imp::kClNone;
-
-} // namespace solver

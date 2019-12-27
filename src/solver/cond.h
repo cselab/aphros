@@ -7,8 +7,6 @@
 #include "geom/map.h"
 #include "geom/unique.h"
 
-namespace solver {
-
 class CondFace {
  public:
   virtual ~CondFace() {}
@@ -185,6 +183,4 @@ class CondCellValFixed : public CondCellVal<V> {
   V v_;
 };
 
-} // namespace solver
-
-using MapCondFace = MapFace<UniquePtr<solver::CondFace>>;
+using MapCondFace = MapFace<UniquePtr<CondFace>>;

@@ -45,7 +45,7 @@ class KernelEmbed : public KernelMeshPar<M_, GPar> {
   using P::var;
 
  private:
-  using EB = solver::Embed<M>;
+  using EB = Embed<M>;
   std::unique_ptr<EB> eb_;
   FieldCell<Scal> fcu_; // field
   FieldCell<Scal> fcum_; // field

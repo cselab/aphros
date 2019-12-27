@@ -58,7 +58,7 @@ class Convdiff : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_exact_;
   FieldFace<Scal> ff_flux_;
   FieldCell<Scal> fc_src_;
-  using AS = solver::ConvDiffScalImp<M>;
+  using AS = ConvDiffScalImp<M>;
   std::unique_ptr<AS> as_;
   FieldCell<Scal> fc_; // buffer
   FieldCell<Scal> fc_sc_; // scaling
@@ -227,7 +227,7 @@ void Convdiff<M>::TestSolve(
              m.GetIndexFaces().GetMIdx(i)[2] == gs[2];
     };
     auto parse = [](std::string s, IdxFace, size_t nci,
-                    M&) -> UniquePtr<solver::CondFace> {
+                    M&) -> UniquePtr<CondFace> {
       std::stringstream arg(s);
 
       std::string name;
@@ -236,11 +236,11 @@ void Convdiff<M>::TestSolve(
       if (name == "value") {
         Scal a;
         arg >> a;
-        return UniquePtr<solver::CondFaceValFixed<Scal>>(a, nci);
+        return UniquePtr<CondFaceValFixed<Scal>>(a, nci);
       } else if (name == "derivative") {
         Scal a;
         arg >> a;
-        return UniquePtr<solver::CondFaceGradFixed<Scal>>(a, nci);
+        return UniquePtr<CondFaceGradFixed<Scal>>(a, nci);
       } else {
         assert(false);
       }
@@ -282,7 +282,7 @@ void Convdiff<M>::TestSolve(
 
     // cell conditions
     // (empty)
-    MapCell<std::shared_ptr<solver::CondCell>> mc_cond;
+    MapCell<std::shared_ptr<CondCell>> mc_cond;
 
     // source
     fc_src_.Reinit(m, 0.);

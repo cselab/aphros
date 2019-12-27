@@ -22,7 +22,7 @@ using Dir = GDir<dim>;
 using Scal = double;
 using Vect = GVect<Scal, dim>;
 using Mesh = MeshStructured<Scal, dim>;
-using Normal = typename solver::UNormal<Mesh>::Imp;
+using Normal = typename UNormal<Mesh>::Imp;
 
 Scal Rnd(Scal q) {
   return std::sin(std::sin(q * 123.456) * 654.321);

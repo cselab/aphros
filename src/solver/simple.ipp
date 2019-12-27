@@ -34,8 +34,6 @@
 // we: predicted velocity (after solving velocity equations)
 // ve: predicted volume flux
 
-namespace solver {
-
 template <class M_>
 struct Simple<M_>::Imp {
   using Owner = Simple<M_>;
@@ -819,8 +817,6 @@ template <class M_>
 auto Simple<M_>::GetVelocityCond() const -> const MapCondFace& {
   return imp->mfcw_;
 }
-
-} // namespace solver
 
 // XXX: [fabianw@mavt.ethz.ch; 2019-11-17] debug
 template bool IsNan<double, GIdx<0>>(const FieldCell<double>&);

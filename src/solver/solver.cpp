@@ -3,8 +3,6 @@
 
 #include "solver.h"
 
-namespace solver {
-
 std::string GetName(Layers l) {
   switch (l) {
     case Layers::time_curr: {
@@ -50,5 +48,3 @@ std::string GetName(ConvSc sc) {
   }
   return "";
 }
-
-} // namespace solver

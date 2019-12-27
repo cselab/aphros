@@ -73,7 +73,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_;
   FieldCell<Vect> fcv_;
   // LS
-  using Expr = solver::Expression<Scal, IdxCell, 1 + dim * 2>;
+  using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
   FieldCell<Expr> fc_system_;
   std::vector<Scal> lsa_;
   std::vector<Scal> lsb_;
@@ -87,7 +87,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
   std::vector<int> rvi_; // reduction vector<int> (concatenation)
   std::vector<std::vector<int>> rvvi_; // reduction vector<vector<int>>
   std::vector<std::vector<Scal>> rvvs_; // reduction vector<vector<int>>
-  std::shared_ptr<solver::PoisSolver<M>> ps_;
+  std::shared_ptr<PoisSolver<M>> ps_;
 };
 
 template <class Idx, class M>
@@ -571,7 +571,7 @@ void Simple<M>::TestPois() {
       std::cout << "\n\n*** TestPois() ***" << std::endl;
     }
     // solver
-    ps_ = std::make_shared<solver::PoisSolver<M>>(ctx->mf, m);
+    ps_ = std::make_shared<PoisSolver<M>>(ctx->mf, m);
     // exact solution
     fc_exsol_.Reinit(m);
     for (auto i : m.AllCells()) {

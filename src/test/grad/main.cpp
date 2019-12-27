@@ -103,7 +103,7 @@ Scal RunInterp(std::function<Scal(Vect)> uf, const M& m) {
   MapCondFace bc;
 
   // Interpolate to faces
-  FieldFace<Scal> ff = solver::Interpolate(cf, bc, m);
+  FieldFace<Scal> ff = Interpolate(cf, bc, m);
 
   // Init reference on faces
   FieldFace<Scal> fr;
@@ -124,10 +124,10 @@ Scal RunGrad(
   MapCondFace bc;
 
   // Interpolate to faces
-  FieldFace<Scal> ff = solver::Interpolate(f, bc, m);
+  FieldFace<Scal> ff = Interpolate(f, bc, m);
 
   // Gradient on cells
-  FieldCell<Vect> g = solver::Gradient(ff, m);
+  FieldCell<Vect> g = Gradient(ff, m);
 
   // Init reference on cells
   FieldCell<Vect> gr;
@@ -256,9 +256,9 @@ void TestCoeff() {
               size_t b) {
     std::vector<Scal> k;
     if (b == 0) {
-      k = solver::GetGradCoeffs(x, z);
+      k = GetGradCoeffs(x, z);
     } else {
-      k = solver::GetGradCoeffs(x, z, b);
+      k = GetGradCoeffs(x, z, b);
     }
     std::cerr << "x=" << x << " z=" << z << " k=" << k << " b=" << b
               << " ke=" << ke << std::endl;
@@ -274,7 +274,7 @@ void TestCoeff() {
 }
 
 void TestApprox() {
-  PCMP(solver::UExtrap(5., 0., 2., 1., 3.), 7.);
+  PCMP(UExtrap(5., 0., 2., 1., 3.), 7.);
 }
 
 int main() {

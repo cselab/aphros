@@ -10,8 +10,6 @@
 #include "tvd.h"
 #include "util/vof.h"
 
-namespace solver {
-
 template <class M_>
 struct Tvd<M_>::Imp {
   static constexpr size_t dim = M::dim;
@@ -211,5 +209,3 @@ template <class M_>
 auto Tvd<M_>::GetField(Layers l) const -> const FieldCell<Scal>& {
   return imp->fcu_.Get(l);
 }
-
-} // namespace solver

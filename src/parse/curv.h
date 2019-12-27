@@ -6,8 +6,6 @@
 #include "solver/partstrmeshm.h"
 #include "solver/partstr.h"
 
-using namespace solver;
-
 template <class Scal>
 void Parse(typename PartStr<Scal>::Par& p, Scal hc, const Vars& var) {
   p.leq = var.Double["part_h"];
