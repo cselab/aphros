@@ -158,7 +158,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void CalcDt();
   void ReportStep();
   // Issue sem.LoopBreak if abort conditions met
-  void CheckAbort(Sem& sem);
+  void CheckAbort(Sem& sem, Scal& nabort);
   void StepFluid();
   void StepAdvection();
   void StepBubgen();
@@ -236,9 +236,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       fcomm_[c] = fcom_[c].norm();
     }
   }
-  void CalcStrain() {
-    auto& fcv = fs_->GetVelocity();
-    auto& fcs = fc_strain_;
+  void CalcStrain(const FieldCell<Vect> fcvel, FieldCell<Scal>& fc_strain) {
+    auto& fcv = fcvel;
+    auto& fcs = fc_strain;
 
     auto ffv = Interpolate(fcv, fs_->GetVelocityCond(), m);
 
@@ -307,7 +307,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_smvf_; // smoothed volume fraction used by CalcMixture()
   FieldFace<Scal> ff_smvf_; // interpolated fc_smvf_
   Scal diff_; // convergence indicator
-  std::pair<Scal, int> pdist_; // distance to pfixed cell
 
   FieldCell<Scal> fc_sig_; // surface tension sigma
   FieldFace<Scal> ff_sig_; // surface tension sigma
@@ -319,16 +318,11 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fcomm_; // vorticity magnitude
   FieldCell<Scal> fcbc_; // boundary condition type by GetBcField()
   FieldCell<Scal> fc_strain_; // double inner product of strain rate tensor
-  FieldCell<Scal> fctmp_; // temporary scalar field
-  FieldCell<Scal> fctmp2_, fctmp3_, fctmp4_; // temporary scalar field
-  FieldCell<Vect> fctmpv_; // temporary vector field
   Multi<FieldCell<Scal>> fck_; // curvature
   typename PartStrMeshM<M>::Par psm_par_;
   std::unique_ptr<PartStrMeshM<M>> psm_;
 
-  Scal nabort_; // number of abort requests, used by Reduce in checknan Run()
-
-  std::function<void(FieldCell<typename M::Scal>&, const M&)> bgf_; // bubgen
+  std::function<void(FieldCell<typename M::Scal>&, const M&)> bgf_;
   Scal bgt_ = -1.; // bubgen last time
 
   struct Stat {
@@ -770,7 +764,7 @@ void Hydro<M>::Init() {
   }
 
   if (sem.Nested("cellcond")) {
-    GetFluidCellCond(var, m, mc_velcond_, pdist_);
+    GetFluidCellCond(var, m, mc_velcond_);
   }
 
   if (sem("body-mask")) {
@@ -1042,7 +1036,7 @@ void Hydro<M>::CalcStat() {
       s.dissip = 0.;
       s.dissip1 = 0.;
       s.dissip2 = 0.;
-      CalcStrain();
+      CalcStrain(fs_->GetVelocity(), fc_strain_);
       auto& fcmu = fc_mu_;
       auto& fcd = fc_strain_;
       auto& fcvf = as_->GetField();
@@ -1620,7 +1614,8 @@ void Hydro<M>::DumpFields() {
   struct {
     std::array<Multi<FieldCell<Scal>>, dim> im;
     FieldCell<Scal> fc_cellcond;
-    FieldCell<Scal> fcdiv_; // divergence of velocity
+    FieldCell<Scal> fcdiv; // divergence of velocity
+    FieldCell<Scal> fcdis; // energy dissipation
   } * ctx(sem);
   if (sem("dump")) {
     if (m.IsRoot()) {
@@ -1660,19 +1655,19 @@ void Hydro<M>::DumpFields() {
       if (dl.count("omm")) m.Dump(&fcomm_, "omm");
     }
     if (dl.count("dis") || dl.count("strain")) {
-      CalcStrain();
-      if (dl.count("strain")) m.Dump(&fcomm_, "strain");
+      CalcStrain(fs_->GetVelocity(), fc_strain_);
+      if (dl.count("strain")) m.Dump(&fc_strain_, "strain");
       if (dl.count("dis")) {
-        fctmp_ = fc_strain_;
+        ctx->fcdis = fc_strain_;
         for (auto c : m.Cells()) {
-          fctmp_[c] *= 2. * fc_mu_[c];
+          ctx->fcdis[c] *= 2. * fc_mu_[c];
         }
-        m.Dump(&fctmp_, "dis");
+        m.Dump(&ctx->fcdis, "dis");
       }
     }
     if (dl.count("div")) {
-      ctx->fcdiv_ = GetDiv();
-      m.Dump(&ctx->fcdiv_, "div");
+      ctx->fcdiv = GetDiv();
+      m.Dump(&ctx->fcdiv, "div");
     }
     if (auto as = dynamic_cast<ASV*>(as_.get())) {
       if (dl.count("nx")) m.Dump(&as->GetNormal(), 0, "nx");
@@ -2050,6 +2045,9 @@ void Hydro<M>::DumpTraj(
 template <class M>
 void Hydro<M>::Run() {
   auto sem = m.GetSem("run");
+  struct {
+    Scal nabort;
+  } * ctx(sem);
 
   if (sem.Nested("init")) {
     Init();
@@ -2080,7 +2078,7 @@ void Hydro<M>::Run() {
     }
   }
 
-  CheckAbort(sem);
+  CheckAbort(sem, ctx->nabort);
 
   if (sem("updatepar")) {
     if (auto fs = dynamic_cast<FSS*>(fs_.get())) {
@@ -2150,9 +2148,9 @@ void Hydro<M>::ReportStep() {
 }
 
 template <class M>
-void Hydro<M>::CheckAbort(Sem& sem) {
+void Hydro<M>::CheckAbort(Sem& sem, Scal& nabort) {
   if (sem("abort-local")) {
-    nabort_ = 0.;
+    nabort = 0.;
     try {
       CHECKNAN(as_->GetField(), true)
       CHECKNAN(fs_->GetVelocity(), true)
@@ -2167,15 +2165,15 @@ void Hydro<M>::CheckAbort(Sem& sem) {
       }
     } catch (const std::runtime_error& e) {
       std::cout << e.what() << std::endl;
-      nabort_ += 1.;
+      nabort += 1.;
     }
-    m.Reduce(&nabort_, "sum");
+    m.Reduce(&nabort, "sum");
   }
 
   if (sem("abort-reduce")) {
-    if (nabort_ != 0.) {
+    if (nabort != 0.) {
       if (m.IsRoot()) {
-        std::cout << "nabort_ = " << nabort_ << std::endl;
+        std::cout << "nabort = " << nabort << std::endl;
       }
       sem.LoopBreak();
     }
