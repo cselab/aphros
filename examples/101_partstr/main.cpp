@@ -7,12 +7,9 @@
 #include "distr/distrbasic.h"
 #include "solver/curv.h"
 
-using namespace solver;
-
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
-using namespace solver;
 
 struct State {};
 
