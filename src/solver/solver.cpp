@@ -3,18 +3,18 @@
 
 #include "solver.h"
 
-std::string GetName(Layers l) {
+std::string GetName(Step l) {
   switch (l) {
-    case Layers::time_curr: {
+    case Step::time_curr: {
       return "time_curr";
     }
-    case Layers::time_prev: {
+    case Step::time_prev: {
       return "time_prev";
     }
-    case Layers::iter_curr: {
+    case Step::iter_curr: {
       return "iter_curr";
     }
-    case Layers::iter_prev: {
+    case Step::iter_prev: {
       return "iter_prev";
     }
     default: {

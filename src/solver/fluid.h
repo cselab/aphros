@@ -46,17 +46,17 @@ class FluidSolver : public UnsteadyIterativeSolver {
       , ffbp_(ffbp)
       , fcsv_(fcsv)
       , fcsm_(fcsm) {}
-  virtual const FieldCell<Vect>& GetVelocity(Layers) const = 0;
+  virtual const FieldCell<Vect>& GetVelocity(Step) const = 0;
   virtual const FieldCell<Vect>& GetVelocity() const {
-    return GetVelocity(Layers::time_curr);
+    return GetVelocity(Step::time_curr);
   }
-  virtual const FieldCell<Scal>& GetPressure(Layers) const = 0;
+  virtual const FieldCell<Scal>& GetPressure(Step) const = 0;
   virtual const FieldCell<Scal>& GetPressure() const {
-    return GetPressure(Layers::time_curr);
+    return GetPressure(Step::time_curr);
   }
-  virtual const FieldFace<Scal>& GetVolumeFlux(Layers) const = 0;
+  virtual const FieldFace<Scal>& GetVolumeFlux(Step) const = 0;
   virtual const FieldFace<Scal>& GetVolumeFlux() const {
-    return GetVolumeFlux(Layers::time_curr);
+    return GetVolumeFlux(Step::time_curr);
   }
   virtual double GetAutoTimeStep() const {
     return GetTimeStep();

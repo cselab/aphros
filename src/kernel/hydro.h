@@ -549,14 +549,14 @@ void Hydro<M>::InitAdvection() {
     auto p = std::make_shared<typename AST::Par>();
     Parse<M>(p.get(), var);
     as_.reset(new AST(
-        m, fc_vf_, mf_adv_, &fs_->GetVolumeFlux(Layers::time_curr),
+        m, fc_vf_, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
         &fc_src2_, 0., st_.dta, p));
   } else if (as == "vof") {
     auto p = std::make_shared<typename ASV::Par>();
     Parse<M, ASV>(p.get(), var);
     as_.reset(new ASV(
         m, fc_vf_, fccl_, mf_adv_,
-        &fs_->GetVolumeFlux(Layers::time_curr), &fc_src2_, 0., st_.dta,
+        &fs_->GetVolumeFlux(Step::time_curr), &fc_src2_, 0., st_.dta,
         p));
     layers = GRange<size_t>(1);
   } else if (as == "vofm") {
@@ -564,7 +564,7 @@ void Hydro<M>::InitAdvection() {
     Parse<M, ASVM>(p.get(), var);
     auto as = new ASVM(
         m, fc_vf_, fccl_, mf_adv_,
-        &fs_->GetVolumeFlux(Layers::time_curr), &fc_src2_, 0., st_.dta,
+        &fs_->GetVolumeFlux(Step::time_curr), &fc_src2_, 0., st_.dta,
         p);
     as_.reset(as);
     layers = GRange<size_t>(as->GetNumLayers());
@@ -1088,7 +1088,7 @@ void Hydro<M>::CalcStat() {
         using R = Reconst<Scal>;
         auto& fcn = *as->GetNormal()[0];
         auto& fca = *as->GetAlpha()[0];
-        auto& fcvf = as->GetField(Layers::time_curr, 0);
+        auto& fcvf = as->GetField(Step::time_curr, 0);
         Vect h = m.GetCellSize();
         for (auto c : m.Cells()) {
           if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {

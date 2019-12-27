@@ -146,7 +146,7 @@ struct Tvd<M_>::Imp {
     fcu_.time_curr = fcu_.iter_curr;
     owner_->IncTime();
   }
-  const FieldCell<Scal>& GetField(Layers l) const {
+  const FieldCell<Scal>& GetField(Step l) const {
     return fcu_.Get(l);
   }
 
@@ -155,7 +155,7 @@ struct Tvd<M_>::Imp {
   M& m;
 
   // TODO: revise tmp fields
-  LayersData<FieldCell<Scal>> fcu_;
+  StepData<FieldCell<Scal>> fcu_;
   const MapCondFaceAdvection<Scal>& mfc_;
   MapCondFace mfvz_; // zero-derivative bc for Vect
   MapCondFace mfc_vf_; // conditions on vf
@@ -206,6 +206,6 @@ void Tvd<M_>::FinishStep() {
 }
 
 template <class M_>
-auto Tvd<M_>::GetField(Layers l) const -> const FieldCell<Scal>& {
+auto Tvd<M_>::GetField(Step l) const -> const FieldCell<Scal>& {
   return imp->fcu_.Get(l);
 }

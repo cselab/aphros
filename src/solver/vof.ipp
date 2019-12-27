@@ -481,7 +481,7 @@ struct Vof<M_>::Imp {
   M& m;
   GRange<size_t> layers;
 
-  LayersData<FieldCell<Scal>> fcu_;
+  StepData<FieldCell<Scal>> fcu_;
   FieldCell<Scal> fcuu_; // volume fraction for Weymouth div term
   const MapCondFaceAdvection<Scal>& mfc_; // conditions on advection
   MapCondFace mfc_vf_; // conditions on vf
@@ -534,7 +534,7 @@ void Vof<M_>::FinishStep() {
 }
 
 template <class M_>
-auto Vof<M_>::GetField(Layers l) const -> const FieldCell<Scal>& {
+auto Vof<M_>::GetField(Step l) const -> const FieldCell<Scal>& {
   return imp->fcu_.Get(l);
 }
 

@@ -69,36 +69,36 @@ class UnsteadyIterativeSolver : public UnsteadySolver {
 //   iter_curr, iter_prev -- undefined
 //   time_curr -- current step
 //   time_prev -- previous step
-enum class Layers { time_curr, time_prev, iter_curr, iter_prev };
+enum class Step { time_curr, time_prev, iter_curr, iter_prev };
 
 template <class T>
-struct LayersData {
+struct StepData {
   T time_curr, time_prev, iter_curr, iter_prev;
-  const T& Get(Layers l) const {
+  const T& Get(Step l) const {
     switch (l) {
-      case Layers::time_curr: {
+      case Step::time_curr: {
         return time_curr;
       }
-      case Layers::time_prev: {
+      case Step::time_prev: {
         return time_prev;
       }
-      case Layers::iter_curr: {
+      case Step::iter_curr: {
         return iter_curr;
       }
-      case Layers::iter_prev: {
+      case Step::iter_prev: {
         return iter_prev;
       }
       default: {
-        throw std::runtime_error("LayersData::Get(): Unknown layer");
+        throw std::runtime_error("StepData::Get(): Unknown layer");
       }
     }
   }
-  T& Get(Layers l) {
-    return const_cast<T&>(const_cast<const LayersData*>(this)->Get(l));
+  T& Get(Step l) {
+    return const_cast<T&>(const_cast<const StepData*>(this)->Get(l));
   }
 };
 
-std::string GetName(Layers);
+std::string GetName(Step);
 
 // Convection scheme
 enum class ConvSc { fou, cd, sou, quick };

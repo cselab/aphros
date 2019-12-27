@@ -30,10 +30,10 @@ class ConvDiffScalImp final : public ConvDiffScal<M_> {
       const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
       const FieldFace<Scal>* ffv, double t, double dt, const Par& par);
   ~ConvDiffScalImp();
-  const FieldCell<Scal>& GetField(Layers) const override;
+  const FieldCell<Scal>& GetField(Step) const override;
   using P::GetField;
   void Assemble(const FieldCell<Scal>&, const FieldFace<Scal>&) override;
-  void CorrectField(Layers l, const FieldCell<Scal>& uc) override;
+  void CorrectField(Step l, const FieldCell<Scal>& uc) override;
   FieldCell<Scal> GetDiag() const override;
   FieldCell<Scal> GetConst() const override;
   void StartStep() override;

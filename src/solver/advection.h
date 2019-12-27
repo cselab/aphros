@@ -45,10 +45,10 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
   // Postprocessing after time step (dumps)
   virtual void PostStep() {}
   // Volume fraction
-  virtual const FieldCell<Scal>& GetField(Layers) const = 0;
+  virtual const FieldCell<Scal>& GetField(Step) const = 0;
   // Volume fraction at last time step
   virtual const FieldCell<Scal>& GetField() const {
-    return GetField(Layers::time_curr);
+    return GetField(Step::time_curr);
   }
   virtual void DumpInterface(std::string /*filename*/) const {};
   virtual void DumpInterfaceMarch(std::string /*filename*/) const {};
