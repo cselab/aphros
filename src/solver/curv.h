@@ -2,9 +2,9 @@
 
 #include <memory>
 
+#include "advection.h"
 #include "geom/mesh.h"
 #include "partstrmeshm.h"
-#include "advection.h"
 
 template <class M_>
 struct UCurv {

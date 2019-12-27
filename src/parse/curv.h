@@ -3,8 +3,8 @@
 #include <string>
 
 #include "parse/vars.h"
-#include "solver/partstrmeshm.h"
 #include "solver/partstr.h"
+#include "solver/partstrmeshm.h"
 
 template <class Scal>
 void Parse(typename PartStr<Scal>::Par& p, Scal hc, const Vars& var) {

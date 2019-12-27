@@ -96,8 +96,7 @@ FieldCell<bool> DetectInterface(const FieldCell<Scal>& fcu) {
 static coord mycs(Point point, scalar fcu) {
   static FieldCell<Vect> fcn;
   if (fcn.empty()) {
-    UNormal<Mesh>::CalcNormal(
-        (*_mesh), fcu, DetectInterface(fcu), dim, fcn);
+    UNormal<Mesh>::CalcNormal((*_mesh), fcu, DetectInterface(fcu), dim, fcn);
   }
   auto n = fcn[point];
   coord r = {n[0], n[1], n[2]};

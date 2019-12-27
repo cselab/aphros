@@ -772,8 +772,7 @@ void SetDefaultAdvectionFaceCond(
 template <class M, class Scal = typename M::Scal>
 void ParseFaceCond(
     IdxFace f, size_t nci, std::string str, const M& m, Scal clear0,
-    Scal clear1, Scal inletcl, Scal fill_vf,
-    UniquePtr<CondFaceFluid>& cf,
+    Scal clear1, Scal inletcl, Scal fill_vf, UniquePtr<CondFaceFluid>& cf,
     CondFaceAdvection<typename M::Scal>& ca) {
   std::vector<std::string> ss; // strings not recognized as fluid cond
   for (auto s : Split(str, ',')) {
@@ -995,8 +994,7 @@ void GetFluidFaceCond(
 
 template <class M>
 void GetFluidCellCond(
-    const Vars& var, M& m,
-    MapCell<std::shared_ptr<CondCellFluid>>& mcvel,
+    const Vars& var, M& m, MapCell<std::shared_ptr<CondCellFluid>>& mcvel,
     std::pair<typename M::Scal, int>& pdist) {
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
@@ -1019,9 +1017,7 @@ void GetFluidCellCond(
       if (pdist.second == m.GetId()) {
         Vect x(var.Vect["pfixed_x"]);
         IdxCell c = m.FindNearestCell(x);
-        mcvel[c] =
-            std::make_shared<fluid_condition::GivenPressureFixed<M>>(
-                *p);
+        mcvel[c] = std::make_shared<fluid_condition::GivenPressureFixed<M>>(*p);
         std::cout << "pfixed id=" << pdist.second << " dist=" << pdist.first
                   << std::endl;
       }
@@ -1063,8 +1059,7 @@ void GetFluidCellCond(
         for (auto w : bb) {
           IdxCell c = ci.GetIdx(w);
           mcvel[c] = std::make_shared<
-              fluid_condition::GivenVelocityAndPressureFixed<M>>(
-              Vect(0), 0.);
+              fluid_condition::GivenVelocityAndPressureFixed<M>>(Vect(0), 0.);
         }
       } else if (n > nmax) {
         break;
@@ -1192,9 +1187,9 @@ void AppendBodyCond(
       ParseFaceCond(
           f, nci, str, m, clear0, clear1, inletcl, fill_vf, condf, conda);
       if (mcf) {
-        (*mcf)[m.GetCell(f, 1 - nci)] = std::make_shared<
-            fluid_condition::GivenVelocityAndPressureFixed<M>>(
-            Vect(0), 0.);
+        (*mcf)[m.GetCell(f, 1 - nci)] =
+            std::make_shared<fluid_condition::GivenVelocityAndPressureFixed<M>>(
+                Vect(0), 0.);
       }
     }
   }

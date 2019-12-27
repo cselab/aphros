@@ -111,7 +111,8 @@ void KernelEmbed<M>::Run() {
       m.Dump(&eb_->GetNormal(), 2, "nz");
     }
   }
-  if (sem()) {}
+  if (sem()) {
+  }
 }
 
 using Scal = double;

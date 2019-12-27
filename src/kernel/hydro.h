@@ -152,8 +152,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       FieldFace<Scal>& ffst, const GRange<size_t>& layers,
       const Multi<const FieldCell<Scal>*> fcu,
       const Multi<const FieldCell<Scal>*> fccl,
-      const Multi<const FieldCell<Scal>*> fck,
-      const FieldFace<Scal>& ffsig);
+      const Multi<const FieldCell<Scal>*> fck, const FieldFace<Scal>& ffsig);
   // Clips v to given range, uses const_cast
   void Clip(const FieldCell<Scal>& v, Scal min, Scal max);
   void CalcStat();
@@ -549,23 +548,21 @@ void Hydro<M>::InitAdvection() {
     auto p = std::make_shared<typename AST::Par>();
     Parse<M>(p.get(), var);
     as_.reset(new AST(
-        m, fc_vf_, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
-        &fc_src2_, 0., st_.dta, p));
+        m, fc_vf_, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr), &fc_src2_, 0.,
+        st_.dta, p));
   } else if (as == "vof") {
     auto p = std::make_shared<typename ASV::Par>();
     Parse<M, ASV>(p.get(), var);
     as_.reset(new ASV(
-        m, fc_vf_, fccl_, mf_adv_,
-        &fs_->GetVolumeFlux(Step::time_curr), &fc_src2_, 0., st_.dta,
-        p));
+        m, fc_vf_, fccl_, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
+        &fc_src2_, 0., st_.dta, p));
     layers = GRange<size_t>(1);
   } else if (as == "vofm") {
     auto p = std::make_shared<typename ASVM::Par>();
     Parse<M, ASVM>(p.get(), var);
     auto as = new ASVM(
-        m, fc_vf_, fccl_, mf_adv_,
-        &fs_->GetVolumeFlux(Step::time_curr), &fc_src2_, 0., st_.dta,
-        p);
+        m, fc_vf_, fccl_, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
+        &fc_src2_, 0., st_.dta, p);
     as_.reset(as);
     layers = GRange<size_t>(as->GetNumLayers());
   } else {
@@ -1245,9 +1242,7 @@ void Hydro<M>::CalcStat() {
       for (auto it : mf_fluid_) {
         IdxFace f = it.GetIdx();
         CondFaceFluid* cb = it.GetValue().Get();
-        if (auto cd =
-                dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(
-                    cb)) {
+        if (auto cd = dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(cb)) {
           size_t nci = cd->GetNci();
           IdxCell c = m.GetCell(f, nci);
           cd->SetVelocity(slipvel * kslip * fa[c]);
@@ -1266,9 +1261,7 @@ void Hydro<M>::CalcStat() {
       for (auto it : mf_fluid_) {
         IdxFace f = it.GetIdx();
         CondFaceFluid* cb = it.GetValue().Get();
-        if (auto cd =
-                dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(
-                    cb)) {
+        if (auto cd = dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(cb)) {
           size_t nci = cd->GetNci();
           IdxCell c = m.GetCell(f, nci);
           Scal sgn = (slipvel - fv[c]).dot(slipvel);
@@ -1285,9 +1278,7 @@ void Hydro<M>::CalcStat() {
       for (auto it : mf_fluid_) {
         IdxFace f = it.GetIdx();
         CondFaceFluid* cb = it.GetValue().Get();
-        if (auto cd =
-                dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(
-                    cb)) {
+        if (auto cd = dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(cb)) {
           size_t nci = cd->GetNci();
           IdxCell c = m.GetCell(f, nci);
           fc_force_[c] += m.GetNormal(f) * ((nci == 1 ? 1 : -1) * fc_rho_[c] *
@@ -1304,9 +1295,7 @@ void Hydro<M>::CalcStat() {
         IdxFace f = it.GetIdx();
         Vect x = m.GetCenter(f);
         CondFaceFluid* cb = it.GetValue().Get();
-        if (auto cd =
-                dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(
-                    cb)) {
+        if (auto cd = dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(cb)) {
           cd->SetVelocity(GetYoungVel(x));
         }
       }
@@ -1386,8 +1375,7 @@ void Hydro<M>::AppendSurfaceTension(
     FieldFace<Scal>& ffst, const GRange<size_t>& layers,
     const Multi<const FieldCell<Scal>*> fcu,
     const Multi<const FieldCell<Scal>*> fccl,
-    const Multi<const FieldCell<Scal>*> fck,
-    const FieldFace<Scal>& ffsig) {
+    const Multi<const FieldCell<Scal>*> fck, const FieldFace<Scal>& ffsig) {
   for (auto f : m.Faces()) {
     IdxCell cm = m.GetCell(f, 0);
     IdxCell cp = m.GetCell(f, 1);
@@ -1804,7 +1792,8 @@ void Hydro<M>::DumpFields() {
       }
     }
   }
-  if (sem()) {} // XXX: empty stage, otherwise ctx is destroyed before dump
+  if (sem()) {
+  } // XXX: empty stage, otherwise ctx is destroyed before dump
   if (var.Int["enable_advection"]) {
     if (var.Int["dumppoly"] && sem.Nested()) {
       as_->DumpInterface(GetDumpName("s", ".vtk", dumper_.GetN()));
