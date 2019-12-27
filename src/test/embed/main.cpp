@@ -74,6 +74,36 @@ void KernelEmbed<M>::Run() {
         e.GetFaceArea(), e.GetFaceType(), e.GetCellArea(), e.GetCellType(),
         e.GetNormal(), e.GetPlane(), e.GetPoly(), m);
   }
+  if (sem("dumpcsv")) {
+    auto& e = *eb_;
+    using Type = typename EB::Type;
+    std::ofstream out("eb.csv");
+    out << "x,y,z\n";
+    for (auto c : m.Cells()) {
+      if (e.GetCellType()[c] == Type::cut) {
+        auto x = e.GetCellCenter(c);
+        out << x[0] << "," << x[1] << "," << x[2] << "\n";
+      }
+    }
+  }
+  if (sem("dumpcsvface")) {
+    auto& e = *eb_;
+    using Type = typename EB::Type;
+    std::ofstream out("ebf.csv");
+    out << "x,y,z\n";
+    for (auto c : m.Cells()) {
+      if (e.GetCellType()[c] == Type::cut) {
+        auto x = e.GetFaceCenter(c);
+        out << x[0] << "," << x[1] << "," << x[2] << "\n";
+      }
+    }
+    for (auto f : m.Faces()) {
+      if (e.GetFaceType()[f] == Type::cut) {
+        auto x = e.GetFaceCenter(f);
+        out << x[0] << "," << x[1] << "," << x[2] << "\n";
+      }
+    }
+  }
   for (size_t t = 0; t < 50; ++t) {
     if (sem("step")) {
       using Type = typename EB::Type;

@@ -49,6 +49,48 @@ class Embed {
   const FieldFace<std::vector<Vect>>& GetPoly() const {
     return ffpoly_;
   }
+  Scal GetCellVolume(IdxCell c) const {
+    return fcv_[c];
+  }
+  Vect GetFaceCenter(IdxCell c) const {
+    if (fct_[c] == Type::cut) {
+      return R::GetCenter(
+          R::GetCutPoly(m.GetCenter(c), fcn_[c], fca_[c], m.GetCellSize()));
+    }
+    return GetNan<Vect>();
+  }
+  Vect GetFaceCenter(IdxFace f) const {
+    switch (fft_[f]) {
+      case Type::regular:
+        return m.GetCenter(f);
+      case Type::cut:
+        return R::GetCenter(ffpoly_[f]);
+      default:
+        return GetNan<Vect>();
+    }
+  }
+  Vect GetCellCenter(IdxCell c) const {
+    switch (fct_[c]) {
+      case Type::regular:
+        return m.GetCenter(c);
+      case Type::cut: {
+        const Scal w = GetCellArea()[c];
+        Vect sum = GetFaceCenter(c) * w;
+        Scal sumw = w;
+        for (auto q : m.Nci(c)) {
+          auto f = m.GetFace(c, q);
+          if (fft_[f] != Type::excluded) {
+            const Scal w = GetFaceArea()[f];
+            sum += GetFaceCenter(f) * w;
+            sumw += w;
+          }
+        }
+        return sum / sumw;
+      }
+      default:
+        return GetNan<Vect>();
+    }
+  }
 
   // Dump cut polygons
   // ffs: face area for which f > 0
