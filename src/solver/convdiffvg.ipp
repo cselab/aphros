@@ -34,8 +34,8 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
           owner_->ffd_, &(vfcs_[d]), owner_->ffv_, owner_->GetTime(),
           owner_->GetTimeStep(), *par);
     }
-    CopyToVect(Layers::time_curr, fcvel_);
-    lvel_ = Layers::time_curr;
+    CopyToVect(Step::time_curr, fcvel_);
+    lvel_ = Step::time_curr;
   }
   void UpdateDerivedCond(size_t d) {
     // Face conditions for each velocity component
@@ -58,7 +58,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   // Copy from solvers to vector field.
   // l: layer in component solvers
   // fcv: vector field
-  void CopyToVect(Layers l, FieldCell<Vect>& fcv) {
+  void CopyToVect(Step l, FieldCell<Vect>& fcv) {
     fcv.Reinit(m);
     for (auto d : dr_) {
       SetComponent(fcv, d, vs_[d]->GetField(l));
@@ -75,7 +75,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       }
     }
     if (sem("tovect")) {
-      lvel_ = Layers::iter_curr;
+      lvel_ = Step::iter_curr;
       owner_->ClearIter();
     }
   }
@@ -116,8 +116,8 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
     }
 
     if (sem("tovect")) {
-      CopyToVect(Layers::iter_curr, fcvel_);
-      lvel_ = Layers::iter_curr;
+      CopyToVect(Step::iter_curr, fcvel_);
+      lvel_ = Step::iter_curr;
       owner_->IncIter();
     }
   }
@@ -130,7 +130,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       }
     }
     if (sem("tovect")) {
-      lvel_ = Layers::time_curr;
+      lvel_ = Step::time_curr;
       owner_->IncTime();
     }
   }
@@ -141,7 +141,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
     }
     return r;
   }
-  const FieldCell<Vect>& GetVelocity(Layers l) const {
+  const FieldCell<Vect>& GetVelocity(Step l) const {
     if (l == lvel_) {
       return fcvel_;
     }
@@ -149,7 +149,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
         "GetVelocity: requested layer '" + GetName(l) + "' but '" +
         GetName(lvel_) + "' is loaded");
   }
-  void CorrectVelocity(Layers l, const FieldCell<Vect>& fc) {
+  void CorrectVelocity(Step l, const FieldCell<Vect>& fc) {
     auto sem = m.GetSem("corr");
     for (auto d : dr_) {
       if (sem.Nested("dir-corr")) {
@@ -167,7 +167,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   M& m; // mesh
 
   FieldCell<Vect> fcvel_;
-  Layers lvel_; // current level loaded in fcvel_
+  Step lvel_; // current level loaded in fcvel_
   const MapCondFace& mfc_; // vect face cond
   MapCell<std::shared_ptr<CondCell>> mcc_; // vect cell cond
   GRange<size_t> dr_; // effective dimension range
@@ -203,7 +203,7 @@ void ConvDiffVectGeneric<M_, CD_>::Assemble(
 
 template <class M_, class CD_>
 void ConvDiffVectGeneric<M_, CD_>::CorrectVelocity(
-    Layers l, const FieldCell<Vect>& u) {
+    Step l, const FieldCell<Vect>& u) {
   imp->CorrectVelocity(l, u);
 }
 
@@ -243,7 +243,7 @@ double ConvDiffVectGeneric<M_, CD_>::GetError() const {
 }
 
 template <class M_, class CD_>
-auto ConvDiffVectGeneric<M_, CD_>::GetVelocity(Layers l) const
+auto ConvDiffVectGeneric<M_, CD_>::GetVelocity(Step l) const
     -> const FieldCell<Vect>& {
   return imp->GetVelocity(l);
 }

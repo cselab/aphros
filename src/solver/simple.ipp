@@ -526,11 +526,11 @@ struct Simple<M_>::Imp {
   void UpdateBc(typename M::Sem& sem) {
     if (sem.Nested("bc-inletflux")) {
       UFluid<M>::UpdateInletFlux(
-          m, GetVelocity(Layers::iter_curr), mfc_, par->inletflux_numid);
+          m, GetVelocity(Step::iter_curr), mfc_, par->inletflux_numid);
     }
     if (sem.Nested("bc-outlet")) {
       UFluid<M>::UpdateOutletBaseConditions(
-          m, GetVelocity(Layers::iter_curr), mfc_, *owner_->fcsv_);
+          m, GetVelocity(Step::iter_curr), mfc_, *owner_->fcsv_);
     }
     if (sem("bc-derived")) {
       UpdateDerivedConditions();
@@ -552,7 +552,7 @@ struct Simple<M_>::Imp {
     }
 
     if (sem("explvisc")) {
-      AppendExplViscous(cd_->GetVelocity(Layers::iter_curr), fcfcd_);
+      AppendExplViscous(cd_->GetVelocity(Step::iter_curr), fcfcd_);
     }
   }
   // TODO: rewrite norm() using dist() where needed
@@ -588,7 +588,7 @@ struct Simple<M_>::Imp {
     if (par->simpler) {
       if (sem.Nested("simpler")) {
         CalcPressure(
-            cd_->GetVelocity(Layers::iter_curr), ffv_.iter_curr, fcp_curr,
+            cd_->GetVelocity(Step::iter_curr), ffv_.iter_curr, fcp_curr,
             fcp_curr);
       }
 
@@ -614,7 +614,7 @@ struct Simple<M_>::Imp {
 
     if (sem("pcorr-assemble")) {
       RhieChow(
-          cd_->GetVelocity(Layers::iter_curr), fcp_curr, fcgp_, fck_, ffk_,
+          cd_->GetVelocity(Step::iter_curr), fcp_curr, fcgp_, fck_, ffk_,
           ffve_);
       CHECKNAN(ffve_, m.CN())
 
@@ -666,7 +666,7 @@ struct Simple<M_>::Imp {
 
     if (sem.Nested("convdiff-corr")) {
       // Correct velocity and comm
-      cd_->CorrectVelocity(Layers::iter_curr, fcwc_);
+      cd_->CorrectVelocity(Step::iter_curr, fcwc_);
     }
 
     if (sem("inc-iter")) {
@@ -702,7 +702,7 @@ struct Simple<M_>::Imp {
     }
     return dt;
   }
-  const FieldCell<Vect>& GetVelocity(Layers l) const {
+  const FieldCell<Vect>& GetVelocity(Step l) const {
     return cd_->GetVelocity(l);
   }
 
@@ -725,8 +725,8 @@ struct Simple<M_>::Imp {
   MapCell<std::shared_ptr<CondCell>> mccp_; // pressure cell cond
   MapCell<std::shared_ptr<CondCell>> mccw_; // velocity cell cond
 
-  LayersData<FieldFace<Scal>> ffv_; // volume flux
-  LayersData<FieldCell<Scal>> fcp_; // pressure
+  StepData<FieldFace<Scal>> ffv_; // volume flux
+  StepData<FieldCell<Scal>> fcp_; // pressure
 
   std::unique_ptr<CD> cd_;
 
@@ -789,17 +789,17 @@ void Simple<M_>::FinishStep() {
 }
 
 template <class M_>
-auto Simple<M_>::GetVelocity(Layers l) const -> const FieldCell<Vect>& {
+auto Simple<M_>::GetVelocity(Step l) const -> const FieldCell<Vect>& {
   return imp->GetVelocity(l);
 }
 
 template <class M_>
-auto Simple<M_>::GetPressure(Layers l) const -> const FieldCell<Scal>& {
+auto Simple<M_>::GetPressure(Step l) const -> const FieldCell<Scal>& {
   return imp->fcp_.Get(l);
 }
 
 template <class M_>
-auto Simple<M_>::GetVolumeFlux(Layers l) const -> const FieldFace<Scal>& {
+auto Simple<M_>::GetVolumeFlux(Step l) const -> const FieldFace<Scal>& {
   return imp->ffv_.Get(l);
 }
 

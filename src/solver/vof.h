@@ -52,7 +52,7 @@ class Vof final : public AdvectionSolver<M_> {
   void FinishStep() override;
   void PostStep() override;
   // Volume fraction
-  const FieldCell<Scal>& GetField(Layers l) const override;
+  const FieldCell<Scal>& GetField(Step l) const override;
   using P::GetField;
   // Interface mask
   const FieldCell<bool>& GetMask() const;

@@ -611,7 +611,7 @@ struct Vofm<M_>::Imp {
     }
 
     if (sem("sum")) {
-      auto l = Layers::iter_curr;
+      auto l = Step::iter_curr;
       auto& fcus = fcus_.Get(l);
       fcus.Reinit(m, 0);
       fccls_.Reinit(m, kClNone);
@@ -676,9 +676,9 @@ struct Vofm<M_>::Imp {
   std::shared_ptr<Par> par;
   M& m;
 
-  LayersData<Multi<FieldCell<Scal>>> fcu_;
+  StepData<Multi<FieldCell<Scal>>> fcu_;
   Multi<FieldCell<Scal>> fcuu_;
-  LayersData<FieldCell<Scal>> fcus_;
+  StepData<FieldCell<Scal>> fcus_;
   FieldCell<Scal> fccls_;
   const MapCondFaceAdvection<Scal>& mfc_; // conditions on advection
   MapCondFace mfc_vf_; // conditions on vf
@@ -739,18 +739,18 @@ void Vofm<M_>::FinishStep() {
 }
 
 template <class M_>
-auto Vofm<M_>::GetField(Layers l) const -> const FieldCell<Scal>& {
+auto Vofm<M_>::GetField(Step l) const -> const FieldCell<Scal>& {
   return imp->fcus_.Get(l);
 }
 
 template <class M_>
-auto Vofm<M_>::GetField(Layers l, size_t i) const -> const FieldCell<Scal>& {
+auto Vofm<M_>::GetField(Step l, size_t i) const -> const FieldCell<Scal>& {
   return imp->fcu_.Get(l)[i];
 }
 
 template <class M_>
 auto Vofm<M_>::GetFieldM() const -> Multi<const FieldCell<Scal>*> {
-  return imp->fcu_.Get(Layers::time_curr);
+  return imp->fcu_.Get(Step::time_curr);
 }
 
 template <class M_>

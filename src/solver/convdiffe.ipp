@@ -196,7 +196,7 @@ struct ConvDiffScalExp<M_>::Imp {
   // uc: correction [i]
   // Output:
   // u(l) += uc [a]
-  void CorrectField(Layers l, const FieldCell<Scal>& uc) {
+  void CorrectField(Step l, const FieldCell<Scal>& uc) {
     auto sem = m.GetSem("corr");
     if (sem("apply")) {
       auto& u = fcu_.Get(l);
@@ -218,7 +218,7 @@ struct ConvDiffScalExp<M_>::Imp {
   const Par* par;
   M& m; // mesh
 
-  LayersData<FieldCell<Scal>> fcu_; // field
+  StepData<FieldCell<Scal>> fcu_; // field
   const MapCondFace& mfc_; // face cond
   MapCell<std::shared_ptr<CondCell>> mcc_; // cell cond
 
@@ -249,7 +249,7 @@ void ConvDiffScalExp<M_>::Assemble(
 }
 
 template <class M_>
-void ConvDiffScalExp<M_>::CorrectField(Layers l, const FieldCell<Scal>& uc) {
+void ConvDiffScalExp<M_>::CorrectField(Step l, const FieldCell<Scal>& uc) {
   imp->CorrectField(l, uc);
 }
 
@@ -284,6 +284,6 @@ double ConvDiffScalExp<M_>::GetError() const {
 }
 
 template <class M_>
-auto ConvDiffScalExp<M_>::GetField(Layers l) const -> const FieldCell<Scal>& {
+auto ConvDiffScalExp<M_>::GetField(Step l) const -> const FieldCell<Scal>& {
   return imp->fcu_.Get(l);
 }

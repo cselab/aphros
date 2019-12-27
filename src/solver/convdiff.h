@@ -43,14 +43,14 @@ class ConvDiffScal : public UnsteadyIterativeSolver {
       , ffd_(ffd)
       , fcs_(fcs)
       , ffv_(ffv) {}
-  virtual const FieldCell<Scal>& GetField(Layers) const = 0;
+  virtual const FieldCell<Scal>& GetField(Step) const = 0;
   virtual const FieldCell<Scal>& GetField() const {
-    return GetField(Layers::time_curr);
+    return GetField(Step::time_curr);
   }
   // Corrects field and exchanges halos.
   // l: layer to correct
   // uc: correction [i]
-  virtual void CorrectField(Layers l, const FieldCell<Scal>& uc) = 0;
+  virtual void CorrectField(Step l, const FieldCell<Scal>& uc) = 0;
   // Assembles linear system
   // fcu: field from previous iteration [a]
   // ffv: volume flux

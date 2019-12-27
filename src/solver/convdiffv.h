@@ -25,11 +25,11 @@ class ConvDiffVect : public UnsteadyIterativeSolver {
       , ffd_(ffd)
       , fcs_(fcs)
       , ffv_(ffv) {}
-  virtual const FieldCell<Vect>& GetVelocity(Layers) const = 0;
+  virtual const FieldCell<Vect>& GetVelocity(Step) const = 0;
   virtual const FieldCell<Vect>& GetVelocity() const {
-    return GetVelocity(Layers::time_curr);
+    return GetVelocity(Step::time_curr);
   }
-  virtual void CorrectVelocity(Layers, const FieldCell<Vect>&) = 0;
+  virtual void CorrectVelocity(Step, const FieldCell<Vect>&) = 0;
   // Assembles linear system
   // fcw: current velocity
   // ffv: volume flux

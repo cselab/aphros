@@ -321,11 +321,11 @@ struct Proj<M_>::Imp {
   void UpdateBc(typename M::Sem& sem) {
     if (sem.Nested("bc-inletflux")) {
       UFluid<M>::UpdateInletFlux(
-          m, GetVelocity(Layers::iter_curr), mfc_, par->inletflux_numid);
+          m, GetVelocity(Step::iter_curr), mfc_, par->inletflux_numid);
     }
     if (sem.Nested("bc-outlet")) {
       UFluid<M>::UpdateOutletBaseConditions(
-          m, GetVelocity(Layers::iter_curr), mfc_, *owner_->fcsv_);
+          m, GetVelocity(Step::iter_curr), mfc_, *owner_->fcsv_);
     }
     if (sem("bc-derived")) {
       UpdateDerivedConditions();
@@ -351,7 +351,7 @@ struct Proj<M_>::Imp {
 
     if (sem("forceinit")) {
       fcfcd_.Reinit(m, Vect(0));
-      AppendExplViscous(cd_->GetVelocity(Layers::iter_curr), fcfcd_);
+      AppendExplViscous(cd_->GetVelocity(Step::iter_curr), fcfcd_);
     }
 
     if (sem.Nested("convdiff-iter")) {
@@ -366,7 +366,7 @@ struct Proj<M_>::Imp {
     if (sem("pcorr-assemble")) {
       // Acceleration
       // mean flux
-      auto fftv = Interpolate(cd_->GetVelocity(Layers::iter_curr), mfcw_, m);
+      auto fftv = Interpolate(cd_->GetVelocity(Step::iter_curr), mfcw_, m);
       ffve_.Reinit(m);
       auto& ffbp = *owner_->ffbp_;
       for (auto f : m.Faces()) {
@@ -423,7 +423,7 @@ struct Proj<M_>::Imp {
     }
 
     if (sem.Nested("convdiff-corr")) {
-      cd_->CorrectVelocity(Layers::iter_curr, fcwc_);
+      cd_->CorrectVelocity(Step::iter_curr, fcwc_);
     }
 
     if (sem("inc-iter")) {
@@ -459,7 +459,7 @@ struct Proj<M_>::Imp {
     }
     return dt;
   }
-  const FieldCell<Vect>& GetVelocity(Layers l) const {
+  const FieldCell<Vect>& GetVelocity(Step l) const {
     return cd_->GetVelocity(l);
   }
 
@@ -482,8 +482,8 @@ struct Proj<M_>::Imp {
   MapCell<std::shared_ptr<CondCell>> mccp_; // pressure cell cond
   MapCell<std::shared_ptr<CondCell>> mccw_; // velocity cell cond
 
-  LayersData<FieldFace<Scal>> ffv_; // volume flux
-  LayersData<FieldCell<Scal>> fcp_; // pressure
+  StepData<FieldFace<Scal>> ffv_; // volume flux
+  StepData<FieldCell<Scal>> fcp_; // pressure
 
   std::shared_ptr<CD> cd_;
 
@@ -543,17 +543,17 @@ void Proj<M_>::FinishStep() {
 }
 
 template <class M_>
-auto Proj<M_>::GetVelocity(Layers l) const -> const FieldCell<Vect>& {
+auto Proj<M_>::GetVelocity(Step l) const -> const FieldCell<Vect>& {
   return imp->GetVelocity(l);
 }
 
 template <class M_>
-auto Proj<M_>::GetPressure(Layers l) const -> const FieldCell<Scal>& {
+auto Proj<M_>::GetPressure(Step l) const -> const FieldCell<Scal>& {
   return imp->fcp_.Get(l);
 }
 
 template <class M_>
-auto Proj<M_>::GetVolumeFlux(Layers l) const -> const FieldFace<Scal>& {
+auto Proj<M_>::GetVolumeFlux(Step l) const -> const FieldFace<Scal>& {
   return imp->ffv_.Get(l);
 }
 
