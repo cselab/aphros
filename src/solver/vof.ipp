@@ -105,48 +105,6 @@ struct Vof<M_>::Imp {
       }
     }
   }
-  void Dump() {
-    auto sem = m.GetSem("iter");
-    bool dm = par->dmp->Try(owner_->GetTime(), owner_->GetTimeStep());
-    if (par->dumppoly && dm && sem.Nested("dumppoly")) {
-      uvof_.DumpPoly(
-          fcu_.iter_curr, fcn_, fca_, fci_,
-          GetDumpName("s", ".vtk", par->dmp->GetN()),
-          owner_->GetTime() + owner_->GetTimeStep(), par->vtkbin, par->vtkmerge,
-          m);
-    }
-    if (par->dumppolymarch && dm) {
-      auto& fcut = fcfm_;
-      auto& fcclt = fcfp_;
-      if (sem("copy")) {
-        fcut = fcu_.iter_curr;
-        fcclt = fccl_;
-        if (par->bcc_reflectpoly) {
-          BcReflectAll(fcut, mfc_vf_, m);
-          BcReflectAll(fcclt, mfc_cl_, m);
-        }
-        if (par->dumppolymarch_fill >= 0) {
-          BcMarchFill(fcut, par->dumppolymarch_fill, m);
-        }
-      }
-      if (sem.Nested()) {
-        uvof_.DumpPolyMarch(
-            layers, &fcut, &fcclt, &fcn_, &fca_, &fci_,
-            GetDumpName("sm", ".vtk", par->dmp->GetN()),
-            owner_->GetTime() + owner_->GetTimeStep(), par->vtkbin,
-            par->vtkmerge, par->vtkiso,
-            par->dumppolymarch_fill >= 0 ? &fcut : nullptr, m);
-      }
-    }
-    /*
-    if (par->dumppart && dm && sem.Nested("part-dump")) {
-      psm_->DumpParticles(&fca_, &fcn_, par->dmp->GetN(), owner_->GetTime());
-    }
-    if (par->dumppartinter && dm && sem.Nested("partinter-dump")) {
-      psm_->DumpPartInter(&fca_, &fcn_, par->dmp->GetN(), owner_->GetTime());
-    }
-    */
-  }
   // Makes advection sweep in one direction, updates uc [i]
   // uc: volume fraction [s]
   // d: direction
@@ -487,8 +445,36 @@ struct Vof<M_>::Imp {
       BcApply(fcn_, mfc_n_, m);
       // --> reflected fca [a], fcn [a]
     }
-    if (sem.Nested("dump")) {
-      Dump();
+  }
+  void DumpInterface(std::string filename) {
+    uvof_.DumpPoly(
+        fcu_.time_curr, fcn_, fca_, fci_, filename, owner_->GetTime(),
+        par->vtkbin, par->vtkmerge, m);
+  }
+  void DumpInterfaceMarch(std::string filename) {
+    auto sem = m.GetSem("dump-interface-march");
+    struct {
+      FieldCell<Scal> fcut; // volume fraction
+      FieldCell<Scal> fcclt; // color
+    } * ctx(sem);
+    auto& fcut = ctx->fcut;
+    auto& fcclt = ctx->fcclt;
+    if (sem("copy")) {
+      fcut = fcu_.time_curr;
+      fcclt = fccl_;
+      if (par->bcc_reflectpoly) {
+        BcReflectAll(fcut, mfc_vf_, m);
+        BcReflectAll(fcclt, mfc_cl_, m);
+      }
+      if (par->dumppolymarch_fill >= 0) {
+        BcMarchFill(fcut, par->dumppolymarch_fill, m);
+      }
+    }
+    if (sem.Nested()) {
+      uvof_.DumpPolyMarch(
+          layers, &fcut, &fcclt, &fcn_, &fca_, &fci_, filename,
+          owner_->GetTime(), par->vtkbin, par->vtkmerge, par->vtkiso,
+          par->dumppolymarch_fill >= 0 ? &fcut : nullptr, m);
     }
   }
 
@@ -582,6 +568,16 @@ auto Vof<M_>::GetNormal() const -> const FieldCell<Vect>& {
 template <class M_>
 void Vof<M_>::PostStep() {
   return imp->PostStep();
+}
+
+template <class M_>
+void Vof<M_>::DumpInterface(std::string fn) const {
+  return imp->DumpInterface(fn);
+}
+
+template <class M_>
+void Vof<M_>::DumpInterfaceMarch(std::string fn) const {
+  return imp->DumpInterfaceMarch(fn);
 }
 
 } // namespace solver
