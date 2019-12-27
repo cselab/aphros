@@ -23,19 +23,14 @@ class Tvd final : public AdvectionSolver<M_> {
   // Constructor
   Tvd(M& m, const FieldCell<Scal>& fcu, const MapCondFaceAdvection<Scal>& mfc,
       const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs, double t,
-      double dt, std::shared_ptr<Par> par);
+      double dt, Par par);
   ~Tvd();
-  // Parameters
-  Par* GetPar();
-  // ...
+  const Par& GetPar() const;
+  void SetPar(Par);
   void StartStep() override;
-  // ...
   void MakeIteration() override;
-  // ...
   void FinishStep() override;
-  // ...
   const FieldCell<Scal>& GetField(Step l) const override;
-  // ...
   using P::GetField;
 
  private:

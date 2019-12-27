@@ -175,11 +175,17 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   void UpdateAdvectionPar() {
     if (auto as = dynamic_cast<AST*>(as_.get())) {
-      Parse<M>(as->GetPar(), var);
+      auto p = as->GetPar();
+      Parse<M>(&p, var);
+      as->SetPar(p);
     } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
-      Parse<M, ASV>(as->GetPar(), var);
+      auto p = as->GetPar();
+      Parse<M>(&p, var);
+      as->SetPar(p);
     } else if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-      Parse<M, ASVM>(as->GetPar(), var);
+      auto p = as->GetPar();
+      Parse<M>(&p, var);
+      as->SetPar(p);
     }
   }
   // Surface tension time step
@@ -545,21 +551,21 @@ template <class M>
 void Hydro<M>::InitAdvection() {
   std::string as = var.String["advection_solver"];
   if (as == "tvd") {
-    auto p = std::make_shared<typename AST::Par>();
-    Parse<M>(p.get(), var);
+    typename AST::Par p;
+    Parse<M>(&p, var);
     as_.reset(new AST(
         m, fc_vf_, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr), &fc_src2_, 0.,
         st_.dta, p));
   } else if (as == "vof") {
-    auto p = std::make_shared<typename ASV::Par>();
-    Parse<M, ASV>(p.get(), var);
+    typename ASV::Par p;
+    Parse<M>(&p, var);
     as_.reset(new ASV(
         m, fc_vf_, fccl_, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
         &fc_src2_, 0., st_.dta, p));
     layers = GRange<size_t>(1);
   } else if (as == "vofm") {
-    auto p = std::make_shared<typename ASVM::Par>();
-    Parse<M, ASVM>(p.get(), var);
+    typename ASVM::Par p;
+    Parse<M>(&p, var);
     auto as = new ASVM(
         m, fc_vf_, fccl_, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
         &fc_src2_, 0., st_.dta, p);

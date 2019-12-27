@@ -27,7 +27,7 @@ struct Vof<M_>::Imp {
   using MIdx = typename M::MIdx;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-      const MapCondFaceAdvection<Scal>& mfc, std::shared_ptr<Par> par)
+      const MapCondFaceAdvection<Scal>& mfc, Par par)
       : owner_(owner)
       , par(par)
       , m(owner_->m)
@@ -56,7 +56,7 @@ struct Vof<M_>::Imp {
   void Rec(const FieldCell<Scal>& uc) {
     DetectInterface(uc);
     // Compute fcn_ [s]
-    UNormal<M>::CalcNormal(m, uc, fci_, par->dim, fcn_);
+    UNormal<M>::CalcNormal(m, uc, fci_, par.dim, fcn_);
     auto h = m.GetCellSize();
     // Compute fca_ [s]
     for (auto c : m.SuCells()) {
@@ -242,7 +242,7 @@ struct Vof<M_>::Imp {
     // directions, format: {dir EI, dir LE, ...}
     std::vector<size_t> dd;
     Scal vsc; // scaling factor for time step
-    if (par->dim == 3) { // 3d
+    if (par.dim == 3) { // 3d
       if (count_ % 3 == 0) {
         dd = {0, 1, 1, 2, 2, 0};
       } else if (count_ % 3 == 1) {
@@ -279,7 +279,7 @@ struct Vof<M_>::Imp {
         Sweep(
             uc, d, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_,
             id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
-            owner_->GetTimeStep() * vsc, par->clipth, m);
+            owner_->GetTimeStep() * vsc, par.clipth, m);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
@@ -294,7 +294,7 @@ struct Vof<M_>::Imp {
   }
   void AdvPlain(Sem& sem, int type) {
     std::vector<size_t> dd; // sweep directions
-    if (par->dim == 3) { // 3d
+    if (par.dim == 3) { // 3d
       if (count_ % 3 == 0) {
         dd = {0, 1, 2};
       } else if (count_ % 3 == 1) {
@@ -314,7 +314,7 @@ struct Vof<M_>::Imp {
       if (sem("sweep")) {
         Sweep(
             uc, dd[id], *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_, type,
-            nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), par->clipth, m);
+            nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), par.clipth, m);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
@@ -322,7 +322,7 @@ struct Vof<M_>::Imp {
   void Sharpen() {
     auto sem = m.GetSem("sharp");
     std::vector<size_t> dd; // sweep directions
-    if (par->dim == 3) { // 3d
+    if (par.dim == 3) { // 3d
       if (count_ % 3 == 0) {
         dd = {0, 0, 1, 1, 2, 2};
       } else if (count_ % 3 == 1) {
@@ -341,8 +341,8 @@ struct Vof<M_>::Imp {
       size_t d = dd[id]; // direction as index
       auto& uc = fcu_.iter_curr;
       if (sem("sweep")) {
-        const Scal sgn = (id % 2 == count_ / par->dim % 2 ? -1 : 1);
-        FieldFace<Scal> ffv(m, m.GetCellSize().prod() * sgn * par->sharpen_cfl);
+        const Scal sgn = (id % 2 == count_ / par.dim % 2 ? -1 : 1);
+        FieldFace<Scal> ffv(m, m.GetCellSize().prod() * sgn * par.sharpen_cfl);
         // zero flux on boundaries
         for (const auto& it : mfc_vf_) {
           IdxFace f = it.GetIdx();
@@ -350,7 +350,7 @@ struct Vof<M_>::Imp {
         }
         Sweep(
             uc, d, ffv, fccl_, fcim_, fcn_, fca_, &mfc_vf_, 3, nullptr, nullptr,
-            &fcuu_, 1., par->clipth, m);
+            &fcuu_, 1., par.clipth, m);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
@@ -373,7 +373,7 @@ struct Vof<M_>::Imp {
     }
 
     using Scheme = typename Par::Scheme;
-    switch (par->scheme) {
+    switch (par.scheme) {
       case Scheme::plain:
         AdvPlain(sem, 0);
         break;
@@ -385,7 +385,7 @@ struct Vof<M_>::Imp {
         break;
     }
 
-    if (par->sharpen && sem.Nested("sharpen")) {
+    if (par.sharpen && sem.Nested("sharpen")) {
       Sharpen();
     }
     if (sem("bcc_clear")) {
@@ -401,9 +401,9 @@ struct Vof<M_>::Imp {
     }
     if (sem.Nested()) {
       uvof_.Recolor(
-          layers, &fcu_.iter_curr, &fccl_, &fcclm, par->clfixed, par->clfixed_x,
-          par->coalth, mfc_cl_, par->verb, par->recolor_unionfind,
-          par->recolor_reduce, par->recolor_grid, m);
+          layers, &fcu_.iter_curr, &fccl_, &fcclm, par.clfixed, par.clfixed_x,
+          par.coalth, mfc_cl_, par.verb, par.recolor_unionfind,
+          par.recolor_reduce, par.recolor_grid, m);
     }
     if (sem("propagate")) {
       auto& u = fcu_.iter_curr;
@@ -447,7 +447,7 @@ struct Vof<M_>::Imp {
   void DumpInterface(std::string filename) {
     uvof_.DumpPoly(
         fcu_.time_curr, fcn_, fca_, fci_, filename, owner_->GetTime(),
-        par->vtkbin, par->vtkmerge, m);
+        par.vtkbin, par.vtkmerge, m);
   }
   void DumpInterfaceMarch(std::string filename) {
     auto sem = m.GetSem("dump-interface-march");
@@ -460,24 +460,24 @@ struct Vof<M_>::Imp {
     if (sem("copy")) {
       fcut = fcu_.time_curr;
       fcclt = fccl_;
-      if (par->bcc_reflectpoly) {
+      if (par.bcc_reflectpoly) {
         BcReflectAll(fcut, mfc_vf_, m);
         BcReflectAll(fcclt, mfc_cl_, m);
       }
-      if (par->dumppolymarch_fill >= 0) {
-        BcMarchFill(fcut, par->dumppolymarch_fill, m);
+      if (par.dumppolymarch_fill >= 0) {
+        BcMarchFill(fcut, par.dumppolymarch_fill, m);
       }
     }
     if (sem.Nested()) {
       uvof_.DumpPolyMarch(
           layers, &fcut, &fcclt, &fcn_, &fca_, &fci_, filename,
-          owner_->GetTime(), par->vtkbin, par->vtkmerge, par->vtkiso,
-          par->dumppolymarch_fill >= 0 ? &fcut : nullptr, m);
+          owner_->GetTime(), par.vtkbin, par.vtkmerge, par.vtkiso,
+          par.dumppolymarch_fill >= 0 ? &fcut : nullptr, m);
     }
   }
 
   Owner* owner_;
-  std::shared_ptr<Par> par;
+  Par par;
   M& m;
   GRange<size_t> layers;
 
@@ -506,7 +506,7 @@ template <class M_>
 Vof<M_>::Vof(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
     const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
-    const FieldCell<Scal>* fcs, double t, double dt, std::shared_ptr<Par> par)
+    const FieldCell<Scal>* fcs, double t, double dt, Par par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)
     , imp(new Imp(this, fcu, fccl, mfc, par)) {}
 
@@ -514,8 +514,13 @@ template <class M_>
 Vof<M_>::~Vof() = default;
 
 template <class M_>
-auto Vof<M_>::GetPar() -> Par* {
-  return imp->par.get();
+auto Vof<M_>::GetPar() const -> const Par& {
+  return imp->par;
+}
+
+template <class M_>
+void Vof<M_>::SetPar(Par par) {
+  imp->par = par;
 }
 
 template <class M_>

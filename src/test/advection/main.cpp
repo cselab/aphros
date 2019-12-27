@@ -145,19 +145,19 @@ void Advection<M>::Init(Sem& sem) {
 
     std::string as = var.String["advection_solver"];
     if (as == "tvd") {
-      auto p = std::make_shared<typename AST::Par>();
-      Parse<M>(p.get(), var);
+      typename AST::Par p;
+      Parse<M>(&p, var);
       as_.reset(
           new AST(m, fcu_, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
     } else if (as == "vof") {
-      auto p = std::make_shared<typename ASV::Par>();
-      Parse<M, ASV>(p.get(), var);
+      typename ASV::Par p;
+      Parse<M>(&p, var);
       const FieldCell<Scal> fccl(m, 0);
       as_.reset(new ASV(
           m, fcu_, fccl, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
     } else if (as == "vofm") {
-      auto p = std::make_shared<typename ASVM::Par>();
-      Parse<M, ASVM>(p.get(), var);
+      typename ASVM::Par p;
+      Parse<M>(&p, var);
       const FieldCell<Scal> fccl(m, 0);
       as_.reset(new ASVM(
           m, fcu_, fccl, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
