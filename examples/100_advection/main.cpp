@@ -44,7 +44,7 @@ void Run(M& m, State&, Vars&) {
       fcu[c] = (m.GetCenter(c).dist(Vect(0.5, 0.5, 0.5)) < 0.2);
     }
     const Scal dt = cfl * m.GetCellSize()[0] / vel.norm();
-    auto p = std::make_shared<typename Vof<M>::Par>();
+    typename Vof<M>::Par p;
     as.reset(new Vof<M>(m, fcu, fccl, mf_cond, &ff_flux, &fc_src, 0., dt, p));
   }
   sem.LoopBegin();
