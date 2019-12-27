@@ -5,8 +5,6 @@
 
 #include "solver/solver.h"
 
-namespace solver {
-
 // Spherical averages.
 template <class M_>
 class Sphavg {
@@ -397,5 +395,3 @@ void Sphavg<M_>::Update(
     }
   }
 }
-
-} // namespace solver

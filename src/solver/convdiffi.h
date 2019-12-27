@@ -4,8 +4,6 @@
 
 #include "convdiff.h"
 
-namespace solver {
-
 template <class M_>
 class ConvDiffScalImp final : public ConvDiffScal<M_> {
  public:
@@ -47,5 +45,3 @@ class ConvDiffScalImp final : public ConvDiffScal<M_> {
   struct Imp;
   std::unique_ptr<Imp> imp;
 };
-
-} // namespace solver

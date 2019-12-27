@@ -7,8 +7,6 @@
 #include "geom/mesh.h"
 #include "solver/solver.h"
 
-namespace solver {
-
 template <class T>
 class Multi {
  public:
@@ -130,5 +128,3 @@ struct GetStencil {
     return uu;
   }
 };
-
-} // namespace solver

@@ -7,14 +7,11 @@
 #include "solver/convdiff.h"
 #include "solver/convdiffv.h"
 
-using namespace solver;
-
 // Converts vector conditions to scalar.
 // mfv: vector velocity conditions
 // d: direction, 0..2
 template <class M>
 MapCondFace GetScalarCond(const MapCondFace& mfv, size_t d, const M& m) {
-  using namespace solver;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   MapCondFace mfs;

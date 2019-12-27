@@ -5,8 +5,6 @@
 #include "convdiffv.h"
 #include "linear/linear.h"
 
-namespace solver {
-
 template <class M_, class CD_>
 class ConvDiffVectGeneric final : public ConvDiffVect<M_> {
  public:
@@ -68,5 +66,3 @@ class ConvDiffVectGeneric final : public ConvDiffVect<M_> {
   struct Imp; // implementation
   std::unique_ptr<Imp> imp;
 };
-
-} // namespace solver

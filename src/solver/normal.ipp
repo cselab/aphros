@@ -8,8 +8,6 @@
 #include "solver.h"
 #include "util/height.h"
 
-namespace solver {
-
 template <class M_>
 struct UNormal<M_>::Imp {
   static constexpr size_t dim = M::dim;
@@ -634,5 +632,3 @@ template <class M_>
 void UNormal<M_>::GetNormalHeight(const std::array<Scal, 27>& u, Vect& n) {
   return Imp::GetNormalHeight(u, n);
 }
-
-} // namespace solver

@@ -4,8 +4,6 @@
 #include "geom/mesh.h"
 #include "solver.h"
 
-namespace solver {
-
 // Solver for convection-diffusion equation
 // du/dt + div(v * u) = 1/r(d * grad^2 u + s)
 // where:
@@ -79,5 +77,3 @@ class ConvDiffScal : public UnsteadyIterativeSolver {
   const FieldCell<Scal>* fcs_; // source
   const FieldFace<Scal>* ffv_; // volume flux
 };
-
-} // namespace solver

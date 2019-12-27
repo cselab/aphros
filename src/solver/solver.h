@@ -3,8 +3,6 @@
 #include <exception>
 #include <string>
 
-namespace solver {
-
 class UnsteadySolver {
  public:
   UnsteadySolver(double t, double dt) : t_(t), dt_(dt) {}
@@ -108,5 +106,3 @@ enum class ConvSc { fou, cd, sou, quick };
 std::string GetName(ConvSc sc);
 // Convection scheme by name.
 ConvSc GetConvSc(std::string s);
-
-} // namespace solver

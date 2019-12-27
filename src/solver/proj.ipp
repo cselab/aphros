@@ -34,8 +34,6 @@
 // we: predicted velocity (after solving velocity equations)
 // ve: predicted volume flux
 
-namespace solver {
-
 template <class M_>
 struct Proj<M_>::Imp {
   using Owner = Proj<M_>;
@@ -573,5 +571,3 @@ template <class M_>
 auto Proj<M_>::GetVelocityCond() const -> const MapCondFace& {
   return imp->mfcw_;
 }
-
-} // namespace solver

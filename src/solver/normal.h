@@ -5,8 +5,6 @@
 #include "geom/mesh.h"
 #include "solver/cond.h"
 
-namespace solver {
-
 template <class M_>
 class UNormal {
  public:
@@ -77,5 +75,3 @@ class UNormal {
  public:
   struct Imp; // implementation
 };
-
-} // namespace solver

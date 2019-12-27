@@ -11,8 +11,6 @@
 #include "linear/linear.h"
 #include "solver/approx.h"
 
-namespace solver {
-
 // Solves Poisson equation: \nabla \nabla u = r.
 // fcr: rhs [i]
 // fce: buffer for system
@@ -122,5 +120,3 @@ class PoisSolver {
   Scal sumr_; // sum of rhs * volume
   Scal sumv_; // sum of volume
 };
-
-} // namespace solver

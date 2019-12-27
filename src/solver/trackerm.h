@@ -5,8 +5,6 @@
 #include "solver/multi.h"
 #include "solver/solver.h"
 
-namespace solver {
-
 // Assign colors to connected sets with u > 0.
 template <class M_>
 class Trackerm {
@@ -126,5 +124,3 @@ void Trackerm<M_>::Update(
     }
   }
 }
-
-} // namespace solver

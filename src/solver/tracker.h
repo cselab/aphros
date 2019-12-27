@@ -6,8 +6,6 @@
 #include "solver/trackerm.h"
 #include "util/vof.h"
 
-namespace solver {
-
 template <class M_>
 class Tracker {
   using M = M_;
@@ -71,5 +69,3 @@ void Tracker<M_>::Update(
     trm_->Update(&fccl_, &fccl0);
   }
 }
-
-} // namespace solver

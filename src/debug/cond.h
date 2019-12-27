@@ -12,8 +12,6 @@ const int dim = 3;
 using Scal = double;
 using Vect = GVect<Scal, dim>;
 
-using namespace solver;
-
 std::string P(const void*) {
   return std::string();
 }
@@ -65,6 +63,6 @@ std::string GetName(const CondFace* b) {
 
 } // namespace debugimpl
 
-std::string GetCondName(const solver::CondFace* b) {
+std::string GetCondName(const CondFace* b) {
   return debugimpl::GetName(b);
 }

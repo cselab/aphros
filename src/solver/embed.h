@@ -6,8 +6,6 @@
 #include "reconst.h"
 #include "solver.h"
 
-namespace solver {
-
 // Embedded boundaries.
 template <class M_>
 class Embed {
@@ -280,5 +278,3 @@ class Embed {
   FieldCell<Scal> fcd_; // normal component of displacement from cell center
   FieldCell<Scal> fcv_; // volume of cut cell
 };
-
-} // namespace solver

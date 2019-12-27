@@ -3,8 +3,6 @@
 #include "geom/mesh.h"
 #include "solver/solver.h"
 
-namespace solver {
-
 template <class Scal>
 struct CondFaceAdvection {
   enum class Halo { fill, reflect };
@@ -55,5 +53,3 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
   virtual void DumpInterface(std::string /*filename*/) const {};
   virtual void DumpInterfaceMarch(std::string /*filename*/) const {};
 };
-
-} // namespace solver

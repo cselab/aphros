@@ -6,8 +6,6 @@
 #include "partstrmeshm.h"
 #include "vof.h"
 
-namespace solver {
-
 template <class M_>
 class Vofm final : public AdvectionSolver<M_> {
  public:
@@ -67,5 +65,3 @@ class Vofm final : public AdvectionSolver<M_> {
   struct Imp; // implementation
   std::unique_ptr<Imp> imp;
 };
-
-} // namespace solver

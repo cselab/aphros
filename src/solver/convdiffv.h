@@ -3,8 +3,6 @@
 #include "convdiff.h"
 #include "solver.h"
 
-namespace solver {
-
 template <class M_>
 class ConvDiffVect : public UnsteadyIterativeSolver {
  public:
@@ -58,5 +56,3 @@ class ConvDiffVect : public UnsteadyIterativeSolver {
   const FieldCell<Vect>* fcs_; // force
   const FieldFace<Scal>* ffv_; // volume flux
 };
-
-} // namespace solver

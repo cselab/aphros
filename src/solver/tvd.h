@@ -5,8 +5,6 @@
 #include "advection.h"
 #include "solver/cond.h"
 
-namespace solver {
-
 template <class M_>
 class Tvd final : public AdvectionSolver<M_> {
  public:
@@ -46,5 +44,3 @@ class Tvd final : public AdvectionSolver<M_> {
 
   using P::m;
 };
-
-} // namespace solver

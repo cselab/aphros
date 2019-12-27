@@ -16,8 +16,7 @@
 #include "solver/cond.h"
 #include "solver/fluid.h"
 
-using namespace solver;
-using namespace solver::fluid_condition;
+using namespace fluid_condition;
 
 template <class M>
 FieldCell<typename M::Scal> GetBcField(MapCondFaceFluid& mf, const M& m) {
@@ -27,13 +26,13 @@ FieldCell<typename M::Scal> GetBcField(MapCondFaceFluid& mf, const M& m) {
     auto* b = it.GetValue().Get();
     size_t nci = b->GetNci();
     IdxCell c = m.GetCell(f, nci);
-    if (dynamic_cast<solver::fluid_condition::NoSlipWall<M>*>(b)) {
+    if (dynamic_cast<fluid_condition::NoSlipWall<M>*>(b)) {
       fc[c] = 1.;
-    } else if (dynamic_cast<solver::fluid_condition::SlipWall<M>*>(b)) {
+    } else if (dynamic_cast<fluid_condition::SlipWall<M>*>(b)) {
       fc[c] = 2.;
-    } else if (dynamic_cast<solver::fluid_condition::Inlet<M>*>(b)) {
+    } else if (dynamic_cast<fluid_condition::Inlet<M>*>(b)) {
       fc[c] = 3.;
-    } else if (dynamic_cast<solver::fluid_condition::Outlet<M>*>(b)) {
+    } else if (dynamic_cast<fluid_condition::Outlet<M>*>(b)) {
       fc[c] = 4.;
     } else {
       fc[c] = -1.;
@@ -45,11 +44,11 @@ FieldCell<typename M::Scal> GetBcField(MapCondFaceFluid& mf, const M& m) {
 template <class M>
 FieldCell<typename M::Vect> GetVort(
     const FieldCell<typename M::Vect>& fcv, const MapCondFace& mf, M& m) {
-  auto ffv = solver::Interpolate(fcv, mf, m);
+  auto ffv = Interpolate(fcv, mf, m);
 
-  auto d0 = solver::Gradient(GetComponent(ffv, 0), m);
-  auto d1 = solver::Gradient(GetComponent(ffv, 1), m);
-  auto d2 = solver::Gradient(GetComponent(ffv, 2), m);
+  auto d0 = Gradient(GetComponent(ffv, 0), m);
+  auto d1 = Gradient(GetComponent(ffv, 1), m);
+  auto d2 = Gradient(GetComponent(ffv, 2), m);
 
   FieldCell<typename M::Vect> r(m);
   for (auto c : m.Cells()) {
@@ -744,7 +743,7 @@ bool ParseAdvectionFaceCond(std::string str, CondFaceAdvection<Scal>& cfa) {
 // with default values given a fluid condition.
 template <class M, class Scal = typename M::Scal>
 void SetDefaultAdvectionFaceCond(
-    CondFaceAdvection<Scal>& ca, const UniquePtr<solver::CondFaceFluid>& cf,
+    CondFaceAdvection<Scal>& ca, const UniquePtr<CondFaceFluid>& cf,
     Scal clear0, Scal clear1, Scal inletcl, Scal fill_vf) {
   using Halo = typename CondFaceAdvection<Scal>::Halo;
   static constexpr Scal kClNone = -1; // TODO define kClNone once
@@ -774,7 +773,7 @@ template <class M, class Scal = typename M::Scal>
 void ParseFaceCond(
     IdxFace f, size_t nci, std::string str, const M& m, Scal clear0,
     Scal clear1, Scal inletcl, Scal fill_vf,
-    UniquePtr<solver::CondFaceFluid>& cf,
+    UniquePtr<CondFaceFluid>& cf,
     CondFaceAdvection<typename M::Scal>& ca) {
   std::vector<std::string> ss; // strings not recognized as fluid cond
   for (auto s : Split(str, ',')) {
@@ -829,8 +828,7 @@ void GetFluidFaceCond(
     return edim >= 3 && fi.GetDir(i) == Dir::k && fi.GetMIdx(i)[2] == gs[2];
   };
 
-  using namespace solver::fluid_condition;
-  using namespace solver;
+  using namespace fluid_condition;
   // default
   const Scal clear0 = var.Double["bcc_clear0"];
   const Scal clear1 = var.Double["bcc_clear1"];
@@ -917,7 +915,7 @@ void GetFluidFaceCond(
 
         for (auto it : mff) {
           IdxFace f = it.GetIdx();
-          solver::CondFaceFluid* cb = it.GetValue().Get();
+          CondFaceFluid* cb = it.GetValue().Get();
           auto nci = cb->GetNci();
           IdxCell c = m.GetCell(f, nci);
           Scal inter = V(c);
@@ -998,7 +996,7 @@ void GetFluidFaceCond(
 template <class M>
 void GetFluidCellCond(
     const Vars& var, M& m,
-    MapCell<std::shared_ptr<solver::CondCellFluid>>& mcvel,
+    MapCell<std::shared_ptr<CondCellFluid>>& mcvel,
     std::pair<typename M::Scal, int>& pdist) {
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
@@ -1022,7 +1020,7 @@ void GetFluidCellCond(
         Vect x(var.Vect["pfixed_x"]);
         IdxCell c = m.FindNearestCell(x);
         mcvel[c] =
-            std::make_shared<solver::fluid_condition::GivenPressureFixed<M>>(
+            std::make_shared<fluid_condition::GivenPressureFixed<M>>(
                 *p);
         std::cout << "pfixed id=" << pdist.second << " dist=" << pdist.first
                   << std::endl;
@@ -1065,7 +1063,7 @@ void GetFluidCellCond(
         for (auto w : bb) {
           IdxCell c = ci.GetIdx(w);
           mcvel[c] = std::make_shared<
-              solver::fluid_condition::GivenVelocityAndPressureFixed<M>>(
+              fluid_condition::GivenVelocityAndPressureFixed<M>>(
               Vect(0), 0.);
         }
       } else if (n > nmax) {
@@ -1181,7 +1179,7 @@ template <class M, class Scal = typename M::Scal>
 void AppendBodyCond(
     const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
     Scal clear1, Scal inletcl, Scal fill_vf,
-    MapCell<std::shared_ptr<solver::CondCellFluid>>* mcf, MapCondFaceFluid& mff,
+    MapCell<std::shared_ptr<CondCellFluid>>* mcf, MapCondFaceFluid& mff,
     MapCondFaceAdvection<Scal>& mfa) {
   using Vect = typename M::Vect;
   for (auto f : m.SuFaces()) {
@@ -1195,7 +1193,7 @@ void AppendBodyCond(
           f, nci, str, m, clear0, clear1, inletcl, fill_vf, condf, conda);
       if (mcf) {
         (*mcf)[m.GetCell(f, 1 - nci)] = std::make_shared<
-            solver::fluid_condition::GivenVelocityAndPressureFixed<M>>(
+            fluid_condition::GivenVelocityAndPressureFixed<M>>(
             Vect(0), 0.);
       }
     }

@@ -322,14 +322,14 @@ class Interp : public TimerMesh {
     auto& bf = m.GetIndexFaces();
     for (auto i : m.Faces()) {
       if (bf.GetMIdx(i)[0] == 0 && bf.GetDir(i) == Dir::i) {
-        mfc[i].Set<solver::CondFaceGradFixed<Scal>>(0, 1);
+        mfc[i].Set<CondFaceGradFixed<Scal>>(0, 1);
       }
     }
     assert(mfc.size() > 0);
   }
   void F() override {
     volatile size_t a = 0;
-    ff = solver::Interpolate(fc, mfc, m);
+    ff = Interpolate(fc, mfc, m);
     a = ff[IdxFace(a)];
   }
 
@@ -348,7 +348,7 @@ class Grad : public TimerMesh {
   }
   void F() override {
     static volatile size_t a = 0;
-    fc = solver::Gradient(ff, m);
+    fc = Gradient(ff, m);
     a += fc[IdxCell(0)][0];
   }
 
@@ -371,7 +371,6 @@ class ExplVisc : public TimerMesh {
   }
   void F() override {
     static volatile size_t a = 0;
-    using namespace solver;
     auto& mesh = m;
     for (size_t n = 0; n < dim; ++n) {
       FieldCell<Scal> fc = GetComponent(fcv, n);

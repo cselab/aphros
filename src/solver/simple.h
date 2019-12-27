@@ -6,8 +6,6 @@
 #include "linear/linear.h"
 #include "util/convdiff.h"
 
-namespace solver {
-
 template <class M_>
 class Simple final : public FluidSolver<M_> {
  public:
@@ -83,5 +81,3 @@ class Simple final : public FluidSolver<M_> {
   struct Imp;
   std::unique_ptr<Imp> imp;
 };
-
-} // namespace solver

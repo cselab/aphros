@@ -17,8 +17,6 @@
 #include "util/vof.h"
 #include "vofm.h"
 
-namespace solver {
-
 template <class M_>
 struct Vofm<M_>::Imp {
   using Owner = Vofm<M_>;
@@ -804,5 +802,3 @@ template <class M_>
 void Vofm<M_>::DumpInterfaceMarch(std::string fn) const {
   return imp->DumpInterfaceMarch(fn);
 }
-
-} // namespace solver

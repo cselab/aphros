@@ -6,8 +6,6 @@
 #include "convdiffe.h"
 #include "debug/isnan.h"
 
-namespace solver {
-
 template <class M_>
 struct ConvDiffScalExp<M_>::Imp {
   using Owner = ConvDiffScalExp<M_>;
@@ -289,5 +287,3 @@ template <class M_>
 auto ConvDiffScalExp<M_>::GetField(Layers l) const -> const FieldCell<Scal>& {
   return imp->fcu_.Get(l);
 }
-
-} // namespace solver

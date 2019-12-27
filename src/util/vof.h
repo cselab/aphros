@@ -6,8 +6,6 @@
 #include "solver/cond.h"
 #include "solver/multi.h"
 
-namespace solver {
-
 template <class M_>
 class UVof {
  public:
@@ -118,5 +116,3 @@ class UVof {
   struct Imp;
   std::unique_ptr<Imp> imp;
 };
-
-} // namespace solver

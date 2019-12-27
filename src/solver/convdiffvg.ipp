@@ -8,8 +8,6 @@
 #include "util/convdiff.h"
 #include "util/metrics.h"
 
-namespace solver {
-
 template <class M_, class CD_>
 struct ConvDiffVectGeneric<M_, CD_>::Imp {
   using Owner = ConvDiffVectGeneric<M_, CD_>;
@@ -249,5 +247,3 @@ auto ConvDiffVectGeneric<M_, CD_>::GetVelocity(Layers l) const
     -> const FieldCell<Vect>& {
   return imp->GetVelocity(l);
 }
-
-} // namespace solver

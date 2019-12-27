@@ -13,7 +13,7 @@
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
-using TRM = solver::Trackerm<M>;
+using TRM = Trackerm<M>;
 
 struct State {};
 
@@ -32,7 +32,7 @@ void Run(M& m, State&, Vars& var) {
     FieldCell<Scal> fcu;
     FieldCell<Scal> fccl;
     FieldCell<Scal> fcclm;
-    solver::UVof<M> uvof;
+    UVof<M> uvof;
     MapCondFace mfc;
     std::unique_ptr<TRM> trm;
     FieldCell<Scal> fcim;
@@ -86,7 +86,7 @@ void Run(M& m, State&, Vars& var) {
       m.Dump(&ctx->fcim, "im");
     }
     if (sem.Nested()) {
-      solver::Smoothen(fcu, mfc, m, 1);
+      Smoothen(fcu, mfc, m, 1);
     }
     if (sem()) {
       auto fcclm = fccl;

@@ -18,8 +18,7 @@ class UFluid {
       M& m, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
       const FieldCell<Scal>& fcsv) {
     // TODO: Consider seperate channels in one domain
-    using namespace solver;
-    using namespace solver::fluid_condition;
+    using namespace fluid_condition;
 
     auto sem = m.GetSem("outlet");
 

@@ -44,17 +44,15 @@ M GetMesh() {
 void TestAvg() {
   PF;
 
-  using Sphavg = solver::Sphavg<M>;
-
   M m = GetMesh();
-  solver::Sphavg<M> sa(m, 2);
+  Sphavg<M> sa(m, 2);
 
   FieldCell<Scal> fcu(m);
   FieldCell<Vect> fcv(m);
   FieldCell<Vect> fcvm(m);
   FieldCell<Scal> fcp(m);
   Scal dt = 1.;
-  using Sph = typename Sphavg::Sph;
+  using Sph = typename Sphavg<M>::Sph;
   std::vector<Sph> ss;
   ss.emplace_back(Vect(1.9), 0.2, 0.05);
 
@@ -65,7 +63,7 @@ void TestAvg() {
 }
 
 void TestPack() {
-  using R = solver::Trackerm<M>;
+  using R = Trackerm<M>;
   auto p = [](int w0, int w1, int w2) {
     MIdx w(w0, w1, w2);
     std::cout << w << " " << R::Unpack(R::Pack(w)) << std::endl;

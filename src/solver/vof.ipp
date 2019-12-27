@@ -16,8 +16,6 @@
 
 #include "vof.h"
 
-namespace solver {
-
 template <class M_>
 struct Vof<M_>::Imp {
   using Owner = Vof<M_>;
@@ -579,8 +577,6 @@ template <class M_>
 void Vof<M_>::DumpInterfaceMarch(std::string fn) const {
   return imp->DumpInterfaceMarch(fn);
 }
-
-} // namespace solver
 
 // XXX: [fabianw@mavt.ethz.ch; 2019-11-17] debug
 template bool IsNan<double, GIdx<0>>(const FieldCell<double>&);

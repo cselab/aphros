@@ -15,8 +15,6 @@
 #include "solver/partstrmeshm.h"
 #include "solver/solver.h"
 
-using namespace solver;
-
 const int dim = 3;
 using MIdx = GMIdx<dim>;
 using Scal = double;
@@ -43,7 +41,7 @@ class Simple : public KernelMeshPar<M_, GPar> {
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
   using Par = GPar;
-  using PSM = solver::PartStrMeshM<M>;
+  using PSM = PartStrMeshM<M>;
   static constexpr size_t dim = M::dim;
 
   using P::P;
@@ -155,7 +153,7 @@ void Simple<M>::Run() {
     psm_ = std::make_shared<PSM>(m, pm, GRange<size_t>(0, 1));
 
     fci_ = DetectInterface(fcu_);
-    solver::UNormal<Mesh>::CalcNormal(m, fcu_, fci_, dim, fcn_);
+    UNormal<Mesh>::CalcNormal(m, fcu_, fci_, dim, fcn_);
     for (auto c : m.SuCells()) {
       if (fci_[c]) {
         fca_[c] = Reconst<Scal>::GetLineA(fcn_[c], fcu_[c], m.GetCellSize());
