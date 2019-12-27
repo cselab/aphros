@@ -154,15 +154,13 @@ void Advection<M>::Init(Sem& sem) {
     } else if (as == "vof") {
       auto p = std::make_shared<typename ASV::Par>();
       Parse<M, ASV>(p.get(), var);
-      p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
-      auto fccl = FieldCell<Scal>(m, 0);
+      const FieldCell<Scal> fccl(m, 0);
       as_.reset(new ASV(
           m, fcu_, fccl, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
     } else if (as == "vofm") {
       auto p = std::make_shared<typename ASVM::Par>();
       Parse<M, ASVM>(p.get(), var);
-      p->dmp = std::unique_ptr<Dumper>(new Dumper(var, "dump_part_"));
-      auto fccl = FieldCell<Scal>(m, 0);
+      const FieldCell<Scal> fccl(m, 0);
       as_.reset(new ASVM(
           m, fcu_, fccl, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
     } else {

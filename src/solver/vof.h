@@ -3,7 +3,6 @@
 #include <memory>
 
 #include "advection.h"
-#include "dump/dumper.h"
 #include "partstrmeshm.h"
 
 namespace solver {
@@ -19,13 +18,7 @@ class Vof final : public AdvectionSolver<M_> {
 
   struct Par {
     size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
-    bool part = false; // particles
     Scal clipth = 1e-6; // vf clipping threshold
-    std::unique_ptr<Dumper> dmp; // dumper for particles
-    bool dumppoly = false; // dump reconstructed interface (cut polygons)
-    bool dumppolymarch = false; // dump reconstructed interface (marching cube)
-    bool dumppart = false; // dump particles
-    bool dumppartinter = false; // dump interface for particles
     bool bcc_reflectpoly = true; // reflection for DumpPolyMarch
     Scal dumppolymarch_fill = -1; // fill cells outside
     int verb = 0;
@@ -56,17 +49,12 @@ class Vof final : public AdvectionSolver<M_> {
   ~Vof();
   // Parameters
   Par* GetPar();
-  // ...
   void StartStep() override;
-  // ...
   void MakeIteration() override;
-  // ...
   void FinishStep() override;
-  // ...
   void PostStep() override;
   // Volume fraction
   const FieldCell<Scal>& GetField(Layers l) const override;
-  // ...
   using P::GetField;
   // Interface mask
   const FieldCell<bool>& GetMask() const;
@@ -79,6 +67,8 @@ class Vof final : public AdvectionSolver<M_> {
   static constexpr Scal kClNone = -1; // no color
   // Image vector, number of passes through periodic boundaries
   MIdx GetImage(IdxCell c) const;
+  void DumpInterface(std::string filename) const override;
+  void DumpInterfaceMarch(std::string filename) const override;
 
  private:
   struct Imp; // implementation

@@ -3,7 +3,6 @@
 #include <memory>
 
 #include "advection.h"
-#include "dump/dumper.h"
 #include "partstrmeshm.h"
 #include "vof.h"
 
@@ -17,8 +16,9 @@ class Vofm final : public AdvectionSolver<M_> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
-
   using Par = typename Vof<M>::Par;
+
+  static constexpr Scal kClNone = -1.; // no color
 
   // Constructor
   // fcu: initial volume fraction
@@ -36,13 +36,9 @@ class Vofm final : public AdvectionSolver<M_> {
   ~Vofm();
   // Parameters
   Par* GetPar();
-  // ...
   void StartStep() override;
-  // ...
   void MakeIteration() override;
-  // ...
   void FinishStep() override;
-  // ...
   void PostStep() override;
   // Volume fraction
   const FieldCell<Scal>& GetField(Layers l) const override;
@@ -64,7 +60,8 @@ class Vofm final : public AdvectionSolver<M_> {
   const FieldCell<Scal>& GetColorSum() const;
   // Image vector, number of passes through periodic boundaries
   MIdx GetImage(size_t l, IdxCell c) const;
-  static constexpr Scal kClNone = -1.; // no color
+  void DumpInterface(std::string filename) const override;
+  void DumpInterfaceMarch(std::string filename) const override;
 
  private:
   struct Imp; // implementation

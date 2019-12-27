@@ -438,7 +438,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Dumper dumper_;
   Dumper dmptraj_; // dumper for traj
   Dumper dmptrep_; // dumper for timer report
-  Dumper* dmppart_ = nullptr; // dumper for vof and partstr
   std::unique_ptr<Events> events_; // events from var
 };
 
@@ -546,8 +545,6 @@ void Hydro<M>::InitFluid() {
 template <class M>
 void Hydro<M>::InitAdvection() {
   std::string as = var.String["advection_solver"];
-  // FIXME memory leak with tvd, move ownership out of Vof::Par
-  dmppart_ = new Dumper(var, "dump_part_");
   if (as == "tvd") {
     auto p = std::make_shared<typename AST::Par>();
     Parse<M>(p.get(), var);
@@ -557,7 +554,6 @@ void Hydro<M>::InitAdvection() {
   } else if (as == "vof") {
     auto p = std::make_shared<typename ASV::Par>();
     Parse<M, ASV>(p.get(), var);
-    p->dmp = std::unique_ptr<Dumper>(dmppart_);
     as_.reset(new ASV(
         m, fc_vf_, fccl_, mf_adv_,
         &fs_->GetVolumeFlux(solver::Layers::time_curr), &fc_src2_, 0., st_.dta,
@@ -566,7 +562,6 @@ void Hydro<M>::InitAdvection() {
   } else if (as == "vofm") {
     auto p = std::make_shared<typename ASVM::Par>();
     Parse<M, ASVM>(p.get(), var);
-    p->dmp = std::unique_ptr<Dumper>(dmppart_);
     auto as = new ASVM(
         m, fc_vf_, fccl_, mf_adv_,
         &fs_->GetVolumeFlux(solver::Layers::time_curr), &fc_src2_, 0., st_.dta,
@@ -1810,8 +1805,15 @@ void Hydro<M>::DumpFields() {
       }
     }
   }
-  if (sem()) {
-  } // FIXME: empty stage for dump, or ctx is destroyed before dump
+  if (sem()) {} // XXX: empty stage, otherwise ctx is destroyed before dump
+  if (var.Int["enable_advection"]) {
+    if (var.Int["dumppoly"] && sem.Nested()) {
+      as_->DumpInterface(GetDumpName("s", ".vtk", dumper_.GetN()));
+    }
+    if (var.Int["dumppolymarch"] && sem.Nested()) {
+      as_->DumpInterfaceMarch(GetDumpName("sm", ".vtk", dumper_.GetN()));
+    }
+  }
 }
 
 template <class M>
@@ -1872,26 +1874,26 @@ void Hydro<M>::Dump() {
     }
   }
   if (auto as = dynamic_cast<ASV*>(as_.get())) {
-    if (psm_ && dmppart_->Try(st_.t, st_.dt)) {
+    if (psm_ && dumper_.Try(st_.t, st_.dt)) {
       if (var.Int["dumppart"] && sem.Nested("part-dump")) {
         psm_->DumpParticles(
-            &as->GetAlpha(), &as->GetNormal(), dmppart_->GetN(), st_.t);
+            &as->GetAlpha(), &as->GetNormal(), dumper_.GetN(), st_.t);
       }
       if (var.Int["dumppartinter"] && sem.Nested("partinter-dump")) {
         psm_->DumpPartInter(
-            &as->GetAlpha(), &as->GetNormal(), dmppart_->GetN(), st_.t);
+            &as->GetAlpha(), &as->GetNormal(), dumper_.GetN(), st_.t);
       }
     }
   }
   if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-    if (psm_ && dmppart_->Try(st_.t, st_.dt)) {
+    if (psm_ && dumper_.Try(st_.t, st_.dt)) {
       if (var.Int["dumppart"] && sem.Nested("part-dump")) {
         psm_->DumpParticles(
-            as->GetAlpha(), as->GetNormal(), dmppart_->GetN(), st_.t);
+            as->GetAlpha(), as->GetNormal(), dumper_.GetN(), st_.t);
       }
       if (var.Int["dumppartinter"] && sem.Nested("partinter-dump")) {
         psm_->DumpPartInter(
-            as->GetAlpha(), as->GetNormal(), dmppart_->GetN(), st_.t);
+            as->GetAlpha(), as->GetNormal(), dumper_.GetN(), st_.t);
       }
     }
   }

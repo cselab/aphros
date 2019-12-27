@@ -52,6 +52,8 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
   virtual const FieldCell<Scal>& GetField() const {
     return GetField(Layers::time_curr);
   }
+  virtual void DumpInterface(std::string /*filename*/) const {};
+  virtual void DumpInterfaceMarch(std::string /*filename*/) const {};
 };
 
 } // namespace solver
