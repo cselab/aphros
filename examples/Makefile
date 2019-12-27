@@ -1,14 +1,21 @@
 DIRS = $(wildcard ???_*)
 OUT = /dev/null
 
-all: $(DIRS)
+all:
+	+make build
+	+make run
+
+build: $(DIRS)
 
 $(DIRS):
 	@echo "$@"
 	@(cd "$@" && ap-conf .) > $(OUT)
 	@+make -s -C "$@" > $(OUT)
 
-clean:
-	for d in $(DIRS) ; do make -C "$$d" clean ; done
+run:
+	@for d in $(DIRS) ; do echo "$$d" ; (cd "$$d" && ./run) ; done
 
-.PHONY: all clean $(DIRS)
+clean:
+	@for d in $(DIRS) ; do echo "$$d" ; make -C "$$d" clean ; done
+
+.PHONY: all build run clean $(DIRS)
