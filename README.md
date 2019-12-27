@@ -16,15 +16,15 @@ generated from `doc/sphinx`
 
 ## Build and install
 
-*   Follow instructions from `deploy/README.md` to
+*   Follow instructions from `<ROOT>/deploy/README.md` to
 prepare environment and install dependencies.
 *   Configure, build and install
 
      ```
-     cd src
+     cd <ROOT>/src
 
      ./conf                # release
-     # ./confdeb           # debug 
+     # ./confdeb           # debug
 
      make
      # make target=mfer    # to only build ch.mfer
@@ -34,6 +34,14 @@ prepare environment and install dependencies.
 
      ```
      make test
+     ```
+
+*   Install documentation
+
+     ```
+     cd <ROOT>/doc/sphinx
+     make               # man pages in $CHPREFIX/man
+     make web           # html in <ROOT>/doc/sphinx/build/singlehtml
      ```
 
 ## Submitting jobs
