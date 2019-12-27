@@ -28,6 +28,9 @@ class Embed {
   const FieldCell<Vect>& GetNormal() const {
     return fcn_;
   }
+  Vect GetNormal(IdxCell c) const {
+    return fcn_[c];
+  }
   const FieldCell<Scal>& GetPlane() const {
     return fca_;
   }
@@ -39,6 +42,19 @@ class Embed {
   }
   const FieldCell<Scal>& GetCellArea() const {
     return fcs_;
+  }
+  Scal GetFaceArea(IdxFace f) const {
+    return ffs_[f];
+  }
+  Scal GetFaceArea(IdxCell c) const {
+    return fcs_[c];
+  }
+  Scal GetFaceOffset(IdxCell c, size_t nci) const {
+    IdxFace f = m.GetFace(c, nci);
+    return (GetFaceCenter(f) - GetCellCenter(c)).dot(m.GetNormal(f));
+  }
+  Scal GetFaceOffset(IdxCell c) const {
+    return (GetFaceCenter(c) - GetCellCenter(c)).dot(m.GetNormal(c));
   }
   const FieldCell<Scal>& GetCellOffset() const {
     return fcd_;
@@ -90,6 +106,24 @@ class Embed {
       default:
         return GetNan<Vect>();
     }
+  }
+
+  FieldCell<Scal> Interpolate(
+      const FieldFace<Scal>& ffu, const FieldCell<Scal>& feu) const {
+    FieldCell<Scal> fcu(m, GetNan<Scal>());
+    for (auto c : m.Cells()) {
+      const Scal w = 1 / GetFceOffset(c);
+      Vect sum = feu[c] * w;
+      Scal sumw = w;
+      for (auto q : m.Nci(c)) {
+        IdxFace f = m.GetFace(c, q);
+        const Scal w = 1 / GetFaceOffset(c, q);
+        sum += ffu[f] * w;
+        sumw += w;
+      }
+      fcu = sum / sumw;
+    }
+    return fcu;
   }
 
   // Dump cut polygons
