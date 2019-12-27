@@ -28,3 +28,8 @@ template void GetFluidCellCond(
 template void DumpBcFaces(
     const MapCondFaceAdvection<Scal>& mfa, const MapCondFaceFluid& mff,
     std::string fn, M& m);
+
+
+template void InitVort(
+    const FieldCell<Vect>& fcvort, FieldCell<Vect>& fcvel,
+    const MapCondFaceFluid& mf_fluid, bool verb, M& m);

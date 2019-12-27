@@ -36,10 +36,10 @@
 #include "parse/vars.h"
 #include "parse/vof.h"
 #include "solver/advection.h"
+#include "solver/approx.h"
 #include "solver/curv.h"
 #include "solver/multi.h"
 #include "solver/normal.h"
-#include "solver/pois.h"
 #include "solver/proj.h"
 #include "solver/reconst.h"
 #include "solver/simple.h"
@@ -119,10 +119,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
  private:
   void Init();
-  void InitFluid();
-  void InitAdvection();
+  void InitFluid(const FieldCell<Vect>& fc_vel);
+  void InitAdvection(const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fccl);
   void InitStat();
-  void InitVort();
   // zero-gradient bc vect
   MapCondFace GetBcVz() const;
   // zero-gradient bc scal
@@ -295,17 +294,16 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_srcm_; // mass source
   FieldCell<Vect> fc_force_; // force
   FieldFace<Scal> ffbp_; // balanced force projections
-  FieldFace<Scal> ffk_; // curvature on faces
+
   MapCondFaceAdvection<Scal> mf_adv_;
   MapCondFace mf_cond_vfsm_;
   MapCondFaceFluid mf_fluid_; // fluid cond
   MapCell<std::shared_ptr<CondCell>> mc_cond_;
   MapCell<std::shared_ptr<CondCellFluid>> mc_velcond_;
+
   std::unique_ptr<AdvectionSolver<M>> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
-  FieldCell<Scal> fc_vf_; // volume fraction used by constructor
-  FieldCell<Scal> fccl_; // color used by constructor
-  FieldCell<Vect> fc_vel_; // velocity used by constructor
+
   FieldCell<Scal> fc_smvf_; // smoothed volume fraction used by CalcMixture()
   FieldFace<Scal> ff_smvf_; // interpolated fc_smvf_
   Scal diff_; // convergence indicator
@@ -319,18 +317,14 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Vect> fcyv_; // Young velocity
   FieldCell<Vect> fcom_; // vorticity
   FieldCell<Scal> fcomm_; // vorticity magnitude
-  std::shared_ptr<PoisSolver<M>> ps_; // Poisson solver for InitVort
   FieldCell<Scal> fcbc_; // boundary condition type by GetBcField()
   FieldCell<Scal> fc_strain_; // double inner product of strain rate tensor
   FieldCell<Scal> fctmp_; // temporary scalar field
   FieldCell<Scal> fctmp2_, fctmp3_, fctmp4_; // temporary scalar field
   FieldCell<Vect> fctmpv_; // temporary vector field
-  FieldCell<Vect> fcvcurl_; // curl-component of velocity
-  FieldCell<Scal> fcdiv_; // divergence of velocity
   Multi<FieldCell<Scal>> fck_; // curvature
   typename PartStrMeshM<M>::Par psm_par_;
   std::unique_ptr<PartStrMeshM<M>> psm_;
-  bool vcurl_; // compute curl
 
   Scal nabort_; // number of abort requests, used by Reduce in checknan Run()
 
@@ -462,54 +456,9 @@ auto Hydro<M>::GetBcSz() const -> MapCondFace {
   return r;
 }
 
-// Compute velocity fc_vel_ from vorticity stored in fc_vel_
 template <class M>
-void Hydro<M>::InitVort() {
-  auto sem = m.GetSem("initvort");
-  struct {
-    MapCondFace mfcw; // velocity cond
-    MapCondFace mfcwd; // velocity cond in one diretion
-  } * ctx(sem);
-  auto& fct = fctmp_; // temporary fields
-  auto& fctv = fctmpv_;
-  if (sem("initpois")) {
-    m.Comm(&fc_vel_);
-    fctv.Reinit(m);
-    ctx->mfcw = GetVelCond(m, mf_fluid_);
-  }
-  for (size_t d = 0; d < M::dim; ++d) {
-    std::string dn = std::to_string(d);
-    if (sem("init-" + dn)) {
-      ctx->mfcwd = GetScalarCond(ctx->mfcw, d, m);
-      ps_ = std::make_shared<PoisSolver<M>>(ctx->mfcwd, m);
-      fct = GetComponent(fc_vel_, d);
-      for (auto c : m.Cells()) {
-        fct[c] *= -1;
-      }
-    }
-    if (sem.Nested("solve-" + dn)) {
-      ps_->Solve(fct);
-    }
-    if (sem("post-" + dn)) {
-      SetComponent(fctv, d, ps_->GetField());
-      if (m.IsRoot() && var.Int["vort_report"]) {
-        std::cout << "om" << ("xyz"[d]) << ":"
-                  << " res=" << m.GetResidual() << " iter=" << m.GetIter()
-                  << std::endl;
-      }
-    }
-  }
-  if (sem("vel")) {
-    fc_vel_ = GetVort(fctv, ctx->mfcw, m);
-    m.Comm(&fc_vel_);
-    fctv.Free();
-    fct.Free();
-  }
-}
-
-template <class M>
-void Hydro<M>::InitFluid() {
-  fcvm_ = fc_vel_;
+void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
+  fcvm_ = fc_vel;
 
   // XXX ahoc: young velocity
   if (var.Int["youngbc"]) {
@@ -525,12 +474,12 @@ void Hydro<M>::InitFluid() {
   if (fs == "simple") {
     auto p = ParsePar<FSS>()(var);
     fs_.reset(new FSS(
-        m, fc_vel_, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
+        m, fc_vel, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
         &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else if (fs == "proj") {
     auto p = ParsePar<FSP>()(var);
     fs_.reset(new FSP(
-        m, fc_vel_, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
+        m, fc_vel, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
         &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else {
     throw std::runtime_error("Unknown fluid_solver=" + fs);
@@ -540,23 +489,24 @@ void Hydro<M>::InitFluid() {
 }
 
 template <class M>
-void Hydro<M>::InitAdvection() {
+void Hydro<M>::InitAdvection(
+    const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fccl) {
   std::string as = var.String["advection_solver"];
   if (as == "tvd") {
     auto p = ParsePar<AST>()(var);
     as_.reset(new AST(
-        m, fc_vf_, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr), &fc_src2_, 0.,
+        m, fcvf, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr), &fc_src2_, 0.,
         st_.dta, p));
   } else if (as == "vof") {
     auto p = ParsePar<ASV>()(var);
     as_.reset(new ASV(
-        m, fc_vf_, fccl_, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
+        m, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
         &fc_src2_, 0., st_.dta, p));
     layers = GRange<size_t>(1);
   } else if (as == "vofm") {
     auto p = ParsePar<ASVM>()(var);
     auto as = new ASVM(
-        m, fc_vf_, fccl_, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
+        m, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
         &fc_src2_, 0., st_.dta, p);
     as_.reset(as);
     layers = GRange<size_t>(as->GetNumLayers());
@@ -676,12 +626,18 @@ void Hydro<M>::Init() {
   using namespace fluid_condition;
   auto sem = m.GetSem("init");
   struct {
+    FieldCell<Vect> fcvel; // initial velocity
+    FieldCell<Scal> fcvf; // initial volume fraction
+    FieldCell<Scal> fccl; // initial color
     FieldCell<Scal> fcbody;
     FieldCell<bool> fcbodymask;
     Vars varbody;
   } * ctx(sem);
+  auto& fcvel = ctx->fcvel;
+  auto& fcvf = ctx->fcvf;
+  auto& fccl = ctx->fccl;
   if (sem.Nested()) {
-    InitVf(fc_vf_, var, m);
+    InitVf(fcvf, var, m);
   }
   if (sem("fields")) {
     fc_src_.Reinit(m, 0.);
@@ -695,9 +651,9 @@ void Hydro<M>::Init() {
     m.Comm(&fc_sig_);
 
     // initial velocity
-    fc_vel_.Reinit(m, Vect(0));
-    InitVel(fc_vel_, var, m);
-    m.Comm(&fc_vel_);
+    fcvel.Reinit(m, Vect(0));
+    InitVel(fcvel, var, m);
+    m.Comm(&fcvel);
 
     // global mesh size
     MIdx gs = m.GetGlobalSize();
@@ -731,19 +687,19 @@ void Hydro<M>::Init() {
       auto& cb = it.GetValue();
       if (auto cd = cb.Get<NoSlipWallFixed<M>>()) {
         IdxCell c = m.GetCell(f, cd->GetNci());
-        cd->SetVelocity(fc_vel_[c]);
+        cd->SetVelocity(fcvel[c]);
       }
     }
   }
 
   if (sem.Nested("initvort")) {
     if (var.Int["initvort"]) {
-      InitVort();
+      InitVort(fcvel, fcvel, mf_fluid_, var.Int["vort_report"], m);
     }
   }
 
   if (var.Int["wavelamb_vort"] && sem("wavelamb")) {
-    FieldCell<Vect> fcvel(m);
+    FieldCell<Vect> fc(m);
     Vars vr;
     vr.String.Set("vel_init", "wavelamb");
     vr.Double.Set("wavelamb_a0", var.Double["wavelamb_a0"]);
@@ -751,10 +707,10 @@ void Hydro<M>::Init() {
     vr.Double.Set("wavelamb_h", var.Double["wavelamb_h"]);
     vr.Double.Set("wavelamb_k", var.Double["wavelamb_k"]);
     vr.Vect.Set("gravity", var.Vect["gravity"]);
-    InitVel(fcvel, vr, m);
+    InitVel(fc, vr, m);
     for (auto c : m.AllCells()) {
-      if (fcvel[c].sqrnorm() != 0) {
-        fc_vel_[c] = fcvel[c];
+      if (fc[c].sqrnorm() != 0) {
+        fcvel[c] = fc[c];
       }
     }
   }
@@ -771,9 +727,9 @@ void Hydro<M>::Init() {
     Vect k2 = Vect(2 * M_PI) / (per2 * m.GetCellSize());
     for (auto c : m.AllCells()) {
       auto x = m.GetCenter(c);
-      fc_vel_[c] += vel0 * std::sin(k0.dot(x));
-      fc_vel_[c] += vel1 * std::sin(k1.dot(x));
-      fc_vel_[c] += vel2 * std::sin(k2.dot(x));
+      fcvel[c] += vel0 * std::sin(k0.dot(x));
+      fcvel[c] += vel1 * std::sin(k1.dot(x));
+      fcvel[c] += vel2 * std::sin(k2.dot(x));
     }
   }
 
@@ -786,19 +742,19 @@ void Hydro<M>::Init() {
       Vect v = vel * u(g) / 7;
       for (auto q : m.Nci(c)) {
         IdxCell cn = m.GetCell(c, q);
-        fc_vel_[cn] += v;
+        fcvel[cn] += v;
       }
-      fc_vel_[c] += v;
+      fcvel[c] += v;
     }
-    m.Comm(&fc_vel_);
+    m.Comm(&fcvel);
   }
 
   if (sem.Nested("smooth")) {
-    Smoothen(fc_vf_, mf_cond_vfsm_, m, var.Int["vf_init_sm"]);
+    Smoothen(fcvf, mf_cond_vfsm_, m, var.Int["vf_init_sm"]);
   }
 
   if (sem.Nested("mixture")) {
-    CalcMixture(fc_vf_);
+    CalcMixture(fcvf);
   }
 
   if (sem("color-ini")) {
@@ -806,10 +762,10 @@ void Hydro<M>::Init() {
       // initial color
       // TODO revise with bcast
       auto icl = CreateInitCl<M>(var, m.IsRoot());
-      icl(fccl_, fc_vf_, m);
-      m.Comm(&fccl_);
+      icl(fccl, fcvf, m);
+      m.Comm(&fccl);
     } else {
-      fccl_.Reinit(m, 0.);
+      fccl.Reinit(m, 0.);
     }
   }
 
@@ -854,9 +810,9 @@ void Hydro<M>::Init() {
   }
 
   if (sem("solv")) {
-    InitFluid();
+    InitFluid(fcvel);
 
-    InitAdvection();
+    InitAdvection(fcvf, fccl);
 
     st_.iter = 0;
     st_.t = fs_->GetTime();
@@ -867,16 +823,6 @@ void Hydro<M>::Init() {
     }
 
     InitStat();
-
-    // enable curl component of velocity
-    {
-      auto dl = GetWords(var.String["dumplist"]);
-      if (dl.count("vcurlx") || dl.count("vcurly") || dl.count("vcurlz")) {
-        vcurl_ = true;
-      } else {
-        vcurl_ = false;
-      }
-    }
 
     if (var.Int["fill_halo_nan"]) {
       std::vector<std::pair<IdxFace, size_t>> vf;
@@ -1674,19 +1620,8 @@ void Hydro<M>::DumpFields() {
   struct {
     std::array<Multi<FieldCell<Scal>>, dim> im;
     FieldCell<Scal> fc_cellcond;
+    FieldCell<Scal> fcdiv_; // divergence of velocity
   } * ctx(sem);
-  if (vcurl_) {
-    if (sem("vcurl-pre")) {
-      CalcVort();
-      fc_vel_ = fcom_;
-    }
-    if (sem.Nested("vcurl-solve")) {
-      InitVort();
-    }
-    if (sem("vcurl-copy")) {
-      fcvcurl_ = fc_vel_;
-    }
-  }
   if (sem("dump")) {
     if (m.IsRoot()) {
       dumper_.Report();
@@ -1724,9 +1659,6 @@ void Hydro<M>::DumpFields() {
       if (dl.count("omz")) m.Dump(&fcom_, 2, "omz");
       if (dl.count("omm")) m.Dump(&fcomm_, "omm");
     }
-    if (dl.count("vcurlx")) m.Dump(&fcvcurl_, 0, "vcurlx");
-    if (dl.count("vcurly")) m.Dump(&fcvcurl_, 1, "vcurly");
-    if (dl.count("vcurlz")) m.Dump(&fcvcurl_, 2, "vcurlz");
     if (dl.count("dis") || dl.count("strain")) {
       CalcStrain();
       if (dl.count("strain")) m.Dump(&fcomm_, "strain");
@@ -1739,8 +1671,8 @@ void Hydro<M>::DumpFields() {
       }
     }
     if (dl.count("div")) {
-      fcdiv_ = GetDiv();
-      m.Dump(&fcdiv_, "div");
+      ctx->fcdiv_ = GetDiv();
+      m.Dump(&ctx->fcdiv_, "div");
     }
     if (auto as = dynamic_cast<ASV*>(as_.get())) {
       if (dl.count("nx")) m.Dump(&as->GetNormal(), 0, "nx");
@@ -2315,8 +2247,12 @@ void Hydro<M>::StepAdvection() {
 template <class M>
 void Hydro<M>::StepBubgen() {
   auto sem = m.GetSem("bubgen");
-  Scal t0 = var.Double["bubgen_t0"];
-  Scal tper = var.Double["bubgen_per"];
+  struct {
+    FieldCell<Scal> fcvf; // volume fraction
+  } * ctx(sem);
+  auto& fcvf = ctx->fcvf;
+  const Scal t0 = var.Double["bubgen_t0"];
+  const Scal tper = var.Double["bubgen_per"];
   bool bg = (st_.t > t0 && st_.t - bgt_ >= tper);
   if (bg) {
     if (sem("as-bubgen-init")) {
@@ -2328,9 +2264,9 @@ void Hydro<M>::StepBubgen() {
         vr.Int.Set("list_ls", var.Int["list_ls"]);
         bgf_ = CreateInitU<M>(vr, m.IsRoot());
       }
-      fc_vf_.Reinit(m, 0);
-      bgf_(fc_vf_, m);
-      m.Comm(&fc_vf_);
+      fcvf.Reinit(m, 0);
+      bgf_(fcvf, m);
+      m.Comm(&fcvf);
     }
     if (sem("as-bubgen-apply")) {
       bgt_ = st_.t;
@@ -2338,8 +2274,8 @@ void Hydro<M>::StepBubgen() {
         auto& u = const_cast<FieldCell<Scal>&>(*as->GetFieldM()[0]);
         auto& cl = const_cast<FieldCell<Scal>&>(*as->GetColor()[0]);
         for (auto c : m.AllCells()) {
-          if (fc_vf_[c] > 0) {
-            u[c] = std::max(u[c], fc_vf_[c]);
+          if (fcvf[c] > 0) {
+            u[c] = std::max(u[c], fcvf[c]);
             cl[c] = 1.;
           }
         }
@@ -2347,8 +2283,8 @@ void Hydro<M>::StepBubgen() {
       if (auto as = dynamic_cast<ASV*>(as_.get())) {
         auto& u = const_cast<FieldCell<Scal>&>(as->GetField());
         for (auto c : m.AllCells()) {
-          if (fc_vf_[c] > 0) {
-            u[c] = std::max(u[c], fc_vf_[c]);
+          if (fcvf[c] > 0) {
+            u[c] = std::max(u[c], fcvf[c]);
           }
         }
       }
