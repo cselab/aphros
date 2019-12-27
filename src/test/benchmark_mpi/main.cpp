@@ -6,20 +6,19 @@
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 
-struct State {
-  std::vector<Scal> v;
-  std::vector<char> r;
-  Scal a;
-};
-
-void Run(M& m, State& s, Vars& var) {
-  (void)var;
+void Run(M& m, Vars&) {
   auto sem = m.GetSem();
+  struct {
+    std::vector<Scal> v;
+    std::vector<char> r;
+  } * ctx(sem);
+  auto& v = ctx->v;
+  auto& r = ctx->r;
   for (auto i = 0; i < 10; ++i) {
     if (sem("std")) {
-      s.v = {Scal(m.GetId())};
+      v = {Scal(m.GetId())};
       using T = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<T>(&s.v));
+      m.Reduce(std::make_shared<T>(&v));
     }
   }
 
@@ -27,7 +26,6 @@ void Run(M& m, State& s, Vars& var) {
     if (sem("mpi")) {
       auto comm = MPI_COMM_WORLD;
       if (m.IsLead()) {
-        auto& r = s.r;
         r = {0};
         int s = r.size(); // size local
         if (m.IsRoot()) {
@@ -85,5 +83,5 @@ set int py 4
 set int pz 8
 )EOF";
 
-  return RunMpiBasic<M, State>(argc, argv, Run, conf);
+  return RunMpiBasic<M>(argc, argv, Run, conf);
 }

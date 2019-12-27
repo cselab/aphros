@@ -8,11 +8,9 @@ using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using MIdx = typename M::MIdx;
 
-struct State {};
-
 std::ofstream out;
 
-void Run(M& m, State&, Vars&) {
+void Run(M& m, Vars&) {
   auto sem = m.GetSem();
   struct {
     FieldCell<Scal> fc;
@@ -60,5 +58,5 @@ set int histogram 0
 set int mpi_compress_msg 0
 )EOF";
 
-  return RunMpiBasic<M, State>(argc, argv, Run, conf);
+  return RunMpiBasic<M>(argc, argv, Run, conf);
 }

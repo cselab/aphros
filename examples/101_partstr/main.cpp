@@ -11,9 +11,7 @@ using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 
-struct State {};
-
-void Run(M& m, State&, Vars&) {
+void Run(M& m, Vars&) {
   using PSM = PartStrMeshM<M>;
   auto sem = m.GetSem();
 
@@ -65,5 +63,5 @@ set int py 1
 set int pz 1
 )EOF";
 
-  return RunMpiBasic<M, State>(argc, argv, Run, conf);
+  return RunMpiBasic<M>(argc, argv, Run, conf);
 }
