@@ -44,8 +44,7 @@ struct Proj<M_>::Imp {
   using Expr = GVect<Scal, M::dim * 2 + 2>;
 
   Imp(Owner* owner, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
-      const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
-      std::shared_ptr<Par> par)
+      const MapCell<std::shared_ptr<CondCellFluid>>& mcc, Par par)
       : owner_(owner)
       , par(par)
       , m(owner_->m)
@@ -63,9 +62,9 @@ struct Proj<M_>::Imp {
 
     fcfcd_.Reinit(m, Vect(0));
     typename CD::Par p;
-    SetConvDiffPar(p, *par);
+    SetConvDiffPar(p, par);
     cd_ = GetConvDiff<M>()(
-        par->conv, m, fcw, mfcw_, mccw_, owner_->fcr_, &ffd_, &fcfcd_,
+        par.conv, m, fcw, mfcw_, mccw_, owner_->fcr_, &ffd_, &fcfcd_,
         &ffv_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
 
     fcp_.time_curr.Reinit(m, 0.);
@@ -78,7 +77,7 @@ struct Proj<M_>::Imp {
       ffv_.time_curr[f] = ffwe[f].dot(m.GetSurface(f));
     }
     // Apply meshvel
-    const Vect& meshvel = par->meshvel;
+    const Vect& meshvel = par.meshvel;
     for (auto f : m.Faces()) {
       ffv_.time_curr[f] -= meshvel.dot(m.GetSurface(f));
     }
@@ -267,7 +266,7 @@ struct Proj<M_>::Imp {
       }
       CHECKNAN(fc, m.CN());
       m.Comm(&fc);
-      if (par->linreport && m.IsRoot()) {
+      if (par.linreport && m.IsRoot()) {
         std::cout << "pcorr:"
                   << " res=" << m.GetResidual() << " iter=" << m.GetIter()
                   << std::endl;
@@ -321,7 +320,7 @@ struct Proj<M_>::Imp {
   void UpdateBc(typename M::Sem& sem) {
     if (sem.Nested("bc-inletflux")) {
       UFluid<M>::UpdateInletFlux(
-          m, GetVelocity(Step::iter_curr), mfc_, par->inletflux_numid);
+          m, GetVelocity(Step::iter_curr), mfc_, par.inletflux_numid);
     }
     if (sem.Nested("bc-outlet")) {
       UFluid<M>::UpdateOutletBaseConditions(
@@ -337,7 +336,7 @@ struct Proj<M_>::Imp {
     auto& fcp_prev = fcp_.iter_prev;
     auto& fcp_curr = fcp_.iter_curr;
     if (sem("init")) {
-      cd_->SetPar(UpdateConvDiffPar(cd_->GetPar(), *par));
+      cd_->SetPar(UpdateConvDiffPar(cd_->GetPar(), par));
 
       // interpolate visosity
       ffd_ = Interpolate(*owner_->fcd_, mfcd_, m);
@@ -464,7 +463,7 @@ struct Proj<M_>::Imp {
   }
 
   Owner* owner_;
-  std::shared_ptr<Par> par;
+  Par par;
   M& m; // mesh
   GRange<size_t> dr_; // effective dimension range
   GRange<size_t> drr_; // remaining dimensions
@@ -514,8 +513,7 @@ Proj<M_>::Proj(
     M& m, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
     const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
     FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
-    FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt,
-    std::shared_ptr<Par> par)
+    FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt, Par par)
     : FluidSolver<M>(t, dt, m, fcr, fcd, fcf, ffbp, fcsv, fcsm)
     , imp(new Imp(this, fcw, mfc, mcc, par)) {}
 
@@ -523,8 +521,13 @@ template <class M_>
 Proj<M_>::~Proj() = default;
 
 template <class M_>
-auto Proj<M_>::GetPar() -> Par* {
-  return imp->par.get();
+auto Proj<M_>::GetPar() const -> const Par& {
+  return imp->par;
+}
+
+template <class M_>
+void Proj<M_>::SetPar(Par par) {
+  imp->par = par;
 }
 
 template <class M_>

@@ -145,19 +145,16 @@ void Advection<M>::Init(Sem& sem) {
 
     std::string as = var.String["advection_solver"];
     if (as == "tvd") {
-      typename AST::Par p;
-      Parse<M>(&p, var);
+      auto p = ParsePar<AST>()(var);
       as_.reset(
           new AST(m, fcu_, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
     } else if (as == "vof") {
-      typename ASV::Par p;
-      Parse<M>(&p, var);
+      auto p = ParsePar<ASV>()(var);
       const FieldCell<Scal> fccl(m, 0);
       as_.reset(new ASV(
           m, fcu_, fccl, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
     } else if (as == "vofm") {
-      typename ASVM::Par p;
-      Parse<M>(&p, var);
+      auto p = ParsePar<ASVM>()(var);
       const FieldCell<Scal> fccl(m, 0);
       as_.reset(new ASVM(
           m, fcu_, fccl, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
@@ -166,11 +163,8 @@ void Advection<M>::Init(Sem& sem) {
     }
     fck_.resize(layers);
     fck_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
-    {
-      typename PartStr<Scal>::Par ps;
-      Parse(ps, m.GetCellSize().norminf(), var);
-      Parse<M>(psm_par_, ps, var);
-    }
+    auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize().norminf(), var);
+    psm_par_ = ParsePar<PartStrMeshM<M>>()(ps, var);
   }
 }
 

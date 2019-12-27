@@ -33,12 +33,12 @@ class ConvDiffScal : public UnsteadyIterativeSolver {
   // fcs: source
   // ffv: volume flux
   ConvDiffScal(
-      double t, double dt, M& m, const Par& par, const FieldCell<Scal>* fcr,
+      double t, double dt, M& m, Par par, const FieldCell<Scal>* fcr,
       const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
       const FieldFace<Scal>* ffv)
       : UnsteadyIterativeSolver(t, dt)
       , m(m)
-      , par_(par)
+      , par(par)
       , fcr_(fcr)
       , ffd_(ffd)
       , fcs_(fcs)
@@ -63,15 +63,15 @@ class ConvDiffScal : public UnsteadyIterativeSolver {
   // Returns the constant term of the equation
   virtual FieldCell<Scal> GetConst() const = 0;
   virtual const Par& GetPar() const {
-    return par_;
+    return par;
   }
-  virtual void SetPar(const Par& par) {
-    par_ = par;
+  virtual void SetPar(Par par0) {
+    par = par0;
   }
 
  protected:
   M& m;
-  Par par_; // parameters
+  Par par; // parameters
   const FieldCell<Scal>* fcr_; // density
   const FieldFace<Scal>* ffd_; // diffusion
   const FieldCell<Scal>* fcs_; // source

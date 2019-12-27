@@ -175,17 +175,11 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   void UpdateAdvectionPar() {
     if (auto as = dynamic_cast<AST*>(as_.get())) {
-      auto p = as->GetPar();
-      Parse<M>(&p, var);
-      as->SetPar(p);
+      as->SetPar(ParsePar<AST>()(var));
     } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
-      auto p = as->GetPar();
-      Parse<M>(&p, var);
-      as->SetPar(p);
+      as->SetPar(ParsePar<ASV>()(var));
     } else if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-      auto p = as->GetPar();
-      Parse<M>(&p, var);
-      as->SetPar(p);
+      as->SetPar(ParsePar<ASVM>()(var));
     }
   }
   // Surface tension time step
@@ -529,14 +523,12 @@ void Hydro<M>::InitFluid() {
 
   std::string fs = var.String["fluid_solver"];
   if (fs == "simple") {
-    auto p = std::make_shared<typename FSS::Par>();
-    Parse<M>(p.get(), var);
+    auto p = ParsePar<FSS>()(var);
     fs_.reset(new FSS(
         m, fc_vel_, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
         &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else if (fs == "proj") {
-    auto p = std::make_shared<typename FSP::Par>();
-    Parse<M>(p.get(), var);
+    auto p = ParsePar<FSP>()(var);
     fs_.reset(new FSP(
         m, fc_vel_, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
         &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
@@ -551,21 +543,18 @@ template <class M>
 void Hydro<M>::InitAdvection() {
   std::string as = var.String["advection_solver"];
   if (as == "tvd") {
-    typename AST::Par p;
-    Parse<M>(&p, var);
+    auto p = ParsePar<AST>()(var);
     as_.reset(new AST(
         m, fc_vf_, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr), &fc_src2_, 0.,
         st_.dta, p));
   } else if (as == "vof") {
-    typename ASV::Par p;
-    Parse<M>(&p, var);
+    auto p = ParsePar<ASV>()(var);
     as_.reset(new ASV(
         m, fc_vf_, fccl_, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
         &fc_src2_, 0., st_.dta, p));
     layers = GRange<size_t>(1);
   } else if (as == "vofm") {
-    typename ASVM::Par p;
-    Parse<M>(&p, var);
+    auto p = ParsePar<ASVM>()(var);
     auto as = new ASVM(
         m, fc_vf_, fccl_, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
         &fc_src2_, 0., st_.dta, p);
@@ -578,11 +567,8 @@ void Hydro<M>::InitAdvection() {
   st_.vofm.resize(layers.size());
   fck_.resize(layers);
   fck_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
-  {
-    typename PartStr<Scal>::Par ps;
-    Parse(ps, m.GetCellSize().norminf(), var);
-    Parse<M>(psm_par_, ps, var);
-  }
+  auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize().norminf(), var);
+  psm_par_ = ParsePar<PartStrMeshM<M>>()(ps, var);
 }
 
 template <class M>
@@ -1203,32 +1189,33 @@ void Hydro<M>::CalcStat() {
     s.edis2 += s.dissip2 * dt;
 
     if (const std::string* s = var.String("meshvel_auto")) {
-      Vect v(0);
-      if (*s == "v") {
-        v = st_.v2;
-      } else if (*s == "vc") {
-        v = st_.vc2;
-      } else if (*s == "vomm") {
-        v = st_.vomm;
-      } else {
-        throw std::runtime_error("Unknown meshvel_auto=" + *s);
-      }
-      Vect mask(var.Vect["meshvel_mask"]); // components 0 or 1
-      v *= mask;
-      double w = var.Double["meshvel_weight"];
-      Vect* meshvel;
+      auto upd = [this,s](Vect& meshvel) {
+        Vect vel(0);
+        if (*s == "v") {
+          vel = st_.v2;
+        } else if (*s == "vc") {
+          vel = st_.vc2;
+        } else if (*s == "vomm") {
+          vel = st_.vomm;
+        } else {
+          throw std::runtime_error("Unknown meshvel_auto=" + *s);
+        }
+        Vect mask(var.Vect["meshvel_mask"]);
+        vel *= mask;
+        double w = var.Double["meshvel_weight"];
+        meshvel = vel * w + meshvel * (1. - w);
+        st_.meshvel = meshvel;
+        st_.meshpos += st_.meshvel * st_.dt;
+      };
       if (auto fs = dynamic_cast<FSS*>(fs_.get())) {
-        meshvel = &(fs->GetPar()->meshvel);
+        auto par = fs->GetPar();
+        upd(par.meshvel);
+        fs->SetPar(par);
       } else if (auto fs = dynamic_cast<FSP*>(fs_.get())) {
-        meshvel = &(fs->GetPar()->meshvel);
-      } else {
-        meshvel = nullptr;
+        auto par = fs->GetPar();
+        upd(par.meshvel);
+        fs->SetPar(par);
       }
-      Vect vp = *meshvel;
-      (*meshvel) = v * w + vp * (1. - w);
-
-      st_.meshvel = *meshvel;
-      st_.meshpos += st_.meshvel * st_.dt;
     }
 
     if (var.Int["statvel"]) {
@@ -2165,9 +2152,9 @@ void Hydro<M>::Run() {
 
   if (sem("updatepar")) {
     if (auto fs = dynamic_cast<FSS*>(fs_.get())) {
-      Parse<M>(fs->GetPar(), var);
+      fs->SetPar(ParsePar<FSS>()(var));
     } else if (auto fs = dynamic_cast<FSP*>(fs_.get())) {
-      Parse<M>(fs->GetPar(), var);
+      fs->SetPar(ParsePar<FSP>()(var));
     }
     UpdateAdvectionPar();
     fcvm_ = fs_->GetVelocity();

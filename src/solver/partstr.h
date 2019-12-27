@@ -37,18 +37,21 @@ class PartStr {
     Scal relax = 0.5; // relaxation factor
     size_t npmax = 11; // maximum number particles in string
     Scal segcirc = 1; // factor for shift to circular segment
-    Scal hc; // cell size [length]
+    Scal hc = 0; // cell size [length]
     bool dn = false; // normal displacement
   };
 
   static constexpr size_t dim = 2;
   using Vect = GVect<Scal, dim>;
 
-  PartStr(std::shared_ptr<Par> par) : par(par) {
+  PartStr(Par par) : par(par) {
     Clear();
   }
-  Par* GetPar() {
-    return par.get();
+  const Par& GetPar() const {
+    return par;
+  }
+  void SetPar(Par par0) {
+    par = par0;
   }
   // Number of strings
   size_t GetNumStr() const {
@@ -76,9 +79,9 @@ class PartStr {
   size_t Add(
       const Vect& xc, const Vect& t, const std::vector<Vect>& lx,
       const std::vector<size_t>& ls) {
-    size_t np = par->npmax;
+    size_t np = par.npmax;
     // seed particles
-    Scal leq = par->leq * par->hc / (np - 1); // length of segment
+    Scal leq = par.leq * par.hc / (np - 1); // length of segment
     for (size_t i = 0; i < np; ++i) {
       xx_.push_back(xc + t * ((Scal(i) - (np - 1) * 0.5) * leq));
     }
@@ -114,9 +117,9 @@ class PartStr {
     // compute interface forces
     InterfaceForce(
         xx, sx, &(lx_[lo_[sl_[s]]]), &(ls_[sl_[s]]), sl_[s + 1] - sl_[s],
-        par->segcirc, ff.data());
+        par.segcirc, ff.data());
 
-    ApplyConstraints(xx, sx, par->relax, par->dn, ff.data());
+    ApplyConstraints(xx, sx, par.relax, par.dn, ff.data());
 
     // advance particles
     for (size_t i = 0; i < sx; ++i) {
@@ -127,7 +130,7 @@ class PartStr {
     for (size_t i = 0; i < sx; ++i) {
       r = std::max(r, ff[i].norminf());
     }
-    r /= par->hc * par->relax;
+    r /= par.hc * par.relax;
     return r;
   }
   // Iterations for single string until convergence.
@@ -235,7 +238,7 @@ class PartStr {
   }
 
  private:
-  std::shared_ptr<Par> par;
+  Par par;
 
   // size of arrays sx_, sl_, sk_ is the number of strings
   // positions of string i start from xx_[sx_[i]]

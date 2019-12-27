@@ -17,26 +17,26 @@ class Vof final : public AdvectionSolver<M_> {
   struct Par {
     size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
     Scal clipth = 1e-6; // vf clipping threshold
-    bool bcc_reflectpoly = true; // reflection for DumpPolyMarch
-    Scal dumppolymarch_fill = -1; // fill cells outside
-    int verb = 0;
     bool recolor_unionfind = true;
     bool recolor_reduce = true;
     bool recolor_grid = true;
-    bool vtkbin = false;
-    bool vtkmerge = true;
-    Scal vtkiso = 0.5;
-    bool sharpen = false;
-    Scal sharpen_cfl = 0.5;
-    enum class Scheme { plain, aulisa, weymouth };
-    Scheme scheme;
-    Scal avgnorm0 = 1; // original normal with sum(u)<avgnorm0
-    Scal avgnorm1 = 1; // overriden normal with sum(u)>=acgnorm1
     Scal clfixed = -1; // if >= 0, value for color at point clfixed_x
     Vect clfixed_x = Vect(1e10);
     bool cloverride = false; // XXX adhoc if clear1<1, override color with 0
+    bool sharpen = false;
+    Scal sharpen_cfl = 0.5;
     size_t layers = 4;
+    Scal avgnorm0 = 1; // original normal with sum(u)<avgnorm0
+    Scal avgnorm1 = 1; // overriden normal with sum(u)>=acgnorm1
     Scal coalth = 1.5;
+    int verb = 0;
+    bool bcc_reflectpoly = true; // reflection for DumpPolyMarch
+    Scal dumppolymarch_fill = -1; // fill cells outside
+    bool vtkbin = false;
+    bool vtkmerge = true;
+    Scal vtkiso = 0.5;
+    enum class Scheme { plain, aulisa, weymouth };
+    Scheme scheme = Scheme::weymouth;
   };
 
   // Constructor

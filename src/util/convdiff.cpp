@@ -9,7 +9,7 @@ std::unique_ptr<ConvDiffVect<M>> GetConvDiff<M>::operator()(
     Conv conv, M& m, const FieldCell<Vect>& fcw, const MapCondFace& mfc,
     const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
     const FieldFace<Scal>* ffd, const FieldCell<Vect>* fcs,
-    const FieldFace<Scal>* ffv, double t, double dt, const Par& par) {
+    const FieldFace<Scal>* ffv, double t, double dt, Par par) {
   using CDI = ConvDiffVectGeneric<M, ConvDiffScalImp<M>>; // implicit
   using CDE = ConvDiffVectGeneric<M, ConvDiffScalExp<M>>; // explicit
 
@@ -30,4 +30,4 @@ template std::unique_ptr<ConvDiffVect<M>> GetConvDiff<M>::operator()(
     Conv conv, M& m, const FieldCell<Vect>& fcw, const MapCondFace& mfc,
     const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
     const FieldFace<Scal>* ffd, const FieldCell<Vect>* fcs,
-    const FieldFace<Scal>* ffv, double t, double dt, const Par& par);
+    const FieldFace<Scal>* ffv, double t, double dt, Par par);

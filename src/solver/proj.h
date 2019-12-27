@@ -46,10 +46,10 @@ class Proj final : public FluidSolver<M_> {
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
       FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
       FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt,
-      std::shared_ptr<Par> par);
+      Par par);
   ~Proj();
-  // Parameters
-  Par* GetPar();
+  const Par& GetPar() const;
+  void SetPar(Par);
   // ...
   void StartStep() override;
   // ...

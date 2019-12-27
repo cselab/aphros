@@ -52,7 +52,7 @@ struct GetConvDiff {
       Conv conv, M& m, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
       const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
       const FieldFace<Scal>* ffd, const FieldCell<Vect>* fcs,
-      const FieldFace<Scal>* ffv, double t, double dt, const Par& par);
+      const FieldFace<Scal>* ffv, double t, double dt, Par par);
 };
 
 template <class ConvDiffPar, class FluidPar>
