@@ -494,14 +494,14 @@ void Hydro<M>::InitAdvection(
   } else if (as == "vof") {
     auto p = ParsePar<ASV>()(var);
     as_.reset(new ASV(
-        m, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
-        &fc_src2_, 0., st_.dta, p));
+        m, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr), &fc_src2_,
+        0., st_.dta, p));
     layers = GRange<size_t>(1);
   } else if (as == "vofm") {
     auto p = ParsePar<ASVM>()(var);
     auto as = new ASVM(
-        m, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
-        &fc_src2_, 0., st_.dta, p);
+        m, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr), &fc_src2_,
+        0., st_.dta, p);
     as_.reset(as);
     layers = GRange<size_t>(as->GetNumLayers());
   } else {
@@ -1129,7 +1129,7 @@ void Hydro<M>::CalcStat() {
     s.edis2 += s.dissip2 * dt;
 
     if (const std::string* s = var.String("meshvel_auto")) {
-      auto upd = [this,s](Vect& meshvel) {
+      auto upd = [this, s](Vect& meshvel) {
         Vect vel(0);
         if (*s == "v") {
           vel = st_.v2;

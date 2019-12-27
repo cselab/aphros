@@ -582,4 +582,3 @@ template <class M_>
 void Vof<M_>::DumpInterfaceMarch(std::string fn) const {
   return imp->DumpInterfaceMarch(fn);
 }
-

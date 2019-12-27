@@ -373,8 +373,7 @@ struct PartStrMeshM<M_>::Imp {
 };
 
 template <class M_>
-PartStrMeshM<M_>::PartStrMeshM(
-    M& m, Par par, const GRange<size_t>& layers)
+PartStrMeshM<M_>::PartStrMeshM(M& m, Par par, const GRange<size_t>& layers)
     : imp(new Imp(m, par, layers)) {}
 
 template <class M_>

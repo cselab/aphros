@@ -6,4 +6,3 @@ template <class Par>
 struct ParsePar {
   Par operator()(const Vars& var);
 };
-
