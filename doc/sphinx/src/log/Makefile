@@ -3,5 +3,5 @@ T = log
 
 all: $T.html
 
-$T.html: $T.md Makefile
+$T.html: $T.rst Makefile
 	$(PANDOC) -s -c main.css --mathjax -o $@ $<
