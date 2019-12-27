@@ -15,6 +15,8 @@
 #include "solver/approx.h"
 #include "solver/cond.h"
 #include "solver/fluid.h"
+#include "solver/pois.h"
+#include "util/convdiff.h"
 
 using namespace fluid_condition;
 
@@ -1192,5 +1194,51 @@ void AppendBodyCond(
                 Vect(0), 0.);
       }
     }
+  }
+}
+
+// Computes velocity fcvel from vorticity fcvort
+template <class M, class Vect = typename M::Vect>
+void InitVort(
+    const FieldCell<Vect>& fcvort, FieldCell<Vect>& fcvel,
+    const MapCondFaceFluid& mf_fluid, bool verb, M& m) {
+  using Scal = typename M::Scal;
+  auto sem = m.GetSem("initvort");
+  struct {
+    MapCondFace mfcw; // velocity cond
+    MapCondFace mfcwd; // velocity cond in one diretion
+    std::shared_ptr<PoisSolver<M>> ps;
+    FieldCell<Scal> fcvorts; // one component of vorticity
+    FieldCell<Vect> fcpot; // velocity potential
+  } * ctx(sem);
+  if (sem("initpois")) {
+    ctx->fcpot.Reinit(m);
+    ctx->mfcw = GetVelCond(m, mf_fluid);
+  }
+  for (size_t d = 0; d < M::dim; ++d) {
+    const std::string dname = std::to_string(d);
+    if (sem("init-" + dname)) {
+      ctx->mfcwd = GetScalarCond(ctx->mfcw, d, m);
+      ctx->ps = std::make_shared<PoisSolver<M>>(ctx->mfcwd, m);
+      ctx->fcvorts = GetComponent(fcvort, d);
+      for (auto c : m.Cells()) {
+        ctx->fcvorts[c] *= -1;
+      }
+    }
+    if (sem.Nested("solve-" + dname)) {
+      ctx->ps->Solve(ctx->fcvorts);
+    }
+    if (sem("post-" + dname)) {
+      SetComponent(ctx->fcpot, d, ctx->ps->GetField());
+      if (m.IsRoot() && verb) {
+        std::cout << "om" << ("xyz"[d]) << ":"
+                  << " res=" << m.GetResidual() << " iter=" << m.GetIter()
+                  << std::endl;
+      }
+    }
+  }
+  if (sem("vel")) {
+    fcvel = GetVort(ctx->fcpot, ctx->mfcw, m);
+    m.Comm(&fcvel);
   }
 }

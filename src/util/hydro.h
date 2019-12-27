@@ -79,3 +79,9 @@ template <class M>
 void DumpBcFaces(
     const MapCondFaceAdvection<typename M::Scal>& mfa,
     const MapCondFaceFluid& mff, std::string fn, M& m);
+
+// Computes velocity fcvel from vorticity fcvort
+template <class M, class Vect = typename M::Vect>
+void InitVort(
+    const FieldCell<Vect>& fcvort, FieldCell<Vect>& fcvel,
+    const MapCondFaceFluid& mf_fluid, bool verb, M& m);
