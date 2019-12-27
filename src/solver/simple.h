@@ -22,7 +22,6 @@ class Simple final : public FluidSolver<M_> {
     Scal rhie = 1.; // Rhie-Chow factor [0,1] (0 disable, 1 full)
     bool second = true; // second order in time
     bool simpler = false; // Use SIMPLER
-    Scal guessextra = 0; // next iteration extrapolation weight [0,1]
     Vect meshvel = Vect(0); // relative mesh velocity
     size_t inletflux_numid = 0; // reduction for id from 0 to numid-1
     ConvSc convsc = ConvSc::quick; // convection scheme

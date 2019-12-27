@@ -58,7 +58,6 @@ struct GetConvDiff {
 template <class ConvDiffPar, class FluidPar>
 void SetConvDiffPar(ConvDiffPar& d, const FluidPar& p) {
   d.relax = p.vrelax;
-  d.guessextra = p.guessextra;
   d.second = p.second;
   d.sc = p.convsc;
   d.df = p.convdf;
