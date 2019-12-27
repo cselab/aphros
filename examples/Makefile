@@ -1,6 +1,6 @@
 DIRS = $(wildcard ???_*)
 VERBOSE =
-OUT = $(if $(VERBOSE),/dev/stdout,/dev/null)
+REDIR = $(if $(VERBOSE),,>/dev/null 2>&1)
 
 all:
 	+make build
@@ -10,13 +10,13 @@ build: $(DIRS)
 
 $(DIRS):
 	@echo "$@"
-	@(cd "$@" && ap-conf .) >$(OUT) 2>&1
-	@+make -s -C "$@" >$(OUT) 2>&1
+	@(cd "$@" && ap-conf .) $(REDIR)
+	@+make -s -C "$@" $(REDIR)
 
 run:
-	@for d in $(DIRS) ; do echo "$$d" ; (cd "$$d" && ./run >$(OUT) 2>&1 ) ; done
+	@for d in $(DIRS) ; do echo "$$d" ; (cd "$$d" && ./run $(REDIR) ) ; done
 
 clean:
-	@for d in $(DIRS) ; do echo "$$d" ; make -C "$$d" clean >$(OUT) 2>&1 ; done
+	@for d in $(DIRS) ; do echo "$$d" ; make -C "$$d" clean $(REDIR) ; done
 
 .PHONY: all build run clean $(DIRS)
