@@ -996,12 +996,17 @@ void GetFluidFaceCond(
 
 template <class M>
 void GetFluidCellCond(
-    const Vars& var, M& m, MapCell<std::shared_ptr<CondCellFluid>>& mcvel,
-    std::pair<typename M::Scal, int>& pdist) {
+    const Vars& var, M& m, MapCell<std::shared_ptr<CondCellFluid>>& mcvel) {
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
 
   auto sem = m.GetSem(__func__);
+
+  struct {
+    std::pair<typename M::Scal, int> pdist;
+  } * ctx(sem);
+  auto& pdist = ctx->pdist;
+
   if (sem("reduce")) {
     if (auto* p = var.Double("pfixed")) {
       Vect x(var.Vect["pfixed_x"]);

@@ -22,13 +22,11 @@ template void AppendBodyCond(
     MapCondFaceAdvection<Scal>& mfa);
 
 template void GetFluidCellCond(
-    const Vars& var, M& m, MapCell<std::shared_ptr<CondCellFluid>>& mcvel,
-    std::pair<Scal, int>& pdist);
+    const Vars& var, M& m, MapCell<std::shared_ptr<CondCellFluid>>& mcvel);
 
 template void DumpBcFaces(
     const MapCondFaceAdvection<Scal>& mfa, const MapCondFaceFluid& mff,
     std::string fn, M& m);
-
 
 template void InitVort(
     const FieldCell<Vect>& fcvort, FieldCell<Vect>& fcvel,
