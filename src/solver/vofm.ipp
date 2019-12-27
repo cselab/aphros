@@ -28,12 +28,12 @@ struct Vofm<M_>::Imp {
   using Sem = typename M::Sem;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu0, const FieldCell<Scal>& fccl0,
-      const MapCondFaceAdvection<Scal>& mfc, std::shared_ptr<Par> par)
+      const MapCondFaceAdvection<Scal>& mfc, Par par)
       : owner_(owner)
       , par(par)
       , m(owner_->m)
       , mfc_(mfc)
-      , layers(0, par->layers) {
+      , layers(0, par.layers) {
     fcu_.time_curr.resize(layers);
     fcuu_.resize(layers);
     fcn_.resize(layers);
@@ -110,15 +110,15 @@ struct Vofm<M_>::Imp {
             us += (*uc[i])[c];
           }
         }
-        if (w > 0 && us >= par->avgnorm0) {
+        if (w > 0 && us >= par.avgnorm0) {
           na /= w;
           for (auto i : layers) {
             auto& n = fcn_[i][c];
             if (!IsNan(n)) {
               // average normal oriented to have acute angle with current
               auto nal = (n.dot(na) < 0 ? -na : na);
-              Scal u0 = par->avgnorm0;
-              Scal u1 = par->avgnorm1;
+              Scal u0 = par.avgnorm0;
+              Scal u1 = par.avgnorm1;
               if (u0 < u1) {
                 Scal a = std::min(1., std::max(0., (us - u0) / (u1 - u0)));
                 n = nal * a + n * (1 - a);
@@ -202,7 +202,7 @@ struct Vofm<M_>::Imp {
   void DumpInterface(std::string filename) {
     uvof_.DumpPoly(
         layers, fcu_.time_curr, fccl_, fcn_, fca_, fci_, filename,
-        owner_->GetTime(), par->vtkbin, par->vtkmerge, m);
+        owner_->GetTime(), par.vtkbin, par.vtkmerge, m);
   }
   void DumpInterfaceMarch(std::string filename) {
     auto sem = m.GetSem("dump-interface-march");
@@ -219,26 +219,26 @@ struct Vofm<M_>::Imp {
       fcclt = fccl_;
       fcut = fcu_.time_curr;
       for (auto i : layers) {
-        if (par->bcc_reflectpoly) {
+        if (par.bcc_reflectpoly) {
           BcReflectAll(fcut[i], mfc_vf_, m);
           BcReflectAll(fcclt[i], mfc_cl_, m);
         }
       }
-      if (par->dumppolymarch_fill >= 0) {
-        BcMarchFill(fcust, par->dumppolymarch_fill, m);
+      if (par.dumppolymarch_fill >= 0) {
+        BcMarchFill(fcust, par.dumppolymarch_fill, m);
       }
     }
     if (sem.Nested()) {
       uvof_.DumpPolyMarch(
           layers, fcut, fcclt, fcn_, fca_, fci_, filename, owner_->GetTime(),
-          par->vtkbin, par->vtkmerge, par->vtkiso,
-          par->dumppolymarch_fill >= 0 ? &fcust : nullptr, m);
+          par.vtkbin, par.vtkmerge, par.vtkiso,
+          par.dumppolymarch_fill >= 0 ? &fcust : nullptr, m);
     }
   }
   void Sharpen(const Multi<FieldCell<Scal>*>& mfcu) {
     auto sem = m.GetSem("sharp");
     std::vector<size_t> dd; // sweep directions
-    if (par->dim == 3) { // 3d
+    if (par.dim == 3) { // 3d
       if (count_ % 3 == 0) {
         dd = {0, 0, 1, 1, 2, 2};
       } else if (count_ % 3 == 1) {
@@ -256,8 +256,8 @@ struct Vofm<M_>::Imp {
     for (size_t id = 0; id < dd.size(); ++id) {
       size_t d = dd[id]; // direction as index
       if (sem("sweep")) {
-        const Scal sgn = (id % 2 == count_ / par->dim % 2 ? -1 : 1);
-        FieldFace<Scal> ffv(m, m.GetCellSize().prod() * sgn * par->sharpen_cfl);
+        const Scal sgn = (id % 2 == count_ / par.dim % 2 ? -1 : 1);
+        FieldFace<Scal> ffv(m, m.GetCellSize().prod() * sgn * par.sharpen_cfl);
         // zero flux on boundaries
         for (const auto& it : mfc_) {
           IdxFace f = it.GetIdx();
@@ -265,7 +265,7 @@ struct Vofm<M_>::Imp {
         }
         Sweep(
             mfcu, d, layers, ffv, fccl_, fcim_, fcn_, fca_, mfc_vf_, 3, nullptr,
-            nullptr, fcuu_, 1., par->clipth, m);
+            nullptr, fcuu_, 1., par.clipth, m);
       }
       CommRec(sem, mfcu, fccl_, fcim_);
     }
@@ -280,7 +280,7 @@ struct Vofm<M_>::Imp {
   }
   void AdvPlain(Sem& sem, const Multi<FieldCell<Scal>*>& mfcu, int type) {
     std::vector<size_t> dd; // sweep directions
-    if (par->dim == 3) { // 3d
+    if (par.dim == 3) { // 3d
       if (count_ % 3 == 0) {
         dd = {0, 1, 2};
       } else if (count_ % 3 == 1) {
@@ -300,7 +300,7 @@ struct Vofm<M_>::Imp {
       if (sem("sweep")) {
         Sweep(
             mfcu, d, layers, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, mfc_vf_,
-            type, nullptr, nullptr, fcuu_, owner_->GetTimeStep(), par->clipth,
+            type, nullptr, nullptr, fcuu_, owner_->GetTimeStep(), par.clipth,
             m);
       }
       CommRec(sem, mfcu, fccl_, fcim_);
@@ -512,7 +512,7 @@ struct Vofm<M_>::Imp {
     // directions, format: {dir EI, dir LE, ...}
     std::vector<size_t> dd;
     Scal vsc; // scaling factor for time step
-    if (par->dim == 3) { // 3d
+    if (par.dim == 3) { // 3d
       if (count_ % 3 == 0) {
         dd = {0, 1, 1, 2, 2, 0};
       } else if (count_ % 3 == 1) {
@@ -548,7 +548,7 @@ struct Vofm<M_>::Imp {
         Sweep(
             mfcu, d, layers, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, mfc_vf_,
             id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
-            owner_->GetTimeStep() * vsc, par->clipth, m);
+            owner_->GetTimeStep() * vsc, par.clipth, m);
       }
       CommRec(sem, mfcu, fccl_, fcim_);
     }
@@ -576,7 +576,7 @@ struct Vofm<M_>::Imp {
 
     using Scheme = typename Par::Scheme;
     Multi<FieldCell<Scal>*> mfcu = fcu_.iter_curr;
-    switch (par->scheme) {
+    switch (par.scheme) {
       case Scheme::plain:
         AdvPlain(sem, mfcu, 0);
         break;
@@ -588,11 +588,11 @@ struct Vofm<M_>::Imp {
         break;
     }
 
-    if (par->sharpen && sem.Nested("sharpen")) {
+    if (par.sharpen && sem.Nested("sharpen")) {
       Sharpen(mfcu);
     }
     if (sem("bcc_clear")) {
-      if (par->cloverride) {
+      if (par.cloverride) {
         for (auto i : layers) {
           UVof<M>::BcClearOverrideColor(
               fcu_.iter_curr[i], fccl_[i], 0., mfc_, m);
@@ -605,9 +605,9 @@ struct Vofm<M_>::Imp {
     }
     if (sem.Nested()) {
       uvof_.Recolor(
-          layers, fcu_.iter_curr, fccl_, fccl_, par->clfixed, par->clfixed_x,
-          par->coalth, mfc_cl_, par->verb, par->recolor_unionfind,
-          par->recolor_reduce, par->recolor_grid, m);
+          layers, fcu_.iter_curr, fccl_, fccl_, par.clfixed, par.clfixed_x,
+          par.coalth, mfc_cl_, par.verb, par.recolor_unionfind,
+          par.recolor_reduce, par.recolor_grid, m);
     }
 
     if (sem("sum")) {
@@ -673,7 +673,7 @@ struct Vofm<M_>::Imp {
   }
 
   Owner* owner_;
-  std::shared_ptr<Par> par;
+  Par par;
   M& m;
 
   StepData<Multi<FieldCell<Scal>>> fcu_;
@@ -711,7 +711,7 @@ template <class M_>
 Vofm<M_>::Vofm(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
     const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
-    const FieldCell<Scal>* fcs, double t, double dt, std::shared_ptr<Par> par)
+    const FieldCell<Scal>* fcs, double t, double dt, Par par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)
     , imp(new Imp(this, fcu, fccl, mfc, par)) {}
 
@@ -719,8 +719,13 @@ template <class M_>
 Vofm<M_>::~Vofm() = default;
 
 template <class M_>
-auto Vofm<M_>::GetPar() -> Par* {
-  return imp->par.get();
+auto Vofm<M_>::GetPar() const -> const Par& {
+  return imp->par;
+}
+
+template <class M_>
+void Vofm<M_>::SetPar(Par par) {
+  imp->par = par;
 }
 
 template <class M_>

@@ -15,7 +15,7 @@ struct Tvd<M_>::Imp {
   static constexpr size_t dim = M::dim;
 
   Imp(Tvd* owner, const FieldCell<Scal>& fcu,
-      const MapCondFaceAdvection<Scal>& mfc, std::shared_ptr<Par> par)
+      const MapCondFaceAdvection<Scal>& mfc, Par par)
       : owner_(owner), par(par), m(owner_->m), mfc_(mfc), fck_(m, 0) {
     fcu_.time_curr = fcu;
     for (auto it : mfc_) {
@@ -41,7 +41,7 @@ struct Tvd<M_>::Imp {
                   dt * fcs[c]; // source
       }
     }
-    for (size_t d = 0; d < (par->split ? dim : 1); ++d) {
+    for (size_t d = 0; d < (par.split ? dim : 1); ++d) {
       if (sem("adv")) {
         ffu_ = Interpolate(curr, mfc_vf_, m);
         fcg_ = Gradient(ffu_, m);
@@ -51,7 +51,7 @@ struct Tvd<M_>::Imp {
           ffvu_[f] *= (*owner_->ffv_)[f];
         }
 
-        if (par->split) {
+        if (par.split) {
           // Filter volume flux in one direction
           Vect vd(0);
           vd[d] = 1.;
@@ -77,7 +77,7 @@ struct Tvd<M_>::Imp {
     }
 
     // Interface sharpening
-    if (std::abs(par->sharp) != 0. && sem("sharp")) {
+    if (std::abs(par.sharp) != 0. && sem("sharp")) {
       auto& ac = fcu_.iter_curr;
 
       auto& af = sharp_af_;
@@ -86,8 +86,8 @@ struct Tvd<M_>::Imp {
       af = Interpolate(ac, mfc_vf_, m);
       gc = Gradient(af, m);
       gf = Interpolate(gc, mfvz_, m);
-      const Scal kc = par->sharp;
-      const Scal kd = par->sharp * par->sharpo;
+      const Scal kc = par.sharp;
+      const Scal kd = par.sharp * par.sharpo;
 
       for (auto f : m.Faces()) {
         const Vect g = gf[f]; // gradient on face
@@ -151,7 +151,7 @@ struct Tvd<M_>::Imp {
   }
 
   Tvd* owner_;
-  std::shared_ptr<Par> par;
+  Par par;
   M& m;
 
   // TODO: revise tmp fields
@@ -178,7 +178,7 @@ template <class M_>
 Tvd<M_>::Tvd(
     M& m, const FieldCell<Scal>& fcu, const MapCondFaceAdvection<Scal>& mfc,
     const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs, double t, double dt,
-    std::shared_ptr<Par> par)
+    Par par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)
     , imp(new Imp(this, fcu, mfc, par)) {}
 
@@ -186,8 +186,13 @@ template <class M_>
 Tvd<M_>::~Tvd() = default;
 
 template <class M_>
-auto Tvd<M_>::GetPar() -> Par* {
-  return imp->par.get();
+auto Tvd<M_>::GetPar() const -> const Par& {
+  return imp->par;
+}
+
+template <class M_>
+void Tvd<M_>::SetPar(Par par) {
+  imp->par = par;
 }
 
 template <class M_>

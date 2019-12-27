@@ -3,9 +3,10 @@
 #include <string>
 
 #include "parse/vars.h"
+#include "solver/vof.h"
 
-template <class M, class Vof>
-void Parse(typename Vof::Par* p, const Vars& var) {
+template <class M>
+void Parse(typename Vof<M>::Par* p, const Vars& var) {
   using Vect = typename M::Vect;
   p->verb = var.Int["vof_verb"];
   p->recolor_unionfind = var.Int["vof_recolor_unionfind"];
@@ -28,7 +29,7 @@ void Parse(typename Vof::Par* p, const Vars& var) {
   p->layers = var.Int["vofm_layers"];
   p->coalth = var.Double["vofm_coalth"];
 
-  using Par = typename Vof::Par;
+  using Par = typename Vof<M>::Par;
   {
     using Scheme = typename Par::Scheme;
     std::string s = var.String["vof_scheme"];
