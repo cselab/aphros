@@ -20,3 +20,8 @@ The configuration is based on Google code style with modifications.
 :linkpath:`.clang-format`
 
 .. includecode:: .clang-format
+
+Source
+------
+
+:linkpath:`tool/format`

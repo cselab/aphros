@@ -18,5 +18,8 @@ Examples
    seq 10 | ap-hist --density
    seq 10 | ap-hist --cumulative
 
-.. linkpath:: tool/hist
 
+Source
+------
+
+:linkpath:`tool/hist`
