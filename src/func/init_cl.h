@@ -21,7 +21,7 @@
 template <class M>
 std::function<void(
     FieldCell<typename M::Scal>&, const FieldCell<typename M::Scal>&, const M&)>
-CreateInitCl(const Vars& par, bool verb = true) {
+CreateInitCl(const Vars& par, bool verb) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   static constexpr Scal kClNone = -1.; // no color
