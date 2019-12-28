@@ -182,6 +182,14 @@ FieldCell<T> Average(const FieldFace<T>& ff, const M& m);
 template <class T, class M>
 void Smoothen(FieldCell<T>& fc, const MapCondFace& mfc, M& m, size_t rep);
 
+// Smoothens fieldcell with node-based averaging.
+// fc: fieldcell [s]
+// rep: number of iterations
+// Output:
+// fc: smooth field [s]
+template <class T, class M>
+void SmoothenNode(FieldCell<T>& fc, M& m, size_t rep);
+
 // Returns gradient.
 // ff: scalar fieldface [s]
 // Output:
