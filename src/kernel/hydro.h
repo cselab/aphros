@@ -22,7 +22,6 @@
 #include "debug/isnan.h"
 #include "dump/dumper.h"
 #include "dump/output.h"
-#include "func/init_sig.h"
 #include "func/init.h"
 #include "geom/mesh.h"
 #include "kernelmesh.h"
