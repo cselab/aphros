@@ -68,9 +68,23 @@ class Embed {
   Scal GetCellVolume(IdxCell c) const {
     return fcv_[c];
   }
+  static Scal GetArea(Vect xa, Vect xb, Vect xc) {
+    return (xc - xa).cross(xb - xa).norm() * 0.5;
+  }
+  static Vect GetBaryCenter(const std::vector<Vect>& xx) {
+    Vect sum(0);
+    Scal suma = 0;
+    for (size_t i = 2; i < xx.size(); ++i) {
+      const Scal a = GetArea(xx[0], xx[i - 1], xx[i]);
+      const Vect x = (xx[0] + xx[i - 1] + xx[i]) / 3.;
+      sum += x * a;
+      suma += a;
+    }
+    return sum / suma;
+  }
   Vect GetFaceCenter(IdxCell c) const {
     if (fct_[c] == Type::cut) {
-      return R::GetCenter(
+      return GetBaryCenter(
           R::GetCutPoly(m.GetCenter(c), fcn_[c], fca_[c], m.GetCellSize()));
     }
     return GetNan<Vect>();
@@ -80,7 +94,7 @@ class Embed {
       case Type::regular:
         return m.GetCenter(f);
       case Type::cut:
-        return R::GetCenter(ffpoly_[f]);
+        return GetBaryCenter(ffpoly_[f]);
       default:
         return GetNan<Vect>();
     }
@@ -330,7 +344,7 @@ class Embed {
         fcs[c] = std::abs(R::GetArea(xx, fcn[c]));
 
         // normal distance from center to face
-        auto xc = R::GetCenter(xx);
+        auto xc = GetBaryCenter(xx);
         fcd[c] = (xc - m.GetCenter(c)).dot(fcn[c]);
         // cut cell volume
         fcv[c] = R::GetLineU(fcn[c], fca[c], h) * m.GetVolume(c);
