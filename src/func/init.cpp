@@ -1,7 +1,8 @@
 #include "init.h"
-#include "init_u.h"
-#include "init_cl.h"
 #include "geom/mesh.h"
+#include "init_cl.h"
+#include "init_sig.h"
+#include "init_u.h"
 
 using M = MeshStructured<double, 3>;
 
@@ -13,3 +14,6 @@ CreateInitCl(const Vars& par, bool verb);
 
 template std::function<void(FieldCell<typename M::Scal>&, const M&)>
 CreateInitU(const Vars& par, bool verb);
+
+template std::function<void(FieldCell<typename M::Scal>&, const M&)>
+CreateInitSig(const Vars& var);
