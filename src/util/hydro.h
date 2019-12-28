@@ -5,6 +5,7 @@
 #include "solver/convdiff.h"
 #include "solver/convdiffv.h"
 #include "solver/fluid.h"
+#include "solver/multi.h"
 
 // Returns field with the type (index)
 // of boundary conditions in an adjacent face:
@@ -84,3 +85,14 @@ template <class M, class Vect = typename M::Vect>
 void InitVort(
     const FieldCell<Vect>& fcvort, FieldCell<Vect>& fcvel,
     const MapCondFaceFluid& mf_fluid, bool verb, M& m);
+
+template <class M>
+void DumpTraj(
+    M& m, bool dm, const Vars& var, size_t frame, typename M::Scal t,
+    const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename M::Scal>*>& fcvf,
+    const Multi<const FieldCell<typename M::Scal>*>& fccl,
+    const Multi<const FieldCell<typename M::MIdx>*>& fcim,
+    const FieldCell<typename M::Scal>& fcp,
+    const FieldCell<typename M::Vect>& fcvel,
+    const FieldCell<typename M::Vect>& fcvelm, typename M::Scal dt);
