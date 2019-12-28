@@ -15,7 +15,7 @@ target_link_libraries(${T} convdiffvg)
 
 set(T "utilvof")
 add_library(${T} vof.cpp)
-target_link_libraries(${T} march)
+target_link_libraries(${T} march approx)
 
 set(T "events")
 add_library(${T} events.cpp)
