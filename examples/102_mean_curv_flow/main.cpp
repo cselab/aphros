@@ -8,7 +8,7 @@
 #include <distr/distrbasic.h>
 #include <solver/vofm.h>
 #include <debug/isnan.h>
-#include <func/init_u.h>
+#include <func/init.h>
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
