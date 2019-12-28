@@ -1,22 +1,23 @@
 #pragma once
 
 #include <functional>
+#include <iomanip>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
 
+#include "convdiff.h"
+#include "dump/dumper.h"
 #include "dump/vtk.h"
 #include "func/init_u.h"
 #include "func/primlist.h"
-#include "hydro.h"
 #include "parse/util.h"
-#include "parse/vars.h"
-#include "solver/advection.h"
 #include "solver/approx.h"
 #include "solver/cond.h"
-#include "solver/fluid.h"
 #include "solver/pois.h"
-#include "util/convdiff.h"
+#include "solver/sphavg.h"
+
+#include "hydro.h"
 
 using namespace fluid_condition;
 
@@ -1245,5 +1246,248 @@ void InitVort(
   if (sem("vel")) {
     fcvel = GetVort(ctx->fcpot, ctx->mfcw, m);
     m.Comm(&fcvel);
+  }
+}
+
+template <class M>
+void DumpTraj(
+    M& m, bool dm, const Vars& var, size_t frame, typename M::Scal t,
+    const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename M::Scal>*>& fcvf,
+    const Multi<const FieldCell<typename M::Scal>*>& fccl,
+    const Multi<const FieldCell<typename M::MIdx>*>& fcim,
+    const FieldCell<typename M::Scal>& fcp,
+    const FieldCell<typename M::Vect>& fcvel,
+    const FieldCell<typename M::Vect>& fcvelm, typename M::Scal dt) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  using SA = Sphavg<M>; // spherical averages
+  constexpr Scal kClNone = -1;
+
+  auto sem = m.GetSem("dumptraj");
+  struct {
+    std::vector<std::string> names; // color reduce: variable name
+    std::vector<Scal> colors; // color reduce: cl
+    std::vector<std::vector<Scal>> values; // color reduce: vector
+    std::unique_ptr<SA> sphavg; // spherical averages
+    using Sph = typename SA::Sph;
+    std::vector<Sph> vsph;
+  } * ctx(sem);
+  auto& names = ctx->names;
+  auto& colors = ctx->colors;
+  auto& values = ctx->values;
+  auto& sphavg = ctx->sphavg;
+  auto& vsph = ctx->vsph;
+  if (sem("color-calc")) {
+    std::map<Scal, std::vector<Scal>> mp; // map color to vector
+    Vect gh = m.GetGlobalLength(); // global domain length
+
+    // add scalar name
+    auto nma = [&](const std::string nm) { names.push_back(nm); };
+    // add vector name
+    auto nmav = [&](const std::string nm) {
+      names.push_back(nm + "x");
+      names.push_back(nm + "y");
+      names.push_back(nm + "z");
+    };
+
+    // XXX: adhoc, the following order assumed in post: vs,r,x,y,z,...
+
+    // list of vars // TODO: revise
+    names.clear();
+    nma("vf");
+    nma("r");
+    nmav("");
+    nmav("v");
+    nma("p");
+    nma("xx");
+    nma("xy");
+    nma("xz");
+    nma("yy");
+    nma("yz");
+    nma("zz");
+
+    // traverse cells, append to mp
+    for (auto c : m.Cells()) {
+      for (auto l : layers) {
+        auto cl = (*fccl[l])[c];
+        if (cl != kClNone) {
+          auto& v = mp[cl]; // vector for data
+          auto x = m.GetCenter(c); // cell center
+          x += Vect((*fcim[l])[c]) * gh; // translation by image vector
+          auto w = (*fcvf[l])[c] * m.GetVolume(c); // volume
+
+          size_t i = 0;
+          // append scalar value
+          auto add = [&v, &i](Scal a) {
+            if (i >= v.size()) {
+              v.resize(i + 1);
+            }
+            v[i] += a;
+            ++i;
+          };
+          // append vector value
+          auto addv = [&](Vect a) {
+            add(a[0]);
+            add(a[1]);
+            add(a[2]);
+          };
+
+          // list of vars, XXX: keep consistent with names
+          add(w); // vf,  XXX: adhoc, vf must be first, divided on dump
+          add(0.); // r,  XXX: adhoc, r must be second, computed on dump
+          addv(x * w); // x
+          addv(fcvel[c] * w); // velocity
+          add(fcp[c] * w); // pressure
+          add(x[0] * x[0] * w); // xx
+          add(x[0] * x[1] * w); // xy
+          add(x[0] * x[2] * w); // xz
+          add(x[1] * x[1] * w); // yy
+          add(x[1] * x[2] * w); // yz
+          add(x[2] * x[2] * w); // zz
+        }
+      }
+    }
+    // copy to vector
+    colors.clear();
+    values.clear();
+    for (auto it : mp) {
+      colors.push_back(it.first); // color
+      values.push_back(it.second); // vector
+    }
+    using TS = typename M::template OpCatT<Scal>;
+    using TVS = typename M::template OpCatVT<Scal>;
+    m.Reduce(std::make_shared<TS>(&colors));
+    m.Reduce(std::make_shared<TVS>(&values));
+  }
+  if (sem("color-post")) {
+    if (m.IsRoot()) {
+      // root has concatenation of all colors and values
+      if (colors.size() != values.size()) {
+        throw std::runtime_error(
+            "color-reduce: colors.size() != values.size()");
+      }
+
+      std::map<Scal, std::vector<Scal>> clmp;
+      // reduce to map
+      for (size_t k = 0; k < colors.size(); ++k) {
+        auto cl = colors[k];
+        auto& v = values[k];
+        auto& vm = clmp[cl];
+        vm.resize(v.size(), 0.);
+        for (size_t i = 0; i < v.size(); ++i) {
+          vm[i] += v[i];
+        }
+      }
+
+      // divide by vf
+      for (auto& it : clmp) {
+        auto& v = it.second;
+        Scal vf = v[0]; // XXX: assume vf is first
+        Scal pi = M_PI;
+        // XXX: assume r is second
+        v[1] = std::pow(3. / (4. * pi) * vf, 1. / 3.);
+        // divide remaining by vf
+        for (size_t i = 2; i < v.size(); ++i) {
+          v[i] /= vf;
+        }
+      }
+
+      colors.clear();
+      values.clear();
+      for (auto& it : clmp) {
+        colors.push_back(it.first);
+        values.push_back(it.second);
+      }
+    }
+
+    using TS = typename M::template OpCatT<Scal>;
+    using TVS = typename M::template OpCatVT<Scal>;
+    m.Bcast(std::make_shared<TS>(&colors));
+    m.Bcast(std::make_shared<TVS>(&values));
+  }
+  if (sem("sphavg-init")) {
+    if (var.Int["enable_shell"]) {
+      sphavg.reset(new SA(m, var.Int["dim"]));
+    }
+  }
+  if (sphavg && sem("sphavg-sph")) {
+    const Scal shrr = var.Double["shell_rr"]; // shell inner radius relative
+                                              // to equivalent radius
+    const Scal shr = var.Double["shell_r"]; // shell inner radius absolute
+    // shell total radius: rr * req + r
+    const Scal shh = var.Double["shell_h"]; // shell thickness relative to h
+    auto h = m.GetCellSize();
+
+    vsph.clear();
+    for (auto& s : values) {
+      // XXX: adhoc, assume vf,r,x,y,z in values
+      Vect x(s[2], s[3], s[4]);
+      Scal r = s[1] * shrr + shr;
+      vsph.emplace_back(x, r, h[0] * shh);
+    }
+  }
+  if (sphavg && sem.Nested("sphavg-update")) {
+    sphavg->Update(*fcvf[0], fcvel, fcvelm, dt, fcp, vsph);
+  }
+  if (sem("color-dump") && dm) {
+    if (m.IsRoot()) {
+      std::string s = GetDumpName("traj", ".csv", frame);
+      std::cout << std::fixed << std::setprecision(8) << "dump"
+                << " t=" << t << " to " << s << std::endl;
+      std::ofstream o;
+      o.open(s);
+      o.precision(20);
+      // header
+      {
+        o << "cl";
+        for (size_t i = 0; i < names.size(); ++i) {
+          o << "," << names[i];
+        }
+        o << std::endl;
+      }
+      // content
+      for (size_t i = 0; i < colors.size(); ++i) {
+        o << colors[i];
+        for (auto v : values[i]) {
+          o << "," << v;
+        }
+        o << "\n";
+      }
+    }
+    if (sphavg) {
+      if (m.IsRoot()) {
+        std::string s = GetDumpName("trajsh", ".csv", frame);
+        std::cout << std::fixed << std::setprecision(8) << "dump"
+                  << " t=" << t << " to " << s << std::endl;
+        std::ofstream o;
+        o.open(s);
+        o.precision(20);
+        // header
+        {
+          auto nn = sphavg->GetNames();
+          o << "cl";
+          for (auto n : nn) {
+            o << "," << n;
+          }
+          o << std::endl;
+        }
+        // content
+        auto cl = colors;
+        auto av = sphavg->GetAvg();
+        if (cl.size() != av.size()) {
+          throw std::runtime_error(
+              "trajsh: cl.size()=" + std::to_string(cl.size()) +
+              " != av.size()=" + std::to_string(av.size()));
+        }
+        for (size_t i = 0; i < cl.size(); ++i) {
+          o << cl[i];
+          for (auto& a : av[i].SerOut()) {
+            o << "," << a;
+          }
+          o << "\n";
+        }
+      }
+    }
   }
 }

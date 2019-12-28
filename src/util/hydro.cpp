@@ -3,6 +3,7 @@
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
+using MIdx = typename M::MIdx;
 
 template FieldCell<Scal> GetBcField(MapCondFaceFluid& mf, const M& m);
 
@@ -31,3 +32,13 @@ template void DumpBcFaces(
 template void InitVort(
     const FieldCell<Vect>& fcvort, FieldCell<Vect>& fcvel,
     const MapCondFaceFluid& mf_fluid, bool verb, M& m);
+
+template void DumpTraj(
+    M& m, bool dm, const Vars& var, size_t frame, typename M::Scal t,
+    const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename M::Scal>*>& fcvf,
+    const Multi<const FieldCell<typename M::Scal>*>& fccl,
+    const Multi<const FieldCell<typename M::MIdx>*>& fcim,
+    const FieldCell<typename M::Scal>& fcp,
+    const FieldCell<typename M::Vect>& fcvel,
+    const FieldCell<typename M::Vect>& fcvelm, typename M::Scal dt);
