@@ -92,8 +92,14 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void CalcMixture(const FieldCell<Scal>& vf);
   // fcvf: volume fraction on cells [a]
   // ffvfsm: smoothed volume fraction on faces [a]
-  void CalcSurfaceTension(
-      const FieldCell<Scal>& fcvf, const FieldFace<Scal>& ffvfsm);
+  static void CalcSurfaceTension(
+      const M& m, const GRange<size_t>& layers, const Vars& var,
+      FieldCell<typename M::Vect>& fc_force,
+      FieldFace<typename M::Scal>& ff_force,
+      const FieldCell<typename M::Scal>& fc_sig, const MapCondFace& mf_sig,
+      const Multi<const FieldCell<Scal>*> fck,
+      const FieldCell<typename M::Scal>& fcvf,
+      const FieldFace<typename M::Scal>& ffvfsm, const AdvectionSolver<M>* as);
   // Clips v to given range, uses const_cast
   void Clip(const FieldCell<Scal>& v, Scal min, Scal max);
   void CalcStat();
@@ -250,7 +256,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Scal diff_; // convergence indicator
 
   FieldCell<Scal> fc_sig_; // surface tension sigma
-  FieldFace<Scal> ff_sig_; // surface tension sigma
 
   FieldCell<Vect> fcvm_; // velocity field time_prev // TODO: revise
 
@@ -1225,13 +1230,28 @@ void Hydro<M>::CalcDt() {
   }
 }
 
+// fc_force: force field to append
+// ff_force: face force field to append
+// fc_sig: surface tension coefficient
+// mf_sig: boundary conditions for fc_sig
+// fck: curvature
+// fcvf: volume fraction
+// ffvfsm: smoothed volume fraction
 template <class M>
 void Hydro<M>::CalcSurfaceTension(
-    const FieldCell<Scal>& fcvf, const FieldFace<Scal>& ffvfsm) {
+    const M& m, const GRange<size_t>& layers, const Vars& var,
+    FieldCell<typename M::Vect>& fc_force,
+    FieldFace<typename M::Scal>& ff_force,
+    const FieldCell<typename M::Scal>& fc_sig, const MapCondFace& mf_sig,
+    const Multi<const FieldCell<Scal>*> fck,
+    const FieldCell<typename M::Scal>& fcvf,
+    const FieldFace<typename M::Scal>& ffvfsm, const AdvectionSolver<M>* asb) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
   // volume fration gradient on cells
-  FieldCell<Vect> gc = Gradient(ffvfsm, m); // [s]
+  const FieldCell<Vect> gc = Gradient(ffvfsm, m); // [s]
   // volume fration gradient on faces
-  FieldFace<Vect> gf = Interpolate(gc, GetBcVz(), m); // [i]
+  const FieldFace<Vect> gf = Interpolate(gc, mf_sig, m); // [i]
 
   auto st = var.String["surftens"];
   if (st == "div") { // divergence of tensor (Hu,Adam 2001)
@@ -1248,22 +1268,21 @@ void Hydro<M>::CalcSurfaceTension(
       }
       r /= m.GetVolume(c);
       // here: r = stdiag*div(|g|I) - div(g g/|g|)
-      fc_force_[c] += r * fc_sig_[c];
+      fc_force[c] += r * fc_sig[c];
     }
   } else if (st == "kn") { // curvature * normal
     FieldFace<Scal> ff_st(m, 0.); // surface tension projections
+    const FieldFace<Scal> ff_sig = Interpolate(fc_sig, mf_sig, m);
 
-    ff_sig_ = Interpolate(fc_sig_, GetBcSz(), m);
-
-    if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+    if (auto as = dynamic_cast<const ASVM*>(asb)) {
       AppendSurfaceTension(
-          m, ff_st, layers, as->GetFieldM(), as->GetColor(), fck_, ff_sig_);
-    } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
-      AppendSurfaceTension(m, ff_st, as_->GetField(), fck_[0], ff_sig_);
+          m, ff_st, layers, as->GetFieldM(), as->GetColor(), fck, ff_sig);
+    } else if (auto as = dynamic_cast<const ASV*>(asb)) {
+      AppendSurfaceTension(m, ff_st, as->GetField(), *fck[0], ff_sig);
     }
 
     // zero on boundaries
-    for (auto it : mf_fluid_) {
+    for (auto it : mf_sig) {
       IdxFace f = it.GetIdx();
       ff_st[f] = 0.;
     }
@@ -1282,17 +1301,17 @@ void Hydro<M>::CalcSurfaceTension(
 
     // Append to force
     for (auto f : m.Faces()) {
-      ffbp_[f] += ff_st[f];
+      ff_force[f] += ff_st[f];
     }
 
     // Append Marangoni stress
     if (var.Int["marangoni"]) {
-      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+      if (auto as = dynamic_cast<const ASVM*>(asb)) {
         using R = Reconst<Scal>;
-        auto fc_gsig = Gradient(ff_sig_, m);
-        auto& fcn = *as->GetNormal()[0];
-        auto& fca = *as->GetAlpha()[0];
-        Vect h = m.GetCellSize();
+        const auto fc_gsig = Gradient(ff_sig, m);
+        const auto& fcn = *as->GetNormal()[0];
+        const auto& fca = *as->GetAlpha()[0];
+        const Vect h = m.GetCellSize();
         for (auto c : m.Cells()) {
           if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {
             Vect g = fc_gsig[c]; // sigma gradient
@@ -1301,7 +1320,7 @@ void Hydro<M>::CalcSurfaceTension(
             auto xx = R::GetCutPoly2(fcn[c], fca[c], h);
             Scal ar = std::abs(R::GetArea(xx, fcn[c]));
             Scal vol = h.prod();
-            fc_force_[c] += gt * (ar / vol);
+            fc_force[c] += gt * (ar / vol);
           }
         }
       }
@@ -1408,7 +1427,9 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 
     // Surface tension
     if (var.Int["enable_surftens"] && as_) {
-      CalcSurfaceTension(fc_vf0, af);
+      CalcSurfaceTension(
+          m, layers, var, fc_force_, ffbp_, fc_sig_, GetBcSz(), fck_, fc_vf0,
+          af, as_.get());
     }
 
     // vortex force
