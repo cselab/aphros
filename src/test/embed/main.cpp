@@ -105,9 +105,10 @@ void KernelEmbed<M>::Run() {
     }
   }
   for (size_t t = 0; t < 50; ++t) {
+    auto& eb = *eb_;
     if (sem("step")) {
       using Type = typename EB::Type;
-      const auto& fct = eb_->GetCellType();
+      const auto& fct = eb.GetCellType();
       const Scal a = 1.; // value on boundary
       const Vect vel(1., 0., 0.); // advection velocity
       const Scal dt = 0.1 * m.GetCellSize()[0] / vel.norm();
@@ -119,11 +120,11 @@ void KernelEmbed<M>::Run() {
             const IdxFace f = m.GetFace(c, q);
             const Scal u = fcum_[m.GetCell(f, 0)];
             s += u * vel.dot(
-                         m.GetNormal(f) * eb_->GetFaceArea()[f] *
+                         m.GetNormal(f) * eb.GetFaceArea()[f] *
                          m.GetOutwardFactor(c, q));
           }
-          s += a * (eb_->GetNormal()[c] * eb_->GetCellArea()[c]).dot(vel);
-          fcu_[c] = fcum_[c] - s / eb_->GetCellVolume()[c] * dt;
+          s += a * (eb.GetNormal()[c] * eb.GetCellArea()[c]).dot(vel);
+          fcu_[c] = fcum_[c] - s / eb.GetCellVolume()[c] * dt;
         } else if (fct[c] == Type::regular) {
           Scal s = 0;
           for (auto q : m.Nci(c)) {
@@ -136,9 +137,12 @@ void KernelEmbed<M>::Run() {
       }
       m.Dump(&fcu_, "u");
       m.Dump(&fct_, "type");
-      m.Dump(&eb_->GetNormal(), 0, "nx");
-      m.Dump(&eb_->GetNormal(), 1, "ny");
-      m.Dump(&eb_->GetNormal(), 2, "nz");
+      m.Dump(&eb.GetNormal(), 0, "nx");
+      m.Dump(&eb.GetNormal(), 1, "ny");
+      m.Dump(&eb.GetNormal(), 2, "nz");
+
+      FieldEmbed<Scal> feu(m, 3);
+      fcu_ = eb.Interpolate(feu);
     }
   }
   if (sem()) {
