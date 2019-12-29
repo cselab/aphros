@@ -1,2 +1,2 @@
-w=287
-convert fig6.png -crop ${w}x${w}+0+0 +repage a.png
+w=398
+convert F6.large.jpg -crop ${w}x${w}+4+4 +repage a.png
