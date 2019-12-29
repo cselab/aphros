@@ -1491,3 +1491,75 @@ void DumpTraj(
     }
   }
 }
+
+// ffst: force projections to append
+// fcu: volume fraction
+// fck: curvature
+// ffsig: surface tension coefficient
+template <class M>
+void AppendSurfaceTension(
+    const M& m, FieldFace<typename M::Scal>& ffst,
+    const FieldCell<typename M::Scal>& fcu,
+    const FieldCell<typename M::Scal>& fck,
+    const FieldFace<typename M::Scal>& ffsig) {
+  using Scal = typename M::Scal;
+  for (auto f : m.Faces()) {
+    IdxCell cm = m.GetCell(f, 0);
+    IdxCell cp = m.GetCell(f, 1);
+    Scal um = fcu[cm];
+    Scal up = fcu[cp];
+    Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? fck[cm] : fck[cp]);
+    Scal hi = m.GetArea(f) / m.GetVolume(cp);
+    Scal ga = (up - um) * hi;
+    if (ga != 0.) {
+      k = (IsNan(k) ? 0 : k);
+      ffst[f] += ga * k * ffsig[f];
+    }
+  }
+}
+
+template <class M>
+void AppendSurfaceTension(
+    const M& m, FieldFace<typename M::Scal>& ffst, const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename M::Scal>*> fcu,
+    const Multi<const FieldCell<typename M::Scal>*> fccl,
+    const Multi<const FieldCell<typename M::Scal>*> fck,
+    const FieldFace<typename M::Scal>& ffsig) {
+  using Scal = typename M::Scal;
+  constexpr Scal kClNone = -1;
+  for (auto f : m.Faces()) {
+    IdxCell cm = m.GetCell(f, 0);
+    IdxCell cp = m.GetCell(f, 1);
+    std::set<Scal> s;
+    for (auto i : layers) {
+      Scal clm = (*fccl[i])[cm];
+      Scal clp = (*fccl[i])[cp];
+      if (clm != kClNone) s.insert(clm);
+      if (clp != kClNone) s.insert(clp);
+    }
+    for (auto cl : s) {
+      Scal um = 0;
+      Scal up = 0;
+      Scal km = 0;
+      Scal kp = 0;
+      for (auto i : layers) {
+        if ((*fccl[i])[cm] == cl) {
+          um = (*fcu[i])[cm];
+          km = (*fck[i])[cm];
+        }
+        if ((*fccl[i])[cp] == cl) {
+          up = (*fcu[i])[cp];
+          kp = (*fck[i])[cp];
+        }
+      }
+      Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
+      Scal hi = m.GetArea(f) / m.GetVolume(cp);
+      Scal ga = (up - um) * hi;
+      if (ga != 0.) {
+        k = (IsNan(k) ? 0 : k);
+        ffst[f] += ga * k * ffsig[f];
+      }
+    }
+  }
+}
+

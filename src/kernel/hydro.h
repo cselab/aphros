@@ -94,18 +94,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   // ffvfsm: smoothed volume fraction on faces [a]
   void CalcSurfaceTension(
       const FieldCell<Scal>& fcvf, const FieldFace<Scal>& ffvfsm);
-  // ffst: force projections to append
-  // fcu: volume fraction
-  // fck: curvature
-  // ffsig: surface tension coefficient
-  void AppendSurfaceTension(
-      FieldFace<Scal>& ffst, const FieldCell<Scal>& fcu,
-      const FieldCell<Scal>& fck, const FieldFace<Scal>& ffsig);
-  void AppendSurfaceTension(
-      FieldFace<Scal>& ffst, const GRange<size_t>& layers,
-      const Multi<const FieldCell<Scal>*> fcu,
-      const Multi<const FieldCell<Scal>*> fccl,
-      const Multi<const FieldCell<Scal>*> fck, const FieldFace<Scal>& ffsig);
   // Clips v to given range, uses const_cast
   void Clip(const FieldCell<Scal>& v, Scal min, Scal max);
   void CalcStat();
@@ -1238,67 +1226,6 @@ void Hydro<M>::CalcDt() {
 }
 
 template <class M>
-void Hydro<M>::AppendSurfaceTension(
-    FieldFace<Scal>& ffst, const FieldCell<Scal>& fcu,
-    const FieldCell<Scal>& fck, const FieldFace<Scal>& ffsig) {
-  for (auto f : m.Faces()) {
-    IdxCell cm = m.GetCell(f, 0);
-    IdxCell cp = m.GetCell(f, 1);
-    Scal um = fcu[cm];
-    Scal up = fcu[cp];
-    Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? fck[cm] : fck[cp]);
-    Scal hi = m.GetArea(f) / m.GetVolume(cp);
-    Scal ga = (up - um) * hi;
-    if (ga != 0.) {
-      k = (IsNan(k) ? 0 : k);
-      ffst[f] += ga * k * ffsig[f];
-    }
-  }
-}
-
-template <class M>
-void Hydro<M>::AppendSurfaceTension(
-    FieldFace<Scal>& ffst, const GRange<size_t>& layers,
-    const Multi<const FieldCell<Scal>*> fcu,
-    const Multi<const FieldCell<Scal>*> fccl,
-    const Multi<const FieldCell<Scal>*> fck, const FieldFace<Scal>& ffsig) {
-  for (auto f : m.Faces()) {
-    IdxCell cm = m.GetCell(f, 0);
-    IdxCell cp = m.GetCell(f, 1);
-    std::set<Scal> s;
-    for (auto i : layers) {
-      Scal clm = (*fccl[i])[cm];
-      Scal clp = (*fccl[i])[cp];
-      if (clm != kClNone) s.insert(clm);
-      if (clp != kClNone) s.insert(clp);
-    }
-    for (auto cl : s) {
-      Scal um = 0;
-      Scal up = 0;
-      Scal km = 0;
-      Scal kp = 0;
-      for (auto i : layers) {
-        if ((*fccl[i])[cm] == cl) {
-          um = (*fcu[i])[cm];
-          km = (*fck[i])[cm];
-        }
-        if ((*fccl[i])[cp] == cl) {
-          up = (*fcu[i])[cp];
-          kp = (*fck[i])[cp];
-        }
-      }
-      Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
-      Scal hi = m.GetArea(f) / m.GetVolume(cp);
-      Scal ga = (up - um) * hi;
-      if (ga != 0.) {
-        k = (IsNan(k) ? 0 : k);
-        ffst[f] += ga * k * ffsig[f];
-      }
-    }
-  }
-}
-
-template <class M>
 void Hydro<M>::CalcSurfaceTension(
     const FieldCell<Scal>& fcvf, const FieldFace<Scal>& ffvfsm) {
   // volume fration gradient on cells
@@ -1330,9 +1257,9 @@ void Hydro<M>::CalcSurfaceTension(
 
     if (auto as = dynamic_cast<ASVM*>(as_.get())) {
       AppendSurfaceTension(
-          ff_st, layers, as->GetFieldM(), as->GetColor(), fck_, ff_sig_);
+          m, ff_st, layers, as->GetFieldM(), as->GetColor(), fck_, ff_sig_);
     } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
-      AppendSurfaceTension(ff_st, as_->GetField(), fck_[0], ff_sig_);
+      AppendSurfaceTension(m, ff_st, as_->GetField(), fck_[0], ff_sig_);
     }
 
     // zero on boundaries

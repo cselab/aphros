@@ -42,3 +42,16 @@ template void DumpTraj(
     const FieldCell<typename M::Scal>& fcp,
     const FieldCell<typename M::Vect>& fcvel,
     const FieldCell<typename M::Vect>& fcvelm, typename M::Scal dt);
+
+template void AppendSurfaceTension(
+    const M& m, FieldFace<typename M::Scal>& ffst,
+    const FieldCell<typename M::Scal>& fcu,
+    const FieldCell<typename M::Scal>& fck,
+    const FieldFace<typename M::Scal>& ffsig);
+
+template void AppendSurfaceTension(
+    const M& m, FieldFace<typename M::Scal>& ffst, const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename M::Scal>*> fcu,
+    const Multi<const FieldCell<typename M::Scal>*> fccl,
+    const Multi<const FieldCell<typename M::Scal>*> fck,
+    const FieldFace<typename M::Scal>& ffsig);
