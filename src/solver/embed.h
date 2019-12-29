@@ -6,6 +6,60 @@
 #include "reconst.h"
 #include "solver.h"
 
+template <class T>
+class FieldEmbed {
+ public:
+  using Value = T;
+
+  FieldEmbed() = default;
+  FieldEmbed(const FieldEmbed&) = default;
+  FieldEmbed(FieldEmbed&&) = default;
+  FieldEmbed& operator=(const FieldEmbed& o) = default;
+  FieldEmbed& operator=(FieldEmbed&& o) = default;
+  template <class M>
+  explicit FieldEmbed(const M& m) : dc_(m), df_(m) {}
+  template <class M>
+  explicit FieldEmbed(const M& m, const Value& v) : dc_(m, v), df_(m, v) {}
+  template <class M>
+  void Reinit(const M& m) {
+    dc_.Reinit(m);
+    df_.Reinit(m);
+  }
+  template <class M>
+  void Reinit(const M& m, const Value& v) {
+    dc_.Reinit(m, v);
+    df_.Reinit(m, v);
+  }
+  Value& operator[](IdxCell c) {
+    return dc_[c];
+  }
+  const Value& operator[](IdxCell c) const {
+    return dc_[c];
+  }
+  Value& operator[](IdxFace f) {
+    return df_[f];
+  }
+  const Value& operator[](IdxFace f) const {
+    return df_[f];
+  }
+  FieldCell<Value>& GetFieldCell() {
+    return dc_;
+  }
+  const FieldCell<Value>& GetFieldCell() const {
+    return dc_;
+  }
+  FieldFace<Value>& GetFieldFace() {
+    return df_;
+  }
+  const FieldFace<Value>& GetFieldFace() const {
+    return df_;
+  }
+
+ private:
+  FieldCell<Value> dc_;
+  FieldFace<Value> df_;
+};
+
 // Embedded boundaries.
 template <class M_>
 class Embed {
@@ -54,7 +108,7 @@ class Embed {
     return (GetFaceCenter(f) - GetCellCenter(c)).dot(m.GetNormal(f));
   }
   Scal GetFaceOffset(IdxCell c) const {
-    return (GetFaceCenter(c) - GetCellCenter(c)).dot(m.GetNormal(c));
+    return (GetFaceCenter(c) - GetCellCenter(c)).dot(GetNormal(c));
   }
   const FieldCell<Scal>& GetCellOffset() const {
     return fcd_;
@@ -123,11 +177,11 @@ class Embed {
   }
 
   FieldCell<Scal> Interpolate(
-      const FieldFace<Scal>& ffu, const FieldCell<Scal>& feu) const {
+      const FieldFace<Scal>& ffu, const FieldCell<Scal>& fceu) const {
     FieldCell<Scal> fcu(m, GetNan<Scal>());
     for (auto c : m.Cells()) {
-      const Scal w = 1 / GetFceOffset(c);
-      Vect sum = feu[c] * w;
+      const Scal w = 1 / GetFaceOffset(c);
+      Scal sum = fceu[c] * w;
       Scal sumw = w;
       for (auto q : m.Nci(c)) {
         IdxFace f = m.GetFace(c, q);
@@ -135,9 +189,12 @@ class Embed {
         sum += ffu[f] * w;
         sumw += w;
       }
-      fcu = sum / sumw;
+      fcu[c] = sum / sumw;
     }
     return fcu;
+  }
+  FieldCell<Scal> Interpolate(const FieldEmbed<Scal>& feu) const {
+    return Interpolate(feu.GetFieldFace(), feu.GetFieldCell());
   }
 
   // Dump cut polygons
