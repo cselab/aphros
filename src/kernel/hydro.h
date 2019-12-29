@@ -90,16 +90,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void Dump();
   // Calc rho, mu and force based on volume fraction
   void CalcMixture(const FieldCell<Scal>& vf);
-  // fcvf: volume fraction on cells [a]
-  // ffvfsm: smoothed volume fraction on faces [a]
-  static void CalcSurfaceTension(
-      const M& m, const GRange<size_t>& layers, const Vars& var,
-      FieldCell<typename M::Vect>& fc_force,
-      FieldFace<typename M::Scal>& ff_force,
-      const FieldCell<typename M::Scal>& fc_sig, const MapCondFace& mf_sig,
-      const Multi<const FieldCell<Scal>*> fck,
-      const FieldCell<typename M::Scal>& fcvf,
-      const FieldFace<typename M::Scal>& ffvfsm, const AdvectionSolver<M>* as);
   // Clips v to given range, uses const_cast
   void Clip(const FieldCell<Scal>& v, Scal min, Scal max);
   void CalcStat();
@@ -1227,106 +1217,6 @@ void Hydro<M>::CalcDt() {
     if (m.IsLead()) {
       this->var_mutable.Double["dta"] = st_.dta;
     }
-  }
-}
-
-// fc_force: force field to append
-// ff_force: face force field to append
-// fc_sig: surface tension coefficient
-// mf_sig: boundary conditions for fc_sig
-// fck: curvature
-// fcvf: volume fraction
-// ffvfsm: smoothed volume fraction
-template <class M>
-void Hydro<M>::CalcSurfaceTension(
-    const M& m, const GRange<size_t>& layers, const Vars& var,
-    FieldCell<typename M::Vect>& fc_force,
-    FieldFace<typename M::Scal>& ff_force,
-    const FieldCell<typename M::Scal>& fc_sig, const MapCondFace& mf_sig,
-    const Multi<const FieldCell<Scal>*> fck,
-    const FieldCell<typename M::Scal>& fcvf,
-    const FieldFace<typename M::Scal>& ffvfsm, const AdvectionSolver<M>* asb) {
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  // volume fration gradient on cells
-  const FieldCell<Vect> gc = Gradient(ffvfsm, m); // [s]
-  // volume fration gradient on faces
-  const FieldFace<Vect> gf = Interpolate(gc, mf_sig, m); // [i]
-
-  auto st = var.String["surftens"];
-  if (st == "div") { // divergence of tensor (Hu,Adam 2001)
-    auto stdiag = var.Double["stdiag"];
-    for (auto c : m.Cells()) {
-      Vect r(0);
-      for (auto q : m.Nci(c)) {
-        IdxFace f = m.GetFace(c, q);
-        const auto& g = gf[f];
-        // TODO: revise 1e-6
-        auto n = g / (g.norm() + 1e-6); // inner normal
-        auto s = m.GetOutwardSurface(c, q);
-        r += s * (g.norm() * stdiag) - g * s.dot(n);
-      }
-      r /= m.GetVolume(c);
-      // here: r = stdiag*div(|g|I) - div(g g/|g|)
-      fc_force[c] += r * fc_sig[c];
-    }
-  } else if (st == "kn") { // curvature * normal
-    FieldFace<Scal> ff_st(m, 0.); // surface tension projections
-    const FieldFace<Scal> ff_sig = Interpolate(fc_sig, mf_sig, m);
-
-    if (auto as = dynamic_cast<const ASVM*>(asb)) {
-      AppendSurfaceTension(
-          m, ff_st, layers, as->GetFieldM(), as->GetColor(), fck, ff_sig);
-    } else if (auto as = dynamic_cast<const ASV*>(asb)) {
-      AppendSurfaceTension(m, ff_st, as->GetField(), *fck[0], ff_sig);
-    }
-
-    // zero on boundaries
-    for (auto it : mf_sig) {
-      IdxFace f = it.GetIdx();
-      ff_st[f] = 0.;
-    }
-
-    // Surface tension decay between x0 and x1
-    // XXX: adhoc TODO: revise
-    const Scal x0 = var.Double["zerostx0"];
-    const Scal x1 = var.Double["zerostx1"];
-    // apply
-    for (auto f : m.Faces()) {
-      Scal x = m.GetCenter(f)[0];
-      if (x > x0) {
-        ff_st[f] *= std::max(0., (x1 - x) / (x1 - x0));
-      }
-    }
-
-    // Append to force
-    for (auto f : m.Faces()) {
-      ff_force[f] += ff_st[f];
-    }
-
-    // Append Marangoni stress
-    if (var.Int["marangoni"]) {
-      if (auto as = dynamic_cast<const ASVM*>(asb)) {
-        using R = Reconst<Scal>;
-        const auto fc_gsig = Gradient(ff_sig, m);
-        const auto& fcn = *as->GetNormal()[0];
-        const auto& fca = *as->GetAlpha()[0];
-        const Vect h = m.GetCellSize();
-        for (auto c : m.Cells()) {
-          if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {
-            Vect g = fc_gsig[c]; // sigma gradient
-            Vect n = fcn[c] / fcn[c].norm(); // unit normal to interface
-            Vect gt = g - n * g.dot(n);
-            auto xx = R::GetCutPoly2(fcn[c], fca[c], h);
-            Scal ar = std::abs(R::GetArea(xx, fcn[c]));
-            Scal vol = h.prod();
-            fc_force[c] += gt * (ar / vol);
-          }
-        }
-      }
-    }
-  } else {
-    throw std::runtime_error("Unknown surftens=" + st);
   }
 }
 

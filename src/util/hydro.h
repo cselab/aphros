@@ -111,3 +111,20 @@ void AppendSurfaceTension(
     const Multi<const FieldCell<typename M::Scal>*> fccl,
     const Multi<const FieldCell<typename M::Scal>*> fck,
     const FieldFace<typename M::Scal>& ffsig);
+
+// fc_force: force field to append
+// ff_force: face force field to append
+// fc_sig: surface tension coefficient
+// mf_sig: boundary conditions for fc_sig
+// fck: curvature
+// fcvf: volume fraction
+// ffvfsm: smoothed volume fraction
+template <class M>
+void CalcSurfaceTension(
+    const M& m, const GRange<size_t>& layers, const Vars& var,
+    FieldCell<typename M::Vect>& fc_force,
+    FieldFace<typename M::Scal>& ff_force,
+    const FieldCell<typename M::Scal>& fc_sig, const MapCondFace& mf_sig,
+    const Multi<const FieldCell<typename M::Scal>*> fck,
+    const FieldCell<typename M::Scal>& fcvf,
+    const FieldFace<typename M::Scal>& ffvfsm, const AdvectionSolver<M>* as);
