@@ -1,14 +1,15 @@
 #undef NDEBUG
 #include <cassert>
 #include <iostream>
-#include <string>
 #include <memory>
 #include <set>
+#include <string>
 
-#include <distr/distrbasic.h>
-#include <solver/vofm.h>
 #include <debug/isnan.h>
+#include <distr/distrbasic.h>
 #include <func/init.h>
+#include <solver/curv.h>
+#include <solver/vofm.h>
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -22,6 +23,7 @@ void CalcMeanCurvatureFlowFlux(
     const Multi<const FieldCell<Vect>*> fcn,
     const Multi<const FieldCell<Scal>*> fck, const M& m) {
   const Scal kClNone = -1;
+  const Scal kvol = 100.;
   Scal vol = 0;
   for (auto c : m.Cells()) {
     for (auto l : layers) {
@@ -62,8 +64,7 @@ void CalcMeanCurvatureFlowFlux(
       }
       const Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
       const Vect n = (std::abs(um - 0.5) < std::abs(up - 0.5) ? nm : np);
-      const Scal hi = m.GetArea(f) / m.GetVolume(cp);
-      const Scal v = m.GetSurface(f).dot(n * ((vol0 - vol) / vol0)) * hi * k;
+      const Scal v = m.GetSurface(f).dot(n * (-k + kvol * (vol0 - vol) / vol0));
       if (!IsNan(v)) {
         ffv[f] = v;
       }
@@ -82,16 +83,24 @@ void Run(M& m, Vars& var) {
     Multi<FieldCell<Scal>> fck; // curvature
     MapCondFaceAdvection<Scal> mf_cond; // face conditions
     GRange<size_t> layers;
+    typename PartStrMeshM<M>::Par psm_par;
+    std::unique_ptr<PartStrMeshM<M>> psm;
+    Scal dt = 0.01;
+    size_t step = 0;
   } * ctx(sem);
   auto& fcs = ctx->fcs;
   auto& ffv = ctx->ffv;
   auto& fck = ctx->fck;
   auto& fcu = ctx->fcu;
   auto& layers = ctx->layers;
+  auto& psm_par = ctx->psm_par;
+  auto& psm = ctx->psm;
+  auto& dt = ctx->dt;
+  auto& step = ctx->step;
 
   auto& as = ctx->as;
   const Scal tmax = 0.1;
-  const Scal cfl = 0.1;
+  const Scal cfl = 0.5;
 
   if (sem.Nested()) {
     InitVf(fcu, var, m);
@@ -100,18 +109,14 @@ void Run(M& m, Vars& var) {
     fcs.Reinit(m, 0);
     ffv.Reinit(m, 0);
     FieldCell<Scal> fccl(m, 0); // initial color
-    const Scal dt = cfl * m.GetCellSize()[0];
     typename Vofm<M>::Par p;
     as.reset(new Vofm<M>(m, fcu, fccl, ctx->mf_cond, &ffv, &fcs, 0., dt, p));
     layers = GRange<size_t>(as->GetNumLayers());
     fck.resize(layers);
     fck.InitAll(FieldCell<Scal>(m, 1));
+    psm_par.dump_fr = 1;
   }
   sem.LoopBegin();
-  if (sem("flux")) {
-    CalcMeanCurvatureFlowFlux(
-        ffv, layers, as->GetFieldM(), as->GetColor(), as->GetNormal(), fck, m);
-  }
   if (sem.Nested("start")) {
     as->StartStep();
   }
@@ -125,6 +130,28 @@ void Run(M& m, Vars& var) {
     if (as->GetTime() >= tmax) {
       sem.LoopBreak();
     }
+    ++step;
+  }
+  if (sem.Nested()) {
+    psm = UCurv<M>::CalcCurvPart(
+        layers, as->GetAlpha(), as->GetNormal(), as->GetMask(), as->GetColor(),
+        psm_par, fck, m);
+  }
+  if (sem("flux")) {
+    CalcMeanCurvatureFlowFlux(
+        ffv, layers, as->GetFieldM(), as->GetColor(), as->GetNormal(), fck, m);
+    Scal maxv = 0;
+    for (auto f : m.Faces()) {
+      maxv = std::max(maxv, std::abs(ffv[f]));
+    }
+    dt = cfl * m.GetCellSize().prod() / maxv;
+    as->SetTimeStep(dt);
+    if (m.IsRoot()) {
+      std::cout << "dt=" << dt << std::endl;
+    }
+  }
+  if (sem.Nested()) {
+    psm->DumpParticles(as->GetAlpha(), as->GetNormal(), step, as->GetTime());
   }
   if (sem("dump")) {
     m.Dump(&as->GetField(), "u");
