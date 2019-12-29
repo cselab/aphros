@@ -1,5 +1,6 @@
-#undef NDEBUG
+//#undef NDEBUG
 #include <cassert>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <set>
@@ -14,6 +15,27 @@
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
+using MIdx = typename M::MIdx;
+
+// Reads data in plain format.
+// u: scalar field defined on b
+// ndc: index cells
+// bc: block cells
+// op: output path
+// Format:
+// <Nx> <Ny> <Nz>
+// <data:x=0,y=0,z=0> <data:x=1,y=0,z=0> ...
+template <class Scal>
+void ReadPlain(
+    std::string path, FieldCell<Scal>& u, GMIdx<3>& size) {
+  std::ifstream dat(path);
+  dat >> size[0] >> size[1] >> size[2];
+  GIndex<IdxCell, 3> bc(size);
+  u.Reinit(bc, 0);
+  for (auto c : bc.Range()) {
+    dat >> u[c];
+  }
+}
 
 template <class M>
 void CalcMeanCurvatureFlowFlux(
@@ -110,14 +132,33 @@ void Run(M& m, Vars& var) {
   const Scal tmax = 0.1;
   const Scal cfl = 0.5;
 
-  if (sem.Nested()) {
-    InitVf(fcu, var, m);
-  }
+  //if (sem.Nested()) {
+  //  InitVf(fcu, var, m);
+  //}
   if (sem("init")) {
+    fcu.Reinit(m, 1);
     fcs.Reinit(m, 0);
     ffv.Reinit(m, 0);
+
+    const std::string qpath = "ref/cl.dat";
+    FieldCell<Scal> qfccl;
+    MIdx qsize;
+    ReadPlain(qpath, qfccl, qsize);
+    GIndex<IdxCell, M::dim> qbc(qsize);
+    std::cout << "qsize=" << qbc.GetSize() << std::endl;
     FieldCell<Scal> fccl(m, 0); // initial color
+    auto& bc = m.GetIndexCells();
+    const MIdx size = m.GetGlobalSize();
+    for (auto c : m.Cells()) {
+      const MIdx w = bc.GetMIdx(c);
+      const MIdx qw = w * qsize / size;
+      const IdxCell qc = qbc.GetIdx(qw);
+      fccl[c] = qfccl[qc];
+    }
+
     typename Vofm<M>::Par p;
+    p.sharpen = true;
+    p.sharpen_cfl = 0.1;
     as.reset(new Vofm<M>(m, fcu, fccl, ctx->mf_cond, &ffv, &fcs, 0., dt, p));
     layers = GRange<size_t>(as->GetNumLayers());
     fck.resize(layers);
@@ -158,11 +199,17 @@ void Run(M& m, Vars& var) {
       std::cout << "dt=" << dt << std::endl;
     }
   }
+  /*
   if (sem.Nested()) {
     psm->DumpParticles(as->GetAlpha(), as->GetNormal(), step, as->GetTime());
   }
+  */
+  if (sem.Nested()) {
+    as->DumpInterface(GetDumpName("s", ".vtk", step));
+  }
   if (sem("dump")) {
     m.Dump(&as->GetField(), "u");
+    m.Dump(&as->GetColorSum(), "cl");
   }
   if (sem()) {
   }
@@ -171,8 +218,8 @@ void Run(M& m, Vars& var) {
 
 int main(int argc, const char** argv) {
   std::string conf = R"EOF(
-set int bx 1
-set int by 1
+set int bx 8
+set int by 8
 set int bz 1
 
 set int bsx 16
@@ -184,6 +231,9 @@ set int dim 2
 set int px 1
 set int py 1
 set int pz 1
+
+#set string backend local
+#set int loc_maxcomm 16
 
 set string init_vf circlels
 set vect circle_c 0.5 0.5 0.5
