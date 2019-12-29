@@ -1,0 +1,2 @@
+w=287
+convert fig6.png -crop ${w}x${w}+0+0 +repage a.png
