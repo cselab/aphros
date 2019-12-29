@@ -82,10 +82,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void InitFluid(const FieldCell<Vect>& fc_vel);
   void InitAdvection(const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fccl);
   void InitStat();
-  // zero-gradient bc vect
-  MapCondFace GetBcVz() const;
-  // zero-gradient bc scal
-  MapCondFace GetBcSz() const;
   void DumpFields();
   void Dump();
   // Calc rho, mu and force based on volume fraction
@@ -363,28 +359,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Dumper dmptrep_; // dumper for timer report
   std::unique_ptr<Events> events_; // events from var
 };
-
-template <class M>
-auto Hydro<M>::GetBcVz() const -> MapCondFace {
-  // zero-derivative bc for Vect
-  MapCondFace r;
-  for (auto it : mf_fluid_) {
-    IdxFace f = it.GetIdx();
-    r[f].Set<CondFaceGradFixed<Vect>>(Vect(0), it.GetValue()->GetNci());
-  }
-  return r;
-}
-
-template <class M>
-auto Hydro<M>::GetBcSz() const -> MapCondFace {
-  // zero-derivative bc for Vect
-  MapCondFace r;
-  for (auto it : mf_fluid_) {
-    IdxFace f = it.GetIdx();
-    r[f].Set<CondFaceGradFixed<Scal>>(0., it.GetValue()->GetNci());
-  }
-  return r;
-}
 
 template <class M>
 void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
@@ -1318,8 +1292,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     // Surface tension
     if (var.Int["enable_surftens"] && as_) {
       CalcSurfaceTension(
-          m, layers, var, fc_force_, ffbp_, fc_sig_, GetBcSz(), fck_, fc_vf0,
-          af, as_.get());
+          m, layers, var, fc_force_, ffbp_, fc_sig_,
+          GetCondZeroGrad<Scal>(mf_fluid_), fck_, fc_vf0, af, as_.get());
     }
 
     // vortex force

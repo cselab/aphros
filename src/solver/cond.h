@@ -184,3 +184,13 @@ class CondCellValFixed : public CondCellVal<V> {
 };
 
 using MapCondFace = MapFace<UniquePtr<CondFace>>;
+
+template <class T, class Map>
+MapCondFace GetCondZeroGrad(const Map& mf) {
+  MapCondFace r;
+  for (auto it : mf) {
+    IdxFace f = it.GetIdx();
+    r[f].Set<CondFaceGradFixed<T>>(T(0), it.GetValue()->GetNci());
+  }
+  return r;
+}

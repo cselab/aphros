@@ -1576,13 +1576,13 @@ void CalcSurfaceTension(
     const FieldFace<typename M::Scal>& ffvfsm, const AdvectionSolver<M>* asb) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  // volume fration gradient on cells
-  const FieldCell<Vect> gc = Gradient(ffvfsm, m); // [s]
-  // volume fration gradient on faces
-  const FieldFace<Vect> gf = Interpolate(gc, mf_sig, m); // [i]
-
   auto st = var.String["surftens"];
   if (st == "div") { // divergence of tensor (Hu,Adam 2001)
+    // volume fration gradient on cells
+    const FieldCell<Vect> gc = Gradient(ffvfsm, m); // [s]
+    // volume fration gradient on faces
+    const FieldFace<Vect> gf =
+        Interpolate(gc, GetCondZeroGrad<Vect>(mf_sig), m); // [i]
     auto stdiag = var.Double["stdiag"];
     for (auto c : m.Cells()) {
       Vect r(0);
