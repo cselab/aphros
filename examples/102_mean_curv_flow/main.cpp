@@ -68,6 +68,14 @@ void CalcMeanCurvatureFlowFlux(
       if (!IsNan(v)) {
         ffv[f] = v;
       }
+      /*
+      const Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
+      const Scal hi = m.GetArea(f) / m.GetVolume(cp);
+      const Scal ga = -(up - um) * hi * (-k + kvol * (vol0 - vol) / vol0);
+      if (std::abs(ga) > 0.) {
+        ffv[f] += ga * m.GetArea(f);
+      }
+      */
     }
   }
 }
