@@ -33,7 +33,17 @@ void Run(M& m, Vars&) {
     for (auto n : m.AllNodes()) {
       const Vect x = m.GetNode(n);
       const Vect xc(0.5, 0.5, 0.5);
-      fnl[n] = (x - xc).norminf() - 0.2;
+      const Vect s(2., 1., 1.);
+      auto rot = [](Vect xx) {
+        const Scal a = 3.14159265358979323 * 0;
+        const Scal as = std::sin(a);
+        const Scal ac = std::cos(a);
+        const Scal x = xx[0];
+        const Scal y = xx[1];
+        const Scal z = xx[2];
+        return Vect(x * ac - y * as, x * as + y * ac, z);
+      };
+      fnl[n] = (rot(x - xc) / s).norm() - 0.2;
     }
     ctx->eb.reset(new EB(m, fnl));
     fcu.Reinit(m, 0);
