@@ -233,7 +233,8 @@ class Embed {
           } else if (bc == 1) {
             feu[c] = fcu[c] + GetFaceOffset(c) * bcv;
           } else {
-            throw std::runtime_error("unknown bc=" + std::to_string(bc));
+            throw std::runtime_error(
+                "Interpolate: unknown bc=" + std::to_string(bc));
           }
           break;
         }
@@ -280,6 +281,53 @@ class Embed {
       }
     }
     return fcg;
+  }
+  // fcu: field [a]
+  // bc: boundary conditions type, 0: value, 1: grad
+  // bcv: value or normal gradient (grad dot GetNormal)
+  // Returns:
+  // grad dot GetNormal on embedded boundaries [s]
+  FieldEmbed<Scal> Gradient(
+      const FieldCell<Scal>& fcu, size_t bc, Scal bcv) const {
+    FieldEmbed<Scal> feu(m, 0); // FIXME should be nan
+    for (auto f : m.SuFaces()) {
+      switch (fft_[f]) {
+        case Type::regular:
+        case Type::cut: {
+          IdxCell cm = m.GetCell(f, 0);
+          IdxCell cp = m.GetCell(f, 1);
+          const Scal dn =
+              (GetCellCenter(cp) - GetCellCenter(cm)).dot(GetNormal(f));
+          feu[f] = (fcu[cp] - fcu[cm]) / dn;
+          break;
+        }
+        case Type::excluded: {
+          feu[f] = 0;
+          break;
+        }
+      }
+    }
+    for (auto c : m.SuCells()) {
+      switch (fct_[c]) {
+        case Type::cut: {
+          if (bc == 0) {
+            feu[c] = (bcv - fcu[c]) / GetFaceOffset(c);
+          } else if (bc == 1) {
+            feu[c] = bcv;
+          } else {
+            throw std::runtime_error(
+                "Gradient: unknown bc=" + std::to_string(bc));
+          }
+          break;
+        }
+        case Type::regular:
+        case Type::excluded: {
+          feu[c] = 0;
+          break;
+        }
+      }
+    }
+    return feu;
   }
   void DumpPoly() const {
     const std::string fn = GetDumpName("eb", ".vtk", 0);

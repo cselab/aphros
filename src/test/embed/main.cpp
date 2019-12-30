@@ -73,8 +73,13 @@ void Run(M& m, Vars&) {
       }
       */
 
-      fcg = eb.Gradient(feu);
+      for (auto c : m.AllCells()) {
+        fcu[c] = Vect(0.5).dist(eb.GetCellCenter(c));
+      }
+      feu = eb.Gradient(fcu, 0, 0.35);
+
       fcu = eb.Interpolate(feu);
+      fcg = eb.Gradient(feu);
       m.Comm(&fcu);
     }
     if (t % std::max<size_t>(1, maxt / nfr) != 0) {
