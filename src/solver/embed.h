@@ -165,7 +165,7 @@ class Embed {
   // Returns:
   // field on cells [a]
   FieldCell<Scal> Interpolate(const FieldEmbed<Scal>& feu) const {
-    FieldCell<Scal> fcu(m, GetNan<Scal>());
+    FieldCell<Scal> fcu(m, 0); // FIXME should be nan
     for (auto c : m.AllCells()) {
       switch (fct_[c]) {
         case Type::regular: {
@@ -180,13 +180,13 @@ class Embed {
           break;
         }
         case Type::cut: {
-          const Scal w = 1 / GetFaceOffset(c);
+          const Scal w = 1 / std::abs(GetFaceOffset(c));
           Scal sum = feu[c] * w;
           Scal sumw = w;
           for (auto q : m.Nci(c)) {
             IdxFace f = m.GetFace(c, q);
             if (fft_[f] == Type::regular || fft_[f] == Type::cut) {
-              const Scal w = 1 / GetFaceOffset(c, q);
+              const Scal w = 1 / std::abs(GetFaceOffset(c, q));
               sum += feu[f] * w;
               sumw += w;
             }
@@ -208,7 +208,7 @@ class Embed {
   // field on embedded boundaries [s]
   FieldEmbed<Scal> Interpolate(
       const FieldCell<Scal>& fcu, size_t bc, Scal bcv) const {
-    FieldEmbed<Scal> feu(m, GetNan<Scal>());
+    FieldEmbed<Scal> feu(m, 0); // FIXME should be nan
     for (auto f : m.SuFaces()) {
       switch (fft_[f]) {
         case Type::regular:
@@ -271,10 +271,12 @@ class Embed {
       std::vector<std::vector<Vect>> dl; // polygon
       std::vector<Scal> dld; // direction
       std::vector<Scal> dls; // area
+      std::vector<Scal> dlf; // 0: cell, 1: face
     } * ctx(sem);
     auto& dl = ctx->dl;
     auto& dld = ctx->dld;
     auto& dls = ctx->dls;
+    auto& dlf = ctx->dlf;
     if (sem("local")) {
       for (auto f : m.Faces()) {
         if (fct[m.GetCell(f, 0)] == Type::cut ||
@@ -288,6 +290,7 @@ class Embed {
             }
             dld.push_back(d);
             dls.push_back(ffs[f]);
+            dlf.push_back(1);
           }
         }
       }
@@ -299,6 +302,7 @@ class Embed {
           dl.push_back(xx);
           dld.push_back(3);
           dls.push_back(fcs[c]);
+          dlf.push_back(0);
         }
       }
 
@@ -312,8 +316,8 @@ class Embed {
         std::cout << std::fixed << std::setprecision(8) << "dump"
                   << " to " << fn << std::endl;
         WriteVtkPoly<Vect>(
-            fn, dl, nullptr, {&dld, &dls}, {"dir", "area"}, "Embedded boundary",
-            true, true, true);
+            fn, dl, nullptr, {&dld, &dls, &dlf}, {"dir", "area", "face"},
+            "Embedded boundary", true, true, true);
       }
     }
   }
@@ -346,11 +350,11 @@ class Embed {
     return xx;
   }
   // Determines the face types, constructs polygons and computes fractions.
-  // fnl: level-set on nodes [a]
+  // fnl: level-set on nodes, fnl > 0 inside regular cells [a]
   // Output:
   // fft: type of faces
-  // ffpoly: if fft=1, polygon representing f < 0; otherwise empty
-  // ffs: face area for which f > 0
+  // ffpoly: if fft=1, polygon representing fnl > 0; otherwise empty
+  // ffs: face area for which fnl > 0
   static void InitFaces(
       const FieldNode<Scal>& fnl, FieldFace<Type>& fft,
       FieldFace<std::vector<Vect>>& ffpoly, FieldFace<Scal>& ffs, const M& m) {
@@ -365,15 +369,15 @@ class Embed {
         size_t ep = (e + 1) % em;
         IdxNode n = m.GetNode(f, e);
         IdxNode np = m.GetNode(f, ep);
-        Scal f = fnl[n];
-        Scal fp = fnl[np];
+        Scal l = fnl[n];
+        Scal lp = fnl[np];
         Vect x = m.GetNode(n);
         Vect xp = m.GetNode(np);
-        if (f < 0) {
+        if (l > 0) {
           xx.push_back(x);
         }
-        if ((f < 0) != (fp < 0)) {
-          xx.push_back(GetIso(x, xp, f, fp));
+        if ((l < 0) != (lp < 0)) {
+          xx.push_back(GetIso(x, xp, l, lp));
           cut = true;
         }
       }
@@ -411,15 +415,15 @@ class Embed {
     fcs.Reinit(m, GetNan<Scal>());
     fcv.Reinit(m, GetNan<Scal>());
     for (auto c : m.AllCells()) {
-      size_t q = 0; // number of nodes with f > 0
+      size_t q = 0; // number of nodes with fnl > 0
       const size_t mi = m.GetNumNodes(c);
       for (size_t i = 0; i < mi; ++i) {
         IdxNode n = m.GetNode(c, i);
-        if (fnl[n] > 0) {
+        if (fnl[n] >= 0) {
           ++q;
         }
       }
-      fct[c] = (q == 0 ? Type::regular : q < mi ? Type::cut : Type::excluded);
+      fct[c] = (q == mi ? Type::regular : q > 0 ? Type::cut : Type::excluded);
 
       if (fct[c] == Type::cut) {
         // calc normal
