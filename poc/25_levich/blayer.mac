@@ -1,0 +1,28 @@
+kill(all);
+assume(U>0, mu>0, x>0);
+
+gradef(f(x), f1(x));
+gradef(f1(x), f2(x));
+gradef(f2(x), f3(x));
+
+ns: u * 'diff(u, x) + v * 'diff(u, y) + mu*'diff(u, y, 2);
+
+eta0: 1/2 *sqrt(U/(mu*x)) * y;
+psi: sqrt(mu*U*x) * f(eta);
+
+gradef(eta, x, diff(eta0, x));
+gradef(eta, y, diff(eta0, y));
+
+u:  diff(psi, y);
+v: -diff(psi, x);
+
+ns0: ns, diff, factor, infeval;
+
+
+/*
+
+Levich, V. G. (1962). Physicochemical Hydrodynamics
+Prentice-Hall. Englewood Cliffs, NJ, 115.  eq (3.22-3.40)
+
+*/
+
