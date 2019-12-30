@@ -59,8 +59,9 @@ void Run(M& m, Vars&) {
   for (size_t t = 0; t < maxt; ++t) {
     auto& eb = *ctx->eb;
     if (sem("step")) {
-      const bool compact = false;
-      const Scal dt = compact ? 6e-6 : 4e-5;
+      const bool compact = true;
+      //const Scal dt = compact ? 6e-6 : 4e-5;
+      const Scal dt = compact ? 1e-4 : 1e-3; // with redistr
       const Scal bcu = 1;
 
       feu = eb.Interpolate(fcu, 0, bcu);
@@ -95,7 +96,8 @@ void Run(M& m, Vars&) {
           auto f = m.GetFace(c, q);
           s += feun[f] * eb.GetArea(f) * m.GetOutwardFactor(c, q);
         }
-        fcu[c] += s * dt / eb.GetVolume(c);
+        const Scal du = s * dt / eb.GetVolume(c);
+        fcu[c] += du * eb.GetRedistr(c);
       }
 
       m.Comm(&fcu);

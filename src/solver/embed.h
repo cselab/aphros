@@ -161,6 +161,16 @@ class Embed {
         return GetNan<Vect>();
     }
   }
+  Scal GetRedistr(IdxCell c) const {
+    return fc_redistr_[c];
+  }
+  const FieldCell<Scal>& GetRedistr() const {
+    return fc_redistr_;
+  }
+  const MapCell<std::vector<std::pair<IdxCell, Scal>>>& GetRedistrList(
+      IdxCell c) const {
+    return mc_redistr_[c];
+  }
 
   // feu: field on embedded boundaries [a]
   // Returns:
@@ -287,8 +297,7 @@ class Embed {
   // Returns:
   // grad dot GetNormal on embedded boundaries [s]
   template <class T>
-  FieldEmbed<T> Gradient(
-      const FieldCell<T>& fcu, size_t bc, T bcv) const {
+  FieldEmbed<T> Gradient(const FieldCell<T>& fcu, size_t bc, T bcv) const {
     FieldEmbed<T> feu(m, T(0)); // FIXME should be nan
     for (auto f : m.SuFaces()) {
       switch (fft_[f]) {
