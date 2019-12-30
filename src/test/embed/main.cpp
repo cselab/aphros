@@ -22,12 +22,10 @@ void Run(M& m, Vars&) {
   struct {
     std::unique_ptr<EB> eb;
     FieldCell<Scal> fcu;
-    FieldCell<Vect> fcg;
     FieldEmbed<Scal> feu;
     size_t frame = 0;
   } * ctx(sem);
   auto& fcu = ctx->fcu;
-  auto& fcg = ctx->fcg;
   auto& feu = ctx->feu;
   auto& frame = ctx->frame;
 
@@ -56,30 +54,28 @@ void Run(M& m, Vars&) {
     auto& eb = *ctx->eb;
     eb.DumpPoly();
   }
-  const size_t maxt = 100;
+  const size_t maxt = 10000;
   const size_t nfr = 100;
   for (size_t t = 0; t < maxt; ++t) {
     auto& eb = *ctx->eb;
     if (sem("step")) {
-      feu = eb.Interpolate(fcu, 0, 1);
-
-      /*
-      const Vect g(0.3, 0.2, 0.1);
-      for (auto c : m.AllCells()) {
-        feu[c] = eb.GetFaceCenter(c).dot(g);
+      const Scal dt = 3e-6;
+      feu = eb.Gradient(fcu, 0, 1);
+      for (auto c : m.Cells()) {
+        if (eb.GetType(c) == Type::excluded) {
+          continue;
+        }
+        Scal s = 0;
+        if (eb.GetType(c) == Type::cut) {
+          s += feu[c] * eb.GetArea(c);
+        }
+        for (auto q : m.Nci(c)) {
+          auto f = m.GetFace(c, q);
+          s += feu[f] * eb.GetArea(f) * m.GetOutwardFactor(c, q);
+        }
+        fcu[c] += s * dt / eb.GetVolume(c);
       }
-      for (auto f : m.AllFaces()) {
-        feu[f] = eb.GetFaceCenter(f).dot(g);
-      }
-      */
 
-      for (auto c : m.AllCells()) {
-        fcu[c] = Vect(0.5).dist(eb.GetCellCenter(c));
-      }
-      feu = eb.Gradient(fcu, 0, 0.35);
-
-      fcu = eb.Interpolate(feu);
-      fcg = eb.Gradient(feu);
       m.Comm(&fcu);
     }
     if (t % std::max<size_t>(1, maxt / nfr) != 0) {
@@ -125,9 +121,6 @@ void Run(M& m, Vars&) {
     if (sem("dump")) {
       // FIXME: Dump and Comm in one stage ignores Comm
       m.Dump(&fcu, "u"); 
-      m.Dump(&fcg, 0, "ux"); 
-      m.Dump(&fcg, 1, "uy"); 
-      m.Dump(&fcg, 2, "uz"); 
       ++frame;
     }
   }
