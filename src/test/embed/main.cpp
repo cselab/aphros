@@ -58,7 +58,9 @@ void Run(M& m, Vars&) {
       feu = eb.Interpolate(fcu, 0, 1);
       fcu = eb.Interpolate(feu);
       m.Comm(&fcu);
-      m.Dump(&fcu, "u");
+    }
+    if (sem("dump")) {
+      m.Dump(&fcu, "u"); // FIXME: Dump and Comm in one stage ignores Comm
     }
     if (sem("dumpcsv")) {
       auto& eb = *ctx->eb;
