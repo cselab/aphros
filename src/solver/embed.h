@@ -167,9 +167,9 @@ class Embed {
   const FieldCell<Scal>& GetRedistr() const {
     return fc_redistr_;
   }
-  const MapCell<std::vector<std::pair<IdxCell, Scal>>>& GetRedistrList(
+  const std::vector<std::pair<IdxCell, Scal>>& GetRedistrList(
       IdxCell c) const {
-    return mc_redistr_[c];
+    return *mc_redistr_.find(c);
   }
 
   // feu: field on embedded boundaries [a]
@@ -564,7 +564,7 @@ class Embed {
   static void InitRedistr(
       const FieldCell<Type>& fct, const FieldCell<Scal>& fcv,
       const FieldCell<Scal>& fcs, FieldCell<Scal>& fc_redistr,
-      MapCell<std::vector<std::pair<IdxCell, Scal>>> mc_redistr, const M& m) {
+      MapCell<std::vector<std::pair<IdxCell, Scal>>>& mc_redistr, const M& m) {
     fc_redistr.Reinit(m, 1);
     const int sw = 1; // stencil halfwidth
     using MIdx = typename M::MIdx;
