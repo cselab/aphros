@@ -29,12 +29,13 @@ void Run(M& m, Vars&) {
   auto& feu = ctx->feu;
 
   if (sem("init")) {
-    FieldNode<Scal> fnf(m, 0);
+    FieldNode<Scal> fnl(m, 0);
     for (auto n : m.AllNodes()) {
-      auto x = m.GetNode(n);
-      fnf[n] = 1.01 - Vect(x[0], x[1], x[2]).dot(Vect(1., 1., 0.));
+      const Vect x = m.GetNode(n);
+      const Vect xc(0.5, 0.5, 0.5);
+      fnl[n] = (x - xc).norminf() - 0.2;
     }
-    ctx->eb.reset(new EB(m, fnf));
+    ctx->eb.reset(new EB(m, fnl));
     fcu.Reinit(m, 0);
   }
   if (sem.Nested("dumppoly")) {
@@ -44,7 +45,7 @@ void Run(M& m, Vars&) {
   for (size_t t = 0; t < 50; ++t) {
     auto& eb = *ctx->eb;
     if (sem("step")) {
-      feu = eb.Interpolate(fcu, 0, 0);
+      feu = eb.Interpolate(fcu, 0, 1);
       fcu = eb.Interpolate(feu);
       m.Comm(&fcu);
       m.Dump(&fcu, "u");
@@ -53,11 +54,13 @@ void Run(M& m, Vars&) {
       auto& eb = *ctx->eb;
       using Type = typename EB::Type;
       std::ofstream out(GetDumpName("eb", ".csv", t));
-      out << "x,y,z,u\n";
+      out << "x,y,z,type,u\n";
       for (auto c : m.Cells()) {
-        if (eb.GetType(c) == Type::cut) {
+        if (eb.GetType(c) == Type::regular || eb.GetType(c) == Type::cut) {
           auto x = eb.GetCellCenter(c);
-          out << x[0] << "," << x[1] << "," << x[2] << "," << fcu[c] << "\n";
+          out << x[0] << "," << x[1] << "," << x[2];
+          out << "," << size_t(eb.GetType(c));
+          out << "," << fcu[c] << "\n";
         }
       }
     }
@@ -65,17 +68,23 @@ void Run(M& m, Vars&) {
       auto& eb = *ctx->eb;
       using Type = typename EB::Type;
       std::ofstream out(GetDumpName("ebf", ".csv", t));
-      out << "x,y,z,u\n";
+      out << "x,y,z,face,type,u\n";
       for (auto c : m.Cells()) {
         if (eb.GetType(c) == Type::cut) {
           auto x = eb.GetFaceCenter(c);
-          out << x[0] << "," << x[1] << "," << x[2] << "," << feu[c] << "\n";
+          out << x[0] << "," << x[1] << "," << x[2];
+          out << "," << 0;
+          out << "," << size_t(eb.GetType(c));
+          out << "," << feu[c] << "\n";
         }
       }
       for (auto f : m.Faces()) {
-        if (eb.GetType(f) == Type::cut) {
+        if (eb.GetType(f) == Type::regular || eb.GetType(f) == Type::cut) {
           auto x = eb.GetFaceCenter(f);
-          out << x[0] << "," << x[1] << "," << x[2] << "," << feu[f] << "\n";
+          out << x[0] << "," << x[1] << "," << x[2];
+          out << "," << 1;
+          out << "," << size_t(eb.GetType(f));
+          out << "," << feu[f] << "\n";
         }
       }
     }
