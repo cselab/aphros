@@ -22,26 +22,20 @@ void Run(M& m, Vars&) {
     std::unique_ptr<EB> eb;
     FieldCell<Scal> fcu;
     FieldCell<Scal> fcum;
-    FieldCell<Scal> fct;
     FieldEmbed<Scal> feu;
   } * ctx(sem);
-  auto& fct = ctx->fct;
   auto& fcu = ctx->fcu;
   auto& fcum = ctx->fcum;
   auto& feu = ctx->feu;
 
   if (sem("init")) {
     FieldNode<Scal> fnf(m, 0);
-    for (auto n : m.Nodes()) {
+    for (auto n : m.AllNodes()) {
       auto x = m.GetNode(n);
       fnf[n] = 1.01 - Vect(x[0], x[1], x[2]).dot(Vect(1., 1., 0.));
     }
     ctx->eb.reset(new EB(m, fnf));
     fcu.Reinit(m, 0);
-    fct.Reinit(m, 0);
-    for (auto c : m.Cells()) {
-      fct[c] = size_t(ctx->eb->GetType(c));
-    }
   }
   if (sem.Nested("dumppoly")) {
     auto& eb = *ctx->eb;
@@ -50,12 +44,7 @@ void Run(M& m, Vars&) {
   for (size_t t = 0; t < 50; ++t) {
     auto& eb = *ctx->eb;
     if (sem("step")) {
-      using Type = typename EB::Type;
-      const Scal a = 1.; // value on boundary
-      const Vect vel(1., 0., 0.); // advection velocity
-      const Scal dt = 0.1 * m.GetCellSize()[0] / vel.norm();
-
-      feu = eb.Interpolate(fcu, 0, 1);
+      feu = eb.Interpolate(fcu, 0, 0);
       fcu = eb.Interpolate(feu);
       m.Comm(&fcu);
       m.Dump(&fcu, "u");
