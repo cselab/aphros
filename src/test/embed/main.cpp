@@ -22,12 +22,12 @@ void Run(M& m, Vars&) {
   struct {
     std::unique_ptr<EB> eb;
     FieldCell<Scal> fcu;
-    FieldCell<Scal> fcum;
+    FieldCell<Vect> fcg;
     FieldEmbed<Scal> feu;
     size_t frame = 0;
   } * ctx(sem);
   auto& fcu = ctx->fcu;
-  auto& fcum = ctx->fcum;
+  auto& fcg = ctx->fcg;
   auto& feu = ctx->feu;
   auto& frame = ctx->frame;
 
@@ -56,12 +56,24 @@ void Run(M& m, Vars&) {
     auto& eb = *ctx->eb;
     eb.DumpPoly();
   }
-  const size_t maxt = 1000;
+  const size_t maxt = 100;
   const size_t nfr = 100;
   for (size_t t = 0; t < maxt; ++t) {
     auto& eb = *ctx->eb;
     if (sem("step")) {
       feu = eb.Interpolate(fcu, 0, 1);
+
+      /*
+      const Vect g(0.3, 0.2, 0.1);
+      for (auto c : m.AllCells()) {
+        feu[c] = eb.GetFaceCenter(c).dot(g);
+      }
+      for (auto f : m.AllFaces()) {
+        feu[f] = eb.GetFaceCenter(f).dot(g);
+      }
+      */
+
+      fcg = eb.Gradient(feu);
       fcu = eb.Interpolate(feu);
       m.Comm(&fcu);
     }
@@ -106,7 +118,11 @@ void Run(M& m, Vars&) {
       }
     }
     if (sem("dump")) {
-      m.Dump(&fcu, "u"); // FIXME: Dump and Comm in one stage ignores Comm
+      // FIXME: Dump and Comm in one stage ignores Comm
+      m.Dump(&fcu, "u"); 
+      m.Dump(&fcg, 0, "ux"); 
+      m.Dump(&fcg, 1, "uy"); 
+      m.Dump(&fcg, 2, "uz"); 
       ++frame;
     }
   }
