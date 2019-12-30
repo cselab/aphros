@@ -229,6 +229,7 @@ class Embed {
           } else {
             throw std::runtime_error("unknown bc=" + std::to_string(bc));
           }
+          break;
         }
         case Type::regular:
         case Type::excluded: {
