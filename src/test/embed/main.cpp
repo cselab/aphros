@@ -54,21 +54,22 @@ void Run(M& m, Vars&) {
     auto& eb = *ctx->eb;
     eb.DumpPoly();
   }
-  const size_t maxt = 1000;
+  const size_t maxt = 100;
   const size_t nfr = 100;
   for (size_t t = 0; t < maxt; ++t) {
     auto& eb = *ctx->eb;
     if (sem("step")) {
-      const bool compact = true;
+      const bool compact = false;
       //const Scal dt = compact ? 6e-6 : 4e-5;
-      const Scal dt = compact ? 1e-4 : 1e-3; // with redistr
+      const Scal dt = compact ? 1e-4 : 5e-4; // with redistr
       const Scal bcu = 1;
 
       feu = eb.Interpolate(fcu, 0, bcu);
       FieldEmbed<Scal> feun(m);
 
+      const auto feunc = eb.Gradient(fcu, 0, bcu); // compact gradient
       if (compact) {
-        feun = eb.Gradient(fcu, 0, bcu); // normal gradient
+        feun = feunc;
       } else {
         const FieldCell<Vect> fcg = eb.Gradient(feu);
         const FieldEmbed<Vect> feg = eb.Interpolate(fcg, 1, Vect(0));
@@ -80,6 +81,8 @@ void Run(M& m, Vars&) {
         for (auto c : m.Cells()) {
           if (eb.GetType(c) == Type::cut) {
             feun[c] = feg[c].dot(eb.GetNormal(c));
+            const Scal a = eb.GetRedistr(c);
+            feun[c] = feunc[c] * a + feun[c] * (1 - a);
           }
         }
       }
