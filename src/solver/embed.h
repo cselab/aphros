@@ -76,31 +76,25 @@ class Embed {
     InitFaces(fnf_, fft_, ffpoly_, ffs_, m);
     InitCells(fnf_, ffs_, fct_, fcn_, fca_, fcs_, fcd_, fcv_, m);
   }
-  const FieldCell<Type>& GetCellType() const {
-    return fct_;
+  Type GetType(IdxCell c) const {
+    return fct_[c];
   }
-  const FieldCell<Vect>& GetNormal() const {
-    return fcn_;
+  Type GetType(IdxFace f) const {
+    return fft_[f];
   }
   Vect GetNormal(IdxCell c) const {
     return fcn_[c];
   }
-  const FieldCell<Scal>& GetPlane() const {
-    return fca_;
+  Vect GetNormal(IdxFace f) const {
+    return m.GetNormal(f);
   }
-  const FieldFace<Type>& GetFaceType() const {
-    return fft_;
+  Scal GetAlpha(IdxCell c) const {
+    return fca_[c];
   }
-  const FieldFace<Scal>& GetFaceArea() const {
-    return ffs_;
-  }
-  const FieldCell<Scal>& GetCellArea() const {
-    return fcs_;
-  }
-  Scal GetFaceArea(IdxFace f) const {
+  Scal GetArea(IdxFace f) const {
     return ffs_[f];
   }
-  Scal GetFaceArea(IdxCell c) const {
+  Scal GetArea(IdxCell c) const {
     return fcs_[c];
   }
   Scal GetFaceOffset(IdxCell c, size_t nci) const {
@@ -110,31 +104,18 @@ class Embed {
   Scal GetFaceOffset(IdxCell c) const {
     return (GetFaceCenter(c) - GetCellCenter(c)).dot(GetNormal(c));
   }
-  const FieldCell<Scal>& GetCellOffset() const {
-    return fcd_;
-  }
-  const FieldCell<Scal>& GetCellVolume() const {
-    return fcv_;
-  }
-  const FieldFace<std::vector<Vect>>& GetPoly() const {
-    return ffpoly_;
-  }
-  Scal GetCellVolume(IdxCell c) const {
+  Scal GetVolume(IdxCell c) const {
     return fcv_[c];
   }
-  static Scal GetArea(Vect xa, Vect xb, Vect xc) {
-    return (xc - xa).cross(xb - xa).norm() * 0.5;
-  }
-  static Vect GetBaryCenter(const std::vector<Vect>& xx) {
-    Vect sum(0);
-    Scal suma = 0;
-    for (size_t i = 2; i < xx.size(); ++i) {
-      const Scal a = GetArea(xx[0], xx[i - 1], xx[i]);
-      const Vect x = (xx[0] + xx[i - 1] + xx[i]) / 3.;
-      sum += x * a;
-      suma += a;
+  std::vector<Vect> GetFacePoly(IdxFace f) const {
+    switch (fft_[f]) {
+      case Type::regular:
+        return GetRegularFacePoly(f, m);
+      case Type::cut:
+        return ffpoly_[f];
+      default:
+        return std::vector<Vect>();
     }
-    return sum / suma;
   }
   Vect GetFaceCenter(IdxCell c) const {
     if (fct_[c] == Type::cut) {
@@ -158,13 +139,13 @@ class Embed {
       case Type::regular:
         return m.GetCenter(c);
       case Type::cut: {
-        const Scal w = GetCellArea()[c];
+        const Scal w = GetArea(c);
         Vect sum = GetFaceCenter(c) * w;
         Scal sumw = w;
         for (auto q : m.Nci(c)) {
           auto f = m.GetFace(c, q);
           if (fft_[f] != Type::excluded) {
-            const Scal w = GetFaceArea()[f];
+            const Scal w = GetArea(f);
             sum += GetFaceCenter(f) * w;
             sumw += w;
           }
@@ -180,14 +161,24 @@ class Embed {
       const FieldFace<Scal>& ffu, const FieldCell<Scal>& fceu) const {
     FieldCell<Scal> fcu(m, GetNan<Scal>());
     for (auto c : m.Cells()) {
-      const Scal w = 1 / GetFaceOffset(c);
-      Scal sum = fceu[c] * w;
-      Scal sumw = w;
+      if (fct_[c] == Type::excluded) {
+        fcu[c] = 0;
+        continue;
+      }
+      Scal sum = 0;
+      Scal sumw = 0;
+      if (fct_[c] == Type::cut) {
+        const Scal w = 1 / GetFaceOffset(c);
+        sum += fceu[c] * w;
+        sumw += w;
+      }
       for (auto q : m.Nci(c)) {
         IdxFace f = m.GetFace(c, q);
-        const Scal w = 1 / GetFaceOffset(c, q);
-        sum += ffu[f] * w;
-        sumw += w;
+        if (fft_[f] == Type::regular || fft_[f] == Type::cut) {
+          const Scal w = 1 / GetFaceOffset(c, q);
+          sum += ffu[f] * w;
+          sumw += w;
+        }
       }
       fcu[c] = sum / sumw;
     }
@@ -196,7 +187,12 @@ class Embed {
   FieldCell<Scal> Interpolate(const FieldEmbed<Scal>& feu) const {
     return Interpolate(feu.GetFieldFace(), feu.GetFieldCell());
   }
+  void DumpPoly() const {
+    const std::string fn = GetDumpName("eb", ".vtk", 0);
+    DumpPoly(fn, ffs_, fft_, fcs_, fct_, fcn_, fca_, ffpoly_, m);
+  }
 
+ private:
   // Dump cut polygons
   // ffs: face area for which f > 0
   // fft: type of faces
@@ -206,10 +202,11 @@ class Embed {
   // fca: plane constants
   // ffpoly: polygon representing f < 0
   static void DumpPoly(
-      const FieldFace<Scal>& ffs, const FieldFace<Type>& fft,
-      const FieldCell<Scal>& fcs, const FieldCell<Type>& fct,
-      const FieldCell<Vect>& fcn, const FieldCell<Scal>& fca,
-      const FieldFace<std::vector<Vect>>& ffpoly, M& m) {
+      const std::string fn, const FieldFace<Scal>& ffs,
+      const FieldFace<Type>& fft, const FieldCell<Scal>& fcs,
+      const FieldCell<Type>& fct, const FieldCell<Vect>& fcn,
+      const FieldCell<Scal>& fca, const FieldFace<std::vector<Vect>>& ffpoly,
+      M& m) {
     auto sem = m.GetSem("dumppoly");
     struct {
       std::vector<std::vector<Vect>> dl; // polygon
@@ -228,7 +225,7 @@ class Embed {
             if (fft[f] == Type::cut) {
               dl.push_back(ffpoly[f]);
             } else {
-              dl.push_back(GetPoly(f, m));
+              dl.push_back(GetRegularFacePoly(f, m));
             }
             dld.push_back(d);
             dls.push_back(ffs[f]);
@@ -253,7 +250,6 @@ class Embed {
     }
     if (sem("write")) {
       if (m.IsRoot()) {
-        std::string fn = GetDumpName("eb", ".vtk", 0);
         std::cout << std::fixed << std::setprecision(8) << "dump"
                   << " to " << fn << std::endl;
         WriteVtkPoly<Vect>(
@@ -262,18 +258,27 @@ class Embed {
       }
     }
   }
-
- private:
+  static Scal GetTriangleArea(Vect xa, Vect xb, Vect xc) {
+    return (xc - xa).cross(xb - xa).norm() * 0.5;
+  }
+  static Vect GetBaryCenter(const std::vector<Vect>& xx) {
+    Vect sum(0);
+    Scal suma = 0;
+    for (size_t i = 2; i < xx.size(); ++i) {
+      const Scal a = GetTriangleArea(xx[0], xx[i - 1], xx[i]);
+      const Vect x = (xx[0] + xx[i - 1] + xx[i]) / 3.;
+      sum += x * a;
+      suma += a;
+    }
+    return sum / suma;
+  }
   // Returns point at which interpolant has value 0.
   // x0,x1: points
   // f0,f1: values
   static Vect GetIso(Vect x0, Vect x1, Scal f0, Scal f1) {
     return (x0 * f1 - x1 * f0) / (f1 - f0);
   }
-  // Returns face polygon.
-  // x0,x1: points
-  // f0,f1: values
-  static std::vector<Vect> GetPoly(IdxFace f, const M& m) {
+  static std::vector<Vect> GetRegularFacePoly(IdxFace f, const M& m) {
     std::vector<Vect> xx;
     for (size_t e = 0; e < m.GetNumNodes(f); ++e) {
       auto n = m.GetNode(f, e);

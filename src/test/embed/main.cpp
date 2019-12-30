@@ -65,41 +65,39 @@ void KernelEmbed<M>::Run() {
     fcu_.Reinit(m, 0);
     fct_.Reinit(m, 0);
     for (auto c : m.Cells()) {
-      fct_[c] = size_t(eb_->GetCellType()[c]);
+      fct_[c] = size_t(eb_->GetType(c));
     }
   }
   if (sem.Nested("dumppoly")) {
-    auto& e = *eb_;
-    e.DumpPoly(
-        e.GetFaceArea(), e.GetFaceType(), e.GetCellArea(), e.GetCellType(),
-        e.GetNormal(), e.GetPlane(), e.GetPoly(), m);
+    auto& eb = *eb_;
+    eb.DumpPoly();
   }
   if (sem("dumpcsv")) {
-    auto& e = *eb_;
+    auto& eb = *eb_;
     using Type = typename EB::Type;
     std::ofstream out("eb.csv");
     out << "x,y,z\n";
     for (auto c : m.Cells()) {
-      if (e.GetCellType()[c] == Type::cut) {
-        auto x = e.GetCellCenter(c);
+      if (eb.GetType(c) == Type::cut) {
+        auto x = eb.GetCellCenter(c);
         out << x[0] << "," << x[1] << "," << x[2] << "\n";
       }
     }
   }
   if (sem("dumpcsvface")) {
-    auto& e = *eb_;
+    auto& eb = *eb_;
     using Type = typename EB::Type;
     std::ofstream out("ebf.csv");
     out << "x,y,z\n";
     for (auto c : m.Cells()) {
-      if (e.GetCellType()[c] == Type::cut) {
-        auto x = e.GetFaceCenter(c);
+      if (eb.GetType(c) == Type::cut) {
+        auto x = eb.GetFaceCenter(c);
         out << x[0] << "," << x[1] << "," << x[2] << "\n";
       }
     }
     for (auto f : m.Faces()) {
-      if (e.GetFaceType()[f] == Type::cut) {
-        auto x = e.GetFaceCenter(f);
+      if (eb.GetType(f) == Type::cut) {
+        auto x = eb.GetFaceCenter(f);
         out << x[0] << "," << x[1] << "," << x[2] << "\n";
       }
     }
@@ -108,24 +106,23 @@ void KernelEmbed<M>::Run() {
     auto& eb = *eb_;
     if (sem("step")) {
       using Type = typename EB::Type;
-      const auto& fct = eb.GetCellType();
       const Scal a = 1.; // value on boundary
       const Vect vel(1., 0., 0.); // advection velocity
       const Scal dt = 0.1 * m.GetCellSize()[0] / vel.norm();
       fcum_ = fcu_;
       for (auto c : m.Cells()) {
-        if (fct[c] == Type::cut) {
+        if (eb.GetType(c) == Type::cut) {
           Scal s = 0;
           for (auto q : m.Nci(c)) {
             const IdxFace f = m.GetFace(c, q);
             const Scal u = fcum_[m.GetCell(f, 0)];
             s += u * vel.dot(
-                         m.GetNormal(f) * eb.GetFaceArea()[f] *
+                         m.GetNormal(f) * eb.GetArea(f) *
                          m.GetOutwardFactor(c, q));
           }
-          s += a * (eb.GetNormal()[c] * eb.GetCellArea()[c]).dot(vel);
-          fcu_[c] = fcum_[c] - s / eb.GetCellVolume()[c] * dt;
-        } else if (fct[c] == Type::regular) {
+          s += a * (eb.GetNormal(c) * eb.GetArea(c)).dot(vel);
+          fcu_[c] = fcum_[c] - s / eb.GetVolume(c) * dt;
+        } else if (eb.GetType(c) == Type::regular) {
           Scal s = 0;
           for (auto q : m.Nci(c)) {
             const IdxFace f = m.GetFace(c, q);
@@ -137,11 +134,16 @@ void KernelEmbed<M>::Run() {
       }
       m.Dump(&fcu_, "u");
       m.Dump(&fct_, "type");
-      m.Dump(&eb.GetNormal(), 0, "nx");
-      m.Dump(&eb.GetNormal(), 1, "ny");
-      m.Dump(&eb.GetNormal(), 2, "nz");
 
-      FieldEmbed<Scal> feu(m, 3);
+      FieldEmbed<Scal> feu(m, 0);
+      /*
+      for (auto f : m.Faces()) {
+        feu[f] = eb.GetFaceCenter(f)[0];
+      }
+      for (auto c : m.Cells()) {
+        feu[c] = eb.GetFaceCenter(c)[0];
+      }
+      */
       fcu_ = eb.Interpolate(feu);
     }
   }
