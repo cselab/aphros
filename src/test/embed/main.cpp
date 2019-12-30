@@ -97,7 +97,14 @@ void Run(M& m, Vars&) {
           s += feun[f] * eb.GetArea(f) * m.GetOutwardFactor(c, q);
         }
         const Scal du = s * dt / eb.GetVolume(c);
-        fcu[c] += du * eb.GetRedistr(c);
+        if (eb.GetType(c) == Type::cut) {
+          fcu[c] += du * eb.GetRedistr(c);
+          for (auto p : eb.GetRedistrList(c)) {
+            fcu[p.first] += du * p.second;
+          }
+        } else {
+          fcu[c] += du;
+        }
       }
 
       m.Comm(&fcu);
