@@ -62,12 +62,14 @@ void Run(M& m, Vars&) {
       const bool compact = false;
       //const Scal dt = compact ? 6e-6 : 4e-5;
       const Scal dt = compact ? 1e-4 : 5e-4; // with redistr
+      //const Scal dt = compact ? 5e-4 : 5e-4; // with redistr, bc=1
+      const size_t bc = 0;
       const Scal bcu = 1;
 
-      feu = eb.Interpolate(fcu, 0, bcu);
+      feu = eb.Interpolate(fcu, bc, bcu);
       FieldEmbed<Scal> feun(m);
 
-      const auto feunc = eb.Gradient(fcu, 0, bcu); // compact gradient
+      const auto feunc = eb.Gradient(fcu, bc, bcu); // compact gradient
       if (compact) {
         feun = feunc;
       } else {
