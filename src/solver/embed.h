@@ -78,6 +78,7 @@ class Embed {
   Embed(M& m, const FieldNode<Scal>& fnl) : m(m), fnl_(fnl) {
     InitFaces(fnl_, fft_, ffpoly_, ffs_, m);
     InitCells(fnl_, ffs_, fct_, fcn_, fca_, fcs_, fcv_, m);
+    InitRedistr(fct_, fcv_, fcs_, fc_redistr_, mc_redistr_, m);
   }
   Type GetType(IdxCell c) const {
     return fct_[c];
@@ -551,6 +552,40 @@ class Embed {
       }
     }
   }
+  static void InitRedistr(
+      const FieldCell<Type>& fct, const FieldCell<Scal>& fcv,
+      const FieldCell<Scal>& fcs, FieldCell<Scal>& fc_redistr,
+      MapCell<std::vector<std::pair<IdxCell, Scal>>> mc_redistr, const M& m) {
+    fc_redistr.Reinit(m, 1);
+    const int sw = 1; // stencil halfwidth
+    using MIdx = typename M::MIdx;
+    auto& bc = m.GetIndexCells();
+    GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1)); // offsets
+    const Scal hreg = m.GetCellSize()[0]; // XXX adhoc cubic cells
+    for (auto c : m.Cells()) {
+      if (fct[c] == Type::cut) {
+        const Scal a = std::min(1., fcv[c] / (hreg * fcs[c]));
+        std::vector<std::pair<IdxCell, Scal>> vp;
+        const MIdx w = bc.GetMIdx(c);
+        for (auto wo : bo) {
+          const MIdx wn = w + wo;
+          const IdxCell cn = bc.GetIdx(wn);
+          if (fct[cn] != Type::excluded && cn != c) {
+            vp.push_back({cn, 1});
+          }
+        }
+        Scal sum = 0;
+        for (auto& p : vp) {
+          sum += p.second * fcv[p.first];
+        }
+        for (auto& p : vp) {
+          p.second *= fcv[c] * (1 - a) / sum;
+        }
+        fc_redistr[c] = a;
+        mc_redistr[c] = vp;
+      }
+    }
+  }
 
   M& m;
   // nodes
@@ -565,4 +600,7 @@ class Embed {
   FieldCell<Scal> fca_; // plane constant
   FieldCell<Scal> fcs_; // area of polygon
   FieldCell<Scal> fcv_; // volume of cut cell
+  // redistribution coefficients
+  MapCell<std::vector<std::pair<IdxCell, Scal>>> mc_redistr_;
+  FieldCell<Scal> fc_redistr_;
 };

@@ -59,7 +59,7 @@ void Run(M& m, Vars&) {
   for (size_t t = 0; t < maxt; ++t) {
     auto& eb = *ctx->eb;
     if (sem("step")) {
-      const bool compact = true;
+      const bool compact = false;
       const Scal dt = compact ? 6e-6 : 4e-5;
       const Scal bcu = 1;
 
