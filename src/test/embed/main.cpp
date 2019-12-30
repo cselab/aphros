@@ -15,6 +15,7 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using R = Reconst<Scal>;
 using EB = Embed<M>;
+using Type = typename EB::Type;
 
 void Run(M& m, Vars&) {
   auto sem = m.GetSem("Run");
@@ -23,17 +24,19 @@ void Run(M& m, Vars&) {
     FieldCell<Scal> fcu;
     FieldCell<Scal> fcum;
     FieldEmbed<Scal> feu;
+    size_t frame = 0;
   } * ctx(sem);
   auto& fcu = ctx->fcu;
   auto& fcum = ctx->fcum;
   auto& feu = ctx->feu;
+  auto& frame = ctx->frame;
 
   if (sem("init")) {
     FieldNode<Scal> fnl(m, 0);
     for (auto n : m.AllNodes()) {
       const Vect x = m.GetNode(n);
       const Vect xc(0.5, 0.5, 0.5);
-      const Vect s(2., 1., 1.);
+      const Vect s(1., 1., 1.);
       auto rot = [](Vect xx) {
         const Scal a = 3.14159265358979323 * 0;
         const Scal as = std::sin(a);
@@ -43,7 +46,8 @@ void Run(M& m, Vars&) {
         const Scal z = xx[2];
         return Vect(x * ac - y * as, x * as + y * ac, z);
       };
-      fnl[n] = (rot(x - xc) / s).norm() - 0.2;
+      fnl[n] = (rot(x - xc) / s).norm() - 0.35;
+      fnl[n] *= -1;
     }
     ctx->eb.reset(new EB(m, fnl));
     fcu.Reinit(m, 0);
@@ -52,20 +56,21 @@ void Run(M& m, Vars&) {
     auto& eb = *ctx->eb;
     eb.DumpPoly();
   }
-  for (size_t t = 0; t < 50; ++t) {
+  const size_t maxt = 1000;
+  const size_t nfr = 100;
+  for (size_t t = 0; t < maxt; ++t) {
     auto& eb = *ctx->eb;
     if (sem("step")) {
       feu = eb.Interpolate(fcu, 0, 1);
       fcu = eb.Interpolate(feu);
       m.Comm(&fcu);
     }
-    if (sem("dump")) {
-      m.Dump(&fcu, "u"); // FIXME: Dump and Comm in one stage ignores Comm
+    if (t % std::max<size_t>(1, maxt / nfr) != 0) {
+      continue;
     }
     if (sem("dumpcsv")) {
       auto& eb = *ctx->eb;
-      using Type = typename EB::Type;
-      std::ofstream out(GetDumpName("eb", ".csv", t));
+      std::ofstream out(GetDumpName("eb", ".csv", frame));
       out << "x,y,z,type,u\n";
       for (auto c : m.Cells()) {
         if (eb.GetType(c) == Type::regular || eb.GetType(c) == Type::cut) {
@@ -79,7 +84,7 @@ void Run(M& m, Vars&) {
     if (sem("dumpcsvface")) {
       auto& eb = *ctx->eb;
       using Type = typename EB::Type;
-      std::ofstream out(GetDumpName("ebf", ".csv", t));
+      std::ofstream out(GetDumpName("ebf", ".csv", frame));
       out << "x,y,z,face,type,u\n";
       for (auto c : m.Cells()) {
         if (eb.GetType(c) == Type::cut) {
@@ -100,6 +105,10 @@ void Run(M& m, Vars&) {
         }
       }
     }
+    if (sem("dump")) {
+      m.Dump(&fcu, "u"); // FIXME: Dump and Comm in one stage ignores Comm
+      ++frame;
+    }
   }
   if (sem()) {
   }
@@ -111,9 +120,9 @@ set int bx 1
 set int by 1
 set int bz 1
 
-set int bsx 8
-set int bsy 8
-set int bsz 8
+set int bsx 16
+set int bsy 16
+set int bsz 16
 )EOF";
   return RunMpiBasic<M>(argc, argv, Run, conf);
 }
