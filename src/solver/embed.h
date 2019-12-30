@@ -1,6 +1,7 @@
 #pragma once
 
 #include <limits>
+#include <stdexcept>
 
 #include "dump/vtk.h"
 #include "reconst.h"
@@ -14,6 +15,8 @@ class FieldEmbed {
   FieldEmbed() = default;
   FieldEmbed(const FieldEmbed&) = default;
   FieldEmbed(FieldEmbed&&) = default;
+  FieldEmbed(const FieldCell<Value>& fc, const FieldFace<Value>& ff)
+      : dc_(fc), df_(ff) {}
   FieldEmbed& operator=(const FieldEmbed& o) = default;
   FieldEmbed& operator=(FieldEmbed&& o) = default;
   template <class M>
@@ -82,6 +85,7 @@ class Embed {
   Type GetType(IdxFace f) const {
     return fft_[f];
   }
+  // Returns outer normal (towards excluded domain) in cut cells.
   Vect GetNormal(IdxCell c) const {
     return fcn_[c];
   }
@@ -157,8 +161,7 @@ class Embed {
     }
   }
 
-  FieldCell<Scal> Interpolate(
-      const FieldFace<Scal>& ffu, const FieldCell<Scal>& fceu) const {
+  FieldCell<Scal> Interpolate(const FieldEmbed<Scal>& feu) const {
     FieldCell<Scal> fcu(m, GetNan<Scal>());
     for (auto c : m.Cells()) {
       switch (fct_[c]) {
@@ -167,7 +170,7 @@ class Embed {
           Scal sumw = 0;
           for (auto q : m.Nci(c)) {
             IdxFace f = m.GetFace(c, q);
-            sum += ffu[f];
+            sum += feu[f];
             sumw += 1.;
           }
           fcu[c] = sum / sumw;
@@ -175,13 +178,13 @@ class Embed {
         }
         case Type::cut: {
           const Scal w = 1 / GetFaceOffset(c);
-          Scal sum = fceu[c] * w;
+          Scal sum = feu[c] * w;
           Scal sumw = w;
           for (auto q : m.Nci(c)) {
             IdxFace f = m.GetFace(c, q);
             if (fft_[f] == Type::regular || fft_[f] == Type::cut) {
               const Scal w = 1 / GetFaceOffset(c, q);
-              sum += ffu[f] * w;
+              sum += feu[f] * w;
               sumw += w;
             }
           }
@@ -195,8 +198,46 @@ class Embed {
     }
     return fcu;
   }
-  FieldCell<Scal> Interpolate(const FieldEmbed<Scal>& feu) const {
-    return Interpolate(feu.GetFieldFace(), feu.GetFieldCell());
+  // bc: boudnary conditions type, 0: value, 1: grad
+  // bcv: value or normal gradient (grad dot GetNormal)
+  FieldEmbed<Scal> Interpolate(
+      const FieldCell<Scal>& fcu, size_t bc, Scal bcv) const {
+    FieldEmbed<Scal> feu(m, GetNan<Scal>());
+    for (auto f : m.Faces()) {
+      switch (fft_[f]) {
+        case Type::regular:
+        case Type::cut: {
+          IdxCell cm = m.GetCell(f, 0);
+          IdxCell cp = m.GetCell(f, 1);
+          Scal a = 0.5;
+          feu[f] = fcu[cm] * (1 - a) + fcu[cp] * a;
+          break;
+        }
+        case Type::excluded: {
+          feu[f] = 0;
+          break;
+        }
+      }
+    }
+    for (auto c : m.Cells()) {
+      switch (fct_[c]) {
+        case Type::cut: {
+          if (bc == 0) {
+            feu[c] = bcv;
+          } else if (bc == 1) {
+            feu[c] = fcu[c] + GetFaceOffset(c) * bcv;
+          } else {
+            throw std::runtime_error("unknown bc=" + std::to_string(bc));
+          }
+        }
+        case Type::regular:
+        case Type::excluded: {
+          feu[c] = 0;
+          break;
+        }
+      }
+    }
+    return feu;
   }
   void DumpPoly() const {
     const std::string fn = GetDumpName("eb", ".vtk", 0);
@@ -436,7 +477,7 @@ class Embed {
   FieldFace<Scal> ffs_; // area for which f > 0
   // cells
   FieldCell<Type> fct_; // cell type (0: regular, 1: cut, 2: excluded)
-  FieldCell<Vect> fcn_; // unit outer normal
+  FieldCell<Vect> fcn_; // unit outer normal (towards excluded domain)
   FieldCell<Scal> fca_; // plane constant
   FieldCell<Scal> fcs_; // area of polygon
   FieldCell<Scal> fcd_; // normal component of displacement from cell center
