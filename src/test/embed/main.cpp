@@ -54,46 +54,11 @@ void Run(M& m, Vars&) {
       const Scal a = 1.; // value on boundary
       const Vect vel(1., 0., 0.); // advection velocity
       const Scal dt = 0.1 * m.GetCellSize()[0] / vel.norm();
-      fcum = fcu;
-      for (auto c : m.Cells()) {
-        if (eb.GetType(c) == Type::cut) {
-          Scal s = 0;
-          for (auto q : m.Nci(c)) {
-            const IdxFace f = m.GetFace(c, q);
-            const Scal u = fcum[m.GetCell(f, 0)];
-            s += u * vel.dot(
-                         m.GetNormal(f) * eb.GetArea(f) *
-                         m.GetOutwardFactor(c, q));
-          }
-          s += a * (eb.GetNormal(c) * eb.GetArea(c)).dot(vel);
-          fcu[c] = fcum[c] - s / eb.GetVolume(c) * dt;
-        } else if (eb.GetType(c) == Type::regular) {
-          Scal s = 0;
-          for (auto q : m.Nci(c)) {
-            const IdxFace f = m.GetFace(c, q);
-            Scal u = fcum[m.GetCell(f, 0)];
-            s += u * vel.dot(m.GetOutwardSurface(c, q));
-          }
-          fcu[c] = fcum[c] - s / m.GetVolume(c) * dt;
-        }
-      }
-      m.Dump(&fcu, "u");
-      m.Dump(&fct, "type");
 
-      feu.Reinit(m, 0);
-      for (auto f : m.Faces()) {
-        feu[f] = eb.GetFaceCenter(f)[0];
-      }
-      for (auto c : m.Cells()) {
-        feu[c] = eb.GetFaceCenter(c)[0];
-      }
+      feu = eb.Interpolate(fcu, 0, 1);
       fcu = eb.Interpolate(feu);
-
-      fcu.Reinit(m, 0);
-      for (auto c : m.Cells()) {
-        fcu[c] = eb.GetCellCenter(c)[0];
-      }
-      feu = eb.Interpolate(fcu, 0, 0);
+      m.Comm(&fcu);
+      m.Dump(&fcu, "u");
     }
     if (sem("dumpcsv")) {
       auto& eb = *ctx->eb;
