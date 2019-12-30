@@ -20,13 +20,15 @@ void Run(M& m, Vars&) {
   auto sem = m.GetSem("Run");
   struct {
     std::unique_ptr<EB> eb;
-    FieldCell<Scal> fcu; // field
-    FieldCell<Scal> fcum; // field
-    FieldCell<Scal> fct; // field
+    FieldCell<Scal> fcu;
+    FieldCell<Scal> fcum;
+    FieldCell<Scal> fct;
+    FieldEmbed<Scal> feu;
   } * ctx(sem);
   auto& fct = ctx->fct;
   auto& fcu = ctx->fcu;
   auto& fcum = ctx->fcum;
+  auto& feu = ctx->feu;
 
   if (sem("init")) {
     FieldNode<Scal> fnf(m, 0);
@@ -44,36 +46,6 @@ void Run(M& m, Vars&) {
   if (sem.Nested("dumppoly")) {
     auto& eb = *ctx->eb;
     eb.DumpPoly();
-  }
-  if (sem("dumpcsv")) {
-    auto& eb = *ctx->eb;
-    using Type = typename EB::Type;
-    std::ofstream out("eb.csv");
-    out << "x,y,z\n";
-    for (auto c : m.Cells()) {
-      if (eb.GetType(c) == Type::cut) {
-        auto x = eb.GetCellCenter(c);
-        out << x[0] << "," << x[1] << "," << x[2] << "\n";
-      }
-    }
-  }
-  if (sem("dumpcsvface")) {
-    auto& eb = *ctx->eb;
-    using Type = typename EB::Type;
-    std::ofstream out("ebf.csv");
-    out << "x,y,z\n";
-    for (auto c : m.Cells()) {
-      if (eb.GetType(c) == Type::cut) {
-        auto x = eb.GetFaceCenter(c);
-        out << x[0] << "," << x[1] << "," << x[2] << "\n";
-      }
-    }
-    for (auto f : m.Faces()) {
-      if (eb.GetType(f) == Type::cut) {
-        auto x = eb.GetFaceCenter(f);
-        out << x[0] << "," << x[1] << "," << x[2] << "\n";
-      }
-    }
   }
   for (size_t t = 0; t < 50; ++t) {
     auto& eb = *ctx->eb;
@@ -108,16 +80,50 @@ void Run(M& m, Vars&) {
       m.Dump(&fcu, "u");
       m.Dump(&fct, "type");
 
-      FieldEmbed<Scal> feu(m, 0);
-      /*
+      feu.Reinit(m, 0);
       for (auto f : m.Faces()) {
         feu[f] = eb.GetFaceCenter(f)[0];
       }
       for (auto c : m.Cells()) {
         feu[c] = eb.GetFaceCenter(c)[0];
       }
-      */
       fcu = eb.Interpolate(feu);
+
+      fcu.Reinit(m, 0);
+      for (auto c : m.Cells()) {
+        fcu[c] = eb.GetCellCenter(c)[0];
+      }
+      feu = eb.Interpolate(fcu, 0, 0);
+    }
+    if (sem("dumpcsv")) {
+      auto& eb = *ctx->eb;
+      using Type = typename EB::Type;
+      std::ofstream out(GetDumpName("eb", ".csv", t));
+      out << "x,y,z,u\n";
+      for (auto c : m.Cells()) {
+        if (eb.GetType(c) == Type::cut) {
+          auto x = eb.GetCellCenter(c);
+          out << x[0] << "," << x[1] << "," << x[2] << "," << fcu[c] << "\n";
+        }
+      }
+    }
+    if (sem("dumpcsvface")) {
+      auto& eb = *ctx->eb;
+      using Type = typename EB::Type;
+      std::ofstream out(GetDumpName("ebf", ".csv", t));
+      out << "x,y,z,u\n";
+      for (auto c : m.Cells()) {
+        if (eb.GetType(c) == Type::cut) {
+          auto x = eb.GetFaceCenter(c);
+          out << x[0] << "," << x[1] << "," << x[2] << "," << feu[c] << "\n";
+        }
+      }
+      for (auto f : m.Faces()) {
+        if (eb.GetType(f) == Type::cut) {
+          auto x = eb.GetFaceCenter(f);
+          out << x[0] << "," << x[1] << "," << x[2] << "," << feu[f] << "\n";
+        }
+      }
     }
   }
   if (sem()) {
