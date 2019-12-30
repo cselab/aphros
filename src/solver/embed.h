@@ -246,6 +246,41 @@ class Embed {
     }
     return feu;
   }
+  // feu: field on embedded boundaries [a]
+  // Returns:
+  // gradient on cells [a]
+  FieldCell<Vect> Gradient(const FieldEmbed<Scal>& feu) const {
+    FieldCell<Vect> fcg(m, Vect(0)); // FIXME should be nan
+    for (auto c : m.AllCells()) {
+      switch (fct_[c]) {
+        case Type::regular: {
+          Vect sum(0);
+          for (auto q : m.Nci(c)) {
+            IdxFace f = m.GetFace(c, q);
+            sum += m.GetOutwardSurface(c, q) * feu[f];
+          }
+          fcg[c] = sum / m.GetVolume(c);
+          break;
+        }
+        case Type::cut: {
+          Vect sum = GetNormal(c) * (GetArea(c) * feu[c]);
+          for (auto q : m.Nci(c)) {
+            IdxFace f = m.GetFace(c, q);
+            if (fft_[f] == Type::regular || fft_[f] == Type::cut) {
+              IdxFace f = m.GetFace(c, q);
+              sum += GetNormal(f) *
+                     (m.GetOutwardFactor(c, q) * GetArea(f) * feu[f]);
+            }
+          }
+          fcg[c] = sum / GetVolume(c);
+          break;
+        }
+        case Type::excluded:
+          break;
+      }
+    }
+    return fcg;
+  }
   void DumpPoly() const {
     const std::string fn = GetDumpName("eb", ".vtk", 0);
     DumpPoly(fn, ffs_, fft_, fcs_, fct_, fcn_, fca_, ffpoly_, m);
