@@ -1,79 +1,52 @@
 #undef NDEBUG
-#include <mpi.h>
 #include <cassert>
 #include <fstream>
-#include <functional>
-#include <iomanip>
 #include <iostream>
 #include <memory>
-#include <sstream>
 #include <string>
-#include <tuple>
 #include <utility>
 
-#include "distr/distrsolver.h"
-#include "dump/output.h"
-#include "dump/output_paraview.h"
-#include "geom/mesh.h"
-#include "geom/vect.h"
-#include "kernel/kernelmeshpar.h"
-#include "parse/vars.h"
-#include "solver/embed.h"
+#include "distr/distrbasic.h"
 #include "solver/reconst.h"
-#include "solver/solver.h"
-#include "util/suspender.h"
+#include "solver/embed.h"
 
-struct GPar {};
+using M = MeshStructured<double, 3>;
+using Scal = typename M::Scal;
+using Vect = typename M::Vect;
+using R = Reconst<Scal>;
+using EB = Embed<M>;
 
-template <class M_>
-class KernelEmbed : public KernelMeshPar<M_, GPar> {
- public:
-  using P = KernelMeshPar<M_, GPar>; // parent
-  using M = M_;
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  using MIdx = typename M::MIdx;
-  using Par = GPar;
-  using R = Reconst<Scal>;
-  static constexpr size_t dim = M::dim;
-
-  using P::P;
-  void Run() override;
-
- protected:
-  using P::m;
-  using P::var;
-
- private:
-  using EB = Embed<M>;
-  std::unique_ptr<EB> eb_;
-  FieldCell<Scal> fcu_; // field
-  FieldCell<Scal> fcum_; // field
-  FieldCell<Scal> fct_; // field
-};
-
-template <class M>
-void KernelEmbed<M>::Run() {
+void Run(M& m, Vars&) {
   auto sem = m.GetSem("Run");
+  struct {
+    std::unique_ptr<EB> eb;
+    FieldCell<Scal> fcu; // field
+    FieldCell<Scal> fcum; // field
+    FieldCell<Scal> fct; // field
+  } * ctx(sem);
+  auto& fct = ctx->fct;
+  auto& fcu = ctx->fcu;
+  auto& fcum = ctx->fcum;
+
   if (sem("init")) {
     FieldNode<Scal> fnf(m, 0);
     for (auto n : m.Nodes()) {
       auto x = m.GetNode(n);
       fnf[n] = 1.01 - Vect(x[0], x[1], x[2]).dot(Vect(1., 1., 0.));
     }
-    eb_ = std::unique_ptr<EB>(new EB(m, fnf));
-    fcu_.Reinit(m, 0);
-    fct_.Reinit(m, 0);
+    ctx->eb.reset(new EB(m, fnf));
+    fcu.Reinit(m, 0);
+    fct.Reinit(m, 0);
     for (auto c : m.Cells()) {
-      fct_[c] = size_t(eb_->GetType(c));
+      fct[c] = size_t(ctx->eb->GetType(c));
     }
   }
   if (sem.Nested("dumppoly")) {
-    auto& eb = *eb_;
+    auto& eb = *ctx->eb;
     eb.DumpPoly();
   }
   if (sem("dumpcsv")) {
-    auto& eb = *eb_;
+    auto& eb = *ctx->eb;
     using Type = typename EB::Type;
     std::ofstream out("eb.csv");
     out << "x,y,z\n";
@@ -85,7 +58,7 @@ void KernelEmbed<M>::Run() {
     }
   }
   if (sem("dumpcsvface")) {
-    auto& eb = *eb_;
+    auto& eb = *ctx->eb;
     using Type = typename EB::Type;
     std::ofstream out("ebf.csv");
     out << "x,y,z\n";
@@ -103,37 +76,37 @@ void KernelEmbed<M>::Run() {
     }
   }
   for (size_t t = 0; t < 50; ++t) {
-    auto& eb = *eb_;
+    auto& eb = *ctx->eb;
     if (sem("step")) {
       using Type = typename EB::Type;
       const Scal a = 1.; // value on boundary
       const Vect vel(1., 0., 0.); // advection velocity
       const Scal dt = 0.1 * m.GetCellSize()[0] / vel.norm();
-      fcum_ = fcu_;
+      fcum = fcu;
       for (auto c : m.Cells()) {
         if (eb.GetType(c) == Type::cut) {
           Scal s = 0;
           for (auto q : m.Nci(c)) {
             const IdxFace f = m.GetFace(c, q);
-            const Scal u = fcum_[m.GetCell(f, 0)];
+            const Scal u = fcum[m.GetCell(f, 0)];
             s += u * vel.dot(
                          m.GetNormal(f) * eb.GetArea(f) *
                          m.GetOutwardFactor(c, q));
           }
           s += a * (eb.GetNormal(c) * eb.GetArea(c)).dot(vel);
-          fcu_[c] = fcum_[c] - s / eb.GetVolume(c) * dt;
+          fcu[c] = fcum[c] - s / eb.GetVolume(c) * dt;
         } else if (eb.GetType(c) == Type::regular) {
           Scal s = 0;
           for (auto q : m.Nci(c)) {
             const IdxFace f = m.GetFace(c, q);
-            Scal u = fcum_[m.GetCell(f, 0)];
+            Scal u = fcum[m.GetCell(f, 0)];
             s += u * vel.dot(m.GetOutwardSurface(c, q));
           }
-          fcu_[c] = fcum_[c] - s / m.GetVolume(c) * dt;
+          fcu[c] = fcum[c] - s / m.GetVolume(c) * dt;
         }
       }
-      m.Dump(&fcu_, "u");
-      m.Dump(&fct_, "type");
+      m.Dump(&fcu, "u");
+      m.Dump(&fct, "type");
 
       FieldEmbed<Scal> feu(m, 0);
       /*
@@ -144,30 +117,22 @@ void KernelEmbed<M>::Run() {
         feu[c] = eb.GetFaceCenter(c)[0];
       }
       */
-      fcu_ = eb.Interpolate(feu);
+      fcu = eb.Interpolate(feu);
     }
   }
   if (sem()) {
   }
 }
 
-using Scal = double;
-using M = MeshStructured<Scal, 3>;
-using K = KernelEmbed<M>;
-
-void Main(MPI_Comm comm, Vars& var0) {
-  int rank;
-  MPI_Comm_rank(comm, &rank);
-
-  Vars var = var0;
-
-  using Par = typename K::Par;
-  Par par;
-
-  DistrSolver<M, K> ds(comm, var, par);
-  ds.Run();
-}
-
 int main(int argc, const char** argv) {
-  return RunMpi(argc, argv, Main);
+  std::string conf = R"EOF(
+set int bx 1
+set int by 1
+set int bz 1
+
+set int bsx 8
+set int bsy 8
+set int bsz 8
+)EOF";
+  return RunMpiBasic<M>(argc, argv, Run, conf);
 }
