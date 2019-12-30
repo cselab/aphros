@@ -74,10 +74,10 @@ class Embed {
 
  public:
   enum class Type { regular, cut, excluded };
-  // fnf: level-set function on nodes, interface at fnf=0
-  Embed(M& m, const FieldNode<Scal>& fnf) : m(m), fnf_(fnf) {
-    InitFaces(fnf_, fft_, ffpoly_, ffs_, m);
-    InitCells(fnf_, ffs_, fct_, fcn_, fca_, fcs_, fcd_, fcv_, m);
+  // fnl: level-set function on nodes, interface at fnl=0
+  Embed(M& m, const FieldNode<Scal>& fnl) : m(m), fnl_(fnl) {
+    InitFaces(fnl_, fft_, ffpoly_, ffs_, m);
+    InitCells(fnl_, ffs_, fct_, fcn_, fca_, fcs_, fcv_, m);
   }
   Type GetType(IdxCell c) const {
     return fct_[c];
@@ -161,9 +161,12 @@ class Embed {
     }
   }
 
+  // feu: field on embedded boundaries [a]
+  // Returns:
+  // field on cells [a]
   FieldCell<Scal> Interpolate(const FieldEmbed<Scal>& feu) const {
     FieldCell<Scal> fcu(m, GetNan<Scal>());
-    for (auto c : m.Cells()) {
+    for (auto c : m.AllCells()) {
       switch (fct_[c]) {
         case Type::regular: {
           Scal sum = 0;
@@ -198,12 +201,15 @@ class Embed {
     }
     return fcu;
   }
-  // bc: boudnary conditions type, 0: value, 1: grad
+  // fcu: field [a]
+  // bc: boundary conditions type, 0: value, 1: grad
   // bcv: value or normal gradient (grad dot GetNormal)
+  // Returns:
+  // field on embedded boundaries [s]
   FieldEmbed<Scal> Interpolate(
       const FieldCell<Scal>& fcu, size_t bc, Scal bcv) const {
     FieldEmbed<Scal> feu(m, GetNan<Scal>());
-    for (auto f : m.Faces()) {
+    for (auto f : m.SuFaces()) {
       switch (fft_[f]) {
         case Type::regular:
         case Type::cut: {
@@ -219,7 +225,7 @@ class Embed {
         }
       }
     }
-    for (auto c : m.Cells()) {
+    for (auto c : m.SuCells()) {
       switch (fct_[c]) {
         case Type::cut: {
           if (bc == 0) {
@@ -340,17 +346,18 @@ class Embed {
     return xx;
   }
   // Determines the face types, constructs polygons and computes fractions.
-  // fnf: f on nodes
+  // fnl: level-set on nodes [a]
+  // Output:
   // fft: type of faces
   // ffpoly: if fft=1, polygon representing f < 0; otherwise empty
   // ffs: face area for which f > 0
   static void InitFaces(
-      const FieldNode<Scal>& fnf, FieldFace<Type>& fft,
+      const FieldNode<Scal>& fnl, FieldFace<Type>& fft,
       FieldFace<std::vector<Vect>>& ffpoly, FieldFace<Scal>& ffs, const M& m) {
     fft.Reinit(m);
     ffpoly.Reinit(m);
     ffs.Reinit(m, 0);
-    for (auto f : m.Faces()) {
+    for (auto f : m.AllFaces()) {
       const size_t em = m.GetNumNodes(f);
       std::vector<Vect> xx;
       bool cut = false;
@@ -358,8 +365,8 @@ class Embed {
         size_t ep = (e + 1) % em;
         IdxNode n = m.GetNode(f, e);
         IdxNode np = m.GetNode(f, ep);
-        Scal f = fnf[n];
-        Scal fp = fnf[np];
+        Scal f = fnl[n];
+        Scal fp = fnl[np];
         Vect x = m.GetNode(n);
         Vect xp = m.GetNode(np);
         if (f < 0) {
@@ -386,31 +393,29 @@ class Embed {
     }
   }
   // Determines the cell types, normals and plane constants.
-  // fnf: f on nodes
+  // fnl: level-set on nodes [a]
   // ffs: face area for which f > 0
-  // ffpoly: polygon representing f < 0
   // Output:
   // fct: cell types
   // fcn: normals
   // fca: plane constants
   // fcs: polygon area
+  // fcv: cell volume
   static void InitCells(
-      const FieldNode<Scal>& fnf, const FieldFace<Scal>& ffs,
+      const FieldNode<Scal>& fnl, const FieldFace<Scal>& ffs,
       FieldCell<Type>& fct, FieldCell<Vect>& fcn, FieldCell<Scal>& fca,
-      FieldCell<Scal>& fcs, FieldCell<Scal>& fcd, FieldCell<Scal>& fcv,
-      const M& m) {
-    fct.Reinit(m);
-    fcn.Reinit(m);
-    fca.Reinit(m);
-    fcs.Reinit(m, 0);
-    fcd.Reinit(m);
-    fcv.Reinit(m, 0);
-    for (auto c : m.Cells()) {
+      FieldCell<Scal>& fcs, FieldCell<Scal>& fcv, const M& m) {
+    fct.Reinit(m), GetNan<Scal>();
+    fcn.Reinit(m), GetNan<Scal>();
+    fca.Reinit(m, GetNan<Scal>());
+    fcs.Reinit(m, GetNan<Scal>());
+    fcv.Reinit(m, GetNan<Scal>());
+    for (auto c : m.AllCells()) {
       size_t q = 0; // number of nodes with f > 0
       const size_t mi = m.GetNumNodes(c);
       for (size_t i = 0; i < mi; ++i) {
         IdxNode n = m.GetNode(c, i);
-        if (fnf[n] > 0) {
+        if (fnl[n] > 0) {
           ++q;
         }
       }
@@ -432,20 +437,19 @@ class Embed {
           Scal a = 0;
           Scal aw = 0;
           for (auto q : m.Nci(c)) {
-            // FIXME: edges traversed twice
             IdxFace f = m.GetFace(c, q);
             const size_t em = m.GetNumNodes(f);
             for (size_t e = 0; e < em; ++e) {
               size_t ep = (e + 1) % em;
               IdxNode n = m.GetNode(f, e);
               IdxNode np = m.GetNode(f, ep);
-              Scal f = fnf[n];
-              Scal fp = fnf[np];
+              Scal l = fnl[n];
+              Scal lp = fnl[np];
               Vect x = m.GetNode(n);
               Vect xp = m.GetNode(np);
 
-              if ((f < 0) != (fp < 0)) {
-                a += fcn[c].dot(GetIso(x, xp, f, fp) - m.GetCenter(c));
+              if ((l < 0) != (lp < 0)) {
+                a += fcn[c].dot(GetIso(x, xp, l, lp) - m.GetCenter(c));
                 aw += 1.;
               }
             }
@@ -457,11 +461,6 @@ class Embed {
 
         auto xx = R::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
         fcs[c] = std::abs(R::GetArea(xx, fcn[c]));
-
-        // normal distance from center to face
-        auto xc = GetBaryCenter(xx);
-        fcd[c] = (xc - m.GetCenter(c)).dot(fcn[c]);
-        // cut cell volume
         fcv[c] = R::GetLineU(fcn[c], fca[c], h) * m.GetVolume(c);
       } else if (fct[c] == Type::regular) {
         fcv[c] = m.GetVolume(c);
@@ -471,7 +470,7 @@ class Embed {
 
   M& m;
   // nodes
-  FieldNode<Scal> fnf_; // level-set
+  FieldNode<Scal> fnl_; // level-set
   // faces
   FieldFace<Type> fft_; // face type (0: regular, 1: cut, 2: excluded)
   FieldFace<std::vector<Vect>> ffpoly_; // polygon representing f < 0
@@ -481,6 +480,5 @@ class Embed {
   FieldCell<Vect> fcn_; // unit outer normal (towards excluded domain)
   FieldCell<Scal> fca_; // plane constant
   FieldCell<Scal> fcs_; // area of polygon
-  FieldCell<Scal> fcd_; // normal component of displacement from cell center
   FieldCell<Scal> fcv_; // volume of cut cell
 };
