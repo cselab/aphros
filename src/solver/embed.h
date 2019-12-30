@@ -161,26 +161,37 @@ class Embed {
       const FieldFace<Scal>& ffu, const FieldCell<Scal>& fceu) const {
     FieldCell<Scal> fcu(m, GetNan<Scal>());
     for (auto c : m.Cells()) {
-      if (fct_[c] == Type::excluded) {
-        fcu[c] = 0;
-        continue;
-      }
-      Scal sum = 0;
-      Scal sumw = 0;
-      if (fct_[c] == Type::cut) {
-        const Scal w = 1 / GetFaceOffset(c);
-        sum += fceu[c] * w;
-        sumw += w;
-      }
-      for (auto q : m.Nci(c)) {
-        IdxFace f = m.GetFace(c, q);
-        if (fft_[f] == Type::regular || fft_[f] == Type::cut) {
-          const Scal w = 1 / GetFaceOffset(c, q);
-          sum += ffu[f] * w;
-          sumw += w;
+      switch (fct_[c]) {
+        case Type::regular: {
+          Scal sum = 0;
+          Scal sumw = 0;
+          for (auto q : m.Nci(c)) {
+            IdxFace f = m.GetFace(c, q);
+            sum += ffu[f];
+            sumw += 1.;
+          }
+          fcu[c] = sum / sumw;
+          break;
         }
+        case Type::cut: {
+          const Scal w = 1 / GetFaceOffset(c);
+          Scal sum = fceu[c] * w;
+          Scal sumw = w;
+          for (auto q : m.Nci(c)) {
+            IdxFace f = m.GetFace(c, q);
+            if (fft_[f] == Type::regular || fft_[f] == Type::cut) {
+              const Scal w = 1 / GetFaceOffset(c, q);
+              sum += ffu[f] * w;
+              sumw += w;
+            }
+          }
+          fcu[c] = sum / sumw;
+          break;
+        }
+        case Type::excluded:
+          fcu[c] = 0;
+          break;
       }
-      fcu[c] = sum / sumw;
     }
     return fcu;
   }
