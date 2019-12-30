@@ -1,0 +1,17 @@
+%o: [g, h, -f*h];
+al: 1.33;
+%s: rk(%o, [f, g, h], [0, 0, al], [t, 0, 5, 0.1]) $
+
+%t: map(first, %s) $
+%f: map(second, %s) $
+%g: map(third, %s) $
+%h: map(fourth, %s) $
+
+draw2d(points(%t, %g/2));
+
+/*
+
+Levich, V. G. (1962). Physicochemical Hydrodynamics
+Prentice-Hall. Englewood Cliffs, NJ, 115.  eq (3.22-3.40)
+
+*/
