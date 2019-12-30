@@ -7,8 +7,8 @@
 #include <utility>
 
 #include "distr/distrbasic.h"
-#include "solver/reconst.h"
 #include "solver/embed.h"
+#include "solver/reconst.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -54,24 +54,46 @@ void Run(M& m, Vars&) {
     auto& eb = *ctx->eb;
     eb.DumpPoly();
   }
-  const size_t maxt = 10000;
+  const size_t maxt = 1000;
   const size_t nfr = 100;
   for (size_t t = 0; t < maxt; ++t) {
     auto& eb = *ctx->eb;
     if (sem("step")) {
-      const Scal dt = 3e-6;
-      feu = eb.Gradient(fcu, 0, 1);
+      const bool compact = true;
+      const Scal dt = compact ? 6e-6 : 4e-5;
+      const Scal bcu = 1;
+
+      feu = eb.Interpolate(fcu, 0, bcu);
+      FieldEmbed<Scal> feun(m);
+
+      if (compact) {
+        feun = eb.Gradient(fcu, 0, bcu); // normal gradient
+      } else {
+        const FieldCell<Vect> fcg = eb.Gradient(feu);
+        const FieldEmbed<Vect> feg = eb.Interpolate(fcg, 1, Vect(0));
+        for (auto f : m.Faces()) {
+          if (eb.GetType(f) != Type::excluded) {
+            feun[f] = feg[f].dot(eb.GetNormal(f));
+          }
+        }
+        for (auto c : m.Cells()) {
+          if (eb.GetType(c) == Type::cut) {
+            feun[c] = feg[c].dot(eb.GetNormal(c));
+          }
+        }
+      }
+
       for (auto c : m.Cells()) {
         if (eb.GetType(c) == Type::excluded) {
           continue;
         }
         Scal s = 0;
         if (eb.GetType(c) == Type::cut) {
-          s += feu[c] * eb.GetArea(c);
+          s += feun[c] * eb.GetArea(c);
         }
         for (auto q : m.Nci(c)) {
           auto f = m.GetFace(c, q);
-          s += feu[f] * eb.GetArea(f) * m.GetOutwardFactor(c, q);
+          s += feun[f] * eb.GetArea(f) * m.GetOutwardFactor(c, q);
         }
         fcu[c] += s * dt / eb.GetVolume(c);
       }
@@ -120,7 +142,7 @@ void Run(M& m, Vars&) {
     }
     if (sem("dump")) {
       // FIXME: Dump and Comm in one stage ignores Comm
-      m.Dump(&fcu, "u"); 
+      m.Dump(&fcu, "u");
       ++frame;
     }
   }

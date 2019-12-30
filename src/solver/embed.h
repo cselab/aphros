@@ -164,12 +164,13 @@ class Embed {
   // feu: field on embedded boundaries [a]
   // Returns:
   // field on cells [a]
-  FieldCell<Scal> Interpolate(const FieldEmbed<Scal>& feu) const {
-    FieldCell<Scal> fcu(m, 0); // FIXME should be nan
+  template <class T>
+  FieldCell<T> Interpolate(const FieldEmbed<T>& feu) const {
+    FieldCell<T> fcu(m, T(0)); // FIXME should be nan
     for (auto c : m.AllCells()) {
       switch (fct_[c]) {
         case Type::regular: {
-          Scal sum = 0;
+          T sum(0);
           Scal sumw = 0;
           for (auto q : m.Nci(c)) {
             IdxFace f = m.GetFace(c, q);
@@ -181,7 +182,7 @@ class Embed {
         }
         case Type::cut: {
           const Scal w = 1 / std::abs(GetFaceOffset(c));
-          Scal sum = feu[c] * w;
+          T sum = feu[c] * w;
           Scal sumw = w;
           for (auto q : m.Nci(c)) {
             IdxFace f = m.GetFace(c, q);
@@ -195,7 +196,6 @@ class Embed {
           break;
         }
         case Type::excluded:
-          fcu[c] = 0;
           break;
       }
     }
@@ -206,9 +206,9 @@ class Embed {
   // bcv: value or normal gradient (grad dot GetNormal)
   // Returns:
   // field on embedded boundaries [s]
-  FieldEmbed<Scal> Interpolate(
-      const FieldCell<Scal>& fcu, size_t bc, Scal bcv) const {
-    FieldEmbed<Scal> feu(m, 0); // FIXME should be nan
+  template <class T>
+  FieldEmbed<T> Interpolate(const FieldCell<T>& fcu, size_t bc, T bcv) const {
+    FieldEmbed<T> feu(m, T(0)); // FIXME should be nan
     for (auto f : m.SuFaces()) {
       switch (fft_[f]) {
         case Type::regular:
@@ -220,7 +220,6 @@ class Embed {
           break;
         }
         case Type::excluded: {
-          feu[f] = 0;
           break;
         }
       }
@@ -231,7 +230,7 @@ class Embed {
           if (bc == 0) {
             feu[c] = bcv;
           } else if (bc == 1) {
-            feu[c] = fcu[c] + GetFaceOffset(c) * bcv;
+            feu[c] = fcu[c] + bcv * GetFaceOffset(c);
           } else {
             throw std::runtime_error(
                 "Interpolate: unknown bc=" + std::to_string(bc));
@@ -240,7 +239,6 @@ class Embed {
         }
         case Type::regular:
         case Type::excluded: {
-          feu[c] = 0;
           break;
         }
       }
@@ -287,9 +285,10 @@ class Embed {
   // bcv: value or normal gradient (grad dot GetNormal)
   // Returns:
   // grad dot GetNormal on embedded boundaries [s]
-  FieldEmbed<Scal> Gradient(
-      const FieldCell<Scal>& fcu, size_t bc, Scal bcv) const {
-    FieldEmbed<Scal> feu(m, 0); // FIXME should be nan
+  template <class T>
+  FieldEmbed<T> Gradient(
+      const FieldCell<T>& fcu, size_t bc, T bcv) const {
+    FieldEmbed<T> feu(m, T(0)); // FIXME should be nan
     for (auto f : m.SuFaces()) {
       switch (fft_[f]) {
         case Type::regular:
@@ -302,7 +301,6 @@ class Embed {
           break;
         }
         case Type::excluded: {
-          feu[f] = 0;
           break;
         }
       }
@@ -322,7 +320,6 @@ class Embed {
         }
         case Type::regular:
         case Type::excluded: {
-          feu[c] = 0;
           break;
         }
       }
