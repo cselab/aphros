@@ -12,12 +12,17 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
   using Vect = typename M::Vect;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
-      const MapCell<std::shared_ptr<CondCell>>& mcc)
+      const Embed<M>& eb, const FieldEmbed<Scal>* fed,
+      const FieldEmbed<Scal>* fev, size_t bc, Scal bcu)
       : owner_(owner)
       , par(owner_->GetPar())
       , m(owner_->m)
       , mfc_(mfc)
-      , mcc_(mcc)
+      , eb(eb)
+      , fed_(fed)
+      , fev_(fev)
+      , bc_(bc)
+      , bcu_(bcu)
       , dtp_(-1.)
       , er_(0) {
     fcu_.time_curr = fcu;
@@ -104,16 +109,6 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
         fclb[c] += fcla[c] * fcu[c];
         // under-relaxation
         fcla[c] /= par.relax;
-      }
-
-      // Overwrite with cell conditions
-      for (auto p : mcc_) {
-        IdxCell c(p.GetIdx());
-        CondCell* cb = p.GetValue().get(); // cond base
-        if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
-          fcla[c] = 1.;
-          fclb[c] = cd->GetValue() - fcu[c];
-        }
       }
     }
   }
@@ -211,7 +206,13 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
 
   StepData<FieldCell<Scal>> fcu_; // field
   const MapCondFace& mfc_; // face cond
-  MapCell<std::shared_ptr<CondCell>> mcc_; // cell cond
+
+  const Embed<M>& eb;
+  const FieldEmbed<Scal>* fed_;
+  const FieldEmbed<Scal>* fev_;
+
+  size_t bc_; // boundary conditions, 0: value, 1: gradient
+  Scal bcu_; // value or grad.dot.outer_normal
 
   // diagonal linear system: fcla * (fcup - fcu) + fclb = 0
   FieldCell<Scal> fcla_;
@@ -223,12 +224,12 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
 
 template <class M_>
 ConvDiffScalExpEmbed<M_>::ConvDiffScalExpEmbed(
-    M& m, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
-    const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
-    const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
-    const FieldFace<Scal>* ffv, double t, double dt, Par par)
-    : ConvDiffScal<M>(t, dt, m, par, fcr, ffd, fcs, ffv)
-    , imp(new Imp(this, fcu, mfc, mcc)) {}
+    M& m, const Embed<M>& eb, const FieldCell<Scal>& fcu,
+    const MapCondFace& mfc, size_t bc, Scal bcu, const FieldCell<Scal>* fcr,
+    const FieldEmbed<Scal>* fed, const FieldCell<Scal>* fcs,
+    const FieldEmbed<Scal>* fev, double t, double dt, Par par)
+    : ConvDiffScal<M>(t, dt, m, par, fcr, nullptr, fcs, nullptr)
+    , imp(new Imp(this, fcu, mfc, eb, fed, fev, bc, bcu)) {}
 
 template <class M_>
 ConvDiffScalExpEmbed<M_>::~ConvDiffScalExpEmbed() = default;

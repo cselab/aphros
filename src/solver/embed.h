@@ -1,8 +1,10 @@
 #pragma once
 
+#include <iomanip>
 #include <limits>
 #include <stdexcept>
 
+#include "dump/dumper.h"
 #include "dump/vtk.h"
 #include "reconst.h"
 #include "solver.h"
