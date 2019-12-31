@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "convdiff.h"
+#include "embed.h"
 
 template <class M_>
 class ConvDiffScalExpEmbed final : public ConvDiffScal<M_> {
@@ -13,9 +14,11 @@ class ConvDiffScalExpEmbed final : public ConvDiffScal<M_> {
   using Par = typename P::Par;
 
   // Constructor.
+  // eb: embedded boundaries
   // fcu: initial field
   // mfc: face conditions
-  // mcc: cell conditions
+  // bc: boundary conditions, 0: value, 1: gradient
+  // bcu: value or grad.dot.outer_normal
   // fcr: density
   // ffd: diffusion
   // fcs: source
@@ -24,10 +27,10 @@ class ConvDiffScalExpEmbed final : public ConvDiffScal<M_> {
   // dt: time step
   // par: parameters
   ConvDiffScalExpEmbed(
-      M& m, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
-      const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
-      const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
-      const FieldFace<Scal>* ffv, double t, double dt, Par par);
+      M& m, const Embed<M>& eb, const FieldCell<Scal>& fcu,
+      const MapCondFace& mfc, size_t bc, Scal bcu, const FieldCell<Scal>* fcr,
+      const FieldEmbed<Scal>* fed, const FieldCell<Scal>* fcs,
+      const FieldEmbed<Scal>* fev, double t, double dt, Par par);
   ~ConvDiffScalExpEmbed();
   const FieldCell<Scal>& GetField(Step) const override;
   using P::GetField;
