@@ -28,7 +28,7 @@ class ConvDiffScalExpEmbed final : public ConvDiffScal<M_> {
       const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
       const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
       const FieldFace<Scal>* ffv, double t, double dt, Par par);
-  ~ConvDiffScalExp();
+  ~ConvDiffScalExpEmbed();
   const FieldCell<Scal>& GetField(Step) const override;
   using P::GetField;
   void Assemble(const FieldCell<Scal>&, const FieldFace<Scal>&) override;
