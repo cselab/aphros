@@ -30,7 +30,7 @@ class ConvDiffScalExpEmbed final : public ConvDiffScal<M_> {
       M& m, const Embed<M>& eb, const FieldCell<Scal>& fcu,
       const MapCondFace& mfc, size_t bc, Scal bcu, const FieldCell<Scal>* fcr,
       const FieldEmbed<Scal>* fed, const FieldCell<Scal>* fcs,
-      const FieldEmbed<Scal>* fev, double t, double dt, Par par);
+      const FieldFace<Scal>* ffv, double t, double dt, Par par);
   ~ConvDiffScalExpEmbed();
   const FieldCell<Scal>& GetField(Step) const override;
   using P::GetField;
