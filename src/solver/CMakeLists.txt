@@ -36,6 +36,10 @@ set(T "convdiffe")
 add_library(${T} convdiffe.cpp)
 target_link_libraries(${T} solver approx)
 
+set(T "convdiffe_eb")
+add_library(${T} convdiffe_eb.cpp)
+target_link_libraries(${T} solver approx)
+
 set(T "convdiffvg")
 add_library(${T} convdiffvg.cpp)
 target_link_libraries(${T} convdiffi convdiffe)
