@@ -7,156 +7,103 @@
 #include <utility>
 
 #include "distr/distrbasic.h"
+#include "solver/convdiffe_eb.h"
 #include "solver/embed.h"
 #include "solver/reconst.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
-using R = Reconst<Scal>;
 using EB = Embed<M>;
 using Type = typename EB::Type;
+using CD = ConvDiffScalExpEmbed<M>;
+
+FieldNode<Scal> GetLevelSet(const M& m) {
+  FieldNode<Scal> fnl(m, 0);
+  for (auto n : m.AllNodes()) {
+    const Vect x = m.GetNode(n);
+    const Vect xc(0.5, 0.5, 0.5);
+    const Vect s(1., 1., 1.);
+    auto rot = [](Vect xx) {
+      const Scal a = 3.14159265358979323 * 0;
+      const Scal as = std::sin(a);
+      const Scal ac = std::cos(a);
+      const Scal x = xx[0];
+      const Scal y = xx[1];
+      const Scal z = xx[2];
+      return Vect(x * ac - y * as, x * as + y * ac, z);
+    };
+    fnl[n] = (rot(x - xc) / s).norm() - 0.2;
+  }
+  return fnl;
+}
 
 void Run(M& m, Vars&) {
   auto sem = m.GetSem("Run");
   struct {
     std::unique_ptr<EB> eb;
+    std::unique_ptr<CD> cd;
     FieldCell<Scal> fcu;
-    FieldEmbed<Scal> feu;
+    MapCondFace mfc;
+    FieldCell<Scal> fcr;
+    FieldEmbed<Scal> fed;
+    FieldCell<Scal> fcs;
+    FieldFace<Scal> ffv;
     size_t frame = 0;
   } * ctx(sem);
+  auto& eb = ctx->eb;
+  auto& cd = ctx->cd;
   auto& fcu = ctx->fcu;
-  auto& feu = ctx->feu;
+  auto& ffv = ctx->ffv;
+  auto& mfc = ctx->mfc;
   auto& frame = ctx->frame;
 
   if (sem("init")) {
-    FieldNode<Scal> fnl(m, 0);
-    for (auto n : m.AllNodes()) {
-      const Vect x = m.GetNode(n);
-      const Vect xc(0.5, 0.5, 0.5);
-      const Vect s(1., 1., 1.);
-      auto rot = [](Vect xx) {
-        const Scal a = 3.14159265358979323 * 0;
-        const Scal as = std::sin(a);
-        const Scal ac = std::cos(a);
-        const Scal x = xx[0];
-        const Scal y = xx[1];
-        const Scal z = xx[2];
-        return Vect(x * ac - y * as, x * as + y * ac, z);
-      };
-      fnl[n] = (rot(x - xc) / s).norm() - 0.35;
-      fnl[n] *= -1;
+    eb.reset(new EB(m, GetLevelSet(m)));
+    ctx->fcr.Reinit(m, 1);
+    ctx->fed.Reinit(m, 0);
+    ctx->fcs.Reinit(m, 0);
+    ffv.Reinit(m, 0);
+    const Vect vel(1., 0.5, 0.25);
+    for (auto f : m.Faces()) {
+      ffv[f] = vel.dot(m.GetSurface(f));
     }
-    ctx->eb.reset(new EB(m, fnl));
-    fcu.Reinit(m, 0);
+    fcu.Reinit(m);
+    for (auto c : m.AllCells()) {
+      if (eb->GetType(c) != Type::excluded) {
+        const Scal a = 12;
+        fcu[c] =
+            std::sin(m.GetCenter(c)[0] * a) * std::sin(m.GetCenter(c)[1] * a);
+      }
+    }
+    const size_t bc = 0;
+    const Scal bcu = 0;
+    const Scal dt = 0.005;
+    typename CD::Par par;
+    cd.reset(new CD(
+        m, *eb, fcu, mfc, bc, bcu, &ctx->fcr, &ctx->fed, &ctx->fcs, &ctx->ffv,
+        0, dt, par));
   }
   if (sem.Nested("dumppoly")) {
-    auto& eb = *ctx->eb;
-    eb.DumpPoly();
+    eb->DumpPoly();
   }
   const size_t maxt = 100;
   const size_t nfr = 100;
   for (size_t t = 0; t < maxt; ++t) {
-    auto& eb = *ctx->eb;
-    if (sem("step")) {
-      const bool compact = false;
-      //const Scal dt = compact ? 6e-6 : 4e-5;
-      const Scal dt = compact ? 1e-4 : 5e-4; // with redistr
-      //const Scal dt = compact ? 5e-4 : 5e-4; // with redistr, bc=1
-      const size_t bc = 0;
-      const Scal bcu = 1;
-
-      feu = eb.Interpolate(fcu, bc, bcu);
-      FieldEmbed<Scal> feun(m);
-
-      const auto feunc = eb.Gradient(fcu, bc, bcu); // compact gradient
-      if (compact) {
-        feun = feunc;
-      } else {
-        const FieldCell<Vect> fcg = eb.Gradient(feu);
-        const FieldEmbed<Vect> feg = eb.Interpolate(fcg, 1, Vect(0));
-        for (auto f : m.Faces()) {
-          if (eb.GetType(f) != Type::excluded) {
-            feun[f] = feg[f].dot(eb.GetNormal(f));
-          }
-        }
-        for (auto c : m.Cells()) {
-          if (eb.GetType(c) == Type::cut) {
-            feun[c] = feg[c].dot(eb.GetNormal(c));
-            const Scal a = eb.GetRedistr(c);
-            feun[c] = feunc[c] * a + feun[c] * (1 - a);
-          }
-        }
-      }
-
-      for (auto c : m.Cells()) {
-        if (eb.GetType(c) == Type::excluded) {
-          continue;
-        }
-        Scal s = 0;
-        if (eb.GetType(c) == Type::cut) {
-          s += feun[c] * eb.GetArea(c);
-        }
-        for (auto q : m.Nci(c)) {
-          auto f = m.GetFace(c, q);
-          s += feun[f] * eb.GetArea(f) * m.GetOutwardFactor(c, q);
-        }
-        const Scal du = s * dt / eb.GetVolume(c);
-        if (eb.GetType(c) == Type::cut) {
-          fcu[c] += du * eb.GetRedistr(c);
-          for (auto p : eb.GetRedistrList(c)) {
-            fcu[p.first] += du * p.second;
-          }
-        } else {
-          fcu[c] += du;
-        }
-      }
-
-      m.Comm(&fcu);
+    if (sem.Nested("convdiff-start")) {
+      cd->StartStep();
+    }
+    if (sem.Nested("convdiff-iter")) {
+      cd->MakeIteration();
+    }
+    if (sem.Nested("convdiff-finish")) {
+      cd->FinishStep();
     }
     if (t % std::max<size_t>(1, maxt / nfr) != 0) {
       continue;
     }
-    if (sem("dumpcsv")) {
-      auto& eb = *ctx->eb;
-      std::ofstream out(GetDumpName("eb", ".csv", frame));
-      out << "x,y,z,type,u\n";
-      for (auto c : m.Cells()) {
-        if (eb.GetType(c) == Type::regular || eb.GetType(c) == Type::cut) {
-          auto x = eb.GetCellCenter(c);
-          out << x[0] << "," << x[1] << "," << x[2];
-          out << "," << size_t(eb.GetType(c));
-          out << "," << fcu[c] << "\n";
-        }
-      }
-    }
-    if (sem("dumpcsvface")) {
-      auto& eb = *ctx->eb;
-      using Type = typename EB::Type;
-      std::ofstream out(GetDumpName("ebf", ".csv", frame));
-      out << "x,y,z,face,type,u\n";
-      for (auto c : m.Cells()) {
-        if (eb.GetType(c) == Type::cut) {
-          auto x = eb.GetFaceCenter(c);
-          out << x[0] << "," << x[1] << "," << x[2];
-          out << "," << 0;
-          out << "," << size_t(eb.GetType(c));
-          out << "," << feu[c] << "\n";
-        }
-      }
-      for (auto f : m.Faces()) {
-        if (eb.GetType(f) == Type::regular || eb.GetType(f) == Type::cut) {
-          auto x = eb.GetFaceCenter(f);
-          out << x[0] << "," << x[1] << "," << x[2];
-          out << "," << 1;
-          out << "," << size_t(eb.GetType(f));
-          out << "," << feu[f] << "\n";
-        }
-      }
-    }
     if (sem("dump")) {
-      // FIXME: Dump and Comm in one stage ignores Comm
-      m.Dump(&fcu, "u");
+      m.Dump(&cd->GetField(), "u");
       ++frame;
     }
   }

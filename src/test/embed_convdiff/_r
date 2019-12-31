@@ -3,4 +3,5 @@
 set -eu
 
 make
-ap-run ./t.embed
+make -C ../../ install
+ap-run ./t.embed_convdiff
