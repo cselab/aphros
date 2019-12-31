@@ -167,8 +167,7 @@ class Embed {
   const FieldCell<Scal>& GetRedistr() const {
     return fc_redistr_;
   }
-  const std::vector<std::pair<IdxCell, Scal>>& GetRedistrList(
-      IdxCell c) const {
+  const std::vector<std::pair<IdxCell, Scal>>& GetRedistrList(IdxCell c) const {
     return *mc_redistr_.find(c);
   }
 
