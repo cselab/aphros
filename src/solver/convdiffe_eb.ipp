@@ -3,12 +3,12 @@
 #include <stdexcept>
 
 #include "approx.h"
-#include "convdiffe.h"
+#include "convdiffe_eb.h"
 #include "debug/isnan.h"
 
 template <class M_>
-struct ConvDiffScalExp<M_>::Imp {
-  using Owner = ConvDiffScalExp<M_>;
+struct ConvDiffScalExpEmbed<M_>::Imp {
+  using Owner = ConvDiffScalExpEmbed<M_>;
   using Vect = typename M::Vect;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
@@ -222,7 +222,7 @@ struct ConvDiffScalExp<M_>::Imp {
 };
 
 template <class M_>
-ConvDiffScalExp<M_>::ConvDiffScalExp(
+ConvDiffScalExpEmbed<M_>::ConvDiffScalExpEmbed(
     M& m, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
     const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
     const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
@@ -231,50 +231,51 @@ ConvDiffScalExp<M_>::ConvDiffScalExp(
     , imp(new Imp(this, fcu, mfc, mcc)) {}
 
 template <class M_>
-ConvDiffScalExp<M_>::~ConvDiffScalExp() = default;
+ConvDiffScalExpEmbed<M_>::~ConvDiffScalExpEmbed() = default;
 
 template <class M_>
-void ConvDiffScalExp<M_>::Assemble(
+void ConvDiffScalExpEmbed<M_>::Assemble(
     const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv) {
   imp->Assemble(fcu, ffv);
 }
 
 template <class M_>
-void ConvDiffScalExp<M_>::CorrectField(Step l, const FieldCell<Scal>& uc) {
+void ConvDiffScalExpEmbed<M_>::CorrectField(Step l, const FieldCell<Scal>& uc) {
   imp->CorrectField(l, uc);
 }
 
 template <class M_>
-auto ConvDiffScalExp<M_>::GetDiag() const -> FieldCell<Scal> {
+auto ConvDiffScalExpEmbed<M_>::GetDiag() const -> FieldCell<Scal> {
   return imp->GetDiag();
 }
 
 template <class M_>
-auto ConvDiffScalExp<M_>::GetConst() const -> FieldCell<Scal> {
+auto ConvDiffScalExpEmbed<M_>::GetConst() const -> FieldCell<Scal> {
   return imp->GetConst();
 }
 
 template <class M_>
-void ConvDiffScalExp<M_>::StartStep() {
+void ConvDiffScalExpEmbed<M_>::StartStep() {
   imp->StartStep();
 }
 
 template <class M_>
-void ConvDiffScalExp<M_>::MakeIteration() {
+void ConvDiffScalExpEmbed<M_>::MakeIteration() {
   imp->MakeIteration();
 }
 
 template <class M_>
-void ConvDiffScalExp<M_>::FinishStep() {
+void ConvDiffScalExpEmbed<M_>::FinishStep() {
   imp->FinishStep();
 }
 
 template <class M_>
-double ConvDiffScalExp<M_>::GetError() const {
+double ConvDiffScalExpEmbed<M_>::GetError() const {
   return imp->GetError();
 }
 
 template <class M_>
-auto ConvDiffScalExp<M_>::GetField(Step l) const -> const FieldCell<Scal>& {
+auto ConvDiffScalExpEmbed<M_>::GetField(Step l) const
+    -> const FieldCell<Scal>& {
   return imp->fcu_.Get(l);
 }

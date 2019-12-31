@@ -5,7 +5,7 @@
 #include "convdiff.h"
 
 template <class M_>
-class ConvDiffScalExp final : public ConvDiffScal<M_> {
+class ConvDiffScalExpEmbed final : public ConvDiffScal<M_> {
  public:
   using M = M_;
   using P = ConvDiffScal<M>;
@@ -23,7 +23,7 @@ class ConvDiffScalExp final : public ConvDiffScal<M_> {
   // t: initial time
   // dt: time step
   // par: parameters
-  ConvDiffScalExp(
+  ConvDiffScalExpEmbed(
       M& m, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
       const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
       const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,

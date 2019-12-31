@@ -1,3 +1,3 @@
-#include "convdiffe.ipp"
+#include "convdiffe_eb.ipp"
 
-template class ConvDiffScalExp<MeshStructured<double, 3>>;
+template class ConvDiffScalExpEmbed<MeshStructured<double, 3>>;
