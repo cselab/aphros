@@ -4,13 +4,25 @@
 #include <iostream>
 #include <map>
 
-#include "geom/range.h"
 #include "geom/filter.h"
+#include "geom/range.h"
 
-#define E(x) { std::cout << (#x) << std::endl; x; std::cout << std::endl; }
+#define E(x)                   \
+  {                            \
+    std::cout << (#x) << "\n"; \
+    x;                         \
+    std::cout << "\n\n";       \
+  }
 
-int main(int an, char* av[]) {
-  E(for (auto i : GRange<size_t>(10, 20)) {
-      std::cout << i << " ";
+int main() {
+  E(for (auto i : GRange<size_t>(10, 20)) { std::cout << i << " "; });
+  E(for (auto i
+         : MakeFilter(GRange<size_t>(10, 20), [](size_t a) {
+           return a % 2 == 0;
+         })) { std::cout << i << " "; });
+  E(for (auto i : MakeFilter(MakeFilter(GRange<size_t>(10, 20), [](size_t a){
+    return a % 2 == 0; }), [](size_t a){
+    return a % 3 == 0; })) {
+    std::cout << i << " ";
   });
 }
