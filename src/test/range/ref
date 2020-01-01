@@ -4,6 +4,6 @@ for (auto i : GRange<size_t>(10, 20)) { std::cout << i << " "; }
 for (auto i : MakeFilter(GRange<size_t>(10, 20), [](size_t a) { return a % 2 == 0; })) { std::cout << i << " "; }
 10 12 14 16 18 
 
-for (auto i : MakeFilter(MakeFilter(GRange<size_t>(10, 20), [](size_t a){ return a % 2 == 0; }), [](size_t a){ return a % 3 == 0; })) { std::cout << i << " "; }
+for (auto i : MakeFilter( MakeFilter( GRange<size_t>(10, 20), [](size_t a) { return a % 2 == 0; }), [](size_t a) { return a % 3 == 0; })) { std::cout << i << " "; }
 12 18 
 
