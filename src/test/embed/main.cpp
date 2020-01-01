@@ -60,9 +60,9 @@ void Run(M& m, Vars&) {
     auto& eb = *ctx->eb;
     if (sem("step")) {
       const bool compact = false;
-      //const Scal dt = compact ? 6e-6 : 4e-5;
+      // const Scal dt = compact ? 6e-6 : 4e-5;
       const Scal dt = compact ? 1e-4 : 5e-4; // with redistr
-      //const Scal dt = compact ? 5e-4 : 5e-4; // with redistr, bc=1
+      // const Scal dt = compact ? 5e-4 : 5e-4; // with redistr, bc=1
       const size_t bc = 0;
       const Scal bcu = 1;
 
