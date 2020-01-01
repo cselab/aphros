@@ -75,17 +75,13 @@ void Run(M& m, Vars&) {
       } else {
         const FieldCell<Vect> fcg = eb.Gradient(feu);
         const FieldEmbed<Vect> feg = eb.Interpolate(fcg, 1, Vect(0));
-        for (auto f : m.Faces()) {
-          if (eb.GetType(f) != Type::excluded) {
-            feun[f] = feg[f].dot(eb.GetNormal(f));
-          }
+        for (auto f : eb.Faces()) {
+          feun[f] = feg[f].dot(eb.GetNormal(f));
         }
-        for (auto c : m.Cells()) {
-          if (eb.GetType(c) == Type::cut) {
-            feun[c] = feg[c].dot(eb.GetNormal(c));
-            const Scal a = eb.GetRedistr(c);
-            feun[c] = feunc[c] * a + feun[c] * (1 - a);
-          }
+        for (auto c : eb.Cells()) {
+          feun[c] = feg[c].dot(eb.GetNormal(c));
+          const Scal a = eb.GetRedistr(c);
+          feun[c] = feunc[c] * a + feun[c] * (1 - a);
         }
       }
 
@@ -135,23 +131,19 @@ void Run(M& m, Vars&) {
       using Type = typename EB::Type;
       std::ofstream out(GetDumpName("ebf", ".csv", frame));
       out << "x,y,z,face,type,u\n";
-      for (auto c : m.Cells()) {
-        if (eb.GetType(c) == Type::cut) {
-          auto x = eb.GetFaceCenter(c);
-          out << x[0] << "," << x[1] << "," << x[2];
-          out << "," << 0;
-          out << "," << size_t(eb.GetType(c));
-          out << "," << feu[c] << "\n";
-        }
+      for (auto c : eb.Cells()) {
+        auto x = eb.GetFaceCenter(c);
+        out << x[0] << "," << x[1] << "," << x[2];
+        out << "," << 0;
+        out << "," << size_t(eb.GetType(c));
+        out << "," << feu[c] << "\n";
       }
-      for (auto f : m.Faces()) {
-        if (eb.GetType(f) == Type::regular || eb.GetType(f) == Type::cut) {
-          auto x = eb.GetFaceCenter(f);
-          out << x[0] << "," << x[1] << "," << x[2];
-          out << "," << 1;
-          out << "," << size_t(eb.GetType(f));
-          out << "," << feu[f] << "\n";
-        }
+      for (auto f : eb.Faces()) {
+        auto x = eb.GetFaceCenter(f);
+        out << x[0] << "," << x[1] << "," << x[2];
+        out << "," << 1;
+        out << "," << size_t(eb.GetType(f));
+        out << "," << feu[f] << "\n";
       }
     }
     if (sem("dump")) {
