@@ -20,9 +20,9 @@ int main() {
          : MakeFilter(GRange<size_t>(10, 20), [](size_t a) {
            return a % 2 == 0;
          })) { std::cout << i << " "; });
-  E(for (auto i : MakeFilter(MakeFilter(GRange<size_t>(10, 20), [](size_t a){
-    return a % 2 == 0; }), [](size_t a){
-    return a % 3 == 0; })) {
-    std::cout << i << " ";
-  });
+  E(for (auto i
+         : MakeFilter(
+             MakeFilter(
+                 GRange<size_t>(10, 20), [](size_t a) { return a % 2 == 0; }),
+             [](size_t a) { return a % 3 == 0; })) { std::cout << i << " "; });
 }
