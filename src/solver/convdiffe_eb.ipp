@@ -69,7 +69,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
           feq[c] *= fev[c];
         }
         // Append
-        for (IdxCell c : m.Cells()) {
+        for (IdxCell c : eb.Cells()) {
           Scal s = 0.; // sum
           for (auto q : m.Nci(c)) {
             IdxFace f = m.GetFace(c, q);
