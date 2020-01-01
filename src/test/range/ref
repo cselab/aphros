@@ -1,0 +1,2 @@
+for (auto i : GRange<size_t>(10, 20)) { std::cout << i << " "; }
+10 11 12 13 14 15 16 17 18 19 
