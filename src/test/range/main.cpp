@@ -7,7 +7,7 @@
 #include "geom/range.h"
 #include "geom/filter.h"
 
-#define E(x) { std::cout << (#x) << std::endl; (x); std::cout << std::endl; }
+#define E(x) { std::cout << (#x) << std::endl; x; std::cout << std::endl; }
 
 int main(int an, char* av[]) {
   E(for (auto i : GRange<size_t>(10, 20)) {
