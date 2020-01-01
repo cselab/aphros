@@ -4,7 +4,7 @@ o=out
 
 > $o
 
-./t.range > $o
+./t.range | tee $o
 
 if ! diff -q $o ref ; then
   exit 1
