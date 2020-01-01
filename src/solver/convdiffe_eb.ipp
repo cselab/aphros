@@ -62,15 +62,11 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
       // Convective fluxes
       {
         FieldEmbed<Scal> feq = eb.Interpolate(fcu, bc_, bcu_);
-        for (auto f : m.Faces()) {
-          if (eb.GetType(f) != Type::excluded) {
-            feq[f] *= fev[f];
-          }
+        for (auto f : eb.Faces()) {
+          feq[f] *= fev[f];
         }
-        for (auto c : m.Cells()) {
-          if (eb.GetType(c) == Type::cut) {
-            feq[c] *= fev[c];
-          }
+        for (auto c : eb.Cells()) {
+          feq[c] *= fev[c];
         }
         // Append
         for (IdxCell c : m.Cells()) {
@@ -86,15 +82,11 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
       // Diffusive fluxes
       if (fed_) {
         FieldEmbed<Scal> feq = eb.Gradient(fcu, bc_, bcu_);
-        for (auto f : m.Faces()) {
-          if (eb.GetType(f) != Type::excluded) {
-            feq[f] *= (-(*fed_)[f]) * eb.GetArea(f);
-          }
+        for (auto f : eb.Faces()) {
+          feq[f] *= (-(*fed_)[f]) * eb.GetArea(f);
         }
-        for (auto c : m.Cells()) {
-          if (eb.GetType(c) == Type::cut) {
-            feq[c] *= (-(*fed_)[c]) * eb.GetArea(c);
-          }
+        for (auto c : eb.Cells()) {
+          feq[c] *= (-(*fed_)[c]) * eb.GetArea(c);
         }
         // Append
         for (IdxCell c : m.Cells()) {
