@@ -6,6 +6,7 @@
 
 #include "dump/dumper.h"
 #include "dump/vtk.h"
+#include "geom/filter.h"
 #include "reconst.h"
 #include "solver.h"
 
@@ -87,6 +88,15 @@ class Embed {
   }
   Type GetType(IdxFace f) const {
     return fft_[f];
+  }
+  Filter<GRangeIn<IdxCell, dim>> Cells() const {
+    return MakeFilter(
+        m.Cells(), [this](IdxCell c) { return GetType(c) == Type::cut; });
+  }
+  Filter<GRangeIn<IdxFace, dim>> Faces() const {
+    return MakeFilter(m.Faces(), [this](IdxFace f) {
+      return GetType(f) == Type::regular || GetType(f) == Type::cut;
+    });
   }
   // Returns outer normal (towards excluded domain) in cut cells.
   Vect GetNormal(IdxCell c) const {
