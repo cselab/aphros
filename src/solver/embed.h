@@ -94,8 +94,12 @@ class Embed {
         m.Cells(), [this](IdxCell c) { return GetType(c) == Type::cut; });
   }
   Filter<GRangeIn<IdxFace, dim>> Faces() const {
-    return MakeFilter(m.Faces(), [this](IdxFace f) {
-      return GetType(f) == Type::regular || GetType(f) == Type::cut;
+    return MakeFilter(
+        m.Faces(), [this](IdxFace f) { return GetType(f) != Type::excluded; });
+  }
+  Filter<GRange<size_t>> Nci(IdxCell c) const {
+    return MakeFilter(m.Nci(c), [this, c](size_t q) {
+      return GetType(m.GetFace(c, q)) != Type::excluded;
     });
   }
   // Returns outer normal (towards excluded domain) in cut cells.
@@ -159,13 +163,11 @@ class Embed {
         const Scal w = GetArea(c);
         Vect sum = GetFaceCenter(c) * w;
         Scal sumw = w;
-        for (auto q : m.Nci(c)) {
+        for (auto q : this->Nci(c)) {
           auto f = m.GetFace(c, q);
-          if (fft_[f] != Type::excluded) {
-            const Scal w = GetArea(f);
-            sum += GetFaceCenter(f) * w;
-            sumw += w;
-          }
+          const Scal w = GetArea(f);
+          sum += GetFaceCenter(f) * w;
+          sumw += w;
         }
         return sum / sumw;
       }
@@ -206,13 +208,11 @@ class Embed {
           const Scal w = 1 / std::abs(GetFaceOffset(c));
           T sum = feu[c] * w;
           Scal sumw = w;
-          for (auto q : m.Nci(c)) {
+          for (auto q : this->Nci(c)) {
             IdxFace f = m.GetFace(c, q);
-            if (fft_[f] == Type::regular || fft_[f] == Type::cut) {
-              const Scal w = 1 / std::abs(GetFaceOffset(c, q));
-              sum += feu[f] * w;
-              sumw += w;
-            }
+            const Scal w = 1 / std::abs(GetFaceOffset(c, q));
+            sum += feu[f] * w;
+            sumw += w;
           }
           fcu[c] = sum / sumw;
           break;
@@ -285,13 +285,10 @@ class Embed {
         }
         case Type::cut: {
           Vect sum = GetNormal(c) * (GetArea(c) * feu[c]);
-          for (auto q : m.Nci(c)) {
+          for (auto q : this->Nci(c)) {
             IdxFace f = m.GetFace(c, q);
-            if (fft_[f] == Type::regular || fft_[f] == Type::cut) {
-              IdxFace f = m.GetFace(c, q);
-              sum += GetNormal(f) *
-                     (m.GetOutwardFactor(c, q) * GetArea(f) * feu[f]);
-            }
+            sum +=
+                GetNormal(f) * (m.GetOutwardFactor(c, q) * GetArea(f) * feu[f]);
           }
           fcg[c] = sum / GetVolume(c);
           break;

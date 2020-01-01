@@ -93,7 +93,7 @@ void Run(M& m, Vars&) {
         if (eb.GetType(c) == Type::cut) {
           s += feun[c] * eb.GetArea(c);
         }
-        for (auto q : m.Nci(c)) {
+        for (auto q : eb.Nci(c)) {
           auto f = m.GetFace(c, q);
           s += feun[f] * eb.GetArea(f) * m.GetOutwardFactor(c, q);
         }
@@ -128,7 +128,6 @@ void Run(M& m, Vars&) {
     }
     if (sem("dumpcsvface")) {
       auto& eb = *ctx->eb;
-      using Type = typename EB::Type;
       std::ofstream out(GetDumpName("ebf", ".csv", frame));
       out << "x,y,z,face,type,u\n";
       for (auto c : eb.Cells()) {
