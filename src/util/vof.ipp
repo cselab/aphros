@@ -376,33 +376,30 @@ struct UVof<M_>::Imp {
       const Multi<FieldCell<Scal>*>& fcclt, M& m) {
     auto sem = m.GetSem("grid");
     struct {
-      std::vector<Scal> merge0, merge1; // colors to merge
+      std::vector<Scal> merge0; // colors from corners
+      std::vector<Scal> merge1; // colors from parents
     } * ctx(sem);
     auto& merge0 = ctx->merge0;
     auto& merge1 = ctx->merge1;
     if (sem("local")) {
       // Collect neighbor colors in corners
-      merge0.clear(); // nodes
-      merge1.clear(); // parents
-      for (auto c : m.Cells()) {
-        for (auto l : layers) {
-          if ((*fccl[l])[c] != kClNone) {
-            for (auto q : {0, 1, 2}) {
-              IdxCell cm = m.GetCell(c, q);
-              for (auto lm : layers) {
-                if ((*fccl[l])[c] == (*fccl[lm])[cm]) {
-                  Scal cl = (*fcclt[l])[c];
-                  Scal clm = (*fcclt[lm])[cm];
-                  if (cl != clm) {
-                    merge0.push_back(std::max(cl, clm));
-                    merge1.push_back(std::min(cl, clm));
-                  }
+      const IdxCell c = *m.Cells().begin();
+      for (auto l : layers) {
+        if ((*fccl[l])[c] != kClNone) {
+          for (size_t q : {0, 1, 2}) {
+            IdxCell cm = m.GetCell(c, q);
+            for (auto lm : layers) {
+              if ((*fccl[l])[c] == (*fccl[lm])[cm]) {
+                Scal cl = (*fcclt[l])[c];
+                Scal clm = (*fcclt[lm])[cm];
+                if (cl != clm) {
+                  merge0.push_back(std::max(cl, clm));
+                  merge1.push_back(std::min(cl, clm));
                 }
               }
             }
           }
         }
-        break;
       }
       using T = typename M::template OpCatT<Scal>;
       m.Reduce(std::make_shared<T>(&merge0));
