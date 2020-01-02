@@ -315,7 +315,9 @@ void Local<M>::Bcast(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     auto& v = mk.at(b)->GetMesh().GetBcast(); // pointers to broadcast
     if (v.size() != vf.size()) {
-      throw std::runtime_error("Bcast: v.size() != vf.size()");
+      throw std::runtime_error(
+          "Bcast: v.size()=" + std::to_string(v.size()) +
+          " != vf.size()=" + std::to_string(vf.size()));
     }
   }
 

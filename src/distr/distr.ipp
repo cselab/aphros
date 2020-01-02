@@ -330,10 +330,21 @@ void DistrMesh<M>::Run() {
 
     // Print current stage name
     if (isroot_ && var.Int["verbose"]) {
-      auto& m = mk.begin()->second->GetMesh();
+      const auto& mf = mk.begin()->second->GetMesh();
       std::cerr << "*** STAGE"
-                << " #" << stage_ << " depth=" << m.GetDepth() << " "
-                << m.GetCurName() << " ***" << std::endl;
+                << " #" << stage_ << " depth=" << mf.GetDepth() << " "
+                << mf.GetCurName() << " ***" << std::endl;
+      // Check stage name is the same for all kernels
+      for (auto& b : bb) {
+        auto& m = mk.at(b)->GetMesh();
+        if (m.GetCurName() != mf.GetCurName()) {
+          std::stringstream s;
+          s << "Blocks " << b << " and " << mk.begin()->first
+            << " diverged to different stages '" << m.GetCurName() << "' and '"
+            << mf.GetCurName() << "'";
+          throw std::runtime_error(s.str());
+        }
+      }
     }
 
     // Break if no pending stages
