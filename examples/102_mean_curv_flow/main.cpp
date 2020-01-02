@@ -159,6 +159,9 @@ void Run(M& m, Vars& var) {
     typename Vofm<M>::Par p;
     p.sharpen = true;
     p.sharpen_cfl = 0.1;
+    p.recolor_unionfind = true;
+    p.recolor_reduce = true;
+    p.recolor_grid = true;
     as.reset(new Vofm<M>(m, fcu, fccl, ctx->mf_cond, &ffv, &fcs, 0., dt, p));
     layers = GRange<size_t>(as->GetNumLayers());
     fck.resize(layers);
@@ -172,14 +175,9 @@ void Run(M& m, Vars& var) {
   if (sem.Nested("iter")) {
     as->MakeIteration();
   }
+  if (sem()) {}
   if (sem.Nested("finish")) {
     as->FinishStep();
-  }
-  if (sem("checkloop")) {
-    if (as->GetTime() >= tmax) {
-      sem.LoopBreak();
-    }
-    ++step;
   }
   if (sem.Nested()) {
     psm = UCurv<M>::CalcCurvPart(
@@ -194,6 +192,9 @@ void Run(M& m, Vars& var) {
       maxv = std::max(maxv, std::abs(ffv[f]));
     }
     dt = cfl * m.GetCellSize().prod() / maxv;
+    m.Reduce(&dt, "min");
+  }
+  if (sem("mindt")) {
     as->SetTimeStep(dt);
     if (m.IsRoot()) {
       std::cout << "dt=" << dt << std::endl;
@@ -211,7 +212,12 @@ void Run(M& m, Vars& var) {
     m.Dump(&as->GetField(), "u");
     m.Dump(&as->GetColorSum(), "cl");
   }
-  if (sem()) {
+  if (sem("checkloop0")) {}
+  if (sem("checkloop")) {
+    if (as->GetTime() >= tmax) {
+      sem.LoopBreak();
+    }
+    ++step;
   }
   sem.LoopEnd();
 }
@@ -222,8 +228,8 @@ set int bx 8
 set int by 8
 set int bz 1
 
-set int bsx 16
-set int bsy 16
+set int bsx 8
+set int bsy 8
 set int bsz 1
 
 set int dim 2
@@ -232,12 +238,14 @@ set int px 1
 set int py 1
 set int pz 1
 
-#set string backend local
-#set int loc_maxcomm 16
+set string backend local
+set int loc_maxcomm 16
 
 set string init_vf circlels
 set vect circle_c 0.5 0.5 0.5
 set double circle_r 0.2
+
+set int verbose 1
 )EOF";
 
   return RunMpiBasic<M>(argc, argv, Run, conf);
