@@ -120,10 +120,9 @@ points = points.T
 points += (np.random.rand(nx * ny, 2) - 0.5) * gap
 '''
 
-points = np.loadtxt("online/points0")
-print(points)
-
-# compute Voronoi tesselation
+fn = "online/points0"
+points = np.loadtxt(fn)
+print("Read {:} points from '{:}'".format(len(points), fn))
 vor = Voronoi(points)
 
 regions, vertices = voronoi_finite_polygons_2d(vor)
@@ -147,6 +146,7 @@ fig.canvas.draw()
 data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
 data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 data = data[:,:,0]
+data = np.flipud(data)
 WritePlain(data, "cl.dat")
 
 voronoi_plot_2d(vor, ax, show_vertices=False, line_colors='#ffffff')
