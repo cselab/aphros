@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+
+import re
+import sys
+import numpy as np
+
+path = sys.argv[1]
+
+width = 800
+
+with open(path) as f:
+    t = f.read()
+    m = re.findall('sites":\[([0-9,]*)\]', t)
+    u = np.fromstring(m[0], sep=',')
+    u = u.reshape(len(u) // 2, 2)
+    u /= width
+    np.savetxt(sys.stdout.buffer, u)
+
+
+
+
+
