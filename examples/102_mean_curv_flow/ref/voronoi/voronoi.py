@@ -147,7 +147,6 @@ data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
 data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 data = data[:,:,0]
 data = np.flipud(data)
-data = np.fliplr(data)
 WritePlain(data, "cl.dat")
 
 voronoi_plot_2d(vor, ax, show_vertices=False, line_colors='#ffffff')
