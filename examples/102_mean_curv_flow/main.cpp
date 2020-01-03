@@ -239,9 +239,6 @@ void Run(M& m, Vars& var) {
   const Scal dtmax = 0.1;
   const Scal cfl = 0.5;
 
-  // if (sem.Nested()) {
-  //  InitVf(fcu, var, m);
-  //}
   if (sem("init")) {
     fcs.Reinit(m, 0);
     ffv.Reinit(m, 0);
@@ -264,19 +261,6 @@ void Run(M& m, Vars& var) {
       fcu[c] = 1;
       fccl[c] = qfccl[qc];
     }
-    /*
-    for (auto c : m.AllCells()) {
-      auto D = [](Vect x) { return Vect(x[0], x[1], 0);};
-      auto rot = [](Vect x) { return Vect(x[0]-x[1]*0.05, x[1]+x[0]*0.05, 0);};
-      Vect x = D(m.GetCenter(c));
-      x = rot(x);
-      //fccl[c] = x[1] < 0.3 ? 1 : x[0] < 0.5 ? 2 : 3;
-      if (Vect(0.5, 0.5, 0).dist(x) < 0.2) {
-        fccl[c] = 1;
-        fcu[c] = 1;
-      }
-    }
-    */
 
     GetFluidFaceCond(var, m, ctx->mf_cond_fluid, ctx->mf_cond);
 
@@ -323,27 +307,12 @@ void Run(M& m, Vars& var) {
     if (m.IsRoot()) {
       std::cout << "dt=" << dt << std::endl;
     }
-
-    if (step > 1) {
-      auto p = as->GetPar();
-      // p.sharpen = false;
-      as->SetPar(p);
+  }
+  if (sem.Nested()) {
+    if (step % 100 == 0) {
+      as->DumpInterface(GetDumpName("s", ".vtk", step));
     }
   }
-  /*
-  if (sem.Nested()) {
-    psm->DumpParticles(as->GetAlpha(), as->GetNormal(), step, as->GetTime());
-  }
-  */
-  if (sem.Nested()) {
-    as->DumpInterface(GetDumpName("s", ".vtk", step));
-  }
-  /*
-  if (sem("dump")) {
-    m.Dump(&as->GetField(), "u");
-    m.Dump(&as->GetColorSum(), "cl");
-  }
-  */
   if (sem("checkloop")) {
     if (as->GetTime() >= tmax) {
       sem.LoopBreak();
@@ -355,8 +324,8 @@ void Run(M& m, Vars& var) {
 
 int main(int argc, const char** argv) {
   std::string conf = R"EOF(
-set int bx 4
-set int by 4
+set int bx 1
+set int by 1
 set int bz 1
 
 set int bsx 32
@@ -365,8 +334,8 @@ set int bsz 1
 
 set int dim 2
 
-set int px 1
-set int py 1
+set int px 8
+set int py 8
 set int pz 1
 
 set string init_vf circlels

@@ -3,3 +3,8 @@
 *.vtk
 *.vts
 *.pvd
+arg
+job.id
+job.status
+np
+out
