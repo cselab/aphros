@@ -14,6 +14,7 @@ with open(path) as f:
     u = np.fromstring(m[0], sep=',')
     u = u.reshape(len(u) // 2, 2)
     u /= width
+    u[:,1] = 1 - u[:,1]
     np.savetxt(sys.stdout.buffer, u)
 
 
