@@ -54,9 +54,10 @@
 				
 			(c) Alex Beutel - 2010
 			**************************/
-			
 		
 			document.onkeypress = keyClick;
+			document.onkeyup = keyUpDown;
+			document.onkeydown = keyUpDown;
 		
 			var coneRadius = 1000;
 			var fragments = 50;
@@ -110,6 +111,8 @@
 			
 			
 			var points = [];
+			var selected_point_id = -1;
+			var shift_pressed = false
 			var colorTable = new Array();
 			
 		  	var coneVertexPositionBuffer;
@@ -305,7 +308,6 @@
 				// gl.drawArrays(gl.TRIANGLES, 0, pointVertexPositionBuffer.numItems);
 				
 			}
-			
 			function startScene() {
 				gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
 			    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -320,7 +322,14 @@
 				pushStack();
 				mouseIsDown = false;
 				var p = getCursorPosition(e);
-				addCone(p[0],p[1],queryPoint,curColor);
+				if (selected_point_id >= 0) {
+					var c = points[selected_point_id];
+					c.x = p[0];
+					c.y = p[1];
+					selected_point_id = -1;
+				} else {
+					addCone(p[0],p[1],queryPoint,curColor);
+				}
 				curColor = null;
 				redraw();
 			}
@@ -339,24 +348,50 @@
 
 				return [x,y]; 
 			}
+
+			function sqr(a) {
+				return Math.pow(a, 2)
+			}
 			
 			function startDown(e) {
+				if (shift_pressed) {
+					var p = getCursorPosition(e);
+					var imin = -1;
+					for (var i = 0; i < points.length; i++) {
+						if (imin == -1 ||
+							sqr(p[0]-points[i].x) + sqr(p[1]-points[i].y) <
+							sqr(p[0]-points[imin].x) + sqr(p[1]-points[imin].y)) {
+							imin = i;
+						}
+					}
+					if (imin >= 0) {
+						var c = points[imin];
+						curColor = c.colorArray;
+						c.x += 100;
+						selected_point_id = imin;
+					}
+				} else  {
+					curColor = randColor(fragments*3,queryPoint);
+					selected_point_id = -1;
+				}
 				mouseIsDown = true;
-				curColor = randColor(fragments*3,queryPoint);
 				canvasMouseMove(e);
 			}
 			function canvasMouseMove(e) {
 				if(!mouseIsDown) return;
 				
 				var p = getCursorPosition(e);
-				
-				var c = new Point();
+				var c;
+				if (selected_point_id >= 0) {
+					c = points[selected_point_id]
+				} else {
+					c = new Point()
+					c.colorArray = curColor;
+					c.colorSize = fragments*3;
+					c.qp = queryPoint;
+				}
 				c.x = p[0];
 				c.y = p[1];
-				c.colorArray = curColor;
-				c.colorSize = fragments*3;
-				c.qp = queryPoint;
-				
 				redraw(c);
 			}
 			
@@ -371,6 +406,13 @@
 				canvas.addEventListener("mousedown", startDown, false);
 				canvas.addEventListener("mousemove", canvasMouseMove, false);
 				canvas.addEventListener("mouseup", canvasClick, false);
+
+
+				canvas.addEventListener('keydown', function(event) {
+					if (lastDownTarget == canvas) {
+							alert('keydown');
+					}
+				}, false);
 				
 				plain();
 				
@@ -653,6 +695,9 @@
 				else if (code == 109) moveRandomly();
 				else if (code == 115) stopMotion();
 				else if (code == 114) takeNewData();
+			}
+			function keyUpDown(e) {
+				shift_pressed = e.shiftKey
 			}
 			function typing() {
 				isTyping = true;
