@@ -11,6 +11,21 @@
 #include "geom/vect.h"
 #include "parse/vars.h"
 
+// Reads data in plain format.
+// dat: data stream
+// Output:
+// u: field
+// size: mesh size
+template <class Scal>
+void ReadPlain(std::istream& dat, FieldCell<Scal>& u, GMIdx<3>& size) {
+  dat >> size[0] >> size[1] >> size[2];
+  GIndex<IdxCell, 3> bc(size);
+  u.Reinit(bc, 0);
+  for (auto c : bc.Range()) {
+    dat >> u[c];
+  }
+}
+
 // Init of color function.
 // par: parameters
 // M: mesh
@@ -93,6 +108,33 @@ CreateInitCl(const Vars& par, bool verb) {
         const MIdx w = bc.GetMIdx(c);
         const MIdx rw = w / dw;
         fc[c] = rw[0] + rw[1] * ds[0] + rw[2] * ds[0] * ds[1];
+      }
+    };
+  } else if (v == "readplain") {
+    const std::string fn = par.String["readplain_path"];
+    std::ifstream qdat(fn);
+    if (!qdat.good()) {
+      throw std::runtime_error("readplain: can't open '" + fn + "'");
+    }
+    FieldCell<Scal> qfccl;
+    using MIdx = typename M::MIdx;
+    MIdx qsize;
+    ReadPlain(qdat, qfccl, qsize);
+    if (verb) {
+      std::cout << "Read field of size " << qsize << " from '" << fn << "'"
+                << std::endl;
+    }
+    return [qfccl, qsize](
+               FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) {
+      fc.Reinit(m, kClNone);
+      const GIndex<IdxCell, M::dim> qbc(qsize);
+      auto& bc = m.GetIndexCells();
+      const MIdx size = m.GetGlobalSize();
+      for (auto c : m.Cells()) {
+        const MIdx w = bc.GetMIdx(c);
+        const MIdx qw = w * qsize / size;
+        const IdxCell qc = qbc.GetIdx(qw);
+        fc[c] = qfccl[qc];
       }
     };
   } else if (v == "zero") {
