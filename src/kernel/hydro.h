@@ -1748,6 +1748,32 @@ template <class M>
 void Hydro<M>::StepAdvection() {
   auto sem = m.GetSem("steps"); // sem nested
   sem.LoopBegin();
+  if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+    const Scal* const voidpenal = var.Double("voidpenal");
+    if (voidpenal && sem("void-penal")) {
+      auto fccl = as->GetColor();
+      auto fcu = as->GetFieldM();
+      for (auto f : m.Faces()) {
+        const IdxCell cm = m.GetCell(f, 0);
+        const IdxCell cp = m.GetCell(f, 1);
+        Scal um = 0;
+        Scal up = 0;
+        for (auto l : layers) {
+          if ((*fccl[l])[cm] != kClNone) {
+            um += (*fcu[l])[cm];
+          }
+          if ((*fccl[l])[cp] != kClNone) {
+            up += (*fcu[l])[cp];
+          }
+        }
+        um = std::min(1., um);
+        up = std::min(1., up);
+        FieldFace<Scal>& ffv =
+            const_cast<FieldFace<Scal>&>(fs_->GetVolumeFlux());
+        ffv[f] += -(up - um) * (*voidpenal) * m.GetArea(f);
+      }
+    }
+  }
   if (sem.Nested("start")) {
     as_->StartStep();
   }
