@@ -164,7 +164,7 @@ void CalcMeanCurvatureFlowFlux(
     const Multi<const FieldCell<Vect>*> fcn,
     const Multi<const FieldCell<Scal>*> fca,
     const Multi<const FieldCell<Scal>*> fck, const std::map<Scal, Scal>& mvol0,
-    M& m) {
+    const MapCondFaceFluid& mff, M& m) {
   auto sem = m.GetSem();
   struct {
     std::map<Scal, Scal> mvol;
@@ -210,35 +210,15 @@ void CalcMeanCurvatureFlowFlux(
           }
         }
         const Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
-        const Scal vold =
-            mvol0.count(cl)
-                //? kvol * (mvol0.at(cl) - mvol.at(cl)) / sqr(marea.at(cl))
-                ? kvol * (mvol0.at(cl) - mvol.at(cl))
-                : 0;
-        const Scal v = (up - um) * (k - vold) * m.GetArea(f);
+        const Scal v = (up - um) * k * m.GetArea(f);
         if (!IsNan(v)) {
           ffv[f] = v;
         }
       }
     }
-    // void penalization
-    for (auto f : m.Faces()) {
-      const IdxCell cm = m.GetCell(f, 0);
-      const IdxCell cp = m.GetCell(f, 1);
-      Scal um = 0;
-      Scal up = 0;
-      for (auto l : layers) {
-        if ((*fccl[l])[cm] != kClNone) {
-          um += (*fcu[l])[cm];
-        }
-        if ((*fccl[l])[cp] != kClNone) {
-          up += (*fcu[l])[cp];
-        }
-      }
-      um = std::min(1., um);
-      up = std::min(1., up);
-      ffv[f] += -(up - um) * kvoid;
-    }
+  }
+  if (sem.Nested("proj")) {
+    ProjectVolumeFlux(ffv, mff, m);
   }
 }
 
@@ -341,7 +321,7 @@ void Run(M& m, Vars& var) {
   if (sem.Nested("flux")) {
     CalcMeanCurvatureFlowFlux(
         ffv, layers, as->GetFieldM(), as->GetColor(), as->GetNormal(),
-        as->GetAlpha(), fck, mvol0, m);
+        as->GetAlpha(), fck, mvol0, ctx->mf_cond_fluid, m);
   }
   if (sem("dt")) {
     Scal maxv = 0;
@@ -415,6 +395,13 @@ set string bc_xm symm
 set string bc_xp symm
 set string bc_ym symm
 set string bc_yp symm
+
+set double hypre_symm_tol 1e-6
+set double hypre_vort_tol 1e-6
+set double hypre_gen_tol 1e-6
+set int hypre_periodic_x 1
+set int hypre_periodic_y 1
+set int hypre_periodic_z 1
 )EOF";
 
   return RunMpiBasic<M>(argc, argv, Run, conf);
