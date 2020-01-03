@@ -1717,6 +1717,7 @@ void ProjectVolumeFlux(
     lsx->resize(m.GetInBlockCells().size());
     size_t i = 0;
     for (auto c : m.Cells()) {
+      (void) c;
       (*lsx)[i++] = 0;
     }
     auto l = ConvertLsCompact(fce, *lsa, *lsb, *lsx, m);
@@ -1746,3 +1747,128 @@ void ProjectVolumeFlux(
     }
   }
 }
+
+template <class M>
+std::map<typename M::Scal, typename M::Scal> CalcArea(
+    const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename M::Vect>*> fcn,
+    const Multi<const FieldCell<typename M::Scal>*> fca,
+    const Multi<const FieldCell<typename M::Scal>*> fccl, M& m) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  static constexpr Scal kClNone = -1; // TODO define kClNone once
+  auto sem = m.GetSem();
+  struct {
+    std::vector<Scal> vcl; // color
+    std::vector<Scal> vs; // area
+  } * ctx(sem);
+  auto& vcl = ctx->vcl;
+  auto& vs = ctx->vs;
+  if (sem("area")) {
+    std::map<Scal, Scal> map;
+    for (auto c : m.Cells()) {
+      for (auto l : layers) {
+        const Scal cl = (*fccl[l])[c];
+        const Scal a = (*fca[l])[c];
+        const Vect n = (*fcn[l])[c];
+        if (cl != kClNone && !IsNan(a)) {
+          using R = Reconst<Scal>;
+          auto xx = R::GetCutPoly2(n, a, m.GetCellSize());
+          map[cl] += std::abs(R::GetArea(xx, n));
+        }
+      }
+    }
+    for (auto p : map) {
+      vcl.push_back(p.first);
+      vs.push_back(p.second);
+    }
+    using T = typename M::template OpCatT<Scal>;
+    m.Reduce(std::make_shared<T>(&vcl));
+    m.Reduce(std::make_shared<T>(&vs));
+  }
+  if (sem("bcast")) {
+    if (m.IsRoot()) {
+      std::map<Scal, Scal> map;
+      for (size_t i = 0; i < vcl.size(); ++i) {
+        map[vcl[i]] += vs[i];
+      }
+      vcl.clear();
+      vs.clear();
+      for (auto p : map) {
+        vcl.push_back(p.first);
+        vs.push_back(p.second);
+      }
+    }
+    using T = typename M::template OpCatT<Scal>;
+    m.Bcast(std::make_shared<T>(&vcl));
+    m.Bcast(std::make_shared<T>(&vs));
+  }
+  if (sem("map")) {
+    std::map<Scal, Scal> map;
+    for (size_t i = 0; i < vcl.size(); ++i) {
+      map[vcl[i]] = vs[i];
+    }
+    return map;
+  }
+  return {};
+}
+
+template <class M>
+std::map<typename M::Scal, typename M::Scal> CalcVolume(
+    const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename M::Scal>*> fcu,
+    const Multi<const FieldCell<typename M::Scal>*> fccl, M& m) {
+  using Scal = typename M::Scal;
+  static constexpr Scal kClNone = -1; // TODO define kClNone once
+  auto sem = m.GetSem();
+  struct {
+    std::vector<Scal> vcl; // color
+    std::vector<Scal> vvol; // volume
+  } * ctx(sem);
+  auto& vcl = ctx->vcl;
+  auto& vvol = ctx->vvol;
+  if (sem("volume")) {
+    std::map<Scal, Scal> map;
+    for (auto c : m.Cells()) {
+      for (auto l : layers) {
+        const Scal cl = (*fccl[l])[c];
+        if (cl != kClNone) {
+          map[cl] += (*fcu[l])[c] * m.GetVolume(c);
+        }
+      }
+    }
+    for (auto p : map) {
+      vcl.push_back(p.first);
+      vvol.push_back(p.second);
+    }
+    using T = typename M::template OpCatT<Scal>;
+    m.Reduce(std::make_shared<T>(&vcl));
+    m.Reduce(std::make_shared<T>(&vvol));
+  }
+  if (sem("bcast")) {
+    if (m.IsRoot()) {
+      std::map<Scal, Scal> map;
+      for (size_t i = 0; i < vcl.size(); ++i) {
+        map[vcl[i]] += vvol[i];
+      }
+      vcl.clear();
+      vvol.clear();
+      for (auto p : map) {
+        vcl.push_back(p.first);
+        vvol.push_back(p.second);
+      }
+    }
+    using T = typename M::template OpCatT<Scal>;
+    m.Bcast(std::make_shared<T>(&vcl));
+    m.Bcast(std::make_shared<T>(&vvol));
+  }
+  if (sem("map")) {
+    std::map<Scal, Scal> map;
+    for (size_t i = 0; i < vcl.size(); ++i) {
+      map[vcl[i]] = vvol[i];
+    }
+    return map;
+  }
+  return {};
+}
+
