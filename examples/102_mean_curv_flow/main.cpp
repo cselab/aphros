@@ -11,6 +11,7 @@
 #include <func/init.h>
 #include <solver/curv.h>
 #include <solver/vofm.h>
+#include <solver/reconst.h>
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -34,6 +35,68 @@ void ReadPlain(std::string path, FieldCell<Scal>& u, GMIdx<3>& size) {
   for (auto c : bc.Range()) {
     dat >> u[c];
   }
+}
+
+template <class M>
+std::map<Scal, Scal> CalcArea(
+    const GRange<size_t>& layers, const Multi<const FieldCell<Vect>*> fcn,
+    const Multi<const FieldCell<Scal>*> fca,
+    const Multi<const FieldCell<Scal>*> fccl, M& m) {
+  auto sem = m.GetSem();
+  const Scal kClNone = -1;
+  struct {
+    std::vector<Scal> vcl; // color
+    std::vector<Scal> vs; // area
+  } * ctx(sem);
+  auto& vcl = ctx->vcl;
+  auto& vs = ctx->vs;
+  if (sem("area")) {
+    std::map<Scal, Scal> map;
+    for (auto c : m.Cells()) {
+      for (auto l : layers) {
+        const Scal cl = (*fccl[l])[c];
+        const Scal a = (*fca[l])[c];
+        const Vect n = (*fcn[l])[c];
+        if (cl != kClNone && !IsNan(a)) {
+          using R = Reconst<Scal>;
+          auto xx = R::GetCutPoly2(n, a, m.GetCellSize());
+          map[cl] += std::abs(R::GetArea(xx, n));
+        }
+      }
+    }
+    for (auto p : map) {
+      vcl.push_back(p.first);
+      vs.push_back(p.second);
+    }
+    using T = typename M::template OpCatT<Scal>;
+    m.Reduce(std::make_shared<T>(&vcl));
+    m.Reduce(std::make_shared<T>(&vs));
+  }
+  if (sem("bcast")) {
+    if (m.IsRoot()) {
+      std::map<Scal, Scal> map;
+      for (size_t i = 0; i < vcl.size(); ++i) {
+        map[vcl[i]] += vs[i];
+      }
+      vcl.clear();
+      vs.clear();
+      for (auto p : map) {
+        vcl.push_back(p.first);
+        vs.push_back(p.second);
+      }
+    }
+    using T = typename M::template OpCatT<Scal>;
+    m.Bcast(std::make_shared<T>(&vcl));
+    m.Bcast(std::make_shared<T>(&vs));
+  }
+  if (sem("map")) {
+    std::map<Scal, Scal> map;
+    for (size_t i = 0; i < vcl.size(); ++i) {
+      map[vcl[i]] = vs[i];
+    }
+    return map;
+  }
+  return {};
 }
 
 template <class M>
@@ -99,25 +162,32 @@ void CalcMeanCurvatureFlowFlux(
     const Multi<const FieldCell<Scal>*> fcu,
     const Multi<const FieldCell<Scal>*> fccl,
     const Multi<const FieldCell<Vect>*> fcn,
-    const Multi<const FieldCell<Scal>*> fck,
-    const std::map<Scal, Scal>& mvol0, M& m) {
+    const Multi<const FieldCell<Scal>*> fca,
+    const Multi<const FieldCell<Scal>*> fck, const std::map<Scal, Scal>& mvol0,
+    M& m) {
   auto sem = m.GetSem();
   struct {
     std::map<Scal, Scal> mvol;
+    std::map<Scal, Scal> marea;
   } * ctx(sem);
   auto& mvol = ctx->mvol;
+  auto& marea = ctx->marea;
 
   const Scal kClNone = -1;
-  const Scal kvol = 1000.;
+  const Scal kvol = 10000;
+  const Scal kvoid = 0.00;
 
   if (sem.Nested("volume")) {
     mvol = CalcVolume(layers, fcu, fccl, m);
   }
+  if (sem.Nested("area")) {
+    marea = CalcArea(layers, fcn, fca, fccl, m);
+  }
   if (sem("calc")) {
     ffv.Reinit(m, 0);
     for (auto f : m.Faces()) {
-      IdxCell cm = m.GetCell(f, 0);
-      IdxCell cp = m.GetCell(f, 1);
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
       std::set<Scal> s;
       for (auto i : layers) {
         Scal clm = (*fccl[i])[cm];
@@ -128,33 +198,46 @@ void CalcMeanCurvatureFlowFlux(
       for (auto cl : s) {
         Scal um = 0;
         Scal up = 0;
-        Vect nm(0);
-        Vect np(0);
         Scal km = 0;
         Scal kp = 0;
         for (auto i : layers) {
           if ((*fccl[i])[cm] == cl) {
             um = (*fcu[i])[cm];
-            nm = (*fcn[i])[cm];
             km = (*fck[i])[cm];
           }
           if ((*fccl[i])[cp] == cl) {
             up = (*fcu[i])[cp];
-            np = (*fcn[i])[cp];
             kp = (*fck[i])[cp];
           }
         }
         const Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
-        const Vect n = (std::abs(um - 0.5) < std::abs(up - 0.5) ? nm : np);
         const Scal vold =
             mvol0.count(cl)
-                ? kvol * ((mvol0.at(cl) - mvol.at(cl)) / mvol0.at(cl))
+                ? kvol * ((mvol0.at(cl) - mvol.at(cl)) / marea.at(cl))
                 : 0;
-        const Scal v = m.GetSurface(f).dot(n * (-k + vold));
+        const Scal v = (up - um) * (k - vold) * m.GetArea(f);
         if (!IsNan(v)) {
           ffv[f] = v;
         }
       }
+    }
+    // void penalization
+    for (auto f : m.Faces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      Scal um = 0;
+      Scal up = 0;
+      for (auto l : layers) {
+        if ((*fccl[l])[cm] != kClNone) {
+          um += (*fcu[l])[cm];
+        }
+        if ((*fccl[l])[cp] != kClNone) {
+          up += (*fcu[l])[cp];
+        }
+      }
+      um = std::min(1., um);
+      up = std::min(1., up);
+      ffv[f] += -(up - um) * kvoid;
     }
   }
 }
@@ -186,8 +269,8 @@ void Run(M& m, Vars&) {
   auto& mvol0 = ctx->mvol0;
 
   auto& as = ctx->as;
-  const Scal tmax = 0.1;
-  const Scal cfl = 0.5;
+  const Scal tmax = 1;
+  const Scal cfl = 0.25;
 
   // if (sem.Nested()) {
   //  InitVf(fcu, var, m);
@@ -217,9 +300,6 @@ void Run(M& m, Vars&) {
     typename Vofm<M>::Par p;
     p.sharpen = true;
     p.sharpen_cfl = 0.1;
-    p.recolor_unionfind = true;
-    p.recolor_reduce = true;
-    p.recolor_grid = true;
     as.reset(new Vofm<M>(m, fcu, fccl, ctx->mf_cond, &ffv, &fcs, 0., dt, p));
     layers = GRange<size_t>(as->GetNumLayers());
     fck.resize(layers);
@@ -246,8 +326,8 @@ void Run(M& m, Vars&) {
   }
   if (sem.Nested("flux")) {
     CalcMeanCurvatureFlowFlux(
-        ffv, layers, as->GetFieldM(), as->GetColor(), as->GetNormal(), fck,
-        mvol0, m);
+        ffv, layers, as->GetFieldM(), as->GetColor(), as->GetNormal(),
+        as->GetAlpha(), fck, mvol0, m);
   }
   if (sem("dt")) {
     Scal maxv = 0;
@@ -262,6 +342,12 @@ void Run(M& m, Vars&) {
     if (m.IsRoot()) {
       std::cout << "dt=" << dt << std::endl;
     }
+
+    if (step > 1) {
+      auto p = as->GetPar();
+      // p.sharpen = false;
+      as->SetPar(p);
+    }
   }
   /*
   if (sem.Nested()) {
@@ -271,12 +357,12 @@ void Run(M& m, Vars&) {
   if (sem.Nested()) {
     as->DumpInterface(GetDumpName("s", ".vtk", step));
   }
+  /*
   if (sem("dump")) {
     m.Dump(&as->GetField(), "u");
     m.Dump(&as->GetColorSum(), "cl");
   }
-  if (sem("checkloop0")) {
-  }
+  */
   if (sem("checkloop")) {
     if (as->GetTime() >= tmax) {
       sem.LoopBreak();
@@ -288,12 +374,12 @@ void Run(M& m, Vars&) {
 
 int main(int argc, const char** argv) {
   std::string conf = R"EOF(
-set int bx 8
-set int by 8
+set int bx 2
+set int by 2
 set int bz 1
 
-set int bsx 8
-set int bsy 8
+set int bsx 32
+set int bsy 32
 set int bsz 1
 
 set int dim 2
