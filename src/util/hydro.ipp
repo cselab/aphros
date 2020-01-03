@@ -1657,3 +1657,92 @@ void CalcSurfaceTension(
     throw std::runtime_error("Unknown surftens=" + st);
   }
 }
+
+template <class M>
+void ProjectVolumeFlux(
+    FieldFace<typename M::Scal>& ffv, const MapCondFaceFluid& mfc, M& m) {
+  using Scal = typename M::Scal;
+  using ExprFace = GVect<Scal, 3>;
+  using Expr = GVect<Scal, M::dim * 2 + 2>;
+
+  auto sem = m.GetSem();
+  struct {
+    FieldFace<ExprFace> ffe; // expression for corrected volume flux [i]
+    FieldCell<Expr> fce; // linear system for pressure [i]
+    FieldFace<bool> ffbd; // true for faces with boundary conditions
+    FieldCell<Scal> fcp; // pressure (up to a constant)
+  } * ctx(sem);
+  auto& ffe = ctx->ffe;
+  auto& fce = ctx->fce;
+  auto& ffbd = ctx->ffbd;
+  auto& fcp = ctx->fcp;
+
+  if (sem("init")) {
+    ffbd.Reinit(m, false);
+    for (auto p : mfc) {
+      ffbd[p.GetIdx()] = true;
+    }
+
+    ffe.Reinit(m);
+    for (auto f : m.Faces()) {
+      auto& e = ffe[f];
+      if (!ffbd[f]) { // inner
+        Scal a = -1; // XXX adhoc uniform
+        e[0] = -a;
+        e[1] = a;
+      } else { // boundary
+        e[0] = 0;
+        e[1] = 0;
+      }
+      e[2] = ffv[f];
+    }
+
+    fce.Reinit(m, Expr(0));
+    for (auto c : m.Cells()) {
+      auto& e = fce[c];
+      for (auto q : m.Nci(c)) {
+        const IdxFace f = m.GetFace(c, q);
+        const ExprFace v = ffe[f] * m.GetOutwardFactor(c, q);
+        e[0] += v[1 - q % 2];
+        e[1 + q] += v[q % 2];
+        e[Expr::dim - 1] += v[2];
+      }
+    }
+  }
+  if (sem("solve")) {
+    std::vector<Scal>* lsa;
+    std::vector<Scal>* lsb;
+    std::vector<Scal>* lsx;
+    m.GetSolveTmp(lsa, lsb, lsx);
+    lsx->resize(m.GetInBlockCells().size());
+    size_t i = 0;
+    for (auto c : m.Cells()) {
+      (*lsx)[i++] = 0;
+    }
+    auto l = ConvertLsCompact(fce, *lsa, *lsb, *lsx, m);
+    using T = typename M::LS::T;
+    l.t = T::symm;
+    m.Solve(l);
+  }
+  if (sem("copy")) {
+    std::vector<Scal>* lsa;
+    std::vector<Scal>* lsb;
+    std::vector<Scal>* lsx;
+    m.GetSolveTmp(lsa, lsb, lsx);
+
+    fcp.Reinit(m);
+    size_t i = 0;
+    for (auto c : m.Cells()) {
+      fcp[c] = (*lsx)[i++];
+    }
+    m.Comm(&fcp);
+  }
+  if (sem("apply")) {
+    for (auto f : m.Faces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      const auto& e = ffe[f];
+      ffv[f] = e[0] * fcp[cm] + e[1] * fcp[cp] + e[2];
+    }
+  }
+}
