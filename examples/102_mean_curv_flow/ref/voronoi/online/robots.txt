@@ -1,0 +1,7 @@
+http://alexbeutel.com/scripts/flashcards.py
+http://alexbeutel.com/flashcards.py
+http://alexbeutel.com/PrintAll.app
+http://alexbeutel.com/AlexBeutelResume.pdf
+http://alexbeutel.com/papers/proposal.pdf
+http://alexbeutel.com/chromium.py
+http://alexbeutel.com/edit_dist.py
