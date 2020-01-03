@@ -4,7 +4,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.spatial import Voronoi
+import matplotlib
+from scipy.spatial import Voronoi, voronoi_plot_2d
 
 # Write uniform grid data
 # u -- 2d or 3d array
@@ -105,6 +106,7 @@ def voronoi_finite_polygons_2d(vor, radius=None):
     return new_regions, np.asarray(new_vertices)
 
 # make up data points
+'''
 np.random.seed(1234)
 nx = 10
 ny = 10
@@ -116,6 +118,10 @@ points = np.array(points)
 points = points.reshape(2, nx * ny)
 points = points.T
 points += (np.random.rand(nx * ny, 2) - 0.5) * gap
+'''
+
+points = np.loadtxt("online/points0")
+print(points)
 
 # compute Voronoi tesselation
 vor = Voronoi(points)
@@ -126,22 +132,24 @@ resx = 256
 dpi = 100
 fig = plt.figure(figsize=(resx/dpi,resx/dpi))
 ax = plt.Axes(fig, [0., 0., 1., 1.])
-ax.set_axis_off()
 ax.set_xlim(0, 1)
 ax.set_ylim(0, 1)
+ax.set_axis_off()
 fig.add_axes(ax)
 
-# colorize
 for i,region in enumerate(regions):
     polygon = vertices[region]
     c = "#{:02x}{:02x}{:02x}".format(i, i, i)
     ax.fill(*zip(*polygon), c=c, antialiased=False)
 
-fig.savefig("cl.png")
+fig.canvas.draw()
 
 data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
 data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 data = data[:,:,0]
-print(len(np.unique(data)))
 WritePlain(data, "cl.dat")
 
+voronoi_plot_2d(vor, ax, show_vertices=False, line_colors='#ffffff')
+ax.set_xlim(0, 1)
+ax.set_ylim(0, 1)
+fig.savefig("cl.png")
