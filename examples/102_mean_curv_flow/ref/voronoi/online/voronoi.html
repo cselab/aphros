@@ -575,7 +575,7 @@
 				for(var i = 0; i < points.length; i++) {
 					if(points[i].qp) drawCone(points[i]);
 				}
-				// triangulate();
+				triangulate();
 			}
 			function pageStart() {
 				$('width').value = $('main-canvas').width;
@@ -809,8 +809,8 @@
 		</div>
 		<h2>Interactive Voronoi Diagram Generator with WebGL</h2>
 		<div>
-			<canvas id="2d-canvas" style="border: none; position: absolute;" width="900" height="675" ></canvas>
-			<canvas id="main-canvas" style="border: none; position: absolute;" width="900" height="675" ></canvas>
+			<canvas id="2d-canvas" style="border: none; position: absolute;" width="800" height="800" ></canvas>
+			<canvas id="main-canvas" style="border: none; position: absolute;" width="800" height="800" ></canvas>
 		</div>
 		</div>
 	</body>
