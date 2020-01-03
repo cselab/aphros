@@ -1,6 +1,6 @@
-m = 128 128 1
+m = 256 256 1
 bs = 32 32 1
-np = 1
+np = 64
 tl = 10
 
 all: cleanrun
