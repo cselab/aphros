@@ -12,11 +12,13 @@
 #include <solver/curv.h>
 #include <solver/vofm.h>
 #include <solver/reconst.h>
+#include <util/hydro.h>
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
+constexpr Scal kClNone = -1;
 
 // Reads data in plain format.
 // u: scalar field defined on b
@@ -43,7 +45,6 @@ std::map<Scal, Scal> CalcArea(
     const Multi<const FieldCell<Scal>*> fca,
     const Multi<const FieldCell<Scal>*> fccl, M& m) {
   auto sem = m.GetSem();
-  const Scal kClNone = -1;
   struct {
     std::vector<Scal> vcl; // color
     std::vector<Scal> vs; // area
@@ -104,7 +105,6 @@ std::map<Scal, Scal> CalcVolume(
     const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*> fcu,
     const Multi<const FieldCell<Scal>*> fccl, M& m) {
   auto sem = m.GetSem();
-  const Scal kClNone = -1;
   struct {
     std::vector<Scal> vcl; // color
     std::vector<Scal> vvol; // volume
@@ -173,9 +173,8 @@ void CalcMeanCurvatureFlowFlux(
   auto& mvol = ctx->mvol;
   auto& marea = ctx->marea;
 
-  const Scal kClNone = -1;
-  const Scal kvol = 10000;
-  const Scal kvoid = 0.00;
+  const Scal kvol = 0.1;
+  const Scal kvoid = 0.001;
 
   if (sem.Nested("volume")) {
     mvol = CalcVolume(layers, fcu, fccl, m);
@@ -213,7 +212,8 @@ void CalcMeanCurvatureFlowFlux(
         const Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
         const Scal vold =
             mvol0.count(cl)
-                ? kvol * ((mvol0.at(cl) - mvol.at(cl)) / marea.at(cl))
+                //? kvol * (mvol0.at(cl) - mvol.at(cl)) / sqr(marea.at(cl))
+                ? kvol * (mvol0.at(cl) - mvol.at(cl))
                 : 0;
         const Scal v = (up - um) * (k - vold) * m.GetArea(f);
         if (!IsNan(v)) {
@@ -242,7 +242,7 @@ void CalcMeanCurvatureFlowFlux(
   }
 }
 
-void Run(M& m, Vars&) {
+void Run(M& m, Vars& var) {
   auto sem = m.GetSem();
 
   struct {
@@ -250,6 +250,7 @@ void Run(M& m, Vars&) {
     FieldCell<Scal> fcs; // volume source
     FieldFace<Scal> ffv; // volume flux
     Multi<FieldCell<Scal>> fck; // curvature
+    MapCondFaceFluid mf_cond_fluid; // face conditions
     MapCondFaceAdvection<Scal> mf_cond; // face conditions
     GRange<size_t> layers;
     typename PartStrMeshM<M>::Par psm_par;
@@ -269,8 +270,9 @@ void Run(M& m, Vars&) {
   auto& mvol0 = ctx->mvol0;
 
   auto& as = ctx->as;
-  const Scal tmax = 1;
-  const Scal cfl = 0.25;
+  const Scal tmax = 10;
+  const Scal dtmax = 0.1;
+  const Scal cfl = 0.5;
 
   // if (sem.Nested()) {
   //  InitVf(fcu, var, m);
@@ -279,13 +281,16 @@ void Run(M& m, Vars&) {
     fcs.Reinit(m, 0);
     ffv.Reinit(m, 0);
 
+    FieldCell<Scal> fccl(m, kClNone); // initial color
+    FieldCell<Scal> fcu(m, 0); // initial volume fraction
+
+    /*
     const std::string qpath = "ref/voronoi/cl.dat";
     FieldCell<Scal> qfccl;
     MIdx qsize;
     ReadPlain(qpath, qfccl, qsize);
     GIndex<IdxCell, M::dim> qbc(qsize);
     std::cout << "qsize=" << qbc.GetSize() << std::endl;
-    FieldCell<Scal> fccl(m, 0); // initial color
     auto& bc = m.GetIndexCells();
     const MIdx size = m.GetGlobalSize();
     for (auto c : m.Cells()) {
@@ -294,8 +299,17 @@ void Run(M& m, Vars&) {
       const IdxCell qc = qbc.GetIdx(qw);
       fccl[c] = qfccl[qc];
     }
+    */
+    for (auto c : m.AllCells()) {
+      auto D = [](Vect x) { return Vect(x[0], x[1], 0);};
+      auto rot = [](Vect x) { return Vect(x[0]-x[1]*0.05, x[1]+x[0]*0.05, 0);};
+      Vect x = D(m.GetCenter(c));
+      x = rot(x);
+      fccl[c] = x[1] < 0.3 ? 1 : x[0] < 0.5 ? 2 : 3;
+      fcu[c] = 1;
+    }
 
-    FieldCell<Scal> fcu(m, 1); // initial volume fraction
+    GetFluidFaceCond(var, m, ctx->mf_cond_fluid, ctx->mf_cond);
 
     typename Vofm<M>::Par p;
     p.sharpen = true;
@@ -338,6 +352,7 @@ void Run(M& m, Vars&) {
     m.Reduce(&dt, "min");
   }
   if (sem("mindt")) {
+    dt = std::min(dt, dtmax);
     as->SetTimeStep(dt);
     if (m.IsRoot()) {
       std::cout << "dt=" << dt << std::endl;
@@ -391,6 +406,15 @@ set int pz 1
 set string init_vf circlels
 set vect circle_c 0.5 0.5 0.5
 set double circle_r 0.2
+
+set double bcc_clear0 0
+set double bcc_clear1 1
+set double inletcl 0
+set double bcc_fill -1
+set string bc_xm symm
+set string bc_xp symm
+set string bc_ym symm
+set string bc_yp symm
 )EOF";
 
   return RunMpiBasic<M>(argc, argv, Run, conf);

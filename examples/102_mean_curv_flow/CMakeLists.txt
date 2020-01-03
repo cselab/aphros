@@ -6,5 +6,5 @@ include("$ENV{CHPREFIX}/include/march.cmake")
 
 set(EXE main)
 add_executable(${EXE} main.cpp)
-target_link_libraries(${EXE} distrbasic vofm init curv)
+target_link_libraries(${EXE} distrbasic vofm init curv utilhydro)
 
