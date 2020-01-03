@@ -85,7 +85,7 @@ renderView1 = CreateView('RenderView')
 renderView1.ViewSize = [512,512]
 renderView1.OrientationAxesVisibility = 0
 renderView1.CameraPosition =\
-[0.5,0.5,-1]
+[0.5,0.5,1]
 renderView1.CameraFocalPoint =\
 [0.5,0.5,0]
 renderView1.CameraViewUp =\
