@@ -64,3 +64,6 @@ template void CalcSurfaceTension(
     const Multi<const FieldCell<typename M::Scal>*> fck,
     const FieldCell<typename M::Scal>& fcvf,
     const FieldFace<typename M::Scal>& ffvfsm, const AdvectionSolver<M>* asb);
+
+template void ProjectVolumeFlux(
+    FieldFace<typename M::Scal>& ffv, const MapCondFaceFluid& mfc, M& m);
