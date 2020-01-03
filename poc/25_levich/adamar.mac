@@ -1,8 +1,23 @@
-diff(p, r) = mu*(diff(u, r, 2) + 1/r^2 * diff(u, t, 2) + 2/r*diff(u, r) + cot(t)/r^2 * diff(u, t) -
-  2/r^2 * diff(u, t) - 2*u/r^2 - 2*cot(t)/r^2 * v);
+diff(p, r) =
+mu*
+(
+  diff(u, r, 2) +
+  1/r^2 * diff(u, t, 2) +
+  2/r*diff(u, r) +
+  cot(t)/r^2 * diff(u, t) -
+  2/r^2 * diff(u, t) -
+  2*u/r^2 -
+  2*cot(t)/r^2 * v
+);
+
 1/r*diff(p, t) = mu*(diff(v, r, 2) + 1/r^2 * diff(u, t) + 2/r*diff(v, r) + cot(t)/r^2 * diff(v, t) + 2/r^2 * diff(u, t) - v/(r^2*sin(t)^2);
 
 diff(v, r) + 1/r*diff(v, t) + 2*v/r + u*cot(t)/r = 0;
 
 prr = -p + 2*mu*diff(v, r);
 prt = mu*(1/r*diff(v, t) + diff(u, r) - u/r);
+
+v: f(r)*cos(t);
+u: phi(r)*sin(t);
+p: mu*psy(r)*cos(t);
+
