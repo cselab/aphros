@@ -17,9 +17,7 @@ for i thru n do
 push(vector([x, 2*%eta[i]*sqrt(mu*x/U)], [%u[i], %v[i]]), obj);
 
 s: 5.2*sqrt(mu*x/U) $
-draw2d(terminal  = 'png,
-  file_name = 'blayer,
-  line_width = 4,
+draw2d(
   head_length = 3, xrange = [0, 10], yrange = [0, 10], color = 'red, explicit(s, x, 0, 10), color = 'blue,
   head_angle = 1, ev(obj, x = 2), ev(obj, x = 4),  ev(obj, x = 6), ev(obj, x = 8)), U = 1, mu = 1/10 $
 
