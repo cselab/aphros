@@ -4,6 +4,6 @@ rm -rf "$P/include/Eigen"
 
 mkdir -p "$P/include"
 
-c="mv -v '$d/Eigen' '$P/include'"
+c="mv '$d/Eigen' '$P/include'"
 echo "$c"
 eval "$c"
