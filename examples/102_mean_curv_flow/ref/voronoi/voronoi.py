@@ -6,6 +6,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial import Voronoi
 
+# Write uniform grid data
+# u -- 2d or 3d array
+# Format:
+# <Nx> <Ny> <Nz>
+# <u[0,0,0]> <u[1,0,0]> ...
+def WritePlain(u, path):
+    s = u.shape
+    assert len(s) in [2, 3]
+    if (len(s) == 2):
+        u = u.reshape((s[0], s[1], 1))
+    with open(path, 'w') as f:
+        f.write("{:} {:} {:}\n".format(*u.shape))
+        u = u.flatten()
+        np.savetxt(f, u, newline='', fmt='%.16g ')
+
 def voronoi_finite_polygons_2d(vor, radius=None):
     """
     Reconstruct infinite voronoi regions in a 2D diagram to finite
@@ -91,7 +106,15 @@ def voronoi_finite_polygons_2d(vor, radius=None):
 
 # make up data points
 np.random.seed(1234)
-points = np.random.rand(15, 2)
+nx = 10
+ny = 10
+xx = np.linspace(0, 1, nx)
+yy = np.linspace(0, 1, ny)
+points = np.meshgrid(xx, yy)
+points = np.array(points)
+points = points.reshape(2, nx * ny)
+points = points.T
+points += np.random.rand(nx * ny, 2)*0.2
 
 # compute Voronoi tesselation
 vor = Voronoi(points)
@@ -103,13 +126,25 @@ print(regions)
 print("--")
 print(vertices)
 
+resx = 256
+dpi = 100
+fig = plt.figure(figsize=(resx/dpi,resx/dpi))
+ax = plt.Axes(fig, [0., 0., 1., 1.])
+ax.set_axis_off()
+ax.set_xlim(0, 1)
+ax.set_ylim(0, 1)
+fig.add_axes(ax)
+
 # colorize
-for region in regions:
+for i,region in enumerate(regions):
     polygon = vertices[region]
-    plt.fill(*zip(*polygon))
+    c = i / len(regions)
+    ax.fill(*zip(*polygon), c=(c,c,c))
 
-plt.plot(points[:,0], points[:,1], 'ko')
-plt.xlim(vor.min_bound[0] - 0.1, vor.max_bound[0] + 0.1)
-plt.ylim(vor.min_bound[1] - 0.1, vor.max_bound[1] + 0.1)
+fig.savefig("cl.png")
 
-plt.show()
+data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+data = data[:,:,0]
+WritePlain(data, "cl.dat")
+
