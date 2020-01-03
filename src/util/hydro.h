@@ -136,3 +136,18 @@ void CalcSurfaceTension(
 template <class M>
 void ProjectVolumeFlux(
     FieldFace<typename M::Scal>& ffv, const MapCondFaceFluid& mfc, M& m);
+
+// Returns total volume of each color, map[cl]=area
+template <class M>
+std::map<typename M::Scal, typename M::Scal> CalcArea(
+    const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename M::Vect>*> fcn,
+    const Multi<const FieldCell<typename M::Scal>*> fca,
+    const Multi<const FieldCell<typename M::Scal>*> fccl, M& m);
+
+// Returns total area of each color, map[cl]=volume
+template <class M>
+std::map<typename M::Scal, typename M::Scal> CalcVolume(
+    const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename M::Scal>*> fcu,
+    const Multi<const FieldCell<typename M::Scal>*> fccl, M& m);

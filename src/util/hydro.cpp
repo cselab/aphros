@@ -67,3 +67,14 @@ template void CalcSurfaceTension(
 
 template void ProjectVolumeFlux(
     FieldFace<typename M::Scal>& ffv, const MapCondFaceFluid& mfc, M& m);
+
+template std::map<Scal, Scal> CalcArea(
+    const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename M::Vect>*> fcn,
+    const Multi<const FieldCell<typename M::Scal>*> fca,
+    const Multi<const FieldCell<typename M::Scal>*> fccl, M& m);
+
+template std::map<Scal, Scal> CalcVolume(
+    const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename M::Scal>*> fcu,
+    const Multi<const FieldCell<typename M::Scal>*> fccl, M& m);
