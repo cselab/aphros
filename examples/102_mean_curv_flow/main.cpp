@@ -107,6 +107,7 @@ void Run(M& m, Vars& var) {
     std::unique_ptr<PartStrMeshM<M>> psm;
     Scal dt = 0.01;
     size_t step = 0;
+    size_t frame = 0;
   } * ctx(sem);
   auto& fcs = ctx->fcs;
   auto& ffv = ctx->ffv;
@@ -116,6 +117,7 @@ void Run(M& m, Vars& var) {
   auto& psm = ctx->psm;
   auto& dt = ctx->dt;
   auto& step = ctx->step;
+  auto& frame = ctx->frame;
 
   auto& as = ctx->as;
   const Scal tmax = 10;
@@ -191,12 +193,16 @@ void Run(M& m, Vars& var) {
       std::cout << "dt=" << dt << std::endl;
     }
   }
+  const bool dump = (step % 100 == 0);
   if (sem.Nested()) {
-    if (step % 100 == 0) {
-      as->DumpInterface(GetDumpName("s", ".vtk", step));
+    if (dump) {
+      as->DumpInterface(GetDumpName("s", ".vtk", frame));
     }
   }
   if (sem("checkloop")) {
+    if (dump) {
+      ++frame;
+    }
     if (as->GetTime() >= tmax) {
       sem.LoopBreak();
     }
