@@ -163,25 +163,12 @@ void CalcMeanCurvatureFlowFlux(
     const Multi<const FieldCell<Scal>*> fccl,
     const Multi<const FieldCell<Vect>*> fcn,
     const Multi<const FieldCell<Scal>*> fca,
-    const Multi<const FieldCell<Scal>*> fck, const std::map<Scal, Scal>& mvol0,
+    const Multi<const FieldCell<Scal>*> fck,
     const MapCondFaceFluid& mff, M& m) {
+  (void) fcn;
+  (void) fca;
   auto sem = m.GetSem();
-  struct {
-    std::map<Scal, Scal> mvol;
-    std::map<Scal, Scal> marea;
-  } * ctx(sem);
-  auto& mvol = ctx->mvol;
-  auto& marea = ctx->marea;
 
-  const Scal kvol = 0.1;
-  const Scal kvoid = 0.001;
-
-  if (sem.Nested("volume")) {
-    mvol = CalcVolume(layers, fcu, fccl, m);
-  }
-  if (sem.Nested("area")) {
-    marea = CalcArea(layers, fcn, fca, fccl, m);
-  }
   if (sem("calc")) {
     ffv.Reinit(m, 0);
     for (auto f : m.Faces()) {
@@ -212,7 +199,7 @@ void CalcMeanCurvatureFlowFlux(
         const Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
         const Scal v = (up - um) * k * m.GetArea(f);
         if (!IsNan(v)) {
-          ffv[f] = v;
+          ffv[f] += v;
         }
       }
     }
@@ -237,7 +224,6 @@ void Run(M& m, Vars& var) {
     std::unique_ptr<PartStrMeshM<M>> psm;
     Scal dt = 0.01;
     size_t step = 0;
-    std::map<Scal, Scal> mvol0;
   } * ctx(sem);
   auto& fcs = ctx->fcs;
   auto& ffv = ctx->ffv;
@@ -247,7 +233,6 @@ void Run(M& m, Vars& var) {
   auto& psm = ctx->psm;
   auto& dt = ctx->dt;
   auto& step = ctx->step;
-  auto& mvol0 = ctx->mvol0;
 
   auto& as = ctx->as;
   const Scal tmax = 10;
@@ -264,7 +249,6 @@ void Run(M& m, Vars& var) {
     FieldCell<Scal> fccl(m, kClNone); // initial color
     FieldCell<Scal> fcu(m, 0); // initial volume fraction
 
-    /*
     const std::string qpath = "ref/voronoi/cl.dat";
     FieldCell<Scal> qfccl;
     MIdx qsize;
@@ -277,17 +261,22 @@ void Run(M& m, Vars& var) {
       const MIdx w = bc.GetMIdx(c);
       const MIdx qw = w * qsize / size;
       const IdxCell qc = qbc.GetIdx(qw);
+      fcu[c] = 1;
       fccl[c] = qfccl[qc];
     }
-    */
+    /*
     for (auto c : m.AllCells()) {
       auto D = [](Vect x) { return Vect(x[0], x[1], 0);};
       auto rot = [](Vect x) { return Vect(x[0]-x[1]*0.05, x[1]+x[0]*0.05, 0);};
       Vect x = D(m.GetCenter(c));
       x = rot(x);
-      fccl[c] = x[1] < 0.3 ? 1 : x[0] < 0.5 ? 2 : 3;
-      fcu[c] = 1;
+      //fccl[c] = x[1] < 0.3 ? 1 : x[0] < 0.5 ? 2 : 3;
+      if (Vect(0.5, 0.5, 0).dist(x) < 0.2) {
+        fccl[c] = 1;
+        fcu[c] = 1;
+      }
     }
+    */
 
     GetFluidFaceCond(var, m, ctx->mf_cond_fluid, ctx->mf_cond);
 
@@ -299,9 +288,6 @@ void Run(M& m, Vars& var) {
     fck.resize(layers);
     fck.InitAll(FieldCell<Scal>(m, 1));
     psm_par.dump_fr = 1;
-  }
-  if (sem.Nested("volume")) {
-    mvol0 = CalcVolume(layers, as->GetFieldM(), as->GetColor(), m);
   }
   sem.LoopBegin();
   if (sem.Nested("start")) {
@@ -321,7 +307,7 @@ void Run(M& m, Vars& var) {
   if (sem.Nested("flux")) {
     CalcMeanCurvatureFlowFlux(
         ffv, layers, as->GetFieldM(), as->GetColor(), as->GetNormal(),
-        as->GetAlpha(), fck, mvol0, ctx->mf_cond_fluid, m);
+        as->GetAlpha(), fck, ctx->mf_cond_fluid, m);
   }
   if (sem("dt")) {
     Scal maxv = 0;
@@ -369,8 +355,8 @@ void Run(M& m, Vars& var) {
 
 int main(int argc, const char** argv) {
   std::string conf = R"EOF(
-set int bx 2
-set int by 2
+set int bx 4
+set int by 4
 set int bz 1
 
 set int bsx 32
@@ -397,11 +383,8 @@ set string bc_ym symm
 set string bc_yp symm
 
 set double hypre_symm_tol 1e-6
-set double hypre_vort_tol 1e-6
-set double hypre_gen_tol 1e-6
-set int hypre_periodic_x 1
-set int hypre_periodic_y 1
-set int hypre_periodic_z 1
+set int hypre_periodic_x 0
+set int hypre_periodic_y 0
 )EOF";
 
   return RunMpiBasic<M>(argc, argv, Run, conf);
