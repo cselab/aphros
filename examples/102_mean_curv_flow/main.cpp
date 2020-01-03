@@ -196,7 +196,7 @@ void Run(M& m, Vars&) {
     fcs.Reinit(m, 0);
     ffv.Reinit(m, 0);
 
-    const std::string qpath = "ref/cl.dat";
+    const std::string qpath = "ref/voronoi/cl.dat";
     FieldCell<Scal> qfccl;
     MIdx qsize;
     ReadPlain(qpath, qfccl, qsize);

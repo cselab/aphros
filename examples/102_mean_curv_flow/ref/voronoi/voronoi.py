@@ -108,23 +108,19 @@ def voronoi_finite_polygons_2d(vor, radius=None):
 np.random.seed(1234)
 nx = 10
 ny = 10
-xx = np.linspace(0, 1, nx)
-yy = np.linspace(0, 1, ny)
+gap = 0.1
+xx = np.linspace(gap, 1 - gap, nx)
+yy = np.linspace(gap, 1 - gap, ny)
 points = np.meshgrid(xx, yy)
 points = np.array(points)
 points = points.reshape(2, nx * ny)
 points = points.T
-points += np.random.rand(nx * ny, 2)*0.2
+points += (np.random.rand(nx * ny, 2) - 0.5) * gap
 
 # compute Voronoi tesselation
 vor = Voronoi(points)
 
-# plot
 regions, vertices = voronoi_finite_polygons_2d(vor)
-print("--")
-print(regions)
-print("--")
-print(vertices)
 
 resx = 256
 dpi = 100
@@ -138,13 +134,14 @@ fig.add_axes(ax)
 # colorize
 for i,region in enumerate(regions):
     polygon = vertices[region]
-    c = i / len(regions)
-    ax.fill(*zip(*polygon), c=(c,c,c))
+    c = "#{:02x}{:02x}{:02x}".format(i, i, i)
+    ax.fill(*zip(*polygon), c=c, antialiased=False)
 
 fig.savefig("cl.png")
 
 data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
 data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 data = data[:,:,0]
+print(len(np.unique(data)))
 WritePlain(data, "cl.dat")
 
