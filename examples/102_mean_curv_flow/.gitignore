@@ -8,3 +8,4 @@ job.id
 job.status
 np
 out
+job.id.last

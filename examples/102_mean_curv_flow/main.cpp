@@ -92,6 +92,32 @@ void CalcMeanCurvatureFlowFlux(
   }
 }
 
+template <class M>
+void ReadColorPlain(
+    const std::string path, const GRange<size_t>& layers,
+    Multi<FieldCell<Scal>>& fcu, Multi<FieldCell<Scal>>& fccl, const M& m) {
+  fcu.resize(layers);
+  fccl.resize(layers);
+  fcu.InitAll(FieldCell<Scal>(m, 0));
+  fccl.InitAll(FieldCell<Scal>(m, kClNone));
+
+  FieldNode<Scal> fncl(m, kClNone);
+
+  FieldCell<Scal> qfccl;
+  MIdx qsize;
+  ReadPlain(path, qfccl, qsize);
+  GIndex<IdxCell, M::dim> qbc(qsize);
+  std::cout << "qsize=" << qbc.GetSize() << std::endl;
+  auto& bn = m.GetIndexNodes();
+  const MIdx size = m.GetGlobalSize() + MIdx(1);
+  for (auto n : m.Nodes()) {
+    const MIdx w = bn.GetMIdx(n);
+    const MIdx qw = w * qsize / size;
+    const IdxCell qc = qbc.GetIdx(qw);
+    fncl[n] = qfccl[qc];
+  }
+}
+
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem();
 
@@ -128,32 +154,20 @@ void Run(M& m, Vars& var) {
     fcs.Reinit(m, 0);
     ffv.Reinit(m, 0);
 
-    FieldCell<Scal> fccl(m, kClNone); // initial color
-    FieldCell<Scal> fcu(m, 0); // initial volume fraction
-
-    const std::string qpath = "ref/voronoi/cl.dat";
-    FieldCell<Scal> qfccl;
-    MIdx qsize;
-    ReadPlain(qpath, qfccl, qsize);
-    GIndex<IdxCell, M::dim> qbc(qsize);
-    std::cout << "qsize=" << qbc.GetSize() << std::endl;
-    auto& bc = m.GetIndexCells();
-    const MIdx size = m.GetGlobalSize();
-    for (auto c : m.Cells()) {
-      const MIdx w = bc.GetMIdx(c);
-      const MIdx qw = w * qsize / size;
-      const IdxCell qc = qbc.GetIdx(qw);
-      fcu[c] = 1;
-      fccl[c] = qfccl[qc];
-    }
-
     GetFluidFaceCond(var, m, ctx->mf_cond_fluid, ctx->mf_cond);
 
     typename Vofm<M>::Par p;
     p.sharpen = true;
     p.sharpen_cfl = 0.1;
-    as.reset(new Vofm<M>(m, fcu, fccl, ctx->mf_cond, &ffv, &fcs, 0., dt, p));
-    layers = GRange<size_t>(as->GetNumLayers());
+    layers = GRange<size_t>(p.layers);
+
+    Multi<FieldCell<Scal>> fccl; // initial color
+    Multi<FieldCell<Scal>> fcu; // initial volume fraction
+    const std::string path = "ref/voronoi/cl.dat";
+    ReadColorPlain(path, layers, fcu, fccl, m);
+
+    as.reset(
+        new Vofm<M>(m, fcu[0], fccl[0], ctx->mf_cond, &ffv, &fcs, 0., dt, p));
     fck.resize(layers);
     fck.InitAll(FieldCell<Scal>(m, 1));
     psm_par.dump_fr = 1;
@@ -173,7 +187,7 @@ void Run(M& m, Vars& var) {
         layers, as->GetAlpha(), as->GetNormal(), as->GetMask(), as->GetColor(),
         psm_par, fck, m);
   }
-  if (sem.Nested("flux")) {
+  if (0&&sem.Nested("flux")) {
     CalcMeanCurvatureFlowFlux(
         ffv, layers, as->GetFieldM(), as->GetColor(), as->GetNormal(),
         as->GetAlpha(), fck, ctx->mf_cond_fluid, m);
@@ -193,10 +207,15 @@ void Run(M& m, Vars& var) {
       std::cout << "dt=" << dt << std::endl;
     }
   }
-  const bool dump = (step % 100 == 0);
+  const bool dump = (step % 10 == 0);
   if (sem.Nested()) {
     if (dump) {
       as->DumpInterface(GetDumpName("s", ".vtk", frame));
+    }
+  }
+  if (sem.Nested()) {
+    if (dump) {
+      m.Dump(as->GetColor()[0], "cl");
     }
   }
   if (sem("checkloop")) {
@@ -213,8 +232,8 @@ void Run(M& m, Vars& var) {
 
 int main(int argc, const char** argv) {
   std::string conf = R"EOF(
-set int bx 1
-set int by 1
+set int bx 8
+set int by 8
 set int bz 1
 
 set int bsx 32
@@ -223,13 +242,9 @@ set int bsz 1
 
 set int dim 2
 
-set int px 8
-set int py 8
+set int px 1
+set int py 1
 set int pz 1
-
-set string init_vf circlels
-set vect circle_c 0.5 0.5 0.5
-set double circle_r 0.2
 
 set double bcc_clear0 0
 set double bcc_clear1 1

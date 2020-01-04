@@ -1,4 +1,4 @@
 make
 ./clean
-echo 64 > np
+echo 1 > np
 ap-run ./main
