@@ -4,8 +4,7 @@
 #include <memory>
 #include <stdexcept>
 
-#include "geom/mesh.h"
-#include "solver/solver.h"
+#include "geom/range.h"
 
 template <class T>
 class Multi {
@@ -13,6 +12,10 @@ class Multi {
   Multi() = default;
   explicit Multi(size_t n) : d_(n) {}
   explicit Multi(const GRange<size_t>& layers) : d_(layers.size()) {}
+  template <class... Args>
+  explicit Multi(const GRange<size_t>& layers, const Args&... args)
+      : d_(layers.size(), T(args...)) {}
+
   Multi(T u) : d_({u}) {}
   // cast to pointer
   template <class U>
@@ -70,6 +73,17 @@ class Multi {
   }
   const std::vector<T>& data() const {
     return d_;
+  }
+  template <class... Args>
+  void Reinit(const Args&... args) {
+    for (auto& a : d_) {
+      a.Reinit(args...);
+    }
+  }
+  template <class... Args>
+  void Reinit(const GRange<size_t> layers, const Args&... args) {
+    resize(layers);
+    Reinit(args...);
   }
   void InitAll(const T& u) {
     for (auto& a : d_) {
