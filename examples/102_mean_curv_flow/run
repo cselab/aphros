@@ -3,3 +3,6 @@ make
 ./clean
 echo 1 > np
 ap-run ./main
+
+#echo 64 > np
+#ap-run ./main 256 8
