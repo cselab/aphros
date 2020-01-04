@@ -696,7 +696,6 @@ struct Vofm<M_>::Imp {
   MapCondFace mfc_n_; // conditions on n
   MapCondFace mfc_a_; // conditions on a
 
-
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
   UVof<M> uvof_;
@@ -717,6 +716,17 @@ Vofm<M_>::Vofm(
   fcu[0] = fcu0;
   fccl[0] = fccl0;
   imp.reset(new Imp(this, layers, fcu, fccl, mfc, par));
+}
+
+template <class M_>
+Vofm<M_>::Vofm(
+    M& m, const Multi<const FieldCell<Scal>*>& fcu0,
+    const Multi<const FieldCell<Scal>*>& fccl0,
+    const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
+    const FieldCell<Scal>* fcs, double t, double dt, Par par)
+    : AdvectionSolver<M>(t, dt, m, ffv, fcs) {
+  const GRange<size_t> layers(par.layers);
+  imp.reset(new Imp(this, layers, fcu0, fccl0, mfc, par));
 }
 
 template <class M_>
