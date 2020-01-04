@@ -1,3 +1,4 @@
+set -eu
 make
 ./clean
 echo 1 > np
