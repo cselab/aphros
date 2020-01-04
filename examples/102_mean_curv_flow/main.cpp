@@ -205,7 +205,7 @@ void ReadColorPlain(
     for (auto cl : set) {
       const Vect nr = GetNormal(fncl, cl, c, m);
       const Scal a = GetAlpha(fncl, cl, c, nr, m);
-      if (IsNan(nr) || IsNan(a)) {
+      if (set.size() == 1) {
         fcu[l][c] = 1;
       } else {
         fcu[l][c] = R::GetLineU(nr, a, m.GetCellSize());
@@ -268,7 +268,7 @@ void Run(M& m, Vars& var) {
     ReadColorPlain(path, layers, fcu, fccl, m);
 
     as.reset(
-        new Vofm<M>(m, fcu[0], fccl[0], ctx->mf_cond, &ffv, &fcs, 0., dt, p));
+        new Vofm<M>(m, fcu, fccl, ctx->mf_cond, &ffv, &fcs, 0., dt, p));
     fck.resize(layers);
     fck.InitAll(FieldCell<Scal>(m, 1));
     psm_par.dump_fr = 1;
