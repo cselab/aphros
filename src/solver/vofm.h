@@ -30,6 +30,11 @@ class Vofm final : public AdvectionSolver<M_> {
       M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
       const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
       const FieldCell<Scal>* fcs, double t, double dt, Par par);
+  Vofm(
+      M& m, const Multi<const FieldCell<Scal>*>& fcu,
+      const Multi<const FieldCell<Scal>*>& fccl,
+      const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
+      const FieldCell<Scal>* fcs, double t, double dt, Par par);
   ~Vofm();
   const Par& GetPar() const;
   void SetPar(Par);
