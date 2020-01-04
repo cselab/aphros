@@ -10,16 +10,17 @@ def WE(m):
     sys.stderr.write(str(m) + "\n")
 
 def ReadVtkPoly(fn):
-    def Assert(cond):
+    def Assert(cond, msg=""):
         if not cond:
             caller = inspect.getframeinfo(inspect.stack()[1][0])
             lines = "\n".join(caller[3]).strip()
             filename = os.path.basename(caller.filename)
             lineno = caller.lineno
             WE("\n{:}:{:} {:}".format(filename, lineno, lines))
-            # FIXME: not line number but number of iterations
-            WE("Failing at input file line {:} in state s={:}:\n{:}".format(
-                lnum + 1, s, l.strip()))
+            WE("Failing at iteration {:} in state s={:}".format(lnum + 1, s))
+            if msg: WE(str(msg))
+            WE("Current input line:\n{:}".format(l.strip()))
+            WE("Next line would be:\n{:}".format(f.readline().strip()))
             exit(1)
     s = 0    # initial state
     n = None # num points
@@ -61,6 +62,7 @@ def ReadVtkPoly(fn):
                 points = np.empty((num_points, dim))
                 points = np.loadtxt(f, max_rows=num_points)
                 Assert(points.shape[0] == num_points)
+                Assert(points.shape[1] == 3)
                 WE("Read {:} points".format(points.shape[0]))
                 s += 1
             elif s == 5:
@@ -72,56 +74,22 @@ def ReadVtkPoly(fn):
                 WE("Read {:} polygons".format(poly.shape[0]))
                 s += 1
             elif s == 6:
-                Assert("CELL_DATA" in l)
-                n = int(re.findall("\D*(\d*)", l)[0])
-                Assert(n == num_poly)
-                s = 20
+                if "CELL_DATA" in l:
+                    n = int(re.findall("\D*(\d*)", l)[0])
+                    Assert(n == num_poly)
+                    s = 20
+                elif "POINT_DATA" in l:
+                    pass
             elif s == 20: # read cell field
-                Assert("SCALARS" in l)
-                cell_field_name = re.findall("SCALARS\s*(\S+)", l)[0]
-                s += 1
+                if "SCALARS" in l:
+                    cell_field_name = re.findall("SCALARS\s*(\S+)", l)[0]
+                    s += 1
+                else:
+                    s = 6
             elif s == 21:
                 Assert("LOOKUP_TABLE" in l)
-                s += 1
-            elif s == 22:
-                u = np.loadtxt(f, max_rows=num_poly-1)
-                Assert(u.shape[0] == num_poly)
+                u = np.loadtxt(f, max_rows=num_poly)
+                Assert(u.shape[0] == num_poly, ["u.shape=", u.shape])
                 print("Read cell field '{:}'".format(cell_field_name))
                 cell_fields.append(u)
-                s += 1
-
-                if "POINTS" in l:
-                    n = int(re.findall("\D*(\d*)\D*", l)[0])
-                    assert n > 0
-                    i = 0
-                    x = np.empty(n); y = np.empty(n); z = np.empty(n)
-                    s = 10
-                elif "POINT_DATA" in l:
-                    nd = int(re.findall("\D*(\d*)", l)[0])
-                    assert nd == n
-                    s = 20
-                elif "CELLS" in l:
-                    sp = l.split()
-                    m = int(sp[1])
-                    nc = m if nc is None else nc
-                    assert nc == m
-                    assert nc > 0
-                    sz = int(sp[2])
-                    assert (sz - nc) % nc == 0
-                    shape = (nc, (sz - nc) // nc) # assume same size
-                    cc = np.empty(shape, dtype=int)
-                    i = 0
-                    s = 30
-                elif "CELL_TYPES" in l:
-                    m = int(l.split()[1])
-                    nc = m if nc is None else nc
-                    assert nc == m
-                    assert nc > 0
-                    ct = np.empty(nc, dtype=int)
-                    i = 0
-                    s = 40
-            elif s == 10: # read point coordinates
-                sp = l.split()
-                if len(sp) == 0:
-                    continue
-                assert len(sp) == 3
+                s = 20
