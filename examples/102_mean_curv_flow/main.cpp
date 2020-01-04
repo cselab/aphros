@@ -13,6 +13,7 @@
 #include <solver/reconst.h>
 #include <solver/vofm.h>
 #include <util/hydro.h>
+#include <dump/vtk.h>
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -164,6 +165,33 @@ Scal GetAlpha(
     }
   }
   return a / aw;
+}
+
+template <class M>
+void DumpFaces(
+    const GRange<size_t>& layers, FieldNode<Scal>& fncl, const M& m) {
+  if (m.IsRoot()) {
+    std::vector<std::vector<Vect>> vv;
+    for (auto c : m.Cells()) {
+      std::set<Scal> set;
+      for (size_t e = 0; e < m.GetNumNodes(c); ++e) {
+        const IdxNode n = m.GetNode(c, e);
+        const Scal cl = fncl[n];
+        if (cl != kClNone) {
+          set.insert(cl);
+        }
+      }
+      for (auto cl : set) {
+        for (auto q : m.Nci(c)) {
+          const IdxFace f = m.GetFace(c, q);
+          const auto xx = GetPoly(fncl, cl, f, m);
+          vv.push_back(xx);
+        }
+      }
+    }
+    const std::string fn = "faces.vtk";
+    WriteVtkPoly<Vect>(fn, vv, nullptr, {}, {}, "", true, false, false);
+  }
 }
 
 template <class M>
