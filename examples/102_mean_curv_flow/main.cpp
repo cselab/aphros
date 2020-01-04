@@ -397,6 +397,7 @@ set string bc_ym symm
 set string bc_yp symm
 
 set double hypre_symm_tol 1e-10
+set int hypre_symm_maxiter 1000
 set int hypre_periodic_x 0
 set int hypre_periodic_y 0
 )EOF";
