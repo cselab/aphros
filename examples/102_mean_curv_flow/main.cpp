@@ -1,5 +1,6 @@
-//#undef NDEBUG
+#undef NDEBUG
 #include <cassert>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -8,12 +9,12 @@
 
 #include <debug/isnan.h>
 #include <distr/distrbasic.h>
+#include <dump/vtk.h>
 #include <func/init.h>
 #include <solver/curv.h>
 #include <solver/reconst.h>
 #include <solver/vofm.h>
 #include <util/hydro.h>
-#include <dump/vtk.h>
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -295,8 +296,7 @@ void Run(M& m, Vars& var) {
     const std::string path = "ref/voronoi/cl.dat";
     ReadColorPlain(path, layers, fcu, fccl, m);
 
-    as.reset(
-        new Vofm<M>(m, fcu, fccl, ctx->mf_cond, &ffv, &fcs, 0., dt, p));
+    as.reset(new Vofm<M>(m, fcu, fccl, ctx->mf_cond, &ffv, &fcs, 0., dt, p));
     fck.resize(layers);
     fck.InitAll(FieldCell<Scal>(m, 1));
     psm_par.dump_fr = 1;
@@ -336,7 +336,8 @@ void Run(M& m, Vars& var) {
       std::cout << "dt=" << dt << std::endl;
     }
   }
-  const bool dump = (step % 10 == 0);
+  const size_t dumpskip = 100;
+  const bool dump = (step % dumpskip == 0);
   if (sem.Nested()) {
     if (dump) {
       as->DumpInterface(GetDumpName("s", ".vtk", frame));
@@ -344,7 +345,7 @@ void Run(M& m, Vars& var) {
   }
   if (sem.Nested()) {
     if (dump) {
-      m.Dump(as->GetColor()[0], "cl");
+      as->DumpInterfaceMarch(GetDumpName("sm", ".vtk", frame));
     }
   }
   if (sem("checkloop")) {
@@ -360,9 +361,20 @@ void Run(M& m, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
+  const int bsx = 32;
+  int nx = 64; // mesh size
+  if (argc > 1) {
+    nx = atoi(argv[1]);
+  }
+  int px = 1; // number of ranks in x (assuming py=px)
+  if (argc > 2) {
+    px = atoi(argv[2]);
+  }
+  assert(nx % (bsx * px) == 0);
+  const int bx = nx / (bsx * px);
   std::string conf = R"EOF(
-set int bx 8
-set int by 8
+set int bx 1
+set int by 1
 set int bz 1
 
 set int bsx 32
@@ -371,8 +383,8 @@ set int bsz 1
 
 set int dim 2
 
-set int px 1
-set int py 1
+set int px 8
+set int py 8
 set int pz 1
 
 set double bcc_clear0 0
@@ -384,10 +396,15 @@ set string bc_xp symm
 set string bc_ym symm
 set string bc_yp symm
 
-set double hypre_symm_tol 1e-6
+set double hypre_symm_tol 1e-10
 set int hypre_periodic_x 0
 set int hypre_periodic_y 0
 )EOF";
+
+  conf += "set int bx " + std::to_string(bx) + "\n";
+  conf += "set int by " + std::to_string(bx) + "\n";
+  conf += "set int px " + std::to_string(px) + "\n";
+  conf += "set int py " + std::to_string(px) + "\n";
 
   return RunMpiBasic<M>(argc, argv, Run, conf);
 }
