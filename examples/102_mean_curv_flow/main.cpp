@@ -10,14 +10,15 @@
 #include <distr/distrbasic.h>
 #include <func/init.h>
 #include <solver/curv.h>
-#include <solver/vofm.h>
 #include <solver/reconst.h>
+#include <solver/vofm.h>
 #include <util/hydro.h>
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
+using R = Reconst<Scal>;
 constexpr Scal kClNone = -1;
 
 // Reads data in plain format.
@@ -46,10 +47,10 @@ void CalcMeanCurvatureFlowFlux(
     const Multi<const FieldCell<Scal>*> fccl,
     const Multi<const FieldCell<Vect>*> fcn,
     const Multi<const FieldCell<Scal>*> fca,
-    const Multi<const FieldCell<Scal>*> fck,
-    const MapCondFaceFluid& mff, M& m) {
-  (void) fcn;
-  (void) fca;
+    const Multi<const FieldCell<Scal>*> fck, const MapCondFaceFluid& mff,
+    M& m) {
+  (void)fcn;
+  (void)fca;
   auto sem = m.GetSem();
 
   if (sem("calc")) {
@@ -92,6 +93,79 @@ void CalcMeanCurvatureFlowFlux(
   }
 }
 
+// Returns point at which interpolant has value 0.
+// x0,x1: points
+// f0,f1: values
+static Vect GetIso(Vect x0, Vect x1, Scal f0, Scal f1) {
+  return (x0 * f1 - x1 * f0) / (f1 - f0);
+}
+
+// cl0: color to filter
+// nr: normal
+std::vector<Vect> GetPoly(
+    const FieldNode<Scal>& fncl, const Scal cl0, const IdxFace f, const M& m) {
+  const size_t em = m.GetNumNodes(f);
+  std::vector<Vect> xx;
+  for (size_t e = 0; e < em; ++e) {
+    const size_t ep = (e + 1) % em;
+    const IdxNode n = m.GetNode(f, e);
+    const IdxNode np = m.GetNode(f, ep);
+    const Scal l = (fncl[n] == cl0 ? 1 : -1);
+    const Scal lp = (fncl[np] == cl0 ? 1 : -1);
+    const Vect x = m.GetNode(n);
+    const Vect xp = m.GetNode(np);
+    if (l > 0) {
+      xx.push_back(x);
+    }
+    if ((l < 0) != (lp < 0)) {
+      xx.push_back(GetIso(x, xp, l, lp));
+    }
+  }
+  return xx;
+}
+
+// cl0: color to filter
+// nr: normal
+Vect GetNormal(
+    const FieldNode<Scal>& fncl, const Scal cl0, const IdxCell c, const M& m) {
+  Vect n(0);
+  for (auto q : m.Nci(c)) {
+    const IdxFace f = m.GetFace(c, q);
+    const auto xx = GetPoly(fncl, cl0, f, m);
+    const Scal area = std::abs(R::GetArea(xx, m.GetNormal(f)));
+    n += m.GetNormal(f) * area * m.GetOutwardFactor(c, q);
+  }
+  return -n / n.norm();
+}
+
+// cl0: color to filter
+// nr: normal
+Scal GetAlpha(
+    const FieldNode<Scal>& fncl, const Scal cl0, const IdxCell c, const Vect nr,
+    const M& m) {
+  Scal a = 0;
+  Scal aw = 0;
+  for (auto q : m.Nci(c)) {
+    const IdxFace f = m.GetFace(c, q);
+    const size_t em = m.GetNumNodes(f);
+    for (size_t e = 0; e < em; ++e) {
+      const size_t ep = (e + 1) % em;
+      const IdxNode n = m.GetNode(f, e);
+      const IdxNode np = m.GetNode(f, ep);
+      const Scal l = (fncl[n] == cl0 ? 1 : -1);
+      const Scal lp = (fncl[np] == cl0 ? 1 : -1);
+      const Vect x = m.GetNode(n);
+      const Vect xp = m.GetNode(np);
+
+      if ((l < 0) != (lp < 0)) {
+        a += nr.dot(GetIso(x, xp, l, lp) - m.GetCenter(c));
+        aw += 1.;
+      }
+    }
+  }
+  return a / aw;
+}
+
 template <class M>
 void ReadColorPlain(
     const std::string path, const GRange<size_t>& layers,
@@ -102,7 +176,6 @@ void ReadColorPlain(
   fccl.InitAll(FieldCell<Scal>(m, kClNone));
 
   FieldNode<Scal> fncl(m, kClNone);
-
   FieldCell<Scal> qfccl;
   MIdx qsize;
   ReadPlain(path, qfccl, qsize);
@@ -115,6 +188,34 @@ void ReadColorPlain(
     const MIdx qw = w * qsize / size;
     const IdxCell qc = qbc.GetIdx(qw);
     fncl[n] = qfccl[qc];
+  }
+
+  for (auto c : m.Cells()) {
+    std::set<Scal> set;
+    // gather colors from adjacent nodes
+    for (size_t e = 0; e < m.GetNumNodes(c); ++e) {
+      const IdxNode n = m.GetNode(c, e);
+      const Scal cl = fncl[n];
+      if (cl != kClNone) {
+        set.insert(cl);
+      }
+    }
+    // compute volume fraction for every color
+    size_t l = 0;
+    for (auto cl : set) {
+      const Vect nr = GetNormal(fncl, cl, c, m);
+      const Scal a = GetAlpha(fncl, cl, c, nr, m);
+      if (IsNan(nr) || IsNan(a)) {
+        fcu[l][c] = 1;
+      } else {
+        fcu[l][c] = R::GetLineU(nr, a, m.GetCellSize());
+      }
+      fccl[l][c] = cl;
+      ++l;
+      if (l >= layers.size()) {
+        break;
+      }
+    }
   }
 }
 
@@ -187,7 +288,7 @@ void Run(M& m, Vars& var) {
         layers, as->GetAlpha(), as->GetNormal(), as->GetMask(), as->GetColor(),
         psm_par, fck, m);
   }
-  if (0&&sem.Nested("flux")) {
+  if (sem.Nested("flux")) {
     CalcMeanCurvatureFlowFlux(
         ffv, layers, as->GetFieldM(), as->GetColor(), as->GetNormal(),
         as->GetAlpha(), fck, ctx->mf_cond_fluid, m);
