@@ -22,7 +22,6 @@ struct Vofm<M_>::Imp {
   using Owner = Vofm<M_>;
   using R = Reconst<Scal>;
   using TRM = Trackerm<M>;
-  static constexpr Scal kClNone = -1;
   static constexpr size_t dim = M::dim;
   using Vect2 = GVect<Scal, 2>;
   using Sem = typename M::Sem;
@@ -31,29 +30,24 @@ struct Vofm<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& fcu0,
       const Multi<const FieldCell<Scal>*>& fccl0,
       const MapCondFaceAdvection<Scal>& mfc, Par par)
-      : owner_(owner), par(par), m(owner_->m), mfc_(mfc), layers(layers0) {
-    fcu_.time_curr.resize(layers);
-    fcuu_.resize(layers);
-    fcn_.resize(layers);
-    fca_.resize(layers);
-    fci_.resize(layers);
-    fccl_.resize(layers);
-    fcim_.resize(layers);
-    ffvu_.resize(layers);
-    ffcl_.resize(layers);
-    ffi_.resize(layers);
-
-    fcn_.InitAll(FieldCell<Vect>(m, GetNan<Vect>()));
-    fca_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
-    fci_.InitAll(FieldCell<bool>(m, false));
-
-    fcim_.InitAll(FieldCell<Scal>(m, TRM::Pack(MIdx(0))));
-    ffvu_.InitAll(FieldFace<Scal>(m, 0));
-    ffcl_.InitAll(FieldFace<Scal>(m, kClNone));
-    ffi_.InitAll(FieldFace<bool>(m, false));
-
+      : owner_(owner)
+      , par(par)
+      , m(owner_->m)
+      , layers(layers0)
+      , fcuu_(layers, m)
+      , fccls_(m, kClNone)
+      , fcn_(layers, m, GetNan<Vect>())
+      , fca_(layers, m, GetNan<Scal>())
+      , fci_(layers, m, false)
+      , fccl_(fccl0)
+      , fcim_(layers, m, TRM::Pack(MIdx(0)))
+      , ffvu_(layers, m, 0)
+      , ffcl_(layers, m, kClNone)
+      , ffi_(layers, m, false)
+      , mfc_(mfc) {
+    fcu0.assert_size(layers);
+    fccl0.assert_size(layers);
     fcu_.time_curr = fcu0;
-    fccl_ = fccl0;
 
     CalcSum(
         layers, fcu_.Get(Step::time_curr), fccl_, fcus_.Get(Step::time_curr),
@@ -678,10 +672,23 @@ struct Vofm<M_>::Imp {
   Par par;
   M& m;
 
+  GRange<size_t> layers;
   StepData<Multi<FieldCell<Scal>>> fcu_;
   Multi<FieldCell<Scal>> fcuu_; // volume fraction for Weymouth div term
   StepData<FieldCell<Scal>> fcus_;
   FieldCell<Scal> fccls_;
+
+  Multi<FieldCell<Vect>> fcn_; // n (normal to plane)
+  Multi<FieldCell<Scal>> fca_; // alpha (plane constant)
+  Multi<FieldCell<bool>> fci_; // interface mask (1: contains interface)
+  Multi<FieldCell<Scal>> fccl_; // color
+  Multi<FieldCell<Scal>> fcim_; // image
+  Multi<FieldFace<Scal>> ffvu_; // flux: volume flux * field
+  Multi<FieldFace<Scal>> ffcl_; // flux color (from upwind cell)
+  Multi<FieldFace<bool>> ffi_; // interface mask
+                               // (1: upwind cell contains interface)
+  size_t count_ = 0; // number of MakeIter() calls, used for splitting
+
   const MapCondFaceAdvection<Scal>& mfc_; // conditions on advection
   MapCondFace mfc_vf_; // conditions on vf
   MapCondFace mfc_cl_; // conditions on cl
@@ -689,25 +696,14 @@ struct Vofm<M_>::Imp {
   MapCondFace mfc_n_; // conditions on n
   MapCondFace mfc_a_; // conditions on a
 
-  Multi<FieldCell<Scal>> fca_; // alpha (plane constant)
-  Multi<FieldCell<Vect>> fcn_; // n (normal to plane)
-  Multi<FieldCell<bool>> fci_; // interface mask (1: contains interface)
-  Multi<FieldCell<Scal>> fccl_; // color
-  Multi<FieldCell<Scal>> fcim_; // image
-  Multi<FieldFace<Scal>> ffvu_; // flux: volume flux * field
-  Multi<FieldFace<Scal>> ffcl_; // flux color (from upwind cell)
-  Multi<FieldFace<bool>>
-      ffi_; // interface mask (1: upwind cell contains interface)
-  size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
-  GRange<size_t> layers;
   UVof<M> uvof_;
 };
 
 template <class M>
-constexpr typename M::Scal Vofm<M>::Imp::kClNone;
+constexpr typename M::Scal Vofm<M>::kClNone;
 
 template <class M_>
 Vofm<M_>::Vofm(
@@ -716,10 +712,8 @@ Vofm<M_>::Vofm(
     const FieldCell<Scal>* fcs, double t, double dt, Par par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs) {
   const GRange<size_t> layers(par.layers);
-  Multi<FieldCell<Scal>> fcu(layers);
-  Multi<FieldCell<Scal>> fccl(layers);
-  fcu.InitAll(FieldCell<Scal>(m, 0));
-  fccl.InitAll(FieldCell<Scal>(m, kClNone));
+  Multi<FieldCell<Scal>> fcu(layers, m, 0);
+  Multi<FieldCell<Scal>> fccl(layers, m, kClNone);
   fcu[0] = fcu0;
   fccl[0] = fccl0;
   imp.reset(new Imp(this, layers, fcu, fccl, mfc, par));
