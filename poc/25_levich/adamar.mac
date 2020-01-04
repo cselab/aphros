@@ -1,25 +1,27 @@
-u: f(r)*cos(t);
-v: phi(r)*sin(t);
-p: mu*psy(r)*cos(t);
+depends([f, phi, psy], r) $
+u: f*cos(t);
+v: phi*sin(t);
+p: mu*psy*cos(t);
 
-diff(p, r) -
-mu*
+nsr(u, v, p):=
+diff(p, r)
+- mu *
 (
   + diff(u, r, 2)
   + 1/r^2 * diff(u, t, 2)
   + 2/r*diff(u, r)
   + cot(t)/r^2 * diff(u, t)
-  - 2/r^2 * diff(u, t)
+  - 2/r^2 * diff(v, t)
   - 2*u/r^2
   - 2*cot(t)/r^2 * v
 );
 
-nst(u, v):=
-1/r*diff(p, t) -
-mu*
+nst(u, v, p):=
+1/r*diff(p, t)
+- mu *
 (
   + diff(v, r, 2)
-  + 1/r^2 * diff(u, t)
+  + 1/r^2 * diff(v, t, 2)
   + 2/r*diff(v, r)
   + cot(t)/r^2 * diff(v, t)
   + 2/r^2 * diff(u, t)
@@ -28,12 +30,21 @@ mu*
 
 div(u, v):=diff(u, r) + 1/r*diff(v, t) + 2*u/r + v*cot(t)/r;
 
+/*
 prr = -p + 2*mu*diff(v, r);
-prt = mu*(1/r*diff(v, t) + diff(u, r) - u/r);
+prt = mu*(1/r*diff(v, t) + diff(u, r) - u/r); */
 
 %d: div(u, v);
-%nst: nst(u, v);
+%nsr: nsr(u, v, p);
+%nst: nst(u, v, p);
 
-trigsimp(%nst);
+%ph0: assoc('phi, linsolve(%d, 'phi));
 
-expand(trigsimp(solve(%d, phi(r))));
+%nst: trigsimp(%nst), phi = %ph0;
+%psy: assoc('psy, linsolve(%nst, psy));
+
+%nsr: trigsimp(%nsr), phi = %ph0, psy = %psy;
+%nsr: solve(ev(%nsr, diff), f)[1];
+%nsr: subst("-", "=", %nsr);
+
+%nsr: %nsr, f = r^n, diff, factor;
