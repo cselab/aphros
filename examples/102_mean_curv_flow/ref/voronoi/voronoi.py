@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 from scipy.spatial import Voronoi, voronoi_plot_2d
 import sys
+import os
 
 # Write uniform grid data
 # u -- 2d or 3d array
@@ -126,17 +127,18 @@ av = sys.argv
 if len(av) < 2:
     sys.stderr.write('''./voronoi.py POINTS
 Creates 2D Voronoi diagram from points.
-POINTS: table with two columns
+POINTS: table with two columns (e.g. points0)
 Output:
-  cl.dat: field in aphros plain data format
-  cl.png: image of the diagram
+  %.dat: field in aphros plain data format (e.g. points0.dat)
+  %.png: image of the diagram (e.g. points0.png)
 ''')
     exit(1)
 
-fn = av[1]
-points = np.loadtxt(fn)
-print("Read {:} points from '{:}'".format(len(points), fn))
+points_path = av[1]
+points = np.loadtxt(points_path)
+print("Read {:} points from '{:}'".format(len(points), points_path))
 vor = Voronoi(points)
+basename = os.path.basename(points_path)
 
 regions, vertices = voronoi_finite_polygons_2d(vor)
 
@@ -160,9 +162,9 @@ data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
 data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 data = data[:,:,0]
 data = np.flipud(data)
-WritePlain(data, "cl.dat")
+WritePlain(data, basename + ".dat")
 
 voronoi_plot_2d(vor, ax, show_vertices=False, line_colors='#ffffff')
 ax.set_xlim(0, 1)
 ax.set_ylim(0, 1)
-fig.savefig("cl.png")
+fig.savefig(basename + ".png")
