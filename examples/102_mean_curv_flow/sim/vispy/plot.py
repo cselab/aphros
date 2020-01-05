@@ -4,17 +4,30 @@ import readvtk
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import sys
 
-fn = "sm_0200.vtk"
+av = sys.argv
 
-xx,poly,fields = readvtk.ReadVtkPoly(fn)
+if len(av) < 2:
+    sys.stderr.write('''./plot.py VTK [COLORS]
+Plots connected 2D shapes in VTK as filled polygons with different colors.
+VTK: path polygons from marching cubes (e.g. sm_0000.vtk)
+COLORS: path to table with columns RGB, line cl defining color of index cl
+Output: creates pdf (e.g. sm_0000.pdf)
+''')
+    exit(1)
 
-fcl = fields['cl']
-fclu = np.unique(fcl)
+vtk_path = av[1]
+colors_path = av[2] if len(av) > 2 else ""
+
+xx,poly,fields = readvtk.ReadVtkPoly(vtk_path)
+
+fcl = fields['cl'].astype(int)
+fclu = np.unique(fcl).astype(int)
+print(len(fclu)) ; exit()
 
 poly = poly.astype(int)
 xx = xx[:,:2]
-
 
 center_cl = dict()
 for cl in fclu:
@@ -41,7 +54,15 @@ ax.set_ylim(0, 1)
 ax.set_axis_off()
 fig.add_axes(ax)
 
-for cl in np.unique(fcl):
+if colors_path:
+    colors = np.loadtxt(colors_path) if colors_path else []
+else:
+    colors = ["C" + str(int(cl)) for cl in fclu]
+
+def GetColor(cl):
+    return colors[cl] if cl < len(colors) else "C" + str(int(cl))
+
+for cl in fclu:
     selp = np.where(fcl == cl)[0]
     if not selp.size:
         continue
@@ -60,8 +81,8 @@ for cl in np.unique(fcl):
     x = x[srt]
     y = y[srt]
 
-    ax.fill(x, y)
+    ax.fill(x, y, c=GetColor(cl))
     x = np.append(x, x[0])
     y = np.append(y, y[0])
     ax.plot(x, y, c='black', lw=1)
-fig.savefig(os.path.splitext(fn)[0] + ".pdf")
+fig.savefig(os.path.splitext(os.path.basename(vtk_path))[0] + ".pdf")
