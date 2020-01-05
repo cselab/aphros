@@ -6,6 +6,9 @@ import numpy as np
 import os
 import sys
 
+def WE(msg):
+    sys.stderr.write(str(msg) + "\n")
+
 av = sys.argv
 
 if len(av) < 2:
@@ -24,7 +27,6 @@ xx,poly,fields = readvtk.ReadVtkPoly(vtk_path)
 
 fcl = fields['cl'].astype(int)
 fclu = np.unique(fcl).astype(int)
-print(len(fclu)) ; exit()
 
 poly = poly.astype(int)
 xx = xx[:,:2]
@@ -60,7 +62,10 @@ else:
     colors = ["C" + str(int(cl)) for cl in fclu]
 
 def GetColor(cl):
-    return colors[cl] if cl < len(colors) else "C" + str(int(cl))
+    if cl < len(colors):
+        return colors[cl]
+    WE("warning: fall back to C% color for cl={:}".format(cl))
+    return "C" + str(int(cl))
 
 for cl in fclu:
     selp = np.where(fcl == cl)[0]
@@ -71,11 +76,17 @@ for cl in fclu:
 
     x = np.copy(xx0[:,0])
     y = np.copy(xx0[:,1])
-    xc = np.median(x)
-    yc = np.median(y)
+    xc = np.mean(x)
+    yc = np.mean(y)
     if cl in corn_cl:
-        x = np.append(x, corn_cl[cl][0])
-        y = np.append(y, corn_cl[cl][1])
+        corn = corn_cl[cl]
+        xc = np.mean(x)
+        yc = np.mean(y)
+        w = 0.5
+        xc = w * xc + (1 - w) * corn[0]
+        yc = w * yc + (1 - w) * corn[1]
+        x = np.append(x, corn[0])
+        y = np.append(y, corn[1])
     angle = np.arctan2(x - xc, y - yc)
     srt = np.argsort(angle)
     x = x[srt]
@@ -84,5 +95,5 @@ for cl in fclu:
     ax.fill(x, y, c=GetColor(cl))
     x = np.append(x, x[0])
     y = np.append(y, y[0])
-    ax.plot(x, y, c='black', lw=1)
+    ax.plot(x, y, c='black', lw=0.8)
 fig.savefig(os.path.splitext(os.path.basename(vtk_path))[0] + ".pdf")
