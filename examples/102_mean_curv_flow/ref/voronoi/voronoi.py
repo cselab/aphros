@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from scipy.spatial import Voronoi, voronoi_plot_2d
+import sys
 
 # Write uniform grid data
 # u -- 2d or 3d array
@@ -120,7 +121,19 @@ points = points.T
 points += (np.random.rand(nx * ny, 2) - 0.5) * gap
 '''
 
-fn = "online/points0"
+av = sys.argv
+
+if len(av) < 2:
+    sys.stderr.write('''./voronoi.py POINTS
+Creates 2D Voronoi diagram from points.
+POINTS: table with two columns
+Output:
+  cl.dat: field in aphros plain data format
+  cl.png: image of the diagram
+''')
+    exit(1)
+
+fn = av[1]
 points = np.loadtxt(fn)
 print("Read {:} points from '{:}'".format(len(points), fn))
 vor = Voronoi(points)
