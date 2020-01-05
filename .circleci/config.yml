@@ -29,5 +29,5 @@ jobs:
             make -j1
             make test
             cd ../examples
-            make VERBOSE=1
+            make build VERBOSE=1
             EOS
