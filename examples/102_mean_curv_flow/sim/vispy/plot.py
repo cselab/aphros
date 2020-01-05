@@ -3,6 +3,7 @@
 import readvtk
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 fn = "sm_0200.vtk"
 
@@ -20,7 +21,7 @@ for cl in fclu:
     selp = np.where(fcl == cl)[0]
     if not selp.size:
         continue
-    selx = poly[selp, 1]
+    selx = poly[selp, 1:4].flatten()
     center_cl[cl] = xx[selx].mean(axis=0)
 
 vcorn = [[0,0], [1,0], [0,1], [1,1]]
@@ -31,6 +32,15 @@ for corn in vcorn:
     cl = min(dist_cl, key=dist_cl.get)
     corn_cl[cl] = corn
 
+resx = 256
+dpi = 100
+fig = plt.figure(figsize=(resx/dpi,resx/dpi))
+ax = plt.Axes(fig, [0., 0., 1., 1.])
+ax.set_xlim(0, 1)
+ax.set_ylim(0, 1)
+ax.set_axis_off()
+fig.add_axes(ax)
+
 for cl in np.unique(fcl):
     selp = np.where(fcl == cl)[0]
     if not selp.size:
@@ -40,20 +50,18 @@ for cl in np.unique(fcl):
 
     x = np.copy(xx0[:,0])
     y = np.copy(xx0[:,1])
+    xc = np.median(x)
+    yc = np.median(y)
     if cl in corn_cl:
         x = np.append(x, corn_cl[cl][0])
         y = np.append(y, corn_cl[cl][1])
-    xc = x.mean()
-    yc = y.mean()
     angle = np.arctan2(x - xc, y - yc)
     srt = np.argsort(angle)
     x = x[srt]
     y = y[srt]
 
-    plt.fill(x, y)
+    ax.fill(x, y)
     x = np.append(x, x[0])
     y = np.append(y, y[0])
-    plt.plot(x, y, c='black', lw=1)
-ax = plt.gca()
-ax.set_aspect('equal')
-plt.savefig("a.jpg")
+    ax.plot(x, y, c='black', lw=1)
+fig.savefig(os.path.splitext(fn)[0] + ".pdf")
