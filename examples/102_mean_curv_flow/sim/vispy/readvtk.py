@@ -9,7 +9,7 @@ import os
 def WE(m):
     sys.stderr.write(str(m) + "\n")
 
-def ReadVtkPoly(fn):
+def ReadVtkPoly(fn, verb=False):
     def Assert(cond, msg=""):
         if not cond:
             caller = inspect.getframeinfo(inspect.stack()[1][0])
@@ -23,23 +23,13 @@ def ReadVtkPoly(fn):
             WE("Next line would be:\n{:}".format(f.readline().strip()))
             exit(1)
     s = 0    # initial state
-    n = None # num points
-    nc = None # num cells
-    vn = None # current variable name
-    d = dict()
-    i = None # current array index
-    x = None; y = None; z = None;  # point arrays
-    a = None # current array
-    cc = None  # cells
-    ct = None  # cell types
-    m = None # temporary buffer
 
     points = None
     poly = None
     dim = 3
     num_points = None
     num_poly = None
-    cell_fields = []
+    cell_fields = dict()
     cell_field_name = None
     with open(fn) as f:
         for lnum,l in enumerate(f):
@@ -63,7 +53,7 @@ def ReadVtkPoly(fn):
                 points = np.loadtxt(f, max_rows=num_points)
                 Assert(points.shape[0] == num_points)
                 Assert(points.shape[1] == 3)
-                WE("Read {:} points".format(points.shape[0]))
+                if verb: WE("Read {:} points".format(points.shape[0]))
                 s += 1
             elif s == 5:
                 Assert("POLYGONS" in l)
@@ -71,7 +61,7 @@ def ReadVtkPoly(fn):
                 num_poly = int(m[0])
                 poly = np.loadtxt(f, max_rows=num_poly)
                 Assert(poly.shape[0] == num_poly)
-                WE("Read {:} polygons".format(poly.shape[0]))
+                if verb: WE("Read {:} polygons".format(poly.shape[0]))
                 s += 1
             elif s == 6:
                 if "CELL_DATA" in l:
@@ -90,6 +80,7 @@ def ReadVtkPoly(fn):
                 Assert("LOOKUP_TABLE" in l)
                 u = np.loadtxt(f, max_rows=num_poly)
                 Assert(u.shape[0] == num_poly, ["u.shape=", u.shape])
-                print("Read cell field '{:}'".format(cell_field_name))
-                cell_fields.append(u)
+                if verb: WE("Read cell field '{:}'".format(cell_field_name))
+                cell_fields[cell_field_name] = u
                 s = 20
+    return points, poly, cell_fields
