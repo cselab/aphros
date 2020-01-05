@@ -1,4 +1,4 @@
 #!/bin/bash
 
 r=euler
-rsync -zaPL "$r:s/scratch/ch/meancurvflow/./ex102_init/sm_0{000,200}.vtk" .
+rsync -zaPL "$r:s/scratch/ch/meancurvflow/./ex102_points1/sm_0{000,100}.vtk" .
