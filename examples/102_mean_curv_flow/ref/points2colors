@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+
+import numpy as np
+import sys
+from matplotlib.image import imread
+
+av = sys.argv
+
+if len(av) < 3:
+    sys.stderr.write('''./points2colors POINTS IMG
+Reads colors at given points from reference image.
+IMG: path to image
+POINTS: path to coordinates of points in range [0,1]x[0,1], table with two columns
+Output: prints table with columns RGB
+''')
+    exit(1)
+
+points_path = sys.argv[1]
+img_path = sys.argv[2]
+
+points = np.loadtxt(points_path)
+img = imread(img_path)
+
+imy,imx = img.shape[:2]
+ppx = (points[:,0] * imx).astype(int)
+ppy = (points[:,1] * imy).astype(int)
+
+pointscolor = img[imy-ppy,ppx,:]
+
+np.savetxt(sys.stdout.buffer, pointscolor)
+
+#import matplotlib.pyplot as plt
+#plt.imshow(img*0.5, extent=(0,1,0,1))
+#plt.scatter(*points.T, s=0.8, c=pointscolor)
+#plt.savefig("a.pdf")
+
