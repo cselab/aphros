@@ -293,7 +293,7 @@ void Run(M& m, Vars& var) {
 
     Multi<FieldCell<Scal>> fccl; // initial color
     Multi<FieldCell<Scal>> fcu; // initial volume fraction
-    const std::string path = "ref/voronoi/cl.dat";
+    const std::string path = "ref/voronoi/points1.dat";
     ReadColorPlain(path, layers, fcu, fccl, m);
 
     as.reset(new Vofm<M>(m, fcu, fccl, ctx->mf_cond, &ffv, &fcs, 0., dt, p));
