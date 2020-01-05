@@ -39,6 +39,7 @@ https://www.pnas.org/content/pnas/108/49/19498/F6.large.jpg
 * read reference colors (from `ref`)
 
       ./points2colors voronoi/online/points0 a0.png > colors0
+      ./points2colors voronoi/online/points1 a0.png 3 > colors1
 
 * plot simulation output with reference colors (from `sim/vispy/`)
 
