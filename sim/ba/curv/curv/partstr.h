@@ -621,7 +621,6 @@ static double GetCrossCurv(
   Section(point, c, nn, w, ll, &nl);
   double res;
   int it;
-#ifndef NOBA
 #if dimension == 2
   double hash = 1000 * point.j + point.i;
 #else
@@ -630,7 +629,6 @@ static double GetCrossCurv(
 #else
   static double hash = 0;
   hash += 1.;
-#endif
   return GetLinesCurv(
       ll, nl, Delta, conf.csv ? &w : NULL, conf, &res, &it, hash);
 }
@@ -694,7 +692,6 @@ static double partstr(Point point, scalar c, vector nn) {
   return k;
 }
 
-#ifndef NOBA
 trace cstats curvature_partstr(struct Curvature p) {
   scalar c = p.c, kappa = p.kappa;
   double sigma = p.sigma ? p.sigma : 1.;
@@ -749,5 +746,3 @@ trace cstats curvature_orig(struct Curvature p) {
   return curvature(p);
 }
 #define curvature curvature_partstr
-
-#endif
