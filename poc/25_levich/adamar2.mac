@@ -1,3 +1,4 @@
+load("cgrind");
 psy(f):= (diff(f,r,3)*r^2)/2+3*diff(f,r,2)*r+2*diff(f,r,1);
 phi(f):= -(diff(f,r,1)*r+2*f)/2;
 
@@ -32,8 +33,10 @@ prt1: prt(mu1, p1, u1, v1), factor;
 e4: prr0 - prr1, t = 0, r = a;
 e5: prt0 - prt1, t = %pi/2, r = a;
 
-%s: solve([e0, e1, e2, e3, e4, e5], [b3, b2, a1, b1, a2, U]);
+%s: linsolve([e0, e1, e2, e3, e4, e5], [a1, a2, b1, b3, b2, U]);
 U0: U, %s, factor;
 
 limit(U0, mu1, inf), factor;
+
+v1/U, %s, factor;
 
