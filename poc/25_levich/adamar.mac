@@ -34,17 +34,17 @@ div(u, v):=diff(u, r) + 1/r*diff(v, t) + 2*u/r + v*cot(t)/r;
 prr = -p + 2*mu*diff(v, r);
 prt = mu*(1/r*diff(v, t) + diff(u, r) - u/r); */
 
-%d: div(u, v);
-%nsr: nsr(u, v, p);
-%nst: nst(u, v, p);
+%d: trigsimp(div(u, v));
+%nsr: trigsimp(nsr(u, v, p));
+%nst: trigsimp(nst(u, v, p));
 
 %ph0: assoc('phi, linsolve(%d, 'phi));
 
-%nst: trigsimp(%nst), phi = %ph0;
+%nst: %nst, phi = %ph0;
 %psy: assoc('psy, linsolve(%nst, psy));
+%psy: ev(%psy, diff, expand);
 
-%nsr: trigsimp(%nsr), phi = %ph0, psy = %psy;
+%nsr: %nsr, phi = %ph0, psy = %psy;
 %nsr: solve(ev(%nsr, diff), f)[1];
-%nsr: subst("-", "=", %nsr);
-
 %nsr: %nsr, f = r^n, diff, factor;
+solve(%nsr, n);
