@@ -53,7 +53,7 @@ static coord Rotate(coord e, coord de) {
   return p;
 }
 
-// Rotate planar vector e by planar unit vector de
+// Rotate planar vector e by planar unit vector de in the negative direction
 static coord Rotatem(coord e, coord de) {
   coord p;
   p.x = e.x * de.x + e.y * de.y;
@@ -348,17 +348,7 @@ static int Argmin(coord p) {
   return im;
 }
 
-// Index of maximum component.
-static int Argmax(coord p) {
-  int im = 0;
-  for (int i = 1; i < 3; ++i) {
-    if (Get(p, i) > Get(p, im)) {
-      im = i;
-    }
-  }
-  return im;
-}
-
+// Sets component i of point p to a
 static void Set(coord* p, int i, double a) {
   if (i == 0) {
     p->x = a;
@@ -376,7 +366,7 @@ static void Set(coord* p, int i, double a) {
 static void GetBase(coord n, coord* t, coord* u) {
   int i = Argmin(Abs(n));
   coord e = Zero();
-  Set(&e, i, 1.);
+  Set(&e, i, 1);
   n = Div(n, Norm(n));
   *t = Cross(n, e);
   *t = Div(*t, Norm(*t));
