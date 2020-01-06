@@ -617,13 +617,14 @@ static void Section3(
 
       // skip if cell does not intersect plane
       // TODO: enable, fix condition (current one changes results)
-      if (fabs(Dot(w->n, Sub(w->o, rn))) < Delta * 5) {
-        coord m = {nn.x[], nn.y[], nn.z[]};
+      if (fabs(Dot(w->n, Sub(w->o, rn))) <= Delta * Norm1(w->n) * 1.5) {
+        coord m = {nn.x[], nn.y[], nn.z[]}; // normal to facet
         double alpha = plane_alpha(c[], m);
         coord pp[kMaxFacet];
         int nf = Facets(m, alpha, pp);
         assert(nf <= kMaxFacet);
 
+        // find two intersectins with facet edge and plane
         for (int i = 0; i < nf && q < 2; ++i) {
           int ib = (i + 1) % nf;
           coord p = Add(rn, Mul(pp[i], Delta));
@@ -640,11 +641,12 @@ static void Section3(
             ll[*nl + q].z = 0.;
             if (++q == 2) {
               coord dl = Sub(ll[*nl + 1], ll[*nl]);
-              double mt = Dot(w->t, m);
+              double mt = Dot(w->t, m); // local coordinates of normal
               double mn = Dot(w->n, m);
-              double dt = dl.x;
+              double dt = dl.x; // local coordinates of line segment
               double dn = dl.y;
-              if (Cross3(Coord(mt, mn, 0), Coord(dt, dn, 0)) > 0) {
+              // ensure positive orientation with normal m
+              if (Cross3(Coord(dt, dn, 0), Coord(mt, mn, 0)) < 0) {
                 Swap(&ll[*nl], &ll[*nl + 1]);
               }
               if (Sqnorm(dl) > 0) {
