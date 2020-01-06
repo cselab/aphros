@@ -1,5 +1,5 @@
-#include "curvature.h"
 #include "fractions.h"
+#include "curvature.h"
 
 
 #include <assert.h>
