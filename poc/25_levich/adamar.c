@@ -66,7 +66,6 @@ static int s2c(
   *x = cos(p) * (sin(t) * u + cos(t) * v);
   *y = sin(p) * (sin(t) * u + cos(t) * v);
   *z = cos(t) * u - sin(t) * v;
-
   return 0;
 }
 
@@ -82,12 +81,11 @@ int adamar_fields(
 
   a = q->a;
   c2s(x, y, z, &r, &t, &p);
-  q->Inside = r < a;
-  if (q->Inside) {
-    f(q, r, t, &u, &v, pp);
+  if (q->Inside = (r < a)) {
+    g(q, r, t, &u, &v, pp);
   }
   else
-    g(q, r, t, &u, &v, pp);
+    f(q, r, t, &u, &v, pp);
   s2c(r, t, p, u, v, px, py, pz);
   return 0;
 }
