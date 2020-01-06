@@ -395,23 +395,24 @@ typedef struct {
   coord t, n, u; // orthonormal positive-oriented base
 } Trans;
 
-// Transformation from local to global coordinates.
-// p: point
+// Transformation from global to local coordinates.
+// p: global coordinates
 // o: origin
 // t,n,u: orthonormal base
 // Output:
-// *l: coordinates of p in <o,t,n,u>
+// *l: local coordinates of p in <o,t,n,u>
 static coord GlbToLoc(coord p, Trans w) {
   p = Sub(p, w.o);
   coord l = {Dot(w.t, p), Dot(w.n, p), Dot(w.u, p)};
   return l;
 }
 
-// l: coordinates in <t,n,u,o>
+// Transformation from local to global coordinates.
+// l: local coordinates in <t,n,u,o>
 // t,n,u: orthonormal base
 // o: origin
 // Output:
-// *p: point
+// *p: global coordinates
 static coord LocToGlb(coord l, Trans w) {
   coord p = w.o;
   p = Add(p, Mul(w.t, l.x));
@@ -572,11 +573,8 @@ static void Section(
 // Curvature of a set line segments.
 // ll: flat array endpoints of line segments
 // nl: size of ll
-// *w: transformation (for csv output)
 // res_: difference at last iteration
 // it_: number of iterations
-// Output:
-// appends positions and attraction points to csv if a is not null
 static double GetLinesCurv(
     coord* ll, int nl, double delta, const Trans* w, Partstr conf, double* res_,
     int* it_, double hash) {
@@ -630,7 +628,7 @@ static double GetCrossCurv(
   static double hash = 0;
   hash += 1.;
   return GetLinesCurv(
-      ll, nl, Delta, conf.csv ? &w : NULL, conf, &res, &it, hash);
+      ll, nl, Delta, conf, &res, &it, hash);
 }
 
 // Transformation b rotated at angle.
