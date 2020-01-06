@@ -1,4 +1,5 @@
 #include <h5.h>
+#include <h5serial.h>
 
 #define BAH5_WARN(x) do {                                       \
     fprintf(stderr, "%s:%d: ", __FILE__, __LINE__);             \
