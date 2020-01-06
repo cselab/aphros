@@ -1,5 +1,5 @@
-#include "fractions.h"
 #include "curvature.h"
+#include "fractions.h"
 
 #include <unistd.h>
 
@@ -8,23 +8,22 @@
 #endif
 
 typedef struct {
-  int Np;       // number of particles per string
-  int Ns;       // number of strings (cross sections) per cell
-  double Hp;    // length of string relative to cell size
-  double eps;   // threshold for convergence
-  int itermax;  // maximum number of iterations
-  double eta;   // relaxation factor
-  int sh;       // number of cells with height functions
-  int sc;       // number of cells with particles
+  int Np; // number of particles per string
+  int Ns; // number of strings (cross sections) per cell
+  double Hp; // length of string relative to cell size
+  double eps; // threshold for convergence
+  int itermax; // maximum number of iterations
+  double eta; // relaxation factor
+  int sh; // number of cells with height functions
+  int sc; // number of cells with particles
 } Partstr;
 
 const int kMaxSection = 125 * 2; // maximum number of endpoints
                                  // from neighbor cells
                                  // (5x5x5 stencil and 2 endpoints in each)
-const int kMaxFacet = 12;        // maximum number of vertices per facet
+const int kMaxFacet = 12; // maximum number of vertices per facet
 
-const int kMaxNp = 31;           // maximum value of kPartstr.Np
-
+const int kMaxNp = 31; // maximum value of kPartstr.Np
 
 #if dimension == 2
 #define kNs 1
@@ -70,9 +69,9 @@ static double Cross3(coord a, coord b) {
 
 static coord Cross(coord a, coord b) {
   coord r;
-  r.x = a.y*b.z - a.z*b.y;
-  r.y = a.z*b.x - a.x*b.z;
-  r.z = a.x*b.y - a.y*b.x;
+  r.x = a.y * b.z - a.z * b.y;
+  r.y = a.z * b.x - a.x * b.z;
+  r.z = a.x * b.y - a.y * b.x;
   return r;
 }
 
@@ -135,8 +134,12 @@ static double Norm(coord a) {
 
 static double NormMax(coord a) {
   double r = fabs(a.x);
-  if (fabs(a.y) > r) { r = fabs(a.y); }
-  if (fabs(a.z) > r) { r = fabs(a.z); }
+  if (fabs(a.y) > r) {
+    r = fabs(a.y);
+  }
+  if (fabs(a.z) > r) {
+    r = fabs(a.z);
+  }
   return r;
 }
 
@@ -148,8 +151,7 @@ static double Dist(coord a, coord b) {
   return sqrt(Sqdist(a, b));
 }
 
-static double Dotv(int np,
-                   const coord* aa, const coord* bb) {
+static double Dotv(int np, const coord* aa, const coord* bb) {
   double s = 0;
   for (int i = 0; i < np; ++i) {
     s += Dot(aa[i], bb[i]);
@@ -192,9 +194,8 @@ static coord Nearest(coord a, coord b, coord x) {
 }
 
 // Derivative dX/dph
-static void DxDph(coord p, double ph, double th,
-                  int np, double hp, coord* xx) {
-  (void) p;
+static void DxDph(coord p, double ph, double th, int np, double hp, coord* xx) {
+  (void)p;
   int c = np / 2;
   xx[c] = Zero();
   coord ep = Mul(Unit(ph + 0.5 * th + PI * 0.5), hp);
@@ -209,9 +210,8 @@ static void DxDph(coord p, double ph, double th,
 }
 
 // Derivative dX/dth
-static void DxDth(coord p, double ph, double th,
-                  int np, double hp, coord* xx) {
-  (void) p;
+static void DxDth(coord p, double ph, double th, int np, double hp, coord* xx) {
+  (void)p;
   int c = np / 2;
   xx[c] = Zero();
   coord ep = Mul(Unit(ph + 0.5 * th + PI * 0.5), hp);
@@ -235,8 +235,9 @@ static void DxDth(coord p, double ph, double th,
 // k: curvature
 // Output:
 // ff: forces
-static void F(int np, const coord* xx, int nl, const coord* ll,
-              double eta, double k, coord* ff) {
+static void F(
+    int np, const coord* xx, int nl, const coord* ll, double eta, double k,
+    coord* ff) {
   if (nl == 0) {
     for (int i = 0; i < np; ++i) {
       ff[i] = Zero();
@@ -266,8 +267,9 @@ static void F(int np, const coord* xx, int nl, const coord* ll,
 // p_,ph_,th_: new configuration
 // ff, xx: modified
 // Returns maximum absolute difference.
-static double Iter(coord* p_, double* ph_, double* th_,
-                   int np, double hp, coord* ff, coord* xx) {
+static double Iter(
+    coord* p_, double* ph_, double* th_, int np, double hp, coord* ff,
+    coord* xx) {
   coord p = *p_;
   double ph = *ph_;
   double th = *th_;
@@ -324,7 +326,6 @@ static void Swap(coord* a, coord* b) {
   *b = t;
 }
 
-
 static coord Abs(coord p) {
   p.x = fabs(p.x);
   p.y = fabs(p.y);
@@ -359,9 +360,13 @@ static int Argmax(coord p) {
 }
 
 static void Set(coord* p, int i, double a) {
-  if (i == 0) { p->x = a; }
-  else if (i == 1) { p->y = a; }
-  else { p->z = a; }
+  if (i == 0) {
+    p->x = a;
+  } else if (i == 1) {
+    p->y = a;
+  } else {
+    p->z = a;
+  }
 }
 
 // Returns 3D base aligned with mesh directions.
@@ -390,6 +395,7 @@ typedef struct {
   coord t, n, u; // orthonormal positive-oriented base
 } Trans;
 
+// Transformation from local to global coordinates.
 // p: point
 // o: origin
 // t,n,u: orthonormal base
@@ -417,7 +423,7 @@ static coord LocToGlb(coord l, Trans w) {
 // Returns the number of interfacial cells.
 static int GetNcInter(scalar c) {
   int nc = 0;
-  foreach() {
+  foreach () {
     if (interfacial(point, c)) {
       ++nc;
     }
@@ -427,7 +433,7 @@ static int GetNcInter(scalar c) {
 
 // Set z-copmonent to zero if 2D.
 static void A2(coord* p) {
-  (void) p;
+  (void)p;
 #if dimension == 2
   p->z = 0;
 #endif
@@ -461,16 +467,15 @@ static coord Mycs(Point point, scalar c) {
 // ll: appended by local coordinates of endpoints,
 //     p = o + t*l.x  + t*l.y ,  [pa,pb] is one line segment
 // *nl: new size of ll
-static void Section2(Point point, scalar c, vector nn, Trans w,
-                    coord* ll, int* nl) {
-  foreach_neighbor(2)
-  {
+static void Section2(
+    Point point, scalar c, vector nn, Trans w, coord* ll, int* nl) {
+  foreach_neighbor(2) {
     if (c[] > 0. && c[] < 1.) {
       coord m = {nn.x[], nn.y[], nn.z[]};
       double alpha = plane_alpha(c[], m);
       coord pp[kMaxFacet];
       int nf = Facets(m, alpha, pp);
-      coord rn = {x,y,z};
+      coord rn = {x, y, z};
       if (nf == 2) {
         coord p = Add(rn, Mul(pp[0], Delta));
         coord pb = Add(rn, Mul(pp[1], Delta));
@@ -505,13 +510,12 @@ static void Section2(Point point, scalar c, vector nn, Trans w,
 // ll: appended by local coordinates of endpoints,
 //     p = o + t*l.x  + t*l.y ,  [pa,pb] is one line segment
 // *nl: new size of ll
-static void Section3(Point point, scalar c, vector nn, Trans w,
-                    /**/ coord* ll, int* nl) {
-  foreach_neighbor(2)
-  {
+static void Section3(
+    Point point, scalar c, vector nn, Trans w, coord* ll, int* nl) {
+  foreach_neighbor(2) {
     if (c[] > 0. && c[] < 1.) {
-      int q = 0;  // number of intersections found
-      coord rn = {x,y,z};
+      int q = 0; // number of intersections found
+      coord rn = {x, y, z};
 
       // skip if cell does not intersect plane
       // TODO: enable, fix condition (current one changes results)
@@ -556,9 +560,8 @@ static void Section3(Point point, scalar c, vector nn, Trans w,
   }
 }
 
-
-static void Section(Point point, scalar c, vector nn,
-                    Trans w, coord* ll, int* nl) {
+static void Section(
+    Point point, scalar c, vector nn, Trans w, coord* ll, int* nl) {
 #if dimension == 2
   Section2(point, c, nn, w, ll, nl);
 #else
@@ -574,17 +577,17 @@ static void Section(Point point, scalar c, vector nn,
 // it_: number of iterations
 // Output:
 // appends positions and attraction points to csv if a is not null
-static double GetLinesCurv(coord* ll, int nl, double delta, const Trans* w,
-                           Partstr conf, double* res_, int* it_,
-                           double hash) {
+static double GetLinesCurv(
+    coord* ll, int nl, double delta, const Trans* w, Partstr conf, double* res_,
+    int* it_, double hash) {
   if (nl >= 4) { // require at least two segments
     const int Np = conf.Np;
     const double eta = conf.eta;
     const int itermax = conf.itermax;
     const double hp = conf.Hp * delta / (Np - 1);
 
-    coord xx[kMaxNp];  // positions
-    coord ff[kMaxNp];  // forces
+    coord xx[kMaxNp]; // positions
+    coord ff[kMaxNp]; // forces
     coord p = {0., 0, 0.};
     double ph = 0.;
     double th = 0.;
@@ -611,8 +614,8 @@ static double GetLinesCurv(coord* ll, int nl, double delta, const Trans* w,
 
 // Curvature in cross section by plane through a.n,a.t and point a.o
 // point: target cell
-static double GetCrossCurv(Point point, scalar c, vector nn,
-                           Trans w, Partstr conf) {
+static double GetCrossCurv(
+    Point point, scalar c, vector nn, Trans w, Partstr conf) {
   coord ll[kMaxSection];
   int nl = 0;
   Section(point, c, nn, w, ll, &nl);
@@ -636,7 +639,7 @@ static double GetCrossCurv(Point point, scalar c, vector nn,
 // s: index of cross sections
 // Ns: number of cross sections
 static Trans GetSectionTrans(int s, int Ns, Trans b) {
-  const double g = PI *  s / Ns;
+  const double g = PI * s / Ns;
   Trans w = b;
   w.t = Add(Mul(b.t, cos(g)), Mul(b.u, sin(g)));
   w.u = Cross(w.t, w.n);
@@ -644,11 +647,11 @@ static Trans GetSectionTrans(int s, int Ns, Trans b) {
 }
 
 // Mean curvature over multiple cross sections by planes rotated around b.n
-static double GetMeanCurv(Point point, scalar c, vector nn,
-                          Trans b, Partstr conf) {
+static double GetMeanCurv(
+    Point point, scalar c, vector nn, Trans b, Partstr conf) {
   double ksum = 0;
   const int Ns = conf.Ns;
-  for (int s = 0; s < Ns; ++ s) {
+  for (int s = 0; s < Ns; ++s) {
     Trans w = GetSectionTrans(s, Ns, b);
     ksum += GetCrossCurv(point, c, nn, w, conf);
   }
@@ -674,7 +677,7 @@ static Trans GetPointTrans(Point point, scalar c, vector nn) {
 }
 
 static void CalcNormal(scalar c, vector nn) {
-  foreach() {
+  foreach () {
     coord n = Mycs(point, c);
     nn.x[] = n.x;
     nn.y[] = n.y;
@@ -692,15 +695,12 @@ static double partstr(Point point, scalar c, vector nn) {
 }
 
 #ifndef NOBA
-trace
-cstats curvature_partstr(struct Curvature p)
-{
+trace cstats curvature_partstr(struct Curvature p) {
   scalar c = p.c, kappa = p.kappa;
   double sigma = p.sigma ? p.sigma : 1.;
   int sh = 0, sf = 0, sa = 0, sc = 0;
-  vector ch = c.height, h = automatic (ch);
-  if (!ch.x.i)
-    heights (c, h);
+  vector ch = c.height, h = automatic(ch);
+  if (!ch.x.i) heights(c, h);
 
 #if TREE
   kappa.refine = kappa.prolongation = curvature_prolongation;
@@ -708,48 +708,46 @@ cstats curvature_partstr(struct Curvature p)
 #endif
 
   scalar k[];
-  scalar_clone (k, kappa);
+  scalar_clone(k, kappa);
 
   vector nn[];
   CalcNormal(c, nn);
 
   boundary({nn});
 
-  foreach(reduction(+:sh) reduction(+:sc)) {
-    if (!interfacial (point, c)) {
+  foreach (reduction(+ : sh) reduction(+ : sc)) {
+    if (!interfacial(point, c)) {
       k[] = nodata;
 #ifndef PS_nohf
-    } else if ((k[] = height_curvature (point, c, h)) != nodata) {
+    } else if ((k[] = height_curvature(point, c, h)) != nodata) {
       sh++;
 #endif
-    } else  {
+    } else {
       k[] = partstr(point, c, nn);
       sc++;
     }
   }
-  boundary ({k});
+  boundary({k});
 
   foreach () {
     double kf = k[];
     if (kf == nodata)
       kappa[] = nodata;
     else if (p.add)
-      kappa[] += sigma*kf;
+      kappa[] += sigma * kf;
     else
-      kappa[] = sigma*kf;
+      kappa[] = sigma * kf;
   }
-  boundary ({kappa});
+  boundary({kappa});
 
   kPartstr.sh = sh;
   kPartstr.sc = sc;
   return (cstats){sh, sf, sa, sc};
 }
 
-trace
-cstats curvature_orig(struct Curvature p) {
+trace cstats curvature_orig(struct Curvature p) {
   return curvature(p);
 }
 #define curvature curvature_partstr
 
 #endif
-
