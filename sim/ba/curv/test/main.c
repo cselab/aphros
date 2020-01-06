@@ -52,7 +52,7 @@ int main() {
 #endif
 
   {
-    FILE* q = fopen("ok", "w");
+    FILE* q = fopen("curv", "w");
     foreach() {
       if (vf[] > 0. && vf[] < 1.) {
         if (Good(b, x, y, z, Delta))

@@ -1,5 +1,7 @@
 #!/bin/bash -l
 
+set -eu
+
 make -C ../../ install
 ap-conf . -DEXTRA='-grid=multigrid3D -DCURV_PARTSTR'
 make
