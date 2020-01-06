@@ -459,7 +459,7 @@ static coord Mycs(Point point, scalar c) {
 // Cross-section of 2D interface from neighbor cells in plane coordinates.
 // point: center cell
 // c: volume fraction
-// a: transformation
+// w: transformation
 // ll: buffer for at least kMaxSection more points
 // *nl: current size of ll
 // Output:
@@ -559,6 +559,16 @@ static void Section3(
   }
 }
 
+// Cross-section of interface from neighbor cells in plane coordinates.
+// point: center cell
+// c: volume fraction
+// w: transformation
+// ll: buffer for at least kMaxSection more points
+// *nl: current size of ll
+// Output:
+// ll: appended by local coordinates of endpoints,
+//     p = o + t*l.x  + t*l.y ,  [pa,pb] is one line segment
+// *nl: new size of ll
 static void Section(
     Point point, scalar c, vector nn, Trans w, coord* ll, int* nl) {
 #if dimension == 2
@@ -571,16 +581,18 @@ static void Section(
 // Curvature of a set line segments.
 // ll: flat array endpoints of line segments
 // nl: size of ll
+// delta: cell size
 // Output:
 // res_: difference at last iteration
 // it_: number of iterations
 static double GetLinesCurv(
-    coord* ll, int nl, double delta, Partstr conf, double* res_, int* it_) {
+    coord* ll, int nl, double delta, const Partstr* conf, double* res_,
+    int* it_) {
   if (nl >= 4) { // require at least two segments
-    const int Np = conf.Np;
-    const double eta = conf.eta;
-    const int itermax = conf.itermax;
-    const double hp = conf.Hp * delta / (Np - 1);
+    const int Np = conf->Np;
+    const double eta = conf->eta;
+    const int itermax = conf->itermax;
+    const double hp = conf->Hp * delta / (Np - 1);
 
     coord xx[kMaxNp]; // positions
     coord ff[kMaxNp]; // forces
@@ -596,7 +608,7 @@ static double GetLinesCurv(
 
       k = Curv(hp, th);
       res = Iter(&p, &ph, &th, Np, hp, ff, xx);
-      if (res / (eta * delta) < conf.eps) {
+      if (res / (eta * delta) < conf->eps) {
         break;
       }
     }
@@ -608,10 +620,13 @@ static double GetLinesCurv(
   return 0;
 }
 
-// Curvature in cross section by plane through a.n,a.t and point a.o
+// Curvature of cross section by plane through a.n,a.t and point a.o
 // point: target cell
+// c: volume fraction
+// nn: normal
+// w: transformation to local coordinates
 static double GetCrossCurv(
-    Point point, scalar c, vector nn, Trans w, Partstr conf) {
+    Point point, scalar c, vector nn, Trans w, const Partstr* conf) {
   coord ll[kMaxSection];
   int nl = 0;
   Section(point, c, nn, w, ll, &nl);
@@ -633,9 +648,9 @@ static Trans GetSectionTrans(int s, int Ns, Trans b) {
 
 // Mean curvature over multiple cross sections by planes rotated around b.n
 static double GetMeanCurv(
-    Point point, scalar c, vector nn, Trans b, Partstr conf) {
+    Point point, scalar c, vector nn, Trans b, const Partstr* conf) {
   double ksum = 0;
-  const int Ns = conf.Ns;
+  const int Ns = conf->Ns;
   for (int s = 0; s < Ns; ++s) {
     Trans w = GetSectionTrans(s, Ns, b);
     ksum += GetCrossCurv(point, c, nn, w, conf);
@@ -670,9 +685,9 @@ static void CalcNormal(scalar c, vector nn) {
   }
 }
 
-static double partstr(Point point, scalar c, vector nn) {
+static double partstr(Point point, scalar c, vector nn, const Partstr* conf) {
   Trans b = GetPointTrans(point, c, nn);
-  double k = -GetMeanCurv(point, c, nn, b, kPartstr);
+  double k = -GetMeanCurv(point, c, nn, b, conf);
 #if dimension == 3
   k *= 2;
 #endif
@@ -707,7 +722,7 @@ trace cstats curvature_partstr(struct Curvature p) {
       sh++;
 #endif
     } else {
-      k[] = partstr(point, c, nn);
+      k[] = partstr(point, c, nn, &kPartstr);
       sc++;
     }
   }
