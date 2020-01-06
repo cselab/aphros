@@ -5,18 +5,23 @@
 #include ".u/curv/select.h"
 #include ".u/io/io.h"
 #include ".u/bashape.h"
+#include ".u/bah5.h"
 
 #define myassert(EX) (void)((EX) || (__assert (#EX, __FILE__, __LINE__),0))
+
+double levelset(double x, double y, double z) {
+  double r = sqrt(sq(x - 0.5) + sq(y - 0.5) + sq(z - 0.5));
+  r *= 1 + 0.3 * sin(x * 10) * sin(y * 15);
+  return r - 0.3;
+}
 
 int main() {
   Shape b;
   init_grid(32);
-  FILE* fb = fopen("b.dat", "r");
-  b = Read(fb);
-  fclose(fb);
   origin (0.,0.,0.);
   scalar vf[];
-  CreateField(b, vf);
+  fraction(vf, levelset(x, y, z));
+
   scalar k[];
 #ifdef CURV_PARTSTR
 #ifdef PS_Np
@@ -60,5 +65,9 @@ int main() {
       }
     }
     fclose(q);
+  }
+
+  {
+    bah5_list({vf}, "%s");
   }
 }
