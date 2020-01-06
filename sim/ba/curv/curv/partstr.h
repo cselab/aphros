@@ -14,8 +14,8 @@ typedef struct {
   double eps; // threshold for convergence
   int itermax; // maximum number of iterations
   double eta; // relaxation factor
-  int sh; // number of cells with height functions
-  int sc; // number of cells with particles
+  int stat_sh; // number of cells with height functions
+  int stat_sc; // number of cells with particles
 } Partstr;
 
 const int kMaxSection = 125 * 2; // maximum number of endpoints
@@ -30,9 +30,7 @@ const int kMaxNp = 31; // maximum value of kPartstr.Np
 #else
 #define kNs 3
 #endif
-
 static Partstr kPartstr = {7, kNs, 4., 1e-5, 20, 0.5};
-
 #undef kNs
 
 // Unit vector at angle ph.
@@ -433,7 +431,7 @@ static int GetNcInter(scalar c) {
 }
 
 // Set z-copmonent to zero if 2D.
-static void A2(coord* p) {
+static void SetZeroZ(coord* p) {
   (void)p;
 #if dimension == 2
   p->z = 0;
@@ -444,7 +442,7 @@ static int Facets(coord m, double alpha, coord* pp) {
 #if dimension == 2
   int nf = facets(m, alpha, pp);
   for (int i = 0; i < nf; ++i) {
-    A2(&pp[i]);
+    SetZeroZ(&pp[i]);
   }
   return nf;
 #else
@@ -454,7 +452,7 @@ static int Facets(coord m, double alpha, coord* pp) {
 
 static coord Mycs(Point point, scalar c) {
   coord m = mycs(point, c);
-  A2(&m);
+  SetZeroZ(&m);
   return m;
 }
 
@@ -573,11 +571,11 @@ static void Section(
 // Curvature of a set line segments.
 // ll: flat array endpoints of line segments
 // nl: size of ll
+// Output:
 // res_: difference at last iteration
 // it_: number of iterations
 static double GetLinesCurv(
-    coord* ll, int nl, double delta, const Trans* w, Partstr conf, double* res_,
-    int* it_, double hash) {
+    coord* ll, int nl, double delta, Partstr conf, double* res_, int* it_) {
   if (nl >= 4) { // require at least two segments
     const int Np = conf.Np;
     const double eta = conf.eta;
@@ -619,16 +617,7 @@ static double GetCrossCurv(
   Section(point, c, nn, w, ll, &nl);
   double res;
   int it;
-#if dimension == 2
-  double hash = 1000 * point.j + point.i;
-#else
-  double hash = 1000 * (1000 * point.k + point.j) + point.i;
-#endif
-#else
-  static double hash = 0;
-  hash += 1.;
-  return GetLinesCurv(
-      ll, nl, Delta, conf, &res, &it, hash);
+  return GetLinesCurv(ll, nl, Delta, conf, &res, &it);
 }
 
 // Transformation b rotated at angle.
@@ -662,7 +651,7 @@ static Trans GetPointTrans(Point point, scalar c, vector nn) {
 
   coord o;
   plane_area_center(n, alpha, &o);
-  A2(&o);
+  SetZeroZ(&o);
   coord rc = {x, y, z};
   o = Add(rc, Mul(o, Delta));
 
@@ -735,8 +724,8 @@ trace cstats curvature_partstr(struct Curvature p) {
   }
   boundary({kappa});
 
-  kPartstr.sh = sh;
-  kPartstr.sc = sc;
+  kPartstr.stat_sh = sh;
+  kPartstr.stat_sc = sc;
   return (cstats){sh, sf, sa, sc};
 }
 

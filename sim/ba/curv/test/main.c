@@ -7,8 +7,6 @@
 #include ".u/bashape.h"
 #include ".u/bah5.h"
 
-#define myassert(EX) (void)((EX) || (__assert (#EX, __FILE__, __LINE__),0))
-
 double levelset(double x, double y, double z) {
   double r = sqrt(sq(x - 0.5) + sq(y - 0.5) + sq(z - 0.5));
   r *= 1 + 0.3 * sin(x * 10) * sin(y * 15);
@@ -51,19 +49,13 @@ int main() {
   boundary({vf});
 
   curvature(vf, k);
-#if dimension == 2
-  double kc = 1.;
-#elif dimension == 3
-  double kc = 0.5;
-#endif
-
 
   {
     FILE* q = fopen("curv", "w");
     foreach() {
       if (vf[] > 0. && vf[] < 1.) {
         if (Good(b, x, y, z, Delta))
-          fprintf(q, "%.16g\n", k[] * kc);
+          fprintf(q, "%.16g\n", k[]);
       }
     }
     fclose(q);

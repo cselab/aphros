@@ -1,4 +1,4 @@
-/*
+
 
     if (w) {
       coord tt[kMaxNp];
@@ -13,8 +13,6 @@
       AppendCsv(t * 100, Np, xx, "part", hash, -k);
       AppendCsv(t * 100, Np, tt, "attr", hash, -k);
     }
-
-*/
 
 // Writes legacy vtk polydata
 // fn: path
