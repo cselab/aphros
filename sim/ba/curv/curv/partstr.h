@@ -699,7 +699,7 @@ trace cstats curvature_partstr(struct Curvature p) {
 
   boundary({nn});
 
-  foreach (reduction(+ : sh) reduction(+ : sc)) {
+  foreach (reduction(+:sh) reduction(+:sc)) {
     if (!interfacial(point, c)) {
       k[] = nodata;
 #ifndef PS_nohf
